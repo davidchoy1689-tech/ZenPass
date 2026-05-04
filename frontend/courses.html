@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>ZenPass 課程列表</title>
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--orange:#FF6B35;--orange-light:#FFF0E8;--dark:#1A1A2E;--dark2:#2D2D44;--gray:#6B7280;--gray-light:#E5E7EB;--gray-bg:#F3F4F6;--white:#FFF;--green:#059669;--red:#EF4444;--radius:12px;--shadow:0 2px 8px rgba(0,0,0,.08)}
+body{font-family:-apple-system,'Noto Sans TC',sans-serif;background:var(--gray-bg);color:var(--dark);min-height:100vh}
+.header{background:linear-gradient(135deg,#1A1A2E,#2D2D44);color:var(--white);padding:40px 20px;text-align:center}
+.header h1{font-size:28px;margin-bottom:4px}.header h1 span{color:var(--orange)}
+.header p{color:rgba(255,255,255,.6);font-size:14px}
+.container{max-width:1000px;margin:0 auto;padding:20px}
+.search-bar{display:flex;gap:10px;margin-bottom:20px}
+.search-bar input{flex:1;padding:12px 16px;border:1px solid var(--gray-light);border-radius:8px;font-size:14px;font-family:inherit}
+.search-bar input:focus{outline:none;border-color:var(--orange)}
+.courses-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px}
+.course-card{background:var(--white);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow);cursor:pointer;transition:all .2s;border:2px solid transparent}
+.course-card:hover{transform:translateY(-2px);box-shadow:0 4px 16px rgba(0,0,0,.12);border-color:var(--orange)}
+.course-card .icon{font-size:36px;margin-bottom:8px}
+.course-card h3{font-size:16px;margin-bottom:4px}
+.course-card p{font-size:13px;color:var(--gray);line-height:1.5}
+.course-card .price{font-size:18px;font-weight:800;color:var(--orange);margin-top:10px}
+.course-card .price small{font-size:12px;font-weight:400;color:var(--gray)}
+.loading{text-align:center;padding:40px;color:var(--gray)}
+.modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:100;padding:20px}
+.modal{background:var(--white);border-radius:16px;padding:28px;width:500px;max-width:100%;max-height:90vh;overflow-y:auto}
+.modal h2{font-size:20px;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.modal .info-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--gray-light);font-size:14px}
+.modal .info-row .label{color:var(--gray)}
+.modal .info-row .value{font-weight:600}
+.form-group{margin-bottom:14px}
+.form-group label{display:block;font-size:13px;font-weight:600;color:var(--dark);margin-bottom:5px}
+.form-group select,.form-group input{width:100%;padding:10px 12px;border:1px solid var(--gray-light);border-radius:8px;font-size:14px;font-family:inherit}
+.form-group select:focus,.form-group input:focus{outline:none;border-color:var(--orange)}
+.btn{background:var(--orange);color:var(--white);border:none;padding:12px 24px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;width:100%;transition:opacity .2s}
+.btn:hover{opacity:.88}.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-close{background:var(--gray-light);color:var(--dark);margin-bottom:10px}
+.msg{text-align:center;margin-top:10px;font-size:13px;padding:8px;border-radius:6px}
+.msg.success{background:#ECFDF5;color:var(--green)}
+.msg.error{background:#FEF2F2;color:var(--red)}
+.spinner{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-right:6px}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media(max-width:600px){.courses-grid{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+
+<div class="header">
+<h1>Z<span>P</span> 運動課程</h1>
+<p>選擇你嘅運動課程，即刻預約</p>
+</div>
+
+<div class="container">
+<div class="search-bar">
+<input type="text" id="searchInput" placeholder="🔍 搜尋課程..." oninput="filterCourses()">
+<button class="btn" style="width:auto;padding:12px 20px" onclick="window.location.href='login.html'">登入</button>
+</div>
+<div id="userInfo" style="display:none;background:var(--white);border-radius:var(--radius);padding:12px 16px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;font-size:14px">
+<span id="userName"></span>
+<button class="btn" style="width:auto;padding:6px 14px;font-size:12px" onclick="logout()">登出</button>
+</div>
+<div class="courses-grid" id="coursesGrid">
+<div class="loading">載入中...</div>
+</div>
+</div>
+
+<!-- Booking Modal -->
+<div id="bookingModal" class="modal-overlay" style="display:none">
+<div class="modal" id="modalContent">
+</div>
+</div>
+
+<script>
+var SB_URL = 'https://pqgrkeavopksdttrzdqc.supabase.co';
+var SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBxZ3JrZWF2b3Brc2R0dHJ6ZHFjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc4MDM0NzgsImV4cCI6MjA5MzM3OTQ3OH0.t8-oSOXX37fA_kSBZoKvw8ymvuT-4R-xQwMEE8ETZIc';
+var sb = supabase.createClient(SB_URL, SB_KEY);
+var allCourses = [];
+var coaches = {};
+var coachList = [];
+var currentUser = null;
+var currentStudentId = null;
+
+function $(id){return document.getElementById(id)}
+
+async function init(){
+  // Check session
+  var sess = await sb.auth.getSession();
+  currentUser = sess.data.session?.user || null;
+  
+  if(currentUser){
+    var {data:p} = await sb.from('profiles').select('*').eq('id',currentUser.id).single();
+    if(p){
+      $('userInfo').style.display = 'flex';
+      $('userName').textContent = '👤 '+p.full_name+' ('+(p.role||'')+')';
+      if(p.role === 'student' || p.role === 'admin'){
+        var {data:s} = await sb.from('students').select('id').eq('profile_id',currentUser.id).single();
+        if(s) currentStudentId = s.id;
+      }
+    }
+  }
+  
+  // Load coaches
+  var {data:cList} = await sb.from('coaches').select('id,profile_id,rate_per_session,speacialties');
+  if(cList){
+    var pIds = cList.map(function(c){ return c.profile_id; });
+    var {data:profiles} = await sb.from('profiles').select('id,full_name').in('id',pIds);
+    var pMap = {}; (profiles||[]).forEach(function(p){ pMap[p.id] = p.full_name; });
+    cList.forEach(function(c){
+      coaches[c.id] = {name: pMap[c.profile_id]||'教練', rate: c.rate_per_session||300};
+      coachList.push({id:c.id, name: pMap[c.profile_id]||'教練', rate: c.rate_per_session||300});
+    });
+  }
+  
+  // Load courses
+  var {data} = await sb.from('courses').select('*').eq('is_active',true);
+  allCourses = data||[];
+  renderCourses(allCourses);
+}
+
+function renderCourses(courses){
+  var grid = $('coursesGrid');
+  if(!courses.length){
+    grid.innerHTML = '<div class="loading">📭 暫無課程</div>'; return;
+  }
+  var iconMap = { '芬蘭木柱':'🎯','地板冰壺':'🥌','布袋球':'🏐','穿雲箭':'🏹','北歐式健步行':'🏃','圓網球':'🎾','柔力球':'🏓','Flexi-Bar':'🏋️','身心伸展':'🧘','兒童健體':'👶' };
+  grid.innerHTML = courses.map(function(c){
+    var icon = iconMap[c.name_zh] || '🏅';
+    return '<div class="course-card" onclick="openBooking(\''+c.id+'\')">'+
+      '<div class="icon">'+icon+'</div>'+
+      '<h3>'+c.name_zh+'</h3>'+
+      (c.description ? '<p>'+c.description.substring(0,60)+'</p>' : '<p style="color:var(--gray-light)">&nbsp;</p>')+
+      '<div class="price">HK$300 <small>/堂起</small></div></div>';
+  }).join('');
+}
+
+function filterCourses(){
+  var q = $('searchInput').value.trim().toLowerCase();
+  var filtered = q ? allCourses.filter(function(c){ return c.name_zh.toLowerCase().includes(q) || (c.description||'').toLowerCase().includes(q); }) : allCourses;
+  renderCourses(filtered);
+}
+
+function openBooking(courseId){
+  var course = allCourses.find(function(c){ return c.id === courseId; });
+  if(!course) return;
+  
+  var coachesHtml = coachList.length
+    ? coachList.map(function(c){ return '<option value="'+c.id+'">'+c.name+' (HK$'+c.rate+'/堂)</option>'; }).join('')
+    : '<option value="">暫無教練</option>';
+  
+  $('modalContent').innerHTML =
+    '<button class="btn btn-close" onclick="closeModal()">✕ 關閉</button>'+
+    '<h2>📅 預約 '+course.name_zh+'</h2>'+
+    (course.description ? '<p style="color:var(--gray);font-size:14px;margin-bottom:16px">'+course.description+'</p>' : '')+
+    (currentUser ? '' : '<div class="msg" style="background:#FFFBEB;color:#D97706;margin-bottom:12px">⚠️ 請先<a href="login.html" style="color:var(--orange)">登入/註冊</a></div>')+
+    '<div class="form-group"><label>揀教練</label><select id="bkCoach">'+coachesHtml+'</select></div>'+
+    '<div class="form-group"><label>日期</label><input type="date" id="bkDate" min="'+new Date().toISOString().substring(0,10)+'"></div>'+
+    '<div class="form-group"><label>時間</label><select id="bkTime">'+
+      '<option value="09:00">09:00 - 10:00</option><option value="10:00">10:00 - 11:00</option>'+
+      '<option value="11:00">11:00 - 12:00</option><option value="14:00">14:00 - 15:00</option>'+
+      '<option value="15:00">15:00 - 16:00</option><option value="16:00">16:00 - 17:00</option>'+
+      '<option value="17:00">17:00 - 18:00</option><option value="18:00">18:00 - 19:00</option>'+
+      '<option value="19:00">19:00 - 20:00</option>'+
+    '</select></div>'+
+    '<div style="background:var(--gray-bg);border-radius:8px;padding:12px;margin-bottom:14px;font-size:13px">'+
+      '<strong>預計費用：</strong>HK$300（到場付款）</div>'+
+    '<button class="btn" onclick="confirmBooking(\''+courseId+'\')" '+(currentUser?'':'disabled')+'>✅ 確認預約</button>'+
+    '<div id="bkMsg"></div>';
+  
+  $('bookingModal').style.display = 'flex';
+}
+
+function closeModal(){
+  $('bookingModal').style.display = 'none';
+}
+
+async function confirmBooking(courseId){
+  if(!currentUser){ closeModal(); window.location.href='login.html'; return; }
+  if(!currentStudentId){
+    $('bkMsg').className = 'msg error';
+    $('bkMsg').textContent = '❌ 只限學生預約，請用學生帳號登入';
+    return;
+  }
+  
+  var coachId = $('bkCoach').value;
+  var date = $('bkDate').value;
+  var time = $('bkTime').value;
+  
+  if(!coachId||!date){ $('bkMsg').className = 'msg error'; $('bkMsg').textContent = '請選擇教練和日期'; return; }
+  
+  var btn = document.querySelector('#modalContent .btn:last-of-type');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>處理中...';
+  
+  // Check if slot available
+  var {data:existing} = await sb.from('bookings').select('id').eq('coach_id',coachId).eq('session_date',date).eq('start_time',time+':00').in('status',['pending','confirmed']);
+  
+  if(existing && existing.length){
+    $('bkMsg').className = 'msg error';
+    $('bkMsg').textContent = '❌ 該時段已被預約，請選擇其他時間';
+    btn.disabled = false; btn.textContent = '✅ 確認預約';
+    return;
+  }
+  
+  var {error} = await sb.from('bookings').insert({
+    course_id: courseId,
+    coach_id: coachId,
+    student_id: currentStudentId,
+    session_date: date,
+    start_time: time+':00',
+    end_time: (parseInt(time)+1)+':00',
+    duration_minutes: 60,
+    amount: 300,
+    status: 'pending',
+    notes: '學生自助預約'
+  });
+  
+  if(error){
+    $('bkMsg').className = 'msg error';
+    $('bkMsg').textContent = '❌ 預約失敗：'+error.message;
+    btn.disabled = false; btn.textContent = '✅ 確認預約';
+  } else {
+    $('bkMsg').className = 'msg success';
+    $('bkMsg').textContent = '✅ 預約成功！';
+    btn.textContent = '✅ 已預約';
+    setTimeout(closeModal, 2000);
+  }
+}
+
+function logout(){
+  sb.auth.signOut().then(function(){ window.location.reload(); });
+}
+
+// Close modal on overlay click
+document.getElementById('bookingModal').addEventListener('click', function(e){
+  if(e.target === this) closeModal();
+});
+
+init();
+</script>
+</body>
+</html>

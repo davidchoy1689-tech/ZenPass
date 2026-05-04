@@ -1,0 +1,2352 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#FF6B35">
+    <title>教練入口 — ZenPass 禪流</title>
+    
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        :root { --orange-500:#FF6B35; --orange-400:#FF8555; --orange-100:#FFF0E8; --orange-50:#FFF8F4; --dark-900:#1A1A2E; --dark-800:#2D2D44; --dark-700:#3D3D5A; --gray-200:#E5E7EB; --gray-300:#D1D5DB; --gray-100:#F3F4F6; --gray-50:#F9FAFB; --white:#FFFFFF; --green-500:#059669; --red-500:#EF4444; --blue-500:#3B82F6; --radius-sm:8px; --radius-md:12px; --radius-lg:16px; --radius-xl:24px; --shadow-sm:0 1px 3px rgba(0,0,0,0.08); --shadow-md:0 4px 12px rgba(0,0,0,0.1); --font-zh:'Noto Sans TC',sans-serif; --max-width:480px; --nav-height:64px; }
+        body { font-family:var(--font-zh); background:var(--gray-50); color:var(--dark-900); max-width:var(--max-width); margin:0 auto; padding-bottom:calc(var(--nav-height) + 80px); }
+        .header { background:linear-gradient(135deg,var(--dark-900),var(--dark-800)); color:var(--white); padding:20px; }
+        .header-top { display:flex; align-items:center; gap:12px; margin-bottom:4px; }
+        .header a { color:var(--white); text-decoration:none; font-size:20px; }
+        .header h1 { font-size:20px; font-weight:700; }
+        .header .sub-info { font-size:12px; opacity:.7; margin-left:30px; display:flex; gap:16px; }
+        .tabs { display:flex; gap:0; background:var(--white); border-bottom:1px solid var(--gray-200); position:sticky; top:0; z-index:9; }
+        .tab { flex:1; padding:12px; text-align:center; font-size:13px; font-weight:500; color:var(--gray-300); cursor:pointer; border-bottom:2px solid transparent; transition:all .2s; }
+        .tab.active { color:var(--orange-500); border-bottom-color:var(--orange-500); font-weight:700; }
+        .section { padding:16px; display:none; }
+        .section.active { display:block; }
+        .stats-row { display:flex; gap:12px; margin-bottom:16px; }
+        .stat-box { flex:1; background:var(--white); border-radius:var(--radius-md); padding:14px; text-align:center; box-shadow:var(--shadow-sm); }
+        .stat-box .num { font-size:22px; font-weight:800; color:var(--orange-500); }
+        .stat-box .label { font-size:11px; color:var(--dark-700); margin-top:2px; }
+        .card { background:var(--white); border-radius:var(--radius-lg); padding:20px; margin-bottom:12px; box-shadow:var(--shadow-sm); }
+        .card-title { font-size:15px; font-weight:700; margin-bottom:16px; display:flex; align-items:center; gap:8px; }
+        .card-title .count { font-size:12px; font-weight:400; color:var(--dark-700); margin-left:4px; }
+        .schedule-scroll { display:flex; gap:12px; overflow-x:auto; padding-bottom:8px; }
+        .schedule-card { flex:0 0 170px; background:var(--orange-50); border-radius:var(--radius-md); padding:14px; border:1px solid var(--orange-100); }
+        .schedule-card .s-date { font-size:13px; font-weight:600; color:var(--orange-500); }
+        .schedule-card .s-time { font-size:12px; color:var(--dark-700); margin:4px 0; }
+        .schedule-card .s-title { font-size:14px; font-weight:600; }
+        .schedule-card .s-students { font-size:12px; color:var(--green-500); margin-top:4px; }
+        .schedule-card .s-earn { font-size:13px; font-weight:700; color:var(--dark-900); margin-top:4px; }
+        .class-item { padding:14px 0; border-bottom:1px solid var(--gray-100); }
+        .class-item:last-child { border-bottom:none; }
+        .class-row { display:flex; justify-content:space-between; align-items:center; }
+        .class-name { font-size:14px; font-weight:600; }
+        .class-meta { font-size:11px; color:var(--dark-700); margin-top:2px; }
+        .class-status { font-size:11px; padding:3px 10px; border-radius:10px; font-weight:600; }
+        .class-status.active { background:#ECFDF5; color:var(--green-500); }
+        .class-status.draft { background:var(--gray-100); color:var(--dark-700); }
+        .class-status.archived { background:#FEF2F2; color:var(--red-500); }
+        .toggle-btn { background:var(--orange-100); border:none; padding:4px 10px; border-radius:6px; font-size:11px; cursor:pointer; font-family:var(--font-zh); color:var(--orange-500); }
+        .toggle-btn:hover { background:var(--orange-500); color:var(--white); }
+        .month-income { font-size:24px; font-weight:800; color:var(--dark-900); }
+        .month-income span { font-size:14px; font-weight:400; color:var(--dark-700); }
+        .income-table { width:100%; font-size:13px; }
+        .income-table th { text-align:left; padding:8px 0; font-weight:600; color:var(--dark-700); border-bottom:1px solid var(--gray-200); }
+        .income-table td { padding:8px 0; border-bottom:1px solid var(--gray-100); }
+        .btn-primary { width:100%; padding:14px; background:var(--orange-500); color:var(--white); border:none; border-radius:var(--radius-sm); font-size:15px; font-weight:700; cursor:pointer; font-family:var(--font-zh); }
+        .btn-primary:hover { background:#E55A2B; }
+        .btn-secondary { width:100%; padding:14px; background:var(--white); color:var(--orange-500); border:1.5px solid var(--orange-500); border-radius:var(--radius-sm); font-size:15px; font-weight:600; cursor:pointer; font-family:var(--font-zh); margin-top:8px; }
+        .btn-secondary:hover { background:var(--orange-100); }
+        .modal-overlay { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:200; display:none; justify-content:center; align-items:center; padding:20px; }
+        .modal-overlay.show { display:flex; }
+        .modal { background:var(--white); border-radius:var(--radius-xl); padding:24px; width:100%; max-width:400px; max-height:80vh; overflow-y:auto; }
+        .modal h3 { font-size:18px; font-weight:700; margin-bottom:16px; }
+        .modal .form-group { margin-bottom:14px; }
+        .modal label { display:block; font-size:12px; font-weight:600; margin-bottom:4px; color:var(--dark-700); }
+        .modal input,.modal select,.modal textarea { width:100%; padding:10px 12px; border:1px solid var(--gray-200); border-radius:var(--radius-sm); font-size:14px; font-family:var(--font-zh); }
+        .modal textarea { min-height:80px; resize:vertical; }
+        .modal .btn-row { display:flex; gap:12px; margin-top:20px; }
+        .modal .btn-row button { flex:1; padding:12px; border-radius:var(--radius-sm); font-size:14px; font-weight:600; cursor:pointer; font-family:var(--font-zh); }
+        .modal .btn-save { background:var(--orange-500); color:var(--white); border:none; }
+        .modal .btn-cancel { background:var(--gray-100); color:var(--dark-700); border:none; }
+        .modal .btn-save:hover { background:#E55A2B; }
+        .modal .btn-cancel:hover { background:var(--gray-200); }
+        .revenue-chart { height:160px; display:flex; align-items:flex-end; gap:8px; padding:12px 0; }
+        .chart-bar { flex:1; background:var(--orange-100); border-radius:6px 6px 0 0; position:relative; display:flex; flex-direction:column; align-items:center; min-height:8px; transition:height .3s; }
+        .chart-bar .bar-val { font-size:10px; font-weight:600; color:var(--orange-500); margin-bottom:4px; }
+        .chart-bar .bar-label { font-size:10px; color:var(--dark-700); margin-top:4px; }
+        .inc-calendar { background:var(--white); border-radius:var(--radius-sm); padding:12px; border:1px solid var(--gray-200); margin-bottom:12px; }
+        .inc-calendar .cal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+        .inc-calendar .cal-header button { background:none; border:none; font-size:18px; cursor:pointer; padding:4px 8px; color:var(--orange-500); }
+        .inc-calendar .cal-header .cal-title { font-weight:700; font-size:15px; }
+        .inc-calendar .cal-weekdays { display:grid; grid-template-columns:repeat(7,1fr); text-align:center; font-size:11px; color:var(--dark-700); margin-bottom:4px; }
+        .inc-calendar .cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:2px; }
+        .inc-calendar .cal-day { aspect-ratio:1; display:flex; flex-direction:column; align-items:center; justify-content:center; border-radius:6px; font-size:13px; cursor:pointer; position:relative; min-height:48px; padding:2px; }
+        .inc-calendar .cal-day:hover { background:var(--orange-100); transform:scale(1.05); }
+        .inc-calendar .cal-day.other-month { color:var(--gray-200); }
+        .inc-calendar .cal-day.today { font-weight:700; border:2px solid var(--orange-500); }
+        .inc-calendar .cal-day .cal-date { font-size:11px; font-weight:600; line-height:1.2; }
+        .inc-calendar .cal-day .cal-amt { font-size:10px; font-weight:700; line-height:1.2; }
+        .inc-calendar .cal-day .cal-amt.zenpass-only { color:#D97706; }
+        .inc-calendar .cal-day .cal-amt.private-only { color:#059669; }
+        .inc-calendar .cal-day .cal-amt.mixed { color:#7C3AED; }
+        .inc-calendar .cal-day .cal-source { display:flex; gap:3px; justify-content:center; }
+        .inc-calendar .cal-day .cal-source span { font-size:7px; padding:1px 4px; border-radius:3px; }
+        .inc-calendar .cal-day .cal-source .zp { background:#FEF3C7; color:#D97706; }
+        .inc-calendar .cal-day .cal-source .pv { background:#D1FAE5; color:#059669; }
+        .cal-detail { font-size:12px; padding:8px 0; border-bottom:1px solid var(--gray-100); display:flex; justify-content:space-between; }
+        .cal-detail:last-child { border-bottom:none; }
+        .bottom-nav { position:fixed; bottom:0; left:50%; transform:translateX(-50%); width:100%; max-width:var(--max-width); background:var(--white); border-top:1px solid var(--gray-200); display:flex; justify-content:space-around; padding:8px 0 calc(8px + env(safe-area-inset-bottom)); z-index:100; }
+        .nav-item { display:flex; flex-direction:column; align-items:center; text-decoration:none; color:var(--gray-300); font-size:10px; gap:2px; padding:4px 12px; }
+        .nav-item.active { color:var(--orange-500); }
+        .nav-item .nav-icon { font-size:22px; line-height:1; }
+        .toast-fixed { position:fixed; bottom:80px; left:50%; transform:translateX(-50%); padding:12px 20px; border-radius:12px; font-size:14px; font-weight:500; z-index:999; animation:fadeIn .3s; max-width:300px; text-align:center; box-shadow:0 4px 12px rgba(0,0,0,0.15); }
+        @keyframes fadeIn { from { opacity:0; transform:translateX(-50%) translateY(10px); } to { opacity:1; transform:translateX(-50%) translateY(0); } }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-top">
+            <a href="my.html">←</a>
+            <h1>🏋️ 教練入口</h1>
+        </div>
+        <div class="sub-info">
+            <span id="coach-name">Alex教練</span>
+            <span>🏫 HK Leisure & Fitness</span>
+        </div>
+    </div>
+
+    <div class="tabs">
+        <div class="tab active" onclick="switchTab('overview',this)">📊 總覽</div>
+        <div class="tab" onclick="switchTab('schedule',this)">📅 時間表</div>
+        <div class="tab" onclick="switchTab('classes',this)">📚 課程</div>
+        <div class="tab" onclick="switchTab('income',this)">💰 收入</div>
+        <div class="tab" onclick="switchTab('rollcall',this);return false;">📋 點名</div>
+        <div class="tab" onclick="switchTab('students',this)">👥 學生資產</div>
+        <div class="tab" onclick="switchTab('ratings',this)">⭐ 評分</div>
+    </div>
+
+    <!-- Overview Tab -->
+    <div id="tab-overview" class="section active">
+        <div class="stats-row">
+            <div class="stat-box"><div class="num" id="ov-month-classes">12</div><div class="label">📅 本月課堂</div></div>
+            <div class="stat-box"><div class="num" id="ov-students">68</div><div class="label">👥 學生</div></div>
+            <div class="stat-box"><div class="num" id="ov-rating">-</div><div class="label">⭐ 評分</div></div>
+            <div class="stat-box"><div class="num" id="ov-income">3,840</div><div class="label">💰 本月收入</div></div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">📅 近期待上課 <span class="count">(3)</span></div>
+            <div class="schedule-scroll" id="upcoming-classes"></div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">⚡ 快速操作</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                <div class="stat-box" onclick="openNewClassModal()" style="cursor:pointer;">
+                    <div class="num">➕</div>
+                    <div class="label">新增課程</div>
+                </div>
+                <div class="stat-box" onclick="switchTab('rollcall',document.querySelectorAll('.tab')[4])" style="cursor:pointer;">
+                    <div class="num">📋</div>
+                    <div class="label">點名系統</div>
+                </div>
+                <div class="stat-box" onclick="switchTab('classes',document.querySelectorAll('.tab')[2])" style="cursor:pointer;">
+                    <div class="num">📚</div>
+                    <div class="label">課程管理</div>
+                </div>
+                <div class="stat-box" onclick="showToast('學生管理即將上線','info')" style="cursor:pointer;">
+                    <div class="num">👥</div>
+                    <div class="label">學生列表</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Schedule Tab -->
+    <div id="tab-schedule" class="section">
+        <div class="card">
+            <div class="card-title">📅 時間管理</div>
+            <div class="schedule-scroll" id="schedule-list"></div>
+        </div>
+        <button class="btn-primary" onclick="openAddSlotModal()">➕ 新增時段</button>
+    </div>
+
+    <!-- Classes Tab -->
+    <div id="tab-classes" class="section">
+        <div class="card">
+            <div class="card-title">📚 我的課程 <span class="count" id="class-count">(3)</span></div>
+            <div id="my-classes-list"></div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn-primary" onclick="openNewClassModal()">➕ 新增課程</button>
+            <button class="btn-secondary" onclick="exportCoursesJSON()" style="padding:10px 16px;border:1px solid var(--orange-500);border-radius:var(--radius-sm);background:var(--white);color:var(--orange-500);font-weight:600;font-size:13px;cursor:pointer;">📦 匯出 courses.json</button>
+        </div>
+    </div>
+
+    <!-- Income Tab -->
+    <div id="tab-income" class="section">
+        <!-- Tab Switcher: ZenPass Income vs Private Income -->
+        <div style="display:flex;gap:0;margin-bottom:12px;border-radius:var(--radius-sm);overflow:hidden;border:1.5px solid var(--orange-500);">
+            <div id="inc-tab-zenpass" onclick="switchIncomeTab('zenpass')" style="flex:1;padding:10px;text-align:center;font-weight:600;font-size:13px;cursor:pointer;background:var(--orange-500);color:white;">🏪 ZenPass 課程收入</div>
+            <div id="inc-tab-private" onclick="switchIncomeTab('private')" style="flex:1;padding:10px;text-align:center;font-weight:600;font-size:13px;cursor:pointer;background:var(--white);color:var(--orange-500);">📝 私人收入</div>
+        </div>
+
+        <!-- ===== ZENPASS INCOME SECTION ===== -->
+        <div id="inc-zenpass-section">
+            <!-- Summary Cards Row -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
+                <div style="background:#FFFBEB;padding:14px;border-radius:var(--radius-sm);text-align:center;">
+                    <div style="font-size:11px;color:var(--dark-700);margin-bottom:4px;">📅 本月收入</div>
+                    <div style="font-size:22px;font-weight:800;color:#D97706;" id="inc-monthly">—</div>
+                </div>
+                <div style="background:#FEF2F2;padding:14px;border-radius:var(--radius-sm);text-align:center;">
+                    <div style="font-size:11px;color:var(--dark-700);margin-bottom:4px;">⏳ 待結算</div>
+                    <div style="font-size:22px;font-weight:800;color:#EF4444;" id="inc-pending">—</div>
+                </div>
+                <div style="background:#ECFDF5;padding:14px;border-radius:var(--radius-sm);text-align:center;">
+                    <div style="font-size:11px;color:var(--dark-700);margin-bottom:4px;">💰 累計收入</div>
+                    <div style="font-size:22px;font-weight:800;color:#059669;" id="inc-total">—</div>
+                </div>
+                <div style="background:#EFF6FF;padding:14px;border-radius:var(--radius-sm);text-align:center;">
+                    <div style="font-size:11px;color:var(--dark-700);margin-bottom:4px;">📊 本月課堂</div>
+                    <div style="font-size:22px;font-weight:800;color:#2563EB;" id="inc-classes">—</div>
+                </div>
+            </div>
+
+            <!-- Revenue Chart + Commission Info -->
+            <div class="card">
+                <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;">
+                    <span>📈 收入趨勢</span>
+                    <span style="font-size:11px;font-weight:400;color:var(--dark-700);" id="inc-commission"></span>
+                </div>
+                <div style="display:flex;gap:6px;margin-bottom:8px;">
+                    <button id="cal-toggle-chart" onclick="showIncomeView('chart')" style="flex:1;padding:6px;border:1.5px solid var(--orange-500);border-radius:6px;background:var(--orange-500);color:white;font-size:12px;font-weight:600;cursor:pointer;">📊 圖表</button>
+                    <button id="cal-toggle-calendar" onclick="showIncomeView('calendar')" style="flex:1;padding:6px;border:1.5px solid var(--gray-200);border-radius:6px;background:var(--white);color:var(--dark-700);font-size:12px;cursor:pointer;">📅 日曆</button>
+                </div>
+                <div style="background:#FFF8F4;padding:8px 12px;border-radius:6px;margin-bottom:10px;font-size:11px;color:var(--dark-700);display:flex;justify-content:space-between;">
+                    <span>每次預約：佣金比例可於<span style="font-weight:600;color:var(--orange-500);cursor:pointer;" onclick="window.open('admin.html','_blank')">⚙️ 後台設定</span>更改</span>
+                </div>
+                <div class="revenue-chart" id="revenue-chart">
+                    <div style="width:100%;text-align:center;color:var(--dark-700);font-size:13px;padding:40px 0;">載入中...</div>
+                </div>
+                <div id="inc-calendar-container" style="display:none;">
+                    <div class="inc-calendar" id="inc-calendar"></div>
+                    <div id="cal-day-detail" style="background:var(--white);border-radius:var(--radius-sm);padding:12px;border:1px solid var(--gray-200);margin-bottom:12px;display:none;">
+                        <div style="font-weight:600;font-size:14px;margin-bottom:8px;" id="cal-day-title"></div>
+                        <div id="cal-day-entries"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Transaction Records -->
+            <div class="card">
+                <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;">
+                    <span>📋 收入明細</span>
+                    <div style="display:flex;gap:6px;">
+                        <select id="inc-filter-status" onchange="loadIncomeData()" style="padding:4px 8px;border:1px solid var(--gray-200);border-radius:4px;font-size:11px;font-family:var(--font-zh);">
+                            <option value="">全部</option>
+                            <option value="pending">待結算</option>
+                            <option value="paid">已結算</option>
+                        </select>
+                        <button onclick="loadIncomeData()" style="padding:4px 8px;border:1px solid var(--gray-200);border-radius:4px;background:var(--white);font-size:11px;cursor:pointer;">🔄</button>
+                    </div>
+                </div>
+                <table class="income-table">
+                    <thead><tr><th>日期</th><th>課程</th><th>學生</th><th>總額(HK$)</th><th>佣金</th><th>教練收入</th><th>狀態</th></tr></thead>
+                    <tbody id="income-entries"></tbody>
+                </table>
+                <div id="inc-loading" style="text-align:center;padding:20px;color:var(--dark-700);font-size:13px;">載入中...</div>
+            </div>
+
+            <!-- Payout Section -->
+            <div class="card" id="payout-section" style="display:none;">
+                <div class="card-title">🏦 提現 (Payout)</div>
+                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                    <span style="font-size:13px;color:var(--dark-700);">可提現：</span>
+                    <strong style="font-size:18px;color:var(--orange-500);" id="inc-available">HK$0</strong>
+                    <input type="number" id="payout-amount" placeholder="金額 (最低HK$100)" style="flex:1;min-width:100px;padding:10px;border:1px solid var(--gray-200);border-radius:var(--radius-sm);font-size:14px;font-family:var(--font-zh);">
+                    <button onclick="requestPayout()" style="padding:10px 16px;background:var(--orange-500);color:white;border:none;border-radius:var(--radius-sm);font-weight:600;font-size:13px;cursor:pointer;">🏦 申請提現</button>
+                </div>
+                <div id="payout-history" style="margin-top:12px;font-size:12px;"></div>
+            </div>
+
+            <!-- Actions -->
+            <button class="btn-secondary" onclick="calcEarnings()" style="margin-top:8px;">🔄 重新計算收入</button>
+            <div style="display:flex;gap:8px;margin-top:8px;">
+                <button class="btn-secondary" onclick="exportIncomeReport()" style="flex:1;padding:12px;background:var(--orange-500);color:white;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:600;cursor:pointer;">📊 匯出收入報表 (Excel)</button>
+                <button class="btn-secondary" onclick="exportFullReport()" style="flex:1;padding:12px;background:var(--white);color:var(--orange-500);border:1.5px solid var(--orange-500);border-radius:var(--radius-sm);font-size:14px;font-weight:600;cursor:pointer;">📋 匯出完整報告 (Excel)</button>
+            </div>
+        </div>
+
+        <!-- ===== PRIVATE INCOME SECTION (hidden by default) ===== -->
+        <div id="inc-private-section" style="display:none;">
+            <!-- Add Private Income Form -->
+            <div class="card">
+                <div class="card-title">✏️ 新增私人收入</div>
+                <div style="display:flex;flex-direction:column;gap:8px;">
+                    <input type="date" id="pi-date" style="padding:10px;border:1px solid var(--gray-200);border-radius:var(--radius-sm);font-family:var(--font-zh);font-size:13px;">
+                    <input type="text" id="pi-desc" placeholder="收入描述 *" style="padding:10px;border:1px solid var(--gray-200);border-radius:var(--radius-sm);font-family:var(--font-zh);font-size:13px;">
+                    <input type="number" id="pi-amount" placeholder="金額 (HK$) *" style="padding:10px;border:1px solid var(--gray-200);border-radius:var(--radius-sm);font-family:var(--font-zh);font-size:13px;">
+                    <div style="display:flex;gap:8px;">
+                        <select id="pi-category" style="flex:1;padding:10px;border:1px solid var(--gray-200);border-radius:var(--radius-sm);font-family:var(--font-zh);font-size:13px;">
+                            <option value="私人教授">私人教授</option>
+                            <option value="工作坊">工作坊</option>
+                            <option value="企業合作">企業合作</option>
+                            <option value="其他">其他</option>
+                        </select>
+                        <input type="text" id="pi-client" placeholder="客戶名稱" style="flex:1;padding:10px;border:1px solid var(--gray-200);border-radius:var(--radius-sm);font-family:var(--font-zh);font-size:13px;">
+                    </div>
+                    <button onclick="addPrivateIncome()" style="padding:12px;background:var(--orange-500);color:white;border:none;border-radius:var(--radius-sm);font-size:15px;font-weight:600;cursor:pointer;">➕ 記錄私人收入</button>
+                </div>
+            </div>
+
+            <!-- Private Income Summary -->
+            <div style="display:flex;gap:8px;margin-bottom:12px;">
+                <div style="flex:1;background:#ECFDF5;padding:12px;border-radius:var(--radius-sm);text-align:center;">
+                    <div style="font-size:11px;color:var(--dark-700);">💰 私人收入總計</div>
+                    <div style="font-size:22px;font-weight:800;color:#059669;" id="pi-total">HK$0</div>
+                </div>
+                <div style="flex:1;background:#FEF2F2;padding:12px;border-radius:var(--radius-sm);text-align:center;">
+                    <div style="font-size:11px;color:var(--dark-700);">📝 記錄筆數</div>
+                    <div style="font-size:22px;font-weight:800;color:#EF4444;" id="pi-count">0</div>
+                </div>
+            </div>
+
+            <!-- Private Income List -->
+            <div class="card">
+                <div class="card-title">📋 私人收入記錄</div>
+                <div id="pi-list" style="font-size:13px;">
+                    <div style="text-align:center;padding:20px;color:var(--dark-700);">尚未記錄私人收入</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- New Class Modal -->
+    <div class="modal-overlay" id="new-class-modal">
+        <div class="modal">
+            <h3 id="modal-class-title">➕ 新增課程</h3>
+            <div class="form-group">
+                <label>課程名稱 *</label>
+                <input type="text" id="new-class-name" placeholder="例如：流瑜伽 Flow Yoga">
+            </div>
+            <div class="form-group">
+                <label>分類 *</label>
+                <select id="new-class-category">
+                    <option>健身</option><option>瑜伽</option><option>伸展</option>
+                    <option>冥想</option><option>舞蹈</option><option>新興運動</option>
+                    <option>普拉提</option><option>武術</option><option>太極</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>價格 (HK$) *</label>
+                <input type="number" id="new-class-price" placeholder="120" min="1">
+            </div>
+            <div class="form-group">
+                <label>時長 (分鐘) *</label>
+                <input type="number" id="new-class-duration" value="60" min="15" max="180">
+            </div>
+            <div class="form-group">
+                <label>人數上限</label>
+                <input type="number" id="new-class-capacity" value="10" min="1" max="50">
+            </div>
+            <div class="form-group">
+                <label>上課地點</label>
+                <select id="new-class-location">
+                    <option value="">選擇場地...</option>
+                    <option>🅰️ A瑜伽室</option>
+                    <option>🅱️ B健身室</option>
+                    <option>🅲 C舞蹈室</option>
+                    <option>🌳 戶外平台</option>
+                    <option>✏️ 自訂地址</option>
+                </select>
+            </div>
+            <div class="form-group" id="custom-location-group" style="display:none;">
+                <label>詳細地址</label>
+                <div style="display:flex;flex-direction:column;gap:6px;">
+                    <input type="text" id="new-class-addr-line1" placeholder="街道地址：如 登打士街56號" style="padding:8px;border:1px solid var(--gray-200);border-radius:6px;font-size:12px;">
+                    <input type="text" id="new-class-addr-line2" placeholder="樓層/室：如 1506室" style="padding:8px;border:1px solid var(--gray-200);border-radius:6px;font-size:12px;">
+                    <select id="new-class-addr-district" style="padding:8px;border:1px solid var(--gray-200);border-radius:6px;font-size:12px;">
+                        <option value="">選擇地區...</option>
+                        <option>中西區</option><option>東區</option><option>南區</option><option>灣仔區</option>
+                        <option>九龍城區</option><option>觀塘區</option><option>深水埗區</option><option>黃大仙區</option><option>油尖旺區</option>
+                        <option>北區</option><option>西貢區</option><option>沙田區</option><option>大埔區</option>
+                        <option>荃灣區</option><option>屯門區</option><option>元朗區</option><option>葵青區</option><option>離島區</option>
+                    </select>
+                    <div id="addr-preview" style="font-size:11px;color:var(--dark-700);padding:4px 0;">📍 預覽：—</div>
+                </div>
+            </div>
+            <script>
+                document.addEventListener('change', function(e) {
+                    var el = e.target;
+                    if (el && el.id === 'new-class-location') {
+                        var g = document.getElementById('custom-location-group');
+                        g.style.display = (el.value === '✏️ 自訂地址') ? 'block' : 'none';
+                        updateAddrPreview();
+                    }
+                    if (el && (el.id === 'new-class-addr-line1' || el.id === 'new-class-addr-district')) {
+                        updateAddrPreview();
+                    }
+                });
+                document.addEventListener('input', function(e) {
+                    var el = e.target;
+                    if (el && (el.id === 'new-class-addr-line1' || el.id === 'new-class-addr-line2' || el.id === 'new-class-addr-district')) {
+                        updateAddrPreview();
+                    }
+                });
+                function updateAddrPreview() {
+                    var line1 = document.getElementById('new-class-addr-line1').value.trim();
+                    var line2 = document.getElementById('new-class-addr-line2').value.trim();
+                    var dist = document.getElementById('new-class-addr-district').value;
+                    var parts = [];
+                    if (dist) parts.push(dist);
+                    if (line1) parts.push(line1);
+                    if (line2) parts.push(line2);
+                    document.getElementById('addr-preview').textContent = '📍 ' + (parts.length ? parts.join('，') : '—');
+                }
+            </script>
+            <div class="form-group">
+                <label>課程簡介</label>
+                <textarea id="new-class-desc" placeholder="介紹你的課程..."></textarea>
+            </div>
+            <div class="btn-row">
+                <button class="btn-cancel" onclick="closeModal('new-class-modal')">取消</button>
+                <button class="btn-save" onclick="saveNewClass()">✅ 建立課程</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Slot Modal -->
+    <div class="modal-overlay" id="add-slot-modal">
+        <div class="modal">
+            <h3>➕ 新增時段</h3>
+            <div class="form-group">
+                <label>選擇課程</label>
+                <select id="slot-class-select"></select>
+            </div>
+            <div class="form-group">
+                <label>日期 *</label>
+                <input type="date" id="slot-date">
+            </div>
+            <div class="form-group">
+                <label>開始時間 *</label>
+                <input type="time" id="slot-time" value="10:00">
+            </div>
+            <div class="btn-row">
+                <button class="btn-cancel" onclick="closeModal('add-slot-modal')">取消</button>
+                <button class="btn-save" onclick="saveNewSlot()">✅ 新增時段</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Roll Call Tab (QR-based) — 課堂列表永遠顯示，QR 㩒出嚟 -->
+    <div id="tab-rollcall" class="section">
+        <div class="card">
+            <div id="rc-hard-list">
+                <div onclick="rcShow(0)" style="display:flex;align-items:center;gap:10px;padding:14px 12px;margin-bottom:4px;background:var(--white);border:1px solid var(--gray-200);border-radius:var(--radius-sm);cursor:pointer;" onmouseover="this.style.borderColor='var(--orange-400)'" onmouseout="this.style.borderColor='var(--gray-200)'">
+                    <div style="text-align:center;min-width:48px;"><div style="font-size:18px;font-weight:700;">5/2</div><div style="font-size:11px;color:var(--dark-700);">週六</div></div>
+                    <div style="flex:1;"><div style="font-weight:600;font-size:14px;">🧘 流瑜伽</div><div style="font-size:12px;color:var(--dark-700);">⏰ 09:00 · 👥 3/8</div></div>
+                    <div style="font-size:24px;">📱</div>
+                </div>
+                <div id="rc-hard-open-0" style="display:none;padding:16px;margin-bottom:6px;background:var(--gray-50);border-radius:var(--radius-sm);text-align:center;">
+                    <div style="font-weight:600;margin-bottom:8px;">流瑜伽 · 2026-05-02 09:00</div>
+                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=https%3A%2F%2Fdavidchoy1689-tech.github.io%2FZenPass%2Fcheckin.html%3Fclass%3D1%26date%3D2026-05-02%26coach%3DDavid%26time%3D09%3A00" style="width:160px;height:160px;border-radius:8px;" onerror="this.style.display='none'">
+                    <div style="font-size:11px;color:var(--dark-700);margin:6px 0;word-break:break-all;">https://davidchoy1689-tech.github.io/ZenPass/checkin.html?class=1&date=2026-05-02&coach=David&time=09:00</div>
+                    <a href="https://davidchoy1689-tech.github.io/ZenPass/checkin.html?class=1&date=2026-05-02&coach=David&time=09:00" target="_blank" style="display:inline-block;padding:8px 16px;background:#059669;color:white;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;">📱 打開簽到頁</a>
+                    <div id="rc-atts-0" style="margin-top:12px;border-top:1px solid var(--gray-200);padding-top:10px;text-align:left;"></div>
+                </div>
+
+                <div onclick="rcShow(1)" style="display:flex;align-items:center;gap:10px;padding:14px 12px;margin-bottom:4px;background:var(--white);border:1px solid var(--gray-200);border-radius:var(--radius-sm);cursor:pointer;" onmouseover="this.style.borderColor='var(--orange-400)'" onmouseout="this.style.borderColor='var(--gray-200)'">
+                    <div style="text-align:center;min-width:48px;"><div style="font-size:18px;font-weight:700;">5/2</div><div style="font-size:11px;color:var(--dark-700);">週六</div></div>
+                    <div style="flex:1;"><div style="font-weight:600;font-size:14px;">💪 HIIT</div><div style="font-size:12px;color:var(--dark-700);">⏰ 14:00 · 👥 5/10</div></div>
+                    <div style="font-size:24px;">📱</div>
+                </div>
+                <div id="rc-hard-open-1" style="display:none;padding:16px;margin-bottom:6px;background:var(--gray-50);border-radius:var(--radius-sm);text-align:center;">
+                    <div style="font-weight:600;margin-bottom:8px;">HIIT · 2026-05-02 14:00</div>
+                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=https%3A%2F%2Fdavidchoy1689-tech.github.io%2FZenPass%2Fcheckin.html%3Fclass%3D2%26date%3D2026-05-02%26coach%3DDavid%26time%3D14%3A00" style="width:160px;height:160px;border-radius:8px;" onerror="this.style.display='none'">
+                    <div style="font-size:11px;color:var(--dark-700);margin:6px 0;word-break:break-all;">https://davidchoy1689-tech.github.io/ZenPass/checkin.html?class=2&date=2026-05-02&coach=David&time=14:00</div>
+                    <a href="https://davidchoy1689-tech.github.io/ZenPass/checkin.html?class=2&date=2026-05-02&coach=David&time=14:00" target="_blank" style="display:inline-block;padding:8px 16px;background:#059669;color:white;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;">📱 打開簽到頁</a>
+                    <div id="rc-atts-1" style="margin-top:12px;border-top:1px solid var(--gray-200);padding-top:10px;text-align:left;"></div>
+                </div>
+
+                <div onclick="rcShow(2)" style="display:flex;align-items:center;gap:10px;padding:14px 12px;margin-bottom:4px;background:var(--white);border:1px solid var(--gray-200);border-radius:var(--radius-sm);cursor:pointer;" onmouseover="this.style.borderColor='var(--orange-400)'" onmouseout="this.style.borderColor='var(--gray-200)'">
+                    <div style="text-align:center;min-width:48px;"><div style="font-size:18px;font-weight:700;">5/2</div><div style="font-size:11px;color:var(--dark-700);">週六</div></div>
+                    <div style="flex:1;"><div style="font-weight:600;font-size:14px;">🧘 流瑜伽</div><div style="font-size:12px;color:var(--dark-700);">⏰ 19:00 · 👥 6/8</div></div>
+                    <div style="font-size:24px;">📱</div>
+                </div>
+                <div id="rc-hard-open-2" style="display:none;padding:16px;margin-bottom:6px;background:var(--gray-50);border-radius:var(--radius-sm);text-align:center;">
+                    <div style="font-weight:600;margin-bottom:8px;">流瑜伽 · 2026-05-02 19:00</div>
+                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=https%3A%2F%2Fdavidchoy1689-tech.github.io%2FZenPass%2Fcheckin.html%3Fclass%3D1%26date%3D2026-05-02%26coach%3DDavid%26time%3D19%3A00" style="width:160px;height:160px;border-radius:8px;" onerror="this.style.display='none'">
+                    <div style="font-size:11px;color:var(--dark-700);margin:6px 0;word-break:break-all;">https://davidchoy1689-tech.github.io/ZenPass/checkin.html?class=1&date=2026-05-02&coach=David&time=19:00</div>
+                    <a href="https://davidchoy1689-tech.github.io/ZenPass/checkin.html?class=1&date=2026-05-02&coach=David&time=19:00" target="_blank" style="display:inline-block;padding:8px 16px;background:#059669;color:white;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;">📱 打開簽到頁</a>
+                    <div id="rc-atts-2" style="margin-top:12px;border-top:1px solid var(--gray-200);padding-top:10px;text-align:left;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">📊 點名歷史</div>
+            <div id="rc-history" style="font-size:13px;"></div>
+        </div>
+    </div>
+
+    <!-- Students Assets Tab -->
+    <div id="tab-students" class="section">
+        <!-- Add Student -->
+        <div class="card" style="margin-bottom:12px;">
+            <div class="card-title">➕ 新增學生</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <input type="text" id="sa-name" placeholder="學生姓名" style="flex:2;min-width:120px;padding:10px;border:1px solid var(--gray-200);border-radius:var(--radius-sm);font-family:var(--font-zh);font-size:13px;">
+                <input type="tel" id="sa-phone" placeholder="電話" style="flex:1.5;min-width:100px;padding:10px;border:1px solid var(--gray-200);border-radius:var(--radius-sm);font-family:var(--font-zh);font-size:13px;">
+                <input type="email" id="sa-email" placeholder="電郵" style="flex:1.5;min-width:100px;padding:10px;border:1px solid var(--gray-200);border-radius:var(--radius-sm);font-family:var(--font-zh);font-size:13px;">
+                <select id="sa-level" style="flex:1;min-width:80px;padding:10px;border:1px solid var(--gray-200);border-radius:var(--radius-sm);font-family:var(--font-zh);font-size:13px;">
+                    <option value="初級">初級</option>
+                    <option value="中級">中級</option>
+                    <option value="高級">高級</option>
+                </select>
+                <select id="sa-category" style="flex:1;min-width:90px;padding:10px;border:1px solid var(--gray-200);border-radius:var(--radius-sm);font-family:var(--font-zh);font-size:13px;">
+                    <option value="一般">一般</option>
+                    <option value="HIIT">HIIT</option>
+                    <option value="瑜伽">瑜伽</option>
+                    <option value="匹克球">匹克球</option>
+                    <option value="舞蹈">舞蹈</option>
+                </select>
+                <button onclick="addCoachStudent()" style="padding:10px 16px;background:var(--orange-500);color:var(--white);border:none;border-radius:var(--radius-sm);cursor:pointer;font-size:13px;font-weight:600;">＋ 添加</button>
+            </div>
+        </div>
+
+        <!-- My Students -->
+        <div class="card" style="margin-bottom:12px;">
+            <div class="card-title">👥 我的學生資產 <span id="sa-count" style="font-size:12px;color:var(--dark-700);font-weight:400;"></span></div>
+            <div style="margin-bottom:10px;">
+                <input type="text" id="sa-search" placeholder="🔍 搜尋學生..." oninput="renderCoachStudents()" style="width:100%;padding:10px;border:1px solid var(--gray-200);border-radius:var(--radius-sm);font-family:var(--font-zh);font-size:13px;">
+            </div>
+            <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;">
+                <button onclick="filterCoachStudents('all')" class="sa-filter active" id="filt-all" style="padding:5px 12px;border:1px solid var(--gray-200);border-radius:4px;background:var(--orange-500);color:white;font-size:12px;cursor:pointer;">全部</button>
+                <button onclick="filterCoachStudents('初級')" class="sa-filter" id="filt-初級" style="padding:5px 12px;border:1px solid var(--gray-200);border-radius:4px;background:var(--white);font-size:12px;cursor:pointer;">🌱 初級</button>
+                <button onclick="filterCoachStudents('中級')" class="sa-filter" id="filt-中級" style="padding:5px 12px;border:1px solid var(--gray-200);border-radius:4px;background:var(--white);font-size:12px;cursor:pointer;">🌿 中級</button>
+                <button onclick="filterCoachStudents('高級')" class="sa-filter" id="filt-高級" style="padding:5px 12px;border:1px solid var(--gray-200);border-radius:4px;background:var(--white);font-size:12px;cursor:pointer;">🔥 高級</button>
+                <button onclick="exportStudents()" style="padding:5px 12px;border:1px solid var(--gray-200);border-radius:4px;background:var(--white);font-size:12px;cursor:pointer;">📤 匯出</button>
+            </div>
+            <div id="sa-student-list"></div>
+        </div>
+
+        <!-- Stats -->
+        <div class="card">
+            <div class="card-title">📊 學生資產概覽</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <div style="flex:1;min-width:70px;background:#ECFDF5;padding:12px;border-radius:var(--radius-sm);text-align:center;">
+                    <div style="font-size:20px;font-weight:800;color:var(--green-500);" id="sa-total">0</div>
+                    <div style="font-size:11px;color:var(--dark-700);">總學生</div>
+                </div>
+                <div style="flex:1;min-width:70px;background:#FFFBEB;padding:12px;border-radius:var(--radius-sm);text-align:center;">
+                    <div style="font-size:20px;font-weight:800;color:var(--orange-500);" id="sa-active">0</div>
+                    <div style="font-size:11px;color:var(--dark-700);">活躍學生</div>
+                </div>
+                <div style="flex:1;min-width:70px;background:#EFF6FF;padding:12px;border-radius:var(--radius-sm);text-align:center;">
+                    <div style="font-size:20px;font-weight:800;color:var(--blue-500);" id="sa-classes">0</div>
+                    <div style="font-size:11px;color:var(--dark-700);">總課堂數</div>
+                </div>
+                <div style="flex:1;min-width:70px;background:#FEF2F2;padding:12px;border-radius:var(--radius-sm);text-align:center;">
+                    <div style="font-size:20px;font-weight:800;color:var(--red-500);" id="sa-income">$0</div>
+                    <div style="font-size:11px;color:var(--dark-700);">估計收入</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <nav class="bottom-nav">
+        <a href="index.html" class="nav-item"><span class="nav-icon">🏠</span>首頁</a>
+        <a href="explore.html" class="nav-item"><span class="nav-icon">🔍</span>探索</a>
+        <a href="membership.html" class="nav-item"><span class="nav-icon">💎</span>會籍</a>
+        <a href="coach-apply.html" class="nav-item"><span class="nav-icon">👨🏫</span>成為教練</a>
+        <a href="my.html" class="nav-item"><span class="nav-icon">👤</span>我的</a>
+    </nav>
+
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+    <script>
+        // === Name-based user setup ===
+        (function() {
+            var name = localStorage.getItem('zenpass_name') || '教練';
+            var u = JSON.parse(localStorage.getItem('zenpass_user') || '{}');
+            if (u && u.name) { name = u.name; }
+            document.getElementById('coach-name').textContent = name;
+            
+            // Namespace localStorage keys by name
+            var nameKey = name.replace(/\s/g,'_');
+            var keyPrefix = 'zp_' + nameKey + '_';
+            
+            function getKey(base) { return keyPrefix + base; }
+            
+            // Override saveClasses to use name-keyed storage
+            var origSaveClasses = saveClasses;
+            saveClasses = function() {
+                try {
+                    localStorage.setItem(getKey('classes'), JSON.stringify(classes));
+                    localStorage.setItem(getKey('schedules'), JSON.stringify(schedules));
+                    localStorage.setItem(getKey('income'), JSON.stringify(incomeEntries));
+                } catch(e) {}
+            };
+            
+            // Load name-specific data if available
+            try {
+                var savedClasses = localStorage.getItem(getKey('classes'));
+                if (savedClasses) classes = JSON.parse(savedClasses);
+                var savedScheds = localStorage.getItem(getKey('schedules'));
+                if (savedScheds) schedules = JSON.parse(savedScheds);
+                var savedIncome = localStorage.getItem(getKey('income'));
+                if (savedIncome) incomeEntries = JSON.parse(savedIncome);
+            } catch(e) {}
+        })();
+
+        // ===== Demo Data =====
+        var DEMO_CLASSES = [
+            { id:1, name:'🧘 流瑜伽 Flow Yoga', category:'瑜伽', price:120, duration:60, capacity:8, enrolled:5, status:'active', location:'🅰️ A瑜伽室', desc:'流暢的瑜伽序列，適合所有程度' },
+            { id:2, name:'💪 HIIT 高強度訓練', category:'健身', price:150, duration:45, capacity:10, enrolled:3, status:'active', location:'🅱️ B健身室', desc:'高間歇訓練，快速燃脂' },
+            { id:3, name:'🧠 正念冥想基礎班', category:'冥想', price:80, duration:30, capacity:15, enrolled:0, status:'draft', location:'🅲 C舞蹈室', desc:'入門冥想，放鬆身心' },
+        ];
+
+        var DEMO_SCHEDULES = [
+            { id:1, classId:1, date:'2026-05-02', time:'09:00', enrolled:5, capacity:8, earn:600 },
+            { id:2, classId:2, date:'2026-05-02', time:'14:00', enrolled:3, capacity:10, earn:450 },
+            { id:3, classId:1, date:'2026-05-02', time:'19:00', enrolled:6, capacity:8, earn:720 },
+            { id:4, classId:3, date:'2026-05-03', time:'09:00', enrolled:0, capacity:15, earn:0 },
+            { id:5, classId:2, date:'2026-05-04', time:'14:00', enrolled:3, capacity:10, earn:450 },
+            { id:6, classId:1, date:'2026-05-05', time:'19:00', enrolled:8, capacity:8, earn:1040 },
+        ];
+
+        var DEMO_INCOME = [
+            { date:'2026-05-01', class:'🧘 流瑜伽', students:5, amount:600 },
+            { date:'2026-04-30', class:'💪 HIIT訓練', students:3, amount:450 },
+            { date:'2026-04-29', class:'🧘 流瑜伽', students:4, amount:480 },
+            { date:'2026-04-28', class:'💪 HIIT訓練', students:2, amount:300 },
+            { date:'2026-04-27', class:'🧘 流瑜伽', students:2, amount:240 },
+        ];
+
+        // Load saved data from localStorage (if any)
+        var classes = JSON.parse(JSON.stringify(DEMO_CLASSES));
+        var schedules = JSON.parse(JSON.stringify(DEMO_SCHEDULES));
+        var incomeEntries = JSON.parse(JSON.stringify(DEMO_INCOME));
+        try {
+            var savedClasses = localStorage.getItem('zenpass_classes');
+            if (savedClasses) classes = JSON.parse(savedClasses);
+            var savedScheds = localStorage.getItem('zenpass_schedules');
+            if (savedScheds) schedules = JSON.parse(savedScheds);
+            var savedIncome = localStorage.getItem('zenpass_income');
+            if (savedIncome) incomeEntries = JSON.parse(savedIncome);
+        } catch(e) {}
+        var classIdCounter = 4;
+        // Find max ID from loaded data
+        for (var ci=0; ci<classes.length; ci++) {
+            if (classes[ci].id >= classIdCounter) classIdCounter = classes[ci].id + 1;
+        }
+        var slotIdCounter = 5;
+        for (var si=0; si<schedules.length; si++) {
+            if (schedules[si].id >= slotIdCounter) slotIdCounter = schedules[si].id + 1;
+        }
+
+        // ===== Init =====
+        function init() {
+            renderUpcoming();
+            renderSchedule();
+            renderClasses();
+            renderIncome();
+            // Set default date for private income form
+            var piDate = document.getElementById('pi-date');
+            if (piDate) {
+                var today = new Date();
+                piDate.value = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0');
+            }
+        }
+
+        function switchTab(tab, el) {
+            var tabs = document.querySelectorAll('.tab');
+            var secs = document.querySelectorAll('.section');
+            for(var i=0;i<tabs.length;i++){ tabs[i].classList.remove('active'); }
+            el.classList.add('active');
+            for(var i=0;i<secs.length;i++){ secs[i].classList.remove('active'); }
+            var target = document.getElementById('tab-'+tab);
+            if(target){ target.classList.add('active'); }
+            if(tab==='schedule') renderSchedule();
+            if(tab==='classes') renderClasses();
+            if(tab==='income') renderIncome();
+                if (tab === 'ratings') { loadCoachRatingsIntoTab(); }
+        }
+
+        function renderUpcoming() {
+            var upcoming = schedules.filter(function(s){ return s.enrolled>0 || new Date(s.date)>=new Date(); }).slice(0,3);
+            var c = document.getElementById('upcoming-classes');
+            if(upcoming.length===0){ c.innerHTML='<div style="text-align:center;padding:20px;color:var(--dark-700);font-size:13px;">暫無即將到來的課堂</div>'; return; }
+            c.innerHTML = upcoming.map(function(s){
+                var cls = classes.find(function(c){ return c.id===s.classId; });
+                var d = new Date(s.date);
+                var dateStr = (d.getMonth()+1)+'/'+d.getDate()+' ('+['日','一','二','三','四','五','六'][d.getDay()]+')';
+                return '<div class="schedule-card"><div class="s-date">'+dateStr+'</div><div class="s-time">'+s.time+':00</div><div class="s-title">'+(cls?cls.name:'課程')+'</div><div class="s-students">👥 '+s.enrolled+'/'+s.capacity+'人</div><div class="s-earn">💰 HK$'+s.earn+'</div></div>';
+            }).join('');
+        }
+
+        function renderSchedule() {
+            var sorted = JSON.parse(JSON.stringify(schedules));
+            sorted.sort(function(a,b){ return new Date(a.date)-new Date(b.date); });
+            var c = document.getElementById('schedule-list');
+            if(sorted.length===0){ c.innerHTML='<div style="text-align:center;padding:20px;color:var(--dark-700);font-size:13px;">暫無時間表</div>'; return; }
+            c.innerHTML = sorted.map(function(s){
+                var cls = classes.find(function(c){ return c.id===s.classId; });
+                var d = new Date(s.date);
+                var dateStr = (d.getMonth()+1)+'/'+d.getDate()+' ('+['日','一','二','三','四','五','六'][d.getDay()]+')';
+                return '<div class="schedule-card"><div class="s-date">'+dateStr+'</div><div class="s-time">'+s.time+':00</div><div class="s-title">'+(cls?cls.name:'課程')+'</div><div class="s-students">👥 '+s.enrolled+'/'+s.capacity+'人</div><div class="s-earn">💰 HK$'+s.earn+'</div></div>';
+            }).join('');
+        }
+
+        function renderClasses() {
+            var c = document.getElementById('my-classes-list');
+            document.getElementById('class-count').textContent = '('+classes.length+')';
+            c.innerHTML = classes.map(function(cls){
+                var statusText = cls.status==='active' ? '✅ 上架中' : (cls.status==='draft' ? '📝 草稿' : '📦 已歸檔');
+                var toggleText = cls.status==='active' ? '📝 轉為草稿' : '✅ 上架';
+                // Format location for display
+                var locDisplay = '📍未設定';
+                if (cls.location) {
+                    if (typeof cls.location === 'object') {
+                        var parts = [];
+                        if (cls.location.district) parts.push(cls.location.district);
+                        if (cls.location.line1) parts.push(cls.location.line1);
+                        if (cls.location.line2) parts.push(cls.location.line2);
+                        locDisplay = '📍 ' + parts.join('，');
+                    } else {
+                        locDisplay = cls.location;
+                    }
+                }
+                return '<div class="class-item"><div class="class-row"><div><div class="class-name">'+cls.name+'</div><div class="class-meta">⏱ '+cls.duration+'min · 💰 HK$'+cls.price+'/堂 · 👥 '+cls.enrolled+'/'+cls.capacity+' · '+locDisplay+'</div></div><span class="class-status '+cls.status+'">'+statusText+'</span></div><div style="margin-top:8px;display:flex;gap:8px;"><button class="toggle-btn" onclick="toggleClassStatus('+cls.id+')">'+toggleText+'</button><button class="toggle-btn" onclick="editClass('+cls.id+')">✏️ 編輯</button><button class="toggle-btn" style="color:var(--red-500);background:#FEF2F2;" onclick="deleteClass('+cls.id+')">🗑️ 刪除</button></div></div>';
+            }).join('');
+        }
+
+        // ===== Income / Earnings Functions =====
+        var earningsData = null;
+
+        function renderIncome() {
+            document.getElementById('inc-loading').textContent = '正在載入收入資料...';
+            loadIncomeData();
+        }
+
+        async function loadIncomeData() {
+            try {
+                // Try backend API first
+                var token = getTokenFromStorage();
+                if (token) {
+                    var resp = await fetch('http://localhost:3001/api/coach/earnings', {
+                        headers: { 'Authorization': 'Bearer ' + token }
+                    });
+                    if (resp.ok) {
+                        var data = await resp.json();
+                        earningsData = data;
+                        renderEarningsFromAPI(data);
+                        renderEarningsDetail('');
+                        showPayoutSection(data);
+                        return;
+                    }
+                }
+            } catch(e) {}
+            // Fallback: use local incomeEntries
+            renderIncomeLocal();
+        }
+
+        function getTokenFromStorage() {
+            try { return localStorage.getItem('zenpass_token'); } catch(e) { return null; }
+        }
+
+        function renderEarningsFromAPI(data) {
+            var s = data.summary || {};
+            var fmt = function(n) { return 'HK$' + Math.round(n).toLocaleString(); };
+            document.getElementById('inc-monthly').textContent = fmt(s.monthly || 0);
+            document.getElementById('inc-pending').textContent = fmt(s.pending || 0);
+            document.getElementById('inc-total').textContent = fmt(s.total || 0);
+            document.getElementById('inc-classes').textContent = (s.week_classes || 0) + '堂';
+            var cr = getCommissionRate();
+            document.getElementById('inc-commission').textContent = '教練實收 ' + Math.round(cr * 100) + '% | ZenPass 佣金 ' + Math.round((1 - cr) * 100) + '%';
+            document.getElementById('inc-loading').style.display = 'none';
+            
+            // Render chart
+            renderChart(data.monthly_trend || []);
+        }
+
+        function renderChart(trend) {
+            var container = document.getElementById('revenue-chart');
+            
+            // Build daily income data from ALL sources
+            var dailyData = {};
+            var totalZen = 0, totalPri = 0;
+            
+            // 1. From API monthly trend
+            if (trend && trend.length > 0) {
+                for (var ti = 0; ti < trend.length; ti++) {
+                    dailyData[trend[ti].month] = { zenpass: trend[ti].total || 0, private: 0 };
+                    totalZen += trend[ti].total || 0;
+                }
+            }
+            
+            // 2. From local schedules (ZenPass)
+            for (var si = 0; si < schedules.length; si++) {
+                var s = schedules[si];
+                if (!s.date || !s.enrolled) continue;
+                var cls = null;
+                for (var cj = 0; cj < classes.length; cj++) {
+                    if (classes[cj].id === s.classId) { cls = classes[cj]; break; }
+                }
+                var cr = getCommissionRate();
+                var net = cls ? Math.round(s.enrolled * cls.price * cr) : 0;
+                if (net <= 0) continue;
+                var monthKey = s.date.substring(0, 7);
+                if (!dailyData[monthKey]) dailyData[monthKey] = { zenpass: 0, private: 0 };
+                dailyData[monthKey].zenpass += net;
+                totalZen += net;
+            }
+            
+            // 3. From private income
+            var pi = initDemoPrivateIncome();
+            for (var piIdx = 0; piIdx < pi.length; piIdx++) {
+                var e = pi[piIdx];
+                if (!e.date || !e.amount) continue;
+                var monthKey = e.date.substring(0, 7);
+                if (!dailyData[monthKey]) dailyData[monthKey] = { zenpass: 0, private: 0 };
+                dailyData[monthKey].private += e.amount;
+                totalPri += e.amount;
+            }
+            
+            // Sort by month
+            var months = Object.keys(dailyData).sort();
+            
+            if (months.length === 0) {
+                container.innerHTML = '<div style="width:100%;text-align:center;color:var(--dark-700);font-size:13px;padding:40px 0;">暫無收入數據</div>';
+                return;
+            }
+            
+            var maxVal = 0;
+            for (var mi = 0; mi < months.length; mi++) {
+                var d = dailyData[months[mi]];
+                var t = (d.zenpass || 0) + (d.private || 0);
+                if (t > maxVal) maxVal = t;
+            }
+            if (maxVal <= 0) maxVal = 1;
+            
+            container.innerHTML = '';
+            
+            var monthNames = { '01':'1月','02':'2月','03':'3月','04':'4月','05':'5月','06':'6月','07':'7月','08':'8月','09':'9月','10':'10月','11':'11月','12':'12月' };
+            
+            for (var mi = 0; mi < months.length; mi++) {
+                var monthLabel = months[mi];
+                var mm = monthLabel.substring(5, 7);
+                var label = monthNames[mm] || mm + '月';
+                var d = dailyData[monthLabel];
+                var z = d.zenpass || 0;
+                var p = d.private || 0;
+                var total = z + p;
+                var pctTotal = (total / maxVal) * 100;
+                var pctZen = pctTotal > 0 && total > 0 ? (z / total) * pctTotal : 0;
+                var isLast = mi === months.length - 1;
+                
+                // Stacked bar: ZenPass (bottom) + Private (top)
+                var barHtml = '<div style="flex:1;display:flex;flex-direction:column;align-items:center;position:relative;">' +
+                    '<div style="display:flex;flex-direction:column-reverse;width:100%;height:' + pctTotal + '%;min-height:8px;justify-content:flex-start;position:relative;">';
+                
+                // Private portion (top, green)
+                if (p > 0) {
+                    var pctPri = (p / total) * 100;
+                    barHtml += '<div style="width:100%;background:#34D399;border-radius:' + (z > 0 ? '0 0 4px 4px' : '4px 4px 0 0') + ';display:flex;align-items:center;justify-content:center;flex:' + pctPri + ';min-height:8px;position:relative;">' +
+                        (pctTotal > 15 ? '<div style="font-size:9px;font-weight:600;color:white;text-shadow:0 1px 2px rgba(0,0,0,0.3);">$' + Math.round(p) + '</div>' : '') + '</div>';
+                }
+                // ZenPass portion (bottom, orange)
+                if (z > 0) {
+                    var pctZenBar = (z / total) * 100;
+                    barHtml += '<div style="width:100%;background:var(--orange-500);border-radius:' + (p > 0 ? '4px 4px 0 0' : '4px 4px 0 0') + ';display:flex;align-items:center;justify-content:center;flex:' + pctZenBar + ';min-height:8px;position:relative;">' +
+                        (pctTotal > 15 ? '<div style="font-size:9px;font-weight:600;color:white;text-shadow:0 1px 2px rgba(0,0,0,0.3);">$' + Math.round(z) + '</div>' : '') + '</div>';
+                }
+                
+                barHtml += '</div>' +
+                    '<div style="font-size:9px;font-weight:' + (isLast ? '700' : '400') + ';color:' + (isLast ? 'var(--orange-500)' : 'var(--dark-700)') + ';margin-top:4px;text-align:center;">' + label + '</div>' +
+                    '<div style="font-size:8px;color:var(--dark-700);">$' + Math.round(total).toLocaleString() + '</div>' +
+                    '</div>';
+                
+                container.innerHTML += barHtml;
+            }
+            
+            // Add legend + totals below chart
+            var legendHtml = '<div style="display:flex;justify-content:center;gap:16px;margin-top:10px;padding-top:8px;border-top:1px solid var(--gray-200);font-size:11px;">' +
+                '<span><span style="display:inline-block;width:10px;height:10px;background:var(--orange-500);border-radius:2px;vertical-align:middle;margin-right:4px;"></span> ZenPass: HK$' + Math.round(totalZen).toLocaleString() + '</span>' +
+                '<span><span style="display:inline-block;width:10px;height:10px;background:#34D399;border-radius:2px;vertical-align:middle;margin-right:4px;"></span> 私人: HK$' + Math.round(totalPri).toLocaleString() + '</span>' +
+                '<span style="font-weight:600;">總計: HK$' + Math.round(totalZen + totalPri).toLocaleString() + '</span>' +
+                '</div>';
+            container.innerHTML += legendHtml;
+        }
+
+        // ===== Income Calendar =====
+        var calCurrentDate = new Date();
+        var calIncomeData = [];
+
+        function showIncomeView(view) {
+            var chartEl = document.getElementById('revenue-chart');
+            var calEl = document.getElementById('inc-calendar-container');
+            var btnChart = document.getElementById('cal-toggle-chart');
+            var btnCal = document.getElementById('cal-toggle-calendar');
+            if (view === 'calendar') {
+                chartEl.style.display = 'none';
+                calEl.style.display = 'block';
+                btnChart.style.background = 'white';
+                btnChart.style.color = 'var(--dark-700)';
+                btnChart.style.borderColor = 'var(--gray-200)';
+                btnCal.style.background = 'var(--orange-500)';
+                btnCal.style.color = 'white';
+                btnCal.style.borderColor = 'var(--orange-500)';
+                buildCalendar();
+            } else {
+                chartEl.style.display = 'block';
+                calEl.style.display = 'none';
+                btnChart.style.background = 'var(--orange-500)';
+                btnChart.style.color = 'white';
+                btnChart.style.borderColor = 'var(--orange-500)';
+                btnCal.style.background = 'white';
+                btnCal.style.color = 'var(--dark-700)';
+                btnCal.style.borderColor = 'var(--gray-200)';
+            }
+        }
+
+        function buildCalendar() {
+            gatherCalendarData();
+            renderCalendar();
+        }
+
+        function initDemoPrivateIncome() {
+            var pi = getLocalPrivateIncome();
+            if (pi.length === 0) {
+                var demos = [
+                    { id:'pi_demo_1', date:'2026-05-01', description:'私人瑜伽教授 - 陳太', amount:500, category:'私人教授', client_name:'陳太' },
+                    { id:'pi_demo_2', date:'2026-05-03', description:'企業工作坊 - ABC公司', amount:2500, category:'企業合作', client_name:'ABC公司' },
+                    { id:'pi_demo_3', date:'2026-05-03', description:'週末健身班', amount:800, category:'工作坊', client_name:'' },
+                    { id:'pi_demo_4', date:'2026-05-05', description:'私人教練 - 一小時', amount:600, category:'私人教授', client_name:'李先生' },
+                ];
+                saveLocalPrivateIncome(demos);
+                pi = demos;
+            }
+            return pi;
+        }
+
+        function gatherCalendarData() {
+            calIncomeData = {};
+            // From schedules (ZenPass income)
+            for (var cdi = 0; cdi < schedules.length; cdi++) {
+                var s = schedules[cdi];
+                if (!s.date || !s.enrolled) continue;
+                var cls = null;
+                for (var cdj = 0; cdj < classes.length; cdj++) {
+                    if (classes[cdj].id === s.classId) { cls = classes[cdj]; break; }
+                }
+                var amt = cls ? s.enrolled * cls.price : 0;
+                var cr = getCommissionRate();
+                var net = Math.round(amt * cr);
+                if (!calIncomeData[s.date]) calIncomeData[s.date] = [];
+                calIncomeData[s.date].push({
+                    type: 'zenpass', desc: cls ? cls.name : '課程#' + s.classId,
+                    gross: amt, net: net, count: s.enrolled
+                });
+            }
+            // From private income (with demo data if empty)
+            var pi = initDemoPrivateIncome();
+            for (var cdi = 0; cdi < pi.length; cdi++) {
+                var e = pi[cdi];
+                if (!e.date) continue;
+                if (!calIncomeData[e.date]) calIncomeData[e.date] = [];
+                calIncomeData[e.date].push({
+                    type: 'private', desc: e.description,
+                    gross: e.amount, net: e.amount, count: 1
+                });
+            }
+        }
+
+        function renderCalendar() {
+            var container = document.getElementById('inc-calendar');
+            var year = calCurrentDate.getFullYear();
+            var month = calCurrentDate.getMonth();
+            var today = new Date();
+            
+            var firstDay = new Date(year, month, 1).getDay();
+            var daysInMonth = new Date(year, month + 1, 0).getDate();
+            var daysInPrev = new Date(year, month, 0).getDate();
+            
+            var monthNames = ['一月','二月','三月','四月','五月','六月','七月','八月','九月','十月','十一月','十二月'];
+            
+            var html = '<div class="cal-header">' +
+                '<button onclick="calNav(-1)">‹</button>' +
+                '<span class="cal-title">' + year + '年 ' + monthNames[month] + '</span>' +
+                '<button onclick="calNav(1)">›</button></div>' +
+                '<div class="cal-weekdays"><span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span></div>' +
+                '<div class="cal-grid">';
+            
+            // Previous month days
+            for (var i = firstDay - 1; i >= 0; i--) {
+                html += '<div class="cal-day other-month">' + (daysInPrev - i) + '</div>';
+            }
+            
+            // Current month days
+            for (var d = 1; d <= daysInMonth; d++) {
+                var dateStr = year + '-' + String(month + 1).padStart(2,'0') + '-' + String(d).padStart(2,'0');
+                var isToday = today.getFullYear() === year && today.getMonth() === month && today.getDate() === d;
+                var dayData = calIncomeData[dateStr];
+                var hasZenPass = false, hasPrivate = false, totalAmt = 0;
+                if (dayData) {
+                    for (var di = 0; di < dayData.length; di++) {
+                        if (dayData[di].type === 'zenpass') hasZenPass = true;
+                        if (dayData[di].type === 'private') hasPrivate = true;
+                        totalAmt += dayData[di].net;
+                    }
+                }
+                var amtClass = 'zenpass-only';
+                if (hasZenPass && hasPrivate) amtClass = 'mixed';
+                else if (hasPrivate && !hasZenPass) amtClass = 'private-only';
+                var amtDisplay = totalAmt > 0 ? '<div class="cal-amt ' + amtClass + '">HK$' + Math.round(totalAmt).toLocaleString() + '</div>' : '';
+                var sourceHtml = '';
+                if (hasZenPass && hasPrivate) sourceHtml = '<div class="cal-source"><span class="zp">🏪</span><span class="pv">📝</span></div>';
+                else if (hasZenPass) sourceHtml = '<div class="cal-source"><span class="zp">🏪</span></div>';
+                else if (hasPrivate) sourceHtml = '<div class="cal-source"><span class="pv">📝</span></div>';
+                var bg = dayData ? 'background:#FFFBEB;' : '';
+                if (totalAmt > 5000) bg = 'background:#FEF3C7;';
+                if (totalAmt > 10000) bg = 'background:#FDE68A;';
+                html += '<div class="cal-day' + (isToday ? ' today' : '') + '" style="' + bg + 'font-weight:' + (totalAmt > 0 ? '600' : '400') + ';" onclick="showDayDetail(\'' + dateStr + '\')" title="HK$' + Math.round(totalAmt).toLocaleString() + '">' +
+                    '<div class="cal-date">' + d + '</div>' + amtDisplay + sourceHtml + '</div>';
+            }
+            
+            // Fill remaining cells
+            var totalCells = firstDay + daysInMonth;
+            var remaining = (7 - (totalCells % 7)) % 7;
+            for (var i = 1; i <= remaining; i++) {
+                html += '<div class="cal-day other-month">' + i + '</div>';
+            }
+            
+            html += '</div>';
+            container.innerHTML = html;
+            
+            // Hide day detail if showing new month
+            document.getElementById('cal-day-detail').style.display = 'none';
+        }
+
+        function calNav(delta) {
+            calCurrentDate.setMonth(calCurrentDate.getMonth() + delta);
+            renderCalendar();
+        }
+
+        function showDayDetail(dateStr) {
+            var entries = calIncomeData[dateStr] || [];
+            var detailEl = document.getElementById('cal-day-detail');
+            var titleEl = document.getElementById('cal-day-title');
+            var listEl = document.getElementById('cal-day-entries');
+            
+            if (entries.length === 0) {
+                detailEl.style.display = 'none';
+                return;
+            }
+            
+            titleEl.textContent = '📅 ' + dateStr + ' 收入明細';
+            var html = '';
+            var total = 0;
+            for (var ei = 0; ei < entries.length; ei++) {
+                var e = entries[ei];
+                var icon = e.type === 'zenpass' ? '🏪' : '📝';
+                var label = e.type === 'zenpass' ? 'ZenPass (' + e.count + '人)' : '私人';
+                html += '<div class="cal-detail"><span>' + icon + ' ' + e.desc + '<br><small style="color:var(--dark-700);">' + label + '</small></span><span style="font-weight:600;color:var(--green-500);">+HK$' + Math.round(e.net).toLocaleString() + '</span></div>';
+                total += e.net;
+            }
+            html += '<div class="cal-detail" style="font-weight:700;border-top:2px solid var(--orange-500);padding-top:8px;margin-top:4px;"><span>合計</span><span style="color:var(--orange-500);">HK$' + Math.round(total).toLocaleString() + '</span></div>';
+            html += '<div style="margin-top:10px;text-align:center;"><button onclick="quickAddPrivate(\'' + dateStr + '\')" style="padding:8px 16px;background:#D1FAE5;color:#059669;border:1px solid #A7F3D0;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;">➕ 加入私人收入</button></div>';
+            listEl.innerHTML = html;
+            detailEl.style.display = 'block';
+        }
+
+        function quickAddPrivate(dateStr) {
+            var desc = prompt('📝 新增私人收入 (' + dateStr + ')\n\n收入描述：');
+            if (!desc || !desc.trim()) return;
+            var amtStr = prompt('金額 (HK$)：');
+            var amt = parseFloat(amtStr);
+            if (!amt || amt <= 0) { showToast('⚠️ 請輸入有效金額', 'error'); return; }
+            var pi = getLocalPrivateIncome();
+            pi.push({ id:'pi_' + Date.now(), date: dateStr, description: desc.trim(), amount: amt, category: '其他', client_name: '' });
+            saveLocalPrivateIncome(pi);
+            showToast('✅ 私人收入 HK$' + amt.toLocaleString() + ' 已記錄', 'success');
+            buildCalendar();
+        }
+
+        async function renderEarningsDetail(statusFilter) {
+            var tbody = document.getElementById('income-entries');
+            var loading = document.getElementById('inc-loading');
+            
+            try {
+                var token = getTokenFromStorage();
+                if (!token) { renderIncomeLocal(); return; }
+                var url = 'http://localhost:3001/api/coach/earnings/detail?limit=50';
+                if (statusFilter) url += '&status=' + statusFilter;
+                var resp = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token } });
+                if (!resp.ok) { renderIncomeLocal(); return; }
+                var data = await resp.json();
+                var entries = data.entries || [];
+                
+                if (entries.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--dark-700);">暫無收入記錄</td></tr>';
+                } else {
+                    tbody.innerHTML = entries.map(function(e) {
+                        var statusMap = { pending: '⏳ 待結算', approved: '✅ 已審批', paid: '💰 已結算', cancelled: '❌ 已取消' };
+                        var statusText = statusMap[e.status] || e.status;
+                        var gross = e.gross_amount || 0;
+                        var cr = getCommissionRate();
+                        var commission = Math.round(gross * (1 - cr));
+                        var net = Math.round(gross * cr);
+                        return '<tr><td>' + e.date + '</td><td>' + (e.class_title || '') + '</td><td>' + e.enrolled_count + '人</td><td>HK$' + gross.toLocaleString() + '</td><td style="color:#EF4444;">-HK$' + commission.toLocaleString() + '</td><td style="font-weight:600;color:var(--green-500);">+HK$' + net.toLocaleString() + '</td><td style="font-size:11px;">' + statusText + '</td></tr>';
+                    }).join('');
+                }
+                loading.style.display = 'none';
+            } catch(e) {
+                renderIncomeLocal();
+            }
+        }
+
+        function renderIncomeLocal() {
+            // Fallback: use local incomeEntries
+            var c = document.getElementById('income-entries');
+            var total = 0;
+            for (var lii = 0; lii < incomeEntries.length; lii++) {
+                total += incomeEntries[lii].amount;
+            }
+            document.getElementById('inc-monthly').textContent = 'HK$' + total.toLocaleString();
+            document.getElementById('inc-pending').textContent = 'HK$' + total.toLocaleString();
+            document.getElementById('inc-total').textContent = 'HK$' + total.toLocaleString();
+            document.getElementById('inc-classes').textContent = incomeEntries.length + '堂';
+            document.getElementById('inc-loading').style.display = 'none';
+            document.getElementById('inc-commission').textContent = '離線模式 (local data)';
+            
+            // Chart: dummy
+            var container = document.getElementById('revenue-chart');
+            container.innerHTML = '';
+            for (var lci = 0; lci < incomeEntries.length; lci++) {
+                var ie = incomeEntries[lci];
+                container.innerHTML += '<div class="chart-bar" style="height:' + Math.min(100, (ie.amount / 600) * 100) + '%"><div class="bar-val">$' + ie.amount + '</div><div class="bar-label">' + ie.date.split('-').slice(1).join('/') + '</div></div>';
+            }
+            if (incomeEntries.length === 0) {
+                container.innerHTML = '<div style="width:100%;text-align:center;color:var(--dark-700);font-size:13px;padding:40px 0;">暫無收入數據<br><small>㩒「重新計算收入」從課程自動生成</small></div>';
+            }
+            
+            c.innerHTML = incomeEntries.map(function(i){
+                return '<tr><td>' + i.date + '</td><td>' + i.class + '</td><td>' + i.students + '人</td><td>HK$' + i.amount + '</td><td style="font-weight:600;color:var(--green-500);">+HK$' + Math.round(i.amount * 0.8) + '</td><td style="font-size:11px;">⏳ 離線模式</td></tr>';
+            }).join('');
+        }
+
+        function showPayoutSection(data) {
+            var pending = data.summary ? data.summary.pending : 0;
+            if (pending > 0) {
+                document.getElementById('payout-section').style.display = 'block';
+                document.getElementById('inc-available').textContent = 'HK$' + Math.round(pending).toLocaleString();
+                loadPayoutHistory();
+            }
+        }
+
+        async function calcEarnings() {
+            var btn = event ? event.target : null;
+            if (btn) { btn.textContent = '⏳ 計算中...'; btn.disabled = true; }
+            try {
+                var token = getTokenFromStorage();
+                if (!token) { showToast('⚠️ 請先登入', 'error'); if(btn){btn.textContent='🔄 重新計算收入';btn.disabled=false;} return; }
+                var resp = await fetch('http://localhost:3001/api/coach/earnings/calculate', {
+                    method: 'POST',
+                    headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' }
+                });
+                var data = await resp.json();
+                showToast(data.message || '✅ 收入計算完成', 'success');
+                loadIncomeData();
+            } catch(e) {
+                showToast('⚠️ 無法連接伺服器，使用本地數據', 'error');
+                renderIncomeLocal();
+            }
+            if (btn) { btn.textContent = '🔄 重新計算收入'; btn.disabled = false; }
+        }
+
+        async function requestPayout() {
+            var amtInput = document.getElementById('payout-amount');
+            var amount = parseFloat(amtInput.value);
+            if (!amount || amount < 100) {
+                showToast('⚠️ 最低提現金額為 HK$100', 'error');
+                return;
+            }
+            try {
+                var token = getTokenFromStorage();
+                if (!token) { showToast('⚠️ 請先登入', 'error'); return; }
+                var resp = await fetch('http://localhost:3001/api/coach/payout-request', {
+                    method: 'POST',
+                    headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ amount: amount, payment_method: 'fps', fps_phone: '9492 5828' })
+                });
+                var data = await resp.json();
+                if (resp.ok) {
+                    showToast('✅ 提現申請已提交！HK$' + data.net_amount + ' 將會轉入戶口', 'success');
+                    amtInput.value = '';
+                    loadIncomeData();
+                    loadPayoutHistory();
+                } else {
+                    showToast('⚠️ ' + (data.error || '提現失敗'), 'error');
+                }
+            } catch(e) {
+                showToast('⚠️ 無法連接伺服器', 'error');
+            }
+        }
+
+        async function loadPayoutHistory() {
+            try {
+                var token = getTokenFromStorage();
+                if (!token) return;
+                var resp = await fetch('http://localhost:3001/api/coach/payout-history', {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                if (!resp.ok) return;
+                var data = await resp.json();
+                var payouts = data.payouts || [];
+                if (payouts.length === 0) {
+                    document.getElementById('payout-history').innerHTML = '';
+                    return;
+                }
+                var html2 = '<div style="font-size:12px;font-weight:600;color:var(--dark-700);margin-bottom:8px;">📜 提現記錄</div>';
+                for (var pi = 0; pi < payouts.length; pi++) {
+                    var p = payouts[pi];
+                    var statusIcon = { pending: '⏳', processing: '🔄', paid: '✅', rejected: '❌', cancelled: '🚫' };
+                    html2 += '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--gray-100);font-size:11px;">' +
+                        '<span>' + p.created_at.split(' ')[0] + '</span>' +
+                        '<span style="font-weight:600;">HK$' + p.net_amount + '</span>' +
+                        '<span>' + (statusIcon[p.status] || '⏳') + ' ' + p.status + '</span></div>';
+                }
+                document.getElementById('payout-history').innerHTML = html2;
+            } catch(e) {}
+        }
+
+        function toggleClassStatus(id) {
+            var cls = null;
+            for (var ci=0; ci<classes.length; ci++) {
+                if (classes[ci].id === id) { cls = classes[ci]; break; }
+            }
+            if(cls){
+                cls.status = cls.status==='active'?'draft':'active';
+                renderClasses();
+                saveClasses();
+                showToast(cls.status==='active'?'✅ 課程已上架':'📝 課程已轉為草稿', cls.status==='active'?'success':'info');
+            }
+        }
+
+        var editingClassId = null;
+
+        function openNewClassModal() { 
+            editingClassId = null;
+            document.getElementById('modal-class-title').textContent = '➕ 新增課程';
+            document.getElementById('new-class-name').value = '';
+            document.getElementById('new-class-category').value = '瑜伽';
+            document.getElementById('new-class-price').value = '';
+            document.getElementById('new-class-duration').value = '60';
+            document.getElementById('new-class-capacity').value = '10';
+            document.getElementById('new-class-location').value = '';
+            document.getElementById('new-class-addr-line1').value = '';
+            document.getElementById('new-class-addr-line2').value = '';
+            document.getElementById('new-class-addr-district').value = '';
+            document.getElementById('custom-location-group').style.display = 'none';
+            document.getElementById('addr-preview').textContent = '📍 預覽：—';
+            document.getElementById('new-class-desc').value = '';
+            document.getElementById('slot-date') && (document.getElementById('slot-date').valueAsDate = new Date());
+            document.getElementById('new-class-modal').classList.add('show');
+        }
+
+        function editClass(id) {
+            var cls = null;
+            for (var ci=0; ci<classes.length; ci++) {
+                if (classes[ci].id === id) { cls = classes[ci]; break; }
+            }
+            if (!cls) { showToast('課程不存在','error'); return; }
+            editingClassId = id;
+            document.getElementById('modal-class-title').textContent = '✏️ 編輯課程';
+            document.getElementById('new-class-name').value = cls.name;
+            document.getElementById('new-class-category').value = cls.category;
+            document.getElementById('new-class-price').value = cls.price;
+            document.getElementById('new-class-duration').value = cls.duration;
+            document.getElementById('new-class-capacity').value = cls.capacity;
+            // Check if location is a predefined one or custom address object
+            var locationVal = cls.location || '';
+            var predefined = ['🅰️ A瑜伽室','🅱️ B健身室','🅲 C舞蹈室','🌳 戶外平台'];
+            var isPredefined = false;
+            for (var pi=0; pi<predefined.length; pi++) {
+                if (locationVal === predefined[pi]) { isPredefined = true; break; }
+            }
+            if (isPredefined) {
+                document.getElementById('new-class-location').value = locationVal;
+                document.getElementById('new-class-addr-line1').value = '';
+                document.getElementById('new-class-addr-line2').value = '';
+                document.getElementById('new-class-addr-district').value = '';
+                document.getElementById('custom-location-group').style.display = 'none';
+                document.getElementById('addr-preview').textContent = '📍 預覽：—';
+            } else if (typeof locationVal === 'object' && locationVal.district) {
+                // Custom address object
+                document.getElementById('new-class-location').value = '✏️ 自訂地址';
+                document.getElementById('new-class-addr-line1').value = locationVal.line1 || '';
+                document.getElementById('new-class-addr-line2').value = locationVal.line2 || '';
+                document.getElementById('new-class-addr-district').value = locationVal.district || '';
+                document.getElementById('custom-location-group').style.display = 'block';
+                updateAddrPreview();
+            } else if (locationVal && locationVal !== '✏️ 自訂地址' && locationVal.indexOf('📍') !== -1) {
+                // Legacy custom string - parse into fields
+                document.getElementById('new-class-location').value = '✏️ 自訂地址';
+                document.getElementById('new-class-addr-line1').value = locationVal.replace('📍 ','');
+                document.getElementById('new-class-addr-line2').value = '';
+                document.getElementById('new-class-addr-district').value = '';
+                document.getElementById('custom-location-group').style.display = 'block';
+                updateAddrPreview();
+            } else {
+                document.getElementById('new-class-location').value = locationVal || '';
+                document.getElementById('new-class-addr-line1').value = '';
+                document.getElementById('new-class-addr-line2').value = '';
+                document.getElementById('new-class-addr-district').value = '';
+                document.getElementById('custom-location-group').style.display = 'none';
+                document.getElementById('addr-preview').textContent = '📍 預覽：—';
+            }
+            document.getElementById('new-class-desc').value = cls.desc || '';
+            document.getElementById('new-class-modal').classList.add('show');
+        }
+
+        function saveNewClass() {
+            var name = document.getElementById('new-class-name').value.trim();
+            var category = document.getElementById('new-class-category').value;
+            var price = parseInt(document.getElementById('new-class-price').value);
+            var duration = parseInt(document.getElementById('new-class-duration').value);
+            var capacity = parseInt(document.getElementById('new-class-capacity').value);
+            var location = document.getElementById('new-class-location').value;
+            if (location === '✏️ 自訂地址') {
+                var line1 = document.getElementById('new-class-addr-line1').value.trim();
+                var line2 = document.getElementById('new-class-addr-line2').value.trim();
+                var dist = document.getElementById('new-class-addr-district').value;
+                location = { district: dist, line1: line1, line2: line2 };
+            }
+            var desc = document.getElementById('new-class-desc').value.trim();
+
+            if(!name || !price){ showToast('請填寫課程名稱和價格','error'); return; }
+
+            if (editingClassId) {
+                // Edit existing
+                for (var ci=0; ci<classes.length; ci++) {
+                    if (classes[ci].id === editingClassId) {
+                        classes[ci].name = name;
+                        classes[ci].category = category;
+                        classes[ci].price = price;
+                        classes[ci].duration = duration || 60;
+                        classes[ci].capacity = capacity || 10;
+                        classes[ci].location = location;
+                        classes[ci].desc = desc || '';
+                        break;
+                    }
+                }
+                closeModal('new-class-modal');
+                renderClasses();
+                saveClasses();
+                showToast('✏️ 課程「'+name+'」已更新','success');
+            } else {
+                // New class
+                var newClass = {
+                    id: classIdCounter++,
+                    name: name,
+                    category: category,
+                    price: price,
+                    duration: duration || 60,
+                    capacity: capacity || 10,
+                    enrolled: 0,
+                    status: 'draft',
+                    location: location,
+                    desc: desc || ''
+                };
+                classes.push(newClass);
+                closeModal('new-class-modal');
+                renderClasses();
+                saveClasses();
+                showToast('✅ 課程「'+name+'」已建立','success');
+            }
+        }
+
+        function deleteClass(id) {
+            if (!confirm('確定要刪除此課程？此操作無法復原。')) return;
+            var name = '';
+            var idx = -1;
+            for (var ci=0; ci<classes.length; ci++) {
+                if (classes[ci].id === id) { name = classes[ci].name; idx = ci; break; }
+            }
+            if (idx === -1) { showToast('課程不存在','error'); return; }
+            classes.splice(idx, 1);
+            renderClasses();
+            saveClasses();
+            showToast('🗑️ 課程「'+name+'」已刪除','info');
+        }
+
+        function saveClasses() {
+            try {
+                localStorage.setItem('zenpass_classes', JSON.stringify(classes));
+                localStorage.setItem('zenpass_schedules', JSON.stringify(schedules));
+                localStorage.setItem('zenpass_income', JSON.stringify(incomeEntries));
+            } catch(e) {}
+        }
+
+        function openAddSlotModal() {
+            var sel = document.getElementById('slot-class-select');
+            sel.innerHTML = '';
+            for(var i=0;i<classes.length;i++){
+                sel.innerHTML += '<option value="'+classes[i].id+'">'+classes[i].name+'</option>';
+            }
+            document.getElementById('slot-date').valueAsDate = new Date();
+            document.getElementById('add-slot-modal').classList.add('show');
+        }
+
+        function saveNewSlot() {
+            var classId = parseInt(document.getElementById('slot-class-select').value);
+            var date = document.getElementById('slot-date').value;
+            var time = document.getElementById('slot-time').value;
+            if(!classId || !date || !time){ showToast('請填寫完整資料','error'); return; }
+            var cls = null;
+            for (var ci=0; ci<classes.length; ci++) {
+                if (classes[ci].id === classId) { cls = classes[ci]; break; }
+            }
+            var earn = cls ? cls.price * 0 : 0;
+            schedules.push({
+                id: slotIdCounter++,
+                classId: classId,
+                date: date,
+                time: time,
+                enrolled:0,
+                capacity: cls?cls.capacity:10,
+                earn: earn
+            });
+            closeModal('add-slot-modal');
+            renderSchedule();
+            renderUpcoming();
+            saveClasses();
+            showToast('✅ 時段已新增','success');
+        }
+
+        function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+
+        function showToast(msg, type) {
+            if(!type) type='info';
+            var existing = document.querySelector('.toast-fixed');
+            if(existing) existing.remove();
+            var t=document.createElement('div');
+            t.className='toast-fixed';
+            t.style.background=type==='success'?'#ECFDF5':'#FEF2F2';
+            t.style.color=type==='success'?'#059669':'#EF4444';
+            t.textContent=msg; document.body.appendChild(t);
+            setTimeout(function(){t.style.opacity='0';t.style.transition='opacity .3s';setTimeout(function(){t.remove()},300);},2500);
+        }
+
+        // ===== QR Roll Call =====
+        // ===== QR Roll Call =====
+
+        function rcShow(i) {
+            var d = document.getElementById('rc-hard-open-'+i);
+            var showing = (d.style.display === 'block');
+            d.style.display = showing ? 'none' : 'block';
+            if (!showing) {
+                // Load attendees from localStorage
+                var classes = [
+                    { classId:1, date:'2026-05-02', time:'09:00' },
+                    { classId:2, date:'2026-05-02', time:'14:00' },
+                    { classId:1, date:'2026-05-02', time:'19:00' },
+                ];
+                var c = classes[i];
+                if (!c) return;
+                var allCheckins = [];
+                try { allCheckins = JSON.parse(localStorage.getItem('zenpass_checkins') || '[]'); } catch(e) {}
+                // Filter by class + date + time
+                var matches = [];
+                for (var ci=0; ci<allCheckins.length; ci++) {
+                    var ch = allCheckins[ci];
+                    if (ch.classId === c.classId && ch.date === c.date && ch.time === c.time) {
+                        matches.push(ch);
+                    }
+                }
+                var attDiv = document.getElementById('rc-atts-'+i);
+                if (!attDiv) return;
+                if (matches.length === 0) {
+                    attDiv.innerHTML = '<div style="font-size:12px;color:var(--dark-700);text-align:center;">⏳ 未有學生簽到</div>';
+                } else {
+                    var html = '<div style="font-size:13px;font-weight:600;margin-bottom:6px;">✅ 已簽到 ('+matches.length+'人)</div>';
+                    html += '<table style="width:100%;font-size:11px;border-collapse:collapse;">';
+                    html += '<tr style="background:var(--orange-100);"><th style="padding:4px 6px;text-align:left;">姓名</th><th style="padding:4px 6px;text-align:left;">電話</th><th style="padding:4px 6px;text-align:left;">級別</th><th style="padding:4px 6px;text-align:center;">已上</th><th style="padding:4px 6px;text-align:center;">簽到</th></tr>';
+                    for (var ci=0; ci<matches.length; ci++) {
+                        var m = matches[ci];
+                        var lvlBadge = m.level === '高級' ? '🔥' : m.level === '中級' ? '🌿' : '🌱';
+                        html += '<tr style="border-bottom:1px solid var(--gray-100);">';
+                        html += '<td style="padding:4px 6px;font-weight:600;">'+m.name+'</td>';
+                        html += '<td style="padding:4px 6px;color:var(--dark-700);">'+(m.phone||'-')+'</td>';
+                        html += '<td style="padding:4px 6px;">'+lvlBadge+' '+(m.level||'-')+'</td>';
+                        html += '<td style="padding:4px 6px;text-align:center;font-weight:600;">'+(m.totalClasses||0)+'堂</td>';
+                        html += '<td style="padding:4px 6px;text-align:center;">⏰ '+m.time+'</td>';
+                        html += '</tr>';
+                    }
+                    html += '</table>';
+                    attDiv.innerHTML = html;
+                }
+                // Also update history
+                renderRCHistory();
+            }
+        }
+
+        function renderRCHistory() {
+            var h = document.getElementById('rc-history');
+            var allCheckins = [];
+            try { allCheckins = JSON.parse(localStorage.getItem('zenpass_checkins') || '[]'); } catch(e) {}
+            if (allCheckins.length === 0) {
+                h.innerHTML = '<div style="text-align:center;padding:16px;color:var(--dark-700);font-size:13px;">暫無點名紀錄</div>';
+                return;
+            }
+            // Group by class+date+time
+            var groups = {};
+            for (var ci=0; ci<allCheckins.length; ci++) {
+                var ch = allCheckins[ci];
+                var key = ch.classId + '-' + ch.date + '-' + ch.time;
+                if (!groups[key]) groups[key] = { classId:ch.classId, date:ch.date, time:ch.time, count:0 };
+                groups[key].count++;
+            }
+            var list = [];
+            for (var key in groups) { list.push(groups[key]); }
+            list.sort(function(a,b){ return a.date.localeCompare(b.date) || a.time.localeCompare(b.time); });
+            list.reverse(); // newest first
+            h.innerHTML = '';
+            for (var gi=0; gi<list.length; gi++) {
+                var g = list[gi];
+                var clsName = '';
+                for (var xi=0; xi<window.classes.length; xi++) {
+                    if (window.classes[xi].id === g.classId) { clsName = window.classes[xi].name; break; }
+                }
+                h.innerHTML += '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--gray-100);font-size:13px;"><span>'+g.date+' '+g.time+' '+(clsName||'課程')+'</span><span style="color:var(--green-500);font-weight:600;">'+g.count+' 人</span></div>';
+            }
+        }
+
+        // ===== Coach Student Assets =====
+        var coachStudents = [];
+        var saFilter = 'all';
+
+        function initCoachStudents() {
+            // Load from localStorage
+            try {
+                var saved = localStorage.getItem('zenpass_coach_students');
+                if (saved) coachStudents = JSON.parse(saved);
+            } catch(e) {}
+            if (coachStudents.length === 0) {
+                // Demo data
+                coachStudents = [
+                    { id:1, name:'陳大文', phone:'9123 4567', email:'chan@example.com', level:'中級', category:'HIIT', joined:'2026-03-01', classes:8, lastClass:'2026-05-01', active:true, notes:'' },
+                    { id:2, name:'張小紅', phone:'9234 5678', email:'cheung@example.com', level:'初級', category:'瑜伽', joined:'2026-03-15', classes:5, lastClass:'2026-04-28', active:true, notes:'' },
+                    { id:3, name:'李志強', phone:'9345 6789', email:'lee@example.com', level:'高級', category:'HIIT', joined:'2026-01-20', classes:20, lastClass:'2026-04-30', active:true, notes:'' },
+                    { id:4, name:'何美玲', phone:'9456 7890', email:'ho@example.com', level:'中級', category:'舞蹈', joined:'2026-02-10', classes:12, lastClass:'2026-05-01', active:true, notes:'' },
+                    { id:5, name:'黃小明', phone:'9567 8901', email:'wong@example.com', level:'初級', category:'匹克球', joined:'2026-04-01', classes:3, lastClass:'2026-04-25', active:false, notes:'' },
+                    { id:6, name:'林小花', phone:'9678 9012', email:'lam@example.com', level:'中級', category:'瑜伽', joined:'2026-03-20', classes:7, lastClass:'2026-04-29', active:true, notes:'' },
+                ];
+                saveCoachStudents();
+            }
+            renderCoachStudents();
+        }
+
+        function saveCoachStudents() {
+            try { localStorage.setItem('zenpass_coach_students', JSON.stringify(coachStudents)); } catch(e) {}
+        }
+
+        function addCoachStudent() {
+            var name = document.getElementById('sa-name').value.trim();
+            var phone = document.getElementById('sa-phone').value.trim();
+            var email = document.getElementById('sa-email').value.trim();
+            var level = document.getElementById('sa-level').value;
+            var category = document.getElementById('sa-category').value;
+            if (!name) { showToast('請輸入學生姓名','error'); return; }
+            var maxId = 0;
+            for(var xi=0;xi<coachStudents.length;xi++){ if(coachStudents[xi].id > maxId) maxId = coachStudents[xi].id; }
+            var newId = maxId + 1;
+            coachStudents.push({
+                id: newId, name, phone, email, level, category,
+                joined: new Date().toISOString().split('T')[0],
+                classes: 0, lastClass: '-', active: true, notes: ''
+            });
+            saveCoachStudents();
+            document.getElementById('sa-name').value = '';
+            document.getElementById('sa-phone').value = '';
+            document.getElementById('sa-email').value = '';
+            renderCoachStudents();
+            showToast('✅ 已添加學生 '+name,'success');
+        }
+
+        function getPersonRating(name, role) {
+            try {
+                var ratings = JSON.parse(localStorage.getItem('zenpass_ratings') || '[]');
+                var total = 0, count = 0;
+                for (var i = 0; i < ratings.length; i++) {
+                    var r = ratings[i];
+                    if (r.toRole === role && (r.toName === name || r.toUserId === name)) {
+                        total += r.score; count++;
+                    }
+                }
+                return count > 0 ? total / count : 0;
+            } catch(e) { return 0; }
+        }
+        
+        function renderCoachStudents() {
+            var search = (document.getElementById('sa-search').value || '').toLowerCase();
+            var items = coachStudents;
+            if (search) {
+                items = [];
+                for(var si=0;si<coachStudents.length;si++){
+                    var s = coachStudents[si];
+                    if(s.name.toLowerCase().indexOf(search)>=0 || s.phone.indexOf(search)>=0 || s.email.toLowerCase().indexOf(search)>=0){
+                        items.push(s);
+                    }
+                }
+            }
+            if (saFilter !== 'all') {
+                var filtered = [];
+                for(var si=0;si<items.length;si++){
+                    if(items[si].level === saFilter) filtered.push(items[si]);
+                }
+                items = filtered;
+            }
+
+            var total = coachStudents.length;
+            var active = 0;
+            var totalClasses = 0;
+            for(var si=0;si<coachStudents.length;si++){
+                if(coachStudents[si].active) active++;
+                totalClasses += (coachStudents[si].classes || 0);
+            }
+            var estIncome = totalClasses * 120;
+
+            document.getElementById('sa-total').textContent = total;
+            document.getElementById('sa-active').textContent = active;
+            document.getElementById('sa-classes').textContent = totalClasses;
+            document.getElementById('sa-income').textContent = '$' + estIncome.toLocaleString();
+            document.getElementById('sa-count').textContent = '('+items.length+'/'+total+')';
+
+            var list = document.getElementById('sa-student-list');
+            if (items.length === 0) {
+                list.innerHTML = '<div style="text-align:center;padding:20px;color:var(--dark-700);font-size:13px;">📭 無學生</div>';
+                return;
+            }
+            var html = '';
+            for(var si=0;si<items.length;si++){
+                var s = items[si];
+                var levelIcon = s.level === '初級' ? '🌱' : (s.level === '中級' ? '🌿' : '🔥');
+                var levelColor = s.level==='初級' ? '#059669' : (s.level==='中級' ? '#D97706' : '#EF4444');
+                html += '<div style="display:flex;align-items:center;gap:10px;padding:10px;border-bottom:1px solid var(--gray-100);" ondblclick="editStudent('+s.id+')">'
+                    + '<div style="width:36px;height:36px;border-radius:50%;background:'+(s.active?'var(--orange-100)':'var(--gray-100)')+';display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">'
+                    + (s.active ? '👤' : '💤')+'</div>'
+                    + '<div style="flex:1;min-width:0;"><div style="font-weight:600;font-size:14px;">'+s.name + (getPersonRating(s.name, 'student') > 0 ? ' <span style="font-size:11px;color:#FBBF24;">' + '<span style="color:#FBBF24;font-size:14px;">★</span>'.repeat(Math.round(getPersonRating(s.name, 'student'))) + ' ' + getPersonRating(s.name, 'student').toFixed(1) + '</span>' : '')
+                    + '<span style="font-size:11px;color:var(--dark-700);margin-left:6px;color:'+levelColor+';">'
+                    + levelIcon+' '+s.level+'</span></div>'
+                    + '<div style="font-size:11px;color:var(--dark-700);">'+s.phone+' · '+s.category+' · 📊 '+s.classes+'堂</div></div>'
+                    + '<div style="display:flex;gap:4px;flex-shrink:0;">'
+                    + '<button onclick="addClassToStudent('+s.id+')" style="padding:4px 8px;background:#ECFDF5;color:#059669;border:1px solid #A7F3D0;border-radius:4px;cursor:pointer;font-size:11px;">＋堂</button>'
+                    + '<button onclick="editStudent('+s.id+')" style="padding:4px 8px;background:var(--gray-100);color:var(--dark-700);border:1px solid var(--gray-200);border-radius:4px;cursor:pointer;font-size:11px;">✏️</button>'
+                    + '<button onclick="deleteStudent('+s.id+')" style="padding:4px 8px;background:#FEF2F2;color:#EF4444;border:1px solid #FCA5A5;border-radius:4px;cursor:pointer;font-size:11px;">🗑️</button>'
+                    + '</div></div>';
+            }
+            list.innerHTML = html;
+        }
+
+        function filterCoachStudents(level) {
+            saFilter = level;
+            var btns = document.querySelectorAll('.sa-filter');
+            for(var bi=0;bi<btns.length;bi++){ btns[bi].style.background='var(--white)'; btns[bi].style.color='var(--dark-900)'; }
+            var btn = document.getElementById('filt-'+level);
+            if (btn) { btn.style.background = 'var(--orange-500)'; btn.style.color = 'white'; }
+            renderCoachStudents();
+        }
+
+        function addClassToStudent(id) {
+            var s = coachStudents.find(function(x){ return x.id === id; });
+            if (!s) return;
+            s.classes = (s.classes || 0) + 1;
+            s.lastClass = new Date().toISOString().split('T')[0];
+            s.active = true;
+            saveCoachStudents();
+            renderCoachStudents();
+            showToast('✅ '+s.name+' 課堂數 +1 (總 '+s.classes+' 堂)','success');
+        }
+
+        function editStudent(id) {
+            var s = coachStudents.find(function(x){ return x.id === id; });
+            if (!s) return;
+            var newName = prompt('學生姓名:', s.name);
+            if (newName && newName.trim()) s.name = newName.trim();
+            var newPhone = prompt('電話:', s.phone);
+            if (newPhone) s.phone = newPhone;
+            var newLevel = prompt('程度 (初級/中級/高級):', s.level);
+            if (newLevel && (newLevel==='初級'||newLevel==='中級'||newLevel==='高級')) s.level = newLevel;
+            saveCoachStudents();
+            renderCoachStudents();
+            showToast('✅ '+s.name+' 資料已更新','success');
+        }
+
+        function deleteStudent(id) {
+            if (!confirm('確定刪除這位學生？')) return;
+            var s = null;
+            var newArr = [];
+            for(var si=0;si<coachStudents.length;si++){
+                if(coachStudents[si].id === id){ s = coachStudents[si]; }
+                else { newArr.push(coachStudents[si]); }
+            }
+            coachStudents = newArr;
+            saveCoachStudents();
+            renderCoachStudents();
+            showToast('🗑️ '+(s?s.name:'學生')+' 已刪除','info');
+        }
+
+        // ===== Export to Excel Functions =====
+        function getWB() {
+            if (typeof XLSX === 'undefined') {
+                showToast('⚠️ Excel 匯出程式庫載入中，請稍後再試', 'error');
+                return null;
+            }
+            return XLSX.utils.book_new();
+        }
+
+        function downloadWB(wb, filename) {
+            XLSX.writeFile(wb, filename + '_' + new Date().toISOString().split('T')[0] + '.xlsx');
+            showToast('✅ ' + filename + ' 已下載', 'success');
+        }
+
+        // ===== Private Income Functions =====
+        function switchIncomeTab(tab) {
+            var zenpassBtn = document.getElementById('inc-tab-zenpass');
+            var privateBtn = document.getElementById('inc-tab-private');
+            var zenpassSec = document.getElementById('inc-zenpass-section');
+            var privateSec = document.getElementById('inc-private-section');
+            if (tab === 'zenpass') {
+                zenpassBtn.style.background = 'var(--orange-500)'; zenpassBtn.style.color = 'white';
+                privateBtn.style.background = 'white'; privateBtn.style.color = 'var(--orange-500)';
+                zenpassSec.style.display = 'block';
+                privateSec.style.display = 'none';
+            } else {
+                privateBtn.style.background = 'var(--orange-500)'; privateBtn.style.color = 'white';
+                zenpassBtn.style.background = 'white'; zenpassBtn.style.color = 'var(--orange-500)';
+                zenpassSec.style.display = 'none';
+                privateSec.style.display = 'block';
+                loadPrivateIncome();
+            }
+        }
+
+        function getCommissionRate() {
+            try {
+                var rate = localStorage.getItem('zenpass_commission_rate');
+                if (rate) return parseFloat(rate);
+            } catch(e) {}
+            return 0.75; // Default 75%
+        }
+
+        function getPiKey() {
+            var name = localStorage.getItem('zenpass_name') || 'default';
+            return 'zp_' + name.replace(/\s/g,'_') + '_private_income';
+        }
+        function getLocalPrivateIncome() {
+            try { return JSON.parse(localStorage.getItem(getPiKey()) || '[]'); } catch(e) { return []; }
+        }
+        function saveLocalPrivateIncome(list) {
+            try { localStorage.setItem(getPiKey(), JSON.stringify(list)); } catch(e) {}
+        }
+
+        async function addPrivateIncome() {
+            var date = document.getElementById('pi-date').value;
+            var desc = document.getElementById('pi-desc').value.trim();
+            var amount = parseFloat(document.getElementById('pi-amount').value);
+            var category = document.getElementById('pi-category').value;
+            var client = document.getElementById('pi-client').value.trim();
+
+            if (!date) { showToast('⚠️ 請選擇日期', 'error'); return; }
+            if (!desc) { showToast('⚠️ 請輸入收入描述', 'error'); return; }
+            if (!amount || amount <= 0) { showToast('⚠️ 請輸入有效金額', 'error'); return; }
+
+            // Try API first; fallback to localStorage
+            var token = getTokenFromStorage();
+            if (token) {
+                try {
+                    var resp = await fetch('http://localhost:3001/api/coach/private-income', {
+                        method: 'POST',
+                        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ date: date, description: desc, amount: amount, category: category, client_name: client })
+                    });
+                    if (resp.ok) {
+                        showToast('✅ 私人收入已記錄 HK$' + amount.toLocaleString(), 'success');
+                        clearPiForm();
+                        loadPrivateIncome();
+                        return;
+                    }
+                } catch(e) {}
+            }
+            // Fallback: localStorage
+            var list = getLocalPrivateIncome();
+            list.push({
+                id: 'pi_' + Date.now(), date: date, description: desc,
+                amount: amount, category: category, client_name: client
+            });
+            saveLocalPrivateIncome(list);
+            showToast('✅ (離線) 私人收入已記錄 HK$' + amount.toLocaleString(), 'success');
+            clearPiForm();
+            renderLocalPrivateIncome();
+        }
+
+        function clearPiForm() {
+            document.getElementById('pi-desc').value = '';
+            document.getElementById('pi-amount').value = '';
+            document.getElementById('pi-client').value = '';
+        }
+
+        async function loadPrivateIncome() {
+            var token = getTokenFromStorage();
+            if (!token) { renderLocalPrivateIncome(); return; }
+
+            try {
+                var resp = await fetch('http://localhost:3001/api/coach/private-income?limit=100', {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                if (resp.ok) {
+                    var data = await resp.json();
+                    var entries = data.entries || [];
+                    var total = data.total_amount || 0;
+                    document.getElementById('pi-total').textContent = 'HK$' + Math.round(total).toLocaleString();
+                    document.getElementById('pi-count').textContent = entries.length;
+                    
+                    var list = document.getElementById('pi-list');
+                    if (entries.length === 0) {
+                        list.innerHTML = '<div style="text-align:center;padding:20px;color:var(--dark-700);">尚未記錄私人收入<br><small>在上方表單新增你的私人收入</small></div>';
+                        return;
+                    }
+                    
+                    var html = '';
+                    for (var pi = 0; pi < entries.length; pi++) {
+                        var e = entries[pi];
+                        var catIcons = { '私人教授': '👤', '工作坊': '🎪', '企業合作': '🏢', '其他': '📌' };
+                        html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--gray-100);">' +
+                            '<div style="flex:1;">' +
+                                '<div style="font-weight:600;font-size:14px;">' + (catIcons[e.category] || '📌') + ' ' + e.description + '</div>' +
+                                '<div style="font-size:11px;color:var(--dark-700);">' + e.date + (e.client_name ? ' · 👤 ' + e.client_name : '') + (e.category ? ' · ' + e.category : '') + '</div>' +
+                            '</div>' +
+                            '<div style="text-align:right;">' +
+                                '<div style="font-weight:700;color:var(--green-500);font-size:15px;">+HK$' + Math.round(e.amount).toLocaleString() + '</div>' +
+                                '<div onclick="deletePrivateIncome(\'' + e.id + '\')" style="font-size:10px;color:#EF4444;cursor:pointer;margin-top:2px;">🗑️ 刪除</div>' +
+                            '</div>' +
+                        '</div>';
+                    }
+                    list.innerHTML = html;
+                }
+            } catch(e) { renderLocalPrivateIncome(); }
+        }
+
+        function renderLocalPrivateIncome() {
+            var entries = initDemoPrivateIncome();
+            var total = 0;
+            for (var pi = 0; pi < entries.length; pi++) { total += entries[pi].amount; }
+            document.getElementById('pi-total').textContent = 'HK$' + total.toLocaleString();
+            document.getElementById('pi-count').textContent = entries.length;
+            var list = document.getElementById('pi-list');
+            if (entries.length === 0) {
+                list.innerHTML = '<div style="text-align:center;padding:20px;color:var(--dark-700);">尚未記錄私人收入<br><small>(離線模式) 在上方表單新增</small></div>';
+                return;
+            }
+            var html = '';
+            for (var pi = entries.length - 1; pi >= 0; pi--) {
+                var e = entries[pi];
+                var catIcons = { '私人教授': '👤', '工作坊': '🎪', '企業合作': '🏢', '其他': '📌' };
+                html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--gray-100);">' +
+                    '<div style="flex:1;">' +
+                        '<div style="font-weight:600;font-size:14px;">' + (catIcons[e.category] || '📌') + ' ' + e.description + '</div>' +
+                        '<div style="font-size:11px;color:var(--dark-700);">' + e.date + (e.client_name ? ' · 👤 ' + e.client_name : '') + (e.category ? ' · ' + e.category : '') + '</div>' +
+                    '</div>' +
+                    '<div style="text-align:right;">' +
+                        '<div style="font-weight:700;color:var(--green-500);font-size:15px;">+HK$' + Math.round(e.amount).toLocaleString() + '</div>' +
+                        '<div onclick="deleteLocalPrivateIncome(\'' + e.id + '\')" style="font-size:10px;color:#EF4444;cursor:pointer;margin-top:2px;">🗑️ 刪除</div>' +
+                    '</div>' +
+                '</div>';
+            }
+            list.innerHTML = html + '<div style="text-align:center;padding:10px;color:var(--dark-700);font-size:11px;">📍 離線模式 — 資料儲存於此瀏覽器</div>';
+        }
+
+        function deleteLocalPrivateIncome(id) {
+            if (!confirm('確定刪除此筆收入記錄？')) return;
+            var list = getLocalPrivateIncome();
+            for (var pi = 0; pi < list.length; pi++) {
+                if (list[pi].id === id) { list.splice(pi, 1); break; }
+            }
+            saveLocalPrivateIncome(list);
+            showToast('🗑️ 已刪除', 'info');
+            renderLocalPrivateIncome();
+        }
+
+        async function deletePrivateIncome(id) {
+            if (!confirm('確定刪除此筆收入記錄？')) return;
+            var token = getTokenFromStorage();
+            if (!token) return;
+            try {
+                var resp = await fetch('http://localhost:3001/api/coach/private-income/' + id, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                if (resp.ok) {
+                    showToast('🗑️ 已刪除', 'info');
+                    loadPrivateIncome();
+                }
+            } catch(e) {}
+        }
+
+        function exportIncomeReport() {
+            // Build income data array for Excel
+            var rows = [['日期', '課程', '學生人數', '單價(HK$)', '總額(HK$)', '佣金率', '淨收入(HK$)', '狀態']];
+            
+            // Try to use API data first
+            if (earningsData && earningsData.summary) {
+                // We need to get detail - fetch it
+                fetchIncomeDetailForExport(rows);
+                return;
+            }
+            
+            // Fallback to local incomeEntries
+            for (var ei = 0; ei < incomeEntries.length; ei++) {
+                var e = incomeEntries[ei];
+                var unitPrice = incomeEntries.length > 0 && e.students > 0 ? Math.round(e.amount / e.students) : 0;
+                rows.push([e.date, e.class, e.students, unitPrice, e.amount, '80%', Math.round(e.amount * 0.8), '離線模式']);
+            }
+            if (incomeEntries.length === 0) {
+                // Use schedules data
+                for (var si = 0; si < schedules.length; si++) {
+                    var s = schedules[si];
+                    var cls = null;
+                    for (var cj = 0; cj < classes.length; cj++) {
+                        if (classes[cj].id === s.classId) { cls = classes[cj]; break; }
+                    }
+                    if (cls) {
+                        var gross = s.enrolled * cls.price;
+                        rows.push([s.date, cls.name, s.enrolled, cls.price, gross, '80%', Math.round(gross * 0.8), '待結算']);
+                    }
+                }
+            }
+            
+            // Add summary
+            rows.push([]);
+            rows.push(['🔢 摘要']);
+            var totalGross = 0, totalNet = 0;
+            for (var ri = 1; ri < rows.length - 2; ri++) {
+                if (rows[ri][4]) totalGross += rows[ri][4];
+                if (rows[ri][6]) totalNet += rows[ri][6];
+            }
+            rows.push(['總收入', '', '', '', 'HK$' + totalGross.toLocaleString(), '', 'HK$' + totalNet.toLocaleString()]);
+            rows.push(['匯出日期', new Date().toLocaleDateString('zh-HK')]);
+            
+            var wb = getWB();
+            if (!wb) return;
+            var ws = XLSX.utils.aoa_to_sheet(rows);
+            ws['!cols'] = [{wch:12}, {wch:25}, {wch:10}, {wch:10}, {wch:12}, {wch:8}, {wch:12}, {wch:10}];
+            XLSX.utils.book_append_sheet(wb, ws, '收入明細');
+            downloadWB(wb, 'ZenPass_收入報表');
+        }
+
+        async function fetchIncomeDetailForExport(rows) {
+            try {
+                var token = getTokenFromStorage();
+                if (!token) { exportIncomeReportFallback(rows); return; }
+                var resp = await fetch('http://localhost:3001/api/coach/earnings/detail?limit=200', {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                if (!resp.ok) { exportIncomeReportFallback(rows); return; }
+                var data = await resp.json();
+                var entries = data.entries || [];
+                
+                var totalGross = 0, totalNet = 0;
+                for (var ei = 0; ei < entries.length; ei++) {
+                    var e = entries[ei];
+                    var statusMap = { pending: '待結算', approved: '已審批', paid: '已結算', cancelled: '已取消' };
+                    rows.push([e.date, e.class_title || '', e.enrolled_count, 'HK$' + (e.unit_price || 0), 'HK$' + (e.gross_amount || 0), Math.round((e.commission_rate || 0.8) * 100) + '%', 'HK$' + (e.net_amount || 0), statusMap[e.status] || e.status]);
+                    totalGross += e.gross_amount || 0;
+                    totalNet += e.net_amount || 0;
+                }
+                rows.push([]);
+                rows.push(['📊 合計', '', '', '', 'HK$' + totalGross.toLocaleString(), '', 'HK$' + totalNet.toLocaleString()]);
+                
+                var wb = getWB();
+                if (!wb) return;
+                var ws = XLSX.utils.aoa_to_sheet(rows);
+                ws['!cols'] = [{wch:12}, {wch:28}, {wch:10}, {wch:10}, {wch:12}, {wch:8}, {wch:12}, {wch:10}];
+                XLSX.utils.book_append_sheet(wb, ws, '收入明細');
+                downloadWB(wb, 'ZenPass_收入報表');
+            } catch(e) {
+                exportIncomeReportFallback(rows);
+            }
+        }
+
+        function exportIncomeReportFallback(rows) {
+            if (rows.length <= 1) {
+                showToast('⚠️ 暫無收入數據可匯出', 'error');
+                return;
+            }
+            var wb = getWB();
+            if (!wb) return;
+            var ws = XLSX.utils.aoa_to_sheet(rows);
+            XLSX.utils.book_append_sheet(wb, ws, '收入明細');
+            downloadWB(wb, 'ZenPass_收入報表');
+        }
+
+        function exportFullReport() {
+            var wb = getWB();
+            if (!wb) return;
+
+            // Sheet 1: 課程列表
+            var classRows = [['ID', '課程名稱', '分類', '價格(HK$)', '時長(min)', '容量', '已報名', '狀態', '地點']];
+            for (var ci = 0; ci < classes.length; ci++) {
+                var c = classes[ci];
+                var statusText = c.status === 'active' ? '上架中' : (c.status === 'draft' ? '草稿' : '已歸檔');
+                var locStr = '';
+                if (c.location) {
+                    locStr = typeof c.location === 'object' ? [c.location.district, c.location.line1, c.location.line2].filter(Boolean).join(' ') : c.location;
+                }
+                classRows.push([c.id, c.name, c.category, c.price, c.duration, c.capacity, c.enrolled, statusText, locStr]);
+            }
+            var ws1 = XLSX.utils.aoa_to_sheet(classRows);
+            ws1['!cols'] = [{wch:5}, {wch:28}, {wch:10}, {wch:10}, {wch:8}, {wch:8}, {wch:8}, {wch:8}, {wch:20}];
+            XLSX.utils.book_append_sheet(wb, ws1, '課程列表');
+
+            // Sheet 2: 時間表
+            var schedRows = [['日期', '時間', '課程', '已報名', '容量', '收入(HK$)']];
+            for (var si = 0; si < schedules.length; si++) {
+                var s = schedules[si];
+                var cls = null;
+                for (var cj = 0; cj < classes.length; cj++) {
+                    if (classes[cj].id === s.classId) { cls = classes[cj]; break; }
+                }
+                schedRows.push([s.date, s.time, cls ? cls.name : '課程#' + s.classId, s.enrolled, s.capacity, s.earn || 0]);
+            }
+            var ws2 = XLSX.utils.aoa_to_sheet(schedRows);
+            ws2['!cols'] = [{wch:12}, {wch:8}, {wch:28}, {wch:8}, {wch:8}, {wch:10}];
+            XLSX.utils.book_append_sheet(wb, ws2, '時間表');
+
+            // Sheet 3: 收入摘要
+            var incRows = [['指標', '金額(HK$)']];
+            var incMonthly = document.getElementById('inc-monthly').textContent;
+            var incPending = document.getElementById('inc-pending').textContent;
+            var incTotal = document.getElementById('inc-total').textContent;
+            var incClasses = document.getElementById('inc-classes').textContent;
+            incRows.push(['本月收入', incMonthly]);
+            incRows.push(['待結算', incPending]);
+            incRows.push(['累計收入', incTotal]);
+            incRows.push(['本月課堂', incClasses]);
+            incRows.push([]);
+            incRows.push(['匯出日期', new Date().toLocaleDateString('zh-HK')]);
+            incRows.push(['平台', 'ZenPass 禪流']);
+            var ws3 = XLSX.utils.aoa_to_sheet(incRows);
+            ws3['!cols'] = [{wch:15}, {wch:15}];
+            XLSX.utils.book_append_sheet(wb, ws3, '收入摘要');
+
+            downloadWB(wb, 'ZenPass_完整報告');
+        }
+
+        function exportCoursesJSON() {
+            var exportClasses = JSON.parse(JSON.stringify(classes));
+            var exportScheds = JSON.parse(JSON.stringify(schedules));
+            
+            var out = { classes: [] };
+            for (var ei = 0; ei < exportClasses.length; ei++) {
+                var c = exportClasses[ei];
+                // Clean name: remove emoji prefix
+                var title = c.name.replace(/^[\u{1F300}-\u{1FAFF}\s]+/u, '').trim() || c.name;
+                
+                // Format location
+                var loc = c.location || '';
+                var addr = '';
+                if (typeof loc === 'object') {
+                    var parts = [];
+                    if (loc.line1) parts.push(loc.line1);
+                    if (loc.line2) parts.push(loc.line2);
+                    addr = parts.join('，');
+                    loc = [loc.district, loc.line1, loc.line2].filter(Boolean).join(' ');
+                }
+                
+                var card = {
+                    id: c.id,
+                    title: title,
+                    category: c.category || '其他',
+                    price_hkd: c.price || 0,
+                    duration_min: c.duration || 60,
+                    capacity: c.capacity || 10,
+                    enrolled: c.enrolled || 0,
+                    remaining_spots: (c.capacity || 10) - (c.enrolled || 0),
+                    status: c.status || 'active',
+                    coach_name: c.coach_name || '教練',
+                    location: loc,
+                    address: addr,
+                    desc: c.desc || '',
+                    rating: 4.5,
+                    popular: c.enrolled > 0 && c.enrolled > (c.capacity || 10) / 2,
+                    difficulty: 'beginner',
+                    schedules: [],
+                    reviews: []
+                };
+                
+                // Attach schedules
+                for (var sj = 0; sj < exportScheds.length; sj++) {
+                    var s = exportScheds[sj];
+                    if (s.classId == c.id) {
+                        var startH = parseInt(s.time.split(':')[0]);
+                        var startM = s.time.split(':')[1] || '00';
+                        var endH = startH + 1;
+                        card.schedules.push({
+                            id: 's_' + c.id + '_' + s.id,
+                            start_time: s.date + 'T' + s.time + ':00',
+                            end_time: s.date + 'T' + (endH < 10 ? '0' : '') + endH + ':' + startM + ':00',
+                            enrolled_count: s.enrolled || 0,
+                            max_participants: s.capacity || 10,
+                            status: ((s.capacity||10)-(s.enrolled||0)) <= 0 ? 'full' : 'available'
+                        });
+                    }
+                }
+                
+                out.classes.push(card);
+            }
+            
+            var json = JSON.stringify(out, null, 2);
+            var blob = new Blob([json], { type: 'application/json' });
+            var a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'courses.json';
+            a.click();
+            showToast('📦 courses.json 已下載！請取代 repo 中的 courses.json','success');
+        }
+
+        function exportStudents() {
+            var text = '=== ZenPass 學生資產 ===\n\n';
+            for(var si=0;si<coachStudents.length;si++){
+                var s = coachStudents[si];
+                text += (si+1)+'. '+s.name+' | '+s.phone+' | '+s.level+' | '+s.category+' | '+s.classes+'堂 | '+(s.active?'活躍':'非活躍')+'\n';
+            }
+            var blob = new Blob([text], {type:'text/plain'});
+            var a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'my_students.txt';
+            a.click();
+            showToast('📤 已匯出學生列表','success');
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            try { init(); } catch(e) {}
+            initCoachStudents();
+        });
+    
+        // ===== Load Coach Ratings =====
+        function loadCoachRatings() {
+            try {
+                var user = JSON.parse(localStorage.getItem('zenpass_user') || '{}');
+                if (!user || !user.name) return;
+                var allRatings = JSON.parse(localStorage.getItem('zenpass_ratings') || '[]');
+                var coachName = user.name || '';
+                var coachEmail = user.email || '';
+                var myRatings = [];
+                for (var i = 0; i < allRatings.length; i++) {
+                    var r = allRatings[i];
+                    if (r.toRole === 'coach' && (r.toName === coachName || r.toUserId === coachEmail || r.toUserId === (user.name || ''))) {
+                        myRatings.push(r);
+                    }
+                }
+                if (myRatings.length === 0) return;
+                var section = document.getElementById('coach-ratings');
+                if (!section) return;
+                section.style.display = 'block';
+                var total = 0;
+                for (var i = 0; i < myRatings.length; i++) total += myRatings[i].score;
+                var avg = (total / myRatings.length).toFixed(1);
+                document.getElementById('coach-rating-avg').textContent = '⭐ ' + avg;
+                var ov = document.getElementById('ov-rating');
+                if (ov) ov.textContent = avg;
+                myRatings.sort(function(a, b) { return (b.createdAt || '').localeCompare(a.createdAt || ''); });
+                var h = '';
+                for (var i = 0; i < myRatings.length; i++) {
+                    var r = myRatings[i];
+                    var stars = '';
+                    for (var s = 0; s < 5; s++) stars += s < r.score ? '<span style="color:#FBBF24;font-size:14px;">★</span>' : '<span style="color:#D1D5DB;font-size:14px;">☆</span>';
+                    h += '<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--gray-100);">'
+                        + '<div style="width:36px;height:36px;border-radius:50%;background:var(--orange-100);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:var(--orange-500);flex-shrink:0;">' + ('🤫') + '</div>'
+                        + '<div style="flex:1;min-width:0;">'
+                        + '<div style="color:#FBBF24;font-size:14px;">' + stars + '</div>'
+                        + '<div style="font-size:13px;font-weight:600;">匿名用戶</div>'
+                        + (r.className ? '<div style="font-size:11px;color:var(--dark-700);">' + r.className + '</div>' : '')
+                        + (r.comment ? '<div style="font-size:13px;color:var(--dark-700);margin-top:4px;line-height:1.5;">' + r.comment + '</div>' : '')
+                        + '</div>'
+                        + '</div>';
+                }
+                document.getElementById('coach-rating-list').innerHTML = h;
+            } catch(e) {}
+        }
+        
+        // Init ratings after dashboard loads
+        setTimeout(loadCoachRatings, 500);
+        
+        // ===== Load Given Ratings (coach → students) =====
+        function loadGivenRatings() {
+            try {
+                var user = JSON.parse(localStorage.getItem('zenpass_user') || '{}');
+                if (!user || !user.name) return;
+                var allRatings = JSON.parse(localStorage.getItem('zenpass_ratings') || '[]');
+                var coachName = user.name || '';
+                var given = [];
+                for (var i = 0; i < allRatings.length; i++) {
+                    var r = allRatings[i];
+                    if (r.fromRole === 'coach' && (r.fromName === coachName || r.fromUserId === (user.email || ''))) {
+                        given.push(r);
+                    }
+                }
+                if (given.length === 0) return;
+                
+                // Create given-ratings section
+                var section = document.getElementById('coach-given-ratings');
+                if (!section) {
+                    // Create it dynamically
+                    var container = document.createElement('div');
+                    container.className = 'rating-section';
+                    container.id = 'coach-given-ratings';
+                    container.style.cssText = 'max-width:480px;margin:16px auto;padding:0 16px;';
+                    container.innerHTML = '<div style="background:var(--white);border-radius:12px;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,0.06);">'
+                        + '<div style="font-size:15px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--gray-100);padding-bottom:8px;">'
+                        + '<span>📝 我給學生的評分</span></div>'
+                        + '<div id="coach-given-list"></div></div>';
+                    var coachSection = document.getElementById('coach-ratings');
+                    if (coachSection && coachSection.parentNode) {
+                        coachSection.parentNode.insertBefore(container, coachSection.nextSibling);
+                    }
+                }
+                
+                given.sort(function(a, b) { return (b.createdAt || '').localeCompare(a.createdAt || ''); });
+                var h = '';
+                for (var i = 0; i < given.length; i++) {
+                    var r = given[i];
+                    var stars = '';
+                    for (var s = 0; s < 5; s++) stars += s < r.score ? '<span style="color:#FBBF24;font-size:14px;">★</span>' : '<span style="color:#D1D5DB;font-size:14px;">☆</span>';
+                    h += '<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--gray-100);">'
+                        + '<div style="width:36px;height:36px;border-radius:50%;background:var(--gray-100);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">👤</div>'
+                        + '<div style="flex:1;min-width:0;">'
+                        + '<div style="color:#FBBF24;font-size:14px;">' + stars + '</div>'
+                        + '<div style="font-size:13px;font-weight:600;">' + r.toName + '</div>'
+                        + (r.className ? '<div style="font-size:11px;color:var(--dark-700);">' + r.className + '</div>' : '')
+                        + (r.comment ? '<div style="font-size:13px;color:var(--dark-700);margin-top:4px;line-height:1.5;">' + r.comment + '</div>' : '')
+                        + '</div>'
+                        + '</div>';
+                }
+                var list = document.getElementById('coach-given-list');
+                if (list) list.innerHTML = h;
+            } catch(e) {}
+        }
+        
+        
+        function loadCoachRatingsIntoTab() {
+            try {
+                var user = JSON.parse(localStorage.getItem('zenpass_user') || '{}');
+                if (!user || !user.name) return;
+                var allRatings = JSON.parse(localStorage.getItem('zenpass_ratings') || '[]');
+                var coachName = user.name || '';
+                var coachEmail = user.email || '';
+                var received = [];
+                var given = [];
+                for (var i = 0; i < allRatings.length; i++) {
+                    var r = allRatings[i];
+                    if (r.toRole === 'coach' && (r.toName === coachName || r.toUserId === coachEmail || r.toUserId === user.name)) received.push(r);
+                    if (r.fromRole === 'coach' && (r.fromName === coachName || r.fromUserId === (user.email || ''))) given.push(r);
+                }
+                
+                // Show average
+                var avgEl = document.getElementById('tab-rating-avg');
+                if (avgEl && received.length > 0) {
+                    var total = 0;
+                    for (var i = 0; i < received.length; i++) total += received[i].score;
+                    avgEl.textContent = (total / received.length).toFixed(1);
+                }
+                
+                // Render received
+                var list = document.getElementById('tab-rating-list');
+                if (list) {
+                    if (received.length === 0) {
+                        list.innerHTML = '<div style="text-align:center;padding:20px;color:var(--dark-700);font-size:13px;">暫無評價</div>';
+                    } else {
+                        received.sort(function(a, b) { return (b.createdAt || '').localeCompare(a.createdAt || ''); });
+                        var h = '';
+                        for (var i = 0; i < received.length; i++) {
+                            var r = received[i];
+                            var stars = '';
+                            for (var s = 0; s < 5; s++) stars += s < r.score ? '<span style="color:#FBBF24;font-size:14px;">★</span>' : '<span style="color:#D1D5DB;font-size:14px;">☆</span>';
+                            h += '<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--gray-100);">'
+                                + '<div style="width:36px;height:36px;border-radius:50%;background:var(--orange-100);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;">🤫</div>'
+                                + '<div style="flex:1;min-width:0;">'
+                                + '<div style="font-size:14px;">' + stars + '</div>'
+                                + '<div style="font-size:12px;color:var(--dark-700);">匿名用戶</div>'
+                                + (r.className ? '<div style="font-size:11px;color:var(--dark-700);">' + r.className + '</div>' : '')
+                                + (r.comment ? '<div style="font-size:13px;color:var(--dark-700);margin-top:4px;line-height:1.5;">' + r.comment + '</div>' : '')
+                                + '</div>'
+                                + '</div>';
+                        }
+                        list.innerHTML = h;
+                    }
+                }
+                
+                // Render given
+                var givenList = document.getElementById('tab-given-list');
+                if (givenList) {
+                    if (given.length === 0) {
+                        givenList.innerHTML = '<div style="text-align:center;padding:20px;color:var(--dark-700);font-size:13px;">暫無評分</div>';
+                    } else {
+                        given.sort(function(a, b) { return (b.createdAt || '').localeCompare(a.createdAt || ''); });
+                        var h2 = '';
+                        for (var i = 0; i < given.length; i++) {
+                            var r = given[i];
+                            var stars = '';
+                            for (var s = 0; s < 5; s++) stars += s < r.score ? '<span style="color:#FBBF24;font-size:14px;">★</span>' : '<span style="color:#D1D5DB;font-size:14px;">☆</span>';
+                            h2 += '<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--gray-100);">'
+                                + '<div style="width:36px;height:36px;border-radius:50%;background:var(--gray-100);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;">👤</div>'
+                                + '<div style="flex:1;min-width:0;">'
+                                + '<div style="font-size:14px;">' + stars + '</div>'
+                                + '<div style="font-size:12px;font-weight:600;">' + r.toName + '</div>'
+                                + (r.className ? '<div style="font-size:11px;color:var(--dark-700);">' + r.className + '</div>' : '')
+                                + (r.comment ? '<div style="font-size:13px;color:var(--dark-700);margin-top:4px;line-height:1.5;">' + r.comment + '</div>' : '')
+                                + '</div>'
+                                + '</div>';
+                        }
+                        givenList.innerHTML = h2;
+                    }
+                }
+            } catch(e) {}
+        }
+        
+// Init ratings after dashboard loads
+setTimeout(loadCoachRatings, 500);
+</script>
+
+    <!-- Ratings Tab -->
+    <div id="tab-ratings" class="section" style="display:none;">
+        <div style="margin-bottom:16px;">
+            <div class="stat-box" style="display:inline-flex;align-items:center;gap:8px;padding:12px 20px;background:var(--orange-50);border-radius:12px;">
+                <div style="font-size:24px;font-weight:800;color:var(--orange-500);" id="tab-rating-avg">-</div>
+                <div style="font-size:13px;color:var(--dark-700);">⭐ 平均評分</div>
+            </div>
+        </div>
+        <h3 style="font-size:15px;font-weight:700;margin-bottom:12px;">⭐ 學生對我的評價</h3>
+        <div id="tab-rating-list"></div>
+        <h3 style="font-size:15px;font-weight:700;margin:16px 0 12px;">📝 我給學生的評分</h3>
+        <div id="tab-given-list"></div>
+    </div>
+
+    <!-- Coach Ratings -->
+    <div class="rating-section" id="coach-ratings" style="max-width:480px;margin:16px auto;padding:0 16px;display:none;">
+        <div style="background:var(--white);border-radius:12px;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,0.06);">
+            <div style="font-size:15px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:8px;">
+                <span>⭐ 學生對我的評價</span>
+                <span id="coach-rating-avg" style="display:inline-flex;align-items:center;gap:4px;padding:4px 12px;border-radius:16px;background:var(--orange-50);color:var(--orange-500);font-size:14px;font-weight:700;">-</span>
+            </div>
+            <div id="coach-rating-list">
+                <div style="text-align:center;padding:16px;color:var(--dark-700);font-size:13px;">暫無評價</div>
+            </div>
+        </div>
+    </div>
+
+<script>if("serviceWorker" in navigator){navigator.serviceWorker.register("sw.js")}</script>
+<script>
+(function(){var n=localStorage.getItem('zenpass_name');if(n){var b=document.createElement('div');b.style.cssText='position:fixed;top:10px;right:10px;z-index:9999;background:#FF6B35;color:white;padding:5px 12px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.15);font-family:sans-serif;';b.textContent='👤 '+n;b.onclick=function(){var nn=prompt('切換用戶\n當前：'+n,n);if(nn&&nn.trim()&&nn.trim()!==n){localStorage.setItem('zenpass_name',nn.trim());localStorage.removeItem('zenpass_token');localStorage.removeItem('zenpass_user');location.reload()}};document.body.appendChild(b)}})();
+</script>
+</body>
+</html>

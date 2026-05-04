@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#FF6B35">
+    <title>註冊教練 — ZenPass</title>
+    <link rel="manifest" href="manifest.json">
+<style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:'Noto Sans TC',sans-serif; background:#FFF8F4; min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px; }
+    .card { background:white; border-radius:24px; padding:32px; max-width:400px; width:100%; text-align:center; box-shadow:0 4px 24px rgba(0,0,0,0.06); }
+    h1 { font-size:24px; margin-bottom:8px; }
+    .sub { color:#6B7280; font-size:14px; margin-bottom:20px; }
+    input { width:100%; padding:12px; border:1px solid #E5E7EB; border-radius:8px; font-size:14px; margin-bottom:12px; }
+    .btn { width:100%; padding:14px; background:#FF6B35; color:white; border:none; border-radius:12px; font-size:16px; font-weight:700; cursor:pointer; }
+    .btn:hover { background:#E85D2C; }
+    .success { display:none; padding:16px; background:#ECFDF5; border:2px solid #A7F3D0; border-radius:12px; margin-top:16px; }
+</style>
+</head>
+<body>
+<div class="card">
+    <div style="font-size:48px;margin-bottom:12px;">🏋️</div>
+    <a href="coach-apply.html" style="color:var(--orange-500);text-decoration:none;display:block;text-align:left;font-size:14px;margin-bottom:12px;">← 返回申請頁</a>
+    <h1>註冊教練帳戶</h1>
+    <div class="sub">填寫資料後即成為 ZenPass 教練</div>
+    <input type="text" id="name" value="David教練" placeholder="教練名稱">
+    <input type="email" id="email" value="david@zenpass.hk" placeholder="電郵">
+    <input type="tel" id="phone" value="9033 5538" placeholder="電話">
+    <input type="text" id="specialty" value="HIIT・匹克球・健身" placeholder="專長">
+    <button class="btn" onclick="register()">✅ 註冊教練</button>
+    <div class="success" id="success">
+        <div style="font-size:36px;margin-bottom:4px;">✅</div>
+        <div style="font-size:18px;font-weight:700;color:#059669;">註冊成功！</div>
+        <div style="margin-top:8px;">已登入為 <strong>David教練</strong></div>
+        <div style="margin-top:12px;"><a href="coach-dashboard.html" style="color:#FF6B35;font-weight:600;text-decoration:none;">→ 前往教練入口</a></div>
+    </div>
+</div>
+<script>
+function register() {
+    const user = {
+        name: document.getElementById('name').value.trim() || 'David教練',
+        email: document.getElementById('email').value.trim() || 'david@zenpass.hk',
+        phone: document.getElementById('phone').value.trim() || '9033 5538',
+        role: 'coach',
+        specialty: document.getElementById('specialty').value.trim() || 'HIIT・匹克球・健身',
+        credits: 0,
+        bookings: 0,
+        joined: '2026-01-15',
+        avatar: '🏋️',
+        cert: 'ACE Certified',
+        bio: '專業教練'
+    };
+    localStorage.setItem('zenpass_token', 'demo_token_coach');
+    localStorage.setItem('zenpass_user', JSON.stringify(user));
+    document.getElementById('success').style.display = 'block';
+    document.querySelector('.btn').style.display = 'none';
+}
+</script>
+<script>if("serviceWorker" in navigator){navigator.serviceWorker.register("sw.js")}</script>
+</body>
+</html>

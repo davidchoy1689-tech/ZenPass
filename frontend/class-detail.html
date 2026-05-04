@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#FF6B35">
+    <title>課程詳情 — ZenPass 禪流</title>
+    <link rel="manifest" href="manifest.json">
+    
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --orange-500: #FF6B35; --orange-400: #FF8555; --orange-300: #FFA075;
+            --orange-100: #FFF0E8; --orange-50: #FFF8F4;
+            --dark-900: #1A1A2E; --dark-800: #2D2D44; --dark-700: #3D3D5A;
+            --gray-300: #888; --gray-200: #E5E7EB; --gray-100: #F3F4F6; --gray-50: #F9FAFB;
+            --white: #FFFFFF;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.08); --shadow-md: 0 4px 12px rgba(0,0,0,0.1); --shadow-lg: 0 10px 30px rgba(0,0,0,0.12);
+            --radius-sm: 8px; --radius-md: 12px; --radius-lg: 16px; --radius-xl: 24px;
+            --font-en: 'Inter', sans-serif; --font-zh: 'Noto Sans TC', sans-serif;
+            --max-width: 480px; --nav-height: 64px;
+        }
+        body {
+            font-family: var(--font-zh); background: var(--gray-50); color: var(--dark-900);
+            max-width: var(--max-width); margin: 0 auto;
+            padding-bottom: calc(var(--nav-height) + 20px);
+            -webkit-font-smoothing: antialiased;
+        }
+        .class-image {
+            width: 100%; height: 240px;
+            background: linear-gradient(135deg, var(--orange-100), #FFD4BC);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 72px; position: relative;
+        }
+        .class-image .back-btn {
+            position: absolute; top: 16px; left: 16px;
+            width: 40px; height: 40px; border-radius: 50%;
+            background: rgba(0,0,0,0.3); color: var(--white);
+            display: flex; align-items: center; justify-content: center;
+            text-decoration: none; font-size: 20px; backdrop-filter: blur(4px);
+        }
+        .content { padding: 20px 16px; }
+        .class-title {
+            font-size: 24px; font-weight: 700; margin-bottom: 8px;
+        }
+        .class-rating { display: flex; align-items: center; gap: 4px; margin-bottom: 12px; font-size: 14px; color: var(--dark-700); }
+        .class-rating .stars { color: #FBBF24; }
+        .info-grid {
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 20px;
+        }
+        .info-item {
+            background: var(--gray-100); padding: 10px 8px; border-radius: var(--radius-sm);
+            text-align: center;
+        }
+        .info-item .value { font-size: 16px; font-weight: 700; }
+        .info-item .label { font-size: 11px; color: var(--dark-700); margin-top: 2px; }
+        .section-title { font-size: 18px; font-weight: 700; margin-bottom: 12px; margin-top: 20px; }
+        .coach-card {
+            display: flex; gap: 12px; align-items: center; padding: 12px;
+            background: var(--white); border-radius: var(--radius-md); box-shadow: var(--shadow-sm);
+            margin-bottom: 20px;
+        }
+        .coach-avatar {
+            width: 56px; height: 56px; border-radius: 50%;
+            background: var(--orange-100); display: flex; align-items: center;
+            justify-content: center; font-size: 24px; flex-shrink: 0;
+        }
+        .coach-info { flex: 1; }
+        .coach-name { font-weight: 700; font-size: 16px; }
+        .coach-detail { font-size: 13px; color: var(--dark-700); }
+        .coach-tags { display: flex; gap: 4px; margin-top: 6px; flex-wrap: wrap; }
+        .coach-tag { background: var(--orange-100); color: var(--orange-500); padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+        .schedule-list { margin-bottom: 20px; }
+        .schedule-item {
+            display: flex; align-items: center; gap: 12px; padding: 12px;
+            background: var(--white); border-radius: var(--radius-sm);
+            margin-bottom: 8px; box-shadow: var(--shadow-sm); cursor: pointer;
+            transition: background .2s; border: 2px solid transparent;
+        }
+        .schedule-item.selected { border-color: var(--orange-500); background: var(--orange-50); }
+        .schedule-item .date { font-weight: 600; min-width: 70px; }
+        .schedule-item .time { color: var(--dark-700); flex: 1; }
+        .schedule-item .spots { font-size: 12px; color: var(--dark-700); }
+        .schedule-item .spots .full { color: #EF4444; font-weight: 600; }
+        .schedule-item .spots .available { color: #059669; font-weight: 600; }
+        .payment-options { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
+        .payment-option {
+            display: flex; align-items: center; gap: 12px; padding: 12px;
+            background: var(--white); border-radius: var(--radius-sm); border: 2px solid var(--gray-200);
+            cursor: pointer; transition: all .2s;
+        }
+        .payment-option.selected { border-color: var(--orange-500); background: var(--orange-50); }
+        .payment-option .radio {
+            width: 20px; height: 20px; border-radius: 50%;
+            border: 2px solid var(--gray-300); display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0; transition: all .2s;
+        }
+        .payment-option.selected .radio { border-color: var(--orange-500); }
+        .payment-option.selected .radio::after { content: ''; width: 10px; height: 10px; border-radius: 50%; background: var(--orange-500); }
+        .payment-option .pay-name { flex: 1; font-weight: 500; }
+        .payment-option .pay-price { font-weight: 700; color: var(--orange-500); }
+        .payment-option .pay-price.free { color: #059669; }
+        .reviews { margin-bottom: 20px; }
+        .review-item {
+            padding: 12px 0; border-bottom: 1px solid var(--gray-100);
+            display: flex; gap: 12px;
+        }
+        .review-item .r-avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--gray-200); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+        .review-item .r-name { font-weight: 600; font-size: 14px; }
+        .review-item .r-text { font-size: 14px; color: var(--dark-700); margin-top: 2px; }
+        .review-item .r-date { font-size: 12px; color: var(--gray-300); }
+        .book-btn {
+            position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+            width: 100%; max-width: var(--max-width); padding: 12px 16px;
+            padding-bottom: calc(12px + env(safe-area-inset-bottom));
+            background: var(--white); border-top: 1px solid var(--gray-200);
+            z-index: 100;
+        }
+        .book-btn button {
+            width: 100%; padding: 14px; background: var(--orange-500); color: var(--white);
+            border: none; border-radius: var(--radius-sm); font-size: 16px;
+            font-weight: 700; cursor: pointer; font-family: var(--font-zh);
+            transition: background .2s;
+        }
+        .book-btn button:disabled { background: var(--gray-300); cursor: not-allowed; }
+        .book-btn button:hover:not(:disabled) { background: #E55A2B; }
+        .bottom-nav {
+            position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+            width: 100%; max-width: var(--max-width);
+            background: var(--white); border-top: 1px solid var(--gray-200);
+            display: flex; justify-content: space-around;
+            padding: 8px 0 calc(8px + env(safe-area-inset-bottom)); z-index: 99;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+        }
+        .nav-item {
+            display: flex; flex-direction: column; align-items: center;
+            text-decoration: none; color: var(--gray-300); font-size: 10px; gap: 2px;
+            padding: 4px 12px; transition: color .2s;
+        }
+        .nav-item.active { color: var(--orange-500); }
+        .nav-item .nav-icon { font-size: 22px; line-height: 1; }
+        .loading { text-align: center; padding: 60px 20px; }
+        .loading::after {
+            content: ''; display: block; width: 40px; height: 40px; margin: 12px auto;
+            border: 3px solid var(--gray-200); border-top-color: var(--orange-500);
+            border-radius: 50%; animation: spin .8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .error-page { text-align: center; padding: 80px 20px; }
+        .error-page span { font-size: 48px; display: block; margin-bottom: 12px; }
+        .desc-text { font-size: 15px; line-height: 1.7; color: var(--dark-700); }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+    <div class="class-image" id="class-image">
+        <a href="javascript:if(document.referrer){history.back()}else{location.href='index.html'}" class="back-btn">←</a>
+        <span id="class-emoji">🧘</span>
+    </div>
+
+    <div class="content" id="class-content">
+        <div class="loading">載入課程資料...</div>
+    </div>
+
+    <div class="book-btn" id="book-btn">
+        <button id="book-button" onclick="handleBooking()" disabled>請選擇時段</button>
+    </div>
+
+    <script src="api.js"></script>
+    <script>
+        var currentClass = null;
+        var selectedSchedule = null;
+        var selectedPayment = 'single';
+
+        // ===== Load Class Detail =====
+        async function loadClass() {
+            var urlParams = (function(){var q={},s=window.location.search.substring(1);if(s){var a=s.split("&");for(var i=0;i<a.length;i++){var kv=a[i].split("=");q[decodeURIComponent(kv[0])]=kv.length>1?decodeURIComponent(kv[1]):""}}return q;})();
+            var classId = urlParams['id'];
+
+            if (!classId) {
+                // Show demo data
+                renderDemoData();
+                return;
+            }
+
+            var container = document.getElementById('class-content');
+            container.innerHTML = '<div class="loading">載入課程資料...</div>';
+
+            try {
+                var result = await classes.get(classId);
+                currentClass = result.class;
+                renderClassDetail(result);
+            } catch (err) {
+                renderDemoData();
+            }
+        }
+
+        function renderDemoData() {
+            currentClass = {
+                id: 'demo',
+                title: '流瑜伽 Flow Yoga',
+                category: '瑜伽',
+                difficulty: 'beginner',
+                duration: 60,
+                max_participants: 15,
+                price_hkd: 120,
+                credits_cost: 15,
+                description: '透過流暢的動作串聯，配合呼吸節奏，幫助你釋放壓力、提升柔軟度與核心力量。適合所有程度的練習者。',
+                coach_name: '靜儀導師',
+                coach_verified: 1,
+                venue_name: 'ZenSpace 瑜伽教室',
+                venue_address: '中環皇后大道中 100 號 12樓'
+            };
+
+            var schedules = [
+                { id: 's1', start_time: '2026-05-02T09:00:00', end_time: '2026-05-02T10:00:00', enrolled_count: 8, max_participants: 15, status: 'available' },
+                { id: 's2', start_time: '2026-05-02T11:00:00', end_time: '2026-05-02T12:00:00', enrolled_count: 12, max_participants: 15, status: 'available' },
+                { id: 's3', start_time: '2026-05-03T09:00:00', end_time: '2026-05-03T10:00:00', enrolled_count: 15, max_participants: 15, status: 'available' },
+                { id: 's4', start_time: '2026-05-03T18:00:00', end_time: '2026-05-03T19:00:00', enrolled_count: 0, max_participants: 15, status: 'available' },
+            ];
+            // Try loading actual ratings from localStorage, fallback to demo data
+            var allRatings = [];
+            try { allRatings = JSON.parse(localStorage.getItem('zenpass_ratings') || '[]'); } catch(e) {}
+            var coachName = currentClass.coach_name || '';
+            var className = currentClass.title || '';
+            var classRatings = [];
+            for (var ri = 0; ri < allRatings.length; ri++) {
+                var r = allRatings[ri];
+                if (r.toRole === 'coach' && (r.toName === coachName || r.className === className)) {
+                    classRatings.push(r);
+                }
+            }
+            var reviews = classRatings.length > 0 ? classRatings : [
+                { user_name: 'Winnie', rating_text: '★★★★★', review_date: '2026-04-28', comment: '非常好的瑜伽課，靜儀導師很專業，環境舒服～' },
+                { user_name: '阿強', rating_text: '★★★★★', review_date: '2026-04-25', comment: '第一次上瑜伽課就愛上了，會繼續來！' },
+            ];
+
+            renderClassDetail({ "class": currentClass, schedules, reviews });
+        }
+
+        function renderClassDetail(data) {
+            var cls = data.class;
+            var schedules = data.schedules || [];
+            var reviews = data.reviews || [];
+            currentClass = cls;
+
+            var emojiMap = { '\u7476\u5c48': '\ud83e\uddd8', '\u5065\u8eab': '\ud83c\udfcb\ufe0f', '\u5190\u60f3': '\ud83e\udde0', '\u821e\u8e48': '\ud83d\udc83', '\u65b0\u8208\u904b\u52d5': '\ud83c\udfaf', '\u666e\u62c9\u63d0': '\ud83e\udd38', '\u6b66\u8853': '\ud83e\udd4b', '\u592a\u6975': '\u262f\ufe0f' };
+            document.getElementById('class-emoji').textContent = emojiMap[cls.category] || '\ud83c\udfc3';
+
+            var diffMap = { 'beginner': '\u521d\u968e', 'intermediate': '\u4e2d\u968e', 'advanced': '\u9032\u968e' };
+
+            // Render schedules
+            var schedulesHtml = schedules.length > 0 ? schedules.map(function(s) { return renderScheduleItem(s); }).join('') : '<div style="text-align:center;padding:20px;color:var(--dark-700);font-size:13px;">\u66ab\u7121\u53ef\u9078\u7684\u6642\u6bb5</div>';
+
+            // Render reviews
+            var reviewsHtml = reviews.map(function(r) {
+                return '<div class="review-item">'
+                    + '<div class="r-avatar">' + (r.user_name || '?').charAt(0) + '</div>'
+                    + '<div>'
+                    + '<div class="r-name">' + (r.user_name || '') + ' <span class="r-date">' + (r.review_date ? formatDate(r.review_date) : '') + '</span></div>'
+                    + '<div class="stars">' + (r.rating_text || '\u2b50\u2b50\u2b50\u2b50\u2b50') + '</div>'
+                    + '<div class="r-text">' + (r.comment || '\u5f88\u597d\u7684\u8ab2\u7a0b\u9ad4\u9a57\uff01') + '</div>'
+                    + '</div>'
+                    + '</div>';
+            }).join('');
+
+            var price = cls.price_hkd || 120;
+            var creditsCost = cls.credits_cost || 15;
+            var duration = cls.duration || 60;
+            var diffLabel = diffMap[cls.difficulty] || '';
+
+            var container = document.getElementById('class-content');
+            container.innerHTML = ''
+                + '<div class="section">'
+                // Title row
+                + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">'
+                + '<span style="background:var(--orange-100);color:var(--orange-500);padding:3px 10px;border-radius:8px;font-size:12px;font-weight:600;">' + (cls.category || '') + '</span>'
+                + (diffLabel ? '<span style="background:var(--gray-100);color:var(--dark-700);padding:3px 10px;border-radius:8px;font-size:12px;">' + diffLabel + '</span>' : '')
+                + '</div>'
+                + '<h2 style="font-size:22px;font-weight:800;margin-bottom:8px;">' + (cls.title || '') + '</h2>'
+                // Coach
+                + '<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding:10px 0;border-bottom:1px solid var(--gray-100);">'
+                + '<span style="font-size:24px;">\ud83d\udc69\u200d\ud83c\udf93</span>'
+                + '<div><div style="font-weight:600;font-size:14px;">' + (cls.coach_name || '') + '</div>'
+                + (cls.coach_verified ? '<div style="font-size:11px;color:var(--green-500);">\u2705 \u7d93\u9a57\u78ba\u8a8d\u6559\u7df4</div>' : '')
+                + '</div>'
+                + '</div>'
+                // Meta info
+                + '<div style="display:flex;gap:16px;margin-bottom:12px;padding:8px 0;">'
+                + '<div style="text-align:center;"><div style="font-size:20px;font-weight:700;color:var(--orange-500);">' + duration + '</div><div style="font-size:11px;color:var(--dark-700);">\u5206\u9418</div></div>'
+                + '<div style="text-align:center;"><div style="font-size:20px;font-weight:700;color:var(--orange-500);">HK$' + price + '</div><div style="font-size:11px;color:var(--dark-700);">\u55ae\u6b21\u8ab2\u7a0b</div></div>'
+                + '<div style="text-align:center;"><div style="font-size:20px;font-weight:700;color:var(--orange-500);">' + creditsCost + '</div><div style="font-size:11px;color:var(--dark-700);">Credits</div></div>'
+                + '</div>'
+                // Venue
+                + (cls.venue_name ? '<div style="display:flex;align-items:center;gap:6px;margin-bottom:12px;font-size:13px;color:var(--dark-700);"><span>\ud83d\udccd</span>' + (cls.venue_name || '') + (cls.venue_address ? ' - ' + cls.venue_address : '') + '</div>' : '')
+                // Description
+                + (cls.description ? '<div style="margin-bottom:16px;padding:12px;background:var(--gray-50);border-radius:var(--radius-sm);font-size:14px;color:var(--dark-700);line-height:1.7;">' + cls.description + '</div>' : '')
+                // Schedules heading
+                + '<h3 style="font-size:16px;font-weight:700;margin-bottom:12px;">\ud83d\udcc5 \u9078\u64c7\u6642\u6bb5</h3>'
+                + schedulesHtml
+                // Payment options heading
+                + '<h3 style="font-size:16px;font-weight:700;margin:16px 0 12px;">\ud83d\udcb3 \u652f\u4ed8\u65b9\u5f0f</h3>'
+                + '<div class="payment-options">'
+                + '<div class="payment-option selected" onclick="selectPayment(\'credits\', this)"><div class="radio">\u2713</div><div class="pay-name">\ud83d\udc8e Credits \u652f\u4ed8</div><div class="pay-price">' + creditsCost + ' Credits</div></div>'
+                + '<div class="payment-option" onclick="selectPayment(\'single\', this)"><div class="radio"></div><div class="pay-name">\ud83d\udcb5 \u55ae\u6b21\u8cfc\u8cb7</div><div class="pay-price">HK$' + price + '</div></div>'
+                + '<div class="payment-option" onclick="selectPayment(\'membership_trial\', this)"><div class="radio"></div><div class="pay-name">\ud83c\udfc5 \u8a66\u73a9\u6703\u54e1</div><div class="pay-price free">\u514d\u8cbb</div></div>'
+                + '</div>'
+                // Reviews heading
+                + (reviews.length > 0 ? '<h3 style="font-size:16px;font-weight:700;margin:16px 0 12px;">\ud83d\udcac \u8a55\u50f9 (' + reviews.length + ')</h3>' : '')
+                + (reviewsHtml || '')
+                + '</div>';
+
+            // Update book button
+            updateBookButton();
+        }
+
+        function renderScheduleItem(s) {
+            var spotsLeft = s.max_participants - s.enrolled_count;
+            var isFull = spotsLeft <= 0;
+            var selId = (selectedSchedule || {}).id;
+            var selected = s.id === selId ? 'selected' : '';
+            var spotsHtml = isFull ? '<span class="full">已滿</span>' : '<span class="available">' + spotsLeft + '位</span>';
+            return '<div class="schedule-item ' + selected + '" onclick="selectSchedule(\'' + s.id + '\')" data-id="' + s.id + '">'
+                + '<div class="date">' + formatDate(s.start_time) + '</div>'
+                + '<div class="time">' + formatTime(s.start_time) + ' - ' + formatTime(s.end_time) + '</div>'
+                + '<div class="spots">' + spotsHtml + '</div>'
+                + '</div>';
+        }
+
+        // ===== Select Schedule =====
+        function selectSchedule(scheduleId) {
+            var s = document.querySelector('[data-id=\"' + scheduleId + '\"]');
+            if (!s) return;
+            
+            document.querySelectorAll('.schedule-item').forEach(function(el) { el.classList.remove('selected'); });
+            s.classList.add('selected');
+
+            // Find the schedule data
+            var container = document.getElementById('class-content');
+            selectedSchedule = { id: scheduleId };
+            updateBookButton();
+        }
+
+        // ===== Select Payment =====
+        function selectPayment(type, el) {
+            document.querySelectorAll('.payment-option').forEach(function(o) { o.classList.remove('selected'); });
+            el.classList.add('selected');
+            selectedPayment = type;
+        }
+
+        // ===== Update Book Button =====
+        function updateBookButton() {
+            var btn = document.getElementById('book-button');
+            if (selectedSchedule) {
+                btn.disabled = false;
+                btn.textContent = '確認預約 — HK$' + ((currentClass||{}).price_hkd || 120);
+            } else {
+                btn.disabled = true;
+                btn.textContent = '請選擇時段';
+            }
+        }
+
+        // ===== Handle Booking =====
+        async function handleBooking() {
+            if (!isLoggedIn()) {
+                showLoginModal(function() { doBooking(); });
+                return;
+            }
+            doBooking();
+        }
+
+                function getUserCredits() {
+            try {
+                var u = JSON.parse(localStorage.getItem('zenpass_user') || '{}');
+                return u.credits || 0;
+            } catch(e) { return 0; }
+        }
+
+async function doBooking() {
+            if (!selectedSchedule || !currentClass) return;
+            var price = currentClass.price_hkd || 120;
+
+            // If credits payment, check balance
+            if (selectedPayment === 'credits') {
+                var userCredits = getUserCredits();
+                var needed = currentClass.credits_cost || 15;
+                if (userCredits < needed) {
+                    showToast('❌ 點數不足!需要 ' + needed + ' Credits,你只有 ' + userCredits, 'error');
+                    var btn = document.getElementById('book-button');
+                    btn.disabled = false;
+                    btn.textContent = '❌ 點數不足 — 立即購買';
+                    btn.onclick = function() { location.href = 'buy-credits.html'; };
+                    return;
+                }
+            }
+
+            var btn = document.getElementById('book-button');
+            btn.disabled = true;
+            btn.textContent = '預約中...';
+
+            try {
+                var paymentType = selectedPayment === 'free' ? 'membership_trial' : selectedPayment;
+
+                // 🎯 API-FIRST — authenticate + call backend
+                var token = localStorage.getItem('zenpass_token');
+                if (!token) {
+                    showLoginModal(function() { doBooking(); });
+                    return;
+                }
+
+                var apiResp = await fetch(API_BASE + '/bookings', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + token
+                    },
+                    body: JSON.stringify({
+                        schedule_id: selectedSchedule.id,
+                        class_id: currentClass.id,
+                        payment_type: selectedPayment,
+                        amount: price
+                    })
+                });
+
+                var apiData = await apiResp.json();
+
+                if (!apiResp.ok) {
+                    throw new Error(apiData.error || '預約失敗');
+                }
+
+                var bookingId = apiData.booking_id;
+                var bookingReference = apiData.booking_reference;
+                var bookingStatus = apiData.status;
+
+                // 📝 Sync to localStorage as cache
+                var user = JSON.parse(localStorage.getItem('zenpass_user') || '{}');
+                if (selectedPayment === 'credits') {
+                    user.credits = Math.max(0, (user.credits || 0) - (currentClass.credits_cost || 15));
+                    localStorage.setItem('zenpass_user', JSON.stringify(user));
+                }
+
+                var bkKey = (typeof zpKey === 'function') ? zpKey('bookings') : 'zenpass_bookings';
+                var bookings = JSON.parse(localStorage.getItem(bkKey) || '[]');
+                var coachName = currentClass.coach_name || '';
+                var today = new Date();
+                var dateStr = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0');
+
+                bookings.push({
+                    id: bookingId,
+                    booking_reference: bookingReference,
+                    classId: currentClass.id,
+                    className: currentClass.title,
+                    coach: coachName,
+                    date: selectedSchedule.date || dateStr,
+                    time: selectedSchedule.time || '',
+                    payment: paymentType,
+                    credits: selectedPayment === 'credits' ? (currentClass.credits_cost || 15) : 0,
+                    status: bookingStatus,
+                    pending_amount: bookingStatus === 'pending_payment' ? price : 0,
+                    bookedAt: dateStr
+                });
+                localStorage.setItem(bkKey, JSON.stringify(bookings));
+
+                var statusText = bookingStatus === 'pending_payment' ? '單次購買' : selectedPayment === 'credits' ? (currentClass.credits_cost || 15) + ' Credits' : '試玩';
+                showToast('✅ 預約成功! (' + statusText + ')', 'success');
+                btn.textContent = '✅ 已預約';
+                btn.disabled = true;
+
+                // 🔀 Redirect to payment for single purchase
+                if (selectedPayment === 'single' && bookingStatus === 'pending_payment') {
+                    setTimeout(function() {
+                        location.href = 'payment.html?type=single&amount=' + price
+                            + '&item=' + encodeURIComponent(currentClass.title || '')
+                            + '&booking_id=' + encodeURIComponent(bookingId)
+                            + '&booking_reference=' + encodeURIComponent(bookingReference || '')
+                            + '&classId=' + encodeURIComponent(currentClass.id)
+                            + '&scheduleId=' + encodeURIComponent(selectedSchedule.id);
+                    }, 800);
+                }
+
+            } catch (err) {
+                showToast('❌ ' + err.message, 'error');
+                btn.disabled = false;
+                btn.textContent = '📅 立即預約';
+            }
+        }function showPaymentModal(amount, bookingId) {
+            var overlay = document.createElement('div');
+            overlay.className = 'zen-modal-overlay';
+            overlay.innerHTML = '確認預約 — HK$' + ((currentClass||{}).price_hkd || 120);
+            
+            document.body.appendChild(overlay);
+            requestAnimationFrame(function() { overlay.classList.add('show'); });
+            
+            overlay.querySelector('.zen-modal-close').onclick = function() {
+                overlay.classList.remove('show');
+                setTimeout(function() { overlay.remove(); }, 300);
+            };
+            
+            window.currentGateway = 'stripe';
+            window.currentOverlay = overlay;
+            window.currentBookingId = bookingId;
+        }
+
+        function selectGateway(gateway, el) {
+            document.querySelectorAll('.payment-option').forEach(function(o) { o.classList.remove('selected'); });
+            if (el) el.classList.add('selected');
+            window.currentGateway = gateway;
+            
+            document.getElementById('fps-details').classList.toggle('hidden', gateway !== 'fps');
+            document.getElementById('payme-details').classList.toggle('hidden', gateway !== 'payme');
+        }
+
+        async function processPayment(bookingId, amount) {
+            var btn = document.querySelector('.zen-modal .zen-btn-primary');
+            btn.disabled = true;
+            btn.textContent = '處理中...';
+
+            try {
+                var gateway = window.currentGateway || 'stripe';
+                
+                if (gateway === 'stripe') {
+                    showToast('💳 信用卡付款將在正式部署後啟用', 'info');
+                } else if (gateway === 'fps') {
+                    var ref = document.getElementById('fps-ref')?.value;
+                    if (!ref) {
+                        showToast('請輸入轉數快參考編號', 'warning');
+                        btn.disabled = false;
+                        btn.textContent = '確認預約 — HK$' + ((currentClass||{}).price_hkd || 120);
+                        return;
+                    }
+                    await payments.fps({ amount, booking_id: bookingId, fps_reference: ref });
+                    showToast('✅ 轉數快付款成功！', 'success');
+                } else if (gateway === 'payme') {
+                    var ref = document.getElementById('payme-ref')?.value;
+                    if (!ref) {
+                        showToast('請輸入 PayMe 參考編號', 'warning');
+                        btn.disabled = false;
+                        btn.textContent = '確認預約 — HK$' + ((currentClass||{}).price_hkd || 120);
+                        return;
+                    }
+                    await payments.payme({ amount, booking_id: bookingId, payme_reference: ref });
+                    showToast('✅ PayMe 付款成功！', 'success');
+                }
+
+                if (window.currentOverlay) {
+                    window.currentOverlay.classList.remove('show');
+                    setTimeout(function() { window.currentOverlay.remove(); }, 300);
+                }
+            } catch (err) {
+                showToast(err.message, 'error');
+                btn.disabled = false;
+                btn.textContent = '確認預約 — HK$' + ((currentClass||{}).price_hkd || 120);
+            }
+        }
+
+        // ===== Init =====
+        document.addEventListener('DOMContentLoaded', function() {
+            loadClass();
+            updateNavBar();
+        });
+    </script>
+<script>if("serviceWorker" in navigator){navigator.serviceWorker.register("sw.js")}</script>
+<script>
+(function(){var n=localStorage.getItem("zenpass_name");if(n){var b=document.createElement("div");b.style.cssText="position:fixed;top:10px;right:10px;z-index:9999;background:#FF6B35;color:white;padding:5px 12px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.15);font-family:sans-serif;";b.textContent="👤 "+n;b.onclick=function(){var nn=prompt("切換用戶\n當前："+n,n);if(nn&&nn.trim()&&nn.trim()!==n){localStorage.setItem("zenpass_name",nn.trim());localStorage.removeItem("zenpass_token");localStorage.removeItem("zenpass_user");location.reload()}};document.body.appendChild(b)}})();
+</script>
+</body>
+</html>
