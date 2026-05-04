@@ -129,28 +129,54 @@
     <script>
         function getUser() { try { return JSON.parse(localStorage.getItem('zenpass_user')); } catch(e) { return null; } }
         
-        function loadMembership() {
+        var PLAN_LABELS = {
+            'none': { name: '無會籍', credits: 0 },
+            'trial': { name: '試玩會員', credits: 4 },
+            'standard': { name: '標準會員', credits: 10 },
+            'unlimited': { name: '無限通行', credits: 0 }
+        };
+
+        async function loadMembership() {
             var user = getUser();
             if (!user) return;
-            
-            // Try to get membership from localStorage
-            var mem = null;
-            try { mem = JSON.parse(localStorage.getItem('zenpass_membership')); } catch(e) {}
-            
-            // Get credits balance
-            var balance = null;
-            try { balance = JSON.parse(localStorage.getItem('zenpass_credits_balance')); } catch(e) {}
-            
-            var memName = (mem && mem.name) ? mem.name : (user.membership || '試玩會員');
-            var credits = (balance && balance.credits) ? balance.credits : (user.credits || 0);
-            var used = (mem && mem.classesUsed) ? mem.classesUsed : 0;
-            var total = (mem && mem.classesThisMonth) ? mem.classesThisMonth : 4;
-            
+
+            var memName = '試玩會員';
+            var credits = user.credits || 0;
+            var memType = user.membership_type || 'trial';
+            var expiresAt = user.membership_expires_at || '';
+            var used = 0;
+            var total = 4;
+
+            // Try API first — fetch from /api/memberships/my
+            try {
+                var result = await memberships.my();
+                if (result && result.current) {
+                    memType = result.current.type || memType;
+                    credits = result.current.credits != null ? result.current.credits : credits;
+                    expiresAt = result.current.expires_at || expiresAt;
+                }
+            } catch (e) {
+                // Fallback: use local user data
+            }
+
+            var planInfo = PLAN_LABELS[memType] || PLAN_LABELS['trial'];
+            memName = planInfo.name;
+            total = planInfo.credits > 0 ? planInfo.credits : 4;
+
             document.querySelector('.membership-header h2').textContent = '💎 ' + memName;
             document.querySelectorAll('.credit-card .num')[0].textContent = credits;
             document.querySelectorAll('.credit-card .num')[1].textContent = used + ' / ' + total;
             document.querySelector('.status').textContent = '剩餘 ' + (credits > 0 ? credits + ' Credits' : (total - used) + ' 堂試玩');
-            
+
+            // Update expiry
+            if (expiresAt) {
+                var expireEl = document.querySelector('.expire');
+                if (expireEl) {
+                    var d = new Date(expiresAt);
+                    expireEl.textContent = '會籍到期：' + d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+                }
+            }
+
             // Update progress bars
             var bars = document.querySelectorAll('div[style*="height:8px"] > div');
             if (bars.length >= 2) {
@@ -158,7 +184,7 @@
                 bars[0].style.width = pct + '%';
                 bars[1].style.width = Math.min(100, (credits / 100) * 80) + '%';
             }
-            
+
             // Highlight current plan
             var plans = document.querySelectorAll('.plan-item');
             for (var i = 0; i < plans.length; i++) {

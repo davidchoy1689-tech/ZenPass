@@ -96,6 +96,8 @@ body { font-family:'Inter',-apple-system,sans-serif; background:var(--gray-50); 
   <div id="contentArea" class="hidden">
     <!-- Profile -->
     <div class="profile-card" id="profileCard"></div>
+    <!-- Membership & Credits -->
+    <div class="profile-card" id="membershipCard" style="display:none;padding:16px;text-align:left;"></div>
     <!-- Stats -->
     <div class="stats-row" id="statsRow"></div>
     <!-- Confirmed Bookings -->
@@ -131,16 +133,35 @@ function loadData() {
   var userStr = localStorage.getItem('zenpass_user') || sessionStorage.getItem('zenpass_user');
   var user = null;
   try { if (userStr) user = JSON.parse(userStr); } catch(e) {}
-  var name = (user && user.name) || localStorage.getItem('zenpass_name') || '用戶';
-  var email = (user && user.email) || '';
+  var userObj = user;
+  var name = (userObj && userObj.name) || localStorage.getItem('zenpass_name') || '用戶';
+  var email = (userObj && userObj.email) || '';
 
   renderProfile(name, email);
 
+  // Load membership & credits info from API
+  try {
+    var memResult = await memberships.my();
+    if (memResult && memResult.current) {
+      renderMembershipCard(memResult.current, userObj);
+    }
+  } catch(e) {
+    // Fallback: show local user data
+    if (userObj) {
+      renderMembershipCard({
+        type: userObj.membership_type || 'trial',
+        expires_at: userObj.membership_expires_at || '',
+        credits: userObj.credits || 0
+      }, userObj);
+    }
+  }
+
   // Load bookings in parallel
-  Promise.all([
-    fetch(API_BASE + '/bookings/my?status=confirmed', { headers: getAuthHeaders() }).then(function(r) { return r.json(); }),
-    fetch(API_BASE + '/bookings/my', { headers: getAuthHeaders() }).then(function(r) { return r.json(); })
-  ])
+  var p1 = fetch(API_BASE + '/bookings/my?status=confirmed', { headers: getAuthHeaders() }).then(function(r) { return r.json(); });
+  var p2 = fetch(API_BASE + '/bookings/my', { headers: getAuthHeaders() }).then(function(r) { return r.json(); });
+
+  try {
+    var results = await Promise.all([p1, p2]);
     .then(function(results) {
       var confirmedData = results[0];
       var allData = results[1];

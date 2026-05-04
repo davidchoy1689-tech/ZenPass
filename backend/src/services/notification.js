@@ -1,277 +1,160 @@
-/**
- * ZenPass 禪流 - 通知服務 (v2)
- *
- * Channel:
- *   1. in-app — 寫入 notification_logs table，App 內 🔔 icon 顯示
- *   2. browser-push — 透過 Service Worker 推送 (push_subscriptions table)
- *
- * 如需 Telegram/Email，參考 git history 嘅 v1。
- */
-
+// @ts-check
 const Database = require('better-sqlite3');
-const { v4: uuidv4 } = require('uuid');
+
+/**
+ * ZenPass Notification Service
+ * 支援：站內通知（DB）、Telegram Bot、Email (SMTP)
+ * 
+ * 配置：透過 .env 設定
+ * - NOTIFICATION_TYPES=db,telegram,email （啟用邊啲 channel）
+ * - TELEGRAM_BOT_TOKEN=xxx
+ * - TELEGRAM_CHAT_ID=xxx
+ * - SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS
+ */
 
 const DB_PATH = process.env.DB_PATH || './data/zenpass.db';
 
-// ── 事件定義 ──────────────────────────────────────────
-
-const EVENT_TEMPLATES = {
-
-  'booking.confirmed': {
-    title: '✅ 預約成功',
-    message: (data) =>
-      `「${data.class_title}」預約成功\n` +
-      `📅 ${data.date} ${data.time}\n` +
-      `📍 ${data.venue || '待確認'}\n` +
-      `教練：${data.coach_name || '—'}`,
-    link: '/my-bookings.html'
-  },
-
-  'booking.reminder_1h': {
-    title: '⏰ 課堂即將開始',
-    message: (data) =>
-      `仲有 1 小時就上「${data.class_title}」喇！\n` +
-      `📅 ${data.date} ${data.time}\n` +
-      `📍 ${data.venue || '待確認'}\n` +
-      `記得準時到場 🧘`,
-    link: '/my-bookings.html'
-  },
-
-  'payment.approved': {
-    title: '💰 付款已確認',
-    message: (data) =>
-      `你嘅付款（HK$${data.amount || '—'}）已確認 ✅\n` +
-      `「${data.class_title}」預約已生效`,
-    link: '/my-bookings.html'
-  },
-
-  'payment.rejected': {
-    title: '❌ 付款未通過',
-    message: (data) =>
-      `你嘅付款（HK$${data.amount || '—'}）未獲確認 ❌\n` +
-      `原因：${data.reason || '請聯絡管理員'}\n` +
-      `預約已被取消，如有疑問請聯絡 ZenPass 客服。`,
-    link: '/my-bookings.html'
-  },
-
-  'coach.new_booking': {
-    title: '📢 新預約',
-    message: (data) =>
-      `${data.student_name} 已預約你嘅「${data.class_title}」\n` +
-      `📅 ${data.date} ${data.time}\n` +
-      `💰 HK$${data.amount || '—'}`,
-    link: '/coach-dashboard.html'
-  },
-
-  'coach.payout_processed': {
-    title: '💵 提現已處理',
-    message: (data) =>
-      `提現 HK$${data.amount} ${data.status === 'approved' ? '✅ 已批准' : '❌ 已駁回'}\n` +
-      (data.status === 'approved'
-        ? `預計 ${data.eta || '3-5 個工作日'} 內到帳`
-        : `原因：${data.reason || '請聯絡管理員'}`),
-    link: '/coach-dashboard.html'
-  }
-
-};
-
-// ── 事件 → push notification title/message ────────────
-
-function buildPushData(event, title, messageText, link) {
-  return JSON.stringify({
-    title,
-    body: messageText,
-    icon: '/icons/icon-192.png',
-    badge: '/icons/icon-96.png',
-    tag: `zenpass-${event}-${Date.now()}`,
-    data: { link, event },
-    requireInteraction: false,
-    vibrate: [200, 100, 200],
-    actions: link
-      ? [{ action: 'open', title: '查看詳情' }]
-      : []
-  });
-}
-
-// ── 主要 API ──────────────────────────────────────────
-
-/**
- * 發送通知（in-app + 瀏覽器推送）
- *
- * @param {string} event   — 事件名稱
- * @param {object} opts
- * @param {string} opts.recipient  — user_id
- * @param {object} [opts.data]     — 資料
- * @param {string} [opts.title]    — 覆蓋標題
- * @param {string} [opts.message]  — 覆蓋內容
- * @returns {Promise<{id: string, sent: boolean}>}
- */
-async function sendNotification(event, { recipient, data, title: overrideTitle, message: overrideMessage } = {}) {
-  if (!recipient) {
-    console.warn('⚠️ [通知] 跳過：缺少 recipient');
-    return { id: null, sent: false };
-  }
-
-  const template = EVENT_TEMPLATES[event];
-  if (!template) {
-    console.warn(`⚠️ [通知] 跳過：未知事件 "${event}"`);
-    return { id: null, sent: false };
-  }
-
-  const title   = overrideTitle   || template.title;
-  const message = overrideMessage || (typeof template.message === 'function' ? template.message(data || {}) : template.message);
-  const link    = template.link || '/';
-  const notifId = uuidv4();
-
-  // 1. 寫入 in-app notification_logs
+// ===== 1. 站內通知（持久化到 DB）=====
+function dbNotification(recipientId, type, title, message, data = {}) {
   try {
     const db = new Database(DB_PATH);
-    db.pragma('foreign_keys = ON');
+    const { v4: uuidv4 } = require('uuid');
+    
     db.prepare(`
-      INSERT INTO notification_logs (id, user_id, event, title, message, data)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `).run(notifId, recipient, event, title, message, data ? JSON.stringify(data) : null);
+      INSERT INTO notifications (id, user_id, type, title, message, data, is_read, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, 0, datetime('now'))
+    `).run(uuidv4(), recipientId, type, title, message, JSON.stringify(data));
+    
     db.close();
+    return true;
   } catch (err) {
-    console.error('❌ [通知] DB 寫入失敗:', err.message);
-    return { id: null, sent: false };
-  }
-
-  // 2. 瀏覽器推送 (非阻斷)
-  try {
-    const db = new Database(DB_PATH);
-    db.pragma('foreign_keys = ON');
-    const subs = db.prepare('SELECT subscription FROM push_subscriptions WHERE user_id = ?').all(recipient);
-    db.close();
-
-    const pushData = buildPushData(event, title, message, link);
-
-    // VAPID keys 未設定時 fallback — 只記錄，唔 block 流程
-    const VAPID_PUBLIC  = process.env.VAPID_PUBLIC_KEY;
-    const VAPID_PRIVATE = process.env.VAPID_PRIVATE_KEY;
-
-    if (VAPID_PUBLIC && VAPID_PRIVATE && subs.length > 0) {
-      const webpush = require('web-push');
-      webpush.setVapidDetails(
-        'mailto:info@zenpass.hk',
-        VAPID_PUBLIC,
-        VAPID_PRIVATE
-      );
-
-      for (const sub of subs) {
-        try {
-          await webpush.sendNotification(JSON.parse(sub.subscription), pushData);
-        } catch (pushErr) {
-          // 過期 subscription — 自動清理
-          if (pushErr.statusCode === 410 || pushErr.statusCode === 404) {
-            const cleanDb = new Database(DB_PATH);
-            cleanDb.prepare('DELETE FROM push_subscriptions WHERE subscription = ?').run(sub.subscription);
-            cleanDb.close();
-          } else {
-            console.warn('⚠️ [通知] 推送失敗:', pushErr.message);
-          }
-        }
-      }
-    }
-  } catch (err) {
-    // push 失敗唔影響 in-app 通知
-    console.warn('⚠️ [通知] 推送過程錯誤:', err.message);
-  }
-
-  if (process.env.NODE_ENV === 'development') {
-    console.log(`🔔 [${event}] → ${recipient}: ${title}`);
-  }
-
-  return { id: notifId, sent: true };
-}
-
-/**
- * 通知標記為已讀
- */
-function markAsRead(notifId, userId) {
-  try {
-    const db = new Database(DB_PATH);
-    db.pragma('foreign_keys = ON');
-    const result = db.prepare(`
-      UPDATE notification_logs SET is_read = 1 WHERE id = ? AND user_id = ?
-    `).run(notifId, userId);
-    db.close();
-    return result.changes > 0;
-  } catch (err) {
-    console.error('❌ [通知] 標記已讀失敗:', err.message);
+    console.error('DB notification error:', err.message);
     return false;
   }
 }
 
-/**
- * 標記全部已讀
- */
-function markAllAsRead(userId) {
+// ===== 2. Telegram 通知 =====
+async function telegramNotification(message) {
+  const botToken = process.env.TELEGRAM_BOT_TOKEN;
+  const chatId = process.env.TELEGRAM_CHAT_ID;
+  
+  if (!botToken || !chatId) {
+    console.log('⚠️ Telegram not configured - set TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID');
+    return false;
+  }
+  
   try {
-    const db = new Database(DB_PATH);
-    db.pragma('foreign_keys = ON');
-    const result = db.prepare(`
-      UPDATE notification_logs SET is_read = 1 WHERE user_id = ? AND is_read = 0
-    `).run(userId);
-    db.close();
-    return result.changes;
+    const fetch = require('node-fetch');
+    const res = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text: message,
+        parse_mode: 'HTML'
+      })
+    });
+    const data = await res.json();
+    if (!data.ok) {
+      console.error('Telegram send error:', data.description);
+      return false;
+    }
+    return true;
   } catch (err) {
-    console.error('❌ [通知] 全部標記已讀失敗:', err.message);
-    return 0;
+    console.error('Telegram notification error:', err.message);
+    return false;
   }
 }
 
-/**
- * 查詢未讀數量
- */
-function getUnreadCount(userId) {
+// ===== 3. Email 通知 (SMTP) =====
+async function emailNotification(to, subject, html) {
+  const host = process.env.SMTP_HOST;
+  const port = process.env.SMTP_PORT || 587;
+  const user = process.env.SMTP_USER;
+  const pass = process.env.SMTP_PASS;
+  
+  if (!host || !user || !pass) {
+    console.log('⚠️ SMTP not configured - set SMTP_HOST, SMTP_USER, SMTP_PASS');
+    return false;
+  }
+  
   try {
-    const db = new Database(DB_PATH);
-    const row = db.prepare(`
-      SELECT COUNT(*) as count FROM notification_logs WHERE user_id = ? AND is_read = 0
-    `).get(userId);
-    db.close();
-    return row ? row.count : 0;
+    const nodemailer = require('nodemailer');
+    const transporter = nodemailer.createTransport({
+      host, port: parseInt(port),
+      secure: port === 465,
+      auth: { user, pass }
+    });
+    
+    await transporter.sendMail({
+      from: user,
+      to,
+      subject,
+      html
+    });
+    return true;
   } catch (err) {
-    return 0;
+    console.error('Email notification error:', err.message);
+    return false;
   }
 }
 
-/**
- * 查詢通知列表
- */
-function getNotifications(userId, { page = 1, limit = 50, unreadOnly = false } = {}) {
-  try {
-    const db = new Database(DB_PATH);
-    let where = 'WHERE user_id = ?';
-    const params = [userId];
-    if (unreadOnly) { where += ' AND is_read = 0'; }
-    const offset = (parseInt(page) - 1) * parseInt(limit);
-
-    const notifications = db.prepare(`
-      SELECT id, event, title, message, data, is_read, created_at
-      FROM notification_logs ${where}
-      ORDER BY created_at DESC
-      LIMIT ? OFFSET ?
-    `).all(...params, parseInt(limit), offset);
-
-    const total = db.prepare(`
-      SELECT COUNT(*) as count FROM notification_logs ${where}
-    `).get(...params);
-
-    db.close();
-    return { notifications, total: total.count, page, limit, unread: getUnreadCount(userId) };
-  } catch (err) {
-    console.error('❌ [通知] 查詢失敗:', err.message);
-    return { notifications: [], total: 0, page: 1, limit, unread: 0 };
+// ===== 4. 統一發送介面 =====
+async function sendNotification(type, payload) {
+  const types = (process.env.NOTIFICATION_TYPES || 'db').split(',');
+  const results = {};
+  
+  const { recipient, data } = payload;
+  
+  // 決定通知內容
+  let title, message, html;
+  switch (type) {
+    case 'booking.confirmed':
+      title = '預約確認';
+      message = `✅ 預約成功！\n課程：${data?.class_title || '—'}\n日期：${data?.date || '—'} ${data?.time || '—'}\n場地：${data?.venue || '—'}\n教練：${data?.coach_name || '—'}`;
+      html = `<h2>✅ 預約確認</h2><p><b>課程：</b>${data?.class_title || '—'}<br><b>日期：</b>${data?.date || '—'} ${data?.time || '—'}<br><b>場地：</b>${data?.venue || '—'}<br><b>教練：</b>${data?.coach_name || '—'}</p>`;
+      break;
+    case 'booking.cancelled':
+      title = '預約取消';
+      message = `❌ 預約已取消\n課程：${data?.class_title || '—'}\n日期：${data?.date || '—'}`;
+      html = `<h2>❌ 預約取消</h2><p><b>課程：</b>${data?.class_title || '—'}<br><b>日期：</b>${data?.date || '—'}</p>`;
+      break;
+    case 'coach.new_booking':
+      title = '新預約通知';
+      message = `📅 有新預約！\n學生：${data?.student_name || '—'}\n課程：${data?.class_title || '—'}\n日期：${data?.date || '—'} ${data?.time || '—'}\n金額：$${data?.amount || '—'}`;
+      html = `<h2>📅 新預約通知</h2><p><b>學生：</b>${data?.student_name || '—'}<br><b>課程：</b>${data?.class_title || '—'}<br><b>日期：</b>${data?.date || '—'} ${data?.time || '—'}<br><b>金額：</b>$${data?.amount || '—'}</p>`;
+      break;
+    case 'payment.received':
+      title = '付款成功';
+      message = `💰 付款成功！\n金額：$${data?.amount || '—'}\n方式：${data?.method || '—'}\n參考：${data?.reference || '—'}`;
+      html = `<h2>💰 付款成功</h2><p><b>金額：</b>$${data?.amount || '—'}<br><b>方式：</b>${data?.method || '—'}<br><b>參考：</b>${data?.reference || '—'}</p>`;
+      break;
+    default:
+      title = type;
+      message = data?.message || '你有一則新通知';
+      html = `<p>${data?.message || '你有一則新通知'}</p>`;
   }
+  
+  // Send to each enabled channel
+  for (const t of types) {
+    switch (t.trim()) {
+      case 'db':
+        if (recipient) {
+          results.db = dbNotification(recipient, type, title, message, data);
+        }
+        break;
+      case 'telegram':
+        results.telegram = await telegramNotification(message);
+        break;
+      case 'email':
+        if (data?.email) {
+          results.email = await emailNotification(data.email, `[ZenPass] ${title}`, html);
+        }
+        break;
+    }
+  }
+  
+  return results;
 }
 
-module.exports = {
-  sendNotification,
-  markAsRead,
-  markAllAsRead,
-  getUnreadCount,
-  getNotifications,
-  EVENT_TEMPLATES
-};
+module.exports = { sendNotification, dbNotification, telegramNotification, emailNotification };

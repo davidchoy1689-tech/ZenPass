@@ -214,7 +214,9 @@
         <div class="big-icon">🎉</div>
         <h2>申請已提交！</h2>
         <p>感謝你的申請！我們將在 <strong>3 個工作日</strong> 內完成審批，<br>結果將透過電郵通知你。</p>
-        <a href="index.html" style="display:inline-block;padding:14px 32px;background:var(--orange-500);color:var(--white);text-decoration:none;border-radius:var(--radius-sm);font-weight:700;">返回首頁</a>
+        <a href="coach-dashboard.html" style="display:inline-block;padding:14px 32px;background:var(--orange-500);color:var(--white);text-decoration:none;border-radius:var(--radius-sm);font-weight:700;margin-bottom:8px;">前往教練入口</a>
+        <br>
+        <a href="index.html" style="display:inline-block;padding:10px 24px;color:var(--dark-700);text-decoration:none;font-size:14px;">返回首頁</a>
     </div>
 
     <nav class="bottom-nav">
@@ -298,17 +300,24 @@
                 facilities: selectedFacilities
             };
 
-            // Save application locally
+            // Call API
+            const result = await coach.apply(data);
+
+            // Store reference so dashboard can show status
+            if (result && result.application_id) {
+                try {
+                    localStorage.setItem('zenpass_last_coach_app_id', result.application_id);
+                } catch(e) {}
+            }
+
+            // Update user role in local storage to reflect pending coach status
             try {
-                var apps = JSON.parse(localStorage.getItem('zenpass_coach_apps') || '[]');
-                apps.push({ name: data.name, email: data.email, phone: data.phone, expertise: data.expertise, status: 'pending', createdAt: new Date().toISOString() });
-                localStorage.setItem('zenpass_coach_apps', JSON.stringify(apps));
+                var user = JSON.parse(localStorage.getItem('zenpass_user') || '{}');
+                user.is_coach_applicant = true;
+                localStorage.setItem('zenpass_user', JSON.stringify(user));
             } catch(e) {}
             
-            // Try API
-            try { var result = await coach.apply(data); } catch(e) {}
-            
-            // Show success
+            // Show success with redirect option
             document.getElementById('apply-form').classList.add('hidden');
             document.getElementById('success-screen').classList.remove('hidden');
         }
