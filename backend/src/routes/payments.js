@@ -484,4 +484,169 @@ router.get('/gateways', (req, res) => {
   });
 });
 
+// ===== 1.3 POST /api/payments/create-payment-intent — Stripe Payment Intent API =====
+// 比前端用 Stripe Elements 直接 confirm payment，唔經 Checkout redirect
+router.post('/create-payment-intent', authenticateToken, async (req, res) => {
+  try {
+    const { amount, booking_id, description } = req.body;
+
+    if (!amount || amount < 1) {
+      return res.status(400).json({ error: '無效金額' });
+    }
+
+    // 如果沒 Stripe key，fallback 做本地 mock（FPS/PayMe QR）
+    if (!getStripe()) {
+      console.log('⚠️ Stripe not configured for PaymentIntent, returning mock');
+      return res.json({
+        client_secret: null,
+        dev_mode: true,
+        amount,
+        booking_id: booking_id || null,
+        message: 'Stripe 未設定，請使用 FPS 或 PayMe 付款'
+      });
+    }
+
+    // 建立 Payment Intent (HKD cent)
+    const paymentIntent = await getStripe().paymentIntents.create({
+      amount: Math.round(amount * 100),
+      currency: 'hkd',
+      description: description || 'ZenPass 課程預約',
+      metadata: {
+        booking_id: booking_id || '',
+        user_id: req.user.id
+      },
+      // Stripe.js 需要 client_secret 去 confirm payment
+    });
+
+    res.json({
+      client_secret: paymentIntent.client_secret,
+      payment_intent_id: paymentIntent.id,
+      amount,
+      currency: 'hkd',
+      dev_mode: false
+    });
+
+  } catch (err) {
+    console.error('❌ Create PaymentIntent error:', err);
+    res.status(500).json({ error: '無法建立付款' });
+  }
+});
+
+// ===== 1.2 POST /api/payments/confirm — 確認付款（FPS / PayMe / Stripe）=====
+// 通用確認 endpoint：將 pending_payment booking 轉爲 confirmed
+router.post('/confirm', authenticateToken, (req, res) => {
+  try {
+    const { booking_id, payment_method, payment_reference, amount } = req.body;
+
+    if (!booking_id || !payment_method) {
+      return res.status(400).json({ error: '缺少必要資料（booking_id, payment_method）' });
+    }
+
+    const db = new Database(DB_PATH);
+    db.pragma('foreign_keys = ON');
+
+    // 檢查 booking 係咪屬於呢個 user 且係 pending_payment
+    const booking = db.prepare(`
+      SELECT b.*, c.title as class_title, cs.start_time, cs.end_time
+      FROM bookings b
+      JOIN classes c ON b.class_id = c.id
+      JOIN class_schedules cs ON b.schedule_id = cs.id
+      WHERE b.id = ? AND b.user_id = ? AND b.status = 'pending_payment'
+    `).get(booking_id, req.user.id);
+
+    if (!booking) {
+      db.close();
+      return res.status(404).json({ error: '未找到待付款的預約或預約已取消' });
+    }
+
+    // 更新 booking 爲 confirmed
+    const updateFields = ["status = 'confirmed'", "payment_status = 'paid'"];
+    const updateParams = [];
+
+    if (payment_method === 'stripe' && payment_reference) {
+      updateFields.push('stripe_payment_intent_id = ?');
+      updateParams.push(payment_reference);
+    } else if (payment_method === 'fps' && payment_reference) {
+      updateFields.push('fps_reference = ?');
+      updateParams.push(payment_reference);
+    } else if (payment_method === 'payme' && payment_reference) {
+      updateFields.push('payme_reference = ?');
+      updateParams.push(payment_reference);
+    }
+
+    // 如果有傳入 amount 就更新
+    if (amount) {
+      updateFields.push('amount = ?');
+      updateParams.push(amount);
+    }
+
+    updateParams.push(booking_id);
+    db.prepare(`UPDATE bookings SET ${updateFields.join(', ')} WHERE id = ?`).run(...updateParams);
+
+    // 更新 enrolled_count（pending_payment 時已經 +1，但爲咗 consistent）
+    // 留意：create booking 時已經加咗 enrolled_count，所以唔使再加
+    // 但爲咗確保數值正確，重新 sync
+    const schedule = db.prepare('SELECT * FROM class_schedules WHERE id = ?').get(booking.schedule_id);
+    const confirmedCount = db.prepare(`
+      SELECT COUNT(*) as cnt FROM bookings WHERE schedule_id = ? AND status = 'confirmed'
+    `).get(booking.schedule_id);
+    if (schedule && confirmedCount) {
+      db.prepare('UPDATE class_schedules SET enrolled_count = ? WHERE id = ?')
+        .run(confirmedCount.cnt, booking.schedule_id);
+    }
+
+    // 記錄交易
+    const txId = require('../services/refgen').genRef('TX');
+    db.prepare(`
+      INSERT INTO transactions (id, user_id, type, amount, payment_method, ${payment_method === 'stripe' ? 'stripe_payment_intent_id' : payment_method === 'fps' ? 'fps_reference' : 'payme_reference'}, status)
+      VALUES (?, ?, 'single_booking', ?, ?, ?, 'completed')
+    `).run(
+      txId,
+      req.user.id,
+      amount || booking.amount || 0,
+      payment_method,
+      payment_reference || null
+    );
+
+    // 🔔 通知：預約確認（付款完成）
+    try {
+      const notif = require('./notifications');
+      // send in-app notification
+    } catch (notifErr) {
+      // ignore
+    }
+
+    // 用 setTimeout fire-and-forget 發通知唔阻住 response
+    setTimeout(() => {
+      try {
+        const { sendNotification } = require('../services/notification');
+        sendNotification('booking.confirmed', {
+          recipient: req.user.id,
+          data: {
+            class_title: booking.class_title || '—',
+            date: booking.start_time ? booking.start_time.split('T')[0] : '—',
+            time: booking.start_time ? booking.start_time.split('T')[1]?.slice(0, 5) : '—',
+            venue: '—',
+            coach_name: '—'
+          }
+        });
+      } catch (e) {}
+    }, 0);
+
+    db.close();
+
+    res.json({
+      message: '付款成功，預約已確認！',
+      booking_id: booking.id,
+      booking_reference: booking.booking_reference,
+      status: 'confirmed',
+      payment_status: 'paid'
+    });
+
+  } catch (err) {
+    console.error('❌ 確認付款錯誤:', err);
+    res.status(500).json({ error: '確認付款失敗' });
+  }
+});
+
 module.exports = router;

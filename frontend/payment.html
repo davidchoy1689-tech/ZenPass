@@ -45,9 +45,8 @@
         .stripe-form { margin-top:12px; }
         .stripe-form .form-group { margin-bottom:12px; }
         .stripe-form label { display:block; font-size:12px; font-weight:600; margin-bottom:4px; color:var(--dark-700); }
-        .stripe-form input { width:100%; padding:12px; border:1px solid var(--gray-200); border-radius:var(--radius-sm); font-size:15px; font-family:var(--font-zh); }
-        .stripe-form .card-row { display:flex; gap:8px; }
-        .stripe-form .card-row input { flex:1; }
+        #card-element { width:100%; padding:12px; border:1px solid var(--gray-200); border-radius:var(--radius-sm); font-size:15px; background:var(--white); min-height:44px; }
+        #card-errors { color:var(--red-500); font-size:13px; margin-top:6px; min-height:20px; }
         .pay-btn { width:100%; padding:16px; background:var(--orange-500); color:var(--white); border:none; border-radius:var(--radius-sm); font-size:16px; font-weight:700; cursor:pointer; font-family:var(--font-zh); transition:background .2s; }
         .pay-btn:hover { background:#E55A2B; }
         .pay-btn:disabled { background:var(--gray-300); cursor:not-allowed; }
@@ -60,87 +59,91 @@
         .success-screen p { font-size:14px; color:var(--dark-700); margin-bottom:4px; }
         .success-screen .ref { font-size:13px; color:var(--gray-300); margin-top:12px; }
         .back-btn { display:inline-block; margin-top:24px; padding:14px 40px; background:var(--orange-500); color:var(--white); text-decoration:none; border-radius:var(--radius-sm); font-weight:700; }
+        .back-btn.secondary { background:var(--dark-700); margin-left:8px; }
         .hidden { display:none !important; }
         .bottom-nav { position:fixed; bottom:0; left:50%; transform:translateX(-50%); width:100%; max-width:var(--max-width); background:var(--white); border-top:1px solid var(--gray-200); display:flex; justify-content:space-around; padding:8px 0 calc(8px + env(safe-area-inset-bottom)); z-index:100; }
         .nav-item { display:flex; flex-direction:column; align-items:center; text-decoration:none; color:var(--gray-300); font-size:10px; gap:2px; padding:4px 12px; }
         .nav-item.active { color:var(--orange-500); }
         .nav-item .nav-icon { font-size:22px; line-height:1; }
-        .loading { text-align:center; padding:40px; color:var(--dark-700); }
-        .loading::after { content:''; display:block; width:32px; height:32px; margin:10px auto; border:3px solid var(--gray-200); border-top-color:var(--orange-500); border-radius:50%; animation:spin .8s linear infinite; }
-        @keyframes spin { to{transform:rotate(360deg)} }
+        .loading-full { text-align:center; padding:80px 20px; color:var(--dark-700); }
+        .loading-full::after { content:''; display:block; width:40px; height:40px; margin:16px auto; border:3px solid var(--gray-200); border-top-color:var(--orange-500); border-radius:50%; animation:spin .8s linear infinite; }
+        .error-box { text-align:center; padding:60px 20px; }
+        .error-box .big { font-size:48px; margin-bottom:12px; }
+        .error-box h2 { font-size:20px; margin-bottom:8px; }
+        .error-box p { font-size:14px; color:var(--dark-700); margin-bottom:4px; }
+        .ref-input-group { display:flex; gap:8px; margin-top:8px; }
+        .ref-input-group input { flex:1; padding:10px; border:1px solid var(--gray-200); border-radius:var(--radius-sm); font-size:14px; font-family:var(--font-zh); }
+        @keyframes fadeIn { from { opacity:0; transform:translateX(-50%) translateY(10px); } to { opacity:1; transform:translateX(-50%) translateY(0); } }
     </style>
 </head>
 <body>
     <div class="header">
-        <a href="javascript:if(document.referrer){history.back()}else{location.href='index.html'}">←</a>
-        <h1>💰 付款</h1>
+        <a href="javascript:void(0)" onclick="goBack()">←</a>
+        <h1 id="page-title">💰 付款</h1>
     </div>
 
-    <!-- Payment Form -->
-    <div id="pay-page" class="section">
-        <!-- Order Summary -->
+    <div id="loading-state" class="loading-full"><div>📋 載入訂單資料...</div></div>
+
+    <div id="error-state" class="hidden error-box">
+        <div class="big">⚠️</div>
+        <h2>無法載入訂單</h2>
+        <p id="error-message">請檢查預約是否有效</p>
+        <a href="my-bookings.html" class="back-btn" style="margin-top:16px;">📋 查看我的預約</a>
+    </div>
+
+    <div id="no-auth-state" class="hidden error-box">
+        <div class="big">🔒</div>
+        <h2>請先登入</h2>
+        <p>需要登入才能付款</p>
+        <a href="login.html?redirect=payment.html" class="back-btn" style="margin-top:16px;">🔑 登入</a>
+    </div>
+
+    <div id="pay-page" class="section hidden">
         <div class="card">
             <div class="section-title">📋 訂單摘要</div>
             <div class="order-summary">
-                <div class="order-row">
-                    <span class="label">項目</span>
-                    <span id="order-item">會籍 - 試玩會員</span>
-                </div>
-                <div class="order-row" id="order-credits-row" style="display:none;">
-                    <span class="label">點數</span>
-                    <span id="order-credits-detail">0 Credits</span>
-                </div>
-                <div class="order-row">
-                    <span class="label" id="order-detail-label">月費</span>
-                    <span id="order-detail">HK$399/月 (4堂試玩)</span>
-                </div>
-                <div class="order-row" id="stripe-fee-row" style="display:none;border-top:1px dashed var(--gray-200);margin-top:4px;padding-top:8px;">
-                    <span class="label">Stripe 手續費</span>
-                    <span id="order-fee">—</span>
-                </div>
-                <div class="order-row" id="stripe-net-row" style="display:none;font-size:12px;">
-                    <span class="label">商戶實收</span>
-                    <span id="order-net">—</span>
-                </div>
-                <div class="order-row total">
-                    <span>合計</span>
-                    <span id="order-total">HK$399</span>
-                </div>
+                <div class="order-row"><span class="label">課程</span><span id="order-class" style="text-align:right;flex:1;padding-left:12px;">—</span></div>
+                <div class="order-row"><span class="label">日期</span><span id="order-date">—</span></div>
+                <div class="order-row"><span class="label">時間</span><span id="order-time">—</span></div>
+                <div class="order-row"><span class="label">場地</span><span id="order-venue">—</span></div>
+                <div class="order-row"><span class="label">預約編號</span><span id="order-ref" style="font-size:12px;">—</span></div>
+                <div class="order-row total" style="margin-top:8px;"><span>總金額</span><span id="order-total">—</span></div>
             </div>
         </div>
 
-        <!-- Payment Method Selection -->
         <div class="card">
             <div class="section-title">💳 付款方式</div>
             <div class="pay-methods">
-                <div class="pay-option selected" onclick="selectMethod('stripe', this)">
+
+                <div class="pay-option selected" onclick="selectMethod('stripe', this)" id="stripe-option">
                     <div class="icon">💳</div>
                     <div class="info"><div class="name">信用卡 (Stripe)</div><div class="desc">Visa · Mastercard · AE</div></div>
                     <div class="check">✓</div>
                 </div>
                 <div class="pay-detail show" id="detail-stripe">
                     <div style="padding:12px;background:var(--orange-50);border-radius:var(--radius-sm);font-size:13px;line-height:1.6;color:var(--dark-700);">
-                        💳 經 Stripe 安全付款 — Visa、Mastercard、AE 都支援<br>
-                        㩒「信用卡付款」後會帶你去 Stripe 安全頁面俾錢 🔒
+                        💳 經 Stripe 安全付款 — 輸入卡號即時付款 🔒
                     </div>
-                    <!-- Fee breakdown (dynamically updated) -->
+                    <div class="stripe-form">
+                        <div class="form-group">
+                            <label for="card-element">信用卡資料</label>
+                            <div id="card-element"></div>
+                            <div id="card-errors" role="alert"></div>
+                        </div>
+                    </div>
                     <div id="stripe-fee-info" style="margin-top:10px;padding:10px;background:#FEF3C7;border-radius:var(--radius-sm);font-size:12px;line-height:1.7;">
-                        <div style="font-weight:600;margin-bottom:4px;">💰 Stripe 香港手續費說明</div>
-                        <div>• 收費率：<strong id="stripe-fee-rate">3.4% + HK$2.35</strong>（香港發行卡）</div>
+                        <div style="font-weight:600;margin-bottom:4px;">💰 手續費說明</div>
+                        <div>• 香港卡：<strong id="stripe-fee-rate">3.4% + HK$2.35</strong></div>
                         <div>• 國際卡：<strong id="stripe-intl-rate">3.9% + HK$2.35</strong></div>
                         <div id="stripe-fee-calc" style="margin-top:6px;padding-top:6px;border-top:1px dashed #D1D5DB;">
-                            此交易手續費：<strong id="stripe-fee-amount">—</strong><br>
-                            商戶實收：<strong id="stripe-net-amount">—</strong>
-                        </div>
-                        <div style="margin-top:4px;font-size:11px;color:#92400E;">
-                            ℹ️ 手續費由 Stripe 收取，已包含在付款金額中
+                            手續費：<strong id="stripe-fee-amount">—</strong> · 商戶實收：<strong id="stripe-net-amount">—</strong>
                         </div>
                     </div>
                 </div>
 
-                <div class="pay-option" onclick="selectMethod('fps', this)">
+                <div class="pay-option" onclick="selectMethod('fps', this)" id="fps-option">
                     <div class="icon">🏦</div>
-                    <div class="info"><div class="name">轉數快 FPS</div><div class="desc">即時轉賬 · 24小時</div></div>
+                    <div class="info"><div class="name">轉數快 FPS</div><div class="desc">即時轉賬 · 24小時 · 免手續費</div></div>
                     <div class="check">✓</div>
                 </div>
                 <div class="pay-detail" id="detail-fps">
@@ -152,28 +155,21 @@
                             <div class="field"><span>HSBC 戶口</span><span class="val" style="font-size:16px;">741-293856-838 <button class="copy-btn" onclick="copyText('741293856838')">📋 複製</button></span></div>
                             <div class="field"><span>收款銀行</span><span class="val">滙豐銀行 HSBC</span></div>
                             <div class="field"><span>收款名稱</span><span class="val">Hong Kong Leisure and Fitness Company Limited</span></div>
-                            <div style="font-size:12px;color:var(--dark-700);margin:4px 0 0 0;">香港康樂及體育有限公司</div>
-                            <div style="margin-top:8px;padding:8px;background:var(--white);border-radius:6px;font-size:12px;color:var(--green-500);">✅ 轉賬後請上傳入數證明</div>
+                            <div style="font-size:12px;color:var(--dark-700);margin:0;">香港康樂及體育有限公司</div>
                         </div>
                     </div>
-                    <!-- Receipt Upload -->
-                    <div id="fps-upload" style="margin-top:12px;padding:16px;background:var(--white);border:2px dashed var(--gray-200);border-radius:var(--radius-md);text-align:center;">
-                        <div style="font-size:13px;font-weight:600;margin-bottom:8px;">📎 上傳入數證明</div>
-                        <div style="font-size:12px;color:var(--dark-700);margin-bottom:12px;">拍攝或選擇轉數快入數截圖</div>
-                        <input type="file" accept="image/*" capture="environment" id="fps-receipt" style="display:none;" onchange="handleReceipt('fps', this)">
-                        <button class="copy-btn" onclick="document.getElementById('fps-receipt').click()" style="padding:10px 24px;font-size:14px;background:var(--orange-500);color:var(--white);border:none;border-radius:var(--radius-sm);cursor:pointer;">📷 選擇圖片</button>
-                        <div id="fps-receipt-preview" style="margin-top:8px;"></div>
+                    <h4>📎 輸入轉數快參考編號</h4>
+                    <div class="ref-input-group">
+                        <input type="text" id="fps-ref-input" placeholder="輸入 FPS 參考編號" maxlength="50">
                     </div>
-                    <div class="info-box" style="margin-top:12px;">
-                        <div style="font-size:14px;font-weight:600;">付款參考</div>
-                        <div class="field" style="margin-top:8px;"><span>付款金額</span><span class="val" id="fps-amount" style="color:var(--orange-500);font-size:20px;font-weight:800;">HK$399</span></div>
-                        <div class="field"><span>備註（Reference）</span><span class="val" id="fps-ref" style="font-size:12px;">ZP-20260502-XXXX</span></div>
+                    <div style="font-size:12px;color:var(--dark-700);margin-top:8px;padding:8px;background:#F0FFF0;border-radius:var(--radius-sm);">
+                        ✅ 轉賬後輸入參考編號，按「確認付款」即可即時確認
                     </div>
                 </div>
 
-                <div class="pay-option" onclick="selectMethod('payme', this)">
+                <div class="pay-option" onclick="selectMethod('payme', this)" id="payme-option">
                     <div class="icon">📱</div>
-                    <div class="info"><div class="name">PayMe</div><div class="desc">HSBC PayMe · 即時過數</div></div>
+                    <div class="info"><div class="name">PayMe</div><div class="desc">HSBC PayMe · 即時過數 · 免手續費</div></div>
                     <div class="check">✓</div>
                 </div>
                 <div class="pay-detail" id="detail-payme">
@@ -185,511 +181,315 @@
                             <div class="field"><span>收款名稱</span><span class="val">Hong Kong Leisure and Fitness Company Limited</span></div>
                             <div style="font-size:12px;color:var(--dark-700);margin:0 0 4px 0;">香港康樂及體育有限公司</div>
                             <div class="qr-placeholder" style="border:none;padding:0;height:auto;">
-                                <img src="assets/payme-qr.jpg" 
-                                     alt="PayMe QR Code" 
-                                     style="width:100%;max-width:240px;display:block;margin:0 auto;border-radius:var(--radius-md);box-shadow:0 2px 8px rgba(0,0,0,0.1);">
-                                <a href="https://qr.payme.hsbc.com.hk/2/8EKv4B8usVVSSdf2YzLSkm" target="_blank" 
-                                   style="display:block;text-align:center;margin-top:12px;padding:14px;background:var(--orange-500);color:var(--white);text-decoration:none;border-radius:var(--radius-sm);font-size:16px;font-weight:700;">
+                                <img src="assets/payme-qr.jpg" alt="PayMe QR Code" style="width:100%;max-width:240px;display:block;margin:0 auto;border-radius:var(--radius-md);box-shadow:0 2px 8px rgba(0,0,0,0.1);">
+                                <a href="https://qr.payme.hsbc.com.hk/2/8EKv4B8usVVSSdf2YzLSkm" target="_blank" style="display:block;text-align:center;margin-top:12px;padding:14px;background:var(--orange-500);color:var(--white);text-decoration:none;border-radius:var(--radius-sm);font-size:16px;font-weight:700;">
                                    📱 按此打開 PayMe 付款
                                 </a>
                                 <div style="text-align:center;margin-top:6px;font-size:11px;color:var(--dark-700);">或用手機掃描上方 QR Code</div>
                             </div>
-                            <div style="margin-top:8px;padding:8px;background:var(--white);border-radius:6px;font-size:12px;color:var(--green-500);">✅ 付款後請上傳入數證明</div>
                         </div>
                     </div>
-                    <!-- Receipt Upload -->
-                    <div id="payme-upload" style="margin-top:12px;padding:16px;background:var(--white);border:2px dashed var(--gray-200);border-radius:var(--radius-md);text-align:center;">
-                        <div style="font-size:13px;font-weight:600;margin-bottom:8px;">📎 上傳付款證明</div>
-                        <div style="font-size:12px;color:var(--dark-700);margin-bottom:12px;">拍攝或選擇 PayMe 付款截圖</div>
-                        <input type="file" accept="image/*" capture="environment" id="payme-receipt" style="display:none;" onchange="handleReceipt('payme', this)">
-                        <button class="copy-btn" onclick="document.getElementById('payme-receipt').click()" style="padding:10px 24px;font-size:14px;background:var(--orange-500);color:var(--white);border:none;border-radius:var(--radius-sm);cursor:pointer;">📷 選擇圖片</button>
-                        <div id="payme-receipt-preview" style="margin-top:8px;"></div>
+                    <h4>📎 輸入 PayMe 參考編號</h4>
+                    <div class="ref-input-group">
+                        <input type="text" id="payme-ref-input" placeholder="輸入 PayMe 交易參考編號" maxlength="50">
                     </div>
-                    <div class="info-box" style="margin-top:12px;">
-                        <div style="font-size:14px;font-weight:600;">付款確認</div>
-                        <div class="field" style="margin-top:8px;"><span>付款金額</span><span class="val" id="payme-amount" style="color:var(--orange-500);font-size:20px;font-weight:800;">HK$399</span></div>
+                    <div style="font-size:12px;color:var(--dark-700);margin-top:8px;padding:8px;background:#F0FFF0;border-radius:var(--radius-sm);">
+                        ✅ 付款後輸入參考編號，按「確認付款」即可即時確認
                     </div>
                 </div>
             </div>
         </div>
 
-        <button class="pay-btn" id="pay-button" onclick="processPayment()">💳 付款 HK$399</button>
+        <button class="pay-btn" id="pay-button" onclick="processPayment()">💳 付款</button>
     </div>
 
-    <!-- Pending Screen (for FPS/PayMe with receipt) -->
-    <div id="pending-page" class="section hidden">
-        <div class="success-screen">
-            <div class="big">⏳</div>
-            <h2>付款已提交</h2>
-            <p>感謝你的訂購！</p>
-            <p id="pending-detail">我們已收到你的付款證明，管理員確認後會自動開通。</p>
-            <div class="ref">訂單編號：<span id="pending-ref">ZP-20260502-XXXX</span></div>
-            <p style="font-size:13px;color:var(--dark-700);margin-top:12px;">⏱️ 通常 5-15 分鐘內確認</p>
-            <a href="index.html" class="back-btn" style="background:var(--dark-700);">🏠 返回首頁</a>
-            <a href="my.html" class="back-btn" style="background:var(--orange-500);margin-left:8px;">👤 查看狀態</a>
-        </div>
-    </div>
-
-    <!-- Success Screen (for instant methods like Stripe) -->
     <div id="success-page" class="section hidden">
         <div class="success-screen">
             <div class="big">🎉</div>
             <h2>付款成功！</h2>
-            <p>感謝你的訂購</p>
-            <p id="success-detail">會籍已生效，立即開始預約課程</p>
-            <div class="ref">參考編號：<span id="success-ref">ZP-20260502-XXXX</span></div>
-            <a href="my-bookings.html" class="back-btn">📋 查看預約</a>
-            <a href="index.html" class="back-btn" style="background:var(--dark-700);margin-left:8px;">🏠 返回首頁</a>
+            <p id="success-detail">預約已確認，記住準時出席課堂！</p>
+            <div class="ref">預約編號：<span id="success-ref">—</span></div>
+            <div style="margin-top:8px;font-size:13px;color:var(--dark-700);" id="success-class-info"></div>
+            <a href="my-bookings.html" class="back-btn">📋 查看我的預約</a>
+            <a href="explore.html" class="back-btn secondary">🔍 探索更多課程</a>
         </div>
     </div>
 
     <nav class="bottom-nav">
         <a href="index.html" class="nav-item"><span class="nav-icon">🏠</span>首頁</a>
         <a href="explore.html" class="nav-item"><span class="nav-icon">🔍</span>探索</a>
-        <a href="membership.html" class="nav-item active"><span class="nav-icon">💎</span>會籍</a>
-        <a href="coach-apply.html" class="nav-item"><span class="nav-icon">👨🏫</span>成為教練</a>
-        <a href="my.html" class="nav-item"><span class="nav-icon">👤</span>我的</a>
+        <a href="my-bookings.html" class="nav-item"><span class="nav-icon">📋</span>預約</a>
+        <a href="login.html" class="nav-item"><span class="nav-icon">👤</span>登入</a>
     </nav>
 
+    <script src="https://js.stripe.com/v3/"></script>
     <script>
-        var API_BASE = window.location.port === '3001' || window.location.hostname === 'localhost' ? '/api' : 'http://localhost:3001/api';
+    // ===== Config =====
+    var API_BASE = '/api';
+    if (window.location.port !== '3001' && window.location.hostname !== 'localhost') {
+      API_BASE = 'http://localhost:3001/api';
+    }
+    var STRIPE_PK = 'pk_test_51TTH5lRy5l6E7AvNNILQml3gy5Te3EOtHNNLX1QSwi3mxFG0bTfjNETbDUlJZGHXARmqB0VfKvNOUkW4uOUPMF9y00dvZeP56d';
 
-        function getToken() { return localStorage.getItem('zenpass_token'); }
+    // ===== State =====
+    var selectedMethod = 'stripe';
+    var bookingData = null;
+    var bookingId = null;
+    var stripeElements = null;
+    var stripeCard = null;
+    var stripeClient = null;
+    var paymentAmount = 0;
 
-        var selectedMethod = 'stripe';
-        var orderAmount = 399;
-        var orderItem = '會籍 - 試玩會員';
-        var orderCredits = 0;
-        var orderTotal = 0;
-        var purchaseType = 'membership'; // 'membership' or 'credits'
-        var orderRef = 'ZP-20260502-' + Math.random().toString(36).substring(2,6).toUpperCase();
-        var receiptData = null;
+    // ===== Helpers =====
 
-        function selectMethod(method, el) {
-            selectedMethod = method;
-            document.querySelectorAll('.pay-option').forEach(function(o) { o.classList.remove('selected'); });
-            el.classList.add('selected');
-            document.querySelectorAll('.pay-detail').forEach(function(d) { d.classList.remove('show'); });
-            document.getElementById('detail-' + method).classList.add('show');
-            
-            var labels = { 'stripe': '💳 信用卡付款', 'fps': '🏦 確認轉數快付款', 'payme': '📱 確認 PayMe 付款' };
-            document.getElementById('pay-button').textContent = labels[method] + ' HK$' + orderAmount;
+    function getToken() {
+      var t = localStorage.getItem('zenpass_token');
+      if (!t) t = sessionStorage.getItem('zenpass_token');
+      return t;
+    }
 
-            // For Stripe: show fee breakdown dynamically
-            var stripeFeeRow = document.getElementById('stripe-fee-row');
-            var stripeNetRow = document.getElementById('stripe-net-row');
-            if (method === 'stripe' && orderAmount > 0) {
-                var pct = 3.4;
-                var fixed = 2.35;
-                var fee = Math.round((orderAmount * pct / 100 + fixed) * 100) / 100;
-                var net = Math.round((orderAmount - fee) * 100) / 100;
-                document.getElementById('stripe-fee-amount').textContent = 'HK$' + fee.toFixed(2);
-                document.getElementById('stripe-net-amount').textContent = 'HK$' + net.toFixed(2);
-                document.getElementById('order-fee').textContent = '-HK$' + fee.toFixed(2);
-                document.getElementById('order-net').textContent = 'HK$' + net.toFixed(2);
-                if (stripeFeeRow) stripeFeeRow.style.display = '';
-                if (stripeNetRow) stripeNetRow.style.display = '';
-            } else {
-                if (stripeFeeRow) stripeFeeRow.style.display = 'none';
-                if (stripeNetRow) stripeNetRow.style.display = 'none';
-            }
+    function apiFetch(path, opts) {
+      var token = getToken();
+      var headers = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = 'Bearer ' + token;
+      return fetch(API_BASE + path, Object.assign({}, opts, { headers: Object.assign({}, headers, (opts && opts.headers) || {}) }));
+    }
+
+    function goBack() {
+      if (document.referrer && document.referrer !== location.href) {
+        history.back();
+      } else {
+        location.href = 'my-bookings.html';
+      }
+    }
+
+    function showToast(msg, type) {
+      var t = document.createElement('div');
+      var bg = type === 'success' ? '#ECFDF5' : type === 'warning' ? '#FEF3C7' : '#FEF2F2';
+      var tx = type === 'success' ? '#059669' : type === 'warning' ? '#92400E' : '#EF4444';
+      t.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);padding:12px 20px;border-radius:12px;font-size:14px;font-weight:500;z-index:999;max-width:300px;text-align:center;animation:fadeIn .3s;background:' + bg + ';color:' + tx + ';box-shadow:0 4px 12px rgba(0,0,0,0.15);';
+      t.textContent = msg;
+      document.body.appendChild(t);
+      setTimeout(function(){ t.style.opacity='0'; t.style.transition='opacity .3s'; setTimeout(function(){ t.remove(); },300); }, 2500);
+    }
+
+    function copyText(text) {
+      navigator.clipboard.writeText(text).then(function(){ showToast('✅ 已複製：' + text, 'success'); })
+      .catch(function(){ showToast('❌ 無法複製', 'error'); });
+    }
+
+    function showError(msg) {
+      document.getElementById('loading-state').classList.add('hidden');
+      document.getElementById('error-state').classList.remove('hidden');
+      document.getElementById('error-message').textContent = msg;
+    }
+
+    // ===== Stripe Init =====
+    function initStripe() {
+      if (!window.Stripe) { console.warn('Stripe.js not loaded'); return false; }
+      try {
+        stripeClient = Stripe(STRIPE_PK);
+        var elements = stripeClient.elements();
+        stripeCard = elements.create('card', {
+          style: { base: { fontSize: '16px', color: '#1A1A2E', fontFamily: '"Noto Sans TC", sans-serif', '::placeholder': { color: '#9CA3AF' } } },
+          hidePostalCode: true
+        });
+        stripeCard.mount('#card-element');
+        stripeCard.on('change', function(ev){
+          document.getElementById('card-errors').textContent = ev.error ? ev.error.message : '';
+        });
+        return true;
+      } catch(e) { console.error('Stripe init error:', e); return false; }
+    }
+
+    // ===== Method Selection =====
+    function selectMethod(method, el) {
+      selectedMethod = method;
+      document.querySelectorAll('.pay-option').forEach(function(o){ o.classList.remove('selected'); });
+      el.classList.add('selected');
+      document.querySelectorAll('.pay-detail').forEach(function(d){ d.classList.remove('show'); });
+      document.getElementById('detail-' + method).classList.add('show');
+      updatePayButton();
+    }
+
+    function updatePayButton() {
+      var labels = { 'stripe': '💳 信用卡付款 — HK$', 'fps': '🏦 確認 FPS 付款 — HK$', 'payme': '📱 確認 PayMe 付款 — HK$' };
+      document.getElementById('pay-button').textContent = (labels[selectedMethod] || '💳 付款 — HK$') + paymentAmount;
+      document.getElementById('pay-button').disabled = false;
+      document.getElementById('pay-button').classList.remove('loading');
+    }
+
+    // ===== Load Booking Data =====
+    async function loadBooking() {
+      var params = new URLSearchParams(window.location.search);
+      bookingId = params.get('booking_id');
+
+      if (!bookingId) { showError('缺少預約編號，請從預約頁面進入付款'); return; }
+
+      // Handle return from old Stripe Checkout (backward compat)
+      if (params.get('stripe') === 'success' && params.get('session_id')) {
+        try {
+          var r = await apiFetch('/payments/stripe/confirm-payment', {
+            method: 'POST',
+            body: JSON.stringify({ session_id: params.get('session_id'), booking_id: bookingId })
+          });
+          var d = await r.json();
+          if (d.status === 'confirmed' || d.payment_status === 'paid') { showSuccess(bookingId, d.booking_reference || params.get('session_id')); return; }
+        } catch(e) { console.error(e); }
+      }
+
+      // Auth check
+      if (!getToken()) {
+        document.getElementById('no-auth-state').classList.remove('hidden');
+        document.getElementById('loading-state').classList.add('hidden');
+        return;
+      }
+
+      // Fetch booking from API
+      try {
+        var resp = await apiFetch('/bookings/my?status=pending_payment');
+        if (!resp.ok) { showError('無法載入預約資料'); return; }
+        var data = await resp.json();
+        var booking = (data.bookings || []).find(function(b){ return b.id === bookingId; });
+
+        if (!booking) {
+          // Check if already confirmed
+          var allResp = await apiFetch('/bookings/my');
+          if (allResp.ok) {
+            var allData = await allResp.json();
+            booking = (allData.bookings || []).find(function(b){ return b.id === bookingId; });
+          }
+          if (!booking) { showError('找不到此預約'); return; }
+          if (booking.status === 'confirmed') { showSuccess(bookingId, booking.booking_reference); return; }
+          if (booking.status === 'cancelled') { showError('此預約已取消'); return; }
         }
 
-        function copyText(text) {
-            navigator.clipboard.writeText(text).then(function() {
-                showToast('✅ 已複製：' + text, 'success');
-            }).catch(function() {
-                var ta = document.createElement('textarea');
-                ta.value = text;
-                document.body.appendChild(ta);
-                ta.select();
-                document.execCommand('copy');
-                ta.remove();
-                showToast('✅ 已複製', 'success');
-            });
+        bookingData = booking;
+        paymentAmount = booking.amount || booking.price_hkd || 0;
+
+        // Render order details
+        document.getElementById('order-class').textContent = booking.title || '課程';
+        document.getElementById('order-date').textContent = formatDate(booking.start_time);
+        document.getElementById('order-time').textContent = formatTime(booking.start_time, booking.end_time);
+        document.getElementById('order-venue').textContent = booking.venue_name || '—';
+        document.getElementById('order-ref').textContent = booking.booking_reference || bookingId;
+        document.getElementById('order-total').textContent = 'HK$' + paymentAmount;
+
+        document.getElementById('loading-state').classList.add('hidden');
+        document.getElementById('pay-page').classList.remove('hidden');
+        document.getElementById('page-title').textContent = '💰 付款 — ' + (booking.title || '課程');
+
+        // Init Stripe
+        initStripe();
+
+        // Fee calculations
+        var fee = Math.round((paymentAmount * 3.4 / 100 + 2.35) * 100) / 100;
+        var net = Math.round((paymentAmount - fee) * 100) / 100;
+        document.getElementById('stripe-fee-amount').textContent = 'HK$' + fee.toFixed(2);
+        document.getElementById('stripe-net-amount').textContent = 'HK$' + net.toFixed(2);
+
+        updatePayButton();
+
+      } catch(e) {
+        console.error('Load error:', e);
+        showError('網絡錯誤，請檢查連線後再試');
+      }
+    }
+
+    function formatDate(iso) {
+      if (!iso) return '—';
+      var d = new Date(iso);
+      var days = ['日','一','二','三','四','五','六'];
+      return d.getFullYear() + '/' + String(d.getMonth()+1).padStart(2,'0') + '/' + String(d.getDate()).padStart(2,'0') + ' (週' + days[d.getDay()] + ')';
+    }
+
+    function formatTime(start, end) {
+      if (!start) return '—';
+      var s = start.split('T')[1] ? start.split('T')[1].slice(0,5) : '—';
+      var e = end && end.split('T')[1] ? end.split('T')[1].slice(0,5) : '—';
+      return s + ' - ' + e;
+    }
+
+    // ===== Payment Processing =====
+
+    async function processPayment() {
+      var btn = document.getElementById('pay-button');
+      btn.disabled = true;
+      btn.classList.add('loading');
+
+      if (selectedMethod === 'stripe') { await processStripe(btn); }
+      else if (selectedMethod === 'fps') { await processFps(btn); }
+      else if (selectedMethod === 'payme') { await processPayme(btn); }
+    }
+
+    // --- Stripe via PaymentIntent API ---
+    async function processStripe(btn) {
+      try {
+        // 1. Create PaymentIntent
+        var resp = await apiFetch('/payments/create-payment-intent', {
+          method: 'POST',
+          body: JSON.stringify({
+            amount: paymentAmount,
+            booking_id: bookingId,
+            description: (bookingData && bookingData.title) || 'ZenPass 課程預約'
+          })
+        });
+        if (!resp.ok) {
+          var err = await resp.json().catch(function(){ return {}; });
+          showToast(err.error || '無法建立付款', 'error');
+          btn.disabled = false; btn.classList.remove('loading'); btn.textContent = '💳 重試';
+          return;
+        }
+        var intent = await resp.json();
+
+        // Dev mode (no real Stripe key)
+        if (intent.dev_mode || !intent.client_secret) {
+          showToast('⚙️ 開發模式：模擬付款成功', 'info');
+          await confirmBooking('stripe', 'dev_' + Date.now());
+          return;
         }
 
-        function handleReceipt(type, input) {
-            var file = input.files[0];
-            if (!file) return;
-
-            // Check file size (max 5MB raw)
-            if (file.size > 5 * 1024 * 1024) {
-                showToast('❌ 圖片太大，請選擇 5MB 以下嘅圖片', 'error');
-                input.value = '';
-                return;
-            }
-
-            var reader = new FileReader();
-            reader.onload = function(e) {
-                // Compress image using canvas
-                var img = new Image();
-                img.onload = function() {
-                    var MAX_WIDTH = 800;
-                    var MAX_HEIGHT = 800;
-                    var QUALITY = 0.6;
-
-                    var w = img.width;
-                    var h = img.height;
-                    if (w > MAX_WIDTH || h > MAX_HEIGHT) {
-                        var ratio = Math.min(MAX_WIDTH / w, MAX_HEIGHT / h);
-                        w = Math.round(w * ratio);
-                        h = Math.round(h * ratio);
-                    }
-
-                    var canvas = document.createElement('canvas');
-                    canvas.width = w;
-                    canvas.height = h;
-                    var ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0, w, h);
-
-                    receiptData = canvas.toDataURL('image/jpeg', QUALITY);
-
-                    var sizeKB = Math.round(receiptData.length * 0.75 / 1024);
-                    var preview = document.getElementById(type + '-receipt-preview');
-                    preview.innerHTML = '<div style="display:flex;align-items:center;gap:8px;padding:8px;background:var(--green-100);border-radius:var(--radius-sm);">✅ ' + sizeKB + 'KB (' + w + 'x' + h + ') <button class="copy-btn" onclick="removeReceipt(\'' + type + '\')">✕</button></div>';
-                    showToast('✅ 已壓縮上傳 (' + sizeKB + 'KB)', 'success');
-                };
-                img.src = e.target.result;
-            };
-            reader.readAsDataURL(file);
+        // 2. Ask Stripe to confirm
+        if (!stripeClient || !stripeCard) {
+          showToast('信用卡付款未準備好', 'error');
+          btn.disabled = false; btn.classList.remove('loading'); btn.textContent = '💳 重試';
+          return;
         }
 
-        function removeReceipt(type) {
-            receiptData = null;
-            document.getElementById(type + '-receipt').value = '';
-            document.getElementById(type + '-receipt-preview').innerHTML = '';
+        var result = await stripeClient.confirmCardPayment(intent.client_secret, {
+          payment_method: { card: stripeCard }
+        });
+
+        if (result.error) {
+          showToast(result.error.message || '付款失敗，請檢查卡號', 'error');
+          btn.disabled = false;
+          btn.classList.remove('loading');
+          btn.textContent = '💳 信用卡付款 — HK$' + paymentAmount;
+          return;
         }
 
-        async function processPayment() {
-            var btn = document.getElementById('pay-button');
-            btn.disabled = true;
-            btn.classList.add('loading');
-            btn.textContent = '處理中...';
-
-            // ===== Stripe: 建立 Checkout Session → redirect =====
-            if (selectedMethod === 'stripe') {
-                try {
-                    var stripeResp = await fetch(API_BASE + '/payments/stripe/create-checkout', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + getToken() },
-                        body: JSON.stringify({
-                            amount: orderAmount,
-                            booking_id: window.currentBookingId || '',
-                            description: orderItem || 'ZenPass 課程預約',
-                            success_path: '/payment.html',
-                            cancel_path: '/payment.html'
-                        })
-                    });
-                    var stripeData = await stripeResp.json();
-
-                    if (stripeData.dev_mode) {
-                        // 開發模式：直接模擬成功
-                        showToast('⚙️ 開發模式：模擬 Stripe 付款成功', 'info');
-                        orderRef = stripeData.dev_intent_id || orderRef;
-                        
-                        // Complete booking if applicable
-                        if (window.currentBookingId) {
-                            var completeResp = await fetch(API_BASE + '/payments/stripe/confirm-payment', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + getToken() },
-                                body: JSON.stringify({
-                                    session_id: stripeData.session_id,
-                                    booking_id: window.currentBookingId,
-                                    amount: orderAmount
-                                })
-                            });
-                            var completeData = await completeResp.json();
-                            if (completeData.status === 'confirmed') {
-                                await completeBookingPayment(window.currentBookingId, 'stripe', orderRef);
-                            }
-                        }
-
-                        // Show success
-                        btn.classList.remove('loading');
-                        document.getElementById('pay-page').classList.add('hidden');
-                        document.getElementById('success-page').classList.remove('hidden');
-                        document.getElementById('success-ref').textContent = stripeData.dev_intent_id || orderRef;
-                        document.getElementById('success-detail').textContent = '🎉 付款成功！你的預約已確認，記住準時出席課堂！';
-                        return;
-                    }
-
-                    if (stripeData.checkout_url) {
-                        // 正式：redirect 去 Stripe Checkout
-                        window.location.href = stripeData.checkout_url;
-                        return;
-                    }
-
-                } catch(e) {
-                    console.error('Stripe error:', e);
-                    showToast('Stripe 付款暫時無法使用，請揀 FPS 或 PayMe', 'error');
-                    btn.disabled = false;
-                    btn.classList.remove('loading');
-                    btn.textContent = '💳 信用卡付款 — HK$' + orderAmount;
-                    return;
-                }
-            }
-
-            // ===== FPS / PayMe: require receipt upload, send to backend =====
-            if (selectedMethod === 'fps' || selectedMethod === 'payme') {
-                // Check receipt
-                if (!receiptData) {
-                    showToast('請先上傳入數證明', 'warning');
-                    btn.disabled = false;
-                    btn.classList.remove('loading');
-                    btn.textContent = '📎 先上傳證明再提交';
-                    return;
-                }
-
-                // Call API to submit payment with receipt
-                try {
-                    var apiPath = selectedMethod === 'fps' ? '/payments/fps' : '/payments/payme';
-                    var payload = {
-                        amount: orderAmount,
-                        booking_id: window.currentBookingId || '',
-                        receipt_image: receiptData
-                    };
-                    if (selectedMethod === 'fps') {
-                        payload.fps_reference = orderRef;
-                    } else {
-                        payload.payme_reference = orderRef;
-                    }
-                    await fetch(API_BASE + apiPath, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + getToken() },
-                        body: JSON.stringify(payload)
-                    });
-                } catch(e) {
-                    console.error('API submit error:', e);
-                }
-
-                // Save pending payment to localStorage
-                savePendingPayment(selectedMethod, 'pending');
-
-                // Show pending screen
-                document.getElementById('pay-page').classList.add('hidden');
-                document.getElementById('pending-page').classList.remove('hidden');
-                document.getElementById('pending-ref').textContent = orderRef;
-                if (purchaseType === 'credits') {
-                    document.getElementById('pending-detail').textContent = '我們已收到你的付款證明，管理員確認後 ' + orderCredits + ' Credits 會自動加到你的帳戶。';
-                } else {
-                    document.getElementById('pending-detail').textContent = '我們已收到你的入數證明，管理員確認後預約就會生效。';
-                }
-                return;
-            }
+        if (result.paymentIntent && result.paymentIntent.status === 'succeeded') {
+          // Payment confirmed via Stripe — now confirm booking
+          await confirmBooking('stripe', result.paymentIntent.id);
+        } else {
+          showToast('付款處理中，請檢查 Stripe 頁面', 'warning');
+          btn.disabled = false; btn.classList.remove('loading');
         }
 
-        function savePendingPayment(method, status) {
-            var pending = JSON.parse(localStorage.getItem('zenpass_pending_payments') || '[]');
-            var user = JSON.parse(localStorage.getItem('zenpass_user') || '{}');
-            var creditAmount = orderTotal || orderCredits;
-            pending.push({
-                id: orderRef,
-                type: purchaseType,
-                item: orderItem,
-                amount: orderAmount,
-                credits: creditAmount,
-                method: method,
-                receipt: receiptData,
-                status: status,
-                user: user.name || 'Unknown',
-                userEmail: user.email || '',
-                time: new Date().toISOString()
-            });
-            localStorage.setItem('zenpass_pending_payments', JSON.stringify(pending));
-        }
+      } catch(e) {
+        console.error('Stripe payment error:', e);
+        showToast('付款過程出錯，請稍後再試', 'error');
+        btn.disabled = false; btn.classList.remove('loading');
+      }
+    }
 
-        function addCreditsToAccount(credits) {
-            var user = JSON.parse(localStorage.getItem('zenpass_user') || '{}');
-            user.credits = (user.credits || 0) + credits;
-            localStorage.setItem('zenpass_user', JSON.stringify(user));
-            // Also store in a separate key for easy reading
-            var balance = JSON.parse(localStorage.getItem('zenpass_credits_balance') || '{}');
-            balance.credits = user.credits;
-            balance.updated = new Date().toISOString();
-            localStorage.setItem('zenpass_credits_balance', JSON.stringify(balance));
-            // Record transaction in history
-            var txns = JSON.parse(localStorage.getItem('zenpass_transactions') || '[]');
-            txns.push({
-                id: orderRef || 'CR-' + new Date().toISOString().slice(0,10).replace(/-/g,'') + '-' + Math.random().toString(36).substring(2,6).toUpperCase(),
-                type: 'credits_purchase',
-                credits: credits,
-                amount: orderAmount || 0,
-                method: selectedMethod || 'stripe',
-                user: user.name || 'Unknown',
-                date: new Date().toISOString()
-            });
-            localStorage.setItem('zenpass_transactions', JSON.stringify(txns));
-        }
-
-        function showToast(msg, type) {
-            var t = document.createElement('div');
-            var bg = type === 'success' ? '#ECFDF5' : '#FEF2F2'; var tx = type === 'success' ? '#059669' : '#EF4444'; t.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);padding:12px 20px;border-radius:12px;font-size:14px;font-weight:500;z-index:999;max-width:300px;text-align:center;animation:fadeIn .3s;background:' + bg + ';color:' + tx + ';box-shadow:0 4px 12px rgba(0,0,0,0.15);';
-            t.textContent = msg;
-            document.body.appendChild(t);
-            setTimeout(function() { t.style.opacity='0'; t.style.transition='opacity .3s'; setTimeout(function(){ t.remove(); },300); }, 2500);
-        }
-
-        // Complete payment for a booking (update localStorage + call API)
-        async function completeBookingPayment(bookingId, method, ref) {
-            // Update localStorage booking status
-            var bkKey = (typeof zpKey === 'function') ? zpKey('bookings') : 'zenpass_bookings';
-            try {
-                var bookings = JSON.parse(localStorage.getItem(bkKey) || '[]');
-                var updated = false;
-                for (var i = 0; i < bookings.length; i++) {
-                    if (bookings[i].id === bookingId || bookings[i].id === ref) {
-                        bookings[i].status = 'confirmed';
-                        bookings[i].paid_at = new Date().toISOString();
-                        updated = true;
-                        break;
-                    }
-                }
-                if (updated) {
-                    localStorage.setItem(bkKey, JSON.stringify(bookings));
-                }
-            } catch(e) {}
-
-            // Call API to complete payment
-            try {
-                var token = getToken();
-                if (token) {
-                    await fetch(API_BASE + '/bookings/' + bookingId + '/complete-payment', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': 'Bearer ' + token
-                        },
-                        body: JSON.stringify({
-                            payment_method: method,
-                            payment_reference: ref || orderRef,
-                            amount: orderAmount
-                        })
-                    });
-                }
-            } catch(e) {
-                console.error('API complete payment failed:', e);
-            }
-        }
-
-        // Handle Stripe Checkout redirect (success/cancel)
-        (function() {
-            var params = new URLSearchParams(window.location.search);
-            var stripeStatus = params.get('stripe');
-            var sessionId = params.get('session_id');
-            var bookingIdFromStripe = params.get('booking_id');
-
-            if (stripeStatus === 'success' && sessionId) {
-                // Stripe 付款成功返嚟 — confirm payment + show success
-                var token = getToken();
-                if (token && bookingIdFromStripe) {
-                    window.currentBookingId = bookingIdFromStripe;
-                    (async function() {
-                        try {
-                            var resp = await fetch(API_BASE + '/payments/stripe/confirm-payment', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-                                body: JSON.stringify({
-                                    session_id: sessionId,
-                                    booking_id: bookingIdFromStripe,
-                                    amount: params.get('amount') || 0
-                                })
-                            });
-                            var data = await resp.json();
-                            if (data.status === 'confirmed') {
-                                await completeBookingPayment(bookingIdFromStripe, 'stripe', sessionId);
-                            }
-                        } catch(e) {
-                            console.error('Stripe confirm error:', e);
-                        }
-                        // Show success page
-                        document.getElementById('pay-page').classList.add('hidden');
-                        document.getElementById('success-page').classList.remove('hidden');
-                        document.getElementById('success-ref').textContent = sessionId;
-                        document.getElementById('success-detail').textContent = '🎉 信用卡付款成功！你的預約已確認，記住準時出席課堂！';
-                    })();
-                }
-                return; // Don't continue init, already handling success
-            }
-
-            if (stripeStatus === 'cancel') {
-                showToast('付款已取消，你可以繼續使用 FPS 或 PayMe', 'warning');
-                // Fall through to normal init
-            }
-        })();
-
-        // Init from URL params
-        (function() {
-            var params = new URLSearchParams(window.location.search);
-            var type = params.get('type');
-            var amount = params.get('amount');
-            var item = params.get('item');
-            var credits = params.get('credits');
-            var bookingId = params.get('booking_id');
-            window.currentBookingId = bookingId || null;
-
-            if (type === 'credits' && amount) {
-                purchaseType = 'credits';
-                orderAmount = parseInt(amount);
-                var orderBonus = parseInt(params.get('bonus')) || 0;
-                orderTotal = parseInt(params.get('total')) || parseInt(credits) || 0;
-                orderCredits = parseInt(credits) || 0;
-                orderItem = item || '點數 ' + orderTotal + ' Credits';
-
-                document.getElementById('order-item').textContent = '💎 ' + orderItem;
-                if (orderBonus > 0) {
-                    document.getElementById('order-credits-detail').textContent = orderCredits + ' Credits + ' + orderBonus + ' 贈送';
-                } else {
-                    document.getElementById('order-credits-detail').textContent = orderTotal + ' Credits';
-                }
-                document.getElementById('order-credits-row').style.display = '';
-                document.getElementById('order-detail-label').textContent = '金額';
-                document.getElementById('order-detail').textContent = 'HK$' + orderAmount + '（一次性）';
-                document.getElementById('order-total').textContent = 'HK$' + orderAmount;
-                document.getElementById('pay-button').textContent = '💎 購買 ' + orderTotal + ' Credits — HK$' + orderAmount;
-                document.getElementById('fps-amount').textContent = 'HK$' + orderAmount;
-                document.getElementById('payme-amount').textContent = 'HK$' + orderAmount;
-            } else if (amount) {
-                orderAmount = parseInt(amount);
-                orderItem = item || '會籍';
-                document.getElementById('order-item').textContent = orderItem;
-                document.getElementById('order-detail-label').textContent = '月費';
-                document.getElementById('order-detail').textContent = 'HK$' + orderAmount + '/月';
-                document.getElementById('order-total').textContent = 'HK$' + orderAmount;
-                document.getElementById('pay-button').textContent = '💳 付款 HK$' + orderAmount;
-                document.getElementById('fps-amount').textContent = 'HK$' + orderAmount;
-                document.getElementById('payme-amount').textContent = 'HK$' + orderAmount;
-            }
-
-            // Custom ref from buy-credits
-            var ref = params.get('ref');
-            if (ref) {
-                orderRef = ref;
-            }
-            
-            // Update FPS reference display
-            var fpsRefEl = document.getElementById('fps-ref');
-            if (fpsRefEl) {
-                fpsRefEl.textContent = orderRef;
-            }
-
-            // Update Stripe fee breakdown on init (if amount is set)
-            if (orderAmount > 0 && selectedMethod === 'stripe') {
-                var pct = 3.4;
-                var fixed = 2.35;
-                var fee = Math.round((orderAmount * pct / 100 + fixed) * 100) / 100;
-                var net = Math.round((orderAmount - fee) * 100) / 100;
-                document.getElementById('stripe-fee-amount').textContent = 'HK$' + fee.toFixed(2);
-                document.getElementById('stripe-net-amount').textContent = 'HK$' + net.toFixed(2);
-            }
-        })();
-    </script>
-    <style>
-        @keyframes fadeIn { from { opacity:0; transform:translateX(-50%) translateY(10px); } to { opacity:1; transform:translateX(-50%) translateY(0); } }
-    </style>
-<script>if("serviceWorker" in navigator){navigator.serviceWorker.register("sw.js")}</script>
-<script>
-(function(){var n=localStorage.getItem("zenpass_name");if(n){var b=document.createElement("div");b.style.cssText="position:fixed;top:10px;right:10px;z-index:9999;background:#FF6B35;color:white;padding:5px 12px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.15);font-family:sans-serif;";b.textContent="👤 "+n;b.onclick=function(){var nn=prompt("切換用戶\n當前："+n,n);if(nn&&nn.trim()&&nn.trim()!==n){localStorage.setItem("zenpass_name",nn.trim());localStorage.removeItem("zenpass_token");localStorage.removeItem("zenpass_user");location.reload()}};document.body.appendChild(b)}})();
-</script>
-</body>
-</html>
+    // --- FPS ---
+    async function processFps(btn) {
+      var ref = document.getElementById('fps-ref-input').value.trim();
+      if (!ref) {
+        showToast('請輸入轉數快參考編號', 'warning');
+        btn.disabled = false; btn.classList.remove('loading'); btn.textContent = '🏦 確認 FPS 付款 — HK$' + paymentAmount;
+        return;
+      }
+      try {
+        var resp = await apiFetch('/payments/confirm',
