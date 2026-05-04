@@ -157,4 +157,70 @@ async function sendNotification(type, payload) {
   return results;
 }
 
-module.exports = { sendNotification, dbNotification, telegramNotification, emailNotification };
+// ===== 5. 通知列表查詢（供 routes/notifications.js 使用）=====
+
+function getNotifications(userId, { page = 1, limit = 50, unreadOnly = false } = {}) {
+  try {
+    const db = new Database(DB_PATH);
+    const offset = (page - 1) * limit;
+
+    let whereClause = 'WHERE user_id = ?';
+    const params = [userId];
+    if (unreadOnly) {
+      whereClause += ' AND is_read = 0';
+    }
+
+    const total = db.prepare(`SELECT COUNT(*) as count FROM notifications ${whereClause}`).get(...params);
+    const rows = db.prepare(`SELECT * FROM notifications ${whereClause} ORDER BY created_at DESC LIMIT ? OFFSET ?`).all(...params, limit, offset);
+    db.close();
+
+    return {
+      notifications: rows,
+      total: total.count,
+      page,
+      limit,
+      totalPages: Math.ceil(total.count / limit)
+    };
+  } catch (err) {
+    console.error('getNotifications error:', err.message);
+    return { notifications: [], total: 0, page, limit, totalPages: 0 };
+  }
+}
+
+function getUnreadCount(userId) {
+  try {
+    const db = new Database(DB_PATH);
+    const row = db.prepare('SELECT COUNT(*) as count FROM notifications WHERE user_id = ? AND is_read = 0').get(userId);
+    db.close();
+    return row.count;
+  } catch (err) {
+    console.error('getUnreadCount error:', err.message);
+    return 0;
+  }
+}
+
+function markAsRead(id, userId) {
+  try {
+    const db = new Database(DB_PATH);
+    const result = db.prepare('UPDATE notifications SET is_read = 1 WHERE id = ? AND user_id = ?').run(id, userId);
+    db.close();
+    return result.changes > 0;
+  } catch (err) {
+    console.error('markAsRead error:', err.message);
+    return false;
+  }
+}
+
+function markAllAsRead(userId) {
+  try {
+    const db = new Database(DB_PATH);
+    const result = db.prepare('UPDATE notifications SET is_read = 1 WHERE user_id = ? AND is_read = 0').run(userId);
+    db.close();
+    return result.changes;
+  } catch (err) {
+    console.error('markAllAsRead error:', err.message);
+    return 0;
+  }
+}
+
+module.exports = { sendNotification, dbNotification, telegramNotification, emailNotification, getNotifications, getUnreadCount, markAsRead, markAllAsRead };

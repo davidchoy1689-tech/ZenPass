@@ -47,12 +47,25 @@ router.put('/read-all', authenticateToken, (req, res) => {
   res.json({ message: `已標記 ${count} 條通知為已讀`, count });
 });
 
+// ===== POST /api/notifications/:id/read — 標記單條為已讀 (POST 版本) =====
+router.post('/:id/read', authenticateToken, (req, res) => {
+  const ok = markAsRead(req.params.id, req.user.id);
+  if (!ok) return res.status(404).json({ error: '通知不存在' });
+  res.json({ message: '已標記為已讀' });
+});
+
+// ===== POST /api/notifications/read-all — 全部標記為已讀 (POST 版本) =====
+router.post('/read-all', authenticateToken, (req, res) => {
+  const count = markAllAsRead(req.user.id);
+  res.json({ message: `已標記 ${count} 條通知為已讀`, count });
+});
+
 // ===== DELETE /api/notifications/:id — 刪除通知 =====
 router.delete('/:id', authenticateToken, (req, res) => {
   try {
     const db = new Database(DB_PATH);
     const result = db.prepare(`
-      DELETE FROM notification_logs WHERE id = ? AND user_id = ?
+      DELETE FROM notifications WHERE id = ? AND user_id = ?
     `).run(req.params.id, req.user.id);
     db.close();
     if (result.changes === 0) return res.status(404).json({ error: '通知不存在' });

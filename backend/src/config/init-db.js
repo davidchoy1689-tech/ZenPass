@@ -284,6 +284,25 @@ function initDatabase() {
     db.exec('CREATE INDEX IF NOT EXISTS idx_notif_user_read ON notification_logs(user_id, is_read)');
   } catch(e) {}
 
+  // ===== 站內通知表 (對外的 notification API) =====
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS notifications (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      type TEXT NOT NULL DEFAULT 'general',
+      title TEXT NOT NULL DEFAULT '',
+      message TEXT NOT NULL DEFAULT '',
+      data TEXT,
+      is_read INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    );
+  `);
+  try {
+    db.exec('CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_notifications_user_read ON notifications(user_id, is_read)');
+  } catch(e) {}
+
   // ===== 瀏覽器推送訂閱表 =====
   db.exec(`
     CREATE TABLE IF NOT EXISTS push_subscriptions (
