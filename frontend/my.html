@@ -128,7 +128,7 @@ function getAuthHeaders() {
   loadData();
 })();
 
-function loadData() {
+async function loadData() {
   showLoading();
   var userStr = localStorage.getItem('zenpass_user') || sessionStorage.getItem('zenpass_user');
   var user = null;
@@ -139,14 +139,13 @@ function loadData() {
 
   renderProfile(name, email);
 
-  // Load membership & credits info from API
+  // Load membership & credits info
   try {
     var memResult = await memberships.my();
     if (memResult && memResult.current) {
       renderMembershipCard(memResult.current, userObj);
     }
   } catch(e) {
-    // Fallback: show local user data
     if (userObj) {
       renderMembershipCard({
         type: userObj.membership_type || 'trial',
@@ -157,26 +156,22 @@ function loadData() {
   }
 
   // Load bookings in parallel
-  var p1 = fetch(API_BASE + '/bookings/my?status=confirmed', { headers: getAuthHeaders() }).then(function(r) { return r.json(); });
-  var p2 = fetch(API_BASE + '/bookings/my', { headers: getAuthHeaders() }).then(function(r) { return r.json(); });
-
   try {
-    var results = await Promise.all([p1, p2]);
-    .then(function(results) {
-      var confirmedData = results[0];
-      var allData = results[1];
+    var resp1 = await fetch(API_BASE + '/bookings/my?status=confirmed', { headers: getAuthHeaders() });
+    var resp2 = await fetch(API_BASE + '/bookings/my', { headers: getAuthHeaders() });
+    var confirmedData = await resp1.json();
+    var allData = await resp2.json();
 
-      var confirmed = confirmedData.bookings || [];
-      var all = allData.bookings || [];
+    var confirmed = confirmedData.bookings || [];
+    var all = allData.bookings || [];
 
-      renderStats(all);
-      renderConfirmed(confirmed);
-      renderAllBookings(all);
-      showContent();
-    })
-    .catch(function(err) {
-      showError('載入失敗', '無法連接到伺服器，請檢查網絡連線。');
-    });
+    renderStats(all);
+    renderConfirmed(confirmed);
+    renderAllBookings(all);
+    showContent();
+  } catch(err) {
+    showError('載入失敗', '無法連接到伺服器，請檢查網絡連線。');
+  }
 }
 
 function renderProfile(name, email) {
@@ -185,6 +180,48 @@ function renderProfile(name, email) {
     '<div class="avatar">' + escHtml(initial) + '</div>' +
     '<div class="name">' + escHtml(name) + '</div>' +
     (email ? '<div class="email">' + escHtml(email) + '</div>' : '');
+}
+
+var PLAN_LABELS = {
+    'none': { name: '無會籍', icon: '⚪' },
+    'trial': { name: '試玩會員', icon: '💎' },
+    'standard': { name: '標準會員', icon: '🔥' },
+    'unlimited': { name: '無限通行', icon: '🏆' }
+};
+
+function renderMembershipCard(current, userObj) {
+  var memType = current.type || 'trial';
+  var planInfo = PLAN_LABELS[memType] || PLAN_LABELS['trial'];
+  var credits = current.credits != null ? current.credits : (userObj ? userObj.credits || 0 : 0);
+  var expires = current.expires_at || '';
+  var expiresStr = '—';
+  if (expires) {
+    var d = new Date(expires);
+    expiresStr = d.getFullYear() + '/' + String(d.getMonth()+1).padStart(2,'0') + '/' + String(d.getDate()).padStart(2,'0');
+  }
+
+  var card = document.getElementById('membershipCard');
+  card.style.display = 'block';
+  card.innerHTML =
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">'
+    + '<div style="font-size:14px;font-weight:600;display:flex;align-items:center;gap:6px;">'
+    + planInfo.icon + ' ' + planInfo.name + '</div>'
+    + '<span style="font-size:13px;color:var(--orange-500);font-weight:600;cursor:pointer;" onclick="location.href=\'membership.html\'">管理 &gt;</span>'
+    + '</div>'
+    + '<div style="display:flex;gap:16px;">'
+    + '<div style="flex:1;padding:12px;background:var(--orange-50);border-radius:8px;text-align:center;">'
+    + '<div style="font-size:24px;font-weight:800;color:var(--orange-500);">' + credits + '</div>'
+    + '<div style="font-size:11px;color:var(--dark-700);">Credits</div>'
+    + '</div>'
+    + '<div style="flex:1;padding:12px;background:var(--gray-100);border-radius:8px;text-align:center;">'
+    + '<div style="font-size:14px;font-weight:600;">到期</div>'
+    + '<div style="font-size:11px;color:var(--dark-700);margin-top:4px;">' + expiresStr + '</div>'
+    + '</div>'
+    + '<div style="flex:1;display:flex;flex-direction:column;gap:6px;justify-content:center;">'
+    + '<button style="width:100%;padding:8px;background:var(--orange-500);color:white;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;" onclick="location.href=\'buy-credits.html\'">➕ 加購點數</button>'
+    + (memType !== 'unlimited' ? '<button style="width:100%;padding:8px;background:white;color:var(--orange-500);border:1.5px solid var(--orange-500);border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;" onclick="location.href=\'membership.html\'">⬆️ 升級</button>' : '')
+    + '</div>'
+    + '</div>';
 }
 
 function renderStats(all) {

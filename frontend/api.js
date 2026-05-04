@@ -348,6 +348,14 @@ const coach = {
     application: () => apiRequest('GET', '/coach/application'),
     myClasses: () => apiRequest('GET', '/coach/my-classes'),
     addSchedule: (data) => apiRequest('POST', '/coach/schedules', data),
+    earnings: () => apiRequest('GET', '/coach/earnings'),
+    earningsDetail: (params) => apiRequest('GET', '/coach/earnings/detail?' + new URLSearchParams(params || {})),
+    calculateEarnings: () => apiRequest('POST', '/coach/earnings/calculate'),
+    payoutRequest: (data) => apiRequest('POST', '/coach/payout-request', data),
+    payoutHistory: () => apiRequest('GET', '/coach/payout-history'),
+    privateIncome: (params) => apiRequest('GET', '/coach/private-income?' + new URLSearchParams(params || {})),
+    addPrivateIncome: (data) => apiRequest('POST', '/coach/private-income', data),
+    deletePrivateIncome: (id) => apiRequest('DELETE', '/coach/private-income/' + id),
 };
 
 // ===== 付款 API =====

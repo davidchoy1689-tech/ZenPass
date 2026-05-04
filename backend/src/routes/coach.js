@@ -40,15 +40,17 @@ router.post('/apply', authenticateToken, (req, res) => {
     const specialtiesStr = Array.isArray(specialties) ? specialties.join(',') : specialties;
     const facilitiesStr = Array.isArray(facilities) ? facilities.join(',') : facilities;
     const venuePhotosStr = Array.isArray(venue_photos) ? venue_photos.join(',') : venue_photos;
+    const appRef = 'CA-' + new Date().toISOString().slice(0,10).replace(/-/g,'') + '-' + Math.random().toString(36).substring(2,6).toUpperCase();
 
     db.prepare(`
       INSERT INTO coach_applications 
         (id, user_id, name, phone, email, years_experience, specialties, 
-         certificates, bio, venue_name, venue_address, venue_photos, facilities)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         certificates, bio, venue_name, venue_address, venue_photos, facilities,
+         application_reference)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(id, req.user.id, name, phone, email, years_experience || null,
       specialtiesStr || null, certificates || null, bio || null,
-      venue_name, venue_address, venuePhotosStr || null, facilitiesStr || null);
+      venue_name, venue_address, venuePhotosStr || null, facilitiesStr || null, appRef);
 
     db.close();
 

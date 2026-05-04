@@ -193,12 +193,7 @@
 
     <script>
         // ===== Credit Packs =====
-        var CREDIT_PACKS = [
-            { credits: 10, price: 150, icon: '🥉', label: '輕量', popular: false, desc: 'HK$15/Credit', bonus: 0 },
-            { credits: 25, price: 375, icon: '🥈', label: '標準', popular: true, desc: '最受歡迎 🔥', bonus: 5 },
-            { credits: 50, price: 750, icon: '🥇', label: '超值', popular: false, desc: '慳更多', bonus: 12 },
-            { credits: 100, price: 1500, icon: '👑', label: '大額', popular: false, desc: '一次買足', bonus: 30 }
-        ];
+        var CREDIT_PACKS = [];
         var selectedPack = null;
 
         function getCredits() {
@@ -299,9 +294,46 @@
 
         // Init
         updateBalance();
-        renderPacks();
-        // Default: select standard pack
-        selectPack(1);
+
+        async function initPacks() {
+          try {
+            var result = await memberships.packages();
+            var pkgs = result.packages || [];
+            var icons = ['🥉', '🥈', '🥇', '👑'];
+            CREDIT_PACKS = [];
+            for (var i = 0; i < pkgs.length; i++) {
+              var p = pkgs[i];
+              var total = p.credits + (p.bonus || 0);
+              CREDIT_PACKS.push({
+                credits: p.credits,
+                price: p.price,
+                icon: icons[i] || '💎',
+                label: p.label || '套餐',
+                popular: p.popular || false,
+                desc: 'HK$' + Math.round(p.price / total * 10) / 10 + '/Credit',
+                bonus: p.bonus || 0
+              });
+            }
+          } catch(e) {
+            // Fallback hardcoded packs
+            CREDIT_PACKS = [
+              { credits: 10, price: 80, icon: '🥉', label: '輕量', popular: false, desc: 'HK$8/Credit', bonus: 2 },
+              { credits: 50, price: 400, icon: '🥈', label: '標準', popular: true, desc: '最受歡迎 🔥', bonus: 12 },
+              { credits: 100, price: 800, icon: '🥇', label: '超值', popular: false, desc: '慳更多', bonus: 30 },
+              { credits: 200, price: 1600, icon: '👑', label: '大額', popular: false, desc: '一次買足', bonus: 70 }
+            ];
+          }
+          renderPacks();
+          // Default: select popular or first pack
+          for (var i = 0; i < CREDIT_PACKS.length; i++) {
+            if (CREDIT_PACKS[i].popular) {
+              selectPack(i);
+              return;
+            }
+          }
+          if (CREDIT_PACKS.length > 0) selectPack(0);
+        }
+        initPacks();
     </script>
 <script>if("serviceWorker" in navigator){navigator.serviceWorker.register("sw.js")}</script>
 </body>

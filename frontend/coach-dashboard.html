@@ -178,19 +178,31 @@ function loadAllData() {
   var name = (user && user.name) || localStorage.getItem('zenpass_name') || '教練';
   document.querySelector('.sub-info').textContent = '👤 ' + name;
 
+  // Check if user is logged in — if not, show login prompt
+  if (!getToken()) {
+    document.getElementById('loadingState').innerHTML = '<div style="text-align:center;padding:40px;"><span class="empty-icon" style="font-size:48px;display:block;margin-bottom:12px;">🔐</span><div style="font-size:16px;font-weight:600;margin-bottom:8px;">請先登入</div><p style="color:var(--dark-700);margin-bottom:20px;">你需要登入才能查看教練資料</p><button class="btn-primary" style="width:auto;display:inline-block;padding:12px 32px;" onclick="showLoginModal(); return false;">登入</button></div>';
+    return;
+  }
+
   Promise.all([
-    fetch(API_BASE + '/coach/my-classes', { headers: getAuthHeaders() }).then(function(r) { return r.json(); }),
-    fetch(API_BASE + '/coach/earnings', { headers: getAuthHeaders() }).then(function(r) { return r.json(); }),
-    fetch(API_BASE + '/classes', { headers: { 'Content-Type': 'application/json' } }).then(function(r) { return r.json(); })
+    fetch(API_BASE + '/coach/my-classes', { headers: getAuthHeaders() }).then(function(r) { return r.json().catch(function() { return {classes:[]}; }); }),
+    fetch(API_BASE + '/coach/earnings', { headers: getAuthHeaders() }).then(function(r) { return r.json().catch(function() { return {summary:{}}; }); }),
+    fetch(API_BASE + '/classes', { headers: { 'Content-Type': 'application/json' } }).then(function(r) { return r.json().catch(function() { return {classes:[]}; }); })
   ])
     .then(function(results) {
       var classesData = results[0];
       var earningsResp = results[1];
       var allClassesResp = results[2];
 
+      // Handle auth errors gracefully
+      if (classesData.error || earningsResp.error) {
+        document.getElementById('loadingState').innerHTML = '<div style="text-align:center;padding:40px;"><span class="empty-icon" style="font-size:48px;display:block;margin-bottom:12px;">🔐</span><div style="font-size:16px;font-weight:600;margin-bottom:8px;">需要教練權限</div><p style="color:var(--dark-700);margin-bottom:8px;">' + (classesData.error || earningsResp.error) + '</p><p style="color:var(--dark-700);margin-bottom:20px;">請先提交教練申請或重新登入</p><button class="btn-primary" style="width:auto;display:inline-block;padding:12px 32px;margin-right:8px;" onclick="window.location.href=\'coach-apply.html\'">申請成為教練</button><button class="btn-secondary" style="width:auto;display:inline-block;padding:12px 32px;" onclick="showLoginModal();">重新登入</button></div>';
+        return;
+      }
+
       coachClasses = classesData.classes || [];
 
-      // Build schedules from all classes (the public API returns schedules per class)
+      // Build schedules from all classes
       var allClasses = allClassesResp.classes || [];
       coachSchedules = [];
       var myIds = {};

@@ -264,20 +264,20 @@
             if (!venueAddress) { showToast('請輸入場地地址', 'error'); return; }
             if (!agree) { showToast('請同意合作條款', 'error'); return; }
 
+            if (!isLoggedIn()) {
+                // Need to login first — show modal, submit will be retried after login
+                showLoginModal(function() {
+                    // User logged in, retry submission
+                    handleSubmit();
+                });
+                return;
+            }
+
             const btn = document.getElementById('submit-application');
             btn.disabled = true;
             btn.textContent = '提交中...';
 
             try {
-                if (!isLoggedIn()) {
-                    // Need to login first
-                    showLoginModal(async () => {
-                        await doSubmit(name, phone, email, venueName, venueAddress);
-                    });
-                    btn.disabled = false;
-                    btn.textContent = '提交申請';
-                    return;
-                }
                 await doSubmit(name, phone, email, venueName, venueAddress);
             } catch (err) {
                 showToast(err.message, 'error');
