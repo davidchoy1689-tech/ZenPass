@@ -285,7 +285,7 @@ async function completeStripePayment(req, res, booking_id, paymentIntentId) {
 }
 
 // ===== POST /api/payments/stripe/webhook — Stripe Webhook =====
-router.post('/stripe/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+router.post('/stripe/webhook', async (req, res) => {
   try {
     const sig = req.headers['stripe-signature'];
     

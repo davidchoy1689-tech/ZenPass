@@ -52,10 +52,14 @@ const limiter = rateLimit({
 });
 app.use('/api/', limiter);
 
-// Stripe webhook needs raw body — must come BEFORE express.json()
-app.post('/api/payments/stripe/webhook', express.raw({ type: 'application/json' }));
+// Stripe webhook must receive raw body — register BEFORE express.json()
+const paymentsRouter = require('./routes/payments');
+app.post('/api/payments/stripe/webhook', express.raw({ type: 'application/json' }), (req, res, next) => {
+  req.url = '/stripe/webhook';
+  paymentsRouter(req, res, next);
+});
 
-// JSON body parser
+// Everything else uses JSON body parser
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
@@ -66,7 +70,7 @@ app.use('/api/classes', require('./routes/classes'));
 app.use('/api/bookings', require('./routes/bookings'));
 app.use('/api/coach', require('./routes/coach'));
 app.use('/api/memberships', require('./routes/memberships'));
-app.use('/api/payments', require('./routes/payments'));
+app.use('/api/payments', express.json(), paymentsRouter);
 app.use('/api/coach', require('./routes/coach-earnings'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/notifications', require('./routes/notifications'));
