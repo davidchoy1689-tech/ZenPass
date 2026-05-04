@@ -128,12 +128,32 @@ function getAuthHeaders() {
   loadData();
 })();
 
-async function loadData() {
-  showLoading();
+async function fetchUserProfile() {
+  try {
+    var resp = await fetch(API_BASE + '/users/me', { headers: getAuthHeaders() });
+    if (resp.ok) {
+      var data = await resp.json();
+      if (data) {
+        localStorage.setItem('zenpass_user', JSON.stringify(data));
+        localStorage.setItem('zenpass_name', data.name || '');
+        return data;
+      }
+    }
+  } catch(e) {
+    console.warn('API fetchUserProfile failed, falling back to localStorage', e);
+  }
+  // Fallback to localStorage
   var userStr = localStorage.getItem('zenpass_user') || sessionStorage.getItem('zenpass_user');
   var user = null;
   try { if (userStr) user = JSON.parse(userStr); } catch(e) {}
-  var userObj = user;
+  return user;
+}
+
+async function loadData() {
+  showLoading();
+
+  // Fetch fresh user profile from API
+  var userObj = await fetchUserProfile();
   var name = (userObj && userObj.name) || localStorage.getItem('zenpass_name') || '用戶';
   var email = (userObj && userObj.email) || '';
 

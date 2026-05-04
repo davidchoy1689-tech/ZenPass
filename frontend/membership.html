@@ -226,9 +226,21 @@
         }
 
         function subscribePlan(type) {
+            if (!isLoggedIn()) {
+                showLoginModal(function() {
+                    doSubscribePlan(type);
+                });
+                return;
+            }
+            doSubscribePlan(type);
+        }
+
+        function doSubscribePlan(type) {
             var prices = { trial: 399, standard: 699, gold: 1299 };
             var names = { trial: '試玩會員', standard: '標準會員', gold: '金會員' };
-            location.href = 'payment.html?plan=' + type + '&amount=' + prices[type] + '&item=' + encodeURIComponent(names[type]) + '&ref=ZP-' + new Date().toISOString().slice(0,10).replace(/-/g,'') + '-' + Math.random().toString(36).substring(2,6).toUpperCase();
+            // Redirect to payment page with plan info
+            var ref = 'ZP-' + new Date().toISOString().slice(0,10).replace(/-/g,'') + '-' + Math.random().toString(36).substring(2,6).toUpperCase();
+            location.href = 'payment.html?plan=' + type + '&amount=' + prices[type] + '&item=' + encodeURIComponent(names[type]) + '&ref=' + ref;
         }
 
         // ===== Load Credits Packages =====

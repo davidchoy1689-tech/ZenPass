@@ -1,31 +1,17 @@
-// @ts-check
-const { defineConfig } = require('@playwright/test');
+// ZenPass Playwright Configuration
+import { defineConfig } from '@playwright/test';
 
-module.exports = defineConfig({
-  testDir: './playwright',
+export default defineConfig({
+  testDir: './tests/e2e',
   timeout: 30000,
-  expect: { timeout: 10000 },
-  fullyParallel: false,
   retries: 1,
-  workers: 1,
-  reporter: [
-    ['list'],
-    ['html', { outputFolder: '../test-reports/playwright-report' }],
-    ['json', { outputFile: '../test-reports/playwright-results.json' }]
-  ],
   use: {
     baseURL: 'http://192.168.1.215:3001',
-    trace: 'on-first-retry',
-    screenshot: 'only-on-failure',
+    locale: 'zh-HK',
+    viewport: { width: 1280, height: 720 },
   },
   projects: [
-    {
-      name: 'Desktop',
-      use: { viewport: { width: 1280, height: 720 } },
-    },
-    {
-      name: 'Mobile',
-      use: { viewport: { width: 375, height: 812 } },
-    },
+    { name: 'chromium', use: { browserName: 'chromium' } },
+    { name: 'mobile-chrome', use: { browserName: 'chromium', viewport: { width: 375, height: 812 } } },
   ],
 });

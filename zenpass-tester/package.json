@@ -3,7 +3,13 @@
   "version": "1.0.0",
   "main": "playwright.config.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "test:lighthouse": "bash zenpass-tester/scripts/lighthouse.sh",
+    "test:screenshots": "python3 zenpass-tester/scripts/mobile-screenshots.py",
+    "test:quality": "bash zenpass-tester/scripts/code-quality.sh",
+    "test:all": "npm run test && npm run test:quality"
   },
   "keywords": [],
   "author": "",
@@ -11,5 +17,8 @@
   "description": "",
   "dependencies": {
     "@playwright/test": "^1.59.1"
+  },
+  "devDependencies": {
+    "vitest": "^4.1.5"
   }
 }
