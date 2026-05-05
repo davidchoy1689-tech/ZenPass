@@ -110,6 +110,12 @@ router.post('/approve-payment', authenticateToken, requireAdmin, (req, res) => {
       WHERE id = ?
     `).run(booking_id);
 
+    // Auto-calculate coach earnings
+    try {
+      const { syncCoachEarningsForSchedule } = require('./coach-earnings');
+      syncCoachEarningsForSchedule(booking.schedule_id);
+    } catch(e) { console.error('auto coach earnings:', e.message); }
+
     // Update transaction status
     db.prepare(`
       UPDATE transactions SET status = 'completed', description = '管理員已確認付款'

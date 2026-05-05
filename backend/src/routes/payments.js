@@ -249,12 +249,20 @@ async function completeStripePayment(req, res, booking_id, paymentIntentId) {
     db.pragma('foreign_keys = ON');
 
     if (booking_id) {
-      const booking = db.prepare('SELECT status FROM bookings WHERE id = ?').get(booking_id);
+      const booking = db.prepare('SELECT status, schedule_id FROM bookings WHERE id = ?').get(booking_id);
       if (booking && booking.status === 'pending_payment') {
         db.prepare(`
           UPDATE bookings SET status = 'confirmed', payment_status = 'paid', stripe_payment_intent_id = ?
           WHERE id = ?
         `).run(paymentIntentId, booking_id);
+
+        // Auto-calculate coach earnings
+        if (booking.schedule_id) {
+          try {
+            const { syncCoachEarningsForSchedule } = require('./coach-earnings');
+            syncCoachEarningsForSchedule(booking.schedule_id);
+          } catch(e) { console.error('auto coach earnings:', e.message); }
+        }
       } else {
         db.prepare(`
           UPDATE bookings SET payment_status = 'paid', stripe_payment_intent_id = ?
@@ -311,12 +319,20 @@ router.post('/stripe/webhook', async (req, res) => {
         const db = new Database(DB_PATH);
         db.pragma('foreign_keys = ON');
         
-        const booking = db.prepare('SELECT status FROM bookings WHERE id = ?').get(booking_id);
+        const booking = db.prepare('SELECT status, schedule_id FROM bookings WHERE id = ?').get(booking_id);
         if (booking && booking.status === 'pending_payment') {
           db.prepare(`
             UPDATE bookings SET status = 'confirmed', payment_status = 'paid', stripe_payment_intent_id = ?
             WHERE id = ?
           `).run(paymentIntentId, booking_id);
+
+          // Auto-calculate coach earnings
+          if (booking.schedule_id) {
+            try {
+              const { syncCoachEarningsForSchedule } = require('./coach-earnings');
+              syncCoachEarningsForSchedule(booking.schedule_id);
+            } catch(e) { console.error('auto coach earnings:', e.message); }
+          }
         }
 
         db.prepare(`
@@ -582,6 +598,14 @@ router.post('/confirm', authenticateToken, (req, res) => {
 
     updateParams.push(booking_id);
     db.prepare(`UPDATE bookings SET ${updateFields.join(', ')} WHERE id = ?`).run(...updateParams);
+
+    // Auto-calculate coach earnings
+    if (booking.schedule_id) {
+      try {
+        const { syncCoachEarningsForSchedule } = require('./coach-earnings');
+        syncCoachEarningsForSchedule(booking.schedule_id);
+      } catch(e) { console.error('auto coach earnings:', e.message); }
+    }
 
     // 更新 enrolled_count（pending_payment 時已經 +1，但爲咗 consistent）
     // 留意：create booking 時已經加咗 enrolled_count，所以唔使再加

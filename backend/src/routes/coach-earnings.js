@@ -659,4 +659,81 @@ router.get('/settings/effective-rate', (req, res) => {
   }
 });
 
+/**
+ * syncCoachEarningsForSchedule - 當 booking confirmed 時自動更新教練收入
+ * 公式：net = unit_price × enrolled_count × commission_rate
+ */
+function syncCoachEarningsForSchedule(scheduleId) {
+  const db = new Database(DB_PATH);
+  try {
+    db.pragma('foreign_keys = ON');
+    
+    // Get schedule info + class price + coach commission rate
+    const info = db.prepare(`
+      SELECT 
+        cs.id as schedule_id, cs.class_id, cs.start_time,
+        c.title as class_title, c.price_hkd, c.coach_id,
+        u.commission_rate
+      FROM class_schedules cs
+      JOIN classes c ON cs.class_id = c.id
+      JOIN users u ON c.coach_id = u.id
+      WHERE cs.id = ?
+    `).get(scheduleId);
+    
+    if (!info) return { error: 'Schedule not found' };
+    
+    // Count confirmed bookings
+    const countRow = db.prepare(`
+      SELECT COUNT(*) as cnt FROM bookings 
+      WHERE schedule_id = ? AND status IN ('confirmed', 'attended')
+    `).get(scheduleId);
+    
+    const enrolled = countRow.cnt;
+    const gross = info.price_hkd * enrolled;
+    const net = Math.round(gross * info.commission_rate * 100) / 100;
+    
+    // Upsert coach_earnings
+    const existing = db.prepare('SELECT id FROM coach_earnings WHERE schedule_id = ?').get(scheduleId);
+    
+    if (existing) {
+      db.prepare(`
+        UPDATE coach_earnings SET 
+          enrolled_count = ?, gross_amount = ?, net_amount = ?, 
+          status = CASE WHEN ? > 0 THEN 'approved' ELSE 'cancelled' END,
+          updated_at = datetime('now')
+        WHERE schedule_id = ?
+      `).run(enrolled, gross, net, enrolled, scheduleId);
+    } else if (enrolled > 0) {
+      const { v4: uuidv4 } = require('uuid');
+      const date = (info.start_time || '').split('T')[0];
+      db.prepare(`
+        INSERT INTO coach_earnings 
+          (id, coach_id, schedule_id, class_id, class_title, date, enrolled_count,
+           unit_price, gross_amount, commission_rate, net_amount, status)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'approved')
+      `).run(uuidv4(), info.coach_id, info.schedule_id, info.class_id, 
+            info.class_title, date, enrolled, info.price_hkd, gross, 
+            info.commission_rate, net);
+    }
+    
+    // Update user totals
+    const totals = db.prepare(`
+      SELECT COALESCE(SUM(net_amount), 0) as total,
+             COALESCE(SUM(CASE WHEN status IN ('pending','approved') THEN net_amount ELSE 0 END), 0) as pending
+      FROM coach_earnings WHERE coach_id = ? AND status != 'cancelled'
+    `).get(info.coach_id);
+    
+    db.prepare('UPDATE users SET total_earnings = ?, pending_payout = ? WHERE id = ?')
+      .run(totals.total, totals.pending, info.coach_id);
+      
+    return { enrolled, gross, net };
+  } catch (err) {
+    console.error('syncCoachEarningsForSchedule error:', err.message);
+    return { error: err.message };
+  } finally {
+    db.close();
+  }
+}
+
 module.exports = router;
+module.exports.syncCoachEarningsForSchedule = syncCoachEarningsForSchedule;
