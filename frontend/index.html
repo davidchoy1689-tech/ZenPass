@@ -2,11 +2,13 @@
 <html lang="zh-HK">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link rel="icon" href="favicon.png" type="image/png">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#FF6B35">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>ZenPass 禪流 — 解鎖全城運動體驗</title>
+    <meta name="description" content="ZenPass 禪流健身課程平台 — 瑜伽、健身、冥想、新興運動預約平台">
+<title>ZenPass 禪流 — 解鎖全城運動體驗</title>
     <link rel="manifest" href="manifest.json">
         <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -67,6 +69,10 @@
             padding: 40px 20px;
             color: var(--dark-700);
         }
+        /* CLS prevention: reserve space for dynamic content */
+        .categories-scroll { min-height: 100px; }
+        .featured-scroll { min-height: 180px; }
+        .class-grid { min-height: 180px; }
         .loading-spinner::after {
             content: '';
             display: block;
@@ -625,8 +631,10 @@
     </style>
 </head>
 <body>
+    <!-- Skip link for accessibility -->
+    <a href="#main-content" style="position:absolute;left:-9999px;top:0;z-index:9999;padding:10px;background:var(--orange-500);color:white;font-weight:600;text-decoration:none;" onfocus="this.style.left='10px'" onblur="this.style.left='-9999px'">跳到主要內容</a>
     <!-- Hero -->
-    <div class="hero" id="hero-section">
+    <div class="hero" id="hero-section" role="banner">
         <div class="hero-top">
             <div class="hero-logo">ZEN<span>Pass</span> <span class="zh">禪流</span></div>
             <div class="zen-auth-buttons" id="auth-buttons">
@@ -639,10 +647,9 @@
         <p>超過 100+ 課程・頂尖教練・自由預約</p>
     </div>
 
-    <!-- Search -->
-    <div class="search-bar">
-        <input type="text" id="search-input" placeholder="搜尋課程、教練、運動類型..." onkeyup="handleSearch(event)">
-        <button onclick="handleSearch()">🔍</button>
+    <div class="search-bar" role="search">
+        <input type="text" id="search-input" placeholder="搜尋課程、教練、運動類型..." onkeyup="handleSearch(event)" aria-label="搜尋課程、教練、運動類型">
+        <button onclick="handleSearch()" aria-label="搜尋">🔍</button>
     </div>
 
     <!-- Role Entry -->
@@ -666,8 +673,7 @@
         </div>
     </div>
 
-    <!-- Categories -->egories -->
-    <div class="section" id="categories-section">
+    <div class="section" id="categories-section" role="region" aria-label="運動分類">
         <div class="section-title">
             <span>運動分類</span>
         </div>
@@ -677,7 +683,7 @@
     </div>
 
     <!-- Featured Classes -->
-    <div class="section" id="featured-section">
+    <div class="section" id="featured-section" role="region" aria-label="精選課程">
         <div class="section-title">
             <span>🔥 熱門課程</span>
             <a href="explore.html" class="more-link">查看全部 →</a>
@@ -688,7 +694,8 @@
     </div>
 
     <!-- All Classes -->
-    <div class="section" id="all-classes-section">
+    <div class="section" id="main-content">
+    <div class="section" id="all-classes-section" role="region" aria-label="所有課程">
         <div class="section-title">
             <span>📋 所有課程</span>
         </div>

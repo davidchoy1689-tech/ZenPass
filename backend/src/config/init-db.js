@@ -3,11 +3,11 @@
  * 建立所有資料表
  */
 
-const Database = require('better-sqlite3');
-const path = require('path');
-const fs = require('fs');
+const Database = require("better-sqlite3");
+const path = require("path");
+const fs = require("fs");
 
-const DB_PATH = process.env.DB_PATH || './data/zenpass.db';
+const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
 
 function initDatabase() {
   // Ensure data directory exists
@@ -19,8 +19,8 @@ function initDatabase() {
   const db = new Database(DB_PATH);
 
   // Enable WAL mode for better performance
-  db.pragma('journal_mode = WAL');
-  db.pragma('foreign_keys = ON');
+  db.pragma("journal_mode = WAL");
+  db.pragma("foreign_keys = ON");
 
   // ===== 用戶表 =====
   db.exec(`
@@ -135,10 +135,12 @@ function initDatabase() {
   // 附加欄位（相容升級）
   try {
     const cols = db.prepare("PRAGMA table_info('bookings')").all();
-    if (!cols.find(c => c.name === 'reminder_sent_1h')) {
-      db.exec("ALTER TABLE bookings ADD COLUMN reminder_sent_1h INTEGER DEFAULT 0");
+    if (!cols.find((c) => c.name === "reminder_sent_1h")) {
+      db.exec(
+        "ALTER TABLE bookings ADD COLUMN reminder_sent_1h INTEGER DEFAULT 0",
+      );
     }
-  } catch(e) {
+  } catch (e) {
     // ignore if table already exists
   }
 
@@ -240,11 +242,21 @@ function initDatabase() {
 
   // ===== 索引 =====
   try {
-    db.exec("CREATE INDEX IF NOT EXISTS idx_earnings_coach ON coach_earnings(coach_id)");
-    db.exec("CREATE INDEX IF NOT EXISTS idx_earnings_date ON coach_earnings(date)");
-    db.exec("CREATE INDEX IF NOT EXISTS idx_earnings_status ON coach_earnings(status)");
-    db.exec("CREATE INDEX IF NOT EXISTS idx_payouts_coach ON coach_payouts(coach_id)");
-    db.exec("CREATE INDEX IF NOT EXISTS idx_payouts_status ON coach_payouts(status)");
+    db.exec(
+      "CREATE INDEX IF NOT EXISTS idx_earnings_coach ON coach_earnings(coach_id)",
+    );
+    db.exec(
+      "CREATE INDEX IF NOT EXISTS idx_earnings_date ON coach_earnings(date)",
+    );
+    db.exec(
+      "CREATE INDEX IF NOT EXISTS idx_earnings_status ON coach_earnings(status)",
+    );
+    db.exec(
+      "CREATE INDEX IF NOT EXISTS idx_payouts_coach ON coach_payouts(coach_id)",
+    );
+    db.exec(
+      "CREATE INDEX IF NOT EXISTS idx_payouts_status ON coach_payouts(status)",
+    );
 
     // ===== 教練私人收入表 =====
     db.exec(`
@@ -262,8 +274,12 @@ function initDatabase() {
         FOREIGN KEY (coach_id) REFERENCES users(id)
       );
     `);
-    try { db.exec('CREATE INDEX IF NOT EXISTS idx_private_income_coach ON private_income(coach_id)'); } catch(e) {}
-  } catch(e) {}
+    try {
+      db.exec(
+        "CREATE INDEX IF NOT EXISTS idx_private_income_coach ON private_income(coach_id)",
+      );
+    } catch (e) {}
+  } catch (e) {}
 
   // ===== 通知記錄表 (in-app 推送) =====
   db.exec(`
@@ -280,9 +296,13 @@ function initDatabase() {
     );
   `);
   try {
-    db.exec('CREATE INDEX IF NOT EXISTS idx_notif_user ON notification_logs(user_id)');
-    db.exec('CREATE INDEX IF NOT EXISTS idx_notif_user_read ON notification_logs(user_id, is_read)');
-  } catch(e) {}
+    db.exec(
+      "CREATE INDEX IF NOT EXISTS idx_notif_user ON notification_logs(user_id)",
+    );
+    db.exec(
+      "CREATE INDEX IF NOT EXISTS idx_notif_user_read ON notification_logs(user_id, is_read)",
+    );
+  } catch (e) {}
 
   // ===== 站內通知表 (對外的 notification API) =====
   db.exec(`
@@ -299,9 +319,13 @@ function initDatabase() {
     );
   `);
   try {
-    db.exec('CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id)');
-    db.exec('CREATE INDEX IF NOT EXISTS idx_notifications_user_read ON notifications(user_id, is_read)');
-  } catch(e) {}
+    db.exec(
+      "CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id)",
+    );
+    db.exec(
+      "CREATE INDEX IF NOT EXISTS idx_notifications_user_read ON notifications(user_id, is_read)",
+    );
+  } catch (e) {}
 
   // ===== 瀏覽器推送訂閱表 =====
   db.exec(`
@@ -316,16 +340,18 @@ function initDatabase() {
     );
   `);
   try {
-    db.exec('CREATE INDEX IF NOT EXISTS idx_push_user ON push_subscriptions(user_id)');
-  } catch(e) {}
+    db.exec(
+      "CREATE INDEX IF NOT EXISTS idx_push_user ON push_subscriptions(user_id)",
+    );
+  } catch (e) {}
 
-  console.log('✅ 數據庫初始化完成:', DB_PATH);
+  console.log("✅ 數據庫初始化完成:", DB_PATH);
   db.close();
 }
 
 // 如果直接執行此檔案
 if (require.main === module) {
-  require('dotenv').config({ path: __dirname + '/../../.env' });
+  require("dotenv").config({ path: __dirname + "/../../.env" });
   initDatabase();
 }
 

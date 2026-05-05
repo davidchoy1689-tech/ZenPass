@@ -2,11 +2,13 @@
 <html lang="zh-HK">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link rel="icon" href="favicon.png" type="image/png">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#FF6B35">
-    <title>會員方案 — ZenPass 禪流</title>
+    <meta name="description" content="ZenPass 禪流會員方案 — 試玩體驗、標準會員、金會員">
+<title>會員方案 — ZenPass 禪流</title>
     <link rel="manifest" href="manifest.json">
     
     <style>
@@ -35,7 +37,7 @@
         .header p { font-size: 14px; opacity: .8; }
         .section { padding: 20px 16px; }
         .section-title { font-size: 18px; font-weight: 700; margin-bottom: 16px; }
-        .plans { display: flex; flex-direction: column; gap: 12px; margin: -16px 16px 16px; position: relative; z-index: 2; }
+        .plans { display: flex; flex-direction: column; gap: 12px; margin: -16px 16px 16px; position: relative; z-index: 2; min-height: 320px; }
         .plan-card {
             background: var(--white); border-radius: var(--radius-lg); padding: 20px;
             box-shadow: var(--shadow-md); border: 2px solid var(--gray-200);
@@ -68,10 +70,10 @@
         .plan-btn.outline:hover { background: var(--orange-50); }
 
         /* Credits packages */
-        .credits-section { background: var(--white); border-radius: var(--radius-lg); padding: 20px; margin: 0 16px; box-shadow: var(--shadow-sm); }
+        .credits-section { background: var(--white); border-radius: var(--radius-lg); padding: 20px; margin: 0 16px; box-shadow: var(--shadow-sm); min-height: 200px; }
         .credits-section h3 { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
         .credits-section .sub { font-size: 14px; color: var(--dark-700); margin-bottom: 16px; }
-        .credits-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .credits-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; min-height: 100px; }
         .credit-pack {
             padding: 14px; border: 2px solid var(--gray-200); border-radius: var(--radius-md);
             text-align: center; cursor: pointer; transition: all .2s;
@@ -119,13 +121,15 @@
     </style>
 </head>
 <body>
-    <div class="header">
-        <a href="index.html" style="color:var(--white);text-decoration:none;font-size:20px;display:block;text-align:left;margin-bottom:12px;">← 返回</a>
+    <!-- Skip link for accessibility -->
+    <a href="#main-content" style="position:absolute;left:-9999px;top:0;z-index:9999;padding:10px;background:var(--orange-500);color:white;font-weight:600;text-decoration:none;" onfocus="this.style.left='10px'" onblur="this.style.left='-9999px'">跳到主要內容</a>
+    <div class="header" role="banner">
+        <a href="index.html" style="color:var(--white);text-decoration:none;font-size:20px;display:block;text-align:left;margin-bottom:12px;" aria-label="返回首頁">← 返回</a>
         <h1>💎 選擇你的會籍</h1>
         <p>灵活方案，隨心運動</p>
     </div>
 
-    <div class="plans" id="plans-container">
+    <div class="plans" id="plans-container" aria-label="會籍方案">
         <div class="loading-spinner">載入方案...</div>
     </div>
 

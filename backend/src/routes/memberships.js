@@ -2,88 +2,116 @@
  * ZenPass 禪流 - 會籍路由
  */
 
-const express = require('express');
-const { v4: uuidv4 } = require('uuid');
-const Database = require('better-sqlite3');
-const { authenticateToken } = require('../middleware/auth');
+const express = require("express");
+const { v4: uuidv4 } = require("uuid");
+const Database = require("better-sqlite3");
+const { authenticateToken } = require("../middleware/auth");
 
 const router = express.Router();
-const DB_PATH = process.env.DB_PATH || './data/zenpass.db';
+const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
 
 // 會籍方案定價
 const MEMBERSHIP_PLANS = {
   trial: {
-    name: '試玩體驗',
-    name_en: 'Trial',
+    name: "試玩體驗",
+    name_en: "Trial",
     price_hkd: 399,
     credits_granted: 4,
     duration_days: 30,
-    description: '每月 4 堂課程，適合想試試 ZenPass 的新朋友'
+    description: "每月 4 堂課程，適合想試試 ZenPass 的新朋友",
   },
   standard: {
-    name: '標準會員',
-    name_en: 'Standard',
+    name: "標準會員",
+    name_en: "Standard",
     price_hkd: 699,
     credits_granted: 10,
     duration_days: 30,
-    description: '每月 10 堂課程，優先預約權，給想規律運動的你'
+    description: "每月 10 堂課程，優先預約權，給想規律運動的你",
   },
   unlimited: {
-    name: '無限通行',
-    name_en: 'Unlimited',
+    name: "無限通行",
+    name_en: "Unlimited",
     price_hkd: 1299,
     credits_granted: 0,
     duration_days: 30,
-    description: '無限堂數，每月 2 堂私人指導，運動愛好者的終極選擇'
-  }
+    description: "無限堂數，每月 2 堂私人指導，運動愛好者的終極選擇",
+  },
 };
 
 // ===== GET /api/memberships/plans — 取得會籍方案 =====
-router.get('/plans', (req, res) => {
+router.get("/plans", (req, res) => {
   res.json({ plans: MEMBERSHIP_PLANS });
 });
 
 // ===== POST /api/memberships/subscribe — 訂閱會籍 =====
-router.post('/subscribe', authenticateToken, (req, res) => {
+router.post("/subscribe", authenticateToken, (req, res) => {
   try {
     const { type, payment_method } = req.body;
 
     if (!type || !MEMBERSHIP_PLANS[type]) {
-      return res.status(400).json({ error: '無效的會籍類型' });
+      return res.status(400).json({ error: "無效的會籍類型" });
     }
 
     const plan = MEMBERSHIP_PLANS[type];
     const db = new Database(DB_PATH);
-    db.pragma('foreign_keys = ON');
+    db.pragma("foreign_keys = ON");
 
-    const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.id);
+    const user = db
+      .prepare("SELECT * FROM users WHERE id = ?")
+      .get(req.user.id);
 
     const membershipId = uuidv4();
-    const memRef = 'MB-' + new Date().toISOString().slice(0,10).replace(/-/g,'') + '-' + Math.random().toString(36).substring(2,6).toUpperCase();
+    const memRef =
+      "MB-" +
+      new Date().toISOString().slice(0, 10).replace(/-/g, "") +
+      "-" +
+      Math.random().toString(36).substring(2, 6).toUpperCase();
     const now = new Date();
-    const endDate = new Date(now.getTime() + plan.duration_days * 24 * 60 * 60 * 1000);
+    const endDate = new Date(
+      now.getTime() + plan.duration_days * 24 * 60 * 60 * 1000,
+    );
 
     const startDateStr = now.toISOString();
     const endDateStr = endDate.toISOString();
 
     // 建立會籍記錄
-    db.prepare(`
+    db.prepare(
+      `
       INSERT INTO memberships (id, membership_reference, user_id, type, price_hkd, credits_granted, start_date, end_date)
       VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).run(membershipId, memRef, req.user.id, type, plan.price_hkd, plan.credits_granted, startDateStr, endDateStr);
+    `,
+    ).run(
+      membershipId,
+      memRef,
+      req.user.id,
+      type,
+      plan.price_hkd,
+      plan.credits_granted,
+      startDateStr,
+      endDateStr,
+    );
 
     // 更新用戶會籍
-    db.prepare(`
+    db.prepare(
+      `
       UPDATE users SET membership_type = ?, membership_expires_at = ?, credits = credits + ?
       WHERE id = ?
-    `).run(type, endDateStr, plan.credits_granted, req.user.id);
+    `,
+    ).run(type, endDateStr, plan.credits_granted, req.user.id);
 
     // 記錄交易
-    db.prepare(`
+    db.prepare(
+      `
       INSERT INTO transactions (id, user_id, type, amount, payment_method, description)
       VALUES (?, ?, 'membership', ?, ?, ?)
-    `).run(uuidv4(), req.user.id, plan.price_hkd, payment_method || 'stripe',
-      `${plan.name}會籍 (${plan.duration_days}日)`);
+    `,
+    ).run(
+      uuidv4(),
+      req.user.id,
+      plan.price_hkd,
+      payment_method || "stripe",
+      `${plan.name}會籍 (${plan.duration_days}日)`,
+    );
 
     db.close();
 
@@ -94,32 +122,39 @@ router.post('/subscribe', authenticateToken, (req, res) => {
         type,
         start_date: startDateStr,
         end_date: endDateStr,
-        credits_granted: plan.credits_granted
-      }
+        credits_granted: plan.credits_granted,
+      },
     });
-
   } catch (err) {
-    console.error('訂閱會籍錯誤:', err);
-    res.status(500).json({ error: '訂閱會籍失敗' });
+    console.error("訂閱會籍錯誤:", err);
+    res.status(500).json({ error: "訂閱會籍失敗" });
   }
 });
 
 // ===== GET /api/memberships/my — 我的會籍 =====
-router.get('/my', authenticateToken, (req, res) => {
+router.get("/my", authenticateToken, (req, res) => {
   try {
     const db = new Database(DB_PATH);
-    db.pragma('foreign_keys = ON');
+    db.pragma("foreign_keys = ON");
 
-    const memberships = db.prepare(`
+    const memberships = db
+      .prepare(
+        `
       SELECT * FROM memberships 
       WHERE user_id = ? 
       ORDER BY created_at DESC
       LIMIT 5
-    `).all(req.user.id);
+    `,
+      )
+      .all(req.user.id);
 
-    const user = db.prepare(`
+    const user = db
+      .prepare(
+        `
       SELECT credits, membership_type, membership_expires_at FROM users WHERE id = ?
-    `).get(req.user.id);
+    `,
+      )
+      .get(req.user.id);
 
     db.close();
 
@@ -127,24 +162,23 @@ router.get('/my', authenticateToken, (req, res) => {
       current: {
         type: user.membership_type,
         expires_at: user.membership_expires_at,
-        credits: user.credits
+        credits: user.credits,
       },
-      history: memberships
+      history: memberships,
     });
-
   } catch (err) {
-    console.error('查詢會籍錯誤:', err);
-    res.status(500).json({ error: '無法查詢會籍' });
+    console.error("查詢會籍錯誤:", err);
+    res.status(500).json({ error: "無法查詢會籍" });
   }
 });
 
 // ===== POST /api/memberships/credits — 購買點數 =====
-router.post('/credits', authenticateToken, (req, res) => {
+router.post("/credits", authenticateToken, (req, res) => {
   try {
     const { amount } = req.body; // 金額 (HKD)
 
     if (!amount || amount < 20) {
-      return res.status(400).json({ error: '最低購買金額為 HK$20' });
+      return res.status(400).json({ error: "最低購買金額為 HK$20" });
     }
 
     // 匯率: HK$8 = 1 Credit
@@ -158,18 +192,29 @@ router.post('/credits', authenticateToken, (req, res) => {
     else if (creditsToAdd >= 10) bonusCredits = 2;
 
     const db = new Database(DB_PATH);
-    db.pragma('foreign_keys = ON');
+    db.pragma("foreign_keys = ON");
 
-    db.prepare('UPDATE users SET credits = credits + ? + ? WHERE id = ?')
-      .run(creditsToAdd, bonusCredits, req.user.id);
+    db.prepare("UPDATE users SET credits = credits + ? + ? WHERE id = ?").run(
+      creditsToAdd,
+      bonusCredits,
+      req.user.id,
+    );
 
-    db.prepare(`
+    db.prepare(
+      `
       INSERT INTO transactions (id, user_id, type, amount, description)
       VALUES (?, ?, 'credits_topup', ?, ?)
-    `).run(uuidv4(), req.user.id, actualAmount,
-      `購買 ${creditsToAdd} Credits + 贈送 ${bonusCredits} Credits`);
+    `,
+    ).run(
+      uuidv4(),
+      req.user.id,
+      actualAmount,
+      `購買 ${creditsToAdd} Credits + 贈送 ${bonusCredits} Credits`,
+    );
 
-    const user = db.prepare('SELECT credits FROM users WHERE id = ?').get(req.user.id);
+    const user = db
+      .prepare("SELECT credits FROM users WHERE id = ?")
+      .get(req.user.id);
     db.close();
 
     res.json({
@@ -177,22 +222,21 @@ router.post('/credits', authenticateToken, (req, res) => {
       credits_purchased: creditsToAdd,
       bonus_credits: bonusCredits,
       total_credits: user.credits,
-      amount_paid: actualAmount
+      amount_paid: actualAmount,
     });
-
   } catch (err) {
-    console.error('購買點數錯誤:', err);
-    res.status(500).json({ error: '購買點數失敗' });
+    console.error("購買點數錯誤:", err);
+    res.status(500).json({ error: "購買點數失敗" });
   }
 });
 
 // ===== GET /api/memberships/credits/packages — 點數套餐 =====
-router.get('/credits/packages', (req, res) => {
+router.get("/credits/packages", (req, res) => {
   const packages = [
-    { credits: 10, bonus: 2, price: 80, label: '輕量包' },
-    { credits: 50, bonus: 12, price: 400, label: '標準包', popular: false },
-    { credits: 100, bonus: 30, price: 800, label: '超值包', popular: true },
-    { credits: 200, bonus: 70, price: 1600, label: '尊尚包' }
+    { credits: 10, bonus: 2, price: 80, label: "輕量包" },
+    { credits: 50, bonus: 12, price: 400, label: "標準包", popular: false },
+    { credits: 100, bonus: 30, price: 800, label: "超值包", popular: true },
+    { credits: 200, bonus: 70, price: 1600, label: "尊尚包" },
   ];
   res.json({ packages });
 });
