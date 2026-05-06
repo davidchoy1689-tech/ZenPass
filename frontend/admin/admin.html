@@ -76,6 +76,7 @@ tr:hover td{background:#FAFAFA}
 <div class="nav-item" data-tab="transactions"><span class="icon">💰</span><span>交易記錄</span></div>
 <div class="nav-item" data-tab="settlements"><span class="icon">🏦</span><span>月度結算</span></div>
 <div class="nav-item" data-tab="payments"><span class="icon">📎</span><span>付款確認</span></div>
+<div class="nav-item" data-tab="coaches"><span class="icon">🏋️</span><span>教練管理</span></div>
 <div class="nav-item" data-tab="users"><span class="icon">👤</span><span>用戶管理</span></div>
 <div style="flex:1"></div>
 <div style="padding:16px 20px;font-size:11px;color:rgba(255,255,255,.3);border-top:1px solid rgba(255,255,255,.06)">
@@ -138,6 +139,22 @@ tr:hover td{background:#FAFAFA}
 <div class="table-card"><table><thead><tr><th>教練</th><th>月份</th><th>堂數</th><th>應付金額</th><th>收據</th><th>操作</th></tr></thead><tbody id="pendingBody"><tr><td colspan="6" class="loading">載入中...</td></tr></tbody></table></div>
 <div class="section-title" style="margin-top:20px">✅ 已確認記錄</div>
 <div class="table-card"><table><thead><tr><th>教練</th><th>月份</th><th>已付金額</th><th>確認日期</th></tr></thead><tbody id="confirmedBody"><tr><td colspan="4" class="loading">載入中...</td></tr></tbody></table></div>
+</div>
+
+<!-- ====== COACHES ====== -->
+<div id="tab-coaches" class="tab-content">
+<div class="top-bar"><div><h1>🏋️ 教練管理</h1><div class="sub" id="coachCount"></div></div>
+<button class="btn" onclick="loadCoaches()">🔄 重新整理</button></div>
+<div class="stats-grid">
+<div class="stat-card"><div class="ico">✅</div><div class="val" id="coachApproved">—</div><div class="lbl">已審批</div></div>
+<div class="stat-card"><div class="ico">⏳</div><div class="val" id="coachPending" style="color:#D97706">—</div><div class="lbl">待審批</div></div>
+<div class="stat-card"><div class="ico">⭐</div><div class="val" id="coachAvgRating" style="color:var(--orange)">—</div><div class="lbl">平均評分</div></div>
+<div class="stat-card"><div class="ico">📊</div><div class="val" id="coachTotal">—</div><div class="lbl">總人數</div></div>
+</div>
+<div class="table-card"><table><thead><tr>
+<th>教練編號</th><th>中文名</th><th>英文名</th><th>年齡</th><th>身高/體重</th><th>專長</th>
+<th>經驗年資</th><th>審批狀態</th><th>評分</th><th>評分次數</th><th>操作</th>
+</tr></thead><tbody id="coachesBody"><tr><td colspan="11" class="loading">載入中...</td></tr></tbody></table></div>
 </div>
 
 <!-- ====== USERS ====== -->
@@ -228,6 +245,7 @@ document.querySelectorAll('.nav-item').forEach(function(el){
       case 'transactions': loadTransactions(); break;
       case 'settlements': loadSettlements(); break;
       case 'payments': loadPayments(); break;
+      case 'coaches': loadCoaches(); break;
       case 'users': loadUsers(); break;
     }
   });
@@ -411,6 +429,83 @@ async function rejectPay(id){
   if(!confirm('確定駁回？')) return;
   await sb.from('settlements').update({status:'pending'}).eq('id',id);
   loadPayments();
+}
+
+// === Coaches ===
+var allCoaches = [];
+async function loadCoaches(){
+  await loadNameMaps();
+  var {data} = await sb.from('coaches').select('*').order('created_at',{ascending:false}).limit(100);
+  allCoaches = data||[];
+  
+  // Stats
+  var approved = allCoaches.filter(function(c){ return c.status === 'approved'; }).length;
+  var pending = allCoaches.filter(function(c){ return c.status === 'pending'; }).length;
+  var totalRating = 0, ratedCount = 0;
+  allCoaches.forEach(function(c){
+    if(c.avg_rating){ totalRating += c.avg_rating; ratedCount++; }
+  });
+  $('coachApproved').textContent = approved;
+  $('coachPending').textContent = pending;
+  $('coachAvgRating').textContent = ratedCount ? (totalRating/ratedCount).toFixed(1)+' ⭐' : '—';
+  $('coachTotal').textContent = allCoaches.length;
+  $('coachCount').textContent = '共 '+allCoaches.length+' 人';
+  
+  fillTable('coachesBody', allCoaches, function(x){
+    var nameZh = x.name_zh || cn(x.user_id, {}).substring(0,8);
+    var nameEn = x.name_en || '—';
+    var spec = Array.isArray(x.specialties) ? x.specialties.join(', ') : (x.specialties || '—');
+    var hw = (x.height_cm ? x.height_cm+'cm' : '—') + ' / ' + (x.weight_kg ? x.weight_kg+'kg' : '—');
+    var ageStr = x.age ? x.age+'歲' : '—';
+    var expStr = x.experience_detail || (x.experience_years ? x.experience_years+'年' : '—');
+    var ratingStar = x.avg_rating ? '⭐'.repeat(Math.round(x.avg_rating)) : '—';
+    var ratingInfo = ratingStar + (x.rating_count ? ' ('+x.rating_count+'次)' : '');
+    
+    // Action buttons
+    var actions = '';
+    if(x.status === 'pending'){
+      actions = '<button class="btn btn-sm btn-green" onclick="approveCoach(\''+x.id+'\')">✅ 通過</button> ' +
+                '<button class="btn btn-sm btn-red" onclick="rejectCoach(\''+x.id+'\')">❌ 駁回</button>';
+    } else {
+      actions = '<span style="font-size:11px;color:var(--gray)">—</span>';
+    }
+    
+    return [
+      x.coach_code || '—',
+      nameZh,
+      nameEn,
+      ageStr,
+      hw,
+      spec,
+      expStr,
+      sc(x.status),
+      ratingInfo,
+      x.rating_count || 0,
+      actions
+    ];
+  }, 11);
+}
+
+async function approveCoach(id){
+  if(!confirm('確認通過此教練申請？')) return;
+  await sb.from('coaches').update({
+    status: 'approved',
+    reviewed_at: new Date().toISOString(),
+    reviewed_by: user?.id || null
+  }).eq('id',id);
+  loadCoaches();
+}
+
+async function rejectCoach(id){
+  var note = prompt('請輸入駁回原因（可選）：');
+  var updates = {
+    status: 'rejected',
+    reviewed_at: new Date().toISOString(),
+    reviewed_by: user?.id || null
+  };
+  if(note) updates.review_note = note;
+  await sb.from('coaches').update(updates).eq('id',id);
+  loadCoaches();
 }
 
 // === Users ===
