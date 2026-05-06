@@ -595,13 +595,18 @@ async function loadDatabase(){
       opt.value = t[0]; opt.textContent = t[1];
       sel.appendChild(opt);
     });
+    // Auto-select first table
+    sel.value = DB_TABLES[0][0];
   }
   
   var table = sel.value;
-  if(!table) return;
+  if(!table) { sel.value = DB_TABLES[0][0]; table = sel.value; }
+  
+  $('dbStats').innerHTML = '<div class="loading"><span class="spinner"></span> 載入中...</div>';
   
   // Show all table stats in the stats grid
   var statsHTML = '';
+  var queryErrors = 0;
   for(var i=0; i<DB_TABLES.length; i++){
     var t = DB_TABLES[i][0];
     try{
@@ -612,9 +617,11 @@ async function loadDatabase(){
         '<div class="ico">' + DB_TABLES[i][1].substring(0,2) + '</div>' +
         '<div class="val" style="font-size:20px">' + count + '</div>' +
         '<div class="lbl">' + DB_TABLES[i][1].substring(2) + '</div></div>';
-    }catch(e){}
+    }catch(e){
+      queryErrors++;
+    }
   }
-  $('dbStats').innerHTML = statsHTML;
+  $('dbStats').innerHTML = statsHTML + (queryErrors > 0 ? '<div style="font-size:12px;color:var(--red);margin-top:8px">⚠️ ' + queryErrors + ' 張表查詢失敗（權限限制）</div>' : '');
   $('dbCount').textContent = DB_TABLES.length + ' 張表 | 當前: ' + getTableLabel(table);
   
   // Load selected table data
@@ -635,7 +642,7 @@ function switchTable(table){
 
 async function loadTableData(table, limit){
   limit = limit || 100;
-  $('dbTableBody').innerHTML = '<tr><td class="loading">載入中...</td></tr>';
+  $('dbTableBody').innerHTML = '<tr><td class="loading"><span class="spinner"></span> 載入 ' + table + ' 數據中...</td></tr>';
   
   try{
     var {data, error} = await sb.from(table).select('*').limit(limit);
