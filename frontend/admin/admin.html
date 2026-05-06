@@ -78,6 +78,7 @@ tr:hover td{background:#FAFAFA}
 <div class="nav-item" data-tab="payments"><span class="icon">📎</span><span>付款確認</span></div>
 <div class="nav-item" data-tab="coaches"><span class="icon">🏋️</span><span>教練管理</span></div>
 <div class="nav-item" data-tab="users"><span class="icon">👤</span><span>用戶管理</span></div>
+<div class="nav-item" data-tab="database"><span class="icon">🗄️</span><span>數據庫</span></div>
 <div style="flex:1"></div>
 <div style="padding:16px 20px;font-size:11px;color:rgba(255,255,255,.3);border-top:1px solid rgba(255,255,255,.06)">
 <span id="userEmail"></span>
@@ -164,6 +165,19 @@ tr:hover td{background:#FAFAFA}
 <div class="table-card"><table><thead><tr><th>姓名</th><th>角色</th><th>電郵</th><th>狀態</th></tr></thead><tbody id="usersBody"><tr><td colspan="4" class="loading">載入中...</td></tr></tbody></table></div>
 </div>
 
+</div>
+
+<!-- ====== DATABASE ====== -->
+<div id="tab-database" class="tab-content">
+<div class="top-bar"><div><h1>🗄️ 數據庫總覽</h1><div class="sub" id="dbCount"></div></div>
+<div style="display:flex;gap:8px;align-items:center">
+<select id="dbTableSelect" style="padding:8px 12px;border:1px solid var(--gray-light);border-radius:7px;font-size:13px;font-family:inherit"></select>
+<button class="btn" onclick="loadDatabase()">🔄 重新整理</button>
+</div></div>
+<div class="stats-grid" id="dbStats"><div class="loading">載入中...</div></div>
+<div class="table-card"><table><thead id="dbTableHead"></thead><tbody id="dbTableBody"><tr><td class="empty"><span class="ico">🗄️</span>請選擇資料表</td></tr></tbody></table></div>
+</div>
+
 </div></div>
 
 <script>
@@ -172,6 +186,8 @@ var SB_URL = 'https://pqgrkeavopksdttrzdqc.supabase.co';
 var SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBxZ3JrZWF2b3Brc2R0dHJ6ZHFjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc4MDM0NzgsImV4cCI6MjA5MzM3OTQ3OH0.t8-oSOXX37fA_kSBZoKvw8ymvuT-4R-xQwMEE8ETZIc';
 var sb = supabase.createClient(SB_URL, SB_KEY);
 var user = null;
+var allTableData = [];
+var allTableStats = {};
 
 // === Name Lookup Maps (populated on init and refresh) ===
 var coachNames = {};    // coach_id -> "陳大文"
@@ -247,6 +263,7 @@ document.querySelectorAll('.nav-item').forEach(function(el){
       case 'payments': loadPayments(); break;
       case 'coaches': loadCoaches(); break;
       case 'users': loadUsers(); break;
+      case 'database': loadDatabase(); break;
     }
   });
 });
@@ -553,6 +570,128 @@ function exportCSV(type){
     a.click();
   }
 }
+
+// === Database Viewer ===
+var DB_TABLES = [
+  ['system_config','⚙️ 系統配置'],['system_backups','💾 備份記錄'],
+  ['courses','📚 課程'],['course_sessions','📅 課堂時段'],['course_categories','🏷️ 課程分類'],
+  ['bookings','🔖 預約'],['transactions','💰 交易'],['settlements','📊 結算'],
+  ['users','👥 用戶'],['profiles','👤 個人資料'],
+  ['coaches','🏋️ 教練'],['students','🎓 學生'],
+  ['membership_plans','💳 會員計劃'],['user_memberships','🪪 用戶會籍'],
+  ['payments','💵 付款'],['commissions','💰 佣金'],['payouts','🏦 出帳'],
+  ['venues','🏢 場地'],['partners','🤝 合作夥伴'],
+  ['attendance','✅ 出席'],['reviews','⭐ 評價'],['notifications','🔔 通知'],
+  ['waitlist','🚶 候補'],['promotions','🏷️ 優惠'],
+];
+
+async function loadDatabase(){
+  var sel = $('dbTableSelect');
+  
+  // Populate table selector if empty
+  if(sel.options.length === 0){
+    DB_TABLES.forEach(function(t){
+      var opt = document.createElement('option');
+      opt.value = t[0]; opt.textContent = t[1];
+      sel.appendChild(opt);
+    });
+  }
+  
+  var table = sel.value;
+  if(!table) return;
+  
+  // Show all table stats in the stats grid
+  var statsHTML = '';
+  for(var i=0; i<DB_TABLES.length; i++){
+    var t = DB_TABLES[i][0];
+    try{
+      var cnt = await sb.from(t).select('*',{count:'exact',head:true});
+      var count = cnt.count||0;
+      var isActive = t === table;
+      statsHTML += '<div class="stat-card" style="cursor:pointer;border:' + (isActive?'2px solid var(--orange)':'none') + '" onclick="switchTable(\''+t+'\')">' +
+        '<div class="ico">' + DB_TABLES[i][1].substring(0,2) + '</div>' +
+        '<div class="val" style="font-size:20px">' + count + '</div>' +
+        '<div class="lbl">' + DB_TABLES[i][1].substring(2) + '</div></div>';
+    }catch(e){}
+  }
+  $('dbStats').innerHTML = statsHTML;
+  $('dbCount').textContent = DB_TABLES.length + ' 張表 | 當前: ' + getTableLabel(table);
+  
+  // Load selected table data
+  await loadTableData(table);
+}
+
+function getTableLabel(table){
+  for(var i=0; i<DB_TABLES.length; i++){
+    if(DB_TABLES[i][0] === table) return DB_TABLES[i][1];
+  }
+  return table;
+}
+
+function switchTable(table){
+  $('dbTableSelect').value = table;
+  loadDatabase();
+}
+
+async function loadTableData(table, limit){
+  limit = limit || 100;
+  $('dbTableBody').innerHTML = '<tr><td class="loading">載入中...</td></tr>';
+  
+  try{
+    var {data, error} = await sb.from(table).select('*').limit(limit);
+    if(error) throw error;
+    allTableData = data||[];
+    
+    if(!data || data.length === 0){
+      $('dbTableHead').innerHTML = '';
+      $('dbTableBody').innerHTML = '<tr><td class="empty"><span class="ico">📭</span>暫無數據</td></tr>';
+      return;
+    }
+    
+    // Build dynamic table header
+    var cols = Object.keys(data[0]);
+    // Move important cols first (id, code, name, status)
+    var priority = cols.filter(function(c){ return c.includes('code')||c.includes('name')||c.includes('reference')||c==='id'||c==='status'||c==='email'; });
+    var other = cols.filter(function(c){ return priority.indexOf(c)===-1; });
+    cols = priority.concat(other);
+    
+    var headerHTML = '<tr>';
+    var colWidths = {};
+    cols.forEach(function(c){
+      var w = c.length > 20 ? 60 : (c.length > 10 ? 100 : 140);
+      if(c === 'id' || c === 'snapshot') w = 40;
+      if(c.includes('code')||c.includes('reference')) w = 100;
+      colWidths[c] = w;
+      headerHTML += '<th>' + c + '</th>';
+    });
+    headerHTML += '</tr>';
+    $('dbTableHead').innerHTML = headerHTML;
+    
+    // Build rows
+    var bodyHTML = data.map(function(row, idx){
+      var cells = cols.map(function(col){
+        var val = row[col];
+        if(val === null || val === undefined) return '<td style="color:var(--gray)">—</td>';
+        if(typeof val === 'object') return '<td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;font-size:11px">' + JSON.stringify(val).substring(0,80) + '</td>';
+        var str = String(val);
+        if(str.length > 60) str = str.substring(0, 55) + '…';
+        // Highlight codes
+        var cls = (col.includes('code')||col.includes('reference')) ? 'style="font-weight:600;color:var(--orange);font-family:monospace"' : '';
+        return '<td ' + cls + '>' + str + '</td>';
+      }).join('');
+      var bg = idx % 2 === 0 ? '' : ' style="background:var(--gray-bg)"';
+      return '<tr' + bg + '>' + cells + '</tr>';
+    }).join('');
+    
+    $('dbTableBody').innerHTML = bodyHTML;
+  } catch(e){
+    $('dbTableBody').innerHTML = '<tr><td class="empty" style="color:var(--red)">❌ ' + e.message + '</td></tr>';
+  }
+}
+
+$('dbTableSelect')?.addEventListener('change', function(){
+  loadDatabase();
+});
 
 // === Init ===
 $('settleMonth')?.addEventListener('change', loadSettlements);
