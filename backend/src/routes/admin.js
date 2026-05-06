@@ -387,4 +387,58 @@ router.get("/classes", authenticateToken, requireAdmin, (req, res) => {
   }
 });
 
+// ===== GET /api/admin/db/:table — 瀏覽任何資料表 =====
+router.get("/db/:table", authenticateToken, async (req, res) => {
+  try {
+    const { getSupabase } = require("../services/supabase");
+    const supabase = getSupabase();
+    if (!supabase) return res.status(500).json({ error: "DB not connected" });
+    
+    const { table } = req.params;
+    const limit = parseInt(req.query.limit) || 100;
+    
+    // Get data
+    const { data, error } = await supabase.from(table).select("*").limit(limit);
+    if (error) throw error;
+    
+    // Get count
+    const { count, error: countErr } = await supabase
+      .from(table).select("*", { count: "exact", head: true });
+    
+    res.json({ data: data || [], count: count || 0, error: countErr?.message || null });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ===== GET /api/admin/db — 列出所有表 + 記錄數 =====
+router.get("/db", authenticateToken, async (req, res) => {
+  try {
+    const { getSupabase } = require("../services/supabase");
+    const supabase = getSupabase();
+    if (!supabase) return res.status(500).json({ error: "DB not connected" });
+    
+    const tables = [
+      'system_config','system_backups','courses','course_sessions','course_categories',
+      'bookings','transactions','settlements','users','profiles','coaches','students',
+      'membership_plans','user_memberships','payments','commissions','payouts',
+      'venues','partners','attendance','reviews','notifications','waitlist','promotions'
+    ];
+    
+    const result = [];
+    for (const t of tables) {
+      try {
+        const { count } = await supabase.from(t).select("*", { count: "exact", head: true });
+        result.push({ table: t, count: count || 0 });
+      } catch (e) {
+        result.push({ table: t, count: -1, error: e.message });
+      }
+    }
+    
+    res.json({ tables: result });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;

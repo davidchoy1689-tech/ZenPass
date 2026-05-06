@@ -571,19 +571,25 @@ function exportCSV(type){
   }
 }
 
-// === Database Viewer ===
+// === Database Viewer (uses backend API proxy) ===
 var DB_TABLES = [
-  ['system_config','⚙️ 系統配置'],['system_backups','💾 備份記錄'],
   ['courses','📚 課程'],['course_sessions','📅 課堂時段'],['course_categories','🏷️ 課程分類'],
   ['bookings','🔖 預約'],['transactions','💰 交易'],['settlements','📊 結算'],
-  ['users','👥 用戶'],['profiles','👤 個人資料'],
-  ['coaches','🏋️ 教練'],['students','🎓 學生'],
+  ['users','👥 用戶'],['profiles','👤 個人資料'],['coaches','🏋️ 教練'],['students','🎓 學生'],
   ['membership_plans','💳 會員計劃'],['user_memberships','🪪 用戶會籍'],
   ['payments','💵 付款'],['commissions','💰 佣金'],['payouts','🏦 出帳'],
   ['venues','🏢 場地'],['partners','🤝 合作夥伴'],
   ['attendance','✅ 出席'],['reviews','⭐ 評價'],['notifications','🔔 通知'],
   ['waitlist','🚶 候補'],['promotions','🏷️ 優惠'],
+  ['system_config','⚙️ 系統配置'],['system_backups','💾 備份記錄'],
 ];
+
+async function apiGet(path){
+  var url = window.location.origin + '/api' + path;
+  var token = (await sb.auth.getSession())?.data?.session?.access_token || '';
+  var r = await fetch(url, {headers:{'Authorization':'Bearer '+token}});
+  return await r.json();
+}
 
 async function loadDatabase(){
   var sel = $('dbTableSelect');
@@ -595,7 +601,6 @@ async function loadDatabase(){
       opt.value = t[0]; opt.textContent = t[1];
       sel.appendChild(opt);
     });
-    // Auto-select first table
     sel.value = DB_TABLES[0][0];
   }
   
@@ -604,29 +609,101 @@ async function loadDatabase(){
   
   $('dbStats').innerHTML = '<div class="loading"><span class="spinner"></span> 載入中...</div>';
   
-  // Show all table stats in the stats grid
-  var statsHTML = '';
-  var queryErrors = 0;
-  for(var i=0; i<DB_TABLES.length; i++){
-    var t = DB_TABLES[i][0];
-    try{
-      var cnt = await sb.from(t).select('*',{count:'exact',head:true});
-      var count = cnt.count||0;
-      var isActive = t === table;
-      statsHTML += '<div class="stat-card" style="cursor:pointer;border:' + (isActive?'2px solid var(--orange)':'none') + '" onclick="switchTable(\''+t+'\')">' +
-        '<div class="ico">' + DB_TABLES[i][1].substring(0,2) + '</div>' +
-        '<div class="val" style="font-size:20px">' + count + '</div>' +
-        '<div class="lbl">' + DB_TABLES[i][1].substring(2) + '</div></div>';
-    }catch(e){
-      queryErrors++;
+  // Get all table stats from backend API (uses service key - no RLS issues)
+  try{
+    var resp = await apiGet('/admin/db');
+    var tableStats = {};
+    if(resp && resp.tables){
+      resp.tables.forEach(function(t){ tableStats[t.table] = t.count; });
     }
+    
+    var statsHTML = '';
+    DB_TABLES.forEach(function(t){
+      var tbl = t[0];
+      var count = tableStats[tbl];
+      if(count === undefined) count = '?';
+      if(count === -1) count = '❌';
+      var isActive = tbl === table;
+      statsHTML += '<div class="stat-card" style="cursor:pointer;border:' + (isActive?'2px solid var(--orange)':'none') + '" onclick="switchTable(\''+tbl+'\')">' +
+        '<div class="ico">' + t[1].substring(0,2) + '</div>' +
+        '<div class="val" style="font-size:20px">' + count + '</div>' +
+        '<div class="lbl">' + t[1].substring(2) + '</div></div>';
+    });
+    $('dbStats').innerHTML = statsHTML;
+    $('dbCount').textContent = DB_TABLES.length + ' 張表 | 當前: ' + table;
+  } catch(e){
+    $('dbStats').innerHTML = '<div style="color:var(--red);padding:20px;text-align:center">❌ 無法載入: ' + e.message + '</div>';
   }
-  $('dbStats').innerHTML = statsHTML + (queryErrors > 0 ? '<div style="font-size:12px;color:var(--red);margin-top:8px">⚠️ ' + queryErrors + ' 張表查詢失敗（權限限制）</div>' : '');
-  $('dbCount').textContent = DB_TABLES.length + ' 張表 | 當前: ' + getTableLabel(table);
   
-  // Load selected table data
   await loadTableData(table);
 }
+
+function getTableLabel(table){
+  for(var i=0; i<DB_TABLES.length; i++){
+    if(DB_TABLES[i][0] === table) return DB_TABLES[i][1];
+  }
+  return table;
+}
+
+function switchTable(table){
+  $('dbTableSelect').value = table;
+  loadDatabase();
+}
+
+async function loadTableData(table, limit){
+  limit = limit || 100;
+  $('dbTableBody').innerHTML = '<tr><td class="loading"><span class="spinner"></span> 載入中...</td></tr>';
+  
+  try{
+    var resp = await apiGet('/admin/db/' + table + '?limit=' + limit);
+    if(resp.error) throw new Error(resp.error);
+    
+    var data = resp.data || [];
+    if(!data || data.length === 0){
+      $('dbTableHead').innerHTML = '';
+      $('dbTableBody').innerHTML = '<tr><td class="empty"><span class="ico">📭</span>暫無數據</td></tr>';
+      return;
+    }
+    
+    // Build dynamic table header
+    var cols = Object.keys(data[0]);
+    var priority = cols.filter(function(c){ return c.includes('code')||c.includes('name')||c.includes('reference')||c==='id'||c==='status'||c==='email'; });
+    var other = cols.filter(function(c){ return priority.indexOf(c)===-1; });
+    cols = priority.concat(other);
+    
+    var headerHTML = '<tr>';
+    cols.forEach(function(c){
+      var w = c.length > 20 ? 60 : (c.length > 10 ? 100 : 140);
+      if(c === 'id' || c === 'snapshot') w = 40;
+      if(c.includes('code')||c.includes('reference')) w = 100;
+      headerHTML += '<th>' + c + '</th>';
+    });
+    headerHTML += '</tr>';
+    $('dbTableHead').innerHTML = headerHTML;
+    
+    var bodyHTML = data.map(function(row, idx){
+      var cells = cols.map(function(col){
+        var val = row[col];
+        if(val === null || val === undefined) return '<td style="color:var(--gray)">—</td>';
+        if(typeof val === 'object') return '<td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;font-size:11px">' + JSON.stringify(val).substring(0,80) + '</td>';
+        var str = String(val);
+        if(str.length > 60) str = str.substring(0, 55) + '…';
+        var cls = (col.includes('code')||col.includes('reference')) ? 'style="font-weight:600;color:var(--orange);font-family:monospace"' : '';
+        return '<td ' + cls + '>' + str + '</td>';
+      }).join('');
+      var bg = idx % 2 === 0 ? '' : ' style="background:var(--gray-bg)"';
+      return '<tr' + bg + '>' + cells + '</tr>';
+    }).join('');
+    
+    $('dbTableBody').innerHTML = bodyHTML;
+  } catch(e){
+    $('dbTableBody').innerHTML = '<tr><td class="empty" style="color:var(--red)">❌ ' + e.message + '</td></tr>';
+  }
+}
+
+$('dbTableSelect')?.addEventListener('change', function(){
+  loadDatabase();
+});
 
 function getTableLabel(table){
   for(var i=0; i<DB_TABLES.length; i++){
