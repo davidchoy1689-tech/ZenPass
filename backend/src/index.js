@@ -86,6 +86,7 @@ app.use("/api/coach", require("./routes/coach-earnings"));
 app.use("/api/admin", require("./routes/admin"));
 app.use("/api/notifications", require("./routes/notifications"));
 app.use("/api/upload", require("./routes/upload"));
+app.use("/api/backup", require("./routes/backup"));
 
 // ===== 健康檢查 =====
 app.get("/api/health", (req, res) => {
