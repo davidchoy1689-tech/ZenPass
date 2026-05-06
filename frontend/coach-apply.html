@@ -193,34 +193,35 @@
         </div>
 
         <div class="form-card">
-            <h3>📍 場地資料</h3>
+            <h3>📍 住址</h3>
             <div class="form-group">
-                <label>場地名稱 *</label>
-                <input type="text" id="venue-name" placeholder="例如：ZenSpace 瑜伽教室">
+                <label>住址 *</label>
+                <input type="text" id="venue-address" placeholder="例如：九龍旺角亞皆老街 100 號 5樓 B室">
             </div>
             <div class="form-group">
-                <label>場地地址 *</label>
-                <input type="text" id="venue-address" placeholder="例如：中環皇后大道中 100 號 12樓">
-            </div>
-            <div class="form-group">
-                <label>場地設施</label>
-                <div class="tag-selector" id="facilities-selector">
-                    <div class="tag-option" data-value="瑜伽墊">瑜伽墊</div>
-                    <div class="tag-option" data-value="淋浴間">🚿 淋浴間</div>
-                    <div class="tag-option" data-value="儲物櫃">🔐 儲物櫃</div>
-                    <div class="tag-option" data-value="更衣室">👔 更衣室</div>
-                    <div class="tag-option" data-value="停車場">🅿️ 停車場</div>
-                    <div class="tag-option" data-value="無障礙設施">♿ 無障礙</div>
-                </div>
-            </div>
-            <div class="form-group">
-                <label>場地相片（選填）</label>
-                <div class="upload-area" onclick="document.getElementById('venue-photos').click()">
-                    <div class="icon">📸</div>
-                    <p>上傳場地相片</p>
-                    <small>支援 JPG / PNG（可選多張）</small>
-                </div>
-                <input type="file" id="venue-photos" accept="image/*" multiple style="display:none">
+                <label>地區</label>
+                <select id="venue-district">
+                    <option value="">請選擇</option>
+                    <option value="中西區">中西區</option>
+                    <option value="灣仔區">灣仔區</option>
+                    <option value="東區">東區</option>
+                    <option value="南區">南區</option>
+                    <option value="油尖旺區">油尖旺區</option>
+                    <option value="深水埗區">深水埗區</option>
+                    <option value="九龍城區">九龍城區</option>
+                    <option value="黃大仙區">黃大仙區</option>
+                    <option value="觀塘區">觀塘區</option>
+                    <option value="葵青區">葵青區</option>
+                    <option value="荃灣區">荃灣區</option>
+                    <option value="屯門區">屯門區</option>
+                    <option value="元朗區">元朗區</option>
+                    <option value="北區">北區</option>
+                    <option value="大埔區">大埔區</option>
+                    <option value="沙田區">沙田區</option>
+                    <option value="西貢區">西貢區</option>
+                    <option value="離島區">離島區</option>
+                </select>
+                <div class="hint">用於就近配對課程場地</div>
             </div>
         </div>
 
@@ -320,16 +321,15 @@
             const name = document.getElementById('coach-name').value.trim();
             const phone = document.getElementById('coach-phone').value.trim();
             const email = document.getElementById('coach-email').value.trim();
-            const venueName = document.getElementById('venue-name').value.trim();
             const venueAddress = document.getElementById('venue-address').value.trim();
+            const venueDistrict = document.getElementById('venue-district').value;
             const agree = document.getElementById('agree-terms').checked;
 
             // Validation
             if (!name) { showToast('請輸入姓名', 'error'); return; }
             if (!phone) { showToast('請輸入電話', 'error'); return; }
             if (!email || !email.includes('@')) { showToast('請輸入有效電郵', 'error'); return; }
-            if (!venueName) { showToast('請輸入場地名稱', 'error'); return; }
-            if (!venueAddress) { showToast('請輸入場地地址', 'error'); return; }
+            if (!venueAddress) { showToast('請輸入住址', 'error'); return; }
             if (!agree) { showToast('請同意合作條款', 'error'); return; }
 
             if (!isLoggedIn()) {
@@ -342,7 +342,7 @@
             btn.textContent = '提交中...';
 
             try {
-                await doSubmit(name, phone, email, venueName, venueAddress);
+                await doSubmit(name, phone, email, venueAddress, venueDistrict);
             } catch (err) {
                 showToast(err.message, 'error');
                 btn.disabled = false;
@@ -350,7 +350,7 @@
             }
         }
 
-        async function doSubmit(name, phone, email, venueName, venueAddress) {
+        async function doSubmit(name, phone, email, venueAddress, venueDistrict) {
             const data = {
                 name,
                 phone,
@@ -363,9 +363,8 @@
                 certificates: document.getElementById('coach-certificates').value.trim() || undefined,
                 certificate_files: certificateFiles.length > 0 ? certificateFiles : undefined,
                 bio: document.getElementById('coach-bio').value.trim() || undefined,
-                venue_name: venueName,
                 venue_address: venueAddress,
-                facilities: selectedFacilities
+                district: venueDistrict
             };
 
             // Call API

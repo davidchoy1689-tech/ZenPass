@@ -29,10 +29,10 @@ router.post("/apply", authenticateToken, (req, res) => {
       facilities,
     } = req.body;
 
-    if (!name || !phone || !email || !venue_name || !venue_address) {
+    if (!name || !phone || !email || !venue_address) {
       return res
         .status(400)
-        .json({ error: "請填寫姓名、電話、電郵、場地名稱和地址" });
+        .json({ error: "請填寫姓名、電話、電郵和住址" });
     }
 
     const db = new Database(DB_PATH);
