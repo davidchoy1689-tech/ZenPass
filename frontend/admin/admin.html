@@ -693,9 +693,20 @@ $('dbTableSelect')?.addEventListener('change', function(){
   loadDatabase();
 });
 
+// === Hash-based tab navigation ===
+function navigateToHash(){
+  var hash = window.location.hash.substring(1);
+  if(hash){
+    var el = document.querySelector('[data-tab="'+hash+'"]');
+    if(el) setTimeout(function(){ el.click(); }, 500);
+  }
+}
+window.addEventListener('hashchange', navigateToHash);
+
 // === Init ===
 $('settleMonth')?.addEventListener('change', loadSettlements);
 login();
+setTimeout(navigateToHash, 1000);
 </script>
 </body>
 </html>
