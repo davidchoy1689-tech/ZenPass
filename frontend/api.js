@@ -157,6 +157,36 @@ async function apiRequest(method, path, data = null) {
     }
 }
 
+// ===== 通用上傳（支援 FormData） =====
+async function apiPost(path, body, isFormData = false) {
+    const url = `${API_BASE}${path}`;
+    const headers = {};
+    
+    const token = getToken();
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+    }
+    
+    // Don't set Content-Type for FormData (browser sets it with boundary)
+    const options = isFormData
+        ? { method: 'POST', headers, body }
+        : { method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' }, body: JSON.stringify(body) };
+
+    try {
+        const response = await fetch(url, options);
+        const result = await response.json();
+        if (!response.ok) {
+            throw new Error(result.error || `請求失敗 (${response.status})`);
+        }
+        return result;
+    } catch (err) {
+        if (err.message.includes('Failed to fetch') || err.message.includes('NetworkError')) {
+            throw new Error('無法連接到伺服器');
+        }
+        throw err;
+    }
+}
+
 // ===== 認證 API =====
 const auth = {
     register: (data) => apiRequest('POST', '/auth/register', data),

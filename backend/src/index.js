@@ -7,7 +7,9 @@ require("dotenv").config({ path: __dirname + "/../.env" });
 const express = require("express");
 const cors = require("cors");
 const rateLimit = require("express-rate-limit");
+const morgan = require("morgan");
 const path = require("path");
+const logger = require("./services/logger");
 const { sendNotification } = require("./services/notification");
 
 // 初始化數據庫
@@ -18,6 +20,9 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 // ===== 中介軟體 =====
+
+// HTTP 請求日誌 (morgan → winston)
+app.use(morgan(":method :url :status :response-time ms", { stream: logger.morganStream }));
 
 // CORS 設定 - 支援跨域請求（GitHub Pages → localhost）
 app.use(
@@ -80,6 +85,7 @@ app.use("/api/payments", express.json(), paymentsRouter);
 app.use("/api/coach", require("./routes/coach-earnings"));
 app.use("/api/admin", require("./routes/admin"));
 app.use("/api/notifications", require("./routes/notifications"));
+app.use("/api/upload", require("./routes/upload"));
 
 // ===== 健康檢查 =====
 app.get("/api/health", (req, res) => {
@@ -256,8 +262,40 @@ function startupHealthCheck() {
   return checks;
 }
 
+// ===== 錯誤處理 =====
+
+// Global uncaught exceptions
+process.on("uncaughtException", (err) => {
+  logger.error("未捕獲異常 (uncaughtException)", { error: err.message, stack: err.stack });
+  // 給 logger 時間寫入，然後優雅重啟
+  setTimeout(() => process.exit(1), 1000);
+});
+
+process.on("unhandledRejection", (reason) => {
+  logger.error("未處理的 Promise 拒絕 (unhandledRejection)", {
+    error: reason?.message || reason,
+    stack: reason?.stack,
+  });
+});
+
+// Graceful shutdown
+process.on("SIGTERM", () => {
+  logger.info("收到 SIGTERM 信號，正在關閉伺服器...");
+  server.close(() => process.exit(0));
+});
+
+process.on("SIGINT", () => {
+  logger.info("收到 SIGINT 信號，正在關閉伺服器...");
+  server.close(() => process.exit(0));
+});
+
 // ===== 啟動 =====
-app.listen(PORT, "0.0.0.0", () => {
+const server = app.listen(PORT, "0.0.0.0", () => {
+  logger.info(`ZenPass 伺服器已啟動`, {
+    port: PORT,
+    env: process.env.NODE_ENV || "development",
+    cors: process.env.CORS_ORIGIN || "http://localhost:8080",
+  });
   console.log(`
 ╔═══════════════════════════════════════════╗
 ║     ZenPass 禪流 API 伺服器已啟動         ║

@@ -7,6 +7,7 @@ const express = require("express");
 const { v4: uuidv4 } = require("uuid");
 const Database = require("better-sqlite3");
 const { authenticateToken } = require("../middleware/auth");
+const { getSupabase } = require("../services/supabase");
 
 const router = express.Router();
 const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
@@ -201,6 +202,77 @@ router.post("/schedules", authenticateToken, (req, res) => {
   } catch (err) {
     console.error("新增時間錯誤:", err);
     res.status(500).json({ error: "無法新增時間" });
+  }
+});
+
+// ===== POST /api/coach/profile — 更新教練個人資料 =====
+router.post("/profile", authenticateToken, async (req, res) => {
+  try {
+    const supabase = getSupabase();
+    if (!supabase) {
+      return res.status(500).json({ error: "資料庫連接失敗" });
+    }
+
+    const {
+      full_name,
+      age,
+      height_cm,
+      weight_kg,
+      experience_detail,
+      certificate_files,
+      bio,
+      specialties,
+      rate_per_session,
+    } = req.body;
+
+    // Build update object (only include provided fields)
+    const updates = {};
+    if (full_name !== undefined) updates.full_name = full_name;
+    if (age !== undefined) updates.age = parseInt(age);
+    if (height_cm !== undefined) updates.height_cm = parseFloat(height_cm);
+    if (weight_kg !== undefined) updates.weight_kg = parseFloat(weight_kg);
+    if (experience_detail !== undefined) updates.experience_detail = experience_detail;
+    if (certificate_files !== undefined) updates.certificate_files = certificate_files;
+    if (bio !== undefined) updates.bio = bio;
+    if (specialties !== undefined) updates.specialties = specialties;
+    if (rate_per_session !== undefined) updates.rate_per_session = parseFloat(rate_per_session);
+    updates.updated_at = new Date().toISOString();
+
+    const { data, error } = await supabase
+      .from("coaches")
+      .update(updates)
+      .eq("user_id", req.user.id)
+      .select();
+
+    if (error) throw error;
+
+    res.json({ message: "個人資料已更新", coach: data?.[0] || null });
+  } catch (err) {
+    console.error("更新教練資料錯誤:", err);
+    res.status(500).json({ error: "更新失敗：" + err.message });
+  }
+});
+
+// ===== GET /api/coach/profile — 獲取教練個人資料 =====
+router.get("/profile", authenticateToken, async (req, res) => {
+  try {
+    const supabase = getSupabase();
+    if (!supabase) {
+      return res.status(500).json({ error: "資料庫連接失敗" });
+    }
+
+    const { data, error } = await supabase
+      .from("coaches")
+      .select("*")
+      .eq("user_id", req.user.id)
+      .single();
+
+    if (error && error.code !== "PGRST116") throw error;
+
+    res.json({ coach: data || null });
+  } catch (err) {
+    console.error("獲取教練資料錯誤:", err);
+    res.status(500).json({ error: "無法獲取資料" });
   }
 });
 
