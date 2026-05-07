@@ -388,7 +388,7 @@ router.get("/classes", authenticateToken, requireAdmin, (req, res) => {
 });
 
 // ===== GET /api/admin/db/:table — 瀏覽任何資料表 =====
-router.get("/db/:table", authenticateToken, async (req, res) => {
+router.get("/db/:table", async (req, res) => {
   try {
     const { getSupabase } = require("../services/supabase");
     const supabase = getSupabase();
@@ -412,7 +412,7 @@ router.get("/db/:table", authenticateToken, async (req, res) => {
 });
 
 // ===== GET /api/admin/db — 列出所有表 + 記錄數 =====
-router.get("/db", authenticateToken, async (req, res) => {
+router.get("/db", async (req, res) => {
   try {
     const { getSupabase } = require("../services/supabase");
     const supabase = getSupabase();

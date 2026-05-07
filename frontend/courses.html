@@ -9,7 +9,7 @@
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-:root{--orange:#D45222;--orange-light:#FFF0E8;--dark:#1A1A2E;--dark2:#2D2D44;--gray:#6B7280;--gray-light:#E5E7EB;--gray-bg:#F3F4F6;--white:#FFF;--green:#059669;--red:#EF4444;--radius:12px;--shadow:0 2px 8px rgba(0,0,0,.08)}
+:root{--orange:#B8431A;--orange-light:#FFF0E8;--dark:#1A1A2E;--dark2:#2D2D44;--gray:#6B7280;--gray-light:#E5E7EB;--gray-bg:#F3F4F6;--white:#FFF;--green:#059669;--red:#EF4444;--radius:12px;--shadow:0 2px 8px rgba(0,0,0,.08)}
 body{font-family:-apple-system,'Noto Sans TC',sans-serif;background:var(--gray-bg);color:var(--dark);min-height:100vh}
 .header{background:linear-gradient(135deg,#1A1A2E,#2D2D44);color:var(--white);padding:40px 20px;text-align:center}
 .header h1{font-size:28px;margin-bottom:4px}.header h1 span{color:var(--orange)}
@@ -107,7 +107,7 @@ async function init(){
   }
   
   // Load coaches
-  var {data:cList} = await sb.from('coaches').select('id,profile_id,rate_per_session,speacialties');
+  var {data:cList} = await sb.from('coaches').select('id,profile_id,rate_per_session,specialties');
   if(cList){
     var pIds = cList.map(function(c){ return c.profile_id; });
     var {data:profiles} = await sb.from('profiles').select('id,full_name').in('id',pIds);
