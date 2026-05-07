@@ -345,6 +345,37 @@ function initDatabase() {
     );
   } catch (e) {}
 
+  // ===== 課程內容表 (course_contents) =====
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS course_contents (
+      id TEXT PRIMARY KEY,
+      course_id TEXT NOT NULL,
+      course_number TEXT UNIQUE,
+      title TEXT,
+      description TEXT,
+      rich_content TEXT,
+      video_url TEXT,
+      images TEXT,
+      materials TEXT,
+      level TEXT DEFAULT 'beginner'
+        CHECK(level IN ('beginner','intermediate','advanced','all_levels')),
+      benefits TEXT,
+      faqs TEXT,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (course_id) REFERENCES classes(id)
+    );
+  `);
+
+  try {
+    db.exec(
+      "CREATE INDEX IF NOT EXISTS idx_course_contents_course ON course_contents(course_id)"
+    );
+    db.exec(
+      "CREATE INDEX IF NOT EXISTS idx_course_contents_number ON course_contents(course_number)"
+    );
+  } catch (e) {}
+
   console.log("✅ 數據庫初始化完成:", DB_PATH);
   db.close();
 }

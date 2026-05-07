@@ -2,6 +2,9 @@
 <html lang="zh-HK">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <link rel="icon" href="favicon.png" type="image/png">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <meta name="description" content="ZenPass 禪流健身課程預約平台管理後台">
@@ -114,6 +117,9 @@ tr:hover td{background:var(--primary-bg)}
       <a class="nav-item" data-tab="bookings" href="#"><span class="icon">📅</span><span>預約管理</span></a>
       <a class="nav-item" data-tab="users" href="#"><span class="icon">👤</span><span>用戶管理</span></a>
       <a class="nav-item" data-tab="classes" href="#"><span class="icon">📚</span><span>課程管理</span></a>
+      <a class="nav-item" data-tab="course-contents" href="#"><span class="icon">📝</span><span>課程內容</span></a>
+      <a class="nav-item" data-tab="migrate" href="#"><span class="icon">⚙️</span><span>資料庫更新</span></a>
+
       <div style="flex:1"></div>
       <a class="nav-item" onclick="logout()" style="border-top:1px solid rgba(255,255,255,.08)"><span class="icon">🚪</span><span>登出</span></a>
     </div>
@@ -123,7 +129,85 @@ tr:hover td{background:var(--primary-bg)}
     </div>
   </div>
 
-  <script src="api.js"></script>
+  <script src="api.js?v=2"></script>
+  <script>
+    // ===== Course Contents =====
+    async function loadCourseContents() {
+      var main = document.getElementById('mainContent');
+      try {
+        var d = await apiGet('/api/course-contents');
+        var items = d.data || [];
+        var classesData = [];
+        try { 
+          var cd = await apiGet('/api/classes');
+          classesData = cd.classes || []; 
+        } catch(e) {}
+        
+        var stats = '<div class="stats-grid" style="grid-template-columns:repeat(3,1fr)">' +
+          '<div class="stat-card" style="background:var(--primary);color:white"><div class="ico">📝</div><div class="val">' + items.length + '</div><div class="lbl" style="color:rgba(255,255,255,.75)">課程內容總數</div></div>' +
+          '<div class="stat-card" style="background:var(--green);color:white"><div class="ico">🎬</div><div class="val">' + items.filter(function(i) { return i.video_url; }).length + '</div><div class="lbl" style="color:rgba(255,255,255,.75)">有影片</div></div>' +
+          '<div class="stat-card" style="background:var(--yellow);color:white"><div class="ico">❓</div><div class="val">' + items.filter(function(i) { return i.faqs && i.faqs.length; }).length + '</div><div class="lbl" style="color:rgba(255,255,255,.75)">有 FAQ</div></div>' +
+          '</div>';
+        
+        var table = '<div class="card"><div class="card-header"><h3>📋 課程內容列表</h3></div><div class="table-wrap">';
+        if (!items.length) {
+          table += '<div style="text-align:center;padding:30px;color:var(--gray)"><div style="font-size:28px;margin-bottom:6px">📭</div>暫無課程內容</div>';
+        } else {
+          table += '<table><thead><tr><th>課程</th><th>標題</th><th>Level</th><th>影片</th><th>圖片</th><th>教材</th><th>FAQ</th><th>更新</th></tr></thead><tbody>' +
+            items.map(function(cc) {
+              var courseName = cc.course_id;
+              if (classesData.length) {
+                var found = classesData.find(function(c) { return c.id === cc.course_id; });
+                if (found) courseName = found.title;
+              }
+              return '<tr><td>' + courseName + '</td>' +
+                '<td>' + (cc.title || '—') + '</td>' +
+                '<td>' + (cc.level || '—') + '</td>' +
+                '<td>' + (cc.video_url ? '✅' : '—') + '</td>' +
+                '<td>' + (cc.images && cc.images.length ? cc.images.length + '張' : '—') + '</td>' +
+                '<td>' + (cc.materials && cc.materials.length ? cc.materials.length + '項' : '—') + '</td>' +
+                '<td>' + (cc.faqs && cc.faqs.length ? cc.faqs.length + '條' : '—') + '</td>' +
+                '<td>' + (cc.updated_at ? cc.updated_at.substring(0, 10) : '—') + '</td></tr>';
+            }).join('') + '</tbody></table>';
+        }
+        table += '</div></div>';
+        main.innerHTML = stats + table;
+      } catch(e) { main.innerHTML = '<div class="card" style="color:var(--red);padding:20px">❌ 載入失敗: ' + e.message + '</div>'; }
+    }
+
+    // ===== Migration =====
+    async function loadMigrateTab() {
+      var main = document.getElementById('mainContent');
+      try {
+        var d = await apiGet('/api/migrate/course-contents');
+        var exists = d.exists;
+        var statusHtml = exists 
+          ? '<div style="background:#ECFDF5;color:var(--green);padding:12px;border-radius:8px;margin-bottom:14px;font-size:13px">✅ course_contents 表格已就緒</div>'
+          : '<div style="background:#FFFBEB;color:#C49A4A;padding:12px;border-radius:8px;margin-bottom:14px;font-size:13px">⏳ 需要建立 course_contents 表格</div>';
+        
+        var btnHtml = exists
+          ? '<button class="btn" disabled style="opacity:0.5;background:var(--green)">✅ 已建立</button>'
+          : '<button class="btn" onclick="runMigration()">🚀 執行 course_contents Migration</button>';
+        
+        main.innerHTML = '<div class="card">' +
+          '<div class="card-header"><h3>⚙️ 資料庫 Migration</h3></div>' +
+          '<p style="font-size:13px;color:var(--gray);margin-bottom:14px">執行資料庫更新，建立 course_contents 表格。</p>' +
+          statusHtml +
+          btnHtml +
+          '</div>';
+      } catch(e) { main.innerHTML = '<div class="card" style="color:var(--red);padding:20px">❌ 載入失敗: ' + e.message + '</div>'; }
+    }
+
+    async function runMigration() {
+      try {
+        var d = await apiPost('/api/migrate/course-contents', {});
+        if (d.status === 'created') { alert('✅ Migration 成功！'); loadMigrateTab(); }
+        else if (d.status === 'skipped') { alert('ℹ️ 表格已存在'); loadMigrateTab(); }
+        else { alert('❌ 失敗: ' + (d.error || '未知錯誤')); }
+      } catch(e) { alert('❌ 錯誤: ' + e.message); }
+    }
+
+  </script>
   <script>
     var user = null;
     var API = window.location.origin + '';  // Auto-detect: use same origin as page
@@ -172,6 +256,8 @@ tr:hover td{background:var(--primary-bg)}
         case 'bookings': loadBookings(); break;
         case 'users': loadUsers(); break;
         case 'classes': loadClasses(); break;
+        case 'course-contents': loadCourseContents(); break;
+        case 'migrate': loadMigrateTab(); break;
       }
     }
 
@@ -423,6 +509,83 @@ tr:hover td{background:var(--primary-bg)}
         }
       } catch(e){}
     })();
-  </script>
+  
+    // ===== Course Contents =====
+    async function loadCourseContents() {
+      var main = document.getElementById('mainContent');
+      try {
+        var d = await apiGet('/api/course-contents');
+        var items = d.data || [];
+        var classesData = [];
+        try { 
+          var cd = await apiGet('/api/classes');
+          classesData = cd.classes || []; 
+        } catch(e) {}
+        
+        var stats = '<div class="stats-grid" style="grid-template-columns:repeat(3,1fr)">' +
+          '<div class="stat-card" style="background:var(--primary);color:white"><div class="ico">📝</div><div class="val">' + items.length + '</div><div class="lbl" style="color:rgba(255,255,255,.75)">課程內容總數</div></div>' +
+          '<div class="stat-card" style="background:var(--green);color:white"><div class="ico">🎬</div><div class="val">' + items.filter(function(i) { return i.video_url; }).length + '</div><div class="lbl" style="color:rgba(255,255,255,.75)">有影片</div></div>' +
+          '<div class="stat-card" style="background:var(--yellow);color:white"><div class="ico">❓</div><div class="val">' + items.filter(function(i) { return i.faqs && i.faqs.length; }).length + '</div><div class="lbl" style="color:rgba(255,255,255,.75)">有 FAQ</div></div>' +
+          '</div>';
+        
+        var table = '<div class="card"><div class="card-header"><h3>📋 課程內容列表</h3></div><div class="table-wrap">';
+        if (!items.length) {
+          table += '<div style="text-align:center;padding:30px;color:var(--gray)"><div style="font-size:28px;margin-bottom:6px">📭</div>暫無課程內容</div>';
+        } else {
+          table += '<table><thead><tr><th>課程</th><th>標題</th><th>Level</th><th>影片</th><th>圖片</th><th>教材</th><th>FAQ</th><th>更新</th></tr></thead><tbody>' +
+            items.map(function(cc) {
+              var courseName = cc.course_id;
+              if (classesData.length) {
+                var found = classesData.find(function(c) { return c.id === cc.course_id; });
+                if (found) courseName = found.title;
+              }
+              return '<tr><td>' + courseName + '</td>' +
+                '<td>' + (cc.title || '—') + '</td>' +
+                '<td>' + (cc.level || '—') + '</td>' +
+                '<td>' + (cc.video_url ? '✅' : '—') + '</td>' +
+                '<td>' + (cc.images && cc.images.length ? cc.images.length + '張' : '—') + '</td>' +
+                '<td>' + (cc.materials && cc.materials.length ? cc.materials.length + '項' : '—') + '</td>' +
+                '<td>' + (cc.faqs && cc.faqs.length ? cc.faqs.length + '條' : '—') + '</td>' +
+                '<td>' + (cc.updated_at ? cc.updated_at.substring(0, 10) : '—') + '</td></tr>';
+            }).join('') + '</tbody></table>';
+        }
+        table += '</div></div>';
+        main.innerHTML = stats + table;
+      } catch(e) { main.innerHTML = '<div class="card" style="color:var(--red);padding:20px">❌ 載入失敗: ' + e.message + '</div>'; }
+    }
+
+    // ===== Migration =====
+    async function loadMigrateTab() {
+      var main = document.getElementById('mainContent');
+      try {
+        var d = await apiGet('/api/migrate/course-contents');
+        var exists = d.exists;
+        var statusHtml = exists 
+          ? '<div style="background:#ECFDF5;color:var(--green);padding:12px;border-radius:8px;margin-bottom:14px;font-size:13px">✅ course_contents 表格已就緒</div>'
+          : '<div style="background:#FFFBEB;color:#C49A4A;padding:12px;border-radius:8px;margin-bottom:14px;font-size:13px">⏳ 需要建立 course_contents 表格</div>';
+        
+        var btnHtml = exists
+          ? '<button class="btn" disabled style="opacity:0.5;background:var(--green)">✅ 已建立</button>'
+          : '<button class="btn" onclick="runMigration()">🚀 執行 course_contents Migration</button>';
+        
+        main.innerHTML = '<div class="card">' +
+          '<div class="card-header"><h3>⚙️ 資料庫 Migration</h3></div>' +
+          '<p style="font-size:13px;color:var(--gray);margin-bottom:14px">執行資料庫更新，建立 course_contents 表格。</p>' +
+          statusHtml +
+          btnHtml +
+          '</div>';
+      } catch(e) { main.innerHTML = '<div class="card" style="color:var(--red);padding:20px">❌ 載入失敗: ' + e.message + '</div>'; }
+    }
+
+    async function runMigration() {
+      try {
+        var d = await apiPost('/api/migrate/course-contents', {});
+        if (d.status === 'created') { alert('✅ Migration 成功！'); loadMigrateTab(); }
+        else if (d.status === 'skipped') { alert('ℹ️ 表格已存在'); loadMigrateTab(); }
+        else { alert('❌ 失敗: ' + (d.error || '未知錯誤')); }
+      } catch(e) { alert('❌ 錯誤: ' + e.message); }
+    }
+
+</script>
 </body>
 </html>

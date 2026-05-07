@@ -2,6 +2,7 @@
 <html lang="zh-HK">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>ZenPass 管理後台</title>
 <style>
@@ -122,6 +123,8 @@ tr:hover td{background:#FAFAFA}
 <div class="nav-item" onclick="switchTab('classes')"><span class="ico">🏋️</span><span>課程管理</span></div>
 <div class="nav-item" onclick="switchTab('bookings')"><span class="ico">📅</span><span>預約管理</span></div>
 <div class="nav-item" onclick="switchTab('payments')"><span class="ico">💰</span><span>付款管理</span></div>
+<div class="nav-item" onclick="switchTab('course-contents')"><span class="ico">📝</span><span>課程內容</span></div>
+<div class="nav-item" onclick="switchTab('migrate')"><span class="ico">⚙️</span><span>資料庫更新</span></div>
 </div>
 <div class="nav-footer">
 <div class="admin-name" id="adminName"></div>
@@ -199,6 +202,53 @@ tr:hover td{background:#FAFAFA}
 
 </div></div>
 
+
+<!-- Course Contents -->
+<div id="tab-course-contents" class="tab-content">
+<div class="stats-grid" style="grid-template-columns:repeat(3,1fr)">
+  <div class="stat-card primary"><div class="ico">📝</div><div class="val" id="ccTotalCount">—</div><div class="lbl">課程內容總數</div></div>
+  <div class="stat-card green"><div class="ico">🎬</div><div class="val" id="ccVideoCount">—</div><div class="lbl">有影片</div></div>
+  <div class="stat-card"><div class="ico">❓</div><div class="val" id="ccFaqCount">—</div><div class="lbl">有 FAQ</div></div>
+</div>
+<div class="section-title">課程內容列表</div>
+<div class="table-card">
+<div style="margin-bottom:12px;display:flex;gap:8px">
+  <select id="ccCourseFilter" onchange="loadCourseContents()" style="flex:1;padding:7px 10px;border:1px solid var(--gray-light);border-radius:6px;font-size:12px;font-family:inherit">
+    <option value="">全部課程</option>
+  </select>
+</div>
+<div id="ccBody"><div class="loading">載入中...</div></div>
+</div>
+</div>
+
+<!-- Migrate -->
+<div id="tab-migrate" class="tab-content">
+<div class="section-title">⚙️ 資料庫 Migration</div>
+<div style="background:var(--white);border-radius:var(--radius);padding:24px;box-shadow:var(--shadow)">
+  <p style="font-size:14px;color:var(--gray);margin-bottom:16px">
+    執行資料庫更新，建立新嘅 course_contents 表格。
+  </p>
+  <div id="migrateStatus" style="margin-bottom:14px;padding:12px;border-radius:8px;font-size:13px;background:var(--gray-bg)">
+    ⏳ 準備就緒，按下方按鈕執行
+  </div>
+  <button id="migrateBtn" class="btn" onclick="runMigration()">🚀 執行 course_contents Migration</button>
+</div>
+
+<div style="background:var(--white);border-radius:var(--radius);padding:24px;box-shadow:var(--shadow);margin-top:16px">
+  <div class="section-title">📋 直接 SQL (人手執行)</div>
+  <p style="font-size:13px;color:var(--gray);margin-bottom:10px">
+    如果自動 Migration 唔得，可以手動喺 Supabase SQL Editor 執行：
+  </p>
+  <div style="display:flex;gap:8px;margin-bottom:12px">
+    <input type="text" id="migrateSqlPath" readonly value="backend/scripts/supabase-migrate-course-contents.sql" style="flex:1;padding:7px 10px;border:1px solid var(--gray-light);border-radius:6px;font-size:12px;font-family:inherit;background:var(--gray-bg)">
+    <a href="https://supabase.com/dashboard/project/pqgrkeavopksdttrzdqc/sql/new" target="_blank" class="btn btn-green" style="text-decoration:none;white-space:nowrap">🔗 開啟 SQL Editor</a>
+  </div>
+  <pre id="migrateSqlPreview" style="background:#1A1A2E;color:#E5E7EB;padding:16px;border-radius:8px;font-size:11px;overflow-x:auto;max-height:400px"></pre>
+  <button class="btn btn-outline" onclick="copySql()" style="margin-top:8px">📋 複製 SQL</button>
+</div>
+</div>
+
+
 <script>
 // ======== Config ========
 var API = '/api';
@@ -274,12 +324,14 @@ function switchTab(name,e){
   document.querySelectorAll('.tab-content').forEach(function(t){t.classList.remove('active')});
   document.querySelectorAll('[onclick*="'+name+'"]')[0].classList.add('active');
   $('tab-'+name).classList.add('active');
-  var titles={'dashboard':'📊 儀表板','users':'👤 用戶管理','classes':'🏋️ 課程管理','bookings':'📅 預約管理','payments':'💰 付款管理'};
+  var titles={'dashboard':'📊 儀表板','users':'👤 用戶管理','classes':'🏋️ 課程管理','bookings':'📅 預約管理','payments':'💰 付款管理','course-contents':'📝 課程內容','migrate':'⚙️ 資料庫更新'};
   $('pageTitle').textContent=titles[name]||name;
   if(name==='users')loadUsers();
   if(name==='classes')loadClasses();
   if(name==='bookings')loadBookings();
   if(name==='payments')loadPayments();
+  if(name==='course-contents')loadCourseContents();
+  if(name==='migrate')loadMigrateTab();
 }
 
 function refreshCurrent(){if(currentTab==='dashboard')loadAll();else{var f='load'+currentTab.charAt(0).toUpperCase()+currentTab.slice(1);if(window[f])window[f]()}}
@@ -462,8 +514,116 @@ async function loadPayments(){
     $('pendingPayCount').textContent=pending.length;
     var body=$('pendingPayBody');
     if(!pending.length){body.innerHTML='<div class="empty"><span class="ico">📭</span>暫無待確認付款</div>';return}
-    body.innerHTML='<table><thead><tr><th>用戶</th><th>課程</th><th>金額</th><th>方式</th><th>參考</th><th>時間</th><th>操作</th></tr></thead><tbody>'+
-      pending.map(function(p){
-        var method=p.payment_method||(p.fps_reference?'FPS':p.payme_reference?'PayMe':'—');
-        var ref=p.fps_reference||p.payme_reference||'—';
-        return '<tr><td>'+(p.user_name||'—')+'</td><td>'+(p.class_title||'—')+'</td><td>'+fmtNum(p.amount)+'</td><td>'+method+'</td><td>'+ref+'</td><td>'+(p.booked_at?p.booked_at
+}
+
+// ======== Course Contents ========
+var allClassesForFilter = [];
+
+async function loadCourseContents() {
+  try {
+    var r = await api('/api/course-contents');
+    if (!r) return;
+    var d = await r.json();
+    var items = d.data || [];
+    
+    // Load classes for filter
+    if (allClassesForFilter.length === 0) {
+      try {
+        var classR = await api('/api/classes');
+        if (classR) {
+          var classD = await classR.json();
+          allClassesForFilter = classD.data || [];
+          var sel = $('#ccCourseFilter');
+          if (sel) {
+            sel.innerHTML = '<option value="">全部課程</option>' +
+              allClassesForFilter.map(function(c) {
+                return '<option value="' + c.id + '">' + (c.title || '') + '</option>';
+              }).join('');
+          }
+        }
+      } catch(e) { console.log('Filter error:', e); }
+    }
+    
+    var courseId = $('#ccCourseFilter')?.value || '';
+    if (courseId) items = items.filter(function(i) { return i.course_id === courseId; });
+    
+    $('#ccTotalCount').textContent = items.length;
+    $('#ccVideoCount').textContent = items.filter(function(i) { return i.video_url; }).length;
+    $('#ccFaqCount').textContent = items.filter(function(i) { return i.faqs && i.faqs.length > 0; }).length;
+    
+    var body = $('#ccBody');
+    if (!items.length) { body.innerHTML = '<div class="empty"><span class="ico">📭</span>暫無課程內容</div>'; return; }
+    
+    body.innerHTML = '<table><thead><tr><th>課程</th><th>標題</th><th>Level</th><th>影片</th><th>圖片</th><th>教材</th><th>FAQ</th><th>更新時間</th></tr></thead><tbody>' +
+      items.map(function(cc) {
+        var courseName = '';
+        if (allClassesForFilter.length) {
+          var found = allClassesForFilter.find(function(c) { return c.id === cc.course_id; });
+          if (found) courseName = found.title;
+        }
+        return '<tr><td>' + (courseName || cc.course_id.substring(0,8)) + '</td>' +
+          '<td>' + (cc.title || '—') + '</td>' +
+          '<td>' + (cc.level || '—') + '</td>' +
+          '<td>' + (cc.video_url ? '✅' : '—') + '</td>' +
+          '<td>' + (cc.images && cc.images.length ? cc.images.length + '張' : '—') + '</td>' +
+          '<td>' + (cc.materials && cc.materials.length ? cc.materials.length + '項' : '—') + '</td>' +
+          '<td>' + (cc.faqs && cc.faqs.length ? cc.faqs.length + '條' : '—') + '</td>' +
+          '<td>' + (cc.updated_at ? cc.updated_at.substring(0, 10) : '—') + '</td></tr>';
+      }).join('') + '</tbody></table>';
+  } catch(e) { showToast('載入課程內容失敗', 'error'); }
+}
+
+// ======== Migration ========
+async function loadMigrateTab() {
+  try {
+    var r = await api('/api/migrate/course-contents');
+    if (r && r.ok) {
+      var d = await r.json();
+      if (d.exists) {
+        $('#migrateStatus').innerHTML = '✅ course_contents 表格已就緒';
+        $('#migrateStatus').style.background = '#ECFDF5';
+        $('#migrateBtn').disabled = true;
+        $('#migrateBtn').textContent = '✅ 已建立';
+      }
+    }
+  } catch(e) { /* ignore */ }
+}
+
+async function runMigration() {
+  var btn = $('#migrateBtn');
+  var status = $('#migrateStatus');
+  btn.disabled = true;
+  btn.textContent = '⏳ 執行中...';
+  status.innerHTML = '⏳ 正在執行 Migration...';
+  status.style.background = '#FFFBEB';
+  
+  try {
+    var r = await api('/api/migrate/course-contents', { method: 'POST' });
+    if (!r) { btn.disabled = false; btn.textContent = '🚀 重試'; return; }
+    var d = await r.json();
+    
+    if (r.ok && d.status === 'created') {
+      status.innerHTML = '✅ Migration 成功！course_contents 表格已建立';
+      status.style.background = '#ECFDF5';
+      btn.textContent = '✅ 已完成';
+      showToast('✅ course_contents 表格建立成功', 'success');
+    } else if (r.ok && d.status === 'skipped') {
+      status.innerHTML = 'ℹ️ Table 已存在，無需執行';
+      status.style.background = '#EFF6FF';
+      btn.textContent = '✅ 已存在';
+    } else {
+      status.innerHTML = '❌ Migration 失敗：' + (d.error || '未知錯誤');
+      status.style.background = '#FEF2F2';
+      btn.disabled = false;
+      btn.textContent = '🚀 重試';
+    }
+  } catch(e) {
+    status.innerHTML = '❌ 連線錯誤：' + e.message;
+    status.style.background = '#FEF2F2';
+    btn.disabled = false;
+    btn.textContent = '🚀 重試';
+  }
+}
+</script>
+</body>
+</html>

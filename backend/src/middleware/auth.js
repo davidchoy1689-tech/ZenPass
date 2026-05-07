@@ -74,6 +74,34 @@ function requireCoach(req, res, next) {
 }
 
 /**
+ * 驗證管理員權限（需要先執行 authenticateToken）
+ */
+function requireAdmin(req, res, next) {
+  const db = new Database(DB_PATH);
+  db.pragma("foreign_keys = ON");
+
+  const user = db
+    .prepare("SELECT is_coach, coach_verified, email FROM users WHERE id = ?")
+    .get(req.user.id);
+  db.close();
+
+  if (!user) {
+    return res.status(403).json({ error: "用戶不存在" });
+  }
+
+  // Admin 判定：電郵含有 admin 或標記為管理員
+  const isAdmin =
+    user.email &&
+    (user.email.includes("admin") || user.email.endsWith("@zenpass.hk"));
+
+  if (!isAdmin) {
+    return res.status(403).json({ error: "需要管理員權限" });
+  }
+
+  next();
+}
+
+/**
  * 生成 JWT Token
  */
 function generateToken(user) {
@@ -94,5 +122,6 @@ module.exports = {
   authenticateToken,
   optionalAuth,
   requireCoach,
+  requireAdmin,
   generateToken,
 };
