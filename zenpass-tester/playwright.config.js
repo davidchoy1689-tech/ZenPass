@@ -6,7 +6,7 @@ export default defineConfig({
   timeout: 30000,
   retries: 1,
   use: {
-    baseURL: 'http://192.168.1.215:3001',
+    baseURL: process.env.BASE_URL || 'http://localhost:3001',
     locale: 'zh-HK',
     viewport: { width: 1280, height: 720 },
   },

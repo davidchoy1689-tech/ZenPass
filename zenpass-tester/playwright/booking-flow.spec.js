@@ -1,8 +1,8 @@
 // @ts-check
 const { test, expect } = require('@playwright/test');
 
-const BASE = 'http://192.168.1.215:3001';
-const API = 'http://localhost:3001';
+const BASE = process.env.BASE_URL || process.env.API_URL || 'http://localhost:3001';
+const API = process.env.API_URL || 'http://localhost:3001';
 
 // Test user
 const USER = { email: 'david@zenpass.hk', password: 'zenpass123' };

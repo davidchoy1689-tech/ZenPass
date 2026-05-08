@@ -1,21 +1,20 @@
 // ZenPass 課程詳情頁測試
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect } from "vitest";
 
-const API_BASE = 'http://192.168.1.215:3001';
+const API_BASE = process.env.API_BASE || "http://localhost:3001";
 const RETRY_DELAY = 2000;
 
 async function fetchWithRetry(url, maxRetries = 3) {
   for (let i = 0; i < maxRetries; i++) {
     const res = await fetch(url);
     if (res.status !== 429) return res;
-    await new Promise(r => setTimeout(r, RETRY_DELAY));
+    await new Promise((r) => setTimeout(r, RETRY_DELAY));
   }
   return await fetch(url);
 }
 
-describe('📖 課程詳情', () => {
-
-  it('GET /api/classes/:id 回傳詳情', async () => {
+describe("📖 課程詳情", () => {
+  it("GET /api/classes/:id 回傳詳情", async () => {
     const listRes = await fetchWithRetry(`${API_BASE}/api/classes`);
     const listData = await listRes.json();
     expect(listData.classes.length).toBeGreaterThan(0);
@@ -27,7 +26,7 @@ describe('📖 課程詳情', () => {
     expect(data.class.id).toBe(classId);
   });
 
-  it('課程詳情有時段資訊', async () => {
+  it("課程詳情有時段資訊", async () => {
     const listRes = await fetchWithRetry(`${API_BASE}/api/classes`);
     const listData = await listRes.json();
     expect(listData.classes.length).toBeGreaterThan(0);

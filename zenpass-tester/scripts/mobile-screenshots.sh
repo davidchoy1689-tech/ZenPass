@@ -68,4 +68,4 @@ const VIEWPORTS = [
 SCRIPT
 
 cd /Users/user/.openclaw/workspace/zenpass-platform
-node /tmp/zenpass-screenshots.js
+NODE_PATH=$(pwd)/node_modules node /tmp/zenpass-screenshots.js
