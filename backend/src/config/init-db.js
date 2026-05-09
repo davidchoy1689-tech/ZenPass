@@ -479,7 +479,7 @@ function initDatabase() {
       name TEXT NOT NULL,
       description TEXT NOT NULL,
       icon TEXT DEFAULT '🏅',
-      category TEXT NOT NULL CHECK(category IN ('attendance','explorer','streak','social','special')),
+      category TEXT NOT NULL CHECK(category IN ('attendance','explorer','streak','social','special','district')),
       condition_type TEXT NOT NULL,
       condition_value TEXT NOT NULL,
       sort_order INTEGER DEFAULT 0,
@@ -542,6 +542,26 @@ function initDatabase() {
       ['bdg_spc_03', '鑽石尊享', '達到鑽石等級', '💎', 'special', 'points_tier', 'diamond', 42],
       ['bdg_spc_04', '成就大師', '獲得 10 個勳章', '🥇', 'special', 'total_badges', '10', 43],
       ['bdg_spc_05', '完美收集', '獲得 20 個勳章', '🏅', 'special', 'total_badges', '20', 44],
+
+      // 地區打卡類 - 香港18區
+      ['bdg_dst_01', '🌊 中西區', '在中西區上過課', '🌊', 'district', 'district_checkin', '中西區', 60],
+      ['bdg_dst_02', '🏔️ 東區', '在東區上過課', '🏔️', 'district', 'district_checkin', '東區', 61],
+      ['bdg_dst_03', '🌳 南區', '在南區上過課', '🌳', 'district', 'district_checkin', '南區', 62],
+      ['bdg_dst_04', '🏛️ 灣仔區', '在灣仔區上過課', '🏛️', 'district', 'district_checkin', '灣仔區', 63],
+      ['bdg_dst_05', '🏯 九龍城區', '在九龍城區上過課', '🏯', 'district', 'district_checkin', '九龍城區', 64],
+      ['bdg_dst_06', '🏭 觀塘區', '在觀塘區上過課', '🏭', 'district', 'district_checkin', '觀塘區', 65],
+      ['bdg_dst_07', '🛍️ 深水埗區', '在深水埗區上過課', '🛍️', 'district', 'district_checkin', '深水埗區', 66],
+      ['bdg_dst_08', '🙏 黃大仙區', '在黃大仙區上過課', '🙏', 'district', 'district_checkin', '黃大仙區', 67],
+      ['bdg_dst_09', '🌆 油尖旺區', '在油尖旺區上過課', '🌆', 'district', 'district_checkin', '油尖旺區', 68],
+      ['bdg_dst_10', '🏝️ 離島區', '在離島區上過課', '🏝️', 'district', 'district_checkin', '離島區', 69],
+      ['bdg_dst_11', '🌿 葵青區', '在葵青區上過課', '🌿', 'district', 'district_checkin', '葵青區', 70],
+      ['bdg_dst_12', '⛰️ 北區', '在北區上過課', '⛰️', 'district', 'district_checkin', '北區', 71],
+      ['bdg_dst_13', '🌊 西貢區', '在西貢區上過課', '🌊', 'district', 'district_checkin', '西貢區', 72],
+      ['bdg_dst_14', '🏘️ 沙田區', '在沙田區上過課', '🏘️', 'district', 'district_checkin', '沙田區', 73],
+      ['bdg_dst_15', '🌸 大埔區', '在大埔區上過課', '🌸', 'district', 'district_checkin', '大埔區', 74],
+      ['bdg_dst_16', '♨️ 荃灣區', '在荃灣區上過課', '♨️', 'district', 'district_checkin', '荃灣區', 75],
+      ['bdg_dst_17', '🏖️ 屯門區', '在屯門區上過課', '🏖️', 'district', 'district_checkin', '屯門區', 76],
+      ['bdg_dst_18', '🌾 元朗區', '在元朗區上過課', '🌾', 'district', 'district_checkin', '元朗區', 77],
     ];
     const insertMany = db.transaction((badges) => {
       for (const b of badges) insertBadge.run(...b);

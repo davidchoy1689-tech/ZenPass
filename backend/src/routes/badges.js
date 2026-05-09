@@ -14,6 +14,46 @@ const router = express.Router();
 const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
 
 /**
+ * 香港18區關鍵字對照表
+ * 用 venue_address 搵出對應地區
+ */
+const HK_DISTRICT_KEYWORDS = {
+  '中西區': ['中環', '上環', '西環', '西營盤', '堅尼地城', '半山', '山頂'],
+  '東區': ['炮台山', '北角', '鰂魚涌', '西灣河', '筲箕灣', '柴灣', '杏花邨', '太古城', '康怡', '維多利亞公園'],
+  '南區': ['香港仔', '鴨脷洲', '黃竹坑', '薄扶林', '數碼港', '華富', '南灣', '淺水灣', '深水灣', '赤柱'],
+  '灣仔區': ['灣仔', '金鐘', '跑馬地', '大坑', '銅鑼灣'],
+  '九龍城區': ['九龍城', '九龍塘', '何文田', '紅磡', '土瓜灣', '啟德', '馬頭圍', '黃埔'],
+  '觀塘區': ['觀塘', '牛頭角', '九龍灣', '藍田', '油塘', '秀茂坪', '順利', '佐敦谷'],
+  '深水埗區': ['深水埗', '長沙灣', '荔枝角', '石硤尾', '南昌', '又一村', '蘇屋'],
+  '黃大仙區': ['黃大仙', '慈雲山', '鑽石山', '新蒲崗', '彩虹', '牛池灣', '樂富', '竹園'],
+  '油尖旺區': ['尖沙咀', '佐敦', '油麻地', '旺角', '太子', '大角咀', '奧運', '西九龍'],
+  '離島區': ['東涌', '機場', '大嶼山', '長洲', '南丫島', '坪洲', '愉景灣', '梅窩'],
+  '葵青區': ['葵涌', '葵芳', '葵興', '青衣', '荔景'],
+  '北區': ['上水', '粉嶺', '沙頭角', '打鼓嶺', '羅湖'],
+  '西貢區': ['西貢', '將軍澳', '坑口', '寶琳', '調景嶺', '清水灣', '白沙灣'],
+  '沙田區': ['沙田', '大圍', '馬鞍山', '火炭', '石門', '第一城', '禾輋', '瀝源'],
+  '大埔區': ['大埔', '大埔墟', '太和', '白石角', '科學園'],
+  '荃灣區': ['荃灣', '荃灣西', '深井', '馬灣', '汀九', '青龍頭'],
+  '屯門區': ['屯門', '兆康', '良景', '蝴蝶灣', '黃金海岸', '掃管笏'],
+  '元朗區': ['元朗', '天水圍', '錦田', '流浮山', '朗屏', '洪水橋'],
+};
+
+/**
+ * 從地址文字中偵測屬於邊個地區
+ * @param {string} address - 場地地址
+ * @returns {string|null} - 地區名稱（例如「中西區」）或 null
+ */
+function detectDistrict(address) {
+  if (!address) return null;
+  for (const [district, keywords] of Object.entries(HK_DISTRICT_KEYWORDS)) {
+    for (const kw of keywords) {
+      if (address.includes(kw)) return district;
+    }
+  }
+  return null;
+}
+
+/**
  * 檢查用戶所有勳章條件，頒發新勳章
  * 喺關鍵動作（簽到、上堂、評價等）完成後自動觸發
  */
@@ -113,6 +153,25 @@ function checkAndAwardBadges(userId) {
         case 'total_badges':
           earned = (owned.length + newBadges.length) >= parseInt(badge.condition_value);
           break;
+        case 'district_checkin': {
+          // 檢查用戶去過呢個地區未
+          if (!stats.districts_visited) {
+            // Lazy-load districts from attended bookings
+            const visitedRows = db.prepare(`
+              SELECT DISTINCT c.venue_address FROM bookings b
+              JOIN classes c ON b.class_id = c.id
+              WHERE b.user_id = ? AND b.status = 'attended'
+              AND c.venue_address IS NOT NULL AND c.venue_address != ''
+            `).all(userId);
+            stats.districts_visited = new Set();
+            for (const row of visitedRows) {
+              const d = detectDistrict(row.venue_address);
+              if (d) stats.districts_visited.add(d);
+            }
+          }
+          earned = stats.districts_visited.has(badge.condition_value);
+          break;
+        }
         default:
           break;
       }
@@ -267,6 +326,20 @@ router.get("/progress", authenticateToken, (req, res) => {
       SELECT DISTINCT category FROM classes WHERE status = 'active'
     `).all();
 
+    // 已探索地區
+    const districtRows = db.prepare(`
+      SELECT DISTINCT c.venue_address FROM bookings b
+      JOIN classes c ON b.class_id = c.id
+      WHERE b.user_id = ? AND b.status = 'attended'
+      AND c.venue_address IS NOT NULL AND c.venue_address != ''
+    `).all(req.user.id);
+
+    const visitedDistricts = new Set();
+    for (const row of districtRows) {
+      const d = detectDistrict(row.venue_address);
+      if (d) visitedDistricts.add(d);
+    }
+
     const ownedBadges = db.prepare(`
       SELECT badge_id FROM user_badges WHERE user_id = ?
     `).all(req.user.id);
@@ -284,6 +357,8 @@ router.get("/progress", authenticateToken, (req, res) => {
         referrals_count: referralsCount.count,
         points_tier: user.points_tier || 'bronze',
         badges_earned: ownedBadges.length,
+        districts_visited: Array.from(visitedDistricts),
+        total_districts: 18,
       },
     });
   } catch (err) {

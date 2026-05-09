@@ -292,10 +292,14 @@ function renderProgress(stats) {
   if (!stats) { el.style.display = 'none'; return; }
   el.style.display = 'block';
 
+  var districtsVisited = (stats.districts_visited && stats.districts_visited.length) || 0;
+  var totalDistricts = stats.total_districts || 18;
+
   var items = [
     { icon: '🏋️', label: '完成課堂', detail: stats.total_bookings + ' / 100', current: Math.min(stats.total_bookings || 0, 100), max: 100, color: 'var(--blue-500)' },
     { icon: '🔍', label: '探索類別', detail: stats.categories_explored + ' / ' + stats.total_categories, current: stats.categories_explored || 0, max: stats.total_categories || 5, color: 'var(--purple-500)' },
-    { icon: '🔥', label: '連續簽到', detail: stats.checkin_streak + ' / 30', current: Math.min(stats.checkin_streak || 0, 30), max: 30, color: 'var(--orange-500)' },
+    { icon: '📍', label: '地區打卡', detail: districtsVisited + ' / ' + totalDistricts + ' 區', current: districtsVisited, max: totalDistricts, color: 'var(--orange-500)' },
+    { icon: '🔥', label: '連續簽到', detail: stats.checkin_streak + ' / 30', current: Math.min(stats.checkin_streak || 0, 30), max: 30, color: 'var(--red-500)' },
     { icon: '⭐', label: '課後評價', detail: stats.reviews_count + ' / 15', current: Math.min(stats.reviews_count || 0, 15), max: 15, color: 'var(--green-500)' },
   ];
 
@@ -328,6 +332,7 @@ function renderBadges(badges, filter) {
     streak: { label: '🔥 連續挑戰', icon: '🔥' },
     social: { label: '👥 社交成就', icon: '👥' },
     special: { label: '💎 特別成就', icon: '💎' },
+    district: { label: '📍 地區打卡 · 香港18區', icon: '📍' },
   };
 
   var grouped = {};
