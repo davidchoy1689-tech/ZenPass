@@ -98,6 +98,8 @@ body { font-family:'Inter',-apple-system,sans-serif; background:var(--gray-50); 
     <div class="profile-card" id="profileCard"></div>
     <!-- Membership & Credits -->
     <div class="profile-card" id="membershipCard" style="display:none;padding:16px;text-align:left;"></div>
+    <!-- Points Card -->
+    <div class="profile-card" id="pointsCard" style="display:none;padding:16px;text-align:left;"></div>
     <!-- Stats -->
     <div class="stats-row" id="statsRow"></div>
     <!-- Confirmed Bookings -->
@@ -175,6 +177,17 @@ async function loadData() {
     }
   }
 
+  // Load points info
+  try {
+    var pointsResp = await fetch(API_BASE + '/points', { headers: getAuthHeaders() });
+    if (pointsResp.ok) {
+      var pointsData = await pointsResp.json();
+      renderPointsCard(pointsData);
+    }
+  } catch(e) {
+    console.warn('Failed to load points', e);
+  }
+
   // Load bookings in parallel
   try {
     var resp1 = await fetch(API_BASE + '/bookings/my?status=confirmed', { headers: getAuthHeaders() });
@@ -243,6 +256,111 @@ function renderMembershipCard(current, userObj) {
     + '</div>'
     + '</div>';
 }
+
+function renderPointsCard(data) {
+  if (!data || data.points == null) return;
+  var card = document.getElementById('pointsCard');
+  card.style.display = 'block';
+
+  var pts = data.points;
+  var tierLabel = data.tier ? data.tier.label : '🥉 銅牌';
+  var tierColor = data.tier ? data.tier.color : '#CD7F32';
+  var nextTier = data.nextTier;
+  var progress = data.tierProgress || 0;
+  var streak = data.checkinStreak || 0;
+  var checkedIn = data.checkedInToday;
+  var monthEarned = data.monthEarned || 0;
+
+  var progressHtml = '';
+  if (nextTier) {
+    var need = nextTier.minPoints - (data.tier ? data.tier.minPoints : 0);
+    var have = pts - (data.tier ? data.tier.minPoints : 0);
+    var pct = need > 0 ? Math.round(have / need * 100) : 0;
+    progressHtml = '<div style="margin-top:10px;">'
+      + '<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--dark-700);margin-bottom:4px;">'
+      + '<span>' + tierLabel + '</span>'
+      + '<span>' + nextTier.label + '</span>'
+      + '</div>'
+      + '<div style="height:6px;background:var(--gray-200);border-radius:3px;overflow:hidden;">'
+      + '<div style="height:100%;width:' + pct + '%;background:' + tierColor + ';border-radius:3px;transition:width .5s;"></div>'
+      + '</div>'
+      + '<div style="font-size:10px;color:var(--dark-700);margin-top:4px;text-align:center;">'
+      + '尚餘 ' + (nextTier.minPoints - pts) + ' 分升級 ' + nextTier.label
+      + '</div>'
+      + '</div>';
+  } else {
+    progressHtml = '<div style="margin-top:8px;font-size:12px;color:var(--orange-500);font-weight:600;text-align:center;">'
+      + '🏆 已達最高等級！'
+      + '</div>';
+  }
+
+  var checkinBtn = checkedIn
+    ? '<span style="font-size:11px;color:var(--green-500);font-weight:600;">✅ 今日已簽到</span>'
+    : '<button style="padding:6px 14px;background:var(--orange-500);color:white;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;" onclick="doCheckin()">📅 簽到</button>';
+
+  card.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">'
+    + '<div style="font-size:14px;font-weight:600;display:flex;align-items:center;gap:6px;">'
+    + tierLabel + ' <span style="font-size:22px;font-weight:800;color:' + tierColor + ';">' + pts + '</span> 積分</div>'
+    + '<span style="font-size:13px;color:var(--orange-500);font-weight:600;cursor:pointer;" onclick="location.href=\'points.html\'">詳細 &gt;</span>'
+    + '</div>'
+    + '<div style="display:flex;gap:10px;margin-bottom:8px;">'
+    + '<div style="flex:1;padding:8px;background:var(--orange-50);border-radius:8px;text-align:center;">'
+    + '<div style="font-size:14px;font-weight:700;color:var(--orange-500);">' + monthEarned + '</div>'
+    + '<div style="font-size:10px;color:var(--dark-700);\'>本月賺取</div>'
+    + '</div>'
+    + '<div style="flex:1;padding:8px;background:var(--green-50);border-radius:8px;text-align:center;">'
+    + '<div style="font-size:14px;font-weight:700;color:var(--green-500);">🔥 ' + streak + '</div>'
+    + '<div style="font-size:10px;color:var(--dark-700);\'>連續簽到</div>'
+    + '</div>'
+    + '<div style="flex:1;display:flex;align-items:center;justify-content:center;">'
+    + checkinBtn
+    + '</div>'
+    + '</div>'
+    + progressHtml;
+}
+
+function doCheckin() {
+  fetch(API_BASE + '/points/checkin', {
+    method: 'POST',
+    headers: getAuthHeaders()
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    if (data.success) {
+      // Refresh points
+      return fetch(API_BASE + '/points', { headers: getAuthHeaders() })
+        .then(function(r) { return r.json(); })
+        .then(function(ptsData) {
+          renderPointsCard(ptsData);
+          // Show toast
+          showToast("🎉 簽到成功！獲得 +" + data.points + " 積分");
+        });
+    } else if (data.alreadyCheckedIn) {
+      showToast("✅ 今日已簽到");
+    } else {
+      showToast("⚠️ 簽到失敗：" + (data.error || '請稍後再試'));
+    }
+  })
+  .catch(function() {
+    showToast("⚠️ 簽到失敗，請檢查網絡");
+  });
+}
+
+function showToast(msg) {
+  var existing = document.getElementById('toast');
+  if (existing) existing.remove();
+  var t = document.createElement('div');
+  t.id = 'toast';
+  t.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1A1A2E;color:white;padding:12px 24px;border-radius:12px;font-size:14px;font-weight:500;z-index:999;box-shadow:0 4px 20px rgba(0,0,0,0.2);animation:fadeInUp .3s;max-width:90%;text-align:center;';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(function() { t.style.opacity = '0'; t.style.transition = 'opacity .3s'; setTimeout(function() { t.remove(); }, 300); }, 2500);
+}
+
+// Add toast animation
+var styleSheet = document.createElement('style');
+styleSheet.textContent = '@keyframes fadeInUp { from { opacity:0; transform:translateX(-50%) translateY(20px); } to { opacity:1; transform:translateX(-50%) translateY(0); } }';
+document.head.appendChild(styleSheet);
 
 function renderStats(all) {
   var confirmed = 0, pending = 0, cancelled = 0, attended = 0;

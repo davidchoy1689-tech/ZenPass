@@ -376,6 +376,102 @@ function initDatabase() {
     );
   } catch (e) {}
 
+  // ===== 積分系統 (Points/Loyalty) - 相容升級 =====
+  try {
+    db.exec("ALTER TABLE users ADD COLUMN points INTEGER DEFAULT 0");
+  } catch (e) {}
+  try {
+    db.exec("ALTER TABLE users ADD COLUMN points_tier TEXT DEFAULT 'bronze'");
+  } catch (e) {}
+  try {
+    db.exec("ALTER TABLE users ADD COLUMN points_tier_label TEXT DEFAULT '🥉 銅牌'");
+  } catch (e) {}
+  try {
+    db.exec("ALTER TABLE users ADD COLUMN last_checkin TEXT");
+  } catch (e) {}
+  try {
+    db.exec("ALTER TABLE users ADD COLUMN checkin_streak INTEGER DEFAULT 0");
+  } catch (e) {}
+
+  // ===== 積分交易紀錄 =====
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS points_transactions (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      type TEXT NOT NULL CHECK(type IN ('earn','spend')),
+      points INTEGER NOT NULL,
+      balance_after INTEGER NOT NULL,
+      source TEXT NOT NULL CHECK(source IN ('booking','checkin','review','referral','streak_bonus','weekly_bonus','redeem','admin','signup_bonus','other')),
+      reference_id TEXT,
+      description TEXT,
+      created_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    );
+  `);
+  try {
+    db.exec("CREATE INDEX IF NOT EXISTS idx_points_user ON points_transactions(user_id)");
+    db.exec("CREATE INDEX IF NOT EXISTS idx_points_user_time ON points_transactions(user_id, created_at DESC)");
+  } catch (e) {}
+
+  // ===== 積分獎勵目錄 =====
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS points_rewards (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      description TEXT,
+      points_cost INTEGER NOT NULL,
+      reward_type TEXT NOT NULL CHECK(reward_type IN ('discount','credit','free_class','merchandise','other')),
+      reward_value TEXT,
+      icon TEXT DEFAULT '🎁',
+      stock INTEGER DEFAULT -1,
+      is_active INTEGER DEFAULT 1,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+  `);
+
+  // ===== 積分兌換記錄 =====
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS points_redemptions (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      reward_id TEXT NOT NULL,
+      reward_name TEXT NOT NULL,
+      points_spent INTEGER NOT NULL,
+      reward_value TEXT,
+      status TEXT DEFAULT 'active' CHECK(status IN ('active','used','expired')),
+      expires_at TEXT,
+      created_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (user_id) REFERENCES users(id),
+      FOREIGN KEY (reward_id) REFERENCES points_rewards(id)
+    );
+  `);
+  try {
+    db.exec("CREATE INDEX IF NOT EXISTS idx_redemptions_user ON points_redemptions(user_id)");
+  } catch (e) {}
+
+  // ===== 預設獎勵種子數據 =====
+  const existingRewards = db.prepare("SELECT COUNT(*) as count FROM points_rewards").get();
+  if (existingRewards.count === 0) {
+    const insertReward = db.prepare(`
+      INSERT INTO points_rewards (id, name, description, points_cost, reward_type, reward_value, icon)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `);
+    const rewards = [
+      ['rwd_01', '\$10 折扣碼', '下次預約即減 \$10', 200, 'discount', '10', '🎫'],
+      ['rwd_02', '\$25 折扣碼', '下次預約即減 \$25', 450, 'discount', '25', '🎫'],
+      ['rwd_03', '5 點 Credits', '即時獲得 5 點 Credits', 800, 'credit', '5', '⭐'],
+      ['rwd_04', '10 點 Credits', '即時獲得 10 點 Credits', 1500, 'credit', '10', '⭐'],
+      ['rwd_05', '免費堂數 1 堂', '免費參加一堂常規課程（任何類別）', 2000, 'free_class', '1', '🏅'],
+      ['rwd_06', 'ZenPass 環保袋', '限量版 ZenPass 環保購物袋', 500, 'merchandise', 'bag', '🛍️'],
+      ['rwd_07', '私人教練體驗 1 節', '一對一私人教練體驗課 60 分鐘', 3500, 'free_class', 'pt_session', '💪'],
+    ];
+    const insertMany = db.transaction((rewards) => {
+      for (const r of rewards) insertReward.run(...r);
+    });
+    insertMany(rewards);
+    console.log('✅ 已初始化 7 個積分獎勵');
+  }
+
   console.log("✅ 數據庫初始化完成:", DB_PATH);
   db.close();
 }

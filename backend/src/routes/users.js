@@ -19,7 +19,8 @@ router.get("/profile", authenticateToken, (req, res) => {
       .prepare(
         `
       SELECT id, email, name, phone, avatar_url, credits, membership_type,
-             membership_expires_at, is_coach, coach_verified, created_at
+             membership_expires_at, is_coach, coach_verified, created_at,
+             points, points_tier, points_tier_label, last_checkin, checkin_streak
       FROM users WHERE id = ?
     `,
       )

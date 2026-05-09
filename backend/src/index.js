@@ -89,6 +89,7 @@ app.use("/api/upload", require("./routes/upload"));
 app.use("/api/backup", require("./routes/backup"));
 app.use("/api/course-contents", require("./routes/course-contents"));
 app.use("/api/migrate", require("./routes/migrate"));
+app.use("/api/points", require("./routes/points"));
 
 // ===== 健康檢查 =====
 app.get("/api/health", (req, res) => {
