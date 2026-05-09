@@ -472,6 +472,84 @@ function initDatabase() {
     console.log('✅ 已初始化 7 個積分獎勵');
   }
 
+  // ===== 勳章定義表 =====
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS badges (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      description TEXT NOT NULL,
+      icon TEXT DEFAULT '🏅',
+      category TEXT NOT NULL CHECK(category IN ('attendance','explorer','streak','social','special')),
+      condition_type TEXT NOT NULL,
+      condition_value TEXT NOT NULL,
+      sort_order INTEGER DEFAULT 0,
+      is_hidden INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+  `);
+
+  // ===== 用戶勳章表 =====
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS user_badges (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      badge_id TEXT NOT NULL,
+      earned_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (user_id) REFERENCES users(id),
+      FOREIGN KEY (badge_id) REFERENCES badges(id),
+      UNIQUE(user_id, badge_id)
+    );
+  `);
+  try {
+    db.exec("CREATE INDEX IF NOT EXISTS idx_user_badges_user ON user_badges(user_id)");
+  } catch (e) {}
+
+  // ===== 預設勳章種子數據 =====
+  const existingBadges = db.prepare("SELECT COUNT(*) as count FROM badges").get();
+  if (existingBadges.count === 0) {
+    const insertBadge = db.prepare(`
+      INSERT INTO badges (id, name, description, icon, category, condition_type, condition_value, sort_order)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    const badges = [
+      // 出席類
+      ['bdg_att_01', '初出茅廬', '首次完成課程預約', '🌱', 'attendance', 'total_bookings', '1', 1],
+      ['bdg_att_02', '運動初心者', '完成 10 堂課程', '🏃', 'attendance', 'total_bookings', '10', 2],
+      ['bdg_att_03', '運動愛好者', '完成 25 堂課程', '💪', 'attendance', 'total_bookings', '25', 3],
+      ['bdg_att_04', '運動達人', '完成 50 堂課程', '🏆', 'attendance', 'total_bookings', '50', 4],
+      ['bdg_att_05', '傳奇運動員', '完成 100 堂課程', '👑', 'attendance', 'total_bookings', '100', 5],
+
+      // 類別探索類
+      ['bdg_exp_01', '好奇寶寶', '嘗試 2 種不同類別課程', '🔍', 'explorer', 'categories_count', '2', 10],
+      ['bdg_exp_02', '探索者', '嘗試 4 種不同類別課程', '🎯', 'explorer', 'categories_count', '4', 11],
+      ['bdg_exp_03', '全能運動員', '嘗試全部類別課程', '🌟', 'explorer', 'categories_count', '5', 12],
+
+      // 連續挑戰類
+      ['bdg_str_01', '持續努力', '連續簽到 3 天', '🔥', 'streak', 'checkin_streak', '3', 20],
+      ['bdg_str_02', '一週達人', '連續簽到 7 天', '🔥', 'streak', 'checkin_streak', '7', 21],
+      ['bdg_str_03', '半個月挑戰', '連續簽到 15 天', '🌟', 'streak', 'checkin_streak', '15', 22],
+      ['bdg_str_04', '鐵人認證', '連續簽到 30 天', '💎', 'streak', 'checkin_streak', '30', 23],
+
+      // 社交貢獻類
+      ['bdg_soc_01', '評論家', '撰寫 5 個課後評價', '⭐', 'social', 'reviews_count', '5', 30],
+      ['bdg_soc_02', '專業評論', '撰寫 15 個課後評價', '📝', 'social', 'reviews_count', '15', 31],
+      ['bdg_soc_03', '社交蝴蝶', '推薦 1 位朋友', '👥', 'social', 'referrals_count', '1', 32],
+      ['bdg_soc_04', '人氣王', '推薦 3 位朋友', '🤝', 'social', 'referrals_count', '3', 33],
+
+      // 特別成就類
+      ['bdg_spc_01', '星光會員', '達到銀牌等級', '🥈', 'special', 'points_tier', 'silver', 40],
+      ['bdg_spc_02', '金牌貴賓', '達到金牌等級', '🥇', 'special', 'points_tier', 'gold', 41],
+      ['bdg_spc_03', '鑽石尊享', '達到鑽石等級', '💎', 'special', 'points_tier', 'diamond', 42],
+      ['bdg_spc_04', '成就大師', '獲得 10 個勳章', '🥇', 'special', 'total_badges', '10', 43],
+      ['bdg_spc_05', '完美收集', '獲得 20 個勳章', '🏅', 'special', 'total_badges', '20', 44],
+    ];
+    const insertMany = db.transaction((badges) => {
+      for (const b of badges) insertBadge.run(...b);
+    });
+    insertMany(badges);
+    console.log('✅ 已初始化 ' + badges.length + ' 個 ZenPass 勳章');
+  }
+
   console.log("✅ 數據庫初始化完成:", DB_PATH);
   db.close();
 }

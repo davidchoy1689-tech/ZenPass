@@ -641,6 +641,7 @@ function showUserMenu() {
             <a href="#" onclick="showMyBookings(); return false;">📅 我的預約</a>
             <a href="#" onclick="showMyMembership(); return false;">💎 我的會籍</a>
             <a href="points.html">🎯 積分中心</a>
+            <a href="badges.html">🏅 勳章牆</a>
             <a href="#" onclick="showMyProfile(); return false;">👤 個人資料</a>
             <hr>
             <a href="#" onclick="logout(); return false;" style="color:#EF4444;">🚪 登出</a>

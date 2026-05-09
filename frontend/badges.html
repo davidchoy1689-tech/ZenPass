@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>勳章牆 - ZenPass 禪流</title>
+<link rel="icon" type="image/png" href="icons/favicon-96x96.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --orange-500: #FF6B35;
+  --orange-600: #E55A2B;
+  --orange-50: #FFF3ED;
+  --green-500: #059669;
+  --green-50: #ECFDF5;
+  --purple-500: #8B5CF6;
+  --purple-50: #F5F3FF;
+  --blue-500: #3B82F6;
+  --blue-50: #EFF6FF;
+  --red-500: #EF4444;
+  --dark-900: #1A1A2E;
+  --dark-800: #2D2D3A;
+  --dark-700: #6B7280;
+  --gray-200: #E5E7EB;
+  --gray-100: #F3F4F6;
+  --gray-50: #F9FAFB;
+  --white: #FFFFFF;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'Inter',-apple-system,sans-serif; background:var(--gray-50); color:var(--dark-900); min-height:100vh; }
+.header { background:var(--white); border-bottom:1px solid var(--gray-200); padding:16px 20px; display:flex; align-items:center; gap:12px; position:sticky; top:0; z-index:10; }
+.header h1 { font-size:18px; font-weight:700; flex:1; }
+.back-btn { font-size:20px; cursor:pointer; text-decoration:none; color:var(--dark-900); background:none; border:none; padding:4px; }
+.container { max-width:500px; margin:0 auto; padding:16px; }
+.loading { text-align:center; padding:60px 20px; color:var(--dark-700); }
+.spinner { width:32px; height:32px; border:3px solid var(--gray-200); border-top:3px solid var(--orange-500); border-radius:50%; animation:spin .8s linear infinite; margin:0 auto 12px; }
+@keyframes spin { to { transform:rotate(360deg); } }
+.hidden { display:none !important; }
+
+/* Stats Bar */
+.stats-bar { background:linear-gradient(135deg, #1A1A2E, #2D2D3A); border-radius:16px; padding:20px; color:white; margin-bottom:16px; text-align:center; }
+.stats-bar .big-num { font-size:42px; font-weight:800; line-height:1; }
+.stats-bar .label { font-size:13px; opacity:.7; margin-top:4px; }
+.stats-bar .row { display:flex; gap:12px; margin-top:14px; }
+.stats-bar .stat-item { flex:1; background:rgba(255,255,255,.08); border-radius:10px; padding:10px; text-align:center; }
+.stats-bar .stat-num { font-size:18px; font-weight:700; }
+.stats-bar .stat-label { font-size:10px; opacity:.6; margin-top:2px; }
+
+/* Progress */
+.progress-section { background:var(--white); border-radius:12px; padding:16px; margin-bottom:16px; box-shadow:0 1px 3px rgba(0,0,0,.06); }
+.progress-item { display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid var(--gray-100); }
+.progress-item:last-child { border-bottom:none; }
+.progress-item .p-icon { font-size:20px; width:32px; text-align:center; }
+.progress-item .p-info { flex:1; }
+.progress-item .p-label { font-size:13px; font-weight:500; }
+.progress-item .p-detail { font-size:11px; color:var(--dark-700); margin-top:2px; }
+.progress-item .p-bar { width:70px; height:6px; background:var(--gray-200); border-radius:3px; overflow:hidden; }
+.progress-item .p-fill { height:100%; border-radius:3px; transition:width .5s; }
+
+/* Tab */
+.tab-bar { display:flex; background:var(--gray-100); border-radius:10px; padding:3px; margin-bottom:14px; }
+.tab { flex:1; text-align:center; padding:8px; border:none; border-radius:8px; font-size:13px; font-weight:500; cursor:pointer; background:transparent; color:var(--dark-700); transition:.2s; }
+.tab.active { background:var(--white); color:var(--orange-500); font-weight:600; box-shadow:0 1px 3px rgba(0,0,0,.08); }
+
+/* Badge Grid */
+.badge-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
+.badge-card { background:var(--white); border-radius:12px; padding:16px 10px; text-align:center; box-shadow:0 1px 3px rgba(0,0,0,.06); transition:.2s; }
+.badge-card.earned { border:2px solid var(--orange-500); }
+.badge-card.locked { opacity:.4; }
+.badge-card .b-icon { font-size:36px; margin-bottom:6px; transition:.3s; }
+.badge-card.earned .b-icon { animation:popIn .4s; }
+@keyframes popIn { 0%{transform:scale(0)} 70%{transform:scale(1.2)} 100%{transform:scale(1)} }
+.badge-card .b-name { font-size:11px; font-weight:600; margin-bottom:2px; }
+.badge-card .b-category { font-size:9px; color:var(--dark-700); }
+.badge-card .b-new { display:inline-block; margin-top:4px; padding:2px 8px; background:var(--orange-500); color:white; border-radius:10px; font-size:9px; font-weight:600; animation:pulse 1.5s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.6} }
+.badge-card .b-earned-at { font-size:9px; color:var(--green-500); font-weight:500; margin-top:2px; }
+
+/* Category Headers */
+.cat-header { display:flex; align-items:center; gap:8px; margin:16px 0 8px; }
+.cat-header h3 { font-size:14px; font-weight:600; }
+.cat-header .count { font-size:12px; color:var(--dark-700); font-weight:400; }
+
+/* Modal */
+.modal-overlay { display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,.6); z-index:100; align-items:center; justify-content:center; padding:24px; }
+.modal-overlay.show { display:flex; }
+.modal { background:var(--white); border-radius:20px; padding:28px; max-width:340px; width:100%; text-align:center; }
+.modal .modal-icon { font-size:64px; margin-bottom:12px; animation:popIn .5s; }
+.modal .modal-title { font-size:20px; font-weight:700; margin-bottom:4px; }
+.modal .modal-desc { font-size:14px; color:var(--dark-700); margin-bottom:20px; }
+.modal .modal-btn { width:100%; padding:12px; border:none; border-radius:12px; font-size:15px; font-weight:600; cursor:pointer; background:var(--orange-500); color:white; }
+
+/* Reward badges section */
+.reward-section { background:var(--white); border-radius:12px; padding:16px; margin-bottom:16px; box-shadow:0 1px 3px rgba(0,0,0,.06); }
+.reward-section h3 { font-size:14px; font-weight:600; margin-bottom:10px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <button class="back-btn" onclick="history.back()">←</button>
+  <h1>🏅 勳章牆</h1>
+  <span></span>
+</div>
+
+<div class="container">
+  <div class="loading" id="loadingState">
+    <div class="spinner"></div>
+    <div>正在載入勳章...</div>
+  </div>
+
+  <div id="contentArea" class="hidden">
+
+    <!-- Stats Bar -->
+    <div class="stats-bar" id="statsBar"></div>
+
+    <!-- Progress -->
+    <div class="progress-section" id="progressSection"></div>
+
+    <!-- Tab Bar -->
+    <div class="tab-bar">
+      <button class="tab active" data-tab="all" onclick="switchTab('all')">🗂️ 全部</button>
+      <button class="tab" data-tab="earned" onclick="switchTab('earned')">✅ 已獲得</button>
+      <button class="tab" data-tab="locked" onclick="switchTab('locked')">🔒 未解鎖</button>
+    </div>
+
+    <!-- Badges -->
+    <div id="badgesContainer"></div>
+
+  </div>
+</div>
+
+<!-- New Badge Modal -->
+<div class="modal-overlay" id="newBadgeModal">
+  <div class="modal">
+    <div class="modal-icon" id="newBadgeIcon">🏅</div>
+    <div class="modal-title" id="newBadgeTitle">新勳章解鎖！</div>
+    <div class="modal-desc" id="newBadgeDesc">繼續努力，解鎖更多成就！</div>
+    <button class="modal-btn" onclick="closeNewBadgeModal()">太棒了！</button>
+  </div>
+</div>
+
+<script>
+var API_BASE = localStorage.getItem('zenpass_api_base') || window.location.origin;
+var TOKEN_KEY = 'zenpass_token';
+
+function getHeaders() {
+  var h = { 'Content-Type': 'application/json' };
+  var t = localStorage.getItem(TOKEN_KEY);
+  if (t) h['Authorization'] = 'Bearer ' + t;
+  return h;
+}
+
+var newBadgesQueue = [];
+
+// ===== Load =====
+async function loadAll() {
+  showLoading();
+  try {
+    var [badgesRes, progressRes] = await Promise.all([
+      fetch(API_BASE + '/badges', { headers: getHeaders() }),
+      fetch(API_BASE + '/badges/progress', { headers: getHeaders() }),
+    ]);
+
+    var badgesData = await badgesRes.json();
+    var progressData = await progressRes.json();
+
+    renderStats(badgesData, progressData);
+    renderProgress(progressData.stats);
+    renderBadges(badgesData.badges, 'all');
+
+    showContent();
+
+    // Check for new badges (auto-trigger)
+    var checkRes = await fetch(API_BASE + '/badges/check', { method: 'POST', headers: getHeaders() });
+    var checkData = await checkRes.json();
+    if (checkData.newBadges && checkData.newBadges.length > 0) {
+      newBadgesQueue = checkData.newBadges;
+      // Refresh
+      return loadAll();
+    }
+
+  } catch(e) {
+    document.getElementById('loadingState').innerHTML = '<div style="text-align:center;padding:40px;color:var(--red-500);font-weight:600;">⚠️ 載入失敗<br><span style="font-size:13px;color:var(--dark-700);font-weight:400;">' + e.message + '</span></div>';
+  }
+}
+
+// ===== Render Stats =====
+function renderStats(badgesData, progressData) {
+  var total = badgesData.total || 22;
+  var earned = badgesData.earned || 0;
+  var stats = progressData.stats || {};
+  var pct = total > 0 ? Math.round(earned / total * 100) : 0;
+
+  document.getElementById('statsBar').innerHTML =
+    '<div style="display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:8px;">'
+    + '<div><div class="big-num">' + earned + '</div><div class="label">已獲得</div></div>'
+    + '<div style="font-size:24px;opacity:.3;">/</div>'
+    + '<div><div class="big-num" style="opacity:.5;">' + total + '</div><div class="label">全部勳章</div></div>'
+    + '</div>'
+    + '<div style="height:6px;background:rgba(255,255,255,.15);border-radius:3px;overflow:hidden;margin:0 20px;">'
+    + '<div style="height:100%;width:' + pct + '%;background:var(--orange-500);border-radius:3px;transition:width .8s;"></div>'
+    + '</div>'
+    + '<div class="row">'
+    + '<div class="stat-item"><div class="stat-num">' + (stats.total_bookings || 0) + '</div><div class="stat-label">完成課堂</div></div>'
+    + '<div class="stat-item"><div class="stat-num">🔥 ' + (stats.checkin_streak || 0) + '</div><div class="stat-label">連續簽到</div></div>'
+    + '<div class="stat-item"><div class="stat-num">' + (stats.categories_explored || 0) + '/' + (stats.total_categories || 0) + '</div><div class="stat-label">探索類別</div></div>'
+    + '</div>';
+}
+
+// ===== Render Progress =====
+function renderProgress(stats) {
+  var el = document.getElementById('progressSection');
+  if (!stats) { el.style.display = 'none'; return; }
+  el.style.display = 'block';
+
+  var items = [
+    { icon: '🏋️', label: '完成課堂', detail: stats.total_bookings + ' / 100', current: Math.min(stats.total_bookings || 0, 100), max: 100, color: 'var(--blue-500)' },
+    { icon: '🔍', label: '探索類別', detail: stats.categories_explored + ' / ' + stats.total_categories, current: stats.categories_explored || 0, max: stats.total_categories || 5, color: 'var(--purple-500)' },
+    { icon: '🔥', label: '連續簽到', detail: stats.checkin_streak + ' / 30', current: Math.min(stats.checkin_streak || 0, 30), max: 30, color: 'var(--orange-500)' },
+    { icon: '⭐', label: '課後評價', detail: stats.reviews_count + ' / 15', current: Math.min(stats.reviews_count || 0, 15), max: 15, color: 'var(--green-500)' },
+  ];
+
+  el.innerHTML = '<h3 style="font-size:13px;font-weight:600;margin-bottom:8px;color:var(--dark-700);">📊 進度概覽</h3>'
+    + items.map(function(item) {
+      var pct = item.max > 0 ? Math.round(item.current / item.max * 100) : 0;
+      return '<div class="progress-item">'
+        + '<div class="p-icon">' + item.icon + '</div>'
+        + '<div class="p-info"><div class="p-label">' + item.label + '</div><div class="p-detail">' + item.detail + '</div></div>'
+        + '<div class="p-bar"><div class="p-fill" style="width:' + pct + '%;background:' + item.color + ';"></div></div>'
+        + '</div>';
+    }).join('');
+}
+
+// ===== Render Badges =====
+function renderBadges(badges, filter) {
+  if (!badges || !badges.length) {
+    document.getElementById('badgesContainer').innerHTML = '<div style="text-align:center;padding:40px;color:var(--dark-700);font-size:13px;">暫無勳章資料</div>';
+    return;
+  }
+
+  var filtered = badges;
+  if (filter === 'earned') filtered = badges.filter(function(b) { return b.earned; });
+  if (filter === 'locked') filtered = badges.filter(function(b) { return !b.earned; });
+
+  // Group by category
+  var catMap = {
+    attendance: { label: '🏋️ 出席成就', icon: '🏋️' },
+    explorer: { label: '🔍 探索成就', icon: '🔍' },
+    streak: { label: '🔥 連續挑戰', icon: '🔥' },
+    social: { label: '👥 社交成就', icon: '👥' },
+    special: { label: '💎 特別成就', icon: '💎' },
+  };
+
+  var grouped = {};
+  filtered.forEach(function(b) {
+    var cat = catMap[b.category] || { label: b.category };
+    if (!grouped[b.category]) grouped[b.category] = { label: cat.label, badges: [] };
+    grouped[b.category].badges.push(b);
+  });
+
+  var html = '';
+  Object.keys(catMap).forEach(function(catKey) {
+    var group = grouped[catKey];
+    if (!group) return;
+    var catLabel = catMap[catKey].label;
+    var earnedInCat = group.badges.filter(function(b) { return b.earned; }).length;
+    html += '<div class="cat-header"><h3>' + catLabel + '</h3><span class="count">' + earnedInCat + '/' + group.badges.length + '</span></div>'
+      + '<div class="badge-grid">'
+      + group.badges.map(function(b) {
+        var cls = b.earned ? 'earned' : 'locked';
+        var dateStr = '';
+        if (b.earned_at) {
+          var d = new Date(b.earned_at);
+          dateStr = (d.getMonth()+1) + '/' + d.getDate();
+        }
+        return '<div class="badge-card ' + cls + '" onclick="' + (b.earned ? '' : '') + '">'
+          + '<div class="b-icon">' + b.icon + '</div>'
+          + '<div class="b-name">' + escHtml(b.name) + '</div>'
+          + '<div class="b-category">' + escHtml(b.description) + '</div>'
+          + (b.earned && dateStr ? '<div class="b-earned-at">' + dateStr + ' 獲得</div>' : '')
+          + '</div>';
+      }).join('')
+      + '</div>';
+  });
+
+  if (html === '') {
+    html = '<div style="text-align:center;padding:40px;color:var(--dark-700);font-size:13px;">'
+      + (filter === 'earned' ? '尚未獲得任何勳章，開始你的運動旅程吧！' : '所有勳章已解鎖！🎉')
+      + '</div>';
+  }
+
+  document.getElementById('badgesContainer').innerHTML = html;
+}
+
+// ===== Tab =====
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
+  document.querySelector('.tab[data-tab="' + tab + '"]').classList.add('active');
+  // Re-render badges with filter
+  var badgesEl = document.querySelector('#badgesContainer');
+  if (badgesEl.hasAttribute('data-badges')) {
+    var badges = JSON.parse(badgesEl.getAttribute('data-badges'));
+    renderBadges(badges, tab);
+  }
+}
+
+// ===== New Badge Modal =====
+function showNewBadgeModal(icon, name, desc) {
+  document.getElementById('newBadgeIcon').textContent = icon;
+  document.getElementById('newBadgeTitle').textContent = '🏅 新勳章解鎖！';
+  document.getElementById('newBadgeDesc').innerHTML = '<strong style="font-size:22px;">' + icon + ' ' + name + '</strong><br><span style="font-size:13px;">' + desc + '</span>';
+  document.getElementById('newBadgeModal').classList.add('show');
+}
+
+function closeNewBadgeModal() {
+  document.getElementById('newBadgeModal').classList.remove('show');
+}
+
+// ===== Utils =====
+function escHtml(s) { if (!s) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function showLoading() {
+  document.getElementById('loadingState').classList.remove('hidden');
+  document.getElementById('contentArea').classList.add('hidden');
+}
+
+function showContent() {
+  document.getElementById('loadingState').classList.add('hidden');
+  document.getElementById('contentArea').classList.remove('hidden');
+}
+
+// ===== Init =====
+loadAll();
+</script>
+</body>
+</html>

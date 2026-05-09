@@ -100,6 +100,8 @@ body { font-family:'Inter',-apple-system,sans-serif; background:var(--gray-50); 
     <div class="profile-card" id="membershipCard" style="display:none;padding:16px;text-align:left;"></div>
     <!-- Points Card -->
     <div class="profile-card" id="pointsCard" style="display:none;padding:16px;text-align:left;"></div>
+    <!-- Badges Card -->
+    <div class="profile-card" id="badgesCard" style="display:none;padding:16px;text-align:left;"></div>
     <!-- Stats -->
     <div class="stats-row" id="statsRow"></div>
     <!-- Confirmed Bookings -->
@@ -186,6 +188,17 @@ async function loadData() {
     }
   } catch(e) {
     console.warn('Failed to load points', e);
+  }
+
+  // Load badges
+  try {
+    var badgesResp = await fetch(API_BASE + '/badges', { headers: getAuthHeaders() });
+    if (badgesResp.ok) {
+      var badgesData = await badgesResp.json();
+      renderBadgesCard(badgesData);
+    }
+  } catch(e) {
+    console.warn('Failed to load badges', e);
   }
 
   // Load bookings in parallel
@@ -317,6 +330,32 @@ function renderPointsCard(data) {
     + '</div>'
     + '</div>'
     + progressHtml;
+}
+
+function renderBadgesCard(data) {
+  if (!data || !data.badges) return;
+  var card = document.getElementById('badgesCard');
+  var earned = data.badges.filter(function(b) { return b.earned; });
+  var total = data.total || 0;
+  var recent = earned.slice(-3).reverse();
+
+  card.style.display = 'block';
+  var badgesHtml = recent.length ? recent.map(function(b) {
+    return '<span style="font-size:28px;cursor:default;" title="' + escHtml(b.name) + '">' + b.icon + '</span>';
+  }).join('') : '<span style="font-size:13px;color:var(--dark-700);">尚未獲得勳章</span>';
+
+  card.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">'
+    + '<div style="font-size:14px;font-weight:600;display:flex;align-items:center;gap:6px;">'
+    + '🏅 勳章牆 <span style="font-size:13px;font-weight:400;color:var(--dark-700);">' + earned.length + '/' + total + '</span></div>'
+    + '<span style="font-size:13px;color:var(--orange-500);font-weight:600;cursor:pointer;" onclick="location.href=\'badges.html\'">全部 &gt;</span>'
+    + '</div>'
+    + '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">'
+    + badgesHtml
+    + (earned.length > 3 ? '<span style="font-size:11px;color:var(--dark-700);">+' + (earned.length - 3) + ' 更多...</span>' : '')
+    + '</div>'
+    + '<div style="margin-top:8px;height:4px;background:var(--gray-200);border-radius:2px;overflow:hidden;">'
+    + '<div style="height:100%;width:' + (total > 0 ? Math.round(earned.length / total * 100) : 0) + '%;background:var(--orange-500);border-radius:2px;"></div>'
+    + '</div>';
 }
 
 function doCheckin() {
