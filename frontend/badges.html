@@ -236,8 +236,8 @@ async function loadAll() {
   showLoading();
   try {
     var [badgesRes, progressRes] = await Promise.all([
-      fetch(API_BASE + '/badges', { headers: getHeaders() }),
-      fetch(API_BASE + '/badges/progress', { headers: getHeaders() }),
+      fetch(API_BASE + '/api/badges', { headers: getHeaders() }),
+      fetch(API_BASE + '/api/badges/progress', { headers: getHeaders() }),
     ]);
 
     var badgesData = await badgesRes.json();
@@ -250,7 +250,7 @@ async function loadAll() {
     showContent();
 
     // Check for new badges (auto-trigger)
-    var checkRes = await fetch(API_BASE + '/badges/check', { method: 'POST', headers: getHeaders() });
+    var checkRes = await fetch(API_BASE + '/api/badges/check', { method: 'POST', headers: getHeaders() });
     var checkData = await checkRes.json();
     if (checkData.newBadges && checkData.newBadges.length > 0) {
       newBadgesQueue = checkData.newBadges;
