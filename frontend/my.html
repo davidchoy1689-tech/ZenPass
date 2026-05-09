@@ -341,7 +341,7 @@ function renderBadgesCard(data) {
 
   card.style.display = 'block';
   var badgesHtml = recent.length ? recent.map(function(b) {
-    return '<span style="font-size:28px;cursor:default;" title="' + escHtml(b.name) + '">' + b.icon + '</span>';
+    return '<span style="font-size:28px;cursor:pointer;" title="' + escHtml(b.name) + '" onclick="shareBadgeFromMy(\'' + b.icon + '\',\'' + escHtml(b.name) + '\',\'' + escHtml(b.description || '') + '\')">' + b.icon + '</span>';
   }).join('') : '<span style="font-size:13px;color:var(--dark-700);">尚未獲得勳章</span>';
 
   card.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">'
@@ -531,6 +531,42 @@ function formatTime(isoStr) {
   if (!isoStr) return '—';
   var d = new Date(isoStr);
   return String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+}
+
+// ===== Share Badge Functions =====
+var shareBadgeData = null;
+
+function shareBadgeFromMy(icon, name, desc) {
+  shareBadgeData = { icon: icon, name: name, desc: desc };
+  var text = '🏅 我在 ZenPass 解鎖咗【' + name + '】勳章！'
+    + '\n' + desc
+    + '\n\n一齊嚟運動啦！💪'
+    + '\n' + window.location.origin + '/badges.html';
+
+  if (navigator.share) {
+    navigator.share({
+      title: 'ZenPass 成就：' + name,
+      text: text,
+      url: window.location.origin + '/badges.html',
+    }).catch(function(e) {
+      if (e.name !== 'AbortError') shareFallback(icon, name, desc, text);
+    });
+  } else {
+    shareFallback(icon, name, desc, text);
+  }
+}
+
+function shareFallback(icon, name, desc, text) {
+  var platform = confirm('📘 Facebook 分享 → 按確定\n💬 WhatsApp 分享 → 按取消');
+  if (platform) {
+    var url = 'https://www.facebook.com/sharer/sharer.php?u='
+      + encodeURIComponent(window.location.origin + '/badges.html')
+      + '&quote=' + encodeURIComponent(text);
+    window.open(url, '_blank', 'width=600,height=400');
+  } else {
+    var url = 'https://wa.me/?text=' + encodeURIComponent(text);
+    window.open(url, '_blank');
+  }
 }
 
 var style = document.createElement('style');
