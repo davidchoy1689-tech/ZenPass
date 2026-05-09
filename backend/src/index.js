@@ -54,7 +54,7 @@ app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15分鐘
-  max: process.env.NODE_ENV === 'test' ? 1000 : 100,
+  max: process.env.NODE_ENV === 'test' ? 1000 : 500,
   message: { error: "太多請求，請稍後再試" },
 });
 app.use("/api/", limiter);

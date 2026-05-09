@@ -1,223 +1,367 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-HK">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ZenPass 成就分享</title>
-<link rel="icon" type="image/png" href="icons/favicon-96x96.png">
-<style>
-* { margin:0; padding:0; box-sizing:border-box; }
-body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:#F9FAFB; min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px; }
-.card { background:white; border-radius:24px; padding:32px 24px; max-width:400px; width:100%; text-align:center; box-shadow:0 4px 24px rgba(0,0,0,.08); position:relative; overflow:hidden; }
-
-/* Background accent */
-.card::before { content:''; position:absolute; top:0; left:0; right:0; height:6px; background:linear-gradient(90deg,#FF6B35,#FF8F5E,#FF6B35); }
-
-.badge-icon { font-size:80px; margin:16px 0 8px; line-height:1; }
-.badge-name { font-size:24px; font-weight:700; color:#1A1A2E; margin-bottom:4px; }
-.badge-desc { font-size:14px; color:#6B7280; margin-bottom:20px; }
-
-.divider { height:1px; background:#E5E7EB; margin:16px 0; }
-
-.app-section { margin:16px 0; }
-.app-section .title { font-size:15px; font-weight:600; color:#1A1A2E; margin-bottom:8px; }
-.app-btn { width:100%; padding:14px; border:none; border-radius:12px; font-size:16px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:10px; transition:.2s; margin-bottom:8px; text-decoration:none; }
-.app-btn:active { transform:scale(.97); }
-.app-btn.ios { background:#1A1A2E; color:white; }
-.app-btn.android { background:#3DDC84; color:#1A1A2E; }
-.app-btn .btn-icon { font-size:22px; }
-.app-btn .sub { font-size:11px; font-weight:400; opacity:.7; margin-left:2px; }
-
-/* QR Code */
-.qr-section { margin:12px 0; }
-.qr-section .qr-hint { font-size:12px; color:#6B7280; margin-bottom:8px; display:flex; align-items:center; justify-content:center; gap:6px; }
-canvas#qrCanvas { width:140px; height:140px; border-radius:12px; border:2px solid #F3F4F6; }
-
-/* Already have app? */
-.already { margin-top:4px; font-size:12px; color:#FF6B35; font-weight:600; cursor:pointer; text-decoration:none; display:inline-block; }
-
-/* Deep link click handler */
-@media (hover: hover) {
-  .already:hover { text-decoration:underline; }
-}
-
-/* Footer */
-.footer { margin-top:16px; font-size:11px; color:#9CA3AF; }
-.footer a { color:#FF6B35; text-decoration:none; }
-</style>
-</head>
-<body>
-<div class="card" id="app">
-  <!-- Dynamic content filled by JS -->
-  <div class="badge-icon" id="badgeIcon">🏅</div>
-  <div class="badge-name" id="badgeName">全能運動員</div>
-  <div class="badge-desc" id="badgeDesc">嘗試全部類別課程</div>
-  <div style="font-size:12px;color:#9CA3AF;margin-bottom:4px;">— 來自 ZenPass 禪流的成就 —</div>
-
-  <div class="divider"></div>
-
-  <div class="app-section">
-    <div class="title">📲 下載 ZenPass App</div>
-    <div id="appButtons">
-      <!-- Filled by JS based on device detection -->
-    </div>
-  </div>
-
-  <div class="qr-section" id="qrSection">
-    <div class="qr-hint">📱 Scan 下載 App</div>
-    <canvas id="qrCanvas"></canvas>
-  </div>
-
-  <a class="already" id="openAppLink" href="#" onclick="tryOpenApp(event)">🔗 已安裝 App？即時開啟 &gt;</a>
-
-  <div class="footer">
-    <a href="https://www.hklfcl.com" target="_blank">香港康樂及體育有限公司</a>
-  </div>
-</div>
-
-<script>
-// ===== CONFIG: 將來有 App 時改呢度就得 =====
-var APP_CONFIG = {
-  // iOS App Store URL (而家係 placeholder)
-  iosUrl: 'https://apps.apple.com/hk/app/zenpass/idXXXXXXXXX',
-  // Google Play URL (而家係 placeholder)
-  androidUrl: 'https://play.google.com/store/apps/details?id=com.zenpass.app',
-  // Deep link scheme (將來有 App 時用)
-  deepLinkScheme: 'zenpass://',
-  // Deep link path for badge achievement
-  deepLinkPath: '/badges',
-  // Universal link (iOS) / App Link (Android)
-  universalLink: 'https://zenpass.hk/open/badges',
-};
-
-// ===== 從 URL 讀取 badge 資料 =====
-function getParams() {
-  var params = new URLSearchParams(window.location.search);
-  return {
-    badge: params.get('badge') || 'ZenPass 成就',
-    icon: params.get('icon') || '🏅',
-    desc: params.get('desc') || '解鎖 ZenPass 成就',
-  };
-}
-
-// ===== 檢測裝置 =====
-function detectDevice() {
-  var ua = navigator.userAgent || navigator.vendor || window.opera;
-  var isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
-  var isAndroid = /Android/.test(ua);
-  var isMobile = isIOS || isAndroid || /Mobi|mobile/i.test(ua);
-  return { isIOS, isAndroid, isMobile };
-}
-
-// ===== 試開 App (Deep Link) =====
-function tryOpenApp(e) {
-  e.preventDefault();
-
-  var params = getParams();
-  var url = APP_CONFIG.universalLink + '?badge=' + encodeURIComponent(params.badge)
-    + '&icon=' + encodeURIComponent(params.icon)
-    + '&desc=' + encodeURIComponent(params.desc);
-
-  // Try universal link first (iOS 9+ / Android App Links)
-  window.location.href = url;
-
-  // Fallback: 如果 2 秒後仲喺度，redirect to app store
-  setTimeout(function() {
-    var device = detectDevice();
-    if (device.isIOS) {
-      window.location.href = APP_CONFIG.iosUrl;
-    } else if (device.isAndroid) {
-      window.location.href = APP_CONFIG.androidUrl;
-    }
-  }, 2000);
-}
-
-// ===== 生成簡易 QR Code（用 ASCII / 文字模擬，正式用 qrcode.js library）=====
-// 因為唔想加 external dependency，用簡單方式顯示 download URL
-function renderFallbackQR() {
-  var canvas = document.getElementById('qrCanvas');
-  var ctx = canvas.getContext('2d');
-
-  // 而家未有 QR library，畫個 placeholder
-  canvas.width = 140;
-  canvas.height = 140;
-  ctx.fillStyle = '#FFFFFF';
-  ctx.fillRect(0, 0, 140, 140);
-
-  // Draw a cute placeholder QR-like design
-  ctx.fillStyle = '#1A1A2E';
-  var size = 14;
-  for (var row = 0; row < 7; row++) {
-    for (var col = 0; col < 7; col++) {
-      if ((row + col) % 2 === 0) {
-        ctx.fillRect(4 + col * size, 4 + row * size, size, size);
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ZenPass 成就分享</title>
+    <link rel="icon" type="image/png" href="icons/favicon-96x96.png" />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
       }
-    }
-  }
-  // Corner patterns (QR-like)
-  ctx.fillStyle = '#FF6B35';
-  ctx.fillRect(4, 4, 30, 30);
-  ctx.fillRect(106, 4, 30, 30);
-  ctx.fillRect(4, 106, 30, 30);
-  ctx.fillStyle = '#FFFFFF';
-  ctx.fillRect(9, 9, 20, 20);
-  ctx.fillRect(111, 9, 20, 20);
-  ctx.fillRect(9, 111, 20, 20);
-  ctx.fillStyle = '#FF6B35';
-  ctx.fillRect(14, 14, 10, 10);
-  ctx.fillRect(116, 14, 10, 10);
-  ctx.fillRect(14, 116, 10, 10);
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background: #f9fafb;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+      }
+      .card {
+        background: white;
+        border-radius: 24px;
+        padding: 32px 24px;
+        max-width: 400px;
+        width: 100%;
+        text-align: center;
+        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+        position: relative;
+        overflow: hidden;
+      }
 
-  // Center text
-  ctx.fillStyle = '#1A1A2E';
-  ctx.font = '9px Arial';
-  ctx.textAlign = 'center';
-  ctx.fillText('ZENPASS', 70, 75);
-  ctx.font = '7px Arial';
-  ctx.fillText('Scan to', 70, 90);
-  ctx.fillText('Download', 70, 100);
-}
+      /* Background accent */
+      .card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 6px;
+        background: linear-gradient(90deg, #ff6b35, #ff8f5e, #ff6b35);
+      }
 
-// ===== Render Page =====
-function init() {
-  var params = getParams();
-  var device = detectDevice();
+      .badge-icon {
+        font-size: 80px;
+        margin: 16px 0 8px;
+        line-height: 1;
+      }
+      .badge-name {
+        font-size: 24px;
+        font-weight: 700;
+        color: #1a1a2e;
+        margin-bottom: 4px;
+      }
+      .badge-desc {
+        font-size: 14px;
+        color: #6b7280;
+        margin-bottom: 20px;
+      }
 
-  document.getElementById('badgeIcon').textContent = params.icon;
-  document.getElementById('badgeName').textContent = params.badge;
-  document.getElementById('badgeDesc').textContent = params.desc;
+      .divider {
+        height: 1px;
+        background: #e5e7eb;
+        margin: 16px 0;
+      }
 
-  // Render app download buttons
-  var btnHtml = '';
-  if (device.isIOS) {
-    btnHtml = '<a class="app-btn ios" href="' + APP_CONFIG.iosUrl + '" target="_blank">'
-      + '<span class="btn-icon">🍎</span> Download on the App Store</a>'
-      + '<a class="app-btn android" href="' + APP_CONFIG.androidUrl + '" target="_blank">'
-      + '<span class="btn-icon">▶️</span> GET IT ON Google Play</a>';
-  } else if (device.isAndroid) {
-    btnHtml = '<a class="app-btn android" href="' + APP_CONFIG.androidUrl + '" target="_blank">'
-      + '<span class="btn-icon">▶️</span> GET IT ON Google Play</a>'
-      + '<a class="app-btn ios" href="' + APP_CONFIG.iosUrl + '" target="_blank">'
-      + '<span class="btn-icon">🍎</span> Download on the App Store</a>';
-  } else {
-    // Desktop: show both
-    btnHtml = '<a class="app-btn ios" href="' + APP_CONFIG.iosUrl + '" target="_blank">'
-      + '<span class="btn-icon">🍎</span> App Store <span class="sub">iOS</span></a>'
-      + '<a class="app-btn android" href="' + APP_CONFIG.androidUrl + '" target="_blank">'
-      + '<span class="btn-icon">▶️</span> Google Play <span class="sub">Android</span></a>';
-  }
-  document.getElementById('appButtons').innerHTML = btnHtml;
+      .app-section {
+        margin: 16px 0;
+      }
+      .app-section .title {
+        font-size: 15px;
+        font-weight: 600;
+        color: #1a1a2e;
+        margin-bottom: 8px;
+      }
+      .app-btn {
+        width: 100%;
+        padding: 14px;
+        border: none;
+        border-radius: 12px;
+        font-size: 16px;
+        font-weight: 700;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        transition: 0.2s;
+        margin-bottom: 8px;
+        text-decoration: none;
+      }
+      .app-btn:active {
+        transform: scale(0.97);
+      }
+      .app-btn.ios {
+        background: #1a1a2e;
+        color: white;
+      }
+      .app-btn.android {
+        background: #3ddc84;
+        color: #1a1a2e;
+      }
+      .app-btn .btn-icon {
+        font-size: 22px;
+      }
+      .app-btn .sub {
+        font-size: 11px;
+        font-weight: 400;
+        opacity: 0.7;
+        margin-left: 2px;
+      }
 
-  // QR section: hide on mobile (users can tap buttons directly)
-  if (device.isMobile) {
-    document.getElementById('qrSection').style.display = 'none';
-  } else {
-    renderFallbackQR();
-  }
-}
+      /* QR Code */
+      .qr-section {
+        margin: 12px 0;
+      }
+      .qr-section .qr-hint {
+        font-size: 12px;
+        color: #6b7280;
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+      }
+      canvas#qrCanvas {
+        width: 140px;
+        height: 140px;
+        border-radius: 12px;
+        border: 2px solid #f3f4f6;
+      }
 
-// ===== Start =====
-init();
-</script>
-</body>
+      /* Already have app? */
+      .already {
+        margin-top: 4px;
+        font-size: 12px;
+        color: #ff6b35;
+        font-weight: 600;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-block;
+      }
+
+      /* Deep link click handler */
+      @media (hover: hover) {
+        .already:hover {
+          text-decoration: underline;
+        }
+      }
+
+      /* Footer */
+      .footer {
+        margin-top: 16px;
+        font-size: 11px;
+        color: #9ca3af;
+      }
+      .footer a {
+        color: #ff6b35;
+        text-decoration: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card" id="app">
+      <!-- Dynamic content filled by JS -->
+      <div class="badge-icon" id="badgeIcon">🏅</div>
+      <div class="badge-name" id="badgeName">全能運動員</div>
+      <div class="badge-desc" id="badgeDesc">嘗試全部類別課程</div>
+      <div style="font-size: 12px; color: #9ca3af; margin-bottom: 4px">
+        — 來自 ZenPass 禪流的成就 —
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="app-section">
+        <div class="title">📲 下載 ZenPass App</div>
+        <div id="appButtons">
+          <!-- Filled by JS based on device detection -->
+        </div>
+      </div>
+
+      <div class="qr-section" id="qrSection">
+        <div class="qr-hint">📱 Scan 下載 App</div>
+        <canvas id="qrCanvas"></canvas>
+      </div>
+
+      <a class="already" id="openAppLink" href="#" onclick="tryOpenApp(event)"
+        >🔗 已安裝 App？即時開啟 &gt;</a
+      >
+
+      <div class="footer">
+        <a href="https://www.hklfcl.com" target="_blank"
+          >香港康樂及體育有限公司</a
+        >
+      </div>
+    </div>
+
+    <script>
+      // ===== CONFIG: 將來有 App 時改呢度就得 =====
+      var APP_CONFIG = {
+        // iOS App Store URL (而家係 placeholder)
+        iosUrl: "https://apps.apple.com/hk/app/zenpass/idXXXXXXXXX",
+        // Google Play URL (而家係 placeholder)
+        androidUrl:
+          "https://play.google.com/store/apps/details?id=com.zenpass.app",
+        // Deep link scheme (將來有 App 時用)
+        deepLinkScheme: "zenpass://",
+        // Deep link path for badge achievement
+        deepLinkPath: "/badges",
+        // Universal link (iOS) / App Link (Android)
+        universalLink: "https://zenpass.hk/open/badges",
+      };
+
+      // ===== 從 URL 讀取 badge 資料 =====
+      function getParams() {
+        var params = new URLSearchParams(window.location.search);
+        return {
+          badge: params.get("badge") || "ZenPass 成就",
+          icon: params.get("icon") || "🏅",
+          desc: params.get("desc") || "解鎖 ZenPass 成就",
+        };
+      }
+
+      // ===== 檢測裝置 =====
+      function detectDevice() {
+        var ua = navigator.userAgent || navigator.vendor || window.opera;
+        var isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
+        var isAndroid = /Android/.test(ua);
+        var isMobile = isIOS || isAndroid || /Mobi|mobile/i.test(ua);
+        return { isIOS, isAndroid, isMobile };
+      }
+
+      // ===== 試開 App (Deep Link) =====
+      function tryOpenApp(e) {
+        e.preventDefault();
+
+        var params = getParams();
+        var url =
+          APP_CONFIG.universalLink +
+          "?badge=" +
+          encodeURIComponent(params.badge) +
+          "&icon=" +
+          encodeURIComponent(params.icon) +
+          "&desc=" +
+          encodeURIComponent(params.desc);
+
+        // Try universal link first (iOS 9+ / Android App Links)
+        window.location.href = url;
+
+        // Fallback: 如果 2 秒後仲喺度，redirect to app store
+        setTimeout(function () {
+          var device = detectDevice();
+          if (device.isIOS) {
+            window.location.href = APP_CONFIG.iosUrl;
+          } else if (device.isAndroid) {
+            window.location.href = APP_CONFIG.androidUrl;
+          }
+        }, 2000);
+      }
+
+      // ===== 生成簡易 QR Code（用 ASCII / 文字模擬，正式用 qrcode.js library）=====
+      // 因為唔想加 external dependency，用簡單方式顯示 download URL
+      function renderFallbackQR() {
+        var canvas = document.getElementById("qrCanvas");
+        var ctx = canvas.getContext("2d");
+
+        // 而家未有 QR library，畫個 placeholder
+        canvas.width = 140;
+        canvas.height = 140;
+        ctx.fillStyle = "#FFFFFF";
+        ctx.fillRect(0, 0, 140, 140);
+
+        // Draw a cute placeholder QR-like design
+        ctx.fillStyle = "#1A1A2E";
+        var size = 14;
+        for (var row = 0; row < 7; row++) {
+          for (var col = 0; col < 7; col++) {
+            if ((row + col) % 2 === 0) {
+              ctx.fillRect(4 + col * size, 4 + row * size, size, size);
+            }
+          }
+        }
+        // Corner patterns (QR-like)
+        ctx.fillStyle = "#FF6B35";
+        ctx.fillRect(4, 4, 30, 30);
+        ctx.fillRect(106, 4, 30, 30);
+        ctx.fillRect(4, 106, 30, 30);
+        ctx.fillStyle = "#FFFFFF";
+        ctx.fillRect(9, 9, 20, 20);
+        ctx.fillRect(111, 9, 20, 20);
+        ctx.fillRect(9, 111, 20, 20);
+        ctx.fillStyle = "#FF6B35";
+        ctx.fillRect(14, 14, 10, 10);
+        ctx.fillRect(116, 14, 10, 10);
+        ctx.fillRect(14, 116, 10, 10);
+
+        // Center text
+        ctx.fillStyle = "#1A1A2E";
+        ctx.font = "9px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText("ZENPASS", 70, 75);
+        ctx.font = "7px Arial";
+        ctx.fillText("Scan to", 70, 90);
+        ctx.fillText("Download", 70, 100);
+      }
+
+      // ===== Render Page =====
+      function init() {
+        var params = getParams();
+        var device = detectDevice();
+
+        document.getElementById("badgeIcon").textContent = params.icon;
+        document.getElementById("badgeName").textContent = params.badge;
+        document.getElementById("badgeDesc").textContent = params.desc;
+
+        // Render app download buttons
+        var btnHtml = "";
+        if (device.isIOS) {
+          btnHtml =
+            '<a class="app-btn ios" href="' +
+            APP_CONFIG.iosUrl +
+            '" target="_blank">' +
+            '<span class="btn-icon">🍎</span> Download on the App Store</a>' +
+            '<a class="app-btn android" href="' +
+            APP_CONFIG.androidUrl +
+            '" target="_blank">' +
+            '<span class="btn-icon">▶️</span> GET IT ON Google Play</a>';
+        } else if (device.isAndroid) {
+          btnHtml =
+            '<a class="app-btn android" href="' +
+            APP_CONFIG.androidUrl +
+            '" target="_blank">' +
+            '<span class="btn-icon">▶️</span> GET IT ON Google Play</a>' +
+            '<a class="app-btn ios" href="' +
+            APP_CONFIG.iosUrl +
+            '" target="_blank">' +
+            '<span class="btn-icon">🍎</span> Download on the App Store</a>';
+        } else {
+          // Desktop: show both
+          btnHtml =
+            '<a class="app-btn ios" href="' +
+            APP_CONFIG.iosUrl +
+            '" target="_blank">' +
+            '<span class="btn-icon">🍎</span> App Store <span class="sub">iOS</span></a>' +
+            '<a class="app-btn android" href="' +
+            APP_CONFIG.androidUrl +
+            '" target="_blank">' +
+            '<span class="btn-icon">▶️</span> Google Play <span class="sub">Android</span></a>';
+        }
+        document.getElementById("appButtons").innerHTML = btnHtml;
+
+        // QR section: hide on mobile (users can tap buttons directly)
+        if (device.isMobile) {
+          document.getElementById("qrSection").style.display = "none";
+        } else {
+          renderFallbackQR();
+        }
+      }
+
+      // ===== Start =====
+      init();
+    </script>
+  </body>
 </html>

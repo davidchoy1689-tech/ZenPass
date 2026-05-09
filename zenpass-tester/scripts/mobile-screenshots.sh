@@ -2,7 +2,7 @@
 # ZenPass Mobile Screenshot Test
 # Usage: bash scripts/mobile-screenshots.sh
 
-BASE_URL="${ZENPASS_URL:-http://192.168.1.215:3001}"
+BASE_URL="${ZENPASS_URL:-http://localhost:3001}"
 OUTPUT_DIR="test-reports/screenshots"
 mkdir -p "$OUTPUT_DIR"
 
@@ -15,7 +15,7 @@ cat > /tmp/zenpass-screenshots.js << 'SCRIPT'
 const { chromium } = require('playwright');
 const fs = require('fs');
 
-const BASE_URL = process.env.ZENPASS_URL || 'http://192.168.1.215:3001';
+const BASE_URL = process.env.ZENPASS_URL || 'http://localhost:3001';
 const OUTPUT_DIR = 'test-reports/screenshots';
 
 const PAGES = [

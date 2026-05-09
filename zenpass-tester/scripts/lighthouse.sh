@@ -2,7 +2,7 @@
 # ZenPass Lighthouse 性能測試
 # Usage: bash scripts/lighthouse.sh [url] [output-dir]
 
-BASE_URL="${1:-http://192.168.1.215:3001}"
+BASE_URL="${1:-http://localhost:3001}"
 OUTPUT_DIR="${2:-test-reports/lighthouse}"
 mkdir -p "$OUTPUT_DIR"
 

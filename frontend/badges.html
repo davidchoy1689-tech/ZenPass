@@ -1,700 +1,1313 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-HK">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>勳章牆 - ZenPass 禪流</title>
-<link rel="icon" type="image/png" href="icons/favicon-96x96.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
-<style>
-:root {
-  --orange-500: #FF6B35;
-  --orange-600: #E55A2B;
-  --orange-50: #FFF3ED;
-  --green-500: #059669;
-  --green-50: #ECFDF5;
-  --purple-500: #8B5CF6;
-  --purple-50: #F5F3FF;
-  --blue-500: #3B82F6;
-  --blue-50: #EFF6FF;
-  --red-500: #EF4444;
-  --dark-900: #1A1A2E;
-  --dark-800: #2D2D3A;
-  --dark-700: #6B7280;
-  --gray-200: #E5E7EB;
-  --gray-100: #F3F4F6;
-  --gray-50: #F9FAFB;
-  --white: #FFFFFF;
-}
-* { margin:0; padding:0; box-sizing:border-box; }
-body { font-family:'Inter',-apple-system,sans-serif; background:var(--gray-50); color:var(--dark-900); min-height:100vh; }
-.header { background:var(--white); border-bottom:1px solid var(--gray-200); padding:16px 20px; display:flex; align-items:center; gap:12px; position:sticky; top:0; z-index:10; }
-.header h1 { font-size:18px; font-weight:700; flex:1; }
-.back-btn { font-size:20px; cursor:pointer; text-decoration:none; color:var(--dark-900); background:none; border:none; padding:4px; }
-.container { max-width:500px; margin:0 auto; padding:16px; }
-.loading { text-align:center; padding:60px 20px; color:var(--dark-700); }
-.spinner { width:32px; height:32px; border:3px solid var(--gray-200); border-top:3px solid var(--orange-500); border-radius:50%; animation:spin .8s linear infinite; margin:0 auto 12px; }
-@keyframes spin { to { transform:rotate(360deg); } }
-.hidden { display:none !important; }
-
-/* Stats Bar */
-.stats-bar { background:linear-gradient(135deg, #1A1A2E, #2D2D3A); border-radius:16px; padding:20px; color:white; margin-bottom:16px; text-align:center; }
-.stats-bar .big-num { font-size:42px; font-weight:800; line-height:1; }
-.stats-bar .label { font-size:13px; opacity:.7; margin-top:4px; }
-.stats-bar .row { display:flex; gap:12px; margin-top:14px; }
-.stats-bar .stat-item { flex:1; background:rgba(255,255,255,.08); border-radius:10px; padding:10px; text-align:center; }
-.stats-bar .stat-num { font-size:18px; font-weight:700; }
-.stats-bar .stat-label { font-size:10px; opacity:.6; margin-top:2px; }
-
-/* Progress */
-.progress-section { background:var(--white); border-radius:12px; padding:16px; margin-bottom:16px; box-shadow:0 1px 3px rgba(0,0,0,.06); }
-.progress-item { display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid var(--gray-100); }
-.progress-item:last-child { border-bottom:none; }
-.progress-item .p-icon { font-size:20px; width:32px; text-align:center; }
-.progress-item .p-info { flex:1; }
-.progress-item .p-label { font-size:13px; font-weight:500; }
-.progress-item .p-detail { font-size:11px; color:var(--dark-700); margin-top:2px; }
-.progress-item .p-bar { width:70px; height:6px; background:var(--gray-200); border-radius:3px; overflow:hidden; }
-.progress-item .p-fill { height:100%; border-radius:3px; transition:width .5s; }
-
-/* Tab */
-.tab-bar { display:flex; background:var(--gray-100); border-radius:10px; padding:3px; margin-bottom:14px; }
-.tab { flex:1; text-align:center; padding:8px; border:none; border-radius:8px; font-size:13px; font-weight:500; cursor:pointer; background:transparent; color:var(--dark-700); transition:.2s; }
-.tab.active { background:var(--white); color:var(--orange-500); font-weight:600; box-shadow:0 1px 3px rgba(0,0,0,.08); }
-
-/* Badge Grid */
-.badge-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
-.badge-card { background:var(--white); border-radius:12px; padding:16px 10px; text-align:center; box-shadow:0 1px 3px rgba(0,0,0,.06); transition:.2s; }
-.badge-card.earned { border:2px solid var(--orange-500); }
-.badge-card.locked { opacity:.4; }
-.badge-card .b-icon { font-size:36px; margin-bottom:6px; transition:.3s; }
-.badge-card.earned .b-icon { animation:popIn .4s; }
-@keyframes popIn { 0%{transform:scale(0)} 70%{transform:scale(1.2)} 100%{transform:scale(1)} }
-.badge-card .b-name { font-size:11px; font-weight:600; margin-bottom:2px; }
-.badge-card .b-category { font-size:9px; color:var(--dark-700); }
-.badge-card .b-new { display:inline-block; margin-top:4px; padding:2px 8px; background:var(--orange-500); color:white; border-radius:10px; font-size:9px; font-weight:600; animation:pulse 1.5s infinite; }
-.badge-card .share-btn { margin-top:6px; padding:3px 10px; border:none; border-radius:8px; background:var(--gray-100); color:var(--dark-700); font-size:12px; cursor:pointer; transition:.2s; }
-.badge-card .share-btn:hover { background:var(--blue-50); color:var(--blue-500); }
-@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.6} }
-.badge-card .b-earned-at { font-size:9px; color:var(--green-500); font-weight:500; margin-top:2px; }
-
-/* Category Headers */
-.cat-header { display:flex; align-items:center; gap:8px; margin:16px 0 8px; }
-.cat-header h3 { font-size:14px; font-weight:600; }
-.cat-header .count { font-size:12px; color:var(--dark-700); font-weight:400; }
-
-/* Modal */
-.modal-overlay { display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,.6); z-index:100; align-items:center; justify-content:center; padding:24px; }
-.modal-overlay.show { display:flex; }
-.modal { background:var(--white); border-radius:20px; padding:28px; max-width:340px; width:100%; text-align:center; }
-.modal .modal-icon { font-size:64px; margin-bottom:12px; animation:popIn .5s; }
-.modal .modal-title { font-size:20px; font-weight:700; margin-bottom:4px; }
-.modal .modal-desc { font-size:14px; color:var(--dark-700); margin-bottom:20px; }
-.modal .modal-btn { width:100%; padding:12px; border:none; border-radius:12px; font-size:15px; font-weight:600; cursor:pointer; background:var(--orange-500); color:white; }
-
-/* Reward badges section */
-.reward-section { background:var(--white); border-radius:12px; padding:16px; margin-bottom:16px; box-shadow:0 1px 3px rgba(0,0,0,.06); }
-.reward-section h3 { font-size:14px; font-weight:600; margin-bottom:10px; }
-</style>
-</head>
-<body>
-
-<div class="header">
-  <button class="back-btn" onclick="history.back()">←</button>
-  <h1>🏅 勳章牆</h1>
-  <span></span>
-</div>
-
-<div class="container">
-  <div class="loading" id="loadingState">
-    <div class="spinner"></div>
-    <div>正在載入勳章...</div>
-  </div>
-
-  <div id="contentArea" class="hidden">
-
-    <!-- Stats Bar -->
-    <div class="stats-bar" id="statsBar"></div>
-
-    <!-- Progress -->
-    <div class="progress-section" id="progressSection"></div>
-
-    <!-- Tab Bar -->
-    <div class="tab-bar">
-      <button class="tab active" data-tab="all" onclick="switchTab('all')">🗂️ 全部</button>
-      <button class="tab" data-tab="earned" onclick="switchTab('earned')">✅ 已獲得</button>
-      <button class="tab" data-tab="locked" onclick="switchTab('locked')">🔒 未解鎖</button>
-    </div>
-
-    <!-- Badges -->
-    <div id="badgesContainer"></div>
-
-  </div>
-</div>
-
-<!-- New Badge Modal -->
-<div class="modal-overlay" id="newBadgeModal">
-  <div class="modal">
-    <div class="modal-icon" id="newBadgeIcon">🏅</div>
-    <div class="modal-title" id="newBadgeTitle">新勳章解鎖！</div>
-    <div class="modal-desc" id="newBadgeDesc">繼續努力，解鎖更多成就！</div>
-    <button class="modal-btn" style="margin-bottom:8px;" onclick="closeNewBadgeModal()">太棒了！</button>
-    <button class="modal-btn" id="newBadgeShareBtn" style="background:var(--gray-100);color:var(--dark-900);font-size:14px;" onclick="shareNewBadge()">🔗 分享成就</button>
-  </div>
-</div>
-
-<!-- Share Modal -->
-<div class="modal-overlay" id="shareModal">
-  <div class="modal" style="max-width:380px;">
-    <div class="modal-icon" id="shareModalIcon">🏅</div>
-    <div class="modal-title" id="shareModalTitle">分享成就</div>
-    <div class="modal-desc" id="shareModalDesc" style="margin-bottom:10px;">選擇平台分享你的 ZenPass 成就</div>
-    <div id="shareHint" style="font-size:11px;color:var(--green-500);margin-bottom:10px;display:none;">
-      📱 手機用戶：可直接用系統分享選單<br>
-      💻 電腦用戶：揀下面平台或下載圖片上傳
-    </div>
-    <div id="shareButtons" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;">
-      <button class="share-btn-sq fb" onclick="shareToFB()" title="Facebook">
-        <span class="sq-icon">📘</span>
-        <span class="sq-label">Facebook</span>
-      </button>
-      <button class="share-btn-sq wa" onclick="shareToWA()" title="WhatsApp">
-        <span class="sq-icon">💬</span>
-        <span class="sq-label">WhatsApp</span>
-      </button>
-      <button class="share-btn-sq tg" onclick="shareToTG()" title="Telegram">
-        <span class="sq-icon">✈️</span>
-        <span class="sq-label">Telegram</span>
-      </button>
-      <button class="share-btn-sq wb" onclick="shareToWeibo()" title="微博">
-        <span class="sq-icon">🔴</span>
-        <span class="sq-label">微博</span>
-      </button>
-      <button class="share-btn-sq line" onclick="shareToLINE()" title="LINE">
-        <span class="sq-icon">🟢</span>
-        <span class="sq-label">LINE</span>
-      </button>
-      <button class="share-btn-sq tw" onclick="shareToTwitter()" title="Twitter / X">
-        <span class="sq-icon">🐦</span>
-        <span class="sq-label">Twitter</span>
-      </button>
-      <button class="share-btn-sq xhs" onclick="shareToXHS()" title="小紅書">
-        <span class="sq-icon">📕</span>
-        <span class="sq-label">小紅書</span>
-      </button>
-      <button class="share-btn-sq qq" onclick="shareToQQ()" title="QQ">
-        <span class="sq-icon">🐧</span>
-        <span class="sq-label">QQ</span>
-      </button>
-      <button class="share-btn-sq img" onclick="shareAsImage()" title="下載圖片">
-        <span class="sq-icon">🖼️</span>
-        <span class="sq-label">圖片</span>
-      </button>
-    </div>
-    <button class="share-row-btn copy" onclick="copyShareLink()">📋 複製連結</button>
-    <button class="modal-btn" style="margin-top:6px;" onclick="closeShareModal()">關閉</button>
-  </div>
-</div>
-
-<!-- Share Image Preview (hidden canvas) -->
-<canvas id="shareCanvas" style="display:none;"></canvas>
-
-<style>
-.share-btn-sq { display:flex; flex-direction:column; align-items:center; gap:4px; padding:10px 4px; border:none; border-radius:12px; font-size:12px; font-weight:500; cursor:pointer; transition:.2s; color:var(--dark-900); background:var(--gray-100); }
-.share-btn-sq:active { transform:scale(.93); }
-.share-btn-sq .sq-icon { font-size:24px; line-height:1; }
-.share-btn-sq .sq-label { font-size:10px; white-space:nowrap; }
-.share-btn-sq.fb { background:#1877F2; color:white; }
-.share-btn-sq.wa { background:#25D366; color:white; }
-.share-btn-sq.tg { background:#0088CC; color:white; }
-.share-btn-sq.wb { background:#E6162D; color:white; }
-.share-btn-sq.line { background:#06C755; color:white; }
-.share-btn-sq.tw { background:#1DA1F2; color:white; }
-.share-btn-sq.xhs { background:#FF2442; color:white; }
-.share-btn-sq.qq { background:#12B7F5; color:white; }
-.share-btn-sq.img { background:var(--purple-50); color:var(--purple-500); border:1.5px solid var(--purple-500); }
-.share-row-btn { width:100%; padding:11px; border:none; border-radius:10px; font-size:13px; font-weight:600; cursor:pointer; background:var(--gray-100); color:var(--dark-900); transition:.2s; margin-bottom:4px; }
-.share-row-btn:active { transform:scale(.97); }
-</style>
-
-<script>
-var API_BASE = localStorage.getItem('zenpass_api_base') || window.location.origin;
-var TOKEN_KEY = 'zenpass_token';
-
-function getHeaders() {
-  var h = { 'Content-Type': 'application/json' };
-  var t = localStorage.getItem(TOKEN_KEY);
-  if (t) h['Authorization'] = 'Bearer ' + t;
-  return h;
-}
-
-var newBadgesQueue = [];
-
-// ===== Load =====
-async function loadAll() {
-  showLoading();
-  try {
-    var [badgesRes, progressRes] = await Promise.all([
-      fetch(API_BASE + '/api/badges', { headers: getHeaders() }),
-      fetch(API_BASE + '/api/badges/progress', { headers: getHeaders() }),
-    ]);
-
-    var badgesData = await badgesRes.json();
-    var progressData = await progressRes.json();
-
-    renderStats(badgesData, progressData);
-    renderProgress(progressData.stats);
-    renderBadges(badgesData.badges, 'all');
-
-    showContent();
-
-    // Check for new badges (auto-trigger)
-    var checkRes = await fetch(API_BASE + '/api/badges/check', { method: 'POST', headers: getHeaders() });
-    var checkData = await checkRes.json();
-    if (checkData.newBadges && checkData.newBadges.length > 0) {
-      newBadgesQueue = checkData.newBadges;
-      // Refresh
-      return loadAll();
-    }
-
-  } catch(e) {
-    document.getElementById('loadingState').innerHTML = '<div style="text-align:center;padding:40px;color:var(--red-500);font-weight:600;">⚠️ 載入失敗<br><span style="font-size:13px;color:var(--dark-700);font-weight:400;">' + e.message + '</span></div>';
-  }
-}
-
-// ===== Render Stats =====
-function renderStats(badgesData, progressData) {
-  var total = badgesData.total || 22;
-  var earned = badgesData.earned || 0;
-  var stats = progressData.stats || {};
-  var pct = total > 0 ? Math.round(earned / total * 100) : 0;
-
-  document.getElementById('statsBar').innerHTML =
-    '<div style="display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:8px;">'
-    + '<div><div class="big-num">' + earned + '</div><div class="label">已獲得</div></div>'
-    + '<div style="font-size:24px;opacity:.3;">/</div>'
-    + '<div><div class="big-num" style="opacity:.5;">' + total + '</div><div class="label">全部勳章</div></div>'
-    + '</div>'
-    + '<div style="height:6px;background:rgba(255,255,255,.15);border-radius:3px;overflow:hidden;margin:0 20px;">'
-    + '<div style="height:100%;width:' + pct + '%;background:var(--orange-500);border-radius:3px;transition:width .8s;"></div>'
-    + '</div>'
-    + '<div class="row">'
-    + '<div class="stat-item"><div class="stat-num">' + (stats.total_bookings || 0) + '</div><div class="stat-label">完成課堂</div></div>'
-    + '<div class="stat-item"><div class="stat-num">🔥 ' + (stats.checkin_streak || 0) + '</div><div class="stat-label">連續簽到</div></div>'
-    + '<div class="stat-item"><div class="stat-num">' + (stats.categories_explored || 0) + '/' + (stats.total_categories || 0) + '</div><div class="stat-label">探索類別</div></div>'
-    + '</div>';
-}
-
-// ===== Render Progress =====
-function renderProgress(stats) {
-  var el = document.getElementById('progressSection');
-  if (!stats) { el.style.display = 'none'; return; }
-  el.style.display = 'block';
-
-  var districtsVisited = (stats.districts_visited && stats.districts_visited.length) || 0;
-  var totalDistricts = stats.total_districts || 18;
-
-  var items = [
-    { icon: '🏋️', label: '完成課堂', detail: stats.total_bookings + ' / 100', current: Math.min(stats.total_bookings || 0, 100), max: 100, color: 'var(--blue-500)' },
-    { icon: '🔍', label: '探索類別', detail: stats.categories_explored + ' / ' + stats.total_categories, current: stats.categories_explored || 0, max: stats.total_categories || 5, color: 'var(--purple-500)' },
-    { icon: '📍', label: '地區打卡', detail: districtsVisited + ' / ' + totalDistricts + ' 區', current: districtsVisited, max: totalDistricts, color: 'var(--orange-500)' },
-    { icon: '🔥', label: '連續簽到', detail: stats.checkin_streak + ' / 30', current: Math.min(stats.checkin_streak || 0, 30), max: 30, color: 'var(--red-500)' },
-    { icon: '⭐', label: '課後評價', detail: stats.reviews_count + ' / 15', current: Math.min(stats.reviews_count || 0, 15), max: 15, color: 'var(--green-500)' },
-  ];
-
-  el.innerHTML = '<h3 style="font-size:13px;font-weight:600;margin-bottom:8px;color:var(--dark-700);">📊 進度概覽</h3>'
-    + items.map(function(item) {
-      var pct = item.max > 0 ? Math.round(item.current / item.max * 100) : 0;
-      return '<div class="progress-item">'
-        + '<div class="p-icon">' + item.icon + '</div>'
-        + '<div class="p-info"><div class="p-label">' + item.label + '</div><div class="p-detail">' + item.detail + '</div></div>'
-        + '<div class="p-bar"><div class="p-fill" style="width:' + pct + '%;background:' + item.color + ';"></div></div>'
-        + '</div>';
-    }).join('');
-}
-
-// ===== Render Badges =====
-function renderBadges(badges, filter) {
-  if (!badges || !badges.length) {
-    document.getElementById('badgesContainer').innerHTML = '<div style="text-align:center;padding:40px;color:var(--dark-700);font-size:13px;">暫無勳章資料</div>';
-    return;
-  }
-
-  var filtered = badges;
-  if (filter === 'earned') filtered = badges.filter(function(b) { return b.earned; });
-  if (filter === 'locked') filtered = badges.filter(function(b) { return !b.earned; });
-
-  // Group by category
-  var catMap = {
-    attendance: { label: '🏋️ 出席成就', icon: '🏋️' },
-    explorer: { label: '🔍 探索成就', icon: '🔍' },
-    streak: { label: '🔥 連續挑戰', icon: '🔥' },
-    social: { label: '👥 社交成就', icon: '👥' },
-    special: { label: '💎 特別成就', icon: '💎' },
-    district: { label: '📍 地區打卡 · 香港18區', icon: '📍' },
-  };
-
-  var grouped = {};
-  filtered.forEach(function(b) {
-    var cat = catMap[b.category] || { label: b.category };
-    if (!grouped[b.category]) grouped[b.category] = { label: cat.label, badges: [] };
-    grouped[b.category].badges.push(b);
-  });
-
-  var html = '';
-  Object.keys(catMap).forEach(function(catKey) {
-    var group = grouped[catKey];
-    if (!group) return;
-    var catLabel = catMap[catKey].label;
-    var earnedInCat = group.badges.filter(function(b) { return b.earned; }).length;
-    html += '<div class="cat-header"><h3>' + catLabel + '</h3><span class="count">' + earnedInCat + '/' + group.badges.length + '</span></div>'
-      + '<div class="badge-grid">'
-      + group.badges.map(function(b) {
-        var cls = b.earned ? 'earned' : 'locked';
-        var dateStr = '';
-        if (b.earned_at) {
-          var d = new Date(b.earned_at);
-          dateStr = (d.getMonth()+1) + '/' + d.getDate();
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>勳章牆 - ZenPass 禪流</title>
+    <link rel="icon" type="image/png" href="icons/favicon-96x96.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --orange-500: #ff6b35;
+        --orange-600: #e55a2b;
+        --orange-50: #fff3ed;
+        --green-500: #059669;
+        --green-50: #ecfdf5;
+        --purple-500: #8b5cf6;
+        --purple-50: #f5f3ff;
+        --blue-500: #3b82f6;
+        --blue-50: #eff6ff;
+        --red-500: #ef4444;
+        --dark-900: #1a1a2e;
+        --dark-800: #2d2d3a;
+        --dark-700: #6b7280;
+        --gray-200: #e5e7eb;
+        --gray-100: #f3f4f6;
+        --gray-50: #f9fafb;
+        --white: #ffffff;
+      }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family:
+          "Inter",
+          -apple-system,
+          sans-serif;
+        background: var(--gray-50);
+        color: var(--dark-900);
+        min-height: 100vh;
+      }
+      .header {
+        background: var(--white);
+        border-bottom: 1px solid var(--gray-200);
+        padding: 16px 20px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+      }
+      .header h1 {
+        font-size: 18px;
+        font-weight: 700;
+        flex: 1;
+      }
+      .back-btn {
+        font-size: 20px;
+        cursor: pointer;
+        text-decoration: none;
+        color: var(--dark-900);
+        background: none;
+        border: none;
+        padding: 4px;
+      }
+      .container {
+        max-width: 500px;
+        margin: 0 auto;
+        padding: 16px;
+      }
+      .loading {
+        text-align: center;
+        padding: 60px 20px;
+        color: var(--dark-700);
+      }
+      .spinner {
+        width: 32px;
+        height: 32px;
+        border: 3px solid var(--gray-200);
+        border-top: 3px solid var(--orange-500);
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+        margin: 0 auto 12px;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
         }
-        return '<div class="badge-card ' + cls + '" onclick="' + (b.earned ? '' : '') + '">'
-          + '<div class="b-icon">' + b.icon + '</div>'
-          + '<div class="b-name">' + escHtml(b.name) + '</div>'
-          + '<div class="b-category">' + escHtml(b.description) + '</div>'
-          + (b.earned && dateStr ? '<div class="b-earned-at">' + dateStr + ' 獲得</div>' : '')
-          + (b.earned
-            ? '<button class="share-btn" onclick="event.stopPropagation();shareBadge(\'' + b.icon + '\',\'' + escHtml(b.name) + '\',\'' + escHtml(b.description) + '\')" title="分享成就">🔗</button>'
-            : '')
-          + '</div>';
-      }).join('')
-      + '</div>';
-  });
+      }
+      .hidden {
+        display: none !important;
+      }
 
-  if (html === '') {
-    html = '<div style="text-align:center;padding:40px;color:var(--dark-700);font-size:13px;">'
-      + (filter === 'earned' ? '尚未獲得任何勳章，開始你的運動旅程吧！' : '所有勳章已解鎖！🎉')
-      + '</div>';
-  }
+      /* Stats Bar */
+      .stats-bar {
+        background: linear-gradient(135deg, #1a1a2e, #2d2d3a);
+        border-radius: 16px;
+        padding: 20px;
+        color: white;
+        margin-bottom: 16px;
+        text-align: center;
+      }
+      .stats-bar .big-num {
+        font-size: 42px;
+        font-weight: 800;
+        line-height: 1;
+      }
+      .stats-bar .label {
+        font-size: 13px;
+        opacity: 0.7;
+        margin-top: 4px;
+      }
+      .stats-bar .row {
+        display: flex;
+        gap: 12px;
+        margin-top: 14px;
+      }
+      .stats-bar .stat-item {
+        flex: 1;
+        background: rgba(255, 255, 255, 0.08);
+        border-radius: 10px;
+        padding: 10px;
+        text-align: center;
+      }
+      .stats-bar .stat-num {
+        font-size: 18px;
+        font-weight: 700;
+      }
+      .stats-bar .stat-label {
+        font-size: 10px;
+        opacity: 0.6;
+        margin-top: 2px;
+      }
 
-  document.getElementById('badgesContainer').innerHTML = html;
-}
+      /* Progress */
+      .progress-section {
+        background: var(--white);
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 16px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+      }
+      .progress-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 0;
+        border-bottom: 1px solid var(--gray-100);
+      }
+      .progress-item:last-child {
+        border-bottom: none;
+      }
+      .progress-item .p-icon {
+        font-size: 20px;
+        width: 32px;
+        text-align: center;
+      }
+      .progress-item .p-info {
+        flex: 1;
+      }
+      .progress-item .p-label {
+        font-size: 13px;
+        font-weight: 500;
+      }
+      .progress-item .p-detail {
+        font-size: 11px;
+        color: var(--dark-700);
+        margin-top: 2px;
+      }
+      .progress-item .p-bar {
+        width: 70px;
+        height: 6px;
+        background: var(--gray-200);
+        border-radius: 3px;
+        overflow: hidden;
+      }
+      .progress-item .p-fill {
+        height: 100%;
+        border-radius: 3px;
+        transition: width 0.5s;
+      }
 
-// ===== Tab =====
-function switchTab(tab) {
-  document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
-  document.querySelector('.tab[data-tab="' + tab + '"]').classList.add('active');
-  // Re-render badges with filter
-  var badgesEl = document.querySelector('#badgesContainer');
-  if (badgesEl.hasAttribute('data-badges')) {
-    var badges = JSON.parse(badgesEl.getAttribute('data-badges'));
-    renderBadges(badges, tab);
-  }
-}
+      /* Tab */
+      .tab-bar {
+        display: flex;
+        background: var(--gray-100);
+        border-radius: 10px;
+        padding: 3px;
+        margin-bottom: 14px;
+      }
+      .tab {
+        flex: 1;
+        text-align: center;
+        padding: 8px;
+        border: none;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        background: transparent;
+        color: var(--dark-700);
+        transition: 0.2s;
+      }
+      .tab.active {
+        background: var(--white);
+        color: var(--orange-500);
+        font-weight: 600;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+      }
 
-// ===== New Badge Modal =====
-function showNewBadgeModal(icon, name, desc) {
-  document.getElementById('newBadgeIcon').textContent = icon;
-  document.getElementById('newBadgeTitle').textContent = '🏅 新勳章解鎖！';
-  document.getElementById('newBadgeDesc').innerHTML = '<strong style="font-size:22px;">' + icon + ' ' + name + '</strong><br><span style="font-size:13px;">' + desc + '</span>';
-  // Store for share
-  shareBadgeData = { icon: icon, name: name, desc: desc };
-  document.getElementById('newBadgeModal').classList.add('show');
-}
+      /* Badge Grid */
+      .badge-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 10px;
+      }
+      .badge-card {
+        background: var(--white);
+        border-radius: 12px;
+        padding: 16px 10px;
+        text-align: center;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+        transition: 0.2s;
+      }
+      .badge-card.earned {
+        border: 2px solid var(--orange-500);
+      }
+      .badge-card.locked {
+        opacity: 0.4;
+      }
+      .badge-card .b-icon {
+        font-size: 36px;
+        margin-bottom: 6px;
+        transition: 0.3s;
+      }
+      .badge-card.earned .b-icon {
+        animation: popIn 0.4s;
+      }
+      @keyframes popIn {
+        0% {
+          transform: scale(0);
+        }
+        70% {
+          transform: scale(1.2);
+        }
+        100% {
+          transform: scale(1);
+        }
+      }
+      .badge-card .b-name {
+        font-size: 11px;
+        font-weight: 600;
+        margin-bottom: 2px;
+      }
+      .badge-card .b-category {
+        font-size: 9px;
+        color: var(--dark-700);
+      }
+      .badge-card .b-new {
+        display: inline-block;
+        margin-top: 4px;
+        padding: 2px 8px;
+        background: var(--orange-500);
+        color: white;
+        border-radius: 10px;
+        font-size: 9px;
+        font-weight: 600;
+        animation: pulse 1.5s infinite;
+      }
+      .badge-card .share-btn {
+        margin-top: 6px;
+        padding: 3px 10px;
+        border: none;
+        border-radius: 8px;
+        background: var(--gray-100);
+        color: var(--dark-700);
+        font-size: 12px;
+        cursor: pointer;
+        transition: 0.2s;
+      }
+      .badge-card .share-btn:hover {
+        background: var(--blue-50);
+        color: var(--blue-500);
+      }
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.6;
+        }
+      }
+      .badge-card .b-earned-at {
+        font-size: 9px;
+        color: var(--green-500);
+        font-weight: 500;
+        margin-top: 2px;
+      }
 
-function shareNewBadge() {
-  if (shareBadgeData) {
-    closeNewBadgeModal();
-    shareBadge(shareBadgeData.icon, shareBadgeData.name, shareBadgeData.desc);
-  }
-}
+      /* Category Headers */
+      .cat-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 16px 0 8px;
+      }
+      .cat-header h3 {
+        font-size: 14px;
+        font-weight: 600;
+      }
+      .cat-header .count {
+        font-size: 12px;
+        color: var(--dark-700);
+        font-weight: 400;
+      }
 
-function closeNewBadgeModal() {
-  document.getElementById('newBadgeModal').classList.remove('show');
-}
+      /* Modal */
+      .modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.6);
+        z-index: 100;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+      }
+      .modal-overlay.show {
+        display: flex;
+      }
+      .modal {
+        background: var(--white);
+        border-radius: 20px;
+        padding: 28px;
+        max-width: 340px;
+        width: 100%;
+        text-align: center;
+      }
+      .modal .modal-icon {
+        font-size: 64px;
+        margin-bottom: 12px;
+        animation: popIn 0.5s;
+      }
+      .modal .modal-title {
+        font-size: 20px;
+        font-weight: 700;
+        margin-bottom: 4px;
+      }
+      .modal .modal-desc {
+        font-size: 14px;
+        color: var(--dark-700);
+        margin-bottom: 20px;
+      }
+      .modal .modal-btn {
+        width: 100%;
+        padding: 12px;
+        border: none;
+        border-radius: 12px;
+        font-size: 15px;
+        font-weight: 600;
+        cursor: pointer;
+        background: var(--orange-500);
+        color: white;
+      }
 
-// ===== Utils =====
-function escHtml(s) { if (!s) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+      /* Reward badges section */
+      .reward-section {
+        background: var(--white);
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 16px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+      }
+      .reward-section h3 {
+        font-size: 14px;
+        font-weight: 600;
+        margin-bottom: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <button class="back-btn" onclick="history.back()">←</button>
+      <h1>🏅 勳章牆</h1>
+      <span></span>
+    </div>
 
-function showLoading() {
-  document.getElementById('loadingState').classList.remove('hidden');
-  document.getElementById('contentArea').classList.add('hidden');
-}
+    <div class="container">
+      <div class="loading" id="loadingState">
+        <div class="spinner"></div>
+        <div>正在載入勳章...</div>
+      </div>
 
-function showContent() {
-  document.getElementById('loadingState').classList.add('hidden');
-  document.getElementById('contentArea').classList.remove('hidden');
-}
+      <div id="contentArea" class="hidden">
+        <!-- Stats Bar -->
+        <div class="stats-bar" id="statsBar"></div>
 
-// ===== Share =====
-var shareBadgeData = null;
+        <!-- Progress -->
+        <div class="progress-section" id="progressSection"></div>
 
-/**
- * Main share entry point - tries Web Share API first
- */
-function shareBadge(icon, name, desc) {
-  shareBadgeData = { icon: icon, name: name, desc: desc };
+        <!-- Tab Bar -->
+        <div class="tab-bar">
+          <button class="tab active" data-tab="all" onclick="switchTab('all')">
+            🗂️ 全部
+          </button>
+          <button class="tab" data-tab="earned" onclick="switchTab('earned')">
+            ✅ 已獲得
+          </button>
+          <button class="tab" data-tab="locked" onclick="switchTab('locked')">
+            🔒 未解鎖
+          </button>
+        </div>
 
-  var shareUrl = getShareUrl();
-  var text = getShareText();
+        <!-- Badges -->
+        <div id="badgesContainer"></div>
+      </div>
+    </div>
 
-  // Try native share (mobile: 小紅書/WeChat/IG/FB/WhatsApp/Telegram etc.)
-  if (navigator.share) {
-    navigator.share({
-      title: 'ZenPass 成就：' + name,
-      text: text,
-      url: shareUrl,
-    }).catch(function(e) {
-      // User cancelled or error - show fallback
-      if (e.name !== 'AbortError') showShareModal(icon, name, desc, text);
-    });
-  } else {
-    // Desktop fallback - show share modal
-    showShareModal(icon, name, desc, text);
-  }
-}
+    <!-- New Badge Modal -->
+    <div class="modal-overlay" id="newBadgeModal">
+      <div class="modal">
+        <div class="modal-icon" id="newBadgeIcon">🏅</div>
+        <div class="modal-title" id="newBadgeTitle">新勳章解鎖！</div>
+        <div class="modal-desc" id="newBadgeDesc">繼續努力，解鎖更多成就！</div>
+        <button
+          class="modal-btn"
+          style="margin-bottom: 8px"
+          onclick="closeNewBadgeModal()"
+        >
+          太棒了！
+        </button>
+        <button
+          class="modal-btn"
+          id="newBadgeShareBtn"
+          style="
+            background: var(--gray-100);
+            color: var(--dark-900);
+            font-size: 14px;
+          "
+          onclick="shareNewBadge()"
+        >
+          🔗 分享成就
+        </button>
+      </div>
+    </div>
 
-/**
- * Show share modal with platform options
- */
-function showShareModal(icon, name, desc, text) {
-  document.getElementById('shareModalIcon').textContent = icon;
-  document.getElementById('shareModalTitle').textContent = '分享成就：' + name;
-  document.getElementById('shareModalDesc').textContent = desc;
-  // Show hint for desktop users (hidden on mobile since Web Share API takes over)
-  document.getElementById('shareHint').style.display = 'block';
-  document.getElementById('shareModal').classList.add('show');
-  // Store share text for buttons
-  shareBadgeData = { icon: icon, name: name, desc: desc, text: text };
-}
+    <!-- Share Modal -->
+    <div class="modal-overlay" id="shareModal">
+      <div class="modal" style="max-width: 380px">
+        <div class="modal-icon" id="shareModalIcon">🏅</div>
+        <div class="modal-title" id="shareModalTitle">分享成就</div>
+        <div class="modal-desc" id="shareModalDesc" style="margin-bottom: 10px">
+          選擇平台分享你的 ZenPass 成就
+        </div>
+        <div
+          id="shareHint"
+          style="
+            font-size: 11px;
+            color: var(--green-500);
+            margin-bottom: 10px;
+            display: none;
+          "
+        >
+          📱 手機用戶：可直接用系統分享選單<br />
+          💻 電腦用戶：揀下面平台或下載圖片上傳
+        </div>
+        <div
+          id="shareButtons"
+          style="
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 12px;
+          "
+        >
+          <button
+            class="share-btn-sq fb"
+            onclick="shareToFB()"
+            title="Facebook"
+          >
+            <span class="sq-icon">📘</span>
+            <span class="sq-label">Facebook</span>
+          </button>
+          <button
+            class="share-btn-sq wa"
+            onclick="shareToWA()"
+            title="WhatsApp"
+          >
+            <span class="sq-icon">💬</span>
+            <span class="sq-label">WhatsApp</span>
+          </button>
+          <button
+            class="share-btn-sq tg"
+            onclick="shareToTG()"
+            title="Telegram"
+          >
+            <span class="sq-icon">✈️</span>
+            <span class="sq-label">Telegram</span>
+          </button>
+          <button class="share-btn-sq wb" onclick="shareToWeibo()" title="微博">
+            <span class="sq-icon">🔴</span>
+            <span class="sq-label">微博</span>
+          </button>
+          <button
+            class="share-btn-sq line"
+            onclick="shareToLINE()"
+            title="LINE"
+          >
+            <span class="sq-icon">🟢</span>
+            <span class="sq-label">LINE</span>
+          </button>
+          <button
+            class="share-btn-sq tw"
+            onclick="shareToTwitter()"
+            title="Twitter / X"
+          >
+            <span class="sq-icon">🐦</span>
+            <span class="sq-label">Twitter</span>
+          </button>
+          <button
+            class="share-btn-sq xhs"
+            onclick="shareToXHS()"
+            title="小紅書"
+          >
+            <span class="sq-icon">📕</span>
+            <span class="sq-label">小紅書</span>
+          </button>
+          <button class="share-btn-sq qq" onclick="shareToQQ()" title="QQ">
+            <span class="sq-icon">🐧</span>
+            <span class="sq-label">QQ</span>
+          </button>
+          <button
+            class="share-btn-sq img"
+            onclick="shareAsImage()"
+            title="下載圖片"
+          >
+            <span class="sq-icon">🖼️</span>
+            <span class="sq-label">圖片</span>
+          </button>
+        </div>
+        <button class="share-row-btn copy" onclick="copyShareLink()">
+          📋 複製連結
+        </button>
+        <button
+          class="modal-btn"
+          style="margin-top: 6px"
+          onclick="closeShareModal()"
+        >
+          關閉
+        </button>
+      </div>
+    </div>
 
-function closeShareModal() {
-  document.getElementById('shareModal').classList.remove('show');
-}
+    <!-- Share Image Preview (hidden canvas) -->
+    <canvas id="shareCanvas" style="display: none"></canvas>
 
-/**
- * Smart Link: 將來有 App 時，呢個 URL 會 deep link 去 App
- * 而家 fallback 去 share landing page 引導下載
- */
-var APP_DOWNLOAD_URL = 'https://apps.apple.com/hk/app/zenpass/idXXXXXXXXX';
+    <style>
+      .share-btn-sq {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+        padding: 10px 4px;
+        border: none;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: 0.2s;
+        color: var(--dark-900);
+        background: var(--gray-100);
+      }
+      .share-btn-sq:active {
+        transform: scale(0.93);
+      }
+      .share-btn-sq .sq-icon {
+        font-size: 24px;
+        line-height: 1;
+      }
+      .share-btn-sq .sq-label {
+        font-size: 10px;
+        white-space: nowrap;
+      }
+      .share-btn-sq.fb {
+        background: #1877f2;
+        color: white;
+      }
+      .share-btn-sq.wa {
+        background: #25d366;
+        color: white;
+      }
+      .share-btn-sq.tg {
+        background: #0088cc;
+        color: white;
+      }
+      .share-btn-sq.wb {
+        background: #e6162d;
+        color: white;
+      }
+      .share-btn-sq.line {
+        background: #06c755;
+        color: white;
+      }
+      .share-btn-sq.tw {
+        background: #1da1f2;
+        color: white;
+      }
+      .share-btn-sq.xhs {
+        background: #ff2442;
+        color: white;
+      }
+      .share-btn-sq.qq {
+        background: #12b7f5;
+        color: white;
+      }
+      .share-btn-sq.img {
+        background: var(--purple-50);
+        color: var(--purple-500);
+        border: 1.5px solid var(--purple-500);
+      }
+      .share-row-btn {
+        width: 100%;
+        padding: 11px;
+        border: none;
+        border-radius: 10px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        background: var(--gray-100);
+        color: var(--dark-900);
+        transition: 0.2s;
+        margin-bottom: 4px;
+      }
+      .share-row-btn:active {
+        transform: scale(0.97);
+      }
+    </style>
 
-function getShareUrl() {
-  var params = shareBadgeData || {};
-  var baseUrl = window.location.origin + '/share.html';
-  var query = '?badge=' + encodeURIComponent(params.name || 'ZenPass 成就')
-    + '&icon=' + encodeURIComponent(params.icon || '🏅')
-    + '&desc=' + encodeURIComponent(params.desc || '');
-  return baseUrl + query;
-}
+    <script>
+      var API_BASE =
+        localStorage.getItem("zenpass_api_base") || window.location.origin;
+      var TOKEN_KEY = "zenpass_token";
 
-function getShareText() {
-  var url = getShareUrl();
-  var appCTA = '\n\n📲 下載 ZenPass App：' + APP_DOWNLOAD_URL;
-  return (shareBadgeData.text || ('🏅 我在 ZenPass 解鎖咗【' + shareBadgeData.name + '】勳章！'
-    + '\n一齊嚟運動啦！💪\n' + url)) + appCTA;
-}
+      function getHeaders() {
+        var h = { "Content-Type": "application/json" };
+        var t = localStorage.getItem(TOKEN_KEY);
+        if (t) h["Authorization"] = "Bearer " + t;
+        return h;
+      }
 
-// ===== Platform Share Functions =====
+      var newBadgesQueue = [];
 
-function shareToFB() {
-  var url = 'https://www.facebook.com/sharer/sharer.php?u='
-    + encodeURIComponent(getShareUrl())
-    + '&quote=' + encodeURIComponent(getShareText());
-  window.open(url, '_blank', 'width=600,height=400');
-  closeShareModal();
-}
+      // ===== Load =====
+      async function loadAll() {
+        showLoading();
+        try {
+          var [badgesRes, progressRes] = await Promise.all([
+            fetch(API_BASE + "/api/badges", { headers: getHeaders() }),
+            fetch(API_BASE + "/api/badges/progress", { headers: getHeaders() }),
+          ]);
 
-function shareToWA() {
-  var url = 'https://wa.me/?text=' + encodeURIComponent(getShareText() + '\n' + getShareUrl());
-  window.open(url, '_blank');
-  closeShareModal();
-}
+          var badgesData = await badgesRes.json();
+          var progressData = await progressRes.json();
 
-function shareToTG() {
-  var url = 'https://t.me/share/url?url=' + encodeURIComponent(getShareUrl())
-    + '&text=' + encodeURIComponent(getShareText());
-  window.open(url, '_blank');
-  closeShareModal();
-}
+          renderStats(badgesData, progressData);
+          renderProgress(progressData.stats);
+          renderBadges(badgesData.badges, "all");
 
-function shareToWeibo() {
-  var url = 'https://service.weibo.com/share/share.php?url='
-    + encodeURIComponent(getShareUrl())
-    + '&title=' + encodeURIComponent('🏅 ZenPass 成就解鎖：' + shareBadgeData.name)
-    + '&pic=&appkey=&searchpic=true';
-  window.open(url, '_blank', 'width=615,height=505');
-  closeShareModal();
-}
+          showContent();
 
-function shareToLINE() {
-  var url = 'https://social-plugins.line.me/lineit/share?url='
-    + encodeURIComponent(getShareUrl());
-  window.open(url, '_blank');
-  closeShareModal();
-}
+          // Check for new badges (auto-trigger)
+          var checkRes = await fetch(API_BASE + "/api/badges/check", {
+            method: "POST",
+            headers: getHeaders(),
+          });
+          var checkData = await checkRes.json();
+          if (checkData.newBadges && checkData.newBadges.length > 0) {
+            newBadgesQueue = checkData.newBadges;
+            // Refresh
+            return loadAll();
+          }
+        } catch (e) {
+          document.getElementById("loadingState").innerHTML =
+            '<div style="text-align:center;padding:40px;color:var(--red-500);font-weight:600;">⚠️ 載入失敗<br><span style="font-size:13px;color:var(--dark-700);font-weight:400;">' +
+            e.message +
+            "</span></div>";
+        }
+      }
 
-function shareToTwitter() {
-  var url = 'https://twitter.com/intent/tweet?text='
-    + encodeURIComponent(getShareText()) + '&url=' + encodeURIComponent(getShareUrl());
-  window.open(url, '_blank', 'width=550,height=420');
-  closeShareModal();
-}
+      // ===== Render Stats =====
+      function renderStats(badgesData, progressData) {
+        var total = badgesData.total || 22;
+        var earned = badgesData.earned || 0;
+        var stats = progressData.stats || {};
+        var pct = total > 0 ? Math.round((earned / total) * 100) : 0;
 
-function shareToQQ() {
-  var url = 'https://connect.qq.com/widget/shareqq/index.html?url='
-    + encodeURIComponent(getShareUrl())
-    + '&title=' + encodeURIComponent('ZenPass 成就：' + shareBadgeData.name)
-    + '&desc=' + encodeURIComponent(shareBadgeData.desc || '')
-    + '&summary=' + encodeURIComponent('🏅 我在 ZenPass 解鎖咗【' + shareBadgeData.name + '】勳章！');
-  window.open(url, '_blank', 'width=700,height=540');
-  closeShareModal();
-}
+        document.getElementById("statsBar").innerHTML =
+          '<div style="display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:8px;">' +
+          '<div><div class="big-num">' +
+          earned +
+          '</div><div class="label">已獲得</div></div>' +
+          '<div style="font-size:24px;opacity:.3;">/</div>' +
+          '<div><div class="big-num" style="opacity:.5;">' +
+          total +
+          '</div><div class="label">全部勳章</div></div>' +
+          "</div>" +
+          '<div style="height:6px;background:rgba(255,255,255,.15);border-radius:3px;overflow:hidden;margin:0 20px;">' +
+          '<div style="height:100%;width:' +
+          pct +
+          '%;background:var(--orange-500);border-radius:3px;transition:width .8s;"></div>' +
+          "</div>" +
+          '<div class="row">' +
+          '<div class="stat-item"><div class="stat-num">' +
+          (stats.total_bookings || 0) +
+          '</div><div class="stat-label">完成課堂</div></div>' +
+          '<div class="stat-item"><div class="stat-num">🔥 ' +
+          (stats.checkin_streak || 0) +
+          '</div><div class="stat-label">連續簽到</div></div>' +
+          '<div class="stat-item"><div class="stat-num">' +
+          (stats.categories_explored || 0) +
+          "/" +
+          (stats.total_categories || 0) +
+          '</div><div class="stat-label">探索類別</div></div>' +
+          "</div>";
+      }
 
-/**
- * 小紅書 (XiaoHongShu / RED) — 冇公開 web share API
- * 最佳做法：下載成就圖片，提示用戶上傳到小紅書
- */
-function shareToXHS() {
-  closeShareModal();
-  showToast('📕 正在生成小紅書分享圖片...');
-  // Generate the achievement image and trigger download
-  setTimeout(function() {
-    shareAsImage(true);
-    // After image downloads, show guidance
-    setTimeout(function() {
-      showToast('📕 圖片已下載！上傳到小紅書，加上 #ZenPass #運動成就 標籤 📸');
-    }, 500);
-  }, 300);
-}
+      // ===== Render Progress =====
+      function renderProgress(stats) {
+        var el = document.getElementById("progressSection");
+        if (!stats) {
+          el.style.display = "none";
+          return;
+        }
+        el.style.display = "block";
 
-function copyShareLink() {
-  var text = shareBadgeData.text || getShareText();
-  text = text + '\n' + getShareUrl();
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(text).then(function() {
-      closeShareModal();
-      showToast('✅ 已複製到剪貼簿，去貼上分享吧！');
-    }).catch(function() {
-      fallbackCopy(text);
-    });
-  } else {
-    fallbackCopy(text);
-  }
-}
+        var districtsVisited =
+          (stats.districts_visited && stats.districts_visited.length) || 0;
+        var totalDistricts = stats.total_districts || 18;
 
-function fallbackCopy(text) {
-  var ta = document.createElement('textarea');
-  ta.value = text;
-  ta.style.position = 'fixed'; ta.style.opacity = '0';
-  document.body.appendChild(ta);
-  ta.select();
-  try { document.execCommand('copy'); showToast('✅ 已複製到剪貼簿'); } catch(e) { showToast('⚠️ 複製失敗，請手動複製'); }
-  document.body.removeChild(ta);
-  closeShareModal();
-}
+        var items = [
+          {
+            icon: "🏋️",
+            label: "完成課堂",
+            detail: stats.total_bookings + " / 100",
+            current: Math.min(stats.total_bookings || 0, 100),
+            max: 100,
+            color: "var(--blue-500)",
+          },
+          {
+            icon: "🔍",
+            label: "探索類別",
+            detail: stats.categories_explored + " / " + stats.total_categories,
+            current: stats.categories_explored || 0,
+            max: stats.total_categories || 5,
+            color: "var(--purple-500)",
+          },
+          {
+            icon: "📍",
+            label: "地區打卡",
+            detail: districtsVisited + " / " + totalDistricts + " 區",
+            current: districtsVisited,
+            max: totalDistricts,
+            color: "var(--orange-500)",
+          },
+          {
+            icon: "🔥",
+            label: "連續簽到",
+            detail: stats.checkin_streak + " / 30",
+            current: Math.min(stats.checkin_streak || 0, 30),
+            max: 30,
+            color: "var(--red-500)",
+          },
+          {
+            icon: "⭐",
+            label: "課後評價",
+            detail: stats.reviews_count + " / 15",
+            current: Math.min(stats.reviews_count || 0, 15),
+            max: 15,
+            color: "var(--green-500)",
+          },
+        ];
 
-/**
- * Generate share image using Canvas
- */
-function shareAsImage(forXHS) {
-  if (!shareBadgeData) return;
-  var canvas = document.getElementById('shareCanvas');
-  var ctx = canvas.getContext('2d');
-  canvas.width = 600;
-  canvas.height = 400;
+        el.innerHTML =
+          '<h3 style="font-size:13px;font-weight:600;margin-bottom:8px;color:var(--dark-700);">📊 進度概覽</h3>' +
+          items
+            .map(function (item) {
+              var pct =
+                item.max > 0 ? Math.round((item.current / item.max) * 100) : 0;
+              return (
+                '<div class="progress-item">' +
+                '<div class="p-icon">' +
+                item.icon +
+                "</div>" +
+                '<div class="p-info"><div class="p-label">' +
+                item.label +
+                '</div><div class="p-detail">' +
+                item.detail +
+                "</div></div>" +
+                '<div class="p-bar"><div class="p-fill" style="width:' +
+                pct +
+                "%;background:" +
+                item.color +
+                ';"></div></div>' +
+                "</div>"
+              );
+            })
+            .join("");
+      }
 
-  // Background gradient
-  var grad = ctx.createLinearGradient(0, 0, 600, 400);
-  grad.addColorStop(0, '#1A1A2E');
-  grad.addColorStop(1, '#2D2D3A');
-  ctx.fillStyle = grad;
-  ctx.beginPath();
-  roundRect(ctx, 0, 0, 600, 400, 24);
-  ctx.fill();
+      // ===== Render Badges =====
+      function renderBadges(badges, filter) {
+        if (!badges || !badges.length) {
+          document.getElementById("badgesContainer").innerHTML =
+            '<div style="text-align:center;padding:40px;color:var(--dark-700);font-size:13px;">暫無勳章資料</div>';
+          return;
+        }
 
-  // ZenPass brand
-  ctx.fillStyle = 'rgba(255,255,255,0.15)';
-  ctx.font = 'bold 14px Arial';
-  ctx.textAlign = 'center';
-  ctx.fillText('ZENPASS 禪流', 300, 40);
+        var filtered = badges;
+        if (filter === "earned")
+          filtered = badges.filter(function (b) {
+            return b.earned;
+          });
+        if (filter === "locked")
+          filtered = badges.filter(function (b) {
+            return !b.earned;
+          });
 
-  // Badge emoji (using text for emoji)
-  ctx.font = '100px Arial';
-  ctx.textAlign = 'center';
-  ctx.fillStyle = '#FFFFFF';
-  ctx.fillText(shareBadgeData.icon, 300, 180);
+        // Group by category
+        var catMap = {
+          attendance: { label: "🏋️ 出席成就", icon: "🏋️" },
+          explorer: { label: "🔍 探索成就", icon: "🔍" },
+          streak: { label: "🔥 連續挑戰", icon: "🔥" },
+          social: { label: "👥 社交成就", icon: "👥" },
+          special: { label: "💎 特別成就", icon: "💎" },
+          district: { label: "📍 地區打卡 · 香港18區", icon: "📍" },
+        };
 
-  // Badge name
-  ctx.font = 'bold 28px Arial';
-  ctx.fillStyle = '#FF6B35';
-  ctx.fillText(shareBadgeData.name, 300, 250);
+        var grouped = {};
+        filtered.forEach(function (b) {
+          var cat = catMap[b.category] || { label: b.category };
+          if (!grouped[b.category])
+            grouped[b.category] = { label: cat.label, badges: [] };
+          grouped[b.category].badges.push(b);
+        });
 
-  // Description
-  ctx.font = '16px Arial';
-  ctx.fillStyle = 'rgba(255,255,255,0.7)';
-  var desc = shareBadgeData.desc || '';
-  // Word wrap
-  var words = desc.split('');
-  var line = '';
-  var lines = [];
-  for (var i = 0; i < words.length; i++) {
-    line += words[i];
-    if (ctx.measureText(line).width > 500 || i === words.length - 1) {
-      lines.push(line);
-      line = '';
-    }
-  }
-  if (line) lines.push(line);
-  var lineY = 290;
-  for (var j = 0; j < lines.length && j < 2; j++) {
-    ctx.fillText(lines[j].trim(), 300, lineY);
-    lineY += 24;
-  }
+        var html = "";
+        Object.keys(catMap).forEach(function (catKey) {
+          var group = grouped[catKey];
+          if (!group) return;
+          var catLabel = catMap[catKey].label;
+          var earnedInCat = group.badges.filter(function (b) {
+            return b.earned;
+          }).length;
+          html +=
+            '<div class="cat-header"><h3>' +
+            catLabel +
+            '</h3><span class="count">' +
+            earnedInCat +
+            "/" +
+            group.badges.length +
+            "</span></div>" +
+            '<div class="badge-grid">' +
+            group.badges
+              .map(function (b) {
+                var cls = b.earned ? "earned" : "locked";
+                var dateStr = "";
+                if (b.earned_at) {
+                  var d = new Date(b.earned_at);
+                  dateStr = d.getMonth() + 1 + "/" + d.getDate();
+                }
+                return (
+                  '<div class="badge-card ' +
+                  cls +
+                  '" onclick="' +
+                  (b.earned ? "" : "") +
+                  '">' +
+                  '<div class="b-icon">' +
+                  b.icon +
+                  "</div>" +
+                  '<div class="b-name">' +
+                  escHtml(b.name) +
+                  "</div>" +
+                  '<div class="b-category">' +
+                  escHtml(b.description) +
+                  "</div>" +
+                  (b.earned && dateStr
+                    ? '<div class="b-earned-at">' + dateStr + " 獲得</div>"
+                    : "") +
+                  (b.earned
+                    ? '<button class="share-btn" onclick="event.stopPropagation();shareBadge(\'' +
+                      b.icon +
+                      "','" +
+                      escHtml(b.name) +
+                      "','" +
+                      escHtml(b.description) +
+                      '\')" title="分享成就">🔗</button>'
+                    : "") +
+                  "</div>"
+                );
+              })
+              .join("") +
+            "</div>";
+        });
 
-  // Footer - App download CTA
-  ctx.fillStyle = 'rgba(255,255,255,0.15)';
-  ctx.font = 'bold 12px Arial';
-  ctx.fillText('📲 下載 ZenPass App', 300, 330);
+        if (html === "") {
+          html =
+            '<div style="text-align:center;padding:40px;color:var(--dark-700);font-size:13px;">' +
+            (filter === "earned"
+              ? "尚未獲得任何勳章，開始你的運動旅程吧！"
+              : "所有勳章已解鎖！🎉") +
+            "</div>";
+        }
 
-  ctx.fillStyle = 'rgba(255,255,255,0.25)';
-  ctx.font = '10px Arial';
-  ctx.fillText('Scan QR code or search "ZenPass"', 300, 348);
+        document.getElementById("badgesContainer").innerHTML = html;
+      }
 
-  // App download link
-  ctx.fillStyle = 'rgba(255,255,255,0.3)';
-  ctx.font = '10px Arial';
-  ctx.fillText(APP_DOWNLOAD_URL, 300, 370);
+      // ===== Tab =====
+      function switchTab(tab) {
+        document.querySelectorAll(".tab").forEach(function (t) {
+          t.classList.remove("active");
+        });
+        document
+          .querySelector('.tab[data-tab="' + tab + '"]')
+          .classList.add("active");
+        // Re-render badges with filter
+        var badgesEl = document.querySelector("#badgesContainer");
+        if (badgesEl.hasAttribute("data-badges")) {
+          var badges = JSON.parse(badgesEl.getAttribute("data-badges"));
+          renderBadges(badges, tab);
+        }
+      }
 
-  // Convert to image
-  var dataUrl = canvas.toDataURL('image/png');
-  // Download or share
-  var link = document.createElement('a');
-  link.download = 'zenpass-achievement-' + shareBadgeData.name + '.png';
-  link.href = dataUrl;
-  link.click();
+      // ===== New Badge Modal =====
+      function showNewBadgeModal(icon, name, desc) {
+        document.getElementById("newBadgeIcon").textContent = icon;
+        document.getElementById("newBadgeTitle").textContent =
+          "🏅 新勳章解鎖！";
+        document.getElementById("newBadgeDesc").innerHTML =
+          '<strong style="font-size:22px;">' +
+          icon +
+          " " +
+          name +
+          '</strong><br><span style="font-size:13px;">' +
+          desc +
+          "</span>";
+        // Store for share
+        shareBadgeData = { icon: icon, name: name, desc: desc };
+        document.getElementById("newBadgeModal").classList.add("show");
+      }
 
-  closeShareModal();
-  if (forXHS) {
-    // XHS toast already handled by shareToXHS
-  } else {
-    showToast('✅ 圖片已下載！可上傳到小紅書 / Facebook / IG 等平台 📸');
-  }
-}
+      function shareNewBadge() {
+        if (shareBadgeData) {
+          closeNewBadgeModal();
+          shareBadge(
+            shareBadgeData.icon,
+            shareBadgeData.name,
+            shareBadgeData.desc,
+          );
+        }
+      }
 
-function roundRect(ctx, x, y, w, h, r) {
-  ctx.moveTo(x + r, y);
-  ctx.lineTo(x + w - r, y);
-  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-  ctx.lineTo(x + w, y + h - r);
-  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-  ctx.lineTo(x + r, y + h);
-  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-  ctx.lineTo(x, y + r);
-  ctx.quadraticCurveTo(x, y, x + r, y);
-  ctx.closePath();
-}
+      function closeNewBadgeModal() {
+        document.getElementById("newBadgeModal").classList.remove("show");
+      }
 
-// ===== Init =====
-loadAll();
-</script>
-</body>
+      // ===== Utils =====
+      function escHtml(s) {
+        if (!s) return "";
+        return String(s)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+
+      function showLoading() {
+        document.getElementById("loadingState").classList.remove("hidden");
+        document.getElementById("contentArea").classList.add("hidden");
+      }
+
+      function showContent() {
+        document.getElementById("loadingState").classList.add("hidden");
+        document.getElementById("contentArea").classList.remove("hidden");
+      }
+
+      // ===== Share =====
+      var shareBadgeData = null;
+
+      /**
+       * Main share entry point - tries Web Share API first
+       */
+      function shareBadge(icon, name, desc) {
+        shareBadgeData = { icon: icon, name: name, desc: desc };
+
+        var shareUrl = getShareUrl();
+        var text = getShareText();
+
+        // Try native share (mobile: 小紅書/WeChat/IG/FB/WhatsApp/Telegram etc.)
+        if (navigator.share) {
+          navigator
+            .share({
+              title: "ZenPass 成就：" + name,
+              text: text,
+              url: shareUrl,
+            })
+            .catch(function (e) {
+              // User cancelled or error - show fallback
+              if (e.name !== "AbortError")
+                showShareModal(icon, name, desc, text);
+            });
+        } else {
+          // Desktop fallback - show share modal
+          showShareModal(icon, name, desc, text);
+        }
+      }
+
+      /**
+       * Show share modal with platform options
+       */
+      function showShareModal(icon, name, desc, text) {
+        document.getElementById("shareModalIcon").textContent = icon;
+        document.getElementById("shareModalTitle").textContent =
+          "分享成就：" + name;
+        document.getElementById("shareModalDesc").textContent = desc;
+        // Show hint for desktop users (hidden on mobile since Web Share API takes over)
+        document.getElementById("shareHint").style.display = "block";
+        document.getElementById("shareModal").classList.add("show");
+        // Store share text for buttons
+        shareBadgeData = { icon: icon, name: name, desc: desc, text: text };
+      }
+
+      function closeShareModal() {
+        document.getElementById("shareModal").classList.remove("show");
+      }
+
+      /**
+       * Smart Link: 將來有 App 時，呢個 URL 會 deep link 去 App
+       * 而家 fallback 去 share landing page 引導下載
+       */
+      var APP_DOWNLOAD_URL =
+        "https://apps.apple.com/hk/app/zenpass/idXXXXXXXXX";
+
+      function getShareUrl() {
+        var params = shareBadgeData || {};
+        var baseUrl = window.location.origin + "/share.html";
+        var query =
+          "?badge=" +
+          encodeURIComponent(params.name || "ZenPass 成就") +
+          "&icon=" +
+          encodeURIComponent(params.icon || "🏅") +
+          "&desc=" +
+          encodeURIComponent(params.desc || "");
+        return baseUrl + query;
+      }
+
+      function getShareText() {
+        var url = getShareUrl();
+        var appCTA = "\n\n📲 下載 ZenPass App：" + APP_DOWNLOAD_URL;
+        return (
+          (shareBadgeData.text ||
+            "🏅 我在 ZenPass 解鎖咗【" +
+              shareBadgeData.name +
+              "】勳章！" +
+              "\n一齊嚟運動啦！💪\n" +
+              url) + appCTA
+        );
+      }
+
+      // ===== Platform Share Functions =====
+
+      function shareToFB() {
+        var url =
+          "https://www.facebook.com/sharer/sharer.php?u=" +
+          encodeURIComponent(getShareUrl()) +
+          "&quote=" +
+          encodeURIComponent(getShareText());
+        window.open(url, "_blank", "width=600,height=400");
+        closeShareModal();
+      }
+
+      function shareToWA() {
+        var url =
+          "https://wa.me/?text=" +
+          encodeURIComponent(getShareText() + "\n" + getShareUrl());
+        window.open(url, "_blank");
+        closeShareModal();
+      }
+
+      function shareToTG() {
+        var url =
+          "https://t.me/share/url?url=" +
+          encodeURIComponent(getShareUrl()) +
+          "&text=" +
+          encodeURIComponent(getShareText());
+        window.open(url, "_blank");
+        closeShareModal();
+      }
+
+      function shareToWeibo() {
+        var url =
+          "https://service.weibo.com/share/share.php?url=" +
+          encodeURIComponent(getShareUrl()) +
+          "&title=" +
+          encodeURIComponent("🏅 ZenPass 成就解鎖：" + shareBadgeData.name) +
+          "&pic=&appkey=&searchpic=true";
+        window.open(url, "_blank", "width=615,height=505");
+        closeShareModal();
+      }
+
+      function shareToLINE() {
+        var url =
+          "https://social-plugins.line.me/lineit/share?url=" +
+          encodeURIComponent(getShareUrl());
+        window.open(url, "_blank");
+        closeShareModal();
+      }
+
+      function shareToTwitter() {
+        var url =
+          "https://twitter.com/intent/tweet?text=" +
+          encodeURIComponent(getShareText()) +
+          "&url=" +
+          encodeURIComponent(getShareUrl());
+        window.open(url, "_blank", "width=550,height=420");
+        closeShareModal();
+      }
+
+      function shareToQQ() {
+        var url =
+          "https://connect.qq.com/widget/shareqq/index.html?url=" +
+          encodeURIComponent(getShareUrl()) +
+          "&title=" +
+          encodeURIComponent("ZenPass 成就：" + shareBadgeData.name) +
+          "&desc=" +
+          encodeURIComponent(shareBadgeData.desc || "") +
+          "&summary=" +
+          encodeURIComponent(
+            "🏅 我在 ZenPass 解鎖咗【" + shareBadgeData.name + "】勳章！",
+          );
+        window.open(url, "_blank", "width=700,height=540");
+        closeShareModal();
+      }
+
+      /**
+       * 小紅書 (XiaoHongShu / RED) — 冇公開 web share API
+       * 最佳做法：下載成就圖片，提示用戶上傳到小紅書
+       */
+      function shareToXHS() {
+        closeShareModal();
+        showToast("📕 正在生成小紅書分享圖片...");
+        // Generate the achievement image and trigger download
+        setTimeout(function () {
+          shareAsImage(true);
+          // After image downloads, show guidance
+          setTimeout(function () {
+            showToast(
+              "📕 圖片已下載！上傳到小紅書，加上 #ZenPass #運動成就 標籤 📸",
+            );
+          }, 500);
+        }, 300);
+      }
+
+      function copyShareLink() {
+        var text = shareBadgeData.text || getShareText();
+        text = text + "\n" + getShareUrl();
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard
+            .writeText(text)
+            .then(function () {
+              closeShareModal();
+              showToast("✅ 已複製到剪貼簿，去貼上分享吧！");
+            })
+            .catch(function () {
+              fallbackCopy(text);
+            });
+        } else {
+          fallbackCopy(text);
+        }
+      }
+
+      function fallbackCopy(text) {
+        var ta = document.createElement("textarea");
+        ta.value = text;
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.select();
+        try {
+          document.execCommand("copy");
+          showToast("✅ 已複製到剪貼簿");
+        } catch (e) {
+          showToast("⚠️ 複製失敗，請手動複製");
+        }
+        document.body.removeChild(ta);
+        closeShareModal();
+      }
+
+      /**
+       * Generate share image using Canvas
+       */
+      function shareAsImage(forXHS) {
+        if (!shareBadgeData) return;
+        var canvas = document.getElementById("shareCanvas");
+        var ctx = canvas.getContext("2d");
+        canvas.width = 600;
+        canvas.height = 400;
+
+        // Background gradient
+        var grad = ctx.createLinearGradient(0, 0, 600, 400);
+        grad.addColorStop(0, "#1A1A2E");
+        grad.addColorStop(1, "#2D2D3A");
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        roundRect(ctx, 0, 0, 600, 400, 24);
+        ctx.fill();
+
+        // ZenPass brand
+        ctx.fillStyle = "rgba(255,255,255,0.15)";
+        ctx.font = "bold 14px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText("ZENPASS 禪流", 300, 40);
+
+        // Badge emoji (using text for emoji)
+        ctx.font = "100px Arial";
+        ctx.textAlign = "center";
+        ctx.fillStyle = "#FFFFFF";
+        ctx.fillText(shareBadgeData.icon, 300, 180);
+
+        // Badge name
+        ctx.font = "bold 28px Arial";
+        ctx.fillStyle = "#FF6B35";
+        ctx.fillText(shareBadgeData.name, 300, 250);
+
+        // Description
+        ctx.font = "16px Arial";
+        ctx.fillStyle = "rgba(255,255,255,0.7)";
+        var desc = shareBadgeData.desc || "";
+        // Word wrap
+        var words = desc.split("");
+        var line = "";
+        var lines = [];
+        for (var i = 0; i < words.length; i++) {
+          line += words[i];
+          if (ctx.measureText(line).width > 500 || i === words.length - 1) {
+            lines.push(line);
+            line = "";
+          }
+        }
+        if (line) lines.push(line);
+        var lineY = 290;
+        for (var j = 0; j < lines.length && j < 2; j++) {
+          ctx.fillText(lines[j].trim(), 300, lineY);
+          lineY += 24;
+        }
+
+        // Footer - App download CTA
+        ctx.fillStyle = "rgba(255,255,255,0.15)";
+        ctx.font = "bold 12px Arial";
+        ctx.fillText("📲 下載 ZenPass App", 300, 330);
+
+        ctx.fillStyle = "rgba(255,255,255,0.25)";
+        ctx.font = "10px Arial";
+        ctx.fillText('Scan QR code or search "ZenPass"', 300, 348);
+
+        // App download link
+        ctx.fillStyle = "rgba(255,255,255,0.3)";
+        ctx.font = "10px Arial";
+        ctx.fillText(APP_DOWNLOAD_URL, 300, 370);
+
+        // Convert to image
+        var dataUrl = canvas.toDataURL("image/png");
+        // Download or share
+        var link = document.createElement("a");
+        link.download = "zenpass-achievement-" + shareBadgeData.name + ".png";
+        link.href = dataUrl;
+        link.click();
+
+        closeShareModal();
+        if (forXHS) {
+          // XHS toast already handled by shareToXHS
+        } else {
+          showToast("✅ 圖片已下載！可上傳到小紅書 / Facebook / IG 等平台 📸");
+        }
+      }
+
+      function roundRect(ctx, x, y, w, h, r) {
+        ctx.moveTo(x + r, y);
+        ctx.lineTo(x + w - r, y);
+        ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+        ctx.lineTo(x + w, y + h - r);
+        ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+        ctx.lineTo(x + r, y + h);
+        ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+        ctx.lineTo(x, y + r);
+        ctx.quadraticCurveTo(x, y, x + r, y);
+        ctx.closePath();
+      }
+
+      // ===== Init =====
+      loadAll();
+    </script>
+  </body>
 </html>

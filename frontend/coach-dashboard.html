@@ -1,558 +1,1269 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-HK">
-<head>
-<meta charset="UTF-8">
-    <link rel="icon" href="favicon.png" type="image/png">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="theme-color" content="#FF6B35">
-<title>教練入口 — ZenPass 禪流</title>
-<style>
-* { margin:0; padding:0; box-sizing:border-box; }
-:root { --orange-500:#FF6B35; --orange-400:#FF8555; --orange-100:#FFF0E8; --orange-50:#FFF8F4; --dark-900:#1A1A2E; --dark-800:#2D2D44; --dark-700:#3D3D5A; --gray-200:#E5E7EB; --gray-300:#D1D5DB; --gray-100:#F3F4F6; --gray-50:#F9FAFB; --white:#FFFFFF; --green-500:#059669; --red-500:#EF4444; --blue-500:#3B82F6; --radius-sm:8px; --radius-md:12px; --radius-lg:16px; --max-width:480px; }
-body { font-family:'Inter','Noto Sans TC',sans-serif; background:var(--gray-50); color:var(--dark-900); max-width:var(--max-width); margin:0 auto; padding-bottom:80px; }
-.header { background:linear-gradient(135deg,var(--dark-900),var(--dark-800)); color:var(--white); padding:20px; }
-.header-top { display:flex; align-items:center; gap:12px; margin-bottom:4px; }
-.header a { color:var(--white); text-decoration:none; font-size:20px; }
-.header h1 { font-size:20px; font-weight:700; }
-.header .sub-info { font-size:12px; opacity:.7; margin-left:30px; display:flex; gap:16px; }
-
-.tabs { display:flex; background:var(--white); border-bottom:1px solid var(--gray-200); position:sticky; top:0; z-index:9; }
-.tab { flex:1; padding:12px; text-align:center; font-size:13px; font-weight:500; color:var(--gray-300); cursor:pointer; border-bottom:2px solid transparent; transition:all .2s; }
-.tab.active { color:var(--orange-500); border-bottom-color:var(--orange-500); font-weight:700; }
-
-.section { padding:16px; display:none; }
-.section.active { display:block; }
-
-.stats-row { display:flex; gap:12px; margin-bottom:16px; }
-.stat-box { flex:1; background:var(--white); border-radius:var(--radius-md); padding:14px; text-align:center; box-shadow:0 1px 3px rgba(0,0,0,.08); }
-.stat-box .num { font-size:22px; font-weight:800; color:var(--orange-500); }
-.stat-box .label { font-size:11px; color:var(--dark-700); margin-top:2px; }
-
-.card { background:var(--white); border-radius:var(--radius-lg); padding:20px; margin-bottom:12px; box-shadow:0 1px 3px rgba(0,0,0,.08); }
-.card-title { font-size:15px; font-weight:700; margin-bottom:16px; display:flex; align-items:center; gap:8px; }
-.card-title .count { font-size:12px; font-weight:400; color:var(--dark-700); }
-
-.schedule-scroll { display:flex; gap:12px; overflow-x:auto; padding-bottom:8px; }
-.schedule-card { flex:0 0 170px; background:var(--orange-50); border-radius:var(--radius-md); padding:14px; border:1px solid var(--orange-100); }
-.schedule-card .s-date { font-size:13px; font-weight:600; color:var(--orange-500); }
-.schedule-card .s-time { font-size:12px; color:var(--dark-700); margin:4px 0; }
-.schedule-card .s-title { font-size:14px; font-weight:600; }
-.schedule-card .s-students { font-size:12px; color:var(--green-500); margin-top:4px; }
-.schedule-card .s-earn { font-size:13px; font-weight:700; color:var(--dark-900); margin-top:4px; }
-
-.class-item { padding:14px 0; border-bottom:1px solid var(--gray-100); }
-.class-item:last-child { border-bottom:none; }
-.class-row { display:flex; justify-content:space-between; align-items:center; }
-.class-name { font-size:14px; font-weight:600; }
-.class-meta { font-size:11px; color:var(--dark-700); margin-top:2px; }
-.class-status { font-size:11px; padding:3px 10px; border-radius:10px; font-weight:600; }
-.class-status.active { background:#ECFDF5; color:var(--green-500); }
-.class-status.draft { background:var(--gray-100); color:var(--dark-700); }
-.class-status.archived { background:#FEF2F2; color:var(--red-500); }
-.toggle-btn { background:var(--orange-100); border:none; padding:4px 10px; border-radius:6px; font-size:11px; cursor:pointer; font-family:inherit; color:var(--orange-500); }
-.toggle-btn:hover { background:var(--orange-500); color:var(--white); }
-
-.month-income { font-size:24px; font-weight:800; color:var(--dark-900); }
-.month-income span { font-size:14px; font-weight:400; color:var(--dark-700); }
-
-.income-table { width:100%; font-size:13px; }
-.income-table th { text-align:left; padding:8px 0; font-weight:600; color:var(--dark-700); border-bottom:1px solid var(--gray-200); }
-.income-table td { padding:8px 0; border-bottom:1px solid var(--gray-100); }
-
-.btn-primary { width:100%; padding:14px; background:var(--orange-500); color:var(--white); border:none; border-radius:var(--radius-sm); font-size:15px; font-weight:700; cursor:pointer; font-family:inherit; }
-.btn-primary:hover { background:#E55A2B; }
-.btn-secondary { width:100%; padding:14px; background:var(--white); color:var(--orange-500); border:1.5px solid var(--orange-500); border-radius:var(--radius-sm); font-size:15px; font-weight:600; cursor:pointer; font-family:inherit; margin-top:8px; }
-.btn-secondary:hover { background:var(--orange-100); }
-
-.revenue-chart { height:160px; display:flex; align-items:flex-end; gap:8px; padding:12px 0; }
-.chart-bar { flex:1; background:var(--orange-100); border-radius:6px 6px 0 0; position:relative; display:flex; flex-direction:column; align-items:center; min-height:8px; transition:height .3s; }
-.chart-bar .bar-val { font-size:10px; font-weight:600; color:var(--orange-500); margin-bottom:4px; }
-.chart-bar .bar-label { font-size:10px; color:var(--dark-700); margin-top:4px; }
-
-.bottom-nav { position:fixed; bottom:0; left:50%; transform:translateX(-50%); width:100%; max-width:var(--max-width); background:var(--white); border-top:1px solid var(--gray-200); display:flex; justify-content:space-around; padding:8px 0 calc(8px + env(safe-area-inset-bottom)); z-index:100; }
-.nav-item { display:flex; flex-direction:column; align-items:center; text-decoration:none; color:var(--gray-300); font-size:10px; gap:2px; padding:4px 12px; }
-.nav-item.active { color:var(--orange-500); }
-.nav-item .nav-icon { font-size:22px; line-height:1; }
-
-.loading { text-align:center; padding:40px; color:var(--dark-700); font-size:14px; }
-.loading .spinner { display:inline-block; width:32px; height:32px; border:3px solid var(--gray-200); border-top-color:var(--orange-500); border-radius:50%; animation:spin .8s linear infinite; margin-bottom:12px; }
-@keyframes spin { to { transform:rotate(360deg); } }
-.hidden { display:none !important; }
-.toast-fixed { position:fixed; bottom:80px; left:50%; transform:translateX(-50%); padding:12px 20px; border-radius:12px; font-size:14px; font-weight:500; z-index:999; animation:fadeIn .3s; max-width:300px; text-align:center; box-shadow:0 4px 12px rgba(0,0,0,.15); }
-@keyframes fadeIn { from { opacity:0; transform:translateX(-50%) translateY(10px); } to { opacity:1; transform:translateX(-50%) translateY(0); } }
-
-.empty-state { text-align:center; padding:30px 20px; color:var(--dark-700); font-size:14px; }
-.empty-state .empty-icon { font-size:40px; margin-bottom:8px; display:block; }
-</style>
-</head>
-<body>
-<div class="header">
-  <div class="header-top">
-    <a href="index.html">&larr;</a>
-    <h1>教練入口</h1>
-  </div>
-  <div class="sub-info" id="headerInfo">載入中...</div>
-</div>
-
-<div class="tabs">
-  <div class="tab active" onclick="switchTab('dashboard')">📊 總覽</div>
-  <div class="tab" onclick="switchTab('schedule')">📅 課程</div>
-  <div class="tab" onclick="switchTab('income')">💰 收入</div>
-</div>
-
-<div class="loading" id="loadingState">
-  <div class="spinner"></div>
-  <div>正在載入教練資料...</div>
-</div>
-<div id="appContent" class="hidden">
-
-<!-- Tab: Dashboard -->
-<div class="section active" id="tab-dashboard">
-  <div class="stats-row" id="dashStats"></div>
-  <div class="card">
-    <div class="card-title">📅 即將到來的課堂 <span class="count" id="upcomingCount"></span></div>
-    <div class="schedule-scroll" id="upcomingClasses"></div>
-  </div>
-  <div class="card">
-    <div class="card-title">📝 我的課程 <span class="count" id="myClassesCount"></span></div>
-    <div id="myClassesList"></div>
-  </div>
-</div>
-
-<!-- Tab: Schedule -->
-<div class="section" id="tab-schedule">
-  <div class="card">
-    <div class="card-title">📅 所有時間表</div>
-    <div class="schedule-scroll" id="allSchedules"></div>
-  </div>
-  <button class="btn-primary" onclick="showAddScheduleForm()">➕ 新增課堂時間</button>
-</div>
-
-<!-- Tab: Income -->
-<div class="section" id="tab-income">
-  <div class="stats-row" id="incomeStats"></div>
-  <div class="card">
-    <div class="card-title">收入趨勢</div>
-    <div class="revenue-chart" id="revenueChart"></div>
-  </div>
-  <div class="card">
-    <div class="card-title">收入明細</div>
-    <div id="incomeDetail"></div>
-  </div>
-  <div class="card">
-    <div class="card-title" style="display:flex;align-items:center;gap:8px;">🏦 提現 <span style="font-size:12px;font-weight:400;color:var(--dark-700);" id="payoutBalance"></span></div>
-    <div class="form-group" style="margin-bottom:12px;">
-      <label style="font-size:13px;font-weight:600;display:block;margin-bottom:4px;color:var(--dark-700);">提現金額 (HK$)</label>
-      <input type="number" id="payout-amount" placeholder="最低 HK$100" min="100" style="width:100%;padding:12px;border:1px solid var(--gray-200);border-radius:var(--radius-sm);font-size:16px;font-family:inherit;outline:none;">
-    </div>
-    <div class="form-group" style="margin-bottom:12px;">
-      <label style="font-size:13px;font-weight:600;display:block;margin-bottom:4px;color:var(--dark-700);">收款方式</label>
-      <select id="payout-method" style="width:100%;padding:12px;border:1px solid var(--gray-200);border-radius:var(--radius-sm);font-size:16px;font-family:inherit;outline:none;">
-        <option value="bank">銀行轉帳</option>
-        <option value="fps">轉數快 FPS</option>
-        <option value="payme">PayMe</option>
-      </select>
-    </div>
-    <div id="payout-bank-fields">
-      <div class="form-group" style="margin-bottom:8px;">
-        <input type="text" id="payout-bank-name" placeholder="銀行名稱" style="width:100%;padding:12px;border:1px solid var(--gray-200);border-radius:var(--radius-sm);font-size:14px;font-family:inherit;">
-      </div>
-      <div class="form-group" style="margin-bottom:8px;">
-        <input type="text" id="payout-bank-code" placeholder="銀行代碼" style="width:100%;padding:12px;border:1px solid var(--gray-200);border-radius:var(--radius-sm);font-size:14px;font-family:inherit;">
-      </div>
-      <div class="form-group" style="margin-bottom:8px;">
-        <input type="text" id="payout-account" placeholder="帳戶號碼" style="width:100%;padding:12px;border:1px solid var(--gray-200);border-radius:var(--radius-sm);font-size:14px;font-family:inherit;">
-      </div>
-    </div>
-    <div id="payout-fps-field" class="hidden">
-      <div class="form-group" style="margin-bottom:8px;">
-        <input type="text" id="payout-fps-phone" placeholder="FPS 電話／電郵" style="width:100%;padding:12px;border:1px solid var(--gray-200);border-radius:var(--radius-sm);font-size:14px;font-family:inherit;">
-      </div>
-    </div>
-    <div id="payout-payme-field" class="hidden">
-      <div class="form-group" style="margin-bottom:8px;">
-        <input type="text" id="payout-payme-phone" placeholder="PayMe 電話號碼" style="width:100%;padding:12px;border:1px solid var(--gray-200);border-radius:var(--radius-sm);font-size:14px;font-family:inherit;">
-      </div>
-    </div>
-    <button class="btn-primary" onclick="requestPayout()">💰 申請提現</button>
-    <div id="payoutHistory" style="margin-top:12px;"></div>
-  </div>
-  <button class="btn-secondary" onclick="loadIncomeDetail()">🔄 載入更多明細</button>
-</div>
-
-</div><!-- /appContent -->
-
-<div class="bottom-nav">
-  <a href="index.html" class="nav-item"><span class="nav-icon">🏠</span>首頁</a>
-  <a href="courses.html" class="nav-item"><span class="nav-icon">📚</span>課程</a>
-  <a href="my-bookings.html" class="nav-item"><span class="nav-icon">📋</span>預約</a>
-  <a href="my.html" class="nav-item"><span class="nav-icon">👤</span>帳戶</a>
-</div>
-
-<script>
-var API_BASE = '/api';
-var coachClasses = [];
-var coachSchedules = [];
-var earningsData = null;
-var incomeEntries = [];
-
-function getToken() {
-  return localStorage.getItem('zenpass_token') || sessionStorage.getItem('zenpass_token');
-}
-function getAuthHeaders() {
-  var t = getToken();
-  return { 'Authorization': 'Bearer ' + t, 'Content-Type': 'application/json' };
-}
-
-// ===== Init =====
-(function() {
-  loadAllData();
-})();
-
-async function loadAllData() {
-  showLoading();
-
-  // Fetch fresh user profile from API
-  var name = '教練';
-  try {
-    var userResp = await fetch(API_BASE + '/users/me', { headers: getAuthHeaders() });
-    if (userResp.ok) {
-      var userData = await userResp.json();
-      if (userData && userData.name) {
-        name = userData.name;
-        localStorage.setItem('zenpass_user', JSON.stringify(userData));
-        localStorage.setItem('zenpass_name', userData.name);
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" href="favicon.png" type="image/png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#FF6B35" />
+    <title>教練入口 — ZenPass 禪流</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
       }
-    }
-  } catch(e) {
-    // Fallback to localStorage
-    var userStr = localStorage.getItem('zenpass_user') || sessionStorage.getItem('zenpass_user');
-    var user = null;
-    try { if (userStr) user = JSON.parse(userStr); } catch(e) {}
-    name = (user && user.name) || localStorage.getItem('zenpass_name') || '教練';
-  }
-  document.querySelector('.sub-info').textContent = '👤 ' + name;
-
-  // Check if user is logged in — if not, show login prompt
-  if (!getToken()) {
-    document.getElementById('loadingState').innerHTML = '<div style="text-align:center;padding:40px;"><span class="empty-icon" style="font-size:48px;display:block;margin-bottom:12px;">🔐</span><div style="font-size:16px;font-weight:600;margin-bottom:8px;">請先登入</div><p style="color:var(--dark-700);margin-bottom:20px;">你需要登入才能查看教練資料</p><button class="btn-primary" style="width:auto;display:inline-block;padding:12px 32px;" onclick="showLoginModal(); return false;">登入</button></div>';
-    return;
-  }
-
-  Promise.all([
-    fetch(API_BASE + '/coach/my-classes', { headers: getAuthHeaders() }).then(function(r) { return r.json().catch(function() { return {classes:[]}; }); }),
-    fetch(API_BASE + '/coach/earnings', { headers: getAuthHeaders() }).then(function(r) { return r.json().catch(function() { return {summary:{}}; }); }),
-    fetch(API_BASE + '/classes', { headers: { 'Content-Type': 'application/json' } }).then(function(r) { return r.json().catch(function() { return {classes:[]}; }); })
-  ])
-    .then(function(results) {
-      var classesData = results[0];
-      var earningsResp = results[1];
-      var allClassesResp = results[2];
-
-      // Handle auth errors gracefully
-      if (classesData.error || earningsResp.error) {
-        document.getElementById('loadingState').innerHTML = '<div style="text-align:center;padding:40px;"><span class="empty-icon" style="font-size:48px;display:block;margin-bottom:12px;">🔐</span><div style="font-size:16px;font-weight:600;margin-bottom:8px;">需要教練權限</div><p style="color:var(--dark-700);margin-bottom:8px;">' + (classesData.error || earningsResp.error) + '</p><p style="color:var(--dark-700);margin-bottom:20px;">請先提交教練申請或重新登入</p><button class="btn-primary" style="width:auto;display:inline-block;padding:12px 32px;margin-right:8px;" onclick="window.location.href=\'coach-apply.html\'">申請成為教練</button><button class="btn-secondary" style="width:auto;display:inline-block;padding:12px 32px;" onclick="showLoginModal();">重新登入</button></div>';
-        return;
+      :root {
+        --orange-500: #ff6b35;
+        --orange-400: #ff8555;
+        --orange-100: #fff0e8;
+        --orange-50: #fff8f4;
+        --dark-900: #1a1a2e;
+        --dark-800: #2d2d44;
+        --dark-700: #3d3d5a;
+        --gray-200: #e5e7eb;
+        --gray-300: #d1d5db;
+        --gray-100: #f3f4f6;
+        --gray-50: #f9fafb;
+        --white: #ffffff;
+        --green-500: #059669;
+        --red-500: #ef4444;
+        --blue-500: #3b82f6;
+        --radius-sm: 8px;
+        --radius-md: 12px;
+        --radius-lg: 16px;
+        --max-width: 480px;
+      }
+      body {
+        font-family: "Inter", "Noto Sans TC", sans-serif;
+        background: var(--gray-50);
+        color: var(--dark-900);
+        max-width: var(--max-width);
+        margin: 0 auto;
+        padding-bottom: 80px;
+      }
+      .header {
+        background: linear-gradient(135deg, var(--dark-900), var(--dark-800));
+        color: var(--white);
+        padding: 20px;
+      }
+      .header-top {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 4px;
+      }
+      .header a {
+        color: var(--white);
+        text-decoration: none;
+        font-size: 20px;
+      }
+      .header h1 {
+        font-size: 20px;
+        font-weight: 700;
+      }
+      .header .sub-info {
+        font-size: 12px;
+        opacity: 0.7;
+        margin-left: 30px;
+        display: flex;
+        gap: 16px;
       }
 
-      coachClasses = classesData.classes || [];
+      .tabs {
+        display: flex;
+        background: var(--white);
+        border-bottom: 1px solid var(--gray-200);
+        position: sticky;
+        top: 0;
+        z-index: 9;
+      }
+      .tab {
+        flex: 1;
+        padding: 12px;
+        text-align: center;
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--gray-300);
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+        transition: all 0.2s;
+      }
+      .tab.active {
+        color: var(--orange-500);
+        border-bottom-color: var(--orange-500);
+        font-weight: 700;
+      }
 
-      // Build schedules from all classes
-      var allClasses = allClassesResp.classes || [];
-      coachSchedules = [];
-      var myIds = {};
-      coachClasses.forEach(function(c) { myIds[c.id] = true; });
-      allClasses.forEach(function(c) {
-        if (myIds[c.id] && c.schedules) {
-          c.schedules.forEach(function(s) {
-            coachSchedules.push({
-              classId: c.id,
-              title: c.title,
-              price: c.price_hkd,
-              start_time: s.start_time,
-              end_time: s.end_time,
-              enrolled: s.enrolled_count || 0,
-              capacity: s.max_participants,
-              venue: c.venue_name
-            });
+      .section {
+        padding: 16px;
+        display: none;
+      }
+      .section.active {
+        display: block;
+      }
+
+      .stats-row {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 16px;
+      }
+      .stat-box {
+        flex: 1;
+        background: var(--white);
+        border-radius: var(--radius-md);
+        padding: 14px;
+        text-align: center;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+      }
+      .stat-box .num {
+        font-size: 22px;
+        font-weight: 800;
+        color: var(--orange-500);
+      }
+      .stat-box .label {
+        font-size: 11px;
+        color: var(--dark-700);
+        margin-top: 2px;
+      }
+
+      .card {
+        background: var(--white);
+        border-radius: var(--radius-lg);
+        padding: 20px;
+        margin-bottom: 12px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+      }
+      .card-title {
+        font-size: 15px;
+        font-weight: 700;
+        margin-bottom: 16px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .card-title .count {
+        font-size: 12px;
+        font-weight: 400;
+        color: var(--dark-700);
+      }
+
+      .schedule-scroll {
+        display: flex;
+        gap: 12px;
+        overflow-x: auto;
+        padding-bottom: 8px;
+      }
+      .schedule-card {
+        flex: 0 0 170px;
+        background: var(--orange-50);
+        border-radius: var(--radius-md);
+        padding: 14px;
+        border: 1px solid var(--orange-100);
+      }
+      .schedule-card .s-date {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--orange-500);
+      }
+      .schedule-card .s-time {
+        font-size: 12px;
+        color: var(--dark-700);
+        margin: 4px 0;
+      }
+      .schedule-card .s-title {
+        font-size: 14px;
+        font-weight: 600;
+      }
+      .schedule-card .s-students {
+        font-size: 12px;
+        color: var(--green-500);
+        margin-top: 4px;
+      }
+      .schedule-card .s-earn {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--dark-900);
+        margin-top: 4px;
+      }
+
+      .class-item {
+        padding: 14px 0;
+        border-bottom: 1px solid var(--gray-100);
+      }
+      .class-item:last-child {
+        border-bottom: none;
+      }
+      .class-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .class-name {
+        font-size: 14px;
+        font-weight: 600;
+      }
+      .class-meta {
+        font-size: 11px;
+        color: var(--dark-700);
+        margin-top: 2px;
+      }
+      .class-status {
+        font-size: 11px;
+        padding: 3px 10px;
+        border-radius: 10px;
+        font-weight: 600;
+      }
+      .class-status.active {
+        background: #ecfdf5;
+        color: var(--green-500);
+      }
+      .class-status.draft {
+        background: var(--gray-100);
+        color: var(--dark-700);
+      }
+      .class-status.archived {
+        background: #fef2f2;
+        color: var(--red-500);
+      }
+      .toggle-btn {
+        background: var(--orange-100);
+        border: none;
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 11px;
+        cursor: pointer;
+        font-family: inherit;
+        color: var(--orange-500);
+      }
+      .toggle-btn:hover {
+        background: var(--orange-500);
+        color: var(--white);
+      }
+
+      .month-income {
+        font-size: 24px;
+        font-weight: 800;
+        color: var(--dark-900);
+      }
+      .month-income span {
+        font-size: 14px;
+        font-weight: 400;
+        color: var(--dark-700);
+      }
+
+      .income-table {
+        width: 100%;
+        font-size: 13px;
+      }
+      .income-table th {
+        text-align: left;
+        padding: 8px 0;
+        font-weight: 600;
+        color: var(--dark-700);
+        border-bottom: 1px solid var(--gray-200);
+      }
+      .income-table td {
+        padding: 8px 0;
+        border-bottom: 1px solid var(--gray-100);
+      }
+
+      .btn-primary {
+        width: 100%;
+        padding: 14px;
+        background: var(--orange-500);
+        color: var(--white);
+        border: none;
+        border-radius: var(--radius-sm);
+        font-size: 15px;
+        font-weight: 700;
+        cursor: pointer;
+        font-family: inherit;
+      }
+      .btn-primary:hover {
+        background: #e55a2b;
+      }
+      .btn-secondary {
+        width: 100%;
+        padding: 14px;
+        background: var(--white);
+        color: var(--orange-500);
+        border: 1.5px solid var(--orange-500);
+        border-radius: var(--radius-sm);
+        font-size: 15px;
+        font-weight: 600;
+        cursor: pointer;
+        font-family: inherit;
+        margin-top: 8px;
+      }
+      .btn-secondary:hover {
+        background: var(--orange-100);
+      }
+
+      .revenue-chart {
+        height: 160px;
+        display: flex;
+        align-items: flex-end;
+        gap: 8px;
+        padding: 12px 0;
+      }
+      .chart-bar {
+        flex: 1;
+        background: var(--orange-100);
+        border-radius: 6px 6px 0 0;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        min-height: 8px;
+        transition: height 0.3s;
+      }
+      .chart-bar .bar-val {
+        font-size: 10px;
+        font-weight: 600;
+        color: var(--orange-500);
+        margin-bottom: 4px;
+      }
+      .chart-bar .bar-label {
+        font-size: 10px;
+        color: var(--dark-700);
+        margin-top: 4px;
+      }
+
+      .bottom-nav {
+        position: fixed;
+        bottom: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 100%;
+        max-width: var(--max-width);
+        background: var(--white);
+        border-top: 1px solid var(--gray-200);
+        display: flex;
+        justify-content: space-around;
+        padding: 8px 0 calc(8px + env(safe-area-inset-bottom));
+        z-index: 100;
+      }
+      .nav-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-decoration: none;
+        color: var(--gray-300);
+        font-size: 10px;
+        gap: 2px;
+        padding: 4px 12px;
+      }
+      .nav-item.active {
+        color: var(--orange-500);
+      }
+      .nav-item .nav-icon {
+        font-size: 22px;
+        line-height: 1;
+      }
+
+      .loading {
+        text-align: center;
+        padding: 40px;
+        color: var(--dark-700);
+        font-size: 14px;
+      }
+      .loading .spinner {
+        display: inline-block;
+        width: 32px;
+        height: 32px;
+        border: 3px solid var(--gray-200);
+        border-top-color: var(--orange-500);
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+        margin-bottom: 12px;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      .hidden {
+        display: none !important;
+      }
+      .toast-fixed {
+        position: fixed;
+        bottom: 80px;
+        left: 50%;
+        transform: translateX(-50%);
+        padding: 12px 20px;
+        border-radius: 12px;
+        font-size: 14px;
+        font-weight: 500;
+        z-index: 999;
+        animation: fadeIn 0.3s;
+        max-width: 300px;
+        text-align: center;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateX(-50%) translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateX(-50%) translateY(0);
+        }
+      }
+
+      .empty-state {
+        text-align: center;
+        padding: 30px 20px;
+        color: var(--dark-700);
+        font-size: 14px;
+      }
+      .empty-state .empty-icon {
+        font-size: 40px;
+        margin-bottom: 8px;
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <div class="header-top">
+        <a href="index.html">&larr;</a>
+        <h1>教練入口</h1>
+      </div>
+      <div class="sub-info" id="headerInfo">載入中...</div>
+    </div>
+
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('dashboard')">📊 總覽</div>
+      <div class="tab" onclick="switchTab('schedule')">📅 課程</div>
+      <div class="tab" onclick="switchTab('income')">💰 收入</div>
+    </div>
+
+    <div class="loading" id="loadingState">
+      <div class="spinner"></div>
+      <div>正在載入教練資料...</div>
+    </div>
+    <div id="appContent" class="hidden">
+      <!-- Tab: Dashboard -->
+      <div class="section active" id="tab-dashboard">
+        <div class="stats-row" id="dashStats"></div>
+        <div class="card">
+          <div class="card-title">
+            📅 即將到來的課堂 <span class="count" id="upcomingCount"></span>
+          </div>
+          <div class="schedule-scroll" id="upcomingClasses"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">
+            📝 我的課程 <span class="count" id="myClassesCount"></span>
+          </div>
+          <div id="myClassesList"></div>
+        </div>
+      </div>
+
+      <!-- Tab: Schedule -->
+      <div class="section" id="tab-schedule">
+        <div class="card">
+          <div class="card-title">📅 所有時間表</div>
+          <div class="schedule-scroll" id="allSchedules"></div>
+        </div>
+        <button class="btn-primary" onclick="showAddScheduleForm()">
+          ➕ 新增課堂時間
+        </button>
+      </div>
+
+      <!-- Tab: Income -->
+      <div class="section" id="tab-income">
+        <div class="stats-row" id="incomeStats"></div>
+        <div class="card">
+          <div class="card-title">收入趨勢</div>
+          <div class="revenue-chart" id="revenueChart"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">收入明細</div>
+          <div id="incomeDetail"></div>
+        </div>
+        <div class="card">
+          <div
+            class="card-title"
+            style="display: flex; align-items: center; gap: 8px"
+          >
+            🏦 提現
+            <span
+              style="font-size: 12px; font-weight: 400; color: var(--dark-700)"
+              id="payoutBalance"
+            ></span>
+          </div>
+          <div class="form-group" style="margin-bottom: 12px">
+            <label
+              style="
+                font-size: 13px;
+                font-weight: 600;
+                display: block;
+                margin-bottom: 4px;
+                color: var(--dark-700);
+              "
+              >提現金額 (HK$)</label
+            >
+            <input
+              type="number"
+              id="payout-amount"
+              placeholder="最低 HK$100"
+              min="100"
+              style="
+                width: 100%;
+                padding: 12px;
+                border: 1px solid var(--gray-200);
+                border-radius: var(--radius-sm);
+                font-size: 16px;
+                font-family: inherit;
+                outline: none;
+              "
+            />
+          </div>
+          <div class="form-group" style="margin-bottom: 12px">
+            <label
+              style="
+                font-size: 13px;
+                font-weight: 600;
+                display: block;
+                margin-bottom: 4px;
+                color: var(--dark-700);
+              "
+              >收款方式</label
+            >
+            <select
+              id="payout-method"
+              style="
+                width: 100%;
+                padding: 12px;
+                border: 1px solid var(--gray-200);
+                border-radius: var(--radius-sm);
+                font-size: 16px;
+                font-family: inherit;
+                outline: none;
+              "
+            >
+              <option value="bank">銀行轉帳</option>
+              <option value="fps">轉數快 FPS</option>
+              <option value="payme">PayMe</option>
+            </select>
+          </div>
+          <div id="payout-bank-fields">
+            <div class="form-group" style="margin-bottom: 8px">
+              <input
+                type="text"
+                id="payout-bank-name"
+                placeholder="銀行名稱"
+                style="
+                  width: 100%;
+                  padding: 12px;
+                  border: 1px solid var(--gray-200);
+                  border-radius: var(--radius-sm);
+                  font-size: 14px;
+                  font-family: inherit;
+                "
+              />
+            </div>
+            <div class="form-group" style="margin-bottom: 8px">
+              <input
+                type="text"
+                id="payout-bank-code"
+                placeholder="銀行代碼"
+                style="
+                  width: 100%;
+                  padding: 12px;
+                  border: 1px solid var(--gray-200);
+                  border-radius: var(--radius-sm);
+                  font-size: 14px;
+                  font-family: inherit;
+                "
+              />
+            </div>
+            <div class="form-group" style="margin-bottom: 8px">
+              <input
+                type="text"
+                id="payout-account"
+                placeholder="帳戶號碼"
+                style="
+                  width: 100%;
+                  padding: 12px;
+                  border: 1px solid var(--gray-200);
+                  border-radius: var(--radius-sm);
+                  font-size: 14px;
+                  font-family: inherit;
+                "
+              />
+            </div>
+          </div>
+          <div id="payout-fps-field" class="hidden">
+            <div class="form-group" style="margin-bottom: 8px">
+              <input
+                type="text"
+                id="payout-fps-phone"
+                placeholder="FPS 電話／電郵"
+                style="
+                  width: 100%;
+                  padding: 12px;
+                  border: 1px solid var(--gray-200);
+                  border-radius: var(--radius-sm);
+                  font-size: 14px;
+                  font-family: inherit;
+                "
+              />
+            </div>
+          </div>
+          <div id="payout-payme-field" class="hidden">
+            <div class="form-group" style="margin-bottom: 8px">
+              <input
+                type="text"
+                id="payout-payme-phone"
+                placeholder="PayMe 電話號碼"
+                style="
+                  width: 100%;
+                  padding: 12px;
+                  border: 1px solid var(--gray-200);
+                  border-radius: var(--radius-sm);
+                  font-size: 14px;
+                  font-family: inherit;
+                "
+              />
+            </div>
+          </div>
+          <button class="btn-primary" onclick="requestPayout()">
+            💰 申請提現
+          </button>
+          <div id="payoutHistory" style="margin-top: 12px"></div>
+        </div>
+        <button class="btn-secondary" onclick="loadIncomeDetail()">
+          🔄 載入更多明細
+        </button>
+      </div>
+    </div>
+    <!-- /appContent -->
+
+    <div class="bottom-nav">
+      <a href="index.html" class="nav-item"
+        ><span class="nav-icon">🏠</span>首頁</a
+      >
+      <a href="courses.html" class="nav-item"
+        ><span class="nav-icon">📚</span>課程</a
+      >
+      <a href="my-bookings.html" class="nav-item"
+        ><span class="nav-icon">📋</span>預約</a
+      >
+      <a href="my.html" class="nav-item"
+        ><span class="nav-icon">👤</span>帳戶</a
+      >
+    </div>
+
+    <script>
+      var API_BASE = "/api";
+      var coachClasses = [];
+      var coachSchedules = [];
+      var earningsData = null;
+      var incomeEntries = [];
+
+      function getToken() {
+        return (
+          localStorage.getItem("zenpass_token") ||
+          sessionStorage.getItem("zenpass_token")
+        );
+      }
+      function getAuthHeaders() {
+        var t = getToken();
+        return {
+          Authorization: "Bearer " + t,
+          "Content-Type": "application/json",
+        };
+      }
+
+      // ===== Init =====
+      (function () {
+        loadAllData();
+      })();
+
+      async function loadAllData() {
+        showLoading();
+
+        // Fetch fresh user profile from API
+        var name = "教練";
+        try {
+          var userResp = await fetch(API_BASE + "/users/me", {
+            headers: getAuthHeaders(),
           });
+          if (userResp.ok) {
+            var userData = await userResp.json();
+            if (userData && userData.name) {
+              name = userData.name;
+              localStorage.setItem("zenpass_user", JSON.stringify(userData));
+              localStorage.setItem("zenpass_name", userData.name);
+            }
+          }
+        } catch (e) {
+          // Fallback to localStorage
+          var userStr =
+            localStorage.getItem("zenpass_user") ||
+            sessionStorage.getItem("zenpass_user");
+          var user = null;
+          try {
+            if (userStr) user = JSON.parse(userStr);
+          } catch (e) {}
+          name =
+            (user && user.name) ||
+            localStorage.getItem("zenpass_name") ||
+            "教練";
+        }
+        document.querySelector(".sub-info").textContent = "👤 " + name;
+
+        // Check if user is logged in — if not, show login prompt
+        if (!getToken()) {
+          document.getElementById("loadingState").innerHTML =
+            '<div style="text-align:center;padding:40px;"><span class="empty-icon" style="font-size:48px;display:block;margin-bottom:12px;">🔐</span><div style="font-size:16px;font-weight:600;margin-bottom:8px;">請先登入</div><p style="color:var(--dark-700);margin-bottom:20px;">你需要登入才能查看教練資料</p><button class="btn-primary" style="width:auto;display:inline-block;padding:12px 32px;" onclick="showLoginModal(); return false;">登入</button></div>';
+          return;
+        }
+
+        Promise.all([
+          fetch(API_BASE + "/coach/my-classes", {
+            headers: getAuthHeaders(),
+          }).then(function (r) {
+            return r.json().catch(function () {
+              return { classes: [] };
+            });
+          }),
+          fetch(API_BASE + "/coach/earnings", {
+            headers: getAuthHeaders(),
+          }).then(function (r) {
+            return r.json().catch(function () {
+              return { summary: {} };
+            });
+          }),
+          fetch(API_BASE + "/classes", {
+            headers: { "Content-Type": "application/json" },
+          }).then(function (r) {
+            return r.json().catch(function () {
+              return { classes: [] };
+            });
+          }),
+        ])
+          .then(function (results) {
+            var classesData = results[0];
+            var earningsResp = results[1];
+            var allClassesResp = results[2];
+
+            // Handle auth errors gracefully
+            if (classesData.error || earningsResp.error) {
+              document.getElementById("loadingState").innerHTML =
+                '<div style="text-align:center;padding:40px;"><span class="empty-icon" style="font-size:48px;display:block;margin-bottom:12px;">🔐</span><div style="font-size:16px;font-weight:600;margin-bottom:8px;">需要教練權限</div><p style="color:var(--dark-700);margin-bottom:8px;">' +
+                (classesData.error || earningsResp.error) +
+                '</p><p style="color:var(--dark-700);margin-bottom:20px;">請先提交教練申請或重新登入</p><button class="btn-primary" style="width:auto;display:inline-block;padding:12px 32px;margin-right:8px;" onclick="window.location.href=\'coach-apply.html\'">申請成為教練</button><button class="btn-secondary" style="width:auto;display:inline-block;padding:12px 32px;" onclick="showLoginModal();">重新登入</button></div>';
+              return;
+            }
+
+            coachClasses = classesData.classes || [];
+
+            // Build schedules from all classes
+            var allClasses = allClassesResp.classes || [];
+            coachSchedules = [];
+            var myIds = {};
+            coachClasses.forEach(function (c) {
+              myIds[c.id] = true;
+            });
+            allClasses.forEach(function (c) {
+              if (myIds[c.id] && c.schedules) {
+                c.schedules.forEach(function (s) {
+                  coachSchedules.push({
+                    classId: c.id,
+                    title: c.title,
+                    price: c.price_hkd,
+                    start_time: s.start_time,
+                    end_time: s.end_time,
+                    enrolled: s.enrolled_count || 0,
+                    capacity: s.max_participants,
+                    venue: c.venue_name,
+                  });
+                });
+              }
+            });
+
+            earningsData = earningsResp;
+
+            renderDashboard();
+            renderScheduleTab();
+            renderIncomeTab();
+            showContent();
+          })
+          .catch(function (err) {
+            document.getElementById("loadingState").innerHTML =
+              '<div style="text-align:center;padding:40px;color:var(--red-500);font-size:14px;">載入失敗，請重新整理</div>';
+          });
+      }
+
+      // ===== TAB: Dashboard =====
+      function renderDashboard() {
+        var confirmed = 0,
+          pending = 0,
+          totalEnrolled = 0;
+        coachSchedules.forEach(function (s) {
+          totalEnrolled += s.enrolled;
+        });
+
+        var active = coachClasses.filter(function (c) {
+          return c.status === "active";
+        }).length;
+
+        document.getElementById("dashStats").innerHTML =
+          '<div class="stat-box"><div class="num">' +
+          active +
+          '</div><div class="label">上架課程</div></div>' +
+          '<div class="stat-box"><div class="num">' +
+          coachSchedules.length +
+          '</div><div class="label">課堂時段</div></div>' +
+          '<div class="stat-box"><div class="num">' +
+          totalEnrolled +
+          '</div><div class="label">學員人次</div></div>';
+
+        document.getElementById("myClassesCount").textContent =
+          "(" + coachClasses.length + ")";
+
+        // Upcoming classes (next 5 schedules, sorted by time)
+        var now = new Date().toISOString();
+        var upcoming = coachSchedules
+          .filter(function (s) {
+            return s.start_time >= now;
+          })
+          .sort(function (a, b) {
+            return a.start_time.localeCompare(b.start_time);
+          })
+          .slice(0, 5);
+
+        document.getElementById("upcomingCount").textContent =
+          "(" + upcoming.length + ")";
+
+        if (upcoming.length === 0) {
+          document.getElementById("upcomingClasses").innerHTML =
+            '<div class="empty-state"><span class="empty-icon">📅</span>暫無即將到來的課堂</div>';
+        } else {
+          document.getElementById("upcomingClasses").innerHTML = upcoming
+            .map(function (s) {
+              var d = new Date(s.start_time);
+              var dateStr =
+                d.getMonth() +
+                1 +
+                "/" +
+                d.getDate() +
+                " (" +
+                ["日", "一", "二", "三", "四", "五", "六"][d.getDay()] +
+                ")";
+              var timeStr =
+                String(d.getHours()).padStart(2, "0") +
+                ":" +
+                String(d.getMinutes()).padStart(2, "0");
+              var earn = "HK$" + s.price * s.enrolled;
+              return (
+                '<div class="schedule-card"><div class="s-date">' +
+                dateStr +
+                '</div><div class="s-time">' +
+                timeStr +
+                '</div><div class="s-title">' +
+                escHtml(s.title) +
+                '</div><div class="s-students">👥 ' +
+                s.enrolled +
+                "/" +
+                s.capacity +
+                '人</div><div class="s-earn">💰 ' +
+                earn +
+                "</div></div>"
+              );
+            })
+            .join("");
+        }
+
+        // My classes list
+        if (coachClasses.length === 0) {
+          document.getElementById("myClassesList").innerHTML =
+            '<div class="empty-state"><span class="empty-icon">📝</span>暫無課程，請在管理後台新增</div>';
+        } else {
+          document.getElementById("myClassesList").innerHTML = coachClasses
+            .map(function (cls) {
+              var statusText =
+                cls.status === "active"
+                  ? "✅ 上架中"
+                  : cls.status === "draft"
+                    ? "📝 草稿"
+                    : "📦 已歸檔";
+              var statusClass =
+                cls.status === "active"
+                  ? "active"
+                  : cls.status === "draft"
+                    ? "draft"
+                    : "archived";
+              return (
+                '<div class="class-item"><div class="class-row"><div><div class="class-name">' +
+                escHtml(cls.title) +
+                '</div><div class="class-meta">⏱ ' +
+                cls.duration +
+                "min · 💰 HK$" +
+                cls.price_hkd +
+                "/堂 · 👥 " +
+                (cls.upcoming_bookings || 0) +
+                '人報名</div></div><span class="class-status ' +
+                statusClass +
+                '">' +
+                statusText +
+                "</span></div></div>"
+              );
+            })
+            .join("");
+        }
+      }
+
+      // ===== TAB: Schedule =====
+      function renderScheduleTab() {
+        var sorted = coachSchedules.slice().sort(function (a, b) {
+          return a.start_time.localeCompare(b.start_time);
+        });
+
+        if (sorted.length === 0) {
+          document.getElementById("allSchedules").innerHTML =
+            '<div class="empty-state"><span class="empty-icon">📅</span>暫無時間表</div>';
+        } else {
+          document.getElementById("allSchedules").innerHTML = sorted
+            .map(function (s) {
+              var d = new Date(s.start_time);
+              var dateStr =
+                d.getMonth() +
+                1 +
+                "/" +
+                d.getDate() +
+                " (" +
+                ["日", "一", "二", "三", "四", "五", "六"][d.getDay()] +
+                ")";
+              var timeStr =
+                String(d.getHours()).padStart(2, "0") +
+                ":" +
+                String(d.getMinutes()).padStart(2, "0");
+              return (
+                '<div class="schedule-card"><div class="s-date">' +
+                dateStr +
+                '</div><div class="s-time">' +
+                timeStr +
+                '</div><div class="s-title">' +
+                escHtml(s.title) +
+                '</div><div class="s-students">👥 ' +
+                s.enrolled +
+                "/" +
+                s.capacity +
+                "人</div></div>"
+              );
+            })
+            .join("");
+        }
+      }
+
+      function showAddScheduleForm() {
+        window.location.href = "add-demo-class.html";
+      }
+
+      // ===== TAB: Income =====
+      function renderIncomeTab() {
+        var summary = earningsData.summary || {};
+        var fmt = function (n) {
+          return "HK$" + Math.round(n || 0).toLocaleString();
+        };
+
+        document.getElementById("incomeStats").innerHTML =
+          '<div class="stat-box"><div class="num">' +
+          fmt(summary.monthly) +
+          '</div><div class="label">本月收入</div></div>' +
+          '<div class="stat-box"><div class="num">' +
+          fmt(summary.pending) +
+          '</div><div class="label">待結算</div></div>' +
+          '<div class="stat-box"><div class="num">' +
+          fmt(summary.total) +
+          '</div><div class="label">總收入</div></div>';
+
+        // Update payout section balance
+        document.getElementById("payoutBalance").textContent =
+          "可提現：" + fmt(summary.pending || 0);
+        loadPayoutHistory();
+
+        // Chart
+        var trend = earningsData.monthly_trend || [];
+        var container = document.getElementById("revenueChart");
+
+        if (trend.length === 0) {
+          container.innerHTML =
+            '<div style="width:100%;text-align:center;color:var(--dark-700);font-size:13px;padding:40px 0;">暫無收入數據</div>';
+        } else {
+          var maxVal = 0;
+          trend.forEach(function (t) {
+            if (t.total > maxVal) maxVal = t.total;
+          });
+          if (maxVal <= 0) maxVal = 1;
+
+          var monthNames = [
+            "",
+            "1月",
+            "2月",
+            "3月",
+            "4月",
+            "5月",
+            "6月",
+            "7月",
+            "8月",
+            "9月",
+            "10月",
+            "11月",
+            "12月",
+          ];
+          container.innerHTML = "";
+          var barWidth = Math.min(60, Math.floor(100 / trend.length));
+
+          trend.forEach(function (t) {
+            var mm = t.month.substring(5, 7);
+            var label = monthNames[parseInt(mm)] || mm + "月";
+            var pct = (t.total / maxVal) * 100;
+            container.innerHTML +=
+              '<div class="chart-bar" style="height:' +
+              pct +
+              '%"><div class="bar-val">$' +
+              Math.round(t.total) +
+              '</div><div class="bar-label">' +
+              label +
+              "</div></div>";
+          });
+        }
+
+        loadIncomeDetail();
+      }
+
+      function loadIncomeDetail() {
+        fetch(API_BASE + "/coach/earnings/detail?limit=10", {
+          headers: getAuthHeaders(),
+        })
+          .then(function (r) {
+            return r.json();
+          })
+          .then(function (data) {
+            var entries = data.entries || [];
+            incomeEntries = entries;
+            var container = document.getElementById("incomeDetail");
+
+            if (entries.length === 0) {
+              container.innerHTML =
+                '<div class="empty-state"><span class="empty-icon">💰</span>暫無收入記錄</div>';
+              return;
+            }
+
+            var html =
+              '<table class="income-table"><thead><tr><th>日期</th><th>金額</th><th>狀態</th></tr></thead><tbody>';
+            entries.forEach(function (e) {
+              var statusMap = {
+                pending: "待結算",
+                paid: "已結算",
+                cancelled: "已取消",
+              };
+              html +=
+                "<tr><td>" +
+                escHtml(e.date || "—") +
+                "</td><td>HK$" +
+                Math.round(e.net_amount || 0) +
+                "</td><td>" +
+                (statusMap[e.status] || e.status) +
+                "</td></tr>";
+            });
+            html += "</tbody></table>";
+            container.innerHTML = html;
+          })
+          .catch(function (err) {});
+      }
+
+      // ===== TAB switching =====
+      // ===== Payout Methods Toggle =====
+      document.addEventListener("change", function (e) {
+        if (e.target && e.target.id === "payout-method") {
+          var val = e.target.value;
+          document
+            .getElementById("payout-bank-fields")
+            .classList.toggle("hidden", val !== "bank");
+          document
+            .getElementById("payout-fps-field")
+            .classList.toggle("hidden", val !== "fps");
+          document
+            .getElementById("payout-payme-field")
+            .classList.toggle("hidden", val !== "payme");
         }
       });
 
-      earningsData = earningsResp;
+      // ===== Request Payout =====
+      function requestPayout() {
+        var amount = parseFloat(document.getElementById("payout-amount").value);
+        if (!amount || amount < 100) {
+          showToast("最低提現金額為 HK$100", "error");
+          return;
+        }
 
-      renderDashboard();
-      renderScheduleTab();
-      renderIncomeTab();
-      showContent();
-    })
-    .catch(function(err) {
-      document.getElementById('loadingState').innerHTML = '<div style="text-align:center;padding:40px;color:var(--red-500);font-size:14px;">載入失敗，請重新整理</div>';
-    });
-}
+        var method = document.getElementById("payout-method").value;
+        var payload = { amount: amount, payment_method: method };
 
-// ===== TAB: Dashboard =====
-function renderDashboard() {
-  var confirmed = 0, pending = 0, totalEnrolled = 0;
-  coachSchedules.forEach(function(s) {
-    totalEnrolled += s.enrolled;
-  });
+        if (method === "bank") {
+          payload.bank_name = document
+            .getElementById("payout-bank-name")
+            .value.trim();
+          payload.bank_code = document
+            .getElementById("payout-bank-code")
+            .value.trim();
+          payload.bank_account = document
+            .getElementById("payout-account")
+            .value.trim();
+          if (!payload.bank_account) {
+            showToast("請輸入銀行帳戶號碼", "error");
+            return;
+          }
+        } else if (method === "fps") {
+          payload.fps_phone = document
+            .getElementById("payout-fps-phone")
+            .value.trim();
+          if (!payload.fps_phone) {
+            showToast("請輸入 FPS 電話或電郵", "error");
+            return;
+          }
+        } else if (method === "payme") {
+          payload.payme_phone = document
+            .getElementById("payout-payme-phone")
+            .value.trim();
+          if (!payload.payme_phone) {
+            showToast("請輸入 PayMe 電話號碼", "error");
+            return;
+          }
+        }
 
-  var active = coachClasses.filter(function(c) { return c.status === 'active'; }).length;
+        var btn = document.querySelector(".btn-primary:last-of-type");
+        btn.disabled = true;
+        btn.textContent = "提交中...";
 
-  document.getElementById('dashStats').innerHTML =
-    '<div class="stat-box"><div class="num">' + active + '</div><div class="label">上架課程</div></div>' +
-    '<div class="stat-box"><div class="num">' + coachSchedules.length + '</div><div class="label">課堂時段</div></div>' +
-    '<div class="stat-box"><div class="num">' + totalEnrolled + '</div><div class="label">學員人次</div></div>';
-
-  document.getElementById('myClassesCount').textContent = '(' + coachClasses.length + ')';
-
-  // Upcoming classes (next 5 schedules, sorted by time)
-  var now = new Date().toISOString();
-  var upcoming = coachSchedules
-    .filter(function(s) { return s.start_time >= now; })
-    .sort(function(a, b) { return a.start_time.localeCompare(b.start_time); })
-    .slice(0, 5);
-
-  document.getElementById('upcomingCount').textContent = '(' + upcoming.length + ')';
-
-  if (upcoming.length === 0) {
-    document.getElementById('upcomingClasses').innerHTML =
-      '<div class="empty-state"><span class="empty-icon">📅</span>暫無即將到來的課堂</div>';
-  } else {
-    document.getElementById('upcomingClasses').innerHTML = upcoming.map(function(s) {
-      var d = new Date(s.start_time);
-      var dateStr = (d.getMonth()+1)+'/'+d.getDate()+' ('+['日','一','二','三','四','五','六'][d.getDay()]+')';
-      var timeStr = String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
-      var earn = 'HK$' + (s.price * s.enrolled);
-      return '<div class="schedule-card"><div class="s-date">'+dateStr+'</div><div class="s-time">'+timeStr+'</div><div class="s-title">'+escHtml(s.title)+'</div><div class="s-students">👥 '+s.enrolled+'/'+s.capacity+'人</div><div class="s-earn">💰 '+earn+'</div></div>';
-    }).join('');
-  }
-
-  // My classes list
-  if (coachClasses.length === 0) {
-    document.getElementById('myClassesList').innerHTML =
-      '<div class="empty-state"><span class="empty-icon">📝</span>暫無課程，請在管理後台新增</div>';
-  } else {
-    document.getElementById('myClassesList').innerHTML = coachClasses.map(function(cls) {
-      var statusText = cls.status === 'active' ? '✅ 上架中' : (cls.status === 'draft' ? '📝 草稿' : '📦 已歸檔');
-      var statusClass = cls.status === 'active' ? 'active' : (cls.status === 'draft' ? 'draft' : 'archived');
-      return '<div class="class-item"><div class="class-row"><div><div class="class-name">' + escHtml(cls.title) + '</div><div class="class-meta">⏱ ' + cls.duration + 'min · 💰 HK$' + cls.price_hkd + '/堂 · 👥 ' + (cls.upcoming_bookings || 0) + '人報名</div></div><span class="class-status ' + statusClass + '">' + statusText + '</span></div></div>';
-    }).join('');
-  }
-}
-
-// ===== TAB: Schedule =====
-function renderScheduleTab() {
-  var sorted = coachSchedules.slice().sort(function(a, b) {
-    return a.start_time.localeCompare(b.start_time);
-  });
-
-  if (sorted.length === 0) {
-    document.getElementById('allSchedules').innerHTML =
-      '<div class="empty-state"><span class="empty-icon">📅</span>暫無時間表</div>';
-  } else {
-    document.getElementById('allSchedules').innerHTML = sorted.map(function(s) {
-      var d = new Date(s.start_time);
-      var dateStr = (d.getMonth()+1)+'/'+d.getDate()+' ('+['日','一','二','三','四','五','六'][d.getDay()]+')';
-      var timeStr = String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
-      return '<div class="schedule-card"><div class="s-date">'+dateStr+'</div><div class="s-time">'+timeStr+'</div><div class="s-title">'+escHtml(s.title)+'</div><div class="s-students">👥 '+s.enrolled+'/'+s.capacity+'人</div></div>';
-    }).join('');
-  }
-}
-
-function showAddScheduleForm() {
-  window.location.href = 'add-demo-class.html';
-}
-
-// ===== TAB: Income =====
-function renderIncomeTab() {
-  var summary = earningsData.summary || {};
-  var fmt = function(n) { return 'HK$' + Math.round(n || 0).toLocaleString(); };
-
-  document.getElementById('incomeStats').innerHTML =
-    '<div class="stat-box"><div class="num">'+fmt(summary.monthly)+'</div><div class="label">本月收入</div></div>' +
-    '<div class="stat-box"><div class="num">'+fmt(summary.pending)+'</div><div class="label">待結算</div></div>' +
-    '<div class="stat-box"><div class="num">'+fmt(summary.total)+'</div><div class="label">總收入</div></div>';
-
-  // Update payout section balance
-  document.getElementById('payoutBalance').textContent = '可提現：' + fmt(summary.pending || 0);
-  loadPayoutHistory();
-
-  // Chart
-  var trend = earningsData.monthly_trend || [];
-  var container = document.getElementById('revenueChart');
-
-  if (trend.length === 0) {
-    container.innerHTML = '<div style="width:100%;text-align:center;color:var(--dark-700);font-size:13px;padding:40px 0;">暫無收入數據</div>';
-  } else {
-    var maxVal = 0;
-    trend.forEach(function(t) { if (t.total > maxVal) maxVal = t.total; });
-    if (maxVal <= 0) maxVal = 1;
-
-    var monthNames = ['','1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
-    container.innerHTML = '';
-    var barWidth = Math.min(60, Math.floor(100 / trend.length));
-
-    trend.forEach(function(t) {
-      var mm = t.month.substring(5, 7);
-      var label = monthNames[parseInt(mm)] || mm + '月';
-      var pct = (t.total / maxVal) * 100;
-      container.innerHTML += '<div class="chart-bar" style="height:' + pct + '%"><div class="bar-val">$' + Math.round(t.total) + '</div><div class="bar-label">' + label + '</div></div>';
-    });
-  }
-
-  loadIncomeDetail();
-}
-
-function loadIncomeDetail() {
-  fetch(API_BASE + '/coach/earnings/detail?limit=10', { headers: getAuthHeaders() })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-      var entries = data.entries || [];
-      incomeEntries = entries;
-      var container = document.getElementById('incomeDetail');
-
-      if (entries.length === 0) {
-        container.innerHTML = '<div class="empty-state"><span class="empty-icon">💰</span>暫無收入記錄</div>';
-        return;
+        fetch(API_BASE + "/coach/payout-request", {
+          method: "POST",
+          headers: getAuthHeaders(),
+          body: JSON.stringify(payload),
+        })
+          .then(function (r) {
+            return r.json();
+          })
+          .then(function (data) {
+            if (data.error) {
+              showToast(data.error, "error");
+              btn.disabled = false;
+              btn.textContent = "💰 申請提現";
+              return;
+            }
+            showToast(
+              "✅ 提現已提交：HK$" + amount + "，處理費 HK$" + (data.fee || 0),
+              "success",
+            );
+            document.getElementById("payout-amount").value = "";
+            btn.disabled = false;
+            btn.textContent = "💰 申請提現";
+            // Refresh data
+            loadAllData();
+          })
+          .catch(function (err) {
+            showToast("提交失敗，請稍後再試", "error");
+            btn.disabled = false;
+            btn.textContent = "💰 申請提現";
+          });
       }
 
-      var html = '<table class="income-table"><thead><tr><th>日期</th><th>金額</th><th>狀態</th></tr></thead><tbody>';
-      entries.forEach(function(e) {
-        var statusMap = { 'pending': '待結算', 'paid': '已結算', 'cancelled': '已取消' };
-        html += '<tr><td>' + escHtml(e.date || '—') + '</td><td>HK$' + Math.round(e.net_amount || 0) + '</td><td>' + (statusMap[e.status] || e.status) + '</td></tr>';
-      });
-      html += '</tbody></table>';
-      container.innerHTML = html;
-    })
-    .catch(function(err) {});
-}
-
-// ===== TAB switching =====
-// ===== Payout Methods Toggle =====
-document.addEventListener('change', function(e) {
-  if (e.target && e.target.id === 'payout-method') {
-    var val = e.target.value;
-    document.getElementById('payout-bank-fields').classList.toggle('hidden', val !== 'bank');
-    document.getElementById('payout-fps-field').classList.toggle('hidden', val !== 'fps');
-    document.getElementById('payout-payme-field').classList.toggle('hidden', val !== 'payme');
-  }
-});
-
-// ===== Request Payout =====
-function requestPayout() {
-  var amount = parseFloat(document.getElementById('payout-amount').value);
-  if (!amount || amount < 100) {
-    showToast('最低提現金額為 HK$100', 'error'); return;
-  }
-
-  var method = document.getElementById('payout-method').value;
-  var payload = { amount: amount, payment_method: method };
-
-  if (method === 'bank') {
-    payload.bank_name = document.getElementById('payout-bank-name').value.trim();
-    payload.bank_code = document.getElementById('payout-bank-code').value.trim();
-    payload.bank_account = document.getElementById('payout-account').value.trim();
-    if (!payload.bank_account) {
-      showToast('請輸入銀行帳戶號碼', 'error'); return;
-    }
-  } else if (method === 'fps') {
-    payload.fps_phone = document.getElementById('payout-fps-phone').value.trim();
-    if (!payload.fps_phone) {
-      showToast('請輸入 FPS 電話或電郵', 'error'); return;
-    }
-  } else if (method === 'payme') {
-    payload.payme_phone = document.getElementById('payout-payme-phone').value.trim();
-    if (!payload.payme_phone) {
-      showToast('請輸入 PayMe 電話號碼', 'error'); return;
-    }
-  }
-
-  var btn = document.querySelector('.btn-primary:last-of-type');
-  btn.disabled = true;
-  btn.textContent = '提交中...';
-
-  fetch(API_BASE + '/coach/payout-request', {
-    method: 'POST',
-    headers: getAuthHeaders(),
-    body: JSON.stringify(payload)
-  })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-      if (data.error) {
-        showToast(data.error, 'error');
-        btn.disabled = false;
-        btn.textContent = '💰 申請提現';
-        return;
+      // ===== Load Payout History =====
+      function loadPayoutHistory() {
+        fetch(API_BASE + "/coach/payout-history", { headers: getAuthHeaders() })
+          .then(function (r) {
+            return r.json();
+          })
+          .then(function (data) {
+            var payouts = data.payouts || [];
+            var container = document.getElementById("payoutHistory");
+            if (payouts.length === 0) {
+              container.innerHTML =
+                '<div class="empty-state" style="padding:16px 0;"><span class="empty-icon" style="font-size:24px;">📄</span>暫無提現記錄</div>';
+              return;
+            }
+            var html =
+              '<div style="font-size:13px;font-weight:600;margin-bottom:8px;">📋 提現記錄</div>';
+            payouts.forEach(function (p) {
+              var statusMap = {
+                pending: "⏳ 審核中",
+                processing: "🔧 處理中",
+                approved: "✅ 已批准",
+                completed: "✅ 已完成",
+                rejected: "❌ 已拒絕",
+              };
+              var statusText = statusMap[p.status] || p.status;
+              html +=
+                '<div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--gray-100);font-size:13px;">';
+              html +=
+                "<div><strong>HK$" +
+                Math.round(p.amount) +
+                '</strong><br><span style="font-size:11px;color:var(--dark-700);">' +
+                (p.created_at ? p.created_at.substring(0, 10) : "—") +
+                "</span></div>";
+              html += "<span>" + statusText + "</span>";
+              html += "</div>";
+            });
+            container.innerHTML = html;
+          })
+          .catch(function (err) {});
       }
-      showToast('✅ 提現已提交：HK$' + amount + '，處理費 HK$' + (data.fee || 0), 'success');
-      document.getElementById('payout-amount').value = '';
-      btn.disabled = false;
-      btn.textContent = '💰 申請提現';
-      // Refresh data
-      loadAllData();
-    })
-    .catch(function(err) {
-      showToast('提交失敗，請稍後再試', 'error');
-      btn.disabled = false;
-      btn.textContent = '💰 申請提現';
-    });
-}
 
-// ===== Load Payout History =====
-function loadPayoutHistory() {
-  fetch(API_BASE + '/coach/payout-history', { headers: getAuthHeaders() })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-      var payouts = data.payouts || [];
-      var container = document.getElementById('payoutHistory');
-      if (payouts.length === 0) {
-        container.innerHTML = '<div class="empty-state" style="padding:16px 0;"><span class="empty-icon" style="font-size:24px;">📄</span>暫無提現記錄</div>';
-        return;
+      function switchTab(name) {
+        document.querySelectorAll(".tab").forEach(function (t) {
+          t.classList.remove("active");
+        });
+        document.querySelectorAll(".section").forEach(function (s) {
+          s.classList.remove("active");
+        });
+        document
+          .querySelector('.tab[onclick*="' + name + '"]')
+          .classList.add("active");
+        document.getElementById("tab-" + name).classList.add("active");
       }
-      var html = '<div style="font-size:13px;font-weight:600;margin-bottom:8px;">📋 提現記錄</div>';
-      payouts.forEach(function(p) {
-        var statusMap = { 'pending': '⏳ 審核中', 'processing': '🔧 處理中', 'approved': '✅ 已批准', 'completed': '✅ 已完成', 'rejected': '❌ 已拒絕' };
-        var statusText = statusMap[p.status] || p.status;
-        html += '<div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--gray-100);font-size:13px;">';
-        html += '<div><strong>HK$' + Math.round(p.amount) + '</strong><br><span style="font-size:11px;color:var(--dark-700);">' + (p.created_at ? p.created_at.substring(0,10) : '—') + '</span></div>';
-        html += '<span>' + statusText + '</span>';
-        html += '</div>';
-      });
-      container.innerHTML = html;
-    })
-    .catch(function(err) {});
-}
 
-function switchTab(name) {
-  document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
-  document.querySelectorAll('.section').forEach(function(s) { s.classList.remove('active'); });
-  document.querySelector('.tab[onclick*="' + name + '"]').classList.add('active');
-  document.getElementById('tab-' + name).classList.add('active');
-}
+      // ===== UI Helpers =====
+      function showLoading() {
+        document.getElementById("loadingState").classList.remove("hidden");
+        document.getElementById("appContent").classList.add("hidden");
+      }
+      function showContent() {
+        document.getElementById("loadingState").classList.add("hidden");
+        document.getElementById("appContent").classList.remove("hidden");
+      }
 
-// ===== UI Helpers =====
-function showLoading() {
-  document.getElementById('loadingState').classList.remove('hidden');
-  document.getElementById('appContent').classList.add('hidden');
-}
-function showContent() {
-  document.getElementById('loadingState').classList.add('hidden');
-  document.getElementById('appContent').classList.remove('hidden');
-}
+      function escHtml(s) {
+        if (!s) return "";
+        return String(s)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
 
-function escHtml(s) { if (!s) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-
-function showToast(msg, type) {
-  var el = document.createElement('div');
-  el.className = 'toast-fixed';
-  el.style.background = type === 'error' ? 'var(--red-500)' : 'var(--green-500)';
-  el.style.color = '#fff';
-  el.textContent = msg;
-  document.body.appendChild(el);
-  setTimeout(function() { el.style.opacity = '0'; el.style.transition = 'opacity .3s'; setTimeout(function() { el.remove(); }, 300); }, 2500);
-}
-</script>
-</body>
+      function showToast(msg, type) {
+        var el = document.createElement("div");
+        el.className = "toast-fixed";
+        el.style.background =
+          type === "error" ? "var(--red-500)" : "var(--green-500)";
+        el.style.color = "#fff";
+        el.textContent = msg;
+        document.body.appendChild(el);
+        setTimeout(function () {
+          el.style.opacity = "0";
+          el.style.transition = "opacity .3s";
+          setTimeout(function () {
+            el.remove();
+          }, 300);
+        }, 2500);
+      }
+    </script>
+  </body>
 </html>

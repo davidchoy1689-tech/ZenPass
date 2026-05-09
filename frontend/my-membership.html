@@ -1,211 +1,517 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-HK">
-<head>
-    <meta charset="UTF-8">
-    <link rel="icon" href="favicon.png" type="image/png">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="theme-color" content="#FF6B35">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" href="favicon.png" type="image/png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
+    <meta name="theme-color" content="#FF6B35" />
     <title>我的會籍 — ZenPass 禪流</title>
-    <link rel="manifest" href="manifest.json">
-    
-    <style>
-        * { margin:0; padding:0; box-sizing:border-box; }
-        :root { --orange-500:#FF6B35; --orange-400:#FF8555; --orange-100:#FFF0E8; --orange-50:#FFF8F4; --dark-900:#1A1A2E; --dark-800:#2D2D44; --dark-700:#3D3D5A; --gray-200:#E5E7EB; --gray-300:#D1D5DB; --gray-50:#F9FAFB; --white:#FFFFFF; --green-500:#059669; --blue-500:#3B82F6; --radius-sm:8px; --radius-md:12px; --radius-lg:16px; --shadow-sm:0 1px 3px rgba(0,0,0,0.08); --shadow-md:0 4px 12px rgba(0,0,0,0.1); --font-zh:'Noto Sans TC',sans-serif; --max-width:480px; --nav-height:64px; }
-        body { font-family:var(--font-zh); background:var(--gray-50); color:var(--dark-900); max-width:var(--max-width); margin:0 auto; padding-bottom:calc(var(--nav-height) + 20px); }
-        .header { background:linear-gradient(135deg,var(--dark-900),var(--dark-800)); color:var(--white); padding:20px; position:sticky; top:0; z-index:10; display:flex; align-items:center; gap:12px; }
-        .header a { color:var(--white); text-decoration:none; font-size:20px; }
-        .header h1 { font-size:18px; font-weight:700; }
-        .section { padding:16px; }
-        .card { background:var(--white); border-radius:var(--radius-lg); padding:20px; margin-bottom:12px; box-shadow:var(--shadow-sm); }
-        .membership-header { text-align:center; padding:24px 20px; background:linear-gradient(135deg,var(--orange-500),#E85D2C); border-radius:var(--radius-lg); color:var(--white); margin-bottom:12px; }
-        .membership-header h2 { font-size:24px; font-weight:800; margin-bottom:4px; }
-        .membership-header .status { font-size:14px; opacity:.9; }
-        .membership-header .expire { font-size:12px; opacity:.7; margin-top:4px; }
-        .credits-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-        .credit-card { background:var(--orange-50); border-radius:var(--radius-md); padding:16px; text-align:center; }
-        .credit-card .num { font-size:28px; font-weight:800; color:var(--orange-500); }
-        .credit-card .label { font-size:12px; color:var(--dark-700); margin-top:4px; }
-        .section-title { font-size:16px; font-weight:700; margin-bottom:12px; display:flex; align-items:center; gap:8px; }
-        .action-btn { width:100%; padding:14px; background:var(--orange-500); color:var(--white); border:none; border-radius:var(--radius-sm); font-size:15px; font-weight:700; cursor:pointer; font-family:var(--font-zh); }
-        .action-btn:hover { background:#E55A2B; }
-        .action-btn.secondary { background:var(--white); color:var(--orange-500); border:1.5px solid var(--orange-500); }
-        .action-btn.secondary:hover { background:var(--orange-100); }
-        .plan-list { margin-top:12px; }
-        .plan-item { display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid var(--gray-200); }
-        .plan-item:last-child { border-bottom:none; }
-        .plan-item .name { font-size:15px; font-weight:500; }
-        .plan-item .price { font-size:15px; font-weight:700; color:var(--orange-500); }
-        .plan-item .price small { font-size:12px; font-weight:400; color:var(--dark-700); }
-        .plan-item .tag { font-size:11px; padding:2px 8px; border-radius:10px; font-weight:600; }
-        .tag.active-plan { background:var(--orange-500); color:var(--white); }
-        .tag.inactive { background:var(--gray-200); color:var(--dark-700); }
-        .bottom-nav { position:fixed; bottom:0; left:50%; transform:translateX(-50%); width:100%; max-width:var(--max-width); background:var(--white); border-top:1px solid var(--gray-200); display:flex; justify-content:space-around; padding:8px 0 calc(8px + env(safe-area-inset-bottom)); z-index:100; }
-        .nav-item { display:flex; flex-direction:column; align-items:center; text-decoration:none; color:var(--gray-300); font-size:10px; gap:2px; padding:4px 12px; }
-        .nav-item.active { color:var(--orange-500); }
-        .nav-item .nav-icon { font-size:22px; line-height:1; }
-    
-        .loading { text-align:center; padding:40px; color:var(--dark-700); }
-        .loading::after { content:''; display:block; width:32px; height:32px; margin:10px auto; border:3px solid var(--gray-200); border-top-color:var(--orange-500); border-radius:50%; animation:spin .8s linear infinite; }
-        @keyframes spin { to { transform:rotate(360deg); } }
+    <link rel="manifest" href="manifest.json" />
 
-</style>
-</head>
-<body>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      :root {
+        --orange-500: #ff6b35;
+        --orange-400: #ff8555;
+        --orange-100: #fff0e8;
+        --orange-50: #fff8f4;
+        --dark-900: #1a1a2e;
+        --dark-800: #2d2d44;
+        --dark-700: #3d3d5a;
+        --gray-200: #e5e7eb;
+        --gray-300: #d1d5db;
+        --gray-50: #f9fafb;
+        --white: #ffffff;
+        --green-500: #059669;
+        --blue-500: #3b82f6;
+        --radius-sm: 8px;
+        --radius-md: 12px;
+        --radius-lg: 16px;
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+        --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
+        --font-zh: "Noto Sans TC", sans-serif;
+        --max-width: 480px;
+        --nav-height: 64px;
+      }
+      body {
+        font-family: var(--font-zh);
+        background: var(--gray-50);
+        color: var(--dark-900);
+        max-width: var(--max-width);
+        margin: 0 auto;
+        padding-bottom: calc(var(--nav-height) + 20px);
+      }
+      .header {
+        background: linear-gradient(135deg, var(--dark-900), var(--dark-800));
+        color: var(--white);
+        padding: 20px;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .header a {
+        color: var(--white);
+        text-decoration: none;
+        font-size: 20px;
+      }
+      .header h1 {
+        font-size: 18px;
+        font-weight: 700;
+      }
+      .section {
+        padding: 16px;
+      }
+      .card {
+        background: var(--white);
+        border-radius: var(--radius-lg);
+        padding: 20px;
+        margin-bottom: 12px;
+        box-shadow: var(--shadow-sm);
+      }
+      .membership-header {
+        text-align: center;
+        padding: 24px 20px;
+        background: linear-gradient(135deg, var(--orange-500), #e85d2c);
+        border-radius: var(--radius-lg);
+        color: var(--white);
+        margin-bottom: 12px;
+      }
+      .membership-header h2 {
+        font-size: 24px;
+        font-weight: 800;
+        margin-bottom: 4px;
+      }
+      .membership-header .status {
+        font-size: 14px;
+        opacity: 0.9;
+      }
+      .membership-header .expire {
+        font-size: 12px;
+        opacity: 0.7;
+        margin-top: 4px;
+      }
+      .credits-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+      .credit-card {
+        background: var(--orange-50);
+        border-radius: var(--radius-md);
+        padding: 16px;
+        text-align: center;
+      }
+      .credit-card .num {
+        font-size: 28px;
+        font-weight: 800;
+        color: var(--orange-500);
+      }
+      .credit-card .label {
+        font-size: 12px;
+        color: var(--dark-700);
+        margin-top: 4px;
+      }
+      .section-title {
+        font-size: 16px;
+        font-weight: 700;
+        margin-bottom: 12px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .action-btn {
+        width: 100%;
+        padding: 14px;
+        background: var(--orange-500);
+        color: var(--white);
+        border: none;
+        border-radius: var(--radius-sm);
+        font-size: 15px;
+        font-weight: 700;
+        cursor: pointer;
+        font-family: var(--font-zh);
+      }
+      .action-btn:hover {
+        background: #e55a2b;
+      }
+      .action-btn.secondary {
+        background: var(--white);
+        color: var(--orange-500);
+        border: 1.5px solid var(--orange-500);
+      }
+      .action-btn.secondary:hover {
+        background: var(--orange-100);
+      }
+      .plan-list {
+        margin-top: 12px;
+      }
+      .plan-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 0;
+        border-bottom: 1px solid var(--gray-200);
+      }
+      .plan-item:last-child {
+        border-bottom: none;
+      }
+      .plan-item .name {
+        font-size: 15px;
+        font-weight: 500;
+      }
+      .plan-item .price {
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--orange-500);
+      }
+      .plan-item .price small {
+        font-size: 12px;
+        font-weight: 400;
+        color: var(--dark-700);
+      }
+      .plan-item .tag {
+        font-size: 11px;
+        padding: 2px 8px;
+        border-radius: 10px;
+        font-weight: 600;
+      }
+      .tag.active-plan {
+        background: var(--orange-500);
+        color: var(--white);
+      }
+      .tag.inactive {
+        background: var(--gray-200);
+        color: var(--dark-700);
+      }
+      .bottom-nav {
+        position: fixed;
+        bottom: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 100%;
+        max-width: var(--max-width);
+        background: var(--white);
+        border-top: 1px solid var(--gray-200);
+        display: flex;
+        justify-content: space-around;
+        padding: 8px 0 calc(8px + env(safe-area-inset-bottom));
+        z-index: 100;
+      }
+      .nav-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-decoration: none;
+        color: var(--gray-300);
+        font-size: 10px;
+        gap: 2px;
+        padding: 4px 12px;
+      }
+      .nav-item.active {
+        color: var(--orange-500);
+      }
+      .nav-item .nav-icon {
+        font-size: 22px;
+        line-height: 1;
+      }
+
+      .loading {
+        text-align: center;
+        padding: 40px;
+        color: var(--dark-700);
+      }
+      .loading::after {
+        content: "";
+        display: block;
+        width: 32px;
+        height: 32px;
+        margin: 10px auto;
+        border: 3px solid var(--gray-200);
+        border-top-color: var(--orange-500);
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+  </head>
+  <body>
     <div class="header">
-        <a href="index.html">←</a>
-        <h1>💎 我的會籍</h1>
+      <a href="index.html">←</a>
+      <h1>💎 我的會籍</h1>
     </div>
 
     <div class="section">
-        <div class="membership-header">
-            <h2>💎 試玩會員</h2>
-            <div class="status">剩餘 2 堂試玩</div>
-            <div class="expire">會籍到期：2026-06-01</div>
+      <div class="membership-header">
+        <h2>💎 試玩會員</h2>
+        <div class="status">剩餘 2 堂試玩</div>
+        <div class="expire">會籍到期：2026-06-01</div>
+      </div>
+
+      <div class="credits-grid">
+        <div class="credit-card">
+          <div class="num">8</div>
+          <div class="label">剩餘點數 (Credits)</div>
         </div>
-
-        <div class="credits-grid">
-            <div class="credit-card">
-                <div class="num">8</div>
-                <div class="label">剩餘點數 (Credits)</div>
-            </div>
-            <div class="credit-card">
-                <div class="num">2</div>
-                <div class="label">本月已用課堂</div>
-            </div>
+        <div class="credit-card">
+          <div class="num">2</div>
+          <div class="label">本月已用課堂</div>
         </div>
+      </div>
 
-        <div class="card" style="margin-top:12px;">
-            <div class="section-title">📊 用量</div>
-            <div style="margin:12px 0;">
-                <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;">
-                    <span>試玩堂數 (4/月)</span><span>2 / 4</span>
-                </div>
-                <div style="height:8px;background:var(--gray-200);border-radius:4px;overflow:hidden;">
-                    <div style="height:100%;width:50%;background:var(--orange-500);border-radius:4px;"></div>
-                </div>
-            </div>
-            <div style="margin:12px 0;">
-                <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;">
-                    <span>加購點數</span><span>8 Credits</span>
-                </div>
-                <div style="height:8px;background:var(--gray-200);border-radius:4px;overflow:hidden;">
-                    <div style="height:100%;width:80%;background:var(--blue-500);border-radius:4px;"></div>
-                </div>
-            </div>
+      <div class="card" style="margin-top: 12px">
+        <div class="section-title">📊 用量</div>
+        <div style="margin: 12px 0">
+          <div
+            style="
+              display: flex;
+              justify-content: space-between;
+              font-size: 13px;
+              margin-bottom: 6px;
+            "
+          >
+            <span>試玩堂數 (4/月)</span><span>2 / 4</span>
+          </div>
+          <div
+            style="
+              height: 8px;
+              background: var(--gray-200);
+              border-radius: 4px;
+              overflow: hidden;
+            "
+          >
+            <div
+              style="
+                height: 100%;
+                width: 50%;
+                background: var(--orange-500);
+                border-radius: 4px;
+              "
+            ></div>
+          </div>
         </div>
-
-        <button class="action-btn" onclick="location.href='membership.html'">🔥 升級會籍</button>
-
-        <div class="card" style="margin-top:12px;">
-            <div class="section-title">📋 可選方案</div>
-            <div class="plan-list">
-                <div class="plan-item">
-                    <div><div class="name">試玩會員</div></div>
-                    <div class="price">HK$399 <small>/月</small> <span class="tag active-plan">當前方案</span></div>
-                </div>
-                <div class="plan-item">
-                    <div><div class="name">🔥 標準會員</div></div>
-                    <div class="price">HK$699 <small>/月</small> <span class="tag inactive">升級</span></div>
-                </div>
-                <div class="plan-item">
-                    <div><div class="name">🏆 金會員</div></div>
-                    <div class="price">HK$1,299 <small>/月</small> <span class="tag inactive">升級</span></div>
-                </div>
-            </div>
+        <div style="margin: 12px 0">
+          <div
+            style="
+              display: flex;
+              justify-content: space-between;
+              font-size: 13px;
+              margin-bottom: 6px;
+            "
+          >
+            <span>加購點數</span><span>8 Credits</span>
+          </div>
+          <div
+            style="
+              height: 8px;
+              background: var(--gray-200);
+              border-radius: 4px;
+              overflow: hidden;
+            "
+          >
+            <div
+              style="
+                height: 100%;
+                width: 80%;
+                background: var(--blue-500);
+                border-radius: 4px;
+              "
+            ></div>
+          </div>
         </div>
+      </div>
 
-        <button class="action-btn secondary" onclick="location.href='buy-credits.html'">💎 獨立購買點數（無需會籍）</button>
+      <button class="action-btn" onclick="location.href = 'membership.html'">
+        🔥 升級會籍
+      </button>
+
+      <div class="card" style="margin-top: 12px">
+        <div class="section-title">📋 可選方案</div>
+        <div class="plan-list">
+          <div class="plan-item">
+            <div><div class="name">試玩會員</div></div>
+            <div class="price">
+              HK$399 <small>/月</small>
+              <span class="tag active-plan">當前方案</span>
+            </div>
+          </div>
+          <div class="plan-item">
+            <div><div class="name">🔥 標準會員</div></div>
+            <div class="price">
+              HK$699 <small>/月</small> <span class="tag inactive">升級</span>
+            </div>
+          </div>
+          <div class="plan-item">
+            <div><div class="name">🏆 金會員</div></div>
+            <div class="price">
+              HK$1,299 <small>/月</small> <span class="tag inactive">升級</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button
+        class="action-btn secondary"
+        onclick="location.href = 'buy-credits.html'"
+      >
+        💎 獨立購買點數（無需會籍）
+      </button>
     </div>
 
     <nav class="bottom-nav">
-        <a href="index.html" class="nav-item"><span class="nav-icon">🏠</span>首頁</a>
-        <a href="explore.html" class="nav-item"><span class="nav-icon">🔍</span>探索</a>
-        <a href="membership.html" class="nav-item active"><span class="nav-icon">💎</span>會籍</a>
-        <a href="coach-apply.html" class="nav-item"><span class="nav-icon">👨🏫</span>成為教練</a>
-        <a href="my.html" class="nav-item"><span class="nav-icon">👤</span>我的</a>
+      <a href="index.html" class="nav-item"
+        ><span class="nav-icon">🏠</span>首頁</a
+      >
+      <a href="explore.html" class="nav-item"
+        ><span class="nav-icon">🔍</span>探索</a
+      >
+      <a href="membership.html" class="nav-item active"
+        ><span class="nav-icon">💎</span>會籍</a
+      >
+      <a href="coach-apply.html" class="nav-item"
+        ><span class="nav-icon">👨🏫</span>成為教練</a
+      >
+      <a href="my.html" class="nav-item"
+        ><span class="nav-icon">👤</span>我的</a
+      >
     </nav>
 
     <script>
-        function getUser() { try { return JSON.parse(localStorage.getItem('zenpass_user')); } catch(e) { return null; } }
-        
-        var PLAN_LABELS = {
-            'none': { name: '無會籍', credits: 0 },
-            'trial': { name: '試玩會員', credits: 4 },
-            'standard': { name: '標準會員', credits: 10 },
-            'unlimited': { name: '無限通行', credits: 0 }
-        };
-
-        async function loadMembership() {
-            var user = getUser();
-            if (!user) return;
-
-            var memName = '試玩會員';
-            var credits = user.credits || 0;
-            var memType = user.membership_type || 'trial';
-            var expiresAt = user.membership_expires_at || '';
-            var used = 0;
-            var total = 4;
-
-            // Try API first — fetch from /api/memberships/my
-            try {
-                var result = await memberships.my();
-                if (result && result.current) {
-                    memType = result.current.type || memType;
-                    credits = result.current.credits != null ? result.current.credits : credits;
-                    expiresAt = result.current.expires_at || expiresAt;
-                }
-            } catch (e) {
-                // Fallback: use local user data
-            }
-
-            var planInfo = PLAN_LABELS[memType] || PLAN_LABELS['trial'];
-            memName = planInfo.name;
-            total = planInfo.credits > 0 ? planInfo.credits : 4;
-
-            document.querySelector('.membership-header h2').textContent = '💎 ' + memName;
-            document.querySelectorAll('.credit-card .num')[0].textContent = credits;
-            document.querySelectorAll('.credit-card .num')[1].textContent = used + ' / ' + total;
-            document.querySelector('.status').textContent = '剩餘 ' + (credits > 0 ? credits + ' Credits' : (total - used) + ' 堂試玩');
-
-            // Update expiry
-            if (expiresAt) {
-                var expireEl = document.querySelector('.expire');
-                if (expireEl) {
-                    var d = new Date(expiresAt);
-                    expireEl.textContent = '會籍到期：' + d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
-                }
-            }
-
-            // Update progress bars
-            var bars = document.querySelectorAll('div[style*="height:8px"] > div');
-            if (bars.length >= 2) {
-                var pct = Math.min(100, (used / Math.max(total, 1)) * 100);
-                bars[0].style.width = pct + '%';
-                bars[1].style.width = Math.min(100, (credits / 100) * 80) + '%';
-            }
-
-            // Highlight current plan
-            var plans = document.querySelectorAll('.plan-item');
-            for (var i = 0; i < plans.length; i++) {
-                var tag = plans[i].querySelector('.tag');
-                if (tag) {
-                    var planName = plans[i].querySelector('.name').textContent.trim();
-                    if (planName.includes(memName.replace('會員','')) || (i === 0 && !memName.includes('標準') && !memName.includes('金'))) {
-                        tag.className = 'tag active-plan';
-                        tag.textContent = '當前方案';
-                    }
-                }
-            }
+      function getUser() {
+        try {
+          return JSON.parse(localStorage.getItem("zenpass_user"));
+        } catch (e) {
+          return null;
         }
-        
-        document.addEventListener('DOMContentLoaded', loadMembership);
+      }
+
+      var PLAN_LABELS = {
+        none: { name: "無會籍", credits: 0 },
+        trial: { name: "試玩會員", credits: 4 },
+        standard: { name: "標準會員", credits: 10 },
+        unlimited: { name: "無限通行", credits: 0 },
+      };
+
+      async function loadMembership() {
+        var user = getUser();
+        if (!user) return;
+
+        var memName = "試玩會員";
+        var credits = user.credits || 0;
+        var memType = user.membership_type || "trial";
+        var expiresAt = user.membership_expires_at || "";
+        var used = 0;
+        var total = 4;
+
+        // Try API first — fetch from /api/memberships/my
+        try {
+          var result = await memberships.my();
+          if (result && result.current) {
+            memType = result.current.type || memType;
+            credits =
+              result.current.credits != null ? result.current.credits : credits;
+            expiresAt = result.current.expires_at || expiresAt;
+          }
+        } catch (e) {
+          // Fallback: use local user data
+        }
+
+        var planInfo = PLAN_LABELS[memType] || PLAN_LABELS["trial"];
+        memName = planInfo.name;
+        total = planInfo.credits > 0 ? planInfo.credits : 4;
+
+        document.querySelector(".membership-header h2").textContent =
+          "💎 " + memName;
+        document.querySelectorAll(".credit-card .num")[0].textContent = credits;
+        document.querySelectorAll(".credit-card .num")[1].textContent =
+          used + " / " + total;
+        document.querySelector(".status").textContent =
+          "剩餘 " +
+          (credits > 0 ? credits + " Credits" : total - used + " 堂試玩");
+
+        // Update expiry
+        if (expiresAt) {
+          var expireEl = document.querySelector(".expire");
+          if (expireEl) {
+            var d = new Date(expiresAt);
+            expireEl.textContent =
+              "會籍到期：" +
+              d.getFullYear() +
+              "-" +
+              String(d.getMonth() + 1).padStart(2, "0") +
+              "-" +
+              String(d.getDate()).padStart(2, "0");
+          }
+        }
+
+        // Update progress bars
+        var bars = document.querySelectorAll('div[style*="height:8px"] > div');
+        if (bars.length >= 2) {
+          var pct = Math.min(100, (used / Math.max(total, 1)) * 100);
+          bars[0].style.width = pct + "%";
+          bars[1].style.width = Math.min(100, (credits / 100) * 80) + "%";
+        }
+
+        // Highlight current plan
+        var plans = document.querySelectorAll(".plan-item");
+        for (var i = 0; i < plans.length; i++) {
+          var tag = plans[i].querySelector(".tag");
+          if (tag) {
+            var planName = plans[i].querySelector(".name").textContent.trim();
+            if (
+              planName.includes(memName.replace("會員", "")) ||
+              (i === 0 && !memName.includes("標準") && !memName.includes("金"))
+            ) {
+              tag.className = "tag active-plan";
+              tag.textContent = "當前方案";
+            }
+          }
+        }
+      }
+
+      document.addEventListener("DOMContentLoaded", loadMembership);
     </script>
 
-<script>if("serviceWorker" in navigator){navigator.serviceWorker.register("sw.js")}</script>
-<script>
-(function(){var n=localStorage.getItem("zenpass_name");if(n){var b=document.createElement("div");b.style.cssText="position:fixed;top:10px;right:10px;z-index:9999;background:#FF6B35;color:white;padding:5px 12px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.15);font-family:sans-serif;";b.textContent="👤 "+n;b.onclick=function(){var nn=prompt("切換用戶\n當前："+n,n);if(nn&&nn.trim()&&nn.trim()!==n){localStorage.setItem("zenpass_name",nn.trim());localStorage.removeItem("zenpass_token");localStorage.removeItem("zenpass_user");location.reload()}};document.body.appendChild(b)}})();
-</script>
-</body>
+    <script>
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.register("sw.js");
+      }
+    </script>
+    <script>
+      (function () {
+        var n = localStorage.getItem("zenpass_name");
+        if (n) {
+          var b = document.createElement("div");
+          b.style.cssText =
+            "position:fixed;top:10px;right:10px;z-index:9999;background:#FF6B35;color:white;padding:5px 12px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.15);font-family:sans-serif;";
+          b.textContent = "👤 " + n;
+          b.onclick = function () {
+            var nn = prompt("切換用戶\n當前：" + n, n);
+            if (nn && nn.trim() && nn.trim() !== n) {
+              localStorage.setItem("zenpass_name", nn.trim());
+              localStorage.removeItem("zenpass_token");
+              localStorage.removeItem("zenpass_user");
+              location.reload();
+            }
+          };
+          document.body.appendChild(b);
+        }
+      })();
+    </script>
+  </body>
 </html>

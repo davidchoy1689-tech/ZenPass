@@ -1,415 +1,877 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-HK">
-<head>
-    <meta charset="UTF-8">
-    <link rel="icon" href="favicon.png" type="image/png">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="theme-color" content="#FF6B35">
-    <meta name="description" content="ZenPass 禪流會員方案 — 試玩體驗、標準會員、金會員">
-<title>會員方案 — ZenPass 禪流</title>
-    <link rel="manifest" href="manifest.json">
-    
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        :root {
-            --orange-500: #FF6B35; --orange-400: #FF8555; --orange-100: #FFF0E8; --orange-50: #FFF8F4;
-            --dark-900: #1A1A2E; --dark-800: #2D2D44; --dark-700: #3D3D5A;
-            --gray-300: #D1D5DB; --gray-200: #E5E7EB; --gray-100: #F3F4F6; --gray-50: #F9FAFB;
-            --white: #FFFFFF; --green-500: #059669; --green-100: #ECFDF5;
-            --shadow-sm: 0 1px 3px rgba(0,0,0,0.08); --shadow-md: 0 4px 12px rgba(0,0,0,0.1); --shadow-lg: 0 10px 30px rgba(0,0,0,0.12);
-            --radius-sm: 8px; --radius-md: 12px; --radius-lg: 16px; --radius-xl: 24px;
-            --font-en: 'Inter', sans-serif; --font-zh: 'Noto Sans TC', sans-serif;
-            --max-width: 480px; --nav-height: 64px;
-        }
-        body {
-            font-family: var(--font-zh); background: var(--gray-50); color: var(--dark-900);
-            max-width: var(--max-width); margin: 0 auto;
-            padding-bottom: calc(var(--nav-height) + 20px);
-            -webkit-font-smoothing: antialiased;
-        }
-        .header {
-            background: linear-gradient(135deg, var(--dark-900), var(--dark-800));
-            color: var(--white); padding: 40px 20px 32px; text-align: center;
-        }
-        .header h1 { font-size: 26px; font-weight: 800; margin-bottom: 8px; }
-        .header p { font-size: 14px; opacity: .8; }
-        .section { padding: 20px 16px; }
-        .section-title { font-size: 18px; font-weight: 700; margin-bottom: 16px; }
-        .plans { display: flex; flex-direction: column; gap: 12px; margin: -16px 16px 16px; position: relative; z-index: 2; min-height: 320px; }
-        .plan-card {
-            background: var(--white); border-radius: var(--radius-lg); padding: 20px;
-            box-shadow: var(--shadow-md); border: 2px solid var(--gray-200);
-            position: relative; cursor: pointer; transition: all .2s;
-        }
-        .plan-card:active { transform: scale(.98); }
-        .plan-card.popular { border-color: var(--orange-500); }
-        .plan-card .badge {
-            position: absolute; top: -10px; right: 16px;
-            background: var(--orange-500); color: var(--white); padding: 4px 12px;
-            border-radius: 12px; font-size: 12px; font-weight: 700;
-        }
-        .plan-name { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
-        .plan-price { font-size: 36px; font-weight: 800; color: var(--orange-500); margin-bottom: 4px; }
-        .plan-price small { font-size: 16px; font-weight: 400; color: var(--dark-700); }
-        .plan-desc { font-size: 14px; color: var(--dark-700); margin-bottom: 12px; }
-        .plan-features { list-style: none; }
-        .plan-features li {
-            padding: 6px 0; font-size: 14px; display: flex; align-items: center; gap: 8px;
-        }
-        .plan-features li::before { content: '✅'; }
-        .plan-btn {
-            width: 100%; padding: 12px; border: none; border-radius: var(--radius-sm);
-            font-size: 16px; font-weight: 700; cursor: pointer; margin-top: 12px;
-            font-family: var(--font-zh); transition: background .2s;
-        }
-        .plan-btn.primary { background: var(--orange-500); color: var(--white); }
-        .plan-btn.primary:hover { background: #E55A2B; }
-        .plan-btn.outline { background: transparent; color: var(--orange-500); border: 2px solid var(--orange-500); }
-        .plan-btn.outline:hover { background: var(--orange-50); }
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" href="favicon.png" type="image/png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
+    <meta name="theme-color" content="#FF6B35" />
+    <meta
+      name="description"
+      content="ZenPass 禪流會員方案 — 試玩體驗、標準會員、金會員"
+    />
+    <title>會員方案 — ZenPass 禪流</title>
+    <link rel="manifest" href="manifest.json" />
 
-        /* Credits packages */
-        .credits-section { background: var(--white); border-radius: var(--radius-lg); padding: 20px; margin: 0 16px; box-shadow: var(--shadow-sm); min-height: 200px; }
-        .credits-section h3 { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
-        .credits-section .sub { font-size: 14px; color: var(--dark-700); margin-bottom: 16px; }
-        .credits-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; min-height: 100px; }
-        .credit-pack {
-            padding: 14px; border: 2px solid var(--gray-200); border-radius: var(--radius-md);
-            text-align: center; cursor: pointer; transition: all .2s;
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      :root {
+        --orange-500: #ff6b35;
+        --orange-400: #ff8555;
+        --orange-100: #fff0e8;
+        --orange-50: #fff8f4;
+        --dark-900: #1a1a2e;
+        --dark-800: #2d2d44;
+        --dark-700: #3d3d5a;
+        --gray-300: #d1d5db;
+        --gray-200: #e5e7eb;
+        --gray-100: #f3f4f6;
+        --gray-50: #f9fafb;
+        --white: #ffffff;
+        --green-500: #059669;
+        --green-100: #ecfdf5;
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+        --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
+        --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.12);
+        --radius-sm: 8px;
+        --radius-md: 12px;
+        --radius-lg: 16px;
+        --radius-xl: 24px;
+        --font-en: "Inter", sans-serif;
+        --font-zh: "Noto Sans TC", sans-serif;
+        --max-width: 480px;
+        --nav-height: 64px;
+      }
+      body {
+        font-family: var(--font-zh);
+        background: var(--gray-50);
+        color: var(--dark-900);
+        max-width: var(--max-width);
+        margin: 0 auto;
+        padding-bottom: calc(var(--nav-height) + 20px);
+        -webkit-font-smoothing: antialiased;
+      }
+      .header {
+        background: linear-gradient(135deg, var(--dark-900), var(--dark-800));
+        color: var(--white);
+        padding: 40px 20px 32px;
+        text-align: center;
+      }
+      .header h1 {
+        font-size: 26px;
+        font-weight: 800;
+        margin-bottom: 8px;
+      }
+      .header p {
+        font-size: 14px;
+        opacity: 0.8;
+      }
+      .section {
+        padding: 20px 16px;
+      }
+      .section-title {
+        font-size: 18px;
+        font-weight: 700;
+        margin-bottom: 16px;
+      }
+      .plans {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin: -16px 16px 16px;
+        position: relative;
+        z-index: 2;
+        min-height: 320px;
+      }
+      .plan-card {
+        background: var(--white);
+        border-radius: var(--radius-lg);
+        padding: 20px;
+        box-shadow: var(--shadow-md);
+        border: 2px solid var(--gray-200);
+        position: relative;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .plan-card:active {
+        transform: scale(0.98);
+      }
+      .plan-card.popular {
+        border-color: var(--orange-500);
+      }
+      .plan-card .badge {
+        position: absolute;
+        top: -10px;
+        right: 16px;
+        background: var(--orange-500);
+        color: var(--white);
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 700;
+      }
+      .plan-name {
+        font-size: 18px;
+        font-weight: 700;
+        margin-bottom: 4px;
+      }
+      .plan-price {
+        font-size: 36px;
+        font-weight: 800;
+        color: var(--orange-500);
+        margin-bottom: 4px;
+      }
+      .plan-price small {
+        font-size: 16px;
+        font-weight: 400;
+        color: var(--dark-700);
+      }
+      .plan-desc {
+        font-size: 14px;
+        color: var(--dark-700);
+        margin-bottom: 12px;
+      }
+      .plan-features {
+        list-style: none;
+      }
+      .plan-features li {
+        padding: 6px 0;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .plan-features li::before {
+        content: "✅";
+      }
+      .plan-btn {
+        width: 100%;
+        padding: 12px;
+        border: none;
+        border-radius: var(--radius-sm);
+        font-size: 16px;
+        font-weight: 700;
+        cursor: pointer;
+        margin-top: 12px;
+        font-family: var(--font-zh);
+        transition: background 0.2s;
+      }
+      .plan-btn.primary {
+        background: var(--orange-500);
+        color: var(--white);
+      }
+      .plan-btn.primary:hover {
+        background: #e55a2b;
+      }
+      .plan-btn.outline {
+        background: transparent;
+        color: var(--orange-500);
+        border: 2px solid var(--orange-500);
+      }
+      .plan-btn.outline:hover {
+        background: var(--orange-50);
+      }
+
+      /* Credits packages */
+      .credits-section {
+        background: var(--white);
+        border-radius: var(--radius-lg);
+        padding: 20px;
+        margin: 0 16px;
+        box-shadow: var(--shadow-sm);
+        min-height: 200px;
+      }
+      .credits-section h3 {
+        font-size: 18px;
+        font-weight: 700;
+        margin-bottom: 4px;
+      }
+      .credits-section .sub {
+        font-size: 14px;
+        color: var(--dark-700);
+        margin-bottom: 16px;
+      }
+      .credits-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        min-height: 100px;
+      }
+      .credit-pack {
+        padding: 14px;
+        border: 2px solid var(--gray-200);
+        border-radius: var(--radius-md);
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .credit-pack:active {
+        transform: scale(0.96);
+      }
+      .credit-pack.popular {
+        border-color: var(--orange-500);
+        background: var(--orange-50);
+        position: relative;
+      }
+      .credit-pack .cp-credits {
+        font-size: 24px;
+        font-weight: 800;
+        color: var(--orange-500);
+      }
+      .credit-pack .cp-label {
+        font-size: 13px;
+        color: var(--dark-700);
+      }
+      .credit-pack .cp-price {
+        font-size: 16px;
+        font-weight: 700;
+        margin-top: 4px;
+      }
+      .credit-pack .cp-bonus {
+        font-size: 11px;
+        color: var(--green-500);
+        font-weight: 600;
+      }
+      .credit-pack.selected {
+        border-color: var(--orange-500);
+        background: var(--orange-50);
+        box-shadow: 0 2px 8px rgba(255, 107, 53, 0.2);
+      }
+      .credit-pack .cp-popular-tag {
+        position: absolute;
+        top: -8px;
+        right: 8px;
+        background: var(--orange-500);
+        color: var(--white);
+        padding: 2px 8px;
+        border-radius: 8px;
+        font-size: 10px;
+        font-weight: 700;
+      }
+      .buy-credits-btn {
+        width: 100%;
+        padding: 14px;
+        background: var(--orange-500);
+        color: var(--white);
+        border: none;
+        border-radius: var(--radius-sm);
+        font-size: 16px;
+        font-weight: 700;
+        cursor: pointer;
+        margin-top: 12px;
+        font-family: var(--font-zh);
+      }
+      .bottom-nav {
+        position: fixed;
+        bottom: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 100%;
+        max-width: var(--max-width);
+        background: var(--white);
+        border-top: 1px solid var(--gray-200);
+        display: flex;
+        justify-content: space-around;
+        padding: 8px 0 calc(8px + env(safe-area-inset-bottom));
+        z-index: 100;
+      }
+      .nav-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-decoration: none;
+        color: var(--gray-300);
+        font-size: 10px;
+        gap: 2px;
+        padding: 4px 12px;
+      }
+      .nav-item.active {
+        color: var(--orange-500);
+      }
+      .nav-item .nav-icon {
+        font-size: 22px;
+        line-height: 1;
+      }
+      .loading-spinner {
+        text-align: center;
+        padding: 40px;
+      }
+      .loading-spinner::after {
+        content: "";
+        display: block;
+        width: 32px;
+        height: 32px;
+        margin: 10px auto;
+        border: 3px solid var(--gray-200);
+        border-top-color: var(--orange-500);
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
         }
-        .credit-pack:active { transform: scale(.96); }
-        .credit-pack.popular { border-color: var(--orange-500); background: var(--orange-50); position: relative; }
-        .credit-pack .cp-credits { font-size: 24px; font-weight: 800; color: var(--orange-500); }
-        .credit-pack .cp-label { font-size: 13px; color: var(--dark-700); }
-        .credit-pack .cp-price { font-size: 16px; font-weight: 700; margin-top: 4px; }
-        .credit-pack .cp-bonus { font-size: 11px; color: var(--green-500); font-weight: 600; }
-        .credit-pack.selected { border-color:var(--orange-500); background:var(--orange-50); box-shadow:0 2px 8px rgba(255,107,53,0.2); }
-        .credit-pack .cp-popular-tag {
-            position: absolute; top: -8px; right: 8px; background: var(--orange-500); color: var(--white);
-            padding: 2px 8px; border-radius: 8px; font-size: 10px; font-weight: 700;
+      }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
         }
-        .buy-credits-btn {
-            width: 100%; padding: 14px; background: var(--orange-500); color: var(--white);
-            border: none; border-radius: var(--radius-sm); font-size: 16px; font-weight: 700;
-            cursor: pointer; margin-top: 12px; font-family: var(--font-zh);
+        to {
+          opacity: 1;
+          transform: translateY(0);
         }
-        .bottom-nav {
-            position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
-            width: 100%; max-width: var(--max-width);
-            background: var(--white); border-top: 1px solid var(--gray-200);
-            display: flex; justify-content: space-around;
-            padding: 8px 0 calc(8px + env(safe-area-inset-bottom)); z-index: 100;
-        }
-        .nav-item {
-            display: flex; flex-direction: column; align-items: center;
-            text-decoration: none; color: var(--gray-300); font-size: 10px; gap: 2px; padding: 4px 12px;
-        }
-        .nav-item.active { color: var(--orange-500); }
-        .nav-item .nav-icon { font-size: 22px; line-height: 1; }
-        .loading-spinner { text-align: center; padding: 40px; }
-        .loading-spinner::after {
-            content: ''; display: block; width: 32px; height: 32px; margin: 10px auto;
-            border: 3px solid var(--gray-200); border-top-color: var(--orange-500);
-            border-radius: 50%; animation: spin .8s linear infinite;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        @keyframes fadeIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
-        .zen-modal-overlay { position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.4);z-index:1000;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .3s; }
-        .zen-modal-overlay.show { opacity:1; }
-        .zen-modal { background:var(--white);border-radius:var(--radius-lg);max-width:360px;width:90%;box-shadow:0 10px 40px rgba(0,0,0,0.2); }
+      }
+      .zen-modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.4);
+        z-index: 1000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        transition: opacity 0.3s;
+      }
+      .zen-modal-overlay.show {
+        opacity: 1;
+      }
+      .zen-modal {
+        background: var(--white);
+        border-radius: var(--radius-lg);
+        max-width: 360px;
+        width: 90%;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <!-- Skip link for accessibility -->
-    <a href="#main-content" style="position:absolute;left:-9999px;top:0;z-index:9999;padding:10px;background:var(--orange-500);color:white;font-weight:600;text-decoration:none;" onfocus="this.style.left='10px'" onblur="this.style.left='-9999px'">跳到主要內容</a>
+    <a
+      href="#main-content"
+      style="
+        position: absolute;
+        left: -9999px;
+        top: 0;
+        z-index: 9999;
+        padding: 10px;
+        background: var(--orange-500);
+        color: white;
+        font-weight: 600;
+        text-decoration: none;
+      "
+      onfocus="this.style.left = '10px'"
+      onblur="this.style.left = '-9999px'"
+      >跳到主要內容</a
+    >
     <div class="header" role="banner">
-        <a href="index.html" style="color:var(--white);text-decoration:none;font-size:20px;display:block;text-align:left;margin-bottom:12px;" aria-label="返回首頁">← 返回</a>
-        <h1>💎 選擇你的會籍</h1>
-        <p>灵活方案，隨心運動</p>
+      <a
+        href="index.html"
+        style="
+          color: var(--white);
+          text-decoration: none;
+          font-size: 20px;
+          display: block;
+          text-align: left;
+          margin-bottom: 12px;
+        "
+        aria-label="返回首頁"
+        >← 返回</a
+      >
+      <h1>💎 選擇你的會籍</h1>
+      <p>灵活方案，隨心運動</p>
     </div>
 
     <div class="plans" id="plans-container" aria-label="會籍方案">
-        <div class="loading-spinner">載入方案...</div>
+      <div class="loading-spinner">載入方案...</div>
     </div>
 
     <div class="section">
-        <!-- 會員加購 -->
-        <div class="credits-section">
-            <h3>🎟️ 加購點數</h3>
-            <p class="sub">揀選點數套餐，直接加到現有帳戶</p>
-            <div class="credits-grid" id="credits-grid">
-                <div class="loading-spinner">載入中...</div>
-            </div>
-            <!-- Selected summary -->
-            <div id="credits-summary" style="display:none;margin:12px 0;padding:12px;background:var(--orange-50);border-radius:var(--radius-sm);border:1px solid var(--orange-200);">
-                <div style="display:flex;justify-content:space-between;font-size:14px;">
-                    <span style="color:var(--dark-700);">📋 已選：</span>
-                    <span id="cs-detail" style="font-weight:700;color:var(--orange-500);">0 Credits — HK$0</span>
-                </div>
-            </div>
-            <button class="buy-credits-btn" onclick="showBuyCredits()">➕ 加購所選點數</button>
-            <p style="text-align:center;font-size:12px;color:var(--dark-700);margin-top:8px;">點數有效期 180 天</p>
+      <!-- 會員加購 -->
+      <div class="credits-section">
+        <h3>🎟️ 加購點數</h3>
+        <p class="sub">揀選點數套餐，直接加到現有帳戶</p>
+        <div class="credits-grid" id="credits-grid">
+          <div class="loading-spinner">載入中...</div>
         </div>
+        <!-- Selected summary -->
+        <div
+          id="credits-summary"
+          style="
+            display: none;
+            margin: 12px 0;
+            padding: 12px;
+            background: var(--orange-50);
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--orange-200);
+          "
+        >
+          <div
+            style="
+              display: flex;
+              justify-content: space-between;
+              font-size: 14px;
+            "
+          >
+            <span style="color: var(--dark-700)">📋 已選：</span>
+            <span
+              id="cs-detail"
+              style="font-weight: 700; color: var(--orange-500)"
+              >0 Credits — HK$0</span
+            >
+          </div>
+        </div>
+        <button class="buy-credits-btn" onclick="showBuyCredits()">
+          ➕ 加購所選點數
+        </button>
+        <p
+          style="
+            text-align: center;
+            font-size: 12px;
+            color: var(--dark-700);
+            margin-top: 8px;
+          "
+        >
+          點數有效期 180 天
+        </p>
+      </div>
 
-        <!-- 獨立購買（分隔線） -->
-        <div style="margin:20px 16px;display:flex;align-items:center;gap:12px;">
-            <div style="flex:1;height:1px;background:var(--gray-200);"></div>
-            <span style="font-size:13px;color:var(--gray-300);font-weight:500;">或</span>
-            <div style="flex:1;height:1px;background:var(--gray-200);"></div>
-        </div>
+      <!-- 獨立購買（分隔線） -->
+      <div
+        style="margin: 20px 16px; display: flex; align-items: center; gap: 12px"
+      >
+        <div style="flex: 1; height: 1px; background: var(--gray-200)"></div>
+        <span style="font-size: 13px; color: var(--gray-300); font-weight: 500"
+          >或</span
+        >
+        <div style="flex: 1; height: 1px; background: var(--gray-200)"></div>
+      </div>
 
-        <div class="credits-section" style="border:2px dashed var(--orange-200);background:var(--orange-50);">
-            <h3>💎 獨立購買點數</h3>
-            <p class="sub">無需會籍，直接購買點數預約課程</p>
-            <button class="buy-credits-btn" onclick="location.href='buy-credits.html'" style="background:var(--white);color:var(--orange-500);border:2px solid var(--orange-500);">💎 前往獨立購買</button>
-        </div>
+      <div
+        class="credits-section"
+        style="
+          border: 2px dashed var(--orange-200);
+          background: var(--orange-50);
+        "
+      >
+        <h3>💎 獨立購買點數</h3>
+        <p class="sub">無需會籍，直接購買點數預約課程</p>
+        <button
+          class="buy-credits-btn"
+          onclick="location.href = 'buy-credits.html'"
+          style="
+            background: var(--white);
+            color: var(--orange-500);
+            border: 2px solid var(--orange-500);
+          "
+        >
+          💎 前往獨立購買
+        </button>
+      </div>
     </div>
 
     <nav class="bottom-nav">
-        <a href="index.html" class="nav-item"><span class="nav-icon">🏠</span>首頁</a>
-        <a href="explore.html" class="nav-item"><span class="nav-icon">🔍</span>探索</a>
-        <a href="membership.html" class="nav-item active"><span class="nav-icon">💎</span>會籍</a>
-        <a href="coach-apply.html" class="nav-item"><span class="nav-icon">👨‍🏫</span>成為教練</a>
-        <a href="my.html" class="nav-item"><span class="nav-icon">👤</span>我的</a>
+      <a href="index.html" class="nav-item"
+        ><span class="nav-icon">🏠</span>首頁</a
+      >
+      <a href="explore.html" class="nav-item"
+        ><span class="nav-icon">🔍</span>探索</a
+      >
+      <a href="membership.html" class="nav-item active"
+        ><span class="nav-icon">💎</span>會籍</a
+      >
+      <a href="coach-apply.html" class="nav-item"
+        ><span class="nav-icon">👨‍🏫</span>成為教練</a
+      >
+      <a href="my.html" class="nav-item"
+        ><span class="nav-icon">👤</span>我的</a
+      >
     </nav>
 
     <script src="api.js"></script>
     <script>
-        var selectedPlan = 'trial';
-        var selectedPack = null;
+      var selectedPlan = "trial";
+      var selectedPack = null;
 
-        // ===== Load Plans =====
-        async function loadPlans() {
-            var container = document.getElementById('plans-container');
-            try {
-                var result = await memberships.plans();
-                var plans = result.plans || {};
-                container.innerHTML = renderPlans(plans);
-            } catch (err) {
-                // Fallback demo data
-                container.innerHTML = renderPlans({
-                    trial: { name: '試玩體驗', name_en: 'Trial', price_hkd: 399, credits_granted: 4, duration_days: 30, description: '每月 4 堂課程，適合想試試的新朋友' },
-                    standard: { name: '標準會員', name_en: 'Standard', price_hkd: 699, credits_granted: 6, duration_days: 30, description: '每月 6 堂課程，優先預約權' },
-                    gold: { name: '金會員', name_en: 'Gold', price_hkd: 1299, credits_granted: 11, duration_days: 30, description: '每月 11 堂課程，專屬高階體驗' }
-                });
-            }
+      // ===== Load Plans =====
+      async function loadPlans() {
+        var container = document.getElementById("plans-container");
+        try {
+          var result = await memberships.plans();
+          var plans = result.plans || {};
+          container.innerHTML = renderPlans(plans);
+        } catch (err) {
+          // Fallback demo data
+          container.innerHTML = renderPlans({
+            trial: {
+              name: "試玩體驗",
+              name_en: "Trial",
+              price_hkd: 399,
+              credits_granted: 4,
+              duration_days: 30,
+              description: "每月 4 堂課程，適合想試試的新朋友",
+            },
+            standard: {
+              name: "標準會員",
+              name_en: "Standard",
+              price_hkd: 699,
+              credits_granted: 6,
+              duration_days: 30,
+              description: "每月 6 堂課程，優先預約權",
+            },
+            gold: {
+              name: "金會員",
+              name_en: "Gold",
+              price_hkd: 1299,
+              credits_granted: 11,
+              duration_days: 30,
+              description: "每月 11 堂課程，專屬高階體驗",
+            },
+          });
         }
+      }
 
-        function renderPlans(plans) {
-            var planOrder = ['trial', 'standard', 'gold'];
-            var html2 = '';
-            for (var ri = 0; ri < planOrder.length; ri++) {
-                var key = planOrder[ri];
-                var p = plans[key];
-                if (!p) continue;
-                var isPopular = key === 'standard';
-                var popularClass = isPopular ? ' popular' : '';
-                var badge = isPopular ? '<div class="badge">最受歡迎</div>' : '';
-                var goldGuide = key === 'gold' ? '<li>每月 2 堂私人指導</li>' : '';
-                var btnClass = isPopular ? 'primary' : 'outline';
-                html2 += '<div class="plan-card' + popularClass + '" onclick="selectPlan(\'' + key + '\')">'
-                    + badge
-                    + '<div class="plan-name">' + p.name + '</div>'
-                    + '<div class="plan-price">HK$' + p.price_hkd + ' <small>/月</small></div>'
-                    + '<div class="plan-desc">' + p.description + '</div>'
-                    + '<ul class="plan-features">'
-                    + '<li>每月 ' + p.credits_granted + ' 堂課程</li>'
-                    + goldGuide
-                    + '<li>優先預約權</li>'
-                    + '<li>取消政策寬鬆</li>'
-                    + '</ul>'
-                    + '<button class="plan-btn ' + btnClass + '" onclick="event.stopPropagation();subscribePlan(\'' + key + '\')">立即訂閱</button>'
-                    + '</div>';
-            }
-            return html2;
+      function renderPlans(plans) {
+        var planOrder = ["trial", "standard", "gold"];
+        var html2 = "";
+        for (var ri = 0; ri < planOrder.length; ri++) {
+          var key = planOrder[ri];
+          var p = plans[key];
+          if (!p) continue;
+          var isPopular = key === "standard";
+          var popularClass = isPopular ? " popular" : "";
+          var badge = isPopular ? '<div class="badge">最受歡迎</div>' : "";
+          var goldGuide = key === "gold" ? "<li>每月 2 堂私人指導</li>" : "";
+          var btnClass = isPopular ? "primary" : "outline";
+          html2 +=
+            '<div class="plan-card' +
+            popularClass +
+            '" onclick="selectPlan(\'' +
+            key +
+            "')\">" +
+            badge +
+            '<div class="plan-name">' +
+            p.name +
+            "</div>" +
+            '<div class="plan-price">HK$' +
+            p.price_hkd +
+            " <small>/月</small></div>" +
+            '<div class="plan-desc">' +
+            p.description +
+            "</div>" +
+            '<ul class="plan-features">' +
+            "<li>每月 " +
+            p.credits_granted +
+            " 堂課程</li>" +
+            goldGuide +
+            "<li>優先預約權</li>" +
+            "<li>取消政策寬鬆</li>" +
+            "</ul>" +
+            '<button class="plan-btn ' +
+            btnClass +
+            '" onclick="event.stopPropagation();subscribePlan(\'' +
+            key +
+            "')\">立即訂閱</button>" +
+            "</div>";
         }
+        return html2;
+      }
 
-        function selectPlan(key) {
-            selectedPlan = key;
-        }
+      function selectPlan(key) {
+        selectedPlan = key;
+      }
 
-        function subscribePlan(type) {
-            if (!isLoggedIn()) {
-                showLoginModal(function() {
-                    doSubscribePlan(type);
-                });
-                return;
-            }
+      function subscribePlan(type) {
+        if (!isLoggedIn()) {
+          showLoginModal(function () {
             doSubscribePlan(type);
+          });
+          return;
         }
+        doSubscribePlan(type);
+      }
 
-        function doSubscribePlan(type) {
-            var prices = { trial: 399, standard: 699, gold: 1299 };
-            var names = { trial: '試玩會員', standard: '標準會員', gold: '金會員' };
-            // Redirect to payment page with plan info
-            var ref = 'ZP-' + new Date().toISOString().slice(0,10).replace(/-/g,'') + '-' + Math.random().toString(36).substring(2,6).toUpperCase();
-            location.href = 'payment.html?plan=' + type + '&amount=' + prices[type] + '&item=' + encodeURIComponent(names[type]) + '&ref=' + ref;
+      function doSubscribePlan(type) {
+        var prices = { trial: 399, standard: 699, gold: 1299 };
+        var names = { trial: "試玩會員", standard: "標準會員", gold: "金會員" };
+        // Redirect to payment page with plan info
+        var ref =
+          "ZP-" +
+          new Date().toISOString().slice(0, 10).replace(/-/g, "") +
+          "-" +
+          Math.random().toString(36).substring(2, 6).toUpperCase();
+        location.href =
+          "payment.html?plan=" +
+          type +
+          "&amount=" +
+          prices[type] +
+          "&item=" +
+          encodeURIComponent(names[type]) +
+          "&ref=" +
+          ref;
+      }
+
+      // ===== Load Credits Packages =====
+      async function loadCredits() {
+        var container = document.getElementById("credits-grid");
+        try {
+          var result = await memberships.packages();
+          var packages = result.packages || [];
+          var html = "";
+          for (var pi = 0; pi < packages.length; pi++) {
+            var p = packages[pi];
+            var popularClass = p.popular ? "popular" : "";
+            var popularTag = p.popular
+              ? '<div class="cp-popular-tag">超值</div>'
+              : "";
+            var bonusHtml = p.bonus
+              ? '<div class="cp-bonus">+' + p.bonus + " 贈送</div>"
+              : "";
+            html +=
+              '<div class="credit-pack ' +
+              popularClass +
+              '" onclick="selectPack(this,' +
+              p.credits +
+              "," +
+              p.price +
+              ')" data-bonus="' +
+              (p.bonus || 0) +
+              '">' +
+              popularTag +
+              '<div class="cp-credits">' +
+              (p.credits + (p.bonus || 0)) +
+              "</div>" +
+              '<div class="cp-label">' +
+              p.label +
+              "</div>" +
+              '<div class="cp-price">HK$' +
+              p.price +
+              "</div>" +
+              bonusHtml +
+              "</div>";
+          }
+          container.innerHTML = html;
+        } catch (err) {
+          var fallback =
+            "" +
+            '<div class="credit-pack" onclick="selectPack(this, 10,150)" data-bonus="0"><div class="cp-credits">10</div><div class="cp-label">輕量包</div><div class="cp-price">HK$150</div></div>' +
+            '<div class="credit-pack" onclick="selectPack(this, 50,750)" data-bonus="12"><div class="cp-credits">62</div><div class="cp-label">標準包</div><div class="cp-price">HK$750</div><div class="cp-bonus">+12 贈送</div></div>' +
+            '<div class="credit-pack popular" onclick="selectPack(this, 100,1500)" data-bonus="30"><div class="cp-popular-tag">超值</div><div class="cp-credits">130</div><div class="cp-label">超值包</div><div class="cp-price">HK$1,500</div><div class="cp-bonus">+30 贈送</div></div>' +
+            '<div class="credit-pack" onclick="selectPack(this, 200,3000)" data-bonus="70"><div class="cp-credits">270</div><div class="cp-label">尊尚包</div><div class="cp-price">HK$3,000</div><div class="cp-bonus">+70 贈送</div></div>';
+          container.innerHTML = fallback;
         }
+      }
 
-        // ===== Load Credits Packages =====
-        async function loadCredits() {
-            var container = document.getElementById('credits-grid');
-            try {
-                var result = await memberships.packages();
-                var packages = result.packages || [];
-                var html = '';
-                for (var pi = 0; pi < packages.length; pi++) {
-                    var p = packages[pi];
-                    var popularClass = p.popular ? 'popular' : '';
-                    var popularTag = p.popular ? '<div class="cp-popular-tag">超值</div>' : '';
-                    var bonusHtml = p.bonus ? '<div class="cp-bonus">+' + p.bonus + ' 贈送</div>' : '';
-                    html += '<div class="credit-pack ' + popularClass + '" onclick="selectPack(this,' + p.credits + ',' + p.price + ')" data-bonus="' + (p.bonus || 0) + '">'
-                        + popularTag
-                        + '<div class="cp-credits">' + (p.credits + (p.bonus || 0)) + '</div>'
-                        + '<div class="cp-label">' + p.label + '</div>'
-                        + '<div class="cp-price">HK$' + p.price + '</div>'
-                        + bonusHtml
-                        + '</div>';
-                }
-                container.innerHTML = html;
-            } catch (err) {
-                var fallback = ''
-                    + '<div class="credit-pack" onclick="selectPack(this, 10,150)" data-bonus="0"><div class="cp-credits">10</div><div class="cp-label">輕量包</div><div class="cp-price">HK$150</div></div>'
-                    + '<div class="credit-pack" onclick="selectPack(this, 50,750)" data-bonus="12"><div class="cp-credits">62</div><div class="cp-label">標準包</div><div class="cp-price">HK$750</div><div class="cp-bonus">+12 贈送</div></div>'
-                    + '<div class="credit-pack popular" onclick="selectPack(this, 100,1500)" data-bonus="30"><div class="cp-popular-tag">超值</div><div class="cp-credits">130</div><div class="cp-label">超值包</div><div class="cp-price">HK$1,500</div><div class="cp-bonus">+30 贈送</div></div>'
-                    + '<div class="credit-pack" onclick="selectPack(this, 200,3000)" data-bonus="70"><div class="cp-credits">270</div><div class="cp-label">尊尚包</div><div class="cp-price">HK$3,000</div><div class="cp-bonus">+70 贈送</div></div>';
-                container.innerHTML = fallback;
+      function selectPack(el, credits, price) {
+        // Support both: selectPack(el, credits, price) and selectPack(credits, price)
+        if (typeof credits === "undefined" && typeof el === "number") {
+          price = arguments[1];
+          credits = el;
+          el = null;
+        }
+        var pkBonus = parseInt(el ? el.getAttribute("data-bonus") || "0" : "0");
+        selectedPack = { credits: credits, price: price, bonus: pkBonus };
+        // Visual: highlight selected pack
+        var packs = document.querySelectorAll(".credit-pack");
+        for (var si = 0; si < packs.length; si++) {
+          packs[si].classList.remove("selected");
+        }
+        // Mark the clicked one
+        if (el) {
+          el.classList.add("selected");
+        } else {
+          // Fallback: try to find by credits number
+          for (var si = 0; si < packs.length; si++) {
+            var txt = packs[si].textContent || "";
+            if (txt.indexOf("" + credits) >= 0) {
+              packs[si].classList.add("selected");
+              break;
             }
+          }
         }
-
-        function selectPack(el, credits, price) {
-            // Support both: selectPack(el, credits, price) and selectPack(credits, price)
-            if (typeof credits === 'undefined' && typeof el === 'number') {
-                price = arguments[1];
-                credits = el;
-                el = null;
-            }
-            var pkBonus = parseInt(el ? el.getAttribute('data-bonus') || '0' : '0');
-            selectedPack = { credits: credits, price: price, bonus: pkBonus };
-            // Visual: highlight selected pack
-            var packs = document.querySelectorAll('.credit-pack');
-            for (var si = 0; si < packs.length; si++) {
-                packs[si].classList.remove('selected');
-            }
-            // Mark the clicked one
-            if (el) {
-                el.classList.add('selected');
-            } else {
-                // Fallback: try to find by credits number
-                for (var si = 0; si < packs.length; si++) {
-                    var txt = packs[si].textContent || '';
-                    if (txt.indexOf('' + credits) >= 0) {
-                        packs[si].classList.add('selected');
-                        break;
-                    }
-                }
-            }
-            // Update button text
-            var btn = document.querySelector('.buy-credits-btn');
-            if (btn && btn.getAttribute('onclick') && btn.getAttribute('onclick').indexOf('showBuyCredits') >= 0) {
-                btn.textContent = '➕ 加購 ' + credits + ' Credits — HK$' + price;
-            }
-            // Show order summary
-            var summary = document.getElementById('credits-summary');
-            var detail = document.getElementById('cs-detail');
-            if (summary && detail) {
-                summary.style.display = 'block';
-                var bonus = parseInt(el ? el.getAttribute('data-bonus') || '0' : '0');
-                var totalCredits = credits + bonus;
-                var bonusText = bonus > 0 ? ' (+' + bonus + ' 贈送)' : '';
-                detail.textContent = totalCredits + ' Credits — HK$' + price + bonusText;
-            }
+        // Update button text
+        var btn = document.querySelector(".buy-credits-btn");
+        if (
+          btn &&
+          btn.getAttribute("onclick") &&
+          btn.getAttribute("onclick").indexOf("showBuyCredits") >= 0
+        ) {
+          btn.textContent = "➕ 加購 " + credits + " Credits — HK$" + price;
         }
-
-        // ===== Helper Functions =====
-        function showToast(msg, type) {
-            var t = document.createElement('div');
-            var bg = type === 'success' ? '#ECFDF5' : '#FEF2F2';
-            var tx = type === 'success' ? '#059669' : '#EF4444';
-            t.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);padding:12px 20px;border-radius:12px;font-size:14px;font-weight:500;z-index:999;max-width:300px;text-align:center;animation:fadeIn .3s;background:' + bg + ';color:' + tx + ';box-shadow:0 4px 12px rgba(0,0,0,0.15);';
-            t.textContent = msg;
-            document.body.appendChild(t);
-            setTimeout(function() { t.style.opacity='0'; t.style.transition='opacity .3s'; setTimeout(function(){ t.remove(); },300); }, 2500);
+        // Show order summary
+        var summary = document.getElementById("credits-summary");
+        var detail = document.getElementById("cs-detail");
+        if (summary && detail) {
+          summary.style.display = "block";
+          var bonus = parseInt(el ? el.getAttribute("data-bonus") || "0" : "0");
+          var totalCredits = credits + bonus;
+          var bonusText = bonus > 0 ? " (+" + bonus + " 贈送)" : "";
+          detail.textContent =
+            totalCredits + " Credits — HK$" + price + bonusText;
         }
+      }
 
-        function getToken() { return localStorage.getItem('zenpass_token'); }
+      // ===== Helper Functions =====
+      function showToast(msg, type) {
+        var t = document.createElement("div");
+        var bg = type === "success" ? "#ECFDF5" : "#FEF2F2";
+        var tx = type === "success" ? "#059669" : "#EF4444";
+        t.style.cssText =
+          "position:fixed;bottom:80px;left:50%;transform:translateX(-50%);padding:12px 20px;border-radius:12px;font-size:14px;font-weight:500;z-index:999;max-width:300px;text-align:center;animation:fadeIn .3s;background:" +
+          bg +
+          ";color:" +
+          tx +
+          ";box-shadow:0 4px 12px rgba(0,0,0,0.15);";
+        t.textContent = msg;
+        document.body.appendChild(t);
+        setTimeout(function () {
+          t.style.opacity = "0";
+          t.style.transition = "opacity .3s";
+          setTimeout(function () {
+            t.remove();
+          }, 300);
+        }, 2500);
+      }
 
-        function isLoggedIn() {
-            return !!localStorage.getItem('zenpass_token');
-        }
+      function getToken() {
+        return localStorage.getItem("zenpass_token");
+      }
 
-        function showLoginModal(callback) {
-            var overlay = document.createElement('div');
-            overlay.className = 'zen-modal-overlay';
-            overlay.innerHTML = '<div class="zen-modal" style="text-align:center;padding:32px 24px;">'
-                + '<h2 style="font-size:20px;font-weight:700;margin-bottom:8px;">🔐 登入帳戶</h2>'
-                + '<p style="font-size:14px;color:var(--dark-700);margin-bottom:20px;">請先登入以繼續購買</p>'
-                + '<div style="margin-bottom:12px;"><input type="email" id="login-email" placeholder="電郵" style="width:100%;padding:12px;border:1px solid var(--gray-200);border-radius:var(--radius-sm);font-size:15px;font-family:var(--font-zh);margin-bottom:8px;"></div>'
-                + '<div style="margin-bottom:20px;"><input type="password" id="login-pass" placeholder="密碼" style="width:100%;padding:12px;border:1px solid var(--gray-200);border-radius:var(--radius-sm);font-size:15px;font-family:var(--font-zh);"></div>'
-                + '<button class="plan-btn primary" onclick="demoLogin(\'student\')" style="font-family:var(--font-zh);">👤 以學生身份登入</button>'
-                + '<p style="font-size:12px;color:var(--gray-300);margin-top:12px;">演示版本：㩒上面掣即時登入</p>'
-                + '</div>';
-            document.body.appendChild(overlay);
-            requestAnimationFrame(function() { overlay.classList.add('show'); });
-            overlay.onclick = function(e) { if (e.target === overlay) { overlay.remove(); } };
-            window._loginCallback = callback;
-        }
+      function isLoggedIn() {
+        return !!localStorage.getItem("zenpass_token");
+      }
 
-        function demoLogin(role) {
-            var demoUser = {
-                name: '張三同學',
-                email: 'student@zenpass.hk',
-                phone: '9876 5432',
-                credits: 45,
-                membership: '試玩會員',
-                role: 'student'
-            };
-            localStorage.setItem('zenpass_token', 'demo_token_' + role);
-            localStorage.setItem('zenpass_user', JSON.stringify(demoUser));
-            var overlay = document.querySelector('.zen-modal-overlay');
-            if (overlay) { overlay.remove(); }
-            showToast('✅ 已登入為學生 張三同學', 'success');
-            if (typeof window._loginCallback === 'function') {
-                var cb = window._loginCallback;
-                window._loginCallback = null;
-                cb();
-            }
-        }
-
-        function showBuyCredits() {
-            if (!selectedPack) {
-                showToast('請先選擇點數套餐', 'warning');
-                return;
-            }
-            if (!isLoggedIn()) {
-                showLoginModal(function() { doBuyCredits(); });
-                return;
-            }
-            doBuyCredits();
-        }
-
-        function doBuyCredits() {
-            if (!selectedPack) return;
-            var p = selectedPack;
-            var credits = p.credits || 25;
-            var price = p.price || 338;
-            var bonus = p.bonus || 0;
-            var total = credits + bonus;
-            var ref = 'CR-' + new Date().toISOString().slice(0,10).replace(/-/g,'') + '-' + Math.random().toString(36).substring(2,6).toUpperCase();
-            window.location.href = 'payment.html?type=credits&credits=' + credits + '&total=' + total + '&amount=' + price + '&item=' + encodeURIComponent('點數 ' + total + ' Credits') + '&bonus=' + bonus + '&ref=' + ref;
-        }
-
-        // ===== Init =====
-        document.addEventListener('DOMContentLoaded', function() {
-            loadPlans();
-            loadCredits();
-            updateNavBar();
+      function showLoginModal(callback) {
+        var overlay = document.createElement("div");
+        overlay.className = "zen-modal-overlay";
+        overlay.innerHTML =
+          '<div class="zen-modal" style="text-align:center;padding:32px 24px;">' +
+          '<h2 style="font-size:20px;font-weight:700;margin-bottom:8px;">🔐 登入帳戶</h2>' +
+          '<p style="font-size:14px;color:var(--dark-700);margin-bottom:20px;">請先登入以繼續購買</p>' +
+          '<div style="margin-bottom:12px;"><input type="email" id="login-email" placeholder="電郵" style="width:100%;padding:12px;border:1px solid var(--gray-200);border-radius:var(--radius-sm);font-size:15px;font-family:var(--font-zh);margin-bottom:8px;"></div>' +
+          '<div style="margin-bottom:20px;"><input type="password" id="login-pass" placeholder="密碼" style="width:100%;padding:12px;border:1px solid var(--gray-200);border-radius:var(--radius-sm);font-size:15px;font-family:var(--font-zh);"></div>' +
+          '<button class="plan-btn primary" onclick="demoLogin(\'student\')" style="font-family:var(--font-zh);">👤 以學生身份登入</button>' +
+          '<p style="font-size:12px;color:var(--gray-300);margin-top:12px;">演示版本：㩒上面掣即時登入</p>' +
+          "</div>";
+        document.body.appendChild(overlay);
+        requestAnimationFrame(function () {
+          overlay.classList.add("show");
         });
+        overlay.onclick = function (e) {
+          if (e.target === overlay) {
+            overlay.remove();
+          }
+        };
+        window._loginCallback = callback;
+      }
+
+      function demoLogin(role) {
+        var demoUser = {
+          name: "張三同學",
+          email: "student@zenpass.hk",
+          phone: "9876 5432",
+          credits: 45,
+          membership: "試玩會員",
+          role: "student",
+        };
+        localStorage.setItem("zenpass_token", "demo_token_" + role);
+        localStorage.setItem("zenpass_user", JSON.stringify(demoUser));
+        var overlay = document.querySelector(".zen-modal-overlay");
+        if (overlay) {
+          overlay.remove();
+        }
+        showToast("✅ 已登入為學生 張三同學", "success");
+        if (typeof window._loginCallback === "function") {
+          var cb = window._loginCallback;
+          window._loginCallback = null;
+          cb();
+        }
+      }
+
+      function showBuyCredits() {
+        if (!selectedPack) {
+          showToast("請先選擇點數套餐", "warning");
+          return;
+        }
+        if (!isLoggedIn()) {
+          showLoginModal(function () {
+            doBuyCredits();
+          });
+          return;
+        }
+        doBuyCredits();
+      }
+
+      function doBuyCredits() {
+        if (!selectedPack) return;
+        var p = selectedPack;
+        var credits = p.credits || 25;
+        var price = p.price || 338;
+        var bonus = p.bonus || 0;
+        var total = credits + bonus;
+        var ref =
+          "CR-" +
+          new Date().toISOString().slice(0, 10).replace(/-/g, "") +
+          "-" +
+          Math.random().toString(36).substring(2, 6).toUpperCase();
+        window.location.href =
+          "payment.html?type=credits&credits=" +
+          credits +
+          "&total=" +
+          total +
+          "&amount=" +
+          price +
+          "&item=" +
+          encodeURIComponent("點數 " + total + " Credits") +
+          "&bonus=" +
+          bonus +
+          "&ref=" +
+          ref;
+      }
+
+      // ===== Init =====
+      document.addEventListener("DOMContentLoaded", function () {
+        loadPlans();
+        loadCredits();
+        updateNavBar();
+      });
     </script>
-<script>if("serviceWorker" in navigator){navigator.serviceWorker.register("sw.js")}</script>
-<script>
-(function(){var n=localStorage.getItem("zenpass_name");if(n){var b=document.createElement("div");b.style.cssText="position:fixed;top:10px;right:10px;z-index:9999;background:#FF6B35;color:white;padding:5px 12px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.15);font-family:sans-serif;";b.textContent="👤 "+n;b.onclick=function(){var nn=prompt("切換用戶\n當前："+n,n);if(nn&&nn.trim()&&nn.trim()!==n){localStorage.setItem("zenpass_name",nn.trim());localStorage.removeItem("zenpass_token");localStorage.removeItem("zenpass_user");location.reload()}};document.body.appendChild(b)}})();
-</script>
-</body>
+    <script>
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.register("sw.js");
+      }
+    </script>
+    <script>
+      (function () {
+        var n = localStorage.getItem("zenpass_name");
+        if (n) {
+          var b = document.createElement("div");
+          b.style.cssText =
+            "position:fixed;top:10px;right:10px;z-index:9999;background:#FF6B35;color:white;padding:5px 12px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.15);font-family:sans-serif;";
+          b.textContent = "👤 " + n;
+          b.onclick = function () {
+            var nn = prompt("切換用戶\n當前：" + n, n);
+            if (nn && nn.trim() && nn.trim() !== n) {
+              localStorage.setItem("zenpass_name", nn.trim());
+              localStorage.removeItem("zenpass_token");
+              localStorage.removeItem("zenpass_user");
+              location.reload();
+            }
+          };
+          document.body.appendChild(b);
+        }
+      })();
+    </script>
+  </body>
 </html>

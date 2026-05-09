@@ -3,7 +3,7 @@
 # Usage: bash scripts/e2e-test.sh [light|full]
 
 MODE="${1:-light}"
-BASE_URL="${ZENPASS_URL:-http://192.168.1.215:3001}"
+BASE_URL="${ZENPASS_URL:-http://localhost:3001}"
 OUTPUT_DIR="test-reports/e2e"
 mkdir -p "$OUTPUT_DIR"
 
@@ -17,7 +17,7 @@ if [ "$MODE" = "light" ]; then
 const { chromium } = require('playwright');
 const fs = require('fs');
 
-const BASE_URL = process.env.ZENPASS_URL || 'http://192.168.1.215:3001';
+const BASE_URL = process.env.ZENPASS_URL || 'http://localhost:3001';
 const OUTPUT_DIR = 'test-reports/e2e';
 
 (async () => {
@@ -80,7 +80,7 @@ else
 const { chromium } = require('playwright');
 const fs = require('fs');
 
-const BASE_URL = process.env.ZENPASS_URL || 'http://192.168.1.215:3001';
+const BASE_URL = process.env.ZENPASS_URL || 'http://localhost:3001';
 const OUTPUT_DIR = 'test-reports/e2e';
 
 (async () => {

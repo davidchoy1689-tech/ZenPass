@@ -1,145 +1,300 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-HK">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="theme-color" content="#059669">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
+    <meta name="theme-color" content="#059669" />
     <title>簽到 — ZenPass 禪流</title>
-    <link rel="manifest" href="manifest.json">
-    
+    <link rel="manifest" href="manifest.json" />
+
     <style>
-        * { margin:0; padding:0; box-sizing:border-box; }
-        body { font-family:'Noto Sans TC',sans-serif; background:#F0FFF4; min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px; }
-        .card { background:white; border-radius:24px; padding:32px 24px; max-width:400px; width:100%; text-align:center; box-shadow:0 4px 24px rgba(0,0,0,0.06); }
-        .icon { font-size:64px; margin-bottom:16px; }
-        h1 { font-size:22px; font-weight:700; color:#1A1A2E; margin-bottom:4px; }
-        .sub { font-size:14px; color:#3D3D5A; margin-bottom:20px; }
-        .info { background:#F9FAFB; border-radius:12px; padding:16px; margin-bottom:20px; font-size:14px; text-align:left; }
-        .info-row { display:flex; justify-content:space-between; padding:6px 0; }
-        .info-row .label { color:#6B7280; }
-        .info-row .value { font-weight:600; color:#1A1A2E; }
-        .btn-checkin { width:100%; padding:16px; background:#059669; color:white; border:none; border-radius:12px; font-size:18px; font-weight:700; cursor:pointer; transition:.2s; }
-        .btn-checkin:active { transform:scale(.97); }
-        .btn-checkin:disabled { opacity:.5; cursor:not-allowed; }
-        .success { display:none; padding:16px; background:#ECFDF5; border:2px solid #A7F3D0; border-radius:12px; margin-top:16px; }
-        .success .check { font-size:48px; }
-        .already { color:#6B7280; font-size:13px; margin-top:12px; }
-        .error { color:#EF4444; font-size:14px; margin-top:12px; }
-    
-        .loading { text-align:center; padding:40px; color:var(--dark-700); }
-        .loading::after { content:''; display:block; width:32px; height:32px; margin:10px auto; border:3px solid var(--gray-200); border-top-color:var(--orange-500); border-radius:50%; animation:spin .8s linear infinite; }
-        @keyframes spin { to { transform:rotate(360deg); } }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: "Noto Sans TC", sans-serif;
+        background: #f0fff4;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+      }
+      .card {
+        background: white;
+        border-radius: 24px;
+        padding: 32px 24px;
+        max-width: 400px;
+        width: 100%;
+        text-align: center;
+        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+      }
+      .icon {
+        font-size: 64px;
+        margin-bottom: 16px;
+      }
+      h1 {
+        font-size: 22px;
+        font-weight: 700;
+        color: #1a1a2e;
+        margin-bottom: 4px;
+      }
+      .sub {
+        font-size: 14px;
+        color: #3d3d5a;
+        margin-bottom: 20px;
+      }
+      .info {
+        background: #f9fafb;
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 20px;
+        font-size: 14px;
+        text-align: left;
+      }
+      .info-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 6px 0;
+      }
+      .info-row .label {
+        color: #6b7280;
+      }
+      .info-row .value {
+        font-weight: 600;
+        color: #1a1a2e;
+      }
+      .btn-checkin {
+        width: 100%;
+        padding: 16px;
+        background: #059669;
+        color: white;
+        border: none;
+        border-radius: 12px;
+        font-size: 18px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: 0.2s;
+      }
+      .btn-checkin:active {
+        transform: scale(0.97);
+      }
+      .btn-checkin:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      .success {
+        display: none;
+        padding: 16px;
+        background: #ecfdf5;
+        border: 2px solid #a7f3d0;
+        border-radius: 12px;
+        margin-top: 16px;
+      }
+      .success .check {
+        font-size: 48px;
+      }
+      .already {
+        color: #6b7280;
+        font-size: 13px;
+        margin-top: 12px;
+      }
+      .error {
+        color: #ef4444;
+        font-size: 14px;
+        margin-top: 12px;
+      }
 
-</style>
-</head>
-<body>
+      .loading {
+        text-align: center;
+        padding: 40px;
+        color: var(--dark-700);
+      }
+      .loading::after {
+        content: "";
+        display: block;
+        width: 32px;
+        height: 32px;
+        margin: 10px auto;
+        border: 3px solid var(--gray-200);
+        border-top-color: var(--orange-500);
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+  </head>
+  <body>
     <div class="card">
-        <div class="icon">📱</div>
-        <h1>課堂簽到</h1>
-        <div class="sub">掃描教練提供的 QR Code 以簽到</div>
+      <div class="icon">📱</div>
+      <h1>課堂簽到</h1>
+      <div class="sub">掃描教練提供的 QR Code 以簽到</div>
 
-        <div class="info" id="class-info">
-            <div class="info-row"><span class="label">課程</span><span class="value" id="checkin-class">—</span></div>
-            <div class="info-row"><span class="label">日期</span><span class="value" id="checkin-date">—</span></div>
-            <div class="info-row"><span class="label">教練</span><span class="value" id="checkin-coach">—</span></div>
-            <div class="info-row"><span class="label">學生姓名</span><span class="value"><input type="text" id="checkin-name" placeholder="輸入你的姓名" style="border:1px solid #E5E7EB;border-radius:6px;padding:6px 10px;font-size:14px;text-align:center;width:150px;"></span></div>
+      <div class="info" id="class-info">
+        <div class="info-row">
+          <span class="label">課程</span
+          ><span class="value" id="checkin-class">—</span>
         </div>
-
-        <button class="btn-checkin" id="btn-checkin" onclick="doCheckin()">✅ 確認出席</button>
-
-        <div class="success" id="success-section">
-            <div class="check">✅</div>
-            <div style="font-size:18px;font-weight:700;color:#059669;margin-bottom:4px;">簽到成功！</div>
-            <div style="font-size:14px;color:#3D3D5A;">已記錄出席</div>
-            <div class="already">教練會見到你的簽到記錄</div>
+        <div class="info-row">
+          <span class="label">日期</span
+          ><span class="value" id="checkin-date">—</span>
         </div>
+        <div class="info-row">
+          <span class="label">教練</span
+          ><span class="value" id="checkin-coach">—</span>
+        </div>
+        <div class="info-row">
+          <span class="label">學生姓名</span
+          ><span class="value"
+            ><input
+              type="text"
+              id="checkin-name"
+              placeholder="輸入你的姓名"
+              style="
+                border: 1px solid #e5e7eb;
+                border-radius: 6px;
+                padding: 6px 10px;
+                font-size: 14px;
+                text-align: center;
+                width: 150px;
+              "
+          /></span>
+        </div>
+      </div>
 
-        <div class="error" id="error-section" style="display:none;">⚠️ 無法加載課堂資料，請確認 QR Code 是否有效</div>
+      <button class="btn-checkin" id="btn-checkin" onclick="doCheckin()">
+        ✅ 確認出席
+      </button>
+
+      <div class="success" id="success-section">
+        <div class="check">✅</div>
+        <div
+          style="
+            font-size: 18px;
+            font-weight: 700;
+            color: #059669;
+            margin-bottom: 4px;
+          "
+        >
+          簽到成功！
+        </div>
+        <div style="font-size: 14px; color: #3d3d5a">已記錄出席</div>
+        <div class="already">教練會見到你的簽到記錄</div>
+      </div>
+
+      <div class="error" id="error-section" style="display: none">
+        ⚠️ 無法加載課堂資料，請確認 QR Code 是否有效
+      </div>
     </div>
 
     <script>
-        // Get URL params (manual parse for Safari compat)
-        var classId = null;
-        var date = null;
-        var coach = null;
-        var qs = window.location.search.substring(1);
-        if (qs) {
-            var parts = qs.split('&');
-            for (var pi=0; pi<parts.length; pi++) {
-                var kv = parts[pi].split('=');
-                var k = decodeURIComponent(kv[0]);
-                var v = kv.length > 1 ? decodeURIComponent(kv[1]) : '';
-                if (k === 'class') classId = v;
-                else if (k === 'date') date = v;
-                else if (k === 'coach') coach = v;
-            }
+      // Get URL params (manual parse for Safari compat)
+      var classId = null;
+      var date = null;
+      var coach = null;
+      var qs = window.location.search.substring(1);
+      if (qs) {
+        var parts = qs.split("&");
+        for (var pi = 0; pi < parts.length; pi++) {
+          var kv = parts[pi].split("=");
+          var k = decodeURIComponent(kv[0]);
+          var v = kv.length > 1 ? decodeURIComponent(kv[1]) : "";
+          if (k === "class") classId = v;
+          else if (k === "date") date = v;
+          else if (k === "coach") coach = v;
         }
-        var isDemo = !classId || !date;
+      }
+      var isDemo = !classId || !date;
 
-        if (isDemo) {
-            document.getElementById('checkin-class').textContent = '🧘 流瑜伽 (Demo)';
-            document.getElementById('checkin-date').textContent = '2026-05-02';
-            document.getElementById('checkin-coach').textContent = '靜儀導師';
-        } else {
-            document.getElementById('checkin-class').textContent = '課程 #' + classId;
-            document.getElementById('checkin-date').textContent = date;
-            document.getElementById('checkin-coach').textContent = coach || '教練';
-            document.getElementById('error-section').style.display = 'none';
+      if (isDemo) {
+        document.getElementById("checkin-class").textContent =
+          "🧘 流瑜伽 (Demo)";
+        document.getElementById("checkin-date").textContent = "2026-05-02";
+        document.getElementById("checkin-coach").textContent = "靜儀導師";
+      } else {
+        document.getElementById("checkin-class").textContent =
+          "課程 #" + classId;
+        document.getElementById("checkin-date").textContent = date;
+        document.getElementById("checkin-coach").textContent = coach || "教練";
+        document.getElementById("error-section").style.display = "none";
+      }
+
+      // Try to get student name from localStorage
+      try {
+        var u = JSON.parse(localStorage.getItem("zenpass_user"));
+        if (u && u.name) document.getElementById("checkin-name").value = u.name;
+      } catch (e) {}
+
+      function doCheckin() {
+        var name = document.getElementById("checkin-name").value.trim();
+        if (!name) {
+          alert("請輸入你的姓名");
+          return;
         }
 
-        // Try to get student name from localStorage
+        document.getElementById("btn-checkin").disabled = true;
+        document.getElementById("btn-checkin").textContent = "⏳ 簽到中...";
+
+        // Try to match from coach student database
+        var phone = "";
+        var level = "";
+        var totalClasses = 0;
         try {
-            var u = JSON.parse(localStorage.getItem('zenpass_user'));
-            if (u && u.name) document.getElementById('checkin-name').value = u.name;
-        } catch(e) {}
+          var students = JSON.parse(
+            localStorage.getItem("zenpass_coach_students") || "[]",
+          );
+          for (var si = 0; si < students.length; si++) {
+            if (students[si].name === name) {
+              phone = students[si].phone || "";
+              level = students[si].level || "";
+              totalClasses = students[si].classes || 0;
+              break;
+            }
+          }
+        } catch (e) {}
 
-        function doCheckin() {
-            var name = document.getElementById('checkin-name').value.trim();
-            if (!name) { alert('請輸入你的姓名'); return; }
+        // Store checkin record in localStorage for cross-page access
+        try {
+          var records = JSON.parse(
+            localStorage.getItem("zenpass_checkins") || "[]",
+          );
+          records.push({
+            name: name,
+            phone: phone,
+            level: level,
+            totalClasses: totalClasses,
+            classId: classId || "demo",
+            date: date || new Date().toISOString().split("T")[0],
+            time: new Date().toLocaleTimeString("zh-HK", {
+              hour: "2-digit",
+              minute: "2-digit",
+            }),
+            coach: coach || "Demo",
+          });
+          localStorage.setItem("zenpass_checkins", JSON.stringify(records));
+        } catch (e) {}
 
-            document.getElementById('btn-checkin').disabled = true;
-            document.getElementById('btn-checkin').textContent = '⏳ 簽到中...';
-
-            // Try to match from coach student database
-            var phone = '';
-            var level = '';
-            var totalClasses = 0;
-            try {
-                var students = JSON.parse(localStorage.getItem('zenpass_coach_students') || '[]');
-                for (var si=0; si<students.length; si++) {
-                    if (students[si].name === name) {
-                        phone = students[si].phone || '';
-                        level = students[si].level || '';
-                        totalClasses = students[si].classes || 0;
-                        break;
-                    }
-                }
-            } catch(e) {}
-
-            // Store checkin record in localStorage for cross-page access
-            try {
-                var records = JSON.parse(localStorage.getItem('zenpass_checkins') || '[]');
-                records.push({
-                    name: name,
-                    phone: phone,
-                    level: level,
-                    totalClasses: totalClasses,
-                    classId: classId || 'demo',
-                    date: date || new Date().toISOString().split('T')[0],
-                    time: new Date().toLocaleTimeString('zh-HK', {hour:'2-digit',minute:'2-digit'}),
-                    coach: coach || 'Demo'
-                });
-                localStorage.setItem('zenpass_checkins', JSON.stringify(records));
-            } catch(e) {}
-
-            // Show success
-            document.getElementById('success-section').style.display = 'block';
-            document.getElementById('btn-checkin').style.display = 'none';
-            document.getElementById('class-info').style.display = 'none';
-        }
+        // Show success
+        document.getElementById("success-section").style.display = "block";
+        document.getElementById("btn-checkin").style.display = "none";
+        document.getElementById("class-info").style.display = "none";
+      }
     </script>
-<script>if("serviceWorker" in navigator){navigator.serviceWorker.register("sw.js")}</script>
-</body>
+    <script>
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.register("sw.js");
+      }
+    </script>
+  </body>
 </html>
