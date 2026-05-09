@@ -536,30 +536,38 @@ function formatTime(isoStr) {
 // ===== Share Badge Functions =====
 var shareBadgeData = null;
 
+var APP_DOWNLOAD_URL = 'https://apps.apple.com/hk/app/zenpass/idXXXXXXXXX';
+
 function shareBadgeFromMy(icon, name, desc) {
   shareBadgeData = { icon: icon, name: name, desc: desc };
+
+  var shareUrl = window.location.origin + '/share.html'
+    + '?badge=' + encodeURIComponent(name)
+    + '&icon=' + encodeURIComponent(icon)
+    + '&desc=' + encodeURIComponent(desc || '');
+
   var text = '🏅 我在 ZenPass 解鎖咗【' + name + '】勳章！'
     + '\n' + desc
     + '\n\n一齊嚟運動啦！💪'
-    + '\n' + window.location.origin + '/badges.html';
+    + '\n' + shareUrl
+    + '\n\n📲 下載 ZenPass App：' + APP_DOWNLOAD_URL;
 
   if (navigator.share) {
     navigator.share({
       title: 'ZenPass 成就：' + name,
       text: text,
-      url: window.location.origin + '/badges.html',
+      url: shareUrl,
     }).catch(function(e) {
-      if (e.name !== 'AbortError') shareFallback(icon, name, desc, text);
+      if (e.name !== 'AbortError') shareFallback(text);
     });
   } else {
-    shareFallback(icon, name, desc, text);
+    shareFallback(text);
   }
 }
 
-function shareFallback(icon, name, desc, text) {
-  // Desktop: redirect to badges.html which has the full share modal
-  if (confirm('📱 手機用戶可以直接分享到任何平台\n💻 電腦用戶 → 按確定去勳章牆使用完整分享功能')) {
-    location.href = 'badges.html';
+function shareFallback(text) {
+  if (confirm('📱 手機一鍵分享到任何平台\n💻 電腦按確定 → 下載 App 或使用完整分享功能')) {
+    location.href = 'share.html';
   }
 }
 

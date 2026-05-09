@@ -429,17 +429,15 @@ var shareBadgeData = null;
 function shareBadge(icon, name, desc) {
   shareBadgeData = { icon: icon, name: name, desc: desc };
 
-  var text = '🏅 我在 ZenPass 解鎖咗【' + name + '】勳章！'
-    + '\n' + desc
-    + '\n\n一齊嚟運動啦！💪'
-    + '\n' + window.location.origin + '/badges.html';
+  var shareUrl = getShareUrl();
+  var text = getShareText();
 
   // Try native share (mobile: 小紅書/WeChat/IG/FB/WhatsApp/Telegram etc.)
   if (navigator.share) {
     navigator.share({
       title: 'ZenPass 成就：' + name,
       text: text,
-      url: window.location.origin + '/badges.html',
+      url: shareUrl,
     }).catch(function(e) {
       // User cancelled or error - show fallback
       if (e.name !== 'AbortError') showShareModal(icon, name, desc, text);
@@ -468,12 +466,26 @@ function closeShareModal() {
   document.getElementById('shareModal').classList.remove('show');
 }
 
+/**
+ * Smart Link: 將來有 App 時，呢個 URL 會 deep link 去 App
+ * 而家 fallback 去 share landing page 引導下載
+ */
+var APP_DOWNLOAD_URL = 'https://apps.apple.com/hk/app/zenpass/idXXXXXXXXX';
+
 function getShareUrl() {
-  return window.location.origin + '/badges.html';
+  var params = shareBadgeData || {};
+  var baseUrl = window.location.origin + '/share.html';
+  var query = '?badge=' + encodeURIComponent(params.name || 'ZenPass 成就')
+    + '&icon=' + encodeURIComponent(params.icon || '🏅')
+    + '&desc=' + encodeURIComponent(params.desc || '');
+  return baseUrl + query;
 }
 
 function getShareText() {
-  return shareBadgeData.text || ('🏅 我在 ZenPass 解鎖咗【' + shareBadgeData.name + '】勳章！\n一齊嚟運動啦！💪\n' + getShareUrl());
+  var url = getShareUrl();
+  var appCTA = '\n\n📲 下載 ZenPass App：' + APP_DOWNLOAD_URL;
+  return (shareBadgeData.text || ('🏅 我在 ZenPass 解鎖咗【' + shareBadgeData.name + '】勳章！'
+    + '\n一齊嚟運動啦！💪\n' + url)) + appCTA;
 }
 
 // ===== Platform Share Functions =====
@@ -633,10 +645,19 @@ function shareAsImage(forXHS) {
     lineY += 24;
   }
 
-  // Footer
+  // Footer - App download CTA
+  ctx.fillStyle = 'rgba(255,255,255,0.15)';
+  ctx.font = 'bold 12px Arial';
+  ctx.fillText('📲 下載 ZenPass App', 300, 330);
+
+  ctx.fillStyle = 'rgba(255,255,255,0.25)';
+  ctx.font = '10px Arial';
+  ctx.fillText('Scan QR code or search "ZenPass"', 300, 348);
+
+  // App download link
   ctx.fillStyle = 'rgba(255,255,255,0.3)';
-  ctx.font = '12px Arial';
-  ctx.fillText(window.location.origin + '/badges.html', 300, 370);
+  ctx.font = '10px Arial';
+  ctx.fillText(APP_DOWNLOAD_URL, 300, 370);
 
   // Convert to image
   var dataUrl = canvas.toDataURL('image/png');
