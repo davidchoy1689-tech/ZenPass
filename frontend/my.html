@@ -557,15 +557,9 @@ function shareBadgeFromMy(icon, name, desc) {
 }
 
 function shareFallback(icon, name, desc, text) {
-  var platform = confirm('📘 Facebook 分享 → 按確定\n💬 WhatsApp 分享 → 按取消');
-  if (platform) {
-    var url = 'https://www.facebook.com/sharer/sharer.php?u='
-      + encodeURIComponent(window.location.origin + '/badges.html')
-      + '&quote=' + encodeURIComponent(text);
-    window.open(url, '_blank', 'width=600,height=400');
-  } else {
-    var url = 'https://wa.me/?text=' + encodeURIComponent(text);
-    window.open(url, '_blank');
+  // Desktop: redirect to badges.html which has the full share modal
+  if (confirm('📱 手機用戶可以直接分享到任何平台\n💻 電腦用戶 → 按確定去勳章牆使用完整分享功能')) {
+    location.href = 'badges.html';
   }
 }
 

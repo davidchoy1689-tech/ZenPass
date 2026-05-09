@@ -146,25 +146,54 @@ body { font-family:'Inter',-apple-system,sans-serif; background:var(--gray-50); 
 
 <!-- Share Modal -->
 <div class="modal-overlay" id="shareModal">
-  <div class="modal">
+  <div class="modal" style="max-width:380px;">
     <div class="modal-icon" id="shareModalIcon">🏅</div>
     <div class="modal-title" id="shareModalTitle">分享成就</div>
-    <div class="modal-desc" id="shareModalDesc">將你的成就分享到社交媒體</div>
-    <div id="shareButtons" style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px;">
-      <button class="share-social fb" onclick="shareToFB()">
-        <span class="share-icon">📘</span> Facebook
+    <div class="modal-desc" id="shareModalDesc" style="margin-bottom:10px;">選擇平台分享你的 ZenPass 成就</div>
+    <div id="shareHint" style="font-size:11px;color:var(--green-500);margin-bottom:10px;display:none;">
+      📱 手機用戶：可直接用系統分享選單<br>
+      💻 電腦用戶：揀下面平台或下載圖片上傳
+    </div>
+    <div id="shareButtons" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;">
+      <button class="share-btn-sq fb" onclick="shareToFB()" title="Facebook">
+        <span class="sq-icon">📘</span>
+        <span class="sq-label">Facebook</span>
       </button>
-      <button class="share-social wa" onclick="shareToWA()">
-        <span class="share-icon">💬</span> WhatsApp
+      <button class="share-btn-sq wa" onclick="shareToWA()" title="WhatsApp">
+        <span class="sq-icon">💬</span>
+        <span class="sq-label">WhatsApp</span>
       </button>
-      <button class="share-social copy" onclick="copyShareLink()">
-        <span class="share-icon">📋</span> 複製連結
+      <button class="share-btn-sq tg" onclick="shareToTG()" title="Telegram">
+        <span class="sq-icon">✈️</span>
+        <span class="sq-label">Telegram</span>
       </button>
-      <button class="share-social img" onclick="shareAsImage()">
-        <span class="share-icon">🖼️</span> 分享圖片
+      <button class="share-btn-sq wb" onclick="shareToWeibo()" title="微博">
+        <span class="sq-icon">🔴</span>
+        <span class="sq-label">微博</span>
+      </button>
+      <button class="share-btn-sq line" onclick="shareToLINE()" title="LINE">
+        <span class="sq-icon">🟢</span>
+        <span class="sq-label">LINE</span>
+      </button>
+      <button class="share-btn-sq tw" onclick="shareToTwitter()" title="Twitter / X">
+        <span class="sq-icon">🐦</span>
+        <span class="sq-label">Twitter</span>
+      </button>
+      <button class="share-btn-sq xhs" onclick="shareToXHS()" title="小紅書">
+        <span class="sq-icon">📕</span>
+        <span class="sq-label">小紅書</span>
+      </button>
+      <button class="share-btn-sq qq" onclick="shareToQQ()" title="QQ">
+        <span class="sq-icon">🐧</span>
+        <span class="sq-label">QQ</span>
+      </button>
+      <button class="share-btn-sq img" onclick="shareAsImage()" title="下載圖片">
+        <span class="sq-icon">🖼️</span>
+        <span class="sq-label">圖片</span>
       </button>
     </div>
-    <button class="modal-btn" onclick="closeShareModal()">關閉</button>
+    <button class="share-row-btn copy" onclick="copyShareLink()">📋 複製連結</button>
+    <button class="modal-btn" style="margin-top:6px;" onclick="closeShareModal()">關閉</button>
   </div>
 </div>
 
@@ -172,13 +201,21 @@ body { font-family:'Inter',-apple-system,sans-serif; background:var(--gray-50); 
 <canvas id="shareCanvas" style="display:none;"></canvas>
 
 <style>
-.share-social { width:100%; padding:12px; border:none; border-radius:12px; font-size:14px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:10px; justify-content:center; transition:.2s; }
-.share-social:active { transform:scale(.97); }
-.share-social .share-icon { font-size:20px; }
-.share-social.fb { background:#1877F2; color:white; }
-.share-social.wa { background:#25D366; color:white; }
-.share-social.copy { background:var(--gray-100); color:var(--dark-900); }
-.share-social.img { background:var(--purple-50); color:var(--purple-500); border:1.5px solid var(--purple-500); }
+.share-btn-sq { display:flex; flex-direction:column; align-items:center; gap:4px; padding:10px 4px; border:none; border-radius:12px; font-size:12px; font-weight:500; cursor:pointer; transition:.2s; color:var(--dark-900); background:var(--gray-100); }
+.share-btn-sq:active { transform:scale(.93); }
+.share-btn-sq .sq-icon { font-size:24px; line-height:1; }
+.share-btn-sq .sq-label { font-size:10px; white-space:nowrap; }
+.share-btn-sq.fb { background:#1877F2; color:white; }
+.share-btn-sq.wa { background:#25D366; color:white; }
+.share-btn-sq.tg { background:#0088CC; color:white; }
+.share-btn-sq.wb { background:#E6162D; color:white; }
+.share-btn-sq.line { background:#06C755; color:white; }
+.share-btn-sq.tw { background:#1DA1F2; color:white; }
+.share-btn-sq.xhs { background:#FF2442; color:white; }
+.share-btn-sq.qq { background:#12B7F5; color:white; }
+.share-btn-sq.img { background:var(--purple-50); color:var(--purple-500); border:1.5px solid var(--purple-500); }
+.share-row-btn { width:100%; padding:11px; border:none; border-radius:10px; font-size:13px; font-weight:600; cursor:pointer; background:var(--gray-100); color:var(--dark-900); transition:.2s; margin-bottom:4px; }
+.share-row-btn:active { transform:scale(.97); }
 </style>
 
 <script>
@@ -397,7 +434,7 @@ function shareBadge(icon, name, desc) {
     + '\n\n一齊嚟運動啦！💪'
     + '\n' + window.location.origin + '/badges.html';
 
-  // Try native share (mobile: Facebook/WhatsApp/WeChat/IG etc.)
+  // Try native share (mobile: 小紅書/WeChat/IG/FB/WhatsApp/Telegram etc.)
   if (navigator.share) {
     navigator.share({
       title: 'ZenPass 成就：' + name,
@@ -420,6 +457,8 @@ function showShareModal(icon, name, desc, text) {
   document.getElementById('shareModalIcon').textContent = icon;
   document.getElementById('shareModalTitle').textContent = '分享成就：' + name;
   document.getElementById('shareModalDesc').textContent = desc;
+  // Show hint for desktop users (hidden on mobile since Web Share API takes over)
+  document.getElementById('shareHint').style.display = 'block';
   document.getElementById('shareModal').classList.add('show');
   // Store share text for buttons
   shareBadgeData = { icon: icon, name: name, desc: desc, text: text };
@@ -429,24 +468,94 @@ function closeShareModal() {
   document.getElementById('shareModal').classList.remove('show');
 }
 
+function getShareUrl() {
+  return window.location.origin + '/badges.html';
+}
+
+function getShareText() {
+  return shareBadgeData.text || ('🏅 我在 ZenPass 解鎖咗【' + shareBadgeData.name + '】勳章！\n一齊嚟運動啦！💪\n' + getShareUrl());
+}
+
+// ===== Platform Share Functions =====
+
 function shareToFB() {
   var url = 'https://www.facebook.com/sharer/sharer.php?u='
-    + encodeURIComponent(window.location.origin + '/badges.html')
-    + '&quote=' + encodeURIComponent(shareBadgeData.text || '');
+    + encodeURIComponent(getShareUrl())
+    + '&quote=' + encodeURIComponent(getShareText());
   window.open(url, '_blank', 'width=600,height=400');
+  closeShareModal();
 }
 
 function shareToWA() {
-  var url = 'https://wa.me/?text=' + encodeURIComponent(shareBadgeData.text || '');
+  var url = 'https://wa.me/?text=' + encodeURIComponent(getShareText() + '\n' + getShareUrl());
   window.open(url, '_blank');
+  closeShareModal();
+}
+
+function shareToTG() {
+  var url = 'https://t.me/share/url?url=' + encodeURIComponent(getShareUrl())
+    + '&text=' + encodeURIComponent(getShareText());
+  window.open(url, '_blank');
+  closeShareModal();
+}
+
+function shareToWeibo() {
+  var url = 'https://service.weibo.com/share/share.php?url='
+    + encodeURIComponent(getShareUrl())
+    + '&title=' + encodeURIComponent('🏅 ZenPass 成就解鎖：' + shareBadgeData.name)
+    + '&pic=&appkey=&searchpic=true';
+  window.open(url, '_blank', 'width=615,height=505');
+  closeShareModal();
+}
+
+function shareToLINE() {
+  var url = 'https://social-plugins.line.me/lineit/share?url='
+    + encodeURIComponent(getShareUrl());
+  window.open(url, '_blank');
+  closeShareModal();
+}
+
+function shareToTwitter() {
+  var url = 'https://twitter.com/intent/tweet?text='
+    + encodeURIComponent(getShareText()) + '&url=' + encodeURIComponent(getShareUrl());
+  window.open(url, '_blank', 'width=550,height=420');
+  closeShareModal();
+}
+
+function shareToQQ() {
+  var url = 'https://connect.qq.com/widget/shareqq/index.html?url='
+    + encodeURIComponent(getShareUrl())
+    + '&title=' + encodeURIComponent('ZenPass 成就：' + shareBadgeData.name)
+    + '&desc=' + encodeURIComponent(shareBadgeData.desc || '')
+    + '&summary=' + encodeURIComponent('🏅 我在 ZenPass 解鎖咗【' + shareBadgeData.name + '】勳章！');
+  window.open(url, '_blank', 'width=700,height=540');
+  closeShareModal();
+}
+
+/**
+ * 小紅書 (XiaoHongShu / RED) — 冇公開 web share API
+ * 最佳做法：下載成就圖片，提示用戶上傳到小紅書
+ */
+function shareToXHS() {
+  closeShareModal();
+  showToast('📕 正在生成小紅書分享圖片...');
+  // Generate the achievement image and trigger download
+  setTimeout(function() {
+    shareAsImage(true);
+    // After image downloads, show guidance
+    setTimeout(function() {
+      showToast('📕 圖片已下載！上傳到小紅書，加上 #ZenPass #運動成就 標籤 📸');
+    }, 500);
+  }, 300);
 }
 
 function copyShareLink() {
-  var text = shareBadgeData.text || '';
+  var text = shareBadgeData.text || getShareText();
+  text = text + '\n' + getShareUrl();
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(text).then(function() {
       closeShareModal();
-      showToast('✅ 已複製到剪貼簿');
+      showToast('✅ 已複製到剪貼簿，去貼上分享吧！');
     }).catch(function() {
       fallbackCopy(text);
     });
@@ -469,7 +578,7 @@ function fallbackCopy(text) {
 /**
  * Generate share image using Canvas
  */
-function shareAsImage() {
+function shareAsImage(forXHS) {
   if (!shareBadgeData) return;
   var canvas = document.getElementById('shareCanvas');
   var ctx = canvas.getContext('2d');
@@ -538,7 +647,11 @@ function shareAsImage() {
   link.click();
 
   closeShareModal();
-  showToast('✅ 圖片已下載，可以分享到社交平台！');
+  if (forXHS) {
+    // XHS toast already handled by shareToXHS
+  } else {
+    showToast('✅ 圖片已下載！可上傳到小紅書 / Facebook / IG 等平台 📸');
+  }
 }
 
 function roundRect(ctx, x, y, w, h, r) {
