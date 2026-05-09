@@ -307,27 +307,30 @@ function renderPointsCard(data) {
       + '</div>';
   }
 
-  var checkinBtn = checkedIn
-    ? '<span style="font-size:11px;color:var(--green-500);font-weight:600;">✅ 今日已簽到</span>'
-    : '<button style="padding:6px 14px;background:var(--orange-500);color:white;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;" onclick="doCheckin()">📅 簽到</button>';
-
-  card.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">'
-    + '<div style="font-size:14px;font-weight:600;display:flex;align-items:center;gap:6px;">'
-    + tierLabel + ' <span style="font-size:22px;font-weight:800;color:' + tierColor + ';">' + pts + '</span> 積分</div>'
+  card.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">'
+    + '<div style="font-size:15px;font-weight:600;display:flex;align-items:center;gap:6px;">'
+    + '<span style="font-size:16px;">' + tierLabel.split(' ')[0] + '</span> ' + tierLabel.split(' ').slice(1).join(' ') + ' · <span style="font-size:24px;font-weight:800;color:' + tierColor + ';">' + pts + '</span> 分</div>'
     + '<span style="font-size:13px;color:var(--orange-500);font-weight:600;cursor:pointer;" onclick="location.href=\'points.html\'">詳細 &gt;</span>'
     + '</div>'
-    + '<div style="display:flex;gap:10px;margin-bottom:8px;">'
+    + '<div style="display:flex;gap:10px;margin-bottom:12px;">'
     + '<div style="flex:1;padding:8px;background:var(--orange-50);border-radius:8px;text-align:center;">'
     + '<div style="font-size:14px;font-weight:700;color:var(--orange-500);">' + monthEarned + '</div>'
-    + '<div style="font-size:10px;color:var(--dark-700);\'>本月賺取</div>'
+    + '<div style="font-size:10px;color:var(--dark-700);">本月賺取</div>'
     + '</div>'
     + '<div style="flex:1;padding:8px;background:var(--green-50);border-radius:8px;text-align:center;">'
     + '<div style="font-size:14px;font-weight:700;color:var(--green-500);">🔥 ' + streak + '</div>'
-    + '<div style="font-size:10px;color:var(--dark-700);\'>連續簽到</div>'
+    + '<div style="font-size:10px;color:var(--dark-700);">連續簽到</div>'
     + '</div>'
-    + '<div style="flex:1;display:flex;align-items:center;justify-content:center;">'
-    + checkinBtn
     + '</div>'
+    + '<div style="margin-bottom:10px;">'
+    + (checkedIn
+      ? '<div style="padding:12px;background:var(--green-50);border:2px solid #A7F3D0;border-radius:12px;text-align:center;">'
+        + '<span style="font-size:16px;color:var(--green-500);font-weight:700;">✅ 今日已簽到</span>'
+        + '<div style="font-size:12px;color:var(--dark-700);margin-top:2px;">聽日再嚟！連續簽到 ' + streak + ' 天 🔥</div>'
+        + '</div>'
+      : '<button style="width:100%;padding:14px;background:linear-gradient(135deg,var(--orange-500),#FF8F5E);color:white;border:none;border-radius:14px;font-size:16px;font-weight:700;cursor:pointer;box-shadow:0 3px 10px rgba(255,107,53,.35);letter-spacing:.5px;transition:transform .15s;" onclick="doCheckin()" onMouseDown="this.style.transform=\'scale(.97)\';" onMouseUp="this.style.transform=\'scale(1)\';" onMouseLeave="this.style.transform=\'scale(1)\'">'
+        + '📅 每日簽到 賺取積分</button>'
+    )
     + '</div>'
     + progressHtml;
 }
