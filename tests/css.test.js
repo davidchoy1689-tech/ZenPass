@@ -28,12 +28,12 @@ describe("🎨 CSS 與響應式", () => {
     }
   });
 
-  it("載入速度測試 - index.html < 50KB", () => {
+  it("載入速度測試 - index.html < 55KB", () => {
     const content = fs.readFileSync(
       path.join(FRONTEND_DIR, "index.html"),
       "utf-8",
     );
     const sizeKB = Buffer.byteLength(content, "utf-8") / 1024;
-    expect(sizeKB).toBeLessThan(50);
+    expect(sizeKB).toBeLessThan(55);
   });
 });

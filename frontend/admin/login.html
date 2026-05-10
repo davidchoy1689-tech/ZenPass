@@ -1,199 +1,483 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-HK">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>ZenPass 登入</title>
-<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-<style>
-*{margin:0;padding:0;box-sizing:border-box}
-:root{--orange:#B8431A;--orange-light:#FFF0E8;--dark:#1A1A2E;--gray:#6B7280;--gray-light:#E5E7EB;--gray-bg:#F3F4F6;--white:#FFF;--green:#059669;--red:#EF4444;--radius:12px;--shadow:0 4px 20px rgba(0,0,0,.1)}
-body{font-family:-apple-system,'Noto Sans TC',sans-serif;background:linear-gradient(135deg,#1A1A2E,#2D2D44);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
-.card{background:var(--white);border-radius:20px;padding:40px;width:400px;max-width:100%;box-shadow:var(--shadow)}
-.logo{text-align:center;margin-bottom:28px}
-.logo h1{font-size:28px;margin-bottom:2px}.logo h1 span{color:var(--orange)}
-.logo p{color:var(--gray);font-size:14px}
-.tabs{display:flex;border-radius:10px;overflow:hidden;border:1px solid var(--gray-light);margin-bottom:24px}
-.tab{flex:1;padding:10px;text-align:center;cursor:pointer;font-size:14px;font-weight:600;background:var(--gray-bg);color:var(--gray);transition:all .2s}
-.tab.active{background:var(--orange);color:var(--white)}
-.form-group{margin-bottom:16px}
-.form-group label{display:block;font-size:13px;font-weight:600;color:var(--dark);margin-bottom:5px}
-.form-group input{width:100%;padding:11px 14px;border:1px solid var(--gray-light);border-radius:8px;font-size:14px;font-family:inherit;transition:border .2s}
-.form-group input:focus{outline:none;border-color:var(--orange)}
-.btn{width:100%;padding:12px;background:var(--orange);color:var(--white);border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;transition:opacity .2s;margin-top:4px}
-.btn:hover{opacity:.9}.btn:disabled{opacity:.5;cursor:not-allowed}
-.msg{text-align:center;margin-top:12px;font-size:13px}
-.msg.success{color:var(--green)}.msg.error{color:var(--red)}
-.spinner{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-right:6px}
-@keyframes spin{to{transform:rotate(360deg)}}
-.role-select{display:flex;gap:10px;margin-bottom:16px}
-.role-opt{flex:1;padding:12px;text-align:center;border:2px solid var(--gray-light);border-radius:8px;cursor:pointer;font-size:14px;font-weight:600;transition:all .2s}
-.role-opt:hover{border-color:var(--orange)}
-.role-opt.active{border-color:var(--orange);background:var(--orange-light);color:var(--orange)}
-.extra-link{text-align:center;margin-top:14px;font-size:13px;color:var(--gray)}
-.extra-link a{color:var(--orange);text-decoration:none;font-weight:600}
-@media(max-width:480px){.card{padding:24px}}
-</style>
-</head>
-<body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>ZenPass 登入</title>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      :root {
+        --orange: #b8431a;
+        --orange-light: #fff0e8;
+        --dark: #1a1a2e;
+        --gray: #6b7280;
+        --gray-light: #e5e7eb;
+        --gray-bg: #f3f4f6;
+        --white: #fff;
+        --green: #059669;
+        --red: #ef4444;
+        --radius: 12px;
+        --shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+      }
+      body {
+        font-family: -apple-system, "Noto Sans TC", sans-serif;
+        background: linear-gradient(135deg, #1a1a2e, #2d2d44);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+      }
+      .card {
+        background: var(--white);
+        border-radius: 20px;
+        padding: 40px;
+        width: 400px;
+        max-width: 100%;
+        box-shadow: var(--shadow);
+      }
+      .logo {
+        text-align: center;
+        margin-bottom: 28px;
+      }
+      .logo h1 {
+        font-size: 28px;
+        margin-bottom: 2px;
+      }
+      .logo h1 span {
+        color: var(--orange);
+      }
+      .logo p {
+        color: var(--gray);
+        font-size: 14px;
+      }
+      .tabs {
+        display: flex;
+        border-radius: 10px;
+        overflow: hidden;
+        border: 1px solid var(--gray-light);
+        margin-bottom: 24px;
+      }
+      .tab {
+        flex: 1;
+        padding: 10px;
+        text-align: center;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 600;
+        background: var(--gray-bg);
+        color: var(--gray);
+        transition: all 0.2s;
+      }
+      .tab.active {
+        background: var(--orange);
+        color: var(--white);
+      }
+      .form-group {
+        margin-bottom: 16px;
+      }
+      .form-group label {
+        display: block;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--dark);
+        margin-bottom: 5px;
+      }
+      .form-group input {
+        width: 100%;
+        padding: 11px 14px;
+        border: 1px solid var(--gray-light);
+        border-radius: 8px;
+        font-size: 14px;
+        font-family: inherit;
+        transition: border 0.2s;
+      }
+      .form-group input:focus {
+        outline: none;
+        border-color: var(--orange);
+      }
+      .btn {
+        width: 100%;
+        padding: 12px;
+        background: var(--orange);
+        color: var(--white);
+        border: none;
+        border-radius: 8px;
+        font-size: 15px;
+        font-weight: 600;
+        cursor: pointer;
+        font-family: inherit;
+        transition: opacity 0.2s;
+        margin-top: 4px;
+      }
+      .btn:hover {
+        opacity: 0.9;
+      }
+      .btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      .msg {
+        text-align: center;
+        margin-top: 12px;
+        font-size: 13px;
+      }
+      .msg.success {
+        color: var(--green);
+      }
+      .msg.error {
+        color: var(--red);
+      }
+      .spinner {
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-top-color: #fff;
+        border-radius: 50%;
+        animation: spin 0.6s linear infinite;
+        vertical-align: middle;
+        margin-right: 6px;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      .role-select {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 16px;
+      }
+      .role-opt {
+        flex: 1;
+        padding: 12px;
+        text-align: center;
+        border: 2px solid var(--gray-light);
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 600;
+        transition: all 0.2s;
+      }
+      .role-opt:hover {
+        border-color: var(--orange);
+      }
+      .role-opt.active {
+        border-color: var(--orange);
+        background: var(--orange-light);
+        color: var(--orange);
+      }
+      .extra-link {
+        text-align: center;
+        margin-top: 14px;
+        font-size: 13px;
+        color: var(--gray);
+      }
+      .extra-link a {
+        color: var(--orange);
+        text-decoration: none;
+        font-weight: 600;
+      }
+      @media (max-width: 480px) {
+        .card {
+          padding: 24px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div class="logo">
+        <h1>Z<span>P</span></h1>
+        <p>ZenPass 運動平台</p>
+      </div>
 
-<div class="card">
-<div class="logo"><h1>Z<span>P</span></h1><p>ZenPass 運動平台</p></div>
+      <div class="tabs">
+        <div class="tab active" id="tabLogin" onclick="switchTab('login')">
+          登入
+        </div>
+        <div class="tab" id="tabRegister" onclick="switchTab('register')">
+          註冊
+        </div>
+      </div>
 
-<div class="tabs">
-<div class="tab active" id="tabLogin" onclick="switchTab('login')">登入</div>
-<div class="tab" id="tabRegister" onclick="switchTab('register')">註冊</div>
-</div>
+      <!-- Login Form -->
+      <div id="formLogin">
+        <div class="form-group">
+          <label>電子郵件</label
+          ><input
+            type="email"
+            id="loginEmail"
+            placeholder="your@email.com"
+            autocomplete="email"
+          />
+        </div>
+        <div class="form-group">
+          <label>密碼</label
+          ><input
+            type="password"
+            id="loginPassword"
+            placeholder="••••••••"
+            autocomplete="current-password"
+          />
+        </div>
+        <button class="btn" id="loginBtn" onclick="doLogin()">登入</button>
+        <div class="msg" id="loginMsg"></div>
+      </div>
 
-<!-- Login Form -->
-<div id="formLogin">
-<div class="form-group"><label>電子郵件</label><input type="email" id="loginEmail" placeholder="your@email.com" autocomplete="email"></div>
-<div class="form-group"><label>密碼</label><input type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password"></div>
-<button class="btn" id="loginBtn" onclick="doLogin()">登入</button>
-<div class="msg" id="loginMsg"></div>
-</div>
+      <!-- Register Form -->
+      <div id="formRegister" style="display: none">
+        <div class="form-group">
+          <label>名稱</label
+          ><input type="text" id="regName" placeholder="陳大文" />
+        </div>
+        <div class="form-group">
+          <label>電子郵件</label
+          ><input
+            type="email"
+            id="regEmail"
+            placeholder="your@email.com"
+            autocomplete="email"
+          />
+        </div>
+        <div class="form-group">
+          <label>密碼（最少6位）</label
+          ><input
+            type="password"
+            id="regPassword"
+            placeholder="••••••••"
+            autocomplete="new-password"
+          />
+        </div>
+        <div class="form-group">
+          <label>電話（選填）</label
+          ><input type="tel" id="regPhone" placeholder="+852 9123 4567" />
+        </div>
+        <div class="form-group"><label>身分類別</label></div>
+        <div class="role-select">
+          <div
+            class="role-opt active"
+            id="roleStudent"
+            onclick="selectRole('student')"
+          >
+            🎓 學生
+          </div>
+          <div class="role-opt" id="roleCoach" onclick="selectRole('coach')">
+            🏋️ 教練
+          </div>
+        </div>
+        <button class="btn" id="registerBtn" onclick="doRegister()">
+          註冊
+        </button>
+        <div class="msg" id="regMsg"></div>
+        <div class="extra-link">
+          已有帳號？<a
+            href="#"
+            onclick="
+              switchTab('login');
+              return false;
+            "
+            >立即登入</a
+          >
+        </div>
+      </div>
+    </div>
 
-<!-- Register Form -->
-<div id="formRegister" style="display:none">
-<div class="form-group"><label>名稱</label><input type="text" id="regName" placeholder="陳大文"></div>
-<div class="form-group"><label>電子郵件</label><input type="email" id="regEmail" placeholder="your@email.com" autocomplete="email"></div>
-<div class="form-group"><label>密碼（最少6位）</label><input type="password" id="regPassword" placeholder="••••••••" autocomplete="new-password"></div>
-<div class="form-group"><label>電話（選填）</label><input type="tel" id="regPhone" placeholder="+852 9123 4567"></div>
-<div class="form-group"><label>身分類別</label></div>
-<div class="role-select">
-<div class="role-opt active" id="roleStudent" onclick="selectRole('student')">🎓 學生</div>
-<div class="role-opt" id="roleCoach" onclick="selectRole('coach')">🏋️ 教練</div>
-</div>
-<button class="btn" id="registerBtn" onclick="doRegister()">註冊</button>
-<div class="msg" id="regMsg"></div>
-<div class="extra-link">已有帳號？<a href="#" onclick="switchTab('login');return false">立即登入</a></div>
-</div>
-</div>
+    <script>
+      var SB_URL = "https://pqgrkeavopksdttrzdqc.supabase.co";
+      var SB_KEY =
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBxZ3JrZWF2b3Brc2R0dHJ6ZHFjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc4MDM0NzgsImV4cCI6MjA5MzM3OTQ3OH0.t8-oSOXX37fA_kSBZoKvw8ymvuT-4R-xQwMEE8ETZIc";
+      var sb = supabase.createClient(SB_URL, SB_KEY);
+      var selectedRole = "student";
 
-<script>
-var SB_URL = 'https://pqgrkeavopksdttrzdqc.supabase.co';
-var SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBxZ3JrZWF2b3Brc2R0dHJ6ZHFjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc4MDM0NzgsImV4cCI6MjA5MzM3OTQ3OH0.t8-oSOXX37fA_kSBZoKvw8ymvuT-4R-xQwMEE8ETZIc';
-var sb = supabase.createClient(SB_URL, SB_KEY);
-var selectedRole = 'student';
+      function $(id) {
+        return document.getElementById(id);
+      }
 
-function $(id){return document.getElementById(id)}
+      function switchTab(tab) {
+        if (tab === "login") {
+          $("tabLogin").classList.add("active");
+          $("tabRegister").classList.remove("active");
+          $("formLogin").style.display = "block";
+          $("formRegister").style.display = "none";
+        } else {
+          $("tabRegister").classList.add("active");
+          $("tabLogin").classList.remove("active");
+          $("formRegister").style.display = "block";
+          $("formLogin").style.display = "none";
+        }
+      }
 
-function switchTab(tab){
-  if(tab === 'login'){
-    $('tabLogin').classList.add('active'); $('tabRegister').classList.remove('active');
-    $('formLogin').style.display = 'block'; $('formRegister').style.display = 'none';
-  } else {
-    $('tabRegister').classList.add('active'); $('tabLogin').classList.remove('active');
-    $('formRegister').style.display = 'block'; $('formLogin').style.display = 'none';
-  }
-}
+      function selectRole(role) {
+        selectedRole = role;
+        document.querySelectorAll(".role-opt").forEach(function (el) {
+          el.classList.remove("active");
+        });
+        $(role === "student" ? "roleStudent" : "roleCoach").classList.add(
+          "active",
+        );
+      }
 
-function selectRole(role){
-  selectedRole = role;
-  document.querySelectorAll('.role-opt').forEach(function(el){el.classList.remove('active')});
-  $(role === 'student' ? 'roleStudent' : 'roleCoach').classList.add('active');
-}
+      // === Login ===
+      async function doLogin() {
+        var email = $("loginEmail").value.trim();
+        var pass = $("loginPassword").value;
+        if (!email || !pass) {
+          $("loginMsg").textContent = "請輸入電郵和密碼";
+          $("loginMsg").className = "msg error";
+          return;
+        }
+        var btn = $("loginBtn");
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner"></span>處理中...';
+        var r = await sb.auth.signInWithPassword({
+          email: email,
+          password: pass,
+        });
+        btn.disabled = false;
+        btn.textContent = "登入";
+        if (r.error) {
+          $("loginMsg").textContent = r.error.message;
+          $("loginMsg").className = "msg error";
+          return;
+        }
+        // Check role and redirect
+        var { data: profile } = await sb
+          .from("profiles")
+          .select("role")
+          .eq("id", r.data.user.id)
+          .single();
+        var role = profile?.role || "student";
+        if (role === "admin") window.location.href = "/admin/admin.html";
+        else if (role === "coach")
+          window.location.href = "/frontend/coach-dashboard.html";
+        else window.location.href = "/explore.html";
+      }
 
-// === Login ===
-async function doLogin(){
-  var email = $('loginEmail').value.trim();
-  var pass = $('loginPassword').value;
-  if(!email||!pass){ $('loginMsg').textContent = '請輸入電郵和密碼'; $('loginMsg').className = 'msg error'; return; }
-  var btn = $('loginBtn'); btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>處理中...';
-  var r = await sb.auth.signInWithPassword({email:email,password:pass});
-  btn.disabled = false; btn.textContent = '登入';
-  if(r.error){ $('loginMsg').textContent = r.error.message; $('loginMsg').className = 'msg error'; return; }
-  // Check role and redirect
-  var {data:profile} = await sb.from('profiles').select('role').eq('id',r.data.user.id).single();
-  var role = profile?.role || 'student';
-  if(role === 'admin') window.location.href = '/admin/admin.html';
-  else if(role === 'coach') window.location.href = '/frontend/coach-dashboard.html';
-  else window.location.href = '/explore.html';
-}
+      // === Register ===
+      async function doRegister() {
+        var name = $("regName").value.trim();
+        var email = $("regEmail").value.trim();
+        var pass = $("regPassword").value;
+        var phone = $("regPhone").value.trim();
+        var msg = $("regMsg");
 
-// === Register ===
-async function doRegister(){
-  var name = $('regName').value.trim();
-  var email = $('regEmail').value.trim();
-  var pass = $('regPassword').value;
-  var phone = $('regPhone').value.trim();
-  var msg = $('regMsg');
-  
-  if(!name||!email||!pass){ msg.textContent = '請填寫名稱、電郵和密碼'; msg.className = 'msg error'; return; }
-  if(pass.length < 6){ msg.textContent = '密碼至少6位'; msg.className = 'msg error'; return; }
-  
-  var btn = $('registerBtn'); btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>處理中...';
-  
-  // 1. Create auth user
-  var r = await sb.auth.signUp({email:email,password:pass});
-  if(r.error){ btn.disabled = false; btn.textContent = '註冊'; msg.textContent = r.error.message; msg.className = 'msg error'; return; }
-  
-  var userId = r.data.user?.id;
-  if(!userId){ btn.disabled = false; btn.textContent = '註冊'; msg.textContent = '註冊失敗，請重試'; msg.className = 'msg error'; return; }
-  
-  // 2. Create profile
-  var {error:pe} = await sb.from('profiles').insert({
-    id: userId,
-    full_name: name,
-    email: email,
-    phone: phone || null,
-    role: selectedRole,
-    is_active: true
-  });
-  
-  if(pe){
-    // Profile insert failed - this can happen if trigger handles it
-    console.warn('Profile insert error:', pe);
-  }
-  
-  // 3. If coach, create coach record
-  if(selectedRole === 'coach'){
-    await sb.from('coaches').insert({
-      profile_id: userId,
-      status: 'active',
-      is_verified: false
-    });
-  } else {
-    // Create student record
-    await sb.from('students').insert({
-      profile_id: userId,
-      notes: null
-    });
-  }
-  
-  btn.disabled = false; btn.textContent = '✅ 註冊成功！';
-  msg.innerHTML = '✅ 註冊成功！即將跳轉⋯';
-  msg.className = 'msg success';
-  
-  // Sign in immediately
-  var signIn = await sb.auth.signInWithPassword({email:email,password:pass});
-  if(!signIn.error){
-    setTimeout(function(){
-      if(selectedRole === 'coach') window.location.href = '/frontend/coach-dashboard.html';
-      else window.location.href = '/explore.html';
-    }, 1500);
-  }
-}
+        if (!name || !email || !pass) {
+          msg.textContent = "請填寫名稱、電郵和密碼";
+          msg.className = "msg error";
+          return;
+        }
+        if (pass.length < 6) {
+          msg.textContent = "密碼至少6位";
+          msg.className = "msg error";
+          return;
+        }
 
-// === Auto-login for admin ===
-async function autoLogin(){
-  var r = await sb.auth.signInWithPassword({email:'admin@zenpass.hk',password:'admin123'});
-  if(!r.error){
-    window.location.href = '/admin/admin.html';
-  }
-}
+        var btn = $("registerBtn");
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner"></span>處理中...';
 
-// Check if already logged in
-sb.auth.getSession().then(function(s){
-  if(s.data.session){
-    sb.from('profiles').select('role').eq('id',s.data.session.user.id).single().then(function(p){
-      var role = p.data?.role || 'student';
-      if(role === 'admin') window.location.href = '/admin/admin.html';
-      else if(role === 'coach') window.location.href = '/frontend/coach-dashboard.html';
-      else window.location.href = '/explore.html';
-    });
-  }
-});
-</script>
-</body>
+        // 1. Create auth user
+        var r = await sb.auth.signUp({ email: email, password: pass });
+        if (r.error) {
+          btn.disabled = false;
+          btn.textContent = "註冊";
+          msg.textContent = r.error.message;
+          msg.className = "msg error";
+          return;
+        }
+
+        var userId = r.data.user?.id;
+        if (!userId) {
+          btn.disabled = false;
+          btn.textContent = "註冊";
+          msg.textContent = "註冊失敗，請重試";
+          msg.className = "msg error";
+          return;
+        }
+
+        // 2. Create profile
+        var { error: pe } = await sb.from("profiles").insert({
+          id: userId,
+          full_name: name,
+          email: email,
+          phone: phone || null,
+          role: selectedRole,
+          is_active: true,
+        });
+
+        if (pe) {
+          // Profile insert failed - this can happen if trigger handles it
+          console.warn("Profile insert error:", pe);
+        }
+
+        // 3. If coach, create coach record
+        if (selectedRole === "coach") {
+          await sb.from("coaches").insert({
+            profile_id: userId,
+            status: "active",
+            is_verified: false,
+          });
+        } else {
+          // Create student record
+          await sb.from("students").insert({
+            profile_id: userId,
+            notes: null,
+          });
+        }
+
+        btn.disabled = false;
+        btn.textContent = "✅ 註冊成功！";
+        msg.innerHTML = "✅ 註冊成功！即將跳轉⋯";
+        msg.className = "msg success";
+
+        // Sign in immediately
+        var signIn = await sb.auth.signInWithPassword({
+          email: email,
+          password: pass,
+        });
+        if (!signIn.error) {
+          setTimeout(function () {
+            if (selectedRole === "coach")
+              window.location.href = "/frontend/coach-dashboard.html";
+            else window.location.href = "/explore.html";
+          }, 1500);
+        }
+      }
+
+      // === Auto-login for admin ===
+      async function autoLogin() {
+        var r = await sb.auth.signInWithPassword({
+          email: "admin@zenpass.hk",
+          password: "admin123",
+        });
+        if (!r.error) {
+          window.location.href = "/admin/admin.html";
+        }
+      }
+
+      // Check if already logged in
+      sb.auth.getSession().then(function (s) {
+        if (s.data.session) {
+          sb.from("profiles")
+            .select("role")
+            .eq("id", s.data.session.user.id)
+            .single()
+            .then(function (p) {
+              var role = p.data?.role || "student";
+              if (role === "admin") window.location.href = "/admin/admin.html";
+              else if (role === "coach")
+                window.location.href = "/frontend/coach-dashboard.html";
+              else window.location.href = "/explore.html";
+            });
+        }
+      });
+    </script>
+  </body>
 </html>

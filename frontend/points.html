@@ -1129,33 +1129,53 @@
         background: var(--gray-100);
         color: var(--dark-700);
       }
-    
+
       /* Page fade-in animation */
       @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(8px); }
-        to { opacity: 1; transform: translateY(0); }
+        from {
+          opacity: 0;
+          transform: translateY(8px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
       }
-      body { animation: fadeIn 0.4s ease-out; }
+      body {
+        animation: fadeIn 0.4s ease-out;
+      }
 
       /* Card hover effects */
-      .class-card:hover, .course-card:hover, .reward-card:hover,
-      .tier-card:hover, .badge-item:hover, .booking-card:hover {
+      .class-card:hover,
+      .course-card:hover,
+      .reward-card:hover,
+      .tier-card:hover,
+      .badge-item:hover,
+      .booking-card:hover {
         transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         transition: all 0.2s ease;
       }
-      .class-card, .course-card, .reward-card, .tier-card,
-      .badge-item, .booking-card {
+      .class-card,
+      .course-card,
+      .reward-card,
+      .tier-card,
+      .badge-item,
+      .booking-card {
         transition: all 0.2s ease;
       }
 
       /* Button hover enhancement */
-      button:hover, .btn:hover, .action-btn:hover:not(:disabled) {
+      button:hover,
+      .btn:hover,
+      .action-btn:hover:not(:disabled) {
         opacity: 0.9;
         transform: translateY(-1px);
         transition: all 0.15s ease;
       }
-      button, .btn, .action-btn {
+      button,
+      .btn,
+      .action-btn {
         transition: all 0.15s ease;
       }
 
@@ -1170,7 +1190,9 @@
         animation: spin 0.8s linear infinite;
       }
       @keyframes spin {
-        to { transform: rotate(360deg); }
+        to {
+          transform: rotate(360deg);
+        }
       }
     </style>
   </head>
@@ -1223,40 +1245,114 @@
           <div class="hero-card" id="heroCard"></div>
           <div class="right-col">
             <div class="progress-card" id="progressCard"></div>
-            
-      <!-- 本週挑戰 -->
-      <div class="challenge-section" id="challengeSection" style="background:var(--white);border-radius:12px;padding:14px 16px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.06);display:none;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-          <h3 style="font-size:14px;font-weight:700;">🏆 本週挑戰</h3>
-          <span style="font-size:11px;color:var(--dark-700);" id="challengeDeadline"></span>
-        </div>
-        <div id="challengeContent">
-          <div class="challenge-task" style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--gray-100);">
-            <div style="flex:1;">
-              <div style="font-size:13px;font-weight:500;" id="challengeDesc">載入中...</div>
-              <div style="font-size:11px;color:var(--dark-700);margin-top:2px;">
-                <span id="challengeProgress">0</span>/<span id="challengeTarget">3</span> 已完成
+
+            <!-- 本週挑戰 -->
+            <div
+              class="challenge-section"
+              id="challengeSection"
+              style="
+                background: var(--white);
+                border-radius: 12px;
+                padding: 14px 16px;
+                margin-bottom: 12px;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+                display: none;
+              "
+            >
+              <div
+                style="
+                  display: flex;
+                  justify-content: space-between;
+                  align-items: center;
+                  margin-bottom: 10px;
+                "
+              >
+                <h3 style="font-size: 14px; font-weight: 700">🏆 本週挑戰</h3>
+                <span
+                  style="font-size: 11px; color: var(--dark-700)"
+                  id="challengeDeadline"
+                ></span>
+              </div>
+              <div id="challengeContent">
+                <div
+                  class="challenge-task"
+                  style="
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                    padding: 8px 0;
+                    border-bottom: 1px solid var(--gray-100);
+                  "
+                >
+                  <div style="flex: 1">
+                    <div
+                      style="font-size: 13px; font-weight: 500"
+                      id="challengeDesc"
+                    >
+                      載入中...
+                    </div>
+                    <div
+                      style="
+                        font-size: 11px;
+                        color: var(--dark-700);
+                        margin-top: 2px;
+                      "
+                    >
+                      <span id="challengeProgress">0</span>/<span
+                        id="challengeTarget"
+                        >3</span
+                      >
+                      已完成
+                    </div>
+                  </div>
+                  <div style="text-align: right">
+                    <div
+                      style="
+                        font-size: 16px;
+                        font-weight: 700;
+                        color: var(--green-500);
+                      "
+                      id="challengeReward"
+                    >
+                      +100
+                    </div>
+                    <div style="font-size: 10px; color: var(--dark-700)">
+                      積分
+                    </div>
+                  </div>
+                </div>
+                <div style="margin-top: 8px">
+                  <div
+                    style="
+                      height: 6px;
+                      background: var(--gray-200);
+                      border-radius: 3px;
+                      overflow: hidden;
+                    "
+                  >
+                    <div
+                      id="challengeBar"
+                      style="
+                        height: 100%;
+                        width: 0%;
+                        background: var(--green-500);
+                        border-radius: 3px;
+                        transition: width 0.5s ease;
+                      "
+                    ></div>
+                  </div>
+                </div>
               </div>
             </div>
-            <div style="text-align:right;">
-              <div style="font-size:16px;font-weight:700;color:var(--green-500);" id="challengeReward">+100</div>
-              <div style="font-size:10px;color:var(--dark-700);">積分</div>
-            </div>
-          </div>
-          <div style="margin-top:8px;">
-            <div style="height:6px;background:var(--gray-200);border-radius:3px;overflow:hidden;">
-              <div id="challengeBar" style="height:100%;width:0%;background:var(--green-500);border-radius:3px;transition:width .5s ease;"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <style>
-      @media (max-width: 768px) {
-        .challenge-task { flex-direction: row !important; }
-      }
-      </style>
+            <style>
+              @media (max-width: 768px) {
+                .challenge-task {
+                  flex-direction: row !important;
+                }
+              }
+            </style>
 
-        <div class="calendar-section" id="calendarSection">
+            <div class="calendar-section" id="calendarSection">
               <div class="calendar-header">
                 <h3>📅 簽到日曆</h3>
                 <span class="month-label" id="monthLabel"></span>
@@ -1611,40 +1707,59 @@
       // ===== Weekly Challenge =====
       function loadChallenge() {
         fetch(API_BASE + "/points", { headers: getHeaders() })
-          .then(function(r) { return r.json(); })
-          .then(function(data) {
+          .then(function (r) {
+            return r.json();
+          })
+          .then(function (data) {
             var sec = document.getElementById("challengeSection");
             if (!sec) return;
             var weekBookings = data.weekBookings || 0;
             var target = 3;
             var reward = 100;
-            
+
             sec.style.display = weekBookings >= target ? "block" : "block";
-            
-            var days = ["日","一","二","三","四","五","六"];
+
+            var days = ["日", "一", "二", "三", "四", "五", "六"];
             var now = new Date();
             var endOfWeek = new Date(now);
             endOfWeek.setDate(now.getDate() + (7 - now.getDay()));
-            document.getElementById("challengeDeadline").textContent = 
-              "截止 " + (endOfWeek.getMonth()+1) + "/" + endOfWeek.getDate() + " (" + days[endOfWeek.getDay()] + ")";
-            
+            document.getElementById("challengeDeadline").textContent =
+              "截止 " +
+              (endOfWeek.getMonth() + 1) +
+              "/" +
+              endOfWeek.getDate() +
+              " (" +
+              days[endOfWeek.getDay()] +
+              ")";
+
             if (weekBookings >= target) {
-              document.getElementById("challengeDesc").innerHTML = "✅ 已完成！本週上咗 " + weekBookings + " 堂課";
-              document.getElementById("challengeReward").textContent = "+" + reward;
+              document.getElementById("challengeDesc").innerHTML =
+                "✅ 已完成！本週上咗 " + weekBookings + " 堂課";
+              document.getElementById("challengeReward").textContent =
+                "+" + reward;
               document.getElementById("challengeBar").style.width = "100%";
             } else {
-              document.getElementById("challengeDesc").innerHTML = "📅 上夠 " + target + " 堂課（仲差 " + (target - weekBookings) + " 堂）";
-              document.getElementById("challengeProgress").textContent = weekBookings;
+              document.getElementById("challengeDesc").innerHTML =
+                "📅 上夠 " +
+                target +
+                " 堂課（仲差 " +
+                (target - weekBookings) +
+                " 堂）";
+              document.getElementById("challengeProgress").textContent =
+                weekBookings;
               document.getElementById("challengeTarget").textContent = target;
-              document.getElementById("challengeReward").textContent = "+" + reward;
-              var pct = Math.min(Math.round((weekBookings / target) * 100), 100);
+              document.getElementById("challengeReward").textContent =
+                "+" + reward;
+              var pct = Math.min(
+                Math.round((weekBookings / target) * 100),
+                100,
+              );
               document.getElementById("challengeBar").style.width = pct + "%";
             }
           })
-          .catch(function() {});
+          .catch(function () {});
       }
 
-      
       // ===== Login Prompt =====
       function showLoginPrompt() {
         document.getElementById("skeletonState").classList.add("hidden");
@@ -1656,7 +1771,7 @@
           '<div style="font-size:16px;font-weight:600;color:var(--dark-900);margin-bottom:8px;">請先登入</div>' +
           '<div style="font-size:13px;color:var(--dark-700);margin-bottom:20px;">登入後即可使用積分中心</div>' +
           '<a href="login.html" style="display:inline-block;padding:12px 32px;border-radius:10px;background:var(--orange-500);color:white;font-size:14px;font-weight:600;text-decoration:none;">登入</a>' +
-          '</div>';
+          "</div>";
       }
 
       async function loadAll() {
@@ -1711,7 +1826,11 @@
           loadChallenge();
           showContent();
         } catch (e) {
-          if (e.message.includes("需要登入") || e.message.includes("401") || e.message.includes("認證無效")) {
+          if (
+            e.message.includes("需要登入") ||
+            e.message.includes("401") ||
+            e.message.includes("認證無效")
+          ) {
             showLoginPrompt();
           } else {
             showError(e.message);
@@ -2280,7 +2399,9 @@
             btn.disabled = false;
             btn.textContent = "📅 簽到";
             showToast("請先登入再簽到", "🔐", "error");
-            setTimeout(function() { window.location.href = "login.html"; }, 2000);
+            setTimeout(function () {
+              window.location.href = "login.html";
+            }, 2000);
           });
       }
 
