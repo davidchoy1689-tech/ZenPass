@@ -365,22 +365,47 @@
       .hidden {
         display: none !important;
       }
-    
-@media (max-width: 768px) {
-  .explore-header { flex-direction: column; gap: 10px; }
-  .explore-header h1 { font-size: 22px; }
-  .filter-bar { overflow-x: auto; flex-wrap: nowrap; gap: 6px; padding-bottom: 4px; }
-  .filter-bar button { white-space: nowrap; padding: 6px 12px; font-size: 12px; }
-  .class-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
-  .class-card-img { height: 90px; }
-  .class-card-info { padding: 10px; }
-  .class-card-info h3 { font-size: 13px; }
-}
-    
-/* Desktop: expand content beyond mobile width */
-@media (min-width: 768px) {
-  body { max-width: 100% !important; }
-}
+
+      @media (max-width: 768px) {
+        .explore-header {
+          flex-direction: column;
+          gap: 10px;
+        }
+        .explore-header h1 {
+          font-size: 22px;
+        }
+        .filter-bar {
+          overflow-x: auto;
+          flex-wrap: nowrap;
+          gap: 6px;
+          padding-bottom: 4px;
+        }
+        .filter-bar button {
+          white-space: nowrap;
+          padding: 6px 12px;
+          font-size: 12px;
+        }
+        .class-grid {
+          grid-template-columns: 1fr 1fr;
+          gap: 10px;
+        }
+        .class-card-img {
+          height: 90px;
+        }
+        .class-card-info {
+          padding: 10px;
+        }
+        .class-card-info h3 {
+          font-size: 13px;
+        }
+      }
+
+      /* Desktop: expand content beyond mobile width */
+      @media (min-width: 768px) {
+        body {
+          max-width: 100% !important;
+        }
+      }
     </style>
   </head>
   <body>
@@ -523,48 +548,70 @@
         var today = new Date();
 
         fetch("/api/classes/available-dates")
-          .then(function(r) { return r.json(); })
-          .then(function(data) {
+          .then(function (r) {
+            return r.json();
+          })
+          .then(function (data) {
             var dates = data.dates || [];
             container.innerHTML = "";
             if (dates.length === 0) {
-              container.innerHTML = "<div style=\"padding:12px;text-align:center;color:var(--dark-700);font-size:13px;\">暫時沒有可預約日期</div>";
+              container.innerHTML =
+                '<div style="padding:12px;text-align:center;color:var(--dark-700);font-size:13px;">暫時沒有可預約日期</div>';
               return;
             }
-            dates.slice(0, 14).forEach(function(dateStr) {
+            dates.slice(0, 14).forEach(function (dateStr) {
               var d = new Date(dateStr + "T00:00:00");
               var month = String(d.getMonth() + 1).padStart(2, "0");
               var day = String(d.getDate()).padStart(2, "0");
-              var todayStr = today.getFullYear() + "-" +
-                String(today.getMonth() + 1).padStart(2, "0") + "-" +
+              var todayStr =
+                today.getFullYear() +
+                "-" +
+                String(today.getMonth() + 1).padStart(2, "0") +
+                "-" +
                 String(today.getDate()).padStart(2, "0");
               var isToday = dateStr === todayStr;
               var dayOfWeek = d.getDay();
               var dayName = isToday ? "今天" : days[dayOfWeek];
               var chip = document.createElement("div");
               chip.className = "date-chip";
-              chip.onclick = function() { filterByDate(dateStr, this); };
-              chip.innerHTML = "<span class=\"day\">" + day + "</span><small>" + dayName + "</small>";
+              chip.onclick = function () {
+                filterByDate(dateStr, this);
+              };
+              chip.innerHTML =
+                '<span class="day">' +
+                day +
+                "</span><small>" +
+                dayName +
+                "</small>";
               container.appendChild(chip);
             });
           })
-          .catch(function() {
+          .catch(function () {
             container.innerHTML = "";
             for (var i = 0; i < 7; i++) {
               var d = new Date(today);
               d.setDate(today.getDate() + i);
               var month = String(d.getMonth() + 1).padStart(2, "0");
               var day = String(d.getDate()).padStart(2, "0");
-              var dayName = i === 0 ? "今天" : i === 1 ? "明天" : days[d.getDay()];
+              var dayName =
+                i === 0 ? "今天" : i === 1 ? "明天" : days[d.getDay()];
               var dateStr = d.getFullYear() + "-" + month + "-" + day;
               var chip = document.createElement("div");
               chip.className = "date-chip";
-              chip.onclick = function() { filterByDate(dateStr, this); };
-              chip.innerHTML = "<span class=\"day\">" + day + "</span><small>" + dayName + "</small>";
+              chip.onclick = function () {
+                filterByDate(dateStr, this);
+              };
+              chip.innerHTML =
+                '<span class="day">' +
+                day +
+                "</span><small>" +
+                dayName +
+                "</small>";
               container.appendChild(chip);
             }
           });
-      }function filterByCategory(category, el) {
+      }
+      function filterByCategory(category, el) {
         document
           .querySelectorAll("#category-list .category-chip")
           .forEach(function (c) {
@@ -798,15 +845,47 @@
       })();
     </script>
 
-<div class="zen-footer" style="text-align:center;padding:20px 16px;margin-top:24px;border-top:1px solid #e5e7eb;font-size:12px;color:#6b7280;">
-  <div style="display:flex;justify-content:center;gap:16px;margin-bottom:8px;">
-    <a href="/" style="color:#ff6b35;text-decoration:none;font-weight:500;">🏠 首頁</a>
-    <a href="courses.html" style="color:#ff6b35;text-decoration:none;font-weight:500;">📚 課程</a>
-    <a href="my.html" style="color:#ff6b35;text-decoration:none;font-weight:500;">👤 我的</a>
-    <a href="points.html" style="color:#ff6b35;text-decoration:none;font-weight:500;">🎯 積分</a>
-  </div>
-  © 2026 ZenPass 禪流
-</div>
-
-</body>
+    <div
+      class="zen-footer"
+      style="
+        text-align: center;
+        padding: 20px 16px;
+        margin-top: 24px;
+        border-top: 1px solid #e5e7eb;
+        font-size: 12px;
+        color: #6b7280;
+      "
+    >
+      <div
+        style="
+          display: flex;
+          justify-content: center;
+          gap: 16px;
+          margin-bottom: 8px;
+        "
+      >
+        <a
+          href="/"
+          style="color: #ff6b35; text-decoration: none; font-weight: 500"
+          >🏠 首頁</a
+        >
+        <a
+          href="courses.html"
+          style="color: #ff6b35; text-decoration: none; font-weight: 500"
+          >📚 課程</a
+        >
+        <a
+          href="my.html"
+          style="color: #ff6b35; text-decoration: none; font-weight: 500"
+          >👤 我的</a
+        >
+        <a
+          href="points.html"
+          style="color: #ff6b35; text-decoration: none; font-weight: 500"
+          >🎯 積分</a
+        >
+      </div>
+      © 2026 ZenPass 禪流
+    </div>
+  </body>
 </html>
