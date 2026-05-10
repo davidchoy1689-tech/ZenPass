@@ -22,15 +22,25 @@ jobs:
         run: |
           cd backend && npm install
           cd ..
+          ls -la backend/data/ 2>/dev/null || echo "No data dir yet (CI will create on startup)"
 
       - name: Start Backend
         run: |
           cd backend
-          # Create data dir if needed
+          # Create .env for CI (no secrets needed for basic tests)
+          cat > .env << 'EOF'
+PORT=3001
+NODE_ENV=test
+JWT_SECRET=ci-test-secret-2026
+DB_PATH=./data/zenpass.db
+CORS_ORIGIN=*
+STRIPE_SECRET_KEY=sk_test_dummy
+STRIPE_PUBLISHABLE_KEY=pk_test_dummy
+EOF
           mkdir -p data
           node src/index.js &
           # Wait for backend with retry
-          for i in {1..10}; do
+          for i in {1..15}; do
             sleep 2
             if curl -s --max-time 2 http://localhost:3001/api/health > /dev/null 2>&1; then
               echo "Backend ready after ${i}s"
