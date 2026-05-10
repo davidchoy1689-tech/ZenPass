@@ -411,7 +411,13 @@
   if (searchBtn) searchBtn.addEventListener("click", handleSearch);
 
 </script>
-<script>if("serviceWorker" in navigator){navigator.serviceWorker.register("sw.js")}</script>
+<script>if("serviceWorker" in navigator){
+  // Clean old service workers
+  navigator.serviceWorker.getRegistrations().then(function(regs) {
+    regs.forEach(function(r) { r.unregister(); });
+  });
+  navigator.serviceWorker.register("sw.js");
+}</script>
 <script>
 // User name badge — shows current user, click to switch
 (function(){

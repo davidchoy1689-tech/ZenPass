@@ -522,24 +522,55 @@
         var days = ["日", "一", "二", "三", "四", "五", "六"];
         var today = new Date();
 
-        for (var i = 0; i < 7; i++) {
-          var d = new Date(today);
-          d.setDate(today.getDate() + i);
-          var month = (d.getMonth() + 1).toString().padStart(2, "0");
-          var day = d.getDate().toString().padStart(2, "0");
-          var dayName = i === 0 ? "今天" : i === 1 ? "明天" : days[d.getDay()];
-          var dateStr = d.getFullYear() + "-" + month + "-" + day;
-          container.innerHTML +=
-            '<div class="date-chip" onclick="filterByDate(\'' +
-            dateStr +
-            '\', this)"><span class="day">' +
-            day +
-            "</span><small>" +
-            dayName +
-            "</small></div>";
-        }
+        fetch("/api/classes/available-dates")
+          .then(function(r) { return r.json(); })
+          .then(function(data) {
+            var dates = data.dates || [];
+            container.innerHTML = "";
+            if (dates.length === 0) {
+              container.innerHTML = '<div style="padding:12px;text-align:center;color:var(--dark-700);font-size:13px;">暫時沒有可預約日期</div>';
+              return;
+            }
+            dates.slice(0, 14).forEach(function(dateStr) {
+              var d = new Date(dateStr + "T00:00:00");
+              var month = (d.getMonth() + 1).toString().padStart(2, "0");
+              var day = d.getDate().toString().padStart(2, "0");
+              var todayStr = today.getFullYear() + "-" +
+                String(today.getMonth() + 1).padStart(2, "0") + "-" +
+                String(today.getDate()).padStart(2, "0");
+              var isToday = dateStr === todayStr;
+              var dayOfWeek = d.getDay();
+              var dayName = isToday ? "今天" : days[dayOfWeek];
+              container.innerHTML +=
+                '<div class="date-chip" onclick="filterByDate(\'' +
+                dateStr +
+                "\', this)"><span class=\"day\">" +
+                day +
+                "</span><small>" +
+                dayName +
+                "</small></div>";
+            });
+          })
+          .catch(function() {
+            container.innerHTML = "";
+            for (var i = 0; i < 7; i++) {
+              var d = new Date(today);
+              d.setDate(today.getDate() + i);
+              var month = (d.getMonth() + 1).toString().padStart(2, "0");
+              var day = d.getDate().toString().padStart(2, "0");
+              var dayName = i === 0 ? "今天" : i === 1 ? "明天" : days[d.getDay()];
+              var dateStr = d.getFullYear() + "-" + month + "-" + day;
+              container.innerHTML +=
+                '<div class="date-chip" onclick="filterByDate(\'' +
+                dateStr +
+                "\', this)"><span class=\"day\">" +
+                day +
+                "</span><small>" +
+                dayName +
+                "</small></div>";
+            }
+          });
       }
-
       // ===== Filter functions =====
       function filterByCategory(category, el) {
         document

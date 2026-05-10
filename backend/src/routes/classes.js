@@ -142,6 +142,27 @@ router.get("/", optionalAuth, (req, res) => {
 });
 
 // ===== GET /api/classes/categories — 分類列表 =====
+router.get("/available-dates", (req, res) => {
+  try {
+    const db = require("better-sqlite3")(process.env.DB_PATH || "./data/zenpass.db");
+    const dates = db
+      .prepare(`
+        SELECT DISTINCT date(start_time) as d
+        FROM class_schedules
+        WHERE start_time > datetime('now') AND status = 'available'
+        ORDER BY start_time ASC
+        LIMIT 14
+      `)
+      .all()
+      .map(row => row.d);
+    db.close();
+    res.json({ dates });
+  } catch (err) {
+    console.error("取可用日期錯誤:", err);
+    res.status(500).json({ error: "無法取得可用日期" });
+  }
+});
+
 router.get("/categories", (req, res) => {
   try {
     const db = new Database(DB_PATH);
