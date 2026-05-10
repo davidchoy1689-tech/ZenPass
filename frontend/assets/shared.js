@@ -33,14 +33,14 @@
   header.innerHTML =
     (isHome ? '' : '<a class="back-btn" onclick="history.back()">←</a>') +
     '<h1>' + title + '</h1>' +
-    (isHome ? '' : '<a class="home-link" href="/">🏠 首頁</a>');
+    (isHome ? '' : '<a class="home-link" href="./">🏠 首頁</a>');
 
   // Create footer
   var footer = document.createElement('div');
   footer.className = 'zen-footer';
   footer.innerHTML =
     '<div class="links">' +
-      '<a href="/">首頁</a>' +
+      '<a href="./">首頁</a>' +
       '<a href="/courses.html">課程</a>' +
       '<a href="/my.html">我的</a>' +
       '<a href="/points.html">積分</a>' +
