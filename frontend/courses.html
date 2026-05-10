@@ -437,7 +437,7 @@
         };
         grid.innerHTML = courses
           .map(function (c) {
-            var icon = iconMap[c.name_zh] || "🏅";
+            var icon = iconMap[c.title_zh] || "🏅";
             return (
               '<div class="course-card" onclick="openBooking(\'' +
               c.id +
@@ -446,7 +446,7 @@
               icon +
               "</div>" +
               "<h3>" +
-              c.name_zh +
+              c.title_zh +
               "</h3>" +
               (c.description
                 ? "<p>" + c.description.substring(0, 60) + "</p>"
@@ -462,7 +462,7 @@
         var filtered = q
           ? allCourses.filter(function (c) {
               return (
-                c.name_zh.toLowerCase().includes(q) ||
+                c.title_zh.toLowerCase().includes(q) ||
                 (c.description || "").toLowerCase().includes(q)
               );
             })
@@ -495,7 +495,7 @@
         $("modalContent").innerHTML =
           '<button class="btn btn-close" onclick="closeModal()">✕ 關閉</button>' +
           "<h2>📅 預約 " +
-          course.name_zh +
+          course.title_zh +
           "</h2>" +
           (course.description
             ? '<p style="color:var(--gray);font-size:14px;margin-bottom:16px">' +
