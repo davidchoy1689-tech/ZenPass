@@ -715,8 +715,32 @@
       }
 
       // ===== Init =====
-      document.addEventListener("DOMContentLoaded", () => {
+      document.addEventListener("DOMContentLoaded", async () => {
         updateNavBar();
+        // Check if user already has a pending application
+        var token = localStorage.getItem("***");
+        if (token) {
+          try {
+            var r = await fetch("/api/coach/application", {
+              headers: { "Authorization": "Bearer " + token }
+            });
+            var data = await r.json();
+            if (data.application) {
+              if (data.application.status === "approved") {
+                // Already approved - redirect to dashboard
+                window.location.href = "coach-dashboard.html";
+                return;
+              } else if (data.application.status === "pending") {
+                // Show pending message
+                document.getElementById("apply-form").classList.add("hidden");
+                document.getElementById("success-screen").classList.remove("hidden");
+                document.querySelector("#success-screen .big-icon").textContent = "⏳";
+                document.querySelector("#success-screen h2").textContent = "申請審核中";
+                document.querySelector("#success-screen p").innerHTML = "你的教練申請已提交，管理員會盡快審核。<br>請耐心等候通知。";
+              }
+            }
+          } catch(e) {}
+        }
       });
     </script>
     <script>
