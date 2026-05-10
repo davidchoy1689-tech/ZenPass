@@ -694,6 +694,35 @@
         <p>超過 100+ 課程・頂尖教練・自由預約</p>
     </div>
 
+    
+<div class="daily-tip" id="dailyTip" style="background:linear-gradient(135deg, var(--orange-50), var(--orange-100));border-radius:12px;padding:12px 16px;margin:0 16px 12px;display:flex;align-items:center;gap:10px;font-size:13px;color:var(--dark-800);">
+  <span style="font-size:20px;">💡</span>
+  <span style="flex:1;" id="tipText"></span>
+  <button onclick="refreshTip()" style="background:none;border:none;font-size:16px;cursor:pointer;opacity:0.5;">🔄</button>
+</div>
+<script>
+var TIPS = [
+  "每日運動 30 分鐘，提升心肺功能兼減壓！🏃",
+  "上堂前記得帶水樽同毛巾，保持水分補充足夠 💧",
+  "拉筋可以預防受傷，上堂前後都做 5 分鐘！🤸",
+  "每星期至少運動 3 次，效果最明顯 📊",
+  "同朋友一齊報名，互相鼓勵更易堅持！👥",
+  "新興運動入門門檻低，適合任何年齡！🎯",
+  "課後休息 10 分鐘先沖涼，讓身體慢慢回復 🧘",
+  "試吓唔同類型運動，搵最啱自己嘅！🔄",
+  "瑜伽可以改善姿勢，舒緩腰背痛 🧘‍♀️",
+  "北歐式健步行用盡全身 90% 肌肉！🚶",
+  "運動後補充蛋白質有助肌肉修復 💪",
+  "定期運動可以改善睡眠質素 😴",
+  "地板冰壺係策略性運動，訓練腦筋！🥌",
+  "連續簽到獲取額外積分獎勵 🔥",
+];
+function refreshTip() {
+  var el = document.getElementById("tipText");
+  if (el) el.textContent = TIPS[Math.floor(Math.random() * TIPS.length)];
+}
+document.addEventListener("DOMContentLoaded", refreshTip);
+</script>
     <div class="search-bar" role="search">
         <input type="text" id="search-input" placeholder="搜尋課程、教練、運動類型..." onkeyup="handleSearch(event)" aria-label="搜尋課程、教練、運動類型">
         <button id="searchBtn" aria-label="搜尋">🔍</button>

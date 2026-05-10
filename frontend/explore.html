@@ -556,6 +556,25 @@
       var currentDate = "";
       var currentSort = "popular";
 
+      
+      // ===== Wishlist ❤️ =====
+      var WL_KEY = "zenpass_wishlist";
+      function getWishlist() {
+        try { return JSON.parse(localStorage.getItem(WL_KEY) || "[]"); } catch(e) { return []; }
+      }
+      function toggleWishlist(id) {
+        var wl = getWishlist();
+        var idx = wl.indexOf(id);
+        if (idx >= 0) wl.splice(idx, 1); else wl.push(id);
+        localStorage.setItem(WL_KEY, JSON.stringify(wl));
+        // Update heart icons
+        document.querySelectorAll("[data-wl='" + id + "']").forEach(function(el) {
+          el.textContent = wl.indexOf(id) >= 0 ? "❤️" : "🤍";
+        });
+        return wl.indexOf(id) >= 0;
+      }
+      function isWishlist(id) { return getWishlist().indexOf(id) >= 0; }
+    
       // ===== Load Categories =====
       async function loadCategories() {
         var container = document.getElementById("category-list");
@@ -584,6 +603,25 @@
         }
       }
 
+      
+      // ===== Wishlist ❤️ =====
+      var WL_KEY = "zenpass_wishlist";
+      function getWishlist() {
+        try { return JSON.parse(localStorage.getItem(WL_KEY) || "[]"); } catch(e) { return []; }
+      }
+      function toggleWishlist(id) {
+        var wl = getWishlist();
+        var idx = wl.indexOf(id);
+        if (idx >= 0) wl.splice(idx, 1); else wl.push(id);
+        localStorage.setItem(WL_KEY, JSON.stringify(wl));
+        // Update heart icons
+        document.querySelectorAll("[data-wl='" + id + "']").forEach(function(el) {
+          el.textContent = wl.indexOf(id) >= 0 ? "❤️" : "🤍";
+        });
+        return wl.indexOf(id) >= 0;
+      }
+      function isWishlist(id) { return getWishlist().indexOf(id) >= 0; }
+    
       // ===== Load Dates =====
       function loadDates() {
         var container = document.getElementById("date-list");
@@ -689,6 +727,25 @@
         loadClasses();
       }
 
+      
+      // ===== Wishlist ❤️ =====
+      var WL_KEY = "zenpass_wishlist";
+      function getWishlist() {
+        try { return JSON.parse(localStorage.getItem(WL_KEY) || "[]"); } catch(e) { return []; }
+      }
+      function toggleWishlist(id) {
+        var wl = getWishlist();
+        var idx = wl.indexOf(id);
+        if (idx >= 0) wl.splice(idx, 1); else wl.push(id);
+        localStorage.setItem(WL_KEY, JSON.stringify(wl));
+        // Update heart icons
+        document.querySelectorAll("[data-wl='" + id + "']").forEach(function(el) {
+          el.textContent = wl.indexOf(id) >= 0 ? "❤️" : "🤍";
+        });
+        return wl.indexOf(id) >= 0;
+      }
+      function isWishlist(id) { return getWishlist().indexOf(id) >= 0; }
+    
       // ===== Load Classes =====
       async function loadClasses() {
         var container = document.getElementById("class-grid");
@@ -837,6 +894,25 @@
         );
       }
 
+      
+      // ===== Wishlist ❤️ =====
+      var WL_KEY = "zenpass_wishlist";
+      function getWishlist() {
+        try { return JSON.parse(localStorage.getItem(WL_KEY) || "[]"); } catch(e) { return []; }
+      }
+      function toggleWishlist(id) {
+        var wl = getWishlist();
+        var idx = wl.indexOf(id);
+        if (idx >= 0) wl.splice(idx, 1); else wl.push(id);
+        localStorage.setItem(WL_KEY, JSON.stringify(wl));
+        // Update heart icons
+        document.querySelectorAll("[data-wl='" + id + "']").forEach(function(el) {
+          el.textContent = wl.indexOf(id) >= 0 ? "❤️" : "🤍";
+        });
+        return wl.indexOf(id) >= 0;
+      }
+      function isWishlist(id) { return getWishlist().indexOf(id) >= 0; }
+    
       // ===== Init =====
       document.addEventListener("DOMContentLoaded", function () {
         loadCategories();

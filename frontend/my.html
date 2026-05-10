@@ -376,6 +376,25 @@
         >首頁</a
       >
     </div>
+
+    <div class="greeting-card" id="greetingSection" style="background:linear-gradient(135deg, var(--dark-900), var(--dark-800));border-radius:16px;padding:20px;margin-bottom:16px;color:white;">
+  <div style="font-size:22px;font-weight:700;" id="greetingText">正在載入...</div>
+  <div style="font-size:13px;opacity:0.7;margin-top:6px;" id="greetingSummary"></div>
+</div>
+<script>
+function updateGreeting() {
+  var greetEl = document.getElementById("greetingText");
+  var summaryEl = document.getElementById("greetingSummary");
+  if (!greetEl) return;
+  var user = JSON.parse(localStorage.getItem("zenpass_user") || "{}");
+  var name = user.name || "訪客";
+  var h = new Date().getHours();
+  var greeting = h < 12 ? "早晨" : h < 18 ? "你好" : "晚上好";
+  greetEl.textContent = greeting + "，" + name + "！👋";
+  summaryEl.textContent = "今日梗係要做運動！";
+}
+document.addEventListener("DOMContentLoaded", updateGreeting);
+</script>
     <div class="container" id="app">
       <div class="loading" id="loadingState">
         <div class="spinner"></div>
