@@ -455,6 +455,191 @@
         background: var(--white);
         box-shadow: 0 0 0 3px rgba(255,107,53,0.15);
       }
+
+      /* Tips Section */
+      .tips-section {
+        background: linear-gradient(135deg, var(--blue-50), var(--purple-50));
+        border-radius: 12px;
+        padding: 14px 16px;
+        margin-top: 20px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 13px;
+        color: var(--dark-800);
+      }
+      .tips-section .tips-icon {
+        font-size: 24px;
+        flex-shrink: 0;
+      }
+      .tips-section .tips-text {
+        flex: 1;
+        line-height: 1.5;
+      }
+      .tips-section .tips-refresh {
+        background: none;
+        border: none;
+        font-size: 18px;
+        cursor: pointer;
+        padding: 4px;
+        opacity: 0.5;
+        transition: 0.2s;
+      }
+      .tips-section .tips-refresh:hover {
+        opacity: 1;
+        transform: rotate(90deg);
+      }
+
+      /* Share Button */
+      .share-btn-area {
+        text-align: center;
+        margin: 16px 0 8px;
+      }
+      .share-btn-area .share-btn {
+        padding: 8px 20px;
+        border: none;
+        border-radius: 20px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        background: var(--gray-100);
+        color: var(--dark-700);
+        transition: 0.2s;
+      }
+      .share-btn-area .share-btn:hover {
+        background: var(--orange-50);
+        color: var(--orange-500);
+      }
+
+      /* Leaderboard */
+      .leaderboard-section {
+        background: var(--white);
+        border-radius: 12px;
+        padding: 16px;
+        margin-top: 12px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+      }
+      .leaderboard-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+      }
+      .leaderboard-header h3 {
+        font-size: 14px;
+        font-weight: 600;
+      }
+      .leaderboard-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 0;
+        border-bottom: 1px solid var(--gray-100);
+      }
+      .leaderboard-item:last-child {
+        border-bottom: none;
+      }
+      .leaderboard-rank {
+        width: 24px;
+        font-size: 14px;
+        font-weight: 700;
+        text-align: center;
+        color: var(--dark-700);
+      }
+      .leaderboard-rank.top1 { color: #FFD700; }
+      .leaderboard-rank.top2 { color: #C0C0C0; }
+      .leaderboard-rank.top3 { color: #CD7F32; }
+      .leaderboard-avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: var(--gray-100);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        flex-shrink: 0;
+      }
+      .leaderboard-name {
+        flex: 1;
+        font-size: 13px;
+        font-weight: 500;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .leaderboard-tier {
+        font-size: 11px;
+        margin-right: 8px;
+      }
+      .leaderboard-pts {
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--orange-500);
+      }
+
+      /* Dark Mode */
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --dark-900: #f3f4f6;
+          --dark-800: #d1d5db;
+          --dark-700: #9ca3af;
+          --gray-200: #374151;
+          --gray-100: #1f2937;
+          --gray-50: #111827;
+          --white: #1f2937;
+          --orange-50: #2d1a0e;
+          --green-50: #0d1f14;
+          --red-50: #1f0d0d;
+          --blue-50: #0d1a2d;
+          --purple-50: #1a0d2d;
+        }
+        body { background: #111827; }
+        .header { background: #1f2937; border-bottom-color: #374151; }
+        .hero-card { background: linear-gradient(135deg, #1f2937 0%, #2d2d3a 100%); }
+        .progress-card, .calendar-section, .leaderboard-section,
+        .reward-card, .tier-card, .redemption-item, .tx-item { box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+        .tab-bar { background: #374151; }
+        .tab.active { background: #1f2937; }
+        .back-btn { color: #f3f4f6; }
+        .filter-btn { background: #374151; border-color: #4b5563; color: #9ca3af; }
+        .tips-section { background: linear-gradient(135deg, #0d1a2d, #1a0d2d); color: #d1d5db; }
+        .modal { background: #1f2937; }
+        .modal-btn.secondary { background: #374151; color: #d1d5db; }
+      }
+
+      /* Desktop Layout */
+      @media (min-width: 768px) {
+        .container { max-width: 800px; }
+        .hero-row {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 12px;
+        }
+        .hero-row .hero-card { margin-bottom: 0; }
+        .hero-row .right-col {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+        .rewards-grid { grid-template-columns: 1fr 1fr 1fr; }
+        .calendar-section { margin-bottom: 0; }
+        .action-row { margin-bottom: 12px; }
+        .leaderboard-section { margin-top: 0; }
+        .bottom-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 12px;
+          margin-top: 12px;
+        }
+        .bottom-grid .leaderboard-section { margin-top: 0; }
+      }
+      @media (min-width: 1024px) {
+        .container { max-width: 960px; }
+        .rewards-grid { grid-template-columns: 1fr 1fr 1fr 1fr; }
+        .hero-row { grid-template-columns: 1fr 1fr 1fr; }
+        .bottom-grid { grid-template-columns: 1fr 1fr 1fr; }
+      }
       .hidden {
         display: none !important;
       }
@@ -899,20 +1084,20 @@
       <div class="loading" id="loadingState"></div>
 
       <div id="contentArea" class="hidden">
-        <!-- Hero Card -->
-        <div class="hero-card" id="heroCard"></div>
-
-        <!-- Progress Card -->
-        <div class="progress-card" id="progressCard"></div>
-
-        <!-- Check-in Calendar -->
-        <div class="calendar-section" id="calendarSection">
-          <div class="calendar-header">
-            <h3>📅 簽到日曆</h3>
-            <span class="month-label" id="monthLabel"></span>
+        <!-- Desktop Hero Row -->
+        <div class="hero-row">
+          <div class="hero-card" id="heroCard"></div>
+          <div class="right-col">
+            <div class="progress-card" id="progressCard"></div>
+            <div class="calendar-section" id="calendarSection">
+              <div class="calendar-header">
+                <h3>📅 簽到日曆</h3>
+                <span class="month-label" id="monthLabel"></span>
+              </div>
+              <div class="calendar-grid" id="calendarGrid"></div>
+              <div class="calendar-stats" id="calendarStats"></div>
+            </div>
           </div>
-          <div class="calendar-grid" id="calendarGrid"></div>
-          <div class="calendar-stats" id="calendarStats"></div>
         </div>
 
         <!-- Action Buttons -->
@@ -976,6 +1161,25 @@
 
         <!-- Tab: How to Earn -->
         <div id="tabEarn" class="tab-content hidden">
+          <!-- Leaderboard inline -->
+          <div class="leaderboard-section" id="leaderboardSection">
+            <div class="leaderboard-header">
+              <h3>🏆 積分排行榜</h3>
+              <span style="font-size:11px;color:var(--dark-700);">Top 10</span>
+            </div>
+            <div id="leaderboardList"><div style="text-align:center;padding:20px;color:var(--dark-700);font-size:13px;">載入中...</div></div>
+          </div>
+
+          <!-- Tips -->
+          <div class="tips-section" id="tipsSection">
+            <div class="tips-icon">💡</div>
+            <div class="tips-text" id="tipsText"></div>
+            <button class="tips-refresh" onclick="refreshTip()" title="換一條">🔄</button>
+          </div>
+          <!-- Share Button -->
+          <div class="share-btn-area" id="shareBtnArea" style="display:none">
+            <button class="share-btn" onclick="shareAchievement()">📤 分享我的積分成就</button>
+          </div>
           <div class="section-header"><h2>如何賺取積分</h2></div>
           <div
             style="
@@ -1126,10 +1330,52 @@
       var allTransactions = [];
       var currentFilter = "all";
 
+      // ===== Tips =====
+      var TIPS = [
+        "📅 每日簽到可獲 5 積分，連續 5 日有額外獎勵！",
+        "🔥 連續簽到每 5 日 +2 分，上限額外 +10 分！",
+        "🏋️ 完成課堂簽到可獲得 50 積分！",
+        "🏆 每週第一堂可獲得額外 30 分獎勵！",
+        "⭐ 課後撰寫評價可獲得 20 積分！",
+        "👥 推薦朋友首次預約可獲 100 積分！",
+        "💰 達到金牌等級可享 85 折折扣碼！",
+        "💎 鑽石會員每月獲贈免費堂數 1 堂！",
+        "🥈 銀牌以上可解鎖折扣碼兌換！",
+        "🎯 積分唔會過期，慢慢儲都得！",
+        "📊 完成個人檔案可獲得新手獎勵！",
+        "📱 分享成就俾朋友，一齊運動！",
+      ];
+
+      function refreshTip() {
+        var el = document.getElementById("tipsText");
+        if (!el) return;
+        var tip = TIPS[Math.floor(Math.random() * TIPS.length)];
+        el.textContent = tip;
+      }
+
+      // ===== Share Achievement =====
+      function shareAchievement() {
+        var pts = pointsData ? pointsData.points || 0 : 0;
+        var tier = pointsData && pointsData.tier ? pointsData.tier.label : "🥉 銅牌";
+        var text = encodeURIComponent("🎯 我喺 ZenPass 已經累積 " + pts + " 積分，達到 " + tier + " 等級！一齊嚟運動啦！");
+        var url = encodeURIComponent(window.location.origin + "/share.html?pts=" + pts + "&tier=" + encodeURIComponent(tier) + "&text=" + text);
+
+        if (navigator.share) {
+          navigator.share({
+            title: "ZenPass 積分成績",
+            text: "我喺 ZenPass 已經累積 " + pts + " 積分！",
+            url: window.location.origin + "/share.html",
+          }).catch(function() {});
+        } else {
+          window.open("https://wa.me/?text=" + encodeURIComponent("🎯 我喺 ZenPass 已經累積 " + pts + " 積分，達到 " + tier + " 等級！一齊嚟運動啦！\n" + window.location.origin + "/share.html"), "_blank");
+        }
+      }
+
       async function loadAll() {
         showLoading();
         try {
-          var [ptsRes, histRes, rewardsRes, tiersRes, redemsRes, calRes] =
+          refreshTip();
+          var [ptsRes, histRes, rewardsRes, tiersRes, redemsRes, calRes, lbRes] =
             await Promise.all([
               fetch(API_BASE + "/points", { headers: getHeaders() }),
               fetch(API_BASE + "/points/history", { headers: getHeaders() }),
@@ -1139,6 +1385,7 @@
                 headers: getHeaders(),
               }),
               fetch(API_BASE + "/points/checkin-dates", { headers: getHeaders() }),
+              fetch(API_BASE + "/points/leaderboard"),
             ]);
 
           pointsData = await ptsRes.json();
@@ -1158,6 +1405,11 @@
           renderRewards(rewardsData.rewards || [], pointsData.points);
           renderTiers(tiersData.tiers || []);
           renderRedemptions(redemsData.redemptions || []);
+          renderLeaderboard(lbRes.ok ? (await lbRes.json()).leaderboard : null);
+
+          // Share button
+          var shareArea = document.getElementById("shareBtnArea");
+          if (shareArea) shareArea.style.display = "block";
 
           showContent();
         } catch (e) {
@@ -1696,6 +1948,31 @@
           .finally(function () {
             selectedReward = null;
           });
+      }
+
+      // ===== Render Leaderboard =====
+      function renderLeaderboard(list) {
+        var el = document.getElementById("leaderboardList");
+        if (!el) return;
+        if (!list || !list.length) {
+          el.innerHTML = '<div class="empty-state" style="padding:20px"><div class="empty-icon" style="font-size:32px">🏆</div><div class="empty-title" style="font-size:14px">未有積分數據</div><div class="empty-desc" style="font-size:12px">成為第一個賺取積分嘅人！</div></div>';
+          return;
+        }
+        var medals = ["🥇", "🥈", "🥉"];
+        el.innerHTML = list.map(function(u, i) {
+          var rank = i + 1;
+          var rankHtml = rank <= 3
+            ? '<span class="leaderboard-rank top' + rank + '">' + medals[i] + '</span>'
+            : '<span class="leaderboard-rank">' + rank + '</span>';
+          var avatarLetter = (u.name || "U").charAt(0).toUpperCase();
+          return '<div class="leaderboard-item">' +
+            rankHtml +
+            '<div class="leaderboard-avatar">' + avatarLetter + '</div>' +
+            '<div class="leaderboard-name">' + escHtml(u.name || "匿名用戶") + '</div>' +
+            '<span class="leaderboard-tier">' + (u.points_tier_label || "🥉 銅牌") + '</span>' +
+            '<div class="leaderboard-pts">' + (u.points || 0) + '</div>' +
+            '</div>';
+        }).join("");
       }
 
       function hideModal() {

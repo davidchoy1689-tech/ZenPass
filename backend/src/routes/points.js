@@ -385,6 +385,28 @@ router.get("/checkin-dates", authenticateToken, (req, res) => {
   }
 });
 
+// ===== GET /api/points/leaderboard — 積分排行榜 =====
+router.get("/leaderboard", (req, res) => {
+  try {
+    const db = new Database(DB_PATH);
+    db.pragma("foreign_keys = ON");
+
+    const topUsers = db.prepare(`
+      SELECT id, name, points, points_tier_label, points_tier
+      FROM users
+      WHERE points > 0
+      ORDER BY points DESC
+      LIMIT 10
+    `).all();
+
+    db.close();
+    res.json({ leaderboard: topUsers });
+  } catch (err) {
+    console.error("取排行榜錯誤:", err);
+    res.status(500).json({ error: "無法取得排行榜" });
+  }
+});
+
 router.get("/redemptions", authenticateToken, (req, res) => {
   try {
     const db = new Database(DB_PATH);
