@@ -10,7 +10,6 @@
     <meta name="description" content="ZenPass 禪流健身課程平台 — 瑜伽、健身、冥想、新興運動預約平台">
 <title>ZenPass 禪流 — 解鎖全城運動體驗</title>
     <link rel="manifest" href="manifest.json">
-        <link rel="stylesheet" href="assets/index.css" />
 </head>
 <body>
     <!-- Skip link for accessibility -->
@@ -21,8 +20,8 @@
             <div class="hero-logo">ZEN<span>Pass</span> <span class="zh">禪流</span></div>
             <div class="zen-auth-buttons" id="auth-buttons">
                 <a href="my.html" class="zen-btn-ghost" id="my-profile-btn">👤 我的</a>
-                <a href="#" class="zen-btn-ghost" onclick="showLoginModal(); return false;">登入</a>
-                <a href="#" class="zen-btn-small" onclick="showLoginModal(); return false;">註冊</a>
+                <a href="#" class="zen-btn-ghost" id="zenBtnLogin">登入</a>
+                <a href="#" class="zen-btn-small" id="zenBtnRegister">註冊</a>
             </div>
         </div>
         <h1>解鎖全城<br>運動體驗</h1>
@@ -31,7 +30,7 @@
 
     <div class="search-bar" role="search">
         <input type="text" id="search-input" placeholder="搜尋課程、教練、運動類型..." onkeyup="handleSearch(event)" aria-label="搜尋課程、教練、運動類型">
-        <button onclick="handleSearch()" aria-label="搜尋">🔍</button>
+        <button id="searchBtn" aria-label="搜尋">🔍</button>
     </div>
 
     <!-- Role Entry -->
@@ -105,7 +104,6 @@
         <a href="my.html" class="nav-item"><span class="nav-icon">👤</span>我的</a>
     </nav>
 
-    <script src="assets/index.js"></script>
     <script src="api.js"></script>
     <script>
         // ===== Load Categories =====
@@ -403,7 +401,16 @@
             loadAllClasses();
             updateNavBar();
         });
-    </script>
+    
+  // Bind click handlers for login/register/search
+  var loginBtn = document.getElementById("zenBtnLogin");
+  if (loginBtn) loginBtn.addEventListener("click", function(e) { e.preventDefault(); showLoginModal(); });
+  var regBtn = document.getElementById("zenBtnRegister");
+  if (regBtn) regBtn.addEventListener("click", function(e) { e.preventDefault(); showLoginModal(); });
+  var searchBtn = document.getElementById("searchBtn");
+  if (searchBtn) searchBtn.addEventListener("click", handleSearch);
+
+</script>
 <script>if("serviceWorker" in navigator){navigator.serviceWorker.register("sw.js")}</script>
 <script>
 // User name badge — shows current user, click to switch
