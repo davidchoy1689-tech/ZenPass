@@ -1223,7 +1223,40 @@
           <div class="hero-card" id="heroCard"></div>
           <div class="right-col">
             <div class="progress-card" id="progressCard"></div>
-            <div class="calendar-section" id="calendarSection">
+            
+      <!-- 本週挑戰 -->
+      <div class="challenge-section" id="challengeSection" style="background:var(--white);border-radius:12px;padding:14px 16px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.06);display:none;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <h3 style="font-size:14px;font-weight:700;">🏆 本週挑戰</h3>
+          <span style="font-size:11px;color:var(--dark-700);" id="challengeDeadline"></span>
+        </div>
+        <div id="challengeContent">
+          <div class="challenge-task" style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--gray-100);">
+            <div style="flex:1;">
+              <div style="font-size:13px;font-weight:500;" id="challengeDesc">載入中...</div>
+              <div style="font-size:11px;color:var(--dark-700);margin-top:2px;">
+                <span id="challengeProgress">0</span>/<span id="challengeTarget">3</span> 已完成
+              </div>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-size:16px;font-weight:700;color:var(--green-500);" id="challengeReward">+100</div>
+              <div style="font-size:10px;color:var(--dark-700);">積分</div>
+            </div>
+          </div>
+          <div style="margin-top:8px;">
+            <div style="height:6px;background:var(--gray-200);border-radius:3px;overflow:hidden;">
+              <div id="challengeBar" style="height:100%;width:0%;background:var(--green-500);border-radius:3px;transition:width .5s ease;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <style>
+      @media (max-width: 768px) {
+        .challenge-task { flex-direction: row !important; }
+      }
+      </style>
+
+        <div class="calendar-section" id="calendarSection">
               <div class="calendar-header">
                 <h3>📅 簽到日曆</h3>
                 <span class="month-label" id="monthLabel"></span>
@@ -1575,6 +1608,42 @@
         }
       }
 
+      // ===== Weekly Challenge =====
+      function loadChallenge() {
+        fetch(API_BASE + "/points", { headers: getHeaders() })
+          .then(function(r) { return r.json(); })
+          .then(function(data) {
+            var sec = document.getElementById("challengeSection");
+            if (!sec) return;
+            var weekBookings = data.weekBookings || 0;
+            var target = 3;
+            var reward = 100;
+            
+            sec.style.display = weekBookings >= target ? "block" : "block";
+            
+            var days = ["日","一","二","三","四","五","六"];
+            var now = new Date();
+            var endOfWeek = new Date(now);
+            endOfWeek.setDate(now.getDate() + (7 - now.getDay()));
+            document.getElementById("challengeDeadline").textContent = 
+              "截止 " + (endOfWeek.getMonth()+1) + "/" + endOfWeek.getDate() + " (" + days[endOfWeek.getDay()] + ")";
+            
+            if (weekBookings >= target) {
+              document.getElementById("challengeDesc").innerHTML = "✅ 已完成！本週上咗 " + weekBookings + " 堂課";
+              document.getElementById("challengeReward").textContent = "+" + reward;
+              document.getElementById("challengeBar").style.width = "100%";
+            } else {
+              document.getElementById("challengeDesc").innerHTML = "📅 上夠 " + target + " 堂課（仲差 " + (target - weekBookings) + " 堂）";
+              document.getElementById("challengeProgress").textContent = weekBookings;
+              document.getElementById("challengeTarget").textContent = target;
+              document.getElementById("challengeReward").textContent = "+" + reward;
+              var pct = Math.min(Math.round((weekBookings / target) * 100), 100);
+              document.getElementById("challengeBar").style.width = pct + "%";
+            }
+          })
+          .catch(function() {});
+      }
+
       async function loadAll() {
         showLoading();
         try {
@@ -1624,6 +1693,7 @@
           var shareArea = document.getElementById("shareBtnArea");
           if (shareArea) shareArea.style.display = "block";
 
+          loadChallenge();
           showContent();
         } catch (e) {
           showError(e.message);

@@ -288,6 +288,29 @@ function filterClasses(list, params) {
     return result;
 }
 
+
+// ===== 通知系統 =====
+// 要求發送通知權限（用於課前提醒）
+function requestNotificationPermission() {
+  if (!("Notification" in window)) return;
+  if (Notification.permission === "default") {
+    Notification.requestPermission();
+  }
+}
+// 設定課前提醒（1小時前）
+function scheduleReminder(className, classTime) {
+  if (!("Notification" in window) || Notification.permission !== "granted") return;
+  var time = new Date(classTime).getTime() - 3600000; // 1 hour before
+  var now = Date.now();
+  if (time <= now) return;
+  setTimeout(function() {
+    new Notification("🔔 ZenPass 課前提醒", {
+      body: "「" + className + "」將於 1 小時後開始！",
+      icon: "/favicon.png"
+    });
+  }, time - now);
+}
+
 // ===== 課程 API =====
 const classes = {
     list: async (params) => {

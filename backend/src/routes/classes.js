@@ -163,6 +163,25 @@ router.get("/available-dates", (req, res) => {
   }
 });
 
+
+router.get("/:id/recommended", (req, res) => {
+  try {
+    const db = new Database(DB_PATH);
+    const course = db.prepare("SELECT category FROM classes WHERE id = ?").get(req.params.id);
+    if (!course) { db.close(); return res.json({ classes: [] }); }
+    const classes = db.prepare(`
+      SELECT id, title, category, difficulty, price_hkd, duration, image_url
+      FROM classes WHERE category = ? AND id != ? AND status = 'active'
+      ORDER BY category ASC LIMIT 4
+    `).all(course.category, req.params.id);
+    db.close();
+    res.json({ classes });
+  } catch (err) {
+    console.error("推薦課程錯誤:", err);
+    res.status(500).json({ error: "無法取得推薦" });
+  }
+});
+
 router.get("/categories", (req, res) => {
   try {
     const db = new Database(DB_PATH);

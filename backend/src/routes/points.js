@@ -110,6 +110,16 @@ function getUserPointsSummary(userId) {
 
     // 今天是否已簽到
     const today = new Date().toISOString().split("T")[0];
+    
+    // 本週預約數量（for weekly challenge）
+    const weekStart = new Date();
+    weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+    const weekStartStr = weekStart.toISOString().split("T")[0];
+    const weekBookings = db.prepare(`
+      SELECT COUNT(*) as total FROM bookings
+      WHERE user_id = ? AND created_at >= ? AND status IN ('confirmed', 'completed', 'attended')
+    `).get(userId, weekStartStr);
+
     const checkedInToday = user.last_checkin
       ? user.last_checkin.startsWith(today)
       : false;
@@ -123,6 +133,7 @@ function getUserPointsSummary(userId) {
         : 100,
       checkinStreak: user.checkin_streak || 0,
       checkedInToday,
+      weekBookings: weekBookings ? weekBookings.total : 0,
       monthEarned: monthEarned.total,
       totalEarned: totalEarned.total,
       totalSpent: totalSpent.total,

@@ -1,3 +1,23 @@
+
+
+// Push notification support
+self.addEventListener("push", function(e) {
+  var data = {};
+  try { data = e.data ? e.data.json() : {}; } catch(e) {}
+  self.registration.showNotification(data.title || "ZenPass 禪流", {
+    body: data.body || "你有新的課程提醒！",
+    icon: "/favicon.png",
+    badge: "/favicon.png",
+    data: { url: data.url || "/" }
+  });
+});
+
+self.addEventListener("notificationclick", function(e) {
+  e.notification.close();
+  var url = e.notification.data && e.notification.data.url ? e.notification.data.url : "/";
+  clients.openWindow(url);
+});
+
 /* ZenPass Service Worker — v2 (auto-path) */
 const CACHE = 'zenpass-v2';
 
