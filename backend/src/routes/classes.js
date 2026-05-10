@@ -144,7 +144,7 @@ router.get("/", optionalAuth, (req, res) => {
 // ===== GET /api/classes/categories — 分類列表 =====
 router.get("/available-dates", (req, res) => {
   try {
-    const db = require("better-sqlite3")(process.env.DB_PATH || "./data/zenpass.db");
+    const db = new Database(DB_PATH);
     const dates = db
       .prepare(`
         SELECT DISTINCT date(start_time) as d
