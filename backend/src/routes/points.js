@@ -353,6 +353,38 @@ router.post("/redeem", authenticateToken, (req, res) => {
 });
 
 // ===== GET /api/points/redemptions — 用戶兌換記錄 =====
+// ===== GET /api/points/checkin-dates — 簽到日曆資料 =====
+router.get("/checkin-dates", authenticateToken, (req, res) => {
+  try {
+    const db = new Database(DB_PATH);
+    db.pragma("foreign_keys = ON");
+
+    // 獲取當前月份首日和末日
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split("T")[0];
+    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split("T")[0];
+
+    // 從點數交易中取出本月的簽到記錄
+    const checkinDays = db.prepare(`
+      SELECT DISTINCT DATE(created_at) as checkin_date
+      FROM points_transactions
+      WHERE user_id = ? AND source = 'checkin'
+      AND created_at >= ? AND created_at < ?
+      ORDER BY checkin_date
+    `).all(req.user.id, monthStart, monthEnd + "T23:59:59");
+
+    db.close();
+    res.json({
+      year: now.getFullYear(),
+      month: now.getMonth() + 1,
+      days: checkinDays.map(d => d.checkin_date)
+    });
+  } catch (err) {
+    console.error("取簽到日期錯誤:", err);
+    res.status(500).json({ error: "無法取得簽到日期" });
+  }
+});
+
 router.get("/redemptions", authenticateToken, (req, res) => {
   try {
     const db = new Database(DB_PATH);
