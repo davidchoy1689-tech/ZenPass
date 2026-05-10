@@ -76,24 +76,209 @@
         margin: 0 auto;
         padding: 16px;
       }
-      .loading {
+      /* Loading Skeleton */
+      .skeleton {
+        background: linear-gradient(90deg, var(--gray-100) 25%, var(--gray-200) 50%, var(--gray-100) 75%);
+        background-size: 200% 100%;
+        animation: shimmer 1.5s infinite;
+        border-radius: 8px;
+      }
+      @keyframes shimmer {
+        0% { background-position: 200% 0; }
+        100% { background-position: -200% 0; }
+      }
+      .loading { display: none; }
+      .skeleton-container {
+        padding: 16px;
+      }
+      .skeleton-hero {
+        height: 180px;
+        border-radius: 16px;
+        margin-bottom: 16px;
+        background: linear-gradient(135deg, #2d2d3a 0%, #1a1a2e 100%);
+      }
+      .skeleton-hero .skeleton-badge {
+        width: 80px;
+        height: 22px;
+        border-radius: 20px;
+        margin-bottom: 12px;
+        background: rgba(255,255,255,0.1);
+        animation: shimmer 1.5s infinite;
+        background-size: 200% 100%;
+      }
+      .skeleton-hero .skeleton-big {
+        width: 120px;
+        height: 48px;
+        border-radius: 8px;
+        margin-bottom: 12px;
+        background: rgba(255,255,255,0.08);
+        animation: shimmer 1.5s infinite;
+        background-size: 200% 100%;
+      }
+      .skeleton-hero .skeleton-row {
+        display: flex;
+        gap: 12px;
+      }
+      .skeleton-hero .skeleton-stat {
+        flex: 1;
+        height: 60px;
+        border-radius: 10px;
+        background: rgba(255,255,255,0.06);
+        animation: shimmer 1.5s infinite;
+        background-size: 200% 100%;
+      }
+      .skeleton-card {
+        height: 72px;
+        border-radius: 12px;
+        margin-bottom: 12px;
+        background: var(--white);
+        box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+        padding: 16px;
+      }
+      .skeleton-card .s-line {
+        height: 12px;
+        border-radius: 6px;
+        margin-bottom: 8px;
+        background: var(--gray-100);
+        animation: shimmer 1.5s infinite;
+        background-size: 200% 100%;
+      }
+      .skeleton-card .s-line:last-child {
+        width: 60%;
+        margin-bottom: 0;
+      }
+      .skeleton-actions {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 16px;
+      }
+      .skeleton-actions .s-btn {
+        flex: 1;
+        height: 52px;
+        border-radius: 12px;
+        background: var(--gray-100);
+        animation: shimmer 1.5s infinite;
+        background-size: 200% 100%;
+      }
+      .skeleton-tabs {
+        height: 36px;
+        border-radius: 10px;
+        margin-bottom: 14px;
+        background: var(--gray-100);
+        animation: shimmer 1.5s infinite;
+        background-size: 200% 100%;
+      }
+
+      /* Toast Notification */
+      .toast-container {
+        position: fixed;
+        top: 16px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 200;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        align-items: center;
+        pointer-events: none;
+        width: calc(100% - 32px);
+        max-width: 400px;
+      }
+      .toast {
+        pointer-events: auto;
+        background: var(--white);
+        border-radius: 12px;
+        padding: 14px 18px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 14px;
+        font-weight: 500;
+        width: 100%;
+        animation: toastIn 0.3s ease-out;
+        border-left: 4px solid var(--green-500);
+      }
+      .toast.error {
+        border-left-color: var(--red-500);
+      }
+      .toast.info {
+        border-left-color: var(--blue-500);
+      }
+      .toast .toast-icon {
+        font-size: 20px;
+        flex-shrink: 0;
+      }
+      .toast .toast-text {
+        flex: 1;
+      }
+      .toast.out {
+        animation: toastOut 0.3s ease-in forwards;
+      }
+      @keyframes toastIn {
+        from {
+          opacity: 0;
+          transform: translateY(-20px) scale(0.95);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+      }
+      @keyframes toastOut {
+        from {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+        to {
+          opacity: 0;
+          transform: translateY(-20px) scale(0.95);
+        }
+      }
+
+      /* Check-in celebration pulse */
+      @keyframes celebrationPulse {
+        0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255,107,53,0.4); }
+        50% { transform: scale(1.05); box-shadow: 0 0 0 12px rgba(255,107,53,0); }
+        100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255,107,53,0); }
+      }
+      .celebration {
+        animation: celebrationPulse 0.6s ease-out;
+      }
+      @keyframes ptsFloat {
+        0% { opacity: 1; transform: translateY(0) scale(1); }
+        100% { opacity: 0; transform: translateY(-40px) scale(1.3); }
+      }
+      .pts-float {
+        position: fixed;
+        z-index: 50;
+        font-size: 24px;
+        font-weight: 800;
+        color: var(--green-500);
+        pointer-events: none;
+        animation: ptsFloat 1s ease-out forwards;
+      }
+
+      /* Better Empty States */
+      .empty-state {
         text-align: center;
-        padding: 60px 20px;
+        padding: 40px 20px;
         color: var(--dark-700);
       }
-      .spinner {
-        width: 32px;
-        height: 32px;
-        border: 3px solid var(--gray-200);
-        border-top: 3px solid var(--orange-500);
-        border-radius: 50%;
-        animation: spin 0.8s linear infinite;
-        margin: 0 auto 12px;
+      .empty-state .empty-icon {
+        font-size: 48px;
+        margin-bottom: 12px;
+        opacity: 0.6;
       }
-      @keyframes spin {
-        to {
-          transform: rotate(360deg);
-        }
+      .empty-state .empty-title {
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--dark-900);
+        margin-bottom: 6px;
+      }
+      .empty-state .empty-desc {
+        font-size: 13px;
+        color: var(--dark-700);
       }
       .hidden {
         display: none !important;
@@ -503,10 +688,40 @@
     </div>
 
     <div class="container">
-      <div class="loading" id="loadingState">
-        <div class="spinner"></div>
-        <div>正在載入積分資料...</div>
+      <!-- Skeleton Loading -->
+      <div id="skeletonState">
+        <div class="skeleton-container">
+          <div class="skeleton-hero">
+            <div style="padding:24px">
+              <div class="skeleton-badge"></div>
+              <div class="skeleton-big"></div>
+              <div class="skeleton-row">
+                <div class="skeleton-stat"></div>
+                <div class="skeleton-stat"></div>
+                <div class="skeleton-stat"></div>
+              </div>
+            </div>
+          </div>
+          <div class="skeleton-card">
+            <div class="s-line" style="width:50%"></div>
+            <div class="s-line"></div>
+          </div>
+          <div class="skeleton-actions">
+            <div class="s-btn"></div>
+            <div class="s-btn"></div>
+          </div>
+          <div class="skeleton-tabs"></div>
+          <div class="skeleton-card">
+            <div class="s-line" style="width:40%"></div>
+            <div class="s-line"></div>
+          </div>
+          <div class="skeleton-card">
+            <div class="s-line" style="width:35%"></div>
+            <div class="s-line"></div>
+          </div>
+        </div>
       </div>
+      <div class="loading" id="loadingState"></div>
 
       <div id="contentArea" class="hidden">
         <!-- Hero Card -->
@@ -680,6 +895,9 @@
       </div>
     </div>
 
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
     <!-- Confirm Modal -->
     <div class="modal-overlay" id="modal">
       <div class="modal">
@@ -743,10 +961,7 @@
 
           showContent();
         } catch (e) {
-          document.getElementById("loadingState").innerHTML =
-            '<div style="text-align:center;padding:40px;color:var(--red-500);font-weight:600;">⚠️ 載入失敗<br><span style="font-size:13px;color:var(--dark-700);font-weight:400;">' +
-            e.message +
-            "</span></div>";
+          showError(e.message);
         }
       }
 
@@ -837,7 +1052,7 @@
         var el = document.getElementById("historyList");
         if (!txs.length) {
           el.innerHTML =
-            '<div style="text-align:center;padding:30px;color:var(--dark-700);font-size:13px;">暫無積分紀錄<br><span style="font-size:11px;">開始簽到或預約課堂賺取積分！</span></div>';
+            '<div class="empty-state"><div class="empty-icon">📭</div><div class="empty-title">暫無積分紀錄</div><div class="empty-desc">開始簽到或預約課堂，賺取積分吧！</div></div>';
           return;
         }
         el.innerHTML = txs
@@ -901,7 +1116,7 @@
         var el = document.getElementById("rewardsGrid");
         if (!rewards.length) {
           el.innerHTML =
-            '<div style="text-align:center;padding:30px;color:var(--dark-700);font-size:13px;">暫無獎勵</div>';
+            '<div class="empty-state"><div class="empty-icon">🎁</div><div class="empty-title">暫無獎勵</div><div class="empty-desc">管理員正在準備更多獎勵，敬請期待！</div></div>';
           return;
         }
         el.innerHTML = rewards
@@ -949,7 +1164,7 @@
         var el = document.getElementById("tiersList");
         if (!tiers || !tiers.length) {
           el.innerHTML =
-            '<div style="text-align:center;padding:30px;color:var(--dark-700);font-size:13px;">暫無等級資料</div>';
+            '<div class="empty-state"><div class="empty-icon">🏆</div><div class="empty-title">暫無等級資料</div></div>';
           return;
         }
         var currentLabel =
@@ -1075,24 +1290,24 @@
                   renderHero(ptsData);
                   renderProgress(ptsData);
                   renderCheckinBtn(ptsData);
-                  // Show celebration
-                  var pts = data.points;
-                  var streak = data.streak;
-                  document.getElementById("modalIcon").textContent = "🎉";
-                  document.getElementById("modalTitle").textContent =
-                    "簽到成功！";
-                  document.getElementById("modalDesc").innerHTML =
-                    "獲得 <strong>+" +
-                    pts +
-                    " 積分</strong><br>連續簽到 <strong>" +
-                    streak +
-                    " 天</strong> 🔥";
-                  document.getElementById("modalConfirm").textContent =
-                    "太棒了！";
-                  document.getElementById("modalConfirm").onclick = hideModal;
-                  document.getElementById("modal").classList.add("show");
+
+                  // Celebration animation on button
+                  btn.classList.add("celebration");
+                  setTimeout(function() { btn.classList.remove("celebration"); }, 600);
+
+                  // Floating points animation
+                  var rect = btn.getBoundingClientRect();
+                  floatPoints(rect.left + rect.width / 2 - 15, rect.top - 10, data.points);
+
+                  // Toast notification
+                  showToast(
+                    "簽到成功！獲得 +" + data.points + " 積分 🔥 連續 " + data.streak + " 天",
+                    "🎉",
+                    "success"
+                  );
                 });
             } else if (data.alreadyCheckedIn) {
+              showToast("今日已經簽到過了！", "✅", "info");
               return fetch(API_BASE + "/points", { headers: getHeaders() })
                 .then(function (r) {
                   return r.json();
@@ -1104,11 +1319,13 @@
             } else {
               btn.disabled = false;
               btn.textContent = "📅 簽到";
+              showToast("簽到失敗，請稍後再試", "⚠️", "error");
             }
           })
           .catch(function () {
             btn.disabled = false;
             btn.textContent = "📅 簽到";
+            showToast("網絡錯誤，請檢查連線", "🌐", "error");
           });
       }
 
@@ -1142,15 +1359,15 @@
           .then(function (data) {
             hideModal();
             if (data.success) {
-              // Refresh all data
+              showToast("🎉 兌換成功！", "🎉", "success");
               return loadAll();
             } else {
-              alert("兌換失敗：" + (data.error || "請稍後再試"));
+              showToast("兌換失敗：" + (data.error || "請稍後再試"), "⚠️", "error");
             }
           })
           .catch(function () {
             hideModal();
-            alert("網絡錯誤，請稍後再試");
+            showToast("網絡錯誤，請稍後再試", "🌐", "error");
           })
           .finally(function () {
             selectedReward = null;
@@ -1170,14 +1387,53 @@
           .replace(/"/g, "&quot;");
       }
 
+      // ===== Toast =====
+      function showToast(message, icon, type) {
+        var container = document.getElementById("toastContainer");
+        var toast = document.createElement("div");
+        toast.className = "toast" + (type === "error" ? " error" : type === "info" ? " info" : "");
+        toast.innerHTML = '<span class="toast-icon">' + (icon || "✅") + '</span><span class="toast-text">' + message + '</span>';
+        container.appendChild(toast);
+        setTimeout(function() {
+          toast.classList.add("out");
+          setTimeout(function() { toast.remove(); }, 300);
+        }, 3000);
+      }
+
+      // ===== Floating Points Animation =====
+      function floatPoints(x, y, pts) {
+        var el = document.createElement("div");
+        el.className = "pts-float";
+        el.textContent = "+" + pts;
+        el.style.left = x + "px";
+        el.style.top = y + "px";
+        document.body.appendChild(el);
+        setTimeout(function() { el.remove(); }, 1000);
+      }
+
       function showLoading() {
-        document.getElementById("loadingState").classList.remove("hidden");
+        document.getElementById("skeletonState").classList.remove("hidden");
+        document.getElementById("loadingState").classList.add("hidden");
         document.getElementById("contentArea").classList.add("hidden");
       }
 
       function showContent() {
+        document.getElementById("skeletonState").classList.add("hidden");
         document.getElementById("loadingState").classList.add("hidden");
         document.getElementById("contentArea").classList.remove("hidden");
+      }
+
+      // ===== Error Loading (with skeleton hide) =====
+      function showError(msg) {
+        document.getElementById("skeletonState").classList.add("hidden");
+        document.getElementById("loadingState").classList.remove("hidden");
+        document.getElementById("loadingState").innerHTML =
+          '<div style="text-align:center;padding:60px 20px;">' +
+          '<div style="font-size:48px;margin-bottom:12px;">😵</div>' +
+          '<div style="font-size:15px;font-weight:600;color:var(--dark-900);margin-bottom:6px;">載入失敗</div>' +
+          '<div style="font-size:13px;color:var(--dark-700);margin-bottom:20px;">' + escHtml(msg) + '</div>' +
+          '<button onclick="loadAll()" style="padding:10px 24px;border:none;border-radius:10px;background:var(--orange-500);color:white;font-size:14px;font-weight:600;cursor:pointer;">🔄 重新整理</button>' +
+          '</div>';
       }
 
       // ===== Init =====
