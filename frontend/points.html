@@ -1644,6 +1644,21 @@
           .catch(function() {});
       }
 
+      
+      // ===== Login Prompt =====
+      function showLoginPrompt() {
+        document.getElementById("skeletonState").classList.add("hidden");
+        document.getElementById("contentArea").classList.add("hidden");
+        document.getElementById("loadingState").classList.remove("hidden");
+        document.getElementById("loadingState").innerHTML =
+          '<div style="text-align:center;padding:60px 20px;">' +
+          '<div style="font-size:48px;margin-bottom:12px;">🔐</div>' +
+          '<div style="font-size:16px;font-weight:600;color:var(--dark-900);margin-bottom:8px;">請先登入</div>' +
+          '<div style="font-size:13px;color:var(--dark-700);margin-bottom:20px;">登入後即可使用積分中心</div>' +
+          '<a href="login.html" style="display:inline-block;padding:12px 32px;border-radius:10px;background:var(--orange-500);color:white;font-size:14px;font-weight:600;text-decoration:none;">登入</a>' +
+          '</div>';
+      }
+
       async function loadAll() {
         showLoading();
         try {
@@ -1696,7 +1711,11 @@
           loadChallenge();
           showContent();
         } catch (e) {
-          showError(e.message);
+          if (e.message.includes("需要登入") || e.message.includes("401") || e.message.includes("認證無效")) {
+            showLoginPrompt();
+          } else {
+            showError(e.message);
+          }
         }
       }
 
@@ -2260,7 +2279,8 @@
           .catch(function () {
             btn.disabled = false;
             btn.textContent = "📅 簽到";
-            showToast("網絡錯誤，請檢查連線", "🌐", "error");
+            showToast("請先登入再簽到", "🔐", "error");
+            setTimeout(function() { window.location.href = "login.html"; }, 2000);
           });
       }
 
