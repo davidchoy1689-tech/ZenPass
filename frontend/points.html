@@ -1556,11 +1556,11 @@
         var grid = document.getElementById("calendarGrid");
         var stats = document.getElementById("calendarStats");
         var label = document.getElementById("monthLabel");
-        if (!data || !data.days) { grid.innerHTML = ''; return; }
 
-        var checkedDays = data.days || [];
-        var year = data.year;
-        var month = data.month;
+        var now = new Date();
+        var checkedDays = (data && data.days) || [];
+        var year = (data && data.year) || now.getFullYear();
+        var month = (data && data.month) || (now.getMonth() + 1);
         var months = ['一月','二月','三月','四月','五月','六月','七月','八月','九月','十月','十一月','十二月'];
         label.textContent = year + '年 ' + months[month - 1];
 

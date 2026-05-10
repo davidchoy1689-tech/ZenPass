@@ -48,7 +48,7 @@ app.use(
 
 // 靜態檔案服務 - 直接 serve ZenPass 前台和管理後台
 app.use(express.static(path.join(__dirname, "../../frontend")));
-app.use("/admin", express.static(path.join(__dirname, "../../admin")));
+// admin files served from frontend/admin/ via root static middleware
 app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 
 // Rate limiting
