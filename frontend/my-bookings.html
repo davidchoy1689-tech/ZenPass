@@ -532,8 +532,14 @@
             '" class="pay-now-btn">立即付款</a>';
         }
         if (footerButtons) footerButtons += "</div>";
-
-        var refText =
+        // Add rating button for attended classes
+        if (b.status === "attended") {
+          footerButtons =
+            '<a href="rate.html?booking_id=' +
+            b.id +
+            '" class="pay-now-btn" style="background:var(--blue-500);">⭐ 評分</a>' +
+            (footerButtons || "");
+        }
           b.class_reference || b.id
             ? "#" + (b.class_reference || b.id.substring(0, 8))
             : "";

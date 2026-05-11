@@ -441,7 +441,8 @@ router.post("/fps", authenticateToken, (req, res) => {
     if (booking_id) {
       db.prepare(
         `
-        UPDATE bookings SET fps_reference = ?, amount = ?, payment_method = 'fps', receipt_image = ?
+        UPDATE bookings SET fps_reference = ?, amount = ?, payment_method = 'fps', receipt_image = ?,
+          status = 'confirmed', payment_status = 'paid'
         WHERE id = ?
       `,
       ).run(
@@ -456,7 +457,7 @@ router.post("/fps", authenticateToken, (req, res) => {
     db.prepare(
       `
       INSERT INTO transactions (id, user_id, type, amount, payment_method, fps_reference, status, description)
-      VALUES (?, ?, 'single_booking', ?, 'fps', ?, 'pending', '待管理員確認')
+      VALUES (?, ?, 'single_booking', ?, 'fps', ?, 'completed', 'FPS 自動確認')
     `,
     ).run(
       uuidv4(),
@@ -468,8 +469,8 @@ router.post("/fps", authenticateToken, (req, res) => {
     db.close();
 
     res.json({
-      message: "轉數快資料已提交，管理員確認後預約會自動生效",
-      status: "pending_verification",
+      message: "✅ 付款成功，預約已自動確認！",
+      status: "confirmed",
       fps_info: {
         phone: "9033 5538",
         email: "info@zenpass.hk",
@@ -506,7 +507,8 @@ router.post("/payme", authenticateToken, (req, res) => {
     if (booking_id) {
       db.prepare(
         `
-        UPDATE bookings SET payme_reference = ?, amount = ?, payment_method = 'payme', receipt_image = ?
+        UPDATE bookings SET payme_reference = ?, amount = ?, payment_method = 'payme', receipt_image = ?,
+          status = 'confirmed', payment_status = 'paid'
         WHERE id = ?
       `,
       ).run(
@@ -520,7 +522,7 @@ router.post("/payme", authenticateToken, (req, res) => {
     db.prepare(
       `
       INSERT INTO transactions (id, user_id, type, amount, payment_method, payme_reference, status, description)
-      VALUES (?, ?, 'single_booking', ?, 'payme', ?, 'pending', '待管理員確認')
+      VALUES (?, ?, 'single_booking', ?, 'payme', ?, 'completed', 'PayMe 自動確認')
     `,
     ).run(
       uuidv4(),
@@ -532,8 +534,8 @@ router.post("/payme", authenticateToken, (req, res) => {
     db.close();
 
     res.json({
-      message: "PayMe 資料已提交，管理員確認後預約會自動生效",
-      status: "pending_verification",
+      message: "✅ PayMe 付款成功，預約已自動確認！",
+      status: "confirmed",
       payme_info: {
         phone: "9492 5828",
         note: "ZenPass 課程",

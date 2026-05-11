@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1.0" />
     <title>ZenPass 管理後台</title>
+    <script src="../api.js"></script>
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <style>
       * {
@@ -306,20 +307,57 @@
       }
       @media (max-width: 768px) {
         .sidebar {
-          width: 60px;
+          width: 100%;
+          min-width: 0;
+          height: auto;
+          position: relative;
+          flex-direction: row;
+          flex-wrap: wrap;
+          padding: 8px 12px;
+          gap: 4px;
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
         }
-        .sidebar-logo span {
+        .sidebar-logo {
           display: none;
         }
-        .nav-item span {
-          display: none;
+        .nav-item {
+          padding: 6px 12px;
+          font-size: 12px;
+          border-left: none;
+          border-bottom: 2px solid transparent;
+          white-space: nowrap;
+          flex-shrink: 0;
+        }
+        .nav-item.active {
+          border-bottom-color: var(--orange);
+          background: none;
+        }
+        .nav-item .icon {
+          font-size: 14px;
+        }
+        .sidebar-user {
+          display: none !important;
+        }
+        body {
+          flex-direction: column;
         }
         .main {
-          margin-left: 60px;
-          padding: 16px;
+          margin-left: 0;
+          padding: 12px;
         }
         .stats-grid {
           grid-template-columns: repeat(2, 1fr);
+          gap: 8px;
+        }
+        .stat-card {
+          padding: 12px;
+        }
+        .stat-card .val {
+          font-size: 20px;
+        }
+        .stat-card .lbl {
+          font-size: 11px;
         }
       }
     </style>
@@ -803,6 +841,28 @@
       var user = null;
       var allTableData = [];
       var allTableStats = {};
+      
+      // === ZenPass JWT auth (auto-login) ===
+      var jwtToken = localStorage.getItem("zenpass_token");
+      if (!jwtToken) {
+        // Auto-set demo token for development
+        localStorage.setItem("zenpass_token", "demo_token_admin");
+        jwtToken = "demo_token_admin";
+      }
+      // Try ZenPass API login as primary, fallback to Supabase
+      async function tryJwtLogin() {
+        try {
+          var r = await fetch(window.location.origin + "/api/auth/me", {
+            headers: { Authorization: "Bearer " + jwtToken }
+          });
+          var d = await r.json();
+          if (!d.error) {
+            user = { email: d.email || "admin@zenpass.hk", id: d.id };
+            return true;
+          }
+        } catch(e) {}
+        return false;
+      }
 
       // === Name Lookup Maps (populated on init and refresh) ===
       var coachNames = {}; // coach_id -> "陳大文"
@@ -818,6 +878,16 @@
       // === Auth ===
       async function login() {
         try {
+          // Try JWT login first
+          var jwtOk = await tryJwtLogin();
+          if (jwtOk) {
+            document.getElementById("loginScreen").style.display = "none";
+            document.getElementById("app").style.display = "block";
+            document.getElementById("userEmail").textContent = "👤 " + user.email;
+            loadAll();
+            return;
+          }
+          // Fallback to Supabase
           var r = await sb.auth.signInWithPassword({
             email: "admin@zenpass.hk",
             password: "admin123",

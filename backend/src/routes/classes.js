@@ -59,6 +59,15 @@ router.get("/", optionalAuth, cache(30), (req, res) => {
       params.push(searchPattern, searchPattern, searchPattern);
     }
 
+    if (req.query.price_min) {
+      whereConditions.push("c.price_hkd >= ?");
+      params.push(parseInt(req.query.price_min));
+    }
+    if (req.query.price_max) {
+      whereConditions.push("c.price_hkd <= ?");
+      params.push(parseInt(req.query.price_max));
+    }
+
     if (date) {
       whereConditions.push(`c.id IN (
         SELECT class_id FROM class_schedules 

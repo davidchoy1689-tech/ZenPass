@@ -498,14 +498,10 @@
     <div class="header">
       <a href="index.html" class="back">←</a>
       <h1>探索課程</h1>
-      <button
-        class="filter-btn"
-        onclick="
-          document.getElementById('filter-panel').classList.toggle('hidden')
-        "
-      >
-        ☰ 篩選
-      </button>
+      <div style="display:flex;gap:8px;align-items:center;width:100%;margin-top:8px;">
+        <input type="text" id="search-input" placeholder="🔍 搜尋課程、教練、運動類型..." style="flex:1;padding:10px 14px;border:1px solid var(--gray-200);border-radius:8px;font-size:14px;font-family:var(--font-zh);background:var(--white);" onkeydown="if(event.key==='Enter') doSearch()" />
+        <button class="filter-btn" onclick="document.getElementById('filter-panel').classList.toggle('hidden')" style="white-space:nowrap;">☰ 篩選</button>
+      </div>
     </div>
 
     <div id="filter-panel" class="filter-panel hidden">
@@ -518,6 +514,27 @@
           <option value="intermediate">中階</option>
           <option value="advanced">進階</option>
         </select>
+      </div>
+      <div class="filter-row">
+        <label>價錢範圍</label>
+        <div style="display:flex;gap:8px;">
+          <select id="filter-price-min" onchange="applyFilters()" style="flex:1;padding:8px;border:1px solid var(--gray-200);border-radius:6px;font-size:13px;font-family:inherit;">
+            <option value="">最低</option>
+            <option value="0">$0</option>
+            <option value="50">$50</option>
+            <option value="100">$100</option>
+            <option value="150">$150</option>
+          </select>
+          <span style="align-self:center;color:var(--gray-300);">—</span>
+          <select id="filter-price-max" onchange="applyFilters()" style="flex:1;padding:8px;border:1px solid var(--gray-200);border-radius:6px;font-size:13px;font-family:inherit;">
+            <option value="">最高</option>
+            <option value="50">$50</option>
+            <option value="100">$100</option>
+            <option value="150">$150</option>
+            <option value="200">$200</option>
+            <option value="999">$999+</option>
+          </select>
+        </div>
       </div>
       <div class="filter-row">
         <label>排序</label>
@@ -773,6 +790,26 @@
         loadClasses();
       }
 
+      function doSearch() {
+        var q = document.getElementById("search-input").value.trim();
+        if (q) {
+          loadClasses();
+        }
+      }
+      function clearFilters() {
+        document.getElementById("search-input").value = "";
+        document.getElementById("filter-difficulty").value = "";
+        document.getElementById("filter-price-min").value = "";
+        document.getElementById("filter-price-max").value = "";
+        currentSort = "popular";
+        currentCategory = "all";
+        currentDate = "";
+        document.querySelectorAll(".sort-btn").forEach(function(b) { b.classList.remove("active"); });
+        document.querySelector('[data-sort="popular"]').classList.add("active");
+        document.querySelectorAll(".category-chip").forEach(function(c) { c.classList.remove("active"); });
+        document.querySelector(".category-chip.active, #category-list .category-chip:first-child").classList.add("active");
+        loadClasses();
+      }
       function setSort(sort, el) {
         document.querySelectorAll(".sort-btn").forEach(function (b) {
           b.classList.remove("active");
@@ -821,6 +858,12 @@
         var params = { limit: 50, sort: currentSort };
         if (currentCategory !== "all") params.category = currentCategory;
         if (currentDate) params.date = currentDate;
+        var searchQ = document.getElementById("search-input").value.trim();
+        if (searchQ) params.search = searchQ;
+        var priceMin = document.getElementById("filter-price-min").value;
+        var priceMax = document.getElementById("filter-price-max").value;
+        if (priceMin) params.price_min = priceMin;
+        if (priceMax) params.price_max = priceMax;
 
         var difficulty = document.getElementById("filter-difficulty").value;
         if (difficulty) params.difficulty = difficulty;
@@ -844,14 +887,15 @@
           var items = result.classes || [];
           if (items.length === 0) {
             container.innerHTML =
-              '<div class="empty-state"><span>📭</span><p>暫無符合條件的課程<br>試試調整篩選條件</p></div>';
+              '<div class="empty-state"><span>📭</span><p>暫無符合條件的課程<br>試試調整篩選條件</p></div>' +
+              '<div style="text-align:center;margin-top:8px;"><button class="sort-btn" onclick="clearFilters()" style="background:var(--orange-500);color:white;border:none;padding:8px 20px;border-radius:6px;cursor:pointer;">🔄 清除篩選</button></div>';
             return;
           }
-          container.innerHTML = items
-            .map(function (cls) {
+          container.innerHTML =
+            '<div style="font-size:13px;color:var(--dark-700);margin-bottom:8px;">共 ' + items.length + ' 個課程</div>' +
+            items.map(function (cls) {
               return renderCard(cls);
-            })
-            .join("");
+            }).join("");
         } catch (err) {
           // Demo fallback classes
           container.innerHTML =

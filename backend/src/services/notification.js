@@ -73,7 +73,33 @@ async function telegramNotification(message) {
   }
 }
 
-// ===== 3. Email 通知 (SMTP) =====
+// ===== 3. WhatsApp 通知 (Twilio) =====
+async function whatsappNotification(message) {
+  const accountSid = process.env.TWILIO_ACCOUNT_SID;
+  const authToken = process.env.TWILIO_AUTH_TOKEN;
+  const from = process.env.TWILIO_WHATSAPP_FROM;
+  const to = process.env.TWILIO_WHATSAPP_TO;
+
+  if (!accountSid || !authToken || !from || !to) {
+    console.log("⚠️ WhatsApp not configured - set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_WHATSAPP_FROM, TWILIO_WHATSAPP_TO");
+    return false;
+  }
+
+  try {
+    const client = require("twilio")(accountSid, authToken);
+    await client.messages.create({
+      from: `whatsapp:${from}`,
+      to: `whatsapp:${to}`,
+      body: message,
+    });
+    return true;
+  } catch (err) {
+    console.error("WhatsApp notification error:", err.message);
+    return false;
+  }
+}
+
+// ===== 4. Email 通知 (SMTP) =====
 async function emailNotification(to, subject, html) {
   const host = process.env.SMTP_HOST;
   const port = process.env.SMTP_PORT || 587;
@@ -107,7 +133,7 @@ async function emailNotification(to, subject, html) {
   }
 }
 
-// ===== 4. 統一發送介面 =====
+// ===== 5. 統一發送介面 =====
 async function sendNotification(type, payload) {
   const types = (process.env.NOTIFICATION_TYPES || "db").split(",");
   const results = {};
@@ -162,6 +188,12 @@ async function sendNotification(type, payload) {
             html,
           );
         }
+        break;
+      case "whatsapp":
+        results.whatsapp = await whatsappNotification(message);
+        break;
+      case "whatsapp_free":
+        results.whatsapp_free = await whatsappFreeNotification(message);
         break;
     }
   }
@@ -256,13 +288,39 @@ function markAllAsRead(userId) {
   }
 }
 
+// ===== 3b. WhatsApp 通知 (CallMeBot - 免費，唔使 account) =====
+async function whatsappFreeNotification(message, phone) {
+  const apiKey = process.env.WHATSAPP_CALLMEBOT_KEY;
+  const to = phone || process.env.WHATSAPP_CALLMEBOT_TO;
+
+  if (!apiKey || !to) {
+    console.log("⚠️ WhatsApp (CallMeBot) not configured - set WHATSAPP_CALLMEBOT_KEY and WHATSAPP_CALLMEBOT_TO");
+    return false;
+  }
+
+  try {
+    const fetch = require("node-fetch");
+    const url = `https://api.callmebot.com/whatsapp.php?phone=${to}&text=${encodeURIComponent(message)}&apikey=${apiKey}`;
+    const res = await fetch(url);
+    const text = await res.text();
+    if (text.includes("sent") || res.ok) return true;
+    console.error("WhatsApp send error:", text);
+    return false;
+  } catch (err) {
+    console.error("WhatsApp notification error:", err.message);
+    return false;
+  }
+}
+
 module.exports = {
   sendNotification,
   dbNotification,
   telegramNotification,
   emailNotification,
+  whatsappFreeNotification,
   getNotifications,
   getUnreadCount,
   markAsRead,
   markAllAsRead,
 };
+

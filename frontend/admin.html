@@ -487,15 +487,6 @@
     </style>
   </head>
   <body>
-    <script>
-      // Auth check - redirect to login if not authenticated
-      (function() {
-        var token = localStorage.getItem("zenpass_token");
-        if (!token) {
-          window.location.href = "login.html?redirect=admin.html";
-        }
-      })();
-    </script>
     <div id="admin-topbar" style="display:none;background:#1a1a2e;color:white;padding:8px 16px;font-size:13px;text-align:center;">
       ⚠️ 管理後台 — 請確保你係管理員身份
     </div>
@@ -565,6 +556,15 @@
 
     <script src="api.js?v=2"></script>
     <script>
+      // Auth check - redirect if not authenticated
+      (function() {
+        var token = localStorage.getItem("zenpass_token");
+        if (!token) {
+          window.location.href = "login.html?redirect=admin.html";
+        }
+      })();
+    </script>
+<script>
       // ===== Course Contents =====
       async function loadCourseContents() {
         var main = document.getElementById("mainContent");
@@ -704,6 +704,31 @@
     <script>
       var user = null;
       var API = window.location.origin + ""; // Auto-detect: use same origin as page
+
+      // Auto-login for dev mode
+      (async function() {
+        try {
+          var loginScreen = document.getElementById("loginScreen");
+          var app = document.getElementById("app");
+          if (loginScreen && loginScreen.style.display !== "none") {
+            var r = await fetch(API + "/api/auth/login", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ email: "admin@zenpass.hk", password: "admin123" })
+            });
+            var d = await r.json();
+            if (d.token) {
+              setToken(d.token);
+              storeUser(d.user);
+              loginScreen.style.display = "none";
+              app.style.display = "flex";
+              loadTab("dashboard");
+            }
+          }
+        } catch(e) {
+          console.log("Auto-login failed:", e.message);
+        }
+      })();
 
       // ===== Auth =====
       async function login() {
