@@ -7,6 +7,7 @@ const express = require("express");
 const { v4: uuidv4 } = require("uuid");
 const Database = require("better-sqlite3");
 const { authenticateToken } = require("../middleware/auth");
+const { validate, schemas } = require("../middleware/validate");
 
 const fs = require("fs");
 const path = require("path");
@@ -649,7 +650,7 @@ router.post("/create-payment-intent", authenticateToken, async (req, res) => {
 
 // ===== 1.2 POST /api/payments/confirm — 確認付款（FPS / PayMe / Stripe）=====
 // 通用確認 endpoint：將 pending_payment booking 轉爲 confirmed
-router.post("/confirm", authenticateToken, (req, res) => {
+router.post("/confirm", authenticateToken, validate(schemas.payment_confirm), (req, res) => {
   try {
     const { booking_id, payment_method, payment_reference, amount } = req.body;
 

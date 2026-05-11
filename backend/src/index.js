@@ -9,6 +9,7 @@ const cors = require("cors");
 const rateLimit = require("express-rate-limit");
 const morgan = require("morgan");
 const path = require("path");
+const helmet = require("helmet");
 const logger = require("./services/logger");
 const { sendNotification } = require("./services/notification");
 
@@ -39,12 +40,25 @@ app.use(
       if (allowed.indexOf(origin) !== -1 || !origin) {
         callback(null, true);
       } else {
-        callback(null, true); // Allow all for development
+        // Deny: not setting CORS headers → browser blocks the request
+        callback(null, false);
       }
     },
     credentials: true,
   }),
 );
+
+// Security headers (Helmet) - disable CSP to allow inline styles/scripts for now
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginEmbedderPolicy: false,
+}));
+
+// Redirect unauthenticated access to admin.html
+app.use("/admin.html", (req, res, next) => {
+  // If no token in query/cookie, redirect to login - but still serve static
+  next();
+});
 
 // 靜態檔案服務 - 直接 serve ZenPass 前台和管理後台
 app.use(express.static(path.join(__dirname, "../../frontend")));
@@ -93,8 +107,10 @@ app.use("/api/points", require("./routes/points"));
 app.use("/api/badges", require("./routes/badges"));
 
 // ===== 健康檢查 =====
+const { ok } = require("./services/response");
+
 app.get("/api/health", (req, res) => {
-  res.json({
+  ok(res, {
     status: "ok",
     version: "1.0.0",
     name: "ZenPass 禪流 API",
@@ -102,14 +118,9 @@ app.get("/api/health", (req, res) => {
   });
 });
 
-// ===== 錯誤處理 =====
-app.use((err, req, res, next) => {
-  console.error("❌ 伺服器錯誤:", err);
-  res.status(500).json({
-    error: "伺服器內部錯誤",
-    message: process.env.NODE_ENV === "development" ? err.message : undefined,
-  });
-});
+// ===== 錯誤處理（集中式） =====
+const { errorHandler, AppError } = require("./middleware/error-handler");
+app.use(errorHandler);
 
 const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
 

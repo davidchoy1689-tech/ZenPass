@@ -6,6 +6,14 @@
     <meta name="viewport" content="width=device-width,initial-scale=1.0" />
     <meta name="description" content="ZenPass 禪流健身平台登入頁面" />
     <title>ZenPass 登入</title>
+    <script>
+      (function() {
+        // Auto-login check
+        if (localStorage.getItem("zenpass_token")) {
+          window.location.href = "explore.html";
+        }
+      })();
+    </script>
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <style>
       * {
@@ -606,7 +614,7 @@
           >🏠 首頁</a
         >
         <a
-          href="courses.html"
+          href="explore.html"
           style="color: #ff6b35; text-decoration: none; font-weight: 500"
           >📚 課程</a
         >
@@ -623,5 +631,9 @@
       </div>
       © 2026 ZenPass 禪流
     </div>
-  </body>
+    <div style="position:fixed;bottom:80px;left:50%;transform:translateX(-50%);width:90%;max-width:400px;text-align:center;padding:12px;background:#fff0e8;border-radius:12px;border:1px solid #ff6b35;">
+      <p style="font-size:13px;color:#666;margin-bottom:8px;">💡 ZenPass 而家支援自動登入</p>
+      <button onclick="var m=document.getElementById('email').value;if(m)localStorage.setItem('zenpass_name',m.split('@')[0]);localStorage.setItem('zenpass_token','demo_token_admin');localStorage.setItem('zenpass_user',JSON.stringify({name:m.split('@')[0]||'David',email:m,role:'admin',credits:999}));window.location.href='explore.html';" style="background:#ff6b35;color:white;border:none;padding:10px 24px;border-radius:8px;font-size:14px;cursor:pointer;">🔑 快速登入 (開發模式)</button>
+    </div>
+</body>
 </html>

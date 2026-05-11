@@ -6,6 +6,7 @@ const express = require("express");
 const { v4: uuidv4 } = require("uuid");
 const Database = require("better-sqlite3");
 const { authenticateToken } = require("../middleware/auth");
+const { validate, schemas } = require("../middleware/validate");
 
 const { sendNotification } = require("../services/notification");
 
@@ -23,7 +24,7 @@ function generateBookingRef() {
 }
 
 // ===== POST /api/bookings — 建立預約 =====
-router.post("/", authenticateToken, (req, res) => {
+router.post("/", authenticateToken, validate(schemas.booking), (req, res) => {
   try {
     const { schedule_id, class_id, payment_type, amount } = req.body;
 
@@ -48,8 +49,11 @@ router.post("/", authenticateToken, (req, res) => {
       return res.status(404).json({ error: "該時段不存在或已滿" });
     }
 
-    // 檢查名額
-    if (schedule.enrolled_count >= schedule.max_participants) {
+    // 原子操作：用 UPDATE ... WHERE enrolled_count < max_participants 防止 race condition
+    const capResult = db.prepare(
+      "UPDATE class_schedules SET enrolled_count = enrolled_count + 1 WHERE id = ? AND enrolled_count < max_participants"
+    ).run(schedule_id);
+    if (capResult.changes === 0) {
       db.close();
       return res.status(400).json({ error: "該時段已滿額" });
     }
@@ -149,10 +153,7 @@ router.post("/", authenticateToken, (req, res) => {
       // 讀取失敗唔影響 booking creation
     }
 
-    // 更新已預約人數
-    db.prepare(
-      "UPDATE class_schedules SET enrolled_count = enrolled_count + 1 WHERE id = ?",
-    ).run(schedule_id);
+
 
     // 🔔 通知：預約成功（async fire-and-forget）
     if (classInfo) {
@@ -278,7 +279,7 @@ router.get("/my", authenticateToken, (req, res) => {
 });
 
 // ===== POST /api/bookings/:id/complete-payment — 完成付款（pending_payment → confirmed）=====
-router.post("/:id/complete-payment", authenticateToken, (req, res) => {
+router.post("/:id/complete-payment", authenticateToken, validate(schemas.payment_confirm), (req, res) => {
   try {
     const { payment_method, payment_reference, amount } = req.body;
 
@@ -322,10 +323,7 @@ router.post("/:id/complete-payment", authenticateToken, (req, res) => {
       `UPDATE bookings SET ${updateFields.join(", ")} WHERE id = ?`,
     ).run(...updateParams);
 
-    // 更新已預約人數（pending_payment → confirmed，加返名額）
-    db.prepare(
-      "UPDATE class_schedules SET enrolled_count = enrolled_count + 1 WHERE id = ?",
-    ).run(booking.schedule_id);
+    // pending_payment → confirmed，enrolled_count 已在建立 booking 時計入，不需再加
 
     // 記錄交易
     db.prepare(

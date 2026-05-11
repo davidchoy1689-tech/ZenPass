@@ -1279,7 +1279,12 @@
           var resp = await apiFetch("/payments/confirm", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ payment_ref: ref }),
+            body: JSON.stringify({
+              booking_id: bookingId,
+              payment_method: "fps",
+              payment_reference: ref,
+              amount: paymentAmount
+            }),
           });
           if (resp.ok) {
             showToast("付款成功！", "success");
@@ -1297,6 +1302,82 @@
         btn.classList.remove("loading");
         btn.textContent = "\U0001f3e6 確認 FPS 付款 — HK$" + paymentAmount;
       }
+
+      // --- PayMe ---
+      async function processPayme(btn) {
+        var ref = document.getElementById("payme-ref-input").value.trim();
+        if (!ref) {
+          showToast("請輸入 PayMe 參考編號", "warning");
+          btn.disabled = false;
+          btn.classList.remove("loading");
+          btn.textContent = "📱 確認 PayMe 付款 — HK$" + paymentAmount;
+          return;
+        }
+        try {
+          var resp = await apiFetch("/payments/confirm", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              booking_id: bookingId,
+              payment_method: "payme",
+              payment_reference: ref,
+              amount: paymentAmount
+            }),
+          });
+          if (resp.ok) {
+            showToast("付款成功！", "success");
+            setTimeout(function () {
+              window.location.reload();
+            }, 1500);
+          } else {
+            var err = await resp.json();
+            showToast(err.error || "付款失敗", "error");
+          }
+        } catch (e) {
+          showToast("網絡錯誤", "error");
+        }
+        btn.disabled = false;
+        btn.classList.remove("loading");
+        btn.textContent = "📱 確認 PayMe 付款 — HK$" + paymentAmount;
+      }
+
+      // ===== Confirm Booking After Payment =====
+      async function confirmBooking(paymentMethod, paymentReference) {
+        try {
+          var resp = await apiFetch("/bookings/" + bookingId + "/complete-payment", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              payment_method: paymentMethod,
+              payment_reference: paymentReference,
+              amount: paymentAmount
+            }),
+          });
+          if (resp.ok) {
+            var d = await resp.json();
+            showSuccess(bookingId, d.booking_reference || bookingId);
+          } else {
+            var err = await resp.json();
+            showToast(err.error || "確認付款失敗", "error");
+          }
+        } catch (e) {
+          console.error("confirmBooking error:", e);
+          showToast("確認付款時網絡錯誤", "error");
+        }
+      }
+
+      // ===== Show Success Screen =====
+      function showSuccess(bookingId, bookingRef) {
+        document.getElementById("pay-page").classList.add("hidden");
+        document.getElementById("success-page").classList.remove("hidden");
+        document.getElementById("success-ref").textContent = bookingRef || bookingId;
+        if (bookingData) {
+          document.getElementById("success-detail").textContent = "預約已確認，記住準時出席課堂！";
+          document.getElementById("success-class-info").textContent = 
+            (bookingData.title || "課程") + " · " + formatDate(bookingData.start_time);
+        }
+      }
+
     </script>
 
     <div
@@ -1324,7 +1405,7 @@
           >🏠 首頁</a
         >
         <a
-          href="courses.html"
+          href="explore.html"
           style="color: #ff6b35; text-decoration: none; font-weight: 500"
           >📚 課程</a
         >

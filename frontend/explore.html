@@ -162,10 +162,31 @@
         border-color: var(--orange-500);
       }
       .class-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 12px;
-        padding: 0 16px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        padding: 0 12px;
+      }
+      .class-grid > .class-card {
+        width: calc(50% - 5px);
+        flex-shrink: 0;
+        box-sizing: border-box;
+      }
+      .class-card-img {
+        height: 90px;
+        font-size: 32px;
+      }
+      .class-card-body {
+        padding: 8px 10px;
+      }
+      .class-card-title {
+        font-size: 13px;
+      }
+      .class-card-meta {
+        font-size: 11px;
+      }
+      .class-card-price {
+        font-size: 14px;
       }
       .class-card {
         background: var(--white);
@@ -386,7 +407,7 @@
           font-size: 12px;
         }
         .class-grid {
-          grid-template-columns: 1fr 1fr;
+          flex-wrap: wrap;
           gap: 10px;
         }
         .class-card-img {
@@ -550,7 +571,7 @@
       </div>
     </div>
 
-    <div class="class-grid" id="class-grid">
+    <div class="class-grid" id="class-grid" style="display:grid !important;grid-template-columns:1fr 1fr !important;gap:10px !important;">
       <div class="loading-spinner">載入中...</div>
     </div>
 
@@ -1043,7 +1064,7 @@
           >🏠 首頁</a
         >
         <a
-          href="courses.html"
+          href="explore.html"
           style="color: #ff6b35; text-decoration: none; font-weight: 500"
           >📚 課程</a
         >

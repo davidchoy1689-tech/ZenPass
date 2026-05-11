@@ -6,6 +6,7 @@
 const express = require("express");
 const { v4: uuidv4 } = require("uuid");
 const Database = require("better-sqlite3");
+const { cache } = require("../middleware/cache");
 const {
   authenticateToken,
   optionalAuth,
@@ -16,7 +17,7 @@ const router = express.Router();
 const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
 
 // ===== GET /api/classes — 課程列表（支援分頁、篩選、搜尋） =====
-router.get("/", optionalAuth, (req, res) => {
+router.get("/", optionalAuth, cache(30), (req, res) => {
   try {
     const db = new Database(DB_PATH);
     db.pragma("foreign_keys = ON");
@@ -107,22 +108,28 @@ router.get("/", optionalAuth, (req, res) => {
       )
       .all(...params, parseInt(limit), offset);
 
-    // Get upcoming schedule for each class
-    const classesWithSchedule = classes.map((cls) => {
-      const schedules = db
-        .prepare(
-          `
-        SELECT id, start_time, end_time, enrolled_count, max_participants, status
+    //     // Batch query all schedules in one go (avoid N+1)
+    let scheduleMap = {};
+    if (classes.length > 0) {
+      const classIds = classes.map(c => c.id);
+      const placeholders = classIds.map(() => '?').join(',');
+      const allSchedules = db.prepare(`
+        SELECT id, class_id, start_time, end_time, enrolled_count, max_participants, status
         FROM class_schedules
-        WHERE class_id = ? AND start_time > datetime('now') AND status = 'available'
+        WHERE class_id IN (${placeholders}) AND start_time > datetime('now') AND status = 'available'
         ORDER BY start_time ASC
-        LIMIT 5
-      `,
-        )
-        .all(cls.id);
-
-      return { ...cls, schedules };
-    });
+      `).all(...classIds);
+      for (const s of allSchedules) {
+        if (!scheduleMap[s.class_id]) scheduleMap[s.class_id] = [];
+        if (scheduleMap[s.class_id].length < 5) {
+          scheduleMap[s.class_id].push(s);
+        }
+      }
+    }
+    const classesWithSchedule = classes.map(cls => ({
+      ...cls,
+      schedules: scheduleMap[cls.id] || []
+    }));
 
     db.close();
 
@@ -142,7 +149,7 @@ router.get("/", optionalAuth, (req, res) => {
 });
 
 // ===== GET /api/classes/categories — 分類列表 =====
-router.get("/available-dates", (req, res) => {
+router.get("/available-dates", cache(60), (req, res) => {
   try {
     const db = new Database(DB_PATH);
     const dates = db
@@ -182,7 +189,7 @@ router.get("/:id/recommended", (req, res) => {
   }
 });
 
-router.get("/categories", (req, res) => {
+router.get("/categories", cache(300), (req, res) => {
   try {
     const db = new Database(DB_PATH);
     db.pragma("foreign_keys = ON");

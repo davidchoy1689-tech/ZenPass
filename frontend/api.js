@@ -147,6 +147,10 @@ function storeUser(user) {
   localStorage.setItem("zenpass_user", JSON.stringify(user));
 }
 
+function getUser() {
+  return getStoredUser();
+}
+
 function getUserRole() {
   const user = getUser();
   return user ? user.role || "student" : null;

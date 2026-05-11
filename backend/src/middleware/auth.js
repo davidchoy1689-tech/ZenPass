@@ -29,8 +29,8 @@ function authenticateToken(req, res, next) {
     req.user = decoded;
     next();
   } catch (err) {
-    // Accept demo token in development for testing
-    if (token.startsWith("demo_token_") && process.env.NODE_ENV !== "production") {
+    // Accept demo token ONLY when ALLOW_DEMO_TOKEN=true (dev/testing only)
+    if (token.startsWith("demo_token_") && process.env.ALLOW_DEMO_TOKEN === "true") {
       const role = token.replace("demo_token_", "");
       const db = new Database(DB_PATH);
       const demoUser = db.prepare("SELECT id, email, name FROM users LIMIT 1").get();
@@ -86,24 +86,36 @@ function requireCoach(req, res, next) {
 
 /**
  * 驗證管理員權限（需要先執行 authenticateToken）
+ * 支援兩種方式：
+ * 1. email 含有 admin 或 @zenpass.hk 域名 (向後兼容)
+ * 2. role 欄位為 'admin'
  */
 function requireAdmin(req, res, next) {
   const db = new Database(DB_PATH);
   db.pragma("foreign_keys = ON");
 
-  const user = db
-    .prepare("SELECT is_coach, coach_verified, email FROM users WHERE id = ?")
-    .get(req.user.id);
+  let user;
+  try {
+    user = db
+      .prepare("SELECT is_coach, coach_verified, email, role FROM users WHERE id = ?")
+      .get(req.user.id);
+  } catch (e) {
+    // role column may not exist yet - fallback
+    user = db
+      .prepare("SELECT is_coach, coach_verified, email FROM users WHERE id = ?")
+      .get(req.user.id);
+  }
   db.close();
 
   if (!user) {
     return res.status(403).json({ error: "用戶不存在" });
   }
 
-  // Admin 判定：電郵含有 admin 或標記為管理員
+  // Admin 判定：role 欄位 = 'admin'，或電郵含有 admin / @zenpass.hk（向後兼容）
   const isAdmin =
-    user.email &&
-    (user.email.includes("admin") || user.email.endsWith("@zenpass.hk"));
+    (user.role !== undefined && user.role === "admin") ||
+    (user.email &&
+      (user.email.includes("admin") || user.email.endsWith("@zenpass.hk")));
 
   if (!isAdmin) {
     return res.status(403).json({ error: "需要管理員權限" });

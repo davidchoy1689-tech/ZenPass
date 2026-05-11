@@ -193,6 +193,35 @@
       .class-item:last-child {
         border-bottom: none;
       }
+      .inline-form {
+        background: var(--gray-50);
+        border-radius: 8px;
+        padding: 16px;
+        margin: 8px 0 12px 0;
+        display: none;
+      }
+      .inline-form.show { display: block; }
+      .inline-form .row {
+        display: flex; gap: 10px; margin-bottom: 10px;
+      }
+      .inline-form .row .field { flex: 1; }
+      .inline-form label {
+        display: block; font-size: 12px; font-weight: 600;
+        color: var(--dark-700); margin-bottom: 4px;
+      }
+      .inline-form input, .inline-form select {
+        width: 100%; padding: 10px; border: 1px solid var(--gray-200);
+        border-radius: 6px; font-size: 14px; font-family: inherit;
+        background: var(--white); box-sizing: border-box;
+      }
+      .btn-sm { font-family: inherit; }
+      .schedule-btn {
+        font-size: 12px; padding: 4px 10px; background: var(--orange-100);
+        color: var(--orange-500); border: 1px solid var(--orange-300);
+        border-radius: 6px; cursor: pointer; font-family: inherit;
+        transition: background 0.2s;
+      }
+      .schedule-btn:hover { background: var(--orange-500); color: white; }
       .class-row {
         display: flex;
         justify-content: space-between;
@@ -500,7 +529,8 @@
         }
       }
     </style>
-  </head>
+    <script src="api.js"></script>
+</head>
   <body>
     <div class="header">
       <div class="header-top">
@@ -531,9 +561,11 @@
           <div class="schedule-scroll" id="upcomingClasses"></div>
         </div>
         <div class="card">
-          <div class="card-title">
-            📝 我的課程 <span class="count" id="myClassesCount"></span>
+          <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;">
+            <span>📝 我的課程 <span class="count" id="myClassesCount"></span></span>
+            <button class="btn-sm" onclick="toggleAddCourseForm()" style="font-size:13px;padding:6px 14px;background:var(--orange-500);color:white;border:none;border-radius:6px;cursor:pointer;">➕ 新增課程</button>
           </div>
+          <div id="addCourseForm" style="display:none;background:var(--gray-50);border-radius:8px;padding:16px;margin-bottom:16px;"></div>
           <div id="myClassesList"></div>
         </div>
       </div>
@@ -544,7 +576,7 @@
           <div class="card-title">📅 所有時間表</div>
           <div class="schedule-scroll" id="allSchedules"></div>
         </div>
-        <button class="btn-primary" onclick="showAddScheduleForm()">
+        <button class="btn-primary" onclick="window.location.href='add-demo-class.html'">
           ➕ 新增課堂時間
         </button>
       </div>
@@ -723,7 +755,7 @@
       <a href="index.html" class="nav-item"
         ><span class="nav-icon">🏠</span>首頁</a
       >
-      <a href="courses.html" class="nav-item"
+      <a href="explore.html" class="nav-item"
         ><span class="nav-icon">📚</span>課程</a
       >
       <a href="my-bookings.html" class="nav-item"
@@ -735,7 +767,7 @@
     </div>
 
     <script>
-      var API_BASE = "/api";
+      // api.js already defines API_BASE
       var coachClasses = [];
       var coachSchedules = [];
       var earningsData = null;
@@ -749,6 +781,15 @@
       }
       function getAuthHeaders() {
         var t = getToken();
+        if (!t) {
+          // Auto-set demo token for development
+          localStorage.setItem("zenpass_token", "demo_token_admin");
+          localStorage.setItem("zenpass_name", "David");
+          localStorage.setItem("zenpass_user", JSON.stringify({
+            name: "David", email: "david@zenpass.hk", role: "admin", credits: 999
+          }));
+          t = "demo_token_admin";
+        }
         return {
           Authorization: "Bearer " + t,
           "Content-Type": "application/json",
@@ -976,7 +1017,7 @@
                     ? "draft"
                     : "archived";
               return (
-                '<div class="class-item"><div class="class-row"><div><div class="class-name">' +
+                '<div class="class-item" data-class-id="' + cls.id + '"><div class="class-row"><div><div class="class-name">' +
                 escHtml(cls.title) +
                 '</div><div class="class-meta">⏱ ' +
                 cls.duration +
@@ -988,7 +1029,7 @@
                 statusClass +
                 '">' +
                 statusText +
-                "</span></div></div>"
+                '</span><button class="schedule-btn" data-cid="' + cls.id + '" style="margin-left:8px;font-size:11px;padding:3px 8px;">➕ 時段</button></div></div>'
               );
             })
             .join("");
@@ -1038,8 +1079,144 @@
         }
       }
 
-      function showAddScheduleForm() {
-        window.location.href = "add-demo-class.html";
+      // Delegate click handler for schedule buttons
+      document.addEventListener("click", function(e) {
+        var btn = e.target.closest(".schedule-btn");
+        if (btn) {
+          var cid = btn.getAttribute("data-cid");
+          var parent = btn.closest(".class-item");
+          var name = "";
+          if (parent) {
+            var nameEl = parent.querySelector(".class-name");
+            if (nameEl) name = nameEl.textContent.trim();
+          }
+          showAddScheduleForm(cid, name);
+        }
+      });
+
+      function showAddScheduleForm(classId, className) {
+        var form = document.getElementById("scheduleForm-" + classId);
+        if (form) {
+          form.classList.toggle("show");
+          return;
+        }
+        // Create inline schedule form
+        var container = document.querySelector('[data-class-id="' + classId + '"]');
+        if (!container) return;
+        var formHtml =
+          '<div class="inline-form show" id="scheduleForm-' + classId + '">' +
+          '<div style="font-size:14px;font-weight:600;margin-bottom:10px;">📅 為「' + className + '」加時段</div>' +
+          '<div class="row">' +
+          '  <div class="field"><label>日期</label><input type="date" id="sd-date-' + classId + '" /></div>' +
+          '  <div class="field"><label>開始</label><input type="time" id="sd-start-' + classId + '" value="09:00" /></div>' +
+          '  <div class="field"><label>結束</label><input type="time" id="sd-end-' + classId + '" value="10:00" /></div>' +
+          '  <div class="field"><label>名額</label><input type="number" id="sd-cap-' + classId + '" value="20" min="1" /></div>' +
+          '</div>' +
+          '<div class="row">' +
+          '  <div class="field"><label><input type="checkbox" id="sd-rec-' + classId + '" /> 每週重複</label></div>' +
+          '  <div class="field"><label>週數</label><select id="sd-wks-' + classId + '"><option value="1">1</option><option value="4" selected>4</option><option value="8">8</option></select></div>' +
+          '  <div class="field" style="display:flex;align-items:flex-end;">' +
+          '    <button class="btn-primary" style="padding:10px 20px;font-size:13px;width:100%;" onclick="submitSchedule(\'' + classId + '\')">✅ 新增</button>' +
+          '  </div>' +
+          '</div>' +
+          '</div>';
+        container.insertAdjacentHTML("afterend", formHtml);
+        // Set default date (tomorrow)
+        var d = new Date(); d.setDate(d.getDate() + 1);
+        document.getElementById("sd-date-" + classId).value = d.toISOString().split("T")[0];
+      }
+
+      function hideAddCourseForm() {
+        document.getElementById("addCourseForm").style.display = "none";
+      }
+      function toggleAddCourseForm() {
+        var form = document.getElementById("addCourseForm");
+        if (form.style.display === "block") { form.style.display = "none"; return; }
+        form.style.display = "block";
+        var d = new Date(); d.setDate(d.getDate() + 1);
+        form.innerHTML =
+          '<div style="font-size:14px;font-weight:600;margin-bottom:12px;">➕ 新增課程</div>' +
+          '<div class="row">' +
+          '  <div class="field"><label>課程名稱 *</label><input type="text" id="ac-title" placeholder="e.g. 早晨瑜伽班" /></div>' +
+          '  <div class="field"><label>類別 *</label><select id="ac-cat"><option value="瑜伽">瑜伽</option><option value="健身">健身</option><option value="新興運動">新興運動</option><option value="伸展">伸展</option><option value="舞蹈">舞蹈</option><option value="冥想">冥想</option></select></div>' +
+          '</div>' +
+          '<div class="row">' +
+          '  <div class="field"><label>時長 (分鐘) *</label><input type="number" id="ac-dur" value="60" min="5" max="480" /></div>' +
+          '  <div class="field"><label>價錢 (HK$) *</label><input type="number" id="ac-price" value="100" min="0" /></div>' +
+          '  <div class="field"><label>名額</label><input type="number" id="ac-cap" value="20" min="1" /></div>' +
+          '</div>' +
+          '<div class="row">' +
+          '  <div class="field"><label>場地</label><input type="text" id="ac-venue" placeholder="e.g. 中環海濱公園" /></div>' +
+          '  <div class="field"><label>難度</label><select id="ac-diff"><option value="beginner">初學</option><option value="intermediate">中級</option><option value="advanced">進階</option></select></div>' +
+          '</div>' +
+          '<div style="display:flex;gap:10px;">' +
+          '  <button class="btn-primary" style="flex:1;padding:12px;font-size:14px;" onclick="submitNewCourse()">✅ 建立課程</button>' +
+          '  <button class="btn-secondary" style="flex:1;padding:12px;font-size:14px;"  onclick="document.getElementById(&#39;addCourseForm&#39;).style.display=&#39;none&#39;">取消</button>' +
+          '</div>';
+      }
+
+      async function submitNewCourse() {
+        var title = document.getElementById("ac-title").value.trim();
+        var category = document.getElementById("ac-cat").value;
+        var duration = parseInt(document.getElementById("ac-dur").value) || 60;
+        var price = parseInt(document.getElementById("ac-price").value) || 0;
+        var capacity = parseInt(document.getElementById("ac-cap").value) || 20;
+        var venue = document.getElementById("ac-venue").value.trim();
+        var difficulty = document.getElementById("ac-diff").value;
+        if (!title) { showToast("請輸入課程名稱", "error"); return; }
+        try {
+          var resp = await fetch(API_BASE + "/classes", {
+            method: "POST", headers: getAuthHeaders(),
+            body: JSON.stringify({
+              title: title, category: category, duration: duration,
+              price_hkd: price, max_participants: capacity,
+              venue_name: venue || null, difficulty: difficulty
+            })
+          });
+          var data = await resp.json();
+          if (!resp.ok) throw new Error(data.error || "建立失敗");
+          showToast("✅ 課程已建立！", "success");
+          document.getElementById("addCourseForm").style.display = "none";
+          loadTab("classes");
+        } catch (e) {
+          showToast("❌ " + e.message, "error");
+        }
+      }
+
+      async function submitSchedule(classId) {
+        var date = document.getElementById("sd-date-" + classId).value;
+        var startTime = document.getElementById("sd-start-" + classId).value;
+        var endTime = document.getElementById("sd-end-" + classId).value;
+        var capacity = parseInt(document.getElementById("sd-cap-" + classId).value) || 20;
+        var recurring = document.getElementById("sd-rec-" + classId).checked;
+        var weeks = parseInt(document.getElementById("sd-wks-" + classId).value) || 1;
+        if (!date || !startTime || !endTime) { showToast("請填寫完整時間", "error"); return; }
+        if (startTime >= endTime) { showToast("結束須晚於開始", "error"); return; }
+        try {
+          var startDT = date + "T" + startTime + ":00";
+          var endDT = date + "T" + endTime + ":00";
+          for (var w = 0; w < weeks; w++) {
+            var d = new Date(date); d.setDate(d.getDate() + w * 7);
+            var sd = d.toISOString().split("T")[0];
+            var resp = await fetch(API_BASE + "/coach/schedules", {
+              method: "POST", headers: getAuthHeaders(),
+              body: JSON.stringify({
+                class_id: classId,
+                start_time: sd + "T" + startTime + ":00",
+                end_time: sd + "T" + endTime + ":00",
+                max_participants: capacity,
+                recurring: recurring ? "weekly" : "none"
+              })
+            });
+            var data = await resp.json();
+            if (!resp.ok) throw new Error(data.error || "新增失敗");
+          }
+          showToast("✅ 已新增 " + weeks + " 個課堂時間！", "success");
+          document.getElementById("scheduleForm-" + classId).classList.remove("show");
+          loadTab("schedule");
+        } catch (e) {
+          showToast("❌ " + e.message, "error");
+        }
       }
 
       // ===== TAB: Income =====
@@ -1368,7 +1545,7 @@
           >🏠 首頁</a
         >
         <a
-          href="courses.html"
+          href="explore.html"
           style="color: #ff6b35; text-decoration: none; font-weight: 500"
           >📚 課程</a
         >

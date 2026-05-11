@@ -392,6 +392,13 @@ function initDatabase() {
   try {
     db.exec("ALTER TABLE users ADD COLUMN checkin_streak INTEGER DEFAULT 0");
   } catch (e) {}
+  try {
+    db.exec("ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'user'");
+  } catch (e) {}
+  // Set admin role for existing admin users
+  try {
+    db.exec("UPDATE users SET role = 'admin' WHERE email LIKE '%admin%' OR email LIKE '%@zenpass.hk'");
+  } catch (e) {}
 
   // ===== 積分交易紀錄 =====
   db.exec(`

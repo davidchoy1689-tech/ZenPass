@@ -6,38 +6,12 @@
 const express = require("express");
 const { v4: uuidv4 } = require("uuid");
 const Database = require("better-sqlite3");
-const { authenticateToken } = require("../middleware/auth");
+const { authenticateToken, requireAdmin } = require("../middleware/auth");
 
 const { sendNotification } = require("../services/notification");
 
 const router = express.Router();
 const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
-
-// ===== Helper: 檢查是否 Admin =====
-function requireAdmin(req, res, next) {
-  if (!req.user) {
-    return res.status(401).json({ error: "需要登入認證" });
-  }
-  // Admin check: 自己人或者有 admin flag
-  const db = new Database(DB_PATH);
-  db.pragma("foreign_keys = ON");
-  const user = db
-    .prepare("SELECT email, name, is_coach FROM users WHERE id = ?")
-    .get(req.user.id);
-  db.close();
-
-  const isAdmin =
-    user &&
-    (user.email === "david@zenpass.hk" ||
-      user.email === "admin@zenpass.hk" ||
-      user.name === "David" ||
-      user.name === "David Choy" ||
-      user.name === "管理員");
-  if (!isAdmin) {
-    return res.status(403).json({ error: "需要管理員權限" });
-  }
-  next();
-}
 
 // ===== GET /api/admin/pending-payments — 待確認付款列表 =====
 router.get("/pending-payments", authenticateToken, requireAdmin, (req, res) => {

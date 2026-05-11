@@ -487,6 +487,18 @@
     </style>
   </head>
   <body>
+    <script>
+      // Auth check - redirect to login if not authenticated
+      (function() {
+        var token = localStorage.getItem("zenpass_token");
+        if (!token) {
+          window.location.href = "login.html?redirect=admin.html";
+        }
+      })();
+    </script>
+    <div id="admin-topbar" style="display:none;background:#1a1a2e;color:white;padding:8px 16px;font-size:13px;text-align:center;">
+      ⚠️ 管理後台 — 請確保你係管理員身份
+    </div>
     <!-- Login -->
     <div id="loginScreen">
       <div class="login-box">
