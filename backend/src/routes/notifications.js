@@ -158,4 +158,56 @@ router.delete("/push-unsubscribe", authenticateToken, (req, res) => {
   }
 });
 
+
+// ===== POST /api/notifications/test — 測試通知（即時發送）=====
+router.post("/test", authenticateToken, async (req, res) => {
+  try {
+    const { type = "booking.confirmed", data = {} } = req.body;
+
+    const result = await sendNotification(type, {
+      recipient: req.user.id,
+      data: {
+        class_title: data.class_title || "測試課程",
+        date: data.date || new Date().toISOString().split("T")[0],
+        time: data.time || "10:00",
+        venue: data.venue || "測試場地",
+        coach_name: data.coach_name || "測試教練",
+        student_name: req.user.name || "測試學生",
+        amount: data.amount || "100",
+        email: data.email || "",
+        ...data,
+      },
+    });
+
+    res.json({ message: "通知已發送", results: result });
+  } catch (err) {
+    console.error("測試通知錯誤:", err);
+    res.status(500).json({ error: "發送通知失敗" });
+  }
+});
+
+// ===== GET /api/notifications/config — 通知配置狀態 =====
+router.get("/config", authenticateToken, (req, res) => {
+  const config = {
+    db: true,
+    telegram: {
+      enabled: !!process.env.TELEGRAM_BOT_TOKEN && !!process.env.TELEGRAM_CHAT_ID,
+      bot_token_set: !!process.env.TELEGRAM_BOT_TOKEN,
+      chat_id_set: !!process.env.TELEGRAM_CHAT_ID,
+    },
+    whatsapp: {
+      enabled: !!process.env.TWILIO_ACCOUNT_SID && !!process.env.TWILIO_AUTH_TOKEN,
+      account_set: !!process.env.TWILIO_ACCOUNT_SID,
+      auth_set: !!process.env.TWILIO_AUTH_TOKEN,
+    },
+    whatsapp_free: {
+      enabled: !!process.env.WHATSAPP_CALLMEBOT_KEY && !!process.env.WHATSAPP_CALLMEBOT_TO,
+      key_set: !!process.env.WHATSAPP_CALLMEBOT_KEY,
+      phone_set: !!process.env.WHATSAPP_CALLMEBOT_TO,
+    },
+    types: (process.env.NOTIFICATION_TYPES || "db").split(","),
+  };
+  res.json({ config });
+});
+
 module.exports = router;

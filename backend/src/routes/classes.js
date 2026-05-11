@@ -288,7 +288,7 @@ router.get("/:id", optionalAuth, (req, res) => {
 });
 
 // ===== POST /api/classes — 新增課程（教練專用） =====
-router.post("/", requireCoach, (req, res) => {
+router.post("/", authenticateToken, requireCoach, (req, res) => {
   try {
     const {
       title,
@@ -328,7 +328,7 @@ router.post("/", requireCoach, (req, res) => {
       INSERT INTO classes (id, class_reference, coach_id, title, title_en, description, description_en, 
         category, difficulty, duration, max_participants, price_hkd, credits_cost,
         venue_name, venue_address, latitude, longitude, image_url)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
     ).run(
       id,

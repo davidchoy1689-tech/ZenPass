@@ -443,4 +443,93 @@ router.post("/:id/cancel", authenticateToken, (req, res) => {
   }
 });
 
+
+// ===== POST /api/bookings/:id/attend — 標記為已出席 =====
+router.post("/:id/attend", authenticateToken, (req, res) => {
+  try {
+    const db = new Database(DB_PATH);
+    db.pragma("foreign_keys = ON");
+
+    // Coach or admin can mark attendance
+    const user = db.prepare("SELECT is_coach, coach_verified, role FROM users WHERE id = ?").get(req.user.id);
+    const isAuthorized = user && (user.is_coach || user.role === "admin" || user.coach_verified);
+
+    if (!isAuthorized) {
+      // Allow student to check themselves in if the booking belongs to them
+      const booking = db.prepare("SELECT * FROM bookings WHERE id = ? AND user_id = ?").get(req.params.id, req.user.id);
+      if (!booking) {
+        db.close();
+        return res.status(403).json({ error: "無權限執行此操作" });
+      }
+    }
+
+    const result = db.prepare(
+      "UPDATE bookings SET status = 'attended' WHERE id = ? AND status = 'confirmed'"
+    ).run(req.params.id);
+
+    if (result.changes === 0) {
+      db.close();
+      return res.status(400).json({ error: "無法簽到，預約可能已取消或已完成" });
+    }
+
+    // Update student last_visit and total_visits
+    const booking = db.prepare("SELECT user_id, schedule_id, amount FROM bookings WHERE id = ?").get(req.params.id);
+    if (booking) {
+      db.prepare("UPDATE users SET last_visit = datetime('now'), total_visits = COALESCE(total_visits, 0) + 1, total_spent = COALESCE(total_spent, 0) + COALESCE(?, 0) WHERE id = ?")
+        .run(booking.amount || 0, booking.user_id);
+
+      // Sync coach earnings
+      try {
+        const { syncCoachEarningsForSchedule } = require("./coach-earnings");
+        syncCoachEarningsForSchedule(booking.schedule_id);
+      } catch (e) {}
+    }
+
+    db.close();
+    res.json({ message: "✅ 簽到成功！" });
+  } catch (err) {
+    console.error("簽到錯誤:", err);
+    res.status(500).json({ error: "簽到失敗" });
+  }
+});
+
+// ===== GET /api/bookings/today — 今日課堂（教練用）=====
+router.get("/today", authenticateToken, (req, res) => {
+  try {
+    const db = new Database(DB_PATH);
+    db.pragma("foreign_keys = ON");
+
+    const today = new Date().toISOString().split("T")[0];
+    const schedules = db.prepare(`
+      SELECT cs.id as schedule_id, cs.start_time, cs.end_time,
+        c.id as class_id, c.title, c.venue_name,
+        (SELECT COUNT(*) FROM bookings WHERE schedule_id = cs.id AND status = 'attended') as attended_count,
+        (SELECT COUNT(*) FROM bookings WHERE schedule_id = cs.id AND status = 'confirmed') as confirmed_count
+      FROM class_schedules cs
+      JOIN classes c ON cs.class_id = c.id
+      WHERE date(cs.start_time) = date(?)
+        AND cs.start_time > datetime('now', '-3 hours')
+      ORDER BY cs.start_time
+    `).all(today);
+
+    // For each schedule, get the students
+    const result = schedules.map(function(s) {
+      const students = db.prepare(`
+        SELECT b.id as booking_id, u.id, u.name, b.status, b.created_at as booked_at
+        FROM bookings b
+        JOIN users u ON b.user_id = u.id
+        WHERE b.schedule_id = ? AND b.status IN ('confirmed', 'attended')
+        ORDER BY b.created_at
+      `).all(s.schedule_id);
+      return { ...s, students: students };
+    });
+
+    db.close();
+    res.json({ schedules: result, date: today });
+  } catch (err) {
+    console.error("獲取今日課堂錯誤:", err);
+    res.status(500).json({ error: "無法取得今日課堂" });
+  }
+});
+
 module.exports = router;

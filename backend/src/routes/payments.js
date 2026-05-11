@@ -795,4 +795,150 @@ router.post("/confirm", authenticateToken, validate(schemas.payment_confirm), (r
   }
 });
 
+
+// ===== POST /api/payments/setup-intent — 建立 SetupIntent（儲存信用卡）=====
+router.post("/setup-intent", authenticateToken, async (req, res) => {
+  try {
+    const stripe = getStripe();
+    if (!stripe) {
+      return res.json({ dev_mode: true, client_secret: null, message: "Stripe 未設定" });
+    }
+
+    // Find or create Stripe customer
+    const db = new Database(DB_PATH);
+    db.pragma("foreign_keys = ON");
+    const user = db.prepare("SELECT id, email, name, stripe_customer_id FROM users WHERE id = ?").get(req.user.id);
+    db.close();
+
+    let customerId = user?.stripe_customer_id;
+    if (!customerId) {
+      const customer = await stripe.customers.create({
+        email: user?.email,
+        name: user?.name,
+        metadata: { user_id: req.user.id },
+      });
+      customerId = customer.id;
+      const db2 = new Database(DB_PATH);
+      db2.pragma("foreign_keys = ON");
+      db2.prepare("UPDATE users SET stripe_customer_id = ? WHERE id = ?").run(customerId, req.user.id);
+      db2.close();
+    }
+
+    const setupIntent = await stripe.setupIntents.create({
+      customer: customerId,
+      payment_method_types: ["card"],
+    });
+
+    res.json({ client_secret: setupIntent.client_secret, dev_mode: false });
+  } catch (err) {
+    console.error("SetupIntent error:", err);
+    res.status(500).json({ error: "無法建立付款設定" });
+  }
+});
+
+// ===== POST /api/payments/save-payment-method — 儲存付款方式 =====
+router.post("/save-payment-method", authenticateToken, async (req, res) => {
+  try {
+    const { payment_method_id } = req.body;
+    if (!payment_method_id) return res.status(400).json({ error: "缺少付款方式" });
+
+    const stripe = getStripe();
+    if (!stripe) return res.json({ dev_mode: true, message: "Dev mode: payment method saved" });
+
+    // Attach to customer
+    const db = new Database(DB_PATH);
+    db.pragma("foreign_keys = ON");
+    const user = db.prepare("SELECT stripe_customer_id FROM users WHERE id = ?").get(req.user.id);
+    db.close();
+
+    if (!user?.stripe_customer_id) {
+      return res.status(400).json({ error: "請先建立付款設定" });
+    }
+
+    const paymentMethod = await stripe.paymentMethods.attach(payment_method_id, {
+      customer: user.stripe_customer_id,
+    });
+
+    // Set as default
+    await stripe.customers.update(user.stripe_customer_id, {
+      invoice_settings: { default_payment_method: payment_method_id },
+    });
+
+    res.json({ message: "✅ 付款方式已儲存", card: paymentMethod.card?.last4 });
+  } catch (err) {
+    console.error("Save payment method error:", err);
+    res.status(500).json({ error: "無法儲存付款方式" });
+  }
+});
+
+// ===== POST /api/payments/create-subscription — 建立會籍自動扣款 =====
+router.post("/create-subscription", authenticateToken, async (req, res) => {
+  try {
+    const { plan_id, price } = req.body;
+    if (!plan_id || !price) return res.status(400).json({ error: "缺少會籍資料" });
+
+    const stripe = getStripe();
+    if (!stripe || !plan_id.startsWith("price_")) {
+      // Dev mode - just update the user record
+      const db = new Database(DB_PATH);
+      db.pragma("foreign_keys = ON");
+      db.prepare("UPDATE users SET membership_type = ?, membership_expires_at = ? WHERE id = ?")
+        .run(plan_id, new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), req.user.id);
+      db.close();
+      return res.json({ dev_mode: true, message: "Dev mode: subscription created" });
+    }
+
+    // Get or create customer
+    const db = new Database(DB_PATH);
+    db.pragma("foreign_keys = ON");
+    const user = db.prepare("SELECT stripe_customer_id FROM users WHERE id = ?").get(req.user.id);
+    db.close();
+
+    if (!user?.stripe_customer_id) {
+      return res.status(400).json({ error: "請先儲存付款方式" });
+    }
+
+    // Create subscription
+    const subscription = await stripe.subscriptions.create({
+      customer: user.stripe_customer_id,
+      items: [{ price: plan_id }],
+      payment_behavior: "default_incomplete",
+      expand: ["latest_invoice.payment_intent"],
+    });
+
+    res.json({
+      subscription_id: subscription.id,
+      client_secret: subscription.latest_invoice?.payment_intent?.client_secret,
+      status: subscription.status,
+    });
+  } catch (err) {
+    console.error("Create subscription error:", err);
+    res.status(500).json({ error: "無法建立會籍" });
+  }
+});
+
+// ===== POST /api/payments/cancel-subscription — 取消自動扣款 =====
+router.post("/cancel-subscription", authenticateToken, async (req, res) => {
+  try {
+    const { subscription_id } = req.body;
+
+    const stripe = getStripe();
+    if (!stripe) {
+      const db = new Database(DB_PATH);
+      db.pragma("foreign_keys = ON");
+      db.prepare("UPDATE users SET membership_type = 'none', membership_expires_at = NULL WHERE id = ?")
+        .run(req.user.id);
+      db.close();
+      return res.json({ dev_mode: true, message: "會籍已取消" });
+    }
+
+    await stripe.subscriptions.cancel(subscription_id);
+
+    res.json({ message: "✅ 會籍已取消" });
+  } catch (err) {
+    console.error("Cancel subscription error:", err);
+    res.status(500).json({ error: "無法取消會籍" });
+  }
+});
+
 module.exports = router;

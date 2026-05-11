@@ -1036,6 +1036,30 @@
       async function loadBooking() {
         var params = new URLSearchParams(window.location.search);
         bookingId = params.get("booking_id");
+        var payType = params.get("type");
+        var posMethod = params.get("method");
+
+        // POS sale - show simple payment info
+        if (payType === "pos") {
+          var posAmount = params.get("amount") || "0";
+          var posItem = params.get("item") || "POS 銷售";
+          document.getElementById("loading-state").classList.add("hidden");
+          document.getElementById("pay-page").classList.remove("hidden");
+          document.getElementById("pay-main-title").textContent = "💳 收款";
+          document.getElementById("order-info").innerHTML =
+            '<div class="order-summary"><div class="order-row"><span class="label">項目</span><span>' + posItem + '</span></div>' +
+            '<div class="order-row total"><span class="label">應付金額</span><span>HK$' + posAmount + '</span></div></div>';
+          // Show FPS/PayMe instructions
+          document.getElementById("pay-methods").innerHTML =
+            '<div class="pay-option selected" onclick="selectMethod('fps')"><div class="check">✓</div><div class="icon">🏦</div><div class="info"><div class="name">轉數快 FPS</div><div class="desc">電話：9033 5538 · HSBC</div></div></div>' +
+            '<div class="pay-option" onclick="selectMethod('payme')"><div class="check"></div><div class="icon">📱</div><div class="info"><div class="name">PayMe</div><div class="desc">電話：9492 5828</div></div></div>';
+          document.getElementById("pay-button").textContent = "✅ 完成付款 — HK$" + posAmount;
+          // Hide Stripe card element
+          document.getElementById("card-element").style.display = "none";
+          paymentAmount = parseFloat(posAmount);
+          selectedMethod = "fps"; // Default to FPS
+          return;
+        }
 
         if (!bookingId) {
           showError("缺少預約編號，請從預約頁面進入付款");

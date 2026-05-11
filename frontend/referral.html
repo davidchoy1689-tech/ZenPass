@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="zh-HK">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>推薦與會籍 — ZenPass</title>
+<script src="api.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--orange-500:#ff6b35;--orange-100:#fff0e8;--dark-900:#1a1a2e;--dark-700:#3d3d5a;--green-500:#059669;--gray-200:#e5e7eb;--gray-100:#f3f4f6;--white:#fff;--radius:8px;--font-zh:"Noto Sans TC",sans-serif}
+body{font-family:var(--font-zh);background:var(--gray-50);color:var(--dark-900);padding:20px;max-width:600px;margin:0 auto}
+h1{font-size:20px;margin-bottom:16px}
+.card{background:var(--white);border-radius:var(--radius);padding:16px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.card h3{font-size:15px;margin-bottom:8px}
+.ref-code{font-size:24px;font-weight:800;color:var(--orange-500);text-align:center;padding:16px;background:var(--orange-100);border-radius:var(--radius);letter-spacing:2px;margin-bottom:8px}
+.copy-btn{background:var(--orange-500);color:white;border:none;padding:10px 24px;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer;width:100%;font-family:var(--font-zh)}
+.copy-btn:hover{background:#e55a2b}
+.stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px}
+.stat{text-align:center;padding:10px;background:var(--gray-50);border-radius:6px}
+.stat .val{font-size:18px;font-weight:700;color:var(--orange-500)}
+.stat .lbl{font-size:11px;color:var(--dark-700)}
+.input-group{display:flex;gap:8px;margin-bottom:8px}
+.input-group input{flex:1;padding:10px;border:1px solid var(--gray-200);border-radius:6px;font-size:14px;font-family:var(--font-zh)}
+.btn{width:100%;padding:12px;border:none;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer;font-family:var(--font-zh)}
+.btn-primary{background:var(--orange-500);color:white}
+.btn-outline{background:white;border:1px solid var(--gray-200)}
+.tier-card{border:2px solid var(--gray-200);border-radius:var(--radius);padding:14px;margin-bottom:8px;transition:all .2s}
+.tier-card.current{border-color:var(--orange-500);background:var(--orange-50)}
+.tier-card .tier-name{font-size:16px;font-weight:700}
+.tier-card .tier-benefits{font-size:13px;color:var(--dark-700);margin-top:4px;line-height:1.8}
+.tier-card .tier-progress{height:4px;background:var(--gray-200);border-radius:2px;margin-top:8px;overflow:hidden}
+.tier-card .tier-progress .fill{height:100%;background:var(--orange-500);border-radius:2px;transition:width .3s}
+.msg{font-size:13px;padding:8px;border-radius:6px;margin-top:8px;display:none}
+.msg.success{display:block;background:#ecfdf5;color:var(--green-500)}
+.msg.error{display:block;background:#fef2f2;color:#ef4444}
+</style>
+</head>
+<body>
+<h1>🤝 推薦與會籍</h1>
+
+<div class="card">
+  <h3>🔗 你的推薦碼</h3>
+  <p style="font-size:13px;color:var(--dark-700);margin-bottom:8px;">分享推薦碼俾朋友，雙方各得 Credits 🎁</p>
+  <div id="ref-code-area">載入中...</div>
+  <div class="stats" id="ref-stats"></div>
+</div>
+
+<div class="card">
+  <h3>📥 輸入推薦碼</h3>
+  <div class="input-group">
+    <input type="text" id="ref-input" placeholder="e.g. ZPABC123" style="text-transform:uppercase">
+    <button class="btn btn-primary" style="width:auto;padding:10px 20px;" onclick="redeemCode()">使用</button>
+  </div>
+  <div id="ref-msg" class="msg"></div>
+</div>
+
+<div class="card">
+  <h3>🏅 會籍等級</h3>
+  <div id="tier-list">載入中...</div>
+</div>
+
+<script>
+function h() {
+  var t = localStorage.getItem("zenpass_token") || "";
+  return { Authorization: "Bearer " + t, "Content-Type": "application/json" };
+}
+
+async function loadReferral() {
+  try {
+    var r = await fetch("/api/referral/my-code", { headers: h() });
+    var d = await r.json();
+    document.getElementById("ref-code-area").innerHTML =
+      '<div class="ref-code" id="ref-code">' + d.code + '</div>' +
+      '<button class="copy-btn" onclick="copyCode()">📋 複製推薦碼</button>';
+    document.getElementById("ref-stats").innerHTML =
+      '<div class="stat"><div class="val">' + d.redeemed + '</div><div class="lbl">已推薦</div></div>' +
+      '<div class="stat"><div class="val">' + d.credits_earned + '</div><div class="lbl">賺取 Credits</div></div>' +
+      '<div class="stat"><div class="val">10</div><div class="lbl">每推薦獎勵</div></div>';
+  } catch(e) {
+    document.getElementById("ref-code-area").innerHTML = '<span style="color:#ef4444">❌ ' + e.message + '</span>';
+  }
+}
+
+function copyCode() {
+  var code = document.getElementById("ref-code").textContent;
+  navigator.clipboard.writeText(code);
+  var btn = document.querySelector(".copy-btn");
+  btn.textContent = "✅ 已複製！";
+  setTimeout(function() { btn.textContent = "📋 複製推薦碼"; }, 2000);
+}
+
+async function redeemCode() {
+  var code = document.getElementById("ref-input").value.trim().toUpperCase();
+  if (!code) return;
+  try {
+    var r = await fetch("/api/referral/redeem", {
+      method: "POST", headers: h(),
+      body: JSON.stringify({ code: code })
+    });
+    var d = await r.json();
+    var msg = document.getElementById("ref-msg");
+    if (!r.ok) throw new Error(d.error);
+    msg.className = "msg success";
+    msg.textContent = d.message;
+    loadReferral();
+  } catch(e) {
+    document.getElementById("ref-msg").className = "msg error";
+    document.getElementById("ref-msg").textContent = "❌ " + e.message;
+  }
+}
+
+async function loadTiers() {
+  try {
+    var r = await fetch("/api/loyalty/tiers", { headers: h() });
+    var d = await r.json();
+    var tiers = d.tiers || [];
+    var user = getStoredUser();
+    var visits = user?.total_visits || 0;
+    var currentTier = "bronze";
+    tiers.forEach(function(t) { if (visits >= t.min_visits) currentTier = t.id; });
+    document.getElementById("tier-list").innerHTML = tiers.map(function(t) {
+      var isCurrent = t.id === currentTier;
+      var nextTier = tiers[tiers.indexOf(t) + 1];
+      var progress = nextTier ? Math.min(100, (visits - t.min_visits) / (nextTier.min_visits - t.min_visits) * 100) : 100;
+      if (t.min_visits === 0 && visits === 0) progress = 0;
+      return '<div class="tier-card' + (isCurrent ? ' current' : '') + '">' +
+        '<div class="tier-name">' + t.name + (isCurrent ? ' ← 你嘅等級' : '') + '</div>' +
+        '<div class="tier-benefits">' + t.benefits.map(function(b) { return '✅ ' + b; }).join('<br>') + '</div>' +
+        (nextTier && !isCurrent ? '<div class="tier-progress"><div class="fill" style="width:' + progress + '%"></div></div>' +
+        '<div style="font-size:11px;color:var(--dark-700);margin-top:4px;">' + visits + '/' + nextTier.min_visits + ' 次到訪</div>' : '') +
+        '</div>';
+    }).join('');
+  } catch(e) {
+    document.getElementById("tier-list").innerHTML = '<span style="color:#ef4444">❌ ' + e.message + '</span>';
+  }
+}
+
+loadReferral();
+loadTiers();
+</script>
+</body>
+</html>

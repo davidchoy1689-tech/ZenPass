@@ -395,12 +395,131 @@ function initDatabase() {
   try {
     db.exec("ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'user'");
   } catch (e) {}
+  try {
+    db.exec("ALTER TABLE users ADD COLUMN stripe_customer_id TEXT");
+  } catch (e) {}
+  try {
+    db.exec("ALTER TABLE users ADD COLUMN stripe_subscription_id TEXT");
+  } catch (e) {}
+  try {
+    db.exec("ALTER TABLE users ADD COLUMN auto_renew INTEGER DEFAULT 0");
+  } catch (e) {}
   // Set admin role for existing admin users
   try {
     db.exec("UPDATE users SET role = 'admin' WHERE email LIKE '%admin%' OR email LIKE '%@zenpass.hk'");
   } catch (e) {}
 
-  // ===== 積分交易紀錄 =====
+  
+  // ===== CRM 學生管理 =====
+  try {
+    db.exec("ALTER TABLE users ADD COLUMN tags TEXT DEFAULT ''");
+  } catch (e) {}
+  try {
+    db.exec("ALTER TABLE users ADD COLUMN notes TEXT DEFAULT ''");
+  } catch (e) {}
+  try {
+    db.exec("ALTER TABLE users ADD COLUMN last_visit TEXT");
+  } catch (e) {}
+  try {
+    db.exec("ALTER TABLE users ADD COLUMN total_visits INTEGER DEFAULT 0");
+  } catch (e) {}
+  try {
+    db.exec("ALTER TABLE users ADD COLUMN total_spent REAL DEFAULT 0");
+  } catch (e) {}
+  try {
+    db.exec("ALTER TABLE users ADD COLUMN lead_source TEXT DEFAULT ''");
+  } catch (e) {}
+
+  // Student notes table (per-coach notes)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS student_notes (
+      id TEXT PRIMARY KEY,
+      student_id TEXT NOT NULL,
+      coach_id TEXT NOT NULL,
+      content TEXT NOT NULL,
+      created_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (student_id) REFERENCES users(id),
+      FOREIGN KEY (coach_id) REFERENCES users(id)
+    )
+  `);
+
+
+  // ===== 多場地管理 =====
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS locations (
+      id TEXT PRIMARY KEY,
+      coach_id TEXT NOT NULL,
+      name TEXT NOT NULL,
+      address TEXT,
+      phone TEXT,
+      is_primary INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (coach_id) REFERENCES users(id)
+    )
+  `);
+  try {
+    db.exec("ALTER TABLE class_schedules ADD COLUMN location_id TEXT REFERENCES locations(id)");
+  } catch (e) {}
+  try {
+    db.exec("ALTER TABLE class_schedules ADD COLUMN notes TEXT");
+  } catch (e) {}
+
+  // ===== POS / 銷售記錄 =====
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS sales (
+      id TEXT PRIMARY KEY,
+      coach_id TEXT NOT NULL,
+      location_id TEXT,
+      type TEXT NOT NULL CHECK(type IN ('class','package','retail','other')),
+      item_name TEXT NOT NULL,
+      quantity INTEGER DEFAULT 1,
+      unit_price REAL NOT NULL,
+      total_amount REAL NOT NULL,
+      payment_method TEXT,
+      customer_name TEXT,
+      customer_phone TEXT,
+      created_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (coach_id) REFERENCES users(id),
+      FOREIGN KEY (location_id) REFERENCES locations(id)
+    )
+  `);
+
+
+  // ===== 推薦計劃 =====
+  try {
+    db.exec("ALTER TABLE users ADD COLUMN referral_code TEXT");
+  } catch (e) {}
+  try {
+    db.exec("ALTER TABLE users ADD COLUMN referred_by TEXT");
+  } catch (e) {}
+  try {
+    db.exec("ALTER TABLE users ADD COLUMN referral_credits_earned INTEGER DEFAULT 0");
+  } catch (e) {}
+  
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS referral_codes (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      code TEXT UNIQUE NOT NULL,
+      created_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    )
+  `);
+  
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS referral_redemptions (
+      id TEXT PRIMARY KEY,
+      referrer_id TEXT NOT NULL,
+      referred_user_id TEXT,
+      code_used TEXT NOT NULL,
+      status TEXT DEFAULT 'pending' CHECK(status IN ('pending','completed','cancelled')),
+      reward_given INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (referrer_id) REFERENCES users(id)
+    )
+  `);
+
+// ===== 積分交易紀錄 =====
   db.exec(`
     CREATE TABLE IF NOT EXISTS points_transactions (
       id TEXT PRIMARY KEY,

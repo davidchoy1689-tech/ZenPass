@@ -105,6 +105,11 @@ app.use("/api/course-contents", require("./routes/course-contents"));
 app.use("/api/migrate", require("./routes/migrate"));
 app.use("/api/points", require("./routes/points"));
 app.use("/api/badges", require("./routes/badges"));
+app.use("/api/crm", require("./routes/crm"));
+app.use("/api/locations", require("./routes/pos"));
+app.use("/api/pos", require("./routes/pos"));
+app.use("/api/referral", require("./routes/referral"));
+app.use("/api/loyalty", require("./routes/referral"));
 
 // ===== 健康檢查 =====
 const { ok } = require("./services/response");

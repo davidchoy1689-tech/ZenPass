@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="zh-HK">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>會籍與付款 — ZenPass</title>
+<script src="api.js"></script>
+<script src="https://js.stripe.com/v3/"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--orange-500:#ff6b35;--orange-100:#fff0e8;--dark-900:#1a1a2e;--dark-700:#3d3d5a;--green-500:#059669;--gray-200:#e5e7eb;--gray-100:#f3f4f6;--white:#fff;--radius:8px;--font-zh:"Noto Sans TC",sans-serif}
+body{font-family:var(--font-zh);background:var(--gray-100);color:var(--dark-900);padding:20px;max-width:600px;margin:0 auto}
+h1{font-size:20px;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.card{background:var(--white);border-radius:var(--radius);padding:16px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.card h3{font-size:15px;margin-bottom:8px}
+.row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--gray-100);font-size:14px}
+.row:last-child{border-bottom:none}
+.label{color:var(--dark-700)}
+.val{font-weight:600}
+.plan-cards{display:grid;gap:10px;margin-bottom:16px}
+.plan-card{border:2px solid var(--gray-200);border-radius:var(--radius);padding:16px;cursor:pointer;transition:all .2s}
+.plan-card:hover{border-color:var(--orange-300)}
+.plan-card.selected{border-color:var(--orange-500);background:var(--orange-50)}
+.plan-card .name{font-size:16px;font-weight:700}
+.plan-card .price{font-size:22px;font-weight:800;color:var(--orange-500);margin:4px 0}
+.plan-card .price small{font-size:13px;font-weight:400;color:var(--dark-700)}
+.plan-card .features{font-size:13px;color:var(--dark-700);line-height:1.8}
+.btn{padding:12px 24px;border:none;border-radius:var(--radius);font-size:15px;font-weight:700;cursor:pointer;font-family:var(--font-zh);width:100%;transition:background .2s}
+.btn-primary{background:var(--orange-500);color:var(--white)}
+.btn-primary:hover{background:#e55a2b}
+.btn:disabled{background:var(--gray-200);color:var(--dark-700);cursor:not-allowed}
+.btn-secondary{background:var(--gray-100);color:var(--dark-700);margin-top:8px}
+.badge{font-size:12px;padding:3px 10px;border-radius:99px;font-weight:500}
+.badge.active{background:#ecfdf5;color:var(--green-500)}
+.badge.inactive{background:var(--gray-100);color:var(--dark-700)}
+#card-element{padding:12px;border:1px solid var(--gray-200);border-radius:var(--radius);background:var(--white);min-height:44px}
+#card-errors{color:#ef4444;font-size:13px;margin-top:6px;min-height:20px}
+.spinner{display:inline-block;width:18px;height:18px;border:2px solid rgba(255,255,255,.3);border-top-color:white;border-radius:50%;animation:spin .8s linear infinite;vertical-align:middle;margin-right:8px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.success{text-align:center;padding:30px 0}
+.success .icon{font-size:48px;margin-bottom:8px}
+.success h2{font-size:18px;margin-bottom:4px}
+.success p{font-size:13px;color:var(--dark-700)}
+@media(max-width:480px){.plan-cards{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<h1>💳 會籍與付款</h1>
+
+<div id="current-status"></div>
+
+<div id="plan-section">
+  <h3>📋 選擇會籍計劃</h3>
+  <div class="plan-cards" id="plan-cards"></div>
+
+  <div id="payment-section" style="display:none;">
+    <div class="card">
+      <h3>💳 信用卡資料</h3>
+      <div id="card-element"></div>
+      <div id="card-errors"></div>
+    </div>
+    <button class="btn btn-primary" id="subscribe-btn" onclick="subscribe()">
+      ✅ 確認訂閱
+    </button>
+  </div>
+</div>
+
+<script>
+var stripeClient = null;
+var stripeCard = null;
+var selectedPlan = null;
+var STRIPE_PK = "pk_test_51TTH5lRy5l6E7AvNNILQml3gy5Te3EOtHNNLX1QSwi3mxFG0bTfjNETbDUlJZGHXARmqB0VfKvNOUkW4uOUPMF9y00dvZeP56d";
+
+var plans = [
+  { id: "trial", name: "🎁 試玩", price: 0, desc: "3 日免費體驗", features: ["無限瀏覽課程", "1 次預約體驗"] },
+  { id: "standard", name: "🌟 標準會籍", price: 199, desc: "HK$199/月", features: ["無限預約課程", "優先預約熱門課", "免費取消"] },
+  { id: "unlimited", name: "💎 尊尚會籍", price: 399, desc: "HK$399/月", features: ["全部標準功能", "專屬教練諮詢", "每月 2 堂免費私教", "優先參加新課程"] },
+];
+
+function headers() {
+  var t = localStorage.getItem("zenpass_token") || "";
+  return { Authorization: "Bearer " + t, "Content-Type": "application/json" };
+}
+
+async function api(meth, path, data) {
+  var opt = { method: meth, headers: headers() };
+  if (data) opt.body = JSON.stringify(data);
+  var r = await fetch(window.location.origin + path, opt);
+  var d = await r.json();
+  if (!r.ok) throw new Error(d.error || "請求失敗");
+  return d;
+}
+
+async function loadStatus() {
+  try {
+    var u = getStoredUser();
+    var statusEl = document.getElementById("current-status");
+
+    if (u && u.membership_type && u.membership_type !== "none") {
+      statusEl.innerHTML =
+        '<div class="card" style="background:var(--orange-50);border:1px solid var(--orange-500);">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;">' +
+        '<div><h3>✅ 你係 ' + (u.membership_type === 'standard' ? '🌟 標準會籍' : u.membership_type === 'unlimited' ? '💎 尊尚會籍' : '🎁 試玩') + '</h3>' +
+        '<p style="font-size:13px;color:var(--dark-700);">' + (u.membership_expires_at ? '到期日：' + u.membership_expires_at.split('T')[0] : '') + '</p></div>' +
+        '<span class="badge active">生效中</span></div></div>';
+      document.getElementById("plan-section").innerHTML =
+        '<div class="card"><h3>🔄 升級會籍</h3>' +
+        '<p style="font-size:13px;color:var(--dark-700);margin-bottom:12px;">你目前已有生效會籍。如需升級，可選擇新計劃。</p>' +
+        renderPlanCards() +
+        '</div>';
+    } else {
+      statusEl.innerHTML =
+        '<div class="card" style="text-align:center;padding:20px;">' +
+        '<div style="font-size:40px;margin-bottom:8px;">🔓</div>' +
+        '<h3>未有會籍</h3><p style="font-size:13px;color:var(--dark-700);">揀個計劃開始無限預約</p></div>';
+    }
+  } catch(e) {
+    console.log(e.message);
+  }
+}
+
+function renderPlanCards() {
+  var html = '<div class="plan-cards">';
+  plans.forEach(function(p) {
+    html += '<div class="plan-card" onclick="selectPlan(\'' + p.id + '\',this)" data-id="' + p.id + '">' +
+      '<div class="name">' + p.name + '</div>' +
+      '<div class="price">' + (p.price > 0 ? 'HK$' + p.price : '免費') + '<small>/月</small></div>' +
+      '<div class="features">' + p.features.map(function(f) { return '✅ ' + f; }).join('<br>') + '</div></div>';
+  });
+  html += '</div>';
+  return html;
+}
+
+document.addEventListener("DOMContentLoaded", function() {
+  document.getElementById("plan-cards").innerHTML = renderPlanCards();
+});
+
+function selectPlan(id, el) {
+  document.querySelectorAll(".plan-card").forEach(function(c) { c.classList.remove("selected"); });
+  el.classList.add("selected");
+  selectedPlan = id;
+
+  // Show payment section for paid plans
+  if (id === "trial") {
+    document.getElementById("payment-section").style.display = "none";
+    document.getElementById("subscribe-btn").textContent = "🎁 開始免費試用";
+  } else {
+    document.getElementById("payment-section").style.display = "block";
+    if (!stripeClient) initStripe();
+  }
+}
+
+function initStripe() {
+  stripeClient = Stripe(STRIPE_PK);
+  var elements = stripeClient.elements();
+  stripeCard = elements.create("card", {
+    style: { base: { fontSize: "16px", fontFamily: '"Noto Sans TC", sans-serif' } }
+  });
+  stripeCard.mount("#card-element");
+  stripeCard.on("change", function(e) {
+    document.getElementById("card-errors").textContent = e.error ? e.error.message : "";
+  });
+}
+
+async function subscribe() {
+  var btn = document.getElementById("subscribe-btn");
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> 處理中...';
+
+  try {
+    if (selectedPlan === "trial") {
+      // Direct trial
+      var d = await api("POST", "/api/memberships/subscribe", { plan: "trial" });
+    } else if (stripeClient && stripeCard) {
+      // 1. Create setup intent
+      var setupResp = await api("POST", "/api/payments/setup-intent");
+
+      if (setupResp.dev_mode) {
+        // Dev mode - create subscription directly
+        var subResp = await api("POST", "/api/payments/create-subscription", {
+          plan_id: selectedPlan,
+          price: plans.find(function(p) { return p.id === selectedPlan; }).price
+        });
+      } else {
+        // 2. Confirm card
+        var result = await stripeClient.confirmCardSetup(setupResp.client_secret, {
+          payment_method: { card: stripeCard }
+        });
+
+        if (result.error) {
+          document.getElementById("card-errors").textContent = result.error.message;
+          btn.disabled = false;
+          btn.innerHTML = "❌ 重試";
+          return;
+        }
+
+        // 3. Save payment method & create subscription
+        await api("POST", "/api/payments/save-payment-method", {
+          payment_method_id: result.setupIntent.payment_method
+        });
+
+        var subResp = await api("POST", "/api/payments/create-subscription", {
+          plan_id: selectedPlan,
+          price: plans.find(function(p) { return p.id === selectedPlan; }).price
+        });
+      }
+    }
+
+    // Success
+    document.getElementById("plan-section").innerHTML =
+      '<div class="success"><div class="icon">🎉</div><h2>會籍啟動成功！</h2>' +
+      '<p>你已經成為 ' + (selectedPlan === 'trial' ? '🎁 試玩' : selectedPlan === 'standard' ? '🌟 標準' : '💎 尊尚') + ' 會員</p>' +
+      '<button class="btn btn-primary" style="margin-top:16px;" onclick="window.location.href=\'explore.html\'">開始探索課程</button></div>';
+
+  } catch (e) {
+    document.getElementById("card-errors").textContent = "❌ " + e.message;
+    btn.disabled = false;
+    btn.textContent = "✅ 重試";
+  }
+}
+
+loadStatus();
+</script>
+</body>
+</html>
