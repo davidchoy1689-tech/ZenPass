@@ -115,6 +115,7 @@ app.use("/api/crm", require("./routes/crm"));
 app.use("/api/locations", require("./routes/pos"));
 app.use("/api/pos", require("./routes/pos"));
 app.use("/api/waitlist", require("./routes/waitlist"));
+app.use("/api/ai", require("./routes/ai"));
 app.use("/api/marketing", require("./routes/marketing"));
 app.use("/api/reporting", require("./routes/reporting"));
 app.use("/api/referral", require("./routes/referral"));

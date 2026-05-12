@@ -1,60 +1,46 @@
 /**
  * ZenPass 禪流 - 集中式錯誤處理
- * 所有未捕獲嘅錯誤會統一喺呢度處理
+ * 所有未捕獲嘅 error 都會喺呢度處理
  */
 
-const logger = require("../services/logger");
-const { serverError } = require("../services/response");
-
+// Custom error class
 class AppError extends Error {
-  constructor(message, status = 400, details = null) {
+  constructor(message, statusCode = 500, details = null) {
     super(message);
-    this.name = "AppError";
-    this.status = status;
+    this.statusCode = statusCode;
     this.details = details;
+    this.isOperational = true;
+    Error.captureStackTrace(this, this.constructor);
   }
 }
 
-function errorHandler(err, req, res, next) {
-  // 已知嘅 AppError → 回傳對應 status
-  if (err instanceof AppError) {
-    const body = { success: false, error: err.message };
-    if (err.details) body.details = err.details;
-    return res.status(err.status).json(body);
-  }
-
-  // 輸入驗證錯誤
-  if (err.name === "ValidationError" || err.type === "validation") {
-    return res.status(400).json({
-      success: false,
-      error: "輸入驗證失敗",
-      details: err.details || err.message,
-    });
-  }
-
-  // JWT 錯誤
-  if (err.name === "JsonWebTokenError" || err.name === "TokenExpiredError") {
-    return res.status(401).json({ success: false, error: "認證無效或已過期" });
-  }
-
-  // CORS 錯誤
-  if (err.message && err.message.includes("CORS")) {
-    return res.status(403).json({ success: false, error: "請求來源不被允許" });
-  }
-
-  // 未預期錯誤
-  logger.error("未預期錯誤", {
-    error: err.message,
-    stack: err.stack,
-    method: req.method,
-    url: req.originalUrl,
-  });
-
-  return res.status(500).json({
-    success: false,
-    error: "伺服器內部錯誤",
-    ...(process.env.NODE_ENV === "development" && { detail: err.message }),
-  });
+// 404 handler
+function notFound(req, res, next) {
+  const error = new AppError(`Not Found: ${req.originalUrl}`, 404);
+  next(error);
 }
 
-module.exports = { AppError, errorHandler };
+// Centralized error handler
+function errorHandler(err, req, res, _next) {
+  // Default error
+  const statusCode = err.statusCode || 500;
+  const message = err.isOperational ? err.message : '伺服器內部錯誤';
+  const details = err.details || null;
+
+  // Log error
+  if (statusCode >= 500) {
+    console.error(`[${new Date().toISOString()}] ERROR ${statusCode}:`, err.stack || err.message);
+  } else {
+    console.log(`[${new Date().toISOString()}] WARN ${statusCode}:`, err.message);
+  }
+
+  // Response
+  const body = { success: false, error: message };
+  if (details && process.env.NODE_ENV !== 'production') {
+    body.details = details;
+  }
+
+  res.status(statusCode).json(body);
+}
+
+module.exports = { AppError, notFound, errorHandler };
