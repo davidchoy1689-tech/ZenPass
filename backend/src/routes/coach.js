@@ -8,6 +8,7 @@ const { v4: uuidv4 } = require("uuid");
 const Database = require("better-sqlite3");
 const { authenticateToken } = require("../middleware/auth");
 const { getSupabase } = require("../services/supabase");
+const { sendNotification } = require("../services/notification");
 
 const router = express.Router();
 const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
@@ -273,6 +274,35 @@ router.get("/profile", authenticateToken, async (req, res) => {
   } catch (err) {
     console.error("獲取教練資料錯誤:", err);
     res.status(500).json({ error: "無法獲取資料" });
+  }
+});
+
+// ===== POST /api/coach/refer — 推薦新教練 =====
+router.post("/refer", authenticateToken, (req, res) => {
+  try {
+    const { name, email, phone } = req.body;
+    if (!name || !email) return res.status(400).json({ error: "請填寫教練姓名和電郵" });
+
+    const db = new Database(DB_PATH);
+    db.pragma("foreign_keys = ON");
+
+    // Log the referral
+    db.prepare(`
+      INSERT INTO referral_codes (id, user_id, code)
+      VALUES (?, ?, ?)
+    `).run(uuidv4(), req.user.id, "COACH-" + Math.random().toString(36).substring(2, 8).toUpperCase());
+
+    // Notify admin
+    sendNotification("coach.referral", {
+      user_id: req.user.id,
+      data: { name, email, phone, referred_by: req.user.name },
+    });
+
+    db.close();
+    res.json({ success: true, message: "✅ 推薦已提交！管理員會聯絡 " + name });
+  } catch (err) {
+    console.error("Coach refer error:", err.message);
+    res.status(500).json({ error: "推薦失敗" });
   }
 });
 

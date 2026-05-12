@@ -1002,5 +1002,99 @@ function syncCoachEarningsForSchedule(scheduleId) {
   }
 }
 
+// ===== Stripe Connect for Coach Payouts =====
+const STRIPE_SECRET = process.env.STRIPE_SECRET_KEY;
+
+// POST /api/coach/payouts/create-account-link — 教練連結 Stripe 帳戶
+router.post("/payouts/create-account-link", authenticateToken, async (req, res) => {
+  try {
+    if (!STRIPE_SECRET || STRIPE_SECRET.startsWith("sk_test_51TTH5l")) {
+      return res.status(200).json({
+        url: null,
+        note: "Stripe Connect not configured. Contact admin to set STRIPE_SECRET_KEY.",
+      });
+    }
+    const stripe = require("stripe")(STRIPE_SECRET);
+    const db = new Database(DB_PATH);
+    const user = db.prepare("SELECT stripe_account_id FROM users WHERE id = ?").get(req.user.id);
+    db.close();
+    
+    let accountId = user?.stripe_account_id;
+    if (!accountId) {
+      // Create Stripe Connect Express account
+      const account = await stripe.accounts.create({
+        type: "express",
+        country: "HK",
+        email: req.user.email,
+        business_type: "individual",
+        capabilities: { transfers: { requested: true } },
+      });
+      accountId = account.id;
+      const db2 = new Database(DB_PATH);
+      db2.prepare("UPDATE users SET stripe_account_id = ? WHERE id = ?").run(accountId, req.user.id);
+      db2.close();
+    }
+    
+    const link = await stripe.accountLinks.create({
+      account: accountId,
+      refresh_url: `${req.protocol}://${req.get("host")}/coach-dashboard.html`,
+      return_url: `${req.protocol}://${req.get("host")}/coach-dashboard.html?stripe=connected`,
+      type: "account_onboarding",
+    });
+    
+    res.json({ url: link.url });
+  } catch (err) {
+    console.error("Stripe Connect error:", err.message);
+    res.status(500).json({ error: "無法建立 Stripe 連結" });
+  }
+});
+
+// POST /api/coach/payouts/request — 申請提款
+router.post("/payouts/request", authenticateToken, async (req, res) => {
+  try {
+    const { amount } = req.body;
+    if (!amount || amount < 50) {
+      return res.status(400).json({ error: "最低提款金額為 HK$50" });
+    }
+    
+    const db = new Database(DB_PATH);
+    const user = db.prepare("SELECT pending_payout, stripe_account_id FROM users WHERE id = ?").get(req.user.id);
+    if (!user || user.pending_payout < amount) {
+      db.close();
+      return res.status(400).json({ error: "可提款金額不足" });
+    }
+    
+    // Deduct pending payout
+    db.prepare("UPDATE users SET pending_payout = pending_payout - ? WHERE id = ?").run(amount, req.user.id);
+    db.prepare("INSERT INTO coach_payouts (id, coach_id, amount, status) VALUES (?, ?, ?, 'pending')").run(uuidv4(), req.user.id, amount);
+    db.close();
+    
+    // Notify admin
+    sendNotification("payout.requested", {
+      coach_id: req.user.id,
+      amount: amount,
+    });
+    
+    res.json({ message: "✅ 提款申請已提交，待 Admin 確認" });
+  } catch (err) {
+    console.error("Payout request error:", err.message);
+    res.status(500).json({ error: "提款申請失敗" });
+  }
+});
+
+// GET /api/coach/payouts/history — 提款記錄
+router.get("/payouts/history", authenticateToken, (req, res) => {
+  try {
+    const db = new Database(DB_PATH);
+    const payouts = db.prepare(
+      "SELECT * FROM coach_payouts WHERE coach_id = ? ORDER BY created_at DESC LIMIT 20"
+    ).all(req.user.id);
+    db.close();
+    res.json({ payouts });
+  } catch (err) {
+    res.status(500).json({ error: "無法獲取提款記錄" });
+  }
+});
+
 module.exports = router;
 module.exports.syncCoachEarningsForSchedule = syncCoachEarningsForSchedule;

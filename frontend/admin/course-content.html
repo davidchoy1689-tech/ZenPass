@@ -1097,7 +1097,7 @@
             div.innerHTML =
               '<img src="' +
               e.target.result +
-              '"><button class="remove" onclick="removeImage(this)" data-temp="true">✕</button>';
+              '" alt="課程圖片預覽"><button class="remove" onclick="removeImage(this)" data-temp="true">✕</button>';
             container.appendChild(div);
           };
           reader.readAsDataURL(file);
@@ -1525,7 +1525,7 @@
               const thumbHtml = images.length
                 ? '<img src="' +
                   images[0] +
-                  '" style="width:50px;height:36px;object-fit:cover;border-radius:4px;border:1px solid var(--gray-light)" onerror="this.style.display=\'none\'">'
+                  '" alt="課程縮圖" style="width:50px;height:36px;object-fit:cover;border-radius:4px;border:1px solid var(--gray-light)" onerror="this.style.display=\'none\'">'
                 : '<span style="color:var(--gray);font-size:11px">—</span>';
 
               const levelLabels = {
@@ -1798,5 +1798,6 @@
       // ============================================================
       document.addEventListener("DOMContentLoaded", init);
     </script>
-  </body>
+  <script>if('serviceWorker'in navigator){navigator.serviceWorker.register('../../../sw.js')}</script>
+</body>
 </html>

@@ -31,10 +31,12 @@ app.use(
     origin: function (origin, callback) {
       const allowed = [
         "https://davidchoy1689-tech.github.io",
+        "https://davidchoy1689-tech.github.io/ZenPass",
         "http://localhost:8080",
         "http://localhost:9090",
         "http://localhost:8888",
         "http://localhost:3001",
+        "http://localhost:3000",
         undefined, // Allow same-origin
       ];
       if (allowed.indexOf(origin) !== -1 || !origin) {
@@ -88,6 +90,10 @@ app.post(
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
 
+// ===== API 回應格式統一中介軟體 =====
+const responseNormalizer = require("./middleware/response-normalizer");
+app.use("/api", responseNormalizer);
+
 // ===== 路由 =====
 app.use("/api/auth", require("./routes/auth"));
 app.use("/api/users", require("./routes/users"));
@@ -108,6 +114,9 @@ app.use("/api/badges", require("./routes/badges"));
 app.use("/api/crm", require("./routes/crm"));
 app.use("/api/locations", require("./routes/pos"));
 app.use("/api/pos", require("./routes/pos"));
+app.use("/api/waitlist", require("./routes/waitlist"));
+app.use("/api/marketing", require("./routes/marketing"));
+app.use("/api/reporting", require("./routes/reporting"));
 app.use("/api/referral", require("./routes/referral"));
 app.use("/api/loyalty", require("./routes/referral"));
 
@@ -136,6 +145,7 @@ function cleanupExpiredBookings() {
   db.pragma("foreign_keys = ON");
 
   // 清理過期未付款 booking，但保留已提交 FPS/PayMe 嘅（等 Admin 核實）
+  // 清理過期未付款 booking（無付款證明，30分鐘）
   const result = db
     .prepare(
       `
@@ -148,21 +158,41 @@ function cleanupExpiredBookings() {
     )
     .run();
 
-  // 釋放名額
-  db.prepare(
-    `
-    UPDATE class_schedules SET enrolled_count = MAX(0, enrolled_count - 1)
-    WHERE id IN (
-      SELECT schedule_id FROM bookings
-      WHERE status = 'cancelled'
-      AND created_at >= datetime('now', '-31 minutes')
-      AND created_at < datetime('now', '-30 minutes')
-    )
+  // 清理已提交付款證明但 admin 未確認 >24h 嘅 booking
+  const staleResult = db
+    .prepare(
+      `
+    UPDATE bookings SET status = 'cancelled'
+    WHERE status = 'pending_payment'
+    AND (fps_reference IS NOT NULL OR payme_reference IS NOT NULL)
+    AND created_at < datetime('now', '-24 hours')
   `,
-  ).run();
+    )
+    .run();
+
+  // 釋放名額（用 created_at 代替 updated_at，因為 bookings 冇 updated_at 欄位）
+  const canceledIds = db
+    .prepare(
+      `SELECT schedule_id FROM bookings
+       WHERE status = 'cancelled'
+       AND created_at > datetime('now', '-31 minutes')`
+    )
+    .all()
+    .map(r => r.schedule_id);
+
+  for (const row of canceledIds) {
+    if (row.schedule_id) {
+      db.prepare(
+        "UPDATE class_schedules SET enrolled_count = MAX(0, enrolled_count - 1) WHERE id = ? AND enrolled_count > 0"
+      ).run(row.schedule_id);
+    }
+  }
 
   if (result.changes > 0) {
     console.log("🧹 清理了 " + result.changes + " 個過期未付款預約");
+  }
+  if (staleResult.changes > 0) {
+    console.log("🧹 清理了 " + staleResult.changes + " 個超過24小時嘅 stale 付款");
   }
   db.close();
 }
@@ -237,6 +267,15 @@ function sendClassReminders() {
 setInterval(sendClassReminders, 5 * 60 * 1000);
 // 啟動時 check 一次
 setTimeout(sendClassReminders, 5000);
+
+// ===== 行銷自動化 Cron =====
+const marketing = require("./services/marketing");
+marketing.startMarketingCron();
+
+// ===== CRM 自動分群 Cron（每小時） =====
+const { autoSegmentUsers } = require("./routes/crm");
+setInterval(autoSegmentUsers, 60 * 60 * 1000);
+autoSegmentUsers();
 
 // ===== Startup Health Check =====
 function startupHealthCheck() {

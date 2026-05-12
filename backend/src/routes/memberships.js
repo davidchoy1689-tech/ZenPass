@@ -241,4 +241,73 @@ router.get("/credits/packages", (req, res) => {
   res.json({ packages });
 });
 
+// ===== POST /api/memberships/stripe-subscribe — Stripe 自動續費會籍 =====
+router.post("/stripe-subscribe", authenticateToken, async (req, res) => {
+  try {
+    const { type, payment_method_id } = req.body;
+    const plan = MEMBERSHIP_PLANS[type];
+    if (!plan) return res.status(400).json({ error: "無效的會籍類型" });
+
+    const STRIPE_SECRET = process.env.STRIPE_SECRET_KEY;
+    if (!STRIPE_SECRET || STRIPE_SECRET.startsWith("sk_test_51TTH5l")) {
+      return res.status(200).json({ dev_mode: true, message: "Dev mode: subscription saved locally" });
+    }
+
+    const stripe = require("stripe")(STRIPE_SECRET);
+    const db = new Database(DB_PATH);
+
+    // Get or create Stripe customer
+    let customerId = db.prepare("SELECT stripe_customer_id FROM users WHERE id = ?").get(req.user.id)?.stripe_customer_id;
+    if (!customerId) {
+      const user = db.prepare("SELECT name, email FROM users WHERE id = ?").get(req.user.id);
+      const customer = await stripe.customers.create({
+        name: user.name, email: user.email, payment_method: payment_method_id,
+        metadata: { user_id: req.user.id },
+      });
+      customerId = customer.id;
+      db.prepare("UPDATE users SET stripe_customer_id = ? WHERE id = ?").run(customerId, req.user.id);
+    }
+
+    // Attach payment method
+    if (payment_method_id) {
+      await stripe.paymentMethods.attach(payment_method_id, { customer: customerId });
+      await stripe.customers.update(customerId, { invoice_settings: { default_payment_method: payment_method_id } });
+    }
+
+    // Create product + price in Stripe (one-time per plan type)
+    let priceId = db.prepare("SELECT stripe_price_id FROM platform_settings WHERE key = ?").get("stripe_price_" + type)?.value;
+    if (!priceId) {
+      const product = await stripe.products.create({ name: plan.name, metadata: { plan_type: type } });
+      const price = await stripe.prices.create({
+        product: product.id,
+        unit_amount: Math.round(plan.price_hkd * 100),
+        currency: "hkd",
+        recurring: { interval: "month" },
+      });
+      priceId = price.id;
+      db.prepare("INSERT OR REPLACE INTO platform_settings (key, value) VALUES (?, ?)").run("stripe_price_" + type, priceId);
+    }
+
+    // Create subscription
+    const subscription = await stripe.subscriptions.create({
+      customer: customerId,
+      items: [{ price: priceId }],
+      payment_behavior: "default_incomplete",
+      expand: ["latest_invoice.payment_intent"],
+      metadata: { user_id: req.user.id, plan_type: type },
+    });
+
+    db.prepare("UPDATE users SET stripe_subscription_id = ?, auto_renew = 1 WHERE id = ?").run(subscription.id, req.user.id);
+    db.close();
+
+    res.json({
+      subscription_id: subscription.id,
+      client_secret: subscription.latest_invoice?.payment_intent?.client_secret,
+    });
+  } catch (err) {
+    console.error("Stripe subscription error:", err.message);
+    res.status(500).json({ error: "建立訂閱失敗" });
+  }
+});
+
 module.exports = router;

@@ -421,6 +421,14 @@ router.post("/:id/cancel", authenticateToken, (req, res) => {
       "UPDATE class_schedules SET enrolled_count = MAX(0, enrolled_count - 1) WHERE id = ?",
     ).run(booking.schedule_id);
 
+    // 檢查有冇候補名單，有位就自動通知下一位
+    try {
+      const { autoNotifyOnCancel } = require("./waitlist");
+      autoNotifyOnCancel(booking.schedule_id);
+    } catch (e) {
+      console.error("autoNotifyOnCancel error:", e.message);
+    }
+
     // 如果是用點數付款，退還點數
     if (booking.payment_type === "credits") {
       const classData = db

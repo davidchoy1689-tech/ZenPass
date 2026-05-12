@@ -583,6 +583,10 @@
 
       <!-- Tab: Income -->
       <div class="section" id="tab-income">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <div class="section"></div>
+          <button onclick="exportCoachCSV()" style="padding:8px 16px;border:1px solid var(--gray-200);border-radius:6px;background:var(--white);cursor:pointer;font-size:12px;font-family:var(--font-zh)">📥 匯出 CSV</button>
+        </div>
         <div class="stats-row" id="incomeStats"></div>
         <div class="card">
           <div class="card-title">收入趨勢</div>
@@ -747,6 +751,25 @@
         <button class="btn-secondary" onclick="loadIncomeDetail()">
           🔄 載入更多明細
         </button>
+      </div>
+
+      <!-- Coach Referral CTA -->
+      <div class="section" id="tab-refer" style="margin-top:16px;display:block">
+        <div class="card">
+          <div class="card-title">🤝 推薦教練</div>
+          <p style="font-size:13px;color:var(--dark-700);margin-bottom:12px;line-height:1.5">
+            推薦其他教練加入 ZenPass，幫助平台成長之餘，你都可以賺取額外收入！
+          </p>
+          <div style="display:flex;gap:8px;margin-bottom:8px">
+            <input type="text" id="ref-coach-name" placeholder="教練姓名" style="flex:1;padding:10px;border:1px solid var(--gray-200);border-radius:6px;font-size:13px">
+          </div>
+          <div style="display:flex;gap:8px;margin-bottom:8px">
+            <input type="email" id="ref-coach-email" placeholder="電郵地址" style="flex:1;padding:10px;border:1px solid var(--gray-200);border-radius:6px;font-size:13px">
+            <input type="tel" id="ref-coach-phone" placeholder="電話（選填）" style="flex:1;padding:10px;border:1px solid var(--gray-200);border-radius:6px;font-size:13px">
+          </div>
+          <button class="btn btn-primary" onclick="referCoach()" style="padding:10px 20px;border:none;border-radius:6px;background:var(--orange-500);color:white;font-size:14px;font-weight:600;cursor:pointer;width:100%">📨 發送推薦</button>
+          <div id="ref-coach-msg" style="font-size:13px;margin-top:8px"></div>
+        </div>
       </div>
     </div>
     <!-- /appContent -->
@@ -1502,6 +1525,40 @@
           .replace(/"/g, "&quot;");
       }
 
+      function exportCoachCSV() {
+        var rows = [['日期','課程','學生','類別','金額','狀態']];
+        try {
+          var earnings = window._lastEarningsData || [];
+          if (earnings.length === 0) {
+            var tableRows = document.querySelectorAll('#tab-income table tbody tr');
+            tableRows.forEach(function(r) {
+              var cells = r.querySelectorAll('td');
+              if (cells.length >= 5) {
+                rows.push([
+                  cells[0]?.textContent || '',
+                  cells[1]?.textContent || '',
+                  cells[2]?.textContent || '',
+                  cells[3]?.textContent || '',
+                  cells[4]?.textContent || '',
+                  ''
+                ]);
+              }
+            });
+          }
+          if (rows.length === 1) {
+            showToast('⚠️ 暫無收入數據可匯出', 'error');
+            return;
+          }
+        } catch(e) { rows = [['錯誤', e.message]]; }
+        var csv = rows.map(function(r) { return r.map(function(v) { return '"' + String(v).replace(/"/g, '""') + '"'; }).join(','); }).join('\n');
+        var blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+        var link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'zenpass-coach-income-' + new Date().toISOString().substring(0,10) + '.csv';
+        link.click();
+        showToast('✅ CSV 已匯出', 'success');
+      }
+
       function showToast(msg, type) {
         var el = document.createElement("div");
         el.className = "toast-fixed";
@@ -1517,6 +1574,33 @@
             el.remove();
           }, 300);
         }, 2500);
+      }
+
+      function referCoach() {
+        var name = document.getElementById("ref-coach-name").value.trim();
+        var email = document.getElementById("ref-coach-email").value.trim();
+        if (!name || !email) { document.getElementById("ref-coach-msg").textContent = "⚠️ 請填寫姓名和電郵"; return; }
+        var phone = document.getElementById("ref-coach-phone").value.trim();
+        var btn = document.querySelector('#tab-refer .btn-primary');
+        btn.disabled = true;
+        btn.textContent = "⏳ 發送中...";
+        fetch("/api/coach/refer", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": "Bearer " + getToken() },
+          body: JSON.stringify({ name: name, email: email, phone: phone })
+        }).then(function(r) { return r.json(); }).then(function(d) {
+          if (d.error) throw new Error(d.error);
+          document.getElementById("ref-coach-msg").innerHTML = "✅ " + d.message;
+          document.getElementById("ref-coach-name").value = "";
+          document.getElementById("ref-coach-email").value = "";
+          document.getElementById("ref-coach-phone").value = "";
+          btn.disabled = false;
+          btn.textContent = "📨 發送推薦";
+        }).catch(function(e) {
+          document.getElementById("ref-coach-msg").textContent = "❌ " + e.message;
+          btn.disabled = false;
+          btn.textContent = "📨 發送推薦";
+        });
       }
     </script>
 

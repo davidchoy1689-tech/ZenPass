@@ -11,6 +11,7 @@
     <meta name="theme-color" content="#059669" />
     <title>簽到 — ZenPass 禪流</title>
     <link rel="manifest" href="manifest.json" />
+    <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5qrcode.min.js"></script>
 
     <style>
       * {
@@ -294,6 +295,10 @@
       <div class="icon">📱</div>
       <h1>課堂簽到</h1>
       <div class="sub">掃描教練提供的 QR Code 以簽到</div>
+      <div style="text-align:center;margin-bottom:12px">
+        <button onclick="startQRScanner()" style="background:var(--orange-500);color:white;border:none;padding:8px 20px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font-zh)">📷 掃描 QR Code</button>
+      </div>
+      <div id="qr-reader" style="width:100%;max-width:300px;margin:0 auto 16px;display:none"></div>
 
       <div class="info" id="class-info">
         <div class="info-row">
@@ -443,6 +448,36 @@
         document.getElementById("success-section").style.display = "block";
         document.getElementById("btn-checkin").style.display = "none";
         document.getElementById("class-info").style.display = "none";
+      }
+
+      // ===== QR Scanner =====
+      function startQRScanner() {
+        var reader = document.getElementById("qr-reader");
+        reader.style.display = "block";
+        if (typeof Html5Qrcode === 'undefined') {
+          reader.innerHTML = '<p style="color:#ef4444;font-size:13px">❌ QR scanner library not loaded. Check internet connection.</p>';
+          return;
+        }
+        var qr = new Html5Qrcode("qr-reader");
+        qr.start(
+          { facingMode: "environment" },
+          { fps: 10, qrbox: { width: 250, height: 250 } },
+          function(decodedText) {
+            qr.stop();
+            reader.style.display = "none";
+            // Parse QR data: it should be a URL or booking ref
+            var bookingRef = decodedText;
+            if (decodedText.indexOf('booking=') > -1) {
+              var m = decodedText.match(/booking=([^&]+)/);
+              if (m) bookingRef = m[1];
+            }
+            document.getElementById("checkin-name").value = bookingRef;
+            showToast('✅ QR Code scanned!', 'success');
+          },
+          function(err) { /* ignore scan errors */ }
+        ).catch(function(e) {
+          reader.innerHTML = '<p style="color:#ef4444;font-size:13px">❌ Camera access denied: ' + e.message + '</p>';
+        });
       }
     </script>
     <script>

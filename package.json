@@ -4,13 +4,15 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "vitest run",
+    "test": "npm run test:unit && npm run test:e2e",
     "test:watch": "vitest",
-    "test:e2e": "playwright test",
+    "test:e2e": "npx playwright test",
     "test:lighthouse": "bash zenpass-tester/scripts/lighthouse.sh",
     "test:screenshots": "bash zenpass-tester/scripts/mobile-screenshots.sh",
     "test:quality": "bash zenpass-tester/scripts/code-quality.sh",
-    "test:all": "npm run test && npm run test:quality"
+    "test:all": "npm run test && npm run test:quality",
+    "test:headed": "npx playwright test --headed",
+    "test:unit": "npx vitest run --reporter verbose"
   },
   "devDependencies": {
     "@playwright/test": "^1.40.0",

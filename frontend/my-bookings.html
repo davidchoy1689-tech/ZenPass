@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>我的預約 - ZenPass 禪流</title>
+    <script src="api.js"></script>
     <link rel="icon" type="image/png" href="icons/favicon-96x96.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link
@@ -382,7 +383,8 @@
       </div>
     </div>
     <script>
-      var API_BASE = "/api";
+      // Use API_BASE from api.js if available, otherwise default to /api
+      var MY_BASE = typeof API_BASE !== 'undefined' ? API_BASE : '/api';
 
       function getToken() {
         return (
@@ -407,7 +409,7 @@
 
       function loadBookings() {
         showLoading();
-        fetch(API_BASE + "/bookings/my", { headers: getAuthHeaders() })
+        fetch(MY_BASE + "/bookings/my", { headers: getAuthHeaders() })
           .then(function (r) {
             return r.json();
           })
@@ -540,7 +542,7 @@
             '" class="pay-now-btn" style="background:var(--blue-500);">⭐ 評分</a>' +
             (footerButtons || "");
         }
-          b.class_reference || b.id
+        var refText = b.class_reference || b.id
             ? "#" + (b.class_reference || b.id.substring(0, 8))
             : "";
 
@@ -581,7 +583,7 @@
         if (!confirm("確定要取消此預約？")) return;
         if (btn) btn.disabled = true;
 
-        fetch(API_BASE + "/bookings/" + id + "/cancel", {
+        fetch(MY_BASE + "/bookings/" + id + "/cancel", {
           method: "POST",
           headers: getAuthHeaders(),
         })
@@ -726,5 +728,6 @@
       </div>
       © 2026 ZenPass 禪流
     </div>
-  </body>
+  <script>if('serviceWorker'in navigator){navigator.serviceWorker.register('sw.js')}</script>
+</body>
 </html>

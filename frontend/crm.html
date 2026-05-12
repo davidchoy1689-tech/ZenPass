@@ -261,6 +261,22 @@ async function showDetail(id) {
       });
     }
 
+    // Communication history
+    var comms = d.communications || [];
+    html += '<h3 style="font-size:14px;margin:12px 0 8px;">📨 通訊記錄</h3>';
+    if (comms.length === 0) {
+      html += '<p style="font-size:13px;color:var(--dark-700)">暫無通訊記錄</p>';
+    } else {
+      comms.forEach(function(c) {
+        var iconMap = { 'booking.confirmed': '📅', 'booking.reminder_1h': '⏰', 'payment.received': '💰', 'payment.approved': '✅', 'marketing.welcome': '🎉', 'marketing.winback': '🏃', 'marketing.broadcast': '📣' };
+        html += '<div style="background:var(--gray-100);border-radius:6px;padding:10px;margin-bottom:6px;font-size:13px;">' +
+          '<div style="display:flex;justify-content:space-between;color:var(--dark-700);margin-bottom:4px;">' +
+          '<span>' + (iconMap[c.event] || '📨') + ' ' + escHtml(c.title || c.event) + '</span>' +
+          '<span style="font-size:11px">' + (c.created_at || '').split('T')[0] + '</span></div>' +
+          '<div>' + escHtml(c.message || '') + '</div></div>';
+      });
+    }
+
     document.getElementById("detail-content").innerHTML = html;
     document.getElementById("detail-modal").classList.add("show");
   } catch (e) {

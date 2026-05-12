@@ -9,44 +9,23 @@ function zpKey(baseKey) {
   return "zp_" + name.replace(/\s/g, "_") + "_" + baseKey;
 }
 
-// ===== Auto Demo Login (testing — remove for launch) =====
+// ===== Demo Mode Detection (dev only) =====
+// First-time visitor: auto-create demo user for smooth onboarding
 (function () {
-  var name = localStorage.getItem("zenpass_name");
-  if (!name) {
-    name = "David";
-    localStorage.setItem("zenpass_name", name);
-  }
-
-  // David = all-access: student + coach + admin
-  var isDavid = name === "David" || name === "David Choy" || name === "管理員";
-  var role = isDavid ? "admin" : "student";
-  if (
-    !isDavid &&
-    (name.indexOf("教練") > -1 ||
-      name.indexOf("導師") > -1 ||
-      name.indexOf("coach") > -1 ||
-      name.indexOf("Coach") > -1)
-  ) {
-    role = "coach";
-  }
-
-  // Set demo token + user for compatibility
-  if (!localStorage.getItem("zenpass_token")) {
-    localStorage.setItem("zenpass_token", "demo_token_" + role);
+  if (!localStorage.getItem("zenpass_token") && !localStorage.getItem("zenpass_user")) {
+    localStorage.setItem("zenpass_token", "demo_token_student");
     localStorage.setItem(
       "zenpass_user",
       JSON.stringify({
-        name: name,
-        email:
-          (isDavid ? "david" : name.toLowerCase().replace(/\s/g, "")) +
-          "@zenpass.hk",
+        name: "訪客",
+        email: "guest@zenpass.hk",
         phone: "",
-        role: role,
-        credits: isDavid ? 999 : role === "coach" ? 0 : 45,
+        role: "student",
+        credits: 10,
         bookings: 0,
         joined: new Date().toISOString().split("T")[0],
-        avatar: isDavid ? "👤" : role === "coach" ? "🧘" : "🎓",
-        is_all_access: isDavid ? true : false,
+        avatar: "🎓",
+        is_all_access: false,
       }),
     );
   }
@@ -54,16 +33,35 @@ function zpKey(baseKey) {
 
 // Auto-detect API base URL
 const API_BASE = (() => {
-  const host = window.location.hostname;
-  const port = window.location.port;
+  // Always use relative path — works with tunnel, local dev, and same-origin proxy
+  // For GitHub Pages: the user needs a backend running, and /api won't work on github.io
+  // In that case, the courses.json fallback kicks in for read-only viewing
+  return "/api";
+})();
 
-  // If loaded through the backend server (localhost:3001), use same origin
-  if (port === "3001" || host === "localhost") {
-    return "/api";
+// ===== Backend Health Check (for GitHub Pages) =====
+var BACKEND_ONLINE = true;
+
+(async function() {
+  if (API_BASE === "/api") {
+    BACKEND_ONLINE = true;
+    return;
   }
-  // GitHub Pages or other static hosting — points to local backend
-  // (for testing, user needs to have backend running on localhost:3001)
-  return "http://localhost:3001/api";
+  try {
+    var r = await fetch(API_BASE + "/health", { method: "GET", signal: AbortSignal.timeout(3000) });
+    BACKEND_ONLINE = r.ok;
+  } catch(e) {
+    BACKEND_ONLINE = false;
+    console.warn("🧘 ZenPass: Backend offline, using courses.json fallback");
+  }
+  if (!BACKEND_ONLINE) {
+    // Show offline banner once
+    var banner = document.createElement("div");
+    banner.id = "backend-offline-banner";
+    banner.style.cssText = "position:fixed;top:0;left:0;right:0;z-index:99999;background:#fef3c7;color:#92400e;text-align:center;padding:8px 16px;font-size:13px;font-family:sans-serif;border-bottom:1px solid #fde68a";
+    banner.innerHTML = '⚠️ 後台未連接 — 部分功能不可用。如需完整功能，請啟動 ZenPass Backend';
+    document.body.prepend(banner);
+  }
 })();
 
 // ===== Demo Login (Role-based) =====
@@ -713,10 +711,12 @@ function updateNavBar() {
 
   authBtns.forEach((el) => {
     if (isLoggedIn() && user) {
+      var pts = user.points || 0;
       el.innerHTML = `
                 <div class="zen-user-badge" onclick="showUserMenu()">
                     <span class="zen-avatar">${user.name.charAt(0)}</span>
                     <span class="zen-user-name">${user.name}</span>
+                    <span class="zen-points-badge" style="background:#fff0e8;color:#ff6b35;font-size:11px;font-weight:600;padding:2px 8px;border-radius:99px;margin-left:6px;white-space:nowrap">🎯 ${pts}</span>
                 </div>
             `;
     } else {
@@ -746,6 +746,7 @@ function showUserMenu() {
             <a href="#" onclick="showMyMembership(); return false;">💎 我的會籍</a>
             <a href="points.html">🎯 積分中心</a>
             <a href="badges.html">🏅 勳章牆</a>
+            <a href="faq.html">❓ 常見問題</a>
             <a href="#" onclick="showMyProfile(); return false;">👤 個人資料</a>
             <hr>
             <a href="#" onclick="logout(); return false;" style="color:#EF4444;">🚪 登出</a>
@@ -769,6 +770,32 @@ function logout() {
   showToast("已登出", "info");
   location.reload();
 }
+
+// ===== 全局錯誤監控 (Error Monitoring) =====
+(function() {
+  var errors = [];
+  window.onerror = function(msg, url, line, col, err) {
+    var e = { msg: msg, url: url, line: line, col: col, time: new Date().toISOString(), page: window.location.pathname };
+    errors.push(e);
+    if (errors.length > 20) errors.shift();
+    console.error('[ZenPass Error]', msg, 'at', url, ':' + line);
+    // Store in session storage for debugging
+    try { sessionStorage.setItem('zenpass_errors', JSON.stringify(errors.slice(-5))); } catch(e) {}
+    return false;
+  };
+  window.addEventListener('unhandledrejection', function(e) {
+    console.error('[ZenPass Promise Error]', e.reason);
+  });
+})();
+
+// ===== Service Worker Registration (PWA) =====
+(function() {
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("sw.js").catch(function(err) {
+      console.log("SW registration skipped:", err.message);
+    });
+  }
+})();
 
 // ===== Init on load =====
 document.addEventListener("DOMContentLoaded", () => {

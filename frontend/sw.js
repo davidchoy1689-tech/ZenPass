@@ -21,12 +21,32 @@ self.addEventListener("notificationclick", function (e) {
   clients.openWindow(url);
 });
 
-/* ZenPass Service Worker — v2 (auto-path) */
-const CACHE = "zenpass-v2";
+/* ZenPass Service Worker — v3 (pre-cache + offline) */
+const CACHE = "zenpass-v3";
+const PRECACHE = [
+  "/",
+  "/index.html",
+  "/api.js",
+  "/courses.html",
+  "/explore.html",
+  "/class-detail.html",
+  "/my.html",
+  "/my-bookings.html",
+  "/membership.html",
+  "/login.html",
+  "/badges.html",
+  "/points.html",
+  "/favicon.png",
+  "/manifest.json"
+];
 
 self.addEventListener("install", function (e) {
   self.skipWaiting();
-  // Minimal install - cache will be populated on first visit
+  e.waitUntil(
+    caches.open(CACHE).then(function (cache) {
+      return cache.addAll(PRECACHE);
+    })
+  );
 });
 
 self.addEventListener("activate", function (e) {
@@ -62,12 +82,24 @@ self.addEventListener("fetch", function (e) {
     caches.match(e.request).then(function (cached) {
       return (
         cached ||
-        fetch(e.request).then(function (response) {
-          return caches.open(CACHE).then(function (cache) {
-            if (response.ok) cache.put(e.request, response.clone());
-            return response;
-          });
-        })
+        fetch(e.request)
+          .then(function (response) {
+            return caches.open(CACHE).then(function (cache) {
+              if (response.ok) cache.put(e.request, response.clone());
+              return response;
+            });
+          })
+          .catch(function () {
+            // Offline: return a minimal fallback
+            return new Response(
+              "<html><body style='text-align:center;padding:2rem;font-family:sans-serif'><h1>📡</h1><h2>離線中</h2><p>請連線後重新整理</p></body></html>",
+              {
+                status: 200,
+                statusText: "OK",
+                headers: { "Content-Type": "text/html;charset=UTF-8" }
+              }
+            );
+          })
       );
     }),
   );

@@ -7,6 +7,7 @@ const express = require("express");
 const { v4: uuidv4 } = require("uuid");
 const Database = require("better-sqlite3");
 const { authenticateToken, requireCoach } = require("../middleware/auth");
+const { sendNotification } = require("../services/notification");
 
 const router = express.Router();
 const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
@@ -93,8 +94,14 @@ router.get("/students/:id", authenticateToken, (req, res) => {
       ORDER BY sn.created_at DESC LIMIT 20
     `).all(req.params.id);
 
+    const comms = db.prepare(`
+      SELECT nl.* FROM notification_logs nl
+      WHERE nl.user_id = ?
+      ORDER BY nl.created_at DESC LIMIT 20
+    `).all(req.params.id);
+
     db.close();
-    res.json({ student, bookings, notes });
+    res.json({ student, bookings, notes, communications: comms });
   } catch (err) {
     console.error("CRM student detail error:", err);
     res.status(500).json({ error: "無法取得學生詳情" });
@@ -189,4 +196,96 @@ router.post("/import", authenticateToken, (req, res) => {
   }
 });
 
+/**
+ * 自動分群 — 根據用戶行為自動更新標籤
+ * 每小時執行一次，由 index.js cron 調用
+ */
+function autoSegmentUsers() {
+  try {
+    const db = new Database(DB_PATH);
+    db.pragma("foreign_keys = ON");
+
+    // 新客戶：註冊 <30日 + 預約 <3次
+    db.prepare(`
+      UPDATE users SET tags = CASE
+        WHEN tags IS NULL OR tags = '' THEN 'new'
+        WHEN tags NOT LIKE '%new%' THEN tags || ',new'
+        ELSE tags END
+      WHERE julianday('now') - julianday(created_at) < 30
+      AND (SELECT COUNT(*) FROM bookings WHERE user_id = users.id) < 3
+      AND (tags IS NULL OR tags NOT LIKE '%new%')
+    `).run();
+
+    // VIP：總消費 >$500 或 出席 >10 次
+    db.prepare(`
+      UPDATE users SET tags = CASE
+        WHEN tags IS NULL OR tags = '' THEN 'vip'
+        WHEN tags NOT LIKE '%vip%' THEN tags || ',vip'
+        ELSE tags END
+      WHERE (total_spent > 500 OR total_visits > 10)
+      AND (tags IS NULL OR tags NOT LIKE '%vip%')
+    `).run();
+
+    // 流失風險：最後到訪 >60日
+    db.prepare(`
+      UPDATE users SET tags = CASE
+        WHEN tags IS NULL OR tags = '' THEN 'at-risk'
+        WHEN tags NOT LIKE '%at-risk%' THEN tags || ',at-risk'
+        ELSE tags END
+      WHERE last_visit IS NOT NULL
+      AND julianday('now') - julianday(last_visit) > 60
+      AND (tags IS NULL OR tags NOT LIKE '%at-risk%')
+    `).run();
+
+    // 定期：出席 >5次 + 最後到訪 <30日
+    db.prepare(`
+      UPDATE users SET tags = CASE
+        WHEN tags IS NULL OR tags = '' THEN 'regular'
+        WHEN tags NOT LIKE '%regular%' THEN tags || ',regular'
+        ELSE tags END
+      WHERE total_visits > 5
+      AND last_visit IS NOT NULL
+      AND julianday('now') - julianday(last_visit) < 30
+      AND (tags IS NULL OR tags NOT LIKE '%regular%')
+    `).run();
+
+    db.close();
+    return true;
+  } catch (err) {
+    console.error("Auto-segment error:", err.message);
+    return false;
+  }
+}
+
+// ===== POST /api/crm/waiver — 提交健康申報表 =====
+router.post("/waiver", authenticateToken, (req, res) => {
+  try {
+    const { name, age, gender, phone, conditions, other } = req.body;
+    if (!name) return res.status(400).json({ error: "請輸入姓名" });
+
+    const db = new Database(DB_PATH);
+    db.prepare(`
+      INSERT INTO student_notes (id, student_id, coach_id, content, created_at)
+      VALUES (?, ?, ?, ?, datetime('now'))
+    `).run(
+      require("uuid").v4(),
+      req.user.id,
+      req.user.id,
+      `📋 健康申報\n姓名: ${name}\n年齡: ${age}\n性別: ${gender}\n電話: ${phone}\n健康狀況: ${conditions || '無'}\n其他: ${other || '無'}`
+    );
+    db.close();
+
+    sendNotification("waiver.submitted", {
+      user_id: req.user.id,
+      data: { name, conditions },
+    });
+
+    res.json({ success: true, message: "✅ 健康申報已提交" });
+  } catch (err) {
+    console.error("Waiver error:", err.message);
+    res.status(500).json({ error: "提交失敗" });
+  }
+});
+
 module.exports = router;
+module.exports.autoSegmentUsers = autoSegmentUsers;
