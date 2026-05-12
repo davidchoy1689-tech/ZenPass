@@ -1,0 +1,19 @@
+name: Supabase Keep-Alive
+
+on:
+  schedule:
+    - cron: '0 */4 * * *'
+  workflow_dispatch:
+
+jobs:
+  keep-alive:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase courses table
+        run: |
+          curl -s -w "\nHTTP %{http_code}\n" \
+            -H "apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBxZ3JrZWF2b3Brc2R0dHJ6ZHFjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc4MDM0NzgsImV4cCI6MjA5MzM3OTQ3OH0.t8-oSOXX37fA_kSBZoKvw8ymvuT-4R-xQwMEE8ETZIc" \
+            -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBxZ3JrZWF2b3Brc2R0dHJ6ZHFjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc4MDM0NzgsImV4cCI6MjA5MzM3OTQ3OH0.t8-oSOXX37fA_kSBZoKvw8ymvuT-4R-xQwMEE8ETZIc" \
+            -H "Content-Type: application/json" \
+            --max-time 15 \
+            "https://pqgrkeavopksdttrzdqc.supabase.co/rest/v1/courses?select=count&limit=0"
