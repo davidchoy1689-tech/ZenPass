@@ -12,7 +12,10 @@ function zpKey(baseKey) {
 // ===== Demo Mode Detection (dev only) =====
 // First-time visitor: auto-create demo user for smooth onboarding
 (function () {
-  if (!localStorage.getItem("zenpass_token") && !localStorage.getItem("zenpass_user")) {
+  if (
+    !localStorage.getItem("zenpass_token") &&
+    !localStorage.getItem("zenpass_user")
+  ) {
     localStorage.setItem("zenpass_token", "demo_token_student");
     localStorage.setItem(
       "zenpass_user",
@@ -42,15 +45,18 @@ const API_BASE = (() => {
 // ===== Backend Health Check (for GitHub Pages) =====
 var BACKEND_ONLINE = true;
 
-(async function() {
+(async function () {
   if (API_BASE === "/api") {
     BACKEND_ONLINE = true;
     return;
   }
   try {
-    var r = await fetch(API_BASE + "/health", { method: "GET", signal: AbortSignal.timeout(3000) });
+    var r = await fetch(API_BASE + "/health", {
+      method: "GET",
+      signal: AbortSignal.timeout(3000),
+    });
     BACKEND_ONLINE = r.ok;
-  } catch(e) {
+  } catch (e) {
     BACKEND_ONLINE = false;
     console.warn("🧘 ZenPass: Backend offline, using courses.json fallback");
   }
@@ -58,8 +64,10 @@ var BACKEND_ONLINE = true;
     // Show offline banner once
     var banner = document.createElement("div");
     banner.id = "backend-offline-banner";
-    banner.style.cssText = "position:fixed;top:0;left:0;right:0;z-index:99999;background:#fef3c7;color:#92400e;text-align:center;padding:8px 16px;font-size:13px;font-family:sans-serif;border-bottom:1px solid #fde68a";
-    banner.innerHTML = '⚠️ 後台未連接 — 部分功能不可用。如需完整功能，請啟動 ZenPass Backend';
+    banner.style.cssText =
+      "position:fixed;top:0;left:0;right:0;z-index:99999;background:#fef3c7;color:#92400e;text-align:center;padding:8px 16px;font-size:13px;font-family:sans-serif;border-bottom:1px solid #fde68a";
+    banner.innerHTML =
+      "⚠️ 後台未連接 — 部分功能不可用。如需完整功能，請啟動 ZenPass Backend";
     document.body.prepend(banner);
   }
 })();
@@ -772,26 +780,38 @@ function logout() {
 }
 
 // ===== 全局錯誤監控 (Error Monitoring) =====
-(function() {
+(function () {
   var errors = [];
-  window.onerror = function(msg, url, line, col, err) {
-    var e = { msg: msg, url: url, line: line, col: col, time: new Date().toISOString(), page: window.location.pathname };
+  window.onerror = function (msg, url, line, col, err) {
+    var e = {
+      msg: msg,
+      url: url,
+      line: line,
+      col: col,
+      time: new Date().toISOString(),
+      page: window.location.pathname,
+    };
     errors.push(e);
     if (errors.length > 20) errors.shift();
-    console.error('[ZenPass Error]', msg, 'at', url, ':' + line);
+    console.error("[ZenPass Error]", msg, "at", url, ":" + line);
     // Store in session storage for debugging
-    try { sessionStorage.setItem('zenpass_errors', JSON.stringify(errors.slice(-5))); } catch(e) {}
+    try {
+      sessionStorage.setItem(
+        "zenpass_errors",
+        JSON.stringify(errors.slice(-5)),
+      );
+    } catch (e) {}
     return false;
   };
-  window.addEventListener('unhandledrejection', function(e) {
-    console.error('[ZenPass Promise Error]', e.reason);
+  window.addEventListener("unhandledrejection", function (e) {
+    console.error("[ZenPass Promise Error]", e.reason);
   });
 })();
 
 // ===== Service Worker Registration (PWA) =====
-(function() {
+(function () {
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("sw.js").catch(function(err) {
+    navigator.serviceWorker.register("sw.js").catch(function (err) {
       console.log("SW registration skipped:", err.message);
     });
   }

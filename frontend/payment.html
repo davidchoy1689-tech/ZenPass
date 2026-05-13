@@ -589,11 +589,16 @@
             </div>
             <div class="stripe-form">
               <div class="form-group">
-                <div id="payment-request-button" style="display:none;margin-bottom:12px"></div>
+                <div
+                  id="payment-request-button"
+                  style="display: none; margin-bottom: 12px"
+                ></div>
                 <label for="card-element">信用卡資料</label>
                 <div id="card-element"></div>
                 <div id="card-errors" role="alert"></div>
-                <div style="font-size:11px;color:#9CA3AF;margin-top:6px">🔒 支援 Apple Pay · Google Pay · 信用卡</div>
+                <div style="font-size: 11px; color: #9ca3af; margin-top: 6px">
+                  🔒 支援 Apple Pay · Google Pay · 信用卡
+                </div>
               </div>
             </div>
             <div
@@ -1002,28 +1007,39 @@
               : "";
           });
           // Apple Pay / Google Pay — init after booking loads
-          window._initApplePay = function() {
+          window._initApplePay = function () {
             if (!stripeClient || !paymentAmount) return;
             try {
               var pr = stripeClient.paymentRequest({
-                country: 'HK', currency: 'hkd',
-                total: { label: 'ZenPass', amount: Math.round(paymentAmount * 100) },
-                requestPayerName: true, requestPayerEmail: true,
+                country: "HK",
+                currency: "hkd",
+                total: {
+                  label: "ZenPass",
+                  amount: Math.round(paymentAmount * 100),
+                },
+                requestPayerName: true,
+                requestPayerEmail: true,
               });
-              var prButton = elements.create('paymentRequestButton', {
+              var prButton = elements.create("paymentRequestButton", {
                 paymentRequest: pr,
-                style: { type: 'default', theme: 'dark', height: '44px' },
+                style: { type: "default", theme: "dark", height: "44px" },
               });
-              pr.canMakePayment().then(function(result) {
+              pr.canMakePayment().then(function (result) {
                 if (result) {
-                  prButton.mount('#payment-request-button');
-                  document.getElementById('payment-request-button').style.display = '';
+                  prButton.mount("#payment-request-button");
+                  document.getElementById(
+                    "payment-request-button",
+                  ).style.display = "";
                 }
               });
-              pr.on('paymentmethod', function(ev) {
-                doStripePayment(ev.paymentMethod.id, function() { ev.complete('success'); });
+              pr.on("paymentmethod", function (ev) {
+                doStripePayment(ev.paymentMethod.id, function () {
+                  ev.complete("success");
+                });
               });
-            } catch(e) { console.log('Apple Pay init:', e.message); }
+            } catch (e) {
+              console.log("Apple Pay init:", e.message);
+            }
             delete window._initApplePay;
           };
           return true;
@@ -1074,13 +1090,18 @@
           document.getElementById("pay-page").classList.remove("hidden");
           document.getElementById("pay-main-title").textContent = "💳 收款";
           document.getElementById("order-info").innerHTML =
-            '<div class="order-summary"><div class="order-row"><span class="label">項目</span><span>' + posItem + '</span></div>' +
-            '<div class="order-row total"><span class="label">應付金額</span><span>HK$' + posAmount + '</span></div></div>';
+            '<div class="order-summary"><div class="order-row"><span class="label">項目</span><span>' +
+            posItem +
+            "</span></div>" +
+            '<div class="order-row total"><span class="label">應付金額</span><span>HK$' +
+            posAmount +
+            "</span></div></div>";
           // Show FPS/PayMe instructions
           document.getElementById("pay-methods").innerHTML =
             '<div class="pay-option selected" onclick="selectMethod(&#39;fps&#39;)"><div class="check">✓</div><div class="icon">🏦</div><div class="info"><div class="name">轉數快 FPS</div><div class="desc">電話：9033 5538 · HSBC</div></div></div>' +
             '<div class="pay-option" onclick="selectMethod(&#39;payme&#39;)"><div class="check"></div><div class="icon">📱</div><div class="info"><div class="name">PayMe</div><div class="desc">電話：9492 5828</div></div></div>';
-          document.getElementById("pay-button").textContent = "✅ 完成付款 — HK$" + posAmount;
+          document.getElementById("pay-button").textContent =
+            "✅ 完成付款 — HK$" + posAmount;
           // Hide Stripe card element
           document.getElementById("card-element").style.display = "none";
           paymentAmount = parseFloat(posAmount);
@@ -1162,7 +1183,7 @@
           paymentAmount = booking.amount || booking.price_hkd || 0;
 
           // Init Apple Pay / Google Pay now that we have the amount
-          if (typeof window._initApplePay === 'function') {
+          if (typeof window._initApplePay === "function") {
             window._initApplePay();
           }
 
@@ -1360,7 +1381,7 @@
               booking_id: bookingId,
               payment_method: "fps",
               payment_reference: ref,
-              amount: paymentAmount
+              amount: paymentAmount,
             }),
           });
           if (resp.ok) {
@@ -1398,7 +1419,7 @@
               booking_id: bookingId,
               payment_method: "payme",
               payment_reference: ref,
-              amount: paymentAmount
+              amount: paymentAmount,
             }),
           });
           if (resp.ok) {
@@ -1421,15 +1442,18 @@
       // ===== Confirm Booking After Payment =====
       async function confirmBooking(paymentMethod, paymentReference) {
         try {
-          var resp = await apiFetch("/bookings/" + bookingId + "/complete-payment", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              payment_method: paymentMethod,
-              payment_reference: paymentReference,
-              amount: paymentAmount
-            }),
-          });
+          var resp = await apiFetch(
+            "/bookings/" + bookingId + "/complete-payment",
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                payment_method: paymentMethod,
+                payment_reference: paymentReference,
+                amount: paymentAmount,
+              }),
+            },
+          );
           if (resp.ok) {
             var d = await resp.json();
             showSuccess(bookingId, d.booking_reference || bookingId);
@@ -1447,16 +1471,20 @@
       function showSuccess(bookingId, bookingRef) {
         document.getElementById("pay-page").classList.add("hidden");
         document.getElementById("success-page").classList.remove("hidden");
-        document.getElementById("success-ref").textContent = bookingRef || bookingId;
+        document.getElementById("success-ref").textContent =
+          bookingRef || bookingId;
         if (bookingData) {
-          document.getElementById("success-detail").textContent = "預約已確認，記住準時出席課堂！";
-          document.getElementById("success-class-info").textContent = 
-            (bookingData.title || "課程") + " · " + formatDate(bookingData.start_time);
+          document.getElementById("success-detail").textContent =
+            "預約已確認，記住準時出席課堂！";
+          document.getElementById("success-class-info").textContent =
+            (bookingData.title || "課程") +
+            " · " +
+            formatDate(bookingData.start_time);
         }
       }
 
       // ===== Bootstrap =====
-      document.addEventListener("DOMContentLoaded", function() {
+      document.addEventListener("DOMContentLoaded", function () {
         loadBooking();
       });
     </script>
@@ -1503,6 +1531,10 @@
       </div>
       © 2026 ZenPass 禪流
     </div>
-  <script>if('serviceWorker'in navigator){navigator.serviceWorker.register('sw.js')}</script>
-</body>
+    <script>
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.register("sw.js");
+      }
+    </script>
+  </body>
 </html>

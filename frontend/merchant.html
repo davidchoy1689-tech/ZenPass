@@ -1,95 +1,214 @@
 <!doctype html>
 <html lang="zh-HK">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title id="page-title">商戶 — ZenPass</title>
-<style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:"Noto Sans TC",sans-serif;background:#f9fafb;color:#1a1a2e;max-width:480px;margin:0 auto;padding-bottom:20px}
-.banner{width:100%;height:180px;background:linear-gradient(135deg,#ff6b35,#ffa075);display:flex;align-items:center;justify-content:center;font-size:64px;position:relative}
-.banner .back{position:absolute;top:16px;left:16px;width:40px;height:40px;border-radius:50%;background:rgba(0,0,0,.3);color:white;display:flex;align-items:center;justify-content:center;text-decoration:none;font-size:20px}
-.section{padding:16px}
-.card{background:white;border-radius:12px;padding:16px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
-h1{font-size:22px;font-weight:700;margin-bottom:4px}
-.meta{font-size:13px;color:#3d3d5a;margin-bottom:4px}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
-.stat-box{background:#f3f4f6;padding:10px;border-radius:8px;text-align:center}
-.stat-box .val{font-size:18px;font-weight:700;color:#ff6b35}
-.stat-box .lbl{font-size:11px;color:#3d3d5a}
-.schedule-item{display:flex;gap:10px;padding:10px 0;border-bottom:1px solid #f3f4f6;cursor:pointer}
-.schedule-item:last-child{border-bottom:none}
-.schedule-item .date{font-weight:600;min-width:60px;font-size:14px}
-.schedule-item .info{font-size:13px;color:#3d3d5a;flex:1}
-.schedule-item .price{font-weight:700;color:#ff6b35}
-.btn{display:block;width:100%;padding:12px;background:#ff6b35;color:white;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;text-align:center;text-decoration:none;font-family:inherit}
-@media(max-width:360px){.banner{height:140px;font-size:48px}.grid{grid-template-columns:1fr}.section{padding:12px}}
-</style>
-</head>
-<body>
-<div class="banner" id="banner"><span id="banner-icon">🏢</span><a href="explore.html" class="back">←</a></div>
-<div class="section">
-  <div class="card">
-    <h1 id="merchant-name">載入中...</h1>
-    <div class="meta" id="merchant-meta"></div>
-    <div class="grid" id="merchant-stats"></div>
-  </div>
-  <div class="card">
-    <h3 style="font-size:16px;font-weight:700;margin-bottom:8px;">📅 即將開班</h3>
-    <div id="schedule-list">載入中...</div>
-  </div>
-  <a id="book-link" href="explore.html" class="btn">🔍 瀏覽所有課程</a>
-</div>
-<script>
-var params = new URLSearchParams(window.location.search);
-var merchantId = params.get("id");
-var merchantName = params.get("name");
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title id="page-title">商戶 — ZenPass</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: "Noto Sans TC", sans-serif;
+        background: #f9fafb;
+        color: #1a1a2e;
+        max-width: 480px;
+        margin: 0 auto;
+        padding-bottom: 20px;
+      }
+      .banner {
+        width: 100%;
+        height: 180px;
+        background: linear-gradient(135deg, #ff6b35, #ffa075);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 64px;
+        position: relative;
+      }
+      .banner .back {
+        position: absolute;
+        top: 16px;
+        left: 16px;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: rgba(0, 0, 0, 0.3);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none;
+        font-size: 20px;
+      }
+      .section {
+        padding: 16px;
+      }
+      .card {
+        background: white;
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 12px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+      }
+      h1 {
+        font-size: 22px;
+        font-weight: 700;
+        margin-bottom: 4px;
+      }
+      .meta {
+        font-size: 13px;
+        color: #3d3d5a;
+        margin-bottom: 4px;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        margin-bottom: 12px;
+      }
+      .stat-box {
+        background: #f3f4f6;
+        padding: 10px;
+        border-radius: 8px;
+        text-align: center;
+      }
+      .stat-box .val {
+        font-size: 18px;
+        font-weight: 700;
+        color: #ff6b35;
+      }
+      .stat-box .lbl {
+        font-size: 11px;
+        color: #3d3d5a;
+      }
+      .schedule-item {
+        display: flex;
+        gap: 10px;
+        padding: 10px 0;
+        border-bottom: 1px solid #f3f4f6;
+        cursor: pointer;
+      }
+      .schedule-item:last-child {
+        border-bottom: none;
+      }
+      .schedule-item .date {
+        font-weight: 600;
+        min-width: 60px;
+        font-size: 14px;
+      }
+      .schedule-item .info {
+        font-size: 13px;
+        color: #3d3d5a;
+        flex: 1;
+      }
+      .schedule-item .price {
+        font-weight: 700;
+        color: #ff6b35;
+      }
+      .btn {
+        display: block;
+        width: 100%;
+        padding: 12px;
+        background: #ff6b35;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 15px;
+        font-weight: 600;
+        cursor: pointer;
+        text-align: center;
+        text-decoration: none;
+        font-family: inherit;
+      }
+      @media (max-width: 360px) {
+        .banner {
+          height: 140px;
+          font-size: 48px;
+        }
+        .grid {
+          grid-template-columns: 1fr;
+        }
+        .section {
+          padding: 12px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="banner" id="banner">
+      <span id="banner-icon">🏢</span><a href="explore.html" class="back">←</a>
+    </div>
+    <div class="section">
+      <div class="card">
+        <h1 id="merchant-name">載入中...</h1>
+        <div class="meta" id="merchant-meta"></div>
+        <div class="grid" id="merchant-stats"></div>
+      </div>
+      <div class="card">
+        <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 8px">
+          📅 即將開班
+        </h3>
+        <div id="schedule-list">載入中...</div>
+      </div>
+      <a id="book-link" href="explore.html" class="btn">🔍 瀏覽所有課程</a>
+    </div>
+    <script>
+      var params = new URLSearchParams(window.location.search);
+      var merchantId = params.get("id");
+      var merchantName = params.get("name");
 
-if (merchantName) {
-  document.getElementById("merchant-name").textContent = decodeURIComponent(merchantName);
-  document.title = decodeURIComponent(merchantName) + " — ZenPass";
-}
+      if (merchantName) {
+        document.getElementById("merchant-name").textContent = decodeURIComponent(merchantName);
+        document.title = decodeURIComponent(merchantName) + " — ZenPass";
+      }
 
-(async function() {
-  try {
-    var r = await fetch("/api/classes?coach_id=" + (merchantId || ""));
-    var d = await r.json();
-    var classes = d.classes || [];
-    var allSchedules = [];
-    classes.forEach(function(c) {
-      (c.schedules || []).forEach(function(s) {
-        allSchedules.push({ title: c.title, price: c.price_hkd, start_time: s.start_time, end_time: s.end_time, venue: c.venue_name, classId: c.id, scheduleId: s.id });
-      });
-    });
-    allSchedules.sort(function(a,b) { return a.start_time.localeCompare(b.start_time); });
-    var count = classes.length;
-    var upcoming = allSchedules.length;
-    var minPrice = Math.min.apply(null, classes.map(function(c) { return c.price_hkd || 999; }));
-    document.getElementById("merchant-stats").innerHTML =
-      '<div class="stat-box"><div class="val">' + count + '</div><div class="lbl">課程</div></div>' +
-      '<div class="stat-box"><div class="val">' + upcoming + '</div><div class="lbl">即將開班</div></div>';
-    document.getElementById("merchant-meta").textContent = '💰 課程由 HK$' + minPrice + ' 起 · ' + (classes[0]?.coach_name || '教練');
-    if (merchantName) {
-      document.getElementById("merchant-name").textContent = decodeURIComponent(merchantName);
-      document.title = decodeURIComponent(merchantName) + " — ZenPass";
-    }
-    if (allSchedules.length === 0) {
-      document.getElementById("schedule-list").innerHTML = '<div style="text-align:center;padding:20px;color:#888;font-size:13px;">暫無即將開班嘅課程</div>';
-    } else {
-      document.getElementById("schedule-list").innerHTML = allSchedules.slice(0, 5).map(function(s) {
-        var d = (s.start_time || "").split("T")[0];
-        var t = ((s.start_time || "").split("T")[1] || "").substring(0,5);
-        return '<div class="schedule-item" onclick="location.href=\\'class-detail.html?id=' + s.classId + '\\'">' +
-          '<div class="date">' + d.slice(5) + '</div>' +
-          '<div class="info"><strong>' + s.title + '</strong><br>' + t + ' · ' + (s.venue || '') + '</div>' +
-          '<div class="price">$' + s.price + '</div></div>';
-      }).join('');
-    }
-  } catch(e) {
-    document.getElementById("schedule-list").innerHTML = '<div style="text-align:center;padding:20px;color:#ef4444;">❌ ' + e.message + '</div>';
-  }
-})();
-</script>
-<script>if('serviceWorker'in navigator){navigator.serviceWorker.register('sw.js')}</script>
-</body>
+      (async function() {
+        try {
+          var r = await fetch("/api/classes?coach_id=" + (merchantId || ""));
+          var d = await r.json();
+          var classes = d.classes || [];
+          var allSchedules = [];
+          classes.forEach(function(c) {
+            (c.schedules || []).forEach(function(s) {
+              allSchedules.push({ title: c.title, price: c.price_hkd, start_time: s.start_time, end_time: s.end_time, venue: c.venue_name, classId: c.id, scheduleId: s.id });
+            });
+          });
+          allSchedules.sort(function(a,b) { return a.start_time.localeCompare(b.start_time); });
+          var count = classes.length;
+          var upcoming = allSchedules.length;
+          var minPrice = Math.min.apply(null, classes.map(function(c) { return c.price_hkd || 999; }));
+          document.getElementById("merchant-stats").innerHTML =
+            '<div class="stat-box"><div class="val">' + count + '</div><div class="lbl">課程</div></div>' +
+            '<div class="stat-box"><div class="val">' + upcoming + '</div><div class="lbl">即將開班</div></div>';
+          document.getElementById("merchant-meta").textContent = '💰 課程由 HK$' + minPrice + ' 起 · ' + (classes[0]?.coach_name || '教練');
+          if (merchantName) {
+            document.getElementById("merchant-name").textContent = decodeURIComponent(merchantName);
+            document.title = decodeURIComponent(merchantName) + " — ZenPass";
+          }
+          if (allSchedules.length === 0) {
+            document.getElementById("schedule-list").innerHTML = '<div style="text-align:center;padding:20px;color:#888;font-size:13px;">暫無即將開班嘅課程</div>';
+          } else {
+            document.getElementById("schedule-list").innerHTML = allSchedules.slice(0, 5).map(function(s) {
+              var d = (s.start_time || "").split("T")[0];
+              var t = ((s.start_time || "").split("T")[1] || "").substring(0,5);
+              return '<div class="schedule-item" onclick="location.href=\\'class-detail.html?id=' + s.classId + '\\'">' +
+                '<div class="date">' + d.slice(5) + '</div>' +
+                '<div class="info"><strong>' + s.title + '</strong><br>' + t + ' · ' + (s.venue || '') + '</div>' +
+                '<div class="price">$' + s.price + '</div></div>';
+            }).join('');
+          }
+        } catch(e) {
+          document.getElementById("schedule-list").innerHTML = '<div style="text-align:center;padding:20px;color:#ef4444;">❌ ' + e.message + '</div>';
+        }
+      })();
+    </script>
+    <script>
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.register("sw.js");
+      }
+    </script>
+  </body>
 </html>

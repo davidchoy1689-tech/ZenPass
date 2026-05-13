@@ -1,150 +1,454 @@
 <!doctype html>
 <html lang="zh-HK">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>報表 Dashboard — ZenPass</title>
-<script src="api.js"></script>
-<style>
-*{margin:0;padding:0;box-sizing:border-box}
-:root{--orange-500:#ff6b35;--orange-100:#fff0e8;--dark-900:#1a1a2e;--dark-700:#3d3d5a;--green-500:#059669;--gray-200:#e5e7eb;--gray-100:#f3f4f6;--gray-50:#f9fafb;--white:#fff;--radius:8px;--font-zh:"Noto Sans TC",sans-serif}
-body{font-family:var(--font-zh);background:var(--gray-50);color:var(--dark-900);padding:20px;max-width:1100px;margin:0 auto}
-h1{font-size:22px;margin-bottom:16px;display:flex;align-items:center;gap:8px}
-.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:20px}
-.stat-card{background:var(--white);border-radius:var(--radius);padding:16px;box-shadow:0 1px 3px rgba(0,0,0,.06);text-align:center}
-.stat-card .val{font-size:24px;font-weight:800;color:var(--orange-500)}
-.stat-card .lbl{font-size:12px;color:var(--dark-700);margin-top:4px}
-.stat-card .sub{font-size:11px;color:var(--gray-200)}
-.row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
-@media(max-width:768px){.row{grid-template-columns:1fr}}
-.card{background:var(--white);border-radius:var(--radius);padding:16px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
-.card h3{font-size:15px;margin-bottom:12px;display:flex;align-items:center;gap:6px}
-.chart-bar{display:flex;align-items:end;gap:6px;height:140px;padding:8px 0}
-.bar{flex:1;background:var(--orange-100);border-radius:4px 4px 0 0;position:relative;min-height:4px;display:flex;flex-direction:column;align-items:center;transition:height .3s}
-.bar .val{font-size:10px;font-weight:600;color:var(--orange-500);margin-bottom:4px}
-.bar .lbl{font-size:10px;color:var(--dark-700);margin-top:4px;white-space:nowrap}
-table{width:100%;border-collapse:collapse;font-size:13px}
-th{padding:8px 10px;text-align:left;background:var(--gray-100);font-weight:600;color:var(--dark-700)}
-td{padding:8px 10px;border-top:1px solid var(--gray-100)}
-.popular-item{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--gray-100);font-size:13px}
-.popular-item:last-child{border-bottom:none}
-.popular-item .name{font-weight:600}
-.popular-item .stat{color:var(--dark-700);font-size:12px}
-.badge{font-size:11px;padding:2px 8px;border-radius:99px;background:var(--gray-100)}
-.pie-legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
-.pie-legend span{font-size:12px;display:flex;align-items:center;gap:4px}
-.dot{width:10px;height:10px;border-radius:50%;display:inline-block}
-</style>
-</head>
-<body>
-<h1>📊 商業報表</h1>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>報表 Dashboard — ZenPass</title>
+    <script src="api.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      :root {
+        --orange-500: #ff6b35;
+        --orange-100: #fff0e8;
+        --dark-900: #1a1a2e;
+        --dark-700: #3d3d5a;
+        --green-500: #059669;
+        --gray-200: #e5e7eb;
+        --gray-100: #f3f4f6;
+        --gray-50: #f9fafb;
+        --white: #fff;
+        --radius: 8px;
+        --font-zh: "Noto Sans TC", sans-serif;
+      }
+      body {
+        font-family: var(--font-zh);
+        background: var(--gray-50);
+        color: var(--dark-900);
+        padding: 20px;
+        max-width: 1100px;
+        margin: 0 auto;
+      }
+      h1 {
+        font-size: 22px;
+        margin-bottom: 16px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+        gap: 10px;
+        margin-bottom: 20px;
+      }
+      .stat-card {
+        background: var(--white);
+        border-radius: var(--radius);
+        padding: 16px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+        text-align: center;
+      }
+      .stat-card .val {
+        font-size: 24px;
+        font-weight: 800;
+        color: var(--orange-500);
+      }
+      .stat-card .lbl {
+        font-size: 12px;
+        color: var(--dark-700);
+        margin-top: 4px;
+      }
+      .stat-card .sub {
+        font-size: 11px;
+        color: var(--gray-200);
+      }
+      .row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        margin-bottom: 20px;
+      }
+      @media (max-width: 768px) {
+        .row {
+          grid-template-columns: 1fr;
+        }
+      }
+      .card {
+        background: var(--white);
+        border-radius: var(--radius);
+        padding: 16px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+      }
+      .card h3 {
+        font-size: 15px;
+        margin-bottom: 12px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .chart-bar {
+        display: flex;
+        align-items: end;
+        gap: 6px;
+        height: 140px;
+        padding: 8px 0;
+      }
+      .bar {
+        flex: 1;
+        background: var(--orange-100);
+        border-radius: 4px 4px 0 0;
+        position: relative;
+        min-height: 4px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        transition: height 0.3s;
+      }
+      .bar .val {
+        font-size: 10px;
+        font-weight: 600;
+        color: var(--orange-500);
+        margin-bottom: 4px;
+      }
+      .bar .lbl {
+        font-size: 10px;
+        color: var(--dark-700);
+        margin-top: 4px;
+        white-space: nowrap;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+      }
+      th {
+        padding: 8px 10px;
+        text-align: left;
+        background: var(--gray-100);
+        font-weight: 600;
+        color: var(--dark-700);
+      }
+      td {
+        padding: 8px 10px;
+        border-top: 1px solid var(--gray-100);
+      }
+      .popular-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 0;
+        border-bottom: 1px solid var(--gray-100);
+        font-size: 13px;
+      }
+      .popular-item:last-child {
+        border-bottom: none;
+      }
+      .popular-item .name {
+        font-weight: 600;
+      }
+      .popular-item .stat {
+        color: var(--dark-700);
+        font-size: 12px;
+      }
+      .badge {
+        font-size: 11px;
+        padding: 2px 8px;
+        border-radius: 99px;
+        background: var(--gray-100);
+      }
+      .pie-legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 8px;
+      }
+      .pie-legend span {
+        font-size: 12px;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+      .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        display: inline-block;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>📊 商業報表</h1>
 
-<div class="stats-grid" id="stats-grid"></div>
+    <div class="stats-grid" id="stats-grid"></div>
 
-<div class="row">
-  <div class="card"><h3>📈 月收入趨勢</h3><div id="revenue-chart" style="height:160px;display:flex;align-items:end;gap:6px;padding:8px 0;"></div></div>
-  <div class="card"><h3>📅 每日預約 (14天)</h3><div id="daily-chart" style="height:160px;display:flex;align-items:end;gap:6px;padding:8px 0;"></div></div>
-</div>
+    <div class="row">
+      <div class="card">
+        <h3>📈 月收入趨勢</h3>
+        <div
+          id="revenue-chart"
+          style="
+            height: 160px;
+            display: flex;
+            align-items: end;
+            gap: 6px;
+            padding: 8px 0;
+          "
+        ></div>
+      </div>
+      <div class="card">
+        <h3>📅 每日預約 (14天)</h3>
+        <div
+          id="daily-chart"
+          style="
+            height: 160px;
+            display: flex;
+            align-items: end;
+            gap: 6px;
+            padding: 8px 0;
+          "
+        ></div>
+      </div>
+    </div>
 
-<div class="row">
-  <div class="card"><h3>🔥 熱門課程</h3><div id="popular-classes"></div></div>
-  <div class="card"><h3>📂 類別分佈</h3><div id="category-breakdown"></div></div>
-</div>
+    <div class="row">
+      <div class="card">
+        <h3>🔥 熱門課程</h3>
+        <div id="popular-classes"></div>
+      </div>
+      <div class="card">
+        <h3>📂 類別分佈</h3>
+        <div id="category-breakdown"></div>
+      </div>
+    </div>
 
-<div class="row">
-  <div class="card"><h3>💳 付款方式</h3><div id="payment-methods"></div></div>
-  <div class="card"><h3>📋 摘要</h3><div id="summary-table"></div></div>
-</div>
+    <div class="row">
+      <div class="card">
+        <h3>💳 付款方式</h3>
+        <div id="payment-methods"></div>
+      </div>
+      <div class="card">
+        <h3>📋 摘要</h3>
+        <div id="summary-table"></div>
+      </div>
+    </div>
 
-<script>
-function h() {
-  var t = localStorage.getItem("zenpass_token") || "";
-  return { Authorization: "Bearer " + t };
-}
+    <script>
+      function h() {
+        var t = localStorage.getItem("zenpass_token") || "";
+        return { Authorization: "Bearer " + t };
+      }
 
-async function loadReport() {
-  try {
-    var r = await fetch(window.location.origin + "/api/admin/stats", { headers: h() });
-    var d = await r.json();
-    if (!r.ok) throw new Error(d.error);
-    renderReport(d);
-  } catch (e) {
-    document.body.innerHTML = '<div style="text-align:center;padding:40px;color:#ef4444">❌ ' + e.message + '</div>';
-  }
-}
+      async function loadReport() {
+        try {
+          var r = await fetch(window.location.origin + "/api/admin/stats", {
+            headers: h(),
+          });
+          var d = await r.json();
+          if (!r.ok) throw new Error(d.error);
+          renderReport(d);
+        } catch (e) {
+          document.body.innerHTML =
+            '<div style="text-align:center;padding:40px;color:#ef4444">❌ ' +
+            e.message +
+            "</div>";
+        }
+      }
 
-function renderReport(d) {
-  var s = d.stats || {};
+      function renderReport(d) {
+        var s = d.stats || {};
 
-  // Stats grid
-  document.getElementById("stats-grid").innerHTML =
-    '<div class="stat-card"><div class="val">' + n(s.total_users) + '</div><div class="lbl">總用戶</div></div>' +
-    '<div class="stat-card"><div class="val">' + n(s.total_bookings) + '</div><div class="lbl">總預約</div></div>' +
-    '<div class="stat-card"><div class="val">' + n(s.confirmed_bookings) + '</div><div class="lbl">已確認</div></div>' +
-    '<div class="stat-card"><div class="val">' + n(s.total_attended || 0) + '</div><div class="lbl">已出席</div></div>' +
-    '<div class="stat-card"><div class="val">$' + n(s.total_revenue) + '</div><div class="lbl">總收入</div></div>' +
-    '<div class="stat-card"><div class="val">' + n(s.total_classes) + '</div><div class="lbl">上架課程</div></div>' +
-    '<div class="stat-card"><div class="val">' + n(s.active_coaches || 0) + '</div><div class="lbl">教練</div></div>' +
-    '<div class="stat-card"><div class="val">' + n(s.members || 0) + '</div><div class="lbl">會員</div></div>';
+        // Stats grid
+        document.getElementById("stats-grid").innerHTML =
+          '<div class="stat-card"><div class="val">' +
+          n(s.total_users) +
+          '</div><div class="lbl">總用戶</div></div>' +
+          '<div class="stat-card"><div class="val">' +
+          n(s.total_bookings) +
+          '</div><div class="lbl">總預約</div></div>' +
+          '<div class="stat-card"><div class="val">' +
+          n(s.confirmed_bookings) +
+          '</div><div class="lbl">已確認</div></div>' +
+          '<div class="stat-card"><div class="val">' +
+          n(s.total_attended || 0) +
+          '</div><div class="lbl">已出席</div></div>' +
+          '<div class="stat-card"><div class="val">$' +
+          n(s.total_revenue) +
+          '</div><div class="lbl">總收入</div></div>' +
+          '<div class="stat-card"><div class="val">' +
+          n(s.total_classes) +
+          '</div><div class="lbl">上架課程</div></div>' +
+          '<div class="stat-card"><div class="val">' +
+          n(s.active_coaches || 0) +
+          '</div><div class="lbl">教練</div></div>' +
+          '<div class="stat-card"><div class="val">' +
+          n(s.members || 0) +
+          '</div><div class="lbl">會員</div></div>';
 
-  // Monthly revenue chart
-  var mr = d.monthly_revenue || [];
-  var maxRev = Math.max.apply(null, mr.map(function(m) { return m.revenue || 0; })) || 1;
-  document.getElementById("revenue-chart").innerHTML = mr.map(function(m) {
-    var pct = (m.revenue || 0) / maxRev * 100;
-    return '<div class="bar" style="height:' + Math.max(pct, 5) + '%"><div class="val">$' + (m.revenue || 0) + '</div><div class="lbl">' + m.month.slice(-2) + '月</div></div>';
-  }).join('') || '<div style="text-align:center;width:100%;padding:40px 0;color:var(--dark-700);font-size:13px;">暫無收入數據</div>';
+        // Monthly revenue chart
+        var mr = d.monthly_revenue || [];
+        var maxRev =
+          Math.max.apply(
+            null,
+            mr.map(function (m) {
+              return m.revenue || 0;
+            }),
+          ) || 1;
+        document.getElementById("revenue-chart").innerHTML =
+          mr
+            .map(function (m) {
+              var pct = ((m.revenue || 0) / maxRev) * 100;
+              return (
+                '<div class="bar" style="height:' +
+                Math.max(pct, 5) +
+                '%"><div class="val">$' +
+                (m.revenue || 0) +
+                '</div><div class="lbl">' +
+                m.month.slice(-2) +
+                "月</div></div>"
+              );
+            })
+            .join("") ||
+          '<div style="text-align:center;width:100%;padding:40px 0;color:var(--dark-700);font-size:13px;">暫無收入數據</div>';
 
-  // Daily bookings chart
-  var dbData = d.daily_bookings || [];
-  var maxDaily = Math.max.apply(null, dbData.map(function(dd) { return dd.bookings || 0; })) || 1;
-  document.getElementById("daily-chart").innerHTML = dbData.map(function(dd) {
-    var pct = (dd.bookings || 0) / maxDaily * 100;
-    var day = dd.day.slice(-5);
-    return '<div class="bar" style="height:' + Math.max(pct, 5) + '%"><div class="val">' + (dd.bookings || 0) + '</div><div class="lbl">' + day + '</div></div>';
-  }).join('') || '<div style="text-align:center;width:100%;padding:40px 0;color:var(--dark-700);font-size:13px;">暫無數據</div>';
+        // Daily bookings chart
+        var dbData = d.daily_bookings || [];
+        var maxDaily =
+          Math.max.apply(
+            null,
+            dbData.map(function (dd) {
+              return dd.bookings || 0;
+            }),
+          ) || 1;
+        document.getElementById("daily-chart").innerHTML =
+          dbData
+            .map(function (dd) {
+              var pct = ((dd.bookings || 0) / maxDaily) * 100;
+              var day = dd.day.slice(-5);
+              return (
+                '<div class="bar" style="height:' +
+                Math.max(pct, 5) +
+                '%"><div class="val">' +
+                (dd.bookings || 0) +
+                '</div><div class="lbl">' +
+                day +
+                "</div></div>"
+              );
+            })
+            .join("") ||
+          '<div style="text-align:center;width:100%;padding:40px 0;color:var(--dark-700);font-size:13px;">暫無數據</div>';
 
-  // Popular classes
-  var popular = d.popular_classes || [];
-  document.getElementById("popular-classes").innerHTML = popular.length === 0
-    ? '<div style="padding:20px;text-align:center;color:var(--dark-700);font-size:13px;">暫無資料</div>'
-    : popular.map(function(c, i) {
-        var attendRate = c.booking_count > 0 ? Math.round(c.attended_count / c.booking_count * 100) : 0;
-        return '<div class="popular-item"><span class="name">' + (i+1) + '. ' + esc(c.title) + '</span><span class="stat">' + c.booking_count + ' 預約 · ' + attendRate + '% 出席</span></div>';
-      }).join('');
+        // Popular classes
+        var popular = d.popular_classes || [];
+        document.getElementById("popular-classes").innerHTML =
+          popular.length === 0
+            ? '<div style="padding:20px;text-align:center;color:var(--dark-700);font-size:13px;">暫無資料</div>'
+            : popular
+                .map(function (c, i) {
+                  var attendRate =
+                    c.booking_count > 0
+                      ? Math.round((c.attended_count / c.booking_count) * 100)
+                      : 0;
+                  return (
+                    '<div class="popular-item"><span class="name">' +
+                    (i + 1) +
+                    ". " +
+                    esc(c.title) +
+                    '</span><span class="stat">' +
+                    c.booking_count +
+                    " 預約 · " +
+                    attendRate +
+                    "% 出席</span></div>"
+                  );
+                })
+                .join("");
 
-  // Category breakdown
-  var cats = d.categories || [];
-  var colors = ['#ff6b35','#059669','#3b82f6','#f59e0b','#8b5cf6','#ec4899'];
-  document.getElementById("category-breakdown").innerHTML = cats.length === 0
-    ? '<div style="padding:20px;text-align:center;color:var(--dark-700);font-size:13px;">暫無資料</div>'
-    : '<div class="pie-legend">' + cats.map(function(c, i) {
-        return '<span><span class="dot" style="background:' + colors[i % colors.length] + '"></span> ' + c.category + ' (' + c.booking_count + ')</span>';
-      }).join('') + '</div>';
+        // Category breakdown
+        var cats = d.categories || [];
+        var colors = [
+          "#ff6b35",
+          "#059669",
+          "#3b82f6",
+          "#f59e0b",
+          "#8b5cf6",
+          "#ec4899",
+        ];
+        document.getElementById("category-breakdown").innerHTML =
+          cats.length === 0
+            ? '<div style="padding:20px;text-align:center;color:var(--dark-700);font-size:13px;">暫無資料</div>'
+            : '<div class="pie-legend">' +
+              cats
+                .map(function (c, i) {
+                  return (
+                    '<span><span class="dot" style="background:' +
+                    colors[i % colors.length] +
+                    '"></span> ' +
+                    c.category +
+                    " (" +
+                    c.booking_count +
+                    ")</span>"
+                  );
+                })
+                .join("") +
+              "</div>";
 
-  // Payment methods
-  var pm = d.payment_methods || [];
-  document.getElementById("payment-methods").innerHTML = pm.length === 0
-    ? '<div style="padding:20px;text-align:center;color:var(--dark-700);font-size:13px;">暫無付款資料</div>'
-    : '<table><tr><th>方式</th><th>次數</th><th>總額</th></tr>' +
-      pm.map(function(p) {
-        return '<tr><td>' + (p.payment_method || '—') + '</td><td>' + n(p.count) + '</td><td>$' + n(p.total || 0) + '</td></tr>';
-      }).join('') + '</table>';
+        // Payment methods
+        var pm = d.payment_methods || [];
+        document.getElementById("payment-methods").innerHTML =
+          pm.length === 0
+            ? '<div style="padding:20px;text-align:center;color:var(--dark-700);font-size:13px;">暫無付款資料</div>'
+            : "<table><tr><th>方式</th><th>次數</th><th>總額</th></tr>" +
+              pm
+                .map(function (p) {
+                  return (
+                    "<tr><td>" +
+                    (p.payment_method || "—") +
+                    "</td><td>" +
+                    n(p.count) +
+                    "</td><td>$" +
+                    n(p.total || 0) +
+                    "</td></tr>"
+                  );
+                })
+                .join("") +
+              "</table>";
 
-  // Summary table
-  document.getElementById("summary-table").innerHTML =
-    '<table><tr><td>📅 總預約</td><td style="text-align:right;font-weight:600;">' + n(s.total_bookings) + '</td></tr>' +
-    '<tr><td>✅ 已確認</td><td style="text-align:right;font-weight:600;color:var(--green-500)">' + n(s.confirmed_bookings) + '</td></tr>' +
-    '<tr><td>🎯 已出席</td><td style="text-align:right;font-weight:600;color:var(--blue-500)">' + n(s.total_attended || 0) + '</td></tr>' +
-    '<tr><td>❌ 已取消</td><td style="text-align:right;font-weight:600;color:#ef4444">' + n(s.cancelled_bookings || 0) + '</td></tr>' +
-    '<tr><td>⏳ 待付款</td><td style="text-align:right;font-weight:600;color:#f59e0b">' + n(s.pending_payments) + '</td></tr>' +
-    '<tr><td>💰 總收入</td><td style="text-align:right;font-weight:700;font-size:16px;color:var(--orange-500)">$' + n(s.total_revenue) + '</td></tr></table>';
-}
+        // Summary table
+        document.getElementById("summary-table").innerHTML =
+          '<table><tr><td>📅 總預約</td><td style="text-align:right;font-weight:600;">' +
+          n(s.total_bookings) +
+          "</td></tr>" +
+          '<tr><td>✅ 已確認</td><td style="text-align:right;font-weight:600;color:var(--green-500)">' +
+          n(s.confirmed_bookings) +
+          "</td></tr>" +
+          '<tr><td>🎯 已出席</td><td style="text-align:right;font-weight:600;color:var(--blue-500)">' +
+          n(s.total_attended || 0) +
+          "</td></tr>" +
+          '<tr><td>❌ 已取消</td><td style="text-align:right;font-weight:600;color:#ef4444">' +
+          n(s.cancelled_bookings || 0) +
+          "</td></tr>" +
+          '<tr><td>⏳ 待付款</td><td style="text-align:right;font-weight:600;color:#f59e0b">' +
+          n(s.pending_payments) +
+          "</td></tr>" +
+          '<tr><td>💰 總收入</td><td style="text-align:right;font-weight:700;font-size:16px;color:var(--orange-500)">$' +
+          n(s.total_revenue) +
+          "</td></tr></table>";
+      }
 
-function n(v) { return (v || 0).toLocaleString(); }
-function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+      function n(v) {
+        return (v || 0).toLocaleString();
+      }
+      function esc(s) {
+        return String(s)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;");
+      }
 
-loadReport();
-</script>
-</body>
+      loadReport();
+    </script>
+  </body>
 </html>

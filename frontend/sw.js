@@ -37,7 +37,7 @@ const PRECACHE = [
   "/badges.html",
   "/points.html",
   "/favicon.png",
-  "/manifest.json"
+  "/manifest.json",
 ];
 
 self.addEventListener("install", function (e) {
@@ -45,7 +45,7 @@ self.addEventListener("install", function (e) {
   e.waitUntil(
     caches.open(CACHE).then(function (cache) {
       return cache.addAll(PRECACHE);
-    })
+    }),
   );
 });
 
@@ -96,8 +96,8 @@ self.addEventListener("fetch", function (e) {
               {
                 status: 200,
                 statusText: "OK",
-                headers: { "Content-Type": "text/html;charset=UTF-8" }
-              }
+                headers: { "Content-Type": "text/html;charset=UTF-8" },
+              },
             );
           })
       );

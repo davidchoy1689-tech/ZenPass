@@ -1,285 +1,686 @@
 <!doctype html>
 <html lang="zh-HK">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>開通商戶 — ZenPass</title>
-<script src="api.js"></script>
-<style>
-*{margin:0;padding:0;box-sizing:border-box}
-:root{--orange-500:#ff6b35;--orange-400:#ff8555;--orange-100:#fff0e8;--dark-900:#1a1a2e;--dark-700:#3d3d5a;--green-500:#059669;--gray-200:#e5e7eb;--gray-100:#f3f4f6;--white:#fff;--radius:8px;--radius-lg:12px;--font-zh:"Noto Sans TC",sans-serif}
-body{font-family:var(--font-zh);background:var(--gray-50);color:var(--dark-900);min-height:100vh;padding:20px;max-width:600px;margin:0 auto}
-.header{text-align:center;margin-bottom:24px}
-.header .icon{font-size:48px}
-.header h1{font-size:22px;font-weight:800;margin-top:8px}
-.header p{font-size:13px;color:var(--dark-700);margin-top:4px}
-.steps{display:flex;gap:8px;margin-bottom:24px;justify-content:center}
-.step{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;background:var(--gray-200);color:var(--dark-700);transition:all .3s}
-.step.active{background:var(--orange-500);color:var(--white)}
-.step.done{background:var(--green-500);color:var(--white)}
-.step-line{width:24px;height:2px;background:var(--gray-200);align-self:center}
-.step-line.done{background:var(--green-500)}
-.card{background:var(--white);border-radius:var(--radius-lg);padding:24px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.06);display:none}
-.card.active{display:block}
-.card h2{font-size:18px;margin-bottom:4px}
-.card .desc{font-size:13px;color:var(--dark-700);margin-bottom:16px;line-height:1.5}
-.form-group{margin-bottom:14px}
-.form-group label{display:block;font-size:13px;font-weight:600;margin-bottom:4px;color:var(--dark-700)}
-.form-group input,.form-group select,.form-group textarea{width:100%;padding:12px;border:1px solid var(--gray-200);border-radius:var(--radius);font-size:15px;font-family:var(--font-zh);background:var(--white);transition:border .2s}
-.form-group input:focus,.form-group select:focus{border-color:var(--orange-500);outline:none}
-.form-row{display:flex;gap:10px}
-.form-row .form-group{flex:1}
-.btn{width:100%;padding:14px;border:none;border-radius:var(--radius);font-size:16px;font-weight:700;cursor:pointer;font-family:var(--font-zh);transition:background .2s}
-.btn-primary{background:var(--orange-500);color:var(--white)}
-.btn-primary:hover{background:#e55a2b}
-.btn-primary:disabled{background:var(--gray-200);cursor:not-allowed}
-.btn-outline{background:var(--white);border:2px solid var(--gray-200);color:var(--dark-900);margin-top:8px}
-.btn-outline:hover{border-color:var(--orange-500);color:var(--orange-500)}
-.features{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
-.feature{background:var(--gray-50);border-radius:var(--radius);padding:14px;text-align:center;border:2px solid transparent;cursor:pointer;transition:all .2s}
-.feature:hover{border-color:var(--orange-300)}
-.feature.selected{border-color:var(--orange-500);background:var(--orange-100)}
-.feature .icon{font-size:28px;margin-bottom:4px}
-.feature .name{font-size:13px;font-weight:600}
-.feature .desc{font-size:11px;color:var(--dark-700);margin-top:2px}
-.tag-list{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
-.tag{cursor:pointer;padding:6px 14px;border-radius:99px;font-size:13px;background:var(--gray-100);border:1px solid var(--gray-200);transition:all .2s;font-family:var(--font-zh)}
-.tag.selected{background:var(--orange-100);border-color:var(--orange-500);color:var(--orange-500);font-weight:600}
-.success-screen{text-align:center;padding:40px 20px}
-.success-screen .icon{font-size:64px;margin-bottom:12px}
-.success-screen h2{font-size:20px;margin-bottom:8px}
-.success-screen p{font-size:14px;color:var(--dark-700);margin-bottom:4px}
-@keyframes spin{to{transform:rotate(360deg)}}
-.spinner{display:inline-block;width:20px;height:20px;border:2px solid rgba(255,255,255,.3);border-top-color:white;border-radius:50%;animation:spin .8s linear infinite;vertical-align:middle;margin-right:8px}
-@media(max-width:480px){body{padding:12px}.header{padding:12px}.step-indicator{padding:12px 0}.section{padding:16px}h1{font-size:18px}h2{font-size:16px}.btn{padding:12px;font-size:14px}.grid-2{grid-template-columns:1fr}}
-</style>
-</head>
-<body>
-<div class="header">
-  <div class="icon">🏪</div>
-  <h1>開通商戶帳號</h1>
-  <p>5 步驟完成設定，開始接受預約</p>
-</div>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>開通商戶 — ZenPass</title>
+    <script src="api.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      :root {
+        --orange-500: #ff6b35;
+        --orange-400: #ff8555;
+        --orange-100: #fff0e8;
+        --dark-900: #1a1a2e;
+        --dark-700: #3d3d5a;
+        --green-500: #059669;
+        --gray-200: #e5e7eb;
+        --gray-100: #f3f4f6;
+        --white: #fff;
+        --radius: 8px;
+        --radius-lg: 12px;
+        --font-zh: "Noto Sans TC", sans-serif;
+      }
+      body {
+        font-family: var(--font-zh);
+        background: var(--gray-50);
+        color: var(--dark-900);
+        min-height: 100vh;
+        padding: 20px;
+        max-width: 600px;
+        margin: 0 auto;
+      }
+      .header {
+        text-align: center;
+        margin-bottom: 24px;
+      }
+      .header .icon {
+        font-size: 48px;
+      }
+      .header h1 {
+        font-size: 22px;
+        font-weight: 800;
+        margin-top: 8px;
+      }
+      .header p {
+        font-size: 13px;
+        color: var(--dark-700);
+        margin-top: 4px;
+      }
+      .steps {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 24px;
+        justify-content: center;
+      }
+      .step {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 13px;
+        font-weight: 700;
+        background: var(--gray-200);
+        color: var(--dark-700);
+        transition: all 0.3s;
+      }
+      .step.active {
+        background: var(--orange-500);
+        color: var(--white);
+      }
+      .step.done {
+        background: var(--green-500);
+        color: var(--white);
+      }
+      .step-line {
+        width: 24px;
+        height: 2px;
+        background: var(--gray-200);
+        align-self: center;
+      }
+      .step-line.done {
+        background: var(--green-500);
+      }
+      .card {
+        background: var(--white);
+        border-radius: var(--radius-lg);
+        padding: 24px;
+        margin-bottom: 16px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+        display: none;
+      }
+      .card.active {
+        display: block;
+      }
+      .card h2 {
+        font-size: 18px;
+        margin-bottom: 4px;
+      }
+      .card .desc {
+        font-size: 13px;
+        color: var(--dark-700);
+        margin-bottom: 16px;
+        line-height: 1.5;
+      }
+      .form-group {
+        margin-bottom: 14px;
+      }
+      .form-group label {
+        display: block;
+        font-size: 13px;
+        font-weight: 600;
+        margin-bottom: 4px;
+        color: var(--dark-700);
+      }
+      .form-group input,
+      .form-group select,
+      .form-group textarea {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid var(--gray-200);
+        border-radius: var(--radius);
+        font-size: 15px;
+        font-family: var(--font-zh);
+        background: var(--white);
+        transition: border 0.2s;
+      }
+      .form-group input:focus,
+      .form-group select:focus {
+        border-color: var(--orange-500);
+        outline: none;
+      }
+      .form-row {
+        display: flex;
+        gap: 10px;
+      }
+      .form-row .form-group {
+        flex: 1;
+      }
+      .btn {
+        width: 100%;
+        padding: 14px;
+        border: none;
+        border-radius: var(--radius);
+        font-size: 16px;
+        font-weight: 700;
+        cursor: pointer;
+        font-family: var(--font-zh);
+        transition: background 0.2s;
+      }
+      .btn-primary {
+        background: var(--orange-500);
+        color: var(--white);
+      }
+      .btn-primary:hover {
+        background: #e55a2b;
+      }
+      .btn-primary:disabled {
+        background: var(--gray-200);
+        cursor: not-allowed;
+      }
+      .btn-outline {
+        background: var(--white);
+        border: 2px solid var(--gray-200);
+        color: var(--dark-900);
+        margin-top: 8px;
+      }
+      .btn-outline:hover {
+        border-color: var(--orange-500);
+        color: var(--orange-500);
+      }
+      .features {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-bottom: 16px;
+      }
+      .feature {
+        background: var(--gray-50);
+        border-radius: var(--radius);
+        padding: 14px;
+        text-align: center;
+        border: 2px solid transparent;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .feature:hover {
+        border-color: var(--orange-300);
+      }
+      .feature.selected {
+        border-color: var(--orange-500);
+        background: var(--orange-100);
+      }
+      .feature .icon {
+        font-size: 28px;
+        margin-bottom: 4px;
+      }
+      .feature .name {
+        font-size: 13px;
+        font-weight: 600;
+      }
+      .feature .desc {
+        font-size: 11px;
+        color: var(--dark-700);
+        margin-top: 2px;
+      }
+      .tag-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-bottom: 8px;
+      }
+      .tag {
+        cursor: pointer;
+        padding: 6px 14px;
+        border-radius: 99px;
+        font-size: 13px;
+        background: var(--gray-100);
+        border: 1px solid var(--gray-200);
+        transition: all 0.2s;
+        font-family: var(--font-zh);
+      }
+      .tag.selected {
+        background: var(--orange-100);
+        border-color: var(--orange-500);
+        color: var(--orange-500);
+        font-weight: 600;
+      }
+      .success-screen {
+        text-align: center;
+        padding: 40px 20px;
+      }
+      .success-screen .icon {
+        font-size: 64px;
+        margin-bottom: 12px;
+      }
+      .success-screen h2 {
+        font-size: 20px;
+        margin-bottom: 8px;
+      }
+      .success-screen p {
+        font-size: 14px;
+        color: var(--dark-700);
+        margin-bottom: 4px;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      .spinner {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-top-color: white;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+        vertical-align: middle;
+        margin-right: 8px;
+      }
+      @media (max-width: 480px) {
+        body {
+          padding: 12px;
+        }
+        .header {
+          padding: 12px;
+        }
+        .step-indicator {
+          padding: 12px 0;
+        }
+        .section {
+          padding: 16px;
+        }
+        h1 {
+          font-size: 18px;
+        }
+        h2 {
+          font-size: 16px;
+        }
+        .btn {
+          padding: 12px;
+          font-size: 14px;
+        }
+        .grid-2 {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <div class="icon">🏪</div>
+      <h1>開通商戶帳號</h1>
+      <p>5 步驟完成設定，開始接受預約</p>
+    </div>
 
-<div class="steps" id="steps">
-  <div class="step active">1</div><div class="step-line"></div>
-  <div class="step">2</div><div class="step-line"></div>
-  <div class="step">3</div><div class="step-line"></div>
-  <div class="step">4</div><div class="step-line"></div>
-  <div class="step">5</div>
-</div>
+    <div class="steps" id="steps">
+      <div class="step active">1</div>
+      <div class="step-line"></div>
+      <div class="step">2</div>
+      <div class="step-line"></div>
+      <div class="step">3</div>
+      <div class="step-line"></div>
+      <div class="step">4</div>
+      <div class="step-line"></div>
+      <div class="step">5</div>
+    </div>
 
-<!-- Step 1: Business Info -->
-<div class="card active" id="step-1">
-  <h2>🏢 商戶資料</h2>
-  <p class="desc">填寫你嘅工作室基本資料，用於商戶頁面展示</p>
-  <div class="form-group"><label>商戶名稱 *</label><input type="text" id="s1-name" placeholder="e.g. ZenSpace 瑜伽教室"></div>
-  <div class="form-row">
-    <div class="form-group"><label>類別 *</label><select id="s1-cat"><option value="瑜伽">🧘 瑜伽</option><option value="健身">💪 健身</option><option value="新興運動">🎯 新興運動</option><option value="伸展">🤸 伸展</option><option value="舞蹈">💃 舞蹈</option><option value="冥想">🧠 冥想</option><option value="武術">🥋 武術</option><option value="其他">其他</option></select></div>
-    <div class="form-group"><label>電話</label><input type="tel" id="s1-phone" placeholder="e.g. 91234567"></div>
-  </div>
-  <div class="form-group"><label>地址</label><input type="text" id="s1-addr" placeholder="e.g. 中環皇后大道中 100 號"></div>
-  <button class="btn btn-primary" onclick="nextStep(1)">下一步 →</button>
-</div>
+    <!-- Step 1: Business Info -->
+    <div class="card active" id="step-1">
+      <h2>🏢 商戶資料</h2>
+      <p class="desc">填寫你嘅工作室基本資料，用於商戶頁面展示</p>
+      <div class="form-group">
+        <label>商戶名稱 *</label
+        ><input type="text" id="s1-name" placeholder="e.g. ZenSpace 瑜伽教室" />
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>類別 *</label
+          ><select id="s1-cat">
+            <option value="瑜伽">🧘 瑜伽</option>
+            <option value="健身">💪 健身</option>
+            <option value="新興運動">🎯 新興運動</option>
+            <option value="伸展">🤸 伸展</option>
+            <option value="舞蹈">💃 舞蹈</option>
+            <option value="冥想">🧠 冥想</option>
+            <option value="武術">🥋 武術</option>
+            <option value="其他">其他</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>電話</label
+          ><input type="tel" id="s1-phone" placeholder="e.g. 91234567" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label>地址</label
+        ><input
+          type="text"
+          id="s1-addr"
+          placeholder="e.g. 中環皇后大道中 100 號"
+        />
+      </div>
+      <button class="btn btn-primary" onclick="nextStep(1)">下一步 →</button>
+    </div>
 
-<!-- Step 2: Services -->
-<div class="card" id="step-2">
-  <h2>📋 服務設定</h2>
-  <p class="desc">你提供邊啲服務類型？（可選多項）</p>
-  <div class="features" id="s2-services">
-    <div class="feature selected" onclick="toggleService(this)"><div class="icon">👥</div><div class="name">團體班</div><div class="desc">多人同時上堂</div></div>
-    <div class="feature" onclick="toggleService(this)"><div class="icon">👤</div><div class="name">私人班</div><div class="desc">一對一教學</div></div>
-    <div class="feature" onclick="toggleService(this)"><div class="icon">🎪</div><div class="name">工作坊</div><div class="desc">期間限定活動</div></div>
-    <div class="feature" onclick="toggleService(this)"><div class="icon">🏪</div><div class="name">零售</div><div class="desc">銷售商品/套票</div></div>
-  </div>
-  <div class="form-group"><label>定價模式</label><select id="s2-pricing"><option value="single">單堂收費</option><option value="package">套票制</option><option value="membership">月費會籍</option><option value="all">混合模式</option></select></div>
-  <button class="btn btn-outline" onclick="prevStep(2)">← 上一步</button>
-  <button class="btn btn-primary" onclick="nextStep(2)">下一步 →</button>
-</div>
+    <!-- Step 2: Services -->
+    <div class="card" id="step-2">
+      <h2>📋 服務設定</h2>
+      <p class="desc">你提供邊啲服務類型？（可選多項）</p>
+      <div class="features" id="s2-services">
+        <div class="feature selected" onclick="toggleService(this)">
+          <div class="icon">👥</div>
+          <div class="name">團體班</div>
+          <div class="desc">多人同時上堂</div>
+        </div>
+        <div class="feature" onclick="toggleService(this)">
+          <div class="icon">👤</div>
+          <div class="name">私人班</div>
+          <div class="desc">一對一教學</div>
+        </div>
+        <div class="feature" onclick="toggleService(this)">
+          <div class="icon">🎪</div>
+          <div class="name">工作坊</div>
+          <div class="desc">期間限定活動</div>
+        </div>
+        <div class="feature" onclick="toggleService(this)">
+          <div class="icon">🏪</div>
+          <div class="name">零售</div>
+          <div class="desc">銷售商品/套票</div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>定價模式</label
+        ><select id="s2-pricing">
+          <option value="single">單堂收費</option>
+          <option value="package">套票制</option>
+          <option value="membership">月費會籍</option>
+          <option value="all">混合模式</option>
+        </select>
+      </div>
+      <button class="btn btn-outline" onclick="prevStep(2)">← 上一步</button>
+      <button class="btn btn-primary" onclick="nextStep(2)">下一步 →</button>
+    </div>
 
-<!-- Step 3: Coaches -->
-<div class="card" id="step-3">
-  <h2>👨‍🏫 教練團隊</h2>
-  <p class="desc">你可以而家邀請教練，或者稍後喺管理後台加入</p>
-  <div class="form-group"><label>教練名稱</label><input type="text" id="s3-coach-name" placeholder="e.g. 靜儀"></div>
-  <div class="form-row">
-    <div class="form-group"><label>電郵</label><input type="email" id="s3-coach-email" placeholder="coach@email.com"></div>
-    <div class="form-group"><label>電話</label><input type="tel" id="s3-coach-phone" placeholder="e.g. 92345678"></div>
-  </div>
-  <button class="btn btn-sm" style="width:auto;padding:8px 16px;background:var(--gray-100);border:none;border-radius:6px;cursor:pointer;font-size:13px;margin-bottom:12px;font-family:var(--font-zh);" onclick="addCoach()">➕ 新增教練</button>
-  <div id="coach-list"></div>
-  <button class="btn btn-outline" onclick="prevStep(3)">← 上一步</button>
-  <button class="btn btn-primary" onclick="nextStep(3)">下一步 →</button>
-</div>
+    <!-- Step 3: Coaches -->
+    <div class="card" id="step-3">
+      <h2>👨‍🏫 教練團隊</h2>
+      <p class="desc">你可以而家邀請教練，或者稍後喺管理後台加入</p>
+      <div class="form-group">
+        <label>教練名稱</label
+        ><input type="text" id="s3-coach-name" placeholder="e.g. 靜儀" />
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>電郵</label
+          ><input
+            type="email"
+            id="s3-coach-email"
+            placeholder="coach@email.com"
+          />
+        </div>
+        <div class="form-group">
+          <label>電話</label
+          ><input type="tel" id="s3-coach-phone" placeholder="e.g. 92345678" />
+        </div>
+      </div>
+      <button
+        class="btn btn-sm"
+        style="
+          width: auto;
+          padding: 8px 16px;
+          background: var(--gray-100);
+          border: none;
+          border-radius: 6px;
+          cursor: pointer;
+          font-size: 13px;
+          margin-bottom: 12px;
+          font-family: var(--font-zh);
+        "
+        onclick="addCoach()"
+      >
+        ➕ 新增教練
+      </button>
+      <div id="coach-list"></div>
+      <button class="btn btn-outline" onclick="prevStep(3)">← 上一步</button>
+      <button class="btn btn-primary" onclick="nextStep(3)">下一步 →</button>
+    </div>
 
-<!-- Step 4: Payment -->
-<div class="card" id="step-4">
-  <h2>💳 收款設定</h2>
-  <p class="desc">設定收款方式，等學生可以俾錢</p>
-  <div class="form-group"><label>銀行戶口（FPS/PayMe 結算）</label><input type="text" id="s4-bank" placeholder="e.g. HSBC 123-456-789"></div>
-  <div class="form-group"><label>FPS 電話/電郵</label><input type="text" id="s4-fps" placeholder="e.g. 90335538"></div>
-  <div style="background:var(--orange-100);border-radius:8px;padding:12px;margin-bottom:12px;font-size:13px;">
-    💡 Stripe 信用卡收款可以稍後喺後台設定
-  </div>
-  <button class="btn btn-outline" onclick="prevStep(4)">← 上一步</button>
-  <button class="btn btn-primary" onclick="nextStep(4)">下一步 →</button>
-</div>
+    <!-- Step 4: Payment -->
+    <div class="card" id="step-4">
+      <h2>💳 收款設定</h2>
+      <p class="desc">設定收款方式，等學生可以俾錢</p>
+      <div class="form-group">
+        <label>銀行戶口（FPS/PayMe 結算）</label
+        ><input type="text" id="s4-bank" placeholder="e.g. HSBC 123-456-789" />
+      </div>
+      <div class="form-group">
+        <label>FPS 電話/電郵</label
+        ><input type="text" id="s4-fps" placeholder="e.g. 90335538" />
+      </div>
+      <div
+        style="
+          background: var(--orange-100);
+          border-radius: 8px;
+          padding: 12px;
+          margin-bottom: 12px;
+          font-size: 13px;
+        "
+      >
+        💡 Stripe 信用卡收款可以稍後喺後台設定
+      </div>
+      <button class="btn btn-outline" onclick="prevStep(4)">← 上一步</button>
+      <button class="btn btn-primary" onclick="nextStep(4)">下一步 →</button>
+    </div>
 
-<!-- Step 5: Review & Submit -->
-<div class="card" id="step-5">
-  <h2>✅ 確認資料</h2>
-  <p class="desc">檢查所有資料無誤後，提交開通商戶</p>
-  <div id="review-content"></div>
-  <button class="btn btn-outline" onclick="prevStep(5)">← 上一步</button>
-  <button class="btn btn-primary" id="submit-btn" onclick="submitOnboarding()">🚀 開通商戶</button>
-</div>
+    <!-- Step 5: Review & Submit -->
+    <div class="card" id="step-5">
+      <h2>✅ 確認資料</h2>
+      <p class="desc">檢查所有資料無誤後，提交開通商戶</p>
+      <div id="review-content"></div>
+      <button class="btn btn-outline" onclick="prevStep(5)">← 上一步</button>
+      <button
+        class="btn btn-primary"
+        id="submit-btn"
+        onclick="submitOnboarding()"
+      >
+        🚀 開通商戶
+      </button>
+    </div>
 
-<script>
-// Auth check
-(function() {
-  var token = localStorage.getItem("zenpass_token");
-  if (!token) {
-    // Auto-set demo token for dev
-    localStorage.setItem("zenpass_token", "demo_token_admin");
-    localStorage.setItem("zenpass_name", "David");
-    localStorage.setItem("zenpass_user", JSON.stringify({
-      name: "David", email: "david@zenpass.hk", role: "admin", credits: 999
-    }));
-  }
-})();
+    <script>
+      // Auth check
+      (function () {
+        var token = localStorage.getItem("zenpass_token");
+        if (!token) {
+          // Auto-set demo token for dev
+          localStorage.setItem("zenpass_token", "demo_token_admin");
+          localStorage.setItem("zenpass_name", "David");
+          localStorage.setItem(
+            "zenpass_user",
+            JSON.stringify({
+              name: "David",
+              email: "david@zenpass.hk",
+              role: "admin",
+              credits: 999,
+            }),
+          );
+        }
+      })();
 
-var coaches = [];
-var currentStep = 1;
-var totalSteps = 5;
+      var coaches = [];
+      var currentStep = 1;
+      var totalSteps = 5;
 
-function toggleService(el) {
-  el.classList.toggle("selected");
-}
+      function toggleService(el) {
+        el.classList.toggle("selected");
+      }
 
-function addCoach() {
-  var name = document.getElementById("s3-coach-name").value.trim();
-  var email = document.getElementById("s3-coach-email").value.trim();
-  var phone = document.getElementById("s3-coach-phone").value.trim();
-  if (!name) return;
-  coaches.push({ name: name, email: email, phone: phone });
-  document.getElementById("s3-coach-name").value = "";
-  document.getElementById("s3-coach-email").value = "";
-  document.getElementById("s3-coach-phone").value = "";
-  renderCoaches();
-}
+      function addCoach() {
+        var name = document.getElementById("s3-coach-name").value.trim();
+        var email = document.getElementById("s3-coach-email").value.trim();
+        var phone = document.getElementById("s3-coach-phone").value.trim();
+        if (!name) return;
+        coaches.push({ name: name, email: email, phone: phone });
+        document.getElementById("s3-coach-name").value = "";
+        document.getElementById("s3-coach-email").value = "";
+        document.getElementById("s3-coach-phone").value = "";
+        renderCoaches();
+      }
 
-function renderCoaches() {
-  var html = "";
-  coaches.forEach(function(c, i) {
-    html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px;background:var(--gray-50);border-radius:6px;margin-bottom:4px;font-size:13px;">' +
-      '<span><strong>' + escHtml(c.name) + '</strong>' + (c.email ? ' · ' + escHtml(c.email) : '') + '</span>' +
-      '<button onclick="removeCoach(' + i + ')" style="background:none;border:none;font-size:18px;cursor:pointer;color:#ef4444;">✕</button></div>';
-  });
-  document.getElementById("coach-list").innerHTML = html;
-}
+      function renderCoaches() {
+        var html = "";
+        coaches.forEach(function (c, i) {
+          html +=
+            '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px;background:var(--gray-50);border-radius:6px;margin-bottom:4px;font-size:13px;">' +
+            "<span><strong>" +
+            escHtml(c.name) +
+            "</strong>" +
+            (c.email ? " · " + escHtml(c.email) : "") +
+            "</span>" +
+            '<button onclick="removeCoach(' +
+            i +
+            ')" style="background:none;border:none;font-size:18px;cursor:pointer;color:#ef4444;">✕</button></div>';
+        });
+        document.getElementById("coach-list").innerHTML = html;
+      }
 
-function removeCoach(i) { coaches.splice(i, 1); renderCoaches(); }
+      function removeCoach(i) {
+        coaches.splice(i, 1);
+        renderCoaches();
+      }
 
-function updateSteps() {
-  for (var i = 1; i <= totalSteps; i++) {
-    var el = document.querySelector(".steps .step:nth-child(" + (i*2-1) + ")");
-    var line = document.querySelector(".steps .step-line:nth-child(" + (i*2) + ")");
-    if (el) {
-      el.classList.remove("active", "done");
-      if (i < currentStep) el.classList.add("done");
-      else if (i === currentStep) el.classList.add("active");
-    }
-  }
-}
+      function updateSteps() {
+        for (var i = 1; i <= totalSteps; i++) {
+          var el = document.querySelector(
+            ".steps .step:nth-child(" + (i * 2 - 1) + ")",
+          );
+          var line = document.querySelector(
+            ".steps .step-line:nth-child(" + i * 2 + ")",
+          );
+          if (el) {
+            el.classList.remove("active", "done");
+            if (i < currentStep) el.classList.add("done");
+            else if (i === currentStep) el.classList.add("active");
+          }
+        }
+      }
 
-function showStep(n) {
-  for (var i = 1; i <= totalSteps; i++) {
-    document.getElementById("step-" + i).classList.remove("active");
-  }
-  document.getElementById("step-" + n).classList.add("active");
-  currentStep = n;
-  updateSteps();
-  window.scrollTo(0, 0);
-}
+      function showStep(n) {
+        for (var i = 1; i <= totalSteps; i++) {
+          document.getElementById("step-" + i).classList.remove("active");
+        }
+        document.getElementById("step-" + n).classList.add("active");
+        currentStep = n;
+        updateSteps();
+        window.scrollTo(0, 0);
+      }
 
-function nextStep(n) {
-  // Validate
-  if (n === 1) {
-    var name = document.getElementById("s1-name").value.trim();
-    if (!name) { alert("請輸入商戶名稱"); return; }
-  }
-  showStep(n + 1);
-  if (n + 1 === 5) renderReview();
-}
+      function nextStep(n) {
+        // Validate
+        if (n === 1) {
+          var name = document.getElementById("s1-name").value.trim();
+          if (!name) {
+            alert("請輸入商戶名稱");
+            return;
+          }
+        }
+        showStep(n + 1);
+        if (n + 1 === 5) renderReview();
+      }
 
-function prevStep(n) { showStep(n - 1); }
+      function prevStep(n) {
+        showStep(n - 1);
+      }
 
-function renderReview() {
-  var services = [];
-  document.querySelectorAll("#s2-services .feature.selected").forEach(function(f) {
-    services.push(f.querySelector(".name").textContent);
-  });
-  document.getElementById("review-content").innerHTML =
-    '<div style="background:var(--gray-50);border-radius:8px;padding:16px;margin-bottom:12px;">' +
-    '<div style="font-size:13px;line-height:2;"><strong>商戶：</strong>' + escHtml(document.getElementById("s1-name").value) + '</div>' +
-    '<div style="font-size:13px;line-height:2;"><strong>類別：</strong>' + escHtml(document.getElementById("s1-cat").value) + '</div>' +
-    '<div style="font-size:13px;line-height:2;"><strong>電話：</strong>' + escHtml(document.getElementById("s1-phone").value || '—') + '</div>' +
-    '<div style="font-size:13px;line-height:2;"><strong>地址：</strong>' + escHtml(document.getElementById("s1-addr").value || '—') + '</div>' +
-    '<div style="font-size:13px;line-height:2;"><strong>服務：</strong>' + services.join(', ') + '</div>' +
-    '<div style="font-size:13px;line-height:2;"><strong>定價：</strong>' + escHtml(document.getElementById("s2-pricing").value) + '</div>' +
-    '<div style="font-size:13px;line-height:2;"><strong>教練：</strong>' + (coaches.length > 0 ? coaches.map(function(c){return c.name;}).join(', ') : '暫無') + '</div>' +
-    '<div style="font-size:13px;line-height:2;"><strong>銀行：</strong>' + escHtml(document.getElementById("s4-bank").value || '—') + '</div>' +
-    '<div style="font-size:13px;line-height:2;"><strong>FPS：</strong>' + escHtml(document.getElementById("s4-fps").value || '—') + '</div></div>';
-}
+      function renderReview() {
+        var services = [];
+        document
+          .querySelectorAll("#s2-services .feature.selected")
+          .forEach(function (f) {
+            services.push(f.querySelector(".name").textContent);
+          });
+        document.getElementById("review-content").innerHTML =
+          '<div style="background:var(--gray-50);border-radius:8px;padding:16px;margin-bottom:12px;">' +
+          '<div style="font-size:13px;line-height:2;"><strong>商戶：</strong>' +
+          escHtml(document.getElementById("s1-name").value) +
+          "</div>" +
+          '<div style="font-size:13px;line-height:2;"><strong>類別：</strong>' +
+          escHtml(document.getElementById("s1-cat").value) +
+          "</div>" +
+          '<div style="font-size:13px;line-height:2;"><strong>電話：</strong>' +
+          escHtml(document.getElementById("s1-phone").value || "—") +
+          "</div>" +
+          '<div style="font-size:13px;line-height:2;"><strong>地址：</strong>' +
+          escHtml(document.getElementById("s1-addr").value || "—") +
+          "</div>" +
+          '<div style="font-size:13px;line-height:2;"><strong>服務：</strong>' +
+          services.join(", ") +
+          "</div>" +
+          '<div style="font-size:13px;line-height:2;"><strong>定價：</strong>' +
+          escHtml(document.getElementById("s2-pricing").value) +
+          "</div>" +
+          '<div style="font-size:13px;line-height:2;"><strong>教練：</strong>' +
+          (coaches.length > 0
+            ? coaches
+                .map(function (c) {
+                  return c.name;
+                })
+                .join(", ")
+            : "暫無") +
+          "</div>" +
+          '<div style="font-size:13px;line-height:2;"><strong>銀行：</strong>' +
+          escHtml(document.getElementById("s4-bank").value || "—") +
+          "</div>" +
+          '<div style="font-size:13px;line-height:2;"><strong>FPS：</strong>' +
+          escHtml(document.getElementById("s4-fps").value || "—") +
+          "</div></div>";
+      }
 
-async function submitOnboarding() {
-  var btn = document.getElementById("submit-btn");
-  btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span> 開通中...';
+      async function submitOnboarding() {
+        var btn = document.getElementById("submit-btn");
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner"></span> 開通中...';
 
-  try {
-    var name = document.getElementById("s1-name").value.trim();
-    var category = document.getElementById("s1-cat").value;
-    var phone = document.getElementById("s1-phone").value.trim();
-    var address = document.getElementById("s1-addr").value.trim();
+        try {
+          var name = document.getElementById("s1-name").value.trim();
+          var category = document.getElementById("s1-cat").value;
+          var phone = document.getElementById("s1-phone").value.trim();
+          var address = document.getElementById("s1-addr").value.trim();
 
-    // Create a class (as part of onboarding)
-    var classResp = await fetch(API_BASE + "/classes", {
-      method: "POST",
-      headers: getAuthHeaders(),
-      body: JSON.stringify({
-        title: name + " (預設)",
-        category: category,
-        duration: 60,
-        price_hkd: 100,
-        max_participants: 20,
-        venue_name: address || name,
-        status: "active"
-      })
-    });
-    var classData = await classResp.json();
-    if (!classResp.ok) throw new Error(classData.error || "建立失敗");
+          // Create a class (as part of onboarding)
+          var classResp = await fetch(API_BASE + "/classes", {
+            method: "POST",
+            headers: getAuthHeaders(),
+            body: JSON.stringify({
+              title: name + " (預設)",
+              category: category,
+              duration: 60,
+              price_hkd: 100,
+              max_participants: 20,
+              venue_name: address || name,
+              status: "active",
+            }),
+          });
+          var classData = await classResp.json();
+          if (!classResp.ok) throw new Error(classData.error || "建立失敗");
 
-    // Show success
-    document.getElementById("step-5").innerHTML =
-      '<div class="success-screen"><div class="icon">🎉</div><h2>商戶開通成功！</h2>' +
-      '<p>你嘅工作室 ' + escHtml(name) + ' 已經準備好接受預約</p><br>' +
-      '<button class="btn btn-primary" onclick="window.location.href=\'coach-dashboard.html\'">前往教練面板</button>' +
-      '<button class="btn btn-outline" onclick="window.location.href=\'explore.html\'">瀏覽課程</button></div>';
+          // Show success
+          document.getElementById("step-5").innerHTML =
+            '<div class="success-screen"><div class="icon">🎉</div><h2>商戶開通成功！</h2>' +
+            "<p>你嘅工作室 " +
+            escHtml(name) +
+            " 已經準備好接受預約</p><br>" +
+            '<button class="btn btn-primary" onclick="window.location.href=\'coach-dashboard.html\'">前往教練面板</button>' +
+            '<button class="btn btn-outline" onclick="window.location.href=\'explore.html\'">瀏覽課程</button></div>';
+        } catch (e) {
+          alert("❌ " + e.message);
+          btn.disabled = false;
+          btn.innerHTML = "🚀 開通商戶";
+        }
+      }
 
-  } catch (e) {
-    alert("❌ " + e.message);
-    btn.disabled = false;
-    btn.innerHTML = "🚀 開通商戶";
-  }
-}
+      function getAuthHeaders() {
+        var t = localStorage.getItem("zenpass_token") || "";
+        return {
+          Authorization: "Bearer " + t,
+          "Content-Type": "application/json",
+        };
+      }
 
-function getAuthHeaders() {
-  var t = localStorage.getItem("zenpass_token") || "";
-  return { Authorization: "Bearer " + t, "Content-Type": "application/json" };
-}
-
-function escHtml(s) { return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
-</script>
-</body>
+      function escHtml(s) {
+        return String(s)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;");
+      }
+    </script>
+  </body>
 </html>

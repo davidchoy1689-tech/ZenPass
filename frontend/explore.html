@@ -493,15 +493,55 @@
         }
       }
     </style>
-  <script type="application/ld+json">{"@context":"https://schema.org","@type":"SearchAction","target":{"@type":"EntryPoint","urlTemplate":"https://davidchoy1689-tech.github.io/ZenPass/explore.html?q={search_term_string}"},"query-input":"required name=search_term_string"}</script>
-</head>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SearchAction",
+        "target": {
+          "@type": "EntryPoint",
+          "urlTemplate": "https://davidchoy1689-tech.github.io/ZenPass/explore.html?q={search_term_string}"
+        },
+        "query-input": "required name=search_term_string"
+      }
+    </script>
+  </head>
   <body>
     <div class="header">
       <a href="index.html" class="back">←</a>
       <h1>探索課程</h1>
-      <div style="display:flex;gap:8px;align-items:center;width:100%;margin-top:8px;">
-        <input type="text" id="search-input" placeholder="🔍 搜尋課程、教練、運動類型..." style="flex:1;padding:10px 14px;border:1px solid var(--gray-200);border-radius:8px;font-size:14px;font-family:var(--font-zh);background:var(--white);" onkeydown="if(event.key==='Enter') doSearch()" />
-        <button class="filter-btn" onclick="document.getElementById('filter-panel').classList.toggle('hidden')" style="white-space:nowrap;">☰ 篩選</button>
+      <div
+        style="
+          display: flex;
+          gap: 8px;
+          align-items: center;
+          width: 100%;
+          margin-top: 8px;
+        "
+      >
+        <input
+          type="text"
+          id="search-input"
+          placeholder="🔍 搜尋課程、教練、運動類型..."
+          style="
+            flex: 1;
+            padding: 10px 14px;
+            border: 1px solid var(--gray-200);
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: var(--font-zh);
+            background: var(--white);
+          "
+          onkeydown="if (event.key === 'Enter') doSearch();"
+        />
+        <button
+          class="filter-btn"
+          onclick="
+            document.getElementById('filter-panel').classList.toggle('hidden')
+          "
+          style="white-space: nowrap"
+        >
+          ☰ 篩選
+        </button>
       </div>
     </div>
 
@@ -518,16 +558,38 @@
       </div>
       <div class="filter-row">
         <label>價錢範圍</label>
-        <div style="display:flex;gap:8px;">
-          <select id="filter-price-min" onchange="applyFilters()" style="flex:1;padding:8px;border:1px solid var(--gray-200);border-radius:6px;font-size:13px;font-family:inherit;">
+        <div style="display: flex; gap: 8px">
+          <select
+            id="filter-price-min"
+            onchange="applyFilters()"
+            style="
+              flex: 1;
+              padding: 8px;
+              border: 1px solid var(--gray-200);
+              border-radius: 6px;
+              font-size: 13px;
+              font-family: inherit;
+            "
+          >
             <option value="">最低</option>
             <option value="0">$0</option>
             <option value="50">$50</option>
             <option value="100">$100</option>
             <option value="150">$150</option>
           </select>
-          <span style="align-self:center;color:var(--gray-300);">—</span>
-          <select id="filter-price-max" onchange="applyFilters()" style="flex:1;padding:8px;border:1px solid var(--gray-200);border-radius:6px;font-size:13px;font-family:inherit;">
+          <span style="align-self: center; color: var(--gray-300)">—</span>
+          <select
+            id="filter-price-max"
+            onchange="applyFilters()"
+            style="
+              flex: 1;
+              padding: 8px;
+              border: 1px solid var(--gray-200);
+              border-radius: 6px;
+              font-size: 13px;
+              font-family: inherit;
+            "
+          >
             <option value="">最高</option>
             <option value="50">$50</option>
             <option value="100">$100</option>
@@ -589,7 +651,15 @@
       </div>
     </div>
 
-    <div class="class-grid" id="class-grid" style="display:grid !important;grid-template-columns:1fr 1fr !important;gap:10px !important;">
+    <div
+      class="class-grid"
+      id="class-grid"
+      style="
+        display: grid !important;
+        grid-template-columns: 1fr 1fr !important;
+        gap: 10px !important;
+      "
+    >
       <div class="loading-spinner">載入中...</div>
     </div>
 
@@ -805,10 +875,18 @@
         currentSort = "popular";
         currentCategory = "all";
         currentDate = "";
-        document.querySelectorAll(".sort-btn").forEach(function(b) { b.classList.remove("active"); });
+        document.querySelectorAll(".sort-btn").forEach(function (b) {
+          b.classList.remove("active");
+        });
         document.querySelector('[data-sort="popular"]').classList.add("active");
-        document.querySelectorAll(".category-chip").forEach(function(c) { c.classList.remove("active"); });
-        document.querySelector(".category-chip.active, #category-list .category-chip:first-child").classList.add("active");
+        document.querySelectorAll(".category-chip").forEach(function (c) {
+          c.classList.remove("active");
+        });
+        document
+          .querySelector(
+            ".category-chip.active, #category-list .category-chip:first-child",
+          )
+          .classList.add("active");
         loadClasses();
       }
       function setSort(sort, el) {
@@ -893,10 +971,14 @@
             return;
           }
           container.innerHTML =
-            '<div style="font-size:13px;color:var(--dark-700);margin-bottom:8px;">共 ' + items.length + ' 個課程</div>' +
-            items.map(function (cls) {
-              return renderCard(cls);
-            }).join("");
+            '<div style="font-size:13px;color:var(--dark-700);margin-bottom:8px;">共 ' +
+            items.length +
+            " 個課程</div>" +
+            items
+              .map(function (cls) {
+                return renderCard(cls);
+              })
+              .join("");
         } catch (err) {
           // Demo fallback classes
           container.innerHTML =

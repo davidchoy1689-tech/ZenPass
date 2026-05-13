@@ -616,12 +616,13 @@
         margin-top: 4px;
       }
     </style>
-    <script id="ld-json" type="application/ld+json">{
-      "@context": "https://schema.org",
-      "@type": "Event",
-      "name": "課程詳情 — ZenPass",
-      "description": "ZenPass 禪流課程預約"
-    }
+    <script id="ld-json" type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Event",
+        "name": "課程詳情 — ZenPass",
+        "description": "ZenPass 禪流課程預約"
+      }
     </script>
   </head>
   <body>
@@ -642,7 +643,24 @@
       <button id="book-button" onclick="handleBooking()" disabled>
         請選擇時段
       </button>
-      <button id="waitlist-btn" onclick="joinWaitlist()" style="display:none;margin-top:8px;background:#fef3c7;color:#92400e;border:1px solid #fde68a;border-radius:8px;padding:10px;font-size:14px;font-weight:600;cursor:pointer;width:100%;font-family:inherit">
+      <button
+        id="waitlist-btn"
+        onclick="joinWaitlist()"
+        style="
+          display: none;
+          margin-top: 8px;
+          background: #fef3c7;
+          color: #92400e;
+          border: 1px solid #fde68a;
+          border-radius: 8px;
+          padding: 10px;
+          font-size: 14px;
+          font-weight: 600;
+          cursor: pointer;
+          width: 100%;
+          font-family: inherit;
+        "
+      >
         📋 加入候補
       </button>
     </div>
@@ -788,18 +806,27 @@
 
         // Update JSON-LD structured data for SEO
         try {
-          var ld = document.getElementById('ld-json');
+          var ld = document.getElementById("ld-json");
           if (ld && cls.title) {
             ld.textContent = JSON.stringify({
-              '@context': 'https://schema.org',
-              '@type': 'Event',
-              'name': cls.title + ' — ZenPass',
-              'description': cls.description || cls.title + '課程',
-              'location': { '@type': 'Place', 'name': cls.venue_name || 'ZenPass', 'address': { '@type': 'PostalAddress', 'addressLocality': '香港' } },
-              'offers': { '@type': 'Offer', 'price': cls.price_hkd || 0, 'priceCurrency': 'HKD', 'availability': 'https://schema.org/InStock' }
+              "@context": "https://schema.org",
+              "@type": "Event",
+              name: cls.title + " — ZenPass",
+              description: cls.description || cls.title + "課程",
+              location: {
+                "@type": "Place",
+                name: cls.venue_name || "ZenPass",
+                address: { "@type": "PostalAddress", addressLocality: "香港" },
+              },
+              offers: {
+                "@type": "Offer",
+                price: cls.price_hkd || 0,
+                priceCurrency: "HKD",
+                availability: "https://schema.org/InStock",
+              },
             });
           }
-        } catch(e) {}
+        } catch (e) {}
 
         var emojiMap = {
           "\u7476\u5c48": "\ud83e\uddd8",
@@ -811,7 +838,7 @@
           "\u6b66\u8853": "\ud83e\udd4b",
           "\u592a\u6975": "\u262f\ufe0f",
         };
-                document.getElementById("class-emoji").textContent =
+        document.getElementById("class-emoji").textContent =
           emojiMap[cls.category] || "\ud83c\udfc3";
 
         // Course image: use image_url if available
@@ -1023,38 +1050,51 @@
         if (!selectedSchedule) {
           btn.disabled = true;
           btn.textContent = "請選擇時段";
-          if (wlBtn) { wlBtn.style.display = 'none'; }
+          if (wlBtn) {
+            wlBtn.style.display = "none";
+          }
           return;
         }
         // Check if selected schedule is full
-        var selEl = document.querySelector('.schedule-item.selected');
-        var isFull = selEl && selEl.innerHTML.indexOf('已滿') > -1;
+        var selEl = document.querySelector(".schedule-item.selected");
+        var isFull = selEl && selEl.innerHTML.indexOf("已滿") > -1;
         if (isFull) {
           btn.disabled = true;
-          btn.textContent = '❌ 已滿座';
-          if (wlBtn) { wlBtn.style.display = ''; }
+          btn.textContent = "❌ 已滿座";
+          if (wlBtn) {
+            wlBtn.style.display = "";
+          }
         } else {
           btn.disabled = false;
-          btn.textContent = "確認預約 — HK$" + ((currentClass || {}).price_hkd || 120);
-          if (wlBtn) { wlBtn.style.display = 'none'; }
+          btn.textContent =
+            "確認預約 — HK$" + ((currentClass || {}).price_hkd || 120);
+          if (wlBtn) {
+            wlBtn.style.display = "none";
+          }
         }
       }
 
       // ===== Join Waitlist =====
       async function joinWaitlist() {
         if (!selectedSchedule) return;
-        if (!isLoggedIn()) { showLoginModal(); return; }
+        if (!isLoggedIn()) {
+          showLoginModal();
+          return;
+        }
         try {
-          var r = await fetch('/api/waitlist/join', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + getToken() },
-            body: JSON.stringify({ schedule_id: selectedSchedule.id })
+          var r = await fetch("/api/waitlist/join", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + getToken(),
+            },
+            body: JSON.stringify({ schedule_id: selectedSchedule.id }),
           });
           var d = await r.json();
-          if (!r.ok) throw new Error(d.error || '加入失敗');
-          showToast('✅ ' + d.message, 'success');
-        } catch(e) {
-          showToast('❌ ' + e.message, 'error');
+          if (!r.ok) throw new Error(d.error || "加入失敗");
+          showToast("✅ " + d.message, "success");
+        } catch (e) {
+          showToast("❌ " + e.message, "error");
         }
       }
 
