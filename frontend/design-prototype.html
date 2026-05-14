@@ -1,0 +1,1716 @@
+<!doctype html>
+<html lang="zh-HK">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>ZenPass 禪流 · 新設計預覽</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=Noto+Sans+TC:wght@300;400;500;700;900&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* ═══════════════════════════════════════════
+       ZENPASS DESIGN SYSTEM v2 — Standalone Prototype
+       ═══════════════════════════════════════════ */
+      :root {
+        /* ── Brand Colors ── */
+        --zp-orange: #ff6b35;
+        --zp-orange-dark: #e55a2b;
+        --zp-orange-light: #fff3ed;
+        --zp-amber: #f59e0b;
+        --zp-green: #059669;
+        --zp-green-light: #ecfdf5;
+        --zp-red: #ef4444;
+        --zp-red-light: #fef2f2;
+        --zp-purple: #8b5cf6;
+        --zp-blue: #3b82f6;
+
+        /* ── Neutral ── */
+        --zp-bg: #fafafa;
+        --zp-surface: #ffffff;
+        --zp-border: #e5e7eb;
+        --zp-border-light: #f3f4f6;
+        --zp-text: #111827;
+        --zp-text-sec: #6b7280;
+        --zp-text-ter: #9ca3af;
+        --zp-white: #ffffff;
+
+        /* ── Shadows ── */
+        --shadow-sm:
+          0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+        --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+        --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.12);
+        --shadow-xl: 0 20px 48px rgba(0, 0, 0, 0.16);
+
+        /* ── Radius ── */
+        --radius-sm: 8px;
+        --radius-md: 12px;
+        --radius-lg: 16px;
+        --radius-xl: 24px;
+        --radius-full: 9999px;
+
+        /* ── Spacing ── */
+        --space-xs: 4px;
+        --space-sm: 8px;
+        --space-md: 16px;
+        --space-lg: 24px;
+        --space-xl: 32px;
+        --space-2xl: 48px;
+        --space-3xl: 64px;
+
+        /* ── Typography ── */
+        --font-display: "Noto Sans TC", -apple-system, sans-serif;
+        --font-body: "Inter", "Noto Sans TC", -apple-system, sans-serif;
+        --font-mono: "SF Mono", "Fira Code", monospace;
+
+        /* ── Transitions ── */
+        --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+        --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      /* ── Reset ── */
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      html {
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        scroll-behavior: smooth;
+      }
+      body {
+        font-family: var(--font-body);
+        background: var(--zp-bg);
+        color: var(--zp-text);
+        line-height: 1.6;
+        min-height: 100vh;
+      }
+      img {
+        display: block;
+        max-width: 100%;
+      }
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      /* ── Typography Scale ── */
+      .display-xl {
+        font-family: var(--font-display);
+        font-size: 48px;
+        font-weight: 900;
+        line-height: 1.15;
+        letter-spacing: -0.02em;
+      }
+      .display-lg {
+        font-family: var(--font-display);
+        font-size: 36px;
+        font-weight: 700;
+        line-height: 1.2;
+        letter-spacing: -0.015em;
+      }
+      .display-md {
+        font-family: var(--font-display);
+        font-size: 28px;
+        font-weight: 700;
+        line-height: 1.25;
+        letter-spacing: -0.01em;
+      }
+      .heading-lg {
+        font-family: var(--font-display);
+        font-size: 22px;
+        font-weight: 600;
+        line-height: 1.3;
+      }
+      .heading-md {
+        font-family: var(--font-display);
+        font-size: 18px;
+        font-weight: 600;
+        line-height: 1.4;
+      }
+      .heading-sm {
+        font-family: var(--font-display);
+        font-size: 15px;
+        font-weight: 600;
+        line-height: 1.5;
+      }
+      .body-lg {
+        font-size: 16px;
+        line-height: 1.65;
+      }
+      .body-md {
+        font-size: 14px;
+        line-height: 1.6;
+      }
+      .body-sm {
+        font-size: 13px;
+        line-height: 1.55;
+      }
+      .caption {
+        font-size: 12px;
+        line-height: 1.5;
+        color: var(--zp-text-sec);
+      }
+      .label {
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--zp-text-sec);
+      }
+
+      /* ── Buttons ── */
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--space-sm);
+        font-family: var(--font-body);
+        font-size: 14px;
+        font-weight: 600;
+        padding: 10px 20px;
+        border-radius: var(--radius-md);
+        border: none;
+        cursor: pointer;
+        transition: all 0.2s var(--ease-smooth);
+        white-space: nowrap;
+      }
+      .btn:active {
+        transform: scale(0.97);
+      }
+      .btn-primary {
+        background: var(--zp-orange);
+        color: white;
+        box-shadow: 0 2px 8px rgba(255, 107, 53, 0.3);
+      }
+      .btn-primary:hover {
+        background: var(--zp-orange-dark);
+        box-shadow: 0 4px 16px rgba(255, 107, 53, 0.4);
+      }
+      .btn-secondary {
+        background: var(--zp-orange-light);
+        color: var(--zp-orange-dark);
+      }
+      .btn-secondary:hover {
+        background: #ffe4d6;
+      }
+      .btn-ghost {
+        background: transparent;
+        color: var(--zp-text-sec);
+      }
+      .btn-ghost:hover {
+        background: var(--zp-border-light);
+        color: var(--zp-text);
+      }
+      .btn-sm {
+        padding: 6px 14px;
+        font-size: 13px;
+        border-radius: var(--radius-sm);
+      }
+      .btn-lg {
+        padding: 14px 28px;
+        font-size: 16px;
+        border-radius: var(--radius-md);
+      }
+      .btn-full {
+        width: 100%;
+      }
+      .btn-icon {
+        padding: 10px;
+        aspect-ratio: 1;
+        border-radius: var(--radius-full);
+        font-size: 18px;
+      }
+
+      /* ── Cards ── */
+      .card {
+        background: var(--zp-surface);
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--zp-border);
+        transition: all 0.25s var(--ease-out);
+      }
+      .card:hover {
+        box-shadow: var(--shadow-md);
+        border-color: transparent;
+      }
+      .card-padded {
+        padding: var(--space-lg);
+      }
+      .card-padded-sm {
+        padding: var(--space-md);
+      }
+      .card-shadow {
+        box-shadow: var(--shadow-sm);
+      }
+
+      /* ── Tag / Badge ── */
+      .tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 3px 10px;
+        border-radius: var(--radius-full);
+        font-size: 12px;
+        font-weight: 500;
+      }
+      .tag-orange {
+        background: var(--zp-orange-light);
+        color: var(--zp-orange-dark);
+      }
+      .tag-green {
+        background: var(--zp-green-light);
+        color: var(--zp-green);
+      }
+      .tag-red {
+        background: var(--zp-red-light);
+        color: var(--zp-red);
+      }
+      .tag-gray {
+        background: var(--zp-border-light);
+        color: var(--zp-text-sec);
+      }
+      .tag-amber {
+        background: #fef3c7;
+        color: #92400e;
+      }
+
+      /* ── Input ── */
+      .input {
+        width: 100%;
+        padding: 12px 16px;
+        font-family: var(--font-body);
+        font-size: 14px;
+        border: 1.5px solid var(--zp-border);
+        border-radius: var(--radius-md);
+        background: var(--zp-surface);
+        color: var(--zp-text);
+        transition: all 0.2s var(--ease-smooth);
+        outline: none;
+      }
+      .input:focus {
+        border-color: var(--zp-orange);
+        box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.15);
+      }
+      .input::placeholder {
+        color: var(--zp-text-ter);
+      }
+      .input-group {
+        display: flex;
+        gap: var(--space-sm);
+      }
+      .input-group .input {
+        flex: 1;
+      }
+
+      /* ── Nav Bar ── */
+      .nav-bar {
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        background: rgba(255, 255, 255, 0.85);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border-bottom: 1px solid var(--zp-border);
+        padding: 0 var(--space-lg);
+      }
+      .nav-inner {
+        max-width: 1200px;
+        margin: 0 auto;
+        display: flex;
+        align-items: center;
+        gap: var(--space-xl);
+        height: 60px;
+      }
+      .nav-logo {
+        font-family: var(--font-display);
+        font-size: 20px;
+        font-weight: 900;
+        background: linear-gradient(135deg, var(--zp-orange), var(--zp-amber));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        letter-spacing: -0.01em;
+      }
+      .nav-links {
+        display: flex;
+        gap: var(--space-lg);
+        flex: 1;
+      }
+      .nav-link {
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--zp-text-sec);
+        padding: 4px 0;
+        border-bottom: 2px solid transparent;
+        transition: all 0.2s;
+      }
+      .nav-link:hover {
+        color: var(--zp-text);
+      }
+      .nav-link.active {
+        color: var(--zp-orange);
+        border-bottom-color: var(--zp-orange);
+      }
+      .nav-actions {
+        display: flex;
+        align-items: center;
+        gap: var(--space-sm);
+      }
+
+      /* ── Layout ── */
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 var(--space-lg);
+      }
+      .section {
+        padding: var(--space-2xl) 0;
+      }
+      .section-sm {
+        padding: var(--space-lg) 0;
+      }
+      .grid-2 {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: var(--space-lg);
+      }
+      .grid-3 {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: var(--space-lg);
+      }
+      .flex-row {
+        display: flex;
+        align-items: center;
+        gap: var(--space-md);
+      }
+      .flex-between {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .gap-sm {
+        gap: var(--space-sm);
+      }
+      .gap-md {
+        gap: var(--space-md);
+      }
+      .gap-lg {
+        gap: var(--space-lg);
+      }
+      .mt-sm {
+        margin-top: var(--space-sm);
+      }
+      .mt-md {
+        margin-top: var(--space-md);
+      }
+      .mt-lg {
+        margin-top: var(--space-lg);
+      }
+      .mt-xl {
+        margin-top: var(--space-xl);
+      }
+      .mb-lg {
+        margin-bottom: var(--space-lg);
+      }
+      .text-center {
+        text-align: center;
+      }
+      .text-sec {
+        color: var(--zp-text-sec);
+      }
+
+      /* ── Avatar ── */
+      .avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: var(--radius-full);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        font-weight: 600;
+        background: var(--zp-orange-light);
+        color: var(--zp-orange-dark);
+      }
+      .avatar-sm {
+        width: 32px;
+        height: 32px;
+        font-size: 14px;
+      }
+      .avatar-lg {
+        width: 56px;
+        height: 56px;
+        font-size: 24px;
+      }
+
+      /* ── Status Bar ── */
+      .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        display: inline-block;
+      }
+      .status-dot.green {
+        background: var(--zp-green);
+      }
+      .status-dot.orange {
+        background: var(--zp-orange);
+      }
+      .status-dot.red {
+        background: var(--zp-red);
+      }
+
+      /* ── Hero ── */
+      .hero {
+        padding: var(--space-3xl) 0 var(--space-2xl);
+        background: linear-gradient(135deg, #1a1a2e 0%, #2d2d44 100%);
+        color: white;
+        position: relative;
+        overflow: hidden;
+      }
+      .hero::before {
+        content: "";
+        position: absolute;
+        top: -50%;
+        right: -20%;
+        width: 600px;
+        height: 600px;
+        background: radial-gradient(
+          circle,
+          rgba(255, 107, 53, 0.12) 0%,
+          transparent 70%
+        );
+        border-radius: 50%;
+      }
+      .hero-content {
+        position: relative;
+        z-index: 1;
+        max-width: 700px;
+      }
+      .hero h1 {
+        font-size: 42px;
+        font-weight: 900;
+        line-height: 1.15;
+        letter-spacing: -0.02em;
+      }
+      .hero p {
+        font-size: 17px;
+        color: rgba(255, 255, 255, 0.7);
+        margin-top: var(--space-md);
+        line-height: 1.7;
+      }
+      .hero-img {
+        position: absolute;
+        right: 0;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 400px;
+        opacity: 0.1;
+      }
+
+      /* ── Course Card ── */
+      .course-card {
+        --card-bg: var(--zp-surface);
+        background: var(--card-bg);
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--zp-border);
+        overflow: hidden;
+        transition: all 0.25s var(--ease-out);
+        cursor: pointer;
+      }
+      .course-card:hover {
+        transform: translateY(-4px);
+        box-shadow: var(--shadow-lg);
+      }
+      .course-card .thumb {
+        height: 180px;
+        background-size: cover;
+        background-position: center;
+        position: relative;
+      }
+      .course-card .thumb .tag {
+        position: absolute;
+        top: var(--space-md);
+        left: var(--space-md);
+      }
+      .course-card .body {
+        padding: var(--space-lg);
+      }
+      .course-card .meta {
+        display: flex;
+        gap: var(--space-md);
+        margin-top: var(--space-sm);
+        color: var(--zp-text-sec);
+        font-size: 13px;
+      }
+      .course-card .price {
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--zp-orange);
+      }
+
+      /* ── Schedule Item ── */
+      .schedule-item {
+        display: flex;
+        align-items: center;
+        gap: var(--space-lg);
+        padding: var(--space-md) var(--space-lg);
+        border-radius: var(--radius-md);
+        transition: background 0.2s;
+      }
+      .schedule-item:hover {
+        background: var(--zp-border-light);
+      }
+      .schedule-item .time {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--zp-orange);
+        min-width: 80px;
+      }
+      .schedule-item .info {
+        flex: 1;
+      }
+      .schedule-item .info .name {
+        font-weight: 600;
+        font-size: 14px;
+      }
+      .schedule-item .info .detail {
+        font-size: 13px;
+        color: var(--zp-text-sec);
+      }
+
+      /* ── Stats Grid ── */
+      .stat-card {
+        text-align: center;
+        padding: var(--space-lg);
+        border-radius: var(--radius-lg);
+        background: var(--zp-surface);
+        border: 1px solid var(--zp-border);
+      }
+      .stat-card .icon {
+        font-size: 28px;
+        margin-bottom: var(--space-sm);
+      }
+      .stat-card .val {
+        font-size: 32px;
+        font-weight: 800;
+        line-height: 1.1;
+      }
+      .stat-card .lbl {
+        font-size: 13px;
+        color: var(--zp-text-sec);
+        margin-top: 2px;
+      }
+
+      /* ── Testimonial ── */
+      .testimonial-card {
+        background: var(--zp-surface);
+        border-radius: var(--radius-lg);
+        padding: var(--space-xl);
+        border: 1px solid var(--zp-border);
+      }
+      .testimonial-card .quote {
+        font-size: 15px;
+        line-height: 1.7;
+        color: var(--zp-text-sec);
+        font-style: italic;
+      }
+      .testimonial-card .author {
+        display: flex;
+        align-items: center;
+        gap: var(--space-md);
+        margin-top: var(--space-lg);
+        padding-top: var(--space-lg);
+        border-top: 1px solid var(--zp-border-light);
+      }
+
+      /* ── Footer ── */
+      .footer {
+        background: #1a1a2e;
+        color: rgba(255, 255, 255, 0.6);
+        padding: var(--space-2xl) 0;
+      }
+      .footer h4 {
+        color: white;
+        font-size: 14px;
+        font-weight: 600;
+        margin-bottom: var(--space-md);
+      }
+      .footer a {
+        display: block;
+        font-size: 13px;
+        padding: 4px 0;
+      }
+      .footer a:hover {
+        color: white;
+      }
+      .footer-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr 1fr 1fr;
+        gap: var(--space-xl);
+      }
+
+      /* ── Page header ── */
+      .page-header {
+        padding: var(--space-xl) 0 var(--space-lg);
+        border-bottom: 1px solid var(--zp-border);
+      }
+
+      /* ── Tab bar ── */
+      .tabs {
+        display: flex;
+        gap: var(--space-lg);
+        border-bottom: 2px solid var(--zp-border-light);
+        padding-bottom: var(--space-sm);
+      }
+      .tab {
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--zp-text-sec);
+        padding: 8px 0;
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+        margin-bottom: -2px;
+        transition: all 0.2s;
+      }
+      .tab:hover {
+        color: var(--zp-text);
+      }
+      .tab.active {
+        color: var(--zp-orange);
+        border-bottom-color: var(--zp-orange);
+      }
+
+      /* ── Divider ── */
+      .divider {
+        height: 1px;
+        background: var(--zp-border);
+        margin: var(--space-lg) 0;
+      }
+
+      /* ── Bottom Nav (Mobile) ── */
+      .bottom-nav {
+        display: none;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: rgba(255, 255, 255, 0.92);
+        backdrop-filter: blur(16px);
+        border-top: 1px solid var(--zp-border);
+        padding: 8px 0;
+        z-index: 100;
+      }
+      .bottom-nav-inner {
+        display: flex;
+        justify-content: space-around;
+        align-items: center;
+      }
+      .bnav-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 2px;
+        font-size: 10px;
+        color: var(--zp-text-sec);
+        cursor: pointer;
+        padding: 4px 16px;
+      }
+      .bnav-item .ico {
+        font-size: 22px;
+      }
+      .bnav-item.active {
+        color: var(--zp-orange);
+      }
+
+      /* ── Spacer ── */
+      .spacer {
+        height: 80px;
+      }
+
+      /* ── Banner ── */
+      .banner {
+        background: linear-gradient(135deg, var(--zp-orange), var(--zp-amber));
+        border-radius: var(--radius-lg);
+        padding: var(--space-xl);
+        color: white;
+        position: relative;
+        overflow: hidden;
+      }
+
+      /* ── Responsive ── */
+      @media (max-width: 768px) {
+        .nav-links {
+          display: none;
+        }
+        .bottom-nav {
+          display: block;
+        }
+        .container {
+          padding: 0 var(--space-md);
+        }
+        .grid-2,
+        .grid-3 {
+          grid-template-columns: 1fr;
+        }
+        .hero {
+          padding: var(--space-xl) 0;
+        }
+        .hero h1 {
+          font-size: 28px;
+        }
+        .hero p {
+          font-size: 15px;
+        }
+        .display-xl {
+          font-size: 32px;
+        }
+        .display-lg {
+          font-size: 26px;
+        }
+        .display-md {
+          font-size: 22px;
+        }
+        .footer-grid {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- ═══ Nav Bar ═══ -->
+    <nav class="nav-bar">
+      <div class="nav-inner">
+        <a href="#" class="nav-logo">禪流</a>
+        <div class="nav-links">
+          <a href="#" class="nav-link active">首頁</a>
+          <a href="#" class="nav-link">課程</a>
+          <a href="#" class="nav-link">會籍</a>
+          <a href="#" class="nav-link">教練</a>
+        </div>
+        <div class="nav-actions">
+          <button class="btn btn-ghost btn-sm">登入</button>
+          <button class="btn btn-primary btn-sm">註冊</button>
+          <div class="avatar avatar-sm">🧘</div>
+        </div>
+      </div>
+    </nav>
+
+    <!-- ═══ Design System Showcase ═══ -->
+    <div class="container">
+      <div class="section" id="showcase">
+        <!-- Header -->
+        <div class="flex-between mb-lg">
+          <div>
+            <span class="label">ZenPass 設計系統 v2</span>
+            <h1 class="display-lg mt-sm">設計預覽 · Design Prototype</h1>
+            <p class="body-md text-sec mt-sm" style="max-width: 500px">
+              參考 ClassPass、PURE、Mindbody 嘅現代設計語言，為 ZenPass
+              打造一套統一、清新、專業嘅 UI 系統。
+            </p>
+          </div>
+          <div class="flex-row gap-sm" style="flex-shrink: 0">
+            <span class="tag tag-green">🟢 獨立檔案</span>
+            <span class="tag tag-orange">🗑️ 可隨時刪除</span>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- 1. Color System -->
+        <div class="section-sm">
+          <h2 class="heading-lg">🎨 色板系統</h2>
+          <p class="body-md text-sec mt-sm mb-lg">
+            品牌色以溫暖嘅橙色為主軸，配搭中性灰階
+          </p>
+          <div style="display: flex; flex-wrap: wrap; gap: 12px">
+            <div style="width: 140px">
+              <div
+                style="
+                  height: 60px;
+                  border-radius: 10px;
+                  background: #ff6b35;
+                  margin-bottom: 4px;
+                "
+              ></div>
+              <div class="body-sm" style="font-weight: 600">#FF6B35</div>
+              <div class="caption">Primary / Orange</div>
+            </div>
+            <div style="width: 140px">
+              <div
+                style="
+                  height: 60px;
+                  border-radius: 10px;
+                  background: #e55a2b;
+                  margin-bottom: 4px;
+                "
+              ></div>
+              <div class="body-sm" style="font-weight: 600">#E55A2B</div>
+              <div class="caption">Orange Dark</div>
+            </div>
+            <div style="width: 140px">
+              <div
+                style="
+                  height: 60px;
+                  border-radius: 10px;
+                  background: #fff3ed;
+                  margin-bottom: 4px;
+                "
+              ></div>
+              <div class="body-sm" style="font-weight: 600">#FFF3ED</div>
+              <div class="caption">Orange Light</div>
+            </div>
+            <div style="width: 140px">
+              <div
+                style="
+                  height: 60px;
+                  border-radius: 10px;
+                  background: #059669;
+                  margin-bottom: 4px;
+                "
+              ></div>
+              <div class="body-sm" style="font-weight: 600">#059669</div>
+              <div class="caption">Success / Green</div>
+            </div>
+            <div style="width: 140px">
+              <div
+                style="
+                  height: 60px;
+                  border-radius: 10px;
+                  background: #f59e0b;
+                  margin-bottom: 4px;
+                "
+              ></div>
+              <div class="body-sm" style="font-weight: 600">#F59E0B</div>
+              <div class="caption">Amber</div>
+            </div>
+            <div style="width: 140px">
+              <div
+                style="
+                  height: 60px;
+                  border-radius: 10px;
+                  background: #ef4444;
+                  margin-bottom: 4px;
+                "
+              ></div>
+              <div class="body-sm" style="font-weight: 600">#EF4444</div>
+              <div class="caption">Error / Red</div>
+            </div>
+            <div style="width: 140px">
+              <div
+                style="
+                  height: 60px;
+                  border-radius: 10px;
+                  background: #8b5cf6;
+                  margin-bottom: 4px;
+                "
+              ></div>
+              <div class="body-sm" style="font-weight: 600">#8B5CF6</div>
+              <div class="caption">Purple</div>
+            </div>
+            <div style="width: 140px">
+              <div
+                style="
+                  height: 60px;
+                  border-radius: 10px;
+                  background: #1a1a2e;
+                  margin-bottom: 4px;
+                "
+              ></div>
+              <div class="body-sm" style="font-weight: 600">#1A1A2E</div>
+              <div class="caption">Dark bg</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- 2. Typography -->
+        <div class="section-sm">
+          <h2 class="heading-lg">🔤 字型系統</h2>
+          <p class="body-md text-sec mt-sm mb-lg">
+            中英：Noto Sans TC + Inter，清晰現代
+          </p>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px">
+            <div>
+              <div class="display-xl">禪流 ZenPass</div>
+              <div class="display-lg">禪流 ZenPass</div>
+              <div class="display-md">禪流 ZenPass</div>
+              <div class="heading-lg mt-sm">Heading Large · 22px</div>
+              <div class="heading-md">Heading Medium · 18px</div>
+              <div class="heading-sm">Heading Small · 15px</div>
+            </div>
+            <div>
+              <div class="body-lg">
+                Body Large · 16px — 禪流透過新興運動促進身心靈健康
+              </div>
+              <div class="body-md mt-sm">
+                Body Medium · 14px — 禪流透過新興運動促進身心靈健康
+              </div>
+              <div class="body-sm mt-sm">
+                Body Small · 13px — 禪流透過新興運動促進身心靈健康
+              </div>
+              <div class="caption mt-sm">Caption · 12px — 僅作輔助說明使用</div>
+              <div class="label mt-sm">
+                LABEL · 11px uppercase — 用於分類標籤
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- 3. Buttons -->
+        <div class="section-sm">
+          <h2 class="heading-lg">🔘 按鈕</h2>
+          <div class="flex-row mt-md" style="flex-wrap: wrap">
+            <button class="btn btn-primary">主要按鈕</button>
+            <button class="btn btn-secondary">次要按鈕</button>
+            <button class="btn btn-ghost">文字按鈕</button>
+            <button class="btn btn-primary btn-sm">小按鈕</button>
+            <button class="btn btn-primary btn-lg">大按鈕</button>
+            <button class="btn btn-primary btn-full" style="max-width: 300px">
+              全寬按鈕
+            </button>
+            <div class="flex-row gap-sm">
+              <button class="btn btn-icon btn-primary">👤</button>
+              <button class="btn btn-icon btn-secondary">🔔</button>
+              <button class="btn btn-icon btn-ghost">⚙️</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- 4. Tags / Cards / Inputs -->
+        <div class="section-sm">
+          <h2 class="heading-lg">🏷️ 標籤 · 卡片 · 表單</h2>
+          <div class="flex-row mt-md" style="flex-wrap: wrap">
+            <span class="tag tag-orange">🔥 熱門</span>
+            <span class="tag tag-green">✅ 可預約</span>
+            <span class="tag tag-red">🈵 滿額</span>
+            <span class="tag tag-gray">💡 初級</span>
+            <span class="tag tag-amber">⭐ 推薦</span>
+          </div>
+
+          <div class="grid-2 mt-lg">
+            <div class="card card-padded card-shadow">
+              <div class="flex-between">
+                <div class="heading-md">標準卡片</div>
+                <span class="tag tag-orange">New</span>
+              </div>
+              <p class="body-md text-sec mt-sm">
+                用於課程列表、教練資料、資訊展示等場景。支援 hover 陰影效果。
+              </p>
+              <div class="flex-row mt-md">
+                <button class="btn btn-primary btn-sm">立即預約</button>
+                <button class="btn btn-ghost btn-sm">詳細</button>
+              </div>
+            </div>
+
+            <div class="card card-padded card-shadow">
+              <div class="flex-between">
+                <div class="heading-md">表單範例</div>
+              </div>
+              <div class="mt-sm">
+                <input class="input" placeholder="請輸入姓名" />
+                <input class="input mt-sm" placeholder="請輸入電話號碼" />
+                <div class="input-group mt-sm">
+                  <input class="input" placeholder="電郵" />
+                  <button class="btn btn-primary">提交</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+      </div>
+
+      <!-- ═══ REAL PAGE PREVIEW ═══ -->
+      <div class="section" id="preview">
+        <div class="flex-between">
+          <h2 class="display-md">📱 頁面預覽</h2>
+          <span class="tag tag-green">新設計應用示範</span>
+        </div>
+        <p class="body-md text-sec mt-sm mb-lg">
+          以下係如果用新 Design System 改寫後嘅主要頁面 mockup
+        </p>
+
+        <!-- Home Page Preview -->
+        <div class="card card-padded card-shadow mb-lg">
+          <span class="label">首頁 · Home</span>
+
+          <!-- Hero -->
+          <div
+            class="hero"
+            style="border-radius: var(--radius-lg); margin-top: var(--space-md)"
+          >
+            <div class="hero-content">
+              <span
+                class="tag tag-amber"
+                style="
+                  background: rgba(255, 255, 255, 0.15);
+                  color: white;
+                  margin-bottom: var(--space-md);
+                "
+                >新興運動推廣</span
+              >
+              <h1>探索身心靈 <br />全新運動體驗</h1>
+              <p>
+                由芬蘭木柱到圓網球，超過 10 種新興運動等你體驗。禪流 —
+                讓運動成為你生活嘅一部分。
+              </p>
+              <div class="flex-row mt-lg">
+                <button class="btn btn-primary btn-lg">開始探索 →</button>
+                <button
+                  class="btn btn-ghost btn-lg"
+                  style="color: rgba(255, 255, 255, 0.8)"
+                >
+                  了解更多
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Stats Row -->
+          <div class="grid-3 mt-lg">
+            <div class="stat-card">
+              <div class="icon">🏃</div>
+              <div class="val">2,400+</div>
+              <div class="lbl">已服務人次</div>
+            </div>
+            <div class="stat-card">
+              <div class="icon">🧘</div>
+              <div class="val">27</div>
+              <div class="lbl">精選課程</div>
+            </div>
+            <div class="stat-card">
+              <div class="icon">⭐</div>
+              <div class="val">4.8</div>
+              <div class="lbl">平均評分</div>
+            </div>
+          </div>
+
+          <!-- Featured Courses -->
+          <h3 class="heading-lg mt-xl mb-lg">熱門課程</h3>
+          <div class="grid-3">
+            <div class="course-card">
+              <div
+                class="thumb"
+                style="
+                  background-image: linear-gradient(135deg, #ff6b35, #ffd93d);
+                "
+              >
+                <span
+                  class="tag tag-orange"
+                  style="
+                    background: rgba(255, 255, 255, 0.9);
+                    color: var(--zp-orange-dark);
+                  "
+                  >🔥 熱門</span
+                >
+              </div>
+              <div class="body">
+                <h4 class="heading-sm">芬蘭木柱 Mölkky</h4>
+                <div class="meta">
+                  <span>🧑‍🏫 Marco Sir</span>
+                  <span>📍 佐敦</span>
+                </div>
+                <div class="flex-between mt-md">
+                  <span class="price">HK$120</span>
+                  <button class="btn btn-primary btn-sm">預約</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="course-card">
+              <div
+                class="thumb"
+                style="background: linear-gradient(135deg, #059669, #34d399)"
+              >
+                <span
+                  class="tag tag-green"
+                  style="
+                    background: rgba(255, 255, 255, 0.9);
+                    color: var(--zp-green);
+                  "
+                  >✅ 新課程</span
+                >
+              </div>
+              <div class="body">
+                <h4 class="heading-sm">地板冰壺 Floor Curling</h4>
+                <div class="meta">
+                  <span>🧑‍🏫 靜儀教練</span>
+                  <span>📍 旺角</span>
+                </div>
+                <div class="flex-between mt-md">
+                  <span class="price">HK$150</span>
+                  <button class="btn btn-primary btn-sm">預約</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="course-card">
+              <div
+                class="thumb"
+                style="background: linear-gradient(135deg, #8b5cf6, #a78bfa)"
+              >
+                <span
+                  class="tag tag-gray"
+                  style="background: rgba(255, 255, 255, 0.9)"
+                  >🌟 初級</span
+                >
+              </div>
+              <div class="body">
+                <h4 class="heading-sm">圓網球 Roundnet</h4>
+                <div class="meta">
+                  <span>🧑‍🏫 David Coach</span>
+                  <span>📍 尖沙咀</span>
+                </div>
+                <div class="flex-between mt-md">
+                  <span class="price">HK$130</span>
+                  <button class="btn btn-primary btn-sm">預約</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Class Detail Preview -->
+        <div class="card card-padded card-shadow mb-lg">
+          <span class="label">課程詳情 · Class Detail</span>
+          <div
+            class="flex-row mt-md"
+            style="align-items: stretch; gap: var(--space-xl)"
+          >
+            <div style="flex: 1">
+              <div
+                style="
+                  height: 240px;
+                  border-radius: var(--radius-lg);
+                  background: linear-gradient(135deg, #ff6b35, #ffd93d);
+                  margin-bottom: var(--space-lg);
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  font-size: 48px;
+                "
+              >
+                🎯
+              </div>
+              <div class="flex-between">
+                <div>
+                  <h2 class="heading-lg">芬蘭木柱 Mölkky</h2>
+                  <div
+                    class="flex-row text-sec body-sm mt-sm"
+                    style="flex-wrap: wrap"
+                  >
+                    <span>🧑‍🏫 Marco Sir</span>
+                    <span>📍 佐敦 · 室內運動場</span>
+                    <span>⏱ 60 分鐘</span>
+                  </div>
+                </div>
+                <div class="text-right">
+                  <div class="price" style="font-size: 24px">HK$120</div>
+                  <div class="caption">已包括器材</div>
+                </div>
+              </div>
+              <p class="body-md text-sec mt-md">
+                芬蘭木柱（Mölkky）源自芬蘭嘅傳統投擲遊戲，結合策略同精準度。適合任何年齡人士參與，促進團隊合作同手眼協調。
+              </p>
+              <div class="flex-row mt-md" style="flex-wrap: wrap; gap: 8px">
+                <span class="tag tag-orange">🔥 熱門</span>
+                <span class="tag tag-green">✅ 器材提供</span>
+                <span class="tag tag-gray">🌟 初級</span>
+                <span class="tag tag-amber">👥 最多 20 人</span>
+              </div>
+            </div>
+            <div style="width: 340px; flex-shrink: 0">
+              <div
+                class="card card-padded"
+                style="
+                  border: 1px solid var(--zp-border);
+                  border-radius: var(--radius-lg);
+                "
+              >
+                <h4 class="heading-sm">可預約時間</h4>
+                <div style="margin-top: var(--space-md)">
+                  <div class="schedule-item">
+                    <div class="time">10:00</div>
+                    <div class="info">
+                      <div class="name">週六 5月16日</div>
+                      <div class="detail">剩餘 8/20 位</div>
+                    </div>
+                    <button class="btn btn-primary btn-sm">預約</button>
+                  </div>
+                  <div class="schedule-item">
+                    <div class="time">14:00</div>
+                    <div class="info">
+                      <div class="name">週六 5月16日</div>
+                      <div class="detail">剩餘 12/20 位</div>
+                    </div>
+                    <button class="btn btn-primary btn-sm">預約</button>
+                  </div>
+                  <div class="schedule-item">
+                    <div class="time">10:00</div>
+                    <div class="info">
+                      <div class="name">週日 5月17日</div>
+                      <div class="detail">🈵 已滿額</div>
+                    </div>
+                    <button
+                      class="btn btn-ghost btn-sm"
+                      disabled
+                      style="opacity: 0.4"
+                    >
+                      滿額
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Courses Page Preview -->
+        <div class="card card-padded card-shadow mb-lg">
+          <span class="label">課程列表 · Courses</span>
+          <div class="flex-between mt-md">
+            <div class="flex-row gap-sm" style="flex-wrap: wrap">
+              <span class="tag tag-orange" style="cursor: pointer">全部</span>
+              <span class="tag tag-gray" style="cursor: pointer">🧘 瑜伽</span>
+              <span class="tag tag-gray" style="cursor: pointer">🏋️ 健身</span>
+              <span class="tag tag-gray" style="cursor: pointer"
+                >🎯 新興運動</span
+              >
+              <span class="tag tag-gray" style="cursor: pointer">🧘 冥想</span>
+            </div>
+            <input
+              class="input"
+              style="max-width: 240px; padding: 8px 14px"
+              placeholder="搜尋課程..."
+            />
+          </div>
+
+          <div class="grid-2 mt-lg">
+            <div
+              class="flex-row"
+              style="
+                gap: var(--space-md);
+                padding: var(--space-md);
+                border-radius: var(--radius-md);
+                border: 1px solid var(--zp-border);
+              "
+            >
+              <div
+                style="
+                  width: 80px;
+                  height: 80px;
+                  border-radius: var(--radius-md);
+                  background: linear-gradient(135deg, #ff6b35, #ffd93d);
+                  flex-shrink: 0;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  font-size: 28px;
+                "
+              >
+                🎯
+              </div>
+              <div style="flex: 1; min-width: 0">
+                <div class="flex-between">
+                  <h4 class="heading-sm">芬蘭木柱 Mölkky</h4>
+                  <span class="price" style="font-size: 15px">HK$120</span>
+                </div>
+                <div
+                  class="flex-row text-sec body-sm mt-sm"
+                  style="gap: 12px; flex-wrap: wrap"
+                >
+                  <span>🧑‍🏫 Marco Sir</span>
+                  <span>📍 佐敦</span>
+                </div>
+              </div>
+            </div>
+
+            <div
+              class="flex-row"
+              style="
+                gap: var(--space-md);
+                padding: var(--space-md);
+                border-radius: var(--radius-md);
+                border: 1px solid var(--zp-border);
+              "
+            >
+              <div
+                style="
+                  width: 80px;
+                  height: 80px;
+                  border-radius: var(--radius-md);
+                  background: linear-gradient(135deg, #059669, #34d399);
+                  flex-shrink: 0;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  font-size: 28px;
+                "
+              >
+                🧊
+              </div>
+              <div style="flex: 1; min-width: 0">
+                <div class="flex-between">
+                  <h4 class="heading-sm">地板冰壺</h4>
+                  <span class="price" style="font-size: 15px">HK$150</span>
+                </div>
+                <div
+                  class="flex-row text-sec body-sm mt-sm"
+                  style="gap: 12px; flex-wrap: wrap"
+                >
+                  <span>🧑‍🏫 靜儀教練</span>
+                  <span>📍 旺角</span>
+                </div>
+              </div>
+            </div>
+
+            <div
+              class="flex-row"
+              style="
+                gap: var(--space-md);
+                padding: var(--space-md);
+                border-radius: var(--radius-md);
+                border: 1px solid var(--zp-border);
+              "
+            >
+              <div
+                style="
+                  width: 80px;
+                  height: 80px;
+                  border-radius: var(--radius-md);
+                  background: linear-gradient(135deg, #8b5cf6, #a78bfa);
+                  flex-shrink: 0;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  font-size: 28px;
+                "
+              >
+                🔴
+              </div>
+              <div style="flex: 1; min-width: 0">
+                <div class="flex-between">
+                  <h4 class="heading-sm">圓網球 Roundnet</h4>
+                  <span class="price" style="font-size: 15px">HK$130</span>
+                </div>
+                <div
+                  class="flex-row text-sec body-sm mt-sm"
+                  style="gap: 12px; flex-wrap: wrap"
+                >
+                  <span>🧑‍🏫 David Coach</span>
+                  <span>📍 尖沙咀</span>
+                </div>
+              </div>
+            </div>
+
+            <div
+              class="flex-row"
+              style="
+                gap: var(--space-md);
+                padding: var(--space-md);
+                border-radius: var(--radius-md);
+                border: 1px solid var(--zp-border);
+              "
+            >
+              <div
+                style="
+                  width: 80px;
+                  height: 80px;
+                  border-radius: var(--radius-md);
+                  background: linear-gradient(135deg, #f59e0b, #fbbf24);
+                  flex-shrink: 0;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  font-size: 28px;
+                "
+              >
+                🏏
+              </div>
+              <div style="flex: 1; min-width: 0">
+                <div class="flex-between">
+                  <h4 class="heading-sm">布袋球 Cornhole</h4>
+                  <span class="price" style="font-size: 15px">HK$100</span>
+                </div>
+                <div
+                  class="flex-row text-sec body-sm mt-sm"
+                  style="gap: 12px; flex-wrap: wrap"
+                >
+                  <span>🧑‍🏫 David Coach</span>
+                  <span>📍 佐敦</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Membership Preview -->
+        <div class="card card-padded card-shadow mb-lg">
+          <span class="label">會籍方案 · Membership</span>
+          <div class="grid-3 mt-md">
+            <div
+              class="card card-padded"
+              style="
+                border: 1px solid var(--zp-border);
+                border-radius: var(--radius-lg);
+                text-align: center;
+              "
+            >
+              <div style="font-size: 32px; margin-bottom: var(--space-sm)">
+                🎯
+              </div>
+              <h4 class="heading-md">試玩體驗</h4>
+              <div
+                style="
+                  font-size: 36px;
+                  font-weight: 800;
+                  margin: var(--space-md) 0;
+                "
+              >
+                HK$399
+              </div>
+              <p class="body-sm text-sec">4 堂體驗課</p>
+              <p class="body-sm text-sec">30 日有效期</p>
+              <p class="body-sm text-sec mt-md">🎫 無限自助簽到</p>
+              <button class="btn btn-secondary btn-full mt-lg">了解更多</button>
+            </div>
+            <div
+              class="card card-padded"
+              style="
+                border: 2px solid var(--zp-orange);
+                border-radius: var(--radius-lg);
+                text-align: center;
+                position: relative;
+              "
+            >
+              <span
+                class="tag tag-orange"
+                style="
+                  position: absolute;
+                  top: -12px;
+                  left: 50%;
+                  transform: translateX(-50%);
+                "
+                >🔥 最受歡迎</span
+              >
+              <div style="font-size: 32px; margin-bottom: var(--space-sm)">
+                🏆
+              </div>
+              <h4 class="heading-md">標準月費</h4>
+              <div
+                style="
+                  font-size: 36px;
+                  font-weight: 800;
+                  margin: var(--space-md) 0;
+                "
+              >
+                HK$699
+              </div>
+              <p class="body-sm text-sec">無限次上課</p>
+              <p class="body-sm text-sec">每月自動續費</p>
+              <p class="body-sm text-sec mt-md">
+                🎫 無限自助簽到 + 🎁 每月 2 張朋友券
+              </p>
+              <button class="btn btn-primary btn-full mt-lg">立即訂閱</button>
+            </div>
+            <div
+              class="card card-padded"
+              style="
+                border: 1px solid var(--zp-border);
+                border-radius: var(--radius-lg);
+                text-align: center;
+              "
+            >
+              <div style="font-size: 32px; margin-bottom: var(--space-sm)">
+                ⭐
+              </div>
+              <h4 class="heading-md">年度計劃</h4>
+              <div
+                style="
+                  font-size: 36px;
+                  font-weight: 800;
+                  margin: var(--space-md) 0;
+                "
+              >
+                HK$5,999
+              </div>
+              <p class="body-sm text-sec">全年無限次上課</p>
+              <p class="body-sm text-sec">送 2 個月（等於 HK$834/月）</p>
+              <p class="body-sm text-sec mt-md">
+                🎫 無限簽到 + 🎁 教練 1:1 咨詢
+              </p>
+              <button class="btn btn-secondary btn-full mt-lg">了解更多</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- My Profile Preview -->
+        <div class="card card-padded card-shadow mb-lg">
+          <span class="label">個人資料 · My Profile</span>
+          <div class="flex-row mt-md" style="gap: var(--space-xl)">
+            <div class="avatar avatar-lg">🧘</div>
+            <div style="flex: 1">
+              <h3 class="heading-lg">David Choy</h3>
+              <div
+                class="flex-row text-sec body-sm mt-sm"
+                style="flex-wrap: wrap"
+              >
+                <span>📧 david@zenpass.hk</span>
+                <span>📱 9033 5538</span>
+              </div>
+              <div class="flex-row mt-sm" style="flex-wrap: wrap">
+                <span class="tag tag-green">✅ 已驗證</span>
+                <span class="tag tag-orange">🎖️ 推薦人</span>
+                <span class="tag tag-amber">⭐ 累計 150 Credits</span>
+              </div>
+            </div>
+            <button class="btn btn-secondary btn-sm">編輯資料</button>
+          </div>
+          <div class="divider"></div>
+          <div class="grid-3">
+            <div class="stat-card card-shadow" style="border: none">
+              <div class="icon">📅</div>
+              <div class="val">12</div>
+              <div class="lbl">已預約課堂</div>
+            </div>
+            <div class="stat-card card-shadow" style="border: none">
+              <div class="icon">🏆</div>
+              <div class="val">5</div>
+              <div class="lbl">獲得勳章</div>
+            </div>
+            <div class="stat-card card-shadow" style="border: none">
+              <div class="icon">❤️</div>
+              <div class="val">150</div>
+              <div class="lbl">推薦積分</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Banner CTA -->
+        <div class="banner">
+          <div style="position: relative; z-index: 1">
+            <h3 class="display-md">準備好開始你嘅 Zen 旅程未？</h3>
+            <p
+              style="
+                margin-top: var(--space-sm);
+                opacity: 0.85;
+                font-size: 15px;
+              "
+            >
+              首次體驗只需 HK$120，立即預約你嘅第一堂課！
+            </p>
+            <button
+              class="btn btn-primary btn-lg mt-md"
+              style="
+                background: white;
+                color: var(--zp-orange);
+                box-shadow: none;
+              "
+            >
+              立即預約 🎯
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="container">
+        <div class="footer-grid">
+          <div>
+            <div
+              style="
+                font-size: 22px;
+                font-weight: 900;
+                color: white;
+                margin-bottom: var(--space-md);
+              "
+            >
+              禪流
+            </div>
+            <p
+              class="body-sm"
+              style="color: rgba(255, 255, 255, 0.5); max-width: 300px"
+            >
+              ZenPass 禪流 — 透過新興運動促進身體健康、心理健康、社交健康。
+            </p>
+          </div>
+          <div>
+            <h4>課程</h4>
+            <a href="#">全部課程</a>
+            <a href="#">芬蘭木柱</a>
+            <a href="#">地板冰壺</a>
+            <a href="#">布袋球</a>
+          </div>
+          <div>
+            <h4>關於</h4>
+            <a href="#">關於禪流</a>
+            <a href="#">教練團隊</a>
+            <a href="#">場地租用</a>
+            <a href="#">常見問題</a>
+          </div>
+          <div>
+            <h4>聯絡</h4>
+            <a href="#">📞 2387 0724</a>
+            <a href="#">📧 hello@zenpass.hk</a>
+            <a href="#">📍 九龍佐敦</a>
+          </div>
+        </div>
+        <div
+          class="divider"
+          style="
+            background: rgba(255, 255, 255, 0.1);
+            margin: var(--space-xl) 0;
+          "
+        ></div>
+        <div
+          class="flex-between"
+          style="font-size: 13px; color: rgba(255, 255, 255, 0.4)"
+        >
+          <span
+            >© 2026 ZenPass 禪流 · Hong Kong Leisure and Fitness Company
+            Limited</span
+          >
+          <span>「商界展關懷」企業</span>
+        </div>
+      </div>
+    </footer>
+
+    <!-- Bottom Nav (Mobile) -->
+    <div class="bottom-nav">
+      <div class="bottom-nav-inner container">
+        <div class="bnav-item active">
+          <div class="ico">🏠</div>
+          <span>首頁</span>
+        </div>
+        <div class="bnav-item">
+          <div class="ico">📚</div>
+          <span>課程</span>
+        </div>
+        <div class="bnav-item">
+          <div class="ico">🏆</div>
+          <span>會籍</span>
+        </div>
+        <div class="bnav-item">
+          <div class="ico">👤</div>
+          <span>我的</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="spacer"></div>
+  </body>
+</html>
