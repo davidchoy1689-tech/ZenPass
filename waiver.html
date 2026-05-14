@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="zh-HK">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>健康申報表 — ZenPass</title>
+    <script src="api.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      :root {
+        --orange-500: #ff6b35;
+        --orange-700: #aa3218;
+        --orange-600-bg: #c94420;
+        --orange-100: #fff0e8;
+        --dark-900: #1a1a2e;
+        --dark-700: #3d3d5a;
+        --green-500: #059669;
+        --gray-200: #e5e7eb;
+        --gray-100: #f3f4f6;
+        --white: #fff;
+        --radius: 8px;
+        --radius-lg: 12px;
+        --font-zh: "Noto Sans TC", sans-serif;
+      }
+      body {
+        font-family: var(--font-zh);
+        background: var(--gray-50);
+        color: var(--dark-900);
+        min-height: 100vh;
+        padding: 20px;
+        max-width: 600px;
+        margin: 0 auto;
+      }
+      .card {
+        background: var(--white);
+        border-radius: var(--radius-lg);
+        padding: 24px;
+        margin-bottom: 16px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+      }
+      h1 {
+        font-size: 20px;
+        margin-bottom: 4px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .sub {
+        font-size: 13px;
+        color: var(--dark-700);
+        margin-bottom: 16px;
+      }
+      .form-group {
+        margin-bottom: 14px;
+      }
+      .form-group label {
+        display: block;
+        font-size: 13px;
+        font-weight: 600;
+        margin-bottom: 4px;
+        color: var(--dark-700);
+      }
+      .form-group input,
+      .form-group select,
+      .form-group textarea {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid var(--gray-200);
+        border-radius: var(--radius);
+        font-size: 15px;
+        font-family: var(--font-zh);
+        background: var(--white);
+      }
+      .form-group input:focus,
+      .form-group textarea:focus {
+        border-color: var(--orange-700);
+        outline: none;
+      }
+      .form-row {
+        display: flex;
+        gap: 10px;
+      }
+      .form-row .form-group {
+        flex: 1;
+      }
+      .checkbox {
+        display: flex;
+        align-items: start;
+        gap: 10px;
+        margin-bottom: 10px;
+        font-size: 14px;
+        line-height: 1.5;
+      }
+      .checkbox input[type="checkbox"] {
+        margin-top: 3px;
+        width: 18px;
+        height: 18px;
+        accent-color: var(--orange-700);
+      }
+      .btn {
+        width: 100%;
+        padding: 14px;
+        border: none;
+        border-radius: var(--radius);
+        font-size: 16px;
+        font-weight: 700;
+        cursor: pointer;
+        font-family: var(--font-zh);
+      }
+      .btn-primary {
+        background: var(--orange-600-bg);
+        color: var(--white);
+      }
+      .btn-primary:hover {
+        background: #e55a2b;
+      }
+      .btn-primary:disabled {
+        background: var(--gray-200);
+        cursor: not-allowed;
+      }
+      .msg {
+        font-size: 13px;
+        padding: 10px;
+        border-radius: 6px;
+        margin-top: 12px;
+        display: none;
+      }
+      .msg.success {
+        display: block;
+        background: #ecfdf5;
+        color: var(--green-500);
+      }
+      .msg.error {
+        display: block;
+        background: #fef2f2;
+        color: #ef4444;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h1>📋 健康申報表</h1>
+      <p class="sub">
+        為確保運動安全，請填寫以下健康資料。資料僅供教練參考，絕對保密。
+      </p>
+
+      <div class="form-group">
+        <label>姓名 *</label><input type="text" id="w-name" />
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>年齡</label><input type="number" id="w-age" />
+        </div>
+        <div class="form-group">
+          <label>性別</label
+          ><select id="w-gender">
+            <option value="">請選擇</option>
+            <option>男</option>
+            <option>女</option>
+            <option>其他</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>聯絡電話</label><input type="tel" id="w-phone" />
+      </div>
+
+      <h3 style="font-size: 15px; margin: 16px 0 8px">⚠️ 健康狀況</h3>
+      <div class="checkbox">
+        <input type="checkbox" id="c1" /><label for="c1">心臟病 / 高血壓</label>
+      </div>
+      <div class="checkbox">
+        <input type="checkbox" id="c2" /><label for="c2"
+          >哮喘 / 呼吸系統疾病</label
+        >
+      </div>
+      <div class="checkbox">
+        <input type="checkbox" id="c3" /><label for="c3"
+          >骨骼 / 關節問題（舊患）</label
+        >
+      </div>
+      <div class="checkbox">
+        <input type="checkbox" id="c4" /><label for="c4"
+          >懷孕（或疑似懷孕）</label
+        >
+      </div>
+      <div class="checkbox">
+        <input type="checkbox" id="c5" /><label for="c5"
+          >糖尿病 / 甲狀腺問題</label
+        >
+      </div>
+      <div class="checkbox">
+        <input type="checkbox" id="c6" /><label for="c6"
+          >癲癇 / 神經系統疾病</label
+        >
+      </div>
+      <div class="form-group">
+        <label>其他健康狀況（可選）</label
+        ><textarea
+          id="w-other"
+          rows="2"
+          placeholder="如有其他健康問題，請在此說明..."
+        ></textarea>
+      </div>
+
+      <h3 style="font-size: 15px; margin: 16px 0 8px">📝 免責聲明</h3>
+      <p
+        style="
+          font-size: 13px;
+          color: var(--dark-700);
+          line-height: 1.6;
+          margin-bottom: 12px;
+        "
+      >
+        本人確認以上資料正確無誤。本人了解運動存在一定風險，包括但不限於肌肉損傷、跌倒、心血管意外等。本人自願參與課程，並承擔所有相關風險。
+      </p>
+      <div class="checkbox">
+        <input type="checkbox" id="agree" /><label for="agree"
+          ><strong>本人已閱讀並同意以上免責聲明</strong></label
+        >
+      </div>
+
+      <div id="waiver-msg" class="msg"></div>
+      <button class="btn btn-primary" id="submit-btn" onclick="submitWaiver()">
+        📝 提交健康申報
+      </button>
+    </div>
+
+    <script>
+      function getToken() {
+        return localStorage.getItem("zenpass_token") || "";
+      }
+
+      async function submitWaiver() {
+        var name = document.getElementById("w-name").value.trim();
+        if (!name) {
+          showMsg("請輸入姓名", "error");
+          return;
+        }
+        if (!document.getElementById("agree").checked) {
+          showMsg("請同意免責聲明", "error");
+          return;
+        }
+
+        var conditions = [];
+        ["c1", "c2", "c3", "c4", "c5", "c6"].forEach(function (id) {
+          var el = document.getElementById(id);
+          var labels = {
+            c1: "心臟病/高血壓",
+            c2: "哮喘",
+            c3: "骨骼/關節",
+            c4: "懷孕",
+            c5: "糖尿病",
+            c6: "癲癇",
+          };
+          if (el.checked) conditions.push(labels[id]);
+        });
+
+        var data = {
+          name: name,
+          age: document.getElementById("w-age").value,
+          gender: document.getElementById("w-gender").value,
+          phone: document.getElementById("w-phone").value,
+          conditions: conditions.join(", "),
+          other: document.getElementById("w-other").value.trim(),
+        };
+
+        var btn = document.getElementById("submit-btn");
+        btn.disabled = true;
+        btn.textContent = "⏳ 提交中...";
+
+        try {
+          // Store waiver in backend (via notification as structured data)
+          var r = await fetch("/api/crm/waiver", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + getToken(),
+            },
+            body: JSON.stringify(data),
+          });
+          var d = await r.json();
+          if (!r.ok) throw new Error(d.error);
+
+          showMsg("✅ 健康申報已提交！教練將會收到通知", "success");
+          btn.textContent = "✅ 已完成";
+        } catch (e) {
+          showMsg("❌ " + e.message, "error");
+          btn.disabled = false;
+          btn.textContent = "📝 提交健康申報";
+        }
+      }
+
+      function showMsg(text, type) {
+        var el = document.getElementById("waiver-msg");
+        el.className = "msg " + type;
+        el.textContent = text;
+      }
+    </script>
+  </body>
+</html>

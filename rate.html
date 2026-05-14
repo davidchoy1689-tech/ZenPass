@@ -1,0 +1,824 @@
+<!doctype html>
+<html lang="zh-HK">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#FF6B35" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
+    <title>評分 — ZenPass 禪流</title>
+    <link rel="manifest" href="manifest.json" />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      :root {
+        --orange-500: #ff6b35;
+        --orange-700: #aa3218;
+        --orange-600-bg: #c94420;
+        --orange-100: #fff0e8;
+        --orange-50: #fff8f4;
+        --dark-900: #1a1a2e;
+        --dark-800: #2d2d44;
+        --dark-700: #3d3d5a;
+        --gray-200: #e5e7eb;
+        --gray-100: #f3f4f6;
+        --gray-50: #f9fafb;
+        --white: #ffffff;
+        --green-500: #059669;
+        --yellow-400: #fbbf24;
+        --red-500: #ef4444;
+        --radius-sm: 8px;
+        --radius-md: 12px;
+        --radius-lg: 16px;
+        --radius-xl: 24px;
+        --font-zh: "Noto Sans TC", sans-serif;
+        --max-width: 480px;
+      }
+      body {
+        font-family: var(--font-zh);
+        background: var(--gray-50);
+        color: var(--dark-900);
+        max-width: var(--max-width);
+        margin: 0 auto;
+        min-height: 100vh;
+        -webkit-font-smoothing: antialiased;
+      }
+      .header {
+        background: linear-gradient(135deg, var(--orange-500), #e85d2c);
+        color: var(--white);
+        padding: 32px 20px;
+        text-align: center;
+      }
+      .header .emoji {
+        font-size: 48px;
+        margin-bottom: 8px;
+      }
+      .header h1 {
+        font-size: 22px;
+        font-weight: 800;
+      }
+      .header p {
+        font-size: 14px;
+        opacity: 0.9;
+        margin-top: 4px;
+      }
+      .section {
+        padding: 16px;
+      }
+      .card {
+        background: var(--white);
+        border-radius: var(--radius-lg);
+        padding: 20px;
+        margin-bottom: 12px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+      }
+      .section-title {
+        font-size: 16px;
+        font-weight: 700;
+        margin-bottom: 12px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .rating-row {
+        text-align: center;
+        padding: 12px 0;
+      }
+      .star-btn {
+        font-size: 36px;
+        cursor: pointer;
+        padding: 4px 6px;
+        transition:
+          transform 0.15s,
+          opacity 0.15s;
+        background: none;
+        border: none;
+      }
+      .star-btn:hover {
+        transform: scale(1.2);
+      }
+      .star-btn.active {
+        opacity: 1;
+      }
+      .star-btn.inactive {
+        opacity: 0.3;
+      }
+      .score-label {
+        font-size: 14px;
+        font-weight: 600;
+        margin-top: 8px;
+        color: var(--orange-700);
+      }
+      .label-text {
+        font-size: 14px;
+        color: var(--dark-700);
+        margin-bottom: 8px;
+      }
+      textarea {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid var(--gray-200);
+        border-radius: var(--radius-sm);
+        font-size: 14px;
+        font-family: var(--font-zh);
+        resize: vertical;
+        min-height: 80px;
+      }
+      textarea:focus {
+        outline: none;
+        border-color: var(--orange-700);
+      }
+      .tags {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+        margin: 8px 0;
+      }
+      .tag {
+        padding: 6px 14px;
+        border-radius: 16px;
+        font-size: 13px;
+        cursor: pointer;
+        border: 1px solid var(--gray-200);
+        background: var(--white);
+        transition: all 0.15s;
+      }
+      .tag.selected {
+        border-color: var(--orange-700);
+        background: var(--orange-50);
+        color: var(--orange-700);
+        font-weight: 600;
+      }
+      .btn {
+        width: 100%;
+        padding: 14px;
+        border: none;
+        border-radius: var(--radius-sm);
+        font-size: 16px;
+        font-weight: 700;
+        cursor: pointer;
+        font-family: var(--font-zh);
+        transition: opacity 0.2s;
+      }
+      .btn.primary {
+        background: var(--orange-600-bg);
+        color: var(--white);
+      }
+      .btn.primary:hover {
+        opacity: 0.9;
+      }
+      .btn:disabled {
+        background: var(--gray-200);
+        color: var(--gray-300);
+        cursor: not-allowed;
+      }
+      .btn.secondary {
+        background: var(--white);
+        color: var(--orange-700);
+        border: 1.5px solid var(--orange-500);
+        margin-top: 8px;
+      }
+
+      .hot-rate-btn:active {
+        transform: scale(0.96) !important;
+      }
+      .hot-rate-btn:hover {
+        opacity: 0.95 !important;
+      }
+
+      @media (max-width: 768px) {
+        .rate-wrap {
+          padding: 12px;
+        }
+        .rate-header h1 {
+          font-size: 20px;
+        }
+        .stars {
+          font-size: 36px;
+        }
+        .rate-form textarea {
+          font-size: 14px;
+        }
+        .rate-form .btn {
+          width: 100%;
+        }
+      }
+
+      @media (max-width: 768px) {
+        .rate-wrap {
+          padding: 12px;
+        }
+        .rate-header h1 {
+          font-size: 20px;
+        }
+        .stars {
+          font-size: 36px;
+        }
+      }
+
+      /* Desktop layout - use wider containers */
+      @media (min-width: 768px) {
+        .container,
+        .wrap,
+        .page-wrap,
+        .detail-wrap,
+        .apply-wrap,
+        .rate-wrap,
+        .checkin-wrap,
+        .payment-wrap,
+        .badge-wrap,
+        .membership-wrap,
+        .explore-wrap {
+          max-width: 900px;
+          margin-left: auto;
+          margin-right: auto;
+        }
+      }
+      @media (min-width: 1200px) {
+        .container,
+        .wrap,
+        .page-wrap,
+        .detail-wrap,
+        .apply-wrap,
+        .rate-wrap,
+        .checkin-wrap,
+        .payment-wrap,
+        .badge-wrap,
+        .membership-wrap,
+        .explore-wrap {
+          max-width: 1100px;
+        }
+      }
+
+      /* Desktop - expand beyond mobile body width */
+      @media (min-width: 768px) {
+        body {
+          max-width: 100% !important;
+        }
+      }
+
+      /* Desktop: expand content beyond mobile width */
+      @media (min-width: 768px) {
+        body {
+          max-width: 100% !important;
+        }
+      }
+
+      /* Page fade-in animation */
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(8px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      body {
+        animation: fadeIn 0.4s ease-out;
+      }
+
+      /* Card hover effects */
+      .class-card:hover,
+      .course-card:hover,
+      .reward-card:hover,
+      .tier-card:hover,
+      .badge-item:hover,
+      .booking-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        transition: all 0.2s ease;
+      }
+      .class-card,
+      .course-card,
+      .reward-card,
+      .tier-card,
+      .badge-item,
+      .booking-card {
+        transition: all 0.2s ease;
+      }
+
+      /* Button hover enhancement */
+      button:hover,
+      .btn:hover,
+      .action-btn:hover:not(:disabled) {
+        opacity: 0.9;
+        transform: translateY(-1px);
+        transition: all 0.15s ease;
+      }
+      button,
+      .btn,
+      .action-btn {
+        transition: all 0.15s ease;
+      }
+
+      /* Unified spinner */
+      .loading-spinner {
+        display: inline-block;
+        width: 24px;
+        height: 24px;
+        border: 3px solid var(--gray-200, #e5e7eb);
+        border-top: 3px solid var(--orange-500, #ff6b35);
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <div class="emoji" id="page-emoji">⭐</div>
+      <h1 id="page-title">評分體驗</h1>
+      <p id="page-subtitle">分享你的上課體驗</p>
+    </div>
+
+    <div class="section" id="rate-form">
+      <div class="card">
+        <div class="section-title">👤 你正在評分</div>
+        <div
+          id="ratee-info"
+          style="display: flex; align-items: center; gap: 12px; padding: 8px 0"
+        >
+          <div
+            style="
+              width: 44px;
+              height: 44px;
+              border-radius: 50%;
+              background: var(--orange-100);
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              font-size: 20px;
+              font-weight: 700;
+              color: var(--orange-700);
+            "
+          >
+            ?
+          </div>
+          <div>
+            <div style="font-weight: 700; font-size: 15px" id="ratee-name">
+              —
+            </div>
+            <div
+              style="font-size: 13px; color: var(--dark-700)"
+              id="ratee-class"
+            >
+              —
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-title">⭐ 評分</div>
+        <div class="rating-row" id="star-row">
+          <button
+            class="star-btn inactive"
+            data-score="1"
+            onclick="setScore(1)"
+          >
+            ★
+          </button>
+          <button
+            class="star-btn inactive"
+            data-score="2"
+            onclick="setScore(2)"
+          >
+            ★
+          </button>
+          <button
+            class="star-btn inactive"
+            data-score="3"
+            onclick="setScore(3)"
+          >
+            ★
+          </button>
+          <button
+            class="star-btn inactive"
+            data-score="4"
+            onclick="setScore(4)"
+          >
+            ★
+          </button>
+          <button
+            class="star-btn inactive"
+            data-score="5"
+            onclick="setScore(5)"
+          >
+            ★
+          </button>
+        </div>
+        <div class="score-label" id="score-label">點擊星星評分</div>
+      </div>
+
+      <div class="card" id="quick-rate-card">
+        <div class="section-title">🔥 快速評分</div>
+        <div class="label-text">一鍵評分 + 自動選擇熱門標籤</div>
+        <div
+          id="quick-rate-options"
+          style="display: flex; flex-direction: column; gap: 8px"
+        ></div>
+      </div>
+
+      <div class="card">
+        <div class="section-title">💬 詳細評價（可選）</div>
+        <div class="label-text">簡短分享你的體驗</div>
+        <textarea id="comment-input" placeholder="寫低你的感想…"></textarea>
+        <div class="tags" id="quick-tags"></div>
+      </div>
+
+      <button
+        class="btn primary"
+        id="submit-btn"
+        onclick="submitRating()"
+        disabled
+      >
+        請先選擇評分
+      </button>
+      <button class="btn secondary" onclick="history.back()">稍後再評</button>
+    </div>
+
+    <div id="success-page" style="display: none">
+      <div class="section">
+        <div class="card" style="text-align: center; padding: 40px 20px">
+          <div style="font-size: 64px; margin-bottom: 12px">🎉</div>
+          <h2 style="font-size: 20px; font-weight: 700; margin-bottom: 8px">
+            評分已提交！
+          </h2>
+          <p style="font-size: 14px; color: var(--dark-700)">
+            感謝你的回饋，這能幫助我們提升服務質素 🙏
+          </p>
+          <button
+            class="btn primary"
+            style="margin-top: 20px"
+            onclick="goBack()"
+          >
+            返回
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      var currentScore = 0;
+      var ratingData = null;
+
+      // Hot rating presets - common quick ratings
+      var hotRatings = {
+        student: [
+          {
+            score: 5,
+            label: "非常好",
+            icon: "🎉",
+            desc: "教練專業、課堂精彩",
+            tags: ["專業 👍", "講解清晰 🎯", "氣氛好好 😊"],
+          },
+          {
+            score: 4,
+            label: "不錯",
+            icon: "😊",
+            desc: "整體滿意、有收穫",
+            tags: ["有耐心 💪", "進度適中 📈"],
+          },
+          {
+            score: 3,
+            label: "一般",
+            icon: "😐",
+            desc: "中規中矩、有改善空間",
+            tags: ["進度適中 📈"],
+          },
+        ],
+        coach: [
+          {
+            score: 5,
+            label: "非常好",
+            icon: "🎉",
+            desc: "學生認真、態度積極",
+            tags: ["態度積極 😊", "練習認真 💪", "合作愉快 🤝"],
+          },
+          {
+            score: 4,
+            label: "不錯",
+            icon: "😊",
+            desc: "學習態度好、有潛力",
+            tags: ["學習能力強 📚", "有潛力 ⭐"],
+          },
+          {
+            score: 3,
+            label: "一般",
+            icon: "😐",
+            desc: "需要更多練習",
+            tags: ["學習能力強 📚"],
+          },
+        ],
+      };
+
+      var quickTags = {
+        student: [
+          "有耐心 💪",
+          "專業 👍",
+          "講解清晰 🎯",
+          "環境舒適 🌿",
+          "氣氛好好 😊",
+          "進度適中 📈",
+        ],
+        coach: [
+          "準時上課 ⏰",
+          "態度積極 😊",
+          "學習能力強 📚",
+          "有潛力 ⭐",
+          "練習認真 💪",
+          "合作愉快 🤝",
+        ],
+      };
+
+      function getParams() {
+        var qs = window.location.search.substring(1);
+        if (!qs) return {};
+        var params = {};
+        qs.split("&").forEach(function (p) {
+          var kv = p.split("=");
+          params[decodeURIComponent(kv[0])] =
+            kv.length > 1 ? decodeURIComponent(kv[1]) : "";
+        });
+        return params;
+      }
+
+      function initRating() {
+        var params = getParams();
+        var bookingId = params.booking;
+        var fromRole = params.from || "student"; // 'student' or 'coach'
+        var toName = params.to || "";
+        var className = params.class || "";
+        var coachName = params.coach || "";
+        var studentName = params.student || "";
+        var date = params.date || "";
+
+        // Look up booking if no params
+        if (!bookingId) {
+          document.getElementById("rate-form").innerHTML =
+            '<div class="card" style="text-align:center;padding:40px;"><div style="font-size:40px;">📭</div><p style="margin-top:12px;">缺少評分資料</p></div>';
+          return;
+        }
+
+        ratingData = { bookingId: bookingId, fromRole: fromRole };
+
+        var displayName =
+          fromRole === "student" ? toName || coachName : toName || studentName;
+        var roleLabel = fromRole === "student" ? "👩‍🏫 教練" : "👤 學員";
+        document.getElementById("ratee-name").textContent = displayName || "—";
+        document.getElementById("ratee-class").textContent = className
+          ? className + (date ? " (" + date + ")" : "")
+          : "—";
+        document.getElementById("page-title").textContent =
+          "評分 " + (fromRole === "student" ? "教練" : "學員");
+        document.getElementById("page-subtitle").textContent =
+          "分享你的上課體驗";
+
+        // Avatar with initial
+        if (displayName) {
+          var avatar = document.querySelector("#ratee-info > div:first-child");
+          avatar.textContent = displayName.charAt(0);
+        }
+
+        // Hot rating options
+        var hot = hotRatings[fromRole] || [];
+        var hotHtml = "";
+        hot.forEach(function (h, hi) {
+          var colors = [
+            "background:linear-gradient(135deg,#059669,#10B981);",
+            "background:linear-gradient(135deg,#D97706,#FBBF24);",
+            "background:linear-gradient(135deg,#6B7280,#9CA3AF);",
+          ];
+          hotHtml +=
+            '<div class="hot-rate-btn" onclick="applyHotRating(' +
+            hi +
+            ')" style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:12px;cursor:pointer;transition:transform .15s;' +
+            colors[hi] +
+            'color:white;">' +
+            '<div style="font-size:24px;">' +
+            h.icon +
+            "</div>" +
+            '<div style="flex:1;"><div style="font-weight:700;font-size:15px;">' +
+            "⭐".repeat(h.score) +
+            " " +
+            h.label +
+            "</div>" +
+            '<div style="font-size:12px;opacity:.9;">' +
+            h.desc +
+            "</div></div>" +
+            '<div style="font-size:16px;font-weight:700;opacity:.8;">' +
+            h.score +
+            "</div>" +
+            "</div>";
+        });
+        document.getElementById("quick-rate-options").innerHTML = hotHtml;
+
+        // Quick tags
+        var tags = quickTags[fromRole] || [];
+        var tagsHtml = "";
+        tags.forEach(function (t) {
+          tagsHtml +=
+            '<div class="tag" onclick="toggleTag(this)">' + t + "</div>";
+        });
+        document.getElementById("quick-tags").innerHTML = tagsHtml;
+      }
+
+      function setScore(score) {
+        currentScore = score;
+        document.querySelectorAll(".star-btn").forEach(function (btn) {
+          var s = parseInt(btn.getAttribute("data-score"));
+          btn.className = "star-btn " + (s <= score ? "active" : "inactive");
+        });
+        var labels = [
+          "",
+          "需要改善 ☹️",
+          "一般 😐",
+          "不錯 🙂",
+          "滿意 😊",
+          "非常滿意 🎉",
+        ];
+        document.getElementById("score-label").textContent =
+          labels[score] || score + " 分";
+        document.getElementById("submit-btn").disabled = false;
+        document.getElementById("submit-btn").textContent =
+          "⭐ 提交 " + score + " 分評分";
+      }
+
+      function applyHotRating(index) {
+        var hot =
+          hotRatings[ratingData ? ratingData.fromRole : "student"] ||
+          hotRatings.student;
+        var h = hot[index];
+        if (!h) return;
+        // Set score
+        setScore(h.score);
+        // Fill comment
+        document.getElementById("comment-input").value = h.desc;
+        // Select matching tags
+        document.querySelectorAll(".tag").forEach(function (t) {
+          t.classList.remove("selected");
+          for (var ti = 0; ti < (h.tags || []).length; ti++) {
+            if (t.textContent.trim() === h.tags[ti]) {
+              t.classList.add("selected");
+              break;
+            }
+          }
+        });
+        // Highlight the selected hot button
+        document.querySelectorAll(".hot-rate-btn").forEach(function (b, i) {
+          b.style.opacity = i === index ? "1" : ".5";
+          b.style.transform = i === index ? "scale(1.02)" : "scale(1)";
+        });
+      }
+
+      function toggleTag(el) {
+        el.classList.toggle("selected");
+      }
+
+      function getSelectedTags() {
+        var selected = [];
+        document.querySelectorAll(".tag.selected").forEach(function (t) {
+          selected.push(t.textContent.trim());
+        });
+        return selected;
+      }
+
+      function submitRating() {
+        if (currentScore < 1) return;
+        var btn = document.getElementById("submit-btn");
+        btn.disabled = true;
+        btn.textContent = "提交中…";
+
+        var comment = document.getElementById("comment-input").value.trim();
+        var tags = getSelectedTags();
+        var user = getUser();
+        var params = getParams();
+        var fromRole = ratingData.fromRole;
+
+        // Build rating record
+        var rating = {
+          id:
+            "R-" +
+            new Date().toISOString().slice(0, 10).replace(/-/g, "") +
+            "-" +
+            Math.random().toString(36).substring(2, 6).toUpperCase(),
+          bookingId: ratingData.bookingId,
+          fromRole: fromRole,
+          fromName: user ? user.name : "匿名",
+          fromUserId: user ? user.email || user.name : "anonymous",
+          toRole: fromRole === "student" ? "coach" : "student",
+          toName: params.to || params.coach || params.student || "—",
+          toUserId: params.toId || "",
+          className: params.class || "",
+          coachName: params.coach || "",
+          studentName: params.student || "",
+          score: currentScore,
+          comment: comment,
+          tags: tags,
+          date: params.date || new Date().toISOString().slice(0, 10),
+          createdAt: new Date().toISOString(),
+        };
+
+        // Save to localStorage
+        var ratings = JSON.parse(
+          localStorage.getItem("zenpass_ratings") || "[]",
+        );
+        ratings.push(rating);
+        localStorage.setItem("zenpass_ratings", JSON.stringify(ratings));
+
+        // Mark booking as rated
+        try {
+          var bookings = JSON.parse(
+            localStorage.getItem("zenpass_bookings") || "[]",
+          );
+          for (var i = 0; i < bookings.length; i++) {
+            if (bookings[i].id === ratingData.bookingId) {
+              bookings[i].rated = true;
+              bookings[i].ratedAt = new Date().toISOString();
+              break;
+            }
+          }
+          localStorage.setItem("zenpass_bookings", JSON.stringify(bookings));
+        } catch (e) {}
+
+        // Show success
+        document.getElementById("rate-form").style.display = "none";
+        document.getElementById("success-page").style.display = "block";
+      }
+
+      function getUser() {
+        try {
+          return JSON.parse(localStorage.getItem("zenpass_user"));
+        } catch (e) {
+          return null;
+        }
+      }
+
+      function goBack() {
+        window.location.href = "my-bookings.html";
+      }
+
+      initRating();
+    </script>
+    <script>
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.register("sw.js");
+      }
+    </script>
+
+    <div
+      class="zen-footer"
+      style="
+        text-align: center;
+        padding: 20px 16px;
+        margin-top: 24px;
+        border-top: 1px solid #e5e7eb;
+        font-size: 12px;
+        color: #6b7280;
+      "
+    >
+      <div
+        style="
+          display: flex;
+          justify-content: center;
+          gap: 16px;
+          margin-bottom: 8px;
+        "
+      >
+        <a
+          href="/"
+          style="color: #aa3218; text-decoration: none; font-weight: 500"
+          >🏠 首頁</a
+        >
+        <a
+          href="explore.html"
+          style="color: #aa3218; text-decoration: none; font-weight: 500"
+          >📚 課程</a
+        >
+        <a
+          href="my.html"
+          style="color: #aa3218; text-decoration: none; font-weight: 500"
+          >👤 我的</a
+        >
+        <a
+          href="points.html"
+          style="color: #aa3218; text-decoration: none; font-weight: 500"
+          >🎯 積分</a
+        >
+      </div>
+      © 2026 ZenPass 禪流
+    </div>
+  </body>
+</html>

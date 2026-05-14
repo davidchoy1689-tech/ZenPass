@@ -1,0 +1,1214 @@
+<!doctype html>
+<html lang="zh-HK">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" href="favicon.png" type="image/png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
+    <meta name="theme-color" content="#f06030" />
+    <meta
+      name="description"
+      content="ZenPass 禪流探索課程 — 搜尋健身、瑜伽、冥想課程及教練"
+    />
+    <title>探索課程 — ZenPass 禪流</title>
+    <link rel="manifest" href="manifest.json" />
+
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      :root {
+        --orange-500: #f06030;
+        --orange-700: #aa3218;
+        --orange-600-bg: #c94420;
+        --orange-400: #ff8555;
+        --orange-300: #ffa075;
+        --orange-100: #fff0e8;
+        --orange-50: #fff8f4;
+        --dark-900: #1a1a2e;
+        --dark-800: #2d2d44;
+        --dark-700: #3d3d5a;
+        --gray-300: #d1d5db;
+        --gray-200: #e5e7eb;
+        --gray-100: #f3f4f6;
+        --gray-50: #f9fafb;
+        --white: #ffffff;
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+        --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
+        --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.12);
+        --radius-sm: 8px;
+        --radius-md: 12px;
+        --radius-lg: 16px;
+        --radius-xl: 24px;
+        --font-en: "Inter", sans-serif;
+        --font-zh: "Noto Sans TC", sans-serif;
+        --max-width: 480px;
+        --nav-height: 64px;
+      }
+      body {
+        font-family: var(--font-zh);
+        background: var(--gray-50);
+        color: var(--dark-900);
+        max-width: var(--max-width);
+        margin: 0 auto;
+        padding-bottom: calc(var(--nav-height) + 20px);
+        -webkit-font-smoothing: antialiased;
+      }
+      .header {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        background: var(--white);
+        padding: 12px 16px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        border-bottom: 1px solid var(--gray-200);
+      }
+      .header .back {
+        text-decoration: none;
+        color: var(--dark-900);
+        font-size: 24px;
+        line-height: 1;
+      }
+      .header h1 {
+        font-size: 18px;
+        font-weight: 700;
+        flex: 1;
+      }
+      .header .filter-btn {
+        background: var(--gray-100);
+        border: none;
+        padding: 8px 14px;
+        border-radius: 20px;
+        font-size: 14px;
+        cursor: pointer;
+        font-family: var(--font-zh);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .header .filter-btn:hover {
+        background: var(--gray-200);
+      }
+      .section {
+        padding: 12px 16px;
+      }
+      .categories-scroll {
+        display: flex;
+        gap: 8px;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        padding: 4px 0;
+      }
+      .categories-scroll::-webkit-scrollbar {
+        display: none;
+      }
+      .category-chip {
+        flex-shrink: 0;
+        padding: 8px 18px;
+        border-radius: 20px;
+        background: var(--gray-100);
+        border: 1px solid var(--gray-200);
+        font-size: 14px;
+        color: var(--dark-700);
+        cursor: pointer;
+        transition: all 0.2s;
+        white-space: nowrap;
+      }
+      .category-chip.active {
+        background: var(--orange-600-bg);
+        color: var(--white);
+        border-color: var(--orange-600-bg);
+      }
+      .date-scroll {
+        display: flex;
+        gap: 8px;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        padding: 8px 16px;
+        margin-top: 4px;
+      }
+      .date-scroll::-webkit-scrollbar {
+        display: none;
+      }
+      .date-chip {
+        flex-shrink: 0;
+        padding: 8px 14px;
+        border-radius: 12px;
+        background: var(--gray-100);
+        border: 1px solid var(--gray-200);
+        font-size: 13px;
+        color: var(--dark-700);
+        cursor: pointer;
+        text-align: center;
+        min-width: 56px;
+        transition: all 0.2s;
+      }
+      .date-chip .day {
+        font-size: 16px;
+        font-weight: 600;
+        display: block;
+      }
+      .date-chip.active {
+        background: var(--orange-600-bg);
+        color: var(--white);
+        border-color: var(--orange-600-bg);
+      }
+      .class-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        padding: 0 12px;
+      }
+      .class-grid > .class-card {
+        width: calc(50% - 5px);
+        flex-shrink: 0;
+        box-sizing: border-box;
+      }
+      .class-card-img {
+        height: 90px;
+        font-size: 32px;
+      }
+      .class-card-body {
+        padding: 8px 10px;
+      }
+      .class-card-title {
+        font-size: 13px;
+      }
+      .class-card-meta {
+        font-size: 11px;
+      }
+      .class-card-price {
+        font-size: 14px;
+      }
+      .class-card {
+        background: var(--white);
+        border-radius: var(--radius-md);
+        overflow: hidden;
+        box-shadow: var(--shadow-sm);
+        cursor: pointer;
+        transition:
+          transform 0.2s,
+          box-shadow 0.2s;
+      }
+      .class-card:active {
+        transform: scale(0.97);
+      }
+      .class-card-img {
+        width: 100%;
+        height: 110px;
+        background: linear-gradient(
+          135deg,
+          var(--orange-100),
+          var(--orange-50)
+        );
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 36px;
+      }
+      .class-card-body {
+        padding: 10px;
+      }
+      .class-card-category {
+        font-size: 11px;
+        color: var(--orange-700);
+        font-weight: 600;
+        background: var(--orange-100);
+        padding: 2px 8px;
+        border-radius: 4px;
+        display: inline-block;
+        margin-bottom: 4px;
+      }
+      .class-card-title {
+        font-size: 14px;
+        font-weight: 600;
+        margin-bottom: 4px;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+      .class-card-meta {
+        font-size: 12px;
+        color: var(--dark-700);
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+      .class-card-price {
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--orange-700);
+        margin-top: 4px;
+      }
+      .bottom-nav {
+        position: fixed;
+        bottom: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 100%;
+        max-width: var(--max-width);
+        background: var(--white);
+        border-top: 1px solid var(--gray-200);
+        display: flex;
+        justify-content: space-around;
+        padding: 8px 0 calc(8px + env(safe-area-inset-bottom));
+        z-index: 100;
+        box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+      }
+      .nav-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-decoration: none;
+        color: var(--gray-300);
+        font-size: 10px;
+        gap: 2px;
+        padding: 4px 12px;
+        transition: color 0.2s;
+      }
+      .nav-item.active {
+        color: var(--orange-700);
+      }
+      .nav-item .nav-icon {
+        font-size: 22px;
+        line-height: 1;
+      }
+      .loading-spinner {
+        text-align: center;
+        padding: 40px 20px;
+        color: var(--dark-700);
+        grid-column: 1 / -1;
+      }
+      .loading-spinner::after {
+        content: "";
+        display: block;
+        width: 32px;
+        height: 32px;
+        margin: 10px auto;
+        border: 3px solid var(--gray-200);
+        border-top-color: var(--orange-700);
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: var(--dark-700);
+        grid-column: 1 / -1;
+      }
+      .empty-state span {
+        font-size: 48px;
+        display: block;
+        margin-bottom: 12px;
+      }
+      .error-state {
+        text-align: center;
+        padding: 30px 20px;
+        color: var(--dark-700);
+        grid-column: 1 / -1;
+      }
+      .error-state span {
+        font-size: 40px;
+        display: block;
+        margin-bottom: 12px;
+      }
+      .error-state small {
+        display: block;
+        margin-top: 8px;
+        color: var(--orange-700);
+        cursor: pointer;
+      }
+      .filter-panel {
+        background: var(--white);
+        border-radius: var(--radius-lg);
+        padding: 20px;
+        margin: 0 16px 12px;
+        box-shadow: var(--shadow-md);
+      }
+      .filter-panel h3 {
+        font-size: 16px;
+        margin-bottom: 12px;
+      }
+      .filter-panel .filter-row {
+        margin-bottom: 12px;
+      }
+      .filter-panel .filter-row label {
+        display: block;
+        font-size: 13px;
+        font-weight: 600;
+        margin-bottom: 6px;
+        color: var(--dark-700);
+      }
+      .filter-panel select {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid var(--gray-200);
+        border-radius: var(--radius-sm);
+        font-size: 15px;
+        font-family: var(--font-zh);
+        background: var(--white);
+        outline: none;
+      }
+      .filter-panel .sort-btns {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .filter-panel .sort-btn {
+        padding: 6px 14px;
+        border-radius: 16px;
+        border: 1px solid var(--gray-200);
+        background: var(--white);
+        font-size: 13px;
+        cursor: pointer;
+        font-family: var(--font-zh);
+        transition: all 0.2s;
+      }
+      .filter-panel .sort-btn.active {
+        background: var(--orange-600-bg);
+        color: var(--white);
+        border-color: var(--orange-700);
+      }
+      .hidden {
+        display: none !important;
+      }
+
+      @media (max-width: 768px) {
+        .explore-header {
+          flex-direction: column;
+          gap: 10px;
+        }
+        .explore-header h1 {
+          font-size: 22px;
+        }
+        .filter-bar {
+          overflow-x: auto;
+          flex-wrap: nowrap;
+          gap: 6px;
+          padding-bottom: 4px;
+        }
+        .filter-bar button {
+          white-space: nowrap;
+          padding: 6px 12px;
+          font-size: 12px;
+        }
+        .class-grid {
+          flex-wrap: wrap;
+          gap: 10px;
+        }
+        .class-card-img {
+          height: 90px;
+        }
+        .class-card-info {
+          padding: 10px;
+        }
+        .class-card-info h3 {
+          font-size: 13px;
+        }
+      }
+
+      /* Desktop: expand content beyond mobile width */
+      @media (min-width: 768px) {
+        body {
+          max-width: 100% !important;
+        }
+      }
+
+      /* Page fade-in animation */
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(8px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      body {
+        animation: fadeIn 0.4s ease-out;
+      }
+
+      /* Card hover effects */
+      .class-card:hover,
+      .course-card:hover,
+      .reward-card:hover,
+      .tier-card:hover,
+      .badge-item:hover,
+      .booking-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        transition: all 0.2s ease;
+      }
+      .class-card,
+      .course-card,
+      .reward-card,
+      .tier-card,
+      .badge-item,
+      .booking-card {
+        transition: all 0.2s ease;
+      }
+
+      /* Button hover enhancement */
+      button:hover,
+      .btn:hover,
+      .action-btn:hover:not(:disabled) {
+        opacity: 0.9;
+        transform: translateY(-1px);
+        transition: all 0.15s ease;
+      }
+      button,
+      .btn,
+      .action-btn {
+        transition: all 0.15s ease;
+      }
+
+      /* Unified spinner */
+      .loading-spinner {
+        display: inline-block;
+        width: 24px;
+        height: 24px;
+        border: 3px solid var(--gray-200, #e5e7eb);
+        border-top: 3px solid var(--orange-500, #f06030);
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SearchAction",
+        "target": {
+          "@type": "EntryPoint",
+          "urlTemplate": "https://davidchoy1689-tech.github.io/ZenPass/explore.html?q={search_term_string}"
+        },
+        "query-input": "required name=search_term_string"
+      }
+    </script>
+  </head>
+  <body>
+    <div class="header">
+      <a href="index.html" class="back">←</a>
+      <h1>探索課程</h1>
+      <div
+        style="
+          display: flex;
+          gap: 8px;
+          align-items: center;
+          width: 100%;
+          margin-top: 8px;
+        "
+      >
+        <input
+          type="text"
+          id="search-input"
+          placeholder="🔍 搜尋課程、教練、運動類型..."
+          style="
+            flex: 1;
+            padding: 10px 14px;
+            border: 1px solid var(--gray-200);
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: var(--font-zh);
+            background: var(--white);
+          "
+          onkeydown="if (event.key === 'Enter') doSearch();"
+        />
+        <button
+          class="filter-btn"
+          onclick="
+            document.getElementById('filter-panel').classList.toggle('hidden')
+          "
+          style="white-space: nowrap"
+        >
+          ☰ 篩選
+        </button>
+      </div>
+    </div>
+
+    <div id="filter-panel" class="filter-panel hidden">
+      <h3>篩選條件</h3>
+      <div class="filter-row">
+        <label>難度</label>
+        <select id="filter-difficulty" onchange="applyFilters()">
+          <option value="">全部</option>
+          <option value="beginner">初階</option>
+          <option value="intermediate">中階</option>
+          <option value="advanced">進階</option>
+        </select>
+      </div>
+      <div class="filter-row">
+        <label>價錢範圍</label>
+        <div style="display: flex; gap: 8px">
+          <select
+            id="filter-price-min"
+            onchange="applyFilters()"
+            style="
+              flex: 1;
+              padding: 8px;
+              border: 1px solid var(--gray-200);
+              border-radius: 6px;
+              font-size: 13px;
+              font-family: inherit;
+            "
+          >
+            <option value="">最低</option>
+            <option value="0">$0</option>
+            <option value="50">$50</option>
+            <option value="100">$100</option>
+            <option value="150">$150</option>
+          </select>
+          <span style="align-self: center; color: var(--gray-300)">—</span>
+          <select
+            id="filter-price-max"
+            onchange="applyFilters()"
+            style="
+              flex: 1;
+              padding: 8px;
+              border: 1px solid var(--gray-200);
+              border-radius: 6px;
+              font-size: 13px;
+              font-family: inherit;
+            "
+          >
+            <option value="">最高</option>
+            <option value="50">$50</option>
+            <option value="100">$100</option>
+            <option value="150">$150</option>
+            <option value="200">$200</option>
+            <option value="999">$999+</option>
+          </select>
+        </div>
+      </div>
+      <div class="filter-row">
+        <label>排序</label>
+        <div class="sort-btns">
+          <button
+            class="sort-btn active"
+            data-sort="popular"
+            onclick="setSort('popular', this)"
+          >
+            🔥 熱門
+          </button>
+          <button
+            class="sort-btn"
+            data-sort="price_asc"
+            onclick="setSort('price_asc', this)"
+          >
+            💰 價格由低
+          </button>
+          <button
+            class="sort-btn"
+            data-sort="price_desc"
+            onclick="setSort('price_desc', this)"
+          >
+            💰 價格由高
+          </button>
+          <button
+            class="sort-btn"
+            data-sort="newest"
+            onclick="setSort('newest', this)"
+          >
+            🆕 最新
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="categories-scroll" id="category-list">
+        <div
+          class="category-chip active"
+          onclick="filterByCategory('all', this)"
+        >
+          全部
+        </div>
+      </div>
+    </div>
+
+    <div class="date-scroll" id="date-list">
+      <div class="date-chip active" onclick="filterByDate('', this)">
+        <span class="day">全部</span><small>日期</small>
+      </div>
+    </div>
+
+    <div
+      class="class-grid"
+      id="class-grid"
+      style="
+        display: grid !important;
+        grid-template-columns: 1fr 1fr !important;
+        gap: 10px !important;
+      "
+    >
+      <div class="loading-spinner">載入中...</div>
+    </div>
+
+    <nav class="bottom-nav">
+      <a href="index.html" class="nav-item"
+        ><span class="nav-icon">🏠</span>首頁</a
+      >
+      <a href="explore.html" class="nav-item active"
+        ><span class="nav-icon">🔍</span>探索</a
+      >
+      <a href="membership.html" class="nav-item"
+        ><span class="nav-icon">💎</span>會籍</a
+      >
+      <a href="coach-apply.html" class="nav-item"
+        ><span class="nav-icon">👨‍🏫</span>成為教練</a
+      >
+      <a href="my.html" class="nav-item"
+        ><span class="nav-icon">👤</span>我的</a
+      >
+    </nav>
+
+    <script src="api.js"></script>
+    <script>
+      var currentCategory = "all";
+      var currentDate = "";
+      var currentSort = "popular";
+
+      // ===== Wishlist ❤️ =====
+      var WL_KEY = "zenpass_wishlist";
+      function getWishlist() {
+        try {
+          return JSON.parse(localStorage.getItem(WL_KEY) || "[]");
+        } catch (e) {
+          return [];
+        }
+      }
+      function toggleWishlist(id) {
+        var wl = getWishlist();
+        var idx = wl.indexOf(id);
+        if (idx >= 0) wl.splice(idx, 1);
+        else wl.push(id);
+        localStorage.setItem(WL_KEY, JSON.stringify(wl));
+        // Update heart icons
+        document
+          .querySelectorAll("[data-wl='" + id + "']")
+          .forEach(function (el) {
+            el.textContent = wl.indexOf(id) >= 0 ? "❤️" : "🤍";
+          });
+        return wl.indexOf(id) >= 0;
+      }
+      function isWishlist(id) {
+        return getWishlist().indexOf(id) >= 0;
+      }
+
+      // ===== Load Categories =====
+      async function loadCategories() {
+        var container = document.getElementById("category-list");
+        try {
+          var result = await classes.categories();
+          var categories = result.categories || [];
+          categories.forEach(function (cat) {
+            container.innerHTML +=
+              '<div class="category-chip" onclick="filterByCategory(\'' +
+              cat.category +
+              "', this)\">" +
+              cat.category +
+              "</div>";
+          });
+        } catch (err) {
+          ["瑜伽", "健身", "冥想", "舞蹈", "新興運動", "太極"].forEach(
+            function (c) {
+              container.innerHTML +=
+                '<div class="category-chip" onclick="filterByCategory(\'' +
+                c +
+                "', this)\">" +
+                c +
+                "</div>";
+            },
+          );
+        }
+      }
+
+      // ===== Wishlist ❤️ =====
+      var WL_KEY = "zenpass_wishlist";
+      function getWishlist() {
+        try {
+          return JSON.parse(localStorage.getItem(WL_KEY) || "[]");
+        } catch (e) {
+          return [];
+        }
+      }
+      function toggleWishlist(id) {
+        var wl = getWishlist();
+        var idx = wl.indexOf(id);
+        if (idx >= 0) wl.splice(idx, 1);
+        else wl.push(id);
+        localStorage.setItem(WL_KEY, JSON.stringify(wl));
+        // Update heart icons
+        document
+          .querySelectorAll("[data-wl='" + id + "']")
+          .forEach(function (el) {
+            el.textContent = wl.indexOf(id) >= 0 ? "❤️" : "🤍";
+          });
+        return wl.indexOf(id) >= 0;
+      }
+      function isWishlist(id) {
+        return getWishlist().indexOf(id) >= 0;
+      }
+
+      // ===== Load Dates =====
+      function loadDates() {
+        var container = document.getElementById("date-list");
+        var days = ["日", "一", "二", "三", "四", "五", "六"];
+        var today = new Date();
+
+        fetch("/api/classes/available-dates")
+          .then(function (r) {
+            return r.json();
+          })
+          .then(function (data) {
+            var dates = data.dates || [];
+            container.innerHTML = "";
+            if (dates.length === 0) {
+              container.innerHTML =
+                '<div style="padding:12px;text-align:center;color:var(--dark-700);font-size:13px;">暫時沒有可預約日期</div>';
+              return;
+            }
+            dates.slice(0, 14).forEach(function (dateStr) {
+              var d = new Date(dateStr + "T00:00:00");
+              var month = String(d.getMonth() + 1).padStart(2, "0");
+              var day = String(d.getDate()).padStart(2, "0");
+              var todayStr =
+                today.getFullYear() +
+                "-" +
+                String(today.getMonth() + 1).padStart(2, "0") +
+                "-" +
+                String(today.getDate()).padStart(2, "0");
+              var isToday = dateStr === todayStr;
+              var dayOfWeek = d.getDay();
+              var dayName = isToday ? "今天" : days[dayOfWeek];
+              var chip = document.createElement("div");
+              chip.className = "date-chip";
+              chip.onclick = function () {
+                filterByDate(dateStr, this);
+              };
+              chip.innerHTML =
+                '<span class="day">' +
+                day +
+                "</span><small>" +
+                dayName +
+                "</small>";
+              container.appendChild(chip);
+            });
+          })
+          .catch(function () {
+            container.innerHTML = "";
+            for (var i = 0; i < 7; i++) {
+              var d = new Date(today);
+              d.setDate(today.getDate() + i);
+              var month = String(d.getMonth() + 1).padStart(2, "0");
+              var day = String(d.getDate()).padStart(2, "0");
+              var dayName =
+                i === 0 ? "今天" : i === 1 ? "明天" : days[d.getDay()];
+              var dateStr = d.getFullYear() + "-" + month + "-" + day;
+              var chip = document.createElement("div");
+              chip.className = "date-chip";
+              chip.onclick = function () {
+                filterByDate(dateStr, this);
+              };
+              chip.innerHTML =
+                '<span class="day">' +
+                day +
+                "</span><small>" +
+                dayName +
+                "</small>";
+              container.appendChild(chip);
+            }
+          });
+      }
+      function filterByCategory(category, el) {
+        document
+          .querySelectorAll("#category-list .category-chip")
+          .forEach(function (c) {
+            c.classList.remove("active");
+          });
+        el.classList.add("active");
+        currentCategory = category;
+        loadClasses();
+      }
+
+      function filterByDate(date, el) {
+        document
+          .querySelectorAll("#date-list .date-chip")
+          .forEach(function (c) {
+            c.classList.remove("active");
+          });
+        if (el) el.classList.add("active");
+        currentDate = date;
+        loadClasses();
+      }
+
+      function doSearch() {
+        var q = document.getElementById("search-input").value.trim();
+        if (q) {
+          loadClasses();
+        }
+      }
+      function clearFilters() {
+        document.getElementById("search-input").value = "";
+        document.getElementById("filter-difficulty").value = "";
+        document.getElementById("filter-price-min").value = "";
+        document.getElementById("filter-price-max").value = "";
+        currentSort = "popular";
+        currentCategory = "all";
+        currentDate = "";
+        document.querySelectorAll(".sort-btn").forEach(function (b) {
+          b.classList.remove("active");
+        });
+        document.querySelector('[data-sort="popular"]').classList.add("active");
+        document.querySelectorAll(".category-chip").forEach(function (c) {
+          c.classList.remove("active");
+        });
+        document
+          .querySelector(
+            ".category-chip.active, #category-list .category-chip:first-child",
+          )
+          .classList.add("active");
+        loadClasses();
+      }
+      function setSort(sort, el) {
+        document.querySelectorAll(".sort-btn").forEach(function (b) {
+          b.classList.remove("active");
+        });
+        el.classList.add("active");
+        currentSort = sort;
+        loadClasses();
+      }
+
+      function applyFilters() {
+        loadClasses();
+      }
+
+      // ===== Wishlist ❤️ =====
+      var WL_KEY = "zenpass_wishlist";
+      function getWishlist() {
+        try {
+          return JSON.parse(localStorage.getItem(WL_KEY) || "[]");
+        } catch (e) {
+          return [];
+        }
+      }
+      function toggleWishlist(id) {
+        var wl = getWishlist();
+        var idx = wl.indexOf(id);
+        if (idx >= 0) wl.splice(idx, 1);
+        else wl.push(id);
+        localStorage.setItem(WL_KEY, JSON.stringify(wl));
+        // Update heart icons
+        document
+          .querySelectorAll("[data-wl='" + id + "']")
+          .forEach(function (el) {
+            el.textContent = wl.indexOf(id) >= 0 ? "❤️" : "🤍";
+          });
+        return wl.indexOf(id) >= 0;
+      }
+      function isWishlist(id) {
+        return getWishlist().indexOf(id) >= 0;
+      }
+
+      // ===== Load Classes =====
+      async function loadClasses() {
+        var container = document.getElementById("class-grid");
+        container.innerHTML = '<div class="loading-spinner">載入中...</div>';
+
+        var params = { limit: 50, sort: currentSort };
+        if (currentCategory !== "all") params.category = currentCategory;
+        if (currentDate) params.date = currentDate;
+        var searchQ = document.getElementById("search-input").value.trim();
+        if (searchQ) params.search = searchQ;
+        var priceMin = document.getElementById("filter-price-min").value;
+        var priceMax = document.getElementById("filter-price-max").value;
+        if (priceMin) params.price_min = priceMin;
+        if (priceMax) params.price_max = priceMax;
+
+        var difficulty = document.getElementById("filter-difficulty").value;
+        if (difficulty) params.difficulty = difficulty;
+
+        // Get search from URL
+        var search = null;
+        var qsl = window.location.search.substring(1);
+        if (qsl) {
+          var qsparts = qsl.split("&");
+          for (var qsi = 0; qsi < qsparts.length; qsi++) {
+            var kv = qsparts[qsi].split("=");
+            if (decodeURIComponent(kv[0]) === "search") {
+              search = decodeURIComponent(kv[1]);
+            }
+          }
+        }
+        if (search) params.search = search;
+
+        try {
+          var result = await classes.list(params);
+          var items = result.classes || [];
+          if (items.length === 0) {
+            container.innerHTML =
+              '<div class="empty-state"><span>📭</span><p>暫無符合條件的課程<br>試試調整篩選條件</p></div>' +
+              '<div style="text-align:center;margin-top:8px;"><button class="sort-btn" onclick="clearFilters()" style="background:var(--orange-600-bg);color:white;border:none;padding:8px 20px;border-radius:6px;cursor:pointer;">🔄 清除篩選</button></div>';
+            return;
+          }
+          container.innerHTML =
+            '<div style="font-size:13px;color:var(--dark-700);margin-bottom:8px;">共 ' +
+            items.length +
+            " 個課程</div>" +
+            items
+              .map(function (cls) {
+                return renderCard(cls);
+              })
+              .join("");
+        } catch (err) {
+          // Demo fallback classes
+          container.innerHTML =
+            "" +
+            '<div class="class-card" onclick="location.href=\'class-detail.html\'">' +
+            '<div class="class-card-img">🧘</div>' +
+            '<div class="class-card-body">' +
+            '<span class="class-card-category">瑜伽</span>' +
+            '<div class="class-card-title">流瑜伽 Flow Yoga</div>' +
+            '<div class="class-card-meta">⏱ 60min · ⭐4.9</div>' +
+            '<div class="class-card-coach">👩🏫 靜儀導師</div>' +
+            '<div class="class-card-price">HK$120</div>' +
+            '<div class="class-card-spots">剩餘 3 位</div>' +
+            "</div></div>" +
+            '<div class="class-card" onclick="location.href=\'class-detail.html\'">' +
+            '<div class="class-card-img">💪</div>' +
+            '<div class="class-card-body">' +
+            '<span class="class-card-category">健身</span>' +
+            '<div class="class-card-title">HIIT 高強度間歇訓練</div>' +
+            '<div class="class-card-meta">⏱ 45min · ⭐4.8</div>' +
+            '<div class="class-card-coach">👨🏫 Alex教練</div>' +
+            '<div class="class-card-price">HK$150 <span class="badge-hot">🔥 熱門</span></div>' +
+            '<div class="class-card-spots">剩餘 5 位</div>' +
+            "</div></div>" +
+            '<div class="class-card" onclick="location.href=\'class-detail.html\'">' +
+            '<div class="class-card-img">🧠</div>' +
+            '<div class="class-card-body">' +
+            '<span class="class-card-category">冥想</span>' +
+            '<div class="class-card-title">正念冥想 初階班</div>' +
+            '<div class="class-card-meta">⏱ 30min · ⭐4.7</div>' +
+            '<div class="class-card-coach">🧘 慧心導師</div>' +
+            '<div class="class-card-price">HK$80</div>' +
+            '<div class="class-card-spots">剩餘 8 位</div>' +
+            "</div></div>" +
+            '<div class="class-card" onclick="location.href=\'class-detail.html\'">' +
+            '<div class="class-card-img">💃</div>' +
+            '<div class="class-card-body">' +
+            '<span class="class-card-category">舞蹈</span>' +
+            '<div class="class-card-title">Zumba 舞動燃脂</div>' +
+            '<div class="class-card-meta">⏱ 50min · ⭐4.9</div>' +
+            '<div class="class-card-coach">👩🏫 Grace導師</div>' +
+            '<div class="class-card-price">HK$130</div>' +
+            '<div class="class-card-spots">剩餘 2 位</div>' +
+            "</div></div>" +
+            '<div class="class-card" onclick="location.href=\'class-detail.html\'">' +
+            '<div class="class-card-img">🎯</div>' +
+            '<div class="class-card-body">' +
+            '<span class="class-card-category">新興運動</span>' +
+            '<div class="class-card-title">匹克球 Pickleball</div>' +
+            '<div class="class-card-meta">⏱ 60min · ⭐4.6</div>' +
+            '<div class="class-card-coach">🎯 Ken教練</div>' +
+            '<div class="class-card-price">HK$160</div>' +
+            '<div class="class-card-spots">剩餘 6 位</div>' +
+            "</div></div>";
+        }
+      }
+
+      function renderCard(cls) {
+        var emojiMap = {
+          瑜伽: "🧘",
+          健身: "🏋️",
+          伸展: "🤸",
+          冥想: "🧠",
+          舞蹈: "💃",
+          新興運動: "🎯",
+          普拉提: "🤸",
+          武術: "🥋",
+          太極: "☯️",
+        };
+        var emoji = emojiMap[cls.category] || "🏃";
+        var hot =
+          cls.popular || cls.is_hot
+            ? '<span class="badge-hot" style="background:var(--orange-600-bg);color:var(--white);font-size:10px;padding:2px 8px;border-radius:10px;font-weight:600;">🔥 熱門</span>'
+            : "";
+        return (
+          '<div class="class-card" onclick="location.href=\'class-detail.html?id=' +
+          cls.id +
+          "'\">" +
+          '<div class="class-card-img">' +
+          emoji +
+          "</div>" +
+          '<div class="class-card-body">' +
+          '<span class="class-card-category">' +
+          cls.category +
+          "</span>" +
+          '<div class="class-card-title">' +
+          cls.title +
+          "</div>" +
+          '<div class="class-card-meta">⏱ ' +
+          (cls.duration_min || 60) +
+          "min · ⭐" +
+          (cls.rating || "4.8") +
+          " · 👤 " +
+          (cls.coach_name || "教練") +
+          "</div>" +
+          '<div class="class-card-price">HK$' +
+          cls.price_hkd +
+          " " +
+          hot +
+          "</div>" +
+          (cls.remaining_spots !== undefined
+            ? '<div class="class-card-spots" style="font-size:11px;color:#D97706;margin-top:4px;">剩餘 ' +
+              cls.remaining_spots +
+              " 位</div>"
+            : "") +
+          "</div></div>"
+        );
+      }
+
+      // ===== Wishlist ❤️ =====
+      var WL_KEY = "zenpass_wishlist";
+      function getWishlist() {
+        try {
+          return JSON.parse(localStorage.getItem(WL_KEY) || "[]");
+        } catch (e) {
+          return [];
+        }
+      }
+      function toggleWishlist(id) {
+        var wl = getWishlist();
+        var idx = wl.indexOf(id);
+        if (idx >= 0) wl.splice(idx, 1);
+        else wl.push(id);
+        localStorage.setItem(WL_KEY, JSON.stringify(wl));
+        // Update heart icons
+        document
+          .querySelectorAll("[data-wl='" + id + "']")
+          .forEach(function (el) {
+            el.textContent = wl.indexOf(id) >= 0 ? "❤️" : "🤍";
+          });
+        return wl.indexOf(id) >= 0;
+      }
+      function isWishlist(id) {
+        return getWishlist().indexOf(id) >= 0;
+      }
+
+      // ===== Init =====
+      document.addEventListener("DOMContentLoaded", function () {
+        loadCategories();
+        loadDates();
+        loadClasses();
+        updateNavBar();
+
+        // Pre-fill search from URL
+        var search = null;
+        var qsl = window.location.search.substring(1);
+        if (qsl) {
+          var qsparts = qsl.split("&");
+          for (var qsi = 0; qsi < qsparts.length; qsi++) {
+            var kv = qsparts[qsi].split("=");
+            if (decodeURIComponent(kv[0]) === "search") {
+              search = decodeURIComponent(kv[1]);
+            }
+          }
+        }
+        if (search) {
+          document.title = search + " — 探索課程 ZenPass";
+        }
+      });
+    </script>
+    <script>
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.register("sw.js");
+      }
+    </script>
+    <script>
+      (function () {
+        var n = localStorage.getItem("zenpass_name");
+        if (n) {
+          var b = document.createElement("div");
+          b.style.cssText =
+            "position:fixed;top:10px;right:10px;z-index:9999;background:#f06030;color:white;padding:5px 12px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.15);font-family:sans-serif;";
+          b.textContent = "👤 " + n;
+          b.onclick = function () {
+            var nn = prompt("切換用戶\n當前：" + n, n);
+            if (nn && nn.trim() && nn.trim() !== n) {
+              localStorage.setItem("zenpass_name", nn.trim());
+              localStorage.removeItem("zenpass_token");
+              localStorage.removeItem("zenpass_user");
+              location.reload();
+            }
+          };
+          document.body.appendChild(b);
+        }
+      })();
+    </script>
+
+    <div
+      class="zen-footer"
+      style="
+        text-align: center;
+        padding: 20px 16px;
+        margin-top: 24px;
+        border-top: 1px solid #e5e7eb;
+        font-size: 12px;
+        color: #6b7280;
+      "
+    >
+      <div
+        style="
+          display: flex;
+          justify-content: center;
+          gap: 16px;
+          margin-bottom: 8px;
+        "
+      >
+        <a
+          href="/"
+          style="color: #aa3218; text-decoration: none; font-weight: 500"
+          >🏠 首頁</a
+        >
+        <a
+          href="explore.html"
+          style="color: #aa3218; text-decoration: none; font-weight: 500"
+          >📚 課程</a
+        >
+        <a
+          href="my.html"
+          style="color: #aa3218; text-decoration: none; font-weight: 500"
+          >👤 我的</a
+        >
+        <a
+          href="points.html"
+          style="color: #aa3218; text-decoration: none; font-weight: 500"
+          >🎯 積分</a
+        >
+      </div>
+      © 2026 ZenPass 禪流
+    </div>
+  </body>
+</html>

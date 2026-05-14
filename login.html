@@ -1,199 +1,473 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-HK">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
-<title>ZenPass 登入</title>
-<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-<style>
-*{margin:0;padding:0;box-sizing:border-box}
-:root{--orange:#FF6B35;--orange-light:#FFF0E8;--dark:#1A1A2E;--gray:#6B7280;--gray-light:#E5E7EB;--gray-bg:#F3F4F6;--white:#FFF;--green:#059669;--red:#EF4444;--radius:12px;--shadow:0 4px 20px rgba(0,0,0,.1)}
-body{font-family:-apple-system,'Noto Sans TC',sans-serif;background:linear-gradient(135deg,#1A1A2E,#2D2D44);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
-.card{background:var(--white);border-radius:20px;padding:40px;width:400px;max-width:100%;box-shadow:var(--shadow)}
-.logo{text-align:center;margin-bottom:28px}
-.logo h1{font-size:28px;margin-bottom:2px}.logo h1 span{color:var(--orange)}
-.logo p{color:var(--gray);font-size:14px}
-.tabs{display:flex;border-radius:10px;overflow:hidden;border:1px solid var(--gray-light);margin-bottom:24px}
-.tab{flex:1;padding:10px;text-align:center;cursor:pointer;font-size:14px;font-weight:600;background:var(--gray-bg);color:var(--gray);transition:all .2s}
-.tab.active{background:var(--orange);color:var(--white)}
-.form-group{margin-bottom:16px}
-.form-group label{display:block;font-size:13px;font-weight:600;color:var(--dark);margin-bottom:5px}
-.form-group input{width:100%;padding:11px 14px;border:1px solid var(--gray-light);border-radius:8px;font-size:14px;font-family:inherit;transition:border .2s}
-.form-group input:focus{outline:none;border-color:var(--orange)}
-.btn{width:100%;padding:12px;background:var(--orange);color:var(--white);border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;transition:opacity .2s;margin-top:4px}
-.btn:hover{opacity:.9}.btn:disabled{opacity:.5;cursor:not-allowed}
-.msg{text-align:center;margin-top:12px;font-size:13px}
-.msg.success{color:var(--green)}.msg.error{color:var(--red)}
-.spinner{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-right:6px}
-@keyframes spin{to{transform:rotate(360deg)}}
-.role-select{display:flex;gap:10px;margin-bottom:16px}
-.role-opt{flex:1;padding:12px;text-align:center;border:2px solid var(--gray-light);border-radius:8px;cursor:pointer;font-size:14px;font-weight:600;transition:all .2s}
-.role-opt:hover{border-color:var(--orange)}
-.role-opt.active{border-color:var(--orange);background:var(--orange-light);color:var(--orange)}
-.extra-link{text-align:center;margin-top:14px;font-size:13px;color:var(--gray)}
-.extra-link a{color:var(--orange);text-decoration:none;font-weight:600}
-@media(max-width:480px){.card{padding:24px}}
-</style>
-</head>
-<body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="theme-color" content="#f06030" />
+    <title>登入 / 註冊 — ZenPass 禪流</title>
+    <script src="api.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      :root {
+        --orange-500: #f06030;
+        --orange-700: #aa3218;
+        --orange-600-bg: #c94420;
+        --orange-400: #ff8555;
+        --orange-100: #fff0e8;
+        --dark-900: #1a1a2e;
+        --dark-700: #3d3d5a;
+        --gray-200: #e5e7eb;
+        --gray-100: #f3f4f6;
+        --gray-50: #f9fafb;
+        --white: #ffffff;
+        --green-500: #059669;
+        --red-500: #ef4444;
+        --radius-sm: 8px;
+        --radius-md: 12px;
+        --font-zh: "Noto Sans TC", sans-serif;
+        --max-width: 400px;
+      }
+      body {
+        font-family: var(--font-zh);
+        background: var(--gray-50);
+        color: var(--dark-900);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+      }
+      .card {
+        background: var(--white);
+        border-radius: var(--radius-md);
+        padding: 32px 24px;
+        width: 100%;
+        max-width: var(--max-width);
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+      }
+      .logo {
+        text-align: center;
+        margin-bottom: 24px;
+      }
+      .logo .icon {
+        font-size: 48px;
+      }
+      .logo h1 {
+        font-size: 22px;
+        font-weight: 800;
+        margin-top: 8px;
+      }
+      .logo p {
+        font-size: 13px;
+        color: var(--dark-700);
+        margin-top: 4px;
+      }
+      .tabs {
+        display: flex;
+        margin-bottom: 20px;
+        border-bottom: 2px solid var(--gray-200);
+      }
+      .tab {
+        flex: 1;
+        text-align: center;
+        padding: 10px;
+        font-size: 15px;
+        font-weight: 600;
+        cursor: pointer;
+        color: var(--dark-700);
+        border-bottom: 2px solid transparent;
+        margin-bottom: -2px;
+        transition: all 0.2s;
+      }
+      .tab.active {
+        color: var(--orange-700);
+        border-bottom-color: var(--orange-700);
+      }
+      .form {
+        display: none;
+      }
+      .form.active {
+        display: block;
+      }
+      .form-group {
+        margin-bottom: 14px;
+      }
+      .form-group label {
+        display: block;
+        font-size: 13px;
+        font-weight: 600;
+        margin-bottom: 4px;
+        color: var(--dark-700);
+      }
+      .form-group input {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid var(--gray-200);
+        border-radius: var(--radius-sm);
+        font-size: 15px;
+        font-family: var(--font-zh);
+        background: var(--white);
+        transition: border 0.2s;
+      }
+      .form-group input:focus {
+        outline: none;
+        border-color: var(--orange-700);
+      }
+      .btn {
+        width: 100%;
+        padding: 14px;
+        border: none;
+        border-radius: var(--radius-sm);
+        font-size: 16px;
+        font-weight: 700;
+        cursor: pointer;
+        font-family: var(--font-zh);
+        transition: background 0.2s;
+      }
+      .btn-primary {
+        background: var(--orange-600-bg);
+        color: var(--white);
+      }
+      .btn-primary:hover {
+        background: #e55a2b;
+      }
+      .btn-primary:disabled {
+        background: var(--gray-200);
+        cursor: not-allowed;
+      }
+      .btn-demo {
+        background: var(--gray-100);
+        color: var(--dark-700);
+        margin-top: 8px;
+        font-size: 13px;
+        font-weight: 500;
+      }
+      .btn-demo:hover {
+        background: var(--gray-200);
+      }
+      .msg {
+        font-size: 13px;
+        margin-top: 8px;
+        padding: 8px;
+        border-radius: 6px;
+        display: none;
+      }
+      .msg.error {
+        display: block;
+        background: #fef2f2;
+        color: var(--red-500);
+      }
+      .msg.success {
+        display: block;
+        background: #ecfdf5;
+        color: var(--green-500);
+      }
+      .divider {
+        text-align: center;
+        margin: 16px 0;
+        color: var(--dark-700);
+        font-size: 13px;
+        position: relative;
+      }
+      .divider::before,
+      .divider::after {
+        content: "";
+        position: absolute;
+        top: 50%;
+        width: 42%;
+        height: 1px;
+        background: var(--gray-200);
+      }
+      .divider::before {
+        left: 0;
+      }
+      .divider::after {
+        right: 0;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      .spinner {
+        display: inline-block;
+        width: 18px;
+        height: 18px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-top-color: white;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+        vertical-align: middle;
+        margin-right: 8px;
+      }
+      @media (max-width: 480px) {
+        .card {
+          padding: 24px 16px;
+        }
+        .logo .icon {
+          font-size: 36px;
+        }
+        .logo h1 {
+          font-size: 18px;
+        }
+        .btn {
+          padding: 12px;
+          font-size: 14px;
+        }
+        .tab {
+          font-size: 13px;
+          padding: 8px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div class="logo">
+        <div class="icon">🧘</div>
+        <h1>ZenPass 禪流</h1>
+        <p>解鎖全城 運動體驗</p>
+      </div>
 
-<div class="card">
-<div class="logo"><h1>Z<span>P</span></h1><p>ZenPass 運動平台</p></div>
+      <div class="tabs">
+        <div class="tab active" onclick="switchTab('login')">登入</div>
+        <div class="tab" onclick="switchTab('register')">註冊</div>
+      </div>
 
-<div class="tabs">
-<div class="tab active" id="tabLogin" onclick="switchTab('login')">登入</div>
-<div class="tab" id="tabRegister" onclick="switchTab('register')">註冊</div>
-</div>
+      <!-- Login Form -->
+      <div class="form active" id="form-login">
+        <div class="form-group">
+          <label>電郵</label>
+          <input type="email" id="login-email" placeholder="your@email.com" />
+        </div>
+        <div class="form-group">
+          <label>密碼</label>
+          <input type="password" id="login-password" placeholder="••••••" />
+        </div>
+        <button class="btn btn-primary" id="login-btn" onclick="doLogin()">
+          登入
+        </button>
+        <div class="msg" id="login-msg"></div>
+        <div class="divider">快速登入</div>
+        <button
+          class="btn btn-demo"
+          onclick="socialLogin('apple')"
+          style="
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+          "
+        >
+          <span style="font-size: 20px"></span> Apple 登入
+        </button>
+        <button
+          class="btn btn-demo"
+          onclick="socialLogin('google')"
+          style="
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 6px;
+          "
+        >
+          <span style="font-size: 18px">G</span> Google 登入
+        </button>
+        <div class="divider">開發模式</div>
+        <button class="btn btn-demo" onclick="quickLogin('admin')">
+          🔑 快速登入 (管理員)
+        </button>
+        <button class="btn btn-demo" onclick="quickLogin('coach')">
+          🔑 快速登入 (教練)
+        </button>
+        <button class="btn btn-demo" onclick="quickLogin('student')">
+          🔑 快速登入 (學生)
+        </button>
+      </div>
 
-<!-- Login Form -->
-<div id="formLogin">
-<div class="form-group"><label>電子郵件</label><input type="email" id="loginEmail" placeholder="your@email.com" autocomplete="email"></div>
-<div class="form-group"><label>密碼</label><input type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password"></div>
-<button class="btn" id="loginBtn" onclick="doLogin()">登入</button>
-<div class="msg" id="loginMsg"></div>
-</div>
+      <!-- Register Form -->
+      <div class="form" id="form-register">
+        <div class="form-group">
+          <label>姓名</label>
+          <input type="text" id="reg-name" placeholder="你的名字" />
+        </div>
+        <div class="form-group">
+          <label>電郵</label>
+          <input type="email" id="reg-email" placeholder="your@email.com" />
+        </div>
+        <div class="form-group">
+          <label>密碼</label>
+          <input
+            type="password"
+            id="reg-password"
+            placeholder="至少 6 個字元"
+          />
+        </div>
+        <button
+          class="btn btn-primary"
+          id="register-btn"
+          onclick="doRegister()"
+        >
+          註冊
+        </button>
+        <div class="msg" id="register-msg"></div>
+      </div>
+    </div>
 
-<!-- Register Form -->
-<div id="formRegister" style="display:none">
-<div class="form-group"><label>名稱</label><input type="text" id="regName" placeholder="陳大文"></div>
-<div class="form-group"><label>電子郵件</label><input type="email" id="regEmail" placeholder="your@email.com" autocomplete="email"></div>
-<div class="form-group"><label>密碼（最少6位）</label><input type="password" id="regPassword" placeholder="••••••••" autocomplete="new-password"></div>
-<div class="form-group"><label>電話（選填）</label><input type="tel" id="regPhone" placeholder="+852 9123 4567"></div>
-<div class="form-group"><label>身分類別</label></div>
-<div class="role-select">
-<div class="role-opt active" id="roleStudent" onclick="selectRole('student')">🎓 學生</div>
-<div class="role-opt" id="roleCoach" onclick="selectRole('coach')">🏋️ 教練</div>
-</div>
-<button class="btn" id="registerBtn" onclick="doRegister()">註冊</button>
-<div class="msg" id="regMsg"></div>
-<div class="extra-link">已有帳號？<a href="#" onclick="switchTab('login');return false">立即登入</a></div>
-</div>
-</div>
+    <script>
+      function switchTab(tab) {
+        document.querySelectorAll(".tab").forEach(function (t) {
+          t.classList.remove("active");
+        });
+        document.querySelectorAll(".form").forEach(function (f) {
+          f.classList.remove("active");
+        });
+        if (tab === "login") {
+          document
+            .querySelector(".tab[onclick*='login']")
+            .classList.add("active");
+          document.getElementById("form-login").classList.add("active");
+        } else {
+          document
+            .querySelector(".tab[onclick*='register']")
+            .classList.add("active");
+          document.getElementById("form-register").classList.add("active");
+        }
+      }
 
-<script>
-var SB_URL = 'https://pqgrkeavopksdttrzdqc.supabase.co';
-var SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBxZ3JrZWF2b3Brc2R0dHJ6ZHFjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc4MDM0NzgsImV4cCI6MjA5MzM3OTQ3OH0.t8-oSOXX37fA_kSBZoKvw8ymvuT-4R-xQwMEE8ETZIc';
-var sb = supabase.createClient(SB_URL, SB_KEY);
-var selectedRole = 'student';
+      function setMsg(id, text, type) {
+        var el = document.getElementById(id);
+        el.textContent = text;
+        el.className = "msg " + type;
+      }
 
-function $(id){return document.getElementById(id)}
+      async function doLogin() {
+        var email = document.getElementById("login-email").value.trim();
+        var password = document.getElementById("login-password").value;
+        if (!email || !password) {
+          setMsg("login-msg", "請輸入電郵和密碼", "error");
+          return;
+        }
 
-function switchTab(tab){
-  if(tab === 'login'){
-    $('tabLogin').classList.add('active'); $('tabRegister').classList.remove('active');
-    $('formLogin').style.display = 'block'; $('formRegister').style.display = 'none';
-  } else {
-    $('tabRegister').classList.add('active'); $('tabLogin').classList.remove('active');
-    $('formRegister').style.display = 'block'; $('formLogin').style.display = 'none';
-  }
-}
+        var btn = document.getElementById("login-btn");
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner"></span> 登入中...';
 
-function selectRole(role){
-  selectedRole = role;
-  document.querySelectorAll('.role-opt').forEach(function(el){el.classList.remove('active')});
-  $(role === 'student' ? 'roleStudent' : 'roleCoach').classList.add('active');
-}
+        try {
+          var result = await auth.login({ email: email, password: password });
+          setToken(result.token);
+          storeUser(result.user);
+          setMsg("login-msg", "✅ 登入成功！", "success");
+          setTimeout(function () {
+            window.location.href = "explore.html";
+          }, 800);
+        } catch (e) {
+          setMsg("login-msg", "❌ " + e.message, "error");
+          btn.disabled = false;
+          btn.textContent = "登入";
+        }
+      }
 
-// === Login ===
-async function doLogin(){
-  var email = $('loginEmail').value.trim();
-  var pass = $('loginPassword').value;
-  if(!email||!pass){ $('loginMsg').textContent = '請輸入電郵和密碼'; $('loginMsg').className = 'msg error'; return; }
-  var btn = $('loginBtn'); btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>處理中...';
-  var r = await sb.auth.signInWithPassword({email:email,password:pass});
-  btn.disabled = false; btn.textContent = '登入';
-  if(r.error){ $('loginMsg').textContent = r.error.message; $('loginMsg').className = 'msg error'; return; }
-  // Check role and redirect
-  var {data:profile} = await sb.from('profiles').select('role').eq('id',r.data.user.id).single();
-  var role = profile?.role || 'student';
-  if(role === 'admin') window.location.href = '/admin/admin.html';
-  else if(role === 'coach') window.location.href = '/coach-dashboard.html';
-  else window.location.href = '/courses.html';
-}
+      async function doRegister() {
+        var name = document.getElementById("reg-name").value.trim();
+        var email = document.getElementById("reg-email").value.trim();
+        var password = document.getElementById("reg-password").value;
+        if (!name || !email || !password) {
+          setMsg("register-msg", "請填寫所有欄位", "error");
+          return;
+        }
+        if (password.length < 6) {
+          setMsg("register-msg", "密碼至少需要 6 個字元", "error");
+          return;
+        }
 
-// === Register ===
-async function doRegister(){
-  var name = $('regName').value.trim();
-  var email = $('regEmail').value.trim();
-  var pass = $('regPassword').value;
-  var phone = $('regPhone').value.trim();
-  var msg = $('regMsg');
-  
-  if(!name||!email||!pass){ msg.textContent = '請填寫名稱、電郵和密碼'; msg.className = 'msg error'; return; }
-  if(pass.length < 6){ msg.textContent = '密碼至少6位'; msg.className = 'msg error'; return; }
-  
-  var btn = $('registerBtn'); btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>處理中...';
-  
-  // 1. Create auth user
-  var r = await sb.auth.signUp({email:email,password:pass});
-  if(r.error){ btn.disabled = false; btn.textContent = '註冊'; msg.textContent = r.error.message; msg.className = 'msg error'; return; }
-  
-  var userId = r.data.user?.id;
-  if(!userId){ btn.disabled = false; btn.textContent = '註冊'; msg.textContent = '註冊失敗，請重試'; msg.className = 'msg error'; return; }
-  
-  // 2. Create profile
-  var {error:pe} = await sb.from('profiles').insert({
-    id: userId,
-    full_name: name,
-    email: email,
-    phone: phone || null,
-    role: selectedRole,
-    is_active: true
-  });
-  
-  if(pe){
-    // Profile insert failed - this can happen if trigger handles it
-    console.warn('Profile insert error:', pe);
-  }
-  
-  // 3. If coach, create coach record
-  if(selectedRole === 'coach'){
-    await sb.from('coaches').insert({
-      profile_id: userId,
-      status: 'active',
-      is_verified: false
-    });
-  } else {
-    // Create student record
-    await sb.from('students').insert({
-      profile_id: userId,
-      notes: null
-    });
-  }
-  
-  btn.disabled = false; btn.textContent = '✅ 註冊成功！';
-  msg.innerHTML = '✅ 註冊成功！即將跳轉⋯';
-  msg.className = 'msg success';
-  
-  // Sign in immediately
-  var signIn = await sb.auth.signInWithPassword({email:email,password:pass});
-  if(!signIn.error){
-    setTimeout(function(){
-      if(selectedRole === 'coach') window.location.href = '/coach-dashboard.html';
-      else window.location.href = '/courses.html';
-    }, 1500);
-  }
-}
+        var btn = document.getElementById("register-btn");
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner"></span> 註冊中...';
 
-// === Auto-login for admin ===
-async function autoLogin(){
-  var r = await sb.auth.signInWithPassword({email:'admin@zenpass.hk',password:'admin123'});
-  if(!r.error){
-    window.location.href = '/admin/admin.html';
-  }
-}
+        try {
+          var result = await auth.register({
+            name: name,
+            email: email,
+            password: password,
+          });
+          setToken(result.token);
+          storeUser(result.user);
+          setMsg("register-msg", "✅ 註冊成功！", "success");
+          // Check if first-time user → redirect to onboarding
+          var isFirstTime = !localStorage.getItem("zenpass_visited_before");
+          localStorage.setItem("zenpass_visited_before", "1");
+          var redirectTo = isFirstTime ? "onboarding.html" : "explore.html";
+          setTimeout(function () {
+            window.location.href = redirectTo;
+          }, 800);
+        } catch (e) {
+          setMsg("register-msg", "❌ " + e.message, "error");
+          btn.disabled = false;
+          btn.textContent = "註冊";
+        }
+      }
+      function quickLogin(role) {
+        var names = {
+          admin: "David Choy",
+          coach: "靜儀導師",
+          student: "張三同學",
+        };
+        var emails = {
+          admin: "david@zenpass.hk",
+          coach: "coach@zenpass.hk",
+          student: "student@zenpass.hk",
+        };
+        setToken("demo_token_" + role);
+        storeUser({
+          name: names[role],
+          email: emails[role],
+          phone: "",
+          role: role,
+          credits: role === "coach" ? 0 : 45,
+        });
+        window.location.href = "explore.html";
+      }
 
-// Check if already logged in
-sb.auth.getSession().then(function(s){
-  if(s.data.session){
-    sb.from('profiles').select('role').eq('id',s.data.session.user.id).single().then(function(p){
-      var role = p.data?.role || 'student';
-      if(role === 'admin') window.location.href = '/admin/admin.html';
-      else if(role === 'coach') window.location.href = '/coach-dashboard.html';
-      else window.location.href = '/courses.html';
-    });
-  }
-});
-</script>
-</body>
+      // ===== Social Login (Apple / Google) =====
+      function socialLogin(provider) {
+        // For dev: redirect to backend social endpoint with mock data
+        // In production, this would use the OAuth flow (Apple Sign In / Google Sign In)
+        if (provider === "apple") {
+          setMsg(
+            "login-msg",
+            "🍎 Apple 登入整合中 — 需要使用 Apple Developer 帳號",
+            "error",
+          );
+        } else if (provider === "google") {
+          setMsg(
+            "login-msg",
+            "G Google 登入整合中 — 需要使用 Google Cloud Console",
+            "error",
+          );
+        }
+        // Below is the actual OAuth flow (commented out until OAuth client IDs are set up):
+        /*
+        var redirectUri = window.location.origin + '/login.html';
+        if (provider === 'google') {
+          var clientId = 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com';
+          window.location.href = 'https://accounts.google.com/o/oauth2/v2/auth?' +
+            'client_id=' + clientId + '&redirect_uri=' + redirectUri +
+            '&response_type=code&scope=email%20profile&state=google_login';
+        } else if (provider === 'apple') {
+          // Apple Sign In requires Apple Developer membership
+          window.location.href = 'https://appleid.apple.com/auth/authorize?' +
+            'client_id=YOUR_APPLE_CLIENT_ID&redirect_uri=' + redirectUri +
+            '&response_type=code%20id_token&scope=name%20email&response_mode=form_post';
+        }
+        */
+      }
+    </script>
+  </body>
 </html>

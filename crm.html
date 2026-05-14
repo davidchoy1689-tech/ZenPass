@@ -1,0 +1,796 @@
+<!doctype html>
+<html lang="zh-HK">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>CRM 學生管理 — ZenPass</title>
+    <script src="api.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      :root {
+        --orange-500: #ff6b35;
+        --orange-700: #aa3218;
+        --orange-600-bg: #c94420;
+        --orange-100: #fff0e8;
+        --dark-900: #1a1a2e;
+        --dark-700: #3d3d5a;
+        --gray-200: #e5e7eb;
+        --gray-100: #f3f4f6;
+        --white: #fff;
+        --green-500: #059669;
+        --red-500: #ef4444;
+        --blue-500: #3b82f6;
+        --radius: 8px;
+        --font-zh: "Noto Sans TC", sans-serif;
+      }
+      body {
+        font-family: var(--font-zh);
+        background: var(--gray-100);
+        color: var(--dark-900);
+        padding: 20px;
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+      h1 {
+        font-size: 22px;
+        margin-bottom: 16px;
+      }
+      .toolbar {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 16px;
+        flex-wrap: wrap;
+      }
+      .toolbar input,
+      .toolbar select {
+        padding: 10px 14px;
+        border: 1px solid var(--gray-200);
+        border-radius: var(--radius);
+        font-size: 14px;
+        font-family: var(--font-zh);
+      }
+      .toolbar input {
+        flex: 1;
+        min-width: 200px;
+      }
+      .btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: var(--radius);
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        font-family: var(--font-zh);
+      }
+      .btn-primary {
+        background: var(--orange-600-bg);
+        color: var(--white);
+      }
+      .btn-sm {
+        padding: 6px 12px;
+        font-size: 12px;
+        border-radius: 6px;
+      }
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 10px;
+        margin-bottom: 16px;
+      }
+      .stat-card {
+        background: var(--white);
+        padding: 14px;
+        border-radius: var(--radius);
+        text-align: center;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+      }
+      .stat-card .val {
+        font-size: 22px;
+        font-weight: 700;
+        color: var(--orange-700);
+      }
+      .stat-card .lbl {
+        font-size: 12px;
+        color: var(--dark-700);
+        margin-top: 4px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        background: var(--white);
+        border-radius: var(--radius);
+        overflow: hidden;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+      }
+      th {
+        background: var(--gray-100);
+        padding: 12px 14px;
+        text-align: left;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--dark-700);
+        white-space: nowrap;
+      }
+      td {
+        padding: 12px 14px;
+        font-size: 13px;
+        border-top: 1px solid var(--gray-100);
+      }
+      tr:hover {
+        background: var(--orange-100);
+      }
+      .tag {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 99px;
+        font-size: 11px;
+        font-weight: 500;
+        margin: 2px;
+        background: var(--gray-100);
+      }
+      .tag.vip {
+        background: #fef3c7;
+        color: #92400e;
+      }
+      .tag.new {
+        background: #dbeafe;
+        color: #1e40af;
+      }
+      .tag.at-risk {
+        background: #fee2e2;
+        color: #991b1b;
+      }
+      .badge {
+        font-size: 11px;
+        padding: 3px 10px;
+        border-radius: 99px;
+        font-weight: 500;
+      }
+      .badge.active {
+        background: #ecfdf5;
+        color: var(--green-500);
+      }
+      .badge.inactive {
+        background: var(--gray-100);
+        color: var(--dark-700);
+      }
+      .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.4);
+        z-index: 999;
+        align-items: center;
+        justify-content: center;
+      }
+      .modal.show {
+        display: flex;
+      }
+      .modal-content {
+        background: var(--white);
+        border-radius: 12px;
+        padding: 24px;
+        max-width: 600px;
+        width: 90%;
+        max-height: 80vh;
+        overflow-y: auto;
+      }
+      .modal-content h2 {
+        font-size: 18px;
+        margin-bottom: 16px;
+      }
+      .modal-form .row {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+      .modal-form .field {
+        flex: 1;
+      }
+      .modal-form label {
+        display: block;
+        font-size: 12px;
+        font-weight: 600;
+        margin-bottom: 4px;
+        color: var(--dark-700);
+      }
+      .modal-form input,
+      .modal-form textarea,
+      .modal-form select {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid var(--gray-200);
+        border-radius: 6px;
+        font-size: 14px;
+        font-family: var(--font-zh);
+      }
+      .pagination {
+        display: flex;
+        gap: 8px;
+        justify-content: center;
+        margin-top: 16px;
+      }
+      .pagination button {
+        padding: 8px 16px;
+        border: 1px solid var(--gray-200);
+        border-radius: 6px;
+        background: var(--white);
+        cursor: pointer;
+        font-family: var(--font-zh);
+      }
+      .pagination button.active {
+        background: var(--orange-600-bg);
+        color: var(--white);
+        border-color: var(--orange-700);
+      }
+      @media (max-width: 768px) {
+        .stats {
+          grid-template-columns: repeat(2, 1fr);
+        }
+        table {
+          font-size: 12px;
+        }
+        th,
+        td {
+          padding: 8px 10px;
+        }
+        .toolbar {
+          flex-direction: column;
+        }
+        .toolbar input {
+          min-width: auto;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <h1>👤 CRM 學生管理</h1>
+
+    <div class="stats" id="stats-row"></div>
+
+    <div class="toolbar">
+      <input
+        type="text"
+        id="search-input"
+        placeholder="🔍 搜尋姓名、電郵、電話..."
+        onkeydown="if (event.key === 'Enter') loadStudents();"
+      />
+      <select id="tag-filter" onchange="loadStudents()">
+        <option value="">全部標籤</option>
+        <option value="vip">⭐ VIP</option>
+        <option value="new">🆕 新客戶</option>
+        <option value="at-risk">⚠️ 流失風險</option>
+      </select>
+      <select id="status-filter" onchange="loadStudents()">
+        <option value="">全部狀態</option>
+        <option value="active">活躍</option>
+        <option value="inactive">非活躍</option>
+      </select>
+      <button class="btn btn-primary" onclick="showImportModal()">
+        📥 匯入 CSV
+      </button>
+    </div>
+
+    <div id="student-table">
+      <div style="text-align: center; padding: 40px; color: var(--dark-700)">
+        載入中...
+      </div>
+    </div>
+
+    <div class="pagination" id="pagination"></div>
+
+    <!-- Student Detail Modal -->
+    <div class="modal" id="detail-modal">
+      <div class="modal-content" id="detail-content"></div>
+    </div>
+
+    <!-- Import Modal -->
+    <div class="modal" id="import-modal">
+      <div class="modal-content">
+        <h2>📥 匯入學生</h2>
+        <p style="font-size: 13px; color: var(--dark-700); margin-bottom: 12px">
+          貼上 CSV 資料（格式：姓名, 電郵, 電話）
+        </p>
+        <textarea
+          id="import-csv"
+          rows="8"
+          style="
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--gray-200);
+            border-radius: 6px;
+            font-size: 13px;
+            font-family: monospace;
+          "
+          placeholder="張三, zhangsan@email.com, 91234567&#10;李四, lisi@email.com, 98765432"
+        ></textarea>
+        <div style="display: flex; gap: 10px; margin-top: 12px">
+          <button class="btn btn-primary" onclick="doImport()">✅ 匯入</button>
+          <button
+            class="btn"
+            style="background: var(--gray-100)"
+            onclick="closeModal('import-modal')"
+          >
+            取消
+          </button>
+        </div>
+        <div id="import-msg" style="margin-top: 8px; font-size: 13px"></div>
+      </div>
+    </div>
+
+    <script>
+      var API = window.location.origin;
+
+      function getToken() {
+        return localStorage.getItem("zenpass_token") || "";
+      }
+      function headers() {
+        return {
+          Authorization: "Bearer " + getToken(),
+          "Content-Type": "application/json",
+        };
+      }
+
+      async function api(method, path, data) {
+        var opts = { method: method, headers: headers() };
+        if (data) opts.body = JSON.stringify(data);
+        var r = await fetch(API + path, opts);
+        var d = await r.json();
+        if (!r.ok) throw new Error(d.error || "請求失敗");
+        return d;
+      }
+
+      async function loadStudents() {
+        var search = document.getElementById("search-input").value.trim();
+        var tag = document.getElementById("tag-filter").value;
+        var status = document.getElementById("status-filter").value;
+        var page = arguments[0] === undefined ? 1 : arguments[0];
+        if (typeof page !== "number") page = 1;
+
+        try {
+          var params = "?limit=50&page=" + page;
+          if (search) params += "&search=" + encodeURIComponent(search);
+          if (tag) params += "&tag=" + tag;
+          if (status) params += "&status=" + status;
+
+          var d = await api("GET", "/api/crm/students" + params);
+          renderTable(d);
+          renderPagination(d);
+          renderStats(d);
+        } catch (e) {
+          document.getElementById("student-table").innerHTML =
+            '<div style="text-align:center;padding:40px;color:var(--red-500)">❌ ' +
+            e.message +
+            "</div>";
+        }
+      }
+
+      function renderStats(d) {
+        var students = d.students || [];
+        var total = d.total || 0;
+        var active = students.filter(function (s) {
+          return (s.total_visits || 0) > 0;
+        }).length;
+        var vip = students.filter(function (s) {
+          return (s.tags || "").includes("vip");
+        }).length;
+        document.getElementById("stats-row").innerHTML =
+          '<div class="stat-card"><div class="val">' +
+          total +
+          '</div><div class="lbl">總學生</div></div>' +
+          '<div class="stat-card"><div class="val">' +
+          active +
+          '</div><div class="lbl">活躍</div></div>' +
+          '<div class="stat-card"><div class="val">' +
+          vip +
+          '</div><div class="lbl">VIP</div></div>' +
+          '<div class="stat-card"><div class="val">' +
+          students.filter(function (s) {
+            return s.membership_type && s.membership_type !== "none";
+          }).length +
+          '</div><div class="lbl">會員</div></div>';
+      }
+
+      function renderTable(d) {
+        var students = d.students || [];
+        if (students.length === 0) {
+          document.getElementById("student-table").innerHTML =
+            '<div style="text-align:center;padding:40px;color:var(--dark-700)">📭 暫無學生資料</div>';
+          return;
+        }
+        var html =
+          "<table><thead><tr><th>姓名</th><th>電郵</th><th>電話</th><th>標籤</th><th>出席</th><th>消費</th><th>會員</th><th>最後到訪</th><th></th></tr></thead><tbody>";
+        students.forEach(function (s) {
+          var tags = (s.tags || "").split(",").filter(Boolean);
+          var tagHtml = tags
+            .map(function (t) {
+              var cls =
+                t === "vip"
+                  ? "vip"
+                  : t === "new"
+                    ? "new"
+                    : t === "at-risk"
+                      ? "at-risk"
+                      : "";
+              return '<span class="tag ' + cls + '">' + t + "</span>";
+            })
+            .join("");
+          var status =
+            (s.total_visits || 0) > 0
+              ? '<span class="badge active">活躍</span>'
+              : '<span class="badge inactive">非活躍</span>';
+          var lastVisit = s.last_visit ? s.last_visit.split("T")[0] : "—";
+          var spent =
+            "$" +
+            ((s.total_spent || 0) > 0
+              ? s.total_spent
+              : s.total_spent_calc || 0);
+          html +=
+            "<tr onclick=\"showDetail('" +
+            s.id +
+            '\')" style="cursor:pointer">' +
+            "<td><strong>" +
+            escHtml(s.name) +
+            "</strong></td>" +
+            "<td>" +
+            escHtml(s.email || "—") +
+            "</td>" +
+            "<td>" +
+            escHtml(s.phone || "—") +
+            "</td>" +
+            "<td>" +
+            (tagHtml || "—") +
+            "</td>" +
+            "<td>" +
+            (s.attended_bookings || 0) +
+            "/" +
+            (s.total_bookings || 0) +
+            "</td>" +
+            "<td>" +
+            spent +
+            "</td>" +
+            "<td>" +
+            (s.membership_type !== "none" ? s.membership_type : "—") +
+            "</td>" +
+            "<td>" +
+            lastVisit +
+            "</td>" +
+            '<td><button class="btn btn-sm" style="background:var(--orange-100);color:var(--orange-500);" onclick="event.stopPropagation();showDetail(\'' +
+            s.id +
+            "')\">詳情</button></td>" +
+            "</tr>";
+        });
+        html += "</tbody></table>";
+        document.getElementById("student-table").innerHTML = html;
+      }
+
+      function renderPagination(d) {
+        var total = d.total || 0;
+        var page = d.page || 1;
+        var pages = Math.ceil(total / 50);
+        if (pages <= 1) {
+          document.getElementById("pagination").innerHTML = "";
+          return;
+        }
+        var html =
+          '<button onclick="loadStudents(' +
+          Math.max(1, page - 1) +
+          ')" ' +
+          (page <= 1 ? "disabled" : "") +
+          ">←</button>";
+        for (
+          var i = Math.max(1, page - 2);
+          i <= Math.min(pages, page + 2);
+          i++
+        ) {
+          html +=
+            '<button class="' +
+            (i === page ? "active" : "") +
+            '" onclick="loadStudents(' +
+            i +
+            ')">' +
+            i +
+            "</button>";
+        }
+        html +=
+          '<button onclick="loadStudents(' +
+          Math.min(pages, page + 1) +
+          ')" ' +
+          (page >= pages ? "disabled" : "") +
+          ">→</button>";
+        document.getElementById("pagination").innerHTML = html;
+      }
+
+      async function showDetail(id) {
+        try {
+          var d = await api("GET", "/api/crm/students/" + id);
+          var s = d.student;
+          var bookings = d.bookings || [];
+          var notes = d.notes || [];
+          var members = ["none", "trial", "standard", "unlimited"];
+          var tags = (s.tags || "").split(",").filter(Boolean);
+
+          var html =
+            '<div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:16px;">' +
+            "<div><h2>" +
+            escHtml(s.name) +
+            "</h2>" +
+            '<p style="font-size:13px;color:var(--dark-700)">' +
+            escHtml(s.email || "") +
+            (s.phone ? " · " + escHtml(s.phone) : "") +
+            "</p></div>" +
+            '<button class="btn btn-sm" style="background:var(--gray-100)" onclick="closeModal(\'detail-modal\')">✕</button></div>';
+
+          // Tags
+          html +=
+            '<div style="margin-bottom:12px;"><strong style="font-size:13px;">標籤：</strong>';
+          tags.forEach(function (t) {
+            var cls =
+              t === "vip"
+                ? "vip"
+                : t === "new"
+                  ? "new"
+                  : t === "at-risk"
+                    ? "at-risk"
+                    : "";
+            html +=
+              '<span class="tag ' +
+              cls +
+              '" style="cursor:pointer" onclick="removeTag(\'' +
+              id +
+              "','" +
+              t +
+              "')\">" +
+              t +
+              " ✕</span>";
+          });
+          html +=
+            '<select id="new-tag" onchange="addTag(\'' +
+            id +
+            '\',this.value)" style="margin-left:8px;padding:4px 8px;border:1px solid var(--gray-200);border-radius:4px;font-size:12px;">' +
+            '<option value="">+ 標籤</option><option value="vip">⭐ VIP</option><option value="new">🆕 新客戶</option><option value="at-risk">⚠️ 流失風險</option><option value="regular">📅 定期</option><option value="referral">🤝 推薦</option></select></div>';
+
+          // Stats
+          html +=
+            '<div class="stats" style="margin-bottom:12px">' +
+            '<div class="stat-card"><div class="val">' +
+            (s.total_bookings || 0) +
+            '</div><div class="lbl">總預約</div></div>' +
+            '<div class="stat-card"><div class="val">' +
+            (s.attended_bookings || 0) +
+            '</div><div class="lbl">已出席</div></div>' +
+            '<div class="stat-card"><div class="val">$' +
+            ((s.total_spent || 0) > 0
+              ? s.total_spent
+              : s.total_spent_calc || 0) +
+            '</div><div class="lbl">總消費</div></div>' +
+            '<div class="stat-card"><div class="val">' +
+            (s.credits || 0) +
+            '</div><div class="lbl">Credits</div></div>' +
+            "</div>";
+
+          // Lead source
+          html +=
+            '<div style="margin-bottom:12px;font-size:13px;"><strong>來源：</strong>' +
+            '<select id="lead-source" onchange="updateStudent(\'' +
+            id +
+            '\',{lead_source:this.value})" style="margin-left:8px;padding:4px 8px;border:1px solid var(--gray-200);border-radius:4px;font-size:12px;">' +
+            '<option value="">未設定</option><option value="walk-in" ' +
+            (s.lead_source === "walk-in" ? "selected" : "") +
+            ">Walk-in</option>" +
+            '<option value="referral" ' +
+            (s.lead_source === "referral" ? "selected" : "") +
+            ">推薦</option>" +
+            '<option value="social" ' +
+            (s.lead_source === "social" ? "selected" : "") +
+            ">社交媒體</option>" +
+            '<option value="google" ' +
+            (s.lead_source === "google" ? "selected" : "") +
+            ">Google 搜尋</option>" +
+            '<option value="friend" ' +
+            (s.lead_source === "friend" ? "selected" : "") +
+            ">朋友介紹</option></select></div>";
+
+          // Booking history
+          html +=
+            '<h3 style="font-size:14px;margin-bottom:8px;">📅 預約記錄</h3>';
+          if (bookings.length === 0) {
+            html +=
+              '<p style="font-size:13px;color:var(--dark-700)">暫無預約</p>';
+          } else {
+            html += "<table><tr><th>課程</th><th>日期</th><th>狀態</th></tr>";
+            bookings.forEach(function (b) {
+              var sMap = {
+                confirmed: "已確認",
+                pending_payment: "待付款",
+                attended: "已完成",
+                cancelled: "已取消",
+              };
+              html +=
+                "<tr><td>" +
+                escHtml(b.title) +
+                "</td><td>" +
+                (b.start_time || "").split("T")[0] +
+                "</td><td>" +
+                (sMap[b.status] || b.status) +
+                "</td></tr>";
+            });
+            html += "</table>";
+          }
+
+          // Notes
+          html +=
+            '<h3 style="font-size:14px;margin:12px 0 8px;">📝 教練筆記</h3>';
+          html +=
+            '<div style="margin-bottom:8px;display:flex;gap:8px;">' +
+            '<input type="text" id="note-input" placeholder="輸入筆記..." style="flex:1;padding:8px 12px;border:1px solid var(--gray-200);border-radius:6px;font-size:13px;">' +
+            '<button class="btn btn-sm btn-primary" onclick="addNote(\'' +
+            id +
+            "')\">➕ 新增</button></div>";
+          if (notes.length === 0) {
+            html +=
+              '<p style="font-size:13px;color:var(--dark-700)">暫無筆記</p>';
+          } else {
+            notes.forEach(function (n) {
+              html +=
+                '<div style="background:var(--gray-100);border-radius:6px;padding:10px;margin-bottom:6px;font-size:13px;">' +
+                '<div style="color:var(--dark-700);margin-bottom:4px;">👤 ' +
+                escHtml(n.coach_name) +
+                " · " +
+                n.created_at.split("T")[0] +
+                "</div>" +
+                escHtml(n.content) +
+                "</div>";
+            });
+          }
+
+          // Communication history
+          var comms = d.communications || [];
+          html +=
+            '<h3 style="font-size:14px;margin:12px 0 8px;">📨 通訊記錄</h3>';
+          if (comms.length === 0) {
+            html +=
+              '<p style="font-size:13px;color:var(--dark-700)">暫無通訊記錄</p>';
+          } else {
+            comms.forEach(function (c) {
+              var iconMap = {
+                "booking.confirmed": "📅",
+                "booking.reminder_1h": "⏰",
+                "payment.received": "💰",
+                "payment.approved": "✅",
+                "marketing.welcome": "🎉",
+                "marketing.winback": "🏃",
+                "marketing.broadcast": "📣",
+              };
+              html +=
+                '<div style="background:var(--gray-100);border-radius:6px;padding:10px;margin-bottom:6px;font-size:13px;">' +
+                '<div style="display:flex;justify-content:space-between;color:var(--dark-700);margin-bottom:4px;">' +
+                "<span>" +
+                (iconMap[c.event] || "📨") +
+                " " +
+                escHtml(c.title || c.event) +
+                "</span>" +
+                '<span style="font-size:11px">' +
+                (c.created_at || "").split("T")[0] +
+                "</span></div>" +
+                "<div>" +
+                escHtml(c.message || "") +
+                "</div></div>";
+            });
+          }
+
+          document.getElementById("detail-content").innerHTML = html;
+          document.getElementById("detail-modal").classList.add("show");
+        } catch (e) {
+          alert("❌ " + e.message);
+        }
+      }
+
+      function closeModal(id) {
+        document.getElementById(id).classList.remove("show");
+      }
+
+      async function addTag(id, tag) {
+        if (!tag) return;
+        try {
+          var d = await api("GET", "/api/crm/students/" + id);
+          var tags = (d.student.tags || "").split(",").filter(Boolean);
+          if (tags.indexOf(tag) === -1) tags.push(tag);
+          await api("PUT", "/api/crm/students/" + id, { tags: tags.join(",") });
+          showDetail(id);
+          loadStudents();
+        } catch (e) {
+          alert(e.message);
+        }
+      }
+
+      async function removeTag(id, tag) {
+        try {
+          var d = await api("GET", "/api/crm/students/" + id);
+          var tags = (d.student.tags || "")
+            .split(",")
+            .filter(Boolean)
+            .filter(function (t) {
+              return t !== tag;
+            });
+          await api("PUT", "/api/crm/students/" + id, { tags: tags.join(",") });
+          showDetail(id);
+          loadStudents();
+        } catch (e) {
+          alert(e.message);
+        }
+      }
+
+      async function updateStudent(id, data) {
+        try {
+          await api("PUT", "/api/crm/students/" + id, data);
+        } catch (e) {
+          /* silent */
+        }
+      }
+
+      async function addNote(studentId) {
+        var input = document.getElementById("note-input");
+        if (!input.value.trim()) return;
+        try {
+          await api("POST", "/api/crm/students/" + studentId + "/notes", {
+            content: input.value.trim(),
+          });
+          input.value = "";
+          showDetail(studentId);
+        } catch (e) {
+          alert(e.message);
+        }
+      }
+
+      function showImportModal() {
+        document.getElementById("import-modal").classList.add("show");
+      }
+
+      async function doImport() {
+        var csv = document.getElementById("import-csv").value.trim();
+        if (!csv) {
+          document.getElementById("import-msg").textContent = "請貼上 CSV 資料";
+          return;
+        }
+        var lines = csv.split("\n").filter(Boolean);
+        var students = lines.map(function (line) {
+          var parts = line.split(",");
+          return {
+            name: parts[0]?.trim(),
+            email: parts[1]?.trim(),
+            phone: parts[2]?.trim(),
+            source: "import",
+          };
+        });
+        try {
+          var d = await api("POST", "/api/crm/import", { students: students });
+          document.getElementById("import-msg").innerHTML = "✅ " + d.message;
+          document.getElementById("import-csv").value = "";
+          setTimeout(function () {
+            closeModal("import-modal");
+            loadStudents();
+          }, 1500);
+        } catch (e) {
+          document.getElementById("import-msg").textContent = "❌ " + e.message;
+        }
+      }
+
+      function escHtml(s) {
+        return String(s)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;");
+      }
+
+      loadStudents();
+    </script>
+  </body>
+</html>
