@@ -844,6 +844,7 @@
           }
         } catch (e) {}
 
+        loadRelatedCourses(cls.category, cls.id);
         var emojiMap = {
           "\u7476\u5c48": "\ud83e\uddd8",
           "\u5065\u8eab": "\ud83c\udfcb\ufe0f",
@@ -1416,6 +1417,54 @@
         localStorage.setItem("zenpass_recent", JSON.stringify(recent));
       }
     })();
+
+
+    function shareCourse() {
+      var url = window.location.href;
+      var title = document.title || "ZenPass 課程";
+      // Try Web Share API first
+      if (navigator.share) {
+        navigator.share({ title: title, url: url }).catch(function(){});
+      } else {
+        // Fallback: copy link
+        var temp = document.createElement("input");
+        temp.value = url;
+        document.body.appendChild(temp);
+        temp.select();
+        document.execCommand("copy");
+        document.body.removeChild(temp);
+        var btn = document.querySelector(".share-btn");
+        btn.textContent = "✅ 已複製連結";
+        btn.classList.add("copied");
+        setTimeout(function(){ btn.textContent = "📤 分享課程"; btn.classList.remove("copied"); }, 2000);
+      }
+    }
+
+
+    function loadRelatedCourses(category, currentId) {
+      var container = document.getElementById("related-classes");
+      if (!container) return;
+      try {
+        classes.list({ category: category, limit: 6 }).then(function(result) {
+          var items = (result.classes || []).filter(function(c) { return c.id != currentId; }).slice(0, 5);
+          if (items.length === 0) {
+            document.getElementById("related-section").style.display = "none";
+            return;
+          }
+          container.innerHTML = items.map(function(cls) {
+            var imgStyle = cls.image_url ? 'background-image:url(' + cls.image_url + ')' : 'background:linear-gradient(135deg,#667eea,#764ba2)';
+            return '<div class="related-card" onclick="location.href=\'class-detail.html?id=' + cls.id + '\'">' +
+              '<div class="rc-img" style="' + imgStyle + ';background-size:cover;background-position:center"></div>' +
+              '<div class="rc-body">' +
+              '<div class="rc-title">' + cls.title + '</div>' +
+              '<div class="rc-meta">⭐' + (cls.rating || "4.5") + ' · HK$' + cls.price_hkd + '</div></div></div>';
+          }).join("");
+        });
+      } catch(e) {
+        document.getElementById("related-section").style.display = "none";
+      }
+    }
+
 </script>
 
     <div
@@ -1436,7 +1485,19 @@
         ><span class="nav-icon">👤</span>我的</a
       >
     </nav>
-    <div class="zen-footer" role="contentinfo" aria-label="頁尾資訊"
+    <div     <!-- Share Button -->
+    <div style="display:flex;gap:8px;margin:16px;flex-wrap:wrap;">
+      <button class="share-btn" onclick="shareCourse()">📤 分享課程</button>
+    </div>
+
+    <!-- Related Courses -->
+    <div class="section" id="related-section">
+      <div class="section-title" style="font-size:16px;">
+        <span>🏷️ 相關課程</span>
+      </div>
+      <div class="related-scroll" id="related-classes"></div>
+    </div>
+<div class="zen-footer" role="contentinfo" aria-label="頁尾資訊"
       style="
         text-align: center;
         padding: 20px 16px;

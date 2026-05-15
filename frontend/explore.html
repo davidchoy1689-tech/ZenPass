@@ -657,7 +657,14 @@
           onclick="filterByCategory('all', this)"
         >
           全部
-        </div>
+        </div>      <!-- Difficulty Filter -->
+      <div class="date-scroll" id="difficulty-filter" style="margin-top: 4px;">
+        <div class="date-chip active" onclick="filterByDifficulty('all', this)" style="min-width:auto;padding:6px 14px;">🏷️ 全部難度</div>
+        <div class="date-chip" onclick="filterByDifficulty('beginner', this)" style="min-width:auto;padding:6px 14px;">🌱 初級</div>
+        <div class="date-chip" onclick="filterByDifficulty('intermediate', this)" style="min-width:auto;padding:6px 14px;">🔥 中級</div>
+        <div class="date-chip" onclick="filterByDifficulty('advanced', this)" style="min-width:auto;padding:6px 14px;">💎 高級</div>
+      </div>
+
       </div>
     </div>
 
@@ -876,6 +883,17 @@
         currentDate = date;
         loadClasses();
       }
+
+      // ===== Difficulty Filter =====
+      var currentDifficulty = "all";
+      function filterByDifficulty(diff, el) {
+        var chips = document.querySelectorAll("#difficulty-filter .date-chip");
+        for (var ci = 0; ci < chips.length; ci++) chips[ci].classList.remove("active");
+        el.classList.add("active");
+        currentDifficulty = diff;
+        loadClasses();
+      }
+
 
       function doSearch() {
         var q = document.getElementById("search-input").value.trim();
@@ -1247,5 +1265,12 @@
       </div>
       © 2026 ZenPass 禪流
     </div>
-  </body>
+      <button class="back-to-top" id="backToTop" onclick="window.scrollTo({top:0,behavior:'smooth'})" aria-label="返回頂部">↑</button>
+    <script>
+      window.addEventListener("scroll", function() {
+        document.getElementById("backToTop").classList.toggle("visible", window.scrollY > 400);
+      });
+    </script>
+
+</body>
 </html>
