@@ -531,8 +531,11 @@
     </div>
 
     <div id="pay-page" class="section hidden">
-      <div class="card">
-        <div class="section-title">📋 訂單摘要</div>
+      <div class="card" id="order-card">
+        <div class="section-title" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center" onclick="toggleOrderSummary()">
+          <span>📋 訂單摘要</span>
+          <span id="order-toggle" style="font-size:12px;color:var(--orange-700)">▼ 收起</span>
+        </div>
         <div class="order-summary">
           <div class="order-row">
             <span class="label">課程</span
@@ -562,7 +565,15 @@
       </div>
 
       <div class="card">
-        <div class="section-title">💳 付款方式</div>
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:12px">
+        <div style="font-size:13px;font-weight:600;flex:1">🎫 優惠碼</div>
+        <div style="display:flex;gap:6px;flex:1">
+          <input type="text" id="promo-input" placeholder="輸入優惠碼" style="flex:1;padding:8px 10px;border:1px solid var(--gray-200);border-radius:6px;font-size:13px;font-family:var(--font-zh)">
+          <button onclick="applyPromo()" style="padding:8px 16px;background:var(--orange-600-bg);color:white;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer">套用</button>
+        </div>
+      </div>
+      <div id="promo-result" style="font-size:12px;margin-bottom:8px;display:none"></div>
+      <div class="section-title">💳 付款方式</div>
         <div class="pay-methods">
           <div
             class="pay-option selected"
@@ -648,6 +659,52 @@
               <div class="desc">即時轉賬 · 24小時 · 免手續費</div>
             </div>
             <div class="check">✓</div>
+          </div>
+          <div class="pay-detail show" id="detail-alipay">
+            <div style="padding:12px;background:#ecfdf5;border-radius:var(--radius-sm);font-size:13px;line-height:1.6;color:var(--dark-700);text-align:center">
+              <div style="font-size:32px;margin-bottom:8px">💱</div>
+              <div style="font-weight:600">支付寶 AlipayHK</div>
+              <div style="font-size:12px;margin-top:4px">掃描QR Code 即時付款 · 免手續費</div>
+              <div style="margin-top:12px;padding:12px;background:white;border-radius:8px;display:inline-block">
+                <div style="width:120px;height:120px;background:var(--gray-100);display:flex;align-items:center;justify-content:center;margin:0 auto;border-radius:8px;font-size:12px;color:var(--dark-700)">QR Code<br>模擬</div>
+              </div>
+            </div>
+          </div>
+          <div class="pay-option" onclick="selectMethod('wechat', this)" id="wechat-option">
+            <div class="icon">🟩</div>
+            <div class="info">
+              <div class="name">WeChat Pay HK</div>
+              <div class="desc">即時支付 · 免手續費</div>
+            </div>
+            <div class="check">✓</div>
+          </div>
+          <div class="pay-detail" id="detail-wechat">
+            <div style="padding:12px;background:#f0fdf4;border-radius:var(--radius-sm);font-size:13px;line-height:1.6;color:var(--dark-700);text-align:center">
+              <div style="font-size:32px;margin-bottom:8px">🟩</div>
+              <div style="font-weight:600">WeChat Pay HK</div>
+              <div style="font-size:12px;margin-top:4px">掃描QR Code 即時付款 · 免手續費</div>
+              <div style="margin-top:12px;padding:12px;background:white;border-radius:8px;display:inline-block">
+                <div style="width:120px;height:120px;background:var(--gray-100);display:flex;align-items:center;justify-content:center;margin:0 auto;border-radius:8px;font-size:12px;color:var(--dark-700)">QR Code<br>模擬</div>
+              </div>
+            </div>
+          </div>
+          <div class="pay-option" onclick="selectMethod('payme', this)" id="payme-option">
+            <div class="icon">💰</div>
+            <div class="info">
+              <div class="name">PayMe</div>
+              <div class="desc">滙豐 · 即時轉賬 · 免手續費</div>
+            </div>
+            <div class="check">✓</div>
+          </div>
+          <div class="pay-detail" id="detail-payme">
+            <div style="padding:12px;background:#fffbeb;border-radius:var(--radius-sm);font-size:13px;line-height:1.6;color:var(--dark-700);text-align:center">
+              <div style="font-size:32px;margin-bottom:8px">💰</div>
+              <div style="font-weight:600">PayMe</div>
+              <div style="font-size:12px;margin-top:4px">Scan QR Code 即時付款 · 免手續費</div>
+              <div style="margin-top:12px;padding:12px;background:white;border-radius:8px;display:inline-block">
+                <div style="width:120px;height:120px;background:var(--gray-100);display:flex;align-items:center;justify-content:center;margin:0 auto;border-radius:8px;font-size:12px;color:var(--dark-700)">QR Code<br>模擬</div>
+              </div>
+            </div>
           </div>
           <div class="pay-detail" id="detail-fps">
             <h4>📋 轉數快付款資料</h4>
@@ -854,6 +911,7 @@
         </div>
       </div>
 
+      <div style="position:sticky;bottom:70px;z-index:100;background:var(--white);padding:8px 0 0">
       <button class="pay-btn" id="pay-button" onclick="processPayment()">
         💳 付款
       </button>
@@ -865,15 +923,19 @@
         <h2>付款成功！</h2>
         <p id="success-detail">預約已確認，記住準時出席課堂！</p>
         <div class="ref">預約編號：<span id="success-ref">—</span></div>
-        <div
-          style="margin-top: 8px; font-size: 13px; color: var(--dark-700)"
-          id="success-class-info"
-        ></div>
+        <div style="margin-top:8px;font-size:13px;color:var(--dark-700)" id="success-class-info"></div>
+        <div style="display:flex;gap:8px;margin:16px 0;flex-wrap:wrap;justify-content:center">
+          <button onclick="addToCalendar()" style="padding:8px 16px;border:1px solid var(--gray-200);border-radius:20px;background:var(--white);font-size:12px;cursor:pointer;font-family:var(--font-zh)">📅 加到日曆</button>
+          <button onclick="shareSuccess()" style="padding:8px 16px;border:1px solid var(--gray-200);border-radius:20px;background:var(--white);font-size:12px;cursor:pointer;font-family:var(--font-zh)">📤 分享俾朋友</button>
+          <button onclick="downloadReceipt()" style="padding:8px 16px;border:1px solid var(--gray-200);border-radius:20px;background:var(--white);font-size:12px;cursor:pointer;font-family:var(--font-zh)">📋 下載收據</button>
+        </div>
         <a href="my-bookings.html" class="back-btn">📋 查看我的預約</a>
-        <a href="explore.html" class="back-btn secondary">🔍 探索更多課程</a>
+        <br/>
+        <a href="explore.html" class="back-btn secondary" style="margin-top:8px;display:inline-block;padding:10px 24px;background:transparent;color:var(--dark-700);font-size:13px">🔍 探索更多課程</a>
       </div>
     </div>
 
+    </div>
     <nav class="bottom-nav">
       <a href="index.html" class="nav-item"
         ><span class="nav-icon">🏠</span>首頁</a
@@ -899,6 +961,56 @@
 
       // ===== State =====
       var selectedMethod = "stripe";
+      var lastBookingRef = "";
+      var lastBookingClass = "";
+
+      function addToCalendar() {
+        if (!lastBookingClass) return;
+        var title = encodeURIComponent(lastBookingClass + " - ZenPass");
+        window.open("https://www.google.com/calendar/render?action=TEMPLATE&text=" + title, "_blank");
+      }
+      function shareSuccess() {
+        var text = "我刚在 ZenPass 預約了" + lastBookingClass + "！你也來試試：https://davidchoy1689-tech.github.io/ZenPass/";
+        if (navigator.share) { navigator.share({ text: text }).catch(function(){}); }
+        else { navigator.clipboard.writeText(text).then(function(){ showToast("已複製分享文字","success"); }); }
+      }
+      function downloadReceipt() {
+        var ref = lastBookingRef || —;
+        var cls = lastBookingClass || —;
+        var amt = document.getElementById("order-total").textContent || —;
+        var html = '<html><body style="font-family:sans-serif;padding:40px"><h2>📋 ZenPass 收據</h2><hr><p><strong>課程：</strong>' + cls + '</p><p><strong>結帳：</strong>' + amt + '</p><p><strong>預約編號：</strong>' + ref + '</p><p><strong>日期：</strong>' + new Date().toLocaleDateString("zh-HK") + '</p><hr><p style="color:#666;font-size:12px">ZenPass \u79AA\u6d41 \u00B7 \u611F\u8B1D\u60A8\u7684\u652F\u6301</p></body></html>';
+        var blob = new Blob([html], {type:"text/html"});
+        var a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = "ZenPass-receipt-' + new Date().toISOString().slice(0,10) + '.html";
+        a.click();
+      }
+      // Promo code
+      function applyPromo() {
+        var code = document.getElementById("promo-input").value.trim().toUpperCase();
+        var result = document.getElementById("promo-result");
+        if (code === "ZEN10") {
+          result.style.display = "block";
+          result.style.color = "#059669";
+          result.textContent = "✅ 優惠碼生效！享受10% OFF";
+          var totalEl = document.getElementById("order-total");
+          if (totalEl && paymentAmount > 0) {
+            totalEl.textContent = "HK$" + Math.round(paymentAmount * 0.9);
+          }
+        } else if (code === "WELCOME") {
+          result.style.display = "block";
+          result.style.color = "#059669";
+          result.textContent = "✅ 新人優惠！85% OFF!";
+          var totalEl = document.getElementById("order-total");
+          if (totalEl && paymentAmount > 0) {
+            totalEl.textContent = "HK$" + Math.round(paymentAmount * 0.85);
+          }
+        } else {
+          result.style.display = "block";
+          result.style.color = "#ef4444";
+          result.textContent = "❌ 無效優惠碼";
+        }
+      }
       var bookingData = null;
       var bookingId = null;
       var stripeElements = null;
@@ -924,6 +1036,14 @@
             headers: Object.assign({}, headers, (opts && opts.headers) || {}),
           }),
         );
+      }
+
+      function toggleOrderSummary() {
+        var summary = document.querySelector(".order-summary");
+        if (!summary) return;
+        var isHidden = summary.style.display === "none";
+        summary.style.display = isHidden ? "" : "none";
+        document.getElementById("order-toggle").textContent = isHidden ? "▼ 收起" : "▲ 展開";
       }
 
       function goBack() {
