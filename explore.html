@@ -651,46 +651,45 @@
     </div>
 
     <div class="section">
-      <div class="categories-scroll" id="category-list">
-        <div
-          class="category-chip active"
-          onclick="filterByCategory('all', this)"
-        >
-          全部
-        </div>      <!-- Difficulty Filter -->
-      <div style="display:flex;gap:4px;margin-top:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px" id="advanced-filters">
-        <div class="date-chip active" onclick="filterByDifficulty('all',this)" style="min-width:auto;padding:5px 10px;font-size:10px">🌱 全部</div>
-        <div class="date-chip" onclick="filterByDifficulty('beginner',this)" style="min-width:auto;padding:5px 10px;font-size:10px">🌱 初級</div>
-        <div class="date-chip" onclick="filterByDifficulty('intermediate',this)" style="min-width:auto;padding:5px 10px;font-size:10px">🔥 中級</div>
-        <div class="date-chip" onclick="filterByDifficulty('advanced',this)" style="min-width:auto;padding:5px 10px;font-size:10px">💎 高級</div>
-        <div style="width:1px;height:20px;background:var(--gray-200);margin:0 2px"></div>
-        <div class="date-chip active" onclick="filterByPrice('all',this)" style="min-width:auto;padding:5px 10px;font-size:10px">💰 全部</div>
-        <div class="date-chip" onclick="filterByPrice('0-100',this)" style="min-width:auto;padding:5px 10px;font-size:10px">$0-100</div>
-        <div class="date-chip" onclick="filterByPrice('100-200',this)" style="min-width:auto;padding:5px 10px;font-size:10px">$100-200</div>
-        <div class="date-chip" onclick="filterByPrice('200-300',this)" style="min-width:auto;padding:5px 10px;font-size:10px">$200-300</div>
-        <div class="date-chip" onclick="filterByPrice('300+',this)" style="min-width:auto;padding:5px 10px;font-size:10px">$300+</div>
-        <div style="width:1px;height:20px;background:var(--gray-200);margin:0 2px"></div>
-        <div class="date-chip" onclick="filterByDistrict('all',this)" style="min-width:auto;padding:5px 10px;font-size:10px">📍 全部</div>
-        <div class="date-chip" onclick="filterByDistrict('港島',this)" style="min-width:auto;padding:5px 10px;font-size:10px">港島</div>
-        <div class="date-chip" onclick="filterByDistrict('九龍',this)" style="min-width:auto;padding:5px 10px;font-size:10px">九龍</div>
-        <div class="date-chip" onclick="filterByDistrict('新界',this)" style="min-width:auto;padding:5px 10px;font-size:10px">新界</div>
-      </div>>
-        <div class="date-chip active" onclick="filterByDifficulty('all', this)" style="min-width:auto;padding:6px 14px;">🏷️ 全部難度</div>
-        <div class="date-chip" onclick="filterByDifficulty('beginner', this)" style="min-width:auto;padding:6px 14px;">🌱 初級</div>
-        <div class="date-chip" onclick="filterByDifficulty('intermediate', this)" style="min-width:auto;padding:6px 14px;">🔥 中級</div>
-        <div class="date-chip" onclick="filterByDifficulty('advanced', this)" style="min-width:auto;padding:6px 14px;">💎 高級</div>
+      <div style="padding:0 12px;margin:6px 0">
+      <!-- Categories -->
+      <div style="display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;padding-bottom:4px;margin-bottom:4px" id="category-list">
+        <div class="category-chip active" onclick="filterByCategory('all', this)" style="padding:5px 12px;font-size:11px">🏠 全部</div>
       </div>
-
+      <!-- Date -->
+      <div style="display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;padding-bottom:4px;margin-bottom:4px" id="date-list">
+        <div class="date-chip active" onclick="filterByDate('', this)" style="padding:4px 10px;font-size:10px"><span style="font-size:12px;font-weight:600;display:block">全部</span></div>
       </div>
-    </div>
-
-    <div class="date-scroll" id="date-list">
-      <div class="date-chip active" onclick="filterByDate('', this)">
-        <span class="day">全部</span><small>日期</small>
+      <!-- Advanced: Difficulty, Price, District, Sort -->
+      <div style="display:flex;gap:3px;overflow-x:auto;scrollbar-width:none;padding:2px 0" id="advanced-filters">
+        <div class="date-chip active" onclick="filterByDifficulty('all',this)" style="min-width:auto;padding:3px 8px;font-size:10px;line-height:1.6">🌱全部</div>
+        <div class="date-chip" onclick="filterByDifficulty('beginner',this)" style="min-width:auto;padding:3px 8px;font-size:10px;line-height:1.6">🌱初級</div>
+        <div class="date-chip" onclick="filterByDifficulty('intermediate',this)" style="min-width:auto;padding:3px 8px;font-size:10px;line-height:1.6">🔥中級</div>
+        <div class="date-chip" onclick="filterByDifficulty('advanced',this)" style="min-width:auto;padding:3px 8px;font-size:10px;line-height:1.6">💎高級</div>
+        <span style="width:1px;height:14px;background:var(--gray-200);margin:auto 2px;flex-shrink:0"></span>
+        <div class="date-chip active" onclick="filterByPrice('all',this)" style="min-width:auto;padding:3px 8px;font-size:10px;line-height:1.6">💰全部</div>
+        <div class="date-chip" onclick="filterByPrice('0-100',this)" style="min-width:auto;padding:3px 8px;font-size:10px;line-height:1.6">$0-100</div>
+        <div class="date-chip" onclick="filterByPrice('100-200',this)" style="min-width:auto;padding:3px 8px;font-size:10px;line-height:1.6">$100-200</div>
+        <div class="date-chip" onclick="filterByPrice('200-300',this)" style="min-width:auto;padding:3px 8px;font-size:10px;line-height:1.6">$200-300</div>
+        <div class="date-chip" onclick="filterByPrice('300+',this)" style="min-width:auto;padding:3px 8px;font-size:10px;line-height:1.6">$300+</div>
+        <span style="width:1px;height:14px;background:var(--gray-200);margin:auto 2px;flex-shrink:0"></span>
+        <div class="date-chip active" onclick="filterByDistrict('all',this)" style="min-width:auto;padding:3px 8px;font-size:10px;line-height:1.6">📍全部</div>
+        <div class="date-chip" onclick="filterByDistrict('港島',this)" style="min-width:auto;padding:3px 8px;font-size:10px;line-height:1.6">港島</div>
+        <div class="date-chip" onclick="filterByDistrict('九龍',this)" style="min-width:auto;padding:3px 8px;font-size:10px;line-height:1.6">九龍</div>
+        <div class="date-chip" onclick="filterByDistrict('新界',this)" style="min-width:auto;padding:3px 8px;font-size:10px;line-height:1.6">新界</div>
+        <div class="date-chip" onclick="filterByDistrict('線上',this)" style="min-width:auto;padding:3px 8px;font-size:10px;line-height:1.6">線上</div>
+        <span style="width:1px;height:14px;background:var(--gray-200);margin:auto 2px;flex-shrink:0"></span>
+        <div class="sort-btn active" onclick="setSort('popular',this)" style="padding:3px 8px;border-radius:6px;border:1px solid var(--gray-200);font-size:10px;cursor:pointer;background:var(--white);color:var(--dark-700);flex-shrink:0;line-height:1.6">🔥熱門</div>
+        <div class="sort-btn" onclick="setSort('price_low',this)" style="padding:3px 8px;border-radius:6px;border:1px solid var(--gray-200);font-size:10px;cursor:pointer;background:var(--white);color:var(--dark-700);flex-shrink:0;line-height:1.6">💵低→高</div>
+        <div class="sort-btn" onclick="setSort('price_high',this)" style="padding:3px 8px;border-radius:6px;border:1px solid var(--gray-200);font-size:10px;cursor:pointer;background:var(--white);color:var(--dark-700);flex-shrink:0;line-height:1.6">💵高→低</div>
+        <div class="sort-btn" onclick="setSort('rating',this)" style="padding:3px 8px;border-radius:6px;border:1px solid var(--gray-200);font-size:10px;cursor:pointer;background:var(--white);color:var(--dark-700);flex-shrink:0;line-height:1.6">⭐評分</div>
       </div>
-    </div>
-
-    <div
+      <!-- Result count + Clear -->
+      <div style="display:flex;align-items:center;margin-top:4px">
+        <span style="font-size:10px;color:var(--dark-700)" id="resultCount"></span>
+        <button onclick="clearAllFilters()" style="margin-left:auto;padding:2px 8px;border:1px solid var(--gray-200);border-radius:6px;background:var(--white);font-size:9px;cursor:pointer;color:var(--dark-700)">🔄 清除</button>
+      </div>
+    </div><div
       class="class-grid"
       id="class-grid"
       style="
@@ -760,7 +759,8 @@
           var result = await classes.categories();
           var categories = result.categories || [];
           categories.forEach(function (cat) {
-            container.innerHTML +=
+            // Fix date-list rendering
+      container.innerHTML +=
               '<div class="category-chip" onclick="filterByCategory(\'' +
               cat.category +
               "', this)\">" +
@@ -770,7 +770,8 @@
         } catch (err) {
           ["瑜伽", "健身", "伸展", "冥想", "舞蹈", "新興運動", "皮拉提斯", "兒童體適能", "肌力訓練", "心肺訓練", "拳擊搏擊", "單車", "水中運動", "太極養生", "羽毛球", "乒乓球", "攀岩", "射箭", "劍擊", "泰拳搏擊", "高爾夫球", "露營戶外", "長者體適能", "產後修復", "空中瑜伽", "芭蕾塑形", "TRX 懸吊訓練", "詠春", "遠足行山", "溜冰", "網球", "保齡球"].forEach(
             function (c) {
-              container.innerHTML +=
+              // Fix date-list rendering
+      container.innerHTML +=
                 '<div class="category-chip" onclick="filterByCategory(\'' +
                 c +
                 "', this)\">" +
