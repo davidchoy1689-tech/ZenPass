@@ -13,8 +13,7 @@
     <meta name="description" content="ZenPass 禪流健身課程預約平台管理後台" />
     <title>ZenPass 管理後台 — 禪流</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <script src="api.js"></script>
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap"
       rel="stylesheet"
@@ -652,13 +651,7 @@
             "</div>";
 
           var table =
-            '<div class="card"><div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">
-            <a href="add-demo-class.html" style="padding:6px 14px;border-radius:8px;background:var(--orange-600-bg);color:white;text-decoration:none;font-size:12px;font-weight:600">📅 新增課程</a>
-            <a href="coach-apply.html" style="padding:6px 14px;border-radius:8px;background:var(--gray-100);color:var(--dark-900);text-decoration:none;font-size:12px">👤 審核教練</a>
-            <a href="#" onclick="if(confirm('發送通知給所有用戶？'))showToast('通知已發送','success')" style="padding:6px 14px;border-radius:8px;background:var(--gray-100);color:var(--dark-900);text-decoration:none;font-size:12px">🔔 發送通知</a>
-            <a href="#" onclick="location.reload()" style="padding:6px 14px;border-radius:8px;background:var(--gray-100);color:var(--dark-900);text-decoration:none;font-size:12px">🔄 重新整理</a>
-          </div>
-          <div class="card-header"><h3>📋 課程內容列表</h3></div><div class="table-wrap">';
+            '<div class="card"><div class="card-header"><h3>📋 課程內容列表</h3></div><div class="table-wrap">';
           if (!items.length) {
             table +=
               '<div style="text-align:center;padding:30px;color:var(--gray)"><div style="font-size:28px;margin-bottom:6px">📭</div>暫無課程內容</div>';
@@ -766,7 +759,7 @@
     </script>
     <script>
       var user = null;
-      var API = window.location.origin + ""; // Auto-detect: use same origin as page
+      var API_URL = window.location.origin + ""; // Auto-detect // Auto-detect: use same origin as page
 
       // Auto-login for dev mode
       (async function () {
@@ -774,7 +767,7 @@
           var loginScreen = document.getElementById("loginScreen");
           var app = document.getElementById("app");
           if (loginScreen && loginScreen.style.display !== "none") {
-            var r = await fetch(API + "/api/auth/login", {
+            var r = await fetch(API_URL + "/api/auth/login", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
@@ -866,11 +859,11 @@
       function toggleBookingView(){var t=document.getElementById('bookingsTable');if(!t)return;t.style.display=t.style.display==='none'?'':'none'}
       function sendNotification(){var t=document.getElementById('notif-target'),i=document.getElementById('notif-title'),m=document.getElementById('notif-msg'),r=document.getElementById('notif-result');if(!t||!i||!m||!r)return;var ti=i.value.trim(),mm=m.value.trim();if(!ti||!mm){r.style.color='#ef4444';r.textContent='請填寫標題和內容';return}r.style.color='#059669';r.textContent='✅ 通知已發送給'+(t.value);i.value='';m.value=''}
 
-      function login() {
+      async function login() {
         var email = document.getElementById("loginEmail").value;
         var pass = document.getElementById("loginPass").value;
         try {
-          var r = await fetch(API + "/api/auth/login", {
+          var r = await fetch(API_URL + "/api/auth/login", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ email, password: pass }),
@@ -1517,7 +1510,7 @@
         var t = getToken();
         if (!t || t.startsWith("demo_")) return; // skip demo tokens
         try {
-          var r = await fetch(API + "/api/auth/me", {
+          var r = await fetch(API_URL + "/api/auth/me", {
             headers: { Authorization: "Bearer " + t },
           });
           if (r.ok) {
@@ -1560,13 +1553,7 @@
             "</div>";
 
           var table =
-            '<div class="card"><div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">
-            <a href="add-demo-class.html" style="padding:6px 14px;border-radius:8px;background:var(--orange-600-bg);color:white;text-decoration:none;font-size:12px;font-weight:600">📅 新增課程</a>
-            <a href="coach-apply.html" style="padding:6px 14px;border-radius:8px;background:var(--gray-100);color:var(--dark-900);text-decoration:none;font-size:12px">👤 審核教練</a>
-            <a href="#" onclick="if(confirm('發送通知給所有用戶？'))showToast('通知已發送','success')" style="padding:6px 14px;border-radius:8px;background:var(--gray-100);color:var(--dark-900);text-decoration:none;font-size:12px">🔔 發送通知</a>
-            <a href="#" onclick="location.reload()" style="padding:6px 14px;border-radius:8px;background:var(--gray-100);color:var(--dark-900);text-decoration:none;font-size:12px">🔄 重新整理</a>
-          </div>
-          <div class="card-header"><h3>📋 課程內容列表</h3></div><div class="table-wrap">';
+            '<div class="card"><div class="table-wrap">';
           if (!items.length) {
             table +=
               '<div style="text-align:center;padding:30px;color:var(--gray)"><div style="font-size:28px;margin-bottom:6px">📭</div>暫無課程內容</div>';
