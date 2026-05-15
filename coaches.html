@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="zh-HK">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="theme-color" content="#FF6B35" />
+<title>全部教練 — ZenPass 禪流</title>
+<link rel="stylesheet" href="assets/index.css" />
+<style>
+body { background: var(--gray-50); padding-bottom: 80px; }
+.coach-grid { display: grid; gap: 12px; padding: 0 16px 16px; }
+.coach-card { display: flex; gap: 12px; padding: 14px; background: var(--white); border-radius: 14px; text-decoration: none; color: inherit; box-shadow: 0 1px 3px rgba(0,0,0,0.06); align-items: center; }
+.coach-card .avatar { width: 56px; height: 56px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 24px; color: white; font-weight: 700; }
+.coach-card .info { flex: 1; min-width: 0; }
+.coach-card .name { font-size: 15px; font-weight: 700; }
+.coach-card .title { font-size: 12px; color: var(--dark-700); margin-top: 1px; }
+.coach-card .tags { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px; }
+.coach-card .tag { padding: 2px 8px; border-radius: 10px; background: var(--orange-100); color: var(--orange-700); font-size: 10px; font-weight: 600; }
+.coach-card .stats { display: flex; gap: 8px; margin-top: 4px; font-size: 11px; color: var(--dark-700); }
+.coach-card .arrow { font-size: 18px; color: var(--dark-700); }
+.search-bar { margin: 12px 16px; display: flex; gap: 8px; }
+.search-bar input { flex: 1; padding: 10px 14px; border: 1px solid var(--gray-200); border-radius: 10px; font-size: 14px; font-family: var(--font-zh); }
+.filter-tags { display: flex; gap: 6px; padding: 0 16px; margin-bottom: 12px; overflow-x: auto; scrollbar-width: none; }
+.filter-tag { padding: 5px 14px; border-radius: 16px; border: 1px solid var(--gray-200); font-size: 12px; cursor: pointer; white-space: nowrap; flex-shrink: 0; background: var(--white); color: var(--dark-700); }
+.filter-tag.active { background: var(--orange-600-bg); color: white; border-color: var(--orange-600-bg); }
+.sort-bar { display: flex; gap: 8px; padding: 0 16px; margin-bottom: 12px; }
+.sort-btn { padding: 4px 12px; border-radius: 12px; border: 1px solid var(--gray-200); font-size: 11px; cursor: pointer; background: var(--white); color: var(--dark-700); }
+.sort-btn.active { background: var(--gray-100); font-weight: 600; }
+</style>
+</head>
+<body>
+
+<div class="header" style="display:flex;align-items:center;gap:10px;padding:16px;background:var(--white);border-bottom:1px solid var(--gray-200)">
+  <a href="index.html" style="font-size:20px;text-decoration:none">&larr;</a>
+  <h1 style="font-size:18px;font-weight:700;margin:0">🏆 全部教練</h1>
+  <span id="coach-count" style="font-size:12px;color:var(--dark-700);margin-left:auto"></span>
+</div>
+
+<div class="search-bar">
+  <input type="text" id="searchInput" placeholder="🔍 搜尋教練姓名或專長..." onkeyup="filterCoaches()">
+</div>
+
+<div class="filter-tags" id="filterTags">
+  <div class="filter-tag active" onclick="setFilter('all',this)">🏷️ 全部</div>
+</div>
+
+<div class="sort-bar">
+  <span style="font-size:11px;color:var(--dark-700);margin-right:4px">排序：</span>
+  <div class="sort-btn active" onclick="setSort('rating',this)">⭐ 評分</div>
+  <div class="sort-btn" onclick="setSort('students',this)">👤 學生</div>
+  <div class="sort-btn" onclick="setSort('courses',this)">📚 課程</div>
+</div>
+
+<div class="coach-grid" id="coachGrid">
+  <div style="text-align:center;padding:40px;color:var(--dark-700)">載入中...</div>
+</div>
+
+<nav class="bottom-nav" role="navigation" aria-label="底部導航">
+  <a href="index.html" class="nav-item"><span class="nav-icon">🏠</span>首頁</a>
+  <a href="explore.html" class="nav-item"><span class="nav-icon">🔍</span>探索</a>
+  <a href="membership.html" class="nav-item"><span class="nav-icon">💎</span>會籍</a>
+  <a href="coach-apply.html" class="nav-item"><span class="nav-icon">👨‍🏫</span>成為教練</a>
+  <a href="my.html" class="nav-item"><span class="nav-icon">👤</span>我的</a>
+</nav>
+
+<script src="api.js"></script>
+<script>
+var allCoaches = [
+  { name:"靜儀導師", title:"瑜伽 · 冥想導師", avatar:"🧘", bg:"linear-gradient(135deg,#667eea,#764ba2)", tags:["瑜伽","冥想","伸展"], rating:4.9, students:128, courses:3, bio:"10年教學經驗，RYT-500 認證" },
+  { name:"Alex教練", title:"健身 · TRX · 拳擊教練", avatar:"💪", bg:"linear-gradient(135deg,#f093fb,#f5576c)", tags:["健身","TRX 懸吊訓練","拳擊搏擊","肌力訓練"], rating:4.8, students:205, courses:5, bio:"8年健身教練經驗，ACE 認證" },
+  { name:"Ken教練", title:"新興運動 · 球類教練", avatar:"🎯", bg:"linear-gradient(135deg,#43e97b,#38f9d7)", tags:["新興運動","羽毛球","射箭","詠春"], rating:4.7, students:89, courses:4, bio:"6年新興運動推廣經驗" },
+  { name:"Grace導師", title:"舞蹈 · 空中瑜伽導師", avatar:"💃", bg:"linear-gradient(135deg,#ffecd2,#fcb69f)", tags:["舞蹈","空中瑜伽","芭蕾塑形"], rating:4.9, students:156, courses:4, bio:"5年舞蹈教學經驗" },
+  { name:"慧心導師", title:"冥想 · 身心靈導師", avatar:"🧠", bg:"linear-gradient(135deg,#a18cd1,#fbc2eb)", tags:["冥想","太極養生","長者體適能"], rating:4.8, students:97, courses:3, bio:"12年冥想及身心靈教學經驗" },
+  { name:"陽光教練", title:"戶外 · 跑步 · 兒童教練", avatar:"🏃", bg:"linear-gradient(135deg,#4facfe,#00f2fe)", tags:["跑步","遠足行山","露營戶外","兒童體適能"], rating:4.7, students:134, courses:6, bio:"7年戶外運動教練經驗" }
+];
+
+var currentFilter = "all";
+var currentSort = "rating";
+
+// Build filter tags
+var allTags = [];
+allCoaches.forEach(function(c){ c.tags.forEach(function(t){ if(allTags.indexOf(t)<0) allTags.push(t); }); });
+allTags.sort();
+var tagHtml = '<div class="filter-tag active" onclick="setFilter(\'all\',this)">🏷️ 全部</div>';
+allTags.forEach(function(t){ tagHtml += '<div class="filter-tag" onclick="setFilter(\''+t+'\',this)">'+t+'</div>'; });
+document.getElementById("filterTags").innerHTML = tagHtml;
+
+function setFilter(tag, el) {
+  currentFilter = tag;
+  document.querySelectorAll(".filter-tag").forEach(function(e){ e.classList.remove("active"); });
+  if (el) el.classList.add("active");
+  renderCoaches();
+}
+
+function setSort(sort, el) {
+  currentSort = sort;
+  document.querySelectorAll(".sort-btn").forEach(function(e){ e.classList.remove("active"); });
+  if (el) el.classList.add("active");
+  renderCoaches();
+}
+
+function filterCoaches() {
+  renderCoaches();
+}
+
+function renderCoaches() {
+  var q = document.getElementById("searchInput").value.toLowerCase().trim();
+  var list = allCoaches.filter(function(c){
+    if (currentFilter !== "all" && c.tags.indexOf(currentFilter) < 0) return false;
+    if (q && c.name.toLowerCase().indexOf(q) < 0 && c.title.toLowerCase().indexOf(q) < 0 && c.tags.join("").indexOf(q) < 0) return false;
+    return true;
+  });
+  
+  list.sort(function(a,b){
+    if (currentSort === "rating") return b.rating - a.rating;
+    if (currentSort === "students") return b.students - a.students;
+    if (currentSort === "courses") return b.courses - a.courses;
+    return 0;
+  });
+  
+  document.getElementById("coach-count").textContent = list.length + " 位教練";
+  
+  if (list.length === 0) {
+    document.getElementById("coachGrid").innerHTML = '<div style="text-align:center;padding:60px 20px"><span style="font-size:48px;display:block;margin-bottom:12px">🔍</span><p style="font-size:16px;font-weight:600;margin-bottom:4px">搵唔到相關教練</p><p style="font-size:13px;color:var(--dark-700)">試吓用其他關鍵字搜尋</p></div>';
+    return;
+  }
+  
+  var html = "";
+  list.forEach(function(c){
+    html += '<a href="coach-profile.html?name=' + encodeURIComponent(c.name) + '" class="coach-card">' +
+      '<div class="avatar" style="background:' + c.bg + '">' + c.avatar + '</div>' +
+      '<div class="info">' +
+      '<div class="name">' + c.name + '</div>' +
+      '<div class="title">' + c.title + '</div>' +
+      '<div class="tags">' + c.tags.map(function(t){ return '<span class="tag">' + t + '</span>'; }).join("") + '</div>' +
+      '<div class="stats"><span>⭐ ' + c.rating + '</span><span>👤 ' + c.students + ' 學生</span><span>📚 ' + c.courses + ' 課程</span></div>' +
+      '</div><div class="arrow">›</div></a>';
+  });
+  document.getElementById("coachGrid").innerHTML = html;
+}
+
+renderCoaches();
+</script>
+</body>
+</html>
