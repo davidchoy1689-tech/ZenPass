@@ -21,7 +21,8 @@ test.describe('Login Flow', () => {
 test.describe('Class Detail', () => {
   test('has book button and schedules', async ({ page }) => {
     await page.goto('/class-detail.html?id=f9e35b02-eb78-4e8c-a117-7d40cb6c3258');
-    await page.waitForTimeout(2000);
+    // Wait for schedule items to render (async data load)
+    await page.waitForSelector('.schedule-item', { timeout: 10000 }).catch(() => {});
     await expect(page.locator('#book-button')).toBeVisible();
     const scheds = await page.locator('.schedule-item').count();
     expect(scheds).toBeGreaterThanOrEqual(1);

@@ -1464,6 +1464,19 @@
         }
       }
 
+      // ===== Wishlist helpers (must be in same script block as loadClass) =====
+      var WL_KEY = "zenpass_wishlist";
+      function getWishlist() { try { return JSON.parse(localStorage.getItem(WL_KEY) || "[]"); } catch(e) { return []; } }
+      function loadWishlistStatus() {
+        var wl = getWishlist();
+        var id = currentClass ? currentClass.id : null;
+        if (!id) return;
+        id = typeof id === "number" ? id : parseInt(id);
+        var btn = document.getElementById("wishlistBtn");
+        if (btn && wl.indexOf(id) >= 0) {
+          btn.textContent = "♥";
+        }
+      }
       // ===== Init =====
       document.addEventListener("DOMContentLoaded", function () {
         loadClass();
@@ -1497,9 +1510,7 @@
       })();
     
 
-    // ===== Wishlist =====
-      var WL_KEY = "zenpass_wishlist";
-      function getWishlist() { try { return JSON.parse(localStorage.getItem(WL_KEY) || "[]"); } catch(e) { return []; } }
+    // ===== Wishlist (toggle only; helpers in first script block above) =====
       function toggleWishlist() {
         var wl = getWishlist();
         var id = currentClass ? currentClass.id : null;
