@@ -423,12 +423,12 @@ const classes = {
       var cats = extractCategories(data);
       if (cats.length === 0) {
         cats = [
-          { category: "瑜伽", count: 3 },
-          { category: "健身", count: 3 },
+          { category: "瑜伽", count: 1 },
+          { category: "健身", count: 1 },
           { category: "伸展", count: 1 },
-          { category: "冥想", count: 2 },
-          { category: "舞蹈", count: 2 },
-          { category: "新興運動", count: 9 },
+          { category: "冥想", count: 1 },
+          { category: "舞蹈", count: 1 },
+          { category: "新興運動", count: 1 },
           { category: "皮拉提斯", count: 1 },
           { category: "兒童體適能", count: 1 },
           { category: "肌力訓練", count: 1 },
@@ -437,6 +437,16 @@ const classes = {
           { category: "單車", count: 1 },
           { category: "水中運動", count: 1 },
           { category: "太極養生", count: 1 },
+          { category: "羽毛球", count: 1 },
+          { category: "乒乓球", count: 1 },
+          { category: "攀岩", count: 1 },
+          { category: "射箭", count: 1 },
+          { category: "劍擊", count: 1 },
+          { category: "泰拳搏擊", count: 1 },
+          { category: "高爾夫球", count: 1 },
+          { category: "露營戶外", count: 1 },
+          { category: "長者體適能", count: 1 },
+          { category: "產後修復", count: 1 }
         ];
       }
       return { categories: cats };

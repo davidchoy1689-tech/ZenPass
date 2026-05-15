@@ -60,10 +60,10 @@ async function loadCategories() {
       '<div class="category-chip active" onclick="filterByCategory(\'all\', this)">🏠 全部</div>' +
       '<div class="category-chip" onclick="filterByCategory(\'瑜伽\', this)">🧘 瑜伽</div>' +
       '<div class="category-chip" onclick="filterByCategory(\'健身\', this)">💪 健身</div>' +
+      '<div class="category-chip" onclick="filterByCategory(\'伸展\', this)">🤸 伸展</div>' +
       '<div class="category-chip" onclick="filterByCategory(\'冥想\', this)">🧠 冥想</div>' +
       '<div class="category-chip" onclick="filterByCategory(\'舞蹈\', this)">💃 舞蹈</div>' +
       '<div class="category-chip" onclick="filterByCategory(\'新興運動\', this)">🎯 新興運動</div>' +
-      '<div class="category-chip" onclick="filterByCategory(\'伸展\', this)">🤸 伸展</div>' +
       '<div class="category-chip" onclick="filterByCategory(\'皮拉提斯\', this)">🤸 皮拉提斯</div>' +
       '<div class="category-chip" onclick="filterByCategory(\'兒童體適能\', this)">🧒 兒童體適能</div>' +
       '<div class="category-chip" onclick="filterByCategory(\'肌力訓練\', this)">🏋️ 肌力訓練</div>' +
@@ -72,6 +72,16 @@ async function loadCategories() {
       '<div class="category-chip" onclick="filterByCategory(\'單車\', this)">🚴 單車</div>' +
       '<div class="category-chip" onclick="filterByCategory(\'水中運動\', this)">🏊 水中運動</div>' +
       '<div class="category-chip" onclick="filterByCategory(\'太極養生\', this)">☯️ 太極養生</div>' +
+      '<div class="category-chip" onclick="filterByCategory(\'羽毛球\', this)">🏸 羽毛球</div>' +
+      '<div class="category-chip" onclick="filterByCategory(\'乒乓球\', this)">🏓 乒乓球</div>' +
+      '<div class="category-chip" onclick="filterByCategory(\'攀岩\', this)">🧗 攀岩</div>' +
+      '<div class="category-chip" onclick="filterByCategory(\'射箭\', this)">🏹 射箭</div>' +
+      '<div class="category-chip" onclick="filterByCategory(\'劍擊\', this)">🤺 劍擊</div>' +
+      '<div class="category-chip" onclick="filterByCategory(\'泰拳搏擊\', this)">🦵 泰拳搏擊</div>' +
+      '<div class="category-chip" onclick="filterByCategory(\'高爾夫球\', this)">⛳ 高爾夫球</div>' +
+      '<div class="category-chip" onclick="filterByCategory(\'露營戶外\', this)">🏕️ 露營戶外</div>' +
+      '<div class="category-chip" onclick="filterByCategory(\'長者體適能\', this)">👴 長者體適能</div>' +
+      '<div class="category-chip" onclick="filterByCategory(\'產後修復\', this)">🤰 產後修復</div>'
       "";
   }
 }
