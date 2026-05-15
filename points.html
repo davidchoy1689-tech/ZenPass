@@ -4,6 +4,12 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>積分中心 - ZenPass 禪流</title>
+  <meta property="og:title" content="我的積分 — ZenPass 禪流" />
+  <meta property="og:description" content="查看積分記錄、簽到賺分、兌換獎勵。" />
+  <meta property="og:url" content="https://davidchoy1689-tech.github.io/ZenPass/points.html" />
+  <meta property="og:type" content="website" />
+  <meta property="og:locale" content="zh_HK" />
+  <meta name="twitter:card" content="summary_large_image" />
     <link rel="icon" type="image/png" href="icons/favicon-96x96.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link
@@ -1196,7 +1202,39 @@
           transform: rotate(360deg);
         }
       }
-    </style>
+    
+    .bottom-nav {
+        position: fixed;
+        bottom: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 100%;
+        max-width: var(--max-width);
+        background: var(--white);
+        border-top: 1px solid var(--gray-200);
+        display: flex;
+        justify-content: space-around;
+        padding: 6px 0;
+        z-index: 1000;
+    }
+    .nav-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 2px;
+        text-decoration: none;
+        font-size: 10px;
+        color: var(--dark-700);
+        padding: 4px 12px;
+    }
+    .nav-item.active {
+        color: var(--orange-700);
+    }
+    .nav-item .nav-icon {
+        font-size: 22px;
+        line-height: 1;
+    }
+</style>
   </head>
   <body>
     <div class="header">
@@ -1352,7 +1390,39 @@
                   flex-direction: row !important;
                 }
               }
-            </style>
+            
+    .bottom-nav {
+        position: fixed;
+        bottom: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 100%;
+        max-width: var(--max-width);
+        background: var(--white);
+        border-top: 1px solid var(--gray-200);
+        display: flex;
+        justify-content: space-around;
+        padding: 6px 0;
+        z-index: 1000;
+    }
+    .nav-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 2px;
+        text-decoration: none;
+        font-size: 10px;
+        color: var(--dark-700);
+        padding: 4px 12px;
+    }
+    .nav-item.active {
+        color: var(--orange-700);
+    }
+    .nav-item .nav-icon {
+        font-size: 22px;
+        line-height: 1;
+    }
+</style>
 
             <div class="calendar-section" id="calendarSection">
               <div class="calendar-header">
@@ -2625,5 +2695,22 @@
         navigator.serviceWorker.register("sw.js");
       }
     </script>
-  </body>
+      <nav class="bottom-nav" role="navigation" aria-label="底部導航">
+      <a href="index.html" class="nav-item"
+        ><span class="nav-icon">🏠</span>首頁</a
+      >
+      <a href="explore.html" class="nav-item"
+        ><span class="nav-icon">🔍</span>探索</a
+      >
+      <a href="membership.html" class="nav-item"
+        ><span class="nav-icon">💎</span>會籍</a
+      >
+      <a href="coach-apply.html" class="nav-item"
+        ><span class="nav-icon">👨‍🏫</span>成為教練</a
+      >
+      <a href="my.html" class="nav-item active"
+        ><span class="nav-icon">👤</span>我的</a
+      >
+    </nav>
+</body>
 </html>
