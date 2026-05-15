@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="zh-HK">
   <head>
-    <meta charset="UTF-8" />
+    <meta charset="UTF-8" -->
     <link rel="icon" href="favicon.png" type="image/png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -21,7 +21,15 @@
   <meta property="og:type" content="website" />
   <meta property="og:locale" content="zh_HK" />
   <meta name="twitter:card" content="summary_large_image" />
-    <link rel="manifest" href="manifest.json" />
+    <script>
+// Fix PWA manifest path for localhost vs GitHub Pages
+(function(){
+  var l = document.createElement('link');
+  l.rel = 'manifest';
+  l.href = window.location.hostname.indexOf('github.io') > -1 ? '/ZenPass/manifest.json' : '/manifest.json';
+  document.head.appendChild(l);
+})();
+</script><!-- manifest-removed  href="manifest.json" />
 
     <style>
       * {
@@ -689,7 +697,7 @@
       >
     </nav>
 
-    <script src="api.js"></script>
+    <script src="api.js" defer></script>
     <script>
       var currentCategory = "all";
       var currentDate = "";
@@ -1088,8 +1096,8 @@
           '<div class="class-card" onclick="location.href=\'class-detail.html?id=' +
           cls.id +
           "'\">" +
-          '<div class="class-card-img">' +
-          emoji +
+          '<div class="class-card-img" style="' + (cls.image_url ? 'background-image:url(' + cls.image_url + ');background-size:cover;background-position:center' : 'background:linear-gradient(135deg,#667eea,#764ba2)') + ';display:flex;align-items:center;justify-content:center;font-size:32px">' +
+          (cls.image_url ? '' : emoji) +
           "</div>" +
           '<div class="class-card-body">' +
           '<span class="class-card-category">' +

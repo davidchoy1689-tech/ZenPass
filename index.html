@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="zh-HK">
   <head>
-    <meta charset="UTF-8" />
+    <meta charset="UTF-8" -->
     <link rel="icon" href="favicon.png" type="image/png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#FF6B35" />
@@ -16,7 +16,15 @@
     />
     <title>ZenPass 禪流 — 解鎖全城運動體驗</title>
     <link rel="stylesheet" href="assets/index.css" />
-    <link rel="manifest" href="manifest.json" />
+    <script>
+// Fix PWA manifest path for localhost vs GitHub Pages
+(function(){
+  var l = document.createElement('link');
+  l.rel = 'manifest';
+  l.href = window.location.hostname.indexOf('github.io') > -1 ? '/ZenPass/manifest.json' : '/manifest.json';
+  document.head.appendChild(l);
+})();
+</script><!-- manifest-removed  href="manifest.json" />
     <link rel="apple-touch-icon" href="icons/icon-192.png" />
     <link rel="apple-touch-icon" sizes="256x256" href="icons/icon-192.png" />
     <link rel="apple-touch-icon" sizes="512x512" href="icons/icon-512.png" />
@@ -396,8 +404,8 @@
       >
     </nav>
 
-    <script src="api.js"></script>
-    <script src="assets/index.js"></script>
+    <script src="api.js" defer></script>
+    <script src="assets/index.js" defer></script>
     <script>
       if ("serviceWorker" in navigator) {
         // Clean old service workers

@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="zh-HK">
   <head>
-    <meta charset="UTF-8" />
+    <meta charset="UTF-8" -->
     <link rel="icon" href="favicon.png" type="image/png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -21,7 +21,15 @@
   <meta property="og:type" content="website" />
   <meta property="og:locale" content="zh_HK" />
   <meta name="twitter:card" content="summary_large_image" />
-    <link rel="manifest" href="manifest.json" />
+    <script>
+// Fix PWA manifest path for localhost vs GitHub Pages
+(function(){
+  var l = document.createElement('link');
+  l.rel = 'manifest';
+  l.href = window.location.hostname.indexOf('github.io') > -1 ? '/ZenPass/manifest.json' : '/manifest.json';
+  document.head.appendChild(l);
+})();
+</script><!-- manifest-removed  href="manifest.json" />
 
     <style>
       * {
@@ -570,7 +578,7 @@
       >
     </nav>
 
-    <script src="api.js"></script>
+    <script src="api.js" defer></script>
     <script>
       var selectedPlan = "trial";
       var selectedPack = null;
