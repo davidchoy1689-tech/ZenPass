@@ -654,8 +654,33 @@
           renderAllBookings(all);
           showContent();
         } catch (err) {
-          showError("載入失敗", "無法連接到伺服器，請檢查網絡連線。");
+          // Offline mode: show demo data from courses.json
+          showOfflineDemo();
         }
+      }
+
+      
+      function showOfflineDemo() {
+        // Show friendly offline message with stored user info
+        var name = localStorage.getItem("zenpass_name") || "訪客";
+        var email = localStorage.getItem("zenpass_email") || "";
+        document.getElementById("loadingState").classList.add("hidden");
+        document.getElementById("errorState").classList.add("hidden");
+        document.getElementById("contentArea").classList.remove("hidden");
+        renderProfile(name, email, {membership_type: "none", created_at: "", total_bookings: 0});
+        document.getElementById("membershipCard").style.display = "none";
+        document.getElementById("recent-section").style.display = "none";
+        document.getElementById("pointsCard").style.display = "none";
+        document.getElementById("badgesCard").style.display = "none";
+        document.getElementById("statsRow").innerHTML =
+          '<div style="grid-column:1/-1;text-align:center;padding:20px;background:var(--orange-50);border-radius:12px">' +
+          '<div style="font-size:14px;margin-bottom:4px">⚠️ 這個頁面需要登入後查看</div>' +
+          '<div style="font-size:12px;color:var(--dark-700);margin-bottom:12px">請使用以下地址登入：</div>' +
+          '<a href="http://192.168.1.215:3001/my.html" style="display:inline-block;padding:10px 24px;border-radius:25px;background:var(--orange-600-bg);color:var(--white);text-decoration:none;font-size:14px;font-weight:600">🔗 登入 ZenPass</a>' +
+          '</div>';
+        document.getElementById("confirmedList").innerHTML =
+          '<div style="text-align:center;padding:40px 20px"><span style="font-size:48px;display:block;margin-bottom:12px">🔒</span><p style="font-size:16px;font-weight:600;margin-bottom:4px">需要登入查看</p><p style="font-size:13px;color:var(--dark-700);margin-bottom:16px">預約、會籍、積分等資料需要登入後顯示</p><a href="http://192.168.1.215:3001/my.html" style="display:inline-block;padding:10px 24px;border-radius:25px;background:var(--orange-600-bg);color:var(--white);text-decoration:none;font-size:14px;font-weight:600">🔐 登入帳戶</a></div>';
+        document.getElementById("allBookingsList").innerHTML = "";
       }
 
       function showLogout() {
