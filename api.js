@@ -422,7 +422,7 @@ const classes = {
       var data = await fetchCoursesJson();
       var cats = extractCategories(data);
       if (cats.length === 0) {
-        cats = [
+                cats = [
           { category: "瑜伽", count: 1 },
           { category: "健身", count: 1 },
           { category: "伸展", count: 1 },
@@ -446,7 +446,15 @@ const classes = {
           { category: "高爾夫球", count: 1 },
           { category: "露營戶外", count: 1 },
           { category: "長者體適能", count: 1 },
-          { category: "產後修復", count: 1 }
+          { category: "產後修復", count: 1 },
+          { category: "空中瑜伽", count: 1 },
+          { category: "芭蕾塑形", count: 1 },
+          { category: "TRX 懸吊訓練", count: 1 },
+          { category: "詠春", count: 1 },
+          { category: "遠足行山", count: 1 },
+          { category: "溜冰", count: 1 },
+          { category: "網球", count: 1 },
+          { category: "保齡球", count: 1 },
         ];
       }
       return { categories: cats };

@@ -13,39 +13,70 @@ async function loadCategories() {
       var emoji =
         cat.category === "瑜伽"
           ? "🧘"
-          : cat.category === "健身"
+            : cat.category === "健身"
             ? "💪"
             : cat.category === "伸展"
-              ? "🤸"
-              : cat.category === "冥想"
-                ? "🧠"
-                : cat.category === "舞蹈"
-                  ? "💃"
-                  : cat.category === "新興運動"
-                    ? "🎯"
-                    : cat.category === "普拉提"
-                      ? "🤸"
-                      : cat.category === "皮拉提斯"
-                        ? "🤸"
-                        : cat.category === "兒童體適能"
-                          ? "🧒"
-                          : cat.category === "肌力訓練"
-                            ? "🏋️"
-                            : cat.category === "心肺訓練"
-                              ? "🏃"
-                              : cat.category === "拳擊搏擊"
-                                ? "🥊"
-                                : cat.category === "單車"
-                                  ? "🚴"
-                                  : cat.category === "水中運動"
-                                    ? "🏊"
-                                    : cat.category === "太極養生"
-                                      ? "☯️"
-                                      : cat.category === "武術"
-                                        ? "🥋"
-                                        : cat.category === "太極"
-                                          ? "☯️"
-                                          : "🏃";
+            ? "🤸"
+            : cat.category === "冥想"
+            ? "🧠"
+            : cat.category === "舞蹈"
+            ? "💃"
+            : cat.category === "新興運動"
+            ? "🎯"
+            : cat.category === "皮拉提斯"
+            ? "🤸"
+            : cat.category === "兒童體適能"
+            ? "🧒"
+            : cat.category === "肌力訓練"
+            ? "🏋️"
+            : cat.category === "心肺訓練"
+            ? "🏃"
+            : cat.category === "拳擊搏擊"
+            ? "🥊"
+            : cat.category === "單車"
+            ? "🚴"
+            : cat.category === "水中運動"
+            ? "🏊"
+            : cat.category === "太極養生"
+            ? "☯️"
+            : cat.category === "羽毛球"
+            ? "🏸"
+            : cat.category === "乒乓球"
+            ? "🏓"
+            : cat.category === "攀岩"
+            ? "🧗"
+            : cat.category === "射箭"
+            ? "🏹"
+            : cat.category === "劍擊"
+            ? "🤺"
+            : cat.category === "泰拳搏擊"
+            ? "🦵"
+            : cat.category === "高爾夫球"
+            ? "⛳"
+            : cat.category === "露營戶外"
+            ? "🏕️"
+            : cat.category === "長者體適能"
+            ? "👴"
+            : cat.category === "產後修復"
+            ? "🤰"
+            : cat.category === "空中瑜伽"
+            ? "🧘‍♀️"
+            : cat.category === "芭蕾塑形"
+            ? "💃"
+            : cat.category === "TRX 懸吊訓練"
+            ? "🏋️"
+            : cat.category === "詠春"
+            ? "🥋"
+            : cat.category === "遠足行山"
+            ? "🥾"
+            : cat.category === "溜冰"
+            ? "⛸️"
+            : cat.category === "網球"
+            ? "🎾"
+            : cat.category === "保齡球"
+            ? "🎳"
+          : "🏃"
+;
       container.innerHTML +=
         '<div class="category-chip" onclick="filterByCategory(\'' +
         cat.category +
@@ -81,7 +112,15 @@ async function loadCategories() {
       '<div class="category-chip" onclick="filterByCategory(\'高爾夫球\', this)">⛳ 高爾夫球</div>' +
       '<div class="category-chip" onclick="filterByCategory(\'露營戶外\', this)">🏕️ 露營戶外</div>' +
       '<div class="category-chip" onclick="filterByCategory(\'長者體適能\', this)">👴 長者體適能</div>' +
-      '<div class="category-chip" onclick="filterByCategory(\'產後修復\', this)">🤰 產後修復</div>'
+      '<div class="category-chip" onclick="filterByCategory(\'產後修復\', this)">🤰 產後修復</div>' +
+      '<div class="category-chip" onclick="filterByCategory(\'空中瑜伽\', this)">🧘‍♀️ 空中瑜伽</div>' +
+      '<div class="category-chip" onclick="filterByCategory(\'芭蕾塑形\', this)">💃 芭蕾塑形</div>' +
+      '<div class="category-chip" onclick="filterByCategory(\'TRX 懸吊訓練\', this)">🏋️ TRX 懸吊訓練</div>' +
+      '<div class="category-chip" onclick="filterByCategory(\'詠春\', this)">🥋 詠春</div>' +
+      '<div class="category-chip" onclick="filterByCategory(\'遠足行山\', this)">🥾 遠足行山</div>' +
+      '<div class="category-chip" onclick="filterByCategory(\'溜冰\', this)">⛸️ 溜冰</div>' +
+      '<div class="category-chip" onclick="filterByCategory(\'網球\', this)">🎾 網球</div>' +
+      '<div class="category-chip" onclick="filterByCategory(\'保齡球\', this)">🎳 保齡球</div>'
       "";
   }
 }
