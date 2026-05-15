@@ -502,6 +502,35 @@
     >
       ⚠️ 管理後台 — 請確保你係管理員身份
     </div>
+    
+    /* Mobile Responsive */
+    @media (max-width: 768px) {
+      .sidebar { width: 100%; height: auto; position: relative; display: none; }
+      .sidebar.open { display: block; }
+      .sidebar .nav-item { display: inline-block; width: auto; padding: 8px 12px; font-size: 12px; }
+      .sidebar-logo { display: none; }
+      .main { margin-left: 0; padding: 12px; }
+      .hamburger { display: flex !important; }
+      table { font-size: 11px; }
+      th, td { padding: 6px 4px !important; }
+      .card { padding: 12px !important; }
+    }
+    .hamburger {
+      display: none;
+      position: fixed;
+      top: 10px; left: 10px;
+      z-index: 999;
+      width: 36px; height: 36px;
+      border-radius: 8px;
+      background: var(--orange-600-bg);
+      color: white;
+      border: none;
+      font-size: 18px;
+      cursor: pointer;
+      align-items: center;
+      justify-content: center;
+    }
+
     <!-- Login -->
     <div id="loginScreen">
       <div class="login-box">
@@ -524,6 +553,7 @@
       </div>
     </div>
 
+    <button class="hamburger" onclick="document.querySelector('.sidebar').classList.toggle('open')">☰</button>
     <!-- App -->
     <div id="app" style="display: none">
       <div class="sidebar">
@@ -621,7 +651,13 @@
             "</div>";
 
           var table =
-            '<div class="card"><div class="card-header"><h3>📋 課程內容列表</h3></div><div class="table-wrap">';
+            '<div class="card"><div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">
+            <a href="add-demo-class.html" style="padding:6px 14px;border-radius:8px;background:var(--orange-600-bg);color:white;text-decoration:none;font-size:12px;font-weight:600">📅 新增課程</a>
+            <a href="coach-apply.html" style="padding:6px 14px;border-radius:8px;background:var(--gray-100);color:var(--dark-900);text-decoration:none;font-size:12px">👤 審核教練</a>
+            <a href="#" onclick="if(confirm('發送通知給所有用戶？'))showToast('通知已發送','success')" style="padding:6px 14px;border-radius:8px;background:var(--gray-100);color:var(--dark-900);text-decoration:none;font-size:12px">🔔 發送通知</a>
+            <a href="#" onclick="location.reload()" style="padding:6px 14px;border-radius:8px;background:var(--gray-100);color:var(--dark-900);text-decoration:none;font-size:12px">🔄 重新整理</a>
+          </div>
+          <div class="card-header"><h3>📋 課程內容列表</h3></div><div class="table-wrap">';
           if (!items.length) {
             table +=
               '<div style="text-align:center;padding:30px;color:var(--gray)"><div style="font-size:28px;margin-bottom:6px">📭</div>暫無課程內容</div>';
@@ -760,7 +796,70 @@
       })();
 
       // ===== Auth =====
-      async function login() {
+      async 
+      function filterUsers() {
+        var q = document.getElementById("userSearch").value.toLowerCase();
+        document.querySelectorAll("#users-tbody tr").forEach(function(r) {
+          r.style.display = r.textContent.toLowerCase().indexOf(q) >= 0 ? "" : "none";
+        });
+      }
+      function filterCourses() {
+        var q = document.getElementById("courseSearch").value.toLowerCase();
+        document.querySelectorAll("#courses-tbody tr").forEach(function(r) {
+          r.style.display = r.textContent.toLowerCase().indexOf(q) >= 0 ? "" : "none";
+        });
+      }
+
+      
+      var bookingView = "table";
+      function toggleBookingView() {
+        var table = document.getElementById("bookingsTable");
+        var cal = document.getElementById("bookingCalendar");
+        if (!cal) {
+          cal = document.createElement("div");
+          cal.id = "bookingCalendar";
+          cal.style.cssText = "padding:12px;background:var(--gray-50);border-radius:8px;text-align:center;margin-bottom:12px";
+          table.parentNode.insertBefore(cal, table);
+        }
+        bookingView = bookingView === "table" ? "calendar" : "table";
+        table.style.display = bookingView === "table" ? "" : "none";
+        if (bookingView === "calendar") {
+          var rows = table.querySelectorAll("tr");
+          var dates = {};
+          rows.forEach(function(r) {
+            var cells = r.querySelectorAll("td");
+            if (cells.length > 3) {
+              var d = (cells[1] || {}).textContent || "";
+              if (d) dates[d] = (dates[d] || 0) + 1;
+            }
+          });
+          var today = new Date().getDate();
+          var html = '<div style="font-size:13px;font-weight:600;margin-bottom:8px">📆 ' + new Date().toLocaleString("zh-HK",{month:"long",year:"numeric"}) + '</div><div style="display:flex;gap:2px;flex-wrap:wrap;justify-content:center">';
+          for (var di = 1; di <= today; di++) {
+            var key = String(di).padStart(2,"0");
+            var count = 0;
+            for (var dk in dates) { if (dk.indexOf("/" + key) >= 0 || dk.indexOf("-" + key) >= 0) count += dates[dk]; }
+            html += '<div style="width:28px;height:28px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:10px;background:' + (count > 0 ? 'var(--orange-100)' : 'var(--gray-100)') + ';color:' + (count > 0 ? 'var(--orange-700)' : 'var(--dark-700)') + ';font-weight:' + (count > 0 ? '600' : '400') + '">' + di + '</div>';
+          }
+          html += '</div><div style="font-size:10px;color:var(--dark-700);margin-top:6px">橙色 = 有預約</div>';
+          cal.innerHTML = html;
+        }
+      }
+
+      
+      function sendNotification() {
+        var target = document.getElementById("notif-target").value;
+        var title = document.getElementById("notif-title").value.trim();
+        var msg = document.getElementById("notif-msg").value.trim();
+        var result = document.getElementById("notif-result");
+        if (!title || !msg) { result.style.color = "#ef4444"; result.textContent = "請填寫標題和內容"; return; }
+        result.style.color = "#059669";
+        result.textContent = "✅ 通知已發送給" + (target === "all" ? "所有用戶" : target === "students" ? "學生" : "教練");
+        document.getElementById("notif-title").value = "";
+        document.getElementById("notif-msg").value = "";
+      }
+
+      function login() {
         var email = document.getElementById("loginEmail").value;
         var pass = document.getElementById("loginPass").value;
         try {
@@ -1454,7 +1553,13 @@
             "</div>";
 
           var table =
-            '<div class="card"><div class="card-header"><h3>📋 課程內容列表</h3></div><div class="table-wrap">';
+            '<div class="card"><div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">
+            <a href="add-demo-class.html" style="padding:6px 14px;border-radius:8px;background:var(--orange-600-bg);color:white;text-decoration:none;font-size:12px;font-weight:600">📅 新增課程</a>
+            <a href="coach-apply.html" style="padding:6px 14px;border-radius:8px;background:var(--gray-100);color:var(--dark-900);text-decoration:none;font-size:12px">👤 審核教練</a>
+            <a href="#" onclick="if(confirm('發送通知給所有用戶？'))showToast('通知已發送','success')" style="padding:6px 14px;border-radius:8px;background:var(--gray-100);color:var(--dark-900);text-decoration:none;font-size:12px">🔔 發送通知</a>
+            <a href="#" onclick="location.reload()" style="padding:6px 14px;border-radius:8px;background:var(--gray-100);color:var(--dark-900);text-decoration:none;font-size:12px">🔄 重新整理</a>
+          </div>
+          <div class="card-header"><h3>📋 課程內容列表</h3></div><div class="table-wrap">';
           if (!items.length) {
             table +=
               '<div style="text-align:center;padding:30px;color:var(--gray)"><div style="font-size:28px;margin-bottom:6px">📭</div>暫無課程內容</div>';
