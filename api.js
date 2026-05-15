@@ -424,9 +424,19 @@ const classes = {
       if (cats.length === 0) {
         cats = [
           { category: "瑜伽", count: 3 },
-          { category: "健身", count: 2 },
-          { category: "冥想", count: 1 },
+          { category: "健身", count: 3 },
           { category: "伸展", count: 1 },
+          { category: "冥想", count: 2 },
+          { category: "舞蹈", count: 2 },
+          { category: "新興運動", count: 9 },
+          { category: "皮拉提斯", count: 1 },
+          { category: "兒童體適能", count: 1 },
+          { category: "肌力訓練", count: 1 },
+          { category: "心肺訓練", count: 1 },
+          { category: "拳擊搏擊", count: 1 },
+          { category: "單車", count: 1 },
+          { category: "水中運動", count: 1 },
+          { category: "太極養生", count: 1 },
         ];
       }
       return { categories: cats };

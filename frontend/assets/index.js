@@ -25,11 +25,27 @@ async function loadCategories() {
                     ? "🎯"
                     : cat.category === "普拉提"
                       ? "🤸"
-                      : cat.category === "武術"
-                        ? "🥋"
-                        : cat.category === "太極"
-                          ? "☯️"
-                          : "🏃";
+                      : cat.category === "皮拉提斯"
+                        ? "🤸"
+                        : cat.category === "兒童體適能"
+                          ? "🧒"
+                          : cat.category === "肌力訓練"
+                            ? "🏋️"
+                            : cat.category === "心肺訓練"
+                              ? "🏃"
+                              : cat.category === "拳擊搏擊"
+                                ? "🥊"
+                                : cat.category === "單車"
+                                  ? "🚴"
+                                  : cat.category === "水中運動"
+                                    ? "🏊"
+                                    : cat.category === "太極養生"
+                                      ? "☯️"
+                                      : cat.category === "武術"
+                                        ? "🥋"
+                                        : cat.category === "太極"
+                                          ? "☯️"
+                                          : "🏃";
       container.innerHTML +=
         '<div class="category-chip" onclick="filterByCategory(\'' +
         cat.category +
@@ -47,11 +63,16 @@ async function loadCategories() {
       '<div class="category-chip" onclick="filterByCategory(\'冥想\', this)">🧠 冥想</div>' +
       '<div class="category-chip" onclick="filterByCategory(\'舞蹈\', this)">💃 舞蹈</div>' +
       '<div class="category-chip" onclick="filterByCategory(\'新興運動\', this)">🎯 新興運動</div>' +
-      '<div class="category-chip" onclick="filterByCategory(\'太極\', this)">☯️ 太極</div>' +
       '<div class="category-chip" onclick="filterByCategory(\'伸展\', this)">🤸 伸展</div>' +
-      '<div class="category-chip" onclick="filterByCategory(\'普拉提\', this)">🤸 普拉提</div>' +
-      '<div class="category-chip" onclick="filterByCategory(\'武術\', this)">🥋 武術</div>' +
-      "";
+      '<div class="category-chip" onclick="filterByCategory(\'皮拉提斯\', this)">🤸 皮拉提斯</div>' +
+      '<div class="category-chip" onclick="filterByCategory(\'兒童體適能\', this)">🧒 兒童體適能</div>' +
+      '<div class="category-chip" onclick="filterByCategory(\'肌力訓練\', this)">🏋️ 肌力訓練</div>' +
+      '<div class="category-chip" onclick="filterByCategory(\'心肺訓練\', this)">🏃 心肺訓練</div>' +
+      '<div class="category-chip" onclick="filterByCategory(\'拳擊搏擊\', this)">🥊 拳擊搏擊</div>' +
+      '<div class="category-chip" onclick="filterByCategory(\'單車\', this)">🚴 單車</div>' +
+      '<div class="category-chip" onclick="filterByCategory(\'水中運動\', this)">🏊 水中運動</div>' +
+      '<div class="category-chip" onclick="filterByCategory(\'太極養生\', this)">☯️ 太極養生</div>' +
+      '";'}]}
   }
 }
 
