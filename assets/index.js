@@ -219,7 +219,7 @@ async function loadAllClasses(params) {
   var container = document.getElementById("all-classes");
   container.innerHTML = '<div class="loading-spinner">載入中...</div>';
   try {
-    var mergedParams = { limit: 20 };
+    var mergedParams = { limit: 50 };
     for (var pk in params) {
       if (
         params.hasOwnProperty
