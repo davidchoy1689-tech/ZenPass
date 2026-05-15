@@ -433,7 +433,17 @@
         animation: spin 0.8s linear infinite;
         margin-bottom: 12px;
       }
-      @keyframes spin {
+      /* Modal */
+.modal-overlay { display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:2000; align-items:center; justify-content:center; }
+.modal-overlay.active { display:flex; }
+.modal-content { background:var(--white); border-radius:16px; padding:24px; width:90%; max-width:400px; max-height:80vh; overflow-y:auto; }
+.modal-content h3 { font-size:18px; font-weight:700; margin-bottom:16px; }
+.modal-content label { font-size:13px; font-weight:600; display:block; margin-bottom:4px; color:var(--dark-700); }
+.modal-content input { width:100%; padding:10px 12px; border:1px solid var(--gray-200); border-radius:8px; font-size:14px; margin-bottom:12px; font-family:var(--font-zh); }
+.modal-actions { display:flex; gap:8px; margin-top:16px; }
+.modal-actions button { flex:1; padding:12px; border-radius:8px; border:none; font-size:14px; font-weight:600; cursor:pointer; font-family:var(--font-zh); }
+
+@keyframes spin {
         to {
           transform: rotate(360deg);
         }
@@ -561,8 +571,9 @@
   <body>
     <div class="header">
       <div class="header-top">
-        <a href="index.html">&larr;</a>
+        <a href="index.html" aria-label="返回">&larr;</a>
         <h1>教練入口</h1>
+        <button onclick="coachLogout()" style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px 8px" title="登出">🚪</button>
       </div>
       <div class="sub-info" id="headerInfo">載入中...</div>
     </div>
@@ -571,6 +582,7 @@
       <div class="tab active" onclick="switchTab('dashboard')">📊 總覽</div>
       <div class="tab" onclick="switchTab('schedule')">📅 課程</div>
       <div class="tab" onclick="switchTab('income')">💰 收入</div>
+      <div class="tab" onclick="window.location.href='notifications.html'" style="position:relative">🔔 通知<span id="coachNotifBadge" style="display:none;position:absolute;top:2px;right:2px;width:8px;height:8px;background:#ef4444;border-radius:50%"></span></div>
     </div>
 
     <div class="loading" id="loadingState">
@@ -941,6 +953,14 @@
       var earningsData = null;
       var incomeEntries = [];
 
+      function coachLogout() {
+        if (confirm("確定要登出？")) {
+          localStorage.removeItem("zenpass_token");
+          sessionStorage.removeItem("zenpass_token");
+          window.location.href = "login.html";
+        }
+      }
+
       function getToken() {
         return (
           localStorage.getItem("zenpass_token") ||
@@ -1104,6 +1124,12 @@
           return c.status === "active";
         }).length;
 
+        // Calculate avg rating and cancel rate
+        var totalR = 0, rc = 0;
+        coachClasses.forEach(function(cc) { if (cc.rating) { totalR += cc.rating; rc++; } });
+        var avgR = rc > 0 ? (totalR / rc).toFixed(1) : '—';
+        var allB = allBookings || [];
+        var canR = allB.length > 0 ? Math.round(allB.filter(function(b){return b.status==='cancelled'}).length / allB.length * 100) : 0;
         document.getElementById("dashStats").innerHTML =
           '<div class="stat-box"><div class="num">' +
           active +
@@ -1113,7 +1139,13 @@
           '</div><div class="label">課堂時段</div></div>' +
           '<div class="stat-box"><div class="num">' +
           totalEnrolled +
-          '</div><div class="label">學員人次</div></div>';
+          '</div><div class="label">學員人次</div></div>' +
+          '<div class="stat-box"><div class="num">⭐ ' +
+          avgR +
+          '</div><div class="label">評分</div></div>' +
+          '<div class="stat-box"><div class="num">' +
+          canR +
+          '%</div><div class="label">取消率</div></div>';
 
         document.getElementById("myClassesCount").textContent =
           "(" + coachClasses.length + ")";
@@ -1272,7 +1304,38 @@
         }
       });
 
+      function closeModal() { document.getElementById("modalOverlay").classList.remove("active"); }
+      function confirmAddSchedule() {
+        var st = document.getElementById("modalStartTime").value;
+        var et = document.getElementById("modalEndTime").value;
+        var cap = document.getElementById("modalCapacity").value || 15;
+        if (!st || !et) { showToast("請填寫完整時間","error"); return; }
+        var btn = document.getElementById("modalConfirmBtn");
+        btn.disabled = true; btn.textContent = "新增中...";
+        fetch("/api/classes/" + modalClassId + "/schedules", {
+          method: "POST", headers: getAuthHeaders(),
+          body: JSON.stringify({start_time:st, end_time:et, max_participants:parseInt(cap)})
+        })
+        .then(function(r){return r.json()})
+        .then(function(d){
+          if (d.success || d.schedule) {
+            showToast("✅ 時段新增成功","success"); closeModal(); loadAllData();
+          } else { showToast(d.message || "新增失敗","error"); }
+        })
+        .catch(function(){ showToast("網絡錯誤","error"); })
+        .finally(function(){ btn.disabled = false; btn.textContent = "確定新增"; });
+      }
+      var modalClassId = null;
       function showAddScheduleForm(classId, className) {
+        modalClassId = classId;
+        document.getElementById("modalTitle").textContent = "新增時段 - " + className;
+        document.getElementById("modalOverlay").classList.add("active");
+        var now = new Date();
+        now.setHours(now.getHours()+1,0,0,0);
+        document.getElementById("modalStartTime").value = now.toISOString().slice(0,16);
+        now.setHours(now.getHours()+1);
+        document.getElementById("modalEndTime").value = now.toISOString().slice(0,16);
+      }
         var form = document.getElementById("scheduleForm-" + classId);
         if (form) {
           form.classList.toggle("show");
@@ -1473,7 +1536,7 @@
 
         if (trend.length === 0) {
           container.innerHTML =
-            '<div style="width:100%;text-align:center;color:var(--dark-700);font-size:13px;padding:40px 0;">暫無收入數據</div>';
+            '<div style="width:100%;text-align:center;color:var(--dark-700);font-size:13px;padding:40px 0;">💰 尚未有收入數據</div>';
         } else {
           var maxVal = 0;
           trend.forEach(function (t) {
@@ -1750,7 +1813,7 @@
             });
           }
           if (rows.length === 1) {
-            showToast("⚠️ 暫無收入數據可匯出", "error");
+            showToast("⚠️ 💰 尚未有收入數據可匯出", "error");
             return;
           }
         } catch (e) {
@@ -1879,5 +1942,21 @@
       </div>
       © 2026 ZenPass 禪流
     </div>
-  </body>
+  <!-- Modal -->
+<div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal-content">
+    <h3 id="modalTitle">新增時段</h3>
+    <label>開始時間</label>
+    <input type="datetime-local" id="modalStartTime">
+    <label>結束時間</label>
+    <input type="datetime-local" id="modalEndTime">
+    <label>最大人數</label>
+    <input type="number" id="modalCapacity" value="15" min="1">
+    <div class="modal-actions">
+      <button onclick="closeModal()" style="background:var(--gray-100);color:var(--dark-900)">取消</button>
+      <button id="modalConfirmBtn" onclick="confirmAddSchedule()" style="background:var(--orange-600-bg);color:var(--white)">確定新增</button>
+    </div>
+  </div>
+</div>
+</body>
 </html>
