@@ -658,7 +658,14 @@
         >
           全部
         </div>      <!-- Difficulty Filter -->
-      <div class="date-scroll" id="difficulty-filter" style="margin-top: 4px;">
+      <div class="date-scroll" id="price-filter" style="display:flex;gap:4px;padding: 0 16px;margin: 4px 0;overflow-x:auto;scrollbar-width:none">
+        <div class="date-chip active" onclick="filterByPrice('all',this)" style="min-width:auto;padding:5px 12px;font-size:11px">💰 全部價格</div>
+        <div class="date-chip" onclick="filterByPrice('0-100',this)" style="min-width:auto;padding:5px 12px;font-size:11px">HK$0-100</div>
+        <div class="date-chip" onclick="filterByPrice('100-200',this)" style="min-width:auto;padding:5px 12px;font-size:11px">HK$100-200</div>
+        <div class="date-chip" onclick="filterByPrice('200-300',this)" style="min-width:auto;padding:5px 12px;font-size:11px">HK$200-300</div>
+        <div class="date-chip" onclick="filterByPrice('300+',this)" style="min-width:auto;padding:5px 12px;font-size:11px">HK$300+</div>
+      </div>
+      <div id="difficulty-filter" style="margin-top: 4px;">
         <div class="date-chip active" onclick="filterByDifficulty('all', this)" style="min-width:auto;padding:6px 14px;">🏷️ 全部難度</div>
         <div class="date-chip" onclick="filterByDifficulty('beginner', this)" style="min-width:auto;padding:6px 14px;">🌱 初級</div>
         <div class="date-chip" onclick="filterByDifficulty('intermediate', this)" style="min-width:auto;padding:6px 14px;">🔥 中級</div>
@@ -885,6 +892,52 @@
       }
 
       // ===== Difficulty Filter =====
+      
+      var currentPrice = "all";
+      var currentDistrict = "all";
+      var currentSortMethod = "popular";
+      var currentView = "grid";
+
+      function filterByPrice(price, el) {
+        currentPrice = price;
+        document.querySelectorAll("#price-filter .date-chip").forEach(function(e){ e.classList.remove("active"); });
+        if (el) el.classList.add("active");
+        loadClasses();
+      }
+      function filterByDistrict(dist, el) {
+        currentDistrict = dist;
+        document.querySelectorAll("#district-filter .date-chip").forEach(function(e){ e.classList.remove("active"); });
+        if (el) el.classList.add("active");
+        loadClasses();
+      }
+      function setSort(method, el) {
+        currentSortMethod = method;
+        document.querySelectorAll(".sort-btn").forEach(function(e){ e.classList.remove("active"); });
+        if (el) el.classList.add("active");
+        loadClasses();
+      }
+      function clearAllFilters() {
+        currentCategory = "all"; currentDate = ""; currentDifficulty = "all"; currentPrice = "all"; currentDistrict = "all"; currentSortMethod = "popular";
+        document.querySelectorAll(".category-chip, .date-chip, .sort-btn").forEach(function(e){ e.classList.remove("active"); });
+        var first = document.querySelector(".category-chip"); if (first) first.classList.add("active");
+        var firstD = document.querySelector("#date-filter .date-chip"); if (firstD) firstD.classList.add("active");
+        var firstP = document.querySelector("#price-filter .date-chip"); if (firstP) firstP.classList.add("active");
+        var firstDist = document.querySelector("#district-filter .date-chip"); if (firstDist) firstDist.classList.add("active");
+        var firstS = document.querySelector(".sort-btn"); if (firstS) firstS.classList.add("active");
+        document.getElementById("search-input").value = "";
+        searchTerm = "";
+        loadClasses();
+      }
+      function setView(view) {
+        currentView = view;
+        var grid = document.getElementById("classGrid");
+        if (grid) grid.style.display = view === "grid" ? "flex" : "block";
+        document.getElementById("viewGrid").style.background = view === "grid" ? "var(--orange-600-bg)" : "var(--white)";
+        document.getElementById("viewGrid").style.color = view === "grid" ? "white" : "var(--dark-700)";
+        document.getElementById("viewList").style.background = view === "list" ? "var(--orange-600-bg)" : "var(--white)";
+        document.getElementById("viewList").style.color = view === "list" ? "white" : "var(--dark-700)";
+      }
+
       var currentDifficulty = "all";
       function filterByDifficulty(diff, el) {
         var chips = document.querySelectorAll("#difficulty-filter .date-chip");
