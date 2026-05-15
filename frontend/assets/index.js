@@ -72,7 +72,7 @@ async function loadCategories() {
       '<div class="category-chip" onclick="filterByCategory(\'單車\', this)">🚴 單車</div>' +
       '<div class="category-chip" onclick="filterByCategory(\'水中運動\', this)">🏊 水中運動</div>' +
       '<div class="category-chip" onclick="filterByCategory(\'太極養生\', this)">☯️ 太極養生</div>' +
-      '";'}]}
+      "";
   }
 }
 
