@@ -1403,7 +1403,20 @@
           document.body.appendChild(b);
         }
       })();
-    </script>
+    
+
+    // Save to recent browsing history
+    (function() {
+      var id = new URLSearchParams(window.location.search).get("id");
+      if (id) {
+        var recent = JSON.parse(localStorage.getItem("zenpass_recent") || "[]");
+        recent = recent.filter(function(i) { return i != id; });
+        recent.unshift(parseInt(id));
+        if (recent.length > 20) recent = recent.slice(0, 20);
+        localStorage.setItem("zenpass_recent", JSON.stringify(recent));
+      }
+    })();
+</script>
 
     <div
       <nav class="bottom-nav" role="navigation" aria-label="底部導航">

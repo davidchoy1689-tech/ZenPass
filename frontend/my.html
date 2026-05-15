@@ -465,7 +465,14 @@
           id="membershipCard"
           style="display: none; padding: 16px; text-align: left"
         ></div>
-        <!-- Points Card -->
+                <!-- Recent Browsing -->
+        <div class="section" id="recent-section" style="display:none">
+          <div class="section-header">
+            <h2>👀 最近瀏覽</h2>
+          </div>
+          <div class="featured-scroll" id="recent-classes"></div>
+        </div>
+<!-- Points Card -->
         <div
           class="profile-card"
           id="pointsCard"
@@ -1246,7 +1253,23 @@
       if ("serviceWorker" in navigator) {
         navigator.serviceWorker.register("sw.js");
       }
-    </script>
+    
+    // ===== Recent Browsing History =====
+    function loadRecentBrowsing() {
+      var recent = JSON.parse(localStorage.getItem("zenpass_recent") || "[]");
+      var container = document.getElementById("recent-classes");
+      var section = document.getElementById("recent-section");
+      if (!container || !section) return;
+      if (recent.length === 0) { section.style.display = "none"; return; }
+      section.style.display = "";
+      container.innerHTML = recent.slice(0, 6).map(function(id) {
+        return '<div class="class-card" style="flex:0 0 180px" onclick="location.href=\'class-detail.html?id=' + id + '\'">' +
+          '<div class="class-card-img" style="background:linear-gradient(135deg,#667eea,#764ba2);display:flex;align-items:center;justify-content:center;font-size:28px">📍</div>' +
+          '<div class="class-card-body"><div class="class-card-title" style="font-size:12px">課程 #' + id + '</div></div></div>';
+      }).join("");
+    }
+
+</script>
       <nav class="bottom-nav" role="navigation" aria-label="底部導航">
       <a href="index.html" class="nav-item"
         ><span class="nav-icon">🏠</span>首頁</a
