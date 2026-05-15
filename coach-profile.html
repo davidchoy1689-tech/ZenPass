@@ -131,8 +131,10 @@ else {
   
   // WhatsApp link
   var wa = document.getElementById("waBtn");
-  if (data.phone) { wa.href = "https://wa.me/852" + data.phone; }
-  else { wa.href = "https://wa.me/85290335538?text=" + encodeURIComponent("你好，我想查詢" + coachName + "嘅課程"); }
+  var coachId = data.id || "";
+  var waMsg = "你好，我想查詢 " + coachName + " (' + coachId + ') 嘅課程";
+  if (data.phone) { wa.href = "https://wa.me/852" + data.phone + "?text=" + encodeURIComponent(waMsg); }
+  else { wa.href = "https://wa.me/85290335538?text=" + encodeURIComponent(waMsg); }
   
   // Tags
   document.getElementById("caTags").innerHTML = data.tags.map(function(t){ return '<span class="coach-tag">' + t + '</span>'; }).join("");
