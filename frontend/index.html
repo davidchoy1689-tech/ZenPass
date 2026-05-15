@@ -219,8 +219,27 @@
         var email = document.getElementById("newsletter-email").value.trim();
         var el = document.getElementById("newsletter-result");
         if (!email || !email.includes("@")) { el.style.color="#ef4444"; el.textContent="請輸入有效電郵"; return; }
-        el.style.color="#059669"; el.textContent="✅ 感謝訂閱！我們會將最新資訊發送到你的信箱";
-        document.getElementById("newsletter-email").value = "";
+        // Save subscription
+        var interests = [];
+        document.querySelectorAll(".nl-interest:checked").forEach(function(cb){ interests.push(cb.value); });
+        localStorage.setItem("zenpass_subscribed", "true");
+        localStorage.setItem("zenpass_sub_email", email);
+        localStorage.setItem("zenpass_sub_interests", JSON.stringify(interests));
+        // Show subscribed state
+        document.getElementById("newsletter-form").style.display = "none";
+        document.getElementById("nl-subscribed").style.display = "block";
+        document.getElementById("nl-email-display").textContent = "📧 " + email;
+        if (interests.length > 0) document.getElementById("nl-email-display").textContent += " · " + interests.join(" ");
+        el.style.color="#059669"; el.textContent="✅ 訂閱成功！";
+      }
+      function unsubscribeNewsletter() {
+        localStorage.removeItem("zenpass_subscribed");
+        localStorage.removeItem("zenpass_sub_email");
+        localStorage.removeItem("zenpass_sub_interests");
+        document.getElementById("newsletter-form").style.display = "block";
+        document.getElementById("nl-subscribed").style.display = "none";
+        document.getElementById("newsletter-result").style.color="#6b7280";
+        document.getElementById("newsletter-result").textContent="已取消訂閱";
       }
       function demoLogin() {
         localStorage.setItem("zenpass_token","demo_student");
