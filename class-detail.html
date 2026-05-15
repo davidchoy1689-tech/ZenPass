@@ -645,10 +645,11 @@
     <div class="class-image" id="class-image">
       <a
         href="javascript:if(document.referrer){history.back()}else{location.href='index.html'}"
-        class="back-btn"
+        class="back-btn" style="position:absolute;top:12px;left:12px;z-index:10;width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,0.4);color:white;display:flex;align-items:center;justify-content:center;text-decoration:none;font-size:18px;backdrop-filter:blur(4px)"
         >←</a
       >
-      <span id="class-emoji">🧘</span>
+      <span id="class-emoji" style="display:none">🧘</span>
+      <button onclick="toggleWishlist()" id="wishlistBtn" style="position:absolute;top:12px;right:12px;z-index:10;width:40px;height:40px;border-radius:50%;background:rgba(0,0,0,0.4);color:white;border:none;font-size:20px;cursor:pointer;backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center">♡</button>
     </div>
 
     <div class="content" id="class-content">
@@ -845,6 +846,7 @@
         } catch (e) {}
 
         loadRelatedCourses(cls.category, cls.id);
+        loadWishlistStatus();
         var emojiMap = {
           "\u7476\u5c48": "\ud83e\uddd8",
           "\u5065\u8eab": "\ud83c\udfcb\ufe0f",
@@ -1406,7 +1408,21 @@
       })();
     
 
-    // Save to recent browsing history
+    // ===== Wishlist =====
+      var WL_KEY = "zenpass_wishlist";
+      function getWishlist() { try { return JSON.parse(localStorage.getItem(WL_KEY) || "[]"); } catch(e) { return []; } }
+      function toggleWishlist() {
+        var wl = getWishlist();
+        var id = currentClass ? currentClass.id : null;
+        if (!id) return;
+        id = typeof id === "number" ? id : parseInt(id);
+        var idx = wl.indexOf(id);
+        var btn = document.getElementById("wishlistBtn");
+        if (idx >= 0) { wl.splice(idx,1); if(btn) btn.textContent = "♡"; showToast("已取消收藏","success"); }
+        else { wl.push(id); if(btn) btn.textContent = "♥"; showToast("已加入收藏❤️","success"); }
+        localStorage.setItem(WL_KEY, JSON.stringify(wl));
+      }
+      // Save to recent browsing history
     (function() {
       var id = new URLSearchParams(window.location.search).get("id");
       if (id) {
@@ -1419,7 +1435,19 @@
     })();
 
 
-    function shareCourse() {
+    
+      function getCalendarUrl(cls) {
+        var scheds = cls.schedules || [];
+        if (scheds.length === 0) return "";
+        var s = scheds[0];
+        var fmt = function(d) { return d.replace(/[-:]/g,"").replace(/\.\d+/,"") + "00"; };
+        var title = encodeURIComponent((cls.title || "ZenPass") + " - ZenPass");
+        var desc = encodeURIComponent(cls.description || "");
+        var loc = encodeURIComponent(cls.venue_name || "");
+        return "https://www.google.com/calendar/render?action=TEMPLATE&text=" + title + "&dates=" + fmt(s.start_time) + "/" + fmt(s.end_time) + "&location=" + loc + "&details=" + desc;
+      }
+
+      function shareCourse() {
       var url = window.location.href;
       var title = document.title || "ZenPass 課程";
       // Try Web Share API first
@@ -1487,7 +1515,8 @@
     </nav>
     <div     <!-- Share Button -->
     <div style="display:flex;gap:8px;margin:16px;flex-wrap:wrap;">
-      <button class="share-btn" onclick="shareCourse()">📤 分享課程</button>
+      <a href="#" id="calendarBtn" style="display:inline-flex;align-items:center;gap:4px;padding:8px 14px;border-radius:20px;background:var(--gray-100);color:var(--dark-800);text-decoration:none;font-size:13px;cursor:pointer" onclick="var u=getCalendarUrl(currentClass);if(u)window.open(u);return false">📅 加到日曆</a>
+      <button class="share-btn" onclick="shareCourse()">📤 分享</button>
     </div>
 
     <!-- Related Courses -->
