@@ -59,6 +59,7 @@ body { background: var(--gray-50); padding-bottom: 80px; }
     <div class="coach-avatar" id="caAvatar" style="background:linear-gradient(135deg,#667eea,#764ba2)">🧘</div>
     <div class="coach-name" id="caName">—</div>
     <div class="coach-title" id="caTitle">—</div>
+    <div style="font-size:11px;color:var(--dark-700);margin-top:2px" id="coachIdDisplay"></div>
     <div class="coach-stats">
       <div class="coach-stat"><div class="num" id="caCourses">—</div><div class="label">課程</div></div>
       <div class="coach-stat"><div class="num" id="caStudents">—</div><div class="label">學生</div></div>
@@ -118,6 +119,7 @@ if (!data) { document.getElementById("caName").textContent = "教練未找到"; 
 else {
   document.title = coachName + " — ZenPass 教練";
   document.getElementById("headerName").textContent = coachName;
+      var cidEl = document.getElementById("coachIdDisplay"); if (cidEl && data.id) cidEl.textContent = "教練編號: " + data.id;
   document.getElementById("caAvatar").style.background = data.bg;
   document.getElementById("caAvatar").textContent = data.avatar;
   document.getElementById("caName").textContent = coachName;
