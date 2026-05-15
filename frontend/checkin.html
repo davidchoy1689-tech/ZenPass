@@ -284,6 +284,17 @@
           transform: rotate(360deg);
         }
       }
+    
+      @media (max-width: 480px) {
+        .card { padding: 14px; margin: 0 8px; }
+        .header { padding: 12px 8px; }
+        .info-row { flex-direction: column; gap: 4px; }
+        .info-row .label { min-width: auto; }
+        #monthly-grid { gap: 2px; }
+        #monthly-grid div { width: 12px !important; height: 12px !important; font-size: 6px !important; }
+        .success a { font-size: 11px !important; padding: 5px 10px !important; }
+      }
+
     </style>
   </head>
   <body>
@@ -467,7 +478,7 @@
         var html = "";
         for (var di = 1; di <= today; di++) {
           var checked = days.indexOf(di) >= 0;
-          html += '<div style="width:14px;height:14px;border-radius:3px;background:' + (checked ? '#059669' : '#e5e7eb') + ';font-size:7px;display:flex;align-items:center;justify-content:center;color:' + (checked ? 'white' : 'transparent') + '">' + (checked ? '✓' : '') + '</div>';
+          html += '<div style="width:12px;height:12px;border-radius:2px;background:' + (checked ? '#059669' : '#e5e7eb') + ';font-size:6px;display:flex;align-items:center;justify-content:center;color:' + (checked ? 'white' : 'transparent') + '">' + (checked ? '✓' : '') + '</div>';
         }
         grid.innerHTML = html;
         if (summary) summary.textContent = "本月已簽到 " + days.length + "/" + today + " 天";
