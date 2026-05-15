@@ -554,6 +554,7 @@
     </div>
 
     <button class="hamburger" onclick="document.querySelector('.sidebar').classList.toggle('open')">☰</button>
+    <button class="hamburger" onclick="this.nextElementSibling.classList.toggle('open')">☰</button>
     <!-- App -->
     <div id="app" style="display: none">
       <div class="sidebar">
@@ -858,6 +859,12 @@
         document.getElementById("notif-title").value = "";
         document.getElementById("notif-msg").value = "";
       }
+
+      
+      function filterUsers(){var q=document.getElementById('userSearch');if(!q)return;q=q.value.toLowerCase();document.querySelectorAll('#users-tbody tr').forEach(function(r){r.style.display=r.textContent.toLowerCase().indexOf(q)>=0?'':'none'})}
+      function filterCourses(){var q=document.getElementById('courseSearch');if(!q)return;q=q.value.toLowerCase();document.querySelectorAll('#courses-tbody tr').forEach(function(r){r.style.display=r.textContent.toLowerCase().indexOf(q)>=0?'':'none'})}
+      function toggleBookingView(){var t=document.getElementById('bookingsTable');if(!t)return;t.style.display=t.style.display==='none'?'':'none'}
+      function sendNotification(){var t=document.getElementById('notif-target'),i=document.getElementById('notif-title'),m=document.getElementById('notif-msg'),r=document.getElementById('notif-result');if(!t||!i||!m||!r)return;var ti=i.value.trim(),mm=m.value.trim();if(!ti||!mm){r.style.color='#ef4444';r.textContent='請填寫標題和內容';return}r.style.color='#059669';r.textContent='✅ 通知已發送給'+(t.value);i.value='';m.value=''}
 
       function login() {
         var email = document.getElementById("loginEmail").value;
