@@ -223,6 +223,8 @@
         box-shadow: 0 2px 8px rgba(0,0,0,0.06);
         cursor: pointer;
         border: 1px solid rgba(0,0,0,0.04);
+        display: flex;
+        flex-direction: column;
         transition:
           transform 0.2s ease,
           box-shadow 0.2s ease;
@@ -249,6 +251,12 @@
       }
       .class-card-body {
         padding: 10px 10px 8px;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+      }
+      .class-card-body .class-card-spots {
+        margin-top: auto;
       }
       .class-card-category {
         font-size: 10px;
@@ -1072,11 +1080,8 @@
           var isAppend = arguments && arguments[0] === true;
           totalClasses = result.pagination ? result.pagination.total : items.length;
           if (!isAppend) {
+            document.getElementById("resultCount").textContent = items.length + " / " + totalClasses + " 個課程";
             container.innerHTML =
-              '<div style="font-size:13px;color:var(--dark-700);margin-bottom:8px;">' +
-              items.length +
-              " / " + totalClasses +
-              " 個課程</div>" +
               items
                 .map(function (cls) {
                   return renderCard(cls);
@@ -1088,7 +1093,7 @@
                 return renderCard(cls);
               })
               .join(""));
-            var countEl = container.querySelector('div[style*="font-size:13px"]');
+            var countEl = document.getElementById("resultCount");
             if (countEl) {
               var totalShown = container.querySelectorAll('.class-card').length;
               countEl.textContent = totalShown + " / " + totalClasses + " 個課程";
