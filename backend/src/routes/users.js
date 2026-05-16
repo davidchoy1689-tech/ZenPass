@@ -133,4 +133,31 @@ router.get("/credits", authenticateToken, (req, res) => {
   }
 });
 
+// ===== GET /api/users/me — 別名指向 /profile =====
+router.get("/me", authenticateToken, (req, res) => {
+  // Forward to /profile handler logic
+  try {
+    const db = new Database(DB_PATH);
+    const user = db
+      .prepare(
+        `SELECT id, email, name, phone, avatar_url, credits, membership_type,
+                membership_expires_at, is_coach, coach_verified, created_at,
+                role
+         FROM users WHERE id = ?`
+      )
+      .get(req.user.id);
+    db.close();
+
+    if (!user) return res.status(404).json({ error: "用戶不存在" });
+
+    res.json({
+      ...user,
+      membership_expires_at: user.membership_expires_at || null,
+    });
+  } catch (err) {
+    console.error("GET /users/me error:", err);
+    res.status(500).json({ error: "無法取得用戶資料" });
+  }
+});
+
 module.exports = router;
