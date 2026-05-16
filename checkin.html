@@ -22,69 +22,71 @@
         box-sizing: border-box;
       }
       body {
-        font-family: "Noto Sans TC", sans-serif;
-        background: #f0fff4;
+        font-family: var(--font-zh);
+        background: var(--gray-50);
         min-height: 100vh;
-        max-width: 480px;
+        max-width: var(--max-width);
         margin: 0 auto;
         padding: 0 0 80px;
       }
       .card {
-        background: white;
-        border-radius: 20px;
+        background: var(--white);
+        border-radius: 14px;
         padding: 24px 20px;
         max-width: 100%;
-        margin: 100px 16px 0;
+        margin: 86px 16px 0;
         text-align: center;
-        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
         border: 1px solid rgba(0,0,0,0.04);
       }
       .icon {
-        font-size: 64px;
-        margin-bottom: 16px;
+        font-size: 56px;
+        margin-bottom: 12px;
       }
       h1 {
-        font-size: 22px;
+        font-size: 20px;
         font-weight: 700;
-        color: #1a1a2e;
+        color: var(--dark-900);
         margin-bottom: 4px;
       }
       .sub {
-        font-size: 14px;
-        color: #3d3d5a;
-        margin-bottom: 20px;
+        font-size: 13px;
+        color: var(--dark-700);
+        margin-bottom: 16px;
       }
       .info {
-        background: #f9fafb;
+        background: var(--gray-50);
         border-radius: 12px;
-        padding: 16px;
-        margin-bottom: 20px;
-        font-size: 14px;
+        padding: 14px;
+        margin-bottom: 16px;
+        font-size: 13px;
         text-align: left;
       }
       .info-row {
         display: flex;
         justify-content: space-between;
-        padding: 6px 0;
+        padding: 5px 0;
       }
       .info-row .label {
-        color: #6b7280;
+        color: var(--dark-700);
       }
       .info-row .value {
         font-weight: 600;
-        color: #1a1a2e;
+        color: var(--dark-900);
       }
       .btn-checkin {
         width: 100%;
-        padding: 16px;
+        padding: 14px;
         background: #059669;
         color: white;
         border: none;
-        border-radius: 12px;
-        font-size: 18px;
+        border-radius: 14px;
+        font-size: 16px;
         font-weight: 700;
         cursor: pointer;
-        transition: 0.2s;
+        transition: all 0.2s;
+        box-shadow: 0 2px 8px rgba(5,150,105,0.2);
+        font-family: var(--font-zh);
       }
       .btn-checkin:active {
         transform: scale(0.97);
@@ -92,6 +94,7 @@
       .btn-checkin:disabled {
         opacity: 0.5;
         cursor: not-allowed;
+        box-shadow: none;
       }
       .success {
         display: none;
@@ -114,7 +117,6 @@
         font-size: 14px;
         margin-top: 12px;
       }
-
       .loading {
         text-align: center;
         padding: 40px;
@@ -299,15 +301,15 @@
     </style>
   </head>
   <body>
-    <div class="header">
-      <a class="back-btn" onclick="history.back()">←</a>
-      <h1>📆 簽到</h1>
-      <span></span>
+    <div class="header" style="background:linear-gradient(135deg,var(--orange-600-bg),var(--orange-500));color:white;padding:14px 16px;display:flex;align-items:center;gap:12px;position:fixed;top:0;left:50%;transform:translateX(-50%);width:100%;max-width:var(--max-width);z-index:10">
+      <a class="back-btn" onclick="history.back()" style="color:white;text-decoration:none;font-size:20px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:rgba(255,255,255,0.2)">←</a>
+      <h1 style="font-size:17px;font-weight:600;color:white;margin:0;flex:1">📆 簽到</h1>
+      <span style="width:32px"></span>
     </div>
     <div class="card">
-      <div class="icon">📱</div>
-      <h1>課堂簽到</h1>
-      <div class="sub">掃描教練提供的 QR Code 以簽到</div>
+      <div class="icon" style="font-size:48px;margin-bottom:8px">📱</div>
+      <h1 style="font-size:18px">課堂簽到</h1>
+      <div class="sub" style="font-size:12px;color:var(--dark-700);margin-bottom:12px">掃描教練提供的 QR Code 以簽到</div>
       <div style="text-align: center; margin-bottom: 12px">
         <button
           onclick="startQRScanner()"
