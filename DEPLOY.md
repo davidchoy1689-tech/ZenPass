@@ -140,6 +140,22 @@ pm2 startup
 
 # 保存當前 process list
 pm2 save
+
+### 6a. 背景排程器
+
+自動備份同排程任務由 `scheduler.js` 管理：
+
+```bash
+# 手動執行備份
+node backend/src/scripts/auto-backup.js
+
+# 啟動排程器（PM2 會自動管理）
+pm2 restart ecosystem.config.cjs
+```
+
+排程器包括：
+- **每日自動備份** — 保留最近 7 日
+- **Booking 課前提醒** — 每 5 分鐘檢查
 ```
 
 ### 6. 設定 Nginx Reverse Proxy

@@ -487,42 +487,89 @@
           }).join("");
         }).catch(function(){ section.style.display = "none"; });
       }
-      // Referral
-      function loadReferral() {
-        var code = localStorage.getItem("zenpass_referral_code");
-        var count = parseInt(localStorage.getItem("zenpass_referral_count") || "0");
-        var pts = parseInt(localStorage.getItem("zenpass_referral_points") || "0");
-        if (!code) { code = "ZEN-" + Math.random().toString(36).substring(2,6).toUpperCase(); localStorage.setItem("zenpass_referral_code", code); }
-        document.getElementById("referral-code").textContent = code;
-        document.getElementById("referral-count").textContent = count;
-        document.getElementById("referral-points").textContent = pts;
+      // Referral — API-driven
+      var _referralData = null;
+      async function loadReferral() {
+        var card = document.getElementById("referralCard");
+        if (!card) return;
+        try {
+          var r = await fetch(API_BASE + "/referral/my-code", { headers: getAuthHeaders() });
+          if (!r.ok) throw new Error("無法載入");
+          var d = await r.json();
+          _referralData = d;
+          card.style.display = "block";
+          document.getElementById("referral-code").textContent = d.code || "—";
+          document.getElementById("referral-count").textContent = d.redeemed || 0;
+          document.getElementById("referral-points").textContent = d.credits_earned || 0;
+        } catch (e) {
+          // Offline / not logged in — hide card, it's OK
+          card.style.display = "none";
+        }
       }
       function copyReferral() {
         var code = document.getElementById("referral-code").textContent;
-        navigator.clipboard.writeText("用我的 ZenPass 推薦碼 " + code + " 註冊，雙方各得 50 積分！ https://davidchoy1689-tech.github.io/ZenPass/").then(function(){
+        var shareUrl = window.location.origin + "/login.html?ref=" + encodeURIComponent(code);
+        navigator.clipboard.writeText("用我的 ZenPass 推薦碼 " + code + " 註冊，雙方各得 Credits！ " + shareUrl).then(function(){
           showToast("✅ 推薦碼已複製", "success");
         });
       }
       function shareReferral() {
         var code = document.getElementById("referral-code").textContent;
-        var text = "用我的 ZenPass 推薦碼 " + code + " 註冊，雙方各得 50 積分！";
-        if (navigator.share) { navigator.share({ text: text }).catch(function(){}); }
+        var shareUrl = window.location.origin + "/login.html?ref=" + encodeURIComponent(code);
+        var text = "用我的 ZenPass 推薦碼 " + code + " 註冊，雙方各得 Credits！ " + shareUrl;
+        if (navigator.share) { navigator.share({ text: text, title: "ZenPass 禪流 — 邀請朋友一齊運動" }).catch(function(){}); }
         else { copyReferral(); }
       }
       // Loyalty
       function loadLoyalty() {
+        var card = document.getElementById("loyaltyCard");
+        if (!card) return;
+        // Fetch tier from API (fallback to localStorage membership for offline)
+        fetch(API_BASE + "/loyalty/tiers", { headers: getAuthHeaders() })
+          .then(function(r){ return r.json(); })
+          .then(function(d){
+            if (!d.tiers) return;
+            var user = JSON.parse(localStorage.getItem("zenpass_user") || "{}");
+            var visits = user.total_bookings || 0;
+            var currentTier = "bronze";
+            d.tiers.forEach(function(t){ if (visits >= t.min_visits) currentTier = t.id; });
+            var tierNames = {bronze:"⚪ 一般",silver:"🥈 銀牌",gold:"🥇 金牌",platinum:"💎 鉑金"};
+            var order = ["bronze","silver","gold","platinum"];
+            var idx = order.indexOf(currentTier);
+            if (idx < 0) idx = 0;
+            // Render tier badges
+            var tierDivs = [
+              document.getElementById("loyalty-bronze"),
+              document.getElementById("loyalty-silver"),
+              document.getElementById("loyalty-gold"),
+              document.getElementById("loyalty-platinum")
+            ];
+            for (var i = 0; i < tierDivs.length; i++) {
+              var el = tierDivs[i];
+              if (!el) continue;
+              if (i <= idx) { el.style.background = "var(--orange-600-bg)"; el.style.color = "white"; el.style.fontWeight = (i === idx ? "700" : "600"); }
+              else { el.style.background = "var(--gray-100)"; el.style.color = "var(--dark-700)"; el.style.fontWeight = "400"; }
+            }
+            var pct = ((idx) / (order.length - 1)) * 100;
+            document.getElementById("loyalty-bar").style.width = pct + "%";
+            document.getElementById("loyalty-text").textContent = tierNames[currentTier] + "等級";
+            card.style.display = "block";
+          })
+          .catch(function(){
+            // Offline fallback
+            var memType = localStorage.getItem("zenpass_membership") || "none";
+            if (memType === "none") { card.style.display = "none"; return; }
+            var levels = ["none","trial","standard","gold"];
+            var idx = levels.indexOf(memType);
+            if (idx < 0) idx = 0;
+            // Simple tier rendering
+            card.style.display = "block";
+          });
+        // Set initial values for tier divs
         var memType = localStorage.getItem("zenpass_membership") || "none";
         var levels = ["none","trial","standard","gold"];
         var idx = levels.indexOf(memType);
         if (idx < 0) idx = 0;
-        for (var li = 0; li < levels.length; li++) {
-          var el = document.getElementById("loyalty-" + levels[li]);
-          if (el) {
-            el.style.background = li <= idx ? "var(--orange-600-bg)" : "var(--gray-100)";
-            el.style.color = li <= idx ? "white" : "var(--dark-700)";
-            el.style.fontWeight = li === idx ? "700" : "400";
-          }
-        }
         var pct = ((idx) / (levels.length - 1)) * 100;
         document.getElementById("loyalty-bar").style.width = pct + "%";
         var nextLevel = levels[Math.min(idx + 1, levels.length - 1)];
@@ -659,10 +706,10 @@
         <div class="profile-card" id="loyaltyCard" style="display:none;padding:16px">
           <div style="font-size:14px;font-weight:700;margin-bottom:8px">🏆 忠誠度進度</div>
           <div style="display:flex;gap:4px;margin-bottom:8px">
-            <div style="flex:1;padding:6px 0;border-radius:6px;text-align:center;background:var(--orange-600-bg);color:white;font-size:11px;font-weight:600">⚪ 一般</div>
-            <div style="flex:1;padding:6px 0;border-radius:6px;text-align:center;background:var(--gray-100);color:var(--dark-700);font-size:11px" id="loyalty-trial">💎 試玩</div>
-            <div style="flex:1;padding:6px 0;border-radius:6px;text-align:center;background:var(--gray-100);color:var(--dark-700);font-size:11px" id="loyalty-standard">🔥 標準</div>
-            <div style="flex:1;padding:6px 0;border-radius:6px;text-align:center;background:var(--gray-100);color:var(--dark-700);font-size:11px" id="loyalty-gold">🏆 金會員</div>
+            <div style="flex:1;padding:6px 0;border-radius:6px;text-align:center;background:var(--orange-600-bg);color:white;font-size:11px;font-weight:600" id="loyalty-bronze">🥉 銅牌</div>
+            <div style="flex:1;padding:6px 0;border-radius:6px;text-align:center;background:var(--gray-100);color:var(--dark-700);font-size:11px" id="loyalty-silver">🥈 銀牌</div>
+            <div style="flex:1;padding:6px 0;border-radius:6px;text-align:center;background:var(--gray-100);color:var(--dark-700);font-size:11px" id="loyalty-gold">🥇 金牌</div>
+            <div style="flex:1;padding:6px 0;border-radius:6px;text-align:center;background:var(--gray-100);color:var(--dark-700);font-size:11px" id="loyalty-platinum">💎 鉑金</div>
           </div>
           <div style="height:6px;background:var(--gray-200);border-radius:3px;overflow:hidden;margin-bottom:6px">
             <div id="loyalty-bar" style="height:100%;width:0%;background:linear-gradient(90deg,var(--orange-500),var(--orange-700));border-radius:3px;transition:width .5s"></div>
@@ -806,6 +853,10 @@
         } catch (e) {
           console.warn("Failed to load badges", e);
         }
+
+        // Load referral & loyalty (non-blocking)
+        loadReferral().catch(function(){});
+        loadLoyalty();
 
         // Load bookings in parallel
         try {

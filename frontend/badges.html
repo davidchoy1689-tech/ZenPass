@@ -840,8 +840,8 @@
         showLoading();
         try {
           var [badgesRes, progressRes] = await Promise.all([
-            fetch(API_BASE + "/api/badges", { headers: getHeaders() }),
-            fetch(API_BASE + "/api/badges/progress", { headers: getHeaders() }),
+            fetch(API_BASE + "/badges", { headers: getHeaders() }),
+            fetch(API_BASE + "/badges/progress", { headers: getHeaders() }),
           ]);
 
           var badgesData = await badgesRes.json();
@@ -854,7 +854,7 @@
           showContent();
 
           // Check for new badges (auto-trigger)
-          var checkRes = await fetch(API_BASE + "/api/badges/check", {
+          var checkRes = await fetch(API_BASE + "/badges/check", {
             method: "POST",
             headers: getHeaders(),
           });

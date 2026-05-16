@@ -38,6 +38,13 @@ const PRECACHE = [
   "/points.html",
   "/favicon.png",
   "/manifest.json",
+  "/css/zenpass.css",
+  "/coaches.html",
+  "/faq.html",
+  "/notifications.html",
+  "/onboarding.html",
+  "/share.html",
+  "/waiver.html",
 ];
 
 self.addEventListener("install", function (e) {
