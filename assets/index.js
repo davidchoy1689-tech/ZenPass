@@ -236,7 +236,9 @@ async function loadAllClasses(params) {
         '<div class="empty-state"><span>📭</span><p>暫無課程</p></div>';
       return;
     }
-    container.innerHTML = items
+    // Show only 8 recommended courses on homepage
+    var showItems = items.slice(0, 8);
+    container.innerHTML = showItems
       .map(function (cls) {
         return renderClassCard(cls);
       })
