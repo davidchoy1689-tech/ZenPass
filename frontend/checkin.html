@@ -335,6 +335,16 @@
           display: none;
         "
       ></div>
+      <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--gray-200)">
+        <div style="font-size:12px;color:var(--dark-700);margin-bottom:8px">👨‍🏫 教練簽到 QR</div>
+        <div id="coach-qr-area">
+          <button onclick="generateCoachQR()" style="padding:6px 14px;border:1px solid var(--gray-200);border-radius:8px;background:var(--white);font-size:12px;cursor:pointer">生成課堂 QR Code</button>
+          <div id="coach-qr-display" style="display:none;margin-top:8px">
+            <img id="coach-qr-img" style="width:160px;height:160px;border-radius:8px;border:1px solid var(--gray-200)" />
+            <div style="font-size:11px;color:var(--dark-700);margin-top:4px">學生掃描此 QR 簽到</div>
+          </div>
+        </div>
+      </div>
 
       <div class="info" id="class-info">
         <div class="info-row">
@@ -417,6 +427,7 @@
     </div>
 
     <script>
+      function showToast(m,t){var d=document.createElement("div");d.style.cssText="position:fixed;bottom:120px;left:50%;transform:translateX(-50%);padding:10px 18px;border-radius:10px;font-size:13px;font-weight:500;z-index:999;background:"+(t==="success"?"#ecfdf5":"#fef2f2")+";color:"+(t==="success"?"#059669":"#ef4444")+";box-shadow:0 2px 8px rgba(0,0,0,0.12)";d.textContent=m;document.body.appendChild(d);setTimeout(function(){d.remove()},2000);}
       
       // ===== Streak + Monthly Stats =====
       function loadStreakData() {
@@ -567,14 +578,59 @@
       function doCheckin() {
         var name = document.getElementById("checkin-name").value.trim();
         if (!name) {
-          alert("請輸入你的姓名");
+          showToast("請輸入姓名", "warning");
           return;
         }
 
-        document.getElementById("btn-checkin").disabled = true;
-        document.getElementById("btn-checkin").textContent = "⏳ 簽到中...";
+        var btn = document.getElementById("btn-checkin");
+        btn.disabled = true;
+        btn.textContent = "⏳ 簽到中...";
 
-        // Try to match from coach student database
+        // Try API check-in (find booking by user name for today)
+        doApiCheckin(name, function(success) {
+          if (success) return;
+          // Fallback: store locally
+          doLocalCheckin(name);
+        });
+      }
+
+      async function doApiCheckin(name, fallback) {
+        var token = localStorage.getItem("zenpass_token");
+        if (!token) { fallback(false); return; }
+        try {
+          // Find today's bookings for this user
+          var r = await fetch(API_BASE + "/bookings/my?status=confirmed", {
+            headers: { "Authorization": "Bearer " + token }
+          });
+          if (!r.ok) { fallback(false); return; }
+          var d = await r.json();
+          var bookings = d.bookings || d.data || [];
+          var today = new Date().toISOString().split("T")[0];
+          var found = null;
+          for (var bi = 0; bi < bookings.length; bi++) {
+            var b = bookings[bi];
+            var sched = b.schedule || {};
+            var sDate = (sched.start_time || "").split("T")[0];
+            if (sDate === today) {
+              found = b;
+              break;
+            }
+          }
+          if (!found) { fallback(false); return; }
+          // Mark as attended
+          var attendR = await fetch(API_BASE + "/bookings/" + found.id + "/attend", {
+            method: "POST",
+            headers: { "Authorization": "Bearer " + token }
+          });
+          if (!attendR.ok) { fallback(false); return; }
+          var attendD = await attendR.json();
+          showSuccess(name, found);
+        } catch(e) {
+          fallback(false);
+        }
+      }
+
+      function doLocalCheckin(name) {
         var phone = "";
         var level = "";
         var totalClasses = 0;
@@ -592,7 +648,7 @@
           }
         } catch (e) {}
 
-        // Store checkin record in localStorage for cross-page access
+        // Store checkin record
         try {
           var records = JSON.parse(
             localStorage.getItem("zenpass_checkins") || "[]",
@@ -604,32 +660,32 @@
             totalClasses: totalClasses,
             classId: classId || "demo",
             date: date || new Date().toISOString().split("T")[0],
-            time: new Date().toLocaleTimeString("zh-HK", {
-              hour: "2-digit",
-              minute: "2-digit",
-            }),
+            time: new Date().toLocaleTimeString("zh-HK", { hour: "2-digit", minute: "2-digit" }),
             coach: coach || "Demo",
           });
           localStorage.setItem("zenpass_checkins", JSON.stringify(records));
         } catch (e) {}
 
-        // Show success
-        document.getElementById("success-section").style.display = "block";
-        var name = document.getElementById("checkin-name").value.trim() || "學生";
-        localStorage.setItem("zenpass_checkedin_today", "yes");
-        var stored = parseInt(localStorage.getItem("zenpass_streak") || "0");
-        localStorage.setItem("zenpass_streak", (stored + 1).toString());
-        localStorage.setItem("zenpass_streak_date", new Date().toDateString());
-        loadStreakData();
-        saveCheckinToHistory({className: document.getElementById("checkin-class").textContent || "課堂"});
-        document.getElementById("btn-checkin").style.display = "none";
-        document.getElementById("class-info").style.display = "none";
+        showSuccess(name, null);
+      }
+
+      function showSuccess(name, booking) {
+        document.getElementById("btn-checkin").textContent = "✅ 已簽到";
+
+      // ===== Generate Coach QR =====
+      function generateCoachQR() {
+        var display = document.getElementById("coach-qr-display");
+        var img = document.getElementById("coach-qr-img");
+        var url = window.location.origin + "/checkin.html?class=" + encodeURIComponent(classId || "") + "&date=" + encodeURIComponent(date || "") + "&coach=" + encodeURIComponent(coach || "");
+        img.src = "https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=" + encodeURIComponent(url);
+        display.style.display = "block";
       }
 
       // ===== QR Scanner =====
       function startQRScanner() {
         var reader = document.getElementById("qr-reader");
         reader.style.display = "block";
+        reader.innerHTML = '<div class="loading-spinner">啟動相機...</div>';
         if (typeof Html5Qrcode === "undefined") {
           reader.innerHTML =
             '<p style="color:#ef4444;font-size:13px">❌ QR scanner library not loaded. Check internet connection.</p>';
@@ -642,14 +698,35 @@
           function (decodedText) {
             qr.stop();
             reader.style.display = "none";
-            // Parse QR data: it should be a URL or booking ref
+            // Parse QR data
             var bookingRef = decodedText;
-            if (decodedText.indexOf("booking=") > -1) {
-              var m = decodedText.match(/booking=([^&]+)/);
-              if (m) bookingRef = m[1];
+            var parsedClass = "";
+            var parsedName = "";
+            var parsedDate = "";
+            var params = {};
+            if (decodedText.indexOf("?") > -1 || decodedText.indexOf("=") > -1) {
+              var qs = decodedText.split("?").pop() || "";
+              qs.split("&").forEach(function(p){
+                var kv = p.split("=");
+                if (kv.length > 1) params[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1]);
+              });
             }
-            document.getElementById("checkin-name").value = bookingRef;
-            showToast("✅ QR Code scanned!", "success");
+            bookingRef = params.booking || params.ref || params.id || bookingRef;
+            parsedClass = params.class || params.course || "";
+            parsedName = params.name || params.student || "";
+            parsedDate = params.date || "";
+            
+            if (parsedName) document.getElementById("checkin-name").value = parsedName;
+            if (bookingRef) document.getElementById("checkin-name").value = bookingRef;
+            if (parsedClass && document.getElementById("checkin-class")) document.getElementById("checkin-class").textContent = parsedClass;
+            if (parsedDate && document.getElementById("checkin-date")) document.getElementById("checkin-date").textContent = parsedDate;
+            
+            showToast("✅ 已掃描 QR Code", "success");
+            
+            // If we have enough data, auto check-in
+            if (parsedName || bookingRef) {
+              setTimeout(function(){ doCheckin(); }, 500);
+            }
           },
           function (err) {
             /* ignore scan errors */
