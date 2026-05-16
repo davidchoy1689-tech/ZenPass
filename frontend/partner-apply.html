@@ -189,6 +189,7 @@
       <div class="icon">🎉</div>
       <h3>申請已提交！</h3>
       <p>感謝你嘅申請！我哋嘅團隊會儘快審核資料，<br />並透過電話或電郵聯絡你。</p>
+      <p id="success-note"></p>
       <p style="margin-top:12px">如有疑問，可致電 📞 2387 0724</p>
       <a href="index.html" style="display:inline-block;margin-top:16px;padding:10px 24px;background:var(--orange-600-bg);color:white;border-radius:12px;text-decoration:none;font-weight:600">🏠 返回首頁</a>
     </div>
@@ -230,11 +231,35 @@
           });
           var d = await r.json();
           if (!r.ok) throw new Error(d.error || "提交失敗");
-          document.getElementById("apply-form").style.display = "none";
-          document.getElementById("success-card").style.display = "block";
+          showSuccess("local");
         } catch (e) {
-          showToast("❌ " + e.message, "error");
-          btn.disabled = false; btn.textContent = "📤 提交申請";
+          // API unavailable (e.g. on GitHub Pages) — save to localStorage instead
+          if (e.message.includes("Failed to fetch") || e.message.includes("NetworkError")) {
+            var apps = JSON.parse(localStorage.getItem("zenpass_partner_apps") || "[]");
+            apps.push({
+              id: "PENDING-" + Date.now(),
+              name: name,
+              category: category,
+              district: district,
+              contact_person: contact,
+              phone: phone,
+              submitted_at: new Date().toISOString()
+            });
+            localStorage.setItem("zenpass_partner_apps", JSON.stringify(apps));
+            showSuccess("local");
+          } else {
+            showToast("❌ " + e.message, "error");
+            btn.disabled = false; btn.textContent = "📤 提交申請";
+          }
+        }
+      }
+
+      function showSuccess(mode) {
+        document.getElementById("apply-form").style.display = "none";
+        document.getElementById("success-card").style.display = "block";
+        var note = document.getElementById("success-note");
+        if (mode === "local" && note) {
+          note.textContent = "📌 已暫存於瀏覽器，連線後可重新提交。";
         }
       }
     </script>
