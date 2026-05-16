@@ -21,8 +21,8 @@ self.addEventListener("notificationclick", function (e) {
   clients.openWindow(url);
 });
 
-/* ZenPass Service Worker — v3 (pre-cache + offline) */
-const CACHE = "zenpass-v3";
+/* ZenPass Service Worker — v4 (pre-cache + offline + separate cache strategies) */
+const CACHE = "zenpass-v4";
 const PRECACHE = [
   "/",
   "/index.html",
@@ -45,6 +45,9 @@ const PRECACHE = [
   "/onboarding.html",
   "/share.html",
   "/waiver.html",
+  "/about.html",
+  "/terms.html",
+  "/privacy.html",
 ];
 
 self.addEventListener("install", function (e) {
