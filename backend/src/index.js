@@ -22,6 +22,14 @@ const PORT = process.env.PORT || 3001;
 
 // ===== 中介軟體 =====
 
+// Request ID 追蹤 — 每個請求分配唯一 ID
+const { randomUUID } = require("crypto");
+app.use((req, res, next) => {
+  req.requestId = randomUUID();
+  res.setHeader("X-Request-ID", req.requestId);
+  next();
+});
+
 // HTTP 請求日誌 (morgan → winston)
 app.use(morgan(":method :url :status :response-time ms", { stream: logger.morganStream }));
 

@@ -8,12 +8,20 @@ const path = require('path');
 // Run auto-backup every 24 hours
 const { autoBackup } = require('./auto-backup');
 
+// Run booking reminders every 15 minutes
+const { sendBookingReminders } = require('./booking-reminder');
+
 console.log('⏰ ZenPass 排程器啟動');
 
-// Initial run
+// Initial runs
 autoBackup();
+sendBookingReminders();
 
-// Run every 24 hours
+// Run backup every 24 hours
 setInterval(autoBackup, 24 * 60 * 60 * 1000);
 
-console.log('📅 備份排程已設定：每 24 小時');
+// Run booking reminders every 15 minutes
+setInterval(sendBookingReminders, 15 * 60 * 1000);
+
+console.log('📅 備份排程：每 24 小時');
+console.log('🔔 課前提醒：每 15 分鐘');
