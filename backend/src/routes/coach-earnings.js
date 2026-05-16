@@ -356,10 +356,11 @@ router.post("/payout-request", authenticateToken, (req, res) => {
       `
       INSERT INTO coach_payouts (id, payout_reference, coach_id, amount, fee, net_amount, payment_method,
         bank_name, bank_account, bank_code, fps_phone, payme_phone)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
     ).run(
       payoutId,
+      poRef,
       req.user.id,
       amount,
       fee,

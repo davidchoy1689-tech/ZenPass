@@ -123,15 +123,74 @@ app.use("/api/loyalty", require("./routes/referral"));
 
 // ===== 健康檢查 =====
 const { ok } = require("./services/response");
+const os = require("os");
 
 app.get("/api/health", (req, res) => {
+  const dbStatus = { connected: false, error: null };
+  let uptime = process.uptime();
+  
+  try {
+    const Database = require("better-sqlite3");
+    const db = new Database(DB_PATH);
+    db.pragma("foreign_keys = ON");
+    db.prepare("SELECT 1").get();
+    
+    // Get DB stats
+    const tableCount = db.prepare(
+      "SELECT COUNT(*) as cnt FROM sqlite_master WHERE type='table'"
+    ).get().cnt;
+    const bookingCount = db.prepare(
+      "SELECT COUNT(*) as cnt FROM bookings"
+    ).get().cnt;
+    const userCount = db.prepare(
+      "SELECT COUNT(*) as cnt FROM users"
+    ).get().cnt;
+    
+    dbStatus.connected = true;
+    dbStatus.tables = tableCount;
+    dbStatus.bookings = bookingCount;
+    dbStatus.users = userCount;
+    db.close();
+  } catch (err) {
+    dbStatus.connected = false;
+    dbStatus.error = err.message;
+  }
+
   ok(res, {
-    status: "ok",
+    status: dbStatus.connected ? "ok" : "degraded",
     version: "1.0.0",
     name: "ZenPass 禪流 API",
     time: new Date().toISOString(),
+    uptime: Math.floor(uptime),
+    uptime_human: formatDuration(uptime),
+    database: dbStatus,
+    memory: {
+      free: Math.round(os.freemem() / 1024 / 1024) + " MB",
+      total: Math.round(os.totalmem() / 1024 / 1024) + " MB",
+      usage: Math.round((process.memoryUsage().heapUsed / 1024 / 1024) * 100) / 100 + " MB",
+    },
+    platform: {
+      node: process.version,
+      arch: process.arch,
+      hostname: os.hostname(),
+    },
+    // TODO: Integrate Sentry for production error tracking
+    // sentry: process.env.SENTRY_DSN ? { dsn: process.env.SENTRY_DSN, enabled: true } : { enabled: false },
   });
 });
+
+function formatDuration(seconds) {
+  const d = Math.floor(seconds / 86400);
+  const h = Math.floor((seconds % 86400) / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = Math.floor(seconds % 60);
+  const parts = [];
+  if (d > 0) parts.push(d + "d");
+  if (h > 0) parts.push(h + "h");
+  if (m > 0) parts.push(m + "m");
+  parts.push(s + "s");
+  return parts.join(" ");
+}
 
 // ===== 錯誤處理（集中式） =====
 const { errorHandler, AppError } = require("./middleware/error-handler");

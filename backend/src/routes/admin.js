@@ -415,4 +415,134 @@ router.get("/db", async (req, res) => {
   }
 });
 
+// ===== POST /api/admin/process-payouts — 管理員批量處理教練出糧 =====
+router.post("/process-payouts", authenticateToken, requireAdmin, (req, res) => {
+  try {
+    const db = new Database(DB_PATH);
+    db.pragma("foreign_keys = ON");
+    
+    // 計算所有 coach 嘅 pending earnings
+    const coaches = db.prepare(`
+      SELECT ce.coach_id, u.name as coach_name, u.email as coach_email,
+             SUM(ce.net_amount) as total_pending
+      FROM coach_earnings ce
+      JOIN users u ON ce.coach_id = u.id
+      WHERE ce.status = 'pending'
+      GROUP BY ce.coach_id
+      HAVING total_pending > 0
+    `).all();
+
+    let processed = 0;
+    const results = [];
+    
+    for (const coach of coaches) {
+      // Create payout record
+      const payoutId = require("uuid").v4();
+      const poRef = "PO-" + new Date().toISOString().slice(0, 10).replace(/-/g, "") +
+                    "-" + Math.random().toString(36).substring(2, 6).toUpperCase();
+      const fee = Math.max(0, coach.total_pending * 0.01); // 1% processing fee
+      const netAmount = coach.total_pending - fee;
+      
+      db.prepare(`
+        INSERT INTO coach_payouts (id, payout_reference, coach_id, amount, fee, net_amount, payment_method, status)
+        VALUES (?, ?, ?, ?, ?, ?, 'bank', 'processing')
+      `).run(payoutId, poRef, coach.coach_id, coach.total_pending, fee, netAmount);
+      
+      // Mark all pending earnings for this coach as paid
+      db.prepare(`
+        UPDATE coach_earnings SET status = 'paid', payout_id = ?
+        WHERE coach_id = ? AND status = 'pending'
+      `).run(payoutId, coach.coach_id);
+      
+      // Update user totals
+      db.prepare(`
+        UPDATE users SET pending_payout = 0, total_earnings = COALESCE(total_earnings, 0) + ?
+        WHERE id = ?
+      `).run(netAmount, coach.coach_id);
+      
+      // Notification
+      try {
+        const { sendNotification } = require("../services/notification");
+        sendNotification("coach.payout_processed", {
+          recipient: coach.coach_id,
+          data: {
+            amount: coach.total_pending,
+            status: "processing",
+            reason: "管理員批量出糧",
+            eta: "3-5 個工作日",
+          },
+        });
+      } catch (notifErr) {
+        console.error("⚠️ 發送出糧通知失敗:", notifErr.message);
+      }
+      
+      processed++;
+      results.push({
+        coach_name: coach.coach_name,
+        amount: coach.total_pending,
+        fee: fee,
+        net_amount: netAmount,
+        payout_reference: poRef,
+      });
+    }
+    
+    db.close();
+    
+    res.json({
+      message: processed > 0 ? `已爲 ${processed} 位教練處理出糧` : "沒有待出糧的教練",
+      processed: processed,
+      results: results,
+    });
+  } catch (err) {
+    console.error("批量出糧錯誤:", err);
+    res.status(500).json({ error: "出糧處理失敗" });
+  }
+});
+
+// ===== GET /api/admin/payouts — 管理員查看所有出糧記錄 =====
+router.get("/payouts", authenticateToken, requireAdmin, (req, res) => {
+  try {
+    const db = new Database(DB_PATH);
+    
+    const { status, page = 1, limit = 50 } = req.query;
+    let where = "WHERE 1=1";
+    const params = [];
+    
+    if (status) {
+      where += " AND cp.status = ?";
+      params.push(status);
+    }
+    
+    const offset = (parseInt(page) - 1) * parseInt(limit);
+    
+    const payouts = db.prepare(`
+      SELECT cp.*, u.name as coach_name, u.email as coach_email
+      FROM coach_payouts cp
+      JOIN users u ON cp.coach_id = u.id
+      ${where}
+      ORDER BY cp.created_at DESC
+      LIMIT ? OFFSET ?
+    `).all(...params, parseInt(limit), offset);
+    
+    const total = db.prepare(`
+      SELECT COUNT(*) as count FROM coach_payouts cp ${where}
+    `).get(...params).count;
+    
+    const summary = db.prepare(`
+      SELECT 
+        COALESCE(SUM(CASE WHEN cp.status IN ('pending','processing') THEN cp.net_amount ELSE 0 END), 0) as pending_total,
+        COALESCE(SUM(CASE WHEN cp.status = 'paid' THEN cp.net_amount ELSE 0 END), 0) as paid_total,
+        COUNT(DISTINCT cp.coach_id) as total_coaches
+      FROM coach_payouts cp
+    `).get();
+    
+    db.close();
+    
+    res.json({ payouts, total, summary, page: parseInt(page), limit: parseInt(limit) });
+  } catch (err) {
+    console.error("取 payout 記錄錯誤:", err);
+    res.status(500).json({ error: "無法獲取出糧記錄" });
+  }
+});
+
 module.exports = router;

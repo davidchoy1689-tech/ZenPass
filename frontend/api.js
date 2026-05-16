@@ -9,6 +9,31 @@ function zpKey(baseKey) {
   return "zp_" + name.replace(/\s/g, "_") + "_" + baseKey;
 }
 
+// ===== Demo Mode Detection (dev only) =====
+// First-time visitor: auto-create demo user for smooth onboarding
+(function () {
+  if (
+    !localStorage.getItem("zenpass_token") &&
+    !localStorage.getItem("zenpass_user")
+  ) {
+    localStorage.setItem("zenpass_token", "demo_token_student");
+    localStorage.setItem(
+      "zenpass_user",
+      JSON.stringify({
+        name: "訪客",
+        email: "guest@zenpass.hk",
+        phone: "",
+        role: "student",
+        credits: 10,
+        bookings: 0,
+        joined: new Date().toISOString().split("T")[0],
+        avatar: "🎓",
+        is_all_access: false,
+      }),
+    );
+  }
+})();
+
 // Auto-detect API base URL
 const API_BASE = (() => {
   // Always use relative path — works with tunnel, local dev, and same-origin proxy
@@ -818,6 +843,20 @@ function logout() {
       console.log("SW registration skipped:", err.message);
     });
   }
+})();
+
+// ===== Google Analytics 4 (pages that include api.js get GA automatically) =====
+// TODO: 註冊 Google Analytics 後，將 G-XXXXXXXX 替換為實際的 Measurement ID
+(function() {
+  if (window.gtag || document.querySelector('script[src*="googletagmanager.com/gtag/js"]')) return;
+  var s = document.createElement('script');
+  s.async = true;
+  s.src = 'https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXX';
+  document.head.appendChild(s);
+  window.dataLayer = window.dataLayer || [];
+  window.gtag = function(){dataLayer.push(arguments);};
+  gtag('js', new Date());
+  gtag('config', 'G-XXXXXXXX');
 })();
 
 // ===== Init on load =====
