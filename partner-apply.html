@@ -229,28 +229,30 @@
               email: document.getElementById("f-email").value.trim(),
             }),
           });
-          var d = await r.json();
-          if (!r.ok) throw new Error(d.error || "提交失敗");
-          showSuccess("local");
-        } catch (e) {
-          // API unavailable (e.g. on GitHub Pages) — save to localStorage instead
-          if (e.message.includes("Failed to fetch") || e.message.includes("NetworkError")) {
-            var apps = JSON.parse(localStorage.getItem("zenpass_partner_apps") || "[]");
-            apps.push({
-              id: "PENDING-" + Date.now(),
-              name: name,
-              category: category,
-              district: district,
-              contact_person: contact,
-              phone: phone,
-              submitted_at: new Date().toISOString()
-            });
-            localStorage.setItem("zenpass_partner_apps", JSON.stringify(apps));
-            showSuccess("local");
-          } else {
-            showToast("❌ " + e.message, "error");
-            btn.disabled = false; btn.textContent = "📤 提交申請";
+          if (r.ok) {
+            var d = await r.json().catch(function(){ return {}; });
+            if (d.error) throw new Error(d.error);
+            showSuccess("api");
+            return;
           }
+        } catch(e) {}
+        // API failed — save to localStorage
+        try {
+          var apps = JSON.parse(localStorage.getItem("zenpass_partner_apps") || "[]");
+          apps.push({
+            id: "PENDING-" + Date.now(),
+            name: name,
+            category: category,
+            district: district,
+            contact_person: contact,
+            phone: phone,
+            submitted_at: new Date().toISOString()
+          });
+          localStorage.setItem("zenpass_partner_apps", JSON.stringify(apps));
+          showSuccess("local");
+        } catch(e2) {
+          showToast("❌ 提交失敗，請稍後再試", "error");
+          btn.disabled = false; btn.textContent = "📤 提交申請";
         }
       }
 
