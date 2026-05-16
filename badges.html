@@ -11,6 +11,7 @@
       href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap"
       rel="stylesheet"
     />
+      <link rel="stylesheet" href="css/zenpass.css" />
     <style>
       :root {
         --orange-500: #ff6b35;
@@ -821,8 +822,6 @@
     </style>
 
     <script>
-      var API_BASE =
-        localStorage.getItem("zenpass_api_base") || window.location.origin;
       var TOKEN_KEY = "zenpass_token";
 
       function getHeaders() {
@@ -839,8 +838,8 @@
         showLoading();
         try {
           var [badgesRes, progressRes] = await Promise.all([
-            fetch(API_BASE + "/api/badges", { headers: getHeaders() }),
-            fetch(API_BASE + "/api/badges/progress", { headers: getHeaders() }),
+            fetch(API_BASE + "/badges", { headers: getHeaders() }),
+            fetch(API_BASE + "/badges/progress", { headers: getHeaders() }),
           ]);
 
           var badgesData = await badgesRes.json();
@@ -853,7 +852,7 @@
           showContent();
 
           // Check for new badges (auto-trigger)
-          var checkRes = await fetch(API_BASE + "/api/badges/check", {
+          var checkRes = await fetch(API_BASE + "/badges/check", {
             method: "POST",
             headers: getHeaders(),
           });
