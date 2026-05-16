@@ -349,10 +349,15 @@ if (typeof Html5Qrcode === "undefined") {
       <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--gray-200)">
         <div style="font-size:12px;color:var(--dark-700);margin-bottom:8px">👨‍🏫 教練簽到 QR</div>
         <div id="coach-qr-area">
+          <div id="schedule-select-wrap" style="display:none;margin-bottom:8px">
+            <select id="schedule-select" style="width:100%;padding:8px;border:1px solid var(--gray-200);border-radius:8px;font-size:12px;font-family:var(--font-zh);background:var(--white)">
+              <option value="">選擇課堂...</option>
+            </select>
+          </div>
           <button onclick="generateCoachQR()" style="padding:6px 14px;border:1px solid var(--gray-200);border-radius:8px;background:var(--white);font-size:12px;cursor:pointer">生成課堂 QR Code</button>
           <div id="coach-qr-display" style="display:none;margin-top:8px">
             <img id="coach-qr-img" style="width:160px;height:160px;border-radius:8px;border:1px solid var(--gray-200)" />
-            <div style="font-size:11px;color:var(--dark-700);margin-top:4px">學生掃描此 QR 簽到</div>
+            <div id="coach-qr-note" style="font-size:11px;color:var(--dark-700);margin-top:4px">學生掃描此 QR 即可自動簽到</div>
           </div>
         </div>
       </div>
@@ -567,6 +572,12 @@ if (typeof Html5Qrcode === "undefined") {
       }
       var isDemo = !classId || !date;
 
+      // Load upcoming schedules for coach QR + load from URL
+      loadUpcomingSchedules();
+      if (window.location.search.indexOf("schedule_id=") > -1) {
+        loadFromURL();
+      }
+
       if (isDemo) {
         document.getElementById("checkin-class").textContent =
           "🧘 流瑜伽 (Demo)";
@@ -692,13 +703,79 @@ if (typeof Html5Qrcode === "undefined") {
         saveCheckinToHistory({className: document.getElementById("checkin-class").textContent || "課堂"});
       }
 
+      // ===== Load Schedules for Coach QR =====
+      async function loadUpcomingSchedules() {
+        try {
+          var r = await fetch(API_BASE + "/classes/upcoming");
+          if (!r.ok) return;
+          var d = await r.json();
+          var list = d.schedules || [];
+          if (list.length === 0) return;
+          var sel = document.getElementById("schedule-select");
+          if (!sel) return;
+          sel.innerHTML = '<option value="">選擇課堂...</option>';
+          list.forEach(function(s) {
+            var opt = document.createElement("option");
+            opt.value = s.schedule_id;
+            var dateStr = (s.start_time || "").split("T")[0];
+            var timeStr = (s.start_time || "").split("T")[1]?.slice(0,5) || "";
+            opt.textContent = s.title + " — " + dateStr + " " + timeStr + " (" + s.coach_name + ")";
+            sel.appendChild(opt);
+          });
+          sel.style.display = "block";
+          document.getElementById("schedule-select-wrap").style.display = "block";
+        } catch(e) {}
+      }
+
       // ===== Generate Coach QR =====
       function generateCoachQR() {
+        var sel = document.getElementById("schedule-select");
+        var scheduleId = sel ? sel.value : "";
+        if (!scheduleId && sel) {
+          showToast("請先選擇課堂", "warning");
+          return;
+        }
         var display = document.getElementById("coach-qr-display");
         var img = document.getElementById("coach-qr-img");
-        var url = window.location.origin + "/checkin.html?class=" + encodeURIComponent(classId || "") + "&date=" + encodeURIComponent(date || "") + "&coach=" + encodeURIComponent(coachName || "");
+        var url = window.location.origin + "/checkin.html?schedule_id=" + encodeURIComponent(scheduleId || "") + "&class=" + encodeURIComponent(classId || "") + "&date=" + encodeURIComponent(date || "") + "&coach=" + encodeURIComponent(coachName || "");
         img.src = "https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=" + encodeURIComponent(url);
         display.style.display = "block";
+        document.getElementById("coach-qr-note").textContent = "學生掃描此 QR 即可自動簽到";
+      }
+
+      // ===== Load Class from URL params (supports schedule_id) =====
+      async function loadFromURL() {
+        var qs = window.location.search.substring(1);
+        if (!qs) return;
+        var parts = qs.split("&");
+        var params = {};
+        for (var pi = 0; pi < parts.length; pi++) {
+          var kv = parts[pi].split("=");
+          if (kv.length > 1) params[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1]);
+        }
+        // If schedule_id is provided, fetch schedule details from API
+        if (params.schedule_id) {
+          try {
+            var r = await fetch(API_BASE + "/classes/upcoming");
+            if (r.ok) {
+              var d = await r.json();
+              var scheds = d.schedules || [];
+              for (var si = 0; si < scheds.length; si++) {
+                if (scheds[si].schedule_id === params.schedule_id) {
+                  var s = scheds[si];
+                  if (document.getElementById("checkin-class")) document.getElementById("checkin-class").textContent = s.title || "—";
+                  if (document.getElementById("checkin-date")) document.getElementById("checkin-date").textContent = ((s.start_time || "").split("T")[0] || "—");
+                  if (document.getElementById("checkin-coach")) document.getElementById("checkin-coach").textContent = s.coach_name || "—";
+                  if (document.getElementById("class-info")) document.getElementById("class-info").style.display = "block";
+                  coachName = s.coach_name || "";
+                  classId = s.class_id || "";
+                  date = (s.start_time || "").split("T")[0] || "";
+                  break;
+                }
+              }
+            }
+          } catch(e) {}
+        }
       }
 
       // ===== QR Scanner =====
@@ -778,6 +855,7 @@ if (typeof Html5Qrcode === "undefined") {
         var parsedClass = "";
         var parsedName = "";
         var parsedDate = "";
+        var parsedScheduleId = "";
         var params = {};
         if (decodedText.indexOf("?") > -1 || decodedText.indexOf("=") > -1) {
           var qsPart = decodedText.split("?").pop() || "";
@@ -790,6 +868,26 @@ if (typeof Html5Qrcode === "undefined") {
         parsedClass = params.class || params.course || "";
         parsedName = params.name || params.student || "";
         parsedDate = params.date || "";
+        parsedScheduleId = params.schedule_id || "";
+        
+        // If schedule_id is provided, fetch details from API
+        if (parsedScheduleId) {
+          fetch(API_BASE + "/classes/upcoming").then(function(r){return r.json()}).then(function(d){
+            var scheds = d.schedules || [];
+            for (var si = 0; si < scheds.length; si++) {
+              if (scheds[si].schedule_id === parsedScheduleId) {
+                var s = scheds[si];
+                if (document.getElementById("checkin-class")) document.getElementById("checkin-class").textContent = s.title || parsedClass;
+                if (document.getElementById("checkin-date")) document.getElementById("checkin-date").textContent = (s.start_time || "").split("T")[0] || parsedDate;
+                if (document.getElementById("checkin-coach")) document.getElementById("checkin-coach").textContent = s.coach_name || "";
+                classId = s.class_id || "";
+                date = (s.start_time || "").split("T")[0] || "";
+                coachName = s.coach_name || "";
+                break;
+              }
+            }
+          }).catch(function(){});
+        }
         
         if (parsedName) document.getElementById("checkin-name").value = parsedName;
         if (bookingRef) document.getElementById("checkin-name").value = bookingRef;

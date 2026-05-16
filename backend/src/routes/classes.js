@@ -198,6 +198,34 @@ router.get("/:id/recommended", (req, res) => {
   }
 });
 
+// ===== GET /api/classes/upcoming — 即將開課時間表 (for QR checkin) =====
+router.get("/upcoming", optionalAuth, (req, res) => {
+  try {
+    const db = new Database(DB_PATH);
+    const schedules = db.prepare(`
+      SELECT cs.id as schedule_id, c.title, c.id as class_id, cs.start_time, cs.end_time,
+             c.venue_name, c.coach_id, c.price_hkd, cs.enrolled_count, cs.max_participants
+      FROM class_schedules cs, classes c
+      WHERE cs.class_id = c.id
+        AND cs.start_time >= datetime('now', '-1 hour')
+        AND cs.status = 'available'
+      ORDER BY cs.start_time
+      LIMIT 50
+    `).all();
+    // Enrich with coach names
+    var enriched = schedules.map(function(s) {
+      var coach = db.prepare("SELECT name FROM users WHERE id = ?").get(s.coach_id);
+      s.coach_name = coach ? coach.name : "";
+      delete s.coach_id;
+      return s;
+    });
+    db.close();
+    res.json({ schedules: enriched });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.get("/categories", cache(300), (req, res) => {
   try {
     const db = new Database(DB_PATH);
