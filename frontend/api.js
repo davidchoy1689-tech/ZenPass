@@ -9,31 +9,6 @@ function zpKey(baseKey) {
   return "zp_" + name.replace(/\s/g, "_") + "_" + baseKey;
 }
 
-// ===== Demo Mode Detection (dev only) =====
-// First-time visitor: auto-create demo user for smooth onboarding
-(function () {
-  if (
-    !localStorage.getItem("zenpass_token") &&
-    !localStorage.getItem("zenpass_user")
-  ) {
-    localStorage.setItem("zenpass_token", "demo_token_student");
-    localStorage.setItem(
-      "zenpass_user",
-      JSON.stringify({
-        name: "訪客",
-        email: "guest@zenpass.hk",
-        phone: "",
-        role: "student",
-        credits: 10,
-        bookings: 0,
-        joined: new Date().toISOString().split("T")[0],
-        avatar: "🎓",
-        is_all_access: false,
-      }),
-    );
-  }
-})();
-
 // Auto-detect API base URL
 const API_BASE = (() => {
   // Always use relative path — works with tunnel, local dev, and same-origin proxy
