@@ -21,13 +21,23 @@ self.addEventListener("notificationclick", function (e) {
   clients.openWindow(url);
 });
 
-/* ZenPass Service Worker — v4 (pre-cache + offline + separate cache strategies) */
-const CACHE = "zenpass-v4";
-const PRECACHE = [
+/* ZenPass Service Worker — v4 (enhanced cache strategy) */
+const CACHE_STATIC = "zenpass-static-v4";
+const CACHE_PAGES = "zenpass-pages-v4";
+
+// Static assets: cache-first (rarely change)
+const STATIC_ASSETS = [
+  "/css/zenpass.css",
+  "/api.js",
+  "/favicon.png",
+  "/manifest.json",
+  "/sw.js",
+];
+
+// Pages: network-first (always try to get latest, fallback to cache)
+const PAGES = [
   "/",
   "/index.html",
-  "/api.js",
-  "/courses.html",
   "/explore.html",
   "/class-detail.html",
   "/my.html",
@@ -36,81 +46,140 @@ const PRECACHE = [
   "/login.html",
   "/badges.html",
   "/points.html",
-  "/favicon.png",
-  "/manifest.json",
-  "/css/zenpass.css",
   "/coaches.html",
   "/faq.html",
   "/notifications.html",
   "/onboarding.html",
   "/share.html",
   "/waiver.html",
-  "/about.html",
-  "/terms.html",
-  "/privacy.html",
+  "/payment.html",
+  "/admin.html",
+  "/checkin.html",
 ];
+
+// Offline HTML fallback
+const OFFLINE_PAGE = `<!doctype html>
+<html lang="zh-HK"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>離線中 — ZenPass</title><style>
+body{font-family:"Noto Sans TC",sans-serif;text-align:center;padding:3rem 1rem;background:#f8f9fa;color:#1a1a2e}
+h1{font-size:48px;margin-bottom:8px}h2{font-size:20px;margin-bottom:4px}p{font-size:14px;color:#666;margin-bottom:20px}
+button{padding:12px 32px;border:none;border-radius:24px;font-size:15px;font-weight:600;cursor:pointer;
+background:#ff6b35;color:white;font-family:inherit}
+</style></head><body>
+<h1>📡</h1><h2>你目前離線中</h2><p>請檢查網絡連線後重新整理頁面</p>
+<button onclick="location.reload()">🔄 重新整理</button>
+</body></html>`;
 
 self.addEventListener("install", function (e) {
   self.skipWaiting();
   e.waitUntil(
-    caches.open(CACHE).then(function (cache) {
-      return cache.addAll(PRECACHE);
-    }),
+    caches.open(CACHE_STATIC).then(function (cache) {
+      return cache.addAll(STATIC_ASSETS);
+    })
+  );
+  // Also pre-cache pages in background
+  e.waitUntil(
+    caches.open(CACHE_PAGES).then(function (cache) {
+      return Promise.allSettled(
+        PAGES.map(function (url) {
+          return fetch(url, { cache: "no-cache" })
+            .then(function (r) {
+              if (r.ok) cache.put(url, r);
+            })
+            .catch(function () {});
+        })
+      );
+    })
   );
 });
 
 self.addEventListener("activate", function (e) {
-  // Clean up old caches
   e.waitUntil(
     caches.keys().then(function (keys) {
       return Promise.all(
         keys
           .filter(function (k) {
-            return k !== CACHE;
+            return k !== CACHE_STATIC && k !== CACHE_PAGES;
           })
           .map(function (k) {
             return caches.delete(k);
-          }),
+          })
       );
-    }),
+    })
+  );
+  // Cache offline page
+  e.waitUntil(
+    caches.open(CACHE_PAGES).then(function (cache) {
+      cache.put("/offline", new Response(OFFLINE_PAGE, {
+        status: 200,
+        headers: { "Content-Type": "text/html;charset=UTF-8" },
+      }));
+    })
   );
 });
 
 self.addEventListener("fetch", function (e) {
-  // Only cache same-origin GET requests
-  if (
-    e.request.method !== "GET" ||
-    !e.request.url.startsWith(location.origin)
-  ) {
-    return;
-  }
+  if (e.request.method !== "GET") return;
+
+  // Skip non-origin requests
+  var url = new URL(e.request.url);
+  if (url.origin !== self.location.origin) return;
+
   // Skip API calls
-  if (e.request.url.includes("/api/")) {
-    return;
-  }
-  e.respondWith(
-    caches.match(e.request).then(function (cached) {
-      return (
-        cached ||
-        fetch(e.request)
-          .then(function (response) {
-            return caches.open(CACHE).then(function (cache) {
-              if (response.ok) cache.put(e.request, response.clone());
-              return response;
+  if (url.pathname.startsWith("/api/")) return;
+
+  // Determine asset type
+  var isPage = url.pathname === "/" || url.pathname.endsWith(".html");
+  var isStatic =
+    url.pathname.endsWith(".css") ||
+    url.pathname.endsWith(".js") ||
+    url.pathname.endsWith(".png") ||
+    url.pathname.endsWith(".jpg") ||
+    url.pathname.endsWith(".webp") ||
+    url.pathname.endsWith(".svg") ||
+    url.pathname.endsWith(".ico") ||
+    url.pathname.endsWith(".woff2") ||
+    url.pathname.endsWith(".json");
+
+  if (isStatic) {
+    // Cache-first for static assets
+    e.respondWith(
+      caches.match(e.request).then(function (cached) {
+        return (
+          cached ||
+          fetch(e.request).then(function (response) {
+            if (response.ok) {
+              return caches
+                .open(CACHE_STATIC)
+                .then(function (cache) {
+                  cache.put(e.request, response.clone());
+                  return response;
+                });
+            }
+            return response;
+          })
+        );
+      })
+    );
+  } else if (isPage) {
+    // Network-first for HTML pages, fallback to cache then offline
+    e.respondWith(
+      fetch(e.request)
+        .then(function (response) {
+          if (response.ok) {
+            var cloned = response.clone();
+            caches.open(CACHE_PAGES).then(function (cache) {
+              cache.put(e.request, cloned);
             });
-          })
-          .catch(function () {
-            // Offline: return a minimal fallback
-            return new Response(
-              "<html><body style='text-align:center;padding:2rem;font-family:sans-serif'><h1>📡</h1><h2>離線中</h2><p>請連線後重新整理</p></body></html>",
-              {
-                status: 200,
-                statusText: "OK",
-                headers: { "Content-Type": "text/html;charset=UTF-8" },
-              },
-            );
-          })
-      );
-    }),
-  );
+          }
+          return response;
+        })
+        .catch(function () {
+          return caches.match(e.request).then(function (cached) {
+            return cached || caches.match("/offline");
+          });
+        })
+    );
+  }
+  // Default: network-only for other requests
 });
