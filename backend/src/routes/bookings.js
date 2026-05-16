@@ -127,13 +127,37 @@ router.post("/", authenticateToken, validate(schemas.booking), (req, res) => {
       payment_type === "single" ? "pending_payment" : "confirmed";
     const paymentStatus = payment_type === "single" ? "pending" : "paid";
 
+    // Check if this class belongs to a partner venue
+    let partnerVenue = null;
+    let partnerCommission = null;
+    let partnerVenueEarned = null;
+    let partnerPlatformEarned = null;
+    try {
+      const classVenue = db.prepare("SELECT venue_name FROM classes WHERE id = ?").get(class_id);
+      if (classVenue && classVenue.venue_name) {
+        partnerVenue = db.prepare(
+          "SELECT id, commission_rate FROM partner_venues WHERE name = ? AND status = 'active'"
+        ).get(classVenue.venue_name);
+        if (partnerVenue) {
+          const bookingAmount = amount || 0;
+          partnerCommission = partnerVenue.commission_rate || 0.3;
+          partnerPlatformEarned = bookingAmount * partnerCommission;
+          partnerVenueEarned = bookingAmount * (1 - partnerCommission);
+        }
+      }
+    } catch (e) {
+      // Partner detection failure is non-critical
+    }
+
     // credits 付款係即時扣點數，唔需要用 pending
-    db.prepare(
-      `
-      INSERT INTO bookings (id, booking_reference, user_id, schedule_id, class_id, payment_type, payment_status, status, amount)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `,
-    ).run(
+    const insertCols = partnerVenue
+      ? `INSERT INTO bookings (id, booking_reference, user_id, schedule_id, class_id, payment_type, payment_status, status, amount, venue_partner_id, platform_commission_rate, venue_earned_amount, platform_earned_amount)`
+      : `INSERT INTO bookings (id, booking_reference, user_id, schedule_id, class_id, payment_type, payment_status, status, amount)`;
+    const insertVals = partnerVenue
+      ? `VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      : `VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+
+    db.prepare(insertCols + " " + insertVals).run(
       bookingId,
       bookingRef,
       req.user.id,
@@ -143,6 +167,7 @@ router.post("/", authenticateToken, validate(schemas.booking), (req, res) => {
       paymentStatus,
       bookingStatus,
       amount || 0,
+      ...(partnerVenue ? [partnerVenue.id, partnerCommission, partnerVenueEarned, partnerPlatformEarned] : []),
     );
 
     // 讀取課程/教練/時間資料（用於通知同 response）

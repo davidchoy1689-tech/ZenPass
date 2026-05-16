@@ -146,6 +146,76 @@ function updateDatabase() {
     console.log("⚠️ Migration skip:", e.message);
   }
 
+  // ============ 商戶加盟系統 Migration ============
+
+  // Table: partner_venues — 商戶/場地資料
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS partner_venues (
+      id TEXT PRIMARY KEY,
+      user_id TEXT,
+      name TEXT NOT NULL,
+      description TEXT,
+      address TEXT,
+      phone TEXT,
+      email TEXT,
+      contact_person TEXT,
+      commission_rate REAL DEFAULT 0.3,
+      status TEXT DEFAULT 'pending' CHECK(status IN ('pending','active','suspended','rejected')),
+      logo_url TEXT,
+      category TEXT,
+      district TEXT,
+      tags TEXT,
+      business_hours TEXT,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    );
+  `);
+
+  // Table: partner_payouts — 商戶結算記錄
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS partner_payouts (
+      id TEXT PRIMARY KEY,
+      venue_id TEXT NOT NULL,
+      period_start TEXT,
+      period_end TEXT,
+      total_revenue REAL DEFAULT 0,
+      platform_commission REAL DEFAULT 0,
+      venue_earned REAL DEFAULT 0,
+      status TEXT DEFAULT 'pending' CHECK(status IN ('pending','paid')),
+      paid_at TEXT,
+      notes TEXT,
+      created_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (venue_id) REFERENCES partner_venues(id)
+    );
+  `);
+
+  // Add venue_partner columns to bookings (ALTER TABLE)
+  try {
+    db.exec("ALTER TABLE bookings ADD COLUMN venue_partner_id TEXT");
+  } catch (e) {}
+  try {
+    db.exec("ALTER TABLE bookings ADD COLUMN platform_commission_rate REAL");
+  } catch (e) {}
+  try {
+    db.exec("ALTER TABLE bookings ADD COLUMN venue_earned_amount REAL");
+  } catch (e) {}
+  try {
+    db.exec("ALTER TABLE bookings ADD COLUMN platform_earned_amount REAL");
+  } catch (e) {}
+
+  // Indexes for partner tables
+  try {
+    db.exec("CREATE INDEX IF NOT EXISTS idx_partner_venues_status ON partner_venues(status)");
+    db.exec("CREATE INDEX IF NOT EXISTS idx_partner_venues_category ON partner_venues(category)");
+    db.exec("CREATE INDEX IF NOT EXISTS idx_partner_venues_user ON partner_venues(user_id)");
+    db.exec("CREATE INDEX IF NOT EXISTS idx_partner_payouts_venue ON partner_payouts(venue_id)");
+    db.exec("CREATE INDEX IF NOT EXISTS idx_partner_payouts_status ON partner_payouts(status)");
+    db.exec("CREATE INDEX IF NOT EXISTS idx_bookings_venue_partner ON bookings(venue_partner_id)");
+  } catch (e) {}
+
+  console.log("✅ 商戶加盟系統 migration 完成");
+
   console.log("✅ 資料庫更新完成");
   db.close();
 }

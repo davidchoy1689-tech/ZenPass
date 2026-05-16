@@ -128,6 +128,7 @@ app.use("/api/marketing", require("./routes/marketing"));
 app.use("/api/reporting", require("./routes/reporting"));
 app.use("/api/referral", require("./routes/referral"));
 app.use("/api/loyalty", require("./routes/referral"));
+app.use("/api/partner", require("./routes/partner"));
 
 // ===== 健康檢查 =====
 const { ok } = require("./services/response");
