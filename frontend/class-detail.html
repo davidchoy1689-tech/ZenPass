@@ -1210,6 +1210,7 @@
         });
         el.classList.add("selected");
         selectedPayment = type;
+        updateBookButton();
       }
 
       // ===== Update Book Button =====
@@ -1238,8 +1239,16 @@
           }
         } else {
           btn.disabled = false;
-          btn.textContent =
-            "確認預約 — HK$" + ((currentClass || {}).price_hkd || 120);
+          var price = (currentClass || {}).price_hkd || 120;
+          var credits = (currentClass || {}).credits_cost || 15;
+          var label = "";
+          if (selectedPayment === "single") label = "HK$" + price;
+          else if (selectedPayment === "credits") label = credits + " Credits";
+          else if (selectedPayment === "membership_trial") label = "免費 (試玩)";
+          else if (selectedPayment === "membership_standard") label = "HK$" + Math.round(price * 0.6);
+          else if (selectedPayment === "membership_unlimited") label = "免費 (無限)";
+          else label = "HK$" + price;
+          btn.textContent = "確認預約 — " + label;
           if (wlBtn) {
             wlBtn.style.display = "none";
           }
