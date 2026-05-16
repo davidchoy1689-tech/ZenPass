@@ -224,36 +224,41 @@
         font-weight: 600;
       }
       .schedule-list {
-        margin-bottom: 20px;
+        margin-bottom: 16px;
       }
       .schedule-item {
         display: flex;
         align-items: center;
         gap: 12px;
-        padding: 12px;
+        padding: 14px;
         background: var(--white);
-        border-radius: var(--radius-sm);
+        border-radius: 14px;
         margin-bottom: 8px;
-        box-shadow: var(--shadow-sm);
-        cursor: pointer;
-        transition: background 0.2s;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
         border: 2px solid transparent;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .schedule-item:active {
+        transform: scale(0.98);
       }
       .schedule-item.selected {
         border-color: var(--orange-700);
         background: var(--orange-50);
+        box-shadow: 0 2px 8px rgba(170,50,24,0.15);
       }
       .schedule-item .date {
         font-weight: 600;
-        min-width: 70px;
+        min-width: 75px;
+        font-size: 14px;
       }
       .schedule-item .time {
         color: var(--dark-700);
         flex: 1;
+        font-size: 13px;
       }
       .schedule-item .spots {
         font-size: 12px;
-        color: var(--dark-700);
       }
       .schedule-item .spots .full {
         color: #ef4444;
@@ -267,18 +272,27 @@
         display: flex;
         flex-direction: column;
         gap: 8px;
-        margin-bottom: 20px;
+        margin-bottom: 16px;
       }
       .payment-option {
         display: flex;
         align-items: center;
         gap: 12px;
-        padding: 12px;
+        padding: 14px;
         background: var(--white);
-        border-radius: var(--radius-sm);
+        border-radius: 14px;
         border: 2px solid var(--gray-200);
         cursor: pointer;
         transition: all 0.2s;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+      }
+      .payment-option.selected {
+        border-color: var(--orange-700);
+        background: var(--orange-50);
+        box-shadow: 0 2px 8px rgba(170,50,24,0.12);
+      }
+      .payment-option:active {
+        transform: scale(0.98);
       }
       .payment-option.selected {
         border-color: var(--orange-700);
@@ -360,6 +374,7 @@
         padding-bottom: calc(12px + env(safe-area-inset-bottom));
         background: var(--white);
         border-top: 1px solid var(--gray-200);
+        box-shadow: 0 -4px 16px rgba(0,0,0,0.08);
         z-index: 100;
       }
       .book-btn button {
@@ -368,19 +383,22 @@
         background: var(--orange-600-bg);
         color: var(--white);
         border: none;
-        border-radius: var(--radius-sm);
+        border-radius: 14px;
         font-size: 16px;
         font-weight: 700;
         cursor: pointer;
         font-family: var(--font-zh);
-        transition: background 0.2s;
+        transition: all 0.2s;
+        box-shadow: 0 2px 8px rgba(201,68,32,0.3);
+      }
+      .book-btn button:active {
+        transform: scale(0.97);
       }
       .book-btn button:disabled {
-        background: var(--gray-300);
+        background: var(--gray-200);
+        color: var(--dark-700);
         cursor: not-allowed;
-      }
-      .book-btn button:hover:not(:disabled) {
-        background: #e55a2b;
+        box-shadow: none;
       }
       .bottom-nav {
         position: fixed;
@@ -682,15 +700,16 @@
     <style>
       .rec-card {
         background: var(--white);
-        border-radius: 12px;
+        border-radius: 14px;
         overflow: hidden;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        border: 1px solid rgba(0,0,0,0.04);
         cursor: pointer;
         transition: all 0.2s;
       }
       .rec-card:hover {
         transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 4px 16px rgba(0,0,0,0.1);
       }
       .rec-card .rec-body {
         padding: 10px;
