@@ -543,7 +543,7 @@
       // Get URL params (manual parse for Safari compat)
       var classId = null;
       var date = null;
-      var coach = null;
+      var coachName = "";
       var qs = window.location.search.substring(1);
       if (qs) {
         var parts = qs.split("&");
@@ -553,7 +553,7 @@
           var v = kv.length > 1 ? decodeURIComponent(kv[1]) : "";
           if (k === "class") classId = v;
           else if (k === "date") date = v;
-          else if (k === "coach") coach = v;
+          else if (k === "coach") coachName = v;
         }
       }
       var isDemo = !classId || !date;
@@ -567,7 +567,7 @@
         document.getElementById("checkin-class").textContent =
           "課程 #" + classId;
         document.getElementById("checkin-date").textContent = date;
-        document.getElementById("checkin-coach").textContent = coach || "教練";
+        document.getElementById("checkin-coach").textContent = coachName || "教練";
         document.getElementById("error-section").style.display = "none";
       }
 
@@ -663,7 +663,7 @@
             classId: classId || "demo",
             date: date || new Date().toISOString().split("T")[0],
             time: new Date().toLocaleTimeString("zh-HK", { hour: "2-digit", minute: "2-digit" }),
-            coach: coach || "Demo",
+            coach: coachName || "Demo",
           });
           localStorage.setItem("zenpass_checkins", JSON.stringify(records));
         } catch (e) {}
@@ -673,12 +673,21 @@
 
       function showSuccess(name, booking) {
         document.getElementById("btn-checkin").textContent = "✅ 已簽到";
+        document.getElementById("btn-checkin").disabled = true;
+        document.getElementById("success-section").style.display = "block";
+        localStorage.setItem("zenpass_checkedin_today", "yes");
+        var stored = parseInt(localStorage.getItem("zenpass_streak") || "0");
+        localStorage.setItem("zenpass_streak", (stored + 1).toString());
+        localStorage.setItem("zenpass_streak_date", new Date().toDateString());
+        loadStreakData();
+        saveCheckinToHistory({className: document.getElementById("checkin-class").textContent || "課堂"});
+      }
 
       // ===== Generate Coach QR =====
       function generateCoachQR() {
         var display = document.getElementById("coach-qr-display");
         var img = document.getElementById("coach-qr-img");
-        var url = window.location.origin + "/checkin.html?class=" + encodeURIComponent(classId || "") + "&date=" + encodeURIComponent(date || "") + "&coach=" + encodeURIComponent(coach || "");
+        var url = window.location.origin + "/checkin.html?class=" + encodeURIComponent(classId || "") + "&date=" + encodeURIComponent(date || "") + "&coach=" + encodeURIComponent(coachName || "");
         img.src = "https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=" + encodeURIComponent(url);
         display.style.display = "block";
       }
