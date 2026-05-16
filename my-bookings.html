@@ -606,8 +606,10 @@
           startStr +
           "</span><span>📍 " +
           escHtml(b.venue_name || "—") +
+          (b.venue_address ? '<br><span style="font-size:11px;color:var(--dark-700)">' + escHtml(b.venue_address) + '</span>' : '') +
           "</span><span>👤 導師：" +
           escHtml(b.coach_name || "—") +
+          (b.class_id ? '</span><span><a href="class-detail.html?id=' + b.class_id + '" style="color:var(--orange-700);text-decoration:none;font-size:12px">📖 課程詳情 →</a>' : '') +
           "</span></div>" +
           '<div class="bc-footer"><span class="bc-pay-status ' +
           payStatusClass +

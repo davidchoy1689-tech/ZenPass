@@ -1193,7 +1193,7 @@
                 String(d.getMinutes()).padStart(2, "0");
               var earn = "HK$" + s.price * s.enrolled;
               return (
-                '<div class="schedule-card"><div class="s-date">' +
+                '<div class="schedule-card" onclick="viewClassStudents(' + s.id + ')" style="cursor:pointer"><div class="s-date">' +
                 dateStr +
                 '</div><div class="s-time">' +
                 timeStr +
@@ -1905,6 +1905,49 @@
             btn.disabled = false;
             btn.textContent = "📨 發送推薦";
           });
+      }
+      // ===== 學生名單 Modal =====
+      var studentModal = null;
+if(1){
+      function viewClassStudents(scheduleId) {
+        if (!studentModal) {
+          studentModal = document.createElement('div');
+          studentModal.id = 'studentModal';
+          studentModal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:999;display:flex;align-items:center;justify-content:center;padding:20px';
+          studentModal.innerHTML = '<div style="background:white;border-radius:14px;max-width:400px;width:100%;max-height:80vh;overflow-y:auto;padding:20px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><h3 style="font-size:16px;font-weight:700">👥 學生名單</h3><button onclick="closeStudentModal()" style="background:none;border:none;font-size:20px;cursor:pointer">✕</button></div><div id="student-list-content"><div class="loading-spinner">載入中...</div></div></div>';
+          document.body.appendChild(studentModal);
+        }
+        studentModal.style.display = 'flex';
+        document.getElementById('student-list-content').innerHTML = '<div class="loading-spinner">載入中...</div>';
+        
+        fetch(API_BASE + '/coach/class-students?schedule_id=' + scheduleId, { headers: getAuthHeaders() })
+          .then(function(r){ return r.json(); })
+          .then(function(d){
+            var html = '<div style="font-size:12px;color:var(--dark-700);margin-bottom:8px">共 ' + d.total + ' 位學生</div>';
+            if (d.schedule) {
+              html += '<div style="font-size:12px;background:var(--orange-50);padding:8px;border-radius:8px;margin-bottom:12px">📅 ' + (d.schedule.title || '') + ' · ' + ((d.schedule.start_time||'').split('T')[0]||'') + '</div>';
+            }
+            if (d.students && d.students.length > 0) {
+              d.students.forEach(function(s){
+                var statusBadge = s.booking_status === 'attended' ? '<span style="color:#059669">✅ 已出席</span>' : s.booking_status === 'confirmed' ? '<span style="color:#92400e">⏳ 已預約</span>' : '<span style="color:#dc2626">❌ ' + s.booking_status + '</span>';
+                html += '<div style="padding:10px;border-bottom:1px solid var(--gray-100);display:flex;justify-content:space-between;align-items:center">' +
+                  '<div><div style="font-weight:600;font-size:13px">' + escHtml(s.name) + '</div>' +
+                  (s.email ? '<div style="font-size:11px;color:var(--dark-700)">' + escHtml(s.email) + '</div>' : '') +
+                  (s.phone ? '<div style="font-size:11px;color:var(--dark-700)">📞 ' + escHtml(s.phone) + '</div>' : '') + '</div>' +
+                  '<div style="text-align:right">' + statusBadge + '</div></div>';
+              });
+            } else {
+              html += '<div style="text-align:center;padding:30px;color:var(--dark-700)">暫無學生預約</div>';
+            }
+            document.getElementById('student-list-content').innerHTML = html;
+          })
+          .catch(function(){
+            document.getElementById('student-list-content').innerHTML = '<div style="text-align:center;padding:30px;color:#ef4444">❌ 無法載入學生名單</div>';
+          });
+      }
+      }
+function closeStudentModal() {
+        if (studentModal) studentModal.style.display = 'none';
       }
     </script>
 

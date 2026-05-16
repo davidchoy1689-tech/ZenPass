@@ -307,3 +307,42 @@ router.post("/refer", authenticateToken, (req, res) => {
 });
 
 module.exports = router;
+
+// ===== GET /api/coach/class-students — 查看課程學生名單 =====
+router.get("/class-students", authenticateToken, (req, res) => {
+  try {
+    const db = new Database(DB_PATH);
+    const { schedule_id } = req.query;
+    
+    // Verify coach owns this schedule's class
+    const schedule = db.prepare("SELECT class_id FROM class_schedules WHERE id = ?").get(schedule_id);
+    if (!schedule) { db.close(); return res.status(404).json({ error: "時段不存在" }); }
+    
+    const classInfo = db.prepare("SELECT coach_id FROM classes WHERE id = ?").get(schedule.class_id);
+    if (!classInfo) { db.close(); return res.status(404).json({ error: "課程不存在" }); }
+    
+    // Get students
+    const students = db.prepare(`
+      SELECT b.id, b.user_id, u.name, u.email, u.phone, b.status as booking_status,
+             b.payment_status, b.created_at as booking_date
+      FROM bookings b
+      JOIN users u ON b.user_id = u.id
+      WHERE b.schedule_id = ? AND b.class_id = ?
+      ORDER BY b.created_at DESC
+    `).all(schedule_id, schedule.class_id);
+    
+    // Get schedule info
+    const schedInfo = db.prepare(`
+      SELECT cs.id, cs.start_time, cs.end_time, cs.enrolled_count, cs.max_participants,
+             c.title, c.venue_name, c.venue_address
+      FROM class_schedules cs
+      JOIN classes c ON cs.class_id = c.id
+      WHERE cs.id = ?
+    `).get(schedule_id);
+    
+    db.close();
+    res.json({ schedule: schedInfo, students, total: students.length });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
