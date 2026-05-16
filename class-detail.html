@@ -1213,6 +1213,17 @@
         updateBookButton();
       }
 
+      function getPriceLabel() {
+        var price = (currentClass || {}).price_hkd || 120;
+        var credits = (currentClass || {}).credits_cost || 15;
+        if (selectedPayment === "single") return "HK$" + price;
+        if (selectedPayment === "credits") return credits + " Credits";
+        if (selectedPayment === "membership_trial") return "免費 (試玩)";
+        if (selectedPayment === "membership_standard") return "HK$" + Math.round(price * 0.6);
+        if (selectedPayment === "membership_unlimited") return "免費 (無限)";
+        return "HK$" + price;
+      }
+
       // ===== Update Book Button =====
       function updateBookButton() {
         var btn = document.getElementById("book-button");
@@ -1239,16 +1250,7 @@
           }
         } else {
           btn.disabled = false;
-          var price = (currentClass || {}).price_hkd || 120;
-          var credits = (currentClass || {}).credits_cost || 15;
-          var label = "";
-          if (selectedPayment === "single") label = "HK$" + price;
-          else if (selectedPayment === "credits") label = credits + " Credits";
-          else if (selectedPayment === "membership_trial") label = "免費 (試玩)";
-          else if (selectedPayment === "membership_standard") label = "HK$" + Math.round(price * 0.6);
-          else if (selectedPayment === "membership_unlimited") label = "免費 (無限)";
-          else label = "HK$" + price;
-          btn.textContent = "確認預約 — " + label;
+          btn.textContent = "確認預約 — " + getPriceLabel();
           if (wlBtn) {
             wlBtn.style.display = "none";
           }
@@ -1492,7 +1494,7 @@
         var overlay = document.createElement("div");
         overlay.className = "zen-modal-overlay";
         overlay.innerHTML =
-          "確認預約 — HK$" + ((currentClass || {}).price_hkd || 120);
+          "確認預約 — " + getPriceLabel();
 
         document.body.appendChild(overlay);
         requestAnimationFrame(function () {
@@ -1542,7 +1544,7 @@
               showToast("請輸入轉數快參考編號", "warning");
               btn.disabled = false;
               btn.textContent =
-                "確認預約 — HK$" + ((currentClass || {}).price_hkd || 120);
+                "確認預約 — " + getPriceLabel();
               return;
             }
             await payments.fps({
@@ -1557,7 +1559,7 @@
               showToast("請輸入 PayMe 參考編號", "warning");
               btn.disabled = false;
               btn.textContent =
-                "確認預約 — HK$" + ((currentClass || {}).price_hkd || 120);
+                "確認預約 — " + getPriceLabel();
               return;
             }
             await payments.payme({
@@ -1578,7 +1580,7 @@
           showToast(err.message, "error");
           btn.disabled = false;
           btn.textContent =
-            "確認預約 — HK$" + ((currentClass || {}).price_hkd || 120);
+            "確認預約 — " + getPriceLabel();
         }
       }
 
