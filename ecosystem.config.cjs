@@ -1,5 +1,6 @@
 // ZenPass 禪流 — PM2 Ecosystem File
-// 用法：pm2 start ecosystem.config.js
+// 用法：pm2 start ecosystem.config.cjs
+// 注意：如果 pm2 不在 PATH 中，可用完整路徑：~/.npm-global/bin/pm2 start ecosystem.config.cjs
 
 module.exports = {
   apps: [

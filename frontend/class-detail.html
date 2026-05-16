@@ -27,6 +27,7 @@
 })();
 </script>
 
+      <link rel="stylesheet" href="css/zenpass.css" />
     <style>
       * {
         margin: 0;
@@ -734,6 +735,29 @@
       <div class="loading">載入課程資料...</div>
     </div>
 
+    <!-- ⚠️ 免責聲明簽署（Required for booking） -->
+    <div class="waiver-checkbox" id="waiver-checkbox" style="
+      display: none;
+      background: var(--white);
+      border-radius: 12px;
+      padding: 14px 16px;
+      margin: 8px 16px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+      font-size: 13px;
+    ">
+      <label style="display: flex; align-items: start; gap: 10px; cursor: pointer;">
+        <input type="checkbox" id="waiver-agree" style="margin-top: 2px; width: 18px; height: 18px; accent-color: var(--orange-700);" />
+        <span>
+          本人已閱讀並同意
+          <a href="waiver.html" target="_blank" style="color: var(--orange-700); font-weight: 600; text-decoration: underline;">免責聲明</a>
+          ，了解運動存在一定風險，並自願參與課程承擔相關風險。
+        </span>
+      </label>
+      <div id="waiver-error" style="color: var(--red-500); font-size: 12px; margin-top: 6px; display: none;">
+        ⚠️ 請先閱讀並同意免責聲明
+      </div>
+    </div>
+
     <div class="book-btn" id="book-btn">
       <button id="book-button" onclick="handleBooking()" disabled>
         請選擇時段
@@ -1097,6 +1121,17 @@
 
       function renderScheduleItem(s) {
         var spotsLeft = s.max_participants - s.enrolled_count;
+        
+        // ⚠️ Show/hide waiver checkbox when schedule is selected
+        var waiverSection = document.getElementById('waiver-checkbox');
+        var waiverAgree = document.getElementById('waiver-agree');
+        if (waiverSection) {
+          waiverSection.style.display = 'block';
+        }
+        if (waiverAgree) {
+          waiverAgree.checked = false;
+          document.getElementById('waiver-error').style.display = 'none';
+        }
         var isFull = spotsLeft <= 0;
         var selId = (selectedSchedule || {}).id;
         var selected = s.id === selId ? "selected" : "";
@@ -1139,6 +1174,13 @@
         // Find the schedule data
         var container = document.getElementById("class-content");
         selectedSchedule = { id: scheduleId };
+        
+        // ⚠️ Show waiver checkbox when schedule is selected
+        var waiverSection = document.getElementById('waiver-checkbox');
+        var waiverAgree = document.getElementById('waiver-agree');
+        if (waiverSection) waiverSection.style.display = 'block';
+        if (waiverAgree) { waiverAgree.checked = false; var we = document.getElementById('waiver-error'); if (we) we.style.display = 'none'; }
+        
         updateBookButton();
       }
 
@@ -1161,6 +1203,9 @@
           if (wlBtn) {
             wlBtn.style.display = "none";
           }
+          // ⚠️ Hide waiver when no schedule selected
+          var ws = document.getElementById('waiver-checkbox');
+          if (ws) ws.style.display = 'none';
           return;
         }
         // Check if selected schedule is full
@@ -1210,10 +1255,18 @@
       async function handleBooking() {
         if (!isLoggedIn()) {
           showLoginModal(function () {
-            doBooking();
+            handleBooking();
           });
           return;
         }
+        // ⚠️ Check waiver agreement
+        var waiverEl = document.getElementById('waiver-agree');
+        if (waiverEl && !waiverEl.checked) {
+          document.getElementById('waiver-error').style.display = 'block';
+          waiverEl.focus();
+          return;
+        }
+        document.getElementById('waiver-error').style.display = 'none';
         doBooking();
       }
 
