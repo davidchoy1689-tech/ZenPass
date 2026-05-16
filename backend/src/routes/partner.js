@@ -793,4 +793,20 @@ router.post("/book", authenticateToken, (req, res) => {
   }
 });
 
+// ===== GET /api/partner/list — 公開：合作場地列表 =====
+router.get("/list", (req, res) => {
+  try {
+    const db = new Database(DB_PATH);
+    const partners = db.prepare(`
+      SELECT id, name, description, category, district, logo_url
+      FROM partner_venues WHERE status = 'active'
+      ORDER BY created_at DESC
+    `).all();
+    db.close();
+    res.json({ partners });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;
