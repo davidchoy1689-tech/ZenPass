@@ -1396,6 +1396,13 @@
           btn.textContent = "✅ 已預約";
           btn.disabled = true;
 
+          // 🎁 Show referral CTA after booking (non-payment bookings)
+          if (selectedPayment !== "single" || bookingStatus !== "pending_payment") {
+            setTimeout(function () {
+              showReferralCTA();
+            }, 1500);
+          }
+
           // 🔀 Redirect to payment for single purchase
           if (
             selectedPayment === "single" &&
@@ -1423,6 +1430,36 @@
           btn.textContent = "📅 立即預約";
         }
       }
+      // 🎁 Show referral CTA after booking
+      async function showReferralCTA() {
+        try {
+          var r = await fetch(API_BASE + "/referral/my-code", { headers: getAuthHeaders() });
+          if (!r.ok) return;
+          var d = await r.json();
+          var code = d.code;
+          if (!code) return;
+          var shareUrl = window.location.origin + "/login.html?ref=" + encodeURIComponent(code);
+          var toast = document.createElement("div");
+          toast.style.cssText =
+            "position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#1A1A2E,#2D2D44);color:white;padding:16px 20px;border-radius:14px;font-size:13px;font-weight:500;z-index:1100;box-shadow:0 8px 30px rgba(0,0,0,.25);animation:fadeInUp .4s ease;max-width:340px;width:90%;text-align:center;line-height:1.6;";
+          toast.innerHTML =
+            '<div style="font-size:16px;font-weight:700;margin-bottom:4px;">🎁 邀請朋友，一齊運動！</div>' +
+            '<div style="opacity:.8;margin-bottom:10px;">分享推薦碼俾朋友，雙方各得 Credits</div>' +
+            '<div style="font-size:22px;font-weight:800;color:#FF6B35;letter-spacing:3px;margin-bottom:10px;user-select:all;" id="ref-cta-code">' + code + '</div>' +
+            '<div style="display:flex;gap:8px;">' +
+            '<button onclick="navigator.clipboard.writeText(\'' + code + '\').then(function(){this.textContent=\'✅ 已複製\'}.bind(this))" style="flex:1;padding:10px;background:#FF6B35;color:white;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;">📋 複製推薦碼</button>' +
+            '<button onclick="this.parentElement.parentElement.remove()" style="flex:1;padding:10px;background:rgba(255,255,255,.15);color:white;border:none;border-radius:8px;font-size:12px;cursor:pointer;">✕ 關閉</button>' +
+            '</div>';
+          document.body.appendChild(toast);
+          // Auto-dismiss after 12s
+          setTimeout(function () {
+            if (toast.parentElement) toast.remove();
+          }, 12000);
+        } catch (e) {
+          // Silently ignore — referral CTA is optional
+        }
+      }
+
       function showPaymentModal(amount, bookingId) {
         var overlay = document.createElement("div");
         overlay.className = "zen-modal-overlay";
