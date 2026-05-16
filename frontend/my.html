@@ -791,7 +791,16 @@
           sessionStorage.getItem("zenpass_user");
         var user = null;
         try {
-          if (userStr) user = JSON.parse(userStr);
+          if (userStr) {
+            user = JSON.parse(userStr);
+            // Ignore stale demo users
+            if (user && (user.name === "張三同學" || user.email === "student@zenpass.hk")) {
+              user = null;
+              localStorage.removeItem("zenpass_user");
+              localStorage.removeItem("zenpass_name");
+              localStorage.removeItem("zenpass_token");
+            }
+          }
         } catch (e) {}
         return user;
       }
@@ -884,8 +893,16 @@
 
       
       function showOfflineDemo() {
+        // Clear any stale demo data
+        var demoUsers = ["張三同學", "demo_student", "訪客"];
+        var storedName = localStorage.getItem("zenpass_name");
+        if (storedName && demoUsers.indexOf(storedName) >= 0) {
+          localStorage.removeItem("zenpass_name");
+          localStorage.removeItem("zenpass_user");
+          localStorage.removeItem("zenpass_token");
+        }
         // Show friendly offline message with stored user info
-        var name = localStorage.getItem("zenpass_name") || "訪客";
+        var name = localStorage.getItem("zenpass_name") || "";
         var email = localStorage.getItem("zenpass_email") || "";
         document.getElementById("loadingState").classList.add("hidden");
         document.getElementById("errorState").classList.add("hidden");
