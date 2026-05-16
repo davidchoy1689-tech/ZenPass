@@ -839,6 +839,8 @@
           var result = await classes.get(classId);
           currentClass = result.class;
           renderClassDetail(result);
+          // Check trial status
+          checkTrialStatus();
         } catch (err) {
           renderDemoData();
         }
@@ -1123,7 +1125,7 @@
           '<div class="payment-option" onclick="selectPayment(\'credits\', this)"><div class="radio"></div><div class="pay-name">\ud83d\udc8e Credits \u652f\u4ed8</div><div class="pay-price">' +
           creditsCost +
           " Credits</div></div>" +
-          '<div class="payment-option" onclick="selectPayment(\'membership_trial\', this)"><div class="radio"></div><div class="pay-name">\ud83c\udfc5 \u8a66\u73a9\u6703\u54e1</div><div class="pay-price free">\u514d\u8cbb</div></div>' +
+          '<div class="payment-option" data-pay="membership_trial" onclick="selectPayment(\'membership_trial\', this)"><div class="radio"></div><div class="pay-name">\ud83c\udfc5 \u8a66\u73a9\u6703\u54e1</div><div class="pay-price free">\u514d\u8cbb</div></div>' +
           "</div>" +
           // Reviews heading
           (reviews.length > 0
@@ -1222,6 +1224,20 @@
         if (selectedPayment === "membership_standard") return "HK$" + Math.round(price * 0.6);
         if (selectedPayment === "membership_unlimited") return "免費 (無限)";
         return "HK$" + price;
+      }
+
+      // ===== Check Trial Status =====
+      async function checkTrialStatus() {
+        var trialOpt = document.querySelector('[data-pay="membership_trial"]');
+        if (!trialOpt) return;
+        try {
+          var r = await fetch(API_BASE + "/bookings/trial-status", { headers: getAuthHeaders() });
+          if (!r.ok) return;
+          var d = await r.json();
+          if (d.trial_used) {
+            trialOpt.style.display = "none";
+          }
+        } catch(e) {}
       }
 
       // ===== Update Book Button =====

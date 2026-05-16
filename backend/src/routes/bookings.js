@@ -32,6 +32,18 @@ router.post("/", authenticateToken, validate(schemas.booking), (req, res) => {
       return res.status(400).json({ error: "缺少預約資料" });
     }
 
+    // 試玩：只限一次
+    if (payment_type === "membership_trial") {
+      const db2 = new Database(DB_PATH);
+      const existingTrial = db2.prepare(
+        `SELECT id FROM bookings WHERE user_id = ? AND payment_type = 'membership_trial' AND status != 'cancelled'`
+      ).get(req.user.id);
+      db2.close();
+      if (existingTrial) {
+        return res.status(400).json({ error: "你已經使用過試玩體驗" });
+      }
+    }
+
     const db = new Database(DB_PATH);
     db.pragma("foreign_keys = ON");
 
@@ -229,6 +241,20 @@ router.post("/", authenticateToken, validate(schemas.booking), (req, res) => {
   } catch (err) {
     console.error("預約錯誤:", err);
     res.status(500).json({ error: "預約失敗，請稍後再試" });
+  }
+});
+
+// ===== GET /api/bookings/trial-status — 試玩資格 =====
+router.get("/trial-status", authenticateToken, (req, res) => {
+  try {
+    const db = new Database(DB_PATH);
+    const existing = db.prepare(
+      `SELECT id FROM bookings WHERE user_id = ? AND payment_type = 'membership_trial' AND status != 'cancelled'`
+    ).get(req.user.id);
+    db.close();
+    res.json({ trial_used: !!existing });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
