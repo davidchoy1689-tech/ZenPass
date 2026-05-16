@@ -178,6 +178,19 @@
         color: var(--white);
         border-color: var(--orange-600-bg);
       }
+      .scroll-hint {
+        position: relative;
+      }
+      .scroll-hint::after {
+        content: '';
+        position: absolute;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        width: 24px;
+        background: linear-gradient(to right, transparent, var(--white));
+        pointer-events: none;
+      }
       .class-grid {
         display: flex;
         flex-wrap: wrap;
@@ -562,99 +575,10 @@
       </div>
     </div>
 
-    <div id="filter-panel" class="filter-panel hidden">
-      <h3>篩選條件</h3>
-      <div class="filter-row">
-        <label>難度</label>
-        <select id="filter-difficulty" onchange="applyFilters()">
-          <option value="">全部</option>
-          <option value="beginner">初階</option>
-          <option value="intermediate">中階</option>
-          <option value="advanced">進階</option>
-        </select>
-      </div>
-      <div class="filter-row">
-        <label>價錢範圍</label>
-        <div style="display: flex; gap: 8px">
-          <select
-            id="filter-price-min"
-            onchange="applyFilters()"
-            style="
-              flex: 1;
-              padding: 8px;
-              border: 1px solid var(--gray-200);
-              border-radius: 6px;
-              font-size: 13px;
-              font-family: inherit;
-            "
-          >
-            <option value="">最低</option>
-            <option value="0">$0</option>
-            <option value="50">$50</option>
-            <option value="100">$100</option>
-            <option value="150">$150</option>
-          </select>
-          <span style="align-self: center; color: var(--gray-300)">—</span>
-          <select
-            id="filter-price-max"
-            onchange="applyFilters()"
-            style="
-              flex: 1;
-              padding: 8px;
-              border: 1px solid var(--gray-200);
-              border-radius: 6px;
-              font-size: 13px;
-              font-family: inherit;
-            "
-          >
-            <option value="">最高</option>
-            <option value="50">$50</option>
-            <option value="100">$100</option>
-            <option value="150">$150</option>
-            <option value="200">$200</option>
-            <option value="999">$999+</option>
-          </select>
-        </div>
-      </div>
-      <div class="filter-row">
-        <label>排序</label>
-        <div class="sort-btns">
-          <button
-            class="sort-btn active"
-            data-sort="popular"
-            onclick="setSort('popular', this)"
-          >
-            🔥 熱門
-          </button>
-          <button
-            class="sort-btn"
-            data-sort="price_asc"
-            onclick="setSort('price_asc', this)"
-          >
-            💰 價格由低
-          </button>
-          <button
-            class="sort-btn"
-            data-sort="price_desc"
-            onclick="setSort('price_desc', this)"
-          >
-            💰 價格由高
-          </button>
-          <button
-            class="sort-btn"
-            data-sort="newest"
-            onclick="setSort('newest', this)"
-          >
-            🆕 最新
-          </button>
-        </div>
-      </div>
-    </div>
-
     <div class="section">
       <div style="padding:0 12px;margin:6px 0">
       <!-- Categories -->
-      <div style="display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;padding-bottom:4px;margin-bottom:4px" id="category-list">
+      <div style="display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;padding-bottom:4px;margin-bottom:4px" id="category-list" class="scroll-hint">
         <div class="category-chip active" onclick="filterByCategory('all', this)" style="padding:5px 12px;font-size:11px">🏠 全部</div>
       </div>
       <!-- Date -->
@@ -702,6 +626,10 @@
       <div class="loading-spinner">載入中...</div>
     </div>
 
+    <div id="load-more-container" style="text-align:center;padding:16px 0;display:none">
+      <button id="load-more-btn" onclick="loadMore()" style="padding:10px 32px;background:var(--orange-600-bg);color:white;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer">📥 載入更多課程</button>
+    </div>
+
     <nav class="bottom-nav" role="navigation" aria-label="底部導航">
       <a href="index.html" class="nav-item"
         ><span class="nav-icon">🏠</span>首頁</a
@@ -725,6 +653,44 @@
       var currentCategory = "all";
       var currentDate = "";
       var currentSort = "popular";
+      var currentPage = 1;
+      var currentLimit = 20;
+      var totalClasses = 0;
+
+      function loadMore() {
+        currentPage++;
+        loadClasses(true);
+      }
+
+      function updateURL() {
+        var params = {};
+        if (currentCategory && currentCategory !== "all") params.cat = currentCategory;
+        if (currentDate) params.date = currentDate;
+        if (currentDifficulty && currentDifficulty !== "all") params.diff = currentDifficulty;
+        if (currentPrice && currentPrice !== "all") params.price = currentPrice;
+        if (currentDistrict && currentDistrict !== "all") params.dist = currentDistrict;
+        if (currentSortMethod && currentSortMethod !== "popular") params.sort = currentSortMethod;
+        var qs = Object.keys(params).map(function(k){ return k + '=' + encodeURIComponent(params[k]); }).join('&');
+        var url = window.location.pathname + (qs ? '?' + qs : '');
+        window.history.replaceState(null, '', url);
+      }
+
+      function initFromURL() {
+        var qs = window.location.search.substring(1);
+        if (!qs) return;
+        var parts = qs.split('&');
+        for (var i = 0; i < parts.length; i++) {
+          var kv = parts[i].split('=');
+          var key = decodeURIComponent(kv[0]);
+          var val = kv.length > 1 ? decodeURIComponent(kv[1]) : '';
+          if (key === 'cat') currentCategory = val;
+          else if (key === 'date') currentDate = val;
+          else if (key === 'diff') currentDifficulty = val;
+          else if (key === 'price') currentPrice = val;
+          else if (key === 'dist') currentDistrict = val;
+          else if (key === 'sort') { currentSortMethod = val; currentSort = val; }
+        }
+      }
 
       // ===== Wishlist ❤️ =====
       var WL_KEY = "zenpass_wishlist";
@@ -847,9 +813,9 @@
                 filterByDate(dateStr, this);
               };
               chip.innerHTML =
-                '<span class="day">' +
+                '<span class="day" style="font-size:16px;font-weight:700;display:block;line-height:1.2">' +
                 day +
-                "</span><small>" +
+                "</span><small style=\"font-size:9px;color:var(--dark-700);display:block\">" +
                 dayName +
                 "</small>";
               container.appendChild(chip);
@@ -888,6 +854,8 @@
           });
         el.classList.add("active");
         currentCategory = category;
+        currentPage = 1;
+        updateURL();
         loadClasses();
       }
 
@@ -899,6 +867,8 @@
           });
         if (el) el.classList.add("active");
         currentDate = date;
+        currentPage = 1;
+        updateURL();
         loadClasses();
       }
 
@@ -911,24 +881,33 @@
 
       function filterByPrice(price, el) {
         currentPrice = price;
+        currentPage = 1;
+        updateURL();
         document.querySelectorAll("#price-filter .date-chip").forEach(function(e){ e.classList.remove("active"); });
         if (el) el.classList.add("active");
         loadClasses();
       }
       function filterByDistrict(dist, el) {
         currentDistrict = dist;
+        currentPage = 1;
+        updateURL();
         document.querySelectorAll("#district-filter .date-chip").forEach(function(e){ e.classList.remove("active"); });
         if (el) el.classList.add("active");
         loadClasses();
       }
       function setSort(method, el) {
         currentSortMethod = method;
+        currentSort = method;
+        currentPage = 1;
+        updateURL();
         document.querySelectorAll(".sort-btn").forEach(function(e){ e.classList.remove("active"); });
         if (el) el.classList.add("active");
         loadClasses();
       }
       function clearAllFilters() {
         currentCategory = "all"; currentDate = ""; currentDifficulty = "all"; currentPrice = "all"; currentDistrict = "all"; currentSortMethod = "popular";
+        currentPage = 1;
+        updateURL();
         document.querySelectorAll(".category-chip, .date-chip, .sort-btn").forEach(function(e){ e.classList.remove("active"); });
         var first = document.querySelector(".category-chip"); if (first) first.classList.add("active");
         var firstD = document.querySelector("#date-filter .date-chip"); if (firstD) firstD.classList.add("active");
@@ -955,6 +934,8 @@
         for (var ci = 0; ci < chips.length; ci++) chips[ci].classList.remove("active");
         el.classList.add("active");
         currentDifficulty = diff;
+        currentPage = 1;
+        updateURL();
         loadClasses();
       }
 
@@ -973,6 +954,8 @@
         currentSort = "popular";
         currentCategory = "all";
         currentDate = "";
+        currentPage = 1;
+        updateURL();
         document.querySelectorAll(".sort-btn").forEach(function (b) {
           b.classList.remove("active");
         });
@@ -1032,18 +1015,18 @@
         var container = document.getElementById("class-grid");
         container.innerHTML = '<div class="loading-spinner">載入中...</div>';
 
-        var params = { limit: 50, sort: currentSort };
+        var params = { limit: currentLimit, sort: currentSort, page: currentPage };
         if (currentCategory !== "all") params.category = currentCategory;
         if (currentDate) params.date = currentDate;
         var searchQ = document.getElementById("search-input").value.trim();
         if (searchQ) params.search = searchQ;
-        var priceMin = document.getElementById("filter-price-min").value;
-        var priceMax = document.getElementById("filter-price-max").value;
-        if (priceMin) params.price_min = priceMin;
-        if (priceMax) params.price_max = priceMax;
-
-        var difficulty = document.getElementById("filter-difficulty").value;
-        if (difficulty) params.difficulty = difficulty;
+        if (currentPrice && currentPrice !== "all") {
+          var priceParts = currentPrice.split('-');
+          if (priceParts.length === 2) { params.price_min = priceParts[0]; params.price_max = priceParts[1]; }
+          else if (currentPrice === '300+') { params.price_min = '300'; }
+        }
+        if (currentDifficulty && currentDifficulty !== "all") params.difficulty = currentDifficulty;
+        if (currentDistrict && currentDistrict !== "all") params.district = currentDistrict;
 
         // Get search from URL
         var search = null;
@@ -1068,15 +1051,37 @@
               '<div style="text-align:center;margin-top:8px;"><button class="sort-btn" onclick="clearFilters()" style="background:var(--orange-600-bg);color:white;border:none;padding:8px 20px;border-radius:6px;cursor:pointer;">🔄 清除篩選</button></div>';
             return;
           }
-          container.innerHTML =
-            '<div style="font-size:13px;color:var(--dark-700);margin-bottom:8px;">共 ' +
-            items.length +
-            " 個課程</div>" +
-            items
+          var isAppend = arguments && arguments[0] === true;
+          totalClasses = result.pagination ? result.pagination.total : items.length;
+          if (!isAppend) {
+            container.innerHTML =
+              '<div style="font-size:13px;color:var(--dark-700);margin-bottom:8px;">' +
+              items.length +
+              " / " + totalClasses +
+              " 個課程</div>" +
+              items
+                .map(function (cls) {
+                  return renderCard(cls);
+                })
+                .join("");
+          } else {
+            container.insertAdjacentHTML('beforeend', items
               .map(function (cls) {
                 return renderCard(cls);
               })
-              .join("");
+              .join(""));
+            var countEl = container.querySelector('div[style*="font-size:13px"]');
+            if (countEl) {
+              var totalShown = container.querySelectorAll('.class-card').length;
+              countEl.textContent = totalShown + " / " + totalClasses + " 個課程";
+            }
+          }
+          // Show/hide load more
+          var lmContainer = document.getElementById("load-more-container");
+          var totalPages = result.pagination ? result.pagination.total_pages : 1;
+          if (lmContainer) {
+            lmContainer.style.display = (currentPage < totalPages) ? "block" : "none";
+          }
         } catch (err) {
           // Demo fallback classes
           container.innerHTML =
@@ -1238,6 +1243,7 @@
 
       // ===== Init =====
       document.addEventListener("DOMContentLoaded", function () {
+        initFromURL();
         loadCategories();
         loadDates();
         loadClasses();
