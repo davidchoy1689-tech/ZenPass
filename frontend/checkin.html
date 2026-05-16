@@ -11,7 +11,16 @@
     <meta name="theme-color" content="#059669" />
     <title>簽到 — ZenPass 禪流</title>
     <link rel="manifest" href="manifest.json" />
-    <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+<script>
+// QR Scanner fallback: try loading from multiple CDNs
+if (typeof Html5Qrcode === "undefined") {
+  var s = document.createElement("script");
+  s.src = "https://unpkg.com/html5-qrcode";
+  s.onload = function(){ console.log("QR lib loaded from unpkg"); };
+  document.head.appendChild(s);
+}
+</script>
     <script src="api.js"></script>
 
       <link rel="stylesheet" href="css/zenpass.css" />
@@ -697,57 +706,101 @@
         var reader = document.getElementById("qr-reader");
         reader.style.display = "block";
         reader.innerHTML = '<div class="loading-spinner">啟動相機...</div>';
-        if (typeof Html5Qrcode === "undefined") {
-          reader.innerHTML =
-            '<p style="color:#ef4444;font-size:13px">❌ QR scanner library not loaded. Check internet connection.</p>';
-          return;
+        
+        // Try native camera via input capture first (most reliable)
+        var input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.capture = 'environment';
+        input.style.display = 'none';
+        reader.appendChild(input);
+        
+        input.onchange = function(e) {
+          var file = e.target.files[0];
+          if (!file) return;
+          if (typeof Html5Qrcode !== "undefined") {
+            // Decode from image using the library
+            var qr = new Html5Qrcode("qr-reader");
+            qr.scanFile(file, true).then(function(decodedText) {
+              processQRData(decodedText);
+              reader.innerHTML = '';
+              reader.style.display = 'none';
+            }).catch(function(err) {
+              reader.innerHTML = '<p style="color:#ef4444;font-size:13px;text-align:center">❌ 無法辨識 QR Code，請再試一次</p>' +
+                '<button onclick="startQRScanner()" style="margin-top:8px;padding:6px 14px;border:1px solid var(--gray-200);border-radius:8px;background:var(--white);font-size:12px;cursor:pointer">🔄 再試</button>';
+            });
+          } else {
+            // Library not loaded, just use filename as ref
+            processQRData(file.name || "photo_" + Date.now());
+            reader.innerHTML = '';
+            reader.style.display = 'none';
+          }
+        };
+        
+        // Try library-based camera scan as primary method
+        if (typeof Html5Qrcode !== "undefined") {
+          try {
+            var qr = new Html5Qrcode("qr-reader");
+            qr.start(
+              { facingMode: "environment" },
+              { fps: 10, qrbox: { width: 250, height: 250 } },
+              function (decodedText) {
+                qr.stop();
+                reader.innerHTML = '';
+                reader.style.display = "none";
+                processQRData(decodedText);
+              },
+              function () { /* ignore scan errors */ }
+            ).catch(function (e) {
+              // Camera access failed, fall back to file input
+              reader.innerHTML = '<p style="font-size:13px;color:var(--dark-700);text-align:center">點擊下方按鈕拍攝 QR Code 相片</p>';
+              var btn = document.createElement('button');
+              btn.textContent = '📷 拍攝 QR Code';
+              btn.style.cssText = 'padding:10px 24px;background:var(--orange-600-bg);color:white;border:none;border-radius:12px;font-size:14px;cursor:pointer;margin-top:8px';
+              btn.onclick = function() { input.click(); };
+              reader.appendChild(btn);
+            });
+            return;
+          } catch(e) {}
         }
-        var qr = new Html5Qrcode("qr-reader");
-        qr.start(
-          { facingMode: "environment" },
-          { fps: 10, qrbox: { width: 250, height: 250 } },
-          function (decodedText) {
-            qr.stop();
-            reader.style.display = "none";
-            // Parse QR data
-            var bookingRef = decodedText;
-            var parsedClass = "";
-            var parsedName = "";
-            var parsedDate = "";
-            var params = {};
-            if (decodedText.indexOf("?") > -1 || decodedText.indexOf("=") > -1) {
-              var qs = decodedText.split("?").pop() || "";
-              qs.split("&").forEach(function(p){
-                var kv = p.split("=");
-                if (kv.length > 1) params[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1]);
-              });
-            }
-            bookingRef = params.booking || params.ref || params.id || bookingRef;
-            parsedClass = params.class || params.course || "";
-            parsedName = params.name || params.student || "";
-            parsedDate = params.date || "";
-            
-            if (parsedName) document.getElementById("checkin-name").value = parsedName;
-            if (bookingRef) document.getElementById("checkin-name").value = bookingRef;
-            if (parsedClass && document.getElementById("checkin-class")) document.getElementById("checkin-class").textContent = parsedClass;
-            if (parsedDate && document.getElementById("checkin-date")) document.getElementById("checkin-date").textContent = parsedDate;
-            
-            showToast("✅ 已掃描 QR Code", "success");
-            
-            // If we have enough data, auto check-in
-            if (parsedName || bookingRef) {
-              setTimeout(function(){ doCheckin(); }, 500);
-            }
-          },
-          function (err) {
-            /* ignore scan errors */
-          },
-        ).catch(function (e) {
-          reader.innerHTML =
-            '<p style="color:#ef4444;font-size:13px">❌ Camera access denied: ' +
-            e.message +
-            "</p>";
-        });
+        
+        // Library not available, use file input directly
+        reader.innerHTML = '<p style="font-size:13px;color:var(--dark-700);text-align:center">拍攝 QR Code 相片以簽到</p>';
+        var fallbackBtn = document.createElement('button');
+        fallbackBtn.textContent = '📷 拍攝 QR Code';
+        fallbackBtn.style.cssText = 'padding:10px 24px;background:var(--orange-600-bg);color:white;border:none;border-radius:12px;font-size:14px;cursor:pointer;margin-top:8px';
+        fallbackBtn.onclick = function() { input.click(); };
+        reader.appendChild(fallbackBtn);
+      }
+
+      function processQRData(decodedText) {
+        var bookingRef = decodedText;
+        var parsedClass = "";
+        var parsedName = "";
+        var parsedDate = "";
+        var params = {};
+        if (decodedText.indexOf("?") > -1 || decodedText.indexOf("=") > -1) {
+          var qsPart = decodedText.split("?").pop() || "";
+          qsPart.split("&").forEach(function(p){
+            var kv = p.split("=");
+            if (kv.length > 1) params[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1]);
+          });
+        }
+        bookingRef = params.booking || params.ref || params.id || bookingRef;
+        parsedClass = params.class || params.course || "";
+        parsedName = params.name || params.student || "";
+        parsedDate = params.date || "";
+        
+        if (parsedName) document.getElementById("checkin-name").value = parsedName;
+        if (bookingRef) document.getElementById("checkin-name").value = bookingRef;
+        if (parsedClass && document.getElementById("checkin-class")) document.getElementById("checkin-class").textContent = parsedClass;
+        if (parsedDate && document.getElementById("checkin-date")) document.getElementById("checkin-date").textContent = parsedDate;
+        
+        showToast("✅ 已掃描 QR Code", "success");
+        
+        if (parsedName || bookingRef) {
+          setTimeout(function(){ doCheckin(); }, 500);
+        }
       }
     </script>
     <script>
