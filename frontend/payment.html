@@ -586,6 +586,14 @@
         </div>
       </div>
 
+      <!-- ⏰ 15分鐘倒數提示 -->
+      <div id="countdown-banner" style="display:none;padding:12px 16px;border-radius:12px;margin-bottom:12px;text-align:center;font-size:14px;font-weight:600;transition:all 0.3s">
+        <div style="font-size:28px;margin-bottom:4px">⏰</div>
+        <div id="countdown-text">此位置已為你保留，請儘快完成付款</div>
+        <div id="countdown-timer" style="font-size:32px;font-weight:800;margin-top:4px;font-variant-numeric:tabular-nums">15:00</div>
+        <div style="font-size:11px;font-weight:400;margin-top:4px;opacity:0.7">超過時間後位置將自動釋放</div>
+      </div>
+
 <div class="card">
         <div style="display:flex;align-items:center;gap:6px;margin-bottom:12px">
         <div style="font-size:13px;font-weight:600;flex:1">🎫 優惠碼</div>
@@ -1420,6 +1428,11 @@
           document.getElementById("pay-page").classList.remove("hidden");
           document.getElementById("page-title").textContent =
             "💰 付款 — " + (booking.title || "課程");
+          
+          // ⏰ Start 15-min countdown for pending payment
+          if (booking.created_at && booking.status === 'pending_payment') {
+            startCountdown(booking.created_at);
+          }
 
           // Init Stripe
           initStripe();
@@ -1750,6 +1763,63 @@
             " · " +
             formatDate(bookingData.start_time);
         }
+      }
+
+      // ===== ⏰ 15-Minute Countdown Timer =====
+      var _countdownTimer = null;
+      function startCountdown(createdAt) {
+        var banner = document.getElementById('countdown-banner');
+        var timerEl = document.getElementById('countdown-timer');
+        var textEl = document.getElementById('countdown-text');
+        if (!banner || !timerEl) return;
+
+        var deadline = new Date(createdAt).getTime() + 15 * 60 * 1000;
+        banner.style.display = 'block';
+
+        if (_countdownTimer) clearInterval(_countdownTimer);
+        _countdownTimer = setInterval(function() {
+          var now = Date.now();
+          var diff = deadline - now;
+
+          if (diff <= 0) {
+            // Expired
+            clearInterval(_countdownTimer);
+            _countdownTimer = null;
+            banner.style.background = '#fef2f2';
+            banner.style.border = '1px solid #ef4444';
+            timerEl.textContent = '已過期 ⏰';
+            timerEl.style.color = '#ef4444';
+            textEl.textContent = '⛔ 保留時間已過，此位置已釋放';
+            // Disable pay button
+            var btn = document.getElementById('pay-button');
+            if (btn) { btn.disabled = true; btn.textContent = '⏰ 已過期'; }
+            return;
+          }
+
+          var mins = Math.floor(diff / 60000);
+          var secs = Math.floor((diff % 60000) / 1000);
+          timerEl.textContent = String(mins).padStart(2,'0') + ':' + String(secs).padStart(2,'0');
+
+          if (diff < 60000) {
+            // < 1 min: red
+            banner.style.background = '#fef2f2';
+            banner.style.border = '1px solid #ef4444';
+            timerEl.style.color = '#ef4444';
+            textEl.textContent = '⚠️ 即將釋放位置，請立即完成付款！';
+          } else if (diff < 300000) {
+            // < 5 min: orange
+            banner.style.background = '#fff7ed';
+            banner.style.border = '1px solid #f97316';
+            timerEl.style.color = '#f97316';
+            textEl.textContent = '⏳ 尚有 ' + mins + ' 分鐘，請儘快完成付款';
+          } else {
+            // Normal: green
+            banner.style.background = '#f0fdf4';
+            banner.style.border = '1px solid #22c55e';
+            timerEl.style.color = '#16a34a';
+            textEl.textContent = '✅ 此位置已為你保留，請在時限前完成付款';
+          }
+        }, 1000);
       }
 
       // ===== Bootstrap =====
