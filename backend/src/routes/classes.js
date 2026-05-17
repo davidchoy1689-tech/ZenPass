@@ -389,7 +389,7 @@ router.post("/", authenticateToken, requireCoach, (req, res) => {
 });
 
 // ===== PUT /api/classes/:id — 更新課程 =====
-router.put("/:id", requireCoach, (req, res) => {
+router.put("/:id", authenticateToken, requireCoach, (req, res) => {
   try {
     const db = new Database(DB_PATH);
     db.pragma("foreign_keys = ON");
