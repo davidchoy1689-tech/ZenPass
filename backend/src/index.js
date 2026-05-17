@@ -129,6 +129,8 @@ app.use("/api/reporting", require("./routes/reporting"));
 app.use("/api/referral", require("./routes/referral"));
 app.use("/api/loyalty", require("./routes/referral"));
 app.use("/api/partner", require("./routes/partner"));
+app.use("/api/recommendations", require("./routes/recommendations"));
+app.use("/api/track", require("./routes/recommendations"));
 
 // ===== 健康檢查 =====
 const { ok } = require("./services/response");
@@ -346,6 +348,108 @@ marketing.startMarketingCron();
 const { autoSegmentUsers } = require("./routes/crm");
 setInterval(autoSegmentUsers, 60 * 60 * 1000);
 autoSegmentUsers();
+
+// ===== 自動通知有大量空位嘅課程 =====
+function autoNotifyLargeVacancies() {
+  try {
+    const Database = require("better-sqlite3");
+    const db = new Database(DB_PATH);
+    db.pragma("foreign_keys = ON");
+
+    // 找出 > 50% 空位嘅未來課程
+    var vacancies = db
+      .prepare(
+        `
+      SELECT cs.id as schedule_id, cs.class_id, cs.enrolled_count, cs.max_participants,
+             c.title, c.category, cs.start_time
+      FROM class_schedules cs
+      JOIN classes c ON cs.class_id = c.id
+      WHERE cs.start_time > datetime('now', '+1 hour')
+        AND cs.start_time < datetime('now', '+7 days')
+        AND cs.status = 'available'
+        AND cs.max_participants > 0
+        AND (cs.max_participants - cs.enrolled_count) > (cs.max_participants * 0.5)
+      ORDER BY cs.start_time ASC
+      LIMIT 20
+    `
+      )
+      .all();
+
+    if (vacancies.length === 0) {
+      console.log("📢 空位通知: 今日無需通知嘅課程");
+      db.close();
+      return;
+    }
+
+    // For each course with large vacancies, find interested users
+    var notifiedCount = 0;
+    var processedClassIds = [];
+
+    for (var vi = 0; vi < vacancies.length; vi++) {
+      var v = vacancies[vi];
+
+      // Skip if we already processed this class_id
+      if (processedClassIds.indexOf(v.class_id) !== -1) continue;
+      processedClassIds.push(v.class_id);
+
+      // 搵出報名過同類課程並且有興趣嘅用戶
+      var interestedUsers = db
+        .prepare(
+          `
+        SELECT DISTINCT b.user_id
+        FROM bookings b
+        JOIN classes c ON b.class_id = c.id
+        WHERE c.category = ?
+          AND b.status IN ('confirmed', 'attended')
+          AND b.user_id IS NOT NULL
+        UNION
+        SELECT DISTINCT ua.user_id
+        FROM user_actions ua
+        WHERE ua.category = ?
+          AND ua.action IN ('view_class', 'book_class', 'favorite')
+          AND ua.user_id IS NOT NULL
+      `
+        )
+        .all(v.category, v.category);
+
+      for (var ui = 0; ui < interestedUsers.length; ui++) {
+        try {
+          var { sendNotification } = require("./services/notification");
+          sendNotification("booking.confirmed", {
+            recipient: interestedUsers[ui].user_id,
+            data: {
+              message:
+                "📢 名額釋放: 「" +
+                v.title +
+                "」有 " +
+                (v.max_participants - v.enrolled_count) +
+                " 個空位，快啲預約啦！",
+            },
+          });
+          notifiedCount++;
+        } catch (notifErr) {
+          console.error("📢 自動通知發送失敗:", notifErr.message);
+        }
+      }
+    }
+
+    console.log(
+      "📢 空位自動通知: " +
+        processedClassIds.length +
+        " 個課程, " +
+        notifiedCount +
+        " 個用戶已通知",
+    );
+    db.close();
+  } catch (err) {
+    console.error("📢 空位自動通知錯誤:", err.message);
+  }
+}
+
+// 每 6 小時 check 一次
+setInterval(autoNotifyLargeVacancies, 6 * 60 * 60 * 1000);
+// 啟動時等 60 秒 check 一次
+setTimeout(autoNotifyLargeVacancies, 60 * 1000);
 
 // ===== Startup Health Check =====
 function startupHealthCheck() {

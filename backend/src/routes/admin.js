@@ -779,4 +779,81 @@ router.post("/assign-coach", authenticateToken, requireAdmin, (req, res) => {
   }
 });
 
+// ===== POST /api/admin/notify-course-spots — 通知有興趣學員課程空位 =====
+router.post("/notify-course-spots", authenticateToken, requireAdmin, (req, res) => {
+  try {
+    var { class_id, message } = req.body;
+
+    if (!class_id) {
+      return res.status(400).json({ error: "缺少課程編號" });
+    }
+
+    const db = new Database(DB_PATH);
+    db.pragma("foreign_keys = ON");
+
+    // 獲取課程資料
+    var course = db.prepare("SELECT * FROM classes WHERE id = ?").get(class_id);
+    if (!course) {
+      db.close();
+      return res.status(404).json({ error: "課程不存在" });
+    }
+
+    var category = course.category;
+    var title = course.title;
+
+    // 搵出有興趣嘅用戶：
+    // 1. 曾經預約相同類別課程（包括已出席）
+    // 2. 曾經瀏覽/收藏相同類別課程
+    var interestedUsers = db
+      .prepare(
+        `
+      SELECT DISTINCT b.user_id
+      FROM bookings b
+      JOIN classes c ON b.class_id = c.id
+      WHERE c.category = ?
+        AND b.status IN ('confirmed', 'attended')
+        AND b.user_id IS NOT NULL
+      UNION
+      SELECT DISTINCT ua.user_id
+      FROM user_actions ua
+      WHERE ua.category = ?
+        AND ua.action IN ('view_class', 'book_class', 'favorite')
+        AND ua.user_id IS NOT NULL
+    `
+      )
+      .all(category, category);
+
+    if (interestedUsers.length === 0) {
+      db.close();
+      return res.json({ notified: 0, message: "暫無有興趣嘅學員" });
+    }
+
+    var notifiedCount = 0;
+    var finalMessage =
+      message || `📢 「${title}」有大量空位，快啲預約啦！`;
+
+    for (var ui = 0; ui < interestedUsers.length; ui++) {
+      try {
+        sendNotification("booking.confirmed", {
+          recipient: interestedUsers[ui].user_id,
+          data: { message: finalMessage },
+        });
+        notifiedCount++;
+      } catch (notifErr) {
+        console.error("通知發送失敗:", notifErr.message);
+      }
+    }
+
+    db.close();
+
+    res.json({
+      notified: notifiedCount,
+      message: `已通知 ${notifiedCount} 位有興趣學員`,
+    });
+  } catch (err) {
+    console.error("通知課程空位錯誤:", err);
+    res.status(500).json({ error: "通知失敗" });
+  }
+});
+
 module.exports = router;

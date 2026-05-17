@@ -304,6 +304,20 @@ router.get("/:id", optionalAuth, (req, res) => {
 
     db.close();
 
+    // 🔔 追蹤：瀏覽課程行為（async fire-and-forget）
+    try {
+      var userId = req.user ? req.user.id : null;
+      if (userId && classData) {
+        var { trackUserAction } = require("../services/recommendation");
+        trackUserAction(userId, "view_class", {
+          class_id: req.params.id,
+          category: classData.category,
+        });
+      }
+    } catch (trackErr) {
+      // 追蹤失敗唔影響 response
+    }
+
     res.json({
       class: classData,
       schedules,

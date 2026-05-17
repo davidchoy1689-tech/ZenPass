@@ -191,7 +191,7 @@ router.post("/", authenticateToken, validate(schemas.booking), (req, res) => {
     try {
       classInfo = db
         .prepare(
-          "SELECT title, venue_name, coach_id, price_hkd FROM classes WHERE id = ?",
+          "SELECT title, venue_name, coach_id, price_hkd, category FROM classes WHERE id = ?",
         )
         .get(class_id);
       coachInfo = db
@@ -252,6 +252,17 @@ router.post("/", authenticateToken, validate(schemas.booking), (req, res) => {
           }
         }
       }, 0);
+    }
+
+    // 🔔 追蹤：預約行為（async fire-and-forget）
+    try {
+      var { trackUserAction } = require("../services/recommendation");
+      trackUserAction(req.user.id, "book_class", {
+        class_id: class_id,
+        category: classInfo ? classInfo.category : null,
+      });
+    } catch (trackErr) {
+      // 追蹤失敗唔影響 booking
     }
 
     db.close();

@@ -459,6 +459,27 @@ function showMyBookings() {
   showToast("預約功能即將上線", "info");
 }
 
+// ===== Load Recommendations =====
+async function loadRecommendations() {
+  try {
+    var result = await apiRequest("GET", "/recommendations?limit=10");
+    var items = result.classes || [];
+    if (items.length === 0) {
+      return;
+    }
+    var section = document.getElementById("recommended-section");
+    var container = document.getElementById("recommended-classes");
+    if (!section || !container) return;
+    container.innerHTML = items.map(function (cls) {
+      return renderClassCard(cls);
+    }).join("");
+    section.style.display = "";
+  } catch (err) {
+    // 推薦載入失敗唔影響頁面
+    console.log("推薦加載跳過:", err.message);
+  }
+}
+
 function showMyMembership() {
   showToast("會籍功能即將上線", "info");
 }
@@ -472,6 +493,7 @@ document.addEventListener("DOMContentLoaded", function () {
   loadCategories();
   loadFeaturedClasses();
   loadAllClasses();
+  loadRecommendations();
   updateNavBar();
 });
 
