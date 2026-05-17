@@ -1166,30 +1166,51 @@ router.post("/generate-description", authenticateToken, requireAdmin, (req, res)
     }
 
     // 3. 如果有關鍵詞匹配就用 keyword 範本，否則用 default 範本
-    const pool = matchedTemplates || catData.default;
+    var primaryPool = matchedTemplates || catData.default;
+    var pool = primaryPool;
+    // 如果 keyword 範本少過 3 個，combine keyword + default 補夠
+    if (primaryPool.length < 3 && catData.default) {
+      pool = primaryPool.concat(catData.default);
+    }
     // 用課程名稱長度 + 字符編碼決定範本，確保同一課程每次都一樣但不同課程有不同描述
-    let seed = 0;
-    for (let i = 0; i < title.length; i++) {
-      seed += title.charCodeAt(i);
+    var seed = 0;
+    for (var chi = 0; chi < title.length; chi++) {
+      seed += title.charCodeAt(chi);
     }
-    const templateIndex = seed % pool.length;
-    var description = pool[templateIndex].replace("%s", title);
+    // 生成 3 個唔同嘅範本俾管理員選擇
+    var descriptions = [];
+    var usedIndices = [];
+    for (var gi = 0; gi < 3 && gi < pool.length; gi++) {
+      // 用 seed + gi * 7 確保 3 個都唔同
+      var idx = (seed + gi * 7 + gi * gi) % pool.length;
+      // 避免重複
+      var attempts = 0;
+      while (usedIndices.indexOf(idx) !== -1 && attempts < pool.length) {
+        idx = (idx + 1) % pool.length;
+        attempts++;
+      }
+      usedIndices.push(idx);
 
-    // Add venue info if available
-    if (venue_name) {
-      description += " 📍 " + venue_name;
+      var desc = pool[idx].replace("%s", title);
+
+      // Add venue info
+      if (venue_name) {
+        desc += " 📍 " + venue_name;
+      }
+
+      // Add difficulty hint
+      if (difficulty === "beginner") {
+        desc = "【初學者友善】" + desc;
+      } else if (difficulty === "intermediate") {
+        desc = "【中級強度】" + desc;
+      } else if (difficulty === "advanced") {
+        desc = "【高階挑戰】" + desc;
+      }
+
+      descriptions.push(desc);
     }
 
-    // Add difficulty hint
-    if (difficulty === "beginner") {
-      description = "【初學者友善】" + description;
-    } else if (difficulty === "intermediate") {
-      description = "【中級強度】" + description;
-    } else if (difficulty === "advanced") {
-      description = "【高階挑戰】" + description;
-    }
-
-    res.json({ description, generated: true });
+    res.json({ descriptions, generated: true });
   } catch (err) {
     console.error("生成描述錯誤:", err);
     res.status(500).json({ error: "生成描述失敗" });

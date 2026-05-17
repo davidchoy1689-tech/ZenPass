@@ -2419,7 +2419,34 @@
             difficulty: document.getElementById('ef-difficulty')?.value || '',
             venue_name: document.getElementById('ef-venue_name')?.value || '',
           });
-          if (r.description) {
+          if (r.descriptions && r.descriptions.length > 0) {
+            // 顯示 3 個選項俾管理員揀
+            var descArea = document.getElementById('ef-description');
+            var html = '<div style="margin-top:8px">';
+            html += '<div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:8px">🤖 AI 生成咗 3 個描述，揀一個：</div>';
+            for (var di = 0; di < r.descriptions.length; di++) {
+              var isFirst = di === 0;
+              var rawDesc = r.descriptions[di];
+              html += '<div onclick="selectAIDesc(this,' + di + ')" style="padding:10px 12px;margin-bottom:6px;border:2px solid ' + (isFirst ? '#16a34a' : '#e5e7eb') + ';border-radius:8px;cursor:pointer;font-size:13px;line-height:1.6;background:' + (isFirst ? '#f0fdf4' : 'white') + ';transition:all 0.2s" data-idx="' + di + '" data-desc="' + escape(rawDesc) + '">' +
+                '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">' +
+                '<span style="font-weight:600;font-size:11px;color:' + (isFirst ? '#16a34a' : '#6b7280') + '">選項 ' + (di + 1) + (isFirst ? ' ✅ 推薦' : '') + '</span>' +
+                '<span style="font-size:11px;color:#16a34a;display:' + (isFirst ? '' : 'none') + '" class="selected-badge">已選</span>' +
+                '</div>' +
+                escape(rawDesc) +
+                '</div>';
+            }
+            // 預設用第一個
+            descArea.value = r.descriptions[0];
+            // Insert options above textarea
+            var existing = descArea.parentNode.querySelector('.ai-options');
+            if (existing) existing.remove();
+            var wrapper = document.createElement('div');
+            wrapper.className = 'ai-options';
+            wrapper.innerHTML = html;
+            descArea.parentNode.insertBefore(wrapper, descArea);
+            showToast('✅ 3 個 AI 描述已生成，揀一個', 'success');
+          } else if (r.description) {
+            // Fallback for single description
             document.getElementById('ef-description').value = r.description;
             showToast('✅ AI 描述已生成', 'success');
           }
@@ -2428,6 +2455,23 @@
         }
         btn.textContent = originalText;
         btn.disabled = false;
+      }
+
+      function selectAIDesc(el, idx) {
+        // Highlight selected
+        var all = el.parentNode.querySelectorAll('[data-idx]');
+        for (var i = 0; i < all.length; i++) {
+          all[i].style.borderColor = '#e5e7eb';
+          all[i].style.background = 'white';
+          var badge = all[i].querySelector('.selected-badge');
+          if (badge) badge.style.display = 'none';
+        }
+        el.style.borderColor = '#16a34a';
+        el.style.background = '#f0fdf4';
+        var badge = el.querySelector('.selected-badge');
+        if (badge) badge.style.display = '';
+        // Fill textarea with selected description from data attribute
+        document.getElementById('ef-description').value = el.getAttribute('data-desc') || '';
       }
 
       async function saveCourse(id) {
