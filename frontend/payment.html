@@ -12,7 +12,7 @@
     <title>付款 — ZenPass 禪流</title>
     <link rel="manifest" href="manifest.json" />
 
-      <link rel="stylesheet" href="css/zenpass.css" />
+    <link rel="stylesheet" href="css/zenpass.css" />
     <style>
       * {
         margin: 0;
@@ -533,9 +533,22 @@
 
     <div id="pay-page" class="section hidden">
       <div class="card" id="order-card">
-        <div class="section-title" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center" onclick="toggleOrderSummary()">
+        <div
+          class="section-title"
+          style="
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+          "
+          onclick="toggleOrderSummary()"
+        >
           <span>📋 訂單摘要</span>
-          <span id="order-toggle" style="font-size:12px;color:var(--orange-700)">▼ 收起</span>
+          <span
+            id="order-toggle"
+            style="font-size: 12px; color: var(--orange-700)"
+            >▼ 收起</span
+          >
         </div>
         <div class="order-summary">
           <div class="order-row">
@@ -565,45 +578,129 @@
         </div>
       </div>
 
-      
       <!-- Security Badges -->
-      <div style="display:flex;justify-content:center;gap:16px;padding:12px 0;margin-bottom:8px">
-        <div style="text-align:center">
-          <div style="font-size:24px">🔒</div>
-          <div style="font-size:10px;color:var(--dark-700);margin-top:2px">SSL 加密傳輸</div>
+      <div
+        style="
+          display: flex;
+          justify-content: center;
+          gap: 16px;
+          padding: 12px 0;
+          margin-bottom: 8px;
+        "
+      >
+        <div style="text-align: center">
+          <div style="font-size: 24px">🔒</div>
+          <div style="font-size: 10px; color: var(--dark-700); margin-top: 2px">
+            SSL 加密傳輸
+          </div>
         </div>
-        <div style="text-align:center">
-          <div style="font-size:24px">🏦</div>
-          <div style="font-size:10px;color:var(--dark-700);margin-top:2px">PCI 合規</div>
+        <div style="text-align: center">
+          <div style="font-size: 24px">🏦</div>
+          <div style="font-size: 10px; color: var(--dark-700); margin-top: 2px">
+            PCI 合規
+          </div>
         </div>
-        <div style="text-align:center">
-          <div style="font-size:24px">🛡️</div>
-          <div style="font-size:10px;color:var(--dark-700);margin-top:2px">資料加密</div>
+        <div style="text-align: center">
+          <div style="font-size: 24px">🛡️</div>
+          <div style="font-size: 10px; color: var(--dark-700); margin-top: 2px">
+            資料加密
+          </div>
         </div>
-        <div style="text-align:center">
-          <div style="font-size:24px">🇭🇰</div>
-          <div style="font-size:10px;color:var(--dark-700);margin-top:2px">香港持牌</div>
+        <div style="text-align: center">
+          <div style="font-size: 24px">🇭🇰</div>
+          <div style="font-size: 10px; color: var(--dark-700); margin-top: 2px">
+            香港持牌
+          </div>
         </div>
       </div>
 
       <!-- ⏰ 15分鐘倒數提示 -->
-      <div id="countdown-banner" style="display:none;padding:12px 16px;border-radius:12px;margin-bottom:12px;text-align:center;font-size:14px;font-weight:600;transition:all 0.3s">
-        <div style="font-size:28px;margin-bottom:4px">⏰</div>
+      <div
+        id="countdown-banner"
+        style="
+          display: none;
+          padding: 12px 16px;
+          border-radius: 12px;
+          margin-bottom: 12px;
+          text-align: center;
+          font-size: 14px;
+          font-weight: 600;
+          transition: all 0.3s;
+        "
+      >
+        <div style="font-size: 28px; margin-bottom: 4px">⏰</div>
         <div id="countdown-text">此位置已為你保留，請儘快完成付款</div>
-        <div id="countdown-timer" style="font-size:32px;font-weight:800;margin-top:4px;font-variant-numeric:tabular-nums">15:00</div>
-        <div style="font-size:11px;font-weight:400;margin-top:4px;opacity:0.7">超過時間後位置將自動釋放</div>
-      </div>
-
-<div class="card">
-        <div style="display:flex;align-items:center;gap:6px;margin-bottom:12px">
-        <div style="font-size:13px;font-weight:600;flex:1">🎫 優惠碼</div>
-        <div style="display:flex;gap:6px;flex:1">
-          <input type="text" id="promo-input" placeholder="輸入優惠碼" style="flex:1;padding:8px 10px;border:1px solid var(--gray-200);border-radius:6px;font-size:13px;font-family:var(--font-zh)">
-          <button onclick="applyPromo()" style="padding:8px 16px;background:var(--orange-600-bg);color:white;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer">套用</button>
+        <div
+          id="countdown-timer"
+          style="
+            font-size: 32px;
+            font-weight: 800;
+            margin-top: 4px;
+            font-variant-numeric: tabular-nums;
+          "
+        >
+          15:00
+        </div>
+        <div
+          style="
+            font-size: 11px;
+            font-weight: 400;
+            margin-top: 4px;
+            opacity: 0.7;
+          "
+        >
+          超過時間後位置將自動釋放
         </div>
       </div>
-      <div id="promo-result" style="font-size:12px;margin-bottom:8px;display:none"></div>
-      <div class="section-title">💳 付款方式</div>
+
+      <div class="card">
+        <div
+          style="
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 12px;
+          "
+        >
+          <div style="font-size: 13px; font-weight: 600; flex: 1">
+            🎫 優惠碼
+          </div>
+          <div style="display: flex; gap: 6px; flex: 1">
+            <input
+              type="text"
+              id="promo-input"
+              placeholder="輸入優惠碼"
+              style="
+                flex: 1;
+                padding: 8px 10px;
+                border: 1px solid var(--gray-200);
+                border-radius: 6px;
+                font-size: 13px;
+                font-family: var(--font-zh);
+              "
+            />
+            <button
+              onclick="applyPromo()"
+              style="
+                padding: 8px 16px;
+                background: var(--orange-600-bg);
+                color: white;
+                border: none;
+                border-radius: 6px;
+                font-size: 12px;
+                font-weight: 600;
+                cursor: pointer;
+              "
+            >
+              套用
+            </button>
+          </div>
+        </div>
+        <div
+          id="promo-result"
+          style="font-size: 12px; margin-bottom: 8px; display: none"
+        ></div>
+        <div class="section-title">💳 付款方式</div>
         <div class="pay-methods">
           <div
             class="pay-option selected"
@@ -691,16 +788,55 @@
             <div class="check">✓</div>
           </div>
           <div class="pay-detail show" id="detail-alipay">
-            <div style="padding:12px;background:#ecfdf5;border-radius:var(--radius-sm);font-size:13px;line-height:1.6;color:var(--dark-700);text-align:center">
-              <div style="font-size:32px;margin-bottom:8px">💱</div>
-              <div style="font-weight:600">支付寶 AlipayHK</div>
-              <div style="font-size:12px;margin-top:4px">掃描QR Code 即時付款 · 免手續費</div>
-              <div style="margin-top:12px;padding:12px;background:white;border-radius:8px;display:inline-block">
-                <div style="width:120px;height:120px;background:var(--gray-100);display:flex;align-items:center;justify-content:center;margin:0 auto;border-radius:8px;font-size:12px;color:var(--dark-700)">QR Code<br>模擬</div>
+            <div
+              style="
+                padding: 12px;
+                background: #ecfdf5;
+                border-radius: var(--radius-sm);
+                font-size: 13px;
+                line-height: 1.6;
+                color: var(--dark-700);
+                text-align: center;
+              "
+            >
+              <div style="font-size: 32px; margin-bottom: 8px">💱</div>
+              <div style="font-weight: 600">支付寶 AlipayHK</div>
+              <div style="font-size: 12px; margin-top: 4px">
+                掃描QR Code 即時付款 · 免手續費
+              </div>
+              <div
+                style="
+                  margin-top: 12px;
+                  padding: 12px;
+                  background: white;
+                  border-radius: 8px;
+                  display: inline-block;
+                "
+              >
+                <div
+                  style="
+                    width: 120px;
+                    height: 120px;
+                    background: var(--gray-100);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    margin: 0 auto;
+                    border-radius: 8px;
+                    font-size: 12px;
+                    color: var(--dark-700);
+                  "
+                >
+                  QR Code<br />模擬
+                </div>
               </div>
             </div>
           </div>
-          <div class="pay-option" onclick="selectMethod('wechat', this)" id="wechat-option">
+          <div
+            class="pay-option"
+            onclick="selectMethod('wechat', this)"
+            id="wechat-option"
+          >
             <div class="icon">🟩</div>
             <div class="info">
               <div class="name">WeChat Pay HK</div>
@@ -709,16 +845,55 @@
             <div class="check">✓</div>
           </div>
           <div class="pay-detail" id="detail-wechat">
-            <div style="padding:12px;background:#f0fdf4;border-radius:var(--radius-sm);font-size:13px;line-height:1.6;color:var(--dark-700);text-align:center">
-              <div style="font-size:32px;margin-bottom:8px">🟩</div>
-              <div style="font-weight:600">WeChat Pay HK</div>
-              <div style="font-size:12px;margin-top:4px">掃描QR Code 即時付款 · 免手續費</div>
-              <div style="margin-top:12px;padding:12px;background:white;border-radius:8px;display:inline-block">
-                <div style="width:120px;height:120px;background:var(--gray-100);display:flex;align-items:center;justify-content:center;margin:0 auto;border-radius:8px;font-size:12px;color:var(--dark-700)">QR Code<br>模擬</div>
+            <div
+              style="
+                padding: 12px;
+                background: #f0fdf4;
+                border-radius: var(--radius-sm);
+                font-size: 13px;
+                line-height: 1.6;
+                color: var(--dark-700);
+                text-align: center;
+              "
+            >
+              <div style="font-size: 32px; margin-bottom: 8px">🟩</div>
+              <div style="font-weight: 600">WeChat Pay HK</div>
+              <div style="font-size: 12px; margin-top: 4px">
+                掃描QR Code 即時付款 · 免手續費
+              </div>
+              <div
+                style="
+                  margin-top: 12px;
+                  padding: 12px;
+                  background: white;
+                  border-radius: 8px;
+                  display: inline-block;
+                "
+              >
+                <div
+                  style="
+                    width: 120px;
+                    height: 120px;
+                    background: var(--gray-100);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    margin: 0 auto;
+                    border-radius: 8px;
+                    font-size: 12px;
+                    color: var(--dark-700);
+                  "
+                >
+                  QR Code<br />模擬
+                </div>
               </div>
             </div>
           </div>
-          <div class="pay-option" onclick="selectMethod('payme', this)" id="payme-option">
+          <div
+            class="pay-option"
+            onclick="selectMethod('payme', this)"
+            id="payme-option"
+          >
             <div class="icon">💰</div>
             <div class="info">
               <div class="name">PayMe</div>
@@ -727,12 +902,47 @@
             <div class="check">✓</div>
           </div>
           <div class="pay-detail" id="detail-payme">
-            <div style="padding:12px;background:#fffbeb;border-radius:var(--radius-sm);font-size:13px;line-height:1.6;color:var(--dark-700);text-align:center">
-              <div style="font-size:32px;margin-bottom:8px">💰</div>
-              <div style="font-weight:600">PayMe</div>
-              <div style="font-size:12px;margin-top:4px">Scan QR Code 即時付款 · 免手續費</div>
-              <div style="margin-top:12px;padding:12px;background:white;border-radius:8px;display:inline-block">
-                <div style="width:120px;height:120px;background:var(--gray-100);display:flex;align-items:center;justify-content:center;margin:0 auto;border-radius:8px;font-size:12px;color:var(--dark-700)">QR Code<br>模擬</div>
+            <div
+              style="
+                padding: 12px;
+                background: #fffbeb;
+                border-radius: var(--radius-sm);
+                font-size: 13px;
+                line-height: 1.6;
+                color: var(--dark-700);
+                text-align: center;
+              "
+            >
+              <div style="font-size: 32px; margin-bottom: 8px">💰</div>
+              <div style="font-weight: 600">PayMe</div>
+              <div style="font-size: 12px; margin-top: 4px">
+                Scan QR Code 即時付款 · 免手續費
+              </div>
+              <div
+                style="
+                  margin-top: 12px;
+                  padding: 12px;
+                  background: white;
+                  border-radius: 8px;
+                  display: inline-block;
+                "
+              >
+                <div
+                  style="
+                    width: 120px;
+                    height: 120px;
+                    background: var(--gray-100);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    margin: 0 auto;
+                    border-radius: 8px;
+                    font-size: 12px;
+                    color: var(--dark-700);
+                  "
+                >
+                  QR Code<br />模擬
+                </div>
               </div>
             </div>
           </div>
@@ -941,30 +1151,99 @@
         </div>
       </div>
 
-      <div style="position:sticky;bottom:70px;z-index:100;background:var(--white);padding:8px 0 0">
-      <button class="pay-btn" id="pay-button" onclick="processPayment()">
-        💳 付款
-      </button>
-    </div>
-
-    <div id="success-page" class="section hidden">
-      <div class="success-screen">
-        <div class="big">🎉</div>
-        <h2>付款成功！</h2>
-        <p id="success-detail">預約已確認，記住準時出席課堂！</p>
-        <div class="ref">預約編號：<span id="success-ref">—</span></div>
-        <div style="margin-top:8px;font-size:13px;color:var(--dark-700)" id="success-class-info"></div>
-        <div style="display:flex;gap:8px;margin:16px 0;flex-wrap:wrap;justify-content:center">
-          <button onclick="addToCalendar()" style="padding:8px 16px;border:1px solid var(--gray-200);border-radius:20px;background:var(--white);font-size:12px;cursor:pointer;font-family:var(--font-zh)">📅 加到日曆</button>
-          <button onclick="shareSuccess()" style="padding:8px 16px;border:1px solid var(--gray-200);border-radius:20px;background:var(--white);font-size:12px;cursor:pointer;font-family:var(--font-zh)">📤 分享俾朋友</button>
-          <button onclick="downloadReceipt()" style="padding:8px 16px;border:1px solid var(--gray-200);border-radius:20px;background:var(--white);font-size:12px;cursor:pointer;font-family:var(--font-zh)">📋 下載收據</button>
-        </div>
-        <a href="my-bookings.html" class="back-btn">📋 查看我的預約</a>
-        <br/>
-        <a href="explore.html" class="back-btn secondary" style="margin-top:8px;display:inline-block;padding:10px 24px;background:transparent;color:var(--dark-700);font-size:13px">🔍 探索更多課程</a>
+      <div
+        style="
+          position: sticky;
+          bottom: 70px;
+          z-index: 100;
+          background: var(--white);
+          padding: 8px 0 0;
+        "
+      >
+        <button class="pay-btn" id="pay-button" onclick="processPayment()">
+          💳 付款
+        </button>
       </div>
-    </div>
 
+      <div id="success-page" class="section hidden">
+        <div class="success-screen">
+          <div class="big">🎉</div>
+          <h2>付款成功！</h2>
+          <p id="success-detail">預約已確認，記住準時出席課堂！</p>
+          <div class="ref">預約編號：<span id="success-ref">—</span></div>
+          <div
+            style="margin-top: 8px; font-size: 13px; color: var(--dark-700)"
+            id="success-class-info"
+          ></div>
+          <div
+            style="
+              display: flex;
+              gap: 8px;
+              margin: 16px 0;
+              flex-wrap: wrap;
+              justify-content: center;
+            "
+          >
+            <button
+              onclick="addToCalendar()"
+              style="
+                padding: 8px 16px;
+                border: 1px solid var(--gray-200);
+                border-radius: 20px;
+                background: var(--white);
+                font-size: 12px;
+                cursor: pointer;
+                font-family: var(--font-zh);
+              "
+            >
+              📅 加到日曆
+            </button>
+            <button
+              onclick="shareSuccess()"
+              style="
+                padding: 8px 16px;
+                border: 1px solid var(--gray-200);
+                border-radius: 20px;
+                background: var(--white);
+                font-size: 12px;
+                cursor: pointer;
+                font-family: var(--font-zh);
+              "
+            >
+              📤 分享俾朋友
+            </button>
+            <button
+              onclick="downloadReceipt()"
+              style="
+                padding: 8px 16px;
+                border: 1px solid var(--gray-200);
+                border-radius: 20px;
+                background: var(--white);
+                font-size: 12px;
+                cursor: pointer;
+                font-family: var(--font-zh);
+              "
+            >
+              📋 下載收據
+            </button>
+          </div>
+          <a href="my-bookings.html" class="back-btn">📋 查看我的預約</a>
+          <br />
+          <a
+            href="explore.html"
+            class="back-btn secondary"
+            style="
+              margin-top: 8px;
+              display: inline-block;
+              padding: 10px 24px;
+              background: transparent;
+              color: var(--dark-700);
+              font-size: 13px;
+            "
+            >🔍 探索更多課程</a
+          >
+        </div>
+      </div>
     </div>
     <nav class="bottom-nav">
       <a href="index.html" class="nav-item"
@@ -997,46 +1276,82 @@
       function addToCalendar() {
         if (!lastBookingClass) return;
         var title = encodeURIComponent(lastBookingClass + " - ZenPass");
-        window.open("https://www.google.com/calendar/render?action=TEMPLATE&text=" + title, "_blank");
+        window.open(
+          "https://www.google.com/calendar/render?action=TEMPLATE&text=" +
+            title,
+          "_blank",
+        );
       }
       function shareSuccess() {
-        var text = "我刚在 ZenPass 預約了" + lastBookingClass + "！你也來試試：https://davidchoy1689-tech.github.io/ZenPass/";
-        if (navigator.share) { navigator.share({ text: text }).catch(function(){}); }
-        else { navigator.clipboard.writeText(text).then(function(){ showToast("已複製分享文字","success"); }); }
+        var text =
+          "我刚在 ZenPass 預約了" +
+          lastBookingClass +
+          "！你也來試試：https://davidchoy1689-tech.github.io/ZenPass/";
+        if (navigator.share) {
+          navigator.share({ text: text }).catch(function () {});
+        } else {
+          navigator.clipboard.writeText(text).then(function () {
+            showToast("已複製分享文字", "success");
+          });
+        }
       }
-            function downloadReceipt() {
-        var ref = lastBookingRef || '';
-        var cls = lastBookingClass || '';
-        var amt = document.getElementById("order-total").textContent || '';
-        var venue = document.getElementById("order-venue").textContent || '';
-        var date = document.getElementById("order-date").textContent || '';
-        var time = document.getElementById("order-time").textContent || '';
+      function downloadReceipt() {
+        var ref = lastBookingRef || "";
+        var cls = lastBookingClass || "";
+        var amt = document.getElementById("order-total").textContent || "";
+        var venue = document.getElementById("order-venue").textContent || "";
+        var date = document.getElementById("order-date").textContent || "";
+        var time = document.getElementById("order-time").textContent || "";
         var now = new Date();
         var ds = now.toLocaleDateString("zh-HK");
-        var ts = now.toLocaleTimeString("zh-HK", {hour:'2-digit',minute:'2-digit'});
-        var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>ZenPass Receipt</title></head><body style="font-family:sans-serif;max-width:500px;margin:0 auto;padding:40px 20px">' +
+        var ts = now.toLocaleTimeString("zh-HK", {
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+        var html =
+          '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>ZenPass Receipt</title></head><body style="font-family:sans-serif;max-width:500px;margin:0 auto;padding:40px 20px">' +
           '<div style="text-align:center;margin-bottom:24px"><div style="font-size:32px;margin-bottom:8px">🧘</div><div style="font-size:20px;font-weight:800">ZenPass 禪流</div><div style="font-size:11px;color:#6b7280">電子收據</div></div>' +
           '<hr style="border:none;border-top:2px dashed #ddd">' +
-          '<div style="margin:16px 0"><div style="font-size:12px;color:#6b7280">收據編號</div><div style="font-size:15px;font-weight:700">' + ref + '</div></div>' +
+          '<div style="margin:16px 0"><div style="font-size:12px;color:#6b7280">收據編號</div><div style="font-size:15px;font-weight:700">' +
+          ref +
+          "</div></div>" +
           '<div style="background:#f5f5f5;border-radius:8px;padding:12px;margin:12px 0">' +
-          '<div style="font-weight:700;font-size:15px;margin-bottom:8px">' + cls + '</div>' +
+          '<div style="font-weight:700;font-size:15px;margin-bottom:8px">' +
+          cls +
+          "</div>" +
           '<div style="font-size:12px;color:#666;line-height:1.7">' +
-          '<div>📅 ' + date + ' ' + time + '</div>' +
-          '<div>📍 ' + venue + '</div></div></div>' +
-          '<div style="display:flex;justify-content:space-between;padding:8px 0;border-top:1px solid #ddd;font-weight:700"><span>總金額</span><span style="color:#e55a2b">' + amt + '</span></div>' +
+          "<div>📅 " +
+          date +
+          " " +
+          time +
+          "</div>" +
+          "<div>📍 " +
+          venue +
+          "</div></div></div>" +
+          '<div style="display:flex;justify-content:space-between;padding:8px 0;border-top:1px solid #ddd;font-weight:700"><span>總金額</span><span style="color:#e55a2b">' +
+          amt +
+          "</span></div>" +
           '<hr style="border:none;border-top:2px dashed #ddd;margin:16px 0">' +
           '<div style="text-align:center;font-size:10px;color:#999;line-height:1.6">' +
-          '<div>付款日期：' + ds + ' ' + ts + '</div>' +
-          '<div>Hong Kong Leisure and Fitness Co. Ltd.</div>' +
-          '<div>support@zenpass.hk</div></div></body></html>';
-        var blob = new Blob([html], {type:"text/html"});
+          "<div>付款日期：" +
+          ds +
+          " " +
+          ts +
+          "</div>" +
+          "<div>Hong Kong Leisure and Fitness Co. Ltd.</div>" +
+          "<div>support@zenpass.hk</div></div></body></html>";
+        var blob = new Blob([html], { type: "text/html" });
         var a = document.createElement("a");
         a.href = URL.createObjectURL(blob);
-        a.download = "ZenPass-Receipt-" + ds.replace(/\//g,"-") + ".html";
+        a.download = "ZenPass-Receipt-" + ds.replace(/\//g, "-") + ".html";
         a.click();
         showToast("📋 收據已下載", "success");
-      }function applyPromo() {
-        var code = document.getElementById("promo-input").value.trim().toUpperCase();
+      }
+      function applyPromo() {
+        var code = document
+          .getElementById("promo-input")
+          .value.trim()
+          .toUpperCase();
         var result = document.getElementById("promo-result");
         if (code === "ZEN10") {
           result.style.display = "block";
@@ -1092,7 +1407,9 @@
         if (!summary) return;
         var isHidden = summary.style.display === "none";
         summary.style.display = isHidden ? "" : "none";
-        document.getElementById("order-toggle").textContent = isHidden ? "▼ 收起" : "▲ 展開";
+        document.getElementById("order-toggle").textContent = isHidden
+          ? "▼ 收起"
+          : "▲ 展開";
       }
 
       function goBack() {
@@ -1265,7 +1582,8 @@
           document.getElementById("order-time").style.display = "none";
           document.getElementById("order-venue").style.display = "none";
           document.getElementById("order-ref").style.display = "none";
-          document.getElementById("order-total").textContent = "HK$" + posAmount;
+          document.getElementById("order-total").textContent =
+            "HK$" + posAmount;
           // Show FPS/PayMe instructions
           document.getElementById("pay-methods").innerHTML =
             '<div class="pay-option selected" onclick="selectMethod(&#39;fps&#39;)"><div class="check">✓</div><div class="icon">🏦</div><div class="info"><div class="name">轉數快 FPS</div><div class="desc">電話：9033 5538 · HSBC</div></div></div>' +
@@ -1287,10 +1605,11 @@
           var crBonus = parseInt(params.get("bonus")) || 0;
           var crOriginal = parseInt(params.get("credits")) || 0;
           paymentAmount = crAmount;
-          
+
           document.getElementById("loading-state").classList.add("hidden");
           document.getElementById("pay-page").classList.remove("hidden");
-          document.getElementById("page-title").textContent = "💎 購買 " + crItem;
+          document.getElementById("page-title").textContent =
+            "💎 購買 " + crItem;
           // Update order summary
           document.getElementById("order-class").textContent = crItem;
           document.getElementById("order-date").textContent = "—";
@@ -1303,25 +1622,34 @@
           document.getElementById("order-ref").style.display = "none";
           document.getElementById("order-total").textContent = "HK$" + crAmount;
           // Show bonus if any
-          var bonusRow = document.querySelector('.order-summary .order-row:last-child');
+          var bonusRow = document.querySelector(
+            ".order-summary .order-row:last-child",
+          );
           if (crBonus > 0 && bonusRow) {
-            var bonusEl = document.createElement('div');
-            bonusEl.className = 'order-row';
-            bonusEl.innerHTML = '<span class="label">贈送</span><span style="color:#059669;text-align:right;flex:1;padding-left:12px">+' + crBonus + ' Credits 🎁</span>';
+            var bonusEl = document.createElement("div");
+            bonusEl.className = "order-row";
+            bonusEl.innerHTML =
+              '<span class="label">贈送</span><span style="color:#059669;text-align:right;flex:1;padding-left:12px">+' +
+              crBonus +
+              " Credits 🎁</span>";
             bonusRow.parentNode.insertBefore(bonusEl, bonusRow);
           }
-          
+
           // Show Stripe + FPS + PayMe (same as default)
           document.getElementById("card-element").style.display = "";
-          
+
           // Override pay button to process credits purchase
           var payBtn = document.getElementById("pay-button");
           payBtn.textContent = "💎 購買 Credits — HK$" + crAmount;
-          payBtn._creditsData = { credits: crCredits, amount: crAmount, item: crItem };
-          
+          payBtn._creditsData = {
+            credits: crCredits,
+            amount: crAmount,
+            item: crItem,
+          };
+
           // Store credits data for processPayment
           window._pendingCredits = { credits: crCredits, amount: crAmount };
-          
+
           selectedMethod = "stripe";
           initStripe();
           return;
@@ -1428,9 +1756,9 @@
           document.getElementById("pay-page").classList.remove("hidden");
           document.getElementById("page-title").textContent =
             "💰 付款 — " + (booking.title || "課程");
-          
+
           // ⏰ Start 15-min countdown for pending payment
-          if (booking.created_at && booking.status === 'pending_payment') {
+          if (booking.created_at && booking.status === "pending_payment") {
             startCountdown(booking.created_at);
           }
 
@@ -1768,16 +2096,16 @@
       // ===== ⏰ 15-Minute Countdown Timer =====
       var _countdownTimer = null;
       function startCountdown(createdAt) {
-        var banner = document.getElementById('countdown-banner');
-        var timerEl = document.getElementById('countdown-timer');
-        var textEl = document.getElementById('countdown-text');
+        var banner = document.getElementById("countdown-banner");
+        var timerEl = document.getElementById("countdown-timer");
+        var textEl = document.getElementById("countdown-text");
         if (!banner || !timerEl) return;
 
         var deadline = new Date(createdAt).getTime() + 15 * 60 * 1000;
-        banner.style.display = 'block';
+        banner.style.display = "block";
 
         if (_countdownTimer) clearInterval(_countdownTimer);
-        _countdownTimer = setInterval(function() {
+        _countdownTimer = setInterval(function () {
           var now = Date.now();
           var diff = deadline - now;
 
@@ -1785,39 +2113,43 @@
             // Expired
             clearInterval(_countdownTimer);
             _countdownTimer = null;
-            banner.style.background = '#fef2f2';
-            banner.style.border = '1px solid #ef4444';
-            timerEl.textContent = '已過期 ⏰';
-            timerEl.style.color = '#ef4444';
-            textEl.textContent = '⛔ 保留時間已過，此位置已釋放';
+            banner.style.background = "#fef2f2";
+            banner.style.border = "1px solid #ef4444";
+            timerEl.textContent = "已過期 ⏰";
+            timerEl.style.color = "#ef4444";
+            textEl.textContent = "⛔ 保留時間已過，此位置已釋放";
             // Disable pay button
-            var btn = document.getElementById('pay-button');
-            if (btn) { btn.disabled = true; btn.textContent = '⏰ 已過期'; }
+            var btn = document.getElementById("pay-button");
+            if (btn) {
+              btn.disabled = true;
+              btn.textContent = "⏰ 已過期";
+            }
             return;
           }
 
           var mins = Math.floor(diff / 60000);
           var secs = Math.floor((diff % 60000) / 1000);
-          timerEl.textContent = String(mins).padStart(2,'0') + ':' + String(secs).padStart(2,'0');
+          timerEl.textContent =
+            String(mins).padStart(2, "0") + ":" + String(secs).padStart(2, "0");
 
           if (diff < 60000) {
             // < 1 min: red
-            banner.style.background = '#fef2f2';
-            banner.style.border = '1px solid #ef4444';
-            timerEl.style.color = '#ef4444';
-            textEl.textContent = '⚠️ 即將釋放位置，請立即完成付款！';
+            banner.style.background = "#fef2f2";
+            banner.style.border = "1px solid #ef4444";
+            timerEl.style.color = "#ef4444";
+            textEl.textContent = "⚠️ 即將釋放位置，請立即完成付款！";
           } else if (diff < 300000) {
             // < 5 min: orange
-            banner.style.background = '#fff7ed';
-            banner.style.border = '1px solid #f97316';
-            timerEl.style.color = '#f97316';
-            textEl.textContent = '⏳ 尚有 ' + mins + ' 分鐘，請儘快完成付款';
+            banner.style.background = "#fff7ed";
+            banner.style.border = "1px solid #f97316";
+            timerEl.style.color = "#f97316";
+            textEl.textContent = "⏳ 尚有 " + mins + " 分鐘，請儘快完成付款";
           } else {
             // Normal: green
-            banner.style.background = '#f0fdf4';
-            banner.style.border = '1px solid #22c55e';
-            timerEl.style.color = '#16a34a';
-            textEl.textContent = '✅ 此位置已為你保留，請在時限前完成付款';
+            banner.style.background = "#f0fdf4";
+            banner.style.border = "1px solid #22c55e";
+            timerEl.style.color = "#16a34a";
+            textEl.textContent = "✅ 此位置已為你保留，請在時限前完成付款";
           }
         }, 1000);
       }

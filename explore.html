@@ -15,23 +15,32 @@
       content="ZenPass 禪流探索課程 — 搜尋健身、瑜伽、冥想課程及教練"
     />
     <title>探索課程 — ZenPass 禪流</title>
-  <meta property="og:title" content="探索課程 — ZenPass 禪流" />
-  <meta property="og:description" content="發掘超過100+運動課程：瑜伽、健身、冥想、新興運動、舞蹈。立即探索你嘅下一堂運動課！" />
-  <meta property="og:url" content="https://davidchoy1689-tech.github.io/ZenPass/explore.html" />
-  <meta property="og:type" content="website" />
-  <meta property="og:locale" content="zh_HK" />
-  <meta name="twitter:card" content="summary_large_image" />
+    <meta property="og:title" content="探索課程 — ZenPass 禪流" />
+    <meta
+      property="og:description"
+      content="發掘超過100+運動課程：瑜伽、健身、冥想、新興運動、舞蹈。立即探索你嘅下一堂運動課！"
+    />
+    <meta
+      property="og:url"
+      content="https://davidchoy1689-tech.github.io/ZenPass/explore.html"
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="zh_HK" />
+    <meta name="twitter:card" content="summary_large_image" />
     <script>
-// Fix PWA manifest path for localhost vs GitHub Pages
-(function(){
-  var l = document.createElement('link');
-  l.rel = 'manifest';
-  l.href = window.location.hostname.indexOf('github.io') > -1 ? '/ZenPass/manifest.json' : '/manifest.json';
-  document.head.appendChild(l);
-})();
-</script>
+      // Fix PWA manifest path for localhost vs GitHub Pages
+      (function () {
+        var l = document.createElement("link");
+        l.rel = "manifest";
+        l.href =
+          window.location.hostname.indexOf("github.io") > -1
+            ? "/ZenPass/manifest.json"
+            : "/manifest.json";
+        document.head.appendChild(l);
+      })();
+    </script>
 
-      <link rel="stylesheet" href="css/zenpass.css" />
+    <link rel="stylesheet" href="css/zenpass.css" />
     <style>
       * {
         margin: 0;
@@ -182,7 +191,7 @@
         position: relative;
       }
       .scroll-hint::after {
-        content: '';
+        content: "";
         position: absolute;
         right: 0;
         top: 0;
@@ -220,9 +229,9 @@
         background: var(--white);
         border-radius: 14px;
         overflow: hidden;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
         cursor: pointer;
-        border: 1px solid rgba(0,0,0,0.04);
+        border: 1px solid rgba(0, 0, 0, 0.04);
         display: flex;
         flex-direction: column;
         transition:
@@ -230,7 +239,7 @@
           box-shadow 0.2s ease;
       }
       .class-card:hover {
-        box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
         transform: translateY(-2px);
       }
       .class-card:active {
@@ -602,60 +611,383 @@
     </div>
 
     <div class="section">
-      <div style="padding:0 12px;margin:6px 0">
-      <!-- Categories -->
-      <div style="display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;padding-bottom:4px;margin-bottom:4px" id="category-list" class="scroll-hint">
-        <div class="category-chip active" onclick="filterByCategory('all', this)" style="padding:5px 12px;font-size:11px">🏠 全部</div>
+      <div style="padding: 0 12px; margin: 6px 0">
+        <!-- Categories -->
+        <div
+          style="
+            display: flex;
+            gap: 4px;
+            overflow-x: auto;
+            scrollbar-width: none;
+            padding-bottom: 4px;
+            margin-bottom: 4px;
+          "
+          id="category-list"
+          class="scroll-hint"
+        >
+          <div
+            class="category-chip active"
+            onclick="filterByCategory('all', this)"
+            style="padding: 5px 12px; font-size: 11px"
+          >
+            🏠 全部
+          </div>
+        </div>
+        <!-- Date -->
+        <div
+          style="
+            display: flex;
+            gap: 4px;
+            overflow-x: auto;
+            scrollbar-width: none;
+            padding-bottom: 4px;
+            margin-bottom: 4px;
+          "
+          id="date-list"
+        >
+          <div
+            class="date-chip active"
+            onclick="filterByDate('', this)"
+            style="padding: 4px 10px; font-size: 10px"
+          >
+            <span style="font-size: 12px; font-weight: 600; display: block"
+              >全部</span
+            >
+          </div>
+        </div>
+        <!-- Advanced: Difficulty, Price, District, Sort -->
+        <div
+          style="
+            display: flex;
+            gap: 3px;
+            overflow-x: auto;
+            scrollbar-width: none;
+            padding: 2px 0;
+          "
+          id="advanced-filters"
+        >
+          <div
+            class="date-chip active"
+            onclick="filterByDifficulty('all', this)"
+            style="
+              min-width: auto;
+              padding: 3px 8px;
+              font-size: 10px;
+              line-height: 1.6;
+            "
+          >
+            🌱全部
+          </div>
+          <div
+            class="date-chip"
+            onclick="filterByDifficulty('beginner', this)"
+            style="
+              min-width: auto;
+              padding: 3px 8px;
+              font-size: 10px;
+              line-height: 1.6;
+            "
+          >
+            🌱初級
+          </div>
+          <div
+            class="date-chip"
+            onclick="filterByDifficulty('intermediate', this)"
+            style="
+              min-width: auto;
+              padding: 3px 8px;
+              font-size: 10px;
+              line-height: 1.6;
+            "
+          >
+            🔥中級
+          </div>
+          <div
+            class="date-chip"
+            onclick="filterByDifficulty('advanced', this)"
+            style="
+              min-width: auto;
+              padding: 3px 8px;
+              font-size: 10px;
+              line-height: 1.6;
+            "
+          >
+            💎高級
+          </div>
+          <span
+            style="
+              width: 1px;
+              height: 14px;
+              background: var(--gray-200);
+              margin: auto 2px;
+              flex-shrink: 0;
+            "
+          ></span>
+          <div
+            class="date-chip active"
+            onclick="filterByPrice('all', this)"
+            style="
+              min-width: auto;
+              padding: 3px 8px;
+              font-size: 10px;
+              line-height: 1.6;
+            "
+          >
+            💰全部
+          </div>
+          <div
+            class="date-chip"
+            onclick="filterByPrice('0-100', this)"
+            style="
+              min-width: auto;
+              padding: 3px 8px;
+              font-size: 10px;
+              line-height: 1.6;
+            "
+          >
+            $0-100
+          </div>
+          <div
+            class="date-chip"
+            onclick="filterByPrice('100-200', this)"
+            style="
+              min-width: auto;
+              padding: 3px 8px;
+              font-size: 10px;
+              line-height: 1.6;
+            "
+          >
+            $100-200
+          </div>
+          <div
+            class="date-chip"
+            onclick="filterByPrice('200-300', this)"
+            style="
+              min-width: auto;
+              padding: 3px 8px;
+              font-size: 10px;
+              line-height: 1.6;
+            "
+          >
+            $200-300
+          </div>
+          <div
+            class="date-chip"
+            onclick="filterByPrice('300+', this)"
+            style="
+              min-width: auto;
+              padding: 3px 8px;
+              font-size: 10px;
+              line-height: 1.6;
+            "
+          >
+            $300+
+          </div>
+          <span
+            style="
+              width: 1px;
+              height: 14px;
+              background: var(--gray-200);
+              margin: auto 2px;
+              flex-shrink: 0;
+            "
+          ></span>
+          <div
+            class="date-chip active"
+            onclick="filterByDistrict('all', this)"
+            style="
+              min-width: auto;
+              padding: 3px 8px;
+              font-size: 10px;
+              line-height: 1.6;
+            "
+          >
+            📍全部
+          </div>
+          <div
+            class="date-chip"
+            onclick="filterByDistrict('港島', this)"
+            style="
+              min-width: auto;
+              padding: 3px 8px;
+              font-size: 10px;
+              line-height: 1.6;
+            "
+          >
+            港島
+          </div>
+          <div
+            class="date-chip"
+            onclick="filterByDistrict('九龍', this)"
+            style="
+              min-width: auto;
+              padding: 3px 8px;
+              font-size: 10px;
+              line-height: 1.6;
+            "
+          >
+            九龍
+          </div>
+          <div
+            class="date-chip"
+            onclick="filterByDistrict('新界', this)"
+            style="
+              min-width: auto;
+              padding: 3px 8px;
+              font-size: 10px;
+              line-height: 1.6;
+            "
+          >
+            新界
+          </div>
+          <div
+            class="date-chip"
+            onclick="filterByDistrict('線上', this)"
+            style="
+              min-width: auto;
+              padding: 3px 8px;
+              font-size: 10px;
+              line-height: 1.6;
+            "
+          >
+            線上
+          </div>
+          <span
+            style="
+              width: 1px;
+              height: 14px;
+              background: var(--gray-200);
+              margin: auto 2px;
+              flex-shrink: 0;
+            "
+          ></span>
+          <div
+            class="sort-btn active"
+            onclick="setSort('popular', this)"
+            style="
+              padding: 3px 8px;
+              border-radius: 6px;
+              border: 1px solid var(--gray-200);
+              font-size: 10px;
+              cursor: pointer;
+              background: var(--white);
+              color: var(--dark-700);
+              flex-shrink: 0;
+              line-height: 1.6;
+            "
+          >
+            🔥熱門
+          </div>
+          <div
+            class="sort-btn"
+            onclick="setSort('price_low', this)"
+            style="
+              padding: 3px 8px;
+              border-radius: 6px;
+              border: 1px solid var(--gray-200);
+              font-size: 10px;
+              cursor: pointer;
+              background: var(--white);
+              color: var(--dark-700);
+              flex-shrink: 0;
+              line-height: 1.6;
+            "
+          >
+            💵低→高
+          </div>
+          <div
+            class="sort-btn"
+            onclick="setSort('price_high', this)"
+            style="
+              padding: 3px 8px;
+              border-radius: 6px;
+              border: 1px solid var(--gray-200);
+              font-size: 10px;
+              cursor: pointer;
+              background: var(--white);
+              color: var(--dark-700);
+              flex-shrink: 0;
+              line-height: 1.6;
+            "
+          >
+            💵高→低
+          </div>
+          <div
+            class="sort-btn"
+            onclick="setSort('rating', this)"
+            style="
+              padding: 3px 8px;
+              border-radius: 6px;
+              border: 1px solid var(--gray-200);
+              font-size: 10px;
+              cursor: pointer;
+              background: var(--white);
+              color: var(--dark-700);
+              flex-shrink: 0;
+              line-height: 1.6;
+            "
+          >
+            ⭐評分
+          </div>
+        </div>
+        <!-- Result count + Clear -->
+        <div style="display: flex; align-items: center; margin-top: 4px">
+          <span
+            style="font-size: 10px; color: var(--dark-700)"
+            id="resultCount"
+          ></span>
+          <button
+            onclick="clearAllFilters()"
+            style="
+              margin-left: auto;
+              padding: 2px 8px;
+              border: 1px solid var(--gray-200);
+              border-radius: 6px;
+              background: var(--white);
+              font-size: 9px;
+              cursor: pointer;
+              color: var(--dark-700);
+            "
+          >
+            🔄 清除
+          </button>
+        </div>
       </div>
-      <!-- Date -->
-      <div style="display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;padding-bottom:4px;margin-bottom:4px" id="date-list">
-        <div class="date-chip active" onclick="filterByDate('', this)" style="padding:4px 10px;font-size:10px"><span style="font-size:12px;font-weight:600;display:block">全部</span></div>
-      </div>
-      <!-- Advanced: Difficulty, Price, District, Sort -->
-      <div style="display:flex;gap:3px;overflow-x:auto;scrollbar-width:none;padding:2px 0" id="advanced-filters">
-        <div class="date-chip active" onclick="filterByDifficulty('all',this)" style="min-width:auto;padding:3px 8px;font-size:10px;line-height:1.6">🌱全部</div>
-        <div class="date-chip" onclick="filterByDifficulty('beginner',this)" style="min-width:auto;padding:3px 8px;font-size:10px;line-height:1.6">🌱初級</div>
-        <div class="date-chip" onclick="filterByDifficulty('intermediate',this)" style="min-width:auto;padding:3px 8px;font-size:10px;line-height:1.6">🔥中級</div>
-        <div class="date-chip" onclick="filterByDifficulty('advanced',this)" style="min-width:auto;padding:3px 8px;font-size:10px;line-height:1.6">💎高級</div>
-        <span style="width:1px;height:14px;background:var(--gray-200);margin:auto 2px;flex-shrink:0"></span>
-        <div class="date-chip active" onclick="filterByPrice('all',this)" style="min-width:auto;padding:3px 8px;font-size:10px;line-height:1.6">💰全部</div>
-        <div class="date-chip" onclick="filterByPrice('0-100',this)" style="min-width:auto;padding:3px 8px;font-size:10px;line-height:1.6">$0-100</div>
-        <div class="date-chip" onclick="filterByPrice('100-200',this)" style="min-width:auto;padding:3px 8px;font-size:10px;line-height:1.6">$100-200</div>
-        <div class="date-chip" onclick="filterByPrice('200-300',this)" style="min-width:auto;padding:3px 8px;font-size:10px;line-height:1.6">$200-300</div>
-        <div class="date-chip" onclick="filterByPrice('300+',this)" style="min-width:auto;padding:3px 8px;font-size:10px;line-height:1.6">$300+</div>
-        <span style="width:1px;height:14px;background:var(--gray-200);margin:auto 2px;flex-shrink:0"></span>
-        <div class="date-chip active" onclick="filterByDistrict('all',this)" style="min-width:auto;padding:3px 8px;font-size:10px;line-height:1.6">📍全部</div>
-        <div class="date-chip" onclick="filterByDistrict('港島',this)" style="min-width:auto;padding:3px 8px;font-size:10px;line-height:1.6">港島</div>
-        <div class="date-chip" onclick="filterByDistrict('九龍',this)" style="min-width:auto;padding:3px 8px;font-size:10px;line-height:1.6">九龍</div>
-        <div class="date-chip" onclick="filterByDistrict('新界',this)" style="min-width:auto;padding:3px 8px;font-size:10px;line-height:1.6">新界</div>
-        <div class="date-chip" onclick="filterByDistrict('線上',this)" style="min-width:auto;padding:3px 8px;font-size:10px;line-height:1.6">線上</div>
-        <span style="width:1px;height:14px;background:var(--gray-200);margin:auto 2px;flex-shrink:0"></span>
-        <div class="sort-btn active" onclick="setSort('popular',this)" style="padding:3px 8px;border-radius:6px;border:1px solid var(--gray-200);font-size:10px;cursor:pointer;background:var(--white);color:var(--dark-700);flex-shrink:0;line-height:1.6">🔥熱門</div>
-        <div class="sort-btn" onclick="setSort('price_low',this)" style="padding:3px 8px;border-radius:6px;border:1px solid var(--gray-200);font-size:10px;cursor:pointer;background:var(--white);color:var(--dark-700);flex-shrink:0;line-height:1.6">💵低→高</div>
-        <div class="sort-btn" onclick="setSort('price_high',this)" style="padding:3px 8px;border-radius:6px;border:1px solid var(--gray-200);font-size:10px;cursor:pointer;background:var(--white);color:var(--dark-700);flex-shrink:0;line-height:1.6">💵高→低</div>
-        <div class="sort-btn" onclick="setSort('rating',this)" style="padding:3px 8px;border-radius:6px;border:1px solid var(--gray-200);font-size:10px;cursor:pointer;background:var(--white);color:var(--dark-700);flex-shrink:0;line-height:1.6">⭐評分</div>
-      </div>
-      <!-- Result count + Clear -->
-      <div style="display:flex;align-items:center;margin-top:4px">
-        <span style="font-size:10px;color:var(--dark-700)" id="resultCount"></span>
-        <button onclick="clearAllFilters()" style="margin-left:auto;padding:2px 8px;border:1px solid var(--gray-200);border-radius:6px;background:var(--white);font-size:9px;cursor:pointer;color:var(--dark-700)">🔄 清除</button>
-      </div>
-    </div><div
+    </div>
+    <div
       class="class-grid"
       id="class-grid"
       style="
         display: grid !important;
         grid-template-columns: 1fr 1fr !important;
         gap: 10px !important;
+        min-height: 200px;
       "
     >
       <div class="loading-spinner">載入中...</div>
     </div>
 
-    <div id="load-more-container" style="text-align:center;padding:16px 0;display:none">
-      <button id="load-more-btn" onclick="loadMore()" style="padding:10px 32px;background:var(--orange-600-bg);color:white;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer">📥 載入更多課程</button>
+    <div
+      id="load-more-container"
+      style="text-align: center; padding: 16px 0; display: none"
+    >
+      <button
+        id="load-more-btn"
+        onclick="loadMore()"
+        style="
+          padding: 10px 32px;
+          background: var(--orange-600-bg);
+          color: white;
+          border: none;
+          border-radius: 8px;
+          font-size: 14px;
+          font-weight: 600;
+          cursor: pointer;
+        "
+      >
+        📥 載入更多課程
+      </button>
     </div>
-
     <nav class="bottom-nav" role="navigation" aria-label="底部導航">
       <a href="index.html" class="nav-item"
         ><span class="nav-icon">🏠</span>首頁</a
@@ -690,31 +1022,42 @@
 
       function updateURL() {
         var params = {};
-        if (currentCategory && currentCategory !== "all") params.cat = currentCategory;
+        if (currentCategory && currentCategory !== "all")
+          params.cat = currentCategory;
         if (currentDate) params.date = currentDate;
-        if (currentDifficulty && currentDifficulty !== "all") params.diff = currentDifficulty;
+        if (currentDifficulty && currentDifficulty !== "all")
+          params.diff = currentDifficulty;
         if (currentPrice && currentPrice !== "all") params.price = currentPrice;
-        if (currentDistrict && currentDistrict !== "all") params.dist = currentDistrict;
-        if (currentSortMethod && currentSortMethod !== "popular") params.sort = currentSortMethod;
-        var qs = Object.keys(params).map(function(k){ return k + '=' + encodeURIComponent(params[k]); }).join('&');
-        var url = window.location.pathname + (qs ? '?' + qs : '');
-        window.history.replaceState(null, '', url);
+        if (currentDistrict && currentDistrict !== "all")
+          params.dist = currentDistrict;
+        if (currentSortMethod && currentSortMethod !== "popular")
+          params.sort = currentSortMethod;
+        var qs = Object.keys(params)
+          .map(function (k) {
+            return k + "=" + encodeURIComponent(params[k]);
+          })
+          .join("&");
+        var url = window.location.pathname + (qs ? "?" + qs : "");
+        window.history.replaceState(null, "", url);
       }
 
       function initFromURL() {
         var qs = window.location.search.substring(1);
         if (!qs) return;
-        var parts = qs.split('&');
+        var parts = qs.split("&");
         for (var i = 0; i < parts.length; i++) {
-          var kv = parts[i].split('=');
+          var kv = parts[i].split("=");
           var key = decodeURIComponent(kv[0]);
-          var val = kv.length > 1 ? decodeURIComponent(kv[1]) : '';
-          if (key === 'cat') currentCategory = val;
-          else if (key === 'date') currentDate = val;
-          else if (key === 'diff') currentDifficulty = val;
-          else if (key === 'price') currentPrice = val;
-          else if (key === 'dist') currentDistrict = val;
-          else if (key === 'sort') { currentSortMethod = val; currentSort = val; }
+          var val = kv.length > 1 ? decodeURIComponent(kv[1]) : "";
+          if (key === "cat") currentCategory = val;
+          else if (key === "date") currentDate = val;
+          else if (key === "diff") currentDifficulty = val;
+          else if (key === "price") currentPrice = val;
+          else if (key === "dist") currentDistrict = val;
+          else if (key === "sort") {
+            currentSortMethod = val;
+            currentSort = val;
+          }
         }
       }
 
@@ -753,7 +1096,7 @@
           var categories = result.categories || [];
           categories.forEach(function (cat) {
             // Fix date-list rendering
-      container.innerHTML +=
+            container.innerHTML +=
               '<div class="category-chip" onclick="filterByCategory(\'' +
               cat.category +
               "', this)\">" +
@@ -761,17 +1104,48 @@
               "</div>";
           });
         } catch (err) {
-          ["瑜伽", "健身", "伸展", "冥想", "舞蹈", "新興運動", "皮拉提斯", "兒童體適能", "肌力訓練", "心肺訓練", "拳擊搏擊", "單車", "水中運動", "太極養生", "羽毛球", "乒乓球", "攀岩", "射箭", "劍擊", "泰拳搏擊", "高爾夫球", "露營戶外", "長者體適能", "產後修復", "空中瑜伽", "芭蕾塑形", "TRX 懸吊訓練", "詠春", "遠足行山", "溜冰", "網球", "保齡球"].forEach(
-            function (c) {
-              // Fix date-list rendering
-      container.innerHTML +=
-                '<div class="category-chip" onclick="filterByCategory(\'' +
-                c +
-                "', this)\">" +
-                c +
-                "</div>";
-            },
-          );
+          [
+            "瑜伽",
+            "健身",
+            "伸展",
+            "冥想",
+            "舞蹈",
+            "新興運動",
+            "皮拉提斯",
+            "兒童體適能",
+            "肌力訓練",
+            "心肺訓練",
+            "拳擊搏擊",
+            "單車",
+            "水中運動",
+            "太極養生",
+            "羽毛球",
+            "乒乓球",
+            "攀岩",
+            "射箭",
+            "劍擊",
+            "泰拳搏擊",
+            "高爾夫球",
+            "露營戶外",
+            "長者體適能",
+            "產後修復",
+            "空中瑜伽",
+            "芭蕾塑形",
+            "TRX 懸吊訓練",
+            "詠春",
+            "遠足行山",
+            "溜冰",
+            "網球",
+            "保齡球",
+          ].forEach(function (c) {
+            // Fix date-list rendering
+            container.innerHTML +=
+              '<div class="category-chip" onclick="filterByCategory(\'' +
+              c +
+              "', this)\">" +
+              c +
+              "</div>";
+          });
         }
       }
 
@@ -841,7 +1215,7 @@
               chip.innerHTML =
                 '<span class="day" style="font-size:16px;font-weight:700;display:block;line-height:1.2">' +
                 day +
-                "</span><small style=\"font-size:9px;color:var(--dark-700);display:block\">" +
+                '</span><small style="font-size:9px;color:var(--dark-700);display:block">' +
                 dayName +
                 "</small>";
               container.appendChild(chip);
@@ -899,7 +1273,7 @@
       }
 
       // ===== Difficulty Filter =====
-      
+
       var currentPrice = "all";
       var currentDistrict = "all";
       var currentSortMethod = "popular";
@@ -909,7 +1283,11 @@
         currentPrice = price;
         currentPage = 1;
         updateURL();
-        document.querySelectorAll("#price-filter .date-chip").forEach(function(e){ e.classList.remove("active"); });
+        document
+          .querySelectorAll("#price-filter .date-chip")
+          .forEach(function (e) {
+            e.classList.remove("active");
+          });
         if (el) el.classList.add("active");
         loadClasses();
       }
@@ -917,7 +1295,11 @@
         currentDistrict = dist;
         currentPage = 1;
         updateURL();
-        document.querySelectorAll("#district-filter .date-chip").forEach(function(e){ e.classList.remove("active"); });
+        document
+          .querySelectorAll("#district-filter .date-chip")
+          .forEach(function (e) {
+            e.classList.remove("active");
+          });
         if (el) el.classList.add("active");
         loadClasses();
       }
@@ -926,20 +1308,36 @@
         currentSort = method;
         currentPage = 1;
         updateURL();
-        document.querySelectorAll(".sort-btn").forEach(function(e){ e.classList.remove("active"); });
+        document.querySelectorAll(".sort-btn").forEach(function (e) {
+          e.classList.remove("active");
+        });
         if (el) el.classList.add("active");
         loadClasses();
       }
       function clearAllFilters() {
-        currentCategory = "all"; currentDate = ""; currentDifficulty = "all"; currentPrice = "all"; currentDistrict = "all"; currentSortMethod = "popular";
+        currentCategory = "all";
+        currentDate = "";
+        currentDifficulty = "all";
+        currentPrice = "all";
+        currentDistrict = "all";
+        currentSortMethod = "popular";
         currentPage = 1;
         updateURL();
-        document.querySelectorAll(".category-chip, .date-chip, .sort-btn").forEach(function(e){ e.classList.remove("active"); });
-        var first = document.querySelector(".category-chip"); if (first) first.classList.add("active");
-        var firstD = document.querySelector("#date-filter .date-chip"); if (firstD) firstD.classList.add("active");
-        var firstP = document.querySelector("#price-filter .date-chip"); if (firstP) firstP.classList.add("active");
-        var firstDist = document.querySelector("#district-filter .date-chip"); if (firstDist) firstDist.classList.add("active");
-        var firstS = document.querySelector(".sort-btn"); if (firstS) firstS.classList.add("active");
+        document
+          .querySelectorAll(".category-chip, .date-chip, .sort-btn")
+          .forEach(function (e) {
+            e.classList.remove("active");
+          });
+        var first = document.querySelector(".category-chip");
+        if (first) first.classList.add("active");
+        var firstD = document.querySelector("#date-filter .date-chip");
+        if (firstD) firstD.classList.add("active");
+        var firstP = document.querySelector("#price-filter .date-chip");
+        if (firstP) firstP.classList.add("active");
+        var firstDist = document.querySelector("#district-filter .date-chip");
+        if (firstDist) firstDist.classList.add("active");
+        var firstS = document.querySelector(".sort-btn");
+        if (firstS) firstS.classList.add("active");
         document.getElementById("search-input").value = "";
         searchTerm = "";
         loadClasses();
@@ -948,23 +1346,27 @@
         currentView = view;
         var grid = document.getElementById("classGrid");
         if (grid) grid.style.display = view === "grid" ? "flex" : "block";
-        document.getElementById("viewGrid").style.background = view === "grid" ? "var(--orange-600-bg)" : "var(--white)";
-        document.getElementById("viewGrid").style.color = view === "grid" ? "white" : "var(--dark-700)";
-        document.getElementById("viewList").style.background = view === "list" ? "var(--orange-600-bg)" : "var(--white)";
-        document.getElementById("viewList").style.color = view === "list" ? "white" : "var(--dark-700)";
+        document.getElementById("viewGrid").style.background =
+          view === "grid" ? "var(--orange-600-bg)" : "var(--white)";
+        document.getElementById("viewGrid").style.color =
+          view === "grid" ? "white" : "var(--dark-700)";
+        document.getElementById("viewList").style.background =
+          view === "list" ? "var(--orange-600-bg)" : "var(--white)";
+        document.getElementById("viewList").style.color =
+          view === "list" ? "white" : "var(--dark-700)";
       }
 
       var currentDifficulty = "all";
       function filterByDifficulty(diff, el) {
         var chips = document.querySelectorAll("#difficulty-filter .date-chip");
-        for (var ci = 0; ci < chips.length; ci++) chips[ci].classList.remove("active");
+        for (var ci = 0; ci < chips.length; ci++)
+          chips[ci].classList.remove("active");
         el.classList.add("active");
         currentDifficulty = diff;
         currentPage = 1;
         updateURL();
         loadClasses();
       }
-
 
       function doSearch() {
         var q = document.getElementById("search-input").value.trim();
@@ -1041,18 +1443,28 @@
         var container = document.getElementById("class-grid");
         container.innerHTML = '<div class="loading-spinner">載入中...</div>';
 
-        var params = { limit: currentLimit, sort: currentSort, page: currentPage };
+        var params = {
+          limit: currentLimit,
+          sort: currentSort,
+          page: currentPage,
+        };
         if (currentCategory !== "all") params.category = currentCategory;
         if (currentDate) params.date = currentDate;
         var searchQ = document.getElementById("search-input").value.trim();
         if (searchQ) params.search = searchQ;
         if (currentPrice && currentPrice !== "all") {
-          var priceParts = currentPrice.split('-');
-          if (priceParts.length === 2) { params.price_min = priceParts[0]; params.price_max = priceParts[1]; }
-          else if (currentPrice === '300+') { params.price_min = '300'; }
+          var priceParts = currentPrice.split("-");
+          if (priceParts.length === 2) {
+            params.price_min = priceParts[0];
+            params.price_max = priceParts[1];
+          } else if (currentPrice === "300+") {
+            params.price_min = "300";
+          }
         }
-        if (currentDifficulty && currentDifficulty !== "all") params.difficulty = currentDifficulty;
-        if (currentDistrict && currentDistrict !== "all") params.district = currentDistrict;
+        if (currentDifficulty && currentDifficulty !== "all")
+          params.difficulty = currentDifficulty;
+        if (currentDistrict && currentDistrict !== "all")
+          params.district = currentDistrict;
 
         // Get search from URL
         var search = null;
@@ -1078,32 +1490,41 @@
             return;
           }
           var isAppend = arguments && arguments[0] === true;
-          totalClasses = result.pagination ? result.pagination.total : items.length;
+          totalClasses = result.pagination
+            ? result.pagination.total
+            : items.length;
           if (!isAppend) {
-            document.getElementById("resultCount").textContent = items.length + " / " + totalClasses + " 個課程";
-            container.innerHTML =
+            document.getElementById("resultCount").textContent =
+              items.length + " / " + totalClasses + " 個課程";
+            container.innerHTML = items
+              .map(function (cls) {
+                return renderCard(cls);
+              })
+              .join("");
+          } else {
+            container.insertAdjacentHTML(
+              "beforeend",
               items
                 .map(function (cls) {
                   return renderCard(cls);
                 })
-                .join("");
-          } else {
-            container.insertAdjacentHTML('beforeend', items
-              .map(function (cls) {
-                return renderCard(cls);
-              })
-              .join(""));
+                .join(""),
+            );
             var countEl = document.getElementById("resultCount");
             if (countEl) {
-              var totalShown = container.querySelectorAll('.class-card').length;
-              countEl.textContent = totalShown + " / " + totalClasses + " 個課程";
+              var totalShown = container.querySelectorAll(".class-card").length;
+              countEl.textContent =
+                totalShown + " / " + totalClasses + " 個課程";
             }
           }
           // Show/hide load more
           var lmContainer = document.getElementById("load-more-container");
-          var totalPages = result.pagination ? result.pagination.total_pages : 1;
+          var totalPages = result.pagination
+            ? result.pagination.total_pages
+            : 1;
           if (lmContainer) {
-            lmContainer.style.display = (currentPage < totalPages) ? "block" : "none";
+            lmContainer.style.display =
+              currentPage < totalPages ? "block" : "none";
           }
         } catch (err) {
           // Demo fallback classes
@@ -1163,7 +1584,7 @@
       }
 
       function renderCard(cls) {
-                var emojiMap = {
+        var emojiMap = {
           瑜伽: "🧘",
           健身: "💪",
           伸展: "🤸",
@@ -1206,8 +1627,14 @@
           '<div class="class-card" onclick="location.href=\'class-detail.html?id=' +
           cls.id +
           "'\">" +
-          '<div class="class-card-img" style="' + (cls.image_url ? 'background-image:url(' + cls.image_url + ');background-size:cover;background-position:center;position:relative' : 'background:linear-gradient(135deg,var(--orange-100),var(--orange-200))') + ';display:flex;align-items:center;justify-content:center;font-size:32px">' +
-          (cls.image_url ? '' : emoji) +
+          '<div class="class-card-img" style="' +
+          (cls.image_url
+            ? "background-image:url(" +
+              cls.image_url +
+              ");background-size:cover;background-position:center;position:relative"
+            : "background:linear-gradient(135deg,var(--orange-100),var(--orange-200))") +
+          ';display:flex;align-items:center;justify-content:center;font-size:32px">' +
+          (cls.image_url ? "" : emoji) +
           "</div>" +
           '<div class="class-card-body">' +
           '<span class="class-card-category">' +
@@ -1358,12 +1785,20 @@
       </div>
       © 2026 ZenPass 禪流
     </div>
-      <button class="back-to-top" id="backToTop" onclick="window.scrollTo({top:0,behavior:'smooth'})" aria-label="返回頂部">↑</button>
+    <button
+      class="back-to-top"
+      id="backToTop"
+      onclick="window.scrollTo({ top: 0, behavior: 'smooth' })"
+      aria-label="返回頂部"
+    >
+      ↑
+    </button>
     <script>
-      window.addEventListener("scroll", function() {
-        document.getElementById("backToTop").classList.toggle("visible", window.scrollY > 400);
+      window.addEventListener("scroll", function () {
+        document
+          .getElementById("backToTop")
+          .classList.toggle("visible", window.scrollY > 400);
       });
     </script>
-
-</body>
+  </body>
 </html>

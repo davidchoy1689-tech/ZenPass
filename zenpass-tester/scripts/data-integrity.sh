@@ -54,7 +54,7 @@ for b in d.get('bookings',[]):
     valid_st = ['confirmed','cancelled','pending_payment','no_show','completed','attended']
     if b.get('payment_status') not in valid_pay: issues.append(f'Bad payment_status: {b.get(\"payment_status\")}')
     if b.get('status') not in valid_st: issues.append(f'Bad status: {b.get(\"status\")}')
-    if b.get('amount',0) <= 0: issues.append(f'Zero/Neg amount: {b.get(\"booking_reference\")}')
+    if b.get('amount',0) <= 0 and b.get('payment_type') != 'membership_trial': issues.append(f'Zero/Neg amount: {b.get(\"booking_reference\")}')
 if issues:
     for i in issues: print(f'  ISSUE: {i}')
     sys.exit(1)
@@ -85,11 +85,10 @@ else:
 
 if [ $? -ne 0 ]; then FAIL=1; fi
 
-# Summary
 echo ""
-if [ "$FAIL" = "0" ]; then
-  echo "✅ Data integrity: ALL OK"
+if [ $FAIL -eq 0 ]; then
+  echo '✅ Data integrity: ALL OK'
 else
-  echo "❌ Data integrity: ISSUES FOUND"
+  echo '❌ Data integrity: ISSUES FOUND'
 fi
 exit $FAIL

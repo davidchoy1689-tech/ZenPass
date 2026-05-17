@@ -4,12 +4,15 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>我的預約 - ZenPass 禪流</title>
-  <meta property="og:title" content="我的預約 — ZenPass 禪流" />
-  <meta property="og:description" content="查看及管理你的課程預約記錄。" />
-  <meta property="og:url" content="https://davidchoy1689-tech.github.io/ZenPass/my-bookings.html" />
-  <meta property="og:type" content="website" />
-  <meta property="og:locale" content="zh_HK" />
-  <meta name="twitter:card" content="summary_large_image" />
+    <meta property="og:title" content="我的預約 — ZenPass 禪流" />
+    <meta property="og:description" content="查看及管理你的課程預約記錄。" />
+    <meta
+      property="og:url"
+      content="https://davidchoy1689-tech.github.io/ZenPass/my-bookings.html"
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="zh_HK" />
+    <meta name="twitter:card" content="summary_large_image" />
     <script src="api.js"></script>
     <link rel="icon" type="image/png" href="icons/favicon-96x96.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -17,7 +20,7 @@
       href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap"
       rel="stylesheet"
     />
-      <link rel="stylesheet" href="css/zenpass.css" />
+    <link rel="stylesheet" href="css/zenpass.css" />
     <style>
       :root {
         --orange-500: #ff6b35;
@@ -54,7 +57,7 @@
         min-height: 100vh;
       }
       .header {
-        background: linear-gradient(135deg,var(--orange-600-bg),#ff6b35);
+        background: linear-gradient(135deg, var(--orange-600-bg), #ff6b35);
         padding: 14px 16px;
         display: flex;
         align-items: center;
@@ -65,7 +68,7 @@
         color: white;
       }
       .header .back-btn {
-        background: rgba(255,255,255,0.2);
+        background: rgba(255, 255, 255, 0.2);
         border: none;
         font-size: 20px;
         cursor: pointer;
@@ -159,7 +162,7 @@
         border-radius: 14px;
         padding: 14px;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-        border: 1px solid rgba(0,0,0,0.04);
+        border: 1px solid rgba(0, 0, 0, 0.04);
       }
       .booking-card .bc-header {
         display: flex;
@@ -363,8 +366,8 @@
           max-width: 1100px;
         }
       }
-    
-    .bottom-nav {
+
+      .bottom-nav {
         position: fixed;
         bottom: 0;
         left: 50%;
@@ -377,8 +380,8 @@
         justify-content: space-around;
         padding: 6px 0;
         z-index: 1000;
-    }
-    .nav-item {
+      }
+      .nav-item {
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -387,15 +390,15 @@
         font-size: 10px;
         color: var(--dark-700);
         padding: 4px 12px;
-    }
-    .nav-item.active {
+      }
+      .nav-item.active {
         color: var(--orange-700);
-    }
-    .nav-item .nav-icon {
+      }
+      .nav-item .nav-icon {
         font-size: 22px;
         line-height: 1;
-    }
-</style>
+      }
+    </style>
   </head>
   <body>
     <div class="header">
@@ -457,7 +460,7 @@
       (function () {
         loadBookings();
         // Auto-refresh bookings every 30s (多人同時 book 時即時睇到變化)
-        setInterval(function() {
+        setInterval(function () {
           if (!document.hidden) loadBookings();
         }, 30000);
       })();
@@ -620,10 +623,18 @@
           startStr +
           "</span><span>📍 " +
           escHtml(b.venue_name || "—") +
-          (b.venue_address ? '<br><span style="font-size:11px;color:var(--dark-700)">' + escHtml(b.venue_address) + '</span>' : '') +
+          (b.venue_address
+            ? '<br><span style="font-size:11px;color:var(--dark-700)">' +
+              escHtml(b.venue_address) +
+              "</span>"
+            : "") +
           "</span><span>👤 導師：" +
           escHtml(b.coach_name || "—") +
-          (b.class_id ? '</span><span><a href="class-detail.html?id=' + b.class_id + '" style="color:var(--orange-700);text-decoration:none;font-size:12px">📖 課程詳情 →</a>' : '') +
+          (b.class_id
+            ? '</span><span><a href="class-detail.html?id=' +
+              b.class_id +
+              '" style="color:var(--orange-700);text-decoration:none;font-size:12px">📖 課程詳情 →</a>'
+            : "") +
           "</span></div>" +
           '<div class="bc-footer"><span class="bc-pay-status ' +
           payStatusClass +
@@ -764,7 +775,7 @@
         navigator.serviceWorker.register("sw.js");
       }
     </script>
-      <nav class="bottom-nav" role="navigation" aria-label="底部導航">
+    <nav class="bottom-nav" role="navigation" aria-label="底部導航">
       <a href="index.html" class="nav-item"
         ><span class="nav-icon">🏠</span>首頁</a
       >
@@ -781,5 +792,5 @@
         ><span class="nav-icon">👤</span>我的</a
       >
     </nav>
-</body>
+  </body>
 </html>

@@ -12,18 +12,20 @@
     <title>簽到 — ZenPass 禪流</title>
     <link rel="manifest" href="manifest.json" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
-<script>
-// QR Scanner fallback: try loading from multiple CDNs
-if (typeof Html5Qrcode === "undefined") {
-  var s = document.createElement("script");
-  s.src = "https://unpkg.com/html5-qrcode";
-  s.onload = function(){ console.log("QR lib loaded from unpkg"); };
-  document.head.appendChild(s);
-}
-</script>
+    <script>
+      // QR Scanner fallback: try loading from multiple CDNs
+      if (typeof Html5Qrcode === "undefined") {
+        var s = document.createElement("script");
+        s.src = "https://unpkg.com/html5-qrcode";
+        s.onload = function () {
+          console.log("QR lib loaded from unpkg");
+        };
+        document.head.appendChild(s);
+      }
+    </script>
     <script src="api.js"></script>
 
-      <link rel="stylesheet" href="css/zenpass.css" />
+    <link rel="stylesheet" href="css/zenpass.css" />
     <style>
       * {
         margin: 0;
@@ -46,7 +48,7 @@ if (typeof Html5Qrcode === "undefined") {
         margin: 86px 16px 0;
         text-align: center;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-        border: 1px solid rgba(0,0,0,0.04);
+        border: 1px solid rgba(0, 0, 0, 0.04);
       }
       .icon {
         font-size: 56px;
@@ -94,7 +96,7 @@ if (typeof Html5Qrcode === "undefined") {
         font-weight: 700;
         cursor: pointer;
         transition: all 0.2s;
-        box-shadow: 0 2px 8px rgba(5,150,105,0.2);
+        box-shadow: 0 2px 8px rgba(5, 150, 105, 0.2);
         font-family: var(--font-zh);
       }
       .btn-checkin:active {
@@ -296,29 +298,99 @@ if (typeof Html5Qrcode === "undefined") {
           transform: rotate(360deg);
         }
       }
-    
-      @media (max-width: 480px) {
-        .card { padding: 14px; margin: 0 8px; }
-        .header { padding: 12px 8px; }
-        .info-row { flex-direction: column; gap: 4px; }
-        .info-row .label { min-width: auto; }
-        #monthly-grid { gap: 2px; }
-        #monthly-grid div { width: 12px !important; height: 12px !important; font-size: 6px !important; }
-        .success a { font-size: 11px !important; padding: 5px 10px !important; }
-      }
 
+      @media (max-width: 480px) {
+        .card {
+          padding: 14px;
+          margin: 0 8px;
+        }
+        .header {
+          padding: 12px 8px;
+        }
+        .info-row {
+          flex-direction: column;
+          gap: 4px;
+        }
+        .info-row .label {
+          min-width: auto;
+        }
+        #monthly-grid {
+          gap: 2px;
+        }
+        #monthly-grid div {
+          width: 12px !important;
+          height: 12px !important;
+          font-size: 6px !important;
+        }
+        .success a {
+          font-size: 11px !important;
+          padding: 5px 10px !important;
+        }
+      }
     </style>
   </head>
   <body>
-    <div class="header" style="background:linear-gradient(135deg,var(--orange-600-bg),var(--orange-500));color:white;padding:14px 16px;display:flex;align-items:center;gap:12px;position:fixed;top:0;left:50%;transform:translateX(-50%);width:100%;max-width:var(--max-width);z-index:10">
-      <a class="back-btn" onclick="history.back()" style="color:white;text-decoration:none;font-size:20px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:rgba(255,255,255,0.2)">←</a>
-      <h1 style="font-size:17px;font-weight:600;color:white;margin:0;flex:1">📆 簽到</h1>
-      <span style="width:32px"></span>
+    <div
+      class="header"
+      style="
+        background: linear-gradient(
+          135deg,
+          var(--orange-600-bg),
+          var(--orange-500)
+        );
+        color: white;
+        padding: 14px 16px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        position: fixed;
+        top: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 100%;
+        max-width: var(--max-width);
+        z-index: 10;
+      "
+    >
+      <a
+        class="back-btn"
+        onclick="history.back()"
+        style="
+          color: white;
+          text-decoration: none;
+          font-size: 20px;
+          width: 32px;
+          height: 32px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 50%;
+          background: rgba(255, 255, 255, 0.2);
+        "
+        >←</a
+      >
+      <h1
+        style="
+          font-size: 17px;
+          font-weight: 600;
+          color: white;
+          margin: 0;
+          flex: 1;
+        "
+      >
+        📆 簽到
+      </h1>
+      <span style="width: 32px"></span>
     </div>
     <div class="card">
-      <div class="icon" style="font-size:48px;margin-bottom:8px">📱</div>
-      <h1 style="font-size:18px">課堂簽到</h1>
-      <div class="sub" style="font-size:12px;color:var(--dark-700);margin-bottom:12px">掃描教練提供的 QR Code 以簽到</div>
+      <div class="icon" style="font-size: 48px; margin-bottom: 8px">📱</div>
+      <h1 style="font-size: 18px">課堂簽到</h1>
+      <div
+        class="sub"
+        style="font-size: 12px; color: var(--dark-700); margin-bottom: 12px"
+      >
+        掃描教練提供的 QR Code 以簽到
+      </div>
       <div style="text-align: center; margin-bottom: 12px">
         <button
           onclick="startQRScanner()"
@@ -346,18 +418,67 @@ if (typeof Html5Qrcode === "undefined") {
           display: none;
         "
       ></div>
-      <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--gray-200)">
-        <div style="font-size:12px;color:var(--dark-700);margin-bottom:8px">👨‍🏫 教練簽到 QR</div>
+      <div
+        style="
+          margin-top: 16px;
+          padding-top: 16px;
+          border-top: 1px solid var(--gray-200);
+        "
+      >
+        <div
+          style="font-size: 12px; color: var(--dark-700); margin-bottom: 8px"
+        >
+          👨‍🏫 教練簽到 QR
+        </div>
         <div id="coach-qr-area">
-          <div id="schedule-select-wrap" style="display:none;margin-bottom:8px">
-            <select id="schedule-select" style="width:100%;padding:8px;border:1px solid var(--gray-200);border-radius:8px;font-size:12px;font-family:var(--font-zh);background:var(--white)">
+          <div
+            id="schedule-select-wrap"
+            style="display: none; margin-bottom: 8px"
+          >
+            <select
+              id="schedule-select"
+              style="
+                width: 100%;
+                padding: 8px;
+                border: 1px solid var(--gray-200);
+                border-radius: 8px;
+                font-size: 12px;
+                font-family: var(--font-zh);
+                background: var(--white);
+              "
+            >
               <option value="">選擇課堂...</option>
             </select>
           </div>
-          <button onclick="generateCoachQR()" style="padding:6px 14px;border:1px solid var(--gray-200);border-radius:8px;background:var(--white);font-size:12px;cursor:pointer">生成課堂 QR Code</button>
-          <div id="coach-qr-display" style="display:none;margin-top:8px">
-            <img id="coach-qr-img" style="width:160px;height:160px;border-radius:8px;border:1px solid var(--gray-200)" />
-            <div id="coach-qr-note" style="font-size:11px;color:var(--dark-700);margin-top:4px">學生掃描此 QR 即可自動簽到</div>
+          <button
+            onclick="generateCoachQR()"
+            style="
+              padding: 6px 14px;
+              border: 1px solid var(--gray-200);
+              border-radius: 8px;
+              background: var(--white);
+              font-size: 12px;
+              cursor: pointer;
+            "
+          >
+            生成課堂 QR Code
+          </button>
+          <div id="coach-qr-display" style="display: none; margin-top: 8px">
+            <img
+              id="coach-qr-img"
+              style="
+                width: 160px;
+                height: 160px;
+                border-radius: 8px;
+                border: 1px solid var(--gray-200);
+              "
+            />
+            <div
+              id="coach-qr-note"
+              style="font-size: 11px; color: var(--dark-700); margin-top: 4px"
+            >
+              學生掃描此 QR 即可自動簽到
+            </div>
           </div>
         </div>
       </div>
@@ -397,37 +518,168 @@ if (typeof Html5Qrcode === "undefined") {
       <button class="btn-checkin" id="btn-checkin" onclick="doCheckin()">
         ✅ 確認出席
       </button>
-      <div class="demo-hint" style="display:none;margin-top:8px;padding:8px;background:var(--gray-50);border-radius:8px;font-size:11px;color:var(--dark-700);text-align:center">
-        💡 教練可以 Send 直接簽到 Link：<br><code style="font-size:10px;background:var(--gray-100);padding:2px 6px;border-radius:4px">/checkin.html?class=123&date=2026-05-15&coach=靜儀</code>
+      <div
+        class="demo-hint"
+        style="
+          display: none;
+          margin-top: 8px;
+          padding: 8px;
+          background: var(--gray-50);
+          border-radius: 8px;
+          font-size: 11px;
+          color: var(--dark-700);
+          text-align: center;
+        "
+      >
+        💡 教練可以 Send 直接簽到 Link：<br /><code
+          style="
+            font-size: 10px;
+            background: var(--gray-100);
+            padding: 2px 6px;
+            border-radius: 4px;
+          "
+          >/checkin.html?class=123&date=2026-05-15&coach=靜儀</code
+        >
       </div>
 
       <div class="success" id="success-section">
         <div class="check">✅</div>
-        <div style="font-size:18px;font-weight:700;color:#059669;margin-bottom:4px">簽到成功！</div>
-        <div style="font-size:14px;color:#3d3d5a">已記錄出席</div>
-        <div id="streak-display" style="margin-top:12px;padding:12px;background:linear-gradient(135deg,#fffbeb,#fef3c7);border-radius:12px;display:none">
-          <div style="display:flex;align-items:center;gap:8px;justify-content:center">
-            <span style="font-size:24px">🔥</span>
+        <div
+          style="
+            font-size: 18px;
+            font-weight: 700;
+            color: #059669;
+            margin-bottom: 4px;
+          "
+        >
+          簽到成功！
+        </div>
+        <div style="font-size: 14px; color: #3d3d5a">已記錄出席</div>
+        <div
+          id="streak-display"
+          style="
+            margin-top: 12px;
+            padding: 12px;
+            background: linear-gradient(135deg, #fffbeb, #fef3c7);
+            border-radius: 12px;
+            display: none;
+          "
+        >
+          <div
+            style="
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              justify-content: center;
+            "
+          >
+            <span style="font-size: 24px">🔥</span>
             <div>
-              <div style="font-size:16px;font-weight:700">連續簽到 <span id="streak-count">0</span> 天</div>
-              <div style="font-size:12px;color:#92400e;margin-top:2px" id="streak-next">再簽 1 日可獲 10 積分！</div>
+              <div style="font-size: 16px; font-weight: 700">
+                連續簽到 <span id="streak-count">0</span> 天
+              </div>
+              <div
+                style="font-size: 12px; color: #92400e; margin-top: 2px"
+                id="streak-next"
+              >
+                再簽 1 日可獲 10 積分！
+              </div>
             </div>
           </div>
-          <div style="height:6px;background:#fde68a;border-radius:3px;overflow:hidden;margin-top:8px">
-            <div id="streak-bar" style="height:100%;width:0%;background:linear-gradient(90deg,#f59e0b,#d97706);border-radius:3px;transition:width 0.5s"></div>
+          <div
+            style="
+              height: 6px;
+              background: #fde68a;
+              border-radius: 3px;
+              overflow: hidden;
+              margin-top: 8px;
+            "
+          >
+            <div
+              id="streak-bar"
+              style="
+                height: 100%;
+                width: 0%;
+                background: linear-gradient(90deg, #f59e0b, #d97706);
+                border-radius: 3px;
+                transition: width 0.5s;
+              "
+            ></div>
           </div>
-          <div style="font-size:11px;color:#92400e;margin-top:6px;text-align:center" id="streak-reward">🎯 每 7 天送 50 積分！</div>
+          <div
+            style="
+              font-size: 11px;
+              color: #92400e;
+              margin-top: 6px;
+              text-align: center;
+            "
+            id="streak-reward"
+          >
+            🎯 每 7 天送 50 積分！
+          </div>
         </div>
-        <div id="monthly-stats" style="margin-top:12px;display:none">
-          <div style="font-size:12px;color:var(--dark-700);margin-bottom:4px">📊 本月簽到</div>
-          <div style="display:flex;gap:3px;flex-wrap:wrap" id="monthly-grid"></div>
-          <div style="font-size:11px;color:var(--dark-700);margin-top:4px" id="monthly-summary"></div>
+        <div id="monthly-stats" style="margin-top: 12px; display: none">
+          <div
+            style="font-size: 12px; color: var(--dark-700); margin-bottom: 4px"
+          >
+            📊 本月簽到
+          </div>
+          <div
+            style="display: flex; gap: 3px; flex-wrap: wrap"
+            id="monthly-grid"
+          ></div>
+          <div
+            style="font-size: 11px; color: var(--dark-700); margin-top: 4px"
+            id="monthly-summary"
+          ></div>
         </div>
         <div class="already">教練會見到你的簽到記錄</div>
-        <div style="display:flex;gap:6px;margin-top:12px;justify-content:center;flex-wrap:wrap">
-          <a href="my-bookings.html" style="padding:6px 14px;border-radius:16px;background:var(--orange-600-bg);color:white;text-decoration:none;font-size:12px;font-weight:600">📋 我的預約</a>
-          <a href="points.html" style="padding:6px 14px;border-radius:16px;background:var(--gray-100);color:var(--dark-900);text-decoration:none;font-size:12px">🎯 積分獎勵</a>
-          <a href="explore.html" style="padding:6px 14px;border-radius:16px;background:var(--gray-100);color:var(--dark-900);text-decoration:none;font-size:12px">🔍 探索課程</a>
+        <div
+          style="
+            display: flex;
+            gap: 6px;
+            margin-top: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+          "
+        >
+          <a
+            href="my-bookings.html"
+            style="
+              padding: 6px 14px;
+              border-radius: 16px;
+              background: var(--orange-600-bg);
+              color: white;
+              text-decoration: none;
+              font-size: 12px;
+              font-weight: 600;
+            "
+            >📋 我的預約</a
+          >
+          <a
+            href="points.html"
+            style="
+              padding: 6px 14px;
+              border-radius: 16px;
+              background: var(--gray-100);
+              color: var(--dark-900);
+              text-decoration: none;
+              font-size: 12px;
+            "
+            >🎯 積分獎勵</a
+          >
+          <a
+            href="explore.html"
+            style="
+              padding: 6px 14px;
+              border-radius: 16px;
+              background: var(--gray-100);
+              color: var(--dark-900);
+              text-decoration: none;
+              font-size: 12px;
+            "
+            >🔍 探索課程</a
+          >
         </div>
       </div>
 
@@ -437,27 +689,53 @@ if (typeof Html5Qrcode === "undefined") {
     </div>
 
     <!-- Recent Check-in History -->
-    <div class="card" id="history-section" style="margin-top:12px;display:none">
-      <div style="font-size:14px;font-weight:700;margin-bottom:8px">📋 最近簽到</div>
+    <div
+      class="card"
+      id="history-section"
+      style="margin-top: 12px; display: none"
+    >
+      <div style="font-size: 14px; font-weight: 700; margin-bottom: 8px">
+        📋 最近簽到
+      </div>
       <div id="history-list"></div>
     </div>
 
     <script>
-      function showToast(m,t){var d=document.createElement("div");d.style.cssText="position:fixed;bottom:120px;left:50%;transform:translateX(-50%);padding:10px 18px;border-radius:10px;font-size:13px;font-weight:500;z-index:999;background:"+(t==="success"?"#ecfdf5":"#fef2f2")+";color:"+(t==="success"?"#059669":"#ef4444")+";box-shadow:0 2px 8px rgba(0,0,0,0.12)";d.textContent=m;document.body.appendChild(d);setTimeout(function(){d.remove()},2000);}
-      
+      function showToast(m, t) {
+        var d = document.createElement("div");
+        d.style.cssText =
+          "position:fixed;bottom:120px;left:50%;transform:translateX(-50%);padding:10px 18px;border-radius:10px;font-size:13px;font-weight:500;z-index:999;background:" +
+          (t === "success" ? "#ecfdf5" : "#fef2f2") +
+          ";color:" +
+          (t === "success" ? "#059669" : "#ef4444") +
+          ";box-shadow:0 2px 8px rgba(0,0,0,0.12)";
+        d.textContent = m;
+        document.body.appendChild(d);
+        setTimeout(function () {
+          d.remove();
+        }, 2000);
+      }
+
       // ===== Streak + Monthly Stats =====
       function loadStreakData() {
         try {
           fetch("/api/points", { headers: getAuthHeaders() })
-            .then(function(r){return r.json()})
-            .then(function(d){
+            .then(function (r) {
+              return r.json();
+            })
+            .then(function (d) {
               var streak = d.checkinStreak || 0;
               var checkedIn = d.checkedInToday || false;
               var monthDays = d.monthCheckinDays || [];
               updateStreak(streak, checkedIn);
               updateMonthlyGrid(monthDays);
-            }).catch(function(){ loadDemoStreak(); });
-        } catch(e){ loadDemoStreak(); }
+            })
+            .catch(function () {
+              loadDemoStreak();
+            });
+        } catch (e) {
+          loadDemoStreak();
+        }
       }
       function loadDemoStreak() {
         var stored = localStorage.getItem("zenpass_streak");
@@ -465,8 +743,11 @@ if (typeof Html5Qrcode === "undefined") {
         var lastDate = localStorage.getItem("zenpass_streak_date");
         var today = new Date().toDateString();
         // If already checked in today from the button
-        var checkedIn = localStorage.getItem("zenpass_checkedin_today") === "yes";
-        if (lastDate !== today && !checkedIn) { streak = 0; }
+        var checkedIn =
+          localStorage.getItem("zenpass_checkedin_today") === "yes";
+        if (lastDate !== today && !checkedIn) {
+          streak = 0;
+        }
         updateStreak(streak, checkedIn);
         // Demo monthly grid
         var days = [];
@@ -484,16 +765,19 @@ if (typeof Html5Qrcode === "undefined") {
         if (!el || !checkedIn) return;
         el.style.display = "block";
         if (countEl) countEl.textContent = streak;
-        var pct = Math.min((streak % 7) / 7 * 100, 100);
+        var pct = Math.min(((streak % 7) / 7) * 100, 100);
         if (barEl) barEl.style.width = pct + "%";
         var daysToReward = 7 - (streak % 7);
         if (nextEl) {
           if (daysToReward === 0) nextEl.textContent = "🎉 已達到 7 天目標！";
-          else nextEl.textContent = "🔥 再簽 " + daysToReward + " 日可獲 50 積分！";
+          else
+            nextEl.textContent =
+              "🔥 再簽 " + daysToReward + " 日可獲 50 積分！";
         }
         if (rewardEl) {
           var nextMilestone = Math.ceil(streak / 7) * 7;
-          rewardEl.textContent = "🎯 每 7 天送 50 積分 | 下個目標：" + nextMilestone + " 天";
+          rewardEl.textContent =
+            "🎯 每 7 天送 50 積分 | 下個目標：" + nextMilestone + " 天";
         }
       }
       function updateMonthlyGrid(days) {
@@ -506,21 +790,37 @@ if (typeof Html5Qrcode === "undefined") {
         var html = "";
         for (var di = 1; di <= today; di++) {
           var checked = days.indexOf(di) >= 0;
-          html += '<div style="width:12px;height:12px;border-radius:2px;background:' + (checked ? '#059669' : '#e5e7eb') + ';font-size:6px;display:flex;align-items:center;justify-content:center;color:' + (checked ? 'white' : 'transparent') + '">' + (checked ? '✓' : '') + '</div>';
+          html +=
+            '<div style="width:12px;height:12px;border-radius:2px;background:' +
+            (checked ? "#059669" : "#e5e7eb") +
+            ";font-size:6px;display:flex;align-items:center;justify-content:center;color:" +
+            (checked ? "white" : "transparent") +
+            '">' +
+            (checked ? "✓" : "") +
+            "</div>";
         }
         grid.innerHTML = html;
-        if (summary) summary.textContent = "本月已簽到 " + days.length + "/" + today + " 天";
+        if (summary)
+          summary.textContent =
+            "本月已簽到 " + days.length + "/" + today + " 天";
       }
       // ===== Check-in History =====
       function loadCheckinHistory() {
         try {
           fetch("/api/checkin/history", { headers: getAuthHeaders() })
-            .then(function(r){return r.json()})
-            .then(function(d){
+            .then(function (r) {
+              return r.json();
+            })
+            .then(function (d) {
               var list = d.history || d || [];
               renderHistory(list);
-            }).catch(function(){ loadDemoHistory(); });
-        } catch(e){ loadDemoHistory(); }
+            })
+            .catch(function () {
+              loadDemoHistory();
+            });
+        } catch (e) {
+          loadDemoHistory();
+        }
       }
       function loadDemoHistory() {
         var stored = localStorage.getItem("zenpass_checkin_history");
@@ -531,23 +831,38 @@ if (typeof Html5Qrcode === "undefined") {
         var section = document.getElementById("history-section");
         var container = document.getElementById("history-list");
         if (!section || !container) return;
-        if (list.length === 0) { section.style.display = "none"; return; }
+        if (list.length === 0) {
+          section.style.display = "none";
+          return;
+        }
         section.style.display = "block";
-        container.innerHTML = list.slice(0, 5).map(function(h) {
-          return '<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--gray-100)">' +
-            '<div style="width:32px;height:32px;border-radius:50%;background:#ecfdf5;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">✅</div>' +
-            '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600">' + (h.class_name || h.title || "課堂") + '</div>' +
-            '<div style="font-size:11px;color:var(--dark-700)">' + (h.date || "") + '</div></div>' +
-            '<span style="font-size:11px;color:#059669;font-weight:600">已簽到</span></div>';
-        }).join("");
+        container.innerHTML = list
+          .slice(0, 5)
+          .map(function (h) {
+            return (
+              '<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--gray-100)">' +
+              '<div style="width:32px;height:32px;border-radius:50%;background:#ecfdf5;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">✅</div>' +
+              '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600">' +
+              (h.class_name || h.title || "課堂") +
+              "</div>" +
+              '<div style="font-size:11px;color:var(--dark-700)">' +
+              (h.date || "") +
+              "</div></div>" +
+              '<span style="font-size:11px;color:#059669;font-weight:600">已簽到</span></div>'
+            );
+          })
+          .join("");
       }
       // Save checkin to history
       function saveCheckinToHistory(classInfo) {
         var stored = localStorage.getItem("zenpass_checkin_history");
         var list = stored ? JSON.parse(stored) : [];
         list.unshift({
-          class_name: classInfo.className || document.getElementById("checkin-class").textContent || "課堂",
-          date: new Date().toLocaleDateString("zh-HK")
+          class_name:
+            classInfo.className ||
+            document.getElementById("checkin-class").textContent ||
+            "課堂",
+          date: new Date().toLocaleDateString("zh-HK"),
         });
         if (list.length > 20) list = list.slice(0, 20);
         localStorage.setItem("zenpass_checkin_history", JSON.stringify(list));
@@ -587,7 +902,8 @@ if (typeof Html5Qrcode === "undefined") {
         document.getElementById("checkin-class").textContent =
           "課程 #" + classId;
         document.getElementById("checkin-date").textContent = date;
-        document.getElementById("checkin-coach").textContent = coachName || "教練";
+        document.getElementById("checkin-coach").textContent =
+          coachName || "教練";
         document.getElementById("error-section").style.display = "none";
       }
 
@@ -609,7 +925,7 @@ if (typeof Html5Qrcode === "undefined") {
         btn.textContent = "⏳ 簽到中...";
 
         // Try API check-in (find booking by user name for today)
-        doApiCheckin(name, function(success) {
+        doApiCheckin(name, function (success) {
           if (success) return;
           // Fallback: store locally
           doLocalCheckin(name);
@@ -618,13 +934,19 @@ if (typeof Html5Qrcode === "undefined") {
 
       async function doApiCheckin(name, fallback) {
         var token = localStorage.getItem("zenpass_token");
-        if (!token) { fallback(false); return; }
+        if (!token) {
+          fallback(false);
+          return;
+        }
         try {
           // Find today's bookings for this user
           var r = await fetch(API_BASE + "/bookings/my?status=confirmed", {
-            headers: { "Authorization": "Bearer " + token }
+            headers: { Authorization: "Bearer " + token },
           });
-          if (!r.ok) { fallback(false); return; }
+          if (!r.ok) {
+            fallback(false);
+            return;
+          }
           var d = await r.json();
           var bookings = d.bookings || d.data || [];
           var today = new Date().toISOString().split("T")[0];
@@ -638,16 +960,25 @@ if (typeof Html5Qrcode === "undefined") {
               break;
             }
           }
-          if (!found) { fallback(false); return; }
+          if (!found) {
+            fallback(false);
+            return;
+          }
           // Mark as attended
-          var attendR = await fetch(API_BASE + "/bookings/" + found.id + "/attend", {
-            method: "POST",
-            headers: { "Authorization": "Bearer " + token }
-          });
-          if (!attendR.ok) { fallback(false); return; }
+          var attendR = await fetch(
+            API_BASE + "/bookings/" + found.id + "/attend",
+            {
+              method: "POST",
+              headers: { Authorization: "Bearer " + token },
+            },
+          );
+          if (!attendR.ok) {
+            fallback(false);
+            return;
+          }
           var attendD = await attendR.json();
           showSuccess(name, found);
-        } catch(e) {
+        } catch (e) {
           fallback(false);
         }
       }
@@ -682,7 +1013,10 @@ if (typeof Html5Qrcode === "undefined") {
             totalClasses: totalClasses,
             classId: classId || "demo",
             date: date || new Date().toISOString().split("T")[0],
-            time: new Date().toLocaleTimeString("zh-HK", { hour: "2-digit", minute: "2-digit" }),
+            time: new Date().toLocaleTimeString("zh-HK", {
+              hour: "2-digit",
+              minute: "2-digit",
+            }),
             coach: coachName || "Demo",
           });
           localStorage.setItem("zenpass_checkins", JSON.stringify(records));
@@ -700,7 +1034,10 @@ if (typeof Html5Qrcode === "undefined") {
         localStorage.setItem("zenpass_streak", (stored + 1).toString());
         localStorage.setItem("zenpass_streak_date", new Date().toDateString());
         loadStreakData();
-        saveCheckinToHistory({className: document.getElementById("checkin-class").textContent || "課堂"});
+        saveCheckinToHistory({
+          className:
+            document.getElementById("checkin-class").textContent || "課堂",
+        });
       }
 
       // ===== Load Schedules for Coach QR =====
@@ -714,17 +1051,26 @@ if (typeof Html5Qrcode === "undefined") {
           var sel = document.getElementById("schedule-select");
           if (!sel) return;
           sel.innerHTML = '<option value="">選擇課堂...</option>';
-          list.forEach(function(s) {
+          list.forEach(function (s) {
             var opt = document.createElement("option");
             opt.value = s.schedule_id;
             var dateStr = (s.start_time || "").split("T")[0];
-            var timeStr = (s.start_time || "").split("T")[1]?.slice(0,5) || "";
-            opt.textContent = s.title + " — " + dateStr + " " + timeStr + " (" + s.coach_name + ")";
+            var timeStr = (s.start_time || "").split("T")[1]?.slice(0, 5) || "";
+            opt.textContent =
+              s.title +
+              " — " +
+              dateStr +
+              " " +
+              timeStr +
+              " (" +
+              s.coach_name +
+              ")";
             sel.appendChild(opt);
           });
           sel.style.display = "block";
-          document.getElementById("schedule-select-wrap").style.display = "block";
-        } catch(e) {}
+          document.getElementById("schedule-select-wrap").style.display =
+            "block";
+        } catch (e) {}
       }
 
       // ===== Generate Coach QR =====
@@ -737,10 +1083,22 @@ if (typeof Html5Qrcode === "undefined") {
         }
         var display = document.getElementById("coach-qr-display");
         var img = document.getElementById("coach-qr-img");
-        var url = window.location.origin + "/checkin.html?schedule_id=" + encodeURIComponent(scheduleId || "") + "&class=" + encodeURIComponent(classId || "") + "&date=" + encodeURIComponent(date || "") + "&coach=" + encodeURIComponent(coachName || "");
-        img.src = "https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=" + encodeURIComponent(url);
+        var url =
+          window.location.origin +
+          "/checkin.html?schedule_id=" +
+          encodeURIComponent(scheduleId || "") +
+          "&class=" +
+          encodeURIComponent(classId || "") +
+          "&date=" +
+          encodeURIComponent(date || "") +
+          "&coach=" +
+          encodeURIComponent(coachName || "");
+        img.src =
+          "https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=" +
+          encodeURIComponent(url);
         display.style.display = "block";
-        document.getElementById("coach-qr-note").textContent = "學生掃描此 QR 即可自動簽到";
+        document.getElementById("coach-qr-note").textContent =
+          "學生掃描此 QR 即可自動簽到";
       }
 
       // ===== Load Class from URL params (supports schedule_id) =====
@@ -751,7 +1109,8 @@ if (typeof Html5Qrcode === "undefined") {
         var params = {};
         for (var pi = 0; pi < parts.length; pi++) {
           var kv = parts[pi].split("=");
-          if (kv.length > 1) params[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1]);
+          if (kv.length > 1)
+            params[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1]);
         }
         // If schedule_id is provided, fetch schedule details from API
         if (params.schedule_id) {
@@ -763,10 +1122,18 @@ if (typeof Html5Qrcode === "undefined") {
               for (var si = 0; si < scheds.length; si++) {
                 if (scheds[si].schedule_id === params.schedule_id) {
                   var s = scheds[si];
-                  if (document.getElementById("checkin-class")) document.getElementById("checkin-class").textContent = s.title || "—";
-                  if (document.getElementById("checkin-date")) document.getElementById("checkin-date").textContent = ((s.start_time || "").split("T")[0] || "—");
-                  if (document.getElementById("checkin-coach")) document.getElementById("checkin-coach").textContent = s.coach_name || "—";
-                  if (document.getElementById("class-info")) document.getElementById("class-info").style.display = "block";
+                  if (document.getElementById("checkin-class"))
+                    document.getElementById("checkin-class").textContent =
+                      s.title || "—";
+                  if (document.getElementById("checkin-date"))
+                    document.getElementById("checkin-date").textContent =
+                      (s.start_time || "").split("T")[0] || "—";
+                  if (document.getElementById("checkin-coach"))
+                    document.getElementById("checkin-coach").textContent =
+                      s.coach_name || "—";
+                  if (document.getElementById("class-info"))
+                    document.getElementById("class-info").style.display =
+                      "block";
                   coachName = s.coach_name || "";
                   classId = s.class_id || "";
                   date = (s.start_time || "").split("T")[0] || "";
@@ -774,7 +1141,7 @@ if (typeof Html5Qrcode === "undefined") {
                 }
               }
             }
-          } catch(e) {}
+          } catch (e) {}
         }
       }
 
@@ -783,37 +1150,40 @@ if (typeof Html5Qrcode === "undefined") {
         var reader = document.getElementById("qr-reader");
         reader.style.display = "block";
         reader.innerHTML = '<div class="loading-spinner">啟動相機...</div>';
-        
+
         // Try native camera via input capture first (most reliable)
-        var input = document.createElement('input');
-        input.type = 'file';
-        input.accept = 'image/*';
-        input.capture = 'environment';
-        input.style.display = 'none';
+        var input = document.createElement("input");
+        input.type = "file";
+        input.accept = "image/*";
+        input.capture = "environment";
+        input.style.display = "none";
         reader.appendChild(input);
-        
-        input.onchange = function(e) {
+
+        input.onchange = function (e) {
           var file = e.target.files[0];
           if (!file) return;
           if (typeof Html5Qrcode !== "undefined") {
             // Decode from image using the library
             var qr = new Html5Qrcode("qr-reader");
-            qr.scanFile(file, true).then(function(decodedText) {
-              processQRData(decodedText);
-              reader.innerHTML = '';
-              reader.style.display = 'none';
-            }).catch(function(err) {
-              reader.innerHTML = '<p style="color:#ef4444;font-size:13px;text-align:center">❌ 無法辨識 QR Code，請再試一次</p>' +
-                '<button onclick="startQRScanner()" style="margin-top:8px;padding:6px 14px;border:1px solid var(--gray-200);border-radius:8px;background:var(--white);font-size:12px;cursor:pointer">🔄 再試</button>';
-            });
+            qr.scanFile(file, true)
+              .then(function (decodedText) {
+                processQRData(decodedText);
+                reader.innerHTML = "";
+                reader.style.display = "none";
+              })
+              .catch(function (err) {
+                reader.innerHTML =
+                  '<p style="color:#ef4444;font-size:13px;text-align:center">❌ 無法辨識 QR Code，請再試一次</p>' +
+                  '<button onclick="startQRScanner()" style="margin-top:8px;padding:6px 14px;border:1px solid var(--gray-200);border-radius:8px;background:var(--white);font-size:12px;cursor:pointer">🔄 再試</button>';
+              });
           } else {
             // Library not loaded, just use filename as ref
             processQRData(file.name || "photo_" + Date.now());
-            reader.innerHTML = '';
-            reader.style.display = 'none';
+            reader.innerHTML = "";
+            reader.style.display = "none";
           }
         };
-        
+
         // Try library-based camera scan as primary method
         if (typeof Html5Qrcode !== "undefined") {
           try {
@@ -823,30 +1193,40 @@ if (typeof Html5Qrcode === "undefined") {
               { fps: 10, qrbox: { width: 250, height: 250 } },
               function (decodedText) {
                 qr.stop();
-                reader.innerHTML = '';
+                reader.innerHTML = "";
                 reader.style.display = "none";
                 processQRData(decodedText);
               },
-              function () { /* ignore scan errors */ }
+              function () {
+                /* ignore scan errors */
+              },
             ).catch(function (e) {
               // Camera access failed, fall back to file input
-              reader.innerHTML = '<p style="font-size:13px;color:var(--dark-700);text-align:center">點擊下方按鈕拍攝 QR Code 相片</p>';
-              var btn = document.createElement('button');
-              btn.textContent = '📷 拍攝 QR Code';
-              btn.style.cssText = 'padding:10px 24px;background:var(--orange-600-bg);color:white;border:none;border-radius:12px;font-size:14px;cursor:pointer;margin-top:8px';
-              btn.onclick = function() { input.click(); };
+              reader.innerHTML =
+                '<p style="font-size:13px;color:var(--dark-700);text-align:center">點擊下方按鈕拍攝 QR Code 相片</p>';
+              var btn = document.createElement("button");
+              btn.textContent = "📷 拍攝 QR Code";
+              btn.style.cssText =
+                "padding:10px 24px;background:var(--orange-600-bg);color:white;border:none;border-radius:12px;font-size:14px;cursor:pointer;margin-top:8px";
+              btn.onclick = function () {
+                input.click();
+              };
               reader.appendChild(btn);
             });
             return;
-          } catch(e) {}
+          } catch (e) {}
         }
-        
+
         // Library not available, use file input directly
-        reader.innerHTML = '<p style="font-size:13px;color:var(--dark-700);text-align:center">拍攝 QR Code 相片以簽到</p>';
-        var fallbackBtn = document.createElement('button');
-        fallbackBtn.textContent = '📷 拍攝 QR Code';
-        fallbackBtn.style.cssText = 'padding:10px 24px;background:var(--orange-600-bg);color:white;border:none;border-radius:12px;font-size:14px;cursor:pointer;margin-top:8px';
-        fallbackBtn.onclick = function() { input.click(); };
+        reader.innerHTML =
+          '<p style="font-size:13px;color:var(--dark-700);text-align:center">拍攝 QR Code 相片以簽到</p>';
+        var fallbackBtn = document.createElement("button");
+        fallbackBtn.textContent = "📷 拍攝 QR Code";
+        fallbackBtn.style.cssText =
+          "padding:10px 24px;background:var(--orange-600-bg);color:white;border:none;border-radius:12px;font-size:14px;cursor:pointer;margin-top:8px";
+        fallbackBtn.onclick = function () {
+          input.click();
+        };
         reader.appendChild(fallbackBtn);
       }
 
@@ -859,9 +1239,10 @@ if (typeof Html5Qrcode === "undefined") {
         var params = {};
         if (decodedText.indexOf("?") > -1 || decodedText.indexOf("=") > -1) {
           var qsPart = decodedText.split("?").pop() || "";
-          qsPart.split("&").forEach(function(p){
+          qsPart.split("&").forEach(function (p) {
             var kv = p.split("=");
-            if (kv.length > 1) params[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1]);
+            if (kv.length > 1)
+              params[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1]);
           });
         }
         bookingRef = params.booking || params.ref || params.id || bookingRef;
@@ -869,35 +1250,52 @@ if (typeof Html5Qrcode === "undefined") {
         parsedName = params.name || params.student || "";
         parsedDate = params.date || "";
         parsedScheduleId = params.schedule_id || "";
-        
+
         // If schedule_id is provided, fetch details from API
         if (parsedScheduleId) {
-          fetch(API_BASE + "/classes/upcoming").then(function(r){return r.json()}).then(function(d){
-            var scheds = d.schedules || [];
-            for (var si = 0; si < scheds.length; si++) {
-              if (scheds[si].schedule_id === parsedScheduleId) {
-                var s = scheds[si];
-                if (document.getElementById("checkin-class")) document.getElementById("checkin-class").textContent = s.title || parsedClass;
-                if (document.getElementById("checkin-date")) document.getElementById("checkin-date").textContent = (s.start_time || "").split("T")[0] || parsedDate;
-                if (document.getElementById("checkin-coach")) document.getElementById("checkin-coach").textContent = s.coach_name || "";
-                classId = s.class_id || "";
-                date = (s.start_time || "").split("T")[0] || "";
-                coachName = s.coach_name || "";
-                break;
+          fetch(API_BASE + "/classes/upcoming")
+            .then(function (r) {
+              return r.json();
+            })
+            .then(function (d) {
+              var scheds = d.schedules || [];
+              for (var si = 0; si < scheds.length; si++) {
+                if (scheds[si].schedule_id === parsedScheduleId) {
+                  var s = scheds[si];
+                  if (document.getElementById("checkin-class"))
+                    document.getElementById("checkin-class").textContent =
+                      s.title || parsedClass;
+                  if (document.getElementById("checkin-date"))
+                    document.getElementById("checkin-date").textContent =
+                      (s.start_time || "").split("T")[0] || parsedDate;
+                  if (document.getElementById("checkin-coach"))
+                    document.getElementById("checkin-coach").textContent =
+                      s.coach_name || "";
+                  classId = s.class_id || "";
+                  date = (s.start_time || "").split("T")[0] || "";
+                  coachName = s.coach_name || "";
+                  break;
+                }
               }
-            }
-          }).catch(function(){});
+            })
+            .catch(function () {});
         }
-        
-        if (parsedName) document.getElementById("checkin-name").value = parsedName;
-        if (bookingRef) document.getElementById("checkin-name").value = bookingRef;
-        if (parsedClass && document.getElementById("checkin-class")) document.getElementById("checkin-class").textContent = parsedClass;
-        if (parsedDate && document.getElementById("checkin-date")) document.getElementById("checkin-date").textContent = parsedDate;
-        
+
+        if (parsedName)
+          document.getElementById("checkin-name").value = parsedName;
+        if (bookingRef)
+          document.getElementById("checkin-name").value = bookingRef;
+        if (parsedClass && document.getElementById("checkin-class"))
+          document.getElementById("checkin-class").textContent = parsedClass;
+        if (parsedDate && document.getElementById("checkin-date"))
+          document.getElementById("checkin-date").textContent = parsedDate;
+
         showToast("✅ 已掃描 QR Code", "success");
-        
+
         if (parsedName || bookingRef) {
-          setTimeout(function(){ doCheckin(); }, 500);
+          setTimeout(function () {
+            doCheckin();
+          }, 500);
         }
       }
     </script>
