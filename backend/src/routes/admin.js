@@ -743,4 +743,40 @@ router.get("/coach-detail/:id", authenticateToken, requireAdmin, (req, res) => {
   }
 });
 
+// ===== POST /api/admin/assign-coach — 管理員指派教練負責課程 =====
+router.post("/assign-coach", authenticateToken, requireAdmin, (req, res) => {
+  try {
+    const { class_id, coach_id } = req.body;
+    if (!class_id || !coach_id) {
+      return res.status(400).json({ error: "缺少課程編號或教練編號" });
+    }
+
+    const db = new Database(DB_PATH);
+    db.pragma("foreign_keys = ON");
+
+    // 檢查課程是否存在
+    const classData = db.prepare("SELECT * FROM classes WHERE id = ?").get(class_id);
+    if (!classData) {
+      db.close();
+      return res.status(404).json({ error: "課程不存在" });
+    }
+
+    // 檢查教練是否存在
+    const coach = db.prepare("SELECT id, name FROM users WHERE id = ? AND is_coach = 1").get(coach_id);
+    if (!coach) {
+      db.close();
+      return res.status(404).json({ error: "教練不存在或未通過認證" });
+    }
+
+    // 更新課程教練
+    db.prepare("UPDATE classes SET coach_id = ?, updated_at = datetime('now') WHERE id = ?").run(coach_id, class_id);
+    db.close();
+
+    res.json({ success: true, message: `✅ 已將「${classData.title}」指派給 ${coach.name}` });
+  } catch (err) {
+    console.error("指派教練錯誤:", err);
+    res.status(500).json({ error: "指派教練失敗" });
+  }
+});
+
 module.exports = router;

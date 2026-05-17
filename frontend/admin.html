@@ -2177,7 +2177,14 @@
             '<div class="detail-field"><label>教練</label><div><a href="#" onclick="showCoachDetail(\'' + escape(c.coach_id) + '\',\'' + escape(c.coach_name || "") + '\');return false">' + escape(c.coach_name || "—") + '</a></div></div>' +
             '<div class="detail-field"><label>Credits 費用</label><div>' + (c.credits_cost || 0) + ' Credits</div></div>' +
             '<div class="detail-field"><label>狀態</label><div>' + statusBadge(c.status) + '</div></div>' +
-            '</div>';
+            '</div>' +
+            // Coach assignment
+            '<div style="margin-top:16px;padding:12px 16px;background:#f0fdf4;border-radius:8px;border:1px solid #bbf7d0">' +
+            '<div style="font-size:14px;font-weight:600;margin-bottom:8px">👨‍🏫 指派教練</div>' +
+            '<div style="display:flex;gap:8px;align-items:center">' +
+            '<select id="coach-select" style="flex:1;padding:8px 12px;border:1px solid #d1d5db;border-radius:6px;font-size:13px"><option value="">— 選擇教練 —</option></select>' +
+            '<button class="btn btn-primary" onclick="assignCoach(\'' + escape(c.id) + '\')" style="padding:8px 20px;background:#16a34a;color:white;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600">✅ 指派</button>' +
+            '</div></div>';
 
           // Schedules
           html += '<h3 style="font-size:16px;margin:20px 0 12px">📅 未來時段 (' + schedules.length + ')</h3>';
@@ -2215,6 +2222,8 @@
 
           html += '</div>';
           document.getElementById("detail-content").innerHTML = html;
+          // Load coach dropdown for course detail
+          loadCoachesDropdown();
         } catch(e) {
           document.getElementById("detail-content").innerHTML = '<div style="color:#ef4444">❌ 載入失敗: ' + escape(e.message) + '</div>';
         }
@@ -2315,6 +2324,51 @@
         var main = document.getElementById("mainContent");
         main.innerHTML = '<div style="padding:20px"><button onclick="loadClasses()" class="btn btn-outline" style="margin-bottom:16px">← 返回課程列表</button><div id="detail-content"><div class="loading-spinner">載入中...</div></div></div>';
         loadCoachDetail(id, name);
+      }
+
+      // ===== 指派教練 =====
+      async function loadCoachesDropdown() {
+        try {
+          var d = await apiGet("/admin/users");
+          var users = d.users || [];
+          var sel = document.getElementById("coach-select");
+          if (!sel) return;
+          // Keep the default option
+          sel.innerHTML = '<option value="">— 選擇教練 —</option>';
+          for (var ui = 0; ui < users.length; ui++) {
+            var u = users[ui];
+            if (u.is_coach) {
+              var opt = document.createElement("option");
+              opt.value = u.id;
+              opt.textContent = u.name + " (" + u.email + ")";
+              sel.appendChild(opt);
+            }
+          }
+        } catch(e) {
+          console.error("載入教練列表失敗:", e);
+        }
+      }
+
+      async function assignCoach(classId) {
+        var sel = document.getElementById("coach-select");
+        if (!sel || !sel.value) {
+          showToast("❌ 請選擇一位教練", "warning");
+          return;
+        }
+        var coachName = sel.options[sel.selectedIndex].text;
+        if (!confirm("確定將此課程指派給 " + coachName + "？")) return;
+        try {
+          var r = await apiPost("/admin/assign-coach", {
+            class_id: classId,
+            coach_id: sel.value,
+          });
+          showToast("✅ " + (r.message || "指派成功"), "success");
+          // Reload course detail to reflect changes
+          var title = document.querySelector(".detail-card h2")?.textContent?.replace("📚 ","") || "";
+          loadCourseDetail(classId, title);
+        } catch(e) {
+          showToast("❌ " + e.message, "error");
+        }
       }
 
       async function loadCoachDetail(id, name) {
