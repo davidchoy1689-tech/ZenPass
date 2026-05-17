@@ -659,4 +659,88 @@ router.post("/coach-reject", authenticateToken, requireAdmin, (req, res) => {
   }
 });
 
+
+
+// ===== GET /api/admin/course-detail/:id — 課程詳細資料（含報名學生） =====
+router.get("/course-detail/:id", authenticateToken, requireAdmin, (req, res) => {
+  try {
+    const db = new Database(DB_PATH);
+    const course = db.prepare("SELECT * FROM classes WHERE id = ?").get(req.params.id);
+    if (!course) { db.close(); return res.status(404).json({ error: "課程不存在" }); }
+
+    const schedules = db.prepare(
+      "SELECT s.*, (SELECT COUNT(*) FROM bookings b WHERE b.schedule_id = s.id AND b.status IN ('confirmed','attended')) as enrolled FROM class_schedules s WHERE s.class_id = ? AND s.start_time >= datetime('now') ORDER BY s.start_time"
+    ).all(req.params.id);
+
+    // For each schedule, get enrolled students
+    const scheduleStudents = {};
+    for (const s of schedules) {
+      const students = db.prepare(
+        "SELECT u.id, u.name, u.email, u.phone, b.booking_reference, b.status, b.payment_status, b.created_at, b.amount FROM bookings b JOIN users u ON u.id = b.user_id WHERE b.schedule_id = ? AND b.status IN ('confirmed','attended','pending_payment') ORDER BY b.created_at"
+      ).all(s.id);
+      scheduleStudents[s.id] = students;
+    }
+
+    db.close();
+    res.json({ course, schedules, scheduleStudents, total_schedules: schedules.length });
+  } catch (err) {
+    console.error("取課程詳情錯誤:", err);
+    res.status(500).json({ error: "無法獲取課程詳情" });
+  }
+});
+
+// ===== GET /api/admin/user-detail/:id — 用戶詳細資料（含預約紀錄） =====
+router.get("/user-detail/:id", authenticateToken, requireAdmin, (req, res) => {
+  try {
+    const db = new Database(DB_PATH);
+    const user = db.prepare("SELECT * FROM users WHERE id = ?").get(req.params.id);
+    if (!user) { db.close(); return res.status(404).json({ error: "用戶不存在" }); }
+
+    const bookings = db.prepare(
+      "SELECT b.*, c.title as class_title, cs.start_time, cs.end_time FROM bookings b JOIN classes c ON c.id = b.class_id LEFT JOIN class_schedules cs ON cs.id = b.schedule_id WHERE b.user_id = ? ORDER BY b.created_at DESC"
+    ).all(req.params.id);
+
+    const transactions = db.prepare(
+      "SELECT * FROM transactions WHERE user_id = ? ORDER BY created_at DESC"
+    ).all(req.params.id);
+
+    const membership = db.prepare(
+      "SELECT * FROM memberships WHERE user_id = ? ORDER BY created_at DESC"
+    ).all(req.params.id);
+
+    db.close();
+    res.json({ user, bookings, transactions, membership });
+  } catch (err) {
+    console.error("取用戶詳情錯誤:", err);
+    res.status(500).json({ error: "無法獲取用戶詳情" });
+  }
+});
+
+// ===== GET /api/admin/coach-detail/:id — 教練詳細資料（含課程、收入） =====
+router.get("/coach-detail/:id", authenticateToken, requireAdmin, (req, res) => {
+  try {
+    const db = new Database(DB_PATH);
+    const coach = db.prepare("SELECT * FROM users WHERE id = ? AND is_coach = 1").get(req.params.id);
+    if (!coach) { db.close(); return res.status(404).json({ error: "教練不存在" }); }
+
+    const classes = db.prepare(
+      "SELECT c.*, (SELECT COUNT(*) FROM class_schedules WHERE class_id = c.id AND start_time >= datetime('now')) as future_schedules, (SELECT COUNT(*) FROM bookings b JOIN class_schedules s ON b.schedule_id = s.id WHERE s.class_id = c.id AND b.status = 'confirmed') as total_bookings FROM classes c WHERE c.coach_id = ? ORDER BY c.created_at DESC"
+    ).all(req.params.id);
+
+    const earnings = db.prepare(
+      "SELECT * FROM coach_earnings WHERE coach_id = ? ORDER BY created_at DESC"
+    ).all(req.params.id);
+
+    const payouts = db.prepare(
+      "SELECT * FROM coach_payouts WHERE coach_id = ? ORDER BY created_at DESC"
+    ).all(req.params.id);
+
+    db.close();
+    res.json({ coach, classes, earnings, payouts });
+  } catch (err) {
+    console.error("取教練詳情錯誤:", err);
+    res.status(500).json({ error: "無法獲取教練詳情" });
+  }
+});
+
 module.exports = router;

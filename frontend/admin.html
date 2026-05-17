@@ -485,7 +485,18 @@
         color: var(--primary);
         font-size: 11px;
       }
-    </style>
+    
+      .detail-card { background: white; border-radius: 12px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+      .detail-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; padding: 16px; background: #f9fafb; border-radius: 8px; }
+      .detail-field label { font-size: 11px; color: #6b7280; display: block; margin-bottom: 2px; }
+      .detail-field div { font-size: 14px; font-weight: 500; }
+      .detail-schedule { background: #f9fafb; border-radius: 8px; padding: 12px; margin-bottom: 8px; }
+      .mini-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 4px; }
+      .mini-table th { text-align: left; padding: 4px 8px; background: #e5e7eb; font-weight: 600; }
+      .mini-table td { padding: 4px 8px; border-bottom: 1px solid #e5e7eb; }
+      .btn-outline { padding: 8px 16px; border: 1px solid #d1d5db; border-radius: 8px; background: white; cursor: pointer; font-size: 13px; }
+      .btn-outline:hover { background: #f3f4f6; }
+</style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
   </head>
   <body>
@@ -1427,9 +1438,9 @@
               '<td style="font-family:monospace;font-size:11px;color:var(--gray)">' +
               escape(u.user_reference || u.id.substring(0, 8)) +
               "</td>" +
-              "<td><strong>" +
+              "<td><a href='#' onclick='event.preventDefault();showUserDetail(\"" + u.id + "\",\"" + escape(u.name) + "\")' style='color:var(--orange-600);text-decoration:none;font-weight:600'>" +
               escape(u.name) +
-              "</strong></td>" +
+              "</a></td>" +
               '<td style="font-size:12px">' +
               escape(u.email) +
               "</td>" +
@@ -1491,12 +1502,12 @@
               '<td style="font-family:monospace;font-size:11px;color:var(--gray)">' +
               escape(c.coach_reference || "—") +
               "</td>" +
-              "<td><strong>" +
+              "<td><a href='#' onclick='event.preventDefault();showCourseDetail(\"" + c.id + "\",\"" + escape(c.title) + "\")' style='color:var(--orange-600);text-decoration:none;font-weight:600'>" +
               escape(c.title) +
-              "</strong></td>" +
-              "<td>" +
+              "</a></td>" +
+              "<td><a href='#' onclick='event.preventDefault();showCoachDetail(\"" + escape(c.coach_id) + "\",\"" + escape(c.coach_name) + "\")' style='color:var(--blue-600);text-decoration:none;font-weight:500'>" +
               escape(c.coach_name) +
-              "</td>" +
+              "</a></td>" +
               "<td>" +
               escape(c.category) +
               "</td>" +
@@ -2139,6 +2150,233 @@
           loadCoachApps('pending');
         } catch(e) { showToast('❌ ' + e.message, 'error'); }
       }
-    </script>
+    
+      // ===== 📋 Detail Views =====
+
+      function showCourseDetail(id, title) {
+        loadTab(null);
+        var main = document.getElementById("mainContent");
+        main.innerHTML = '<div style="padding:20px"><button onclick="loadClasses()" class="btn btn-outline" style="margin-bottom:16px">← 返回課程列表</button><div id="detail-content"><div class="loading-spinner">載入中...</div></div></div>';
+        loadCourseDetail(id, title);
+      }
+
+      async function loadCourseDetail(id, title) {
+        try {
+          var d = await apiGet("/admin/course-detail/" + id);
+          var c = d.course;
+          var schedules = d.schedules || [];
+          var scheduleStudents = d.scheduleStudents || {};
+          var html = '<div class="detail-card"><h2 style="font-size:20px;margin-bottom:4px">📚 ' + escape(c.title) + '</h2>' +
+            '<div style="font-size:13px;color:#6b7280;margin-bottom:16px">' + escape(c.category || "") + ' · ' + escape(c.difficulty || "") + ' · ' + (c.duration || "—") + ' 分鐘 · HK$' + (c.price_hkd || 0) + '</div>';
+
+          // Course info
+          html += '<div class="detail-grid">' +
+            '<div class="detail-field"><label>描述</label><div>' + escape((c.description || "—").substring(0,200)) + '</div></div>' +
+            '<div class="detail-field"><label>場地</label><div>' + escape(c.venue_name || "—") + '</div></div>' +
+            '<div class="detail-field"><label>地址</label><div>' + escape(c.venue_address || "—") + '</div></div>' +
+            '<div class="detail-field"><label>教練</label><div><a href="#" onclick="showCoachDetail(\'' + escape(c.coach_id) + '\',\'' + escape(c.coach_name || "") + '\');return false">' + escape(c.coach_name || "—") + '</a></div></div>' +
+            '<div class="detail-field"><label>Credits 費用</label><div>' + (c.credits_cost || 0) + ' Credits</div></div>' +
+            '<div class="detail-field"><label>狀態</label><div>' + statusBadge(c.status) + '</div></div>' +
+            '</div>';
+
+          // Schedules
+          html += '<h3 style="font-size:16px;margin:20px 0 12px">📅 未來時段 (' + schedules.length + ')</h3>';
+          if (schedules.length === 0) {
+            html += '<div style="color:#9ca3af;padding:20px;text-align:center">暫無未來時段</div>';
+          } else {
+            for (var si = 0; si < schedules.length; si++) {
+              var s = schedules[si];
+              var spots = s.max_participants - s.enrolled;
+              var students = scheduleStudents[s.id] || [];
+              html += '<div class="detail-schedule">' +
+                '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">' +
+                '<strong>' + dateStr(s.start_time) + ' ' + timeStr(s.start_time) + ' - ' + timeStr(s.end_time) + '</strong>' +
+                '<span style="font-size:13px;font-weight:600;color:' + (spots <= 0 ? '#ef4444' : spots <= 5 ? '#f97316' : '#22c55e') + '">' +
+                s.enrolled + '/' + s.max_participants + ' (' + (spots <= 0 ? "已滿" : spots + "位剩餘") + ')</span>' +
+                '</div>';
+              if (students.length > 0) {
+                html += '<table class="mini-table"><thead><tr><th>姓名</th><th>電郵</th><th>預約編號</th><th>狀態</th><th>金額</th></tr></thead><tbody>';
+                for (var ui = 0; ui < students.length; ui++) {
+                  var u = students[ui];
+                  html += '<tr>' +
+                    '<td><a href="#" onclick="showUserDetail(\'' + escape(u.id) + '\',\'' + escape(u.name) + '\');return false">' + escape(u.name) + '</a></td>' +
+                    '<td style="font-size:12px">' + escape(u.email) + '</td>' +
+                    '<td style="font-size:11px;font-family:monospace">' + escape(u.booking_reference || "—") + '</td>' +
+                    '<td>' + statusBadge(u.status) + '</td>' +
+                    '<td>HK$' + (u.amount || 0) + '</td></tr>';
+                }
+                html += '</tbody></table>';
+              } else {
+                html += '<div style="font-size:12px;color:#9ca3af;padding:4px 0">暫無報名學生</div>';
+              }
+              html += '</div>';
+            }
+          }
+
+          html += '</div>';
+          document.getElementById("detail-content").innerHTML = html;
+        } catch(e) {
+          document.getElementById("detail-content").innerHTML = '<div style="color:#ef4444">❌ 載入失敗: ' + escape(e.message) + '</div>';
+        }
+      }
+
+      function showUserDetail(id, name) {
+        loadTab(null);
+        var main = document.getElementById("mainContent");
+        main.innerHTML = '<div style="padding:20px"><button onclick="loadUsers()" class="btn btn-outline" style="margin-bottom:16px">← 返回用戶列表</button><div id="detail-content"><div class="loading-spinner">載入中...</div></div></div>';
+        loadUserDetail(id, name);
+      }
+
+      async function loadUserDetail(id, name) {
+        try {
+          var d = await apiGet("/admin/user-detail/" + id);
+          var u = d.user;
+          var bookings = d.bookings || [];
+          var transactions = d.transactions || [];
+          var membership = d.membership || [];
+
+          var role = u.is_coach ? badge("教練","orange") : badge("學生","gray");
+          if (u.coach_verified) role += " " + badge("已認證","green");
+
+          var html = '<div class="detail-card"><h2 style="font-size:20px;margin-bottom:4px">👤 ' + escape(u.name) + '</h2>' +
+            '<div style="font-size:13px;color:#6b7280;margin-bottom:16px">' + escape(u.email) + ' · ' + role + '</div>';
+
+          // User info
+          html += '<div class="detail-grid">' +
+            '<div class="detail-field"><label>手機</label><div>' + escape(u.phone || "—") + '</div></div>' +
+            '<div class="detail-field"><label>Credits</label><div>' + (u.credits || 0) + '</div></div>' +
+            '<div class="detail-field"><label>積分</label><div>' + (u.points || 0) + ' (' + (u.points_tier_label || "—") + ')</div></div>' +
+            '<div class="detail-field"><label>總消費</label><div>HK$' + (u.total_spent || 0) + '</div></div>' +
+            '<div class="detail-field"><label>會籍</label><div>' + escape(u.membership_type || "none") + '</div></div>' +
+            '<div class="detail-field"><label>會籍到期</label><div>' + (u.membership_expires_at?.substring(0,10) || "—") + '</div></div>' +
+            '<div class="detail-field"><label>註冊日期</label><div>' + dateStr(u.created_at) + '</div></div>' +
+            '<div class="detail-field"><label>學生編號</label><div style="font-family:monospace;font-size:11px">' + escape(u.user_reference || u.id.substring(0,8)) + '</div></div>' +
+            '<div class="detail-field"><label>備註</label><div>' + escape(u.notes || "—") + '</div></div>' +
+            '</div>';
+
+          // Membership history
+          if (membership.length > 0) {
+            html += '<h3 style="font-size:16px;margin:20px 0 12px">💎 會籍記錄</h3>' +
+              '<table class="admin-table"><thead><tr><th>參考編號</th><th>類型</th><th>金額</th><th>開始</th><th>結束</th><th>狀態</th></tr></thead><tbody>';
+            for (var mi = 0; mi < membership.length; mi++) {
+              var m = membership[mi];
+              html += '<tr><td style="font-family:monospace;font-size:11px">' + escape(m.membership_reference || m.id.substring(0,8)) + '</td>' +
+                '<td>' + escape(m.type) + '</td>' +
+                '<td>HK$' + m.price_hkd + '</td>' +
+                '<td>' + (m.start_date?.substring(0,10) || "—") + '</td>' +
+                '<td>' + (m.end_date?.substring(0,10) || "—") + '</td>' +
+                '<td>' + statusBadge(m.status) + '</td></tr>';
+            }
+            html += '</tbody></table>';
+          }
+
+          // Bookings
+          html += '<h3 style="font-size:16px;margin:20px 0 12px">📋 預約記錄 (' + bookings.length + ')</h3>';
+          if (bookings.length === 0) {
+            html += '<div style="color:#9ca3af;padding:20px;text-align:center">暫無預約記錄</div>';
+          } else {
+            html += '<table class="admin-table"><thead><tr><th>參考編號</th><th>課程</th><th>日期</th><th>金額</th><th>付款</th><th>狀態</th></tr></thead><tbody>';
+            for (var bi = 0; bi < bookings.length; bi++) {
+              var b = bookings[bi];
+              html += '<tr><td style="font-family:monospace;font-size:11px">' + escape(b.booking_reference || b.id.substring(0,8)) + '</td>' +
+                '<td>' + escape(b.class_title || "—") + '</td>' +
+                '<td>' + (b.start_time?.substring(0,16) || "—") + '</td>' +
+                '<td>HK$' + (b.amount || 0) + '</td>' +
+                '<td>' + statusBadge(b.payment_status) + '</td>' +
+                '<td>' + statusBadge(b.status) + '</td></tr>';
+            }
+            html += '</tbody></table>';
+          }
+
+          // Transactions
+          if (transactions.length > 0) {
+            html += '<h3 style="font-size:16px;margin:20px 0 12px">💰 交易記錄</h3>' +
+              '<table class="admin-table"><thead><tr><th>類型</th><th>金額</th><th>方式</th><th>描述</th><th>日期</th></tr></thead><tbody>';
+            for (var ti = 0; ti < transactions.length; ti++) {
+              var txn = transactions[ti];
+              html += '<tr><td>' + escape(txn.type || "—") + '</td>' +
+                '<td>HK$' + (txn.amount || 0) + '</td>' +
+                '<td>' + escape(txn.payment_method || "—") + '</td>' +
+                '<td style="font-size:12px">' + escape(txn.description || "—") + '</td>' +
+                '<td>' + (txn.created_at?.substring(0,10) || "—") + '</td></tr>';
+            }
+            html += '</tbody></table>';
+          }
+
+          html += '</div>';
+          document.getElementById("detail-content").innerHTML = html;
+        } catch(e) {
+          document.getElementById("detail-content").innerHTML = '<div style="color:#ef4444">❌ 載入失敗: ' + escape(e.message) + '</div>';
+        }
+      }
+
+      function showCoachDetail(id, name) {
+        loadTab(null);
+        var main = document.getElementById("mainContent");
+        main.innerHTML = '<div style="padding:20px"><button onclick="loadClasses()" class="btn btn-outline" style="margin-bottom:16px">← 返回課程列表</button><div id="detail-content"><div class="loading-spinner">載入中...</div></div></div>';
+        loadCoachDetail(id, name);
+      }
+
+      async function loadCoachDetail(id, name) {
+        try {
+          var d = await apiGet("/admin/coach-detail/" + id);
+          var coach = d.coach;
+          var classes = d.classes || [];
+          var earnings = d.earnings || [];
+          var payouts = d.payouts || [];
+
+          var html = '<div class="detail-card"><h2 style="font-size:20px;margin-bottom:4px">🏋️ ' + escape(coach.name) + '</h2>' +
+            '<div style="font-size:13px;color:#6b7280;margin-bottom:16px">' + escape(coach.email) + ' · 教練</div>';
+
+          // Coach info
+          html += '<div class="detail-grid">' +
+            '<div class="detail-field"><label>手機</label><div>' + escape(coach.phone || "—") + '</div></div>' +
+            '<div class="detail-field"><label>Credits</label><div>' + (coach.credits || 0) + '</div></div>' +
+            '<div class="detail-field"><label>總收入</label><div>HK$' + (coach.total_earnings || 0) + '</div></div>' +
+            '<div class="detail-field"><label>待提現</label><div>HK$' + (coach.pending_payout || 0) + '</div></div>' +
+            '<div class="detail-field"><label>佣金率</label><div>' + ((coach.commission_rate || 0.75) * 100) + '%</div></div>' +
+            '<div class="detail-field"><label>課程數量</label><div>' + classes.length + ' 個</div></div>' +
+            '</div>';
+
+          // Coach courses
+          html += '<h3 style="font-size:16px;margin:20px 0 12px">📚 課程 (' + classes.length + ')</h3>';
+          if (classes.length === 0) {
+            html += '<div style="color:#9ca3af;padding:20px;text-align:center">暫無課程</div>';
+          } else {
+            html += '<table class="admin-table"><thead><tr><th>課程</th><th>分類</th><th>價格</th><th>未來時段</th><th>總預約</th><th>狀態</th></tr></thead><tbody>';
+            for (var ci = 0; ci < classes.length; ci++) {
+              var cl = classes[ci];
+              html += '<tr><td><a href="#" onclick="showCourseDetail(\'' + escape(cl.id) + '\',\'' + escape(cl.title) + '\');return false">' + escape(cl.title) + '</a></td>' +
+                '<td>' + escape(cl.category) + '</td>' +
+                '<td>HK$' + (cl.price_hkd || 0) + '</td>' +
+                '<td>' + (cl.future_schedules || 0) + '</td>' +
+                '<td>' + (cl.total_bookings || 0) + '</td>' +
+                '<td>' + statusBadge(cl.status) + '</td></tr>';
+            }
+            html += '</tbody></table>';
+          }
+
+          // Earnings
+          if (earnings.length > 0) {
+            html += '<h3 style="font-size:16px;margin:20px 0 12px">💰 收入記錄</h3>' +
+              '<table class="admin-table"><thead><tr><th>日期</th><th>課程</th><th>金額</th><th>佣金</th><th>實收</th></tr></thead><tbody>';
+            for (var ei = 0; ei < earnings.length; ei++) {
+              var e = earnings[ei];
+              html += '<tr><td>' + (e.created_at?.substring(0,10) || "—") + '</td>' +
+                '<td>' + escape(e.class_title || "—") + '</td>' +
+                '<td>HK$' + (e.amount || 0) + '</td>' +
+                '<td>HK$' + (e.platform_fee || 0) + '</td>' +
+                '<td>HK$' + (e.net_amount || 0) + '</td></tr>';
+            }
+            html += '</tbody></table>';
+          }
+
+          html += '</div>';
+          document.getElementById("detail-content").innerHTML = html;
+        } catch(e) {
+          document.getElementById("detail-content").innerHTML = '<div style="color:#ef4444">❌ 載入失敗: ' + escape(e.message) + '</div>';
+        }
+      }
+</script>
   </body>
 </html>
