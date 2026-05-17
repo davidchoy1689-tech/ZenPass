@@ -78,7 +78,7 @@ router.post("/subscribe", authenticateToken, (req, res) => {
     db.prepare(
       `
       INSERT INTO memberships (id, membership_reference, user_id, type, price_hkd, credits_granted, start_date, end_date)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `,
     ).run(
       membershipId,
