@@ -2166,7 +2166,10 @@
           var c = d.course;
           var schedules = d.schedules || [];
           var scheduleStudents = d.scheduleStudents || {};
-          var html = '<div class="detail-card"><h2 style="font-size:20px;margin-bottom:4px">📚 ' + escape(c.title) + '</h2>' +
+          var html = '<div class="detail-card"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">' +
+            '<h2 style="font-size:20px;margin:0">📚 ' + escape(c.title) + '</h2>' +
+            '<button onclick="editCourse(\'' + escape(c.id) + '\')" style="padding:6px 14px;background:#f3f4f6;border:1px solid #d1d5db;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;white-space:nowrap">✏️ 編輯</button>' +
+            '</div>' +
             '<div style="font-size:13px;color:#6b7280;margin-bottom:16px">' + escape(c.category || "") + ' · ' + escape(c.difficulty || "") + ' · ' + (c.duration || "—") + ' 分鐘 · HK$' + (c.price_hkd || 0) + '</div>';
 
           // Course info
@@ -2331,6 +2334,96 @@
         var main = document.getElementById("mainContent");
         main.innerHTML = '<div style="padding:20px"><button onclick="loadClasses()" class="btn btn-outline" style="margin-bottom:16px">← 返回課程列表</button><div id="detail-content"><div class="loading-spinner">載入中...</div></div></div>';
         loadCoachDetail(id, name);
+      }
+
+      // ===== ✏️ 編輯課程 =====
+      var _currentCourseId = null;
+      var _currentCourseData = null;
+
+      function editCourse(id) {
+        _currentCourseId = id;
+        var dc = document.getElementById('detail-content');
+        if (!dc) return;
+        // Get current course data from the rendered page
+        var text = dc.innerText;
+        var title = dc.querySelector('h2')?.textContent?.replace('📚 ','') || '';
+        var desc = dc.querySelector('.detail-field:nth-child(1) div:last-child')?.textContent || '';
+        var venue = dc.querySelector('.detail-field:nth-child(2) div:last-child')?.textContent || '';
+        var address = dc.querySelector('.detail-field:nth-child(3) div:last-child')?.textContent || '';
+
+        // Fetch full course data from API
+        apiGet('/admin/course-detail/' + id).then(function(d) {
+          var c = d.course;
+          _currentCourseData = c;
+          var diffOptions = ['beginner','intermediate','advanced'];
+          var statusOptions = ['active','inactive','deleted'];
+          var html = '<div class="detail-card">' +
+            '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">' +
+            '<h2 style="font-size:20px;margin:0">✏️ 編輯課程</h2>' +
+            '<div><button onclick="loadCourseDetail(\'' + escape(id) + '\',\'' + escape(c.title) + '\')" style="padding:6px 14px;background:#f3f4f6;border:1px solid #d1d5db;border-radius:6px;cursor:pointer;font-size:12px">取消</button></div>' +
+            '</div>' +
+            '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px">' +
+            formField('title', '課程名稱', c.title) +
+            formField('category', '分類', c.category) +
+            '<div><label style="font-size:11px;color:#6b7280;display:block;margin-bottom:2px">難度</label>' +
+            '<select id="ef-difficulty" style="width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:13px">' +
+            diffOptions.map(function(o) { return '<option value="' + o + '" ' + (c.difficulty === o ? 'selected' : '') + '>' + o + '</option>'; }).join('') +
+            '</select></div>' +
+            formField('duration', '時長 (分鐘)', c.duration) +
+            formField('price_hkd', '價格 HK$', c.price_hkd) +
+            formField('credits_cost', 'Credits 費用', c.credits_cost) +
+            formField('max_participants', '最多人數', c.max_participants) +
+            formField('venue_name', '場地名稱', c.venue_name) +
+            formField('venue_address', '地址', c.venue_address) +
+            formField('venue_district', '地區', c.venue_district) +
+            '<div><label style="font-size:11px;color:#6b7280;display:block;margin-bottom:2px">狀態</label>' +
+            '<select id="ef-status" style="width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:13px">' +
+            statusOptions.map(function(o) { return '<option value="' + o + '" ' + (c.status === o ? 'selected' : '') + '>' + o + '</option>'; }).join('') +
+            '</select></div>' +
+            '</div>' +
+            '<div style="margin-top:12px">' +
+            '<label style="font-size:11px;color:#6b7280;display:block;margin-bottom:2px">描述</label>' +
+            '<textarea id="ef-description" rows="4" style="width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;font-family:inherit">' + escape(c.description || '') + '</textarea>' +
+            '</div>' +
+            '<div style="margin-top:16px;display:flex;gap:8px">' +
+            '<button onclick="saveCourse(\'' + escape(id) + '\')" style="padding:10px 24px;background:#16a34a;color:white;border:none;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600">💾 儲存</button>' +
+            '<button onclick="loadCourseDetail(\'' + escape(id) + '\',\'' + escape(c.title) + '\')" style="padding:10px 24px;background:#f3f4f6;border:1px solid #d1d5db;border-radius:8px;cursor:pointer;font-size:14px">取消</button>' +
+            '</div></div>';
+          dc.innerHTML = html;
+        });
+      }
+
+      function formField(id, label, value) {
+        return '<div><label style="font-size:11px;color:#6b7280;display:block;margin-bottom:2px">' + label + '</label>' +
+          '<input id="ef-' + id + '" type="text" value="' + escape(String(value || "")) + '" style="width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:13px"></div>';
+      }
+
+      async function saveCourse(id) {
+        var data = {
+          title: document.getElementById('ef-title')?.value,
+          category: document.getElementById('ef-category')?.value,
+          difficulty: document.getElementById('ef-difficulty')?.value,
+          duration: parseInt(document.getElementById('ef-duration')?.value) || 0,
+          price_hkd: parseFloat(document.getElementById('ef-price_hkd')?.value) || 0,
+          credits_cost: parseInt(document.getElementById('ef-credits_cost')?.value) || 0,
+          max_participants: parseInt(document.getElementById('ef-max_participants')?.value) || 0,
+          venue_name: document.getElementById('ef-venue_name')?.value,
+          venue_address: document.getElementById('ef-venue_address')?.value,
+          venue_district: document.getElementById('ef-venue_district')?.value,
+          description: document.getElementById('ef-description')?.value,
+          status: document.getElementById('ef-status')?.value,
+        };
+
+        // Remove undefined fields
+        for (var k in data) { if (data[k] === undefined) delete data[k]; }
+
+        try {
+          var r = await apiPost('/admin/update-course/' + id, data);
+          showToast('✅ ' + (r.message || '課程已更新'), 'success');
+          loadCourseDetail(id, data.title || '');
+        } catch(e) {
+          showToast('❌ ' + e.message, 'error');
+        }
       }
 
       // ===== 指派教練 =====

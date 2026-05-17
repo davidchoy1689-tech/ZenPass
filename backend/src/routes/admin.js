@@ -856,4 +856,51 @@ router.post("/notify-course-spots", authenticateToken, requireAdmin, (req, res) 
   }
 });
 
+// ===== PUT /api/admin/update-course/:id — 管理員更新課程資料 =====
+router.put("/update-course/:id", authenticateToken, requireAdmin, (req, res) => {
+  try {
+    const db = new Database(DB_PATH);
+    db.pragma("foreign_keys = ON");
+
+    const classData = db.prepare("SELECT * FROM classes WHERE id = ?").get(req.params.id);
+    if (!classData) {
+      db.close();
+      return res.status(404).json({ error: "課程不存在" });
+    }
+
+    const allowedFields = [
+      "title", "title_en", "description", "description_en",
+      "category", "difficulty", "duration", "max_participants",
+      "price_hkd", "credits_cost", "venue_name", "venue_address",
+      "venue_district", "latitude", "longitude", "image_url", "status"
+    ];
+
+    const updates = [];
+    const params = [];
+
+    for (const field of allowedFields) {
+      if (req.body[field] !== undefined) {
+        updates.push(`${field} = ?`);
+        params.push(req.body[field]);
+      }
+    }
+
+    if (updates.length === 0) {
+      db.close();
+      return res.status(400).json({ error: "沒有要更新的欄位" });
+    }
+
+    updates.push("updated_at = datetime('now')");
+    params.push(req.params.id);
+
+    db.prepare(`UPDATE classes SET ${updates.join(", ")} WHERE id = ?`).run(...params);
+    db.close();
+
+    res.json({ success: true, message: "✅ 課程資料已更新" });
+  } catch (err) {
+    console.error("更新課程錯誤:", err);
+    res.status(500).json({ error: "更新課程失敗" });
+  }
+});
+
 module.exports = router;
