@@ -14,8 +14,10 @@ const router = express.Router();
 const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
 
 function generateBookingRef() {
-  const suffix = Math.random().toString(36).substring(2, 6).toUpperCase();
-  return "ZP-" + suffix;
+  const dbb = new Database(DB_PATH);
+  const maxS = dbb.prepare("SELECT MAX(CAST(SUBSTR(booking_reference, 4) AS INTEGER)) as m FROM bookings WHERE booking_reference GLOB 'ZP-[0-9]*'").get().m || 0;
+  dbb.close();
+  return "ZP-" + String(maxS + 1).padStart(4, '0');
 }
 
 // ===== POST /api/bookings — 建立預約 =====

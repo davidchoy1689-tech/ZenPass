@@ -61,9 +61,10 @@ router.post("/subscribe", authenticateToken, (req, res) => {
       .get(req.user.id);
 
     const membershipId = uuidv4();
-    const memRef =
-      "MB-" +
-      Math.random().toString(36).substring(2, 6).toUpperCase();
+    const dbM = new Database(DB_PATH);
+    const maxM = dbM.prepare("SELECT MAX(CAST(SUBSTR(membership_reference, 4) AS INTEGER)) as m FROM memberships WHERE membership_reference GLOB 'MB-[0-9]*'").get().m || 0;
+    const memRef = "MB-" + String(maxM + 1).padStart(4, '0');
+    dbM.close();
     const now = new Date();
     const endDate = new Date(
       now.getTime() + plan.duration_days * 24 * 60 * 60 * 1000,

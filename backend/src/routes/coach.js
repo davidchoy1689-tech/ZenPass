@@ -61,9 +61,10 @@ router.post("/apply", authenticateToken, (req, res) => {
     const venuePhotosStr = Array.isArray(venue_photos)
       ? venue_photos.join(",")
       : venue_photos;
-    const appRef =
-      "CA-" +
-      Math.random().toString(36).substring(2, 6).toUpperCase();
+    const dbCA = new Database(DB_PATH);
+    const maxCA = dbCA.prepare("SELECT MAX(CAST(SUBSTR(application_reference, 4) AS INTEGER)) as m FROM coach_applications WHERE application_reference GLOB 'CA-[0-9]*'").get().m || 0;
+    const appRef = "CA-" + String(maxCA + 1).padStart(4, '0');
+    dbCA.close();
 
     db.prepare(
       `

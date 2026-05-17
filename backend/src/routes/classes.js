@@ -357,9 +357,10 @@ router.post("/", authenticateToken, requireCoach, (req, res) => {
     }
 
     const id = uuidv4();
-    const clRef =
-      "CL-" +
-      Math.random().toString(36).substring(2, 6).toUpperCase();
+    const dbC3 = new Database(DB_PATH);
+    const maxS3 = dbC3.prepare("SELECT MAX(CAST(SUBSTR(class_reference, 4) AS INTEGER)) as m FROM classes WHERE class_reference GLOB 'CL-[0-9]*'").get().m || 0;
+    const clRef = "CL-" + String(maxS3 + 1).padStart(4, '0');
+    dbC3.close();
     const db = new Database(DB_PATH);
     db.pragma("foreign_keys = ON");
 

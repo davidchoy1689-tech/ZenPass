@@ -43,9 +43,10 @@ router.post("/register", (req, res) => {
     // 建立用戶
     const id = uuidv4();
     const passwordHash = bcrypt.hashSync(password, 10);
-    const userRef =
-      "US-" +
-      Math.random().toString(36).substring(2, 6).toUpperCase();
+    const dbCount = new Database(DB_PATH);
+    const maxS = dbCount.prepare("SELECT MAX(CAST(SUBSTR(user_reference, 4) AS INTEGER)) as m FROM users WHERE user_reference GLOB 'US-[0-9]*'").get().m || 0;
+    const userRef = "US-" + String(maxS + 1).padStart(4, '0');
+    dbCount.close();
 
     db.prepare(
       `
