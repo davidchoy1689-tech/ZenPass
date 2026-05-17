@@ -214,37 +214,38 @@ function cleanupExpiredBookings() {
   db.pragma("foreign_keys = ON");
 
   // 清理過期未付款 booking，但保留已提交 FPS/PayMe 嘅（等 Admin 核實）
-  // 清理過期未付款 booking（無付款證明，30分鐘）
+  // 清理過期未付款 booking（無付款證明，15分鐘）
+  // 規則：進入付款程序即 hold 位，15分鐘內未完成付款則釋放
   const result = db
     .prepare(
       `
-    UPDATE bookings SET status = 'cancelled'
+    UPDATE bookings SET status = 'cancelled', payment_status = 'refunded'
     WHERE status = 'pending_payment'
     AND fps_reference IS NULL
     AND payme_reference IS NULL
-    AND created_at < datetime('now', '-30 minutes')
+    AND created_at < datetime('now', '-15 minutes')
   `,
     )
     .run();
 
-  // 清理已提交付款證明但 admin 未確認 >24h 嘅 booking
+  // 清理已提交付款證明但 admin 未確認 >30min 嘅 booking（如 FPS 入數後無跟進）
   const staleResult = db
     .prepare(
       `
     UPDATE bookings SET status = 'cancelled'
     WHERE status = 'pending_payment'
     AND (fps_reference IS NOT NULL OR payme_reference IS NOT NULL)
-    AND created_at < datetime('now', '-24 hours')
+    AND created_at < datetime('now', '-30 minutes')
   `,
     )
     .run();
 
-  // 釋放名額（用 created_at 代替 updated_at，因為 bookings 冇 updated_at 欄位）
+  // 釋放名額：將剛 cancelled 嘅 booking 對應嘅 schedule 減返 enrolled_count
   const canceledIds = db
     .prepare(
       `SELECT schedule_id FROM bookings
        WHERE status = 'cancelled'
-       AND created_at > datetime('now', '-31 minutes')`
+       AND created_at > datetime('now', '-16 minutes')`
     )
     .all()
     .map(r => r.schedule_id);

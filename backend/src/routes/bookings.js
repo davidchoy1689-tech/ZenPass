@@ -61,6 +61,22 @@ router.post("/", authenticateToken, validate(schemas.booking), (req, res) => {
       return res.status(404).json({ error: "該時段不存在或已滿" });
     }
 
+    // 先釋放呢個時段嘅過期 hold 位（15分鐘未付款 = 自動取消）
+    // 規則：進入付款程序即 hold 位，15分鐘內未完成付款則釋放
+    const expiredHolds = db.prepare(
+      `UPDATE bookings SET status = 'cancelled', payment_status = 'refunded'
+       WHERE schedule_id = ? AND status = 'pending_payment'
+       AND fps_reference IS NULL AND payme_reference IS NULL
+       AND created_at < datetime('now', '-15 minutes')`
+    ).run(schedule_id);
+    if (expiredHolds.changes > 0) {
+      // 釋放被 hold 嘅 enrolled_count
+      // 一次過減返對應數量
+      db.prepare(
+        "UPDATE class_schedules SET enrolled_count = MAX(0, enrolled_count - ?) WHERE id = ?"
+      ).run(expiredHolds.changes, schedule_id);
+    }
+
     // 原子操作：用 UPDATE ... WHERE enrolled_count < max_participants 防止 race condition
     const capResult = db.prepare(
       "UPDATE class_schedules SET enrolled_count = enrolled_count + 1 WHERE id = ? AND enrolled_count < max_participants"
