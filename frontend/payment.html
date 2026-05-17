@@ -1251,14 +1251,13 @@
           var posItem = params.get("item") || "POS 銷售";
           document.getElementById("loading-state").classList.add("hidden");
           document.getElementById("pay-page").classList.remove("hidden");
-          document.getElementById("pay-main-title").textContent = "💳 收款";
-          document.getElementById("order-info").innerHTML =
-            '<div class="order-summary"><div class="order-row"><span class="label">項目</span><span>' +
-            posItem +
-            "</span></div>" +
-            '<div class="order-row total"><span class="label">應付金額</span><span>HK$' +
-            posAmount +
-            "</span></div></div>";
+          document.getElementById("page-title").textContent = "💳 收款";
+          document.getElementById("order-class").textContent = posItem;
+          document.getElementById("order-date").style.display = "none";
+          document.getElementById("order-time").style.display = "none";
+          document.getElementById("order-venue").style.display = "none";
+          document.getElementById("order-ref").style.display = "none";
+          document.getElementById("order-total").textContent = "HK$" + posAmount;
           // Show FPS/PayMe instructions
           document.getElementById("pay-methods").innerHTML =
             '<div class="pay-option selected" onclick="selectMethod(&#39;fps&#39;)"><div class="check">✓</div><div class="icon">🏦</div><div class="info"><div class="name">轉數快 FPS</div><div class="desc">電話：9033 5538 · HSBC</div></div></div>' +
@@ -1269,6 +1268,54 @@
           document.getElementById("card-element").style.display = "none";
           paymentAmount = parseFloat(posAmount);
           selectedMethod = "fps"; // Default to FPS
+          return;
+        }
+
+        // Credits purchase - support type=credits from buy-credits.html
+        if (payType === "credits") {
+          var crAmount = parseFloat(params.get("amount")) || 0;
+          var crCredits = parseInt(params.get("total")) || 0;
+          var crItem = params.get("item") || "點數";
+          var crBonus = parseInt(params.get("bonus")) || 0;
+          var crOriginal = parseInt(params.get("credits")) || 0;
+          paymentAmount = crAmount;
+          
+          document.getElementById("loading-state").classList.add("hidden");
+          document.getElementById("pay-page").classList.remove("hidden");
+          document.getElementById("page-title").textContent = "💎 購買 " + crItem;
+          // Update order summary
+          document.getElementById("order-class").textContent = crItem;
+          document.getElementById("order-date").textContent = "—";
+          document.getElementById("order-date").style.display = "none";
+          document.getElementById("order-time").textContent = "—";
+          document.getElementById("order-time").style.display = "none";
+          document.getElementById("order-venue").textContent = "—";
+          document.getElementById("order-venue").style.display = "none";
+          document.getElementById("order-ref").textContent = "—";
+          document.getElementById("order-ref").style.display = "none";
+          document.getElementById("order-total").textContent = "HK$" + crAmount;
+          // Show bonus if any
+          var bonusRow = document.querySelector('.order-summary .order-row:last-child');
+          if (crBonus > 0 && bonusRow) {
+            var bonusEl = document.createElement('div');
+            bonusEl.className = 'order-row';
+            bonusEl.innerHTML = '<span class="label">贈送</span><span style="color:#059669;text-align:right;flex:1;padding-left:12px">+' + crBonus + ' Credits 🎁</span>';
+            bonusRow.parentNode.insertBefore(bonusEl, bonusRow);
+          }
+          
+          // Show Stripe + FPS + PayMe (same as default)
+          document.getElementById("card-element").style.display = "";
+          
+          // Override pay button to process credits purchase
+          var payBtn = document.getElementById("pay-button");
+          payBtn.textContent = "💎 購買 Credits — HK$" + crAmount;
+          payBtn._creditsData = { credits: crCredits, amount: crAmount, item: crItem };
+          
+          // Store credits data for processPayment
+          window._pendingCredits = { credits: crCredits, amount: crAmount };
+          
+          selectedMethod = "stripe";
+          initStripe();
           return;
         }
 
@@ -1432,6 +1479,44 @@
         }
       }
 
+      // ===== Finalize: after payment success, handle credits purchase or redirect =====
+      async function finalizePayment(paymentMethod, paymentRef) {
+        if (window._pendingCredits) {
+          // Credits purchase flow
+          try {
+            var resp = await apiFetch("/payments/credits/purchase", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                credits: window._pendingCredits.credits,
+                amount: window._pendingCredits.amount,
+                payment_method: paymentMethod,
+                payment_reference: paymentRef || "",
+              }),
+            });
+            if (resp.ok) {
+              showToast("✅ Credits 已入帳！", "success");
+            }
+          } catch (e) {
+            console.error("Credits API error:", e);
+          }
+          window._pendingCredits = null;
+          setTimeout(function () {
+            window.location.href = "my.html";
+          }, 1500);
+        } else if (bookingId) {
+          // Normal booking flow - redirect to my-bookings
+          setTimeout(function () {
+            window.location.href = "my-bookings.html";
+          }, 1500);
+        } else {
+          // POS / other
+          setTimeout(function () {
+            window.location.href = "index.html";
+          }, 1500);
+        }
+      }
+
       // --- Stripe via PaymentIntent API ---
       // Apple Pay / Google Pay: confirm payment with Payment Method ID
       async function doStripePayment(paymentMethodId, onComplete) {
@@ -1538,6 +1623,15 @@
           btn.textContent = "🏦 確認 FPS 付款 — HK$" + paymentAmount;
           return;
         }
+        // Credits purchase flow - no booking to confirm
+        if (window._pendingCredits) {
+          showToast("付款成功！", "success");
+          await finalizePayment("fps", ref);
+          btn.disabled = false;
+          btn.classList.remove("loading");
+          btn.textContent = "\U0001f3e6 確認 FPS 付款 — HK$" + paymentAmount;
+          return;
+        }
         try {
           var resp = await apiFetch("/payments/confirm", {
             method: "POST",
@@ -1551,9 +1645,7 @@
           });
           if (resp.ok) {
             showToast("付款成功！", "success");
-            setTimeout(function () {
-              window.location.href = "my-bookings.html";
-            }, 1500);
+            await finalizePayment("fps", ref);
           } else {
             var err = await resp.json();
             showToast(err.error || "付款失敗", "error");
@@ -1576,6 +1668,15 @@
           btn.textContent = "📱 確認 PayMe 付款 — HK$" + paymentAmount;
           return;
         }
+        // Credits purchase flow - no booking to confirm
+        if (window._pendingCredits) {
+          showToast("付款成功！", "success");
+          await finalizePayment("payme", ref);
+          btn.disabled = false;
+          btn.classList.remove("loading");
+          btn.textContent = "📱 確認 PayMe 付款 — HK$" + paymentAmount;
+          return;
+        }
         try {
           var resp = await apiFetch("/payments/confirm", {
             method: "POST",
@@ -1589,9 +1690,7 @@
           });
           if (resp.ok) {
             showToast("付款成功！", "success");
-            setTimeout(function () {
-              window.location.href = "my-bookings.html";
-            }, 1500);
+            await finalizePayment("payme", ref);
           } else {
             var err = await resp.json();
             showToast(err.error || "付款失敗", "error");
@@ -1606,6 +1705,11 @@
 
       // ===== Confirm Booking After Payment =====
       async function confirmBooking(paymentMethod, paymentReference) {
+        // Credits purchase flow - skip booking confirmation
+        if (window._pendingCredits) {
+          await finalizePayment(paymentMethod, paymentReference);
+          return;
+        }
         try {
           var resp = await apiFetch(
             "/bookings/" + bookingId + "/complete-payment",

@@ -956,4 +956,40 @@ router.post("/cancel-subscription", authenticateToken, async (req, res) => {
   }
 });
 
+// ===== Credits Purchase =====
+router.post("/credits/purchase", authenticateToken, async (req, res) => {
+  try {
+    const { credits, amount, payment_method, payment_reference } = req.body;
+    if (!credits || !amount || !payment_method) {
+      return res.status(400).json({ error: "缺少必要資料" });
+    }
+
+    const db = new Database(DB_PATH);
+    db.pragma("foreign_keys = ON");
+
+    // 加點數
+    db.prepare("UPDATE users SET credits = credits + ? WHERE id = ?")
+      .run(credits, req.user.id);
+
+    // 記錄交易
+    const txnId = uuidv4();
+    db.prepare(
+      `INSERT INTO transactions (id, user_id, type, amount, payment_method, description, status, created_at)
+       VALUES (?, ?, 'credits_topup', ?, ?, ?, 'completed', datetime('now'))`
+    ).run(txnId, req.user.id, amount, payment_method, `購買 ${credits} Credits`);
+
+    db.close();
+
+    res.json({
+      success: true,
+      message: `✅ 成功加購 ${credits} Credits`,
+      credits_added: credits,
+      transaction_id: txnId,
+    });
+  } catch (err) {
+    console.error("Credits purchase error:", err);
+    res.status(500).json({ error: "加購點數失敗" });
+  }
+});
+
 module.exports = router;
