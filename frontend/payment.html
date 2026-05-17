@@ -1333,6 +1333,8 @@
               return;
             }
             if (booking.status === "confirmed") {
+              bookingData = booking;
+              paymentAmount = booking.amount || booking.price_hkd || 0;
               showSuccess(bookingId, booking.booking_reference);
               return;
             }
@@ -1550,7 +1552,7 @@
           if (resp.ok) {
             showToast("付款成功！", "success");
             setTimeout(function () {
-              window.location.reload();
+              window.location.href = "my-bookings.html";
             }, 1500);
           } else {
             var err = await resp.json();
@@ -1588,7 +1590,7 @@
           if (resp.ok) {
             showToast("付款成功！", "success");
             setTimeout(function () {
-              window.location.reload();
+              window.location.href = "my-bookings.html";
             }, 1500);
           } else {
             var err = await resp.json();

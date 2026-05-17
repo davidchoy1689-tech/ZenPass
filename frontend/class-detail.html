@@ -839,6 +839,11 @@
           var result = await classes.get(classId);
           currentClass = result.class;
           renderClassDetail(result);
+          // Auto-select schedule from URL (supports refresh persist)
+          var scheduleId = urlParams['schedule'];
+          if (scheduleId) {
+            setTimeout(function() { selectSchedule(scheduleId); }, 100);
+          }
           // Check trial status
           checkTrialStatus();
         } catch (err) {
@@ -1195,6 +1200,11 @@
         // Find the schedule data
         var container = document.getElementById("class-content");
         selectedSchedule = { id: scheduleId };
+
+        // Persist to URL so refresh retains selection
+        var url = new URL(window.location);
+        url.searchParams.set('schedule', scheduleId);
+        window.history.replaceState({}, '', url);
         
         // ⚠️ Show waiver checkbox when schedule is selected
         var waiverSection = document.getElementById('waiver-checkbox');
