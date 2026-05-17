@@ -456,6 +456,10 @@
 
       (function () {
         loadBookings();
+        // Auto-refresh bookings every 30s (多人同時 book 時即時睇到變化)
+        setInterval(function() {
+          if (!document.hidden) loadBookings();
+        }, 30000);
       })();
 
       function loadBookings() {

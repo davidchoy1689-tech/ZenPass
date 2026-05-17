@@ -846,9 +846,55 @@
           }
           // Check trial status
           checkTrialStatus();
+          // Start real-time polling for spot updates (every 15s)
+          startSpotPolling(classId);
         } catch (err) {
           renderDemoData();
         }
+      }
+
+      // ===== Real-time spot polling (多人同時預約時即時更新名額) =====
+      var _spotPollTimer = null;
+      function startSpotPolling(classId) {
+        if (_spotPollTimer) clearInterval(_spotPollTimer);
+        _spotPollTimer = setInterval(async function() {
+          try {
+            var resp = await fetch(API_BASE + '/classes/' + classId);
+            if (!resp.ok) return;
+            var data = await resp.json();
+            var schedules = data.schedules || data.data?.schedules || [];
+            // Update each schedule item's spot count in-place
+            schedules.forEach(function(s) {
+              var el = document.querySelector('[data-id="' + s.id + '"]');
+              if (!el) return;
+              var spotsLeft = s.max_participants - s.enrolled_count;
+              var spotsEl = el.querySelector('.spots');
+              if (spotsEl) {
+                spotsEl.innerHTML = spotsLeft <= 0
+                  ? '<span class="full">已滿</span>'
+                  : '<span class="available">' + spotsLeft + '位</span>';
+              }
+              // If already selected and now full, update button
+              if (el.classList.contains('selected') && spotsLeft <= 0) {
+                var btn = document.getElementById('book-button');
+                if (btn) {
+                  btn.disabled = true;
+                  btn.textContent = '❌ 已滿座';
+                  var wlBtn = document.getElementById('waitlist-btn');
+                  if (wlBtn) wlBtn.style.display = '';
+                }
+              } else if (el.classList.contains('selected') && spotsLeft > 0) {
+                var btn = document.getElementById('book-button');
+                if (btn && btn.disabled) {
+                  btn.disabled = false;
+                  btn.textContent = '確認預約 — ' + getPriceLabel();
+                }
+              }
+            });
+          } catch(e) {
+            // Silently fail - polling is non-critical
+          }
+        }, 15000); // Every 15 seconds
       }
 
       function renderDemoData() {
