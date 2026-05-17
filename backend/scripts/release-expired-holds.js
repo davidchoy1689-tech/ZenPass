@@ -30,6 +30,8 @@ function releaseExpiredHolds() {
       SELECT b.id, b.schedule_id, b.class_id, b.user_id, b.booking_reference
       FROM bookings b
       WHERE b.status = 'pending_payment'
+        AND b.fps_reference IS NULL
+        AND b.payme_reference IS NULL
         AND datetime(b.created_at, '+15 minutes') <= datetime(?)
     `
     )
