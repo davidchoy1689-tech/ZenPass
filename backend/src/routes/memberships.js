@@ -63,8 +63,6 @@ router.post("/subscribe", authenticateToken, (req, res) => {
     const membershipId = uuidv4();
     const memRef =
       "MB-" +
-      new Date().toISOString().slice(0, 10).replace(/-/g, "") +
-      "-" +
       Math.random().toString(36).substring(2, 6).toUpperCase();
     const now = new Date();
     const endDate = new Date(

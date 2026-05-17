@@ -63,8 +63,6 @@ router.post("/apply", authenticateToken, (req, res) => {
       : venue_photos;
     const appRef =
       "CA-" +
-      new Date().toISOString().slice(0, 10).replace(/-/g, "") +
-      "-" +
       Math.random().toString(36).substring(2, 6).toUpperCase();
 
     db.prepare(

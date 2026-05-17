@@ -14,13 +14,8 @@ const router = express.Router();
 const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
 
 function generateBookingRef() {
-  const now = new Date();
-  const dateStr =
-    now.getFullYear().toString() +
-    String(now.getMonth() + 1).padStart(2, "0") +
-    String(now.getDate()).padStart(2, "0");
   const suffix = Math.random().toString(36).substring(2, 6).toUpperCase();
-  return "ZP-" + dateStr + "-" + suffix;
+  return "ZP-" + suffix;
 }
 
 // ===== POST /api/bookings — 建立預約 =====

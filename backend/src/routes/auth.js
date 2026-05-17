@@ -45,8 +45,6 @@ router.post("/register", (req, res) => {
     const passwordHash = bcrypt.hashSync(password, 10);
     const userRef =
       "US-" +
-      new Date().toISOString().slice(0, 10).replace(/-/g, "") +
-      "-" +
       Math.random().toString(36).substring(2, 6).toUpperCase();
 
     db.prepare(
@@ -170,8 +168,6 @@ router.post("/social", (req, res) => {
 
     const userRef =
       "US-" +
-      new Date().toISOString().slice(0, 10).replace(/-/g, "") +
-      "-" +
       Math.random().toString(36).substring(2, 6).toUpperCase();
     db.prepare(
       `

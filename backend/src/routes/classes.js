@@ -359,8 +359,6 @@ router.post("/", authenticateToken, requireCoach, (req, res) => {
     const id = uuidv4();
     const clRef =
       "CL-" +
-      new Date().toISOString().slice(0, 10).replace(/-/g, "") +
-      "-" +
       Math.random().toString(36).substring(2, 6).toUpperCase();
     const db = new Database(DB_PATH);
     db.pragma("foreign_keys = ON");
