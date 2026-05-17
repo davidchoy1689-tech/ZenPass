@@ -1415,7 +1415,7 @@
             users.length +
             "</strong> 人</div></div></div>";
           html +=
-            '<div class="table-wrap"><table><thead><tr><th>學號</th><th>姓名</th><th>電郵</th><th>手機</th><th>角色</th><th>Credits</th><th>會籍</th><th>註冊日期</th></tr></thead><tbody>';
+            '<div class="table-wrap"><table><thead><tr><th></th><th>學號</th><th>姓名</th><th>電郵</th><th>手機</th><th>角色</th><th>Credits</th><th>會籍</th><th>註冊日期</th></tr></thead><tbody>';
           users.forEach(function (u) {
             var role = u.is_coach
               ? badge("教練", "orange")
@@ -1423,6 +1423,7 @@
             if (u.coach_verified) role += " " + badge("已認證", "green");
             html +=
               "<tr>" +
+              '<td><span class="expand-btn" onclick="toggleDetail(this)">▶</span></td>' +
               '<td style="font-family:monospace;font-size:11px;color:var(--gray)">' +
               escape(u.user_reference || u.id.substring(0, 8)) +
               "</td>" +
@@ -1446,7 +1447,17 @@
               "</td>" +
               '<td style="font-size:12px">' +
               dateStr(u.created_at) +
-              "</td></tr>";
+              "</td></tr>" +
+              '<tr class="details-row"><td colspan="9">' +
+              '<div style="font-size:12px;line-height:1.8;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">' +
+              "<div><strong>總消費：</strong>HK$" + (u.total_spent || 0) + '</div>' +
+              "<div><strong>積分：</strong>" + (u.points || 0) + " (" + (u.points_tier_label || "—") + ")</div>" +
+              "<div><strong>會籍到期：</strong>" + (u.membership_expires_at ? u.membership_expires_at.substring(0,10) : "—") + '</div>' +
+              "<div><strong>最後到訪：</strong>" + (u.last_visit ? u.last_visit.substring(0,10) : "—") + '</div>' +
+              "<div><strong>總到訪：</strong>" + (u.total_visits || 0) + " 次</div>" +
+              "<div><strong>推薦碼：</strong>" + escape(u.referral_code || "—") + '</div>' +
+              '<div style="grid-column:span 3"><strong>備註：</strong>' + escape(u.notes || "—") + '</div>' +
+              '</div></td></tr>'";
           });
           html += "</tbody></table></div>";
           main.innerHTML = html;
@@ -1469,10 +1480,11 @@
             cls.length +
             "</strong> 個課程</div></div></div>";
           html +=
-            '<div class="table-wrap"><table><thead><tr><th>課程編號</th><th>教練編號</th><th>課程</th><th>教練</th><th>分類</th><th>難度</th><th>價格</th><th>時段數</th><th>預約數</th><th>狀態</th></tr></thead><tbody>';
+            '<div class="table-wrap"><table><thead><tr><th></th><th>課程編號</th><th>教練編號</th><th>課程</th><th>教練</th><th>分類</th><th>難度</th><th>價格</th><th>時段數</th><th>預約數</th><th>狀態</th></tr></thead><tbody>';
           cls.forEach(function (c) {
             html +=
               "<tr>" +
+              '<td><span class="expand-btn" onclick="toggleDetail(this)">▶</span></td>' +
               '<td style="font-family:monospace;font-size:11px;color:var(--gray)">' +
               escape(c.class_reference || c.id.substring(0, 8)) +
               "</td>" +
@@ -1502,7 +1514,17 @@
               "</td>" +
               "<td>" +
               statusBadge(c.status) +
-              "</td></tr>";
+              "</td></tr>" +
+              '<tr class="details-row"><td colspan="11">' +
+              '<div style="font-size:12px;line-height:1.8;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">' +
+              "<div><strong>描述：</strong>" + escape((c.description || "—").substring(0,100)) + "</div>" +
+              "<div><strong>時長：</strong>" + (c.duration || "—") + " 分鐘</div>" +
+              "<div><strong>場地：</strong>" + escape(c.venue_name || "—") + "</div>" +
+              "<div><strong>地址：</strong>" + escape(c.venue_address || "—") + "</div>" +
+              "<div><strong>建立時間：</strong>" + (c.created_at || "—") + "</div>" +
+              "<div><strong>更新時間：</strong>" + (c.updated_at || "—") + "</div>" +
+              "<div style='grid-column:span 3'><strong>教練電郵：</strong>" + escape(c.coach_email || "—") + "</div>" +
+              '</div></td></tr>'";
           });
           html += "</tbody></table></div>";
           main.innerHTML = html;
