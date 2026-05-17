@@ -601,6 +601,9 @@
         <a class="nav-item" data-tab="partners" role="button" tabindex="0"
           ><span class="icon">🏪</span><span>商戶管理</span></a
         >
+        <a class="nav-item" data-tab="coach-apps" role="button" tabindex="0"
+          ><span class="icon">📋</span><span>教練申請<span id="coach-app-badge" style="display:none;background:#ef4444;color:white;font-size:10px;padding:1px 5px;border-radius:8px;margin-left:4px">0</span></span></a
+        >
 
         <div style="flex: 1"></div>
         <a
@@ -940,6 +943,9 @@
             break;
           case "partners":
             loadPartnersTab();
+            break;
+          case "coach-apps":
+            loadCoachAppsTab();
             break;
         }
       }
@@ -2009,6 +2015,106 @@
           await apiPost('/admin/partner-approve', { venue_id: venueId, action: 'reject' });
           showToast('✅ 已拒絕', 'success');
           showPartnerSection('pending');
+        } catch(e) { showToast('❌ ' + e.message, 'error'); }
+      }
+
+      function escHtml(s) { return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+
+      // ===== 📋 教練申請審批 Tab =====
+      async function loadCoachAppsTab() {
+        var main = document.getElementById('mainContent');
+        main.innerHTML = 
+          '<div style="padding:20px">' +
+          '<h2 style="font-size:20px;font-weight:700;margin-bottom:8px">📋 教練申請審批</h2>' +
+          '<p style="font-size:13px;color:#6b7280;margin-bottom:16px">審批教練提交的開班申請</p>' +
+          '<div style="display:flex;gap:8px;margin-bottom:16px">' +
+          '<button class="filter-btn active" onclick="loadCoachApps(\'pending\')" id="ca-pending">⏳ 待審批</button>' +
+          '<button class="filter-btn" onclick="loadCoachApps(\'approved\')" id="ca-approved">✅ 已通過</button>' +
+          '<button class="filter-btn" onclick="loadCoachApps(\'rejected\')" id="ca-rejected">❌ 已拒絕</button>' +
+          '</div>' +
+          '<div id="coach-apps-list"><div class="loading-spinner">載入中...</div></div></div>';
+        loadCoachApps('pending');
+      }
+
+      async function loadCoachApps(status) {
+        // Update active filter
+        document.querySelectorAll('#coach-apps-list').forEach(function(el) { el.style.opacity = '0.5'; });
+        document.querySelectorAll('[id^="ca-"]').forEach(function(b) { b.classList.remove('active'); });
+        var activeBtn = document.getElementById('ca-' + status);
+        if (activeBtn) activeBtn.classList.add('active');
+
+        try {
+          var d = await apiGet('/admin/coach-applications?status=' + status);
+          var apps = d.applications || [];
+          var container = document.getElementById('coach-apps-list');
+          container.style.opacity = '1';
+
+          if (apps.length === 0) {
+            container.innerHTML = '<div style="text-align:center;padding:40px;color:#9ca3af"><div style="font-size:48px;margin-bottom:8px">📭</div><div>暫無' + (status === 'pending' ? '待審批' : status === 'approved' ? '已通過' : '已拒絕') + '嘅申請</div></div>';
+            return;
+          }
+
+          var html = '<div style="overflow-x:auto"><table class="admin-table"><thead><tr>' +
+            '<th>申請編號</th><th>姓名</th><th>電郵</th><th>電話</th><th>專長</th><th>場地</th><th>申請日期</th>' +
+            (status === 'pending' ? '<th>操作</th>' : '<th>審批人</th><th>審批日期</th>') +
+            '</tr></thead><tbody>';
+
+          for (var i = 0; i < apps.length; i++) {
+            var a = apps[i];
+            var specialties = a.specialties || '—';
+            var date = (a.created_at || '').substring(0, 10);
+            var reviewDate = a.reviewed_at ? a.reviewed_at.substring(0, 10) : '—';
+            var reviewer = a.reviewed_by ? a.reviewed_by.substring(0, 8) : '—';
+            html += '<tr>' +
+              '<td><code>' + (a.application_reference || a.id.substring(0,8)) + '</code></td>' +
+              '<td><strong>' + escHtml(a.name) + '</strong></td>' +
+              '<td>' + escHtml(a.email) + '</td>' +
+              '<td>' + escHtml(a.phone || '—') + '</td>' +
+              '<td style="font-size:12px">' + escHtml(specialties) + '</td>' +
+              '<td style="font-size:12px">' + escHtml(a.venue_name || a.venue_address || '—') + '</td>' +
+              '<td>' + date + '</td>';
+
+            if (status === 'pending') {
+              html += '<td style="white-space:nowrap">' +
+                '<button class="btn-sm btn-success" onclick="approveCoach(\'' + a.id + '\',\'' + escHtml(a.name) + '\')" style="margin-right:4px">✅ 通過</button>' +
+                '<button class="btn-sm btn-danger" onclick="rejectCoach(\'' + a.id + '\',\'' + escHtml(a.name) + '\')">❌ 拒絕</button>' +
+                '</td>';
+            } else {
+              html += '<td>' + reviewer + '</td><td>' + reviewDate + '</td>';
+            }
+            html += '</tr>';
+          }
+
+          html += '</tbody></table></div>';
+          container.innerHTML = html;
+
+          // Update badge
+          if (status === 'pending') {
+            var badge = document.getElementById('coach-app-badge');
+            if (badge) { badge.textContent = apps.length; badge.style.display = apps.length > 0 ? '' : 'none'; }
+          }
+        } catch (e) {
+          document.getElementById('coach-apps-list').innerHTML = '<div style="color:#ef4444;padding:20px">❌ 載入失敗</div>';
+          console.error(e);
+        }
+      }
+
+      async function approveCoach(id, name) {
+        if (!confirm('確定通過 ' + name + ' 的教練申請？')) return;
+        try {
+          var r = await apiPost('/admin/coach-approve', { application_id: id });
+          showToast('✅ ' + name + ' 已成為教練！', 'success');
+          loadCoachApps('pending');
+        } catch(e) { showToast('❌ ' + e.message, 'error'); }
+      }
+
+      async function rejectCoach(id, name) {
+        var reason = prompt('請輸入拒絕原因（可選）：', '');
+        if (reason === null) return;
+        try {
+          var r = await apiPost('/admin/coach-reject', { application_id: id, reason: reason || undefined });
+          showToast('✅ 已拒絕 ' + name, 'info');
+          loadCoachApps('pending');
         } catch(e) { showToast('❌ ' + e.message, 'error'); }
       }
     </script>

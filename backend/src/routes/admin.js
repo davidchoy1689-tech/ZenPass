@@ -545,4 +545,118 @@ router.get("/payouts", authenticateToken, requireAdmin, (req, res) => {
   }
 });
 
+// ===== 教練申請審批 =====
+router.get("/coach-applications", authenticateToken, requireAdmin, (req, res) => {
+  try {
+    const db = new Database(DB_PATH);
+    db.pragma("foreign_keys = ON");
+    const { status = "pending" } = req.query;
+
+    const applications = db
+      .prepare(
+        `SELECT ca.*, u.email as user_email, u.name as user_name
+         FROM coach_applications ca
+         JOIN users u ON u.id = ca.user_id
+         WHERE ca.status = ?
+         ORDER BY ca.created_at DESC`
+      )
+      .all(status);
+
+    db.close();
+    res.json({ applications, total: applications.length });
+  } catch (err) {
+    console.error("取教練申請錯誤:", err);
+    res.status(500).json({ error: "無法獲取教練申請" });
+  }
+});
+
+router.post("/coach-approve", authenticateToken, requireAdmin, (req, res) => {
+  try {
+    const { application_id } = req.body;
+    if (!application_id) {
+      return res.status(400).json({ error: "缺少申請編號" });
+    }
+
+    const db = new Database(DB_PATH);
+    db.pragma("foreign_keys = ON");
+
+    const app = db.prepare("SELECT * FROM coach_applications WHERE id = ?").get(application_id);
+    if (!app) {
+      db.close();
+      return res.status(404).json({ error: "申請不存在" });
+    }
+    if (app.status !== "pending") {
+      db.close();
+      return res.status(400).json({ error: "申請已處理" });
+    }
+
+    // Update application status
+    db.prepare(
+      "UPDATE coach_applications SET status = 'approved', reviewed_by = ?, reviewed_at = datetime('now') WHERE id = ?"
+    ).run(req.user.id, application_id);
+
+    // Update user as coach
+    db.prepare(
+      "UPDATE users SET is_coach = 1, coach_verified = 1 WHERE id = ?"
+    ).run(app.user_id);
+
+    // Send notification
+    sendNotification("coach.approved", {
+      recipient: app.user_id,
+      data: { message: "✅ 教練申請已獲批！現在可以開班授課啦！" },
+    });
+
+    db.close();
+
+    res.json({
+      message: "✅ 教練申請已通過",
+      coach_name: app.name,
+    });
+  } catch (err) {
+    console.error("審批教練錯誤:", err);
+    res.status(500).json({ error: "審批失敗" });
+  }
+});
+
+router.post("/coach-reject", authenticateToken, requireAdmin, (req, res) => {
+  try {
+    const { application_id, reason } = req.body;
+    if (!application_id) {
+      return res.status(400).json({ error: "缺少申請編號" });
+    }
+
+    const db = new Database(DB_PATH);
+    db.pragma("foreign_keys = ON");
+
+    const app = db.prepare("SELECT * FROM coach_applications WHERE id = ?").get(application_id);
+    if (!app) {
+      db.close();
+      return res.status(404).json({ error: "申請不存在" });
+    }
+    if (app.status !== "pending") {
+      db.close();
+      return res.status(400).json({ error: "申請已處理" });
+    }
+
+    db.prepare(
+      "UPDATE coach_applications SET status = 'rejected', reviewed_by = ?, reviewed_at = datetime('now') WHERE id = ?"
+    ).run(req.user.id, application_id);
+
+    sendNotification("coach.rejected", {
+      recipient: app.user_id,
+      data: { message: reason || "❌ 教練申請未獲批，如有疑問請聯絡我們。" },
+    });
+
+    db.close();
+
+    res.json({
+      message: "✅ 已拒絕申請",
+      coach_name: app.name,
+    });
+  } catch (err) {
+    console.error("拒絕教練錯誤:", err);
+    res.status(500).json({ error: "操作失敗" });
+  }
+});
+
 module.exports = router;
