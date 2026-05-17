@@ -2382,7 +2382,10 @@
             '</select></div>' +
             '</div>' +
             '<div style="margin-top:12px">' +
-            '<label style="font-size:11px;color:#6b7280;display:block;margin-bottom:2px">描述</label>' +
+            '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">' +
+            '<label style="font-size:11px;color:#6b7280;display:block">描述</label>' +
+            '<button onclick="aiGenerateDescription()" style="padding:4px 10px;background:#f0f9ff;border:1px solid #93c5fd;border-radius:6px;cursor:pointer;font-size:11px;color:#2563eb;font-weight:600">🤖 AI 生成描述</button>' +
+            '</div>' +
             '<textarea id="ef-description" rows="4" style="width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;font-family:inherit">' + escape(c.description || '') + '</textarea>' +
             '</div>' +
             '<div style="margin-top:16px;display:flex;gap:8px">' +
@@ -2396,6 +2399,35 @@
       function formField(id, label, value) {
         return '<div><label style="font-size:11px;color:#6b7280;display:block;margin-bottom:2px">' + label + '</label>' +
           '<input id="ef-' + id + '" type="text" value="' + escape(String(value || "")) + '" style="width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:13px"></div>';
+      }
+
+      async function aiGenerateDescription() {
+        var title = document.getElementById('ef-title')?.value;
+        var category = document.getElementById('ef-category')?.value;
+        if (!title) {
+          showToast('❌ 請先填寫課程名稱', 'warning');
+          return;
+        }
+        var btn = event.target || document.activeElement;
+        var originalText = btn.textContent;
+        btn.textContent = '⏳ 生成中...';
+        btn.disabled = true;
+        try {
+          var r = await apiPost('/admin/generate-description', {
+            title: title,
+            category: category || '',
+            difficulty: document.getElementById('ef-difficulty')?.value || '',
+            venue_name: document.getElementById('ef-venue_name')?.value || '',
+          });
+          if (r.description) {
+            document.getElementById('ef-description').value = r.description;
+            showToast('✅ AI 描述已生成', 'success');
+          }
+        } catch(e) {
+          showToast('❌ ' + e.message, 'error');
+        }
+        btn.textContent = originalText;
+        btn.disabled = false;
       }
 
       async function saveCourse(id) {

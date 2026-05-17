@@ -903,4 +903,94 @@ router.put("/update-course/:id", authenticateToken, requireAdmin, (req, res) => 
   }
 });
 
+// ===== POST /api/admin/generate-description — AI 自動生成課程描述 =====
+const DESCRIPTION_TEMPLATES = {
+  "瑜伽": {
+    templates: [
+      "透過%s，配合呼吸節奏與冥想技巧，幫助你釋放壓力、提升柔軟度與核心力量。適合各級別練習者，在寧靜的環境中找到身心平衡。",
+      "%s融合傳統瑜伽智慧與現代運動科學，由經驗導師帶領你探索身體的潛能。每堂課都專注於正確姿勢、呼吸協調與正念練習。",
+      "在專業導師指導下體驗%s，透過流暢的動作串聯與深度伸展，改善身體柔軟度、增強肌力，同時安撫心靈。",
+    ]
+  },
+  "健身": {
+    templates: [
+      "%s由專業教練設計，結合功能性訓練與高效燃脂動作，助你快速達成健身目標。適合想提升體能、塑造線條的你。",
+      "參加%s，在活力四射的課堂氛圍中挑戰自我。透過科學化的訓練編排，有效提升肌耐力、心肺功能與身體協調性。",
+      "%s專為現代人設計，利用自身體重或簡易器材進行高效能訓練。無論你係初學者定進階者，都能找到適合嘅挑戰。",
+    ]
+  },
+  "新興運動": {
+    templates: [
+      "體驗%s，一種結合趣味與競技嘅新興運動！唔需要經驗，快啲約埋朋友一齊嚟試下啦！",
+      "%s係近年最受歡迎嘅新興運動之一，簡單易學、樂趣無窮。由專業教練指導，讓你快速掌握技巧並享受運動樂趣。",
+      "探索%s的魅力！呢項新興運動適合任何年齡嘅參加者，既可以鍛鍊身體，又可以享受團隊合作嘅樂趣。",
+    ]
+  },
+  "舞蹈": {
+    templates: [
+      "透過%s，跟隨音樂節奏盡情舞動！燃燒卡路里嘅同時提升身體協調性，釋放壓力，讓你由內到外散發自信光芒。",
+      "%s結合流行音樂與專業編舞，由經驗導師逐拍教學。無論你有冇舞蹈底子，都能輕鬆跟上，享受跳舞嘅樂趣！",
+    ]
+  },
+  "伸展": {
+    templates: [
+      "%s專注於深度伸展與筋膜放鬆，幫助你改善身體柔軟度、舒緩肌肉緊張、糾正不良姿勢，係都市人嘅最佳充電方式。",
+      "透過%s，學習正確嘅伸展技巧，有效預防運動受傷、舒緩日常疲勞。每堂課都讓你有煥然一新嘅感覺。",
+    ]
+  },
+  "冥想": {
+    templates: [
+      "%s引導你進入深度放鬆狀態，學習專注當下、管理壓力。透過呼吸練習與正念冥想，找回內心平靜與清晰思緒。",
+    ]
+  },
+  "default": {
+    templates: [
+      "參加%s，由專業教練帶領你體驗運動嘅樂趣！無論你係初學者定係有經驗嘅運動愛好者，呢個課程都會帶畀你全新嘅體驗同挑戰。快啲嚟一齊郁下啦！",
+      "%s由經驗豐富嘅導師精心設計，結合科學訓練方法與趣味元素，讓你在輕鬆愉快嘅氛圍中達到理想效果。適合所有程度嘅參加者。",
+      "探索%s嘅精彩世界！我哋嘅專業團隊致力提供高質素嘅教學體驗，讓你喺安全嘅環境中享受運動、突破自己。",
+    ]
+  }
+};
+
+router.post("/generate-description", authenticateToken, requireAdmin, (req, res) => {
+  try {
+    const { title, category, difficulty, venue_name } = req.body;
+    if (!title) {
+      return res.status(400).json({ error: "請提供課程名稱" });
+    }
+
+    // Find matching category templates
+    let catTemplates = DESCRIPTION_TEMPLATES.default;
+    for (const [key, val] of Object.entries(DESCRIPTION_TEMPLATES)) {
+      if ((category && category.includes(key)) || (title && title.includes(key))) {
+        catTemplates = val;
+        break;
+      }
+    }
+
+    // Pick a template based on title length (deterministic but varied)
+    const templateIndex = title.length % catTemplates.templates.length;
+    var description = catTemplates.templates[templateIndex].replace("%s", title);
+
+    // Add venue info if available
+    if (venue_name) {
+      description += " 📍 " + venue_name;
+    }
+
+    // Add difficulty hint
+    if (difficulty === "beginner") {
+      description = "【初學者友善】" + description;
+    } else if (difficulty === "intermediate") {
+      description = "【中級強度】" + description;
+    } else if (difficulty === "advanced") {
+      description = "【高階挑戰】" + description;
+    }
+
+    res.json({ description, generated: true });
+  } catch (err) {
+    console.error("生成描述錯誤:", err);
+    res.status(500).json({ error: "生成描述失敗" });
+  }
+});
+
 module.exports = router;
