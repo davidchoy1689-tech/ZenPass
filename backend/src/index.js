@@ -31,7 +31,11 @@ app.use((req, res, next) => {
 });
 
 // HTTP 請求日誌 (morgan → winston)
-app.use(morgan(":method :url :status :response-time ms", { stream: logger.morganStream }));
+app.use(
+  morgan(":method :url :status :response-time ms", {
+    stream: logger.morganStream,
+  }),
+);
 
 // CORS 設定 - 支援跨域請求（GitHub Pages → localhost）
 app.use(
@@ -59,10 +63,12 @@ app.use(
 );
 
 // Security headers (Helmet) - disable CSP to allow inline styles/scripts for now
-app.use(helmet({
-  contentSecurityPolicy: false,
-  crossOriginEmbedderPolicy: false,
-}));
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+    crossOriginEmbedderPolicy: false,
+  }),
+);
 
 // Redirect unauthenticated access to admin.html
 app.use("/admin.html", (req, res, next) => {
@@ -78,7 +84,7 @@ app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15分鐘
-  max: process.env.NODE_ENV === 'test' ? 1000 : 500,
+  max: process.env.NODE_ENV === "test" ? 1000 : 500,
   message: { error: "太多請求，請稍後再試" },
 });
 app.use("/api/", limiter);
@@ -139,24 +145,22 @@ const os = require("os");
 app.get("/api/health", (req, res) => {
   const dbStatus = { connected: false, error: null };
   let uptime = process.uptime();
-  
+
   try {
     const Database = require("better-sqlite3");
     const db = new Database(DB_PATH);
     db.pragma("foreign_keys = ON");
     db.prepare("SELECT 1").get();
-    
+
     // Get DB stats
-    const tableCount = db.prepare(
-      "SELECT COUNT(*) as cnt FROM sqlite_master WHERE type='table'"
-    ).get().cnt;
-    const bookingCount = db.prepare(
-      "SELECT COUNT(*) as cnt FROM bookings"
-    ).get().cnt;
-    const userCount = db.prepare(
-      "SELECT COUNT(*) as cnt FROM users"
-    ).get().cnt;
-    
+    const tableCount = db
+      .prepare("SELECT COUNT(*) as cnt FROM sqlite_master WHERE type='table'")
+      .get().cnt;
+    const bookingCount = db
+      .prepare("SELECT COUNT(*) as cnt FROM bookings")
+      .get().cnt;
+    const userCount = db.prepare("SELECT COUNT(*) as cnt FROM users").get().cnt;
+
     dbStatus.connected = true;
     dbStatus.tables = tableCount;
     dbStatus.bookings = bookingCount;
@@ -178,7 +182,9 @@ app.get("/api/health", (req, res) => {
     memory: {
       free: Math.round(os.freemem() / 1024 / 1024) + " MB",
       total: Math.round(os.totalmem() / 1024 / 1024) + " MB",
-      usage: Math.round((process.memoryUsage().heapUsed / 1024 / 1024) * 100) / 100 + " MB",
+      usage:
+        Math.round((process.memoryUsage().heapUsed / 1024 / 1024) * 100) / 100 +
+        " MB",
     },
     platform: {
       node: process.version,
@@ -202,6 +208,16 @@ function formatDuration(seconds) {
   parts.push(s + "s");
   return parts.join(" ");
 }
+
+// ===== 404 Catch-all — Serve custom 404.html for unmatched routes =====
+app.use((req, res) => {
+  if (req.path.startsWith("/api/")) {
+    return res
+      .status(404)
+      .json({ success: false, error: "API endpoint not found" });
+  }
+  res.status(404).sendFile(path.join(__dirname, "../../frontend/404.html"));
+});
 
 // ===== 錯誤處理（集中式） =====
 const { errorHandler, AppError } = require("./middleware/error-handler");
@@ -247,15 +263,15 @@ function cleanupExpiredBookings() {
     .prepare(
       `SELECT schedule_id FROM bookings
        WHERE status = 'cancelled'
-       AND created_at > datetime('now', '-16 minutes')`
+       AND created_at > datetime('now', '-16 minutes')`,
     )
     .all()
-    .map(r => r.schedule_id);
+    .map((r) => r.schedule_id);
 
   for (const row of canceledIds) {
     if (row.schedule_id) {
       db.prepare(
-        "UPDATE class_schedules SET enrolled_count = MAX(0, enrolled_count - 1) WHERE id = ? AND enrolled_count > 0"
+        "UPDATE class_schedules SET enrolled_count = MAX(0, enrolled_count - 1) WHERE id = ? AND enrolled_count > 0",
       ).run(row.schedule_id);
     }
   }
@@ -264,7 +280,9 @@ function cleanupExpiredBookings() {
     console.log("🧹 清理了 " + result.changes + " 個過期未付款預約");
   }
   if (staleResult.changes > 0) {
-    console.log("🧹 清理了 " + staleResult.changes + " 個超過24小時嘅 stale 付款");
+    console.log(
+      "🧹 清理了 " + staleResult.changes + " 個超過24小時嘅 stale 付款",
+    );
   }
   db.close();
 }
@@ -371,7 +389,7 @@ function autoNotifyLargeVacancies() {
         AND (cs.max_participants - cs.enrolled_count) > (cs.max_participants * 0.5)
       ORDER BY cs.start_time ASC
       LIMIT 20
-    `
+    `,
       )
       .all();
 
@@ -408,7 +426,7 @@ function autoNotifyLargeVacancies() {
         WHERE ua.category = ?
           AND ua.action IN ('view_class', 'book_class', 'favorite')
           AND ua.user_id IS NOT NULL
-      `
+      `,
         )
         .all(v.category, v.category);
 
@@ -500,7 +518,10 @@ function startupHealthCheck() {
 
 // Global uncaught exceptions
 process.on("uncaughtException", (err) => {
-  logger.error("未捕獲異常 (uncaughtException)", { error: err.message, stack: err.stack });
+  logger.error("未捕獲異常 (uncaughtException)", {
+    error: err.message,
+    stack: err.stack,
+  });
   // 給 logger 時間寫入，然後優雅重啟
   setTimeout(() => process.exit(1), 1000);
 });
