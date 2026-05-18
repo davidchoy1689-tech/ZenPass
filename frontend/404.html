@@ -1,15 +1,99 @@
 <!doctype html>
-<html>
+<html lang="zh-HK">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
-    <title>ZenPass 禪流</title>
-    <script>
-      // GitHub Pages SPA redirect: redirect 404 to index.html
-      sessionStorage.redirect = location.href;
-    </script>
-    <meta http-equiv="refresh" content="0;URL='/ZenPass/'" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="theme-color" content="#f06030" />
+    <link rel="icon" href="favicon.png" type="image/png" />
+    <title>找不到頁面 — ZenPass 禪流</title>
     <link rel="stylesheet" href="css/zenpass.css" />
+    <script>
+      // GitHub Pages SPA redirect: preserve URL for JS routing
+      sessionStorage.redirect = location.href;
+      if (location.hostname.includes("github.io")) {
+        setTimeout(function () {
+          location.href = "/";
+        }, 3000);
+      }
+    </script>
+    <style>
+      .error-page {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 100dvh;
+        padding: 24px;
+        text-align: center;
+        background: var(--bg);
+      }
+      .error-page .emoji {
+        font-size: 72px;
+        margin-bottom: 16px;
+      }
+      .error-page h1 {
+        font-size: 28px;
+        font-weight: 700;
+        margin-bottom: 8px;
+        color: var(--dark-900);
+      }
+      .error-page p {
+        font-size: 14px;
+        color: var(--dark-700);
+        margin-bottom: 24px;
+        max-width: 300px;
+        line-height: 1.6;
+      }
+      .error-page .actions {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        width: 100%;
+        max-width: 280px;
+      }
+      .error-page .btn-home {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 12px 24px;
+        background: var(--orange-600-bg);
+        color: white;
+        border-radius: 12px;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 15px;
+        transition: transform 0.15s;
+      }
+      .error-page .btn-home:active {
+        transform: scale(0.97);
+      }
+      .error-page .btn-secondary {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 10px 24px;
+        background: var(--white);
+        color: var(--orange-600-bg);
+        border: 1px solid var(--gray-200);
+        border-radius: 12px;
+        text-decoration: none;
+        font-weight: 500;
+        font-size: 14px;
+      }
+    </style>
   </head>
-  <body></body>
+  <body>
+    <div class="error-page">
+      <div class="emoji">🔍</div>
+      <h1>頁面去咗旅行</h1>
+      <p>搵唔到你想要嘅頁面⋯⋯可能係連結有錯，或者個頁面已經搬咗位。</p>
+      <div class="actions">
+        <a href="/" class="btn-home">🏠 返回首頁</a>
+        <a href="explore.html" class="btn-secondary">📚 探索課程</a>
+      </div>
+    </div>
+  </body>
 </html>
