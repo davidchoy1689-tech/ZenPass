@@ -10,6 +10,7 @@ const rateLimit = require("express-rate-limit");
 const morgan = require("morgan");
 const path = require("path");
 const helmet = require("helmet");
+const compression = require("compression");
 const logger = require("./services/logger");
 const { sendNotification } = require("./services/notification");
 
@@ -69,6 +70,9 @@ app.use(
     crossOriginEmbedderPolicy: false,
   }),
 );
+
+// Compression middleware (gzip/brotli) — before static file serving
+app.use(compression({ threshold: 256, level: 6 }));
 
 // Redirect unauthenticated access to admin.html
 app.use("/admin.html", (req, res, next) => {
