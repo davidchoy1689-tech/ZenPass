@@ -33,7 +33,18 @@ function authenticateToken(req, res, next) {
     if (token.startsWith("demo_token_") && process.env.ALLOW_DEMO_TOKEN === "true") {
       const role = token.replace("demo_token_", "");
       const db = new Database(DB_PATH);
-      const demoUser = db.prepare("SELECT id, email, name FROM users LIMIT 1").get();
+      // Map demo roles to real users for E2E testing
+      let demoUser;
+      if (role === "admin") {
+        demoUser = db.prepare("SELECT id, email, name FROM users WHERE email='admin@zenpass.hk'").get();
+      } else if (role === "coach") {
+        demoUser = db.prepare("SELECT id, email, name FROM users WHERE email='coach@zenpass.hk'").get();
+      } else {
+        demoUser = db.prepare("SELECT id, email, name, role FROM users WHERE email='student@zenpass.hk'").get();
+      }
+      if (!demoUser) {
+        demoUser = db.prepare("SELECT id, email, name FROM users LIMIT 1").get();
+      }
       db.close();
       if (demoUser) {
         req.user = { id: demoUser.id, email: demoUser.email, name: demoUser.name, role: role };

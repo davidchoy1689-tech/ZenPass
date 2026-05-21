@@ -33,8 +33,8 @@ db.prepare("DELETE FROM class_schedules").run();
 db.prepare("DELETE FROM classes").run();
 
 const insertClass = db.prepare(`
-  INSERT INTO classes (id, coach_id, title, description, category, difficulty, duration, max_participants, price_hkd, venue_name, venue_address, status)
-  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  INSERT INTO classes (id, coach_id, title, description, category, difficulty, duration, max_participants, price_hkd, venue_name, venue_address, status, class_reference)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `);
 
 const insertSchedule = db.prepare(`
@@ -45,6 +45,7 @@ const insertSchedule = db.prepare(`
 const transaction = db.transaction(() => {
   let count = 0;
   for (const cls of classes) {
+    const refNum = String(count + 1000).padStart(5, '0');
     insertClass.run(
       String(cls.id),
       coach.id,
@@ -58,6 +59,7 @@ const transaction = db.transaction(() => {
       cls.location || "",
       cls.address || "",
       cls.status === "draft" ? "inactive" : cls.status || "active",
+      'CL-' + refNum,
     );
 
     for (const sched of cls.schedules || []) {

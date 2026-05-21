@@ -26,6 +26,7 @@ function initDatabase() {
   db.exec(`
     CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY,
+      user_reference TEXT,
       email TEXT UNIQUE,
       password_hash TEXT,
       name TEXT NOT NULL,
@@ -114,6 +115,7 @@ function initDatabase() {
   db.exec(`
     CREATE TABLE IF NOT EXISTS bookings (
       id TEXT PRIMARY KEY,
+      booking_reference TEXT,
       user_id TEXT NOT NULL,
       schedule_id TEXT NOT NULL,
       class_id TEXT NOT NULL,
