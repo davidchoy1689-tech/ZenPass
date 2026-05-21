@@ -14,6 +14,8 @@ const {
   trackBookingChange,
   trackPaymentChange,
 } = require("../services/audit");
+const { requireIdempotency } = require("../middleware/idempotency");
+const { processRefund } = require("../services/refund");
 
 const router = express.Router();
 const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
@@ -26,7 +28,7 @@ function generateBookingRef() {
 }
 
 // ===== POST /api/bookings — 建立預約 =====
-router.post("/", authenticateToken, validate(schemas.booking), (req, res) => {
+router.post("/", authenticateToken, requireIdempotency, validate(schemas.booking), (req, res) => {
   try {
     const { schedule_id, class_id, payment_type, amount } = req.body;
 
@@ -372,7 +374,7 @@ router.get("/my", authenticateToken, (req, res) => {
 });
 
 // ===== POST /api/bookings/:id/complete-payment — 完成付款（pending_payment → confirmed）=====
-router.post("/:id/complete-payment", authenticateToken, validate(schemas.payment_confirm), (req, res) => {
+router.post("/:id/complete-payment", authenticateToken, requireIdempotency, validate(schemas.payment_confirm), (req, res) => {
   try {
     const { payment_method, payment_reference, amount } = req.body;
 
@@ -547,6 +549,23 @@ router.post("/:id/cancel", authenticateToken, (req, res) => {
           classData.credits_cost,
           req.user.id,
         );
+      }
+    }
+
+    // 💰 REFUND：如果已付款，自動退款
+    if (booking.payment_status === 'paid' && booking.amount > 0) {
+      try {
+        const refundResult = processRefund({
+          bookingId: req.params.id,
+          amount: booking.amount,
+          reason: "用戶取消預約",
+          initiatedBy: req.user.id,
+          approvedBy: "system",
+          method: booking.payment_method || "fps",
+        });
+        console.log("[REFUND] Auto-refund:", refundResult.refund_id);
+      } catch (refundErr) {
+        console.error("⚠️ Auto-refund failed:", refundErr.message);
       }
     }
 

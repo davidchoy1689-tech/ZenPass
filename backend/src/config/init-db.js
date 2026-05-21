@@ -712,6 +712,14 @@ function initDatabase() {
     console.error("⚠️ Ledger migration failed:", migErr.message);
   }
 
+  // IPO idempotency + refund migration
+  try {
+    const { migrate: migrateIdemRefund } = require("./migrate-idempotency-refund");
+    migrateIdemRefund();
+  } catch (migErr) {
+    console.error("⚠️ Idempotency/Refund migration failed:", migErr.message);
+  }
+
   console.log("✅ 數據庫初始化完成:", DB_PATH);
   db.close();
 }
