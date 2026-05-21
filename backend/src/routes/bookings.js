@@ -9,6 +9,11 @@ const { authenticateToken } = require("../middleware/auth");
 const { validate, schemas } = require("../middleware/validate");
 
 const { sendNotification } = require("../services/notification");
+const {
+  audit,
+  trackBookingChange,
+  trackPaymentChange,
+} = require("../services/audit");
 
 const router = express.Router();
 const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
@@ -262,6 +267,19 @@ router.post("/", authenticateToken, validate(schemas.booking), (req, res) => {
       // 追蹤失敗唔影響 booking
     }
 
+    // 🔔 AUDIT：記錄預約建立
+    try {
+      trackBookingChange(
+        bookingId,
+        req.user.id,
+        null,
+        bookingStatus,
+        req
+      );
+    } catch (auditErr) {
+      console.error("⚠️ Audit record failed:", auditErr.message);
+    }
+
     db.close();
 
     res.status(201).json({
@@ -440,6 +458,21 @@ router.post("/:id/complete-payment", authenticateToken, validate(schemas.payment
       console.error("⚠️ 發送通知失敗:", notifErr.message);
     }
 
+    // 🔔 AUDIT：付款完成
+    try {
+      trackPaymentChange(
+        req.params.id,
+        req.user.id,
+        "pending",
+        "paid",
+        amount || booking.amount || 0,
+        payment_method || "fps",
+        req
+      );
+    } catch (auditErr) {
+      console.error("⚠️ Audit record failed:", auditErr.message);
+    }
+
     db.close();
 
     res.json({
@@ -517,6 +550,19 @@ router.post("/:id/cancel", authenticateToken, (req, res) => {
       }
     }
 
+    // 🔔 AUDIT：取消預約
+    try {
+      trackBookingChange(
+        req.params.id,
+        req.user.id,
+        booking.status,
+        "cancelled",
+        req
+      );
+    } catch (auditErr) {
+      console.error("⚠️ Audit record failed:", auditErr.message);
+    }
+
     db.close();
 
     res.json({ message: "預約已取消" });
@@ -566,6 +612,19 @@ router.post("/:id/attend", authenticateToken, (req, res) => {
         const { syncCoachEarningsForSchedule } = require("./coach-earnings");
         syncCoachEarningsForSchedule(booking.schedule_id);
       } catch (e) {}
+    }
+
+    // 🔔 AUDIT：簽到
+    try {
+      trackBookingChange(
+        req.params.id,
+        req.user.id,
+        "confirmed",
+        "attended",
+        req
+      );
+    } catch (auditErr) {
+      console.error("⚠️ Audit record failed:", auditErr.message);
     }
 
     db.close();

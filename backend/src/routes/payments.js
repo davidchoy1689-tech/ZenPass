@@ -11,6 +11,7 @@ const { validate, schemas } = require("../middleware/validate");
 
 const fs = require("fs");
 const path = require("path");
+const { audit, trackPaymentChange } = require("../services/audit");
 
 const router = express.Router();
 const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
@@ -480,6 +481,21 @@ router.post("/fps", authenticateToken, (req, res) => {
       amount || (booking ? booking.amount : 0),
       fps_reference,
     );
+
+    // 🔔 AUDIT：FPS 付款
+    try {
+      trackPaymentChange(
+        booking_id,
+        req.user.id,
+        "pending",
+        "paid",
+        amount || (booking ? booking.amount : 0),
+        "fps",
+        req
+      );
+    } catch (auditErr) {
+      console.error("⚠️ Audit record failed:", auditErr.message);
+    }
 
     db.close();
 

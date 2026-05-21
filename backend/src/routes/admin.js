@@ -9,6 +9,7 @@ const Database = require("better-sqlite3");
 const { authenticateToken, requireAdmin } = require("../middleware/auth");
 
 const { sendNotification } = require("../services/notification");
+const { audit, trackAdminAction } = require("../services/audit");
 
 const router = express.Router();
 const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
@@ -127,6 +128,16 @@ router.post("/approve-payment", authenticateToken, requireAdmin, (req, res) => {
       console.error("⚠️ 發送通知失敗:", notifErr.message);
     }
 
+    // 🔔 AUDIT：管理員確認付款
+    try {
+      trackAdminAction(req.user.id, "approve_payment", {
+        booking_id,
+        amount: booking?.amount,
+      }, req);
+    } catch (auditErr) {
+      console.error("⚠️ Audit record failed:", auditErr.message);
+    }
+
     db.close();
 
     res.json({
@@ -199,6 +210,16 @@ router.post("/reject-payment", authenticateToken, requireAdmin, (req, res) => {
       });
     } catch (notifErr) {
       console.error("⚠️ 發送通知失敗:", notifErr.message);
+    }
+
+    // 🔔 AUDIT：管理員拒絕付款
+    try {
+      trackAdminAction(req.user.id, "reject_payment", {
+        booking_id,
+        reason: reason || "無原因",
+      }, req);
+    } catch (auditErr) {
+      console.error("⚠️ Audit record failed:", auditErr.message);
     }
 
     db.close();
@@ -484,6 +505,22 @@ router.post("/process-payouts", authenticateToken, requireAdmin, (req, res) => {
         net_amount: netAmount,
         payout_reference: poRef,
       });
+    }
+
+    // 🔔 AUDIT：管理員批量出糧
+    try {
+      audit({
+        actionType: "payout.create",
+        entityType: "payout_batch",
+        entityId: "batch-" + Date.now(),
+        userId: req.user.id,
+        newValues: { total: results.length, processed, results },
+        description: `管理員批量出糧：${processed} 位教練，共 HK$${results.reduce((s, r) => s + (r.amount || 0), 0)}`,
+        ipAddress: req.ip,
+        userAgent: req.headers["user-agent"],
+      });
+    } catch (auditErr) {
+      console.error("⚠️ Audit record failed:", auditErr.message);
     }
     
     db.close();

@@ -696,6 +696,14 @@ function initDatabase() {
     console.log('✅ 已初始化 ' + badges.length + ' 個 ZenPass 勳章');
   }
 
+  // IPO audit log migration
+  try {
+    const { migrate } = require("./migrate-audit");
+    migrate();
+  } catch (migErr) {
+    console.error("⚠️ Audit migration failed:", migErr.message);
+  }
+
   console.log("✅ 數據庫初始化完成:", DB_PATH);
   db.close();
 }
