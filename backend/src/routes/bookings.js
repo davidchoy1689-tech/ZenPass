@@ -147,23 +147,23 @@ router.post("/", authenticateToken, requireIdempotency, validate(schemas.booking
       payment_type === "single" ? "pending_payment" : "confirmed";
     const paymentStatus = payment_type === "single" ? "pending" : "paid";
 
-    // Check if this class belongs to a partner venue
+    // Check if this class belongs to a partner venue (via FK link)
     let partnerVenue = null;
     let partnerCommission = null;
     let partnerVenueEarned = null;
     let partnerPlatformEarned = null;
     try {
-      const classVenue = db.prepare("SELECT venue_name FROM classes WHERE id = ?").get(class_id);
-      if (classVenue && classVenue.venue_name) {
-        partnerVenue = db.prepare(
-          "SELECT id, commission_rate FROM partner_venues WHERE name = ? AND status = 'active'"
-        ).get(classVenue.venue_name);
-        if (partnerVenue) {
-          const bookingAmount = amount || 0;
-          partnerCommission = partnerVenue.commission_rate || 0.3;
-          partnerPlatformEarned = bookingAmount * partnerCommission;
-          partnerVenueEarned = bookingAmount * (1 - partnerCommission);
-        }
+      partnerVenue = db.prepare(`
+        SELECT pv.id, pv.commission_rate, pv.name as venue_name
+        FROM classes c
+        JOIN partner_venues pv ON c.partner_venue_id = pv.id
+        WHERE c.id = ? AND pv.status = 'active'
+      `).get(class_id);
+      if (partnerVenue) {
+        const bookingAmount = amount || 0;
+        partnerCommission = partnerVenue.commission_rate || 0.3;
+        partnerPlatformEarned = Math.round(bookingAmount * partnerCommission * 100) / 100;
+        partnerVenueEarned = Math.round(bookingAmount * (1 - partnerCommission) * 100) / 100;
       }
     } catch (e) {
       // Partner detection failure is non-critical

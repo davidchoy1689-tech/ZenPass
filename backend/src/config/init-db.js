@@ -720,6 +720,14 @@ function initDatabase() {
     console.error("⚠️ Idempotency/Refund migration failed:", migErr.message);
   }
 
+  // Phase 2: Aggregation platform — partner_venue_id link
+  try {
+    const { migrate: migrateAgg } = require("./migrate-aggregation");
+    migrateAgg();
+  } catch (migErr) {
+    console.error("⚠️ Aggregation migration failed:", migErr.message);
+  }
+
   console.log("✅ 數據庫初始化完成:", DB_PATH);
   db.close();
 }
