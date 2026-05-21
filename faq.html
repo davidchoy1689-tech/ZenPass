@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="zh-HK">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>常見問題 — ZenPass 禪流</title>
+  <meta property="og:title" content="常見問題 — ZenPass 禪流" />
+  <meta property="og:description" content="關於ZenPass預約、付款、會籍嘅常見問題解答。" />
+  <meta property="og:url" content="https://davidchoy1689-tech.github.io/ZenPass/faq.html" />
+  <meta property="og:type" content="website" />
+  <meta property="og:locale" content="zh_HK" />
+  <meta name="twitter:card" content="summary_large_image" />
+      <link rel="stylesheet" href="css/zenpass.css" />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      :root {
+        --orange-500: #f06030;
+        --orange-700: #aa3218;
+        --orange-600-bg: #c94420;
+        --orange-100: #fff0e8;
+        --dark-900: #1a1a2e;
+        --dark-700: #3d3d5a;
+        --gray-200: #e5e7eb;
+        --gray-100: #f3f4f6;
+        --white: #fff;
+        --radius: 8px;
+        --radius-lg: 12px;
+        --font-zh: "Noto Sans TC", sans-serif;
+      }
+      body {
+        font-family: var(--font-zh);
+        background: var(--gray-50);
+        color: var(--dark-900);
+        padding: 20px;
+        max-width: 700px;
+        margin: 0 auto;
+      }
+      h1 {
+        font-size: 22px;
+        margin-bottom: 4px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .sub {
+        font-size: 13px;
+        color: var(--dark-700);
+        margin-bottom: 20px;
+      }
+      .section {
+        margin-bottom: 20px;
+      }
+      .section h2 {
+        font-size: 16px;
+        margin-bottom: 10px;
+        padding-bottom: 6px;
+        border-bottom: 1px solid var(--gray-200);
+      }
+      .faq-item {
+        background: var(--white);
+        border-radius: var(--radius);
+        margin-bottom: 8px;
+        overflow: hidden;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+      }
+      .faq-q {
+        padding: 14px 16px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 600;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        transition: background 0.15s;
+      }
+      .faq-q:hover {
+        background: var(--orange-100);
+      }
+      .faq-q .arrow {
+        transition: transform 0.2s;
+        font-size: 12px;
+      }
+      .faq-q.open .arrow {
+        transform: rotate(180deg);
+      }
+      .faq-a {
+        padding: 0 16px 14px;
+        font-size: 13px;
+        color: var(--dark-700);
+        line-height: 1.7;
+        display: none;
+      }
+      .faq-a.open {
+        display: block;
+      }
+      .back {
+        display: inline-block;
+        margin-top: 20px;
+        color: var(--orange-700);
+        text-decoration: none;
+        font-size: 14px;
+        font-weight: 600;
+      }
+    
+    .bottom-nav {
+        position: fixed;
+        bottom: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 100%;
+        max-width: var(--max-width);
+        background: var(--white);
+        border-top: 1px solid var(--gray-200);
+        display: flex;
+        justify-content: space-around;
+        padding: 6px 0;
+        z-index: 1000;
+    }
+    .nav-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 2px;
+        text-decoration: none;
+        font-size: 10px;
+        color: var(--dark-700);
+        padding: 4px 12px;
+    }
+    .nav-item.active {
+        color: var(--orange-700);
+    }
+    .nav-item .nav-icon {
+        font-size: 22px;
+        line-height: 1;
+    }
+</style>
+  </head>
+  <body>
+    <h1>❓ 常見問題</h1>
+    <p class="sub">關於 ZenPass 禪流嘅常見問題</p>
+
+    <div class="section">
+      <h2>📋 預約與上堂</h2>
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFAQ(this)">
+          如何預約課程？<span class="arrow">▼</span>
+        </div>
+        <div class="faq-a">
+          瀏覽課程頁 → 揀選有興趣嘅課程 → 選擇時間 → 確認預約 →
+          完成付款。預約成功後會收到確認通知。
+        </div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFAQ(this)">
+          可以取消預約嗎？<span class="arrow">▼</span>
+        </div>
+        <div class="faq-a">
+          可以。喺「我的預約」頁可以取消預約，但開課前 2
+          小時內無法取消。取消後名額會自動釋放俾候補名單嘅用戶。
+        </div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFAQ(this)">
+          咩係候補名單（Waitlist）？<span class="arrow">▼</span>
+        </div>
+        <div class="faq-a">
+          當課程滿座時，你可以加入候補名單。如果有人取消預約，系統會自動通知排隊最耐嘅人。
+        </div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFAQ(this)">
+          點樣簽到？<span class="arrow">▼</span>
+        </div>
+        <div class="faq-a">
+          上堂時可以向教練出示 QR Code 簽到，或者喺 checkin 頁手動輸入課堂編號。
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>💳 付款與會籍</h2>
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFAQ(this)">
+          接受咩付款方式？<span class="arrow">▼</span>
+        </div>
+        <div class="faq-a">
+          我哋接受信用卡（Visa/Mastercard/AMEX，經 Stripe）、轉數快
+          FPS、PayMe。信用卡付款會自動確認，FPS/PayMe 需要 admin 核實。
+        </div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFAQ(this)">
+          會籍自動續費點樣運作？<span class="arrow">▼</span>
+        </div>
+        <div class="faq-a">
+          升級會籍後，系統會每月自動從你嘅信用卡扣款。你隨時可以取消自動續費。
+        </div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFAQ(this)">
+          咩係 Credits？<span class="arrow">▼</span>
+        </div>
+        <div class="faq-a">
+          Credits 係 ZenPass 嘅平台點數，可以用嚟預約課程。你可以購買 Credits
+          套票或者透過推薦朋友賺取。
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>🏆 積分與勳章</h2>
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFAQ(this)">
+          點樣賺取積分？<span class="arrow">▼</span>
+        </div>
+        <div class="faq-a">
+          每日簽到 +5 分、完成課堂 +50 分、課後評價 +20 分、推薦朋友 +100
+          分。連續簽到仲有額外獎勵！
+        </div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFAQ(this)">
+          積分有咩用？<span class="arrow">▼</span>
+        </div>
+        <div class="faq-a">
+          積分可以兌換折扣碼、Credits、免費堂數同 ZenPass
+          周邊商品。去「積分中心」睇吓有咩獎勵。
+        </div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFAQ(this)">
+          勳章系統係點運作？<span class="arrow">▼</span>
+        </div>
+        <div class="faq-a">
+          完成指定條件會自動解鎖勳章，例如出席 1 堂、完成 5 堂、連續簽到 7
+          日等。收集勳章可以解鎖特殊福利。
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>👨‍🏫 教練專區</h2>
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFAQ(this)">
+          點樣成為 ZenPass 教練？<span class="arrow">▼</span>
+        </div>
+        <div class="faq-a">
+          去「成為教練」頁填寫申請表，我哋嘅 team
+          會聯絡你跟進。審批通過後就可以開班教學。
+        </div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFAQ(this)">
+          教練點樣收取費用？<span class="arrow">▼</span>
+        </div>
+        <div class="faq-a">
+          教練可以喺 Dashboard 查看收入同申請提款。提款可以經 Stripe Connect
+          自動轉賬到你嘅銀行戶口。
+        </div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFAQ(this)">
+          推薦其他教練有獎勵嗎？<span class="arrow">▼</span>
+        </div>
+        <div class="faq-a">
+          有！喺教練 Dashboard 嘅「推薦教練」功能，推薦成功後可獲得額外收入。
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>🔒 帳戶與私隱</h2>
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFAQ(this)">
+          點樣註冊帳戶？<span class="arrow">▼</span>
+        </div>
+        <div class="faq-a">
+          去登入頁面揀「註冊」，輸入姓名、電郵同密碼即可。註冊後會引導你完成基本設定。
+        </div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFAQ(this)">
+          忘記密碼點算？<span class="arrow">▼</span>
+        </div>
+        <div class="faq-a">
+          目前需要聯絡管理員重置密碼。密碼重置功能將會喺下一次更新中加入。
+        </div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFAQ(this)">
+          我嘅個人資料安全嗎？<span class="arrow">▼</span>
+        </div>
+        <div class="faq-a">
+          所有資料經加密傳輸（HTTPS），密碼經 bcrypt 加密儲存。付款資料經 Stripe
+          處理，我哋唔會儲存你嘅信用卡資料。
+        </div>
+      </div>
+    </div>
+
+    <a href="index.html" class="back">← 返回首頁</a>
+
+    <script>
+      function toggleFAQ(el) {
+        el.classList.toggle("open");
+        var answer = el.nextElementSibling;
+        answer.classList.toggle("open");
+      }
+    </script>
+      <nav class="bottom-nav" role="navigation" aria-label="底部導航">
+      <a href="index.html" class="nav-item active"
+        ><span class="nav-icon">🏠</span>首頁</a
+      >
+      <a href="explore.html" class="nav-item"
+        ><span class="nav-icon">🔍</span>探索</a
+      >
+      <a href="membership.html" class="nav-item"
+        ><span class="nav-icon">💎</span>會籍</a
+      >
+      <a href="coach-apply.html" class="nav-item"
+        ><span class="nav-icon">👨‍🏫</span>成為教練</a
+      >
+      <a href="my.html" class="nav-item"
+        ><span class="nav-icon">👤</span>我的</a
+      >
+    </nav>
+</body>
+</html>

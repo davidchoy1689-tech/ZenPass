@@ -1,0 +1,390 @@
+<!doctype html>
+<html lang="zh-HK">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>通知設定 — ZenPass</title>
+  <meta property="og:title" content="通知 — ZenPass 禪流" />
+  <meta property="og:description" content="查看最新課程通知、優惠及系統消息。" />
+  <meta property="og:url" content="https://davidchoy1689-tech.github.io/ZenPass/notifications.html" />
+  <meta property="og:type" content="website" />
+  <meta property="og:locale" content="zh_HK" />
+  <meta name="twitter:card" content="summary_large_image" />
+    <script src="api.js"></script>
+      <link rel="stylesheet" href="css/zenpass.css" />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      :root {
+        --orange-500: #ff6b35;
+        --orange-700: #aa3218;
+        --orange-600-bg: #c94420;
+        --orange-100: #fff0e8;
+        --dark-900: #1a1a2e;
+        --dark-700: #3d3d5a;
+        --green-500: #059669;
+        --gray-200: #e5e7eb;
+        --gray-100: #f3f4f6;
+        --white: #fff;
+        --radius: 8px;
+        --font-zh: "Noto Sans TC", sans-serif;
+      }
+      body {
+        font-family: var(--font-zh);
+        background: var(--gray-100);
+        color: var(--dark-900);
+        padding: 20px;
+        max-width: 600px;
+        margin: 0 auto;
+      }
+      h1 {
+        font-size: 20px;
+        margin-bottom: 16px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .card {
+        background: var(--white);
+        border-radius: var(--radius);
+        padding: 16px;
+        margin-bottom: 12px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+      }
+      .card h3 {
+        font-size: 15px;
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 0;
+        border-bottom: 1px solid var(--gray-100);
+        font-size: 14px;
+      }
+      .row:last-child {
+        border-bottom: none;
+      }
+      .status {
+        font-size: 12px;
+        padding: 3px 10px;
+        border-radius: 99px;
+        font-weight: 500;
+      }
+      .status.on {
+        background: #ecfdf5;
+        color: var(--green-500);
+      }
+      .status.off {
+        background: #fef2f2;
+        color: #ef4444;
+      }
+      .status.partial {
+        background: #fef3c7;
+        color: #92400e;
+      }
+      .btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        font-family: var(--font-zh);
+      }
+      .btn-primary {
+        background: var(--orange-600-bg);
+        color: var(--white);
+      }
+      .btn-sm {
+        padding: 6px 14px;
+        font-size: 12px;
+      }
+      .btn-outline {
+        background: var(--white);
+        border: 1px solid var(--gray-200);
+        color: var(--dark-900);
+      }
+      .hint {
+        font-size: 12px;
+        color: var(--dark-700);
+        margin-top: 4px;
+        line-height: 1.5;
+      }
+      .test-result {
+        margin-top: 8px;
+        padding: 8px;
+        border-radius: 6px;
+        font-size: 13px;
+        display: none;
+      }
+      .test-result.ok {
+        display: block;
+        background: #ecfdf5;
+        color: var(--green-500);
+      }
+      .test-result.fail {
+        display: block;
+        background: #fef2f2;
+        color: #ef4444;
+      }
+      pre {
+        background: var(--gray-100);
+        padding: 10px;
+        border-radius: 6px;
+        font-size: 12px;
+        overflow-x: auto;
+        margin-top: 8px;
+      }
+      @media (max-width: 480px) {
+        body {
+          padding: 12px;
+        }
+        h1 {
+          font-size: 17px;
+        }
+        .card {
+          padding: 12px;
+        }
+        .btn-sm {
+          padding: 4px 10px;
+          font-size: 11px;
+        }
+        pre {
+          font-size: 11px;
+        }
+      }
+    
+    .bottom-nav {
+        position: fixed;
+        bottom: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 100%;
+        max-width: var(--max-width);
+        background: var(--white);
+        border-top: 1px solid var(--gray-200);
+        display: flex;
+        justify-content: space-around;
+        padding: 6px 0;
+        z-index: 1000;
+    }
+    .nav-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 2px;
+        text-decoration: none;
+        font-size: 10px;
+        color: var(--dark-700);
+        padding: 4px 12px;
+    }
+    .nav-item.active {
+        color: var(--orange-700);
+    }
+    .nav-item .nav-icon {
+        font-size: 22px;
+        line-height: 1;
+    }
+</style>
+  </head>
+  <body>
+    <h1>🔔 通知設定</h1>
+
+    <div class="card">
+      <h3>📊 通知狀態</h3>
+      <div id="config-status">載入中...</div>
+    </div>
+
+    <div class="card">
+      <h3>🧪 測試通知</h3>
+      <p style="font-size: 13px; color: var(--dark-700); margin-bottom: 8px">
+        㩒制即時發送測試通知，確認系統運作正常
+      </p>
+      <div style="display: flex; gap: 8px; flex-wrap: wrap">
+        <button
+          class="btn btn-sm btn-primary"
+          onclick="testNotification('booking.confirmed')"
+        >
+          📅 預約確認
+        </button>
+        <button
+          class="btn btn-sm btn-primary"
+          onclick="testNotification('payment.received')"
+        >
+          💰 付款成功
+        </button>
+        <button
+          class="btn btn-sm btn-primary"
+          onclick="testNotification('coach.new_booking')"
+        >
+          👨‍🏫 新預約(教練)
+        </button>
+      </div>
+      <div id="test-result" class="test-result"></div>
+    </div>
+
+    <div class="card">
+      <h3>📱 WhatsApp 設定</h3>
+      <p style="font-size: 13px; color: var(--dark-700); margin-bottom: 8px">
+        CallMeBot 免費 WhatsApp 通知
+      </p>
+      <ol
+        style="
+          font-size: 13px;
+          color: var(--dark-700);
+          line-height: 1.8;
+          padding-left: 20px;
+        "
+      >
+        <li>
+          去
+          <a
+            href="https://api.callmebot.com/whatsapp/"
+            target="_blank"
+            style="color: var(--orange-500)"
+            >api.callmebot.com/whatsapp/</a
+          >
+        </li>
+        <li>Send <strong>"I allow callmebot"</strong> 去 +34 645 56 86 04</li>
+        <li>輸入你嘅電話號碼，拎 API Key</li>
+        <li>通知管理員設定 <code>WHATSAPP_CALLMEBOT_KEY</code></li>
+      </ol>
+    </div>
+
+    <script>
+      var API = window.location.origin;
+      function headers() {
+        var t = localStorage.getItem("zenpass_token") || "";
+        return {
+          Authorization: "Bearer " + t,
+          "Content-Type": "application/json",
+        };
+      }
+
+      async function loadConfig() {
+        try {
+          var r = await fetch(API + "/api/notifications/config", {
+            headers: headers(),
+          });
+          var d = await r.json();
+          var c = d.config || {};
+          var html = "";
+
+          // DB
+          html +=
+            '<div class="row"><span>📦 站內通知 (DB)</span><span class="status on">✅ 啟用</span></div>';
+
+          // Telegram
+          var tgStatus = c.telegram?.enabled ? "on" : "off";
+          var tgLabel = c.telegram?.enabled ? "✅ 已設定" : "❌ 未設定";
+          html +=
+            '<div class="row"><span>✈️ Telegram</span><span class="status ' +
+            tgStatus +
+            '">' +
+            tgLabel +
+            "</span></div>";
+          if (!c.telegram?.enabled) {
+            html +=
+              '<div class="hint">設定 TELEGRAM_BOT_TOKEN + TELEGRAM_CHAT_ID 喺 .env</div>';
+          }
+
+          // WhatsApp (Twilio)
+          var waStatus = c.whatsapp?.enabled ? "on" : "off";
+          var waLabel = c.whatsapp?.enabled ? "✅ 已設定" : "❌ 未設定";
+          html +=
+            '<div class="row"><span>💬 WhatsApp (Twilio)</span><span class="status ' +
+            waStatus +
+            '">' +
+            waLabel +
+            "</span></div>";
+
+          // WhatsApp Free (CallMeBot)
+          var waFreeStatus = c.whatsapp_free?.enabled ? "on" : "off";
+          var waFreeLabel = c.whatsapp_free?.enabled
+            ? "✅ 已設定"
+            : "❌ 未設定";
+          html +=
+            '<div class="row"><span>💬 WhatsApp (CallMeBot 免費)</span><span class="status ' +
+            waFreeStatus +
+            '">' +
+            waFreeLabel +
+            "</span></div>";
+
+          // Active channels
+          html +=
+            '<div class="row"><span>🔀 啟用頻道</span><span>' +
+            (c.types || []).join(", ") +
+            "</span></div>";
+
+          document.getElementById("config-status").innerHTML = html;
+        } catch (e) {
+          document.getElementById("config-status").innerHTML =
+            '<p style="color:#ef4444">❌ ' + e.message + "</p>";
+        }
+      }
+
+      async function testNotification(type) {
+        var el = document.getElementById("test-result");
+        el.className = "test-result";
+        el.textContent = "⏳ 發送中...";
+        el.style.display = "block";
+
+        try {
+          var r = await fetch(API + "/api/notifications/test", {
+            method: "POST",
+            headers: headers(),
+            body: JSON.stringify({
+              type: type,
+              data: {
+                class_title: "測試課程",
+                date: new Date().toISOString().split("T")[0],
+                time: "10:00",
+                venue: "測試場地",
+                coach_name: "系統測試",
+                student_name: "David",
+                amount: "100",
+              },
+            }),
+          });
+          var d = await r.json();
+          if (!r.ok) throw new Error(d.error);
+
+          el.className = "test-result ok";
+          el.textContent = "✅ " + d.message;
+          el.innerHTML +=
+            "<pre>" + JSON.stringify(d.results, null, 2) + "</pre>";
+        } catch (e) {
+          el.className = "test-result fail";
+          el.textContent = "❌ " + e.message;
+        }
+      }
+
+      loadConfig();
+    </script>
+      <nav class="bottom-nav" role="navigation" aria-label="底部導航">
+      <a href="index.html" class="nav-item"
+        ><span class="nav-icon">🏠</span>首頁</a
+      >
+      <a href="explore.html" class="nav-item"
+        ><span class="nav-icon">🔍</span>探索</a
+      >
+      <a href="membership.html" class="nav-item"
+        ><span class="nav-icon">💎</span>會籍</a
+      >
+      <a href="coach-apply.html" class="nav-item"
+        ><span class="nav-icon">👨‍🏫</span>成為教練</a
+      >
+      <a href="my.html" class="nav-item active"
+        ><span class="nav-icon">👤</span>我的</a
+      >
+    </nav>
+</body>
+</html>

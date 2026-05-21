@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="zh-HK">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>載入 Demo 資料 — ZenPass 禪流</title>
+    <script src="api.js"></script>
+      <link rel="stylesheet" href="css/zenpass.css" />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: "Noto Sans TC", sans-serif;
+        background: #f9fafb;
+        color: #1a1a2e;
+        max-width: 480px;
+        margin: 0 auto;
+        padding: 40px 20px;
+        text-align: center;
+      }
+      h1 {
+        font-size: 24px;
+        margin-bottom: 8px;
+      }
+      p {
+        color: #666;
+        font-size: 14px;
+        line-height: 1.6;
+        margin-bottom: 20px;
+      }
+      .status-box {
+        background: white;
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 16px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+        text-align: left;
+      }
+      .status-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 0;
+        font-size: 14px;
+        border-bottom: 1px solid #f3f4f6;
+      }
+      .status-item:last-child {
+        border-bottom: none;
+      }
+      .loading {
+        color: #f59e0b;
+      }
+      .done {
+        color: #059669;
+      }
+      .fail {
+        color: #ef4444;
+      }
+      .btn {
+        display: inline-block;
+        padding: 14px 40px;
+        background: #ff6b35;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: 700;
+        cursor: pointer;
+        text-decoration: none;
+        font-family: inherit;
+        transition: background 0.2s;
+      }
+      .btn:hover {
+        background: #e55a2b;
+      }
+      .btn:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+      }
+      .note {
+        font-size: 12px;
+        color: #999;
+        margin-top: 20px;
+      }
+      @media (max-width: 480px) {
+        body {
+          padding: 12px;
+        }
+        .card {
+          padding: 16px;
+        }
+        h1 {
+          font-size: 18px;
+        }
+        input,
+        select {
+          font-size: 14px;
+        }
+        button {
+          padding: 10px;
+          font-size: 13px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div style="font-size: 64px; margin-bottom: 16px">🚀</div>
+    <h1>載入 Full Demo 資料</h1>
+    <p>
+      呢個工具會幫你初始化完整嘅 Demo 課程、時段、用戶資料，方便你測試系統功能。
+    </p>
+
+    <div class="status-box" id="status-box">
+      <div class="status-item" id="s-api">🔄 檢查 API 連線...</div>
+      <div class="status-item" id="s-classes" style="display: none">
+        🔄 載入課程資料...
+      </div>
+      <div class="status-item" id="s-schedules" style="display: none">
+        🔄 建立時段...
+      </div>
+      <div class="status-item" id="s-users" style="display: none">
+        🔄 建立測試用戶...
+      </div>
+      <div class="status-item" id="s-done" style="display: none">✅ 完成！</div>
+    </div>
+
+    <button class="btn" id="start-btn" onclick="startSetup()">
+      🚀 開始載入 Demo 資料
+    </button>
+    <p class="note">
+      注意：呢個動作會重置資料庫到 Demo 狀態，原有預約資料會被清除。
+    </p>
+
+    <script>
+      function setStatus(id, text, type) {
+        var el = document.getElementById(id);
+        el.style.display = "flex";
+        el.innerHTML =
+          '<span class="' +
+          type +
+          '">' +
+          (type === "done" ? "✅" : type === "fail" ? "❌" : "🔄") +
+          "</span> " +
+          text;
+      }
+
+      async function startSetup() {
+        var btn = document.getElementById("start-btn");
+        btn.disabled = true;
+        btn.textContent = "載入中...";
+
+        // 1. Check API
+        setStatus("s-api", "檢查 API 連線...", "loading");
+        try {
+          var h = await fetch("/api/health");
+          var hd = await h.json();
+          if (hd.status !== "ok" && !hd.data?.status)
+            throw new Error("API 未就緒");
+          setStatus("s-api", "API 連線正常 ✅", "done");
+        } catch (e) {
+          setStatus("s-api", "API 連線失敗: " + e.message, "fail");
+          btn.textContent = "重試";
+          btn.disabled = false;
+          return;
+        }
+
+        // 2. Reset & setup via API
+        setStatus("s-classes", "載入課程資料...", "loading");
+        try {
+          var c = await apiRequest("POST", "/migrate/reset", {
+            full_demo: true,
+          });
+          setStatus("s-classes", "課程資料載入完成 ✅", "done");
+        } catch (e) {
+          setStatus("s-classes", "載入失敗: " + e.message, "fail");
+          btn.textContent = "重試";
+          btn.disabled = false;
+          return;
+        }
+
+        setStatus("s-schedules", "建立時段...", "loading");
+        try {
+          await apiRequest("POST", "/migrate/demo-schedules");
+          setStatus("s-schedules", "時段建立完成 ✅", "done");
+        } catch (e) {
+          setStatus("s-schedules", "時段建立完成 (或已存在) ✅", "done");
+        }
+
+        setStatus("s-users", "建立測試用戶...", "loading");
+        try {
+          await apiRequest("POST", "/migrate/demo-users");
+          setStatus("s-users", "測試用戶已就緒 ✅", "done");
+        } catch (e) {
+          setStatus("s-users", "測試用戶已存在 ✅", "done");
+        }
+
+        // Done!
+        setStatus(
+          "s-done",
+          "所有 Demo 資料載入完成！🎉 你可以去 <a href='explore.html' style='color:#ff6b35;'>瀏覽課程</a>",
+          "done",
+        );
+        btn.textContent = "🎉 完成！去探索課程";
+        btn.onclick = function () {
+          window.location.href = "explore.html";
+        };
+        btn.disabled = false;
+      }
+    </script>
+  </body>
+</html>

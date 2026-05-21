@@ -1,0 +1,2016 @@
+<!doctype html>
+<html lang="zh-HK">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      http-equiv="Cache-Control"
+      content="no-cache, no-store, must-revalidate"
+    />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <link rel="icon" href="favicon.png" type="image/png" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <meta name="description" content="ZenPass 禪流健身課程預約平台管理後台" />
+    <title>ZenPass 管理後台 — 禪流</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+      <link rel="stylesheet" href="css/zenpass.css" />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      :root {
+        --primary: #c86a4a;
+        --primary-light: #f0ded4;
+        --primary-bg: #faf3ee;
+        --dark: #1c1816;
+        --dark2: #2d2d44;
+        --gray: #8a7e78;
+        --gray-light: #ede8e4;
+        --gray-bg: #fbf9f6;
+        --white: #fff;
+        --green: #5b8c5a;
+        --red: #c45a5a;
+        --yellow: #c49a4a;
+        --radius: 14px;
+        --shadow: 0 2px 8px rgba(28, 24, 22, 0.06);
+      }
+      body {
+        font-family: "Noto Sans TC", "PingFang HK", sans-serif;
+        background: var(--gray-bg);
+        color: var(--dark);
+        display: flex;
+        min-height: 100vh;
+        font-size: 14px;
+        line-height: 1.6;
+      }
+      /* Sidebar */
+      .sidebar {
+        width: 220px;
+        background: var(--dark);
+        color: var(--white);
+        position: fixed;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        z-index: 10;
+      }
+      html {
+        scroll-behavior: smooth;
+      }
+      #main-content {
+        scroll-margin-top: 20px;
+      }
+      img,
+      video {
+        max-width: 100%;
+        height: auto;
+      }
+      .sidebar-logo {
+        padding: 20px 20px 24px;
+        font-size: 20px;
+        font-weight: 700;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      }
+      .sidebar-logo span {
+        color: var(--primary);
+      }
+      .sidebar-logo small {
+        display: block;
+        font-size: 11px;
+        font-weight: 400;
+        color: rgba(255, 255, 255, 0.3);
+        margin-top: 2px;
+      }
+      .nav-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 18px;
+        color: rgba(255, 255, 255, 0.55);
+        cursor: pointer;
+        border-left: 3px solid transparent;
+        font-size: 13px;
+        transition: all 0.12s;
+        text-decoration: none;
+      }
+      .nav-item:hover {
+        background: rgba(255, 255, 255, 0.04);
+        color: var(--white);
+      }
+      .nav-item.active {
+        background: rgba(200, 106, 74, 0.1);
+        color: var(--primary);
+        border-left-color: var(--primary);
+        font-weight: 600;
+      }
+      .nav-item .icon {
+        font-size: 15px;
+        width: 20px;
+        text-align: center;
+      }
+      /* Main */
+      .main {
+        margin-left: 220px;
+        flex: 1;
+        padding: 24px 28px;
+        min-height: 100vh;
+        max-width: 1200px;
+      }
+      .top-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+      }
+      .top-bar h1 {
+        font-size: 20px;
+        font-weight: 700;
+      }
+      .top-bar .sub {
+        font-size: 12px;
+        color: var(--gray);
+        margin-top: 2px;
+      }
+      .top-bar .user-info {
+        font-size: 12px;
+        color: var(--gray);
+      }
+      /* Stats */
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 12px;
+        margin-bottom: 20px;
+      }
+      .stat-card {
+        background: var(--white);
+        border-radius: var(--radius);
+        padding: 16px;
+        box-shadow: var(--shadow);
+      }
+      .stat-card .val {
+        font-size: 24px;
+        font-weight: 700;
+      }
+      .stat-card .lbl {
+        font-size: 12px;
+        color: var(--gray);
+        margin-top: 2px;
+      }
+      .stat-card .ico {
+        font-size: 18px;
+        margin-bottom: 4px;
+      }
+      /* Cards */
+      .card {
+        background: var(--white);
+        border-radius: var(--radius);
+        padding: 16px;
+        margin-bottom: 10px;
+        box-shadow: var(--shadow);
+      }
+      .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+      }
+      .card-header h3 {
+        font-size: 14px;
+        font-weight: 600;
+      }
+      /* Table */
+      .table-wrap {
+        overflow-x: auto;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+      }
+      th {
+        text-align: left;
+        padding: 8px 10px;
+        border-bottom: 2px solid var(--gray-light);
+        font-weight: 600;
+        color: var(--gray);
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        white-space: nowrap;
+      }
+      td {
+        padding: 8px 10px;
+        border-bottom: 1px solid var(--gray-light);
+        white-space: nowrap;
+      }
+      tr:last-child td {
+        border-bottom: none;
+      }
+      tr:hover td {
+        background: var(--primary-bg);
+      }
+      /* Badge */
+      .badge {
+        display: inline-block;
+        padding: 1px 8px;
+        border-radius: 4px;
+        font-size: 11px;
+        font-weight: 600;
+      }
+      .bg-green {
+        background: #edf4ea;
+        color: var(--green);
+      }
+      .bg-red {
+        background: #f8ecec;
+        color: var(--red);
+      }
+      .bg-yellow {
+        background: #f8f2e4;
+        color: var(--yellow);
+      }
+      .bg-orange {
+        background: var(--primary-bg);
+        color: var(--primary);
+      }
+      .bg-gray {
+        background: var(--gray-light);
+        color: var(--gray);
+      }
+      /* Buttons */
+      .btn {
+        padding: 6px 14px;
+        border: none;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        font-family: inherit;
+        transition: opacity 0.12s;
+        min-height: 32px;
+      }
+      .btn:hover {
+        opacity: 0.85;
+      }
+      .btn-sm {
+        padding: 4px 10px;
+        font-size: 11px;
+        min-height: 28px;
+      }
+      .btn-primary {
+        background: var(--primary);
+        color: var(--white);
+      }
+      .btn-green {
+        background: var(--green);
+        color: var(--white);
+      }
+      .btn-red {
+        background: var(--red);
+        color: var(--white);
+      }
+      .btn-outline {
+        background: transparent;
+        border: 1px solid var(--gray-light);
+        color: var(--gray);
+      }
+      .btn-ghost {
+        background: transparent;
+        color: var(--primary);
+        border: 1px solid var(--primary);
+      }
+      /* Tab */
+      .tab-content {
+        display: none;
+      }
+      .tab-content.active {
+        display: block;
+      }
+      /* Search */
+      .search-bar {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 12px;
+      }
+      .search-bar input {
+        flex: 1;
+        padding: 8px 12px;
+        border: 1px solid var(--gray-light);
+        border-radius: 6px;
+        font-size: 13px;
+        font-family: inherit;
+        min-height: 36px;
+      }
+      .search-bar input:focus {
+        outline: none;
+        border-color: var(--primary);
+      }
+      /* Login */
+      #loginScreen {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100vw;
+        height: 100vh;
+        background: var(--gray-bg);
+      }
+      .login-box {
+        background: var(--white);
+        padding: 40px;
+        border-radius: 16px;
+        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+        width: 360px;
+        text-align: center;
+      }
+      .login-box h1 {
+        font-size: 24px;
+        margin-bottom: 4px;
+      }
+      .login-box h1 span {
+        color: var(--primary);
+      }
+      .login-box p {
+        font-size: 13px;
+        color: var(--gray);
+        margin-bottom: 24px;
+      }
+      .login-box input {
+        width: 100%;
+        padding: 10px 14px;
+        margin: 6px 0;
+        border: 1px solid var(--gray-light);
+        border-radius: 8px;
+        font-size: 14px;
+        font-family: inherit;
+        min-height: 44px;
+      }
+      .login-box input:focus {
+        outline: none;
+        border-color: var(--primary);
+      }
+      .login-box .btn {
+        width: 100%;
+        padding: 12px;
+        margin-top: 8px;
+        font-size: 14px;
+        min-height: 44px;
+      }
+      .msg {
+        font-size: 12px;
+        margin-top: 8px;
+      }
+      .msg.error {
+        color: var(--red);
+      }
+      .msg.success {
+        color: var(--green);
+      }
+      /* Loading */
+      .loading {
+        text-align: center;
+        padding: 30px;
+        color: var(--gray);
+        font-size: 13px;
+      }
+      .loading::after {
+        content: "";
+        display: block;
+        width: 20px;
+        height: 20px;
+        margin: 8px auto;
+        border: 2px solid var(--gray-light);
+        border-top-color: var(--primary);
+        border-radius: 50%;
+        animation: spin 0.6s linear infinite;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      .empty {
+        text-align: center;
+        padding: 30px;
+        color: var(--gray);
+        font-size: 13px;
+      }
+      .empty .ico {
+        font-size: 32px;
+        margin-bottom: 6px;
+      }
+      /* Modal */
+      .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.3);
+        z-index: 100;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .modal {
+        background: var(--white);
+        border-radius: 12px;
+        padding: 24px;
+        width: 400px;
+        max-width: 90vw;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+      }
+      .modal h3 {
+        font-size: 16px;
+        margin-bottom: 12px;
+      }
+      .modal p {
+        font-size: 13px;
+        color: var(--gray);
+        margin-bottom: 16px;
+      }
+      .modal .actions {
+        display: flex;
+        gap: 8px;
+        justify-content: flex-end;
+      }
+      /* Responsive */
+      @media (max-width: 768px) {
+        .sidebar {
+          width: 60px;
+          overflow: hidden;
+        }
+        .sidebar-logo {
+          font-size: 0;
+          padding: 16px;
+        }
+        .sidebar-logo::before {
+          content: "🧘";
+          font-size: 24px;
+        }
+        .nav-item span:not(.icon) {
+          display: none;
+        }
+        .main {
+          margin-left: 60px;
+          padding: 16px;
+        }
+        .stats-grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+      /* Details row */
+      .details-row {
+        display: none;
+        background: var(--gray-bg);
+        padding: 0 !important;
+      }
+      .details-row td {
+        padding: 12px 16px !important;
+        border-bottom: 1px solid var(--gray-light);
+      }
+      .details-row.show {
+        display: table-row;
+      }
+      .expand-btn {
+        cursor: pointer;
+        user-select: none;
+        color: var(--primary);
+        font-size: 11px;
+      }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+  </head>
+  <body>
+    <div
+      id="admin-topbar"
+      style="
+        display: none;
+        background: #1a1a2e;
+        color: white;
+        padding: 8px 16px;
+        font-size: 13px;
+        text-align: center;
+      "
+    >
+      ⚠️ 管理後台 — 請確保你係管理員身份
+    </div>
+    
+    <style>
+    /* Mobile Responsive */
+    @media (max-width: 768px) {
+      .sidebar { width: 100%; height: auto; position: relative; display: none; }
+      .sidebar.open { display: block; }
+      .sidebar .nav-item { display: inline-block; width: auto; padding: 8px 12px; font-size: 12px; }
+      .sidebar-logo { display: none; }
+      .main { margin-left: 0; padding: 12px; }
+      .hamburger { display: flex !important; }
+      table { font-size: 11px; }
+      th, td { padding: 6px 4px !important; }
+      .card { padding: 12px !important; }
+    }
+    .hamburger {
+      display: none;
+      position: fixed;
+      top: 10px; left: 10px;
+      z-index: 999;
+      width: 36px; height: 36px;
+      border-radius: 8px;
+      background: var(--orange-600-bg);
+      color: white;
+      border: none;
+      font-size: 18px;
+      cursor: pointer;
+      align-items: center;
+      justify-content: center;
+    }
+    </style>
+
+    <!-- Login -->
+    <div id="loginScreen">
+      <div class="login-box">
+        <h1>🧘 ZenPass <span>⚙️</span></h1>
+        <p>管理後台</p>
+        <input
+          type="email"
+          id="loginEmail"
+          placeholder="admin@zenpass.hk"
+          value="admin@zenpass.hk"
+        />
+        <input
+          type="password"
+          id="loginPass"
+          placeholder="密碼"
+          value="admin123"
+        />
+        <button class="btn btn-primary" onclick="login()">登入</button>
+        <div id="loginMsg" class="msg"></div>
+      </div>
+    </div>
+
+    <button class="hamburger" onclick="document.querySelector('.sidebar').classList.toggle('open')">☰</button>
+    <button class="hamburger" onclick="this.nextElementSibling.classList.toggle('open')">☰</button>
+    <!-- App -->
+    <div id="app" style="display: none">
+      <div class="sidebar">
+        <div class="sidebar-logo">
+          🧘 <span>ZenPass</span><small>管理後台</small>
+        </div>
+        <a
+          class="nav-item active"
+          data-tab="dashboard"
+          role="button"
+          tabindex="0"
+          ><span class="icon">📊</span><span>儀表板</span></a
+        >
+        <a class="nav-item" data-tab="payments" role="button" tabindex="0"
+          ><span class="icon">📎</span><span>付款確認</span></a
+        >
+        <a class="nav-item" data-tab="bookings" role="button" tabindex="0"
+          ><span class="icon">📅</span><span>預約管理</span></a
+        >
+        <a class="nav-item" data-tab="users" role="button" tabindex="0"
+          ><span class="icon">👤</span><span>用戶管理</span></a
+        >
+        <a class="nav-item" data-tab="classes" role="button" tabindex="0"
+          ><span class="icon">📚</span><span>課程管理</span></a
+        >
+        <a
+          class="nav-item"
+          data-tab="course-contents"
+          role="button"
+          tabindex="0"
+          ><span class="icon">📝</span><span>課程內容</span></a
+        >
+        <a class="nav-item" data-tab="migrate" role="button" tabindex="0"
+          ><span class="icon">⚙️</span><span>資料庫更新</span></a
+        >
+        <a class="nav-item" data-tab="marketing" role="button" tabindex="0"
+          ><span class="icon">📣</span><span>行銷推廣</span></a
+        >
+        <a class="nav-item" data-tab="reports" role="button" tabindex="0"
+          ><span class="icon">📊</span><span>進階報表</span></a
+        >
+        <a class="nav-item" data-tab="partners" role="button" tabindex="0"
+          ><span class="icon">🏪</span><span>商戶管理</span></a
+        >
+
+        <div style="flex: 1"></div>
+        <a
+          class="nav-item"
+          onclick="logout()"
+          style="border-top: 1px solid rgba(255, 255, 255, 0.08)"
+          ><span class="icon">🚪</span><span>登出</span></a
+        >
+      </div>
+
+      <div class="main" id="mainContent">
+        <!-- DYNAMIC CONTENT LOADED HERE -->
+      </div>
+    </div>
+
+    <script src="api.js?v=2"></script>
+    <script>
+      // Auth check - redirect if not authenticated
+      (function () {
+        var token = localStorage.getItem("zenpass_token");
+        if (!token) {
+          window.location.href = "login.html?redirect=admin.html";
+        }
+      })();
+    </script>
+    <script>
+      // ===== Course Contents =====
+      async function loadCourseContents() {
+        var main = document.getElementById("mainContent");
+        try {
+          var d = await apiGet("/course-contents");
+          var items = d.data || [];
+          var classesData = [];
+          try {
+            var cd = await apiGet("/classes");
+            classesData = cd.classes || [];
+          } catch (e) {}
+
+          var stats =
+            '<div class="stats-grid" style="grid-template-columns:repeat(3,1fr)">' +
+            '<div class="stat-card" style="background:var(--primary);color:white"><div class="ico">📝</div><div class="val">' +
+            items.length +
+            '</div><div class="lbl" style="color:rgba(255,255,255,.75)">課程內容總數</div></div>' +
+            '<div class="stat-card" style="background:var(--green);color:white"><div class="ico">🎬</div><div class="val">' +
+            items.filter(function (i) {
+              return i.video_url;
+            }).length +
+            '</div><div class="lbl" style="color:rgba(255,255,255,.75)">有影片</div></div>' +
+            '<div class="stat-card" style="background:var(--yellow);color:white"><div class="ico">❓</div><div class="val">' +
+            items.filter(function (i) {
+              return i.faqs && i.faqs.length;
+            }).length +
+            '</div><div class="lbl" style="color:rgba(255,255,255,.75)">有 FAQ</div></div>' +
+            "</div>";
+
+          var table =
+            '<div class="card"><div class="card-header"><h3>📋 課程內容列表</h3></div><div class="table-wrap">';
+          if (!items.length) {
+            table +=
+              '<div style="text-align:center;padding:30px;color:var(--gray)"><div style="font-size:28px;margin-bottom:6px">📭</div>暫無課程內容</div>';
+          } else {
+            table +=
+              "<table><thead><tr><th>課程</th><th>標題</th><th>Level</th><th>影片</th><th>圖片</th><th>教材</th><th>FAQ</th><th>更新</th></tr></thead><tbody>" +
+              items
+                .map(function (cc) {
+                  var courseName = cc.course_id;
+                  if (classesData.length) {
+                    var found = classesData.find(function (c) {
+                      return c.id === cc.course_id;
+                    });
+                    if (found) courseName = found.title;
+                  }
+                  return (
+                    "<tr><td>" +
+                    courseName +
+                    "</td>" +
+                    "<td>" +
+                    (cc.title || "—") +
+                    "</td>" +
+                    "<td>" +
+                    (cc.level || "—") +
+                    "</td>" +
+                    "<td>" +
+                    (cc.video_url ? "✅" : "—") +
+                    "</td>" +
+                    "<td>" +
+                    (cc.images && cc.images.length
+                      ? cc.images.length + "張"
+                      : "—") +
+                    "</td>" +
+                    "<td>" +
+                    (cc.materials && cc.materials.length
+                      ? cc.materials.length + "項"
+                      : "—") +
+                    "</td>" +
+                    "<td>" +
+                    (cc.faqs && cc.faqs.length ? cc.faqs.length + "條" : "—") +
+                    "</td>" +
+                    "<td>" +
+                    (cc.updated_at ? cc.updated_at.substring(0, 10) : "—") +
+                    "</td></tr>"
+                  );
+                })
+                .join("") +
+              "</tbody></table>";
+          }
+          table += "</div></div>";
+          main.innerHTML = stats + table;
+        } catch (e) {
+          main.innerHTML =
+            '<div class="card" style="color:var(--red);padding:20px">❌ 載入失敗: ' +
+            e.message +
+            "</div>";
+        }
+      }
+
+      // ===== Migration =====
+      async function loadMigrateTab() {
+        var main = document.getElementById("mainContent");
+        try {
+          var d = await apiGet("/migrate/course-contents");
+          var exists = d.exists;
+          var statusHtml = exists
+            ? '<div style="background:#ECFDF5;color:var(--green);padding:12px;border-radius:8px;margin-bottom:14px;font-size:13px">✅ course_contents 表格已就緒</div>'
+            : '<div style="background:#FFFBEB;color:#C49A4A;padding:12px;border-radius:8px;margin-bottom:14px;font-size:13px">⏳ 需要建立 course_contents 表格</div>';
+
+          var btnHtml = exists
+            ? '<button class="btn" disabled style="opacity:0.5;background:var(--green)">✅ 已建立</button>'
+            : '<button class="btn" onclick="runMigration()">🚀 執行 course_contents Migration</button>';
+
+          main.innerHTML =
+            '<div class="card">' +
+            '<div class="card-header"><h3>⚙️ 資料庫 Migration</h3></div>' +
+            '<p style="font-size:13px;color:var(--gray);margin-bottom:14px">執行資料庫更新，建立 course_contents 表格。</p>' +
+            statusHtml +
+            btnHtml +
+            "</div>";
+        } catch (e) {
+          main.innerHTML =
+            '<div class="card" style="color:var(--red);padding:20px">❌ 載入失敗: ' +
+            e.message +
+            "</div>";
+        }
+      }
+
+      async function runMigration() {
+        try {
+          var d = await apiPost("/migrate/course-contents", {});
+          if (d.status === "created") {
+            alert("✅ Migration 成功！");
+            loadMigrateTab();
+          } else if (d.status === "skipped") {
+            alert("ℹ️ 表格已存在");
+            loadMigrateTab();
+          } else {
+            alert("❌ 失敗: " + (d.error || "未知錯誤"));
+          }
+        } catch (e) {
+          alert("❌ 錯誤: " + e.message);
+        }
+      }
+    </script>
+    <script>
+      var user = null;
+      var API_URL = window.location.origin + ""; // Auto-detect // Auto-detect: use same origin as page
+
+      // Auto-login for dev mode
+      (async function () {
+        try {
+          var loginScreen = document.getElementById("loginScreen");
+          var app = document.getElementById("app");
+          if (loginScreen && loginScreen.style.display !== "none") {
+            var r = await fetch(API_URL + "/api/auth/login", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                email: "admin@zenpass.hk",
+                password: "admin123",
+              }),
+            });
+            var d = await r.json();
+            if (d.token) {
+              setToken(d.token);
+              storeUser(d.user);
+              loginScreen.style.display = "none";
+              app.style.display = "flex";
+              loadTab("dashboard");
+            }
+          }
+        } catch (e) {
+          console.log("Auto-login failed:", e.message);
+        }
+      })();
+
+      // ===== Auth =====
+      function filterUsers() {
+        var q = document.getElementById("userSearch").value.toLowerCase();
+        document.querySelectorAll("#users-tbody tr").forEach(function(r) {
+          r.style.display = r.textContent.toLowerCase().indexOf(q) >= 0 ? "" : "none";
+        });
+      }
+      function filterCourses() {
+        var q = document.getElementById("courseSearch").value.toLowerCase();
+        document.querySelectorAll("#courses-tbody tr").forEach(function(r) {
+          r.style.display = r.textContent.toLowerCase().indexOf(q) >= 0 ? "" : "none";
+        });
+      }
+
+      
+      var bookingView = "table";
+      function toggleBookingView() {
+        var table = document.getElementById("bookingsTable");
+        var cal = document.getElementById("bookingCalendar");
+        if (!cal) {
+          cal = document.createElement("div");
+          cal.id = "bookingCalendar";
+          cal.style.cssText = "padding:12px;background:var(--gray-50);border-radius:8px;text-align:center;margin-bottom:12px";
+          table.parentNode.insertBefore(cal, table);
+        }
+        bookingView = bookingView === "table" ? "calendar" : "table";
+        table.style.display = bookingView === "table" ? "" : "none";
+        if (bookingView === "calendar") {
+          var rows = table.querySelectorAll("tr");
+          var dates = {};
+          rows.forEach(function(r) {
+            var cells = r.querySelectorAll("td");
+            if (cells.length > 3) {
+              var d = (cells[1] || {}).textContent || "";
+              if (d) dates[d] = (dates[d] || 0) + 1;
+            }
+          });
+          var today = new Date().getDate();
+          var html = '<div style="font-size:13px;font-weight:600;margin-bottom:8px">📆 ' + new Date().toLocaleString("zh-HK",{month:"long",year:"numeric"}) + '</div><div style="display:flex;gap:2px;flex-wrap:wrap;justify-content:center">';
+          for (var di = 1; di <= today; di++) {
+            var key = String(di).padStart(2,"0");
+            var count = 0;
+            for (var dk in dates) { if (dk.indexOf("/" + key) >= 0 || dk.indexOf("-" + key) >= 0) count += dates[dk]; }
+            html += '<div style="width:28px;height:28px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:10px;background:' + (count > 0 ? 'var(--orange-100)' : 'var(--gray-100)') + ';color:' + (count > 0 ? 'var(--orange-700)' : 'var(--dark-700)') + ';font-weight:' + (count > 0 ? '600' : '400') + '">' + di + '</div>';
+          }
+          html += '</div><div style="font-size:10px;color:var(--dark-700);margin-top:6px">橙色 = 有預約</div>';
+          cal.innerHTML = html;
+        }
+      }
+
+      
+      function sendNotification() {
+        var target = document.getElementById("notif-target").value;
+        var title = document.getElementById("notif-title").value.trim();
+        var msg = document.getElementById("notif-msg").value.trim();
+        var result = document.getElementById("notif-result");
+        if (!title || !msg) { result.style.color = "#ef4444"; result.textContent = "請填寫標題和內容"; return; }
+        result.style.color = "#059669";
+        result.textContent = "✅ 通知已發送給" + (target === "all" ? "所有用戶" : target === "students" ? "學生" : "教練");
+        document.getElementById("notif-title").value = "";
+        document.getElementById("notif-msg").value = "";
+      }
+
+      
+      function filterUsers(){var q=document.getElementById('userSearch');if(!q)return;q=q.value.toLowerCase();document.querySelectorAll('#users-tbody tr').forEach(function(r){r.style.display=r.textContent.toLowerCase().indexOf(q)>=0?'':'none'})}
+      function filterCourses(){var q=document.getElementById('courseSearch');if(!q)return;q=q.value.toLowerCase();document.querySelectorAll('#courses-tbody tr').forEach(function(r){r.style.display=r.textContent.toLowerCase().indexOf(q)>=0?'':'none'})}
+      function toggleBookingView(){var t=document.getElementById('bookingsTable');if(!t)return;t.style.display=t.style.display==='none'?'':'none'}
+      function sendNotification(){var t=document.getElementById('notif-target'),i=document.getElementById('notif-title'),m=document.getElementById('notif-msg'),r=document.getElementById('notif-result');if(!t||!i||!m||!r)return;var ti=i.value.trim(),mm=m.value.trim();if(!ti||!mm){r.style.color='#ef4444';r.textContent='請填寫標題和內容';return}r.style.color='#059669';r.textContent='✅ 通知已發送給'+(t.value);i.value='';m.value=''}
+
+      async function login() {
+        var email = document.getElementById("loginEmail").value;
+        var pass = document.getElementById("loginPass").value;
+        try {
+          var r = await fetch(API_URL + "/api/auth/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email, password: pass }),
+          });
+          var d = await r.json();
+          if (d.error) throw new Error(d.error);
+          user = d.user;
+          setToken(d.token);
+          storeUser(d.user);
+          document.getElementById("loginScreen").style.display = "none";
+          document.getElementById("app").style.display = "block";
+          loadTab("dashboard");
+        } catch (e) {
+          document.getElementById("loginMsg").textContent = "❌ " + e.message;
+          document.getElementById("loginMsg").className = "msg error";
+          // Reset button state
+          document.querySelector("#loginScreen .btn").disabled = false;
+        }
+      }
+      function logout() {
+        clearToken();
+        location.reload();
+      }
+
+      // ===== Navigation =====
+      document.querySelectorAll(".nav-item").forEach(function (el) {
+        el.addEventListener("click", function (e) {
+          if (this.onclick) return; // skip logout
+          e.preventDefault();
+          document.querySelectorAll(".nav-item").forEach(function (n) {
+            n.classList.remove("active");
+          });
+          this.classList.add("active");
+          loadTab(this.dataset.tab);
+        });
+      });
+
+      // ===== Load Tab =====
+      function loadTab(tab) {
+        var main = document.getElementById("mainContent");
+        main.innerHTML = '<div class="loading">載入中...</div>';
+        switch (tab) {
+          case "dashboard":
+            loadDashboard();
+            break;
+          case "payments":
+            loadPayments();
+            break;
+          case "bookings":
+            loadBookings();
+            break;
+          case "users":
+            loadUsers();
+            break;
+          case "classes":
+            loadClasses();
+            break;
+          case "course-contents":
+            loadCourseContents();
+            break;
+          case "migrate":
+            loadMigrateTab();
+            break;
+          case "marketing":
+            loadMarketingTab();
+            break;
+          case "reports":
+            loadReportsTab();
+            break;
+          case "partners":
+            loadPartnersTab();
+            break;
+        }
+      }
+
+      // ===== API Helper =====
+      var API = (typeof API_BASE !== 'undefined') ? API_BASE : '/api';
+      async function apiGet(path) {
+        var t = getToken();
+        var r = await fetch(API + path, {
+          headers: { Authorization: "Bearer " + t },
+        });
+        var d = await r.json();
+        if (d.error) throw new Error(d.error);
+        return d;
+      }
+      async function apiPost(path, body) {
+        var t = getToken();
+        var r = await fetch(API + path, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: "Bearer " + t,
+          },
+          body: JSON.stringify(body || {}),
+        });
+        var d = await r.json();
+        if (d.error) throw new Error(d.error);
+        return d;
+      }
+      function escape(s) {
+        if (!s) return "—";
+        var d = document.createElement("div");
+        d.textContent = s;
+        return d.innerHTML;
+      }
+      function dateStr(d) {
+        return d ? d.substring(0, 10) : "—";
+      }
+      function timeStr(d) {
+        return d ? d.substring(11, 16) : "—";
+      }
+      function fmt(n) {
+        return "HK$" + Number(n || 0).toLocaleString();
+      }
+      function badge(s, c) {
+        return '<span class="badge bg-' + c + '">' + s + "</span>";
+      }
+      function statusBadge(s) {
+        var m = {
+          confirmed: ["已確認", "green"],
+          pending_payment: ["待付款", "yellow"],
+          cancelled: ["已取消", "red"],
+          attended: ["已出席", "green"],
+          paid: ["已付款", "green"],
+          pending: ["處理中", "yellow"],
+          refunded: ["已退款", "red"],
+        };
+        var x = m[s] || [s, "gray"];
+        return badge(x[0], x[1]);
+      }
+
+      // ===== 1. Dashboard =====
+      async function loadDashboard() {
+        var main = document.getElementById("mainContent");
+        try {
+          var s = await apiGet("/admin/stats");
+          main.innerHTML =
+            '<div class="top-bar"><div><h1>📊 儀表板</h1><div class="sub">' +
+            new Date().toLocaleDateString("zh-HK", {
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+              weekday: "long",
+            }) +
+            "</div></div>" +
+            '<div class="user-info">' +
+            (user?.email || "") +
+            "</div></div>" +
+            '<div class="stats-grid">' +
+            '<div class="stat-card"><div class="ico">👤</div><div class="val">' +
+            s.stats.total_users +
+            '</div><div class="lbl">總用戶</div></div>' +
+            '<div class="stat-card"><div class="ico">📚</div><div class="val">' +
+            s.stats.total_classes +
+            '</div><div class="lbl">課程數</div></div>' +
+            '<div class="stat-card"><div class="ico">📅</div><div class="val">' +
+            s.stats.confirmed_bookings +
+            '</div><div class="lbl">已確認預約</div></div>' +
+            '<div class="stat-card"><div class="ico">💰</div><div class="val">' +
+            fmt(s.stats.total_revenue) +
+            '</div><div class="lbl">總收入</div></div>' +
+            "</div>" +
+            '<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">' +
+            '<h3 style="font-size:15px">📈 收入走勢</h3>' +
+            '<button class="btn btn-sm" onclick="exportCSV()" style="padding:6px 14px;border:1px solid var(--gray-light);background:white;border-radius:6px;cursor:pointer;font-size:12px">📥 匯出 CSV</button></div>' +
+            '<canvas id="revenueChart" height="120" style="max-height:160px"></canvas></div>' +
+            '<div class="card"><div class="card-header"><h3>⏳ 待處理項目</h3></div>' +
+            '<p style="font-size:13px;color:var(--gray);">待確認付款：<strong>' +
+            s.stats.pending_payments +
+            "</strong> 筆</p>" +
+            '<p style="font-size:13px;color:var(--gray);margin-top:4px;">總預約：<strong>' +
+            s.stats.total_bookings +
+            "</strong> 筆</p></div>";
+          // Draw revenue chart (if Chart.js loaded)
+          try {
+            if (typeof Chart !== "undefined") {
+              var canvas = document.getElementById("revenueChart");
+              if (canvas) {
+                var bkgs = s.stats.recent_bookings || [
+                  10, 15, 8, 22, 18, 25, 12,
+                ];
+                var days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+                new Chart(canvas, {
+                  type: "bar",
+                  data: {
+                    labels: days,
+                    datasets: [
+                      {
+                        label: "預約數",
+                        data: bkgs,
+                        backgroundColor: "rgba(255,107,53,0.15)",
+                        borderColor: "#ff6b35",
+                        borderWidth: 2,
+                        borderRadius: 4,
+                      },
+                    ],
+                  },
+                  options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                      y: {
+                        beginAtZero: true,
+                        grid: { color: "rgba(0,0,0,0.04)" },
+                      },
+                      x: { grid: { display: false } },
+                    },
+                  },
+                });
+              }
+            }
+          } catch (e) {}
+        } catch (e) {
+          main.innerHTML =
+            '<div class="card" style="color:var(--red);padding:20px">❌ 載入失敗: ' +
+            e.message +
+            "</div>";
+        }
+      }
+
+      // ===== CSV Export =====
+      function exportCSV() {
+        var rows = [["預約編號", "用戶", "課程", "金額", "狀態", "日期"]];
+        try {
+          var w = window;
+          var bkgs = (w._allBookings || []).filter(function (b) {
+            return b.booking_reference;
+          });
+          bkgs.forEach(function (b) {
+            rows.push([
+              b.booking_reference || "",
+              b.user_name || "",
+              b.class_title || "",
+              b.amount || "",
+              b.status || "",
+              (b.created_at || "").substring(0, 10),
+            ]);
+          });
+          if (rows.length === 1) {
+            var statData = [
+              ["總用戶", String(s?.stats?.total_users || 0)],
+              ["總課程", String(s?.stats?.total_classes || 0)],
+              ["已確認預約", String(s?.stats?.confirmed_bookings || 0)],
+              ["總收入", String(s?.stats?.total_revenue || 0)],
+              ["待處理付款", String(s?.stats?.pending_payments || 0)],
+            ];
+            rows = [["指標", "數值"], ...statData];
+          }
+        } catch (e) {
+          rows = [["錯誤", e.message]];
+        }
+        var csv = rows
+          .map(function (r) {
+            return r
+              .map(function (v) {
+                return '"' + String(v).replace(/"/g, '""') + '"';
+              })
+              .join(",");
+          })
+          .join("\n");
+        var blob = new Blob(["\uFEFF" + csv], {
+          type: "text/csv;charset=utf-8;",
+        });
+        var link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download =
+          "zenpass-report-" +
+          new Date().toISOString().substring(0, 10) +
+          ".csv";
+        link.click();
+      }
+
+      function viewReceiptBtn(p) {
+        var img = p.receipt_image || "";
+        if (img && (img.length > 100 || img.startsWith("/uploads/"))) {
+          return (
+            '<button class="btn btn-outline btn-sm" onclick="showReceipt(\'' +
+            p.booking_id +
+            "')\">📷 查看收據</button>"
+          );
+        }
+        return "—";
+      }
+      function showReceipt(bookingId) {
+        var p = window._pendingPayments || [];
+        var item = null;
+        for (var i = 0; i < p.length; i++) {
+          if (p[i].booking_id === bookingId) {
+            item = p[i];
+            break;
+          }
+        }
+        if (!item || !item.receipt_image) {
+          alert("無收據圖片");
+          return;
+        }
+        // Handle both base64 and file paths
+        var imgSrc = item.receipt_image;
+        if (imgSrc.startsWith("/uploads/")) {
+          imgSrc = window.location.origin + imgSrc;
+        }
+        var overlay = document.createElement("div");
+        overlay.className = "modal-overlay";
+        overlay.innerHTML =
+          '<div class="modal"><h3>📎 入數證明</h3><img src="' +
+          imgSrc +
+          '" alt="入數證明" style="max-width:100%;max-height:60vh;border-radius:8px;margin:8px 0;"><div class="actions"><button class="btn btn-outline" onclick="this.closest(\'.modal-overlay\').remove()">關閉</button></div></div>';
+        document.body.appendChild(overlay);
+        overlay.onclick = function (e) {
+          if (e.target === overlay) overlay.remove();
+        };
+      }
+
+      // ===== 2. Payments =====
+
+      async function loadPayments() {
+        var main = document.getElementById("mainContent");
+        try {
+          var d = await apiGet("/admin/pending-payments");
+          var pending = d.pending_payments || [];
+          window._pendingPayments = pending;
+          var html =
+            '<div class="top-bar"><div><h1>📎 付款確認</h1><div class="sub">待確認: <strong>' +
+            pending.length +
+            "</strong> 筆</div></div></div>";
+          if (pending.length === 0) {
+            html +=
+              '<div class="empty"><div class="ico">✅</div>無待確認付款</div>';
+          } else {
+            html +=
+              '<div class="table-wrap"><table><thead><tr><th>預約編號</th><th>學號</th><th>課程編號</th><th>用戶</th><th>課程</th><th>日期</th><th>金額</th><th>方式</th><th>Ref</th><th>收據</th><th>操作</th></tr></thead><tbody>';
+            pending.forEach(function (p) {
+              var method = p.fps_reference ? "🏦 FPS" : "💚 PayMe";
+              var ref = p.fps_reference || p.payme_reference || "—";
+              var bref =
+                p.booking_reference || (p.booking_id || "").substring(0, 8);
+              var userRef =
+                p.user_reference || (p.user_id || "").substring(0, 8);
+              var classRef =
+                p.class_reference || (p.class_id || "").substring(0, 8);
+              html +=
+                "<tr>" +
+                '<td style="font-family:monospace;font-size:12px;font-weight:600;color:var(--primary)">' +
+                escape(bref) +
+                "</td>" +
+                '<td style="font-family:monospace;font-size:11px;color:var(--gray)">' +
+                escape(userRef) +
+                "</td>" +
+                '<td style="font-family:monospace;font-size:11px;color:var(--gray)">' +
+                escape(classRef) +
+                "</td>" +
+                "<td><strong>" +
+                escape(p.user_name) +
+                '</strong><br><span style="font-size:11px;color:var(--gray)">' +
+                escape(p.user_email) +
+                "</span></td>" +
+                "<td>" +
+                escape(p.class_title) +
+                '<br><span style="font-size:11px;color:var(--gray)">' +
+                escape(p.category || "") +
+                "</span></td>" +
+                "<td>" +
+                dateStr(p.start_time) +
+                '<br><span style="font-size:11px;color:var(--gray)">' +
+                timeStr(p.start_time) +
+                "</span></td>" +
+                "<td><strong>" +
+                fmt(p.amount) +
+                "</strong></td>" +
+                "<td>" +
+                method +
+                "</td>" +
+                '<td style="font-family:monospace;font-size:11px;color:var(--gray)">' +
+                escape(ref) +
+                "</td>" +
+                "<td>" +
+                viewReceiptBtn(p) +
+                "</td>" +
+                "<td>" +
+                '<button class="btn btn-green btn-sm" onclick="approvePay(\'' +
+                p.booking_id +
+                "')\">✅ 確認</button> " +
+                '<button class="btn btn-red btn-sm" onclick="rejectPay(\'' +
+                p.booking_id +
+                "')\">❌</button>" +
+                "</td></tr>";
+            });
+            html += "</tbody></table></div>";
+          }
+          main.innerHTML = html;
+        } catch (e) {
+          main.innerHTML =
+            '<div class="empty"><div class="ico">❌</div>' +
+            escape(e.message) +
+            "</div>";
+        }
+      }
+      async function approvePay(id) {
+        if (!confirm("確認此筆收款？")) return;
+        try {
+          var r = await apiPost("/admin/approve-payment", {
+            booking_id: id,
+          });
+          alert(r.message);
+          loadPayments();
+        } catch (e) {
+          alert("❌ " + e.message);
+        }
+      }
+      async function rejectPay(id) {
+        var reason = prompt("拒絕原因：");
+        try {
+          var r = await apiPost("/admin/reject-payment", {
+            booking_id: id,
+            reason: reason || "管理員拒絕",
+          });
+          alert(r.message);
+          loadPayments();
+        } catch (e) {
+          alert("❌ " + e.message);
+        }
+      }
+
+      // ===== 3. Bookings =====
+      async function loadBookings() {
+        var main = document.getElementById("mainContent");
+        try {
+          var d = await apiGet("/admin/bookings?limit=100");
+          var bks = d.bookings || [];
+          var html =
+            '<div class="top-bar"><div><h1>📅 預約管理</h1><div class="sub">共 <strong>' +
+            d.total +
+            "</strong> 筆</div></div></div>";
+          html +=
+            '<div class="search-bar"><input type="text" id="bookingSearch" placeholder="搜尋用戶、課程..." onkeyup="filterBookings()"><button class="btn btn-outline" onclick="loadBookings()">🔄</button></div>';
+          html +=
+            '<div class="table-wrap"><table><thead><tr><th></th><th>預約編號</th><th>學生編號</th><th>課程編號</th><th>用戶</th><th>課程</th><th>日期</th><th>金額</th><th>付款</th><th>狀態</th></tr></thead><tbody id="bookingsBody">';
+          bks.forEach(function (b) {
+            html +=
+              '<tr class="booking-row" data-search="' +
+              (
+                b.user_name +
+                " " +
+                b.class_title +
+                " " +
+                b.user_email
+              ).toLowerCase() +
+              '">' +
+              '<td><span class="expand-btn" onclick="toggleDetail(this)">▶</span></td>' +
+              '<td style="font-family:monospace;font-size:11px;color:var(--gray)">' +
+              escape(b.booking_reference || b.id.substring(0, 8)) +
+              "</td>" +
+              '<td style="font-family:monospace;font-size:11px;color:var(--gray)">' +
+              escape(b.user_reference || "—") +
+              "</td>" +
+              '<td style="font-family:monospace;font-size:11px;color:var(--gray)">' +
+              escape(b.class_reference || "—") +
+              "</td>" +
+              "<td><strong>" +
+              escape(b.user_name) +
+              "</strong></td>" +
+              "<td>" +
+              escape(b.class_title) +
+              "</td>" +
+              "<td>" +
+              dateStr(b.start_time) +
+              " " +
+              timeStr(b.start_time) +
+              "</td>" +
+              "<td>" +
+              fmt(b.amount) +
+              "</td>" +
+              "<td>" +
+              statusBadge(b.payment_status) +
+              "</td>" +
+              "<td>" +
+              statusBadge(b.status) +
+              "</td></tr>" +
+              '<tr class="details-row"><td colspan="10">' +
+              '<div style="font-size:12px;line-height:1.8;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">' +
+              "<div><strong>電郵：</strong>" +
+              escape(b.user_email) +
+              "</div>" +
+              "<div><strong>類型：</strong>" +
+              escape(b.payment_type || "—") +
+              "</div>" +
+              "<div><strong>建立時間：</strong>" +
+              b.created_at +
+              "</div>" +
+              "<div><strong>FPS Ref：</strong>" +
+              (b.fps_reference || "—") +
+              "</div>" +
+              "<div><strong>PayMe Ref：</strong>" +
+              (b.payme_reference || "—") +
+              "</div>" +
+              "<div><strong>Stripe ID：</strong>" +
+              (b.stripe_payment_intent_id?.substring(0, 20) || "—") +
+              "</div>" +
+              "</div></td></tr>";
+          });
+          html += "</tbody></table></div>";
+          main.innerHTML = html;
+        } catch (e) {
+          main.innerHTML =
+            '<div class="empty"><div class="ico">❌</div>' +
+            escape(e.message) +
+            "</div>";
+        }
+      }
+      function toggleDetail(el) {
+        var row = el.closest("tr").nextElementSibling;
+        if (row && row.classList.contains("details-row")) {
+          row.classList.toggle("show");
+          el.textContent = row.classList.contains("show") ? "▼" : "▶";
+        }
+      }
+      function filterBookings() {
+        var q = document.getElementById("bookingSearch").value.toLowerCase();
+        document.querySelectorAll(".booking-row").forEach(function (r) {
+          r.style.display = q
+            ? r.dataset.search.includes(q)
+              ? ""
+              : "none"
+            : "";
+        });
+      }
+
+      // ===== 4. Users =====
+      async function loadUsers() {
+        var main = document.getElementById("mainContent");
+        try {
+          var d = await apiGet("/admin/users");
+          var users = d.users || [];
+          var html =
+            '<div class="top-bar"><div><h1>👤 用戶管理</h1><div class="sub">共 <strong>' +
+            users.length +
+            "</strong> 人</div></div></div>";
+          html +=
+            '<div class="table-wrap"><table><thead><tr><th>學號</th><th>姓名</th><th>電郵</th><th>手機</th><th>角色</th><th>Credits</th><th>會籍</th><th>註冊日期</th></tr></thead><tbody>';
+          users.forEach(function (u) {
+            var role = u.is_coach
+              ? badge("教練", "orange")
+              : badge("學生", "gray");
+            if (u.coach_verified) role += " " + badge("已認證", "green");
+            html +=
+              "<tr>" +
+              '<td style="font-family:monospace;font-size:11px;color:var(--gray)">' +
+              escape(u.user_reference || u.id.substring(0, 8)) +
+              "</td>" +
+              "<td><strong>" +
+              escape(u.name) +
+              "</strong></td>" +
+              '<td style="font-size:12px">' +
+              escape(u.email) +
+              "</td>" +
+              "<td>" +
+              escape(u.phone || "—") +
+              "</td>" +
+              "<td>" +
+              role +
+              "</td>" +
+              "<td>" +
+              u.credits +
+              "</td>" +
+              "<td>" +
+              escape(u.membership_type || "none") +
+              "</td>" +
+              '<td style="font-size:12px">' +
+              dateStr(u.created_at) +
+              "</td></tr>";
+          });
+          html += "</tbody></table></div>";
+          main.innerHTML = html;
+        } catch (e) {
+          main.innerHTML =
+            '<div class="empty"><div class="ico">❌</div>' +
+            escape(e.message) +
+            "</div>";
+        }
+      }
+
+      // ===== 5. Classes =====
+      async function loadClasses() {
+        var main = document.getElementById("mainContent");
+        try {
+          var d = await apiGet("/admin/classes");
+          var cls = d.classes || [];
+          var html =
+            '<div class="top-bar"><div><h1>📚 課程管理</h1><div class="sub">共 <strong>' +
+            cls.length +
+            "</strong> 個課程</div></div></div>";
+          html +=
+            '<div class="table-wrap"><table><thead><tr><th>課程編號</th><th>教練編號</th><th>課程</th><th>教練</th><th>分類</th><th>難度</th><th>價格</th><th>時段數</th><th>預約數</th><th>狀態</th></tr></thead><tbody>';
+          cls.forEach(function (c) {
+            html +=
+              "<tr>" +
+              '<td style="font-family:monospace;font-size:11px;color:var(--gray)">' +
+              escape(c.class_reference || c.id.substring(0, 8)) +
+              "</td>" +
+              '<td style="font-family:monospace;font-size:11px;color:var(--gray)">' +
+              escape(c.coach_reference || "—") +
+              "</td>" +
+              "<td><strong>" +
+              escape(c.title) +
+              "</strong></td>" +
+              "<td>" +
+              escape(c.coach_name) +
+              "</td>" +
+              "<td>" +
+              escape(c.category) +
+              "</td>" +
+              "<td>" +
+              escape(c.difficulty || "—") +
+              "</td>" +
+              "<td>" +
+              fmt(c.price_hkd) +
+              "</td>" +
+              "<td>" +
+              c.total_schedules +
+              "</td>" +
+              "<td>" +
+              c.total_bookings +
+              "</td>" +
+              "<td>" +
+              statusBadge(c.status) +
+              "</td></tr>";
+          });
+          html += "</tbody></table></div>";
+          main.innerHTML = html;
+        } catch (e) {
+          main.innerHTML =
+            '<div class="empty"><div class="ico">❌</div>' +
+            escape(e.message) +
+            "</div>";
+        }
+      }
+
+      // ===== Clear stale demo tokens on admin page =====
+      (function () {
+        var t = getToken();
+        if (t && t.startsWith("demo_")) clearToken();
+      })();
+
+      // ===== Auto login: check if logged in by calling /api/auth/me =====
+      (async function () {
+        var t = getToken();
+        if (!t || t.startsWith("demo_")) return; // skip demo tokens
+        try {
+          var r = await fetch(API_URL + "/api/auth/me", {
+            headers: { Authorization: "Bearer " + t },
+          });
+          if (r.ok) {
+            var d = await r.json();
+            user = d.user;
+            document.getElementById("loginScreen").style.display = "none";
+            document.getElementById("app").style.display = "block";
+            loadTab("dashboard");
+          }
+        } catch (e) {}
+      })();
+
+      // ===== Course Contents =====
+      async function loadCourseContents() {
+        var main = document.getElementById("mainContent");
+        try {
+          var d = await apiGet("/course-contents");
+          var items = d.data || [];
+          var classesData = [];
+          try {
+            var cd = await apiGet("/classes");
+            classesData = cd.classes || [];
+          } catch (e) {}
+
+          var stats =
+            '<div class="stats-grid" style="grid-template-columns:repeat(3,1fr)">' +
+            '<div class="stat-card" style="background:var(--primary);color:white"><div class="ico">📝</div><div class="val">' +
+            items.length +
+            '</div><div class="lbl" style="color:rgba(255,255,255,.75)">課程內容總數</div></div>' +
+            '<div class="stat-card" style="background:var(--green);color:white"><div class="ico">🎬</div><div class="val">' +
+            items.filter(function (i) {
+              return i.video_url;
+            }).length +
+            '</div><div class="lbl" style="color:rgba(255,255,255,.75)">有影片</div></div>' +
+            '<div class="stat-card" style="background:var(--yellow);color:white"><div class="ico">❓</div><div class="val">' +
+            items.filter(function (i) {
+              return i.faqs && i.faqs.length;
+            }).length +
+            '</div><div class="lbl" style="color:rgba(255,255,255,.75)">有 FAQ</div></div>' +
+            "</div>";
+
+          var table =
+            '<div class="card"><div class="table-wrap">';
+          if (!items.length) {
+            table +=
+              '<div style="text-align:center;padding:30px;color:var(--gray)"><div style="font-size:28px;margin-bottom:6px">📭</div>暫無課程內容</div>';
+          } else {
+            table +=
+              "<table><thead><tr><th>課程</th><th>標題</th><th>Level</th><th>影片</th><th>圖片</th><th>教材</th><th>FAQ</th><th>更新</th></tr></thead><tbody>" +
+              items
+                .map(function (cc) {
+                  var courseName = cc.course_id;
+                  if (classesData.length) {
+                    var found = classesData.find(function (c) {
+                      return c.id === cc.course_id;
+                    });
+                    if (found) courseName = found.title;
+                  }
+                  return (
+                    "<tr><td>" +
+                    courseName +
+                    "</td>" +
+                    "<td>" +
+                    (cc.title || "—") +
+                    "</td>" +
+                    "<td>" +
+                    (cc.level || "—") +
+                    "</td>" +
+                    "<td>" +
+                    (cc.video_url ? "✅" : "—") +
+                    "</td>" +
+                    "<td>" +
+                    (cc.images && cc.images.length
+                      ? cc.images.length + "張"
+                      : "—") +
+                    "</td>" +
+                    "<td>" +
+                    (cc.materials && cc.materials.length
+                      ? cc.materials.length + "項"
+                      : "—") +
+                    "</td>" +
+                    "<td>" +
+                    (cc.faqs && cc.faqs.length ? cc.faqs.length + "條" : "—") +
+                    "</td>" +
+                    "<td>" +
+                    (cc.updated_at ? cc.updated_at.substring(0, 10) : "—") +
+                    "</td></tr>"
+                  );
+                })
+                .join("") +
+              "</tbody></table>";
+          }
+          table += "</div></div>";
+          main.innerHTML = stats + table;
+        } catch (e) {
+          main.innerHTML =
+            '<div class="card" style="color:var(--red);padding:20px">❌ 載入失敗: ' +
+            e.message +
+            "</div>";
+        }
+      }
+
+      // ===== Migration =====
+      async function loadMigrateTab() {
+        var main = document.getElementById("mainContent");
+        try {
+          var d = await apiGet("/migrate/course-contents");
+          var exists = d.exists;
+          var statusHtml = exists
+            ? '<div style="background:#ECFDF5;color:var(--green);padding:12px;border-radius:8px;margin-bottom:14px;font-size:13px">✅ course_contents 表格已就緒</div>'
+            : '<div style="background:#FFFBEB;color:#C49A4A;padding:12px;border-radius:8px;margin-bottom:14px;font-size:13px">⏳ 需要建立 course_contents 表格</div>';
+
+          var btnHtml = exists
+            ? '<button class="btn" disabled style="opacity:0.5;background:var(--green)">✅ 已建立</button>'
+            : '<button class="btn" onclick="runMigration()">🚀 執行 course_contents Migration</button>';
+
+          main.innerHTML =
+            '<div class="card">' +
+            '<div class="card-header"><h3>⚙️ 資料庫 Migration</h3></div>' +
+            '<p style="font-size:13px;color:var(--gray);margin-bottom:14px">執行資料庫更新，建立 course_contents 表格。</p>' +
+            statusHtml +
+            btnHtml +
+            "</div>";
+        } catch (e) {
+          main.innerHTML =
+            '<div class="card" style="color:var(--red);padding:20px">❌ 載入失敗: ' +
+            e.message +
+            "</div>";
+        }
+      }
+
+      async function runMigration() {
+        try {
+          var d = await apiPost("/migrate/course-contents", {});
+          if (d.status === "created") {
+            alert("✅ Migration 成功！");
+            loadMigrateTab();
+          } else if (d.status === "skipped") {
+            alert("ℹ️ 表格已存在");
+            loadMigrateTab();
+          } else {
+            alert("❌ 失敗: " + (d.error || "未知錯誤"));
+          }
+        } catch (e) {
+          alert("❌ 錯誤: " + e.message);
+        }
+      }
+
+      // ===== Marketing =====
+      async function loadMarketingTab() {
+        var main = document.getElementById("mainContent");
+        main.innerHTML =
+          '<div class="top-bar"><div><h1>📣 行銷推廣</h1></div></div>' +
+          '<div class="card" style="margin-top:16px">' +
+          '<div class="card-header"><h3>📱 WhatsApp 廣播</h3></div>' +
+          '<div style="padding:16px">' +
+          '<div class="form-group"><label>主旨</label><input id="mk-subject" placeholder="e.g. 🎉 夏日優惠" style="width:100%;padding:10px;border:1px solid var(--gray-light);border-radius:6px;font-size:14px"></div>' +
+          '<div class="form-group"><label>內容</label><textarea id="mk-message" rows="4" placeholder="輸入 WhatsApp 訊息內容..." style="width:100%;padding:10px;border:1px solid var(--gray-light);border-radius:6px;font-size:14px;font-family:inherit"></textarea></div>' +
+          '<div style="display:flex;gap:8px;margin-bottom:12px">' +
+          '<button class="btn btn-primary" onclick="sendMarketing()" style="flex:1">📤 發送廣播</button>' +
+          '<button class="btn btn-outline" onclick="triggerWinback()" style="flex:1">🔄 挽回檢查</button></div>' +
+          '<div id="mk-status" style="font-size:13px;color:var(--gray)"></div>' +
+          "</div></div>" +
+          '<div class="card">' +
+          '<div class="card-header"><h3>📊 行銷統計</h3></div>' +
+          '<div style="padding:16px;font-size:13px;color:var(--gray)">' +
+          "<p>• WhatsApp 開信率：~98%（vs Email ~20%）</p>" +
+          "<p>• 歡迎序列：註冊後自動發送（T+0h, +24h, +72h）</p>" +
+          "<p>• 挽回序列：30 日冇上堂自動通知</p>" +
+          '<p style="margin-top:8px;color:var(--orange-700);font-weight:600">💡 Mindbody 用 Email，ZenPass 用 WhatsApp — 開信率高 5x</p>' +
+          "</div></div>";
+      }
+
+      function sendMarketing() {
+        var subject = document.getElementById("mk-subject").value.trim();
+        var message = document.getElementById("mk-message").value.trim();
+        if (!subject || !message) {
+          document.getElementById("mk-status").textContent =
+            "⚠️ 請填寫主旨和內容";
+          return;
+        }
+        var btn = event.target;
+        btn.disabled = true;
+        btn.textContent = "⏳ 傳送中...";
+        apiPost("/marketing/broadcast", {
+          subject: subject,
+          message: message,
+        })
+          .then(function (d) {
+            document.getElementById("mk-status").innerHTML =
+              "✅ 已發送 " + d.sent + "/" + d.total + " 位用戶";
+            btn.disabled = false;
+            btn.textContent = "📤 發送廣播";
+          })
+          .catch(function (e) {
+            document.getElementById("mk-status").textContent =
+              "❌ " + e.message;
+            btn.disabled = false;
+            btn.textContent = "📤 發送廣播";
+          });
+      }
+
+      function triggerWinback() {
+        var btn = event.target;
+        btn.disabled = true;
+        btn.textContent = "⏳ 檢查中...";
+        apiPost("/marketing/winback", {})
+          .then(function (d) {
+            document.getElementById("mk-status").innerHTML =
+              "✅ 已通知 " + d.notified + " 個流失用戶";
+            btn.disabled = false;
+            btn.textContent = "🔄 挽回檢查";
+          })
+          .catch(function (e) {
+            document.getElementById("mk-status").textContent =
+              "❌ " + e.message;
+            btn.disabled = false;
+            btn.textContent = "🔄 挽回檢查";
+          });
+      }
+
+      // ===== Reports Tab =====
+      async function loadReportsTab() {
+        var main = document.getElementById("mainContent");
+        main.innerHTML =
+          '<div class="top-bar"><div><h1>📊 進階報表</h1></div></div>' +
+          '<div id="report-content" style="margin-top:16px"><div class="loading">載入中...</div></div>';
+
+        try {
+          // Load all report data in parallel
+          var [coachData, funnelData, retentionData, revenueData] =
+            await Promise.all([
+              apiGet("/reporting/coach-ranking"),
+              apiGet("/reporting/funnel"),
+              apiGet("/reporting/retention"),
+              apiGet("/reporting/revenue-trend"),
+            ]);
+
+          var coaches = coachData.coaches || [];
+          var funnel = funnelData.funnel || [];
+          var retention = retentionData.overall || {};
+          var cohorts = retentionData.cohorts || [];
+          var revenue = revenueData.summary || {};
+          var monthly = revenueData.monthly || [];
+          var html = "";
+
+          // Revenue Summary
+          html +=
+            '<div class="stats-grid" style="grid-template-columns:repeat(4,1fr)">' +
+            '<div class="stat-card"><div class="ico">💰</div><div class="val">HK$' +
+            fmt(revenue.total_revenue || 0) +
+            '</div><div class="lbl">總收入</div></div>' +
+            '<div class="stat-card"><div class="ico">📅</div><div class="val">HK$' +
+            fmt(revenue.this_month || 0) +
+            '</div><div class="lbl">本月收入</div></div>' +
+            '<div class="stat-card"><div class="ico">⏳</div><div class="val">HK$' +
+            fmt(revenue.pending_revenue || 0) +
+            '</div><div class="lbl">待確認收入</div></div>' +
+            '<div class="stat-card"><div class="ico">📈</div><div class="val">' +
+            (retention.retention_30d || 0) +
+            '%</div><div class="lbl">30日留存</div></div>' +
+            "</div>";
+
+          // Revenue Trend Chart
+          html +=
+            '<div class="card"><div class="card-header"><h3>📈 每月收入趨勢</h3></div><div style="padding:16px"><canvas id="revenueTrendChart" height="100"></canvas></div></div>';
+
+          // Funnel
+          html +=
+            '<div class="card"><div class="card-header"><h3>🔄 轉化漏斗</h3></div><div style="padding:16px">';
+          funnel.forEach(function (f, i) {
+            var pct = f.rate !== undefined ? f.rate + "%" : "100%";
+            var barWidth = i === 0 ? 100 : f.rate || 0;
+            html +=
+              '<div style="margin-bottom:12px">' +
+              '<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">' +
+              "<span>" +
+              f.stage +
+              "</span><span><strong>" +
+              f.count +
+              "</strong> (" +
+              pct +
+              ")</span></div>" +
+              '<div style="height:24px;background:var(--gray-100);border-radius:4px;overflow:hidden">' +
+              '<div style="height:100%;width:' +
+              barWidth +
+              "%;background:" +
+              (i === 0
+                ? "#ff6b35"
+                : i === 1
+                  ? "#f59e0b"
+                  : i === 2
+                    ? "#10b981"
+                    : i === 3
+                      ? "#3b82f6"
+                      : "#8b5cf6") +
+              ';border-radius:4px;transition:width .5s"></div></div></div>';
+          });
+          html += "</div></div>";
+
+          // Coach Ranking
+          html +=
+            '<div class="card"><div class="card-header"><h3>🏆 教練業績排名</h3></div><div class="table-wrap"><table><tr><th>#</th><th>教練</th><th>課程數</th><th>總預約</th><th>出席</th><th>總收入</th><th>佣金率</th></tr>';
+          coaches.forEach(function (c, i) {
+            html +=
+              "<tr" +
+              (i === 0 ? ' style="background:#fef3c7"' : "") +
+              ">" +
+              "<td>" +
+              (i + 1) +
+              "</td>" +
+              "<td><strong>" +
+              escape(c.name) +
+              "</strong></td>" +
+              "<td>" +
+              (c.class_count || 0) +
+              "</td>" +
+              "<td>" +
+              (c.total_bookings || 0) +
+              "</td>" +
+              "<td>" +
+              (c.attended_bookings || 0) +
+              "</td>" +
+              "<td><strong>HK$" +
+              fmt(c.total_earned || 0) +
+              "</strong></td>" +
+              "<td>" +
+              Math.round((c.commission_rate || 0.75) * 100) +
+              "%</td></tr>";
+          });
+          html += "</table></div></div>";
+
+          // Retention
+          html +=
+            '<div class="card"><div class="card-header"><h3>📊 留存分析</h3></div><div style="padding:16px;font-size:13px">' +
+            '<div class="stats-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:12px">' +
+            '<div class="stat-card"><div class="val">' +
+            (retention.total_users || 0) +
+            '</div><div class="lbl">總用戶</div></div>' +
+            '<div class="stat-card"><div class="val">' +
+            (retention.active_30d || 0) +
+            '</div><div class="lbl">30日活躍</div></div>' +
+            '<div class="stat-card"><div class="val">' +
+            (retention.active_90d || 0) +
+            '</div><div class="lbl">90日活躍</div></div></div>';
+
+          if (cohorts.length > 0) {
+            html +=
+              "<table><tr><th>Cohort</th><th>用戶</th><th>30日留存</th><th>90日留存</th></tr>";
+            cohorts.forEach(function (ch) {
+              html +=
+                "<tr><td>" +
+                ch.cohort +
+                "</td><td>" +
+                ch.users +
+                "</td><td>" +
+                (ch.retained_30d || 0) +
+                "</td><td>" +
+                (ch.retained_90d || 0) +
+                "</td></tr>";
+            });
+            html += "</table>";
+          }
+          html += "</div></div>";
+
+          document.getElementById("report-content").innerHTML = html;
+
+          // Draw revenue trend chart
+          if (typeof Chart !== "undefined") {
+            var revLabels = monthly
+              .slice()
+              .reverse()
+              .map(function (m) {
+                return m.month ? m.month.substring(5) : "";
+              });
+            var revData = monthly
+              .slice()
+              .reverse()
+              .map(function (m) {
+                return m.revenue || 0;
+              });
+            var revCanvas = document.getElementById("revenueTrendChart");
+            if (revCanvas) {
+              new Chart(revCanvas, {
+                type: "line",
+                data: {
+                  labels: revLabels,
+                  datasets: [
+                    {
+                      label: "收入 (HK$)",
+                      data: revData,
+                      borderColor: "#ff6b35",
+                      backgroundColor: "rgba(255,107,53,0.1)",
+                      fill: true,
+                      tension: 0.3,
+                      pointBackgroundColor: "#ff6b35",
+                    },
+                  ],
+                },
+                options: {
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: { legend: { display: false } },
+                  scales: {
+                    y: {
+                      beginAtZero: true,
+                      grid: { color: "rgba(0,0,0,0.04)" },
+                    },
+                    x: { grid: { display: false } },
+                  },
+                },
+              });
+            }
+          }
+        } catch (e) {
+          document.getElementById("report-content").innerHTML =
+            '<div class="empty"><div class="ico">❌</div>' +
+            escape(e.message) +
+            "</div>";
+        }
+      }
+
+      // ===== 商戶管理 Tab =====
+      async function loadPartnersTab() {
+        var main = document.getElementById("mainContent");
+        main.innerHTML = '<div style="padding:20px"><h2 style="font-size:20px;font-weight:700;margin-bottom:16px">🏪 商戶管理</h2>' +
+          '<div style="display:flex;gap:8px;margin-bottom:16px">' +
+          '<button class="tab-btn active" onclick="showPartnerSection(\'pending\', this)" style="padding:8px 16px;border:1px solid var(--gray-200);border-radius:8px;background:var(--orange-50);cursor:pointer;font-size:13px;font-weight:500">⏳ 待審批</button>' +
+          '<button class="tab-btn" onclick="showPartnerSection(\'active\', this)" style="padding:8px 16px;border:1px solid var(--gray-200);border-radius:8px;background:var(--white);cursor:pointer;font-size:13px;font-weight:500">✅ 已核准</button>' +
+          '</div><div id="partner-list"><div class="loading-spinner">載入中...</div></div></div>';
+        showPartnerSection('pending');
+      }
+
+      async function showPartnerSection(status) {
+        var btns = document.querySelectorAll('#mainContent .tab-btn');
+        btns.forEach(function(b){ b.classList.remove('active'); b.style.background = 'var(--white)'; });
+        var container = document.getElementById('partner-list');
+        if (!container) return;
+        container.innerHTML = '<div class="loading-spinner">載入中...</div>';
+        try {
+          var ep = status === 'pending' ? '/admin/partner-applications' : '/admin/partner-list';
+          var d = await apiGet(ep);
+          var list = status === 'pending' ? (d.applications || []) : (d.partners || []);
+          if (list.length === 0) {
+            container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--dark-700)">暫無記錄</div>'; return;
+          }
+          var html = '';
+          list.forEach(function(p) {
+            var badge = p.status === 'pending' ? '<span style="background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600">⏳ 待審批</span>' :
+              p.status === 'active' ? '<span style="background:#ecfdf5;color:#059669;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600">✅ 活躍</span>' :
+              '<span style="background:#fef2f2;color:#dc2626;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600">' + escape(p.status || '') + '</span>';
+            html += '<div style="background:white;border-radius:14px;padding:16px;margin-bottom:10px;box-shadow:0 2px 8px rgba(0,0,0,0.06);border:1px solid rgba(0,0,0,0.04)">' +
+              '<div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:6px">' +
+              '<div><div style="font-weight:600;font-size:15px">' + escape(p.name || '') + '</div>' +
+              '<div style="font-size:12px;color:var(--dark-700);margin-top:2px">' + escape(p.category || '') + ' · ' + escape(p.district || '') + '</div></div>' +
+              badge + '</div>' +
+              (p.contact_person ? '<div style="font-size:12px;color:var(--dark-700)">👤 ' + escape(p.contact_person) + ' · 📞 ' + escape(p.phone || '') + '</div>' : '') +
+              (p.email ? '<div style="font-size:12px;color:var(--dark-700)">📧 ' + escape(p.email) + '</div>' : '');
+            if (p.status === 'pending') {
+              html += '<div style="margin-top:10px;display:flex;gap:8px">' +
+                '<button onclick="approvePartner(\'' + p.id + '\')" style="flex:1;padding:8px;background:#059669;color:white;border:none;border-radius:8px;cursor:pointer;font-size:12px;font-weight:600">✅ 核准</button>' +
+                '<button onclick="rejectPartner(\'' + p.id + '\')" style="flex:1;padding:8px;background:#dc2626;color:white;border:none;border-radius:8px;cursor:pointer;font-size:12px">❌ 拒絕</button></div>';
+            }
+            if (p.status === 'active') {
+              html += '<div style="margin-top:6px;font-size:12px;color:var(--dark-700)">分佣：<strong>' + Math.round((p.commission_rate || 0.3) * 100) + '%</strong></div>';
+            }
+            html += '</div>';
+          });
+          container.innerHTML = html;
+        } catch(e) {
+          container.innerHTML = '<div style="text-align:center;padding:40px;color:#ef4444">❌ 無法載入</div>';
+        }
+      }
+
+      async function approvePartner(venueId) {
+        if (!confirm('核准此商戶申請？')) return;
+        try {
+          await apiPost('/admin/partner-approve', { venue_id: venueId, action: 'accept', commission_rate: 0.3 });
+          showToast('✅ 已核准', 'success');
+          showPartnerSection('pending');
+        } catch(e) { showToast('❌ ' + e.message, 'error'); }
+      }
+
+      async function rejectPartner(venueId) {
+        if (!confirm('拒絕此商戶申請？')) return;
+        try {
+          await apiPost('/admin/partner-approve', { venue_id: venueId, action: 'reject' });
+          showToast('✅ 已拒絕', 'success');
+          showPartnerSection('pending');
+        } catch(e) { showToast('❌ ' + e.message, 'error'); }
+      }
+    </script>
+  </body>
+</html>

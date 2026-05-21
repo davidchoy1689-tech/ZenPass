@@ -1,0 +1,921 @@
+<!doctype html>
+<html lang="zh-HK">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
+    <meta name="theme-color" content="#FF6B35" />
+    <title>購買點數 — ZenPass 禪流</title>
+    <link rel="manifest" href="manifest.json" />
+      <link rel="stylesheet" href="css/zenpass.css" />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      :root {
+        --orange-500: #ff6b35;
+        --orange-700: #aa3218;
+        --orange-600-bg: #c94420;
+        --orange-400: #ff8555;
+        --orange-300: #ffa075;
+        --orange-200: #ffc8a0;
+        --orange-100: #fff0e8;
+        --orange-50: #fff8f4;
+        --dark-900: #1a1a2e;
+        --dark-800: #2d2d44;
+        --dark-700: #3d3d5a;
+        --gray-300: #d1d5db;
+        --gray-200: #e5e7eb;
+        --gray-100: #f3f4f6;
+        --gray-50: #f9fafb;
+        --white: #ffffff;
+        --green-500: #059669;
+        --blue-500: #3b82f6;
+        --yellow-400: #fbbf24;
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+        --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
+        --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.12);
+        --radius-sm: 8px;
+        --radius-md: 12px;
+        --radius-lg: 16px;
+        --radius-xl: 24px;
+        --font-zh: "Noto Sans TC", sans-serif;
+        --max-width: 480px;
+        --nav-height: 64px;
+      }
+      body {
+        font-family: var(--font-zh);
+        background: var(--gray-50);
+        color: var(--dark-900);
+        max-width: var(--max-width);
+        margin: 0 auto;
+        padding-bottom: calc(var(--nav-height) + 20px);
+        -webkit-font-smoothing: antialiased;
+      }
+      .header {
+        background: linear-gradient(135deg, var(--dark-900), var(--dark-800));
+        color: var(--white);
+        padding: 20px;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .header a {
+        color: var(--white);
+        text-decoration: none;
+        font-size: 20px;
+      }
+      .header h1 {
+        font-size: 18px;
+        font-weight: 700;
+      }
+      .section {
+        padding: 16px;
+      }
+      .card {
+        background: var(--white);
+        border-radius: var(--radius-lg);
+        padding: 20px;
+        margin-bottom: 12px;
+        box-shadow: var(--shadow-sm);
+      }
+      .section-title {
+        font-size: 16px;
+        font-weight: 700;
+        margin-bottom: 16px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      /* Hero */
+      .hero {
+        background: linear-gradient(135deg, var(--orange-500), #e85d2c);
+        color: var(--white);
+        padding: 32px 20px;
+        text-align: center;
+      }
+      .hero .icon {
+        font-size: 48px;
+        margin-bottom: 8px;
+      }
+      .hero h2 {
+        font-size: 22px;
+        font-weight: 800;
+        margin-bottom: 4px;
+      }
+      .hero p {
+        font-size: 14px;
+        opacity: 0.9;
+      }
+
+      /* Balance Card */
+      .balance-card {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        background: var(--orange-50);
+        border-radius: var(--radius-lg);
+        padding: 20px;
+        margin: -16px 16px 16px;
+        position: relative;
+        z-index: 2;
+        box-shadow: var(--shadow-md);
+      }
+      .balance-card .icon {
+        font-size: 40px;
+      }
+      .balance-card .info {
+        flex: 1;
+      }
+      .balance-card .label {
+        font-size: 12px;
+        color: var(--dark-700);
+      }
+      .balance-card .num {
+        font-size: 32px;
+        font-weight: 800;
+        color: var(--orange-700);
+      }
+      .balance-card .unit {
+        font-size: 14px;
+        font-weight: 400;
+        color: var(--dark-700);
+      }
+
+      /* Credit Packs */
+      .packs {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .pack-card {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        background: var(--white);
+        border: 2px solid var(--gray-200);
+        border-radius: var(--radius-lg);
+        padding: 18px 20px;
+        cursor: pointer;
+        transition: all 0.15s;
+        position: relative;
+        overflow: hidden;
+      }
+      .pack-card:active {
+        transform: scale(0.98);
+      }
+      .pack-card.popular {
+        border-color: var(--orange-700);
+        background: var(--orange-50);
+      }
+      .pack-card .badge {
+        position: absolute;
+        top: -8px;
+        right: 12px;
+        background: var(--orange-600-bg);
+        color: var(--white);
+        padding: 3px 10px;
+        border-radius: 10px;
+        font-size: 11px;
+        font-weight: 700;
+      }
+      .pack-card .p-icon {
+        font-size: 36px;
+        width: 44px;
+        text-align: center;
+      }
+      .pack-card .p-info {
+        flex: 1;
+      }
+      .pack-card .p-credits {
+        font-size: 22px;
+        font-weight: 800;
+        color: var(--orange-700);
+      }
+      .pack-card .p-desc {
+        font-size: 12px;
+        color: var(--dark-700);
+        margin-top: 2px;
+      }
+      .pack-card .p-price {
+        font-size: 18px;
+        font-weight: 700;
+        white-space: nowrap;
+      }
+      .pack-card .p-price .per {
+        font-size: 11px;
+        font-weight: 400;
+        color: var(--dark-700);
+      }
+      .pack-card .p-check {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        border: 2px solid var(--gray-200);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 13px;
+        flex-shrink: 0;
+      }
+      .pack-card.selected {
+        border-color: var(--orange-700);
+        background: var(--orange-50);
+      }
+      .pack-card.selected .p-check {
+        border-color: var(--orange-700);
+        background: var(--orange-600-bg);
+        color: var(--white);
+      }
+
+      /* How it works */
+      .steps {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .step {
+        display: flex;
+        gap: 12px;
+        align-items: flex-start;
+      }
+      .step .s-num {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: var(--orange-600-bg);
+        color: var(--white);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 13px;
+        font-weight: 700;
+        flex-shrink: 0;
+      }
+      .step .s-text {
+        font-size: 14px;
+        color: var(--dark-700);
+        line-height: 1.5;
+      }
+      .step .s-text strong {
+        color: var(--dark-900);
+      }
+
+      .buy-btn {
+        width: 100%;
+        padding: 16px;
+        background: var(--orange-600-bg);
+        color: var(--white);
+        border: none;
+        border-radius: var(--radius-sm);
+        font-size: 16px;
+        font-weight: 700;
+        cursor: pointer;
+        font-family: var(--font-zh);
+        transition: background 0.2s;
+      }
+      .buy-btn:hover {
+        background: #e55a2b;
+      }
+      .buy-btn:disabled {
+        background: var(--gray-300);
+        cursor: not-allowed;
+      }
+
+      .bottom-nav {
+        position: fixed;
+        bottom: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 100%;
+        max-width: var(--max-width);
+        background: var(--white);
+        border-top: 1px solid var(--gray-200);
+        display: flex;
+        justify-content: space-around;
+        padding: 8px 0 calc(8px + env(safe-area-inset-bottom));
+        z-index: 100;
+      }
+      .nav-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-decoration: none;
+        color: var(--gray-300);
+        font-size: 10px;
+        gap: 2px;
+        padding: 4px 12px;
+      }
+      .nav-item.active {
+        color: var(--orange-700);
+      }
+      .nav-item .nav-icon {
+        font-size: 22px;
+        line-height: 1;
+      }
+
+      .toast {
+        position: fixed;
+        bottom: 80px;
+        left: 50%;
+        transform: translateX(-50%);
+        padding: 12px 20px;
+        border-radius: 12px;
+        font-size: 14px;
+        font-weight: 500;
+        z-index: 999;
+        max-width: 300px;
+        text-align: center;
+        animation: fadeIn 0.3s;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateX(-50%) translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateX(-50%) translateY(0);
+        }
+      }
+
+      .loading {
+        text-align: center;
+        padding: 40px;
+        color: var(--dark-700);
+      }
+      .loading::after {
+        content: "";
+        display: block;
+        width: 32px;
+        height: 32px;
+        margin: 10px auto;
+        border: 3px solid var(--gray-200);
+        border-top-color: var(--orange-700);
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      @media (max-width: 768px) {
+        .page-header {
+          flex-direction: column;
+          gap: 8px;
+          text-align: center;
+        }
+        .page-header h1 {
+          font-size: 22px;
+        }
+        .credit-options {
+          flex-direction: column;
+          gap: 10px;
+        }
+        .credit-card {
+          padding: 14px;
+        }
+        .credit-card .amount {
+          font-size: 28px;
+        }
+        .credit-card .price {
+          font-size: 18px;
+        }
+        .payment-section {
+          padding: 14px;
+        }
+        .pay-btn {
+          width: 100%;
+        }
+        .benefits-list {
+          gap: 8px;
+        }
+        .benefit-item {
+          padding: 10px;
+          font-size: 13px;
+        }
+      }
+
+      /* Desktop layout - use wider containers */
+      @media (min-width: 768px) {
+        .container,
+        .wrap,
+        .page-wrap,
+        .detail-wrap,
+        .apply-wrap,
+        .rate-wrap,
+        .checkin-wrap,
+        .payment-wrap,
+        .badge-wrap,
+        .membership-wrap,
+        .explore-wrap {
+          max-width: 900px;
+          margin-left: auto;
+          margin-right: auto;
+        }
+      }
+      @media (min-width: 1200px) {
+        .container,
+        .wrap,
+        .page-wrap,
+        .detail-wrap,
+        .apply-wrap,
+        .rate-wrap,
+        .checkin-wrap,
+        .payment-wrap,
+        .badge-wrap,
+        .membership-wrap,
+        .explore-wrap {
+          max-width: 1100px;
+        }
+      }
+
+      /* Desktop: expand content beyond mobile width */
+      @media (min-width: 768px) {
+        body {
+          max-width: 100% !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <a
+        href="javascript:if(document.referrer){history.back()}else{location.href='index.html'}"
+        >←</a
+      >
+      <h1>💎 購買點數</h1>
+    </div>
+
+    <!-- Hero -->
+    <div class="hero">
+      <div class="icon">💎</div>
+      <h2>用點數・自由上堂</h2>
+      <p>無需訂閱會籍，購買點數即可預約任何課程</p>
+    </div>
+
+    <!-- Balance -->
+    <div class="balance-card">
+      <div class="icon">💰</div>
+      <div class="info">
+        <div class="label">我的點數餘額</div>
+        <div>
+          <span class="num" id="my-credits">0</span>
+          <span class="unit">Credits</span>
+        </div>
+      </div>
+      <div style="font-size: 12px; color: var(--dark-700)">
+        ≈ <span id="est-classes">0</span> 堂課
+      </div>
+    </div>
+
+    <!-- Credit Packs -->
+    <div class="section">
+      <div class="section-title">📦 選擇點數套餐</div>
+      <div class="packs" id="pack-list"></div>
+
+      <!-- Order Summary -->
+      <div
+        id="order-summary"
+        style="
+          display: none;
+          margin-top: 16px;
+          background: var(--white);
+          border-radius: var(--radius-lg);
+          padding: 16px;
+          box-shadow: var(--shadow-sm);
+          border: 2px solid var(--orange-100);
+        "
+      >
+        <div
+          style="
+            font-size: 14px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+          "
+        >
+          📋 訂單摘要
+        </div>
+        <div
+          style="
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            font-size: 14px;
+          "
+        >
+          <span style="color: var(--dark-700)">購買點數</span>
+          <span id="os-credits" style="font-weight: 700">0 Credits</span>
+        </div>
+        <div
+          id="os-bonus-row"
+          style="
+            display: none;
+            justify-content: space-between;
+            padding: 4px 0 8px;
+            font-size: 13px;
+          "
+        >
+          <span style="color: var(--green-500)">🎁 贈送</span>
+          <span id="os-bonus" style="font-weight: 600; color: var(--green-500)"
+            >0 Credits</span
+          >
+        </div>
+        <div
+          style="
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            font-size: 14px;
+            border-top: 1px solid var(--gray-200);
+          "
+        >
+          <span style="color: var(--dark-700)">金額</span>
+          <span id="os-price" style="font-weight: 700; color: var(--orange-500)"
+            >HK$0</span
+          >
+        </div>
+        <div
+          style="
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0 4px;
+            font-size: 18px;
+            font-weight: 800;
+            border-top: 2px solid var(--orange-500);
+            margin-top: 4px;
+            color: var(--orange-700);
+          "
+        >
+          <span>合計</span>
+          <span id="os-total">HK$0</span>
+        </div>
+        <div
+          id="os-total-credits"
+          style="
+            text-align: right;
+            font-size: 12px;
+            color: var(--dark-700);
+            margin-top: 4px;
+          "
+        ></div>
+      </div>
+
+      <div style="margin-top: 16px">
+        <button class="buy-btn" id="buy-btn" onclick="startPurchase()">
+          💎 立即購買
+        </button>
+      </div>
+    </div>
+
+    <!-- How it works -->
+    <div class="section">
+      <div class="card">
+        <div class="section-title">📖 點數使用說明</div>
+        <div class="steps">
+          <div class="step">
+            <div class="s-num">1</div>
+            <div class="s-text">
+              <strong>選擇點數套餐</strong> — 揀選最適合你的方案
+            </div>
+          </div>
+          <div class="step">
+            <div class="s-num">2</div>
+            <div class="s-text">
+              <strong>付款</strong> — 支援 FPS 轉數快、PayMe、信用卡
+            </div>
+          </div>
+          <div class="step">
+            <div class="s-num">3</div>
+            <div class="s-text">
+              <strong>上傳入數證明</strong> — 管理員確認後點數自動入帳
+            </div>
+          </div>
+          <div class="step">
+            <div class="s-num">4</div>
+            <div class="s-text">
+              <strong>開始預約</strong> — 用點數兌換任何課程，靈活方便
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="section-title">💡 小貼士</div>
+        <p style="font-size: 14px; color: var(--dark-700); line-height: 1.7">
+          • 每堂課約需 10–20 Credits（視課程而定）<br />
+          • 點數有效期為購買後 180 天<br />
+          • 點數可與會籍試玩堂數合併使用<br />
+          • 推薦好友亦可賺取免費點數
+        </p>
+      </div>
+    </div>
+
+    <nav class="bottom-nav">
+      <a href="index.html" class="nav-item"
+        ><span class="nav-icon">🏠</span>首頁</a
+      >
+      <a href="explore.html" class="nav-item"
+        ><span class="nav-icon">🔍</span>探索</a
+      >
+      <a href="membership.html" class="nav-item"
+        ><span class="nav-icon">💎</span>會籍</a
+      >
+      <a href="coach-apply.html" class="nav-item"
+        ><span class="nav-icon">👨🏫</span>成為教練</a
+      >
+      <a href="my.html" class="nav-item"
+        ><span class="nav-icon">👤</span>我的</a
+      >
+    </nav>
+
+    <script src="api.js"></script>
+    <script>
+      // ===== Credit Packs =====
+      var CREDIT_PACKS = [];
+      var selectedPack = null;
+
+      function getCredits() {
+        try {
+          var u = JSON.parse(localStorage.getItem("zenpass_user") || "{}");
+          return u.credits || 0;
+        } catch (e) {
+          return 0;
+        }
+      }
+
+      function updateBalance() {
+        var c = getCredits();
+        document.getElementById("my-credits").textContent = c;
+        document.getElementById("est-classes").textContent = Math.floor(c / 15);
+      }
+
+      function renderPacks() {
+        var container = document.getElementById("pack-list");
+        var html = "";
+        for (var i = 0; i < CREDIT_PACKS.length; i++) {
+          var p = CREDIT_PACKS[i];
+          var isPopular = p.popular ? " popular" : "";
+          var badge = p.popular ? '<div class="badge">🔥 熱門</div>' : "";
+          var perCredit = (p.price / p.credits).toFixed(1);
+          var totalCredits = p.credits + (p.bonus || 0);
+          var bonusHtml = p.bonus
+            ? '<div style="font-size:11px;color:var(--green-500);font-weight:600;margin-top:2px;">🎁 +' +
+              p.bonus +
+              " 贈送</div>"
+            : "";
+          html +=
+            '<div class="pack-card' +
+            isPopular +
+            '" onclick="selectPack(' +
+            i +
+            ')">' +
+            badge +
+            '<div class="p-icon">' +
+            p.icon +
+            "</div>" +
+            '<div class="p-info">' +
+            '<div class="p-credits">' +
+            totalCredits +
+            " Credits</div>" +
+            '<div class="p-desc">' +
+            p.desc +
+            "</div>" +
+            bonusHtml +
+            "</div>" +
+            '<div class="p-price">HK$' +
+            p.price +
+            '<br><span class="per">~$' +
+            perCredit +
+            "/Credit</span></div>" +
+            '<div class="p-check" id="check-' +
+            i +
+            '">✓</div>' +
+            "</div>";
+        }
+        container.innerHTML = html;
+      }
+
+      function selectPack(index) {
+        selectedPack = index;
+        // Update check marks
+        var checks = document.querySelectorAll(".p-check");
+        for (var i = 0; i < checks.length; i++) {
+          checks[i].style.display = i === index ? "flex" : "none";
+        }
+        var cards = document.querySelectorAll(".pack-card");
+        for (var i = 0; i < cards.length; i++) {
+          cards[i].classList.toggle("selected", i === index);
+        }
+        var p = CREDIT_PACKS[index];
+        var totalCredits = p.credits + (p.bonus || 0);
+        document.getElementById("buy-btn").textContent =
+          "💎 購買 " + totalCredits + " Credits — HK$" + p.price;
+        document.getElementById("buy-btn").disabled = false;
+        // Update order summary
+        document.getElementById("order-summary").style.display = "block";
+        document.getElementById("os-credits").textContent =
+          totalCredits + " Credits";
+        document.getElementById("os-price").textContent = "HK$" + p.price;
+        document.getElementById("os-total").textContent = "HK$" + p.price;
+        var bonusEl = document.getElementById("os-bonus-row");
+        var bonusVal = document.getElementById("os-bonus");
+        var totalCreditsEl = document.getElementById("os-total-credits");
+        if (p.bonus && p.bonus > 0) {
+          bonusEl.style.display = "flex";
+          bonusVal.textContent = "+" + p.bonus + " Credits";
+          totalCreditsEl.textContent = "共 " + totalCredits + " Credits 到帳";
+        } else {
+          bonusEl.style.display = "none";
+          totalCreditsEl.textContent = "";
+        }
+      }
+
+      function startPurchase() {
+        if (selectedPack === null) {
+          showToast("請先選擇點數套餐");
+          return;
+        }
+        var p = CREDIT_PACKS[selectedPack];
+        var totalCredits = p.credits + (p.bonus || 0);
+        // Redirect to payment page with credits purchase info
+        var ref =
+          "CR-" +
+          new Date().toISOString().slice(0, 10).replace(/-/g, "") +
+          "-" +
+          Math.random().toString(36).substring(2, 6).toUpperCase();
+        window.location.href =
+          "payment.html?type=credits&credits=" +
+          p.credits +
+          "&total=" +
+          totalCredits +
+          "&amount=" +
+          p.price +
+          "&item=" +
+          encodeURIComponent("點數 " + totalCredits + " Credits") +
+          "&bonus=" +
+          (p.bonus || 0) +
+          "&ref=" +
+          ref;
+      }
+
+      function showToast(msg, type) {
+        var t = document.createElement("div");
+        t.className = "toast";
+        t.style.cssText =
+          "position:fixed;bottom:80px;left:50%;transform:translateX(-50%);padding:12px 20px;border-radius:12px;font-size:14px;font-weight:500;z-index:999;max-width:300px;text-align:center;animation:fadeIn .3s;background:" +
+          (type === "success" ? "#ECFDF5" : "#FEF2F2") +
+          ";color:" +
+          (type === "success" ? "#059669" : "#EF4444") +
+          ";box-shadow:0 4px 12px rgba(0,0,0,0.15);";
+        t.textContent = msg;
+        document.body.appendChild(t);
+        setTimeout(function () {
+          t.style.opacity = "0";
+          t.style.transition = "opacity .3s";
+          setTimeout(function () {
+            t.remove();
+          }, 300);
+        }, 2500);
+      }
+
+      // Init
+      updateBalance();
+
+      async function initPacks() {
+        try {
+          var result = await memberships.packages();
+          var pkgs = result.packages || [];
+          var icons = ["🥉", "🥈", "🥇", "👑"];
+          CREDIT_PACKS = [];
+          for (var i = 0; i < pkgs.length; i++) {
+            var p = pkgs[i];
+            var total = p.credits + (p.bonus || 0);
+            CREDIT_PACKS.push({
+              credits: p.credits,
+              price: p.price,
+              icon: icons[i] || "💎",
+              label: p.label || "套餐",
+              popular: p.popular || false,
+              desc: "HK$" + Math.round((p.price / total) * 10) / 10 + "/Credit",
+              bonus: p.bonus || 0,
+            });
+          }
+        } catch (e) {
+          // Fallback hardcoded packs
+          CREDIT_PACKS = [
+            {
+              credits: 10,
+              price: 80,
+              icon: "🥉",
+              label: "輕量",
+              popular: false,
+              desc: "HK$8/Credit",
+              bonus: 2,
+            },
+            {
+              credits: 50,
+              price: 400,
+              icon: "🥈",
+              label: "標準",
+              popular: true,
+              desc: "最受歡迎 🔥",
+              bonus: 12,
+            },
+            {
+              credits: 100,
+              price: 800,
+              icon: "🥇",
+              label: "超值",
+              popular: false,
+              desc: "慳更多",
+              bonus: 30,
+            },
+            {
+              credits: 200,
+              price: 1600,
+              icon: "👑",
+              label: "大額",
+              popular: false,
+              desc: "一次買足",
+              bonus: 70,
+            },
+          ];
+        }
+        renderPacks();
+        // Default: select popular or first pack
+        for (var i = 0; i < CREDIT_PACKS.length; i++) {
+          if (CREDIT_PACKS[i].popular) {
+            selectPack(i);
+            return;
+          }
+        }
+        if (CREDIT_PACKS.length > 0) selectPack(0);
+      }
+      initPacks();
+    </script>
+    <script>
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.register("sw.js");
+      }
+    </script>
+
+    <div
+      class="zen-footer"
+      style="
+        text-align: center;
+        padding: 20px 16px;
+        margin-top: 24px;
+        border-top: 1px solid #e5e7eb;
+        font-size: 12px;
+        color: #6b7280;
+      "
+    >
+      <div
+        style="
+          display: flex;
+          justify-content: center;
+          gap: 16px;
+          margin-bottom: 8px;
+        "
+      >
+        <a
+          href="/"
+          style="color: #aa3218; text-decoration: none; font-weight: 500"
+          >🏠 首頁</a
+        >
+        <a
+          href="explore.html"
+          style="color: #aa3218; text-decoration: none; font-weight: 500"
+          >📚 課程</a
+        >
+        <a
+          href="my.html"
+          style="color: #aa3218; text-decoration: none; font-weight: 500"
+          >👤 我的</a
+        >
+        <a
+          href="points.html"
+          style="color: #aa3218; text-decoration: none; font-weight: 500"
+          >🎯 積分</a
+        >
+      </div>
+      © 2026 ZenPass 禪流
+    </div>
+  </body>
+</html>

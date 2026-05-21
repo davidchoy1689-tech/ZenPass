@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>場地加盟 — ZenPass 禪流</title>
+  <link rel="stylesheet" href="css/zenpass.css" />
+  <style>
+    body {
+      font-family: var(--font-zh);
+      background: var(--gray-50);
+      color: var(--dark-900);
+      max-width: var(--max-width);
+      margin: 0 auto;
+      padding: 0 0 40px;
+    }
+    .header {
+      background: linear-gradient(135deg, var(--orange-600-bg), var(--orange-500));
+      color: white;
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .header .back-btn {
+      background: rgba(255,255,255,0.2);
+      border: none;
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      cursor: pointer;
+      color: white;
+      text-decoration: none;
+    }
+    .header h1 { font-size: 17px; font-weight: 600; flex: 1; color: white; margin: 0; }
+    .content { padding: 20px 16px; }
+    .hero-card {
+      background: linear-gradient(135deg,var(--orange-600-bg),var(--orange-500));
+      border-radius: 14px;
+      padding: 24px 20px;
+      text-align: center;
+      color: white;
+      margin-bottom: 20px;
+    }
+    .hero-card h2 { font-size: 20px; font-weight: 700; margin-bottom: 6px; }
+    .hero-card p { font-size: 13px; opacity: 0.85; line-height: 1.6; }
+    .hero-card .stats {
+      display: flex; justify-content: center; gap: 24px; margin-top: 16px;
+    }
+    .hero-card .stats div { text-align: center; }
+    .hero-card .stats .num { font-size: 22px; font-weight: 700; display: block; }
+    .hero-card .stats .lbl { font-size: 11px; opacity: 0.75; display: block; }
+    .form-card {
+      background: white;
+      border-radius: 14px;
+      padding: 20px;
+      margin-bottom: 14px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      border: 1px solid rgba(0,0,0,0.04);
+    }
+    .form-card h3 { font-size: 15px; font-weight: 700; margin-bottom: 12px; }
+    .form-group { margin-bottom: 14px; }
+    .form-group label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 4px; color: var(--dark-700); }
+    .form-group input, .form-group select, .form-group textarea {
+      width: 100%; padding: 10px 12px;
+      border: 1px solid var(--gray-200); border-radius: 8px;
+      font-size: 14px; font-family: var(--font-zh);
+      background: var(--white); transition: border 0.2s;
+    }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+      outline: none; border-color: var(--orange-700);
+    }
+    .form-group textarea { height: 80px; resize: vertical; }
+    .form-row { display: flex; gap: 10px; }
+    .form-row .form-group { flex: 1; }
+    .submit-btn {
+      width: 100%; padding: 14px;
+      background: var(--orange-600-bg); color: white;
+      border: none; border-radius: 14px;
+      font-size: 16px; font-weight: 700; cursor: pointer;
+      font-family: var(--font-zh);
+      transition: all 0.2s;
+    }
+    .submit-btn:active { transform: scale(0.97); }
+    .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .success-card {
+      display: none;
+      background: #ecfdf5; border: 2px solid #a7f3d0;
+      border-radius: 14px; padding: 32px 20px; text-align: center;
+    }
+    .success-card .icon { font-size: 56px; margin-bottom: 12px; }
+    .success-card h3 { font-size: 18px; font-weight: 700; color: #065f46; margin-bottom: 6px; }
+    .success-card p { font-size: 13px; color: #6b7280; line-height: 1.6; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <a class="back-btn" href="javascript:history.back()">←</a>
+    <h1>🏪 場地加盟</h1>
+    <span style="width:32px"></span>
+  </div>
+
+  <div class="content">
+    <!-- Hero -->
+    <div class="hero-card">
+      <h2>將你的場地帶上 ZenPass</h2>
+      <p>加入全港最大運動體驗平台，接觸更多學生<br />免費申請 · 自定時間 · 即時收款</p>
+      <div class="stats">
+        <div><span class="num">110+</span><span class="lbl">課程</span></div>
+        <div><span class="num">5+</span><span class="lbl">教練</span></div>
+        <div><span class="num">HK</span><span class="lbl">全港覆蓋</span></div>
+      </div>
+    </div>
+
+    <!-- Apply Form -->
+    <div id="apply-form">
+      <div class="form-card">
+        <h3>場地資料</h3>
+        <div class="form-group">
+          <label>場地名稱 *</label>
+          <input type="text" id="f-name" placeholder="例如：FitZone 健身中心" />
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>類別 *</label>
+            <select id="f-category">
+              <option value="">請選擇...</option>
+              <option value="瑜伽">🧘 瑜伽</option>
+              <option value="健身">💪 健身</option>
+              <option value="舞蹈">💃 舞蹈</option>
+              <option value="新興運動">🎯 新興運動</option>
+              <option value="冥想">🧠 冥想</option>
+              <option value="伸展">🤸 伸展</option>
+              <option value="兒童體適能">🧒 兒童體適能</option>
+              <option value="其他">其他</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>地區 *</label>
+            <select id="f-district">
+              <option value="">請選擇...</option>
+              <option value="港島">港島</option>
+              <option value="九龍">九龍</option>
+              <option value="新界">新界</option>
+              <option value="線上">線上</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>地址</label>
+          <input type="text" id="f-address" placeholder="詳細地址（選填）" />
+        </div>
+        <div class="form-group">
+          <label>場地簡介</label>
+          <textarea id="f-desc" placeholder="介紹你的場地、設施、特色..."></textarea>
+        </div>
+      </div>
+
+      <div class="form-card">
+        <h3>聯絡資料</h3>
+        <div class="form-group">
+          <label>聯絡人姓名 *</label>
+          <input type="text" id="f-contact" placeholder="你的姓名" />
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>聯絡電話 *</label>
+            <input type="tel" id="f-phone" placeholder="6123 4567" />
+          </div>
+          <div class="form-group">
+            <label>電郵</label>
+            <input type="email" id="f-email" placeholder="your@email.com" />
+          </div>
+        </div>
+      </div>
+
+      <div id="apply-msg" style="font-size:13px;text-align:center;margin-bottom:10px"></div>
+      <button class="submit-btn" id="apply-btn" onclick="submitApplication()">📤 提交申請</button>
+    </div>
+
+    <!-- Success -->
+    <div class="success-card" id="success-card">
+      <div class="icon">🎉</div>
+      <h3>申請已提交！</h3>
+      <p>感謝你嘅申請！我哋嘅團隊會儘快審核資料，<br />並透過電話或電郵聯絡你。</p>
+      <p id="success-note"></p>
+      <p style="margin-top:12px">如有疑問，可致電 📞 2387 0724</p>
+      <a href="index.html" style="display:inline-block;margin-top:16px;padding:10px 24px;background:var(--orange-600-bg);color:white;border-radius:12px;text-decoration:none;font-weight:600">🏠 返回首頁</a>
+    </div>
+
+    <script src="api.js"></script>
+    <script>
+      function showToast(m,t){var d=document.createElement("div");d.style.cssText="position:fixed;bottom:120px;left:50%;transform:translateX(-50%);padding:10px 18px;border-radius:10px;font-size:13px;font-weight:500;z-index:999;background:"+(t==="success"?"#ecfdf5":"#fef2f2")+";color:"+(t==="success"?"#059669":"#ef4444")+";box-shadow:0 2px 8px rgba(0,0,0,0.12)";d.textContent=m;document.body.appendChild(d);setTimeout(function(){d.remove()},2000);}
+
+      async function submitApplication() {
+        var name = document.getElementById("f-name").value.trim();
+        var category = document.getElementById("f-category").value;
+        var district = document.getElementById("f-district").value;
+        var contact = document.getElementById("f-contact").value.trim();
+        var phone = document.getElementById("f-phone").value.trim();
+
+        if (!name) { showToast("請輸入場地名稱", "warning"); return; }
+        if (!category) { showToast("請選擇類別", "warning"); return; }
+        if (!district) { showToast("請選擇地區", "warning"); return; }
+        if (!contact) { showToast("請輸入聯絡人姓名", "warning"); return; }
+        if (!phone) { showToast("請輸入聯絡電話", "warning"); return; }
+
+        var btn = document.getElementById("apply-btn");
+        btn.disabled = true; btn.textContent = "⏳ 提交中...";
+
+        try {
+          var r = await fetch("/api/partner/apply", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              name: name,
+              category: category,
+              district: district,
+              address: document.getElementById("f-address").value.trim(),
+              description: document.getElementById("f-desc").value.trim(),
+              contact_person: contact,
+              phone: phone,
+              email: document.getElementById("f-email").value.trim(),
+            }),
+          });
+          if (r.ok) {
+            var d = await r.json().catch(function(){ return {}; });
+            if (d.error) throw new Error(d.error);
+            showSuccess("api");
+            return;
+          }
+        } catch(e) {}
+        // API failed — save to localStorage
+        try {
+          var apps = JSON.parse(localStorage.getItem("zenpass_partner_apps") || "[]");
+          apps.push({
+            id: "PENDING-" + Date.now(),
+            name: name,
+            category: category,
+            district: district,
+            contact_person: contact,
+            phone: phone,
+            submitted_at: new Date().toISOString()
+          });
+          localStorage.setItem("zenpass_partner_apps", JSON.stringify(apps));
+          showSuccess("local");
+        } catch(e2) {
+          showToast("❌ 提交失敗，請稍後再試", "error");
+          btn.disabled = false; btn.textContent = "📤 提交申請";
+        }
+      }
+
+      function showSuccess(mode) {
+        document.getElementById("apply-form").style.display = "none";
+        document.getElementById("success-card").style.display = "block";
+        var note = document.getElementById("success-note");
+        if (mode === "local" && note) {
+          note.textContent = "📌 已暫存於瀏覽器，連線後可重新提交。";
+        }
+      }
+    </script>
+  </div>
+</body>
+</html>
