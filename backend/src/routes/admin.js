@@ -128,6 +128,18 @@ router.post("/approve-payment", authenticateToken, requireAdmin, (req, res) => {
       console.error("⚠️ 發送通知失敗:", notifErr.message);
     }
 
+    // 📊 ACCOUNTING：管理員確認付款記帳
+    try {
+      const { recordPayment, recordCommission } = require("../services/accounting");
+      recordPayment(booking_id, booking.user_id, booking.amount || 0, booking.fps_reference ? "fps" : "payme");
+      const commissionAmt = Math.round((booking.amount || 0) * (booking.platform_commission_rate || 0.2) * 100) / 100;
+      if (commissionAmt > 0) {
+        recordCommission(booking_id, booking.user_id, commissionAmt, booking.fps_reference ? "fps" : "payme");
+      }
+    } catch (acctErr) {
+      console.error("⚠️ Accounting entry failed:", acctErr.message);
+    }
+
     // 🔔 AUDIT：管理員確認付款
     try {
       trackAdminAction(req.user.id, "approve_payment", {

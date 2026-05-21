@@ -12,6 +12,12 @@ const { validate, schemas } = require("../middleware/validate");
 const fs = require("fs");
 const path = require("path");
 const { audit, trackPaymentChange } = require("../services/audit");
+const {
+  recordPayment,
+  recordRefund,
+  recordCommission,
+  recordPayout,
+} = require("../services/accounting");
 
 const router = express.Router();
 const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
@@ -481,6 +487,19 @@ router.post("/fps", authenticateToken, (req, res) => {
       amount || (booking ? booking.amount : 0),
       fps_reference,
     );
+
+    // 📊 ACCOUNTING：雙重記帳分錄
+    try {
+      recordPayment(booking_id, req.user.id, amount || (booking ? booking.amount : 0), "fps");
+      if (booking && booking.amount) {
+        const commissionAmt = Math.round(booking.amount * (booking.platform_commission_rate || 0.2) * 100) / 100;
+        if (commissionAmt > 0) {
+          recordCommission(booking_id, req.user.id, commissionAmt, "fps");
+        }
+      }
+    } catch (acctErr) {
+      console.error("⚠️ Accounting entry failed:", acctErr.message);
+    }
 
     // 🔔 AUDIT：FPS 付款
     try {

@@ -698,10 +698,18 @@ function initDatabase() {
 
   // IPO audit log migration
   try {
-    const { migrate } = require("./migrate-audit");
-    migrate();
+    const { migrate: migrateAudit } = require("./migrate-audit");
+    migrateAudit();
   } catch (migErr) {
     console.error("⚠️ Audit migration failed:", migErr.message);
+  }
+
+  // IPO double-entry ledger migration
+  try {
+    const { migrate: migrateLedger } = require("./migrate-ledger");
+    migrateLedger();
+  } catch (migErr) {
+    console.error("⚠️ Ledger migration failed:", migErr.message);
   }
 
   console.log("✅ 數據庫初始化完成:", DB_PATH);
