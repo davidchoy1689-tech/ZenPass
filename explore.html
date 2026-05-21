@@ -27,6 +27,9 @@
     <meta property="og:type" content="website" />
     <meta property="og:locale" content="zh_HK" />
     <meta name="twitter:card" content="summary_large_image" />
+    <!-- Preconnect for faster image loading -->
+    <link rel="dns-prefetch" href="https://davidchoy1689-tech.github.io" />
+    <link rel="preconnect" href="https://davidchoy1689-tech.github.io" />
     <script>
       // Fix PWA manifest path for localhost vs GitHub Pages
       (function () {
@@ -237,8 +240,6 @@
         transition:
           transform 0.2s ease,
           box-shadow 0.2s ease;
-        content-visibility: auto;
-        contain-intrinsic-size: 200px;
       }
       .class-card:hover {
         box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
@@ -247,19 +248,23 @@
       .class-card:active {
         transform: scale(0.97);
       }
-      .class-card-img {
+      .class-card-img-wrap {
+        position: relative;
         width: 100%;
         height: 110px;
+        overflow: hidden;
+        background: var(--orange-100);
         aspect-ratio: 3 / 2;
-        background: linear-gradient(
-          135deg,
-          var(--orange-100),
-          var(--orange-50)
-        );
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 36px;
+        min-height: 110px;
+      }
+      .class-card-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+      }
+      .class-card-img-wrap .class-card-img[src] {
+        background: none;
       }
       .class-card-body {
         padding: 10px 10px 8px;
@@ -468,8 +473,9 @@
           flex-wrap: wrap;
           gap: 10px;
         }
-        .class-card-img {
+        .class-card-img-wrap {
           height: 90px;
+          min-height: 90px;
         }
         .class-card-info {
           padding: 10px;
@@ -1534,7 +1540,7 @@
           container.innerHTML =
             "" +
             '<div class="class-card" onclick="location.href=\'class-detail.html\'">' +
-            '<div class="class-card-img">🧘</div>' +
+            '<div class="class-card-img-wrap"><div class="class-card-img" style="background:linear-gradient(135deg,var(--orange-100),var(--orange-200));display:flex;align-items:center;justify-content:center;font-size:32px;width:100%;height:100%">🧘</div></div>' +
             '<div class="class-card-body">' +
             '<span class="class-card-category">瑜伽</span>' +
             '<div class="class-card-title">流瑜伽 Flow Yoga</div>' +
@@ -1544,7 +1550,7 @@
             '<div class="class-card-spots">剩餘 3 位</div>' +
             "</div></div>" +
             '<div class="class-card" onclick="location.href=\'class-detail.html\'">' +
-            '<div class="class-card-img">💪</div>' +
+            '<div class="class-card-img-wrap"><div class="class-card-img" style="background:linear-gradient(135deg,var(--orange-100),var(--orange-200));display:flex;align-items:center;justify-content:center;font-size:32px;width:100%;height:100%">💪</div></div>' +
             '<div class="class-card-body">' +
             '<span class="class-card-category">健身</span>' +
             '<div class="class-card-title">HIIT 高強度間歇訓練</div>' +
@@ -1554,7 +1560,7 @@
             '<div class="class-card-spots">剩餘 5 位</div>' +
             "</div></div>" +
             '<div class="class-card" onclick="location.href=\'class-detail.html\'">' +
-            '<div class="class-card-img">🧠</div>' +
+            '<div class="class-card-img-wrap"><div class="class-card-img" style="background:linear-gradient(135deg,var(--orange-100),var(--orange-200));display:flex;align-items:center;justify-content:center;font-size:32px;width:100%;height:100%">🧠</div></div>' +
             '<div class="class-card-body">' +
             '<span class="class-card-category">冥想</span>' +
             '<div class="class-card-title">正念冥想 初階班</div>' +
@@ -1564,7 +1570,7 @@
             '<div class="class-card-spots">剩餘 8 位</div>' +
             "</div></div>" +
             '<div class="class-card" onclick="location.href=\'class-detail.html\'">' +
-            '<div class="class-card-img">💃</div>' +
+            '<div class="class-card-img-wrap"><div class="class-card-img" style="background:linear-gradient(135deg,var(--orange-100),var(--orange-200));display:flex;align-items:center;justify-content:center;font-size:32px;width:100%;height:100%">💃</div></div>' +
             '<div class="class-card-body">' +
             '<span class="class-card-category">舞蹈</span>' +
             '<div class="class-card-title">Zumba 舞動燃脂</div>' +
@@ -1574,7 +1580,7 @@
             '<div class="class-card-spots">剩餘 2 位</div>' +
             "</div></div>" +
             '<div class="class-card" onclick="location.href=\'class-detail.html\'">' +
-            '<div class="class-card-img">🎯</div>' +
+            '<div class="class-card-img-wrap"><div class="class-card-img" style="background:linear-gradient(135deg,var(--orange-100),var(--orange-200));display:flex;align-items:center;justify-content:center;font-size:32px;width:100%;height:100%">🎯</div></div>' +
             '<div class="class-card-body">' +
             '<span class="class-card-category">新興運動</span>' +
             '<div class="class-card-title">匹克球 Pickleball</div>' +
@@ -1586,6 +1592,7 @@
         }
       }
 
+      var _renderIdx = 0;
       function renderCard(cls) {
         var emojiMap = {
           瑜伽: "🧘",
@@ -1626,18 +1633,17 @@
           cls.popular || cls.is_hot
             ? '<span class="badge-hot" style="background:var(--orange-600-bg);color:var(--white);font-size:10px;padding:2px 8px;border-radius:10px;font-weight:600;">🔥 熱門</span>'
             : "";
+        var idx = _renderIdx++;
+        var fp = idx === 0 ? ' fetchpriority="high"' : ' loading="lazy"';
+        var imgHtml = cls.image_url
+          ? '<img' + fp + ' src="' + cls.image_url + '" alt="' + cls.title + '" class="class-card-img" style="width:100%;height:100%;object-fit:cover;display:block" />'
+          : '<div class="class-card-img" style="background:linear-gradient(135deg,var(--orange-100),var(--orange-200));display:flex;align-items:center;justify-content:center;font-size:32px;width:100%;height:100%">' + emoji + '</div>';
         return (
           '<div class="class-card" onclick="location.href=\'class-detail.html?id=' +
           cls.id +
           "'\">" +
-          '<div class="class-card-img" style="' +
-          (cls.image_url
-            ? "background-image:url(" +
-              cls.image_url +
-              ");background-size:cover;background-position:center;position:relative;min-height:110px"
-            : "background:linear-gradient(135deg,var(--orange-100),var(--orange-200))") +
-          ';display:flex;align-items:center;justify-content:center;font-size:32px" loading="lazy">' +
-          (cls.image_url ? "" : emoji) +
+          '<div style="position:relative;width:100%;height:110px;overflow:hidden;background:var(--orange-100)" class="class-card-img-wrap">' +
+          imgHtml +
           "</div>" +
           '<div class="class-card-body">' +
           '<span class="class-card-category">' +
@@ -1646,6 +1652,11 @@
           '<div class="class-card-title">' +
           cls.title +
           "</div>" +
+          (cls.venue_name
+            ? '<div style="font-size:11px;color:var(--orange-700);margin-bottom:2px">📍 ' +
+              cls.venue_name +
+              "</div>"
+            : "") +
           '<div class="class-card-meta">⏱ ' +
           (cls.duration_min || 60) +
           "min · ⭐" +
