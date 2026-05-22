@@ -236,16 +236,16 @@ router.get(
           .all();
       }
 
-      // 加埋每個場地嘅 booking count
+      // 加埋每個場地嘅 booking count（透過 class → schedule → booking 關聯）
       for (const v of rows) {
         const stats = db
           .prepare(
             `SELECT COUNT(*) as total_bookings,
-                    COALESCE(SUM(amount), 0) as total_revenue,
-                    COALESCE(SUM(venue_earned_amount), 0) as venue_total_earned,
-                    COALESCE(SUM(platform_earned_amount), 0) as platform_total_earned
-             FROM bookings
-             WHERE venue_partner_id = ? AND status IN ('confirmed','attended')`,
+                    COALESCE(SUM(b.amount), 0) as total_revenue
+             FROM bookings b
+             JOIN class_schedules cs ON b.schedule_id = cs.id
+             JOIN classes c ON cs.class_id = c.id
+             WHERE c.partner_venue_id = ? AND b.status IN ('confirmed','attended')`,
           )
           .get(v.id);
         v.stats = stats;

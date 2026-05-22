@@ -227,7 +227,7 @@ app.use((req, res) => {
 const { errorHandler, AppError } = require("./middleware/error-handler");
 app.use(errorHandler);
 
-const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
+const DB_PATH = process.env.DB_PATH || path.resolve(__dirname, "../data/zenpass.db");
 
 // ===== 定期清理過期嘅 pending_payment（30分鐘未付款就釋放名額）=====
 function cleanupExpiredBookings() {
