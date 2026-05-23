@@ -1669,18 +1669,43 @@
       }
 
       // ===== 5. Classes =====
+      // Admin pagination state
+      var adminPageSize = 20;
+      var adminCurrentPage = 1;
+      var adminAllClasses = [];
+
       async function loadClasses() {
-        var main = document.getElementById("mainContent");
+        adminCurrentPage = 1;
         try {
           var d = await apiGet("/admin/classes");
-          var cls = d.classes || [];
-          var html =
-            '<div class="top-bar"><div><h1>📚 課程管理</h1><div class="sub">共 <strong>' +
-            cls.length +
-            "</strong> 個課程</div></div></div>";
-          html +=
-            '<div class="table-wrap"><table><thead><tr><th></th><th>課程編號</th><th>教練編號</th><th>課程</th><th>教練</th><th>分類</th><th>難度</th><th>價格</th><th>時段數</th><th>預約數</th><th>狀態</th></tr></thead><tbody>';
-          cls.forEach(function (c) {
+          adminAllClasses = d.classes || [];
+        } catch(e) {
+          adminAllClasses = [];
+        }
+        renderClassPage();
+      }
+
+      function renderClassPage() {
+        try {
+        var main = document.getElementById("mainContent");
+        var cls = adminAllClasses;
+        var totalPages = Math.ceil(cls.length / adminPageSize) || 1;
+        var start = (adminCurrentPage - 1) * adminPageSize;
+        var pageItems = cls.slice(start, start + adminPageSize);
+
+        var html =
+          '<div class="top-bar"><div><h1>📚 課程管理</h1><div class="sub">共 <strong>' +
+          cls.length +
+          '</strong> 個課程</div></div><div style="font-size:13px;color:var(--dark-700)">第 ' +
+          adminCurrentPage + '/' + totalPages + ' 頁</div></div>' +
+          '<div class="pagination-bar" style="display:flex;gap:6px;align-items:center;margin:8px 0">' +
+          '<button onclick="adminCurrentPage=Math.max(1,adminCurrentPage-1);renderClassPage()" style="padding:6px 12px;border:1px solid var(--gray-200);border-radius:6px;background:var(--white);cursor:pointer;font-size:12px"' + (adminCurrentPage <= 1 ? ' disabled' : '') + '>‹ 上一頁</button>' +
+          '<span style="font-size:13px;color:var(--dark-700)">' + start + '-' + Math.min(start+adminPageSize, cls.length) + ' / ' + cls.length + '</span>' +
+          '<button onclick="adminCurrentPage=Math.min(totalPages,adminCurrentPage+1);renderClassPage()" style="padding:6px 12px;border:1px solid var(--gray-200);border-radius:6px;background:var(--white);cursor:pointer;font-size:12px"' + (adminCurrentPage >= totalPages ? ' disabled' : '') + '>下一頁 ›</button>' +
+          '</div>';
+        html +=
+          '<div class="table-wrap"><table><thead><tr><th></th><th>課程編號</th><th>教練編號</th><th>課程</th><th>教練</th><th>分類</th><th>難度</th><th>價格</th><th>時段數</th><th>預約數</th><th>狀態</th></tr></thead><tbody>';
+          pageItems.forEach(function (c) {
             html +=
               "<tr>" +
               '<td><span class="expand-btn" onclick="toggleDetail(this)">▶</span></td>' +

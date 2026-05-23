@@ -605,7 +605,7 @@
             font-family: var(--font-zh);
             background: var(--white);
           "
-          onkeydown="if (event.key === 'Enter') doSearch();"
+          oninput="debounceSearch()" onkeydown="if (event.key === 'Enter') doSearch();"
         />
         <button
           class="filter-btn"
@@ -1377,11 +1377,17 @@
         loadClasses();
       }
 
+      var searchTimer;
+      function debounceSearch() {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(function() {
+          loadClasses();
+        }, 300);
+      }
       function doSearch() {
         var q = document.getElementById("search-input").value.trim();
-        if (q) {
-          loadClasses();
-        }
+        clearTimeout(searchTimer);
+        loadClasses();
       }
       function clearFilters() {
         document.getElementById("search-input").value = "";
