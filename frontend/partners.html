@@ -157,6 +157,7 @@
         伸展: "🤸",
         兒童體適能: "🧒",
       };
+      function escHtml(s) { if (!s) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
       async function loadPartners() {
         try {
           var r = await fetch("/api/partner/list");

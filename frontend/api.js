@@ -3,6 +3,9 @@
  * 連接前端與後端的橋樑
  */
 
+// ===== Global Utility Helpers =====
+function escHtml(s) { if (!s) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
 // ===== Name-keyed Storage Helper =====
 function zpKey(baseKey) {
   var name = localStorage.getItem("zenpass_name") || "default";
