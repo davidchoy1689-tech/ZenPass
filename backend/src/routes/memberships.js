@@ -12,29 +12,65 @@ const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
 
 // 會籍方案定價
 const MEMBERSHIP_PLANS = {
-  trial: {
-    name: "試玩體驗",
-    name_en: "Trial",
-    price_hkd: 399,
+  lite: {
+    name: "輕量 Pass",
+    name_en: "Lite",
+    price_hkd: 299,
     credits_granted: 4,
+    credits_per_class: {
+      peak: 2.5,
+      offpeak: 1.5,
+    },
     duration_days: 30,
-    description: "每月 4 堂課程，適合想試試 ZenPass 的新朋友",
+    description: "每月約 2 堂，適合偶爾運動嘅你",
+    features: ["每月 4 Credits", "離峰時段更抵用", "標準取消政策"],
+    avg_price: 75,
+    popular: false,
   },
   standard: {
-    name: "標準會員",
+    name: "標準 Pass",
     name_en: "Standard",
-    price_hkd: 699,
-    credits_granted: 10,
+    price_hkd: 799,
+    credits_granted: 12,
+    credits_per_class: {
+      peak: 2,
+      offpeak: 1,
+    },
     duration_days: 30,
-    description: "每月 10 堂課程，優先預約權，給想規律運動的你",
+    description: "每月約 6 堂，適合定期運動嘅你",
+    features: ["每月 12 Credits", "優先預約權", "寬鬆取消政策", "免費延期一次"],
+    avg_price: 67,
+    popular: true,
   },
-  unlimited: {
-    name: "無限通行",
-    name_en: "Unlimited",
-    price_hkd: 1299,
-    credits_granted: 0,
+  silver: {
+    name: "銀會員",
+    name_en: "Silver",
+    price_hkd: 1899,
+    credits_granted: 25,
+    credits_per_class: {
+      peak: 1.5,
+      offpeak: 1,
+    },
     duration_days: 30,
-    description: "無限堂數，每月 2 堂私人指導，運動愛好者的終極選擇",
+    description: "每月約 15 堂，適合運動狂熱者",
+    features: ["每月 25 Credits", "VIP 優先預約", "無限取消更換", "每月 1 堂私人教練"],
+    avg_price: 76,
+    popular: false,
+  },
+  gold: {
+    name: "金會員",
+    name_en: "Gold",
+    price_hkd: 2899,
+    credits_granted: 0,
+    credits_per_class: {
+      peak: 1,
+      offpeak: 1,
+    },
+    duration_days: 30,
+    description: "無限上堂，每月 2 堂私人指導，終極運動享受",
+    features: ["無限堂數", "每月 2 堂一對一私人教練", "白金優先預約", "無限取消更換", "免費延期五次", "專屬客服"],
+    avg_price: 0,
+    popular: false,
   },
 };
 

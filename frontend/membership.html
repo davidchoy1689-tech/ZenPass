@@ -12,13 +12,13 @@
     <meta name="theme-color" content="#f06030" />
     <meta
       name="description"
-      content="ZenPass 禪流會員方案 — 試玩體驗、標準會員、金會員"
+      content="ZenPass 禪流會員方案 — 輕量 Pass、標準 Pass、銀會員、金會員"
     />
     <title>會員方案 — ZenPass 禪流</title>
     <meta property="og:title" content="會籍方案 — ZenPass 禪流" />
     <meta
       property="og:description"
-      content="每月4堂試玩HK$399起，自由加購點數。一個Pass通行全城運動體驗！"
+      content="每月4 Credits HK$299起，自由加購點數。一個Pass通行全城運動體驗！"
     />
     <meta
       property="og:url"
@@ -661,62 +661,95 @@
         } catch (err) {
           // Fallback demo data
           container.innerHTML = renderPlans({
-            trial: {
-              name: "試玩會員",
-              name_en: "Trial",
-              price_hkd: 399,
+            lite: {
+              name: "輕量 Pass",
+              name_en: "Lite",
+              price_hkd: 299,
               credits_granted: 4,
               duration_days: 30,
-              description: "每月 4 堂課程，適合想試試的新朋友",
-              avg_price: 100,
-              features: ["每月 4 堂課程", "標準取消政策"],
+              description: "每月約 2 堂，適合偶爾運動嘅你",
+              avg_price: 75,
+              features: ["每月 4 Credits", "離峰時段更抵用", "標準取消政策"],
+              popular: false,
             },
             standard: {
-              name: "標準會員",
+              name: "標準 Pass",
               name_en: "Standard",
-              price_hkd: 699,
-              credits_granted: 6,
+              price_hkd: 799,
+              credits_granted: 12,
               duration_days: 30,
-              description: "每月 6 堂課程，優先預約權",
-              avg_price: 117,
+              description: "每月約 6 堂，適合定期運動嘅你",
+              avg_price: 67,
               features: [
-                "每月 6 堂課程",
+                "每月 12 Credits",
                 "優先預約權",
                 "寬鬆取消政策",
                 "免費延期一次",
               ],
+              popular: true,
+            },
+            silver: {
+              name: "銀會員",
+              name_en: "Silver",
+              price_hkd: 1899,
+              credits_granted: 25,
+              duration_days: 30,
+              description: "每月約 15 堂，適合運動狂熱者",
+              avg_price: 76,
+              features: [
+                "每月 25 Credits",
+                "VIP 優先預約",
+                "無限取消更換",
+                "每月 1 堂私人教練",
+              ],
+              popular: false,
             },
             gold: {
               name: "金會員",
               name_en: "Gold",
-              price_hkd: 1999,
-              credits_granted: 10,
+              price_hkd: 2899,
+              credits_granted: 0,
               duration_days: 30,
-              description: "每月 10 堂課程，每月 2 堂一對一私人教練",
-              avg_price: 200,
+              description: "無限上堂，每月 2 堂私人指導",
+              avg_price: 0,
               features: [
-                "每月 10 堂課程",
-                "每月 2 堂一對一私人教練服務",
-                "VIP 優先預約",
+                "無限堂數",
+                "每月 2 堂一對一私人教練",
+                "白金優先預約",
                 "無限取消更換",
                 "免費延期五次",
+                "專屬客服",
               ],
+              popular: false,
             },
           });
         }
       }
 
       function renderPlans(plans) {
-        var planOrder = ["trial", "standard", "gold"];
+        var planOrder = ["lite", "standard", "silver", "gold"];
         var html2 = "";
         for (var ri = 0; ri < planOrder.length; ri++) {
           var key = planOrder[ri];
           var p = plans[key];
           if (!p) continue;
-          var isPopular = key === "standard";
+          var isPopular = p.popular === true;
           var popularClass = isPopular ? " popular" : "";
-          var badge = isPopular ? '<div class="badge">最受歡迎</div>' : "";
-          var goldGuide = key === "gold" ? "<li>每月 2 堂私人指導</li>" : "";
+          var planLabels = { lite: "輕量入門", standard: "最受歡迎", silver: "高階之選", gold: "終極體驗" };
+          var badge = isPopular
+            ? '<div class="badge">' + planLabels[key] + '</div>'
+            : (ri === 3
+              ? '<div class="badge" style="background:linear-gradient(135deg,#FFD700,#FFA500);color:#1a1a2e">' + planLabels[key] + '</div>'
+              : "");
+          var isUnlimited = p.credits_granted === 0;
+          var perClass = p.avg_price > 0 ? '<div style="font-size:12px;color:var(--green-600);font-weight:600;margin-bottom:6px">HK$' + p.avg_price + '/堂</div>' : "";
+          var features = p.features || [
+            (isUnlimited ? "無限堂數" : "每月 " + p.credits_granted + " Credits"),
+            "優先預約權",
+          ];
+          if (key === "gold") // already in features array
+          if (key === "silver") // features already includes this
+          var goldGuide = key === "gold" ? "" : "";
           var btnClass = isPopular ? "primary" : "outline";
           html2 +=
             '<div class="plan-card' +
@@ -735,12 +768,9 @@
             p.description +
             "</div>" +
             '<ul class="plan-features">' +
-            "<li>每月 " +
-            p.credits_granted +
-            " 堂課程</li>" +
+            perClass +
+            features.map(function(f) { return "<li>" + f + "</li>"; }).join("") +
             goldGuide +
-            "<li>優先預約權</li>" +
-            "<li>取消政策寬鬆</li>" +
             "</ul>" +
             '<button class="plan-btn ' +
             btnClass +
@@ -767,8 +797,8 @@
       }
 
       function doSubscribePlan(type) {
-        var prices = { trial: 399, standard: 699, gold: 1999 };
-        var names = { trial: "試玩會員", standard: "標準會員", gold: "金會員" };
+        var prices = { lite: 299, standard: 799, silver: 1899, gold: 2899 };
+        var names = { lite: "輕量 Pass", standard: "標準 Pass", silver: "銀會員", gold: "金會員" };
         // Redirect to payment page with plan info
         var ref =
           "ZP-" +
