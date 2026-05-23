@@ -718,6 +718,9 @@
         <a class="nav-item" data-tab="audit-log" role="button" tabindex="0"
           ><span class="icon">📋</span><span>審計日誌</span></a
         >
+        <a class="nav-item" data-tab="pricing" role="button" tabindex="0"
+          ><span class="icon">💰</span><span>定價設定</span></a
+        >
 
         <div style="flex: 1"></div>
         <a
@@ -1129,6 +1132,9 @@
             break;
           case "audit-log":
             loadAuditLog();
+            break;
+          case "pricing":
+            loadPricingSettings();
             break;
         }
       }
@@ -3293,6 +3299,70 @@
           main.innerHTML = html;
         } catch(e) {
           main.innerHTML = '<div class="empty" style="padding:40px;text-align:center;color:#ef4444">❌ 載入審計日誌失敗</div>';
+        }
+      }
+
+      // ===== Pricing Settings =====
+      async function loadPricingSettings() {
+        var main = document.getElementById("mainContent");
+        main.innerHTML = '<div class="loading-spinner">載入中...</div>';
+        try {
+          var d = await apiGet("/pricing/admin/pricing");
+          var cats = d.categories || {};
+          var catLabels = { plans: "📋 會籍方案定價", credits: "💳 Credit 消耗設定", packages: "🎟️ 加購點數", general: "⚙️ 一般設定" };
+          var html = '<div class="top-bar"><div><h1>💰 定價設定</h1><div class="sub">管理員可隨時調整價格，修改後即時生效</div></div></div>';
+          html += '<div id="pricing-form">';
+          for (var cat in cats) {
+            html += '<div class="card" style="margin-bottom:16px"><div class="card-header" style="font-weight:700;font-size:15px;padding:12px 16px;border-bottom:1px solid var(--gray-200)">' + (catLabels[cat] || cat) + '</div><div style="padding:12px 16px">';
+            cats[cat].forEach(function(item) {
+              var val = item.value;
+              // Try to detect if JSON array/object
+              var isJson = (val.startsWith('[') || val.startsWith('{')) && (val.endsWith(']') || val.endsWith('}'));
+              if (isJson) {
+                try { val = JSON.stringify(JSON.parse(val), null, 2); } catch(e) {}
+              }
+              var rows = isJson ? 3 : 1;
+              html += '<div style="margin-bottom:12px">' +
+                '<label style="font-size:12px;font-weight:600;color:var(--dark-700);display:block;margin-bottom:4px">' + escape(item.label || item.key) + '</label>' +
+                '<input type="text" id="pcfg-' + escape(item.key) + '" value="' + escape(val) + '" style="width:100%;padding:8px 10px;border:1px solid var(--gray-200);border-radius:6px;font-size:13px;font-family:monospace" data-key="' + escape(item.key) + '" />' +
+                '<div style="font-size:11px;color:#9ca3af;margin-top:2px">' + escape(item.key) + '</div></div>';
+            });
+            html += '</div></div>';
+          }
+          html += '</div>';
+          html += '<button class="btn-primary" style="padding:12px 32px;font-size:14px" onclick="savePricing()">💾 儲存所有更改</button>';
+          main.innerHTML = html;
+        } catch(e) {
+          main.innerHTML = '<div class="empty" style="padding:40px;text-align:center;color:#ef4444">❌ 載入定價設定失敗</div>';
+        }
+      }
+
+      async function savePricing() {
+        var inputs = document.querySelectorAll('[id^="pcfg-"]');
+        var updates = {};
+        inputs.forEach(function(inp) {
+          var key = inp.getAttribute('data-key');
+          var val = inp.value.trim();
+          // Try to parse JSON values back
+          if ((val.startsWith('[') || val.startsWith('{')) && (val.endsWith(']') || val.endsWith('}'))) {
+            try { val = JSON.parse(val); } catch(e) {}
+          }
+          updates[key] = val;
+        });
+        try {
+          var r = await fetch('/api/pricing/admin/pricing', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + getToken() },
+            body: JSON.stringify({ updates: updates })
+          });
+          var d = await r.json();
+          if (d.success) {
+            showToast('✅ 已更新 ' + d.updated + ' 項定價設定', 'success');
+          } else {
+            showToast('❌ ' + (d.error || '儲存失敗'), 'error');
+          }
+        } catch(e) {
+          showToast('❌ 網絡錯誤', 'error');
         }
       }
     </script>

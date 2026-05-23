@@ -141,6 +141,7 @@ app.use("/api/loyalty", require("./routes/referral"));
 app.use("/api/partner", require("./routes/partner"));
 app.use("/api/recommendations", require("./routes/recommendations"));
 app.use("/api/track", require("./routes/recommendations"));
+app.use("/api/pricing", require("./routes/pricing"));
 
 // ===== 健康檢查 =====
 const { ok } = require("./services/response");

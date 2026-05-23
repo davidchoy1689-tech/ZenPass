@@ -75,12 +75,23 @@ const MEMBERSHIP_PLANS = {
 };
 
 // ===== GET /api/memberships/plans — 取得會籍方案 =====
+// 改用 DB pricing_config，管理員可隨時調整
 router.get("/plans", (req, res) => {
-  res.json({ plans: MEMBERSHIP_PLANS });
+  const http = require('http');
+  http.get('http://localhost:' + (process.env.PORT || 3001) + '/api/pricing/plans', function(pr) {
+    let d = '';
+    pr.on('data', c => d += c);
+    pr.on('end', () => {
+      try { res.json(JSON.parse(d)); }
+      catch(e) { res.json({ plans: {} }); }
+    });
+  }).on('error', function() {
+    res.json({ plans: {} });
+  });
 });
 
 // ===== POST /api/memberships/subscribe — 訂閱會籍 =====
-router.post("/subscribe", authenticateToken, (req, res) => {
+router.post("/subscribe", authenticateToken, async (req, res) => {
   try {
     const { type, payment_method } = req.body;
 
@@ -88,7 +99,7 @@ router.post("/subscribe", authenticateToken, (req, res) => {
       return res.status(400).json({ error: "無效的會籍類型" });
     }
 
-    const plan = MEMBERSHIP_PLANS[type];
+    const plan = await getPlanByType(type);
     const db = new Database(DB_PATH);
     db.pragma("foreign_keys = ON");
 

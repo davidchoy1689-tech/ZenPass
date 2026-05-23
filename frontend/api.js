@@ -481,7 +481,7 @@ const memberships = {
   subscribe: (data) => apiRequest("POST", "/memberships/subscribe", data),
   my: () => apiRequest("GET", "/memberships/my"),
   credits: (data) => apiRequest("POST", "/memberships/credits", data),
-  packages: () => apiRequest("GET", "/memberships/credits/packages"),
+  packages: () => apiRequest("GET", "/pricing/packages"),
 };
 
 // ===== 用戶 API =====
