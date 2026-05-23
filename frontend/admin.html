@@ -715,6 +715,9 @@
             ></span
           ></a
         >
+        <a class="nav-item" data-tab="audit-log" role="button" tabindex="0"
+          ><span class="icon">📋</span><span>審計日誌</span></a
+        >
 
         <div style="flex: 1"></div>
         <a
@@ -1123,6 +1126,9 @@
             break;
           case "coach-apps":
             loadCoachAppsTab();
+            break;
+          case "audit-log":
+            loadAuditLog();
             break;
         }
       }
@@ -3260,6 +3266,33 @@
             '<div style="color:#ef4444">❌ 載入失敗: ' +
             escape(e.message) +
             "</div>";
+        }
+      }
+
+      // ===== Audit Log =====
+      async function loadAuditLog() {
+        var main = document.getElementById("mainContent");
+        main.innerHTML = '<div class="loading-spinner">載入中...</div>';
+        try {
+          var d = await apiGet("/admin/audit-log");
+          var entries = d.data?.entries || d.entries || [];
+          var html = '<div class="top-bar"><div><h1>📋 審計日誌</h1><div class="sub">IPO-ready Audit Trail — 共 <strong>' + entries.length + '</strong> 條記錄</div></div></div>' +
+            '<div class="table-wrap"><table><thead><tr><th>時間</th><th>類型</th><th>用戶</th><th>動作</th><th>IP</th></tr></thead><tbody>';
+          if (entries.length === 0) {
+            html += '<tr><td colspan="5" style="text-align:center;padding:40px;color:#9ca3af;font-size:13px">📭 暫無審計記錄</td></tr>';
+          } else {
+            entries.slice(0, 100).forEach(function(e) {
+              html += '<tr><td style="font-size:12px;font-family:monospace;color:#6b7280">' + escape(e.created_at || e.timestamp || '—') + '</td>' +
+                '<td>' + escape(e.action_type || e.type || '—') + '</td>' +
+                '<td>' + escape(e.user_name || e.user_email || e.user_id || '—') + '</td>' +
+                '<td style="font-size:12px;max-width:300px;overflow:hidden;text-overflow:ellipsis">' + escape(e.description || e.action || '—') + '</td>' +
+                '<td style="font-size:11px;color:#9ca3af;font-family:monospace">' + escape(e.ip_address || '—') + '</td></tr>';
+            });
+          }
+          html += '</tbody></table></div>';
+          main.innerHTML = html;
+        } catch(e) {
+          main.innerHTML = '<div class="empty" style="padding:40px;text-align:center;color:#ef4444">❌ 載入審計日誌失敗</div>';
         }
       }
     </script>

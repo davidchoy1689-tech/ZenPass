@@ -277,6 +277,17 @@ router.get("/stats", authenticateToken, requireAdmin, (req, res) => {
           "SELECT COALESCE(SUM(amount), 0) as total FROM bookings WHERE payment_status = 'paid'",
         )
         .get().total,
+      recent_bookings: (function () {
+        var data = [];
+        for (var i = 6; i >= 0; i--) {
+          var day = new Date();
+          day.setDate(day.getDate() - i);
+          var ds = day.toISOString().split('T')[0];
+          var count = db.prepare("SELECT COUNT(*) as c FROM bookings WHERE date(created_at) = ?").get(ds).c;
+          data.push(count);
+        }
+        return data;
+      })(),
     };
 
     db.close();
