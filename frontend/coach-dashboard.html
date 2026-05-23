@@ -1132,19 +1132,7 @@
             function getAuthHeaders() {
               var t = getToken();
               if (!t) {
-                // Auto-set demo token for development
-                localStorage.setItem("zenpass_token", "demo_token_admin");
-                localStorage.setItem("zenpass_name", "David");
-                localStorage.setItem(
-                  "zenpass_user",
-                  JSON.stringify({
-                    name: "David",
-                    email: "david@zenpass.hk",
-                    role: "admin",
-                    credits: 999,
-                  }),
-                );
-                t = "demo_token_admin";
+                return { "Content-Type": "application/json" };
               }
               return {
                 Authorization: "Bearer " + t,
@@ -1290,7 +1278,7 @@
               var totalR = 0, rc = 0;
               coachClasses.forEach(function(cc) { if (cc.rating) { totalR += cc.rating; rc++; } });
               var avgR = rc > 0 ? (totalR / rc).toFixed(1) : '—';
-              var allB = allBookings || [];
+              var allB = typeof allBookings !== 'undefined' ? allBookings : [];
               var canR = allB.length > 0 ? Math.round(allB.filter(function(b){return b.status==='cancelled'}).length / allB.length * 100) : 0;
               document.getElementById("dashStats").innerHTML =
                 '<div class="stat-box"><div class="num">' +
@@ -1498,6 +1486,7 @@
               now.setHours(now.getHours()+1);
               document.getElementById("modalEndTime").value = now.toISOString().slice(0,16);
             }
+            function showInlineScheduleForm(classId, className) {
               var form = document.getElementById("scheduleForm-" + classId);
               if (form) {
                 form.classList.toggle("show");

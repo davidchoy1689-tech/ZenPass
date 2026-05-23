@@ -36,11 +36,6 @@ function validate(schema) {
           }
         }
 
-        if (rule.type === 'uuid' && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)) {
-          errors.push({ field, message: rule.message || `${field} 格式無效` });
-          break;
-        }
-
         if (rule.minLength && typeof value === 'string' && value.length < rule.minLength) {
           errors.push({ field, message: rule.message || `${field} 最少 ${rule.minLength} 個字元` });
           break;
@@ -95,10 +90,10 @@ function validate(schema) {
 const schemas = {
   booking: {
     schedule_id: [
-      { required: true, type: 'uuid', message: '時段 ID 格式無效' },
+      { required: true, type: 'string', message: '時段 ID 為必填' },
     ],
     class_id: [
-      { required: true, type: 'uuid', message: '課程 ID 格式無效' },
+      { required: true, type: 'string', message: '課程 ID 為必填' },
     ],
     payment_type: [
       { required: true, oneOf: ['single', 'credits', 'membership_trial', 'free'], message: '付款方式無效' },
@@ -110,7 +105,7 @@ const schemas = {
 
   payment_confirm: {
     booking_id: [
-      { required: true, type: 'uuid', message: '預約編號無效' },
+      { required: true, type: 'string', message: '預約編號為必填' },
     ],
     payment_method: [
       { required: true, oneOf: ['stripe', 'fps', 'payme'], message: '付款方式無效' },
@@ -120,6 +115,18 @@ const schemas = {
     ],
     amount: [
       { type: 'number', min: 0, max: 99999 },
+    ],
+  },
+
+  fps_payment: {
+    amount: [
+      { required: true, type: 'number', min: 1 },
+    ],
+    booking_id: [
+      { required: false, type: 'string' },
+    ],
+    fps_reference: [
+      { required: true, type: 'string', minLength: 1, maxLength: 255, message: '請提供轉數快參考編號' },
     ],
   },
 
@@ -144,18 +151,6 @@ const schemas = {
     ],
     price_hkd: [
       { required: true, type: 'number', min: 0, max: 99999 },
-    ],
-  },
-
-  fps_payment: {
-    amount: [
-      { required: true, type: 'number', min: 1 },
-    ],
-    booking_id: [
-      { required: false, type: 'uuid' },
-    ],
-    fps_reference: [
-      { required: true, type: 'string', minLength: 1, maxLength: 255, message: '請提供轉數快參考編號' },
     ],
   },
 };
