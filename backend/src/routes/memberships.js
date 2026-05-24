@@ -46,8 +46,8 @@ const MEMBERSHIP_PLANS = {
     popular: false,
   },
   gold: {
-    name: "無限 Pass",
-    name_en: "Unlimited",
+    name: "VIP Pass",
+    name_en: "VIP",
     price_hkd: 1488,
     credits_granted: 186,
     duration_days: 30,
