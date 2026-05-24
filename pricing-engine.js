@@ -19,9 +19,9 @@ window.ZPricing = (function() {
   // 香港營運成本高，折扣不容過大
   // 離峰折扣上限 ~15%，一般時段接近原價，高峰稍貴
   var CREDIT_COST = {
-    basic:   { offPeak: 2, standard: 2, peak: 3 },    // 統一 離峰2cr, 一般2cr, 高峰3cr
-    standard:{ offPeak: 2, standard: 2, peak: 3 },
-    premium: { offPeak: 2, standard: 2, peak: 3 }
+    basic:   { offPeak: 8, standard: 10, peak: 12 },   // $0-99   離峰 $64  一般 $80  高峰 $96
+    standard:{ offPeak: 12, standard: 15, peak: 18 },  // $100-179 離峰 $96  一般 $120 高峰 $144
+    premium: { offPeak: 20, standard: 25, peak: 30 }   // $180+   離峰 $160 一般 $200 高峰 $240
   };
 
   // === Determine time slot type ===
