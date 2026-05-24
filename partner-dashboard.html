@@ -274,7 +274,8 @@
     }
   </style>
   <script src="api.js"></script>
-</head>
+    <script src="app.js"></script>
+  </head>
 <body>
   <!-- Header -->
   <div class="header">
@@ -305,7 +306,8 @@
     <div class="tab active" onclick="switchTab('overview')">📊 總覽</div>
     <div class="tab" onclick="switchTab('bookings')">📋 預約</div>
     <div class="tab" onclick="switchTab('courses')">📚 課程</div>
-    <div class="tab" onclick="switchTab('revenue')">💰 收入</div>
+    <div class="tab" onclick="switchTab("rental")">🕐 出租時段</div>
+    <div class="tab" onclick="switchTab("revenue")">💰 收入</div>
     <div class="tab" onclick="switchTab('settings')">⚙️ 設定</div>
   </div>
 
@@ -328,6 +330,20 @@
 
   <!-- Main Content -->
   <div id="appContent" class="hidden">
+
+    <!-- TAB: Rental -->
+    <div class="section" id="tab-rental">
+      <div class="card">
+        <div class="card-title">🕐 設定出租時段</div>
+        <p style="font-size:13px;color:var(--dark-700);margin-bottom:12px">設定你嘅場地可以俾教練租用嘅時間，教練會經平台預約。</p>
+        <div id="rentalSlots"></div>
+        <button class="btn-primary" onclick="showAddSlotForm()" style="margin-top:12px">➕ 新增時段</button>
+      </div>
+      <div id="rentalBookings" class="card" style="margin-top:12px">
+        <div class="card-title">📋 教練租用記錄</div>
+        <div id="rentalBookingList"><p style="color:var(--dark-700);font-size:13px">載入中...</p></div>
+      </div>
+    </div>
 
     <!-- TAB: Overview -->
     <div class="section active" id="tab-overview">
@@ -605,6 +621,7 @@ function switchTab(name) {
   // Lazy load tab content
   if (name === "bookings") loadBookings();
   if (name === "courses") renderCoursesTab();
+  if (name === "rental") renderRentalTab();
   if (name === "revenue") renderRevenueTab();
   if (name === "settings") renderSettingsTab();
 }
@@ -1135,6 +1152,93 @@ async function submitNewClass() {
 document.getElementById("newClassModal").addEventListener("click", function (e) {
   if (e.target === this) closeNewClassModal();
 });
+
+  // ===== 出租時段 =====
+  async function renderRentalTab() {
+    loadRentalSlots();
+    loadRentalBookings();
+  }
+
+  async function loadRentalSlots() {
+    var venueId = D.venueId || localStorage.getItem("zp_partner_venue_id") || "";
+    if (venueId) localStorage.setItem("zp_partner_venue_id", venueId);
+    
+    document.getElementById("rentalSlots").innerHTML = "
+      <div style="font-size:13px;margin-bottom:10px;color:var(--dark-700)">設定可供教練租用嘅時段：</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+        <select id="slotDay" style="padding:8px;border:1px solid var(--gray-200);border-radius:6px;font-size:13px;flex:1">
+          <option value="1">星期一</option><option value="2">星期二</option><option value="3">星期三</option>
+          <option value="4">星期四</option><option value="5">星期五</option><option value="6">星期六</option><option value="0">星期日</option>
+        </select>
+        <input type="time" id="slotStart" value="09:00" style="padding:8px;border:1px solid var(--gray-200);border-radius:6px;font-size:13px">
+        <span style="padding-top:8px">至</span>
+        <input type="time" id="slotEnd" value="18:00" style="padding:8px;border:1px solid var(--gray-200);border-radius:6px;font-size:13px">
+        <div style="display:flex;gap:4px;align-items:center">
+          <span style="font-size:11px;color:var(--dark-700)">離峰</span>
+          <input type="number" id="slotPriceOff" value="150" style="width:60px;padding:8px;border:1px solid var(--gray-200);border-radius:6px;font-size:13px">
+          <span style="font-size:11px;color:var(--red-500)">高峰</span>
+          <input type="number" id="slotPricePeak" value="250" style="width:60px;padding:8px;border:1px solid var(--gray-200);border-radius:6px;font-size:13px">
+        </div>
+        <button class="btn-primary" onclick="saveSlot()" style="padding:8px 16px;border:none;border-radius:6px;background:var(--orange-600-bg);color:white;cursor:pointer">➕ 新增</button>
+      </div>
+      <div id="savedSlotList"></div>";
+    showSavedSlots();
+  }
+
+  function showSavedSlots() {
+    var saved = JSON.parse(localStorage.getItem("zp_venue_slots") || "[]");
+    var el = document.getElementById("savedSlotList");
+    if (!el) return;
+    if (saved.length === 0) { el.innerHTML = "<p style="font-size:12px;color:var(--gray-300)">未設定任何時段</p>"; return; }
+    var days = ["日","一","二","三","四","五","六"];
+    el.innerHTML = "<div style="font-size:12px;color:var(--dark-700);margin-bottom:6px">已設定時段：</div>";
+    saved.forEach(function(s,i) {
+      el.innerHTML += "<div style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:12px">
+        <span>星期" + days[s.day] + " " + s.start + "-" + s.end + " <strong>$" + s.price + "/hr</strong></span>
+        <button onclick="deleteSlot(" + i + ")" style="border:none;background:none;color:var(--red-500);cursor:pointer">✕</button></div>";
+    });
+  }
+
+  function saveSlot() {
+    var day = document.getElementById("slotDay").value;
+    var start = document.getElementById("slotStart").value;
+    var end = document.getElementById("slotEnd").value;
+    var price = parseInt(document.getElementById("slotPrice").value) || 200;
+    if (!start || !end || start >= end) { showToast("請選擇有效時間", "warning"); return; }
+    var saved = JSON.parse(localStorage.getItem("zp_venue_slots") || "[]");
+    saved.push({ day: parseInt(day), start: start, end: end, price: price });
+    localStorage.setItem("zp_venue_slots", JSON.stringify(saved));
+    showToast("✅ 時段已新增", "success");
+    showSavedSlots();
+  }
+
+  function deleteSlot(i) {
+    var saved = JSON.parse(localStorage.getItem("zp_venue_slots") || "[]");
+    saved.splice(i, 1);
+    localStorage.setItem("zp_venue_slots", JSON.stringify(saved));
+    showSavedSlots();
+  }
+
+  async function loadRentalBookings() {
+    try {
+      var venueId = D.venueId || localStorage.getItem("zp_partner_venue_id") || "";
+      if (!venueId) { document.getElementById("rentalBookingList").innerHTML = "<p style="font-size:13px;color:var(--gray-300)">載入中...</p>"; return; }
+      var r = await fetch("/api/venue-rentals/venue/" + venueId);
+      var d = await r.json();
+      if (!d.success) throw new Error(d.error);
+      var list = d.data || [];
+      var el = document.getElementById("rentalBookingList");
+      if (list.length === 0) { el.innerHTML = "<p style="font-size:13px;color:var(--gray-300)">未有租用記錄</p>"; return; }
+      el.innerHTML = list.map(function(b) {
+        return "<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--gray-100);font-size:12px">
+          <span>👤 " + (b.coach_name||"教練") + "</span>
+          <span>" + (b.start_time ? new Date(b.start_time).toLocaleDateString() : "") + "</span>
+          <span>" + (b.status==="confirmed"?"✅":b.status==="pending"?"⏳":"❌") + "</span></div>";
+      }).join("");
+    } catch(e) {
+      document.getElementById("rentalBookingList").innerHTML = "<p style="font-size:13px;color:var(--red-500)">❌ 載入失敗</p>";
+    }
+  }
 </script>
 </body>
 </html>

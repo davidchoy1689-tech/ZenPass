@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>銀包 — ZenPass 禪流</title>
+  <link rel="stylesheet" href="css/zenpass.css" />
+  <script src="app.js"></script>
+  <style>
+    .balance-card { background: linear-gradient(135deg,#1a1a2e,#2d2d44); border-radius: 16px; padding: 24px; text-align: center; color: #fff; margin: 16px; }
+    .balance-card .label { font-size: 12px; opacity: .6; }
+    .balance-card .amount { font-size: 36px; font-weight: 800; margin: 4px 0; }
+    .balance-card .sub { font-size: 12px; opacity: .5; }
+    .quick-actions { display: flex; gap: 8px; margin: 0 16px 16px; }
+    .quick-actions button { flex: 1; padding: 10px; border: none; border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; }
+    .tx-list { padding: 0 16px; }
+    .tx-item { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--gray-100); font-size: 13px; }
+    .tx-item .type { font-weight: 600; }
+    .tx-item .income { color: var(--green-500); }
+    .tx-item .outcome { color: var(--red-500); }
+    .tx-item .date { font-size: 11px; color: var(--gray-300); }
+    .modal-content input { width: 100%; padding: 10px; border: 1px solid var(--gray-200); border-radius: 8px; font-size: 14px; margin-bottom: 8px; box-sizing: border-box; }
+  </style>
+</head>
+<body>
+  <div class="zen-header">
+    <a href="javascript:history.back()" class="back-btn">←</a>
+    <h1>💰 銀包</h1>
+  </div>
+
+  <div class="balance-card">
+    <div class="label">可用餘額</div>
+    <div class="amount" id="walletBalance">HK$0</div>
+    <div class="sub">可提取至銀行戶口</div>
+  </div>
+
+  <div class="quick-actions">
+    <button style="background:var(--orange-600-bg);color:white" onclick="showWithdraw()">🏦 提現</button>
+    <button style="background:var(--gray-100);color:var(--dark-700)" onclick="showBankForm()">🏧 設定戶口</button>
+  </div>
+
+  <div class="zen-section-title" style="padding:0 16px">📋 交易記錄</div>
+  <div class="tx-list" id="txList"><div class="loading-spinner">載入中...</div></div>
+
+  <!-- Withdraw Modal -->
+  <div class="zen-modal-overlay" id="wdModal">
+    <div class="zen-modal">
+      <div style="font-size:40px;margin-bottom:8px">🏦</div>
+      <div class="modal-title">提現</div>
+      <div id="wdBankInfo" style="font-size:12px;color:var(--dark-700);margin-bottom:8px"></div>
+      <input type="number" id="wdAmount" placeholder="輸入提取金額" min="1" />
+      <div style="font-size:11px;color:var(--gray-300);text-align:left;margin-bottom:8px">每次提現行政費 HK$1</div>
+      <button class="zen-btn zen-btn-primary zen-btn-block" onclick="submitWithdraw()">確認提現</button>
+      <button class="zen-btn zen-btn-secondary zen-btn-block" onclick="closeModal('wdModal')">取消</button>
+    </div>
+  </div>
+
+  <!-- Bank Form Modal -->
+  <div class="zen-modal-overlay" id="bankModal">
+    <div class="zen-modal" style="text-align:left">
+      <div class="modal-title" style="text-align:center">🏧 銀行戶口</div>
+      <div class="zen-form-group"><label>銀行名稱</label><input type="text" id="f-bank-name" placeholder="例如：HSBC" /></div>
+      <div class="zen-form-group"><label>戶口號碼</label><input type="text" id="f-bank-account" placeholder="123456789" /></div>
+      <div class="zen-form-group"><label>銀行代碼（選填）</label><input type="text" id="f-bank-code" placeholder="例如：004" /></div>
+      <button class="zen-btn zen-btn-primary zen-btn-block" onclick="saveBank()">💾 儲存</button>
+      <button class="zen-btn zen-btn-secondary zen-btn-block" onclick="closeModal('bankModal')">取消</button>
+    </div>
+  </div>
+
+  <script>
+    async function loadWallet() {
+      try {
+        var r = await fetch('/api/wallet/balance', { headers: authHeaders() });
+        var d = await r.json();
+        document.getElementById('walletBalance').textContent = 'HK$' + (d.balance || 0).toFixed(2);
+        if (d.bank) {
+          document.getElementById('wdBankInfo').innerHTML = '提取至：' + d.bank.name + ' (' + d.bank.account + ')';
+        } else {
+          document.getElementById('wdBankInfo').innerHTML = '⚠️ 未設定銀行戶口';
+        }
+      } catch(e) {}
+      
+      try {
+        var r2 = await fetch('/api/wallet/transactions', { headers: authHeaders() });
+        var txs = await r2.json();
+        var el = document.getElementById('txList');
+        if (txs.length === 0) { el.innerHTML = '<div class="zen-empty"><div class="empty-icon">💰</div><div class="empty-title">暫無交易</div></div>'; return; }
+        var icons = { income:'💰', rental_payment:'🏟️', withdrawal:'🏦', refund:'🔄' };
+        el.innerHTML = txs.map(function(t) {
+          var isIn = t.type === 'income';
+          return '<div class="tx-item"><div><div class="type">' + (icons[t.type]||'📋') + ' ' + t.reference + '</div><div class="date">' + (t.created_at || '') + '</div></div><div class="' + (isIn?'income':'outcome') + '">' + (isIn?'+':'-') + '$' + Math.abs(t.amount).toFixed(2) + (t.fee ? ' (費$' + t.fee + ')' : '') + '</div></div>';
+        }).join('');
+      } catch(e) {}
+    }
+    
+    function showWithdraw() { document.getElementById('wdModal').classList.add('show'); }
+    function showBankForm() {
+      document.getElementById('f-bank-name').value = '';
+      document.getElementById('f-bank-account').value = '';
+      document.getElementById('f-bank-code').value = '';
+      document.getElementById('bankModal').classList.add('show');
+    }
+    function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+    
+    async function submitWithdraw() {
+      var amt = parseFloat(document.getElementById('wdAmount').value);
+      if (!amt || amt <= 0) { ZenPass.toast('請輸入有效金額', 'warning'); return; }
+      if (!confirm('確認提現 HK$' + amt.toFixed(2) + '？（行政費 HK$1）')) return;
+      try {
+        var r = await fetch('/api/wallet/withdraw', { method:'POST', headers:authHeaders({ 'Content-Type':'application/json' }), body:JSON.stringify({ amount:amt }) });
+        var d = await r.json();
+        if (d.success) { ZenPass.toast('✅ 提現申請成功！扣除 HK$1 行政費', 'success'); closeModal('wdModal'); loadWallet(); }
+        else { ZenPass.toast('❌ ' + (d.error || '失敗'), 'error'); }
+      } catch(e) { ZenPass.toast('❌ 失敗', 'error'); }
+    }
+    
+    async function saveBank() {
+      var data = { bank_name: document.getElementById('f-bank-name').value.trim(), bank_account: document.getElementById('f-bank-account').value.trim(), bank_code: document.getElementById('f-bank-code').value.trim() };
+      if (!data.bank_name || !data.bank_account) { ZenPass.toast('請填寫銀行名稱同戶口號碼', 'warning'); return; }
+      try {
+        var r = await fetch('/api/wallet/bank', { method:'POST', headers:authHeaders({ 'Content-Type':'application/json' }), body:JSON.stringify(data) });
+        var d = await r.json();
+        if (d.success) { ZenPass.toast('✅ 銀行戶口已設定', 'success'); closeModal('bankModal'); loadWallet(); }
+        else { ZenPass.toast('❌ ' + (d.error || '失敗'), 'error'); }
+      } catch(e) { ZenPass.toast('❌ 失敗', 'error'); }
+    }
+    
+    function authHeaders(extra) { var t = localStorage.getItem('zenpass_token') || ''; return Object.assign({ Authorization:'Bearer ' + t }, extra || {}); }
+    
+    loadWallet();
+  </script>
+</body>
+</html>

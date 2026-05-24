@@ -18,24 +18,33 @@
     <link rel="stylesheet" href="assets/index.css" />
     <link rel="stylesheet" href="css/zenpass.css" />
     <script>
-// Fix PWA manifest path for localhost vs GitHub Pages
-(function(){
-  var l = document.createElement('link');
-  l.rel = 'manifest';
-  l.href = window.location.hostname.indexOf('github.io') > -1 ? '/ZenPass/manifest.json' : '/manifest.json';
-  document.head.appendChild(l);
-})();
-</script>
+      // Fix PWA manifest path for localhost vs GitHub Pages
+      (function () {
+        var l = document.createElement("link");
+        l.rel = "manifest";
+        l.href =
+          window.location.hostname.indexOf("github.io") > -1
+            ? "/ZenPass/manifest.json"
+            : "/manifest.json";
+        document.head.appendChild(l);
+      })();
+    </script>
     <!-- Google Analytics 4 (placeholder — 註冊 GA 後替換 G-XXXXXXXX) -->
     <!-- TODO: 註冊 Google Analytics 後，將 G-XXXXXXXX 替換為實際的 Measurement ID -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXX"></script>
+    <script
+      async
+      src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXX"
+    ></script>
     <script>
       window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-      gtag('config', 'G-XXXXXXXX');
+      function gtag() {
+        dataLayer.push(arguments);
+      }
+      gtag("js", new Date());
+      gtag("config", "G-XXXXXXXX");
     </script>
 
+    <script src="app.js"></script>
     <link rel="apple-touch-icon" href="icons/icon-192.png" />
     <link rel="apple-touch-icon" sizes="256x256" href="icons/icon-192.png" />
     <link rel="apple-touch-icon" sizes="512x512" href="icons/icon-512.png" />
@@ -104,9 +113,15 @@
     >
     <style>
       @keyframes heroShift {
-        0% { background-position: 0% 50%; }
-        50% { background-position: 100% 50%; }
-        100% { background-position: 0% 50%; }
+        0% {
+          background-position: 0% 50%;
+        }
+        50% {
+          background-position: 100% 50%;
+        }
+        100% {
+          background-position: 0% 50%;
+        }
       }
       .hero {
         animation: heroShift 8s ease infinite;
@@ -114,8 +129,8 @@
       }
       .home-card {
         border-radius: 14px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-        border: 1px solid rgba(0,0,0,0.04);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        border: 1px solid rgba(0, 0, 0, 0.04);
       }
       .section {
         padding: 12px 16px;
@@ -124,8 +139,8 @@
         background: var(--white);
         border-radius: 14px;
         overflow: hidden;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-        border: 1px solid rgba(0,0,0,0.04);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        border: 1px solid rgba(0, 0, 0, 0.04);
         cursor: pointer;
       }
     </style>
@@ -145,38 +160,38 @@
       </div>
       <h1>解鎖全城<br />運動體驗</h1>
       <p>超過 100+ 課程・頂尖教練・自由預約</p>
-      <div style="display:flex;gap:8px;justify-content:center;margin-top:12px">
-        <a href="explore.html" style="display:inline-flex;align-items:center;gap:4px;padding:10px 24px;border-radius:25px;background:var(--white);color:var(--orange-600-bg);text-decoration:none;font-size:14px;font-weight:700">🔍 探索課程</a>
+      <div class="zen-flex-center" style="gap: 8px; margin-top: 12px">
+        <a
+          href="explore.html"
+          class="zen-btn"
+          style="
+            background: var(--white);
+            color: var(--orange-600-bg);
+            border-radius: 25px;
+            padding: 10px 24px;
+          "
+          >🔍 探索課程</a
+        >
       </div>
     </header>
 
-    <div style="display:flex;gap:8px;margin:0 16px 12px;overflow-x:auto;scrollbar-width:none;padding:2px 0">
-      <a href="explore.html?category=瑜伽" style="flex-shrink:0;padding:6px 14px;border-radius:20px;background:rgba(255,255,255,0.9);font-size:13px;text-decoration:none;color:var(--dark-900);font-weight:500">🧘 瑜伽</a>
-      <a href="explore.html?category=健身" style="flex-shrink:0;padding:6px 14px;border-radius:20px;background:rgba(255,255,255,0.9);font-size:13px;text-decoration:none;color:var(--dark-900);font-weight:500">💪 健身</a>
-      <a href="explore.html?category=新興運動" style="flex-shrink:0;padding:6px 14px;border-radius:20px;background:rgba(255,255,255,0.9);font-size:13px;text-decoration:none;color:var(--dark-900);font-weight:500">🎯 新興運動</a>
-      <a href="explore.html?category=瑜伽" style="flex-shrink:0;padding:6px 14px;border-radius:20px;background:rgba(255,255,255,0.9);font-size:13px;text-decoration:none;color:var(--dark-900);font-weight:500">🧘 瑜伽</a>
-      <a href="explore.html?category=舞蹈" style="flex-shrink:0;padding:6px 14px;border-radius:20px;background:rgba(255,255,255,0.9);font-size:13px;text-decoration:none;color:var(--dark-900);font-weight:500">💃 舞蹈</a>
-      <a href="explore.html?category=冥想" style="flex-shrink:0;padding:6px 14px;border-radius:20px;background:rgba(255,255,255,0.9);font-size:13px;text-decoration:none;color:var(--dark-900);font-weight:500">🧠 冥想</a>
+    <div class="zen-pills" style="margin: 0 16px 12px">
+      <a href="explore.html?category=瑜伽" class="zen-pill">🧘 瑜伽</a>
+      <a href="explore.html?category=健身" class="zen-pill">💪 健身</a>
+      <a href="explore.html?category=新興運動" class="zen-pill">🎯 新興運動</a>
+      <a href="explore.html?category=舞蹈" class="zen-pill">💃 舞蹈</a>
+      <a href="explore.html?category=冥想" class="zen-pill">🧠 冥想</a>
+      <a href="explore.html?category=伸展" class="zen-pill">🤸 伸展</a>
+      <a href="explore.html?category=北歐式健步行" class="zen-pill"
+        >🚶 北歐行</a
+      >
     </div>
 
-    <div
-      class="daily-tip"
-      id="dailyTip"
-      style="
-        background: linear-gradient(135deg, #1a1a2e, #2d2d44);
-        border-radius: 16px;
-        padding: 16px 18px;
-        margin: 0 16px 12px;
-        display: flex;
-        align-items: center;
-        gap: 14px;
-        font-size: 14px;
-        color: #fff;
-        box-shadow: 0 4px 16px rgba(0,0,0,0.1);
-      "
-    >
+    <div class="zen-card-gradient" id="dailyTip" style="margin: 0 16px 12px">
       <div
+        class="g-icon"
         style="
+          font-size: 22px;
           width: 44px;
           height: 44px;
           border-radius: 50%;
@@ -184,17 +199,19 @@
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 22px;
           flex-shrink: 0;
         "
       >
         💡
       </div>
-      <div style="flex: 1; min-width: 0">
+      <div class="g-body">
         <div style="font-size: 11px; opacity: 0.6; margin-bottom: 2px">
           今日小貼士
         </div>
-        <div style="font-size: 14px; font-weight: 500; line-height: 1.5" id="tipText"></div>
+        <div
+          style="font-size: 14px; font-weight: 500; line-height: 1.5"
+          id="tipText"
+        ></div>
       </div>
       <button
         onclick="refreshTip()"
@@ -202,8 +219,8 @@
           width: 36px;
           height: 36px;
           border-radius: 50%;
-          background: rgba(255,255,255,0.1);
-          border: 1px solid rgba(255,255,255,0.15);
+          background: rgba(255, 255, 255, 0.1);
+          border: 1px solid rgba(255, 255, 255, 0.15);
           font-size: 16px;
           cursor: pointer;
           display: flex;
@@ -212,8 +229,8 @@
           flex-shrink: 0;
           transition: background 0.2s;
         "
-        onmouseover="this.style.background='rgba(255,255,255,0.2)'"
-        onmouseout="this.style.background='rgba(255,255,255,0.1)'"
+        onmouseover="this.style.background = 'rgba(255,255,255,0.2)'"
+        onmouseout="this.style.background = 'rgba(255,255,255,0.1)'"
         aria-label="換一個小貼士"
       >
         🔄
@@ -222,11 +239,15 @@
     <script>
       var SEASON_TIP = "";
       var month = new Date().getMonth();
-      if (month >= 2 && month <= 4) SEASON_TIP = "🌸 春天回暖，行山同户外瑜伽最適合啦！";
-      else if (month >= 5 && month <= 7) SEASON_TIP = "🏖️ 夏天咁熱，室內瑜伽、游水消暑又健康！";
-      else if (month >= 8 && month <= 10) SEASON_TIP = "🍂 秋高氣爽，遠足露營單車好時節！";
+      if (month >= 2 && month <= 4)
+        SEASON_TIP = "🌸 春天回暖，行山同户外瑜伽最適合啦！";
+      else if (month >= 5 && month <= 7)
+        SEASON_TIP = "🏖️ 夏天咁熱，室內瑜伽、游水消暑又健康！";
+      else if (month >= 8 && month <= 10)
+        SEASON_TIP = "🍂 秋高氣爽，遠足露營單車好時節！";
       else SEASON_TIP = "🎄 冬天室內健身、瑜伽、冥想保暖又修身！";
-      var TIPS = [SEASON_TIP,
+      var TIPS = [
+        SEASON_TIP,
         "每日運動 30 分鐘，提升心肺功能兼減壓！🏃",
         "上堂前記得帶水樽同毛巾，保持水分補充足夠 💧",
         "拉筋可以預防受傷，上堂前後都做 5 分鐘！🤸",
@@ -245,19 +266,33 @@
       function subscribeNewsletter() {
         var email = document.getElementById("newsletter-email").value.trim();
         var el = document.getElementById("newsletter-result");
-        if (!email || !email.includes("@")) { el.style.color="#ef4444"; el.textContent="請輸入有效電郵"; return; }
+        if (!email || !email.includes("@")) {
+          el.style.color = "#ef4444";
+          el.textContent = "請輸入有效電郵";
+          return;
+        }
         // Save subscription
         var interests = [];
-        document.querySelectorAll(".nl-interest:checked").forEach(function(cb){ interests.push(cb.value); });
+        document
+          .querySelectorAll(".nl-interest:checked")
+          .forEach(function (cb) {
+            interests.push(cb.value);
+          });
         localStorage.setItem("zenpass_subscribed", "true");
         localStorage.setItem("zenpass_sub_email", email);
-        localStorage.setItem("zenpass_sub_interests", JSON.stringify(interests));
+        localStorage.setItem(
+          "zenpass_sub_interests",
+          JSON.stringify(interests),
+        );
         // Show subscribed state
         document.getElementById("newsletter-form").style.display = "none";
         document.getElementById("nl-subscribed").style.display = "block";
         document.getElementById("nl-email-display").textContent = "📧 " + email;
-        if (interests.length > 0) document.getElementById("nl-email-display").textContent += " · " + interests.join(" ");
-        el.style.color="#059669"; el.textContent="✅ 訂閱成功！";
+        if (interests.length > 0)
+          document.getElementById("nl-email-display").textContent +=
+            " · " + interests.join(" ");
+        el.style.color = "#059669";
+        el.textContent = "✅ 訂閱成功！";
       }
       function unsubscribeNewsletter() {
         localStorage.removeItem("zenpass_subscribed");
@@ -265,10 +300,12 @@
         localStorage.removeItem("zenpass_sub_interests");
         document.getElementById("newsletter-form").style.display = "block";
         document.getElementById("nl-subscribed").style.display = "none";
-        document.getElementById("newsletter-result").style.color="#6b7280";
-        document.getElementById("newsletter-result").textContent="已取消訂閱";
+        document.getElementById("newsletter-result").style.color = "#6b7280";
+        document.getElementById("newsletter-result").textContent = "已取消訂閱";
       }
-      function showToast(m,t){var d=document.createElement("div");d.style.cssText="position:fixed;bottom:80px;left:50%;transform:translateX(-50%);padding:10px 18px;border-radius:10px;font-size:13px;font-weight:500;z-index:999;background:"+(t==="success"?"#ecfdf5":"#fef2f2")+";color:"+(t==="success"?"#059669":"#ef4444")+";box-shadow:0 2px 8px rgba(0,0,0,0.12)";d.textContent=m;document.body.appendChild(d);setTimeout(function(){d.remove()},2000);}
+      function showToast(m, t) {
+        window.ZenPass && ZenPass.toast(m, t);
+      }
       function refreshTip() {
         var el = document.getElementById("tipText");
         if (el) el.textContent = TIPS[Math.floor(Math.random() * TIPS.length)];
@@ -287,20 +324,20 @@
     </div>
 
     <!-- Platform Stats -->
-    <div style="display:flex;gap:8px;margin:0 16px 12px;padding:14px 12px;background:var(--white);border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,0.06)">
-      <div style="flex:1;text-align:center">
-        <div style="font-size:22px;font-weight:800;color:var(--orange-700)">110+</div>
-        <div style="font-size:11px;color:var(--dark-700)">課程</div>
+    <div class="zen-stats" style="margin: 0 16px 12px">
+      <div class="zen-stat">
+        <div class="zen-stat-value">110+</div>
+        <div class="zen-stat-label">課程</div>
       </div>
-      <div style="width:1px;background:var(--gray-200)"></div>
-      <div style="flex:1;text-align:center">
-        <div style="font-size:22px;font-weight:800;color:var(--orange-700)">32</div>
-        <div style="font-size:11px;color:var(--dark-700)">運動分類</div>
+      <div class="zen-stat-divider"></div>
+      <div class="zen-stat">
+        <div class="zen-stat-value">32</div>
+        <div class="zen-stat-label">運動分類</div>
       </div>
-      <div style="width:1px;background:var(--gray-200)"></div>
-      <div style="flex:1;text-align:center">
-        <div style="font-size:22px;font-weight:800;color:var(--orange-700)">5+</div>
-        <div style="font-size:11px;color:var(--dark-700)">教練</div>
+      <div class="zen-stat-divider"></div>
+      <div class="zen-stat">
+        <div class="zen-stat-value">5+</div>
+        <div class="zen-stat-label">教練</div>
       </div>
     </div>
 
@@ -319,7 +356,7 @@
             display: flex;
             align-items: center;
             gap: 14px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
           "
         >
           <div style="font-size: 32px">🎓</div>
@@ -342,7 +379,7 @@
             display: flex;
             align-items: center;
             gap: 14px;
-            box-shadow: 0 2px 8px rgba(255,107,53,0.2);
+            box-shadow: 0 2px 8px rgba(255, 107, 53, 0.2);
           "
         >
           <div style="font-size: 32px">🏋️</div>
@@ -358,12 +395,33 @@
 
     <!-- Partners -->
     <div class="section">
-      <div class="section-title" style="font-size:14px;opacity:0.7;justify-content:center">
+      <div
+        class="section-title"
+        style="font-size: 14px; opacity: 0.7; justify-content: center"
+      >
         <span>合作夥伴</span>
       </div>
-      <div style="display:flex;justify-content:center;gap:24px;align-items:center;padding:8px 0">
-        <a href="https://hklfcl.com" target="_blank" style="font-size:13px;color:var(--dark-700);text-decoration:none;font-weight:600">🏛️ HK LFCL</a>
-        <span style="font-size:13px;color:var(--dark-700)">🤝 ZenPass</span>
+      <div
+        style="
+          display: flex;
+          justify-content: center;
+          gap: 24px;
+          align-items: center;
+          padding: 8px 0;
+        "
+      >
+        <a
+          href="https://hklfcl.com"
+          target="_blank"
+          style="
+            font-size: 13px;
+            color: var(--dark-700);
+            text-decoration: none;
+            font-weight: 600;
+          "
+          >🏛️ HK LFCL</a
+        >
+        <span style="font-size: 13px; color: var(--dark-700)">🤝 ZenPass</span>
       </div>
     </div>
 
@@ -413,7 +471,7 @@
           border-radius: 14px;
           padding: 18px;
           text-decoration: none;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         "
       >
         <div style="font-size: 32px">🏋️</div>
@@ -448,23 +506,29 @@
     </div>
 
     <main id="main-content">
-      <div
-        class="section"
-<!-- App Download CTA -->
-    <div class="section" style="background:linear-gradient(135deg,#1a1a2e,#2d2d44);border-radius:14px;margin:0 16px 16px;padding:18px;display:flex;align-items:center;gap:12px;box-shadow:0 2px 8px rgba(0,0,0,0.1)">
-      <div style="font-size:32px">📱</div>
-      <div style="flex:1">
-        <div style="font-weight:700;font-size:15px;color:white">即將推出 ZenPass App</div>
-        <div style="font-size:12px;color:rgba(255,255,255,0.6);margin-top:2px">iOS · Android · 一個Pass通行全城</div>
+      <!-- App Download CTA -->
+      <div class="section">
+        <div class="zen-card-gradient" style="margin: 0 16px 16px">
+          <div style="font-size: 32px">📱</div>
+          <div style="flex: 1">
+            <div style="font-weight: 700; font-size: 15px; color: white">
+              即將推出 ZenPass App
+            </div>
+            <div
+              style="
+                font-size: 12px;
+                color: rgba(255, 255, 255, 0.6);
+                margin-top: 2px;
+              "
+            >
+              iOS · Android · 一個Pass通行全城
+            </div>
+          </div>
+          <div class="g-action">關注進度 →</div>
+        </div>
       </div>
-      <div style="background:var(--orange-600-bg);color:white;padding:8px 16px;border-radius:20px;font-size:12px;font-weight:600;white-space:nowrap">關注進度 →</div>
-    </div>
 
-    <div
-        id="categories-section"
-        role="region"
-        aria-label="運動分類"
-      >
+      <div id="categories-section" role="region" aria-label="運動分類">
         <div class="section-title">
           <span>運動分類</span>
         </div>
@@ -475,52 +539,303 @@
 
       <!-- Featured Coaches -->
       <div class="section">
-        <div class="section-title" style="display:flex;justify-content:space-between;align-items:center">
+        <div
+          class="section-title"
+          style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+          "
+        >
           <span>🏆 星級教練</span>
-          <a href="coaches.html" style="font-size:12px;color:var(--orange-700);text-decoration:none">查看全部 →</a>
+          <a
+            href="coaches.html"
+            style="
+              font-size: 12px;
+              color: var(--orange-700);
+              text-decoration: none;
+            "
+            >查看全部 →</a
+          >
         </div>
-        <div style="display:flex;gap:10px;overflow-x:auto;scrollbar-width:none;padding-bottom:4px">
-          <a href="coach-profile.html?name=靜儀導師" style="display:block;flex:0 0 150px;padding:12px;background:var(--white);border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,0.08);text-align:center;text-decoration:none;color:inherit">
-            <div style="width:50px;height:50px;border-radius:50%;background:linear-gradient(135deg,#667eea,#764ba2);display:flex;align-items:center;justify-content:center;font-size:22px;color:white;margin:0 auto 6px">🧘</div>
-            <div style="font-size:13px;font-weight:600">靜儀導師</div>
-            <div style="font-size:10px;color:var(--dark-700);margin:1px 0">瑜伽 · 冥想</div>
-            <div style="font-size:11px;color:var(--orange-700)">⭐ 4.9</div>
-            <div style="font-size:10px;color:var(--green-500,#059669);margin-top:4px">👤 128 學生</div>
+        <div
+          style="
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+            scrollbar-width: none;
+            padding-bottom: 4px;
+          "
+        >
+          <a
+            href="coach-profile.html?name=靜儀導師"
+            style="
+              display: block;
+              flex: 0 0 150px;
+              padding: 12px;
+              background: var(--white);
+              border-radius: 12px;
+              box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+              text-align: center;
+              text-decoration: none;
+              color: inherit;
+            "
+          >
+            <div
+              style="
+                width: 50px;
+                height: 50px;
+                border-radius: 50%;
+                background: linear-gradient(135deg, #667eea, #764ba2);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 22px;
+                color: white;
+                margin: 0 auto 6px;
+              "
+            >
+              🧘
+            </div>
+            <div style="font-size: 13px; font-weight: 600">靜儀導師</div>
+            <div style="font-size: 10px; color: var(--dark-700); margin: 1px 0">
+              瑜伽 · 冥想
+            </div>
+            <div style="font-size: 11px; color: var(--orange-700)">⭐ 4.9</div>
+            <div
+              style="
+                font-size: 10px;
+                color: var(--green-500, #059669);
+                margin-top: 4px;
+              "
+            >
+              👤 128 學生
+            </div>
           </a>
-          <a href="coach-profile.html?name=Alex教練" style="display:block;flex:0 0 150px;padding:12px;background:var(--white);border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,0.08);text-align:center;text-decoration:none;color:inherit">
-            <div style="width:50px;height:50px;border-radius:50%;background:linear-gradient(135deg,#f093fb,#f5576c);display:flex;align-items:center;justify-content:center;font-size:22px;color:white;margin:0 auto 6px">💪</div>
-            <div style="font-size:13px;font-weight:600">Alex教練</div>
-            <div style="font-size:10px;color:var(--dark-700);margin:1px 0">健身 · TRX · 拳擊</div>
-            <div style="font-size:11px;color:var(--orange-700)">⭐ 4.8</div>
-            <div style="font-size:10px;color:var(--green-500,#059669);margin-top:4px">👤 205 學生</div>
+          <a
+            href="coach-profile.html?name=Alex教練"
+            style="
+              display: block;
+              flex: 0 0 150px;
+              padding: 12px;
+              background: var(--white);
+              border-radius: 12px;
+              box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+              text-align: center;
+              text-decoration: none;
+              color: inherit;
+            "
+          >
+            <div
+              style="
+                width: 50px;
+                height: 50px;
+                border-radius: 50%;
+                background: linear-gradient(135deg, #f093fb, #f5576c);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 22px;
+                color: white;
+                margin: 0 auto 6px;
+              "
+            >
+              💪
+            </div>
+            <div style="font-size: 13px; font-weight: 600">Alex教練</div>
+            <div style="font-size: 10px; color: var(--dark-700); margin: 1px 0">
+              健身 · TRX · 拳擊
+            </div>
+            <div style="font-size: 11px; color: var(--orange-700)">⭐ 4.8</div>
+            <div
+              style="
+                font-size: 10px;
+                color: var(--green-500, #059669);
+                margin-top: 4px;
+              "
+            >
+              👤 205 學生
+            </div>
           </a>
-          <a href="coach-profile.html?name=Ken教練" style="display:block;flex:0 0 150px;padding:12px;background:var(--white);border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,0.08);text-align:center;text-decoration:none;color:inherit">
-            <div style="width:50px;height:50px;border-radius:50%;background:linear-gradient(135deg,#43e97b,#38f9d7);display:flex;align-items:center;justify-content:center;font-size:22px;color:white;margin:0 auto 6px">🎯</div>
-            <div style="font-size:13px;font-weight:600">Ken教練</div>
-            <div style="font-size:10px;color:var(--dark-700);margin:1px 0">新興運動 · 球類</div>
-            <div style="font-size:11px;color:var(--orange-700)">⭐ 4.7</div>
-            <div style="font-size:10px;color:var(--green-500,#059669);margin-top:4px">👤 89 學生</div>
+          <a
+            href="coach-profile.html?name=Ken教練"
+            style="
+              display: block;
+              flex: 0 0 150px;
+              padding: 12px;
+              background: var(--white);
+              border-radius: 12px;
+              box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+              text-align: center;
+              text-decoration: none;
+              color: inherit;
+            "
+          >
+            <div
+              style="
+                width: 50px;
+                height: 50px;
+                border-radius: 50%;
+                background: linear-gradient(135deg, #43e97b, #38f9d7);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 22px;
+                color: white;
+                margin: 0 auto 6px;
+              "
+            >
+              🎯
+            </div>
+            <div style="font-size: 13px; font-weight: 600">Ken教練</div>
+            <div style="font-size: 10px; color: var(--dark-700); margin: 1px 0">
+              新興運動 · 球類
+            </div>
+            <div style="font-size: 11px; color: var(--orange-700)">⭐ 4.7</div>
+            <div
+              style="
+                font-size: 10px;
+                color: var(--green-500, #059669);
+                margin-top: 4px;
+              "
+            >
+              👤 89 學生
+            </div>
           </a>
-          <a href="coach-profile.html?name=Grace導師" style="display:block;flex:0 0 150px;padding:12px;background:var(--white);border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,0.08);text-align:center;text-decoration:none;color:inherit">
-            <div style="width:50px;height:50px;border-radius:50%;background:linear-gradient(135deg,#ffecd2,#fcb69f);display:flex;align-items:center;justify-content:center;font-size:22px;color:white;margin:0 auto 6px">💃</div>
-            <div style="font-size:13px;font-weight:600">Grace導師</div>
-            <div style="font-size:10px;color:var(--dark-700);margin:1px 0">舞蹈 · 空中瑜伽</div>
-            <div style="font-size:11px;color:var(--orange-700)">⭐ 4.9</div>
-            <div style="font-size:10px;color:var(--green-500,#059669);margin-top:4px">👤 156 學生</div>
+          <a
+            href="coach-profile.html?name=Grace導師"
+            style="
+              display: block;
+              flex: 0 0 150px;
+              padding: 12px;
+              background: var(--white);
+              border-radius: 12px;
+              box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+              text-align: center;
+              text-decoration: none;
+              color: inherit;
+            "
+          >
+            <div
+              style="
+                width: 50px;
+                height: 50px;
+                border-radius: 50%;
+                background: linear-gradient(135deg, #ffecd2, #fcb69f);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 22px;
+                color: white;
+                margin: 0 auto 6px;
+              "
+            >
+              💃
+            </div>
+            <div style="font-size: 13px; font-weight: 600">Grace導師</div>
+            <div style="font-size: 10px; color: var(--dark-700); margin: 1px 0">
+              舞蹈 · 空中瑜伽
+            </div>
+            <div style="font-size: 11px; color: var(--orange-700)">⭐ 4.9</div>
+            <div
+              style="
+                font-size: 10px;
+                color: var(--green-500, #059669);
+                margin-top: 4px;
+              "
+            >
+              👤 156 學生
+            </div>
           </a>
-          <a href="coach-profile.html?name=慧心導師" style="display:block;flex:0 0 150px;padding:12px;background:var(--white);border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,0.08);text-align:center;text-decoration:none;color:inherit">
-            <div style="width:50px;height:50px;border-radius:50%;background:linear-gradient(135deg,#a18cd1,#fbc2eb);display:flex;align-items:center;justify-content:center;font-size:22px;color:white;margin:0 auto 6px">🧠</div>
-            <div style="font-size:13px;font-weight:600">慧心導師</div>
-            <div style="font-size:10px;color:var(--dark-700);margin:1px 0">冥想 · 太極</div>
-            <div style="font-size:11px;color:var(--orange-700)">⭐ 4.8</div>
-            <div style="font-size:10px;color:var(--green-500,#059669);margin-top:4px">👤 97 學生</div>
+          <a
+            href="coach-profile.html?name=慧心導師"
+            style="
+              display: block;
+              flex: 0 0 150px;
+              padding: 12px;
+              background: var(--white);
+              border-radius: 12px;
+              box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+              text-align: center;
+              text-decoration: none;
+              color: inherit;
+            "
+          >
+            <div
+              style="
+                width: 50px;
+                height: 50px;
+                border-radius: 50%;
+                background: linear-gradient(135deg, #a18cd1, #fbc2eb);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 22px;
+                color: white;
+                margin: 0 auto 6px;
+              "
+            >
+              🧠
+            </div>
+            <div style="font-size: 13px; font-weight: 600">慧心導師</div>
+            <div style="font-size: 10px; color: var(--dark-700); margin: 1px 0">
+              冥想 · 太極
+            </div>
+            <div style="font-size: 11px; color: var(--orange-700)">⭐ 4.8</div>
+            <div
+              style="
+                font-size: 10px;
+                color: var(--green-500, #059669);
+                margin-top: 4px;
+              "
+            >
+              👤 97 學生
+            </div>
           </a>
-          <a href="coach-profile.html?name=陽光教練" style="display:block;flex:0 0 150px;padding:12px;background:var(--white);border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,0.08);text-align:center;text-decoration:none;color:inherit">
-            <div style="width:50px;height:50px;border-radius:50%;background:linear-gradient(135deg,#4facfe,#00f2fe);display:flex;align-items:center;justify-content:center;font-size:22px;color:white;margin:0 auto 6px">🏃</div>
-            <div style="font-size:13px;font-weight:600">陽光教練</div>
-            <div style="font-size:10px;color:var(--dark-700);margin:1px 0">跑步 · 戶外</div>
-            <div style="font-size:11px;color:var(--orange-700)">⭐ 4.7</div>
-            <div style="font-size:10px;color:var(--green-500,#059669);margin-top:4px">👤 134 學生</div>
+          <a
+            href="coach-profile.html?name=陽光教練"
+            style="
+              display: block;
+              flex: 0 0 150px;
+              padding: 12px;
+              background: var(--white);
+              border-radius: 12px;
+              box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+              text-align: center;
+              text-decoration: none;
+              color: inherit;
+            "
+          >
+            <div
+              style="
+                width: 50px;
+                height: 50px;
+                border-radius: 50%;
+                background: linear-gradient(135deg, #4facfe, #00f2fe);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 22px;
+                color: white;
+                margin: 0 auto 6px;
+              "
+            >
+              🏃
+            </div>
+            <div style="font-size: 13px; font-weight: 600">陽光教練</div>
+            <div style="font-size: 10px; color: var(--dark-700); margin: 1px 0">
+              跑步 · 戶外
+            </div>
+            <div style="font-size: 11px; color: var(--orange-700)">⭐ 4.7</div>
+            <div
+              style="
+                font-size: 10px;
+                color: var(--green-500, #059669);
+                margin-top: 4px;
+              "
+            >
+              👤 134 學生
+            </div>
           </a>
         </div>
       </div>
@@ -552,40 +867,145 @@
         >
           <div class="section-title">
             <span>你可能也喜歡</span>
-            <a href="explore.html" style="margin-left:auto;font-size:13px;color:var(--orange-700);text-decoration:none;font-weight:500">查看全部 →</a>
+            <a
+              href="explore.html"
+              style="
+                margin-left: auto;
+                font-size: 13px;
+                color: var(--orange-700);
+                text-decoration: none;
+                font-weight: 500;
+              "
+              >查看全部 →</a
+            >
           </div>
-          <div class="class-grid" id="all-classes" style="margin-bottom:0">
+          <div class="class-grid" id="all-classes" style="margin-bottom: 0">
             <div class="loading-spinner">載入中...</div>
           </div>
         </div>
 
         <!-- Newsletter -->
-    <div class="section">
-      <div style="background:linear-gradient(135deg,#1a1a2e,#2d2d44);border-radius:16px;padding:20px 18px;text-align:center">
-        <div style="font-size:28px;margin-bottom:8px">📬</div>
-        <div style="font-weight:700;font-size:15px;color:white;margin-bottom:4px">訂閱最新課程資訊</div>
-        <div style="font-size:12px;color:rgba(255,255,255,0.6);margin-bottom:12px">第一時間收到新課程上架同優惠通知</div>
-        <div style="display:flex;gap:6px;max-width:320px;margin:0 auto">
-          <input type="email" id="newsletter-email" placeholder="你的電郵" style="flex:1;padding:10px 12px;border:none;border-radius:8px;font-size:13px;font-family:var(--font-zh)">
-          <button onclick="subscribeNewsletter()" style="padding:10px 18px;background:var(--orange-600-bg);color:white;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap">訂閱</button>
+        <div class="section">
+          <div
+            style="
+              background: linear-gradient(135deg, #1a1a2e, #2d2d44);
+              border-radius: 16px;
+              padding: 20px 18px;
+              text-align: center;
+            "
+          >
+            <div style="font-size: 28px; margin-bottom: 8px">📬</div>
+            <div
+              style="
+                font-weight: 700;
+                font-size: 15px;
+                color: white;
+                margin-bottom: 4px;
+              "
+            >
+              訂閱最新課程資訊
+            </div>
+            <div
+              style="
+                font-size: 12px;
+                color: rgba(255, 255, 255, 0.6);
+                margin-bottom: 12px;
+              "
+            >
+              第一時間收到新課程上架同優惠通知
+            </div>
+            <div
+              style="display: flex; gap: 6px; max-width: 320px; margin: 0 auto"
+            >
+              <input
+                type="email"
+                id="newsletter-email"
+                placeholder="你的電郵"
+                style="
+                  flex: 1;
+                  padding: 10px 12px;
+                  border: none;
+                  border-radius: 8px;
+                  font-size: 13px;
+                  font-family: var(--font-zh);
+                "
+              />
+              <button
+                onclick="subscribeNewsletter()"
+                style="
+                  padding: 10px 18px;
+                  background: var(--orange-600-bg);
+                  color: white;
+                  border: none;
+                  border-radius: 8px;
+                  font-size: 13px;
+                  font-weight: 600;
+                  cursor: pointer;
+                  white-space: nowrap;
+                "
+              >
+                訂閱
+              </button>
+            </div>
+            <div
+              id="newsletter-result"
+              style="font-size: 12px; margin-top: 8px"
+            ></div>
+          </div>
         </div>
-        <div id="newsletter-result" style="font-size:12px;margin-top:8px"></div>
-      </div>
-    </div>
 
-    <!-- Seasonal Banner -->
-    <div class="section">
-      <div style="display:flex;align-items:center;gap:14px;background:linear-gradient(135deg,var(--orange-50),var(--orange-100));border-radius:16px;padding:16px;text-decoration:none">
-        <div style="font-size:36px">🌸</div>
-        <div style="flex:1">
-          <div style="font-weight:700;font-size:15px;color:var(--dark-900)">春日運動推薦</div>
-          <div style="font-size:12px;color:var(--dark-700);margin-top:2px">天氣回暖，户外瑜伽、行山、跑步最適合！</div>
+        <!-- Seasonal Banner -->
+        <div class="section">
+          <div
+            style="
+              display: flex;
+              align-items: center;
+              gap: 14px;
+              background: linear-gradient(
+                135deg,
+                var(--orange-50),
+                var(--orange-100)
+              );
+              border-radius: 16px;
+              padding: 16px;
+              text-decoration: none;
+            "
+          >
+            <div style="font-size: 36px">🌸</div>
+            <div style="flex: 1">
+              <div
+                style="
+                  font-weight: 700;
+                  font-size: 15px;
+                  color: var(--dark-900);
+                "
+              >
+                春日運動推薦
+              </div>
+              <div
+                style="font-size: 12px; color: var(--dark-700); margin-top: 2px"
+              >
+                天氣回暖，户外瑜伽、行山、跑步最適合！
+              </div>
+            </div>
+            <a
+              href="explore.html"
+              style="
+                background: var(--orange-600-bg);
+                color: white;
+                padding: 8px 16px;
+                border-radius: 20px;
+                font-size: 12px;
+                font-weight: 600;
+                text-decoration: none;
+                white-space: nowrap;
+              "
+              >去探索 →</a
+            >
+          </div>
         </div>
-        <a href="explore.html" style="background:var(--orange-600-bg);color:white;padding:8px 16px;border-radius:20px;font-size:12px;font-weight:600;text-decoration:none;white-space:nowrap">去探索 →</a>
-      </div>
-    </div>
 
-    <!-- Membership CTA -->
+        <!-- Membership CTA -->
         <div class="section">
           <div class="membership-cta">
             <h2 class="membership-heading">💎 ZenPass 會員</h2>
@@ -598,33 +1018,82 @@
 
       <!-- Recent Updates -->
       <div class="section">
-        <div class="section-title" style="font-size:15px">
+        <div class="section-title" style="font-size: 15px">
           <span>📰 最新動態</span>
         </div>
-        <div style="display:flex;flex-direction:column;gap:8px">
-          <a href="explore.html" style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:var(--white);border-radius:10px;text-decoration:none;color:var(--dark-900);box-shadow:0 1px 2px rgba(0,0,0,0.04)">
-            <div style="font-size:24px">🎉</div>
-            <div style="flex:1">
-              <div style="font-size:13px;font-weight:600">全新 32 個運動分類登場</div>
-              <div style="font-size:11px;color:var(--dark-700)">更多選擇，更容易搵到適合你嘅運動</div>
+        <div style="display: flex; flex-direction: column; gap: 8px">
+          <a
+            href="explore.html"
+            style="
+              display: flex;
+              align-items: center;
+              gap: 12px;
+              padding: 10px 12px;
+              background: var(--white);
+              border-radius: 10px;
+              text-decoration: none;
+              color: var(--dark-900);
+              box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+            "
+          >
+            <div style="font-size: 24px">🎉</div>
+            <div style="flex: 1">
+              <div style="font-size: 13px; font-weight: 600">
+                全新 32 個運動分類登場
+              </div>
+              <div style="font-size: 11px; color: var(--dark-700)">
+                更多選擇，更容易搵到適合你嘅運動
+              </div>
             </div>
-            <div style="font-size:12px;color:var(--orange-700)">NEW</div>
+            <div style="font-size: 12px; color: var(--orange-700)">NEW</div>
           </a>
-          <a href="membership.html" style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:var(--white);border-radius:10px;text-decoration:none;color:var(--dark-900);box-shadow:0 1px 2px rgba(0,0,0,0.04)">
-            <div style="font-size:24px">💎</div>
-            <div style="flex:1">
-              <div style="font-size:13px;font-weight:600">金會員計劃正式推出</div>
-              <div style="font-size:11px;color:var(--dark-700)">每月 10 堂 + 1 堂私人教練，專屬體驗</div>
+          <a
+            href="membership.html"
+            style="
+              display: flex;
+              align-items: center;
+              gap: 12px;
+              padding: 10px 12px;
+              background: var(--white);
+              border-radius: 10px;
+              text-decoration: none;
+              color: var(--dark-900);
+              box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+            "
+          >
+            <div style="font-size: 24px">💎</div>
+            <div style="flex: 1">
+              <div style="font-size: 13px; font-weight: 600">
+                金會員計劃正式推出
+              </div>
+              <div style="font-size: 11px; color: var(--dark-700)">
+                每月 10 堂 + 1 堂私人教練，專屬體驗
+              </div>
             </div>
-            <div style="font-size:12px;color:var(--orange-700)">NEW</div>
+            <div style="font-size: 12px; color: var(--orange-700)">NEW</div>
           </a>
-          <a href="coach-apply.html" style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:var(--white);border-radius:10px;text-decoration:none;color:var(--dark-900);box-shadow:0 1px 2px rgba(0,0,0,0.04)">
-            <div style="font-size:24px">👨‍🏫</div>
-            <div style="flex:1">
-              <div style="font-size:13px;font-weight:600">教練招募中</div>
-              <div style="font-size:11px;color:var(--dark-700)">免費開班・自定時間・即時收款</div>
+          <a
+            href="coach-apply.html"
+            style="
+              display: flex;
+              align-items: center;
+              gap: 12px;
+              padding: 10px 12px;
+              background: var(--white);
+              border-radius: 10px;
+              text-decoration: none;
+              color: var(--dark-900);
+              box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+            "
+          >
+            <div style="font-size: 24px">👨‍🏫</div>
+            <div style="flex: 1">
+              <div style="font-size: 13px; font-weight: 600">教練招募中</div>
+              <div style="font-size: 11px; color: var(--dark-700)">
+                免費開班・自定時間・即時收款
+              </div>
             </div>
-            <div style="font-size:12px;color:var(--orange-700)">HOT</div>
+            <div style="font-size: 12px; color: var(--orange-700)">HOT</div>
           </a>
         </div>
       </div>
@@ -686,7 +1155,15 @@
     </script>
 
     <footer
-      class="zen-footer" style="text-align:center;padding:24px 16px 80px;margin-top:24px;border-top:1px solid #e5e7eb;font-size:12px;color:#6b7280"
+      class="zen-footer"
+      style="
+        text-align: center;
+        padding: 24px 16px 80px;
+        margin-top: 24px;
+        border-top: 1px solid #e5e7eb;
+        font-size: 12px;
+        color: #6b7280;
+      "
       style="
         text-align: center;
         padding: 20px 16px;
@@ -696,36 +1173,168 @@
         color: #6b7280;
       "
     >
-      <div style="display:flex;justify-content:center;gap:12px;margin-bottom:8px;flex-wrap:wrap">
-        <a href="/" style="color:#aa3218;text-decoration:none;font-weight:500;font-size:12px">🏠 首頁</a>
-        <a href="explore.html" style="color:#aa3218;text-decoration:none;font-weight:500;font-size:12px">📚 探索</a>
-        <a href="membership.html" style="color:#aa3218;text-decoration:none;font-weight:500;font-size:12px">💎 會籍</a>
-        <a href="my.html" style="color:#aa3218;text-decoration:none;font-weight:500;font-size:12px">👤 我的</a>
-        <a href="coach-apply.html" style="color:#aa3218;text-decoration:none;font-weight:500;font-size:12px">👨‍🏫 成為教練</a>
-        <a href="partner-apply.html" style="color:#aa3218;text-decoration:none;font-weight:500;font-size:12px">🏪 場地加盟</a>
-        <a href="faq.html" style="color:#aa3218;text-decoration:none;font-weight:500;font-size:12px">❓ FAQ</a>
+      <div
+        style="
+          display: flex;
+          justify-content: center;
+          gap: 12px;
+          margin-bottom: 8px;
+          flex-wrap: wrap;
+        "
+      >
+        <a
+          href="/"
+          style="
+            color: #aa3218;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 12px;
+          "
+          >🏠 首頁</a
+        >
+        <a
+          href="explore.html"
+          style="
+            color: #aa3218;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 12px;
+          "
+          >📚 探索</a
+        >
+        <a
+          href="membership.html"
+          style="
+            color: #aa3218;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 12px;
+          "
+          >💎 會籍</a
+        >
+        <a
+          href="my.html"
+          style="
+            color: #aa3218;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 12px;
+          "
+          >👤 我的</a
+        >
+        <a
+          href="coach-apply.html"
+          style="
+            color: #aa3218;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 12px;
+          "
+          >👨‍🏫 成為教練</a
+        >
+        <a
+          href="partner-apply.html"
+          style="
+            color: #aa3218;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 12px;
+          "
+          >🏪 場地加盟</a
+        >
+        <a
+          href="faq.html"
+          style="
+            color: #aa3218;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 12px;
+          "
+          >❓ FAQ</a
+        >
       </div>
-      <div style="font-size:11px;color:var(--dark-700);margin-bottom:8px;line-height:1.8">
+      <div
+        style="
+          font-size: 11px;
+          color: var(--dark-700);
+          margin-bottom: 8px;
+          line-height: 1.8;
+        "
+      >
         <span>📧 support@zenpass.hk</span>
-        <span style="margin:0 6px">·</span>
+        <span style="margin: 0 6px">·</span>
         <span>📞 2387 0724</span>
-      <div style="display:flex;justify-content:center;gap:12px;margin-bottom:6px">
-        <a href="https://www.instagram.com/zenpass_hk" target="_blank" style="text-decoration:none;font-size:18px" title="Instagram">📸</a>
-        <a href="https://www.facebook.com/zenpass.hk" target="_blank" style="text-decoration:none;font-size:18px" title="Facebook">👍</a>
-        <a href="https://www.youtube.com/@zenpass_hk" target="_blank" style="text-decoration:none;font-size:18px" title="YouTube">📺</a>
-        <a href="https://wa.me/85290335538" target="_blank" style="text-decoration:none;font-size:18px" title="WhatsApp">💬</a>
+        <div
+          style="
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 6px;
+          "
+        >
+          <a
+            href="https://www.instagram.com/zenpass_hk"
+            target="_blank"
+            style="text-decoration: none; font-size: 18px"
+            title="Instagram"
+            >📸</a
+          >
+          <a
+            href="https://www.facebook.com/zenpass.hk"
+            target="_blank"
+            style="text-decoration: none; font-size: 18px"
+            title="Facebook"
+            >👍</a
+          >
+          <a
+            href="https://www.youtube.com/@zenpass_hk"
+            target="_blank"
+            style="text-decoration: none; font-size: 18px"
+            title="YouTube"
+            >📺</a
+          >
+          <a
+            href="https://wa.me/85290335538"
+            target="_blank"
+            style="text-decoration: none; font-size: 18px"
+            title="WhatsApp"
+            >💬</a
+          >
+        </div>
+        <span style="margin: 0 6px">·</span>
+        <a
+          href="#"
+          onclick="
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            return false;
+          "
+          style="color: var(--dark-700); text-decoration: none"
+          >⬆️ 返回頂部</a
+        >
       </div>
-        <span style="margin:0 6px">·</span>
-        <a href="#" onclick="window.scrollTo({top:0,behavior:'smooth'});return false" style="color:var(--dark-700);text-decoration:none">⬆️ 返回頂部</a>
-      </div>
-      <div style="font-size:11px;color:var(--dark-700);line-height:1.8">
-        <a href="faq.html" style="color:var(--dark-700);text-decoration:none">❓ 常見問題</a>
-        <span style="margin:0 4px">·</span>
-        <a href="privacy.html" style="color:var(--dark-700);text-decoration:none">📄 私隱政策</a>
-        <span style="margin:0 4px">·</span>
-        <a href="terms.html" style="color:var(--dark-700);text-decoration:none">📋 服務條款</a>
-        <span style="margin:0 4px">·</span>
-        <a href="https://hklfcl.com" target="_blank" style="color:var(--dark-700);text-decoration:none">🌐 HK LFCL</a>
+      <div style="font-size: 11px; color: var(--dark-700); line-height: 1.8">
+        <a href="faq.html" style="color: var(--dark-700); text-decoration: none"
+          >❓ 常見問題</a
+        >
+        <span style="margin: 0 4px">·</span>
+        <a
+          href="privacy.html"
+          style="color: var(--dark-700); text-decoration: none"
+          >📄 私隱政策</a
+        >
+        <span style="margin: 0 4px">·</span>
+        <a
+          href="terms.html"
+          style="color: var(--dark-700); text-decoration: none"
+          >📋 服務條款</a
+        >
+        <span style="margin: 0 4px">·</span>
+        <a
+          href="https://hklfcl.com"
+          target="_blank"
+          style="color: var(--dark-700); text-decoration: none"
+          >🌐 HK LFCL</a
+        >
       </div>
       <div style="margin-top: 8px; font-size: 12px">
         <a
@@ -738,12 +1347,19 @@
         © 2026 ZenPass 禪流
       </div>
     </footer>
-  <button class="back-to-top" id="backToTop" onclick="window.scrollTo({top:0,behavior:'smooth'})" aria-label="返回頂部">↑</button>
-<script>
-  window.addEventListener("scroll", function() {
-    var el = document.getElementById("backToTop");
-    if (el) el.classList.toggle("visible", window.scrollY > 400);
-  });
-</script>
-</body>
+    <button
+      class="back-to-top"
+      id="backToTop"
+      onclick="window.scrollTo({ top: 0, behavior: 'smooth' })"
+      aria-label="返回頂部"
+    >
+      ↑
+    </button>
+    <script>
+      window.addEventListener("scroll", function () {
+        var el = document.getElementById("backToTop");
+        if (el) el.classList.toggle("visible", window.scrollY > 400);
+      });
+    </script>
+  </body>
 </html>

@@ -5,266 +5,362 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>場地加盟 — ZenPass 禪流</title>
   <link rel="stylesheet" href="css/zenpass.css" />
+  <script src="app.js"></script>
   <style>
-    body {
-      font-family: var(--font-zh);
-      background: var(--gray-50);
-      color: var(--dark-900);
-      max-width: var(--max-width);
-      margin: 0 auto;
-      padding: 0 0 40px;
+    /* ===== Step Indicator ===== */
+    .zen-steps { display: flex; padding: 16px 16px 0; gap: 0; background: var(--white); border-bottom: 1px solid var(--gray-200); position: sticky; top: 0; z-index: 10; }
+    .zen-step { flex: 1; text-align: center; font-size: 10px; color: var(--dark-700); padding-bottom: 10px; position: relative; }
+    .zen-step .num { width: 24px; height: 24px; border-radius: 50%; background: var(--gray-200); color: var(--dark-700); display: flex; align-items: center; justify-content: center; margin: 0 auto 3px; font-size: 11px; font-weight: 700; transition: all 0.3s; }
+    .zen-step.active .num { background: var(--orange-600-bg); color: #fff; box-shadow: 0 2px 6px rgba(201,68,32,0.3); }
+    .zen-step.done .num { background: var(--green-500); color: #fff; }
+    .zen-step.done .num:after { content: '✓' }
+    .zen-step.active { color: var(--orange-700); font-weight: 600; }
+    .zen-step::before { content: ''; position: absolute; top: 12px; left: -50%; width: 100%; height: 2px; background: var(--gray-200); z-index: 0; }
+    .zen-step:first-child::before { display: none; }
+    .zen-step.active::before, .zen-step.done::before { background: var(--orange-600-bg); }
+    .zen-step .num, .zen-step span { position: relative; z-index: 1; }
+    .zen-step span { display: block; }
+
+    /* ===== Hero ===== */
+    .zp-hero { background: linear-gradient(135deg,#c94420,#e85d2c); border-radius: 0; margin: 0 -16px 16px; padding: 28px 20px; text-align: center; color: #fff; }
+    .zp-hero .icon { font-size: 40px; margin-bottom: 6px; }
+    .zp-hero h2 { font-size: 20px; font-weight: 700; margin: 0 0 4px; }
+    .zp-hero p { font-size: 13px; opacity: .85; margin: 0 0 12px; }
+    .zp-hero .stats { display: flex; justify-content: center; gap: 20px; }
+    .zp-hero .stats .num { font-size: 20px; font-weight: 800; display: block; }
+    .zp-hero .stats .lbl { font-size: 10px; opacity: .7; display: block; }
+    .zp-hero .login-link { color: rgba(255,255,255,.7); font-size: 12px; float: right; margin-top: -28px; text-decoration: none; }
+    .zp-hero .login-link:hover { color: #fff; }
+
+    /* ===== Form Cards ===== */
+    .zp-card { background: var(--white); border-radius: var(--radius-md); padding: 16px; margin-bottom: 10px; box-shadow: var(--shadow-sm); }
+    .zp-card h3 { font-size: 14px; font-weight: 700; margin: 0 0 10px; display: flex; align-items: center; gap: 6px; }
+    .zp-card .hint { font-size: 11px; color: var(--dark-700); margin: -6px 0 10px; }
+
+    /* ===== Form Elements ===== */
+    .zp-field { margin-bottom: 10px; }
+    .zp-field label { display: block; font-size: 12px; font-weight: 600; color: var(--dark-700); margin-bottom: 3px; }
+    .zp-field input, .zp-field select, .zp-field textarea {
+      width: 100%; padding: 9px 11px; border: 1px solid var(--gray-200); border-radius: 8px;
+      font-size: 14px; font-family: inherit; background: var(--white); transition: border .2s; box-sizing: border-box;
     }
-    .header {
-      background: linear-gradient(135deg, var(--orange-600-bg), var(--orange-500));
-      color: white;
-      padding: 14px 16px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      position: sticky;
-      top: 0;
-      z-index: 10;
-    }
-    .header .back-btn {
-      background: rgba(255,255,255,0.2);
-      border: none;
-      width: 32px; height: 32px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 20px;
-      cursor: pointer;
-      color: white;
-      text-decoration: none;
-    }
-    .header h1 { font-size: 17px; font-weight: 600; flex: 1; color: white; margin: 0; }
-    .content { padding: 20px 16px; }
-    .hero-card {
-      background: linear-gradient(135deg,var(--orange-600-bg),var(--orange-500));
-      border-radius: 14px;
-      padding: 24px 20px;
-      text-align: center;
-      color: white;
-      margin-bottom: 20px;
-    }
-    .hero-card h2 { font-size: 20px; font-weight: 700; margin-bottom: 6px; }
-    .hero-card p { font-size: 13px; opacity: 0.85; line-height: 1.6; }
-    .hero-card .stats {
-      display: flex; justify-content: center; gap: 24px; margin-top: 16px;
-    }
-    .hero-card .stats div { text-align: center; }
-    .hero-card .stats .num { font-size: 22px; font-weight: 700; display: block; }
-    .hero-card .stats .lbl { font-size: 11px; opacity: 0.75; display: block; }
-    .form-card {
-      background: white;
-      border-radius: 14px;
-      padding: 20px;
-      margin-bottom: 14px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-      border: 1px solid rgba(0,0,0,0.04);
-    }
-    .form-card h3 { font-size: 15px; font-weight: 700; margin-bottom: 12px; }
-    .form-group { margin-bottom: 14px; }
-    .form-group label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 4px; color: var(--dark-700); }
-    .form-group input, .form-group select, .form-group textarea {
-      width: 100%; padding: 10px 12px;
-      border: 1px solid var(--gray-200); border-radius: 8px;
-      font-size: 14px; font-family: var(--font-zh);
-      background: var(--white); transition: border 0.2s;
-    }
-    .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
-      outline: none; border-color: var(--orange-700);
-    }
-    .form-group textarea { height: 80px; resize: vertical; }
-    .form-row { display: flex; gap: 10px; }
-    .form-row .form-group { flex: 1; }
-    .submit-btn {
-      width: 100%; padding: 14px;
-      background: var(--orange-600-bg); color: white;
-      border: none; border-radius: 14px;
-      font-size: 16px; font-weight: 700; cursor: pointer;
-      font-family: var(--font-zh);
-      transition: all 0.2s;
-    }
-    .submit-btn:active { transform: scale(0.97); }
-    .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-    .success-card {
-      display: none;
-      background: #ecfdf5; border: 2px solid #a7f3d0;
-      border-radius: 14px; padding: 32px 20px; text-align: center;
-    }
-    .success-card .icon { font-size: 56px; margin-bottom: 12px; }
-    .success-card h3 { font-size: 18px; font-weight: 700; color: #065f46; margin-bottom: 6px; }
-    .success-card p { font-size: 13px; color: #6b7280; line-height: 1.6; }
+    .zp-field input:focus, .zp-field select:focus, .zp-field textarea:focus { border-color: var(--orange-700); outline: none; }
+    .zp-field textarea { height: 72px; resize: vertical; }
+    .zp-row { display: flex; gap: 8px; }
+    .zp-row .zp-field { flex: 1; }
+
+    /* ===== Step Content ===== */
+    .zp-step { display: none; }
+    .zp-step.active { display: block; }
+
+    /* ===== Plan Cards ===== */
+    .zp-plans { display: flex; flex-direction: column; gap: 8px; }
+    .zp-plan { border: 2px solid var(--gray-200); border-radius: 10px; padding: 12px; cursor: pointer; transition: all .2s; }
+    .zp-plan:hover { border-color: var(--orange-300); }
+    .zp-plan.sel { border-color: var(--orange-700); background: var(--orange-50); }
+    .zp-plan .nm { font-size: 14px; font-weight: 700; }
+    .zp-plan .badge { display: inline-block; padding: 1px 7px; border-radius: 8px; font-size: 10px; font-weight: 600; background: var(--orange-100); color: var(--orange-700); margin-left: 4px; vertical-align: middle; }
+    .zp-plan .badge.hot { background: #f59e0b; color: #fff; }
+    .zp-plan .fee { font-size: 12px; color: var(--dark-700); margin-top: 2px; }
+    .zp-plan .desc { font-size: 11px; color: var(--gray-300); margin-top: 2px; }
+    .zp-plan .note { font-size: 11px; color: var(--dark-700); margin-top: 6px; padding: 6px 8px; background: var(--orange-50); border-radius: 6px; }
+
+    /* ===== Photo Upload ===== */
+    .zp-upload { border: 2px dashed var(--gray-200); border-radius: 10px; padding: 16px; text-align: center; cursor: pointer; transition: all .2s; }
+    .zp-upload:hover { border-color: var(--orange-300); background: var(--orange-50); }
+    .zp-upload .uicon { font-size: 28px; margin-bottom: 4px; }
+    .zp-upload .utxt { font-size: 12px; color: var(--dark-700); }
+    .zp-upload .usub { font-size: 11px; color: var(--gray-300); }
+    .zp-previews { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+    .zp-previews img { width: 64px; height: 64px; border-radius: 8px; object-fit: cover; border: 1px solid var(--gray-200); }
+
+    /* ===== Tags ===== */
+    .zp-tags { display: flex; gap: 5px; flex-wrap: wrap; }
+    .zp-tag { padding: 5px 10px; border-radius: 7px; border: 1px solid var(--gray-200); font-size: 11px; cursor: pointer; transition: all .15s; }
+    .zp-tag.sel { background: var(--orange-600-bg); color: #fff; border-color: var(--orange-600-bg); }
+
+    /* ===== Success ===== */
+    .zp-success { display: none; text-align: center; padding: 32px 16px; }
+    .zp-success .icon { font-size: 56px; margin-bottom: 10px; }
+    .zp-success h3 { font-size: 18px; font-weight: 700; margin: 0 0 6px; }
+    .zp-success p { font-size: 13px; color: var(--dark-700); line-height: 1.6; margin: 0 0 8px; }
+    .zp-success .ref { padding: 8px 12px; background: var(--gray-50); border-radius: 8px; font-size: 13px; margin: 10px auto; display: inline-block; }
+    .zp-success .actions { display: flex; gap: 8px; justify-content: center; margin-top: 14px; }
+
+    /* ===== Nav buttons ===== */
+    .zp-nav { display: flex; gap: 8px; margin-top: 12px; }
   </style>
 </head>
 <body>
-  <div class="header">
-    <a class="back-btn" href="javascript:history.back()">←</a>
-    <h1>🏪 場地加盟</h1>
-    <span style="width:32px"></span>
+  <!-- Header -->
+  <div class="zen-header" style="background:var(--orange-600-bg);color:#fff;border:none">
+    <a href="javascript:history.back()" class="back-btn" style="color:#fff">←</a>
+    <h1 style="color:#fff;font-size:16px">🏪 場地加盟</h1>
   </div>
 
-  <div class="content">
+  <!-- Steps -->
+  <div class="zen-steps" id="stepBar">
+    <div class="zen-step active" data-s="1"><div class="num">1</div><span>基本資料</span></div>
+    <div class="zen-step" data-s="2"><div class="num">2</div><span>佣金計劃</span></div>
+    <div class="zen-step" data-s="3"><div class="num">3</div><span>詳細資料</span></div>
+    <div class="zen-step" data-s="4"><div class="num">4</div><span>確認提交</span></div>
+  </div>
+
+  <div class="zen-container" id="appContainer">
+
     <!-- Hero -->
-    <div class="hero-card">
+    <div class="zp-hero">
+      <a href="login.html" class="login-link">🔑 已有帳戶？登入</a>
+      <div class="icon">🏟️</div>
       <h2>將你的場地帶上 ZenPass</h2>
-      <p>加入全港最大運動體驗平台，接觸更多學生<br />免費申請 · 自定時間 · 即時收款</p>
+      <p>免費申請 · 靈活佣金 · 即時見效</p>
       <div class="stats">
         <div><span class="num">110+</span><span class="lbl">課程</span></div>
         <div><span class="num">5+</span><span class="lbl">教練</span></div>
-        <div><span class="num">HK</span><span class="lbl">全港覆蓋</span></div>
+        <div><span class="num">HK</span><span class="lbl">全港</span></div>
       </div>
     </div>
 
-    <!-- Apply Form -->
-    <div id="apply-form">
-      <div class="form-card">
-        <h3>場地資料</h3>
-        <div class="form-group">
-          <label>場地名稱 *</label>
-          <input type="text" id="f-name" placeholder="例如：FitZone 健身中心" />
+    <!-- Step 1: Basic Info -->
+    <div class="zp-step active" data-s="1">
+      <div class="zp-card">
+        <h3>📋 場地資料</h3>
+        <div class="zp-field"><label>場地名稱 *</label><input type="text" id="f-name" placeholder="例如：FitZone 健身中心" /></div>
+        <div style="margin-bottom:10px">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px 10px;background:var(--gray-50);border-radius:8px;font-size:12px">
+            <input type="checkbox" id="f-rentalOnly" onchange="toggleRentalOnly()" />
+            🏟️ 我只係出租場地，唔會自己開班
+          </label>
         </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label>類別 *</label>
-            <select id="f-category">
-              <option value="">請選擇...</option>
-              <option value="瑜伽">🧘 瑜伽</option>
-              <option value="健身">💪 健身</option>
-              <option value="舞蹈">💃 舞蹈</option>
-              <option value="新興運動">🎯 新興運動</option>
-              <option value="冥想">🧠 冥想</option>
-              <option value="伸展">🤸 伸展</option>
-              <option value="兒童體適能">🧒 兒童體適能</option>
-              <option value="其他">其他</option>
-            </select>
+        <div class="zp-row">
+          <div class="zp-field"><label>類別 *</label>
+            <select id="f-category"><option value="">請選擇...</option><option value="瑜伽">🧘 瑜伽</option><option value="健身">💪 健身</option><option value="舞蹈">💃 舞蹈</option><option value="新興運動">🎯 新興運動</option><option value="冥想">🧠 冥想</option><option value="伸展">🤸 伸展</option><option value="兒童">🧒 兒童體適能</option><option value="其他">其他</option></select>
           </div>
-          <div class="form-group">
-            <label>地區 *</label>
-            <select id="f-district">
-              <option value="">請選擇...</option>
-              <option value="港島">港島</option>
-              <option value="九龍">九龍</option>
-              <option value="新界">新界</option>
-              <option value="線上">線上</option>
-            </select>
+          <div class="zp-field"><label>地區 *</label>
+            <select id="f-district"><option value="">請選擇...</option><option value="港島">港島</option><option value="九龍">九龍</option><option value="新界">新界</option><option value="線上">線上</option></select>
           </div>
         </div>
-        <div class="form-group">
-          <label>地址</label>
-          <input type="text" id="f-address" placeholder="詳細地址（選填）" />
+        <div class="zp-field"><label>地址</label><input type="text" id="f-address" placeholder="詳細地址（選填）" /></div>
+        <div class="zp-field"><label>場地簡介</label><textarea id="f-desc" placeholder="介紹你的場地、設施、特色..."></textarea></div>
+      </div>
+      <button class="zen-btn zen-btn-primary zen-btn-block" onclick="goStep(2)">繼續 →</button>
+    </div>
+
+    <!-- Step 2: Commission Plan -->
+    <div class="zp-step" data-s="2">
+      <div class="zp-card">
+        <h3>💰 佣金計劃</h3>
+        <div class="hint">你可以隨時升級或降級</div>
+        <div class="zp-plans">
+          <div class="zp-plan sel" data-p="basic" onclick="pickPlan('basic',this)">
+            <div><span class="nm">基本計劃</span><span class="badge">新手上路</span></div>
+            <div class="fee">月費 $0 · 佣金 25%</div>
+            <div class="desc">適合小型工作室，無需前期投入</div>
+          </div>
+          <div class="zp-plan" data-p="standard" onclick="pickPlan('standard',this)">
+            <div><span class="nm">標準計劃</span><span class="badge hot">🔥 熱門</span></div>
+            <div class="fee">月費 $388 · 佣金 18%</div>
+            <div class="desc">適合穩定出單嘅場地</div>
+          </div>
+          <div class="zp-plan" data-p="premium" onclick="pickPlan('premium',this)">
+            <div><span class="nm">高級計劃</span></div>
+            <div class="fee">月費 $888 · 佣金 12%</div>
+            <div class="desc">適合大量課程嘅場地，最高性價比</div>
+          </div>
         </div>
-        <div class="form-group">
-          <label>場地簡介</label>
-          <textarea id="f-desc" placeholder="介紹你的場地、設施、特色..."></textarea>
+        <div class="note" style="margin-top:10px;padding:8px 10px;background:var(--orange-50);border-radius:6px;font-size:11px;color:var(--dark-700)">💡 每月營業額越高，揀高佣金計劃越抵！</div>
+      </div>
+      <div class="zp-nav">
+        <button class="zen-btn zen-btn-secondary" onclick="goStep(1)" style="flex:0">←</button>
+        <button class="zen-btn zen-btn-primary zen-btn-block" onclick="goStep(3)">繼續 →</button>
+      </div>
+    </div>
+
+    <!-- Step 3: Details -->
+    <div class="zp-step" data-s="3">
+      <div class="zp-card">
+        <h3>📸 場地相片</h3>
+        <div class="zp-upload" onclick="document.getElementById('photoInp').click()">
+          <div class="uicon">📷</div>
+          <div class="utxt">按此上載場地相片</div>
+          <div class="usub">建議 3-5 張</div>
+        </div>
+        <input type="file" id="photoInp" accept="image/*" multiple style="display:none" onchange="onPhotos(event)" />
+        <div class="zp-previews" id="photoPre"></div>
+      </div>
+
+      <div class="zp-card">
+        <h3>🔧 場地設施</h3>
+        <div class="hint">可選多項</div>
+        <div class="zp-tags" id="facTags"></div>
+      </div>
+
+      <div class="zp-card">
+        <h3>🌐 網上資料</h3>
+        <div class="zp-field"><label>網站</label><input type="url" id="f-web" placeholder="https://" /></div>
+        <div class="zp-field"><label>社交媒體</label><input type="text" id="f-social" placeholder="@your_venue" /></div>
+      </div>
+
+      <div class="zp-card">
+        <h3>📞 聯絡資料</h3>
+        <div class="zp-field"><label>聯絡人 *</label><input type="text" id="f-contact" placeholder="你的姓名" /></div>
+        <div class="zp-row">
+          <div class="zp-field"><label>電話 *</label><input type="tel" id="f-phone" placeholder="6123 4567" /></div>
+          <div class="zp-field"><label>電郵</label><input type="email" id="f-email" placeholder="your@email.com" /></div>
         </div>
       </div>
 
-      <div class="form-card">
-        <h3>聯絡資料</h3>
-        <div class="form-group">
-          <label>聯絡人姓名 *</label>
-          <input type="text" id="f-contact" placeholder="你的姓名" />
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label>聯絡電話 *</label>
-            <input type="tel" id="f-phone" placeholder="6123 4567" />
-          </div>
-          <div class="form-group">
-            <label>電郵</label>
-            <input type="email" id="f-email" placeholder="your@email.com" />
-          </div>
-        </div>
+      <div class="zp-nav">
+        <button class="zen-btn zen-btn-secondary" onclick="goStep(2)" style="flex:0">←</button>
+        <button class="zen-btn zen-btn-primary zen-btn-block" onclick="goStep(4)">確認提交 →</button>
       </div>
+    </div>
 
-      <div id="apply-msg" style="font-size:13px;text-align:center;margin-bottom:10px"></div>
-      <button class="submit-btn" id="apply-btn" onclick="submitApplication()">📤 提交申請</button>
+    <!-- Step 4: Confirm -->
+    <div class="zp-step" data-s="4">
+      <div class="zp-card">
+        <h3>✅ 確認資料</h3>
+        <div id="confirmBox" style="font-size:13px;line-height:2"></div>
+      </div>
+      <div id="errMsg" style="font-size:13px;text-align:center;margin-bottom:8px;color:var(--red-500)"></div>
+      <div class="zp-nav">
+        <button class="zen-btn zen-btn-secondary" onclick="goStep(3)" style="flex:0">← 修改</button>
+        <button class="zen-btn zen-btn-success zen-btn-block" id="subBtn" onclick="doSubmit()">📤 確認提交</button>
+      </div>
     </div>
 
     <!-- Success -->
-    <div class="success-card" id="success-card">
+    <div class="zp-success" id="successBox">
       <div class="icon">🎉</div>
       <h3>申請已提交！</h3>
-      <p>感謝你嘅申請！我哋嘅團隊會儘快審核資料，<br />並透過電話或電郵聯絡你。</p>
-      <p id="success-note"></p>
-      <p style="margin-top:12px">如有疑問，可致電 📞 2387 0724</p>
-      <a href="index.html" style="display:inline-block;margin-top:16px;padding:10px 24px;background:var(--orange-600-bg);color:white;border-radius:12px;text-decoration:none;font-weight:600">🏠 返回首頁</a>
+      <p id="sucMsg">我哋會喺 1-3 個工作天內審批，並透過電話或電郵聯絡你。</p>
+      <div class="ref" id="sucRef"></div>
+      <div class="actions">
+        <a href="index.html" class="zen-btn zen-btn-primary" style="text-decoration:none">🏠 首頁</a>
+      </div>
     </div>
 
-    <script src="api.js"></script>
-    <script>
-      function showToast(m,t){var d=document.createElement("div");d.style.cssText="position:fixed;bottom:120px;left:50%;transform:translateX(-50%);padding:10px 18px;border-radius:10px;font-size:13px;font-weight:500;z-index:999;background:"+(t==="success"?"#ecfdf5":"#fef2f2")+";color:"+(t==="success"?"#059669":"#ef4444")+";box-shadow:0 2px 8px rgba(0,0,0,0.12)";d.textContent=m;document.body.appendChild(d);setTimeout(function(){d.remove()},2000);}
-
-      async function submitApplication() {
-        var name = document.getElementById("f-name").value.trim();
-        var category = document.getElementById("f-category").value;
-        var district = document.getElementById("f-district").value;
-        var contact = document.getElementById("f-contact").value.trim();
-        var phone = document.getElementById("f-phone").value.trim();
-
-        if (!name) { showToast("請輸入場地名稱", "warning"); return; }
-        if (!category) { showToast("請選擇類別", "warning"); return; }
-        if (!district) { showToast("請選擇地區", "warning"); return; }
-        if (!contact) { showToast("請輸入聯絡人姓名", "warning"); return; }
-        if (!phone) { showToast("請輸入聯絡電話", "warning"); return; }
-
-        var btn = document.getElementById("apply-btn");
-        btn.disabled = true; btn.textContent = "⏳ 提交中...";
-
-        try {
-          var r = await fetch("/api/partner/apply", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              name: name,
-              category: category,
-              district: district,
-              address: document.getElementById("f-address").value.trim(),
-              description: document.getElementById("f-desc").value.trim(),
-              contact_person: contact,
-              phone: phone,
-              email: document.getElementById("f-email").value.trim(),
-            }),
-          });
-          if (r.ok) {
-            var d = await r.json().catch(function(){ return {}; });
-            if (d.error) throw new Error(d.error);
-            showSuccess("api");
-            return;
-          }
-        } catch(e) {}
-        // API failed — save to localStorage
-        try {
-          var apps = JSON.parse(localStorage.getItem("zenpass_partner_apps") || "[]");
-          apps.push({
-            id: "PENDING-" + Date.now(),
-            name: name,
-            category: category,
-            district: district,
-            contact_person: contact,
-            phone: phone,
-            submitted_at: new Date().toISOString()
-          });
-          localStorage.setItem("zenpass_partner_apps", JSON.stringify(apps));
-          showSuccess("local");
-        } catch(e2) {
-          showToast("❌ 提交失敗，請稍後再試", "error");
-          btn.disabled = false; btn.textContent = "📤 提交申請";
-        }
-      }
-
-      function showSuccess(mode) {
-        document.getElementById("apply-form").style.display = "none";
-        document.getElementById("success-card").style.display = "block";
-        var note = document.getElementById("success-note");
-        if (mode === "local" && note) {
-          note.textContent = "📌 已暫存於瀏覽器，連線後可重新提交。";
-        }
-      }
-    </script>
   </div>
+
+  <script>
+    var D = { plan:'basic', photos:[], facs:[] };
+    var FAC = ['🅿️泊車','🚿沖涼房','🔐儲物櫃','📶Wi-Fi','🥤飲水機','🪑休息區','🎵音響','🪞全身鏡','🧘瑜珈墊','🏋️器材'];
+
+    // Init facility tags
+    (function(){
+      var el = document.getElementById('facTags');
+      FAC.forEach(function(f){
+        var s = document.createElement('span');
+        s.className = 'zp-tag'; s.textContent = f;
+        s.onclick = function(){ this.classList.toggle('sel'); };
+        el.appendChild(s);
+      });
+    })();
+
+    var curStep = 1;
+    function updStep(n){
+      document.querySelectorAll('.zp-step').forEach(function(e){ e.classList.remove('active'); });
+      document.querySelector('.zp-step[data-s="'+n+'"]').classList.add('active');
+      document.querySelectorAll('.zen-step').forEach(function(e){
+        var s = parseInt(e.dataset.s);
+        e.classList.remove('active','done');
+        if(s===n) e.classList.add('active');
+        else if(s<n) e.classList.add('done');
+      });
+      curStep = n;
+      window.scrollTo(0,0);
+    }
+
+    function valStep(n){
+      if(n===1){
+        if(!id("f-name").value.trim()){ ZT("請輸入場地名稱"); return false; }
+        if(!id("f-category").value){ ZT("請選擇類別"); return false; }
+        if(!id("f-district").value){ ZT("請選擇地區"); return false; }
+      }
+      if(n===3){
+        if(!id("f-contact").value.trim()){ ZT("請輸入聯絡人"); return false; }
+        if(!id("f-phone").value.trim()){ ZT("請輸入電話"); return false; }
+      }
+      return true;
+    }
+
+    function goStep(n){
+      if(n>curStep && !valStep(curStep)) return;
+      if(n===4) showConfirm();
+      updStep(n);
+    }
+
+    function showConfirm(){
+      var c = id('f-name').value;
+      var cat = id('f-category');
+      var pname = document.querySelector('.zp-plan.sel .nm').textContent;
+      id('confirmBox').innerHTML =
+        '<div><strong>場地：</strong>'+c+'</div>'+
+        '<div><strong>類別：</strong>'+cat.options[cat.selectedIndex].text+'</div>'+
+        '<div><strong>佣金：</strong>'+pname+'</div>'+
+        '<div><strong>聯絡：</strong>'+id('f-contact').value+' ('+id('f-phone').value+')</div>';
+    }
+
+    function pickPlan(p,el){
+      document.querySelectorAll('.zp-plan').forEach(function(e){ e.classList.remove('sel'); });
+      el.classList.add('sel');
+      D.plan = p;
+    }
+
+    function onPhotos(e){
+      var fs = e.target.files;
+      var pre = id('photoPre');
+      for(var i=0;i<fs.length;i++) (function(f){
+        var r = new FileReader();
+        r.onload = function(ev){
+          var img = document.createElement('img'); img.src = ev.target.result;
+          pre.appendChild(img);
+          D.photos.push(ev.target.result);
+        };
+        r.readAsDataURL(f);
+      })(fs[i]);
+    }
+
+    async function doSubmit(){
+      var b = id('subBtn');
+      b.disabled = true; b.textContent = '⏳ 提交中...';
+
+      var data = {
+        name: id('f-name').value.trim(),
+        partner_type: document.getElementById('f-rentalOnly').checked ? 'rental_only' : 'full',
+        category: id('f-category').value,
+        district: id('f-district').value,
+        address: id('f-address').value.trim(),
+        contact_person: id('f-contact').value.trim(),
+        phone: id('f-phone').value.trim(),
+        email: id('f-email').value.trim(),
+        commission_plan: D.plan,
+        description: id('f-desc').value.trim(),
+        website: id('f-web').value.trim(),
+        facilities: D.facs = Array.from(document.querySelectorAll('#facTags .zp-tag.sel')).map(function(e){return e.textContent}),
+      };
+
+      try{
+        var r = await fetch('/api/partner/apply',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+        var res = await r.json();
+        if(res.success || r.ok){
+          id('successBox').style.display = 'block';
+          document.querySelector('.zp-step.active').style.display = 'none';
+          id('errMsg').textContent = '';
+          if(res.data&&res.data.reference) id('sucRef').innerHTML = '📌 申請編號：<strong>'+res.data.reference+'</strong>';
+          if(res.data&&res.data.commission_plan){
+            var mn = {basic:'基本計劃',standard:'標準計劃',premium:'高級計劃'};
+            id('sucMsg').textContent = '佣金計劃：'+ (mn[res.data.commission_plan]||res.data.commission_plan) + '。我哋會喺 1-3 個工作天內審批。';
+          }
+        } else throw new Error(res.error||'提交失敗');
+      }catch(e){
+        ZT('❌ '+e.message);
+        b.disabled=false; b.textContent='📤 確認提交';
+      }
+    }
+
+    function id(x){return document.getElementById(x);}
+    function ZT(m){ZenPass.toast(m,'warning');}
+  </script>
 </body>
 </html>

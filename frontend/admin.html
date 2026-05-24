@@ -1164,6 +1164,20 @@
         if (d.error) throw new Error(d.error);
         return d;
       }
+      async function apiPut(path, body) {
+        var t = getToken();
+        var r = await fetch(API + path, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: "Bearer " + t,
+          },
+          body: JSON.stringify(body || {}),
+        });
+        var d = await r.json();
+        if (d.error) throw new Error(d.error);
+        return d;
+      }
       function escape(s) {
         if (!s) return "—";
         var d = document.createElement("div");
@@ -2227,138 +2241,284 @@
         }
       }
 
-      // ===== 商戶管理 Tab =====
+            // ===== 商戶管理 Tab（含分層佣金計劃）=====
+      var commissionPlans = [
+        { key: 'basic', label: 'Basic 基本計劃', fee: 0, rate: 0.25, desc: '適合小型工作室' },
+        { key: 'standard', label: 'Standard 標準計劃', fee: 388, rate: 0.18, desc: '適合中型場地' },
+        { key: 'premium', label: 'Premium 高級計劃', fee: 888, rate: 0.12, desc: '適合大型連鎖' },
+      ];
+
       async function loadPartnersTab() {
-        var main = document.getElementById("mainContent");
+        var main = document.getElementById('mainContent');
         main.innerHTML =
           '<div style="padding:20px"><h2 style="font-size:20px;font-weight:700;margin-bottom:16px">🏪 商戶管理</h2>' +
-          '<div style="display:flex;gap:8px;margin-bottom:16px">' +
+          '<div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">' +
           '<button class="tab-btn active" onclick="showPartnerSection(\'pending\', this)" style="padding:8px 16px;border:1px solid var(--gray-200);border-radius:8px;background:var(--orange-50);cursor:pointer;font-size:13px;font-weight:500">⏳ 待審批</button>' +
           '<button class="tab-btn" onclick="showPartnerSection(\'active\', this)" style="padding:8px 16px;border:1px solid var(--gray-200);border-radius:8px;background:var(--white);cursor:pointer;font-size:13px;font-weight:500">✅ 已核准</button>' +
-          '</div><div id="partner-list"><div class="loading-spinner">載入中...</div></div></div>';
-        showPartnerSection("pending");
+          '<button class="tab-btn" onclick="showPartnerSection(\'all\', this)" style="padding:8px 16px;border:1px solid var(--gray-200);border-radius:8px;background:var(--white);cursor:pointer;font-size:13px;font-weight:500">📋 全部</button>' +
+          '</div>' +
+          '<div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;">' +
+          '<input type="text" id="partnerSearchInput" placeholder="搜尋商戶名稱 / 電郵..." style="flex:1;padding:8px 12px;border:1px solid var(--gray-200);border-radius:6px;font-size:13px;font-family:inherit;">' +
+          '<button onclick="searchPartner()" style="padding:8px 16px;background:var(--primary);color:white;border:none;border-radius:6px;cursor:pointer;font-size:12px;">🔍 搜尋</button>' +
+          '</div>' +
+          '<div id="partner-list"><div class="loading-spinner">載入中...</div></div></div>';
+        showPartnerSection('pending');
       }
 
       async function showPartnerSection(status) {
-        var btns = document.querySelectorAll("#mainContent .tab-btn");
-        btns.forEach(function (b) {
-          b.classList.remove("active");
-          b.style.background = "var(--white)";
-        });
-        var container = document.getElementById("partner-list");
+        var btns = document.querySelectorAll('#mainContent .tab-btn');
+        btns.forEach(function(b){ b.classList.remove('active'); b.style.background='var(--white)'; });
+        var container = document.getElementById('partner-list');
         if (!container) return;
         container.innerHTML = '<div class="loading-spinner">載入中...</div>';
         try {
-          var ep =
-            status === "pending"
-              ? "/admin/partner-applications"
-              : "/admin/partner-list";
+          var ep = status === 'pending' ? '/admin/partner-applications' : '/admin/partner-list';
           var d = await apiGet(ep);
-          var list =
-            status === "pending" ? d.applications || [] : d.partners || [];
+          var list = status === 'pending' ? (d.applications || []) : (d.partners || []);
+
+          var searchQ = (document.getElementById('partnerSearchInput')?.value || '').toLowerCase();
+          if (searchQ) {
+            list = list.filter(function(p){
+              return (p.name||'').toLowerCase().includes(searchQ) ||
+                     (p.email||'').toLowerCase().includes(searchQ) ||
+                     (p.contact_person||'').toLowerCase().includes(searchQ);
+            });
+          }
+
           if (list.length === 0) {
-            container.innerHTML =
-              '<div style="text-align:center;padding:40px;color:var(--dark-700)">暫無記錄</div>';
+            container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--dark-700)">暫無記錄</div>';
             return;
           }
-          var html = "";
-          list.forEach(function (p) {
-            var badge =
-              p.status === "pending"
-                ? '<span style="background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600">⏳ 待審批</span>'
-                : p.status === "active"
-                  ? '<span style="background:#ecfdf5;color:#059669;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600">✅ 活躍</span>'
-                  : '<span style="background:#fef2f2;color:#dc2626;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600">' +
-                    escape(p.status || "") +
-                    "</span>";
-            html +=
-              '<div style="background:white;border-radius:14px;padding:16px;margin-bottom:10px;box-shadow:0 2px 8px rgba(0,0,0,0.06);border:1px solid rgba(0,0,0,0.04)">' +
+          var html = '';
+          list.forEach(function(p) {
+            var planKey = p.commission_plan || 'basic';
+            var plan = commissionPlans.find(function(x){ return x.key === planKey; }) || commissionPlans[0];
+
+            var badge = p.status === 'pending'
+              ? '<span style="background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600">⏳ 待審批</span>'
+              : p.status === 'active'
+                ? '<span style="background:#ecfdf5;color:#059669;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600">✅ 活躍</span>'
+                : '<span style="background:#fef2f2;color:#dc2626;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600">' + escape(p.status||'') + '</span>';
+
+            html += '<div style="background:white;border-radius:14px;padding:16px;margin-bottom:10px;box-shadow:0 2px 8px rgba(0,0,0,0.06);border:1px solid rgba(0,0,0,0.04)">' +
               '<div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:6px">' +
-              '<div><div style="font-weight:600;font-size:15px">' +
-              escape(p.name || "") +
-              "</div>" +
-              '<div style="font-size:12px;color:var(--dark-700);margin-top:2px">' +
-              escape(p.category || "") +
-              " · " +
-              escape(p.district || "") +
-              "</div></div>" +
-              badge +
-              "</div>" +
-              (p.contact_person
-                ? '<div style="font-size:12px;color:var(--dark-700)">👤 ' +
-                  escape(p.contact_person) +
-                  " · 📞 " +
-                  escape(p.phone || "") +
-                  "</div>"
-                : "") +
-              (p.email
-                ? '<div style="font-size:12px;color:var(--dark-700)">📧 ' +
-                  escape(p.email) +
-                  "</div>"
-                : "");
-            if (p.status === "pending") {
-              html +=
-                '<div style="margin-top:10px;display:flex;gap:8px">' +
-                "<button onclick=\"approvePartner('" +
-                p.id +
-                '\')" style="flex:1;padding:8px;background:#059669;color:white;border:none;border-radius:8px;cursor:pointer;font-size:12px;font-weight:600">✅ 核准</button>' +
-                "<button onclick=\"rejectPartner('" +
-                p.id +
-                '\')" style="flex:1;padding:8px;background:#dc2626;color:white;border:none;border-radius:8px;cursor:pointer;font-size:12px">❌ 拒絕</button></div>';
+              '<div><div style="font-weight:600;font-size:15px">' + escape(p.name||'') + '</div>' +
+              '<div style="font-size:12px;color:var(--dark-700);margin-top:2px">' + escape(p.category||'') + ' · ' + escape(p.district||'') + '</div></div>' +
+              badge + '</div>';
+
+            // Plan info line
+            html += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px;font-size:12px;color:var(--dark-700);">' +
+              '<span style="background:var(--primary-bg);padding:2px 8px;border-radius:6px;">💰 ' + escape(plan.label) + '</span>' +
+              '<span>分佣：' + Math.round((plan.rate||p.commission_rate||0.25)*100) + '%</span>' +
+              (plan.fee > 0 ? '<span>月費：$' + plan.fee + '</span>' : '<span>月費：免費</span>') +
+              '</div>';
+
+            html += (p.contact_person ? '<div style="font-size:12px;color:var(--dark-700)">👤 ' + escape(p.contact_person) + ' · 📞 ' + escape(p.phone||'') + '</div>' : '') +
+              (p.email ? '<div style="font-size:12px;color:var(--dark-700)">📧 ' + escape(p.email) + '</div>' : '');
+
+            if (p.status === 'pending') {
+              html += '<div style="margin-top:10px;"><div style="margin-bottom:8px;font-size:12px;color:var(--dark-700);">揀選佣金計劃及核准：</div>' +
+                '<div style="display:flex;gap:6px;margin-bottom:8px;">' +
+                commissionPlans.map(function(cp) {
+                  var sel = cp.key === planKey ? ' style="background:var(--primary-bg);border-color:var(--primary);color:var(--primary);"' : '';
+                  return '<button id="plan-btn-' + p.id + '-' + cp.key + '" onclick="selectPlanForApproval(\'' + p.id + '\',\'' + cp.key + '\')" style="flex:1;padding:6px 8px;border:1px solid var(--gray-200);border-radius:6px;cursor:pointer;font-size:11px;background:var(--white);font-family:inherit;"' + sel + '>' + cp.label.split(' ')[0] + '</button>';
+                }).join('') +
+                '</div>' +
+                '<div style="display:flex;gap:8px">' +
+                '<button onclick="approvePartner(\'' + p.id + '\')" style="flex:1;padding:8px;background:#059669;color:white;border:none;border-radius:8px;cursor:pointer;font-size:12px;font-weight:600">✅ 核准</button>' +
+                '<button onclick="rejectPartner(\'' + p.id + '\')" style="flex:1;padding:8px;background:#dc2626;color:white;border:none;border-radius:8px;cursor:pointer;font-size:12px">❌ 拒絕</button></div></div>';
             }
-            if (p.status === "active") {
-              html +=
-                '<div style="margin-top:6px;font-size:12px;color:var(--dark-700)">分佣：<strong>' +
-                Math.round((p.commission_rate || 0.3) * 100) +
-                "%</strong></div>";
+
+            if (p.status === 'active') {
+              var stats = p.stats || {};
+              html += '<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;font-size:11px;">' +
+                '<span>📊 訂單：' + (stats.total_bookings||0) + '</span>' +
+                '<span>💰 營收：$' + (stats.total_revenue||0).toFixed(0) + '</span>' +
+                '</div>' +
+                '<div style="margin-top:8px;display:flex;gap:6px;">' +
+                '<button onclick="viewPartnerRevenue(\'' + p.id + '\')" style="flex:1;padding:6px;background:var(--primary-bg);color:var(--primary);border:1px solid var(--primary);border-radius:6px;cursor:pointer;font-size:11px;font-family:inherit;">📈 收入報表</button>' +
+                '<button onclick="changePartnerPlan(\'' + p.id + '\')" style="flex:1;padding:6px;background:var(--white);color:var(--dark-700);border:1px solid var(--gray-200);border-radius:6px;cursor:pointer;font-size:11px;font-family:inherit;">⚙️ 調整計劃</button>' +
+                '</div>';
             }
-            html += "</div>";
+
+            html += '</div>';
           });
           container.innerHTML = html;
-        } catch (e) {
-          container.innerHTML =
-            '<div style="text-align:center;padding:40px;color:#ef4444">❌ 無法載入</div>';
+        } catch(e) {
+          container.innerHTML = '<div style="text-align:center;padding:40px;color:#ef4444">❌ 無法載入</div>';
+        }
+      }
+
+      var selectedPlans = {};
+
+      function selectPlanForApproval(venueId, planKey) {
+        selectedPlans[venueId] = planKey;
+        commissionPlans.forEach(function(cp) {
+          var btn = document.getElementById('plan-btn-' + venueId + '-' + cp.key);
+          if (btn) {
+            btn.style.background = 'var(--white)';
+            btn.style.borderColor = 'var(--gray-200)';
+            btn.style.color = 'var(--dark-700)';
+          }
+        });
+        var selBtn = document.getElementById('plan-btn-' + venueId + '-' + planKey);
+        if (selBtn) {
+          selBtn.style.background = 'var(--primary-bg)';
+          selBtn.style.borderColor = 'var(--primary)';
+          selBtn.style.color = 'var(--primary)';
         }
       }
 
       async function approvePartner(venueId) {
-        if (!confirm("核准此商戶申請？")) return;
+        if (!confirm('核准此商戶申請？')) return;
+        var plan = selectedPlans[venueId] || 'basic';
         try {
-          await apiPost("/admin/partner-approve", {
+          await apiPost('/admin/partner-approve', {
             venue_id: venueId,
-            action: "accept",
-            commission_rate: 0.3,
+            action: 'accept',
+            commission_plan: plan,
           });
-          showToast("✅ 已核准", "success");
-          showPartnerSection("pending");
-        } catch (e) {
-          showToast("❌ " + e.message, "error");
+          showToast('✅ 已核准 (' + (commissionPlans.find(function(x){return x.key===plan;})?.label||'Basic') + ')', 'success');
+          showPartnerSection('pending');
+        } catch(e) {
+          showToast('❌ ' + e.message, 'error');
         }
       }
 
       async function rejectPartner(venueId) {
-        if (!confirm("拒絕此商戶申請？")) return;
+        if (!confirm('拒絕此商戶申請？')) return;
         try {
-          await apiPost("/admin/partner-approve", {
-            venue_id: venueId,
-            action: "reject",
-          });
-          showToast("✅ 已拒絕", "success");
-          showPartnerSection("pending");
-        } catch (e) {
-          showToast("❌ " + e.message, "error");
+          await apiPost('/admin/partner-approve', { venue_id: venueId, action: 'reject' });
+          showToast('✅ 已拒絕', 'success');
+          showPartnerSection('pending');
+        } catch(e) {
+          showToast('❌ ' + e.message, 'error');
         }
       }
 
-      function escHtml(s) {
-        return String(s)
-          .replace(/&/g, "&amp;")
-          .replace(/</g, "&lt;")
-          .replace(/>/g, "&gt;")
-          .replace(/"/g, "&quot;");
+      // ===== 收入報表 Modal =====
+      async function viewPartnerRevenue(venueId) {
+        try {
+          var d = await apiGet('/admin/partner/' + venueId + '/revenue');
+          var v = d.venue || {};
+          var html = '<div class="modal-overlay" id="revenueModal" onclick="closeRevenueModal(event)">' +
+            '<div class="modal" style="width:600px;max-height:80vh;overflow-y:auto;">' +
+            '<h3>📈 ' + escape(v.name || '收入報表') + '</h3>';
+
+          var t = d.totals || {};
+          html += '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:16px;">' +
+            '<div style="background:#e0f2fe;padding:12px;border-radius:8px;text-align:center;"><div style="font-size:20px;font-weight:700;color:#0369a1;">' + (t.total_bookings||0) + '</div><div style="font-size:11px;color:var(--gray);">總訂單</div></div>' +
+            '<div style="background:var(--primary-bg);padding:12px;border-radius:8px;text-align:center;"><div style="font-size:20px;font-weight:700;color:var(--primary);">$' + (t.total_revenue||0).toFixed(0) + '</div><div style="font-size:11px;color:var(--gray);">總營收</div></div>' +
+            '<div style="background:#ecfdf5;padding:12px;border-radius:8px;text-align:center;"><div style="font-size:20px;font-weight:700;color:var(--green);">$' + (t.total_venue_earned||0).toFixed(0) + '</div><div style="font-size:11px;color:var(--gray);">場地實收</div></div>' +
+            '<div style="background:#fef2f2;padding:12px;border-radius:8px;text-align:center;"><div style="font-size:20px;font-weight:700;color:var(--red);">$' + (t.total_platform_fee||0).toFixed(0) + '</div><div style="font-size:11px;color:var(--gray);">平台佣金</div></div>' +
+            '</div>';
+
+          var ms = d.monthly_stats || [];
+          if (ms.length > 0) {
+            html += '<h4 style="font-size:13px;font-weight:600;margin-bottom:8px;">📊 月度收入趨勢</h4>' +
+              '<div style="overflow-x:auto;"><table style="width:100%;font-size:12px;border-collapse:collapse;"><thead><tr>' +
+              '<th style="text-align:left;padding:6px 10px;border-bottom:2px solid var(--gray-light);">月份</th>' +
+              '<th style="text-align:left;padding:6px 10px;border-bottom:2px solid var(--gray-light);">訂單數</th>' +
+              '<th style="text-align:left;padding:6px 10px;border-bottom:2px solid var(--gray-light);">總營收</th>' +
+              '<th style="text-align:left;padding:6px 10px;border-bottom:2px solid var(--gray-light);">場地實收</th>' +
+              '<th style="text-align:left;padding:6px 10px;border-bottom:2px solid var(--gray-light);">平台佣金</th></tr></thead><tbody>';
+            ms.forEach(function(m) {
+              html += '<tr><td style="padding:6px 10px;border-bottom:1px solid var(--gray-light);">' + escape(m.month||'') + '</td>' +
+                '<td style="padding:6px 10px;border-bottom:1px solid var(--gray-light);">' + (m.booking_count||0) + '</td>' +
+                '<td style="padding:6px 10px;border-bottom:1px solid var(--gray-light);">$' + (m.total_revenue||0).toFixed(0) + '</td>' +
+                '<td style="padding:6px 10px;border-bottom:1px solid var(--gray-light);color:var(--green);font-weight:600;">$' + (m.venue_earned||0).toFixed(0) + '</td>' +
+                '<td style="padding:6px 10px;border-bottom:1px solid var(--gray-light);color:var(--red);">$' + (m.platform_fee||0).toFixed(0) + '</td></tr>';
+            });
+            html += '</tbody></table></div>';
+          } else {
+            html += '<p style="color:var(--gray);font-size:13px;">暫無月度數據</p>';
+          }
+
+          var payouts = d.payouts || [];
+          if (payouts.length > 0) {
+            html += '<h4 style="font-size:13px;font-weight:600;margin:16px 0 8px;">📄 最近結算</h4>' +
+              '<div style="overflow-x:auto;"><table style="width:100%;font-size:12px;border-collapse:collapse;"><thead><tr>' +
+              '<th style="text-align:left;padding:6px 10px;border-bottom:2px solid var(--gray-light);">日期</th>' +
+              '<th style="text-align:left;padding:6px 10px;border-bottom:2px solid var(--gray-light);">期別</th>' +
+              '<th style="text-align:left;padding:6px 10px;border-bottom:2px solid var(--gray-light);">總營收</th>' +
+              '<th style="text-align:left;padding:6px 10px;border-bottom:2px solid var(--gray-light);">佣金</th>' +
+              '<th style="text-align:left;padding:6px 10px;border-bottom:2px solid var(--gray-light);">實收</th>' +
+              '<th style="text-align:left;padding:6px 10px;border-bottom:2px solid var(--gray-light);">狀態</th></tr></thead><tbody>';
+            payouts.forEach(function(p) {
+              html += '<tr><td style="padding:6px 10px;border-bottom:1px solid var(--gray-light);">' + (p.created_at||'').substring(0,10) + '</td>' +
+                '<td style="padding:6px 10px;border-bottom:1px solid var(--gray-light);">' + (p.period_start||'') + '</td>' +
+                '<td style="padding:6px 10px;border-bottom:1px solid var(--gray-light);">$' + (p.total_revenue||0).toFixed(0) + '</td>' +
+                '<td style="padding:6px 10px;border-bottom:1px solid var(--gray-light);">$' + (p.platform_commission||0).toFixed(0) + '</td>' +
+                '<td style="padding:6px 10px;border-bottom:1px solid var(--gray-light);color:var(--green);font-weight:600;">$' + (p.venue_earned||0).toFixed(0) + '</td>' +
+                '<td style="padding:6px 10px;border-bottom:1px solid var(--gray-light);"><span class="badge ' + (p.status==='paid'?'bg-green':'bg-yellow') + '">' + (p.status==='paid'?'已支付':'待處理') + '</span></td></tr>';
+            });
+            html += '</tbody></table></div>';
+          } else {
+            html += '<p style="color:var(--gray);font-size:13px;margin-top:12px;">暫無結算記錄</p>';
+          }
+
+          html += '<div class="actions" style="margin-top:16px;">' +
+            '<button class="btn btn-primary" onclick="closeRevenueModal()">關閉</button></div></div></div>';
+
+          document.body.insertAdjacentHTML('beforeend', html);
+        } catch(e) {
+          showToast('❌ 無法載入收入報表', 'error');
+        }
       }
 
-      // ===== 📋 教練申請審批 Tab =====
+      function closeRevenueModal(e) {
+        if (e && e.target !== e.currentTarget) return;
+        var el = document.getElementById('revenueModal');
+        if (el) el.remove();
+      }
+
+      // ===== 調整佣金計劃 =====
+      async function changePartnerPlan(venueId) {
+        var plans = commissionPlans;
+        var options = plans.map(function(p,i){ return '<option value="' + p.key + '">' + p.label + '（' + Math.round(p.rate*100) + '% 佣金）</option>'; }).join('');
+        var html = '<div class="modal-overlay" id="planModal" onclick="closePlanModal(event)">' +
+          '<div class="modal"><h3>⚙️ 調整佣金計劃</h3>' +
+          '<div style="margin-bottom:12px;">' +
+          '<label style="display:block;font-size:12px;font-weight:600;margin-bottom:4px;">佣金計劃</label>' +
+          '<select id="planSelect" style="width:100%;padding:8px 12px;border:1px solid var(--gray-light);border-radius:6px;font-size:13px;font-family:inherit;">' + options + '</select></div>' +
+          '<div class="actions">' +
+          '<button class="btn btn-outline" onclick="closePlanModal()">取消</button>' +
+          '<button class="btn btn-primary" onclick="savePartnerPlan(\'' + venueId + '\')">💾 儲存</button></div></div></div>';
+        document.body.insertAdjacentHTML('beforeend', html);
+      }
+
+      function closePlanModal(e) {
+        if (e && e.target !== e.currentTarget) return;
+        var el = document.getElementById('planModal');
+        if (el) el.remove();
+      }
+
+      async function savePartnerPlan(venueId) {
+        var plan = document.getElementById('planSelect')?.value;
+        if (!plan) return;
+        try {
+          await apiPut('/admin/partner/' + venueId, { commission_plan: plan });
+          showToast('✅ 佣金計劃已更新', 'success');
+          closePlanModal();
+          showPartnerSection('active');
+        } catch(e) {
+          showToast('❌ ' + e.message, 'error');
+        }
+      }
+
+      function searchPartner() {
+        var status = document.querySelector('#mainContent .tab-btn.active');
+        var st = 'active';
+        if (status) st = status.textContent.includes('待審批') ? 'pending' : status.textContent.includes('全部') ? 'all' : 'active';
+        showPartnerSection(st);
+      }
+
+      function escHtml(s) {
+        return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\"/g,'&quot;');
+      }
+
+      function escape(s) { return escHtml(s); }
+// ===== 📋 教練申請審批 Tab =====
       async function loadCoachAppsTab() {
         var main = document.getElementById("mainContent");
         main.innerHTML =

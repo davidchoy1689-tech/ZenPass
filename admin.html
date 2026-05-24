@@ -601,6 +601,9 @@
         <a class="nav-item" data-tab="partners" role="button" tabindex="0"
           ><span class="icon">🏪</span><span>商戶管理</span></a
         >
+        <a class="nav-item" data-tab="pricing" role="button" tabindex="0"
+          ><span class="icon">💰</span><span>定價設定</span></a
+        >
 
         <div style="flex: 1"></div>
         <a
@@ -940,6 +943,9 @@
             break;
           case "partners":
             loadPartnersTab();
+            break;
+          case "pricing":
+            loadPricingTab();
             break;
         }
       }
@@ -1984,7 +1990,8 @@
                 '<button onclick="rejectPartner(\'' + p.id + '\')" style="flex:1;padding:8px;background:#dc2626;color:white;border:none;border-radius:8px;cursor:pointer;font-size:12px">❌ 拒絕</button></div>';
             }
             if (p.status === 'active') {
-              html += '<div style="margin-top:6px;font-size:12px;color:var(--dark-700)">分佣：<strong>' + Math.round((p.commission_rate || 0.3) * 100) + '%</strong></div>';
+              var pn = {basic:'基本',standard:'標準',premium:'高級'};
+              html += '<div style="margin-top:6px;font-size:12px;color:var(--dark-700)">' + (pn[p.commission_plan]||'基本') + '計劃 · 分佣：<strong>' + Math.round((p.commission_rate || 0.25) * 100) + '%</strong></div>';
             }
             html += '</div>';
           });
@@ -1997,7 +2004,10 @@
       async function approvePartner(venueId) {
         if (!confirm('核准此商戶申請？')) return;
         try {
-          await apiPost('/admin/partner-approve', { venue_id: venueId, action: 'accept', commission_rate: 0.3 });
+          // Find the application data to get selected plan
+          var appData = window._partnerApps ? window._partnerApps.find(function(a){return a.id===venueId}) : null;
+          var plan = (appData && appData.commission_plan) || 'basic';
+          await apiPost('/admin/partner-approve', { venue_id: venueId, action: 'accept', commission_plan: plan });
           showToast('✅ 已核准', 'success');
           showPartnerSection('pending');
         } catch(e) { showToast('❌ ' + e.message, 'error'); }
@@ -2010,6 +2020,116 @@
           showToast('✅ 已拒絕', 'success');
           showPartnerSection('pending');
         } catch(e) { showToast('❌ ' + e.message, 'error'); }
+      }
+
+      // ===== 定價設定 =====
+      async function loadPricingTab() {
+        var container = document.getElementById("mainContent");
+        container.innerHTML = '<div class="loading">載入定價資料...</div>';
+        try {
+          var d = await apiGet('/pricing/admin/pricing');
+          var cats = d.categories || {};
+          renderPricingUI(container, cats);
+        } catch(e) {
+          container.innerHTML = '<div class="error-card">❌ 載入錯誤: ' + e.message + '</div>';
+        }
+      }
+
+      function renderPricingUI(container, cats) {
+        var html = '<div class="admin-page" id="pricing-page">';
+        html += '<h2 style="margin-bottom:20px">💰 定價設定 <span style="font-size:13px;font-weight:400;color:var(--dark-700);margin-left:8px">管理員可隨時調整所有收費</span></h2>';
+        html += '<div style="display:flex;gap:8px;margin-bottom:16px">';
+        html += '<button onclick="saveAllPricing()" class="admin-btn primary" style="padding:10px 24px;background:var(--green-500);color:white;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer">💾 儲存全部</button>';
+        html += '<span id="save-status" style="font-size:13px;color:var(--green-500);align-self:center"></span>';
+        html += '</div>';
+        
+        // Category order
+        var order = ['plans', 'packages', 'credits', 'general'];
+        var labels = {
+          plans: '📋 會籍計劃',
+          packages: '📦 Credit 加購包',
+          credits: '🎯 Credit 消耗設定',
+          general: '⚙️ 一般設定'
+        };
+        
+        order.forEach(function(cat) {
+          var items = cats[cat];
+          if (!items || items.length === 0) return;
+          html += '<div class="pricing-category" style="background:var(--white);border-radius:12px;padding:16px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,0.06)">';
+          html += '<h3 style="margin-bottom:12px;font-size:15px">' + (labels[cat] || cat) + '</h3>';
+          html += '<div class="pricing-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px">';
+          
+          items.forEach(function(item) {
+            var displayLabel = item.label || item.key.replace(cat + '_', '').replace(/[_]+/g, ' ');
+            var inputType = 'text';
+            if (item.value && !isNaN(Number(item.value)) && item.value.indexOf(',') === -1 && item.value.indexOf('{') === -1 && item.value.indexOf('[') === -1) {
+              inputType = 'number';
+            }
+            var inputVal = item.value || '';
+            // Format JSON arrays for display
+            if (inputVal.startsWith('[') && inputVal.endsWith(']')) {
+              inputType = 'text';
+            }
+            if (inputVal.indexOf('{') > -1) {
+              inputType = 'hidden';
+            }
+            html += '<div class="pricing-field" style="padding:8px;background:var(--gray-50);border-radius:8px">';
+            html += '<label style="font-size:11px;color:var(--dark-700);font-weight:600;display:block;margin-bottom:2px">' + displayLabel + '</label>';
+            if (inputType !== 'hidden') {
+              html += '<input type="' + inputType + '" id="pf-' + item.key + '" value="' + htmlEntities(inputVal) + '" style="width:100%;padding:6px 8px;border:1px solid var(--gray-200);border-radius:6px;font-size:13px;font-family:inherit">';
+            }
+            html += '<div style="font-size:9px;color:var(--gray-300);margin-top:2px">' + item.key + '</div>';
+            html += '</div>';
+          });
+          
+          html += '</div></div>';
+        });
+        
+        html += '</div>';
+        container.innerHTML = html;
+      }
+
+      function htmlEntities(str) {
+        return String(str).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      }
+
+      async function saveAllPricing() {
+        var btn = document.querySelector('#pricing-page button.primary');
+        var status = document.getElementById('save-status');
+        if (btn) { btn.disabled = true; btn.textContent = '儲存中...'; }
+        
+        var updates = {};
+        document.querySelectorAll('[id^="pf-"]').forEach(function(input) {
+          var key = input.id.replace('pf-', '');
+          var val = input.value.trim();
+          // Try to preserve type: number, JSON array, JSON object
+          if (val === 'true') val = true;
+          else if (val === 'false') val = false;
+          else if (val !== '' && !isNaN(Number(val))) val = Number(val);
+          else if (val.startsWith('[') || val.startsWith('{')) {
+            try { val = JSON.parse(val); } catch(e) {}
+          }
+          updates[key] = val;
+        });
+        
+        try {
+          var r = await fetch('/api/pricing/admin/pricing', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + getToken() },
+            body: JSON.stringify({ updates: updates })
+          });
+          var d = await r.json();
+          if (d.success) {
+            if (status) status.textContent = '✅ 已更新 ' + d.updated + ' 項設定';
+            showToast('✅ 定價已更新 (' + d.updated + ' 項)', 'success');
+          } else {
+            throw new Error(d.error || '儲存失敗');
+          }
+        } catch(e) {
+          showToast('❌ ' + e.message, 'error');
+          if (status) status.textContent = '❌ 儲存失敗';
+        }
+        if (btn) { btn.disabled = false; btn.textContent = '💾 儲存全部'; }
       }
     </script>
   </body>

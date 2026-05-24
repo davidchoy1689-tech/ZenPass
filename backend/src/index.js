@@ -142,6 +142,9 @@ app.use("/api/partner", require("./routes/partner"));
 app.use("/api/recommendations", require("./routes/recommendations"));
 app.use("/api/track", require("./routes/recommendations"));
 app.use("/api/pricing", require("./routes/pricing"));
+app.use("/api/venue-rentals", require("./routes/venue-rentals"));
+app.use("/api/wallet", require("./routes/wallet"));
+app.use("/api/reviews", require("./routes/reviews"));
 
 // ===== 健康檢查 =====
 const { ok } = require("./services/response");

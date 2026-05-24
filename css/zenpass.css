@@ -470,6 +470,288 @@ body {
 }
 .zen-scroll-x::-webkit-scrollbar { display: none; }
 
+/* ===== Pull to Refresh Indicator ===== */
+.zen-pull-indicator {
+  text-align: center;
+  padding: 12px;
+  font-size: 12px;
+  color: var(--dark-700);
+  display: none;
+}
+
+/* ===== Staggered Animation ===== */
+.zen-stagger > * {
+  opacity: 0;
+  animation: staggerIn 0.4s ease-out forwards;
+}
+.zen-stagger > *:nth-child(1) { animation-delay: 0.05s; }
+.zen-stagger > *:nth-child(2) { animation-delay: 0.1s; }
+.zen-stagger > *:nth-child(3) { animation-delay: 0.15s; }
+.zen-stagger > *:nth-child(4) { animation-delay: 0.2s; }
+.zen-stagger > *:nth-child(5) { animation-delay: 0.25s; }
+.zen-stagger > *:nth-child(6) { animation-delay: 0.3s; }
+@keyframes staggerIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ===== Gradient Card ===== */
+.zen-card-gradient {
+  background: linear-gradient(135deg, #1a1a2e, #2d2d44);
+  color: white;
+  border-radius: var(--radius-md);
+  padding: 18px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  text-decoration: none;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+.zen-card-gradient.orange {
+  background: linear-gradient(135deg, #ff6b35, #e85d2c);
+  box-shadow: 0 2px 8px rgba(255,107,53,0.2);
+}
+.zen-card-gradient .g-icon { font-size: 32px; flex-shrink: 0; }
+.zen-card-gradient .g-body { flex: 1; min-width: 0; }
+.zen-card-gradient .g-title { font-weight: 700; font-size: 15px; }
+.zen-card-gradient .g-desc { font-size: 12px; opacity: 0.6; margin-top: 2px; }
+.zen-card-gradient .g-action {
+  background: var(--orange-600-bg);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 99px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ===== Stats Row ===== */
+.zen-stats {
+  display: flex;
+  gap: 8px;
+  padding: 14px 12px;
+  background: var(--white);
+  border-radius: 12px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+.zen-stat {
+  flex: 1;
+  text-align: center;
+}
+.zen-stat-value {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--orange-700);
+}
+.zen-stat-label {
+  font-size: 11px;
+  color: var(--dark-700);
+}
+.zen-stat-divider {
+  width: 1px;
+  background: var(--gray-200);
+}
+
+/* ===== Section Padded ===== */
+.zen-section {
+  padding: 12px 16px;
+}
+
+/* ===== Search Bar ===== */
+.zen-search-bar {
+  display: flex;
+  gap: 8px;
+  margin: 0 16px 12px;
+  background: var(--white);
+  border-radius: 12px;
+  padding: 4px 4px 4px 14px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  border: 1px solid var(--gray-200);
+  align-items: center;
+  transition: box-shadow 0.2s;
+}
+.zen-search-bar:focus-within {
+  box-shadow: 0 0 0 3px rgba(255,107,53,0.15);
+  border-color: var(--orange-700);
+}
+.zen-search-bar input {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 14px;
+  font-family: var(--font-zh);
+  padding: 10px 0;
+  background: transparent;
+}
+.zen-search-bar button {
+  background: var(--orange-600-bg);
+  color: white;
+  border: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* ===== Category Pills ===== */
+.zen-pills {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding: 2px 0;
+}
+.zen-pill {
+  flex-shrink: 0;
+  padding: 6px 14px;
+  border-radius: 20px;
+  background: rgba(255,255,255,0.9);
+  font-size: 13px;
+  text-decoration: none;
+  color: var(--dark-900);
+  font-weight: 500;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+  border: 1px solid transparent;
+}
+.zen-pill:hover {
+  background: var(--orange-100);
+  color: var(--orange-700);
+  border-color: var(--orange-300);
+}
+.zen-pill.active {
+  background: var(--orange-600-bg);
+  color: white;
+}
+
+/* ===== Floating Action Button ===== */
+.zen-fab {
+  position: fixed;
+  bottom: 80px;
+  right: 20px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--orange-600-bg);
+  color: white;
+  border: none;
+  font-size: 24px;
+  box-shadow: 0 4px 16px rgba(255,107,53,0.3);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  transition: all 0.2s;
+}
+.zen-fab:hover { transform: scale(1.1); }
+.zen-fab:active { transform: scale(0.95); }
+
+/* ===== Count Badge ===== */
+.zen-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--red-500);
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ===== Price Display ===== */
+.zen-price {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--orange-700);
+}
+.zen-price small {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--dark-700);
+}
+
+/* ===== Image Placeholder ===== */
+.zen-img-placeholder {
+  width: 100%;
+  aspect-ratio: 16/9;
+  background: linear-gradient(135deg, var(--orange-100), var(--gray-100));
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  color: var(--orange-300);
+}
+
+/* ===== Quick Action Grid ===== */
+.zen-action-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+.zen-action-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 4px;
+  background: var(--white);
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  color: var(--dark-900);
+  box-shadow: var(--shadow-sm);
+  transition: all 0.15s;
+}
+.zen-action-item:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+.zen-action-icon { font-size: 24px; }
+.zen-action-label { font-size: 11px; font-weight: 500; }
+
+/* ===== Horizontal Card Scroll ===== */
+.zen-h-scroll {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-bottom: 4px;
+}
+.zen-h-scroll-item {
+  flex: 0 0 150px;
+  padding: 12px;
+  background: var(--white);
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  text-align: center;
+  text-decoration: none;
+  color: inherit;
+}
+.zen-avatar-circle {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  color: white;
+  margin: 0 auto 6px;
+}
+
 /* ===== Desktop Layout Enhancements ===== */
 @media (min-width: 768px) {
   :root {

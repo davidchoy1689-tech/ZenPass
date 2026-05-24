@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ZenPass VPS 部署 — SSH 設定</title>
+  <style>
+    body { font-family: 'SF Mono', 'Menlo', monospace; background: #1a1a2e; color: #fff; padding: 30px; max-width: 700px; margin: 0 auto; line-height: 1.6; }
+    h1 { color: #ff6b35; font-size: 20px; }
+    .step { background: #2d2d44; border-radius: 12px; padding: 16px; margin: 12px 0; border-left: 4px solid #ff6b35; }
+    .step.done { border-left-color: #059669; opacity: 0.6; }
+    .step.done::before { content: '✅ '; }
+    code { display: block; background: #000; padding: 12px; border-radius: 8px; margin: 8px 0; font-size: 13px; color: #7dd3fc; word-break: break-all; }
+    .inst { font-size: 12px; color: #94a3b8; margin-top: 4px; }
+    .big-btn { display: inline-block; background: #c94420; color: white; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-weight: bold; margin: 8px 0; }
+    ol { padding-left: 20px; }
+    li { margin: 8px 0; }
+    .highlight { background: #c94420; padding: 2px 6px; border-radius: 4px; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h1>🚀 ZenPass VPS 部署 — 最後步驟</h1>
+  <p style="color:#94a3b8">Server: 47.242.246.2 (Hong Kong) · OpenClaw-opmj</p>
+
+  <div class="step">
+    <strong>你已經完成 ✅</strong>
+    <div style="color:#94a3b8;font-size:13px">
+      ✅ 阿里雲開戶 + 買 server<br>
+      ✅ OAuth CLI 授權<br>
+      ✅ 已用 Workbench 入到 terminal<br>
+      ✅ root password 已 set
+    </div>
+  </div>
+
+  <div class="step" style="border-left-color: #f59e0b">
+    <strong>⚠️ 最後一步：開 SSH password login</strong>
+    <div style="color:#f59e0b;font-size:13px">黑色 Terminal 仲開住，打以下 command：</div>
+    
+    <p style="margin-top:12px"><strong>Step 1:</strong> Click 黑色 Terminal 畫面</p>
+    
+    <p><strong>Step 2:</strong> Cmd + V（貼上下面呢條 command）</p>
+    <code id="cmd1">sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/' /etc/ssh/sshd_config && systemctl restart sshd</code>
+    <button class="big-btn" onclick="copyCmd('cmd1')">📋 複製 Command</button>
+    
+    <p><strong>Step 3:</strong> Enter</p>
+    <p style="font-size:12px;color:#94a3b8">搞掂之後話我知！我就用 SSH 入去做 deployment 🎯</p>
+  </div>
+
+  <div class="step done">
+    <strong>之後我會做：</strong>
+    <div style="font-size:13px;color:#94a3b8">
+      ✅ SSH 入 server<br>
+      ✅ 安裝 Node.js + PM2 + Nginx<br>
+      ✅ Upload ZenPass 前端 + 後端<br>
+      ✅ Setup domain + SSL (如果你有 domain)<br>
+      ✅ 全部自動化一鍵搞掂
+    </div>
+  </div>
+
+  <script>
+    function copyCmd(id) {
+      var el = document.getElementById(id);
+      var ta = document.createElement('textarea');
+      ta.value = el.textContent;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      ta.remove();
+      alert('✅ Command 已複製！去 Terminal 按 Cmd + V');
+    }
+  </script>
+</body>
+</html>

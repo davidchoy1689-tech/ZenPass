@@ -357,6 +357,23 @@
         border-radius: 50%;
         animation: spin 0.8s linear infinite;
       }
+      /* Skeleton card while loading */
+      .class-card.zen-skeleton {
+        height: 200px;
+      }
+      .class-card.zen-skeleton .skeleton-img {
+        height: 110px;
+        background: var(--gray-200);
+      }
+      .class-card.zen-skeleton .skeleton-line {
+        height: 12px;
+        margin: 8px 10px;
+        border-radius: 6px;
+        background: var(--gray-100);
+      }
+      .class-card.zen-skeleton .skeleton-line:last-child {
+        width: 60%;
+      }
       @keyframes spin {
         to {
           transform: rotate(360deg);
@@ -572,6 +589,7 @@
         "query-input": "required name=search_term_string"
       }
     </script>
+      <script src="app.js"></script>
   </head>
   <body>
     <div class="header">
@@ -1191,7 +1209,7 @@
           })
           .then(function (data) {
             var dates = data.dates || [];
-            container.innerHTML = "";
+            container.innerHTML = ""; container.classList.remove("zen-stagger");
             if (dates.length === 0) {
               container.innerHTML =
                 '<div style="padding:12px;text-align:center;color:var(--dark-700);font-size:13px;">暫時沒有可預約日期</div>';
@@ -1225,7 +1243,7 @@
             });
           })
           .catch(function () {
-            container.innerHTML = "";
+            container.innerHTML = ""; container.classList.remove("zen-stagger");
             for (var i = 0; i < 7; i++) {
               var d = new Date(today);
               d.setDate(today.getDate() + i);
@@ -1518,6 +1536,12 @@
               var totalShown = container.querySelectorAll(".class-card").length;
               countEl.textContent =
                 totalShown + " / " + totalClasses + " 個課程";
+            }
+            // Stagger animation for new cards
+            if (currentPage === 1) {
+              container.classList.remove("zen-stagger");
+              void container.offsetWidth; // force reflow
+              container.classList.add("zen-stagger");
             }
           }
           // Show/hide load more

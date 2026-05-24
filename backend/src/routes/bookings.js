@@ -36,16 +36,35 @@ router.post("/", authenticateToken, requireIdempotency, validate(schemas.booking
       return res.status(400).json({ error: "缺少預約資料" });
     }
 
-    // 試玩：只限一次
+    // 試玩：7天內 + 30次上限 + 學生角色
     if (payment_type === "membership_trial") {
-      const db2 = new Database(DB_PATH);
-      const existingTrial = db2.prepare(
-        `SELECT id FROM bookings WHERE user_id = ? AND payment_type = 'membership_trial' AND status != 'cancelled'`
-      ).get(req.user.id);
-      db2.close();
-      if (existingTrial) {
-        return res.status(400).json({ error: "你已經使用過試玩體驗" });
+      const db3 = new Database(DB_PATH);
+      const trialUser = db3.prepare(`SELECT role, created_at FROM users WHERE id = ?`).get(req.user.id);
+      
+      // 只限學生角色
+      if (!trialUser || trialUser.role !== 'user') {
+        db3.close();
+        return res.status(403).json({ error: '試玩只限學生帳號' });
       }
+      
+      // 7天內
+      var regDate = new Date(trialUser.created_at);
+      var now = new Date();
+      var daysSinceReg = Math.floor((now - regDate) / (1000 * 60 * 60 * 24));
+      if (daysSinceReg >= 7) {
+        db3.close();
+        return res.status(400).json({ error: '試玩期已過（7天限）' });
+      }
+      
+      // 30次上限
+      var trialCount = db3.prepare(
+        `SELECT COUNT(*) as cnt FROM bookings WHERE user_id = ? AND payment_type = 'membership_trial' AND status != 'cancelled'`
+      ).get(req.user.id);
+      if (trialCount.cnt >= 30) {
+        db3.close();
+        return res.status(400).json({ error: '試玩次數已滿，請聯絡 info@hklfcl.com' });
+      }
+      db3.close();
     }
 
     const db = new Database(DB_PATH);
@@ -154,14 +173,18 @@ router.post("/", authenticateToken, requireIdempotency, validate(schemas.booking
     let partnerPlatformEarned = null;
     try {
       partnerVenue = db.prepare(`
-        SELECT pv.id, pv.commission_rate, pv.name as venue_name
+        SELECT pv.id, pv.commission_rate, pv.commission_plan, pv.name as venue_name
         FROM classes c
         JOIN partner_venues pv ON c.partner_venue_id = pv.id
         WHERE c.id = ? AND pv.status = 'active'
       `).get(class_id);
       if (partnerVenue) {
         const bookingAmount = amount || 0;
-        partnerCommission = partnerVenue.commission_rate || 0.3;
+        // Use plan-based commission rate
+        const planKey = partnerVenue.commission_plan || 'basic';
+        const planRates = { basic: 0.25, standard: 0.18, premium: 0.12 };
+        const planRate = planRates[planKey] || partnerVenue.commission_rate || 0.25;
+        partnerCommission = planRate;
         partnerPlatformEarned = Math.round(bookingAmount * partnerCommission * 100) / 100;
         partnerVenueEarned = Math.round(bookingAmount * (1 - partnerCommission) * 100) / 100;
       }
@@ -313,15 +336,50 @@ router.post("/", authenticateToken, requireIdempotency, validate(schemas.booking
   }
 });
 
+// ===== GET /api/bookings/:id — 單一預約詳情（for 評價）=====
 // ===== GET /api/bookings/trial-status — 試玩資格 =====
+// 規則：首次登記學生帳號，首7天，上限30堂
+const TRIAL_WINDOW_DAYS = 7;
+const TRIAL_MAX_COUNT = 30;
+
 router.get("/trial-status", authenticateToken, (req, res) => {
   try {
     const db = new Database(DB_PATH);
-    const existing = db.prepare(
-      `SELECT id FROM bookings WHERE user_id = ? AND payment_type = 'membership_trial' AND status != 'cancelled'`
+    const user = db.prepare(`SELECT id, role, created_at FROM users WHERE id = ?`).get(req.user.id);
+    
+    // 1. Only student role
+    if (!user || user.role !== 'user') {
+      db.close();
+      return res.json({ eligible: false, reason: '只限學生帳號試玩' });
+    }
+    
+    // 2. First 7 days from registration
+    var regDate = new Date(user.created_at);
+    var now = new Date();
+    var daysSinceReg = Math.floor((now - regDate) / (1000 * 60 * 60 * 24));
+    var withinWindow = daysSinceReg < TRIAL_WINDOW_DAYS;
+    
+    // 3. Count existing trial bookings
+    var trialCount = db.prepare(
+      `SELECT COUNT(*) as cnt FROM bookings WHERE user_id = ? AND payment_type = 'membership_trial' AND status != 'cancelled'`
     ).get(req.user.id);
+    var usedCount = trialCount.cnt;
+    var remainingCount = Math.max(0, TRIAL_MAX_COUNT - usedCount);
+    var hasRemaining = remainingCount > 0;
+    
+    // Calculate trial expiry date
+    var expiryDate = new Date(regDate);
+    expiryDate.setDate(expiryDate.getDate() + TRIAL_WINDOW_DAYS);
+    
     db.close();
-    res.json({ trial_used: !!existing });
+    res.json({
+      eligible: withinWindow && hasRemaining,
+      trial_used: usedCount > 0,
+      days_remaining: Math.max(0, TRIAL_WINDOW_DAYS - daysSinceReg),
+      trial_window_days: TRIAL_WINDOW_DAYS,
+      expires_at: expiryDate.toISOString(),
+      reason: !withinWindow ? '試玩期已過' : !hasRemaining ? '' : ''
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -693,4 +751,26 @@ router.get("/today", authenticateToken, (req, res) => {
   }
 });
 
+
+// ===== GET /api/bookings/:id — 單一預約詳情 =====
+router.get("/:id", authenticateToken, (req, res) => {
+  try {
+    const db = new Database(DB_PATH);
+    const booking = db.prepare(`
+      SELECT b.*, c.title, c.coach_id, c.price_hkd, u.name as coach_name, u2.name as student_name,
+             cs.start_time, cs.end_time
+      FROM bookings b
+      JOIN classes c ON b.class_id = c.id
+      JOIN users u ON c.coach_id = u.id
+      JOIN users u2 ON b.user_id = u2.id
+      LEFT JOIN class_schedules cs ON b.schedule_id = cs.id
+      WHERE b.id = ?
+    `).get(req.params.id);
+    db.close();
+    if (!booking) return res.status(404).json({ error: "預約不存在" });
+    res.json(booking);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 module.exports = router;

@@ -499,11 +499,30 @@
         }
       }
     </style>
+      <script src="app.js"></script>
+      <script src="pricing-engine.js"></script>
   </head>
   <body>
     <div class="header">
       <a href="javascript:void(0)" onclick="goBack()">←</a>
       <h1 id="page-title">💰 付款</h1>
+    </div>
+    <!-- Payment Step Indicator -->
+    <div style="display:flex;align-items:center;justify-content:center;gap:0;padding:8px 16px 0;font-size:11px">
+      <div class="zen-flex-center" style="gap:4px">
+        <div style="width:20px;height:20px;border-radius:50%;background:var(--orange-600-bg);color:white;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700">1</div>
+        <span style="color:var(--orange-700);font-weight:600">確認訂單</span>
+      </div>
+      <div style="width:40px;height:2px;background:var(--orange-300);margin:0 6px"></div>
+      <div class="zen-flex-center" style="gap:4px">
+        <div style="width:20px;height:20px;border-radius:50%;background:var(--orange-600-bg);color:white;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700">2</div>
+        <span style="color:var(--orange-700);font-weight:600">付款</span>
+      </div>
+      <div style="width:40px;height:2px;background:var(--gray-200);margin:0 6px"></div>
+      <div class="zen-flex-center" style="gap:4px">
+        <div style="width:20px;height:20px;border-radius:50%;background:var(--gray-200);color:var(--dark-700);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600">3</div>
+        <span style="color:var(--dark-700)">完成</span>
+      </div>
     </div>
 
     <div id="loading-state" class="loading-full">
@@ -1006,7 +1025,9 @@
         var now = new Date();
         var ds = now.toLocaleDateString("zh-HK");
         var ts = now.toLocaleTimeString("zh-HK", {hour:'2-digit',minute:'2-digit'});
-        var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>ZenPass Receipt</title></head><body style="font-family:sans-serif;max-width:500px;margin:0 auto;padding:40px 20px">' +
+        var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>ZenPass Receipt</title>    <script src="app.js"></script>
+      <script src="pricing-engine.js"></script>
+  </head><body style="font-family:sans-serif;max-width:500px;margin:0 auto;padding:40px 20px">' +
           '<div style="text-align:center;margin-bottom:24px"><div style="font-size:32px;margin-bottom:8px">🧘</div><div style="font-size:20px;font-weight:800">ZenPass 禪流</div><div style="font-size:11px;color:#6b7280">電子收據</div></div>' +
           '<hr style="border:none;border-top:2px dashed #ddd">' +
           '<div style="margin:16px 0"><div style="font-size:12px;color:#6b7280">收據編號</div><div style="font-size:15px;font-weight:700">' + ref + '</div></div>' +

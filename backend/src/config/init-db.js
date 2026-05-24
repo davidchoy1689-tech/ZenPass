@@ -408,7 +408,7 @@ function initDatabase() {
   } catch (e) {}
   // Set admin role for existing admin users
   try {
-    db.exec("UPDATE users SET role = 'admin' WHERE email LIKE '%admin%' OR email LIKE '%@zenpass.hk'");
+    db.exec("UPDATE users SET role = 'admin' WHERE email LIKE '%admin%' AND email NOT IN ('coach@zenpass.hk','student@zenpass.hk')");
   } catch (e) {}
 
   
@@ -427,6 +427,9 @@ function initDatabase() {
   } catch (e) {}
   try {
     db.exec("ALTER TABLE users ADD COLUMN total_spent REAL DEFAULT 0");
+  } catch (e) {}
+  try {
+    db.exec("ALTER TABLE users ADD COLUMN rating REAL DEFAULT 0");
   } catch (e) {}
   try {
     db.exec("ALTER TABLE users ADD COLUMN lead_source TEXT DEFAULT ''");
@@ -631,6 +634,27 @@ function initDatabase() {
   try {
     db.exec("CREATE INDEX IF NOT EXISTS idx_user_badges_user ON user_badges(user_id)");
   } catch (e) {}
+
+  // ===== 評價系統 (雙方互評: 學生↔教練) =====
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS reviews (
+      id TEXT PRIMARY KEY,
+      booking_id TEXT NOT NULL,
+      from_user_id TEXT NOT NULL,
+      to_user_id TEXT NOT NULL,
+      role TEXT NOT NULL CHECK(role IN ('student','coach')),
+      rating INTEGER NOT NULL CHECK(rating >= 1 AND rating <= 5),
+      comment TEXT DEFAULT '',
+      is_anonymous INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (booking_id) REFERENCES bookings(id),
+      FOREIGN KEY (from_user_id) REFERENCES users(id),
+      FOREIGN KEY (to_user_id) REFERENCES users(id)
+    );
+  `);
+  // Add reviewed column to bookings if not exist
+  try { db.exec("ALTER TABLE bookings ADD COLUMN reviewed_student INTEGER DEFAULT 0"); } catch(e) {}
+  try { db.exec("ALTER TABLE bookings ADD COLUMN reviewed_coach INTEGER DEFAULT 0"); } catch(e) {}
 
   // ===== 預設勳章種子數據 =====
   const existingBadges = db.prepare("SELECT COUNT(*) as count FROM badges").get();

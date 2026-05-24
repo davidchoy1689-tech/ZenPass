@@ -232,6 +232,7 @@
         }
       }
     </style>
+      <script src="app.js"></script>
   </head>
   <body>
     <div class="card">
@@ -372,7 +373,8 @@
           storeUser(result.user);
           setMsg("login-msg", "✅ 登入成功！", "success");
           setTimeout(function () {
-            window.location.href = "explore.html";
+            var roleMap = {admin:"admin.html",coach:"coach-dashboard.html",venue:"partner-dashboard.html",user:"explore.html"};
+            window.location.href = roleMap[result.user.role] || "explore.html";
           }, 800);
         } catch (e) {
           setMsg("login-msg", "❌ " + e.message, "error");
@@ -406,11 +408,12 @@
           });
           setToken(result.token);
           storeUser(result.user);
-          setMsg("register-msg", "✅ 註冊成功！", "success");
+          setMsg("register-msg", "✅ 註冊成功！你已經獲得 7 天免費試玩 🎁", "success");
           // Check if first-time user → redirect to onboarding
           var isFirstTime = !localStorage.getItem("zenpass_visited_before");
           localStorage.setItem("zenpass_visited_before", "1");
-          var redirectTo = isFirstTime ? "onboarding.html" : "explore.html";
+          var roleMap = {admin:"admin.html",coach:"coach-dashboard.html",venue:"partner-dashboard.html",user:"explore.html"};
+          var redirectTo = isFirstTime ? "onboarding.html" : (roleMap[result.user.role] || "explore.html");
           setTimeout(function () {
             window.location.href = redirectTo;
           }, 800);
@@ -439,7 +442,8 @@
           role: role,
           credits: role === "coach" ? 0 : 45,
         });
-        window.location.href = "explore.html";
+        var roleMap = {admin:"admin.html",coach:"coach-dashboard.html",venue:"partner-dashboard.html",user:"explore.html"};
+        window.location.href = roleMap[role] || "explore.html";
       }
 
       // ===== Social Login (Apple / Google) =====

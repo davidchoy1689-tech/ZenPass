@@ -568,6 +568,7 @@
       }
     </style>
     <script src="api.js"></script>
+      <script src="app.js"></script>
   </head>
   <body>
     <div class="header">
@@ -1133,9 +1134,20 @@
         }).length;
 
         // Calculate avg rating and cancel rate
-        var totalR = 0, rc = 0;
-        coachClasses.forEach(function(cc) { if (cc.rating) { totalR += cc.rating; rc++; } });
-        var avgR = rc > 0 ? (totalR / rc).toFixed(1) : '—';
+        // Load real rating from reviews API
+        var avgR = "—";
+        (async function() {
+          try {
+            var user = JSON.parse(localStorage.getItem('zenpass_user') || '{}');
+            var userId = user.id || (await (await fetch('/api/auth/me', {headers:{Authorization:'Bearer '+getToken()}})).json()).id;
+            var r = await fetch('/api/reviews/' + userId);
+            var d = await r.json();
+            if (d.stats && d.stats.avg_rating) {
+              avgR = d.stats.avg_rating.toFixed(1);
+              document.querySelector('.stat-box:nth-child(4) .num').textContent = '⭐ ' + avgR;
+            }
+          } catch(e) {}
+        })();
         var allB = allBookings || [];
         var canR = allB.length > 0 ? Math.round(allB.filter(function(b){return b.status==='cancelled'}).length / allB.length * 100) : 0;
         document.getElementById("dashStats").innerHTML =
