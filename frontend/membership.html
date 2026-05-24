@@ -18,7 +18,7 @@
     <meta property="og:title" content="會籍方案 — ZenPass 禪流" />
     <meta
       property="og:description"
-      content="每月4 Credits HK$299起，自由加購點數。一個Pass通行全城運動體驗！"
+      content="每月 4 Credits HK$188 起，自由加購點數。一個Pass通行全城運動體驗！"
     />
     <meta
       property="og:url"
@@ -663,41 +663,41 @@
           container.innerHTML = renderPlans({
             lite: {
               name: "輕量 Pass",
-              name_en: "Lite",
-              price_hkd: 299,
+              name_en: "Light",
+              price_hkd: 188,
               credits_granted: 4,
               duration_days: 30,
-              description: "每月 4 Credits，適合偶爾運動嘅你",
-              avg_price: 75,
-              features: ["每月 4 Credits", "離峰時段更抵用", "標準取消政策"],
+              description: "每月 4 Credits，適合輕度運動用戶",
+              avg_price: 47,
+              features: ["每月 4 Credits", "離峰時段只需 1 Credit", "標準取消政策"],
               popular: false,
             },
             standard: {
               name: "標準 Pass",
               name_en: "Standard",
-              price_hkd: 799,
-              credits_granted: 12,
+              price_hkd: 388,
+              credits_granted: 10,
               duration_days: 30,
-              description: "每月約 6 堂，適合定期運動嘅你",
-              avg_price: 67,
+              description: "每月 10 Credits，適合定期運動嘅你",
+              avg_price: 39,
               features: [
-                "每月 12 Credits",
+                "每月 10 Credits",
                 "優先預約權",
+                "離峰時段只需 1 Credit",
                 "寬鬆取消政策",
-                "免費延期一次",
               ],
               popular: true,
             },
             silver: {
-              name: "銀會員",
-              name_en: "Silver",
-              price_hkd: 1899,
-              credits_granted: 25,
+              name: "高階 Pass",
+              name_en: "Premium",
+              price_hkd: 588,
+              credits_granted: 18,
               duration_days: 30,
-              description: "每月約 15 堂，適合運動狂熱者",
-              avg_price: 76,
+              description: "每月 18 Credits，適合運動狂熱者",
+              avg_price: 33,
               features: [
-                "每月 25 Credits",
+                "每月 18 Credits",
                 "VIP 優先預約",
                 "無限取消更換",
                 "每月 1 堂私人教練",
@@ -705,19 +705,19 @@
               popular: false,
             },
             gold: {
-              name: "金會員",
-              name_en: "Gold",
-              price_hkd: 2899,
-              credits_granted: 0,
+              name: "無限 Pass",
+              name_en: "Unlimited",
+              price_hkd: 888,
+              credits_granted: 30,
               duration_days: 30,
-              description: "無限上堂，每月 2 堂私人指導",
+              description: "每月 30 Credits + 無限堂數，終極運動體驗",
               avg_price: 0,
               features: [
-                "無限堂數",
-                "每月 2 堂一對一私人教練",
+                "每月 30 Credits",
+                "無限堂數選項",
                 "白金優先預約",
                 "無限取消更換",
-                "免費延期五次",
+                "每月 2 堂私人教練",
                 "專屬客服",
               ],
               popular: false,
@@ -797,8 +797,8 @@
       }
 
       function doSubscribePlan(type) {
-        var prices = { lite: 299, standard: 799, silver: 1899, gold: 2899 };
-        var names = { lite: "輕量 Pass", standard: "標準 Pass", silver: "銀會員", gold: "金會員" };
+        var prices = { lite: 188, standard: 388, silver: 588, gold: 888 };
+        var names = { lite: "輕量 Pass", standard: "標準 Pass", silver: "高階 Pass", gold: "無限 Pass" };
         // Redirect to payment page with plan info
         var ref =
           "ZP-" +
@@ -859,9 +859,9 @@
         } catch (err) {
           var fallback =
             "" +
-            '<div class="credit-pack" onclick="selectPack(this, 10,680)" data-bonus="0"><div class="cp-credits">10</div><div class="cp-label">輕量包</div><div class="cp-price">HK$680</div></div>' +
-            '<div class="credit-pack popular" onclick="selectPack(this, 20,1480)" data-bonus="5"><div class="cp-popular-tag">超值</div><div class="cp-credits">25</div><div class="cp-label">標準包</div><div class="cp-price">HK$1,480</div><div class="cp-bonus">+5 贈送</div></div>' +
-            '<div class="credit-pack" onclick="selectPack(this, 45,3180)" data-bonus="15"><div class="cp-credits">60</div><div class="cp-label">超值包</div><div class="cp-price">HK$3,180</div><div class="cp-bonus">+15 贈送</div></div>';
+            '<div class="credit-pack" onclick="selectPack(this, 5,298)" data-bonus="0"><div class="cp-credits">5</div><div class="cp-label">輕量包</div><div class="cp-price">HK$298</div></div>' +
+            '<div class="credit-pack popular" onclick="selectPack(this, 12,688)" data-bonus="2"><div class="cp-popular-tag">超值</div><div class="cp-credits">14</div><div class="cp-label">標準包</div><div class="cp-price">HK$688</div><div class="cp-bonus">+2 贈送</div></div>' +
+            '<div class="credit-pack" onclick="selectPack(this, 25,1388)" data-bonus="5"><div class="cp-credits">30</div><div class="cp-label">超值包</div><div class="cp-price">HK$1,388</div><div class="cp-bonus">+5 贈送</div></div>';
           container.innerHTML = fallback;
         }
       }
