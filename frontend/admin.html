@@ -715,6 +715,9 @@
             ></span
           ></a
         >
+        <a class="nav-item" data-tab="wallets" role="button" tabindex="0"
+          ><span class="icon">🪙</span><span>錢包管理</span></a
+        >
         <a class="nav-item" data-tab="audit-log" role="button" tabindex="0"
           ><span class="icon">📋</span><span>審計日誌</span></a
         >
@@ -1129,6 +1132,9 @@
             break;
           case "coach-apps":
             loadCoachAppsTab();
+            break;
+          case "wallets":
+            loadWalletsTab();
             break;
           case "audit-log":
             loadAuditLog();
@@ -3525,6 +3531,142 @@
           showToast('❌ 網絡錯誤', 'error');
         }
       }
+
+      // ===== 🪙 錢包管理 =====
+      async function loadWalletsTab() {
+        var main = document.getElementById("mainContent");
+        main.innerHTML = '<div class="loading-spinner">載入中...</div>';
+
+        try {
+          var data = await apiGet("/wallet/admin/coaches");
+          var wallets = data.wallets || [];
+          var total = data.total || 0;
+
+          var html = '';
+          html += '<div class="top-bar"><div><h1>🪙 錢包管理</h1><div class="sub">所有教練錢包總覽（共 ' + total + ' 位教練）</div></div>';
+          html += '<button class="btn btn-secondary" onclick="refreshWallets()" style="margin-left: 12px">🔄 重新整理</button></div>';
+
+          if (wallets.length === 0) {
+            html += '<div class="empty-state"><span class="empty-icon">🪙</span><br>暫無教練錢包記錄</div>';
+            main.innerHTML = html;
+            return;
+          }
+
+          // Summary stats
+          var totalBalance = wallets.reduce(function (s, w) { return s + (w.wallet_balance || 0); }, 0);
+          var totalEarnings = wallets.reduce(function (s, w) { return s + (w.total_earnings || 0); }, 0);
+          var totalPending = wallets.reduce(function (s, w) { return s + (w.pending_payout || 0); }, 0);
+
+          html += '<div class="stats-row" style="margin: 16px 0">';
+          html += '<div class="stat-card"><div class="stat-value">HK$' + totalBalance.toFixed(2) + '</div><div class="stat-label">總錢包結餘</div></div>';
+          html += '<div class="stat-card"><div class="stat-value">HK$' + totalEarnings.toFixed(2) + '</div><div class="stat-label">累計收入</div></div>';
+          html += '<div class="stat-card"><div class="stat-value">HK$' + totalPending.toFixed(2) + '</div><div class="stat-label">待提現</div></div>';
+          html += '<div class="stat-card"><div class="stat-value">' + total + '</div><div class="stat-label">教練人數</div></div>';
+          html += '</div>';
+
+          // Coach list
+          html += '<div class="card">';
+          html += '<table class="data-table"><thead><tr>';
+          html += '<th>教練</th><th>電郵</th><th>錢包結餘</th><th>累計收入</th><th>待提現</th><th>銀行</th><th>交易次數</th><th>最近交易</th><th></th>';
+          html += '</tr></thead><tbody>';
+
+          wallets.forEach(function (w) {
+            html += '<tr>';
+            html += '<td><strong>' + escHtml(w.name || '—') + '</strong></td>';
+            html += '<td style="font-size: 11px">' + escHtml(w.email || '—') + '</td>';
+            html += '<td style="font-weight: 600; color: var(--orange-600-bg)">HK$' + (w.wallet_balance || 0).toFixed(2) + '</td>';
+            html += '<td>HK$' + (w.total_earnings || 0).toFixed(2) + '</td>';
+            html += '<td>HK$' + (w.pending_payout || 0).toFixed(2) + '</td>';
+            html += '<td style="font-size: 11px">' + (w.bank_name ? escHtml(w.bank_name) + ' ' + escHtml(w.bank_account || '') : '—') + '</td>';
+            html += '<td>' + (w.tx_count || 0) + '</td>';
+            html += '<td style="font-size: 11px">' + (w.last_tx_date ? w.last_tx_date.slice(0, 10) : '—') + '</td>';
+            html += '<td><button class="btn btn-sm" onclick="viewCoachWallet(\'' + w.id + '\', \'' + escHtml(w.name) + '\')">📋 明細</button></td>';
+            html += '</tr>';
+          });
+
+          html += '</tbody></table></div>';
+
+          // Transaction detail area (hidden initially)
+          html += '<div id="coachWalletDetail" style="margin-top: 16px; display: none"></div>';
+
+          main.innerHTML = html;
+        } catch (e) {
+          main.innerHTML = '<div class="empty-state" style="color: var(--red-500)">❌ 載入失敗: ' + escHtml(e.message) + '</div>';
+        }
+      }
+
+      // Admin: view a specific coach wallet detail
+      window.viewCoachWallet = async function (userId, coachName) {
+        var detailDiv = document.getElementById("coachWalletDetail");
+        detailDiv.style.display = "block";
+        detailDiv.innerHTML = '<div class="loading-spinner">載入 ' + escHtml(coachName) + ' 的交易記錄...</div>';
+
+        try {
+          var data = await apiGet("/wallet/admin/txs/" + userId + "?limit=100");
+          var txs = data.transactions || [];
+
+          var html = '<div class="card">';
+          html += '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px">';
+          html += '<div class="card-title" style="margin: 0">📋 ' + escHtml(coachName) + ' — 交易記錄</div>';
+          html += '<button class="btn btn-sm btn-secondary" onclick="document.getElementById(\'coachWalletDetail\').style.display=\'none\'">✕ 關閉</button>';
+          html += '</div>';
+
+          if (txs.length === 0) {
+            html += '<div class="empty-state">暫無交易記錄</div>';
+          } else {
+            // Summary of this coach
+            var inc = txs.filter(function(t) { return t.type === 'class_income'; }).reduce(function(s,t) { return s + (t.amount||0); }, 0);
+            var out = txs.filter(function(t) { return ['withdrawal','rental_payment'].indexOf(t.type) >= 0; }).reduce(function(s,t) { return s + (t.amount||0); }, 0);
+
+            html += '<div class="stats-row" style="margin-bottom: 12px">';
+            html += '<div class="stat-card"><div class="stat-value">' + txs.length + '</div><div class="stat-label">交易次數</div></div>';
+            html += '<div class="stat-card"><div class="stat-value" style="color: var(--green-600)">+HK$' + inc.toFixed(2) + '</div><div class="stat-label">總收入</div></div>';
+            html += '<div class="stat-card"><div class="stat-value" style="color: var(--red-500)">-HK$' + out.toFixed(2) + '</div><div class="stat-label">總支出</div></div>';
+            html += '</div>';
+
+            html += '<table class="data-table"><thead><tr>';
+            html += '<th>日期</th><th>類型</th><th>描述</th><th>來源</th><th style="text-align:right">金額</th><th>費用</th><th style="text-align:right">結餘</th></tr></thead><tbody>';
+
+            txs.forEach(function (tx) {
+              var typeLabel = {
+                class_income: '🎓 課堂收入',
+                rental_payment: '🏟️ 租場扣數',
+                withdrawal: '🏦 提現',
+                refund: '↩️ 退款',
+                partner_income: '🤝 合作收入',
+                adjustment: '⚙️ 調整',
+              };
+              var label = typeLabel[tx.type] || tx.type;
+              var sign = ['withdrawal', 'rental_payment'].indexOf(tx.type) >= 0 ? '-' : '+';
+              var color = ['withdrawal', 'rental_payment'].indexOf(tx.type) >= 0 ? 'var(--red-500)' : 'var(--green-600)';
+              var feeText = (tx.fee || 0) > 0 ? 'HK$' + tx.fee.toFixed(2) : '—';
+
+              html += '<tr>';
+              html += '<td style="font-size: 11px">' + escHtml((tx.created_at || '').slice(0, 16)) + '</td>';
+              html += '<td style="font-size: 11px">' + label + '</td>';
+              html += '<td style="font-size: 11px; max-width: 200px">' + escHtml(tx.description || tx.reference || '—') + '</td>';
+              html += '<td style="font-size: 11px">' + (tx.source_type ? tx.source_type + '#' + (tx.source_id||'').slice(0,8) : '—') + '</td>';
+              html += '<td style="text-align: right; font-weight: 600; color: ' + color + '">' + sign + 'HK$' + (tx.amount||0).toFixed(2) + '</td>';
+              html += '<td style="font-size: 11px">' + feeText + '</td>';
+              html += '<td style="text-align: right; font-size: 11px">HK$' + (tx.balance_after||0).toFixed(2) + '</td>';
+              html += '</tr>';
+            });
+
+            html += '</tbody></table>';
+          }
+
+          html += '</div>';
+          detailDiv.innerHTML = html;
+          detailDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } catch (e) {
+          detailDiv.innerHTML = '<div class="empty-state" style="color: var(--red-500)">❌ 載入失敗: ' + escHtml(e.message) + '</div>';
+        }
+      };
+
+      // Admin: refresh wallet tab
+      window.refreshWallets = function () {
+        loadWalletsTab();
+      };
     </script>
   </body>
 </html>

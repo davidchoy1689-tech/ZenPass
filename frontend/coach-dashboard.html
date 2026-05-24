@@ -726,6 +726,7 @@
       <div class="tab active" onclick="switchTab('dashboard')">📊 總覽</div>
       <div class="tab" onclick="switchTab('schedule')">📅 課程</div>
       <div class="tab" onclick="switchTab('income')">💰 收入</div>
+      <div class="tab" onclick="switchTab('wallet'); loadWalletData()">🪙 錢包</div>
       <div
         class="tab"
         onclick="window.location.href = 'notifications.html'"
@@ -1007,6 +1008,16 @@
         <button class="btn-secondary" onclick="loadIncomeDetail()">
           🔄 載入更多明細
         </button>
+      </div>
+
+      <!-- Tab: Wallet / 錢包 -->
+      <div class="section" id="tab-wallet" style="margin-top: 12px">
+        <div id="walletState" style="min-height: 100px">
+          <div class="loading" style="padding: 40px 0">
+            <div class="spinner"></div>
+            <div>載入錢包資料...</div>
+          </div>
+        </div>
       </div>
 
       <!-- Coach Referral CTA -->
@@ -2167,5 +2178,145 @@
         </div>
       </div>
     </div>
+  <script>
+            // ===== 🪙 錢包功能 =====
+            var _walletLoaded = false;
+
+            async function loadWalletData() {
+              if (_walletLoaded) return;
+              _walletLoaded = true;
+
+              var container = document.getElementById("walletState");
+              container.innerHTML =
+                '<div class="loading" style="padding: 40px 0"><div class="spinner"></div><div>載入錢包資料...</div></div>';
+
+              try {
+                // Fetch wallet summary + transactions
+                var summaryResp = await fetch(API_BASE + "/wallet/summary", {
+                  headers: getAuthHeaders(),
+                });
+                var summary = await summaryResp.json();
+
+                var txsResp = await fetch(
+                  API_BASE + "/wallet/transactions?limit=50",
+                  { headers: getAuthHeaders() },
+                );
+                var txsData = await txsResp.json();
+
+                var s = summary.data || summary;
+                var txs = txsData.data || txsData;
+                var txList = txs.transactions || [];
+
+                var html = '';
+
+                // Wallet Balance Card
+                var balance = s.wallet_balance || 0;
+                html +=
+                  '<div class="card" style="margin-bottom: 12px; text-align: center; padding: 24px 16px">';
+                html += '<div style="font-size: 12px; color: var(--dark-500); margin-bottom: 4px">錢包結餘</div>';
+                html +=
+                  '<div style="font-size: 36px; font-weight: 700; color: var(--orange-600-bg)">HK$' +
+                  balance.toFixed(2) +
+                  '</div>';
+                if (s.total_earnings > 0) {
+                  html +=
+                    '<div style="font-size: 12px; color: var(--dark-500); margin-top: 8px">累計收入 HK$' +
+                    s.total_earnings.toFixed(2) +
+                    ' | 待提現 HK$' +
+                    s.pending_payout.toFixed(2) +
+                    '</div>';
+                }
+
+                // Bank info
+                if (s.bank && s.bank.name) {
+                  html +=
+                    '<div style="font-size: 11px; color: var(--dark-500); margin-top: 8px; padding: 6px 12px; background: var(--gray-50); border-radius: 6px; display: inline-block">🏦 ' +
+                    escHtml(s.bank.name) +
+                    ' ' +
+                    escHtml(s.bank.account) +
+                    '</div>';
+                } else {
+                  html +=
+                    '<div style="margin-top: 12px"><a href="#" onclick="document.querySelector(\'[onclick*=\\"income\\"]\').click(); switchTab(\'income\'); return false;" style="font-size: 12px; color: var(--orange-600-bg)">⚠️ 未設定銀行戶口 → 去收入頁設定</a></div>';
+                }
+                html += '</div>';
+
+                // Quick Stats
+                var incomeTxs = txList.filter(function (t) { return t.type === 'class_income'; });
+                var totalIncome = incomeTxs.reduce(function (s, t) { return s + (t.amount || 0); }, 0);
+
+                html += '<div class="stats-row" style="margin-bottom: 12px">';
+                html +=
+                  '<div class="stat-card"><div class="stat-value">' +
+                  txList.length +
+                  '</div><div class="stat-label">總交易</div></div>';
+                html +=
+                  '<div class="stat-card"><div class="stat-value">HK$' +
+                  totalIncome.toFixed(0) +
+                  '</div><div class="stat-label">課堂收入</div></div>';
+                html +=
+                  '<div class="stat-card"><div class="stat-value">' +
+                  incomeTxs.length +
+                  '</div><div class="stat-label">已結算課堂</div></div>';
+                html += '</div>';
+
+                // Transaction History
+                html +=
+                  '<div class="card"><div class="card-title">📋 交易記錄</div>';
+
+                if (txList.length === 0) {
+                  html +=
+                    '<div class="empty-state"><span class="empty-icon">🪙</span><br>暫無交易記錄<br><span style="font-size: 12px; color: var(--dark-400)">當學生完成課堂簽到後，收入會自動入帳</span></div>';
+                } else {
+                  html +=
+                    '<table class="income-table"><thead><tr><th>日期</th><th>類型</th><th>描述</th><th style="text-align:right">金額</th><th style="text-align:right">結餘</th></tr></thead><tbody>';
+
+                  txList.forEach(function (tx) {
+                    var typeLabel = {
+                      class_income: '🎓 課堂收入',
+                      rental_payment: '🏟️ 租場扣數',
+                      withdrawal: '🏦 提現',
+                      refund: '↩️ 退款',
+                      partner_income: '🤝 合作收入',
+                      adjustment: '⚙️ 調整',
+                    };
+                    var label = typeLabel[tx.type] || tx.type;
+                    var sign = ['withdrawal', 'rental_payment'].indexOf(tx.type) >= 0 ? '-' : '+';
+                    var color = ['withdrawal', 'rental_payment'].indexOf(tx.type) >= 0 ? 'var(--red-500)' : 'var(--green-600)';
+
+                    html += '<tr>';
+                    html += '<td style="font-size: 11px">' + escHtml((tx.created_at || '').slice(0, 10)) + '</td>';
+                    html += '<td style="font-size: 11px">' + label + '</td>';
+                    html += '<td style="font-size: 11px; max-width: 140px; overflow: hidden; text-overflow: ellipsis">' + escHtml(tx.description || tx.reference || '—') + '</td>';
+                    html +=
+                      '<td style="text-align: right; font-size: 12px; font-weight: 600; color: ' +
+                      color +
+                      '">' +
+                      sign +
+                      'HK$' +
+                      (tx.amount || 0).toFixed(2) +
+                      '</td>';
+                    html +=
+                      '<td style="text-align: right; font-size: 11px">HK$' +
+                      (tx.balance_after || 0).toFixed(2) +
+                      '</td>';
+                    html += '</tr>';
+                  });
+
+                  html += '</tbody></table>';
+                }
+
+                html += '</div>';
+
+                container.innerHTML = html;
+              } catch (err) {
+                container.innerHTML =
+                  '<div class="empty-state" style="color: var(--red-500)">❌ 載入錢包失敗: ' +
+                  escHtml(err.message) +
+                  '</div>';
+                _walletLoaded = false;
+              }
+            }
+  </script>
   </body>
 </html>

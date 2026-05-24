@@ -754,6 +754,14 @@ function initDatabase() {
     console.error("⚠️ Aggregation migration failed:", migErr.message);
   }
 
+  // Wallet v2 — source tracking + auto-credit support
+  try {
+    const { migrate: migrateWallet } = require("./migrate-wallet");
+    migrateWallet();
+  } catch (migErr) {
+    console.error("⚠️ Wallet migration failed:", migErr.message);
+  }
+
   console.log("✅ 數據庫初始化完成:", DB_PATH);
   db.close();
 }

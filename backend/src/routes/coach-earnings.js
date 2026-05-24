@@ -940,9 +940,12 @@ function syncCoachEarningsForSchedule(scheduleId) {
     const net = Math.round(gross * info.commission_rate * 100) / 100;
 
     // Upsert coach_earnings
+    // Upsert coach_earnings — return the earning id
     const existing = db
       .prepare("SELECT id FROM coach_earnings WHERE schedule_id = ?")
       .get(scheduleId);
+
+    let earningId = existing ? existing.id : null;
 
     if (existing) {
       db.prepare(
@@ -954,8 +957,10 @@ function syncCoachEarningsForSchedule(scheduleId) {
         WHERE schedule_id = ?
       `,
       ).run(enrolled, gross, net, enrolled, scheduleId);
+      earningId = existing.id;
     } else if (enrolled > 0) {
       const { v4: uuidv4 } = require("uuid");
+      earningId = uuidv4();
       const date = (info.start_time || "").split("T")[0];
       db.prepare(
         `
@@ -965,7 +970,7 @@ function syncCoachEarningsForSchedule(scheduleId) {
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'approved')
       `,
       ).run(
-        uuidv4(),
+        earningId,
         info.coach_id,
         info.schedule_id,
         info.class_id,
@@ -994,7 +999,26 @@ function syncCoachEarningsForSchedule(scheduleId) {
       "UPDATE users SET total_earnings = ?, pending_payout = ? WHERE id = ?",
     ).run(totals.total, totals.pending, info.coach_id);
 
-    return { enrolled, gross, net };
+    // Auto-credit wallet if enrolled > 0 and earning was created/updated
+    if (enrolled > 0 && earningId) {
+      try {
+        const walletService = require("../services/wallet-service");
+        const classTime = (info.start_time || "").split("T");
+        const desc = `${info.class_title} ${classTime[1] ? classTime[1].slice(0,5) : ""} - ${classTime[0] || info.start_time}`;
+        walletService.creditCoachEarning({
+          coachId: info.coach_id,
+          scheduleId: info.schedule_id,
+          coachEarningId: earningId,
+          netAmount: net,
+          description: desc,
+          bookingId: null,
+        });
+      } catch (walletErr) {
+        console.error("[EARNINGS] Auto-credit wallet failed:", walletErr.message);
+      }
+    }
+
+    return { enrolled, gross, net, earningId };
   } catch (err) {
     console.error("syncCoachEarningsForSchedule error:", err.message);
     return { error: err.message };
