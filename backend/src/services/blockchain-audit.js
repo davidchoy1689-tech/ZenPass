@@ -50,6 +50,42 @@ function traceBooking(bookingId) {
 
     const chain = [];
 
+    // ───── Step 0: 四邊拆賬總覽（區塊鏈根區塊 root block）─────
+    let coachTotal = 0, venueTotal = 0, platformTotal = booking.platform_earned_amount || 0;
+    const allEarnings = db.prepare(`
+      SELECT SUM(ce.net_amount) as total, ce.schedule_id
+      FROM coach_earnings ce
+      WHERE ce.schedule_id = ?
+      GROUP BY ce.schedule_id
+    `).get(booking.schedule_id);
+    coachTotal = allEarnings?.total || 0;
+    venueTotal = booking.venue_earned_amount || 0;
+
+    const rootData = {
+      type: "四邊拆賬",
+      booking_ref: booking.booking_reference,
+      class: booking.class_title,
+      time: booking.start_time,
+      total_amount: booking.amount,
+      splits: {
+        student: { role: "🎓 學生", name: booking.student_name, pay: booking.amount, pct: 100 },
+        platform: { role: "🏢 平台", name: "ZenPass", earn: platformTotal, pct: booking.amount > 0 ? Math.round(platformTotal / booking.amount * 100) : 0 },
+        coach: { role: "🏋️ 教練", earn: coachTotal, pct: booking.amount > 0 ? Math.round(coachTotal / booking.amount * 100) : 0 },
+        venue: { role: "🏟️ 場地", earn: venueTotal, pct: booking.amount > 0 ? Math.round(venueTotal / booking.amount * 100) : 0 },
+      },
+      status: booking.status,
+      booking_id: booking.id,
+    };
+    const rootHash = sha256(rootData);
+
+    chain.push({
+      step: 0,
+      title: "📊 四邊拆賬總覽",
+      type: "root",
+      data: rootData,
+      hash: rootHash,
+    });
+
     // ───── Step 1: 學生俾錢 ─────
     chain.push({
       step: 1,
@@ -62,7 +98,8 @@ function traceBooking(bookingId) {
       timestamp: booking.created_at,
       booking_ref: booking.booking_reference,
       class: booking.class_title,
-      hash: sha256({ step: 1, bookingId, amount: booking.amount, time: booking.created_at }),
+      previous_hash: rootHash,
+      hash: sha256({ step: 1, bookingId, amount: booking.amount, time: booking.created_at, prev: rootHash }),
     });
 
     // ───── Step 2: 平台抽佣 ─────
