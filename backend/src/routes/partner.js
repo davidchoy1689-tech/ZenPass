@@ -1,8 +1,9 @@
 /**
- * ZenPass 禪流 — 商戶加盟系統路由
+ * ZenPass 禪流 — 商戶加盟系統路由 (RBAC v2)
  *
- * 提供場地合作夥伴嘅申請、管理、儀表板、課程管理、結算
- * 支援分層佣金計劃（Basic / Standard / Premium）
+ * 支援 10 級角色權限管理
+ * 商戶負責人 (partner_owner) 只能管理自己機構
+ * 平台管理員 (platform_manager+) 可以管理所有機構
  */
 
 const express = require("express");
@@ -11,6 +12,11 @@ const Database = require("better-sqlite3");
 const {
   authenticateToken,
   requireAdmin,
+  requireRole,
+  requireOwnInstitution,
+  getQueryPartnerId,
+  ROLE_HIERARCHY,
+  hasMinimumRole,
 } = require("../middleware/auth");
 const {
   ok, created, fail, notFound, unauthorized, serverError,
@@ -41,6 +47,25 @@ function calcCommissionSplit(amount, planKey) {
   };
 }
 
+// ===== Helper: 取得用戶所屬嘅 partner venue =====
+function _getUserVenue(userId) {
+  const db = new Database(DB_PATH);
+  try {
+    const user = db.prepare("SELECT id, email, partner_id FROM users WHERE id = ?").get(userId);
+    if (!user) return null;
+
+    // If user has partner_id, use that
+    if (user.partner_id) {
+      return db.prepare("SELECT * FROM partner_venues WHERE id = ? AND status = 'active'").get(user.partner_id);
+    }
+
+    // Fallback: match by email
+    return db.prepare("SELECT * FROM partner_venues WHERE (email = ? OR user_id = ?) AND status = 'active'").get(user.email, userId);
+  } finally {
+    db.close();
+  }
+}
+
 // ===== 1. POST /api/partner/apply — 商戶提交申請（公開，唔需登入）=====
 router.post("/apply", (req, res) => {
   try {
@@ -68,7 +93,6 @@ router.post("/apply", (req, res) => {
     const db = new Database(DB_PATH);
     db.pragma("foreign_keys = ON");
 
-    // 檢查係咪已經申請過（同一電郵）
     const existing = db
       .prepare("SELECT id FROM partner_venues WHERE email = ?")
       .get(email);
@@ -112,19 +136,23 @@ router.post("/apply", (req, res) => {
 });
 
 // ===== 2. GET /api/partner/status — 商戶睇自己申請狀態 =====
-router.get("/status", authenticateToken, (req, res) => {
+router.get("/status", authenticateToken, requireRole('user'), (req, res) => {
   try {
     const db = new Database(DB_PATH);
 
-    const user = db.prepare("SELECT email, name FROM users WHERE id = ?").get(req.user.id);
+    const user = db.prepare("SELECT email, name, partner_id FROM users WHERE id = ?").get(req.user.id);
     if (!user) {
       db.close();
       return notFound(res, "用戶不存在");
     }
 
-    const venue = db
-      .prepare("SELECT * FROM partner_venues WHERE email = ? OR user_id = ?")
-      .get(user.email, req.user.id);
+    // Use partner_id if set, fallback to email-based lookup
+    let venue;
+    if (user.partner_id) {
+      venue = db.prepare("SELECT * FROM partner_venues WHERE id = ?").get(user.partner_id);
+    } else {
+      venue = db.prepare("SELECT * FROM partner_venues WHERE email = ?").get(user.email);
+    }
 
     db.close();
 
@@ -139,6 +167,7 @@ router.get("/status", authenticateToken, (req, res) => {
       venue: {
         id: venue.id,
         name: venue.name,
+        owner_id: venue.owner_id,
         status: venue.status,
         category: venue.category,
         district: venue.district,
@@ -177,7 +206,7 @@ router.get("/commission-plans", (req, res) => {
 router.get(
   "/admin/partner-applications",
   authenticateToken,
-  requireAdmin,
+  requireRole('admin'),
   (req, res) => {
     try {
       const db = new Database(DB_PATH);
@@ -198,7 +227,6 @@ router.get(
           .all();
       }
 
-      // Enrich with commission plan details
       for (const r of rows) {
         const plan = getCommissionPlan(r.commission_plan || 'basic');
         r._plan = plan;
@@ -217,7 +245,7 @@ router.get(
 router.post(
   "/admin/partner-approve",
   authenticateToken,
-  requireAdmin,
+  requireRole('admin'),
   (req, res) => {
     try {
       const { venue_id, action, commission_rate, commission_plan } = req.body;
@@ -244,7 +272,6 @@ router.post(
       const now = new Date().toISOString();
 
       if (action === "accept") {
-        // Determine rate: use plan first, fallback to provided rate, then venue default
         let finalPlan = commission_plan || venue.commission_plan || 'basic';
         let finalRate = commission_rate;
         if (finalRate === undefined || finalRate === null) {
@@ -293,7 +320,7 @@ router.post(
 router.put(
   "/admin/partner/:id",
   authenticateToken,
-  requireAdmin,
+  requireRole('admin'),
   (req, res) => {
     try {
       const { id } = req.params;
@@ -348,7 +375,7 @@ router.put(
 router.get(
   "/admin/partner-list",
   authenticateToken,
-  requireAdmin,
+  requireRole('admin'),
   (req, res) => {
     try {
       const db = new Database(DB_PATH);
@@ -369,7 +396,6 @@ router.get(
           .all();
       }
 
-      // 加埋每個場地嘅 booking count
       for (const v of rows) {
         const stats = db
           .prepare(
@@ -400,7 +426,7 @@ router.get(
 router.get(
   "/admin/partner/:id/revenue",
   authenticateToken,
-  requireAdmin,
+  requireRole('admin'),
   (req, res) => {
     try {
       const db = new Database(DB_PATH);
@@ -410,7 +436,6 @@ router.get(
         return notFound(res, "場地不存在");
       }
 
-      // 月度收入趨勢（最近12個月）
       const monthlyStats = db.prepare(`
         SELECT
           strftime('%Y-%m', cs.start_time) as month,
@@ -428,7 +453,6 @@ router.get(
         ORDER BY month DESC
       `).all(venue.id);
 
-      // 總計
       const totals = db.prepare(`
         SELECT
           COUNT(*) as total_bookings,
@@ -440,7 +464,6 @@ router.get(
         WHERE c.partner_venue_id = ? AND b.status IN ('confirmed','attended')
       `).get(venue.id);
 
-      // Payout 記錄
       const payouts = db.prepare(`
         SELECT * FROM partner_payouts WHERE venue_id = ? ORDER BY created_at DESC LIMIT 20
       `).all(venue.id);
@@ -460,27 +483,16 @@ router.get(
   },
 );
 
-// ===== 6. GET /api/partner/dashboard — 商戶儀表板 =====
-router.get("/dashboard", authenticateToken, (req, res) => {
+// ===== 6. GET /api/partner/dashboard — 商戶儀表板 (RBAC: partner staff+) =====
+router.get("/dashboard", authenticateToken, requireOwnInstitution, (req, res) => {
   try {
-    const db = new Database(DB_PATH);
-
-    const user = db.prepare("SELECT id, email FROM users WHERE id = ?").get(req.user.id);
-    if (!user) {
-      db.close();
-      return notFound(res, "用戶不存在");
-    }
-
-    const venue = db
-      .prepare("SELECT * FROM partner_venues WHERE email = ? OR user_id = ?")
-      .get(user.email, req.user.id);
-
+    const venue = _getUserVenue(req.user.id);
     if (!venue || venue.status !== "active") {
-      db.close();
       return fail(res, "你未有已開通嘅商戶戶口", 403);
     }
 
-    // 統計數據
+    const db = new Database(DB_PATH);
+
     const bookingStats = db
       .prepare(
         `SELECT
@@ -494,7 +506,6 @@ router.get("/dashboard", authenticateToken, (req, res) => {
       )
       .get(venue.id);
 
-    // 今個月收入
     const monthStart = new Date();
     monthStart.setDate(1);
     const monthStartStr = monthStart.toISOString().split("T")[0];
@@ -511,7 +522,6 @@ router.get("/dashboard", authenticateToken, (req, res) => {
       )
       .get(venue.id, monthStartStr);
 
-    // 今個月 payout
     const monthPayouts = db
       .prepare(
         `SELECT COALESCE(SUM(venue_earned), 0) as total_paid
@@ -520,19 +530,16 @@ router.get("/dashboard", authenticateToken, (req, res) => {
       )
       .get(venue.id);
 
-    // 教練列表（有開過班嘅）
+    // Get coaches who taught at this venue (via partner_members or classes)
     const coaches = db
       .prepare(
-        `SELECT DISTINCT u.id, u.name, u.email
+        `SELECT DISTINCT u.id, u.name, u.email, u.role
          FROM classes c
          JOIN users u ON c.coach_id = u.id
-         WHERE c.id IN (
-           SELECT DISTINCT class_id FROM bookings WHERE venue_partner_id = ?
-         )`,
+         WHERE c.partner_id = ?`,
       )
       .all(venue.id);
 
-    // 佣金計劃詳情
     const plan = getCommissionPlan(venue.commission_plan || 'basic');
 
     db.close();
@@ -542,6 +549,7 @@ router.get("/dashboard", authenticateToken, (req, res) => {
         id: venue.id,
         name: venue.name,
         status: venue.status,
+        owner_id: venue.owner_id,
         category: venue.category,
         district: venue.district,
         commission_rate: venue.commission_rate,
@@ -568,18 +576,13 @@ router.get("/dashboard", authenticateToken, (req, res) => {
   }
 });
 
-// ===== 6b. GET /api/partner/revenue-report — 商戶收入報表（按日/週/月）=====
-router.get("/revenue-report", authenticateToken, (req, res) => {
+// ===== 6b. GET /api/partner/revenue-report — 商戶收入報表 =====
+router.get("/revenue-report", authenticateToken, requireOwnInstitution, (req, res) => {
   try {
+    const venue = _getUserVenue(req.user.id);
+    if (!venue) { return fail(res, "你未有已開通嘅商戶戶口", 403); }
+
     const db = new Database(DB_PATH);
-    const user = db.prepare("SELECT email FROM users WHERE id = ?").get(req.user.id);
-    if (!user) { db.close(); return notFound(res, "用戶不存在"); }
-
-    const venue = db
-      .prepare("SELECT id FROM partner_venues WHERE (email = ? OR user_id = ?) AND status = 'active'")
-      .get(user.email, req.user.id);
-    if (!venue) { db.close(); return fail(res, "你未有已開通嘅商戶戶口", 403); }
-
     const { group_by = 'month', limit: lim = 12 } = req.query;
     const validGroups = { 'day': '%Y-%m-%d', 'week': '%Y-%W', 'month': '%Y-%m' };
     const fmt = validGroups[group_by] || '%Y-%m';
@@ -609,25 +612,12 @@ router.get("/revenue-report", authenticateToken, (req, res) => {
 });
 
 // ===== 7. GET /api/partner/bookings — 商戶睇自己場地預約 =====
-router.get("/bookings", authenticateToken, (req, res) => {
+router.get("/bookings", authenticateToken, requireOwnInstitution, (req, res) => {
   try {
+    const venue = _getUserVenue(req.user.id);
+    if (!venue) { return fail(res, "你未有已開通嘅商戶戶口", 403); }
+
     const db = new Database(DB_PATH);
-
-    const user = db.prepare("SELECT email FROM users WHERE id = ?").get(req.user.id);
-    if (!user) {
-      db.close();
-      return notFound(res, "用戶不存在");
-    }
-
-    const venue = db
-      .prepare("SELECT id FROM partner_venues WHERE (email = ? OR user_id = ?) AND status = 'active'")
-      .get(user.email, req.user.id);
-
-    if (!venue) {
-      db.close();
-      return fail(res, "你未有已開通嘅商戶戶口", 403);
-    }
-
     const { date_from, date_to, status, limit: lim = 50, offset: off = 0 } = req.query;
 
     let query = `
@@ -645,34 +635,21 @@ router.get("/bookings", authenticateToken, (req, res) => {
     `;
     const params = [venue.id];
 
-    if (date_from) {
-      query += " AND cs.start_time >= ?";
-      params.push(date_from);
-    }
-    if (date_to) {
-      query += " AND cs.start_time <= ?";
-      params.push(date_to);
-    }
-    if (status) {
-      query += " AND b.status = ?";
-      params.push(status);
-    }
+    if (date_from) { query += " AND cs.start_time >= ?"; params.push(date_from); }
+    if (date_to) { query += " AND cs.start_time <= ?"; params.push(date_to); }
+    if (status) { query += " AND b.status = ?"; params.push(status); }
 
     query += " ORDER BY cs.start_time DESC LIMIT ? OFFSET ?";
     params.push(Number(lim), Number(off));
 
     const bookings = db.prepare(query).all(...params);
-
-    const countQuery = `
-      SELECT COUNT(*) as total
-      FROM bookings b
-      JOIN class_schedules cs ON b.schedule_id = cs.id
-      WHERE b.venue_partner_id = ?
-    `;
-    const { total } = db.prepare(countQuery).get(venue.id);
+    const { total } = db.prepare(
+      `SELECT COUNT(*) as total FROM bookings b
+       JOIN class_schedules cs ON b.schedule_id = cs.id
+       WHERE b.venue_partner_id = ?`
+    ).get(venue.id);
 
     db.close();
-
     return ok(res, { bookings, total, limit: Number(lim), offset: Number(off) });
   } catch (err) {
     console.error("❌ partner/bookings error:", err.message);
@@ -680,30 +657,18 @@ router.get("/bookings", authenticateToken, (req, res) => {
   }
 });
 
-// ===== 8. POST /api/partner/courses — 商戶開新班 =====
-router.post("/courses", authenticateToken, (req, res) => {
+// ===== 8. POST /api/partner/courses — 商戶開新班 (RBAC: partner staff+) =====
+router.post("/courses", authenticateToken, requireOwnInstitution, (req, res) => {
   try {
+    const venue = _getUserVenue(req.user.id);
+    if (!venue) { return fail(res, "你未有已開通嘅商戶戶口", 403); }
+
     const db = new Database(DB_PATH);
     db.pragma("foreign_keys = ON");
 
-    const user = db.prepare("SELECT id, email, name FROM users WHERE id = ?").get(req.user.id);
-    if (!user) {
-      db.close();
-      return notFound(res, "用戶不存在");
-    }
-
-    const venue = db
-      .prepare("SELECT * FROM partner_venues WHERE (email = ? OR user_id = ?) AND status = 'active'")
-      .get(user.email, req.user.id);
-
-    if (!venue) {
-      db.close();
-      return fail(res, "你未有已開通嘅商戶戶口", 403);
-    }
-
     const {
       title, category, price_hkd, credits_cost, duration, max_participants,
-      description, difficulty, schedules, image_url,
+      description, difficulty, schedules, image_url, coach_id,
     } = req.body;
 
     if (!title || !category || !price_hkd || !duration) {
@@ -717,22 +682,20 @@ router.post("/courses", authenticateToken, (req, res) => {
     }
 
     const classId = uuidv4();
-    const coachId = req.body.coach_id || user.id;
-
-    // Auto-calculate credits_cost if not provided (based on pricing engine logic)
+    const cid = coach_id || req.user.id;
     const computedCredits = credits_cost || Math.max(5, Math.round(price_hkd / 38));
 
     db.prepare(`
       INSERT INTO classes (id, coach_id, title, description, category, difficulty,
         duration, max_participants, price_hkd, credits_cost, venue_name, venue_address,
-        image_url, partner_venue_id, status, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', datetime('now'), datetime('now'))
+        image_url, partner_venue_id, partner_id, status, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', datetime('now'), datetime('now'))
     `).run(
-      classId, coachId, title, description || "", category,
+      classId, cid, title, description || "", category,
       difficulty || "beginner", duration,
       max_participants || 15, price_hkd, computedCredits,
       venue.name, venue.address || "",
-      image_url || null, venue.id,
+      image_url || null, venue.id, venue.id,
     );
 
     const scheduleIds = [];
@@ -749,6 +712,15 @@ router.post("/courses", authenticateToken, (req, res) => {
       scheduleIds.push(scheduleId);
     }
 
+    // Ensure coach is linked in partner_members
+    const existingMember = db.prepare("SELECT id FROM partner_members WHERE user_id = ? AND partner_id = ?").get(cid, venue.id);
+    if (!existingMember) {
+      db.prepare(`
+        INSERT INTO partner_members (id, user_id, partner_id, role, status, created_at)
+        VALUES (?, ?, ?, 'coach', 'active', datetime('now'))
+      `).run(uuidv4(), cid, venue.id);
+    }
+
     db.close();
 
     return created(res, {
@@ -757,6 +729,7 @@ router.post("/courses", authenticateToken, (req, res) => {
       credits_cost: computedCredits,
       schedules_count: scheduleIds.length,
       schedules: scheduleIds,
+      partner_id: venue.id,
       message: "課程已成功建立",
     });
   } catch (err) {
@@ -766,36 +739,23 @@ router.post("/courses", authenticateToken, (req, res) => {
 });
 
 // ===== 9. GET /api/partner/courses — 商戶睇自己嘅課程 =====
-router.get("/courses", authenticateToken, (req, res) => {
+router.get("/courses", authenticateToken, requireOwnInstitution, (req, res) => {
   try {
+    const venue = _getUserVenue(req.user.id);
+    if (!venue) { return fail(res, "你未有已開通嘅商戶戶口", 403); }
+
     const db = new Database(DB_PATH);
 
-    const user = db.prepare("SELECT email FROM users WHERE id = ?").get(req.user.id);
-    if (!user) {
-      db.close();
-      return notFound(res, "用戶不存在");
-    }
-
-    const venue = db
-      .prepare("SELECT id, name FROM partner_venues WHERE (email = ? OR user_id = ?) AND status = 'active'")
-      .get(user.email, req.user.id);
-
-    if (!venue) {
-      db.close();
-      return fail(res, "你未有已開通嘅商戶戶口", 403);
-    }
-
-    // 用 partner_venue_id 或 venue name 搵返相關課程
     const courses = db
       .prepare(`
         SELECT c.*,
           (SELECT COUNT(*) FROM bookings b WHERE b.class_id = c.id AND b.status IN ('confirmed','attended')) as booking_count
         FROM classes c
-        WHERE (c.partner_venue_id = ? OR c.venue_name = ?)
+        WHERE (c.partner_id = ? OR c.partner_venue_id = ? OR c.venue_name = ?)
           AND c.status = 'active'
         ORDER BY c.created_at DESC
       `)
-      .all(venue.id, venue.name);
+      .all(venue.id, venue.id, venue.name);
 
     for (const course of courses) {
       course.schedules = db
@@ -806,7 +766,6 @@ router.get("/courses", authenticateToken, (req, res) => {
     }
 
     db.close();
-
     return ok(res, courses);
   } catch (err) {
     console.error("❌ partner/courses GET error:", err.message);
@@ -815,20 +774,15 @@ router.get("/courses", authenticateToken, (req, res) => {
 });
 
 // ===== 9b. PUT /api/partner/courses/:id — 商戶編輯課程 =====
-router.put("/courses/:id", authenticateToken, (req, res) => {
+router.put("/courses/:id", authenticateToken, requireOwnInstitution, (req, res) => {
   try {
+    const venue = _getUserVenue(req.user.id);
+    if (!venue) { return fail(res, "你未有已開通嘅商戶戶口", 403); }
+
     const db = new Database(DB_PATH);
     db.pragma("foreign_keys = ON");
 
-    const user = db.prepare("SELECT id, email FROM users WHERE id = ?").get(req.user.id);
-    if (!user) { db.close(); return notFound(res, "用戶不存在"); }
-
-    const venue = db
-      .prepare("SELECT id, name, address FROM partner_venues WHERE (email = ? OR user_id = ?) AND status = 'active'")
-      .get(user.email, req.user.id);
-    if (!venue) { db.close(); return fail(res, "你未有已開通嘅商戶戶口", 403); }
-
-    const classInfo = db.prepare("SELECT * FROM classes WHERE id = ? AND partner_venue_id = ?").get(req.params.id, venue.id);
+    const classInfo = db.prepare("SELECT * FROM classes WHERE id = ? AND (partner_id = ? OR partner_venue_id = ?)").get(req.params.id, venue.id, venue.id);
     if (!classInfo) { db.close(); return notFound(res, "課程不存在或唔屬於你"); }
 
     const { title, price_hkd, description, difficulty, max_participants, credits_cost, image_url } = req.body;
@@ -859,33 +813,17 @@ router.put("/courses/:id", authenticateToken, (req, res) => {
 });
 
 // ===== 10. GET /api/partner/payouts — 商戶睇 payout 記錄 =====
-router.get("/payouts", authenticateToken, (req, res) => {
+router.get("/payouts", authenticateToken, requireOwnInstitution, (req, res) => {
   try {
+    const venue = _getUserVenue(req.user.id);
+    if (!venue) { return fail(res, "你未有已開通嘅商戶戶口", 403); }
+
     const db = new Database(DB_PATH);
-
-    const user = db.prepare("SELECT email FROM users WHERE id = ?").get(req.user.id);
-    if (!user) {
-      db.close();
-      return notFound(res, "用戶不存在");
-    }
-
-    const venue = db
-      .prepare("SELECT id FROM partner_venues WHERE (email = ? OR user_id = ?) AND status = 'active'")
-      .get(user.email, req.user.id);
-
-    if (!venue) {
-      db.close();
-      return fail(res, "你未有已開通嘅商戶戶口", 403);
-    }
-
     const payouts = db
-      .prepare(
-        `SELECT * FROM partner_payouts WHERE venue_id = ? ORDER BY created_at DESC`,
-      )
+      .prepare(`SELECT * FROM partner_payouts WHERE venue_id = ? ORDER BY created_at DESC`)
       .all(venue.id);
 
     db.close();
-
     return ok(res, payouts);
   } catch (err) {
     console.error("❌ partner/payouts error:", err.message);
@@ -897,7 +835,7 @@ router.get("/payouts", authenticateToken, (req, res) => {
 router.post(
   "/admin/process-partner-payouts",
   authenticateToken,
-  requireAdmin,
+  requireRole('admin'),
   (req, res) => {
     try {
       const db = new Database(DB_PATH);
@@ -918,8 +856,7 @@ router.post(
 
       for (const venue of venues) {
         let revenueQuery = `
-          SELECT
-            COUNT(*) as booking_count,
+          SELECT COUNT(*) as booking_count,
             COALESCE(SUM(amount), 0) as total_revenue,
             COALESCE(SUM(venue_earned_amount), 0) as venue_earned,
             COALESCE(SUM(platform_earned_amount), 0) as platform_commission
@@ -929,35 +866,16 @@ router.post(
             AND payment_status = 'paid'
         `;
         const params = [venue.id];
-
-        if (period_start) {
-          revenueQuery += " AND created_at >= ?";
-          params.push(period_start);
-        }
-        if (period_end) {
-          revenueQuery += " AND created_at <= ?";
-          params.push(period_end);
-        }
+        if (period_start) { revenueQuery += " AND created_at >= ?"; params.push(period_start); }
+        if (period_end) { revenueQuery += " AND created_at <= ?"; params.push(period_end); }
 
         const stats = db.prepare(revenueQuery).get(...params);
-
-        if (stats.booking_count === 0) {
-          continue;
-        }
+        if (stats.booking_count === 0) continue;
 
         const existingPayout = db
-          .prepare(
-            `SELECT id FROM partner_payouts
-             WHERE venue_id = ?
-               AND period_start = ?
-               AND period_end = ?
-               AND status = 'paid'`,
-          )
+          .prepare(`SELECT id FROM partner_payouts WHERE venue_id = ? AND period_start = ? AND period_end = ? AND status = 'paid'`)
           .get(venue.id, period_start || "all", period_end || "all");
-
-        if (existingPayout) {
-          continue;
-        }
+        if (existingPayout) continue;
 
         const payoutId = uuidv4();
         const now = new Date().toISOString();
@@ -966,34 +884,19 @@ router.post(
           INSERT INTO partner_payouts (id, venue_id, period_start, period_end,
             total_revenue, platform_commission, venue_earned, status, paid_at, created_at)
           VALUES (?, ?, ?, ?, ?, ?, ?, 'paid', ?, datetime('now'))
-        `).run(
-          payoutId, venue.id,
-          period_start || "all", period_end || "all",
-          stats.total_revenue, stats.platform_commission, stats.venue_earned,
-          now,
-        );
+        `).run(payoutId, venue.id, period_start || "all", period_end || "all",
+          stats.total_revenue, stats.platform_commission, stats.venue_earned, now);
 
         payouts.push({
-          id: payoutId,
-          venue_id: venue.id,
-          venue_name: venue.name,
-          period_start: period_start || "all",
-          period_end: period_end || "all",
-          total_revenue: stats.total_revenue,
-          platform_commission: stats.platform_commission,
+          id: payoutId, venue_id: venue.id, venue_name: venue.name,
+          period_start: period_start || "all", period_end: period_end || "all",
+          total_revenue: stats.total_revenue, platform_commission: stats.platform_commission,
           venue_earned: stats.venue_earned,
         });
-
-        // 通知商戶 payout 已發出（async）
-        // sendNotification("payout.processed", { ... });
       }
 
       db.close();
-
-      return ok(res, {
-        message: `已處理 ${payouts.length} 間商戶嘅結算`,
-        payouts,
-      });
+      return ok(res, { message: `已處理 ${payouts.length} 間商戶嘅結算`, payouts });
     } catch (err) {
       console.error("❌ admin/process-partner-payouts error:", err.message);
       return serverError(res, "處理結算失敗");
@@ -1001,8 +904,8 @@ router.post(
   },
 );
 
-// ===== 12. POST /api/partner/book — 商戶場地預約（partner aware booking）=====
-router.post("/book", authenticateToken, (req, res) => {
+// ===== 12. POST /api/partner/book — 商戶場地預約 =====
+router.post("/book", authenticateToken, requireRole('user'), (req, res) => {
   try {
     const { schedule_id, class_id, payment_type, amount } = req.body;
 
@@ -1014,38 +917,24 @@ router.post("/book", authenticateToken, (req, res) => {
     db.pragma("foreign_keys = ON");
 
     const classInfo = db.prepare("SELECT * FROM classes WHERE id = ?").get(class_id);
-    if (!classInfo) {
-      db.close();
-      return notFound(res, "課程不存在");
-    }
+    if (!classInfo) { db.close(); return notFound(res, "課程不存在"); }
 
     const venue = db
-      .prepare("SELECT * FROM partner_venues WHERE name = ? AND status = 'active'")
-      .get(classInfo.venue_name);
+      .prepare("SELECT * FROM partner_venues WHERE id = ? AND status = 'active'")
+      .get(classInfo.partner_id || classInfo.partner_venue_id);
 
-    if (!venue) {
-      db.close();
-      return fail(res, "此課程不屬於合作場地", 400);
-    }
+    if (!venue) { db.close(); return fail(res, "此課程不屬於合作場地", 400); }
 
     const schedule = db
       .prepare("SELECT * FROM class_schedules WHERE id = ? AND status = 'available'")
       .get(schedule_id);
-
-    if (!schedule) {
-      db.close();
-      return notFound(res, "該時段不存在或已滿");
-    }
+    if (!schedule) { db.close(); return notFound(res, "該時段不存在或已滿"); }
 
     const capResult = db.prepare(
       "UPDATE class_schedules SET enrolled_count = enrolled_count + 1 WHERE id = ? AND enrolled_count < max_participants"
     ).run(schedule_id);
-    if (capResult.changes === 0) {
-      db.close();
-      return fail(res, "該時段已滿額", 400);
-    }
+    if (capResult.changes === 0) { db.close(); return fail(res, "該時段已滿額", 400); }
 
-    // Use plan-based commission
     const planKey = venue.commission_plan || 'basic';
     const split = calcCommissionSplit(amount, planKey);
 
@@ -1053,8 +942,7 @@ router.post("/book", authenticateToken, (req, res) => {
     db.prepare(`
       INSERT INTO bookings (id, user_id, schedule_id, class_id, payment_type,
         payment_status, amount, status, venue_partner_id,
-        platform_commission_rate, venue_earned_amount, platform_earned_amount,
-        created_at)
+        platform_commission_rate, venue_earned_amount, platform_earned_amount, created_at)
       VALUES (?, ?, ?, ?, ?, 'pending', ?, 'pending_payment', ?, ?, ?, ?, datetime('now'))
     `).run(
       bookingId, req.user.id, schedule_id, class_id, payment_type,
@@ -1062,7 +950,6 @@ router.post("/book", authenticateToken, (req, res) => {
     );
 
     db.close();
-
     return created(res, {
       booking_id: bookingId,
       venue: venue.name,
@@ -1082,7 +969,7 @@ router.get("/list", (req, res) => {
   try {
     const db = new Database(DB_PATH);
     const partners = db.prepare(`
-      SELECT id, name, description, category, district, logo_url, commission_plan
+      SELECT id, name, description, category, district, logo_url, commission_plan, owner_id
       FROM partner_venues WHERE status = 'active'
       ORDER BY created_at DESC
     `).all();
@@ -1090,6 +977,118 @@ router.get("/list", (req, res) => {
     res.json({ partners });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+// ===== RBAC Helper: GET /api/partner/roles — 查角色層級 =====
+router.get("/roles", authenticateToken, requireRole('admin'), (req, res) => {
+  try {
+    return ok(res, {
+      hierarchy: ROLE_HIERARCHY,
+      roles: Object.entries(ROLE_HIERARCHY).map(([role, level]) => ({
+        role,
+        level,
+        label: role.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+      })).sort((a, b) => a.level - b.level),
+    });
+  } catch (err) {
+    return serverError(res, "載入角色層級失敗");
+  }
+});
+
+// ===== RBAC Helper: PUT /api/partner/users/:id/role — 管理員設定用戶角色 =====
+router.put("/users/:id/role", authenticateToken, requireRole('admin'), (req, res) => {
+  try {
+    const { id } = req.params;
+    const { role, partner_id } = req.body;
+
+    if (!role || !ROLE_HIERARCHY[role]) {
+      return fail(res, `無效角色。可用角色: ${Object.keys(ROLE_HIERARCHY).join(', ')}`, 400);
+    }
+
+    const db = new Database(DB_PATH);
+    const user = db.prepare("SELECT id, email, role, partner_id FROM users WHERE id = ?").get(id);
+    if (!user) { db.close(); return notFound(res, "用戶不存在"); }
+
+    // Only super_admin/platform_manager can set roles above admin
+    if (hasMinimumRole(role, 'admin') && !hasMinimumRole(req.user.role, 'platform_manager')) {
+      db.close();
+      return fail(res, "你無法設定管理層級角色", 403);
+    }
+
+    db.prepare("UPDATE users SET role = ?, partner_id = COALESCE(?, partner_id), updated_at = datetime('now') WHERE id = ?")
+      .run(role, partner_id || null, id);
+
+    const updated = db.prepare("SELECT id, email, name, role, partner_id FROM users WHERE id = ?").get(id);
+    db.close();
+
+    return ok(res, { message: `已更新用戶 ${updated.name} 角色為 ${role}`, user: updated });
+  } catch (err) {
+    console.error("❌ partner/users/:id/role error:", err.message);
+    return serverError(res, "設定用戶角色失敗");
+  }
+});
+
+// ===== RBAC Helper: GET /api/partner/members — 商戶成員列表 =====
+router.get("/members", authenticateToken, requireOwnInstitution, (req, res) => {
+  try {
+    const venue = _getUserVenue(req.user.id);
+    if (!venue) { return fail(res, "你未有已開通嘅商戶戶口", 403); }
+
+    const db = new Database(DB_PATH);
+    const members = db.prepare(`
+      SELECT pm.id, pm.user_id, pm.role as member_role, pm.status, pm.created_at,
+             u.name, u.email, u.role as user_role, u.phone
+      FROM partner_members pm
+      JOIN users u ON pm.user_id = u.id
+      WHERE pm.partner_id = ? AND pm.status = 'active'
+      ORDER BY pm.created_at DESC
+    `).all(venue.id);
+
+    db.close();
+    return ok(res, { members });
+  } catch (err) {
+    console.error("❌ partner/members error:", err.message);
+    return serverError(res, "查詢成員失敗");
+  }
+});
+
+// ===== RBAC Helper: POST /api/partner/members — 商戶新增成員 =====
+router.post("/members", authenticateToken, requireOwnInstitution, (req, res) => {
+  try {
+    const venue = _getUserVenue(req.user.id);
+    if (!venue) { return fail(res, "你未有已開通嘅商戶戶口", 403); }
+
+    const { user_id, role } = req.body;
+    if (!user_id) { return fail(res, "請提供用戶 ID", 400); }
+
+    const memberRole = role || 'coach';
+
+    const db = new Database(DB_PATH);
+    const user = db.prepare("SELECT id, name, email FROM users WHERE id = ?").get(user_id);
+    if (!user) { db.close(); return notFound(res, "用戶不存在"); }
+
+    const existing = db.prepare("SELECT id FROM partner_members WHERE user_id = ? AND partner_id = ?").get(user_id, venue.id);
+    if (existing) { db.close(); return fail(res, "此用戶已是機構成員", 409); }
+
+    const id = uuidv4();
+    db.prepare(`
+      INSERT INTO partner_members (id, user_id, partner_id, role, status, created_at)
+      VALUES (?, ?, ?, ?, 'active', datetime('now'))
+    `).run(id, user_id, venue.id, memberRole);
+
+    // Also update user's role to coach/partner_staff if they're just a regular user
+    const targetUser = db.prepare("SELECT role FROM users WHERE id = ?").get(user_id);
+    if (targetUser && (!targetUser.role || ROLE_HIERARCHY[targetUser.role] > ROLE_HIERARCHY.coach)) {
+      db.prepare("UPDATE users SET role = ?, partner_id = ?, updated_at = datetime('now') WHERE id = ?")
+        .run(memberRole === 'coach' ? 'coach' : 'partner_staff', venue.id, user_id);
+    }
+
+    db.close();
+    return created(res, { message: `已新增 ${user.name} 為機構成員`, member_id: id });
+  } catch (err) {
+    console.error("❌ partner/members POST error:", err.message);
+    return serverError(res, "新增成員失敗");
   }
 });
 

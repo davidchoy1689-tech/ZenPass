@@ -762,6 +762,14 @@ function initDatabase() {
     console.error("⚠️ Wallet migration failed:", migErr.message);
   }
 
+  // RBAC v2 — Full role-based access control (10 roles)
+  try {
+    const { migrate: migrateRbac } = require("./migrate-rbac");
+    migrateRbac();
+  } catch (migErr) {
+    console.error("⚠️ RBAC migration failed:", migErr.message);
+  }
+
   console.log("✅ 數據庫初始化完成:", DB_PATH);
   db.close();
 }

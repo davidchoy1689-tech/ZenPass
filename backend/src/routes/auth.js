@@ -207,7 +207,7 @@ router.get("/me", authenticateToken, (req, res) => {
       .prepare(
         `
       SELECT id, email, name, phone, avatar_url, credits, membership_type, 
-             membership_expires_at, is_coach, coach_verified, created_at
+             membership_expires_at, is_coach, coach_verified, role, partner_id, created_at
       FROM users WHERE id = ?
     `,
       )
