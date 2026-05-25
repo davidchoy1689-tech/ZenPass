@@ -558,6 +558,14 @@ process.on("SIGINT", () => {
 try {
   const { installDeleteTriggers } = require("./services/financial-protection");
   installDeleteTriggers();
+
+  // 初始化 blockchain 寫入 hash table
+  try {
+    const { ensureBlockchainTable } = require("./services/blockchain-audit");
+    ensureBlockchainTable();
+  } catch (bcErr) {
+    console.error("⚠️ Blockchain table init failed:", bcErr.message);
+  }
 } catch (protectErr) {
   console.error("⚠️ 金融保護 trigger 安裝失敗:", protectErr.message);
 }

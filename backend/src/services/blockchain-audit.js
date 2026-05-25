@@ -314,8 +314,210 @@ function traceWalletTransaction(walletTxId) {
   }
 }
 
+// ===================================================================
+// ⛓️ 寫入時即時 HASH（Immutable Blockchain Storage）
+// 每次建立金錢記錄時即刻 hash 同儲存，確保不可篡改
+// ===================================================================
+
+const BLOCKCHAIN_TABLE = 'blockchain_blocks';
+
+/**
+ * 確保 blockchain_blocks table 存在
+ */
+function ensureBlockchainTable() {
+  const db = new Database(DB_PATH);
+  db.pragma("foreign_keys = ON");
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS blockchain_blocks (
+      id TEXT PRIMARY KEY,
+      entity_type TEXT NOT NULL,
+      entity_id TEXT NOT NULL,
+      previous_hash TEXT DEFAULT '',
+      hash TEXT NOT NULL,
+      data TEXT NOT NULL,
+      block_height INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_blockchain_entity ON blockchain_blocks(entity_type, entity_id);
+    CREATE INDEX IF NOT EXISTS idx_blockchain_height ON blockchain_blocks(block_height);
+    CREATE INDEX IF NOT EXISTS idx_blockchain_created ON blockchain_blocks(created_at);
+  `);
+
+  db.close();
+  console.log("[BLOCKCHAIN] ✅ blockchain_blocks table ready");
+}
+
+/**
+ * 寫入一個 blockchain block（即時 hash + 永久儲存）
+ *
+ * @param {object} params
+ * @param {string} params.entityType - 'booking' | 'income' | 'wallet' | 'payout'
+ * @param {string} params.entityId - 對應記錄嘅 ID
+ * @param {object} params.data - 要 hash 嘅數據
+ * @param {string} params.previousBlockId - 前一個 block 嘅 ID（optional）
+ * @returns {object} { block_id, hash, height }
+ */
+function writeBlock({ entityType, entityId, data, previousBlockId }) {
+  const db = new Database(DB_PATH);
+  db.pragma("foreign_keys = ON");
+
+  try {
+    // 確保 table 存在
+    db.exec(`CREATE TABLE IF NOT EXISTS blockchain_blocks (
+      id TEXT PRIMARY KEY, entity_type TEXT NOT NULL, entity_id TEXT NOT NULL,
+      previous_hash TEXT DEFAULT '', hash TEXT NOT NULL, data TEXT NOT NULL,
+      block_height INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )`);
+
+    // 搵前一個 block 嘅 hash 做鏈接
+    let previousHash = '';
+    let blockHeight = 1;
+
+    if (previousBlockId) {
+      const prev = db.prepare('SELECT hash FROM blockchain_blocks WHERE id = ?').get(previousBlockId);
+      if (prev) previousHash = prev.hash;
+    }
+
+    // 如果冇指定前一個 block，自動搵最近果個
+    if (!previousHash) {
+      const last = db.prepare('SELECT hash, block_height FROM blockchain_blocks ORDER BY block_height DESC LIMIT 1').get();
+      if (last) {
+        previousHash = last.hash;
+        blockHeight = last.block_height + 1;
+      }
+    }
+
+    // 計算 hash
+    const blockData = { entityType, entityId, data, previousHash, timestamp: Date.now() };
+    const hash = sha256(blockData);
+
+    const blockId = require('uuid').v4();
+
+    db.prepare(`
+      INSERT INTO blockchain_blocks (id, entity_type, entity_id, previous_hash, hash, data, block_height)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run(blockId, entityType, entityId, previousHash, hash, JSON.stringify(blockData), blockHeight);
+
+    db.close();
+    return { block_id: blockId, hash, height: blockHeight, previous_hash: previousHash };
+  } catch (err) {
+    db.close();
+    console.error("[BLOCKCHAIN] writeBlock error:", err.message);
+    return { error: err.message };
+  }
+}
+
+/**
+ * 驗證一個 block 嘅 hash 同鏈接是否完整
+ */
+function verifyBlock(blockId) {
+  const db = new Database(DB_PATH);
+  db.pragma("foreign_keys = ON");
+
+  try {
+    const block = db.prepare('SELECT * FROM blockchain_blocks WHERE id = ?').get(blockId);
+    if (!block) { db.close(); return { valid: false, error: 'Block not found' }; }
+
+    const blockData = JSON.parse(block.data);
+    const recalculatedHash = sha256(blockData);
+
+    // 驗證 hash 是否一致
+    if (recalculatedHash !== block.hash) {
+      db.close();
+      return { valid: false, error: 'Hash mismatch - data has been tampered with', expected: block.hash, got: recalculatedHash };
+    }
+
+    db.close();
+    return { valid: true, block };
+  } catch (err) {
+    db.close();
+    return { valid: false, error: err.message };
+  }
+}
+
+/**
+ * 驗證整條 chain 完整性（由 genesis block 到最新）
+ */
+function verifyFullChain() {
+  const db = new Database(DB_PATH);
+  db.pragma("foreign_keys = ON");
+
+  try {
+    const blocks = db.prepare('SELECT * FROM blockchain_blocks ORDER BY block_height ASC').all();
+    if (blocks.length === 0) { db.close(); return { valid: true, blocks: 0 }; }
+
+    for (let i = 0; i < blocks.length; i++) {
+      const b = blocks[i];
+      const blockData = JSON.parse(b.data);
+      const recalculatedHash = sha256(blockData);
+
+      if (recalculatedHash !== b.hash) {
+        db.close();
+        return { valid: false, broken_at: b.block_height, block_id: b.id, entity: b.entity_type };
+      }
+
+      // 檢查鏈接（除 genesis block）
+      if (i > 0 && b.previous_hash !== blocks[i - 1].hash) {
+        db.close();
+        return { valid: false, broken_link: b.block_height, expected_prev: blocks[i - 1].hash, got_prev: b.previous_hash };
+      }
+    }
+
+    const latest = blocks[blocks.length - 1];
+    db.close();
+    return { valid: true, blocks: blocks.length, latest_hash: latest.hash, latest_height: latest.block_height };
+  } catch (err) {
+    db.close();
+    return { valid: false, error: err.message };
+  }
+}
+
+/**
+ * 快速寫 Booking 嘅 blockchain block
+ */
+function writeBookingBlock(bookingId) {
+  const db = new Database(DB_PATH);
+  try {
+    const booking = db.prepare(`
+      SELECT b.*, u.name as student_name, c.title as class_title
+      FROM bookings b
+      JOIN users u ON b.user_id = u.id
+      JOIN class_schedules cs ON b.schedule_id = cs.id
+      JOIN classes c ON cs.class_id = c.id
+      WHERE b.id = ?
+    `).get(bookingId);
+    if (!booking) return { error: 'Booking not found' };
+    db.close();
+
+    return writeBlock({
+      entityType: 'booking',
+      entityId: bookingId,
+      data: {
+        booking_ref: booking.booking_reference,
+        amount: booking.amount,
+        platform_earned: booking.platform_earned_amount,
+        venue_earned: booking.venue_earned_amount,
+        status: booking.status,
+        student: booking.student_name,
+        class: booking.class_title,
+        created_at: booking.created_at,
+      },
+    });
+  } catch (err) {
+    db.close();
+    return { error: err.message };
+  }
+}
+
 module.exports = {
   traceBooking,
   traceWalletTransaction,
   verifyChain,
+  // 寫入即 hash
+  ensureBlockchainTable,
+  writeBlock,
+  writeBookingBlock,
+  verifyBlock,
+  verifyFullChain,
 };

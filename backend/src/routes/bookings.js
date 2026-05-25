@@ -305,6 +305,17 @@ router.post("/", authenticateToken, requireIdempotency, validate(schemas.booking
       console.error("⚠️ Audit record failed:", auditErr.message);
     }
 
+    // ⛓️ 寫入 blockchain block（即時 hash + 永久儲存）
+    try {
+      const { writeBookingBlock } = require("../services/blockchain-audit");
+      const block = writeBookingBlock(bookingId);
+      if (block && block.hash) {
+        console.log(`[BLOCKCHAIN] 📝 Block written: ${bookingRef} hash=${block.hash.slice(0, 12)}...`);
+      }
+    } catch (bcErr) {
+      console.error("⚠️ Blockchain write failed:", bcErr.message);
+    }
+
     db.close();
 
     res.status(201).json({
