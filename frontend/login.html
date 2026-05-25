@@ -430,25 +430,58 @@
           btn.textContent = "註冊";
         }
       }
-      function quickLogin(role) {
+      async function quickLogin(role) {
         var names = {
-          admin: "David Choy",
+          admin: "管理員",
+          manager: "平台經理",
+          staff: "平台前線員工",
+          partner: "場地營運",
           coach: "靜儀導師",
           student: "張三同學",
         };
         var emails = {
-          admin: "david@zenpass.hk",
+          admin: "admin@zenpass.hk",
+          manager: "manager@zenpass.hk",
+          staff: "staff@zenpass.hk",
+          partner: "venue@zenpass.hk",
           coach: "coach@zenpass.hk",
           student: "student@zenpass.hk",
         };
-        setToken("demo_token_" + role);
-        storeUser({
-          name: names[role],
-          email: emails[role],
-          phone: "",
-          role: role,
-          credits: role === "coach" ? 0 : 45,
-        });
+        var passwords = {
+          admin: "admin123",
+          manager: "zenpass123",
+          staff: "zenpass123",
+          partner: "zenpass123",
+          coach: "zenpass123",
+          student: "zenpass123",
+        };
+        // Call real API to get valid JWT token
+        try {
+          var resp = await fetch(API_BASE + "/auth/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email: emails[role], password: passwords[role] }),
+          });
+          var data = await resp.json();
+          if (data.token) {
+            setToken(data.token);
+            var userData = data.user || {};
+            storeUser({
+              name: names[role],
+              email: emails[role],
+              phone: userData.phone || "",
+              role: role,
+              credits: userData.credits || (role === "coach" ? 0 : 45),
+            });
+          } else {
+            // Fallback: use demo token
+            setToken("demo_token_" + role);
+            storeUser({ name: names[role], email: emails[role], phone: "", role: role, credits: 45 });
+          }
+        } catch(e) {
+          setToken("demo_token_" + role);
+          storeUser({ name: names[role], email: emails[role], phone: "", role: role, credits: 45 });
+        }
         window.location.href = "explore.html";
       }
 
