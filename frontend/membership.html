@@ -86,10 +86,11 @@
         -webkit-font-smoothing: antialiased;
       }
       .header {
-        background: linear-gradient(135deg, var(--dark-900), var(--dark-800));
+        background: linear-gradient(135deg, rgba(26,26,46,0.92), rgba(45,45,68,0.8)), url('https://images.unsplash.com/photo-1518611012118-696072aa579a?w=1200&q=80') center/cover;
         color: var(--white);
-        padding: 40px 20px 32px;
+        padding: 48px 20px 40px;
         text-align: center;
+        position: relative;
       }
       .header h1 {
         font-size: 26px;
@@ -179,31 +180,7 @@
         content: "✅";
       }
       .plan-btn {
-        width: 100%;
-        padding: 12px;
-        border: none;
-        border-radius: var(--radius-sm);
-        font-size: 16px;
-        font-weight: 700;
-        cursor: pointer;
-        margin-top: 12px;
-        font-family: var(--font-zh);
-        transition: background 0.2s;
-      }
-      .plan-btn.primary {
-        background: var(--orange-600-bg);
-        color: var(--white);
-      }
-      .plan-btn.primary:hover {
-        background: #e55a2b;
-      }
-      .plan-btn.outline {
-        background: transparent;
-        color: var(--orange-700);
-        border: 2px solid var(--orange-700);
-      }
-      .plan-btn.outline:hover {
-        background: var(--orange-50);
+        /* DaisyUI btn handles styling */
       }
 
       /* Credits packages */
@@ -443,8 +420,31 @@
           max-width: 100% !important;
         }
       }
-    </style>
-  </head>
+    
+.footer-grad { background: linear-gradient(135deg, #1a1a2e 0%, #2d2d44 50%, #c94420 100%); }
+.footer-link { color: rgba(255,255,255,0.6); text-decoration: none; transition: color 0.2s; font-size: 13px; }
+.footer-link:hover { color: white; }
+</style>
+  
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" />
+<script>
+tailwind.config = { theme: { extend: { colors: { zen: { orange: '#f06030', 'orange-dark': '#c94420', 'orange-light': '#ff8555', dark: '#1a1a2e' } } } } }
+</script>
+<style>
+.btn-grad { background: linear-gradient(135deg, #f06030, #ff8555); border: none; color: white; transition: all 0.3s; }
+.btn-grad:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(240,96,48,0.35); }
+.glass-card { background: rgba(255,255,255,0.88); backdrop-filter: blur(20px); }
+.card-hover { transition: all 0.3s; }
+.card-hover:hover { transform: translateY(-4px); box-shadow: 0 16px 48px rgba(0,0,0,0.12); }
+.popular-tag { background: linear-gradient(135deg, #f06030, #ff8555); }
+
+.footer-grad { background: linear-gradient(135deg, #1a1a2e 0%, #2d2d44 50%, #c94420 100%); }
+.footer-link { color: rgba(255,255,255,0.6); text-decoration: none; transition: color 0.2s; font-size: 13px; }
+.footer-link:hover { color: white; }
+</style>
+
+</head>
   <body>
     <!-- Skip link for accessibility -->
     <a
@@ -738,9 +738,9 @@
           var popularClass = isPopular ? " popular" : "";
           var planLabels = { lite: "輕量入門", standard: "最受歡迎", silver: "高階之選", gold: "終極體驗" };
           var badge = isPopular
-            ? '<div class="badge">' + planLabels[key] + '</div>'
+            ? '<div class="badge popular-tag text-white text-xs font-bold px-4 py-1.5 rounded-b-lg shadow-md border-0" style="position:absolute;top:-0.5px;right:16px;z-index:10;">' + planLabels[key] + '</div>'
             : (ri === 3
-              ? '<div class="badge" style="background:linear-gradient(135deg,#FFD700,#FFA500);color:#1a1a2e">' + planLabels[key] + '</div>'
+              ? '<div class="badge" style="background:linear-gradient(135deg,#FFD700,#FFA500);color:#1a1a2e;position:absolute;top:-0.5px;right:16px;z-index:10;padding:4px 12px;border-radius:0 0 12px 12px;font-size:12px;font-weight:700;border:0;">' + planLabels[key] + '</div>'
               : "");
           var isUnlimited = p.credits_granted === 0;
           var perClass = p.avg_price > 0 ? '<div style="font-size:12px;color:var(--green-600);font-weight:600;margin-bottom:6px">HK$' + Number(p.avg_price).toFixed(2) + '/credit</div>' : "";
@@ -748,12 +748,10 @@
             (isUnlimited ? "無限堂數" : "每月 " + p.credits_granted + " Credits"),
             "優先預約權",
           ];
-          if (key === "gold") // already in features array
-          if (key === "silver") // features already includes this
-          var goldGuide = key === "gold" ? "" : "";
-          var btnClass = isPopular ? "primary" : "outline";
+          // gold features included in API data
+          var btnClass = "btn btn-grad w-full rounded-xl font-bold text-sm h-11 border-0 shadow-lg";
           html2 +=
-            '<div class="plan-card' +
+            '<div class="plan-card card glass-card card-hover rounded-2xl shadow-lg border-2' +
             popularClass +
             '" onclick="selectPlan(\'' +
             key +
@@ -771,7 +769,6 @@
             '<ul class="plan-features">' +
             perClass +
             features.map(function(f) { return "<li>" + f + "</li>"; }).join("") +
-            goldGuide +
             "</ul>" +
             '<button class="plan-btn ' +
             btnClass +
@@ -798,7 +795,7 @@
       }
 
       function doSubscribePlan(type) {
-        var prices = { lite: 198, standard: 498, silver: 1899, gold: 2899 };
+        var prices = { lite: 299, standard: 799, silver: 1899, gold: 2899 };
         var names = { lite: "輕量 Pass", standard: "標準 Pass", silver: "高階 Pass", gold: "VIP Pass" };
         // Redirect to payment page with plan info
         var ref =
@@ -834,7 +831,7 @@
               ? '<div class="cp-bonus">+' + p.bonus + " 贈送</div>"
               : "";
             html +=
-              '<div class="credit-pack ' +
+              '<div class="credit-pack card bg-white/80 rounded-xl shadow-sm border-2 hover:shadow-lg transition-all ' +
               popularClass +
               '" onclick="selectPack(this,' +
               p.credits +
@@ -860,9 +857,9 @@
         } catch (err) {
           var fallback =
             "" +
-            '<div class="credit-pack" onclick="selectPack(this, 10,100)" data-bonus="0"><div class="cp-credits">10</div><div class="cp-label">輕量包</div><div class="cp-price">HK$100</div></div>' +
-            '<div class="credit-pack popular" onclick="selectPack(this, 25,225)" data-bonus="0"><div class="cp-popular-tag">超值</div><div class="cp-credits">25</div><div class="cp-label">標準包</div><div class="cp-price">HK$225</div></div>' +
-            '<div class="credit-pack" onclick="selectPack(this, 50,440)" data-bonus="5"><div class="cp-credits">55</div><div class="cp-label">超值包</div><div class="cp-price">HK$440</div><div class="cp-bonus">+5 贈送</div></div>';
+            '<div class="credit-pack card bg-white/80 rounded-xl shadow-sm border-2 hover:shadow-lg transition-all" onclick="selectPack(this, 10,100)" data-bonus="0"><div class="cp-credits">10</div><div class="cp-label">輕量包</div><div class="cp-price">HK$100</div></div>' +
+            '<div class="credit-pack card bg-white/80 rounded-xl shadow-sm border-2 hover:shadow-lg transition-all popular" onclick="selectPack(this, 25,225)" data-bonus="0"><div class="cp-popular-tag">超值</div><div class="cp-credits">25</div><div class="cp-label">標準包</div><div class="cp-price">HK$225</div></div>' +
+            '<div class="credit-pack card bg-white/80 rounded-xl shadow-sm border-2 hover:shadow-lg transition-all" onclick="selectPack(this, 50,440)" data-bonus="5"><div class="cp-credits">55</div><div class="cp-label">超值包</div><div class="cp-price">HK$440</div><div class="cp-bonus">+5 贈送</div></div>';
           container.innerHTML = fallback;
         }
       }
@@ -955,7 +952,7 @@
           '<p style="font-size:14px;color:var(--dark-700);margin-bottom:20px;">請先登入以繼續購買</p>' +
           '<div style="margin-bottom:12px;"><input type="email" id="login-email" placeholder="電郵" style="width:100%;padding:12px;border:1px solid var(--gray-200);border-radius:var(--radius-sm);font-size:15px;font-family:var(--font-zh);margin-bottom:8px;"></div>' +
           '<div style="margin-bottom:20px;"><input type="password" id="login-pass" placeholder="密碼" style="width:100%;padding:12px;border:1px solid var(--gray-200);border-radius:var(--radius-sm);font-size:15px;font-family:var(--font-zh);"></div>' +
-          '<button class="plan-btn primary" onclick="demoLogin(\'student\')" style="font-family:var(--font-zh);">👤 以學生身份登入</button>' +
+          '<button class="plan-btn primary btn btn-grad w-full rounded-xl font-bold text-sm h-11 border-0 shadow-lg" onclick="demoLogin(\'student\')" style="font-family:var(--font-zh);">👤 以學生身份登入</button>' +
           '<p style="font-size:12px;color:var(--gray-300);margin-top:12px;">演示版本：㩒上面掣即時登入</p>' +
           "</div>";
         document.body.appendChild(overlay);
@@ -1067,47 +1064,43 @@
       })();
     </script>
 
-    <div
-      class="zen-footer"
-      style="
-        text-align: center;
-        padding: 20px 16px;
-        margin-top: 24px;
-        border-top: 1px solid #e5e7eb;
-        font-size: 12px;
-        color: #6b7280;
-      "
-    >
-      <div
-        style="
-          display: flex;
-          justify-content: center;
-          gap: 16px;
-          margin-bottom: 8px;
-        "
-      >
-        <a
-          href="/"
-          style="color: #aa3218; text-decoration: none; font-weight: 500"
-          >🏠 首頁</a
-        >
-        <a
-          href="explore.html"
-          style="color: #aa3218; text-decoration: none; font-weight: 500"
-          >📚 課程</a
-        >
-        <a
-          href="my.html"
-          style="color: #aa3218; text-decoration: none; font-weight: 500"
-          >👤 我的</a
-        >
-        <a
-          href="points.html"
-          style="color: #aa3218; text-decoration: none; font-weight: 500"
-          >🎯 積分</a
-        >
+    <footer class="footer-grad text-white/60 py-10 px-4 mt-8">
+    <div class="max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8">
+      <div class="col-span-2 md:col-span-1">
+        <div class="text-white font-bold text-base mb-2">🧘 ZenPass 禪流</div>
+        <div class="text-xs leading-relaxed">一個Pass，通行全城運動體驗。<br />香港康樂及體育有限公司</div>
       </div>
-      © 2026 ZenPass 禪流
+      <div>
+        <div class="text-white text-xs font-semibold mb-3 uppercase tracking-wider">探索</div>
+        <ul class="space-y-1.5">
+          <li><a href="explore.html" class="footer-link">探索課程</a></li>
+          <li><a href="coaches.html" class="footer-link">星級教練</a></li>
+          <li><a href="membership.html" class="footer-link">會籍方案</a></li>
+          <li><a href="coach-apply.html" class="footer-link">成為教練</a></li>
+        </ul>
+      </div>
+      <div>
+        <div class="text-white text-xs font-semibold mb-3 uppercase tracking-wider">支援</div>
+        <ul class="space-y-1.5">
+          <li><a href="faq.html" class="footer-link">常見問題</a></li>
+          <li><a href="privacy.html" class="footer-link">私隱政策</a></li>
+          <li><a href="terms.html" class="footer-link">服務條款</a></li>
+        </ul>
+      </div>
+      <div>
+        <div class="text-white text-xs font-semibold mb-3 uppercase tracking-wider">聯絡我們</div>
+        <ul class="space-y-1.5 text-xs">
+          <li>📧 support@zenpass.hk</li>
+          <li>📞 2387 0724</li>
+        </ul>
+        <div class="flex gap-2 mt-3">
+          <a href="https://www.instagram.com/zenpass_hk" class="w-8 h-8 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-sm transition-all">📸</a>
+          <a href="https://www.facebook.com/zenpass.hk" class="w-8 h-8 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-sm transition-all">👍</a>
+          <a href="https://wa.me/85290335538" class="w-8 h-8 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-sm transition-all">💬</a>
+        </div>
+      </div>
     </div>
+    <div class="max-w-6xl mx-auto mt-8 pt-4 border-t border-white/10 text-center text-xs text-white/30">&copy; 2026 ZenPass 禪流 · 香港康樂及體育有限公司</div>
+    </footer>
   </body>
 </html>
