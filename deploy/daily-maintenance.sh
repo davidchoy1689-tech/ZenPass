@@ -68,10 +68,23 @@ if [ "$MISMATCHES" -gt 0 ]; then
   echo "  ⚠️ $MISMATCHES 個 schedule enrolled_count 唔一致（已修復）" >> "$LOG_FILE"
 fi
 
-# 6. 檢查 wallet 記錄完整性（唔刪除，永久保存）
-echo "  [6/6] 檢查 wallet 交易記錄完整性..." >> "$LOG_FILE"
-WALLET_COUNT=$(sqlite3 "$DB_PATH" "SELECT COUNT(*) FROM wallet_transactions;")
-echo "  ✅ wallet_transactions 共 $WALLET_COUNT 條記錄（永久保存）" >> "$LOG_FILE"
+# 6. 檢查所有金融記錄完整性 + DELETE trigger 狀態
+# 確保所有金錢相關 table 都有 DELETE 保護 trigger
+echo "  [6/6] 金融記錄完整性檢查..." >> "$LOG_FILE"
+
+# 檢查 DELETE trigger 是否存在
+for table in wallet_transactions coach_earnings coach_payouts bookings audit_log ledger transactions private_income venue_rentals partner_payouts refund_logs idempotency_keys; do
+  TRIGGER_EXISTS=$(sqlite3 "$DB_PATH" "SELECT name FROM sqlite_master WHERE type='trigger' AND name='protect_${table}_delete';")
+  ROW_COUNT=$(sqlite3 "$DB_PATH" "SELECT COUNT(*) FROM $table;" 2>/dev/null || echo "0")
+  if [ -n "$TRIGGER_EXISTS" ]; then
+    echo "  ✅ $table ($ROW_COUNT 條記錄) — 受保護" >> "$LOG_FILE"
+  else
+    echo "  ❌ $table ($ROW_COUNT 條記錄) — 缺少 DELETE trigger！" >> "$LOG_FILE"
+  fi
+done
+
+# 檢查 wallet 記錄總數
+echo "  ✅ wallet_transactions 記錄永久保存" >> "$LOG_FILE"
 
 # Summary
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] ✅ 每日維護完成" >> "$LOG_FILE"

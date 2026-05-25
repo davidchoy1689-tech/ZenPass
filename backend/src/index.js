@@ -553,6 +553,14 @@ process.on("SIGINT", () => {
   server.close(() => process.exit(0));
 });
 
+// ===== 安裝金融記錄保護觸發器 =====
+try {
+  const { installDeleteTriggers } = require("./services/financial-protection");
+  installDeleteTriggers();
+} catch (protectErr) {
+  console.error("⚠️ 金融保護 trigger 安裝失敗:", protectErr.message);
+}
+
 // ===== 啟動 =====
 const server = app.listen(PORT, "0.0.0.0", () => {
   logger.info(`ZenPass 伺服器已啟動`, {
