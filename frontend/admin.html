@@ -2309,7 +2309,10 @@
             html += '<div style="background:white;border-radius:14px;padding:16px;margin-bottom:10px;box-shadow:0 2px 8px rgba(0,0,0,0.06);border:1px solid rgba(0,0,0,0.04)">' +
               '<div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:6px">' +
               '<div><div style="font-weight:600;font-size:15px">' + escape(p.name||'') + '</div>' +
-              '<div style="font-size:12px;color:var(--dark-700);margin-top:2px">' + escape(p.category||'') + ' · ' + escape(p.district||'') + '</div></div>' +
+              '<div style="font-size:12px;color:var(--dark-700);margin-top:2px">' + escape(p.category||'') + ' · ' + escape(p.district||'') + '</div>' +
+              // Owner info
+              (p.owner && p.owner.name ? '<div style="font-size:11px;color:var(--dark-700);margin-top:2px">👑 負責人：' + escape(p.owner.name) + '</div>' : '<div style="font-size:11px;color:#9ca3af;margin-top:2px">👑 暫無負責人</div>') +
+              '</div>' +
               badge + '</div>';
 
             // Plan info line
@@ -2317,6 +2320,7 @@
               '<span style="background:var(--primary-bg);padding:2px 8px;border-radius:6px;">💰 ' + escape(plan.label) + '</span>' +
               '<span>分佣：' + Math.round((plan.rate||p.commission_rate||0.25)*100) + '%</span>' +
               (plan.fee > 0 ? '<span>月費：$' + plan.fee + '</span>' : '<span>月費：免費</span>') +
+              '<span>📚 課程：' + (p.course_count||0) + '</span>' +
               '</div>';
 
             html += (p.contact_person ? '<div style="font-size:12px;color:var(--dark-700)">👤 ' + escape(p.contact_person) + ' · 📞 ' + escape(p.phone||'') + '</div>' : '') +
@@ -2335,15 +2339,26 @@
                 '<button onclick="rejectPartner(\'' + p.id + '\')" style="flex:1;padding:8px;background:#dc2626;color:white;border:none;border-radius:8px;cursor:pointer;font-size:12px">❌ 拒絕</button></div></div>';
             }
 
-            if (p.status === 'active') {
+            if (p.status === 'active' || p.status === 'suspended') {
               var stats = p.stats || {};
               html += '<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;font-size:11px;">' +
                 '<span>📊 訂單：' + (stats.total_bookings||0) + '</span>' +
                 '<span>💰 營收：$' + (stats.total_revenue||0).toFixed(0) + '</span>' +
                 '</div>' +
-                '<div style="margin-top:8px;display:flex;gap:6px;">' +
+                '<div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;">' +
                 '<button onclick="viewPartnerRevenue(\'' + p.id + '\')" style="flex:1;padding:6px;background:var(--primary-bg);color:var(--primary);border:1px solid var(--primary);border-radius:6px;cursor:pointer;font-size:11px;font-family:inherit;">📈 收入報表</button>' +
                 '<button onclick="changePartnerPlan(\'' + p.id + '\')" style="flex:1;padding:6px;background:var(--white);color:var(--dark-700);border:1px solid var(--gray-200);border-radius:6px;cursor:pointer;font-size:11px;font-family:inherit;">⚙️ 調整計劃</button>' +
+                '<button onclick="viewPartnerDetail(\'' + p.id + '\')" style="flex:1;padding:6px;background:var(--white);color:var(--dark-2);border:1px solid var(--gray-200);border-radius:6px;cursor:pointer;font-size:11px;font-family:inherit;">🔍 詳細</button>' +
+                (p.owner ? '' : '<button onclick="assignPartnerOwner(\'' + p.id + '\')" style="flex:1;padding:6px;background:#fef3c7;color:#92400e;border:1px solid #fde68a;border-radius:6px;cursor:pointer;font-size:11px;font-family:inherit;">👑 指派負責人</button>') +
+                (p.status === 'active' ? '<button onclick="changePartnerStatus(\'' + p.id + '\',\'suspended\')" style="flex:1;padding:6px;background:#fef2f2;color:#dc2626;border:1px solid #fecaca;border-radius:6px;cursor:pointer;font-size:11px;font-family:inherit;">⏸️ 暫停</button>' : '') +
+                (p.status === 'suspended' ? '<button onclick="changePartnerStatus(\'' + p.id + '\',\'active\')" style="flex:1;padding:6px;background:#ecfdf5;color:#059669;border:1px solid #a7f3d0;border-radius:6px;cursor:pointer;font-size:11px;font-family:inherit;">▶️ 啟用</button>' : '') +
+                '</div>';
+            }
+
+            if (p.status === 'suspended') {
+              var stats = p.stats || {};
+              html += '<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;font-size:11px;">' +
+                '<span>📊 訂單：' + (stats.total_bookings||0) + '</span>' +
                 '</div>';
             }
 
@@ -2506,6 +2521,132 @@
           await apiPut('/admin/partner/' + venueId, { commission_plan: plan });
           showToast('✅ 佣金計劃已更新', 'success');
           closePlanModal();
+          showPartnerSection('active');
+        } catch(e) {
+          showToast('❌ ' + e.message, 'error');
+        }
+      }
+
+      // ===== 商戶詳細 Modal =====
+      async function viewPartnerDetail(venueId) {
+        try {
+          var d = await apiGet('/admin/partner/' + venueId + '/courses');
+          var html = '<div class="modal-overlay" id="detailModal" onclick="closeDetailModal(event)">' +
+            '<div class="modal" style="width:700px;max-height:85vh;overflow-y:auto;">' +
+            '<h3>🔍 商戶詳細</h3>';
+
+          // Venue info
+          html += '<div class="stats-grid" style="margin-bottom:16px;">' +
+            '<div style="background:var(--primary-bg);padding:12px;border-radius:8px;">' +
+            '<div style="font-size:11px;color:var(--gray);">場地</div>' +
+            '<div style="font-size:14px;font-weight:600;">' + (d.venues||[]).length + '</div></div>' +
+            '<div style="background:#e0f2fe;padding:12px;border-radius:8px;">' +
+            '<div style="font-size:11px;color:var(--gray);">課程</div>' +
+            '<div style="font-size:14px;font-weight:600;">' + (d.courses||[]).length + '</div></div>' +
+            '</div>';
+
+          // Courses list
+          var courses = d.courses || [];
+          if (courses.length > 0) {
+            html += '<h4 style="font-size:13px;font-weight:600;margin-bottom:8px;">📚 課程列表 (' + courses.length + ')</h4>' +
+              '<div style="overflow-x:auto;margin-bottom:12px;"><table style="width:100%;font-size:12px;border-collapse:collapse;"><thead><tr>' +
+              '<th style="text-align:left;padding:6px 10px;border-bottom:2px solid var(--gray-light);">課程名稱</th>' +
+              '<th style="text-align:left;padding:6px 10px;border-bottom:2px solid var(--gray-light);">類別</th>' +
+              '<th style="text-align:left;padding:6px 10px;border-bottom:2px solid var(--gray-light);">時段</th>' +
+              '<th style="text-align:left;padding:6px 10px;border-bottom:2px solid var(--gray-light);">預約數</th></tr></thead><tbody>';
+            courses.forEach(function(c) {
+              html += '<tr><td style="padding:6px 10px;border-bottom:1px solid var(--gray-light);">' + escape(c.title||'') + '</td>' +
+                '<td style="padding:6px 10px;border-bottom:1px solid var(--gray-light);">' + escape(c.category||'—') + '</td>' +
+                '<td style="padding:6px 10px;border-bottom:1px solid var(--gray-light);">' + (c.schedule_count||0) + '</td>' +
+                '<td style="padding:6px 10px;border-bottom:1px solid var(--gray-light);">' + (c.booking_count||0) + '</td></tr>';
+            });
+            html += '</tbody></table></div>';
+          } else {
+            html += '<p style="color:var(--gray);font-size:13px;margin-bottom:12px;">暫無課程</p>';
+          }
+
+          // Venues
+          var venues = d.venues || [];
+          if (venues.length > 0) {
+            html += '<h4 style="font-size:13px;font-weight:600;margin-bottom:8px;">🏟️ 場地資訊</h4>';
+            venues.forEach(function(v) {
+              html += '<div style="background:var(--gray-light);padding:8px 12px;border-radius:8px;margin-bottom:6px;font-size:12px;">' +
+                '<span style="font-weight:600;">' + escape(v.name) + '</span>' +
+                ' · ' + escape(v.category||'') + ' · ' + escape(v.district||'') +
+                (v.email ? ' · 📧 ' + escape(v.email) : '') +
+                '</div>';
+            });
+          }
+
+          html += '<div class="actions" style="margin-top:16px;">' +
+            '<button class="btn btn-primary" onclick="closeDetailModal()">關閉</button></div></div></div>';
+
+          document.body.insertAdjacentHTML('beforeend', html);
+        } catch(e) {
+          showToast('❌ 無法載入詳細資料', 'error');
+        }
+      }
+
+      function closeDetailModal(e) {
+        if (e && e.target !== e.currentTarget) return;
+        var el = document.getElementById('detailModal');
+        if (el) el.remove();
+      }
+
+      // ===== 指派商戶負責人 =====
+      async function assignPartnerOwner(venueId) {
+        try {
+          var d = await apiGet('/admin/partner/' + venueId + '/owner');
+          var owners = d.potential_owners || [];
+          if (owners.length === 0) {
+            showToast('❌ 暫無可用用戶可指派爲負責人', 'error');
+            return;
+          }
+          var options = owners.map(function(o) {
+            return '<option value="' + o.id + '">' + escape(o.name||o.email) + ' (' + escape(o.email) + ')</option>';
+          }).join('');
+
+          var html = '<div class="modal-overlay" id="ownerModal" onclick="closeOwnerModal(event)">' +
+            '<div class="modal"><h3>👑 指派商戶負責人</h3>' +
+            '<p style="font-size:12px;color:var(--dark-700);margin-bottom:12px;">' + escape(d.venue.name) + '</p>' +
+            '<div style="margin-bottom:12px;">' +
+            '<label style="display:block;font-size:12px;font-weight:600;margin-bottom:4px;">選擇負責人</label>' +
+            '<select id="ownerSelect" style="width:100%;padding:8px 12px;border:1px solid var(--gray-light);border-radius:6px;font-size:13px;font-family:inherit;">' + options + '</select></div>' +
+            '<div class="actions">' +
+            '<button class="btn btn-outline" onclick="closeOwnerModal()">取消</button>' +
+            '<button class="btn btn-primary" onclick="savePartnerOwner(\'' + venueId + '\')">💾 儲存</button></div></div></div>';
+          document.body.insertAdjacentHTML('beforeend', html);
+        } catch(e) {
+          showToast('❌ ' + e.message, 'error');
+        }
+      }
+
+      function closeOwnerModal(e) {
+        if (e && e.target !== e.currentTarget) return;
+        var el = document.getElementById('ownerModal');
+        if (el) el.remove();
+      }
+
+      async function savePartnerOwner(venueId) {
+        var ownerId = document.getElementById('ownerSelect')?.value;
+        if (!ownerId) return;
+        try {
+          await apiPut('/admin/partner/' + venueId + '/owner', { owner_id: ownerId });
+          showToast('✅ 負責人已指派', 'success');
+          closeOwnerModal();
+          showPartnerSection('active');
+        } catch(e) {
+          showToast('❌ ' + e.message, 'error');
+        }
+      }
+
+      // ===== 更改商戶狀態 =====
+      async function changePartnerStatus(venueId, newStatus) {
+        var actionLabel = newStatus === 'active' ? '啟用' : '暫停';
+        if (!confirm('確定' + actionLabel +'此商戶？')) return;
+        try {
+          await apiPut('/admin/partner/' + venueId + '/status', { status: newStatus });
+          showToast('✅ 商戶已' + actionLabel, 'success');
           showPartnerSection('active');
         } catch(e) {
           showToast('❌ ' + e.message, 'error');

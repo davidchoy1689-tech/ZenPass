@@ -7,6 +7,7 @@
  */
 
 const express = require("express");
+const path = require("path");
 const { v4: uuidv4 } = require("uuid");
 const Database = require("better-sqlite3");
 const {
@@ -23,7 +24,7 @@ const {
 } = require("../services/response");
 
 const router = express.Router();
-const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
+const DB_PATH = process.env.DB_PATH || path.resolve(__dirname, "../../data/zenpass.db");
 
 // ===== 佣金計劃定義 =====
 const COMMISSION_PLANS = {
@@ -411,6 +412,20 @@ router.get(
 
         const plan = getCommissionPlan(v.commission_plan || 'basic');
         v._plan = plan;
+
+        // Include owner info if available
+        if (v.owner_id) {
+          const owner = db.prepare("SELECT id, name, email FROM users WHERE id = ?").get(v.owner_id);
+          v.owner = owner || null;
+        } else {
+          v.owner = null;
+        }
+
+        // Course count
+        const courseCount = db.prepare(
+          "SELECT COUNT(*) as count FROM classes WHERE partner_venue_id = ? OR partner_id = ?"
+        ).get(v.id, v.id);
+        v.course_count = courseCount ? courseCount.count : 0;
       }
 
       db.close();
@@ -1045,6 +1060,33 @@ router.get("/members", authenticateToken, requireOwnInstitution, (req, res) => {
       ORDER BY pm.created_at DESC
     `).all(venue.id);
 
+    // Add per-coach stats (courses taught, earnings)
+    for (const m of members) {
+      if (m.member_role === 'coach' || m.member_role === 'partner_staff') {
+        const courseCount = db.prepare(`
+          SELECT COUNT(DISTINCT c.id) as count
+          FROM classes c
+          WHERE c.coach_user_id = ?
+        `).get(m.user_id);
+        m.courses_count = courseCount ? courseCount.count : 0;
+
+        const earnings = db.prepare(`
+          SELECT
+            COUNT(*) as bookings_count,
+            COALESCE(SUM(b.amount), 0) as total_revenue
+          FROM bookings b
+          JOIN classes c ON b.class_id = c.id
+          WHERE c.coach_user_id = ? AND b.status IN ('confirmed','attended')
+        `).get(m.user_id);
+        m.bookings_count = earnings ? earnings.bookings_count : 0;
+        m.total_revenue = earnings ? earnings.total_revenue : 0;
+      } else {
+        m.courses_count = 0;
+        m.bookings_count = 0;
+        m.total_revenue = 0;
+      }
+    }
+
     db.close();
     return ok(res, { members });
   } catch (err) {
@@ -1089,6 +1131,156 @@ router.post("/members", authenticateToken, requireOwnInstitution, (req, res) => 
   } catch (err) {
     console.error("❌ partner/members POST error:", err.message);
     return serverError(res, "新增成員失敗");
+  }
+});
+
+// ===== RBAC Helper: DELETE /api/partner/members/:userId — 商戶移除成員 =====
+router.delete("/members/:userId", authenticateToken, requireOwnInstitution, (req, res) => {
+  try {
+    const venue = _getUserVenue(req.user.id);
+    if (!venue) { return fail(res, "你未有已開通嘅商戶戶口", 403); }
+
+    // Only owner/admin can remove members
+    const requesterRole = req.user.role;
+    if (!hasMinimumRole(requesterRole, 'partner_admin')) {
+      return fail(res, "需要管理權限先可移除成員", 403);
+    }
+
+    const { userId } = req.params;
+    const db = new Database(DB_PATH);
+
+    const member = db.prepare("SELECT * FROM partner_members WHERE user_id = ? AND partner_id = ?").get(userId, venue.id);
+    if (!member) { db.close(); return notFound(res, "成員不存在"); }
+
+    db.prepare("DELETE FROM partner_members WHERE user_id = ? AND partner_id = ?").run(userId, venue.id);
+    db.close();
+
+    return ok(res, { message: "已移除成員" });
+  } catch (err) {
+    console.error("❌ partner/members DELETE error:", err.message);
+    return serverError(res, "移除成員失敗");
+  }
+});
+
+// ===== Admin: PUT /api/admin/partner/:id/status — 管理員更改商戶狀態 (suspend/activate) =====
+router.put("/admin/partner/:id/status", authenticateToken, requireRole('admin'), (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    if (!['active', 'suspended', 'rejected'].includes(status)) {
+      return fail(res, "狀態必需係 active / suspended / rejected", 400);
+    }
+
+    const db = new Database(DB_PATH);
+    const venue = db.prepare("SELECT * FROM partner_venues WHERE id = ?").get(id);
+    if (!venue) { db.close(); return notFound(res, "場地不存在"); }
+
+    db.prepare("UPDATE partner_venues SET status = ?, updated_at = datetime('now') WHERE id = ?")
+      .run(status, id);
+
+    const updated = db.prepare("SELECT * FROM partner_venues WHERE id = ?").get(id);
+    db.close();
+
+    return ok(res, { message: `商戶狀態已更新爲 ${status}`, venue: updated });
+  } catch (err) {
+    console.error("❌ admin/partner status error:", err.message);
+    return serverError(res, "更新狀態失敗");
+  }
+});
+
+// ===== Admin: GET /api/admin/partner/:id/courses — 管理員睇特定商戶嘅課程 =====
+router.get("/admin/partner/:id/courses", authenticateToken, requireRole('admin'), (req, res) => {
+  try {
+    const { id } = req.params;
+    const db = new Database(DB_PATH);
+
+    const venue = db.prepare("SELECT * FROM partner_venues WHERE id = ?").get(id);
+    if (!venue) { db.close(); return notFound(res, "場地不存在"); }
+
+    const courses = db.prepare(`
+      SELECT c.*,
+        (SELECT COUNT(*) FROM class_schedules cs WHERE cs.class_id = c.id) as schedule_count,
+        (SELECT COUNT(*) FROM bookings b JOIN class_schedules cs ON b.schedule_id = cs.id WHERE cs.class_id = c.id AND b.status IN ('confirmed','attended')) as booking_count
+      FROM classes c
+      WHERE c.partner_venue_id = ? OR c.partner_id = ?
+      ORDER BY c.created_at DESC
+    `).all(id, id);
+
+    // Get venues for this partner
+    const venues = db.prepare("SELECT id, name, category, district, status FROM partner_venues WHERE id = ?").all(id);
+
+    db.close();
+    return ok(res, { courses, venues });
+  } catch (err) {
+    console.error("❌ admin/partner courses error:", err.message);
+    return serverError(res, "查詢課程失敗");
+  }
+});
+
+// ===== Admin: GET /api/admin/partner/:id/owner — 查詢商戶負責人資訊 =====
+router.get("/admin/partner/:id/owner", authenticateToken, requireRole('admin'), (req, res) => {
+  try {
+    const { id } = req.params;
+    const db = new Database(DB_PATH);
+
+    const venue = db.prepare("SELECT * FROM partner_venues WHERE id = ?").get(id);
+    if (!venue) { db.close(); return notFound(res, "場地不存在"); }
+
+    let owner = null;
+    if (venue.owner_id) {
+      owner = db.prepare("SELECT id, name, email, phone, role FROM users WHERE id = ?").get(venue.owner_id);
+    }
+
+    // Get all users who could be owners
+    const potentialOwners = db.prepare(
+      "SELECT id, name, email FROM users WHERE role IN ('partner_owner', 'partner_admin', 'partner_staff', 'coach') OR partner_id = ? ORDER BY name"
+    ).all(id);
+
+    db.close();
+    return ok(res, { venue: { id: venue.id, name: venue.name, owner_id: venue.owner_id }, owner, potential_owners: potentialOwners });
+  } catch (err) {
+    console.error("❌ admin/partner owner error:", err.message);
+    return serverError(res, "查詢負責人資訊失敗");
+  }
+});
+
+// ===== Admin: PUT /api/admin/partner/:id/owner — 管理員指派商戶負責人 =====
+router.put("/admin/partner/:id/owner", authenticateToken, requireRole('admin'), (req, res) => {
+  try {
+    const { id } = req.params;
+    const { owner_id } = req.body;
+
+    if (!owner_id) { return fail(res, "請提供負責人用戶 ID", 400); }
+
+    const db = new Database(DB_PATH);
+    const venue = db.prepare("SELECT * FROM partner_venues WHERE id = ?").get(id);
+    if (!venue) { db.close(); return notFound(res, "場地不存在"); }
+
+    const user = db.prepare("SELECT id, name, email, role FROM users WHERE id = ?").get(owner_id);
+    if (!user) { db.close(); return notFound(res, "用戶不存在"); }
+
+    // Update venue owner
+    db.prepare("UPDATE partner_venues SET owner_id = ?, updated_at = datetime('now') WHERE id = ?")
+      .run(owner_id, id);
+
+    // Update user role to partner_owner
+    db.prepare("UPDATE users SET role = 'partner_owner', partner_id = ?, updated_at = datetime('now') WHERE id = ?")
+      .run(id, owner_id);
+
+    // Ensure this user is in partner_members
+    const existing = db.prepare("SELECT id FROM partner_members WHERE user_id = ? AND partner_id = ?").get(owner_id, id);
+    if (!existing) {
+      const mid = uuidv4();
+      db.prepare("INSERT INTO partner_members (id, user_id, partner_id, role, status, created_at) VALUES (?, ?, ?, 'partner_owner', 'active', datetime('now'))")
+        .run(mid, owner_id, id);
+    }
+
+    db.close();
+    return ok(res, { message: `已指派 ${user.name} 爲商戶負責人` });
+  } catch (err) {
+    console.error("❌ admin/partner owner assign error:", err.message);
+    return serverError(res, "指派負責人失敗");
   }
 });
 

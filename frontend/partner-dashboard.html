@@ -1028,14 +1028,23 @@ async function renderCoachesTab() {
       return;
     }
 
+    var canEdit = userRole === 'partner_owner' || userRole === 'partner_admin';
     cards.innerHTML = teamMembers.map(function(m){
       var roleBadgeClass = m.member_role === 'coach' ? 'coach' : m.member_role === 'partner_admin' ? 'admin' : 'staff';
       var roleLabel = getRoleLabel(m.member_role);
-      return '<div class="member-item">'+
+      // Stats for coaches/staff
+      var statsHtml = '';
+      if ((m.member_role === 'coach' || m.member_role === 'partner_staff') && (m.courses_count > 0 || m.bookings_count > 0)) {
+        statsHtml = '<div style="margin-top:4px;display:flex;gap:10px;font-size:10px;color:var(--dark-700);">'+
+          '<span>📚 '+(m.courses_count||0)+' 課程</span>'+
+          '<span>📋 '+(m.bookings_count||0)+' 預約</span>'+
+          '<span>💰 '+formatCurrency(m.total_revenue||0)+'</span></div>';
+      }
+      return '<div class="member-item" style="flex-wrap:wrap;">'+
         '<div class="m-avatar">'+(m.name ? m.name.charAt(0) : '?')+'</div>'+
         '<div class="m-info"><div class="m-name">'+escHtml(m.name)+' <span class="role-badge-sm '+roleBadgeClass+'">'+roleLabel+'</span></div>'+
-        '<div class="m-role">'+escHtml(m.email||"")+(m.phone?" · "+escHtml(m.phone):"")+'</div></div>'+
-        (userRole === 'partner_owner' ? '<button class="btn-sm danger" onclick="removeMember(\''+m.user_id+'\')">✕</button>' : '')+
+        '<div class="m-role">'+escHtml(m.email||"")+(m.phone?" · "+escHtml(m.phone):"")+'</div>'+statsHtml+'</div>'+
+        (canEdit ? '<div class="m-actions"><button class="btn-sm danger" onclick="removeMember(\''+m.user_id+'\')">✕</button></div>' : '')+
         '</div>';
     }).join("");
 
