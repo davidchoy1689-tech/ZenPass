@@ -1494,6 +1494,9 @@
             return;
           }
 
+          // Generate idempotency key to prevent duplicate bookings
+          var idempotencyKey = "booking_" + currentClass.id + "_" + selectedSchedule.id + "_" + Date.now();
+
           var apiResp = await fetch(API_BASE + "/bookings", {
             method: "POST",
             headers: {
@@ -1505,6 +1508,7 @@
               class_id: currentClass.id,
               payment_type: selectedPayment,
               amount: price,
+              idempotency_key: idempotencyKey,
             }),
           });
 
@@ -1610,6 +1614,18 @@
           showToast("❌ " + err.message, "error");
           btn.disabled = false;
           btn.textContent = "📅 立即預約";
+          // Show error on the page, not just toast
+          var errBox = document.getElementById("booking-error");
+          if (!errBox) {
+            errBox = document.createElement("div");
+            errBox.id = "booking-error";
+            errBox.style.cssText = "background:#fef2f2;color:#dc2626;padding:10px 14px;border-radius:8px;margin-top:8px;font-size:12px;border:1px solid #fecaca;";
+            btn.parentNode.insertBefore(errBox, btn.nextSibling);
+          }
+          errBox.textContent = "❌ " + err.message;
+          errBox.style.display = "block";
+          // Auto hide after 8 seconds
+          setTimeout(function() { if (errBox) errBox.style.display = "none"; }, 8000);
         }
       }
       // 🎯 Show points earned toast
