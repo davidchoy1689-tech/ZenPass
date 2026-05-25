@@ -146,6 +146,7 @@ app.use("/api/venue-rentals", require("./routes/venue-rentals"));
 app.use("/api/wallet", require("./routes/wallet"));
 app.use("/api/admin", require("./routes/deploy"));
 app.use("/api/reviews", require("./routes/reviews"));
+app.use("/api/audit", require("./routes/audit").router);
 
 // ===== 健康檢查 =====
 const { ok } = require("./services/response");
