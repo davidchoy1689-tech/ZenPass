@@ -68,13 +68,10 @@ if [ "$MISMATCHES" -gt 0 ]; then
   echo "  ⚠️ $MISMATCHES 個 schedule enrolled_count 唔一致（已修復）" >> "$LOG_FILE"
 fi
 
-# 6. 清理過期 wallet hold (如有)
-echo "  [6/6] 清理過期交易記錄..." >> "$LOG_FILE"
-sqlite3 "$DB_PATH" "
-  DELETE FROM wallet_transactions
-  WHERE status = 'pending'
-    AND created_at < datetime('now', '-7 days');
-" 2>&1 >> "$LOG_FILE"
+# 6. 檢查 wallet 記錄完整性（唔刪除，永久保存）
+echo "  [6/6] 檢查 wallet 交易記錄完整性..." >> "$LOG_FILE"
+WALLET_COUNT=$(sqlite3 "$DB_PATH" "SELECT COUNT(*) FROM wallet_transactions;")
+echo "  ✅ wallet_transactions 共 $WALLET_COUNT 條記錄（永久保存）" >> "$LOG_FILE"
 
 # Summary
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] ✅ 每日維護完成" >> "$LOG_FILE"
