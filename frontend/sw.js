@@ -22,8 +22,8 @@ self.addEventListener("notificationclick", function (e) {
 });
 
 /* ZenPass Service Worker — v4 (enhanced cache strategy) */
-const CACHE_STATIC = "zenpass-static-v4";
-const CACHE_PAGES = "zenpass-pages-v4";
+const CACHE_STATIC = "zenpass-static-v5";
+const CACHE_PAGES = "zenpass-pages-v5";
 
 // Static assets: cache-first (rarely change)
 const STATIC_ASSETS = [
