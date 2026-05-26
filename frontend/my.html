@@ -664,7 +664,7 @@
               card.style.display = "none";
               return;
             }
-            var levels = ["none", "trial", "standard", "gold"];
+            var levels = ["none", "trial", "lite", "standard", "silver", "gold"];
             var idx = levels.indexOf(memType);
             if (idx < 0) idx = 0;
             // Simple tier rendering
@@ -672,7 +672,7 @@
           });
         // Set initial values for tier divs
         var memType = localStorage.getItem("zenpass_membership") || "none";
-        var levels = ["none", "trial", "standard", "gold"];
+        var levels = ["none", "trial", "lite", "standard", "silver", "gold"];
         var idx = levels.indexOf(memType);
         if (idx < 0) idx = 0;
         var pct = (idx / (levels.length - 1)) * 100;
@@ -681,7 +681,9 @@
         var labels = {
           none: "完成首次預約升級試玩",
           trial: "仲有 " + (3 - idx) + " 次預約升級標準",
-          standard: "接近金會員！繼續努力",
+          lite: "仲有 " + (3 - idx) + " 次預約升級標準",
+          standard: "接近VIP Pass！繼續努力",
+          silver: "接近VIP Pass！繼續努力",
           gold: "🏆 已達最高等級！",
         };
         document.getElementById("loyalty-text").textContent =
@@ -1549,7 +1551,10 @@
       var PLAN_LABELS = {
         none: { name: "無會籍", icon: "⚪" },
         trial: { name: "試玩會員", icon: "💎" },
-        standard: { name: "標準會員", icon: "🔥" },
+        lite: { name: "輕量 Pass", icon: "🌱" },
+        standard: { name: "標準 Pass", icon: "🔥" },
+        silver: { name: "高階 Pass", icon: "💎" },
+        gold: { name: "VIP Pass", icon: "👑" },
         unlimited: { name: "無限通行", icon: "🏆" },
       };
 

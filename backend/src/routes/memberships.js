@@ -83,7 +83,7 @@ router.post("/subscribe", authenticateToken, async (req, res) => {
       return res.status(400).json({ error: "無效的會籍類型" });
     }
 
-    const plan = await getPlanByType(type);
+    const plan = MEMBERSHIP_PLANS[type];
     const db = new Database(DB_PATH);
     db.pragma("foreign_keys = ON");
 
@@ -92,10 +92,6 @@ router.post("/subscribe", authenticateToken, async (req, res) => {
       .get(req.user.id);
 
     const membershipId = uuidv4();
-    const dbM = new Database(DB_PATH);
-    const maxM = dbM.prepare("SELECT MAX(CAST(SUBSTR(membership_reference, 4) AS INTEGER)) as m FROM memberships WHERE membership_reference GLOB 'MB-[0-9]*'").get().m || 0;
-    const memRef = "MB-" + String(maxM + 1).padStart(4, '0');
-    dbM.close();
     const now = new Date();
     const endDate = new Date(
       now.getTime() + plan.duration_days * 24 * 60 * 60 * 1000,
@@ -107,12 +103,11 @@ router.post("/subscribe", authenticateToken, async (req, res) => {
     // 建立會籍記錄
     db.prepare(
       `
-      INSERT INTO memberships (id, membership_reference, user_id, type, price_hkd, credits_granted, start_date, end_date)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO memberships (id, user_id, type, price_hkd, credits_granted, start_date, end_date)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
     `,
     ).run(
       membershipId,
-      memRef,
       req.user.id,
       type,
       plan.price_hkd,

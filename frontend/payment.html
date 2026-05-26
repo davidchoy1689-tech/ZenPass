@@ -1601,6 +1601,45 @@
           return;
         }
 
+        // Membership purchase - support type=membership from membership.html
+        if (payType === "membership") {
+          var mbPlan = params.get("plan") || "";
+          var mbAmount = parseFloat(params.get("amount")) || 0;
+          var mbItem = params.get("item") || "會籍";
+          var MB_PLAN_NAMES = { lite: "輕量 Pass", standard: "標準 Pass", silver: "高階 Pass", gold: "VIP Pass" };
+          var MB_CREDITS = { lite: 37, standard: 100, silver: 237, gold: 362 };
+
+          paymentAmount = mbAmount;
+          window._pendingMembership = {
+            plan: mbPlan,
+            amount: mbAmount,
+            item: mbItem,
+            credits: MB_CREDITS[mbPlan] || 0,
+          };
+
+          document.getElementById("loading-state").classList.add("hidden");
+          document.getElementById("pay-page").classList.remove("hidden");
+          document.getElementById("page-title").textContent = "💎 " + mbItem;
+          document.getElementById("order-class").textContent = mbItem;
+          document.getElementById("order-date").textContent = "—";
+          document.getElementById("order-date").style.display = "none";
+          document.getElementById("order-time").textContent = "—";
+          document.getElementById("order-time").style.display = "none";
+          document.getElementById("order-venue").textContent = "—";
+          document.getElementById("order-venue").style.display = "none";
+          document.getElementById("order-ref").textContent = "—";
+          document.getElementById("order-ref").style.display = "none";
+          document.getElementById("order-total").textContent = "HK$" + mbAmount;
+          document.getElementById("card-element").style.display = "";
+
+          var payBtn = document.getElementById("pay-button");
+          payBtn.textContent = "💎 訂閱 " + mbItem + " — HK$" + mbAmount;
+
+          selectedMethod = "stripe";
+          initStripe();
+          return;
+        }
+
         // Credits purchase - support type=credits from buy-credits.html
         if (payType === "credits") {
           var crAmount = parseFloat(params.get("amount")) || 0;
@@ -1849,6 +1888,31 @@
           setTimeout(function () {
             window.location.href = "my.html";
           }, 1500);
+        } else if (window._pendingMembership) {
+          // Membership purchase flow
+          try {
+            var mbToken = localStorage.getItem("zenpass_token");
+            var mbResp = await fetch("/api/memberships/subscribe", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: "Bearer " + mbToken,
+              },
+              body: JSON.stringify({
+                type: window._pendingMembership.plan,
+                payment_method: paymentMethod,
+              }),
+            });
+            if (mbResp.ok) {
+              showToast("✅ " + window._pendingMembership.item + " 訂閱成功！", "success");
+            }
+          } catch (e) {
+            console.error("Membership API error:", e);
+          }
+          window._pendingMembership = null;
+          setTimeout(function () {
+            window.location.href = "my.html";
+          }, 1500);
         } else if (bookingId) {
           // Normal booking flow - redirect to my-bookings
           setTimeout(function () {
@@ -1969,7 +2033,8 @@
           return;
         }
         // Credits purchase flow - no booking to confirm
-        if (window._pendingCredits) {
+        // Membership or Credits purchase - no booking to confirm
+        if (window._pendingMembership || window._pendingCredits) {
           showToast("付款成功！", "success");
           await finalizePayment("fps", ref);
           btn.disabled = false;
@@ -2013,8 +2078,8 @@
           btn.textContent = "📱 確認 PayMe 付款 — HK$" + paymentAmount;
           return;
         }
-        // Credits purchase flow - no booking to confirm
-        if (window._pendingCredits) {
+        // Membership or Credits purchase - no booking to confirm
+        if (window._pendingMembership || window._pendingCredits) {
           showToast("付款成功！", "success");
           await finalizePayment("payme", ref);
           btn.disabled = false;
@@ -2050,8 +2115,8 @@
 
       // ===== Confirm Booking After Payment =====
       async function confirmBooking(paymentMethod, paymentReference) {
-        // Credits purchase flow - skip booking confirmation
-        if (window._pendingCredits) {
+        // Membership or Credits purchase - skip booking confirmation
+        if (window._pendingMembership || window._pendingCredits) {
           await finalizePayment(paymentMethod, paymentReference);
           return;
         }

@@ -672,7 +672,7 @@
           var p = CREDIT_PACKS[i];
           var isPopular = p.popular ? " popular" : "";
           var badge = p.popular ? '<div class="badge">🔥 熱門</div>' : "";
-          var perCredit = (p.price / p.credits).toFixed(1);
+          var perCredit = Math.round(p.price / Math.max(1, (p.credits + (p.bonus || 0))));
           var totalCredits = p.credits + (p.bonus || 0);
           var bonusHtml = p.bonus
             ? '<div style="font-size:11px;color:var(--green-500);font-weight:600;margin-top:2px;">🎁 +' +
@@ -811,7 +811,7 @@
               icon: icons[i] || "💎",
               label: p.label || "套餐",
               popular: p.popular || false,
-              desc: "HK$" + Math.round((p.price / total) * 10) / 10 + "/Credit",
+              desc: "HK$" + Math.round(p.price / total) + "/Credit",
               bonus: p.bonus || 0,
             });
           }
@@ -820,39 +820,30 @@
           CREDIT_PACKS = [
             {
               credits: 10,
-              price: 80,
+              price: 100,
               icon: "🥉",
-              label: "輕量",
+              label: "輕量包",
               popular: false,
-              desc: "HK$8/Credit",
-              bonus: 2,
+              desc: "HK$10/Credit",
+              bonus: 0,
+            },
+            {
+              credits: 25,
+              price: 225,
+              icon: "🥈",
+              label: "標準包",
+              popular: true,
+              desc: "最受歡迎 🔥",
+              bonus: 0,
             },
             {
               credits: 50,
-              price: 400,
-              icon: "🥈",
-              label: "標準",
-              popular: true,
-              desc: "最受歡迎 🔥",
-              bonus: 12,
-            },
-            {
-              credits: 100,
-              price: 800,
+              price: 440,
               icon: "🥇",
-              label: "超值",
+              label: "超值包",
               popular: false,
-              desc: "慳更多",
-              bonus: 30,
-            },
-            {
-              credits: 200,
-              price: 1600,
-              icon: "👑",
-              label: "大額",
-              popular: false,
-              desc: "一次買足",
-              bonus: 70,
+              desc: "慳更多 · +5 贈送",
+              bonus: 5,
             },
           ];
         }

@@ -12,13 +12,13 @@
     <meta name="theme-color" content="#f06030" />
     <meta
       name="description"
-      content="ZenPass 禪流會員方案 — 輕量 Pass、標準 Pass、銀會員、金會員"
+      content="ZenPass 禪流會員方案 — 輕量 Pass、標準 Pass、高階 Pass、VIP Pass"
     />
     <title>會員方案 — ZenPass 禪流</title>
     <meta property="og:title" content="會籍方案 — ZenPass 禪流" />
     <meta
       property="og:description"
-      content="每月 25 Credits HK$299 起，自由加購點數。一個Pass通行全城運動體驗！"
+      content="每月 37 Credits HK$299 起，自由加購點數。一個Pass通行全城運動體驗！"
     />
     <meta
       property="og:url"
@@ -743,7 +743,7 @@ tailwind.config = { theme: { extend: { colors: { zen: { orange: '#f06030', 'oran
               ? '<div class="badge" style="background:linear-gradient(135deg,#FFD700,#FFA500);color:#1a1a2e;position:absolute;top:-0.5px;right:16px;z-index:10;padding:4px 12px;border-radius:0 0 12px 12px;font-size:12px;font-weight:700;border:0;">' + planLabels[key] + '</div>'
               : "");
           var isUnlimited = p.credits_granted === 0;
-          var perClass = p.avg_price > 0 ? '<div style="font-size:12px;color:var(--green-600);font-weight:600;margin-bottom:6px">HK$' + Number(p.avg_price).toFixed(2) + '/credit</div>' : "";
+          var perClass = p.avg_price > 0 ? '<div style="font-size:12px;color:var(--green-600);font-weight:600;margin-bottom:6px">HK$' + p.avg_price + '/credit</div>' : "";
           var features = p.features || [
             (isUnlimited ? "無限堂數" : "每月 " + p.credits_granted + " Credits"),
             "優先預約權",
@@ -794,39 +794,15 @@ tailwind.config = { theme: { extend: { colors: { zen: { orange: '#f06030', 'oran
         doSubscribePlan(type);
       }
 
-      async function doSubscribePlan(type) {
+      function doSubscribePlan(type) {
         var prices = { lite: 299, standard: 799, silver: 1899, gold: 2899 };
         var names = { lite: "輕量 Pass", standard: "標準 Pass", silver: "高階 Pass", gold: "VIP Pass" };
-        // Check if logged in
         var token = localStorage.getItem("zenpass_token");
         if (!token) {
-          location.href = "login.html?redirect=membership.html&subscribe=" + type;
+          location.href = "login.html?redirect=payment.html?type=membership&plan=" + type + "&amount=" + prices[type] + "&item=" + encodeURIComponent(names[type] + " 會籍");
           return;
         }
-        // Call subscribe API
-        try {
-          var resp = await fetch(API_BASE + "/memberships/subscribe", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: "Bearer " + token,
-            },
-            body: JSON.stringify({ type: type }),
-          });
-          var data = await resp.json();
-          if (data.success || data.membership_id) {
-            // Subscription successful - redirect to my page
-            showToast("✅ " + names[type] + " 訂閱成功！", "success");
-            setTimeout(function() { location.href = "my.html"; }, 1500);
-          } else if (data.redirect) {
-            location.href = data.redirect;
-          } else {
-            // Fallback: redirect to payment with plan info
-            location.href = "payment.html?type=single&amount=" + prices[type] + "&item=" + encodeURIComponent(names[type] + " 會籍");
-          }
-        } catch(e) {
-          showToast("❌ 訂閱失敗：" + e.message, "error");
-        }
+        location.href = "payment.html?type=membership&plan=" + type + "&amount=" + prices[type] + "&item=" + encodeURIComponent(names[type] + " 會籍");
       }
 
       // ===== Load Credits Packages =====

@@ -53,7 +53,7 @@ router.get("/all", (req, res) => {
         duration_days: 30,
         description: config['plan_' + type + '_description']?.zh || '',
         features: config['plan_' + type + '_features'] || [],
-        avg_price: parseInt(config['plan_' + type + '_price']) / Math.max(parseInt(config['plan_' + type + '_credits']), 1) || 0,
+        avg_price: Math.round(parseInt(config["plan_" + type + "_price"]) / Math.max(parseInt(config["plan_" + type + "_credits"]), 1)) || 0,
         popular: config['plan_' + type + '_popular'] === true || config['plan_' + type + '_popular'] === 'true',
       };
       if (plans[type].credits_granted === 0) plans[type].avg_price = 0;
@@ -106,7 +106,7 @@ router.get("/plans", (req, res) => {
         duration_days: 30,
         description: config['plan_' + type + '_description']?.zh || '',
         features: config['plan_' + type + '_features'] || [],
-        avg_price: parseInt(config['plan_' + type + '_price']) / Math.max(parseInt(config['plan_' + type + '_credits']), 1) || 0,
+        avg_price: Math.round(parseInt(config["plan_" + type + "_price"]) / Math.max(parseInt(config["plan_" + type + "_credits"]), 1)) || 0,
         popular: config['plan_' + type + '_popular'] === true || config['plan_' + type + '_popular'] === 'true',
       };
       if (plans[type].credits_granted === 0) plans[type].avg_price = 0;
