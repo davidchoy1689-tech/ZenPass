@@ -3,3 +3,4 @@
 window.ZENPASS_CONFIG = {
   GA4_MEASUREMENT_ID: "G-XXXXXXXX",
 };
+// GitHub token verified: Tue May 26 23:16:46 HKT 2026
