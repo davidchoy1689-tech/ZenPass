@@ -812,14 +812,11 @@
     <script src="api.js?v=2"></script>
     <script src="assets/index.js"></script>
     <script>
+      // Service Worker disabled — using direct server fetch for reliability
       if ("serviceWorker" in navigator) {
-        // Clean old service workers
         navigator.serviceWorker.getRegistrations().then(function (regs) {
-          regs.forEach(function (r) {
-            r.unregister();
-          });
+          regs.forEach(function (r) { r.unregister(); });
         });
-        navigator.serviceWorker.register("sw.js");
       }
     </script>
     <script>

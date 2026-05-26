@@ -1799,8 +1799,11 @@
       document.addEventListener("DOMContentLoaded", init);
     </script>
     <script>
+      // Service Worker disabled
       if ("serviceWorker" in navigator) {
-        navigator.serviceWorker.register("../../../sw.js");
+        navigator.serviceWorker.getRegistrations().then(function (regs) {
+          regs.forEach(function (r) { r.unregister(); });
+        });
       }
     </script>
   </body>
