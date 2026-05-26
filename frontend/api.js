@@ -849,17 +849,27 @@ function logout() {
 })();
 
 // ===== Google Analytics 4 (pages that include api.js get GA automatically) =====
-// TODO: 註冊 Google Analytics 後，將 G-XXXXXXXX 替換為實際的 Measurement ID
+// 編輯 frontend/config.js 設置實際的 Measurement ID
+// config.js 會自動載入，或者可以直接喺呢度改 GA4_MEASUREMENT_ID
 (function() {
+  // Auto-load config.js if not already present
+  if (typeof window.ZENPASS_CONFIG === 'undefined') {
+    var configScript = document.createElement('script');
+    configScript.src = 'config.js';
+    configScript.async = false;
+    document.head.appendChild(configScript);
+  }
+  var gaId = (window.ZENPASS_CONFIG || {}).GA4_MEASUREMENT_ID || 'G-XXXXXXXX';
+  if (gaId === 'G-XXXXXXXX') return; // Skip if placeholder
   if (window.gtag || document.querySelector('script[src*="googletagmanager.com/gtag/js"]')) return;
   var s = document.createElement('script');
   s.async = true;
-  s.src = 'https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXX';
+  s.src = 'https://www.googletagmanager.com/gtag/js?id=' + gaId;
   document.head.appendChild(s);
   window.dataLayer = window.dataLayer || [];
   window.gtag = function(){dataLayer.push(arguments);};
   gtag('js', new Date());
-  gtag('config', 'G-XXXXXXXX');
+  gtag('config', gaId);
 })();
 
 // ===== Init on load =====

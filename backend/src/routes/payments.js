@@ -464,7 +464,7 @@ router.post("/fps", authenticateToken, (req, res) => {
       db.prepare(
         `
         UPDATE bookings SET fps_reference = ?, amount = ?, payment_method = 'fps', receipt_image = ?,
-          status = 'confirmed', payment_status = 'paid'
+          status = 'pending_payment', payment_status = 'pending'
         WHERE id = ?
       `,
       ).run(
@@ -479,7 +479,7 @@ router.post("/fps", authenticateToken, (req, res) => {
     db.prepare(
       `
       INSERT INTO transactions (id, user_id, type, amount, payment_method, fps_reference, status, description)
-      VALUES (?, ?, 'single_booking', ?, 'fps', ?, 'completed', 'FPS 自動確認')
+      VALUES (?, ?, 'single_booking', ?, 'fps', ?, 'pending', 'FPS 付款 — 待管理員確認')
     `,
     ).run(
       uuidv4(),
@@ -488,26 +488,13 @@ router.post("/fps", authenticateToken, (req, res) => {
       fps_reference,
     );
 
-    // 📊 ACCOUNTING：雙重記帳分錄
-    try {
-      recordPayment(booking_id, req.user.id, amount || (booking ? booking.amount : 0), "fps");
-      if (booking && booking.amount) {
-        const commissionAmt = Math.round(booking.amount * (booking.platform_commission_rate || 0.2) * 100) / 100;
-        if (commissionAmt > 0) {
-          recordCommission(booking_id, req.user.id, commissionAmt, "fps");
-        }
-      }
-    } catch (acctErr) {
-      console.error("⚠️ Accounting entry failed:", acctErr.message);
-    }
-
-    // 🔔 AUDIT：FPS 付款
+    // 🔔 AUDIT：FPS 付款（待確認）
     try {
       trackPaymentChange(
         booking_id,
         req.user.id,
         "pending",
-        "paid",
+        "pending",
         amount || (booking ? booking.amount : 0),
         "fps",
         req
@@ -519,8 +506,10 @@ router.post("/fps", authenticateToken, (req, res) => {
     db.close();
 
     res.json({
-      message: "✅ 付款成功，預約已自動確認！",
-      status: "confirmed",
+      message: "✅ FPS 付款資料已提交，等待管理員確認",
+      status: "pending_payment",
+      payment_status: "pending",
+      requires_admin_approval: true,
       fps_info: {
         phone: "9033 5538",
         email: "info@zenpass.hk",
@@ -558,7 +547,7 @@ router.post("/payme", authenticateToken, (req, res) => {
       db.prepare(
         `
         UPDATE bookings SET payme_reference = ?, amount = ?, payment_method = 'payme', receipt_image = ?,
-          status = 'confirmed', payment_status = 'paid'
+          status = 'pending_payment', payment_status = 'pending'
         WHERE id = ?
       `,
       ).run(
@@ -572,7 +561,7 @@ router.post("/payme", authenticateToken, (req, res) => {
     db.prepare(
       `
       INSERT INTO transactions (id, user_id, type, amount, payment_method, payme_reference, status, description)
-      VALUES (?, ?, 'single_booking', ?, 'payme', ?, 'completed', 'PayMe 自動確認')
+      VALUES (?, ?, 'single_booking', ?, 'payme', ?, 'pending', 'PayMe 付款 — 待管理員確認')
     `,
     ).run(
       uuidv4(),
@@ -584,8 +573,10 @@ router.post("/payme", authenticateToken, (req, res) => {
     db.close();
 
     res.json({
-      message: "✅ PayMe 付款成功，預約已自動確認！",
-      status: "confirmed",
+      message: "✅ PayMe 付款資料已提交，等待管理員確認",
+      status: "pending_payment",
+      payment_status: "pending",
+      requires_admin_approval: true,
       payme_info: {
         phone: "9492 5828",
         note: "ZenPass 課程",
@@ -733,9 +724,21 @@ router.post("/confirm", authenticateToken, validate(schemas.payment_confirm), (r
       return res.status(404).json({ error: "未找到待付款的預約或預約已取消" });
     }
 
-    // 更新 booking 爲 confirmed
-    const updateFields = ["status = 'confirmed'", "payment_status = 'paid'"];
-    const updateParams = [];
+    // 根據付款方式決定是否需要管理員確認
+    // Stripe — 即時確認（Stripe 已驗證付款）
+    // FPS / PayMe — 停留 pending_payment，等待管理員確認
+    const isAdminApprovalRequired = payment_method === "fps" || payment_method === "payme";
+
+    let updateFields = [];
+    let updateParams = [];
+
+    if (isAdminApprovalRequired) {
+      // FPS/PayMe: 儲存參考編號，保持 pending，等 admin 確認
+      updateFields = ["status = 'pending_payment'", "payment_status = 'pending'"];
+    } else {
+      // Stripe: 即時確認
+      updateFields = ["status = 'confirmed'", "payment_status = 'paid'"];
+    }
 
     if (payment_method === "stripe" && payment_reference) {
       updateFields.push("stripe_payment_intent_id = ?");
@@ -753,6 +756,10 @@ router.post("/confirm", authenticateToken, validate(schemas.payment_confirm), (r
       updateFields.push("amount = ?");
       updateParams.push(amount);
     }
+
+    // 記錄付款方式
+    updateFields.push("payment_method = ?");
+    updateParams.push(payment_method);
 
     updateParams.push(booking_id);
     db.prepare(
@@ -832,13 +839,24 @@ router.post("/confirm", authenticateToken, validate(schemas.payment_confirm), (r
 
     db.close();
 
-    res.json({
-      message: "付款成功，預約已確認！",
-      booking_id: booking.id,
-      booking_reference: booking.booking_reference,
-      status: "confirmed",
-      payment_status: "paid",
-    });
+    if (isAdminApprovalRequired) {
+      res.json({
+        message: "✅ 付款資料已提交，等待管理員確認",
+        booking_id: booking.id,
+        booking_reference: booking.booking_reference,
+        status: "pending_payment",
+        payment_status: "pending",
+        requires_admin_approval: true,
+      });
+    } else {
+      res.json({
+        message: "付款成功，預約已確認！",
+        booking_id: booking.id,
+        booking_reference: booking.booking_reference,
+        status: "confirmed",
+        payment_status: "paid",
+      });
+    }
   } catch (err) {
     console.error("❌ 確認付款錯誤:", err);
     res.status(500).json({ error: "確認付款失敗" });
