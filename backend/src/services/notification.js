@@ -36,9 +36,9 @@ function dbNotification(recipientId, type, title, message, data = {}) {
 }
 
 // ===== 2. Telegram 通知 =====
-async function telegramNotification(message) {
+async function telegramNotification(message, targetChatId) {
   const botToken = process.env.TELEGRAM_BOT_TOKEN;
-  const chatId = process.env.TELEGRAM_CHAT_ID;
+  const chatId = targetChatId || process.env.TELEGRAM_CHAT_ID;
 
   if (!botToken || !chatId) {
     console.log(
@@ -71,6 +71,24 @@ async function telegramNotification(message) {
     console.error("Telegram notification error:", err.message);
     return false;
   }
+}
+
+/**
+ * sendTelegramAlert — 發送 Telegram 通知給管理員（+ console.log fallback）
+ * 開發環境冇 Telegram 時會用 console.log 顯示
+ */
+async function sendTelegramAlert(message) {
+  const sent = await telegramNotification(message);
+  if (!sent) {
+    console.log(`
+🔔 [TELEGRAM ADMIN ALERT]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${message}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+`);
+    console.log("ℹ️ 要啟用真實 Telegram 通知，請設定 TELEGRAM_BOT_TOKEN 同 TELEGRAM_CHAT_ID");
+  }
+  return sent;
 }
 
 // ===== 3. WhatsApp 通知 (Twilio) =====
@@ -173,6 +191,21 @@ async function sendNotification(type, payload) {
       title = "付款成功";
       message = `💰 付款成功！\n金額：$${data?.amount || "—"}\n方式：${data?.method || "—"}\n參考：${data?.reference || "—"}`;
       html = `<h2>💰 付款成功</h2><p><b>金額：</b>$${data?.amount || "—"}<br><b>方式：</b>${data?.method || "—"}<br><b>參考：</b>${data?.reference || "—"}</p>`;
+      break;
+    case "payment.new_fps_payme":
+      title = "新 FPS/PayMe 付款通知";
+      message = `🆕 有新付款待確認！\n用戶：${data?.user_name || "—"}\n金額：$${data?.amount || "—"}\n方式：${data?.method || "—"}\n參考：${data?.reference || "—"}\n課程：${data?.class_title || "—"}\n⏰ ${data?.submitted_at || ""}`;
+      html = `<h2>🆕 新付款通知</h2><p><b>用戶：</b>${data?.user_name || "—"}<br><b>金額：</b>$${data?.amount || "—"}<br><b>方式：</b>${data?.method || "—"}<br><b>參考：</b>${data?.reference || "—"}<br><b>課程：</b>${data?.class_title || "—"}<br><b>提交時間：</b>${data?.submitted_at || ""}</p>`;
+      break;
+    case "payment.admin_confirmed":
+      title = "管理員已確認付款";
+      message = `✅ 管理員已確認付款！\n金額：$${data?.amount || "—"}\n方式：${data?.method || "—"}\n課程：${data?.class_title || "—"}\n管理員備註：${data?.notes || "—"}`;
+      html = `<h2>✅ 付款已確認</h2><p><b>金額：</b>$${data?.amount || "—"}<br><b>方式：</b>${data?.method || "—"}<br><b>課程：</b>${data?.class_title || "—"}</p>`;
+      break;
+    case "payment.admin_rejected":
+      title = "管理員已拒絕付款";
+      message = `❌ 管理員已拒絕付款！\n金額：$${data?.amount || "—"}\n方式：${data?.method || "—"}\n課程：${data?.class_title || "—"}\n原因：${data?.reason || "請聯絡管理員查詢"}`;
+      html = `<h2>❌ 付款被拒絕</h2><p><b>金額：</b>$${data?.amount || "—"}<br><b>方式：</b>${data?.method || "—"}<br><b>課程：</b>${data?.class_title || "—"}<br><b>原因：</b>${data?.reason || "請聯絡管理員查詢"}</p>`;
       break;
     default:
       title = type;
@@ -327,6 +360,7 @@ module.exports = {
   sendNotification,
   dbNotification,
   telegramNotification,
+  sendTelegramAlert,
   emailNotification,
   whatsappFreeNotification,
   getNotifications,

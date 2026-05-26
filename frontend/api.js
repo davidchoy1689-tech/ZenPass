@@ -849,18 +849,9 @@ function logout() {
 })();
 
 // ===== Google Analytics 4 (pages that include api.js get GA automatically) =====
-// 編輯 frontend/config.js 設置實際的 Measurement ID
-// config.js 會自動載入，或者可以直接喺呢度改 GA4_MEASUREMENT_ID
+// Measurement ID: G-MKF5N4YLBM — 由 David Choy 開通
 (function() {
-  // Auto-load config.js if not already present
-  if (typeof window.ZENPASS_CONFIG === 'undefined') {
-    var configScript = document.createElement('script');
-    configScript.src = 'config.js';
-    configScript.async = false;
-    document.head.appendChild(configScript);
-  }
-  var gaId = (window.ZENPASS_CONFIG || {}).GA4_MEASUREMENT_ID || 'G-XXXXXXXX';
-  if (gaId === 'G-XXXXXXXX') return; // Skip if placeholder
+  var gaId = 'G-MKF5N4YLBM';
   if (window.gtag || document.querySelector('script[src*="googletagmanager.com/gtag/js"]')) return;
   var s = document.createElement('script');
   s.async = true;

@@ -1,7 +1,5 @@
 // ZenPass 前端設定檔
-// 將實際的 Measurement ID 替換下面的 G-XXXXXXXX
-// 例如：window.ZENPASS_CONFIG.GA4_MEASUREMENT_ID = "G-ABCDEF12345";
+// GA4 Measurement ID 而家直接 set 喺 api.js，config.js 保留以備日後其他設定
 window.ZENPASS_CONFIG = {
-  GA4_MEASUREMENT_ID: "G-XXXXXXXX",
+  GA4_MEASUREMENT_ID: "G-MKF5N4YLBM",
 };
-// GitHub token verified: Tue May 26 23:16:46 HKT 2026

@@ -12,6 +12,7 @@ const { validate, schemas } = require("../middleware/validate");
 const fs = require("fs");
 const path = require("path");
 const { audit, trackPaymentChange } = require("../services/audit");
+const { sendTelegramAlert } = require("../services/notification");
 const {
   recordPayment,
   recordRefund,
@@ -503,6 +504,20 @@ router.post("/fps", authenticateToken, (req, res) => {
       console.error("⚠️ Audit record failed:", auditErr.message);
     }
 
+    // 🔔 ADMIN TELEGRAM：通知管理員有新 FPS 付款待確認
+    setTimeout(() => {
+      const classTitle = booking ? (booking.title || "") : "";
+      sendTelegramAlert(
+        `🆕 <b>新 FPS 付款待確認</b>\n` +
+        `👤 用戶：${req.user.name || req.user.email || req.user.id}\n` +
+        `💰 金額：HK$${amount || (booking ? booking.amount : 0)}\n` +
+        `📎 參考：${fps_reference}\n` +
+        `📚 課程：${classTitle || "—"}\n` +
+        `🆔 Booking：${booking_id || "—"}\n` +
+        `⏰ ${new Date().toLocaleString("zh-HK", { timeZone: "Asia/Hong_Kong" })}`
+      );
+    }, 0);
+
     db.close();
 
     res.json({
@@ -569,6 +584,20 @@ router.post("/payme", authenticateToken, (req, res) => {
       amount || (booking ? booking.amount : 0),
       payme_reference,
     );
+
+    // 🔔 ADMIN TELEGRAM：通知管理員有新 PayMe 付款待確認
+    setTimeout(() => {
+      const classTitle = booking ? (booking.title || "") : "";
+      sendTelegramAlert(
+        `🆕 <b>新 PayMe 付款待確認</b>\n` +
+        `👤 用戶：${req.user.name || req.user.email || req.user.id}\n` +
+        `💰 金額：HK$${amount || (booking ? booking.amount : 0)}\n` +
+        `📎 參考：${payme_reference}\n` +
+        `📚 課程：${classTitle || "—"}\n` +
+        `🆔 Booking：${booking_id || "—"}\n` +
+        `⏰ ${new Date().toLocaleString("zh-HK", { timeZone: "Asia/Hong_Kong" })}`
+      );
+    }, 0);
 
     db.close();
 

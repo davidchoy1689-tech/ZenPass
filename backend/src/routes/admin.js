@@ -8,7 +8,7 @@ const { v4: uuidv4 } = require("uuid");
 const Database = require("better-sqlite3");
 const { authenticateToken, requireAdmin } = require("../middleware/auth");
 
-const { sendNotification } = require("../services/notification");
+const { sendNotification, sendTelegramAlert } = require("../services/notification");
 const { audit, trackAdminAction } = require("../services/audit");
 
 const router = express.Router();
@@ -112,7 +112,7 @@ router.post("/approve-payment", authenticateToken, requireAdmin, (req, res) => {
     `,
     ).run(booking.fps_reference, booking.payme_reference);
 
-    // 🔔 通知學生：付款已確認
+    // 🔔 通知學生：付款已確認 (in-app)
     const classTitleNotif = db
       .prepare("SELECT title FROM classes WHERE id = ?")
       .get(booking.class_id);
@@ -127,6 +127,22 @@ router.post("/approve-payment", authenticateToken, requireAdmin, (req, res) => {
     } catch (notifErr) {
       console.error("⚠️ 發送通知失敗:", notifErr.message);
     }
+
+    // 🔔 ADMIN TELEGRAM：通知管理員確認結果
+    const userName = db
+      .prepare("SELECT name, email FROM users WHERE id = ?")
+      .get(booking.user_id);
+    setTimeout(() => {
+      sendTelegramAlert(
+        `✅ <b>管理員已確認付款</b>\n` +
+        `👤 用戶：${userName?.name || userName?.email || booking.user_id}\n` +
+        `💰 金額：HK$${booking.amount || 0}\n` +
+        `💳 方式：${booking.fps_reference ? "FPS" : "PayMe"}\n` +
+        `📚 課程：${classTitleNotif?.title || "—"}\n` +
+        `🆔 Booking：${booking_id}\n` +
+        `⏰ ${new Date().toLocaleString("zh-HK", { timeZone: "Asia/Hong_Kong" })}`
+      );
+    }, 0);
 
     // 📊 ACCOUNTING：管理員確認付款記帳
     try {
@@ -207,7 +223,7 @@ router.post("/reject-payment", authenticateToken, requireAdmin, (req, res) => {
       booking.payme_reference,
     );
 
-    // 🔔 通知學生：付款被拒絕
+    // 🔔 通知學生：付款被拒絕 (in-app)
     const classTitleNotifRej = db
       .prepare("SELECT title FROM classes WHERE id = ?")
       .get(booking.class_id);
@@ -223,6 +239,23 @@ router.post("/reject-payment", authenticateToken, requireAdmin, (req, res) => {
     } catch (notifErr) {
       console.error("⚠️ 發送通知失敗:", notifErr.message);
     }
+
+    // 🔔 ADMIN TELEGRAM：通知管理員拒絕結果
+    const userNameRej = db
+      .prepare("SELECT name, email FROM users WHERE id = ?")
+      .get(booking.user_id);
+    setTimeout(() => {
+      sendTelegramAlert(
+        `❌ <b>管理員已拒絕付款</b>\n` +
+        `👤 用戶：${userNameRej?.name || userNameRej?.email || booking.user_id}\n` +
+        `💰 金額：HK$${booking.amount || 0}\n` +
+        `💳 方式：${booking.fps_reference ? "FPS" : "PayMe"}\n` +
+        `📚 課程：${classTitleNotifRej?.title || "—"}\n` +
+        `📝 原因：${reason || "無提供原因"}\n` +
+        `🆔 Booking：${booking_id}\n` +
+        `⏰ ${new Date().toLocaleString("zh-HK", { timeZone: "Asia/Hong_Kong" })}`
+      );
+    }, 0);
 
     // 🔔 AUDIT：管理員拒絕付款
     try {
