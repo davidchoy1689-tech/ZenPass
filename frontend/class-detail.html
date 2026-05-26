@@ -38,21 +38,6 @@
 
     <link rel="stylesheet" href="css/zenpass.css" />
     <style>
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-      }
-
-      body {
-        font-family: var(--font-zh);
-        background: var(--gray-50);
-        color: var(--dark-900);
-        max-width: var(--max-width);
-        margin: 0 auto;
-        padding-bottom: calc(var(--nav-height) + 20px);
-        -webkit-font-smoothing: antialiased;
-      }
       .class-image {
         width: 100%;
         height: 240px;
@@ -382,58 +367,9 @@
         cursor: not-allowed;
         box-shadow: none;
       }
-      .bottom-nav {
-        position: fixed;
-        bottom: 0;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 100%;
-        max-width: var(--max-width);
-        background: var(--white);
-        border-top: 1px solid var(--gray-200);
-        display: flex;
-        justify-content: space-around;
-        padding: 8px 0 calc(8px + env(safe-area-inset-bottom));
-        z-index: 99;
-        box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
-      }
-      .nav-item {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        text-decoration: none;
-        color: var(--gray-300);
-        font-size: 10px;
-        gap: 2px;
-        padding: 4px 12px;
-        transition: color 0.2s;
-      }
-      .nav-item.active {
-        color: var(--orange-700);
-      }
-      .nav-item .nav-icon {
-        font-size: 22px;
-        line-height: 1;
-      }
       .loading {
         text-align: center;
         padding: 60px 20px;
-      }
-      .loading::after {
-        content: "";
-        display: block;
-        width: 40px;
-        height: 40px;
-        margin: 12px auto;
-        border: 3px solid var(--gray-200);
-        border-top-color: var(--orange-700);
-        border-radius: 50%;
-        animation: spin 0.8s linear infinite;
-      }
-      @keyframes spin {
-        to {
-          transform: rotate(360deg);
-        }
       }
       .error-page {
         text-align: center;
@@ -494,185 +430,36 @@
         .detail-price {
           font-size: 22px;
         }
-      }
-
-      @media (max-width: 768px) {
-        .detail-wrap {
-          padding: 12px;
+        .class-image {
+          height: 180px;
+          font-size: 48px;
         }
-        .detail-header {
-          flex-direction: column;
-          gap: 8px;
+        .class-image .back-btn {
+          top: 8px;
+          left: 8px;
+          width: 32px;
+          height: 32px;
+          font-size: 16px;
         }
-        .detail-header h1 {
-          font-size: 22px;
+        .content {
+          padding: 12px 12px;
         }
-        .detail-meta {
-          flex-wrap: wrap;
-          gap: 6px;
-        }
-        .detail-meta span {
-          font-size: 12px;
-        }
-        .detail-section {
-          padding: 14px;
-        }
-        .coach-card {
-          flex-direction: column;
-          text-align: center;
-        }
-        .action-bar {
-          flex-direction: column;
-          gap: 8px;
-        }
-        .action-bar .btn {
-          width: 100%;
-          text-align: center;
-        }
-      }
-      @media (max-width: 480px) {
-        .detail-header h1 {
-          font-size: 18px;
-        }
-        .detail-price {
-          font-size: 22px;
-        }
-        @media (max-width: 480px) {
-          .class-image {
-            height: 180px;
-            font-size: 48px;
-          }
-
-          .wishlist-btn {
-            position: absolute;
-            top: 16px;
-            right: 16px;
-            z-index: 10;
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: rgba(0, 0, 0, 0.3);
-            color: white;
-            border: none;
-            font-size: 20px;
-            cursor: pointer;
-            backdrop-filter: blur(4px);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-          }
-          @media (max-width: 480px) {
-            .wishlist-btn {
-              top: 8px;
-              right: 8px;
-              width: 32px;
-              height: 32px;
-              font-size: 16px;
-            }
-          }
-
-          .class-image .back-btn {
-            top: 8px;
-            left: 8px;
-            width: 32px;
-            height: 32px;
-            font-size: 16px;
-          }
-          .content {
-            padding: 12px 12px;
-          }
-          .schedule-item {
-            padding: 10px;
-          }
+        .schedule-item {
+          padding: 10px;
         }
       }
 
-      /* Desktop: expand content beyond mobile width */
-      @media (min-width: 768px) {
-        body {
-          max-width: 100% !important;
-        }
-      }
 
-      /* Page fade-in animation */
-      @keyframes fadeIn {
-        from {
-          opacity: 0;
-          transform: translateY(8px);
-        }
-        to {
-          opacity: 1;
-          transform: translateY(0);
-        }
-      }
-      body {
-        animation: fadeIn 0.4s ease-out;
-      }
-
-      /* Card hover effects */
-      .class-card:hover,
-      .course-card:hover,
-      .reward-card:hover,
-      .tier-card:hover,
-      .badge-item:hover,
-      .booking-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        transition: all 0.2s ease;
-      }
-      .class-card,
-      .course-card,
-      .reward-card,
-      .tier-card,
-      .badge-item,
-      .booking-card {
-        transition: all 0.2s ease;
-      }
-
-      /* Button hover enhancement */
-      button:hover,
-      .btn:hover,
-      .action-btn:hover:not(:disabled) {
-        opacity: 0.9;
-        transform: translateY(-1px);
-        transition: all 0.15s ease;
-      }
-      button,
-      .btn,
-      .action-btn {
-        transition: all 0.15s ease;
-      }
-
-      /* Unified spinner */
-      .loading-spinner {
-        display: inline-block;
-        width: 24px;
-        height: 24px;
-        border: 3px solid var(--gray-200, #e5e7eb);
-        border-top: 3px solid var(--orange-500, #f06030);
-        border-radius: 50%;
-        animation: spin 0.8s linear infinite;
-      }
-      @keyframes spin {
-        to {
-          transform: rotate(360deg);
-        }
-      }
-    
-.footer-grad { background: linear-gradient(135deg, #1a1a2e 0%, #2d2d44 50%, #c94420 100%); }
-.footer-link { color: rgba(255,255,255,0.6); text-decoration: none; transition: color 0.2s; font-size: 13px; }
-.footer-link:hover { color: white; }
 </style>
 
     <!-- 相似課程推薦 -->
     <div
-      class="detail-section"
+      class="detail-section zen-hidden zen-mt-md"
       id="recommendedSection"
-      style="display: none; margin-top: 16px"
     >
       <h3
         class="section-title"
-        style="font-size: 16px; font-weight: 700; margin-bottom: 12px"
+        style="font-size: 16px"
       >
         🔥 你可能也喜歡
       </h3>
@@ -714,11 +501,7 @@
         color: var(--orange-700);
         margin-top: 4px;
       }
-    
-.footer-grad { background: linear-gradient(135deg, #1a1a2e 0%, #2d2d44 50%, #c94420 100%); }
-.footer-link { color: rgba(255,255,255,0.6); text-decoration: none; transition: color 0.2s; font-size: 13px; }
-.footer-link:hover { color: white; }
-</style>
+    </style>
     <script id="ld-json" type="application/ld+json">
       {
         "@context": "https://schema.org",
@@ -752,7 +535,7 @@
         "
         >←</a
       >
-      <span id="class-emoji" style="display: none">🧘</span>
+      <span id="class-emoji" class="zen-hidden">🧘</span>
       <button onclick="toggleWishlist()" id="wishlistBtn" class="wishlist-btn">
         ♡
       </button>
@@ -766,18 +549,16 @@
     <div
       class="waiver-checkbox"
       id="waiver-checkbox"
+      class="zen-card"
       style="
         display: none;
-        background: var(--white);
-        border-radius: 12px;
-        padding: 14px 16px;
         margin: 8px 16px;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
         font-size: 13px;
       "
     >
       <label
-        style="display: flex; align-items: start; gap: 10px; cursor: pointer"
+        class="zen-flex"
+        style="align-items: start; gap: 10px; cursor: pointer"
       >
         <input
           type="checkbox"
@@ -794,9 +575,9 @@
           <a
             href="waiver.html"
             target="_blank"
+            class="zen-text-bold"
             style="
               color: var(--orange-700);
-              font-weight: 600;
               text-decoration: underline;
             "
             >免責聲明</a
@@ -806,10 +587,8 @@
       </label>
       <div
         id="waiver-error"
+        class="zen-text-error zen-text-xs zen-mt-sm"
         style="
-          color: var(--red-500);
-          font-size: 12px;
-          margin-top: 6px;
           display: none;
         "
       >
@@ -1959,7 +1738,7 @@
       >
     </nav>
     <!-- Share Button -->
-    <div style="display: flex; gap: 6px; margin: 12px; flex-wrap: wrap">
+    <div class="zen-flex zen-gap-sm zen-flex-wrap" style="margin: 12px">
       <a
         href="#"
         id="calendarBtn"
@@ -1994,7 +1773,7 @@
 
     <!-- Related Courses -->
     <div class="section" id="related-section">
-      <div class="section-title" style="font-size: 16px">
+      <div class="zen-section-title">
         <span>🏷️ 相關課程</span>
       </div>
       <div class="related-scroll" id="related-classes"></div>
@@ -2037,5 +1816,10 @@
     </div>
     <div class="max-w-6xl mx-auto mt-8 pt-4 border-t border-white/10 text-center text-xs text-white/30">&copy; 2026 ZenPass 禪流 · 香港康樂及體育有限公司</div>
     </footer>
+    <style>
+.footer-grad { background: linear-gradient(135deg, #1a1a2e 0%, #2d2d44 50%, #c94420 100%); }
+.footer-link { color: rgba(255,255,255,0.6); text-decoration: none; transition: color 0.2s; font-size: 13px; }
+.footer-link:hover { color: white; }
+</style>
   </body>
 </html>
