@@ -408,10 +408,7 @@
   <body>
     <div class="header">
       <h1>我的帳戶</h1>
-      <a
-        href="index.html"
-        style="font-size: 13px; color: var(--orange-700); text-decoration: none"
-        >首頁</a
+      <a href="index.html" class="zen-btn-small zen-btn-ghost">首頁</a
       >
     </div>
 
@@ -728,47 +725,25 @@
         <!-- Profile -->
         <div class="profile-card" id="profileCard"></div>
         <!-- Membership & Credits -->
-        <div
-          class="profile-card"
-          id="membershipCard"
-          style="display: none; padding: 16px; text-align: left"
-        ></div>
+        <div class="profile-card zen-hidden" id="membershipCard" style="padding: 16px;"></div>
         <!-- Recent Browsing -->
-        <div class="section" id="recent-section" style="display: none">
+        <div class="section zen-hidden" id="recent-section">
           <div class="section-header">
             <h2>👀 最近瀏覽</h2>
           </div>
           <div class="featured-scroll" id="recent-classes"></div>
         </div>
         <!-- Settings -->
-        <div
-          class="profile-card"
-          id="settingsCard"
-          style="display: none; padding: 16px"
-        >
-          <div
-            style="
-              display: flex;
-              justify-content: space-between;
-              align-items: center;
-              margin-bottom: 12px;
-            "
+        <div class="profile-card zen-hidden" id="settingsCard" style="padding: 16px;">
+          <div class="zen-flex zen-flex-between zen-mb-md"
           >
-            <div style="font-size: 15px; font-weight: 700">⚙️ 個人設定</div>
-            <button
-              onclick="toggleSettings()"
-              style="
-                background: none;
-                border: none;
-                font-size: 13px;
-                color: var(--orange-700);
-                cursor: pointer;
-              "
+            <div class="zen-text-bold" style="font-size: 15px;">⚙️ 個人設定</div>
+            <button class="zen-btn-ghost zen-btn-small" onclick="toggleSettings()"
             >
               完成
             </button>
           </div>
-          <div style="display: flex; flex-direction: column; gap: 10px">
+          <div class="zen-flex" style="flex-direction: column; gap: 10px;">
             <div>
               <label
                 style="
@@ -811,8 +786,8 @@
                 "
               />
             </div>
-            <div style="display: flex; gap: 8px; align-items: center">
-              <label style="font-size: 13px; flex: 1">🔔 推廣通知</label>
+            <div class="zen-flex zen-gap-sm zen-flex-center">
+              <label class="zen-flex-1 zen-text-sm">🔔 推廣通知</label>
               <label
                 style="
                   position: relative;
@@ -852,8 +827,8 @@
                 ></span
               ></label>
             </div>
-            <div style="display: flex; gap: 8px; align-items: center">
-              <label style="font-size: 13px; flex: 1">🌙 深色模式</label>
+            <div class="zen-flex zen-gap-sm zen-flex-center">
+              <label class="zen-flex-1 zen-text-sm">🌙 深色模式</label>
               <label
                 style="
                   position: relative;
@@ -892,246 +867,89 @@
               ></label>
             </div>
           </div>
-          <button
-            onclick="saveAllSettings()"
-            style="
-              width: 100%;
-              padding: 10px;
-              margin-top: 12px;
-              background: var(--orange-600-bg);
-              color: white;
-              border: none;
-              border-radius: 8px;
-              font-size: 14px;
-              font-weight: 600;
-              cursor: pointer;
-            "
+          <button class="zen-btn zen-btn-primary zen-btn-block" onclick="saveAllSettings()" style="margin-top: 12px; padding: 10px;"
           >
             儲存設定
           </button>
         </div>
         <!-- Wishlist -->
-        <div class="section" id="wishlist-section" style="display: none">
+        <div class="section zen-hidden" id="wishlist-section">
           <div class="section-header">
             <h2>❤️ 收藏課程</h2>
           </div>
           <div class="featured-scroll" id="wishlist-classes"></div>
         </div>
         <!-- Quick Actions -->
-        <div
-          style="
-            display: flex;
-            gap: 8px;
-            margin-bottom: 14px;
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-            scrollbar-width: none;
-          "
+        <div class="zen-flex zen-gap-sm zen-scroll-x" style="margin-bottom: 14px;"
         >
-          <a
-            href="explore.html"
-            style="
-              flex: 1;
-              min-width: 68px;
-              padding: 10px 4px;
-              border-radius: 12px;
-              background: var(--orange-50);
-              text-align: center;
-              text-decoration: none;
-              color: var(--orange-700);
-              transition: transform 0.15s;
-            "
+          <a href="explore.html" class="zen-flex-1 zen-text-center" style="min-width: 68px; padding: 10px 4px; border-radius: 12px; background: var(--orange-50); color: var(--orange-700); text-decoration: none; transition: transform 0.15s;"
           >
-            <div style="font-size: 22px">🔍</div>
-            <div style="font-size: 11px; margin-top: 2px; font-weight: 500">
-              探索
-            </div>
+            <div class="zen-text-bold" style="font-size: 22px;">🔍</div>
+            <div class="zen-text-xs zen-text-bold">探索</div>
           </a>
-          <a
-            href="checkin.html"
-            style="
-              flex: 1;
-              min-width: 68px;
-              padding: 10px 4px;
-              border-radius: 12px;
-              background: var(--gray-50);
-              text-align: center;
-              text-decoration: none;
-              color: var(--dark-900);
-              transition: transform 0.15s;
-            "
+          <a href="checkin.html" class="zen-flex-1 zen-text-center" style="min-width: 68px; padding: 10px 4px; border-radius: 12px; background: var(--gray-50); text-decoration: none; color: var(--dark-900); transition: transform 0.15s;"
           >
-            <div style="font-size: 22px">📅</div>
+            <div class="zen-text-bold" style="font-size: 22px;">📅</div>
             <div style="font-size: 11px; margin-top: 2px">簽到</div>
           </a>
-          <a
-            href="membership.html"
-            style="
-              flex: 1;
-              min-width: 68px;
-              padding: 10px 4px;
-              border-radius: 12px;
-              background: var(--gray-50);
-              text-align: center;
-              text-decoration: none;
-              color: var(--dark-900);
-              transition: transform 0.15s;
-            "
+          <a href="membership.html" class="zen-flex-1 zen-text-center" style="min-width: 68px; padding: 10px 4px; border-radius: 12px; background: var(--gray-50); text-decoration: none; color: var(--dark-900); transition: transform 0.15s;"
           >
-            <div style="font-size: 22px">💎</div>
+            <div class="zen-text-bold" style="font-size: 22px;">💎</div>
             <div style="font-size: 11px; margin-top: 2px">會籍</div>
           </a>
-          <a
-            href="points.html"
-            style="
-              flex: 1;
-              min-width: 68px;
-              padding: 10px 4px;
-              border-radius: 12px;
-              background: var(--gray-50);
-              text-align: center;
-              text-decoration: none;
-              color: var(--dark-900);
-              transition: transform 0.15s;
-            "
+          <a href="points.html" class="zen-flex-1 zen-text-center" style="min-width: 68px; padding: 10px 4px; border-radius: 12px; background: var(--gray-50); text-decoration: none; color: var(--dark-900); transition: transform 0.15s;"
           >
-            <div style="font-size: 22px">🎯</div>
+            <div class="zen-text-bold" style="font-size: 22px;">🎯</div>
             <div style="font-size: 11px; margin-top: 2px">積分</div>
           </a>
-          <a
-            href="my-bookings.html"
-            style="
-              flex: 1;
-              min-width: 68px;
-              padding: 10px 4px;
-              border-radius: 12px;
-              background: var(--gray-50);
-              text-align: center;
-              text-decoration: none;
-              color: var(--dark-900);
-              transition: transform 0.15s;
-            "
+          <a href="my-bookings.html" class="zen-flex-1 zen-text-center" style="min-width: 68px; padding: 10px 4px; border-radius: 12px; background: var(--gray-50); text-decoration: none; color: var(--dark-900); transition: transform 0.15s;"
           >
-            <div style="font-size: 22px">📋</div>
+            <div class="zen-text-bold" style="font-size: 22px;">📋</div>
             <div style="font-size: 11px; margin-top: 2px">預約</div>
           </a>
-          <a
-            href="notifications.html"
-            style="
-              flex: 1;
-              min-width: 68px;
-              padding: 10px 4px;
-              border-radius: 12px;
-              background: var(--gray-50);
-              text-align: center;
-              text-decoration: none;
-              color: var(--dark-900);
-              transition: transform 0.15s;
-            "
+          <a href="notifications.html" class="zen-flex-1 zen-text-center" style="min-width: 68px; padding: 10px 4px; border-radius: 12px; background: var(--gray-50); text-decoration: none; color: var(--dark-900); transition: transform 0.15s;"
           >
-            <div style="font-size: 22px">🔔</div>
+            <div class="zen-text-bold" style="font-size: 22px;">🔔</div>
             <div style="font-size: 11px; margin-top: 2px">通知</div>
           </a>
         </div>
         <!-- Referral -->
-        <div
-          class="profile-card"
-          id="referralCard"
-          style="display: none; padding: 16px 20px"
-        >
-          <div
-            style="
-              font-size: 14px;
-              font-weight: 700;
-              margin-bottom: 8px;
-              text-align: center;
-            "
+        <div class="profile-card zen-hidden" id="referralCard" style="padding: 16px 20px;">
+          <div class="zen-text-bold zen-text-center zen-mb-sm" style="font-size: 14px;"
           >
             🎫 推薦碼
           </div>
-          <div
-            style="
-              font-size: 22px;
-              font-weight: 800;
-              color: var(--orange-700);
-              letter-spacing: 4px;
-              margin-bottom: 6px;
-              text-align: center;
-              font-family: monospace;
-            "
+          <div class="zen-text-bold zen-text-center" style="font-size: 22px; color: var(--orange-700); letter-spacing: 4px; margin-bottom: 6px; font-family: monospace;"
             id="referral-code"
           >
             ZEN-XXXX
           </div>
-          <div
-            style="
-              font-size: 12px;
-              color: var(--dark-700);
-              margin-bottom: 10px;
-              text-align: center;
-            "
+          <div class="zen-text-sm zen-text-muted zen-text-center zen-mb-sm"
           >
             朋友用你的推薦碼註冊，雙方各得 <strong>50 積分</strong>！
           </div>
-          <div style="display: flex; gap: 8px; justify-content: center">
-            <button
-              onclick="copyReferral()"
-              style="
-                padding: 8px 20px;
-                background: var(--orange-600-bg);
-                color: white;
-                border: none;
-                border-radius: 8px;
-                font-size: 12px;
-                font-weight: 600;
-                cursor: pointer;
-              "
+          <div class="zen-flex zen-flex-center zen-gap-sm"
+            <button class="zen-btn zen-btn-primary zen-btn-small" onclick="copyReferral()"
             >
               📋 複製推薦碼
             </button>
-            <button
-              onclick="shareReferral()"
-              style="
-                padding: 8px 16px;
-                background: var(--gray-100);
-                color: var(--dark-900);
-                border: none;
-                border-radius: 8px;
-                font-size: 12px;
-                cursor: pointer;
-              "
+            <button class="zen-btn zen-btn-small zen-btn-secondary" onclick="shareReferral()"
             >
               📤 分享
             </button>
           </div>
-          <div
-            style="
-              font-size: 11px;
-              color: var(--dark-700);
-              margin-top: 8px;
-              text-align: center;
-            "
+          <div class="zen-text-xs zen-text-muted zen-text-center" style="margin-top: 8px;"
           >
             已推薦：<strong id="referral-count">0</strong> 人 ·
             賺取積分：<strong id="referral-points">0</strong>
           </div>
         </div>
         <!-- Points Card -->
-        <div
-          class="profile-card"
-          id="pointsCard"
-          style="display: none; padding: 16px; text-align: left"
-        ></div>
+        <div class="profile-card zen-hidden" id="pointsCard" style="padding: 16px;"></div>
         <!-- Loyalty Progress -->
-        <div
-          class="profile-card"
-          id="loyaltyCard"
-          style="display: none; padding: 16px"
-        >
-          <div style="font-size: 14px; font-weight: 700; margin-bottom: 8px">
-            🏆 個人成就
-          </div>
-          <div style="display: flex; gap: 4px; margin-bottom: 8px">
+        <div class="profile-card zen-hidden" id="loyaltyCard" style="padding: 16px;">
+          <div class="zen-text-bold zen-mb-sm" style="font-size: 14px;">🏆 個人成就</div>
+          <div class="zen-flex zen-gap-sm zen-mb-sm" style="gap: 4px;">
             <div
               style="
                 flex: 1;
@@ -1190,14 +1008,7 @@
               💎 鉑金
             </div>
           </div>
-          <div
-            style="
-              height: 6px;
-              background: var(--gray-200);
-              border-radius: 3px;
-              overflow: hidden;
-              margin-bottom: 6px;
-            "
+          <div class="zen-mb-sm" style="height: 6px; background: var(--gray-200); border-radius: 3px; overflow: hidden;"
           >
             <div
               id="loyalty-bar"
@@ -1214,39 +1025,23 @@
               "
             ></div>
           </div>
-          <div
-            style="font-size: 11px; color: var(--dark-700); text-align: center"
-            id="loyalty-text"
-          >
+          <div class="zen-text-xs zen-text-muted zen-text-center" id="loyalty-text">
             完成更多課程解鎖成就等級
           </div>
         </div>
         <!-- Badges Card -->
-        <div
-          class="profile-card"
-          id="badgesCard"
-          style="display: none; padding: 16px; text-align: left"
-        ></div>
+        <div class="profile-card zen-hidden" id="badgesCard" style="padding: 16px;"></div>
         <!-- Stats -->
         <div class="stats-row" id="statsRow"></div>
         <!-- Activity Calendar -->
-        <div class="section" id="activity-section" style="display: none">
+        <div class="section zen-hidden" id="activity-section">
           <div class="section-header">
             <h2>📊 本月活動</h2>
           </div>
-          <div
-            style="display: flex; gap: 2px; flex-wrap: wrap; padding: 4px 0"
-            id="activity-grid"
+          <div class="zen-flex zen-flex-wrap" id="activity-grid" style="gap: 2px; padding: 4px 0;"
           ></div>
-          <div
-            style="
-              font-size: 11px;
-              color: var(--dark-700);
-              margin-top: 4px;
-              text-align: center;
-            "
-            id="activity-summary"
-          ></div>
+          <div class="zen-text-xs zen-text-muted zen-text-center" id="activity-summary" style="margin-top: 4px;">
+          </div>
         </div>
         <!-- Confirmed Bookings -->
         <div class="section-header" id="confirmedHeader">

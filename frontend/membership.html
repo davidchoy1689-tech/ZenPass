@@ -424,6 +424,23 @@
 .footer-grad { background: linear-gradient(135deg, #1a1a2e 0%, #2d2d44 50%, #c94420 100%); }
 .footer-link { color: rgba(255,255,255,0.6); text-decoration: none; transition: color 0.2s; font-size: 13px; }
 .footer-link:hover { color: white; }
+
+/* Inline style cleanup helpers */
+.skip-link { position: absolute; left: -9999px; top: 0; z-index: 9999; padding: 10px; background: var(--orange-600-bg); color: white; font-weight: 600; text-decoration: none; }
+.skip-link:focus { left: 10px; }
+.back-link { color: var(--white); text-decoration: none; font-size: 20px; display: block; text-align: left; margin-bottom: 12px; }
+.faq-h3 { font-size: 15px; font-weight: 700; margin-bottom: 12px; }
+.faq-wrapper { font-size: 13px; line-height: 2; }
+.faq-details { margin-bottom: 4px; }
+.faq-summary { cursor: pointer; font-weight: 600; }
+.faq-answer { padding: 4px 0 8px 16px; color: var(--dark-700); }
+.credits-summary-box { display: none; margin: 12px 0; padding: 12px; background: var(--orange-50); border-radius: var(--radius-sm); border: 1px solid var(--orange-200); }
+.credits-note { text-align: center; font-size: 12px; color: var(--dark-700); margin-top: 8px; }
+.divider-section { margin: 20px 16px; display: flex; align-items: center; gap: 12px; }
+.divider-line { flex: 1; height: 1px; background: var(--gray-200); }
+.divider-text { font-size: 13px; color: var(--gray-300); font-weight: 500; }
+.standalone-credits { border: 2px dashed var(--orange-200); background: var(--orange-50); }
+.buy-btn-outline { background: var(--white); color: var(--orange-700); border: 2px solid var(--orange-700); }
 </style>
   
 <script src="https://cdn.tailwindcss.com"></script>
@@ -449,32 +466,13 @@ tailwind.config = { theme: { extend: { colors: { zen: { orange: '#f06030', 'oran
     <!-- Skip link for accessibility -->
     <a
       href="#main-content"
-      style="
-        position: absolute;
-        left: -9999px;
-        top: 0;
-        z-index: 9999;
-        padding: 10px;
-        background: var(--orange-600-bg);
-        color: white;
-        font-weight: 600;
-        text-decoration: none;
-      "
-      onfocus="this.style.left = '10px'"
-      onblur="this.style.left = '-9999px'"
+      class="skip-link"
       >跳到主要內容</a
     >
     <div class="header" role="banner">
       <a
         href="index.html"
-        style="
-          color: var(--white);
-          text-decoration: none;
-          font-size: 20px;
-          display: block;
-          text-align: left;
-          margin-bottom: 12px;
-        "
+        class="back-link"
         aria-label="返回首頁"
         >← 返回</a
       >
@@ -491,56 +489,50 @@ tailwind.config = { theme: { extend: { colors: { zen: { orange: '#f06030', 'oran
       <!-- FAQ -->
       <div
         class="card"
-        style="
-          margin: 16px;
-          padding: 16px;
-          background: var(--white);
-          border-radius: var(--radius-md);
-          box-shadow: var(--shadow-sm);
-        "
+        class="zen-card"
       >
-        <h3 style="font-size: 15px; font-weight: 700; margin-bottom: 12px">
+        <h3 class="faq-h3">
           ❓ 會籍常見問題
         </h3>
-        <div style="font-size: 13px; line-height: 2">
-          <details style="margin-bottom: 4px">
-            <summary style="cursor: pointer; font-weight: 600">
+        <div class="faq-wrapper">
+          <details class="faq-details">
+            <summary class="faq-summary">
               可以随時轉換會籍嗎？
             </summary>
-            <p style="padding: 4px 0 8px 16px; color: var(--dark-700)">
+            <p class="faq-answer">
               可以！你可以在任何時候升級或降級會籍，費用將按比例調整。
             </p>
           </details>
-          <details style="margin-bottom: 4px">
-            <summary style="cursor: pointer; font-weight: 600">
+          <details class="faq-details">
+            <summary class="faq-summary">
               點數會過期嗎？
             </summary>
-            <p style="padding: 4px 0 8px 16px; color: var(--dark-700)">
+            <p class="faq-answer">
               點數有效期為買入後 90
               天，建議在有效期內使用。會員每月資格在當月底清零。
             </p>
           </details>
-          <details style="margin-bottom: 4px">
-            <summary style="cursor: pointer; font-weight: 600">
+          <details class="faq-details">
+            <summary class="faq-summary">
               可以取消會籍嗎？
             </summary>
-            <p style="padding: 4px 0 8px 16px; color: var(--dark-700)">
+            <p class="faq-answer">
               可以！取消會籍後，余下的點數可繼續使用直到有效期結束。
             </p>
           </details>
-          <details style="margin-bottom: 4px">
-            <summary style="cursor: pointer; font-weight: 600">
+          <details class="faq-details">
+            <summary class="faq-summary">
               會籍可以與他人共用嗎？
             </summary>
-            <p style="padding: 4px 0 8px 16px; color: var(--dark-700)">
+            <p class="faq-answer">
               會籍是個人的，不得與他人共享。但你可以用積分奖勵給朋友購買課程。
             </p>
           </details>
-          <details style="margin-bottom: 4px">
-            <summary style="cursor: pointer; font-weight: 600">
+          <details class="faq-details">
+            <summary class="faq-summary">
               如何發放註冊碼？
             </summary>
-            <p style="padding: 4px 0 8px 16px; color: var(--dark-700)">
+            <p class="faq-answer">
               發放註冊碼可以獲得額外積分！在「我的」頁面找到「推薦碼」並分享給朋友即可。
             </p>
           </details>
@@ -555,26 +547,13 @@ tailwind.config = { theme: { extend: { colors: { zen: { orange: '#f06030', 'oran
         <!-- Selected summary -->
         <div
           id="credits-summary"
-          style="
-            display: none;
-            margin: 12px 0;
-            padding: 12px;
-            background: var(--orange-50);
-            border-radius: var(--radius-sm);
-            border: 1px solid var(--orange-200);
-          "
+          class="credits-summary-box"
         >
-          <div
-            style="
-              display: flex;
-              justify-content: space-between;
-              font-size: 14px;
-            "
-          >
-            <span style="color: var(--dark-700)">📋 已選：</span>
+          <div class="zen-flex-between">
+            <span class="zen-text-muted">📋 已選：</span>
             <span
               id="cs-detail"
-              style="font-weight: 700; color: var(--orange-700)"
+              class="zen-text-bold" style="color: var(--orange-700)"
               >0 Credits — HK$0</span
             >
           </div>
@@ -582,47 +561,26 @@ tailwind.config = { theme: { extend: { colors: { zen: { orange: '#f06030', 'oran
         <button class="buy-credits-btn" onclick="showBuyCredits()">
           ➕ 加購所選點數
         </button>
-        <p
-          style="
-            text-align: center;
-            font-size: 12px;
-            color: var(--dark-700);
-            margin-top: 8px;
-          "
-        >
+        <p class="credits-note">
           點數有效期 180 天
         </p>
       </div>
 
       <!-- 獨立購買（分隔線） -->
-      <div
-        style="margin: 20px 16px; display: flex; align-items: center; gap: 12px"
-      >
-        <div style="flex: 1; height: 1px; background: var(--gray-200)"></div>
-        <span style="font-size: 13px; color: var(--gray-300); font-weight: 500"
-          >或</span
-        >
-        <div style="flex: 1; height: 1px; background: var(--gray-200)"></div>
+      <div class="divider-section">
+        <div class="divider-line"></div>
+        <span class="divider-text">或</span>
+        <div class="divider-line"></div>
       </div>
 
       <div
-        class="credits-section"
-        style="
-          border: 2px dashed var(--orange-200);
-          background: var(--orange-50);
-        "
+        class="credits-section standalone-credits"
       >
         <h2 class="credits-heading">💎 獨立購買點數</h2>
         <p class="sub">無需會籍，直接購買點數預約課程</p>
         <button
-          class="buy-credits-btn"
+          class="buy-credits-btn buy-btn-outline"
           onclick="location.href = 'buy-credits.html'"
-          style="
-            background: var(--white);
-            color: var(--orange-700);
-            border: 2px solid var(--orange-700);
-          "
-        >
           💎 前往獨立購買
         </button>
       </div>
