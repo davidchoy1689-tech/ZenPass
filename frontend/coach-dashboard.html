@@ -620,15 +620,7 @@
       </div>
       <div class="sub-info" id="headerInfo">載入中...</div>
       <!-- Quick Actions -->
-      <div
-        style="
-          display: flex;
-          gap: 6px;
-          margin-top: 10px;
-          overflow-x: auto;
-          scrollbar-width: none;
-        "
-      >
+      <div class="zen-flex zen-gap-sm zen-scroll-x" style="margin-top:10px">
         <a
           href="add-demo-class.html"
           style="
@@ -753,17 +745,7 @@
               >📝 我的課程 <span class="count" id="myClassesCount"></span
             ></span>
             <button
-              class="btn-sm"
-              onclick="toggleAddCourseForm()"
-              style="
-                font-size: 13px;
-                padding: 6px 14px;
-                background: var(--orange-600-bg);
-                color: white;
-                border: none;
-                border-radius: 6px;
-                cursor: pointer;
-              "
+              class="zen-btn zen-btn-primary zen-btn-small" onclick="toggleAddCourseForm()"
             >
               ➕ 新增課程
             </button>
@@ -798,27 +780,9 @@
 
       <!-- Tab: Income -->
       <div class="section" id="tab-income">
-        <div
-          style="
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 12px;
-          "
-        >
+        <div class="zen-flex-between zen-mb-md">
           <div class="section"></div>
-          <button
-            onclick="exportCoachCSV()"
-            style="
-              padding: 8px 16px;
-              border: 1px solid var(--gray-200);
-              border-radius: 6px;
-              background: var(--white);
-              cursor: pointer;
-              font-size: 12px;
-              font-family: var(--font-zh);
-            "
-          >
+          <button class="zen-btn zen-btn-small" onclick="exportCoachCSV()" style="border:1px solid var(--gray-200);background:var(--white)">
             📥 匯出 CSV
           </button>
         </div>
@@ -832,65 +796,26 @@
           <div id="incomeDetail"></div>
         </div>
         <div class="card">
-          <div
-            class="card-title"
-            style="display: flex; align-items: center; gap: 8px"
-          >
+          <div class="card-title">
             🏦 提現
-            <span
-              style="font-size: 12px; font-weight: 400; color: var(--dark-700)"
-              id="payoutBalance"
+            <span class="zen-text-xs zen-text-muted" id="payoutBalance"
             ></span>
           </div>
-          <div class="form-group" style="margin-bottom: 12px">
-            <label
-              style="
-                font-size: 13px;
-                font-weight: 600;
-                display: block;
-                margin-bottom: 4px;
-                color: var(--dark-700);
-              "
-              >提現金額 (HK$)</label
+          <div class="zen-form-group">
+            <label>提現金額 (HK$)</label
             >
-            <input
-              type="number"
+            <input type="number"
               id="payout-amount"
               placeholder="最低 HK$100"
               min="100"
-              style="
-                width: 100%;
-                padding: 12px;
-                border: 1px solid var(--gray-200);
-                border-radius: var(--radius-sm);
-                font-size: 16px;
-                font-family: inherit;
-                outline: none;
-              "
+              class="zen-input" style="font-size:16px;font-family:inherit"
             />
           </div>
-          <div class="form-group" style="margin-bottom: 12px">
-            <label
-              style="
-                font-size: 13px;
-                font-weight: 600;
-                display: block;
-                margin-bottom: 4px;
-                color: var(--dark-700);
-              "
-              >收款方式</label
+          <div class="zen-form-group">
+            <label>收款方式</label
             >
-            <select
-              id="payout-method"
-              style="
-                width: 100%;
-                padding: 12px;
-                border: 1px solid var(--gray-200);
-                border-radius: var(--radius-sm);
-                font-size: 16px;
-                font-family: inherit;
-                outline: none;
-              "
+            <select id="payout-method"
+              style="width:100%;padding:12px;border:1px solid var(--gray-200);border-radius:var(--radius-sm);font-size:16px;font-family:inherit"
             >
               <option value="bank">銀行轉帳</option>
               <option value="fps">轉數快 FPS</option>
@@ -898,90 +823,50 @@
             </select>
           </div>
           <div id="payout-bank-fields">
-            <div class="form-group" style="margin-bottom: 8px">
-              <input
-                type="text"
+            <div class="zen-form-group">
+              <input type="text"
                 id="payout-bank-name"
                 placeholder="銀行名稱"
-                style="
-                  width: 100%;
-                  padding: 12px;
-                  border: 1px solid var(--gray-200);
-                  border-radius: var(--radius-sm);
-                  font-size: 14px;
-                  font-family: inherit;
-                "
+                class="zen-input" style="font-size:14px;font-family:inherit"
               />
             </div>
-            <div class="form-group" style="margin-bottom: 8px">
-              <input
-                type="text"
+            <div class="zen-form-group">
+              <input type="text"
                 id="payout-bank-code"
                 placeholder="銀行代碼"
-                style="
-                  width: 100%;
-                  padding: 12px;
-                  border: 1px solid var(--gray-200);
-                  border-radius: var(--radius-sm);
-                  font-size: 14px;
-                  font-family: inherit;
-                "
+                class="zen-input" style="font-size:14px;font-family:inherit"
               />
             </div>
-            <div class="form-group" style="margin-bottom: 8px">
-              <input
-                type="text"
+            <div class="zen-form-group">
+              <input type="text"
                 id="payout-account"
                 placeholder="帳戶號碼"
-                style="
-                  width: 100%;
-                  padding: 12px;
-                  border: 1px solid var(--gray-200);
-                  border-radius: var(--radius-sm);
-                  font-size: 14px;
-                  font-family: inherit;
-                "
+                class="zen-input" style="font-size:14px;font-family:inherit"
               />
             </div>
           </div>
           <div id="payout-fps-field" class="hidden">
-            <div class="form-group" style="margin-bottom: 8px">
-              <input
-                type="text"
+            <div class="zen-form-group">
+              <input type="text"
                 id="payout-fps-phone"
                 placeholder="FPS 電話／電郵"
-                style="
-                  width: 100%;
-                  padding: 12px;
-                  border: 1px solid var(--gray-200);
-                  border-radius: var(--radius-sm);
-                  font-size: 14px;
-                  font-family: inherit;
-                "
+                class="zen-input" style="font-size:14px;font-family:inherit"
               />
             </div>
           </div>
           <div id="payout-payme-field" class="hidden">
-            <div class="form-group" style="margin-bottom: 8px">
-              <input
-                type="text"
+            <div class="zen-form-group">
+              <input type="text"
                 id="payout-payme-phone"
                 placeholder="PayMe 電話號碼"
-                style="
-                  width: 100%;
-                  padding: 12px;
-                  border: 1px solid var(--gray-200);
-                  border-radius: var(--radius-sm);
-                  font-size: 14px;
-                  font-family: inherit;
-                "
+                class="zen-input" style="font-size:14px;font-family:inherit"
               />
             </div>
           </div>
           <button class="btn-primary" onclick="requestPayout()">
             💰 申請提現
           </button>
-          <div id="payoutHistory" style="margin-top: 12px"></div>
+          <div id="payoutHistory" class="zen-mt-md"></div>
         </div>
         <button class="btn-secondary" onclick="loadIncomeDetail()">
           🔄 載入更多明細
@@ -989,9 +874,9 @@
       </div>
 
       <!-- Tab: Wallet / 錢包 -->
-      <div class="section" id="tab-wallet" style="margin-top: 12px">
+      <div class="section" id="tab-wallet">
         <div id="walletState" style="min-height: 100px">
-          <div class="loading" style="padding: 40px 0">
+          <div class="loading zen-text-center" style="padding:40px 0">
             <div class="spinner"></div>
             <div>載入錢包資料...</div>
           </div>
@@ -999,11 +884,7 @@
       </div>
 
       <!-- Coach Referral CTA -->
-      <div
-        class="section"
-        id="tab-refer"
-        style="margin-top: 16px; display: block"
-      >
+      <div class="section zen-mt-md" id="tab-refer">
         <div class="card">
           <div class="card-title">🤝 推薦教練</div>
           <p
@@ -1016,67 +897,33 @@
           >
             推薦其他教練加入 ZenPass，幫助平台成長之餘，你都可以賺取額外收入！
           </p>
-          <div style="display: flex; gap: 8px; margin-bottom: 8px">
+          <div class="zen-flex zen-gap-sm" style="margin-bottom:8px">
             <input
               type="text"
               id="ref-coach-name"
               placeholder="教練姓名"
-              style="
-                flex: 1;
-                padding: 10px;
-                border: 1px solid var(--gray-200);
-                border-radius: 6px;
-                font-size: 13px;
-              "
+              class="zen-flex-1" style="padding:10px;border:1px solid var(--gray-200);border-radius:6px;font-size:13px"
             />
           </div>
-          <div style="display: flex; gap: 8px; margin-bottom: 8px">
+          <div class="zen-flex zen-gap-sm" style="margin-bottom:8px">
             <input
               type="email"
               id="ref-coach-email"
               placeholder="電郵地址"
-              style="
-                flex: 1;
-                padding: 10px;
-                border: 1px solid var(--gray-200);
-                border-radius: 6px;
-                font-size: 13px;
-              "
+              class="zen-flex-1" style="padding:10px;border:1px solid var(--gray-200);border-radius:6px;font-size:13px"
             />
             <input
               type="tel"
               id="ref-coach-phone"
               placeholder="電話（選填）"
-              style="
-                flex: 1;
-                padding: 10px;
-                border: 1px solid var(--gray-200);
-                border-radius: 6px;
-                font-size: 13px;
-              "
+              class="zen-flex-1" style="padding:10px;border:1px solid var(--gray-200);border-radius:6px;font-size:13px"
             />
           </div>
-          <button
-            class="btn btn-primary"
-            onclick="referCoach()"
-            style="
-              padding: 10px 20px;
-              border: none;
-              border-radius: 6px;
-              background: var(--orange-600-bg);
-              color: white;
-              font-size: 14px;
-              font-weight: 600;
-              cursor: pointer;
-              width: 100%;
-            "
+          <button class="zen-btn zen-btn-primary zen-btn-block" onclick="referCoach()">
           >
             📨 發送推薦
           </button>
-          <div
-            id="ref-coach-msg"
-            style="font-size: 13px; margin-top: 8px"
-          ></div>
+          <div id="ref-coach-msg" class="zen-text-sm zen-mt-sm"></div>
         </div>
       </div>
     </div>
@@ -2085,41 +1932,26 @@
 
     <div
       class="zen-footer"
-      style="
-        text-align: center;
-        padding: 20px 16px;
-        margin-top: 24px;
-        border-top: 1px solid #e5e7eb;
-        font-size: 12px;
-        color: #6b7280;
-      "
     >
-      <div
-        style="
-          display: flex;
-          justify-content: center;
-          gap: 16px;
-          margin-bottom: 8px;
-        "
-      >
+      <div class="zen-footer-links">
         <a
           href="/"
-          style="color: #aa3218; text-decoration: none; font-weight: 500"
+          
           >🏠 首頁</a
         >
         <a
           href="explore.html"
-          style="color: #aa3218; text-decoration: none; font-weight: 500"
+          
           >📚 課程</a
         >
         <a
           href="my.html"
-          style="color: #aa3218; text-decoration: none; font-weight: 500"
+          
           >👤 我的</a
         >
         <a
           href="points.html"
-          style="color: #aa3218; text-decoration: none; font-weight: 500"
+          
           >🎯 積分</a
         >
       </div>
@@ -2166,7 +1998,7 @@
 
               var container = document.getElementById("walletState");
               container.innerHTML =
-                '<div class="loading" style="padding: 40px 0"><div class="spinner"></div><div>載入錢包資料...</div></div>';
+                '<div class="loading zen-text-center" style="padding:40px 0"><div class="spinner"></div><div>載入錢包資料...</div></div>';
 
               try {
                 // Fetch wallet summary + transactions
