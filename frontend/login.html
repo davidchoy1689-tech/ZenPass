@@ -320,6 +320,12 @@
     </div>
 
     <script>
+      // Get redirect URL from query parameter (e.g., ?redirect=payment.html?type=membership...)
+      var loginRedirect = (function() {
+        var match = window.location.search.match(/[?&]redirect=([^&]+)/);
+        return match ? decodeURIComponent(match[1]) : null;
+      })();
+
       function switchTab(tab) {
         document.querySelectorAll(".tab").forEach(function (t) {
           t.classList.remove("active");
@@ -364,7 +370,7 @@
           storeUser(result.user);
           setMsg("login-msg", "✅ 登入成功！", "success");
           setTimeout(function () {
-            window.location.href = "explore.html";
+            window.location.href = loginRedirect || "explore.html";
           }, 800);
         } catch (e) {
           setMsg("login-msg", "❌ " + e.message, "error");
@@ -402,7 +408,7 @@
           // Check if first-time user → redirect to onboarding
           var isFirstTime = !localStorage.getItem("zenpass_visited_before");
           localStorage.setItem("zenpass_visited_before", "1");
-          var redirectTo = isFirstTime ? "onboarding.html" : "explore.html";
+          var redirectTo = loginRedirect || (isFirstTime ? "onboarding.html" : "explore.html");
           setTimeout(function () {
             window.location.href = redirectTo;
           }, 800);
@@ -464,7 +470,7 @@
           setToken("demo_token_" + role);
           storeUser({ name: names[role], email: emails[role], phone: "", role: role, credits: 45 });
         }
-        window.location.href = "explore.html";
+        window.location.href = loginRedirect || "explore.html";
       }
 
       // ===== Social Login (Apple / Google) =====
