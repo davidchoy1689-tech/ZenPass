@@ -1275,6 +1275,13 @@
           var apiData = await apiResp.json();
 
           if (!apiResp.ok) {
+            // Token expired → redirect to login
+            if (apiResp.status === 401 || (apiData.error && (apiData.error.includes("認證無效") || apiData.error.includes("過期")))) {
+              localStorage.removeItem("zenpass_token");
+              var redirectUrl = encodeURIComponent(window.location.href);
+              window.location.href = "login.html?redirect=" + redirectUrl;
+              return;
+            }
             throw new Error(apiData.error || "預約失敗");
           }
 

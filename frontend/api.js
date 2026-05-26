@@ -198,6 +198,13 @@ async function apiRequest(method, path, data = null) {
     const result = await response.json();
 
     if (!response.ok) {
+      // Token expired / auth invalid → auto redirect to login
+      if (response.status === 401 || (result.error && (result.error.includes("認證無效") || result.error.includes("過期")))) {
+        var redirectUrl = window.location.href;
+        localStorage.removeItem("zenpass_token");
+        window.location.href = "login.html?redirect=" + encodeURIComponent(redirectUrl);
+        return;
+      }
       throw new Error(result.error || `請求失敗 (${response.status})`);
     }
 
@@ -208,6 +215,15 @@ async function apiRequest(method, path, data = null) {
       err.message.includes("NetworkError")
     ) {
       throw new Error("無法連接到伺服器，請檢查網絡連線");
+    }
+    if (
+      err.message.includes("認證無效") ||
+      err.message.includes("過期")
+    ) {
+      var redirectUrl = window.location.href;
+      localStorage.removeItem("zenpass_token");
+      window.location.href = "login.html?redirect=" + encodeURIComponent(redirectUrl);
+      return;
     }
     throw err;
   }
