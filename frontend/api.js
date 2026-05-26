@@ -864,6 +864,15 @@ function logout() {
   }
 })();
 
+// ===== Unregister Service Worker to prevent stale cache =====
+(function() {
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then(function(regs) {
+      regs.forEach(function(reg) { reg.unregister(); });
+    });
+  }
+})();
+
 // ===== Google Analytics 4 (pages that include api.js get GA automatically) =====
 // Measurement ID: G-MKF5N4YLBM — 由 David Choy 開通
 (function() {
