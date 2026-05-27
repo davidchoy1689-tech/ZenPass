@@ -21,6 +21,10 @@ initDatabase();
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// ===== 信任代理 — Nginx 將 X-Forwarded-For header 傳入，
+// Express 必須設定 trust proxy 否則 express-rate-limit 會不斷炒
+app.set("trust proxy", "loopback");
+
 // ===== 中介軟體 =====
 
 // Request ID 追蹤 — 每個請求分配唯一 ID
