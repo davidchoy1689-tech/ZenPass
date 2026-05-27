@@ -9,9 +9,12 @@
       name="description"
       content="ZenPass 禪流 — 登入或註冊帳戶，立即探索超過100+運動課程：瑜伽、健身、冥想、新興運動。開始你的運動旅程！"
     />
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <meta http-equiv="Pragma" content="no-cache">
-    <meta http-equiv="Expires" content="-1">
+    <meta
+      http-equiv="Cache-Control"
+      content="no-cache, no-store, must-revalidate"
+    />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="-1" />
     <title>登入 / 註冊 — ZenPass 禪流</title>
     <meta property="og:title" content="登入 — ZenPass 禪流" />
     <meta
@@ -227,7 +230,7 @@
         }
       }
     </style>
-      <!-- Google tag (gtag.js) -->
+    <!-- Google tag (gtag.js) -->
     <script
       async
       src="https://www.googletagmanager.com/gtag/js?id=G-MKF5N4YLBM"
@@ -240,8 +243,7 @@
       gtag("js", new Date());
       gtag("config", "G-MKF5N4YLBM");
     </script>
-
-    </head>
+  </head>
   <body>
     <div class="card">
       <div class="logo">
@@ -338,7 +340,7 @@
 
     <script>
       // Get redirect URL from query parameter (e.g., ?redirect=payment.html?type=membership...)
-      var loginRedirect = (function() {
+      var loginRedirect = (function () {
         var match = window.location.search.match(/[?&]redirect=([^&]+)/);
         return match ? decodeURIComponent(match[1]) : null;
       })();
@@ -425,7 +427,8 @@
           // Check if first-time user → redirect to onboarding
           var isFirstTime = !localStorage.getItem("zenpass_visited_before");
           localStorage.setItem("zenpass_visited_before", "1");
-          var redirectTo = loginRedirect || (isFirstTime ? "onboarding.html" : "explore.html");
+          var redirectTo =
+            loginRedirect || (isFirstTime ? "onboarding.html" : "explore.html");
           setTimeout(function () {
             window.location.href = redirectTo;
           }, 800);
@@ -465,7 +468,10 @@
           var resp = await fetch(API_BASE + "/auth/login", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email: emails[role], password: passwords[role] }),
+            body: JSON.stringify({
+              email: emails[role],
+              password: passwords[role],
+            }),
           });
           var data = await resp.json();
           if (data.token) {
@@ -481,11 +487,23 @@
           } else {
             // Fallback: use demo token
             setToken("demo_token_" + role);
-            storeUser({ name: names[role], email: emails[role], phone: "", role: role, credits: 45 });
+            storeUser({
+              name: names[role],
+              email: emails[role],
+              phone: "",
+              role: role,
+              credits: 45,
+            });
           }
-        } catch(e) {
+        } catch (e) {
           setToken("demo_token_" + role);
-          storeUser({ name: names[role], email: emails[role], phone: "", role: role, credits: 45 });
+          storeUser({
+            name: names[role],
+            email: emails[role],
+            phone: "",
+            role: role,
+            credits: 45,
+          });
         }
         window.location.href = loginRedirect || "explore.html";
       }

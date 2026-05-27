@@ -11,9 +11,12 @@
     <link rel="icon" href="favicon.png" type="image/png" />
     <meta name="viewport" content="width=device-width,initial-scale=1.0" />
     <meta name="description" content="ZenPass 禪流健身課程預約平台管理後台" />
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <meta http-equiv="Pragma" content="no-cache">
-    <meta http-equiv="Expires" content="-1">
+    <meta
+      http-equiv="Cache-Control"
+      content="no-cache, no-store, must-revalidate"
+    />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="-1" />
     <title>ZenPass 管理後台 — 禪流</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -548,7 +551,7 @@
       }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
-      <!-- Google tag (gtag.js) -->
+    <!-- Google tag (gtag.js) -->
     <script
       async
       src="https://www.googletagmanager.com/gtag/js?id=G-MKF5N4YLBM"
@@ -561,8 +564,7 @@
       gtag("js", new Date());
       gtag("config", "G-MKF5N4YLBM");
     </script>
-
-    </head>
+  </head>
   <body>
     <div
       id="admin-topbar"
@@ -1728,7 +1730,7 @@
         try {
           var d = await apiGet("/admin/classes");
           adminAllClasses = d.classes || [];
-        } catch(e) {
+        } catch (e) {
           adminAllClasses = [];
         }
         renderClassPage();
@@ -1736,24 +1738,37 @@
 
       function renderClassPage() {
         try {
-        var main = document.getElementById("mainContent");
-        var cls = adminAllClasses;
-        var totalPages = Math.ceil(cls.length / adminPageSize) || 1;
-        var start = (adminCurrentPage - 1) * adminPageSize;
-        var pageItems = cls.slice(start, start + adminPageSize);
+          var main = document.getElementById("mainContent");
+          var cls = adminAllClasses;
+          var totalPages = Math.ceil(cls.length / adminPageSize) || 1;
+          var start = (adminCurrentPage - 1) * adminPageSize;
+          var pageItems = cls.slice(start, start + adminPageSize);
 
-        var html =
-          '<div class="top-bar"><div><h1>📚 課程管理</h1><div class="sub">共 <strong>' +
-          cls.length +
-          '</strong> 個課程</div></div><div style="font-size:13px;color:var(--dark-700)">第 ' +
-          adminCurrentPage + '/' + totalPages + ' 頁</div></div>' +
-          '<div class="pagination-bar" style="display:flex;gap:6px;align-items:center;margin:8px 0">' +
-          '<button onclick="adminCurrentPage=Math.max(1,adminCurrentPage-1);renderClassPage()" style="padding:6px 12px;border:1px solid var(--gray-200);border-radius:6px;background:var(--white);cursor:pointer;font-size:12px"' + (adminCurrentPage <= 1 ? ' disabled' : '') + '>‹ 上一頁</button>' +
-          '<span style="font-size:13px;color:var(--dark-700)">' + start + '-' + Math.min(start+adminPageSize, cls.length) + ' / ' + cls.length + '</span>' +
-          '<button onclick="adminCurrentPage=Math.min(totalPages,adminCurrentPage+1);renderClassPage()" style="padding:6px 12px;border:1px solid var(--gray-200);border-radius:6px;background:var(--white);cursor:pointer;font-size:12px"' + (adminCurrentPage >= totalPages ? ' disabled' : '') + '>下一頁 ›</button>' +
-          '</div>';
-        html +=
-          '<div class="table-wrap"><table><thead><tr><th></th><th>課程編號</th><th>教練編號</th><th>課程</th><th>教練</th><th>分類</th><th>難度</th><th>價格</th><th>時段數</th><th>預約數</th><th>狀態</th></tr></thead><tbody>';
+          var html =
+            '<div class="top-bar"><div><h1>📚 課程管理</h1><div class="sub">共 <strong>' +
+            cls.length +
+            '</strong> 個課程</div></div><div style="font-size:13px;color:var(--dark-700)">第 ' +
+            adminCurrentPage +
+            "/" +
+            totalPages +
+            " 頁</div></div>" +
+            '<div class="pagination-bar" style="display:flex;gap:6px;align-items:center;margin:8px 0">' +
+            '<button onclick="adminCurrentPage=Math.max(1,adminCurrentPage-1);renderClassPage()" style="padding:6px 12px;border:1px solid var(--gray-200);border-radius:6px;background:var(--white);cursor:pointer;font-size:12px"' +
+            (adminCurrentPage <= 1 ? " disabled" : "") +
+            ">‹ 上一頁</button>" +
+            '<span style="font-size:13px;color:var(--dark-700)">' +
+            start +
+            "-" +
+            Math.min(start + adminPageSize, cls.length) +
+            " / " +
+            cls.length +
+            "</span>" +
+            '<button onclick="adminCurrentPage=Math.min(totalPages,adminCurrentPage+1);renderClassPage()" style="padding:6px 12px;border:1px solid var(--gray-200);border-radius:6px;background:var(--white);cursor:pointer;font-size:12px"' +
+            (adminCurrentPage >= totalPages ? " disabled" : "") +
+            ">下一頁 ›</button>" +
+            "</div>";
+          html +=
+            '<div class="table-wrap"><table><thead><tr><th></th><th>課程編號</th><th>教練編號</th><th>課程</th><th>教練</th><th>分類</th><th>難度</th><th>價格</th><th>時段數</th><th>預約數</th><th>狀態</th></tr></thead><tbody>';
           pageItems.forEach(function (c) {
             html +=
               "<tr>" +
@@ -2264,126 +2279,245 @@
         }
       }
 
-            // ===== 商戶管理 Tab（含分層佣金計劃）=====
+      // ===== 商戶管理 Tab（含分層佣金計劃）=====
       var commissionPlans = [
-        { key: 'basic', label: 'Basic 基本計劃', fee: 0, rate: 0.25, desc: '適合小型工作室' },
-        { key: 'standard', label: 'Standard 標準計劃', fee: 388, rate: 0.18, desc: '適合中型場地' },
-        { key: 'premium', label: 'Premium 高級計劃', fee: 888, rate: 0.12, desc: '適合大型連鎖' },
+        {
+          key: "basic",
+          label: "Basic 基本計劃",
+          fee: 0,
+          rate: 0.25,
+          desc: "適合小型工作室",
+        },
+        {
+          key: "standard",
+          label: "Standard 標準計劃",
+          fee: 388,
+          rate: 0.18,
+          desc: "適合中型場地",
+        },
+        {
+          key: "premium",
+          label: "Premium 高級計劃",
+          fee: 888,
+          rate: 0.12,
+          desc: "適合大型連鎖",
+        },
       ];
 
       async function loadPartnersTab() {
-        var main = document.getElementById('mainContent');
+        var main = document.getElementById("mainContent");
         main.innerHTML =
           '<div style="padding:20px"><h2 style="font-size:20px;font-weight:700;margin-bottom:16px">🏪 商戶管理</h2>' +
           '<div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">' +
           '<button class="tab-btn active" onclick="showPartnerSection(\'pending\', this)" style="padding:8px 16px;border:1px solid var(--gray-200);border-radius:8px;background:var(--orange-50);cursor:pointer;font-size:13px;font-weight:500">⏳ 待審批</button>' +
           '<button class="tab-btn" onclick="showPartnerSection(\'active\', this)" style="padding:8px 16px;border:1px solid var(--gray-200);border-radius:8px;background:var(--white);cursor:pointer;font-size:13px;font-weight:500">✅ 已核准</button>' +
           '<button class="tab-btn" onclick="showPartnerSection(\'all\', this)" style="padding:8px 16px;border:1px solid var(--gray-200);border-radius:8px;background:var(--white);cursor:pointer;font-size:13px;font-weight:500">📋 全部</button>' +
-          '</div>' +
+          "</div>" +
           '<div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;">' +
           '<input type="text" id="partnerSearchInput" placeholder="搜尋商戶名稱 / 電郵..." style="flex:1;padding:8px 12px;border:1px solid var(--gray-200);border-radius:6px;font-size:13px;font-family:inherit;">' +
           '<button onclick="searchPartner()" style="padding:8px 16px;background:var(--primary);color:white;border:none;border-radius:6px;cursor:pointer;font-size:12px;">🔍 搜尋</button>' +
-          '</div>' +
+          "</div>" +
           '<div id="partner-list"><div class="loading-spinner">載入中...</div></div></div>';
-        showPartnerSection('pending');
+        showPartnerSection("pending");
       }
 
       async function showPartnerSection(status) {
-        var btns = document.querySelectorAll('#mainContent .tab-btn');
-        btns.forEach(function(b){ b.classList.remove('active'); b.style.background='var(--white)'; });
-        var container = document.getElementById('partner-list');
+        var btns = document.querySelectorAll("#mainContent .tab-btn");
+        btns.forEach(function (b) {
+          b.classList.remove("active");
+          b.style.background = "var(--white)";
+        });
+        var container = document.getElementById("partner-list");
         if (!container) return;
         container.innerHTML = '<div class="loading-spinner">載入中...</div>';
         try {
-          var ep = status === 'pending' ? '/admin/partner-applications' : '/admin/partner-list';
+          var ep =
+            status === "pending"
+              ? "/admin/partner-applications"
+              : "/admin/partner-list";
           var d = await apiGet(ep);
-          var list = status === 'pending' ? (d.applications || []) : (d.partners || []);
+          var list =
+            status === "pending" ? d.applications || [] : d.partners || [];
 
-          var searchQ = (document.getElementById('partnerSearchInput')?.value || '').toLowerCase();
+          var searchQ = (
+            document.getElementById("partnerSearchInput")?.value || ""
+          ).toLowerCase();
           if (searchQ) {
-            list = list.filter(function(p){
-              return (p.name||'').toLowerCase().includes(searchQ) ||
-                     (p.email||'').toLowerCase().includes(searchQ) ||
-                     (p.contact_person||'').toLowerCase().includes(searchQ);
+            list = list.filter(function (p) {
+              return (
+                (p.name || "").toLowerCase().includes(searchQ) ||
+                (p.email || "").toLowerCase().includes(searchQ) ||
+                (p.contact_person || "").toLowerCase().includes(searchQ)
+              );
             });
           }
 
           if (list.length === 0) {
-            container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--dark-700)">暫無記錄</div>';
+            container.innerHTML =
+              '<div style="text-align:center;padding:40px;color:var(--dark-700)">暫無記錄</div>';
             return;
           }
-          var html = '';
-          list.forEach(function(p) {
-            var planKey = p.commission_plan || 'basic';
-            var plan = commissionPlans.find(function(x){ return x.key === planKey; }) || commissionPlans[0];
+          var html = "";
+          list.forEach(function (p) {
+            var planKey = p.commission_plan || "basic";
+            var plan =
+              commissionPlans.find(function (x) {
+                return x.key === planKey;
+              }) || commissionPlans[0];
 
-            var badge = p.status === 'pending'
-              ? '<span style="background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600">⏳ 待審批</span>'
-              : p.status === 'active'
-                ? '<span style="background:#ecfdf5;color:#059669;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600">✅ 活躍</span>'
-                : '<span style="background:#fef2f2;color:#dc2626;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600">' + escape(p.status||'') + '</span>';
+            var badge =
+              p.status === "pending"
+                ? '<span style="background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600">⏳ 待審批</span>'
+                : p.status === "active"
+                  ? '<span style="background:#ecfdf5;color:#059669;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600">✅ 活躍</span>'
+                  : '<span style="background:#fef2f2;color:#dc2626;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600">' +
+                    escape(p.status || "") +
+                    "</span>";
 
-            html += '<div style="background:white;border-radius:14px;padding:16px;margin-bottom:10px;box-shadow:0 2px 8px rgba(0,0,0,0.06);border:1px solid rgba(0,0,0,0.04)">' +
+            html +=
+              '<div style="background:white;border-radius:14px;padding:16px;margin-bottom:10px;box-shadow:0 2px 8px rgba(0,0,0,0.06);border:1px solid rgba(0,0,0,0.04)">' +
               '<div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:6px">' +
-              '<div><div style="font-weight:600;font-size:15px">' + escape(p.name||'') + '</div>' +
-              '<div style="font-size:12px;color:var(--dark-700);margin-top:2px">' + escape(p.category||'') + ' · ' + escape(p.district||'') + '</div>' +
+              '<div><div style="font-weight:600;font-size:15px">' +
+              escape(p.name || "") +
+              "</div>" +
+              '<div style="font-size:12px;color:var(--dark-700);margin-top:2px">' +
+              escape(p.category || "") +
+              " · " +
+              escape(p.district || "") +
+              "</div>" +
               // Owner info
-              (p.owner && p.owner.name ? '<div style="font-size:11px;color:var(--dark-700);margin-top:2px">👑 負責人：' + escape(p.owner.name) + '</div>' : '<div style="font-size:11px;color:#9ca3af;margin-top:2px">👑 暫無負責人</div>') +
-              '</div>' +
-              badge + '</div>';
+              (p.owner && p.owner.name
+                ? '<div style="font-size:11px;color:var(--dark-700);margin-top:2px">👑 負責人：' +
+                  escape(p.owner.name) +
+                  "</div>"
+                : '<div style="font-size:11px;color:#9ca3af;margin-top:2px">👑 暫無負責人</div>') +
+              "</div>" +
+              badge +
+              "</div>";
 
             // Plan info line
-            html += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px;font-size:12px;color:var(--dark-700);">' +
-              '<span style="background:var(--primary-bg);padding:2px 8px;border-radius:6px;">💰 ' + escape(plan.label) + '</span>' +
-              '<span>分佣：' + Math.round((plan.rate||p.commission_rate||0.25)*100) + '%</span>' +
-              (plan.fee > 0 ? '<span>月費：$' + plan.fee + '</span>' : '<span>月費：免費</span>') +
-              '<span>📚 課程：' + (p.course_count||0) + '</span>' +
-              '</div>';
+            html +=
+              '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px;font-size:12px;color:var(--dark-700);">' +
+              '<span style="background:var(--primary-bg);padding:2px 8px;border-radius:6px;">💰 ' +
+              escape(plan.label) +
+              "</span>" +
+              "<span>分佣：" +
+              Math.round((plan.rate || p.commission_rate || 0.25) * 100) +
+              "%</span>" +
+              (plan.fee > 0
+                ? "<span>月費：$" + plan.fee + "</span>"
+                : "<span>月費：免費</span>") +
+              "<span>📚 課程：" +
+              (p.course_count || 0) +
+              "</span>" +
+              "</div>";
 
-            html += (p.contact_person ? '<div style="font-size:12px;color:var(--dark-700)">👤 ' + escape(p.contact_person) + ' · 📞 ' + escape(p.phone||'') + '</div>' : '') +
-              (p.email ? '<div style="font-size:12px;color:var(--dark-700)">📧 ' + escape(p.email) + '</div>' : '');
+            html +=
+              (p.contact_person
+                ? '<div style="font-size:12px;color:var(--dark-700)">👤 ' +
+                  escape(p.contact_person) +
+                  " · 📞 " +
+                  escape(p.phone || "") +
+                  "</div>"
+                : "") +
+              (p.email
+                ? '<div style="font-size:12px;color:var(--dark-700)">📧 ' +
+                  escape(p.email) +
+                  "</div>"
+                : "");
 
-            if (p.status === 'pending') {
-              html += '<div style="margin-top:10px;"><div style="margin-bottom:8px;font-size:12px;color:var(--dark-700);">揀選佣金計劃及核准：</div>' +
+            if (p.status === "pending") {
+              html +=
+                '<div style="margin-top:10px;"><div style="margin-bottom:8px;font-size:12px;color:var(--dark-700);">揀選佣金計劃及核准：</div>' +
                 '<div style="display:flex;gap:6px;margin-bottom:8px;">' +
-                commissionPlans.map(function(cp) {
-                  var sel = cp.key === planKey ? ' style="background:var(--primary-bg);border-color:var(--primary);color:var(--primary);"' : '';
-                  return '<button id="plan-btn-' + p.id + '-' + cp.key + '" onclick="selectPlanForApproval(\'' + p.id + '\',\'' + cp.key + '\')" style="flex:1;padding:6px 8px;border:1px solid var(--gray-200);border-radius:6px;cursor:pointer;font-size:11px;background:var(--white);font-family:inherit;"' + sel + '>' + cp.label.split(' ')[0] + '</button>';
-                }).join('') +
-                '</div>' +
+                commissionPlans
+                  .map(function (cp) {
+                    var sel =
+                      cp.key === planKey
+                        ? ' style="background:var(--primary-bg);border-color:var(--primary);color:var(--primary);"'
+                        : "";
+                    return (
+                      '<button id="plan-btn-' +
+                      p.id +
+                      "-" +
+                      cp.key +
+                      '" onclick="selectPlanForApproval(\'' +
+                      p.id +
+                      "','" +
+                      cp.key +
+                      '\')" style="flex:1;padding:6px 8px;border:1px solid var(--gray-200);border-radius:6px;cursor:pointer;font-size:11px;background:var(--white);font-family:inherit;"' +
+                      sel +
+                      ">" +
+                      cp.label.split(" ")[0] +
+                      "</button>"
+                    );
+                  })
+                  .join("") +
+                "</div>" +
                 '<div style="display:flex;gap:8px">' +
-                '<button onclick="approvePartner(\'' + p.id + '\')" style="flex:1;padding:8px;background:#059669;color:white;border:none;border-radius:8px;cursor:pointer;font-size:12px;font-weight:600">✅ 核准</button>' +
-                '<button onclick="rejectPartner(\'' + p.id + '\')" style="flex:1;padding:8px;background:#dc2626;color:white;border:none;border-radius:8px;cursor:pointer;font-size:12px">❌ 拒絕</button></div></div>';
+                "<button onclick=\"approvePartner('" +
+                p.id +
+                '\')" style="flex:1;padding:8px;background:#059669;color:white;border:none;border-radius:8px;cursor:pointer;font-size:12px;font-weight:600">✅ 核准</button>' +
+                "<button onclick=\"rejectPartner('" +
+                p.id +
+                '\')" style="flex:1;padding:8px;background:#dc2626;color:white;border:none;border-radius:8px;cursor:pointer;font-size:12px">❌ 拒絕</button></div></div>';
             }
 
-            if (p.status === 'active' || p.status === 'suspended') {
+            if (p.status === "active" || p.status === "suspended") {
               var stats = p.stats || {};
-              html += '<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;font-size:11px;">' +
-                '<span>📊 訂單：' + (stats.total_bookings||0) + '</span>' +
-                '<span>💰 營收：$' + (stats.total_revenue||0).toFixed(0) + '</span>' +
-                '</div>' +
+              html +=
+                '<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;font-size:11px;">' +
+                "<span>📊 訂單：" +
+                (stats.total_bookings || 0) +
+                "</span>" +
+                "<span>💰 營收：$" +
+                (stats.total_revenue || 0).toFixed(0) +
+                "</span>" +
+                "</div>" +
                 '<div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;">' +
-                '<button onclick="viewPartnerRevenue(\'' + p.id + '\')" style="flex:1;padding:6px;background:var(--primary-bg);color:var(--primary);border:1px solid var(--primary);border-radius:6px;cursor:pointer;font-size:11px;font-family:inherit;">📈 收入報表</button>' +
-                '<button onclick="changePartnerPlan(\'' + p.id + '\')" style="flex:1;padding:6px;background:var(--white);color:var(--dark-700);border:1px solid var(--gray-200);border-radius:6px;cursor:pointer;font-size:11px;font-family:inherit;">⚙️ 調整計劃</button>' +
-                '<button onclick="viewPartnerDetail(\'' + p.id + '\')" style="flex:1;padding:6px;background:var(--white);color:var(--dark-2);border:1px solid var(--gray-200);border-radius:6px;cursor:pointer;font-size:11px;font-family:inherit;">🔍 詳細</button>' +
-                (p.owner ? '' : '<button onclick="assignPartnerOwner(\'' + p.id + '\')" style="flex:1;padding:6px;background:#fef3c7;color:#92400e;border:1px solid #fde68a;border-radius:6px;cursor:pointer;font-size:11px;font-family:inherit;">👑 指派負責人</button>') +
-                (p.status === 'active' ? '<button onclick="changePartnerStatus(\'' + p.id + '\',\'suspended\')" style="flex:1;padding:6px;background:#fef2f2;color:#dc2626;border:1px solid #fecaca;border-radius:6px;cursor:pointer;font-size:11px;font-family:inherit;">⏸️ 暫停</button>' : '') +
-                (p.status === 'suspended' ? '<button onclick="changePartnerStatus(\'' + p.id + '\',\'active\')" style="flex:1;padding:6px;background:#ecfdf5;color:#059669;border:1px solid #a7f3d0;border-radius:6px;cursor:pointer;font-size:11px;font-family:inherit;">▶️ 啟用</button>' : '') +
-                '</div>';
+                "<button onclick=\"viewPartnerRevenue('" +
+                p.id +
+                '\')" style="flex:1;padding:6px;background:var(--primary-bg);color:var(--primary);border:1px solid var(--primary);border-radius:6px;cursor:pointer;font-size:11px;font-family:inherit;">📈 收入報表</button>' +
+                "<button onclick=\"changePartnerPlan('" +
+                p.id +
+                '\')" style="flex:1;padding:6px;background:var(--white);color:var(--dark-700);border:1px solid var(--gray-200);border-radius:6px;cursor:pointer;font-size:11px;font-family:inherit;">⚙️ 調整計劃</button>' +
+                "<button onclick=\"viewPartnerDetail('" +
+                p.id +
+                '\')" style="flex:1;padding:6px;background:var(--white);color:var(--dark-2);border:1px solid var(--gray-200);border-radius:6px;cursor:pointer;font-size:11px;font-family:inherit;">🔍 詳細</button>' +
+                (p.owner
+                  ? ""
+                  : "<button onclick=\"assignPartnerOwner('" +
+                    p.id +
+                    '\')" style="flex:1;padding:6px;background:#fef3c7;color:#92400e;border:1px solid #fde68a;border-radius:6px;cursor:pointer;font-size:11px;font-family:inherit;">👑 指派負責人</button>') +
+                (p.status === "active"
+                  ? "<button onclick=\"changePartnerStatus('" +
+                    p.id +
+                    "','suspended')\" style=\"flex:1;padding:6px;background:#fef2f2;color:#dc2626;border:1px solid #fecaca;border-radius:6px;cursor:pointer;font-size:11px;font-family:inherit;\">⏸️ 暫停</button>"
+                  : "") +
+                (p.status === "suspended"
+                  ? "<button onclick=\"changePartnerStatus('" +
+                    p.id +
+                    "','active')\" style=\"flex:1;padding:6px;background:#ecfdf5;color:#059669;border:1px solid #a7f3d0;border-radius:6px;cursor:pointer;font-size:11px;font-family:inherit;\">▶️ 啟用</button>"
+                  : "") +
+                "</div>";
             }
 
-            if (p.status === 'suspended') {
+            if (p.status === "suspended") {
               var stats = p.stats || {};
-              html += '<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;font-size:11px;">' +
-                '<span>📊 訂單：' + (stats.total_bookings||0) + '</span>' +
-                '</div>';
+              html +=
+                '<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;font-size:11px;">' +
+                "<span>📊 訂單：" +
+                (stats.total_bookings || 0) +
+                "</span>" +
+                "</div>";
             }
 
-            html += '</div>';
+            html += "</div>";
           });
           container.innerHTML = html;
-        } catch(e) {
-          container.innerHTML = '<div style="text-align:center;padding:40px;color:#ef4444">❌ 無法載入</div>';
+        } catch (e) {
+          container.innerHTML =
+            '<div style="text-align:center;padding:40px;color:#ef4444">❌ 無法載入</div>';
         }
       }
 
@@ -2391,90 +2525,130 @@
 
       function selectPlanForApproval(venueId, planKey) {
         selectedPlans[venueId] = planKey;
-        commissionPlans.forEach(function(cp) {
-          var btn = document.getElementById('plan-btn-' + venueId + '-' + cp.key);
+        commissionPlans.forEach(function (cp) {
+          var btn = document.getElementById(
+            "plan-btn-" + venueId + "-" + cp.key,
+          );
           if (btn) {
-            btn.style.background = 'var(--white)';
-            btn.style.borderColor = 'var(--gray-200)';
-            btn.style.color = 'var(--dark-700)';
+            btn.style.background = "var(--white)";
+            btn.style.borderColor = "var(--gray-200)";
+            btn.style.color = "var(--dark-700)";
           }
         });
-        var selBtn = document.getElementById('plan-btn-' + venueId + '-' + planKey);
+        var selBtn = document.getElementById(
+          "plan-btn-" + venueId + "-" + planKey,
+        );
         if (selBtn) {
-          selBtn.style.background = 'var(--primary-bg)';
-          selBtn.style.borderColor = 'var(--primary)';
-          selBtn.style.color = 'var(--primary)';
+          selBtn.style.background = "var(--primary-bg)";
+          selBtn.style.borderColor = "var(--primary)";
+          selBtn.style.color = "var(--primary)";
         }
       }
 
       async function approvePartner(venueId) {
-        if (!confirm('核准此商戶申請？')) return;
-        var plan = selectedPlans[venueId] || 'basic';
+        if (!confirm("核准此商戶申請？")) return;
+        var plan = selectedPlans[venueId] || "basic";
         try {
-          await apiPost('/admin/partner-approve', {
+          await apiPost("/admin/partner-approve", {
             venue_id: venueId,
-            action: 'accept',
+            action: "accept",
             commission_plan: plan,
           });
-          showToast('✅ 已核准 (' + (commissionPlans.find(function(x){return x.key===plan;})?.label||'Basic') + ')', 'success');
-          showPartnerSection('pending');
-        } catch(e) {
-          showToast('❌ ' + e.message, 'error');
+          showToast(
+            "✅ 已核准 (" +
+              (commissionPlans.find(function (x) {
+                return x.key === plan;
+              })?.label || "Basic") +
+              ")",
+            "success",
+          );
+          showPartnerSection("pending");
+        } catch (e) {
+          showToast("❌ " + e.message, "error");
         }
       }
 
       async function rejectPartner(venueId) {
-        if (!confirm('拒絕此商戶申請？')) return;
+        if (!confirm("拒絕此商戶申請？")) return;
         try {
-          await apiPost('/admin/partner-approve', { venue_id: venueId, action: 'reject' });
-          showToast('✅ 已拒絕', 'success');
-          showPartnerSection('pending');
-        } catch(e) {
-          showToast('❌ ' + e.message, 'error');
+          await apiPost("/admin/partner-approve", {
+            venue_id: venueId,
+            action: "reject",
+          });
+          showToast("✅ 已拒絕", "success");
+          showPartnerSection("pending");
+        } catch (e) {
+          showToast("❌ " + e.message, "error");
         }
       }
 
       // ===== 收入報表 Modal =====
       async function viewPartnerRevenue(venueId) {
         try {
-          var d = await apiGet('/admin/partner/' + venueId + '/revenue');
+          var d = await apiGet("/admin/partner/" + venueId + "/revenue");
           var v = d.venue || {};
-          var html = '<div class="modal-overlay" id="revenueModal" onclick="closeRevenueModal(event)">' +
+          var html =
+            '<div class="modal-overlay" id="revenueModal" onclick="closeRevenueModal(event)">' +
             '<div class="modal" style="width:600px;max-height:80vh;overflow-y:auto;">' +
-            '<h3>📈 ' + escape(v.name || '收入報表') + '</h3>';
+            "<h3>📈 " +
+            escape(v.name || "收入報表") +
+            "</h3>";
 
           var t = d.totals || {};
-          html += '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:16px;">' +
-            '<div style="background:#e0f2fe;padding:12px;border-radius:8px;text-align:center;"><div style="font-size:20px;font-weight:700;color:#0369a1;">' + (t.total_bookings||0) + '</div><div style="font-size:11px;color:var(--gray);">總訂單</div></div>' +
-            '<div style="background:var(--primary-bg);padding:12px;border-radius:8px;text-align:center;"><div style="font-size:20px;font-weight:700;color:var(--primary);">$' + (t.total_revenue||0).toFixed(0) + '</div><div style="font-size:11px;color:var(--gray);">總營收</div></div>' +
-            '<div style="background:#ecfdf5;padding:12px;border-radius:8px;text-align:center;"><div style="font-size:20px;font-weight:700;color:var(--green);">$' + (t.total_venue_earned||0).toFixed(0) + '</div><div style="font-size:11px;color:var(--gray);">場地實收</div></div>' +
-            '<div style="background:#fef2f2;padding:12px;border-radius:8px;text-align:center;"><div style="font-size:20px;font-weight:700;color:var(--red);">$' + (t.total_platform_fee||0).toFixed(0) + '</div><div style="font-size:11px;color:var(--gray);">平台佣金</div></div>' +
-            '</div>';
+          html +=
+            '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:16px;">' +
+            '<div style="background:#e0f2fe;padding:12px;border-radius:8px;text-align:center;"><div style="font-size:20px;font-weight:700;color:#0369a1;">' +
+            (t.total_bookings || 0) +
+            '</div><div style="font-size:11px;color:var(--gray);">總訂單</div></div>' +
+            '<div style="background:var(--primary-bg);padding:12px;border-radius:8px;text-align:center;"><div style="font-size:20px;font-weight:700;color:var(--primary);">$' +
+            (t.total_revenue || 0).toFixed(0) +
+            '</div><div style="font-size:11px;color:var(--gray);">總營收</div></div>' +
+            '<div style="background:#ecfdf5;padding:12px;border-radius:8px;text-align:center;"><div style="font-size:20px;font-weight:700;color:var(--green);">$' +
+            (t.total_venue_earned || 0).toFixed(0) +
+            '</div><div style="font-size:11px;color:var(--gray);">場地實收</div></div>' +
+            '<div style="background:#fef2f2;padding:12px;border-radius:8px;text-align:center;"><div style="font-size:20px;font-weight:700;color:var(--red);">$' +
+            (t.total_platform_fee || 0).toFixed(0) +
+            '</div><div style="font-size:11px;color:var(--gray);">平台佣金</div></div>' +
+            "</div>";
 
           var ms = d.monthly_stats || [];
           if (ms.length > 0) {
-            html += '<h4 style="font-size:13px;font-weight:600;margin-bottom:8px;">📊 月度收入趨勢</h4>' +
+            html +=
+              '<h4 style="font-size:13px;font-weight:600;margin-bottom:8px;">📊 月度收入趨勢</h4>' +
               '<div style="overflow-x:auto;"><table style="width:100%;font-size:12px;border-collapse:collapse;"><thead><tr>' +
               '<th style="text-align:left;padding:6px 10px;border-bottom:2px solid var(--gray-light);">月份</th>' +
               '<th style="text-align:left;padding:6px 10px;border-bottom:2px solid var(--gray-light);">訂單數</th>' +
               '<th style="text-align:left;padding:6px 10px;border-bottom:2px solid var(--gray-light);">總營收</th>' +
               '<th style="text-align:left;padding:6px 10px;border-bottom:2px solid var(--gray-light);">場地實收</th>' +
               '<th style="text-align:left;padding:6px 10px;border-bottom:2px solid var(--gray-light);">平台佣金</th></tr></thead><tbody>';
-            ms.forEach(function(m) {
-              html += '<tr><td style="padding:6px 10px;border-bottom:1px solid var(--gray-light);">' + escape(m.month||'') + '</td>' +
-                '<td style="padding:6px 10px;border-bottom:1px solid var(--gray-light);">' + (m.booking_count||0) + '</td>' +
-                '<td style="padding:6px 10px;border-bottom:1px solid var(--gray-light);">$' + (m.total_revenue||0).toFixed(0) + '</td>' +
-                '<td style="padding:6px 10px;border-bottom:1px solid var(--gray-light);color:var(--green);font-weight:600;">$' + (m.venue_earned||0).toFixed(0) + '</td>' +
-                '<td style="padding:6px 10px;border-bottom:1px solid var(--gray-light);color:var(--red);">$' + (m.platform_fee||0).toFixed(0) + '</td></tr>';
+            ms.forEach(function (m) {
+              html +=
+                '<tr><td style="padding:6px 10px;border-bottom:1px solid var(--gray-light);">' +
+                escape(m.month || "") +
+                "</td>" +
+                '<td style="padding:6px 10px;border-bottom:1px solid var(--gray-light);">' +
+                (m.booking_count || 0) +
+                "</td>" +
+                '<td style="padding:6px 10px;border-bottom:1px solid var(--gray-light);">$' +
+                (m.total_revenue || 0).toFixed(0) +
+                "</td>" +
+                '<td style="padding:6px 10px;border-bottom:1px solid var(--gray-light);color:var(--green);font-weight:600;">$' +
+                (m.venue_earned || 0).toFixed(0) +
+                "</td>" +
+                '<td style="padding:6px 10px;border-bottom:1px solid var(--gray-light);color:var(--red);">$' +
+                (m.platform_fee || 0).toFixed(0) +
+                "</td></tr>";
             });
-            html += '</tbody></table></div>';
+            html += "</tbody></table></div>";
           } else {
-            html += '<p style="color:var(--gray);font-size:13px;">暫無月度數據</p>';
+            html +=
+              '<p style="color:var(--gray);font-size:13px;">暫無月度數據</p>';
           }
 
           var payouts = d.payouts || [];
           if (payouts.length > 0) {
-            html += '<h4 style="font-size:13px;font-weight:600;margin:16px 0 8px;">📄 最近結算</h4>' +
+            html +=
+              '<h4 style="font-size:13px;font-weight:600;margin:16px 0 8px;">📄 最近結算</h4>' +
               '<div style="overflow-x:auto;"><table style="width:100%;font-size:12px;border-collapse:collapse;"><thead><tr>' +
               '<th style="text-align:left;padding:6px 10px;border-bottom:2px solid var(--gray-light);">日期</th>' +
               '<th style="text-align:left;padding:6px 10px;border-bottom:2px solid var(--gray-light);">期別</th>' +
@@ -2482,207 +2656,300 @@
               '<th style="text-align:left;padding:6px 10px;border-bottom:2px solid var(--gray-light);">佣金</th>' +
               '<th style="text-align:left;padding:6px 10px;border-bottom:2px solid var(--gray-light);">實收</th>' +
               '<th style="text-align:left;padding:6px 10px;border-bottom:2px solid var(--gray-light);">狀態</th></tr></thead><tbody>';
-            payouts.forEach(function(p) {
-              html += '<tr><td style="padding:6px 10px;border-bottom:1px solid var(--gray-light);">' + (p.created_at||'').substring(0,10) + '</td>' +
-                '<td style="padding:6px 10px;border-bottom:1px solid var(--gray-light);">' + (p.period_start||'') + '</td>' +
-                '<td style="padding:6px 10px;border-bottom:1px solid var(--gray-light);">$' + (p.total_revenue||0).toFixed(0) + '</td>' +
-                '<td style="padding:6px 10px;border-bottom:1px solid var(--gray-light);">$' + (p.platform_commission||0).toFixed(0) + '</td>' +
-                '<td style="padding:6px 10px;border-bottom:1px solid var(--gray-light);color:var(--green);font-weight:600;">$' + (p.venue_earned||0).toFixed(0) + '</td>' +
-                '<td style="padding:6px 10px;border-bottom:1px solid var(--gray-light);"><span class="badge ' + (p.status==='paid'?'bg-green':'bg-yellow') + '">' + (p.status==='paid'?'已支付':'待處理') + '</span></td></tr>';
+            payouts.forEach(function (p) {
+              html +=
+                '<tr><td style="padding:6px 10px;border-bottom:1px solid var(--gray-light);">' +
+                (p.created_at || "").substring(0, 10) +
+                "</td>" +
+                '<td style="padding:6px 10px;border-bottom:1px solid var(--gray-light);">' +
+                (p.period_start || "") +
+                "</td>" +
+                '<td style="padding:6px 10px;border-bottom:1px solid var(--gray-light);">$' +
+                (p.total_revenue || 0).toFixed(0) +
+                "</td>" +
+                '<td style="padding:6px 10px;border-bottom:1px solid var(--gray-light);">$' +
+                (p.platform_commission || 0).toFixed(0) +
+                "</td>" +
+                '<td style="padding:6px 10px;border-bottom:1px solid var(--gray-light);color:var(--green);font-weight:600;">$' +
+                (p.venue_earned || 0).toFixed(0) +
+                "</td>" +
+                '<td style="padding:6px 10px;border-bottom:1px solid var(--gray-light);"><span class="badge ' +
+                (p.status === "paid" ? "bg-green" : "bg-yellow") +
+                '">' +
+                (p.status === "paid" ? "已支付" : "待處理") +
+                "</span></td></tr>";
             });
-            html += '</tbody></table></div>';
+            html += "</tbody></table></div>";
           } else {
-            html += '<p style="color:var(--gray);font-size:13px;margin-top:12px;">暫無結算記錄</p>';
+            html +=
+              '<p style="color:var(--gray);font-size:13px;margin-top:12px;">暫無結算記錄</p>';
           }
 
-          html += '<div class="actions" style="margin-top:16px;">' +
+          html +=
+            '<div class="actions" style="margin-top:16px;">' +
             '<button class="btn btn-primary" onclick="closeRevenueModal()">關閉</button></div></div></div>';
 
-          document.body.insertAdjacentHTML('beforeend', html);
-        } catch(e) {
-          showToast('❌ 無法載入收入報表', 'error');
+          document.body.insertAdjacentHTML("beforeend", html);
+        } catch (e) {
+          showToast("❌ 無法載入收入報表", "error");
         }
       }
 
       function closeRevenueModal(e) {
         if (e && e.target !== e.currentTarget) return;
-        var el = document.getElementById('revenueModal');
+        var el = document.getElementById("revenueModal");
         if (el) el.remove();
       }
 
       // ===== 調整佣金計劃 =====
       async function changePartnerPlan(venueId) {
         var plans = commissionPlans;
-        var options = plans.map(function(p,i){ return '<option value="' + p.key + '">' + p.label + '（' + Math.round(p.rate*100) + '% 佣金）</option>'; }).join('');
-        var html = '<div class="modal-overlay" id="planModal" onclick="closePlanModal(event)">' +
+        var options = plans
+          .map(function (p, i) {
+            return (
+              '<option value="' +
+              p.key +
+              '">' +
+              p.label +
+              "（" +
+              Math.round(p.rate * 100) +
+              "% 佣金）</option>"
+            );
+          })
+          .join("");
+        var html =
+          '<div class="modal-overlay" id="planModal" onclick="closePlanModal(event)">' +
           '<div class="modal"><h3>⚙️ 調整佣金計劃</h3>' +
           '<div style="margin-bottom:12px;">' +
           '<label style="display:block;font-size:12px;font-weight:600;margin-bottom:4px;">佣金計劃</label>' +
-          '<select id="planSelect" style="width:100%;padding:8px 12px;border:1px solid var(--gray-light);border-radius:6px;font-size:13px;font-family:inherit;">' + options + '</select></div>' +
+          '<select id="planSelect" style="width:100%;padding:8px 12px;border:1px solid var(--gray-light);border-radius:6px;font-size:13px;font-family:inherit;">' +
+          options +
+          "</select></div>" +
           '<div class="actions">' +
           '<button class="btn btn-outline" onclick="closePlanModal()">取消</button>' +
-          '<button class="btn btn-primary" onclick="savePartnerPlan(\'' + venueId + '\')">💾 儲存</button></div></div></div>';
-        document.body.insertAdjacentHTML('beforeend', html);
+          '<button class="btn btn-primary" onclick="savePartnerPlan(\'' +
+          venueId +
+          "')\">💾 儲存</button></div></div></div>";
+        document.body.insertAdjacentHTML("beforeend", html);
       }
 
       function closePlanModal(e) {
         if (e && e.target !== e.currentTarget) return;
-        var el = document.getElementById('planModal');
+        var el = document.getElementById("planModal");
         if (el) el.remove();
       }
 
       async function savePartnerPlan(venueId) {
-        var plan = document.getElementById('planSelect')?.value;
+        var plan = document.getElementById("planSelect")?.value;
         if (!plan) return;
         try {
-          await apiPut('/admin/partner/' + venueId, { commission_plan: plan });
-          showToast('✅ 佣金計劃已更新', 'success');
+          await apiPut("/admin/partner/" + venueId, { commission_plan: plan });
+          showToast("✅ 佣金計劃已更新", "success");
           closePlanModal();
-          showPartnerSection('active');
-        } catch(e) {
-          showToast('❌ ' + e.message, 'error');
+          showPartnerSection("active");
+        } catch (e) {
+          showToast("❌ " + e.message, "error");
         }
       }
 
       // ===== 商戶詳細 Modal =====
       async function viewPartnerDetail(venueId) {
         try {
-          var d = await apiGet('/admin/partner/' + venueId + '/courses');
-          var html = '<div class="modal-overlay" id="detailModal" onclick="closeDetailModal(event)">' +
+          var d = await apiGet("/admin/partner/" + venueId + "/courses");
+          var html =
+            '<div class="modal-overlay" id="detailModal" onclick="closeDetailModal(event)">' +
             '<div class="modal" style="width:700px;max-height:85vh;overflow-y:auto;">' +
-            '<h3>🔍 商戶詳細</h3>';
+            "<h3>🔍 商戶詳細</h3>";
 
           // Venue info
-          html += '<div class="stats-grid" style="margin-bottom:16px;">' +
+          html +=
+            '<div class="stats-grid" style="margin-bottom:16px;">' +
             '<div style="background:var(--primary-bg);padding:12px;border-radius:8px;">' +
             '<div style="font-size:11px;color:var(--gray);">場地</div>' +
-            '<div style="font-size:14px;font-weight:600;">' + (d.venues||[]).length + '</div></div>' +
+            '<div style="font-size:14px;font-weight:600;">' +
+            (d.venues || []).length +
+            "</div></div>" +
             '<div style="background:#e0f2fe;padding:12px;border-radius:8px;">' +
             '<div style="font-size:11px;color:var(--gray);">課程</div>' +
-            '<div style="font-size:14px;font-weight:600;">' + (d.courses||[]).length + '</div></div>' +
-            '</div>';
+            '<div style="font-size:14px;font-weight:600;">' +
+            (d.courses || []).length +
+            "</div></div>" +
+            "</div>";
 
           // Courses list
           var courses = d.courses || [];
           if (courses.length > 0) {
-            html += '<h4 style="font-size:13px;font-weight:600;margin-bottom:8px;">📚 課程列表 (' + courses.length + ')</h4>' +
+            html +=
+              '<h4 style="font-size:13px;font-weight:600;margin-bottom:8px;">📚 課程列表 (' +
+              courses.length +
+              ")</h4>" +
               '<div style="overflow-x:auto;margin-bottom:12px;"><table style="width:100%;font-size:12px;border-collapse:collapse;"><thead><tr>' +
               '<th style="text-align:left;padding:6px 10px;border-bottom:2px solid var(--gray-light);">課程名稱</th>' +
               '<th style="text-align:left;padding:6px 10px;border-bottom:2px solid var(--gray-light);">類別</th>' +
               '<th style="text-align:left;padding:6px 10px;border-bottom:2px solid var(--gray-light);">時段</th>' +
               '<th style="text-align:left;padding:6px 10px;border-bottom:2px solid var(--gray-light);">預約數</th></tr></thead><tbody>';
-            courses.forEach(function(c) {
-              html += '<tr><td style="padding:6px 10px;border-bottom:1px solid var(--gray-light);">' + escape(c.title||'') + '</td>' +
-                '<td style="padding:6px 10px;border-bottom:1px solid var(--gray-light);">' + escape(c.category||'—') + '</td>' +
-                '<td style="padding:6px 10px;border-bottom:1px solid var(--gray-light);">' + (c.schedule_count||0) + '</td>' +
-                '<td style="padding:6px 10px;border-bottom:1px solid var(--gray-light);">' + (c.booking_count||0) + '</td></tr>';
+            courses.forEach(function (c) {
+              html +=
+                '<tr><td style="padding:6px 10px;border-bottom:1px solid var(--gray-light);">' +
+                escape(c.title || "") +
+                "</td>" +
+                '<td style="padding:6px 10px;border-bottom:1px solid var(--gray-light);">' +
+                escape(c.category || "—") +
+                "</td>" +
+                '<td style="padding:6px 10px;border-bottom:1px solid var(--gray-light);">' +
+                (c.schedule_count || 0) +
+                "</td>" +
+                '<td style="padding:6px 10px;border-bottom:1px solid var(--gray-light);">' +
+                (c.booking_count || 0) +
+                "</td></tr>";
             });
-            html += '</tbody></table></div>';
+            html += "</tbody></table></div>";
           } else {
-            html += '<p style="color:var(--gray);font-size:13px;margin-bottom:12px;">暫無課程</p>';
+            html +=
+              '<p style="color:var(--gray);font-size:13px;margin-bottom:12px;">暫無課程</p>';
           }
 
           // Venues
           var venues = d.venues || [];
           if (venues.length > 0) {
-            html += '<h4 style="font-size:13px;font-weight:600;margin-bottom:8px;">🏟️ 場地資訊</h4>';
-            venues.forEach(function(v) {
-              html += '<div style="background:var(--gray-light);padding:8px 12px;border-radius:8px;margin-bottom:6px;font-size:12px;">' +
-                '<span style="font-weight:600;">' + escape(v.name) + '</span>' +
-                ' · ' + escape(v.category||'') + ' · ' + escape(v.district||'') +
-                (v.email ? ' · 📧 ' + escape(v.email) : '') +
-                '</div>';
+            html +=
+              '<h4 style="font-size:13px;font-weight:600;margin-bottom:8px;">🏟️ 場地資訊</h4>';
+            venues.forEach(function (v) {
+              html +=
+                '<div style="background:var(--gray-light);padding:8px 12px;border-radius:8px;margin-bottom:6px;font-size:12px;">' +
+                '<span style="font-weight:600;">' +
+                escape(v.name) +
+                "</span>" +
+                " · " +
+                escape(v.category || "") +
+                " · " +
+                escape(v.district || "") +
+                (v.email ? " · 📧 " + escape(v.email) : "") +
+                "</div>";
             });
           }
 
-          html += '<div class="actions" style="margin-top:16px;">' +
+          html +=
+            '<div class="actions" style="margin-top:16px;">' +
             '<button class="btn btn-primary" onclick="closeDetailModal()">關閉</button></div></div></div>';
 
-          document.body.insertAdjacentHTML('beforeend', html);
-        } catch(e) {
-          showToast('❌ 無法載入詳細資料', 'error');
+          document.body.insertAdjacentHTML("beforeend", html);
+        } catch (e) {
+          showToast("❌ 無法載入詳細資料", "error");
         }
       }
 
       function closeDetailModal(e) {
         if (e && e.target !== e.currentTarget) return;
-        var el = document.getElementById('detailModal');
+        var el = document.getElementById("detailModal");
         if (el) el.remove();
       }
 
       // ===== 指派商戶負責人 =====
       async function assignPartnerOwner(venueId) {
         try {
-          var d = await apiGet('/admin/partner/' + venueId + '/owner');
+          var d = await apiGet("/admin/partner/" + venueId + "/owner");
           var owners = d.potential_owners || [];
           if (owners.length === 0) {
-            showToast('❌ 暫無可用用戶可指派爲負責人', 'error');
+            showToast("❌ 暫無可用用戶可指派爲負責人", "error");
             return;
           }
-          var options = owners.map(function(o) {
-            return '<option value="' + o.id + '">' + escape(o.name||o.email) + ' (' + escape(o.email) + ')</option>';
-          }).join('');
+          var options = owners
+            .map(function (o) {
+              return (
+                '<option value="' +
+                o.id +
+                '">' +
+                escape(o.name || o.email) +
+                " (" +
+                escape(o.email) +
+                ")</option>"
+              );
+            })
+            .join("");
 
-          var html = '<div class="modal-overlay" id="ownerModal" onclick="closeOwnerModal(event)">' +
+          var html =
+            '<div class="modal-overlay" id="ownerModal" onclick="closeOwnerModal(event)">' +
             '<div class="modal"><h3>👑 指派商戶負責人</h3>' +
-            '<p style="font-size:12px;color:var(--dark-700);margin-bottom:12px;">' + escape(d.venue.name) + '</p>' +
+            '<p style="font-size:12px;color:var(--dark-700);margin-bottom:12px;">' +
+            escape(d.venue.name) +
+            "</p>" +
             '<div style="margin-bottom:12px;">' +
             '<label style="display:block;font-size:12px;font-weight:600;margin-bottom:4px;">選擇負責人</label>' +
-            '<select id="ownerSelect" style="width:100%;padding:8px 12px;border:1px solid var(--gray-light);border-radius:6px;font-size:13px;font-family:inherit;">' + options + '</select></div>' +
+            '<select id="ownerSelect" style="width:100%;padding:8px 12px;border:1px solid var(--gray-light);border-radius:6px;font-size:13px;font-family:inherit;">' +
+            options +
+            "</select></div>" +
             '<div class="actions">' +
             '<button class="btn btn-outline" onclick="closeOwnerModal()">取消</button>' +
-            '<button class="btn btn-primary" onclick="savePartnerOwner(\'' + venueId + '\')">💾 儲存</button></div></div></div>';
-          document.body.insertAdjacentHTML('beforeend', html);
-        } catch(e) {
-          showToast('❌ ' + e.message, 'error');
+            '<button class="btn btn-primary" onclick="savePartnerOwner(\'' +
+            venueId +
+            "')\">💾 儲存</button></div></div></div>";
+          document.body.insertAdjacentHTML("beforeend", html);
+        } catch (e) {
+          showToast("❌ " + e.message, "error");
         }
       }
 
       function closeOwnerModal(e) {
         if (e && e.target !== e.currentTarget) return;
-        var el = document.getElementById('ownerModal');
+        var el = document.getElementById("ownerModal");
         if (el) el.remove();
       }
 
       async function savePartnerOwner(venueId) {
-        var ownerId = document.getElementById('ownerSelect')?.value;
+        var ownerId = document.getElementById("ownerSelect")?.value;
         if (!ownerId) return;
         try {
-          await apiPut('/admin/partner/' + venueId + '/owner', { owner_id: ownerId });
-          showToast('✅ 負責人已指派', 'success');
+          await apiPut("/admin/partner/" + venueId + "/owner", {
+            owner_id: ownerId,
+          });
+          showToast("✅ 負責人已指派", "success");
           closeOwnerModal();
-          showPartnerSection('active');
-        } catch(e) {
-          showToast('❌ ' + e.message, 'error');
+          showPartnerSection("active");
+        } catch (e) {
+          showToast("❌ " + e.message, "error");
         }
       }
 
       // ===== 更改商戶狀態 =====
       async function changePartnerStatus(venueId, newStatus) {
-        var actionLabel = newStatus === 'active' ? '啟用' : '暫停';
-        if (!confirm('確定' + actionLabel +'此商戶？')) return;
+        var actionLabel = newStatus === "active" ? "啟用" : "暫停";
+        if (!confirm("確定" + actionLabel + "此商戶？")) return;
         try {
-          await apiPut('/admin/partner/' + venueId + '/status', { status: newStatus });
-          showToast('✅ 商戶已' + actionLabel, 'success');
-          showPartnerSection('active');
-        } catch(e) {
-          showToast('❌ ' + e.message, 'error');
+          await apiPut("/admin/partner/" + venueId + "/status", {
+            status: newStatus,
+          });
+          showToast("✅ 商戶已" + actionLabel, "success");
+          showPartnerSection("active");
+        } catch (e) {
+          showToast("❌ " + e.message, "error");
         }
       }
 
       function searchPartner() {
-        var status = document.querySelector('#mainContent .tab-btn.active');
-        var st = 'active';
-        if (status) st = status.textContent.includes('待審批') ? 'pending' : status.textContent.includes('全部') ? 'all' : 'active';
+        var status = document.querySelector("#mainContent .tab-btn.active");
+        var st = "active";
+        if (status)
+          st = status.textContent.includes("待審批")
+            ? "pending"
+            : status.textContent.includes("全部")
+              ? "all"
+              : "active";
         showPartnerSection(st);
       }
 
       function escHtml(s) {
-        return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\"/g,'&quot;');
+        return String(s)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/\"/g, "&quot;");
       }
 
-      function escape(s) { return escHtml(s); }
-// ===== 📋 教練申請審批 Tab =====
+      function escape(s) {
+        return escHtml(s);
+      }
+      // ===== 📋 教練申請審批 Tab =====
       async function loadCoachAppsTab() {
         var main = document.getElementById("mainContent");
         main.innerHTML =
@@ -3606,23 +3873,39 @@
         try {
           var d = await apiGet("/admin/audit-log");
           var entries = d.data?.entries || d.entries || [];
-          var html = '<div class="top-bar"><div><h1>📋 審計日誌</h1><div class="sub">IPO-ready Audit Trail — 共 <strong>' + entries.length + '</strong> 條記錄</div></div></div>' +
+          var html =
+            '<div class="top-bar"><div><h1>📋 審計日誌</h1><div class="sub">IPO-ready Audit Trail — 共 <strong>' +
+            entries.length +
+            "</strong> 條記錄</div></div></div>" +
             '<div class="table-wrap"><table><thead><tr><th>時間</th><th>類型</th><th>用戶</th><th>動作</th><th>IP</th></tr></thead><tbody>';
           if (entries.length === 0) {
-            html += '<tr><td colspan="5" style="text-align:center;padding:40px;color:#9ca3af;font-size:13px">📭 暫無審計記錄</td></tr>';
+            html +=
+              '<tr><td colspan="5" style="text-align:center;padding:40px;color:#9ca3af;font-size:13px">📭 暫無審計記錄</td></tr>';
           } else {
-            entries.slice(0, 100).forEach(function(e) {
-              html += '<tr><td style="font-size:12px;font-family:monospace;color:#6b7280">' + escape(e.created_at || e.timestamp || '—') + '</td>' +
-                '<td>' + escape(e.action_type || e.type || '—') + '</td>' +
-                '<td>' + escape(e.user_name || e.user_email || e.user_id || '—') + '</td>' +
-                '<td style="font-size:12px;max-width:300px;overflow:hidden;text-overflow:ellipsis">' + escape(e.description || e.action || '—') + '</td>' +
-                '<td style="font-size:11px;color:#9ca3af;font-family:monospace">' + escape(e.ip_address || '—') + '</td></tr>';
+            entries.slice(0, 100).forEach(function (e) {
+              html +=
+                '<tr><td style="font-size:12px;font-family:monospace;color:#6b7280">' +
+                escape(e.created_at || e.timestamp || "—") +
+                "</td>" +
+                "<td>" +
+                escape(e.action_type || e.type || "—") +
+                "</td>" +
+                "<td>" +
+                escape(e.user_name || e.user_email || e.user_id || "—") +
+                "</td>" +
+                '<td style="font-size:12px;max-width:300px;overflow:hidden;text-overflow:ellipsis">' +
+                escape(e.description || e.action || "—") +
+                "</td>" +
+                '<td style="font-size:11px;color:#9ca3af;font-family:monospace">' +
+                escape(e.ip_address || "—") +
+                "</td></tr>";
             });
           }
-          html += '</tbody></table></div>';
+          html += "</tbody></table></div>";
           main.innerHTML = html;
-        } catch(e) {
-          main.innerHTML = '<div class="empty" style="padding:40px;text-align:center;color:#ef4444">❌ 載入審計日誌失敗</div>';
+        } catch (e) {
+          main.innerHTML =
+            '<div class="empty" style="padding:40px;text-align:center;color:#ef4444">❌ 載入審計日誌失敗</div>';
         }
       }
 
@@ -3633,60 +3916,94 @@
         try {
           var d = await apiGet("/pricing/admin/pricing");
           var cats = d.categories || {};
-          var catLabels = { plans: "📋 會籍方案定價", credits: "💳 Credit 消耗設定", packages: "🎟️ 加購點數", general: "⚙️ 一般設定" };
-          var html = '<div class="top-bar"><div><h1>💰 定價設定</h1><div class="sub">管理員可隨時調整價格，修改後即時生效</div></div></div>';
+          var catLabels = {
+            plans: "📋 會籍方案定價",
+            credits: "💳 Credit 消耗設定",
+            packages: "🎟️ 加購點數",
+            general: "⚙️ 一般設定",
+          };
+          var html =
+            '<div class="top-bar"><div><h1>💰 定價設定</h1><div class="sub">管理員可隨時調整價格，修改後即時生效</div></div></div>';
           html += '<div id="pricing-form">';
           for (var cat in cats) {
-            html += '<div class="card" style="margin-bottom:16px"><div class="card-header" style="font-weight:700;font-size:15px;padding:12px 16px;border-bottom:1px solid var(--gray-200)">' + (catLabels[cat] || cat) + '</div><div style="padding:12px 16px">';
-            cats[cat].forEach(function(item) {
+            html +=
+              '<div class="card" style="margin-bottom:16px"><div class="card-header" style="font-weight:700;font-size:15px;padding:12px 16px;border-bottom:1px solid var(--gray-200)">' +
+              (catLabels[cat] || cat) +
+              '</div><div style="padding:12px 16px">';
+            cats[cat].forEach(function (item) {
               var val = item.value;
               // Try to detect if JSON array/object
-              var isJson = (val.startsWith('[') || val.startsWith('{')) && (val.endsWith(']') || val.endsWith('}'));
+              var isJson =
+                (val.startsWith("[") || val.startsWith("{")) &&
+                (val.endsWith("]") || val.endsWith("}"));
               if (isJson) {
-                try { val = JSON.stringify(JSON.parse(val), null, 2); } catch(e) {}
+                try {
+                  val = JSON.stringify(JSON.parse(val), null, 2);
+                } catch (e) {}
               }
               var rows = isJson ? 3 : 1;
-              html += '<div style="margin-bottom:12px">' +
-                '<label style="font-size:12px;font-weight:600;color:var(--dark-700);display:block;margin-bottom:4px">' + escape(item.label || item.key) + '</label>' +
-                '<input type="text" id="pcfg-' + escape(item.key) + '" value="' + escape(val) + '" style="width:100%;padding:8px 10px;border:1px solid var(--gray-200);border-radius:6px;font-size:13px;font-family:monospace" data-key="' + escape(item.key) + '" />' +
-                '<div style="font-size:11px;color:#9ca3af;margin-top:2px">' + escape(item.key) + '</div></div>';
+              html +=
+                '<div style="margin-bottom:12px">' +
+                '<label style="font-size:12px;font-weight:600;color:var(--dark-700);display:block;margin-bottom:4px">' +
+                escape(item.label || item.key) +
+                "</label>" +
+                '<input type="text" id="pcfg-' +
+                escape(item.key) +
+                '" value="' +
+                escape(val) +
+                '" style="width:100%;padding:8px 10px;border:1px solid var(--gray-200);border-radius:6px;font-size:13px;font-family:monospace" data-key="' +
+                escape(item.key) +
+                '" />' +
+                '<div style="font-size:11px;color:#9ca3af;margin-top:2px">' +
+                escape(item.key) +
+                "</div></div>";
             });
-            html += '</div></div>';
+            html += "</div></div>";
           }
-          html += '</div>';
-          html += '<button class="btn-primary" style="padding:12px 32px;font-size:14px" onclick="savePricing()">💾 儲存所有更改</button>';
+          html += "</div>";
+          html +=
+            '<button class="btn-primary" style="padding:12px 32px;font-size:14px" onclick="savePricing()">💾 儲存所有更改</button>';
           main.innerHTML = html;
-        } catch(e) {
-          main.innerHTML = '<div class="empty" style="padding:40px;text-align:center;color:#ef4444">❌ 載入定價設定失敗</div>';
+        } catch (e) {
+          main.innerHTML =
+            '<div class="empty" style="padding:40px;text-align:center;color:#ef4444">❌ 載入定價設定失敗</div>';
         }
       }
 
       async function savePricing() {
         var inputs = document.querySelectorAll('[id^="pcfg-"]');
         var updates = {};
-        inputs.forEach(function(inp) {
-          var key = inp.getAttribute('data-key');
+        inputs.forEach(function (inp) {
+          var key = inp.getAttribute("data-key");
           var val = inp.value.trim();
           // Try to parse JSON values back
-          if ((val.startsWith('[') || val.startsWith('{')) && (val.endsWith(']') || val.endsWith('}'))) {
-            try { val = JSON.parse(val); } catch(e) {}
+          if (
+            (val.startsWith("[") || val.startsWith("{")) &&
+            (val.endsWith("]") || val.endsWith("}"))
+          ) {
+            try {
+              val = JSON.parse(val);
+            } catch (e) {}
           }
           updates[key] = val;
         });
         try {
-          var r = await fetch('/api/pricing/admin/pricing', {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + getToken() },
-            body: JSON.stringify({ updates: updates })
+          var r = await fetch("/api/pricing/admin/pricing", {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + getToken(),
+            },
+            body: JSON.stringify({ updates: updates }),
           });
           var d = await r.json();
           if (d.success) {
-            showToast('✅ 已更新 ' + d.updated + ' 項定價設定', 'success');
+            showToast("✅ 已更新 " + d.updated + " 項定價設定", "success");
           } else {
-            showToast('❌ ' + (d.error || '儲存失敗'), 'error');
+            showToast("❌ " + (d.error || "儲存失敗"), "error");
           }
-        } catch(e) {
-          showToast('❌ 網絡錯誤', 'error');
+        } catch (e) {
+          showToast("❌ 網絡錯誤", "error");
         }
       }
 
@@ -3700,56 +4017,103 @@
           var wallets = data.wallets || [];
           var total = data.total || 0;
 
-          var html = '';
-          html += '<div class="top-bar"><div><h1>🪙 錢包管理</h1><div class="sub">所有教練錢包總覽（共 ' + total + ' 位教練）</div></div>';
-          html += '<button class="btn btn-secondary" onclick="refreshWallets()" style="margin-left: 12px">🔄 重新整理</button></div>';
+          var html = "";
+          html +=
+            '<div class="top-bar"><div><h1>🪙 錢包管理</h1><div class="sub">所有教練錢包總覽（共 ' +
+            total +
+            " 位教練）</div></div>";
+          html +=
+            '<button class="btn btn-secondary" onclick="refreshWallets()" style="margin-left: 12px">🔄 重新整理</button></div>';
 
           if (wallets.length === 0) {
-            html += '<div class="empty-state"><span class="empty-icon">🪙</span><br>暫無教練錢包記錄</div>';
+            html +=
+              '<div class="empty-state"><span class="empty-icon">🪙</span><br>暫無教練錢包記錄</div>';
             main.innerHTML = html;
             return;
           }
 
           // Summary stats
-          var totalBalance = wallets.reduce(function (s, w) { return s + (w.wallet_balance || 0); }, 0);
-          var totalEarnings = wallets.reduce(function (s, w) { return s + (w.total_earnings || 0); }, 0);
-          var totalPending = wallets.reduce(function (s, w) { return s + (w.pending_payout || 0); }, 0);
+          var totalBalance = wallets.reduce(function (s, w) {
+            return s + (w.wallet_balance || 0);
+          }, 0);
+          var totalEarnings = wallets.reduce(function (s, w) {
+            return s + (w.total_earnings || 0);
+          }, 0);
+          var totalPending = wallets.reduce(function (s, w) {
+            return s + (w.pending_payout || 0);
+          }, 0);
 
           html += '<div class="stats-row" style="margin: 16px 0">';
-          html += '<div class="stat-card"><div class="stat-value">HK$' + totalBalance.toFixed(2) + '</div><div class="stat-label">總錢包結餘</div></div>';
-          html += '<div class="stat-card"><div class="stat-value">HK$' + totalEarnings.toFixed(2) + '</div><div class="stat-label">累計收入</div></div>';
-          html += '<div class="stat-card"><div class="stat-value">HK$' + totalPending.toFixed(2) + '</div><div class="stat-label">待提現</div></div>';
-          html += '<div class="stat-card"><div class="stat-value">' + total + '</div><div class="stat-label">教練人數</div></div>';
-          html += '</div>';
+          html +=
+            '<div class="stat-card"><div class="stat-value">HK$' +
+            totalBalance.toFixed(2) +
+            '</div><div class="stat-label">總錢包結餘</div></div>';
+          html +=
+            '<div class="stat-card"><div class="stat-value">HK$' +
+            totalEarnings.toFixed(2) +
+            '</div><div class="stat-label">累計收入</div></div>';
+          html +=
+            '<div class="stat-card"><div class="stat-value">HK$' +
+            totalPending.toFixed(2) +
+            '</div><div class="stat-label">待提現</div></div>';
+          html +=
+            '<div class="stat-card"><div class="stat-value">' +
+            total +
+            '</div><div class="stat-label">教練人數</div></div>';
+          html += "</div>";
 
           // Coach list
           html += '<div class="card">';
           html += '<table class="data-table"><thead><tr>';
-          html += '<th>教練</th><th>電郵</th><th>錢包結餘</th><th>累計收入</th><th>待提現</th><th>銀行</th><th>交易次數</th><th>最近交易</th><th></th>';
-          html += '</tr></thead><tbody>';
+          html +=
+            "<th>教練</th><th>電郵</th><th>錢包結餘</th><th>累計收入</th><th>待提現</th><th>銀行</th><th>交易次數</th><th>最近交易</th><th></th>";
+          html += "</tr></thead><tbody>";
 
           wallets.forEach(function (w) {
-            html += '<tr>';
-            html += '<td><strong>' + escHtml(w.name || '—') + '</strong></td>';
-            html += '<td style="font-size: 11px">' + escHtml(w.email || '—') + '</td>';
-            html += '<td style="font-weight: 600; color: var(--orange-600-bg)">HK$' + (w.wallet_balance || 0).toFixed(2) + '</td>';
-            html += '<td>HK$' + (w.total_earnings || 0).toFixed(2) + '</td>';
-            html += '<td>HK$' + (w.pending_payout || 0).toFixed(2) + '</td>';
-            html += '<td style="font-size: 11px">' + (w.bank_name ? escHtml(w.bank_name) + ' ' + escHtml(w.bank_account || '') : '—') + '</td>';
-            html += '<td>' + (w.tx_count || 0) + '</td>';
-            html += '<td style="font-size: 11px">' + (w.last_tx_date ? w.last_tx_date.slice(0, 10) : '—') + '</td>';
-            html += '<td><button class="btn btn-sm" onclick="viewCoachWallet(\'' + w.id + '\', \'' + escHtml(w.name) + '\')">📋 明細</button></td>';
-            html += '</tr>';
+            html += "<tr>";
+            html += "<td><strong>" + escHtml(w.name || "—") + "</strong></td>";
+            html +=
+              '<td style="font-size: 11px">' +
+              escHtml(w.email || "—") +
+              "</td>";
+            html +=
+              '<td style="font-weight: 600; color: var(--orange-600-bg)">HK$' +
+              (w.wallet_balance || 0).toFixed(2) +
+              "</td>";
+            html += "<td>HK$" + (w.total_earnings || 0).toFixed(2) + "</td>";
+            html += "<td>HK$" + (w.pending_payout || 0).toFixed(2) + "</td>";
+            html +=
+              '<td style="font-size: 11px">' +
+              (w.bank_name
+                ? escHtml(w.bank_name) + " " + escHtml(w.bank_account || "")
+                : "—") +
+              "</td>";
+            html += "<td>" + (w.tx_count || 0) + "</td>";
+            html +=
+              '<td style="font-size: 11px">' +
+              (w.last_tx_date ? w.last_tx_date.slice(0, 10) : "—") +
+              "</td>";
+            html +=
+              '<td><button class="btn btn-sm" onclick="viewCoachWallet(\'' +
+              w.id +
+              "', '" +
+              escHtml(w.name) +
+              "')\">📋 明細</button></td>";
+            html += "</tr>";
           });
 
-          html += '</tbody></table></div>';
+          html += "</tbody></table></div>";
 
           // Transaction detail area (hidden initially)
-          html += '<div id="coachWalletDetail" style="margin-top: 16px; display: none"></div>';
+          html +=
+            '<div id="coachWalletDetail" style="margin-top: 16px; display: none"></div>';
 
           main.innerHTML = html;
         } catch (e) {
-          main.innerHTML = '<div class="empty-state" style="color: var(--red-500)">❌ 載入失敗: ' + escHtml(e.message) + '</div>';
+          main.innerHTML =
+            '<div class="empty-state" style="color: var(--red-500)">❌ 載入失敗: ' +
+            escHtml(e.message) +
+            "</div>";
         }
       }
 
@@ -3757,67 +4121,127 @@
       window.viewCoachWallet = async function (userId, coachName) {
         var detailDiv = document.getElementById("coachWalletDetail");
         detailDiv.style.display = "block";
-        detailDiv.innerHTML = '<div class="loading-spinner">載入 ' + escHtml(coachName) + ' 的交易記錄...</div>';
+        detailDiv.innerHTML =
+          '<div class="loading-spinner">載入 ' +
+          escHtml(coachName) +
+          " 的交易記錄...</div>";
 
         try {
           var data = await apiGet("/wallet/admin/txs/" + userId + "?limit=100");
           var txs = data.transactions || [];
 
           var html = '<div class="card">';
-          html += '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px">';
-          html += '<div class="card-title" style="margin: 0">📋 ' + escHtml(coachName) + ' — 交易記錄</div>';
-          html += '<button class="btn btn-sm btn-secondary" onclick="document.getElementById(\'coachWalletDetail\').style.display=\'none\'">✕ 關閉</button>';
-          html += '</div>';
+          html +=
+            '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px">';
+          html +=
+            '<div class="card-title" style="margin: 0">📋 ' +
+            escHtml(coachName) +
+            " — 交易記錄</div>";
+          html +=
+            "<button class=\"btn btn-sm btn-secondary\" onclick=\"document.getElementById('coachWalletDetail').style.display='none'\">✕ 關閉</button>";
+          html += "</div>";
 
           if (txs.length === 0) {
             html += '<div class="empty-state">暫無交易記錄</div>';
           } else {
             // Summary of this coach
-            var inc = txs.filter(function(t) { return t.type === 'class_income'; }).reduce(function(s,t) { return s + (t.amount||0); }, 0);
-            var out = txs.filter(function(t) { return ['withdrawal','rental_payment'].indexOf(t.type) >= 0; }).reduce(function(s,t) { return s + (t.amount||0); }, 0);
+            var inc = txs
+              .filter(function (t) {
+                return t.type === "class_income";
+              })
+              .reduce(function (s, t) {
+                return s + (t.amount || 0);
+              }, 0);
+            var out = txs
+              .filter(function (t) {
+                return ["withdrawal", "rental_payment"].indexOf(t.type) >= 0;
+              })
+              .reduce(function (s, t) {
+                return s + (t.amount || 0);
+              }, 0);
 
             html += '<div class="stats-row" style="margin-bottom: 12px">';
-            html += '<div class="stat-card"><div class="stat-value">' + txs.length + '</div><div class="stat-label">交易次數</div></div>';
-            html += '<div class="stat-card"><div class="stat-value" style="color: var(--green-600)">+HK$' + inc.toFixed(2) + '</div><div class="stat-label">總收入</div></div>';
-            html += '<div class="stat-card"><div class="stat-value" style="color: var(--red-500)">-HK$' + out.toFixed(2) + '</div><div class="stat-label">總支出</div></div>';
-            html += '</div>';
+            html +=
+              '<div class="stat-card"><div class="stat-value">' +
+              txs.length +
+              '</div><div class="stat-label">交易次數</div></div>';
+            html +=
+              '<div class="stat-card"><div class="stat-value" style="color: var(--green-600)">+HK$' +
+              inc.toFixed(2) +
+              '</div><div class="stat-label">總收入</div></div>';
+            html +=
+              '<div class="stat-card"><div class="stat-value" style="color: var(--red-500)">-HK$' +
+              out.toFixed(2) +
+              '</div><div class="stat-label">總支出</div></div>';
+            html += "</div>";
 
             html += '<table class="data-table"><thead><tr>';
-            html += '<th>日期</th><th>類型</th><th>描述</th><th>來源</th><th style="text-align:right">金額</th><th>費用</th><th style="text-align:right">結餘</th></tr></thead><tbody>';
+            html +=
+              '<th>日期</th><th>類型</th><th>描述</th><th>來源</th><th style="text-align:right">金額</th><th>費用</th><th style="text-align:right">結餘</th></tr></thead><tbody>';
 
             txs.forEach(function (tx) {
               var typeLabel = {
-                class_income: '🎓 課堂收入',
-                rental_payment: '🏟️ 租場扣數',
-                withdrawal: '🏦 提現',
-                refund: '↩️ 退款',
-                partner_income: '🤝 合作收入',
-                adjustment: '⚙️ 調整',
+                class_income: "🎓 課堂收入",
+                rental_payment: "🏟️ 租場扣數",
+                withdrawal: "🏦 提現",
+                refund: "↩️ 退款",
+                partner_income: "🤝 合作收入",
+                adjustment: "⚙️ 調整",
               };
               var label = typeLabel[tx.type] || tx.type;
-              var sign = ['withdrawal', 'rental_payment'].indexOf(tx.type) >= 0 ? '-' : '+';
-              var color = ['withdrawal', 'rental_payment'].indexOf(tx.type) >= 0 ? 'var(--red-500)' : 'var(--green-600)';
-              var feeText = (tx.fee || 0) > 0 ? 'HK$' + tx.fee.toFixed(2) : '—';
+              var sign =
+                ["withdrawal", "rental_payment"].indexOf(tx.type) >= 0
+                  ? "-"
+                  : "+";
+              var color =
+                ["withdrawal", "rental_payment"].indexOf(tx.type) >= 0
+                  ? "var(--red-500)"
+                  : "var(--green-600)";
+              var feeText = (tx.fee || 0) > 0 ? "HK$" + tx.fee.toFixed(2) : "—";
 
-              html += '<tr>';
-              html += '<td style="font-size: 11px">' + escHtml((tx.created_at || '').slice(0, 16)) + '</td>';
-              html += '<td style="font-size: 11px">' + label + '</td>';
-              html += '<td style="font-size: 11px; max-width: 200px">' + escHtml(tx.description || tx.reference || '—') + '</td>';
-              html += '<td style="font-size: 11px">' + (tx.source_type ? tx.source_type + '#' + (tx.source_id||'').slice(0,8) : '—') + '</td>';
-              html += '<td style="text-align: right; font-weight: 600; color: ' + color + '">' + sign + 'HK$' + (tx.amount||0).toFixed(2) + '</td>';
-              html += '<td style="font-size: 11px">' + feeText + '</td>';
-              html += '<td style="text-align: right; font-size: 11px">HK$' + (tx.balance_after||0).toFixed(2) + '</td>';
-              html += '</tr>';
+              html += "<tr>";
+              html +=
+                '<td style="font-size: 11px">' +
+                escHtml((tx.created_at || "").slice(0, 16)) +
+                "</td>";
+              html += '<td style="font-size: 11px">' + label + "</td>";
+              html +=
+                '<td style="font-size: 11px; max-width: 200px">' +
+                escHtml(tx.description || tx.reference || "—") +
+                "</td>";
+              html +=
+                '<td style="font-size: 11px">' +
+                (tx.source_type
+                  ? tx.source_type + "#" + (tx.source_id || "").slice(0, 8)
+                  : "—") +
+                "</td>";
+              html +=
+                '<td style="text-align: right; font-weight: 600; color: ' +
+                color +
+                '">' +
+                sign +
+                "HK$" +
+                (tx.amount || 0).toFixed(2) +
+                "</td>";
+              html += '<td style="font-size: 11px">' + feeText + "</td>";
+              html +=
+                '<td style="text-align: right; font-size: 11px">HK$' +
+                (tx.balance_after || 0).toFixed(2) +
+                "</td>";
+              html += "</tr>";
             });
 
-            html += '</tbody></table>';
+            html += "</tbody></table>";
           }
 
-          html += '</div>';
+          html += "</div>";
           detailDiv.innerHTML = html;
-          detailDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          detailDiv.scrollIntoView({ behavior: "smooth", block: "start" });
         } catch (e) {
-          detailDiv.innerHTML = '<div class="empty-state" style="color: var(--red-500)">❌ 載入失敗: ' + escHtml(e.message) + '</div>';
+          detailDiv.innerHTML =
+            '<div class="empty-state" style="color: var(--red-500)">❌ 載入失敗: ' +
+            escHtml(e.message) +
+            "</div>";
         }
       };
 

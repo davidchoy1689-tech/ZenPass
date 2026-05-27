@@ -1,31 +1,77 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-HK" data-theme="zenpass">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#f06030" />
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <meta http-equiv="Pragma" content="no-cache">
-    <meta http-equiv="Expires" content="-1">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f06030" />
+    <meta
+      http-equiv="Cache-Control"
+      content="no-cache, no-store, must-revalidate"
+    />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="-1" />
     <title>會籍方案 — ZenPass 禪流</title>
-  <link rel="icon" href="favicon.png" type="image/png" />
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" />
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+TC:wght@400;500;700;900&display=swap');
-    * { font-family: 'Inter', 'Noto Sans TC', sans-serif; }
-    .glass-card { background: rgba(255,255,255,0.88); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.3); }
-    .hero-bg { background: linear-gradient(135deg, #1a1a2e 0%, #2d2d44 50%, #c94420 100%); }
-    .btn-primary-grad { background: linear-gradient(135deg, #f06030, #ff8555); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-    .btn-primary-grad:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(240,96,48,0.35); }
-    .btn-primary-grad:active { transform: translateY(0); }
-    .card-hover { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-    .card-hover:hover { transform: translateY(-4px); box-shadow: 0 16px 48px rgba(0,0,0,0.12); }
-    .popular-tag { background: linear-gradient(135deg, #f06030, #ff8555); }
-    .hero-img { background-image: url('https://images.unsplash.com/photo-1518611012118-696072aa579a?w=1200&q=80'); background-size: cover; background-position: center; }
-    .hero-overlay { background: linear-gradient(135deg, rgba(26,26,46,0.92) 0%, rgba(45,45,68,0.75) 100%); }
-    .bottom-nav { background: rgba(255,255,255,0.92); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); }
-  </style>
+    <link rel="icon" href="favicon.png" type="image/png" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" />
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+TC:wght@400;500;700;900&display=swap");
+      * {
+        font-family: "Inter", "Noto Sans TC", sans-serif;
+      }
+      .glass-card {
+        background: rgba(255, 255, 255, 0.88);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+      }
+      .hero-bg {
+        background: linear-gradient(
+          135deg,
+          #1a1a2e 0%,
+          #2d2d44 50%,
+          #c94420 100%
+        );
+      }
+      .btn-primary-grad {
+        background: linear-gradient(135deg, #f06030, #ff8555);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      .btn-primary-grad:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(240, 96, 48, 0.35);
+      }
+      .btn-primary-grad:active {
+        transform: translateY(0);
+      }
+      .card-hover {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      .card-hover:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 16px 48px rgba(0, 0, 0, 0.12);
+      }
+      .popular-tag {
+        background: linear-gradient(135deg, #f06030, #ff8555);
+      }
+      .hero-img {
+        background-image: url("https://images.unsplash.com/photo-1518611012118-696072aa579a?w=1200&q=80");
+        background-size: cover;
+        background-position: center;
+      }
+      .hero-overlay {
+        background: linear-gradient(
+          135deg,
+          rgba(26, 26, 46, 0.92) 0%,
+          rgba(45, 45, 68, 0.75) 100%
+        );
+      }
+      .bottom-nav {
+        background: rgba(255, 255, 255, 0.92);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+      }
+    </style>
     <!-- Google tag (gtag.js) -->
     <script
       async
@@ -39,240 +85,527 @@
       gtag("js", new Date());
       gtag("config", "G-MKF5N4YLBM");
     </script>
-
-    </head>
-<body class="bg-gray-50 min-h-screen pb-20 relative">
-  <!-- ===== HERO ===== -->
-  <div class="hero-img min-h-[280px] relative overflow-hidden">
-    <div class="hero-overlay absolute inset-0"></div>
-    <div class="hero-content text-center text-white relative z-10 py-16 px-4">
-      <div class="max-w-2xl mx-auto">
-        <div class="badge badge-ghost text-white/80 mb-3 px-5 py-2 text-xs tracking-widest rounded-full border border-white/20">💎 會員方案</div>
-        <h1 class="text-4xl md:text-5xl font-black mb-3 tracking-tight">選擇你的會籍</h1>
-        <p class="text-base text-white/70">一個Pass，通行全城運動體驗 · 自由取消（適用於開課前一日）</p>
-      </div>
-    </div>
-    <!-- Back button -->
-    <a href="index.html" class="absolute top-4 left-4 btn btn-ghost btn-sm text-white/70 hover:text-white bg-black/20 hover:bg-black/40 border-0 rounded-full px-3">&larr; 返回</a>
-  </div>
-
-  <!-- ===== PLAN CARDS ===== -->
-  <div class="max-w-6xl mx-auto px-3 -mt-10 relative z-20 pb-8">
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-      <!-- Lite Pass -->
-      <div class="card glass-card card-hover rounded-2xl overflow-hidden shadow-lg">
-        <div class="card-body p-5">
-          <div class="flex items-center gap-2 mb-2">
-            <span class="text-xl">🌱</span>
-            <span class="text-xs font-bold text-gray-400 uppercase tracking-widest">輕量 Pass</span>
+  </head>
+  <body class="bg-gray-50 min-h-screen pb-20 relative">
+    <!-- ===== HERO ===== -->
+    <div class="hero-img min-h-[280px] relative overflow-hidden">
+      <div class="hero-overlay absolute inset-0"></div>
+      <div class="hero-content text-center text-white relative z-10 py-16 px-4">
+        <div class="max-w-2xl mx-auto">
+          <div
+            class="badge badge-ghost text-white/80 mb-3 px-5 py-2 text-xs tracking-widest rounded-full border border-white/20"
+          >
+            💎 會員方案
           </div>
-          <div class="mb-1"><span class="text-3xl font-black text-gray-900">$299</span><span class="text-xs text-gray-400 ml-1">/月</span></div>
-          <div class="text-xs text-green-600 font-medium mb-3">HK$8.08/credit · 37 Credits</div>
-          <ul class="space-y-1.5 mb-5 text-xs">
-            <li class="flex items-center gap-2"><span class="text-green-500 text-sm">✅</span> 每月 37 Credits</li>
-            <li class="flex items-center gap-2"><span class="text-green-500 text-sm">✅</span> 優先預約權</li>
-            <li class="flex items-center gap-2"><span class="text-green-500 text-sm">✅</span> 自由取消（開課前一日）</li>
-          </ul>
-          <button class="btn btn-outline btn-primary w-full rounded-xl font-bold text-xs h-10 min-h-0 border-2" onclick="location.href='payment.html?type=membership&plan=lite&amount=299&item=輕量Pass'">立即訂閱</button>
+          <h1 class="text-4xl md:text-5xl font-black mb-3 tracking-tight">
+            選擇你的會籍
+          </h1>
+          <p class="text-base text-white/70">
+            一個Pass，通行全城運動體驗 · 自由取消（適用於開課前一日）
+          </p>
         </div>
       </div>
+      <!-- Back button -->
+      <a
+        href="index.html"
+        class="absolute top-4 left-4 btn btn-ghost btn-sm text-white/70 hover:text-white bg-black/20 hover:bg-black/40 border-0 rounded-full px-3"
+        >&larr; 返回</a
+      >
+    </div>
 
-      <!-- Standard Pass -->
-      <div class="card glass-card card-hover rounded-2xl overflow-hidden shadow-xl border-2 border-orange-500 relative">
-        <div class="popular-tag absolute -top-0.5 right-4 text-white text-[10px] font-bold px-3.5 py-1.5 rounded-b-lg shadow-md z-10">🔥 最受歡迎</div>
-        <div class="card-body p-5 pt-7">
-          <div class="flex items-center gap-2 mb-2">
-            <span class="text-xl">⭐</span>
-            <span class="text-xs font-bold text-gray-400 uppercase tracking-widest">標準 Pass</span>
+    <!-- ===== PLAN CARDS ===== -->
+    <div class="max-w-6xl mx-auto px-3 -mt-10 relative z-20 pb-8">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <!-- Lite Pass -->
+        <div
+          class="card glass-card card-hover rounded-2xl overflow-hidden shadow-lg"
+        >
+          <div class="card-body p-5">
+            <div class="flex items-center gap-2 mb-2">
+              <span class="text-xl">🌱</span>
+              <span
+                class="text-xs font-bold text-gray-400 uppercase tracking-widest"
+                >輕量 Pass</span
+              >
+            </div>
+            <div class="mb-1">
+              <span class="text-3xl font-black text-gray-900">$299</span
+              ><span class="text-xs text-gray-400 ml-1">/月</span>
+            </div>
+            <div class="text-xs text-green-600 font-medium mb-3">
+              HK$8.08/credit · 37 Credits
+            </div>
+            <ul class="space-y-1.5 mb-5 text-xs">
+              <li class="flex items-center gap-2">
+                <span class="text-green-500 text-sm">✅</span> 每月 37 Credits
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="text-green-500 text-sm">✅</span> 優先預約權
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="text-green-500 text-sm">✅</span>
+                自由取消（開課前一日）
+              </li>
+            </ul>
+            <button
+              class="btn btn-outline btn-primary w-full rounded-xl font-bold text-xs h-10 min-h-0 border-2"
+              onclick="
+                location.href =
+                  'payment.html?type=membership&plan=lite&amount=299&item=輕量Pass'
+              "
+            >
+              立即訂閱
+            </button>
           </div>
-          <div class="mb-1"><span class="text-3xl font-black text-orange-600">$799</span><span class="text-xs text-gray-400 ml-1">/月</span></div>
-          <div class="text-xs text-green-600 font-medium mb-3">HK$7.99/credit · 100 Credits</div>
-          <ul class="space-y-1.5 mb-5 text-xs">
-            <li class="flex items-center gap-2"><span class="text-green-500 text-sm">✅</span> 每月 100 Credits</li>
-            <li class="flex items-center gap-2"><span class="text-green-500 text-sm">✅</span> 優先預約權</li>
-            <li class="flex items-center gap-2"><span class="text-green-500 text-sm">✅</span> 高峰有 premium</li>
-            <li class="flex items-center gap-2"><span class="text-green-500 text-sm">✅</span> 自由取消（開課前一日）</li>
-          </ul>
-          <button class="btn btn-primary-grad text-white w-full rounded-xl font-bold text-xs h-10 min-h-0 border-0 shadow-lg" onclick="location.href='payment.html?type=membership&plan=standard&amount=799&item=標準Pass'">🔥 立即訂閱</button>
         </div>
-      </div>
 
-      <!-- Premium Pass -->
-      <div class="card glass-card card-hover rounded-2xl overflow-hidden shadow-lg">
-        <div class="card-body p-5">
-          <div class="flex items-center gap-2 mb-2">
-            <span class="text-xl">💎</span>
-            <span class="text-xs font-bold text-gray-400 uppercase tracking-widest">高階 Pass</span>
+        <!-- Standard Pass -->
+        <div
+          class="card glass-card card-hover rounded-2xl overflow-hidden shadow-xl border-2 border-orange-500 relative"
+        >
+          <div
+            class="popular-tag absolute -top-0.5 right-4 text-white text-[10px] font-bold px-3.5 py-1.5 rounded-b-lg shadow-md z-10"
+          >
+            🔥 最受歡迎
           </div>
-          <div class="mb-1"><span class="text-3xl font-black text-gray-900">$1,899</span><span class="text-xs text-gray-400 ml-1">/月</span></div>
-          <div class="text-xs text-green-600 font-medium mb-3">HK$8.01/credit · 237 Credits</div>
-          <ul class="space-y-1.5 mb-5 text-xs">
-            <li class="flex items-center gap-2"><span class="text-green-500 text-sm">✅</span> 每月 237 Credits</li>
-            <li class="flex items-center gap-2"><span class="text-green-500 text-sm">✅</span> VIP 優先預約</li>
-            <li class="flex items-center gap-2"><span class="text-green-500 text-sm">✅</span> 無限取消更換</li>
-            <li class="flex items-center gap-2"><span class="text-green-500 text-sm">✅</span> 每月 1 堂私人教練</li>
-            <li class="flex items-center gap-2"><span class="text-green-500 text-sm">✅</span> 自由取消（開課前一日）</li>
-          </ul>
-          <button class="btn btn-outline btn-primary w-full rounded-xl font-bold text-xs h-10 min-h-0 border-2" onclick="location.href='payment.html?type=membership&plan=premium&amount=1899&item=高階Pass'">立即訂閱</button>
-        </div>
-      </div>
-
-      <!-- VIP Pass -->
-      <div class="card glass-card card-hover rounded-2xl overflow-hidden shadow-lg">
-        <div class="card-body p-5">
-          <div class="flex items-center gap-2 mb-2">
-            <span class="text-xl">👑</span>
-            <span class="text-xs font-bold text-gray-400 uppercase tracking-widest">VIP Pass</span>
+          <div class="card-body p-5 pt-7">
+            <div class="flex items-center gap-2 mb-2">
+              <span class="text-xl">⭐</span>
+              <span
+                class="text-xs font-bold text-gray-400 uppercase tracking-widest"
+                >標準 Pass</span
+              >
+            </div>
+            <div class="mb-1">
+              <span class="text-3xl font-black text-orange-600">$799</span
+              ><span class="text-xs text-gray-400 ml-1">/月</span>
+            </div>
+            <div class="text-xs text-green-600 font-medium mb-3">
+              HK$7.99/credit · 100 Credits
+            </div>
+            <ul class="space-y-1.5 mb-5 text-xs">
+              <li class="flex items-center gap-2">
+                <span class="text-green-500 text-sm">✅</span> 每月 100 Credits
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="text-green-500 text-sm">✅</span> 優先預約權
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="text-green-500 text-sm">✅</span> 高峰有 premium
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="text-green-500 text-sm">✅</span>
+                自由取消（開課前一日）
+              </li>
+            </ul>
+            <button
+              class="btn btn-primary-grad text-white w-full rounded-xl font-bold text-xs h-10 min-h-0 border-0 shadow-lg"
+              onclick="
+                location.href =
+                  'payment.html?type=membership&plan=standard&amount=799&item=標準Pass'
+              "
+            >
+              🔥 立即訂閱
+            </button>
           </div>
-          <div class="mb-1"><span class="text-3xl font-black text-amber-600">$2,899</span><span class="text-xs text-gray-400 ml-1">/月</span></div>
-          <div class="text-xs text-green-600 font-medium mb-3">HK$8.01/credit · 362 Credits</div>
-          <ul class="space-y-1.5 mb-5 text-xs">
-            <li class="flex items-center gap-2"><span class="text-green-500 text-sm">✅</span> 每月 362 Credits</li>
-            <li class="flex items-center gap-2"><span class="text-green-500 text-sm">✅</span> 白金優先預約</li>
-            <li class="flex items-center gap-2"><span class="text-green-500 text-sm">✅</span> 無限取消更換</li>
-            <li class="flex items-center gap-2"><span class="text-green-500 text-sm">✅</span> 每月 2 堂私人教練</li>
-            <li class="flex items-center gap-2"><span class="text-green-500 text-sm">✅</span> 專屬客服</li>
-            <li class="flex items-center gap-2"><span class="text-green-500 text-sm">✅</span> 自由取消（開課前一日）</li>
+        </div>
+
+        <!-- Premium Pass -->
+        <div
+          class="card glass-card card-hover rounded-2xl overflow-hidden shadow-lg"
+        >
+          <div class="card-body p-5">
+            <div class="flex items-center gap-2 mb-2">
+              <span class="text-xl">💎</span>
+              <span
+                class="text-xs font-bold text-gray-400 uppercase tracking-widest"
+                >高階 Pass</span
+              >
+            </div>
+            <div class="mb-1">
+              <span class="text-3xl font-black text-gray-900">$1,899</span
+              ><span class="text-xs text-gray-400 ml-1">/月</span>
+            </div>
+            <div class="text-xs text-green-600 font-medium mb-3">
+              HK$8.01/credit · 237 Credits
+            </div>
+            <ul class="space-y-1.5 mb-5 text-xs">
+              <li class="flex items-center gap-2">
+                <span class="text-green-500 text-sm">✅</span> 每月 237 Credits
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="text-green-500 text-sm">✅</span> VIP 優先預約
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="text-green-500 text-sm">✅</span> 無限取消更換
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="text-green-500 text-sm">✅</span> 每月 1 堂私人教練
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="text-green-500 text-sm">✅</span>
+                自由取消（開課前一日）
+              </li>
+            </ul>
+            <button
+              class="btn btn-outline btn-primary w-full rounded-xl font-bold text-xs h-10 min-h-0 border-2"
+              onclick="
+                location.href =
+                  'payment.html?type=membership&plan=premium&amount=1899&item=高階Pass'
+              "
+            >
+              立即訂閱
+            </button>
+          </div>
+        </div>
+
+        <!-- VIP Pass -->
+        <div
+          class="card glass-card card-hover rounded-2xl overflow-hidden shadow-lg"
+        >
+          <div class="card-body p-5">
+            <div class="flex items-center gap-2 mb-2">
+              <span class="text-xl">👑</span>
+              <span
+                class="text-xs font-bold text-gray-400 uppercase tracking-widest"
+                >VIP Pass</span
+              >
+            </div>
+            <div class="mb-1">
+              <span class="text-3xl font-black text-amber-600">$2,899</span
+              ><span class="text-xs text-gray-400 ml-1">/月</span>
+            </div>
+            <div class="text-xs text-green-600 font-medium mb-3">
+              HK$8.01/credit · 362 Credits
+            </div>
+            <ul class="space-y-1.5 mb-5 text-xs">
+              <li class="flex items-center gap-2">
+                <span class="text-green-500 text-sm">✅</span> 每月 362 Credits
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="text-green-500 text-sm">✅</span> 白金優先預約
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="text-green-500 text-sm">✅</span> 無限取消更換
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="text-green-500 text-sm">✅</span> 每月 2 堂私人教練
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="text-green-500 text-sm">✅</span> 專屬客服
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="text-green-500 text-sm">✅</span>
+                自由取消（開課前一日）
+              </li>
+            </ul>
+            <button
+              class="btn btn-outline btn-warning w-full rounded-xl font-bold text-xs h-10 min-h-0 border-2"
+              onclick="
+                location.href =
+                  'payment.html?type=membership&plan=vip&amount=2899&item=VIPPass'
+              "
+            >
+              立即訂閱
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== CREDIT TOP-UP ===== -->
+      <div class="card glass-card rounded-2xl shadow-lg p-6 mt-6">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="text-lg">🎟️</span>
+          <h2 class="text-lg font-bold">加購點數</h2>
+        </div>
+        <p class="text-xs text-gray-400 mb-4">揀選點數套餐，直接加到現有帳戶</p>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+          <div
+            class="bg-white/70 rounded-xl p-4 text-center border-2 border-gray-200 hover:border-orange-400 transition-all cursor-pointer pack-card"
+            data-credits="10"
+            data-price="100"
+            onclick="selectPack(this)"
+          >
+            <div class="text-2xl font-black text-gray-900">10</div>
+            <div class="text-xs text-gray-400 mt-0.5">輕量包</div>
+            <div class="text-base font-bold text-orange-600 mt-1">HK$100</div>
+          </div>
+          <div
+            class="bg-white/70 rounded-xl p-4 text-center border-2 border-orange-500 hover:shadow-lg transition-all cursor-pointer relative pack-card selected-pack"
+            data-credits="25"
+            data-price="225"
+            onclick="selectPack(this)"
+          >
+            <div
+              class="absolute -top-2 right-3 popular-tag text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full"
+            >
+              超值
+            </div>
+            <div class="text-2xl font-black text-gray-900">25</div>
+            <div class="text-xs text-gray-400 mt-0.5">標準包</div>
+            <div class="text-base font-bold text-orange-600 mt-1">HK$225</div>
+          </div>
+          <div
+            class="bg-white/70 rounded-xl p-4 text-center border-2 border-gray-200 hover:border-orange-400 transition-all cursor-pointer pack-card"
+            data-credits="55"
+            data-price="440"
+            onclick="selectPack(this)"
+          >
+            <div class="text-2xl font-black text-gray-900">55</div>
+            <div class="text-xs text-gray-400 mt-0.5">超值包</div>
+            <div class="text-base font-bold text-orange-600 mt-1">HK$440</div>
+            <div class="text-[10px] text-green-600 font-medium mt-0.5">
+              +5 贈送
+            </div>
+          </div>
+        </div>
+        <button
+          class="btn btn-primary-grad text-white w-full rounded-xl font-bold text-sm h-11 min-h-0 border-0 shadow-lg"
+          id="buyCreditsBtn"
+          onclick="buyCredits()"
+        >
+          ➕ 加購 25 Credits — HK$225
+        </button>
+        <div class="text-center mt-4">
+          <span class="text-xs text-gray-400">或</span>
+          <a
+            href="buy-credits.html"
+            class="block mt-1 text-xs text-orange-600 hover:underline font-medium"
+            >💎 獨立購買點數（無需會籍）</a
+          >
+        </div>
+      </div>
+
+      <!-- ===== FAQ ===== -->
+      <div class="card glass-card rounded-2xl shadow-lg p-6 mt-6">
+        <div class="flex items-center gap-2 mb-3">
+          <span class="text-lg">❓</span>
+          <h2 class="text-lg font-bold">會籍常見問題</h2>
+        </div>
+        <div class="space-y-2">
+          <div
+            class="collapse collapse-plus bg-white/70 rounded-xl border border-gray-100"
+          >
+            <input type="radio" name="faq" />
+            <div class="collapse-title text-sm font-semibold min-h-0 py-3">
+              可以隨時轉換會籍嗎？
+            </div>
+            <div class="collapse-content text-xs text-gray-500">
+              可以！你可以在任何時候升級或降級會籍，費用將按比例調整。
+            </div>
+          </div>
+          <div
+            class="collapse collapse-plus bg-white/70 rounded-xl border border-gray-100"
+          >
+            <input type="radio" name="faq" />
+            <div class="collapse-title text-sm font-semibold min-h-0 py-3">
+              點數會過期嗎？
+            </div>
+            <div class="collapse-content text-xs text-gray-500">
+              點數有效期為買入後 180
+              天，建議在有效期內使用。會員每月資格在當月底清零。
+            </div>
+          </div>
+          <div
+            class="collapse collapse-plus bg-white/70 rounded-xl border border-gray-100"
+          >
+            <input type="radio" name="faq" />
+            <div class="collapse-title text-sm font-semibold min-h-0 py-3">
+              可以取消會籍嗎？
+            </div>
+            <div class="collapse-content text-xs text-gray-500">
+              可以！取消會籍後，餘下的點數可繼續使用直到有效期結束。
+            </div>
+          </div>
+          <div
+            class="collapse collapse-plus bg-white/70 rounded-xl border border-gray-100"
+          >
+            <input type="radio" name="faq" />
+            <div class="collapse-title text-sm font-semibold min-h-0 py-3">
+              會籍可以與他人共用嗎？
+            </div>
+            <div class="collapse-content text-xs text-gray-500">
+              會籍是個人的，不得與他人共享。但你可以用積分獎勵給朋友購買課程。
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== FOOTER ===== -->
+    <footer class="hero-bg text-white/70 mt-8 py-8 px-4">
+      <div
+        class="max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-6 text-sm"
+      >
+        <div>
+          <div class="font-bold text-white mb-3 text-sm">ZenPass 禪流</div>
+          <ul class="space-y-1.5 text-xs">
+            <li>
+              <a href="about.html" class="hover:text-white transition-colors"
+                >關於我們</a
+              >
+            </li>
+            <li>
+              <a
+                href="coach-apply.html"
+                class="hover:text-white transition-colors"
+                >成為教練</a
+              >
+            </li>
+            <li>
+              <a
+                href="partner-apply.html"
+                class="hover:text-white transition-colors"
+                >場地加盟</a
+              >
+            </li>
           </ul>
-          <button class="btn btn-outline btn-warning w-full rounded-xl font-bold text-xs h-10 min-h-0 border-2" onclick="location.href='payment.html?type=membership&plan=vip&amount=2899&item=VIPPass'">立即訂閱</button>
+        </div>
+        <div>
+          <div class="font-bold text-white mb-3 text-sm">支援</div>
+          <ul class="space-y-1.5 text-xs">
+            <li>
+              <a href="faq.html" class="hover:text-white transition-colors"
+                >常見問題</a
+              >
+            </li>
+            <li>
+              <a href="privacy.html" class="hover:text-white transition-colors"
+                >私隱政策</a
+              >
+            </li>
+            <li>
+              <a href="terms.html" class="hover:text-white transition-colors"
+                >服務條款</a
+              >
+            </li>
+          </ul>
+        </div>
+        <div>
+          <div class="font-bold text-white mb-3 text-sm">聯絡我們</div>
+          <ul class="space-y-1.5 text-xs">
+            <li>📧 support@zenpass.hk</li>
+            <li>📞 2387 0724</li>
+            <li>📍 香港九龍觀塘</li>
+          </ul>
+        </div>
+        <div>
+          <div class="font-bold text-white mb-3 text-sm">關注我們</div>
+          <div class="flex gap-2">
+            <a
+              href="https://www.instagram.com/zenpass_hk"
+              class="btn btn-ghost btn-xs text-white/70 hover:text-white bg-white/10 hover:bg-white/20 border-0 rounded-full w-8 h-8 min-h-0 p-0 text-base"
+              >📸</a
+            >
+            <a
+              href="https://www.facebook.com/zenpass.hk"
+              class="btn btn-ghost btn-xs text-white/70 hover:text-white bg-white/10 hover:bg-white/20 border-0 rounded-full w-8 h-8 min-h-0 p-0 text-base"
+              >👍</a
+            >
+            <a
+              href="https://wa.me/85290335538"
+              class="btn btn-ghost btn-xs text-white/70 hover:text-white bg-white/10 hover:bg-white/20 border-0 rounded-full w-8 h-8 min-h-0 p-0 text-base"
+              >💬</a
+            >
+          </div>
         </div>
       </div>
-    </div>
+      <div
+        class="max-w-6xl mx-auto mt-6 pt-4 border-t border-white/10 text-center text-xs text-white/40"
+      >
+        &copy; 2026 ZenPass 禪流 · 香港康樂及體育有限公司
+      </div>
+    </footer>
 
-    <!-- ===== CREDIT TOP-UP ===== -->
-    <div class="card glass-card rounded-2xl shadow-lg p-6 mt-6">
-      <div class="flex items-center gap-2 mb-1"><span class="text-lg">🎟️</span><h2 class="text-lg font-bold">加購點數</h2></div>
-      <p class="text-xs text-gray-400 mb-4">揀選點數套餐，直接加到現有帳戶</p>
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
-        <div class="bg-white/70 rounded-xl p-4 text-center border-2 border-gray-200 hover:border-orange-400 transition-all cursor-pointer pack-card" data-credits="10" data-price="100" onclick="selectPack(this)">
-          <div class="text-2xl font-black text-gray-900">10</div>
-          <div class="text-xs text-gray-400 mt-0.5">輕量包</div>
-          <div class="text-base font-bold text-orange-600 mt-1">HK$100</div>
-        </div>
-        <div class="bg-white/70 rounded-xl p-4 text-center border-2 border-orange-500 hover:shadow-lg transition-all cursor-pointer relative pack-card selected-pack" data-credits="25" data-price="225" onclick="selectPack(this)">
-          <div class="absolute -top-2 right-3 popular-tag text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full">超值</div>
-          <div class="text-2xl font-black text-gray-900">25</div>
-          <div class="text-xs text-gray-400 mt-0.5">標準包</div>
-          <div class="text-base font-bold text-orange-600 mt-1">HK$225</div>
-        </div>
-        <div class="bg-white/70 rounded-xl p-4 text-center border-2 border-gray-200 hover:border-orange-400 transition-all cursor-pointer pack-card" data-credits="55" data-price="440" onclick="selectPack(this)">
-          <div class="text-2xl font-black text-gray-900">55</div>
-          <div class="text-xs text-gray-400 mt-0.5">超值包</div>
-          <div class="text-base font-bold text-orange-600 mt-1">HK$440</div>
-          <div class="text-[10px] text-green-600 font-medium mt-0.5">+5 贈送</div>
-        </div>
+    <!-- ===== BOTTOM NAV ===== -->
+    <nav
+      class="bottom-nav fixed bottom-0 left-0 right-0 z-50 border-t border-gray-200/60 px-2 py-1 max-w-lg mx-auto rounded-t-2xl shadow-[0_-4px_20px_rgba(0,0,0,0.08)]"
+    >
+      <div class="flex justify-around items-center">
+        <a
+          href="index.html"
+          class="flex flex-col items-center py-1.5 px-3 text-gray-400 hover:text-orange-600 transition-colors"
+          ><span class="text-lg">🏠</span
+          ><span class="text-[10px] mt-0.5 font-medium">首頁</span></a
+        >
+        <a
+          href="explore.html"
+          class="flex flex-col items-center py-1.5 px-3 text-gray-400 hover:text-orange-600 transition-colors"
+          ><span class="text-lg">🔍</span
+          ><span class="text-[10px] mt-0.5 font-medium">探索</span></a
+        >
+        <a
+          href="membership.html"
+          class="flex flex-col items-center py-1.5 px-3 text-orange-600 relative"
+          ><span class="text-lg">💎</span
+          ><span class="text-[10px] mt-0.5 font-bold">會籍</span
+          ><span
+            class="absolute -top-0.5 right-1 w-1.5 h-1.5 bg-orange-500 rounded-full"
+          ></span
+        ></a>
+        <a
+          href="coach-apply.html"
+          class="flex flex-col items-center py-1.5 px-3 text-gray-400 hover:text-orange-600 transition-colors"
+          ><span class="text-lg">👨‍🏫</span
+          ><span class="text-[10px] mt-0.5 font-medium">教練</span></a
+        >
+        <a
+          href="my.html"
+          class="flex flex-col items-center py-1.5 px-3 text-gray-400 hover:text-orange-600 transition-colors"
+          ><span class="text-lg">👤</span
+          ><span class="text-[10px] mt-0.5 font-medium">我的</span></a
+        >
       </div>
-      <button class="btn btn-primary-grad text-white w-full rounded-xl font-bold text-sm h-11 min-h-0 border-0 shadow-lg" id="buyCreditsBtn" onclick="buyCredits()">➕ 加購 25 Credits — HK$225</button>
-      <div class="text-center mt-4">
-        <span class="text-xs text-gray-400">或</span>
-        <a href="buy-credits.html" class="block mt-1 text-xs text-orange-600 hover:underline font-medium">💎 獨立購買點數（無需會籍）</a>
-      </div>
-    </div>
+    </nav>
 
-    <!-- ===== FAQ ===== -->
-    <div class="card glass-card rounded-2xl shadow-lg p-6 mt-6">
-      <div class="flex items-center gap-2 mb-3"><span class="text-lg">❓</span><h2 class="text-lg font-bold">會籍常見問題</h2></div>
-      <div class="space-y-2">
-        <div class="collapse collapse-plus bg-white/70 rounded-xl border border-gray-100">
-          <input type="radio" name="faq" />
-          <div class="collapse-title text-sm font-semibold min-h-0 py-3">可以隨時轉換會籍嗎？</div>
-          <div class="collapse-content text-xs text-gray-500">可以！你可以在任何時候升級或降級會籍，費用將按比例調整。</div>
-        </div>
-        <div class="collapse collapse-plus bg-white/70 rounded-xl border border-gray-100">
-          <input type="radio" name="faq" />
-          <div class="collapse-title text-sm font-semibold min-h-0 py-3">點數會過期嗎？</div>
-          <div class="collapse-content text-xs text-gray-500">點數有效期為買入後 180 天，建議在有效期內使用。會員每月資格在當月底清零。</div>
-        </div>
-        <div class="collapse collapse-plus bg-white/70 rounded-xl border border-gray-100">
-          <input type="radio" name="faq" />
-          <div class="collapse-title text-sm font-semibold min-h-0 py-3">可以取消會籍嗎？</div>
-          <div class="collapse-content text-xs text-gray-500">可以！取消會籍後，餘下的點數可繼續使用直到有效期結束。</div>
-        </div>
-        <div class="collapse collapse-plus bg-white/70 rounded-xl border border-gray-100">
-          <input type="radio" name="faq" />
-          <div class="collapse-title text-sm font-semibold min-h-0 py-3">會籍可以與他人共用嗎？</div>
-          <div class="collapse-content text-xs text-gray-500">會籍是個人的，不得與他人共享。但你可以用積分獎勵給朋友購買課程。</div>
-        </div>
-      </div>
-    </div>
-  </div>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              zen: {
+                orange: "#f06030",
+                "orange-dark": "#c94420",
+                "orange-light": "#ff8555",
+                dark: "#1a1a2e",
+              },
+            },
+          },
+        },
+      };
 
-  <!-- ===== FOOTER ===== -->
-  <footer class="hero-bg text-white/70 mt-8 py-8 px-4">
-    <div class="max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-6 text-sm">
-      <div>
-        <div class="font-bold text-white mb-3 text-sm">ZenPass 禪流</div>
-        <ul class="space-y-1.5 text-xs">
-          <li><a href="about.html" class="hover:text-white transition-colors">關於我們</a></li>
-          <li><a href="coach-apply.html" class="hover:text-white transition-colors">成為教練</a></li>
-          <li><a href="partner-apply.html" class="hover:text-white transition-colors">場地加盟</a></li>
-        </ul>
-      </div>
-      <div>
-        <div class="font-bold text-white mb-3 text-sm">支援</div>
-        <ul class="space-y-1.5 text-xs">
-          <li><a href="faq.html" class="hover:text-white transition-colors">常見問題</a></li>
-          <li><a href="privacy.html" class="hover:text-white transition-colors">私隱政策</a></li>
-          <li><a href="terms.html" class="hover:text-white transition-colors">服務條款</a></li>
-        </ul>
-      </div>
-      <div>
-        <div class="font-bold text-white mb-3 text-sm">聯絡我們</div>
-        <ul class="space-y-1.5 text-xs">
-          <li>📧 support@zenpass.hk</li>
-          <li>📞 2387 0724</li>
-          <li>📍 香港九龍觀塘</li>
-        </ul>
-      </div>
-      <div>
-        <div class="font-bold text-white mb-3 text-sm">關注我們</div>
-        <div class="flex gap-2">
-          <a href="https://www.instagram.com/zenpass_hk" class="btn btn-ghost btn-xs text-white/70 hover:text-white bg-white/10 hover:bg-white/20 border-0 rounded-full w-8 h-8 min-h-0 p-0 text-base">📸</a>
-          <a href="https://www.facebook.com/zenpass.hk" class="btn btn-ghost btn-xs text-white/70 hover:text-white bg-white/10 hover:bg-white/20 border-0 rounded-full w-8 h-8 min-h-0 p-0 text-base">👍</a>
-          <a href="https://wa.me/85290335538" class="btn btn-ghost btn-xs text-white/70 hover:text-white bg-white/10 hover:bg-white/20 border-0 rounded-full w-8 h-8 min-h-0 p-0 text-base">💬</a>
-        </div>
-      </div>
-    </div>
-    <div class="max-w-6xl mx-auto mt-6 pt-4 border-t border-white/10 text-center text-xs text-white/40">&copy; 2026 ZenPass 禪流 · 香港康樂及體育有限公司</div>
-  </footer>
+      var selectedCredits = 25,
+        selectedPrice = 225;
 
-  <!-- ===== BOTTOM NAV ===== -->
-  <nav class="bottom-nav fixed bottom-0 left-0 right-0 z-50 border-t border-gray-200/60 px-2 py-1 max-w-lg mx-auto rounded-t-2xl shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
-    <div class="flex justify-around items-center">
-      <a href="index.html" class="flex flex-col items-center py-1.5 px-3 text-gray-400 hover:text-orange-600 transition-colors"><span class="text-lg">🏠</span><span class="text-[10px] mt-0.5 font-medium">首頁</span></a>
-      <a href="explore.html" class="flex flex-col items-center py-1.5 px-3 text-gray-400 hover:text-orange-600 transition-colors"><span class="text-lg">🔍</span><span class="text-[10px] mt-0.5 font-medium">探索</span></a>
-      <a href="membership.html" class="flex flex-col items-center py-1.5 px-3 text-orange-600 relative"><span class="text-lg">💎</span><span class="text-[10px] mt-0.5 font-bold">會籍</span><span class="absolute -top-0.5 right-1 w-1.5 h-1.5 bg-orange-500 rounded-full"></span></a>
-      <a href="coach-apply.html" class="flex flex-col items-center py-1.5 px-3 text-gray-400 hover:text-orange-600 transition-colors"><span class="text-lg">👨‍🏫</span><span class="text-[10px] mt-0.5 font-medium">教練</span></a>
-      <a href="my.html" class="flex flex-col items-center py-1.5 px-3 text-gray-400 hover:text-orange-600 transition-colors"><span class="text-lg">👤</span><span class="text-[10px] mt-0.5 font-medium">我的</span></a>
-    </div>
-  </nav>
-
-  <script>
-    tailwind.config = { theme: { extend: { colors: { zen: { orange: '#f06030', 'orange-dark': '#c94420', 'orange-light': '#ff8555', dark: '#1a1a2e' } } } } };
-
-    var selectedCredits = 25, selectedPrice = 225;
-
-    function selectPack(el) {
-      document.querySelectorAll('.pack-card').forEach(function(c) {
-        c.classList.remove('border-orange-500', 'selected-pack');
-        c.classList.add('border-gray-200');
-      });
-      if (el) {
-        el.classList.remove('border-gray-200');
-        el.classList.add('border-orange-500', 'selected-pack');
-        selectedCredits = parseInt(el.getAttribute('data-credits')) || 25;
-        selectedPrice = parseInt(el.getAttribute('data-price')) || 225;
+      function selectPack(el) {
+        document.querySelectorAll(".pack-card").forEach(function (c) {
+          c.classList.remove("border-orange-500", "selected-pack");
+          c.classList.add("border-gray-200");
+        });
+        if (el) {
+          el.classList.remove("border-gray-200");
+          el.classList.add("border-orange-500", "selected-pack");
+          selectedCredits = parseInt(el.getAttribute("data-credits")) || 25;
+          selectedPrice = parseInt(el.getAttribute("data-price")) || 225;
+        }
+        document.getElementById("buyCreditsBtn").textContent =
+          "➕ 加購 " + selectedCredits + " Credits — HK$" + selectedPrice;
       }
-      document.getElementById('buyCreditsBtn').textContent = '➕ 加購 ' + selectedCredits + ' Credits — HK$' + selectedPrice;
-    }
 
-    function buyCredits() {
-      if (!localStorage.getItem('zenpass_token')) {
-        location.href = 'login.html?redirect=buy-credits.html';
-        return;
+      function buyCredits() {
+        if (!localStorage.getItem("zenpass_token")) {
+          location.href = "login.html?redirect=buy-credits.html";
+          return;
+        }
+        location.href =
+          "payment.html?type=credits&amount=" +
+          selectedPrice +
+          "&credits=" +
+          selectedCredits +
+          "&item=" +
+          selectedCredits +
+          "Credits";
       }
-      location.href = 'payment.html?type=credits&amount=' + selectedPrice + '&credits=' + selectedCredits + '&item=' + selectedCredits + 'Credits';
-    }
-  </script>
-</body>
+    </script>
+  </body>
 </html>

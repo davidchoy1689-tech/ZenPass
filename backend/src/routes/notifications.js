@@ -12,6 +12,8 @@ const {
   markAsRead,
   markAllAsRead,
   getUnreadCount,
+  sendNotification,
+  sendTelegramAlert,
 } = require("../services/notification");
 
 const router = express.Router();
@@ -208,6 +210,96 @@ router.get("/config", authenticateToken, (req, res) => {
     types: (process.env.NOTIFICATION_TYPES || "db").split(","),
   };
   res.json({ config });
+});
+
+// ===== GET /api/notifications/telegram/auto-detect — Telegram Chat ID 自動偵測 =====
+// 使用方式：
+// 1. 設定 TELEGRAM_BOT_TOKEN 喺 .env
+// 2. 喺 Telegram 向 bot 發送一條訊息（例如 /start）
+// 3. 用管理員 token call 呢個 endpoint
+router.get("/telegram/auto-detect", authenticateToken, async (req, res) => {
+  const botToken = process.env.TELEGRAM_BOT_TOKEN;
+  if (!botToken) {
+    return res.status(400).json({
+      error: "請先在 .env 設定 TELEGRAM_BOT_TOKEN",
+      hint: "去 @BotFather 開 bot 攞 token，然後放入 .env"
+    });
+  }
+
+  try {
+    const fetch = require("node-fetch");
+    const res_ = await fetch(
+      `https://api.telegram.org/bot${botToken}/getUpdates`,
+    );
+    const data = await res_.json();
+
+    if (!data.ok) {
+      return res.status(502).json({
+        error: "Telegram API 錯誤",
+        detail: data.description
+      });
+    }
+
+    if (!data.result || data.result.length === 0) {
+      return res.status(404).json({
+        error: "未偵測到任何訊息",
+        steps: [
+          "1. 確認 bot token 正確",
+          "2. 喺 Telegram 向 bot 發送 /start",
+          "3. 再 call 多次呢個 endpoint"
+        ]
+      });
+    }
+
+    // 提取所有 unique chat IDs
+    const chats = {};
+    for (const update of data.result) {
+      const msg = update.message || update.edited_message || update.channel_post;
+      if (msg && msg.chat) {
+        const { id, type, title, first_name, username } = msg.chat;
+        const label = title || first_name || username || `Chat ${id}`;
+        if (!chats[id]) {
+          chats[id] = { id, type, label, first_seen: update.message?.date || null };
+        }
+      }
+    }
+
+    const chatList = Object.values(chats);
+
+    res.json({
+      message: `偵測到 ${chatList.length} 個對話`,
+      chats: chatList,
+      instructions: `將其中一個 chat ID 放入 .env 做 TELEGRAM_CHAT_ID`,
+      curl_set_chat_id: chatList.length > 0
+        ? `echo "TELEGRAM_CHAT_ID=${chatList[0].id}" >> .env`
+        : null
+    });
+  } catch (err) {
+    console.error("Telegram auto-detect error:", err.message);
+    res.status(500).json({ error: "無法連接 Telegram API", detail: err.message });
+  }
+});
+
+// ===== POST /api/notifications/telegram/test — 測試傳送 Telegram 訊息 =====
+router.post("/telegram/test", authenticateToken, async (req, res) => {
+  const testMessage = `🧪 ZenPass Bot 測試通知
+━━━━━━━━━━━━━━━━━━━
+⏰ ${new Date().toLocaleString("zh-HK", { timeZone: "Asia/Hong_Kong" })}
+✅ 如果睇到呢則訊息，表示 Telegram 已成功設定！`;
+
+  const sent = await sendTelegramAlert(testMessage);
+
+  if (sent) {
+    res.json({
+      message: "✅ Telegram 測試通知已成功送出",
+      hint: "請檢查 Telegram 有冇收到訊息"
+    });
+  } else {
+    res.status(502).json({
+      error: "發送失敗",
+      hint: "請檢查 .env 嘅 TELEGRAM_BOT_TOKEN 同 TELEGRAM_CHAT_ID 是否正確"
+    });
+  }
 });
 
 module.exports = router;

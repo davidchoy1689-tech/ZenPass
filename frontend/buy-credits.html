@@ -9,9 +9,12 @@
       content="black-translucent"
     />
     <meta name="theme-color" content="#FF6B35" />
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <meta http-equiv="Pragma" content="no-cache">
-    <meta http-equiv="Expires" content="-1">
+    <meta
+      http-equiv="Cache-Control"
+      content="no-cache, no-store, must-revalidate"
+    />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="-1" />
     <title>購買點數 — ZenPass 禪流</title>
     <link rel="manifest" href="manifest.json" />
     <link rel="stylesheet" href="css/zenpass.css?v=2" />
@@ -454,19 +457,77 @@
       }
 
       /* Inline style cleanup helpers */
-      .bc-est-classes { font-size: 12px; color: var(--dark-700); }
-      .order-summary { display: none; margin-top: 16px; background: var(--white); border-radius: var(--radius-lg); padding: 16px; box-shadow: var(--shadow-sm); border: 2px solid var(--orange-100); }
-      .order-summary-title { font-size: 14px; font-weight: 700; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
-      .order-row { display: flex; justify-content: space-between; padding: 8px 0; font-size: 14px; }
-      .order-row-bonus { display: none; justify-content: space-between; padding: 4px 0 8px; font-size: 13px; }
-      .order-row-total { display: flex; justify-content: space-between; padding: 10px 0 4px; font-size: 18px; font-weight: 800; border-top: 2px solid var(--orange-500); margin-top: 4px; color: var(--orange-700); }
-      .order-total-credits { text-align: right; font-size: 12px; color: var(--dark-700); margin-top: 4px; }
-      .buy-btn-wrap { margin-top: 16px; }
-      .tips-text { font-size: 14px; color: var(--dark-700); line-height: 1.7; }
-      .footer-links-row { display: flex; justify-content: center; gap: 16px; margin-bottom: 8px; }
-      .bonus-inline { font-size: 11px; color: var(--green-500); font-weight: 600; margin-top: 2px; }
+      .bc-est-classes {
+        font-size: 12px;
+        color: var(--dark-700);
+      }
+      .order-summary {
+        display: none;
+        margin-top: 16px;
+        background: var(--white);
+        border-radius: var(--radius-lg);
+        padding: 16px;
+        box-shadow: var(--shadow-sm);
+        border: 2px solid var(--orange-100);
+      }
+      .order-summary-title {
+        font-size: 14px;
+        font-weight: 700;
+        margin-bottom: 12px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .order-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 8px 0;
+        font-size: 14px;
+      }
+      .order-row-bonus {
+        display: none;
+        justify-content: space-between;
+        padding: 4px 0 8px;
+        font-size: 13px;
+      }
+      .order-row-total {
+        display: flex;
+        justify-content: space-between;
+        padding: 10px 0 4px;
+        font-size: 18px;
+        font-weight: 800;
+        border-top: 2px solid var(--orange-500);
+        margin-top: 4px;
+        color: var(--orange-700);
+      }
+      .order-total-credits {
+        text-align: right;
+        font-size: 12px;
+        color: var(--dark-700);
+        margin-top: 4px;
+      }
+      .buy-btn-wrap {
+        margin-top: 16px;
+      }
+      .tips-text {
+        font-size: 14px;
+        color: var(--dark-700);
+        line-height: 1.7;
+      }
+      .footer-links-row {
+        display: flex;
+        justify-content: center;
+        gap: 16px;
+        margin-bottom: 8px;
+      }
+      .bonus-inline {
+        font-size: 11px;
+        color: var(--green-500);
+        font-weight: 600;
+        margin-top: 2px;
+      }
     </style>
-      <!-- Google tag (gtag.js) -->
+    <!-- Google tag (gtag.js) -->
     <script
       async
       src="https://www.googletagmanager.com/gtag/js?id=G-MKF5N4YLBM"
@@ -479,8 +540,7 @@
       gtag("js", new Date());
       gtag("config", "G-MKF5N4YLBM");
     </script>
-
-    </head>
+  </head>
   <body>
     <div class="header">
       <a
@@ -507,9 +567,7 @@
           <span class="unit">Credits</span>
         </div>
       </div>
-      <div class="bc-est-classes">
-        ≈ <span id="est-classes">0</span> 堂課
-      </div>
+      <div class="bc-est-classes">≈ <span id="est-classes">0</span> 堂課</div>
     </div>
 
     <!-- Credit Packs -->
@@ -518,32 +576,24 @@
       <div class="packs" id="pack-list"></div>
 
       <!-- Order Summary -->
-      <div
-        id="order-summary"
-        class="order-summary"
-      >
-        <div class="order-summary-title">
-          📋 訂單摘要
-        </div>
+      <div id="order-summary" class="order-summary">
+        <div class="order-summary-title">📋 訂單摘要</div>
         <div class="order-row">
           <span class="zen-text-muted">購買點數</span>
           <span id="os-credits" class="zen-text-bold">0 Credits</span>
         </div>
-        <div
-          id="os-bonus-row"
-          class="order-row-bonus"
-        >
+        <div id="os-bonus-row" class="order-row-bonus">
           <span class="zen-text-success">🎁 贈送</span>
           <span id="os-bonus" class="zen-text-success" style="font-weight: 600"
             >0 Credits</span
           >
         </div>
-        <div
-          class="order-row"
-          style="border-top: 1px solid var(--gray-200)"
-        >
+        <div class="order-row" style="border-top: 1px solid var(--gray-200)">
           <span class="zen-text-muted">金額</span>
-          <span id="os-price" class="zen-text-bold" style="color: var(--orange-500)"
+          <span
+            id="os-price"
+            class="zen-text-bold"
+            style="color: var(--orange-500)"
             >HK$0</span
           >
         </div>
@@ -551,10 +601,7 @@
           <span>合計</span>
           <span id="os-total">HK$0</span>
         </div>
-        <div
-          id="os-total-credits"
-          class="order-total-credits"
-        ></div>
+        <div id="os-total-credits" class="order-total-credits"></div>
       </div>
 
       <div class="buy-btn-wrap">
@@ -652,7 +699,9 @@
           var p = CREDIT_PACKS[i];
           var isPopular = p.popular ? " popular" : "";
           var badge = p.popular ? '<div class="badge">🔥 熱門</div>' : "";
-          var perCredit = Math.round(p.price / Math.max(1, (p.credits + (p.bonus || 0))));
+          var perCredit = Math.round(
+            p.price / Math.max(1, p.credits + (p.bonus || 0)),
+          );
           var totalCredits = p.credits + (p.bonus || 0);
           var bonusHtml = p.bonus
             ? '<div style="font-size:11px;color:var(--green-500);font-weight:600;margin-top:2px;">🎁 +' +
@@ -839,9 +888,7 @@
       }
       initPacks();
     </script>
-    <script>
-      
-    </script>
+    <script></script>
 
     <div class="zen-footer">
       <div class="footer-links-row">

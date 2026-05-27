@@ -14,9 +14,12 @@
       name="description"
       content="ZenPass 禪流探索課程 — 搜尋健身、瑜伽、冥想課程及教練"
     />
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <meta http-equiv="Pragma" content="no-cache">
-    <meta http-equiv="Expires" content="-1">
+    <meta
+      http-equiv="Cache-Control"
+      content="no-cache, no-store, must-revalidate"
+    />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="-1" />
     <title>探索課程 — ZenPass 禪流</title>
     <meta property="og:title" content="探索課程 — ZenPass 禪流" />
     <meta
@@ -47,7 +50,10 @@
     </script>
 
     <link rel="stylesheet" href="css/zenpass.css?v=2" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
       * {
@@ -544,11 +550,25 @@
           transform: rotate(360deg);
         }
       }
-    
-.footer-grad { background: linear-gradient(135deg, #1a1a2e 0%, #2d2d44 50%, #c94420 100%); }
-.footer-link { color: rgba(255,255,255,0.6); text-decoration: none; transition: color 0.2s; font-size: 13px; }
-.footer-link:hover { color: white; }
-</style>
+
+      .footer-grad {
+        background: linear-gradient(
+          135deg,
+          #1a1a2e 0%,
+          #2d2d44 50%,
+          #c94420 100%
+        );
+      }
+      .footer-link {
+        color: rgba(255, 255, 255, 0.6);
+        text-decoration: none;
+        transition: color 0.2s;
+        font-size: 13px;
+      }
+      .footer-link:hover {
+        color: white;
+      }
+    </style>
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
@@ -560,7 +580,7 @@
         "query-input": "required name=search_term_string"
       }
     </script>
-      <!-- Google tag (gtag.js) -->
+    <!-- Google tag (gtag.js) -->
     <script
       async
       src="https://www.googletagmanager.com/gtag/js?id=G-MKF5N4YLBM"
@@ -573,21 +593,27 @@
       gtag("js", new Date());
       gtag("config", "G-MKF5N4YLBM");
     </script>
-
-    </head>
+  </head>
   <body>
     <div class="header">
       <a href="index.html" class="back">←</a>
       <h1>探索課程</h1>
       <div
-        class="zen-flex zen-gap-sm" style="align-items: center; width: 100%; margin-top: 8px;"
+        class="zen-flex zen-gap-sm"
+        style="align-items: center; width: 100%; margin-top: 8px"
       >
         <input
           type="text"
           id="search-input"
           placeholder="🔍 搜尋課程、教練、運動類型..."
-          class="zen-flex-1" style="padding: 10px 14px; border: 1px solid var(--gray-200); border-radius: 8px;"
-          oninput="debounceSearch()" onkeydown="if (event.key === 'Enter') doSearch();"
+          class="zen-flex-1"
+          style="
+            padding: 10px 14px;
+            border: 1px solid var(--gray-200);
+            border-radius: 8px;
+          "
+          oninput="debounceSearch()"
+          onkeydown="if (event.key === 'Enter') doSearch();"
         />
         <button
           class="filter-btn"
@@ -661,7 +687,7 @@
           <div
             class="date-chip active"
             onclick="filterByTimeline('', this)"
-            style="padding: 4px 10px; font-size: 10px; cursor:pointer"
+            style="padding: 4px 10px; font-size: 10px; cursor: pointer"
           >
             <span style="font-size: 12px; font-weight: 600; display: block"
               >📅 全部</span
@@ -945,13 +971,11 @@
         </div>
         <!-- Result count + Clear -->
         <div style="display: flex; align-items: center; margin-top: 4px">
-          <span
-            class="zen-text-xs zen-text-muted"
-            id="resultCount"
-          ></span>
+          <span class="zen-text-xs zen-text-muted" id="resultCount"></span>
           <button
             onclick="clearAllFilters()"
-            class="zen-btn-small zen-btn-secondary" style="margin-left: auto; padding: 2px 8px; font-size: 9px;"
+            class="zen-btn-small zen-btn-secondary"
+            style="margin-left: auto; padding: 2px 8px; font-size: 9px"
           >
             🔄 清除
           </button>
@@ -973,12 +997,14 @@
 
     <div
       id="load-more-container"
-      class="zen-text-center zen-hidden" style="padding: 16px 0;"
+      class="zen-text-center zen-hidden"
+      style="padding: 16px 0"
     >
       <button
         id="load-more-btn"
         onclick="loadMore()"
-        class="zen-btn zen-btn-primary" style="padding: 10px 32px;"
+        class="zen-btn zen-btn-primary"
+        style="padding: 10px 32px"
       >
         📥 載入更多課程
       </button>
@@ -1003,17 +1029,45 @@
 
     <script>
       function showToast(msg, type) {
-        var bg = type === "success" ? "#ECFDF5" : type === "warning" ? "#FFFBEB" : "#FEF2F2";
-        var tx = type === "success" ? "#059669" : type === "warning" ? "#D97706" : "#EF4444";
+        var bg =
+          type === "success"
+            ? "#ECFDF5"
+            : type === "warning"
+              ? "#FFFBEB"
+              : "#FEF2F2";
+        var tx =
+          type === "success"
+            ? "#059669"
+            : type === "warning"
+              ? "#D97706"
+              : "#EF4444";
         var t = document.createElement("div");
-        t.style.cssText = "position:fixed;bottom:80px;left:50%;transform:translateX(-50%);padding:12px 20px;border-radius:12px;font-size:14px;font-weight:500;z-index:999;max-width:300px;text-align:center;animation:fadeIn .3s;background:" + bg + ";color:" + tx + ";box-shadow:0 4px 12px rgba(0,0,0,0.15);";
+        t.style.cssText =
+          "position:fixed;bottom:80px;left:50%;transform:translateX(-50%);padding:12px 20px;border-radius:12px;font-size:14px;font-weight:500;z-index:999;max-width:300px;text-align:center;animation:fadeIn .3s;background:" +
+          bg +
+          ";color:" +
+          tx +
+          ";box-shadow:0 4px 12px rgba(0,0,0,0.15);";
         t.textContent = msg;
         document.body.appendChild(t);
-        setTimeout(function() { t.style.opacity = "0"; t.style.transition = "opacity .3s"; setTimeout(function() { t.remove(); }, 300); }, 2500);
+        setTimeout(function () {
+          t.style.opacity = "0";
+          t.style.transition = "opacity .3s";
+          setTimeout(function () {
+            t.remove();
+          }, 300);
+        }, 2500);
       }
     </script>
     <script>
-      function escHtml(s) { if (!s) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+      function escHtml(s) {
+        if (!s) return "";
+        return String(s)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
     </script>
     <script src="api.js?v=2"></script>
     <script>
@@ -1024,7 +1078,9 @@
       var currentPage = 1;
       var currentLimit = 20;
       var totalClasses = 0;
-      var favorites = JSON.parse(localStorage.getItem("zenpass_favorites") || "{}");
+      var favorites = JSON.parse(
+        localStorage.getItem("zenpass_favorites") || "{}",
+      );
       var mapView = false;
       var mapInstance = null;
       var mapMarkers = [];
@@ -1393,7 +1449,8 @@
         if (!mapEl) {
           mapEl = document.createElement("div");
           mapEl.id = "mapContainer";
-          mapEl.style.cssText = "display:none;height:400px;border-radius:12px;margin:0 12px 12px";
+          mapEl.style.cssText =
+            "display:none;height:400px;border-radius:12px;margin:0 12px 12px";
           grid.parentNode.insertBefore(mapEl, grid);
         }
         if (showMap) {
@@ -1411,44 +1468,79 @@
       }
 
       function initMap() {
-        if (mapInstance) { mapInstance.invalidateSize(); return; }
+        if (mapInstance) {
+          mapInstance.invalidateSize();
+          return;
+        }
         if (typeof L === "undefined") return;
         try {
           mapInstance = L.map("mapContainer").setView([22.3193, 114.1694], 11);
           L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-            attribution: '&copy; OpenStreetMap contributors',
+            attribution: "&copy; OpenStreetMap contributors",
             maxZoom: 18,
           }).addTo(mapInstance);
           // Add markers for visible classes
           addMarkers();
-        } catch(e) { console.log("Map error:", e); }
+        } catch (e) {
+          console.log("Map error:", e);
+        }
       }
 
       function addMarkers() {
         if (!mapInstance || !filteredClasses) return;
         // Clear old markers
-        mapMarkers.forEach(function(m) { mapInstance.removeLayer(m); });
+        mapMarkers.forEach(function (m) {
+          mapInstance.removeLayer(m);
+        });
         mapMarkers = [];
         // Add HK locations (approximate from district)
         var districts = {
-          "中環": [22.2819, 114.1585], "金鐘": [22.2795, 114.1653], "上環": [22.2864, 114.1504],
-          "灣仔": [22.2795, 114.1755], "銅鑼灣": [22.2805, 114.1855], "北角": [22.2910, 114.2000],
-          "尖沙咀": [22.2976, 114.1705], "旺角": [22.3194, 114.1699], "油麻地": [22.3134, 114.1707],
-          "深水埗": [22.3327, 114.1616], "長沙灣": [22.3363, 114.1554], "觀塘": [22.3125, 114.2255],
-          "九龍灣": [22.3235, 114.2068], "九龍塘": [22.3350, 114.1800], "荔枝角": [22.3370, 114.1484],
-          "葵涌": [22.3640, 114.1290], "荃灣": [22.3710, 114.1140], "沙田": [22.3830, 114.1950],
-          "大圍": [22.3700, 114.1780], "馬鞍山": [22.4250, 114.2300], "將軍澳": [22.3060, 114.2580],
-          "屯門": [22.3930, 113.9770], "元朗": [22.4450, 114.0350], "天水圍": [22.4580, 114.0030],
-          "大埔": [22.4500, 114.1680], "粉嶺": [22.4900, 114.1400], "上水": [22.5020, 114.1280],
-          "西貢": [22.3810, 114.2720], "赤柱": [22.2160, 114.2150], "香港仔": [22.2480, 114.1570],
-          "跑馬地": [22.2690, 114.1850], "掃桿埔": [22.2730, 114.1890],
-          "香港島": [22.2800, 114.1800], "九龍": [22.3200, 114.1700], "新界": [22.4000, 114.1200],
+          中環: [22.2819, 114.1585],
+          金鐘: [22.2795, 114.1653],
+          上環: [22.2864, 114.1504],
+          灣仔: [22.2795, 114.1755],
+          銅鑼灣: [22.2805, 114.1855],
+          北角: [22.291, 114.2],
+          尖沙咀: [22.2976, 114.1705],
+          旺角: [22.3194, 114.1699],
+          油麻地: [22.3134, 114.1707],
+          深水埗: [22.3327, 114.1616],
+          長沙灣: [22.3363, 114.1554],
+          觀塘: [22.3125, 114.2255],
+          九龍灣: [22.3235, 114.2068],
+          九龍塘: [22.335, 114.18],
+          荔枝角: [22.337, 114.1484],
+          葵涌: [22.364, 114.129],
+          荃灣: [22.371, 114.114],
+          沙田: [22.383, 114.195],
+          大圍: [22.37, 114.178],
+          馬鞍山: [22.425, 114.23],
+          將軍澳: [22.306, 114.258],
+          屯門: [22.393, 113.977],
+          元朗: [22.445, 114.035],
+          天水圍: [22.458, 114.003],
+          大埔: [22.45, 114.168],
+          粉嶺: [22.49, 114.14],
+          上水: [22.502, 114.128],
+          西貢: [22.381, 114.272],
+          赤柱: [22.216, 114.215],
+          香港仔: [22.248, 114.157],
+          跑馬地: [22.269, 114.185],
+          掃桿埔: [22.273, 114.189],
+          香港島: [22.28, 114.18],
+          九龍: [22.32, 114.17],
+          新界: [22.4, 114.12],
         };
         var shown = [];
-        filteredClasses.forEach(function(cls) {
+        filteredClasses.forEach(function (cls) {
           var loc = cls.venue_name || cls.district || "";
           var coords = null;
-          for (var d in districts) { if (loc.includes(d)) { coords = districts[d]; break; } }
+          for (var d in districts) {
+            if (loc.includes(d)) {
+              coords = districts[d];
+              break;
+            }
+          }
           if (!coords) coords = districts["九龍"];
           // Avoid duplicates
           var key = coords[0].toFixed(2) + "," + coords[1].toFixed(2);
@@ -1456,10 +1548,18 @@
           shown.push(key);
           var marker = L.marker(coords).addTo(mapInstance);
           marker.bindPopup(
-            '<div style="font-size:13px;font-weight:600;margin-bottom:4px">' + cls.title + '</div>' +
-            '<div style="font-size:11px;color:#666;margin-bottom:4px">' + escHtml(loc) + '</div>' +
-            '<div style="font-size:12px;color:var(--orange-700);font-weight:700">HK$' + cls.price_hkd + '</div>' +
-            '<a href="class-detail.html?id=' + cls.id + '" style="font-size:11px;color:#3b82f6;display:block;margin-top:4px">📖 查看詳情</a>'
+            '<div style="font-size:13px;font-weight:600;margin-bottom:4px">' +
+              cls.title +
+              "</div>" +
+              '<div style="font-size:11px;color:#666;margin-bottom:4px">' +
+              escHtml(loc) +
+              "</div>" +
+              '<div style="font-size:12px;color:var(--orange-700);font-weight:700">HK$' +
+              cls.price_hkd +
+              "</div>" +
+              '<a href="class-detail.html?id=' +
+              cls.id +
+              '" style="font-size:11px;color:#3b82f6;display:block;margin-top:4px">📖 查看詳情</a>',
           );
           mapMarkers.push(marker);
         });
@@ -1468,14 +1568,19 @@
       var searchTimer;
       function debounceSearch() {
         clearTimeout(searchTimer);
-        searchTimer = setTimeout(function() {
+        searchTimer = setTimeout(function () {
           loadClasses();
         }, 300);
       }
       function showFavorites() {
         var favIds = Object.keys(favorites);
-        if (favIds.length === 0) { showToast("💔 未有收藏課程", "warning"); return; }
-        filteredClasses = allClasses.filter(function(c) { return favorites[c.id]; });
+        if (favIds.length === 0) {
+          showToast("💔 未有收藏課程", "warning");
+          return;
+        }
+        filteredClasses = allClasses.filter(function (c) {
+          return favorites[c.id];
+        });
         currentPage = 1;
         renderClasses();
       }
@@ -1739,8 +1844,16 @@
         var idx = _renderIdx++;
         var fp = idx === 0 ? ' fetchpriority="high"' : ' loading="lazy"';
         var imgHtml = cls.image_url
-          ? '<img' + fp + ' src="' + cls.image_url + '" alt="' + cls.title + '" class="class-card-img" style="width:100%;height:100%;object-fit:cover;display:block" />'
-          : '<div class="class-card-img" style="background:linear-gradient(135deg,var(--orange-100),var(--orange-200));display:flex;align-items:center;justify-content:center;font-size:32px;width:100%;height:100%">' + emoji + '</div>';
+          ? "<img" +
+            fp +
+            ' src="' +
+            cls.image_url +
+            '" alt="' +
+            cls.title +
+            '" class="class-card-img" style="width:100%;height:100%;object-fit:cover;display:block" />'
+          : '<div class="class-card-img" style="background:linear-gradient(135deg,var(--orange-100),var(--orange-200));display:flex;align-items:center;justify-content:center;font-size:32px;width:100%;height:100%">' +
+            emoji +
+            "</div>";
         return (
           '<div class="class-card" style="position:relative" onclick="location.href=\'class-detail.html?id=' +
           cls.id +
@@ -1753,9 +1866,17 @@
           cls.category +
           "</span>" +
           '<div style="display:flex;justify-content:space-between;align-items:flex-start">' +
-          '<div class="class-card-title">' + cls.title + '</div>' +
-          '<button class="fav-btn" data-id="' + cls.id + '" onclick="event.stopPropagation();toggleFavorite(this.dataset.id)" style="background:none;border:none;font-size:18px;cursor:pointer;padding:2px;line-height:1;color:' + (favorites[cls.id] ? '#ef4444' : 'var(--dark-400)') + '">' + (favorites[cls.id] ? '❤️' : '♡') + '</button>' +
-          '</div>' +
+          '<div class="class-card-title">' +
+          cls.title +
+          "</div>" +
+          '<button class="fav-btn" data-id="' +
+          cls.id +
+          '" onclick="event.stopPropagation();toggleFavorite(this.dataset.id)" style="background:none;border:none;font-size:18px;cursor:pointer;padding:2px;line-height:1;color:' +
+          (favorites[cls.id] ? "#ef4444" : "var(--dark-400)") +
+          '">' +
+          (favorites[cls.id] ? "❤️" : "♡") +
+          "</button>" +
+          "</div>" +
           (cls.venue_name
             ? '<div style="font-size:11px;color:var(--orange-700);margin-bottom:2px">📍 ' +
               cls.venue_name +
@@ -1834,9 +1955,7 @@
         }
       });
     </script>
-    <script>
-      
-    </script>
+    <script></script>
     <script>
       (function () {
         var n = localStorage.getItem("zenpass_name");
@@ -1860,42 +1979,72 @@
     </script>
 
     <footer class="footer-grad text-white/60 py-10 px-4 mt-8">
-    <div class="max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8">
-      <div class="col-span-2 md:col-span-1">
-        <div class="text-white font-bold text-base mb-2">🧘 ZenPass 禪流</div>
-        <div class="text-xs leading-relaxed">一個Pass，通行全城運動體驗。<br />香港康樂及體育有限公司</div>
-      </div>
-      <div>
-        <div class="text-white text-xs font-semibold mb-3 uppercase tracking-wider">探索</div>
-        <ul class="space-y-1.5">
-          <li><a href="explore.html" class="footer-link">探索課程</a></li>
-          <li><a href="coaches.html" class="footer-link">星級教練</a></li>
-          <li><a href="membership.html" class="footer-link">會籍方案</a></li>
-          <li><a href="coach-apply.html" class="footer-link">成為教練</a></li>
-        </ul>
-      </div>
-      <div>
-        <div class="text-white text-xs font-semibold mb-3 uppercase tracking-wider">支援</div>
-        <ul class="space-y-1.5">
-          <li><a href="faq.html" class="footer-link">常見問題</a></li>
-          <li><a href="privacy.html" class="footer-link">私隱政策</a></li>
-          <li><a href="terms.html" class="footer-link">服務條款</a></li>
-        </ul>
-      </div>
-      <div>
-        <div class="text-white text-xs font-semibold mb-3 uppercase tracking-wider">聯絡我們</div>
-        <ul class="space-y-1.5 text-xs">
-          <li>📧 support@zenpass.hk</li>
-          <li>📞 2387 0724</li>
-        </ul>
-        <div class="flex gap-2 mt-3">
-          <a href="https://www.instagram.com/zenpass_hk" class="w-8 h-8 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-sm transition-all">📸</a>
-          <a href="https://www.facebook.com/zenpass.hk" class="w-8 h-8 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-sm transition-all">👍</a>
-          <a href="https://wa.me/85290335538" class="w-8 h-8 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-sm transition-all">💬</a>
+      <div class="max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8">
+        <div class="col-span-2 md:col-span-1">
+          <div class="text-white font-bold text-base mb-2">🧘 ZenPass 禪流</div>
+          <div class="text-xs leading-relaxed">
+            一個Pass，通行全城運動體驗。<br />香港康樂及體育有限公司
+          </div>
+        </div>
+        <div>
+          <div
+            class="text-white text-xs font-semibold mb-3 uppercase tracking-wider"
+          >
+            探索
+          </div>
+          <ul class="space-y-1.5">
+            <li><a href="explore.html" class="footer-link">探索課程</a></li>
+            <li><a href="coaches.html" class="footer-link">星級教練</a></li>
+            <li><a href="membership.html" class="footer-link">會籍方案</a></li>
+            <li><a href="coach-apply.html" class="footer-link">成為教練</a></li>
+          </ul>
+        </div>
+        <div>
+          <div
+            class="text-white text-xs font-semibold mb-3 uppercase tracking-wider"
+          >
+            支援
+          </div>
+          <ul class="space-y-1.5">
+            <li><a href="faq.html" class="footer-link">常見問題</a></li>
+            <li><a href="privacy.html" class="footer-link">私隱政策</a></li>
+            <li><a href="terms.html" class="footer-link">服務條款</a></li>
+          </ul>
+        </div>
+        <div>
+          <div
+            class="text-white text-xs font-semibold mb-3 uppercase tracking-wider"
+          >
+            聯絡我們
+          </div>
+          <ul class="space-y-1.5 text-xs">
+            <li>📧 support@zenpass.hk</li>
+            <li>📞 2387 0724</li>
+          </ul>
+          <div class="flex gap-2 mt-3">
+            <a
+              href="https://www.instagram.com/zenpass_hk"
+              class="w-8 h-8 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-sm transition-all"
+              >📸</a
+            >
+            <a
+              href="https://www.facebook.com/zenpass.hk"
+              class="w-8 h-8 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-sm transition-all"
+              >👍</a
+            >
+            <a
+              href="https://wa.me/85290335538"
+              class="w-8 h-8 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-sm transition-all"
+              >💬</a
+            >
+          </div>
         </div>
       </div>
-    </div>
-    <div class="max-w-6xl mx-auto mt-8 pt-4 border-t border-white/10 text-center text-xs text-white/30">&copy; 2026 ZenPass 禪流 · 香港康樂及體育有限公司</div>
+      <div
+        class="max-w-6xl mx-auto mt-8 pt-4 border-t border-white/10 text-center text-xs text-white/30"
+      >
+        &copy; 2026 ZenPass 禪流 · 香港康樂及體育有限公司
+      </div>
     </footer>
     <button
       class="back-to-top"

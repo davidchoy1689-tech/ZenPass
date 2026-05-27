@@ -1,404 +1,922 @@
 <!doctype html>
 <html lang="zh-HK">
-<head>
-  <meta charset="UTF-8" />
-  <link rel="icon" href="favicon.png" type="image/png" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <meta name="theme-color" content="#FF6B35" />
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <meta http-equiv="Pragma" content="no-cache">
-    <meta http-equiv="Expires" content="-1">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" href="favicon.png" type="image/png" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <meta name="theme-color" content="#FF6B35" />
+    <meta
+      http-equiv="Cache-Control"
+      content="no-cache, no-store, must-revalidate"
+    />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="-1" />
     <title>商戶後台 — ZenPass 禪流</title>
-  <link rel="stylesheet" href="css/zenpass.css?v=2" />
-  <style>
-    :root {
-      --orange-500: #ff6b35;
-      --orange-700: #aa3218;
-      --orange-600-bg: #c94420;
-      --orange-400: #ff8555;
-      --orange-100: #fff0e8;
-      --orange-50: #fff8f4;
-      --teal-600: #0d9488;
-      --teal-50: #f0fdfa;
-      --teal-100: #ccfbf1;
-      --dark-900: #1a1a2e;
-      --dark-800: #2d2d44;
-      --dark-700: #6b7280;
-      --gray-200: #e5e7eb;
-      --gray-300: #888;
-      --gray-100: #f3f4f6;
-      --gray-50: #f9fafb;
-      --white: #ffffff;
-      --green-500: #059669;
-      --red-500: #ef4444;
-      --blue-500: #3b82f6;
-      --purple-500: #8b5cf6;
-      --radius-sm: 8px;
-      --radius-md: 12px;
-      --radius-lg: 16px;
-      --max-width: 480px;
-    }
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: "Inter", "Noto Sans TC", system-ui, sans-serif;
-      background: var(--gray-50);
-      color: var(--dark-900);
-      max-width: var(--max-width);
-      margin: 0 auto;
-      padding-bottom: 72px;
-      -webkit-font-smoothing: antialiased;
-    }
+    <link rel="stylesheet" href="css/zenpass.css?v=2" />
+    <style>
+      :root {
+        --orange-500: #ff6b35;
+        --orange-700: #aa3218;
+        --orange-600-bg: #c94420;
+        --orange-400: #ff8555;
+        --orange-100: #fff0e8;
+        --orange-50: #fff8f4;
+        --teal-600: #0d9488;
+        --teal-50: #f0fdfa;
+        --teal-100: #ccfbf1;
+        --dark-900: #1a1a2e;
+        --dark-800: #2d2d44;
+        --dark-700: #6b7280;
+        --gray-200: #e5e7eb;
+        --gray-300: #888;
+        --gray-100: #f3f4f6;
+        --gray-50: #f9fafb;
+        --white: #ffffff;
+        --green-500: #059669;
+        --red-500: #ef4444;
+        --blue-500: #3b82f6;
+        --purple-500: #8b5cf6;
+        --radius-sm: 8px;
+        --radius-md: 12px;
+        --radius-lg: 16px;
+        --max-width: 480px;
+      }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: "Inter", "Noto Sans TC", system-ui, sans-serif;
+        background: var(--gray-50);
+        color: var(--dark-900);
+        max-width: var(--max-width);
+        margin: 0 auto;
+        padding-bottom: 72px;
+        -webkit-font-smoothing: antialiased;
+      }
 
-    /* Header */
-    .p-header {
-      background: linear-gradient(135deg, var(--orange-600-bg), var(--orange-500));
-      color: var(--white);
-      padding: 16px 20px;
-    }
-    .p-header-top {
-      display: flex; align-items: center; gap: 10px;
-    }
-    .p-header a { color: var(--white); text-decoration: none; font-size: 20px; }
-    .p-header h1 { font-size: 19px; font-weight: 700; flex: 1; }
-    .p-header .role-badge {
-      font-size: 9px; background: rgba(255,255,255,0.2);
-      padding: 2px 10px; border-radius: 99px; white-space: nowrap;
-    }
-    .p-header .venue-name { font-size: 11px; opacity: 0.8; margin-left: 30px; margin-top: 2px; }
-    .p-header .plan-badge {
-      font-size: 9px; background: rgba(255,255,255,0.2);
-      padding: 2px 8px; border-radius: 10px; margin-left: 6px;
-    }
+      /* Header */
+      .p-header {
+        background: linear-gradient(
+          135deg,
+          var(--orange-600-bg),
+          var(--orange-500)
+        );
+        color: var(--white);
+        padding: 16px 20px;
+      }
+      .p-header-top {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .p-header a {
+        color: var(--white);
+        text-decoration: none;
+        font-size: 20px;
+      }
+      .p-header h1 {
+        font-size: 19px;
+        font-weight: 700;
+        flex: 1;
+      }
+      .p-header .role-badge {
+        font-size: 9px;
+        background: rgba(255, 255, 255, 0.2);
+        padding: 2px 10px;
+        border-radius: 99px;
+        white-space: nowrap;
+      }
+      .p-header .venue-name {
+        font-size: 11px;
+        opacity: 0.8;
+        margin-left: 30px;
+        margin-top: 2px;
+      }
+      .p-header .plan-badge {
+        font-size: 9px;
+        background: rgba(255, 255, 255, 0.2);
+        padding: 2px 8px;
+        border-radius: 10px;
+        margin-left: 6px;
+      }
 
-    /* Bottom Nav */
-    .bottom-nav {
-      position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
-      width: 100%; max-width: var(--max-width);
-      background: var(--white); border-top: 1px solid var(--gray-200);
-      display: flex; justify-content: space-around;
-      padding: 6px 0 calc(6px + env(safe-area-inset-bottom));
-      z-index: 100;
-    }
-    .nav-item {
-      display: flex; flex-direction: column; align-items: center;
-      text-decoration: none; color: var(--gray-300);
-      font-size: 9px; gap: 1px; padding: 3px 8px;
-      cursor: pointer; transition: color 0.2s;
-    }
-    .nav-item.active { color: var(--orange-700); }
-    .nav-item .nav-icon { font-size: 20px; line-height: 1.2; }
+      /* Bottom Nav */
+      .bottom-nav {
+        position: fixed;
+        bottom: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 100%;
+        max-width: var(--max-width);
+        background: var(--white);
+        border-top: 1px solid var(--gray-200);
+        display: flex;
+        justify-content: space-around;
+        padding: 6px 0 calc(6px + env(safe-area-inset-bottom));
+        z-index: 100;
+      }
+      .nav-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-decoration: none;
+        color: var(--gray-300);
+        font-size: 9px;
+        gap: 1px;
+        padding: 3px 8px;
+        cursor: pointer;
+        transition: color 0.2s;
+      }
+      .nav-item.active {
+        color: var(--orange-700);
+      }
+      .nav-item .nav-icon {
+        font-size: 20px;
+        line-height: 1.2;
+      }
 
-    /* Section/Tab */
-    .section { padding: 14px; display: none; }
-    .section.active { display: block; }
+      /* Section/Tab */
+      .section {
+        padding: 14px;
+        display: none;
+      }
+      .section.active {
+        display: block;
+      }
 
-    /* Cards */
-    .card {
-      background: var(--white); border-radius: var(--radius-lg);
-      padding: 18px; margin-bottom: 12px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
-    }
-    .card-title {
-      font-size: 14px; font-weight: 700; margin-bottom: 14px;
-      display: flex; align-items: center; gap: 8px;
-    }
-    .card-title .count { font-size: 11px; font-weight: 400; color: var(--dark-700); }
-    .card-subtitle { font-size: 12px; color: var(--dark-700); margin-bottom: 10px; }
+      /* Cards */
+      .card {
+        background: var(--white);
+        border-radius: var(--radius-lg);
+        padding: 18px;
+        margin-bottom: 12px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+      }
+      .card-title {
+        font-size: 14px;
+        font-weight: 700;
+        margin-bottom: 14px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .card-title .count {
+        font-size: 11px;
+        font-weight: 400;
+        color: var(--dark-700);
+      }
+      .card-subtitle {
+        font-size: 12px;
+        color: var(--dark-700);
+        margin-bottom: 10px;
+      }
 
-    /* Stats */
-    .stats-row {
-      display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap;
-    }
-    .stat-box {
-      flex: 1; min-width: 70px;
-      background: var(--white); border-radius: var(--radius-md);
-      padding: 12px; text-align: center;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
-    }
-    .stat-box .num { font-size: 20px; font-weight: 800; color: var(--orange-700); }
-    .stat-box .num.teal { color: var(--teal-600); }
-    .stat-box .num.green { color: var(--green-500); }
-    .stat-box .num.purple { color: var(--purple-500); }
-    .stat-box .label { font-size: 10px; color: var(--dark-700); margin-top: 2px; }
+      /* Stats */
+      .stats-row {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 14px;
+        flex-wrap: wrap;
+      }
+      .stat-box {
+        flex: 1;
+        min-width: 70px;
+        background: var(--white);
+        border-radius: var(--radius-md);
+        padding: 12px;
+        text-align: center;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+      }
+      .stat-box .num {
+        font-size: 20px;
+        font-weight: 800;
+        color: var(--orange-700);
+      }
+      .stat-box .num.teal {
+        color: var(--teal-600);
+      }
+      .stat-box .num.green {
+        color: var(--green-500);
+      }
+      .stat-box .num.purple {
+        color: var(--purple-500);
+      }
+      .stat-box .label {
+        font-size: 10px;
+        color: var(--dark-700);
+        margin-top: 2px;
+      }
 
-    /* Booking items */
-    .booking-item {
-      padding: 12px; background: var(--gray-50);
-      border-radius: var(--radius-sm); margin-bottom: 8px;
-      border: 1px solid var(--gray-100);
-    }
-    .booking-item .b-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px; }
-    .booking-item .b-class { font-size: 13px; font-weight: 600; }
-    .booking-item .b-status {
-      font-size: 10px; padding: 2px 10px; border-radius: 10px; font-weight: 600; white-space: nowrap;
-    }
-    .b-status.confirmed { background: #ecfdf5; color: var(--green-500); }
-    .b-status.attended { background: #eff6ff; color: var(--blue-500); }
-    .b-status.cancelled { background: #fef2f2; color: var(--red-500); }
-    .b-status.pending_payment { background: #fffbeb; color: #d97706; }
-    .booking-item .b-meta { font-size: 11px; color: var(--dark-700); line-height: 1.5; }
-    .booking-item .b-actions { display: flex; gap: 6px; margin-top: 6px; }
+      /* Booking items */
+      .booking-item {
+        padding: 12px;
+        background: var(--gray-50);
+        border-radius: var(--radius-sm);
+        margin-bottom: 8px;
+        border: 1px solid var(--gray-100);
+      }
+      .booking-item .b-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 4px;
+      }
+      .booking-item .b-class {
+        font-size: 13px;
+        font-weight: 600;
+      }
+      .booking-item .b-status {
+        font-size: 10px;
+        padding: 2px 10px;
+        border-radius: 10px;
+        font-weight: 600;
+        white-space: nowrap;
+      }
+      .b-status.confirmed {
+        background: #ecfdf5;
+        color: var(--green-500);
+      }
+      .b-status.attended {
+        background: #eff6ff;
+        color: var(--blue-500);
+      }
+      .b-status.cancelled {
+        background: #fef2f2;
+        color: var(--red-500);
+      }
+      .b-status.pending_payment {
+        background: #fffbeb;
+        color: #d97706;
+      }
+      .booking-item .b-meta {
+        font-size: 11px;
+        color: var(--dark-700);
+        line-height: 1.5;
+      }
+      .booking-item .b-actions {
+        display: flex;
+        gap: 6px;
+        margin-top: 6px;
+      }
 
-    /* Buttons */
-    .btn-sm {
-      font-size: 11px; padding: 5px 12px; border: none; border-radius: 6px;
-      cursor: pointer; font-family: inherit; font-weight: 600;
-      transition: opacity 0.2s;
-    }
-    .btn-sm:active { opacity: 0.8; }
-    .btn-sm.primary { background: var(--orange-600-bg); color: var(--white); }
-    .btn-sm.secondary { background: var(--gray-200); color: var(--dark-700); }
-    .btn-sm.danger { background: #fef2f2; color: var(--red-500); border: 1px solid #fecaca; }
-    .btn-sm.success { background: #ecfdf5; color: var(--green-500); border: 1px solid #a7f3d0; }
-    .btn-sm.outline { background: transparent; color: var(--orange-700); border: 1px solid var(--orange-400); }
-    .btn-primary {
-      width: 100%; padding: 12px; background: var(--orange-600-bg);
-      color: var(--white); border: none; border-radius: var(--radius-sm);
-      font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit;
-    }
-    .btn-secondary {
-      width: 100%; padding: 12px; background: var(--white);
-      color: var(--orange-700); border: 1.5px solid var(--orange-500);
-      border-radius: var(--radius-sm); font-size: 14px; font-weight: 600;
-      cursor: pointer; font-family: inherit; margin-top: 8px;
-    }
+      /* Buttons */
+      .btn-sm {
+        font-size: 11px;
+        padding: 5px 12px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-family: inherit;
+        font-weight: 600;
+        transition: opacity 0.2s;
+      }
+      .btn-sm:active {
+        opacity: 0.8;
+      }
+      .btn-sm.primary {
+        background: var(--orange-600-bg);
+        color: var(--white);
+      }
+      .btn-sm.secondary {
+        background: var(--gray-200);
+        color: var(--dark-700);
+      }
+      .btn-sm.danger {
+        background: #fef2f2;
+        color: var(--red-500);
+        border: 1px solid #fecaca;
+      }
+      .btn-sm.success {
+        background: #ecfdf5;
+        color: var(--green-500);
+        border: 1px solid #a7f3d0;
+      }
+      .btn-sm.outline {
+        background: transparent;
+        color: var(--orange-700);
+        border: 1px solid var(--orange-400);
+      }
+      .btn-primary {
+        width: 100%;
+        padding: 12px;
+        background: var(--orange-600-bg);
+        color: var(--white);
+        border: none;
+        border-radius: var(--radius-sm);
+        font-size: 14px;
+        font-weight: 700;
+        cursor: pointer;
+        font-family: inherit;
+      }
+      .btn-secondary {
+        width: 100%;
+        padding: 12px;
+        background: var(--white);
+        color: var(--orange-700);
+        border: 1.5px solid var(--orange-500);
+        border-radius: var(--radius-sm);
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        font-family: inherit;
+        margin-top: 8px;
+      }
 
-    /* Filter tabs */
-    .filter-tabs {
-      display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap;
-    }
-    .filter-tab {
-      padding: 5px 12px; font-size: 11px;
-      border: 1px solid var(--gray-200); border-radius: 20px;
-      background: var(--white); color: var(--dark-700);
-      cursor: pointer; font-family: inherit; transition: all 0.2s;
-    }
-    .filter-tab.active { background: var(--orange-100); color: var(--orange-700); border-color: var(--orange-400); }
+      /* Filter tabs */
+      .filter-tabs {
+        display: flex;
+        gap: 6px;
+        margin-bottom: 10px;
+        flex-wrap: wrap;
+      }
+      .filter-tab {
+        padding: 5px 12px;
+        font-size: 11px;
+        border: 1px solid var(--gray-200);
+        border-radius: 20px;
+        background: var(--white);
+        color: var(--dark-700);
+        cursor: pointer;
+        font-family: inherit;
+        transition: all 0.2s;
+      }
+      .filter-tab.active {
+        background: var(--orange-100);
+        color: var(--orange-700);
+        border-color: var(--orange-400);
+      }
 
-    /* Class items */
-    .class-item { padding: 12px 0; border-bottom: 1px solid var(--gray-100); }
-    .class-item:last-child { border-bottom: none; }
-    .class-row { display: flex; justify-content: space-between; align-items: center; }
-    .class-name { font-size: 13px; font-weight: 600; }
-    .class-meta { font-size: 10px; color: var(--dark-700); margin-top: 2px; }
-    .class-status {
-      font-size: 10px; padding: 2px 10px; border-radius: 10px; font-weight: 600; white-space: nowrap;
-    }
-    .class-status.active { background: #ecfdf5; color: var(--green-500); }
-    .class-status.inactive { background: #fef2f2; color: var(--red-500); }
+      /* Class items */
+      .class-item {
+        padding: 12px 0;
+        border-bottom: 1px solid var(--gray-100);
+      }
+      .class-item:last-child {
+        border-bottom: none;
+      }
+      .class-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .class-name {
+        font-size: 13px;
+        font-weight: 600;
+      }
+      .class-meta {
+        font-size: 10px;
+        color: var(--dark-700);
+        margin-top: 2px;
+      }
+      .class-status {
+        font-size: 10px;
+        padding: 2px 10px;
+        border-radius: 10px;
+        font-weight: 600;
+        white-space: nowrap;
+      }
+      .class-status.active {
+        background: #ecfdf5;
+        color: var(--green-500);
+      }
+      .class-status.inactive {
+        background: #fef2f2;
+        color: var(--red-500);
+      }
 
-    .schedule-scroll {
-      display: flex; gap: 8px; overflow-x: auto; padding-bottom: 6px; margin-top: 8px;
-      scrollbar-width: none;
-    }
-    .schedule-scroll::-webkit-scrollbar { display: none; }
-    .schedule-card {
-      flex: 0 0 150px; background: var(--orange-50);
-      border-radius: var(--radius-md); padding: 10px; border: 1px solid var(--orange-100);
-    }
-    .schedule-card .s-date { font-size: 12px; font-weight: 600; color: var(--orange-700); }
-    .schedule-card .s-time { font-size: 11px; color: var(--dark-700); margin: 3px 0; }
-    .schedule-card .s-enrolled { font-size: 11px; color: var(--green-500); margin-top: 3px; }
+      .schedule-scroll {
+        display: flex;
+        gap: 8px;
+        overflow-x: auto;
+        padding-bottom: 6px;
+        margin-top: 8px;
+        scrollbar-width: none;
+      }
+      .schedule-scroll::-webkit-scrollbar {
+        display: none;
+      }
+      .schedule-card {
+        flex: 0 0 150px;
+        background: var(--orange-50);
+        border-radius: var(--radius-md);
+        padding: 10px;
+        border: 1px solid var(--orange-100);
+      }
+      .schedule-card .s-date {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--orange-700);
+      }
+      .schedule-card .s-time {
+        font-size: 11px;
+        color: var(--dark-700);
+        margin: 3px 0;
+      }
+      .schedule-card .s-enrolled {
+        font-size: 11px;
+        color: var(--green-500);
+        margin-top: 3px;
+      }
 
-    /* Revenue */
-    .revenue-highlight {
-      background: linear-gradient(135deg, var(--teal-50), var(--teal-100));
-      border-radius: var(--radius-lg); padding: 20px; text-align: center; margin-bottom: 12px;
-    }
-    .revenue-big { font-size: 28px; font-weight: 800; color: var(--teal-600); }
-    .revenue-label { font-size: 12px; color: var(--dark-700); margin-top: 4px; }
+      /* Revenue */
+      .revenue-highlight {
+        background: linear-gradient(135deg, var(--teal-50), var(--teal-100));
+        border-radius: var(--radius-lg);
+        padding: 20px;
+        text-align: center;
+        margin-bottom: 12px;
+      }
+      .revenue-big {
+        font-size: 28px;
+        font-weight: 800;
+        color: var(--teal-600);
+      }
+      .revenue-label {
+        font-size: 12px;
+        color: var(--dark-700);
+        margin-top: 4px;
+      }
 
-    .payout-item {
-      padding: 10px 0; border-bottom: 1px solid var(--gray-100); font-size: 12px;
-    }
-    .payout-item .p-row { display: flex; justify-content: space-between; margin-bottom: 3px; }
-    .payout-item .p-label { color: var(--dark-700); }
-    .payout-item .p-val { font-weight: 600; }
+      .payout-item {
+        padding: 10px 0;
+        border-bottom: 1px solid var(--gray-100);
+        font-size: 12px;
+      }
+      .payout-item .p-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 3px;
+      }
+      .payout-item .p-label {
+        color: var(--dark-700);
+      }
+      .payout-item .p-val {
+        font-weight: 600;
+      }
 
-    .report-chart {
-      background: var(--white); border-radius: var(--radius-md);
-      padding: 14px; margin-bottom: 12px;
-    }
-    .report-chart .rc-title { font-size: 12px; font-weight: 600; margin-bottom: 6px; }
-    .bar-chart { display: flex; gap: 3px; align-items: flex-end; height: 100px; }
-    .bar-item {
-      flex: 1; display: flex; flex-direction: column; align-items: center;
-      justify-content: flex-end; height: 100%;
-    }
-    .bar {
-      width: 100%; background: var(--orange-500);
-      border-radius: 3px 3px 0 0; min-height: 3px;
-      transition: height 0.3s;
-    }
-    .bar-item .bar-label { font-size: 7px; color: var(--dark-700); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 35px; text-align: center; }
-    .bar-item .bar-val { font-size: 8px; font-weight: 600; color: var(--dark-900); margin-bottom: 2px; }
+      .report-chart {
+        background: var(--white);
+        border-radius: var(--radius-md);
+        padding: 14px;
+        margin-bottom: 12px;
+      }
+      .report-chart .rc-title {
+        font-size: 12px;
+        font-weight: 600;
+        margin-bottom: 6px;
+      }
+      .bar-chart {
+        display: flex;
+        gap: 3px;
+        align-items: flex-end;
+        height: 100px;
+      }
+      .bar-item {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-end;
+        height: 100%;
+      }
+      .bar {
+        width: 100%;
+        background: var(--orange-500);
+        border-radius: 3px 3px 0 0;
+        min-height: 3px;
+        transition: height 0.3s;
+      }
+      .bar-item .bar-label {
+        font-size: 7px;
+        color: var(--dark-700);
+        margin-top: 3px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 35px;
+        text-align: center;
+      }
+      .bar-item .bar-val {
+        font-size: 8px;
+        font-weight: 600;
+        color: var(--dark-900);
+        margin-bottom: 2px;
+      }
 
-    .report-nav {
-      display: flex; gap: 6px; margin-bottom: 10px;
-    }
-    .report-nav button {
-      flex: 1; padding: 6px; border: 1px solid var(--gray-200);
-      border-radius: 8px; background: var(--white);
-      font-size: 11px; cursor: pointer; font-family: inherit; transition: all 0.2s;
-    }
-    .report-nav button.active {
-      background: var(--orange-100); border-color: var(--orange-400);
-      color: var(--orange-700); font-weight: 600;
-    }
+      .report-nav {
+        display: flex;
+        gap: 6px;
+        margin-bottom: 10px;
+      }
+      .report-nav button {
+        flex: 1;
+        padding: 6px;
+        border: 1px solid var(--gray-200);
+        border-radius: 8px;
+        background: var(--white);
+        font-size: 11px;
+        cursor: pointer;
+        font-family: inherit;
+        transition: all 0.2s;
+      }
+      .report-nav button.active {
+        background: var(--orange-100);
+        border-color: var(--orange-400);
+        color: var(--orange-700);
+        font-weight: 600;
+      }
 
-    /* Venue cards */
-    .venue-card {
-      padding: 12px; background: var(--gray-50);
-      border-radius: var(--radius-sm); margin-bottom: 8px;
-      border: 1px solid var(--gray-100);
-    }
-    .venue-card .v-name { font-size: 13px; font-weight: 600; }
-    .venue-card .v-info { font-size: 11px; color: var(--dark-700); margin-top: 4px; line-height: 1.5; }
-    .venue-card .v-actions { margin-top: 8px; display: flex; gap: 6px; }
+      /* Venue cards */
+      .venue-card {
+        padding: 12px;
+        background: var(--gray-50);
+        border-radius: var(--radius-sm);
+        margin-bottom: 8px;
+        border: 1px solid var(--gray-100);
+      }
+      .venue-card .v-name {
+        font-size: 13px;
+        font-weight: 600;
+      }
+      .venue-card .v-info {
+        font-size: 11px;
+        color: var(--dark-700);
+        margin-top: 4px;
+        line-height: 1.5;
+      }
+      .venue-card .v-actions {
+        margin-top: 8px;
+        display: flex;
+        gap: 6px;
+      }
 
-    /* Member/Coach cards */
-    .member-item {
-      display: flex; align-items: center; gap: 10px;
-      padding: 10px; background: var(--gray-50);
-      border-radius: var(--radius-sm); margin-bottom: 8px;
-      border: 1px solid var(--gray-100);
-    }
-    .member-item .m-avatar {
-      width: 36px; height: 36px; border-radius: 50%;
-      background: var(--orange-100); color: var(--orange-700);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 16px; font-weight: 700; flex-shrink: 0;
-    }
-    .member-item .m-info { flex: 1; }
-    .member-item .m-name { font-size: 13px; font-weight: 600; }
-    .member-item .m-role { font-size: 10px; color: var(--dark-700); margin-top: 1px; }
-    .member-item .m-actions { display: flex; gap: 4px; }
+      /* Member/Coach cards */
+      .member-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px;
+        background: var(--gray-50);
+        border-radius: var(--radius-sm);
+        margin-bottom: 8px;
+        border: 1px solid var(--gray-100);
+      }
+      .member-item .m-avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: var(--orange-100);
+        color: var(--orange-700);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        font-weight: 700;
+        flex-shrink: 0;
+      }
+      .member-item .m-info {
+        flex: 1;
+      }
+      .member-item .m-name {
+        font-size: 13px;
+        font-weight: 600;
+      }
+      .member-item .m-role {
+        font-size: 10px;
+        color: var(--dark-700);
+        margin-top: 1px;
+      }
+      .member-item .m-actions {
+        display: flex;
+        gap: 4px;
+      }
 
-    /* Settings */
-    .settings-section { margin-bottom: 16px; }
-    .settings-section h4 { font-size: 13px; font-weight: 700; margin-bottom: 8px; }
-    .settings-row { margin-bottom: 8px; }
-    .settings-row .s-label { font-size: 11px; color: var(--dark-700); margin-bottom: 2px; }
-    .settings-row .s-val { font-size: 13px; font-weight: 500; }
-    .settings-row input, .settings-row textarea, .settings-row select {
-      width: 100%; padding: 10px; border: 1px solid var(--gray-200);
-      border-radius: 8px; font-size: 13px; font-family: inherit;
-    }
+      /* Settings */
+      .settings-section {
+        margin-bottom: 16px;
+      }
+      .settings-section h4 {
+        font-size: 13px;
+        font-weight: 700;
+        margin-bottom: 8px;
+      }
+      .settings-row {
+        margin-bottom: 8px;
+      }
+      .settings-row .s-label {
+        font-size: 11px;
+        color: var(--dark-700);
+        margin-bottom: 2px;
+      }
+      .settings-row .s-val {
+        font-size: 13px;
+        font-weight: 500;
+      }
+      .settings-row input,
+      .settings-row textarea,
+      .settings-row select {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid var(--gray-200);
+        border-radius: 8px;
+        font-size: 13px;
+        font-family: inherit;
+      }
 
-    /* Modal */
-    .modal-overlay {
-      display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.5); z-index: 2000;
-      align-items: center; justify-content: center;
-    }
-    .modal-overlay.active { display: flex; }
-    .modal-content {
-      background: var(--white); border-radius: 16px; padding: 22px;
-      width: 90%; max-width: 420px; max-height: 85vh; overflow-y: auto;
-    }
-    .modal-content h3 { font-size: 17px; font-weight: 700; margin-bottom: 14px; }
-    .modal-content label { font-size: 12px; font-weight: 600; display: block; margin-bottom: 3px; color: var(--dark-700); }
-    .modal-content input, .modal-content select, .modal-content textarea {
-      width: 100%; padding: 9px 12px; border: 1px solid var(--gray-200);
-      border-radius: 8px; font-size: 13px; margin-bottom: 10px;
-      font-family: inherit; box-sizing: border-box; background: var(--white);
-    }
-    .modal-content textarea { resize: vertical; min-height: 50px; }
-    .modal-actions { display: flex; gap: 8px; margin-top: 12px; }
-    .modal-actions button {
-      flex: 1; padding: 11px; border-radius: 8px; border: none;
-      font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit;
-    }
-    .modal-actions .modal-save { background: var(--orange-600-bg); color: var(--white); }
-    .modal-actions .modal-cancel { background: var(--gray-200); color: var(--dark-700); }
+      /* Modal */
+      .modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 2000;
+        align-items: center;
+        justify-content: center;
+      }
+      .modal-overlay.active {
+        display: flex;
+      }
+      .modal-content {
+        background: var(--white);
+        border-radius: 16px;
+        padding: 22px;
+        width: 90%;
+        max-width: 420px;
+        max-height: 85vh;
+        overflow-y: auto;
+      }
+      .modal-content h3 {
+        font-size: 17px;
+        font-weight: 700;
+        margin-bottom: 14px;
+      }
+      .modal-content label {
+        font-size: 12px;
+        font-weight: 600;
+        display: block;
+        margin-bottom: 3px;
+        color: var(--dark-700);
+      }
+      .modal-content input,
+      .modal-content select,
+      .modal-content textarea {
+        width: 100%;
+        padding: 9px 12px;
+        border: 1px solid var(--gray-200);
+        border-radius: 8px;
+        font-size: 13px;
+        margin-bottom: 10px;
+        font-family: inherit;
+        box-sizing: border-box;
+        background: var(--white);
+      }
+      .modal-content textarea {
+        resize: vertical;
+        min-height: 50px;
+      }
+      .modal-actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 12px;
+      }
+      .modal-actions button {
+        flex: 1;
+        padding: 11px;
+        border-radius: 8px;
+        border: none;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        font-family: inherit;
+      }
+      .modal-actions .modal-save {
+        background: var(--orange-600-bg);
+        color: var(--white);
+      }
+      .modal-actions .modal-cancel {
+        background: var(--gray-200);
+        color: var(--dark-700);
+      }
 
-    /* Misc */
-    .loading { text-align: center; padding: 40px; color: var(--dark-700); font-size: 13px; }
-    .loading .spinner {
-      display: inline-block; width: 28px; height: 28px;
-      border: 3px solid var(--gray-200); border-top-color: var(--orange-700);
-      border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 10px;
-    }
-    .empty-state { text-align: center; padding: 28px 16px; color: var(--dark-700); font-size: 13px; }
-    .empty-state .empty-icon { font-size: 36px; margin-bottom: 6px; display: block; }
-    .hidden { display: none !important; }
+      /* Misc */
+      .loading {
+        text-align: center;
+        padding: 40px;
+        color: var(--dark-700);
+        font-size: 13px;
+      }
+      .loading .spinner {
+        display: inline-block;
+        width: 28px;
+        height: 28px;
+        border: 3px solid var(--gray-200);
+        border-top-color: var(--orange-700);
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+        margin-bottom: 10px;
+      }
+      .empty-state {
+        text-align: center;
+        padding: 28px 16px;
+        color: var(--dark-700);
+        font-size: 13px;
+      }
+      .empty-state .empty-icon {
+        font-size: 36px;
+        margin-bottom: 6px;
+        display: block;
+      }
+      .hidden {
+        display: none !important;
+      }
 
-    .toast-fixed {
-      position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
-      padding: 10px 18px; border-radius: 12px; font-size: 13px;
-      font-weight: 500; z-index: 999; animation: fadeIn 0.3s;
-      max-width: 280px; text-align: center;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    }
+      .toast-fixed {
+        position: fixed;
+        bottom: 80px;
+        left: 50%;
+        transform: translateX(-50%);
+        padding: 10px 18px;
+        border-radius: 12px;
+        font-size: 13px;
+        font-weight: 500;
+        z-index: 999;
+        animation: fadeIn 0.3s;
+        max-width: 280px;
+        text-align: center;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      }
 
-    .plan-info {
-      background: linear-gradient(135deg, var(--orange-100), var(--orange-50));
-      border-radius: var(--radius-md); padding: 12px; margin-bottom: 10px;
-      border: 1px solid var(--orange-200);
-    }
-    .plan-info .pi-row { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px; }
-    .plan-info .pi-row .pi-label { color: var(--dark-700); }
-    .plan-info .pi-row .pi-val { font-weight: 600; }
+      .plan-info {
+        background: linear-gradient(
+          135deg,
+          var(--orange-100),
+          var(--orange-50)
+        );
+        border-radius: var(--radius-md);
+        padding: 12px;
+        margin-bottom: 10px;
+        border: 1px solid var(--orange-200);
+      }
+      .plan-info .pi-row {
+        display: flex;
+        justify-content: space-between;
+        font-size: 12px;
+        margin-bottom: 4px;
+      }
+      .plan-info .pi-row .pi-label {
+        color: var(--dark-700);
+      }
+      .plan-info .pi-row .pi-val {
+        font-weight: 600;
+      }
 
-    .divider { height: 1px; background: var(--gray-200); margin: 12px 0; }
+      .divider {
+        height: 1px;
+        background: var(--gray-200);
+        margin: 12px 0;
+      }
 
-    .action-bar {
-      display: flex; gap: 8px; margin-bottom: 12px;
-    }
-    .action-bar button {
-      flex: 1; padding: 10px; border: none; border-radius: 8px;
-      background: var(--orange-600-bg); color: white;
-      font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit;
-    }
-    .action-bar button.secondary {
-      background: var(--white); color: var(--orange-700);
-      border: 1px solid var(--orange-400);
-    }
+      .action-bar {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 12px;
+      }
+      .action-bar button {
+        flex: 1;
+        padding: 10px;
+        border: none;
+        border-radius: 8px;
+        background: var(--orange-600-bg);
+        color: white;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        font-family: inherit;
+      }
+      .action-bar button.secondary {
+        background: var(--white);
+        color: var(--orange-700);
+        border: 1px solid var(--orange-400);
+      }
 
-    .schedule-row {
-      display: flex; gap: 8px; margin-bottom: 6px; align-items: center;
-    }
-    .schedule-row input { flex: 1; margin-bottom: 0; }
-    .schedule-row .remove-sched {
-      background: var(--red-500); color: white; border: none;
-      border-radius: 6px; padding: 7px 10px; cursor: pointer;
-      font-family: inherit; font-size: 13px;
-    }
-    .add-sched-btn {
-      font-size: 11px; padding: 7px 14px; border: 1px dashed var(--gray-300);
-      border-radius: 6px; background: none; color: var(--dark-700);
-      cursor: pointer; font-family: inherit; width: 100%; margin-top: 3px;
-    }
+      .schedule-row {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 6px;
+        align-items: center;
+      }
+      .schedule-row input {
+        flex: 1;
+        margin-bottom: 0;
+      }
+      .schedule-row .remove-sched {
+        background: var(--red-500);
+        color: white;
+        border: none;
+        border-radius: 6px;
+        padding: 7px 10px;
+        cursor: pointer;
+        font-family: inherit;
+        font-size: 13px;
+      }
+      .add-sched-btn {
+        font-size: 11px;
+        padding: 7px 14px;
+        border: 1px dashed var(--gray-300);
+        border-radius: 6px;
+        background: none;
+        color: var(--dark-700);
+        cursor: pointer;
+        font-family: inherit;
+        width: 100%;
+        margin-top: 3px;
+      }
 
-    /* Role badge */
-    .role-badge-sm {
-      font-size: 9px; padding: 2px 8px; border-radius: 99px;
-      background: var(--gray-100); color: var(--dark-700);
-    }
-    .role-badge-sm.owner { background: #fef3c7; color: #92400e; }
-    .role-badge-sm.admin { background: #e0e7ff; color: #3730a3; }
-    .role-badge-sm.staff { background: #ecfdf5; color: #065f46; }
-    .role-badge-sm.coach { background: #f0f0ff; color: #5b21b6; }
+      /* Role badge */
+      .role-badge-sm {
+        font-size: 9px;
+        padding: 2px 8px;
+        border-radius: 99px;
+        background: var(--gray-100);
+        color: var(--dark-700);
+      }
+      .role-badge-sm.owner {
+        background: #fef3c7;
+        color: #92400e;
+      }
+      .role-badge-sm.admin {
+        background: #e0e7ff;
+        color: #3730a3;
+      }
+      .role-badge-sm.staff {
+        background: #ecfdf5;
+        color: #065f46;
+      }
+      .role-badge-sm.coach {
+        background: #f0f0ff;
+        color: #5b21b6;
+      }
 
-    /* Access Denied */
-    .access-denied {
-      text-align: center; padding: 40px 20px;
-    }
-    .access-denied .ad-icon { font-size: 48px; margin-bottom: 10px; display: block; }
-    .access-denied .ad-title { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
-    .access-denied .ad-desc { font-size: 13px; color: var(--dark-700); }
+      /* Access Denied */
+      .access-denied {
+        text-align: center;
+        padding: 40px 20px;
+      }
+      .access-denied .ad-icon {
+        font-size: 48px;
+        margin-bottom: 10px;
+        display: block;
+      }
+      .access-denied .ad-title {
+        font-size: 16px;
+        font-weight: 700;
+        margin-bottom: 6px;
+      }
+      .access-denied .ad-desc {
+        font-size: 13px;
+        color: var(--dark-700);
+      }
 
-    @keyframes spin { to { transform: rotate(360deg); } }
-    @keyframes fadeIn { from { opacity: 0; transform: translateX(-50%) translateY(10px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
-    @media (min-width: 768px) {
-      body { max-width: 100% !important; }
-      .section { max-width: 900px; margin-left: auto; margin-right: auto; }
-    }
-    @media (min-width: 1200px) {
-      .section { max-width: 1100px; }
-    }
-  </style>
-  <script src="api.js?v=2"></script>
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateX(-50%) translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateX(-50%) translateY(0);
+        }
+      }
+      @media (min-width: 768px) {
+        body {
+          max-width: 100% !important;
+        }
+        .section {
+          max-width: 900px;
+          margin-left: auto;
+          margin-right: auto;
+        }
+      }
+      @media (min-width: 1200px) {
+        .section {
+          max-width: 1100px;
+        }
+      }
+    </style>
+    <script src="api.js?v=2"></script>
     <!-- Google tag (gtag.js) -->
     <script
       async
@@ -412,1052 +930,1949 @@
       gtag("js", new Date());
       gtag("config", "G-MKF5N4YLBM");
     </script>
+  </head>
+  <body>
+    <!-- Header -->
+    <div class="p-header">
+      <div class="p-header-top">
+        <a href="index.html" aria-label="返回">&larr;</a>
+        <h1>🏪 商戶後台</h1>
+        <span class="role-badge" id="roleBadge">載入中...</span>
+        <button
+          onclick="partnerLogout()"
+          style="
+            background: none;
+            border: none;
+            font-size: 16px;
+            cursor: pointer;
+            padding: 4px 6px;
+            color: white;
+          "
+          title="登出"
+        >
+          🚪
+        </button>
+      </div>
+      <div class="venue-name" id="venueInfo">載入中...</div>
+    </div>
 
-    </head>
-<body>
+    <!-- Loading -->
+    <div class="loading" id="loadingState">
+      <div class="spinner"></div>
+      <div>正在載入資料...</div>
+    </div>
 
-<!-- Header -->
-<div class="p-header">
-  <div class="p-header-top">
-    <a href="index.html" aria-label="返回">&larr;</a>
-    <h1>🏪 商戶後台</h1>
-    <span class="role-badge" id="roleBadge">載入中...</span>
-    <button onclick="partnerLogout()" style="background:none;border:none;font-size:16px;cursor:pointer;padding:4px 6px;color:white;" title="登出">🚪</button>
-  </div>
-  <div class="venue-name" id="venueInfo">載入中...</div>
-</div>
-
-<!-- Loading -->
-<div class="loading" id="loadingState">
-  <div class="spinner"></div>
-  <div>正在載入資料...</div>
-</div>
-
-<!-- Error -->
-<div class="section active hidden" id="errorState">
-  <div class="empty-state">
-    <span class="empty-icon">🔐</span>
-    <div style="font-size:15px;font-weight:600;margin-bottom:6px" id="errorMsg">請先登入</div>
-    <p style="color:var(--dark-700);margin-bottom:16px;font-size:13px;" id="errorDetail"></p>
-    <button class="btn-primary" style="width:auto;display:inline-block;padding:10px 28px;margin-right:6px;" onclick="window.location.href='login.html'">登入</button>
-    <button class="btn-secondary" style="width:auto;display:inline-block;padding:10px 28px" onclick="window.location.href='partner-apply.html'">申請商戶</button>
-  </div>
-</div>
-
-<!-- Main Content -->
-<div id="appContent" class="hidden">
-
-  <!-- ========== TAB: 總覽 ========== -->
-  <div class="section active" id="tab-overview">
-    <div id="planInfoCard"></div>
-    <div class="stats-row" id="overviewStats"></div>
-    <div class="card" id="overviewQuickLinks" style="display:none;">
-      <div class="card-title">⚡ 快速操作</div>
-      <div class="action-bar">
-        <button onclick="switchTab('courses');openNewClassModal()">📅 開新班</button>
-        <button class="secondary" onclick="switchTab('bookings')">📋 預約列表</button>
+    <!-- Error -->
+    <div class="section active hidden" id="errorState">
+      <div class="empty-state">
+        <span class="empty-icon">🔐</span>
+        <div
+          style="font-size: 15px; font-weight: 600; margin-bottom: 6px"
+          id="errorMsg"
+        >
+          請先登入
+        </div>
+        <p
+          style="color: var(--dark-700); margin-bottom: 16px; font-size: 13px"
+          id="errorDetail"
+        ></p>
+        <button
+          class="btn-primary"
+          style="
+            width: auto;
+            display: inline-block;
+            padding: 10px 28px;
+            margin-right: 6px;
+          "
+          onclick="window.location.href = 'login.html'"
+        >
+          登入
+        </button>
+        <button
+          class="btn-secondary"
+          style="width: auto; display: inline-block; padding: 10px 28px"
+          onclick="window.location.href = 'partner-apply.html'"
+        >
+          申請商戶
+        </button>
       </div>
     </div>
-    <div class="card">
-      <div class="card-title">📋 最近預約 <span class="count" id="recentBookingCount"></span></div>
-      <div id="recentBookings"></div>
-    </div>
-    <div class="card">
-      <div class="card-title">📚 活躍課程 <span class="count" id="activeCourseCount"></span></div>
-      <div id="activeCourses"></div>
-    </div>
-  </div>
 
-  <!-- ========== TAB: 場地管理 ========== -->
-  <div class="section" id="tab-venues">
-    <div id="venuesList"></div>
-  </div>
-
-  <!-- ========== TAB: 教練團隊 ========== -->
-  <div class="section" id="tab-coaches">
-    <div id="coachesList"></div>
-  </div>
-
-  <!-- ========== TAB: 課程管理 ========== -->
-  <div class="section" id="tab-courses">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-      <span style="font-size:13px;font-weight:600">我的課程</span>
-      <button class="btn-sm primary" onclick="openNewClassModal()">➕ 開新班</button>
-    </div>
-    <div id="coursesList"></div>
-  </div>
-
-  <!-- ========== TAB: 預約管理 ========== -->
-  <div class="section" id="tab-bookings">
-    <div class="filter-tabs">
-      <button class="filter-tab active" onclick="filterBookings('all', this)">全部</button>
-      <button class="filter-tab" onclick="filterBookings('confirmed', this)">已確認</button>
-      <button class="filter-tab" onclick="filterBookings('attended', this)">已完成</button>
-      <button class="filter-tab" onclick="filterBookings('cancelled', this)">已取消</button>
-    </div>
-    <div id="bookingsList"></div>
-    <div id="bookingsLoadMore" style="text-align:center;margin-top:10px"></div>
-  </div>
-
-  <!-- ========== TAB: 收入報表 ========== -->
-  <div class="section" id="tab-revenue">
-    <div class="revenue-highlight">
-      <div class="revenue-label">本月場地收入</div>
-      <div class="revenue-big" id="monthRevenue">HK$0</div>
-      <div class="revenue-label" id="monthRevenueSub">本月 0 筆預約</div>
-    </div>
-    <div class="plan-info" id="revenuePlanInfo"></div>
-    <div class="stats-row" id="revenueStats"></div>
-    <div class="report-chart">
-      <div class="rc-title">📈 收入趨勢</div>
-      <div class="report-nav" id="reportNav">
-        <button class="active" onclick="loadRevenueReport('month', this)">按月</button>
-        <button onclick="loadRevenueReport('week', this)">按週</button>
-        <button onclick="loadRevenueReport('day', this)">按日</button>
+    <!-- Main Content -->
+    <div id="appContent" class="hidden">
+      <!-- ========== TAB: 總覽 ========== -->
+      <div class="section active" id="tab-overview">
+        <div id="planInfoCard"></div>
+        <div class="stats-row" id="overviewStats"></div>
+        <div class="card" id="overviewQuickLinks" style="display: none">
+          <div class="card-title">⚡ 快速操作</div>
+          <div class="action-bar">
+            <button
+              onclick="
+                switchTab('courses');
+                openNewClassModal();
+              "
+            >
+              📅 開新班
+            </button>
+            <button class="secondary" onclick="switchTab('bookings')">
+              📋 預約列表
+            </button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">
+            📋 最近預約 <span class="count" id="recentBookingCount"></span>
+          </div>
+          <div id="recentBookings"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">
+            📚 活躍課程 <span class="count" id="activeCourseCount"></span>
+          </div>
+          <div id="activeCourses"></div>
+        </div>
       </div>
-      <div id="reportChartArea" style="text-align:center;padding:16px;color:var(--dark-700);font-size:12px;">載入中...</div>
-    </div>
-    <div class="card">
-      <div class="card-title">📊 結算記錄</div>
-      <div id="payoutList"></div>
-    </div>
-  </div>
 
-  <!-- ========== TAB: 設定 ========== -->
-  <div class="section" id="tab-settings">
-    <div class="card">
-      <div class="card-title">🏪 機構設定</div>
-      <div id="settingsContent"></div>
-    </div>
-    <div class="card">
-      <div class="card-title">👥 帳戶管理</div>
-      <div id="staffAccountsContent"></div>
-    </div>
-    <div class="card">
-      <div class="card-title">💰 佣金計劃</div>
-      <div id="planDetails"></div>
-    </div>
-    <div class="card">
-      <div class="card-title">📄 申請狀態</div>
-      <div id="applicationStatus"></div>
-    </div>
-    <button class="btn-secondary" onclick="partnerLogout()" style="margin-top:6px">🚪 登出</button>
-  </div>
-</div>
+      <!-- ========== TAB: 場地管理 ========== -->
+      <div class="section" id="tab-venues">
+        <div id="venuesList"></div>
+      </div>
 
-<!-- Bottom Nav -->
-<div class="bottom-nav" id="bottomNav">
-  <div class="nav-item active" data-tab="overview"><span class="nav-icon">📊</span>總覽</div>
-  <div class="nav-item" data-tab="venues"><span class="nav-icon">🏟️</span>場地</div>
-  <div class="nav-item" data-tab="coaches"><span class="nav-icon">🏋️</span>教練</div>
-  <div class="nav-item" data-tab="courses"><span class="nav-icon">📚</span>課程</div>
-  <div class="nav-item" data-tab="bookings"><span class="nav-icon">📅</span>預約</div>
-  <div class="nav-item" data-tab="revenue"><span class="nav-icon">💰</span>收入</div>
-  <div class="nav-item" data-tab="settings"><span class="nav-icon">⚙️</span>設定</div>
-</div>
+      <!-- ========== TAB: 教練團隊 ========== -->
+      <div class="section" id="tab-coaches">
+        <div id="coachesList"></div>
+      </div>
 
-<!-- Modal: New/Edit Class -->
-<div class="modal-overlay" id="newClassModal">
-  <div class="modal-content">
-    <h3 id="classModalTitle">📅 開新班</h3>
-    <input type="hidden" id="nc-edit-id" />
-    <label>課程標題 *</label>
-    <input type="text" id="nc-title" placeholder="例如：初級瑜伽班" />
-    <label>類別 *</label>
-    <select id="nc-category">
-      <option value="">選擇類別</option>
-      <option value="瑜伽">瑜伽</option>
-      <option value="健身">健身</option>
-      <option value="舞蹈">舞蹈</option>
-      <option value="武術">武術</option>
-      <option value="冥想">冥想</option>
-      <option value="普拉提">普拉提</option>
-      <option value="其他">其他</option>
-    </select>
-    <label>價格 (HK$) *</label>
-    <input type="number" id="nc-price" placeholder="150" min="0" step="0.01" />
-    <label>Credits 消耗（選填）</label>
-    <input type="number" id="nc-credits" placeholder="自動計算" min="0" />
-    <div style="display:flex;gap:8px;">
-      <div style="flex:1"><label>時長 (分鐘) *</label><input type="number" id="nc-duration" placeholder="60" min="15" /></div>
-      <div style="flex:1"><label>最多人數</label><input type="number" id="nc-max" placeholder="15" min="1" /></div>
-    </div>
-    <label>難度</label>
-    <select id="nc-difficulty">
-      <option value="beginner">初級</option>
-      <option value="intermediate">中級</option>
-      <option value="advanced">高級</option>
-    </select>
-    <label>描述</label>
-    <textarea id="nc-description" placeholder="課程簡介..."></textarea>
-    <label>上堂時段 * <span style="font-size:10px;font-weight:400;color:var(--dark-700)">（至少一個）</span></label>
-    <div id="nc-schedules">
-      <div class="schedule-row">
-        <input type="datetime-local" class="sched-start" />
-        <input type="datetime-local" class="sched-end" />
-        <button class="remove-sched" onclick="removeSchedule(this)" title="移除">✕</button>
+      <!-- ========== TAB: 課程管理 ========== -->
+      <div class="section" id="tab-courses">
+        <div
+          style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+          "
+        >
+          <span style="font-size: 13px; font-weight: 600">我的課程</span>
+          <button class="btn-sm primary" onclick="openNewClassModal()">
+            ➕ 開新班
+          </button>
+        </div>
+        <div id="coursesList"></div>
+      </div>
+
+      <!-- ========== TAB: 預約管理 ========== -->
+      <div class="section" id="tab-bookings">
+        <div class="filter-tabs">
+          <button
+            class="filter-tab active"
+            onclick="filterBookings('all', this)"
+          >
+            全部
+          </button>
+          <button
+            class="filter-tab"
+            onclick="filterBookings('confirmed', this)"
+          >
+            已確認
+          </button>
+          <button class="filter-tab" onclick="filterBookings('attended', this)">
+            已完成
+          </button>
+          <button
+            class="filter-tab"
+            onclick="filterBookings('cancelled', this)"
+          >
+            已取消
+          </button>
+        </div>
+        <div id="bookingsList"></div>
+        <div
+          id="bookingsLoadMore"
+          style="text-align: center; margin-top: 10px"
+        ></div>
+      </div>
+
+      <!-- ========== TAB: 收入報表 ========== -->
+      <div class="section" id="tab-revenue">
+        <div class="revenue-highlight">
+          <div class="revenue-label">本月場地收入</div>
+          <div class="revenue-big" id="monthRevenue">HK$0</div>
+          <div class="revenue-label" id="monthRevenueSub">本月 0 筆預約</div>
+        </div>
+        <div class="plan-info" id="revenuePlanInfo"></div>
+        <div class="stats-row" id="revenueStats"></div>
+        <div class="report-chart">
+          <div class="rc-title">📈 收入趨勢</div>
+          <div class="report-nav" id="reportNav">
+            <button class="active" onclick="loadRevenueReport('month', this)">
+              按月
+            </button>
+            <button onclick="loadRevenueReport('week', this)">按週</button>
+            <button onclick="loadRevenueReport('day', this)">按日</button>
+          </div>
+          <div
+            id="reportChartArea"
+            style="
+              text-align: center;
+              padding: 16px;
+              color: var(--dark-700);
+              font-size: 12px;
+            "
+          >
+            載入中...
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">📊 結算記錄</div>
+          <div id="payoutList"></div>
+        </div>
+      </div>
+
+      <!-- ========== TAB: 設定 ========== -->
+      <div class="section" id="tab-settings">
+        <div class="card">
+          <div class="card-title">🏪 機構設定</div>
+          <div id="settingsContent"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">👥 帳戶管理</div>
+          <div id="staffAccountsContent"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">💰 佣金計劃</div>
+          <div id="planDetails"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">📄 申請狀態</div>
+          <div id="applicationStatus"></div>
+        </div>
+        <button
+          class="btn-secondary"
+          onclick="partnerLogout()"
+          style="margin-top: 6px"
+        >
+          🚪 登出
+        </button>
       </div>
     </div>
-    <button class="add-sched-btn" onclick="addScheduleRow()">➕ 新增時段</button>
-    <div class="modal-actions">
-      <button class="modal-cancel" onclick="closeNewClassModal()">取消</button>
-      <button class="modal-save" onclick="submitNewClass()" id="classModalSaveBtn">建立課程</button>
+
+    <!-- Bottom Nav -->
+    <div class="bottom-nav" id="bottomNav">
+      <div class="nav-item active" data-tab="overview">
+        <span class="nav-icon">📊</span>總覽
+      </div>
+      <div class="nav-item" data-tab="venues">
+        <span class="nav-icon">🏟️</span>場地
+      </div>
+      <div class="nav-item" data-tab="coaches">
+        <span class="nav-icon">🏋️</span>教練
+      </div>
+      <div class="nav-item" data-tab="courses">
+        <span class="nav-icon">📚</span>課程
+      </div>
+      <div class="nav-item" data-tab="bookings">
+        <span class="nav-icon">📅</span>預約
+      </div>
+      <div class="nav-item" data-tab="revenue">
+        <span class="nav-icon">💰</span>收入
+      </div>
+      <div class="nav-item" data-tab="settings">
+        <span class="nav-icon">⚙️</span>設定
+      </div>
     </div>
-  </div>
-</div>
 
-<!-- Modal: Add Venue -->
-<div class="modal-overlay" id="addVenueModal">
-  <div class="modal-content">
-    <h3>🏟️ 新增場地</h3>
-    <label>場地名稱 *</label>
-    <input type="text" id="av-name" placeholder="例如：Zen Studio 中環" />
-    <label>類別</label>
-    <select id="av-category">
-      <option value="">選擇類別</option>
-      <option value="瑜伽">瑜伽</option>
-      <option value="健身">健身</option>
-      <option value="舞蹈">舞蹈</option>
-      <option value="多功能">多功能</option>
-      <option value="其他">其他</option>
-    </select>
-    <label>地址</label>
-    <input type="text" id="av-address" placeholder="中環皇后大道中 123 號" />
-    <label>電話</label>
-    <input type="text" id="av-phone" placeholder="6123 4567" />
-    <label>描述</label>
-    <textarea id="av-description" placeholder="場地簡介..."></textarea>
-    <div class="modal-actions">
-      <button class="modal-cancel" onclick="closeModal('addVenueModal')">取消</button>
-      <button class="modal-save" onclick="submitVenue()">新增場地</button>
+    <!-- Modal: New/Edit Class -->
+    <div class="modal-overlay" id="newClassModal">
+      <div class="modal-content">
+        <h3 id="classModalTitle">📅 開新班</h3>
+        <input type="hidden" id="nc-edit-id" />
+        <label>課程標題 *</label>
+        <input type="text" id="nc-title" placeholder="例如：初級瑜伽班" />
+        <label>類別 *</label>
+        <select id="nc-category">
+          <option value="">選擇類別</option>
+          <option value="瑜伽">瑜伽</option>
+          <option value="健身">健身</option>
+          <option value="舞蹈">舞蹈</option>
+          <option value="武術">武術</option>
+          <option value="冥想">冥想</option>
+          <option value="普拉提">普拉提</option>
+          <option value="其他">其他</option>
+        </select>
+        <label>價格 (HK$) *</label>
+        <input
+          type="number"
+          id="nc-price"
+          placeholder="150"
+          min="0"
+          step="0.01"
+        />
+        <label>Credits 消耗（選填）</label>
+        <input type="number" id="nc-credits" placeholder="自動計算" min="0" />
+        <div style="display: flex; gap: 8px">
+          <div style="flex: 1">
+            <label>時長 (分鐘) *</label
+            ><input type="number" id="nc-duration" placeholder="60" min="15" />
+          </div>
+          <div style="flex: 1">
+            <label>最多人數</label
+            ><input type="number" id="nc-max" placeholder="15" min="1" />
+          </div>
+        </div>
+        <label>難度</label>
+        <select id="nc-difficulty">
+          <option value="beginner">初級</option>
+          <option value="intermediate">中級</option>
+          <option value="advanced">高級</option>
+        </select>
+        <label>描述</label>
+        <textarea id="nc-description" placeholder="課程簡介..."></textarea>
+        <label
+          >上堂時段 *
+          <span
+            style="font-size: 10px; font-weight: 400; color: var(--dark-700)"
+            >（至少一個）</span
+          ></label
+        >
+        <div id="nc-schedules">
+          <div class="schedule-row">
+            <input type="datetime-local" class="sched-start" />
+            <input type="datetime-local" class="sched-end" />
+            <button
+              class="remove-sched"
+              onclick="removeSchedule(this)"
+              title="移除"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+        <button class="add-sched-btn" onclick="addScheduleRow()">
+          ➕ 新增時段
+        </button>
+        <div class="modal-actions">
+          <button class="modal-cancel" onclick="closeNewClassModal()">
+            取消
+          </button>
+          <button
+            class="modal-save"
+            onclick="submitNewClass()"
+            id="classModalSaveBtn"
+          >
+            建立課程
+          </button>
+        </div>
+      </div>
     </div>
-  </div>
-</div>
 
-<!-- Toast -->
-<div class="toast-fixed hidden" id="toast" style="background:var(--green-500);color:white"></div>
+    <!-- Modal: Add Venue -->
+    <div class="modal-overlay" id="addVenueModal">
+      <div class="modal-content">
+        <h3>🏟️ 新增場地</h3>
+        <label>場地名稱 *</label>
+        <input type="text" id="av-name" placeholder="例如：Zen Studio 中環" />
+        <label>類別</label>
+        <select id="av-category">
+          <option value="">選擇類別</option>
+          <option value="瑜伽">瑜伽</option>
+          <option value="健身">健身</option>
+          <option value="舞蹈">舞蹈</option>
+          <option value="多功能">多功能</option>
+          <option value="其他">其他</option>
+        </select>
+        <label>地址</label>
+        <input
+          type="text"
+          id="av-address"
+          placeholder="中環皇后大道中 123 號"
+        />
+        <label>電話</label>
+        <input type="text" id="av-phone" placeholder="6123 4567" />
+        <label>描述</label>
+        <textarea id="av-description" placeholder="場地簡介..."></textarea>
+        <div class="modal-actions">
+          <button class="modal-cancel" onclick="closeModal('addVenueModal')">
+            取消
+          </button>
+          <button class="modal-save" onclick="submitVenue()">新增場地</button>
+        </div>
+      </div>
+    </div>
 
-<script>
-// ===== RBAC 角色層級 =====
-var ROLE_HIERARCHY = {
-  super_admin: 0, platform_manager: 1, platform_staff: 2, admin: 3,
-  partner_owner: 4, partner_admin: 5, partner_staff: 6, coach: 7, user: 8, guest: 9
-};
-function hasMinRole(current, required) {
-  return (ROLE_HIERARCHY[current] ?? 99) <= (ROLE_HIERARCHY[required] ?? 99);
-}
-function isPlatformLevel(r) { return hasMinRole(r, 'admin'); }
-function canManageVenues(r) { return hasMinRole(r, 'partner_owner') && !isPlatformLevel(r) || isPlatformLevel(r); }
-function canManageCoaches(r) { return hasMinRole(r, 'partner_admin'); }
-function canManageCourses(r) { return hasMinRole(r, 'partner_staff'); }
-function canSeeRevenue(r) { return hasMinRole(r, 'partner_admin') && !isPlatformLevel(r) || isPlatformLevel(r); }
-function canSeePayouts(r) { return hasMinRole(r, 'partner_owner') || isPlatformLevel(r); }
-function canSeeSettings(r) { return hasMinRole(r, 'partner_owner') || isPlatformLevel(r); }
-function canSeeFullBookings(r) { return hasMinRole(r, 'partner_staff'); }
-function coachOnly(r) { return r === 'coach'; }
-function partnerStaffAbove(r) { return r === 'partner_staff' || r === 'partner_admin' || r === 'partner_owner'; }
-function roleLevel(r) { return ROLE_HIERARCHY[r] ?? 99; }
+    <!-- Toast -->
+    <div
+      class="toast-fixed hidden"
+      id="toast"
+      style="background: var(--green-500); color: white"
+    ></div>
 
-// ===== Role display names =====
-var ROLE_LABELS = {
-  super_admin: '超級管理員', platform_manager: '平台管理', platform_staff: '平台員工',
-  admin: '管理員', partner_owner: '商戶負責人', partner_admin: '機構管理',
-  partner_staff: '機構員工', coach: '教練', user: '用戶', guest: '訪客'
-};
-function getRoleLabel(r) { return ROLE_LABELS[r] || r; }
-
-// ===== State =====
-var partnerVenue = null;
-var dashboardStats = null;
-var allBookings = [];
-var allCourses = [];
-var allPayouts = [];
-var teamMembers = [];
-var venues = [];
-var bookingPage = 0;
-var bookingLimit = 20;
-var currentFilter = "all";
-var currentUser = null;
-var userRole = null;
-
-function getToken() { return localStorage.getItem("zenpass_token") || sessionStorage.getItem("zenpass_token"); }
-function getAuthHeaders() {
-  var t = getToken();
-  if (!t) return { "Content-Type": "application/json" };
-  return { Authorization: "Bearer " + t, "Content-Type": "application/json" };
-}
-function escHtml(str) { if (!str) return ""; return String(str).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
-function showToast(msg, type) {
-  var t = document.getElementById("toast");
-  t.textContent = msg;
-  t.style.background = type === "error" ? "var(--red-500)" : "var(--green-500)";
-  t.style.color = "white";
-  t.classList.remove("hidden");
-  setTimeout(function(){ t.classList.add("hidden"); }, 3000);
-}
-function formatDateTime(isoStr) {
-  if (!isoStr) return "—";
-  var d = new Date(isoStr);
-  var days = ["日","一","二","三","四","五","六"];
-  return (d.getMonth()+1)+"/"+d.getDate()+" ("+days[d.getDay()]+") "+String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0");
-}
-function formatDate(isoStr) {
-  if (!isoStr) return "—";
-  var d = new Date(isoStr);
-  return d.getFullYear()+"/"+(d.getMonth()+1)+"/"+d.getDate();
-}
-function formatCurrency(n) { if (n==null||isNaN(n)) return "HK$0"; return "HK$"+Number(n).toFixed(2).replace(/\.?0+$/,''); }
-function closeModal(id) { document.getElementById(id).classList.remove("active"); }
-
-// ===== Auth / Init =====
-async function init() {
-  var token = getToken();
-  if (!token) { showError("請先登入","你需要登入才能使用商戶後台。"); return; }
-
-  try {
-    // Get user info via /api/auth/me
-    var meResp = await fetch(API_BASE+"/auth/me", { headers: getAuthHeaders() });
-    if (!meResp.ok) {
-      if (meResp.status === 401) {
-        localStorage.removeItem("zenpass_token");
-        sessionStorage.removeItem("zenpass_token");
-        showError("請先登入","登入已過期，請重新登入。");
-        return;
+    <script>
+      // ===== RBAC 角色層級 =====
+      var ROLE_HIERARCHY = {
+        super_admin: 0,
+        platform_manager: 1,
+        platform_staff: 2,
+        admin: 3,
+        partner_owner: 4,
+        partner_admin: 5,
+        partner_staff: 6,
+        coach: 7,
+        user: 8,
+        guest: 9,
+      };
+      function hasMinRole(current, required) {
+        return (
+          (ROLE_HIERARCHY[current] ?? 99) <= (ROLE_HIERARCHY[required] ?? 99)
+        );
       }
-      // Try dashboard as fallback to get venue info
-      var dResp = await fetch(API_BASE+"/partner/dashboard",{ headers: getAuthHeaders() });
-      if (dResp.status === 401) { showError("請先登入","請重新登入。"); return; }
-      if (dResp.status === 403) { showError("未有商戶權限","你未有已開通嘅商戶戶口，請先申請或等待審批。"); return; }
-      // Try to load anyway
-    } else {
-      var meData = await meResp.json();
-      currentUser = meData.user || meData;
-      userRole = currentUser.role || 'user';
-      document.getElementById("roleBadge").textContent = getRoleLabel(userRole);
-    }
-
-    // Load dashboard
-    await loadDashboard();
-  } catch(e) {
-    console.error("Init error:", e);
-    showError("連線失敗","無法連接伺服器，請檢查網絡連線。");
-  }
-}
-
-async function loadDashboard() {
-  try {
-    var dResp = await fetch(API_BASE+"/partner/dashboard",{ headers: getAuthHeaders() });
-    if (dResp.status === 401 || dResp.status === 403) {
-      if (dResp.status === 401) { showError("請先登入","請重新登入。"); return; }
-      // For coach role - try loading courses directly
-      userRole = userRole || 'coach';
-      document.getElementById("roleBadge").textContent = getRoleLabel(userRole);
-      renderWithRole();
-      document.getElementById("loadingState").classList.add("hidden");
-      document.getElementById("appContent").classList.remove("hidden");
-      return;
-    }
-    var dData = await dResp.json();
-    if (dData.error && dData.error.includes("開通")) {
-      // User has partner application but not yet approved
-      // Show settings with application status
-      partnerVenue = null;
-      document.getElementById("loadingState").classList.add("hidden");
-      document.getElementById("appContent").classList.remove("hidden");
-      renderWithRole();
-      // Try to load status
-      try {
-        var sResp = await fetch(API_BASE+"/partner/status",{ headers: getAuthHeaders() });
-        var sData = await sResp.json();
-        if (sData.venue) partnerVenue = sData.venue;
-      } catch(e2) {}
-      return;
-    }
-
-    partnerVenue = dData.venue;
-    dashboardStats = dData.stats;
-
-    if (!userRole && partnerVenue && partnerVenue.owner_id) {
-      userRole = userRole || 'partner_owner';
-    }
-    if (!userRole) userRole = 'partner_staff';
-
-    var venueLabel = "🏪 " + (partnerVenue ? partnerVenue.name : "商戶");
-    if (partnerVenue && partnerVenue.commission_plan) {
-      venueLabel += ' <span class="plan-badge">' + escHtml(partnerVenue.commission_plan_label || partnerVenue.commission_plan) + '</span>';
-    }
-    document.getElementById("venueInfo").innerHTML = venueLabel;
-
-    renderWithRole();
-    renderPlanInfoCard();
-    renderOverview();
-
-    document.getElementById("loadingState").classList.add("hidden");
-    document.getElementById("appContent").classList.remove("hidden");
-  } catch(e) {
-    console.error("Dashboard load error:", e);
-    // For non-partner roles, just load with whatever we have
-    renderWithRole();
-    document.getElementById("loadingState").classList.add("hidden");
-    document.getElementById("appContent").classList.remove("hidden");
-  }
-}
-
-function showError(title, detail) {
-  document.getElementById("loadingState").classList.add("hidden");
-  document.getElementById("appContent").classList.add("hidden");
-  document.getElementById("errorState").classList.remove("hidden");
-  document.getElementById("errorState").classList.add("active");
-  document.getElementById("errorMsg").textContent = title;
-  document.getElementById("errorDetail").textContent = detail || "";
-}
-
-function partnerLogout() {
-  if (confirm("確定要登出？")) {
-    localStorage.removeItem("zenpass_token");
-    sessionStorage.removeItem("zenpass_token");
-    window.location.href = "login.html";
-  }
-}
-
-// ===== RBAC Tab Filtering =====
-function renderWithRole() {
-  var r = userRole || 'user';
-  var allTabs = ['overview','venues','coaches','courses','bookings','revenue','settings'];
-  var visibleTabs = [];
-
-  if (isPlatformLevel(r) || canManageVenues(r)) {
-    visibleTabs = ['overview','venues','coaches','courses','bookings','revenue','settings'];
-  } else if (r === 'partner_owner' || r === 'partner_admin' || r === 'partner_staff') {
-    visibleTabs.push('overview');
-    if (canManageVenues(r)) visibleTabs.push('venues');
-    if (canManageCoaches(r)) visibleTabs.push('coaches');
-    if (canManageCourses(r)) visibleTabs.push('courses','bookings');
-    if (canSeeRevenue(r)) visibleTabs.push('revenue');
-    if (canSeeSettings(r)) visibleTabs.push('settings');
-  } else if (r === 'coach') {
-    visibleTabs = ['overview','courses'];
-  } else {
-    // Fallback: student/user - limited view
-    visibleTabs = ['overview'];
-  }
-
-  // Build bottom nav
-  var nav = document.getElementById("bottomNav");
-  nav.innerHTML = '';
-  var icons = {
-    overview:'📊', venues:'🏟️', coaches:'🏋️', courses:'📚',
-    bookings:'📅', revenue:'💰', settings:'⚙️'
-  };
-  var labels = {
-    overview:'總覽', venues:'場地', coaches:'教練', courses:'課程',
-    bookings:'預約', revenue:'收入', settings:'設定'
-  };
-
-  for (var i = 0; i < visibleTabs.length; i++) {
-    var t = visibleTabs[i];
-    var item = document.createElement("div");
-    item.className = "nav-item" + (i === 0 ? " active" : "");
-    item.setAttribute("data-tab", t);
-    item.innerHTML = '<span class="nav-icon">' + icons[t] + '</span>' + labels[t];
-    item.onclick = function(tab){ return function(){ switchTab(tab); }; }(t);
-    nav.appendChild(item);
-  }
-
-  // Initialize: show first tab
-  switchTab(visibleTabs[0] || 'overview');
-}
-
-// ===== Tab Switching =====
-function switchTab(name) {
-  document.querySelectorAll(".section").forEach(function(s){ s.classList.remove("active"); });
-  var section = document.getElementById("tab-"+name);
-  if (section) {
-    section.classList.add("active");
-  } else {
-    // Tab not available → show first visible tab
-    var firstTab = document.querySelector(".nav-item[data-tab]");
-    if (firstTab) switchTab(firstTab.getAttribute("data-tab"));
-    return;
-  }
-
-  document.querySelectorAll(".nav-item").forEach(function(n){ n.classList.remove("active"); });
-  document.querySelectorAll('.nav-item[data-tab="'+name+'"]').forEach(function(n){ n.classList.add("active"); });
-
-  // Load tab data
-  if (name === "bookings") loadBookings();
-  if (name === "courses") renderCoursesTab();
-  if (name === "revenue") renderRevenueTab();
-  if (name === "settings") renderSettingsTab();
-  if (name === "venues") renderVenuesTab();
-  if (name === "coaches") renderCoachesTab();
-}
-
-// ===== Plan Info =====
-function renderPlanInfoCard() {
-  if (!partnerVenue) { document.getElementById("planInfoCard").innerHTML = ""; return; }
-  var p = partnerVenue;
-  var html = '<div class="plan-info">' +
-    '<div class="pi-row"><span class="pi-label">佣金計劃</span><span class="pi-val">' + escHtml(p.commission_plan_label || p.commission_plan || 'Basic') + '</span></div>' +
-    '<div class="pi-row"><span class="pi-label">佣金率</span><span class="pi-val">' + Math.round((p.commission_rate || 0.25) * 100) + '%</span></div>' +
-    (p.commission_plan_fee ? '<div class="pi-row"><span class="pi-label">月費</span><span class="pi-val">HK$' + p.commission_plan_fee.toLocaleString() + '/月</span></div>' : '<div class="pi-row"><span class="pi-label">月費</span><span class="pi-val" style="color:var(--green-500);">免費</span></div>') +
-    (p.description ? '<div class="pi-row"><span class="pi-label">說明</span><span class="pi-val" style="font-weight:400;font-size:11px;">' + escHtml(p.description) + '</span></div>' : '') +
-    '</div>';
-  document.getElementById("planInfoCard").innerHTML = html;
-}
-
-// ===== TAB: Overview =====
-function renderOverview() {
-  var r = userRole || 'user';
-  if (!partnerVenue || !dashboardStats) {
-    // Coach or non-partner view
-    if (coachOnly(r)) {
-      document.getElementById("overviewStats").innerHTML = '<div class="stat-box"><div class="num purple">🧘</div><div class="label">教練模式</div></div>';
-      document.getElementById("planInfoCard").innerHTML = '<div class="plan-info"><div class="pi-row"><span class="pi-label">角色</span><span class="pi-val">' + getRoleLabel(r) + '</span></div></div>';
-    } else {
-      document.getElementById("overviewStats").innerHTML = '<div class="empty-state"><span class="empty-icon">📊</span>暫無營運數據<br><br><button class="btn-sm primary" onclick="window.location.href=\'partner-apply.html\'">申請成爲商戶</button></div>';
-    }
-    return;
-  }
-
-  var s = dashboardStats || {};
-  document.getElementById("overviewStats").innerHTML =
-    '<div class="stat-box"><div class="num">'+formatCurrency(s.this_month_earnings).replace("HK$","")+'</div><div class="label">本月收入</div></div>'+
-    '<div class="stat-box"><div class="num">'+(s.total_bookings||0)+'</div><div class="label">總訂單</div></div>'+
-    '<div class="stat-box"><div class="num">'+(s.total_students||0)+'</div><div class="label">學生數</div></div>'+
-    '<div class="stat-box"><div class="num teal">'+(s.total_paid_out?formatCurrency(s.total_paid_out).replace("HK$",""):"0")+'</div><div class="label">已結算</div></div>';
-
-  if (canManageCourses(r)) {
-    document.getElementById("overviewQuickLinks").style.display = "block";
-  }
-
-  loadRecentBookings();
-  loadActiveCourses();
-}
-
-async function loadRecentBookings() {
-  if (!canSeeFullBookings(userRole)) { document.getElementById("recentBookings").innerHTML='<div class="empty-state"><span class="empty-icon">🔒</span>需要員工權限先可查看</div>'; return; }
-  try {
-    var resp = await fetch(API_BASE+"/partner/bookings?limit=5&offset=0",{ headers: getAuthHeaders() });
-    var data = await resp.json();
-    var bookings = data.bookings || [];
-    document.getElementById("recentBookingCount").textContent = "("+(data.total||bookings.length)+")";
-    if (bookings.length === 0) { document.getElementById("recentBookings").innerHTML='<div class="empty-state"><span class="empty-icon">📋</span>暫無預約記錄</div>'; return; }
-    document.getElementById("recentBookings").innerHTML = bookings.map(function(b){ return renderBookingCard(b); }).join("");
-  } catch(e) { document.getElementById("recentBookings").innerHTML='<div class="empty-state"><span class="empty-icon">⚠️</span>載入預約失敗</div>'; }
-}
-
-async function loadActiveCourses() {
-  try {
-    var resp = await fetch(API_BASE+"/partner/courses",{ headers: getAuthHeaders() });
-    var courses = await resp.json();
-    if (courses.error) { document.getElementById("activeCourses").innerHTML='<div class="empty-state"><span class="empty-icon">📚</span>暫無課程</div>'; document.getElementById("activeCourseCount").textContent="(0)"; return; }
-    allCourses = Array.isArray(courses) ? courses : [];
-    document.getElementById("activeCourseCount").textContent = "("+allCourses.length+")";
-    if (allCourses.length===0) { document.getElementById("activeCourses").innerHTML='<div class="empty-state"><span class="empty-icon">📚</span>暫無課程</div>'; return; }
-    var shown = allCourses.slice(0, 3);
-    document.getElementById("activeCourses").innerHTML = shown.map(function(c){
-      return '<div class="class-item"><div class="class-row"><div><div class="class-name">'+escHtml(c.title)+'</div><div class="class-meta">⏱ '+(c.duration||"—")+"min · "+formatCurrency(c.price_hkd)+" · 👥 "+(c.booking_count||0)+"人報名</div></div><span class=\"class-status active\">✅ 上架中</span></div></div>";
-    }).join("");
-    if (allCourses.length>3) {
-      document.getElementById("activeCourses").innerHTML += '<div style="text-align:center;padding:10px;font-size:12px;color:var(--dark-700);cursor:pointer;" onclick="switchTab(\'courses\')">查看全部 '+allCourses.length+' 個課程 →</div>';
-    }
-  } catch(e) { document.getElementById("activeCourses").innerHTML='<div class="empty-state"><span class="empty-icon">⚠️</span>載入課程失敗</div>'; }
-}
-
-// ===== TAB: Venues =====
-async function renderVenuesTab() {
-  if (!canManageVenues(userRole)) {
-    document.getElementById("venuesList").innerHTML = '<div class="access-denied"><span class="ad-icon">🔒</span><div class="ad-title">權限不足</div><div class="ad-desc">需要商戶負責人權限先可管理場地</div></div>';
-    return;
-  }
-
-  var list = document.getElementById("venuesList");
-  list.innerHTML = '<div class="card"><div class="card-title">🏟️ 場地列表</div><div id="venuesCards"></div><div style="margin-top:10px;"><button class="btn-primary" onclick="openModal(\'addVenueModal\')">➕ 新增場地</button></div></div>';
-
-  var cards = document.getElementById("venuesCards");
-  cards.innerHTML = '<div class="loading"><div class="spinner"></div><div>載入中...</div></div>';
-
-  try {
-    var resp = await fetch(API_BASE+"/partner/list", { headers: getAuthHeaders() });
-    var data = await resp.json();
-    var partners = data.partners || [];
-    venues = partners;
-
-    if (venues.length === 0) {
-      cards.innerHTML = '<div class="empty-state"><span class="empty-icon">🏟️</span>暫無場地，新增第一個場地</div>';
-      return;
-    }
-
-    cards.innerHTML = venues.map(function(v){
-      return '<div class="venue-card"><div class="v-name">'+escHtml(v.name)+'</div>'+
-        '<div class="v-info">📂 '+escHtml(v.category||"—")+' · 📍 '+escHtml(v.district||"—")+'</div>'+
-        '</div>';
-    }).join("");
-  } catch(e) {
-    cards.innerHTML = '<div class="empty-state"><span class="empty-icon">⚠️</span>載入場地失敗</div>';
-  }
-}
-
-async function submitVenue() {
-  var name = document.getElementById("av-name").value.trim();
-  if (!name) { showToast("請填寫場地名稱","error"); return; }
-  try {
-    var resp = await fetch(API_BASE+"/partner/apply", {
-      method:"POST", headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({
-        name: name,
-        category: document.getElementById("av-category").value,
-        address: document.getElementById("av-address").value.trim(),
-        phone: document.getElementById("av-phone").value.trim(),
-        description: document.getElementById("av-description").value.trim(),
-        email: currentUser?.email || '',
-      })
-    });
-    var data = await resp.json();
-    if (data.error) { showToast(data.error,"error"); return; }
-    showToast("🎉 場地已提交審批");
-    closeModal("addVenueModal");
-    renderVenuesTab();
-  } catch(e) { showToast("提交失敗","error"); }
-}
-
-// ===== TAB: Coaches =====
-async function renderCoachesTab() {
-  if (!canManageCoaches(userRole)) {
-    document.getElementById("coachesList").innerHTML = '<div class="access-denied"><span class="ad-icon">🔒</span><div class="ad-title">權限不足</div><div class="ad-desc">需要機構管理權限先可管理教練團隊</div></div>';
-    return;
-  }
-
-  var list = document.getElementById("coachesList");
-  list.innerHTML = '<div class="card"><div class="card-title">🏋️ 教練團隊</div><div id="coachesCards"></div></div>';
-
-  var cards = document.getElementById("coachesCards");
-  cards.innerHTML = '<div class="loading"><div class="spinner"></div><div>載入中...</div></div>';
-
-  try {
-    var resp = await fetch(API_BASE+"/partner/members", { headers: getAuthHeaders() });
-    var data = await resp.json();
-    teamMembers = data.members || [];
-
-    if (teamMembers.length === 0) {
-      cards.innerHTML = '<div class="empty-state"><span class="empty-icon">🏋️</span>尚未添加教練團隊成員<br><br><button class="btn-sm primary" onclick="showAddCoachModal()">➕ 新增成員</button></div>';
-      return;
-    }
-
-    var canEdit = userRole === 'partner_owner' || userRole === 'partner_admin';
-    cards.innerHTML = teamMembers.map(function(m){
-      var roleBadgeClass = m.member_role === 'coach' ? 'coach' : m.member_role === 'partner_admin' ? 'admin' : 'staff';
-      var roleLabel = getRoleLabel(m.member_role);
-      // Stats for coaches/staff
-      var statsHtml = '';
-      if ((m.member_role === 'coach' || m.member_role === 'partner_staff') && (m.courses_count > 0 || m.bookings_count > 0)) {
-        statsHtml = '<div style="margin-top:4px;display:flex;gap:10px;font-size:10px;color:var(--dark-700);">'+
-          '<span>📚 '+(m.courses_count||0)+' 課程</span>'+
-          '<span>📋 '+(m.bookings_count||0)+' 預約</span>'+
-          '<span>💰 '+formatCurrency(m.total_revenue||0)+'</span></div>';
+      function isPlatformLevel(r) {
+        return hasMinRole(r, "admin");
       }
-      return '<div class="member-item" style="flex-wrap:wrap;">'+
-        '<div class="m-avatar">'+(m.name ? m.name.charAt(0) : '?')+'</div>'+
-        '<div class="m-info"><div class="m-name">'+escHtml(m.name)+' <span class="role-badge-sm '+roleBadgeClass+'">'+roleLabel+'</span></div>'+
-        '<div class="m-role">'+escHtml(m.email||"")+(m.phone?" · "+escHtml(m.phone):"")+'</div>'+statsHtml+'</div>'+
-        (canEdit ? '<div class="m-actions"><button class="btn-sm danger" onclick="removeMember(\''+m.user_id+'\')">✕</button></div>' : '')+
-        '</div>';
-    }).join("");
+      function canManageVenues(r) {
+        return (
+          (hasMinRole(r, "partner_owner") && !isPlatformLevel(r)) ||
+          isPlatformLevel(r)
+        );
+      }
+      function canManageCoaches(r) {
+        return hasMinRole(r, "partner_admin");
+      }
+      function canManageCourses(r) {
+        return hasMinRole(r, "partner_staff");
+      }
+      function canSeeRevenue(r) {
+        return (
+          (hasMinRole(r, "partner_admin") && !isPlatformLevel(r)) ||
+          isPlatformLevel(r)
+        );
+      }
+      function canSeePayouts(r) {
+        return hasMinRole(r, "partner_owner") || isPlatformLevel(r);
+      }
+      function canSeeSettings(r) {
+        return hasMinRole(r, "partner_owner") || isPlatformLevel(r);
+      }
+      function canSeeFullBookings(r) {
+        return hasMinRole(r, "partner_staff");
+      }
+      function coachOnly(r) {
+        return r === "coach";
+      }
+      function partnerStaffAbove(r) {
+        return (
+          r === "partner_staff" ||
+          r === "partner_admin" ||
+          r === "partner_owner"
+        );
+      }
+      function roleLevel(r) {
+        return ROLE_HIERARCHY[r] ?? 99;
+      }
 
-    // Add button at bottom for owner
-    if (userRole === 'partner_owner') {
-      var addBtn = document.createElement("div");
-      addBtn.style.marginTop = "10px";
-      addBtn.innerHTML = '<button class="btn-primary" onclick="showAddCoachModal()">➕ 新增成員</button>';
-      cards.parentElement.appendChild(addBtn);
-    }
-  } catch(e) {
-    cards.innerHTML = '<div class="empty-state"><span class="empty-icon">⚠️</span>載入團隊失敗</div>';
-  }
-}
+      // ===== Role display names =====
+      var ROLE_LABELS = {
+        super_admin: "超級管理員",
+        platform_manager: "平台管理",
+        platform_staff: "平台員工",
+        admin: "管理員",
+        partner_owner: "商戶負責人",
+        partner_admin: "機構管理",
+        partner_staff: "機構員工",
+        coach: "教練",
+        user: "用戶",
+        guest: "訪客",
+      };
+      function getRoleLabel(r) {
+        return ROLE_LABELS[r] || r;
+      }
 
-function showAddCoachModal() {
-  var email = prompt("請輸入要添加嘅用戶電郵：");
-  if (!email) return;
-  addCoachByEmail(email);
-}
+      // ===== State =====
+      var partnerVenue = null;
+      var dashboardStats = null;
+      var allBookings = [];
+      var allCourses = [];
+      var allPayouts = [];
+      var teamMembers = [];
+      var venues = [];
+      var bookingPage = 0;
+      var bookingLimit = 20;
+      var currentFilter = "all";
+      var currentUser = null;
+      var userRole = null;
 
-async function addCoachByEmail(email) {
-  showToast("正在查找用戶...");
-  // Find user by email - we need to search users. The API requires user_id, so we try adding via POST
-  try {
-    // First try to find user by searching - use auth/me or a user lookup
-    var resp = await fetch(API_BASE+"/partner/members", {
-      method:"POST", headers:getAuthHeaders(),
-      body:JSON.stringify({ user_id: email, role: 'coach' })
-    });
-    var data = await resp.json();
-    if (data.error) { showToast(data.error,"error"); return; }
-    showToast("✅ 已新增成員");
-    renderCoachesTab();
-  } catch(e) {
-    showToast("新增失敗，請確認電郵是否已註冊","error");
-  }
-}
+      function getToken() {
+        return (
+          localStorage.getItem("zenpass_token") ||
+          sessionStorage.getItem("zenpass_token")
+        );
+      }
+      function getAuthHeaders() {
+        var t = getToken();
+        if (!t) return { "Content-Type": "application/json" };
+        return {
+          Authorization: "Bearer " + t,
+          "Content-Type": "application/json",
+        };
+      }
+      function escHtml(str) {
+        if (!str) return "";
+        return String(str)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+      function showToast(msg, type) {
+        var t = document.getElementById("toast");
+        t.textContent = msg;
+        t.style.background =
+          type === "error" ? "var(--red-500)" : "var(--green-500)";
+        t.style.color = "white";
+        t.classList.remove("hidden");
+        setTimeout(function () {
+          t.classList.add("hidden");
+        }, 3000);
+      }
+      function formatDateTime(isoStr) {
+        if (!isoStr) return "—";
+        var d = new Date(isoStr);
+        var days = ["日", "一", "二", "三", "四", "五", "六"];
+        return (
+          d.getMonth() +
+          1 +
+          "/" +
+          d.getDate() +
+          " (" +
+          days[d.getDay()] +
+          ") " +
+          String(d.getHours()).padStart(2, "0") +
+          ":" +
+          String(d.getMinutes()).padStart(2, "0")
+        );
+      }
+      function formatDate(isoStr) {
+        if (!isoStr) return "—";
+        var d = new Date(isoStr);
+        return d.getFullYear() + "/" + (d.getMonth() + 1) + "/" + d.getDate();
+      }
+      function formatCurrency(n) {
+        if (n == null || isNaN(n)) return "HK$0";
+        return (
+          "HK$" +
+          Number(n)
+            .toFixed(2)
+            .replace(/\.?0+$/, "")
+        );
+      }
+      function closeModal(id) {
+        document.getElementById(id).classList.remove("active");
+      }
 
-async function removeMember(userId) {
-  if (!confirm("確定要移除該成員？")) return;
-  try {
-    var resp = await fetch(API_BASE+"/partner/members/"+userId, { method:"DELETE", headers:getAuthHeaders() });
-    var data = await resp.json();
-    if (!resp.ok) { showToast(data.error||"移除失敗","error"); return; }
-    showToast("已移除成員");
-    renderCoachesTab();
-  } catch(e) { showToast("移除失敗","error"); }
-}
+      // ===== Auth / Init =====
+      async function init() {
+        var token = getToken();
+        if (!token) {
+          showError("請先登入", "你需要登入才能使用商戶後台。");
+          return;
+        }
 
-// ===== TAB: Bookings =====
-function loadBookings() { bookingPage=0; currentFilter="all"; document.querySelectorAll(".filter-tab").forEach(function(b,i){ b.classList.toggle("active",i===0); }); fetchBookings(); }
+        try {
+          // Get user info via /api/auth/me
+          var meResp = await fetch(API_BASE + "/auth/me", {
+            headers: getAuthHeaders(),
+          });
+          if (!meResp.ok) {
+            if (meResp.status === 401) {
+              localStorage.removeItem("zenpass_token");
+              sessionStorage.removeItem("zenpass_token");
+              showError("請先登入", "登入已過期，請重新登入。");
+              return;
+            }
+            // Try dashboard as fallback to get venue info
+            var dResp = await fetch(API_BASE + "/partner/dashboard", {
+              headers: getAuthHeaders(),
+            });
+            if (dResp.status === 401) {
+              showError("請先登入", "請重新登入。");
+              return;
+            }
+            if (dResp.status === 403) {
+              showError(
+                "未有商戶權限",
+                "你未有已開通嘅商戶戶口，請先申請或等待審批。",
+              );
+              return;
+            }
+            // Try to load anyway
+          } else {
+            var meData = await meResp.json();
+            currentUser = meData.user || meData;
+            userRole = currentUser.role || "user";
+            document.getElementById("roleBadge").textContent =
+              getRoleLabel(userRole);
+          }
 
-async function fetchBookings() {
-  if (!canSeeFullBookings(userRole)) {
-    document.getElementById("bookingsList").innerHTML = '<div class="access-denied"><span class="ad-icon">🔒</span><div class="ad-title">權限不足</div><div class="ad-desc">需要機構員工或以上權限先可查看預約</div></div>';
-    return;
-  }
-  try {
-    var params = "?limit="+bookingLimit+"&offset="+bookingPage*bookingLimit+(currentFilter!=="all"?"&status="+currentFilter:"");
-    var resp = await fetch(API_BASE+"/partner/bookings"+params,{ headers: getAuthHeaders() });
-    var data = await resp.json();
-    allBookings = data.bookings || [];
-    renderBookings(data);
-  } catch(e) { document.getElementById("bookingsList").innerHTML='<div class="empty-state"><span class="empty-icon">⚠️</span>載入預約失敗</div>'; }
-}
+          // Load dashboard
+          await loadDashboard();
+        } catch (e) {
+          console.error("Init error:", e);
+          showError("連線失敗", "無法連接伺服器，請檢查網絡連線。");
+        }
+      }
 
-function filterBookings(filter, el) { currentFilter=filter; bookingPage=0; document.querySelectorAll(".filter-tab").forEach(function(b){ b.classList.remove("active"); }); if(el) el.classList.add("active"); fetchBookings(); }
+      async function loadDashboard() {
+        try {
+          var dResp = await fetch(API_BASE + "/partner/dashboard", {
+            headers: getAuthHeaders(),
+          });
+          if (dResp.status === 401 || dResp.status === 403) {
+            if (dResp.status === 401) {
+              showError("請先登入", "請重新登入。");
+              return;
+            }
+            // For coach role - try loading courses directly
+            userRole = userRole || "coach";
+            document.getElementById("roleBadge").textContent =
+              getRoleLabel(userRole);
+            renderWithRole();
+            document.getElementById("loadingState").classList.add("hidden");
+            document.getElementById("appContent").classList.remove("hidden");
+            return;
+          }
+          var dData = await dResp.json();
+          if (dData.error && dData.error.includes("開通")) {
+            // User has partner application but not yet approved
+            // Show settings with application status
+            partnerVenue = null;
+            document.getElementById("loadingState").classList.add("hidden");
+            document.getElementById("appContent").classList.remove("hidden");
+            renderWithRole();
+            // Try to load status
+            try {
+              var sResp = await fetch(API_BASE + "/partner/status", {
+                headers: getAuthHeaders(),
+              });
+              var sData = await sResp.json();
+              if (sData.venue) partnerVenue = sData.venue;
+            } catch (e2) {}
+            return;
+          }
 
-function renderBookings(data) {
-  var bookings = data.bookings || [];
-  if (bookings.length===0) { document.getElementById("bookingsList").innerHTML='<div class="empty-state"><span class="empty-icon">📋</span>暫無預約記錄</div>'; document.getElementById("bookingsLoadMore").innerHTML=""; return; }
-  document.getElementById("bookingsList").innerHTML = bookings.map(function(b){ return renderBookingCard(b); }).join("");
-  var shown = (bookingPage+1)*bookingLimit;
-  if (shown < (data.total||bookings.length)) {
-    document.getElementById("bookingsLoadMore").innerHTML='<button class="btn-sm secondary" onclick="loadMoreBookings()">載入更多 ('+shown+"/"+(data.total||bookings.length)+")</button>";
-  } else { document.getElementById("bookingsLoadMore").innerHTML=""; }
-}
+          partnerVenue = dData.venue;
+          dashboardStats = dData.stats;
 
-function loadMoreBookings() { bookingPage++; fetch(API_BASE+"/partner/bookings?limit="+bookingLimit+"&offset="+bookingPage*bookingLimit+(currentFilter!=="all"?"&status="+currentFilter:""),{headers:getAuthHeaders()}).then(function(r){return r.json();}).then(function(data){ var bs=data.bookings||[]; if(bs.length>0){ allBookings=allBookings.concat(bs); document.getElementById("bookingsList").insertAdjacentHTML("beforeend",bs.map(function(b){return renderBookingCard(b);}).join("")); var shown=(bookingPage+1)*bookingLimit; if(shown>=(data.total||allBookings.length)) document.getElementById("bookingsLoadMore").innerHTML=""; }}); }
+          if (!userRole && partnerVenue && partnerVenue.owner_id) {
+            userRole = userRole || "partner_owner";
+          }
+          if (!userRole) userRole = "partner_staff";
 
-function renderBookingCard(b) {
-  var statusLabels = { confirmed:"已確認", attended:"已完成", cancelled:"已取消", pending_payment:"待付款", completed:"已完成" };
-  var label = statusLabels[b.status]||b.status||"—";
-  var actions = "";
-  if (b.status==="confirmed") {
-    actions = '<button class="btn-sm success" onclick="markAttendance(\''+b.id+'\')">✅ 簽到</button>'+
-              '<button class="btn-sm danger" onclick="cancelBooking(\''+b.id+'\')">✕ 取消</button>';
-  }
-  return '<div class="booking-item"><div class="b-top"><div class="b-class">'+escHtml(b.class_title||"課程")+'</div><span class="b-status '+(b.status||"")+'">'+label+'</span></div>'+
-    '<div class="b-meta">👤 <b>'+escHtml(b.student_name||"—")+'</b> · '+escHtml(b.student_phone||"—")+'<br>📅 '+formatDateTime(b.start_time)+'<br>💰 '+formatCurrency(b.amount)+(b.venue_earned_amount?' · 🏪 實收 '+formatCurrency(b.venue_earned_amount):'')+'</div>'+
-    (actions?'<div class="b-actions">'+actions+'</div>':"")+'</div>';
-}
+          var venueLabel = "🏪 " + (partnerVenue ? partnerVenue.name : "商戶");
+          if (partnerVenue && partnerVenue.commission_plan) {
+            venueLabel +=
+              ' <span class="plan-badge">' +
+              escHtml(
+                partnerVenue.commission_plan_label ||
+                  partnerVenue.commission_plan,
+              ) +
+              "</span>";
+          }
+          document.getElementById("venueInfo").innerHTML = venueLabel;
 
-async function cancelBooking(bookingId) { if(!confirm("確定要取消此預約？")) return; try { var r=await fetch(API_BASE+"/bookings/"+bookingId+"/cancel",{method:"POST",headers:getAuthHeaders()}); var d=await r.json(); if(d.error){showToast(d.error||"取消失敗","error");return;} showToast("已取消預約"); } catch(e){showToast("取消失敗，請重試","error");} }
-async function markAttendance(bookingId) { if(!confirm("確定為此學生簽到？")) return; try { var r=await fetch(API_BASE+"/bookings/"+bookingId+"/attend",{method:"POST",headers:getAuthHeaders()}); var d=await r.json(); if(d.error){showToast(d.error||"簽到失敗","error");return;} showToast("✅ 已簽到"); } catch(e){showToast("簽到失敗，請重試","error");} }
+          renderWithRole();
+          renderPlanInfoCard();
+          renderOverview();
 
-// ===== TAB: Courses =====
-function renderCoursesTab() {
-  if (!canManageCourses(userRole)) {
-    document.getElementById("coursesList").innerHTML = '<div class="access-denied"><span class="ad-icon">🔒</span><div class="ad-title">權限不足</div><div class="ad-desc">需要員工或以上權限先可管理課程</div></div>';
-    return;
-  }
-  if (allCourses.length===0) {
-    document.getElementById("coursesList").innerHTML='<div class="empty-state"><span class="empty-icon">📚</span>暫無課程<br><br><button class="btn-sm primary" onclick="openNewClassModal()">➕ 開新班</button></div>';
-    return;
-  }
-  document.getElementById("coursesList").innerHTML = allCourses.map(function(c){
-    var schedules = c.schedules||[];
-    var scheduleHtml = "";
-    if (schedules.length>0) {
-      scheduleHtml = '<div class="schedule-scroll">'+schedules.map(function(s){
-        var status = s.enrolled_count>=s.max_participants ? "🔴 已滿" : "🟢 可報名";
-        return '<div class="schedule-card"><div class="s-date">'+formatDateTime(s.start_time)+'</div><div class="s-enrolled">👥 '+(s.enrolled_count||0)+"/"+(s.max_participants||"—")+'</div><div style="font-size:10px;margin-top:3px;">'+status+'</div></div>';
-      }).join("")+'</div>';
-    }
-    return '<div class="class-item"><div class="class-row"><div><div class="class-name">'+escHtml(c.title)+'</div><div class="class-meta">⏱ '+(c.duration||"—")+"min · "+formatCurrency(c.price_hkd)+" · 👥 "+(c.booking_count||0)+"人報名 · "+(c.difficulty||"—")+"</div></div><span class=\"class-status active\">✅ "+(schedules.length>0?schedules.length+" 時段":"上架中")+"</span></div>"+
-      '<div style="margin-top:6px;display:flex;gap:6px;">'+
-      '<button class="btn-sm outline" onclick="editClass(\''+c.id+'\')">✏️ 編輯</button>'+
-      '</div>'+
-      scheduleHtml+"</div>";
-  }).join("");
-}
+          document.getElementById("loadingState").classList.add("hidden");
+          document.getElementById("appContent").classList.remove("hidden");
+        } catch (e) {
+          console.error("Dashboard load error:", e);
+          // For non-partner roles, just load with whatever we have
+          renderWithRole();
+          document.getElementById("loadingState").classList.add("hidden");
+          document.getElementById("appContent").classList.remove("hidden");
+        }
+      }
 
-async function editClass(classId) {
-  var course = null;
-  for (var i = 0; i < allCourses.length; i++) {
-    if (allCourses[i].id === classId) { course = allCourses[i]; break; }
-  }
-  if (!course) { showToast("課程資料未載入","error"); return; }
+      function showError(title, detail) {
+        document.getElementById("loadingState").classList.add("hidden");
+        document.getElementById("appContent").classList.add("hidden");
+        document.getElementById("errorState").classList.remove("hidden");
+        document.getElementById("errorState").classList.add("active");
+        document.getElementById("errorMsg").textContent = title;
+        document.getElementById("errorDetail").textContent = detail || "";
+      }
 
-  document.getElementById("classModalTitle").textContent = "✏️ 編輯課程";
-  document.getElementById("classModalSaveBtn").textContent = "更新課程";
-  document.getElementById("nc-edit-id").value = classId;
-  document.getElementById("nc-title").value = course.title || "";
-  document.getElementById("nc-category").value = course.category || "";
-  document.getElementById("nc-price").value = course.price_hkd || "";
-  document.getElementById("nc-credits").value = course.credits_cost || "";
-  document.getElementById("nc-duration").value = course.duration || "";
-  document.getElementById("nc-max").value = course.max_participants || "";
-  document.getElementById("nc-difficulty").value = course.difficulty || "beginner";
-  document.getElementById("nc-description").value = course.description || "";
+      function partnerLogout() {
+        if (confirm("確定要登出？")) {
+          localStorage.removeItem("zenpass_token");
+          sessionStorage.removeItem("zenpass_token");
+          window.location.href = "login.html";
+        }
+      }
 
-  // Clear and populate schedules
-  var schedContainer = document.getElementById("nc-schedules");
-  schedContainer.innerHTML = "";
-  var schedules = course.schedules || [];
-  if (schedules.length === 0) {
-    schedContainer.innerHTML = '<div class="schedule-row"><input type="datetime-local" class="sched-start" /><input type="datetime-local" class="sched-end" /><button class="remove-sched" onclick="removeSchedule(this)" title="移除">✕</button></div>';
-  } else {
-    schedules.forEach(function(s){
-      var div = document.createElement("div"); div.className = "schedule-row";
-      div.innerHTML = '<input type="datetime-local" class="sched-start" value="'+(s.start_time ? s.start_time.slice(0,16) : '')+'" />'+
-        '<input type="datetime-local" class="sched-end" value="'+(s.end_time ? s.end_time.slice(0,16) : '')+'" />'+
-        '<button class="remove-sched" onclick="removeSchedule(this)" title="移除">✕</button>';
-      schedContainer.appendChild(div);
-    });
-  }
+      // ===== RBAC Tab Filtering =====
+      function renderWithRole() {
+        var r = userRole || "user";
+        var allTabs = [
+          "overview",
+          "venues",
+          "coaches",
+          "courses",
+          "bookings",
+          "revenue",
+          "settings",
+        ];
+        var visibleTabs = [];
 
-  document.getElementById("newClassModal").classList.add("active");
-}
+        if (isPlatformLevel(r) || canManageVenues(r)) {
+          visibleTabs = [
+            "overview",
+            "venues",
+            "coaches",
+            "courses",
+            "bookings",
+            "revenue",
+            "settings",
+          ];
+        } else if (
+          r === "partner_owner" ||
+          r === "partner_admin" ||
+          r === "partner_staff"
+        ) {
+          visibleTabs.push("overview");
+          if (canManageVenues(r)) visibleTabs.push("venues");
+          if (canManageCoaches(r)) visibleTabs.push("coaches");
+          if (canManageCourses(r)) visibleTabs.push("courses", "bookings");
+          if (canSeeRevenue(r)) visibleTabs.push("revenue");
+          if (canSeeSettings(r)) visibleTabs.push("settings");
+        } else if (r === "coach") {
+          visibleTabs = ["overview", "courses"];
+        } else {
+          // Fallback: student/user - limited view
+          visibleTabs = ["overview"];
+        }
 
-// ===== TAB: Revenue =====
-function renderRevenueTab() {
-  if (!canSeeRevenue(userRole)) {
-    document.getElementById("tab-revenue").innerHTML = '<div class="access-denied"><span class="ad-icon">🔒</span><div class="ad-title">權限不足</div><div class="ad-desc">需要機構管理或以上權限先可查看收入報表</div></div>';
-    document.getElementById("tab-revenue").classList.add("active");
-    return;
-  }
+        // Build bottom nav
+        var nav = document.getElementById("bottomNav");
+        nav.innerHTML = "";
+        var icons = {
+          overview: "📊",
+          venues: "🏟️",
+          coaches: "🏋️",
+          courses: "📚",
+          bookings: "📅",
+          revenue: "💰",
+          settings: "⚙️",
+        };
+        var labels = {
+          overview: "總覽",
+          venues: "場地",
+          coaches: "教練",
+          courses: "課程",
+          bookings: "預約",
+          revenue: "收入",
+          settings: "設定",
+        };
 
-  if (!dashboardStats) {
-    // Render empty state
-    document.getElementById("monthRevenue").textContent = "—";
-    document.getElementById("monthRevenueSub").textContent = "";
-    document.getElementById("reportChartArea").innerHTML = '<div style="padding:16px;color:var(--dark-700);font-size:12px;">暫無收入數據</div>';
-    document.getElementById("payoutList").innerHTML = '<div class="empty-state"><span class="empty-icon">💰</span>暫無結算記錄</div>';
-    return;
-  }
+        for (var i = 0; i < visibleTabs.length; i++) {
+          var t = visibleTabs[i];
+          var item = document.createElement("div");
+          item.className = "nav-item" + (i === 0 ? " active" : "");
+          item.setAttribute("data-tab", t);
+          item.innerHTML =
+            '<span class="nav-icon">' + icons[t] + "</span>" + labels[t];
+          item.onclick = (function (tab) {
+            return function () {
+              switchTab(tab);
+            };
+          })(t);
+          nav.appendChild(item);
+        }
 
-  var s = dashboardStats;
-  document.getElementById("monthRevenue").textContent = formatCurrency(s.this_month_earnings||0);
-  document.getElementById("monthRevenueSub").textContent = "本月 "+(s.this_month_bookings||0)+" 筆預約 · 分佣率 "+(partnerVenue&&partnerVenue.commission_rate?Math.round(partnerVenue.commission_rate*100)+"%":"25%");
+        // Initialize: show first tab
+        switchTab(visibleTabs[0] || "overview");
+      }
 
-  document.getElementById("revenuePlanInfo").innerHTML =
-    '<div class="pi-row"><span class="pi-label">佣金計劃</span><span class="pi-val">'+escHtml(partnerVenue?.commission_plan_label||'Basic')+'</span></div>'+
-    '<div class="pi-row"><span class="pi-label">佣金率</span><span class="pi-val">'+(partnerVenue?Math.round((partnerVenue.commission_rate||0.25)*100):'25')+'%</span></div>'+
-    (partnerVenue?.commission_plan_fee?'<div class="pi-row"><span class="pi-label">月費</span><span class="pi-val">HK$'+partnerVenue.commission_plan_fee.toLocaleString()+'/月</span></div>':'');
+      // ===== Tab Switching =====
+      function switchTab(name) {
+        document.querySelectorAll(".section").forEach(function (s) {
+          s.classList.remove("active");
+        });
+        var section = document.getElementById("tab-" + name);
+        if (section) {
+          section.classList.add("active");
+        } else {
+          // Tab not available → show first visible tab
+          var firstTab = document.querySelector(".nav-item[data-tab]");
+          if (firstTab) switchTab(firstTab.getAttribute("data-tab"));
+          return;
+        }
 
-  document.getElementById("revenueStats").innerHTML =
-    '<div class="stat-box"><div class="num">'+formatCurrency(s.total_revenue||0).replace("HK$","")+'</div><div class="label">總營收</div></div>'+
-    '<div class="stat-box"><div class="num">'+formatCurrency(s.total_earned||0).replace("HK$","")+'</div><div class="label">場地實收</div></div>'+
-    '<div class="stat-box"><div class="num">'+formatCurrency(s.total_platform_fee||0).replace("HK$","")+'</div><div class="label">平台佣金</div></div>'+
-    '<div class="stat-box"><div class="num teal">'+formatCurrency(s.total_paid_out||0).replace("HK$","")+'</div><div class="label">已結算</div></div>';
+        document.querySelectorAll(".nav-item").forEach(function (n) {
+          n.classList.remove("active");
+        });
+        document
+          .querySelectorAll('.nav-item[data-tab="' + name + '"]')
+          .forEach(function (n) {
+            n.classList.add("active");
+          });
 
-  loadRevenueReport('month');
-  loadPayouts();
-}
+        // Load tab data
+        if (name === "bookings") loadBookings();
+        if (name === "courses") renderCoursesTab();
+        if (name === "revenue") renderRevenueTab();
+        if (name === "settings") renderSettingsTab();
+        if (name === "venues") renderVenuesTab();
+        if (name === "coaches") renderCoachesTab();
+      }
 
-async function loadRevenueReport(groupBy, btn) {
-  if (btn) {
-    document.querySelectorAll("#reportNav button").forEach(function(b){ b.classList.remove("active"); });
-    btn.classList.add("active");
-  }
-  var area = document.getElementById("reportChartArea");
-  area.innerHTML = "載入中...";
-  try {
-    var resp = await fetch(API_BASE+"/partner/revenue-report?group_by="+groupBy+"&limit=12",{ headers: getAuthHeaders() });
-    var data = await resp.json();
-    var report = data.report || [];
-    if (report.length===0) {
-      area.innerHTML = '<div style="padding:16px;color:var(--dark-700);font-size:12px;">暫無收入數據</div>';
-      return;
-    }
-    var maxVal = Math.max(...report.map(function(r){ return r.venue_earned||0; }), 1);
-    var html = '<div class="bar-chart">';
-    report.slice().reverse().forEach(function(r){
-      var pct = Math.max(3, ((r.venue_earned||0) / maxVal) * 100);
-      html += '<div class="bar-item"><div class="bar-val">'+formatCurrency(r.venue_earned).replace("HK$","")+'</div><div class="bar" style="height:'+pct+'%;background:'+(groupBy==='day'?'var(--teal-600)':groupBy==='week'?'var(--blue-500)':'var(--orange-500)')+';"></div><div class="bar-label">'+(r.period||"").slice(-5)+'</div></div>';
-    });
-    html += '</div>';
-    if (report.length>0) {
-      html += '<div style="display:flex;justify-content:space-between;margin-top:6px;font-size:9px;color:var(--dark-700);">'+
-        '<span>📊 '+report.length+' 個期間</span>'+
-        '<span>🏪 場地實收</span></div>';
-    }
-    area.innerHTML = html;
-  } catch(e) {
-    area.innerHTML = '<div style="padding:16px;color:#ef4444;font-size:12px;">❌ 無法載入報表</div>';
-  }
-}
+      // ===== Plan Info =====
+      function renderPlanInfoCard() {
+        if (!partnerVenue) {
+          document.getElementById("planInfoCard").innerHTML = "";
+          return;
+        }
+        var p = partnerVenue;
+        var html =
+          '<div class="plan-info">' +
+          '<div class="pi-row"><span class="pi-label">佣金計劃</span><span class="pi-val">' +
+          escHtml(p.commission_plan_label || p.commission_plan || "Basic") +
+          "</span></div>" +
+          '<div class="pi-row"><span class="pi-label">佣金率</span><span class="pi-val">' +
+          Math.round((p.commission_rate || 0.25) * 100) +
+          "%</span></div>" +
+          (p.commission_plan_fee
+            ? '<div class="pi-row"><span class="pi-label">月費</span><span class="pi-val">HK$' +
+              p.commission_plan_fee.toLocaleString() +
+              "/月</span></div>"
+            : '<div class="pi-row"><span class="pi-label">月費</span><span class="pi-val" style="color:var(--green-500);">免費</span></div>') +
+          (p.description
+            ? '<div class="pi-row"><span class="pi-label">說明</span><span class="pi-val" style="font-weight:400;font-size:11px;">' +
+              escHtml(p.description) +
+              "</span></div>"
+            : "") +
+          "</div>";
+        document.getElementById("planInfoCard").innerHTML = html;
+      }
 
-async function loadPayouts() {
-  if (!canSeePayouts(userRole)) {
-    document.getElementById("payoutList").innerHTML = '<div class="empty-state"><span class="empty-icon">🔒</span>需要負責人權限先可查看結算</div>';
-    return;
-  }
-  try {
-    var resp = await fetch(API_BASE+"/partner/payouts",{ headers: getAuthHeaders() });
-    var payouts = await resp.json();
-    allPayouts = Array.isArray(payouts) ? payouts : [];
-    if (allPayouts.length===0) {
-      document.getElementById("payoutList").innerHTML='<div class="empty-state"><span class="empty-icon">💰</span>暫無結算記錄</div>';
-    } else {
-      document.getElementById("payoutList").innerHTML = allPayouts.map(function(p){
-        return '<div class="payout-item"><div class="p-row"><span class="p-label">結算期</span><span class="p-val">'+(p.period_start!=="all"?formatDate(p.period_start)+" ~ "+formatDate(p.period_end):"全部")+'</span></div>'+
-          '<div class="p-row"><span class="p-label">總營收</span><span class="p-val">'+formatCurrency(p.total_revenue)+'</span></div>'+
-          '<div class="p-row"><span class="p-label">平台佣金</span><span class="p-val">'+formatCurrency(p.platform_commission)+'</span></div>'+
-          '<div class="p-row"><span class="p-label">場地實收</span><span class="p-val" style="color:var(--teal-600);">'+formatCurrency(p.venue_earned)+'</span></div>'+
-          '<div class="p-row"><span class="p-label">狀態</span><span class="p-val">'+(p.status==="paid"?"✅ 已支付":"⏳ 待處理")+'</span></div>'+
-          (p.paid_at?'<div class="p-row"><span class="p-label">支付日期</span><span class="p-val">'+formatDateTime(p.paid_at)+'</span></div>':"")+
-          '</div>';
-      }).join("");
-    }
-  } catch(e) { document.getElementById("payoutList").innerHTML='<div class="empty-state"><span class="empty-icon">⚠️</span>載入結算記錄失敗</div>'; }
-}
+      // ===== TAB: Overview =====
+      function renderOverview() {
+        var r = userRole || "user";
+        if (!partnerVenue || !dashboardStats) {
+          // Coach or non-partner view
+          if (coachOnly(r)) {
+            document.getElementById("overviewStats").innerHTML =
+              '<div class="stat-box"><div class="num purple">🧘</div><div class="label">教練模式</div></div>';
+            document.getElementById("planInfoCard").innerHTML =
+              '<div class="plan-info"><div class="pi-row"><span class="pi-label">角色</span><span class="pi-val">' +
+              getRoleLabel(r) +
+              "</span></div></div>";
+          } else {
+            document.getElementById("overviewStats").innerHTML =
+              '<div class="empty-state"><span class="empty-icon">📊</span>暫無營運數據<br><br><button class="btn-sm primary" onclick="window.location.href=\'partner-apply.html\'">申請成爲商戶</button></div>';
+          }
+          return;
+        }
 
-// ===== TAB: Settings =====
-function renderSettingsTab() {
-  if (!canSeeSettings(userRole)) {
-    document.getElementById("tab-settings").innerHTML = '<div class="access-denied"><span class="ad-icon">🔒</span><div class="ad-title">權限不足</div><div class="ad-desc">需要商戶負責人權限先可修改設定</div></div>';
-    document.getElementById("tab-settings").classList.add("active");
-    return;
-  }
+        var s = dashboardStats || {};
+        document.getElementById("overviewStats").innerHTML =
+          '<div class="stat-box"><div class="num">' +
+          formatCurrency(s.this_month_earnings).replace("HK$", "") +
+          '</div><div class="label">本月收入</div></div>' +
+          '<div class="stat-box"><div class="num">' +
+          (s.total_bookings || 0) +
+          '</div><div class="label">總訂單</div></div>' +
+          '<div class="stat-box"><div class="num">' +
+          (s.total_students || 0) +
+          '</div><div class="label">學生數</div></div>' +
+          '<div class="stat-box"><div class="num teal">' +
+          (s.total_paid_out
+            ? formatCurrency(s.total_paid_out).replace("HK$", "")
+            : "0") +
+          '</div><div class="label">已結算</div></div>';
 
-  if (!partnerVenue) {
-    document.getElementById("settingsContent").innerHTML = '<div class="empty-state"><span class="empty-icon">🏪</span>尚未開通商戶帳號<br><br><button class="btn-sm primary" onclick="window.location.href=\'partner-apply.html\'">申請成爲商戶</button></div>';
-    document.getElementById("staffAccountsContent").innerHTML = "";
-    document.getElementById("planDetails").innerHTML = "";
-    document.getElementById("applicationStatus").innerHTML = '<div class="empty-state"><span class="empty-icon">⏳</span>暫無申請記錄</div>';
-    return;
-  }
+        if (canManageCourses(r)) {
+          document.getElementById("overviewQuickLinks").style.display = "block";
+        }
 
-  var v = partnerVenue;
-  document.getElementById("settingsContent").innerHTML =
-    '<div class="settings-section">'+
-    '<div class="settings-row"><div class="s-label">場地名稱</div><div class="s-val">'+escHtml(v.name)+'</div></div>'+
-    '<div class="settings-row"><div class="s-label">狀態</div><div class="s-val">'+(v.status==="active"?"✅ 已開通":v.status==="pending"?"⏳ 審批中":"❌ "+v.status)+'</div></div>'+
-    '<div class="settings-row"><div class="s-label">類別</div><div class="s-val">'+escHtml(v.category||"—")+'</div></div>'+
-    '<div class="settings-row"><div class="s-label">地區</div><div class="s-val">'+escHtml(v.district||"—")+'</div></div>'+
-    '<div class="settings-row"><div class="s-label">佣金率</div><div class="s-val">'+Math.round((v.commission_rate||0.25)*100)+'%</div></div>'+
-    (v.email ? '<div class="settings-row"><div class="s-label">電郵</div><div class="s-val">'+escHtml(v.email)+'</div></div>' : '')+
-    (v.phone ? '<div class="settings-row"><div class="s-label">電話</div><div class="s-val">'+escHtml(v.phone)+'</div></div>' : '')+
-    (v.address ? '<div class="settings-row"><div class="s-label">地址</div><div class="s-val">'+escHtml(v.address)+'</div></div>' : '')+
-    (v.description ? '<div class="settings-row"><div class="s-label">描述</div><div class="s-val" style="font-weight:400;">'+escHtml(v.description)+'</div></div>' : '')+
-    '</div>';
+        loadRecentBookings();
+        loadActiveCourses();
+      }
 
-  // Staff accounts
-  document.getElementById("staffAccountsContent").innerHTML =
-    '<div class="settings-section"><p style="font-size:12px;color:var(--dark-700);margin-bottom:10px;">管理機構嘅員工帳號，前往「教練團隊」分頁管理</p>'+
-    '<button class="btn-sm outline" onclick="switchTab(\'coaches\')">👉 管理團隊</button></div>';
+      async function loadRecentBookings() {
+        if (!canSeeFullBookings(userRole)) {
+          document.getElementById("recentBookings").innerHTML =
+            '<div class="empty-state"><span class="empty-icon">🔒</span>需要員工權限先可查看</div>';
+          return;
+        }
+        try {
+          var resp = await fetch(
+            API_BASE + "/partner/bookings?limit=5&offset=0",
+            { headers: getAuthHeaders() },
+          );
+          var data = await resp.json();
+          var bookings = data.bookings || [];
+          document.getElementById("recentBookingCount").textContent =
+            "(" + (data.total || bookings.length) + ")";
+          if (bookings.length === 0) {
+            document.getElementById("recentBookings").innerHTML =
+              '<div class="empty-state"><span class="empty-icon">📋</span>暫無預約記錄</div>';
+            return;
+          }
+          document.getElementById("recentBookings").innerHTML = bookings
+            .map(function (b) {
+              return renderBookingCard(b);
+            })
+            .join("");
+        } catch (e) {
+          document.getElementById("recentBookings").innerHTML =
+            '<div class="empty-state"><span class="empty-icon">⚠️</span>載入預約失敗</div>';
+        }
+      }
 
-  // Plan details
-  document.getElementById("planDetails").innerHTML =
-    '<div class="settings-section"><div class="settings-row"><div class="s-label">佣金計劃</div><div class="s-val">'+escHtml(v.commission_plan_label||v.commission_plan||'Basic')+'</div></div>'+
-    '<div class="settings-row"><div class="s-label">佣金率</div><div class="s-val">'+Math.round((v.commission_rate||0.25)*100)+'%</div></div>'+
-    (v.commission_plan_fee ? '<div class="settings-row"><div class="s-label">月費</div><div class="s-val">HK$'+v.commission_plan_fee.toLocaleString()+'/月</div></div>' : '<div class="settings-row"><div class="s-label">月費</div><div class="s-val" style="color:var(--green-500);">免費</div></div>')+
-    (v.description ? '<div class="settings-row"><div class="s-label">說明</div><div class="s-val" style="font-weight:400;">'+escHtml(v.description)+'</div></div>' : '')+
-    '</div>';
+      async function loadActiveCourses() {
+        try {
+          var resp = await fetch(API_BASE + "/partner/courses", {
+            headers: getAuthHeaders(),
+          });
+          var courses = await resp.json();
+          if (courses.error) {
+            document.getElementById("activeCourses").innerHTML =
+              '<div class="empty-state"><span class="empty-icon">📚</span>暫無課程</div>';
+            document.getElementById("activeCourseCount").textContent = "(0)";
+            return;
+          }
+          allCourses = Array.isArray(courses) ? courses : [];
+          document.getElementById("activeCourseCount").textContent =
+            "(" + allCourses.length + ")";
+          if (allCourses.length === 0) {
+            document.getElementById("activeCourses").innerHTML =
+              '<div class="empty-state"><span class="empty-icon">📚</span>暫無課程</div>';
+            return;
+          }
+          var shown = allCourses.slice(0, 3);
+          document.getElementById("activeCourses").innerHTML = shown
+            .map(function (c) {
+              return (
+                '<div class="class-item"><div class="class-row"><div><div class="class-name">' +
+                escHtml(c.title) +
+                '</div><div class="class-meta">⏱ ' +
+                (c.duration || "—") +
+                "min · " +
+                formatCurrency(c.price_hkd) +
+                " · 👥 " +
+                (c.booking_count || 0) +
+                '人報名</div></div><span class="class-status active">✅ 上架中</span></div></div>'
+              );
+            })
+            .join("");
+          if (allCourses.length > 3) {
+            document.getElementById("activeCourses").innerHTML +=
+              '<div style="text-align:center;padding:10px;font-size:12px;color:var(--dark-700);cursor:pointer;" onclick="switchTab(\'courses\')">查看全部 ' +
+              allCourses.length +
+              " 個課程 →</div>";
+          }
+        } catch (e) {
+          document.getElementById("activeCourses").innerHTML =
+            '<div class="empty-state"><span class="empty-icon">⚠️</span>載入課程失敗</div>';
+        }
+      }
 
-  document.getElementById("applicationStatus").innerHTML =
-    '<div class="settings-section">'+
-    '<div class="settings-row"><div class="s-label">申請日期</div><div class="s-val">'+formatDateTime(v.created_at)+'</div></div>'+
-    '<div class="settings-row"><div class="s-label">審批狀態</div><div class="s-val"><span style="color:'+(v.status==="active"?"var(--green-500)":v.status==="pending"?"#d97706":"var(--red-500)")+';font-weight:600;">'+
-    (v.status==="active"?"✅ 已通過":v.status==="pending"?"⏳ 審批中":v.status==="rejected"?"❌ 已拒絕":v.status)+'</span></div></div>'+
-    (v.status==="pending" ? '<div class="settings-row"><div class="s-label" style="font-size:10px;color:var(--dark-700);">審批通常需要 1-3 個工作天</div></div>' : '')+
-    '</div>';
-}
+      // ===== TAB: Venues =====
+      async function renderVenuesTab() {
+        if (!canManageVenues(userRole)) {
+          document.getElementById("venuesList").innerHTML =
+            '<div class="access-denied"><span class="ad-icon">🔒</span><div class="ad-title">權限不足</div><div class="ad-desc">需要商戶負責人權限先可管理場地</div></div>';
+          return;
+        }
 
-// ===== Modal: New/Edit Class =====
-function openNewClassModal() {
-  document.getElementById("classModalTitle").textContent = "📅 開新班";
-  document.getElementById("classModalSaveBtn").textContent = "建立課程";
-  document.getElementById("nc-edit-id").value = "";
-  document.getElementById("nc-title").value = "";
-  document.getElementById("nc-category").value = "";
-  document.getElementById("nc-price").value = "";
-  document.getElementById("nc-credits").value = "";
-  document.getElementById("nc-duration").value = "";
-  document.getElementById("nc-max").value = "";
-  document.getElementById("nc-difficulty").value = "beginner";
-  document.getElementById("nc-description").value = "";
-  document.getElementById("nc-schedules").innerHTML = '<div class="schedule-row"><input type="datetime-local" class="sched-start" /><input type="datetime-local" class="sched-end" /><button class="remove-sched" onclick="removeSchedule(this)" title="移除">✕</button></div>';
-  document.getElementById("newClassModal").classList.add("active");
-}
+        var list = document.getElementById("venuesList");
+        list.innerHTML =
+          '<div class="card"><div class="card-title">🏟️ 場地列表</div><div id="venuesCards"></div><div style="margin-top:10px;"><button class="btn-primary" onclick="openModal(\'addVenueModal\')">➕ 新增場地</button></div></div>';
 
-function closeNewClassModal() { document.getElementById("newClassModal").classList.remove("active"); }
+        var cards = document.getElementById("venuesCards");
+        cards.innerHTML =
+          '<div class="loading"><div class="spinner"></div><div>載入中...</div></div>';
 
-function addScheduleRow() {
-  var div = document.createElement("div"); div.className = "schedule-row";
-  div.innerHTML = '<input type="datetime-local" class="sched-start" /><input type="datetime-local" class="sched-end" /><button class="remove-sched" onclick="removeSchedule(this)" title="移除">✕</button>';
-  document.getElementById("nc-schedules").appendChild(div);
-}
+        try {
+          var resp = await fetch(API_BASE + "/partner/list", {
+            headers: getAuthHeaders(),
+          });
+          var data = await resp.json();
+          var partners = data.partners || [];
+          venues = partners;
 
-function removeSchedule(btn) {
-  var rows = document.querySelectorAll("#nc-schedules .schedule-row");
-  if (rows.length <= 1) { showToast("至少需要一個上堂時段","error"); return; }
-  btn.parentElement.remove();
-}
+          if (venues.length === 0) {
+            cards.innerHTML =
+              '<div class="empty-state"><span class="empty-icon">🏟️</span>暫無場地，新增第一個場地</div>';
+            return;
+          }
 
-async function submitNewClass() {
-  var title = document.getElementById("nc-title").value.trim();
-  var category = document.getElementById("nc-category").value;
-  var price = parseFloat(document.getElementById("nc-price").value);
-  var credits = parseInt(document.getElementById("nc-credits").value) || 0;
-  var duration = parseInt(document.getElementById("nc-duration").value);
-  var maxP = parseInt(document.getElementById("nc-max").value) || 15;
-  var difficulty = document.getElementById("nc-difficulty").value;
-  var description = document.getElementById("nc-description").value.trim();
-  var editId = document.getElementById("nc-edit-id").value;
+          cards.innerHTML = venues
+            .map(function (v) {
+              return (
+                '<div class="venue-card"><div class="v-name">' +
+                escHtml(v.name) +
+                "</div>" +
+                '<div class="v-info">📂 ' +
+                escHtml(v.category || "—") +
+                " · 📍 " +
+                escHtml(v.district || "—") +
+                "</div>" +
+                "</div>"
+              );
+            })
+            .join("");
+        } catch (e) {
+          cards.innerHTML =
+            '<div class="empty-state"><span class="empty-icon">⚠️</span>載入場地失敗</div>';
+        }
+      }
 
-  if (!title) { showToast("請填寫課程標題","error"); return; }
-  if (!category) { showToast("請選擇類別","error"); return; }
-  if (!price || price <= 0) { showToast("請填寫有效價格","error"); return; }
-  if (!duration || duration <= 0) { showToast("請填寫有效時長","error"); return; }
+      async function submitVenue() {
+        var name = document.getElementById("av-name").value.trim();
+        if (!name) {
+          showToast("請填寫場地名稱", "error");
+          return;
+        }
+        try {
+          var resp = await fetch(API_BASE + "/partner/apply", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              name: name,
+              category: document.getElementById("av-category").value,
+              address: document.getElementById("av-address").value.trim(),
+              phone: document.getElementById("av-phone").value.trim(),
+              description: document
+                .getElementById("av-description")
+                .value.trim(),
+              email: currentUser?.email || "",
+            }),
+          });
+          var data = await resp.json();
+          if (data.error) {
+            showToast(data.error, "error");
+            return;
+          }
+          showToast("🎉 場地已提交審批");
+          closeModal("addVenueModal");
+          renderVenuesTab();
+        } catch (e) {
+          showToast("提交失敗", "error");
+        }
+      }
 
-  var schedRows = document.querySelectorAll("#nc-schedules .schedule-row");
-  var schedules = [];
-  for (var i = 0; i < schedRows.length; i++) {
-    var start = schedRows[i].querySelector(".sched-start").value;
-    var end = schedRows[i].querySelector(".sched-end").value;
-    if (!start || !end) { showToast("請填寫所有時段嘅開始同結束時間","error"); return; }
-    schedules.push({ start_time: new Date(start).toISOString(), end_time: new Date(end).toISOString(), max_participants: maxP });
-  }
-  if (schedules.length === 0) { showToast("請至少新增一個上堂時段","error"); return; }
+      // ===== TAB: Coaches =====
+      async function renderCoachesTab() {
+        if (!canManageCoaches(userRole)) {
+          document.getElementById("coachesList").innerHTML =
+            '<div class="access-denied"><span class="ad-icon">🔒</span><div class="ad-title">權限不足</div><div class="ad-desc">需要機構管理權限先可管理教練團隊</div></div>';
+          return;
+        }
 
-  try {
-    var url = editId ? API_BASE+"/partner/courses/"+editId : API_BASE+"/partner/courses";
-    var method = editId ? "PUT" : "POST";
-    var body = editId ? { title, price_hkd: price, description, difficulty, max_participants: maxP, credits_cost: credits || undefined } : { title, category, price_hkd: price, credits_cost: credits || undefined, duration, max_participants: maxP, description, difficulty, schedules };
-    var resp = await fetch(url, { method, headers: getAuthHeaders(), body: JSON.stringify(body) });
-    var data = await resp.json();
-    if (data.error) { showToast(data.error,"error"); return; }
-    showToast("🎉 " + (editId ? "課程已更新" : "課程已成功建立"));
-    closeNewClassModal();
+        var list = document.getElementById("coachesList");
+        list.innerHTML =
+          '<div class="card"><div class="card-title">🏋️ 教練團隊</div><div id="coachesCards"></div></div>';
 
-    // Reload courses
-    var cResp = await fetch(API_BASE+"/partner/courses", { headers: getAuthHeaders() });
-    var cData = await cResp.json();
-    allCourses = Array.isArray(cData) ? cData : [];
-    renderCoursesTab();
-    loadActiveCourses();
-  } catch(e) { console.error(e); showToast("操作失敗，請重試","error"); }
-}
+        var cards = document.getElementById("coachesCards");
+        cards.innerHTML =
+          '<div class="loading"><div class="spinner"></div><div>載入中...</div></div>';
 
-// ===== Modal helper =====
-function openModal(id) { document.getElementById(id).classList.add("active"); }
+        try {
+          var resp = await fetch(API_BASE + "/partner/members", {
+            headers: getAuthHeaders(),
+          });
+          var data = await resp.json();
+          teamMembers = data.members || [];
 
-// Close modals on overlay click
-document.addEventListener("click", function(e) {
-  if (e.target.classList.contains("modal-overlay")) {
-    e.target.classList.remove("active");
-  }
-});
+          if (teamMembers.length === 0) {
+            cards.innerHTML =
+              '<div class="empty-state"><span class="empty-icon">🏋️</span>尚未添加教練團隊成員<br><br><button class="btn-sm primary" onclick="showAddCoachModal()">➕ 新增成員</button></div>';
+            return;
+          }
 
-// ===== Init =====
-init();
-</script>
-</body>
+          var canEdit =
+            userRole === "partner_owner" || userRole === "partner_admin";
+          cards.innerHTML = teamMembers
+            .map(function (m) {
+              var roleBadgeClass =
+                m.member_role === "coach"
+                  ? "coach"
+                  : m.member_role === "partner_admin"
+                    ? "admin"
+                    : "staff";
+              var roleLabel = getRoleLabel(m.member_role);
+              // Stats for coaches/staff
+              var statsHtml = "";
+              if (
+                (m.member_role === "coach" ||
+                  m.member_role === "partner_staff") &&
+                (m.courses_count > 0 || m.bookings_count > 0)
+              ) {
+                statsHtml =
+                  '<div style="margin-top:4px;display:flex;gap:10px;font-size:10px;color:var(--dark-700);">' +
+                  "<span>📚 " +
+                  (m.courses_count || 0) +
+                  " 課程</span>" +
+                  "<span>📋 " +
+                  (m.bookings_count || 0) +
+                  " 預約</span>" +
+                  "<span>💰 " +
+                  formatCurrency(m.total_revenue || 0) +
+                  "</span></div>";
+              }
+              return (
+                '<div class="member-item" style="flex-wrap:wrap;">' +
+                '<div class="m-avatar">' +
+                (m.name ? m.name.charAt(0) : "?") +
+                "</div>" +
+                '<div class="m-info"><div class="m-name">' +
+                escHtml(m.name) +
+                ' <span class="role-badge-sm ' +
+                roleBadgeClass +
+                '">' +
+                roleLabel +
+                "</span></div>" +
+                '<div class="m-role">' +
+                escHtml(m.email || "") +
+                (m.phone ? " · " + escHtml(m.phone) : "") +
+                "</div>" +
+                statsHtml +
+                "</div>" +
+                (canEdit
+                  ? '<div class="m-actions"><button class="btn-sm danger" onclick="removeMember(\'' +
+                    m.user_id +
+                    "')\">✕</button></div>"
+                  : "") +
+                "</div>"
+              );
+            })
+            .join("");
+
+          // Add button at bottom for owner
+          if (userRole === "partner_owner") {
+            var addBtn = document.createElement("div");
+            addBtn.style.marginTop = "10px";
+            addBtn.innerHTML =
+              '<button class="btn-primary" onclick="showAddCoachModal()">➕ 新增成員</button>';
+            cards.parentElement.appendChild(addBtn);
+          }
+        } catch (e) {
+          cards.innerHTML =
+            '<div class="empty-state"><span class="empty-icon">⚠️</span>載入團隊失敗</div>';
+        }
+      }
+
+      function showAddCoachModal() {
+        var email = prompt("請輸入要添加嘅用戶電郵：");
+        if (!email) return;
+        addCoachByEmail(email);
+      }
+
+      async function addCoachByEmail(email) {
+        showToast("正在查找用戶...");
+        // Find user by email - we need to search users. The API requires user_id, so we try adding via POST
+        try {
+          // First try to find user by searching - use auth/me or a user lookup
+          var resp = await fetch(API_BASE + "/partner/members", {
+            method: "POST",
+            headers: getAuthHeaders(),
+            body: JSON.stringify({ user_id: email, role: "coach" }),
+          });
+          var data = await resp.json();
+          if (data.error) {
+            showToast(data.error, "error");
+            return;
+          }
+          showToast("✅ 已新增成員");
+          renderCoachesTab();
+        } catch (e) {
+          showToast("新增失敗，請確認電郵是否已註冊", "error");
+        }
+      }
+
+      async function removeMember(userId) {
+        if (!confirm("確定要移除該成員？")) return;
+        try {
+          var resp = await fetch(API_BASE + "/partner/members/" + userId, {
+            method: "DELETE",
+            headers: getAuthHeaders(),
+          });
+          var data = await resp.json();
+          if (!resp.ok) {
+            showToast(data.error || "移除失敗", "error");
+            return;
+          }
+          showToast("已移除成員");
+          renderCoachesTab();
+        } catch (e) {
+          showToast("移除失敗", "error");
+        }
+      }
+
+      // ===== TAB: Bookings =====
+      function loadBookings() {
+        bookingPage = 0;
+        currentFilter = "all";
+        document.querySelectorAll(".filter-tab").forEach(function (b, i) {
+          b.classList.toggle("active", i === 0);
+        });
+        fetchBookings();
+      }
+
+      async function fetchBookings() {
+        if (!canSeeFullBookings(userRole)) {
+          document.getElementById("bookingsList").innerHTML =
+            '<div class="access-denied"><span class="ad-icon">🔒</span><div class="ad-title">權限不足</div><div class="ad-desc">需要機構員工或以上權限先可查看預約</div></div>';
+          return;
+        }
+        try {
+          var params =
+            "?limit=" +
+            bookingLimit +
+            "&offset=" +
+            bookingPage * bookingLimit +
+            (currentFilter !== "all" ? "&status=" + currentFilter : "");
+          var resp = await fetch(API_BASE + "/partner/bookings" + params, {
+            headers: getAuthHeaders(),
+          });
+          var data = await resp.json();
+          allBookings = data.bookings || [];
+          renderBookings(data);
+        } catch (e) {
+          document.getElementById("bookingsList").innerHTML =
+            '<div class="empty-state"><span class="empty-icon">⚠️</span>載入預約失敗</div>';
+        }
+      }
+
+      function filterBookings(filter, el) {
+        currentFilter = filter;
+        bookingPage = 0;
+        document.querySelectorAll(".filter-tab").forEach(function (b) {
+          b.classList.remove("active");
+        });
+        if (el) el.classList.add("active");
+        fetchBookings();
+      }
+
+      function renderBookings(data) {
+        var bookings = data.bookings || [];
+        if (bookings.length === 0) {
+          document.getElementById("bookingsList").innerHTML =
+            '<div class="empty-state"><span class="empty-icon">📋</span>暫無預約記錄</div>';
+          document.getElementById("bookingsLoadMore").innerHTML = "";
+          return;
+        }
+        document.getElementById("bookingsList").innerHTML = bookings
+          .map(function (b) {
+            return renderBookingCard(b);
+          })
+          .join("");
+        var shown = (bookingPage + 1) * bookingLimit;
+        if (shown < (data.total || bookings.length)) {
+          document.getElementById("bookingsLoadMore").innerHTML =
+            '<button class="btn-sm secondary" onclick="loadMoreBookings()">載入更多 (' +
+            shown +
+            "/" +
+            (data.total || bookings.length) +
+            ")</button>";
+        } else {
+          document.getElementById("bookingsLoadMore").innerHTML = "";
+        }
+      }
+
+      function loadMoreBookings() {
+        bookingPage++;
+        fetch(
+          API_BASE +
+            "/partner/bookings?limit=" +
+            bookingLimit +
+            "&offset=" +
+            bookingPage * bookingLimit +
+            (currentFilter !== "all" ? "&status=" + currentFilter : ""),
+          { headers: getAuthHeaders() },
+        )
+          .then(function (r) {
+            return r.json();
+          })
+          .then(function (data) {
+            var bs = data.bookings || [];
+            if (bs.length > 0) {
+              allBookings = allBookings.concat(bs);
+              document.getElementById("bookingsList").insertAdjacentHTML(
+                "beforeend",
+                bs
+                  .map(function (b) {
+                    return renderBookingCard(b);
+                  })
+                  .join(""),
+              );
+              var shown = (bookingPage + 1) * bookingLimit;
+              if (shown >= (data.total || allBookings.length))
+                document.getElementById("bookingsLoadMore").innerHTML = "";
+            }
+          });
+      }
+
+      function renderBookingCard(b) {
+        var statusLabels = {
+          confirmed: "已確認",
+          attended: "已完成",
+          cancelled: "已取消",
+          pending_payment: "待付款",
+          completed: "已完成",
+        };
+        var label = statusLabels[b.status] || b.status || "—";
+        var actions = "";
+        if (b.status === "confirmed") {
+          actions =
+            '<button class="btn-sm success" onclick="markAttendance(\'' +
+            b.id +
+            "')\">✅ 簽到</button>" +
+            '<button class="btn-sm danger" onclick="cancelBooking(\'' +
+            b.id +
+            "')\">✕ 取消</button>";
+        }
+        return (
+          '<div class="booking-item"><div class="b-top"><div class="b-class">' +
+          escHtml(b.class_title || "課程") +
+          '</div><span class="b-status ' +
+          (b.status || "") +
+          '">' +
+          label +
+          "</span></div>" +
+          '<div class="b-meta">👤 <b>' +
+          escHtml(b.student_name || "—") +
+          "</b> · " +
+          escHtml(b.student_phone || "—") +
+          "<br>📅 " +
+          formatDateTime(b.start_time) +
+          "<br>💰 " +
+          formatCurrency(b.amount) +
+          (b.venue_earned_amount
+            ? " · 🏪 實收 " + formatCurrency(b.venue_earned_amount)
+            : "") +
+          "</div>" +
+          (actions ? '<div class="b-actions">' + actions + "</div>" : "") +
+          "</div>"
+        );
+      }
+
+      async function cancelBooking(bookingId) {
+        if (!confirm("確定要取消此預約？")) return;
+        try {
+          var r = await fetch(API_BASE + "/bookings/" + bookingId + "/cancel", {
+            method: "POST",
+            headers: getAuthHeaders(),
+          });
+          var d = await r.json();
+          if (d.error) {
+            showToast(d.error || "取消失敗", "error");
+            return;
+          }
+          showToast("已取消預約");
+        } catch (e) {
+          showToast("取消失敗，請重試", "error");
+        }
+      }
+      async function markAttendance(bookingId) {
+        if (!confirm("確定為此學生簽到？")) return;
+        try {
+          var r = await fetch(API_BASE + "/bookings/" + bookingId + "/attend", {
+            method: "POST",
+            headers: getAuthHeaders(),
+          });
+          var d = await r.json();
+          if (d.error) {
+            showToast(d.error || "簽到失敗", "error");
+            return;
+          }
+          showToast("✅ 已簽到");
+        } catch (e) {
+          showToast("簽到失敗，請重試", "error");
+        }
+      }
+
+      // ===== TAB: Courses =====
+      function renderCoursesTab() {
+        if (!canManageCourses(userRole)) {
+          document.getElementById("coursesList").innerHTML =
+            '<div class="access-denied"><span class="ad-icon">🔒</span><div class="ad-title">權限不足</div><div class="ad-desc">需要員工或以上權限先可管理課程</div></div>';
+          return;
+        }
+        if (allCourses.length === 0) {
+          document.getElementById("coursesList").innerHTML =
+            '<div class="empty-state"><span class="empty-icon">📚</span>暫無課程<br><br><button class="btn-sm primary" onclick="openNewClassModal()">➕ 開新班</button></div>';
+          return;
+        }
+        document.getElementById("coursesList").innerHTML = allCourses
+          .map(function (c) {
+            var schedules = c.schedules || [];
+            var scheduleHtml = "";
+            if (schedules.length > 0) {
+              scheduleHtml =
+                '<div class="schedule-scroll">' +
+                schedules
+                  .map(function (s) {
+                    var status =
+                      s.enrolled_count >= s.max_participants
+                        ? "🔴 已滿"
+                        : "🟢 可報名";
+                    return (
+                      '<div class="schedule-card"><div class="s-date">' +
+                      formatDateTime(s.start_time) +
+                      '</div><div class="s-enrolled">👥 ' +
+                      (s.enrolled_count || 0) +
+                      "/" +
+                      (s.max_participants || "—") +
+                      '</div><div style="font-size:10px;margin-top:3px;">' +
+                      status +
+                      "</div></div>"
+                    );
+                  })
+                  .join("") +
+                "</div>";
+            }
+            return (
+              '<div class="class-item"><div class="class-row"><div><div class="class-name">' +
+              escHtml(c.title) +
+              '</div><div class="class-meta">⏱ ' +
+              (c.duration || "—") +
+              "min · " +
+              formatCurrency(c.price_hkd) +
+              " · 👥 " +
+              (c.booking_count || 0) +
+              "人報名 · " +
+              (c.difficulty || "—") +
+              '</div></div><span class="class-status active">✅ ' +
+              (schedules.length > 0 ? schedules.length + " 時段" : "上架中") +
+              "</span></div>" +
+              '<div style="margin-top:6px;display:flex;gap:6px;">' +
+              '<button class="btn-sm outline" onclick="editClass(\'' +
+              c.id +
+              "')\">✏️ 編輯</button>" +
+              "</div>" +
+              scheduleHtml +
+              "</div>"
+            );
+          })
+          .join("");
+      }
+
+      async function editClass(classId) {
+        var course = null;
+        for (var i = 0; i < allCourses.length; i++) {
+          if (allCourses[i].id === classId) {
+            course = allCourses[i];
+            break;
+          }
+        }
+        if (!course) {
+          showToast("課程資料未載入", "error");
+          return;
+        }
+
+        document.getElementById("classModalTitle").textContent = "✏️ 編輯課程";
+        document.getElementById("classModalSaveBtn").textContent = "更新課程";
+        document.getElementById("nc-edit-id").value = classId;
+        document.getElementById("nc-title").value = course.title || "";
+        document.getElementById("nc-category").value = course.category || "";
+        document.getElementById("nc-price").value = course.price_hkd || "";
+        document.getElementById("nc-credits").value = course.credits_cost || "";
+        document.getElementById("nc-duration").value = course.duration || "";
+        document.getElementById("nc-max").value = course.max_participants || "";
+        document.getElementById("nc-difficulty").value =
+          course.difficulty || "beginner";
+        document.getElementById("nc-description").value =
+          course.description || "";
+
+        // Clear and populate schedules
+        var schedContainer = document.getElementById("nc-schedules");
+        schedContainer.innerHTML = "";
+        var schedules = course.schedules || [];
+        if (schedules.length === 0) {
+          schedContainer.innerHTML =
+            '<div class="schedule-row"><input type="datetime-local" class="sched-start" /><input type="datetime-local" class="sched-end" /><button class="remove-sched" onclick="removeSchedule(this)" title="移除">✕</button></div>';
+        } else {
+          schedules.forEach(function (s) {
+            var div = document.createElement("div");
+            div.className = "schedule-row";
+            div.innerHTML =
+              '<input type="datetime-local" class="sched-start" value="' +
+              (s.start_time ? s.start_time.slice(0, 16) : "") +
+              '" />' +
+              '<input type="datetime-local" class="sched-end" value="' +
+              (s.end_time ? s.end_time.slice(0, 16) : "") +
+              '" />' +
+              '<button class="remove-sched" onclick="removeSchedule(this)" title="移除">✕</button>';
+            schedContainer.appendChild(div);
+          });
+        }
+
+        document.getElementById("newClassModal").classList.add("active");
+      }
+
+      // ===== TAB: Revenue =====
+      function renderRevenueTab() {
+        if (!canSeeRevenue(userRole)) {
+          document.getElementById("tab-revenue").innerHTML =
+            '<div class="access-denied"><span class="ad-icon">🔒</span><div class="ad-title">權限不足</div><div class="ad-desc">需要機構管理或以上權限先可查看收入報表</div></div>';
+          document.getElementById("tab-revenue").classList.add("active");
+          return;
+        }
+
+        if (!dashboardStats) {
+          // Render empty state
+          document.getElementById("monthRevenue").textContent = "—";
+          document.getElementById("monthRevenueSub").textContent = "";
+          document.getElementById("reportChartArea").innerHTML =
+            '<div style="padding:16px;color:var(--dark-700);font-size:12px;">暫無收入數據</div>';
+          document.getElementById("payoutList").innerHTML =
+            '<div class="empty-state"><span class="empty-icon">💰</span>暫無結算記錄</div>';
+          return;
+        }
+
+        var s = dashboardStats;
+        document.getElementById("monthRevenue").textContent = formatCurrency(
+          s.this_month_earnings || 0,
+        );
+        document.getElementById("monthRevenueSub").textContent =
+          "本月 " +
+          (s.this_month_bookings || 0) +
+          " 筆預約 · 分佣率 " +
+          (partnerVenue && partnerVenue.commission_rate
+            ? Math.round(partnerVenue.commission_rate * 100) + "%"
+            : "25%");
+
+        document.getElementById("revenuePlanInfo").innerHTML =
+          '<div class="pi-row"><span class="pi-label">佣金計劃</span><span class="pi-val">' +
+          escHtml(partnerVenue?.commission_plan_label || "Basic") +
+          "</span></div>" +
+          '<div class="pi-row"><span class="pi-label">佣金率</span><span class="pi-val">' +
+          (partnerVenue
+            ? Math.round((partnerVenue.commission_rate || 0.25) * 100)
+            : "25") +
+          "%</span></div>" +
+          (partnerVenue?.commission_plan_fee
+            ? '<div class="pi-row"><span class="pi-label">月費</span><span class="pi-val">HK$' +
+              partnerVenue.commission_plan_fee.toLocaleString() +
+              "/月</span></div>"
+            : "");
+
+        document.getElementById("revenueStats").innerHTML =
+          '<div class="stat-box"><div class="num">' +
+          formatCurrency(s.total_revenue || 0).replace("HK$", "") +
+          '</div><div class="label">總營收</div></div>' +
+          '<div class="stat-box"><div class="num">' +
+          formatCurrency(s.total_earned || 0).replace("HK$", "") +
+          '</div><div class="label">場地實收</div></div>' +
+          '<div class="stat-box"><div class="num">' +
+          formatCurrency(s.total_platform_fee || 0).replace("HK$", "") +
+          '</div><div class="label">平台佣金</div></div>' +
+          '<div class="stat-box"><div class="num teal">' +
+          formatCurrency(s.total_paid_out || 0).replace("HK$", "") +
+          '</div><div class="label">已結算</div></div>';
+
+        loadRevenueReport("month");
+        loadPayouts();
+      }
+
+      async function loadRevenueReport(groupBy, btn) {
+        if (btn) {
+          document.querySelectorAll("#reportNav button").forEach(function (b) {
+            b.classList.remove("active");
+          });
+          btn.classList.add("active");
+        }
+        var area = document.getElementById("reportChartArea");
+        area.innerHTML = "載入中...";
+        try {
+          var resp = await fetch(
+            API_BASE +
+              "/partner/revenue-report?group_by=" +
+              groupBy +
+              "&limit=12",
+            { headers: getAuthHeaders() },
+          );
+          var data = await resp.json();
+          var report = data.report || [];
+          if (report.length === 0) {
+            area.innerHTML =
+              '<div style="padding:16px;color:var(--dark-700);font-size:12px;">暫無收入數據</div>';
+            return;
+          }
+          var maxVal = Math.max(
+            ...report.map(function (r) {
+              return r.venue_earned || 0;
+            }),
+            1,
+          );
+          var html = '<div class="bar-chart">';
+          report
+            .slice()
+            .reverse()
+            .forEach(function (r) {
+              var pct = Math.max(3, ((r.venue_earned || 0) / maxVal) * 100);
+              html +=
+                '<div class="bar-item"><div class="bar-val">' +
+                formatCurrency(r.venue_earned).replace("HK$", "") +
+                '</div><div class="bar" style="height:' +
+                pct +
+                "%;background:" +
+                (groupBy === "day"
+                  ? "var(--teal-600)"
+                  : groupBy === "week"
+                    ? "var(--blue-500)"
+                    : "var(--orange-500)") +
+                ';"></div><div class="bar-label">' +
+                (r.period || "").slice(-5) +
+                "</div></div>";
+            });
+          html += "</div>";
+          if (report.length > 0) {
+            html +=
+              '<div style="display:flex;justify-content:space-between;margin-top:6px;font-size:9px;color:var(--dark-700);">' +
+              "<span>📊 " +
+              report.length +
+              " 個期間</span>" +
+              "<span>🏪 場地實收</span></div>";
+          }
+          area.innerHTML = html;
+        } catch (e) {
+          area.innerHTML =
+            '<div style="padding:16px;color:#ef4444;font-size:12px;">❌ 無法載入報表</div>';
+        }
+      }
+
+      async function loadPayouts() {
+        if (!canSeePayouts(userRole)) {
+          document.getElementById("payoutList").innerHTML =
+            '<div class="empty-state"><span class="empty-icon">🔒</span>需要負責人權限先可查看結算</div>';
+          return;
+        }
+        try {
+          var resp = await fetch(API_BASE + "/partner/payouts", {
+            headers: getAuthHeaders(),
+          });
+          var payouts = await resp.json();
+          allPayouts = Array.isArray(payouts) ? payouts : [];
+          if (allPayouts.length === 0) {
+            document.getElementById("payoutList").innerHTML =
+              '<div class="empty-state"><span class="empty-icon">💰</span>暫無結算記錄</div>';
+          } else {
+            document.getElementById("payoutList").innerHTML = allPayouts
+              .map(function (p) {
+                return (
+                  '<div class="payout-item"><div class="p-row"><span class="p-label">結算期</span><span class="p-val">' +
+                  (p.period_start !== "all"
+                    ? formatDate(p.period_start) +
+                      " ~ " +
+                      formatDate(p.period_end)
+                    : "全部") +
+                  "</span></div>" +
+                  '<div class="p-row"><span class="p-label">總營收</span><span class="p-val">' +
+                  formatCurrency(p.total_revenue) +
+                  "</span></div>" +
+                  '<div class="p-row"><span class="p-label">平台佣金</span><span class="p-val">' +
+                  formatCurrency(p.platform_commission) +
+                  "</span></div>" +
+                  '<div class="p-row"><span class="p-label">場地實收</span><span class="p-val" style="color:var(--teal-600);">' +
+                  formatCurrency(p.venue_earned) +
+                  "</span></div>" +
+                  '<div class="p-row"><span class="p-label">狀態</span><span class="p-val">' +
+                  (p.status === "paid" ? "✅ 已支付" : "⏳ 待處理") +
+                  "</span></div>" +
+                  (p.paid_at
+                    ? '<div class="p-row"><span class="p-label">支付日期</span><span class="p-val">' +
+                      formatDateTime(p.paid_at) +
+                      "</span></div>"
+                    : "") +
+                  "</div>"
+                );
+              })
+              .join("");
+          }
+        } catch (e) {
+          document.getElementById("payoutList").innerHTML =
+            '<div class="empty-state"><span class="empty-icon">⚠️</span>載入結算記錄失敗</div>';
+        }
+      }
+
+      // ===== TAB: Settings =====
+      function renderSettingsTab() {
+        if (!canSeeSettings(userRole)) {
+          document.getElementById("tab-settings").innerHTML =
+            '<div class="access-denied"><span class="ad-icon">🔒</span><div class="ad-title">權限不足</div><div class="ad-desc">需要商戶負責人權限先可修改設定</div></div>';
+          document.getElementById("tab-settings").classList.add("active");
+          return;
+        }
+
+        if (!partnerVenue) {
+          document.getElementById("settingsContent").innerHTML =
+            '<div class="empty-state"><span class="empty-icon">🏪</span>尚未開通商戶帳號<br><br><button class="btn-sm primary" onclick="window.location.href=\'partner-apply.html\'">申請成爲商戶</button></div>';
+          document.getElementById("staffAccountsContent").innerHTML = "";
+          document.getElementById("planDetails").innerHTML = "";
+          document.getElementById("applicationStatus").innerHTML =
+            '<div class="empty-state"><span class="empty-icon">⏳</span>暫無申請記錄</div>';
+          return;
+        }
+
+        var v = partnerVenue;
+        document.getElementById("settingsContent").innerHTML =
+          '<div class="settings-section">' +
+          '<div class="settings-row"><div class="s-label">場地名稱</div><div class="s-val">' +
+          escHtml(v.name) +
+          "</div></div>" +
+          '<div class="settings-row"><div class="s-label">狀態</div><div class="s-val">' +
+          (v.status === "active"
+            ? "✅ 已開通"
+            : v.status === "pending"
+              ? "⏳ 審批中"
+              : "❌ " + v.status) +
+          "</div></div>" +
+          '<div class="settings-row"><div class="s-label">類別</div><div class="s-val">' +
+          escHtml(v.category || "—") +
+          "</div></div>" +
+          '<div class="settings-row"><div class="s-label">地區</div><div class="s-val">' +
+          escHtml(v.district || "—") +
+          "</div></div>" +
+          '<div class="settings-row"><div class="s-label">佣金率</div><div class="s-val">' +
+          Math.round((v.commission_rate || 0.25) * 100) +
+          "%</div></div>" +
+          (v.email
+            ? '<div class="settings-row"><div class="s-label">電郵</div><div class="s-val">' +
+              escHtml(v.email) +
+              "</div></div>"
+            : "") +
+          (v.phone
+            ? '<div class="settings-row"><div class="s-label">電話</div><div class="s-val">' +
+              escHtml(v.phone) +
+              "</div></div>"
+            : "") +
+          (v.address
+            ? '<div class="settings-row"><div class="s-label">地址</div><div class="s-val">' +
+              escHtml(v.address) +
+              "</div></div>"
+            : "") +
+          (v.description
+            ? '<div class="settings-row"><div class="s-label">描述</div><div class="s-val" style="font-weight:400;">' +
+              escHtml(v.description) +
+              "</div></div>"
+            : "") +
+          "</div>";
+
+        // Staff accounts
+        document.getElementById("staffAccountsContent").innerHTML =
+          '<div class="settings-section"><p style="font-size:12px;color:var(--dark-700);margin-bottom:10px;">管理機構嘅員工帳號，前往「教練團隊」分頁管理</p>' +
+          '<button class="btn-sm outline" onclick="switchTab(\'coaches\')">👉 管理團隊</button></div>';
+
+        // Plan details
+        document.getElementById("planDetails").innerHTML =
+          '<div class="settings-section"><div class="settings-row"><div class="s-label">佣金計劃</div><div class="s-val">' +
+          escHtml(v.commission_plan_label || v.commission_plan || "Basic") +
+          "</div></div>" +
+          '<div class="settings-row"><div class="s-label">佣金率</div><div class="s-val">' +
+          Math.round((v.commission_rate || 0.25) * 100) +
+          "%</div></div>" +
+          (v.commission_plan_fee
+            ? '<div class="settings-row"><div class="s-label">月費</div><div class="s-val">HK$' +
+              v.commission_plan_fee.toLocaleString() +
+              "/月</div></div>"
+            : '<div class="settings-row"><div class="s-label">月費</div><div class="s-val" style="color:var(--green-500);">免費</div></div>') +
+          (v.description
+            ? '<div class="settings-row"><div class="s-label">說明</div><div class="s-val" style="font-weight:400;">' +
+              escHtml(v.description) +
+              "</div></div>"
+            : "") +
+          "</div>";
+
+        document.getElementById("applicationStatus").innerHTML =
+          '<div class="settings-section">' +
+          '<div class="settings-row"><div class="s-label">申請日期</div><div class="s-val">' +
+          formatDateTime(v.created_at) +
+          "</div></div>" +
+          '<div class="settings-row"><div class="s-label">審批狀態</div><div class="s-val"><span style="color:' +
+          (v.status === "active"
+            ? "var(--green-500)"
+            : v.status === "pending"
+              ? "#d97706"
+              : "var(--red-500)") +
+          ';font-weight:600;">' +
+          (v.status === "active"
+            ? "✅ 已通過"
+            : v.status === "pending"
+              ? "⏳ 審批中"
+              : v.status === "rejected"
+                ? "❌ 已拒絕"
+                : v.status) +
+          "</span></div></div>" +
+          (v.status === "pending"
+            ? '<div class="settings-row"><div class="s-label" style="font-size:10px;color:var(--dark-700);">審批通常需要 1-3 個工作天</div></div>'
+            : "") +
+          "</div>";
+      }
+
+      // ===== Modal: New/Edit Class =====
+      function openNewClassModal() {
+        document.getElementById("classModalTitle").textContent = "📅 開新班";
+        document.getElementById("classModalSaveBtn").textContent = "建立課程";
+        document.getElementById("nc-edit-id").value = "";
+        document.getElementById("nc-title").value = "";
+        document.getElementById("nc-category").value = "";
+        document.getElementById("nc-price").value = "";
+        document.getElementById("nc-credits").value = "";
+        document.getElementById("nc-duration").value = "";
+        document.getElementById("nc-max").value = "";
+        document.getElementById("nc-difficulty").value = "beginner";
+        document.getElementById("nc-description").value = "";
+        document.getElementById("nc-schedules").innerHTML =
+          '<div class="schedule-row"><input type="datetime-local" class="sched-start" /><input type="datetime-local" class="sched-end" /><button class="remove-sched" onclick="removeSchedule(this)" title="移除">✕</button></div>';
+        document.getElementById("newClassModal").classList.add("active");
+      }
+
+      function closeNewClassModal() {
+        document.getElementById("newClassModal").classList.remove("active");
+      }
+
+      function addScheduleRow() {
+        var div = document.createElement("div");
+        div.className = "schedule-row";
+        div.innerHTML =
+          '<input type="datetime-local" class="sched-start" /><input type="datetime-local" class="sched-end" /><button class="remove-sched" onclick="removeSchedule(this)" title="移除">✕</button>';
+        document.getElementById("nc-schedules").appendChild(div);
+      }
+
+      function removeSchedule(btn) {
+        var rows = document.querySelectorAll("#nc-schedules .schedule-row");
+        if (rows.length <= 1) {
+          showToast("至少需要一個上堂時段", "error");
+          return;
+        }
+        btn.parentElement.remove();
+      }
+
+      async function submitNewClass() {
+        var title = document.getElementById("nc-title").value.trim();
+        var category = document.getElementById("nc-category").value;
+        var price = parseFloat(document.getElementById("nc-price").value);
+        var credits =
+          parseInt(document.getElementById("nc-credits").value) || 0;
+        var duration = parseInt(document.getElementById("nc-duration").value);
+        var maxP = parseInt(document.getElementById("nc-max").value) || 15;
+        var difficulty = document.getElementById("nc-difficulty").value;
+        var description = document
+          .getElementById("nc-description")
+          .value.trim();
+        var editId = document.getElementById("nc-edit-id").value;
+
+        if (!title) {
+          showToast("請填寫課程標題", "error");
+          return;
+        }
+        if (!category) {
+          showToast("請選擇類別", "error");
+          return;
+        }
+        if (!price || price <= 0) {
+          showToast("請填寫有效價格", "error");
+          return;
+        }
+        if (!duration || duration <= 0) {
+          showToast("請填寫有效時長", "error");
+          return;
+        }
+
+        var schedRows = document.querySelectorAll(
+          "#nc-schedules .schedule-row",
+        );
+        var schedules = [];
+        for (var i = 0; i < schedRows.length; i++) {
+          var start = schedRows[i].querySelector(".sched-start").value;
+          var end = schedRows[i].querySelector(".sched-end").value;
+          if (!start || !end) {
+            showToast("請填寫所有時段嘅開始同結束時間", "error");
+            return;
+          }
+          schedules.push({
+            start_time: new Date(start).toISOString(),
+            end_time: new Date(end).toISOString(),
+            max_participants: maxP,
+          });
+        }
+        if (schedules.length === 0) {
+          showToast("請至少新增一個上堂時段", "error");
+          return;
+        }
+
+        try {
+          var url = editId
+            ? API_BASE + "/partner/courses/" + editId
+            : API_BASE + "/partner/courses";
+          var method = editId ? "PUT" : "POST";
+          var body = editId
+            ? {
+                title,
+                price_hkd: price,
+                description,
+                difficulty,
+                max_participants: maxP,
+                credits_cost: credits || undefined,
+              }
+            : {
+                title,
+                category,
+                price_hkd: price,
+                credits_cost: credits || undefined,
+                duration,
+                max_participants: maxP,
+                description,
+                difficulty,
+                schedules,
+              };
+          var resp = await fetch(url, {
+            method,
+            headers: getAuthHeaders(),
+            body: JSON.stringify(body),
+          });
+          var data = await resp.json();
+          if (data.error) {
+            showToast(data.error, "error");
+            return;
+          }
+          showToast("🎉 " + (editId ? "課程已更新" : "課程已成功建立"));
+          closeNewClassModal();
+
+          // Reload courses
+          var cResp = await fetch(API_BASE + "/partner/courses", {
+            headers: getAuthHeaders(),
+          });
+          var cData = await cResp.json();
+          allCourses = Array.isArray(cData) ? cData : [];
+          renderCoursesTab();
+          loadActiveCourses();
+        } catch (e) {
+          console.error(e);
+          showToast("操作失敗，請重試", "error");
+        }
+      }
+
+      // ===== Modal helper =====
+      function openModal(id) {
+        document.getElementById(id).classList.add("active");
+      }
+
+      // Close modals on overlay click
+      document.addEventListener("click", function (e) {
+        if (e.target.classList.contains("modal-overlay")) {
+          e.target.classList.remove("active");
+        }
+      });
+
+      // ===== Init =====
+      init();
+    </script>
+  </body>
 </html>

@@ -9,9 +9,12 @@
       content="black-translucent"
     />
     <meta name="theme-color" content="#059669" />
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <meta http-equiv="Pragma" content="no-cache">
-    <meta http-equiv="Expires" content="-1">
+    <meta
+      http-equiv="Cache-Control"
+      content="no-cache, no-store, must-revalidate"
+    />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="-1" />
     <title>簽到 — ZenPass 禪流</title>
     <link rel="manifest" href="manifest.json" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
@@ -331,7 +334,7 @@
         }
       }
     </style>
-      <!-- Google tag (gtag.js) -->
+    <!-- Google tag (gtag.js) -->
     <script
       async
       src="https://www.googletagmanager.com/gtag/js?id=G-MKF5N4YLBM"
@@ -344,19 +347,43 @@
       gtag("js", new Date());
       gtag("config", "G-MKF5N4YLBM");
     </script>
-
-    </head>
+  </head>
   <body>
-    <div class="zen-header" style="background: linear-gradient(135deg, var(--orange-600-bg), var(--orange-500)); color: white; position: fixed; top: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: var(--max-width); z-index: 10; padding: 14px 16px;"
+    <div
+      class="zen-header"
+      style="
+        background: linear-gradient(
+          135deg,
+          var(--orange-600-bg),
+          var(--orange-500)
+        );
+        color: white;
+        position: fixed;
+        top: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 100%;
+        max-width: var(--max-width);
+        z-index: 10;
+        padding: 14px 16px;
+      "
     >
       <a
         class="back-btn"
         onclick="history.back()"
-        class="back-btn" style="color: white; background: rgba(255, 255, 255, 0.2);"
+        class="back-btn"
+        style="color: white; background: rgba(255, 255, 255, 0.2)"
         >←</a
       >
       <h1
-        class="zen-text-bold" style="font-size: 17px; font-weight: 600; color: white; margin: 0; flex: 1;"
+        class="zen-text-bold"
+        style="
+          font-size: 17px;
+          font-weight: 600;
+          color: white;
+          margin: 0;
+          flex: 1;
+        "
       >
         📆 簽到
       </h1>
@@ -369,33 +396,46 @@
         掃描教練提供的 QR Code 以簽到
       </div>
       <div class="zen-text-center zen-mb-sm">
-        <button class="zen-btn zen-btn-primary zen-btn-small" onclick="startQRScanner()" class="zen-text-sm"
+        <button
+          class="zen-btn zen-btn-primary zen-btn-small"
+          onclick="startQRScanner()"
+          class="zen-text-sm"
         >
           📷 掃描 QR Code
         </button>
       </div>
-      <div id="qr-reader" class="zen-hidden" style="width: 100%; max-width: 300px; margin: 0 auto 16px;"
+      <div
+        id="qr-reader"
+        class="zen-hidden"
+        style="width: 100%; max-width: 300px; margin: 0 auto 16px"
       ></div>
-      <div class="zen-mt-md" style="padding-top: 16px; border-top: 1px solid var(--gray-200);"
+      <div
+        class="zen-mt-md"
+        style="padding-top: 16px; border-top: 1px solid var(--gray-200)"
       >
-        <div class="zen-text-sm zen-text-muted zen-mb-sm">
-          👨‍🏫 教練簽到 QR
-        </div>
+        <div class="zen-text-sm zen-text-muted zen-mb-sm">👨‍🏫 教練簽到 QR</div>
         <div id="coach-qr-area">
           <div id="schedule-select-wrap" class="zen-hidden">
-            <select id="schedule-select" class="zen-form-group" style="width: 100%; padding: 8px;"
+            <select
+              id="schedule-select"
+              class="zen-form-group"
+              style="width: 100%; padding: 8px"
             >
               <option value="">選擇課堂...</option>
             </select>
           </div>
-          <button class="zen-btn zen-btn-small zen-btn-secondary" onclick="generateCoachQR()"
+          <button
+            class="zen-btn zen-btn-small zen-btn-secondary"
+            onclick="generateCoachQR()"
           >
             生成課堂 QR Code
           </button>
           <div id="coach-qr-display" class="zen-hidden">
-            <img id="coach-qr-img" style="width: 160px; height: 160px;"
-            />
-            <div id="coach-qr-note" class="zen-text-xs zen-text-muted zen-mt-sm">
+            <img id="coach-qr-img" style="width: 160px; height: 160px" />
+            <div
+              id="coach-qr-note"
+              class="zen-text-xs zen-text-muted zen-mt-sm"
+            >
               學生掃描此 QR 即可自動簽到
             </div>
           </div>
@@ -418,7 +458,19 @@
         <div class="info-row">
           <span class="label">學生姓名</span
           ><span class="value"
-            ><input type="text" id="checkin-name" placeholder="輸入你的姓名" class="zen-form-group" style="border: 1px solid #e5e7eb; border-radius: 6px; padding: 6px 10px; font-size: 14px; text-align: center; width: 150px;"
+            ><input
+              type="text"
+              id="checkin-name"
+              placeholder="輸入你的姓名"
+              class="zen-form-group"
+              style="
+                border: 1px solid #e5e7eb;
+                border-radius: 6px;
+                padding: 6px 10px;
+                font-size: 14px;
+                text-align: center;
+                width: 150px;
+              "
           /></span>
         </div>
       </div>
@@ -426,7 +478,15 @@
       <button class="btn-checkin" id="btn-checkin" onclick="doCheckin()">
         ✅ 確認出席
       </button>
-      <div class="demo-hint zen-hidden" style="margin-top: 8px; padding: 8px; background: var(--gray-50); border-radius: 8px; font-size: 11px;"
+      <div
+        class="demo-hint zen-hidden"
+        style="
+          margin-top: 8px;
+          padding: 8px;
+          background: var(--gray-50);
+          border-radius: 8px;
+          font-size: 11px;
+        "
       >
         💡 教練可以 Send 直接簽到 Link：<br /><code
           style="
@@ -441,26 +501,46 @@
 
       <div class="success" id="success-section">
         <div class="check">✅</div>
-        <div class="zen-text-bold zen-text-success" style="font-size: 18px; margin-bottom: 4px;"
+        <div
+          class="zen-text-bold zen-text-success"
+          style="font-size: 18px; margin-bottom: 4px"
         >
           簽到成功！
         </div>
         <div class="zen-text-sm zen-text-muted">已記錄出席</div>
-        <div id="streak-display" class="zen-hidden" style="margin-top: 12px; padding: 12px; background: linear-gradient(135deg, #fffbeb, #fef3c7); border-radius: 12px;"
+        <div
+          id="streak-display"
+          class="zen-hidden"
+          style="
+            margin-top: 12px;
+            padding: 12px;
+            background: linear-gradient(135deg, #fffbeb, #fef3c7);
+            border-radius: 12px;
+          "
         >
-          <div class="zen-flex zen-flex-center zen-gap-sm"
-          >
+          <div class="zen-flex zen-flex-center zen-gap-sm">
             <span style="font-size: 24px">🔥</span>
             <div>
-              <div class="zen-text-bold" style="font-size: 16px;">
+              <div class="zen-text-bold" style="font-size: 16px">
                 連續簽到 <span id="streak-count">0</span> 天
               </div>
-              <div class="zen-text-sm zen-mt-sm" style="color: #92400e;" id="streak-next">
+              <div
+                class="zen-text-sm zen-mt-sm"
+                style="color: #92400e"
+                id="streak-next"
+              >
                 再簽 1 日可獲 10 積分！
               </div>
             </div>
           </div>
-          <div style="height: 6px; background: #fde68a; border-radius: 3px; overflow: hidden; margin-top: 8px;"
+          <div
+            style="
+              height: 6px;
+              background: #fde68a;
+              border-radius: 3px;
+              overflow: hidden;
+              margin-top: 8px;
+            "
           >
             <div
               id="streak-bar"
@@ -473,27 +553,49 @@
               "
             ></div>
           </div>
-          <div class="zen-text-xs zen-mt-sm zen-text-center" style="color: #92400e;" id="streak-reward">
+          <div
+            class="zen-text-xs zen-mt-sm zen-text-center"
+            style="color: #92400e"
+            id="streak-reward"
+          >
             🎯 每 7 天送 50 積分！
           </div>
         </div>
         <div id="monthly-stats" class="zen-hidden">
-          <div class="zen-text-sm zen-text-muted zen-mb-sm">
-            📊 本月簽到
-          </div>
-          <div class="zen-flex zen-flex-wrap" class="zen-flex" style="gap: 3px;" id="monthly-grid"></div>
-          <div class="zen-text-xs zen-text-muted zen-mt-sm" id="monthly-summary"></div>
+          <div class="zen-text-sm zen-text-muted zen-mb-sm">📊 本月簽到</div>
+          <div
+            class="zen-flex zen-flex-wrap"
+            class="zen-flex"
+            style="gap: 3px"
+            id="monthly-grid"
+          ></div>
+          <div
+            class="zen-text-xs zen-text-muted zen-mt-sm"
+            id="monthly-summary"
+          ></div>
         </div>
         <div class="already">教練會見到你的簽到記錄</div>
-        <div class="zen-flex zen-flex-center zen-flex-wrap zen-mt-md" class="zen-flex" style="gap: 6px;"
+        <div
+          class="zen-flex zen-flex-center zen-flex-wrap zen-mt-md"
+          class="zen-flex"
+          style="gap: 6px"
         >
-          <a href="my-bookings.html" class="zen-btn zen-btn-small zen-btn-primary" style="border-radius: 16px; padding: 6px 14px;"
+          <a
+            href="my-bookings.html"
+            class="zen-btn zen-btn-small zen-btn-primary"
+            style="border-radius: 16px; padding: 6px 14px"
             >📋 我的預約</a
           >
-          <a href="points.html" class="zen-btn zen-btn-small zen-btn-secondary" style="border-radius: 16px; padding: 6px 14px;"
+          <a
+            href="points.html"
+            class="zen-btn zen-btn-small zen-btn-secondary"
+            style="border-radius: 16px; padding: 6px 14px"
             >🎯 積分獎勵</a
           >
-          <a href="explore.html" class="zen-btn zen-btn-small zen-btn-secondary" style="border-radius: 16px; padding: 6px 14px;"
+          <a
+            href="explore.html"
+            class="zen-btn zen-btn-small zen-btn-secondary"
+            style="border-radius: 16px; padding: 6px 14px"
             >🔍 探索課程</a
           >
         </div>
@@ -506,7 +608,9 @@
 
     <!-- Recent Check-in History -->
     <div class="card zen-hidden" id="history-section">
-      <div class="zen-text-bold zen-mb-sm" style="font-size: 14px;">📋 最近簽到</div>
+      <div class="zen-text-bold zen-mb-sm" style="font-size: 14px">
+        📋 最近簽到
+      </div>
       <div id="history-list"></div>
     </div>
 
@@ -1109,39 +1213,71 @@
         }
       }
     </script>
-    <script>
-      
-    </script>
+    <script></script>
 
-    <footer class="footer-grad" style="padding:32px 20px;margin-top:40px">
+    <footer class="footer-grad" style="padding: 32px 20px; margin-top: 40px">
       <div class="footer-grid">
         <div>
           <div class="footer-section-title">探索</div>
-          <ul >
-            <li style="margin-bottom:6px"><a href="explore.html" class="footer-link">探索課程</a></li>
-            <li style="margin-bottom:6px"><a href="coaches.html" class="footer-link">星級教練</a></li>
-            <li style="margin-bottom:6px"><a href="membership.html" class="footer-link">會籍方案</a></li>
-            <li style="margin-bottom:6px"><a href="coach-apply.html" class="footer-link">成為教練</a></li>
+          <ul>
+            <li style="margin-bottom: 6px">
+              <a href="explore.html" class="footer-link">探索課程</a>
+            </li>
+            <li style="margin-bottom: 6px">
+              <a href="coaches.html" class="footer-link">星級教練</a>
+            </li>
+            <li style="margin-bottom: 6px">
+              <a href="membership.html" class="footer-link">會籍方案</a>
+            </li>
+            <li style="margin-bottom: 6px">
+              <a href="coach-apply.html" class="footer-link">成為教練</a>
+            </li>
           </ul>
         </div>
         <div>
           <div class="footer-section-title">支援</div>
-          <ul >
-            <li style="margin-bottom:6px"><a href="faq.html" class="footer-link">常見問題</a></li>
-            <li style="margin-bottom:6px"><a href="privacy.html" class="footer-link">私隱政策</a></li>
-            <li style="margin-bottom:6px"><a href="terms.html" class="footer-link">服務條款</a></li>
-            <li style="margin-bottom:6px"><a href="about.html" class="footer-link">關於我們</a></li>
+          <ul>
+            <li style="margin-bottom: 6px">
+              <a href="faq.html" class="footer-link">常見問題</a>
+            </li>
+            <li style="margin-bottom: 6px">
+              <a href="privacy.html" class="footer-link">私隱政策</a>
+            </li>
+            <li style="margin-bottom: 6px">
+              <a href="terms.html" class="footer-link">服務條款</a>
+            </li>
+            <li style="margin-bottom: 6px">
+              <a href="about.html" class="footer-link">關於我們</a>
+            </li>
           </ul>
         </div>
       </div>
-      <div style="color:rgba(255,255,255,0.3);font-size:11px;margin-top:20px">&copy; 2026 ZenPass 禪流</div>
+      <div
+        style="
+          color: rgba(255, 255, 255, 0.3);
+          font-size: 11px;
+          margin-top: 20px;
+        "
+      >
+        &copy; 2026 ZenPass 禪流
+      </div>
     </footer>
-  <nav class="bottom-nav">
-      <a href="index.html" class="nav-item"><span class="nav-icon">🏠</span>首頁</a>
-      <a href="explore.html" class="nav-item"><span class="nav-icon">🔍</span>探索</a>
-      <a href="membership.html" class="nav-item"><span class="nav-icon">💎</span>會籍</a>
-      <a href="coach-apply.html" class="nav-item"><span class="nav-icon">👨‍🏫</span>成為教練</a>
-      <a href="my.html" class="nav-item"><span class="nav-icon">👤</span>我的</a>
+    <nav class="bottom-nav">
+      <a href="index.html" class="nav-item"
+        ><span class="nav-icon">🏠</span>首頁</a
+      >
+      <a href="explore.html" class="nav-item"
+        ><span class="nav-icon">🔍</span>探索</a
+      >
+      <a href="membership.html" class="nav-item"
+        ><span class="nav-icon">💎</span>會籍</a
+      >
+      <a href="coach-apply.html" class="nav-item"
+        ><span class="nav-icon">👨‍🏫</span>成為教練</a
+      >
+      <a href="my.html" class="nav-item"
+        ><span class="nav-icon">👤</span>我的</a
+      >
     </nav>
     <script src="api.js?v=2"></script>
   </body>
