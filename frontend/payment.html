@@ -475,7 +475,66 @@
         }
       }
     
-</style>
+
+      /* ===== Payment-specific utilities ===== */
+      .info-tip {
+        padding: 12px;
+        border-radius: var(--radius-sm);
+        line-height: 1.6;
+      }
+      .pay-chip {
+        padding: 8px 16px;
+        border: 1px solid var(--gray-200);
+        border-radius: 20px;
+        background: var(--white);
+        cursor: pointer;
+      }
+      .countdown-banner {
+        font-size: 14px;
+        padding: 12px 16px;
+        border-radius: 12px;
+        transition: all 0.3s;
+      }
+      .promo-input {
+        padding: 8px 10px;
+        border: 1px solid var(--gray-200);
+        border-radius: 6px;
+        font-family: var(--font-zh);
+      }
+      .fee-info {
+        margin-top: 10px;
+        padding: 10px;
+        background: #fef3c7;
+        border-radius: var(--radius-sm);
+        line-height: 1.7;
+      }
+      .qr-frame {
+        width: 120px;
+        height: 120px;
+        background: var(--gray-100);
+        margin: 0 auto;
+        border-radius: 8px;
+      }
+      .qr-wrapper {
+        display: inline-block;
+        margin-top: 12px;
+        padding: 12px;
+        background: white;
+        border-radius: 8px;
+      }
+      .submit-btn {
+        display: block;
+        width: 100%;
+        font-size: 16px;
+        margin-top: 12px;
+        padding: 14px;
+        color: var(--white);
+        background: var(--orange-600-bg);
+        border: none;
+        border-radius: var(--radius-md);
+      }
+
+    </style>
   </head>
   <body>
     <div class="header">
@@ -583,7 +642,7 @@
       <!-- ⏰ 15分鐘倒數提示 -->
       <div
         id="countdown-banner"
-        class="zen-hidden zen-mb-md zen-text-bold zen-text-center" style="font-size: 14px; padding: 12px 16px; border-radius: 12px; transition: all 0.3s"
+        class="zen-hidden zen-mb-md zen-text-bold zen-text-center countdown-banner"
       >
         <div style="font-size: 28px; margin-bottom: 4px">⏰</div>
         <div id="countdown-text">此位置已為你保留，請儘快完成付款</div>
@@ -612,7 +671,7 @@
               type="text"
               id="promo-input"
               placeholder="輸入優惠碼"
-              class="zen-flex-1 zen-text-sm" style="padding: 8px 10px; border: 1px solid var(--gray-200); border-radius: 6px; font-family: var(--font-zh)"
+              class="zen-flex-1 zen-text-sm promo-input"
             />
             <button
               onclick="applyPromo()"
@@ -642,7 +701,7 @@
           </div>
           <div class="pay-detail show" id="detail-stripe">
             <div
-              class="zen-text-muted zen-text-sm" style="padding: 12px; background: var(--orange-50); border-radius: var(--radius-sm); line-height: 1.6"
+              class="zen-text-muted zen-text-sm info-tip" style="background: var(--orange-50)"
             >
               💳 經 Stripe 安全付款 — 輸入卡號即時付款 🔒
             </div>
@@ -662,7 +721,7 @@
             </div>
             <div
               id="stripe-fee-info"
-              class="zen-text-xs" style="margin-top: 10px; padding: 10px; background: #fef3c7; border-radius: var(--radius-sm); line-height: 1.7"
+              class="zen-text-xs fee-info"
             >
               <div class="zen-text-bold" style="margin-bottom: 4px">
                 💰 手續費說明
@@ -697,7 +756,7 @@
           </div>
           <div class="pay-detail show" id="detail-alipay">
             <div
-              class="zen-text-center zen-text-muted zen-text-sm" style="padding: 12px; background: #ecfdf5; border-radius: var(--radius-sm); line-height: 1.6"
+              class="zen-text-center zen-text-muted zen-text-sm info-tip" style="background: #ecfdf5"
             >
               <div class="zen-mb-sm" style="font-size: 32px">💱</div>
               <div class="zen-text-bold" >支付寶 AlipayHK</div>
@@ -705,10 +764,10 @@
                 掃描QR Code 即時付款 · 免手續費
               </div>
               <div
-                style="display: inline-block; margin-top: 12px; padding: 12px; background: white; border-radius: 8px"
+                class="qr-wrapper"
               >
                 <div
-                  class="zen-flex zen-flex-center zen-text-muted zen-text-xs" style="width: 120px; height: 120px; background: var(--gray-100); margin: 0 auto; border-radius: 8px"
+                  class="zen-flex zen-flex-center zen-text-muted zen-text-xs" class="qr-frame"
                 >
                   QR Code<br />模擬
                 </div>
@@ -729,7 +788,7 @@
           </div>
           <div class="pay-detail" id="detail-wechat">
             <div
-              class="zen-text-center zen-text-muted zen-text-sm" style="padding: 12px; background: #f0fdf4; border-radius: var(--radius-sm); line-height: 1.6"
+              class="zen-text-center zen-text-muted zen-text-sm info-tip" style="background: #f0fdf4"
             >
               <div class="zen-mb-sm" style="font-size: 32px">🟩</div>
               <div class="zen-text-bold" >WeChat Pay HK</div>
@@ -737,10 +796,10 @@
                 掃描QR Code 即時付款 · 免手續費
               </div>
               <div
-                style="display: inline-block; margin-top: 12px; padding: 12px; background: white; border-radius: 8px"
+                class="qr-wrapper"
               >
                 <div
-                  class="zen-flex zen-flex-center zen-text-muted zen-text-xs" style="width: 120px; height: 120px; background: var(--gray-100); margin: 0 auto; border-radius: 8px"
+                  class="zen-flex zen-flex-center zen-text-muted zen-text-xs" class="qr-frame"
                 >
                   QR Code<br />模擬
                 </div>
@@ -761,7 +820,7 @@
           </div>
           <div class="pay-detail" id="detail-payme">
             <div
-              class="zen-text-center zen-text-muted zen-text-sm" style="padding: 12px; background: #fffbeb; border-radius: var(--radius-sm); line-height: 1.6"
+              class="zen-text-center zen-text-muted zen-text-sm info-tip" style="background: #fffbeb"
             >
               <div class="zen-mb-sm" style="font-size: 32px">💰</div>
               <div class="zen-text-bold" >PayMe</div>
@@ -769,10 +828,10 @@
                 Scan QR Code 即時付款 · 免手續費
               </div>
               <div
-                style="display: inline-block; margin-top: 12px; padding: 12px; background: white; border-radius: 8px"
+                class="qr-wrapper"
               >
                 <div
-                  class="zen-flex zen-flex-center zen-text-muted zen-text-xs" style="width: 120px; height: 120px; background: var(--gray-100); margin: 0 auto; border-radius: 8px"
+                  class="zen-flex zen-flex-center zen-text-muted zen-text-xs" class="qr-frame"
                 >
                   QR Code<br />模擬
                 </div>
@@ -842,7 +901,7 @@
                   <a
                     href="https://qr.payme.hsbc.com.hk/2/8EKv4B8usVVSSdf2YzLSkm"
                     target="_blank"
-                    class="zen-text-bold zen-text-center" style="display: block; font-size: 16px; margin-top: 12px; padding: 14px; color: var(--white); background: var(--orange-600-bg); text-decoration: none; border-radius: var(--radius-sm)"
+                    class="zen-text-bold zen-text-center submit-btn"; background: var(--orange-600-bg); text-decoration: none; border-radius: var(--radius-sm)"
                   >
                     📱 按此打開 PayMe 付款
                   </a>
@@ -873,7 +932,7 @@
       </div>
 
       <div
-        style="padding: 8px 0 0; position: sticky; bottom: 70px; z-index: 100; background: var(--white)"
+        class="zen-buy-bar" style="padding: 8px 0 0; position: sticky; bottom: 70px; z-index: 100; background: var(--white)"
       >
         <button class="pay-btn" id="pay-button" onclick="processPayment()">
           💳 付款
@@ -895,19 +954,19 @@
           >
             <button
               onclick="addToCalendar()"
-              class="zen-text-xs" style="padding: 8px 16px; border: 1px solid var(--gray-200); border-radius: 20px; background: var(--white); cursor: pointer; font-family: var(--font-zh)"
+              class="zen-text-xs pay-chip" cursor: pointer; font-family: var(--font-zh)"
             >
               📅 加到日曆
             </button>
             <button
               onclick="shareSuccess()"
-              class="zen-text-xs" style="padding: 8px 16px; border: 1px solid var(--gray-200); border-radius: 20px; background: var(--white); cursor: pointer; font-family: var(--font-zh)"
+              class="zen-text-xs pay-chip" cursor: pointer; font-family: var(--font-zh)"
             >
               📤 分享俾朋友
             </button>
             <button
               onclick="downloadReceipt()"
-              class="zen-text-xs" style="padding: 8px 16px; border: 1px solid var(--gray-200); border-radius: 20px; background: var(--white); cursor: pointer; font-family: var(--font-zh)"
+              class="zen-text-xs pay-chip" cursor: pointer; font-family: var(--font-zh)"
             >
               📋 下載收據
             </button>
