@@ -170,7 +170,7 @@ function getRecommendations(userId, limit) {
             LIMIT ?
           `
             )
-            .all.apply(null, params.concat([limit]));
+            .all(...params, limit);
           db.close();
           return recommendations;
         } else {
@@ -190,7 +190,7 @@ function getRecommendations(userId, limit) {
             LIMIT ?
           `
             )
-            .all.apply(null, params.concat([limit]));
+            .all(...params, limit);
           db.close();
           return recommendations;
         }
