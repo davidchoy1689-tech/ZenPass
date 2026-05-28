@@ -422,7 +422,7 @@ const classes = {
       var data = await fetchCoursesJson();
       var cats = extractCategories(data);
       if (cats.length === 0) {
-                cats = [
+        cats = [
           { category: "瑜伽", count: 1 },
           { category: "健身", count: 1 },
           { category: "伸展", count: 1 },
@@ -847,16 +847,22 @@ function logout() {
 
 // ===== Google Analytics 4 (pages that include api.js get GA automatically) =====
 // TODO: 註冊 Google Analytics 後，將 G-XXXXXXXX 替換為實際的 Measurement ID
-(function() {
-  if (window.gtag || document.querySelector('script[src*="googletagmanager.com/gtag/js"]')) return;
-  var s = document.createElement('script');
+(function () {
+  if (
+    window.gtag ||
+    document.querySelector('script[src*="googletagmanager.com/gtag/js"]')
+  )
+    return;
+  var s = document.createElement("script");
   s.async = true;
-  s.src = 'https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXX';
+  s.src = "https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXX";
   document.head.appendChild(s);
   window.dataLayer = window.dataLayer || [];
-  window.gtag = function(){dataLayer.push(arguments);};
-  gtag('js', new Date());
-  gtag('config', 'G-XXXXXXXX');
+  window.gtag = function () {
+    dataLayer.push(arguments);
+  };
+  gtag("js", new Date());
+  gtag("config", "G-XXXXXXXX");
 })();
 
 // ===== Init on load =====
