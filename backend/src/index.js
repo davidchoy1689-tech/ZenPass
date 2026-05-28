@@ -558,6 +558,12 @@ process.on("SIGINT", () => {
   server.close(() => process.exit(0));
 });
 
+// ===== 自動備份（啟動時檢查，>24h 無備份就創建）=====
+const { autoBackupOnStartup, scheduleDailyBackup } = require("./services/backup");
+autoBackupOnStartup();
+// 每日凌晨 3 點自動備份排程
+scheduleDailyBackup();
+
 // ===== 安裝金融記錄保護觸發器 =====
 try {
   const { installDeleteTriggers } = require("./services/financial-protection");
