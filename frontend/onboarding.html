@@ -573,5 +573,124 @@
           .replace(/>/g, "&gt;");
       }
     </script>
-  </body>
+  
+<!-- ZenPass 統一頁腳 -->
+<style>
+  .zp-footer {
+    background: linear-gradient(135deg, #1a1a2e 0%, #2d2d44 50%, #c94420 100%);
+    color: rgba(255,255,255,0.6);
+    padding: 40px 16px 24px;
+    margin-top: 48px;
+  }
+  .zp-footer a {
+    color: rgba(255,255,255,0.6);
+    text-decoration: none;
+    transition: color 0.2s;
+    font-size: 13px;
+  }
+  .zp-footer a:hover { color: #fff; }
+  .zp-footer-inner {
+    max-width: 1200px; margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+  }
+  @media (min-width: 768px) {
+    .zp-footer-inner { grid-template-columns: 1.5fr 1fr 1fr 1fr; }
+  }
+  .zp-footer-title {
+    color: #fff;
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 12px;
+  }
+  .zp-footer ul { list-style: none; padding: 0; margin: 0; }
+  .zp-footer ul li { margin-bottom: 6px; }
+  .zp-footer-brand-desc { font-size: 12px; line-height: 1.6; }
+  .zp-footer-social {
+    display: flex; gap: 8px; margin-top: 12px;
+  }
+  .zp-footer-social a {
+    width: 32px; height: 32px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.1);
+    font-size: 14px;
+    transition: background 0.2s;
+  }
+  .zp-footer-social a:hover { background: rgba(255,255,255,0.25); }
+  .zp-footer-bottom {
+    max-width: 1200px; margin: 24px auto 0;
+    padding-top: 16px;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    text-align: center;
+    font-size: 11px;
+    color: rgba(255,255,255,0.3);
+  }
+</style>
+
+<footer class="zp-footer">
+  <div class="zp-footer-inner">
+    <!-- Brand -->
+    <div>
+      <div class="zp-footer-title">🧘 ZenPass 禪流</div>
+      <div class="zp-footer-brand-desc">
+        一個Pass，通行全城運動體驗。<br>香港康樂及體育有限公司
+      </div>
+      <div class="zp-footer-social">
+        <a href="https://www.instagram.com/zenpass_hk" aria-label="Instagram">📸</a>
+        <a href="https://www.facebook.com/zenpass.hk" aria-label="Facebook">👍</a>
+        <a href="https://wa.me/85290335538" aria-label="WhatsApp">💬</a>
+        <a href="https://hklfcl.com" aria-label="HKLFC">🏛️</a>
+      </div>
+    </div>
+    <!-- 探索 -->
+    <div>
+      <div class="zp-footer-title">探索</div>
+      <ul>
+        <li><a href="explore.html">探索課程</a></li>
+        <li><a href="coaches.html">星級教練</a></li>
+        <li><a href="membership.html">會籍方案</a></li>
+        <li><a href="coach-apply.html">成為教練</a></li>
+        <li><a href="partner-apply.html">場地加盟</a></li>
+      </ul>
+    </div>
+    <!-- 支援 -->
+    <div>
+      <div class="zp-footer-title">支援</div>
+      <ul>
+        <li><a href="faq.html">常見問題</a></li>
+        <li><a href="privacy.html">私隱政策</a></li>
+        <li><a href="terms.html">服務條款</a></li>
+        <li><a href="about.html">關於我們</a></li>
+      </ul>
+    </div>
+    <!-- 聯絡 -->
+    <div>
+      <div class="zp-footer-title">聯絡我們</div>
+      <ul>
+        <li>📧 support@zenpass.hk</li>
+        <li>📞 2387 0724</li>
+        <li>📍 香港九龍觀塘</li>
+      </ul>
+    </div>
+  </div>
+  <div class="zp-footer-bottom">
+    &copy; 2026 ZenPass 禪流 · 香港康樂及體育有限公司 (Hong Kong Leisure and Fitness Company Limited) · All rights reserved.
+  </div>
+</footer>
+<button
+  class="back-to-top"
+  id="backToTop"
+  onclick="window.scrollTo({ top: 0, behavior: 'smooth' })"
+  aria-label="返回頂部">
+  ↑
+</button>
+<script>
+  window.addEventListener("scroll", function () {
+    var el = document.getElementById("backToTop");
+    if (el) el.classList.toggle("visible", window.scrollY > 400);
+  });
+</script>
+</body>
 </html>
