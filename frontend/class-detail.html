@@ -622,6 +622,7 @@
       </button>
     </div>
 
+    <script src="assets/category-config.js"></script>
     <script src="api.js?v=2"></script>
     <script>
       var currentClass = null;
@@ -856,21 +857,14 @@
         document.getElementById("class-emoji").textContent =
           emojiMap[cls.category] || "\ud83c\udfc3";
 
-        // Course image: use image_url if available
-        var catGradients = {
-          "\u7476\u5c48": "linear-gradient(135deg,#667eea,#764ba2)",
-          "\u5065\u8eab": "linear-gradient(135deg,#f093fb,#f5576c)",
-          "\u4f38\u5c55": "linear-gradient(135deg,#4facfe,#00f2fe)",
-          "\u5190\u60f3": "linear-gradient(135deg,#a18cd1,#fbc2eb)",
-          "\u821e\u8e48": "linear-gradient(135deg,#ffecd2,#fcb69f)",
-          "\u65b0\u8208\u904b\u52d5": "linear-gradient(135deg,#43e97b,#38f9d7)",
-        };
+        // Course image: use image_url if available, else category-based gradient
+        var cfg = ZENPASS_CATEGORY[cls.category];
         var imgEl = document.getElementById("class-image");
         if (cls.image_url) {
           imgEl.style.backgroundImage = "url(" + cls.image_url + ")";
           imgEl.classList.add("has-image");
-        } else if (catGradients[cls.category]) {
-          imgEl.style.background = catGradients[cls.category];
+        } else if (cfg) {
+          imgEl.style.background = cfg.gradient;
         }
 
         var diffMap = {

@@ -98,6 +98,30 @@ if [ "$HAS_FRONTEND_CHANGES" -gt 0 ]; then
       echo "  ✅ $f — HTML 結構正常"
     fi
   done
+
+  # 🦶 自動統一 Footer：任何 frontend HTML 若無 footer-grad 就自動 inline
+  FOOTER_SCRIPT="zenpass-tester/scripts/inline-footer.py"
+  FOOTER_AUTO_FIX=0
+  for f in $(echo "$STAGED_FILES" | grep "^frontend/.*\.html$" | grep -v assets/footer.html || true); do
+    if [ -f "$f" ]; then
+      if ! grep -q 'footer-grad' "$f" 2>/dev/null; then
+        echo "  ${YELLOW}⚠️  $f 缺少統一 footer，自動注入...${NC}"
+        FOOTER_AUTO_FIX=1
+      fi
+    fi
+  done
+
+  if [ "$FOOTER_AUTO_FIX" -gt 0 ]; then
+    python3 "$FOOTER_SCRIPT" 2>&1 | sed 's/^/    /'
+    # Re-stage the modified files
+    for f in $(echo "$STAGED_FILES" | grep "^frontend/.*\.html$" | grep -v assets/footer.html || true); do
+      if [ -f "$f" ]; then
+        git add "$f"
+      fi
+    done
+    echo "  ${GREEN}✅ Footer 已自動統一${NC}"
+  fi
+
   echo "${GREEN}✅ Frontend checks passed${NC}"
 fi
 

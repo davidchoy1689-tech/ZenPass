@@ -1051,6 +1051,7 @@
           .replace(/"/g, "&quot;");
       }
     </script>
+    <script src="assets/category-config.js"></script>
     <script src="api.js?v=2"></script>
     <script>
       var currentCategory = "all";
@@ -1784,41 +1785,8 @@
 
       var _renderIdx = 0;
       function renderCard(cls) {
-        var emojiMap = {
-          瑜伽: "🧘",
-          健身: "💪",
-          伸展: "🤸",
-          冥想: "🧠",
-          舞蹈: "💃",
-          新興運動: "🎯",
-          皮拉提斯: "🤸",
-          兒童體適能: "🧒",
-          肌力訓練: "🏋️",
-          心肺訓練: "🏃",
-          拳擊搏擊: "🥊",
-          單車: "🚴",
-          水中運動: "🏊",
-          太極養生: "☯️",
-          羽毛球: "🏸",
-          乒乓球: "🏓",
-          攀岩: "🧗",
-          射箭: "🏹",
-          劍擊: "🤺",
-          泰拳搏擊: "🦵",
-          高爾夫球: "⛳",
-          露營戶外: "🏕️",
-          長者體適能: "👴",
-          產後修復: "🤰",
-          空中瑜伽: "🧘‍♀️",
-          芭蕾塑形: "💃",
-          "TRX 懸吊訓練": "🏋️",
-          詠春: "🥋",
-          遠足行山: "🥾",
-          溜冰: "⛸️",
-          網球: "🎾",
-          保齡球: "🎳",
-        };
-        var emoji = emojiMap[cls.category] || "🏃";
+        var cfg = ZENPASS_CATEGORY[cls.category];
+        var emoji = (cfg && cfg.emoji) || "🏃";
         var hot =
           cls.popular || cls.is_hot
             ? '<span class="badge-hot" style="background:var(--orange-600-bg);color:var(--white);font-size:10px;padding:2px 8px;border-radius:10px;font-weight:600;">🔥 熱門</span>'
@@ -1833,7 +1801,7 @@
             '" alt="' +
             cls.title +
             '" class="class-card-img" style="width:100%;height:100%;object-fit:cover;display:block" />'
-          : '<div class="class-card-img" style="background:linear-gradient(135deg,var(--orange-100),var(--orange-200));display:flex;align-items:center;justify-content:center;font-size:32px;width:100%;height:100%">' +
+          : '<div class="class-card-img" style="background:' + (cfg ? cfg.gradient : 'linear-gradient(135deg,var(--orange-100),var(--orange-200))') + ';display:flex;align-items:center;justify-content:center;font-size:32px;width:100%;height:100%">' +
             emoji +
             "</div>";
         return (
