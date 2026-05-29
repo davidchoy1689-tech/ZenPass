@@ -1250,68 +1250,131 @@
   }
 </style>
 
-<footer class="zp-footer">
-  <div class="zp-footer-inner">
-    <!-- Brand -->
+
+
+
+<!-- 統一頁腳 Canonical (以原版首頁為標準) -->
+<style>
+  .footer-grad {
+    background: linear-gradient(135deg, #1a1a2e 0%, #2d2d44 50%, #c94420 100%);
+  }
+  .footer-grad .footer-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    max-width: 400px;
+    margin: 0 auto;
+  }
+  @media (min-width: 768px) {
+    .footer-grad .footer-grid {
+      grid-template-columns: 1fr 1fr 1fr 1fr;
+      max-width: 720px;
+    }
+  }
+  .footer-grad .footer-section-title {
+    color: rgba(255,255,255,0.5);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 10px;
+  }
+  .footer-grad ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  .footer-grad li {
+    margin-bottom: 6px;
+  }
+  .footer-link {
+    color: rgba(255,255,255,0.6);
+    text-decoration: none;
+    transition: color 0.2s;
+    font-size: 13px;
+  }
+  .footer-link:hover {
+    color: white;
+  }
+  .back-to-top {
+    position: fixed;
+    bottom: 80px;
+    right: 16px;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--orange-600-bg, #c94420);
+    color: #fff;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.2);
+    z-index: 999;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.3s, transform 0.3s;
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .back-to-top.visible {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+  .back-to-top:hover {
+    background: #aa3218;
+  }
+</style>
+
+<footer class="footer-grad">
+  <div class="footer-grid">
+    <div style="grid-column: span 2">
+      <div style="color: white; font-weight: 700; font-size: 14px; margin-bottom: 6px;">🧘 ZenPass 禪流</div>
+      <div style="font-size: 12px; line-height: 1.6; color: rgba(255,255,255,0.6);">一個Pass，通行全城運動體驗。<br />香港康樂及體育有限公司</div>
+    </div>
     <div>
-      <div class="zp-footer-title">🧘 ZenPass 禪流</div>
-      <div class="zp-footer-brand-desc">
-        一個Pass，通行全城運動體驗。<br>香港康樂及體育有限公司
+      <div class="footer-section-title">探索</div>
+      <ul>
+        <li><a href="explore.html" class="footer-link">探索課程</a></li>
+        <li><a href="coaches.html" class="footer-link">星級教練</a></li>
+        <li><a href="membership.html" class="footer-link">會籍方案</a></li>
+        <li><a href="coach-apply.html" class="footer-link">成為教練</a></li>
+        <li><a href="partner-apply.html" class="footer-link">場地加盟</a></li>
+      </ul>
+    </div>
+    <div>
+      <div class="footer-section-title">支援</div>
+      <ul>
+        <li><a href="faq.html" class="footer-link">常見問題</a></li>
+        <li><a href="privacy.html" class="footer-link">私隱政策</a></li>
+        <li><a href="terms.html" class="footer-link">服務條款</a></li>
+        <li><a href="about.html" class="footer-link">關於我們</a></li>
+      </ul>
+    </div>
+    <div>
+      <div class="footer-section-title">聯絡我們</div>
+      <ul>
+        <li style="margin-bottom: 4px">📧 support@zenpass.hk</li>
+        <li style="margin-bottom: 4px">📞 2387 0724</li>
+        <li style="margin-bottom: 4px">📍 香港九龍觀塘</li>
+      </ul>
+      <div style="display: flex; gap: 8px; margin-top: 10px">
+        <a href="https://www.instagram.com/zenpass_hk" style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:rgba(255,255,255,0.1);font-size:14px;text-decoration:none;">📸</a>
+        <a href="https://www.facebook.com/zenpass.hk" style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:rgba(255,255,255,0.1);font-size:14px;text-decoration:none;">👍</a>
+        <a href="https://wa.me/85290335538" style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:rgba(255,255,255,0.1);font-size:14px;text-decoration:none;">💬</a>
+        <a href="https://hklfcl.com" style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:rgba(255,255,255,0.1);font-size:14px;text-decoration:none;">🏛️</a>
       </div>
-      <div class="zp-footer-social">
-        <a href="https://www.instagram.com/zenpass_hk" aria-label="Instagram">📸</a>
-        <a href="https://www.facebook.com/zenpass.hk" aria-label="Facebook">👍</a>
-        <a href="https://wa.me/85290335538" aria-label="WhatsApp">💬</a>
-        <a href="https://hklfcl.com" aria-label="HKLFC">🏛️</a>
-      </div>
-    </div>
-    <!-- 探索 -->
-    <div>
-      <div class="zp-footer-title">探索</div>
-      <ul>
-        <li><a href="explore.html">探索課程</a></li>
-        <li><a href="coaches.html">星級教練</a></li>
-        <li><a href="membership.html">會籍方案</a></li>
-        <li><a href="coach-apply.html">成為教練</a></li>
-        <li><a href="partner-apply.html">場地加盟</a></li>
-      </ul>
-    </div>
-    <!-- 支援 -->
-    <div>
-      <div class="zp-footer-title">支援</div>
-      <ul>
-        <li><a href="faq.html">常見問題</a></li>
-        <li><a href="privacy.html">私隱政策</a></li>
-        <li><a href="terms.html">服務條款</a></li>
-        <li><a href="about.html">關於我們</a></li>
-      </ul>
-    </div>
-    <!-- 聯絡 -->
-    <div>
-      <div class="zp-footer-title">聯絡我們</div>
-      <ul>
-        <li>📧 support@zenpass.hk</li>
-        <li>📞 2387 0724</li>
-        <li>📍 香港九龍觀塘</li>
-      </ul>
     </div>
   </div>
-  <div class="zp-footer-bottom">
-    &copy; 2026 ZenPass 禪流 · 香港康樂及體育有限公司 (Hong Kong Leisure and Fitness Company Limited) · All rights reserved.
+  <div style="max-width: 400px; margin: 24px auto 0; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.1); text-align: center; font-size: 11px; color: rgba(255,255,255,0.3);">
+    &copy; 2026 ZenPass 禪流 · 香港康樂及體育有限公司 · All rights reserved.
   </div>
 </footer>
-<button
-  class="back-to-top"
-  id="backToTop"
-  onclick="window.scrollTo({ top: 0, behavior: 'smooth' })"
-  aria-label="返回頂部">
-  ↑
-</button>
-<script>
-  window.addEventListener("scroll", function () {
-    var el = document.getElementById("backToTop");
-    if (el) el.classList.toggle("visible", window.scrollY > 400);
-  });
-</script>
+
+<button class="back-to-top" id="backToTop" onclick="window.scrollTo({top:0,behavior:'smooth'})" aria-label="返回頂部">↑</button>
+
+
 </body>
 </html>
