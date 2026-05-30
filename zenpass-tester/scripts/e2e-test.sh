@@ -160,8 +160,7 @@ const OUTPUT_DIR = 'test-reports/e2e';
 SCRIPT
 fi
 
-cd /Users/user/.openclaw/workspace/zenpass-platform
-node /tmp/zenpass-e2e.js
+cd /Users/user/.openclaw/workspace/zenpass-platform && NODE_PATH="node_modules" node /tmp/zenpass-e2e.js
 EXIT=$?
 
 echo ""
