@@ -53,8 +53,8 @@ case "$MODE" in
     bash zenpass-tester/scripts/health-check.sh "$BASE_URL" 2>&1 | tee -a "$LOG_FILE"
     echo "" | tee -a "$LOG_FILE"
     bash zenpass-tester/scripts/data-integrity.sh "$BASE_URL" 2>&1 | tee -a "$LOG_FILE"
-    FAIL_COUNT=$(grep -c "✗" "$LOG_FILE" 2>/dev/null || echo 0)
-    # sanitize
+    FAIL_COUNT=$(grep -c "✗" "$LOG_FILE" 2>/dev/null || true)
+    FAIL_COUNT=${FAIL_COUNT:-0}
     FAIL_COUNT=$((FAIL_COUNT + 0))
     ;;
 
@@ -64,7 +64,8 @@ case "$MODE" in
     bash zenpass-tester/scripts/e2e-test.sh light 2>&1 | tee -a "$LOG_FILE"
     echo "" | tee -a "$LOG_FILE"
     bash zenpass-tester/scripts/code-quality.sh 2>&1 | tee -a "$LOG_FILE"
-    FAIL_COUNT=$(grep -c "✗\|FAIL\|error" "$LOG_FILE" 2>/dev/null || echo 0)
+    FAIL_COUNT=$(grep -c "✗\|FAIL\|error" "$LOG_FILE" 2>/dev/null || true)
+    FAIL_COUNT=${FAIL_COUNT:-0}
     FAIL_COUNT=$((FAIL_COUNT + 0))
     ;;
 
@@ -100,7 +101,8 @@ case "$MODE" in
     echo "" | tee -a "$LOG_FILE"
     python3 zenpass-tester/scripts/generate-report.py 2>&1 | tee -a "$LOG_FILE"
     
-    FAIL_COUNT=$(grep -c "✗\|FAIL\|error\|tests failed" "$LOG_FILE" 2>/dev/null || echo 0)
+    FAIL_COUNT=$(grep -c "✗\|FAIL\|error\|tests failed" "$LOG_FILE" 2>/dev/null || true)
+    FAIL_COUNT=${FAIL_COUNT:-0}
     FAIL_COUNT=$((FAIL_COUNT + 0))
     ;;
 
@@ -138,4 +140,4 @@ else
 fi
 echo "===RESULT_END==="
 
-exit $((FAIL_COUNT))
+exit ${FAIL_COUNT:-0}
