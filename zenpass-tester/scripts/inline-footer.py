@@ -57,9 +57,11 @@ for path in pages:
         '', raw, flags=re.DOTALL
     )
 
-    # 5. Inject the canonical footer + back-to-top before </body>
-    footer_block = '\n' + CANONICAL_FOOTER + '\n' + BACK_TO_TOP + '\n'
-    raw = raw.replace('</body>', footer_block + '</body>')
+    # 5. Inject the canonical footer + back-to-top before LAST </body>
+    # (避免注入到 JS 字串入面嘅 </body>)
+    last_body = raw.rfind('</body>')
+    if last_body >= 0:
+        raw = raw[:last_body] + footer_block + raw[last_body:]
 
     with open(path, 'w', encoding='utf-8') as f:
         f.write(raw)
