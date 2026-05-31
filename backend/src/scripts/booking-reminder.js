@@ -39,7 +39,7 @@ function sendBookingReminders() {
         AND (b.reminder_sent_1h IS NULL OR b.reminder_sent_1h = 0)
         AND cs.start_time > datetime('now', '+60 minutes')
         AND cs.start_time < datetime('now', '+120 minutes')
-    `
+    `,
       )
       .all();
 
@@ -59,7 +59,7 @@ function sendBookingReminders() {
         // Insert notification record
         db.prepare(
           `INSERT INTO notifications (id, user_id, type, title, message, data, is_read, created_at)
-           VALUES (?, ?, ?, ?, ?, ?, 0, datetime('now'))`
+           VALUES (?, ?, ?, ?, ?, ?, 0, datetime('now'))`,
         ).run(
           `rem-${booking.id}-${Date.now()}`,
           booking.user_id,
@@ -72,21 +72,21 @@ function sendBookingReminders() {
             time,
             venue: booking.venue_name || "—",
             booking_id: booking.id,
-          })
+          }),
         );
 
         // Mark as reminded
-        db.prepare(
-          `UPDATE bookings SET reminder_sent_1h = 1 WHERE id = ?`
-        ).run(booking.id);
+        db.prepare(`UPDATE bookings SET reminder_sent_1h = 1 WHERE id = ?`).run(
+          booking.id,
+        );
 
         console.log(
-          `   ✅ ${booking.user_name} → ${booking.class_title} (${date} ${time})`
+          `   ✅ ${booking.user_name} → ${booking.class_title} (${date} ${time})`,
         );
         sent++;
       } catch (e) {
         console.error(
-          `   ❌ 提醒發送失敗 (booking=${booking.id}): ${e.message}`
+          `   ❌ 提醒發送失敗 (booking=${booking.id}): ${e.message}`,
         );
       }
     }
@@ -108,7 +108,9 @@ function sendDayBeforeReminders() {
   let sent = 0;
   try {
     db.pragma("journal_mode = WAL");
-    const due = db.prepare(`
+    const due = db
+      .prepare(
+        `
       SELECT b.id, b.user_id, b.class_id, b.schedule_id,
              c.title as class_title, c.venue_name,
              cs.start_time, cs.end_time,
@@ -121,22 +123,34 @@ function sendDayBeforeReminders() {
         AND (b.reminder_sent_1d IS NULL OR b.reminder_sent_1d = 0)
         AND cs.start_time > datetime('now', '+23 hours')
         AND cs.start_time < datetime('now', '+25 hours')
-    `).all();
+    `,
+      )
+      .all();
     if (due.length > 0) {
       console.log(`[${ts}] 📅 發現 ${due.length} 個明日提醒`);
       for (const b of due) {
         const d = (b.start_time || "").split("T")[0];
-        const t = (b.start_time || "").split("T")[1]?.slice(0,5) || "";
+        const t = (b.start_time || "").split("T")[1]?.slice(0, 5) || "";
         db.prepare(
           `INSERT INTO notifications (id, user_id, type, title, message, data, is_read, created_at)
-           VALUES (?, ?, ?, ?, ?, ?, 0, datetime('now'))`
+           VALUES (?, ?, ?, ?, ?, ?, 0, datetime('now'))`,
         ).run(
-          `rem1d-${b.id}-${Date.now()}`, b.user_id, "booking.reminder_1d",
+          `rem1d-${b.id}-${Date.now()}`,
+          b.user_id,
+          "booking.reminder_1d",
           `📅 明日提醒：${b.class_title}`,
           `你的課程「${b.class_title}」將於明日 ${d} ${t} 開始！\n地點：${b.venue_name || "—"}\n記得準時出席！`,
-          JSON.stringify({ class_title: b.class_title, date: d, time: t, venue: b.venue_name || "—", booking_id: b.id })
+          JSON.stringify({
+            class_title: b.class_title,
+            date: d,
+            time: t,
+            venue: b.venue_name || "—",
+            booking_id: b.id,
+          }),
         );
-        db.prepare(`UPDATE bookings SET reminder_sent_1d = 1 WHERE id = ?`).run(b.id);
+        db.prepare(`UPDATE bookings SET reminder_sent_1d = 1 WHERE id = ?`).run(
+          b.id,
+        );
         console.log(`   ✅ ${b.user_name} → ${b.class_title} (明日 ${d} ${t})`);
         sent++;
       }
@@ -146,7 +160,9 @@ function sendDayBeforeReminders() {
   } catch (err) {
     console.error(`[${ts}] ❌ 1日前提醒錯誤:`, err.message);
     return { sent: 0, checked: 0, error: err.message };
-  } finally { db.close(); }
+  } finally {
+    db.close();
+  }
 }
 
 // 直接執行

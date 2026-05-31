@@ -8,67 +8,266 @@
     <link rel="stylesheet" href="css/zenpass.css" />
     <style>
       body {
-        font-family: var(--font-zh); background: var(--gray-50); color: var(--dark-900);
-        min-height: 100vh; padding: 20px; max-width: 640px; margin: 0 auto;
+        font-family: var(--font-zh);
+        background: var(--gray-50);
+        color: var(--dark-900);
+        min-height: 100vh;
+        padding: 20px;
+        max-width: 640px;
+        margin: 0 auto;
       }
-      .header { text-align: center; margin-bottom: 20px; }
-      .header .icon { font-size: 52px; }
-      .header h1 { font-size: 22px; font-weight: 800; margin-top: 8px; }
-      .header p { font-size: 14px; color: var(--dark-700); margin-top: 4px; }
-      .steps { display: flex; gap: 8px; margin-bottom: 24px; justify-content: center; align-items: center; }
-      .step { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
-        font-size: 13px; font-weight: 700; background: var(--gray-200); color: var(--dark-700); transition: all 0.3s; }
-      .step.active { background: var(--orange-600-bg); color: var(--white); }
-      .step.done { background: var(--green-500); color: var(--white); }
-      .step-line { width: 24px; height: 2px; background: var(--gray-200); align-self: center; }
-      .step-line.done { background: var(--green-500); }
-      .card { background: var(--white); border-radius: var(--radius-lg); padding: 24px; margin-bottom: 16px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.06); display: none; }
-      .card.active { display: block; }
-      .card h2 { font-size: 18px; margin-bottom: 4px; }
-      .card .desc { font-size: 13px; color: var(--dark-700); margin-bottom: 16px; line-height: 1.5; }
-      .btn { width: 100%; padding: 14px; border: none; border-radius: var(--radius); font-size: 16px;
-        font-weight: 700; cursor: pointer; font-family: var(--font-zh); transition: background 0.2s; }
-      .btn-primary { background: var(--orange-600-bg); color: var(--white); }
-      .btn-primary:hover { background: #e55a2b; }
-      .btn-primary:disabled { background: var(--gray-200); cursor: not-allowed; }
-      .btn-outline { background: var(--white); border: 2px solid var(--gray-200); color: var(--dark-900); margin-top: 8px; }
-      .btn-outline:hover { border-color: var(--orange-700); color: var(--orange-700); }
-      .interests { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
-      .interest { background: var(--gray-50); border-radius: var(--radius); padding: 16px 12px; text-align: center;
-        border: 2px solid transparent; cursor: pointer; transition: all 0.2s; }
-      .interest:hover { border-color: var(--orange-300); }
-      .interest.selected { border-color: var(--orange-700); background: var(--orange-100); }
-      .interest .icon { font-size: 28px; margin-bottom: 4px; }
-      .interest .name { font-size: 14px; font-weight: 600; }
-      .course-card { display: flex; align-items: center; gap: 12px; padding: 14px; background: var(--gray-50);
-        border-radius: var(--radius); margin-bottom: 8px; cursor: pointer; transition: all 0.2s; }
-      .course-card:hover { background: var(--orange-100); }
-      .course-card .emoji { font-size: 32px; }
-      .course-card .info { flex: 1; }
-      .course-card .info .title { font-size: 15px; font-weight: 600; }
-      .course-card .info .meta { font-size: 12px; color: var(--dark-700); margin-top: 2px; }
-      .course-card .arrow { font-size: 20px; color: var(--dark-700); }
-      .success-screen { text-align: center; padding: 40px 20px; }
-      .success-screen .icon { font-size: 64px; margin-bottom: 12px; }
-      .success-screen h2 { font-size: 20px; margin-bottom: 8px; }
-      .success-screen p { font-size: 14px; color: var(--dark-700); margin-bottom: 16px; }
-      .cta-buttons { display: flex; gap: 10px; }
-      .cta-buttons .btn { flex: 1; }
-      .role-selector { text-align: center; margin-bottom: 24px; }
-      .role-selector .roles { display: flex; gap: 10px; justify-content: center; margin-top: 12px; }
-      .role-card { background: var(--white); border-radius: var(--radius-lg); padding: 20px; text-align: center;
-        border: 2px solid var(--gray-200); cursor: pointer; transition: all 0.2s; width: 140px; }
-      .role-card:hover { border-color: var(--orange-700); }
-      .role-card.selected { border-color: var(--orange-700); background: var(--orange-100); }
-      .role-card .icon { font-size: 36px; }
-      .role-card .name { font-size: 15px; font-weight: 600; margin-top: 4px; }
-      @keyframes spin { to { transform: rotate(360deg); } }
-      .spinner { display: inline-block; width: 20px; height: 20px; border: 2px solid rgba(255,255,255,0.3);
-        border-top-color: white; border-radius: 50%; animation: spin 0.8s linear infinite; vertical-align: middle; margin-right: 8px; }
-      @media (max-width: 480px) { body { padding: 12px; } }
+      .header {
+        text-align: center;
+        margin-bottom: 20px;
+      }
+      .header .icon {
+        font-size: 52px;
+      }
+      .header h1 {
+        font-size: 22px;
+        font-weight: 800;
+        margin-top: 8px;
+      }
+      .header p {
+        font-size: 14px;
+        color: var(--dark-700);
+        margin-top: 4px;
+      }
+      .steps {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 24px;
+        justify-content: center;
+        align-items: center;
+      }
+      .step {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 13px;
+        font-weight: 700;
+        background: var(--gray-200);
+        color: var(--dark-700);
+        transition: all 0.3s;
+      }
+      .step.active {
+        background: var(--orange-600-bg);
+        color: var(--white);
+      }
+      .step.done {
+        background: var(--green-500);
+        color: var(--white);
+      }
+      .step-line {
+        width: 24px;
+        height: 2px;
+        background: var(--gray-200);
+        align-self: center;
+      }
+      .step-line.done {
+        background: var(--green-500);
+      }
+      .card {
+        background: var(--white);
+        border-radius: var(--radius-lg);
+        padding: 24px;
+        margin-bottom: 16px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+        display: none;
+      }
+      .card.active {
+        display: block;
+      }
+      .card h2 {
+        font-size: 18px;
+        margin-bottom: 4px;
+      }
+      .card .desc {
+        font-size: 13px;
+        color: var(--dark-700);
+        margin-bottom: 16px;
+        line-height: 1.5;
+      }
+      .btn {
+        width: 100%;
+        padding: 14px;
+        border: none;
+        border-radius: var(--radius);
+        font-size: 16px;
+        font-weight: 700;
+        cursor: pointer;
+        font-family: var(--font-zh);
+        transition: background 0.2s;
+      }
+      .btn-primary {
+        background: var(--orange-600-bg);
+        color: var(--white);
+      }
+      .btn-primary:hover {
+        background: #e55a2b;
+      }
+      .btn-primary:disabled {
+        background: var(--gray-200);
+        cursor: not-allowed;
+      }
+      .btn-outline {
+        background: var(--white);
+        border: 2px solid var(--gray-200);
+        color: var(--dark-900);
+        margin-top: 8px;
+      }
+      .btn-outline:hover {
+        border-color: var(--orange-700);
+        color: var(--orange-700);
+      }
+      .interests {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-bottom: 16px;
+      }
+      .interest {
+        background: var(--gray-50);
+        border-radius: var(--radius);
+        padding: 16px 12px;
+        text-align: center;
+        border: 2px solid transparent;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .interest:hover {
+        border-color: var(--orange-300);
+      }
+      .interest.selected {
+        border-color: var(--orange-700);
+        background: var(--orange-100);
+      }
+      .interest .icon {
+        font-size: 28px;
+        margin-bottom: 4px;
+      }
+      .interest .name {
+        font-size: 14px;
+        font-weight: 600;
+      }
+      .course-card {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 14px;
+        background: var(--gray-50);
+        border-radius: var(--radius);
+        margin-bottom: 8px;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .course-card:hover {
+        background: var(--orange-100);
+      }
+      .course-card .emoji {
+        font-size: 32px;
+      }
+      .course-card .info {
+        flex: 1;
+      }
+      .course-card .info .title {
+        font-size: 15px;
+        font-weight: 600;
+      }
+      .course-card .info .meta {
+        font-size: 12px;
+        color: var(--dark-700);
+        margin-top: 2px;
+      }
+      .course-card .arrow {
+        font-size: 20px;
+        color: var(--dark-700);
+      }
+      .success-screen {
+        text-align: center;
+        padding: 40px 20px;
+      }
+      .success-screen .icon {
+        font-size: 64px;
+        margin-bottom: 12px;
+      }
+      .success-screen h2 {
+        font-size: 20px;
+        margin-bottom: 8px;
+      }
+      .success-screen p {
+        font-size: 14px;
+        color: var(--dark-700);
+        margin-bottom: 16px;
+      }
+      .cta-buttons {
+        display: flex;
+        gap: 10px;
+      }
+      .cta-buttons .btn {
+        flex: 1;
+      }
+      .role-selector {
+        text-align: center;
+        margin-bottom: 24px;
+      }
+      .role-selector .roles {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        margin-top: 12px;
+      }
+      .role-card {
+        background: var(--white);
+        border-radius: var(--radius-lg);
+        padding: 20px;
+        text-align: center;
+        border: 2px solid var(--gray-200);
+        cursor: pointer;
+        transition: all 0.2s;
+        width: 140px;
+      }
+      .role-card:hover {
+        border-color: var(--orange-700);
+      }
+      .role-card.selected {
+        border-color: var(--orange-700);
+        background: var(--orange-100);
+      }
+      .role-card .icon {
+        font-size: 36px;
+      }
+      .role-card .name {
+        font-size: 15px;
+        font-weight: 600;
+        margin-top: 4px;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      .spinner {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-top-color: white;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+        vertical-align: middle;
+        margin-right: 8px;
+      }
+      @media (max-width: 480px) {
+        body {
+          padding: 12px;
+        }
+      }
     </style>
-      <script src="app.js"></script>
+    <script src="app.js"></script>
   </head>
   <body>
     <!-- Role Selection (shown first if role unknown) -->
@@ -83,27 +282,37 @@
           <div class="role-card" onclick="selectRole('student')">
             <div class="icon">🧘</div>
             <div class="name">學員</div>
-            <div style="font-size:12px;color:var(--dark-700);margin-top:4px;">搵堂上</div>
+            <div
+              style="font-size: 12px; color: var(--dark-700); margin-top: 4px"
+            >
+              搵堂上
+            </div>
           </div>
           <div class="role-card" onclick="selectRole('partner')">
             <div class="icon">🏪</div>
             <div class="name">教練/商戶</div>
-            <div style="font-size:12px;color:var(--dark-700);margin-top:4px;">開班收生</div>
+            <div
+              style="font-size: 12px; color: var(--dark-700); margin-top: 4px"
+            >
+              開班收生
+            </div>
           </div>
         </div>
       </div>
     </div>
 
     <!-- Student Onboarding -->
-    <div id="student-flow" style="display:none;">
+    <div id="student-flow" style="display: none">
       <div class="header">
         <div class="icon">🧘</div>
         <h1>歡迎，<span id="student-name">學員</span>！</h1>
         <p>3 步開始你的身心靈之旅</p>
       </div>
       <div class="steps" id="student-steps">
-        <div class="step active">1</div><div class="step-line"></div>
-        <div class="step">2</div><div class="step-line"></div>
+        <div class="step active">1</div>
+        <div class="step-line"></div>
+        <div class="step">2</div>
+        <div class="step-line"></div>
         <div class="step">3</div>
       </div>
 
@@ -112,59 +321,95 @@
         <h2>🎯 你對咩有興趣？</h2>
         <p class="desc">揀選你感興趣嘅類別，幫你搵最適合嘅課程（可選多項）</p>
         <div class="interests" id="s1-interests">
-          <div class="interest selected" onclick="this.classList.toggle('selected')">
-            <div class="icon">🧘</div><div class="name">瑜伽</div>
+          <div
+            class="interest selected"
+            onclick="this.classList.toggle('selected')"
+          >
+            <div class="icon">🧘</div>
+            <div class="name">瑜伽</div>
           </div>
           <div class="interest" onclick="this.classList.toggle('selected')">
-            <div class="icon">💪</div><div class="name">健身</div>
+            <div class="icon">💪</div>
+            <div class="name">健身</div>
           </div>
           <div class="interest" onclick="this.classList.toggle('selected')">
-            <div class="icon">🤸</div><div class="name">伸展</div>
+            <div class="icon">🤸</div>
+            <div class="name">伸展</div>
           </div>
           <div class="interest" onclick="this.classList.toggle('selected')">
-            <div class="icon">🧠</div><div class="name">冥想</div>
+            <div class="icon">🧠</div>
+            <div class="name">冥想</div>
           </div>
           <div class="interest" onclick="this.classList.toggle('selected')">
-            <div class="icon">💃</div><div class="name">舞蹈</div>
+            <div class="icon">💃</div>
+            <div class="name">舞蹈</div>
           </div>
           <div class="interest" onclick="this.classList.toggle('selected')">
-            <div class="icon">🥋</div><div class="name">武術</div>
+            <div class="icon">🥋</div>
+            <div class="name">武術</div>
           </div>
         </div>
-        <button class="btn btn-primary" onclick="studentNext(1)">下一步 →</button>
+        <button class="btn btn-primary" onclick="studentNext(1)">
+          下一步 →
+        </button>
       </div>
 
       <!-- Student Step 2: Browse Featured Courses -->
       <div class="card" id="s-step-2">
         <h2>📚 精選課程推薦</h2>
         <p class="desc">根據你嘅興趣，我哋推薦以下熱門課程</p>
-        <div id="s2-courses" style="margin-bottom:12px;">
-          <div style="text-align:center;padding:30px;color:var(--dark-700);">
-            <div class="spinner" style="border-color:rgba(0,0,0,0.1);border-top-color:var(--orange-700);"></div>
-            <div style="margin-top:12px;">載入課程中...</div>
+        <div id="s2-courses" style="margin-bottom: 12px">
+          <div
+            style="text-align: center; padding: 30px; color: var(--dark-700)"
+          >
+            <div
+              class="spinner"
+              style="
+                border-color: rgba(0, 0, 0, 0.1);
+                border-top-color: var(--orange-700);
+              "
+            ></div>
+            <div style="margin-top: 12px">載入課程中...</div>
           </div>
         </div>
-        <button class="btn btn-outline" onclick="studentPrev(2)">← 上一步</button>
-        <button class="btn btn-primary" onclick="studentNext(2)">下一步 →</button>
+        <button class="btn btn-outline" onclick="studentPrev(2)">
+          ← 上一步
+        </button>
+        <button class="btn btn-primary" onclick="studentNext(2)">
+          下一步 →
+        </button>
       </div>
 
       <!-- Student Step 3: Ready! -->
       <div class="card" id="s-step-3">
         <h2>🚀 準備好開始！</h2>
-        <p class="desc">你已經完成基本設定，可以開始探索課程並預約你的第一堂課！</p>
-        <div class="success-screen" style="padding:20px;">
+        <p class="desc">
+          你已經完成基本設定，可以開始探索課程並預約你的第一堂課！
+        </p>
+        <div class="success-screen" style="padding: 20px">
           <div class="icon">🎉</div>
-          <p>記得完成預約可以賺取積分，<br>邀請朋友仲有額外獎勵！</p>
+          <p>記得完成預約可以賺取積分，<br />邀請朋友仲有額外獎勵！</p>
           <div class="cta-buttons">
-            <button class="btn btn-primary" onclick="window.location.href='explore.html'">🔍 探索課程</button>
+            <button
+              class="btn btn-primary"
+              onclick="window.location.href = 'explore.html'"
+            >
+              🔍 探索課程
+            </button>
           </div>
-          <button class="btn btn-outline" onclick="window.location.href='my.html'" style="margin-top:12px;">👤 前往個人頁面</button>
+          <button
+            class="btn btn-outline"
+            onclick="window.location.href = 'my.html'"
+            style="margin-top: 12px"
+          >
+            👤 前往個人頁面
+          </button>
         </div>
       </div>
     </div>
 
     <!-- Partner Onboarding (existing flow, wrapped) -->
-    <div id="partner-flow" style="display:none;">
+    <div id="partner-flow" style="display: none">
       <!-- Same merchant onboarding as before, loaded dynamically -->
     </div>
 
@@ -175,11 +420,13 @@
       var totalStudentSteps = 3;
 
       // Init
-      (function() {
+      (function () {
         var token = localStorage.getItem("zenpass_token");
         var raw = localStorage.getItem("zenpass_user");
         if (raw) {
-          try { userObj = JSON.parse(raw); } catch(e) {}
+          try {
+            userObj = JSON.parse(raw);
+          } catch (e) {}
         }
         if (userObj && userObj.role === "admin") {
           // Admins always go to partner flow
@@ -192,7 +439,7 @@
         }
       })();
 
-      window.selectRole = function(role) {
+      window.selectRole = function (role) {
         userRole = role;
         document.getElementById("role-screen").style.display = "none";
         if (role === "student") {
@@ -218,7 +465,7 @@
           var data = await resp.json();
           var classes = data.classes || data || [];
           renderCourseCards(classes);
-        } catch(e) {
+        } catch (e) {
           console.warn("Failed to load courses:", e);
           document.getElementById("s2-courses").innerHTML =
             '<div style="text-align:center;padding:30px;color:var(--dark-700);">📡 課程載入中，你可以稍後探索</div>';
@@ -233,11 +480,24 @@
           return;
         }
         var html = "";
-        list.forEach(function(c) {
-          html += '<div class="course-card" onclick="window.open(\'class-detail.html?id='+c.id+'\',\'_blank\')">' +
-            '<div class="emoji">' + (c.emoji || "📚") + '</div>' +
-            '<div class="info"><div class="title">' + escHtml(c.title) + '</div>' +
-            '<div class="meta">' + (c.category || "") + ' · ' + (c.duration || 60) + '分鐘 · HK$' + (c.price_hkd || 0) + '</div></div>' +
+        list.forEach(function (c) {
+          html +=
+            '<div class="course-card" onclick="window.open(\'class-detail.html?id=' +
+            c.id +
+            "','_blank')\">" +
+            '<div class="emoji">' +
+            (c.emoji || "📚") +
+            "</div>" +
+            '<div class="info"><div class="title">' +
+            escHtml(c.title) +
+            "</div>" +
+            '<div class="meta">' +
+            (c.category || "") +
+            " · " +
+            (c.duration || 60) +
+            "分鐘 · HK$" +
+            (c.price_hkd || 0) +
+            "</div></div>" +
             '<div class="arrow">→</div></div>';
         });
         document.getElementById("s2-courses").innerHTML = html;
@@ -250,7 +510,9 @@
 
       function updateStudentSteps() {
         for (var i = 1; i <= totalStudentSteps; i++) {
-          var stepEl = document.querySelector("#student-steps .step:nth-child(" + (i*2-1) + ")");
+          var stepEl = document.querySelector(
+            "#student-steps .step:nth-child(" + (i * 2 - 1) + ")",
+          );
           if (stepEl) {
             stepEl.classList.remove("active", "done");
             if (i < studentStep) stepEl.classList.add("done");
@@ -259,15 +521,22 @@
         }
       }
 
-      window.studentNext = function(n) {
+      window.studentNext = function (n) {
         if (n === 1) {
-          var selected = document.querySelectorAll("#s1-interests .interest.selected");
-          if (selected.length === 0) { alert("請至少揀一個興趣！"); return; }
+          var selected = document.querySelectorAll(
+            "#s1-interests .interest.selected",
+          );
+          if (selected.length === 0) {
+            alert("請至少揀一個興趣！");
+            return;
+          }
         }
         showStudentStep(n + 1);
       };
 
-      window.studentPrev = function(n) { showStudentStep(n - 1); };
+      window.studentPrev = function (n) {
+        showStudentStep(n - 1);
+      };
 
       function showStudentStep(n) {
         for (var i = 1; i <= totalStudentSteps; i++) {
@@ -279,7 +548,12 @@
         window.scrollTo(0, 0);
       }
 
-      function escHtml(s) { return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+      function escHtml(s) {
+        return String(s)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;");
+      }
     </script>
   </body>
 </html>

@@ -12,7 +12,7 @@ const logger = winston.createLogger({
   format: winston.format.combine(
     winston.format.timestamp({ format: "YYYY-MM-DD HH:mm:ss" }),
     winston.format.errors({ stack: true }),
-    winston.format.json()
+    winston.format.json(),
   ),
   transports: [
     // Error logs — rotate 14 days
@@ -42,9 +42,9 @@ if (process.env.NODE_ENV !== "production") {
             ? " " + JSON.stringify(meta)
             : "";
           return `${timestamp} ${level}: ${message}${metaStr}`;
-        })
+        }),
       ),
-    })
+    }),
   );
 }
 

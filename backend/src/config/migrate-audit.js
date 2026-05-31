@@ -39,7 +39,9 @@ function migrate() {
 
   // Verify
   const tableInfo = db.prepare("PRAGMA table_info(audit_log)").all();
-  console.log(`[MIGRATE] ✓ audit_log table created with ${tableInfo.length} columns`);
+  console.log(
+    `[MIGRATE] ✓ audit_log table created with ${tableInfo.length} columns`,
+  );
 
   db.close();
   return true;

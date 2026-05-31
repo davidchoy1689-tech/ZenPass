@@ -30,7 +30,12 @@ const MEMBERSHIP_PLANS = {
     credits_granted: 100,
     duration_days: 30,
     description: "每月 100 Credits，適合定期運動嘅你",
-    features: ["每月 100 Credits", "優先預約權", "高峰有 premium", "自由取消（適用於開課前一日）"],
+    features: [
+      "每月 100 Credits",
+      "優先預約權",
+      "高峰有 premium",
+      "自由取消（適用於開課前一日）",
+    ],
     avg_price: 8,
     popular: true,
   },
@@ -41,7 +46,13 @@ const MEMBERSHIP_PLANS = {
     credits_granted: 237,
     duration_days: 30,
     description: "每月 237 Credits，適合運動狂熱者",
-    features: ["每月 237 Credits", "VIP 優先預約", "無限取消更換", "每月 1 堂私人教練", "自由取消（適用於開課前一日）"],
+    features: [
+      "每月 237 Credits",
+      "VIP 優先預約",
+      "無限取消更換",
+      "每月 1 堂私人教練",
+      "自由取消（適用於開課前一日）",
+    ],
     avg_price: 8,
     popular: false,
   },
@@ -52,7 +63,14 @@ const MEMBERSHIP_PLANS = {
     credits_granted: 362,
     duration_days: 30,
     description: "每月 362 Credits，終極運動體驗",
-    features: ["每月 362 Credits", "白金優先預約", "無限取消更換", "每月 2 堂私人教練", "專屬客服", "自由取消（適用於開課前一日）"],
+    features: [
+      "每月 362 Credits",
+      "白金優先預約",
+      "無限取消更換",
+      "每月 2 堂私人教練",
+      "專屬客服",
+      "自由取消（適用於開課前一日）",
+    ],
     avg_price: 8,
     popular: false,
   },
@@ -61,17 +79,25 @@ const MEMBERSHIP_PLANS = {
 // ===== GET /api/memberships/plans — 取得會籍方案 =====
 // 改用 DB pricing_config，管理員可隨時調整
 router.get("/plans", (req, res) => {
-  const http = require('http');
-  http.get('http://localhost:' + (process.env.PORT || 3001) + '/api/pricing/plans', function(pr) {
-    let d = '';
-    pr.on('data', c => d += c);
-    pr.on('end', () => {
-      try { res.json(JSON.parse(d)); }
-      catch(e) { res.json({ plans: {} }); }
+  const http = require("http");
+  http
+    .get(
+      "http://localhost:" + (process.env.PORT || 3001) + "/api/pricing/plans",
+      function (pr) {
+        let d = "";
+        pr.on("data", (c) => (d += c));
+        pr.on("end", () => {
+          try {
+            res.json(JSON.parse(d));
+          } catch (e) {
+            res.json({ plans: {} });
+          }
+        });
+      },
+    )
+    .on("error", function () {
+      res.json({ plans: {} });
     });
-  }).on('error', function() {
-    res.json({ plans: {} });
-  });
 });
 
 // ===== POST /api/memberships/subscribe — 訂閱會籍 =====
@@ -275,34 +301,55 @@ router.post("/stripe-subscribe", authenticateToken, async (req, res) => {
 
     const STRIPE_SECRET = process.env.STRIPE_SECRET_KEY;
     if (!STRIPE_SECRET || STRIPE_SECRET.startsWith("sk_test_51TTH5l")) {
-      return res.status(200).json({ dev_mode: true, message: "Dev mode: subscription saved locally" });
+      return res.status(200).json({
+        dev_mode: true,
+        message: "Dev mode: subscription saved locally",
+      });
     }
 
     const stripe = require("stripe")(STRIPE_SECRET);
     const db = new Database(DB_PATH);
 
     // Get or create Stripe customer
-    let customerId = db.prepare("SELECT stripe_customer_id FROM users WHERE id = ?").get(req.user.id)?.stripe_customer_id;
+    let customerId = db
+      .prepare("SELECT stripe_customer_id FROM users WHERE id = ?")
+      .get(req.user.id)?.stripe_customer_id;
     if (!customerId) {
-      const user = db.prepare("SELECT name, email FROM users WHERE id = ?").get(req.user.id);
+      const user = db
+        .prepare("SELECT name, email FROM users WHERE id = ?")
+        .get(req.user.id);
       const customer = await stripe.customers.create({
-        name: user.name, email: user.email, payment_method: payment_method_id,
+        name: user.name,
+        email: user.email,
+        payment_method: payment_method_id,
         metadata: { user_id: req.user.id },
       });
       customerId = customer.id;
-      db.prepare("UPDATE users SET stripe_customer_id = ? WHERE id = ?").run(customerId, req.user.id);
+      db.prepare("UPDATE users SET stripe_customer_id = ? WHERE id = ?").run(
+        customerId,
+        req.user.id,
+      );
     }
 
     // Attach payment method
     if (payment_method_id) {
-      await stripe.paymentMethods.attach(payment_method_id, { customer: customerId });
-      await stripe.customers.update(customerId, { invoice_settings: { default_payment_method: payment_method_id } });
+      await stripe.paymentMethods.attach(payment_method_id, {
+        customer: customerId,
+      });
+      await stripe.customers.update(customerId, {
+        invoice_settings: { default_payment_method: payment_method_id },
+      });
     }
 
     // Create product + price in Stripe (one-time per plan type)
-    let priceId = db.prepare("SELECT stripe_price_id FROM platform_settings WHERE key = ?").get("stripe_price_" + type)?.value;
+    let priceId = db
+      .prepare("SELECT stripe_price_id FROM platform_settings WHERE key = ?")
+      .get("stripe_price_" + type)?.value;
     if (!priceId) {
-      const product = await stripe.products.create({ name: plan.name, metadata: { plan_type: type } });
+      const product = await stripe.products.create({
+        name: plan.name,
+        metadata: { plan_type: type },
+      });
       const price = await stripe.prices.create({
         product: product.id,
         unit_amount: Math.round(plan.price_hkd * 100),
@@ -310,7 +357,9 @@ router.post("/stripe-subscribe", authenticateToken, async (req, res) => {
         recurring: { interval: "month" },
       });
       priceId = price.id;
-      db.prepare("INSERT OR REPLACE INTO platform_settings (key, value) VALUES (?, ?)").run("stripe_price_" + type, priceId);
+      db.prepare(
+        "INSERT OR REPLACE INTO platform_settings (key, value) VALUES (?, ?)",
+      ).run("stripe_price_" + type, priceId);
     }
 
     // Create subscription
@@ -322,7 +371,9 @@ router.post("/stripe-subscribe", authenticateToken, async (req, res) => {
       metadata: { user_id: req.user.id, plan_type: type },
     });
 
-    db.prepare("UPDATE users SET stripe_subscription_id = ?, auto_renew = 1 WHERE id = ?").run(subscription.id, req.user.id);
+    db.prepare(
+      "UPDATE users SET stripe_subscription_id = ?, auto_renew = 1 WHERE id = ?",
+    ).run(subscription.id, req.user.id);
     db.close();
 
     res.json({

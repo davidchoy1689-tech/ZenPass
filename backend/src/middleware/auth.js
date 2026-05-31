@@ -53,7 +53,7 @@ function hasMinimumRole(currentRole, requiredRole) {
 
   // Unknown roles are treated as guest (worst case)
   if (currentLevel === undefined) {
-    return requiredRole === 'guest';
+    return requiredRole === "guest";
   }
   if (requiredLevel === undefined) return false;
 
@@ -68,11 +68,13 @@ function _getUserWithPartner(userId) {
   const db = new Database(DB_PATH);
   try {
     const user = db
-      .prepare(`
+      .prepare(
+        `
         SELECT id, email, name, phone, role, is_coach, coach_verified,
                partner_id, credits, membership_type, avatar_url
         FROM users WHERE id = ?
-      `)
+      `,
+      )
       .get(userId);
     return user;
   } finally {
@@ -97,19 +99,38 @@ function authenticateToken(req, res, next) {
     next();
   } catch (err) {
     // Accept demo token ONLY when ALLOW_DEMO_TOKEN=true (dev/testing only)
-    if (token.startsWith("demo_token_") && process.env.ALLOW_DEMO_TOKEN === "true") {
+    if (
+      token.startsWith("demo_token_") &&
+      process.env.ALLOW_DEMO_TOKEN === "true"
+    ) {
       const role = token.replace("demo_token_", "");
       const db = new Database(DB_PATH);
       let demoUser;
       if (role === "admin") {
-        demoUser = db.prepare("SELECT id, email, name, role, partner_id FROM users WHERE email='admin@zenpass.hk'").get();
+        demoUser = db
+          .prepare(
+            "SELECT id, email, name, role, partner_id FROM users WHERE email='admin@zenpass.hk'",
+          )
+          .get();
       } else if (role === "coach") {
-        demoUser = db.prepare("SELECT id, email, name, role, partner_id FROM users WHERE email='coach@zenpass.hk'").get();
+        demoUser = db
+          .prepare(
+            "SELECT id, email, name, role, partner_id FROM users WHERE email='coach@zenpass.hk'",
+          )
+          .get();
       } else {
-        demoUser = db.prepare("SELECT id, email, name, role, partner_id FROM users WHERE email='student@zenpass.hk'").get();
+        demoUser = db
+          .prepare(
+            "SELECT id, email, name, role, partner_id FROM users WHERE email='student@zenpass.hk'",
+          )
+          .get();
       }
       if (!demoUser) {
-        demoUser = db.prepare("SELECT id, email, name, role, partner_id FROM users LIMIT 1").get();
+        demoUser = db
+          .prepare(
+            "SELECT id, email, name, role, partner_id FROM users LIMIT 1",
+          )
+          .get();
       }
       db.close();
       if (demoUser) {
@@ -159,7 +180,9 @@ function requireCoach(req, res, next) {
     }
 
     // Coach via role-based RBAC or legacy is_coach flag
-    const isCoachViaRole = hasMinimumRole(user.role, 'coach') && !hasMinimumRole(user.role, 'partner_staff');
+    const isCoachViaRole =
+      hasMinimumRole(user.role, "coach") &&
+      !hasMinimumRole(user.role, "partner_staff");
     if (!user.is_coach && !isCoachViaRole) {
       return res.status(403).json({ error: "需要教練權限" });
     }
@@ -191,7 +214,7 @@ function requireAdmin(req, res, next) {
     }
 
     const isAdmin =
-      hasMinimumRole(user.role, 'admin') ||
+      hasMinimumRole(user.role, "admin") ||
       (user.email &&
         (user.email.includes("admin") || user.email.endsWith("@zenpass.hk")));
 
@@ -218,7 +241,9 @@ function requireAdmin(req, res, next) {
  */
 function requireRole(minimumRole) {
   if (!ROLE_HIERARCHY[minimumRole]) {
-    throw new Error(`未知角色: ${minimumRole}。可用角色: ${Object.keys(ROLE_HIERARCHY).join(', ')}`);
+    throw new Error(
+      `未知角色: ${minimumRole}。可用角色: ${Object.keys(ROLE_HIERARCHY).join(", ")}`,
+    );
   }
 
   return (req, res, next) => {
@@ -233,7 +258,7 @@ function requireRole(minimumRole) {
       }
 
       if (!hasMinimumRole(user.role, minimumRole)) {
-        const currentLevel = ROLE_HIERARCHY[user.role] ?? 'unknown';
+        const currentLevel = ROLE_HIERARCHY[user.role] ?? "unknown";
         const requiredLevel = ROLE_HIERARCHY[minimumRole];
         return res.status(403).json({
           error: `權限不足 (需要: ${minimumRole}/${requiredLevel}, 當前: ${user.role}/${currentLevel})`,
@@ -279,7 +304,7 @@ function requireOwnInstitution(req, res, next) {
     req.user.is_coach = user.is_coach;
 
     // Platform-level users can access all institutions
-    if (hasMinimumRole(user.role, 'admin')) {
+    if (hasMinimumRole(user.role, "admin")) {
       req.user._canAccessAllPartners = true;
       return next();
     }
@@ -314,7 +339,7 @@ function requirePlatformStaff(req, res, next) {
       return res.status(403).json({ error: "用戶不存在" });
     }
 
-    if (!hasMinimumRole(user.role, 'platform_staff')) {
+    if (!hasMinimumRole(user.role, "platform_staff")) {
       return res.status(403).json({
         error: `需要平台員工權限 (當前角色: ${user.role})`,
       });
@@ -334,7 +359,7 @@ function requirePlatformStaff(req, res, next) {
  * 驗證用戶是否屬於某個 partner 機構
  * 用於跨機構存取控制
  */
-function requirePartnerAccess(partnerIdField = 'partner_id') {
+function requirePartnerAccess(partnerIdField = "partner_id") {
   return (req, res, next) => {
     if (!req.user) {
       return res.status(401).json({ error: "需要登入認證" });
@@ -346,7 +371,10 @@ function requirePartnerAccess(partnerIdField = 'partner_id') {
     }
 
     // Check if the requested partner_id matches user's partner
-    const targetPartnerId = req.params[partnerIdField] || req.body[partnerIdField] || req.query[partnerIdField];
+    const targetPartnerId =
+      req.params[partnerIdField] ||
+      req.body[partnerIdField] ||
+      req.query[partnerIdField];
     if (targetPartnerId && targetPartnerId !== req.user.partner_id) {
       return res.status(403).json({ error: "你無法存取其他機構嘅資料" });
     }
@@ -377,7 +405,7 @@ function generateToken(user) {
       id: user.id,
       email: user.email,
       name: user.name,
-      role: user.role || 'user',
+      role: user.role || "user",
       partner_id: user.partner_id || null,
       is_coach: user.is_coach || 0,
       membership_type: user.membership_type || "none",

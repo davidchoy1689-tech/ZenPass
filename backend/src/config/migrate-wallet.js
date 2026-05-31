@@ -19,7 +19,7 @@ function migrate() {
 
   // Check current schema
   const columns = db.prepare("PRAGMA table_info(wallet_transactions)").all();
-  const hasSourceType = columns.some(c => c.name === "source_type");
+  const hasSourceType = columns.some((c) => c.name === "source_type");
 
   if (hasSourceType) {
     console.log("[MIGRATE] ✓ wallet_transactions already v2, skipping");
@@ -61,7 +61,9 @@ function migrate() {
   `);
 
   const tableInfo = db.prepare("PRAGMA table_info(wallet_transactions)").all();
-  console.log(`[MIGRATE] ✓ wallet_transactions table recreated with ${tableInfo.length} columns`);
+  console.log(
+    `[MIGRATE] ✓ wallet_transactions table recreated with ${tableInfo.length} columns`,
+  );
 
   db.close();
   return true;

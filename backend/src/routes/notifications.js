@@ -160,7 +160,6 @@ router.delete("/push-unsubscribe", authenticateToken, (req, res) => {
   }
 });
 
-
 // ===== POST /api/notifications/test — 測試通知（即時發送）=====
 router.post("/test", authenticateToken, async (req, res) => {
   try {
@@ -193,17 +192,21 @@ router.get("/config", authenticateToken, (req, res) => {
   const config = {
     db: true,
     telegram: {
-      enabled: !!process.env.TELEGRAM_BOT_TOKEN && !!process.env.TELEGRAM_CHAT_ID,
+      enabled:
+        !!process.env.TELEGRAM_BOT_TOKEN && !!process.env.TELEGRAM_CHAT_ID,
       bot_token_set: !!process.env.TELEGRAM_BOT_TOKEN,
       chat_id_set: !!process.env.TELEGRAM_CHAT_ID,
     },
     whatsapp: {
-      enabled: !!process.env.TWILIO_ACCOUNT_SID && !!process.env.TWILIO_AUTH_TOKEN,
+      enabled:
+        !!process.env.TWILIO_ACCOUNT_SID && !!process.env.TWILIO_AUTH_TOKEN,
       account_set: !!process.env.TWILIO_ACCOUNT_SID,
       auth_set: !!process.env.TWILIO_AUTH_TOKEN,
     },
     whatsapp_free: {
-      enabled: !!process.env.WHATSAPP_CALLMEBOT_KEY && !!process.env.WHATSAPP_CALLMEBOT_TO,
+      enabled:
+        !!process.env.WHATSAPP_CALLMEBOT_KEY &&
+        !!process.env.WHATSAPP_CALLMEBOT_TO,
       key_set: !!process.env.WHATSAPP_CALLMEBOT_KEY,
       phone_set: !!process.env.WHATSAPP_CALLMEBOT_TO,
     },
@@ -222,7 +225,7 @@ router.get("/telegram/auto-detect", authenticateToken, async (req, res) => {
   if (!botToken) {
     return res.status(400).json({
       error: "請先在 .env 設定 TELEGRAM_BOT_TOKEN",
-      hint: "去 @BotFather 開 bot 攞 token，然後放入 .env"
+      hint: "去 @BotFather 開 bot 攞 token，然後放入 .env",
     });
   }
 
@@ -236,7 +239,7 @@ router.get("/telegram/auto-detect", authenticateToken, async (req, res) => {
     if (!data.ok) {
       return res.status(502).json({
         error: "Telegram API 錯誤",
-        detail: data.description
+        detail: data.description,
       });
     }
 
@@ -246,20 +249,26 @@ router.get("/telegram/auto-detect", authenticateToken, async (req, res) => {
         steps: [
           "1. 確認 bot token 正確",
           "2. 喺 Telegram 向 bot 發送 /start",
-          "3. 再 call 多次呢個 endpoint"
-        ]
+          "3. 再 call 多次呢個 endpoint",
+        ],
       });
     }
 
     // 提取所有 unique chat IDs
     const chats = {};
     for (const update of data.result) {
-      const msg = update.message || update.edited_message || update.channel_post;
+      const msg =
+        update.message || update.edited_message || update.channel_post;
       if (msg && msg.chat) {
         const { id, type, title, first_name, username } = msg.chat;
         const label = title || first_name || username || `Chat ${id}`;
         if (!chats[id]) {
-          chats[id] = { id, type, label, first_seen: update.message?.date || null };
+          chats[id] = {
+            id,
+            type,
+            label,
+            first_seen: update.message?.date || null,
+          };
         }
       }
     }
@@ -270,13 +279,16 @@ router.get("/telegram/auto-detect", authenticateToken, async (req, res) => {
       message: `偵測到 ${chatList.length} 個對話`,
       chats: chatList,
       instructions: `將其中一個 chat ID 放入 .env 做 TELEGRAM_CHAT_ID`,
-      curl_set_chat_id: chatList.length > 0
-        ? `echo "TELEGRAM_CHAT_ID=${chatList[0].id}" >> .env`
-        : null
+      curl_set_chat_id:
+        chatList.length > 0
+          ? `echo "TELEGRAM_CHAT_ID=${chatList[0].id}" >> .env`
+          : null,
     });
   } catch (err) {
     console.error("Telegram auto-detect error:", err.message);
-    res.status(500).json({ error: "無法連接 Telegram API", detail: err.message });
+    res
+      .status(500)
+      .json({ error: "無法連接 Telegram API", detail: err.message });
   }
 });
 
@@ -292,12 +304,12 @@ router.post("/telegram/test", authenticateToken, async (req, res) => {
   if (sent) {
     res.json({
       message: "✅ Telegram 測試通知已成功送出",
-      hint: "請檢查 Telegram 有冇收到訊息"
+      hint: "請檢查 Telegram 有冇收到訊息",
     });
   } else {
     res.status(502).json({
       error: "發送失敗",
-      hint: "請檢查 .env 嘅 TELEGRAM_BOT_TOKEN 同 TELEGRAM_CHAT_ID 是否正確"
+      hint: "請檢查 .env 嘅 TELEGRAM_BOT_TOKEN 同 TELEGRAM_CHAT_ID 是否正確",
     });
   }
 });

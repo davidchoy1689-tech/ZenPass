@@ -21,7 +21,14 @@ const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
  * @param {string} [params.method] - 原支付方式
  * @returns {Object} 退款結果
  */
-function processRefund({ bookingId, amount, reason, initiatedBy, approvedBy, method }) {
+function processRefund({
+  bookingId,
+  amount,
+  reason,
+  initiatedBy,
+  approvedBy,
+  method,
+}) {
   const db = new Database(DB_PATH);
   try {
     // 1. Verify booking exists
@@ -35,7 +42,7 @@ function processRefund({ bookingId, amount, reason, initiatedBy, approvedBy, met
     // 2. Check refund eligibility
     const refundedSoFar = db
       .prepare(
-        "SELECT COALESCE(SUM(amount), 0) as total FROM refund_logs WHERE booking_id = ? AND status = 'completed'"
+        "SELECT COALESCE(SUM(amount), 0) as total FROM refund_logs WHERE booking_id = ? AND status = 'completed'",
       )
       .get(bookingId);
     const maxRefund = booking.amount || 0;
@@ -49,11 +56,13 @@ function processRefund({ bookingId, amount, reason, initiatedBy, approvedBy, met
     // 3. Create refund log
     const refundId = uuidv4();
     const payMethod = method || booking.payment_method || "fps";
-    db.prepare(`
+    db.prepare(
+      `
       INSERT INTO refund_logs (id, booking_id, user_id, amount, currency,
         payment_method, reason, initiated_by, approved_by, status, created_at)
       VALUES (?, ?, ?, ?, 'HKD', ?, ?, ?, ?, 'completed', datetime('now'))
-    `).run(
+    `,
+    ).run(
       refundId,
       bookingId,
       booking.user_id,
@@ -61,24 +70,24 @@ function processRefund({ bookingId, amount, reason, initiatedBy, approvedBy, met
       payMethod,
       reason,
       initiatedBy,
-      approvedBy || initiatedBy
+      approvedBy || initiatedBy,
     );
 
     // 4. Update booking payment status
     const newTotalRefunded = refundedSoFar.total + amount;
     if (newTotalRefunded >= maxRefund) {
       db.prepare(
-        "UPDATE bookings SET payment_status = 'refunded', status = 'cancelled' WHERE id = ?"
+        "UPDATE bookings SET payment_status = 'refunded', status = 'cancelled' WHERE id = ?",
       ).run(bookingId);
     } else {
       db.prepare(
-        "UPDATE bookings SET payment_status = 'partial_refund' WHERE id = ?"
+        "UPDATE bookings SET payment_status = 'partial_refund' WHERE id = ?",
       ).run(bookingId);
     }
 
     // 5. Release spot
     db.prepare(
-      "UPDATE class_schedules SET enrolled_count = MAX(0, enrolled_count - 1) WHERE id = ?"
+      "UPDATE class_schedules SET enrolled_count = MAX(0, enrolled_count - 1) WHERE id = ?",
     ).run(booking.schedule_id);
 
     // 6. Create accounting entry (async, non-blocking)
@@ -98,7 +107,7 @@ function processRefund({ bookingId, amount, reason, initiatedBy, approvedBy, met
         "paid",
         "refunded",
         amount,
-        payMethod
+        payMethod,
       );
     } catch (auditErr) {
       console.error("[REFUND] Audit entry failed:", auditErr.message);
@@ -110,7 +119,8 @@ function processRefund({ bookingId, amount, reason, initiatedBy, approvedBy, met
       booking_id: bookingId,
       amount,
       reason,
-      new_status: newTotalRefunded >= maxRefund ? "fully_refunded" : "partially_refunded",
+      new_status:
+        newTotalRefunded >= maxRefund ? "fully_refunded" : "partially_refunded",
       total_refunded: newTotalRefunded,
     };
   } catch (err) {
@@ -129,7 +139,7 @@ function getRefundLogs(bookingId) {
   try {
     return db
       .prepare(
-        "SELECT * FROM refund_logs WHERE booking_id = ? ORDER BY created_at DESC"
+        "SELECT * FROM refund_logs WHERE booking_id = ? ORDER BY created_at DESC",
       )
       .all(bookingId);
   } catch (err) {

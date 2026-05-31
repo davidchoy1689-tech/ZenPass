@@ -8,15 +8,17 @@ const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
 
 // 佣金計劃定義
 const PLANS = {
-  course: {  // 課程佣金
-    basic:    { rate: 0.25, label: "Basic 25%" },
+  course: {
+    // 課程佣金
+    basic: { rate: 0.25, label: "Basic 25%" },
     standard: { rate: 0.18, label: "Standard 18%" },
-    premium:  { rate: 0.12, label: "Premium 12%" },
+    premium: { rate: 0.12, label: "Premium 12%" },
   },
-  rental: {   // 租場佣金
-    basic:    { rate: 0.15, label: "Basic 15%" },
+  rental: {
+    // 租場佣金
+    basic: { rate: 0.15, label: "Basic 15%" },
     standard: { rate: 0.12, label: "Standard 12%" },
-    premium:  { rate: 0.08, label: "Premium 8%" },
+    premium: { rate: 0.08, label: "Premium 8%" },
   },
 };
 
@@ -56,7 +58,11 @@ function calcRentalCommission(amount, planKey) {
 // ===== 從 DB 攞場地嘅計劃 =====
 function getVenuePlan(venueId) {
   const db = new Database(DB_PATH);
-  const venue = db.prepare("SELECT commission_plan, partner_type FROM partner_venues WHERE id = ?").get(venueId);
+  const venue = db
+    .prepare(
+      "SELECT commission_plan, partner_type FROM partner_venues WHERE id = ?",
+    )
+    .get(venueId);
   db.close();
   return venue || { commission_plan: "basic", partner_type: "full" };
 }

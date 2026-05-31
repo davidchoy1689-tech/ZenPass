@@ -220,7 +220,7 @@
         font-size: 13px;
       }
       .class-card-meta {
-        font-size: 11px;
+        font-size: 12px;
       }
       .class-card-price {
         font-size: 14px;
@@ -268,6 +268,7 @@
         flex-direction: column;
       }
       .class-card-body .class-card-spots {
+        font-size: 12px;
         margin-top: auto;
       }
       .class-card-category {
@@ -589,7 +590,7 @@
         "query-input": "required name=search_term_string"
       }
     </script>
-      <script src="app.js"></script>
+    <script src="app.js"></script>
   </head>
   <body>
     <div class="header">
@@ -1209,7 +1210,8 @@
           })
           .then(function (data) {
             var dates = data.dates || [];
-            container.innerHTML = ""; container.classList.remove("zen-stagger");
+            container.innerHTML = "";
+            container.classList.remove("zen-stagger");
             if (dates.length === 0) {
               container.innerHTML =
                 '<div style="padding:12px;text-align:center;color:var(--dark-700);font-size:13px;">暫時沒有可預約日期</div>';
@@ -1243,7 +1245,8 @@
             });
           })
           .catch(function () {
-            container.innerHTML = ""; container.classList.remove("zen-stagger");
+            container.innerHTML = "";
+            container.classList.remove("zen-stagger");
             for (var i = 0; i < 7; i++) {
               var d = new Date(today);
               d.setDate(today.getDate() + i);

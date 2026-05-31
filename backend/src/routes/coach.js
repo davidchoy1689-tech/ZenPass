@@ -31,9 +31,7 @@ router.post("/apply", authenticateToken, (req, res) => {
     } = req.body;
 
     if (!name || !phone || !email || !venue_address) {
-      return res
-        .status(400)
-        .json({ error: "請填寫姓名、電話、電郵和住址" });
+      return res.status(400).json({ error: "請填寫姓名、電話、電郵和住址" });
     }
 
     const db = new Database(DB_PATH);
@@ -62,8 +60,13 @@ router.post("/apply", authenticateToken, (req, res) => {
       ? venue_photos.join(",")
       : venue_photos;
     const dbCA = new Database(DB_PATH);
-    const maxCA = dbCA.prepare("SELECT MAX(CAST(SUBSTR(application_reference, 4) AS INTEGER)) as m FROM coach_applications WHERE application_reference GLOB 'CA-[0-9]*'").get().m || 0;
-    const appRef = "CA-" + String(maxCA + 1).padStart(4, '0');
+    const maxCA =
+      dbCA
+        .prepare(
+          "SELECT MAX(CAST(SUBSTR(application_reference, 4) AS INTEGER)) as m FROM coach_applications WHERE application_reference GLOB 'CA-[0-9]*'",
+        )
+        .get().m || 0;
+    const appRef = "CA-" + String(maxCA + 1).padStart(4, "0");
     dbCA.close();
 
     db.prepare(
@@ -231,11 +234,14 @@ router.post("/profile", authenticateToken, async (req, res) => {
     if (age !== undefined) updates.age = parseInt(age);
     if (height_cm !== undefined) updates.height_cm = parseFloat(height_cm);
     if (weight_kg !== undefined) updates.weight_kg = parseFloat(weight_kg);
-    if (experience_detail !== undefined) updates.experience_detail = experience_detail;
-    if (certificate_files !== undefined) updates.certificate_files = certificate_files;
+    if (experience_detail !== undefined)
+      updates.experience_detail = experience_detail;
+    if (certificate_files !== undefined)
+      updates.certificate_files = certificate_files;
     if (bio !== undefined) updates.bio = bio;
     if (specialties !== undefined) updates.specialties = specialties;
-    if (rate_per_session !== undefined) updates.rate_per_session = parseFloat(rate_per_session);
+    if (rate_per_session !== undefined)
+      updates.rate_per_session = parseFloat(rate_per_session);
     updates.updated_at = new Date().toISOString();
 
     const { data, error } = await supabase
@@ -280,16 +286,23 @@ router.get("/profile", authenticateToken, async (req, res) => {
 router.post("/refer", authenticateToken, (req, res) => {
   try {
     const { name, email, phone } = req.body;
-    if (!name || !email) return res.status(400).json({ error: "請填寫教練姓名和電郵" });
+    if (!name || !email)
+      return res.status(400).json({ error: "請填寫教練姓名和電郵" });
 
     const db = new Database(DB_PATH);
     db.pragma("foreign_keys = ON");
 
     // Log the referral
-    db.prepare(`
+    db.prepare(
+      `
       INSERT INTO referral_codes (id, user_id, code)
       VALUES (?, ?, ?)
-    `).run(uuidv4(), req.user.id, "COACH-" + Math.random().toString(36).substring(2, 8).toUpperCase());
+    `,
+    ).run(
+      uuidv4(),
+      req.user.id,
+      "COACH-" + Math.random().toString(36).substring(2, 8).toUpperCase(),
+    );
 
     // Notify admin
     sendNotification("coach.referral", {
@@ -312,33 +325,51 @@ router.get("/class-students", authenticateToken, (req, res) => {
   try {
     const db = new Database(DB_PATH);
     const { schedule_id } = req.query;
-    
+
     // Verify coach owns this schedule's class
-    const schedule = db.prepare("SELECT class_id FROM class_schedules WHERE id = ?").get(schedule_id);
-    if (!schedule) { db.close(); return res.status(404).json({ error: "時段不存在" }); }
-    
-    const classInfo = db.prepare("SELECT coach_id FROM classes WHERE id = ?").get(schedule.class_id);
-    if (!classInfo) { db.close(); return res.status(404).json({ error: "課程不存在" }); }
-    
+    const schedule = db
+      .prepare("SELECT class_id FROM class_schedules WHERE id = ?")
+      .get(schedule_id);
+    if (!schedule) {
+      db.close();
+      return res.status(404).json({ error: "時段不存在" });
+    }
+
+    const classInfo = db
+      .prepare("SELECT coach_id FROM classes WHERE id = ?")
+      .get(schedule.class_id);
+    if (!classInfo) {
+      db.close();
+      return res.status(404).json({ error: "課程不存在" });
+    }
+
     // Get students
-    const students = db.prepare(`
+    const students = db
+      .prepare(
+        `
       SELECT b.id, b.user_id, u.name, u.email, u.phone, b.status as booking_status,
              b.payment_status, b.created_at as booking_date
       FROM bookings b
       JOIN users u ON b.user_id = u.id
       WHERE b.schedule_id = ? AND b.class_id = ?
       ORDER BY b.created_at DESC
-    `).all(schedule_id, schedule.class_id);
-    
+    `,
+      )
+      .all(schedule_id, schedule.class_id);
+
     // Get schedule info
-    const schedInfo = db.prepare(`
+    const schedInfo = db
+      .prepare(
+        `
       SELECT cs.id, cs.start_time, cs.end_time, cs.enrolled_count, cs.max_participants,
              c.title, c.venue_name, c.venue_address
       FROM class_schedules cs
       JOIN classes c ON cs.class_id = c.id
       WHERE cs.id = ?
-    `).get(schedule_id);
-    
+    `,
+      )
+      .get(schedule_id);
+
     db.close();
     res.json({ schedule: schedInfo, students, total: students.length });
   } catch (err) {

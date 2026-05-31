@@ -1,7 +1,7 @@
 /**
  * ZenPass API Integration Tests
  * 測試核心 API endpoints：Health、Auth、Classes、Bookings、Admin、Points、Badges
- * 
+ *
  * 使用原生 http 模組，無需外部依賴。
  * 運行：node backend/tests/test-api-integration.js
  */
@@ -32,7 +32,11 @@ function request(method, path, body = null, token = null) {
       res.on("end", () => {
         try {
           const parsed = JSON.parse(data);
-          resolve({ status: res.statusCode, body: parsed, headers: res.headers });
+          resolve({
+            status: res.statusCode,
+            body: parsed,
+            headers: res.headers,
+          });
         } catch {
           resolve({ status: res.statusCode, body: data, headers: res.headers });
         }
@@ -76,13 +80,23 @@ async function test_01_health() {
   const res = await api.get(API + "/health");
 
   assert.strictEqual(res.status, 200, "Health status should be 200");
-  assert.strictEqual(res.body.success, true, "Health should return success:true");
+  assert.strictEqual(
+    res.body.success,
+    true,
+    "Health should return success:true",
+  );
   assert.ok(res.body.data, "Health should have data");
-  assert.strictEqual(typeof res.body.data.status, "string", "Status should be string");
+  assert.strictEqual(
+    typeof res.body.data.status,
+    "string",
+    "Status should be string",
+  );
   assert.ok(res.body.data.database, "Should include database info");
   assert.ok(res.body.data.memory, "Should include memory info");
   assert.ok(res.body.data.uptime >= 0, "Uptime should be non-negative");
-  console.log(`  ✅ Health OK — status=${res.body.data.status}, db=${res.body.data.database.connected}, uptime=${res.body.data.uptime_human}`);
+  console.log(
+    `  ✅ Health OK — status=${res.body.data.status}, db=${res.body.data.database.connected}, uptime=${res.body.data.uptime_human}`,
+  );
 }
 
 async function test_02_auth_register() {
@@ -92,12 +106,22 @@ async function test_02_auth_register() {
   assert.strictEqual(res.status, 201, "Register status should be 201");
   assert.ok(res.body.token, "Register should return token");
   assert.ok(res.body.user, "Register should return user object");
-  assert.strictEqual(res.body.user.email, TEST_USER.email, "User email should match");
-  assert.strictEqual(res.body.message, "註冊成功", "Message should be 註冊成功");
+  assert.strictEqual(
+    res.body.user.email,
+    TEST_USER.email,
+    "User email should match",
+  );
+  assert.strictEqual(
+    res.body.message,
+    "註冊成功",
+    "Message should be 註冊成功",
+  );
 
   testToken = res.body.token;
   testUserId = res.body.user.id;
-  console.log(`  ✅ Register OK — user=${testUserId}, email=${TEST_USER.email}`);
+  console.log(
+    `  ✅ Register OK — user=${testUserId}, email=${TEST_USER.email}`,
+  );
 }
 
 async function test_03_auth_login() {
@@ -110,7 +134,11 @@ async function test_03_auth_login() {
   assert.strictEqual(res.status, 200, "Login status should be 200");
   assert.ok(res.body.token, "Login should return token");
   assert.ok(res.body.user, "Login should return user object");
-  assert.strictEqual(res.body.message, "登入成功", "Message should be 登入成功");
+  assert.strictEqual(
+    res.body.message,
+    "登入成功",
+    "Message should be 登入成功",
+  );
 
   testToken = res.body.token;
   console.log(`  ✅ Login OK — got fresh token`);
@@ -122,13 +150,21 @@ async function test_04_auth_me() {
 
   // /api/auth/me may redirect through /api/users/me or /api/auth/me
   // Accept both response formats
-  assert.ok(res.status === 200 || res.status === 404 || res.status === 500, `Status should be 200, got ${res.status}`);
+  assert.ok(
+    res.status === 200 || res.status === 404 || res.status === 500,
+    `Status should be 200, got ${res.status}`,
+  );
   // If /api/auth/me route exists, it should work; if it doesn't exist, try /api/users/me
   if (res.status !== 200) {
-    console.log(`  ⚠️  /api/auth/me returned ${res.status}, trying /api/users/me...`);
+    console.log(
+      `  ⚠️  /api/auth/me returned ${res.status}, trying /api/users/me...`,
+    );
     const res2 = await api.get(API + "/users/me", testToken);
     assert.strictEqual(res2.status, 200, "GET /api/users/me should return 200");
-    assert.ok(res2.body.success !== false || res2.body.id || res2.body.email, "Should return user data");
+    assert.ok(
+      res2.body.success !== false || res2.body.id || res2.body.email,
+      "Should return user data",
+    );
     console.log(`  ✅ Auth me (via /api/users/me) OK`);
   } else {
     console.log(`  ✅ Auth me OK`);
@@ -145,7 +181,10 @@ async function test_05_users_me() {
     res = await api.get(API + "/users/profile", testToken);
   }
 
-  assert.ok(res.status === 200, `Users endpoint should return 200, got ${res.status}`);
+  assert.ok(
+    res.status === 200,
+    `Users endpoint should return 200, got ${res.status}`,
+  );
   // Accept various response formats
   const userData = res.body.data || res.body.user || res.body;
   assert.ok(userData.id || userData.email, "Should have user identity");
@@ -159,8 +198,10 @@ async function test_06_classes_list() {
   assert.strictEqual(res.status, 200, "Classes list should return 200");
 
   // Accept both old format (classes + pagination) and new format (data.classes)
-  const classes = res.body.classes || (res.body.data && res.body.data.classes) || [];
-  const pagination = res.body.pagination || (res.body.data && res.body.data.pagination);
+  const classes =
+    res.body.classes || (res.body.data && res.body.data.classes) || [];
+  const pagination =
+    res.body.pagination || (res.body.data && res.body.data.pagination);
 
   assert.ok(Array.isArray(classes), "Classes should be an array");
   assert.ok(classes.length > 0, "Should have at least one class");
@@ -173,7 +214,9 @@ async function test_06_classes_list() {
       testScheduleId = schedules[0].id;
     }
   }
-  console.log(`  ✅ Classes OK — ${classes.length} classes, class_id=${testClassId}, schedule_id=${testScheduleId}`);
+  console.log(
+    `  ✅ Classes OK — ${classes.length} classes, class_id=${testClassId}, schedule_id=${testScheduleId}`,
+  );
 }
 
 async function test_07_class_detail() {
@@ -186,10 +229,16 @@ async function test_07_class_detail() {
 
   assert.strictEqual(res.status, 200, "Class detail should return 200");
   // Accept both formats
-  const cls = res.body.class || (res.body.data && res.body.data.class) || res.body.data || res.body;
+  const cls =
+    res.body.class ||
+    (res.body.data && res.body.data.class) ||
+    res.body.data ||
+    res.body;
   assert.ok(cls.id || cls.title, "Should have class identity");
   assert.ok(cls.price_hkd !== undefined, "Should have price");
-  console.log(`  ✅ Class detail OK — title=${cls.title}, price=${cls.price_hkd}`);
+  console.log(
+    `  ✅ Class detail OK — title=${cls.title}, price=${cls.price_hkd}`,
+  );
 }
 
 async function test_08_classes_categories() {
@@ -198,12 +247,17 @@ async function test_08_classes_categories() {
 
   assert.strictEqual(res.status, 200, "Categories should return 200");
   // Accept both formats
-  const categories = res.body.categories || (res.body.data && res.body.data.categories) || [];
+  const categories =
+    res.body.categories || (res.body.data && res.body.data.categories) || [];
   assert.ok(Array.isArray(categories), "Categories should be an array");
   assert.ok(categories.length > 0, "Should have categories");
   // Categories may be strings or objects {category, count}
-  const catNames = categories.map(c => typeof c === "string" ? c : (c.category || c.name || String(c))).slice(0, 5);
-  console.log(`  ✅ Categories OK — ${categories.length} categories: ${catNames.join(", ")}`);
+  const catNames = categories
+    .map((c) => (typeof c === "string" ? c : c.category || c.name || String(c)))
+    .slice(0, 5);
+  console.log(
+    `  ✅ Categories OK — ${categories.length} categories: ${catNames.join(", ")}`,
+  );
 }
 
 async function test_09_classes_upcoming() {
@@ -211,7 +265,8 @@ async function test_09_classes_upcoming() {
   const res = await api.get(API + "/classes/upcoming");
 
   assert.strictEqual(res.status, 200, "Upcoming should return 200");
-  const classes = res.body.classes || (res.body.data && res.body.data.classes) || [];
+  const classes =
+    res.body.classes || (res.body.data && res.body.data.classes) || [];
   assert.ok(Array.isArray(classes), "Should return class array");
   console.log(`  ✅ Upcoming OK — ${classes.length} upcoming classes`);
 }
@@ -232,16 +287,25 @@ async function test_11_booking_flow() {
     return;
   }
   console.log("\n📅 [Test 11] Booking — Create booking...");
-  const res = await api.post(API + "/bookings", {
-    schedule_id: testScheduleId,
-    class_id: testClassId,
-    payment_type: "credits",
-    amount: 0,
-  }, testToken);
+  const res = await api.post(
+    API + "/bookings",
+    {
+      schedule_id: testScheduleId,
+      class_id: testClassId,
+      payment_type: "credits",
+      amount: 0,
+    },
+    testToken,
+  );
 
   // Could be 201 (created), 200 (existing pending) or 400 (no credits)
-  assert.ok(res.status === 201 || res.status === 200 || res.status === 400, `Booking status should be 200/201/400, got ${res.status} (${res.body.error || res.body.message})`);
-  console.log(`  ✅ Booking create — status=${res.status}, message=${res.body.message || res.body.error}`);
+  assert.ok(
+    res.status === 201 || res.status === 200 || res.status === 400,
+    `Booking status should be 200/201/400, got ${res.status} (${res.body.error || res.body.message})`,
+  );
+  console.log(
+    `  ✅ Booking create — status=${res.status}, message=${res.body.message || res.body.error}`,
+  );
 }
 
 async function test_12_my_bookings() {
@@ -250,7 +314,8 @@ async function test_12_my_bookings() {
 
   assert.strictEqual(res.status, 200, "My bookings should return 200");
   // Accept both formats
-  const bookings = res.body.bookings || (res.body.data && res.body.data.bookings) || [];
+  const bookings =
+    res.body.bookings || (res.body.data && res.body.data.bookings) || [];
   assert.ok(Array.isArray(bookings), "Bookings should be an array");
   console.log(`  ✅ My bookings OK — ${bookings.length} bookings`);
 }
@@ -260,7 +325,11 @@ async function test_13_trial_status() {
   const res = await api.get(API + "/bookings/trial-status", testToken);
 
   assert.strictEqual(res.status, 200, "Trial status should return 200");
-  const used = res.body.used ?? res.body.trial_used ?? (res.body.data && res.body.data.used) ?? (res.body.data && res.body.data.trial_used);
+  const used =
+    res.body.used ??
+    res.body.trial_used ??
+    (res.body.data && res.body.data.used) ??
+    (res.body.data && res.body.data.trial_used);
   assert.ok(used !== undefined, "Should have used/trial_used flag");
   console.log(`  ✅ Trial status OK`);
 }
@@ -273,16 +342,25 @@ async function test_14_points() {
   // Accept both formats
   const data = res.body.data || res.body;
   assert.ok(data.points !== undefined, "Should have points value");
-  console.log(`  ✅ Points OK — points=${data.points}, tier=${data.tier?.label || data.tier?.id}`);
+  console.log(
+    `  ✅ Points OK — points=${data.points}, tier=${data.tier?.label || data.tier?.id}`,
+  );
 
   // Check-in test
   console.log("  🎯 Testing check-in...");
   const chkRes = await api.post(API + "/points/checkin", {}, testToken);
-  assert.ok(chkRes.status === 200 || chkRes.status === 400, `Checkin status should be 200/400, got ${chkRes.status}`);
+  assert.ok(
+    chkRes.status === 200 || chkRes.status === 400,
+    `Checkin status should be 200/400, got ${chkRes.status}`,
+  );
   if (chkRes.status === 200) {
-    console.log(`  ✅ Check-in OK — earned ${chkRes.body.points_earned || "?"} points`);
+    console.log(
+      `  ✅ Check-in OK — earned ${chkRes.body.points_earned || "?"} points`,
+    );
   } else {
-    console.log(`  ⚠️  Check-in returned ${chkRes.status}: ${chkRes.body.error} (may already checked in today)`);
+    console.log(
+      `  ⚠️  Check-in returned ${chkRes.status}: ${chkRes.body.error} (may already checked in today)`,
+    );
   }
 }
 
@@ -294,7 +372,9 @@ async function test_15_points_tiers() {
   const tiers = res.body.tiers || (res.body.data && res.body.data.tiers) || [];
   assert.ok(Array.isArray(tiers), "Tiers should be array");
   assert.ok(tiers.length >= 3, "Should have at least 3 tiers");
-  console.log(`  ✅ Tiers OK — ${tiers.length} tiers: ${tiers.map(t => t.label || t.id).join(", ")}`);
+  console.log(
+    `  ✅ Tiers OK — ${tiers.length} tiers: ${tiers.map((t) => t.label || t.id).join(", ")}`,
+  );
 }
 
 async function test_16_points_leaderboard() {
@@ -302,7 +382,8 @@ async function test_16_points_leaderboard() {
   const res = await api.get(API + "/points/leaderboard");
 
   assert.strictEqual(res.status, 200, "Leaderboard should return 200");
-  const lb = res.body.leaderboard || (res.body.data && res.body.data.leaderboard) || [];
+  const lb =
+    res.body.leaderboard || (res.body.data && res.body.data.leaderboard) || [];
   assert.ok(Array.isArray(lb), "Leaderboard should be array");
   console.log(`  ✅ Leaderboard OK — ${lb.length} entries`);
 }
@@ -312,7 +393,8 @@ async function test_17_badges() {
   const res = await api.get(API + "/badges", testToken);
 
   assert.strictEqual(res.status, 200, "Badges should return 200");
-  const badges = res.body.badges || (res.body.data && res.body.data.badges) || [];
+  const badges =
+    res.body.badges || (res.body.data && res.body.data.badges) || [];
   assert.ok(Array.isArray(badges), "Badges should be array");
   console.log(`  ✅ Badges OK — ${badges.length} badges`);
 }
@@ -322,7 +404,8 @@ async function test_18_badges_progress() {
   const res = await api.get(API + "/badges/progress", testToken);
 
   assert.strictEqual(res.status, 200, "Badges progress should return 200");
-  const progress = res.body.progress || (res.body.data && res.body.data.progress) || [];
+  const progress =
+    res.body.progress || (res.body.data && res.body.data.progress) || [];
   assert.ok(Array.isArray(progress), "Progress should be array");
   console.log(`  ✅ Badges progress OK — ${progress.length} items`);
 }
@@ -332,7 +415,10 @@ async function test_19_notifications() {
   const res = await api.get(API + "/notifications", testToken);
 
   assert.strictEqual(res.status, 200, "Notifications should return 200");
-  const notifs = res.body.notifications || (res.body.data && res.body.data.notifications) || [];
+  const notifs =
+    res.body.notifications ||
+    (res.body.data && res.body.data.notifications) ||
+    [];
   assert.ok(Array.isArray(notifs), "Notifications should be array");
   console.log(`  ✅ Notifications OK — ${notifs.length} notifications`);
 }
@@ -342,7 +428,8 @@ async function test_20_notifications_unread() {
   const res = await api.get(API + "/notifications/unread-count", testToken);
 
   assert.strictEqual(res.status, 200, "Unread count should return 200");
-  const count = res.body.count ?? (res.body.data && res.body.data.count) ?? undefined;
+  const count =
+    res.body.count ?? (res.body.data && res.body.data.count) ?? undefined;
   assert.ok(count !== undefined, "Should have count");
   console.log(`  ✅ Unread count OK — count=${count}`);
 }
@@ -356,7 +443,9 @@ async function test_21_memberships() {
   if (res.status === 404) {
     // Try without /plans
     const res2 = await api.get(API + "/memberships", testToken);
-    console.log(`  ⚠️  /plans returned 404, tried /memberships → ${res2.status}`);
+    console.log(
+      `  ⚠️  /plans returned 404, tried /memberships → ${res2.status}`,
+    );
     if (res2.status === 200) {
       plans = res2.body.plans || (res2.body.data && res2.body.data.plans);
     }
@@ -366,16 +455,19 @@ async function test_21_memberships() {
   }
 
   if (plans) {
-    const planCount = typeof plans === "object" ? Object.keys(plans).length : plans.length;
+    const planCount =
+      typeof plans === "object" ? Object.keys(plans).length : plans.length;
     console.log(`  ✅ Memberships OK — ${planCount} plans`);
   } else {
-    console.log(`  ⚠️  Could not parse plans, response: ${JSON.stringify(res.body).slice(0, 100)}`);
+    console.log(
+      `  ⚠️  Could not parse plans, response: ${JSON.stringify(res.body).slice(0, 100)}`,
+    );
   }
 }
 
 async function test_22_admin_stats() {
   console.log("\n👑 [Test 22] Admin — Login as admin & check stats...");
-  
+
   // Login as admin
   const loginRes = await api.post(API + "/auth/login", {
     email: "admin@zenpass.hk",
@@ -383,7 +475,9 @@ async function test_22_admin_stats() {
   });
 
   if (loginRes.status !== 200) {
-    console.log(`  ⚠️  Admin login failed: ${loginRes.body.error}, skipping admin tests`);
+    console.log(
+      `  ⚠️  Admin login failed: ${loginRes.body.error}, skipping admin tests`,
+    );
     return;
   }
 
@@ -393,12 +487,21 @@ async function test_22_admin_stats() {
   // Stats
   const statsRes = await api.get(API + "/admin/stats", adminToken);
   assert.strictEqual(statsRes.status, 200, "Admin stats should return 200");
-  const stats = statsRes.body.stats || (statsRes.body.data && statsRes.body.data.stats) || statsRes.body;
-  console.log(`  ✅ Admin stats OK — users=${stats.total_users}, bookings=${stats.total_bookings}`);
+  const stats =
+    statsRes.body.stats ||
+    (statsRes.body.data && statsRes.body.data.stats) ||
+    statsRes.body;
+  console.log(
+    `  ✅ Admin stats OK — users=${stats.total_users}, bookings=${stats.total_bookings}`,
+  );
 
   // Bookings list
   const bookingsRes = await api.get(API + "/admin/bookings", adminToken);
-  assert.strictEqual(bookingsRes.status, 200, "Admin bookings should return 200");
+  assert.strictEqual(
+    bookingsRes.status,
+    200,
+    "Admin bookings should return 200",
+  );
   console.log(`  ✅ Admin bookings OK`);
 
   // Users list
@@ -423,10 +526,17 @@ async function test_24_waitlist_status() {
     return;
   }
   console.log("\n⏳ [Test 24] Waitlist — Status check...");
-  const res = await api.get(API + "/waitlist/status?schedule_id=" + testScheduleId, testToken);
+  const res = await api.get(
+    API + "/waitlist/status?schedule_id=" + testScheduleId,
+    testToken,
+  );
 
   assert.strictEqual(res.status, 200, "Waitlist status should return 200");
-  assert.ok(res.body.in_waitlist !== undefined || (res.body.data && res.body.data.in_waitlist !== undefined), "Should have in_waitlist");
+  assert.ok(
+    res.body.in_waitlist !== undefined ||
+      (res.body.data && res.body.data.in_waitlist !== undefined),
+    "Should have in_waitlist",
+  );
   console.log(`  ✅ Waitlist OK`);
 }
 
@@ -435,8 +545,11 @@ async function test_25_crm_students() {
   const res = await api.get(API + "/crm/students", testToken);
 
   assert.strictEqual(res.status, 200, "CRM students should return 200");
-  const students = res.body.students || (res.body.data && res.body.data.students) || [];
-  console.log(`  ✅ CRM students OK — ${Array.isArray(students) ? students.length : '?'} students`);
+  const students =
+    res.body.students || (res.body.data && res.body.data.students) || [];
+  console.log(
+    `  ✅ CRM students OK — ${Array.isArray(students) ? students.length : "?"} students`,
+  );
 }
 
 // ===== 主程序 =====
@@ -485,7 +598,11 @@ async function runAllTests() {
       await test.fn();
       passed++;
     } catch (err) {
-      if (err.code === "ERR_ASSERTION" && err.message && err.message.includes("Skipping")) {
+      if (
+        err.code === "ERR_ASSERTION" &&
+        err.message &&
+        err.message.includes("Skipping")
+      ) {
         skipped++;
       } else {
         console.error(`  ❌ FAILED: ${err.message}`);
@@ -500,7 +617,9 @@ async function runAllTests() {
 
   const duration = ((Date.now() - startTime) / 1000).toFixed(2);
   console.log("\n╔══════════════════════════════════════════╗");
-  console.log(`║  Results: ${passed} passed, ${failed} failed, ${skipped} skipped  ║`);
+  console.log(
+    `║  Results: ${passed} passed, ${failed} failed, ${skipped} skipped  ║`,
+  );
   console.log(`║  Duration: ${duration}s                       ║`);
   console.log("╚══════════════════════════════════════════╝");
 

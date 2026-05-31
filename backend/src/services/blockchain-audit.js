@@ -12,7 +12,8 @@ const Database = require("better-sqlite3");
 const crypto = require("crypto");
 const path = require("path");
 
-const DB_PATH = process.env.DB_PATH || path.resolve(__dirname, "../data/zenpass.db");
+const DB_PATH =
+  process.env.DB_PATH || path.resolve(__dirname, "../data/zenpass.db");
 
 /**
  * 產生 SHA-256 hash（用嚟做區塊鏈式鏈接）
@@ -33,7 +34,9 @@ function traceBooking(bookingId) {
 
   try {
     // Step 1: 攞 booking 基本資料
-    const booking = db.prepare(`
+    const booking = db
+      .prepare(
+        `
       SELECT b.*, u.name as student_name, u.email as student_email,
              c.title as class_title, cs.start_time
       FROM bookings b
@@ -41,7 +44,9 @@ function traceBooking(bookingId) {
       JOIN class_schedules cs ON b.schedule_id = cs.id
       JOIN classes c ON cs.class_id = c.id
       WHERE b.id = ?
-    `).get(bookingId);
+    `,
+      )
+      .get(bookingId);
 
     if (!booking) {
       db.close();
@@ -51,13 +56,19 @@ function traceBooking(bookingId) {
     const chain = [];
 
     // ───── Step 0: 四邊拆賬總覽（區塊鏈根區塊 root block）─────
-    let coachTotal = 0, venueTotal = 0, platformTotal = booking.platform_earned_amount || 0;
-    const allEarnings = db.prepare(`
+    let coachTotal = 0,
+      venueTotal = 0,
+      platformTotal = booking.platform_earned_amount || 0;
+    const allEarnings = db
+      .prepare(
+        `
       SELECT SUM(ce.net_amount) as total, ce.schedule_id
       FROM coach_earnings ce
       WHERE ce.schedule_id = ?
       GROUP BY ce.schedule_id
-    `).get(booking.schedule_id);
+    `,
+      )
+      .get(booking.schedule_id);
     coachTotal = allEarnings?.total || 0;
     venueTotal = booking.venue_earned_amount || 0;
 
@@ -68,10 +79,37 @@ function traceBooking(bookingId) {
       time: booking.start_time,
       total_amount: booking.amount,
       splits: {
-        student: { role: "🎓 學生", name: booking.student_name, pay: booking.amount, pct: 100 },
-        platform: { role: "🏢 平台", name: "ZenPass", earn: platformTotal, pct: booking.amount > 0 ? Math.round(platformTotal / booking.amount * 100) : 0 },
-        coach: { role: "🏋️ 教練", earn: coachTotal, pct: booking.amount > 0 ? Math.round(coachTotal / booking.amount * 100) : 0 },
-        venue: { role: "🏟️ 場地", earn: venueTotal, pct: booking.amount > 0 ? Math.round(venueTotal / booking.amount * 100) : 0 },
+        student: {
+          role: "🎓 學生",
+          name: booking.student_name,
+          pay: booking.amount,
+          pct: 100,
+        },
+        platform: {
+          role: "🏢 平台",
+          name: "ZenPass",
+          earn: platformTotal,
+          pct:
+            booking.amount > 0
+              ? Math.round((platformTotal / booking.amount) * 100)
+              : 0,
+        },
+        coach: {
+          role: "🏋️ 教練",
+          earn: coachTotal,
+          pct:
+            booking.amount > 0
+              ? Math.round((coachTotal / booking.amount) * 100)
+              : 0,
+        },
+        venue: {
+          role: "🏟️ 場地",
+          earn: venueTotal,
+          pct:
+            booking.amount > 0
+              ? Math.round((venueTotal / booking.amount) * 100)
+              : 0,
+        },
       },
       status: booking.status,
       booking_id: booking.id,
@@ -99,7 +137,13 @@ function traceBooking(bookingId) {
       booking_ref: booking.booking_reference,
       class: booking.class_title,
       previous_hash: rootHash,
-      hash: sha256({ step: 1, bookingId, amount: booking.amount, time: booking.created_at, prev: rootHash }),
+      hash: sha256({
+        step: 1,
+        bookingId,
+        amount: booking.amount,
+        time: booking.created_at,
+        prev: rootHash,
+      }),
     });
 
     // ───── Step 2: 平台抽佣 ─────
@@ -113,17 +157,26 @@ function traceBooking(bookingId) {
         rate: booking.platform_commission_rate,
         description: `平台佣金 ${(booking.platform_commission_rate * 100).toFixed(0)}%`,
         previous_hash: chain[chain.length - 1].hash,
-        hash: sha256({ step: 2, bookingId, amount: booking.platform_earned_amount, prev: chain[chain.length - 1].hash }),
+        hash: sha256({
+          step: 2,
+          bookingId,
+          amount: booking.platform_earned_amount,
+          prev: chain[chain.length - 1].hash,
+        }),
       });
     }
 
     // ───── Step 3: 場地收入 ─────
     if (booking.venue_earned_amount > 0) {
-      const venue = db.prepare(`
+      const venue = db
+        .prepare(
+          `
         SELECT pv.name FROM partner_venues pv
         JOIN bookings b ON b.venue_partner_id = pv.id
         WHERE b.id = ?
-      `).get(bookingId);
+      `,
+        )
+        .get(bookingId);
 
       chain.push({
         step: chain.length + 1,
@@ -133,17 +186,26 @@ function traceBooking(bookingId) {
         amount: booking.venue_earned_amount,
         description: `場地分成`,
         previous_hash: chain[chain.length - 1].hash,
-        hash: sha256({ step: chain.length + 1, bookingId, amount: booking.venue_earned_amount, prev: chain[chain.length - 1].hash }),
+        hash: sha256({
+          step: chain.length + 1,
+          bookingId,
+          amount: booking.venue_earned_amount,
+          prev: chain[chain.length - 1].hash,
+        }),
       });
     }
 
     // ───── Step 4: 教練收入 ─────
-    const earnings = db.prepare(`
+    const earnings = db
+      .prepare(
+        `
       SELECT ce.*, u.name as coach_name
       FROM coach_earnings ce
       JOIN users u ON ce.coach_id = u.id
       WHERE ce.schedule_id = ?
-    `).all(booking.schedule_id);
+    `,
+      )
+      .all(booking.schedule_id);
 
     for (const earning of earnings) {
       chain.push({
@@ -158,13 +220,22 @@ function traceBooking(bookingId) {
         status: earning.status,
         description: `${earning.class_title} — ${earning.enrolled_count}學生 × HK$${earning.unit_price} × ${(earning.commission_rate * 100).toFixed(0)}%`,
         previous_hash: chain[chain.length - 1].hash,
-        hash: sha256({ step: chain.length + 1, earningId: earning.id, amount: earning.net_amount, prev: chain[chain.length - 1].hash }),
+        hash: sha256({
+          step: chain.length + 1,
+          earningId: earning.id,
+          amount: earning.net_amount,
+          prev: chain[chain.length - 1].hash,
+        }),
       });
 
       // ───── Step 4b: 錢包入帳（如有） ─────
-      const walletIn = db.prepare(`
+      const walletIn = db
+        .prepare(
+          `
         SELECT * FROM wallet_transactions WHERE coach_earning_id = ?
-      `).all(earning.id);
+      `,
+        )
+        .all(earning.id);
 
       for (const w of walletIn) {
         chain.push({
@@ -178,15 +249,24 @@ function traceBooking(bookingId) {
           wallet_status: w.status,
           description: `錢包入帳 HK$${w.amount}（結餘: HK$${w.balance_after}）`,
           previous_hash: chain[chain.length - 1].hash,
-          hash: sha256({ step: chain.length + 1, walletId: w.id, amount: w.amount, prev: chain[chain.length - 1].hash }),
+          hash: sha256({
+            step: chain.length + 1,
+            walletId: w.id,
+            amount: w.amount,
+            prev: chain[chain.length - 1].hash,
+          }),
         });
 
         // ───── Step 4c: 提現（如有） ─────
-        const payout = db.prepare(`
+        const payout = db
+          .prepare(
+            `
           SELECT cp.* FROM coach_payouts cp
           JOIN coach_earnings ce2 ON ce2.payout_id = cp.id
           WHERE ce2.id = ?
-        `).all(earning.id);
+        `,
+          )
+          .all(earning.id);
 
         for (const p of payout) {
           chain.push({
@@ -202,19 +282,28 @@ function traceBooking(bookingId) {
             payment_method: p.payment_method,
             description: `提現 HK$${p.net_amount}（費用 HK$${p.fee}）`,
             previous_hash: chain[chain.length - 1].hash,
-            hash: sha256({ step: chain.length + 1, payoutId: p.id, amount: p.amount, prev: chain[chain.length - 1].hash }),
+            hash: sha256({
+              step: chain.length + 1,
+              payoutId: p.id,
+              amount: p.amount,
+              prev: chain[chain.length - 1].hash,
+            }),
           });
         }
       }
     }
 
     // ───── Step 5: 場地出糧（如有） ─────
-    const venuePayouts = db.prepare(`
+    const venuePayouts = db
+      .prepare(
+        `
       SELECT pp.*, pv.name as venue_name
       FROM partner_payouts pp
       JOIN partner_venues pv ON pp.venue_id = pv.id
       WHERE pp.venue_id = ?
-    `).all(booking.venue_partner_id || '');
+    `,
+      )
+      .all(booking.venue_partner_id || "");
 
     for (const vp of venuePayouts) {
       chain.push({
@@ -225,16 +314,25 @@ function traceBooking(bookingId) {
         amount: vp.net_amount,
         gross: vp.amount,
         fee: vp.fee,
-        period: `${vp.period_start || '—'} → ${vp.period_end || '—'}`,
+        period: `${vp.period_start || "—"} → ${vp.period_end || "—"}`,
         status: vp.status,
         description: `場地結算 HK$${vp.net_amount}（費用 HK$${vp.fee}）`,
         previous_hash: chain[chain.length - 1].hash,
-        hash: sha256({ step: chain.length + 1, payoutId: vp.id, amount: vp.net_amount, prev: chain[chain.length - 1].hash }),
+        hash: sha256({
+          step: chain.length + 1,
+          payoutId: vp.id,
+          amount: vp.net_amount,
+          prev: chain[chain.length - 1].hash,
+        }),
       });
     }
 
     // 整條鏈嘅最終 hash
-    const chainHash = sha256({ bookingId, chain, lastHash: chain[chain.length - 1]?.hash });
+    const chainHash = sha256({
+      bookingId,
+      chain,
+      lastHash: chain[chain.length - 1]?.hash,
+    });
 
     db.close();
     return {
@@ -264,7 +362,11 @@ function traceBooking(bookingId) {
 function verifyChain(chain) {
   for (let i = 1; i < chain.length; i++) {
     if (chain[i].previous_hash !== chain[i - 1].hash) {
-      return { valid: false, broken_at: i, reason: `Step ${i + 1} hash mismatch` };
+      return {
+        valid: false,
+        broken_at: i,
+        reason: `Step ${i + 1} hash mismatch`,
+      };
     }
   }
   return { valid: true, length: chain.length };
@@ -278,28 +380,43 @@ function traceWalletTransaction(walletTxId) {
   db.pragma("foreign_keys = ON");
 
   try {
-    const tx = db.prepare(`
+    const tx = db
+      .prepare(
+        `
       SELECT wt.*, u.name as user_name
       FROM wallet_transactions wt
       JOIN users u ON wt.user_id = u.id
       WHERE wt.id = ?
-    `).get(walletTxId);
+    `,
+      )
+      .get(walletTxId);
 
-    if (!tx) { db.close(); return { error: "Transaction not found" }; }
+    if (!tx) {
+      db.close();
+      return { error: "Transaction not found" };
+    }
 
     // 如果係 class_income，追溯到 booking
     let bookingTrail = null;
-    if (tx.source_type === 'booking' && tx.source_id) {
+    if (tx.source_type === "booking" && tx.source_id) {
       bookingTrail = traceBooking(tx.source_id);
     } else if (tx.coach_earning_id) {
       // 由 earning 搵返 schedule_id → booking
-      const earning = db.prepare(`
+      const earning = db
+        .prepare(
+          `
         SELECT schedule_id FROM coach_earnings WHERE id = ?
-      `).get(tx.coach_earning_id);
+      `,
+        )
+        .get(tx.coach_earning_id);
       if (earning) {
-        const booking = db.prepare(`
+        const booking = db
+          .prepare(
+            `
           SELECT id FROM bookings WHERE schedule_id = ? LIMIT 1
-        `).get(earning.schedule_id);
+        `,
+          )
+          .get(earning.schedule_id);
         if (booking) {
           bookingTrail = traceBooking(booking.id);
         }
@@ -319,7 +436,7 @@ function traceWalletTransaction(walletTxId) {
 // 每次建立金錢記錄時即刻 hash 同儲存，確保不可篡改
 // ===================================================================
 
-const BLOCKCHAIN_TABLE = 'blockchain_blocks';
+const BLOCKCHAIN_TABLE = "blockchain_blocks";
 
 /**
  * 確保 blockchain_blocks table 存在
@@ -371,17 +488,23 @@ function writeBlock({ entityType, entityId, data, previousBlockId }) {
     )`);
 
     // 搵前一個 block 嘅 hash 做鏈接
-    let previousHash = '';
+    let previousHash = "";
     let blockHeight = 1;
 
     if (previousBlockId) {
-      const prev = db.prepare('SELECT hash FROM blockchain_blocks WHERE id = ?').get(previousBlockId);
+      const prev = db
+        .prepare("SELECT hash FROM blockchain_blocks WHERE id = ?")
+        .get(previousBlockId);
       if (prev) previousHash = prev.hash;
     }
 
     // 如果冇指定前一個 block，自動搵最近果個
     if (!previousHash) {
-      const last = db.prepare('SELECT hash, block_height FROM blockchain_blocks ORDER BY block_height DESC LIMIT 1').get();
+      const last = db
+        .prepare(
+          "SELECT hash, block_height FROM blockchain_blocks ORDER BY block_height DESC LIMIT 1",
+        )
+        .get();
       if (last) {
         previousHash = last.hash;
         blockHeight = last.block_height + 1;
@@ -389,18 +512,39 @@ function writeBlock({ entityType, entityId, data, previousBlockId }) {
     }
 
     // 計算 hash
-    const blockData = { entityType, entityId, data, previousHash, timestamp: Date.now() };
+    const blockData = {
+      entityType,
+      entityId,
+      data,
+      previousHash,
+      timestamp: Date.now(),
+    };
     const hash = sha256(blockData);
 
-    const blockId = require('uuid').v4();
+    const blockId = require("uuid").v4();
 
-    db.prepare(`
+    db.prepare(
+      `
       INSERT INTO blockchain_blocks (id, entity_type, entity_id, previous_hash, hash, data, block_height)
       VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).run(blockId, entityType, entityId, previousHash, hash, JSON.stringify(blockData), blockHeight);
+    `,
+    ).run(
+      blockId,
+      entityType,
+      entityId,
+      previousHash,
+      hash,
+      JSON.stringify(blockData),
+      blockHeight,
+    );
 
     db.close();
-    return { block_id: blockId, hash, height: blockHeight, previous_hash: previousHash };
+    return {
+      block_id: blockId,
+      hash,
+      height: blockHeight,
+      previous_hash: previousHash,
+    };
   } catch (err) {
     db.close();
     console.error("[BLOCKCHAIN] writeBlock error:", err.message);
@@ -416,8 +560,13 @@ function verifyBlock(blockId) {
   db.pragma("foreign_keys = ON");
 
   try {
-    const block = db.prepare('SELECT * FROM blockchain_blocks WHERE id = ?').get(blockId);
-    if (!block) { db.close(); return { valid: false, error: 'Block not found' }; }
+    const block = db
+      .prepare("SELECT * FROM blockchain_blocks WHERE id = ?")
+      .get(blockId);
+    if (!block) {
+      db.close();
+      return { valid: false, error: "Block not found" };
+    }
 
     const blockData = JSON.parse(block.data);
     const recalculatedHash = sha256(blockData);
@@ -425,7 +574,12 @@ function verifyBlock(blockId) {
     // 驗證 hash 是否一致
     if (recalculatedHash !== block.hash) {
       db.close();
-      return { valid: false, error: 'Hash mismatch - data has been tampered with', expected: block.hash, got: recalculatedHash };
+      return {
+        valid: false,
+        error: "Hash mismatch - data has been tampered with",
+        expected: block.hash,
+        got: recalculatedHash,
+      };
     }
 
     db.close();
@@ -444,8 +598,13 @@ function verifyFullChain() {
   db.pragma("foreign_keys = ON");
 
   try {
-    const blocks = db.prepare('SELECT * FROM blockchain_blocks ORDER BY block_height ASC').all();
-    if (blocks.length === 0) { db.close(); return { valid: true, blocks: 0 }; }
+    const blocks = db
+      .prepare("SELECT * FROM blockchain_blocks ORDER BY block_height ASC")
+      .all();
+    if (blocks.length === 0) {
+      db.close();
+      return { valid: true, blocks: 0 };
+    }
 
     for (let i = 0; i < blocks.length; i++) {
       const b = blocks[i];
@@ -454,19 +613,34 @@ function verifyFullChain() {
 
       if (recalculatedHash !== b.hash) {
         db.close();
-        return { valid: false, broken_at: b.block_height, block_id: b.id, entity: b.entity_type };
+        return {
+          valid: false,
+          broken_at: b.block_height,
+          block_id: b.id,
+          entity: b.entity_type,
+        };
       }
 
       // 檢查鏈接（除 genesis block）
       if (i > 0 && b.previous_hash !== blocks[i - 1].hash) {
         db.close();
-        return { valid: false, broken_link: b.block_height, expected_prev: blocks[i - 1].hash, got_prev: b.previous_hash };
+        return {
+          valid: false,
+          broken_link: b.block_height,
+          expected_prev: blocks[i - 1].hash,
+          got_prev: b.previous_hash,
+        };
       }
     }
 
     const latest = blocks[blocks.length - 1];
     db.close();
-    return { valid: true, blocks: blocks.length, latest_hash: latest.hash, latest_height: latest.block_height };
+    return {
+      valid: true,
+      blocks: blocks.length,
+      latest_hash: latest.hash,
+      latest_height: latest.block_height,
+    };
   } catch (err) {
     db.close();
     return { valid: false, error: err.message };
@@ -479,19 +653,23 @@ function verifyFullChain() {
 function writeBookingBlock(bookingId) {
   const db = new Database(DB_PATH);
   try {
-    const booking = db.prepare(`
+    const booking = db
+      .prepare(
+        `
       SELECT b.*, u.name as student_name, c.title as class_title
       FROM bookings b
       JOIN users u ON b.user_id = u.id
       JOIN class_schedules cs ON b.schedule_id = cs.id
       JOIN classes c ON cs.class_id = c.id
       WHERE b.id = ?
-    `).get(bookingId);
-    if (!booking) return { error: 'Booking not found' };
+    `,
+      )
+      .get(bookingId);
+    if (!booking) return { error: "Booking not found" };
     db.close();
 
     return writeBlock({
-      entityType: 'booking',
+      entityType: "booking",
       entityId: bookingId,
       data: {
         booking_ref: booking.booking_reference,

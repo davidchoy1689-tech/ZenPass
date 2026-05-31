@@ -86,7 +86,9 @@ async function sendTelegramAlert(message) {
 ${message}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 `);
-    console.log("ℹ️ 要啟用真實 Telegram 通知，請設定 TELEGRAM_BOT_TOKEN 同 TELEGRAM_CHAT_ID");
+    console.log(
+      "ℹ️ 要啟用真實 Telegram 通知，請設定 TELEGRAM_BOT_TOKEN 同 TELEGRAM_CHAT_ID",
+    );
   }
   return sent;
 }
@@ -99,7 +101,9 @@ async function whatsappNotification(message) {
   const to = process.env.TWILIO_WHATSAPP_TO;
 
   if (!accountSid || !authToken || !from || !to) {
-    console.log("⚠️ WhatsApp not configured - set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_WHATSAPP_FROM, TWILIO_WHATSAPP_TO");
+    console.log(
+      "⚠️ WhatsApp not configured - set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_WHATSAPP_FROM, TWILIO_WHATSAPP_TO",
+    );
     return false;
   }
 
@@ -135,7 +139,9 @@ Body:
 ${html}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     `);
-    console.log("⚠️ SMTP not configured - set SMTP_HOST, SMTP_USER, SMTP_PASS to enable real emails");
+    console.log(
+      "⚠️ SMTP not configured - set SMTP_HOST, SMTP_USER, SMTP_PASS to enable real emails",
+    );
     // TODO: 接入真實 SMTP — 開通後刪除上面嘅 console.log，uncomment 下面嘅 nodemailer 代碼
     return true; // Return true in dev mode so callers think it sent
   }
@@ -338,7 +344,9 @@ async function whatsappFreeNotification(message, phone) {
   const to = phone || process.env.WHATSAPP_CALLMEBOT_TO;
 
   if (!apiKey || !to) {
-    console.log("⚠️ WhatsApp (CallMeBot) not configured - set WHATSAPP_CALLMEBOT_KEY and WHATSAPP_CALLMEBOT_TO");
+    console.log(
+      "⚠️ WhatsApp (CallMeBot) not configured - set WHATSAPP_CALLMEBOT_KEY and WHATSAPP_CALLMEBOT_TO",
+    );
     return false;
   }
 
@@ -368,4 +376,3 @@ module.exports = {
   markAsRead,
   markAllAsRead,
 };
-

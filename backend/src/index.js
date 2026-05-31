@@ -237,7 +237,8 @@ app.use((req, res) => {
 const { errorHandler, AppError } = require("./middleware/error-handler");
 app.use(errorHandler);
 
-const DB_PATH = process.env.DB_PATH || path.resolve(__dirname, "../data/zenpass.db");
+const DB_PATH =
+  process.env.DB_PATH || path.resolve(__dirname, "../data/zenpass.db");
 
 // ===== 定期清理過期嘅 pending_payment（30分鐘未付款就釋放名額）=====
 function cleanupExpiredBookings() {
@@ -559,7 +560,10 @@ process.on("SIGINT", () => {
 });
 
 // ===== 自動備份（啟動時檢查，>24h 無備份就創建）=====
-const { autoBackupOnStartup, scheduleDailyBackup } = require("./services/backup");
+const {
+  autoBackupOnStartup,
+  scheduleDailyBackup,
+} = require("./services/backup");
 autoBackupOnStartup();
 // 每日凌晨 3 點自動備份排程
 scheduleDailyBackup();

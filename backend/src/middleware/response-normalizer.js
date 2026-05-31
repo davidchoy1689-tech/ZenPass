@@ -1,6 +1,6 @@
 /**
  * ZenPass 禪流 - API 回應格式統一中介軟體
- * 
+ *
  * 攔截所有 res.json()，確保回應包含 success 字段。
  * 保持向後相容（保留原有 data key），不影響現有前端。
  */
@@ -10,7 +10,12 @@ function responseNormalizer(req, res, next) {
 
   res.json = function (body) {
     // Skip non-object responses (strings, buffers, etc.)
-    if (body === null || body === undefined || typeof body !== "object" || Array.isArray(body)) {
+    if (
+      body === null ||
+      body === undefined ||
+      typeof body !== "object" ||
+      Array.isArray(body)
+    ) {
       return originalJson(body);
     }
 

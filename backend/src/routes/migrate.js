@@ -84,7 +84,10 @@ router.post("/course-contents", authenticateToken, requireAdmin, (req, res) => {
 
     db.close();
 
-    res.json({ status: "created", message: "course_contents table created successfully" });
+    res.json({
+      status: "created",
+      message: "course_contents table created successfully",
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

@@ -5,7 +5,11 @@
 var express = require("express");
 var router = express.Router();
 var { authenticateToken, optionalAuth } = require("../middleware/auth");
-var { trackUserAction, getRecommendations, getPopularByCategory } = require("../services/recommendation");
+var {
+  trackUserAction,
+  getRecommendations,
+  getPopularByCategory,
+} = require("../services/recommendation");
 
 // ===== POST /api/track — 記錄用戶行為 =====
 router.post("/", optionalAuth, function (req, res) {

@@ -84,7 +84,10 @@ async function testHealthCheck() {
 
   console.log("  ✅ Health check returns comprehensive status");
   console.log("     Status:", data.status);
-  console.log("     Database:", data.database.connected ? "✅ connected" : "❌ disconnected");
+  console.log(
+    "     Database:",
+    data.database.connected ? "✅ connected" : "❌ disconnected",
+  );
   console.log("     Tables:", data.database.tables);
   console.log("     Memory:", data.memory.usage);
   console.log("     Uptime:", data.uptime_human);
@@ -96,15 +99,24 @@ async function testAdminPayout() {
 
   // First, try with no auth
   const noAuth = await apiPost("/api/admin/process-payouts", {});
-  assert.ok(noAuth.status === 401 || noAuth.status === 403, 
-    "Should reject unauthenticated requests (got " + noAuth.status + ")");
+  assert.ok(
+    noAuth.status === 401 || noAuth.status === 403,
+    "Should reject unauthenticated requests (got " + noAuth.status + ")",
+  );
   console.log("  ✅ Unauthenticated request correctly rejected");
 
   // Try with non-admin token
   if (adminToken) {
-    const adminRes = await apiPost("/api/admin/process-payouts", {}, adminToken);
+    const adminRes = await apiPost(
+      "/api/admin/process-payouts",
+      {},
+      adminToken,
+    );
     // Should work or return appropriate message
-    console.log("  ✅ Admin payout endpoint responds (status:", adminRes.status + ")");
+    console.log(
+      "  ✅ Admin payout endpoint responds (status:",
+      adminRes.status + ")",
+    );
     if (adminRes.body && adminRes.body.processed !== undefined) {
       console.log("     Processed:", adminRes.body.processed + " coach(es)");
     }
@@ -114,7 +126,10 @@ async function testAdminPayout() {
   if (adminToken) {
     const payoutsRes = await apiGet("/api/admin/payouts", adminToken);
     if (payoutsRes.status === 200) {
-      assert.ok(payoutsRes.body.payouts !== undefined, "Should have payouts array");
+      assert.ok(
+        payoutsRes.body.payouts !== undefined,
+        "Should have payouts array",
+      );
       console.log("  ✅ Admin payouts list works");
       console.log("     Total payouts:", payoutsRes.body.total);
     }
@@ -127,14 +142,20 @@ async function testWaitlist() {
 
   // Test waitlist status endpoint without auth
   const noAuth = await apiGet("/api/waitlist/status?schedule_id=test");
-  assert.ok(noAuth.status === 401 || noAuth.status === 403,
-    "Should reject unauthenticated waitlist requests");
+  assert.ok(
+    noAuth.status === 401 || noAuth.status === 403,
+    "Should reject unauthenticated waitlist requests",
+  );
   console.log("  ✅ Waitlist status correctly requires auth");
 
   // Test notify-next without auth
-  const noAuth2 = await apiPost("/api/waitlist/notify-next", { schedule_id: "test" });
-  assert.ok(noAuth2.status === 401 || noAuth2.status === 403,
-    "Should reject unauthenticated notify-next");
+  const noAuth2 = await apiPost("/api/waitlist/notify-next", {
+    schedule_id: "test",
+  });
+  assert.ok(
+    noAuth2.status === 401 || noAuth2.status === 403,
+    "Should reject unauthenticated notify-next",
+  );
   console.log("  ✅ Waitlist notify-next correctly requires auth");
 }
 
@@ -146,25 +167,44 @@ async function testNotifications() {
   const configRes = await apiGet("/api/notifications/config");
   if (configRes.status === 200) {
     assert.ok(configRes.body.config, "Should have config object");
-    assert.ok(configRes.body.config.db === true, "DB notifications should be enabled");
+    assert.ok(
+      configRes.body.config.db === true,
+      "DB notifications should be enabled",
+    );
     console.log("  ✅ Notification config endpoint works");
     console.log("     DB enabled:", configRes.body.config.db);
-    console.log("     Telegram:", configRes.body.config.telegram.enabled ? "✅" : "⚙️ not configured");
+    console.log(
+      "     Telegram:",
+      configRes.body.config.telegram.enabled ? "✅" : "⚙️ not configured",
+    );
   } else {
     console.log("  ⚠️ Config endpoint requires auth, testing fallback");
   }
 
   // Test sendNotification can be called (via console.log)
-  const { sendNotification, dbNotification } = require("../src/services/notification");
-  
+  const {
+    sendNotification,
+    dbNotification,
+  } = require("../src/services/notification");
+
   // DB notification with valid user_id (if available in test DB)
-  const { sendNotification: sendNotif } = require("../src/services/notification");
+  const {
+    sendNotification: sendNotif,
+  } = require("../src/services/notification");
   console.log("  ✅ sendNotification module loads correctly");
-  
+
   // Verify email notification falls back to console.log when SMTP not configured
   const { emailNotification } = require("../src/services/notification");
-  const emailResult = await emailNotification("test@example.com", "Test Subject", "<p>Test body</p>");
-  assert.strictEqual(emailResult, true, "Email notification should return true in dev mode (console fallback)");
+  const emailResult = await emailNotification(
+    "test@example.com",
+    "Test Subject",
+    "<p>Test body</p>",
+  );
+  assert.strictEqual(
+    emailResult,
+    true,
+    "Email notification should return true in dev mode (console fallback)",
+  );
   console.log("  ✅ Email notification falls back to console.log in dev mode");
 
   const result = await sendNotification("booking.confirmed", {
@@ -177,7 +217,10 @@ async function testNotifications() {
       coach_name: "測試教練",
     },
   });
-  assert.ok(result.db !== undefined, "Send notification should return results for each channel");
+  assert.ok(
+    result.db !== undefined,
+    "Send notification should return results for each channel",
+  );
   console.log("  ✅ sendNotification unified API works");
 }
 
@@ -187,7 +230,10 @@ async function testCoachPayout() {
 
   // Test the earnings/calculate endpoint
   const calcRes = await apiPost("/api/coach/earnings/calculate", {});
-  console.log("  ✅ Earnings calculate endpoint responds (status:", calcRes.status + ")");
+  console.log(
+    "  ✅ Earnings calculate endpoint responds (status:",
+    calcRes.status + ")",
+  );
 
   // Test settings endpoint
   const settingsRes = await apiGet("/api/coach/settings");
@@ -201,7 +247,10 @@ async function testCoachPayout() {
   const rateRes = await apiGet("/api/coach/settings/effective-rate");
   if (rateRes.status === 200) {
     assert.ok(rateRes.body.coach_rate !== undefined, "Should have coach_rate");
-    console.log("  ✅ Effective rate endpoint works (coach:", rateRes.body.coach_rate + ")");
+    console.log(
+      "  ✅ Effective rate endpoint works (coach:",
+      rateRes.body.coach_rate + ")",
+    );
   }
 }
 

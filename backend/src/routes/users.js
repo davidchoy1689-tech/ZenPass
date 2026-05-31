@@ -144,7 +144,7 @@ router.get("/me", authenticateToken, (req, res) => {
                 membership_expires_at, is_coach, coach_verified, created_at,
                 role, user_reference, points, points_tier, checkin_streak,
                 total_visits, total_spent
-         FROM users WHERE id = ?`
+         FROM users WHERE id = ?`,
       )
       .get(req.user.id);
     db.close();

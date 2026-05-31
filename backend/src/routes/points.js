@@ -45,7 +45,9 @@ function addPointsTx(userId, type, points, source, description, referenceId) {
   const db = new Database(DB_PATH);
   db.pragma("foreign_keys = ON");
   try {
-    const user = db.prepare("SELECT points FROM users WHERE id = ?").get(userId);
+    const user = db
+      .prepare("SELECT points FROM users WHERE id = ?")
+      .get(userId);
     if (!user) return null;
 
     const currentPoints = user.points || 0;
@@ -57,16 +59,29 @@ function addPointsTx(userId, type, points, source, description, referenceId) {
 
     // 寫入 transaction
     const txId = uuidv4();
-    db.prepare(`
+    db.prepare(
+      `
       INSERT INTO points_transactions (id, user_id, type, points, balance_after, source, reference_id, description)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(txId, userId, type, points, newBalance, source, referenceId || null, description || null);
+    `,
+    ).run(
+      txId,
+      userId,
+      type,
+      points,
+      newBalance,
+      source,
+      referenceId || null,
+      description || null,
+    );
 
     // 更新用戶積分 + 等級
-    db.prepare(`
+    db.prepare(
+      `
       UPDATE users SET points = ?, points_tier = ?, points_tier_label = ?, updated_at = datetime('now')
       WHERE id = ?
-    `).run(newBalance, tier.current.id, tier.current.label, userId);
+    `,
+    ).run(newBalance, tier.current.id, tier.current.label, userId);
 
     return { txId, points: newBalance, tier: tier.current };
   } finally {
@@ -81,44 +96,64 @@ function getUserPointsSummary(userId) {
   const db = new Database(DB_PATH);
   db.pragma("foreign_keys = ON");
   try {
-    const user = db.prepare(`
+    const user = db
+      .prepare(
+        `
       SELECT id, name, points, points_tier, points_tier_label, last_checkin, checkin_streak
       FROM users WHERE id = ?
-    `).get(userId);
+    `,
+      )
+      .get(userId);
     if (!user) return null;
 
     const tier = calcTier(user.points || 0);
 
     // 本月賺取積分
-    const monthEarned = db.prepare(`
+    const monthEarned = db
+      .prepare(
+        `
       SELECT COALESCE(SUM(points), 0) as total FROM points_transactions
       WHERE user_id = ? AND type = 'earn'
       AND strftime('%Y-%m', created_at) = strftime('%Y-%m', 'now')
-    `).get(userId);
+    `,
+      )
+      .get(userId);
 
     // 歷史總賺取
-    const totalEarned = db.prepare(`
+    const totalEarned = db
+      .prepare(
+        `
       SELECT COALESCE(SUM(points), 0) as total FROM points_transactions
       WHERE user_id = ? AND type = 'earn'
-    `).get(userId);
+    `,
+      )
+      .get(userId);
 
     // 歷史總花費
-    const totalSpent = db.prepare(`
+    const totalSpent = db
+      .prepare(
+        `
       SELECT COALESCE(SUM(points), 0) as total FROM points_transactions
       WHERE user_id = ? AND type = 'spend'
-    `).get(userId);
+    `,
+      )
+      .get(userId);
 
     // 今天是否已簽到
     const today = new Date().toISOString().split("T")[0];
-    
+
     // 本週預約數量（for weekly challenge）
     const weekStart = new Date();
     weekStart.setDate(weekStart.getDate() - weekStart.getDay());
     const weekStartStr = weekStart.toISOString().split("T")[0];
-    const weekBookings = db.prepare(`
+    const weekBookings = db
+      .prepare(
+        `
       SELECT COUNT(*) as total FROM bookings
       WHERE user_id = ? AND created_at >= ? AND status IN ('confirmed', 'completed', 'attended')
-    `).get(userId, weekStartStr);
+    `,
+      )
+      .get(userId, weekStartStr);
 
     const checkedInToday = user.last_checkin
       ? user.last_checkin.startsWith(today)
@@ -129,7 +164,11 @@ function getUserPointsSummary(userId) {
       tier: tier.current,
       nextTier: tier.next,
       tierProgress: tier.next
-        ? Math.round(((user.points || 0) - tier.current.minPoints) / (tier.next.minPoints - tier.current.minPoints) * 100)
+        ? Math.round(
+            (((user.points || 0) - tier.current.minPoints) /
+              (tier.next.minPoints - tier.current.minPoints)) *
+              100,
+          )
         : 100,
       checkinStreak: user.checkin_streak || 0,
       checkedInToday,
@@ -164,16 +203,24 @@ router.get("/history", authenticateToken, (req, res) => {
     const limit = Math.min(parseInt(req.query.limit) || 50, 100);
     const offset = parseInt(req.query.offset) || 0;
 
-    const transactions = db.prepare(`
+    const transactions = db
+      .prepare(
+        `
       SELECT * FROM points_transactions
       WHERE user_id = ?
       ORDER BY created_at DESC
       LIMIT ? OFFSET ?
-    `).all(req.user.id, limit, offset);
+    `,
+      )
+      .all(req.user.id, limit, offset);
 
-    const total = db.prepare(`
+    const total = db
+      .prepare(
+        `
       SELECT COUNT(*) as count FROM points_transactions WHERE user_id = ?
-    `).get(req.user.id);
+    `,
+      )
+      .get(req.user.id);
 
     db.close();
     res.json({ transactions, total: total.count, limit, offset });
@@ -194,9 +241,13 @@ router.get("/rewards", authenticateToken, (req, res) => {
     const db = new Database(DB_PATH);
     db.pragma("foreign_keys = ON");
 
-    const rewards = db.prepare(`
+    const rewards = db
+      .prepare(
+        `
       SELECT * FROM points_rewards WHERE is_active = 1 ORDER BY points_cost ASC
-    `).all();
+    `,
+      )
+      .all();
 
     db.close();
 
@@ -213,9 +264,13 @@ router.post("/checkin", authenticateToken, (req, res) => {
     const db = new Database(DB_PATH);
     db.pragma("foreign_keys = ON");
 
-    const user = db.prepare(`
+    const user = db
+      .prepare(
+        `
       SELECT id, points, last_checkin, checkin_streak FROM users WHERE id = ?
-    `).get(req.user.id);
+    `,
+      )
+      .get(req.user.id);
 
     if (!user) {
       db.close();
@@ -227,7 +282,9 @@ router.post("/checkin", authenticateToken, (req, res) => {
     // 檢查今日是否已簽到
     if (user.last_checkin && user.last_checkin.startsWith(today)) {
       db.close();
-      return res.status(400).json({ error: "今日已簽到", alreadyCheckedIn: true });
+      return res
+        .status(400)
+        .json({ error: "今日已簽到", alreadyCheckedIn: true });
     }
 
     // 計算連續簽到天數
@@ -255,7 +312,14 @@ router.post("/checkin", authenticateToken, (req, res) => {
 
     // 記錄簽到交易
     const desc = `📅 每日簽到 Day ${streak}${streakBonus > 0 ? `（連續獎勵 +${streakBonus}）` : ""}`;
-    const result = addPointsTx(req.user.id, "earn", totalPoints, "checkin", desc, null);
+    const result = addPointsTx(
+      req.user.id,
+      "earn",
+      totalPoints,
+      "checkin",
+      desc,
+      null,
+    );
 
     if (!result) {
       return res.status(500).json({ error: "簽到失敗" });
@@ -264,10 +328,14 @@ router.post("/checkin", authenticateToken, (req, res) => {
     // 更新 last_checkin 和 checkin_streak
     const db2 = new Database(DB_PATH);
     db2.pragma("foreign_keys = ON");
-    db2.prepare(`
+    db2
+      .prepare(
+        `
       UPDATE users SET last_checkin = datetime('now'), checkin_streak = ?, updated_at = datetime('now')
       WHERE id = ?
-    `).run(streak, req.user.id);
+    `,
+      )
+      .run(streak, req.user.id);
     db2.close();
 
     res.json({
@@ -295,9 +363,13 @@ router.post("/redeem", authenticateToken, (req, res) => {
     db.pragma("foreign_keys = ON");
 
     // 檢查獎勵
-    const reward = db.prepare(`
+    const reward = db
+      .prepare(
+        `
       SELECT * FROM points_rewards WHERE id = ? AND is_active = 1
-    `).get(reward_id);
+    `,
+      )
+      .get(reward_id);
 
     if (!reward) {
       db.close();
@@ -310,17 +382,30 @@ router.post("/redeem", authenticateToken, (req, res) => {
     }
 
     // 檢查用戶積分
-    const user = db.prepare("SELECT points FROM users WHERE id = ?").get(req.user.id);
+    const user = db
+      .prepare("SELECT points FROM users WHERE id = ?")
+      .get(req.user.id);
     if (!user || (user.points || 0) < reward.points_cost) {
       db.close();
-      return res.status(400).json({ error: "積分不足", required: reward.points_cost, current: user?.points || 0 });
+      return res.status(400).json({
+        error: "積分不足",
+        required: reward.points_cost,
+        current: user?.points || 0,
+      });
     }
 
     db.close();
 
     // 扣積分
     const desc = `🎁 兌換：${reward.icon} ${reward.name}`;
-    const result = addPointsTx(req.user.id, "spend", reward.points_cost, "redeem", desc, reward_id);
+    const result = addPointsTx(
+      req.user.id,
+      "spend",
+      reward.points_cost,
+      "redeem",
+      desc,
+      reward_id,
+    );
 
     if (!result) {
       return res.status(500).json({ error: "兌換失敗" });
@@ -333,14 +418,28 @@ router.post("/redeem", authenticateToken, (req, res) => {
 
     const db3 = new Database(DB_PATH);
     db3.pragma("foreign_keys = ON");
-    db3.prepare(`
+    db3
+      .prepare(
+        `
       INSERT INTO points_redemptions (id, user_id, reward_id, reward_name, points_spent, reward_value, expires_at)
       VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).run(redId, req.user.id, reward_id, reward.name, reward.points_cost, reward.reward_value, expiresAt.toISOString());
+    `,
+      )
+      .run(
+        redId,
+        req.user.id,
+        reward_id,
+        reward.name,
+        reward.points_cost,
+        reward.reward_value,
+        expiresAt.toISOString(),
+      );
 
     // 扣庫存
     if (reward.stock !== -1) {
-      db3.prepare("UPDATE points_rewards SET stock = stock - 1 WHERE id = ?").run(reward_id);
+      db3
+        .prepare("UPDATE points_rewards SET stock = stock - 1 WHERE id = ?")
+        .run(reward_id);
     }
     db3.close();
 
@@ -372,23 +471,31 @@ router.get("/checkin-dates", authenticateToken, (req, res) => {
 
     // 獲取當前月份首日和末日
     const now = new Date();
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split("T")[0];
-    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split("T")[0];
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+      .toISOString()
+      .split("T")[0];
+    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+      .toISOString()
+      .split("T")[0];
 
     // 從點數交易中取出本月的簽到記錄
-    const checkinDays = db.prepare(`
+    const checkinDays = db
+      .prepare(
+        `
       SELECT DISTINCT DATE(created_at) as checkin_date
       FROM points_transactions
       WHERE user_id = ? AND source = 'checkin'
       AND created_at >= ? AND created_at < ?
       ORDER BY checkin_date
-    `).all(req.user.id, monthStart, monthEnd + "T23:59:59");
+    `,
+      )
+      .all(req.user.id, monthStart, monthEnd + "T23:59:59");
 
     db.close();
     res.json({
       year: now.getFullYear(),
       month: now.getMonth() + 1,
-      days: checkinDays.map(d => d.checkin_date)
+      days: checkinDays.map((d) => d.checkin_date),
     });
   } catch (err) {
     console.error("取簽到日期錯誤:", err);
@@ -402,13 +509,17 @@ router.get("/leaderboard", (req, res) => {
     const db = new Database(DB_PATH);
     db.pragma("foreign_keys = ON");
 
-    const topUsers = db.prepare(`
+    const topUsers = db
+      .prepare(
+        `
       SELECT id, name, points, points_tier_label, points_tier
       FROM users
       WHERE points > 0
       ORDER BY points DESC
       LIMIT 10
-    `).all();
+    `,
+      )
+      .all();
 
     db.close();
     res.json({ leaderboard: topUsers });
@@ -423,14 +534,18 @@ router.get("/redemptions", authenticateToken, (req, res) => {
     const db = new Database(DB_PATH);
     db.pragma("foreign_keys = ON");
 
-    const redemptions = db.prepare(`
+    const redemptions = db
+      .prepare(
+        `
       SELECT r.*, p.icon as reward_icon
       FROM points_redemptions r
       LEFT JOIN points_rewards p ON r.reward_id = p.id
       WHERE r.user_id = ?
       ORDER BY r.created_at DESC
       LIMIT 50
-    `).all(req.user.id);
+    `,
+      )
+      .all(req.user.id);
 
     db.close();
     res.json({ redemptions });
@@ -450,13 +565,17 @@ router.post("/earn-booking", authenticateToken, (req, res) => {
     db.pragma("foreign_keys = ON");
 
     // 檢查 booking 是否存在且屬於該用戶，狀態為 attended
-    const booking = db.prepare(`
+    const booking = db
+      .prepare(
+        `
       SELECT b.*, c.title as class_title, cs.start_time
       FROM bookings b
       JOIN classes c ON b.class_id = c.id
       JOIN class_schedules cs ON b.schedule_id = cs.id
       WHERE b.id = ? AND b.user_id = ? AND b.status = 'attended'
-    `).get(booking_id, req.user.id);
+    `,
+      )
+      .get(booking_id, req.user.id);
 
     if (!booking) {
       db.close();
@@ -464,10 +583,14 @@ router.post("/earn-booking", authenticateToken, (req, res) => {
     }
 
     // 檢查是否已領過積分
-    const existing = db.prepare(`
+    const existing = db
+      .prepare(
+        `
       SELECT id FROM points_transactions
       WHERE user_id = ? AND source = 'booking' AND reference_id = ?
-    `).get(req.user.id, booking_id);
+    `,
+      )
+      .get(req.user.id, booking_id);
 
     if (existing) {
       db.close();
@@ -479,7 +602,14 @@ router.post("/earn-booking", authenticateToken, (req, res) => {
     // 獎勵積分
     const points = 50;
     const desc = `🏋️ 完成課堂：${booking.class_title}`;
-    const result = addPointsTx(req.user.id, "earn", points, "booking", desc, booking_id);
+    const result = addPointsTx(
+      req.user.id,
+      "earn",
+      points,
+      "booking",
+      desc,
+      booking_id,
+    );
 
     // 順便檢查是否係本週第一堂（額外獎勵）
     const db2 = new Database(DB_PATH);
@@ -488,16 +618,26 @@ router.post("/earn-booking", authenticateToken, (req, res) => {
     weekStart.setDate(weekStart.getDate() - weekStart.getDay());
     const weekStartStr = weekStart.toISOString().split("T")[0];
 
-    const weekBookings = db2.prepare(`
+    const weekBookings = db2
+      .prepare(
+        `
       SELECT COUNT(*) as count FROM points_transactions
       WHERE user_id = ? AND source = 'booking'
       AND created_at >= ?
-    `).get(req.user.id, weekStartStr);
+    `,
+      )
+      .get(req.user.id, weekStartStr);
 
     if (weekBookings.count === 1) {
       // 本週第一堂，額外獎勵
-      const bonusResult = addPointsTx(req.user.id, "earn", 30, "weekly_bonus",
-        `🏆 本週第一堂額外獎勵 +30`, booking_id);
+      const bonusResult = addPointsTx(
+        req.user.id,
+        "earn",
+        30,
+        "weekly_bonus",
+        `🏆 本週第一堂額外獎勵 +30`,
+        booking_id,
+      );
       db2.close();
 
       return res.json({
@@ -538,25 +678,33 @@ router.post("/review", authenticateToken, (req, res) => {
     const db = new Database(DB_PATH);
     db.pragma("foreign_keys = ON");
 
-    const booking = db.prepare(`
+    const booking = db
+      .prepare(
+        `
       SELECT * FROM bookings WHERE id = ? AND user_id = ?
-    `).get(booking_id, req.user.id);
+    `,
+      )
+      .get(booking_id, req.user.id);
 
     if (!booking) {
       db.close();
       return res.status(404).json({ error: "預約不存在" });
     }
 
-    if (booking.status !== 'attended' && booking.status !== 'confirmed') {
+    if (booking.status !== "attended" && booking.status !== "confirmed") {
       db.close();
       return res.status(400).json({ error: "只能評價已完成的課堂" });
     }
 
     // 檢查是否已領過評價積分
-    const existing = db.prepare(`
+    const existing = db
+      .prepare(
+        `
       SELECT id FROM points_transactions
       WHERE user_id = ? AND source = 'review' AND reference_id = ?
-    `).get(req.user.id, booking_id);
+    `,
+      )
+      .get(req.user.id, booking_id);
 
     if (existing) {
       db.close();
@@ -567,7 +715,14 @@ router.post("/review", authenticateToken, (req, res) => {
 
     const points = 20;
     const desc = `⭐ 課後評價獎勵 +${points}`;
-    const result = addPointsTx(req.user.id, "earn", points, "review", desc, booking_id);
+    const result = addPointsTx(
+      req.user.id,
+      "earn",
+      points,
+      "review",
+      desc,
+      booking_id,
+    );
 
     res.json({
       success: true,
@@ -585,12 +740,20 @@ router.post("/review", authenticateToken, (req, res) => {
 router.post("/referral", authenticateToken, (req, res) => {
   try {
     const { referred_user_id } = req.body;
-    if (!referred_user_id) return res.status(400).json({ error: "請提供被推薦用戶 ID" });
+    if (!referred_user_id)
+      return res.status(400).json({ error: "請提供被推薦用戶 ID" });
 
     // 推薦人獲得 100 積分（新用戶首次預約完成時觸發）
     const points = 100;
     const desc = `👥 推薦朋友獎勵 +${points}`;
-    const result = addPointsTx(req.user.id, "earn", points, "referral", desc, referred_user_id);
+    const result = addPointsTx(
+      req.user.id,
+      "earn",
+      points,
+      "referral",
+      desc,
+      referred_user_id,
+    );
 
     res.json({
       success: true,

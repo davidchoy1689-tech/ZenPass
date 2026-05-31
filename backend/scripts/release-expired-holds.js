@@ -33,7 +33,7 @@ function releaseExpiredHolds() {
         AND b.fps_reference IS NULL
         AND b.payme_reference IS NULL
         AND datetime(b.created_at, '+15 minutes') <= datetime(?)
-    `
+    `,
     )
     .all(now);
 
@@ -42,17 +42,15 @@ function releaseExpiredHolds() {
     return { released: 0, expired: [] };
   }
 
-  console.log(
-    `🔓 發現 ${expired.length} 個過期 hold 位，正在釋放...`
-  );
+  console.log(`🔓 發現 ${expired.length} 個過期 hold 位，正在釋放...`);
 
   // 批次取消過期 booking 並釋放名額
   const cancelStmt = db.prepare(
-    `UPDATE bookings SET status = 'cancelled', payment_status = 'refunded' WHERE id = ? AND status = 'pending_payment'`
+    `UPDATE bookings SET status = 'cancelled', payment_status = 'refunded' WHERE id = ? AND status = 'pending_payment'`,
   );
 
   const decrStmt = db.prepare(
-    `UPDATE class_schedules SET enrolled_count = enrolled_count - 1 WHERE id = ? AND enrolled_count > 0`
+    `UPDATE class_schedules SET enrolled_count = enrolled_count - 1 WHERE id = ? AND enrolled_count > 0`,
   );
 
   const releaseBatch = db.transaction((items) => {
@@ -61,7 +59,7 @@ function releaseExpiredHolds() {
       if (cancelResult.changes > 0) {
         decrStmt.run(item.schedule_id);
         console.log(
-          `  ✅ 釋放: ${item.booking_reference} (schedule: ${item.schedule_id?.substring(0, 12)}...)`
+          `  ✅ 釋放: ${item.booking_reference} (schedule: ${item.schedule_id?.substring(0, 12)}...)`,
         );
       }
     }

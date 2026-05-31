@@ -120,14 +120,18 @@ router.get("/", optionalAuth, cache(30), (req, res) => {
     //     // Batch query all schedules in one go (avoid N+1)
     let scheduleMap = {};
     if (classes.length > 0) {
-      const classIds = classes.map(c => c.id);
-      const placeholders = classIds.map(() => '?').join(',');
-      const allSchedules = db.prepare(`
+      const classIds = classes.map((c) => c.id);
+      const placeholders = classIds.map(() => "?").join(",");
+      const allSchedules = db
+        .prepare(
+          `
         SELECT id, class_id, start_time, end_time, enrolled_count, max_participants, status
         FROM class_schedules
         WHERE class_id IN (${placeholders}) AND start_time > datetime('now') AND status = 'available'
         ORDER BY start_time ASC
-      `).all(...classIds);
+      `,
+        )
+        .all(...classIds);
       for (const s of allSchedules) {
         if (!scheduleMap[s.class_id]) scheduleMap[s.class_id] = [];
         if (scheduleMap[s.class_id].length < 5) {
@@ -135,9 +139,9 @@ router.get("/", optionalAuth, cache(30), (req, res) => {
         }
       }
     }
-    const classesWithSchedule = classes.map(cls => ({
+    const classesWithSchedule = classes.map((cls) => ({
       ...cls,
-      schedules: scheduleMap[cls.id] || []
+      schedules: scheduleMap[cls.id] || [],
     }));
 
     db.close();
@@ -162,15 +166,17 @@ router.get("/available-dates", cache(60), (req, res) => {
   try {
     const db = new Database(DB_PATH);
     const dates = db
-      .prepare(`
+      .prepare(
+        `
         SELECT DISTINCT date(start_time) as d
         FROM class_schedules
         WHERE start_time > datetime('now') AND status = 'available'
         ORDER BY start_time ASC
         LIMIT 14
-      `)
+      `,
+      )
       .all()
-      .map(row => row.d);
+      .map((row) => row.d);
     db.close();
     res.json({ dates });
   } catch (err) {
@@ -179,17 +185,25 @@ router.get("/available-dates", cache(60), (req, res) => {
   }
 });
 
-
 router.get("/:id/recommended", (req, res) => {
   try {
     const db = new Database(DB_PATH);
-    const course = db.prepare("SELECT category FROM classes WHERE id = ?").get(req.params.id);
-    if (!course) { db.close(); return res.json({ classes: [] }); }
-    const classes = db.prepare(`
+    const course = db
+      .prepare("SELECT category FROM classes WHERE id = ?")
+      .get(req.params.id);
+    if (!course) {
+      db.close();
+      return res.json({ classes: [] });
+    }
+    const classes = db
+      .prepare(
+        `
       SELECT id, title, category, difficulty, price_hkd, duration, image_url
       FROM classes WHERE category = ? AND id != ? AND status = 'active'
       ORDER BY category ASC LIMIT 4
-    `).all(course.category, req.params.id);
+    `,
+      )
+      .all(course.category, req.params.id);
     db.close();
     res.json({ classes });
   } catch (err) {
@@ -202,7 +216,9 @@ router.get("/:id/recommended", (req, res) => {
 router.get("/upcoming", optionalAuth, (req, res) => {
   try {
     const db = new Database(DB_PATH);
-    const schedules = db.prepare(`
+    const schedules = db
+      .prepare(
+        `
       SELECT cs.id as schedule_id, c.title, c.id as class_id, cs.start_time, cs.end_time,
              c.venue_name, c.coach_id, c.price_hkd, cs.enrolled_count, cs.max_participants
       FROM class_schedules cs, classes c
@@ -211,10 +227,14 @@ router.get("/upcoming", optionalAuth, (req, res) => {
         AND cs.status = 'available'
       ORDER BY cs.start_time
       LIMIT 50
-    `).all();
+    `,
+      )
+      .all();
     // Enrich with coach names
-    var enriched = schedules.map(function(s) {
-      var coach = db.prepare("SELECT name FROM users WHERE id = ?").get(s.coach_id);
+    var enriched = schedules.map(function (s) {
+      var coach = db
+        .prepare("SELECT name FROM users WHERE id = ?")
+        .get(s.coach_id);
       s.coach_name = coach ? coach.name : "";
       delete s.coach_id;
       return s;
@@ -358,8 +378,13 @@ router.post("/", authenticateToken, requireCoach, (req, res) => {
 
     const id = uuidv4();
     const dbC3 = new Database(DB_PATH);
-    const maxS3 = dbC3.prepare("SELECT MAX(CAST(SUBSTR(class_reference, 4) AS INTEGER)) as m FROM classes WHERE class_reference GLOB 'CL-[0-9]*'").get().m || 0;
-    const clRef = "CL-" + String(maxS3 + 1).padStart(4, '0');
+    const maxS3 =
+      dbC3
+        .prepare(
+          "SELECT MAX(CAST(SUBSTR(class_reference, 4) AS INTEGER)) as m FROM classes WHERE class_reference GLOB 'CL-[0-9]*'",
+        )
+        .get().m || 0;
+    const clRef = "CL-" + String(maxS3 + 1).padStart(4, "0");
     dbC3.close();
     const db = new Database(DB_PATH);
     db.pragma("foreign_keys = ON");

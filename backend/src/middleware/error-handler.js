@@ -24,13 +24,13 @@ function notFound(req, res, next) {
 function errorHandler(err, req, res, _next) {
   // Default error
   const statusCode = err.statusCode || 500;
-  const message = err.isOperational ? err.message : '伺服器內部錯誤';
+  const message = err.isOperational ? err.message : "伺服器內部錯誤";
   const details = err.details || null;
 
   // Structured logging with request context
   const logEntry = {
     timestamp: new Date().toISOString(),
-    level: statusCode >= 500 ? 'ERROR' : 'WARN',
+    level: statusCode >= 500 ? "ERROR" : "WARN",
     status: statusCode,
     method: req.method,
     url: req.originalUrl || req.url,
@@ -46,21 +46,23 @@ function errorHandler(err, req, res, _next) {
     console.error(JSON.stringify(logEntry));
     // Winston logger (already configured in services/logger)
     try {
-      const logger = require('../services/logger');
+      const logger = require("../services/logger");
       logger.error(err.message, {
         statusCode,
         url: req.originalUrl,
         method: req.method,
         stack: err.stack,
       });
-    } catch (e) { /* logger not available */ }
+    } catch (e) {
+      /* logger not available */
+    }
   } else {
     console.log(`[${logEntry.timestamp}] WARN ${statusCode}:`, err.message);
   }
 
   // Response
   const body = { success: false, error: message };
-  if (details && process.env.NODE_ENV !== 'production') {
+  if (details && process.env.NODE_ENV !== "production") {
     body.details = details;
   }
 

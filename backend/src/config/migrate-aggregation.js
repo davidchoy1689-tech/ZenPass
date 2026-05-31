@@ -15,7 +15,7 @@ function migrate() {
 
   // Step 1: Add partner_venue_id to classes (if not exists)
   const cols = db.prepare("PRAGMA table_info(classes)").all();
-  const hasPartnerFk = cols.some(c => c.name === "partner_venue_id");
+  const hasPartnerFk = cols.some((c) => c.name === "partner_venue_id");
   if (!hasPartnerFk) {
     db.exec(`
       ALTER TABLE classes ADD COLUMN partner_venue_id TEXT REFERENCES partner_venues(id);
@@ -24,7 +24,9 @@ function migrate() {
     console.log("[MIGRATE] ✓ Added partner_venue_id to classes");
 
     // Auto-link existing classes to partners by venue_name
-    const linked = db.prepare(`
+    const linked = db
+      .prepare(
+        `
       UPDATE classes SET partner_venue_id = (
         SELECT id FROM partner_venues 
         WHERE partner_venues.name = classes.venue_name 
@@ -32,8 +34,12 @@ function migrate() {
         LIMIT 1
       )
       WHERE partner_venue_id IS NULL
-    `).run();
-    console.log(`[MIGRATE] ✓ Auto-linked ${linked.changes} classes to partners`);
+    `,
+      )
+      .run();
+    console.log(
+      `[MIGRATE] ✓ Auto-linked ${linked.changes} classes to partners`,
+    );
   } else {
     console.log("[MIGRATE] ✓ partner_venue_id column already exists");
   }

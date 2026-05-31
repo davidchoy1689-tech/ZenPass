@@ -29,16 +29,14 @@ function requireIdempotency(req, res, next) {
   try {
     const existing = db
       .prepare(
-        "SELECT response_data, created_at FROM idempotency_keys WHERE id = ?"
+        "SELECT response_data, created_at FROM idempotency_keys WHERE id = ?",
       )
       .get(key);
 
     if (existing) {
       // Same key used before → return cached response
       const age = (Date.now() - new Date(existing.created_at).getTime()) / 1000;
-      console.log(
-        `[IDEMPOTENCY] Reusing key ${key} (${age.toFixed(1)}s old)`
-      );
+      console.log(`[IDEMPOTENCY] Reusing key ${key} (${age.toFixed(1)}s old)`);
       try {
         return res.status(200).json(JSON.parse(existing.response_data));
       } catch {
@@ -49,7 +47,7 @@ function requireIdempotency(req, res, next) {
 
     // Store the key so next call with same key gets blocked until response
     db.prepare(
-      "INSERT INTO idempotency_keys (id, response_data, created_at) VALUES (?, ?, datetime('now'))"
+      "INSERT INTO idempotency_keys (id, response_data, created_at) VALUES (?, ?, datetime('now'))",
     ).run(key, "{}");
 
     // Attach helper to store response when done
@@ -61,7 +59,7 @@ function requireIdempotency(req, res, next) {
       if (res.idempotencyKey && res.statusCode >= 200 && res.statusCode < 300) {
         try {
           db.prepare(
-            "UPDATE idempotency_keys SET response_data = ? WHERE id = ?"
+            "UPDATE idempotency_keys SET response_data = ? WHERE id = ?",
           ).run(JSON.stringify(body), res.idempotencyKey);
         } catch (e) {
           console.error("[IDEMPOTENCY] Cache failed:", e.message);
@@ -88,7 +86,7 @@ function cleanupExpiredKeys() {
   try {
     const result = db
       .prepare(
-        "DELETE FROM idempotency_keys WHERE created_at < datetime('now', '-1 day')"
+        "DELETE FROM idempotency_keys WHERE created_at < datetime('now', '-1 day')",
       )
       .run();
     if (result.changes > 0) {

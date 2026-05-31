@@ -35,7 +35,14 @@ const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
  * @param {string} [params.description] - 描述
  * @returns {Object} 分錄結果
  */
-function createEntry({ bookingId, userId, amount, type, method, description = "" }) {
+function createEntry({
+  bookingId,
+  userId,
+  amount,
+  type,
+  method,
+  description = "",
+}) {
   const db = new Database(DB_PATH);
   try {
     const now = new Date().toISOString();
@@ -46,25 +53,41 @@ function createEntry({ bookingId, userId, amount, type, method, description = ""
       case "payment": {
         // Debit: Cash/Stripe/FPS/PayMe (資產增加)
         // Credit: Platform Revenue (收入增加)
-        const assetAccount = method === "stripe" ? "1100" : method === "credits" ? "1200" : "1000";
-        const assetName = method === "stripe" ? "Stripe 待結算" : method === "credits" ? "點數收入" : "現金";
+        const assetAccount =
+          method === "stripe" ? "1100" : method === "credits" ? "1200" : "1000";
+        const assetName =
+          method === "stripe"
+            ? "Stripe 待結算"
+            : method === "credits"
+              ? "點數收入"
+              : "現金";
 
         entries.push({
           id: uuidv4(),
-          bookingId, userId, ref,
-          debit: amount, credit: 0,
+          bookingId,
+          userId,
+          ref,
+          debit: amount,
+          credit: 0,
           accountCode: assetAccount,
           accountName: assetName,
-          type, method, description,
+          type,
+          method,
+          description,
           createdAt: now,
         });
         entries.push({
           id: uuidv4(),
-          bookingId, userId, ref,
-          debit: 0, credit: amount,
+          bookingId,
+          userId,
+          ref,
+          debit: 0,
+          credit: amount,
           accountCode: "3000",
           accountName: "平台收入",
-          type, method, description,
+          type,
+          method,
+          description,
           createdAt: now,
         });
         break;
@@ -74,20 +97,30 @@ function createEntry({ bookingId, userId, amount, type, method, description = ""
         // Credit: Cash/Stripe (資產減少)
         entries.push({
           id: uuidv4(),
-          bookingId, userId, ref,
-          debit: amount, credit: 0,
+          bookingId,
+          userId,
+          ref,
+          debit: amount,
+          credit: 0,
           accountCode: "5000",
           accountName: "退款",
-          type, method, description,
+          type,
+          method,
+          description,
           createdAt: now,
         });
         entries.push({
           id: uuidv4(),
-          bookingId, userId, ref,
-          debit: 0, credit: amount,
+          bookingId,
+          userId,
+          ref,
+          debit: 0,
+          credit: amount,
           accountCode: method === "stripe" ? "1100" : "1000",
           accountName: method === "stripe" ? "Stripe 待結算" : "現金",
-          type, method, description,
+          type,
+          method,
+          description,
           createdAt: now,
         });
         break;
@@ -97,20 +130,30 @@ function createEntry({ bookingId, userId, amount, type, method, description = ""
         // Credit: Accounts Payable (商戶應收)
         entries.push({
           id: uuidv4(),
-          bookingId, userId, ref,
-          debit: amount, credit: 0,
+          bookingId,
+          userId,
+          ref,
+          debit: amount,
+          credit: 0,
           accountCode: "3100",
           accountName: "佣金收入",
-          type, method, description,
+          type,
+          method,
+          description,
           createdAt: now,
         });
         entries.push({
           id: uuidv4(),
-          bookingId, userId, ref,
-          debit: 0, credit: amount,
+          bookingId,
+          userId,
+          ref,
+          debit: 0,
+          credit: amount,
           accountCode: "2000",
           accountName: "商戶應付款",
-          type, method, description,
+          type,
+          method,
+          description,
           createdAt: now,
         });
         break;
@@ -120,20 +163,30 @@ function createEntry({ bookingId, userId, amount, type, method, description = ""
         // Credit: Cash (資產減少)
         entries.push({
           id: uuidv4(),
-          bookingId, userId, ref,
-          debit: amount, credit: 0,
+          bookingId,
+          userId,
+          ref,
+          debit: amount,
+          credit: 0,
           accountCode: "2000",
           accountName: "商戶應付款",
-          type, method, description,
+          type,
+          method,
+          description,
           createdAt: now,
         });
         entries.push({
           id: uuidv4(),
-          bookingId, userId, ref,
-          debit: 0, credit: amount,
+          bookingId,
+          userId,
+          ref,
+          debit: 0,
+          credit: amount,
           accountCode: "1000",
           accountName: "現金",
-          type, method, description,
+          type,
+          method,
+          description,
           createdAt: now,
         });
         break;
@@ -151,9 +204,18 @@ function createEntry({ bookingId, userId, amount, type, method, description = ""
     const insertMany = db.transaction((rows) => {
       for (const e of rows) {
         stmt.run(
-          e.id, e.bookingId, e.userId, e.ref,
-          e.debit, e.credit, e.accountCode, e.accountName,
-          e.type, e.method, e.description, e.createdAt
+          e.id,
+          e.bookingId,
+          e.userId,
+          e.ref,
+          e.debit,
+          e.credit,
+          e.accountCode,
+          e.accountName,
+          e.type,
+          e.method,
+          e.description,
+          e.createdAt,
         );
       }
     });
@@ -174,7 +236,9 @@ function createEntry({ bookingId, userId, amount, type, method, description = ""
  */
 function recordPayment(bookingId, userId, amount, method) {
   return createEntry({
-    bookingId, userId, amount,
+    bookingId,
+    userId,
+    amount,
     type: "payment",
     method,
     description: `課程預付款 HK$${amount} via ${method.toUpperCase()}`,
@@ -186,7 +250,9 @@ function recordPayment(bookingId, userId, amount, method) {
  */
 function recordRefund(bookingId, userId, amount, method) {
   return createEntry({
-    bookingId, userId, amount,
+    bookingId,
+    userId,
+    amount,
     type: "refund",
     method,
     description: `退款 HK$${amount} via ${method.toUpperCase()}`,
@@ -198,7 +264,9 @@ function recordRefund(bookingId, userId, amount, method) {
  */
 function recordCommission(bookingId, userId, amount, method) {
   return createEntry({
-    bookingId, userId, amount,
+    bookingId,
+    userId,
+    amount,
     type: "commission",
     method,
     description: `平台佣金 HK$${amount}`,
@@ -228,10 +296,14 @@ function recordPayout(coachId, amount, method) {
 function getBalance(accountCode) {
   const db = new Database(DB_PATH);
   try {
-    const result = db.prepare(`
+    const result = db
+      .prepare(
+        `
       SELECT COALESCE(SUM(debit), 0) - COALESCE(SUM(credit), 0) as balance
       FROM ledger WHERE account_code = ?
-    `).get(accountCode);
+    `,
+      )
+      .get(accountCode);
     return result ? result.balance : 0;
   } catch (err) {
     console.error("[ACCOUNTING] Failed to get balance:", err.message);
@@ -248,7 +320,9 @@ function getBalance(accountCode) {
 function trialBalance() {
   const db = new Database(DB_PATH);
   try {
-    const accounts = db.prepare(`
+    const accounts = db
+      .prepare(
+        `
       SELECT account_code, account_name,
         SUM(debit) as total_debit,
         SUM(credit) as total_credit,
@@ -256,7 +330,9 @@ function trialBalance() {
       FROM ledger
       GROUP BY account_code, account_name
       ORDER BY account_code
-    `).all();
+    `,
+      )
+      .all();
 
     const totalDebit = accounts.reduce((s, r) => s + r.total_debit, 0);
     const totalCredit = accounts.reduce((s, r) => s + r.total_credit, 0);
@@ -282,9 +358,13 @@ function trialBalance() {
 function getEntriesByBooking(bookingId) {
   const db = new Database(DB_PATH);
   try {
-    return db.prepare(`
+    return db
+      .prepare(
+        `
       SELECT * FROM ledger WHERE booking_id = ? ORDER BY created_at
-    `).all(bookingId);
+    `,
+      )
+      .all(bookingId);
   } catch (err) {
     return [];
   } finally {

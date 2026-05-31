@@ -3,20 +3,20 @@
  * 使用 Nodemailer 發送電郵
  * 需要設定 SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS
  */
-const nodemailer = require('nodemailer');
+const nodemailer = require("nodemailer");
 
-const smtpHost = process.env.SMTP_HOST || '';
-const smtpPort = parseInt(process.env.SMTP_PORT || '587');
-const smtpUser = process.env.SMTP_USER || '';
-const smtpPass = process.env.SMTP_PASS || '';
-const fromAddress = process.env.EMAIL_FROM || 'noreply@zenpass.hk';
+const smtpHost = process.env.SMTP_HOST || "";
+const smtpPort = parseInt(process.env.SMTP_PORT || "587");
+const smtpUser = process.env.SMTP_USER || "";
+const smtpPass = process.env.SMTP_PASS || "";
+const fromAddress = process.env.EMAIL_FROM || "noreply@zenpass.hk";
 
 let transporter = null;
 
 function getTransporter() {
   if (transporter) return transporter;
   if (!smtpHost || !smtpUser) {
-    console.log('📧 SMTP not configured — emails will be logged to console');
+    console.log("📧 SMTP not configured — emails will be logged to console");
     return null;
   }
   transporter = nodemailer.createTransport({
@@ -34,9 +34,13 @@ function getTransporter() {
 async function sendEmail(to, subject, html) {
   const t = getTransporter();
   if (!t) {
-    console.log(`📧 [DEV EMAIL]\n━━━━━━━━━━━━━━━━━━━\nTo: ${to}\nSubject: ${subject}\n${html}\n━━━━━━━━━━━━━━━━━━━`);
-    console.log('⚠️ SMTP not configured — set SMTP_HOST, SMTP_USER, SMTP_PASS to enable real emails');
-    return { sent: false, error: 'SMTP not configured' };
+    console.log(
+      `📧 [DEV EMAIL]\n━━━━━━━━━━━━━━━━━━━\nTo: ${to}\nSubject: ${subject}\n${html}\n━━━━━━━━━━━━━━━━━━━`,
+    );
+    console.log(
+      "⚠️ SMTP not configured — set SMTP_HOST, SMTP_USER, SMTP_PASS to enable real emails",
+    );
+    return { sent: false, error: "SMTP not configured" };
   }
   try {
     const info = await t.sendMail({
@@ -48,7 +52,7 @@ async function sendEmail(to, subject, html) {
     console.log(`📧 Email sent to ${to}: ${info.messageId}`);
     return { sent: true, messageId: info.messageId };
   } catch (err) {
-    console.error('📧 Email failed:', err.message);
+    console.error("📧 Email failed:", err.message);
     return { sent: false, error: err.message };
   }
 }
@@ -56,7 +60,14 @@ async function sendEmail(to, subject, html) {
 /**
  * 發送預約確認電郵
  */
-async function sendBookingConfirmation(userEmail, userName, className, date, time, venue) {
+async function sendBookingConfirmation(
+  userEmail,
+  userName,
+  className,
+  date,
+  time,
+  venue,
+) {
   const html = `
     <div style="font-family:sans-serif;max-width:480px;margin:0 auto">
       <div style="background:#c94420;color:white;padding:20px;text-align:center;border-radius:12px 12px 0 0">

@@ -120,7 +120,9 @@ describe("🛡️ 安全測試 — SQL Injection 防護", () => {
     ];
 
     for (const payload of sqlPayloads) {
-      const res = await fetch(`${API_BASE}/api/classes?category=${encodeURIComponent(payload)}`);
+      const res = await fetch(
+        `${API_BASE}/api/classes?category=${encodeURIComponent(payload)}`,
+      );
       // Should not crash
       expect([200, 400, 429]).toContain(res.status);
       const contentType = res.headers.get("content-type") || "";
@@ -161,9 +163,9 @@ describe("🛡️ 安全測試 — Response Headers", () => {
 
     // Key security headers should be present
     const expectedHeaders = [
-      "x-content-type-options",  // nosniff
-      "x-frame-options",         // frameguard
-      "x-xss-protection",        // xssFilter (deprecated but still set by Helmet)
+      "x-content-type-options", // nosniff
+      "x-frame-options", // frameguard
+      "x-xss-protection", // xssFilter (deprecated but still set by Helmet)
     ];
 
     for (const h of expectedHeaders) {

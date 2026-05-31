@@ -13,70 +13,79 @@ async function loadCategories() {
       var emoji =
         cat.category === "瑜伽"
           ? "🧘"
-            : cat.category === "健身"
+          : cat.category === "健身"
             ? "💪"
             : cat.category === "伸展"
-            ? "🤸"
-            : cat.category === "冥想"
-            ? "🧠"
-            : cat.category === "舞蹈"
-            ? "💃"
-            : cat.category === "新興運動"
-            ? "🎯"
-            : cat.category === "皮拉提斯"
-            ? "🤸"
-            : cat.category === "兒童體適能"
-            ? "🧒"
-            : cat.category === "肌力訓練"
-            ? "🏋️"
-            : cat.category === "心肺訓練"
-            ? "🏃"
-            : cat.category === "拳擊搏擊"
-            ? "🥊"
-            : cat.category === "單車"
-            ? "🚴"
-            : cat.category === "水中運動"
-            ? "🏊"
-            : cat.category === "太極養生"
-            ? "☯️"
-            : cat.category === "羽毛球"
-            ? "🏸"
-            : cat.category === "乒乓球"
-            ? "🏓"
-            : cat.category === "攀岩"
-            ? "🧗"
-            : cat.category === "射箭"
-            ? "🏹"
-            : cat.category === "劍擊"
-            ? "🤺"
-            : cat.category === "泰拳搏擊"
-            ? "🦵"
-            : cat.category === "高爾夫球"
-            ? "⛳"
-            : cat.category === "露營戶外"
-            ? "🏕️"
-            : cat.category === "長者體適能"
-            ? "👴"
-            : cat.category === "產後修復"
-            ? "🤰"
-            : cat.category === "空中瑜伽"
-            ? "🧘‍♀️"
-            : cat.category === "芭蕾塑形"
-            ? "💃"
-            : cat.category === "TRX 懸吊訓練"
-            ? "🏋️"
-            : cat.category === "詠春"
-            ? "🥋"
-            : cat.category === "遠足行山"
-            ? "🥾"
-            : cat.category === "溜冰"
-            ? "⛸️"
-            : cat.category === "網球"
-            ? "🎾"
-            : cat.category === "保齡球"
-            ? "🎳"
-          : "🏃"
-;
+              ? "🤸"
+              : cat.category === "冥想"
+                ? "🧠"
+                : cat.category === "舞蹈"
+                  ? "💃"
+                  : cat.category === "新興運動"
+                    ? "🎯"
+                    : cat.category === "皮拉提斯"
+                      ? "🤸"
+                      : cat.category === "兒童體適能"
+                        ? "🧒"
+                        : cat.category === "肌力訓練"
+                          ? "🏋️"
+                          : cat.category === "心肺訓練"
+                            ? "🏃"
+                            : cat.category === "拳擊搏擊"
+                              ? "🥊"
+                              : cat.category === "單車"
+                                ? "🚴"
+                                : cat.category === "水中運動"
+                                  ? "🏊"
+                                  : cat.category === "太極養生"
+                                    ? "☯️"
+                                    : cat.category === "羽毛球"
+                                      ? "🏸"
+                                      : cat.category === "乒乓球"
+                                        ? "🏓"
+                                        : cat.category === "攀岩"
+                                          ? "🧗"
+                                          : cat.category === "射箭"
+                                            ? "🏹"
+                                            : cat.category === "劍擊"
+                                              ? "🤺"
+                                              : cat.category === "泰拳搏擊"
+                                                ? "🦵"
+                                                : cat.category === "高爾夫球"
+                                                  ? "⛳"
+                                                  : cat.category === "露營戶外"
+                                                    ? "🏕️"
+                                                    : cat.category ===
+                                                        "長者體適能"
+                                                      ? "👴"
+                                                      : cat.category ===
+                                                          "產後修復"
+                                                        ? "🤰"
+                                                        : cat.category ===
+                                                            "空中瑜伽"
+                                                          ? "🧘‍♀️"
+                                                          : cat.category ===
+                                                              "芭蕾塑形"
+                                                            ? "💃"
+                                                            : cat.category ===
+                                                                "TRX 懸吊訓練"
+                                                              ? "🏋️"
+                                                              : cat.category ===
+                                                                  "詠春"
+                                                                ? "🥋"
+                                                                : cat.category ===
+                                                                    "遠足行山"
+                                                                  ? "🥾"
+                                                                  : cat.category ===
+                                                                      "溜冰"
+                                                                    ? "⛸️"
+                                                                    : cat.category ===
+                                                                        "網球"
+                                                                      ? "🎾"
+                                                                      : cat.category ===
+                                                                          "保齡球"
+                                                                        ? "🎳"
+                                                                        : "🏃";
       container.innerHTML +=
         '<div class="category-chip" onclick="filterByCategory(\'' +
         cat.category +
@@ -120,8 +129,8 @@ async function loadCategories() {
       '<div class="category-chip" onclick="filterByCategory(\'遠足行山\', this)">🥾 遠足行山</div>' +
       '<div class="category-chip" onclick="filterByCategory(\'溜冰\', this)">⛸️ 溜冰</div>' +
       '<div class="category-chip" onclick="filterByCategory(\'網球\', this)">🎾 網球</div>' +
-      '<div class="category-chip" onclick="filterByCategory(\'保齡球\', this)">🎳 保齡球</div>'
-      "";
+      '<div class="category-chip" onclick="filterByCategory(\'保齡球\', this)">🎳 保齡球</div>';
+    ("");
   }
 }
 
@@ -470,9 +479,11 @@ async function loadRecommendations() {
     var section = document.getElementById("recommended-section");
     var container = document.getElementById("recommended-classes");
     if (!section || !container) return;
-    container.innerHTML = items.map(function (cls) {
-      return renderClassCard(cls);
-    }).join("");
+    container.innerHTML = items
+      .map(function (cls) {
+        return renderClassCard(cls);
+      })
+      .join("");
     section.style.display = "";
   } catch (err) {
     // 推薦載入失敗唔影響頁面

@@ -8,7 +8,10 @@ const { v4: uuidv4 } = require("uuid");
 const Database = require("better-sqlite3");
 const { authenticateToken, requireAdmin } = require("../middleware/auth");
 
-const { sendNotification, sendTelegramAlert } = require("../services/notification");
+const {
+  sendNotification,
+  sendTelegramAlert,
+} = require("../services/notification");
 const { audit, trackAdminAction } = require("../services/audit");
 
 const router = express.Router();
@@ -135,22 +138,40 @@ router.post("/approve-payment", authenticateToken, requireAdmin, (req, res) => {
     setTimeout(() => {
       sendTelegramAlert(
         `✅ <b>管理員已確認付款</b>\n` +
-        `👤 用戶：${userName?.name || userName?.email || booking.user_id}\n` +
-        `💰 金額：HK$${booking.amount || 0}\n` +
-        `💳 方式：${booking.fps_reference ? "FPS" : "PayMe"}\n` +
-        `📚 課程：${classTitleNotif?.title || "—"}\n` +
-        `🆔 Booking：${booking_id}\n` +
-        `⏰ ${new Date().toLocaleString("zh-HK", { timeZone: "Asia/Hong_Kong" })}`
+          `👤 用戶：${userName?.name || userName?.email || booking.user_id}\n` +
+          `💰 金額：HK$${booking.amount || 0}\n` +
+          `💳 方式：${booking.fps_reference ? "FPS" : "PayMe"}\n` +
+          `📚 課程：${classTitleNotif?.title || "—"}\n` +
+          `🆔 Booking：${booking_id}\n` +
+          `⏰ ${new Date().toLocaleString("zh-HK", { timeZone: "Asia/Hong_Kong" })}`,
       );
     }, 0);
 
     // 📊 ACCOUNTING：管理員確認付款記帳
     try {
-      const { recordPayment, recordCommission } = require("../services/accounting");
-      recordPayment(booking_id, booking.user_id, booking.amount || 0, booking.fps_reference ? "fps" : "payme");
-      const commissionAmt = Math.round((booking.amount || 0) * (booking.platform_commission_rate || 0.2) * 100) / 100;
+      const {
+        recordPayment,
+        recordCommission,
+      } = require("../services/accounting");
+      recordPayment(
+        booking_id,
+        booking.user_id,
+        booking.amount || 0,
+        booking.fps_reference ? "fps" : "payme",
+      );
+      const commissionAmt =
+        Math.round(
+          (booking.amount || 0) *
+            (booking.platform_commission_rate || 0.2) *
+            100,
+        ) / 100;
       if (commissionAmt > 0) {
-        recordCommission(booking_id, booking.user_id, commissionAmt, booking.fps_reference ? "fps" : "payme");
+        recordCommission(
+          booking_id,
+          booking.user_id,
+          commissionAmt,
+          booking.fps_reference ? "fps" : "payme",
+        );
       }
     } catch (acctErr) {
       console.error("⚠️ Accounting entry failed:", acctErr.message);
@@ -158,10 +179,15 @@ router.post("/approve-payment", authenticateToken, requireAdmin, (req, res) => {
 
     // 🔔 AUDIT：管理員確認付款
     try {
-      trackAdminAction(req.user.id, "approve_payment", {
-        booking_id,
-        amount: booking?.amount,
-      }, req);
+      trackAdminAction(
+        req.user.id,
+        "approve_payment",
+        {
+          booking_id,
+          amount: booking?.amount,
+        },
+        req,
+      );
     } catch (auditErr) {
       console.error("⚠️ Audit record failed:", auditErr.message);
     }
@@ -247,22 +273,27 @@ router.post("/reject-payment", authenticateToken, requireAdmin, (req, res) => {
     setTimeout(() => {
       sendTelegramAlert(
         `❌ <b>管理員已拒絕付款</b>\n` +
-        `👤 用戶：${userNameRej?.name || userNameRej?.email || booking.user_id}\n` +
-        `💰 金額：HK$${booking.amount || 0}\n` +
-        `💳 方式：${booking.fps_reference ? "FPS" : "PayMe"}\n` +
-        `📚 課程：${classTitleNotifRej?.title || "—"}\n` +
-        `📝 原因：${reason || "無提供原因"}\n` +
-        `🆔 Booking：${booking_id}\n` +
-        `⏰ ${new Date().toLocaleString("zh-HK", { timeZone: "Asia/Hong_Kong" })}`
+          `👤 用戶：${userNameRej?.name || userNameRej?.email || booking.user_id}\n` +
+          `💰 金額：HK$${booking.amount || 0}\n` +
+          `💳 方式：${booking.fps_reference ? "FPS" : "PayMe"}\n` +
+          `📚 課程：${classTitleNotifRej?.title || "—"}\n` +
+          `📝 原因：${reason || "無提供原因"}\n` +
+          `🆔 Booking：${booking_id}\n` +
+          `⏰ ${new Date().toLocaleString("zh-HK", { timeZone: "Asia/Hong_Kong" })}`,
       );
     }, 0);
 
     // 🔔 AUDIT：管理員拒絕付款
     try {
-      trackAdminAction(req.user.id, "reject_payment", {
-        booking_id,
-        reason: reason || "無原因",
-      }, req);
+      trackAdminAction(
+        req.user.id,
+        "reject_payment",
+        {
+          booking_id,
+          reason: reason || "無原因",
+        },
+        req,
+      );
     } catch (auditErr) {
       console.error("⚠️ Audit record failed:", auditErr.message);
     }
@@ -315,8 +346,12 @@ router.get("/stats", authenticateToken, requireAdmin, (req, res) => {
         for (var i = 6; i >= 0; i--) {
           var day = new Date();
           day.setDate(day.getDate() - i);
-          var ds = day.toISOString().split('T')[0];
-          var count = db.prepare("SELECT COUNT(*) as c FROM bookings WHERE date(created_at) = ?").get(ds).c;
+          var ds = day.toISOString().split("T")[0];
+          var count = db
+            .prepare(
+              "SELECT COUNT(*) as c FROM bookings WHERE date(created_at) = ?",
+            )
+            .get(ds).c;
           data.push(count);
         }
         return data;
@@ -444,19 +479,24 @@ router.get("/db/:table", async (req, res) => {
     const { getSupabase } = require("../services/supabase");
     const supabase = getSupabase();
     if (!supabase) return res.status(500).json({ error: "DB not connected" });
-    
+
     const { table } = req.params;
     const limit = parseInt(req.query.limit) || 100;
-    
+
     // Get data
     const { data, error } = await supabase.from(table).select("*").limit(limit);
     if (error) throw error;
-    
+
     // Get count
     const { count, error: countErr } = await supabase
-      .from(table).select("*", { count: "exact", head: true });
-    
-    res.json({ data: data || [], count: count || 0, error: countErr?.message || null });
+      .from(table)
+      .select("*", { count: "exact", head: true });
+
+    res.json({
+      data: data || [],
+      count: count || 0,
+      error: countErr?.message || null,
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -468,24 +508,46 @@ router.get("/db", async (req, res) => {
     const { getSupabase } = require("../services/supabase");
     const supabase = getSupabase();
     if (!supabase) return res.status(500).json({ error: "DB not connected" });
-    
+
     const tables = [
-      'system_config','system_backups','courses','course_sessions','course_categories',
-      'bookings','transactions','settlements','users','profiles','coaches','students',
-      'membership_plans','user_memberships','payments','commissions','payouts',
-      'venues','partners','attendance','reviews','notifications','waitlist','promotions'
+      "system_config",
+      "system_backups",
+      "courses",
+      "course_sessions",
+      "course_categories",
+      "bookings",
+      "transactions",
+      "settlements",
+      "users",
+      "profiles",
+      "coaches",
+      "students",
+      "membership_plans",
+      "user_memberships",
+      "payments",
+      "commissions",
+      "payouts",
+      "venues",
+      "partners",
+      "attendance",
+      "reviews",
+      "notifications",
+      "waitlist",
+      "promotions",
     ];
-    
+
     const result = [];
     for (const t of tables) {
       try {
-        const { count } = await supabase.from(t).select("*", { count: "exact", head: true });
+        const { count } = await supabase
+          .from(t)
+          .select("*", { count: "exact", head: true });
         result.push({ table: t, count: count || 0 });
       } catch (e) {
         result.push({ table: t, count: -1, error: e.message });
       }
     }
-    
+
     res.json({ tables: result });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -497,9 +559,11 @@ router.post("/process-payouts", authenticateToken, requireAdmin, (req, res) => {
   try {
     const db = new Database(DB_PATH);
     db.pragma("foreign_keys = ON");
-    
+
     // 計算所有 coach 嘅 pending earnings
-    const coaches = db.prepare(`
+    const coaches = db
+      .prepare(
+        `
       SELECT ce.coach_id, u.name as coach_name, u.email as coach_email,
              SUM(ce.net_amount) as total_pending
       FROM coach_earnings ce
@@ -507,36 +571,54 @@ router.post("/process-payouts", authenticateToken, requireAdmin, (req, res) => {
       WHERE ce.status = 'pending'
       GROUP BY ce.coach_id
       HAVING total_pending > 0
-    `).all();
+    `,
+      )
+      .all();
 
     let processed = 0;
     const results = [];
-    
+
     for (const coach of coaches) {
       // Create payout record
       const payoutId = require("uuid").v4();
-      const poRef = "PO-" + new Date().toISOString().slice(0, 10).replace(/-/g, "") +
-                    "-" + Math.random().toString(36).substring(2, 6).toUpperCase();
+      const poRef =
+        "PO-" +
+        new Date().toISOString().slice(0, 10).replace(/-/g, "") +
+        "-" +
+        Math.random().toString(36).substring(2, 6).toUpperCase();
       const fee = Math.max(0, coach.total_pending * 0.01); // 1% processing fee
       const netAmount = coach.total_pending - fee;
-      
-      db.prepare(`
+
+      db.prepare(
+        `
         INSERT INTO coach_payouts (id, payout_reference, coach_id, amount, fee, net_amount, payment_method, status)
         VALUES (?, ?, ?, ?, ?, ?, 'bank', 'processing')
-      `).run(payoutId, poRef, coach.coach_id, coach.total_pending, fee, netAmount);
-      
+      `,
+      ).run(
+        payoutId,
+        poRef,
+        coach.coach_id,
+        coach.total_pending,
+        fee,
+        netAmount,
+      );
+
       // Mark all pending earnings for this coach as paid
-      db.prepare(`
+      db.prepare(
+        `
         UPDATE coach_earnings SET status = 'paid', payout_id = ?
         WHERE coach_id = ? AND status = 'pending'
-      `).run(payoutId, coach.coach_id);
-      
+      `,
+      ).run(payoutId, coach.coach_id);
+
       // Update user totals
-      db.prepare(`
+      db.prepare(
+        `
         UPDATE users SET pending_payout = 0, total_earnings = COALESCE(total_earnings, 0) + ?
         WHERE id = ?
-      `).run(netAmount, coach.coach_id);
-      
+      `,
+      ).run(netAmount, coach.coach_id);
+
       // Notification
       try {
         const { sendNotification } = require("../services/notification");
@@ -552,7 +634,7 @@ router.post("/process-payouts", authenticateToken, requireAdmin, (req, res) => {
       } catch (notifErr) {
         console.error("⚠️ 發送出糧通知失敗:", notifErr.message);
       }
-      
+
       processed++;
       results.push({
         coach_name: coach.coach_name,
@@ -578,11 +660,12 @@ router.post("/process-payouts", authenticateToken, requireAdmin, (req, res) => {
     } catch (auditErr) {
       console.error("⚠️ Audit record failed:", auditErr.message);
     }
-    
+
     db.close();
-    
+
     res.json({
-      message: processed > 0 ? `已爲 ${processed} 位教練處理出糧` : "沒有待出糧的教練",
+      message:
+        processed > 0 ? `已爲 ${processed} 位教練處理出糧` : "沒有待出糧的教練",
       processed: processed,
       results: results,
     });
@@ -596,42 +679,60 @@ router.post("/process-payouts", authenticateToken, requireAdmin, (req, res) => {
 router.get("/payouts", authenticateToken, requireAdmin, (req, res) => {
   try {
     const db = new Database(DB_PATH);
-    
+
     const { status, page = 1, limit = 50 } = req.query;
     let where = "WHERE 1=1";
     const params = [];
-    
+
     if (status) {
       where += " AND cp.status = ?";
       params.push(status);
     }
-    
+
     const offset = (parseInt(page) - 1) * parseInt(limit);
-    
-    const payouts = db.prepare(`
+
+    const payouts = db
+      .prepare(
+        `
       SELECT cp.*, u.name as coach_name, u.email as coach_email
       FROM coach_payouts cp
       JOIN users u ON cp.coach_id = u.id
       ${where}
       ORDER BY cp.created_at DESC
       LIMIT ? OFFSET ?
-    `).all(...params, parseInt(limit), offset);
-    
-    const total = db.prepare(`
+    `,
+      )
+      .all(...params, parseInt(limit), offset);
+
+    const total = db
+      .prepare(
+        `
       SELECT COUNT(*) as count FROM coach_payouts cp ${where}
-    `).get(...params).count;
-    
-    const summary = db.prepare(`
+    `,
+      )
+      .get(...params).count;
+
+    const summary = db
+      .prepare(
+        `
       SELECT 
         COALESCE(SUM(CASE WHEN cp.status IN ('pending','processing') THEN cp.net_amount ELSE 0 END), 0) as pending_total,
         COALESCE(SUM(CASE WHEN cp.status = 'paid' THEN cp.net_amount ELSE 0 END), 0) as paid_total,
         COUNT(DISTINCT cp.coach_id) as total_coaches
       FROM coach_payouts cp
-    `).get();
-    
+    `,
+      )
+      .get();
+
     db.close();
-    
-    res.json({ payouts, total, summary, page: parseInt(page), limit: parseInt(limit) });
+
+    res.json({
+      payouts,
+      total,
+      summary,
+      page: parseInt(page),
+      limit: parseInt(limit),
+    });
   } catch (err) {
     console.error("取 payout 記錄錯誤:", err);
     res.status(500).json({ error: "無法獲取出糧記錄" });
@@ -639,29 +740,34 @@ router.get("/payouts", authenticateToken, requireAdmin, (req, res) => {
 });
 
 // ===== 教練申請審批 =====
-router.get("/coach-applications", authenticateToken, requireAdmin, (req, res) => {
-  try {
-    const db = new Database(DB_PATH);
-    db.pragma("foreign_keys = ON");
-    const { status = "pending" } = req.query;
+router.get(
+  "/coach-applications",
+  authenticateToken,
+  requireAdmin,
+  (req, res) => {
+    try {
+      const db = new Database(DB_PATH);
+      db.pragma("foreign_keys = ON");
+      const { status = "pending" } = req.query;
 
-    const applications = db
-      .prepare(
-        `SELECT ca.*, u.email as user_email, u.name as user_name
+      const applications = db
+        .prepare(
+          `SELECT ca.*, u.email as user_email, u.name as user_name
          FROM coach_applications ca
          JOIN users u ON u.id = ca.user_id
          WHERE ca.status = ?
-         ORDER BY ca.created_at DESC`
-      )
-      .all(status);
+         ORDER BY ca.created_at DESC`,
+        )
+        .all(status);
 
-    db.close();
-    res.json({ applications, total: applications.length });
-  } catch (err) {
-    console.error("取教練申請錯誤:", err);
-    res.status(500).json({ error: "無法獲取教練申請" });
-  }
-});
+      db.close();
+      res.json({ applications, total: applications.length });
+    } catch (err) {
+      console.error("取教練申請錯誤:", err);
+      res.status(500).json({ error: "無法獲取教練申請" });
+    }
+  },
+);
 
 router.post("/coach-approve", authenticateToken, requireAdmin, (req, res) => {
   try {
@@ -673,7 +779,9 @@ router.post("/coach-approve", authenticateToken, requireAdmin, (req, res) => {
     const db = new Database(DB_PATH);
     db.pragma("foreign_keys = ON");
 
-    const app = db.prepare("SELECT * FROM coach_applications WHERE id = ?").get(application_id);
+    const app = db
+      .prepare("SELECT * FROM coach_applications WHERE id = ?")
+      .get(application_id);
     if (!app) {
       db.close();
       return res.status(404).json({ error: "申請不存在" });
@@ -685,12 +793,12 @@ router.post("/coach-approve", authenticateToken, requireAdmin, (req, res) => {
 
     // Update application status
     db.prepare(
-      "UPDATE coach_applications SET status = 'approved', reviewed_by = ?, reviewed_at = datetime('now') WHERE id = ?"
+      "UPDATE coach_applications SET status = 'approved', reviewed_by = ?, reviewed_at = datetime('now') WHERE id = ?",
     ).run(req.user.id, application_id);
 
     // Update user as coach
     db.prepare(
-      "UPDATE users SET is_coach = 1, coach_verified = 1 WHERE id = ?"
+      "UPDATE users SET is_coach = 1, coach_verified = 1 WHERE id = ?",
     ).run(app.user_id);
 
     // Send notification
@@ -721,7 +829,9 @@ router.post("/coach-reject", authenticateToken, requireAdmin, (req, res) => {
     const db = new Database(DB_PATH);
     db.pragma("foreign_keys = ON");
 
-    const app = db.prepare("SELECT * FROM coach_applications WHERE id = ?").get(application_id);
+    const app = db
+      .prepare("SELECT * FROM coach_applications WHERE id = ?")
+      .get(application_id);
     if (!app) {
       db.close();
       return res.status(404).json({ error: "申請不存在" });
@@ -732,7 +842,7 @@ router.post("/coach-reject", authenticateToken, requireAdmin, (req, res) => {
     }
 
     db.prepare(
-      "UPDATE coach_applications SET status = 'rejected', reviewed_by = ?, reviewed_at = datetime('now') WHERE id = ?"
+      "UPDATE coach_applications SET status = 'rejected', reviewed_by = ?, reviewed_at = datetime('now') WHERE id = ?",
     ).run(req.user.id, application_id);
 
     sendNotification("coach.rejected", {
@@ -752,54 +862,82 @@ router.post("/coach-reject", authenticateToken, requireAdmin, (req, res) => {
   }
 });
 
-
-
 // ===== GET /api/admin/course-detail/:id — 課程詳細資料（含報名學生） =====
-router.get("/course-detail/:id", authenticateToken, requireAdmin, (req, res) => {
-  try {
-    const db = new Database(DB_PATH);
-    const course = db.prepare("SELECT * FROM classes WHERE id = ?").get(req.params.id);
-    if (!course) { db.close(); return res.status(404).json({ error: "課程不存在" }); }
+router.get(
+  "/course-detail/:id",
+  authenticateToken,
+  requireAdmin,
+  (req, res) => {
+    try {
+      const db = new Database(DB_PATH);
+      const course = db
+        .prepare("SELECT * FROM classes WHERE id = ?")
+        .get(req.params.id);
+      if (!course) {
+        db.close();
+        return res.status(404).json({ error: "課程不存在" });
+      }
 
-    const schedules = db.prepare(
-      "SELECT s.*, (SELECT COUNT(*) FROM bookings b WHERE b.schedule_id = s.id AND b.status IN ('confirmed','attended')) as enrolled FROM class_schedules s WHERE s.class_id = ? AND s.start_time >= datetime('now') ORDER BY s.start_time"
-    ).all(req.params.id);
+      const schedules = db
+        .prepare(
+          "SELECT s.*, (SELECT COUNT(*) FROM bookings b WHERE b.schedule_id = s.id AND b.status IN ('confirmed','attended')) as enrolled FROM class_schedules s WHERE s.class_id = ? AND s.start_time >= datetime('now') ORDER BY s.start_time",
+        )
+        .all(req.params.id);
 
-    // For each schedule, get enrolled students
-    const scheduleStudents = {};
-    for (const s of schedules) {
-      const students = db.prepare(
-        "SELECT u.id, u.name, u.email, u.phone, b.booking_reference, b.status, b.payment_status, b.created_at, b.amount FROM bookings b JOIN users u ON u.id = b.user_id WHERE b.schedule_id = ? AND b.status IN ('confirmed','attended','pending_payment') ORDER BY b.created_at"
-      ).all(s.id);
-      scheduleStudents[s.id] = students;
+      // For each schedule, get enrolled students
+      const scheduleStudents = {};
+      for (const s of schedules) {
+        const students = db
+          .prepare(
+            "SELECT u.id, u.name, u.email, u.phone, b.booking_reference, b.status, b.payment_status, b.created_at, b.amount FROM bookings b JOIN users u ON u.id = b.user_id WHERE b.schedule_id = ? AND b.status IN ('confirmed','attended','pending_payment') ORDER BY b.created_at",
+          )
+          .all(s.id);
+        scheduleStudents[s.id] = students;
+      }
+
+      db.close();
+      res.json({
+        course,
+        schedules,
+        scheduleStudents,
+        total_schedules: schedules.length,
+      });
+    } catch (err) {
+      console.error("取課程詳情錯誤:", err);
+      res.status(500).json({ error: "無法獲取課程詳情" });
     }
-
-    db.close();
-    res.json({ course, schedules, scheduleStudents, total_schedules: schedules.length });
-  } catch (err) {
-    console.error("取課程詳情錯誤:", err);
-    res.status(500).json({ error: "無法獲取課程詳情" });
-  }
-});
+  },
+);
 
 // ===== GET /api/admin/user-detail/:id — 用戶詳細資料（含預約紀錄） =====
 router.get("/user-detail/:id", authenticateToken, requireAdmin, (req, res) => {
   try {
     const db = new Database(DB_PATH);
-    const user = db.prepare("SELECT * FROM users WHERE id = ?").get(req.params.id);
-    if (!user) { db.close(); return res.status(404).json({ error: "用戶不存在" }); }
+    const user = db
+      .prepare("SELECT * FROM users WHERE id = ?")
+      .get(req.params.id);
+    if (!user) {
+      db.close();
+      return res.status(404).json({ error: "用戶不存在" });
+    }
 
-    const bookings = db.prepare(
-      "SELECT b.*, c.title as class_title, cs.start_time, cs.end_time FROM bookings b JOIN classes c ON c.id = b.class_id LEFT JOIN class_schedules cs ON cs.id = b.schedule_id WHERE b.user_id = ? ORDER BY b.created_at DESC"
-    ).all(req.params.id);
+    const bookings = db
+      .prepare(
+        "SELECT b.*, c.title as class_title, cs.start_time, cs.end_time FROM bookings b JOIN classes c ON c.id = b.class_id LEFT JOIN class_schedules cs ON cs.id = b.schedule_id WHERE b.user_id = ? ORDER BY b.created_at DESC",
+      )
+      .all(req.params.id);
 
-    const transactions = db.prepare(
-      "SELECT * FROM transactions WHERE user_id = ? ORDER BY created_at DESC"
-    ).all(req.params.id);
+    const transactions = db
+      .prepare(
+        "SELECT * FROM transactions WHERE user_id = ? ORDER BY created_at DESC",
+      )
+      .all(req.params.id);
 
-    const membership = db.prepare(
-      "SELECT * FROM memberships WHERE user_id = ? ORDER BY created_at DESC"
-    ).all(req.params.id);
+    const membership = db
+      .prepare(
+        "SELECT * FROM memberships WHERE user_id = ? ORDER BY created_at DESC",
+      )
+      .all(req.params.id);
 
     db.close();
     res.json({ user, bookings, transactions, membership });
@@ -813,20 +951,31 @@ router.get("/user-detail/:id", authenticateToken, requireAdmin, (req, res) => {
 router.get("/coach-detail/:id", authenticateToken, requireAdmin, (req, res) => {
   try {
     const db = new Database(DB_PATH);
-    const coach = db.prepare("SELECT * FROM users WHERE id = ? AND is_coach = 1").get(req.params.id);
-    if (!coach) { db.close(); return res.status(404).json({ error: "教練不存在" }); }
+    const coach = db
+      .prepare("SELECT * FROM users WHERE id = ? AND is_coach = 1")
+      .get(req.params.id);
+    if (!coach) {
+      db.close();
+      return res.status(404).json({ error: "教練不存在" });
+    }
 
-    const classes = db.prepare(
-      "SELECT c.*, (SELECT COUNT(*) FROM class_schedules WHERE class_id = c.id AND start_time >= datetime('now')) as future_schedules, (SELECT COUNT(*) FROM bookings b JOIN class_schedules s ON b.schedule_id = s.id WHERE s.class_id = c.id AND b.status = 'confirmed') as total_bookings FROM classes c WHERE c.coach_id = ? ORDER BY c.created_at DESC"
-    ).all(req.params.id);
+    const classes = db
+      .prepare(
+        "SELECT c.*, (SELECT COUNT(*) FROM class_schedules WHERE class_id = c.id AND start_time >= datetime('now')) as future_schedules, (SELECT COUNT(*) FROM bookings b JOIN class_schedules s ON b.schedule_id = s.id WHERE s.class_id = c.id AND b.status = 'confirmed') as total_bookings FROM classes c WHERE c.coach_id = ? ORDER BY c.created_at DESC",
+      )
+      .all(req.params.id);
 
-    const earnings = db.prepare(
-      "SELECT * FROM coach_earnings WHERE coach_id = ? ORDER BY created_at DESC"
-    ).all(req.params.id);
+    const earnings = db
+      .prepare(
+        "SELECT * FROM coach_earnings WHERE coach_id = ? ORDER BY created_at DESC",
+      )
+      .all(req.params.id);
 
-    const payouts = db.prepare(
-      "SELECT * FROM coach_payouts WHERE coach_id = ? ORDER BY created_at DESC"
-    ).all(req.params.id);
+    const payouts = db
+      .prepare(
+        "SELECT * FROM coach_payouts WHERE coach_id = ? ORDER BY created_at DESC",
+      )
+      .all(req.params.id);
 
     db.close();
     res.json({ coach, classes, earnings, payouts });
@@ -848,24 +997,33 @@ router.post("/assign-coach", authenticateToken, requireAdmin, (req, res) => {
     db.pragma("foreign_keys = ON");
 
     // 檢查課程是否存在
-    const classData = db.prepare("SELECT * FROM classes WHERE id = ?").get(class_id);
+    const classData = db
+      .prepare("SELECT * FROM classes WHERE id = ?")
+      .get(class_id);
     if (!classData) {
       db.close();
       return res.status(404).json({ error: "課程不存在" });
     }
 
     // 檢查教練是否存在
-    const coach = db.prepare("SELECT id, name FROM users WHERE id = ? AND is_coach = 1").get(coach_id);
+    const coach = db
+      .prepare("SELECT id, name FROM users WHERE id = ? AND is_coach = 1")
+      .get(coach_id);
     if (!coach) {
       db.close();
       return res.status(404).json({ error: "教練不存在或未通過認證" });
     }
 
     // 更新課程教練
-    db.prepare("UPDATE classes SET coach_id = ?, updated_at = datetime('now') WHERE id = ?").run(coach_id, class_id);
+    db.prepare(
+      "UPDATE classes SET coach_id = ?, updated_at = datetime('now') WHERE id = ?",
+    ).run(coach_id, class_id);
     db.close();
 
-    res.json({ success: true, message: `✅ 已將「${classData.title}」指派給 ${coach.name}` });
+    res.json({
+      success: true,
+      message: `✅ 已將「${classData.title}」指派給 ${coach.name}`,
+    });
   } catch (err) {
     console.error("指派教練錯誤:", err);
     res.status(500).json({ error: "指派教練失敗" });
@@ -873,33 +1031,39 @@ router.post("/assign-coach", authenticateToken, requireAdmin, (req, res) => {
 });
 
 // ===== POST /api/admin/notify-course-spots — 通知有興趣學員課程空位 =====
-router.post("/notify-course-spots", authenticateToken, requireAdmin, (req, res) => {
-  try {
-    var { class_id, message } = req.body;
+router.post(
+  "/notify-course-spots",
+  authenticateToken,
+  requireAdmin,
+  (req, res) => {
+    try {
+      var { class_id, message } = req.body;
 
-    if (!class_id) {
-      return res.status(400).json({ error: "缺少課程編號" });
-    }
+      if (!class_id) {
+        return res.status(400).json({ error: "缺少課程編號" });
+      }
 
-    const db = new Database(DB_PATH);
-    db.pragma("foreign_keys = ON");
+      const db = new Database(DB_PATH);
+      db.pragma("foreign_keys = ON");
 
-    // 獲取課程資料
-    var course = db.prepare("SELECT * FROM classes WHERE id = ?").get(class_id);
-    if (!course) {
-      db.close();
-      return res.status(404).json({ error: "課程不存在" });
-    }
+      // 獲取課程資料
+      var course = db
+        .prepare("SELECT * FROM classes WHERE id = ?")
+        .get(class_id);
+      if (!course) {
+        db.close();
+        return res.status(404).json({ error: "課程不存在" });
+      }
 
-    var category = course.category;
-    var title = course.title;
+      var category = course.category;
+      var title = course.title;
 
-    // 搵出有興趣嘅用戶：
-    // 1. 曾經預約相同類別課程（包括已出席）
-    // 2. 曾經瀏覽/收藏相同類別課程
-    var interestedUsers = db
-      .prepare(
-        `
+      // 搵出有興趣嘅用戶：
+      // 1. 曾經預約相同類別課程（包括已出席）
+      // 2. 曾經瀏覽/收藏相同類別課程
+      var interestedUsers = db
+        .prepare(
+          `
       SELECT DISTINCT b.user_id
       FROM bookings b
       JOIN classes c ON b.class_id = c.id
@@ -912,101 +1076,123 @@ router.post("/notify-course-spots", authenticateToken, requireAdmin, (req, res) 
       WHERE ua.category = ?
         AND ua.action IN ('view_class', 'book_class', 'favorite')
         AND ua.user_id IS NOT NULL
-    `
-      )
-      .all(category, category);
+    `,
+        )
+        .all(category, category);
 
-    if (interestedUsers.length === 0) {
-      db.close();
-      return res.json({ notified: 0, message: "暫無有興趣嘅學員" });
-    }
-
-    var notifiedCount = 0;
-    var finalMessage =
-      message || `📢 「${title}」有大量空位，快啲預約啦！`;
-
-    for (var ui = 0; ui < interestedUsers.length; ui++) {
-      try {
-        sendNotification("booking.confirmed", {
-          recipient: interestedUsers[ui].user_id,
-          data: { message: finalMessage },
-        });
-        notifiedCount++;
-      } catch (notifErr) {
-        console.error("通知發送失敗:", notifErr.message);
+      if (interestedUsers.length === 0) {
+        db.close();
+        return res.json({ notified: 0, message: "暫無有興趣嘅學員" });
       }
+
+      var notifiedCount = 0;
+      var finalMessage = message || `📢 「${title}」有大量空位，快啲預約啦！`;
+
+      for (var ui = 0; ui < interestedUsers.length; ui++) {
+        try {
+          sendNotification("booking.confirmed", {
+            recipient: interestedUsers[ui].user_id,
+            data: { message: finalMessage },
+          });
+          notifiedCount++;
+        } catch (notifErr) {
+          console.error("通知發送失敗:", notifErr.message);
+        }
+      }
+
+      db.close();
+
+      res.json({
+        notified: notifiedCount,
+        message: `已通知 ${notifiedCount} 位有興趣學員`,
+      });
+    } catch (err) {
+      console.error("通知課程空位錯誤:", err);
+      res.status(500).json({ error: "通知失敗" });
     }
-
-    db.close();
-
-    res.json({
-      notified: notifiedCount,
-      message: `已通知 ${notifiedCount} 位有興趣學員`,
-    });
-  } catch (err) {
-    console.error("通知課程空位錯誤:", err);
-    res.status(500).json({ error: "通知失敗" });
-  }
-});
+  },
+);
 
 // ===== PUT /api/admin/update-course/:id — 管理員更新課程資料 =====
-router.put("/update-course/:id", authenticateToken, requireAdmin, (req, res) => {
-  try {
-    const db = new Database(DB_PATH);
-    db.pragma("foreign_keys = ON");
+router.put(
+  "/update-course/:id",
+  authenticateToken,
+  requireAdmin,
+  (req, res) => {
+    try {
+      const db = new Database(DB_PATH);
+      db.pragma("foreign_keys = ON");
 
-    const classData = db.prepare("SELECT * FROM classes WHERE id = ?").get(req.params.id);
-    if (!classData) {
-      db.close();
-      return res.status(404).json({ error: "課程不存在" });
-    }
-
-    const allowedFields = [
-      "title", "title_en", "description", "description_en",
-      "category", "difficulty", "duration", "max_participants",
-      "price_hkd", "credits_cost", "venue_name", "venue_address",
-      "venue_district", "latitude", "longitude", "image_url", "status"
-    ];
-
-    const updates = [];
-    const params = [];
-
-    for (const field of allowedFields) {
-      if (req.body[field] !== undefined) {
-        updates.push(`${field} = ?`);
-        params.push(req.body[field]);
+      const classData = db
+        .prepare("SELECT * FROM classes WHERE id = ?")
+        .get(req.params.id);
+      if (!classData) {
+        db.close();
+        return res.status(404).json({ error: "課程不存在" });
       }
-    }
 
-    if (updates.length === 0) {
+      const allowedFields = [
+        "title",
+        "title_en",
+        "description",
+        "description_en",
+        "category",
+        "difficulty",
+        "duration",
+        "max_participants",
+        "price_hkd",
+        "credits_cost",
+        "venue_name",
+        "venue_address",
+        "venue_district",
+        "latitude",
+        "longitude",
+        "image_url",
+        "status",
+      ];
+
+      const updates = [];
+      const params = [];
+
+      for (const field of allowedFields) {
+        if (req.body[field] !== undefined) {
+          updates.push(`${field} = ?`);
+          params.push(req.body[field]);
+        }
+      }
+
+      if (updates.length === 0) {
+        db.close();
+        return res.status(400).json({ error: "沒有要更新的欄位" });
+      }
+
+      updates.push("updated_at = datetime('now')");
+      params.push(req.params.id);
+
+      db.prepare(`UPDATE classes SET ${updates.join(", ")} WHERE id = ?`).run(
+        ...params,
+      );
       db.close();
-      return res.status(400).json({ error: "沒有要更新的欄位" });
+
+      res.json({ success: true, message: "✅ 課程資料已更新" });
+    } catch (err) {
+      console.error("更新課程錯誤:", err);
+      res.status(500).json({ error: "更新課程失敗" });
     }
-
-    updates.push("updated_at = datetime('now')");
-    params.push(req.params.id);
-
-    db.prepare(`UPDATE classes SET ${updates.join(", ")} WHERE id = ?`).run(...params);
-    db.close();
-
-    res.json({ success: true, message: "✅ 課程資料已更新" });
-  } catch (err) {
-    console.error("更新課程錯誤:", err);
-    res.status(500).json({ error: "更新課程失敗" });
-  }
-});
+  },
+);
 
 // ===== POST /api/admin/generate-description — AI 自動生成課程描述 =====
 // 多範本 AI 描述系統 — 按課程名稱關鍵詞匹配最合適嘅描述
 // 每個分類有多個範本，由關鍵詞匹配決定用邊個
 const DESCRIPTION_TEMPLATES = {
-  "瑜伽": {
+  瑜伽: {
     keywords: {
-      "空中": [
+      空中: [
         "%s 利用空中瑜伽吊床（Hammock）進行懸吊練習，透過反重力動作幫助脊柱減壓、改善血液循環。由導師從基本掛布動作教起，適合想挑戰新事物嘅學員。",
         "%s 喺空中吊床上進行各種瑜伽動作，利用地心引力進行深度伸展同核心鍛鍊。課程由經驗導師指導，確保安全同正確姿勢。",
       ],
-      "熱": [
+      熱: [
         "%s 喺溫暖嘅課室中進行瑜伽練習，幫助肌肉更容易放鬆伸展。課堂包含流暢嘅體位法串聯，適合想排毒出汗、提升柔軟度嘅學員。",
       ],
       "哈達|Hatha": [
@@ -1035,9 +1221,9 @@ const DESCRIPTION_TEMPLATES = {
       "%s 課堂包含呼吸協調、體位法練習同深層放鬆，適合任何程度嘅學員參加。由導師循序漸進引導，讓身體慢慢打開。",
       "%s 透過有系統嘅瑜伽練習，逐步提升身體覺察力同控制能力。每堂課都會因應學員狀況調整內容，確保安全有效。",
       "%s 提供一個寧靜嘅空間讓你暫時遠離日常煩囂，專注於身體同呼吸。適合任何想透過瑜伽放鬆身心嘅人士。",
-    ]
+    ],
   },
-  "健身": {
+  健身: {
     keywords: {
       "HIIT|高強度|間歇|燃脂": [
         "%s 以高強度間歇訓練（HIIT）為核心，短時間內進行高強度動作配合短暫休息，有效提升代謝率同燃脂效果。",
@@ -1069,9 +1255,9 @@ const DESCRIPTION_TEMPLATES = {
       "%s 由教練根據學員能力設計訓練內容，確保每位學員都喺安全嘅環境中逐步進步。適合想持續鍛鍊嘅人士。",
       "%s 課堂包含動態熱身、主訓練同靜態伸展，完整嘅訓練流程幫助學員有效提升體能同時預防受傷。",
       "%s 透過團體訓練嘅互動氣氛，讓運動變得更有趣。教練會從旁指導動作，確保正確姿勢，適合任何程度學員。",
-    ]
+    ],
   },
-  "新興運動": {
+  新興運動: {
     keywords: {
       "芬蘭木柱|Mölkky|Molkk": [
         "%s 係源自芬蘭嘅掟木柱遊戲，玩法簡單但充滿策略性。適合戶外聯誼、親子活動或公司團隊建設，大人細路都玩得。",
@@ -1099,9 +1285,9 @@ const DESCRIPTION_TEMPLATES = {
       "%s 玩法簡單易上手，由教練逐步帶領學員掌握基本技巧，可以鍛鍊身體協調性同反應能力。",
       "%s 係近年流行嘅運動之一，無論係初學者定有經驗人士都可以享受當中樂趣。教練會按學員程度調整教學內容。",
       "%s 提供一個有趣嘅方式讓身體動起來，唔使傳統訓練咁沉悶，又可以達到運動效果。適合想試新嘢嘅你。",
-    ]
+    ],
   },
-  "舞蹈": {
+  舞蹈: {
     keywords: {
       "Zumba|舞動燃脂|Fitness Dance": [
         "%s 結合拉丁音樂同舞蹈動作，喺歡樂嘅氣氛中燃燒卡路里。由導師帶領簡單易跟嘅舞步，唔需要舞蹈底子都跳到。",
@@ -1123,9 +1309,9 @@ const DESCRIPTION_TEMPLATES = {
       "%s 跟隨音樂節奏學習基本舞步，由導師細心教學，無論有冇舞蹈底子都適合參加。課堂著重動作協調同節奏感。",
       "%s 由專業舞蹈導師指導，從基本步法到完整舞碼，逐步教學。適合想活動身體、提升協調能力嘅人士。",
       "%s 透過音樂同舞步釋放壓力，喺輕鬆嘅氣氛中活動身體。導師會逐步教授，確保每位學員都跟得上進度。",
-    ]
+    ],
   },
-  "伸展": {
+  伸展: {
     keywords: {
       "瑜伽|Yoga": [
         "%s 透過靜態瑜伽伸展動作，幫助放鬆繃緊肌肉、提升身體柔軟度。每堂課都包含呼吸練習同放鬆環節。",
@@ -1141,9 +1327,9 @@ const DESCRIPTION_TEMPLATES = {
       "%s 透過系統性伸展動作，幫助放鬆繃緊肌肉、提升身體柔軟度同關節活動範圍。特別適合長時間坐辦公室嘅人士。",
       "%s 由導師帶領進行全身伸展練習，針對常見嘅肌肉緊張部位進行放鬆，改善身體靈活性同舒適度。",
       "%s 透過有系統嘅伸展練習，幫助身體恢復彈性，減少肌肉酸痛同繃緊感。適合運動後或日常保養。",
-    ]
+    ],
   },
-  "冥想": {
+  冥想: {
     keywords: {
       "正念|Mindfulness|MBSR": [
         "%s 以正念減壓（MBSR）為基礎，透過身體掃描、呼吸覺察等練習，幫助學員培養專注力同覺察力。",
@@ -1159,9 +1345,9 @@ const DESCRIPTION_TEMPLATES = {
       "%s 透過呼吸練習與冥想引導，幫助學員學習專注當下、放鬆身心。課程適合想減輕壓力、提升睡眠質素嘅人士。",
       "%s 由導師帶領進行靜坐冥想同呼吸練習，喺寧靜嘅空間中學習觀察念頭，培養內在平靜。",
       "%s 提供一個空間讓你暫時放下外界干擾，透過簡單嘅冥想練習，學習同自己相處。適合冥想初學者。",
-    ]
+    ],
   },
-  "TRX": {
+  TRX: {
     keywords: {
       "核心|Core": [
         "%s 利用 TRX 懸吊系統進行核心肌群專項訓練，透過不穩定平面激活深層腹部同背部肌肉。",
@@ -1173,9 +1359,9 @@ const DESCRIPTION_TEMPLATES = {
     default: [
       "%s 利用 TRX 懸吊系統，以自身體力進行全身訓練，重點鍛鍊核心肌群同身體穩定性。由教練指導正確動作。",
       "%s 透過懸吊訓練方式，喺不穩定嘅環境中激活更多肌肉纖維，提升身體控制能力同肌力。",
-    ]
+    ],
   },
-  "拳擊": {
+  拳擊: {
     keywords: {
       "有氧|Aerobic|Fitness": [
         "%s 以拳擊動作組合進行有氧訓練，每小時消耗大量卡路里。課程包含熱身、空擊、手靶同核心訓練，唔需要對打。",
@@ -1187,9 +1373,9 @@ const DESCRIPTION_TEMPLATES = {
     default: [
       "%s 透過基本拳擊動作同組合訓練，有效提升心肺功能、手眼協調同全身肌力。由專業教練指導，無需經驗即可參加。",
       "%s 學習基本拳法同組合，喺訓練中提升反應速度同體能。課程唔涉及對打，適合任何程度嘅學員。",
-    ]
+    ],
   },
-  "太極": {
+  太極: {
     keywords: {
       "養生|Health|氣功": [
         "%s 融合太極拳與養生功法，透過緩慢動作配合呼吸，幫助調理氣血、放鬆身心。",
@@ -1201,7 +1387,7 @@ const DESCRIPTION_TEMPLATES = {
     default: [
       "%s 教授太極拳基本動作與套路，透過緩慢流暢嘅動作，幫助提升身體平衡力、協調性同放鬆身心。",
       "%s 從基本功開始教學，逐步掌握太極拳嘅基本架式同移動方式。適合任何年齡人士參加。",
-    ]
+    ],
   },
   "長者體適能|長者|Senior": {
     keywords: {
@@ -1215,9 +1401,9 @@ const DESCRIPTION_TEMPLATES = {
     default: [
       "%s 專為長者設計嘅體適能課程，包含椅上伸展、平衡練習同輕度肌力訓練，幫助維持身體機能同活動能力。",
       "%s 由具經驗嘅導師帶領，以小班教學確保每位長者得到適當照顧。課程按學員能力調整，安全輕鬆。",
-    ]
+    ],
   },
-  "default": {
+  default: {
     keywords: {},
     default: [
       "%s 由專業教練帶領，透過系統化教學幫助學員掌握基本技巧與知識。課程適合任何程度嘅參加者。",
@@ -1225,89 +1411,98 @@ const DESCRIPTION_TEMPLATES = {
       "%s 透過實際練習與專業指導，幫助學員了解基本技巧與要領。課堂注重正確姿勢同安全。",
       "%s 由經驗導師設計課程內容，按學員程度調整教學進度。適合想建立運動習慣嘅你。",
       "%s 喺輕鬆嘅課堂氣氛中學習，由教練從旁指導矯正。無論你嘅目標係乜，我哋都會幫你一步步達成。",
-    ]
-  }
+    ],
+  },
 };
 
-router.post("/generate-description", authenticateToken, requireAdmin, (req, res) => {
-  try {
-    const { title, category, difficulty, venue_name } = req.body;
-    if (!title) {
-      return res.status(400).json({ error: "請提供課程名稱" });
-    }
+router.post(
+  "/generate-description",
+  authenticateToken,
+  requireAdmin,
+  (req, res) => {
+    try {
+      const { title, category, difficulty, venue_name } = req.body;
+      if (!title) {
+        return res.status(400).json({ error: "請提供課程名稱" });
+      }
 
-    // 1. 先根據分類搵對應嘅範本組
-    let catData = DESCRIPTION_TEMPLATES.default;
-    if (category) {
-      for (const [key, val] of Object.entries(DESCRIPTION_TEMPLATES)) {
-        const keys = key.split("|");
-        if (keys.some(k => category.includes(k.trim()))) {
-          catData = val;
+      // 1. 先根據分類搵對應嘅範本組
+      let catData = DESCRIPTION_TEMPLATES.default;
+      if (category) {
+        for (const [key, val] of Object.entries(DESCRIPTION_TEMPLATES)) {
+          const keys = key.split("|");
+          if (keys.some((k) => category.includes(k.trim()))) {
+            catData = val;
+            break;
+          }
+        }
+      }
+
+      // 2. 再根據課程名稱嘅關鍵詞匹配最適合嘅範本
+      let matchedTemplates = null;
+      for (const [keyword, templates] of Object.entries(catData.keywords)) {
+        const words = keyword.split("|");
+        if (
+          words.some((w) =>
+            title.toLowerCase().includes(w.toLowerCase().trim()),
+          )
+        ) {
+          matchedTemplates = templates;
           break;
         }
       }
-    }
 
-    // 2. 再根據課程名稱嘅關鍵詞匹配最適合嘅範本
-    let matchedTemplates = null;
-    for (const [keyword, templates] of Object.entries(catData.keywords)) {
-      const words = keyword.split("|");
-      if (words.some(w => title.toLowerCase().includes(w.toLowerCase().trim()))) {
-        matchedTemplates = templates;
-        break;
+      // 3. 如果有關鍵詞匹配就用 keyword 範本，否則用 default 範本
+      var primaryPool = matchedTemplates || catData.default;
+      var pool = primaryPool;
+      // 如果 keyword 範本少過 3 個，combine keyword + default 補夠
+      if (primaryPool.length < 3 && catData.default) {
+        pool = primaryPool.concat(catData.default);
       }
-    }
-
-    // 3. 如果有關鍵詞匹配就用 keyword 範本，否則用 default 範本
-    var primaryPool = matchedTemplates || catData.default;
-    var pool = primaryPool;
-    // 如果 keyword 範本少過 3 個，combine keyword + default 補夠
-    if (primaryPool.length < 3 && catData.default) {
-      pool = primaryPool.concat(catData.default);
-    }
-    // 用課程名稱長度 + 字符編碼決定範本，確保同一課程每次都一樣但不同課程有不同描述
-    var seed = 0;
-    for (var chi = 0; chi < title.length; chi++) {
-      seed += title.charCodeAt(chi);
-    }
-    // 生成 3 個唔同嘅範本俾管理員選擇
-    var descriptions = [];
-    var usedIndices = [];
-    for (var gi = 0; gi < 3 && gi < pool.length; gi++) {
-      // 用 seed + gi * 7 確保 3 個都唔同
-      var idx = (seed + gi * 7 + gi * gi) % pool.length;
-      // 避免重複
-      var attempts = 0;
-      while (usedIndices.indexOf(idx) !== -1 && attempts < pool.length) {
-        idx = (idx + 1) % pool.length;
-        attempts++;
+      // 用課程名稱長度 + 字符編碼決定範本，確保同一課程每次都一樣但不同課程有不同描述
+      var seed = 0;
+      for (var chi = 0; chi < title.length; chi++) {
+        seed += title.charCodeAt(chi);
       }
-      usedIndices.push(idx);
+      // 生成 3 個唔同嘅範本俾管理員選擇
+      var descriptions = [];
+      var usedIndices = [];
+      for (var gi = 0; gi < 3 && gi < pool.length; gi++) {
+        // 用 seed + gi * 7 確保 3 個都唔同
+        var idx = (seed + gi * 7 + gi * gi) % pool.length;
+        // 避免重複
+        var attempts = 0;
+        while (usedIndices.indexOf(idx) !== -1 && attempts < pool.length) {
+          idx = (idx + 1) % pool.length;
+          attempts++;
+        }
+        usedIndices.push(idx);
 
-      var desc = pool[idx].replace("%s", title);
+        var desc = pool[idx].replace("%s", title);
 
-      // Add venue info
-      if (venue_name) {
-        desc += " 📍 " + venue_name;
-      }
+        // Add venue info
+        if (venue_name) {
+          desc += " 📍 " + venue_name;
+        }
 
-      // Add difficulty hint
-      if (difficulty === "beginner") {
-        desc = "【初學者友善】" + desc;
-      } else if (difficulty === "intermediate") {
-        desc = "【中級強度】" + desc;
-      } else if (difficulty === "advanced") {
-        desc = "【高階挑戰】" + desc;
+        // Add difficulty hint
+        if (difficulty === "beginner") {
+          desc = "【初學者友善】" + desc;
+        } else if (difficulty === "intermediate") {
+          desc = "【中級強度】" + desc;
+        } else if (difficulty === "advanced") {
+          desc = "【高階挑戰】" + desc;
+        }
+
+        descriptions.push(desc);
       }
 
-      descriptions.push(desc);
+      res.json({ descriptions, generated: true });
+    } catch (err) {
+      console.error("生成描述錯誤:", err);
+      res.status(500).json({ error: "生成描述失敗" });
     }
-
-    res.json({ descriptions, generated: true });
-  } catch (err) {
-    console.error("生成描述錯誤:", err);
-    res.status(500).json({ error: "生成描述失敗" });
-  }
-});
+  },
+);
 
 module.exports = router;

@@ -4,13 +4,13 @@
  * 用法: node backend/src/scripts/auto-backup.js
  */
 
-const path = require('path');
-const fs = require('fs');
+const path = require("path");
+const fs = require("fs");
 
 // Resolve paths relative to project root
-const PROJECT_ROOT = path.resolve(__dirname, '../..');
-const DB_PATH = path.join(PROJECT_ROOT, 'data', 'zenpass.db');
-const BACKUP_DIR = path.join(PROJECT_ROOT, 'backups');
+const PROJECT_ROOT = path.resolve(__dirname, "../..");
+const DB_PATH = path.join(PROJECT_ROOT, "data", "zenpass.db");
+const BACKUP_DIR = path.join(PROJECT_ROOT, "backups");
 
 function autoBackup() {
   // Ensure backup directory exists
@@ -19,7 +19,7 @@ function autoBackup() {
   }
 
   const date = new Date();
-  const dateStr = date.toISOString().split('T')[0]; // YYYY-MM-DD
+  const dateStr = date.toISOString().split("T")[0]; // YYYY-MM-DD
   const backupFile = path.join(BACKUP_DIR, `zenpass-${dateStr}.db`);
 
   // Check if today's backup already exists
@@ -32,7 +32,9 @@ function autoBackup() {
   // Copy database file
   try {
     fs.copyFileSync(DB_PATH, backupFile);
-    console.log(`✅ 備份成功: ${backupFile} (${(fs.statSync(backupFile).size / 1024).toFixed(1)} KB)`);
+    console.log(
+      `✅ 備份成功: ${backupFile} (${(fs.statSync(backupFile).size / 1024).toFixed(1)} KB)`,
+    );
   } catch (err) {
     console.error(`❌ 備份失敗: ${err.message}`);
     return;
@@ -44,8 +46,9 @@ function autoBackup() {
 function cleanupOldBackups() {
   // Keep only last 7 days of backups
   try {
-    const files = fs.readdirSync(BACKUP_DIR)
-      .filter(f => f.startsWith('zenpass-') && f.endsWith('.db'))
+    const files = fs
+      .readdirSync(BACKUP_DIR)
+      .filter((f) => f.startsWith("zenpass-") && f.endsWith(".db"))
       .sort();
 
     while (files.length > 7) {

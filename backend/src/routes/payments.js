@@ -498,7 +498,7 @@ router.post("/fps", authenticateToken, (req, res) => {
         "pending",
         amount || (booking ? booking.amount : 0),
         "fps",
-        req
+        req,
       );
     } catch (auditErr) {
       console.error("⚠️ Audit record failed:", auditErr.message);
@@ -506,15 +506,15 @@ router.post("/fps", authenticateToken, (req, res) => {
 
     // 🔔 ADMIN TELEGRAM：通知管理員有新 FPS 付款待確認
     setTimeout(() => {
-      const classTitle = booking ? (booking.title || "") : "";
+      const classTitle = booking ? booking.title || "" : "";
       sendTelegramAlert(
         `🆕 <b>新 FPS 付款待確認</b>\n` +
-        `👤 用戶：${req.user.name || req.user.email || req.user.id}\n` +
-        `💰 金額：HK$${amount || (booking ? booking.amount : 0)}\n` +
-        `📎 參考：${fps_reference}\n` +
-        `📚 課程：${classTitle || "—"}\n` +
-        `🆔 Booking：${booking_id || "—"}\n` +
-        `⏰ ${new Date().toLocaleString("zh-HK", { timeZone: "Asia/Hong_Kong" })}`
+          `👤 用戶：${req.user.name || req.user.email || req.user.id}\n` +
+          `💰 金額：HK$${amount || (booking ? booking.amount : 0)}\n` +
+          `📎 參考：${fps_reference}\n` +
+          `📚 課程：${classTitle || "—"}\n` +
+          `🆔 Booking：${booking_id || "—"}\n` +
+          `⏰ ${new Date().toLocaleString("zh-HK", { timeZone: "Asia/Hong_Kong" })}`,
       );
     }, 0);
 
@@ -587,15 +587,15 @@ router.post("/payme", authenticateToken, (req, res) => {
 
     // 🔔 ADMIN TELEGRAM：通知管理員有新 PayMe 付款待確認
     setTimeout(() => {
-      const classTitle = booking ? (booking.title || "") : "";
+      const classTitle = booking ? booking.title || "" : "";
       sendTelegramAlert(
         `🆕 <b>新 PayMe 付款待確認</b>\n` +
-        `👤 用戶：${req.user.name || req.user.email || req.user.id}\n` +
-        `💰 金額：HK$${amount || (booking ? booking.amount : 0)}\n` +
-        `📎 參考：${payme_reference}\n` +
-        `📚 課程：${classTitle || "—"}\n` +
-        `🆔 Booking：${booking_id || "—"}\n` +
-        `⏰ ${new Date().toLocaleString("zh-HK", { timeZone: "Asia/Hong_Kong" })}`
+          `👤 用戶：${req.user.name || req.user.email || req.user.id}\n` +
+          `💰 金額：HK$${amount || (booking ? booking.amount : 0)}\n` +
+          `📎 參考：${payme_reference}\n` +
+          `📚 課程：${classTitle || "—"}\n` +
+          `🆔 Booking：${booking_id || "—"}\n` +
+          `⏰ ${new Date().toLocaleString("zh-HK", { timeZone: "Asia/Hong_Kong" })}`,
       );
     }, 0);
 
@@ -722,189 +722,208 @@ router.post("/create-payment-intent", authenticateToken, async (req, res) => {
 
 // ===== 1.2 POST /api/payments/confirm — 確認付款（FPS / PayMe / Stripe）=====
 // 通用確認 endpoint：將 pending_payment booking 轉爲 confirmed
-router.post("/confirm", authenticateToken, validate(schemas.payment_confirm), (req, res) => {
-  try {
-    const { booking_id, payment_method, payment_reference, amount } = req.body;
+router.post(
+  "/confirm",
+  authenticateToken,
+  validate(schemas.payment_confirm),
+  (req, res) => {
+    try {
+      const { booking_id, payment_method, payment_reference, amount } =
+        req.body;
 
-    if (!booking_id || !payment_method) {
-      return res
-        .status(400)
-        .json({ error: "缺少必要資料（booking_id, payment_method）" });
-    }
+      if (!booking_id || !payment_method) {
+        return res
+          .status(400)
+          .json({ error: "缺少必要資料（booking_id, payment_method）" });
+      }
 
-    const db = new Database(DB_PATH);
-    db.pragma("foreign_keys = ON");
+      const db = new Database(DB_PATH);
+      db.pragma("foreign_keys = ON");
 
-    // 檢查 booking 係咪屬於呢個 user 且係 pending_payment
-    const booking = db
-      .prepare(
-        `
+      // 檢查 booking 係咪屬於呢個 user 且係 pending_payment
+      const booking = db
+        .prepare(
+          `
       SELECT b.*, c.title as class_title, cs.start_time, cs.end_time
       FROM bookings b
       JOIN classes c ON b.class_id = c.id
       JOIN class_schedules cs ON b.schedule_id = cs.id
       WHERE b.id = ? AND b.user_id = ? AND b.status = 'pending_payment'
     `,
-      )
-      .get(booking_id, req.user.id);
+        )
+        .get(booking_id, req.user.id);
 
-    if (!booking) {
-      db.close();
-      return res.status(404).json({ error: "未找到待付款的預約或預約已取消" });
-    }
-
-    // 根據付款方式決定是否需要管理員確認
-    // Stripe — 即時確認（Stripe 已驗證付款）
-    // FPS / PayMe — 停留 pending_payment，等待管理員確認
-    const isAdminApprovalRequired = payment_method === "fps" || payment_method === "payme";
-
-    let updateFields = [];
-    let updateParams = [];
-
-    if (isAdminApprovalRequired) {
-      // FPS/PayMe: 儲存參考編號，保持 pending，等 admin 確認
-      updateFields = ["status = 'pending_payment'", "payment_status = 'pending'"];
-    } else {
-      // Stripe: 即時確認
-      updateFields = ["status = 'confirmed'", "payment_status = 'paid'"];
-    }
-
-    if (payment_method === "stripe" && payment_reference) {
-      updateFields.push("stripe_payment_intent_id = ?");
-      updateParams.push(payment_reference);
-    } else if (payment_method === "fps" && payment_reference) {
-      updateFields.push("fps_reference = ?");
-      updateParams.push(payment_reference);
-    } else if (payment_method === "payme" && payment_reference) {
-      updateFields.push("payme_reference = ?");
-      updateParams.push(payment_reference);
-    }
-
-    // 如果有傳入 amount 就更新
-    if (amount) {
-      updateFields.push("amount = ?");
-      updateParams.push(amount);
-    }
-
-    // 記錄付款方式
-    updateFields.push("payment_method = ?");
-    updateParams.push(payment_method);
-
-    updateParams.push(booking_id);
-    db.prepare(
-      `UPDATE bookings SET ${updateFields.join(", ")} WHERE id = ?`,
-    ).run(...updateParams);
-
-    // Auto-calculate coach earnings
-    if (booking.schedule_id) {
-      try {
-        const { syncCoachEarningsForSchedule } = require("./coach-earnings");
-        syncCoachEarningsForSchedule(booking.schedule_id);
-      } catch (e) {
-        console.error("auto coach earnings:", e.message);
+      if (!booking) {
+        db.close();
+        return res
+          .status(404)
+          .json({ error: "未找到待付款的預約或預約已取消" });
       }
-    }
 
-    // 更新 enrolled_count（pending_payment 時已經 +1，但爲咗 consistent）
-    // 留意：create booking 時已經加咗 enrolled_count，所以唔使再加
-    // 但爲咗確保數值正確，重新 sync
-    const schedule = db
-      .prepare("SELECT * FROM class_schedules WHERE id = ?")
-      .get(booking.schedule_id);
-    const confirmedCount = db
-      .prepare(
-        `
+      // 根據付款方式決定是否需要管理員確認
+      // Stripe — 即時確認（Stripe 已驗證付款）
+      // FPS / PayMe — 停留 pending_payment，等待管理員確認
+      const isAdminApprovalRequired =
+        payment_method === "fps" || payment_method === "payme";
+
+      let updateFields = [];
+      let updateParams = [];
+
+      if (isAdminApprovalRequired) {
+        // FPS/PayMe: 儲存參考編號，保持 pending，等 admin 確認
+        updateFields = [
+          "status = 'pending_payment'",
+          "payment_status = 'pending'",
+        ];
+      } else {
+        // Stripe: 即時確認
+        updateFields = ["status = 'confirmed'", "payment_status = 'paid'"];
+      }
+
+      if (payment_method === "stripe" && payment_reference) {
+        updateFields.push("stripe_payment_intent_id = ?");
+        updateParams.push(payment_reference);
+      } else if (payment_method === "fps" && payment_reference) {
+        updateFields.push("fps_reference = ?");
+        updateParams.push(payment_reference);
+      } else if (payment_method === "payme" && payment_reference) {
+        updateFields.push("payme_reference = ?");
+        updateParams.push(payment_reference);
+      }
+
+      // 如果有傳入 amount 就更新
+      if (amount) {
+        updateFields.push("amount = ?");
+        updateParams.push(amount);
+      }
+
+      // 記錄付款方式
+      updateFields.push("payment_method = ?");
+      updateParams.push(payment_method);
+
+      updateParams.push(booking_id);
+      db.prepare(
+        `UPDATE bookings SET ${updateFields.join(", ")} WHERE id = ?`,
+      ).run(...updateParams);
+
+      // Auto-calculate coach earnings
+      if (booking.schedule_id) {
+        try {
+          const { syncCoachEarningsForSchedule } = require("./coach-earnings");
+          syncCoachEarningsForSchedule(booking.schedule_id);
+        } catch (e) {
+          console.error("auto coach earnings:", e.message);
+        }
+      }
+
+      // 更新 enrolled_count（pending_payment 時已經 +1，但爲咗 consistent）
+      // 留意：create booking 時已經加咗 enrolled_count，所以唔使再加
+      // 但爲咗確保數值正確，重新 sync
+      const schedule = db
+        .prepare("SELECT * FROM class_schedules WHERE id = ?")
+        .get(booking.schedule_id);
+      const confirmedCount = db
+        .prepare(
+          `
       SELECT COUNT(*) as cnt FROM bookings WHERE schedule_id = ? AND status = 'confirmed'
     `,
-      )
-      .get(booking.schedule_id);
-    if (schedule && confirmedCount) {
-      db.prepare(
-        "UPDATE class_schedules SET enrolled_count = ? WHERE id = ?",
-      ).run(confirmedCount.cnt, booking.schedule_id);
-    }
+        )
+        .get(booking.schedule_id);
+      if (schedule && confirmedCount) {
+        db.prepare(
+          "UPDATE class_schedules SET enrolled_count = ? WHERE id = ?",
+        ).run(confirmedCount.cnt, booking.schedule_id);
+      }
 
-    // 記錄交易
-    const txId = require("../services/refgen").genRef("TX");
-    db.prepare(
-      `
+      // 記錄交易
+      const txId = require("../services/refgen").genRef("TX");
+      db.prepare(
+        `
       INSERT INTO transactions (id, user_id, type, amount, payment_method, ${payment_method === "stripe" ? "stripe_payment_intent_id" : payment_method === "fps" ? "fps_reference" : "payme_reference"}, status)
       VALUES (?, ?, 'single_booking', ?, ?, ?, 'completed')
     `,
-    ).run(
-      txId,
-      req.user.id,
-      amount || booking.amount || 0,
-      payment_method,
-      payment_reference || null,
-    );
+      ).run(
+        txId,
+        req.user.id,
+        amount || booking.amount || 0,
+        payment_method,
+        payment_reference || null,
+      );
 
-    // 🔔 通知：預約確認（付款完成）
-    try {
-      const notif = require("./notifications");
-      // send in-app notification
-    } catch (notifErr) {
-      // ignore
-    }
-
-    // 用 setTimeout fire-and-forget 發通知唔阻住 response
-    setTimeout(() => {
+      // 🔔 通知：預約確認（付款完成）
       try {
-        const { sendNotification } = require("../services/notification");
-        sendNotification("booking.confirmed", {
-          recipient: req.user.id,
-          data: {
-            class_title: booking.class_title || "—",
-            date: booking.start_time ? booking.start_time.split("T")[0] : "—",
-            time: booking.start_time
-              ? booking.start_time.split("T")[1]?.slice(0, 5)
-              : "—",
-            venue: "—",
-            coach_name: "—",
-          },
+        const notif = require("./notifications");
+        // send in-app notification
+      } catch (notifErr) {
+        // ignore
+      }
+
+      // 用 setTimeout fire-and-forget 發通知唔阻住 response
+      setTimeout(() => {
+        try {
+          const { sendNotification } = require("../services/notification");
+          sendNotification("booking.confirmed", {
+            recipient: req.user.id,
+            data: {
+              class_title: booking.class_title || "—",
+              date: booking.start_time ? booking.start_time.split("T")[0] : "—",
+              time: booking.start_time
+                ? booking.start_time.split("T")[1]?.slice(0, 5)
+                : "—",
+              venue: "—",
+              coach_name: "—",
+            },
+          });
+        } catch (e) {}
+      }, 0);
+
+      db.close();
+
+      if (isAdminApprovalRequired) {
+        res.json({
+          message: "✅ 付款資料已提交，等待管理員確認",
+          booking_id: booking.id,
+          booking_reference: booking.booking_reference,
+          status: "pending_payment",
+          payment_status: "pending",
+          requires_admin_approval: true,
         });
-      } catch (e) {}
-    }, 0);
-
-    db.close();
-
-    if (isAdminApprovalRequired) {
-      res.json({
-        message: "✅ 付款資料已提交，等待管理員確認",
-        booking_id: booking.id,
-        booking_reference: booking.booking_reference,
-        status: "pending_payment",
-        payment_status: "pending",
-        requires_admin_approval: true,
-      });
-    } else {
-      res.json({
-        message: "付款成功，預約已確認！",
-        booking_id: booking.id,
-        booking_reference: booking.booking_reference,
-        status: "confirmed",
-        payment_status: "paid",
-      });
+      } else {
+        res.json({
+          message: "付款成功，預約已確認！",
+          booking_id: booking.id,
+          booking_reference: booking.booking_reference,
+          status: "confirmed",
+          payment_status: "paid",
+        });
+      }
+    } catch (err) {
+      console.error("❌ 確認付款錯誤:", err);
+      res.status(500).json({ error: "確認付款失敗" });
     }
-  } catch (err) {
-    console.error("❌ 確認付款錯誤:", err);
-    res.status(500).json({ error: "確認付款失敗" });
-  }
-});
-
+  },
+);
 
 // ===== POST /api/payments/setup-intent — 建立 SetupIntent（儲存信用卡）=====
 router.post("/setup-intent", authenticateToken, async (req, res) => {
   try {
     const stripe = getStripe();
     if (!stripe) {
-      return res.json({ dev_mode: true, client_secret: null, message: "Stripe 未設定" });
+      return res.json({
+        dev_mode: true,
+        client_secret: null,
+        message: "Stripe 未設定",
+      });
     }
 
     // Find or create Stripe customer
     const db = new Database(DB_PATH);
     db.pragma("foreign_keys = ON");
-    const user = db.prepare("SELECT id, email, name, stripe_customer_id FROM users WHERE id = ?").get(req.user.id);
+    const user = db
+      .prepare(
+        "SELECT id, email, name, stripe_customer_id FROM users WHERE id = ?",
+      )
+      .get(req.user.id);
     db.close();
 
     let customerId = user?.stripe_customer_id;
@@ -917,7 +936,9 @@ router.post("/setup-intent", authenticateToken, async (req, res) => {
       customerId = customer.id;
       const db2 = new Database(DB_PATH);
       db2.pragma("foreign_keys = ON");
-      db2.prepare("UPDATE users SET stripe_customer_id = ? WHERE id = ?").run(customerId, req.user.id);
+      db2
+        .prepare("UPDATE users SET stripe_customer_id = ? WHERE id = ?")
+        .run(customerId, req.user.id);
       db2.close();
     }
 
@@ -937,24 +958,34 @@ router.post("/setup-intent", authenticateToken, async (req, res) => {
 router.post("/save-payment-method", authenticateToken, async (req, res) => {
   try {
     const { payment_method_id } = req.body;
-    if (!payment_method_id) return res.status(400).json({ error: "缺少付款方式" });
+    if (!payment_method_id)
+      return res.status(400).json({ error: "缺少付款方式" });
 
     const stripe = getStripe();
-    if (!stripe) return res.json({ dev_mode: true, message: "Dev mode: payment method saved" });
+    if (!stripe)
+      return res.json({
+        dev_mode: true,
+        message: "Dev mode: payment method saved",
+      });
 
     // Attach to customer
     const db = new Database(DB_PATH);
     db.pragma("foreign_keys = ON");
-    const user = db.prepare("SELECT stripe_customer_id FROM users WHERE id = ?").get(req.user.id);
+    const user = db
+      .prepare("SELECT stripe_customer_id FROM users WHERE id = ?")
+      .get(req.user.id);
     db.close();
 
     if (!user?.stripe_customer_id) {
       return res.status(400).json({ error: "請先建立付款設定" });
     }
 
-    const paymentMethod = await stripe.paymentMethods.attach(payment_method_id, {
-      customer: user.stripe_customer_id,
-    });
+    const paymentMethod = await stripe.paymentMethods.attach(
+      payment_method_id,
+      {
+        customer: user.stripe_customer_id,
+      },
+    );
 
     // Set as default
     await stripe.customers.update(user.stripe_customer_id, {
@@ -972,23 +1003,34 @@ router.post("/save-payment-method", authenticateToken, async (req, res) => {
 router.post("/create-subscription", authenticateToken, async (req, res) => {
   try {
     const { plan_id, price } = req.body;
-    if (!plan_id || !price) return res.status(400).json({ error: "缺少會籍資料" });
+    if (!plan_id || !price)
+      return res.status(400).json({ error: "缺少會籍資料" });
 
     const stripe = getStripe();
     if (!stripe || !plan_id.startsWith("price_")) {
       // Dev mode - just update the user record
       const db = new Database(DB_PATH);
       db.pragma("foreign_keys = ON");
-      db.prepare("UPDATE users SET membership_type = ?, membership_expires_at = ? WHERE id = ?")
-        .run(plan_id, new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), req.user.id);
+      db.prepare(
+        "UPDATE users SET membership_type = ?, membership_expires_at = ? WHERE id = ?",
+      ).run(
+        plan_id,
+        new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        req.user.id,
+      );
       db.close();
-      return res.json({ dev_mode: true, message: "Dev mode: subscription created" });
+      return res.json({
+        dev_mode: true,
+        message: "Dev mode: subscription created",
+      });
     }
 
     // Get or create customer
     const db = new Database(DB_PATH);
     db.pragma("foreign_keys = ON");
-    const user = db.prepare("SELECT stripe_customer_id FROM users WHERE id = ?").get(req.user.id);
+    const user = db
+      .prepare("SELECT stripe_customer_id FROM users WHERE id = ?")
+      .get(req.user.id);
     db.close();
 
     if (!user?.stripe_customer_id) {
@@ -1023,8 +1065,9 @@ router.post("/cancel-subscription", authenticateToken, async (req, res) => {
     if (!stripe) {
       const db = new Database(DB_PATH);
       db.pragma("foreign_keys = ON");
-      db.prepare("UPDATE users SET membership_type = 'none', membership_expires_at = NULL WHERE id = ?")
-        .run(req.user.id);
+      db.prepare(
+        "UPDATE users SET membership_type = 'none', membership_expires_at = NULL WHERE id = ?",
+      ).run(req.user.id);
       db.close();
       return res.json({ dev_mode: true, message: "會籍已取消" });
     }
@@ -1050,15 +1093,23 @@ router.post("/credits/purchase", authenticateToken, async (req, res) => {
     db.pragma("foreign_keys = ON");
 
     // 加點數
-    db.prepare("UPDATE users SET credits = credits + ? WHERE id = ?")
-      .run(credits, req.user.id);
+    db.prepare("UPDATE users SET credits = credits + ? WHERE id = ?").run(
+      credits,
+      req.user.id,
+    );
 
     // 記錄交易
     const txnId = uuidv4();
     db.prepare(
       `INSERT INTO transactions (id, user_id, type, amount, payment_method, description, status, created_at)
-       VALUES (?, ?, 'credits_topup', ?, ?, ?, 'completed', datetime('now'))`
-    ).run(txnId, req.user.id, amount, payment_method, `購買 ${credits} Credits`);
+       VALUES (?, ?, 'credits_topup', ?, ?, ?, 'completed', datetime('now'))`,
+    ).run(
+      txnId,
+      req.user.id,
+      amount,
+      payment_method,
+      `購買 ${credits} Credits`,
+    );
 
     db.close();
 

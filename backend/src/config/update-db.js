@@ -206,12 +206,24 @@ function updateDatabase() {
 
   // Indexes for partner tables
   try {
-    db.exec("CREATE INDEX IF NOT EXISTS idx_partner_venues_status ON partner_venues(status)");
-    db.exec("CREATE INDEX IF NOT EXISTS idx_partner_venues_category ON partner_venues(category)");
-    db.exec("CREATE INDEX IF NOT EXISTS idx_partner_venues_user ON partner_venues(user_id)");
-    db.exec("CREATE INDEX IF NOT EXISTS idx_partner_payouts_venue ON partner_payouts(venue_id)");
-    db.exec("CREATE INDEX IF NOT EXISTS idx_partner_payouts_status ON partner_payouts(status)");
-    db.exec("CREATE INDEX IF NOT EXISTS idx_bookings_venue_partner ON bookings(venue_partner_id)");
+    db.exec(
+      "CREATE INDEX IF NOT EXISTS idx_partner_venues_status ON partner_venues(status)",
+    );
+    db.exec(
+      "CREATE INDEX IF NOT EXISTS idx_partner_venues_category ON partner_venues(category)",
+    );
+    db.exec(
+      "CREATE INDEX IF NOT EXISTS idx_partner_venues_user ON partner_venues(user_id)",
+    );
+    db.exec(
+      "CREATE INDEX IF NOT EXISTS idx_partner_payouts_venue ON partner_payouts(venue_id)",
+    );
+    db.exec(
+      "CREATE INDEX IF NOT EXISTS idx_partner_payouts_status ON partner_payouts(status)",
+    );
+    db.exec(
+      "CREATE INDEX IF NOT EXISTS idx_bookings_venue_partner ON bookings(venue_partner_id)",
+    );
   } catch (e) {}
 
   console.log("✅ 商戶加盟系統 migration 完成");

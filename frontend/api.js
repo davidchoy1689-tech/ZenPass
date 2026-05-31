@@ -4,7 +4,14 @@
  */
 
 // ===== Global Utility Helpers =====
-function escHtml(s) { if (!s) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function escHtml(s) {
+  if (!s) return "";
+  return String(s)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
 
 // ===== Name-keyed Storage Helper =====
 function zpKey(baseKey) {
@@ -199,10 +206,15 @@ async function apiRequest(method, path, data = null) {
 
     if (!response.ok) {
       // Token expired / auth invalid → auto redirect to login
-      if (response.status === 401 || (result.error && (result.error.includes("認證無效") || result.error.includes("過期")))) {
+      if (
+        response.status === 401 ||
+        (result.error &&
+          (result.error.includes("認證無效") || result.error.includes("過期")))
+      ) {
         var redirectUrl = window.location.href;
         localStorage.removeItem("zenpass_token");
-        window.location.href = "login.html?redirect=" + encodeURIComponent(redirectUrl);
+        window.location.href =
+          "login.html?redirect=" + encodeURIComponent(redirectUrl);
         return;
       }
       throw new Error(result.error || `請求失敗 (${response.status})`);
@@ -216,13 +228,11 @@ async function apiRequest(method, path, data = null) {
     ) {
       throw new Error("無法連接到伺服器，請檢查網絡連線");
     }
-    if (
-      err.message.includes("認證無效") ||
-      err.message.includes("過期")
-    ) {
+    if (err.message.includes("認證無效") || err.message.includes("過期")) {
       var redirectUrl = window.location.href;
       localStorage.removeItem("zenpass_token");
-      window.location.href = "login.html?redirect=" + encodeURIComponent(redirectUrl);
+      window.location.href =
+        "login.html?redirect=" + encodeURIComponent(redirectUrl);
       return;
     }
     throw err;
@@ -441,7 +451,7 @@ const classes = {
       var data = await fetchCoursesJson();
       var cats = extractCategories(data);
       if (cats.length === 0) {
-                cats = [
+        cats = [
           { category: "瑜伽", count: 1 },
           { category: "健身", count: 1 },
           { category: "伸展", count: 1 },
@@ -865,27 +875,35 @@ function logout() {
 })();
 
 // ===== Unregister Service Worker to prevent stale cache =====
-(function() {
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.getRegistrations().then(function(regs) {
-      regs.forEach(function(reg) { reg.unregister(); });
+(function () {
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.getRegistrations().then(function (regs) {
+      regs.forEach(function (reg) {
+        reg.unregister();
+      });
     });
   }
 })();
 
 // ===== Google Analytics 4 (pages that include api.js get GA automatically) =====
 // Measurement ID: G-MKF5N4YLBM — 由 David Choy 開通
-(function() {
-  var gaId = 'G-MKF5N4YLBM';
-  if (window.gtag || document.querySelector('script[src*="googletagmanager.com/gtag/js"]')) return;
-  var s = document.createElement('script');
+(function () {
+  var gaId = "G-MKF5N4YLBM";
+  if (
+    window.gtag ||
+    document.querySelector('script[src*="googletagmanager.com/gtag/js"]')
+  )
+    return;
+  var s = document.createElement("script");
   s.async = true;
-  s.src = 'https://www.googletagmanager.com/gtag/js?id=' + gaId;
+  s.src = "https://www.googletagmanager.com/gtag/js?id=" + gaId;
   document.head.appendChild(s);
   window.dataLayer = window.dataLayer || [];
-  window.gtag = function(){dataLayer.push(arguments);};
-  gtag('js', new Date());
-  gtag('config', gaId);
+  window.gtag = function () {
+    dataLayer.push(arguments);
+  };
+  gtag("js", new Date());
+  gtag("config", gaId);
 })();
 
 // ===== Init on load =====

@@ -165,9 +165,7 @@ describe("💳 付款 API", () => {
         amount: firstClass.price_hkd || 100,
       }),
     });
-    console.log(
-      `[PaymentFlow] 建立預約: ${createRes.status}`,
-    );
+    console.log(`[PaymentFlow] 建立預約: ${createRes.status}`);
 
     // 如果 400 可能係 already booked 或者 full
     if (createRes.status === 201 || createRes.ok) {
@@ -189,9 +187,7 @@ describe("💳 付款 API", () => {
           booking_id: testBookingId,
         }),
       });
-      console.log(
-        `[PaymentFlow] FPS 提交: ${fpsRes.status}`,
-      );
+      console.log(`[PaymentFlow] FPS 提交: ${fpsRes.status}`);
     }
   });
 });

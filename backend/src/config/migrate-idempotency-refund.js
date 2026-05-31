@@ -9,7 +9,9 @@ const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
 
 function migrate() {
   const db = new Database(DB_PATH);
-  console.log(`[MIGRATE] Running idempotency+refund migration on ${DB_PATH}...`);
+  console.log(
+    `[MIGRATE] Running idempotency+refund migration on ${DB_PATH}...`,
+  );
 
   db.exec(`
     CREATE TABLE IF NOT EXISTS idempotency_keys (

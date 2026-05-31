@@ -45,7 +45,7 @@ const insertSchedule = db.prepare(`
 const transaction = db.transaction(() => {
   let count = 0;
   for (const cls of classes) {
-    const refNum = String(count + 1000).padStart(5, '0');
+    const refNum = String(count + 1000).padStart(5, "0");
     insertClass.run(
       String(cls.id),
       coach.id,
@@ -59,7 +59,7 @@ const transaction = db.transaction(() => {
       cls.location || "",
       cls.address || "",
       cls.status === "draft" ? "inactive" : cls.status || "active",
-      'CL-' + refNum,
+      "CL-" + refNum,
     );
 
     for (const sched of cls.schedules || []) {

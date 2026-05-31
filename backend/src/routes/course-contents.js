@@ -111,7 +111,10 @@ router.post("/", authenticateToken, requireAdmin, (req, res) => {
       return res.status(400).json({ error: "course_id is required" });
     }
 
-    const courseNumber = "CT-" + new Date().toISOString().substring(0, 4) + "-" +
+    const courseNumber =
+      "CT-" +
+      new Date().toISOString().substring(0, 4) +
+      "-" +
       String(Math.floor(Math.random() * 999) + 1).padStart(3, "0");
 
     const db = getDb();
@@ -188,8 +191,15 @@ router.put("/:id", authenticateToken, requireAdmin, (req, res) => {
     }
 
     const allowed = [
-      "title", "description", "rich_content", "video_url",
-      "images", "materials", "level", "benefits", "faqs",
+      "title",
+      "description",
+      "rich_content",
+      "video_url",
+      "images",
+      "materials",
+      "level",
+      "benefits",
+      "faqs",
     ];
 
     const updates = [];

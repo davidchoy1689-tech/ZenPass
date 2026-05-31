@@ -1,211 +1,709 @@
 <!doctype html>
 <html lang="zh-HK">
-<head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<meta name="theme-color" content="#FF6B35" />
-<title>教練檔案 — ZenPass 禪流</title>
-<link rel="stylesheet" href="assets/index.css" />
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#FF6B35" />
+    <title>教練檔案 — ZenPass 禪流</title>
+    <link rel="stylesheet" href="assets/index.css" />
     <link rel="stylesheet" href="css/zenpass.css" />
-<style>
-body { background: var(--gray-50); padding-bottom: 80px; }
-.header { display:flex; align-items:center; gap:8px; padding:12px 16px; background:var(--white); border-bottom:1px solid var(--gray-200); position:sticky; top:0; z-index:100; }
-.header a { font-size:20px; text-decoration:none; color:var(--dark-900); }
-.header h1 { font-size:16px; font-weight:700; margin:0; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.coach-header { text-align: center; padding: 24px 16px 16px; }
-.coach-avatar { width: 80px; height: 80px; border-radius: 50%; margin: 0 auto 12px; display: flex; align-items: center; justify-content: center; font-size: 32px; color: white; font-weight: 700; }
-.coach-name { font-size: 22px; font-weight: 800; }
-.coach-title { font-size: 13px; color: var(--dark-700); margin-top: 4px; }
-.coach-stats { display: flex; gap: 8px; justify-content: center; margin: 12px 0; }
-.coach-stat { text-align: center; padding: 8px 16px; background: var(--white); border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
-.coach-stat .num { font-size: 18px; font-weight: 700; color: var(--orange-700); }
-.coach-stat .label { font-size: 10px; color: var(--dark-700); }
-.coach-bio { margin: 0 16px 12px; padding: 14px; background: var(--white); border-radius: 12px; font-size: 13px; color: var(--dark-700); line-height: 1.7; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
-.coach-tags { display: flex; gap: 6px; flex-wrap: wrap; padding: 0 16px; margin-bottom: 12px; }
-.coach-tag { padding: 4px 12px; border-radius: 14px; background: var(--orange-100); color: var(--orange-700); font-size: 11px; font-weight: 600; }
-.action-bar { display:flex; gap:8px; padding:0 16px; margin-bottom:12px; }
-.action-btn { flex:1; padding:10px; border-radius:10px; border:none; font-size:13px; font-weight:600; cursor:pointer; text-align:center; text-decoration:none; font-family:var(--font-zh); }
-.section-title { font-size: 15px; font-weight: 700; padding: 0 16px; margin-bottom: 10px; display:flex; justify-content:space-between; align-items:center; }
-.sort-tabs { display:flex; gap:4px; }
-.sort-tab { padding:3px 10px; border-radius:10px; font-size:10px; background:var(--gray-100); cursor:pointer; color:var(--dark-700); }
-.sort-tab.active { background:var(--orange-600-bg); color:white; }
-.coach-reviews { margin: 0 16px 12px; background:var(--white); border-radius:12px; padding:12px; box-shadow:0 1px 3px rgba(0,0,0,0.06); }
-.coach-review { padding: 8px 0; border-bottom: 1px solid var(--gray-100); }
-.coach-review:last-child { border-bottom: none; }
-.coach-review .text { font-size: 12px; color: var(--dark-700); margin-top: 2px; }
-.coach-review .author { font-size: 11px; color: var(--gray-300); margin-top: 2px; }
-.course-grid { display: flex; gap: 10px; padding: 0 16px 16px; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
-.course-card { flex: 0 0 260px; padding: 10px; background: var(--white); border-radius: 10px; text-decoration: none; color: inherit; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
-.course-card .thumb { width:100%; height:80px; border-radius:8px; background-size:cover; background-position:center; display:flex; align-items:center; justify-content:center; font-size:28px; margin-bottom:8px; }
-.course-card .cat-badge { display:inline-block; padding:1px 6px; border-radius:6px; background:var(--orange-100); color:var(--orange-700); font-size:9px; font-weight:600; margin-bottom:4px; }
-.course-card .title { font-size: 13px; font-weight: 600; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.course-card .meta { font-size: 11px; color: var(--dark-700); margin-top: 2px; display: flex; gap: 8px; align-items:center; }
-.course-card .price { font-size: 14px; font-weight: 700; color: var(--orange-700); margin-top: 4px; }
-.course-card .spots { font-size:10px; padding:1px 6px; border-radius:6px; background:#ecfdf5; color:#059669; }
-.rating-dist { display:flex; gap:4px; align-items:center; margin-bottom:8px; }
-.rating-bar { flex:1; height:6px; background:var(--gray-200); border-radius:3px; overflow:hidden; }
-.rating-bar-fill { height:100%; background:linear-gradient(90deg,#f59e0b,#d97706); border-radius:3px; }
-</style>
+    <style>
+      body {
+        background: var(--gray-50);
+        padding-bottom: 80px;
+      }
+      .header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 16px;
+        background: var(--white);
+        border-bottom: 1px solid var(--gray-200);
+        position: sticky;
+        top: 0;
+        z-index: 100;
+      }
+      .header a {
+        font-size: 20px;
+        text-decoration: none;
+        color: var(--dark-900);
+      }
+      .header h1 {
+        font-size: 16px;
+        font-weight: 700;
+        margin: 0;
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .coach-header {
+        text-align: center;
+        padding: 24px 16px 16px;
+      }
+      .coach-avatar {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        margin: 0 auto 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 32px;
+        color: white;
+        font-weight: 700;
+      }
+      .coach-name {
+        font-size: 22px;
+        font-weight: 800;
+      }
+      .coach-title {
+        font-size: 13px;
+        color: var(--dark-700);
+        margin-top: 4px;
+      }
+      .coach-stats {
+        display: flex;
+        gap: 8px;
+        justify-content: center;
+        margin: 12px 0;
+      }
+      .coach-stat {
+        text-align: center;
+        padding: 8px 16px;
+        background: var(--white);
+        border-radius: 10px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+      }
+      .coach-stat .num {
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--orange-700);
+      }
+      .coach-stat .label {
+        font-size: 10px;
+        color: var(--dark-700);
+      }
+      .coach-bio {
+        margin: 0 16px 12px;
+        padding: 14px;
+        background: var(--white);
+        border-radius: 12px;
+        font-size: 13px;
+        color: var(--dark-700);
+        line-height: 1.7;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+      }
+      .coach-tags {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+        padding: 0 16px;
+        margin-bottom: 12px;
+      }
+      .coach-tag {
+        padding: 4px 12px;
+        border-radius: 14px;
+        background: var(--orange-100);
+        color: var(--orange-700);
+        font-size: 11px;
+        font-weight: 600;
+      }
+      .action-bar {
+        display: flex;
+        gap: 8px;
+        padding: 0 16px;
+        margin-bottom: 12px;
+      }
+      .action-btn {
+        flex: 1;
+        padding: 10px;
+        border-radius: 10px;
+        border: none;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        text-align: center;
+        text-decoration: none;
+        font-family: var(--font-zh);
+      }
+      .section-title {
+        font-size: 15px;
+        font-weight: 700;
+        padding: 0 16px;
+        margin-bottom: 10px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .sort-tabs {
+        display: flex;
+        gap: 4px;
+      }
+      .sort-tab {
+        padding: 3px 10px;
+        border-radius: 10px;
+        font-size: 10px;
+        background: var(--gray-100);
+        cursor: pointer;
+        color: var(--dark-700);
+      }
+      .sort-tab.active {
+        background: var(--orange-600-bg);
+        color: white;
+      }
+      .coach-reviews {
+        margin: 0 16px 12px;
+        background: var(--white);
+        border-radius: 12px;
+        padding: 12px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+      }
+      .coach-review {
+        padding: 8px 0;
+        border-bottom: 1px solid var(--gray-100);
+      }
+      .coach-review:last-child {
+        border-bottom: none;
+      }
+      .coach-review .text {
+        font-size: 12px;
+        color: var(--dark-700);
+        margin-top: 2px;
+      }
+      .coach-review .author {
+        font-size: 11px;
+        color: var(--gray-300);
+        margin-top: 2px;
+      }
+      .course-grid {
+        display: flex;
+        gap: 10px;
+        padding: 0 16px 16px;
+        overflow-x: auto;
+        scrollbar-width: none;
+        -webkit-overflow-scrolling: touch;
+      }
+      .course-card {
+        flex: 0 0 260px;
+        padding: 10px;
+        background: var(--white);
+        border-radius: 10px;
+        text-decoration: none;
+        color: inherit;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+      }
+      .course-card .thumb {
+        width: 100%;
+        height: 80px;
+        border-radius: 8px;
+        background-size: cover;
+        background-position: center;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 28px;
+        margin-bottom: 8px;
+      }
+      .course-card .cat-badge {
+        display: inline-block;
+        padding: 1px 6px;
+        border-radius: 6px;
+        background: var(--orange-100);
+        color: var(--orange-700);
+        font-size: 9px;
+        font-weight: 600;
+        margin-bottom: 4px;
+      }
+      .course-card .title {
+        font-size: 13px;
+        font-weight: 600;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+      .course-card .meta {
+        font-size: 11px;
+        color: var(--dark-700);
+        margin-top: 2px;
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      .course-card .price {
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--orange-700);
+        margin-top: 4px;
+      }
+      .course-card .spots {
+        font-size: 10px;
+        padding: 1px 6px;
+        border-radius: 6px;
+        background: #ecfdf5;
+        color: #059669;
+      }
+      .rating-dist {
+        display: flex;
+        gap: 4px;
+        align-items: center;
+        margin-bottom: 8px;
+      }
+      .rating-bar {
+        flex: 1;
+        height: 6px;
+        background: var(--gray-200);
+        border-radius: 3px;
+        overflow: hidden;
+      }
+      .rating-bar-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #f59e0b, #d97706);
+        border-radius: 3px;
+      }
+    </style>
     <script src="app.js"></script>
   </head>
-<body>
-
-<div class="header">
-  <a href="coaches.html" aria-label="返回全部教練">&larr;</a>
-  <h1 id="headerName">教練檔案</h1>
-  <a href="#" onclick="shareCoach()" style="font-size:16px;text-decoration:none">📤</a>
-</div>
-
-<div id="app">
-  <div class="coach-header">
-    <div class="coach-avatar" id="caAvatar" style="background:linear-gradient(135deg,#667eea,#764ba2)">🧘</div>
-    <div class="coach-name" id="caName">—</div>
-    <div class="coach-title" id="caTitle">—</div>
-    <div style="font-size:11px;color:var(--dark-700);margin-top:2px" id="coachIdDisplay"></div>
-    <div class="coach-stats">
-      <div class="coach-stat"><div class="num" id="caCourses">—</div><div class="label">課程</div></div>
-      <div class="coach-stat"><div class="num" id="caStudents">—</div><div class="label">學生</div></div>
-      <div class="coach-stat"><div class="num" id="caRating">—</div><div class="label">評分</div></div>
+  <body>
+    <div class="header">
+      <a href="coaches.html" aria-label="返回全部教練">&larr;</a>
+      <h1 id="headerName">教練檔案</h1>
+      <a
+        href="#"
+        onclick="shareCoach()"
+        style="font-size: 16px; text-decoration: none"
+        >📤</a
+      >
     </div>
-  </div>
 
-  <div class="action-bar">
-    <a href="#" id="waBtn" target="_blank" class="action-btn" style="background:#25D366;color:white">💬 WhatsApp 查詢</a>
-    <a href="explore.html" class="action-btn" style="background:var(--orange-600-bg);color:white">🔍 預約課程</a>
-  </div>
+    <div id="app">
+      <div class="coach-header">
+        <div
+          class="coach-avatar"
+          id="caAvatar"
+          style="background: linear-gradient(135deg, #667eea, #764ba2)"
+        >
+          🧘
+        </div>
+        <div class="coach-name" id="caName">—</div>
+        <div class="coach-title" id="caTitle">—</div>
+        <div
+          style="font-size: 11px; color: var(--dark-700); margin-top: 2px"
+          id="coachIdDisplay"
+        ></div>
+        <div class="coach-stats">
+          <div class="coach-stat">
+            <div class="num" id="caCourses">—</div>
+            <div class="label">課程</div>
+          </div>
+          <div class="coach-stat">
+            <div class="num" id="caStudents">—</div>
+            <div class="label">學生</div>
+          </div>
+          <div class="coach-stat">
+            <div class="num" id="caRating">—</div>
+            <div class="label">評分</div>
+          </div>
+        </div>
+      </div>
 
-  <div class="coach-tags" id="caTags"></div>
-  <div class="coach-bio" id="caBio">載入中...</div>
+      <div class="action-bar">
+        <a
+          href="#"
+          id="waBtn"
+          target="_blank"
+          class="action-btn"
+          style="background: #25d366; color: white"
+          >💬 WhatsApp 查詢</a
+        >
+        <a
+          href="explore.html"
+          class="action-btn"
+          style="background: var(--orange-600-bg); color: white"
+          >🔍 預約課程</a
+        >
+      </div>
 
-  <div class="section-title">
-    <span>⭐ 學生評價 <span id="reviewCount" style="font-size:12px;color:var(--dark-700)"></span></span>
-  </div>
-  <div class="coach-reviews" id="caReviews"><div style="text-align:center;padding:20px;color:var(--dark-700);font-size:13px">載入中...</div></div>
+      <div class="coach-tags" id="caTags"></div>
+      <div class="coach-bio" id="caBio">載入中...</div>
 
-  <div class="section-title">
-    <span>📚 開設課程</span>
-    <div class="sort-tabs">
-      <div class="sort-tab active" onclick="sortCourses('default',this)">全部</div>
-      <div class="sort-tab" onclick="sortCourses('price',this)">價格</div>
-      <div class="sort-tab" onclick="sortCourses('rating',this)">評分</div>
+      <div class="section-title">
+        <span
+          >⭐ 學生評價
+          <span
+            id="reviewCount"
+            style="font-size: 12px; color: var(--dark-700)"
+          ></span
+        ></span>
+      </div>
+      <div class="coach-reviews" id="caReviews">
+        <div
+          style="
+            text-align: center;
+            padding: 20px;
+            color: var(--dark-700);
+            font-size: 13px;
+          "
+        >
+          載入中...
+        </div>
+      </div>
+
+      <div class="section-title">
+        <span>📚 開設課程</span>
+        <div class="sort-tabs">
+          <div class="sort-tab active" onclick="sortCourses('default', this)">
+            全部
+          </div>
+          <div class="sort-tab" onclick="sortCourses('price', this)">價格</div>
+          <div class="sort-tab" onclick="sortCourses('rating', this)">評分</div>
+        </div>
+      </div>
+      <div class="course-grid" id="caCoursesList">
+        <div
+          style="
+            text-align: center;
+            padding: 30px;
+            color: var(--dark-700);
+            font-size: 13px;
+            flex: 1;
+          "
+        >
+          載入中...
+        </div>
+      </div>
     </div>
-  </div>
-  <div class="course-grid" id="caCoursesList"><div style="text-align:center;padding:30px;color:var(--dark-700);font-size:13px;flex:1">載入中...</div></div>
-</div>
 
-<nav class="bottom-nav" role="navigation" aria-label="底部導航">
-  <a href="index.html" class="nav-item"><span class="nav-icon">🏠</span>首頁</a>
-  <a href="explore.html" class="nav-item"><span class="nav-icon">🔍</span>探索</a>
-  <a href="coaches.html" class="nav-item active"><span class="nav-icon">🏆</span>教練</a>
-  <a href="coach-apply.html" class="nav-item"><span class="nav-icon">👨‍🏫</span>成為教練</a>
-  <a href="my.html" class="nav-item"><span class="nav-icon">👤</span>我的</a>
-</nav>
+    <nav class="bottom-nav" role="navigation" aria-label="底部導航">
+      <a href="index.html" class="nav-item"
+        ><span class="nav-icon">🏠</span>首頁</a
+      >
+      <a href="explore.html" class="nav-item"
+        ><span class="nav-icon">🔍</span>探索</a
+      >
+      <a href="coaches.html" class="nav-item active"
+        ><span class="nav-icon">🏆</span>教練</a
+      >
+      <a href="coach-apply.html" class="nav-item"
+        ><span class="nav-icon">👨‍🏫</span>成為教練</a
+      >
+      <a href="my.html" class="nav-item"
+        ><span class="nav-icon">👤</span>我的</a
+      >
+    </nav>
 
-<script src="api.js"></script>
-<script>
-var coachData = {
-  "靜儀導師": { id:"COACH-001", avatar:"🧘", bg:"linear-gradient(135deg,#667eea,#764ba2)", title:"瑜伽 · 冥想導師", bio:"10年教學經驗，RYT-500 認證瑜伽導師。擅長流瑜伽、陰瑜伽及冥想指導。教學風格溫和細心，適合初學者及想深入了解瑜伽的學員。", tags:["瑜伽","冥想","伸展"], rating:4.9, courses:3, students:128, phone:"", reviews:[{stars:5,text:"靜儀導師好專業，上完堂成個人放鬆晒！",author:"Winnie"},{stars:5,text:"第一次上瑜伽堂就愛上咗，會繼續嚟！",author:"阿強"},{stars:5,text:"每次上堂都學到新嘢，超推薦！",author:"Cathy"}] },
-  "Alex教練": { id:"COACH-002", avatar:"💪", bg:"linear-gradient(135deg,#f093fb,#f5576c)", title:"健身 · TRX · 拳擊教練", bio:"8年健身教練經驗，ACE 認證個人教練。專注高強度間歇訓練、TRX懸吊訓練及拳擊有氧。教學風格充滿活力，鼓勵學員突破自己。", tags:["健身","TRX 懸吊訓練","拳擊搏擊","肌力訓練"], rating:4.8, courses:5, students:205, phone:"", reviews:[{stars:5,text:"Alex教練好有幹勁！出汗超多！",author:"Tom"},{stars:4,text:"強度夠，教練會指導動作",author:"阿俊"}] },
-  "Ken教練": { id:"COACH-003", avatar:"🎯", bg:"linear-gradient(135deg,#43e97b,#38f9d7)", title:"新興運動 · 球類教練", bio:"6年新興運動推廣經驗，專注芬蘭木柱、地板冰壺、布袋球及射箭等新興運動。擅長團隊建設活動，適合公司及學校團體。", tags:["新興運動","羽毛球","射箭","詠春"], rating:4.7, courses:4, students:89, phone:"", reviews:[{stars:5,text:"好好玩！公司team building玩過，超開心",author:"Alex"},{stars:5,text:"學到正宗詠春！好開心",author:"Stephen"}] },
-  "Grace導師": { id:"COACH-004", avatar:"💃", bg:"linear-gradient(135deg,#ffecd2,#fcb69f)", title:"舞蹈 · 空中瑜伽導師", bio:"5年舞蹈教學經驗，擅長 Zumba、Kpop、芭蕾塑形及空中瑜伽。教學風格活潑有趣，讓學員在歡樂中運動。", tags:["舞蹈","空中瑜伽","芭蕾塑形"], rating:4.9, courses:4, students:156, phone:"", reviews:[{stars:5,text:"好好玩！上完堂成個人好精神！",author:"May"},{stars:5,text:"Grace教練好有活力，氣氛超好",author:"阿玲"},{stars:5,text:"空中瑜伽超正！好似喺空中飛咁",author:"Cindy"}] },
-  "慧心導師": { id:"COACH-005", avatar:"🧠", bg:"linear-gradient(135deg,#a18cd1,#fbc2eb)", title:"冥想 · 身心靈導師", bio:"12年冥想及身心靈教學經驗。擅長正念冥想、頌缽療癒及太極養生。教學風格平靜溫柔，引導學員找到內在平靜。", tags:["冥想","太極養生","長者體適能"], rating:4.8, courses:3, students:97, phone:"", reviews:[{stars:5,text:"聲療好神奇，complete relaxation！",author:"Maggie"},{stars:5,text:"打完太極個人好舒服",author:"黃伯"}] },
-  "陽光教練": { id:"COACH-006", avatar:"🏃", bg:"linear-gradient(135deg,#4facfe,#00f2fe)", title:"戶外 · 跑步 · 兒童教練", bio:"7年戶外運動教練經驗。擅長跑步訓練、行山、露營及兒童體適能。喜歡大自然，希望將戶外運動嘅樂趣帶俾更多人。", tags:["跑步","遠足行山","露營戶外","兒童體適能"], rating:4.7, courses:6, students:134, phone:"", reviews:[{stars:5,text:"跑班好有系統，學到正確跑姿",author:"跑步愛好者"},{stars:5,text:"小朋友好鍾意陽光教練！",author:"陳太"}] }
-};
+    <script src="api.js"></script>
+    <script>
+      var coachData = {
+        靜儀導師: {
+          id: "COACH-001",
+          avatar: "🧘",
+          bg: "linear-gradient(135deg,#667eea,#764ba2)",
+          title: "瑜伽 · 冥想導師",
+          bio: "10年教學經驗，RYT-500 認證瑜伽導師。擅長流瑜伽、陰瑜伽及冥想指導。教學風格溫和細心，適合初學者及想深入了解瑜伽的學員。",
+          tags: ["瑜伽", "冥想", "伸展"],
+          rating: 4.9,
+          courses: 3,
+          students: 128,
+          phone: "",
+          reviews: [
+            {
+              stars: 5,
+              text: "靜儀導師好專業，上完堂成個人放鬆晒！",
+              author: "Winnie",
+            },
+            {
+              stars: 5,
+              text: "第一次上瑜伽堂就愛上咗，會繼續嚟！",
+              author: "阿強",
+            },
+            { stars: 5, text: "每次上堂都學到新嘢，超推薦！", author: "Cathy" },
+          ],
+        },
+        Alex教練: {
+          id: "COACH-002",
+          avatar: "💪",
+          bg: "linear-gradient(135deg,#f093fb,#f5576c)",
+          title: "健身 · TRX · 拳擊教練",
+          bio: "8年健身教練經驗，ACE 認證個人教練。專注高強度間歇訓練、TRX懸吊訓練及拳擊有氧。教學風格充滿活力，鼓勵學員突破自己。",
+          tags: ["健身", "TRX 懸吊訓練", "拳擊搏擊", "肌力訓練"],
+          rating: 4.8,
+          courses: 5,
+          students: 205,
+          phone: "",
+          reviews: [
+            { stars: 5, text: "Alex教練好有幹勁！出汗超多！", author: "Tom" },
+            { stars: 4, text: "強度夠，教練會指導動作", author: "阿俊" },
+          ],
+        },
+        Ken教練: {
+          id: "COACH-003",
+          avatar: "🎯",
+          bg: "linear-gradient(135deg,#43e97b,#38f9d7)",
+          title: "新興運動 · 球類教練",
+          bio: "6年新興運動推廣經驗，專注芬蘭木柱、地板冰壺、布袋球及射箭等新興運動。擅長團隊建設活動，適合公司及學校團體。",
+          tags: ["新興運動", "羽毛球", "射箭", "詠春"],
+          rating: 4.7,
+          courses: 4,
+          students: 89,
+          phone: "",
+          reviews: [
+            {
+              stars: 5,
+              text: "好好玩！公司team building玩過，超開心",
+              author: "Alex",
+            },
+            { stars: 5, text: "學到正宗詠春！好開心", author: "Stephen" },
+          ],
+        },
+        Grace導師: {
+          id: "COACH-004",
+          avatar: "💃",
+          bg: "linear-gradient(135deg,#ffecd2,#fcb69f)",
+          title: "舞蹈 · 空中瑜伽導師",
+          bio: "5年舞蹈教學經驗，擅長 Zumba、Kpop、芭蕾塑形及空中瑜伽。教學風格活潑有趣，讓學員在歡樂中運動。",
+          tags: ["舞蹈", "空中瑜伽", "芭蕾塑形"],
+          rating: 4.9,
+          courses: 4,
+          students: 156,
+          phone: "",
+          reviews: [
+            { stars: 5, text: "好好玩！上完堂成個人好精神！", author: "May" },
+            { stars: 5, text: "Grace教練好有活力，氣氛超好", author: "阿玲" },
+            { stars: 5, text: "空中瑜伽超正！好似喺空中飛咁", author: "Cindy" },
+          ],
+        },
+        慧心導師: {
+          id: "COACH-005",
+          avatar: "🧠",
+          bg: "linear-gradient(135deg,#a18cd1,#fbc2eb)",
+          title: "冥想 · 身心靈導師",
+          bio: "12年冥想及身心靈教學經驗。擅長正念冥想、頌缽療癒及太極養生。教學風格平靜溫柔，引導學員找到內在平靜。",
+          tags: ["冥想", "太極養生", "長者體適能"],
+          rating: 4.8,
+          courses: 3,
+          students: 97,
+          phone: "",
+          reviews: [
+            {
+              stars: 5,
+              text: "聲療好神奇，complete relaxation！",
+              author: "Maggie",
+            },
+            { stars: 5, text: "打完太極個人好舒服", author: "黃伯" },
+          ],
+        },
+        陽光教練: {
+          id: "COACH-006",
+          avatar: "🏃",
+          bg: "linear-gradient(135deg,#4facfe,#00f2fe)",
+          title: "戶外 · 跑步 · 兒童教練",
+          bio: "7年戶外運動教練經驗。擅長跑步訓練、行山、露營及兒童體適能。喜歡大自然，希望將戶外運動嘅樂趣帶俾更多人。",
+          tags: ["跑步", "遠足行山", "露營戶外", "兒童體適能"],
+          rating: 4.7,
+          courses: 6,
+          students: 134,
+          phone: "",
+          reviews: [
+            {
+              stars: 5,
+              text: "跑班好有系統，學到正確跑姿",
+              author: "跑步愛好者",
+            },
+            { stars: 5, text: "小朋友好鍾意陽光教練！", author: "陳太" },
+          ],
+        },
+      };
 
-var coachName = new URLSearchParams(window.location.search).get("name") || "靜儀導師";
-var data = coachData[coachName];
-var coachCourses = [];
-var currentSort = "default";
+      var coachName =
+        new URLSearchParams(window.location.search).get("name") || "靜儀導師";
+      var data = coachData[coachName];
+      var coachCourses = [];
+      var currentSort = "default";
 
-if (!data) { document.getElementById("caName").textContent = "教練未找到"; }
-else {
-  document.title = coachName + " — ZenPass 教練";
-  document.getElementById("headerName").textContent = coachName;
-      var cidEl = document.getElementById("coachIdDisplay"); if (cidEl && data.id) cidEl.textContent = "教練編號: " + data.id;
-  document.getElementById("caAvatar").style.background = data.bg;
-  document.getElementById("caAvatar").textContent = data.avatar;
-  document.getElementById("caName").textContent = coachName;
-  document.getElementById("caTitle").textContent = data.title;
-  document.getElementById("caCourses").textContent = data.courses;
-  document.getElementById("caStudents").textContent = data.students;
-  document.getElementById("caRating").textContent = "⭐" + data.rating;
-  document.getElementById("caBio").textContent = data.bio;
-  
-  // WhatsApp link
-  var wa = document.getElementById("waBtn");
-  var coachId = data.id || "";
-  var waMsg = "你好，我想查詢 " + coachName + " (' + coachId + ') 嘅課程";
-  if (data.phone) { wa.href = "https://wa.me/852" + data.phone + "?text=" + encodeURIComponent(waMsg); }
-  else { wa.href = "https://wa.me/85290335538?text=" + encodeURIComponent(waMsg); }
-  
-  // Tags
-  document.getElementById("caTags").innerHTML = data.tags.map(function(t){ return '<span class="coach-tag">' + t + '</span>'; }).join("");
-  
-  // Reviews with rating distribution
-  var rev = data.reviews || [];
-  var dist = {5:0,4:0,3:0,2:0,1:0};
-  rev.forEach(function(r){ var s = r.stars || 5; if (dist[s] !== undefined) dist[s]++; });
-  document.getElementById("reviewCount").textContent = "(" + rev.length + ")";
-  
-  var distHtml = "";
-  for (var si = 5; si >= 1; si--) {
-    var pct = rev.length > 0 ? (dist[si] / rev.length * 100) : 0;
-    distHtml += '<div class="rating-dist"><span style="font-size:11px;width:30px">' + si + '⭐</span><div class="rating-bar"><div class="rating-bar-fill" style="width:' + pct + '%"></div></div><span style="font-size:10px;color:var(--dark-700);width:24px;text-align:right">' + Math.round(pct) + '%</span></div>';
-  }
-  
-  var revHtml = distHtml;
-  rev.forEach(function(r){
-    var s = ""; for (var si=0; si<r.stars; si++) s += "⭐";
-    revHtml += '<div class="coach-review"><div class="text">"' + r.text + '"</div><div class="author">' + s + ' — ' + r.author + '</div></div>';
-  });
-  document.getElementById("caReviews").innerHTML = revHtml;
+      if (!data) {
+        document.getElementById("caName").textContent = "教練未找到";
+      } else {
+        document.title = coachName + " — ZenPass 教練";
+        document.getElementById("headerName").textContent = coachName;
+        var cidEl = document.getElementById("coachIdDisplay");
+        if (cidEl && data.id) cidEl.textContent = "教練編號: " + data.id;
+        document.getElementById("caAvatar").style.background = data.bg;
+        document.getElementById("caAvatar").textContent = data.avatar;
+        document.getElementById("caName").textContent = coachName;
+        document.getElementById("caTitle").textContent = data.title;
+        document.getElementById("caCourses").textContent = data.courses;
+        document.getElementById("caStudents").textContent = data.students;
+        document.getElementById("caRating").textContent = "⭐" + data.rating;
+        document.getElementById("caBio").textContent = data.bio;
 
-  // Load courses
-  fetch("courses.json").then(function(r){return r.json()}).then(function(d){
-    var list = d.classes || [];
-    coachCourses = list.filter(function(c){ return c.coach_name === coachName; });
-    renderCourses();
-  }).catch(function(){ document.getElementById("caCoursesList").innerHTML = '<div style="text-align:center;padding:30px;color:var(--dark-700);font-size:13px;flex:1">無法載入課程</div>'; });
-}
+        // WhatsApp link
+        var wa = document.getElementById("waBtn");
+        var coachId = data.id || "";
+        var waMsg = "你好，我想查詢 " + coachName + " (' + coachId + ') 嘅課程";
+        if (data.phone) {
+          wa.href =
+            "https://wa.me/852" +
+            data.phone +
+            "?text=" +
+            encodeURIComponent(waMsg);
+        } else {
+          wa.href =
+            "https://wa.me/85290335538?text=" + encodeURIComponent(waMsg);
+        }
 
-function sortCourses(type, el) {
-  currentSort = type;
-  document.querySelectorAll(".sort-tab").forEach(function(e){ e.classList.remove("active"); });
-  if (el) el.classList.add("active");
-  renderCourses();
-}
+        // Tags
+        document.getElementById("caTags").innerHTML = data.tags
+          .map(function (t) {
+            return '<span class="coach-tag">' + t + "</span>";
+          })
+          .join("");
 
-function renderCourses() {
-  var list = coachCourses.slice();
-  if (currentSort === "price") list.sort(function(a,b){ return a.price_hkd - b.price_hkd; });
-  else if (currentSort === "rating") list.sort(function(a,b){ return (b.rating||0) - (a.rating||0); });
-  
-  if (list.length === 0) {
-    document.getElementById("caCoursesList").innerHTML = '<div style="text-align:center;padding:30px;color:var(--dark-700);font-size:13px;flex:1">暫無開設課程</div>';
-    return;
-  }
-  
-  document.getElementById("caCoursesList").innerHTML = list.map(function(c){
-    var img = c.image_url ? 'background-image:url(' + c.image_url + ')' : 'background:' + (data ? data.bg : "#eee");
-    var spots = c.remaining_spots > 0 ? '<span class="spots">剩 ' + c.remaining_spots + ' 位</span>' : (c.remaining_spots === 0 ? '<span class="spots" style="background:#fef2f2;color:#ef4444">已滿</span>' : '');
-    var sched = c.schedules && c.schedules[0] ? '📅 ' + c.schedules[0].start_time.slice(0,10) : '';
-    return '<a href="class-detail.html?id=' + c.id + '" class="course-card">' +
-      '<div class="thumb" style="' + img + ';background-size:cover;background-position:center">' + (c.image_url ? '' : (data ? data.avatar : "🏃")) + '</div>' +
-      '<span class="cat-badge">' + (c.category || "") + '</span>' +
-      '<div class="title">' + c.title + '</div>' +
-      '<div class="meta"><span>⏱ ' + (c.duration_min || 60) + 'min</span><span>⭐' + (c.rating || (data ? data.rating : "")) + '</span>' + spots + '</div>' +
-      '<div class="price">HK$' + c.price_hkd + '</div>' +
-      (sched ? '<div style="font-size:10px;color:var(--dark-700);margin-top:2px">' + sched + '</div>' : '') +
-      '</a>';
-  }).join("");
-}
+        // Reviews with rating distribution
+        var rev = data.reviews || [];
+        var dist = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+        rev.forEach(function (r) {
+          var s = r.stars || 5;
+          if (dist[s] !== undefined) dist[s]++;
+        });
+        document.getElementById("reviewCount").textContent =
+          "(" + rev.length + ")";
 
-function shareCoach() {
-  var url = window.location.href;
-  var text = coachName + " — ZenPass 教練檔案";
-  if (navigator.share) { navigator.share({title:text, url:url}).catch(function(){}); }
-  else { navigator.clipboard.writeText(url).then(function(){ alert("✅ 連結已複製"); }); }
-}
-</script>
-</body>
+        var distHtml = "";
+        for (var si = 5; si >= 1; si--) {
+          var pct = rev.length > 0 ? (dist[si] / rev.length) * 100 : 0;
+          distHtml +=
+            '<div class="rating-dist"><span style="font-size:11px;width:30px">' +
+            si +
+            '⭐</span><div class="rating-bar"><div class="rating-bar-fill" style="width:' +
+            pct +
+            '%"></div></div><span style="font-size:10px;color:var(--dark-700);width:24px;text-align:right">' +
+            Math.round(pct) +
+            "%</span></div>";
+        }
+
+        var revHtml = distHtml;
+        rev.forEach(function (r) {
+          var s = "";
+          for (var si = 0; si < r.stars; si++) s += "⭐";
+          revHtml +=
+            '<div class="coach-review"><div class="text">"' +
+            r.text +
+            '"</div><div class="author">' +
+            s +
+            " — " +
+            r.author +
+            "</div></div>";
+        });
+        document.getElementById("caReviews").innerHTML = revHtml;
+
+        // Load courses
+        fetch("courses.json")
+          .then(function (r) {
+            return r.json();
+          })
+          .then(function (d) {
+            var list = d.classes || [];
+            coachCourses = list.filter(function (c) {
+              return c.coach_name === coachName;
+            });
+            renderCourses();
+          })
+          .catch(function () {
+            document.getElementById("caCoursesList").innerHTML =
+              '<div style="text-align:center;padding:30px;color:var(--dark-700);font-size:13px;flex:1">無法載入課程</div>';
+          });
+      }
+
+      function sortCourses(type, el) {
+        currentSort = type;
+        document.querySelectorAll(".sort-tab").forEach(function (e) {
+          e.classList.remove("active");
+        });
+        if (el) el.classList.add("active");
+        renderCourses();
+      }
+
+      function renderCourses() {
+        var list = coachCourses.slice();
+        if (currentSort === "price")
+          list.sort(function (a, b) {
+            return a.price_hkd - b.price_hkd;
+          });
+        else if (currentSort === "rating")
+          list.sort(function (a, b) {
+            return (b.rating || 0) - (a.rating || 0);
+          });
+
+        if (list.length === 0) {
+          document.getElementById("caCoursesList").innerHTML =
+            '<div style="text-align:center;padding:30px;color:var(--dark-700);font-size:13px;flex:1">暫無開設課程</div>';
+          return;
+        }
+
+        document.getElementById("caCoursesList").innerHTML = list
+          .map(function (c) {
+            var img = c.image_url
+              ? "background-image:url(" + c.image_url + ")"
+              : "background:" + (data ? data.bg : "#eee");
+            var spots =
+              c.remaining_spots > 0
+                ? '<span class="spots">剩 ' + c.remaining_spots + " 位</span>"
+                : c.remaining_spots === 0
+                  ? '<span class="spots" style="background:#fef2f2;color:#ef4444">已滿</span>'
+                  : "";
+            var sched =
+              c.schedules && c.schedules[0]
+                ? "📅 " + c.schedules[0].start_time.slice(0, 10)
+                : "";
+            return (
+              '<a href="class-detail.html?id=' +
+              c.id +
+              '" class="course-card">' +
+              '<div class="thumb" style="' +
+              img +
+              ';background-size:cover;background-position:center">' +
+              (c.image_url ? "" : data ? data.avatar : "🏃") +
+              "</div>" +
+              '<span class="cat-badge">' +
+              (c.category || "") +
+              "</span>" +
+              '<div class="title">' +
+              c.title +
+              "</div>" +
+              '<div class="meta"><span>⏱ ' +
+              (c.duration_min || 60) +
+              "min</span><span>⭐" +
+              (c.rating || (data ? data.rating : "")) +
+              "</span>" +
+              spots +
+              "</div>" +
+              '<div class="price">HK$' +
+              c.price_hkd +
+              "</div>" +
+              (sched
+                ? '<div style="font-size:10px;color:var(--dark-700);margin-top:2px">' +
+                  sched +
+                  "</div>"
+                : "") +
+              "</a>"
+            );
+          })
+          .join("");
+      }
+
+      function shareCoach() {
+        var url = window.location.href;
+        var text = coachName + " — ZenPass 教練檔案";
+        if (navigator.share) {
+          navigator.share({ title: text, url: url }).catch(function () {});
+        } else {
+          navigator.clipboard.writeText(url).then(function () {
+            alert("✅ 連結已複製");
+          });
+        }
+      }
+    </script>
+  </body>
 </html>

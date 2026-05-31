@@ -158,10 +158,7 @@ async function run() {
 
   // ====== 6. Admin 商戶列表 ======
   await test("GET /api/admin/partner-list — 全部商戶列表", async () => {
-    const res = await api.get(
-      API + "/partner/admin/partner-list",
-      adminToken,
-    );
+    const res = await api.get(API + "/partner/admin/partner-list", adminToken);
     assert.strictEqual(res.status, 200);
     const data = Array.isArray(res.body.data) ? res.body.data : res.body;
     const found = data.find((v) => v.id === venueId);
@@ -176,11 +173,15 @@ async function run() {
     assert.strictEqual(res.status, 401);
   });
 
-  console.log(`\n   📊 結果: ${passed} passed / ${failed} failed / ${passed + failed} total\n`);
+  console.log(
+    `\n   📊 結果: ${passed} passed / ${failed} failed / ${passed + failed} total\n`,
+  );
 }
 
 run().catch((e) => {
   console.error("Test runner crashed:", e);
   failed++;
-  console.log(`\n   📊 結果: ${passed} passed / ${failed} failed / ${passed + failed} total\n`);
+  console.log(
+    `\n   📊 結果: ${passed} passed / ${failed} failed / ${passed + failed} total\n`,
+  );
 });

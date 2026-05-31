@@ -36,4 +36,12 @@ function serverError(res, message = "伺服器內部錯誤") {
   return fail(res, message, 500);
 }
 
-module.exports = { ok, created, fail, notFound, unauthorized, forbidden, serverError };
+module.exports = {
+  ok,
+  created,
+  fail,
+  notFound,
+  unauthorized,
+  forbidden,
+  serverError,
+};

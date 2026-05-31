@@ -4,19 +4,25 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>我的帳戶 - ZenPass 禪流</title>
-  <meta property="og:title" content="我的帳戶 — ZenPass 禪流" />
-  <meta property="og:description" content="管理你的預約、會籍、積分及個人資料。" />
-  <meta property="og:url" content="https://davidchoy1689-tech.github.io/ZenPass/my.html" />
-  <meta property="og:type" content="website" />
-  <meta property="og:locale" content="zh_HK" />
-  <meta name="twitter:card" content="summary_large_image" />
+    <meta property="og:title" content="我的帳戶 — ZenPass 禪流" />
+    <meta
+      property="og:description"
+      content="管理你的預約、會籍、積分及個人資料。"
+    />
+    <meta
+      property="og:url"
+      content="https://davidchoy1689-tech.github.io/ZenPass/my.html"
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="zh_HK" />
+    <meta name="twitter:card" content="summary_large_image" />
     <link rel="icon" type="image/png" href="icons/icon-96.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap"
       rel="stylesheet"
     />
-      <link rel="stylesheet" href="css/zenpass.css" />
+    <link rel="stylesheet" href="css/zenpass.css" />
     <style>
       :root {
         --orange-500: #ff6b35;
@@ -101,7 +107,7 @@
         padding: 16px;
         margin-bottom: 12px;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-        border: 1px solid rgba(0,0,0,0.04);
+        border: 1px solid rgba(0, 0, 0, 0.04);
       }
       .profile-card .avatar {
         width: 56px;
@@ -115,7 +121,7 @@
         font-size: 22px;
         color: var(--white);
         font-weight: 700;
-        box-shadow: 0 2px 8px rgba(201,68,32,0.2);
+        box-shadow: 0 2px 8px rgba(201, 68, 32, 0.2);
       }
       .profile-card .name {
         font-size: 18px;
@@ -140,7 +146,7 @@
         padding: 12px 8px;
         text-align: center;
         box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
-        border: 1px solid rgba(0,0,0,0.03);
+        border: 1px solid rgba(0, 0, 0, 0.03);
       }
       .stat-card .num {
         font-size: 20px;
@@ -188,7 +194,7 @@
         border-radius: 14px;
         padding: 12px;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-        border: 1px solid rgba(0,0,0,0.04);
+        border: 1px solid rgba(0, 0, 0, 0.04);
       }
       .booking-card .bc-header {
         display: flex;
@@ -379,8 +385,8 @@
           max-width: 1100px;
         }
       }
-    
-    .bottom-nav {
+
+      .bottom-nav {
         position: fixed;
         bottom: 0;
         left: 50%;
@@ -393,8 +399,8 @@
         justify-content: space-around;
         padding: 6px 0;
         z-index: 1000;
-    }
-    .nav-item {
+      }
+      .nav-item {
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -403,16 +409,16 @@
         font-size: 10px;
         color: var(--dark-700);
         padding: 4px 12px;
-    }
-    .nav-item.active {
+      }
+      .nav-item.active {
         color: var(--orange-700);
-    }
-    .nav-item .nav-icon {
+      }
+      .nav-item .nav-icon {
         font-size: 22px;
         line-height: 1;
-    }
-</style>
-      <script src="app.js"></script>
+      }
+    </style>
+    <script src="app.js"></script>
   </head>
   <body>
     <div class="header">
@@ -444,31 +450,46 @@
       ></div>
     </div>
     <script>
-      
       function toggleSettings() {
         var card = document.getElementById("settingsCard");
         if (!card) return;
         var isOpen = card.style.display !== "none";
         card.style.display = isOpen ? "none" : "block";
         if (!isOpen) {
-          document.getElementById("settings-name").value = localStorage.getItem("zenpass_name") || "";
-          document.getElementById("settings-email").value = localStorage.getItem("zenpass_email") || "";
-          document.getElementById("settings-promo").checked = localStorage.getItem("zenpass_promo_notif") !== "off";
+          document.getElementById("settings-name").value =
+            localStorage.getItem("zenpass_name") || "";
+          document.getElementById("settings-email").value =
+            localStorage.getItem("zenpass_email") || "";
+          document.getElementById("settings-promo").checked =
+            localStorage.getItem("zenpass_promo_notif") !== "off";
         }
       }
       function saveSettings() {
-        localStorage.setItem("zenpass_promo_notif", document.getElementById("settings-promo").checked ? "on" : "off");
+        localStorage.setItem(
+          "zenpass_promo_notif",
+          document.getElementById("settings-promo").checked ? "on" : "off",
+        );
       }
       function toggleDarkMode() {
         document.body.classList.toggle("dark-mode");
-        localStorage.setItem("zenpass_dark_mode", document.body.classList.contains("dark-mode") ? "on" : "off");
+        localStorage.setItem(
+          "zenpass_dark_mode",
+          document.body.classList.contains("dark-mode") ? "on" : "off",
+        );
       }
       function saveAllSettings() {
         var n = document.getElementById("settings-name").value.trim();
         var e = document.getElementById("settings-email").value.trim();
-        if (n) { localStorage.setItem("zenpass_name", n); }
-        if (e) { localStorage.setItem("zenpass_email", e); }
-        localStorage.setItem("zenpass_promo_notif", document.getElementById("settings-promo").checked ? "on" : "off");
+        if (n) {
+          localStorage.setItem("zenpass_name", n);
+        }
+        if (e) {
+          localStorage.setItem("zenpass_email", e);
+        }
+        localStorage.setItem(
+          "zenpass_promo_notif",
+          document.getElementById("settings-promo").checked ? "on" : "off",
+        );
         toggleSettings();
         location.reload();
       }
@@ -478,20 +499,49 @@
         var section = document.getElementById("wishlist-section");
         var container = document.getElementById("wishlist-classes");
         if (!section || !container) return;
-        if (wl.length === 0) { section.style.display = "none"; return; }
+        if (wl.length === 0) {
+          section.style.display = "none";
+          return;
+        }
         section.style.display = "";
-        fetch("courses.json").then(function(r){return r.json()}).then(function(d){
-          var all = d.classes || [];
-          var items = all.filter(function(c){ return wl.indexOf(c.id) >= 0; });
-          if (items.length === 0) { section.style.display = "none"; return; }
-          container.innerHTML = items.map(function(c){
-            var img = c.image_url ? 'background-image:url(' + c.image_url + ')' : 'background:linear-gradient(135deg,#667eea,#764ba2)';
-            return '<div class="class-card" style="flex:0 0 160px" onclick="location.href=\'class-detail.html?id=' + c.id + '\'">' +
-              '<div class="class-card-img" style="' + img + ';background-size:cover;background-position:center;height:70px;display:flex;align-items:center;justify-content:center;font-size:24px"></div>' +
-              '<div class="class-card-body" style="padding:8px"><div class="class-card-title" style="font-size:11px">' + c.title + '</div>' +
-              '<div class="class-card-meta" style="font-size:10px">⭐' + (c.rating||'4.5') + '</div></div></div>';
-          }).join("");
-        }).catch(function(){ section.style.display = "none"; });
+        fetch("courses.json")
+          .then(function (r) {
+            return r.json();
+          })
+          .then(function (d) {
+            var all = d.classes || [];
+            var items = all.filter(function (c) {
+              return wl.indexOf(c.id) >= 0;
+            });
+            if (items.length === 0) {
+              section.style.display = "none";
+              return;
+            }
+            container.innerHTML = items
+              .map(function (c) {
+                var img = c.image_url
+                  ? "background-image:url(" + c.image_url + ")"
+                  : "background:linear-gradient(135deg,#667eea,#764ba2)";
+                return (
+                  '<div class="class-card" style="flex:0 0 160px" onclick="location.href=\'class-detail.html?id=' +
+                  c.id +
+                  "'\">" +
+                  '<div class="class-card-img" style="' +
+                  img +
+                  ';background-size:cover;background-position:center;height:70px;display:flex;align-items:center;justify-content:center;font-size:24px"></div>' +
+                  '<div class="class-card-body" style="padding:8px"><div class="class-card-title" style="font-size:11px">' +
+                  c.title +
+                  "</div>" +
+                  '<div class="class-card-meta" style="font-size:10px">⭐' +
+                  (c.rating || "4.5") +
+                  "</div></div></div>"
+                );
+              })
+              .join("");
+          })
+          .catch(function () {
+            section.style.display = "none";
+          });
       }
       // Referral — API-driven
       var _referralData = null;
@@ -499,14 +549,18 @@
         var card = document.getElementById("referralCard");
         if (!card) return;
         try {
-          var r = await fetch(API_BASE + "/referral/my-code", { headers: getAuthHeaders() });
+          var r = await fetch(API_BASE + "/referral/my-code", {
+            headers: getAuthHeaders(),
+          });
           if (!r.ok) throw new Error("無法載入");
           var d = await r.json();
           _referralData = d;
           card.style.display = "block";
           document.getElementById("referral-code").textContent = d.code || "—";
-          document.getElementById("referral-count").textContent = d.redeemed || 0;
-          document.getElementById("referral-points").textContent = d.credits_earned || 0;
+          document.getElementById("referral-count").textContent =
+            d.redeemed || 0;
+          document.getElementById("referral-points").textContent =
+            d.credits_earned || 0;
         } catch (e) {
           // Offline / not logged in — hide card, it's OK
           card.style.display = "none";
@@ -514,17 +568,39 @@
       }
       function copyReferral() {
         var code = document.getElementById("referral-code").textContent;
-        var shareUrl = window.location.origin + "/login.html?ref=" + encodeURIComponent(code);
-        navigator.clipboard.writeText("用我的 ZenPass 推薦碼 " + code + " 註冊，雙方各得 Credits！ " + shareUrl).then(function(){
-          showToast("✅ 推薦碼已複製", "success");
-        });
+        var shareUrl =
+          window.location.origin +
+          "/login.html?ref=" +
+          encodeURIComponent(code);
+        navigator.clipboard
+          .writeText(
+            "用我的 ZenPass 推薦碼 " +
+              code +
+              " 註冊，雙方各得 Credits！ " +
+              shareUrl,
+          )
+          .then(function () {
+            showToast("✅ 推薦碼已複製", "success");
+          });
       }
       function shareReferral() {
         var code = document.getElementById("referral-code").textContent;
-        var shareUrl = window.location.origin + "/login.html?ref=" + encodeURIComponent(code);
-        var text = "用我的 ZenPass 推薦碼 " + code + " 註冊，雙方各得 Credits！ " + shareUrl;
-        if (navigator.share) { navigator.share({ text: text, title: "ZenPass 禪流 — 邀請朋友一齊運動" }).catch(function(){}); }
-        else { copyReferral(); }
+        var shareUrl =
+          window.location.origin +
+          "/login.html?ref=" +
+          encodeURIComponent(code);
+        var text =
+          "用我的 ZenPass 推薦碼 " +
+          code +
+          " 註冊，雙方各得 Credits！ " +
+          shareUrl;
+        if (navigator.share) {
+          navigator
+            .share({ text: text, title: "ZenPass 禪流 — 邀請朋友一齊運動" })
+            .catch(function () {});
+        } else {
+          copyReferral();
+        }
       }
       // Loyalty
       function loadLoyalty() {
@@ -532,15 +608,24 @@
         if (!card) return;
         // Fetch tier from API (fallback to localStorage membership for offline)
         fetch(API_BASE + "/loyalty/tiers", { headers: getAuthHeaders() })
-          .then(function(r){ return r.json(); })
-          .then(function(d){
+          .then(function (r) {
+            return r.json();
+          })
+          .then(function (d) {
             if (!d.tiers) return;
             var user = JSON.parse(localStorage.getItem("zenpass_user") || "{}");
             var visits = user.total_bookings || 0;
             var currentTier = "bronze";
-            d.tiers.forEach(function(t){ if (visits >= t.min_visits) currentTier = t.id; });
-            var tierNames = {bronze:"⚪ 一般",silver:"🥈 銀牌",gold:"🥇 金牌",platinum:"💎 鉑金"};
-            var order = ["bronze","silver","gold","platinum"];
+            d.tiers.forEach(function (t) {
+              if (visits >= t.min_visits) currentTier = t.id;
+            });
+            var tierNames = {
+              bronze: "⚪ 一般",
+              silver: "🥈 銀牌",
+              gold: "🥇 金牌",
+              platinum: "💎 鉑金",
+            };
+            var order = ["bronze", "silver", "gold", "platinum"];
             var idx = order.indexOf(currentTier);
             if (idx < 0) idx = 0;
             // Render tier badges
@@ -548,24 +633,35 @@
               document.getElementById("loyalty-bronze"),
               document.getElementById("loyalty-silver"),
               document.getElementById("loyalty-gold"),
-              document.getElementById("loyalty-platinum")
+              document.getElementById("loyalty-platinum"),
             ];
             for (var i = 0; i < tierDivs.length; i++) {
               var el = tierDivs[i];
               if (!el) continue;
-              if (i <= idx) { el.style.background = "var(--orange-600-bg)"; el.style.color = "white"; el.style.fontWeight = (i === idx ? "700" : "600"); }
-              else { el.style.background = "var(--gray-100)"; el.style.color = "var(--dark-700)"; el.style.fontWeight = "400"; }
+              if (i <= idx) {
+                el.style.background = "var(--orange-600-bg)";
+                el.style.color = "white";
+                el.style.fontWeight = i === idx ? "700" : "600";
+              } else {
+                el.style.background = "var(--gray-100)";
+                el.style.color = "var(--dark-700)";
+                el.style.fontWeight = "400";
+              }
             }
-            var pct = ((idx) / (order.length - 1)) * 100;
+            var pct = (idx / (order.length - 1)) * 100;
             document.getElementById("loyalty-bar").style.width = pct + "%";
-            document.getElementById("loyalty-text").textContent = tierNames[currentTier] + "等級";
+            document.getElementById("loyalty-text").textContent =
+              tierNames[currentTier] + "等級";
             card.style.display = "block";
           })
-          .catch(function(){
+          .catch(function () {
             // Offline fallback
             var memType = localStorage.getItem("zenpass_membership") || "none";
-            if (memType === "none") { card.style.display = "none"; return; }
-            var levels = ["none","trial","standard","gold"];
+            if (memType === "none") {
+              card.style.display = "none";
+              return;
+            }
+            var levels = ["none", "trial", "standard", "gold"];
             var idx = levels.indexOf(memType);
             if (idx < 0) idx = 0;
             // Simple tier rendering
@@ -573,30 +669,50 @@
           });
         // Set initial values for tier divs
         var memType = localStorage.getItem("zenpass_membership") || "none";
-        var levels = ["none","trial","standard","gold"];
+        var levels = ["none", "trial", "standard", "gold"];
         var idx = levels.indexOf(memType);
         if (idx < 0) idx = 0;
-        var pct = ((idx) / (levels.length - 1)) * 100;
+        var pct = (idx / (levels.length - 1)) * 100;
         document.getElementById("loyalty-bar").style.width = pct + "%";
         var nextLevel = levels[Math.min(idx + 1, levels.length - 1)];
-        var labels = {none:"完成首次預約升級試玩", trial:"仲有 " + (3-idx) + " 次預約升級標準", standard:"接近金會員！繼續努力", gold:"🏆 已達最高等級！"};
-        document.getElementById("loyalty-text").textContent = labels[memType] || labels.none;
+        var labels = {
+          none: "完成首次預約升級試玩",
+          trial: "仲有 " + (3 - idx) + " 次預約升級標準",
+          standard: "接近金會員！繼續努力",
+          gold: "🏆 已達最高等級！",
+        };
+        document.getElementById("loyalty-text").textContent =
+          labels[memType] || labels.none;
       }
       // Activity calendar
       function loadActivityCalendar() {
-        var bookings = JSON.parse(localStorage.getItem("zenpass_bookings") || "[]");
+        var bookings = JSON.parse(
+          localStorage.getItem("zenpass_bookings") || "[]",
+        );
         var section = document.getElementById("activity-section");
         var grid = document.getElementById("activity-grid");
         var summary = document.getElementById("activity-summary");
         if (!section || !grid) return;
         var today = new Date().getDate();
-        var dates = bookings.map(function(b){ return b.date ? new Date(b.date).getDate() : 0; }).filter(function(d){ return d > 0 && d <= today; });
-        if (dates.length === 0) { section.style.display = "none"; return; }
+        var dates = bookings
+          .map(function (b) {
+            return b.date ? new Date(b.date).getDate() : 0;
+          })
+          .filter(function (d) {
+            return d > 0 && d <= today;
+          });
+        if (dates.length === 0) {
+          section.style.display = "none";
+          return;
+        }
         section.style.display = "block";
         var html = "";
         for (var di = 1; di <= today; di++) {
           var active = dates.indexOf(di) >= 0;
-          html += '<div style="width:10px;height:10px;border-radius:2px;background:' + (active ? '#059669' : '#e5e7eb') + '"></div>';
+          html +=
+            '<div style="width:10px;height:10px;border-radius:2px;background:' +
+            (active ? "#059669" : "#e5e7eb") +
+            '"></div>';
         }
         grid.innerHTML = html;
         if (summary) summary.textContent = "本月 " + dates.length + " 日有活動";
@@ -630,77 +746,388 @@
           id="membershipCard"
           style="display: none; padding: 16px; text-align: left"
         ></div>
-                <!-- Recent Browsing -->
-        <div class="section" id="recent-section" style="display:none">
+        <!-- Recent Browsing -->
+        <div class="section" id="recent-section" style="display: none">
           <div class="section-header">
             <h2>👀 最近瀏覽</h2>
           </div>
           <div class="featured-scroll" id="recent-classes"></div>
         </div>
         <!-- Settings -->
-        <div class="profile-card" id="settingsCard" style="display:none;padding:16px">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-            <div style="font-size:15px;font-weight:700">⚙️ 個人設定</div>
-            <button onclick="toggleSettings()" style="background:none;border:none;font-size:13px;color:var(--orange-700);cursor:pointer">完成</button>
+        <div
+          class="profile-card"
+          id="settingsCard"
+          style="display: none; padding: 16px"
+        >
+          <div
+            style="
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              margin-bottom: 12px;
+            "
+          >
+            <div style="font-size: 15px; font-weight: 700">⚙️ 個人設定</div>
+            <button
+              onclick="toggleSettings()"
+              style="
+                background: none;
+                border: none;
+                font-size: 13px;
+                color: var(--orange-700);
+                cursor: pointer;
+              "
+            >
+              完成
+            </button>
           </div>
-          <div style="display:flex;flex-direction:column;gap:10px">
-            <div><label style="font-size:12px;color:var(--dark-700);display:block;margin-bottom:2px">姓名</label><input type="text" id="settings-name" style="width:100%;padding:8px 10px;border:1px solid var(--gray-200);border-radius:6px;font-size:14px"></div>
-            <div><label style="font-size:12px;color:var(--dark-700);display:block;margin-bottom:2px">電郵</label><input type="email" id="settings-email" style="width:100%;padding:8px 10px;border:1px solid var(--gray-200);border-radius:6px;font-size:14px"></div>
-            <div style="display:flex;gap:8px;align-items:center">
-              <label style="font-size:13px;flex:1">🔔 推廣通知</label>
-              <label style="position:relative;width:40px;height:22px;cursor:pointer"><input type="checkbox" id="settings-promo" onchange="saveSettings()" style="opacity:0;width:0;height:0"><span id="settings-promo-toggle" style="position:absolute;top:0;left:0;width:40px;height:22px;border-radius:11px;background:#ccc;transition:.3s"></span><span id="settings-promo-dot" style="position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:white;transition:.3s"></span></label>
+          <div style="display: flex; flex-direction: column; gap: 10px">
+            <div>
+              <label
+                style="
+                  font-size: 12px;
+                  color: var(--dark-700);
+                  display: block;
+                  margin-bottom: 2px;
+                "
+                >姓名</label
+              ><input
+                type="text"
+                id="settings-name"
+                style="
+                  width: 100%;
+                  padding: 8px 10px;
+                  border: 1px solid var(--gray-200);
+                  border-radius: 6px;
+                  font-size: 14px;
+                "
+              />
             </div>
-            <div style="display:flex;gap:8px;align-items:center">
-              <label style="font-size:13px;flex:1">🌙 深色模式</label>
-              <label style="position:relative;width:40px;height:22px;cursor:pointer"><input type="checkbox" id="settings-dark" onchange="toggleDarkMode()" style="opacity:0;width:0;height:0"><span style="position:absolute;top:0;left:0;width:40px;height:22px;border-radius:11px;background:#ccc;transition:.3s"></span><span style="position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:white;transition:.3s"></span></label>
+            <div>
+              <label
+                style="
+                  font-size: 12px;
+                  color: var(--dark-700);
+                  display: block;
+                  margin-bottom: 2px;
+                "
+                >電郵</label
+              ><input
+                type="email"
+                id="settings-email"
+                style="
+                  width: 100%;
+                  padding: 8px 10px;
+                  border: 1px solid var(--gray-200);
+                  border-radius: 6px;
+                  font-size: 14px;
+                "
+              />
+            </div>
+            <div style="display: flex; gap: 8px; align-items: center">
+              <label style="font-size: 13px; flex: 1">🔔 推廣通知</label>
+              <label
+                style="
+                  position: relative;
+                  width: 40px;
+                  height: 22px;
+                  cursor: pointer;
+                "
+                ><input
+                  type="checkbox"
+                  id="settings-promo"
+                  onchange="saveSettings()"
+                  style="opacity: 0; width: 0; height: 0" /><span
+                  id="settings-promo-toggle"
+                  style="
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    width: 40px;
+                    height: 22px;
+                    border-radius: 11px;
+                    background: #ccc;
+                    transition: 0.3s;
+                  "
+                ></span
+                ><span
+                  id="settings-promo-dot"
+                  style="
+                    position: absolute;
+                    top: 3px;
+                    left: 3px;
+                    width: 16px;
+                    height: 16px;
+                    border-radius: 50%;
+                    background: white;
+                    transition: 0.3s;
+                  "
+                ></span
+              ></label>
+            </div>
+            <div style="display: flex; gap: 8px; align-items: center">
+              <label style="font-size: 13px; flex: 1">🌙 深色模式</label>
+              <label
+                style="
+                  position: relative;
+                  width: 40px;
+                  height: 22px;
+                  cursor: pointer;
+                "
+                ><input
+                  type="checkbox"
+                  id="settings-dark"
+                  onchange="toggleDarkMode()"
+                  style="opacity: 0; width: 0; height: 0" /><span
+                  style="
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    width: 40px;
+                    height: 22px;
+                    border-radius: 11px;
+                    background: #ccc;
+                    transition: 0.3s;
+                  "
+                ></span
+                ><span
+                  style="
+                    position: absolute;
+                    top: 3px;
+                    left: 3px;
+                    width: 16px;
+                    height: 16px;
+                    border-radius: 50%;
+                    background: white;
+                    transition: 0.3s;
+                  "
+                ></span
+              ></label>
             </div>
           </div>
-          <button onclick="saveAllSettings()" style="width:100%;padding:10px;margin-top:12px;background:var(--orange-600-bg);color:white;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer">儲存設定</button>
+          <button
+            onclick="saveAllSettings()"
+            style="
+              width: 100%;
+              padding: 10px;
+              margin-top: 12px;
+              background: var(--orange-600-bg);
+              color: white;
+              border: none;
+              border-radius: 8px;
+              font-size: 14px;
+              font-weight: 600;
+              cursor: pointer;
+            "
+          >
+            儲存設定
+          </button>
         </div>
         <!-- Wishlist -->
-        <div class="section" id="wishlist-section" style="display:none">
+        <div class="section" id="wishlist-section" style="display: none">
           <div class="section-header">
             <h2>❤️ 收藏課程</h2>
           </div>
           <div class="featured-scroll" id="wishlist-classes"></div>
         </div>
         <!-- Quick Actions -->
-        <div style="display:flex;gap:8px;margin-bottom:14px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none">
-          <a href="explore.html" style="flex:1;min-width:68px;padding:10px 4px;border-radius:12px;background:var(--orange-50);text-align:center;text-decoration:none;color:var(--orange-700);transition:transform 0.15s">
-            <div style="font-size:22px">🔍</div>
-            <div style="font-size:11px;margin-top:2px;font-weight:500">探索</div>
+        <div
+          style="
+            display: flex;
+            gap: 8px;
+            margin-bottom: 14px;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+          "
+        >
+          <a
+            href="explore.html"
+            style="
+              flex: 1;
+              min-width: 68px;
+              padding: 10px 4px;
+              border-radius: 12px;
+              background: var(--orange-50);
+              text-align: center;
+              text-decoration: none;
+              color: var(--orange-700);
+              transition: transform 0.15s;
+            "
+          >
+            <div style="font-size: 22px">🔍</div>
+            <div style="font-size: 11px; margin-top: 2px; font-weight: 500">
+              探索
+            </div>
           </a>
-          <a href="checkin.html" style="flex:1;min-width:68px;padding:10px 4px;border-radius:12px;background:var(--gray-50);text-align:center;text-decoration:none;color:var(--dark-900);transition:transform 0.15s">
-            <div style="font-size:22px">📅</div>
-            <div style="font-size:11px;margin-top:2px">簽到</div>
+          <a
+            href="checkin.html"
+            style="
+              flex: 1;
+              min-width: 68px;
+              padding: 10px 4px;
+              border-radius: 12px;
+              background: var(--gray-50);
+              text-align: center;
+              text-decoration: none;
+              color: var(--dark-900);
+              transition: transform 0.15s;
+            "
+          >
+            <div style="font-size: 22px">📅</div>
+            <div style="font-size: 11px; margin-top: 2px">簽到</div>
           </a>
-          <a href="membership.html" style="flex:1;min-width:68px;padding:10px 4px;border-radius:12px;background:var(--gray-50);text-align:center;text-decoration:none;color:var(--dark-900);transition:transform 0.15s">
-            <div style="font-size:22px">💎</div>
-            <div style="font-size:11px;margin-top:2px">會籍</div>
+          <a
+            href="membership.html"
+            style="
+              flex: 1;
+              min-width: 68px;
+              padding: 10px 4px;
+              border-radius: 12px;
+              background: var(--gray-50);
+              text-align: center;
+              text-decoration: none;
+              color: var(--dark-900);
+              transition: transform 0.15s;
+            "
+          >
+            <div style="font-size: 22px">💎</div>
+            <div style="font-size: 11px; margin-top: 2px">會籍</div>
           </a>
-          <a href="points.html" style="flex:1;min-width:68px;padding:10px 4px;border-radius:12px;background:var(--gray-50);text-align:center;text-decoration:none;color:var(--dark-900);transition:transform 0.15s">
-            <div style="font-size:22px">🎯</div>
-            <div style="font-size:11px;margin-top:2px">積分</div>
+          <a
+            href="points.html"
+            style="
+              flex: 1;
+              min-width: 68px;
+              padding: 10px 4px;
+              border-radius: 12px;
+              background: var(--gray-50);
+              text-align: center;
+              text-decoration: none;
+              color: var(--dark-900);
+              transition: transform 0.15s;
+            "
+          >
+            <div style="font-size: 22px">🎯</div>
+            <div style="font-size: 11px; margin-top: 2px">積分</div>
           </a>
-          <a href="my-bookings.html" style="flex:1;min-width:68px;padding:10px 4px;border-radius:12px;background:var(--gray-50);text-align:center;text-decoration:none;color:var(--dark-900);transition:transform 0.15s">
-            <div style="font-size:22px">📋</div>
-            <div style="font-size:11px;margin-top:2px">預約</div>
+          <a
+            href="my-bookings.html"
+            style="
+              flex: 1;
+              min-width: 68px;
+              padding: 10px 4px;
+              border-radius: 12px;
+              background: var(--gray-50);
+              text-align: center;
+              text-decoration: none;
+              color: var(--dark-900);
+              transition: transform 0.15s;
+            "
+          >
+            <div style="font-size: 22px">📋</div>
+            <div style="font-size: 11px; margin-top: 2px">預約</div>
           </a>
-          <a href="notifications.html" style="flex:1;min-width:68px;padding:10px 4px;border-radius:12px;background:var(--gray-50);text-align:center;text-decoration:none;color:var(--dark-900);transition:transform 0.15s">
-            <div style="font-size:22px">🔔</div>
-            <div style="font-size:11px;margin-top:2px">通知</div>
+          <a
+            href="notifications.html"
+            style="
+              flex: 1;
+              min-width: 68px;
+              padding: 10px 4px;
+              border-radius: 12px;
+              background: var(--gray-50);
+              text-align: center;
+              text-decoration: none;
+              color: var(--dark-900);
+              transition: transform 0.15s;
+            "
+          >
+            <div style="font-size: 22px">🔔</div>
+            <div style="font-size: 11px; margin-top: 2px">通知</div>
           </a>
         </div>
-<!-- Referral -->
-        <div class="profile-card" id="referralCard" style="display:none;padding:16px 20px">
-          <div style="font-size:14px;font-weight:700;margin-bottom:8px;text-align:center">🎫 推薦碼</div>
-          <div style="font-size:22px;font-weight:800;color:var(--orange-700);letter-spacing:4px;margin-bottom:6px;text-align:center;font-family:monospace" id="referral-code">ZEN-XXXX</div>
-          <div style="font-size:12px;color:var(--dark-700);margin-bottom:10px;text-align:center">朋友用你的推薦碼註冊，雙方各得 <strong>50 積分</strong>！</div>
-          <div style="display:flex;gap:8px;justify-content:center">
-            <button onclick="copyReferral()" style="padding:8px 20px;background:var(--orange-600-bg);color:white;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer">📋 複製推薦碼</button>
-            <button onclick="shareReferral()" style="padding:8px 16px;background:var(--gray-100);color:var(--dark-900);border:none;border-radius:8px;font-size:12px;cursor:pointer">📤 分享</button>
+        <!-- Referral -->
+        <div
+          class="profile-card"
+          id="referralCard"
+          style="display: none; padding: 16px 20px"
+        >
+          <div
+            style="
+              font-size: 14px;
+              font-weight: 700;
+              margin-bottom: 8px;
+              text-align: center;
+            "
+          >
+            🎫 推薦碼
           </div>
-          <div style="font-size:11px;color:var(--dark-700);margin-top:8px;text-align:center">已推薦：<strong id="referral-count">0</strong> 人 · 賺取積分：<strong id="referral-points">0</strong></div>
+          <div
+            style="
+              font-size: 22px;
+              font-weight: 800;
+              color: var(--orange-700);
+              letter-spacing: 4px;
+              margin-bottom: 6px;
+              text-align: center;
+              font-family: monospace;
+            "
+            id="referral-code"
+          >
+            ZEN-XXXX
+          </div>
+          <div
+            style="
+              font-size: 12px;
+              color: var(--dark-700);
+              margin-bottom: 10px;
+              text-align: center;
+            "
+          >
+            朋友用你的推薦碼註冊，雙方各得 <strong>50 積分</strong>！
+          </div>
+          <div style="display: flex; gap: 8px; justify-content: center">
+            <button
+              onclick="copyReferral()"
+              style="
+                padding: 8px 20px;
+                background: var(--orange-600-bg);
+                color: white;
+                border: none;
+                border-radius: 8px;
+                font-size: 12px;
+                font-weight: 600;
+                cursor: pointer;
+              "
+            >
+              📋 複製推薦碼
+            </button>
+            <button
+              onclick="shareReferral()"
+              style="
+                padding: 8px 16px;
+                background: var(--gray-100);
+                color: var(--dark-900);
+                border: none;
+                border-radius: 8px;
+                font-size: 12px;
+                cursor: pointer;
+              "
+            >
+              📤 分享
+            </button>
+          </div>
+          <div
+            style="
+              font-size: 11px;
+              color: var(--dark-700);
+              margin-top: 8px;
+              text-align: center;
+            "
+          >
+            已推薦：<strong id="referral-count">0</strong> 人 ·
+            賺取積分：<strong id="referral-points">0</strong>
+          </div>
         </div>
         <!-- Points Card -->
         <div
@@ -709,18 +1136,103 @@
           style="display: none; padding: 16px; text-align: left"
         ></div>
         <!-- Loyalty Progress -->
-        <div class="profile-card" id="loyaltyCard" style="display:none;padding:16px">
-          <div style="font-size:14px;font-weight:700;margin-bottom:8px">🏆 個人成就</div>
-          <div style="display:flex;gap:4px;margin-bottom:8px">
-            <div style="flex:1;padding:6px 0;border-radius:6px;text-align:center;background:var(--orange-600-bg);color:white;font-size:11px;font-weight:600" id="loyalty-bronze">🥉 銅牌</div>
-            <div style="flex:1;padding:6px 0;border-radius:6px;text-align:center;background:var(--gray-100);color:var(--dark-700);font-size:11px" id="loyalty-silver">🥈 銀牌</div>
-            <div style="flex:1;padding:6px 0;border-radius:6px;text-align:center;background:var(--gray-100);color:var(--dark-700);font-size:11px" id="loyalty-gold">🥇 金牌</div>
-            <div style="flex:1;padding:6px 0;border-radius:6px;text-align:center;background:var(--gray-100);color:var(--dark-700);font-size:11px" id="loyalty-platinum">💎 鉑金</div>
+        <div
+          class="profile-card"
+          id="loyaltyCard"
+          style="display: none; padding: 16px"
+        >
+          <div style="font-size: 14px; font-weight: 700; margin-bottom: 8px">
+            🏆 個人成就
           </div>
-          <div style="height:6px;background:var(--gray-200);border-radius:3px;overflow:hidden;margin-bottom:6px">
-            <div id="loyalty-bar" style="height:100%;width:0%;background:linear-gradient(90deg,var(--orange-500),var(--orange-700));border-radius:3px;transition:width .5s"></div>
+          <div style="display: flex; gap: 4px; margin-bottom: 8px">
+            <div
+              style="
+                flex: 1;
+                padding: 6px 0;
+                border-radius: 6px;
+                text-align: center;
+                background: var(--orange-600-bg);
+                color: white;
+                font-size: 11px;
+                font-weight: 600;
+              "
+              id="loyalty-bronze"
+            >
+              🥉 銅牌
+            </div>
+            <div
+              style="
+                flex: 1;
+                padding: 6px 0;
+                border-radius: 6px;
+                text-align: center;
+                background: var(--gray-100);
+                color: var(--dark-700);
+                font-size: 11px;
+              "
+              id="loyalty-silver"
+            >
+              🥈 銀牌
+            </div>
+            <div
+              style="
+                flex: 1;
+                padding: 6px 0;
+                border-radius: 6px;
+                text-align: center;
+                background: var(--gray-100);
+                color: var(--dark-700);
+                font-size: 11px;
+              "
+              id="loyalty-gold"
+            >
+              🥇 金牌
+            </div>
+            <div
+              style="
+                flex: 1;
+                padding: 6px 0;
+                border-radius: 6px;
+                text-align: center;
+                background: var(--gray-100);
+                color: var(--dark-700);
+                font-size: 11px;
+              "
+              id="loyalty-platinum"
+            >
+              💎 鉑金
+            </div>
           </div>
-          <div style="font-size:11px;color:var(--dark-700);text-align:center" id="loyalty-text">完成更多課程解鎖成就等級</div>
+          <div
+            style="
+              height: 6px;
+              background: var(--gray-200);
+              border-radius: 3px;
+              overflow: hidden;
+              margin-bottom: 6px;
+            "
+          >
+            <div
+              id="loyalty-bar"
+              style="
+                height: 100%;
+                width: 0%;
+                background: linear-gradient(
+                  90deg,
+                  var(--orange-500),
+                  var(--orange-700)
+                );
+                border-radius: 3px;
+                transition: width 0.5s;
+              "
+            ></div>
+          </div>
+          <div
+            style="font-size: 11px; color: var(--dark-700); text-align: center"
+            id="loyalty-text"
+          >
+            完成更多課程解鎖成就等級
+          </div>
         </div>
         <!-- Badges Card -->
         <div
@@ -731,12 +1243,23 @@
         <!-- Stats -->
         <div class="stats-row" id="statsRow"></div>
         <!-- Activity Calendar -->
-        <div class="section" id="activity-section" style="display:none">
+        <div class="section" id="activity-section" style="display: none">
           <div class="section-header">
             <h2>📊 本月活動</h2>
           </div>
-          <div style="display:flex;gap:2px;flex-wrap:wrap;padding:4px 0" id="activity-grid"></div>
-          <div style="font-size:11px;color:var(--dark-700);margin-top:4px;text-align:center" id="activity-summary"></div>
+          <div
+            style="display: flex; gap: 2px; flex-wrap: wrap; padding: 4px 0"
+            id="activity-grid"
+          ></div>
+          <div
+            style="
+              font-size: 11px;
+              color: var(--dark-700);
+              margin-top: 4px;
+              text-align: center;
+            "
+            id="activity-summary"
+          ></div>
         </div>
         <!-- Confirmed Bookings -->
         <div class="section-header" id="confirmedHeader">
@@ -800,7 +1323,10 @@
           if (userStr) {
             user = JSON.parse(userStr);
             // Ignore stale demo users
-            if (user && (user.name === "張三同學" || user.email === "student@zenpass.hk")) {
+            if (
+              user &&
+              (user.name === "張三同學" || user.email === "student@zenpass.hk")
+            ) {
               user = null;
               localStorage.removeItem("zenpass_user");
               localStorage.removeItem("zenpass_name");
@@ -870,7 +1396,7 @@
         }
 
         // Load referral & loyalty (non-blocking)
-        loadReferral().catch(function(){});
+        loadReferral().catch(function () {});
         loadLoyalty();
 
         // Load bookings in parallel
@@ -897,7 +1423,6 @@
         }
       }
 
-      
       function showOfflineDemo() {
         // Clear any stale demo data
         var demoUsers = ["張三同學", "demo_student", "訪客"];
@@ -913,7 +1438,11 @@
         document.getElementById("loadingState").classList.add("hidden");
         document.getElementById("errorState").classList.add("hidden");
         document.getElementById("contentArea").classList.remove("hidden");
-        renderProfile(name, email, {membership_type: "none", created_at: "", total_bookings: 0});
+        renderProfile(name, email, {
+          membership_type: "none",
+          created_at: "",
+          total_bookings: 0,
+        });
         document.getElementById("membershipCard").style.display = "none";
         document.getElementById("recent-section").style.display = "none";
         document.getElementById("pointsCard").style.display = "none";
@@ -922,65 +1451,96 @@
           '<div style="grid-column:1/-1;text-align:center;padding:20px;background:var(--orange-50);border-radius:12px">' +
           '<div style="font-size:14px;margin-bottom:4px">⚠️ 這個頁面需要登入後查看</div>' +
           '<div style="font-size:12px;color:var(--dark-700);margin-bottom:12px">請使用以下地址登入：</div>' +
-          '<a href="' + window.location.origin + '/my.html" style="display:inline-block;padding:10px 24px;border-radius:25px;background:var(--orange-600-bg);color:var(--white);text-decoration:none;font-size:14px;font-weight:600">🔗 登入 ZenPass</a>' +
-          '</div>';
+          '<a href="' +
+          window.location.origin +
+          '/my.html" style="display:inline-block;padding:10px 24px;border-radius:25px;background:var(--orange-600-bg);color:var(--white);text-decoration:none;font-size:14px;font-weight:600">🔗 登入 ZenPass</a>' +
+          "</div>";
         document.getElementById("confirmedList").innerHTML =
-          '<div style="text-align:center;padding:40px 20px"><span style="font-size:48px;display:block;margin-bottom:12px">🔒</span><p style="font-size:16px;font-weight:600;margin-bottom:4px">需要登入查看</p><p style="font-size:13px;color:var(--dark-700);margin-bottom:16px">預約、會籍、積分等資料需要登入後顯示</p><a href="' + window.location.origin + '/my.html" style="display:inline-block;padding:10px 24px;border-radius:25px;background:var(--orange-600-bg);color:var(--white);text-decoration:none;font-size:14px;font-weight:600">🔐 登入帳戶</a></div>';
+          '<div style="text-align:center;padding:40px 20px"><span style="font-size:48px;display:block;margin-bottom:12px">🔒</span><p style="font-size:16px;font-weight:600;margin-bottom:4px">需要登入查看</p><p style="font-size:13px;color:var(--dark-700);margin-bottom:16px">預約、會籍、積分等資料需要登入後顯示</p><a href="' +
+          window.location.origin +
+          '/my.html" style="display:inline-block;padding:10px 24px;border-radius:25px;background:var(--orange-600-bg);color:var(--white);text-decoration:none;font-size:14px;font-weight:600">🔐 登入帳戶</a></div>';
         document.getElementById("allBookingsList").innerHTML = "";
       }
 
       function showLogout() {
-        if (confirm('確定要登出？')) {
-          localStorage.removeItem('zenpass_token');
-          localStorage.removeItem('zenpass_email');
-          localStorage.removeItem('zenpass_name');
-          sessionStorage.removeItem('zenpass_token');
-          window.location.href = 'login.html';
+        if (confirm("確定要登出？")) {
+          localStorage.removeItem("zenpass_token");
+          localStorage.removeItem("zenpass_email");
+          localStorage.removeItem("zenpass_name");
+          sessionStorage.removeItem("zenpass_token");
+          window.location.href = "login.html";
         }
       }
       function checkNotifDot() {
-        var d = document.getElementById('notifDot');
+        var d = document.getElementById("notifDot");
         if (!d) return;
         try {
-          fetch('/api/notifications?unread=true', { headers: getAuthHeaders() })
-            .then(function(r){return r.json()})
-            .then(function(data){
-              var n = (data.notifications||data).length || 0;
-              d.style.display = n > 0 ? '' : 'none';
-            }).catch(function(){});
-        } catch(e){}
+          fetch("/api/notifications?unread=true", { headers: getAuthHeaders() })
+            .then(function (r) {
+              return r.json();
+            })
+            .then(function (data) {
+              var n = (data.notifications || data).length || 0;
+              d.style.display = n > 0 ? "" : "none";
+            })
+            .catch(function () {});
+        } catch (e) {}
       }
       function renderProfile(name, email, userObj) {
-        var i = name ? name.charAt(0).toUpperCase() : '?';
-        var mt = (userObj && userObj.membership_type) || 'none';
-        var ml = {'none':'★ 一般','trial':'💎 試玩','standard':'🔥 標準','unlimited':'🏆 無限'};
-        var badge = ml[mt] || '★';
-        var since = userObj && userObj.created_at ? new Date(userObj.created_at).getFullYear()+'/'+(new Date(userObj.created_at).getMonth()+1) : '—';
-        var tb = (userObj && userObj.total_bookings != null) ? userObj.total_bookings : '—';
-        var ref = (userObj && userObj.user_reference) ? userObj.user_reference : '';
-        var pts = (userObj && userObj.points != null) ? userObj.points : '';
-        document.getElementById('profileCard').innerHTML =
+        var i = name ? name.charAt(0).toUpperCase() : "?";
+        var mt = (userObj && userObj.membership_type) || "none";
+        var ml = {
+          none: "★ 一般",
+          trial: "💎 試玩",
+          standard: "🔥 標準",
+          unlimited: "🏆 無限",
+        };
+        var badge = ml[mt] || "★";
+        var since =
+          userObj && userObj.created_at
+            ? new Date(userObj.created_at).getFullYear() +
+              "/" +
+              (new Date(userObj.created_at).getMonth() + 1)
+            : "—";
+        var tb =
+          userObj && userObj.total_bookings != null
+            ? userObj.total_bookings
+            : "—";
+        var ref =
+          userObj && userObj.user_reference ? userObj.user_reference : "";
+        var pts = userObj && userObj.points != null ? userObj.points : "";
+        document.getElementById("profileCard").innerHTML =
           '<div style="display:flex;align-items:center;gap:12px;padding:4px 0">' +
           '<div class="avatar" style="width:50px;height:50px;font-size:20px;background:var(--orange-600-bg);color:var(--white);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0">' +
           escHtml(i) +
-          '</div>' +
+          "</div>" +
           '<div style="flex:1;min-width:0">' +
           '<div class="name" style="font-size:18px;font-weight:700">' +
           escHtml(name) +
-          '</div>' +
-          (email ? '<div style="font-size:12px;color:var(--dark-700);margin-top:1px">' + escHtml(email) + '</div>' : '') +
+          "</div>" +
+          (email
+            ? '<div style="font-size:12px;color:var(--dark-700);margin-top:1px">' +
+              escHtml(email) +
+              "</div>"
+            : "") +
           '<div style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap;font-size:11px;color:var(--dark-700)">' +
-          '<span>' + badge + '</span>' +
-          '<span>📅 ' + since + ' 加入</span>' +
-          '<span>🏋️ ' + tb + ' 堂</span>' +
-          (ref ? '<span>🆔 ' + escHtml(ref) + '</span>' : '') +
-          (pts !== '' ? '<span>🎯 ' + pts + ' 分</span>' : '') +
-          '</div></div>' +
+          "<span>" +
+          badge +
+          "</span>" +
+          "<span>📅 " +
+          since +
+          " 加入</span>" +
+          "<span>🏋️ " +
+          tb +
+          " 堂</span>" +
+          (ref ? "<span>🆔 " + escHtml(ref) + "</span>" : "") +
+          (pts !== "" ? "<span>🎯 " + pts + " 分</span>" : "") +
+          "</div></div>" +
           '<div style="display:flex;flex-direction:column;align-items:center;gap:4px">' +
           '<button onclick="showLogout()" style="background:none;border:none;font-size:16px;cursor:pointer;padding:6px;border-radius:8px;color:var(--dark-700)" title="登出">🚪</button>' +
           '<button onclick="toggleSettings()" style="background:none;border:none;font-size:16px;cursor:pointer;padding:6px;border-radius:8px;color:var(--dark-700)" title="設定">⚙️</button>' +
           '<span id="notifDot" style="display:none;width:8px;height:8px;background:#ef4444;border-radius:50%"></span>' +
-          '</div></div>';
+          "</div></div>";
       }
 
       var PLAN_LABELS = {
@@ -1594,24 +2154,35 @@
       if ("serviceWorker" in navigator) {
         navigator.serviceWorker.register("sw.js");
       }
-    
-    // ===== Recent Browsing History =====
-    function loadRecentBrowsing() {
-      var recent = JSON.parse(localStorage.getItem("zenpass_recent") || "[]");
-      var container = document.getElementById("recent-classes");
-      var section = document.getElementById("recent-section");
-      if (!container || !section) return;
-      if (recent.length === 0) { section.style.display = "none"; return; }
-      section.style.display = "";
-      container.innerHTML = recent.slice(0, 6).map(function(id) {
-        return '<div class="class-card" style="flex:0 0 180px" onclick="location.href=\'class-detail.html?id=' + id + '\'">' +
-          '<div class="class-card-img" style="background:linear-gradient(135deg,#667eea,#764ba2);display:flex;align-items:center;justify-content:center;font-size:28px">📍</div>' +
-          '<div class="class-card-body"><div class="class-card-title" style="font-size:12px">課程 #' + id + '</div></div></div>';
-      }).join("");
-    }
 
-</script>
-      <nav class="bottom-nav" role="navigation" aria-label="底部導航">
+      // ===== Recent Browsing History =====
+      function loadRecentBrowsing() {
+        var recent = JSON.parse(localStorage.getItem("zenpass_recent") || "[]");
+        var container = document.getElementById("recent-classes");
+        var section = document.getElementById("recent-section");
+        if (!container || !section) return;
+        if (recent.length === 0) {
+          section.style.display = "none";
+          return;
+        }
+        section.style.display = "";
+        container.innerHTML = recent
+          .slice(0, 6)
+          .map(function (id) {
+            return (
+              '<div class="class-card" style="flex:0 0 180px" onclick="location.href=\'class-detail.html?id=' +
+              id +
+              "'\">" +
+              '<div class="class-card-img" style="background:linear-gradient(135deg,#667eea,#764ba2);display:flex;align-items:center;justify-content:center;font-size:28px">📍</div>' +
+              '<div class="class-card-body"><div class="class-card-title" style="font-size:12px">課程 #' +
+              id +
+              "</div></div></div>"
+            );
+          })
+          .join("");
+      }
+    </script>
+    <nav class="bottom-nav" role="navigation" aria-label="底部導航">
       <a href="index.html" class="nav-item"
         ><span class="nav-icon">🏠</span>首頁</a
       >
@@ -1628,5 +2199,5 @@
         ><span class="nav-icon">👤</span>我的</a
       >
     </nav>
-</body>
+  </body>
 </html>

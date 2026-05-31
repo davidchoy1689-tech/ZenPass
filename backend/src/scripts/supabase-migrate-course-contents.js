@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 /**
  * ZenPass course_contents Migration Runner
- * 
+ *
  * 用法：node supabase-migrate-course-contents.js
- * 
+ *
  * 這個腳本會檢查 course_contents 表是否存在，
  * 如果不存在，記錄需要執行的 SQL 並提供 Supabase SQL Editor 連結。
- * 
+ *
  * 由於 Supabase REST API 不支援 DDL 操作，
  * 請手動在 Supabase SQL Editor 執行 SQL。
  */
@@ -21,7 +21,10 @@ const SERVICE_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBxZ3JrZWF2b3Brc2R0dHJ6ZHFjIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NzgwMzQ3OCwiZXhwIjoyMDkzMzc5NDc4fQ.91zpdSB41hXH89hx0zinfCKNEWjVo2-z8IwtvGfqp3o";
 
 const supabase = createClient(SUPABASE_URL, SERVICE_KEY);
-const SQL_FILE = path.join(__dirname, "../../supabase/migrations/20260507_course_contents.sql");
+const SQL_FILE = path.join(
+  __dirname,
+  "../../supabase/migrations/20260507_course_contents.sql",
+);
 
 async function main() {
   console.log("═══════════════════════════════════════════");
@@ -32,9 +35,14 @@ async function main() {
   console.log("🔍 Checking existing tables...");
   let exists = false;
   try {
-    const { data, error } = await supabase.from("course_contents").select("id").limit(1);
+    const { data, error } = await supabase
+      .from("course_contents")
+      .select("id")
+      .limit(1);
     exists = !error;
-    console.log(`   course_contents table: ${exists ? "✅ EXISTS" : "❌ NOT FOUND"}`);
+    console.log(
+      `   course_contents table: ${exists ? "✅ EXISTS" : "❌ NOT FOUND"}`,
+    );
   } catch {
     console.log("   course_contents table: ❌ NOT FOUND");
   }
@@ -52,7 +60,9 @@ async function main() {
   console.log("\n⚠️  Need to run SQL in Supabase SQL Editor");
   console.log("──────────────────────────────────────────────");
   console.log("📋 請複製以下 SQL 到 Supabase SQL Editor 執行：");
-  console.log("   🔗 https://supabase.com/dashboard/project/pqgrkeavopksdttrzdqc/sql/new\n");
+  console.log(
+    "   🔗 https://supabase.com/dashboard/project/pqgrkeavopksdttrzdqc/sql/new\n",
+  );
   console.log("   或者複製檔案內容到手動執行：");
   console.log(`   📁 ${SQL_FILE}\n`);
   console.log("   快速指令 (macOS):");

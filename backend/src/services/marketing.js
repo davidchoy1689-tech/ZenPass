@@ -1,9 +1,9 @@
 /**
  * ZenPass 禪流 — WhatsApp 行銷自動化服務
- * 
+ *
  * Mindbody 用 Email（開信率 ~20%）
  * ZenPass 用 WhatsApp（開信率 ~98%）
- * 
+ *
  * 序列：
  * 1. 歡迎序列 — 註冊後自動發送
  * 2. 挽回序列 — 30日冇上堂
@@ -45,7 +45,9 @@ async function sendWelcomeSequence(userId, userName) {
           delay_hours: msg.delay_hours,
         },
       });
-      logger.info(`📨 Welcome queued for ${userName}: "${msg.title}" (T+${msg.delay_hours}h)`);
+      logger.info(
+        `📨 Welcome queued for ${userName}: "${msg.title}" (T+${msg.delay_hours}h)`,
+      );
     } catch (err) {
       logger.error(`Welcome sequence error for ${userId}:`, err.message);
     }
@@ -56,7 +58,9 @@ async function sendWelcomeSequence(userId, userName) {
 async function checkWinBackCandidates() {
   try {
     const db = new Database(DB_PATH);
-    const candidates = db.prepare(`
+    const candidates = db
+      .prepare(
+        `
       SELECT u.id, u.name, u.email, u.last_visit,
         (SELECT MAX(b.created_at) FROM bookings b WHERE b.user_id = u.id) as last_booking
       FROM users u
@@ -66,7 +70,9 @@ async function checkWinBackCandidates() {
         OR (SELECT MAX(b.created_at) FROM bookings b WHERE b.user_id = u.id) < datetime('now', '-30 days')
       )
       AND (u.last_visit IS NULL OR u.last_visit < datetime('now', '-30 days'))
-    `).all();
+    `,
+      )
+      .all();
     db.close();
 
     for (const user of candidates) {
@@ -122,7 +128,9 @@ async function sendBroadcast(subject, message, filters = {}) {
       }
     }
 
-    logger.info(`📨 Broadcast "${subject}" sent to ${sent}/${users.length} users`);
+    logger.info(
+      `📨 Broadcast "${subject}" sent to ${sent}/${users.length} users`,
+    );
     return { total: users.length, sent };
   } catch (err) {
     logger.error("Broadcast error:", err.message);
@@ -139,13 +147,16 @@ let winbackInterval = null;
 
 function startMarketingCron() {
   // Win-back check every 6 hours
-  winbackInterval = setInterval(async () => {
-    const count = await checkWinBackCandidates();
-    if (count > 0) {
-      logger.info(`📨 Win-back: ${count} candidates notified`);
-    }
-  }, 6 * 60 * 60 * 1000);
-  
+  winbackInterval = setInterval(
+    async () => {
+      const count = await checkWinBackCandidates();
+      if (count > 0) {
+        logger.info(`📨 Win-back: ${count} candidates notified`);
+      }
+    },
+    6 * 60 * 60 * 1000,
+  );
+
   logger.info("📨 Marketing cron started (win-back every 6h)");
   // Run once on start
   checkWinBackCandidates().catch(() => {});

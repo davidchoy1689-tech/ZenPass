@@ -112,20 +112,20 @@ async function runTests() {
     assert(
       "GET /api/points/rewards 回傳 200",
       rewards.status === 200,
-      `status=${rewards.status}`
+      `status=${rewards.status}`,
     );
     const rewardCount = (rewards.body?.rewards || []).length;
     assert(
       `獎勵目錄有 ${rewardCount} 項`,
       rewardCount > 0,
-      `count=${rewardCount}`
+      `count=${rewardCount}`,
     );
     if (rewardCount > 0) {
       const first = rewards.body.rewards[0];
       assert(
         "獎勵有 id, name, points_cost, icon",
         first.id && first.name && first.points_cost !== undefined && first.icon,
-        JSON.stringify(first)
+        JSON.stringify(first),
       );
     }
   } catch (e) {
@@ -139,13 +139,13 @@ async function runTests() {
     assert(
       "GET /api/points/tiers 回傳 200",
       tiers.status === 200,
-      `status=${tiers.status}`
+      `status=${tiers.status}`,
     );
     const tierCount = (tiers.body?.tiers || []).length;
     assert(
       `等級定義有 ${tierCount} 級 (bronze/silver/gold/diamond)`,
       tierCount >= 4,
-      `count=${tierCount}`
+      `count=${tierCount}`,
     );
   } catch (e) {
     assert("GET /api/points/tiers", false, e.message);
@@ -158,7 +158,7 @@ async function runTests() {
     assert(
       "GET /api/points 回傳 200",
       summary.status === 200,
-      `status=${summary.status}`
+      `status=${summary.status}`,
     );
     if (summary.status === 200) {
       assert(
@@ -166,7 +166,7 @@ async function runTests() {
         summary.body.points !== undefined &&
           summary.body.tier &&
           summary.body.checkinStreak !== undefined,
-        JSON.stringify(summary.body).slice(0, 100)
+        JSON.stringify(summary.body).slice(0, 100),
       );
     }
   } catch (e) {
@@ -182,12 +182,12 @@ async function runTests() {
       assert(
         "POST /api/points/checkin 成功",
         checkin.body.success === true,
-        JSON.stringify(checkin.body)
+        JSON.stringify(checkin.body),
       );
       assert(
         "回傳 points, streak, balance",
         checkin.body.points > 0 && checkin.body.streak > 0,
-        JSON.stringify(checkin.body)
+        JSON.stringify(checkin.body),
       );
     } else if (checkin.status === 400 && checkin.body.alreadyCheckedIn) {
       assert("簽到：今日已簽到", true, "alreadyCheckedIn");
@@ -195,7 +195,7 @@ async function runTests() {
       assert(
         "POST /api/points/checkin",
         false,
-        `status=${checkin.status} ${JSON.stringify(checkin.body)}`
+        `status=${checkin.status} ${JSON.stringify(checkin.body)}`,
       );
     }
   } catch (e) {
@@ -209,13 +209,13 @@ async function runTests() {
     assert(
       "GET /api/points/history 回傳 200",
       history.status === 200,
-      `status=${history.status}`
+      `status=${history.status}`,
     );
     if (history.status === 200) {
       assert(
         "回傳 transactions array",
         Array.isArray(history.body.transactions),
-        typeof history.body.transactions
+        typeof history.body.transactions,
       );
     }
   } catch (e) {
@@ -229,12 +229,12 @@ async function runTests() {
     assert(
       "GET /api/points/leaderboard 回傳 200",
       lb.status === 200,
-      `status=${lb.status}`
+      `status=${lb.status}`,
     );
     assert(
       "leaderboard 為 array",
       Array.isArray(lb.body?.leaderboard),
-      typeof lb.body?.leaderboard
+      typeof lb.body?.leaderboard,
     );
   } catch (e) {
     assert("GET /api/points/leaderboard", false, e.message);
@@ -247,23 +247,27 @@ async function runTests() {
       "POST",
       "/api/points/redeem",
       { reward_id: "rwd_01" },
-      token
+      token,
     );
     // We expect either success (if user has enough points) or "積分不足" error
     if (redeem.status === 200) {
-      assert("兌換 API 成功", redeem.body.success === true, JSON.stringify(redeem.body));
+      assert(
+        "兌換 API 成功",
+        redeem.body.success === true,
+        JSON.stringify(redeem.body),
+      );
       assert("回傳 redemption id", !!redeem.body.redemption?.id, "missing id");
     } else if (redeem.status === 400) {
       assert(
         "兌換 API：積分不足（expected 如果冇足夠分）",
         (redeem.body.error || "").includes("積分不足"),
-        `status=400: ${redeem.body.error}`
+        `status=400: ${redeem.body.error}`,
       );
     } else {
       assert(
         "POST /api/points/redeem",
         false,
-        `status=${redeem.status} ${JSON.stringify(redeem.body)}`
+        `status=${redeem.status} ${JSON.stringify(redeem.body)}`,
       );
     }
   } catch (e) {
@@ -273,21 +277,16 @@ async function runTests() {
   // ===== 9. Redemption History =====
   console.log("\n📦 Redemption History");
   try {
-    const redems = await request(
-      "GET",
-      "/api/points/redemptions",
-      null,
-      token
-    );
+    const redems = await request("GET", "/api/points/redemptions", null, token);
     assert(
       "GET /api/points/redemptions 回傳 200",
       redems.status === 200,
-      `status=${redems.status}`
+      `status=${redems.status}`,
     );
     assert(
       "redemptions 為 array",
       Array.isArray(redems.body?.redemptions),
-      typeof redems.body?.redemptions
+      typeof redems.body?.redemptions,
     );
   } catch (e) {
     assert("GET /api/points/redemptions", false, e.message);
@@ -307,12 +306,12 @@ async function runTests() {
         conditions: "",
         other: "測試用 waiver submission",
       },
-      token
+      token,
     );
     assert(
       "POST /api/crm/waiver 回傳 200",
       waiver.status === 200,
-      `status=${waiver.status}`
+      `status=${waiver.status}`,
     );
   } catch (e) {
     // Waiver endpoint might not exist yet - this is okay
@@ -331,20 +330,23 @@ async function runTests() {
     assert(
       "class-detail.html 有 waiver checkbox",
       content.includes('id="waiver-agree"') && content.includes("免責聲明"),
-      "Waiver checkbox 或 label 缺失"
+      "Waiver checkbox 或 label 缺失",
     );
     assert(
       "class-detail.html 有 waiver error display",
       content.includes('id="waiver-error"'),
-      "waiver-error element 缺失"
+      "waiver-error element 缺失",
     );
     assert(
       "handleBooking 檢查 waiver checkbox",
-      content.includes("waiverEl.checked") || content.includes("waiver-agree.checked"),
-      "handleBooking 未檢查 waiver agreement"
+      content.includes("waiverEl.checked") ||
+        content.includes("waiver-agree.checked"),
+      "handleBooking 未檢查 waiver agreement",
     );
   } else {
-    console.log("  ⚠️  class-detail.html 未找到 (path: " + classDetailPath + ")");
+    console.log(
+      "  ⚠️  class-detail.html 未找到 (path: " + classDetailPath + ")",
+    );
   }
 
   // ===== 12. CSS file exists =====
@@ -355,22 +357,22 @@ async function runTests() {
     assert(
       "frontend/css/zenpass.css 存在",
       cssContent.length > 1000,
-      `only ${cssContent.length} bytes`
+      `only ${cssContent.length} bytes`,
     );
     assert(
       "CSS 包含 CSS variables",
       cssContent.includes(":root") && cssContent.includes("--orange-500"),
-      "Missing CSS variables"
+      "Missing CSS variables",
     );
     assert(
       "CSS 包含 bottom-nav",
       cssContent.includes("bottom-nav") && cssContent.includes(".nav-item"),
-      "Missing bottom-nav styles"
+      "Missing bottom-nav styles",
     );
     assert(
       "CSS 包含 dark mode",
       cssContent.includes("prefers-color-scheme: dark"),
-      "Missing dark mode"
+      "Missing dark mode",
     );
   } else {
     assert("frontend/css/zenpass.css 存在", false, "File not found");
@@ -384,19 +386,20 @@ async function runTests() {
     assert(
       "DEPLOY.md 存在",
       deployContent.length > 500,
-      `only ${deployContent.length} bytes`
+      `only ${deployContent.length} bytes`,
     );
     assert(
       "包含 VPS/Nginx/PM2 部署步驟",
       deployContent.includes("Nginx") &&
         deployContent.includes("PM2") &&
         deployContent.includes("SSL"),
-      "Missing deployment sections"
+      "Missing deployment sections",
     );
     assert(
       "包含維護 checklist",
-      deployContent.includes("checklist") || deployContent.includes("Checklist"),
-      "Missing maintenance checklist"
+      deployContent.includes("checklist") ||
+        deployContent.includes("Checklist"),
+      "Missing maintenance checklist",
     );
   } else {
     assert("DEPLOY.md 存在", false, "File not found");
@@ -410,17 +413,21 @@ async function runTests() {
     assert(
       ".githooks/pre-commit 存在",
       hookContent.length > 200,
-      `only ${hookContent.length} bytes`
+      `only ${hookContent.length} bytes`,
     );
     assert(
       "pre-commit 包含 npm test",
       hookContent.includes("npm test") || hookContent.includes("backend/tests"),
-      "Missing test execution in pre-commit"
+      "Missing test execution in pre-commit",
     );
     // Check executable
     const stats = fs.statSync(hookPath);
     const isExecutable = (stats.mode & 0o111) !== 0;
-    assert("pre-commit 為可執行", isExecutable, `mode=${stats.mode.toString(8)}`);
+    assert(
+      "pre-commit 為可執行",
+      isExecutable,
+      `mode=${stats.mode.toString(8)}`,
+    );
   } else {
     assert(".githooks/pre-commit 存在", false, "File not found");
   }
@@ -433,7 +440,7 @@ function printSummary() {
   const total = passed + failed;
   console.log("\n" + "═".repeat(50));
   console.log(
-    `\n📊 結果: ${passed}/${total} passed, ${failed}/${total} failed\n`
+    `\n📊 結果: ${passed}/${total} passed, ${failed}/${total} failed\n`,
   );
   if (failed > 0) process.exit(1);
 }

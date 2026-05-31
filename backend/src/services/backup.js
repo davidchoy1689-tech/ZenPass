@@ -1,7 +1,7 @@
 /**
  * ZenPass 備份與還原服務
  * 支援 SQLite (本地) + Supabase (PostgreSQL)
- * 
+ *
  * 功能：
  * 1. SQLite 檔案快照備份 (JSON dump)
  * 2. Supabase 備份 (PostgREST)
@@ -23,14 +23,35 @@ const DAILY_BACKUP_HOUR = 3; // 3 AM daily
 
 // Tables to include in backup
 const BACKUP_TABLES = [
-  "users", "classes", "class_schedules", "bookings", "memberships",
-  "transactions", "coach_earnings", "coach_payouts", "private_income",
-  "course_contents", "locations", "sales", "notifications",
-  "points_transactions", "points_rewards", "points_redemptions",
-  "badges", "user_badges", "reviews", "referral_codes",
-  "referral_redemptions", "student_notes", "push_subscriptions",
-  "waitlist", "venue_rentals", "pricing_config", "partner_venues",
-  "partner_members", "partner_payouts",
+  "users",
+  "classes",
+  "class_schedules",
+  "bookings",
+  "memberships",
+  "transactions",
+  "coach_earnings",
+  "coach_payouts",
+  "private_income",
+  "course_contents",
+  "locations",
+  "sales",
+  "notifications",
+  "points_transactions",
+  "points_rewards",
+  "points_redemptions",
+  "badges",
+  "user_badges",
+  "reviews",
+  "referral_codes",
+  "referral_redemptions",
+  "student_notes",
+  "push_subscriptions",
+  "waitlist",
+  "venue_rentals",
+  "pricing_config",
+  "partner_venues",
+  "partner_members",
+  "partner_payouts",
   // IPO audit — do NOT back up from separate journal
   // "audit_log", "ledger", "wallet_transactions" — kept live only
 ];
@@ -68,15 +89,19 @@ async function createSqliteBackup(name, description = "") {
     // Verify database integrity first
     const integrity = db.prepare("PRAGMA integrity_check").get();
     if (integrity && integrity.integrity_check !== "ok") {
-      throw new Error(`Database integrity check failed: ${integrity.integrity_check}`);
+      throw new Error(
+        `Database integrity check failed: ${integrity.integrity_check}`,
+      );
     }
 
     for (const table of BACKUP_TABLES) {
       try {
         // Check if table exists
-        const exists = db.prepare(
-          "SELECT name FROM sqlite_master WHERE type='table' AND name=?"
-        ).get(table);
+        const exists = db
+          .prepare(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
+          )
+          .get(table);
         if (!exists) continue;
 
         const rows = db.prepare(`SELECT * FROM "${table}"`).all();
@@ -99,7 +124,8 @@ async function createSqliteBackup(name, description = "") {
       created_at: new Date().toISOString(),
       version: "1.0",
       engine: "sqlite",
-      tables_count: Object.keys(snapshot).filter((t) => snapshot[t].length > 0).length,
+      tables_count: Object.keys(snapshot).filter((t) => snapshot[t].length > 0)
+        .length,
       total_rows: totalRows,
       size_bytes: totalSize,
       db_file_size: dbStat.size,
@@ -126,7 +152,7 @@ async function createSqliteBackup(name, description = "") {
     cleanupOldBackups();
 
     logger.info(
-      `✅ SQLite backup created: ${name} (${totalRows} rows, ${(totalSize / 1024).toFixed(1)} KB)`
+      `✅ SQLite backup created: ${name} (${totalRows} rows, ${(totalSize / 1024).toFixed(1)} KB)`,
     );
     return backupId;
   } finally {
@@ -137,7 +163,8 @@ async function createSqliteBackup(name, description = "") {
 async function listSqliteBackups(limit = 20) {
   if (!fs.existsSync(BACKUP_DIR)) return [];
 
-  const files = fs.readdirSync(BACKUP_DIR)
+  const files = fs
+    .readdirSync(BACKUP_DIR)
     .filter((f) => f.startsWith("zenpass-backup-") && f.endsWith(".json"))
     .sort()
     .reverse()
@@ -175,7 +202,9 @@ async function listSqliteBackups(limit = 20) {
 
 async function restoreSqliteBackup(backupId) {
   const backups = await listSqliteBackups(MAX_BACKUPS);
-  const target = backups.find((b) => b.id === backupId || b.filename.includes(backupId));
+  const target = backups.find(
+    (b) => b.id === backupId || b.filename.includes(backupId),
+  );
   if (!target) throw new Error("找不到備份檔案");
 
   logger.warn(`⚠️ Starting restore from: ${target.name}`);
@@ -206,9 +235,9 @@ async function restoreSqliteBackup(backupId) {
       if (!rows || !Array.isArray(rows) || rows.length === 0) continue;
 
       // Check table exists
-      const exists = writeDb.prepare(
-        "SELECT name FROM sqlite_master WHERE type='table' AND name=?"
-      ).get(table);
+      const exists = writeDb
+        .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name=?")
+        .get(table);
       if (!exists) continue;
 
       // Delete existing data
@@ -221,9 +250,11 @@ async function restoreSqliteBackup(backupId) {
           const placeholders = keys.map(() => "?").join(",");
           const values = keys.map((k) => row[k]);
           try {
-            writeDb.prepare(
-              `INSERT INTO "${table}" (${keys.map((k) => `"${k}"`).join(",")}) VALUES (${placeholders})`
-            ).run(...values);
+            writeDb
+              .prepare(
+                `INSERT INTO "${table}" (${keys.map((k) => `"${k}"`).join(",")}) VALUES (${placeholders})`,
+              )
+              .run(...values);
           } catch (err) {
             logger.warn(`  ${table}: skip row — ${err.message}`);
           }
@@ -234,7 +265,11 @@ async function restoreSqliteBackup(backupId) {
     }
 
     logger.info(`✅ Restore complete: ${manifest.name}`);
-    return { restored: true, backupName: manifest.name, tables: manifest.tables_count };
+    return {
+      restored: true,
+      backupName: manifest.name,
+      tables: manifest.tables_count,
+    };
   } finally {
     writeDb.pragma("foreign_keys = ON");
     writeDb.close();
@@ -243,7 +278,9 @@ async function restoreSqliteBackup(backupId) {
 
 async function deleteSqliteBackup(backupId) {
   const backups = await listSqliteBackups(MAX_BACKUPS);
-  const target = backups.find((b) => b.id === backupId || b.filename.includes(backupId));
+  const target = backups.find(
+    (b) => b.id === backupId || b.filename.includes(backupId),
+  );
   if (!target) throw new Error("找不到備份");
 
   fs.unlinkSync(target.filepath);
@@ -252,7 +289,8 @@ async function deleteSqliteBackup(backupId) {
 }
 
 function cleanupOldBackups() {
-  const files = fs.readdirSync(BACKUP_DIR)
+  const files = fs
+    .readdirSync(BACKUP_DIR)
     .filter((f) => f.startsWith("zenpass-backup-") && f.endsWith(".json"))
     .sort();
 
@@ -268,10 +306,19 @@ function cleanupOldBackups() {
 // ===========================
 
 const SUPABASE_BACKUP_TABLES = [
-  "courses", "course_sessions", "bookings", "coaches",
-  "students", "profiles", "users", "membership_plans",
-  "user_memberships", "transactions", "settlements",
-  "course_categories", "system_config",
+  "courses",
+  "course_sessions",
+  "bookings",
+  "coaches",
+  "students",
+  "profiles",
+  "users",
+  "membership_plans",
+  "user_memberships",
+  "transactions",
+  "settlements",
+  "course_categories",
+  "system_config",
 ];
 
 async function createSupabaseBackup(name, description = "") {
@@ -308,7 +355,9 @@ async function createSupabaseBackup(name, description = "") {
 
   if (error) throw error;
 
-  logger.info(`✅ Supabase backup created: ${name} (${(totalSize / 1024).toFixed(1)} KB)`);
+  logger.info(
+    `✅ Supabase backup created: ${name} (${(totalSize / 1024).toFixed(1)} KB)`,
+  );
   return backupId;
 }
 
@@ -348,7 +397,10 @@ async function restoreSupabaseBackup(backupId) {
     if (!records || !Array.isArray(records)) continue;
 
     try {
-      await supabase.from(table).delete().neq("id", "00000000-0000-0000-0000-000000000000");
+      await supabase
+        .from(table)
+        .delete()
+        .neq("id", "00000000-0000-0000-0000-000000000000");
 
       for (let i = 0; i < records.length; i += 50) {
         const batch = records.slice(i, i + 50);
@@ -363,10 +415,9 @@ async function restoreSupabaseBackup(backupId) {
 
   if (backup.config_snapshot && Array.isArray(backup.config_snapshot)) {
     for (const cfg of backup.config_snapshot) {
-      await supabase.from("system_config").upsert(
-        { key: cfg.key, value: cfg.value },
-        { onConflict: "key" }
-      );
+      await supabase
+        .from("system_config")
+        .upsert({ key: cfg.key, value: cfg.value }, { onConflict: "key" });
     }
   }
 
@@ -383,7 +434,10 @@ async function deleteSupabaseBackup(backupId) {
   const supabase = getSupabase();
   if (!supabase) throw new Error("Supabase 未連接");
 
-  const { error } = await supabase.from("system_backups").delete().eq("id", backupId);
+  const { error } = await supabase
+    .from("system_backups")
+    .delete()
+    .eq("id", backupId);
   if (error) throw error;
   return { deleted: true };
 }
@@ -448,21 +502,26 @@ async function checkIntegrity() {
     results.checks.push({
       name: "foreign_keys",
       status: fkCheck.length === 0 ? "ok" : "warn",
-      detail: fkCheck.length === 0 ? "all ok" : `${fkCheck.length} violations found`,
+      detail:
+        fkCheck.length === 0 ? "all ok" : `${fkCheck.length} violations found`,
       violations: fkCheck,
     });
 
     // 3. Table row counts
-    const tables = db.prepare(
-      "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name"
-    ).all();
+    const tables = db
+      .prepare(
+        "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name",
+      )
+      .all();
 
     const tableStats = {};
     for (const t of tables) {
       try {
         const count = db.prepare(`SELECT COUNT(*) as c FROM "${t.name}"`).get();
         tableStats[t.name] = count.c;
-      } catch { tableStats[t.name] = -1; }
+      } catch {
+        tableStats[t.name] = -1;
+      }
     }
     results.checks.push({
       name: "table_counts",
@@ -516,7 +575,6 @@ async function checkIntegrity() {
     results.failures = failures.length;
     results.warnings = warnings.length;
     results.passed = results.checks.length - failures.length - warnings.length;
-
   } catch (err) {
     results.status = "error";
     results.error = err.message;
@@ -534,15 +592,17 @@ async function autoBackupOnStartup() {
     if (!backups || backups.length === 0) {
       logger.info("🔄 No previous backup found — creating initial backup...");
       createSqliteBackup("初始自動備份", "開機自動創建").catch((err) =>
-        logger.error("Initial backup failed:", err.message)
+        logger.error("Initial backup failed:", err.message),
       );
     } else {
       const lastBackup = new Date(backups[0].created_at);
       const hoursAgo = (Date.now() - lastBackup.getTime()) / (1000 * 60 * 60);
       if (hoursAgo > 24) {
-        logger.info(`🔄 Last backup ${hoursAgo.toFixed(0)}h ago — creating daily backup...`);
+        logger.info(
+          `🔄 Last backup ${hoursAgo.toFixed(0)}h ago — creating daily backup...`,
+        );
         createSqliteBackup("每日自動備份", "每日備份自動排程").catch((err) =>
-          logger.error("Daily backup failed:", err.message)
+          logger.error("Daily backup failed:", err.message),
         );
       } else {
         logger.info(`✅ Last backup ${hoursAgo.toFixed(0)}h ago — skipping`);
@@ -567,14 +627,17 @@ function scheduleDailyBackup() {
 
   setTimeout(() => {
     createSqliteBackup("每日自動備份", "每日備份自動排程").catch((err) =>
-      logger.error("Scheduled backup failed:", err.message)
+      logger.error("Scheduled backup failed:", err.message),
     );
     // Reschedule for next day
-    setInterval(() => {
-      createSqliteBackup("每日自動備份", "每日備份自動排程").catch((err) =>
-        logger.error("Scheduled backup failed:", err.message)
-      );
-    }, 24 * 60 * 60 * 1000);
+    setInterval(
+      () => {
+        createSqliteBackup("每日自動備份", "每日備份自動排程").catch((err) =>
+          logger.error("Scheduled backup failed:", err.message),
+        );
+      },
+      24 * 60 * 60 * 1000,
+    );
   }, msUntilNext);
 }
 

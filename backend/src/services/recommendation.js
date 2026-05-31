@@ -58,7 +58,7 @@ function trackUserAction(userId, action, data) {
     var actionData = data ? JSON.stringify(data) : "{}";
 
     db.prepare(
-      "INSERT INTO user_actions (user_id, action, category, class_id, data) VALUES (?, ?, ?, ?, ?)"
+      "INSERT INTO user_actions (user_id, action, category, class_id, data) VALUES (?, ?, ?, ?, ?)",
     ).run(userId, action, category, classId, actionData);
 
     db.close();
@@ -95,7 +95,7 @@ function getRecommendations(userId, limit) {
         GROUP BY category
         ORDER BY weight DESC
         LIMIT 3
-      `
+      `,
         )
         .all(userId);
 
@@ -111,7 +111,7 @@ function getRecommendations(userId, limit) {
           GROUP BY c.category
           ORDER BY weight DESC
           LIMIT 3
-        `
+        `,
           )
           .all(userId);
       }
@@ -125,7 +125,7 @@ function getRecommendations(userId, limit) {
         UNION
         SELECT class_id FROM bookings
         WHERE user_id = ? AND status NOT IN ('cancelled')
-      `
+      `,
         )
         .all(userId, userId);
 
@@ -168,7 +168,7 @@ function getRecommendations(userId, limit) {
               AND c.id NOT IN (${excludePlaceholders.join(",")})
             ORDER BY booking_count DESC
             LIMIT ?
-          `
+          `,
             )
             .all(...params, limit);
           db.close();
@@ -188,7 +188,7 @@ function getRecommendations(userId, limit) {
               AND c.category IN (${placeholders.join(",")})
             ORDER BY booking_count DESC
             LIMIT ?
-          `
+          `,
             )
             .all(...params, limit);
           db.close();
@@ -231,7 +231,7 @@ function getPopularByCategory(limit) {
       WHERE c.status = 'active'
       ORDER BY booking_count DESC
       LIMIT ?
-    `
+    `,
       )
       .all(limit);
 

@@ -19,8 +19,14 @@ router.post("/send-welcome", authenticateToken, (req, res) => {
     if (!user_id) return res.status(400).json({ error: "缺少用戶 ID" });
 
     const messages = [
-      { title: "🎉 歡迎加入 ZenPass！", body: `Hi ${name || ''}！歡迎加入 ZenPass 禪流 🧘\n\n探索超過 20 種運動課程。\n\n👉 ${getBaseUrl()}/explore.html` },
-      { title: "🎯 首次預約賺積分", body: `Hi ${name || ''}，每日簽到 +5 分，完成課堂 +50 分！\n👉 ${getBaseUrl()}/checkin.html` },
+      {
+        title: "🎉 歡迎加入 ZenPass！",
+        body: `Hi ${name || ""}！歡迎加入 ZenPass 禪流 🧘\n\n探索超過 20 種運動課程。\n\n👉 ${getBaseUrl()}/explore.html`,
+      },
+      {
+        title: "🎯 首次預約賺積分",
+        body: `Hi ${name || ""}，每日簽到 +5 分，完成課堂 +50 分！\n👉 ${getBaseUrl()}/checkin.html`,
+      },
     ];
 
     for (const msg of messages) {
@@ -40,7 +46,8 @@ router.post("/send-welcome", authenticateToken, (req, res) => {
 router.post("/broadcast", authenticateToken, requireAdmin, async (req, res) => {
   try {
     const { subject, message, filters } = req.body;
-    if (!subject || !message) return res.status(400).json({ error: "缺少主題或內容" });
+    if (!subject || !message)
+      return res.status(400).json({ error: "缺少主題或內容" });
 
     const result = await sendBroadcast(subject, message, filters || {});
     res.json({ success: true, ...result });

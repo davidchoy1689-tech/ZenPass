@@ -371,10 +371,10 @@ function initDatabase() {
 
   try {
     db.exec(
-      "CREATE INDEX IF NOT EXISTS idx_course_contents_course ON course_contents(course_id)"
+      "CREATE INDEX IF NOT EXISTS idx_course_contents_course ON course_contents(course_id)",
     );
     db.exec(
-      "CREATE INDEX IF NOT EXISTS idx_course_contents_number ON course_contents(course_number)"
+      "CREATE INDEX IF NOT EXISTS idx_course_contents_number ON course_contents(course_number)",
     );
   } catch (e) {}
 
@@ -386,7 +386,9 @@ function initDatabase() {
     db.exec("ALTER TABLE users ADD COLUMN points_tier TEXT DEFAULT 'bronze'");
   } catch (e) {}
   try {
-    db.exec("ALTER TABLE users ADD COLUMN points_tier_label TEXT DEFAULT '🥉 銅牌'");
+    db.exec(
+      "ALTER TABLE users ADD COLUMN points_tier_label TEXT DEFAULT '🥉 銅牌'",
+    );
   } catch (e) {}
   try {
     db.exec("ALTER TABLE users ADD COLUMN last_checkin TEXT");
@@ -408,10 +410,11 @@ function initDatabase() {
   } catch (e) {}
   // Set admin role for existing admin users
   try {
-    db.exec("UPDATE users SET role = 'admin' WHERE email LIKE '%admin%' AND email NOT IN ('coach@zenpass.hk','student@zenpass.hk')");
+    db.exec(
+      "UPDATE users SET role = 'admin' WHERE email LIKE '%admin%' AND email NOT IN ('coach@zenpass.hk','student@zenpass.hk')",
+    );
   } catch (e) {}
 
-  
   // ===== CRM 學生管理 =====
   try {
     db.exec("ALTER TABLE users ADD COLUMN tags TEXT DEFAULT ''");
@@ -448,7 +451,6 @@ function initDatabase() {
     )
   `);
 
-
   // ===== 多場地管理 =====
   db.exec(`
     CREATE TABLE IF NOT EXISTS locations (
@@ -463,7 +465,9 @@ function initDatabase() {
     )
   `);
   try {
-    db.exec("ALTER TABLE class_schedules ADD COLUMN location_id TEXT REFERENCES locations(id)");
+    db.exec(
+      "ALTER TABLE class_schedules ADD COLUMN location_id TEXT REFERENCES locations(id)",
+    );
   } catch (e) {}
   try {
     db.exec("ALTER TABLE class_schedules ADD COLUMN notes TEXT");
@@ -489,7 +493,6 @@ function initDatabase() {
     )
   `);
 
-
   // ===== 推薦計劃 =====
   try {
     db.exec("ALTER TABLE users ADD COLUMN referral_code TEXT");
@@ -498,9 +501,11 @@ function initDatabase() {
     db.exec("ALTER TABLE users ADD COLUMN referred_by TEXT");
   } catch (e) {}
   try {
-    db.exec("ALTER TABLE users ADD COLUMN referral_credits_earned INTEGER DEFAULT 0");
+    db.exec(
+      "ALTER TABLE users ADD COLUMN referral_credits_earned INTEGER DEFAULT 0",
+    );
   } catch (e) {}
-  
+
   db.exec(`
     CREATE TABLE IF NOT EXISTS referral_codes (
       id TEXT PRIMARY KEY,
@@ -510,7 +515,7 @@ function initDatabase() {
       FOREIGN KEY (user_id) REFERENCES users(id)
     )
   `);
-  
+
   db.exec(`
     CREATE TABLE IF NOT EXISTS referral_redemptions (
       id TEXT PRIMARY KEY,
@@ -524,7 +529,7 @@ function initDatabase() {
     )
   `);
 
-// ===== 積分交易紀錄 =====
+  // ===== 積分交易紀錄 =====
   db.exec(`
     CREATE TABLE IF NOT EXISTS points_transactions (
       id TEXT PRIMARY KEY,
@@ -540,8 +545,12 @@ function initDatabase() {
     );
   `);
   try {
-    db.exec("CREATE INDEX IF NOT EXISTS idx_points_user ON points_transactions(user_id)");
-    db.exec("CREATE INDEX IF NOT EXISTS idx_points_user_time ON points_transactions(user_id, created_at DESC)");
+    db.exec(
+      "CREATE INDEX IF NOT EXISTS idx_points_user ON points_transactions(user_id)",
+    );
+    db.exec(
+      "CREATE INDEX IF NOT EXISTS idx_points_user_time ON points_transactions(user_id, created_at DESC)",
+    );
   } catch (e) {}
 
   // ===== 積分獎勵目錄 =====
@@ -577,30 +586,90 @@ function initDatabase() {
     );
   `);
   try {
-    db.exec("CREATE INDEX IF NOT EXISTS idx_redemptions_user ON points_redemptions(user_id)");
+    db.exec(
+      "CREATE INDEX IF NOT EXISTS idx_redemptions_user ON points_redemptions(user_id)",
+    );
   } catch (e) {}
 
   // ===== 預設獎勵種子數據 =====
-  const existingRewards = db.prepare("SELECT COUNT(*) as count FROM points_rewards").get();
+  const existingRewards = db
+    .prepare("SELECT COUNT(*) as count FROM points_rewards")
+    .get();
   if (existingRewards.count === 0) {
     const insertReward = db.prepare(`
       INSERT INTO points_rewards (id, name, description, points_cost, reward_type, reward_value, icon)
       VALUES (?, ?, ?, ?, ?, ?, ?)
     `);
     const rewards = [
-      ['rwd_01', '\$10 折扣碼', '下次預約即減 \$10', 200, 'discount', '10', '🎫'],
-      ['rwd_02', '\$25 折扣碼', '下次預約即減 \$25', 450, 'discount', '25', '🎫'],
-      ['rwd_03', '5 點 Credits', '即時獲得 5 點 Credits', 800, 'credit', '5', '⭐'],
-      ['rwd_04', '10 點 Credits', '即時獲得 10 點 Credits', 1500, 'credit', '10', '⭐'],
-      ['rwd_05', '免費堂數 1 堂', '免費參加一堂常規課程（任何類別）', 2000, 'free_class', '1', '🏅'],
-      ['rwd_06', 'ZenPass 環保袋', '限量版 ZenPass 環保購物袋', 500, 'merchandise', 'bag', '🛍️'],
-      ['rwd_07', '私人教練體驗 1 節', '一對一私人教練體驗課 60 分鐘', 3500, 'free_class', 'pt_session', '💪'],
+      [
+        "rwd_01",
+        "\$10 折扣碼",
+        "下次預約即減 \$10",
+        200,
+        "discount",
+        "10",
+        "🎫",
+      ],
+      [
+        "rwd_02",
+        "\$25 折扣碼",
+        "下次預約即減 \$25",
+        450,
+        "discount",
+        "25",
+        "🎫",
+      ],
+      [
+        "rwd_03",
+        "5 點 Credits",
+        "即時獲得 5 點 Credits",
+        800,
+        "credit",
+        "5",
+        "⭐",
+      ],
+      [
+        "rwd_04",
+        "10 點 Credits",
+        "即時獲得 10 點 Credits",
+        1500,
+        "credit",
+        "10",
+        "⭐",
+      ],
+      [
+        "rwd_05",
+        "免費堂數 1 堂",
+        "免費參加一堂常規課程（任何類別）",
+        2000,
+        "free_class",
+        "1",
+        "🏅",
+      ],
+      [
+        "rwd_06",
+        "ZenPass 環保袋",
+        "限量版 ZenPass 環保購物袋",
+        500,
+        "merchandise",
+        "bag",
+        "🛍️",
+      ],
+      [
+        "rwd_07",
+        "私人教練體驗 1 節",
+        "一對一私人教練體驗課 60 分鐘",
+        3500,
+        "free_class",
+        "pt_session",
+        "💪",
+      ],
     ];
     const insertMany = db.transaction((rewards) => {
       for (const r of rewards) insertReward.run(...r);
     });
     insertMany(rewards);
-    console.log('✅ 已初始化 7 個積分獎勵');
+    console.log("✅ 已初始化 7 個積分獎勵");
   }
 
   // ===== 勳章定義表 =====
@@ -632,7 +701,9 @@ function initDatabase() {
     );
   `);
   try {
-    db.exec("CREATE INDEX IF NOT EXISTS idx_user_badges_user ON user_badges(user_id)");
+    db.exec(
+      "CREATE INDEX IF NOT EXISTS idx_user_badges_user ON user_badges(user_id)",
+    );
   } catch (e) {}
 
   // ===== 評價系統 (雙方互評: 學生↔教練) =====
@@ -653,11 +724,19 @@ function initDatabase() {
     );
   `);
   // Add reviewed column to bookings if not exist
-  try { db.exec("ALTER TABLE bookings ADD COLUMN reviewed_student INTEGER DEFAULT 0"); } catch(e) {}
-  try { db.exec("ALTER TABLE bookings ADD COLUMN reviewed_coach INTEGER DEFAULT 0"); } catch(e) {}
+  try {
+    db.exec(
+      "ALTER TABLE bookings ADD COLUMN reviewed_student INTEGER DEFAULT 0",
+    );
+  } catch (e) {}
+  try {
+    db.exec("ALTER TABLE bookings ADD COLUMN reviewed_coach INTEGER DEFAULT 0");
+  } catch (e) {}
 
   // ===== 預設勳章種子數據 =====
-  const existingBadges = db.prepare("SELECT COUNT(*) as count FROM badges").get();
+  const existingBadges = db
+    .prepare("SELECT COUNT(*) as count FROM badges")
+    .get();
   if (existingBadges.count === 0) {
     const insertBadge = db.prepare(`
       INSERT INTO badges (id, name, description, icon, category, condition_type, condition_value, sort_order)
@@ -665,61 +744,412 @@ function initDatabase() {
     `);
     const badges = [
       // 出席類
-      ['bdg_att_01', '初出茅廬', '首次完成課程預約', '🌱', 'attendance', 'total_bookings', '1', 1],
-      ['bdg_att_02', '運動初心者', '完成 10 堂課程', '🏃', 'attendance', 'total_bookings', '10', 2],
-      ['bdg_att_03', '運動愛好者', '完成 25 堂課程', '💪', 'attendance', 'total_bookings', '25', 3],
-      ['bdg_att_04', '運動達人', '完成 50 堂課程', '🏆', 'attendance', 'total_bookings', '50', 4],
-      ['bdg_att_05', '傳奇運動員', '完成 100 堂課程', '👑', 'attendance', 'total_bookings', '100', 5],
+      [
+        "bdg_att_01",
+        "初出茅廬",
+        "首次完成課程預約",
+        "🌱",
+        "attendance",
+        "total_bookings",
+        "1",
+        1,
+      ],
+      [
+        "bdg_att_02",
+        "運動初心者",
+        "完成 10 堂課程",
+        "🏃",
+        "attendance",
+        "total_bookings",
+        "10",
+        2,
+      ],
+      [
+        "bdg_att_03",
+        "運動愛好者",
+        "完成 25 堂課程",
+        "💪",
+        "attendance",
+        "total_bookings",
+        "25",
+        3,
+      ],
+      [
+        "bdg_att_04",
+        "運動達人",
+        "完成 50 堂課程",
+        "🏆",
+        "attendance",
+        "total_bookings",
+        "50",
+        4,
+      ],
+      [
+        "bdg_att_05",
+        "傳奇運動員",
+        "完成 100 堂課程",
+        "👑",
+        "attendance",
+        "total_bookings",
+        "100",
+        5,
+      ],
 
       // 類別探索類
-      ['bdg_exp_01', '好奇寶寶', '嘗試 2 種不同類別課程', '🔍', 'explorer', 'categories_count', '2', 10],
-      ['bdg_exp_02', '探索者', '嘗試 4 種不同類別課程', '🎯', 'explorer', 'categories_count', '4', 11],
-      ['bdg_exp_03', '全能運動員', '嘗試全部類別課程', '🌟', 'explorer', 'categories_count', '5', 12],
+      [
+        "bdg_exp_01",
+        "好奇寶寶",
+        "嘗試 2 種不同類別課程",
+        "🔍",
+        "explorer",
+        "categories_count",
+        "2",
+        10,
+      ],
+      [
+        "bdg_exp_02",
+        "探索者",
+        "嘗試 4 種不同類別課程",
+        "🎯",
+        "explorer",
+        "categories_count",
+        "4",
+        11,
+      ],
+      [
+        "bdg_exp_03",
+        "全能運動員",
+        "嘗試全部類別課程",
+        "🌟",
+        "explorer",
+        "categories_count",
+        "5",
+        12,
+      ],
 
       // 連續挑戰類
-      ['bdg_str_01', '持續努力', '連續簽到 3 天', '🔥', 'streak', 'checkin_streak', '3', 20],
-      ['bdg_str_02', '一週達人', '連續簽到 7 天', '🔥', 'streak', 'checkin_streak', '7', 21],
-      ['bdg_str_03', '半個月挑戰', '連續簽到 15 天', '🌟', 'streak', 'checkin_streak', '15', 22],
-      ['bdg_str_04', '鐵人認證', '連續簽到 30 天', '💎', 'streak', 'checkin_streak', '30', 23],
+      [
+        "bdg_str_01",
+        "持續努力",
+        "連續簽到 3 天",
+        "🔥",
+        "streak",
+        "checkin_streak",
+        "3",
+        20,
+      ],
+      [
+        "bdg_str_02",
+        "一週達人",
+        "連續簽到 7 天",
+        "🔥",
+        "streak",
+        "checkin_streak",
+        "7",
+        21,
+      ],
+      [
+        "bdg_str_03",
+        "半個月挑戰",
+        "連續簽到 15 天",
+        "🌟",
+        "streak",
+        "checkin_streak",
+        "15",
+        22,
+      ],
+      [
+        "bdg_str_04",
+        "鐵人認證",
+        "連續簽到 30 天",
+        "💎",
+        "streak",
+        "checkin_streak",
+        "30",
+        23,
+      ],
 
       // 社交貢獻類
-      ['bdg_soc_01', '評論家', '撰寫 5 個課後評價', '⭐', 'social', 'reviews_count', '5', 30],
-      ['bdg_soc_02', '專業評論', '撰寫 15 個課後評價', '📝', 'social', 'reviews_count', '15', 31],
-      ['bdg_soc_03', '社交蝴蝶', '推薦 1 位朋友', '👥', 'social', 'referrals_count', '1', 32],
-      ['bdg_soc_04', '人氣王', '推薦 3 位朋友', '🤝', 'social', 'referrals_count', '3', 33],
+      [
+        "bdg_soc_01",
+        "評論家",
+        "撰寫 5 個課後評價",
+        "⭐",
+        "social",
+        "reviews_count",
+        "5",
+        30,
+      ],
+      [
+        "bdg_soc_02",
+        "專業評論",
+        "撰寫 15 個課後評價",
+        "📝",
+        "social",
+        "reviews_count",
+        "15",
+        31,
+      ],
+      [
+        "bdg_soc_03",
+        "社交蝴蝶",
+        "推薦 1 位朋友",
+        "👥",
+        "social",
+        "referrals_count",
+        "1",
+        32,
+      ],
+      [
+        "bdg_soc_04",
+        "人氣王",
+        "推薦 3 位朋友",
+        "🤝",
+        "social",
+        "referrals_count",
+        "3",
+        33,
+      ],
 
       // 特別成就類
-      ['bdg_spc_01', '星光會員', '達到銀牌等級', '🥈', 'special', 'points_tier', 'silver', 40],
-      ['bdg_spc_02', '金牌貴賓', '達到金牌等級', '🥇', 'special', 'points_tier', 'gold', 41],
-      ['bdg_spc_03', '鑽石尊享', '達到鑽石等級', '💎', 'special', 'points_tier', 'diamond', 42],
-      ['bdg_spc_04', '成就大師', '獲得 10 個勳章', '🥇', 'special', 'total_badges', '10', 43],
-      ['bdg_spc_05', '完美收集', '獲得 20 個勳章', '🏅', 'special', 'total_badges', '20', 44],
+      [
+        "bdg_spc_01",
+        "星光會員",
+        "達到銀牌等級",
+        "🥈",
+        "special",
+        "points_tier",
+        "silver",
+        40,
+      ],
+      [
+        "bdg_spc_02",
+        "金牌貴賓",
+        "達到金牌等級",
+        "🥇",
+        "special",
+        "points_tier",
+        "gold",
+        41,
+      ],
+      [
+        "bdg_spc_03",
+        "鑽石尊享",
+        "達到鑽石等級",
+        "💎",
+        "special",
+        "points_tier",
+        "diamond",
+        42,
+      ],
+      [
+        "bdg_spc_04",
+        "成就大師",
+        "獲得 10 個勳章",
+        "🥇",
+        "special",
+        "total_badges",
+        "10",
+        43,
+      ],
+      [
+        "bdg_spc_05",
+        "完美收集",
+        "獲得 20 個勳章",
+        "🏅",
+        "special",
+        "total_badges",
+        "20",
+        44,
+      ],
 
       // 地區打卡類 - 香港18區
-      ['bdg_dst_01', '🌊 中西區', '在中西區上過課', '🌊', 'district', 'district_checkin', '中西區', 60],
-      ['bdg_dst_02', '🏔️ 東區', '在東區上過課', '🏔️', 'district', 'district_checkin', '東區', 61],
-      ['bdg_dst_03', '🌳 南區', '在南區上過課', '🌳', 'district', 'district_checkin', '南區', 62],
-      ['bdg_dst_04', '🏛️ 灣仔區', '在灣仔區上過課', '🏛️', 'district', 'district_checkin', '灣仔區', 63],
-      ['bdg_dst_05', '🏯 九龍城區', '在九龍城區上過課', '🏯', 'district', 'district_checkin', '九龍城區', 64],
-      ['bdg_dst_06', '🏭 觀塘區', '在觀塘區上過課', '🏭', 'district', 'district_checkin', '觀塘區', 65],
-      ['bdg_dst_07', '🛍️ 深水埗區', '在深水埗區上過課', '🛍️', 'district', 'district_checkin', '深水埗區', 66],
-      ['bdg_dst_08', '🙏 黃大仙區', '在黃大仙區上過課', '🙏', 'district', 'district_checkin', '黃大仙區', 67],
-      ['bdg_dst_09', '🌆 油尖旺區', '在油尖旺區上過課', '🌆', 'district', 'district_checkin', '油尖旺區', 68],
-      ['bdg_dst_10', '🏝️ 離島區', '在離島區上過課', '🏝️', 'district', 'district_checkin', '離島區', 69],
-      ['bdg_dst_11', '🌿 葵青區', '在葵青區上過課', '🌿', 'district', 'district_checkin', '葵青區', 70],
-      ['bdg_dst_12', '⛰️ 北區', '在北區上過課', '⛰️', 'district', 'district_checkin', '北區', 71],
-      ['bdg_dst_13', '🌊 西貢區', '在西貢區上過課', '🌊', 'district', 'district_checkin', '西貢區', 72],
-      ['bdg_dst_14', '🏘️ 沙田區', '在沙田區上過課', '🏘️', 'district', 'district_checkin', '沙田區', 73],
-      ['bdg_dst_15', '🌸 大埔區', '在大埔區上過課', '🌸', 'district', 'district_checkin', '大埔區', 74],
-      ['bdg_dst_16', '♨️ 荃灣區', '在荃灣區上過課', '♨️', 'district', 'district_checkin', '荃灣區', 75],
-      ['bdg_dst_17', '🏖️ 屯門區', '在屯門區上過課', '🏖️', 'district', 'district_checkin', '屯門區', 76],
-      ['bdg_dst_18', '🌾 元朗區', '在元朗區上過課', '🌾', 'district', 'district_checkin', '元朗區', 77],
+      [
+        "bdg_dst_01",
+        "🌊 中西區",
+        "在中西區上過課",
+        "🌊",
+        "district",
+        "district_checkin",
+        "中西區",
+        60,
+      ],
+      [
+        "bdg_dst_02",
+        "🏔️ 東區",
+        "在東區上過課",
+        "🏔️",
+        "district",
+        "district_checkin",
+        "東區",
+        61,
+      ],
+      [
+        "bdg_dst_03",
+        "🌳 南區",
+        "在南區上過課",
+        "🌳",
+        "district",
+        "district_checkin",
+        "南區",
+        62,
+      ],
+      [
+        "bdg_dst_04",
+        "🏛️ 灣仔區",
+        "在灣仔區上過課",
+        "🏛️",
+        "district",
+        "district_checkin",
+        "灣仔區",
+        63,
+      ],
+      [
+        "bdg_dst_05",
+        "🏯 九龍城區",
+        "在九龍城區上過課",
+        "🏯",
+        "district",
+        "district_checkin",
+        "九龍城區",
+        64,
+      ],
+      [
+        "bdg_dst_06",
+        "🏭 觀塘區",
+        "在觀塘區上過課",
+        "🏭",
+        "district",
+        "district_checkin",
+        "觀塘區",
+        65,
+      ],
+      [
+        "bdg_dst_07",
+        "🛍️ 深水埗區",
+        "在深水埗區上過課",
+        "🛍️",
+        "district",
+        "district_checkin",
+        "深水埗區",
+        66,
+      ],
+      [
+        "bdg_dst_08",
+        "🙏 黃大仙區",
+        "在黃大仙區上過課",
+        "🙏",
+        "district",
+        "district_checkin",
+        "黃大仙區",
+        67,
+      ],
+      [
+        "bdg_dst_09",
+        "🌆 油尖旺區",
+        "在油尖旺區上過課",
+        "🌆",
+        "district",
+        "district_checkin",
+        "油尖旺區",
+        68,
+      ],
+      [
+        "bdg_dst_10",
+        "🏝️ 離島區",
+        "在離島區上過課",
+        "🏝️",
+        "district",
+        "district_checkin",
+        "離島區",
+        69,
+      ],
+      [
+        "bdg_dst_11",
+        "🌿 葵青區",
+        "在葵青區上過課",
+        "🌿",
+        "district",
+        "district_checkin",
+        "葵青區",
+        70,
+      ],
+      [
+        "bdg_dst_12",
+        "⛰️ 北區",
+        "在北區上過課",
+        "⛰️",
+        "district",
+        "district_checkin",
+        "北區",
+        71,
+      ],
+      [
+        "bdg_dst_13",
+        "🌊 西貢區",
+        "在西貢區上過課",
+        "🌊",
+        "district",
+        "district_checkin",
+        "西貢區",
+        72,
+      ],
+      [
+        "bdg_dst_14",
+        "🏘️ 沙田區",
+        "在沙田區上過課",
+        "🏘️",
+        "district",
+        "district_checkin",
+        "沙田區",
+        73,
+      ],
+      [
+        "bdg_dst_15",
+        "🌸 大埔區",
+        "在大埔區上過課",
+        "🌸",
+        "district",
+        "district_checkin",
+        "大埔區",
+        74,
+      ],
+      [
+        "bdg_dst_16",
+        "♨️ 荃灣區",
+        "在荃灣區上過課",
+        "♨️",
+        "district",
+        "district_checkin",
+        "荃灣區",
+        75,
+      ],
+      [
+        "bdg_dst_17",
+        "🏖️ 屯門區",
+        "在屯門區上過課",
+        "🏖️",
+        "district",
+        "district_checkin",
+        "屯門區",
+        76,
+      ],
+      [
+        "bdg_dst_18",
+        "🌾 元朗區",
+        "在元朗區上過課",
+        "🌾",
+        "district",
+        "district_checkin",
+        "元朗區",
+        77,
+      ],
     ];
     const insertMany = db.transaction((badges) => {
       for (const b of badges) insertBadge.run(...b);
     });
     insertMany(badges);
-    console.log('✅ 已初始化 ' + badges.length + ' 個 ZenPass 勳章');
+    console.log("✅ 已初始化 " + badges.length + " 個 ZenPass 勳章");
   }
 
   // IPO audit log migration
@@ -740,7 +1170,9 @@ function initDatabase() {
 
   // IPO idempotency + refund migration
   try {
-    const { migrate: migrateIdemRefund } = require("./migrate-idempotency-refund");
+    const {
+      migrate: migrateIdemRefund,
+    } = require("./migrate-idempotency-refund");
     migrateIdemRefund();
   } catch (migErr) {
     console.error("⚠️ Idempotency/Refund migration failed:", migErr.message);

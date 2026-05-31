@@ -4,12 +4,15 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>我的預約 - ZenPass 禪流</title>
-  <meta property="og:title" content="我的預約 — ZenPass 禪流" />
-  <meta property="og:description" content="查看及管理你的課程預約記錄。" />
-  <meta property="og:url" content="https://davidchoy1689-tech.github.io/ZenPass/my-bookings.html" />
-  <meta property="og:type" content="website" />
-  <meta property="og:locale" content="zh_HK" />
-  <meta name="twitter:card" content="summary_large_image" />
+    <meta property="og:title" content="我的預約 — ZenPass 禪流" />
+    <meta property="og:description" content="查看及管理你的課程預約記錄。" />
+    <meta
+      property="og:url"
+      content="https://davidchoy1689-tech.github.io/ZenPass/my-bookings.html"
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="zh_HK" />
+    <meta name="twitter:card" content="summary_large_image" />
     <script src="api.js"></script>
     <link rel="icon" type="image/png" href="icons/favicon-96x96.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -17,7 +20,7 @@
       href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap"
       rel="stylesheet"
     />
-      <link rel="stylesheet" href="css/zenpass.css" />
+    <link rel="stylesheet" href="css/zenpass.css" />
     <style>
       :root {
         --orange-500: #ff6b35;
@@ -54,7 +57,7 @@
         min-height: 100vh;
       }
       .header {
-        background: linear-gradient(135deg,var(--orange-600-bg),#ff6b35);
+        background: linear-gradient(135deg, var(--orange-600-bg), #ff6b35);
         padding: 14px 16px;
         display: flex;
         align-items: center;
@@ -65,7 +68,7 @@
         color: white;
       }
       .header .back-btn {
-        background: rgba(255,255,255,0.2);
+        background: rgba(255, 255, 255, 0.2);
         border: none;
         font-size: 20px;
         cursor: pointer;
@@ -159,7 +162,7 @@
         border-radius: 14px;
         padding: 14px;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-        border: 1px solid rgba(0,0,0,0.04);
+        border: 1px solid rgba(0, 0, 0, 0.04);
       }
       .booking-card .bc-header {
         display: flex;
@@ -363,8 +366,8 @@
           max-width: 1100px;
         }
       }
-    
-    .bottom-nav {
+
+      .bottom-nav {
         position: fixed;
         bottom: 0;
         left: 50%;
@@ -377,8 +380,8 @@
         justify-content: space-around;
         padding: 6px 0;
         z-index: 1000;
-    }
-    .nav-item {
+      }
+      .nav-item {
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -387,16 +390,16 @@
         font-size: 10px;
         color: var(--dark-700);
         padding: 4px 12px;
-    }
-    .nav-item.active {
+      }
+      .nav-item.active {
         color: var(--orange-700);
-    }
-    .nav-item .nav-icon {
+      }
+      .nav-item .nav-icon {
         font-size: 22px;
         line-height: 1;
-    }
-</style>
-      <script src="app.js"></script>
+      }
+    </style>
+    <script src="app.js"></script>
   </head>
   <body>
     <div class="header">
@@ -588,10 +591,18 @@
         if (footerButtons) footerButtons += "</div>";
         // Add rating button for attended classes (not yet reviewed)
         if (b.status === "confirmed" && new Date(b.start_time) < new Date()) {
-          var reviewed = b.reviewed_student ? '<span style="font-size:11px;color:var(--green-500);margin-left:6px">✅ 已評價</span>' : '';
+          var reviewed = b.reviewed_student
+            ? '<span style="font-size:11px;color:var(--green-500);margin-left:6px">✅ 已評價</span>'
+            : "";
           if (!b.reviewed_student) {
             footerButtons =
-              '<button onclick="openReviewModal(\'' + b.id + '\',\'' + escHtml(b.coach_name || '') + '\',\'' + escHtml(b.title || '') + '\')" class="pay-now-btn" style="background:var(--blue-500);border:none;cursor:pointer;font-family:inherit">⭐ 評價教練</button>' +
+              "<button onclick=\"openReviewModal('" +
+              b.id +
+              "','" +
+              escHtml(b.coach_name || "") +
+              "','" +
+              escHtml(b.title || "") +
+              '\')" class="pay-now-btn" style="background:var(--blue-500);border:none;cursor:pointer;font-family:inherit">⭐ 評價教練</button>' +
               (footerButtons || "");
           } else {
             footerButtons = (footerButtons || "") + reviewed;
@@ -620,10 +631,18 @@
           startStr +
           "</span><span>📍 " +
           escHtml(b.venue_name || "—") +
-          (b.venue_address ? '<br><span style="font-size:11px;color:var(--dark-700)">' + escHtml(b.venue_address) + '</span>' : '') +
+          (b.venue_address
+            ? '<br><span style="font-size:11px;color:var(--dark-700)">' +
+              escHtml(b.venue_address) +
+              "</span>"
+            : "") +
           "</span><span>👤 導師：" +
           escHtml(b.coach_name || "—") +
-          (b.class_id ? '</span><span><a href="class-detail.html?id=' + b.class_id + '" style="color:var(--orange-700);text-decoration:none;font-size:12px">📖 課程詳情 →</a>' : '') +
+          (b.class_id
+            ? '</span><span><a href="class-detail.html?id=' +
+              b.class_id +
+              '" style="color:var(--orange-700);text-decoration:none;font-size:12px">📖 課程詳情 →</a>'
+            : "") +
           "</span></div>" +
           '<div class="bc-footer"><span class="bc-pay-status ' +
           payStatusClass +
@@ -766,122 +785,218 @@
     </script>
 
     <!-- Review Modal -->
-    <div id="reviewModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;padding:20px">
-      <div style="background:var(--white);border-radius:16px;padding:24px;max-width:340px;width:100%;text-align:center;animation:modalIn 0.25s ease-out">
-        <div style="font-size:40px;margin-bottom:8px">⭐</div>
-        <div style="font-size:18px;font-weight:700;margin-bottom:4px" id="reviewModalTitle">評價教練</div>
-        <div style="font-size:13px;color:var(--dark-700);margin-bottom:12px" id="reviewModalSub"></div>
+    <div
+      id="reviewModal"
+      style="
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 9999;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+      "
+    >
+      <div
+        style="
+          background: var(--white);
+          border-radius: 16px;
+          padding: 24px;
+          max-width: 340px;
+          width: 100%;
+          text-align: center;
+          animation: modalIn 0.25s ease-out;
+        "
+      >
+        <div style="font-size: 40px; margin-bottom: 8px">⭐</div>
+        <div
+          style="font-size: 18px; font-weight: 700; margin-bottom: 4px"
+          id="reviewModalTitle"
+        >
+          評價教練
+        </div>
+        <div
+          style="font-size: 13px; color: var(--dark-700); margin-bottom: 12px"
+          id="reviewModalSub"
+        ></div>
         <!-- Star selector -->
-        <div style="font-size:32px;margin-bottom:12px;letter-spacing:6px">
-          <span onclick="setReviewStar(1)" id="star1" style="cursor:pointer;color:var(--gray-200)">★</span>
-          <span onclick="setReviewStar(2)" id="star2" style="cursor:pointer;color:var(--gray-200)">★</span>
-          <span onclick="setReviewStar(3)" id="star3" style="cursor:pointer;color:var(--gray-200)">★</span>
-          <span onclick="setReviewStar(4)" id="star4" style="cursor:pointer;color:var(--gray-200)">★</span>
-          <span onclick="setReviewStar(5)" id="star5" style="cursor:pointer;color:var(--gray-200)">★</span>
+        <div style="font-size: 32px; margin-bottom: 12px; letter-spacing: 6px">
+          <span
+            onclick="setReviewStar(1)"
+            id="star1"
+            style="cursor: pointer; color: var(--gray-200)"
+            >★</span
+          >
+          <span
+            onclick="setReviewStar(2)"
+            id="star2"
+            style="cursor: pointer; color: var(--gray-200)"
+            >★</span
+          >
+          <span
+            onclick="setReviewStar(3)"
+            id="star3"
+            style="cursor: pointer; color: var(--gray-200)"
+            >★</span
+          >
+          <span
+            onclick="setReviewStar(4)"
+            id="star4"
+            style="cursor: pointer; color: var(--gray-200)"
+            >★</span
+          >
+          <span
+            onclick="setReviewStar(5)"
+            id="star5"
+            style="cursor: pointer; color: var(--gray-200)"
+            >★</span
+          >
         </div>
-        <textarea id="reviewComment" placeholder="寫低你嘅課後感想...（可選）" style="width:100%;padding:10px;border:1px solid var(--gray-200);border-radius:8px;font-size:13px;font-family:inherit;resize:none;height:60px;margin-bottom:12px"></textarea>
-        <div style="font-size:12px;color:var(--dark-700);margin-bottom:12px">
-          <label><input type="checkbox" id="reviewAnonymous"> 匿名評價</label>
+        <textarea
+          id="reviewComment"
+          placeholder="寫低你嘅課後感想...（可選）"
+          style="
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--gray-200);
+            border-radius: 8px;
+            font-size: 13px;
+            font-family: inherit;
+            resize: none;
+            height: 60px;
+            margin-bottom: 12px;
+          "
+        ></textarea>
+        <div
+          style="font-size: 12px; color: var(--dark-700); margin-bottom: 12px"
+        >
+          <label><input type="checkbox" id="reviewAnonymous" /> 匿名評價</label>
         </div>
-        <button onclick="submitReview()" class="zen-btn zen-btn-primary zen-btn-block" style="margin-bottom:8px">提交評價</button>
-        <button onclick="closeReviewModal()" class="zen-btn zen-btn-secondary zen-btn-block">取消</button>
+        <button
+          onclick="submitReview()"
+          class="zen-btn zen-btn-primary zen-btn-block"
+          style="margin-bottom: 8px"
+        >
+          提交評價
+        </button>
+        <button
+          onclick="closeReviewModal()"
+          class="zen-btn zen-btn-secondary zen-btn-block"
+        >
+          取消
+        </button>
       </div>
     </div>
     <script>
-      var reviewBookingId = '';
-      var reviewTargetName = '';
+      var reviewBookingId = "";
+      var reviewTargetName = "";
       var reviewRating = 0;
-      var reviewTargetType = 'coach'; // 'coach' or 'student'
+      var reviewTargetType = "coach"; // 'coach' or 'student'
 
       function openReviewModal(bookingId, targetName, className) {
         reviewBookingId = bookingId;
         reviewTargetName = targetName;
         reviewRating = 0;
-        document.getElementById('reviewModalTitle').textContent = '⭐ 評價教練';
-        document.getElementById('reviewModalSub').textContent = className + ' — ' + targetName;
-        document.getElementById('reviewComment').value = '';
-        document.getElementById('reviewAnonymous').checked = true;
+        document.getElementById("reviewModalTitle").textContent = "⭐ 評價教練";
+        document.getElementById("reviewModalSub").textContent =
+          className + " — " + targetName;
+        document.getElementById("reviewComment").value = "";
+        document.getElementById("reviewAnonymous").checked = true;
         resetStars();
-        document.getElementById('reviewModal').style.display = 'flex';
+        document.getElementById("reviewModal").style.display = "flex";
       }
 
       function openStudentReviewModal(bookingId, studentName, className) {
         reviewBookingId = bookingId;
         reviewTargetName = studentName;
-        reviewTargetType = 'student';
+        reviewTargetType = "student";
         reviewRating = 0;
-        document.getElementById('reviewModalTitle').textContent = '📝 評價學生';
-        document.getElementById('reviewModalSub').textContent = className + ' — ' + studentName;
-        document.getElementById('reviewComment').value = '';
-        document.getElementById('reviewAnonymous').checked = true;
+        document.getElementById("reviewModalTitle").textContent = "📝 評價學生";
+        document.getElementById("reviewModalSub").textContent =
+          className + " — " + studentName;
+        document.getElementById("reviewComment").value = "";
+        document.getElementById("reviewAnonymous").checked = true;
         resetStars();
-        document.getElementById('reviewModal').style.display = 'flex';
+        document.getElementById("reviewModal").style.display = "flex";
       }
 
       function closeReviewModal() {
-        document.getElementById('reviewModal').style.display = 'none';
+        document.getElementById("reviewModal").style.display = "none";
       }
 
       function resetStars() {
         for (var i = 1; i <= 5; i++) {
-          document.getElementById('star' + i).style.color = 'var(--gray-200)';
+          document.getElementById("star" + i).style.color = "var(--gray-200)";
         }
       }
 
       function setReviewStar(n) {
         reviewRating = n;
         for (var i = 1; i <= 5; i++) {
-          document.getElementById('star' + i).style.color = i <= n ? '#f59e0b' : 'var(--gray-200)';
+          document.getElementById("star" + i).style.color =
+            i <= n ? "#f59e0b" : "var(--gray-200)";
         }
       }
 
       async function submitReview() {
-        if (!reviewRating) { ZenPass.toast('請選擇評分', 'warning'); return; }
-        var comment = document.getElementById('reviewComment').value.trim();
-        var isAnonymous = document.getElementById('reviewAnonymous').checked;
-        
+        if (!reviewRating) {
+          ZenPass.toast("請選擇評分", "warning");
+          return;
+        }
+        var comment = document.getElementById("reviewComment").value.trim();
+        var isAnonymous = document.getElementById("reviewAnonymous").checked;
+
         // Get target user ID — need to fetch booking data first
-        var loading = ZenPass.showLoading('提交中...');
+        var loading = ZenPass.showLoading("提交中...");
         try {
           // Get booking's coach or student info
-          var r = await fetch('/api/bookings/' + reviewBookingId, { headers: { 'Authorization': 'Bearer ' + getToken() } });
+          var r = await fetch("/api/bookings/" + reviewBookingId, {
+            headers: { Authorization: "Bearer " + getToken() },
+          });
           var d = await r.json();
-          var toUserId = reviewTargetType === 'coach' ? d.coach_id : d.user_id;
-          
-          var res = await fetch('/api/reviews', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + getToken() },
+          var toUserId = reviewTargetType === "coach" ? d.coach_id : d.user_id;
+
+          var res = await fetch("/api/reviews", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + getToken(),
+            },
             body: JSON.stringify({
               booking_id: reviewBookingId,
               to_user_id: toUserId,
               rating: reviewRating,
               comment: comment,
-              is_anonymous: isAnonymous
-            })
+              is_anonymous: isAnonymous,
+            }),
           });
           var resData = await res.json();
           loading.hide();
           if (resData.success) {
-            ZenPass.toast('✅ 評價成功！', 'success');
+            ZenPass.toast("✅ 評價成功！", "success");
             closeReviewModal();
             // Reload bookings to show updated review status
-            if (typeof loadBookings === 'function') loadBookings();
+            if (typeof loadBookings === "function") loadBookings();
           } else {
-            ZenPass.toast('❌ ' + (resData.error || '提交失敗'), 'error');
+            ZenPass.toast("❌ " + (resData.error || "提交失敗"), "error");
           }
-        } catch(e) {
+        } catch (e) {
           loading.hide();
-          ZenPass.toast('❌ ' + e.message, 'error');
+          ZenPass.toast("❌ " + e.message, "error");
         }
       }
 
       // Click outside to close
-      document.addEventListener('click', function(e) {
-        var modal = document.getElementById('reviewModal');
+      document.addEventListener("click", function (e) {
+        var modal = document.getElementById("reviewModal");
         if (e.target === modal) closeReviewModal();
       });
     </script>
-      <nav class="bottom-nav" role="navigation" aria-label="底部導航">
+    <nav class="bottom-nav" role="navigation" aria-label="底部導航">
       <a href="index.html" class="nav-item"
         ><span class="nav-icon">🏠</span>首頁</a
       >
@@ -898,5 +1013,5 @@
         ><span class="nav-icon">👤</span>我的</a
       >
     </nav>
-</body>
+  </body>
 </html>

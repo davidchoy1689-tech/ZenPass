@@ -38,7 +38,9 @@ function migrate() {
   `);
 
   const tableInfo = db.prepare("PRAGMA table_info(ledger)").all();
-  console.log(`[MIGRATE] ✓ ledger table created with ${tableInfo.length} columns`);
+  console.log(
+    `[MIGRATE] ✓ ledger table created with ${tableInfo.length} columns`,
+  );
 
   db.close();
   return true;

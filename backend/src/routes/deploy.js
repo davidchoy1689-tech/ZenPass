@@ -36,12 +36,17 @@ router.post("/write-file", authenticateToken, (req, res) => {
 router.post("/deploy", authenticateToken, (req, res) => {
   try {
     const { execSync } = require("child_process");
-    const result = execSync("cd /var/www/zenpass && git pull origin main 2>&1", {
-      timeout: 30000,
-    }).toString();
+    const result = execSync(
+      "cd /var/www/zenpass && git pull origin main 2>&1",
+      {
+        timeout: 30000,
+      },
+    ).toString();
     res.json({ success: true, output: result });
   } catch (err) {
-    res.status(500).json({ error: err.message, output: err.stdout?.toString() });
+    res
+      .status(500)
+      .json({ error: err.message, output: err.stdout?.toString() });
   }
 });
 

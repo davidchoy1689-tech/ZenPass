@@ -74,7 +74,7 @@ function audit({
       ipAddress,
       userAgent,
       requestId,
-      timestamp
+      timestamp,
     );
 
     return {
@@ -147,7 +147,7 @@ function queryAudit(filters = {}) {
 
     return db
       .prepare(
-        `SELECT * FROM audit_log ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`
+        `SELECT * FROM audit_log ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`,
       )
       .all(...params, limit, offset);
   } catch (err) {
@@ -188,7 +188,7 @@ function getAuditStats(dateFrom, dateTo) {
         AND (? IS NULL OR created_at <= ?)
       GROUP BY action_type
       ORDER BY count DESC
-    `
+    `,
       )
       .all(dateFrom, dateFrom, dateTo, dateTo);
 
@@ -206,7 +206,13 @@ function getAuditStats(dateFrom, dateTo) {
 /**
  * 快速記錄常用的 booking 狀態變更
  */
-function trackBookingChange(bookingId, userId, oldStatus, newStatus, req = null) {
+function trackBookingChange(
+  bookingId,
+  userId,
+  oldStatus,
+  newStatus,
+  req = null,
+) {
   return audit({
     actionType: `booking.${newStatus}`,
     entityType: "booking",
@@ -230,7 +236,7 @@ function trackPaymentChange(
   newStatus,
   amount,
   paymentMethod,
-  req = null
+  req = null,
 ) {
   return audit({
     actionType: `payment.${newStatus}`,
@@ -238,7 +244,11 @@ function trackPaymentChange(
     entityId: bookingId,
     userId,
     oldValues: oldStatus ? { payment_status: oldStatus } : null,
-    newValues: { payment_status: newStatus, amount, payment_method: paymentMethod },
+    newValues: {
+      payment_status: newStatus,
+      amount,
+      payment_method: paymentMethod,
+    },
     description: `Payment ${bookingId}: HK$${amount} via ${paymentMethod} — ${oldStatus || "new"} → ${newStatus}`,
     ipAddress: req?.ip || "",
     userAgent: req?.headers?.["user-agent"] || "",
@@ -264,7 +274,13 @@ function trackAdminAction(adminId, action, details, req = null) {
 /**
  * 快速記錄商戶狀態變更
  */
-function trackPartnerChange(partnerId, userId, oldStatus, newStatus, req = null) {
+function trackPartnerChange(
+  partnerId,
+  userId,
+  oldStatus,
+  newStatus,
+  req = null,
+) {
   return audit({
     actionType: `partner.${newStatus ? "status_change" : "update"}`,
     entityType: "partner_venue",
