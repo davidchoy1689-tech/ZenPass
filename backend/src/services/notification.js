@@ -231,12 +231,27 @@ async function sendNotification(type, payload) {
         results.telegram = await telegramNotification(message);
         break;
       case "email":
-        if (data?.email) {
+        // 自動查找 recipient 嘅 email（如果 data.email 冇提供）
+        let emailTo = data?.email;
+        if (!emailTo && recipient) {
+          try {
+            const userDb = new Database(DB_PATH);
+            const user = userDb
+              .prepare("SELECT email FROM users WHERE id = ? OR email = ?")
+              .get(recipient, recipient);
+            if (user?.email) emailTo = user.email;
+          } catch (e) {
+            /* silent */
+          }
+        }
+        if (emailTo) {
           results.email = await emailNotification(
-            data.email,
+            emailTo,
             `[ZenPass] ${title}`,
             html,
           );
+        } else {
+          console.log("⚠️ Email notification skipped: no recipient email");
         }
         break;
       case "whatsapp":
