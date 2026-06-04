@@ -626,7 +626,11 @@ router.post("/:id/cancel", authenticateToken, (req, res) => {
 
       if (hoursUntilClass < 2) {
         db.close();
-        return res.status(400).json({ error: "開課前 2 小時內無法取消預約" });
+        return res.status(400).json({
+          error: "開課前 2 小時內無法免費取消預約。如需取消，請用「遲取消」功能（需繳付罰款）。",
+          late_cancel_available: true,
+          late_cancel_endpoint: "POST /api/penalty/late-cancel/" + req.params.id,
+        });
       }
     }
 

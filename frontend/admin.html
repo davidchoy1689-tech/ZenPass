@@ -743,6 +743,9 @@
         <a class="nav-item" data-tab="pricing" role="button" tabindex="0"
           ><span class="icon">💰</span><span>定價設定</span></a
         >
+        <a class="nav-item" data-tab="penalty" role="button" tabindex="0"
+          ><span class="icon">⚠️</span><span>缺席罰款</span></a
+        >
 
         <div style="flex: 1"></div>
         <a
@@ -1151,6 +1154,9 @@
             break;
           case "coach-apps":
             loadCoachAppsTab();
+            break;
+          case "penalty":
+            loadPenaltyTab();
             break;
           case "wallets":
             loadWalletsTab();
@@ -4249,6 +4255,116 @@
       window.refreshWallets = function () {
         loadWalletsTab();
       };
+
+      // ===== 缺席罰款 Tab =====
+      async function loadPenaltyTab() {
+        var main = document.getElementById("mainContent");
+        try {
+          var settings = await apiGet("/penalty/settings");
+          var s = settings.data || settings;
+
+          var html = '<div class="card"><div class="card-header"><h3>⚠️ 缺席罰款管理</h3></div>';
+
+          // 當前設定
+          html += '<div class="stats-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:16px">' +
+            '<div class="stat-card" style="background:#f43f5e;color:white"><div class="ico">⚠️</div><div class="val">' + (s.noShowPenalty || 2) + '</div><div class="lbl" style="color:rgba(255,255,255,.7)">缺席罰款 (Credits)</div></div>' +
+            '<div class="stat-card" style="background:#f97316;color:white"><div class="ico">⏰</div><div class="val">' + (s.lateCancelPenalty || 2) + '</div><div class="lbl" style="color:rgba(255,255,255,.7)">遲取消罰款 (Credits)</div></div>' +
+            '<div class="stat-card" style="background:#6366f1;color:white"><div class="ico">⏳</div><div class="val">' + (s.graceMinutes || 30) + '</div><div class="lbl" style="color:rgba(255,255,255,.7)">課後寬限期 (分鐘)</div></div></div>';
+
+          // 罰款設定編輯
+          html += '<div class="section"><h4 style="margin-bottom:12px">✏️ 修改罰款設定</h4>' +
+            '<div style="display:flex;gap:12px;flex-wrap:wrap;align-items:end">' +
+            '<div><label style="font-size:12px;color:var(--gray);display:block;margin-bottom:4px">缺席罰款 (Credits)</label>' +
+            '<input id="inp-no-show" type="number" value="' + (s.noShowPenalty || 2) + '" min="0" max="20" style="padding:8px 12px;border:1px solid var(--gray-light);border-radius:8px;width:120px"></div>' +
+            '<div><label style="font-size:12px;color:var(--gray);display:block;margin-bottom:4px">遲取消罰款 (Credits)</label>' +
+            '<input id="inp-late-cancel" type="number" value="' + (s.lateCancelPenalty || 2) + '" min="0" max="20" style="padding:8px 12px;border:1px solid var(--gray-light);border-radius:8px;width:120px"></div>' +
+            '<div><label style="font-size:12px;color:var(--gray);display:block;margin-bottom:4px">課後寬限期 (分鐘)</label>' +
+            '<input id="inp-grace" type="number" value="' + (s.graceMinutes || 30) + '" min="5" max="120" style="padding:8px 12px;border:1px solid var(--gray-light);border-radius:8px;width:120px"></div>' +
+            '<div><button class="btn btn-primary" onclick="savePenaltySettings()" style="padding:8px 20px">💾 儲存</button></div></div></div>';
+
+          html += '</div>';
+
+          // 缺席統計
+          html += '<div class="card" style="margin-top:12px"><div class="card-header"><h3>📊 缺席統計</h3></div><div id="penalty-stats-area"><div class="loading">載入統計中...</div></div></div>';
+
+          // 手動執行處理
+          html += '<div class="card" style="margin-top:12px"><div class="card-header"><h3>⚙️ 手動處理</h3></div>' +
+            '<p style="font-size:13px;color:var(--gray);margin-bottom:12px">自動每 15 分鐘執行一次。如需立即處理，按下方按鈕。</p>' +
+            '<button class="btn btn-primary" onclick="runPenaltyNow()">🚀 立即標記缺席 + 扣罰款</button>' +
+            '<div id="penalty-result" style="margin-top:12px"></div></div>';
+
+          main.innerHTML = html;
+
+          // 加載統計
+          loadPenaltyStats();
+        } catch (err) {
+          main.innerHTML = '<div class="card"><div class="error">❌ 無法載入罰款設定: ' + (err.message || err) + '</div></div>';
+        }
+      }
+
+      async function loadPenaltyStats() {
+        var area = document.getElementById("penalty-stats-area");
+        if (!area) return;
+        try {
+          var d = await apiGet("/penalty/stats");
+          var data = d.data || d;
+          var stats = data.stats || {};
+          var users = data.top_users || [];
+
+          var html = '<div class="stats-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px">' +
+            '<div class="stat-card"><div class="ico">📊</div><div class="val">' + (stats.total_no_shows || 0) + '</div><div class="lbl">總缺席次數</div></div>' +
+            '<div class="stat-card"><div class="ico">👤</div><div class="val">' + (stats.unique_users || 0) + '</div><div class="lbl">違規用戶數</div></div>' +
+            '<div class="stat-card"><div class="ico">📅</div><div class="val">' + (stats.last_30_days || 0) + '</div><div class="lbl">近30日</div></div>' +
+            '<div class="stat-card"><div class="ico">📅</div><div class="val">' + (stats.last_7_days || 0) + '</div><div class="lbl">近7日</div></div></div>';
+
+          // Top 違規用戶
+          if (users.length > 0) {
+            html += '<h4 style="margin-bottom:8px">🏆 最多缺席用戶 Top 10</h4>' +
+              '<div class="table-wrap"><table><thead><tr><th>#</th><th>名稱</th><th>缺席總次數</th><th>近30日</th></tr></thead><tbody>' +
+              users.map(function(u, i) {
+                return '<tr><td>' + (i+1) + '</td><td>' + (u.name || u.email || '—') + '</td><td>' + u.no_show_count + '</td><td>' + (u.recent_no_shows || 0) + '</td></tr>';
+              }).join('') + '</tbody></table></div>';
+          } else {
+            html += '<div style="text-align:center;padding:20px;color:var(--gray)">✅ 未有缺席記錄</div>';
+          }
+
+          area.innerHTML = html;
+        } catch (err) {
+          area.innerHTML = '<div class="error">無法載入統計: ' + (err.message || err) + '</div>';
+        }
+      }
+
+      async function savePenaltySettings() {
+        var noShow = document.getElementById("inp-no-show")?.value;
+        var lateCancel = document.getElementById("inp-late-cancel")?.value;
+        var grace = document.getElementById("inp-grace")?.value;
+        try {
+          await apiPost("/penalty/settings", {
+            no_show_penalty_credits: parseInt(noShow) || 2,
+            late_cancel_penalty_credits: parseInt(lateCancel) || 2,
+            no_show_grace_minutes: parseInt(grace) || 30
+          });
+          alert("✅ 罰款設定已更新");
+          loadPenaltyTab();
+        } catch (err) {
+          alert("❌ 更新失敗: " + (err.message || err));
+        }
+      }
+
+      async function runPenaltyNow() {
+        var result = document.getElementById("penalty-result");
+        if (result) result.innerHTML = '<div class="loading">處理中...</div>';
+        try {
+          var d = await apiPost("/penalty/process-no-shows");
+          var data = d.data || d;
+          if (result) {
+            result.innerHTML = '<div class="success" style="padding:12px;background:#dcfce7;border-radius:8px;color:#166534">✅ 已處理: ' + (data.processed || 0) + ' 個缺席</div>';
+            loadPenaltyStats();
+          }
+        } catch (err) {
+          if (result) result.innerHTML = '<div class="error" style="padding:12px;background:#fee2e2;border-radius:8px;color:#991b1b">❌ ' + (err.message || err) + '</div>';
+        }
+      }
     </script>
 
     <!-- ZenPass 統一頁腳 -->
