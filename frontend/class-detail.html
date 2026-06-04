@@ -1071,6 +1071,23 @@
           waiverAgree.checked = false;
           document.getElementById("waiver-error").style.display = "none";
         }
+
+        // ⚠️ Penalty consent — 一次過同意（ClassPass 模式）
+        var penaltySection = document.getElementById("penalty-checkbox");
+        var penaltyAgree = document.getElementById("penalty-agree");
+        var user = JSON.parse(localStorage.getItem("zenpass_user") || "{}");
+        if (penaltySection) {
+          // 如果 user 已同意過一次，隱藏 checkbox
+          if (user.penalty_consent) {
+            penaltySection.style.display = "none";
+          } else {
+            penaltySection.style.display = "block";
+          }
+        }
+        if (penaltyAgree) {
+          penaltyAgree.checked = false;
+          document.getElementById("penalty-error").style.display = "none";
+        }
         var isFull = spotsLeft <= 0;
         var selId = (selectedSchedule || {}).id;
         var selected = s.id === selId ? "selected" : "";
@@ -1244,12 +1261,18 @@
         }
         document.getElementById("waiver-error").style.display = "none";
 
-        // ⚠️ Check penalty consent (ClassPass mode)
+        // ⚠️ Check penalty consent (ClassPass mode — one-time agreement)
+        var penaltyContainer = document.getElementById("penalty-checkbox");
         var penaltyEl = document.getElementById("penalty-agree");
-        if (penaltyEl && !penaltyEl.checked) {
-          document.getElementById("penalty-error").style.display = "block";
-          penaltyEl.focus();
-          return;
+        var user = JSON.parse(localStorage.getItem("zenpass_user") || "{}");
+        
+        // 如果未同意過，顯示 checkbox 並要求 tick
+        if (penaltyContainer && penaltyContainer.style.display !== "none") {
+          if (!penaltyEl || !penaltyEl.checked) {
+            document.getElementById("penalty-error").style.display = "block";
+            if (penaltyEl) penaltyEl.focus();
+            return;
+          }
         }
         document.getElementById("penalty-error").style.display = "none";
 
@@ -1359,8 +1382,16 @@
               0,
               (user.credits || 0) - (currentClass.credits_cost || 15),
             );
-            localStorage.setItem("zenpass_user", JSON.stringify(user));
           }
+          // ✏️ 一次過同意罰款規則後 save 落 localStorage
+          var penaltyCheck = document.getElementById("penalty-agree");
+          if (penaltyCheck && penaltyCheck.checked) {
+            user.penalty_consent = true;
+            // Hide penalty checkbox next time
+            var ps = document.getElementById("penalty-checkbox");
+            if (ps) ps.style.display = "none";
+          }
+          localStorage.setItem("zenpass_user", JSON.stringify(user));
 
           var bkKey =
             typeof zpKey === "function"

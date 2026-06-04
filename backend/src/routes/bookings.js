@@ -46,12 +46,18 @@ router.post(
         return res.status(400).json({ error: "缺少預約資料" });
       }
 
-      // ⚠️ 檢查罰款同意書（ClassPass 模式）
-      if (!penalty_consent) {
-        return res.status(400).json({
-          error: "請先同意缺席/遲取消罰款規則",
-          code: "PENALTY_CONSENT_REQUIRED",
-        });
+      // ⚠️ 檢查罰款同意書（ClassPass 模式）— user 一次過同意就得
+      const userConsent = new Database(DB_PATH).prepare("SELECT penalty_consent FROM users WHERE id = ?").get(req.user.id);
+      if (!userConsent || !userConsent.penalty_consent) {
+        // 如果今次 submit 有 penalty_consent，就 save 一次 (one-time agreement)
+        if (penalty_consent) {
+          new Database(DB_PATH).prepare("UPDATE users SET penalty_consent = 1 WHERE id = ?").run(req.user.id);
+        } else {
+          return res.status(400).json({
+            error: "請先同意缺席/遲取消罰款規則",
+            code: "PENALTY_CONSENT_REQUIRED",
+          });
+        }
       }
 
       // 試玩都要有足夠 Credits 先 book 得（ClassPass 模式）
