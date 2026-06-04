@@ -4263,21 +4263,27 @@
           var settings = await apiGet("/penalty/settings");
           var s = settings.data || settings;
 
-          var html = '<div class="card"><div class="card-header"><h3>⚠️ 缺席罰款管理</h3></div>';
+          var html = '<div class="card"><div class="card-header"><h3>⚠️ 缺席罰款管理（ClassPass 模式）</h3></div>';
+
+          // 當前規則說明
+          html += '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:12px;margin-bottom:16px;font-size:13px">' +
+            '<strong>📋 罰款規則：</strong><br>' +
+            '🟢 > 12 小時前取消 → 全退 Credits<br>' +
+            '🟡 2-12 小時取消 → <strong>唔退 Credits</strong>（蝕該堂）<br>' +
+            '🔴 < 2 小時 → 無法取消<br>' +
+            '❌ 缺席 No-show → 蝕該堂 Credits + <strong>額外罰 ' + (s.noShowPenalty || 2) + ' Credits</strong><br>' +
+            '📌 預約試玩都要有足夠 Credits 做按金</div>';
 
           // 當前設定
-          html += '<div class="stats-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:16px">' +
-            '<div class="stat-card" style="background:#f43f5e;color:white"><div class="ico">⚠️</div><div class="val">' + (s.noShowPenalty || 2) + '</div><div class="lbl" style="color:rgba(255,255,255,.7)">缺席罰款 (Credits)</div></div>' +
-            '<div class="stat-card" style="background:#f97316;color:white"><div class="ico">⏰</div><div class="val">' + (s.lateCancelPenalty || 2) + '</div><div class="lbl" style="color:rgba(255,255,255,.7)">遲取消罰款 (Credits)</div></div>' +
+          html += '<div class="stats-grid" style="grid-template-columns:repeat(2,1fr);margin-bottom:16px">' +
+            '<div class="stat-card" style="background:#f43f5e;color:white"><div class="ico">⚠️</div><div class="val">' + (s.noShowPenalty || 2) + '</div><div class="lbl" style="color:rgba(255,255,255,.7)">缺席附加罰款 (Credits)</div></div>' +
             '<div class="stat-card" style="background:#6366f1;color:white"><div class="ico">⏳</div><div class="val">' + (s.graceMinutes || 30) + '</div><div class="lbl" style="color:rgba(255,255,255,.7)">課後寬限期 (分鐘)</div></div></div>';
 
           // 罰款設定編輯
-          html += '<div class="section"><h4 style="margin-bottom:12px">✏️ 修改罰款設定</h4>' +
+          html += '<div class="section"><h4 style="margin-bottom:12px">✏️ 修改設定</h4>' +
             '<div style="display:flex;gap:12px;flex-wrap:wrap;align-items:end">' +
-            '<div><label style="font-size:12px;color:var(--gray);display:block;margin-bottom:4px">缺席罰款 (Credits)</label>' +
+            '<div><label style="font-size:12px;color:var(--gray);display:block;margin-bottom:4px">缺席附加罰款 (Credits)</label>' +
             '<input id="inp-no-show" type="number" value="' + (s.noShowPenalty || 2) + '" min="0" max="20" style="padding:8px 12px;border:1px solid var(--gray-light);border-radius:8px;width:120px"></div>' +
-            '<div><label style="font-size:12px;color:var(--gray);display:block;margin-bottom:4px">遲取消罰款 (Credits)</label>' +
-            '<input id="inp-late-cancel" type="number" value="' + (s.lateCancelPenalty || 2) + '" min="0" max="20" style="padding:8px 12px;border:1px solid var(--gray-light);border-radius:8px;width:120px"></div>' +
             '<div><label style="font-size:12px;color:var(--gray);display:block;margin-bottom:4px">課後寬限期 (分鐘)</label>' +
             '<input id="inp-grace" type="number" value="' + (s.graceMinutes || 30) + '" min="5" max="120" style="padding:8px 12px;border:1px solid var(--gray-light);border-radius:8px;width:120px"></div>' +
             '<div><button class="btn btn-primary" onclick="savePenaltySettings()" style="padding:8px 20px">💾 儲存</button></div></div></div>';
@@ -4336,12 +4342,10 @@
 
       async function savePenaltySettings() {
         var noShow = document.getElementById("inp-no-show")?.value;
-        var lateCancel = document.getElementById("inp-late-cancel")?.value;
         var grace = document.getElementById("inp-grace")?.value;
         try {
           await apiPost("/penalty/settings", {
             no_show_penalty_credits: parseInt(noShow) || 2,
-            late_cancel_penalty_credits: parseInt(lateCancel) || 2,
             no_show_grace_minutes: parseInt(grace) || 30
           });
           alert("✅ 罰款設定已更新");

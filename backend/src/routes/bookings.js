@@ -40,10 +40,34 @@ router.post(
   validate(schemas.booking),
   (req, res) => {
     try {
-      const { schedule_id, class_id, payment_type, amount } = req.body;
+      const { schedule_id, class_id, payment_type, amount, penalty_consent } = req.body;
 
       if (!schedule_id || !class_id || !payment_type) {
         return res.status(400).json({ error: "缺少預約資料" });
+      }
+
+      // ⚠️ 檢查罰款同意書（ClassPass 模式）
+      if (!penalty_consent) {
+        return res.status(400).json({
+          error: "請先同意缺席/遲取消罰款規則",
+          code: "PENALTY_CONSENT_REQUIRED",
+        });
+      }
+
+      // 試玩都要有足夠 Credits 先 book 得（ClassPass 模式）
+      if (payment_type === "membership_trial") {
+        const dbCred = new Database(DB_PATH);
+        const classData = dbCred.prepare("SELECT credits_cost FROM classes WHERE id = ?").get(class_id);
+        const neededCredits = classData?.credits_cost || 12;
+        const userCredits = dbCred.prepare("SELECT credits FROM users WHERE id = ?").get(req.user.id);
+        dbCred.close();
+        if (!userCredits || userCredits.credits < neededCredits) {
+          return res.status(400).json({
+            error: `試玩預約需要至少 ${neededCredits} Credits 作為按金，你目前有 ${userCredits?.credits || 0} Credits。請先購買 Credits。`,
+            required_credits: neededCredits,
+            current_credits: userCredits?.credits || 0,
+          });
+        }
       }
 
       // 試玩：7天內 + 30次上限 + 學生角色
@@ -618,49 +642,64 @@ router.post("/:id/cancel", authenticateToken, (req, res) => {
       return res.status(404).json({ error: "預約不存在" });
     }
 
-    // pending_payment (未付款) 可隨時取消，唔使等 2 小時限制
-    if (booking.status !== "pending_payment") {
+    // pending_payment (未付款) 可隨時取消
+    const isPendingPayment = booking.status === "pending_payment";
+
+    if (!isPendingPayment) {
       const now = new Date();
       const classTime = new Date(booking.start_time);
       const hoursUntilClass = (classTime - now) / (1000 * 60 * 60);
 
+      // < 2 小時 → 完全阻住
       if (hoursUntilClass < 2) {
         db.close();
         return res.status(400).json({
-          error: "開課前 2 小時內無法免費取消預約。如需取消，請用「遲取消」功能（需繳付罰款）。",
-          late_cancel_available: true,
-          late_cancel_endpoint: "POST /api/penalty/late-cancel/" + req.params.id,
+          error: "開課前 2 小時內無法取消預約（太遲）",
+        });
+      }
+
+      // 2-12 小時 → 遲取消，唔退 Credits
+      if (hoursUntilClass < 12) {
+        db.prepare("UPDATE bookings SET status = 'cancelled' WHERE id = ?").run(booking.id);
+        db.prepare("UPDATE class_schedules SET enrolled_count = MAX(0, enrolled_count - 1) WHERE id = ?")
+          .run(booking.schedule_id);
+
+        try {
+          const { autoNotifyOnCancel } = require("./waitlist");
+          autoNotifyOnCancel(booking.schedule_id);
+        } catch (e) {}
+
+        try {
+          trackBookingChange(booking.id, req.user.id, booking.status, "cancelled", req);
+        } catch (e) {}
+
+        db.close();
+        return res.json({
+          message: "預約已取消（遲取消）。由於距離開課不足 12 小時，已使用的 Credits 唔會退還。",
+          late_cancel: true,
+          credits_forfeited: true,
         });
       }
     }
 
-    db.prepare("UPDATE bookings SET status = 'cancelled' WHERE id = ?").run(
-      req.params.id,
-    );
+    // > 12 小時 → 正常取消，全退 Credits
+    db.prepare("UPDATE bookings SET status = 'cancelled' WHERE id = ?").run(booking.id);
 
     // 釋放名額
-    db.prepare(
-      "UPDATE class_schedules SET enrolled_count = MAX(0, enrolled_count - 1) WHERE id = ?",
-    ).run(booking.schedule_id);
+    db.prepare("UPDATE class_schedules SET enrolled_count = MAX(0, enrolled_count - 1) WHERE id = ?")
+      .run(booking.schedule_id);
 
-    // 檢查有冇候補名單，有位就自動通知下一位
+    // 檢查候補名單
     try {
       const { autoNotifyOnCancel } = require("./waitlist");
       autoNotifyOnCancel(booking.schedule_id);
-    } catch (e) {
-      console.error("autoNotifyOnCancel error:", e.message);
-    }
+    } catch (e) {}
 
-    // 如果是用點數付款，退還點數
+    // 退還點數（> 12 小時正常取消先退）
     if (booking.payment_type === "credits") {
-      const classData = db
-        .prepare("SELECT credits_cost FROM classes WHERE id = ?")
-        .get(booking.class_id);
+      const classData = db.prepare("SELECT credits_cost FROM classes WHERE id = ?").get(booking.class_id);
       if (classData) {
-        db.prepare("UPDATE users SET credits = credits + ? WHERE id = ?").run(
-          classData.credits_cost,
-          req.user.id,
-        );
+        db.prepare("UPDATE users SET credits = credits + ? WHERE id = ?").run(classData.credits_cost, req.user.id);
       }
     }
 

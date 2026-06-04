@@ -596,6 +596,53 @@
       </div>
     </div>
 
+    <!-- ⚠️ ClassPass 模式：罰款同意書 -->
+    <div
+      id="penalty-checkbox"
+      class="zen-card"
+      style="display: none; margin: 8px 16px; font-size: 13px"
+    >
+      <label
+        class="zen-flex"
+        style="align-items: start; gap: 10px; cursor: pointer"
+      >
+        <input
+          type="checkbox"
+          id="penalty-agree"
+          style="
+            margin-top: 2px;
+            width: 18px;
+            height: 18px;
+            accent-color: var(--orange-700);
+          "
+        />
+        <span>
+          本人已細閱並同意
+          <span style="color: var(--orange-700); font-weight: 600"
+            >缺席/遲取消罰款規則</span
+          >：
+          <strong>開課 12 小時前</strong>可免費取消；
+          <strong>2-12 小時內</strong>取消將唔退還已使用嘅 Credits；
+          <strong>2 小時內</strong>無法取消；
+          <strong>缺席（No-show）</strong>
+          將會被扣除額外罰款 Credits。
+          <a
+            href="faq.html#penalty"
+            target="_blank"
+            style="color: var(--orange-700); text-decoration: underline"
+            >詳細規則</a
+          >
+        </span>
+      </label>
+      <div
+        id="penalty-error"
+        class="zen-text-error zen-text-xs zen-mt-sm"
+        style="display: none"
+      >
+        ⚠️ 請先同意缺席/遲取消罰款規則
+      </div>
+    </div>
+
     <div class="book-btn" id="book-btn">
       <button id="book-button" onclick="handleBooking()" disabled>
         請選擇時段
@@ -1196,6 +1243,16 @@
           return;
         }
         document.getElementById("waiver-error").style.display = "none";
+
+        // ⚠️ Check penalty consent (ClassPass mode)
+        var penaltyEl = document.getElementById("penalty-agree");
+        if (penaltyEl && !penaltyEl.checked) {
+          document.getElementById("penalty-error").style.display = "block";
+          penaltyEl.focus();
+          return;
+        }
+        document.getElementById("penalty-error").style.display = "none";
+
         doBooking();
       }
 
@@ -1269,6 +1326,7 @@
               payment_type: selectedPayment,
               amount: price,
               idempotency_key: idempotencyKey,
+              penalty_consent: true,
             }),
           });
 
