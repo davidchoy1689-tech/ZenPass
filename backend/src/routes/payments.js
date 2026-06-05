@@ -1125,4 +1125,23 @@ router.post("/credits/purchase", authenticateToken, async (req, res) => {
   }
 });
 
+// ===== GET /api/payments/transactions — 用戶交易記錄 =====
+router.get("/transactions", authenticateToken, (req, res) => {
+  try {
+    const { type, limit = 50, offset = 0 } = req.query;
+    const db = new Database(DB_PATH);
+    let query = "SELECT * FROM transactions WHERE user_id = ?";
+    const params = [req.user.id];
+    if (type) { query += " AND type = ?"; params.push(type); }
+    query += " ORDER BY created_at DESC LIMIT ? OFFSET ?";
+    const txs = db.prepare(query).all(...params, parseInt(limit), parseInt(offset));
+    const count = db.prepare("SELECT COUNT(*) as c FROM transactions WHERE user_id = ?" + (type ? " AND type = ?" : "")).get(...(type ? [req.user.id, type] : [req.user.id]));
+    db.close();
+    res.json({ transactions: txs, total: count.c });
+  } catch (err) {
+    console.error("[PAYMENTS] GET /transactions error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;
