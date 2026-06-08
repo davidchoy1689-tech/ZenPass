@@ -10,6 +10,7 @@
 
 const path = require("path");
 const Database = require("better-sqlite3");
+const { sendNotification } = require("../services/notification");
 
 const PROJECT_ROOT = path.resolve(__dirname, "../..");
 const DB_PATH = path.join(PROJECT_ROOT, "data", "zenpass.db");
@@ -56,7 +57,7 @@ function sendBookingReminders() {
         const date = startTime ? startTime.split("T")[0] : "—";
         const time = startTime ? startTime.split("T")[1]?.slice(0, 5) : "—";
 
-        // Insert notification record
+        // Insert notification record (DB)
         db.prepare(
           `INSERT INTO notifications (id, user_id, type, title, message, data, is_read, created_at)
            VALUES (?, ?, ?, ?, ?, ?, 0, datetime('now'))`,
@@ -74,6 +75,25 @@ function sendBookingReminders() {
             booking_id: booking.id,
           }),
         );
+
+        // 🔔 Send via notification service (Telegram + Email if configured)
+        try {
+          sendNotification("booking.reminder_1h", {
+            recipient: booking.user_id,
+            data: {
+              class_title: booking.class_title,
+              date,
+              time,
+              venue: booking.venue_name || "—",
+              booking_id: booking.id,
+              email: booking.user_email,
+            },
+          });
+        } catch (notifErr) {
+          console.error(
+            `   ⚠️ 多通道通知失敗 (booking=${booking.id}): ${notifErr.message}`,
+          );
+        }
 
         // Mark as reminded
         db.prepare(`UPDATE bookings SET reminder_sent_1h = 1 WHERE id = ?`).run(
@@ -148,6 +168,26 @@ function sendDayBeforeReminders() {
             booking_id: b.id,
           }),
         );
+
+        // 🔔 Send via notification service (Telegram + Email if configured)
+        try {
+          sendNotification("booking.reminder_1d", {
+            recipient: b.user_id,
+            data: {
+              class_title: b.class_title,
+              date: d,
+              time: t,
+              venue: b.venue_name || "—",
+              booking_id: b.id,
+              email: b.user_email,
+            },
+          });
+        } catch (notifErr) {
+          console.error(
+            `   ⚠️ 多通道通知失敗 (booking=${b.id}): ${notifErr.message}`,
+          );
+        }
+
         db.prepare(`UPDATE bookings SET reminder_sent_1d = 1 WHERE id = ?`).run(
           b.id,
         );

@@ -93,4 +93,35 @@ router.post("/course-contents", authenticateToken, requireAdmin, (req, res) => {
   }
 });
 
+// ===== POST /api/migrate/bookings-reminders — 新增 reminder_sent_1d 欄位 =====
+router.post("/bookings-reminders", authenticateToken, requireAdmin, (req, res) => {
+  try {
+    const db = new Database(DB_PATH);
+    db.pragma("foreign_keys = ON");
+
+    // Check if column exists
+    const colCheck = db
+      .prepare("PRAGMA table_info(bookings)")
+      .all()
+      .find((c) => c.name === "reminder_sent_1d");
+
+    if (colCheck) {
+      db.close();
+      return res.json({ status: "skipped", message: "reminder_sent_1d column already exists" });
+    }
+
+    // Add column (SQLite allows ALTER TABLE ADD COLUMN)
+    db.exec("ALTER TABLE bookings ADD COLUMN reminder_sent_1d INTEGER DEFAULT 0");
+
+    db.close();
+
+    res.json({
+      status: "created",
+      message: "reminder_sent_1d column added to bookings table",
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;

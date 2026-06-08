@@ -578,19 +578,59 @@
         }
 
         var footerButtons = "";
-        if (canCancel) {
+
+        // Check-in button for confirmed bookings (within check-in window)
+        var canCheckin = false;
+        if (b.status === "confirmed" && b.start_time) {
+          var classTime = new Date(b.start_time).getTime();
+          var now = Date.now();
+          var oneHourAfter = classTime + 60 * 60 * 1000;
+          if (now >= classTime - 15 * 60 * 1000 && now <= oneHourAfter) {
+            canCheckin = true;
+          }
+        }
+
+        if (canCheckin) {
           footerButtons =
-            '<div class="action-btns"><button class="cancel-btn" onclick="cancelBooking(\'' +
-            b.id +
-            "', this)\">取消預約</button>";
+            '<div class="action-btns"><button class="checkin-btn" style="background:#059669;color:white;border:none;border-radius:10px;padding:10px 20px;font-size:13px;font-weight:600;cursor:pointer;width:100%" onclick="window.location.href=\\'checkin.html?schedule_id=' +
+            b.schedule_id +
+            '&class=' +
+            b.class_id +
+            '&date=' +
+            (b.start_time ? b.start_time.split('T')[0] : '') +
+            '&coach=' +
+            encodeURIComponent(b.coach_name || '') +
+            '\\'">✅ 簽到</button></div>';
+        } else {
+          if (canCancel) {
+            footerButtons =
+              '<div class="action-btns"><button class="cancel-btn" onclick="cancelBooking(\'' +
+              b.id +
+              "', this)\">取消預約</button>";
+          }
+          if (b.status === "pending_payment") {
+            footerButtons +=
+              '<a href="payment.html?booking_id=' +
+              b.id +
+              '" class="pay-now-btn">立即付款</a>';
+          }
+          if (footerButtons) footerButtons += "</div>";
+
+          // Show QR code / check-in link for upcoming confirmed bookings
+          if (b.status === "confirmed") {
+            footerButtons +=
+              '<div style="margin-top:6px"><a href="checkin.html?schedule_id=' +
+              b.schedule_id +
+              '&class=' +
+              b.class_id +
+              '&date=' +
+              (b.start_time ? b.start_time.split('T')[0] : '') +
+              '&coach=' +
+              encodeURIComponent(b.coach_name || '') +
+              '" style="font-size:12px;color:#059669;text-decoration:underline">📱 查看簽到頁面</a></div>';
+          }
         }
-        if (b.status === "pending_payment") {
-          footerButtons +=
-            '<a href="payment.html?booking_id=' +
-            b.id +
-            '" class="pay-now-btn">立即付款</a>';
-        }
-        if (footerButtons) footerButtons += "</div>";
+
         // Add rating button for attended classes
         if (b.status === "attended") {
           footerButtons =

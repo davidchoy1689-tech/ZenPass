@@ -894,4 +894,182 @@ router.get("/:id", authenticateToken, (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+// ===== GET /api/bookings/:id/qr — 生成 QR Code（返回 QR 資料文字）=====
+router.get("/:id/qr", authenticateToken, (req, res) => {
+  try {
+    const db = new Database(DB_PATH);
+    const booking = db
+      .prepare(
+        `SELECT b.*, cs.id as schedule_id
+         FROM bookings b
+         JOIN class_schedules cs ON b.schedule_id = cs.id
+         WHERE b.id = ?`,
+      )
+      .get(req.params.id);
+    db.close();
+
+    if (!booking) {
+      return res.status(404).json({ error: "預約不存在" });
+    }
+
+    // Only the booking owner, coach, or admin can get the QR
+    if (booking.user_id !== req.user.id && req.user.role !== "admin") {
+      // Allow coach access if they teach this class
+      const coachDb = new Database(DB_PATH);
+      const cls = coachDb
+        .prepare("SELECT coach_id FROM classes WHERE id = ?")
+        .get(booking.class_id);
+      coachDb.close();
+      if (!cls || cls.coach_id !== req.user.id) {
+        return res.status(403).json({ error: "無權限存取此 QR Code" });
+      }
+    }
+
+    const qrData = `zenpass-checkin:${booking.booking_reference || booking.id}:${booking.schedule_id}`;
+
+    // Try to generate a QR image using the qrcode package
+    let qrDataUrl = null;
+    try {
+      const QRCode = require("qrcode");
+      // Generate as base64 data URL synchronously
+      QRCode.toDataURL(qrData, { width: 300, margin: 2 }, (err, url) => {
+        if (err) {
+          return res.json({ qr_text: qrData, booking_reference: booking.booking_reference, booking_id: booking.id, schedule_id: booking.schedule_id });
+        }
+        res.json({ qr_data_url: url, qr_text: qrData, booking_reference: booking.booking_reference, booking_id: booking.id, schedule_id: booking.schedule_id });
+      });
+    } catch (e) {
+      // qrcode package not available, return text only
+      res.json({ qr_text: qrData, booking_reference: booking.booking_reference, booking_id: booking.id, schedule_id: booking.schedule_id });
+    }
+  } catch (err) {
+    console.error("QR 生成錯誤:", err);
+    res.status(500).json({ error: "QR Code 生成失敗" });
+  }
+});
+
+// ===== POST /api/bookings/checkin — 掃描 QR 簽到 =====
+router.post("/checkin", authenticateToken, (req, res) => {
+  try {
+    const { qr_data, booking_reference, schedule_id } = req.body;
+
+    if (!qr_data && !booking_reference && !schedule_id) {
+      return res.status(400).json({ error: "請提供 QR Code 資料或預約參考編號" });
+    }
+
+    // Parse QR data if provided
+    let parsedBookingRef = null;
+    let parsedScheduleId = null;
+
+    if (qr_data) {
+      // Format: zenpass-checkin:{booking_reference}:{schedule_id}
+      const parts = qr_data.split(":");
+      if (parts.length >= 3 && parts[0] === "zenpass-checkin") {
+        parsedBookingRef = parts[1];
+        parsedScheduleId = parts[2];
+      } else {
+        return res.status(400).json({ error: "無效的 QR Code 格式" });
+      }
+    }
+
+    // Use direct params as fallback
+    const ref = parsedBookingRef || booking_reference;
+    const schedId = parsedScheduleId || schedule_id;
+
+    if (!ref) {
+      return res.status(400).json({ error: "無法識別預約" });
+    }
+
+    const db = new Database(DB_PATH);
+    db.pragma("foreign_keys = ON");
+
+    // Find booking by reference or id
+    let booking;
+    if (ref.startsWith("ZP-")) {
+      booking = db.prepare("SELECT * FROM bookings WHERE booking_reference = ?").get(ref);
+    } else {
+      booking = db.prepare("SELECT * FROM bookings WHERE id = ?").get(ref);
+    }
+
+    if (!booking) {
+      db.close();
+      return res.status(404).json({ error: "預約不存在" });
+    }
+
+    // Check if already attended
+    if (booking.status === "attended") {
+      db.close();
+      return res.json({ message: "✅ 你已經簽到過了！", already_checked_in: true, booking });
+    }
+
+    // Only confirmed bookings can check in
+    if (booking.status !== "confirmed") {
+      db.close();
+      return res.status(400).json({
+        error: `無法簽到，預約狀態為「${booking.status}」`,
+        current_status: booking.status,
+      });
+    }
+
+    // Update booking status to attended
+    const result = db
+      .prepare(
+        "UPDATE bookings SET status = 'attended' WHERE id = ? AND status = 'confirmed'",
+      )
+      .run(booking.id);
+
+    if (result.changes === 0) {
+      db.close();
+      return res.status(400).json({ error: "簽到失敗" });
+    }
+
+    // Update enrolled_count on the schedule
+    // Note: enrolled_count already includes confirmed bookings, no need to increment
+
+    // Update student stats
+    db.prepare(
+      "UPDATE users SET last_visit = datetime('now'), total_visits = COALESCE(total_visits, 0) + 1, total_spent = COALESCE(total_spent, 0) + COALESCE(?, 0) WHERE id = ?",
+    ).run(booking.amount || 0, booking.user_id);
+
+    // 🔔 AUDIT：創建 audit log
+    const auditId = uuidv4();
+    db.prepare(
+      `INSERT INTO audit_log (id, action_type, entity_type, entity_id, user_id, old_values, new_values, description, ip_address, user_agent, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`,
+    ).run(
+      auditId,
+      "booking.checkin_qr",
+      "booking",
+      booking.id,
+      req.user.id,
+      JSON.stringify({ status: "confirmed" }),
+      JSON.stringify({ status: "attended" }),
+      `QR 簽到：${booking.booking_reference}`,
+      req.ip || "",
+      req.headers["user-agent"] || "",
+    );
+
+    // Sync coach earnings
+    try {
+      const { syncCoachEarningsForSchedule } = require("./coach-earnings");
+      syncCoachEarningsForSchedule(booking.schedule_id);
+    } catch (e) {
+      console.error("⚠️ Coach earnings sync failed:", e.message);
+    }
+
+    db.close();
+
+    res.json({
+      message: "✅ 簽到成功！",
+      booking_id: booking.id,
+      booking_reference: booking.booking_reference,
+      status: "attended",
+    });
+  } catch (err) {
+    console.error("QR 簽到錯誤:", err);
+    res.status(500).json({ error: "簽到失敗，請稍後再試" });
+  }
+});
+
 module.exports = router;

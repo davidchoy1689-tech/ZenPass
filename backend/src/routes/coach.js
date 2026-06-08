@@ -162,11 +162,17 @@ router.get("/my-classes", authenticateToken, (req, res) => {
   }
 });
 
-// ===== POST /api/coach/schedules — 新增課程時間 =====
+// ===== POST /api/coach/schedules — 新增課程時間（支援重複）=====
 router.post("/schedules", authenticateToken, (req, res) => {
   try {
-    const { class_id, start_time, end_time, recurring, max_participants } =
-      req.body;
+    const {
+      class_id,
+      start_time,
+      end_time,
+      recurring,
+      recurring_until,
+      max_participants,
+    } = req.body;
 
     if (!class_id || !start_time || !end_time) {
       return res.status(400).json({ error: "請填寫課程、開始時間和結束時間" });
@@ -184,24 +190,119 @@ router.post("/schedules", authenticateToken, (req, res) => {
       return res.status(403).json({ error: "你無權限操作此課程" });
     }
 
-    const id = uuidv4();
-    db.prepare(
-      `
-      INSERT INTO class_schedules (id, class_id, start_time, end_time, recurring, max_participants)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `,
-    ).run(
-      id,
-      class_id,
-      start_time,
-      end_time,
-      recurring || "none",
-      max_participants || classData.max_participants,
-    );
+    const recurringType = recurring || "none";
+    const durationMs =
+      new Date(end_time).getTime() - new Date(start_time).getTime();
+    const scheduleIds = [];
+
+    if (recurringType === "none" || !recurring_until) {
+      // Single schedule
+      const id = uuidv4();
+      const recurringSave = ["weekly", "biweekly", "monthly"].includes(
+        recurringType,
+      )
+        ? recurringType
+        : "none";
+      db.prepare(
+        `
+        INSERT INTO class_schedules (id, class_id, start_time, end_time, recurring, max_participants)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `,
+      ).run(
+        id,
+        class_id,
+        start_time,
+        end_time,
+        recurringSave,
+        max_participants || classData.max_participants,
+      );
+      scheduleIds.push(id);
+
+      // If recurring_until is set but recurring isn't, still mark as recurring
+      if (recurringType !== "none") {
+        db.prepare("UPDATE class_schedules SET recurring = ? WHERE id = ?").run(
+          recurringSave,
+          id,
+        );
+      }
+    } else {
+      // Generate recurring schedules
+      const startDate = new Date(start_time);
+      const endDate = new Date(end_time);
+      const untilDate = new Date(recurring_until);
+      const maxP = max_participants || classData.max_participants;
+      let currentStart = new Date(startDate);
+      let currentEnd = new Date(endDate);
+
+      // First schedule - original dates
+      let firstId = uuidv4();
+      db.prepare(
+        `INSERT INTO class_schedules (id, class_id, start_time, end_time, recurring, max_participants)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+      ).run(
+        firstId,
+        class_id,
+        currentStart.toISOString(),
+        currentEnd.toISOString(),
+        recurringType,
+        maxP,
+      );
+      scheduleIds.push(firstId);
+
+      // Generate subsequent schedules
+      let count = 1;
+      const MAX_GENERATED = 365; // Safety limit
+
+      while (count < MAX_GENERATED) {
+        const nextStart = new Date(currentStart);
+        const nextEnd = new Date(currentEnd);
+
+        switch (recurringType) {
+          case "weekly":
+            nextStart.setDate(nextStart.getDate() + 7);
+            nextEnd.setDate(nextEnd.getDate() + 7);
+            break;
+          case "biweekly":
+            nextStart.setDate(nextStart.getDate() + 14);
+            nextEnd.setDate(nextEnd.getDate() + 14);
+            break;
+          case "monthly":
+            nextStart.setMonth(nextStart.getMonth() + 1);
+            nextEnd.setMonth(nextEnd.getMonth() + 1);
+            break;
+          default:
+            break;
+        }
+
+        if (nextStart > untilDate) break;
+
+        const nextId = uuidv4();
+        db.prepare(
+          `INSERT INTO class_schedules (id, class_id, start_time, end_time, recurring, max_participants)
+           VALUES (?, ?, ?, ?, ?, ?)`,
+        ).run(
+          nextId,
+          class_id,
+          nextStart.toISOString(),
+          nextEnd.toISOString(),
+          recurringType,
+          maxP,
+        );
+        scheduleIds.push(nextId);
+
+        currentStart = nextStart;
+        currentEnd = nextEnd;
+        count++;
+      }
+    }
 
     db.close();
 
-    res.status(201).json({ message: "時間已新增", schedule_id: id });
+    res.status(201).json({
+      message: `時間已新增（共 ${scheduleIds.length} 個時段）`,
+      schedule_ids: scheduleIds,
+      count: scheduleIds.length,
+    });
   } catch (err) {
     console.error("新增時間錯誤:", err);
     res.status(500).json({ error: "無法新增時間" });
