@@ -29,6 +29,10 @@
     <meta property="og:locale" content="zh_HK" />
     <meta name="twitter:card" content="summary_large_image" />
     <script src="api.js?v=2"></script>
+    <!-- Google Identity Services (Sign In With Google) -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <!-- Apple Sign In SDK -->
+    <script type="text/javascript" src="https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js" defer></script>
     <link rel="stylesheet" href="css/zenpass.css?v=2" />
     <style>
       * {
@@ -272,6 +276,27 @@
         </button>
         <div class="msg" id="login-msg"></div>
         <div class="divider">快速登入</div>
+        <div id="g_id_onload"
+             data-client_id="YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com"
+             data-context="signin"
+             data-ux_mode="popup"
+             data-callback="handleGoogleCredential"
+             data-auto_select="false"
+             data-itp_support="true">
+        </div>
+        <div class="google-btn-wrapper"
+             id="google-signin-button"
+             style="display:flex;justify-content:center;margin-bottom:8px">
+          <div class="g_id_signin"
+               data-type="standard"
+               data-shape="rectangular"
+               data-theme="outline"
+               data-text="signin_with"
+               data-size="large"
+               data-logo_alignment="left"
+               style="width:100%;max-width:320px">
+          </div>
+        </div>
         <button
           class="btn btn-demo"
           onclick="socialLogin('apple')"
@@ -280,22 +305,12 @@
             align-items: center;
             justify-content: center;
             gap: 8px;
+            width: 100%;
+            max-width: 320px;
+            margin: 0 auto;
           "
         >
           <span style="font-size: 20px"></span> Apple 登入
-        </button>
-        <button
-          class="btn btn-demo"
-          onclick="socialLogin('google')"
-          style="
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            margin-top: 6px;
-          "
-        >
-          <span style="font-size: 18px">G</span> Google 登入
         </button>
         <div class="divider">開發模式</div>
         <button class="btn btn-demo" onclick="quickLogin('admin')">
@@ -509,38 +524,107 @@
       }
 
       // ===== Social Login (Apple / Google) =====
-      function socialLogin(provider) {
-        // For dev: redirect to backend social endpoint with mock data
-        // In production, this would use the OAuth flow (Apple Sign In / Google Sign In)
-        if (provider === "apple") {
-          setMsg(
-            "login-msg",
-            "🍎 Apple 登入整合中 — 需要使用 Apple Developer 帳號",
-            "error",
-          );
-        } else if (provider === "google") {
-          setMsg(
-            "login-msg",
-            "G Google 登入整合中 — 需要使用 Google Cloud Console",
-            "error",
-          );
+
+      // Google Sign-In callback — triggered by GIS SDK after user authenticates
+      function handleGoogleCredential(response) {
+        if (!response || !response.credential) {
+          setMsg("login-msg", "❌ Google 登入失敗，請重試", "error");
+          return;
         }
-        // Below is the actual OAuth flow (commented out until OAuth client IDs are set up):
-        /*
-        var redirectUri = window.location.origin + '/login.html';
-        if (provider === 'google') {
-          var clientId = 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com';
-          window.location.href = 'https://accounts.google.com/o/oauth2/v2/auth?' +
-            'client_id=' + clientId + '&redirect_uri=' + redirectUri +
-            '&response_type=code&scope=email%20profile&state=google_login';
-        } else if (provider === 'apple') {
-          // Apple Sign In requires Apple Developer membership
-          window.location.href = 'https://appleid.apple.com/auth/authorize?' +
-            'client_id=YOUR_APPLE_CLIENT_ID&redirect_uri=' + redirectUri +
-            '&response_type=code%20id_token&scope=name%20email&response_mode=form_post';
+        // Decode JWT payload to get user info, send full token for server verification
+        try {
+          var payload = JSON.parse(atob(response.credential.split(".")[1]));
+          doSocialAuth("google", payload.sub, payload.email, payload.name, response.credential);
+        } catch (e) {
+          setMsg("login-msg", "❌ 無法處理 Google 回傳資料", "error");
         }
-        */
       }
+
+      // Apple Sign-In — triggers Apple login popup
+      async function socialLogin(provider) {
+        if (provider === "apple") {
+          // Check if Apple JS SDK loaded
+          if (typeof AppleID === "undefined") {
+            setMsg("login-msg", "🍎 Apple SDK 載入中，請稍後再試", "error");
+            return;
+          }
+          var appleClientId = localStorage.getItem("zenpass_apple_client_id");
+          if (!appleClientId || appleClientId === "YOUR_APPLE_CLIENT_ID") {
+            setMsg("login-msg", "🍎 Apple 登入需要 Apple Developer 帳號設定 Client ID，請聯絡管理員", "error");
+            return;
+          }
+          try {
+            AppleID.auth.init({
+              clientId: appleClientId,
+              scope: "name email",
+              redirectURI: window.location.origin + "/login.html",
+              state: "apple_login",
+              usePopup: true,
+            });
+            var appleResp = await AppleID.auth.signIn();
+            // Apple returns id_token JWT with user info
+            var payload = JSON.parse(atob(appleResp.id_token.split(".")[1]));
+            var userName = appleResp.user ?
+              (appleResp.user.name.firstName + " " + appleResp.user.name.lastName) :
+              payload.email;
+            doSocialAuth("apple", payload.sub, payload.email, userName);
+          } catch (e) {
+            setMsg("login-msg", "🍎 " + (e.message || "Apple 登入取消或失敗"), "error");
+          }
+        }
+      }
+
+      // Send social login data to backend
+      async function doSocialAuth(provider, providerId, email, name, providerToken) {
+        setMsg("login-msg", "⏳ 登入中...", "info");
+        try {
+          var body = {
+            provider: provider,
+            providerId: providerId,
+            email: email,
+            name: name || (email ? email.split("@")[0] : provider + "_user"),
+          };
+          if (providerToken) body.providerToken = providerToken;
+          var resp = await fetch(API_BASE + "/auth/social", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          });
+          var data = await resp.json();
+          if (!resp.ok) {
+            setMsg("login-msg", "❌ " + (data.error || "登入失敗"), "error");
+            return;
+          }
+          setToken(data.token);
+          storeUser(data.user);
+          setMsg("login-msg", "✅ 登入成功！", "success");
+          setTimeout(function () {
+            window.location.href = loginRedirect || "explore.html";
+          }, 800);
+        } catch (e) {
+          setMsg("login-msg", "❌ 網絡錯誤，請稍後再試", "error");
+        }
+      }
+    </script>
+
+    <script>
+      // Load Google client ID from config if available
+      (function() {
+        var script = document.createElement("script");
+        script.src = "api.js?v=" + Date.now();
+        script.onload = function() {
+          var clientId = window.ZENPASS_GOOGLE_CLIENT_ID || "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com";
+          var gId = document.getElementById("g_id_onload");
+          if (gId) gId.setAttribute("data-client_id", clientId);
+        };
+        // Don't re-add if already present
+        if (!window.__zenpassOAuthInit) {
+          window.__zenpassOAuthInit = true;
+          // Apple client ID from env
+          var appleId = window.ZENPASS_APPLE_CLIENT_ID || "YOUR_APPLE_CLIENT_ID";
+          localStorage.setItem("zenpass_apple_client_id", appleId);
+        }
+      })();
     </script>
 
     <!-- ZenPass 統一頁腳 -->

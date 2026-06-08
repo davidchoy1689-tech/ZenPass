@@ -1,6 +1,6 @@
 # 🚀 ZenPass 上架 Checklist
 
-> 最後更新：2026-06-06 03:38 HKT
+> 最後更新：2026-06-06 03:42 HKT
 > 每次 session 自動 load，落指令寫「check checklist」我會主動對一次
 
 ---
@@ -26,12 +26,12 @@
 
 | Priority | Item | Status | 需要你 |
 |:--------:|------|--------|--------|
-| 🔴 | Stripe Live Keys | ❌ 用緊 test key | 俾 live key 我換 |
-| 🔴 | Domain + HTTPS | ✅ zenpass.hk + Let's Encrypt | VPS 已 set，HTTP→HTTPS 301 |
+| 🔴 | Stripe Live Keys | ❌ sk_test_.../pk_test_... | 俾 live key 我換 |
+| 🔴 | Domain + HTTPS | ✅ zenpass.hk + Let's Encrypt cert to Aug 22 2026 | VPS 已 set，HTTP→HTTPS 301 |
 | 🟡 | Google Search Console | GA4 已 set，可透過關聯 verified | 如需要再加 meta tag |
 | 🟡 | Cookie consent banner | 香港法例未必需要 | 你決定 |
 | 🟢 | explore.html broken images | ⚠️ 6張圖 404（舊問題） | 要俾正確 image URL |
-| 🟢 | VPS deploy 流程確認 | 🟢 VPS up + Nginx OK | — |
+| 🔴 | VPS deploy（追 commit） | ❌ VPS 落後 4 commits | 要 git pull + pm2 restart 追返 wallet/profile/signup |
 | 🟢 | 正式 Email SMTP | ❌ 用緊 localhost mock | 俾 Gmail App Password |
 | 🟢 | WhatsApp notification | ❌ 未 set up | 俾 CallMeBot key |
 | 🟢 | Apple / Google OAuth | ❌ 要 client ID | 俾 OAuth credentials |

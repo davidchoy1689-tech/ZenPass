@@ -52,6 +52,14 @@ const API_BASE = (() => {
   return "/api";
 })();
 
+// ===== OAuth Config (injected via login.html or .env) =====
+// Set these before GIS/Apple SDK loads
+window.ZENPASS_GOOGLE_CLIENT_ID = window.ZENPASS_GOOGLE_CLIENT_ID || "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com";
+window.ZENPASS_APPLE_CLIENT_ID = window.ZENPASS_APPLE_CLIENT_ID || "YOUR_APPLE_CLIENT_ID";
+
+// Store Apple client ID for login.html usage
+localStorage.setItem("zenpass_apple_client_id", window.ZENPASS_APPLE_CLIENT_ID);
+
 // ===== Backend Health Check (for GitHub Pages) =====
 var BACKEND_ONLINE = true;
 
@@ -739,13 +747,24 @@ function showLoginModal(callback) {
     }
   };
 
-  // Social login placeholder
+  // Social login — Google / Apple
   overlay.querySelectorAll(".zen-btn-social").forEach((btn) => {
-    btn.onclick = () => {
-      showToast(
-        `${btn.dataset.provider === "apple" ? "Apple" : "Google"} 登入將在正式部署後啟用`,
-        "info",
-      );
+    btn.onclick = async function () {
+      var provider = this.dataset.provider;
+      if (provider === "google") {
+        // Trigger Google Sign-In popup via GIS
+        if (typeof google !== "undefined" && google.accounts) {
+          google.accounts.id.prompt(function (notification) {
+            if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+              showToast("Google 登入視窗未能顯示，請檢查瀏覽器設定", "warning");
+            }
+          });
+        } else {
+          showToast("Google SDK 尚未載入，請刷新頁面", "info");
+        }
+      } else if (provider === "apple") {
+        showToast("Apple 登入請到 login.html 頁面操作", "info");
+      }
     };
   });
 }

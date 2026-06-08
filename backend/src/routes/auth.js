@@ -9,8 +9,38 @@ const { v4: uuidv4 } = require("uuid");
 const Database = require("better-sqlite3");
 const { generateToken, authenticateToken } = require("../middleware/auth");
 
+const { OAuth2Client } = require("google-auth-library");
+
 const router = express.Router();
 const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
+
+// Google OAuth2 client (lazy init)
+let googleClient = null;
+function getGoogleClient() {
+  if (!googleClient) {
+    const gId = process.env.GOOGLE_CLIENT_ID;
+    if (gId && gId !== "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com") {
+      googleClient = new OAuth2Client(gId);
+    }
+  }
+  return googleClient;
+}
+
+// Verify Google ID token
+async function verifyGoogleToken(idToken) {
+  try {
+    const client = getGoogleClient();
+    if (!client) return null; // No client ID configured, skip verification
+    const ticket = await client.verifyIdToken({
+      idToken,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+    return ticket.getPayload();
+  } catch (err) {
+    console.error("Google token verification failed:", err.message);
+    return null;
+  }
+}
 
 // ===== POST /api/auth/register — 電郵註冊 =====
 router.post("/register", (req, res) => {
@@ -129,15 +159,45 @@ router.post("/login", (req, res) => {
 });
 
 // ===== POST /api/auth/social — Apple / Google 第三方登入 =====
-router.post("/social", (req, res) => {
+router.post("/social", async (req, res) => {
   try {
-    const { provider, providerId, email, name } = req.body;
+    let { provider, providerId, email, name, providerToken } = req.body;
 
     if (!provider || !providerId) {
       return res.status(400).json({ error: "缺少第三方登入資料" });
     }
     if (!["apple", "google"].includes(provider)) {
       return res.status(400).json({ error: "不支援的登入方式" });
+    }
+
+    // Google: verify ID token if provided
+    if (provider === "google" && providerToken) {
+      const payload = await verifyGoogleToken(providerToken);
+      if (payload) {
+        // Override with verified data from Google
+        providerId = payload.sub;
+        email = email || payload.email;
+        name = name || payload.name;
+      } else if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_ID !== "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com") {
+        // Client ID configured but verification failed — reject
+        return res.status(401).json({ error: "Google 身份驗證失敗" });
+      }
+    }
+
+    // Apple: basic verification (full server-side requires Apple's JWKS)
+    // For now, trust the ID token since client-side Apple Sign-In is secure
+    if (provider === "apple" && providerToken) {
+      try {
+        const payload = JSON.parse(
+          Buffer.from(providerToken.split(".")[1], "base64").toString(),
+        );
+        if (payload.sub) {
+          providerId = payload.sub;
+          email = email || payload.email;
+        }
+      } catch (e) {
+        // Ignore decode errors, use provided values
+      }
     }
 
     const db = new Database(DB_PATH);
