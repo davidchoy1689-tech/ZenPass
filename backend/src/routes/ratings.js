@@ -68,12 +68,38 @@ router.post("/", authenticateToken, (req, res) => {
       return res.status(400).json({ error: "教練 ID 與課程不符" });
     }
 
-    // Check if already rated
+    // Check monthly limit: one rating per coach per calendar month
+    const monthStart = new Date();
+    monthStart.setDate(1);
+    monthStart.setHours(0, 0, 0, 0);
+    const monthStartStr = monthStart.toISOString();
+
+    const monthCount = db
+      .prepare(
+        "SELECT COUNT(*) as count FROM coach_ratings WHERE coach_id = ? AND user_id = ? AND created_at >= ?",
+      )
+      .get(coach_id, req.user.id, monthStartStr);
+
+    if (monthCount.count > 0) {
+      db.close();
+      return res.status(400).json({ error: "你今個月已經評過呢位教練，每月只能評分一次" });
+    }
+
+    // Check if already rated for this booking
     const existing = db
-      .prepare("SELECT id FROM coach_ratings WHERE booking_id = ? AND user_id = ?")
+      .prepare("SELECT id, created_at FROM coach_ratings WHERE booking_id = ? AND user_id = ?")
       .get(booking_id, req.user.id);
 
     if (existing) {
+      // 48-hour modification limit
+      const createdTime = new Date(existing.created_at + 'Z').getTime();
+      const now = Date.now();
+      const hoursPassed = (now - createdTime) / (1000 * 60 * 60);
+      if (hoursPassed > 48) {
+        db.close();
+        return res.status(400).json({ error: "評分已超過 48 小時，無法修改" });
+      }
+
       // Update existing rating
       db.prepare(
         "UPDATE coach_ratings SET rating = ?, comment = ?, created_at = datetime('now') WHERE id = ?",
