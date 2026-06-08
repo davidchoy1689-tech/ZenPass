@@ -28,5 +28,23 @@ setInterval(sendBookingReminders, 15 * 60 * 1000);
 // Run day-before reminders every hour
 setInterval(sendDayBeforeReminders, 60 * 60 * 1000);
 
+// Auto settlement — weekly (every Monday)
+const { runAutoSettlement } = require("./auto-settlement");
+
+// Run once on startup (on Monday) or check
+function checkAndRunSettlement() {
+  const today = new Date().getDay();
+  if (today === 1) {
+    // Monday
+    console.log("💰 檢測到星期一，執行自動結算...");
+    runAutoSettlement();
+  }
+}
+
+// Check every hour if it's Monday
+setInterval(checkAndRunSettlement, 60 * 60 * 1000);
+checkAndRunSettlement();
+
 console.log("📅 備份排程：每 24 小時");
 console.log("🔔 課前提醒：每 15 分鐘");
+console.log("💰 自動結算：每週一");

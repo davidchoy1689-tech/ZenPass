@@ -96,6 +96,7 @@ router.get("/", optionalAuth, cache(30), (req, res) => {
       orderBy = "(SELECT COUNT(*) FROM bookings WHERE class_id = c.id) DESC";
     if (sort === "price_asc") orderBy = "c.price_hkd ASC";
     if (sort === "price_desc") orderBy = "c.price_hkd DESC";
+    if (sort === "rating") orderBy = "coach_avg_rating DESC";
 
     const classes = db
       .prepare(
@@ -107,7 +108,9 @@ router.get("/", optionalAuth, cache(30), (req, res) => {
         (SELECT ROUND(AVG(CAST(b.status AS REAL)), 1) FROM bookings b WHERE b.class_id = c.id AND b.status = 'attended') as rating,
         (SELECT COUNT(DISTINCT cs.id) FROM class_schedules cs 
          WHERE cs.class_id = c.id AND cs.start_time > datetime('now') AND cs.status = 'available'
-        ) as upcoming_sessions
+        ) as upcoming_sessions,
+        (SELECT ROUND(AVG(rating), 1) FROM coach_ratings WHERE coach_id = c.coach_id) as coach_avg_rating,
+        (SELECT COUNT(*) FROM coach_ratings WHERE coach_id = c.coach_id) as coach_rating_count
       FROM classes c
       JOIN users u ON c.coach_id = u.id
       WHERE ${whereClause}

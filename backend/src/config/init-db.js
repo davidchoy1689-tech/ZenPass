@@ -260,6 +260,10 @@ function initDatabase() {
       "CREATE INDEX IF NOT EXISTS idx_payouts_status ON coach_payouts(status)",
     );
 
+    // ===== 教練提現 Reference（相容升級）=====
+    try { db.exec("ALTER TABLE coach_payouts ADD COLUMN payout_reference TEXT"); } catch (e) {}
+    try { db.exec("ALTER TABLE coach_payouts ADD COLUMN updated_at TEXT DEFAULT (datetime('now'))"); } catch (e) {}
+
     // ===== 教練私人收入表 =====
     db.exec(`
       CREATE TABLE IF NOT EXISTS private_income (
@@ -1151,6 +1155,26 @@ function initDatabase() {
     insertMany(badges);
     console.log("✅ 已初始化 " + badges.length + " 個 ZenPass 勳章");
   }
+
+  // ===== Coach Ratings 表（獨立於 reviews，聚焦教練評分）=====
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS coach_ratings (
+      id TEXT PRIMARY KEY,
+      coach_id TEXT NOT NULL,
+      booking_id TEXT NOT NULL UNIQUE,
+      user_id TEXT NOT NULL,
+      rating INTEGER NOT NULL CHECK(rating >= 1 AND rating <= 5),
+      comment TEXT DEFAULT '',
+      created_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (coach_id) REFERENCES users(id),
+      FOREIGN KEY (booking_id) REFERENCES bookings(id),
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    );
+  `);
+  try {
+    db.exec("CREATE INDEX IF NOT EXISTS idx_coach_ratings_coach ON coach_ratings(coach_id)");
+    db.exec("CREATE INDEX IF NOT EXISTS idx_coach_ratings_user ON coach_ratings(user_id)");
+  } catch (e) {}
 
   // IPO audit log migration
   try {

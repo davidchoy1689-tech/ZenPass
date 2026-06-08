@@ -482,7 +482,7 @@ router.get("/my", authenticateToken, (req, res) => {
       .prepare(
         `
       SELECT 
-        b.*, c.title, c.category, c.duration, c.price_hkd, c.venue_name,
+        b.*, c.title, c.category, c.duration, c.price_hkd, c.venue_name, c.coach_id,
         cs.start_time, cs.end_time,
         u.name as coach_name
       FROM bookings b
