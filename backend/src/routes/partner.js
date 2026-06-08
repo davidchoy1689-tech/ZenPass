@@ -634,7 +634,7 @@ router.get(
 
       const monthPayouts = db
         .prepare(
-          `SELECT COALESCE(SUM(venue_earned), 0) as total_paid
+          `SELECT COALESCE(SUM(amount), 0) as total_paid
          FROM partner_payouts
          WHERE venue_id = ? AND status = 'paid'`,
         )
