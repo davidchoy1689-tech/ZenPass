@@ -318,3 +318,22 @@ pm2 restart zenpass-api
 ---
 
 *最後更新：2026-05-16*
+
+## 🚀 快速 Deploy（VPS）
+
+```bash
+ssh zenpass-vps
+cd /var/www/zenpass
+git pull origin main        # 自動觸發 post-merge hook
+```
+
+或者手動：
+
+```bash
+ssh zenpass-vps 'cd /var/www/zenpass && git pull origin main && bash deploy/deploy.sh'
+```
+
+Deploy script 會自動：
+1. `npm install`（安裝新 dependency）
+2. Restart PM2 processes
+3. Save PM2 process list
