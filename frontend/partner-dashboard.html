@@ -1560,8 +1560,9 @@
             return;
           }
 
-          partnerVenue = dData.venue;
-          dashboardStats = dData.stats;
+          partnerVenue = dData.data ? dData.data.venue : dData.venue;
+          dashboardStats = dData.data ? dData.data.stats : dData.stats;
+          var coachesData = dData.data ? dData.data.coaches : [];
 
           if (!userRole && partnerVenue && partnerVenue.owner_id) {
             userRole = userRole || "partner_owner";
