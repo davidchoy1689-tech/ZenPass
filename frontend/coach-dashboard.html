@@ -985,6 +985,104 @@
 
     <div class="bottom-nav">      <a href="index.html" class="nav-item" ><span class="nav-icon">🏠</span>首頁</a>      <a href="explore.html" class="nav-item" ><span class="nav-icon">🔍</span>探索</a>      <a href="membership.html" class="nav-item" ><span class="nav-icon">💎</span>會籍</a>      <a href="coach-dashboard.html" class="nav-item active" ><span class="nav-icon">🏆</span>教練</a>      <a href="my.html" class="nav-item" ><span class="nav-icon">👤</span>我的</a>    </div>
     <script>
+      var txList = [];
+
+      function switchTab(tab) {
+        document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
+        document.querySelectorAll('.section').forEach(function(s) { s.classList.remove('active'); });
+        var tabEl = document.querySelector('.tab[onclick*="' + tab + '"]') || document.querySelectorAll('.tab')[['dashboard','schedule','income','wallet'].indexOf(tab)];
+        if (tabEl) tabEl.classList.add('active');
+        var secEl = document.getElementById('tab-' + tab);
+        if (secEl) secEl.classList.add('active');
+        if (tab === 'dashboard') loadDashboardData();
+      }
+
+      function coachLogout() {
+        localStorage.removeItem('zp_token');
+        localStorage.removeItem('zp_user');
+        window.location.href = 'login.html';
+      }
+
+      async function loadDashboardData() {
+        var token = localStorage.getItem('zp_token');
+        if (!token) { window.location.href = 'login.html'; return; }
+        document.getElementById('loadingState').classList.remove('hidden');
+        document.getElementById('appContent').classList.add('hidden');
+        try {
+          // Fetch coach profile
+          var profileRes = await fetch(API_BASE + '/users/me', { headers: { 'Authorization': 'Bearer ' + token } });
+          var profileData = await profileRes.json();
+          // Fetch coach classes
+          var classesRes = await fetch(API_BASE + '/coach/my-classes', { headers: { 'Authorization': 'Bearer ' + token } });
+          var classesData = await classesRes.json();
+          // Fetch earnings
+          var earnRes = await fetch(API_BASE + '/coach/earnings', { headers: { 'Authorization': 'Bearer ' + token } });
+          var earnData = await earnRes.json();
+          // Fetch upcoming classes
+          var upRes = await fetch(API_BASE + '/classes/upcoming', { headers: { 'Authorization': 'Bearer ' + token } });
+          var upData = await upRes.json();
+
+          var coach = profileData;
+          var classes = classesData.classes || classesData.data || [];
+          var earnings = earnData.summary || earnData.data || {};
+          var upcoming = upData.schedules || upData.data?.schedules || [];
+
+          // Update header
+          document.getElementById('headerInfo').textContent = coach.name || '教練';
+
+          // Dashboard stats
+          var mySchedules = upcoming.filter(function(s) { 
+            var coachClasses = classes.map(function(c) { return c.id; });
+            return coachClasses.indexOf(s.id) >= 0 || coachClasses.indexOf(s.class_id) >= 0;
+          });
+          var statsHtml = '';
+          statsHtml += '<div class="stat-card"><div class="stat-value">' + classes.length + '</div><div class="stat-label">我的課程</div></div>';
+          statsHtml += '<div class="stat-card"><div class="stat-value">' + mySchedules.length + '</div><div class="stat-label">即將上堂</div></div>';
+          statsHtml += '<div class="stat-card"><div class="stat-value">HK$' + (earnings.total || earnings.total_earnings || 0) + '</div><div class="stat-label">總收入</div></div>';
+          document.getElementById('dashStats').innerHTML = statsHtml;
+
+          // Upcoming classes
+          var upHtml = '';
+          if (mySchedules.length === 0) {
+            upHtml = '<div class="empty-state">暫無即將到來的課堂</div>';
+          } else {
+            mySchedules.slice(0,5).forEach(function(s) {
+              upHtml += '<div class="schedule-card">';
+              upHtml += '<div class="schedule-time">' + (s.start_time || '').slice(0,16).replace('T', ' ') + '</div>';
+              upHtml += '<div class="schedule-title">' + escHtml(s.title || '') + '</div>';
+              upHtml += '<div class="schedule-meta">' + (s.enrolled_count || 0) + '/' + (s.max_participants || 0) + ' 已預約</div>';
+              upHtml += '</div>';
+            });
+          }
+          document.getElementById('upcomingClasses').innerHTML = upHtml;
+          document.getElementById('upcomingCount').textContent = mySchedules.length;
+
+          // My classes list
+          var clsHtml = '';
+          if (classes.length === 0) {
+            clsHtml = '<div class="empty-state">尚未建立課程</div>';
+          } else {
+            classes.slice(0,10).forEach(function(c) {
+              clsHtml += '<div class="class-item">';
+              clsHtml += '<div class="class-name">' + escHtml(c.title || c.name || '') + '</div>';
+              clsHtml += '<div class="class-meta">' + escHtml(c.category || '') + ' · HK$' + (c.price_hkd || c.price || 0) + '</div>';
+              clsHtml += '</div>';
+            });
+          }
+          document.getElementById('myClassesCount').textContent = classes.length;
+
+          // Hide loading, show content
+          document.getElementById('loadingState').classList.add('hidden');
+          document.getElementById('appContent').classList.remove('hidden');
+        } catch (e) {
+          document.getElementById('loadingState').innerHTML = '<div class="empty-state" style="color: var(--red-500)">❌ 載入失敗：' + escHtml(e.message) + '</div>';
+        }
+      }
+
+      document.addEventListener('DOMContentLoaded', function() {
+        loadDashboardData();
+      });
+
       function loadWalletData() {
         var container = document.getElementById("walletState");
         if (!container) return;
