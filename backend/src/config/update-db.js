@@ -228,6 +228,16 @@ function updateDatabase() {
 
   console.log("✅ 商戶加盟系統 migration 完成");
 
+  // ===== Migration 8: 加入 penalty_consent 同 agree_terms 欄位 =====
+  try {
+    db.exec("ALTER TABLE users ADD COLUMN penalty_consent INTEGER DEFAULT 0");
+    console.log("✅ 加入 users.penalty_consent");
+  } catch (e) {}
+  try {
+    db.exec("ALTER TABLE users ADD COLUMN agree_terms INTEGER DEFAULT 0");
+    console.log("✅ 加入 users.agree_terms");
+  } catch (e) {}
+
   console.log("✅ 資料庫更新完成");
   db.close();
 }

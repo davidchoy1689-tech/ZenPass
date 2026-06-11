@@ -40,7 +40,9 @@ function initDatabase() {
       is_coach INTEGER DEFAULT 0,
       coach_verified INTEGER DEFAULT 0,
       created_at TEXT DEFAULT (datetime('now')),
-      updated_at TEXT DEFAULT (datetime('now'))
+      updated_at TEXT DEFAULT (datetime('now')),
+      penalty_consent INTEGER DEFAULT 0,
+      agree_terms INTEGER DEFAULT 0
     );
   `);
 
