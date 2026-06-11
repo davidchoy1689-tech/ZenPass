@@ -44,7 +44,6 @@ function errorHandler(err, req, res, _next) {
 
   if (statusCode >= 500) {
     console.error(JSON.stringify(logEntry));
-    // Winston logger (already configured in services/logger)
     try {
       const logger = require("../services/logger");
       logger.error(err.message, {
@@ -53,6 +52,15 @@ function errorHandler(err, req, res, _next) {
         method: req.method,
         stack: err.stack,
       });
+      // 電郵通知管理員（production only）
+      if (process.env.NODE_ENV === 'production' && process.env.SMTP_HOST !== 'localhost') {
+        try {
+          const { sendNotification } = require("../services/notification");
+          sendNotification('admin', 'error', `🚨 ZenPass 500 Error`, 
+            `<h2>Server Error</h2><pre>${err.message}\n${(err.stack || '').slice(0, 1000)}</pre>`
+          );
+        } catch (e) { /* no-op */ }
+      }
     } catch (e) {
       /* logger not available */
     }
