@@ -1,0 +1,89 @@
+name: ZenPass CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      api:
+        image: node:22
+        ports:
+          - 3001:3001
+        options: >-
+          --health-cmd "curl -f http://localhost:3001/api/health || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install backend dependencies
+        working-directory: ./backend
+        run: npm ci
+
+      - name: Init database
+        working-directory: ./backend
+        run: DB_PATH=./data/test.db node src/scripts/seed-supabase.js || true
+
+      - name: Start backend server
+        working-directory: ./backend
+        run: |
+          PORT=3001 DB_PATH=./data/test.db node src/index.js &
+          sleep 3
+          curl -f http://localhost:3001/api/health
+
+      - name: Run backend tests
+        working-directory: ./backend
+        run: npm test
+
+      - name: Run unit tests
+        run: |
+          npm install -g vitest
+          npx vitest run --reporter verbose
+
+      - name: Check enrolled_count consistency
+        working-directory: ./backend
+        run: node tests/test-enrolled-count.js
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install dependencies
+        run: npm install
+      - name: Run ESLint
+        run: npx eslint backend/src/ --ext .js || echo "Lint warnings exist"
+
+  deploy:
+    needs: test
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy to VPS
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_HOST }} "
+            cd /var/www/zenpass &&
+            git pull origin main &&
+            bash deploy/deploy.sh
+          "

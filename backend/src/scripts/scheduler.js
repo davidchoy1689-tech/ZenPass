@@ -28,6 +28,11 @@ setInterval(sendBookingReminders, 15 * 60 * 1000);
 // Run day-before reminders every hour
 setInterval(sendDayBeforeReminders, 60 * 60 * 1000);
 
+// Sync enrolled_count every 6 hours (fix data inconsistency from cancellations)
+const { syncEnrolledCount } = require("./sync-enrolled-count");
+syncEnrolledCount(); // Run on startup
+setInterval(syncEnrolledCount, 6 * 60 * 60 * 1000);
+
 // Auto settlement — weekly (every Monday)
 const { runAutoSettlement } = require("./auto-settlement");
 

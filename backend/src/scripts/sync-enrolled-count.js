@@ -82,4 +82,9 @@ function syncEnrolledCount() {
   db.close();
 }
 
-syncEnrolledCount();
+module.exports = { syncEnrolledCount };
+
+// Allow direct CLI execution
+if (require.main === module) {
+  syncEnrolledCount();
+}

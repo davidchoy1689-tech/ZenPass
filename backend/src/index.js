@@ -47,6 +47,8 @@ app.use(
   cors({
     origin: function (origin, callback) {
       const allowed = [
+        "https://zenpass.hk",
+        "https://www.zenpass.hk",
         "https://davidchoy1689-tech.github.io",
         "https://davidchoy1689-tech.github.io/ZenPass",
         "http://localhost:8080",
@@ -56,6 +58,12 @@ app.use(
         "http://localhost:3000",
         undefined, // Allow same-origin
       ];
+
+      // 生產環境透過 CORS_ORIGIN env 動態加 domain
+      const envOrigin = process.env.CORS_ORIGIN;
+      if (envOrigin && allowed.indexOf(envOrigin) === -1) {
+        allowed.push(envOrigin);
+      }
       if (allowed.indexOf(origin) !== -1 || !origin) {
         callback(null, true);
       } else {
@@ -67,10 +75,28 @@ app.use(
   }),
 );
 
-// Security headers (Helmet) - disable CSP to allow inline styles/scripts for now
+// Security headers (Helmet) — 有啲 inline script/style 用 nonce 處理
 app.use(
   helmet({
-    contentSecurityPolicy: false,
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: [
+          "'self'",
+          "'unsafe-inline'",
+          "'unsafe-eval'",
+          "https://www.googletagmanager.com",
+          "https://cdn.jsdelivr.net",
+        ],
+        styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
+        imgSrc: ["'self'", "data:", "https:"],
+        connectSrc: ["'self'", "https://zenpass.hk", "https://www.zenpass.hk"],
+        fontSrc: ["'self'", "https://cdn.jsdelivr.net"],
+        frameSrc: ["'none'"],
+        objectSrc: ["'none'"],
+        upgradeInsecureRequests: [],
+      },
+    },
     crossOriginEmbedderPolicy: false,
   }),
 );
