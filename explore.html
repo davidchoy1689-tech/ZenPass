@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <link rel="icon" href="favicon.png" type="image/png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
     <meta
       name="apple-mobile-web-app-status-bar-style"
       content="black-translucent"
@@ -14,6 +14,12 @@
       name="description"
       content="ZenPass 禪流探索課程 — 搜尋健身、瑜伽、冥想課程及教練"
     />
+    <meta
+      http-equiv="Cache-Control"
+      content="no-cache, no-store, must-revalidate"
+    />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="-1" />
     <title>探索課程 — ZenPass 禪流</title>
     <meta property="og:title" content="探索課程 — ZenPass 禪流" />
     <meta
@@ -43,41 +49,19 @@
       })();
     </script>
 
-    <link rel="stylesheet" href="css/zenpass.css" />
+    <link rel="stylesheet" href="css/zenpass.css?v=2" />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
       * {
         margin: 0;
         padding: 0;
         box-sizing: border-box;
       }
-      :root {
-        --orange-500: #f06030;
-        --orange-700: #aa3218;
-        --orange-600-bg: #c94420;
-        --orange-400: #ff8555;
-        --orange-300: #ffa075;
-        --orange-100: #fff0e8;
-        --orange-50: #fff8f4;
-        --dark-900: #1a1a2e;
-        --dark-800: #2d2d44;
-        --dark-700: #3d3d5a;
-        --gray-300: #d1d5db;
-        --gray-200: #e5e7eb;
-        --gray-100: #f3f4f6;
-        --gray-50: #f9fafb;
-        --white: #ffffff;
-        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
-        --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
-        --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.12);
-        --radius-sm: 8px;
-        --radius-md: 12px;
-        --radius-lg: 16px;
-        --radius-xl: 24px;
-        --font-en: "Inter", sans-serif;
-        --font-zh: "Noto Sans TC", sans-serif;
-        --max-width: 480px;
-        --nav-height: 64px;
-      }
+
       body {
         font-family: var(--font-zh);
         background: var(--gray-50);
@@ -251,11 +235,9 @@
       .class-card-img-wrap {
         position: relative;
         width: 100%;
-        height: 110px;
+        aspect-ratio: 3 / 2;
         overflow: hidden;
         background: var(--orange-100);
-        aspect-ratio: 3 / 2;
-        min-height: 110px;
       }
       .class-card-img {
         width: 100%;
@@ -578,33 +560,39 @@
         "query-input": "required name=search_term_string"
       }
     </script>
+    <!-- Google tag (gtag.js) -->
+    <script
+      async
+      src="https://www.googletagmanager.com/gtag/js?id=G-MKF5N4YLBM"
+    ></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag() {
+        dataLayer.push(arguments);
+      }
+      gtag("js", new Date());
+      gtag("config", "G-MKF5N4YLBM");
+    </script>
   </head>
   <body>
     <div class="header">
       <a href="index.html" class="back">←</a>
       <h1>探索課程</h1>
       <div
-        style="
-          display: flex;
-          gap: 8px;
-          align-items: center;
-          width: 100%;
-          margin-top: 8px;
-        "
+        class="zen-flex zen-gap-sm"
+        style="align-items: center; width: 100%; margin-top: 8px"
       >
         <input
           type="text"
           id="search-input"
           placeholder="🔍 搜尋課程、教練、運動類型..."
+          class="zen-flex-1"
           style="
-            flex: 1;
             padding: 10px 14px;
             border: 1px solid var(--gray-200);
             border-radius: 8px;
-            font-size: 14px;
-            font-family: var(--font-zh);
-            background: var(--white);
           "
+          oninput="debounceSearch()"
           onkeydown="if (event.key === 'Enter') doSearch();"
         />
         <button
@@ -661,6 +649,28 @@
           >
             <span style="font-size: 12px; font-weight: 600; display: block"
               >全部</span
+            >
+          </div>
+        </div>
+        <!-- Timeline Quick Filters -->
+        <div
+          style="
+            display: flex;
+            gap: 4px;
+            overflow-x: auto;
+            scrollbar-width: none;
+            padding-bottom: 4px;
+            margin-bottom: 4px;
+          "
+          id="timeline-list"
+        >
+          <div
+            class="date-chip active"
+            onclick="filterByTimeline('', this)"
+            style="padding: 4px 10px; font-size: 10px; cursor: pointer"
+          >
+            <span style="font-size: 12px; font-weight: 600; display: block"
+              >📅 全部</span
             >
           </div>
         </div>
@@ -941,22 +951,11 @@
         </div>
         <!-- Result count + Clear -->
         <div style="display: flex; align-items: center; margin-top: 4px">
-          <span
-            style="font-size: 10px; color: var(--dark-700)"
-            id="resultCount"
-          ></span>
+          <span class="zen-text-xs zen-text-muted" id="resultCount"></span>
           <button
             onclick="clearAllFilters()"
-            style="
-              margin-left: auto;
-              padding: 2px 8px;
-              border: 1px solid var(--gray-200);
-              border-radius: 6px;
-              background: var(--white);
-              font-size: 9px;
-              cursor: pointer;
-              color: var(--dark-700);
-            "
+            class="zen-btn-small zen-btn-secondary"
+            style="margin-left: auto; padding: 2px 8px; font-size: 9px"
           >
             🔄 清除
           </button>
@@ -978,21 +977,14 @@
 
     <div
       id="load-more-container"
-      style="text-align: center; padding: 16px 0; display: none"
+      class="zen-text-center zen-hidden"
+      style="padding: 16px 0"
     >
       <button
         id="load-more-btn"
         onclick="loadMore()"
-        style="
-          padding: 10px 32px;
-          background: var(--orange-600-bg);
-          color: white;
-          border: none;
-          border-radius: 8px;
-          font-size: 14px;
-          font-weight: 600;
-          cursor: pointer;
-        "
+        class="zen-btn zen-btn-primary"
+        style="padding: 10px 32px"
       >
         📥 載入更多課程
       </button>
@@ -1015,14 +1007,64 @@
       >
     </nav>
 
-    <script src="api.js"></script>
+    <script>
+      function showToast(msg, type) {
+        var bg =
+          type === "success"
+            ? "#ECFDF5"
+            : type === "warning"
+              ? "#FFFBEB"
+              : "#FEF2F2";
+        var tx =
+          type === "success"
+            ? "#059669"
+            : type === "warning"
+              ? "#D97706"
+              : "#EF4444";
+        var t = document.createElement("div");
+        t.style.cssText =
+          "position:fixed;bottom:80px;left:50%;transform:translateX(-50%);padding:12px 20px;border-radius:12px;font-size:14px;font-weight:500;z-index:999;max-width:300px;text-align:center;animation:fadeIn .3s;background:" +
+          bg +
+          ";color:" +
+          tx +
+          ";box-shadow:0 4px 12px rgba(0,0,0,0.15);";
+        t.textContent = msg;
+        document.body.appendChild(t);
+        setTimeout(function () {
+          t.style.opacity = "0";
+          t.style.transition = "opacity .3s";
+          setTimeout(function () {
+            t.remove();
+          }, 300);
+        }, 2500);
+      }
+    </script>
+    <script>
+      function escHtml(s) {
+        if (!s) return "";
+        return String(s)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+    </script>
+    <script src="assets/category-config.js"></script>
+    <script src="api.js?v=2"></script>
     <script>
       var currentCategory = "all";
       var currentDate = "";
+      var currentTimeline = "";
       var currentSort = "popular";
       var currentPage = 1;
       var currentLimit = 20;
       var totalClasses = 0;
+      var favorites = JSON.parse(
+        localStorage.getItem("zenpass_favorites") || "{}",
+      );
+      var mapView = false;
+      var mapInstance = null;
+      var mapMarkers = [];
 
       function loadMore() {
         currentPage++;
@@ -1377,11 +1419,157 @@
         loadClasses();
       }
 
+      var mapView = false;
+      var mapInstance = null;
+      var mapMarkers = [];
+
+      function setMapView(showMap) {
+        mapView = showMap;
+        var grid = document.getElementById("classGrid");
+        var mapEl = document.getElementById("mapContainer");
+        if (!mapEl) {
+          mapEl = document.createElement("div");
+          mapEl.id = "mapContainer";
+          mapEl.style.cssText =
+            "display:none;height:400px;border-radius:12px;margin:0 12px 12px";
+          grid.parentNode.insertBefore(mapEl, grid);
+        }
+        if (showMap) {
+          grid.style.display = "none";
+          mapEl.style.display = "block";
+          document.getElementById("viewGridBtn").classList.remove("active");
+          document.getElementById("viewMapBtn").classList.add("active");
+          initMap();
+        } else {
+          grid.style.display = "flex";
+          mapEl.style.display = "none";
+          document.getElementById("viewMapBtn").classList.remove("active");
+          document.getElementById("viewGridBtn").classList.add("active");
+        }
+      }
+
+      function initMap() {
+        if (mapInstance) {
+          mapInstance.invalidateSize();
+          return;
+        }
+        if (typeof L === "undefined") return;
+        try {
+          mapInstance = L.map("mapContainer").setView([22.3193, 114.1694], 11);
+          L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+            attribution: "&copy; OpenStreetMap contributors",
+            maxZoom: 18,
+          }).addTo(mapInstance);
+          // Add markers for visible classes
+          addMarkers();
+        } catch (e) {
+          console.log("Map error:", e);
+        }
+      }
+
+      function addMarkers() {
+        if (!mapInstance || !filteredClasses) return;
+        // Clear old markers
+        mapMarkers.forEach(function (m) {
+          mapInstance.removeLayer(m);
+        });
+        mapMarkers = [];
+        // Add HK locations (approximate from district)
+        var districts = {
+          中環: [22.2819, 114.1585],
+          金鐘: [22.2795, 114.1653],
+          上環: [22.2864, 114.1504],
+          灣仔: [22.2795, 114.1755],
+          銅鑼灣: [22.2805, 114.1855],
+          北角: [22.291, 114.2],
+          尖沙咀: [22.2976, 114.1705],
+          旺角: [22.3194, 114.1699],
+          油麻地: [22.3134, 114.1707],
+          深水埗: [22.3327, 114.1616],
+          長沙灣: [22.3363, 114.1554],
+          觀塘: [22.3125, 114.2255],
+          九龍灣: [22.3235, 114.2068],
+          九龍塘: [22.335, 114.18],
+          荔枝角: [22.337, 114.1484],
+          葵涌: [22.364, 114.129],
+          荃灣: [22.371, 114.114],
+          沙田: [22.383, 114.195],
+          大圍: [22.37, 114.178],
+          馬鞍山: [22.425, 114.23],
+          將軍澳: [22.306, 114.258],
+          屯門: [22.393, 113.977],
+          元朗: [22.445, 114.035],
+          天水圍: [22.458, 114.003],
+          大埔: [22.45, 114.168],
+          粉嶺: [22.49, 114.14],
+          上水: [22.502, 114.128],
+          西貢: [22.381, 114.272],
+          赤柱: [22.216, 114.215],
+          香港仔: [22.248, 114.157],
+          跑馬地: [22.269, 114.185],
+          掃桿埔: [22.273, 114.189],
+          香港島: [22.28, 114.18],
+          九龍: [22.32, 114.17],
+          新界: [22.4, 114.12],
+        };
+        var shown = [];
+        filteredClasses.forEach(function (cls) {
+          var loc = cls.venue_name || cls.district || "";
+          var coords = null;
+          for (var d in districts) {
+            if (loc.includes(d)) {
+              coords = districts[d];
+              break;
+            }
+          }
+          if (!coords) coords = districts["九龍"];
+          // Avoid duplicates
+          var key = coords[0].toFixed(2) + "," + coords[1].toFixed(2);
+          if (shown.indexOf(key) >= 0) return;
+          shown.push(key);
+          var marker = L.marker(coords).addTo(mapInstance);
+          marker.bindPopup(
+            '<div style="font-size:13px;font-weight:600;margin-bottom:4px">' +
+              cls.title +
+              "</div>" +
+              '<div style="font-size:11px;color:#666;margin-bottom:4px">' +
+              escHtml(loc) +
+              "</div>" +
+              '<div style="font-size:12px;color:var(--orange-700);font-weight:700">HK$' +
+              cls.price_hkd +
+              "</div>" +
+              '<a href="class-detail.html?id=' +
+              cls.id +
+              '" style="font-size:11px;color:#3b82f6;display:block;margin-top:4px">📖 查看詳情</a>',
+          );
+          mapMarkers.push(marker);
+        });
+      }
+
+      var searchTimer;
+      function debounceSearch() {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(function () {
+          loadClasses();
+        }, 300);
+      }
+      function showFavorites() {
+        var favIds = Object.keys(favorites);
+        if (favIds.length === 0) {
+          showToast("💔 未有收藏課程", "warning");
+          return;
+        }
+        filteredClasses = allClasses.filter(function (c) {
+          return favorites[c.id];
+        });
+        currentPage = 1;
+        renderClasses();
+      }
+
       function doSearch() {
         var q = document.getElementById("search-input").value.trim();
-        if (q) {
-          loadClasses();
-        }
+        clearTimeout(searchTimer);
+        loadClasses();
       }
       function clearFilters() {
         document.getElementById("search-input").value = "";
@@ -1461,6 +1649,7 @@
         if (currentDate) params.date = currentDate;
         var searchQ = document.getElementById("search-input").value.trim();
         if (searchQ) params.search = searchQ;
+        if (currentTimeline) params.date = currentTimeline;
         if (currentPrice && currentPrice !== "all") {
           var priceParts = currentPrice.split("-");
           if (priceParts.length === 2) {
@@ -1539,7 +1728,7 @@
           // Demo fallback classes
           container.innerHTML =
             "" +
-            '<div class="class-card" onclick="location.href=\'class-detail.html\'">' +
+            '<a href="class-detail.html" class="class-card" style="text-decoration:none;color:inherit;display:block">' +
             '<div class="class-card-img-wrap"><div class="class-card-img" style="background:linear-gradient(135deg,var(--orange-100),var(--orange-200));display:flex;align-items:center;justify-content:center;font-size:32px;width:100%;height:100%">🧘</div></div>' +
             '<div class="class-card-body">' +
             '<span class="class-card-category">瑜伽</span>' +
@@ -1549,7 +1738,7 @@
             '<div class="class-card-price">HK$120</div>' +
             '<div class="class-card-spots">剩餘 3 位</div>' +
             "</div></div>" +
-            '<div class="class-card" onclick="location.href=\'class-detail.html\'">' +
+            '<a href="class-detail.html" class="class-card" style="text-decoration:none;color:inherit;display:block">' +
             '<div class="class-card-img-wrap"><div class="class-card-img" style="background:linear-gradient(135deg,var(--orange-100),var(--orange-200));display:flex;align-items:center;justify-content:center;font-size:32px;width:100%;height:100%">💪</div></div>' +
             '<div class="class-card-body">' +
             '<span class="class-card-category">健身</span>' +
@@ -1559,7 +1748,7 @@
             '<div class="class-card-price">HK$150 <span class="badge-hot">🔥 熱門</span></div>' +
             '<div class="class-card-spots">剩餘 5 位</div>' +
             "</div></div>" +
-            '<div class="class-card" onclick="location.href=\'class-detail.html\'">' +
+            '<a href="class-detail.html" class="class-card" style="text-decoration:none;color:inherit;display:block">' +
             '<div class="class-card-img-wrap"><div class="class-card-img" style="background:linear-gradient(135deg,var(--orange-100),var(--orange-200));display:flex;align-items:center;justify-content:center;font-size:32px;width:100%;height:100%">🧠</div></div>' +
             '<div class="class-card-body">' +
             '<span class="class-card-category">冥想</span>' +
@@ -1569,7 +1758,7 @@
             '<div class="class-card-price">HK$80</div>' +
             '<div class="class-card-spots">剩餘 8 位</div>' +
             "</div></div>" +
-            '<div class="class-card" onclick="location.href=\'class-detail.html\'">' +
+            '<a href="class-detail.html" class="class-card" style="text-decoration:none;color:inherit;display:block">' +
             '<div class="class-card-img-wrap"><div class="class-card-img" style="background:linear-gradient(135deg,var(--orange-100),var(--orange-200));display:flex;align-items:center;justify-content:center;font-size:32px;width:100%;height:100%">💃</div></div>' +
             '<div class="class-card-body">' +
             '<span class="class-card-category">舞蹈</span>' +
@@ -1579,7 +1768,7 @@
             '<div class="class-card-price">HK$130</div>' +
             '<div class="class-card-spots">剩餘 2 位</div>' +
             "</div></div>" +
-            '<div class="class-card" onclick="location.href=\'class-detail.html\'">' +
+            '<a href="class-detail.html" class="class-card" style="text-decoration:none;color:inherit;display:block">' +
             '<div class="class-card-img-wrap"><div class="class-card-img" style="background:linear-gradient(135deg,var(--orange-100),var(--orange-200));display:flex;align-items:center;justify-content:center;font-size:32px;width:100%;height:100%">🎯</div></div>' +
             '<div class="class-card-body">' +
             '<span class="class-card-category">新興運動</span>' +
@@ -1594,41 +1783,8 @@
 
       var _renderIdx = 0;
       function renderCard(cls) {
-        var emojiMap = {
-          瑜伽: "🧘",
-          健身: "💪",
-          伸展: "🤸",
-          冥想: "🧠",
-          舞蹈: "💃",
-          新興運動: "🎯",
-          皮拉提斯: "🤸",
-          兒童體適能: "🧒",
-          肌力訓練: "🏋️",
-          心肺訓練: "🏃",
-          拳擊搏擊: "🥊",
-          單車: "🚴",
-          水中運動: "🏊",
-          太極養生: "☯️",
-          羽毛球: "🏸",
-          乒乓球: "🏓",
-          攀岩: "🧗",
-          射箭: "🏹",
-          劍擊: "🤺",
-          泰拳搏擊: "🦵",
-          高爾夫球: "⛳",
-          露營戶外: "🏕️",
-          長者體適能: "👴",
-          產後修復: "🤰",
-          空中瑜伽: "🧘‍♀️",
-          芭蕾塑形: "💃",
-          "TRX 懸吊訓練": "🏋️",
-          詠春: "🥋",
-          遠足行山: "🥾",
-          溜冰: "⛸️",
-          網球: "🎾",
-          保齡球: "🎳",
-        };
-        var emoji = emojiMap[cls.category] || "🏃";
+        var cfg = ZENPASS_CATEGORY[cls.category];
+        var emoji = (cfg && cfg.emoji) || "🏃";
         var hot =
           cls.popular || cls.is_hot
             ? '<span class="badge-hot" style="background:var(--orange-600-bg);color:var(--white);font-size:10px;padding:2px 8px;border-radius:10px;font-weight:600;">🔥 熱門</span>'
@@ -1636,21 +1792,42 @@
         var idx = _renderIdx++;
         var fp = idx === 0 ? ' fetchpriority="high"' : ' loading="lazy"';
         var imgHtml = cls.image_url
-          ? '<img' + fp + ' src="' + cls.image_url + '" alt="' + cls.title + '" class="class-card-img" style="width:100%;height:100%;object-fit:cover;display:block" />'
-          : '<div class="class-card-img" style="background:linear-gradient(135deg,var(--orange-100),var(--orange-200));display:flex;align-items:center;justify-content:center;font-size:32px;width:100%;height:100%">' + emoji + '</div>';
+          ? "<img" +
+            fp +
+            ' src="' +
+            cls.image_url +
+            '" alt="' +
+            cls.title +
+            '" class="class-card-img" style="width:100%;height:100%;object-fit:cover;display:block" />'
+          : '<div class="class-card-img" style="background:' +
+            (cfg
+              ? cfg.gradient
+              : "linear-gradient(135deg,var(--orange-100),var(--orange-200))") +
+            ';display:flex;align-items:center;justify-content:center;font-size:32px;width:100%;height:100%">' +
+            emoji +
+            "</div>";
         return (
-          '<div class="class-card" onclick="location.href=\'class-detail.html?id=' +
+          '<div class="class-card" style="position:relative" onclick="location.href=\'class-detail.html?id=' +
           cls.id +
           "'\">" +
-          '<div style="position:relative;width:100%;height:110px;overflow:hidden;background:var(--orange-100)" class="class-card-img-wrap">' +
+          '<div style="position:relative;width:100%;overflow:hidden;background:var(--orange-100)" class="class-card-img-wrap">' +
           imgHtml +
           "</div>" +
           '<div class="class-card-body">' +
           '<span class="class-card-category">' +
           cls.category +
           "</span>" +
+          '<div style="display:flex;justify-content:space-between;align-items:flex-start">' +
           '<div class="class-card-title">' +
           cls.title +
+          "</div>" +
+          '<button class="fav-btn" data-id="' +
+          cls.id +
+          '" onclick="event.stopPropagation();toggleFavorite(this.dataset.id)" style="background:none;border:none;font-size:18px;cursor:pointer;padding:2px;line-height:1;color:' +
+          (favorites[cls.id] ? "#ef4444" : "var(--dark-400)") +
+          '">' +
+          (favorites[cls.id] ? "❤️" : "♡") +
+          "</button>" +
           "</div>" +
           (cls.venue_name
             ? '<div style="font-size:11px;color:var(--orange-700);margin-bottom:2px">📍 ' +
@@ -1660,7 +1837,7 @@
           '<div class="class-card-meta">⏱ ' +
           (cls.duration_min || 60) +
           "min · ⭐" +
-          (cls.rating || "4.8") +
+          (cls.coach_avg_rating || cls.rating || "4.8") +
           " · 👤 " +
           (cls.coach_name || "教練") +
           "</div>" +
@@ -1730,11 +1907,7 @@
         }
       });
     </script>
-    <script>
-      if ("serviceWorker" in navigator) {
-        navigator.serviceWorker.register("sw.js");
-      }
-    </script>
+    <script></script>
     <script>
       (function () {
         var n = localStorage.getItem("zenpass_name");
@@ -1757,48 +1930,300 @@
       })();
     </script>
 
-    <div
-      class="zen-footer"
-      style="
-        text-align: center;
-        padding: 20px 16px;
-        margin-top: 24px;
-        border-top: 1px solid #e5e7eb;
+    <!-- ZenPass 統一頁腳 -->
+    <style>
+      .zp-footer {
+        background: linear-gradient(
+          135deg,
+          #1a1a2e 0%,
+          #2d2d44 50%,
+          #c94420 100%
+        );
+        color: rgba(255, 255, 255, 0.6);
+        padding: 40px 16px 24px;
+        margin-top: 48px;
+      }
+      .zp-footer a {
+        color: rgba(255, 255, 255, 0.6);
+        text-decoration: none;
+        transition: color 0.2s;
+        font-size: 13px;
+      }
+      .zp-footer a:hover {
+        color: #fff;
+      }
+      .zp-footer-inner {
+        max-width: 1200px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 32px;
+      }
+      @media (min-width: 768px) {
+        .zp-footer-inner {
+          grid-template-columns: 1.5fr 1fr 1fr 1fr;
+        }
+      }
+      .zp-footer-title {
+        color: #fff;
+        font-size: 14px;
+        font-weight: 700;
+        margin-bottom: 12px;
+      }
+      .zp-footer ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+      .zp-footer ul li {
+        margin-bottom: 6px;
+      }
+      .zp-footer-brand-desc {
         font-size: 12px;
-        color: #6b7280;
-      "
-    >
+        line-height: 1.6;
+      }
+      .zp-footer-social {
+        display: flex;
+        gap: 8px;
+        margin-top: 12px;
+      }
+      .zp-footer-social a {
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.1);
+        font-size: 14px;
+        transition: background 0.2s;
+      }
+      .zp-footer-social a:hover {
+        background: rgba(255, 255, 255, 0.25);
+      }
+      .zp-footer-bottom {
+        max-width: 1200px;
+        margin: 24px auto 0;
+        padding-top: 16px;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        text-align: center;
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.3);
+      }
+    </style>
+
+    <!-- 統一頁腳 Canonical (以原版首頁為標準) -->
+    <style>
+      .footer-grad {
+        background: linear-gradient(
+          135deg,
+          #1a1a2e 0%,
+          #2d2d44 50%,
+          #c94420 100%
+        );
+      }
+      .footer-grad .footer-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+        max-width: 400px;
+        margin: 0 auto;
+      }
+      @media (min-width: 768px) {
+        .footer-grad .footer-grid {
+          grid-template-columns: 1fr 1fr 1fr 1fr;
+          max-width: 720px;
+        }
+      }
+      .footer-grad .footer-section-title {
+        color: rgba(255, 255, 255, 0.5);
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 10px;
+      }
+      .footer-grad ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+      .footer-grad li {
+        margin-bottom: 6px;
+      }
+      .footer-link {
+        color: rgba(255, 255, 255, 0.6);
+        text-decoration: none;
+        transition: color 0.2s;
+        font-size: 13px;
+      }
+      .footer-link:hover {
+        color: white;
+      }
+      .back-to-top {
+        position: fixed;
+        bottom: 80px;
+        right: 16px;
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        background: var(--orange-600-bg, #c94420);
+        color: #fff;
+        border: none;
+        font-size: 20px;
+        cursor: pointer;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+        z-index: 999;
+        opacity: 0;
+        transform: translateY(20px);
+        transition:
+          opacity 0.3s,
+          transform 0.3s;
+        pointer-events: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .back-to-top.visible {
+        opacity: 1;
+        transform: translateY(0);
+        pointer-events: auto;
+      }
+      .back-to-top:hover {
+        background: #aa3218;
+      }
+    </style>
+
+    <footer class="footer-grad">
+      <div class="footer-grid">
+        <div style="grid-column: span 2">
+          <div
+            style="
+              color: white;
+              font-weight: 700;
+              font-size: 14px;
+              margin-bottom: 6px;
+            "
+          >
+            🧘 ZenPass 禪流
+          </div>
+          <div
+            style="
+              font-size: 12px;
+              line-height: 1.6;
+              color: rgba(255, 255, 255, 0.6);
+            "
+          >
+            一個Pass，通行全城運動體驗。<br />香港康樂及體育有限公司
+          </div>
+        </div>
+        <div>
+          <div class="footer-section-title">探索</div>
+          <ul>
+            <li><a href="explore.html" class="footer-link">探索課程</a></li>
+            <li><a href="coaches.html" class="footer-link">星級教練</a></li>
+            <li><a href="membership.html" class="footer-link">會籍方案</a></li>
+            <li><a href="coach-apply.html" class="footer-link">成為教練</a></li>
+            <li>
+              <a href="partner-apply.html" class="footer-link">場地加盟</a>
+            </li>
+          </ul>
+        </div>
+        <div>
+          <div class="footer-section-title">支援</div>
+          <ul>
+            <li><a href="faq.html" class="footer-link">常見問題</a></li>
+            <li><a href="privacy.html" class="footer-link">私隱政策</a></li>
+            <li><a href="terms.html" class="footer-link">服務條款</a></li>
+            <li><a href="about.html" class="footer-link">關於我們</a></li>
+          </ul>
+        </div>
+        <div>
+          <div class="footer-section-title">聯絡我們</div>
+          <ul>
+            <li style="margin-bottom: 4px">📧 support@zenpass.hk</li>
+            <li style="margin-bottom: 4px">📞 2387 0724</li>
+            <li style="margin-bottom: 4px">📍 香港九龍觀塘</li>
+          </ul>
+          <div style="display: flex; gap: 8px; margin-top: 10px">
+            <a
+              href="https://www.instagram.com/zenpass_hk"
+              style="
+                width: 32px;
+                height: 32px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 50%;
+                background: rgba(255, 255, 255, 0.1);
+                font-size: 14px;
+                text-decoration: none;
+              "
+              >📸</a
+            >
+            <a
+              href="https://www.facebook.com/zenpass.hk"
+              style="
+                width: 32px;
+                height: 32px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 50%;
+                background: rgba(255, 255, 255, 0.1);
+                font-size: 14px;
+                text-decoration: none;
+              "
+              >👍</a
+            >
+            <a
+              href="https://wa.me/85290335538"
+              style="
+                width: 32px;
+                height: 32px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 50%;
+                background: rgba(255, 255, 255, 0.1);
+                font-size: 14px;
+                text-decoration: none;
+              "
+              >💬</a
+            >
+            <a
+              href="https://hklfcl.com"
+              style="
+                width: 32px;
+                height: 32px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 50%;
+                background: rgba(255, 255, 255, 0.1);
+                font-size: 14px;
+                text-decoration: none;
+              "
+              >🏛️</a
+            >
+          </div>
+        </div>
+      </div>
       <div
         style="
-          display: flex;
-          justify-content: center;
-          gap: 16px;
-          margin-bottom: 8px;
+          max-width: 400px;
+          margin: 24px auto 0;
+          padding-top: 16px;
+          border-top: 1px solid rgba(255, 255, 255, 0.1);
+          text-align: center;
+          font-size: 11px;
+          color: rgba(255, 255, 255, 0.3);
         "
       >
-        <a
-          href="/"
-          style="color: #aa3218; text-decoration: none; font-weight: 500"
-          >🏠 首頁</a
-        >
-        <a
-          href="explore.html"
-          style="color: #aa3218; text-decoration: none; font-weight: 500"
-          >📚 課程</a
-        >
-        <a
-          href="my.html"
-          style="color: #aa3218; text-decoration: none; font-weight: 500"
-          >👤 我的</a
-        >
-        <a
-          href="points.html"
-          style="color: #aa3218; text-decoration: none; font-weight: 500"
-          >🎯 積分</a
-        >
+        &copy; 2026 ZenPass 禪流 · 香港康樂及體育有限公司 · All rights reserved.
       </div>
-      © 2026 ZenPass 禪流
-    </div>
+    </footer>
+
     <button
       class="back-to-top"
       id="backToTop"
@@ -1807,12 +2232,5 @@
     >
       ↑
     </button>
-    <script>
-      window.addEventListener("scroll", function () {
-        document
-          .getElementById("backToTop")
-          .classList.toggle("visible", window.scrollY > 400);
-      });
-    </script>
   </body>
 </html>

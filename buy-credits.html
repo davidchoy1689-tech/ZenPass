@@ -3,15 +3,21 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
     <meta
       name="apple-mobile-web-app-status-bar-style"
       content="black-translucent"
     />
     <meta name="theme-color" content="#FF6B35" />
+    <meta
+      http-equiv="Cache-Control"
+      content="no-cache, no-store, must-revalidate"
+    />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="-1" />
     <title>購買點數 — ZenPass 禪流</title>
     <link rel="manifest" href="manifest.json" />
-    <link rel="stylesheet" href="css/zenpass.css" />
+    <link rel="stylesheet" href="css/zenpass.css?v=2" />
     <style>
       * {
         margin: 0;
@@ -449,7 +455,85 @@
           max-width: 100% !important;
         }
       }
+
+      /* Inline style cleanup helpers */
+      .bc-est-classes {
+        font-size: 12px;
+        color: var(--dark-700);
+      }
+      .order-summary {
+        display: none;
+        margin-top: 16px;
+        background: var(--white);
+        border-radius: var(--radius-lg);
+        padding: 16px;
+        box-shadow: var(--shadow-sm);
+        border: 2px solid var(--orange-100);
+      }
+      .order-summary-title {
+        font-size: 14px;
+        font-weight: 700;
+        margin-bottom: 12px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .order-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 8px 0;
+        font-size: 14px;
+      }
+      .order-row-bonus {
+        display: none;
+        justify-content: space-between;
+        padding: 4px 0 8px;
+        font-size: 13px;
+      }
+      .order-row-total {
+        display: flex;
+        justify-content: space-between;
+        padding: 10px 0 4px;
+        font-size: 18px;
+        font-weight: 800;
+        border-top: 2px solid var(--orange-500);
+        margin-top: 4px;
+        color: var(--orange-700);
+      }
+      .order-total-credits {
+        text-align: right;
+        font-size: 12px;
+        color: var(--dark-700);
+        margin-top: 4px;
+      }
+      .buy-btn-wrap {
+        margin-top: 16px;
+      }
+      .tips-text {
+        font-size: 14px;
+        color: var(--dark-700);
+        line-height: 1.7;
+      }
+      .bonus-inline {
+        font-size: 11px;
+        color: var(--green-500);
+        font-weight: 600;
+        margin-top: 2px;
+      }
     </style>
+    <!-- Google tag (gtag.js) -->
+    <script
+      async
+      src="https://www.googletagmanager.com/gtag/js?id=G-MKF5N4YLBM"
+    ></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag() {
+        dataLayer.push(arguments);
+      }
+      gtag("js", new Date());
+      gtag("config", "G-MKF5N4YLBM");
+    </script>
   </head>
   <body>
     <div class="header">
@@ -477,9 +561,7 @@
           <span class="unit">Credits</span>
         </div>
       </div>
-      <div style="font-size: 12px; color: var(--dark-700)">
-        ≈ <span id="est-classes">0</span> 堂課
-      </div>
+      <div class="bc-est-classes">≈ <span id="est-classes">0</span> 堂課</div>
     </div>
 
     <!-- Credit Packs -->
@@ -488,96 +570,35 @@
       <div class="packs" id="pack-list"></div>
 
       <!-- Order Summary -->
-      <div
-        id="order-summary"
-        style="
-          display: none;
-          margin-top: 16px;
-          background: var(--white);
-          border-radius: var(--radius-lg);
-          padding: 16px;
-          box-shadow: var(--shadow-sm);
-          border: 2px solid var(--orange-100);
-        "
-      >
-        <div
-          style="
-            font-size: 14px;
-            font-weight: 700;
-            margin-bottom: 12px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-          "
-        >
-          📋 訂單摘要
+      <div id="order-summary" class="order-summary">
+        <div class="order-summary-title">📋 訂單摘要</div>
+        <div class="order-row">
+          <span class="zen-text-muted">購買點數</span>
+          <span id="os-credits" class="zen-text-bold">0 Credits</span>
         </div>
-        <div
-          style="
-            display: flex;
-            justify-content: space-between;
-            padding: 8px 0;
-            font-size: 14px;
-          "
-        >
-          <span style="color: var(--dark-700)">購買點數</span>
-          <span id="os-credits" style="font-weight: 700">0 Credits</span>
-        </div>
-        <div
-          id="os-bonus-row"
-          style="
-            display: none;
-            justify-content: space-between;
-            padding: 4px 0 8px;
-            font-size: 13px;
-          "
-        >
-          <span style="color: var(--green-500)">🎁 贈送</span>
-          <span id="os-bonus" style="font-weight: 600; color: var(--green-500)"
+        <div id="os-bonus-row" class="order-row-bonus">
+          <span class="zen-text-success">🎁 贈送</span>
+          <span id="os-bonus" class="zen-text-success" style="font-weight: 600"
             >0 Credits</span
           >
         </div>
-        <div
-          style="
-            display: flex;
-            justify-content: space-between;
-            padding: 8px 0;
-            font-size: 14px;
-            border-top: 1px solid var(--gray-200);
-          "
-        >
-          <span style="color: var(--dark-700)">金額</span>
-          <span id="os-price" style="font-weight: 700; color: var(--orange-500)"
+        <div class="order-row" style="border-top: 1px solid var(--gray-200)">
+          <span class="zen-text-muted">金額</span>
+          <span
+            id="os-price"
+            class="zen-text-bold"
+            style="color: var(--orange-500)"
             >HK$0</span
           >
         </div>
-        <div
-          style="
-            display: flex;
-            justify-content: space-between;
-            padding: 10px 0 4px;
-            font-size: 18px;
-            font-weight: 800;
-            border-top: 2px solid var(--orange-500);
-            margin-top: 4px;
-            color: var(--orange-700);
-          "
-        >
+        <div class="order-row-total">
           <span>合計</span>
           <span id="os-total">HK$0</span>
         </div>
-        <div
-          id="os-total-credits"
-          style="
-            text-align: right;
-            font-size: 12px;
-            color: var(--dark-700);
-            margin-top: 4px;
-          "
-        ></div>
+        <div id="os-total-credits" class="order-total-credits"></div>
       </div>
 
-      <div style="margin-top: 16px">
+      <div class="buy-btn-wrap">
         <button class="buy-btn" id="buy-btn" onclick="startPurchase()">
           💎 立即購買
         </button>
@@ -617,7 +638,7 @@
       </div>
       <div class="card">
         <div class="section-title">💡 小貼士</div>
-        <p style="font-size: 14px; color: var(--dark-700); line-height: 1.7">
+        <p class="tips-text">
           • 每堂課約需 10–20 Credits（視課程而定）<br />
           • 點數有效期為購買後 180 天<br />
           • 點數可與會籍試玩堂數合併使用<br />
@@ -644,7 +665,7 @@
       >
     </nav>
 
-    <script src="api.js"></script>
+    <script src="api.js?v=2"></script>
     <script>
       // ===== Credit Packs =====
       var CREDIT_PACKS = [];
@@ -672,7 +693,9 @@
           var p = CREDIT_PACKS[i];
           var isPopular = p.popular ? " popular" : "";
           var badge = p.popular ? '<div class="badge">🔥 熱門</div>' : "";
-          var perCredit = (p.price / p.credits).toFixed(1);
+          var perCredit = Math.round(
+            p.price / Math.max(1, p.credits + (p.bonus || 0)),
+          );
           var totalCredits = p.credits + (p.bonus || 0);
           var bonusHtml = p.bonus
             ? '<div style="font-size:11px;color:var(--green-500);font-weight:600;margin-top:2px;">🎁 +' +
@@ -811,7 +834,7 @@
               icon: icons[i] || "💎",
               label: p.label || "套餐",
               popular: p.popular || false,
-              desc: "HK$" + Math.round((p.price / total) * 10) / 10 + "/Credit",
+              desc: "HK$" + Math.round(p.price / total) + "/Credit",
               bonus: p.bonus || 0,
             });
           }
@@ -820,39 +843,30 @@
           CREDIT_PACKS = [
             {
               credits: 10,
-              price: 80,
+              price: 100,
               icon: "🥉",
-              label: "輕量",
+              label: "輕量包",
               popular: false,
-              desc: "HK$8/Credit",
-              bonus: 2,
+              desc: "HK$10/Credit",
+              bonus: 0,
+            },
+            {
+              credits: 25,
+              price: 225,
+              icon: "🥈",
+              label: "標準包",
+              popular: true,
+              desc: "最受歡迎 🔥",
+              bonus: 0,
             },
             {
               credits: 50,
-              price: 400,
-              icon: "🥈",
-              label: "標準",
-              popular: true,
-              desc: "最受歡迎 🔥",
-              bonus: 12,
-            },
-            {
-              credits: 100,
-              price: 800,
+              price: 440,
               icon: "🥇",
-              label: "超值",
+              label: "超值包",
               popular: false,
-              desc: "慳更多",
-              bonus: 30,
-            },
-            {
-              credits: 200,
-              price: 1600,
-              icon: "👑",
-              label: "大額",
-              popular: false,
-              desc: "一次買足",
-              bonus: 70,
+              desc: "慳更多 · +5 贈送",
+              bonus: 5,
             },
           ];
         }
@@ -868,53 +882,311 @@
       }
       initPacks();
     </script>
-    <script>
-      if ("serviceWorker" in navigator) {
-        navigator.serviceWorker.register("sw.js");
-      }
-    </script>
+    <script></script>
 
-    <div
-      class="zen-footer"
-      style="
-        text-align: center;
-        padding: 20px 16px;
-        margin-top: 24px;
-        border-top: 1px solid #e5e7eb;
+    <div class="zen-footer">© 2026 ZenPass 禪流</div>
+
+    <!-- ZenPass 統一頁腳 -->
+    <style>
+      .zp-footer {
+        background: linear-gradient(
+          135deg,
+          #1a1a2e 0%,
+          #2d2d44 50%,
+          #c94420 100%
+        );
+        color: rgba(255, 255, 255, 0.6);
+        padding: 40px 16px 24px;
+        margin-top: 48px;
+      }
+      .zp-footer a {
+        color: rgba(255, 255, 255, 0.6);
+        text-decoration: none;
+        transition: color 0.2s;
+        font-size: 13px;
+      }
+      .zp-footer a:hover {
+        color: #fff;
+      }
+      .zp-footer-inner {
+        max-width: 1200px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 32px;
+      }
+      @media (min-width: 768px) {
+        .zp-footer-inner {
+          grid-template-columns: 1.5fr 1fr 1fr 1fr;
+        }
+      }
+      .zp-footer-title {
+        color: #fff;
+        font-size: 14px;
+        font-weight: 700;
+        margin-bottom: 12px;
+      }
+      .zp-footer ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+      .zp-footer ul li {
+        margin-bottom: 6px;
+      }
+      .zp-footer-brand-desc {
         font-size: 12px;
-        color: #6b7280;
-      "
-    >
+        line-height: 1.6;
+      }
+      .zp-footer-social {
+        display: flex;
+        gap: 8px;
+        margin-top: 12px;
+      }
+      .zp-footer-social a {
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.1);
+        font-size: 14px;
+        transition: background 0.2s;
+      }
+      .zp-footer-social a:hover {
+        background: rgba(255, 255, 255, 0.25);
+      }
+      .zp-footer-bottom {
+        max-width: 1200px;
+        margin: 24px auto 0;
+        padding-top: 16px;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        text-align: center;
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.3);
+      }
+    </style>
+
+    <!-- 統一頁腳 Canonical (以原版首頁為標準) -->
+    <style>
+      .footer-grad {
+        background: linear-gradient(
+          135deg,
+          #1a1a2e 0%,
+          #2d2d44 50%,
+          #c94420 100%
+        );
+      }
+      .footer-grad .footer-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+        max-width: 400px;
+        margin: 0 auto;
+      }
+      @media (min-width: 768px) {
+        .footer-grad .footer-grid {
+          grid-template-columns: 1fr 1fr 1fr 1fr;
+          max-width: 720px;
+        }
+      }
+      .footer-grad .footer-section-title {
+        color: rgba(255, 255, 255, 0.5);
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 10px;
+      }
+      .footer-grad ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+      .footer-grad li {
+        margin-bottom: 6px;
+      }
+      .footer-link {
+        color: rgba(255, 255, 255, 0.6);
+        text-decoration: none;
+        transition: color 0.2s;
+        font-size: 13px;
+      }
+      .footer-link:hover {
+        color: white;
+      }
+      .back-to-top {
+        position: fixed;
+        bottom: 80px;
+        right: 16px;
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        background: var(--orange-600-bg, #c94420);
+        color: #fff;
+        border: none;
+        font-size: 20px;
+        cursor: pointer;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+        z-index: 999;
+        opacity: 0;
+        transform: translateY(20px);
+        transition:
+          opacity 0.3s,
+          transform 0.3s;
+        pointer-events: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .back-to-top.visible {
+        opacity: 1;
+        transform: translateY(0);
+        pointer-events: auto;
+      }
+      .back-to-top:hover {
+        background: #aa3218;
+      }
+    </style>
+
+    <footer class="footer-grad">
+      <div class="footer-grid">
+        <div style="grid-column: span 2">
+          <div
+            style="
+              color: white;
+              font-weight: 700;
+              font-size: 14px;
+              margin-bottom: 6px;
+            "
+          >
+            🧘 ZenPass 禪流
+          </div>
+          <div
+            style="
+              font-size: 12px;
+              line-height: 1.6;
+              color: rgba(255, 255, 255, 0.6);
+            "
+          >
+            一個Pass，通行全城運動體驗。<br />香港康樂及體育有限公司
+          </div>
+        </div>
+        <div>
+          <div class="footer-section-title">探索</div>
+          <ul>
+            <li><a href="explore.html" class="footer-link">探索課程</a></li>
+            <li><a href="coaches.html" class="footer-link">星級教練</a></li>
+            <li><a href="membership.html" class="footer-link">會籍方案</a></li>
+            <li><a href="coach-apply.html" class="footer-link">成為教練</a></li>
+            <li>
+              <a href="partner-apply.html" class="footer-link">場地加盟</a>
+            </li>
+          </ul>
+        </div>
+        <div>
+          <div class="footer-section-title">支援</div>
+          <ul>
+            <li><a href="faq.html" class="footer-link">常見問題</a></li>
+            <li><a href="privacy.html" class="footer-link">私隱政策</a></li>
+            <li><a href="terms.html" class="footer-link">服務條款</a></li>
+            <li><a href="about.html" class="footer-link">關於我們</a></li>
+          </ul>
+        </div>
+        <div>
+          <div class="footer-section-title">聯絡我們</div>
+          <ul>
+            <li style="margin-bottom: 4px">📧 support@zenpass.hk</li>
+            <li style="margin-bottom: 4px">📞 2387 0724</li>
+            <li style="margin-bottom: 4px">📍 香港九龍觀塘</li>
+          </ul>
+          <div style="display: flex; gap: 8px; margin-top: 10px">
+            <a
+              href="https://www.instagram.com/zenpass_hk"
+              style="
+                width: 32px;
+                height: 32px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 50%;
+                background: rgba(255, 255, 255, 0.1);
+                font-size: 14px;
+                text-decoration: none;
+              "
+              >📸</a
+            >
+            <a
+              href="https://www.facebook.com/zenpass.hk"
+              style="
+                width: 32px;
+                height: 32px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 50%;
+                background: rgba(255, 255, 255, 0.1);
+                font-size: 14px;
+                text-decoration: none;
+              "
+              >👍</a
+            >
+            <a
+              href="https://wa.me/85290335538"
+              style="
+                width: 32px;
+                height: 32px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 50%;
+                background: rgba(255, 255, 255, 0.1);
+                font-size: 14px;
+                text-decoration: none;
+              "
+              >💬</a
+            >
+            <a
+              href="https://hklfcl.com"
+              style="
+                width: 32px;
+                height: 32px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 50%;
+                background: rgba(255, 255, 255, 0.1);
+                font-size: 14px;
+                text-decoration: none;
+              "
+              >🏛️</a
+            >
+          </div>
+        </div>
+      </div>
       <div
         style="
-          display: flex;
-          justify-content: center;
-          gap: 16px;
-          margin-bottom: 8px;
+          max-width: 400px;
+          margin: 24px auto 0;
+          padding-top: 16px;
+          border-top: 1px solid rgba(255, 255, 255, 0.1);
+          text-align: center;
+          font-size: 11px;
+          color: rgba(255, 255, 255, 0.3);
         "
       >
-        <a
-          href="/"
-          style="color: #aa3218; text-decoration: none; font-weight: 500"
-          >🏠 首頁</a
-        >
-        <a
-          href="explore.html"
-          style="color: #aa3218; text-decoration: none; font-weight: 500"
-          >📚 課程</a
-        >
-        <a
-          href="my.html"
-          style="color: #aa3218; text-decoration: none; font-weight: 500"
-          >👤 我的</a
-        >
-        <a
-          href="points.html"
-          style="color: #aa3218; text-decoration: none; font-weight: 500"
-          >🎯 積分</a
-        >
+        &copy; 2026 ZenPass 禪流 · 香港康樂及體育有限公司 · All rights reserved.
       </div>
-      © 2026 ZenPass 禪流
-    </div>
+    </footer>
+
+    <button
+      class="back-to-top"
+      id="backToTop"
+      onclick="window.scrollTo({ top: 0, behavior: 'smooth' })"
+      aria-label="返回頂部"
+    >
+      ↑
+    </button>
   </body>
 </html>

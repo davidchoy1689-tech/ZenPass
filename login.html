@@ -3,12 +3,18 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
     <meta name="theme-color" content="#f06030" />
     <meta
       name="description"
       content="ZenPass 禪流 — 登入或註冊帳戶，立即探索超過100+運動課程：瑜伽、健身、冥想、新興運動。開始你的運動旅程！"
     />
+    <meta
+      http-equiv="Cache-Control"
+      content="no-cache, no-store, must-revalidate"
+    />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="-1" />
     <title>登入 / 註冊 — ZenPass 禪流</title>
     <meta property="og:title" content="登入 — ZenPass 禪流" />
     <meta
@@ -22,33 +28,19 @@
     <meta property="og:type" content="website" />
     <meta property="og:locale" content="zh_HK" />
     <meta name="twitter:card" content="summary_large_image" />
-    <script src="api.js"></script>
-    <link rel="stylesheet" href="css/zenpass.css" />
+    <script src="api.js?v=2"></script>
+    <!-- Google Identity Services (Sign In With Google) -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <!-- Apple Sign In SDK -->
+    <script type="text/javascript" src="https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js" defer></script>
+    <link rel="stylesheet" href="css/zenpass.css?v=2" />
     <style>
       * {
         margin: 0;
         padding: 0;
         box-sizing: border-box;
       }
-      :root {
-        --orange-500: #f06030;
-        --orange-700: #aa3218;
-        --orange-600-bg: #c94420;
-        --orange-400: #ff8555;
-        --orange-100: #fff0e8;
-        --dark-900: #1a1a2e;
-        --dark-700: #3d3d5a;
-        --gray-200: #e5e7eb;
-        --gray-100: #f3f4f6;
-        --gray-50: #f9fafb;
-        --white: #ffffff;
-        --green-500: #059669;
-        --red-500: #ef4444;
-        --radius-sm: 8px;
-        --radius-md: 12px;
-        --font-zh: "Noto Sans TC", sans-serif;
-        --max-width: 400px;
-      }
+
       body {
         font-family: var(--font-zh);
         background: var(--gray-50);
@@ -242,6 +234,19 @@
         }
       }
     </style>
+    <!-- Google tag (gtag.js) -->
+    <script
+      async
+      src="https://www.googletagmanager.com/gtag/js?id=G-MKF5N4YLBM"
+    ></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag() {
+        dataLayer.push(arguments);
+      }
+      gtag("js", new Date());
+      gtag("config", "G-MKF5N4YLBM");
+    </script>
   </head>
   <body>
     <div class="card">
@@ -271,6 +276,27 @@
         </button>
         <div class="msg" id="login-msg"></div>
         <div class="divider">快速登入</div>
+        <div id="g_id_onload"
+             data-client_id="YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com"
+             data-context="signin"
+             data-ux_mode="popup"
+             data-callback="handleGoogleCredential"
+             data-auto_select="false"
+             data-itp_support="true">
+        </div>
+        <div class="google-btn-wrapper"
+             id="google-signin-button"
+             style="display:flex;justify-content:center;margin-bottom:8px">
+          <div class="g_id_signin"
+               data-type="standard"
+               data-shape="rectangular"
+               data-theme="outline"
+               data-text="signin_with"
+               data-size="large"
+               data-logo_alignment="left"
+               style="width:100%;max-width:320px">
+          </div>
+        </div>
         <button
           class="btn btn-demo"
           onclick="socialLogin('apple')"
@@ -279,22 +305,12 @@
             align-items: center;
             justify-content: center;
             gap: 8px;
+            width: 100%;
+            max-width: 320px;
+            margin: 0 auto;
           "
         >
           <span style="font-size: 20px"></span> Apple 登入
-        </button>
-        <button
-          class="btn btn-demo"
-          onclick="socialLogin('google')"
-          style="
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            margin-top: 6px;
-          "
-        >
-          <span style="font-size: 18px">G</span> Google 登入
         </button>
         <div class="divider">開發模式</div>
         <button class="btn btn-demo" onclick="quickLogin('admin')">
@@ -338,6 +354,12 @@
     </div>
 
     <script>
+      // Get redirect URL from query parameter (e.g., ?redirect=payment.html?type=membership...)
+      var loginRedirect = (function () {
+        var match = window.location.search.match(/[?&]redirect=([^&]+)/);
+        return match ? decodeURIComponent(match[1]) : null;
+      })();
+
       function switchTab(tab) {
         document.querySelectorAll(".tab").forEach(function (t) {
           t.classList.remove("active");
@@ -382,7 +404,7 @@
           storeUser(result.user);
           setMsg("login-msg", "✅ 登入成功！", "success");
           setTimeout(function () {
-            window.location.href = "explore.html";
+            window.location.href = loginRedirect || "explore.html";
           }, 800);
         } catch (e) {
           setMsg("login-msg", "❌ " + e.message, "error");
@@ -420,7 +442,8 @@
           // Check if first-time user → redirect to onboarding
           var isFirstTime = !localStorage.getItem("zenpass_visited_before");
           localStorage.setItem("zenpass_visited_before", "1");
-          var redirectTo = isFirstTime ? "onboarding.html" : "explore.html";
+          var redirectTo =
+            loginRedirect || (isFirstTime ? "onboarding.html" : "explore.html");
           setTimeout(function () {
             window.location.href = redirectTo;
           }, 800);
@@ -430,61 +453,481 @@
           btn.textContent = "註冊";
         }
       }
-      function quickLogin(role) {
+      async function quickLogin(role) {
         var names = {
-          admin: "David Choy",
+          admin: "管理員",
+          manager: "平台經理",
+          staff: "平台前線員工",
+          partner: "場地營運",
           coach: "靜儀導師",
           student: "張三同學",
         };
         var emails = {
-          admin: "david@zenpass.hk",
+          admin: "admin@zenpass.hk",
+          manager: "manager@zenpass.hk",
+          staff: "staff@zenpass.hk",
+          partner: "venue@zenpass.hk",
           coach: "coach@zenpass.hk",
           student: "student@zenpass.hk",
         };
-        setToken("demo_token_" + role);
-        storeUser({
-          name: names[role],
-          email: emails[role],
-          phone: "",
-          role: role,
-          credits: role === "coach" ? 0 : 45,
-        });
-        window.location.href = "explore.html";
+        var passwords = {
+          admin: "admin123",
+          manager: "zenpass123",
+          staff: "zenpass123",
+          partner: "zenpass123",
+          coach: "coach123",
+          student: "admin123",
+        };
+        // Call real API to get valid JWT token
+        try {
+          var resp = await fetch(API_BASE + "/auth/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              email: emails[role],
+              password: passwords[role],
+            }),
+          });
+          var data = await resp.json();
+          if (data.token) {
+            setToken(data.token);
+            var userData = data.user || {};
+            storeUser({
+              name: names[role],
+              email: emails[role],
+              phone: userData.phone || "",
+              role: role,
+              credits: userData.credits || (role === "coach" ? 0 : 45),
+            });
+          } else {
+            // Fallback: use demo token
+            setToken("demo_token_" + role);
+            storeUser({
+              name: names[role],
+              email: emails[role],
+              phone: "",
+              role: role,
+              credits: 45,
+            });
+          }
+        } catch (e) {
+          setToken("demo_token_" + role);
+          storeUser({
+            name: names[role],
+            email: emails[role],
+            phone: "",
+            role: role,
+            credits: 45,
+          });
+        }
+        window.location.href = loginRedirect || "explore.html";
       }
 
       // ===== Social Login (Apple / Google) =====
-      function socialLogin(provider) {
-        // For dev: redirect to backend social endpoint with mock data
-        // In production, this would use the OAuth flow (Apple Sign In / Google Sign In)
+
+      // Google Sign-In callback — triggered by GIS SDK after user authenticates
+      function handleGoogleCredential(response) {
+        if (!response || !response.credential) {
+          setMsg("login-msg", "❌ Google 登入失敗，請重試", "error");
+          return;
+        }
+        // Decode JWT payload to get user info, send full token for server verification
+        try {
+          var payload = JSON.parse(atob(response.credential.split(".")[1]));
+          doSocialAuth("google", payload.sub, payload.email, payload.name, response.credential);
+        } catch (e) {
+          setMsg("login-msg", "❌ 無法處理 Google 回傳資料", "error");
+        }
+      }
+
+      // Apple Sign-In — triggers Apple login popup
+      async function socialLogin(provider) {
         if (provider === "apple") {
-          setMsg(
-            "login-msg",
-            "🍎 Apple 登入整合中 — 需要使用 Apple Developer 帳號",
-            "error",
-          );
-        } else if (provider === "google") {
-          setMsg(
-            "login-msg",
-            "G Google 登入整合中 — 需要使用 Google Cloud Console",
-            "error",
-          );
+          // Check if Apple JS SDK loaded
+          if (typeof AppleID === "undefined") {
+            setMsg("login-msg", "🍎 Apple SDK 載入中，請稍後再試", "error");
+            return;
+          }
+          var appleClientId = localStorage.getItem("zenpass_apple_client_id");
+          if (!appleClientId || appleClientId === "YOUR_APPLE_CLIENT_ID") {
+            setMsg("login-msg", "🍎 Apple 登入需要 Apple Developer 帳號設定 Client ID，請聯絡管理員", "error");
+            return;
+          }
+          try {
+            AppleID.auth.init({
+              clientId: appleClientId,
+              scope: "name email",
+              redirectURI: window.location.origin + "/login.html",
+              state: "apple_login",
+              usePopup: true,
+            });
+            var appleResp = await AppleID.auth.signIn();
+            // Apple returns id_token JWT with user info
+            var payload = JSON.parse(atob(appleResp.id_token.split(".")[1]));
+            var userName = appleResp.user ?
+              (appleResp.user.name.firstName + " " + appleResp.user.name.lastName) :
+              payload.email;
+            doSocialAuth("apple", payload.sub, payload.email, userName);
+          } catch (e) {
+            setMsg("login-msg", "🍎 " + (e.message || "Apple 登入取消或失敗"), "error");
+          }
         }
-        // Below is the actual OAuth flow (commented out until OAuth client IDs are set up):
-        /*
-        var redirectUri = window.location.origin + '/login.html';
-        if (provider === 'google') {
-          var clientId = 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com';
-          window.location.href = 'https://accounts.google.com/o/oauth2/v2/auth?' +
-            'client_id=' + clientId + '&redirect_uri=' + redirectUri +
-            '&response_type=code&scope=email%20profile&state=google_login';
-        } else if (provider === 'apple') {
-          // Apple Sign In requires Apple Developer membership
-          window.location.href = 'https://appleid.apple.com/auth/authorize?' +
-            'client_id=YOUR_APPLE_CLIENT_ID&redirect_uri=' + redirectUri +
-            '&response_type=code%20id_token&scope=name%20email&response_mode=form_post';
+      }
+
+      // Send social login data to backend
+      async function doSocialAuth(provider, providerId, email, name, providerToken) {
+        setMsg("login-msg", "⏳ 登入中...", "info");
+        try {
+          var body = {
+            provider: provider,
+            providerId: providerId,
+            email: email,
+            name: name || (email ? email.split("@")[0] : provider + "_user"),
+          };
+          if (providerToken) body.providerToken = providerToken;
+          var resp = await fetch(API_BASE + "/auth/social", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          });
+          var data = await resp.json();
+          if (!resp.ok) {
+            setMsg("login-msg", "❌ " + (data.error || "登入失敗"), "error");
+            return;
+          }
+          setToken(data.token);
+          storeUser(data.user);
+          setMsg("login-msg", "✅ 登入成功！", "success");
+          setTimeout(function () {
+            window.location.href = loginRedirect || "explore.html";
+          }, 800);
+        } catch (e) {
+          setMsg("login-msg", "❌ 網絡錯誤，請稍後再試", "error");
         }
-        */
       }
     </script>
+
+    <script>
+      // Load Google client ID from config if available
+      (function() {
+        var script = document.createElement("script");
+        script.src = "api.js?v=" + Date.now();
+        script.onload = function() {
+          var clientId = window.ZENPASS_GOOGLE_CLIENT_ID || "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com";
+          var gId = document.getElementById("g_id_onload");
+          if (gId) gId.setAttribute("data-client_id", clientId);
+        };
+        // Don't re-add if already present
+        if (!window.__zenpassOAuthInit) {
+          window.__zenpassOAuthInit = true;
+          // Apple client ID from env
+          var appleId = window.ZENPASS_APPLE_CLIENT_ID || "YOUR_APPLE_CLIENT_ID";
+          localStorage.setItem("zenpass_apple_client_id", appleId);
+        }
+      })();
+    </script>
+
+    <!-- ZenPass 統一頁腳 -->
+    <style>
+      .zp-footer {
+        background: linear-gradient(
+          135deg,
+          #1a1a2e 0%,
+          #2d2d44 50%,
+          #c94420 100%
+        );
+        color: rgba(255, 255, 255, 0.6);
+        padding: 40px 16px 24px;
+        margin-top: 48px;
+      }
+      .zp-footer a {
+        color: rgba(255, 255, 255, 0.6);
+        text-decoration: none;
+        transition: color 0.2s;
+        font-size: 13px;
+      }
+      .zp-footer a:hover {
+        color: #fff;
+      }
+      .zp-footer-inner {
+        max-width: 1200px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 32px;
+      }
+      @media (min-width: 768px) {
+        .zp-footer-inner {
+          grid-template-columns: 1.5fr 1fr 1fr 1fr;
+        }
+      }
+      .zp-footer-title {
+        color: #fff;
+        font-size: 14px;
+        font-weight: 700;
+        margin-bottom: 12px;
+      }
+      .zp-footer ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+      .zp-footer ul li {
+        margin-bottom: 6px;
+      }
+      .zp-footer-brand-desc {
+        font-size: 12px;
+        line-height: 1.6;
+      }
+      .zp-footer-social {
+        display: flex;
+        gap: 8px;
+        margin-top: 12px;
+      }
+      .zp-footer-social a {
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.1);
+        font-size: 14px;
+        transition: background 0.2s;
+      }
+      .zp-footer-social a:hover {
+        background: rgba(255, 255, 255, 0.25);
+      }
+      .zp-footer-bottom {
+        max-width: 1200px;
+        margin: 24px auto 0;
+        padding-top: 16px;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        text-align: center;
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.3);
+      }
+    </style>
+
+    <!-- 統一頁腳 Canonical (以原版首頁為標準) -->
+    <style>
+      .footer-grad {
+        background: linear-gradient(
+          135deg,
+          #1a1a2e 0%,
+          #2d2d44 50%,
+          #c94420 100%
+        );
+      }
+      .footer-grad .footer-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+        max-width: 400px;
+        margin: 0 auto;
+      }
+      @media (min-width: 768px) {
+        .footer-grad .footer-grid {
+          grid-template-columns: 1fr 1fr 1fr 1fr;
+          max-width: 720px;
+        }
+      }
+      .footer-grad .footer-section-title {
+        color: rgba(255, 255, 255, 0.5);
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 10px;
+      }
+      .footer-grad ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+      .footer-grad li {
+        margin-bottom: 6px;
+      }
+      .footer-link {
+        color: rgba(255, 255, 255, 0.6);
+        text-decoration: none;
+        transition: color 0.2s;
+        font-size: 13px;
+      }
+      .footer-link:hover {
+        color: white;
+      }
+      .back-to-top {
+        position: fixed;
+        bottom: 80px;
+        right: 16px;
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        background: var(--orange-600-bg, #c94420);
+        color: #fff;
+        border: none;
+        font-size: 20px;
+        cursor: pointer;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+        z-index: 999;
+        opacity: 0;
+        transform: translateY(20px);
+        transition:
+          opacity 0.3s,
+          transform 0.3s;
+        pointer-events: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .back-to-top.visible {
+        opacity: 1;
+        transform: translateY(0);
+        pointer-events: auto;
+      }
+      .back-to-top:hover {
+        background: #aa3218;
+      }
+    </style>
+
+    <footer class="footer-grad">
+      <div class="footer-grid">
+        <div style="grid-column: span 2">
+          <div
+            style="
+              color: white;
+              font-weight: 700;
+              font-size: 14px;
+              margin-bottom: 6px;
+            "
+          >
+            🧘 ZenPass 禪流
+          </div>
+          <div
+            style="
+              font-size: 12px;
+              line-height: 1.6;
+              color: rgba(255, 255, 255, 0.6);
+            "
+          >
+            一個Pass，通行全城運動體驗。<br />香港康樂及體育有限公司
+          </div>
+        </div>
+        <div>
+          <div class="footer-section-title">探索</div>
+          <ul>
+            <li><a href="explore.html" class="footer-link">探索課程</a></li>
+            <li><a href="coaches.html" class="footer-link">星級教練</a></li>
+            <li><a href="membership.html" class="footer-link">會籍方案</a></li>
+            <li><a href="coach-apply.html" class="footer-link">成為教練</a></li>
+            <li>
+              <a href="partner-apply.html" class="footer-link">場地加盟</a>
+            </li>
+          </ul>
+        </div>
+        <div>
+          <div class="footer-section-title">支援</div>
+          <ul>
+            <li><a href="faq.html" class="footer-link">常見問題</a></li>
+            <li><a href="privacy.html" class="footer-link">私隱政策</a></li>
+            <li><a href="terms.html" class="footer-link">服務條款</a></li>
+            <li><a href="about.html" class="footer-link">關於我們</a></li>
+          </ul>
+        </div>
+        <div>
+          <div class="footer-section-title">聯絡我們</div>
+          <ul>
+            <li style="margin-bottom: 4px">📧 support@zenpass.hk</li>
+            <li style="margin-bottom: 4px">📞 2387 0724</li>
+            <li style="margin-bottom: 4px">📍 香港九龍觀塘</li>
+          </ul>
+          <div style="display: flex; gap: 8px; margin-top: 10px">
+            <a
+              href="https://www.instagram.com/zenpass_hk"
+              style="
+                width: 32px;
+                height: 32px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 50%;
+                background: rgba(255, 255, 255, 0.1);
+                font-size: 14px;
+                text-decoration: none;
+              "
+              >📸</a
+            >
+            <a
+              href="https://www.facebook.com/zenpass.hk"
+              style="
+                width: 32px;
+                height: 32px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 50%;
+                background: rgba(255, 255, 255, 0.1);
+                font-size: 14px;
+                text-decoration: none;
+              "
+              >👍</a
+            >
+            <a
+              href="https://wa.me/85290335538"
+              style="
+                width: 32px;
+                height: 32px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 50%;
+                background: rgba(255, 255, 255, 0.1);
+                font-size: 14px;
+                text-decoration: none;
+              "
+              >💬</a
+            >
+            <a
+              href="https://hklfcl.com"
+              style="
+                width: 32px;
+                height: 32px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 50%;
+                background: rgba(255, 255, 255, 0.1);
+                font-size: 14px;
+                text-decoration: none;
+              "
+              >🏛️</a
+            >
+          </div>
+        </div>
+      </div>
+      <div
+        style="
+          max-width: 400px;
+          margin: 24px auto 0;
+          padding-top: 16px;
+          border-top: 1px solid rgba(255, 255, 255, 0.1);
+          text-align: center;
+          font-size: 11px;
+          color: rgba(255, 255, 255, 0.3);
+        "
+      >
+        &copy; 2026 ZenPass 禪流 · 香港康樂及體育有限公司 · All rights reserved.
+      </div>
+    </footer>
+
+    <button
+      class="back-to-top"
+      id="backToTop"
+      onclick="window.scrollTo({ top: 0, behavior: 'smooth' })"
+      aria-label="返回頂部"
+    >
+      ↑
+    </button>
   </body>
 </html>

@@ -3,6 +3,12 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      http-equiv="Cache-Control"
+      content="no-cache, no-store, must-revalidate"
+    />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="-1" />
     <title>積分中心 - ZenPass 禪流</title>
     <meta property="og:title" content="我的積分 — ZenPass 禪流" />
     <meta
@@ -22,31 +28,8 @@
       href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="css/zenpass.css" />
+    <link rel="stylesheet" href="css/zenpass.css?v=2" />
     <style>
-      :root {
-        --orange-500: #ff6b35;
-        --orange-700: #aa3218;
-        --orange-600-bg: #c94420;
-        --orange-600: #e55a2b;
-        --orange-50: #fff3ed;
-        --green-500: #059669;
-        --green-600: #047857;
-        --green-50: #ecfdf5;
-        --red-500: #ef4444;
-        --red-50: #fef2f2;
-        --blue-500: #3b82f6;
-        --blue-50: #eff6ff;
-        --dark-900: #1a1a2e;
-        --dark-800: #2d2d3a;
-        --dark-700: #6b7280;
-        --purple-500: #8b5cf6;
-        --purple-50: #f5f3ff;
-        --gray-200: #e5e7eb;
-        --gray-100: #f3f4f6;
-        --gray-50: #f9fafb;
-        --white: #ffffff;
-      }
       * {
         margin: 0;
         padding: 0;
@@ -1242,6 +1225,19 @@
         line-height: 1;
       }
     </style>
+    <!-- Google tag (gtag.js) -->
+    <script
+      async
+      src="https://www.googletagmanager.com/gtag/js?id=G-MKF5N4YLBM"
+    ></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag() {
+        dataLayer.push(arguments);
+      }
+      gtag("js", new Date());
+      gtag("config", "G-MKF5N4YLBM");
+    </script>
   </head>
   <body>
     <div class="header">
@@ -1306,44 +1302,27 @@
                 display: none;
               "
             >
-              <div
-                style="
-                  display: flex;
-                  justify-content: space-between;
-                  align-items: center;
-                  margin-bottom: 10px;
-                "
-              >
-                <h3 style="font-size: 14px; font-weight: 700">🏆 本週挑戰</h3>
+              <div class="zen-flex-between" style="margin-bottom: 10px">
+                <h3 class="zen-text-bold">🏆 本週挑戰</h3>
                 <span
-                  style="font-size: 11px; color: var(--dark-700)"
+                  class="zen-text-xs zen-text-muted"
                   id="challengeDeadline"
                 ></span>
               </div>
               <div id="challengeContent">
                 <div
-                  class="challenge-task"
+                  class="challenge-task zen-flex"
                   style="
-                    display: flex;
-                    align-items: center;
                     gap: 10px;
                     padding: 8px 0;
                     border-bottom: 1px solid var(--gray-100);
                   "
                 >
                   <div style="flex: 1">
+                    <div class="zen-text-sm" id="challengeDesc">載入中...</div>
                     <div
-                      style="font-size: 13px; font-weight: 500"
-                      id="challengeDesc"
-                    >
-                      載入中...
-                    </div>
-                    <div
-                      style="
-                        font-size: 11px;
-                        color: var(--dark-700);
-                        margin-top: 2px;
-                      "
+                      class="zen-text-xs zen-text-muted"
+                      style="margin-top: 2px"
                     >
                       <span id="challengeProgress">0</span>/<span
                         id="challengeTarget"
@@ -1354,21 +1333,16 @@
                   </div>
                   <div style="text-align: right">
                     <div
-                      style="
-                        font-size: 16px;
-                        font-weight: 700;
-                        color: var(--green-500);
-                      "
+                      class="zen-text-success"
+                      style="font-size: 16px"
                       id="challengeReward"
                     >
                       +100
                     </div>
-                    <div style="font-size: 10px; color: var(--dark-700)">
-                      積分
-                    </div>
+                    <div class="zen-text-xs zen-text-muted">積分</div>
                   </div>
                 </div>
-                <div style="margin-top: 8px">
+                <div class="zen-mt-sm">
                   <div
                     style="
                       height: 6px;
@@ -1509,7 +1483,7 @@
             </button>
           </div>
           <div id="historyList"></div>
-          <div id="redemptionSection" style="margin-top: 16px">
+          <div id="redemptionSection" class="zen-mt-md">
             <div class="section-header"><h2>已兌換獎勵</h2></div>
             <div id="redemptionList"></div>
           </div>
@@ -1531,19 +1505,10 @@
           <div class="leaderboard-section" id="leaderboardSection">
             <div class="leaderboard-header">
               <h3>🏆 積分排行榜</h3>
-              <span style="font-size: 11px; color: var(--dark-700)"
-                >Top 10</span
-              >
+              <span class="zen-text-xs zen-text-muted">Top 10</span>
             </div>
             <div id="leaderboardList">
-              <div
-                style="
-                  text-align: center;
-                  padding: 20px;
-                  color: var(--dark-700);
-                  font-size: 13px;
-                "
-              >
+              <div class="zen-text-center zen-text-muted" style="padding: 20px">
                 載入中...
               </div>
             </div>
@@ -1558,7 +1523,7 @@
             </button>
           </div>
           <!-- Share Button -->
-          <div class="share-btn-area" id="shareBtnArea" style="display: none">
+          <div class="share-btn-area zen-hidden" id="shareBtnArea">
             <button class="share-btn" onclick="shareAchievement()">
               📤 分享我的積分成就
             </button>
@@ -2194,7 +2159,7 @@
         var el = document.getElementById("historyList");
         if (!txs.length) {
           el.innerHTML =
-            '<div class="empty-state"><div class="empty-icon">📭</div><div class="empty-title">暫無積分紀錄</div><div class="empty-desc">開始簽到或預約課堂，賺取積分吧！</div></div>';
+            '<div class="empty-state"><div class="empty-icon">📭</div><div class="empty-title">暫無積分紀錄</div><div class="empty-desc">開始簽到或預約課堂，賺取積分吧！</div><button class="btn-primary" style="margin-top:14px;padding:10px 24px;font-size:13px" onclick="location.href=\'checkin.html\'">📅 每日簽到</button></div>';
           return;
         }
         el.innerHTML = txs
@@ -2306,7 +2271,7 @@
         var el = document.getElementById("tiersList");
         if (!tiers || !tiers.length) {
           el.innerHTML =
-            '<div class="empty-state"><div class="empty-icon">🏆</div><div class="empty-title">暫無等級資料</div></div>';
+            '<div class="empty-state"><div class="empty-icon">🏆</div><div class="empty-title">暫無等級資料</div><div class="empty-desc">賺取積分解鎖等級成就！</div></div>';
           return;
         }
         var currentLabel =
@@ -2655,53 +2620,8 @@
       loadAll();
     </script>
 
-    <div
-      class="zen-footer"
-      style="
-        text-align: center;
-        padding: 20px 16px;
-        margin-top: 24px;
-        border-top: 1px solid #e5e7eb;
-        font-size: 12px;
-        color: #6b7280;
-      "
-    >
-      <div
-        style="
-          display: flex;
-          justify-content: center;
-          gap: 16px;
-          margin-bottom: 8px;
-        "
-      >
-        <a
-          href="/"
-          style="color: #aa3218; text-decoration: none; font-weight: 500"
-          >🏠 首頁</a
-        >
-        <a
-          href="explore.html"
-          style="color: #aa3218; text-decoration: none; font-weight: 500"
-          >📚 課程</a
-        >
-        <a
-          href="my.html"
-          style="color: #aa3218; text-decoration: none; font-weight: 500"
-          >👤 我的</a
-        >
-        <a
-          href="points.html"
-          style="color: #aa3218; text-decoration: none; font-weight: 500"
-          >🎯 積分</a
-        >
-      </div>
-      © 2026 ZenPass 禪流
-    </div>
-    <script>
-      if ("serviceWorker" in navigator) {
-        navigator.serviceWorker.register("sw.js");
-      }
-    </script>
+    <div class="zen-footer">© 2026 ZenPass 禪流</div>
+    <script></script>
     <nav class="bottom-nav" role="navigation" aria-label="底部導航">
       <a href="index.html" class="nav-item"
         ><span class="nav-icon">🏠</span>首頁</a
@@ -2719,5 +2639,308 @@
         ><span class="nav-icon">👤</span>我的</a
       >
     </nav>
+
+    <!-- ZenPass 統一頁腳 -->
+    <style>
+      .zp-footer {
+        background: linear-gradient(
+          135deg,
+          #1a1a2e 0%,
+          #2d2d44 50%,
+          #c94420 100%
+        );
+        color: rgba(255, 255, 255, 0.6);
+        padding: 40px 16px 24px;
+        margin-top: 48px;
+      }
+      .zp-footer a {
+        color: rgba(255, 255, 255, 0.6);
+        text-decoration: none;
+        transition: color 0.2s;
+        font-size: 13px;
+      }
+      .zp-footer a:hover {
+        color: #fff;
+      }
+      .zp-footer-inner {
+        max-width: 1200px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 32px;
+      }
+      @media (min-width: 768px) {
+        .zp-footer-inner {
+          grid-template-columns: 1.5fr 1fr 1fr 1fr;
+        }
+      }
+      .zp-footer-title {
+        color: #fff;
+        font-size: 14px;
+        font-weight: 700;
+        margin-bottom: 12px;
+      }
+      .zp-footer ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+      .zp-footer ul li {
+        margin-bottom: 6px;
+      }
+      .zp-footer-brand-desc {
+        font-size: 12px;
+        line-height: 1.6;
+      }
+      .zp-footer-social {
+        display: flex;
+        gap: 8px;
+        margin-top: 12px;
+      }
+      .zp-footer-social a {
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.1);
+        font-size: 14px;
+        transition: background 0.2s;
+      }
+      .zp-footer-social a:hover {
+        background: rgba(255, 255, 255, 0.25);
+      }
+      .zp-footer-bottom {
+        max-width: 1200px;
+        margin: 24px auto 0;
+        padding-top: 16px;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        text-align: center;
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.3);
+      }
+    </style>
+
+    <!-- 統一頁腳 Canonical (以原版首頁為標準) -->
+    <style>
+      .footer-grad {
+        background: linear-gradient(
+          135deg,
+          #1a1a2e 0%,
+          #2d2d44 50%,
+          #c94420 100%
+        );
+      }
+      .footer-grad .footer-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+        max-width: 400px;
+        margin: 0 auto;
+      }
+      @media (min-width: 768px) {
+        .footer-grad .footer-grid {
+          grid-template-columns: 1fr 1fr 1fr 1fr;
+          max-width: 720px;
+        }
+      }
+      .footer-grad .footer-section-title {
+        color: rgba(255, 255, 255, 0.5);
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 10px;
+      }
+      .footer-grad ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+      .footer-grad li {
+        margin-bottom: 6px;
+      }
+      .footer-link {
+        color: rgba(255, 255, 255, 0.6);
+        text-decoration: none;
+        transition: color 0.2s;
+        font-size: 13px;
+      }
+      .footer-link:hover {
+        color: white;
+      }
+      .back-to-top {
+        position: fixed;
+        bottom: 80px;
+        right: 16px;
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        background: var(--orange-600-bg, #c94420);
+        color: #fff;
+        border: none;
+        font-size: 20px;
+        cursor: pointer;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+        z-index: 999;
+        opacity: 0;
+        transform: translateY(20px);
+        transition:
+          opacity 0.3s,
+          transform 0.3s;
+        pointer-events: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .back-to-top.visible {
+        opacity: 1;
+        transform: translateY(0);
+        pointer-events: auto;
+      }
+      .back-to-top:hover {
+        background: #aa3218;
+      }
+    </style>
+
+    <footer class="footer-grad">
+      <div class="footer-grid">
+        <div style="grid-column: span 2">
+          <div
+            style="
+              color: white;
+              font-weight: 700;
+              font-size: 14px;
+              margin-bottom: 6px;
+            "
+          >
+            🧘 ZenPass 禪流
+          </div>
+          <div
+            style="
+              font-size: 12px;
+              line-height: 1.6;
+              color: rgba(255, 255, 255, 0.6);
+            "
+          >
+            一個Pass，通行全城運動體驗。<br />香港康樂及體育有限公司
+          </div>
+        </div>
+        <div>
+          <div class="footer-section-title">探索</div>
+          <ul>
+            <li><a href="explore.html" class="footer-link">探索課程</a></li>
+            <li><a href="coaches.html" class="footer-link">星級教練</a></li>
+            <li><a href="membership.html" class="footer-link">會籍方案</a></li>
+            <li><a href="coach-apply.html" class="footer-link">成為教練</a></li>
+            <li>
+              <a href="partner-apply.html" class="footer-link">場地加盟</a>
+            </li>
+          </ul>
+        </div>
+        <div>
+          <div class="footer-section-title">支援</div>
+          <ul>
+            <li><a href="faq.html" class="footer-link">常見問題</a></li>
+            <li><a href="privacy.html" class="footer-link">私隱政策</a></li>
+            <li><a href="terms.html" class="footer-link">服務條款</a></li>
+            <li><a href="about.html" class="footer-link">關於我們</a></li>
+          </ul>
+        </div>
+        <div>
+          <div class="footer-section-title">聯絡我們</div>
+          <ul>
+            <li style="margin-bottom: 4px">📧 support@zenpass.hk</li>
+            <li style="margin-bottom: 4px">📞 2387 0724</li>
+            <li style="margin-bottom: 4px">📍 香港九龍觀塘</li>
+          </ul>
+          <div style="display: flex; gap: 8px; margin-top: 10px">
+            <a
+              href="https://www.instagram.com/zenpass_hk"
+              style="
+                width: 32px;
+                height: 32px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 50%;
+                background: rgba(255, 255, 255, 0.1);
+                font-size: 14px;
+                text-decoration: none;
+              "
+              >📸</a
+            >
+            <a
+              href="https://www.facebook.com/zenpass.hk"
+              style="
+                width: 32px;
+                height: 32px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 50%;
+                background: rgba(255, 255, 255, 0.1);
+                font-size: 14px;
+                text-decoration: none;
+              "
+              >👍</a
+            >
+            <a
+              href="https://wa.me/85290335538"
+              style="
+                width: 32px;
+                height: 32px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 50%;
+                background: rgba(255, 255, 255, 0.1);
+                font-size: 14px;
+                text-decoration: none;
+              "
+              >💬</a
+            >
+            <a
+              href="https://hklfcl.com"
+              style="
+                width: 32px;
+                height: 32px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 50%;
+                background: rgba(255, 255, 255, 0.1);
+                font-size: 14px;
+                text-decoration: none;
+              "
+              >🏛️</a
+            >
+          </div>
+        </div>
+      </div>
+      <div
+        style="
+          max-width: 400px;
+          margin: 24px auto 0;
+          padding-top: 16px;
+          border-top: 1px solid rgba(255, 255, 255, 0.1);
+          text-align: center;
+          font-size: 11px;
+          color: rgba(255, 255, 255, 0.3);
+        "
+      >
+        &copy; 2026 ZenPass 禪流 · 香港康樂及體育有限公司 · All rights reserved.
+      </div>
+    </footer>
+
+    <button
+      class="back-to-top"
+      id="backToTop"
+      onclick="window.scrollTo({ top: 0, behavior: 'smooth' })"
+      aria-label="返回頂部"
+    >
+      ↑
+    </button>
   </body>
 </html>

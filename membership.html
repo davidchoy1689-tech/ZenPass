@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <link rel="icon" href="favicon.png" type="image/png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
     <meta
       name="apple-mobile-web-app-status-bar-style"
       content="black-translucent"
@@ -12,13 +12,19 @@
     <meta name="theme-color" content="#f06030" />
     <meta
       name="description"
-      content="ZenPass 禪流會員方案 — 試玩體驗、標準會員、金會員"
+      content="ZenPass 禪流會員方案 — 輕量 Pass、標準 Pass、高階 Pass、VIP Pass"
     />
+    <meta
+      http-equiv="Cache-Control"
+      content="no-cache, no-store, must-revalidate"
+    />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="-1" />
     <title>會員方案 — ZenPass 禪流</title>
     <meta property="og:title" content="會籍方案 — ZenPass 禪流" />
     <meta
       property="og:description"
-      content="每月4堂試玩HK$399起，自由加購點數。一個Pass通行全城運動體驗！"
+      content="每月 37 Credits HK$299 起，自由加購點數。一個Pass通行全城運動體驗！"
     />
     <meta
       property="og:url"
@@ -40,7 +46,7 @@
       })();
     </script>
 
-    <link rel="stylesheet" href="css/zenpass.css" />
+    <link rel="stylesheet" href="css/zenpass.css?v=2" />
     <style>
       * {
         margin: 0;
@@ -86,10 +92,18 @@
         -webkit-font-smoothing: antialiased;
       }
       .header {
-        background: linear-gradient(135deg, var(--dark-900), var(--dark-800));
+        background:
+          linear-gradient(
+            135deg,
+            rgba(26, 26, 46, 0.92),
+            rgba(45, 45, 68, 0.8)
+          ),
+          url("https://images.unsplash.com/photo-1518611012118-696072aa579a?w=1200&q=80")
+            center/cover;
         color: var(--white);
-        padding: 40px 20px 32px;
+        padding: 48px 20px 40px;
         text-align: center;
+        position: relative;
       }
       .header h1 {
         font-size: 26px;
@@ -179,31 +193,7 @@
         content: "✅";
       }
       .plan-btn {
-        width: 100%;
-        padding: 12px;
-        border: none;
-        border-radius: var(--radius-sm);
-        font-size: 16px;
-        font-weight: 700;
-        cursor: pointer;
-        margin-top: 12px;
-        font-family: var(--font-zh);
-        transition: background 0.2s;
-      }
-      .plan-btn.primary {
-        background: var(--orange-600-bg);
-        color: var(--white);
-      }
-      .plan-btn.primary:hover {
-        background: #e55a2b;
-      }
-      .plan-btn.outline {
-        background: transparent;
-        color: var(--orange-700);
-        border: 2px solid var(--orange-700);
-      }
-      .plan-btn.outline:hover {
-        background: var(--orange-50);
+        /* DaisyUI btn handles styling */
       }
 
       /* Credits packages */
@@ -443,13 +433,9 @@
           max-width: 100% !important;
         }
       }
-    </style>
-  </head>
-  <body>
-    <!-- Skip link for accessibility -->
-    <a
-      href="#main-content"
-      style="
+
+      /* Inline style cleanup helpers */
+      .skip-link {
         position: absolute;
         left: -9999px;
         top: 0;
@@ -459,25 +445,143 @@
         color: white;
         font-weight: 600;
         text-decoration: none;
-      "
-      onfocus="this.style.left = '10px'"
-      onblur="this.style.left = '-9999px'"
-      >跳到主要內容</a
-    >
+      }
+      .skip-link:focus {
+        left: 10px;
+      }
+      .back-link {
+        color: var(--white);
+        text-decoration: none;
+        font-size: 20px;
+        display: block;
+        text-align: left;
+        margin-bottom: 12px;
+      }
+      .faq-h3 {
+        font-size: 15px;
+        font-weight: 700;
+        margin-bottom: 12px;
+      }
+      .faq-wrapper {
+        font-size: 13px;
+        line-height: 2;
+      }
+      .faq-details {
+        margin-bottom: 4px;
+      }
+      .faq-summary {
+        cursor: pointer;
+        font-weight: 600;
+      }
+      .faq-answer {
+        padding: 4px 0 8px 16px;
+        color: var(--dark-700);
+      }
+      .credits-summary-box {
+        display: none;
+        margin: 12px 0;
+        padding: 12px;
+        background: var(--orange-50);
+        border-radius: var(--radius-sm);
+        border: 1px solid var(--orange-200);
+      }
+      .credits-note {
+        text-align: center;
+        font-size: 12px;
+        color: var(--dark-700);
+        margin-top: 8px;
+      }
+      .divider-section {
+        margin: 20px 16px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .divider-line {
+        flex: 1;
+        height: 1px;
+        background: var(--gray-200);
+      }
+      .divider-text {
+        font-size: 13px;
+        color: var(--gray-300);
+        font-weight: 500;
+      }
+      .standalone-credits {
+        border: 2px dashed var(--orange-200);
+        background: var(--orange-50);
+      }
+      .buy-btn-outline {
+        background: var(--white);
+        color: var(--orange-700);
+        border: 2px solid var(--orange-700);
+      }
+    </style>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" />
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              zen: {
+                orange: "#f06030",
+                "orange-dark": "#c94420",
+                "orange-light": "#ff8555",
+                dark: "#1a1a2e",
+              },
+            },
+          },
+        },
+      };
+    </script>
+    <style>
+      .btn-grad {
+        background: linear-gradient(135deg, #f06030, #ff8555);
+        border: none;
+        color: white;
+        transition: all 0.3s;
+      }
+      .btn-grad:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(240, 96, 48, 0.35);
+      }
+      .glass-card {
+        background: rgba(255, 255, 255, 0.88);
+        backdrop-filter: blur(20px);
+      }
+      .card-hover {
+        transition: all 0.3s;
+      }
+      .card-hover:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 16px 48px rgba(0, 0, 0, 0.12);
+      }
+      .popular-tag {
+        background: linear-gradient(135deg, #f06030, #ff8555);
+      }
+    </style>
+
+    <!-- Google tag (gtag.js) -->
+    <script
+      async
+      src="https://www.googletagmanager.com/gtag/js?id=G-MKF5N4YLBM"
+    ></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag() {
+        dataLayer.push(arguments);
+      }
+      gtag("js", new Date());
+      gtag("config", "G-MKF5N4YLBM");
+    </script>
+  </head>
+  <body>
+    <!-- Skip link for accessibility -->
+    <a href="#main-content" class="skip-link">跳到主要內容</a>
     <div class="header" role="banner">
-      <a
-        href="index.html"
-        style="
-          color: var(--white);
-          text-decoration: none;
-          font-size: 20px;
-          display: block;
-          text-align: left;
-          margin-bottom: 12px;
-        "
-        aria-label="返回首頁"
-        >← 返回</a
-      >
+      <a href="index.html" class="back-link" aria-label="返回首頁">← 返回</a>
       <h1>💎 選擇你的會籍</h1>
       <p>灵活方案，隨心運動</p>
     </div>
@@ -489,58 +593,37 @@
     <div class="section">
       <!-- 會員加購 -->
       <!-- FAQ -->
-      <div
-        class="card"
-        style="
-          margin: 16px;
-          padding: 16px;
-          background: var(--white);
-          border-radius: var(--radius-md);
-          box-shadow: var(--shadow-sm);
-        "
-      >
-        <h3 style="font-size: 15px; font-weight: 700; margin-bottom: 12px">
-          ❓ 會籍常見問題
-        </h3>
-        <div style="font-size: 13px; line-height: 2">
-          <details style="margin-bottom: 4px">
-            <summary style="cursor: pointer; font-weight: 600">
-              可以随時轉換會籍嗎？
-            </summary>
-            <p style="padding: 4px 0 8px 16px; color: var(--dark-700)">
+      <div class="card" class="zen-card">
+        <h2 class="faq-h3">❓ 會籍常見問題</h2>
+        <div class="faq-wrapper">
+          <details class="faq-details">
+            <summary class="faq-summary">可以随時轉換會籍嗎？</summary>
+            <p class="faq-answer">
               可以！你可以在任何時候升級或降級會籍，費用將按比例調整。
             </p>
           </details>
-          <details style="margin-bottom: 4px">
-            <summary style="cursor: pointer; font-weight: 600">
-              點數會過期嗎？
-            </summary>
-            <p style="padding: 4px 0 8px 16px; color: var(--dark-700)">
+          <details class="faq-details">
+            <summary class="faq-summary">點數會過期嗎？</summary>
+            <p class="faq-answer">
               點數有效期為買入後 90
               天，建議在有效期內使用。會員每月資格在當月底清零。
             </p>
           </details>
-          <details style="margin-bottom: 4px">
-            <summary style="cursor: pointer; font-weight: 600">
-              可以取消會籍嗎？
-            </summary>
-            <p style="padding: 4px 0 8px 16px; color: var(--dark-700)">
+          <details class="faq-details">
+            <summary class="faq-summary">可以取消會籍嗎？</summary>
+            <p class="faq-answer">
               可以！取消會籍後，余下的點數可繼續使用直到有效期結束。
             </p>
           </details>
-          <details style="margin-bottom: 4px">
-            <summary style="cursor: pointer; font-weight: 600">
-              會籍可以與他人共用嗎？
-            </summary>
-            <p style="padding: 4px 0 8px 16px; color: var(--dark-700)">
+          <details class="faq-details">
+            <summary class="faq-summary">會籍可以與他人共用嗎？</summary>
+            <p class="faq-answer">
               會籍是個人的，不得與他人共享。但你可以用積分奖勵給朋友購買課程。
             </p>
           </details>
-          <details style="margin-bottom: 4px">
-            <summary style="cursor: pointer; font-weight: 600">
-              如何發放註冊碼？
-            </summary>
-            <p style="padding: 4px 0 8px 16px; color: var(--dark-700)">
+          <details class="faq-details">
+            <summary class="faq-summary">如何發放註冊碼？</summary>
+            <p class="faq-answer">
               發放註冊碼可以獲得額外積分！在「我的」頁面找到「推薦碼」並分享給朋友即可。
             </p>
           </details>
@@ -553,28 +636,13 @@
           <div class="loading-spinner">載入中...</div>
         </div>
         <!-- Selected summary -->
-        <div
-          id="credits-summary"
-          style="
-            display: none;
-            margin: 12px 0;
-            padding: 12px;
-            background: var(--orange-50);
-            border-radius: var(--radius-sm);
-            border: 1px solid var(--orange-200);
-          "
-        >
-          <div
-            style="
-              display: flex;
-              justify-content: space-between;
-              font-size: 14px;
-            "
-          >
-            <span style="color: var(--dark-700)">📋 已選：</span>
+        <div id="credits-summary" class="credits-summary-box">
+          <div class="zen-flex-between">
+            <span class="zen-text-muted">📋 已選：</span>
             <span
               id="cs-detail"
-              style="font-weight: 700; color: var(--orange-700)"
+              class="zen-text-bold"
+              style="color: var(--orange-700)"
               >0 Credits — HK$0</span
             >
           </div>
@@ -582,46 +650,22 @@
         <button class="buy-credits-btn" onclick="showBuyCredits()">
           ➕ 加購所選點數
         </button>
-        <p
-          style="
-            text-align: center;
-            font-size: 12px;
-            color: var(--dark-700);
-            margin-top: 8px;
-          "
-        >
-          點數有效期 180 天
-        </p>
+        <p class="credits-note">點數有效期 180 天</p>
       </div>
 
       <!-- 獨立購買（分隔線） -->
-      <div
-        style="margin: 20px 16px; display: flex; align-items: center; gap: 12px"
-      >
-        <div style="flex: 1; height: 1px; background: var(--gray-200)"></div>
-        <span style="font-size: 13px; color: var(--gray-300); font-weight: 500"
-          >或</span
-        >
-        <div style="flex: 1; height: 1px; background: var(--gray-200)"></div>
+      <div class="divider-section">
+        <div class="divider-line"></div>
+        <span class="divider-text">或</span>
+        <div class="divider-line"></div>
       </div>
 
-      <div
-        class="credits-section"
-        style="
-          border: 2px dashed var(--orange-200);
-          background: var(--orange-50);
-        "
-      >
+      <div class="credits-section standalone-credits">
         <h2 class="credits-heading">💎 獨立購買點數</h2>
         <p class="sub">無需會籍，直接購買點數預約課程</p>
         <button
-          class="buy-credits-btn"
+          class="buy-credits-btn buy-btn-outline"
           onclick="location.href = 'buy-credits.html'"
-          style="
-            background: var(--white);
-            color: var(--orange-700);
-            border: 2px solid var(--orange-700);
-          "
         >
           💎 前往獨立購買
         </button>
@@ -646,7 +690,7 @@
       >
     </nav>
 
-    <script src="api.js"></script>
+    <script src="api.js?v=2"></script>
     <script>
       var selectedPlan = "trial";
       var selectedPack = null;
@@ -661,65 +705,116 @@
         } catch (err) {
           // Fallback demo data
           container.innerHTML = renderPlans({
-            trial: {
-              name: "試玩會員",
-              name_en: "Trial",
-              price_hkd: 399,
-              credits_granted: 4,
+            lite: {
+              name: "輕量 Pass",
+              name_en: "Light",
+              price_hkd: 299,
+              credits_granted: 37,
               duration_days: 30,
-              description: "每月 4 堂課程，適合想試試的新朋友",
-              avg_price: 100,
-              features: ["每月 4 堂課程", "標準取消政策"],
+              description: "每月 37 Credits，適合輕度運動用戶",
+              avg_price: 8,
+              features: [
+                "每月 37 Credits",
+                "優先預約權",
+                "自由取消（適用於開課前一日）",
+              ],
+              popular: false,
             },
             standard: {
-              name: "標準會員",
+              name: "標準 Pass",
               name_en: "Standard",
-              price_hkd: 699,
-              credits_granted: 6,
+              price_hkd: 799,
+              credits_granted: 100,
               duration_days: 30,
-              description: "每月 6 堂課程，優先預約權",
-              avg_price: 117,
+              description: "每月 100 Credits，適合定期運動嘅你",
+              avg_price: 8,
               features: [
-                "每月 6 堂課程",
+                "每月 100 Credits",
                 "優先預約權",
-                "寬鬆取消政策",
-                "免費延期一次",
+                "高峰有 premium",
+                "自由取消（適用於開課前一日）",
               ],
+              popular: true,
             },
-            gold: {
-              name: "金會員",
-              name_en: "Gold",
-              price_hkd: 1999,
-              credits_granted: 10,
+            silver: {
+              name: "高階 Pass",
+              name_en: "Premium",
+              price_hkd: 1899,
+              credits_granted: 237,
               duration_days: 30,
-              description: "每月 10 堂課程，每月 2 堂一對一私人教練",
-              avg_price: 200,
+              description: "每月 237 Credits，適合運動狂熱者",
+              avg_price: 8,
               features: [
-                "每月 10 堂課程",
-                "每月 2 堂一對一私人教練服務",
+                "每月 237 Credits",
                 "VIP 優先預約",
                 "無限取消更換",
-                "免費延期五次",
+                "每月 1 堂私人教練",
+                "自由取消（適用於開課前一日）",
               ],
+              popular: false,
+            },
+            gold: {
+              name: "VIP Pass",
+              name_en: "VIP",
+              price_hkd: 2899,
+              credits_granted: 362,
+              duration_days: 30,
+              description: "每月 362 Credits，終極運動體驗",
+              avg_price: 8,
+              features: [
+                "每月 362 Credits",
+                "白金優先預約",
+                "無限取消更換",
+                "每月 2 堂私人教練",
+                "專屬客服",
+                "自由取消（適用於開課前一日）",
+              ],
+              popular: false,
             },
           });
         }
       }
 
       function renderPlans(plans) {
-        var planOrder = ["trial", "standard", "gold"];
+        var planOrder = ["lite", "standard", "silver", "gold"];
         var html2 = "";
         for (var ri = 0; ri < planOrder.length; ri++) {
           var key = planOrder[ri];
           var p = plans[key];
           if (!p) continue;
-          var isPopular = key === "standard";
+          var isPopular = p.popular === true;
           var popularClass = isPopular ? " popular" : "";
-          var badge = isPopular ? '<div class="badge">最受歡迎</div>' : "";
-          var goldGuide = key === "gold" ? "<li>每月 2 堂私人指導</li>" : "";
-          var btnClass = isPopular ? "primary" : "outline";
+          var planLabels = {
+            lite: "輕量入門",
+            standard: "最受歡迎",
+            silver: "高階之選",
+            gold: "終極體驗",
+          };
+          var badge = isPopular
+            ? '<div class="badge popular-tag text-white text-xs font-bold px-4 py-1.5 rounded-b-lg shadow-md border-0" style="position:absolute;top:-0.5px;right:16px;z-index:10;">' +
+              planLabels[key] +
+              "</div>"
+            : ri === 3
+              ? '<div class="badge" style="background:linear-gradient(135deg,#FFD700,#FFA500);color:#1a1a2e;position:absolute;top:-0.5px;right:16px;z-index:10;padding:4px 12px;border-radius:0 0 12px 12px;font-size:12px;font-weight:700;border:0;">' +
+                planLabels[key] +
+                "</div>"
+              : "";
+          var isUnlimited = p.credits_granted === 0;
+          var perClass =
+            p.avg_price > 0
+              ? '<div style="font-size:12px;color:var(--green-600);font-weight:600;margin-bottom:6px">HK$' +
+                p.avg_price +
+                "/credit</div>"
+              : "";
+          var features = p.features || [
+            isUnlimited ? "無限堂數" : "每月 " + p.credits_granted + " Credits",
+            "優先預約權",
+          ];
+          // gold features included in API data
+          var btnClass =
+            "btn btn-grad w-full rounded-xl font-bold text-sm h-11 border-0 shadow-lg";
           html2 +=
-            '<div class="plan-card' +
+            '<div class="plan-card card glass-card card-hover rounded-2xl shadow-lg border-2' +
             popularClass +
             '" onclick="selectPlan(\'' +
             key +
@@ -735,12 +830,12 @@
             p.description +
             "</div>" +
             '<ul class="plan-features">' +
-            "<li>每月 " +
-            p.credits_granted +
-            " 堂課程</li>" +
-            goldGuide +
-            "<li>優先預約權</li>" +
-            "<li>取消政策寬鬆</li>" +
+            perClass +
+            features
+              .map(function (f) {
+                return "<li>" + f + "</li>";
+              })
+              .join("") +
             "</ul>" +
             '<button class="plan-btn ' +
             btnClass +
@@ -767,23 +862,31 @@
       }
 
       function doSubscribePlan(type) {
-        var prices = { trial: 399, standard: 699, gold: 1999 };
-        var names = { trial: "試玩會員", standard: "標準會員", gold: "金會員" };
-        // Redirect to payment page with plan info
-        var ref =
-          "ZP-" +
-          new Date().toISOString().slice(0, 10).replace(/-/g, "") +
-          "-" +
-          Math.random().toString(36).substring(2, 6).toUpperCase();
+        var prices = { lite: 299, standard: 799, silver: 1899, gold: 2899 };
+        var names = {
+          lite: "輕量 Pass",
+          standard: "標準 Pass",
+          silver: "高階 Pass",
+          gold: "VIP Pass",
+        };
+        var token = localStorage.getItem("zenpass_token");
+        if (!token) {
+          location.href =
+            "login.html?redirect=payment.html?type=membership&plan=" +
+            type +
+            "&amount=" +
+            prices[type] +
+            "&item=" +
+            encodeURIComponent(names[type] + " 會籍");
+          return;
+        }
         location.href =
-          "payment.html?plan=" +
+          "payment.html?type=membership&plan=" +
           type +
           "&amount=" +
           prices[type] +
           "&item=" +
-          encodeURIComponent(names[type]) +
-          "&ref=" +
-          ref;
+          encodeURIComponent(names[type] + " 會籍");
       }
 
       // ===== Load Credits Packages =====
@@ -803,7 +906,7 @@
               ? '<div class="cp-bonus">+' + p.bonus + " 贈送</div>"
               : "";
             html +=
-              '<div class="credit-pack ' +
+              '<div class="credit-pack card bg-white/80 rounded-xl shadow-sm border-2 hover:shadow-lg transition-all ' +
               popularClass +
               '" onclick="selectPack(this,' +
               p.credits +
@@ -829,10 +932,9 @@
         } catch (err) {
           var fallback =
             "" +
-            '<div class="credit-pack" onclick="selectPack(this, 10,150)" data-bonus="0"><div class="cp-credits">10</div><div class="cp-label">輕量包</div><div class="cp-price">HK$150</div></div>' +
-            '<div class="credit-pack" onclick="selectPack(this, 50,750)" data-bonus="12"><div class="cp-credits">62</div><div class="cp-label">標準包</div><div class="cp-price">HK$750</div><div class="cp-bonus">+12 贈送</div></div>' +
-            '<div class="credit-pack popular" onclick="selectPack(this, 100,1500)" data-bonus="30"><div class="cp-popular-tag">超值</div><div class="cp-credits">130</div><div class="cp-label">超值包</div><div class="cp-price">HK$1,500</div><div class="cp-bonus">+30 贈送</div></div>' +
-            '<div class="credit-pack" onclick="selectPack(this, 200,3000)" data-bonus="70"><div class="cp-credits">270</div><div class="cp-label">尊尚包</div><div class="cp-price">HK$3,000</div><div class="cp-bonus">+70 贈送</div></div>';
+            '<div class="credit-pack card bg-white/80 rounded-xl shadow-sm border-2 hover:shadow-lg transition-all" onclick="selectPack(this, 10,100)" data-bonus="0"><div class="cp-credits">10</div><div class="cp-label">輕量包</div><div class="cp-price">HK$100</div></div>' +
+            '<div class="credit-pack card bg-white/80 rounded-xl shadow-sm border-2 hover:shadow-lg transition-all popular" onclick="selectPack(this, 25,225)" data-bonus="0"><div class="cp-popular-tag">超值</div><div class="cp-credits">25</div><div class="cp-label">標準包</div><div class="cp-price">HK$225</div></div>' +
+            '<div class="credit-pack card bg-white/80 rounded-xl shadow-sm border-2 hover:shadow-lg transition-all" onclick="selectPack(this, 50,440)" data-bonus="5"><div class="cp-credits">55</div><div class="cp-label">超值包</div><div class="cp-price">HK$440</div><div class="cp-bonus">+5 贈送</div></div>';
           container.innerHTML = fallback;
         }
       }
@@ -925,7 +1027,7 @@
           '<p style="font-size:14px;color:var(--dark-700);margin-bottom:20px;">請先登入以繼續購買</p>' +
           '<div style="margin-bottom:12px;"><input type="email" id="login-email" placeholder="電郵" style="width:100%;padding:12px;border:1px solid var(--gray-200);border-radius:var(--radius-sm);font-size:15px;font-family:var(--font-zh);margin-bottom:8px;"></div>' +
           '<div style="margin-bottom:20px;"><input type="password" id="login-pass" placeholder="密碼" style="width:100%;padding:12px;border:1px solid var(--gray-200);border-radius:var(--radius-sm);font-size:15px;font-family:var(--font-zh);"></div>' +
-          '<button class="plan-btn primary" onclick="demoLogin(\'student\')" style="font-family:var(--font-zh);">👤 以學生身份登入</button>' +
+          '<button class="plan-btn primary btn btn-grad w-full rounded-xl font-bold text-sm h-11 border-0 shadow-lg" onclick="demoLogin(\'student\')" style="font-family:var(--font-zh);">👤 以學生身份登入</button>' +
           '<p style="font-size:12px;color:var(--gray-300);margin-top:12px;">演示版本：㩒上面掣即時登入</p>' +
           "</div>";
         document.body.appendChild(overlay);
@@ -1010,11 +1112,7 @@
         updateNavBar();
       });
     </script>
-    <script>
-      if ("serviceWorker" in navigator) {
-        navigator.serviceWorker.register("sw.js");
-      }
-    </script>
+    <script></script>
     <script>
       (function () {
         var n = localStorage.getItem("zenpass_name");
@@ -1037,47 +1135,307 @@
       })();
     </script>
 
-    <div
-      class="zen-footer"
-      style="
-        text-align: center;
-        padding: 20px 16px;
-        margin-top: 24px;
-        border-top: 1px solid #e5e7eb;
+    <!-- ZenPass 統一頁腳 -->
+    <style>
+      .zp-footer {
+        background: linear-gradient(
+          135deg,
+          #1a1a2e 0%,
+          #2d2d44 50%,
+          #c94420 100%
+        );
+        color: rgba(255, 255, 255, 0.6);
+        padding: 40px 16px 24px;
+        margin-top: 48px;
+      }
+      .zp-footer a {
+        color: rgba(255, 255, 255, 0.6);
+        text-decoration: none;
+        transition: color 0.2s;
+        font-size: 13px;
+      }
+      .zp-footer a:hover {
+        color: #fff;
+      }
+      .zp-footer-inner {
+        max-width: 1200px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 32px;
+      }
+      @media (min-width: 768px) {
+        .zp-footer-inner {
+          grid-template-columns: 1.5fr 1fr 1fr 1fr;
+        }
+      }
+      .zp-footer-title {
+        color: #fff;
+        font-size: 14px;
+        font-weight: 700;
+        margin-bottom: 12px;
+      }
+      .zp-footer ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+      .zp-footer ul li {
+        margin-bottom: 6px;
+      }
+      .zp-footer-brand-desc {
         font-size: 12px;
-        color: #6b7280;
-      "
-    >
+        line-height: 1.6;
+      }
+      .zp-footer-social {
+        display: flex;
+        gap: 8px;
+        margin-top: 12px;
+      }
+      .zp-footer-social a {
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.1);
+        font-size: 14px;
+        transition: background 0.2s;
+      }
+      .zp-footer-social a:hover {
+        background: rgba(255, 255, 255, 0.25);
+      }
+      .zp-footer-bottom {
+        max-width: 1200px;
+        margin: 24px auto 0;
+        padding-top: 16px;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        text-align: center;
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.3);
+      }
+    </style>
+
+    <!-- 統一頁腳 Canonical (以原版首頁為標準) -->
+    <style>
+      .footer-grad {
+        background: linear-gradient(
+          135deg,
+          #1a1a2e 0%,
+          #2d2d44 50%,
+          #c94420 100%
+        );
+      }
+      .footer-grad .footer-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+        max-width: 400px;
+        margin: 0 auto;
+      }
+      @media (min-width: 768px) {
+        .footer-grad .footer-grid {
+          grid-template-columns: 1fr 1fr 1fr 1fr;
+          max-width: 720px;
+        }
+      }
+      .footer-grad .footer-section-title {
+        color: rgba(255, 255, 255, 0.5);
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 10px;
+      }
+      .footer-grad ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+      .footer-grad li {
+        margin-bottom: 6px;
+      }
+      .footer-link {
+        color: rgba(255, 255, 255, 0.6);
+        text-decoration: none;
+        transition: color 0.2s;
+        font-size: 13px;
+      }
+      .footer-link:hover {
+        color: white;
+      }
+      .back-to-top {
+        position: fixed;
+        bottom: 80px;
+        right: 16px;
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        background: var(--orange-600-bg, #c94420);
+        color: #fff;
+        border: none;
+        font-size: 20px;
+        cursor: pointer;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+        z-index: 999;
+        opacity: 0;
+        transform: translateY(20px);
+        transition:
+          opacity 0.3s,
+          transform 0.3s;
+        pointer-events: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .back-to-top.visible {
+        opacity: 1;
+        transform: translateY(0);
+        pointer-events: auto;
+      }
+      .back-to-top:hover {
+        background: #aa3218;
+      }
+    </style>
+
+    <footer class="footer-grad">
+      <div class="footer-grid">
+        <div style="grid-column: span 2">
+          <div
+            style="
+              color: white;
+              font-weight: 700;
+              font-size: 14px;
+              margin-bottom: 6px;
+            "
+          >
+            🧘 ZenPass 禪流
+          </div>
+          <div
+            style="
+              font-size: 12px;
+              line-height: 1.6;
+              color: rgba(255, 255, 255, 0.6);
+            "
+          >
+            一個Pass，通行全城運動體驗。<br />香港康樂及體育有限公司
+          </div>
+        </div>
+        <div>
+          <div class="footer-section-title">探索</div>
+          <ul>
+            <li><a href="explore.html" class="footer-link">探索課程</a></li>
+            <li><a href="coaches.html" class="footer-link">星級教練</a></li>
+            <li><a href="membership.html" class="footer-link">會籍方案</a></li>
+            <li><a href="coach-apply.html" class="footer-link">成為教練</a></li>
+            <li>
+              <a href="partner-apply.html" class="footer-link">場地加盟</a>
+            </li>
+          </ul>
+        </div>
+        <div>
+          <div class="footer-section-title">支援</div>
+          <ul>
+            <li><a href="faq.html" class="footer-link">常見問題</a></li>
+            <li><a href="privacy.html" class="footer-link">私隱政策</a></li>
+            <li><a href="terms.html" class="footer-link">服務條款</a></li>
+            <li><a href="about.html" class="footer-link">關於我們</a></li>
+          </ul>
+        </div>
+        <div>
+          <div class="footer-section-title">聯絡我們</div>
+          <ul>
+            <li style="margin-bottom: 4px">📧 support@zenpass.hk</li>
+            <li style="margin-bottom: 4px">📞 2387 0724</li>
+            <li style="margin-bottom: 4px">📍 香港九龍觀塘</li>
+          </ul>
+          <div style="display: flex; gap: 8px; margin-top: 10px">
+            <a
+              href="https://www.instagram.com/zenpass_hk"
+              style="
+                width: 32px;
+                height: 32px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 50%;
+                background: rgba(255, 255, 255, 0.1);
+                font-size: 14px;
+                text-decoration: none;
+              "
+              >📸</a
+            >
+            <a
+              href="https://www.facebook.com/zenpass.hk"
+              style="
+                width: 32px;
+                height: 32px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 50%;
+                background: rgba(255, 255, 255, 0.1);
+                font-size: 14px;
+                text-decoration: none;
+              "
+              >👍</a
+            >
+            <a
+              href="https://wa.me/85290335538"
+              style="
+                width: 32px;
+                height: 32px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 50%;
+                background: rgba(255, 255, 255, 0.1);
+                font-size: 14px;
+                text-decoration: none;
+              "
+              >💬</a
+            >
+            <a
+              href="https://hklfcl.com"
+              style="
+                width: 32px;
+                height: 32px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 50%;
+                background: rgba(255, 255, 255, 0.1);
+                font-size: 14px;
+                text-decoration: none;
+              "
+              >🏛️</a
+            >
+          </div>
+        </div>
+      </div>
       <div
         style="
-          display: flex;
-          justify-content: center;
-          gap: 16px;
-          margin-bottom: 8px;
+          max-width: 400px;
+          margin: 24px auto 0;
+          padding-top: 16px;
+          border-top: 1px solid rgba(255, 255, 255, 0.1);
+          text-align: center;
+          font-size: 11px;
+          color: rgba(255, 255, 255, 0.3);
         "
       >
-        <a
-          href="/"
-          style="color: #aa3218; text-decoration: none; font-weight: 500"
-          >🏠 首頁</a
-        >
-        <a
-          href="explore.html"
-          style="color: #aa3218; text-decoration: none; font-weight: 500"
-          >📚 課程</a
-        >
-        <a
-          href="my.html"
-          style="color: #aa3218; text-decoration: none; font-weight: 500"
-          >👤 我的</a
-        >
-        <a
-          href="points.html"
-          style="color: #aa3218; text-decoration: none; font-weight: 500"
-          >🎯 積分</a
-        >
+        &copy; 2026 ZenPass 禪流 · 香港康樂及體育有限公司 · All rights reserved.
       </div>
-      © 2026 ZenPass 禪流
-    </div>
+    </footer>
+
+    <button
+      class="back-to-top"
+      id="backToTop"
+      onclick="window.scrollTo({ top: 0, behavior: 'smooth' })"
+      aria-label="返回頂部"
+    >
+      ↑
+    </button>
   </body>
 </html>

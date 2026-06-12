@@ -3,50 +3,29 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
     <meta
       name="apple-mobile-web-app-status-bar-style"
       content="black-translucent"
     />
     <meta name="theme-color" content="#FF6B35" />
+    <meta
+      http-equiv="Cache-Control"
+      content="no-cache, no-store, must-revalidate"
+    />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="-1" />
     <title>付款 — ZenPass 禪流</title>
     <link rel="manifest" href="manifest.json" />
 
-    <link rel="stylesheet" href="css/zenpass.css" />
+    <link rel="stylesheet" href="css/zenpass.css?v=2" />
     <style>
       * {
         margin: 0;
         padding: 0;
         box-sizing: border-box;
       }
-      :root {
-        --orange-500: #ff6b35;
-        --orange-700: #aa3218;
-        --orange-600-bg: #c94420;
-        --orange-400: #ff8555;
-        --orange-100: #fff0e8;
-        --orange-50: #fff8f4;
-        --dark-900: #1a1a2e;
-        --dark-800: #2d2d44;
-        --dark-700: #3d3d5a;
-        --gray-200: #e5e7eb;
-        --gray-300: #d1d5db;
-        --gray-100: #f3f4f6;
-        --gray-50: #f9fafb;
-        --white: #ffffff;
-        --green-500: #059669;
-        --blue-500: #3b82f6;
-        --red-500: #ef4444;
-        --radius-sm: 8px;
-        --radius-md: 12px;
-        --radius-lg: 16px;
-        --radius-xl: 24px;
-        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
-        --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
-        --font-zh: "Noto Sans TC", sans-serif;
-        --max-width: 480px;
-        --nav-height: 64px;
-      }
+
       body {
         font-family: var(--font-zh);
         background: var(--gray-50);
@@ -498,7 +477,78 @@
           max-width: 100% !important;
         }
       }
+
+      /* ===== Payment-specific utilities ===== */
+      .info-tip {
+        padding: 12px;
+        border-radius: var(--radius-sm);
+        line-height: 1.6;
+      }
+      .pay-chip {
+        padding: 8px 16px;
+        border: 1px solid var(--gray-200);
+        border-radius: 20px;
+        background: var(--white);
+        cursor: pointer;
+      }
+      .countdown-banner {
+        font-size: 14px;
+        padding: 12px 16px;
+        border-radius: 12px;
+        transition: all 0.3s;
+      }
+      .promo-input {
+        padding: 8px 10px;
+        border: 1px solid var(--gray-200);
+        border-radius: 6px;
+        font-family: var(--font-zh);
+      }
+      .fee-info {
+        margin-top: 10px;
+        padding: 10px;
+        background: #fef3c7;
+        border-radius: var(--radius-sm);
+        line-height: 1.7;
+      }
+      .qr-frame {
+        width: 120px;
+        height: 120px;
+        background: var(--gray-100);
+        margin: 0 auto;
+        border-radius: 8px;
+      }
+      .qr-wrapper {
+        display: inline-block;
+        margin-top: 12px;
+        padding: 12px;
+        background: white;
+        border-radius: 8px;
+      }
+      .submit-btn {
+        display: block;
+        width: 100%;
+        font-size: 16px;
+        margin-top: 12px;
+        padding: 14px;
+        color: var(--white);
+        background: var(--orange-600-bg);
+        border: none;
+        border-radius: var(--radius-md);
+      }
     </style>
+    <!-- Google tag (gtag.js) -->
+    <script
+      async
+      src="https://www.googletagmanager.com/gtag/js?id=G-MKF5N4YLBM"
+    ></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag() {
+        dataLayer.push(arguments);
+      }
+      gtag("js", new Date());
+      gtag("config", "G-MKF5N4YLBM");
+    </script>
   </head>
   <body>
     <div class="header">
@@ -514,39 +564,28 @@
       <div class="big">⚠️</div>
       <h2>無法載入訂單</h2>
       <p id="error-message">請檢查預約是否有效</p>
-      <a href="my-bookings.html" class="back-btn" style="margin-top: 16px"
-        >📋 查看我的預約</a
-      >
+      <a href="my-bookings.html" class="back-btn">📋 查看我的預約</a>
     </div>
 
     <div id="no-auth-state" class="hidden error-box">
       <div class="big">🔒</div>
       <h2>請先登入</h2>
       <p>需要登入才能付款</p>
-      <a
-        href="login.html?redirect=payment.html"
-        class="back-btn"
-        style="margin-top: 16px"
-        >🔑 登入</a
-      >
+      <a href="login.html?redirect=payment.html" class="back-btn">🔑 登入</a>
     </div>
 
     <div id="pay-page" class="section hidden">
       <div class="card" id="order-card">
         <div
           class="section-title"
-          style="
-            cursor: pointer;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-          "
+          style="cursor: pointer"
           onclick="toggleOrderSummary()"
         >
           <span>📋 訂單摘要</span>
           <span
             id="order-toggle"
-            style="font-size: 12px; color: var(--orange-700)"
+            class="zen-text-xs"
+            style="color: var(--orange-700)"
             >▼ 收起</span
           >
         </div>
@@ -555,7 +594,8 @@
             <span class="label">課程</span
             ><span
               id="order-class"
-              style="text-align: right; flex: 1; padding-left: 12px"
+              class="zen-flex-1"
+              style="text-align: right; padding-left: 12px"
               >—</span
             >
           </div>
@@ -570,9 +610,9 @@
           </div>
           <div class="order-row">
             <span class="label">預約編號</span
-            ><span id="order-ref" style="font-size: 12px">—</span>
+            ><span id="order-ref" class="zen-text-xs">—</span>
           </div>
-          <div class="order-row total" style="margin-top: 8px">
+          <div class="order-row total">
             <span>總金額</span><span id="order-total">—</span>
           </div>
         </div>
@@ -580,35 +620,30 @@
 
       <!-- Security Badges -->
       <div
-        style="
-          display: flex;
-          justify-content: center;
-          gap: 16px;
-          padding: 12px 0;
-          margin-bottom: 8px;
-        "
+        class="zen-flex zen-flex-center zen-gap-lg zen-mb-sm"
+        style="padding: 12px 0"
       >
-        <div style="text-align: center">
+        <div class="zen-text-center">
           <div style="font-size: 24px">🔒</div>
-          <div style="font-size: 10px; color: var(--dark-700); margin-top: 2px">
+          <div class="zen-text-muted zen-text-xs" style="margin-top: 2px">
             SSL 加密傳輸
           </div>
         </div>
-        <div style="text-align: center">
+        <div class="zen-text-center">
           <div style="font-size: 24px">🏦</div>
-          <div style="font-size: 10px; color: var(--dark-700); margin-top: 2px">
+          <div class="zen-text-muted zen-text-xs" style="margin-top: 2px">
             PCI 合規
           </div>
         </div>
-        <div style="text-align: center">
+        <div class="zen-text-center">
           <div style="font-size: 24px">🛡️</div>
-          <div style="font-size: 10px; color: var(--dark-700); margin-top: 2px">
+          <div class="zen-text-muted zen-text-xs" style="margin-top: 2px">
             資料加密
           </div>
         </div>
-        <div style="text-align: center">
+        <div class="zen-text-center">
           <div style="font-size: 24px">🇭🇰</div>
-          <div style="font-size: 10px; color: var(--dark-700); margin-top: 2px">
+          <div class="zen-text-muted zen-text-xs" style="margin-top: 2px">
             香港持牌
           </div>
         </div>
@@ -617,24 +652,15 @@
       <!-- ⏰ 15分鐘倒數提示 -->
       <div
         id="countdown-banner"
-        style="
-          display: none;
-          padding: 12px 16px;
-          border-radius: 12px;
-          margin-bottom: 12px;
-          text-align: center;
-          font-size: 14px;
-          font-weight: 600;
-          transition: all 0.3s;
-        "
+        class="zen-hidden zen-mb-md zen-text-bold zen-text-center countdown-banner"
       >
         <div style="font-size: 28px; margin-bottom: 4px">⏰</div>
         <div id="countdown-text">此位置已為你保留，請儘快完成付款</div>
         <div
           id="countdown-timer"
+          class="zen-text-bold"
           style="
             font-size: 32px;
-            font-weight: 800;
             margin-top: 4px;
             font-variant-numeric: tabular-nums;
           "
@@ -642,64 +668,32 @@
           15:00
         </div>
         <div
-          style="
-            font-size: 11px;
-            font-weight: 400;
-            margin-top: 4px;
-            opacity: 0.7;
-          "
+          class="zen-text-xs"
+          style="font-weight: 400; margin-top: 4px; opacity: 0.7"
         >
           超過時間後位置將自動釋放
         </div>
       </div>
 
       <div class="card">
-        <div
-          style="
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            margin-bottom: 12px;
-          "
-        >
-          <div style="font-size: 13px; font-weight: 600; flex: 1">
-            🎫 優惠碼
-          </div>
-          <div style="display: flex; gap: 6px; flex: 1">
+        <div class="zen-flex zen-gap-sm zen-mb-md">
+          <div class="zen-flex-1 zen-text-bold zen-text-sm">🎫 優惠碼</div>
+          <div class="zen-flex zen-flex-1 zen-gap-sm">
             <input
               type="text"
               id="promo-input"
               placeholder="輸入優惠碼"
-              style="
-                flex: 1;
-                padding: 8px 10px;
-                border: 1px solid var(--gray-200);
-                border-radius: 6px;
-                font-size: 13px;
-                font-family: var(--font-zh);
-              "
+              class="zen-flex-1 zen-text-sm promo-input"
             />
             <button
               onclick="applyPromo()"
-              style="
-                padding: 8px 16px;
-                background: var(--orange-600-bg);
-                color: white;
-                border: none;
-                border-radius: 6px;
-                font-size: 12px;
-                font-weight: 600;
-                cursor: pointer;
-              "
+              class="zen-btn zen-btn-primary zen-btn-small"
             >
               套用
             </button>
           </div>
         </div>
-        <div
-          id="promo-result"
-          style="font-size: 12px; margin-bottom: 8px; display: none"
-        ></div>
+        <div id="promo-result" class="zen-hidden zen-mb-sm zen-text-xs"></div>
         <div class="section-title">💳 付款方式</div>
         <div class="pay-methods">
           <div
@@ -716,14 +710,8 @@
           </div>
           <div class="pay-detail show" id="detail-stripe">
             <div
-              style="
-                padding: 12px;
-                background: var(--orange-50);
-                border-radius: var(--radius-sm);
-                font-size: 13px;
-                line-height: 1.6;
-                color: var(--dark-700);
-              "
+              class="zen-text-muted zen-text-sm info-tip"
+              style="background: var(--orange-50)"
             >
               💳 經 Stripe 安全付款 — 輸入卡號即時付款 🔒
             </div>
@@ -731,28 +719,21 @@
               <div class="form-group">
                 <div
                   id="payment-request-button"
-                  style="display: none; margin-bottom: 12px"
+                  class="zen-hidden zen-mb-md"
                 ></div>
                 <label for="card-element">信用卡資料</label>
                 <div id="card-element"></div>
                 <div id="card-errors" role="alert"></div>
-                <div style="font-size: 11px; color: #9ca3af; margin-top: 6px">
+                <div
+                  class="zen-text-xs"
+                  style="margin-top: 6px; color: #9ca3af"
+                >
                   🔒 支援 Apple Pay · Google Pay · 信用卡
                 </div>
               </div>
             </div>
-            <div
-              id="stripe-fee-info"
-              style="
-                margin-top: 10px;
-                padding: 10px;
-                background: #fef3c7;
-                border-radius: var(--radius-sm);
-                font-size: 12px;
-                line-height: 1.7;
-              "
-            >
-              <div style="font-weight: 600; margin-bottom: 4px">
+            <div id="stripe-fee-info" class="zen-text-xs fee-info">
+              <div class="zen-text-bold" style="margin-bottom: 4px">
                 💰 手續費說明
               </div>
               <div>
@@ -789,43 +770,18 @@
           </div>
           <div class="pay-detail show" id="detail-alipay">
             <div
-              style="
-                padding: 12px;
-                background: #ecfdf5;
-                border-radius: var(--radius-sm);
-                font-size: 13px;
-                line-height: 1.6;
-                color: var(--dark-700);
-                text-align: center;
-              "
+              class="zen-text-center zen-text-muted zen-text-sm info-tip"
+              style="background: #ecfdf5"
             >
-              <div style="font-size: 32px; margin-bottom: 8px">💱</div>
-              <div style="font-weight: 600">支付寶 AlipayHK</div>
-              <div style="font-size: 12px; margin-top: 4px">
+              <div class="zen-mb-sm" style="font-size: 32px">💱</div>
+              <div class="zen-text-bold">支付寶 AlipayHK</div>
+              <div class="zen-text-xs" style="margin-top: 4px">
                 掃描QR Code 即時付款 · 免手續費
               </div>
-              <div
-                style="
-                  margin-top: 12px;
-                  padding: 12px;
-                  background: white;
-                  border-radius: 8px;
-                  display: inline-block;
-                "
-              >
+              <div class="qr-wrapper">
                 <div
-                  style="
-                    width: 120px;
-                    height: 120px;
-                    background: var(--gray-100);
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    margin: 0 auto;
-                    border-radius: 8px;
-                    font-size: 12px;
-                    color: var(--dark-700);
-                  "
+                  class="zen-flex zen-flex-center zen-text-muted zen-text-xs"
+                  class="qr-frame"
                 >
                   QR Code<br />模擬
                 </div>
@@ -846,43 +802,18 @@
           </div>
           <div class="pay-detail" id="detail-wechat">
             <div
-              style="
-                padding: 12px;
-                background: #f0fdf4;
-                border-radius: var(--radius-sm);
-                font-size: 13px;
-                line-height: 1.6;
-                color: var(--dark-700);
-                text-align: center;
-              "
+              class="zen-text-center zen-text-muted zen-text-sm info-tip"
+              style="background: #f0fdf4"
             >
-              <div style="font-size: 32px; margin-bottom: 8px">🟩</div>
-              <div style="font-weight: 600">WeChat Pay HK</div>
-              <div style="font-size: 12px; margin-top: 4px">
+              <div class="zen-mb-sm" style="font-size: 32px">🟩</div>
+              <div class="zen-text-bold">WeChat Pay HK</div>
+              <div class="zen-text-xs" style="margin-top: 4px">
                 掃描QR Code 即時付款 · 免手續費
               </div>
-              <div
-                style="
-                  margin-top: 12px;
-                  padding: 12px;
-                  background: white;
-                  border-radius: 8px;
-                  display: inline-block;
-                "
-              >
+              <div class="qr-wrapper">
                 <div
-                  style="
-                    width: 120px;
-                    height: 120px;
-                    background: var(--gray-100);
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    margin: 0 auto;
-                    border-radius: 8px;
-                    font-size: 12px;
-                    color: var(--dark-700);
-                  "
+                  class="zen-flex zen-flex-center zen-text-muted zen-text-xs"
+                  class="qr-frame"
                 >
                   QR Code<br />模擬
                 </div>
@@ -903,43 +834,18 @@
           </div>
           <div class="pay-detail" id="detail-payme">
             <div
-              style="
-                padding: 12px;
-                background: #fffbeb;
-                border-radius: var(--radius-sm);
-                font-size: 13px;
-                line-height: 1.6;
-                color: var(--dark-700);
-                text-align: center;
-              "
+              class="zen-text-center zen-text-muted zen-text-sm info-tip"
+              style="background: #fffbeb"
             >
-              <div style="font-size: 32px; margin-bottom: 8px">💰</div>
-              <div style="font-weight: 600">PayMe</div>
-              <div style="font-size: 12px; margin-top: 4px">
+              <div class="zen-mb-sm" style="font-size: 32px">💰</div>
+              <div class="zen-text-bold">PayMe</div>
+              <div class="zen-text-xs" style="margin-top: 4px">
                 Scan QR Code 即時付款 · 免手續費
               </div>
-              <div
-                style="
-                  margin-top: 12px;
-                  padding: 12px;
-                  background: white;
-                  border-radius: 8px;
-                  display: inline-block;
-                "
-              >
+              <div class="qr-wrapper">
                 <div
-                  style="
-                    width: 120px;
-                    height: 120px;
-                    background: var(--gray-100);
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    margin: 0 auto;
-                    border-radius: 8px;
-                    font-size: 12px;
-                    color: var(--dark-700);
-                  "
+                  class="zen-flex zen-flex-center zen-text-muted zen-text-xs"
+                  class="qr-frame"
                 >
                   QR Code<br />模擬
                 </div>
@@ -950,20 +856,16 @@
             <h4>📋 轉數快付款資料</h4>
             <div class="info-box">
               <div
+                class="zen-mb-md"
                 style="
-                  background: var(--orange-100);
                   padding: 12px;
+                  background: var(--orange-100);
                   border-radius: var(--radius-sm);
-                  margin-bottom: 12px;
                 "
               >
                 <div
-                  style="
-                    font-size: 13px;
-                    font-weight: 700;
-                    color: var(--orange-700);
-                    margin-bottom: 8px;
-                  "
+                  class="zen-mb-sm zen-text-bold zen-text-sm"
+                  style="color: var(--orange-700)"
                 >
                   🏦 轉數快資料
                 </div>
@@ -994,7 +896,7 @@
                     >Hong Kong Leisure and Fitness Company Limited</span
                   >
                 </div>
-                <div style="font-size: 12px; color: var(--dark-700); margin: 0">
+                <div class="zen-text-muted zen-text-xs" style="margin: 0">
                   香港康樂及體育有限公司
                 </div>
               </div>
@@ -1009,240 +911,111 @@
               />
             </div>
             <div
-              style="
-                font-size: 12px;
-                color: var(--dark-700);
-                margin-top: 8px;
-                padding: 8px;
-                background: #f0fff0;
-                border-radius: var(--radius-sm);
-              "
+              class="zen-mt-sm zen-p-sm zen-text-muted zen-text-xs"
+              style="background: #f0fff0; border-radius: var(--radius-sm)"
             >
-              ✅ 轉賬後輸入參考編號，按「確認付款」即可即時確認
+              ✅
+              轉賬後輸入參考編號，按「確認付款」提交資料，管理員確認後預約生效
             </div>
           </div>
 
-          <div
-            class="pay-option"
-            onclick="selectMethod('payme', this)"
-            id="payme-option"
-          >
-            <div class="icon">📱</div>
-            <div class="info">
-              <div class="name">PayMe</div>
-              <div class="desc">HSBC PayMe · 即時過數 · 免手續費</div>
-            </div>
-            <div class="check">✓</div>
-          </div>
-          <div class="pay-detail" id="detail-payme">
-            <h4>📋 PayMe 付款資料</h4>
-            <div class="info-box">
-              <div
-                style="
-                  background: var(--orange-100);
-                  padding: 12px;
-                  border-radius: var(--radius-sm);
-                  margin-bottom: 12px;
-                "
-              >
-                <div
-                  style="
-                    font-size: 13px;
-                    font-weight: 700;
-                    color: var(--orange-700);
-                    margin-bottom: 8px;
-                  "
-                >
-                  📱 PayMe 資料
-                </div>
-                <div class="field">
-                  <span>PayMe 電話</span
-                  ><span class="val" style="font-size: 16px"
-                    >9492 5828
-                    <button class="copy-btn" onclick="copyText('94925828')">
-                      📋 複製
-                    </button></span
-                  >
-                </div>
-                <div class="field">
-                  <span>收款名稱</span
-                  ><span class="val"
-                    >Hong Kong Leisure and Fitness Company Limited</span
-                  >
-                </div>
-                <div
-                  style="
-                    font-size: 12px;
-                    color: var(--dark-700);
-                    margin: 0 0 4px 0;
-                  "
-                >
-                  香港康樂及體育有限公司
-                </div>
-                <div
-                  class="qr-placeholder"
-                  style="border: none; padding: 0; height: auto"
-                >
-                  <img
-                    src="assets/payme-qr.jpg"
-                    alt="PayMe QR Code"
-                    style="
-                      width: 100%;
-                      max-width: 240px;
-                      display: block;
-                      margin: 0 auto;
-                      border-radius: var(--radius-md);
-                      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-                    "
-                  />
-                  <a
-                    href="https://qr.payme.hsbc.com.hk/2/8EKv4B8usVVSSdf2YzLSkm"
-                    target="_blank"
-                    style="
-                      display: block;
-                      text-align: center;
-                      margin-top: 12px;
-                      padding: 14px;
-                      background: var(--orange-600-bg);
-                      color: var(--white);
-                      text-decoration: none;
-                      border-radius: var(--radius-sm);
-                      font-size: 16px;
-                      font-weight: 700;
-                    "
-                  >
-                    📱 按此打開 PayMe 付款
-                  </a>
-                  <div
-                    style="
-                      text-align: center;
-                      margin-top: 6px;
-                      font-size: 11px;
-                      color: var(--dark-700);
-                    "
-                  >
-                    或用手機掃描上方 QR Code
-                  </div>
-                </div>
-              </div>
-            </div>
-            <h4>📎 輸入 PayMe 參考編號</h4>
-            <div class="ref-input-group">
-              <input
-                type="text"
-                id="payme-ref-input"
-                placeholder="輸入 PayMe 交易參考編號"
-                maxlength="50"
-              />
-            </div>
-            <div
-              style="
-                font-size: 12px;
-                color: var(--dark-700);
-                margin-top: 8px;
-                padding: 8px;
-                background: #f0fff0;
-                border-radius: var(--radius-sm);
-              "
-            >
-              ✅ 付款後輸入參考編號，按「確認付款」即可即時確認
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div
-        style="
-          position: sticky;
-          bottom: 70px;
-          z-index: 100;
-          background: var(--white);
-          padding: 8px 0 0;
-        "
-      >
-        <button class="pay-btn" id="pay-button" onclick="processPayment()">
-          💳 付款
-        </button>
-      </div>
-
-      <div id="success-page" class="section hidden">
-        <div class="success-screen">
-          <div class="big">🎉</div>
-          <h2>付款成功！</h2>
-          <p id="success-detail">預約已確認，記住準時出席課堂！</p>
-          <div class="ref">預約編號：<span id="success-ref">—</span></div>
-          <div
-            style="margin-top: 8px; font-size: 13px; color: var(--dark-700)"
-            id="success-class-info"
-          ></div>
-          <div
-            style="
-              display: flex;
-              gap: 8px;
-              margin: 16px 0;
-              flex-wrap: wrap;
-              justify-content: center;
-            "
-          >
-            <button
-              onclick="addToCalendar()"
-              style="
-                padding: 8px 16px;
-                border: 1px solid var(--gray-200);
-                border-radius: 20px;
-                background: var(--white);
-                font-size: 12px;
-                cursor: pointer;
-                font-family: var(--font-zh);
-              "
-            >
-              📅 加到日曆
-            </button>
-            <button
-              onclick="shareSuccess()"
-              style="
-                padding: 8px 16px;
-                border: 1px solid var(--gray-200);
-                border-radius: 20px;
-                background: var(--white);
-                font-size: 12px;
-                cursor: pointer;
-                font-family: var(--font-zh);
-              "
-            >
-              📤 分享俾朋友
-            </button>
-            <button
-              onclick="downloadReceipt()"
-              style="
-                padding: 8px 16px;
-                border: 1px solid var(--gray-200);
-                border-radius: 20px;
-                background: var(--white);
-                font-size: 12px;
-                cursor: pointer;
-                font-family: var(--font-zh);
-              "
-            >
-              📋 下載收據
-            </button>
-          </div>
-          <a href="my-bookings.html" class="back-btn">📋 查看我的預約</a>
-          <br />
+          <!-- PayMe duplicate removed — consolidated into pay-methods section above -->
           <a
-            href="explore.html"
-            class="back-btn secondary"
+            href="https://qr.payme.hsbc.com.hk/2/8EKv4B8usVVSSdf2YzLSkm"
+            target="_blank"
+            class="zen-text-bold zen-text-center submit-btn"
             style="
-              margin-top: 8px;
-              display: inline-block;
-              padding: 10px 24px;
-              background: transparent;
-              color: var(--dark-700);
-              font-size: 13px;
+              background: var(--orange-600-bg);
+              text-decoration: none;
+              border-radius: var(--radius-sm);
             "
-            >🔍 探索更多課程</a
           >
+            📱 按此打開 PayMe 付款
+          </a>
+          <div
+            class="zen-text-center zen-text-muted zen-text-xs"
+            style="margin-top: 6px"
+          >
+            或用手機掃描上方 QR Code
+          </div>
+          <h4>📎 輸入 PayMe 參考編號</h4>
+          <div class="ref-input-group">
+            <input
+              type="text"
+              id="payme-ref-input"
+              placeholder="輸入 PayMe 交易參考編號"
+              maxlength="50"
+            />
+          </div>
+          <div
+            class="zen-mt-sm zen-p-sm zen-text-muted zen-text-xs"
+            style="background: #f0fff0; border-radius: var(--radius-sm)"
+          >
+            ✅ 付款後輸入參考編號，按「確認付款」提交資料，管理員確認後預約生效
+          </div>
         </div>
+      </div>
+    </div>
+
+    <div
+      class="zen-buy-bar"
+      style="
+        padding: 8px 0 0;
+        position: sticky;
+        bottom: 70px;
+        z-index: 100;
+        background: var(--white);
+      "
+    >
+      <button class="pay-btn" id="pay-button" onclick="processPayment()">
+        💳 付款
+      </button>
+    </div>
+
+    <div id="success-page" class="section hidden">
+      <div class="success-screen">
+        <div class="big">🎉</div>
+        <h2>付款成功！</h2>
+        <p id="success-detail">預約已確認，記住準時出席課堂！</p>
+        <div class="ref">預約編號：<span id="success-ref">—</span></div>
+        <div
+          class="zen-mt-sm zen-text-muted zen-text-sm"
+          id="success-class-info"
+        ></div>
+        <div
+          class="zen-flex zen-flex-center zen-flex-wrap zen-gap-sm"
+          style="margin-top: 16px; margin-bottom: 16px"
+        >
+          <button
+            onclick="addToCalendar()"
+            class="zen-text-xs pay-chip"
+            style="cursor: pointer; font-family: var(--font-zh)"
+          >
+            📅 加到日曆
+          </button>
+          <button
+            onclick="shareSuccess()"
+            class="zen-text-xs pay-chip"
+            style="cursor: pointer; font-family: var(--font-zh)"
+          >
+            📤 分享俾朋友
+          </button>
+          <button
+            onclick="downloadReceipt()"
+            class="zen-text-xs pay-chip"
+            style="cursor: pointer; font-family: var(--font-zh)"
+          >
+            📋 下載收據
+          </button>
+        </div>
+        <a href="my-bookings.html" class="back-btn">📋 查看我的預約</a>
+        <br />
+        <a
+          href="explore.html"
+          class="back-btn secondary"
+          style="display: inline-block; background: transparent"
+          >🔍 探索更多課程</a
+        >
       </div>
     </div>
     <nav class="bottom-nav">
@@ -1399,7 +1172,28 @@
           Object.assign({}, opts, {
             headers: Object.assign({}, headers, (opts && opts.headers) || {}),
           }),
-        );
+        ).then(function (resp) {
+          // Token expired → redirect to login
+          if (resp.status === 401) {
+            resp
+              .clone()
+              .json()
+              .then(function (data) {
+                if (
+                  data.error &&
+                  (data.error.includes("認證無效") ||
+                    data.error.includes("過期"))
+                ) {
+                  localStorage.removeItem("zenpass_token");
+                  window.location.href =
+                    "login.html?redirect=" +
+                    encodeURIComponent(window.location.href);
+                }
+              })
+              .catch(function () {});
+          }
+          return resp;
+        });
       }
 
       function toggleOrderSummary() {
@@ -1594,6 +1388,50 @@
           document.getElementById("card-element").style.display = "none";
           paymentAmount = parseFloat(posAmount);
           selectedMethod = "fps"; // Default to FPS
+          return;
+        }
+
+        // Membership purchase - support type=membership from membership.html
+        if (payType === "membership") {
+          var mbPlan = params.get("plan") || "";
+          var mbAmount = parseFloat(params.get("amount")) || 0;
+          var mbItem = params.get("item") || "會籍";
+          var MB_PLAN_NAMES = {
+            lite: "輕量 Pass",
+            standard: "標準 Pass",
+            silver: "高階 Pass",
+            gold: "VIP Pass",
+          };
+          var MB_CREDITS = { lite: 37, standard: 100, silver: 237, gold: 362 };
+
+          paymentAmount = mbAmount;
+          window._pendingMembership = {
+            plan: mbPlan,
+            amount: mbAmount,
+            item: mbItem,
+            credits: MB_CREDITS[mbPlan] || 0,
+          };
+
+          document.getElementById("loading-state").classList.add("hidden");
+          document.getElementById("pay-page").classList.remove("hidden");
+          document.getElementById("page-title").textContent = "💎 " + mbItem;
+          document.getElementById("order-class").textContent = mbItem;
+          document.getElementById("order-date").textContent = "—";
+          document.getElementById("order-date").style.display = "none";
+          document.getElementById("order-time").textContent = "—";
+          document.getElementById("order-time").style.display = "none";
+          document.getElementById("order-venue").textContent = "—";
+          document.getElementById("order-venue").style.display = "none";
+          document.getElementById("order-ref").textContent = "—";
+          document.getElementById("order-ref").style.display = "none";
+          document.getElementById("order-total").textContent = "HK$" + mbAmount;
+          document.getElementById("card-element").style.display = "";
+
+          var payBtn = document.getElementById("pay-button");
+          payBtn.textContent = "💎 訂閱 " + mbItem + " — HK$" + mbAmount;
+
+          selectedMethod = "stripe";
+          initStripe();
           return;
         }
 
@@ -1845,6 +1683,29 @@
           setTimeout(function () {
             window.location.href = "my.html";
           }, 1500);
+        } else if (window._pendingMembership) {
+          // Membership purchase flow
+          try {
+            var mbResp = await apiFetch("/memberships/subscribe", {
+              method: "POST",
+              body: JSON.stringify({
+                type: window._pendingMembership.plan,
+                payment_method: paymentMethod,
+              }),
+            });
+            if (mbResp.ok) {
+              showToast(
+                "✅ " + window._pendingMembership.item + " 訂閱成功！",
+                "success",
+              );
+            }
+          } catch (e) {
+            console.error("Membership API error:", e);
+          }
+          window._pendingMembership = null;
+          setTimeout(function () {
+            window.location.href = "my.html";
+          }, 1500);
         } else if (bookingId) {
           // Normal booking flow - redirect to my-bookings
           setTimeout(function () {
@@ -1965,12 +1826,13 @@
           return;
         }
         // Credits purchase flow - no booking to confirm
-        if (window._pendingCredits) {
+        // Membership or Credits purchase - no booking to confirm
+        if (window._pendingMembership || window._pendingCredits) {
           showToast("付款成功！", "success");
           await finalizePayment("fps", ref);
           btn.disabled = false;
           btn.classList.remove("loading");
-          btn.textContent = "\U0001f3e6 確認 FPS 付款 — HK$" + paymentAmount;
+          btn.textContent = "🏦 確認 FPS 付款 — HK$" + paymentAmount;
           return;
         }
         try {
@@ -1985,7 +1847,7 @@
             }),
           });
           if (resp.ok) {
-            showToast("付款成功！", "success");
+            showToast("✅ 付款資料已提交，等待管理員確認", "success");
             await finalizePayment("fps", ref);
           } else {
             var err = await resp.json();
@@ -1996,7 +1858,7 @@
         }
         btn.disabled = false;
         btn.classList.remove("loading");
-        btn.textContent = "\U0001f3e6 確認 FPS 付款 — HK$" + paymentAmount;
+        btn.textContent = "🏦 確認 FPS 付款 — HK$" + paymentAmount;
       }
 
       // --- PayMe ---
@@ -2009,8 +1871,8 @@
           btn.textContent = "📱 確認 PayMe 付款 — HK$" + paymentAmount;
           return;
         }
-        // Credits purchase flow - no booking to confirm
-        if (window._pendingCredits) {
+        // Membership or Credits purchase - no booking to confirm
+        if (window._pendingMembership || window._pendingCredits) {
           showToast("付款成功！", "success");
           await finalizePayment("payme", ref);
           btn.disabled = false;
@@ -2030,7 +1892,7 @@
             }),
           });
           if (resp.ok) {
-            showToast("付款成功！", "success");
+            showToast("✅ 付款資料已提交，等待管理員確認", "success");
             await finalizePayment("payme", ref);
           } else {
             var err = await resp.json();
@@ -2046,8 +1908,8 @@
 
       // ===== Confirm Booking After Payment =====
       async function confirmBooking(paymentMethod, paymentReference) {
-        // Credits purchase flow - skip booking confirmation
-        if (window._pendingCredits) {
+        // Membership or Credits purchase - skip booking confirmation
+        if (window._pendingMembership || window._pendingCredits) {
           await finalizePayment(paymentMethod, paymentReference);
           return;
         }
@@ -2160,52 +2022,259 @@
       });
     </script>
 
-    <div
-      class="zen-footer"
-      style="
-        text-align: center;
-        padding: 20px 16px;
-        margin-top: 24px;
-        border-top: 1px solid #e5e7eb;
-        font-size: 12px;
-        color: #6b7280;
-      "
-    >
+    <style>
+      .back-to-top {
+        position: fixed;
+        bottom: 80px;
+        right: 16px;
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        background: var(--orange-600-bg, #c94420);
+        color: #fff;
+        border: none;
+        font-size: 20px;
+        cursor: pointer;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+        z-index: 999;
+        opacity: 0;
+        transform: translateY(20px);
+        transition:
+          opacity 0.3s,
+          transform 0.3s;
+        pointer-events: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .back-to-top.visible {
+        opacity: 1;
+        transform: translateY(0);
+        pointer-events: auto;
+      }
+      .back-to-top:hover {
+        background: #aa3218;
+      }
+    </style>
+    <!-- 統一頁腳 Canonical (以原版首頁為標準) -->
+    <style>
+      .footer-grad {
+        background: linear-gradient(
+          135deg,
+          #1a1a2e 0%,
+          #2d2d44 50%,
+          #c94420 100%
+        );
+      }
+      .footer-grad .footer-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+        max-width: 400px;
+        margin: 0 auto;
+      }
+      @media (min-width: 768px) {
+        .footer-grad .footer-grid {
+          grid-template-columns: 1fr 1fr 1fr 1fr;
+          max-width: 720px;
+        }
+      }
+      .footer-grad .footer-section-title {
+        color: rgba(255, 255, 255, 0.5);
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 10px;
+      }
+      .footer-grad ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+      .footer-grad li {
+        margin-bottom: 6px;
+      }
+      .footer-link {
+        color: rgba(255, 255, 255, 0.6);
+        text-decoration: none;
+        transition: color 0.2s;
+        font-size: 13px;
+      }
+      .footer-link:hover {
+        color: white;
+      }
+      .back-to-top {
+        position: fixed;
+        bottom: 80px;
+        right: 16px;
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        background: var(--orange-600-bg, #c94420);
+        color: #fff;
+        border: none;
+        font-size: 20px;
+        cursor: pointer;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+        z-index: 999;
+        opacity: 0;
+        transform: translateY(20px);
+        transition:
+          opacity 0.3s,
+          transform 0.3s;
+        pointer-events: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .back-to-top.visible {
+        opacity: 1;
+        transform: translateY(0);
+        pointer-events: auto;
+      }
+      .back-to-top:hover {
+        background: #aa3218;
+      }
+    </style>
+
+    <footer class="footer-grad">
+      <div class="footer-grid">
+        <div style="grid-column: span 2">
+          <div
+            style="
+              color: white;
+              font-weight: 700;
+              font-size: 14px;
+              margin-bottom: 6px;
+            "
+          >
+            🧘 ZenPass 禪流
+          </div>
+          <div
+            style="
+              font-size: 12px;
+              line-height: 1.6;
+              color: rgba(255, 255, 255, 0.6);
+            "
+          >
+            一個Pass，通行全城運動體驗。<br />香港康樂及體育有限公司
+          </div>
+        </div>
+        <div>
+          <div class="footer-section-title">探索</div>
+          <ul>
+            <li><a href="explore.html" class="footer-link">探索課程</a></li>
+            <li><a href="coaches.html" class="footer-link">星級教練</a></li>
+            <li><a href="membership.html" class="footer-link">會籍方案</a></li>
+            <li><a href="coach-apply.html" class="footer-link">成為教練</a></li>
+            <li>
+              <a href="partner-apply.html" class="footer-link">場地加盟</a>
+            </li>
+          </ul>
+        </div>
+        <div>
+          <div class="footer-section-title">支援</div>
+          <ul>
+            <li><a href="faq.html" class="footer-link">常見問題</a></li>
+            <li><a href="privacy.html" class="footer-link">私隱政策</a></li>
+            <li><a href="terms.html" class="footer-link">服務條款</a></li>
+            <li><a href="about.html" class="footer-link">關於我們</a></li>
+          </ul>
+        </div>
+        <div>
+          <div class="footer-section-title">聯絡我們</div>
+          <ul>
+            <li style="margin-bottom: 4px">📧 support@zenpass.hk</li>
+            <li style="margin-bottom: 4px">📞 2387 0724</li>
+            <li style="margin-bottom: 4px">📍 香港九龍觀塘</li>
+          </ul>
+          <div style="display: flex; gap: 8px; margin-top: 10px">
+            <a
+              href="https://www.instagram.com/zenpass_hk"
+              style="
+                width: 32px;
+                height: 32px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 50%;
+                background: rgba(255, 255, 255, 0.1);
+                font-size: 14px;
+                text-decoration: none;
+              "
+              >📸</a
+            >
+            <a
+              href="https://www.facebook.com/zenpass.hk"
+              style="
+                width: 32px;
+                height: 32px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 50%;
+                background: rgba(255, 255, 255, 0.1);
+                font-size: 14px;
+                text-decoration: none;
+              "
+              >👍</a
+            >
+            <a
+              href="https://wa.me/85290335538"
+              style="
+                width: 32px;
+                height: 32px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 50%;
+                background: rgba(255, 255, 255, 0.1);
+                font-size: 14px;
+                text-decoration: none;
+              "
+              >💬</a
+            >
+            <a
+              href="https://hklfcl.com"
+              style="
+                width: 32px;
+                height: 32px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 50%;
+                background: rgba(255, 255, 255, 0.1);
+                font-size: 14px;
+                text-decoration: none;
+              "
+              >🏛️</a
+            >
+          </div>
+        </div>
+      </div>
       <div
         style="
-          display: flex;
-          justify-content: center;
-          gap: 16px;
-          margin-bottom: 8px;
+          max-width: 400px;
+          margin: 24px auto 0;
+          padding-top: 16px;
+          border-top: 1px solid rgba(255, 255, 255, 0.1);
+          text-align: center;
+          font-size: 11px;
+          color: rgba(255, 255, 255, 0.3);
         "
       >
-        <a
-          href="/"
-          style="color: #aa3218; text-decoration: none; font-weight: 500"
-          >🏠 首頁</a
-        >
-        <a
-          href="explore.html"
-          style="color: #aa3218; text-decoration: none; font-weight: 500"
-          >📚 課程</a
-        >
-        <a
-          href="my.html"
-          style="color: #aa3218; text-decoration: none; font-weight: 500"
-          >👤 我的</a
-        >
-        <a
-          href="points.html"
-          style="color: #aa3218; text-decoration: none; font-weight: 500"
-          >🎯 積分</a
-        >
+        &copy; 2026 ZenPass 禪流 · 香港康樂及體育有限公司 · All rights reserved.
       </div>
-      © 2026 ZenPass 禪流
-    </div>
-    <script>
-      if ("serviceWorker" in navigator) {
-        navigator.serviceWorker.register("sw.js");
-      }
-    </script>
+    </footer>
+
+    <button
+      class="back-to-top"
+      id="backToTop"
+      onclick="window.scrollTo({ top: 0, behavior: 'smooth' })"
+      aria-label="返回頂部"
+    >
+      ↑
+    </button>
   </body>
 </html>

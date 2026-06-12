@@ -3,6 +3,16 @@
  * 連接前端與後端的橋樑
  */
 
+// ===== Global Utility Helpers =====
+function escHtml(s) {
+  if (!s) return "";
+  return String(s)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
 // ===== Name-keyed Storage Helper =====
 function zpKey(baseKey) {
   var name = localStorage.getItem("zenpass_name") || "default";
@@ -41,6 +51,14 @@ const API_BASE = (() => {
   // In that case, the courses.json fallback kicks in for read-only viewing
   return "/api";
 })();
+
+// ===== OAuth Config (injected via login.html or .env) =====
+// Set these before GIS/Apple SDK loads
+window.ZENPASS_GOOGLE_CLIENT_ID = window.ZENPASS_GOOGLE_CLIENT_ID || "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com";
+window.ZENPASS_APPLE_CLIENT_ID = window.ZENPASS_APPLE_CLIENT_ID || "YOUR_APPLE_CLIENT_ID";
+
+// Store Apple client ID for login.html usage
+localStorage.setItem("zenpass_apple_client_id", window.ZENPASS_APPLE_CLIENT_ID);
 
 // ===== Backend Health Check (for GitHub Pages) =====
 var BACKEND_ONLINE = true;
@@ -195,6 +213,18 @@ async function apiRequest(method, path, data = null) {
     const result = await response.json();
 
     if (!response.ok) {
+      // Token expired / auth invalid → auto redirect to login
+      if (
+        response.status === 401 ||
+        (result.error &&
+          (result.error.includes("認證無效") || result.error.includes("過期")))
+      ) {
+        var redirectUrl = window.location.href;
+        localStorage.removeItem("zenpass_token");
+        window.location.href =
+          "login.html?redirect=" + encodeURIComponent(redirectUrl);
+        return;
+      }
       throw new Error(result.error || `請求失敗 (${response.status})`);
     }
 
@@ -205,6 +235,13 @@ async function apiRequest(method, path, data = null) {
       err.message.includes("NetworkError")
     ) {
       throw new Error("無法連接到伺服器，請檢查網絡連線");
+    }
+    if (err.message.includes("認證無效") || err.message.includes("過期")) {
+      var redirectUrl = window.location.href;
+      localStorage.removeItem("zenpass_token");
+      window.location.href =
+        "login.html?redirect=" + encodeURIComponent(redirectUrl);
+      return;
     }
     throw err;
   }
@@ -422,7 +459,7 @@ const classes = {
       var data = await fetchCoursesJson();
       var cats = extractCategories(data);
       if (cats.length === 0) {
-                cats = [
+        cats = [
           { category: "瑜伽", count: 1 },
           { category: "健身", count: 1 },
           { category: "伸展", count: 1 },
@@ -478,7 +515,7 @@ const memberships = {
   subscribe: (data) => apiRequest("POST", "/memberships/subscribe", data),
   my: () => apiRequest("GET", "/memberships/my"),
   credits: (data) => apiRequest("POST", "/memberships/credits", data),
-  packages: () => apiRequest("GET", "/memberships/credits/packages"),
+  packages: () => apiRequest("GET", "/pricing/packages"),
 };
 
 // ===== 用戶 API =====
@@ -710,13 +747,24 @@ function showLoginModal(callback) {
     }
   };
 
-  // Social login placeholder
+  // Social login — Google / Apple
   overlay.querySelectorAll(".zen-btn-social").forEach((btn) => {
-    btn.onclick = () => {
-      showToast(
-        `${btn.dataset.provider === "apple" ? "Apple" : "Google"} 登入將在正式部署後啟用`,
-        "info",
-      );
+    btn.onclick = async function () {
+      var provider = this.dataset.provider;
+      if (provider === "google") {
+        // Trigger Google Sign-In popup via GIS
+        if (typeof google !== "undefined" && google.accounts) {
+          google.accounts.id.prompt(function (notification) {
+            if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+              showToast("Google 登入視窗未能顯示，請檢查瀏覽器設定", "warning");
+            }
+          });
+        } else {
+          showToast("Google SDK 尚未載入，請刷新頁面", "info");
+        }
+      } else if (provider === "apple") {
+        showToast("Apple 登入請到 login.html 頁面操作", "info");
+      }
     };
   });
 }
@@ -845,18 +893,36 @@ function logout() {
   }
 })();
 
+// ===== Unregister Service Worker to prevent stale cache =====
+(function () {
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.getRegistrations().then(function (regs) {
+      regs.forEach(function (reg) {
+        reg.unregister();
+      });
+    });
+  }
+})();
+
 // ===== Google Analytics 4 (pages that include api.js get GA automatically) =====
-// TODO: 註冊 Google Analytics 後，將 G-XXXXXXXX 替換為實際的 Measurement ID
-(function() {
-  if (window.gtag || document.querySelector('script[src*="googletagmanager.com/gtag/js"]')) return;
-  var s = document.createElement('script');
+// Measurement ID: G-MKF5N4YLBM — 由 David Choy 開通
+(function () {
+  var gaId = "G-MKF5N4YLBM";
+  if (
+    window.gtag ||
+    document.querySelector('script[src*="googletagmanager.com/gtag/js"]')
+  )
+    return;
+  var s = document.createElement("script");
   s.async = true;
-  s.src = 'https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXX';
+  s.src = "https://www.googletagmanager.com/gtag/js?id=" + gaId;
   document.head.appendChild(s);
   window.dataLayer = window.dataLayer || [];
-  window.gtag = function(){dataLayer.push(arguments);};
-  gtag('js', new Date());
-  gtag('config', 'G-XXXXXXXX');
+  window.gtag = function () {
+    dataLayer.push(arguments);
+  };
+  gtag("js", new Date());
+  gtag("config", gaId);
 })();
 
 // ===== Init on load =====

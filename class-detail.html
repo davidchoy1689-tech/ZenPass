@@ -4,12 +4,18 @@
     <meta charset="UTF-8" />
     <link rel="icon" href="favicon.png" type="image/png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
     <meta
       name="apple-mobile-web-app-status-bar-style"
       content="black-translucent"
     />
     <meta name="theme-color" content="#f06030" />
+    <meta
+      http-equiv="Cache-Control"
+      content="no-cache, no-store, must-revalidate"
+    />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="-1" />
     <title>課程詳情 — ZenPass 禪流</title>
     <meta property="og:title" content="課程詳情 — ZenPass 禪流" />
     <meta
@@ -36,50 +42,8 @@
       })();
     </script>
 
-    <link rel="stylesheet" href="css/zenpass.css" />
+    <link rel="stylesheet" href="css/zenpass.css?v=2" />
     <style>
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-      }
-      :root {
-        --orange-500: #f06030;
-        --orange-700: #aa3218;
-        --orange-600-bg: #c94420;
-        --orange-400: #ff8555;
-        --orange-300: #ffa075;
-        --orange-100: #fff0e8;
-        --orange-50: #fff8f4;
-        --dark-900: #1a1a2e;
-        --dark-800: #2d2d44;
-        --dark-700: #3d3d5a;
-        --gray-300: #888;
-        --gray-200: #e5e7eb;
-        --gray-100: #f3f4f6;
-        --gray-50: #f9fafb;
-        --white: #ffffff;
-        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
-        --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
-        --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.12);
-        --radius-sm: 8px;
-        --radius-md: 12px;
-        --radius-lg: 16px;
-        --radius-xl: 24px;
-        --font-en: "Inter", sans-serif;
-        --font-zh: "Noto Sans TC", sans-serif;
-        --max-width: 480px;
-        --nav-height: 64px;
-      }
-      body {
-        font-family: var(--font-zh);
-        background: var(--gray-50);
-        color: var(--dark-900);
-        max-width: var(--max-width);
-        margin: 0 auto;
-        padding-bottom: calc(var(--nav-height) + 20px);
-        -webkit-font-smoothing: antialiased;
-      }
       .class-image {
         width: 100%;
         height: 240px;
@@ -409,58 +373,9 @@
         cursor: not-allowed;
         box-shadow: none;
       }
-      .bottom-nav {
-        position: fixed;
-        bottom: 0;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 100%;
-        max-width: var(--max-width);
-        background: var(--white);
-        border-top: 1px solid var(--gray-200);
-        display: flex;
-        justify-content: space-around;
-        padding: 8px 0 calc(8px + env(safe-area-inset-bottom));
-        z-index: 99;
-        box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
-      }
-      .nav-item {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        text-decoration: none;
-        color: var(--gray-300);
-        font-size: 10px;
-        gap: 2px;
-        padding: 4px 12px;
-        transition: color 0.2s;
-      }
-      .nav-item.active {
-        color: var(--orange-700);
-      }
-      .nav-item .nav-icon {
-        font-size: 22px;
-        line-height: 1;
-      }
       .loading {
         text-align: center;
         padding: 60px 20px;
-      }
-      .loading::after {
-        content: "";
-        display: block;
-        width: 40px;
-        height: 40px;
-        margin: 12px auto;
-        border: 3px solid var(--gray-200);
-        border-top-color: var(--orange-700);
-        border-radius: 50%;
-        animation: spin 0.8s linear infinite;
-      }
-      @keyframes spin {
-        to {
-          transform: rotate(360deg);
-        }
       }
       .error-page {
         text-align: center;
@@ -521,184 +436,29 @@
         .detail-price {
           font-size: 22px;
         }
-      }
-
-      @media (max-width: 768px) {
-        .detail-wrap {
-          padding: 12px;
+        .class-image {
+          height: 180px;
+          font-size: 48px;
         }
-        .detail-header {
-          flex-direction: column;
-          gap: 8px;
+        .class-image .back-btn {
+          top: 8px;
+          left: 8px;
+          width: 32px;
+          height: 32px;
+          font-size: 16px;
         }
-        .detail-header h1 {
-          font-size: 22px;
+        .content {
+          padding: 12px 12px;
         }
-        .detail-meta {
-          flex-wrap: wrap;
-          gap: 6px;
-        }
-        .detail-meta span {
-          font-size: 12px;
-        }
-        .detail-section {
-          padding: 14px;
-        }
-        .coach-card {
-          flex-direction: column;
-          text-align: center;
-        }
-        .action-bar {
-          flex-direction: column;
-          gap: 8px;
-        }
-        .action-bar .btn {
-          width: 100%;
-          text-align: center;
-        }
-      }
-      @media (max-width: 480px) {
-        .detail-header h1 {
-          font-size: 18px;
-        }
-        .detail-price {
-          font-size: 22px;
-        }
-        @media (max-width: 480px) {
-          .class-image {
-            height: 180px;
-            font-size: 48px;
-          }
-
-          .wishlist-btn {
-            position: absolute;
-            top: 16px;
-            right: 16px;
-            z-index: 10;
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: rgba(0, 0, 0, 0.3);
-            color: white;
-            border: none;
-            font-size: 20px;
-            cursor: pointer;
-            backdrop-filter: blur(4px);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-          }
-          @media (max-width: 480px) {
-            .wishlist-btn {
-              top: 8px;
-              right: 8px;
-              width: 32px;
-              height: 32px;
-              font-size: 16px;
-            }
-          }
-
-          .class-image .back-btn {
-            top: 8px;
-            left: 8px;
-            width: 32px;
-            height: 32px;
-            font-size: 16px;
-          }
-          .content {
-            padding: 12px 12px;
-          }
-          .schedule-item {
-            padding: 10px;
-          }
-        }
-      }
-
-      /* Desktop: expand content beyond mobile width */
-      @media (min-width: 768px) {
-        body {
-          max-width: 100% !important;
-        }
-      }
-
-      /* Page fade-in animation */
-      @keyframes fadeIn {
-        from {
-          opacity: 0;
-          transform: translateY(8px);
-        }
-        to {
-          opacity: 1;
-          transform: translateY(0);
-        }
-      }
-      body {
-        animation: fadeIn 0.4s ease-out;
-      }
-
-      /* Card hover effects */
-      .class-card:hover,
-      .course-card:hover,
-      .reward-card:hover,
-      .tier-card:hover,
-      .badge-item:hover,
-      .booking-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        transition: all 0.2s ease;
-      }
-      .class-card,
-      .course-card,
-      .reward-card,
-      .tier-card,
-      .badge-item,
-      .booking-card {
-        transition: all 0.2s ease;
-      }
-
-      /* Button hover enhancement */
-      button:hover,
-      .btn:hover,
-      .action-btn:hover:not(:disabled) {
-        opacity: 0.9;
-        transform: translateY(-1px);
-        transition: all 0.15s ease;
-      }
-      button,
-      .btn,
-      .action-btn {
-        transition: all 0.15s ease;
-      }
-
-      /* Unified spinner */
-      .loading-spinner {
-        display: inline-block;
-        width: 24px;
-        height: 24px;
-        border: 3px solid var(--gray-200, #e5e7eb);
-        border-top: 3px solid var(--orange-500, #f06030);
-        border-radius: 50%;
-        animation: spin 0.8s linear infinite;
-      }
-      @keyframes spin {
-        to {
-          transform: rotate(360deg);
+        .schedule-item {
+          padding: 10px;
         }
       }
     </style>
 
     <!-- 相似課程推薦 -->
-    <div
-      class="detail-section"
-      id="recommendedSection"
-      style="display: none; margin-top: 16px"
-    >
-      <h3
-        class="section-title"
-        style="font-size: 16px; font-weight: 700; margin-bottom: 12px"
-      >
-        🔥 你可能也喜歡
-      </h3>
+    <div class="detail-section zen-hidden zen-mt-md" id="recommendedSection">
+      <h3 class="section-title" style="font-size: 16px">🔥 你可能也喜歡</h3>
       <div
         class="rec-grid"
         id="recGrid"
@@ -746,6 +506,19 @@
         "description": "ZenPass 禪流課程預約"
       }
     </script>
+    <!-- Google tag (gtag.js) -->
+    <script
+      async
+      src="https://www.googletagmanager.com/gtag/js?id=G-MKF5N4YLBM"
+    ></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag() {
+        dataLayer.push(arguments);
+      }
+      gtag("js", new Date());
+      gtag("config", "G-MKF5N4YLBM");
+    </script>
   </head>
   <body>
     <div class="class-image" id="class-image">
@@ -771,7 +544,7 @@
         "
         >←</a
       >
-      <span id="class-emoji" style="display: none">🧘</span>
+      <span id="class-emoji" class="zen-hidden">🧘</span>
       <button onclick="toggleWishlist()" id="wishlistBtn" class="wishlist-btn">
         ♡
       </button>
@@ -785,18 +558,12 @@
     <div
       class="waiver-checkbox"
       id="waiver-checkbox"
-      style="
-        display: none;
-        background: var(--white);
-        border-radius: 12px;
-        padding: 14px 16px;
-        margin: 8px 16px;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
-        font-size: 13px;
-      "
+      class="zen-card"
+      style="display: none; margin: 8px 16px; font-size: 13px"
     >
       <label
-        style="display: flex; align-items: start; gap: 10px; cursor: pointer"
+        class="zen-flex"
+        style="align-items: start; gap: 10px; cursor: pointer"
       >
         <input
           type="checkbox"
@@ -813,11 +580,8 @@
           <a
             href="waiver.html"
             target="_blank"
-            style="
-              color: var(--orange-700);
-              font-weight: 600;
-              text-decoration: underline;
-            "
+            class="zen-text-bold"
+            style="color: var(--orange-700); text-decoration: underline"
             >免責聲明</a
           >
           ，了解運動存在一定風險，並自願參與課程承擔相關風險。
@@ -825,14 +589,57 @@
       </label>
       <div
         id="waiver-error"
-        style="
-          color: var(--red-500);
-          font-size: 12px;
-          margin-top: 6px;
-          display: none;
-        "
+        class="zen-text-error zen-text-xs zen-mt-sm"
+        style="display: none"
       >
         ⚠️ 請先閱讀並同意免責聲明
+      </div>
+    </div>
+
+    <!-- ⚠️ ClassPass 模式：罰款同意書 -->
+    <div
+      id="penalty-checkbox"
+      class="zen-card"
+      style="display: none; margin: 8px 16px; font-size: 13px"
+    >
+      <label
+        class="zen-flex"
+        style="align-items: start; gap: 10px; cursor: pointer"
+      >
+        <input
+          type="checkbox"
+          id="penalty-agree"
+          style="
+            margin-top: 2px;
+            width: 18px;
+            height: 18px;
+            accent-color: var(--orange-700);
+          "
+        />
+        <span>
+          本人已細閱並同意
+          <span style="color: var(--orange-700); font-weight: 600"
+            >缺席/遲取消罰款規則</span
+          >：
+          <strong>開課 12 小時前</strong>可免費取消；
+          <strong>2-12 小時內</strong>取消將唔退還已使用嘅 Credits；
+          <strong>2 小時內</strong>無法取消；
+          <strong>缺席（No-show）</strong>
+          將會被扣除額外罰款 Credits。
+          <a
+            href="faq.html#penalty"
+            target="_blank"
+            style="color: var(--orange-700); text-decoration: underline"
+            >詳細規則</a
+          >
+        </span>
+      </label>
+      <div
+        id="penalty-error"
+        class="zen-text-error zen-text-xs zen-mt-sm"
+        style="display: none"
+      >
+        ⚠️ 請先同意缺席/遲取消罰款規則
       </div>
     </div>
 
@@ -862,7 +669,8 @@
       </button>
     </div>
 
-    <script src="api.js"></script>
+    <script src="assets/category-config.js"></script>
+    <script src="api.js?v=2"></script>
     <script>
       var currentClass = null;
       var selectedSchedule = null;
@@ -909,6 +717,8 @@
           checkTrialStatus();
           // Start real-time polling for spot updates (every 15s)
           startSpotPolling(classId);
+          // ⭐ Check pending rating
+          setTimeout(checkPendingRating, 1500);
         } catch (err) {
           renderDemoData();
         }
@@ -1096,21 +906,14 @@
         document.getElementById("class-emoji").textContent =
           emojiMap[cls.category] || "\ud83c\udfc3";
 
-        // Course image: use image_url if available
-        var catGradients = {
-          "\u7476\u5c48": "linear-gradient(135deg,#667eea,#764ba2)",
-          "\u5065\u8eab": "linear-gradient(135deg,#f093fb,#f5576c)",
-          "\u4f38\u5c55": "linear-gradient(135deg,#4facfe,#00f2fe)",
-          "\u5190\u60f3": "linear-gradient(135deg,#a18cd1,#fbc2eb)",
-          "\u821e\u8e48": "linear-gradient(135deg,#ffecd2,#fcb69f)",
-          "\u65b0\u8208\u904b\u52d5": "linear-gradient(135deg,#43e97b,#38f9d7)",
-        };
+        // Course image: use image_url if available, else category-based gradient
+        var cfg = ZENPASS_CATEGORY[cls.category];
         var imgEl = document.getElementById("class-image");
         if (cls.image_url) {
           imgEl.style.backgroundImage = "url(" + cls.image_url + ")";
           imgEl.classList.add("has-image");
-        } else if (catGradients[cls.category]) {
-          imgEl.style.background = catGradients[cls.category];
+        } else if (cfg) {
+          imgEl.style.background = cfg.gradient;
         }
 
         var diffMap = {
@@ -1127,7 +930,7 @@
                   return renderScheduleItem(s);
                 })
                 .join("")
-            : '<div style="text-align:center;padding:20px;color:var(--dark-700);font-size:13px;">\u66ab\u7121\u53ef\u9078\u7684\u6642\u6bb5</div>';
+            : '<div style="text-align:center;padding:30px 20px;"><div style="font-size:40px;margin-bottom:10px;">📅</div><div style="font-size:15px;font-weight:600;color:var(--dark-800);margin-bottom:6px;">此課程暫未開放預約</div><div style="font-size:13px;color:var(--dark-700);margin-bottom:16px;">教練正在安排時間表，請稍後再查看</div><button class="btn-primary" style="padding:10px 24px;font-size:13px;" onclick="location.href=\'explore.html\'">🔍 探索其他課程</button></div>';
 
         // Render reviews
         var reviewsHtml = reviews
@@ -1162,6 +965,18 @@
         var diffLabel = diffMap[cls.difficulty] || "";
 
         var container = document.getElementById("class-content");
+        // Build coach rating html
+        var coachRatingHtml = '';
+        if (cls.coach_avg_rating && cls.coach_avg_rating > 0) {
+          var stars = Math.round(cls.coach_avg_rating);
+          var starStr = '';
+          for (var si = 0; si < 5; si++) {
+            starStr += si < stars ? '\u2b50' : '\u2606';
+          }
+          coachRatingHtml = '<div style="font-size:11px;color:var(--dark-700);margin-top:2px;">' +
+            starStr + ' ' + cls.coach_avg_rating + ' (' + (cls.coach_rating_count || 0) + ')' +
+            '</div>';
+        }
         container.innerHTML =
           "" +
           '<div class="section">' +
@@ -1179,7 +994,7 @@
           '<h2 style="font-size:22px;font-weight:800;margin-bottom:8px;">' +
           (cls.title || "") +
           "</h2>" +
-          // Coach
+          // Coach with rating
           '<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding:10px 0;border-bottom:1px solid var(--gray-100);">' +
           '<span style="font-size:24px;">\ud83d\udc69\u200d\ud83c\udf93</span>' +
           '<div><div style="font-weight:600;font-size:14px;">' +
@@ -1188,6 +1003,7 @@
           (cls.coach_verified
             ? '<div style="font-size:11px;color:var(--green-500);">\u2705 \u7d93\u9a57\u78ba\u8a8d\u6559\u7df4</div>'
             : "") +
+          coachRatingHtml +
           "</div>" +
           "</div>" +
           // Meta info
@@ -1211,7 +1027,7 @@
           "</div>" +
           "</div>" +
           '<div style="flex:1;padding:8px 4px;background:#ecfdf5;border-radius:8px;text-align:center">' +
-          '<div style="font-size:9px;color:var(--dark-700)">金會員</div>' +
+          '<div style="font-size:9px;color:var(--dark-700)">VIP Pass</div>' +
           '<div style="font-size:14px;font-weight:700;color:#059669">HK$' +
           Math.round(price * 0.4) +
           "</div>" +
@@ -1269,6 +1085,23 @@
         if (waiverAgree) {
           waiverAgree.checked = false;
           document.getElementById("waiver-error").style.display = "none";
+        }
+
+        // ⚠️ Penalty consent — 一次過同意（ClassPass 模式）
+        var penaltySection = document.getElementById("penalty-checkbox");
+        var penaltyAgree = document.getElementById("penalty-agree");
+        var user = JSON.parse(localStorage.getItem("zenpass_user") || "{}");
+        if (penaltySection) {
+          // 如果 user 已同意過一次，隱藏 checkbox
+          if (user.penalty_consent) {
+            penaltySection.style.display = "none";
+          } else {
+            penaltySection.style.display = "block";
+          }
+        }
+        if (penaltyAgree) {
+          penaltyAgree.checked = false;
+          document.getElementById("penalty-error").style.display = "none";
         }
         var isFull = spotsLeft <= 0;
         var selId = (selectedSchedule || {}).id;
@@ -1442,6 +1275,22 @@
           return;
         }
         document.getElementById("waiver-error").style.display = "none";
+
+        // ⚠️ Check penalty consent (ClassPass mode — one-time agreement)
+        var penaltyContainer = document.getElementById("penalty-checkbox");
+        var penaltyEl = document.getElementById("penalty-agree");
+        var user = JSON.parse(localStorage.getItem("zenpass_user") || "{}");
+        
+        // 如果未同意過，顯示 checkbox 並要求 tick
+        if (penaltyContainer && penaltyContainer.style.display !== "none") {
+          if (!penaltyEl || !penaltyEl.checked) {
+            document.getElementById("penalty-error").style.display = "block";
+            if (penaltyEl) penaltyEl.focus();
+            return;
+          }
+        }
+        document.getElementById("penalty-error").style.display = "none";
+
         doBooking();
       }
 
@@ -1494,6 +1343,15 @@
             return;
           }
 
+          // Generate idempotency key to prevent duplicate bookings
+          var idempotencyKey =
+            "booking_" +
+            currentClass.id +
+            "_" +
+            selectedSchedule.id +
+            "_" +
+            Date.now();
+
           var apiResp = await fetch(API_BASE + "/bookings", {
             method: "POST",
             headers: {
@@ -1505,12 +1363,26 @@
               class_id: currentClass.id,
               payment_type: selectedPayment,
               amount: price,
+              idempotency_key: idempotencyKey,
+              penalty_consent: true,
             }),
           });
 
           var apiData = await apiResp.json();
 
           if (!apiResp.ok) {
+            // Token expired → redirect to login
+            if (
+              apiResp.status === 401 ||
+              (apiData.error &&
+                (apiData.error.includes("認證無效") ||
+                  apiData.error.includes("過期")))
+            ) {
+              localStorage.removeItem("zenpass_token");
+              var redirectUrl = encodeURIComponent(window.location.href);
+              window.location.href = "login.html?redirect=" + redirectUrl;
+              return;
+            }
             throw new Error(apiData.error || "預約失敗");
           }
 
@@ -1525,8 +1397,16 @@
               0,
               (user.credits || 0) - (currentClass.credits_cost || 15),
             );
-            localStorage.setItem("zenpass_user", JSON.stringify(user));
           }
+          // ✏️ 一次過同意罰款規則後 save 落 localStorage
+          var penaltyCheck = document.getElementById("penalty-agree");
+          if (penaltyCheck && penaltyCheck.checked) {
+            user.penalty_consent = true;
+            // Hide penalty checkbox next time
+            var ps = document.getElementById("penalty-checkbox");
+            if (ps) ps.style.display = "none";
+          }
+          localStorage.setItem("zenpass_user", JSON.stringify(user));
 
           var bkKey =
             typeof zpKey === "function"
@@ -1610,6 +1490,21 @@
           showToast("❌ " + err.message, "error");
           btn.disabled = false;
           btn.textContent = "📅 立即預約";
+          // Show error on the page, not just toast
+          var errBox = document.getElementById("booking-error");
+          if (!errBox) {
+            errBox = document.createElement("div");
+            errBox.id = "booking-error";
+            errBox.style.cssText =
+              "background:#fef2f2;color:#dc2626;padding:10px 14px;border-radius:8px;margin-top:8px;font-size:12px;border:1px solid #fecaca;";
+            btn.parentNode.insertBefore(errBox, btn.nextSibling);
+          }
+          errBox.textContent = "❌ " + err.message;
+          errBox.style.display = "block";
+          // Auto hide after 8 seconds
+          setTimeout(function () {
+            if (errBox) errBox.style.display = "none";
+          }, 8000);
         }
       }
       // 🎯 Show points earned toast
@@ -1787,11 +1682,7 @@
         updateNavBar();
       });
     </script>
-    <script>
-      if ("serviceWorker" in navigator) {
-        navigator.serviceWorker.register("sw.js");
-      }
-    </script>
+    <script></script>
     <script>
       (function () {
         var n = localStorage.getItem("zenpass_name");
@@ -1962,7 +1853,7 @@
       >
     </nav>
     <!-- Share Button -->
-    <div style="display: flex; gap: 6px; margin: 12px; flex-wrap: wrap">
+    <div class="zen-flex zen-gap-sm zen-flex-wrap" style="margin: 12px">
       <a
         href="#"
         id="calendarBtn"
@@ -1997,54 +1888,424 @@
 
     <!-- Related Courses -->
     <div class="section" id="related-section">
-      <div class="section-title" style="font-size: 16px">
+      <div class="zen-section-title">
         <span>🏷️ 相關課程</span>
       </div>
       <div class="related-scroll" id="related-classes"></div>
     </div>
-    <div
-      class="zen-footer"
-      role="contentinfo"
-      aria-label="頁尾資訊"
-      style="
-        text-align: center;
-        padding: 20px 16px;
-        margin-top: 24px;
-        border-top: 1px solid #e5e7eb;
+
+    <!-- ZenPass 統一頁腳 -->
+    <style>
+      .zp-footer {
+        background: linear-gradient(
+          135deg,
+          #1a1a2e 0%,
+          #2d2d44 50%,
+          #c94420 100%
+        );
+        color: rgba(255, 255, 255, 0.6);
+        padding: 40px 16px 24px;
+        margin-top: 48px;
+      }
+      .zp-footer a {
+        color: rgba(255, 255, 255, 0.6);
+        text-decoration: none;
+        transition: color 0.2s;
+        font-size: 13px;
+      }
+      .zp-footer a:hover {
+        color: #fff;
+      }
+      .zp-footer-inner {
+        max-width: 1200px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 32px;
+      }
+      @media (min-width: 768px) {
+        .zp-footer-inner {
+          grid-template-columns: 1.5fr 1fr 1fr 1fr;
+        }
+      }
+      .zp-footer-title {
+        color: #fff;
+        font-size: 14px;
+        font-weight: 700;
+        margin-bottom: 12px;
+      }
+      .zp-footer ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+      .zp-footer ul li {
+        margin-bottom: 6px;
+      }
+      .zp-footer-brand-desc {
         font-size: 12px;
-        color: #6b7280;
-      "
-    >
+        line-height: 1.6;
+      }
+      .zp-footer-social {
+        display: flex;
+        gap: 8px;
+        margin-top: 12px;
+      }
+      .zp-footer-social a {
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.1);
+        font-size: 14px;
+        transition: background 0.2s;
+      }
+      .zp-footer-social a:hover {
+        background: rgba(255, 255, 255, 0.25);
+      }
+      .zp-footer-bottom {
+        max-width: 1200px;
+        margin: 24px auto 0;
+        padding-top: 16px;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        text-align: center;
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.3);
+      }
+    </style>
+
+    <!-- 統一頁腳 Canonical (以原版首頁為標準) -->
+    <style>
+      .footer-grad {
+        background: linear-gradient(
+          135deg,
+          #1a1a2e 0%,
+          #2d2d44 50%,
+          #c94420 100%
+        );
+      }
+      .footer-grad .footer-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+        max-width: 400px;
+        margin: 0 auto;
+      }
+      @media (min-width: 768px) {
+        .footer-grad .footer-grid {
+          grid-template-columns: 1fr 1fr 1fr 1fr;
+          max-width: 720px;
+        }
+      }
+      .footer-grad .footer-section-title {
+        color: rgba(255, 255, 255, 0.5);
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 10px;
+      }
+      .footer-grad ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+      .footer-grad li {
+        margin-bottom: 6px;
+      }
+      .footer-link {
+        color: rgba(255, 255, 255, 0.6);
+        text-decoration: none;
+        transition: color 0.2s;
+        font-size: 13px;
+      }
+      .footer-link:hover {
+        color: white;
+      }
+      .back-to-top {
+        position: fixed;
+        bottom: 80px;
+        right: 16px;
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        background: var(--orange-600-bg, #c94420);
+        color: #fff;
+        border: none;
+        font-size: 20px;
+        cursor: pointer;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+        z-index: 999;
+        opacity: 0;
+        transform: translateY(20px);
+        transition:
+          opacity 0.3s,
+          transform 0.3s;
+        pointer-events: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .back-to-top.visible {
+        opacity: 1;
+        transform: translateY(0);
+        pointer-events: auto;
+      }
+      .back-to-top:hover {
+        background: #aa3218;
+      }
+    </style>
+
+    <footer class="footer-grad">
+      <div class="footer-grid">
+        <div style="grid-column: span 2">
+          <div
+            style="
+              color: white;
+              font-weight: 700;
+              font-size: 14px;
+              margin-bottom: 6px;
+            "
+          >
+            🧘 ZenPass 禪流
+          </div>
+          <div
+            style="
+              font-size: 12px;
+              line-height: 1.6;
+              color: rgba(255, 255, 255, 0.6);
+            "
+          >
+            一個Pass，通行全城運動體驗。<br />香港康樂及體育有限公司
+          </div>
+        </div>
+        <div>
+          <div class="footer-section-title">探索</div>
+          <ul>
+            <li><a href="explore.html" class="footer-link">探索課程</a></li>
+            <li><a href="coaches.html" class="footer-link">星級教練</a></li>
+            <li><a href="membership.html" class="footer-link">會籍方案</a></li>
+            <li><a href="coach-apply.html" class="footer-link">成為教練</a></li>
+            <li>
+              <a href="partner-apply.html" class="footer-link">場地加盟</a>
+            </li>
+          </ul>
+        </div>
+        <div>
+          <div class="footer-section-title">支援</div>
+          <ul>
+            <li><a href="faq.html" class="footer-link">常見問題</a></li>
+            <li><a href="privacy.html" class="footer-link">私隱政策</a></li>
+            <li><a href="terms.html" class="footer-link">服務條款</a></li>
+            <li><a href="about.html" class="footer-link">關於我們</a></li>
+          </ul>
+        </div>
+        <div>
+          <div class="footer-section-title">聯絡我們</div>
+          <ul>
+            <li style="margin-bottom: 4px">📧 support@zenpass.hk</li>
+            <li style="margin-bottom: 4px">📞 2387 0724</li>
+            <li style="margin-bottom: 4px">📍 香港九龍觀塘</li>
+          </ul>
+          <div style="display: flex; gap: 8px; margin-top: 10px">
+            <a
+              href="https://www.instagram.com/zenpass_hk"
+              style="
+                width: 32px;
+                height: 32px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 50%;
+                background: rgba(255, 255, 255, 0.1);
+                font-size: 14px;
+                text-decoration: none;
+              "
+              >📸</a
+            >
+            <a
+              href="https://www.facebook.com/zenpass.hk"
+              style="
+                width: 32px;
+                height: 32px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 50%;
+                background: rgba(255, 255, 255, 0.1);
+                font-size: 14px;
+                text-decoration: none;
+              "
+              >👍</a
+            >
+            <a
+              href="https://wa.me/85290335538"
+              style="
+                width: 32px;
+                height: 32px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 50%;
+                background: rgba(255, 255, 255, 0.1);
+                font-size: 14px;
+                text-decoration: none;
+              "
+              >💬</a
+            >
+            <a
+              href="https://hklfcl.com"
+              style="
+                width: 32px;
+                height: 32px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 50%;
+                background: rgba(255, 255, 255, 0.1);
+                font-size: 14px;
+                text-decoration: none;
+              "
+              >🏛️</a
+            >
+          </div>
+        </div>
+      </div>
       <div
         style="
-          display: flex;
-          justify-content: center;
-          gap: 16px;
-          margin-bottom: 8px;
+          max-width: 400px;
+          margin: 24px auto 0;
+          padding-top: 16px;
+          border-top: 1px solid rgba(255, 255, 255, 0.1);
+          text-align: center;
+          font-size: 11px;
+          color: rgba(255, 255, 255, 0.3);
         "
       >
-        <a
-          href="/"
-          style="color: #aa3218; text-decoration: none; font-weight: 500"
-          >🏠 首頁</a
-        >
-        <a
-          href="explore.html"
-          style="color: #aa3218; text-decoration: none; font-weight: 500"
-          >📚 課程</a
-        >
-        <a
-          href="my.html"
-          style="color: #aa3218; text-decoration: none; font-weight: 500"
-          >👤 我的</a
-        >
-        <a
-          href="points.html"
-          style="color: #aa3218; text-decoration: none; font-weight: 500"
-          >🎯 積分</a
-        >
+        &copy; 2026 ZenPass 禪流 · 香港康樂及體育有限公司 · All rights reserved.
       </div>
-      © 2026 ZenPass 禪流
+    </footer>
+
+    <button
+      class="back-to-top"
+      id="backToTop"
+      onclick="window.scrollTo({ top: 0, behavior: 'smooth' })"
+      aria-label="返回頂部"
+    >
+      ↑
+    </button>
+
+    <!-- ⭐ Rating Modal -->
+    <div id="rating-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:9999;display:none;align-items:center;justify-content:center;" onclick="if(event.target===this)closeRatingModal()">
+      <div style="background:white;border-radius:16px;padding:24px;width:90%;max-width:360px;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,0.2);">
+        <div style="font-size:40px;margin-bottom:8px;">⭐</div>
+        <h3 style="margin:0 0 4px;font-size:18px;">評價教練</h3>
+        <p style="color:var(--dark-700);font-size:13px;margin-bottom:16px;">你覺得呢堂課點樣？俾個評分啦！</p>
+        <div id="rating-stars" style="font-size:36px;margin-bottom:12px;cursor:pointer;user-select:none;letter-spacing:4px;">
+          <span data-star="1" onclick="setRating(1)" style="color:#ddd;">★</span>
+          <span data-star="2" onclick="setRating(2)" style="color:#ddd;">★</span>
+          <span data-star="3" onclick="setRating(3)" style="color:#ddd;">★</span>
+          <span data-star="4" onclick="setRating(4)" style="color:#ddd;">★</span>
+          <span data-star="5" onclick="setRating(5)" style="color:#ddd;">★</span>
+        </div>
+        <textarea id="rating-comment" placeholder="寫低你嘅感想…（選擇性）" style="width:100%;border:1px solid var(--gray-200);border-radius:8px;padding:10px;font-size:13px;font-family:inherit;resize:none;height:60px;margin-bottom:12px;box-sizing:border-box;"></textarea>
+        <input type="hidden" id="rating-booking-id" value="" />
+        <input type="hidden" id="rating-coach-id" value="" />
+        <button onclick="submitRating()" style="width:100%;padding:12px;background:var(--orange-600-bg);color:white;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;">提交評分</button>
+        <button onclick="closeRatingModal()" style="width:100%;padding:8px;background:none;border:none;color:var(--dark-700);font-size:13px;cursor:pointer;margin-top:6px;font-family:inherit;">稍後再評</button>
+      </div>
     </div>
+
+    <script>
+      // ⭐ Rating System
+      var currentRating = 0;
+      
+      function showRatingModal(bookingId, coachId) {
+        currentRating = 0;
+        document.getElementById('rating-booking-id').value = bookingId;
+        document.getElementById('rating-coach-id').value = coachId;
+        document.getElementById('rating-comment').value = '';
+        resetStars();
+        document.getElementById('rating-modal').style.display = 'flex';
+      }
+      
+      function closeRatingModal() {
+        document.getElementById('rating-modal').style.display = 'none';
+      }
+      
+      function setRating(val) {
+        currentRating = val;
+        var stars = document.querySelectorAll('#rating-stars span');
+        for (var i = 0; i < stars.length; i++) {
+          stars[i].style.color = i < val ? '#f59e0b' : '#ddd';
+        }
+      }
+      
+      function resetStars() {
+        var stars = document.querySelectorAll('#rating-stars span');
+        for (var i = 0; i < stars.length; i++) {
+          stars[i].style.color = '#ddd';
+        }
+      }
+      
+      async function submitRating() {
+        if (currentRating === 0) {
+          showToast('請選擇評分', 'warning');
+          return;
+        }
+        var bookingId = document.getElementById('rating-booking-id').value;
+        var coachId = document.getElementById('rating-coach-id').value;
+        var comment = document.getElementById('rating-comment').value.trim();
+        
+        try {
+          var resp = await fetch(API_BASE + '/ratings', {
+            method: 'POST',
+            headers: Object.assign({ 'Content-Type': 'application/json' }, getAuthHeaders()),
+            body: JSON.stringify({
+              booking_id: bookingId,
+              coach_id: coachId,
+              rating: currentRating,
+              comment: comment
+            })
+          });
+          var data = await resp.json();
+          if (resp.ok) {
+            showToast('✅ 評分已提交！', 'success');
+            closeRatingModal();
+          } else {
+            showToast('❌ ' + (data.error || '提交失敗'), 'error');
+          }
+        } catch (err) {
+          showToast('❌ ' + err.message, 'error');
+        }
+      }
+
+      // Check after load if user has attended bookings for this class that need rating
+      async function checkPendingRating() {
+        if (!isLoggedIn() || !currentClass) return;
+        try {
+          var resp = await fetch(API_BASE + '/bookings/my?status=attended&class_id=' + currentClass.id, {
+            headers: getAuthHeaders()
+          });
+          var data = await resp.json();
+          if (resp.ok && data.bookings && data.bookings.length > 0) {
+            var booking = data.bookings[0];
+            // Check if already rated
+            var ratedResp = await fetch(API_BASE + '/ratings/coach/' + currentClass.coach_id);
+            var ratedData = await ratedResp.json();
+            var alreadyRated = ratedData.ratings && ratedData.ratings.some(function(r) { return r.booking_id === booking.id; });
+            if (!alreadyRated) {
+              setTimeout(function() {
+                showRatingModal(booking.id, currentClass.coach_id);
+              }, 2000);
+            }
+          }
+        } catch (e) {
+          // Silent fail
+        }
+      }
+    </script>
   </body>
 </html>
