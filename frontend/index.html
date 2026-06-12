@@ -440,6 +440,41 @@
         if (el) el.textContent = TIPS[Math.floor(Math.random() * TIPS.length)];
       }
       document.addEventListener("DOMContentLoaded", refreshTip);
+
+  // Load recommendations for logged-in users
+  setTimeout(function() {
+    var section = document.getElementById('recommended-section');
+    var container = document.getElementById('recommended-classes');
+    if (!section || !container) return;
+    var apiBase = window.API_BASE || (window.location.origin === 'https://davidchoy1689-tech.github.io' ? '' : '');
+    var token = localStorage.getItem('zp_token') || localStorage.getItem('zenpass_token');
+    if (!token) return;
+    fetch(apiBase + '/api/recommendations?limit=6', {
+      headers: { 'Authorization': 'Bearer ' + token }
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.classes && data.classes.length > 0) {
+        container.innerHTML = '';
+        data.classes.forEach(function(cls) {
+          var card = document.createElement('div');
+          card.className = 'featured-card';
+          var clsTitle = cls.title || cls.name || '';
+          var clsId = cls.id || cls.class_id || '';
+          var icon = cls.icon || '🏋';
+          var bg = cls.color || 'linear-gradient(135deg, var(--orange-100), var(--orange-200))';
+          card.innerHTML = '<div class="featured-card-img" style="background:' + bg + '">' + icon + '</div>' +
+            '<div class="featured-card-body"><h4>' + clsTitle + '</h4>' +
+            '<p>' + (cls.coach_name || '') + '</p><span class="tag tag-' + (cls.category || '').toLowerCase() + '">' + (cls.category || '') + '</span></div>';
+          card.onclick = function() { window.location.href = 'class-detail.html?id=' + clsId; };
+          container.appendChild(card);
+        });
+        section.style.display = 'block';
+      }
+    })
+    .catch(function() {});
+  }, 1000);
+
     </script>
     <div class="search-bar" role="search">
       <input

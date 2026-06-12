@@ -220,4 +220,105 @@ router.put("/admin/pricing", (req, res) => {
   }
 });
 
+
+// ===== GET /api/pricing/dynamic — 動態時段定價 =====
+// 根據剩餘名額自動調整 Credit 消耗
+router.get('/dynamic', function(req, res) {
+  try {
+    var db = new Database(DB_PATH);
+    var now = new Date().toISOString();
+    
+    // Get upcoming schedules with enrollment data
+    var schedules = db.prepare(`
+      SELECT cs.id, cs.class_id, cs.start_time, cs.enrolled_count, cs.capacity,
+             c.title, c.category, c.credits_cost as base_cost
+      FROM class_schedules cs
+      JOIN classes c ON cs.class_id = c.id
+      WHERE cs.start_time > ? AND cs.status = 'active' AND c.status = 'active'
+      ORDER BY cs.start_time
+      LIMIT 100
+    `).all(now);
+
+    // Get pricing rules
+    var configRows = db.prepare('SELECT key, value FROM pricing_config').all();
+    var config = {};
+    configRows.forEach(function(r) { config[r.key] = r.value; });
+
+    var peakThreshold = parseInt(config.peak_threshold_hour || '17');
+    var peakEndThreshold = parseInt(config.peak_end_hour || '21');
+    var offPeakDays = (config.off_peak_days || '0,6').split(',').map(function(s) { return parseInt(s); });
+    var discountFill = parseFloat(config.dynamic_fill_discount || '0.8');
+    var surchargeDemand = parseFloat(config.dynamic_demand_surcharge || '1.2');
+
+    var results = schedules.map(function(s) {
+      var start = new Date(s.start_time);
+      var hour = start.getHours();
+      var day = start.getDay();
+      var enrolled = s.enrolled_count || 0;
+      var capacity = s.capacity || 20;
+      var fillRate = capacity > 0 ? enrolled / capacity : 0;
+      
+      // Base tier from config
+      var baseCost = s.base_cost || 12;
+      
+      // Determine time tier
+      var isOffPeak = offPeakDays.indexOf(day) >= 0 || hour < 9 || hour >= 21;
+      var isPeak = hour >= peakThreshold && hour < peakEndThreshold && offPeakDays.indexOf(day) < 0;
+      var isStandard = !isOffPeak && !isPeak;
+      
+      var tierCredits;
+      var tierName;
+      if (isOffPeak) {
+        tierCredits = parseInt(config.off_peak_credits || '12');
+        tierName = 'off_peak';
+      } else if (isPeak) {
+        tierCredits = parseInt(config.peak_credits || '15');
+        tierName = 'peak';
+      } else {
+        tierCredits = parseInt(config.standard_credits || '12');
+        tierName = 'standard';
+      }
+      
+      // Dynamic adjustment based on fill rate
+      var dynamicMultiplier = 1.0;
+      if (fillRate < 0.3) {
+        // Low fill → discount to fill up
+        dynamicMultiplier = discountFill;
+      } else if (fillRate > 0.85) {
+        // High fill → surcharge (demand pricing)
+        dynamicMultiplier = surchargeDemand;
+      }
+      
+      var dynamicCredits = Math.round(tierCredits * dynamicMultiplier);
+      
+      return {
+        schedule_id: s.id,
+        class_id: s.class_id,
+        title: s.title,
+        category: s.category,
+        start_time: s.start_time,
+        enrolled: enrolled,
+        capacity: capacity,
+        fill_rate: Math.round(fillRate * 100) + '%',
+        base_cost: baseCost,
+        time_tier: tierName,
+        static_cost: tierCredits,
+        dynamic_cost: Math.max(6, dynamicCredits),
+        multiplier: dynamicMultiplier
+      };
+    });
+
+    db.close();
+    res.json({ schedules: results, rules: {
+      peak_hours: peakThreshold + ':00-' + peakEndThreshold + ':00',
+      off_peak_days: ['Sat', 'Sun'],
+      fill_discount: discountFill,
+      demand_surcharge: surchargeDemand
+    }});
+  } catch(err) {
+    console.error('[PRICING] dynamic error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;
