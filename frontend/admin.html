@@ -777,6 +777,9 @@
         <a class="nav-item" data-tab="penalty" role="button" tabindex="0"
           ><span class="icon">⚠️</span><span>缺席罰款</span></a
         >
+        <a class="nav-item" data-tab="corporate" role="button" tabindex="0"
+          ><span class="icon">🏢</span><span>企業計劃</span></a
+        >
 
         <div style="flex: 1"></div>
         <a
@@ -1188,6 +1191,9 @@
             break;
           case "penalty":
             loadPenaltyTab();
+            break;
+          case "corporate":
+            loadCorporateTab();
             break;
           case "wallets":
             loadWalletsTab();
@@ -4400,7 +4406,110 @@
           if (result) result.innerHTML = '<div class="error" style="padding:12px;background:#fee2e2;border-radius:8px;color:#991b1b">❌ ' + (err.message || err) + '</div>';
         }
       }
-    </script>
+    
+
+// ===== 企業健康計劃 (Corporate B2B) =====
+async function loadCorporateTab() {
+  var main = document.getElementById('mainContent');
+  try {
+    var data = await apiGet('/corporate/companies');
+    if (!data.companies) throw new Error('no data');
+    var html = '<div class="card"><div class="card-header"><h3>🏢 企業列表</h3></div>';
+    html += '<table class="table-wrap"><thead><tr><th>名稱</th><th>聯絡人</th><th>員工</th><th>Credit Pool</th><th>已使用</th><th>30日收入</th><th>狀態</th></tr></thead><tbody>';
+    data.companies.forEach(function(c) {
+      html += '<tr onclick="showCorporateDetail('' + c.id + '')" style="cursor:pointer">';
+      html += '<td>' + (c.name || '-') + '</td>';
+      html += '<td>' + (c.contact_name || '-') + '</td>';
+      html += '<td>' + (c.active_employees || 0) + '</td>';
+      html += '<td>' + (c.credit_pool || 0) + '</td>';
+      html += '<td>' + (c.credit_used || 0) + '</td>';
+      html += '<td>$' + (c.total_spent || 0).toLocaleString() + '</td>';
+      html += '<td><span class="badge ' + (c.status === 'active' ? 'badge-success' : 'badge-secondary') + '">' + c.status + '</span></td>';
+      html += '</tr>';
+    });
+    html += '</tbody></table></div>';
+    document.getElementById('corporate-list').innerHTML = html;
+  } catch(e) {
+    document.getElementById('corporate-list').innerHTML = '<p style="color:red">❌ 載入失敗: ' + e.message + '</p>';
+  }
+}
+
+async function createCorporate() {
+  var name = document.getElementById('corp-name').value.trim();
+  if (!name) return alert('請輸入企業名稱');
+  try {
+    var r = await apiPost('/corporate/companies', {
+      name: name,
+      contact_name: document.getElementById('corp-contact').value.trim(),
+      contact_email: document.getElementById('corp-email').value.trim(),
+      contact_phone: document.getElementById('corp-phone').value.trim(),
+      credit_pool: parseInt(document.getElementById('corp-credits').value) || 0
+    });
+    alert(r.message);
+    loadCorporateTab();
+  } catch(e) { alert('❌ ' + e.message); }
+}
+
+async function showCorporateDetail(id) {
+  try {
+    var data = await apiGet('/corporate/companies/' + id);
+    var c = data.company;
+    document.getElementById('corp-detail-name').textContent = '🏢 ' + c.name;
+    var html = '<p>聯絡: ' + (c.contact_name || '-') + ' | ' + (c.contact_email || '-') + ' | ' + (c.contact_phone || '-') + '</p>';
+    html += '<p>Credit Pool: ' + (c.credit_pool || 0) + ' | 已用: ' + (c.credit_used || 0) + ' | 員工: ' + data.total_employees + '</p>';
+    if (data.employees && data.employees.length > 0) {
+      html += '<table class="mini-table"><thead><tr><th>姓名</th><th>電郵</th><th>30日預約</th><th>Credits</th></tr></thead><tbody>';
+      data.employees.forEach(function(e) {
+        html += '<tr><td>' + e.name + '</td><td>' + e.email + '</td><td>' + (e.bookings_30d || 0) + '</td><td>' + (e.credits || 0) + '</td></tr>';
+      });
+      html += '</tbody></table>';
+    }
+    html += '<p><button class="btn" onclick="topupCorporateCredits('' + c.id + '')">💰 加值 Credits</button></p>';
+    document.getElementById('corp-detail-content').innerHTML = html;
+    document.getElementById('corporate-detail').style.display = 'block';
+    // Store company id for addCorporateEmployees
+    window._corpDetailId = id;
+  } catch(e) { alert('❌ ' + e.message); }
+}
+
+async function addCorporateEmployees() {
+  var id = window._corpDetailId;
+  var text = document.getElementById('corp-employees-input').value.trim();
+  if (!text) return alert('請輸入員工資料');
+  var employees = text.split('
+').filter(Boolean).map(function(line) {
+    var parts = line.split(',').map(function(s) { return s.trim(); });
+    return { name: parts[0] || '', email: parts[1] || '' };
+  }).filter(function(e) { return e.email; });
+  if (employees.length === 0) return alert('請輸入有效員工資料（姓名, 電郵）');
+  try {
+    var r = await apiPost('/corporate/companies/' + id + '/employees', { employees: employees });
+    var msg = '✅ 已新增 ' + r.created + ' 位員工';
+    if (r.employees) {
+      var newOnes = r.employees.filter(function(e) { return e.new_account; });
+      if (newOnes.length > 0) {
+        msg += '
+
+💡 新帳戶臨時密碼：';
+        newOnes.forEach(function(e) { msg += '
+' + e.email + ' → ' + (e.temp_password || '同 email'); });
+      }
+    }
+    alert(msg);
+    showCorporateDetail(id);
+  } catch(e) { alert('❌ ' + e.message); }
+}
+
+async function topupCorporateCredits(id) {
+  var credits = prompt('加值多少 Credits？');
+  if (!credits) return;
+  try {
+    var r = await apiPost('/corporate/companies/' + id + '/topup', { credits: parseInt(credits) });
+    alert(r.message);
+    showCorporateDetail(id);
+  } catch(e) { alert('❌ ' + e.message); }
+}
+</script>
 
     <!-- ZenPass 統一頁腳 -->
     <style>

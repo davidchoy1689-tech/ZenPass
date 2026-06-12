@@ -178,6 +178,7 @@ app.use("/api/admin", require("./routes/deploy"));
 app.use("/api/reviews", require("./routes/reviews"));
 app.use("/api/audit", require("./routes/audit").router);
 app.use("/api/penalty", require("./routes/penalty"));
+app.use("/api/corporate", require("./routes/corporate"));
 app.use("/api/ratings", require("./routes/ratings"));
 
 // ===== 健康檢查 =====

@@ -675,6 +675,15 @@ router.post("/:id/cancel", authenticateToken, (req, res) => {
           autoNotifyOnCancel(booking.schedule_id);
         } catch (e) {}
 
+        // 記錄 penalty_log
+        try {
+          const classCost = db.prepare("SELECT credits_cost FROM classes WHERE id = ?").get(booking.class_id);
+          db.prepare(
+            "INSERT INTO penalty_logs (id, booking_id, user_id, type, class_cost, penalty_credits, status, reason, created_at) VALUES (?, ?, ?, 'late_cancel', ?, 0, 'applied', ?, datetime('now'))"
+          ).run(uuidv4(), booking.id, req.user.id, classCost?.credits_cost || 0,
+            `遲取消（${hoursUntilClass.toFixed(1)}小時前）：已使用的 ${classCost?.credits_cost || 0} Credits 唔退還`);
+        } catch(e) { console.error('[PENALTY] late-cancel log error:', e.message); }
+
         try {
           trackBookingChange(booking.id, req.user.id, booking.status, "cancelled", req);
         } catch (e) {}

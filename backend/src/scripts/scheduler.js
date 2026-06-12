@@ -42,6 +42,27 @@ setInterval(runMonitor, 5 * 60 * 1000);
 // Also run once on startup after a short delay
 setTimeout(runMonitor, 10000);
 
+// No-show auto-processing — every 5 minutes
+const http = require("http");
+function processNoShows() {
+  const req = http.request({
+    hostname: "localhost", port: 3001, path: "/api/penalty/process-no-shows", method: "POST"
+  }, (res) => {
+    let data = "";
+    res.on("data", (c) => data += c);
+    res.on("end", () => {
+      try {
+        const r = JSON.parse(data);
+        if (r.processed > 0) console.log(`[PENALTY] Auto-processed ${r.processed} no-shows`);
+      } catch(e) {}
+    });
+  });
+  req.on("error", (e) => console.error("[PENALTY] Auto-process error:", e.message));
+  req.end();
+}
+setInterval(processNoShows, 5 * 60 * 1000);
+setTimeout(processNoShows, 15000); // Run 15s after startup
+
 // Run once on startup (on Monday) or check
 function checkAndRunSettlement() {
   const today = new Date().getDay();
@@ -60,3 +81,4 @@ console.log("📅 備份排程：每 24 小時");
 console.log("🔔 課前提醒：每 15 分鐘");
 console.log("💰 自動結算：每週一");
 console.log("🔍 系統監控：每 5 分鐘");
+console.log("❌ No-Show 自動處理：每 5 分鐘");

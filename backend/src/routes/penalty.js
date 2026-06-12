@@ -38,7 +38,7 @@ function getPenaltyConfig() {
 }
 
 // ===== Helper: 扣罰款 + 記錄 =====
-function applyPenalty(userId, bookingId, penaltyCredits, reason) {
+function applyPenalty(userId, bookingId, penaltyCredits, reason, type = 'no_show') {
   const db = new Database(DB_PATH);
   db.pragma("foreign_keys = ON");
   try {
@@ -57,6 +57,13 @@ function applyPenalty(userId, bookingId, penaltyCredits, reason) {
       INSERT INTO transactions (id, user_id, type, amount, currency, payment_method, status, description, created_at)
       VALUES (?, ?, 'credits_topup', ?, 'HKD', 'credits', 'completed', ?, datetime('now'))
     `).run(txId, userId, -penaltyCredits, reason);
+    // 記錄到 penalty_logs
+    try {
+      const bc = db.prepare("SELECT credits_cost FROM bookings b JOIN classes c ON b.class_id = c.id WHERE b.id = ?").get(bookingId);
+      db.prepare(
+        'INSERT INTO penalty_logs (id, booking_id, user_id, type, class_cost, penalty_credits, status, reason, created_at) VALUES (?, ?, ?, ?, ?, ?, \'applied\', ?, datetime(\'now\'))'
+      ).run(uuidv4(), bookingId, userId, type, bc?.credits_cost || 0, penaltyCredits, reason);
+    } catch(e) { console.error('[PENALTY] log error:', e.message); }
     db.prepare(`
       INSERT INTO audit_log (id, action, entity_type, entity_id, user_id, details, created_at)
       VALUES (?, ?, 'booking', ?, ?, ?, datetime('now'))
@@ -118,7 +125,8 @@ router.post("/process-no-shows", (req, res) => {
         booking.user_id,
         booking.id,
         penaltyTotal,
-        `缺席罰款附加費：${booking.class_title}（${booking.start_time}）— 已蝕 ${classCost} Credits + 罰 ${penaltyTotal} Credits`
+        `缺席罰款附加費：${booking.class_title}（${booking.start_time}）— 已蝕 ${classCost} Credits + 罰 ${penaltyTotal} Credits`,
+        'no_show'
       );
 
       if (penaltyApplied) {

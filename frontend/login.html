@@ -342,6 +342,14 @@
             placeholder="至少 6 個字元"
           />
         </div>
+        <div class="form-group" style="margin-top:8px;">
+          <label>推薦碼（可選）</label>
+          <input
+            type="text"
+            id="reg-referral"
+            placeholder="輸入朋友的推薦碼，雙方各得 10 Credits"
+          />
+        </div>
         <button
           class="btn btn-primary"
           id="register-btn"
@@ -438,6 +446,21 @@
           });
           setToken(result.token);
           storeUser(result.user);
+          // 推薦碼處理
+          var refCode = document.getElementById('reg-referral').value.trim().toUpperCase();
+          if (refCode) {
+            try {
+              var apiBase = window.API_BASE || '';
+              await fetch(apiBase + '/api/referral/redeem', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + result.token },
+                body: JSON.stringify({ code: refCode })
+              });
+              // 推薦成功後面唔需要特別做嘢
+            } catch(refErr) {
+              console.log('Referral skipped:', refErr.message);
+            }
+          }
           setMsg("register-msg", "✅ 註冊成功！", "success");
           // Check if first-time user → redirect to onboarding
           var isFirstTime = !localStorage.getItem("zenpass_visited_before");
