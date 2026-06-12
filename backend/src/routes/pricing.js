@@ -230,7 +230,7 @@ router.get('/dynamic', function(req, res) {
     
     // Get upcoming schedules with enrollment data
     var schedules = db.prepare(`
-      SELECT cs.id, cs.class_id, cs.start_time, cs.enrolled_count, cs.capacity,
+      SELECT cs.id, cs.class_id, cs.start_time, cs.enrolled_count, cs.max_participants,
              c.title, c.category, c.credits_cost as base_cost
       FROM class_schedules cs
       JOIN classes c ON cs.class_id = c.id
@@ -255,7 +255,7 @@ router.get('/dynamic', function(req, res) {
       var hour = start.getHours();
       var day = start.getDay();
       var enrolled = s.enrolled_count || 0;
-      var capacity = s.capacity || 20;
+      var capacity = s.max_participants || 20;
       var fillRate = capacity > 0 ? enrolled / capacity : 0;
       
       // Base tier from config
