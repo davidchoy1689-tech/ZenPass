@@ -36,6 +36,12 @@ setInterval(syncEnrolledCount, 6 * 60 * 60 * 1000);
 // Auto settlement — weekly (every Monday)
 const { runAutoSettlement } = require("./auto-settlement");
 
+// System monitor — every 5 minutes
+const { runMonitor } = require("../services/system-monitor");
+setInterval(runMonitor, 5 * 60 * 1000);
+// Also run once on startup after a short delay
+setTimeout(runMonitor, 10000);
+
 // Run once on startup (on Monday) or check
 function checkAndRunSettlement() {
   const today = new Date().getDay();
@@ -53,3 +59,4 @@ checkAndRunSettlement();
 console.log("📅 備份排程：每 24 小時");
 console.log("🔔 課前提醒：每 15 分鐘");
 console.log("💰 自動結算：每週一");
+console.log("🔍 系統監控：每 5 分鐘");
