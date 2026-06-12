@@ -567,75 +567,48 @@
           display: flex;
           flex-direction: row;
           flex-wrap: wrap;
-          padding: 8px 4px;
-          gap: 2px;
-        }
-        .sidebar .nav-item {
-          display: inline-flex;
-          align-items: center;
-          width: auto;
-          padding: 10px 14px;
-          font-size: 14px;
-          white-space: nowrap;
-          min-height: 44px;
-          border-radius: 8px;
-        }
-        .sidebar .nav-item .icon {
-          margin-right: 4px;
-          font-size: 16px;
+          padding: 6px 4px;
+          gap: 1px;
+          box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+          z-index: 10;
         }
         .sidebar-logo {
           display: none;
         }
+        .sidebar .nav-item {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          width: auto;
+          padding: 6px 10px;
+          font-size: 12px;
+          white-space: nowrap;
+          min-height: 32px;
+          border-radius: 6px;
+          border: 1px solid rgba(255,255,255,0.12);
+          margin: 1px;
+          background: rgba(255,255,255,0.05);
+        }
+        .sidebar .nav-item .icon {
+          font-size: 14px;
+        }
+        .sidebar .nav-item.active {
+          background: #FF6B35;
+          border-color: #FF6B35;
+        }
         main#mainContent {
           margin-left: 0 !important;
-          padding: 12px !important;
+          padding: 8px 10px !important;
           width: 100%;
         }
-        .main {
-          margin-left: 0;
-          padding: 12px;
-          padding-top: 52px;
-        }
         .hamburger {
-          display: flex !important;
+          display: none !important;
         }
-        /* Table responsive: horizontal scroll */
-        .table-wrap {
-          overflow-x: auto;
-          -webkit-overflow-scrolling: touch;
-          margin: 0 -12px;
-          padding: 0 12px;
+        .main {
+          padding-top: 8px !important;
         }
-        table {
-          font-size: 11px;
-          min-width: 600px;
         }
-        th,
-        td {
-          padding: 6px 4px !important;
-          white-space: nowrap;
-        }
-        .card {
-          padding: 12px !important;
-        }
-        /* Stats grid single column */
-        .stats-grid {
-          grid-template-columns: 1fr 1fr !important;
-          gap: 8px;
-        }
-        /* Dashboard stat cards compact */
-        .stat-card {
-          padding: 10px !important;
-        }
-        .stat-card .stat-value {
-          font-size: 18px !important;
-        }
-        .stat-card .stat-label {
-          font-size: 10px !important;
-        }
-        /* Hide less important table columns on very small screens */
-        @media (max-width: 420px) {
+@media (max-width: 420px) {
           .hide-mobile {
             display: none !important;
           }
@@ -4537,7 +4510,6 @@ async function topupCorporateCredits(id) {
       }
 </script>
 <!-- ZenPass 統一頁腳 -->
-</script>
 <style>
       .zp-footer {
         background: linear-gradient(
