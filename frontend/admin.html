@@ -946,11 +946,28 @@
 // ===== 企業健康計劃 (Corporate B2B) =====
 async function loadCorporateTab() {
   var main = document.getElementById('mainContent');
+  main.innerHTML = '<div class="top-bar"><div><h1>\ud83c\udfe2 企業健康計劃</h1></div></div>' +
+    '<div id="corp-content"><div class="loading">載入中...</div></div>' +
+    '<div id="corp-create-form" style="display:none;margin-top:16px;padding:16px;background:#f8f9fa;border-radius:8px;">' +
+    '<h3>新增企業</h3>' +
+    '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;">' +
+    '<input id="corp-name" placeholder="企業名稱" style="flex:2;min-width:150px;padding:8px;border:1px solid #ddd;border-radius:6px;">' +
+    '<input id="corp-contact" placeholder="聯絡人" style="flex:1;min-width:120px;padding:8px;border:1px solid #ddd;border-radius:6px;">' +
+    '<input id="corp-email" placeholder="電郵" style="flex:1;min-width:150px;padding:8px;border:1px solid #ddd;border-radius:6px;">' +
+    '<input id="corp-phone" placeholder="電話" style="flex:0 0 120px;padding:8px;border:1px solid #ddd;border-radius:6px;">' +
+    '<input id="corp-credits" type="number" placeholder="Credits" style="flex:0 0 100px;padding:8px;border:1px solid #ddd;border-radius:6px;">' +
+    '<button class="btn btn-primary" onclick="createCorporate()">建立</button>' +
+    '</div></div></div>' +
+    '<div id="corp-detail" style="display:none;margin-top:16px;padding:16px;background:#f8f9fa;border-radius:8px;">' +
+    '<h3 id="corp-detail-name"></h3><div id="corp-detail-content"></div><hr>' +
+    '<h4>新增員工</h4>' +
+    '<textarea id="corp-employees-input" placeholder="每行一個：姓名, 電郵" rows="4" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;"></textarea>' +
+    '<button class="btn" onclick="addCorporateEmployees()" style="margin-top:8px;">批量新增</button></div>';
   try {
     var data = await apiGet('/corporate/companies');
     if (!data.companies) throw new Error('no data');
-    var html = '<div class="card"><div class="card-header"><h3>\ud83c\udfe2 企業列表</h3></div>';
-    html += '<table class="table-wrap"><thead><tr><th>名稱</th><th>聯絡人</th><th>員工</th><th>Credit Pool</th><th>已使用</th><th>30日收入</th><th>狀態</th></tr></thead><tbody>';
+    var html = '<div class="card"><div class="card-header"><h3>\ud83c\udfe2 企業列表</h3><button class="btn btn-primary" onclick="document.getElementById(\'corp-create-form\').style.display=\'block\'">+ 新增企業</button></div>';
+    html += '<table class="table-wrap"><thead><tr><th>名稱</th><th>聯絡人</th><th>員工</th><th>Credit Pool</th><th>已使用</th><th>總收入</th><th>狀態</th></tr></thead><tbody>';
     data.companies.forEach(function(c) {
       html += '<tr onclick="showCorporateDetail(\'' + c.id + '\')" style="cursor:pointer">';
       html += '<td>' + (c.name || '-') + '</td>';
@@ -963,9 +980,9 @@ async function loadCorporateTab() {
       html += '</tr>';
     });
     html += '</tbody></table></div>';
-    document.getElementById('corporate-list').innerHTML = html;
+    document.getElementById('corp-content').innerHTML = html;
   } catch(e) {
-    document.getElementById('corporate-list').innerHTML = '<p style="color:red">\u274c 載入失敗: ' + e.message + '</p>';
+    document.getElementById('corp-content').innerHTML = '<p style="color:red">\u274c 載入失敗: ' + e.message + '</p>';
   }
 }
 
