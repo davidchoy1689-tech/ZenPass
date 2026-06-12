@@ -561,22 +561,41 @@
       /* Mobile Responsive */
       @media (max-width: 768px) {
         .sidebar {
-          width: 100%;
-          height: auto;
-          position: relative;
-          display: none;
+          width: 220px;
+          height: 100%;
+          position: fixed;
+          left: -240px;
+          top: 0;
+          display: flex !important;
+          flex-direction: column;
+          transition: left 0.3s ease;
+          z-index: 1000;
         }
         .sidebar.open {
+          left: 0;
+        }
+        .sidebar-backdrop {
+          display: none;
+        }
+        .sidebar.open + .sidebar-backdrop,
+        .sidebar-backdrop.open {
           display: block;
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(0,0,0,0.4);
+          z-index: 999;
         }
         .sidebar .nav-item {
-          display: inline-block;
-          width: auto;
-          padding: 8px 12px;
-          font-size: 12px;
+          display: flex;
+          width: 100%;
+          padding: 10px 14px;
+          font-size: 13px;
         }
         .sidebar-logo {
-          display: none;
+          display: flex;
         }
         .main {
           margin-left: 0;
@@ -692,20 +711,21 @@
     </div>
 
     <button
-      class="hamburger"
-      onclick="document.querySelector('.sidebar').classList.toggle('open')"
+      class="hamburger" style="position:fixed;top:10px;left:10px;z-index:1001;display:block;"
+      onclick="document.querySelector('.sidebar').classList.toggle('open');document.querySelector('.sidebar-backdrop').classList.toggle('open')"
     >
       ☰
     </button>
     <button
-      class="hamburger"
+      class="hamburger" style="position:fixed;top:10px;left:10px;z-index:1001;display:block;"
       onclick="this.nextElementSibling.classList.toggle('open')"
     >
       ☰
     </button>
     <!-- App -->
     <div id="app" style="display: none">
-      <div class="sidebar">
+      <div class="sidebar-backdrop" onclick="document.querySelector('.sidebar').classList.remove('open')"></div>
+    <div class="sidebar">
         <div class="sidebar-logo">
           🧘 <span>ZenPass</span><small>管理後台</small>
         </div>
@@ -4563,6 +4583,12 @@ async function topupCorporateCredits(id) {
       main#mainContent {
         margin-left: 220px;
         flex: 1;
+      }
+      @media (max-width: 768px) {
+        main#mainContent {
+          margin-left: 0;
+          padding-left: 50px;
+        }
       }
       .zp-footer a {
         color: rgba(255, 255, 255, 0.6);
