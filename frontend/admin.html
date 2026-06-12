@@ -561,41 +561,84 @@
       /* Mobile Responsive */
       @media (max-width: 768px) {
         .sidebar {
-          width: 220px;
+          width: 240px;
           height: 100%;
           position: fixed;
-          left: -240px;
+          left: -260px;
           top: 0;
           display: flex !important;
           flex-direction: column;
-          transition: left 0.3s ease;
-          z-index: 1000;
+          transition: left 0.25s ease;
+          z-index: 1001;
+          box-shadow: 2px 0 8px rgba(0,0,0,0.15);
         }
         .sidebar.open {
           left: 0;
         }
         .sidebar-backdrop {
           display: none;
-        }
-        .sidebar.open + .sidebar-backdrop,
-        .sidebar-backdrop.open {
-          display: block;
           position: fixed;
           top: 0;
           left: 0;
           right: 0;
           bottom: 0;
           background: rgba(0,0,0,0.4);
-          z-index: 999;
+          z-index: 1000;
+        }
+        .sidebar-backdrop.open {
+          display: block;
         }
         .sidebar .nav-item {
           display: flex;
+          align-items: center;
           width: 100%;
-          padding: 10px 14px;
-          font-size: 13px;
+          padding: 12px 16px;
+          font-size: 14px;
+          border-bottom: 1px solid rgba(255,255,255,0.06);
         }
         .sidebar-logo {
           display: flex;
+        }
+        main#mainContent {
+          margin-left: 0 !important;
+          padding: 12px 10px;
+          width: 100%;
+        }
+        .hamburger {
+          position: fixed;
+          top: 8px;
+          left: 8px;
+          z-index: 1002;
+          display: block;
+          background: var(--orange-500, #FF6B35);
+          color: #fff;
+          border: none;
+          border-radius: 8px;
+          padding: 8px 12px;
+          font-size: 20px;
+          cursor: pointer;
+          width: auto;
+        }
+        .stats-grid {
+          grid-template-columns: 1fr 1fr !important;
+          gap: 8px !important;
+        }
+        .table-wrap {
+          font-size: 11px !important;
+        }
+        .table-wrap th, .table-wrap td {
+          padding: 6px 4px !important;
+          white-space: nowrap;
+        }
+        .card {
+          margin: 0 0 12px 0 !important;
+        }
+        .admin-layout {
+          flex-direction: column;
+        }
+        .zp-footer {
+          margin-left: 0 !important;
+        }
         }
         .main {
           margin-left: 0;
@@ -711,20 +754,20 @@
     </div>
 
     <button
-      class="hamburger" style="position:fixed;top:10px;left:10px;z-index:1001;display:block;"
-      onclick="document.querySelector('.sidebar').classList.toggle('open');document.querySelector('.sidebar-backdrop').classList.toggle('open')"
+      class="hamburger" aria-label="選單"
+      onclick="toggleSidebar()"
     >
       ☰
     </button>
     <button
-      class="hamburger" style="position:fixed;top:10px;left:10px;z-index:1001;display:block;"
+      class="hamburger" aria-label="選單"
       onclick="this.nextElementSibling.classList.toggle('open')"
     >
       ☰
     </button>
     <!-- App -->
     <div id="app" style="display: none">
-      <div class="sidebar-backdrop" onclick="document.querySelector('.sidebar').classList.remove('open')"></div>
+      <div class="sidebar-backdrop" onclick="closeSidebar()"></div>
     <div class="sidebar">
         <div class="sidebar-logo">
           🧘 <span>ZenPass</span><small>管理後台</small>
@@ -1287,7 +1330,16 @@ async function topupCorporateCredits(id) {
       });
 
       // ===== Load Tab =====
-      function loadTab(tab) {
+      
+function toggleSidebar() {
+  document.querySelector('.sidebar').classList.toggle('open');
+  document.querySelector('.sidebar-backdrop').classList.toggle('open');
+}
+function closeSidebar() {
+  document.querySelector('.sidebar').classList.remove('open');
+  document.querySelector('.sidebar-backdrop').classList.remove('open');
+}
+function loadTab(tab) {
         var main = document.getElementById("mainContent");
         main.innerHTML = '<div class="loading">載入中...</div>';
         switch (tab) {
@@ -4583,12 +4635,8 @@ async function topupCorporateCredits(id) {
       main#mainContent {
         margin-left: 220px;
         flex: 1;
-      }
-      @media (max-width: 768px) {
-        main#mainContent {
-          margin-left: 0;
-          padding-left: 50px;
-        }
+        padding: 20px 24px;
+        min-height: 80vh;
       }
       .zp-footer a {
         color: rgba(255, 255, 255, 0.6);
