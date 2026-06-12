@@ -42,21 +42,72 @@ function applyPenalty(userId, bookingId, penaltyCredits, reason, type = 'no_show
   const db = new Database(DB_PATH);
   db.pragma("foreign_keys = ON");
   try {
+    // === Grace Period: 首次免罰 ===
+    const prevPenalties = db.prepare(
+      "SELECT COUNT(*) as c FROM penalty_logs WHERE user_id = ? AND status = 'applied'"
+    ).get(userId);
+    const isFirstOffense = prevPenalties ? prevPenalties.c === 0 : true;
+    const graceEnabled = db.prepare(
+      "SELECT value FROM pricing_config WHERE key = 'grace_period_enabled'"
+    ).get();
+    if (isFirstOffense && (graceEnabled?.value === '1' || !graceEnabled)) {
+      // 首次違規：記錄但唔扣 Credits
+      console.log(`[PENALTY] Grace period: user=${userId}, waived ${penaltyCredits}cr for ${type}`);
+      const penaltyId = uuidv4();
+      db.prepare(
+        "INSERT INTO penalty_logs (id, booking_id, user_id, type, class_cost, penalty_credits, status, reason, created_at) VALUES (?, ?, ?, ?, ?, ?, 'waived', ?, datetime('now'))"
+      ).run(penaltyId, bookingId, userId, type, 0, penaltyCredits,
+        `首次違規豁免：${reason}`);
+      db.prepare(
+        "INSERT INTO audit_log (id, action, entity_type, entity_id, user_id, details, created_at) VALUES (?, 'penalty.waived', 'booking', ?, ?, ?, datetime('now'))"
+      ).run(uuidv4(), bookingId, userId, JSON.stringify({ penaltyCredits, reason, waived: true, type }));
+      db.close();
+      return { waived: true, penaltyId };
+    }
+
     const result = db
       .prepare("UPDATE users SET credits = MAX(0, credits - ?) WHERE id = ?")
       .run(penaltyCredits, userId);
     if (result.changes === 0) {
       console.error(`[PENALTY] Cannot deduct: user=${userId}, credits=${penaltyCredits}`);
       db.close();
-      return false;
+      return { waived: false, applied: false };
     }
     const user = db.prepare("SELECT credits FROM users WHERE id = ?").get(userId);
     const newCredits = user ? user.credits : 0;
     const txId = uuidv4();
     db.prepare(`
       INSERT INTO transactions (id, user_id, type, amount, currency, payment_method, status, description, created_at)
-      VALUES (?, ?, 'credits_topup', ?, 'HKD', 'credits', 'completed', ?, datetime('now'))
+      VALUES (?, ?, 'penalty', ?, 'HKD', 'credits', 'completed', ?, datetime('now'))
     `).run(txId, userId, -penaltyCredits, reason);
+
+    // === 50/50 分拆：罰款收入 50%→平台, 50%→教練 ===
+    try {
+      const booking = db.prepare(
+        "SELECT b.class_id, cs.id as schedule_id FROM bookings b JOIN class_schedules cs ON b.schedule_id = cs.id WHERE b.id = ?"
+      ).get(bookingId);
+      if (booking) {
+        const coach = db.prepare(
+          "SELECT c.user_id FROM classes cl JOIN coaches c ON cl.coach_id = c.id WHERE cl.id = ?"
+        ).get(booking.class_id);
+        if (coach) {
+          const penaltyHalf = Math.floor(penaltyCredits / 2);
+          if (penaltyHalf > 0) {
+            // 給教練 50%
+            db.prepare("UPDATE users SET credits = COALESCE(credits,0) + ? WHERE id = ?")
+              .run(penaltyHalf, coach.user_id);
+            db.prepare(
+              "INSERT INTO coach_earnings (id, coach_id, amount, type, source, description, created_at) VALUES (?, ?, ?, 'penalty_split', 'penalty', ?, datetime('now'))"
+            ).run(uuidv4(), coach.user_id, penaltyHalf,
+              `罰款分拆 50%：${reason}`);
+            console.log(`[PENALTY] Split ${penaltyHalf}cr to coach ${coach.user_id}`);
+          }
+        }
+      }
+    } catch(splitErr) {
+      console.error('[PENALTY] Split error:', splitErr.message);
+    }
+
     // 記錄到 penalty_logs
     try {
       const bc = db.prepare("SELECT credits_cost FROM bookings b JOIN classes c ON b.class_id = c.id WHERE b.id = ?").get(bookingId);
@@ -69,7 +120,7 @@ function applyPenalty(userId, bookingId, penaltyCredits, reason, type = 'no_show
       VALUES (?, ?, 'booking', ?, ?, ?, datetime('now'))
     `).run(uuidv4(), 'penalty.apply', bookingId, userId, JSON.stringify({ penaltyCredits, reason, newCredits, bookingId }));
     db.close();
-    return true;
+    return { waived: false, applied: true, penaltyCredits };
   } catch (err) {
     console.error("[PENALTY] applyPenalty error:", err);
     db.close();
@@ -121,7 +172,7 @@ router.post("/process-no-shows", (req, res) => {
       const classCost = booking.credits_cost || 12;
       const penaltyTotal = config.noShowPenalty; // 2cr extra penalty
       
-      const penaltyApplied = applyPenalty(
+      const penaltyResult = applyPenalty(
         booking.user_id,
         booking.id,
         penaltyTotal,
@@ -129,20 +180,24 @@ router.post("/process-no-shows", (req, res) => {
         'no_show'
       );
 
-      if (penaltyApplied) {
+      if (penaltyResult && (penaltyResult.applied || penaltyResult.waived)) {
+        const isWaived = penaltyResult.waived;
         // 4. 通知用戶
         try {
-          sendNotification(booking.user_id, "no_show_penalty", "⚠️ 缺席罰款通知",
-            `「${booking.class_title}」你已缺席。該次預約嘅 ${classCost} Credits 已扣除，另加 ${penaltyTotal} Credits 缺席罰款。`,
-            { booking_id: booking.id, class_cost: classCost, penalty: penaltyTotal }
-          );
+          const notifyType = isWaived ? 'no_show_waived' : 'no_show_penalty';
+          const notifyTitle = isWaived ? '⚠️ 缺席通知（首次豁免）' : '⚠️ 缺席罰款通知';
+          const notifyMsg = isWaived
+            ? `「${booking.class_title}」你已缺席。由於係首次違規，今次豁免罰款。下次缺席會扣 ${penaltyTotal} Credits。`
+            : `「${booking.class_title}」你已缺席。該次預約嘅 ${classCost} Credits 已扣除，另加 ${penaltyTotal} Credits 缺席罰款。`;
+          sendNotification(booking.user_id, notifyType, notifyTitle, notifyMsg,
+            { booking_id: booking.id, class_cost: classCost, penalty: isWaived ? 0 : penaltyTotal });
         } catch (e) {}
 
         try {
-          trackBookingChange(booking.id, "system", "confirmed", "no_show", req);
+          trackBookingChange(booking.id, "system", "confirmed", isWaived ? 'no_show_waived' : 'no_show', req);
         } catch (e) {}
 
-        console.log(`[PENALTY] No-show: user=${booking.user_id} booking=${booking.id} cost=${classCost} penalty=${penaltyTotal}`);
+        console.log(`[PENALTY] No-show: user=${booking.user_id} booking=${booking.id} cost=${classCost} penalty=${isWaived ? 'WAIVED' : penaltyTotal}`);
       }
 
       processed.push({
