@@ -559,11 +559,25 @@
 
     <style>
       /* Mobile Responsive */
-      @media (max-width: 768px) {
+      #mobile-tab-select { display: none; }
+    @media (max-width: 768px) {
         .sidebar {
-          width: 240px;
-          height: 100%;
-          position: fixed;
+          display: none !important;
+        }
+        .sidebar-backdrop {
+          display: none !important;
+        }
+        .hamburger {
+          display: none !important;
+        }
+        #mobile-tab-select {
+          display: block !important;
+          margin: 8px 0;
+        }
+        main#mainContent {
+          margin-left: 0 !important;
+          padding: 12px !important;
+        }
           left: -260px;
           top: 0;
           display: flex !important;
@@ -1339,7 +1353,46 @@ function closeSidebar() {
   document.querySelector('.sidebar').classList.remove('open');
   document.querySelector('.sidebar-backdrop').classList.remove('open');
 }
+function switchTabMobile(sel) {
+  var tab = sel.value;
+  if (tab) {
+    // Find and click the matching nav item
+    var el = document.querySelector('[data-tab="' + tab + '"]');
+    if (el) el.click();
+    // Reset select
+    sel.value = '';
+  }
+}
+
+function addMobileTabSelector() {
+  var topBar = document.querySelector('.top-bar');
+  if (!topBar) return;
+  if (document.getElementById('mobile-tab-select')) return; // already added
+  
+  var navItems = document.querySelectorAll('.nav-item');
+  var select = document.createElement('select');
+  select.id = 'mobile-tab-select';
+  select.style.cssText = 'width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:8px;font-size:14px;margin-bottom:12px;background:#fff;-webkit-appearance:menulist;appearance:menulist;';
+  select.onchange = function() { switchTabMobile(this); };
+  
+  var opt = document.createElement('option');
+  opt.value = '';
+  opt.textContent = '📱 切換頁面...';
+  select.appendChild(opt);
+  
+  navItems.forEach(function(item) {
+    var o = document.createElement('option');
+    o.value = item.dataset.tab;
+    o.textContent = item.textContent.trim();
+    select.appendChild(o);
+  });
+  
+  topBar.parentNode.insertBefore(select, topBar.nextSibling);
+}
+
+// Call after login
 function loadTab(tab) {
+  setTimeout(addMobileTabSelector, 100);
         var main = document.getElementById("mainContent");
         main.innerHTML = '<div class="loading">載入中...</div>';
         switch (tab) {
