@@ -33,7 +33,7 @@ router.get("/companies", authenticateToken, (req, res) => {
     const db = new Database(DB_PATH);
     const companies = db.prepare(`
       SELECT c.*,
-        (SELECT COUNT(*) FROM corporate_members cm JOIN users u ON cm.user_id = u.id WHERE cm.company_id = c.id AND u.status = 'active') as active_employees,
+        (SELECT COUNT(*) FROM corporate_members cm JOIN users u ON cm.user_id = u.id WHERE cm.company_id = c.id AND u.id IS NOT NULL) as active_employees,
         (SELECT COALESCE(SUM(b.amount), 0) FROM corporate_members cm JOIN bookings b ON cm.user_id = b.user_id WHERE cm.company_id = c.id AND b.status IN ('confirmed', 'attended')) as total_spent
       FROM corporate_companies c ORDER BY c.created_at DESC
     `).all();
@@ -151,7 +151,7 @@ router.get("/companies/:id", authenticateToken, (req, res) => {
     if (!company) { db.close(); return res.status(404).json({ error: "企業不存在" }); }
 
     const employees = db.prepare(`
-      SELECT u.id, u.name, u.email, u.status, u.credits,
+      SELECT u.id, u.name, u.email, u.role as status, u.credits,
         (SELECT COUNT(*) FROM bookings WHERE user_id = u.id AND created_at >= datetime('now', '-30 days')) as bookings_30d,
         cm.created_at as joined_at
       FROM corporate_members cm JOIN users u ON cm.user_id = u.id
