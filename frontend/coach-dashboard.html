@@ -172,6 +172,42 @@
         color: var(--dark-900);
         margin-top: 4px;
       }
+      .student-list-section {
+        background: var(--white);
+        border-radius: var(--radius-lg);
+        padding: 16px;
+        margin: 12px 0;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      }
+      .student-list-section .sl-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+      }
+      .student-list-section .sl-header h3 {
+        font-size: 15px;
+        font-weight: 700;
+        margin: 0;
+      }
+      .student-list-section .sl-header .sl-close {
+        font-size: 20px;
+        cursor: pointer;
+        color: var(--dark-500);
+        padding: 4px;
+      }
+      .student-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 0;
+        border-bottom: 1px solid var(--gray-100);
+      }
+      .student-item:last-child { border-bottom: none; }
+      .student-item .s-name { font-size: 14px; font-weight: 500; }
+      .student-item .s-email { font-size: 11px; color: var(--dark-600); }
+      .student-item .s-status { font-size: 12px; font-weight: 600; }
+      .student-item .s-actions { display: flex; gap: 8px; }
 
       .class-item {
         padding: 14px 0;
@@ -764,6 +800,7 @@
           </div>
           <div class="schedule-scroll" id="upcomingClasses"></div>
         </div>
+        <div id="studentArea"></div>
         <div class="card">
           <div
             class="card-title"
@@ -1047,7 +1084,8 @@
             upHtml = '<div class="empty-state">暫無即將到來的課堂</div>';
           } else {
             mySchedules.slice(0,5).forEach(function(s) {
-              upHtml += '<div class="schedule-card">';
+              var schedId = s.id || s.schedule_id || '';
+              upHtml += '<div class="schedule-card" style="cursor:pointer" onclick="showStudents(\'' + schedId + '\')">';
               upHtml += '<div class="schedule-time">' + (s.start_time || '').slice(0,16).replace('T', ' ') + '</div>';
               upHtml += '<div class="schedule-title">' + escHtml(s.title || '') + '</div>';
               upHtml += '<div class="schedule-meta">' + (s.enrolled_count || 0) + '/' + (s.max_participants || 0) + ' 已預約</div>';
@@ -1056,6 +1094,7 @@
           }
           document.getElementById('upcomingClasses').innerHTML = upHtml;
           document.getElementById('upcomingCount').textContent = mySchedules.length;
+          document.getElementById('studentArea').innerHTML = '';
 
           // My classes list
           var clsHtml = '';
@@ -1181,7 +1220,119 @@
           _walletLoaded = false;
         }
       }
-    </script>
+    
+      // Show Students for a Schedule (Coach Attendance)
+      async function showStudents(scheduleId) {
+        if (!scheduleId) return;
+        try {
+          var r = await fetch("/api/coach/class-students?schedule_id=" + scheduleId, {
+            headers: { Authorization: "Bearer " + token }
+          });
+          if (!r.ok) throw new Error("Cannot load student list");
+          var d = await r.json();
+          var area = document.getElementById('studentArea');
+          if (!area) return;
+          var students = d.students || [];
+          var schedule = d.schedule || {};
+          var html = '<div class="student-list-section">';
+          html += '<div class="sl-header">';
+          html += '<h3>Students - ' + escHtml(schedule.title || '') + '</h3>';
+          html += '<span class="sl-close" onclick="this.parentElement.parentElement.remove()">X</span>';
+          html += '</div>';
+          if (students.length === 0) {
+            html += '<div class="empty-state" style="padding:20px 0">No students booked</div>';
+          } else {
+            students.forEach(function(st) {
+              var statusLabel = '';
+              var statusColor = '';
+              if (st.booking_status === 'attended') {
+                statusLabel = 'Attended';
+                statusColor = 'var(--green-600)';
+              } else if (st.booking_status === 'no_show') {
+                statusLabel = 'No-show';
+                statusColor = 'var(--red-500)';
+              } else if (st.booking_status === 'cancelled') {
+                statusLabel = 'Cancelled';
+                statusColor = 'var(--gray-500)';
+              } else {
+                statusLabel = 'Pending';
+                statusColor = 'var(--orange-600)';
+              }
+              html += '<div class="student-item">';
+              html += '<div><div class="s-name">' + escHtml(st.name || '') + '</div>';
+              html += '<div class="s-email">' + escHtml(st.email || '') + '</div></div>';
+              html += '<div class="s-actions">';
+              if (st.booking_status === 'confirmed') {
+                html += '<button class="btn-attend" onclick="markAttendance(\'' + st.id + '\', this)">Attend</button>';
+                html += '<button class="btn-noshow" onclick="markNoShow(\'' + st.id + '\', this)">No-show</button>';
+              } else {
+                html += '<span class="s-status" style="color:' + statusColor + '">' + statusLabel + '</span>';
+              }
+              html += '</div></div>';
+            });
+          }
+          html += '</div>';
+          area.innerHTML = html;
+          area.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        } catch (e) {
+          showToast("Error: " + e.message, "error");
+        }
+      }
+
+      async function markAttendance(bookingId, btn) {
+        if (!bookingId) return;
+        btn.disabled = true;
+        btn.textContent = "...";
+        try {
+          var r = await fetch("/api/bookings/" + bookingId + "/attend", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+            body: JSON.stringify({ checkin_method: "coach" })
+          });
+          var d = await r.json();
+          if (!r.ok) throw new Error(d.error || "Check-in failed");
+          btn.textContent = "Attended";
+          btn.style.background = "#059669";
+          btn.disabled = true;
+          setTimeout(function() { location.reload(); }, 1000);
+        } catch (e) {
+          btn.disabled = false;
+          btn.textContent = "Attend";
+          showToast("Error: " + e.message, "error");
+        }
+      }
+
+      async function markNoShow(bookingId, btn) {
+        if (!bookingId) return;
+        btn.disabled = true;
+        btn.textContent = "...";
+        try {
+          var r = await fetch("/api/bookings/" + bookingId + "/no-show", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+            body: JSON.stringify({})
+          });
+          var d = await r.json();
+          if (!r.ok) throw new Error(d.error || "Failed");
+          btn.textContent = "No-show";
+          btn.style.background = "#ef4444";
+          btn.disabled = true;
+          setTimeout(function() { location.reload(); }, 1000);
+        } catch (e) {
+          btn.disabled = false;
+          btn.textContent = "No-show";
+          showToast("Error: " + e.message, "error");
+        }
+      }
+
+      function showToast(msg, type) {
+        var t = document.createElement('div');
+        t.style.cssText = 'position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:' + (type === 'error' ? '#ef4444' : '#059669') + ';color:#fff;padding:12px 24px;border-radius:12px;font-size:14px;font-weight:600;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,0.2);max-width:90%;text-align:center';
+        t.textContent = msg;
+        document.body.appendChild(t);
+        setTimeout(function() { t.remove(); }, 3000);
+      }
+</script>
     
 <!-- ZenPass 統一頁腳 -->
 <style>

@@ -1183,4 +1183,24 @@ router.post("/checkin", authenticateToken, (req, res) => {
   }
 });
 
+
 module.exports = router;
+// ===== POST /api/bookings/:id/no-show =====
+router.post("/:id/no-show", authenticateToken, (req, res) => {
+  try {
+    const db = new Database(DB_PATH);
+    db.pragma("foreign_keys = ON");
+    const user = db.prepare("SELECT is_coach, coach_verified, role FROM users WHERE id = ?").get(req.user.id);
+    const isCoachOrAdmin = user && (user.is_coach || user.role === "admin" || user.coach_verified);
+    if (!isCoachOrAdmin) { db.close(); return res.status(403).json({ error: "Only coach/admin can mark no-show" }); }
+    const booking = db.prepare("SELECT * FROM bookings WHERE id = ? AND status = 'confirmed'").get(req.params.id);
+    if (!booking) { db.close(); return res.status(404).json({ error: "Booking not found or already processed" }); }
+    const result = db.prepare("UPDATE bookings SET status = 'no_show', checked_in_at = datetime('now'), checkin_method = 'coach' WHERE id = ? AND status = 'confirmed'").run(req.params.id);
+    if (result.changes === 0) { db.close(); return res.status(400).json({ error: "Cannot mark no-show" }); }
+    db.close();
+    res.json({ success: true, message: "Marked as no-show" });
+  } catch (err) {
+    console.error("No-show error:", err.message);
+    res.status(500).json({ error: "Operation failed" });
+  }
+});

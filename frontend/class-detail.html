@@ -1072,6 +1072,7 @@
 
         // Update book button
         updateBookButton();
+        checkWaitlistStatus(scheduleId);
       }
 
       function renderScheduleItem(s) {
@@ -1284,9 +1285,37 @@
           var d = await r.json();
           if (!r.ok) throw new Error(d.error || "加入失敗");
           showToast("✅ " + d.message, "success");
+          // Update waitlist button with position
+          var wlBtn = document.getElementById("waitlist-btn");
+          if (wlBtn && d.position) {
+            wlBtn.textContent = "📋 排隊中：第 " + d.position + " 位";
+          }
         } catch (e) {
           showToast("❌ " + e.message, "error");
         }
+      }
+
+      // ===== Check Waitlist Status =====
+      async function checkWaitlistStatus(scheduleId) {
+        if (!isLoggedIn()) return;
+        try {
+          var r = await fetch("/api/waitlist/status?schedule_id=" + scheduleId, {
+            headers: { Authorization: "Bearer " + getToken() }
+          });
+          if (!r.ok) return;
+          var d = await r.json();
+          var wlBtn = document.getElementById("waitlist-btn");
+          if (!wlBtn) return;
+          if (d.in_waitlist && d.position) {
+            var aheadCount = d.total - d.position;
+            var posText = "📋 排隊中：第 " + d.position + " 位";
+            if (aheadCount > 0) {
+              posText += "（前面 " + aheadCount + " 人）";
+            }
+            wlBtn.textContent = posText;
+            wlBtn.style.display = "";
+          }
+        } catch (e) {}
       }
 
       // ===== Handle Booking =====
