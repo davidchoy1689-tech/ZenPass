@@ -297,6 +297,139 @@
       >
     </div>
 
+    <!-- Search Bar -->
+    <div class="search-bar" role="search">
+      <input
+        type="text"
+        id="search-input"
+        placeholder="搜尋課程、教練、運動類型..."
+        onkeyup="handleSearch(event)"
+        aria-label="搜尋課程、教練、運動類型"
+      />
+      <button id="searchBtn" aria-label="搜尋">🔍</button>
+    </div>
+
+    <!-- Upcoming Bookings (shown when logged in) -->
+    <div id="upcoming-section" class="section" style="display:none">
+      <div class="zen-section-title">
+        <span>🗓️ 你嘅下一堂</span>
+        <a href="my.html" class="zen-text-xs" style="color: var(--orange-700); text-decoration: none">查看全部 →</a>
+      </div>
+      <div id="upcoming-list" class="zen-flex zen-gap-sm" style="flex-direction: column">
+        <div class="loading-spinner" style="padding: 12px 0">載入中...</div>
+      </div>
+    </div>
+
+    <script>
+    // Logged-in detection: show upcoming bookings, hide visitor stats
+    (function() {
+      var token = localStorage.getItem('zp_token') || localStorage.getItem('zenpass_token');
+      var upcomingSection = document.getElementById('upcoming-section');
+      var statsSection = document.getElementById('visitor-stats');
+
+      if (token && upcomingSection) {
+        // Hide visitor stats
+        if (statsSection) statsSection.style.display = 'none';
+        // Show upcoming section
+        upcomingSection.style.display = '';
+
+        // Fetch upcoming bookings
+        var apiBase = window.API_BASE || '';
+        fetch(apiBase + '/api/bookings/my?status=confirmed&limit=3', {
+          headers: { 'Authorization': 'Bearer ' + token }
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          var list = document.getElementById('upcoming-list');
+          if (!list) return;
+          if (data.bookings && data.bookings.length > 0) {
+            list.innerHTML = '';
+            data.bookings.forEach(function(b) {
+              var cls = b.class_info || b;
+              var title = cls.title || cls.name || '課程';
+              var time = b.start_time || '';
+              var dateStr = '';
+              if (time) {
+                var d = new Date(time);
+                var days = ['日','一','二','三','四','五','六'];
+                var month = (d.getMonth()+1).toString().padStart(2,'0');
+                var day = d.getDate().toString().padStart(2,'0');
+                var hour = d.getHours().toString().padStart(2,'0');
+                var min = d.getMinutes().toString().padStart(2,'0');
+                dateStr = month + '/' + day + ' (' + days[d.getDay()] + ') ' + hour + ':' + min;
+              }
+              var coach = cls.coach_name || '';
+              var location = cls.location || cls.venue || '';
+              var el = document.createElement('a');
+              el.href = 'class-detail.html?id=' + (cls.id || cls.class_id || '');
+              el.className = 'zen-card';
+              el.style.cssText = 'display:flex;align-items:center;gap:14px;padding:14px 16px;text-decoration:none;color:inherit;border-radius:12px;';
+              el.innerHTML = '<div style="font-size:24px;flex-shrink:0">📅</div>' +
+                '<div class="zen-flex-1" style="min-width:0">' +
+                '<div class="zen-text-bold" style="font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + title + '</div>' +
+                '<div style="font-size:12px;color:var(--dark-700);margin-top:2px">' + dateStr + (coach ? ' · ' + coach : '') + '</div>' +
+                (location ? '<div style="font-size:11px;color:var(--dark-600);margin-top:1px">📍 ' + location + '</div>' : '') +
+                '</div>' +
+                '<div style="font-size:16px;color:var(--orange-700)">→</div>';
+              list.appendChild(el);
+            });
+          } else {
+            list.innerHTML = '<div class="zen-flex" style="align-items:center;gap:12px;padding:14px 16px;background:var(--white);border-radius:12px;">' +
+              '<div style="font-size:24px">🔍</div>' +
+              '<div class="zen-flex-1"><div class="zen-text-sm zen-text-bold">未有預約</div>' +
+              '<div style="font-size:12px;color:var(--dark-700)">去探索課程，預約你嘅第一堂！</div></div>' +
+              '<a href="explore.html" class="zen-btn" style="padding:8px 16px;border-radius:20px;font-size:12px;text-decoration:none">探索</a></div>';
+          }
+        })
+        .catch(function() {
+          var list = document.getElementById('upcoming-list');
+          if (list) list.innerHTML = '<div class="zen-text-xs zen-text-muted" style="padding:12px;text-align:center">暫時無法載入預約資料</div>';
+        });
+      }
+    })();
+    </script>
+
+    <!-- Platform Stats (shown when NOT logged in) -->
+    <div
+      id="visitor-stats"
+      class="zen-flex zen-card zen-gap-sm"
+      style="
+        margin: 0 16px 12px;
+        padding: 14px 12px;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+      "
+    >
+      <div class="zen-flex-1 zen-text-center">
+        <div
+          class="zen-text-bold"
+          style="font-size: 22px; color: var(--orange-700)"
+        >
+          110+
+        </div>
+        <div class="zen-text-xs zen-text-muted">課程</div>
+      </div>
+      <div style="width: 1px; background: var(--gray-200)"></div>
+      <div class="zen-flex-1 zen-text-center">
+        <div
+          class="zen-text-bold"
+          style="font-size: 22px; color: var(--orange-700)"
+        >
+          32
+        </div>
+        <div class="zen-text-xs zen-text-muted">運動分類</div>
+      </div>
+      <div style="width: 1px; background: var(--gray-200)"></div>
+      <div class="zen-flex-1 zen-text-center">
+        <div
+          class="zen-text-bold"
+          style="font-size: 22px; color: var(--orange-700)"
+        >
+          5+
+        </div>
+        <div class="zen-text-xs zen-text-muted">教練</div>
+      </div>
+    </div>
+
     <div
       class="zen-flex zen-card"
       id="dailyTip"
@@ -476,56 +609,6 @@
   }, 1000);
 
     </script>
-    <div class="search-bar" role="search">
-      <input
-        type="text"
-        id="search-input"
-        placeholder="搜尋課程、教練、運動類型..."
-        onkeyup="handleSearch(event)"
-        aria-label="搜尋課程、教練、運動類型"
-      />
-      <button id="searchBtn" aria-label="搜尋">🔍</button>
-    </div>
-
-    <!-- Platform Stats -->
-    <div
-      class="zen-flex zen-card zen-gap-sm"
-      style="
-        margin: 0 16px 12px;
-        padding: 14px 12px;
-        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
-      "
-    >
-      <div class="zen-flex-1 zen-text-center">
-        <div
-          class="zen-text-bold"
-          style="font-size: 22px; color: var(--orange-700)"
-        >
-          110+
-        </div>
-        <div class="zen-text-xs zen-text-muted">課程</div>
-      </div>
-      <div style="width: 1px; background: var(--gray-200)"></div>
-      <div class="zen-flex-1 zen-text-center">
-        <div
-          class="zen-text-bold"
-          style="font-size: 22px; color: var(--orange-700)"
-        >
-          32
-        </div>
-        <div class="zen-text-xs zen-text-muted">運動分類</div>
-      </div>
-      <div style="width: 1px; background: var(--gray-200)"></div>
-      <div class="zen-flex-1 zen-text-center">
-        <div
-          class="zen-text-bold"
-          style="font-size: 22px; color: var(--orange-700)"
-        >
-          5+
-        </div>
-        <div class="zen-text-xs zen-text-muted">教練</div>
-      </div>
-    </div>
 
     <!-- Role Entry -->
     <div class="section" id="role-entry-section">
@@ -1286,29 +1369,6 @@
         });
       }
     </script>
-    <script>
-      // User name badge — shows current user, click to switch
-      (function () {
-        var n = localStorage.getItem("zenpass_name");
-        if (n) {
-          var b = document.createElement("div");
-          b.style.cssText =
-            "position:fixed;top:10px;right:10px;z-index:9999;background:#FF6B35;color:white;padding:5px 12px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.15);font-family:sans-serif;";
-          b.textContent = "👤 " + n;
-          b.onclick = function () {
-            var nn = prompt("切換用戶\n當前：" + n, n);
-            if (nn && nn.trim() && nn.trim() !== n) {
-              localStorage.setItem("zenpass_name", nn.trim());
-              localStorage.removeItem("zenpass_token");
-              localStorage.removeItem("zenpass_user");
-              location.reload();
-            }
-          };
-          document.body.appendChild(b);
-        }
-      })();
-    </script>
-
     <!-- ZenPass 統一頁腳 -->
     <style>
       .zp-footer {
