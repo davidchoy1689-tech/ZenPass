@@ -61,6 +61,25 @@
   /* Typography */
   --font-en: "Inter", -apple-system, sans-serif;
   --font-zh: "Noto Sans TC", -apple-system, sans-serif;
+  --text-xs: 11px;
+  --text-sm: 13px;
+  --text-base: 14px;
+  --text-md: 16px;
+  --text-lg: 18px;
+  --text-xl: 22px;
+  --text-2xl: 28px;
+  --text-3xl: 34px;
+
+  /* Spacing Scale */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
 
   /* Layout */
   --max-width: 480px;
@@ -252,7 +271,19 @@ body {
   transition: color 0.2s;
 }
 .nav-item.active {
-  color: var(--orange-400);
+  color: var(--orange-500);
+  position: relative;
+}
+.nav-item.active::after {
+  content: "";
+  position: absolute;
+  bottom: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 20px;
+  height: 3px;
+  background: var(--orange-500);
+  border-radius: 2px;
 }
 .nav-item:hover {
   color: var(--white);
@@ -327,7 +358,8 @@ body {
   margin-bottom: 8px;
 }
 .zen-footer a {
-  color: var(--orange-400);
+  color: var(--orange-500);
+  position: relative;
   text-decoration: none;
   font-weight: 600;
 }
@@ -550,6 +582,7 @@ body {
 .zen-form-group textarea:focus {
   border-color: var(--orange-700);
   outline: none;
+  box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.15);
 }
 .zen-form-row {
   display: flex;
