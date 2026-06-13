@@ -3,10 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1.0" />
-    <meta
-      http-equiv="Cache-Control"
-      content="no-cache, no-store, must-revalidate"
-    />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="-1" />
     <title>歡迎加入 — ZenPass</title>
@@ -18,83 +15,100 @@
         background: var(--gray-50);
         color: var(--dark-900);
         min-height: 100vh;
-        padding: 20px;
-        max-width: 640px;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        max-width: 100%;
+      }
+      .onboarding-container {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        max-width: 480px;
         margin: 0 auto;
+        width: 100%;
+        padding: 24px 20px;
+        position: relative;
       }
-      .header {
+      .skip-btn {
+        position: absolute;
+        top: 16px;
+        right: 20px;
+        background: none;
+        border: none;
+        color: var(--dark-700);
+        font-size: 13px;
+        font-family: var(--font-zh);
+        cursor: pointer;
+        padding: 6px 12px;
+        border-radius: 20px;
+        transition: background 0.2s;
+      }
+      .skip-btn:hover {
+        background: var(--gray-200);
+      }
+      .header-area {
         text-align: center;
-        margin-bottom: 20px;
+        margin-bottom: 28px;
+        margin-top: 8px;
       }
-      .header .icon {
-        font-size: 52px;
+      .header-area .icon {
+        font-size: 48px;
       }
-      .header h1 {
+      .header-area h1 {
         font-size: 22px;
         font-weight: 800;
         margin-top: 8px;
       }
-      .header p {
+      .header-area p {
         font-size: 14px;
         color: var(--dark-700);
         margin-top: 4px;
       }
-      .steps {
+      .step-dots {
         display: flex;
-        gap: 8px;
-        margin-bottom: 24px;
         justify-content: center;
+        gap: 8px;
+        margin-bottom: 28px;
         align-items: center;
       }
-      .step {
-        width: 32px;
-        height: 32px;
+      .step-dot {
+        width: 10px;
+        height: 10px;
         border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 13px;
-        font-weight: 700;
         background: var(--gray-200);
-        color: var(--dark-700);
         transition: all 0.3s;
       }
-      .step.active {
+      .step-dot.active {
+        width: 28px;
+        border-radius: 5px;
         background: var(--orange-600-bg);
-        color: var(--white);
       }
-      .step.done {
-        background: var(--green-500);
-        color: var(--white);
-      }
-      .step-line {
-        width: 24px;
-        height: 2px;
-        background: var(--gray-200);
-        align-self: center;
-      }
-      .step-line.done {
+      .step-dot.done {
         background: var(--green-500);
       }
-      .card {
+      .step-card {
         background: var(--white);
         border-radius: var(--radius-lg);
-        padding: 24px;
-        margin-bottom: 16px;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+        padding: 28px 24px;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.06);
         display: none;
+        flex-direction: column;
+        flex: 1;
       }
-      .card.active {
-        display: block;
+      .step-card.active {
+        display: flex;
       }
-      .card h2 {
-        font-size: 18px;
+      .step-card h2 {
+        font-size: 20px;
+        font-weight: 700;
         margin-bottom: 4px;
       }
-      .card .desc {
+      .step-card .desc {
         font-size: 13px;
         color: var(--dark-700);
-        margin-bottom: 16px;
+        margin-bottom: 20px;
         line-height: 1.5;
       }
       .btn {
@@ -106,7 +120,7 @@
         font-weight: 700;
         cursor: pointer;
         font-family: var(--font-zh);
-        transition: background 0.2s;
+        transition: all 0.2s;
       }
       .btn-primary {
         background: var(--orange-600-bg);
@@ -117,765 +131,334 @@
       }
       .btn-primary:disabled {
         background: var(--gray-200);
+        color: var(--dark-700);
         cursor: not-allowed;
       }
       .btn-outline {
         background: var(--white);
         border: 2px solid var(--gray-200);
         color: var(--dark-900);
-        margin-top: 8px;
       }
       .btn-outline:hover {
         border-color: var(--orange-700);
         color: var(--orange-700);
       }
-      .interests {
+      .btn-row {
+        display: flex;
+        gap: 10px;
+        margin-top: auto;
+        padding-top: 20px;
+      }
+      .btn-row .btn {
+        flex: 1;
+      }
+      .pills-grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 10px;
-        margin-bottom: 16px;
+        margin-bottom: 4px;
       }
-      .interest {
+      .pill {
         background: var(--gray-50);
-        border-radius: var(--radius);
+        border-radius: 12px;
         padding: 16px 12px;
         text-align: center;
         border: 2px solid transparent;
         cursor: pointer;
         transition: all 0.2s;
+        user-select: none;
       }
-      .interest:hover {
+      .pill:hover {
         border-color: var(--orange-300);
       }
-      .interest.selected {
+      .pill.selected {
         border-color: var(--orange-700);
         background: var(--orange-100);
       }
-      .interest .icon {
+      .pill .emoji {
         font-size: 28px;
+        display: block;
         margin-bottom: 4px;
       }
-      .interest .name {
+      .pill .label {
         font-size: 14px;
         font-weight: 600;
       }
-      .course-card {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 14px;
+      .goals-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-bottom: 4px;
+      }
+      .goal-pill {
         background: var(--gray-50);
-        border-radius: var(--radius);
-        margin-bottom: 8px;
+        border-radius: 12px;
+        padding: 16px 12px;
+        text-align: center;
+        border: 2px solid transparent;
         cursor: pointer;
         transition: all 0.2s;
+        user-select: none;
       }
-      .course-card:hover {
+      .goal-pill:hover {
+        border-color: var(--orange-300);
+      }
+      .goal-pill.selected {
+        border-color: var(--orange-700);
         background: var(--orange-100);
       }
-      .course-card .emoji {
-        font-size: 32px;
+      .goal-pill .emoji {
+        font-size: 28px;
+        display: block;
+        margin-bottom: 4px;
       }
-      .course-card .info {
-        flex: 1;
-      }
-      .course-card .info .title {
-        font-size: 15px;
+      .goal-pill .label {
+        font-size: 14px;
         font-weight: 600;
-      }
-      .course-card .info .meta {
-        font-size: 12px;
-        color: var(--dark-700);
-        margin-top: 2px;
-      }
-      .course-card .arrow {
-        font-size: 20px;
-        color: var(--dark-700);
       }
       .success-screen {
         text-align: center;
-        padding: 40px 20px;
+        padding: 20px 0;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
       }
-      .success-screen .icon {
-        font-size: 64px;
+      .success-screen .big-icon {
+        font-size: 72px;
         margin-bottom: 12px;
       }
       .success-screen h2 {
-        font-size: 20px;
+        font-size: 22px;
         margin-bottom: 8px;
       }
       .success-screen p {
         font-size: 14px;
         color: var(--dark-700);
-        margin-bottom: 16px;
-      }
-      .cta-buttons {
-        display: flex;
-        gap: 10px;
-      }
-      .cta-buttons .btn {
-        flex: 1;
-      }
-      .role-selector {
-        text-align: center;
         margin-bottom: 24px;
+        line-height: 1.6;
       }
-      .role-selector .roles {
-        display: flex;
-        gap: 10px;
-        justify-content: center;
-        margin-top: 12px;
+      @keyframes bounceIn {
+        0% { transform: scale(0); opacity: 0; }
+        60% { transform: scale(1.15); }
+        100% { transform: scale(1); opacity: 1; }
       }
-      .role-card {
-        background: var(--white);
-        border-radius: var(--radius-lg);
-        padding: 20px;
-        text-align: center;
-        border: 2px solid var(--gray-200);
-        cursor: pointer;
-        transition: all 0.2s;
-        width: 140px;
+      .bounce-in {
+        animation: bounceIn 0.5s ease-out;
       }
-      .role-card:hover {
-        border-color: var(--orange-700);
-      }
-      .role-card.selected {
-        border-color: var(--orange-700);
-        background: var(--orange-100);
-      }
-      .role-card .icon {
-        font-size: 36px;
-      }
-      .role-card .name {
-        font-size: 15px;
-        font-weight: 600;
-        margin-top: 4px;
-      }
-      @keyframes spin {
-        to {
-          transform: rotate(360deg);
+      @media (max-width: 400px) {
+        .pills-grid, .goals-grid {
+          grid-template-columns: 1fr 1fr;
+          gap: 8px;
         }
-      }
-      .spinner {
-        display: inline-block;
-        width: 20px;
-        height: 20px;
-        border: 2px solid rgba(255, 255, 255, 0.3);
-        border-top-color: white;
-        border-radius: 50%;
-        animation: spin 0.8s linear infinite;
-        vertical-align: middle;
-        margin-right: 8px;
-      }
-      @media (max-width: 480px) {
-        body {
-          padding: 12px;
-        }
+        .pill, .goal-pill { padding: 12px 8px; }
+        .pill .emoji, .goal-pill .emoji { font-size: 24px; }
+        .step-card { padding: 20px 16px; }
       }
     </style>
     <!-- Google tag (gtag.js) -->
-    <script
-      async
-      src="https://www.googletagmanager.com/gtag/js?id=G-MKF5N4YLBM"
-    ></script>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-MKF5N4YLBM"></script>
     <script>
       window.dataLayer = window.dataLayer || [];
-      function gtag() {
-        dataLayer.push(arguments);
-      }
+      function gtag(){dataLayer.push(arguments);}
       gtag("js", new Date());
       gtag("config", "G-MKF5N4YLBM");
     </script>
   </head>
   <body>
-    <!-- Role Selection (shown first if role unknown) -->
-    <div id="role-screen">
-      <div class="header">
-        <div class="icon">🎉</div>
-        <h1>歡迎加入 ZenPass 禪流！</h1>
-        <p>你想用 ZenPass 做啲咩？</p>
-      </div>
-      <div class="role-selector">
-        <div class="roles">
-          <div class="role-card" onclick="selectRole('student')">
-            <div class="icon">🧘</div>
-            <div class="name">學員</div>
-            <div
-              style="font-size: 12px; color: var(--dark-700); margin-top: 4px"
-            >
-              搵堂上
-            </div>
-          </div>
-          <div class="role-card" onclick="selectRole('partner')">
-            <div class="icon">🏪</div>
-            <div class="name">教練/商戶</div>
-            <div
-              style="font-size: 12px; color: var(--dark-700); margin-top: 4px"
-            >
-              開班收生
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+    <div class="onboarding-container">
+      <!-- Skip Button -->
+      <button class="skip-btn" onclick="skipOnboarding()">跳過 →</button>
 
-    <!-- Student Onboarding -->
-    <div id="student-flow" style="display: none">
-      <div class="header">
+      <!-- Header -->
+      <div class="header-area">
         <div class="icon">🧘</div>
-        <h1>歡迎，<span id="student-name">學員</span>！</h1>
-        <p>3 步開始你的身心靈之旅</p>
-      </div>
-      <div class="steps" id="student-steps">
-        <div class="step active">1</div>
-        <div class="step-line"></div>
-        <div class="step">2</div>
-        <div class="step-line"></div>
-        <div class="step">3</div>
+        <h1>歡迎加入 ZenPass</h1>
+        <p>幾步設定，搵出最適合你嘅運動體驗</p>
       </div>
 
-      <!-- Student Step 1: Pick Interests -->
-      <div class="card active" id="s-step-1">
-        <h2>🎯 你對咩有興趣？</h2>
-        <p class="desc">揀選你感興趣嘅類別，幫你搵最適合嘅課程（可選多項）</p>
-        <div class="interests" id="s1-interests">
-          <div
-            class="interest selected"
-            onclick="this.classList.toggle('selected')"
-          >
-            <div class="icon">🧘</div>
-            <div class="name">瑜伽</div>
+      <!-- Step Dots -->
+      <div class="step-dots" id="stepDots">
+        <span class="step-dot active"></span>
+        <span class="step-dot"></span>
+        <span class="step-dot"></span>
+      </div>
+
+      <!-- Step 1: Interests -->
+      <div class="step-card active" id="step1">
+        <h2>🎯 揀你嘅興趣</h2>
+        <p class="desc">揀選你感興趣嘅運動類別，幫你搵最適合嘅課程（可選多項）</p>
+        <div class="pills-grid" id="interestsGrid">
+          <div class="pill selected" onclick="togglePill(this)">
+            <span class="emoji">🧘</span><span class="label">瑜伽</span>
           </div>
-          <div class="interest" onclick="this.classList.toggle('selected')">
-            <div class="icon">💪</div>
-            <div class="name">健身</div>
+          <div class="pill" onclick="togglePill(this)">
+            <span class="emoji">💪</span><span class="label">健身</span>
           </div>
-          <div class="interest" onclick="this.classList.toggle('selected')">
-            <div class="icon">🤸</div>
-            <div class="name">伸展</div>
+          <div class="pill" onclick="togglePill(this)">
+            <span class="emoji">🧠</span><span class="label">冥想</span>
           </div>
-          <div class="interest" onclick="this.classList.toggle('selected')">
-            <div class="icon">🧠</div>
-            <div class="name">冥想</div>
+          <div class="pill" onclick="togglePill(this)">
+            <span class="emoji">🤸</span><span class="label">伸展</span>
           </div>
-          <div class="interest" onclick="this.classList.toggle('selected')">
-            <div class="icon">💃</div>
-            <div class="name">舞蹈</div>
+          <div class="pill" onclick="togglePill(this)">
+            <span class="emoji">💃</span><span class="label">舞蹈</span>
           </div>
-          <div class="interest" onclick="this.classList.toggle('selected')">
-            <div class="icon">🥋</div>
-            <div class="name">武術</div>
+          <div class="pill" onclick="togglePill(this)">
+            <span class="emoji">🏃</span><span class="label">跑步</span>
+          </div>
+          <div class="pill" onclick="togglePill(this)">
+            <span class="emoji">🚴</span><span class="label">單車</span>
+          </div>
+          <div class="pill" onclick="togglePill(this)">
+            <span class="emoji">🏊</span><span class="label">游水</span>
           </div>
         </div>
-        <button class="btn btn-primary" onclick="studentNext(1)">
-          下一步 →
-        </button>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="goStep(2)">下一步 →</button>
+        </div>
       </div>
 
-      <!-- Student Step 2: Browse Featured Courses -->
-      <div class="card" id="s-step-2">
-        <h2>📚 精選課程推薦</h2>
-        <p class="desc">根據你嘅興趣，我哋推薦以下熱門課程</p>
-        <div id="s2-courses" style="margin-bottom: 12px">
-          <div
-            style="text-align: center; padding: 30px; color: var(--dark-700)"
-          >
-            <div
-              class="spinner"
-              style="
-                border-color: rgba(0, 0, 0, 0.1);
-                border-top-color: var(--orange-700);
-              "
-            ></div>
-            <div style="margin-top: 12px">載入課程中...</div>
+      <!-- Step 2: Goals -->
+      <div class="step-card" id="step2">
+        <h2>🎯 你的目標</h2>
+        <p class="desc">你主要想透過運動達到咩目標？（可選多項）</p>
+        <div class="goals-grid" id="goalsGrid">
+          <div class="goal-pill" onclick="toggleGoal(this)">
+            <span class="emoji">😌</span><span class="label">減壓</span>
+          </div>
+          <div class="goal-pill" onclick="toggleGoal(this)">
+            <span class="emoji">💪</span><span class="label">增肌</span>
+          </div>
+          <div class="goal-pill" onclick="toggleGoal(this)">
+            <span class="emoji">👗</span><span class="label">修身</span>
+          </div>
+          <div class="goal-pill" onclick="toggleGoal(this)">
+            <span class="emoji">🧘</span><span class="label">放鬆</span>
+          </div>
+          <div class="goal-pill" onclick="toggleGoal(this)">
+            <span class="emoji">👥</span><span class="label">社交</span>
+          </div>
+          <div class="goal-pill" onclick="toggleGoal(this)">
+            <span class="emoji">🏆</span><span class="label">挑戰自己</span>
+          </div>
+          <div class="goal-pill" onclick="toggleGoal(this)">
+            <span class="emoji">❤️</span><span class="label">健康</span>
+          </div>
+          <div class="goal-pill" onclick="toggleGoal(this)">
+            <span class="emoji">🎯</span><span class="label">專注力</span>
           </div>
         </div>
-        <button class="btn btn-outline" onclick="studentPrev(2)">
-          ← 上一步
-        </button>
-        <button class="btn btn-primary" onclick="studentNext(2)">
-          下一步 →
-        </button>
+        <div class="btn-row">
+          <button class="btn btn-outline" onclick="goStep(1)">← 上一步</button>
+          <button class="btn btn-primary" onclick="goStep(3)">下一步 →</button>
+        </div>
       </div>
 
-      <!-- Student Step 3: Ready! -->
-      <div class="card" id="s-step-3">
-        <h2>🚀 準備好開始！</h2>
-        <p class="desc">
-          你已經完成基本設定，可以開始探索課程並預約你的第一堂課！
-        </p>
-        <div class="success-screen" style="padding: 20px">
-          <div class="icon">🎉</div>
-          <p>記得完成預約可以賺取積分，<br />邀請朋友仲有額外獎勵！</p>
-          <div class="cta-buttons">
-            <button
-              class="btn btn-primary"
-              onclick="window.location.href = 'explore.html'"
-            >
-              🔍 探索課程
-            </button>
-          </div>
-          <button
-            class="btn btn-outline"
-            onclick="window.location.href = 'my.html'"
-            style="margin-top: 12px"
-          >
-            👤 前往個人頁面
+      <!-- Step 3: Ready! -->
+      <div class="step-card" id="step3">
+        <div class="success-screen">
+          <div class="big-icon bounce-in">🎉</div>
+          <h2>已就緒！</h2>
+          <p>
+            我哋已經根據你嘅喜好<br />
+            準備好個人化推薦 🎯<br /><br />
+            立即開始探索課程，預約你嘅第一堂！
+          </p>
+          <button class="btn btn-primary" style="max-width:280px" onclick="completeOnboarding()">
+            🔍 開始探索
+          </button>
+          <button class="btn btn-outline" style="margin-top:12px;max-width:280px" onclick="goStep(2)">
+            ← 返去修改
           </button>
         </div>
       </div>
     </div>
 
-    <!-- Partner Onboarding (existing flow, wrapped) -->
-    <div id="partner-flow" style="display: none">
-      <!-- Same merchant onboarding as before, loaded dynamically -->
-    </div>
-
     <script>
-      var userRole = null;
-      var userObj = null;
-      var studentStep = 1;
-      var totalStudentSteps = 3;
+      var currentStep = 1;
+      var totalSteps = 3;
 
-      // Init
-      (function () {
-        var token = localStorage.getItem("zenpass_token");
-        var raw = localStorage.getItem("zenpass_user");
-        if (raw) {
-          try {
-            userObj = JSON.parse(raw);
-          } catch (e) {}
-        }
-        if (userObj && userObj.role === "admin") {
-          // Admins always go to partner flow
-          startPartnerFlow();
-        } else if (userObj && userObj.role === "coach") {
-          startPartnerFlow();
-        } else {
-          // Student or unknown — show role selector
-          document.getElementById("role-screen").style.display = "block";
-        }
-      })();
-
-      window.selectRole = function (role) {
-        userRole = role;
-        document.getElementById("role-screen").style.display = "none";
-        if (role === "student") {
-          startStudentFlow();
-        } else {
-          startPartnerFlow();
-        }
-      };
-
-      function startStudentFlow() {
-        document.getElementById("student-flow").style.display = "block";
-        if (userObj && userObj.name) {
-          document.getElementById("student-name").textContent = userObj.name;
-        }
-        // Load courses for step 2
-        loadFeaturedCourses();
+      function togglePill(el) {
+        el.classList.toggle("selected");
       }
 
-      async function loadFeaturedCourses() {
-        try {
-          var resp = await fetch(API_BASE + "/classes?status=active&limit=6");
-          if (!resp.ok) throw new Error("Failed");
-          var data = await resp.json();
-          var classes = data.classes || data || [];
-          renderCourseCards(classes);
-        } catch (e) {
-          console.warn("Failed to load courses:", e);
-          document.getElementById("s2-courses").innerHTML =
-            '<div style="text-align:center;padding:30px;color:var(--dark-700);">📡 課程載入中，你可以稍後探索</div>';
-        }
+      function toggleGoal(el) {
+        el.classList.toggle("selected");
       }
 
-      function renderCourseCards(classes) {
-        var list = Array.isArray(classes) ? classes : [];
-        if (list.length === 0) {
-          document.getElementById("s2-courses").innerHTML =
-            '<div style="text-align:center;padding:30px;color:var(--dark-700);">未有課程，稍後再睇</div>';
-          return;
-        }
-        var html = "";
-        list.forEach(function (c) {
-          html +=
-            '<div class="course-card" onclick="window.open(\'class-detail.html?id=' +
-            c.id +
-            "','_blank')\">" +
-            '<div class="emoji">' +
-            (c.emoji || "📚") +
-            "</div>" +
-            '<div class="info"><div class="title">' +
-            escHtml(c.title) +
-            "</div>" +
-            '<div class="meta">' +
-            (c.category || "") +
-            " · " +
-            (c.duration || 60) +
-            "分鐘 · HK$" +
-            (c.price_hkd || 0) +
-            "</div></div>" +
-            '<div class="arrow">→</div></div>';
-        });
-        document.getElementById("s2-courses").innerHTML = html;
-      }
-
-      function startPartnerFlow() {
-        // Redirect to coach onboarding page
-        window.location.href = "register-coach.html";
-      }
-
-      function updateStudentSteps() {
-        for (var i = 1; i <= totalStudentSteps; i++) {
-          var stepEl = document.querySelector(
-            "#student-steps .step:nth-child(" + (i * 2 - 1) + ")",
-          );
-          if (stepEl) {
-            stepEl.classList.remove("active", "done");
-            if (i < studentStep) stepEl.classList.add("done");
-            else if (i === studentStep) stepEl.classList.add("active");
-          }
-        }
-      }
-
-      window.studentNext = function (n) {
-        if (n === 1) {
-          var selected = document.querySelectorAll(
-            "#s1-interests .interest.selected",
-          );
+      function goStep(n) {
+        if (n < 1 || n > totalSteps) return;
+        // Validate step 1
+        if (n === 2 && currentStep === 1) {
+          var selected = document.querySelectorAll("#interestsGrid .pill.selected");
           if (selected.length === 0) {
             alert("請至少揀一個興趣！");
             return;
           }
         }
-        showStudentStep(n + 1);
-      };
-
-      window.studentPrev = function (n) {
-        showStudentStep(n - 1);
-      };
-
-      function showStudentStep(n) {
-        for (var i = 1; i <= totalStudentSteps; i++) {
-          document.getElementById("s-step-" + i).classList.remove("active");
+        // Show target step
+        for (var i = 1; i <= totalSteps; i++) {
+          document.getElementById("step" + i).classList.remove("active");
         }
-        document.getElementById("s-step-" + n).classList.add("active");
-        studentStep = n;
-        updateStudentSteps();
+        document.getElementById("step" + n).classList.add("active");
+        currentStep = n;
+        updateDots();
         window.scrollTo(0, 0);
       }
 
-      function escHtml(s) {
-        return String(s)
-          .replace(/&/g, "&amp;")
-          .replace(/</g, "&lt;")
-          .replace(/>/g, "&gt;");
+      function updateDots() {
+        var dots = document.querySelectorAll(".step-dot");
+        for (var i = 0; i < dots.length; i++) {
+          dots[i].classList.remove("active", "done");
+          if (i + 1 === currentStep) dots[i].classList.add("active");
+          else if (i + 1 < currentStep) dots[i].classList.add("done");
+        }
       }
+
+      function getSelectedInterests() {
+        var pills = document.querySelectorAll("#interestsGrid .pill.selected");
+        return Array.from(pills).map(function(p) {
+          return p.querySelector(".label").textContent;
+        });
+      }
+
+      function getSelectedGoals() {
+        var pills = document.querySelectorAll("#goalsGrid .goal-pill.selected");
+        return Array.from(pills).map(function(p) {
+          return p.querySelector(".label").textContent;
+        });
+      }
+
+      function saveOnboardingData() {
+        var interests = getSelectedInterests();
+        var goals = getSelectedGoals();
+        localStorage.setItem("zenpass_interests", JSON.stringify(interests));
+        localStorage.setItem("zenpass_goals", JSON.stringify(goals));
+        localStorage.setItem("zenpass_interests_date", new Date().toISOString());
+        localStorage.setItem("zp_onboarded", "true");
+      }
+
+      function completeOnboarding() {
+        saveOnboardingData();
+        window.location.href = "explore.html";
+      }
+
+      function skipOnboarding() {
+        // Save empty data so we know onboarding was skipped
+        localStorage.setItem("zp_onboarded", "true");
+        localStorage.setItem("zenpass_interests", "[]");
+        localStorage.setItem("zenpass_goals", "[]");
+        window.location.href = "explore.html";
+      }
+
+      // Allow Enter key to advance
+      document.addEventListener("keydown", function(e) {
+        if (e.key === "Enter" && currentStep < totalSteps) {
+          goStep(currentStep + 1);
+        }
+      });
     </script>
-
-    <!-- ZenPass 統一頁腳 -->
-    <style>
-      .zp-footer {
-        background: linear-gradient(
-          135deg,
-          #1a1a2e 0%,
-          #2d2d44 50%,
-          #c94420 100%
-        );
-        color: rgba(255, 255, 255, 0.6);
-        padding: 40px 16px 24px;
-        margin-top: 48px;
-      }
-      .zp-footer a {
-        color: rgba(255, 255, 255, 0.6);
-        text-decoration: none;
-        transition: color 0.2s;
-        font-size: 13px;
-      }
-      .zp-footer a:hover {
-        color: #fff;
-      }
-      .zp-footer-inner {
-        max-width: 1200px;
-        margin: 0 auto;
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 32px;
-      }
-      @media (min-width: 768px) {
-        .zp-footer-inner {
-          grid-template-columns: 1.5fr 1fr 1fr 1fr;
-        }
-      }
-      .zp-footer-title {
-        color: #fff;
-        font-size: 14px;
-        font-weight: 700;
-        margin-bottom: 12px;
-      }
-      .zp-footer ul {
-        list-style: none;
-        padding: 0;
-        margin: 0;
-      }
-      .zp-footer ul li {
-        margin-bottom: 6px;
-      }
-      .zp-footer-brand-desc {
-        font-size: 12px;
-        line-height: 1.6;
-      }
-      .zp-footer-social {
-        display: flex;
-        gap: 8px;
-        margin-top: 12px;
-      }
-      .zp-footer-social a {
-        width: 32px;
-        height: 32px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 50%;
-        background: rgba(255, 255, 255, 0.1);
-        font-size: 14px;
-        transition: background 0.2s;
-      }
-      .zp-footer-social a:hover {
-        background: rgba(255, 255, 255, 0.25);
-      }
-      .zp-footer-bottom {
-        max-width: 1200px;
-        margin: 24px auto 0;
-        padding-top: 16px;
-        border-top: 1px solid rgba(255, 255, 255, 0.1);
-        text-align: center;
-        font-size: 11px;
-        color: rgba(255, 255, 255, 0.3);
-      }
-    </style>
-
-    <!-- 統一頁腳 Canonical (以原版首頁為標準) -->
-    <style>
-      .footer-grad {
-        background: linear-gradient(
-          135deg,
-          #1a1a2e 0%,
-          #2d2d44 50%,
-          #c94420 100%
-        );
-      }
-      .footer-grad .footer-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 24px;
-        max-width: 400px;
-        margin: 0 auto;
-      }
-      @media (min-width: 768px) {
-        .footer-grad .footer-grid {
-          grid-template-columns: 1fr 1fr 1fr 1fr;
-          max-width: 720px;
-        }
-      }
-      .footer-grad .footer-section-title {
-        color: rgba(255, 255, 255, 0.5);
-        font-size: 11px;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        margin-bottom: 10px;
-      }
-      .footer-grad ul {
-        list-style: none;
-        padding: 0;
-        margin: 0;
-      }
-      .footer-grad li {
-        margin-bottom: 6px;
-      }
-      .footer-link {
-        color: rgba(255, 255, 255, 0.6);
-        text-decoration: none;
-        transition: color 0.2s;
-        font-size: 13px;
-      }
-      .footer-link:hover {
-        color: white;
-      }
-      .back-to-top {
-        position: fixed;
-        bottom: 80px;
-        right: 16px;
-        width: 44px;
-        height: 44px;
-        border-radius: 50%;
-        background: var(--orange-600-bg, #c94420);
-        color: #fff;
-        border: none;
-        font-size: 20px;
-        cursor: pointer;
-        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
-        z-index: 999;
-        opacity: 0;
-        transform: translateY(20px);
-        transition:
-          opacity 0.3s,
-          transform 0.3s;
-        pointer-events: none;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-      .back-to-top.visible {
-        opacity: 1;
-        transform: translateY(0);
-        pointer-events: auto;
-      }
-      .back-to-top:hover {
-        background: #aa3218;
-      }
-    </style>
-
-    <footer class="footer-grad">
-      <div class="footer-grid">
-        <div style="grid-column: span 2">
-          <div
-            style="
-              color: white;
-              font-weight: 700;
-              font-size: 14px;
-              margin-bottom: 6px;
-            "
-          >
-            🧘 ZenPass 禪流
-          </div>
-          <div
-            style="
-              font-size: 12px;
-              line-height: 1.6;
-              color: rgba(255, 255, 255, 0.6);
-            "
-          >
-            一個Pass，通行全城運動體驗。<br />香港康樂及體育有限公司
-          </div>
-        </div>
-        <div>
-          <div class="footer-section-title">探索</div>
-          <ul>
-            <li><a href="explore.html" class="footer-link">探索課程</a></li>
-            <li><a href="coaches.html" class="footer-link">星級教練</a></li>
-            <li><a href="membership.html" class="footer-link">會籍方案</a></li>
-            <li><a href="coach-apply.html" class="footer-link">成為教練</a></li>
-            <li>
-              <a href="partner-apply.html" class="footer-link">場地加盟</a>
-            </li>
-          </ul>
-        </div>
-        <div>
-          <div class="footer-section-title">支援</div>
-          <ul>
-            <li><a href="faq.html" class="footer-link">常見問題</a></li>
-            <li><a href="corporate-guide.html" class="footer-link">企業計劃</a></li>
-            <li><a href="privacy.html" class="footer-link">私隱政策</a></li>
-            <li><a href="terms.html" class="footer-link">服務條款</a></li>
-            <li><a href="about.html" class="footer-link">關於我們</a></li>
-          </ul>
-        </div>
-        <div>
-          <div class="footer-section-title">聯絡我們</div>
-          <ul>
-            <li style="margin-bottom: 4px">📧 support@zenpass.hk</li>
-            <li style="margin-bottom: 4px">📞 2387 0724</li>
-            <li style="margin-bottom: 4px">📍 香港九龍觀塘</li>
-          </ul>
-          <div style="display: flex; gap: 8px; margin-top: 10px">
-            <a
-              href="https://www.instagram.com/zenpass_hk"
-              style="
-                width: 32px;
-                height: 32px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                border-radius: 50%;
-                background: rgba(255, 255, 255, 0.1);
-                font-size: 14px;
-                text-decoration: none;
-              "
-              >📸</a
-            >
-            <a
-              href="https://www.facebook.com/zenpass.hk"
-              style="
-                width: 32px;
-                height: 32px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                border-radius: 50%;
-                background: rgba(255, 255, 255, 0.1);
-                font-size: 14px;
-                text-decoration: none;
-              "
-              >👍</a
-            >
-            <a
-              href="https://wa.me/85290335538"
-              style="
-                width: 32px;
-                height: 32px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                border-radius: 50%;
-                background: rgba(255, 255, 255, 0.1);
-                font-size: 14px;
-                text-decoration: none;
-              "
-              >💬</a
-            >
-            <a
-              href="https://hklfcl.com"
-              style="
-                width: 32px;
-                height: 32px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                border-radius: 50%;
-                background: rgba(255, 255, 255, 0.1);
-                font-size: 14px;
-                text-decoration: none;
-              "
-              >🏛️</a
-            >
-          </div>
-        </div>
-      </div>
-      <div
-        style="
-          max-width: 400px;
-          margin: 24px auto 0;
-          padding-top: 16px;
-          border-top: 1px solid rgba(255, 255, 255, 0.1);
-          text-align: center;
-          font-size: 11px;
-          color: rgba(255, 255, 255, 0.3);
-        "
-      >
-        &copy; 2026 ZenPass 禪流 · 香港康樂及體育有限公司 · All rights reserved.
-      </div>
-    </footer>
-
-    <button
-      class="back-to-top"
-      id="backToTop"
-      onclick="window.scrollTo({ top: 0, behavior: 'smooth' })"
-      aria-label="返回頂部"
-    >
-      ↑
-    </button>
   </body>
 </html>
