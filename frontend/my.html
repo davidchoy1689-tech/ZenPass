@@ -997,6 +997,24 @@
             <div class="zen-text-bold" style="font-size: 22px">🔔</div>
             <div style="font-size: 11px; margin-top: 2px">通知</div>
           </a>
+          <a
+            href="corporate-hr.html"
+            id="corporateQuickLink"
+            class="zen-flex-1 zen-text-center"
+            style="
+              display: none;
+              min-width: 68px;
+              padding: 10px 4px;
+              border-radius: 12px;
+              background: var(--orange-50);
+              color: var(--orange-700);
+              text-decoration: none;
+              transition: transform 0.15s;
+            "
+          >
+            <div class="zen-text-bold" style="font-size: 22px">🏢</div>
+            <div class="zen-text-xs zen-text-bold">企業</div>
+          </a>
         </div>
         <!-- Referral -->
         <div
@@ -1209,7 +1227,20 @@
       // ===== Init =====
       (function () {
         loadData();
+        checkCorporateAccess();
       })();
+
+      async function checkCorporateAccess() {
+        try {
+          var resp = await fetch(API_BASE + "/corporate/my/hr-dashboard", { headers: getAuthHeaders() });
+          if (resp.ok) {
+            var el = document.getElementById("corporateQuickLink");
+            if (el) el.style.display = "";
+          }
+        } catch (e) {
+          // Not a corporate user - hide link silently
+        }
+      }
 
       async function fetchUserProfile() {
         try {

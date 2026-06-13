@@ -219,4 +219,130 @@ router.get("/report", authenticateToken, (req, res) => {
   }
 });
 
+
+
+// ===== GET /api/corporate/my/hr-dashboard — 企業 HR 儀錶板（員工自助）=====
+router.get("/my/hr-dashboard", authenticateToken, (req, res) => {
+  try {
+    const db = new Database(DB_PATH);
+    // Try contact_email first
+    let company = db.prepare(`
+      SELECT id, name, credit_pool, credit_used, contact_name, contact_email, status,
+        monthly_allocation, last_reset_at, next_reset_at
+      FROM corporate_companies
+      WHERE contact_email = ? AND status = 'active'
+    `).get(req.user.email);
+
+    if (!company) {
+      // Fallback: user is a corporate member
+      const member = db.prepare(`
+        SELECT cc.* FROM corporate_members cm
+        JOIN corporate_companies cc ON cm.company_id = cc.id
+        WHERE cm.user_id = ? AND cm.status = 'active' AND cc.status = 'active'
+      `).get(req.user.id);
+      if (!member) { db.close(); return res.status(403).json({ error: "你不是企業員工" }); }
+      company = member;
+    }
+
+    // Employee list with usage
+    const employees = db.prepare(`
+      SELECT u.id, u.name, u.email, u.last_visit,
+        COALESCE(cm.monthly_credit_limit, 0) as monthly_limit,
+        COALESCE(cm.monthly_credit_used, 0) as monthly_used,
+        (SELECT COUNT(*) FROM bookings WHERE user_id = u.id AND status IN ('confirmed','attended') AND created_at >= datetime('now', '-30 days')) as bookings_30d,
+        cm.created_at as joined_at
+      FROM corporate_members cm JOIN users u ON cm.user_id = u.id
+      WHERE cm.company_id = ? AND cm.status = 'active'
+      ORDER BY u.name
+    `).all(company.id);
+
+    // Recent bookings (last 30 days)
+    const recentBookings = db.prepare(`
+      SELECT b.id, b.booking_reference, b.status, b.created_at, b.payment_type,
+        u.name as user_name, u.email as user_email,
+        c.title as class_title, c.venue_name, cs.start_time
+      FROM corporate_members cm
+      JOIN users u ON cm.user_id = u.id
+      JOIN bookings b ON cm.user_id = b.user_id
+      JOIN classes c ON b.class_id = c.id
+      JOIN class_schedules cs ON b.schedule_id = cs.id
+      WHERE cm.company_id = ? AND b.created_at >= datetime('now', '-30 days')
+      ORDER BY b.created_at DESC LIMIT 20
+    `).all(company.id);
+
+    // Monthly usage stats
+    const monthlyUsage = db.prepare(`
+      SELECT DATE(b.created_at) as date, COUNT(*) as count, SUM(COALESCE(b.amount,0)) as revenue
+      FROM corporate_members cm JOIN bookings b ON cm.user_id = b.user_id
+      WHERE cm.company_id = ? AND b.status IN ('confirmed','attended')
+        AND b.created_at >= datetime('now', '-30 days')
+      GROUP BY DATE(b.created_at) ORDER BY date
+    `).all(company.id);
+
+    db.close();
+
+    res.json({
+      company: {
+        id: company.id,
+        name: company.name,
+        credit_pool: company.credit_pool,
+        credit_used: company.credit_used,
+        available_credits: company.credit_pool - company.credit_used,
+        monthly_allocation: company.monthly_allocation,
+        last_reset_at: company.last_reset_at,
+        next_reset_at: company.next_reset_at
+      },
+      employees,
+      recent_bookings: recentBookings,
+      monthly_usage: monthlyUsage,
+      total_employees: employees.length,
+      total_bookings_30d: recentBookings.length
+    });
+  } catch (err) {
+    console.error("[HR DASHBOARD] Error:", err);
+    res.status(500).json({ error: "讀取儀錶板資料失敗" });
+  }
+});
+
+// ===== GET /api/corporate/my/employee/:userId — 員工詳細用量 =====
+router.get("/my/employee/:userId", authenticateToken, (req, res) => {
+  try {
+    const db = new Database(DB_PATH);
+    // Verify the requesting user belongs to a company
+    const myMembership = db.prepare(`
+      SELECT cm.*, cc.name as company_name FROM corporate_members cm
+      JOIN corporate_companies cc ON cm.company_id = cc.id
+      WHERE cm.user_id = ? AND cm.status = 'active' AND cc.status = 'active'
+    `).get(req.user.id);
+
+    if (!myMembership) { db.close(); return res.status(403).json({ error: "你不是企業員工" }); }
+
+    // Target employee must be in the same company
+    const targetMember = db.prepare(`
+      SELECT cm.* FROM corporate_members cm
+      WHERE cm.user_id = ? AND cm.company_id = ? AND cm.status = 'active'
+    `).get(req.params.userId, myMembership.company_id);
+
+    if (!targetMember) { db.close(); return res.status(403).json({ error: "無權限" }); }
+
+    const user = db.prepare("SELECT id, name, email, credits, created_at, last_visit FROM users WHERE id = ?").get(req.params.userId);
+    const bookings = db.prepare(`
+      SELECT b.*, c.title as class_title, c.venue_name, cs.start_time
+      FROM bookings b JOIN classes c ON b.class_id = c.id
+      JOIN class_schedules cs ON b.schedule_id = cs.id
+      WHERE b.user_id = ? ORDER BY b.created_at DESC LIMIT 50
+    `).all(req.params.userId);
+
+    db.close();
+    res.json({
+      user,
+      bookings,
+      monthly_limit: targetMember.monthly_credit_limit,
+      monthly_used: targetMember.monthly_credit_used
+    });
+  } catch (err) {
+    console.error("[HR EMPLOYEE] Error:", err);
+    res.status(500).json({ error: "讀取員工資料失敗" });
+  }
+});
 module.exports = router;

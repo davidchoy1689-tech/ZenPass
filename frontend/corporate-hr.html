@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>企業儀錶板 - ZenPass 禪流</title>
+  <link rel="icon" type="image/png" href="icons/icon-96.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/zenpass.css?v=2">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: #f5f5f7;
+      color: #1a1a2e;
+      min-height: 100vh;
+    }
+    .hr-header {
+      background: linear-gradient(135deg, #1a1a2e 0%, #2d2d44 100%);
+      color: white;
+      padding: 20px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .hr-header h1 { font-size: 20px; font-weight: 700; }
+    .hr-header .company-name { font-size: 14px; opacity: 0.7; margin-top: 2px; }
+    .hr-header-actions { display: flex; gap: 8px; align-items: center; }
+    .hr-header-actions a {
+      color: white; text-decoration: none; font-size: 13px;
+      padding: 8px 16px; border-radius: 8px;
+      background: rgba(255,255,255,0.1); transition: background 0.2s;
+    }
+    .hr-header-actions a:hover { background: rgba(255,255,255,0.2); }
+    .hr-header-actions .btn-logout { background: rgba(239,68,68,0.3); }
+    .hr-header-actions .btn-logout:hover { background: rgba(239,68,68,0.5); }
+
+    .container { max-width: 1200px; margin: 0 auto; padding: 20px 16px; }
+
+    /* Loading */
+    .hr-loading {
+      text-align: center; padding: 60px 20px; color: #6b7280;
+    }
+    .hr-loading .spinner {
+      display: inline-block; width: 40px; height: 40px;
+      border: 3px solid #e5e7eb; border-top-color: #c94420;
+      border-radius: 50%; animation: spin 0.8s linear infinite;
+      margin-bottom: 16px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Overview Cards */
+    .overview-grid {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px;
+    }
+    @media (max-width: 768px) { .overview-grid { grid-template-columns: repeat(2, 1fr); } }
+    .ov-card {
+      background: white; border-radius: 14px; padding: 18px 16px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06); border: 1px solid rgba(0,0,0,0.04);
+    }
+    .ov-card .ov-icon { font-size: 28px; margin-bottom: 8px; }
+    .ov-card .ov-num { font-size: 28px; font-weight: 700; line-height: 1.2; margin-bottom: 4px; }
+    .ov-card .ov-label { font-size: 12px; color: #6b7280; font-weight: 500; }
+
+    /* Progress Bar */
+    .credit-section {
+      background: white; border-radius: 14px; padding: 20px;
+      margin-bottom: 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); border: 1px solid rgba(0,0,0,0.04);
+    }
+    .credit-section h3 { font-size: 15px; font-weight: 600; margin-bottom: 12px; }
+    .credit-bar-wrap { margin-bottom: 8px; }
+    .credit-bar {
+      height: 10px; background: #e5e7eb; border-radius: 5px; overflow: hidden;
+    }
+    .credit-bar-fill {
+      height: 100%; border-radius: 5px;
+      background: linear-gradient(90deg, #22c55e, #16a34a);
+      transition: width 0.6s ease;
+    }
+    .credit-stats {
+      display: flex; justify-content: space-between; font-size: 13px; color: #6b7280;
+    }
+    .credit-stats strong { color: #1a1a2e; }
+
+    /* Section */
+    .section-wrap {
+      background: white; border-radius: 14px; padding: 20px;
+      margin-bottom: 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); border: 1px solid rgba(0,0,0,0.04);
+    }
+    .section-wrap h3 {
+      font-size: 15px; font-weight: 600; margin-bottom: 14px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .section-wrap h3 .badge {
+      font-size: 11px; font-weight: 500; background: #f3f4f6; color: #6b7280;
+      padding: 2px 8px; border-radius: 99px; margin-left: 4px;
+    }
+
+    /* Employee Table */
+    .table-wrap { overflow-x: auto; }
+    table.hr-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    table.hr-table th {
+      text-align: left; padding: 10px 12px; background: #f9fafb;
+      font-weight: 600; color: #6b7280; font-size: 12px;
+      border-bottom: 1px solid #e5e7eb; white-space: nowrap;
+    }
+    table.hr-table td {
+      padding: 10px 12px; border-bottom: 1px solid #f3f4f6;
+      vertical-align: middle;
+    }
+    table.hr-table tr:hover td { background: #f9fafb; }
+    table.hr-table .employee-name { font-weight: 600; color: #1a1a2e; }
+    table.hr-table .employee-email { font-size: 12px; color: #6b7280; }
+    .usage-cell { font-weight: 600; }
+    .usage-cell.low { color: #059669; }
+    .usage-cell.med { color: #d97706; }
+    .usage-cell.high { color: #dc2626; }
+
+    /* Booking List */
+    .booking-item {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 10px 0; border-bottom: 1px solid #f3f4f6; gap: 12px;
+    }
+    .booking-item:last-child { border-bottom: none; }
+    .booking-item .bi-left { flex: 1; min-width: 0; }
+    .booking-item .bi-user { font-size: 14px; font-weight: 600; }
+    .booking-item .bi-class { font-size: 12px; color: #6b7280; margin-top: 2px; }
+    .booking-item .bi-venue { font-size: 11px; color: #9ca3af; }
+    .booking-item .bi-right { text-align: right; white-space: nowrap; }
+    .booking-item .bi-date { font-size: 11px; color: #6b7280; }
+    .badge-status {
+      display: inline-block; font-size: 11px; padding: 2px 8px;
+      border-radius: 99px; font-weight: 600;
+    }
+    .badge-status.confirmed { background: #ecfdf5; color: #059669; }
+    .badge-status.attended { background: #e8f5e9; color: #2e7d32; }
+    .badge-status.cancelled { background: #fef2f2; color: #dc2626; }
+    .badge-status.pending_payment { background: #fef3c7; color: #92400e; }
+
+    /* Month chart */
+    .chart-bars {
+      display: flex; align-items: flex-end; gap: 3px; height: 100px; padding: 4px 0;
+    }
+    .chart-bar {
+      flex: 1; border-radius: 3px 3px 0 0;
+      background: linear-gradient(180deg, #c94420, #e65c30);
+      min-height: 2px; transition: height 0.4s ease; position: relative;
+    }
+    .chart-bar .bar-label {
+      position: absolute; top: -16px; left: 50%; transform: translateX(-50%);
+      font-size: 9px; color: #6b7280; white-space: nowrap;
+    }
+    .chart-xlabels {
+      display: flex; gap: 3px; margin-top: 4px;
+    }
+    .chart-xlabels span {
+      flex: 1; text-align: center; font-size: 9px; color: #9ca3af;
+    }
+
+    /* No data */
+    .no-data { text-align: center; padding: 30px 20px; color: #6b7280; font-size: 14px; }
+    .no-data .nd-icon { font-size: 40px; margin-bottom: 10px; display: block; }
+
+    /* Error card */
+    .error-card {
+      background: #fef2f2; border: 1px solid #fecaca; border-radius: 12px;
+      padding: 24px; text-align: center; margin: 40px auto; max-width: 400px;
+    }
+    .error-card h3 { color: #dc2626; margin-bottom: 8px; font-size: 16px; }
+    .error-card p { color: #6b7280; font-size: 14px; margin-bottom: 16px; }
+    .error-card a {
+      display: inline-block; padding: 10px 24px; border-radius: 25px;
+      background: #c94420; color: white; text-decoration: none; font-size: 14px; font-weight: 600;
+    }
+
+    @media (max-width: 480px) {
+      .container { padding: 12px 10px; }
+      .hr-header { padding: 14px 16px; }
+      .hr-header h1 { font-size: 17px; }
+      .ov-card .ov-num { font-size: 22px; }
+      table.hr-table { font-size: 12px; }
+      table.hr-table th, table.hr-table td { padding: 8px 6px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="hr-header">
+    <div>
+      <h1>🏢 企業儀錶板</h1>
+      <div class="company-name" id="companyName">載入中...</div>
+    </div>
+    <div class="hr-header-actions">
+      <a href="my.html">👤 我的帳戶</a>
+      <a href="index.html">🏠 首頁</a>
+      <a href="login.html" class="btn-logout">🚪 登出</a>
+    </div>
+  </div>
+
+  <div class="container" id="app">
+    <div class="hr-loading" id="loadingState">
+      <div class="spinner"></div>
+      <div>正在載入企業資料...</div>
+    </div>
+
+    <div id="errorState" style="display:none">
+      <div class="error-card">
+        <h3 id="errorTitle">無法載入</h3>
+        <p id="errorMessage">請確認你已登入並為企業員工</p>
+        <a href="login.html">返回登入</a>
+      </div>
+    </div>
+
+    <div id="dashboardContent" style="display:none">
+      <!-- Overview Cards -->
+      <div class="overview-grid" id="overviewGrid"></div>
+
+      <!-- Credit Status -->
+      <div class="credit-section" id="creditSection">
+        <h3>📊 企業 Credits 狀態</h3>
+        <div class="credit-bar-wrap">
+          <div class="credit-bar">
+            <div class="credit-bar-fill" id="creditFill" style="width:0%"></div>
+          </div>
+        </div>
+        <div class="credit-stats">
+          <span>已使用: <strong id="creditUsed">0</strong></span>
+          <span>可用: <strong id="creditAvailable">0</strong></span>
+          <span>總額: <strong id="creditTotal">0</strong></span>
+        </div>
+      </div>
+
+      <!-- Employees Table -->
+      <div class="section-wrap" id="employeesSection">
+        <h3>👥 員工列表 <span class="badge" id="empCount">0 人</span></h3>
+        <div class="table-wrap">
+          <table class="hr-table">
+            <thead>
+              <tr>
+                <th>姓名</th>
+                <th>電郵</th>
+                <th>月限額</th>
+                <th>已使用</th>
+                <th>30天預約</th>
+                <th>最近到訪</th>
+              </tr>
+            </thead>
+            <tbody id="employeeTableBody"></tbody>
+          </table>
+        </div>
+        <div class="no-data" id="noEmployees" style="display:none">
+          <span class="nd-icon">👥</span> 暫無員工資料
+        </div>
+      </div>
+
+      <!-- Recent Bookings -->
+      <div class="section-wrap" id="bookingsSection">
+        <h3>📅 近期預約 <span class="badge" id="bookingCount">0</span></h3>
+        <div id="recentBookingList"></div>
+        <div class="no-data" id="noBookings" style="display:none">
+          <span class="nd-icon">📅</span> 最近30天未有預約
+        </div>
+      </div>
+
+      <!-- Monthly Usage Chart -->
+      <div class="section-wrap" id="chartSection">
+        <h3>📈 月度用量趨勢</h3>
+        <div id="monthlyChart"></div>
+        <div class="no-data" id="noChart" style="display:none">
+          <span class="nd-icon">📊</span> 暫無月度數據
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = '/api';
+
+    function getToken() {
+      return localStorage.getItem('zenpass_token') || sessionStorage.getItem('zenpass_token');
+    }
+    function getAuthHeaders() {
+      return { Authorization: 'Bearer ' + getToken(), 'Content-Type': 'application/json' };
+    }
+
+    function showLoading() {
+      document.getElementById('loadingState').style.display = '';
+      document.getElementById('errorState').style.display = 'none';
+      document.getElementById('dashboardContent').style.display = 'none';
+    }
+    function showError(title, msg) {
+      document.getElementById('loadingState').style.display = 'none';
+      document.getElementById('errorState').style.display = '';
+      document.getElementById('errorTitle').textContent = title || '無法載入';
+      document.getElementById('errorMessage').textContent = msg || '請確認你已登入並為企業員工';
+    }
+    function showDashboard() {
+      document.getElementById('loadingState').style.display = 'none';
+      document.getElementById('errorState').style.display = 'none';
+      document.getElementById('dashboardContent').style.display = '';
+    }
+
+    function escHtml(s) { if (!s) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+    function formatDate(isoStr) {
+      if (!isoStr) return '—';
+      const d = new Date(isoStr);
+      return d.getFullYear() + '/' + (d.getMonth()+1) + '/' + d.getDate();
+    }
+    function formatDateTime(isoStr) {
+      if (!isoStr) return '—';
+      const d = new Date(isoStr);
+      const dd = String(d.getDate()).padStart(2,'0');
+      const mm = String(d.getMonth()+1).padStart(2,'0');
+      return d.getFullYear() + '/' + mm + '/' + dd + ' ' + String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+    }
+
+    async function loadDashboard() {
+      showLoading();
+      const token = getToken();
+      if (!token) {
+        showError('請先登入', '未偵測到登入狀態，請先登入 ZenPass 帳戶。');
+        return;
+      }
+
+      try {
+        const resp = await fetch(API_BASE + '/corporate/my/hr-dashboard', { headers: getAuthHeaders() });
+        if (!resp.ok) {
+          const err = await resp.json().catch(() => ({}));
+          if (resp.status === 403) {
+            showError('無權限', err.error || '你不是企業員工，無權查看此頁面。');
+          } else {
+            showError('載入失敗', err.error || '伺服器錯誤');
+          }
+          return;
+        }
+        const data = await resp.json();
+        renderDashboard(data);
+        showDashboard();
+      } catch (e) {
+        showError('網絡錯誤', '無法連接到伺服器，請稍後再試。');
+      }
+    }
+
+    function renderDashboard(data) {
+      const c = data.company;
+      // Header
+      document.getElementById('companyName').textContent = c.name || '—';
+
+      // Overview cards
+      renderOverviewCards(data);
+
+      // Credit bar
+      const total = c.credit_pool || 0;
+      const used = c.credit_used || 0;
+      const avail = c.available_credits || 0;
+      const pct = total > 0 ? Math.min(100, Math.round((used / total) * 100)) : 0;
+      document.getElementById('creditFill').style.width = pct + '%';
+      document.getElementById('creditUsed').textContent = used.toLocaleString();
+      document.getElementById('creditAvailable').textContent = avail.toLocaleString();
+      document.getElementById('creditTotal').textContent = total.toLocaleString();
+
+      // Employees
+      renderEmployees(data.employees || []);
+
+      // Bookings
+      renderBookings(data.recent_bookings || []);
+
+      // Chart
+      renderChart(data.monthly_usage || []);
+    }
+
+    function renderOverviewCards(data) {
+      const c = data.company;
+      const avail = c.available_credits || 0;
+      const empTotal = data.total_employees || 0;
+      const bkTotal = data.total_bookings_30d || 0;
+      const usagePct = c.credit_pool > 0 ? Math.round(((c.credit_used || 0) / c.credit_pool) * 100) : 0;
+
+      const cards = [
+        { icon: '🏢', num: avail.toLocaleString(), label: '可用 Credits', color: '#059669' },
+        { icon: '👥', num: empTotal, label: '員工人數', color: '#2563eb' },
+        { icon: '📅', num: bkTotal, label: '本月預約', color: '#c94420' },
+        { icon: '📊', num: usagePct + '%', label: '用量百分比', color: '#7c3aed' }
+      ];
+
+      document.getElementById('overviewGrid').innerHTML = cards.map(card =>
+        '<div class="ov-card">' +
+          '<div class="ov-icon">' + card.icon + '</div>' +
+          '<div class="ov-num" style="color:' + card.color + '">' + card.num + '</div>' +
+          '<div class="ov-label">' + card.label + '</div>' +
+        '</div>'
+      ).join('');
+    }
+
+    function renderEmployees(employees) {
+      const tbody = document.getElementById('employeeTableBody');
+      const noEmp = document.getElementById('noEmployees');
+      const empCount = document.getElementById('empCount');
+
+      empCount.textContent = employees.length + ' 人';
+
+      if (employees.length === 0) {
+        tbody.innerHTML = '';
+        noEmp.style.display = '';
+        return;
+      }
+      noEmp.style.display = 'none';
+
+      tbody.innerHTML = employees.map(emp => {
+        const limit = emp.monthly_limit || 0;
+        const used = emp.monthly_used || 0;
+        const pct = limit > 0 ? Math.round((used / limit) * 100) : 0;
+        let usageClass = 'low';
+        if (pct >= 80) usageClass = 'high';
+        else if (pct >= 50) usageClass = 'med';
+
+        const lastVisit = emp.last_visit ? formatDate(emp.last_visit) : '—';
+        return '<tr>' +
+          '<td><div class="employee-name">' + escHtml(emp.name) + '</div></td>' +
+          '<td><div class="employee-email">' + escHtml(emp.email) + '</div></td>' +
+          '<td>' + limit.toLocaleString() + '</td>' +
+          '<td class="usage-cell ' + usageClass + '">' + used.toLocaleString() + (limit > 0 ? ' (' + pct + '%)' : '') + '</td>' +
+          '<td>' + (emp.bookings_30d || 0) + '</td>' +
+          '<td>' + lastVisit + '</td>' +
+        '</tr>';
+      }).join('');
+    }
+
+    function renderBookings(bookings) {
+      const list = document.getElementById('recentBookingList');
+      const noBk = document.getElementById('noBookings');
+      const bkCount = document.getElementById('bookingCount');
+
+      bkCount.textContent = bookings.length;
+
+      if (bookings.length === 0) {
+        list.innerHTML = '';
+        noBk.style.display = '';
+        return;
+      }
+      noBk.style.display = 'none';
+
+      list.innerHTML = bookings.map(b => {
+        const statusMap = {
+          confirmed: '確認',
+          attended: '已出席',
+          cancelled: '已取消',
+          pending_payment: '待付款'
+        };
+        const badgeClass = b.status || 'confirmed';
+        const statusText = statusMap[b.status] || b.status;
+
+        return '<div class="booking-item">' +
+          '<div class="bi-left">' +
+            '<div class="bi-user">' + escHtml(b.user_name) + '</div>' +
+            '<div class="bi-class">' + escHtml(b.class_title || '課程') + '</div>' +
+            '<div class="bi-venue">' + escHtml(b.venue_name || '') + '</div>' +
+          '</div>' +
+          '<div class="bi-right">' +
+            '<div class="bi-date">' + (b.start_time ? formatDateTime(b.start_time) : formatDateTime(b.created_at)) + '</div>' +
+            '<span class="badge-status ' + badgeClass + '">' + statusText + '</span>' +
+          '</div>' +
+        '</div>';
+      }).join('');
+    }
+
+    function renderChart(usage) {
+      const container = document.getElementById('monthlyChart');
+      const noChart = document.getElementById('noChart');
+
+      if (!usage || usage.length === 0) {
+        container.innerHTML = '';
+        noChart.style.display = '';
+        return;
+      }
+      noChart.style.display = 'none';
+
+      const maxCount = Math.max(...usage.map(u => u.count), 1);
+      const days = usage.map(u => {
+        const date = u.date || '';
+        const parts = date.split('-');
+        const day = parts.length === 3 ? parseInt(parts[2], 10) : date;
+        return { day, count: u.count || 0, revenue: u.revenue || 0 };
+      });
+
+      // Bars
+      let barsHtml = '<div class="chart-bars">';
+      days.forEach(d => {
+        const height = d.count > 0 ? Math.max(4, Math.round((d.count / maxCount) * 96)) : 2;
+        barsHtml += '<div class="chart-bar" style="height:' + height + 'px" title="' + d.day + '日: ' + d.count + ' 次, HK$' + (d.revenue || 0) + '"></div>';
+      });
+      barsHtml += '</div>';
+
+      // X labels
+      let labelsHtml = '<div class="chart-xlabels">';
+      days.forEach(d => {
+        labelsHtml += '<span>' + d.day + '</span>';
+      });
+      labelsHtml += '</div>';
+
+      container.innerHTML = barsHtml + labelsHtml;
+    }
+
+    // Init
+    document.addEventListener('DOMContentLoaded', loadDashboard);
+  </script>
+</body>
+</html>
