@@ -290,4 +290,67 @@ router.get("/me", authenticateToken, (req, res) => {
   }
 });
 
+
+
+// ===== POST /api/auth/password-reset-request — 請求重置密碼 =====
+router.post("/password-reset-request", (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: "請輸入電郵" });
+
+    const db = new Database(DB_PATH);
+    const user = db.prepare("SELECT id, name FROM users WHERE email = ?").get(email);
+    db.close();
+
+    if (!user) {
+      return res.json({ message: "如果此電郵已註冊，你將會收到重置密碼指示" });
+    }
+
+    const token = Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+    const expiresAt = new Date(Date.now() + 3600000).toISOString();
+
+    const db2 = new Database(DB_PATH);
+    db2.prepare("UPDATE users SET reset_token = ?, reset_token_expires = ? WHERE id = ?")
+      .run(token, expiresAt, user.id);
+    db2.close();
+
+    const isDev = !process.env.SMTP_HOST;
+    res.json({
+      message: "如果此電郵已註冊，你將會收到重置密碼指示",
+      ...(isDev ? { dev_token: token, dev_message: "開發模式：使用此 token 重置密碼" } : {})
+    });
+
+  } catch (err) {
+    console.error("[PASSWORD RESET] Error:", err);
+    res.status(500).json({ error: "處理請求失敗" });
+  }
+});
+
+// ===== POST /api/auth/password-reset — 重置密碼 =====
+router.post("/password-reset", (req, res) => {
+  try {
+    const { token, new_password } = req.body;
+    if (!token || !new_password) return res.status(400).json({ error: "請提供 token 及新密碼" });
+    if (new_password.length < 6) return res.status(400).json({ error: "密碼至少 6 個字元" });
+
+    const db = new Database(DB_PATH);
+    const user = db.prepare("SELECT id FROM users WHERE reset_token = ? AND reset_token_expires > datetime('now')").get(token);
+
+    if (!user) {
+      db.close();
+      return res.status(400).json({ error: "連結已過期或無效，請重新申請" });
+    }
+
+    const hash = bcrypt.hashSync(new_password, 10);
+    db.prepare("UPDATE users SET password_hash = ?, reset_token = NULL, reset_token_expires = NULL, updated_at = datetime('now') WHERE id = ?")
+      .run(hash, user.id);
+    db.close();
+
+    res.json({ message: "✅ 密碼已成功重置，請使用新密碼登入" });
+  } catch (err) {
+    console.error("[PASSWORD RESET] Error:", err);
+    res.status(500).json({ error: "重置密碼失敗" });
+  }
+});
+
 module.exports = router;
