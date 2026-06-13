@@ -5,6 +5,7 @@
 const express = require("express");
 const multer = require("multer");
 const path = require("path");
+const fs = require("fs");
 const { v4: uuidv4 } = require("uuid");
 const { authenticateToken } = require("../middleware/auth");
 
@@ -15,6 +16,9 @@ const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const dateDir = new Date().toISOString().slice(0, 10).replace(/-/g, "");
     const uploadPath = path.join(__dirname, "../../uploads", dateDir);
+    if (!fs.existsSync(uploadPath)) {
+      fs.mkdirSync(uploadPath, { recursive: true });
+    }
     cb(null, uploadPath);
   },
   filename: (req, file, cb) => {

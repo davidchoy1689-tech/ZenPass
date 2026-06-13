@@ -3659,6 +3659,13 @@ function apiPost(path, body) {
             formField("venue_name", "場地名稱", c.venue_name) +
             formField("venue_address", "地址", c.venue_address) +
             formField("venue_district", "地區", c.venue_district) +
+            '<div><label style="font-size:11px;color:#6b7280;display:block;margin-bottom:2px">課程圖片</label>' +
+            '<div style="display:flex;gap:8px;align-items:center">' +
+            '<input id="ef-image_url" type="text" value="' + escape(String(c.image_url || "")) + '" placeholder="https://..." style="flex:1;padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:13px">' +
+            '<button onclick="uploadCourseImage()" style="padding:8px 12px;background:#f3f4f6;border:1px solid #d1d5db;border-radius:6px;cursor:pointer;font-size:12px">📁 上傳</button>' +
+            '</div>' +
+            (c.image_url ? '<img src="' + escape(c.image_url) + '" style="width:80px;height:60px;object-fit:cover;border-radius:6px;margin-top:4px" onerror="this.style.display=\'none\'">' : '') +
+            '</div>' +
             '<div><label style="font-size:11px;color:#6b7280;display:block;margin-bottom:2px">狀態</label>' +
             '<select id="ef-status" style="width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:13px">' +
             statusOptions
@@ -3805,6 +3812,39 @@ function apiPost(path, body) {
           el.getAttribute("data-desc") || "";
       }
 
+      // ===== 上傳課程圖片 =====
+      async function uploadCourseImage() {
+        var input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.onchange = async function(e) {
+          var file = e.target.files[0];
+          if (!file) return;
+          var formData = new FormData();
+          formData.append('files', file);
+          var token = getToken();
+          try {
+            var r = await fetch('/api/upload', {
+              method: 'POST',
+              headers: { 'Authorization': 'Bearer ' + token },
+              body: formData
+            });
+            if (!r.ok) throw new Error('Upload failed');
+            var d = await r.json();
+            if (d.files && d.files.length > 0 && d.files[0].url) {
+              document.getElementById('ef-image_url').value = d.files[0].url;
+              showToast('✅ 圖片已上傳', 'success');
+            } else {
+              showToast('❌ 上傳失敗：' + (d.error || 'unknown'), 'error');
+            }
+          } catch(err) {
+            showToast('❌ ' + err.message, 'error');
+          }
+        };
+        input.click();
+      }
+
+      // ===== 儲存課程 =====
       async function saveCourse(id) {
         var data = {
           title: document.getElementById("ef-title")?.value,
@@ -3822,6 +3862,7 @@ function apiPost(path, body) {
           venue_name: document.getElementById("ef-venue_name")?.value,
           venue_address: document.getElementById("ef-venue_address")?.value,
           venue_district: document.getElementById("ef-venue_district")?.value,
+          image_url: document.getElementById("ef-image_url")?.value || "",
           description: document.getElementById("ef-description")?.value,
           status: document.getElementById("ef-status")?.value,
         };
