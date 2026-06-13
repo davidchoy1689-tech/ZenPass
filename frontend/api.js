@@ -893,16 +893,50 @@ function logout() {
   }
 })();
 
-// ===== Unregister Service Worker to prevent stale cache =====
-(function () {
-  if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.getRegistrations().then(function (regs) {
-      regs.forEach(function (reg) {
-        reg.unregister();
+// ===== Push Notification Subscription =====
+function subscribePush() {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+
+  var token = localStorage.getItem('zenpass_token');
+  if (!token) return;
+
+  navigator.serviceWorker.register('/sw.js')
+    .then(function(reg) {
+      return reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array('BGOuSvnpcbHhzdPBhNlMhk28DpyDzMgkLJMSdPcWhzDk_VoRUMdqhU6BzDktjwX9jyNfGDzHpr13cX8cRciQb08')
       });
+    })
+    .then(function(sub) {
+      return fetch('/api/notifications/push-subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify({ subscription: sub.toJSON() })
+      });
+    })
+    .catch(function(err) {
+      console.log('Push subscription skipped:', err.message);
     });
+}
+
+// Convert base64url to Uint8Array (required by pushManager.subscribe)
+function urlBase64ToUint8Array(base64String) {
+  var padding = '='.repeat((4 - base64String.length % 4) % 4);
+  var base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  var rawData = window.atob(base64);
+  var output = new Uint8Array(rawData.length);
+  for (var i = 0; i < rawData.length; ++i) {
+    output[i] = rawData.charCodeAt(i);
   }
-})();
+  return output;
+}
+
+// Call subscription on page load if logged in
+document.addEventListener('DOMContentLoaded', function() {
+  if (localStorage.getItem('zenpass_token')) {
+    subscribePush();
+  }
+});
 
 // ===== Google Analytics 4 (pages that include api.js get GA automatically) =====
 // Measurement ID: G-MKF5N4YLBM — 由 David Choy 開通

@@ -1,21 +1,41 @@
-// ZenPass — Service Worker (退役)
-// Service Worker 曾經用嚟 cache 頁面，但令到更新唔識 refresh
-// 而家只係 self-unregister，所有請求直接去 server
-self.addEventListener("install", function () {
+// ZenPass 禪流 — Service Worker (Push Notifications)
+// 管理瀏覽器推送通知，即使用戶不在網站上都能收到通知
+
+self.addEventListener('install', function(event) {
   self.skipWaiting();
 });
-self.addEventListener("activate", function (e) {
-  self.registration.unregister();
-  e.waitUntil(
-    caches.keys().then(function (keys) {
-      return Promise.all(
-        keys.map(function (k) {
-          return caches.delete(k);
-        }),
-      );
-    }),
+
+self.addEventListener('activate', function(event) {
+  event.waitUntil(clients.claim());
+});
+
+self.addEventListener('push', function(event) {
+  var data = {};
+  try {
+    data = event.data.json();
+  } catch(e) {
+    data = { title: 'ZenPass', body: event.data.text() };
+  }
+
+  var options = {
+    body: data.body || '',
+    icon: data.icon || '/favicon.png',
+    badge: '/favicon.png',
+    vibrate: [200, 100, 200],
+    data: {
+      url: data.url || '/my.html'
+    }
+  };
+
+  event.waitUntil(
+    self.registration.showNotification(data.title || 'ZenPass 禪流', options)
   );
 });
-self.addEventListener("fetch", function (e) {
-  e.respondWith(fetch(e.request));
+
+self.addEventListener('notificationclick', function(event) {
+  event.notification.close();
+  var url = event.notification.data?.url || '/my.html';
+  event.waitUntil(
+    clients.openWindow(url)
+  );
 });

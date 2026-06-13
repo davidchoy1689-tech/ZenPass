@@ -13,6 +13,7 @@ const Database = require("better-sqlite3");
  */
 
 const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
+const { sendPushNotification } = require("./push");
 
 // ===== 1. 站內通知（持久化到 DB）=====
 function dbNotification(recipientId, type, title, message, data = {}) {
@@ -226,6 +227,10 @@ async function sendNotification(type, payload) {
         if (recipient) {
           results.db = dbNotification(recipient, type, title, message, data);
         }
+        // Also send push notification
+        if (results.db !== false) {
+          sendPushNotification(recipient, title, message, { url: data?.url || "/my.html" });
+        }
         break;
       case "telegram":
         results.telegram = await telegramNotification(message);
@@ -390,4 +395,5 @@ module.exports = {
   getUnreadCount,
   markAsRead,
   markAllAsRead,
+  sendPushNotification,
 };
