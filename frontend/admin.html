@@ -944,7 +944,7 @@ async function loadCorporateTab() {
     var data = await apiGet('/corporate/companies');
     if (!data.companies) throw new Error('no data');
     var html = '<div class="card"><div class="card-header"><h3>\ud83c\udfe2 企業列表</h3><button class="btn btn-primary" onclick="document.getElementById(\'corp-create-form\').style.display=\'block\'">+ 新增企業</button></div>';
-    html += '<table class="table-wrap"><thead><tr><th>名稱</th><th>聯絡人</th><th>員工</th><th>Credit Pool</th><th>已使用</th><th>總收入</th><th>狀態</th></tr></thead><tbody>';
+    html += '<table class="table-wrap"><thead><tr><th>名稱</th><th>聯絡人</th><th>員工</th><th>Credit Pool</th><th>已使用</th><th>總收入</th><th>下次重置</th><th>狀態</th></tr></thead><tbody>';
     data.companies.forEach(function(c) {
       html += '<tr onclick="showCorporateDetail(\'' + c.id + '\')" style="cursor:pointer">';
       html += '<td>' + (c.name || '-') + '</td>';
@@ -953,6 +953,7 @@ async function loadCorporateTab() {
       html += '<td>' + (c.credit_pool || 0) + '</td>';
       html += '<td>' + (c.credit_used || 0) + '</td>';
       html += '<td>$' + (c.total_spent || 0).toLocaleString() + '</td>';
+      html += '<td>' + (c.next_reset_at ? c.next_reset_at.slice(0,10) : '-') + '</td>';
       html += '<td><span class="badge ' + (c.status === 'active' ? 'badge-success' : 'badge-secondary') + '">' + c.status + '</span></td>';
       html += '</tr>';
     });
@@ -986,14 +987,15 @@ async function showCorporateDetail(id) {
     document.getElementById('corp-detail-name').textContent = '\ud83c\udfe2 ' + cp.name;
     var detailHtml = '<p>聯絡: ' + (cp.contact_name || '-') + ' | ' + (cp.contact_email || '-') + ' | ' + (cp.contact_phone || '-') + '</p>';
     detailHtml += '<p>Credit Pool: ' + (cp.credit_pool || 0) + ' | 已用: ' + (cp.credit_used || 0) + ' | 員工: ' + data.total_employees + '</p>';
+    detailHtml += '<p>📆 每月配額: ' + (cp.monthly_allocation || 0) + ' credits | 上次重置: ' + (cp.last_reset_at ? cp.last_reset_at.slice(0,10) : '-') + ' | 下次重置: ' + (cp.next_reset_at ? cp.next_reset_at.slice(0,10) : '-') + '</p>';
     if (data.employees && data.employees.length > 0) {
-      detailHtml += '<table class="mini-table"><thead><tr><th>姓名</th><th>電郵</th><th>30日預約</th><th>Credits</th></tr></thead><tbody>';
+      detailHtml += '<table class="mini-table"><thead><tr><th>姓名</th><th>電郵</th><th>30日預約</th><th>Credits</th><th>每月上限</th><th>本月用</th><th>操作</th></tr></thead><tbody>';
       data.employees.forEach(function(e) {
-        detailHtml += '<tr><td>' + e.name + '</td><td>' + e.email + '</td><td>' + (e.bookings_30d || 0) + '</td><td>' + (e.credits || 0) + '</td></tr>';
+        detailHtml += '<tr><td>' + e.name + '</td><td>' + e.email + '</td><td>' + (e.bookings_30d || 0) + '</td><td>' + (e.credits || 0) + '</td><td>' + (e.monthly_credit_limit || '無限') + '</td><td>' + (e.monthly_credit_used || 0) + '</td><td><input type="number" id="limit-' + e.id + '" value="' + (e.monthly_credit_limit || '') + '" style="width:60px" placeholder="無限"> <button class="btn-sm" onclick="setEmployeeLimit('' + e.id + '')">設定</button></td></tr>';
       });
       detailHtml += '</tbody></table>';
     }
-    detailHtml += '<p><button class="btn" onclick="topupCorporateCredits(\'' + cp.id + '\')">\ud83d\udcb0 加值 Credits</button></p>';
+    detailHtml += '<p><button class="btn" onclick="topupCorporateCredits(\'' + cp.id + '\')">\ud83d\udcb0 加值 Credits</button> <button class="btn btn-danger" onclick="resetCorporateNow(\'' + cp.id + '\')">\ud83d\udd04 立即重置</button></p>';
     document.getElementById('corp-detail-content').innerHTML = detailHtml;
     document.getElementById('corporate-detail').style.display = 'block';
     window._corpDetailId = cp.id;
@@ -1022,6 +1024,20 @@ async function addCorporateEmployees() {
     alert(resultMsg);
     showCorporateDetail(id);
   } catch(e) { alert('\u274c ' + e.message); }
+}
+
+
+async function setEmployeeLimit(memberId) {
+  var limitEl = document.getElementById('limit-' + memberId);
+  if (!limitEl) return;
+  var val = limitEl.value.trim();
+  var monthly_credit_limit = val === '' ? null : parseInt(val);
+  try {
+    var r = await apiPatch('/corporate/members/' + memberId + '/limit', { monthly_credit_limit: monthly_credit_limit });
+    alert(r.message);
+    // Refresh the detail view
+    if (window._corpDetailId) showCorporateDetail(window._corpDetailId);
+  } catch(e) { alert('❌ ' + e.message); }
 }
 
 async function topupCorporateCredits(id) {
@@ -1310,7 +1326,13 @@ async function topupCorporateCredits(id) {
         if (d.error) throw new Error(d.error);
         return d;
       }
-      async function apiPost(path, body) {
+      async 
+function apiPatch(url, data) {
+  var token = localStorage.getItem('zenpass_token');
+  return fetch('/api' + url, { method: 'PATCH', headers: { 'Content-Type': 'application/json', 'Authorization': token ? 'Bearer ' + token : '' }, body: JSON.stringify(data) }).then(function(r) { if (!r.ok) return r.json().then(function(d) { throw new Error(d.error || 'Request failed'); }); return r.json(); });
+}
+
+function apiPost(path, body) {
         var t = getToken();
         var r = await fetch(API + path, {
           method: "POST",

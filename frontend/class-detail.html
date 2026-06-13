@@ -715,6 +715,7 @@
           }
           // Check trial status
           checkTrialStatus();
+          checkCorporateStatus();
           // Start real-time polling for spot updates (every 15s)
           startSpotPolling(classId);
           // ⭐ Check pending rating
@@ -1180,6 +1181,7 @@
         if (selectedPayment === "single") return "HK$" + price;
         if (selectedPayment === "credits") return credits + " Credits";
         if (selectedPayment === "membership_trial") return "免費 (試玩)";
+        if (selectedPayment === "corporate") return "公司 Credits";
         if (selectedPayment === "membership_standard")
           return "HK$" + Math.round(price * 0.6);
         if (selectedPayment === "membership_unlimited") return "免費 (無限)";
@@ -1201,6 +1203,34 @@
           }
         } catch (e) {}
       }
+
+      // ===== Check Corporate Status =====
+      async function checkCorporateStatus() {
+        var corpOpt = document.querySelector("[data-pay='corporate']");
+        if (corpOpt) return;
+        try {
+          var r = await fetch(API_BASE + "/corporate/my-company", {
+            headers: getAuthHeaders(),
+          });
+          if (!r.ok) return;
+          var d = await r.json();
+          if (d.company_name && d.available_credits > 0) {
+            var paymentContainer = document.querySelector(".payment-options");
+            if (!paymentContainer) return;
+            var creditsOpt = paymentContainer.querySelector(".payment-option");
+            while (creditsOpt && creditsOpt.nextElementSibling) {
+              if (creditsOpt.nextElementSibling.getAttribute("data-pay") === "membership_trial") break;
+              creditsOpt = creditsOpt.nextElementSibling;
+            }
+            var corpHtml = "<div class=payment-option data-pay='corporate' onclick=\"selectPayment('corporate', this)\"><div class=radio></div><div class=pay-name>🏢 公司 Credits</div><div class=pay-price>" + d.company_name + " (餘 " + d.available_credits + " Credits)" + (d.monthly_credit_limit ? " — 本月 " + (d.monthly_credit_used || 0) + "/" + d.monthly_credit_limit + " cr" : "") + "</div></div>";
+            if (creditsOpt) {
+              creditsOpt.insertAdjacentHTML("afterend", corpHtml);
+            } else {
+              paymentContainer.insertAdjacentHTML("beforeend", corpHtml);
+            }
+          }
+        } catch (e) {}
+      };
 
       // ===== Update Book Button =====
       function updateBookButton() {
@@ -1307,6 +1337,10 @@
         if (!selectedSchedule || !currentClass) return;
         var price = currentClass.price_hkd || 120;
 
+        // If corporate payment, check balance
+        if (selectedPayment === "corporate") {
+          // We will check server-side
+        }
         // If credits payment, check balance
         if (selectedPayment === "credits") {
           var userCredits = getUserCredits();
@@ -1446,7 +1480,9 @@
               ? "單次購買"
               : selectedPayment === "credits"
                 ? (currentClass.credits_cost || 15) + " Credits"
-                : "試玩";
+                : selectedPayment === "corporate" && apiData.corporate
+                  ? "公司俾了 " + apiData.corporate.from_company + " Credits" + (apiData.corporate.from_personal > 0 ? "，你自己俾了 " + apiData.corporate.from_personal + " Credits" : "")
+                  : "試玩";
           showToast("✅ 預約成功! (" + statusText + ")", "success");
           btn.textContent = "✅ 已預約";
           btn.disabled = true;

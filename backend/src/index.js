@@ -13,6 +13,7 @@ const helmet = require("helmet");
 const compression = require("compression");
 const logger = require("./services/logger");
 const { sendNotification } = require("./services/notification");
+const { processCorporateResets } = require("./services/corporate-reset");
 
 // 初始化數據庫
 const initDatabase = require("./config/init-db");
@@ -513,6 +514,9 @@ setInterval(autoNotifyLargeVacancies, 6 * 60 * 60 * 1000);
 // 啟動時等 60 秒 check 一次
 setTimeout(autoNotifyLargeVacancies, 60 * 1000);
 
+// ===== Corporate Credit 月度重置（每 15 分鐘檢查）=====
+setInterval(processCorporateResets, 15 * 60 * 1000);
+processCorporateResets();
 // ===== Startup Health Check =====
 function startupHealthCheck() {
   const checks = {
