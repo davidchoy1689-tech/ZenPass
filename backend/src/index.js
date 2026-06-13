@@ -164,6 +164,7 @@ app.use("/api/crm", require("./routes/crm"));
 app.use("/api/locations", require("./routes/pos"));
 app.use("/api/pos", require("./routes/pos"));
 app.use("/api/waitlist", require("./routes/waitlist"));
+app.use("/api/activity", require("./routes/activity"));
 app.use("/api/ai", require("./routes/ai"));
 app.use("/api/marketing", require("./routes/marketing"));
 app.use("/api/reporting", require("./routes/reporting"));
@@ -517,6 +518,49 @@ setTimeout(autoNotifyLargeVacancies, 60 * 1000);
 // ===== Corporate Credit 月度重置（每 15 分鐘檢查）=====
 setInterval(processCorporateResets, 15 * 60 * 1000);
 processCorporateResets();
+
+// ===== Membership EEGC
+function checkExpiringMemberships() {
+  try {
+    const Database = require("better-sqlite3");
+    const db = new Database(DB_PATH);
+    db.pragma("foreign_keys = ON");
+
+    const expiring = db.prepare(
+      "SELECT m.id, m.user_id, m.end_date, m.plan_id, u.email, u.name FROM memberships m JOIN users u ON m.user_id = u.id WHERE m.status = 'active' AND m.end_date BETWEEN datetime('now') AND datetime('now', '+7 days')",
+    ).all();
+
+    for (const m of expiring) {
+      try {
+        const daysLeft = Math.ceil((new Date(m.end_date) - new Date()) / 86400000);
+        sendNotification("membership.expiring", {
+          recipient: m.user_id,
+          data: { end_date: m.end_date, plan_id: m.plan_id, days_left: daysLeft }
+        });
+      } catch (e) {
+        console.error("Expiry notification error (" + m.id + "):", e.message);
+      }
+    }
+
+    const expiredResult = db.prepare(
+      "UPDATE memberships SET status = 'expired', updated_at = datetime('now') WHERE status = 'active' AND end_date < datetime('now')",
+    ).run();
+
+    db.close();
+
+    if (expiring.length > 0) {
+      console.log("[MEMBERSHIP CHECK] " + expiring.length + " EEGC");
+    }
+    if (expiredResult.changes > 0) {
+      console.log("[MEMBERSHIP CHECK] " + expiredResult.changes + " EEGC");
+    }
+  } catch (err) {
+    console.error("[MEMBERSHIP CHECK] Error:", err.message);
+  }
+}
+
+setInterval(checkExpiringMemberships, 60 * 60 * 1000);
+setTimeout(checkExpiringMemberships, 10000);
 // ===== Startup Health Check =====
 function startupHealthCheck() {
   const checks = {

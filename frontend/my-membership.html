@@ -389,6 +389,12 @@
         <div class="expire">會籍到期：2026-06-01</div>
       </div>
 
+      <!-- 會籍到期警告 -->
+      <div class="membership-warning" id="memWarning" style="display:none; background:#fef3c7; border:1px solid #f59e0b; border-radius:12px; padding:14px 16px; margin-bottom:12px; font-size:14px; color:#92400e;">
+        <div id="memWarningText"></div>
+        <button onclick="location.href='membership.html'" style="margin-top:8px; background:#f59e0b; color:white; border:none; padding:8px 16px; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer; font-family:var(--font-zh);">🔄 立即續約</button>
+      </div>
+
       <div class="credits-grid">
         <div class="credit-card">
           <div class="num">8</div>
@@ -583,6 +589,31 @@
               String(d.getMonth() + 1).padStart(2, "0") +
               "-" +
               String(d.getDate()).padStart(2, "0");
+          }
+        }
+
+        // Show expiry warning banner
+        var warnEl = document.getElementById("memWarning");
+        var warnText = document.getElementById("memWarningText");
+        if (expiresAt && warnEl && warnText) {
+          var now = new Date();
+          var expiry = new Date(expiresAt);
+          var daysLeft = Math.ceil((expiry - now) / 86400000);
+
+          if (daysLeft < 0) {
+            warnEl.style.display = "block";
+            warnEl.style.background = "#fee2e2";
+            warnEl.style.borderColor = "#ef4444";
+            warnEl.style.color = "#991b1b";
+            warnText.innerHTML = "⚠️ 你的會籍已<b>過期</b>，請立即續約以繼續使用服務。";
+          } else if (daysLeft <= 7) {
+            warnEl.style.display = "block";
+            warnEl.style.background = "#fef3c7";
+            warnEl.style.borderColor = "#f59e0b";
+            warnEl.style.color = "#92400e";
+            warnText.innerHTML = "⚠️ 你的會籍將於 <b>" + daysLeft + " 日後到期</b>（" + expiry.toLocaleDateString("zh-HK") + "），請提前續約。";
+          } else {
+            warnEl.style.display = "none";
           }
         }
 

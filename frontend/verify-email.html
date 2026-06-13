@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="zh-HK">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#FF6B35" />
+    <title>驗證電郵 — ZenPass 禪流</title>
+    <link rel="stylesheet" href="css/zenpass.css?v=2" />
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body {
+        font-family: var(--font-zh);
+        background: var(--gray-50);
+        color: var(--dark-900);
+        max-width: var(--max-width);
+        margin: 0 auto;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+      }
+      .verify-card {
+        background: var(--white);
+        border-radius: var(--radius-lg);
+        padding: 40px 24px;
+        box-shadow: var(--shadow-md);
+        text-align: center;
+        max-width: 400px;
+        width: 100%;
+      }
+      .verify-card .icon {
+        font-size: 64px;
+        margin-bottom: 16px;
+      }
+      .verify-card h1 {
+        font-size: 22px;
+        font-weight: 800;
+        margin-bottom: 8px;
+      }
+      .verify-card p {
+        font-size: 14px;
+        color: var(--dark-700);
+        margin-bottom: 20px;
+        line-height: 1.6;
+      }
+      .verify-card .btn {
+        display: inline-block;
+        padding: 12px 24px;
+        background: var(--orange-600-bg);
+        color: var(--white);
+        border: none;
+        border-radius: var(--radius-sm);
+        font-size: 15px;
+        font-weight: 700;
+        cursor: pointer;
+        text-decoration: none;
+        font-family: var(--font-zh);
+      }
+      .verify-card .btn:hover { background: #e55a2b; }
+      .loading-spinner {
+        display: inline-block;
+        width: 32px;
+        height: 32px;
+        border: 3px solid var(--gray-200);
+        border-top: 3px solid var(--orange-500);
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+        margin: 16px auto;
+      }
+      @keyframes spin { to { transform: rotate(360deg); } }
+      .status-success { color: #059669; }
+      .status-error { color: #dc2626; }
+    </style>
+  </head>
+  <body>
+    <div class="verify-card">
+      <div class="icon" id="statusIcon">📧</div>
+      <h1 id="statusTitle">驗證電郵</h1>
+      <div id="statusMsg">
+        <p>正在驗證你的電郵地址...</p>
+        <div class="loading-spinner"></div>
+      </div>
+      <a href="login.html" id="loginBtn" class="btn" style="display:none">🔑 前往登入</a>
+    </div>
+
+    <script>
+      (async function() {
+        var params = new URLSearchParams(window.location.search);
+        var token = params.get("token");
+
+        if (!token) {
+          document.getElementById("statusIcon").textContent = "❌";
+          document.getElementById("statusTitle").textContent = "驗證連結無效";
+          document.getElementById("statusMsg").innerHTML = "<p>缺少驗證 token，請檢查連結是否完整。</p>";
+          return;
+        }
+
+        try {
+          var resp = await fetch("/api/auth/verify-email?token=" + encodeURIComponent(token));
+          var data = await resp.json();
+
+          if (resp.ok) {
+            document.getElementById("statusIcon").textContent = "✅";
+            document.getElementById("statusTitle").textContent = "電郵驗證成功";
+            document.getElementById("statusTitle").className = "status-success";
+            document.getElementById("statusMsg").innerHTML = "<p>你的電郵已成功驗證！現在可以開始使用 ZenPass 所有功能。</p>";
+            document.getElementById("loginBtn").style.display = "inline-block";
+          } else {
+            document.getElementById("statusIcon").textContent = "❌";
+            document.getElementById("statusTitle").textContent = "驗證失敗";
+            document.getElementById("statusTitle").className = "status-error";
+            document.getElementById("statusMsg").innerHTML = "<p>" + (data.error || "驗證連結已過期或無效") + "</p><p style='margin-top:8px;font-size:13px;'>請嘗試重新發送驗證電郵。</p>";
+            document.getElementById("loginBtn").style.display = "inline-block";
+          }
+        } catch (err) {
+          document.getElementById("statusIcon").textContent = "❌";
+          document.getElementById("statusTitle").textContent = "網絡錯誤";
+          document.getElementById("statusTitle").className = "status-error";
+          document.getElementById("statusMsg").innerHTML = "<p>無法連接到伺服器，請稍後再試。</p>";
+          document.getElementById("loginBtn").style.display = "inline-block";
+        }
+      })();
+    </script>
+  </body>
+</html>
