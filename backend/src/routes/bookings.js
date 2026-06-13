@@ -688,6 +688,17 @@ router.post("/:id/cancel", authenticateToken, (req, res) => {
           trackBookingChange(booking.id, req.user.id, booking.status, "cancelled", req);
         } catch (e) {}
 
+    // Send cancellation notification
+    try {
+      sendNotification("booking.cancelled", {
+        recipient: req.user.id,
+        data: {
+          booking_reference: booking.booking_reference,
+          class_title: booking.class_title || "your class",
+          date: booking.start_time || "",
+        }
+      });
+    } catch (e) {}
         db.close();
         return res.json({
           message: "預約已取消（遲取消）。由於距離開課不足 12 小時，已使用的 Credits 唔會退還。",
@@ -748,6 +759,17 @@ router.post("/:id/cancel", authenticateToken, (req, res) => {
       console.error("⚠️ Audit record failed:", auditErr.message);
     }
 
+    // Send cancellation notification
+    try {
+      sendNotification("booking.cancelled", {
+        recipient: req.user.id,
+        data: {
+          booking_reference: booking.booking_reference,
+          class_title: booking.class_title || "your class",
+          date: booking.start_time || "",
+        }
+      });
+    } catch (e) {}
     db.close();
 
     res.json({ message: "預約已取消" });

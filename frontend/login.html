@@ -271,6 +271,9 @@
           <label>密碼</label>
           <input type="password" id="login-password" placeholder="••••••" />
         </div>
+        <div style="text-align:right;margin-top:-8px;margin-bottom:8px;">
+          <a href="#" onclick="showResetModal();return false;" style="font-size:13px;color:var(--orange-700);text-decoration:none;">忘記密碼？</a>
+        </div>
         <button class="btn btn-primary" id="login-btn" onclick="doLogin()">
           登入
         </button>
@@ -953,5 +956,98 @@
     >
       ↑
     </button>
-  </body>
+  
+<!-- Password Reset Modal -->
+<div id="reset-modal-overlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.4);z-index:1000;opacity:0;transition:opacity 0.3s;" onclick="closeResetModal(event)">
+  <div id="reset-modal" style="position:fixed;bottom:-100%;left:0;right:0;background:#fff;border-radius:16px 16px 0 0;padding:24px;max-width:420px;margin:0 auto;transition:bottom 0.3s;box-shadow:0 -4px 20px rgba(0,0,0,0.15);z-index:1001;" onclick="event.stopPropagation()">
+    <div style="text-align:center;margin-bottom:16px;">
+      <div style="width:40px;height:4px;background:var(--gray-200);border-radius:2px;margin:0 auto 16px;"></div>
+      <h2 style="font-size:18px;font-weight:700;margin:0;">🔑 忘記密碼</h2>
+      <p style="font-size:13px;color:var(--dark-700);margin-top:4px;">輸入電郵，我們會發送重置指示</p>
+    </div>
+    <div class="form-group">
+      <label>電郵</label>
+      <input type="email" id="reset-modal-email" placeholder="your@email.com" style="width:100%;padding:12px;border:1px solid var(--gray-200);border-radius:var(--radius-sm);font-size:15px;font-family:var(--font-zh);" />
+    </div>
+    <button class="btn btn-primary" id="reset-modal-btn" onclick="sendResetRequest()" style="margin-top:4px;">
+      發送重置連結
+    </button>
+    <div class="msg" id="reset-modal-msg" style="font-size:13px;margin-top:8px;padding:8px;border-radius:6px;display:none;"></div>
+    <div id="reset-modal-dev" style="display:none;margin-top:12px;padding:12px;background:#fef9c3;border-radius:6px;font-size:13px;"></div>
+    <button onclick="closeResetModal()" style="display:block;width:100%;margin-top:12px;padding:10px;border:none;background:none;color:var(--dark-700);font-size:14px;cursor:pointer;font-family:var(--font-zh);">取消</button>
+  </div>
+</div>
+
+
+<script>
+// Password Reset Modal
+function showResetModal() {
+  var overlay = document.getElementById('reset-modal-overlay');
+  var modal = document.getElementById('reset-modal');
+  overlay.style.display = 'block';
+  setTimeout(function() { overlay.style.opacity = '1'; modal.style.bottom = '0'; }, 10);
+  document.getElementById('reset-modal-email').value = '';
+  document.getElementById('reset-modal-msg').style.display = 'none';
+  document.getElementById('reset-modal-dev').style.display = 'none';
+  document.getElementById('reset-modal-btn').disabled = false;
+  document.getElementById('reset-modal-btn').textContent = '發送重置連結';
+}
+
+function closeResetModal(e) {
+  var overlay = document.getElementById('reset-modal-overlay');
+  var modal = document.getElementById('reset-modal');
+  overlay.style.opacity = '0';
+  modal.style.bottom = '-100%';
+  setTimeout(function() { overlay.style.display = 'none'; }, 300);
+}
+
+async function sendResetRequest() {
+  var email = document.getElementById('reset-modal-email').value.trim();
+  if (!email) {
+    var msg = document.getElementById('reset-modal-msg');
+    msg.style.display = 'block';
+    msg.className = 'msg error';
+    msg.textContent = '請輸入電郵';
+    return;
+  }
+
+  var btn = document.getElementById('reset-modal-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> 處理中...';
+
+  try {
+    var resp = await fetch(API_BASE + '/auth/password-reset-request', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email })
+    });
+    var data = await resp.json();
+    var msg = document.getElementById('reset-modal-msg');
+    msg.style.display = 'block';
+    msg.className = 'msg success';
+    msg.innerHTML = '✅ ' + (data.message || '如果此電郵已註冊，你將會收到重置密碼指示');
+
+    // Dev mode: show token
+    if (data.dev_token) {
+      var devDiv = document.getElementById('reset-modal-dev');
+      devDiv.style.display = 'block';
+      devDiv.innerHTML = '<strong>🔧 開發模式</strong><br>' +
+        'Token: <code style="word-break:break-all;background:#fff;padding:2px 6px;border-radius:4px;">' + data.dev_token + '</code><br>' +
+        '<a href="password-reset.html?token=' + data.dev_token + '" style="color:var(--orange-700);font-weight:600;">→ 按此重置密碼</a>';
+    }
+
+    btn.disabled = false;
+    btn.textContent = '發送重置連結';
+  } catch (e) {
+    var msg = document.getElementById('reset-modal-msg');
+    msg.style.display = 'block';
+    msg.className = 'msg error';
+    msg.textContent = '❌ 網絡錯誤，請稍後再試';
+    btn.disabled = false;
+    btn.textContent = '發送重置連結';
+  }
+}
+</script>
+
+</body>
 </html>

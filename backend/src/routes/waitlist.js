@@ -209,10 +209,41 @@ function autoNotifyOnCancel(schedule_id) {
     ).run(next.id);
     db.close();
 
+    // Get class info for notification
+    let classTitle = "";
+    let classDate = "";
+    let classTime = "";
+    try {
+      const schedDb = new Database(DB_PATH);
+      const schedInfo = schedDb.prepare(
+        "SELECT c.title, cs.start_time FROM classes c JOIN class_schedules cs ON c.id = cs.class_id WHERE cs.id = ?"
+      ).get(schedule_id);
+      schedDb.close();
+      if (schedInfo) {
+        classTitle = schedInfo.title || "";
+        const dt = new Date(schedInfo.start_time);
+        classDate = dt.toISOString().split("T")[0];
+        classTime = dt.toTimeString().split(" ")[0].substring(0, 5);
+      }
+    } catch (e) {}
+
     sendNotification("waitlist.opened", {
       user_id: next.user_id,
-      data: { schedule_id },
+      data: { schedule_id, class_title: classTitle },
     });
+
+    // Send waitlist.promoted notification to the user
+    try {
+      sendNotification("waitlist.promoted", {
+        recipient: next.user_id,
+        data: {
+          class_title: classTitle,
+          date: classDate,
+          time: classTime,
+        }
+      });
+    } catch (e) {}
+
     console.log(
       "🔔 Waitlist notified:",
       next.user_name,

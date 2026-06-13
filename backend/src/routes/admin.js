@@ -12,7 +12,7 @@ const {
   sendNotification,
   sendTelegramAlert,
 } = require("../services/notification");
-const { audit, trackAdminAction } = require("../services/audit");
+const { audit, trackAdminAction, queryAudit } = require("../services/audit");
 
 const router = express.Router();
 const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
@@ -1504,5 +1504,20 @@ router.post(
     }
   },
 );
+
+
+// ===== GET /api/admin/audit-log - audit trail =====
+router.get("/audit-log", authenticateToken, requireAdmin, (req, res) => {
+  try {
+    const entries = queryAudit({
+      limit: parseInt(req.query.limit) || 200,
+      offset: parseInt(req.query.offset) || 0,
+    });
+    res.json({ entries });
+  } catch (err) {
+    console.error("[ADMIN] audit-log error:", err.message);
+    res.status(500).json({ error: "load audit log failed" });
+  }
+});
 
 module.exports = router;
