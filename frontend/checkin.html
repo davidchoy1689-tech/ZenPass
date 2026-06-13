@@ -290,6 +290,34 @@
       }
 
       /* Unified spinner */
+      .geo-status {
+        padding: 10px 14px;
+        border-radius: 10px;
+        font-size: 13px;
+        font-weight: 500;
+        margin-bottom: 12px;
+        text-align: center;
+      }
+      .geo-status.success {
+        background: #ecfdf5;
+        color: #059669;
+        border: 1px solid #a7f3d0;
+      }
+      .geo-status.warning {
+        background: #fef3c7;
+        color: #92400e;
+        border: 1px solid #fde68a;
+      }
+      .geo-status.error {
+        background: #fef2f2;
+        color: #ef4444;
+        border: 1px solid #fecaca;
+      }
+      .geo-status.loading {
+        background: #f3f4f6;
+        color: #6b7280;
+        border: 1px solid #e5e7eb;
+      }
       .loading-spinner {
         display: inline-block;
         width: 24px;
@@ -475,6 +503,9 @@
         </div>
       </div>
 
+      <div id="geo-status" class="geo-status loading zen-hidden">
+        📍 檢查位置中...
+      </div>
       <button class="btn-checkin" id="btn-checkin" onclick="doCheckin()">
         ✅ 確認出席
       </button>
@@ -1051,11 +1082,92 @@
                   coachName = s.coach_name || "";
                   classId = s.class_id || "";
                   date = (s.start_time || "").split("T")[0] || "";
+                  if (s.latitude && s.longitude) {
+                    checkGeoFence(s.latitude, s.longitude, enableCheckin);
+                  } else {
+                    enableCheckin(true);
+                  }
                   break;
                 }
               }
             }
           } catch (e) {}
+        }
+      }
+
+      // ===== Geo-fence check =====
+      function calculateDistance(lat1, lon1, lat2, lon2) {
+        var R = 6371000;
+        var phi1 = lat1 * Math.PI / 180;
+        var phi2 = lat2 * Math.PI / 180;
+        var deltaPhi = (lat2 - lat1) * Math.PI / 180;
+        var deltaLambda = (lon2 - lon1) * Math.PI / 180;
+        var a = Math.sin(deltaPhi/2) * Math.sin(deltaPhi/2) +
+                Math.cos(phi1) * Math.cos(phi2) *
+                Math.sin(deltaLambda/2) * Math.sin(deltaLambda/2);
+        var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        return R * c;
+      }
+
+      function checkGeoFence(venueLat, venueLng, callback) {
+        var geoEl = document.getElementById("geo-status");
+        if (!geoEl) return callback(true);
+
+        if (!venueLat || !venueLng) {
+          geoEl.style.display = "none";
+          return callback(true);
+        }
+
+        if (!navigator.geolocation) {
+          geoEl.className = "geo-status warning";
+          geoEl.innerHTML = "📱 請使用支援 GPS 的裝置進行簽到";
+          geoEl.style.display = "block";
+          return callback(true);
+        }
+
+        geoEl.className = "geo-status loading";
+        geoEl.innerHTML = "📍 檢查位置中...";
+        geoEl.style.display = "block";
+
+        navigator.geolocation.getCurrentPosition(
+          function(pos) {
+            var dist = calculateDistance(pos.coords.latitude, pos.coords.longitude, venueLat, venueLng);
+            if (dist <= 100) {
+              geoEl.className = "geo-status success";
+              geoEl.innerHTML = "📍 你已到達場地（距離 " + Math.round(dist) + "m） ✅";
+              geoEl.style.display = "block";
+              callback(true);
+            } else {
+              geoEl.className = "geo-status warning";
+              geoEl.innerHTML = "📍 你距離場地尚餘 " + Math.round(dist) + " 米，請到達後再簽到";
+              geoEl.style.display = "block";
+              callback(false);
+            }
+          },
+          function(err) {
+            var msg = err.code === 1
+              ? "⚠️ 請允許位置權限以進行簽到"
+              : "⚠️ 無法取得位置，請手動簽到";
+            geoEl.className = "geo-status error";
+            geoEl.innerHTML = msg;
+            geoEl.style.display = "block";
+            callback(true);
+          },
+          { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
+        );
+      }
+
+      function enableCheckin(withinGeoRange) {
+        var btn = document.getElementById("btn-checkin");
+        if (!btn) return;
+        if (withinGeoRange) {
+          btn.disabled = false;
+          btn.textContent = "✅ 確認出席";
+          btn.style.background = "#059669";
+        } else {
+          btn.disabled = true;
+          btn.innerHTML = "📍 需要到達場地才能簽到";
+          btn.style.background = "#6b7280";
         }
       }
 

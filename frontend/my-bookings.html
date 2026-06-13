@@ -532,6 +532,7 @@
             return renderBookingCard(b);
           })
           .join("");
+        setTimeout(updateCheckinButtons, 100);
       }
 
       function renderBookingCard(b) {
@@ -589,18 +590,13 @@
             canCheckin = true;
           }
         }
-
         if (canCheckin) {
+          var venueLat = b.latitude || 0;
+          var venueLng = b.longitude || 0;
+          var bookingId = b.id;
           footerButtons =
-            '<div class="action-btns"><button class="checkin-btn" style="background:#059669;color:white;border:none;border-radius:10px;padding:10px 20px;font-size:13px;font-weight:600;cursor:pointer;width:100%" onclick="window.location.href=\\'checkin.html?schedule_id=' +
-            b.schedule_id +
-            '&class=' +
-            b.class_id +
-            '&date=' +
-            (b.start_time ? b.start_time.split('T')[0] : '') +
-            '&coach=' +
-            encodeURIComponent(b.coach_name || '') +
-            '\\'">✅ 簽到</button></div>';
+            '<div class="action-btns"><button class="checkin-btn geo-checkin-btn" style="background:#6b7280;color:white;border:none;border-radius:10px;padding:10px 20px;font-size:13px;font-weight:600;cursor:pointer;width:100%" data-booking-id="' + bookingId + '" data-lat="' + venueLat + '" data-lng="' + venueLng + '" data-schedule-id="' + b.schedule_id + '" data-class-id="' + b.class_id + '" data-date="' + (b.start_time ? b.start_time.split('T')[0] : '') + '" data-coach="' + encodeURIComponent(b.coach_name || '') + '" onclick="checkGeoBeforeCheckin(this)">📍 檢查位置中...</button></div>';
+        } else {
         } else {
           if (canCancel) {
             footerButtons =
@@ -684,6 +680,125 @@
           "</span>" +
           footerButtons +
           "</div></div>"
+        );
+      }
+
+      // ===== Geo-fence check-in =====
+      function calculateDistance(lat1, lon1, lat2, lon2) {
+        var R = 6371000; // metres
+        var phi1 = lat1 * Math.PI / 180;
+        var phi2 = lat2 * Math.PI / 180;
+        var deltaPhi = (lat2 - lat1) * Math.PI / 180;
+        var deltaLambda = (lon2 - lon1) * Math.PI / 180;
+        var a = Math.sin(deltaPhi/2) * Math.sin(deltaPhi/2) +
+                Math.cos(phi1) * Math.cos(phi2) *
+                Math.sin(deltaLambda/2) * Math.sin(deltaLambda/2);
+        var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        return R * c;
+      }
+
+      function checkGeoBeforeCheckin(btn) {
+        var lat = parseFloat(btn.getAttribute("data-lat"));
+        var lng = parseFloat(btn.getAttribute("data-lng"));
+        var scheduleId = btn.getAttribute("data-schedule-id");
+        var classId = btn.getAttribute("data-class-id");
+        var date = btn.getAttribute("data-date");
+        var coach = btn.getAttribute("data-coach");
+
+        if (!lat || !lng) {
+          // No venue coordinates, just navigate
+          window.location.href = "checkin.html?schedule_id=" + scheduleId +
+            "&class=" + classId + "&date=" + date + "&coach=" + coach;
+          return;
+        }
+
+        btn.disabled = true;
+        btn.textContent = "📍 定位中...";
+        btn.style.background = "#6b7280";
+
+        if (!navigator.geolocation) {
+          btn.disabled = false;
+          btn.textContent = "📱 點擊簽到";
+          btn.style.background = "#059669";
+          showToast("請使用支援 GPS 的裝置", "warning");
+          return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+          function(pos) {
+            var userLat = pos.coords.latitude;
+            var userLng = pos.coords.longitude;
+            var distance = calculateDistance(userLat, userLng, lat, lng);
+            if (distance <= 100) {
+              // Within 100m - allow check-in
+              window.location.href = "checkin.html?schedule_id=" + scheduleId +
+                "&class=" + classId + "&date=" + date + "&coach=" + coach;
+            } else {
+              btn.disabled = false;
+              btn.textContent = "📍 需要到達場地才能簽到 (" + Math.round(distance) + "m)";
+              btn.style.background = "#6b7280";
+              showToast("你距離場地尚餘 " + Math.round(distance) + " 米，請到達後再簽到", "warning");
+            }
+          },
+          function(err) {
+            // Geolocation failed/denied - show fallback
+            btn.disabled = false;
+            btn.textContent = "📱 點擊簽到";
+            btn.style.background = "#059669";
+            var msg = err.code === 1 ? "請允許位置權限方可簽到" : "無法取得位置，請手動簽到";
+            showToast(msg, "warning");
+          },
+          { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
+        );
+      }
+
+      // After rendering bookings, check geo for all check-in buttons
+      function updateCheckinButtons() {
+        var btns = document.querySelectorAll(".geo-checkin-btn");
+        if (btns.length === 0) return;
+
+        if (!navigator.geolocation) {
+          // No geo support, make all navigable
+          btns.forEach(function(btn) {
+            btn.disabled = false;
+            btn.textContent = "✅ 簽到";
+            btn.style.background = "#059669";
+          });
+          return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+          function(pos) {
+            var userLat = pos.coords.latitude;
+            var userLng = pos.coords.longitude;
+            btns.forEach(function(btn) {
+              var lat = parseFloat(btn.getAttribute("data-lat"));
+              var lng = parseFloat(btn.getAttribute("data-lng"));
+              if (lat && lng) {
+                var dist = calculateDistance(userLat, userLng, lat, lng);
+                if (dist <= 100) {
+                  btn.textContent = "✅ 簽到 — 你已到達場地";
+                  btn.style.background = "#059669";
+                } else {
+                  btn.textContent = "📍 需要到達場地才能簽到 (" + Math.round(dist) + "m)";
+                  btn.style.background = "#6b7280";
+                }
+              } else {
+                btn.textContent = "✅ 簽到";
+                btn.style.background = "#059669";
+              }
+              btn.disabled = false;
+            });
+          },
+          function() {
+            // Geo denied/failed, make all navigable
+            btns.forEach(function(btn) {
+              btn.disabled = false;
+              btn.textContent = "📱 點擊簽到";
+              btn.style.background = "#059669";
+            });
+          },
+          { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
         );
       }
 

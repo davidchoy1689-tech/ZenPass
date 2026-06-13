@@ -482,7 +482,7 @@ router.get("/my", authenticateToken, (req, res) => {
       .prepare(
         `
       SELECT 
-        b.*, c.title, c.category, c.duration, c.price_hkd, c.venue_name, c.coach_id,
+        b.*, c.title, c.category, c.duration, c.price_hkd, c.venue_name, c.venue_address, c.latitude, c.longitude, c.coach_id,
         cs.start_time, cs.end_time,
         u.name as coach_name
       FROM bookings b
@@ -757,35 +757,115 @@ router.post("/:id/cancel", authenticateToken, (req, res) => {
   }
 });
 
+// ===== GET /api/bookings/:id/checkin-status — 簽到狀態（含場地資訊）=====
+router.get("/:id/checkin-status", authenticateToken, (req, res) => {
+  try {
+    const db = new Database(DB_PATH);
+
+    // Verify the booking belongs to this user
+    const booking = db
+      .prepare(`
+        SELECT b.*, s.start_time, c.title AS class_title,
+               c.venue_name, c.venue_address, c.latitude, c.longitude
+        FROM bookings b
+        JOIN class_schedules s ON b.schedule_id = s.id
+        JOIN classes c ON s.class_id = c.id
+        WHERE b.id = ? AND b.user_id = ?
+      `)
+      .get(req.params.id, req.user.id);
+
+    if (!booking) {
+      db.close();
+      return res.status(404).json({ error: "找不到該預約" });
+    }
+
+    const now = new Date();
+    const startTime = new Date(booking.start_time);
+    const windowStart = new Date(startTime.getTime() - 15 * 60 * 1000);
+    const windowEnd = new Date(startTime.getTime() + 60 * 60 * 1000);
+
+    const canCheckin =
+      booking.status === "confirmed" &&
+      !booking.checked_in_at &&
+      now >= windowStart &&
+      now <= windowEnd;
+
+    db.close();
+    res.json({
+      can_checkin: canCheckin,
+      venue_name: booking.venue_name || "",
+      venue_lat: booking.latitude,
+      venue_lng: booking.longitude,
+      venue_address: booking.venue_address || "",
+      checkin_window_start: windowStart.toISOString(),
+      checkin_window_end: windowEnd.toISOString(),
+      checked_in: !!booking.checked_in_at,
+      status: booking.status,
+    });
+  } catch (err) {
+    console.error("檢查簽到狀態錯誤:", err);
+    res.status(500).json({ error: "檢查簽到狀態失敗" });
+  }
+});
+
+
 // ===== POST /api/bookings/:id/attend — 標記為已出席 =====
 router.post("/:id/attend", authenticateToken, (req, res) => {
   try {
     const db = new Database(DB_PATH);
     db.pragma("foreign_keys = ON");
 
-    // Coach or admin can mark attendance
+    // Determine if this is a coach/admin or student
     const user = db
       .prepare("SELECT is_coach, coach_verified, role FROM users WHERE id = ?")
       .get(req.user.id);
-    const isAuthorized =
+    const isCoachOrAdmin =
       user && (user.is_coach || user.role === "admin" || user.coach_verified);
 
-    if (!isAuthorized) {
-      // Allow student to check themselves in if the booking belongs to them
-      const booking = db
+    let booking;
+    if (!isCoachOrAdmin) {
+      // Student self-check-in: verify booking ownership
+      booking = db
         .prepare("SELECT * FROM bookings WHERE id = ? AND user_id = ?")
         .get(req.params.id, req.user.id);
       if (!booking) {
         db.close();
         return res.status(403).json({ error: "無權限執行此操作" });
       }
+
+      // Time window check for student self-check-in
+      const bookingWithSchedule = db.prepare(`
+        SELECT b.*, s.start_time
+        FROM bookings b
+        JOIN class_schedules s ON b.schedule_id = s.id
+        WHERE b.id = ?
+      `).get(req.params.id);
+
+      if (bookingWithSchedule) {
+        const now = new Date();
+        const startTime = new Date(bookingWithSchedule.start_time);
+        const windowStart = new Date(startTime.getTime() - 15 * 60 * 1000);
+        const windowEnd = new Date(startTime.getTime() + 60 * 60 * 1000);
+
+        if (now < windowStart) {
+          db.close();
+          return res.status(400).json({ error: "簽到時間未到（可於上課前 15 分鐘開始簽到）" });
+        }
+        if (now > windowEnd) {
+          db.close();
+          return res.status(400).json({ error: "簽到時間已過" });
+        }
+      }
     }
+
+    // Determine checkin method
+    const checkinMethod = req.body.checkin_method || (isCoachOrAdmin ? "coach" : "self");
 
     const result = db
       .prepare(
-        "UPDATE bookings SET status = 'attended' WHERE id = ? AND status = 'confirmed'",
+        "UPDATE bookings SET status = 'attended', checked_in_at = datetime('now'), checkin_method = ? WHERE id = ? AND status = 'confirmed'",
       )
-      .run(req.params.id);
+      .run(checkinMethod, req.params.id);
 
     if (result.changes === 0) {
       db.close();
@@ -795,18 +875,18 @@ router.post("/:id/attend", authenticateToken, (req, res) => {
     }
 
     // Update student last_visit and total_visits
-    const booking = db
+    const bookingData = db
       .prepare("SELECT user_id, schedule_id, amount FROM bookings WHERE id = ?")
       .get(req.params.id);
-    if (booking) {
+    if (bookingData) {
       db.prepare(
         "UPDATE users SET last_visit = datetime('now'), total_visits = COALESCE(total_visits, 0) + 1, total_spent = COALESCE(total_spent, 0) + COALESCE(?, 0) WHERE id = ?",
-      ).run(booking.amount || 0, booking.user_id);
+      ).run(bookingData.amount || 0, bookingData.user_id);
 
       // Sync coach earnings
       try {
         const { syncCoachEarningsForSchedule } = require("./coach-earnings");
-        syncCoachEarningsForSchedule(booking.schedule_id);
+        syncCoachEarningsForSchedule(bookingData.schedule_id);
       } catch (e) {}
     }
 
@@ -831,7 +911,7 @@ router.post("/:id/attend", authenticateToken, (req, res) => {
   }
 });
 
-// ===== GET /api/bookings/today — 今日課堂（教練用）=====
+// ===== GET /api/bookings/today — 今日課堂（教練用）=====// ===== GET /api/bookings/today — 今日課堂（教練用）=====
 router.get("/today", authenticateToken, (req, res) => {
   try {
     const db = new Database(DB_PATH);
