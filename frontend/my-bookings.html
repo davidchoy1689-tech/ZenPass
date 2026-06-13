@@ -476,6 +476,22 @@
             renderTab(currentTab);
             showContent();
           })
+          // Check corporate info
+          fetch("/api/corporate/my-company", { headers: getAuthHeaders() })
+            .then(function(r) { return r.json(); })
+            .then(function(corpData) {
+              if (corpData && !corpData.error && corpData.company_name) {
+                var corpBanner = document.createElement("div");
+                corpBanner.style.cssText = "background:linear-gradient(135deg,var(--orange-500),var(--orange-400));border-radius:12px;padding:14px 16px;margin-bottom:16px;color:#fff;";
+                corpBanner.innerHTML = "<div style=\"font-weight:600;font-size:14px;\">🏢 " + corpData.company_name + "</div>" +
+                  "<div style=\"display:flex;gap:16px;margin-top:8px;font-size:13px;opacity:0.9;\">" +
+                  "<span>剩餘：<strong>" + (corpData.credit_pool - corpData.credit_used) + "</strong> Credits</span>" +
+                  (corpData.monthly_credit_limit ? "<span>本月：<strong>" + (corpData.monthly_credit_used || 0) + "/" + corpData.monthly_credit_limit + "</strong></span>" : "") +
+                  "</div>";
+                document.getElementById("bookings-list")?.before(corpBanner);
+              }
+            })
+            .catch(function() {});
           .catch(function (err) {
             showError("載入失敗", "無法連接到伺服器，請檢查網絡連線。");
           });

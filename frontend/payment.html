@@ -1033,10 +1033,10 @@
       >
     </nav>
 
+    <script src="api.js?v=2"></script>
     <script src="https://js.stripe.com/v3/"></script>
     <script>
       // ===== Config =====
-      var API_BASE = "/api";
       // 生產環境請設定 localStorage.setItem("zenpass_api_base", "https://your-api-domain.com/api")
       var STRIPE_PK =
         "pk_test_51TTH5lRy5l6E7AvNNILQml3gy5Te3EOtHNNLX1QSwi3mxFG0bTfjNETbDUlJZGHXARmqB0VfKvNOUkW4uOUPMF9y00dvZeP56d";
@@ -1156,12 +1156,6 @@
       var paymentAmount = 0;
 
       // ===== Helpers =====
-
-      function getToken() {
-        var t = localStorage.getItem("zenpass_token");
-        if (!t) t = sessionStorage.getItem("zenpass_token");
-        return t;
-      }
 
       function apiFetch(path, opts) {
         var token = getToken();
