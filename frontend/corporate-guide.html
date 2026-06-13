@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" href="favicon.png" type="image/png" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#f06030" />
+  <meta name="description" content="ZenPass 企業健康計劃使用指南 — 公司員工運動福利管理、Credit 分配及預約流程" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="-1" />
+  <title>企業健康計劃 — ZenPass 禪流</title>
+  <meta property="og:title" content="企業健康計劃 — ZenPass 禪流" />
+  <meta property="og:description" content="公司員工運動福利管理、Credit 分配及預約流程使用指南" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/zenpass.css?v=2" />
+  <style>
+    :root { --max-width: 720px; }
+    body { max-width: var(--max-width); padding: 16px 16px 100px; background: #fff; }
+    .guide-header { text-align: center; padding: 40px 16px 32px; }
+    .guide-header h1 { font-size: 26px; font-weight: 700; color: var(--dark-900); margin-bottom: 8px; }
+    .guide-header h1 span { color: var(--orange-500); }
+    .guide-header p { color: var(--dark-700); font-size: 14px; line-height: 1.6; }
+    .guide-header .icon { font-size: 48px; margin-bottom: 12px; }
+    .guide-section { margin-bottom: 32px; }
+    .guide-section h2 { font-size: 18px; font-weight: 700; color: var(--dark-900); padding: 12px 16px; background: var(--orange-50); border-radius: var(--radius-md); margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+    .guide-section h3 { font-size: 15px; font-weight: 600; color: var(--dark-900); margin: 16px 0 8px; padding-left: 4px; }
+    .guide-section p { font-size: 14px; line-height: 1.8; color: var(--dark-800); margin-bottom: 8px; padding: 0 4px; }
+    .guide-card { background: var(--gray-50); border-radius: var(--radius-md); padding: 16px; margin-bottom: 12px; }
+    .guide-card .card-title { font-weight: 600; font-size: 14px; color: var(--dark-900); margin-bottom: 6px; }
+    .guide-card p, .guide-card li { font-size: 13px; line-height: 1.7; color: var(--dark-700); }
+    .guide-card ul { list-style: none; padding: 0; }
+    .guide-card ul li { padding: 4px 0 4px 20px; position: relative; }
+    .guide-card ul li::before { content: '•'; position: absolute; left: 4px; color: var(--orange-500); font-weight: bold; }
+    .guide-steps { counter-reset: step; }
+    .step { display: flex; gap: 12px; align-items: flex-start; padding: 12px 0; border-bottom: 1px solid var(--gray-100); }
+    .step:last-child { border-bottom: none; }
+    .step-num { width: 28px; height: 28px; min-width: 28px; border-radius: 50%; background: var(--orange-500); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; }
+    .step-content { flex: 1; }
+    .step-content strong { display: block; font-size: 14px; color: var(--dark-900); margin-bottom: 2px; }
+    .step-content span { font-size: 13px; color: var(--dark-700); line-height: 1.6; }
+    .scenario { background: #fff; border: 1px solid var(--gray-200); border-radius: var(--radius-sm); padding: 12px; margin-bottom: 8px; }
+    .scenario .label { font-size: 12px; font-weight: 600; color: var(--orange-500); display: block; margin-bottom: 4px; }
+    .scenario .detail { font-size: 13px; color: var(--dark-700); line-height: 1.7; }
+    .faq-item { border-bottom: 1px solid var(--gray-100); padding: 12px 4px; }
+    .faq-item strong { display: block; font-size: 14px; color: var(--dark-900); margin-bottom: 4px; }
+    .faq-item span { font-size: 13px; color: var(--dark-700); line-height: 1.7; display: block; }
+    .flow-box { background: var(--orange-50); border-radius: var(--radius-md); padding: 16px; margin: 16px 0; }
+    .flow-box .step-arrow { display: flex; align-items: center; gap: 8px; padding: 4px 0; font-size: 13px; color: var(--dark-800); }
+    .flow-box .step-arrow .arr { color: var(--orange-500); font-weight: 700; }
+    .back-link { display: inline-flex; align-items: center; gap: 6px; color: var(--orange-500); text-decoration: none; font-size: 13px; font-weight: 500; margin-top: 24px; padding: 8px 0; }
+    .back-link:hover { text-decoration: underline; }
+    .cta-box { text-align: center; padding: 32px 16px; background: linear-gradient(135deg, var(--orange-50), #fff); border-radius: var(--radius-lg); margin-top: 24px; }
+    .cta-box p { font-size: 14px; color: var(--dark-700); margin-bottom: 12px; }
+    .cta-box .contact { font-size: 13px; color: var(--dark-700); }
+    .cta-box .contact a { color: var(--orange-500); text-decoration: none; font-weight: 500; }
+    .cta-box .contact a:hover { text-decoration: underline; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 8px 0; }
+    table th { background: var(--orange-50); color: var(--dark-900); font-weight: 600; padding: 8px 10px; text-align: left; border-bottom: 2px solid var(--orange-200); }
+    table td { padding: 8px 10px; border-bottom: 1px solid var(--gray-100); color: var(--dark-700); }
+    table tr:hover td { background: var(--gray-50); }
+    @media (max-width: 480px) {
+      .guide-header { padding: 24px 12px 20px; }
+      .guide-header h1 { font-size: 22px; }
+      .guide-card { padding: 12px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="guide-header">
+    <div class="icon">🏢</div>
+    <h1>企業健康計劃<br /><span>使用指南</span></h1>
+    <p>ZenPass 企業方案 — 一個 Pass，全公司通行全城運動體驗</p>
+  </div>
+
+  <!-- 一、點樣開始？ -->
+  <div class="guide-section">
+    <h2>📋 一、點樣開始？</h2>
+
+    <h3>1.1 企業註冊</h3>
+    <div class="guide-card">
+      <p>聯絡 ZenPass 開通企業帳戶：</p>
+      <ul>
+        <li>電話：<strong>2387 0724</strong></li>
+        <li>電郵：<strong>support@zenpass.hk</strong></li>
+      </ul>
+      <p style="margin-top:8px;">提供：公司名稱、聯絡人、電郵、電話<br />確定每月 Credit 分配及結算週期。</p>
+    </div>
+
+    <h3>1.2 Credit 運作</h3>
+    <div class="guide-card">
+      <ul>
+        <li><strong>每月自動分配</strong> — 每月 1 號 Reset，未用即過期</li>
+        <li><strong>1 Credit = HK$8</strong> — 堂數扣法統一</li>
+        <li>離峰／一般時段：<strong>12 cr</strong>／堂</li>
+        <li>高峰時段：<strong>15 cr</strong>／堂</li>
+        <li>可以按需要 <strong>額外加值</strong></li>
+      </ul>
+    </div>
+
+    <h3>1.3 設定員工上限（可選）</h3>
+    <div class="guide-card">
+      <p>Admin 可以為每位員工設定每月使用上限，例如每人每月 100 Credits。唔 set 就係冇上限。</p>
+    </div>
+  </div>
+
+  <!-- 二、員工點用？ -->
+  <div class="guide-section">
+    <h2>👤 二、員工點用？</h2>
+
+    <h3>2.1 開始使用</h3>
+    <div class="guide-steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <strong>登入 ZenPass</strong>
+          <span>Admin 批量開戶後，員工會收到電郵，內附<br />臨時密碼：<code>zpXXXXXX!</code><br />首次登入後可修改密碼。</span>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-content">
+          <strong>探索課程</strong>
+          <span>瀏覽超過 100+ 運動課程，揀選心水活動。</span>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-content">
+          <strong>揀時段 + 揀付款方式</strong>
+          <span>選擇上課時間，付款方式揀 <strong>「🏢 公司 Credits」</strong>。</span>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-content">
+          <strong>確認預約</strong>
+          <span>系統顯示：公司名 + 剩餘 Credits + 本月用量。<br />確認後自動扣數 ✅</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 三、付費邏輯 -->
+  <div class="guide-section">
+    <h2>💰 三、付費邏輯（自動混合）</h2>
+    <p style="padding:0 4px;margin-bottom:12px;">系統自動分配：<strong>公司 Credits 先俾 → 唔夠就用員工自己嘅 Credits 補</strong>。</p>
+
+    <div class="scenario">
+      <span class="label">🟢 情況 A：公司夠 + 未超每月上限</span>
+      <span class="detail">一堂 12 Credits → 公司俾 12，員工自己俾 0 ✅</span>
+    </div>
+    <div class="scenario">
+      <span class="label">🟡 情況 B：公司夠但每月上限已滿（上限 10/月）</span>
+      <span class="detail">一堂 12 Credits → 公司俾 0，員工自己俾 12 ✅</span>
+    </div>
+    <div class="scenario">
+      <span class="label">🟠 情況 C：公司剩 5 Credits</span>
+      <span class="detail">一堂 12 Credits → 公司俾 5，員工自己俾 7 ✅</span>
+    </div>
+    <div class="scenario">
+      <span class="label">🔴 情況 D：公司 0 + 自己都唔夠</span>
+      <span class="detail">❌ 需先購買 Credits 先可以繼續預約。</span>
+    </div>
+
+    <div class="guide-card" style="margin-top:4px;">
+      <p style="font-size:13px;color:var(--dark-700);">員工喺預約頁可以見到：<br />
+      🏢 公司剩餘 Credits　| 📊 本月已用／上限　| 💰 自己 Credits 餘額</p>
+    </div>
+  </div>
+
+  <!-- 四、每月 Reset -->
+  <div class="guide-section">
+    <h2>🔄 四、每月 Reset 機制</h2>
+
+    <div class="guide-card">
+      <p><strong>每月 1 號凌晨</strong>，系統自動處理：</p>
+      <ul>
+        <li>✅ credit_used 歸零（公司池 Reset）</li>
+        <li>✅ 員工 monthly_credit_used 歸零</li>
+        <li>✅ 上個月未用嘅 Credits <strong>自動到期消失</strong></li>
+        <li>✅ Audit log 記錄 expired 數量</li>
+      </ul>
+    </div>
+    <div class="guide-card">
+      <p><strong>點解要咁做？</strong></p>
+      <ul>
+        <li>🎯 員工有 incentive 去 Book 堂（Use it or lose it！）</li>
+        <li>📊 公司 Budget 可預測，每月固定支出</li>
+        <li>🚫 唔怕囤 Credits 唔用（你而家 0 收入就係因為冇 expiry）</li>
+        <li>🏆 ClassPass 企業版都係呢個模式</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 五、Admin 操作 -->
+  <div class="guide-section">
+    <h2>🔧 五、Admin 後台操作</h2>
+
+    <h3>5.1 功能一覧</h3>
+    <table>
+      <thead>
+        <tr><th>功能</th><th>位置</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>新增企業</td><td>🏢 企業計劃 → + 新增企業</td></tr>
+        <tr><td>加值 Credits</td><td>㩒公司名 → 💰 加值 Credits</td></tr>
+        <tr><td>Set 員工上限</td><td>㩒公司名 → 員工列表 → 輸入上限</td></tr>
+        <tr><td>批量新增員工</td><td>㩒公司名 → 批量新增</td></tr>
+        <tr><td>管理員 Reset</td><td>㩒公司名 → 立即 Reset</td></tr>
+        <tr><td>用量報表</td><td>🏢 企業計劃 → 㩒公司名查看</td></tr>
+      </tbody>
+    </table>
+
+    <h3>5.2 員工離職處理</h3>
+    <div class="guide-card">
+      <p>Admin 喺後台將員工標記為 inactive 即可。該員工唔可以再用公司 Credits 預約。</p>
+    </div>
+  </div>
+
+  <!-- 六、常見問題 -->
+  <div class="guide-section">
+    <h2>❓ 六、常見問題</h2>
+
+    <div class="faq-item">
+      <strong>員工離職點處理？</strong>
+      <span>Admin 可以喺後台將員工標記為 inactive，該員工即無法使用公司 Credits。</span>
+    </div>
+    <div class="faq-item">
+      <strong>員工自己嘅 Credits 同公司 Credits 點分？</strong>
+      <span>完全分開兩個池。公司 Credits 用公司池，個人 Credits 用自己戶口。Hybrid 模式會自動混合俾錢。</span>
+    </div>
+    <div class="faq-item">
+      <strong>Reset 之後未用嘅 Credits 去邊？</strong>
+      <span>自動到期消失。每月 allocation 係「呢個月俾你咁多，用唔晒冇得留」。Audit log 有記錄 expired 數量。</span>
+    </div>
+    <div class="faq-item">
+      <strong>可唔可以提早 Reset？</strong>
+      <span>可以。Admin 後台有「立即 Reset」掣，隨時可以手動 trigger。</span>
+    </div>
+    <div class="faq-item">
+      <strong>員工睇唔睇到公司仲有幾多 Credits？</strong>
+      <span>睇到。預約時揀「公司 Credits」會顯示公司名 + 剩餘 Credits + 每月用量。</span>
+    </div>
+    <div class="faq-item">
+      <strong>Billing cycle 可以自訂嗎？</strong>
+      <span>可以。建立企業帳戶時揀選：每月／每季／每年。Reset 日期會對應 billing cycle。</span>
+    </div>
+  </div>
+
+  <!-- 技術流程 -->
+  <div class="guide-section">
+    <h2>⚙️ 七、系統流程</h2>
+
+    <div class="flow-box">
+      <div class="step-arrow"><span class="arr">▼</span> 每月 1 號</div>
+      <div class="step-arrow" style="padding-left:24px;"><span class="arr">→</span> credit_used = 0（公司池 reset）</div>
+      <div class="step-arrow" style="padding-left:24px;"><span class="arr">→</span> monthly_credit_used = 0（員工用量 reset）</div>
+      <div class="step-arrow" style="padding-left:24px;"><span class="arr">→</span> audit_log 記錄 expired credits</div>
+      <div style="height:8px;"></div>
+      <div class="step-arrow"><span class="arr">▼</span> 員工預約</div>
+      <div class="step-arrow" style="padding-left:24px;"><span class="arr">→</span> 檢查公司池夠唔夠</div>
+      <div class="step-arrow" style="padding-left:24px;"><span class="arr">→</span> 檢查員工每月上限</div>
+      <div class="step-arrow" style="padding-left:24px;"><span class="arr">→</span> 自動混合公司 + 個人 Credits</div>
+      <div class="step-arrow" style="padding-left:24px;"><span class="arr">→</span> Audit log + blockchain 記錄</div>
+      <div style="height:8px;"></div>
+      <div class="step-arrow"><span class="arr">▼</span> 每日 Scheduler（每 15 分鐘）</div>
+      <div class="step-arrow" style="padding-left:24px;"><span class="arr">→</span> 檢查到期 Reset</div>
+      <div class="step-arrow" style="padding-left:24px;"><span class="arr">→</span> 自動處理</div>
+    </div>
+  </div>
+
+  <!-- CTA -->
+  <div class="cta-box">
+    <p>🏢 想開通企業健康計劃？<br />聯絡我哋了解更多</p>
+    <div class="contact">
+      📞 <a href="tel:23870724">2387 0724</a> &nbsp;·&nbsp;
+      📧 <a href="mailto:support@zenpass.hk">support@zenpass.hk</a>
+    </div>
+  </div>
+
+  <a href="explore.html" class="back-link">← 返回探索課程</a>
+
+</body>
+</html>
