@@ -279,7 +279,88 @@
     <style id="sk-css">@keyframes sk-shimmer{100%{transform:translateX(100%)}}.sk-shimmer{background:linear-gradient(90deg,#e5e7eb 25%,#f3f4f6 50%,#e5e7eb 75%);background-size:200% 100%;animation:sk-shimmer 1.5s infinite}.sk-block{background:#e5e7eb;border-radius:8px}.dark .sk-block{background:#334155}.sk-h-40{height:160px}.sk-h-32{height:128px}.sk-h-24{height:96px}.sk-h-20{height:80px}.sk-h-16{height:64px}.sk-h-14{height:56px}.sk-h-12{height:48px}.sk-h-10{height:40px}.sk-h-8{height:32px}.sk-h-6{height:24px}.sk-h-4{height:16px}.sk-h-3{height:12px}.sk-w-full{width:100%}.sk-w-3\/4{width:75%}.sk-w-1\/2{width:50%}.sk-w-1\/3{width:33%}.sk-w-20{width:80px}.sk-w-16{width:64px}.sk-w-12{width:48px}.sk-rounded{border-radius:8px}.sk-mb-2{margin-bottom:8px}.sk-mb-3{margin-bottom:12px}.sk-mb-4{margin-bottom:16px}.sk-card{background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.06);border:1px solid rgba(0,0,0,0.04)}.sk-card-body{padding:12px}.sk-flex{display:flex}.sk-flex-col{flex-direction:column}.sk-items-center{align-items:center}.sk-gap-2{gap:8px}.sk-gap-3{gap:12px}.sk-gap-4{gap:16px}.sk-p-3{padding:12px}.sk-p-4{padding:16px}.sk-flex-shrink-0{flex-shrink:0}.sk-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}</style>
     <script src="api.js?v=2"></script>
     <script>
-      var allCoaches = [
+      var allCoaches = [];
+      var loadingCoaches = true;
+
+      // Show skeleton on load
+      var grid = document.getElementById("coachGrid");
+      if (grid) grid.innerHTML = `<div class="sk-grid" style="grid-template-columns:1fr"><div class="sk-card sk-flex sk-items-center sk-gap-3 sk-p-4" aria-hidden="true">
+      <div class="sk-block sk-shimmer sk-h-14 sk-w-14 sk-rounded-full" aria-hidden="true"></div>
+      <div class="sk-flex-1">
+        <div class="sk-block sk-shimmer sk-h-4 sk-w-3/4 sk-mb-2" aria-hidden="true"></div>
+        <div class="sk-block sk-shimmer sk-h-3 sk-w-1/2 sk-mb-2" aria-hidden="true"></div>
+        <div class="sk-flex sk-gap-2">
+          <div class="sk-block sk-shimmer sk-h-3 sk-w-12" aria-hidden="true"></div>
+          <div class="sk-block sk-shimmer sk-h-3 sk-w-16" aria-hidden="true"></div>
+        </div>
+      </div>
+      <div class="sk-block sk-shimmer sk-h-4 sk-w-6" aria-hidden="true"></div>
+    </div><div class="sk-card sk-flex sk-items-center sk-gap-3 sk-p-4" aria-hidden="true">
+      <div class="sk-block sk-shimmer sk-h-14 sk-w-14 sk-rounded-full" aria-hidden="true"></div>
+      <div class="sk-flex-1">
+        <div class="sk-block sk-shimmer sk-h-4 sk-w-3/4 sk-mb-2" aria-hidden="true"></div>
+        <div class="sk-block sk-shimmer sk-h-3 sk-w-1/2 sk-mb-2" aria-hidden="true"></div>
+        <div class="sk-flex sk-gap-2">
+          <div class="sk-block sk-shimmer sk-h-3 sk-w-12" aria-hidden="true"></div>
+          <div class="sk-block sk-shimmer sk-h-3 sk-w-16" aria-hidden="true"></div>
+        </div>
+      </div>
+      <div class="sk-block sk-shimmer sk-h-4 sk-w-6" aria-hidden="true"></div>
+    </div><div class="sk-card sk-flex sk-items-center sk-gap-3 sk-p-4" aria-hidden="true">
+      <div class="sk-block sk-shimmer sk-h-14 sk-w-14 sk-rounded-full" aria-hidden="true"></div>
+      <div class="sk-flex-1">
+        <div class="sk-block sk-shimmer sk-h-4 sk-w-3/4 sk-mb-2" aria-hidden="true"></div>
+        <div class="sk-block sk-shimmer sk-h-3 sk-w-1/2 sk-mb-2" aria-hidden="true"></div>
+        <div class="sk-flex sk-gap-2">
+          <div class="sk-block sk-shimmer sk-h-3 sk-w-12" aria-hidden="true"></div>
+          <div class="sk-block sk-shimmer sk-h-3 sk-w-16" aria-hidden="true"></div>
+        </div>
+      </div>
+      <div class="sk-block sk-shimmer sk-h-4 sk-w-6" aria-hidden="true"></div>
+    </div><div class="sk-card sk-flex sk-items-center sk-gap-3 sk-p-4" aria-hidden="true">
+      <div class="sk-block sk-shimmer sk-h-14 sk-w-14 sk-rounded-full" aria-hidden="true"></div>
+      <div class="sk-flex-1">
+        <div class="sk-block sk-shimmer sk-h-4 sk-w-3/4 sk-mb-2" aria-hidden="true"></div>
+        <div class="sk-block sk-shimmer sk-h-3 sk-w-1/2 sk-mb-2" aria-hidden="true"></div>
+        <div class="sk-flex sk-gap-2">
+          <div class="sk-block sk-shimmer sk-h-3 sk-w-12" aria-hidden="true"></div>
+          <div class="sk-block sk-shimmer sk-h-3 sk-w-16" aria-hidden="true"></div>
+        </div>
+      </div>
+      <div class="sk-block sk-shimmer sk-h-4 sk-w-6" aria-hidden="true"></div>
+    </div><div class="sk-card sk-flex sk-items-center sk-gap-3 sk-p-4" aria-hidden="true">
+      <div class="sk-block sk-shimmer sk-h-14 sk-w-14 sk-rounded-full" aria-hidden="true"></div>
+      <div class="sk-flex-1">
+        <div class="sk-block sk-shimmer sk-h-4 sk-w-3/4 sk-mb-2" aria-hidden="true"></div>
+        <div class="sk-block sk-shimmer sk-h-3 sk-w-1/2 sk-mb-2" aria-hidden="true"></div>
+        <div class="sk-flex sk-gap-2">
+          <div class="sk-block sk-shimmer sk-h-3 sk-w-12" aria-hidden="true"></div>
+          <div class="sk-block sk-shimmer sk-h-3 sk-w-16" aria-hidden="true"></div>
+        </div>
+      </div>
+      <div class="sk-block sk-shimmer sk-h-4 sk-w-6" aria-hidden="true"></div>
+    </div><div class="sk-card sk-flex sk-items-center sk-gap-3 sk-p-4" aria-hidden="true">
+      <div class="sk-block sk-shimmer sk-h-14 sk-w-14 sk-rounded-full" aria-hidden="true"></div>
+      <div class="sk-flex-1">
+        <div class="sk-block sk-shimmer sk-h-4 sk-w-3/4 sk-mb-2" aria-hidden="true"></div>
+        <div class="sk-block sk-shimmer sk-h-3 sk-w-1/2 sk-mb-2" aria-hidden="true"></div>
+        <div class="sk-flex sk-gap-2">
+          <div class="sk-block sk-shimmer sk-h-3 sk-w-12" aria-hidden="true"></div>
+          <div class="sk-block sk-shimmer sk-h-3 sk-w-16" aria-hidden="true"></div>
+        </div>
+      </div>
+      <div class="sk-block sk-shimmer sk-h-4 sk-w-6" aria-hidden="true"></div>
+    </div></div>`;
+
+      // Load coaches from API
+      fetch("/api/coach/list?limit=50")
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+          allCoaches = d.coaches || [];
+          loadingCoaches = false;
+          // Fallback: if no data from API, use demo data
+          if (allCoaches.length === 0) {
+            allCoaches = [
         {
           name: "靜儀導師",
           id: "COACH-001",
@@ -353,8 +434,88 @@
           bio: "7年戶外運動教練經驗",
         },
       ];
-
-      var currentFilter = "all";
+          }
+          renderCoaches();
+        })
+        .catch(function(e) {
+          console.warn("Coaches API failed, using demo data", e);
+          allCoaches = [
+        {
+          name: "靜儀導師",
+          id: "COACH-001",
+          title: "瑜伽 · 冥想導師",
+          avatar: "🧘",
+          bg: "linear-gradient(135deg,#667eea,#764ba2)",
+          tags: ["瑜伽", "冥想", "伸展"],
+          rating: 4.9,
+          students: 128,
+          courses: 3,
+          bio: "10年教學經驗，RYT-500 認證",
+        },
+        {
+          name: "Alex教練",
+          id: "COACH-002",
+          title: "健身 · TRX · 拳擊教練",
+          avatar: "💪",
+          bg: "linear-gradient(135deg,#f093fb,#f5576c)",
+          tags: ["健身", "TRX 懸吊訓練", "拳擊搏擊", "肌力訓練"],
+          rating: 4.8,
+          students: 205,
+          courses: 5,
+          bio: "8年健身教練經驗，ACE 認證",
+        },
+        {
+          name: "Ken教練",
+          id: "COACH-003",
+          title: "新興運動 · 球類教練",
+          avatar: "🎯",
+          bg: "linear-gradient(135deg,#43e97b,#38f9d7)",
+          tags: ["新興運動", "羽毛球", "射箭", "詠春"],
+          rating: 4.7,
+          students: 89,
+          courses: 4,
+          bio: "6年新興運動推廣經驗",
+        },
+        {
+          name: "Grace導師",
+          id: "COACH-004",
+          title: "舞蹈 · 空中瑜伽導師",
+          avatar: "💃",
+          bg: "linear-gradient(135deg,#ffecd2,#fcb69f)",
+          tags: ["舞蹈", "空中瑜伽", "芭蕾塑形"],
+          rating: 4.9,
+          students: 156,
+          courses: 4,
+          bio: "5年舞蹈教學經驗",
+        },
+        {
+          name: "慧心導師",
+          id: "COACH-005",
+          title: "冥想 · 身心靈導師",
+          avatar: "🧠",
+          bg: "linear-gradient(135deg,#a18cd1,#fbc2eb)",
+          tags: ["冥想", "太極養生", "長者體適能"],
+          rating: 4.8,
+          students: 97,
+          courses: 3,
+          bio: "12年冥想及身心靈教學經驗",
+        },
+        {
+          name: "陽光教練",
+          id: "COACH-006",
+          title: "戶外 · 跑步 · 兒童教練",
+          avatar: "🏃",
+          bg: "linear-gradient(135deg,#4facfe,#00f2fe)",
+          tags: ["跑步", "遠足行山", "露營戶外", "兒童體適能"],
+          rating: 4.7,
+          students: 134,
+          courses: 6,
+          bio: "7年戶外運動教練經驗",
+        },
+      ];
+          loadingCoaches = false;
+          renderCoaches();
+        });
       var currentSort = "rating";
 
       // Build filter tags

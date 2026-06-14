@@ -13,6 +13,39 @@ const { sendNotification } = require("../services/notification");
 const router = express.Router();
 const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
 
+// ===== GET /api/coach/list — 獲取教練列表 =====
+router.get("/list", (req, res) => {
+  try {
+    const db = new Database(DB_PATH);
+    const coaches = db.prepare(`
+      SELECT u.id, u.name, u.avatar_url as avatar, u.email,
+        COALESCE(cr.avg_rating, 0) as rating,
+        COALESCE(cr.total_students, 0) as students,
+        COALESCE(cr.total_courses, 0) as courses,
+        COALESCE(cr.bio, '') as bio
+      FROM users u
+      LEFT JOIN (
+        SELECT 
+          coach_id,
+          ROUND(AVG(rating), 1) as avg_rating,
+          COUNT(DISTINCT student_id) as total_students,
+          COUNT(DISTINCT c.id) as total_courses
+        FROM coach_ratings cr
+        LEFT JOIN classes c ON c.coach_id = cr.coach_id
+        GROUP BY coach_id
+      ) cr ON cr.coach_id = u.id
+      WHERE u.is_coach = 1
+      ORDER BY cr.avg_rating DESC NULLS LAST
+      LIMIT ?
+    `).all(parseInt(req.query.limit) || 50);
+    res.json({ success: true, coaches: coaches });
+    if (db) db.close();
+  } catch(e) {
+    console.error("Error fetching coaches:", e.message);
+    res.json({ success: true, coaches: [] });
+  }
+});
+
 // ===== POST /api/coach/apply — 提交教練申請 =====
 router.post("/apply", authenticateToken, (req, res) => {
   try {
