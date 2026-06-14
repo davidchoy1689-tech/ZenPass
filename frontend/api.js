@@ -959,6 +959,286 @@ document.addEventListener('DOMContentLoaded', function() {
   gtag("config", gaId);
 })();
 
+// ===== Skeleton Loading System =====
+// Pure CSS + div skeleton with shimmer animation
+// 核心原則：冇 Layout Shift，數據到就即 replace
+
+(function(){
+  var style = document.createElement('style');
+  style.textContent = `
+    /* --- Shimmer keyframes --- */
+    @keyframes zen-shimmer {
+      0% { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
+
+    /* --- Base skeleton block --- */
+    .zen-sk {
+      background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+      background-size: 200% 100%;
+      animation: zen-shimmer 1.5s ease-in-out infinite;
+      border-radius: 6px;
+    }
+    .dark .zen-sk, .zen-dark .zen-sk {
+      background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%);
+      background-size: 200% 100%;
+    }
+
+    /* --- Skeleton types --- */
+    .zen-sk-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 14px;
+      padding: 4px 0;
+    }
+    .zen-sk-card {
+      background: var(--white, #fff);
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      border: 1px solid rgba(0,0,0,0.04);
+    }
+    .zen-sk-card-img {
+      width: 100%;
+      height: 140px;
+      border-radius: 0;
+    }
+    .zen-sk-card-body {
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .zen-sk-line {
+      height: 14px;
+      border-radius: 4px;
+    }
+    .zen-sk-line.w80 { width: 80%; }
+    .zen-sk-line.w60 { width: 60%; }
+    .zen-sk-line.w40 { width: 40%; }
+    .zen-sk-line.w30 { width: 30%; }
+    .zen-sk-line.h10 { height: 10px; }
+    .zen-sk-line.h16 { height: 16px; }
+    .zen-sk-line.h20 { height: 20px; }
+    .zen-sk-line.h24 { height: 24px; }
+
+    /* Featured card skeleton */
+    .zen-sk-feat {
+      display: flex;
+      background: var(--white, #fff);
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      border: 1px solid rgba(0,0,0,0.04);
+    }
+    .zen-sk-feat-img {
+      width: 100px;
+      min-height: 100px;
+      border-radius: 0;
+      flex-shrink: 0;
+    }
+    .zen-sk-feat-body {
+      flex: 1;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      justify-content: center;
+    }
+
+    /* Activity feed skeleton */
+    .zen-sk-activity {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 14px;
+    }
+    .zen-sk-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .zen-sk-activity-body {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    /* Coach card skeleton */
+    .zen-sk-coach-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 12px;
+      padding: 4px 0;
+    }
+    .zen-sk-coach {
+      background: var(--white, #fff);
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      border: 1px solid rgba(0,0,0,0.04);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+    .zen-sk-coach-avatar {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+    }
+
+    /* Booking item skeleton */
+    .zen-sk-booking {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px;
+      background: var(--white, #fff);
+      border-radius: 12px;
+      border: 1px solid rgba(0,0,0,0.04);
+      margin-bottom: 10px;
+    }
+    .zen-sk-booking-img {
+      width: 60px;
+      height: 60px;
+      border-radius: 10px;
+      flex-shrink: 0;
+    }
+    .zen-sk-booking-body {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    /* Utility - margin-bottom 8px */
+    .mb8 { margin-bottom: 8px; }
+
+    /* Detail page skeleton */
+    .zen-sk-detail {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 16px;
+    }
+    .zen-sk-detail-banner {
+      width: 100%;
+      height: 180px;
+      border-radius: 14px;
+      margin-bottom: 16px;
+    }
+  `;
+  document.head.appendChild(style);
+})();
+
+/**
+ * Show skeleton loader in a container
+ * @param {HTMLElement} container - target container
+ * @param {string} type - skeleton type: 'grid'|'featured'|'activity'|'coach'|'booking'|'detail'
+ * @param {number} count - number of skeleton items (default 3)
+ */
+function showSkeleton(container, type, count) {
+  if (!container) return;
+  count = count || 3;
+  var html = '';
+
+  switch(type) {
+    case 'grid':
+    case 'course':
+      html = '<div class="zen-sk-grid">';
+      for(var i = 0; i < count; i++) {
+        html += '<div class="zen-sk-card">' +
+          '<div class="zen-sk-card-img zen-sk"></div>' +
+          '<div class="zen-sk-card-body">' +
+          '<div class="zen-sk-line zen-sk w80 h16"></div>' +
+          '<div class="zen-sk-line zen-sk w60 h10"></div>' +
+          '<div class="zen-sk-line zen-sk w40 h10"></div>' +
+          '<div style="display:flex;gap:8px;margin-top:4px">' +
+          '<div class="zen-sk-line zen-sk w30 h10"></div>' +
+          '<div class="zen-sk-line zen-sk w30 h10"></div>' +
+          '</div></div></div>';
+      }
+      html += '</div>';
+      break;
+
+    case 'featured':
+      html = '';
+      for(var i = 0; i < count; i++) {
+        html += '<div class="zen-sk-feat">' +
+          '<div class="zen-sk-feat-img zen-sk"></div>' +
+          '<div class="zen-sk-feat-body">' +
+          '<div class="zen-sk-line zen-sk w80 h16"></div>' +
+          '<div class="zen-sk-line zen-sk w60 h10"></div>' +
+          '<div class="zen-sk-line zen-sk w40 h10"></div>' +
+          '</div></div>';
+      }
+      break;
+
+    case 'activity':
+      html = '';
+      for(var i = 0; i < count; i++) {
+        html += '<div class="zen-sk-activity">' +
+          '<div class="zen-sk-avatar zen-sk"></div>' +
+          '<div class="zen-sk-activity-body">' +
+          '<div class="zen-sk-line zen-sk w60 h12"></div>' +
+          '<div class="zen-sk-line zen-sk w40 h10"></div>' +
+          '</div></div>';
+      }
+      break;
+
+    case 'coach':
+      html = '<div class="zen-sk-coach-grid">';
+      for(var i = 0; i < count; i++) {
+        html += '<div class="zen-sk-coach">' +
+          '<div class="zen-sk-coach-avatar zen-sk"></div>' +
+          '<div class="zen-sk-line zen-sk w60 h14"></div>' +
+          '<div class="zen-sk-line zen-sk w40 h10"></div>' +
+          '</div>';
+      }
+      html += '</div>';
+      break;
+
+    case 'booking':
+      html = '';
+      for(var i = 0; i < count; i++) {
+        html += '<div class="zen-sk-booking">' +
+          '<div class="zen-sk-booking-img zen-sk"></div>' +
+          '<div class="zen-sk-booking-body">' +
+          '<div class="zen-sk-line zen-sk w70 h14"></div>' +
+          '<div class="zen-sk-line zen-sk w50 h10"></div>' +
+          '<div class="zen-sk-line zen-sk w30 h10"></div>' +
+          '</div></div>';
+      }
+      break;
+
+    case 'detail':
+      html = '<div class="zen-sk-detail">' +
+        '<div class="zen-sk-detail-banner zen-sk"></div>' +
+        '<div class="zen-sk-line zen-sk w70 h24" style="margin-bottom:12px"></div>' +
+        '<div class="zen-sk-line zen-sk mb8"></div>' +
+        '<div class="zen-sk-line zen-sk w80 mb8"></div>' +
+        '<div class="zen-sk-line zen-sk w60" style="margin-bottom:16px"></div>' +
+        '<div style="display:flex;gap:10px">' +
+        '<div class="zen-sk-line zen-sk w30 h20"></div>' +
+        '<div class="zen-sk-line zen-sk w30 h20"></div>' +
+        '</div></div>';
+      break;
+  }
+
+  container.innerHTML = html;
+}
+
+/**
+ * Remove skeleton from container (just clears innerHTML)
+ */
+function hideSkeleton(container) {
+  if (!container) return;
+  container.innerHTML = '';
+}
+
 // ===== Init on load =====
 document.addEventListener("DOMContentLoaded", () => {
   updateNavBar();

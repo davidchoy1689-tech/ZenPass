@@ -70,6 +70,8 @@
       gtag("js", new Date());
       gtag("config", "G-MKF5N4YLBM");
     </script>
+    <script src="api.js?v=2"></script>
+
 
     <link rel="apple-touch-icon" href="icons/icon-192.png" />
     <link rel="apple-touch-icon" sizes="256x256" href="icons/icon-192.png" />
@@ -315,7 +317,7 @@
         <span>🗓️ 你嘅下一堂</span>
         <a href="my.html" class="zen-text-xs" style="color: var(--orange-700); text-decoration: none">查看全部 →</a>
       </div>
-      <div id="upcoming-list" class="zen-flex zen-gap-sm" style="flex-direction: column">
+      <div id="upcoming-list" class="zen-flex zen-gap-sm" style="flex-direction: column"><script>showSkeleton(document.getElementById("upcoming-list"),"booking",3)</script>
         <div class="loading-spinner" style="padding: 12px 0">載入中...</div>
       </div>
     </div>
@@ -646,7 +648,7 @@
     } catch(e) {}
     if (!token && !categoryFilter) return;
     section.style.display = '';
-    container.innerHTML = '<div class="loading-spinner" style="padding:12px 0">載入中...</div>';
+    showSkeleton(container, 'featured', 3);
     var url = (apiBase + '/api/recommendations?limit=6' + categoryFilter);
     if (token) {
       fetch(url, { headers: { 'Authorization': 'Bearer ' + token } })
@@ -961,7 +963,7 @@
         <div class="zen-section-title">
           <span>運動分類</span>
         </div>
-        <div class="categories-scroll" id="category-list">
+        <div class="categories-scroll" id="category-list"><script>showSkeleton(document.getElementById("category-list"),"grid",4)</script>
           <div class="loading-spinner">載入中...</div>
         </div>
       </div>
@@ -1242,7 +1244,7 @@
           <span>🔥 熱門課程</span>
           <a href="explore.html" class="more-link">查看全部 →</a>
         </div>
-        <div class="featured-scroll" id="featured-classes">
+        <div class="featured-scroll" id="featured-classes"><script>showSkeleton(document.getElementById("featured-classes"),"grid",4)</script>
           <div class="loading-spinner">載入中...</div>
         </div>
       </div>
@@ -1284,7 +1286,7 @@
               >查看全部 →</a
             >
           </div>
-          <div class="class-grid" id="all-classes" style="margin-bottom: 0">
+          <div class="class-grid" id="all-classes" style="margin-bottom: 0"><script>showSkeleton(document.getElementById("all-classes"),"grid",4)</script>
             <div class="loading-spinner">載入中...</div>
           </div>
         </div>
@@ -1411,7 +1413,7 @@
         <div class="zen-section-title" style="font-size: 15px">
           <span>📰 最新動態</span>
         </div>
-        <div class="zen-flex zen-gap-sm" style="flex-direction: column" id="activityFeed">
+        <div class="zen-flex zen-gap-sm" style="flex-direction: column" id="activityFeed"><script>showSkeleton(document.getElementById("activityFeed"),"activity",4)</script>
           <div class="zen-text-xs zen-text-muted" style="padding: 10px 12px; text-align: center">載入中...</div>
         </div>
       </div>
