@@ -1023,7 +1023,7 @@ function showSkeleton(container, type, count, timeoutSec) {
   if (container._skTimeout) clearTimeout(container._skTimeout);
   container._skTimeout = setTimeout(function() {
     if (container.getAttribute('aria-busy') === 'true') {
-      container.innerHTML = '<div style="text-align:center;padding:24px;color:#94a3b8;font-size:13px">⏱ 載入時間較長，<a href="#" onclick="window.location.reload();return false" style="color:#2563eb;text-decoration:underline">重新整理</a></div>';
+      showError(container, '載入時間較長', '請檢查網絡連線或重新整理');
       container.setAttribute('aria-busy', 'false');
     }
   }, timeoutSec * 1000);
@@ -1110,6 +1110,28 @@ function hideSkeleton(container) {
   if (container._skTimeout) clearTimeout(container._skTimeout);
   container.setAttribute('aria-busy', 'false');
   container.innerHTML = '';
+}
+
+// ===== Unified Error Display =====
+/**
+ * Show consistent error message in a container
+ * @param {HTMLElement} container - target element
+ * @param {string} title - short error title (e.g. '載入失敗')
+ * @param {string} msg - detail message
+ * @param {function} retryFn - optional retry callback
+ */
+function showError(container, title, msg, retryFn) {
+  if (!container) return;
+  hideSkeleton(container);
+  var btnHtml = retryFn
+    ? '<button onclick="location.reload()" style="margin-top:12px;padding:8px 20px;background:#2563eb;color:#fff;border:none;border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit">🔄 重試</button>'
+    : '<a href="#" onclick="location.reload();return false" style="color:#2563eb;text-decoration:underline;font-size:13px;display:inline-block;margin-top:12px">🔄 重新整理</a>';
+  container.innerHTML = '<div style="text-align:center;padding:40px 20px">' +
+    '<div style="font-size:40px;margin-bottom:8px">😵</div>' +
+    '<div style="font-size:15px;font-weight:600;color:#1a1a2e;margin-bottom:4px">' + escHtml(title) + '</div>' +
+    '<div style="font-size:12px;color:#666;margin-bottom:4px;line-height:1.5">' + escHtml(msg) + '</div>' +
+    btnHtml +
+    '</div>';
 }
 
 // ===== Init on load =====

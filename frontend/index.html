@@ -516,8 +516,7 @@
           }
         })
         .catch(function() {
-          var list = document.getElementById('upcoming-list');
-          if (list) list.innerHTML = '<div class="zen-text-xs zen-text-muted" style="padding:12px;text-align:center">暫時無法載入預約資料</div>';
+          showError(document.getElementById('upcoming-list'), '暫時無法載入預約', '請檢查網絡連線後重新整理');
         });
       }
     })();
@@ -966,7 +965,7 @@
         var d = await r.json();
         var container = document.getElementById("activityFeed");
         if (!container || !d.feed || d.feed.length === 0) {
-          if (container) container.innerHTML = renderSampleActivity();
+          if (container) showError(container, '無法載入最新動態', '請檢查網絡連線');
           return;
         }
         var html = "";
@@ -981,7 +980,7 @@
         container.innerHTML = html;
       } catch (e) {
         var container = document.getElementById("activityFeed");
-        if (container) container.innerHTML = renderSampleActivity();
+        if (container) showError(container, '無法載入最新動態', '請檢查網絡連線');
       }
     }
 
