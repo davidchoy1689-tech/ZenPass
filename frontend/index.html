@@ -813,21 +813,27 @@
     // ===== Sample Activity Data =====
     function renderSampleActivity() {
       var samples = [
-        { icon: '🧘', user: '小明', action: '預約了', cls: '早晨瑜伽伸展班', time: '2 小時前' },
-        { icon: '💪', user: 'Emily', action: '預約了', cls: 'HIIT 燃脂訓練', time: '3 小時前' },
-        { icon: '🎯', user: '阿強', action: '預約了', cls: '芬蘭木柱體驗班', time: '5 小時前' },
-        { icon: '🤸', user: 'Sophia', action: '預約了', cls: 'Flexi-Bar 身心挑戰', time: '昨天' },
-        { icon: '🏃', user: 'David', action: '完成了', cls: '晨跑團 5K', time: '昨天' },
-        { icon: '🧘', user: 'Cathy', action: '預約了', cls: '陰瑜伽放鬆課', time: '1 天前' },
-        { icon: '🏓', user: 'Sam', action: '預約了', cls: '匹克球入門班', time: '2 天前' },
-        { icon: '🥊', user: 'Nick', action: '預約了', cls: '拳擊體適能', time: '2 天前' },
+        { icon: '🏓', title: '新課程上架：匹克球', desc: '全港最潮新興運動，結合羽毛球、乒乓球、網球元素', tag: 'NEW', time: '今日' },
+        { icon: '🏢', title: 'ZenPass 企業計劃正式推出', desc: '專為中小企而設的員工運動福利方案，$399/人/月', tag: '新服務', time: '2 日前' },
+        { icon: '🧘', title: '早晨瑜伽系列新增 5 個時段', desc: '07:00-08:00 早鳥班，返工前做運動', tag: '更新', time: '3 日前' },
+        { icon: '🎯', title: '新場地合作：觀塘 Two Sky Parc', desc: '全新運動空間，鄰近地鐵站，方便上班族', tag: '新場地', time: '5 日前' },
+        { icon: '💪', title: 'HIIT 燃脂訓練班名額增加', desc: '因反應熱烈，每班由 15 人增至 20 人', tag: '更新', time: '1 週前' },
+        { icon: '📱', title: 'ZenPass App 開發中', desc: 'iOS + Android 版本預計 2026 年第三季推出', tag: '即將推出', time: '1 週前' },
+        { icon: '🏆', title: '香港康樂及體育獲商界展關懷獎', desc: '連續三年獲獎，肯定社區貢獻', tag: '獎項', time: '2 週前' },
+        { icon: '👥', title: '教練招募計劃啟動', desc: '歡迎各類型運動導師加入 ZenPass 平台', tag: '招募', time: '2 週前' },
       ];
       var html = '';
       samples.forEach(function(s) {
-        html += '<div class="zen-flex" style="align-items:center;gap:12px;padding:10px 12px;background:var(--white);border-radius:10px;box-shadow:0 1px 2px rgba(0,0,0,0.04);margin-bottom:6px">';
-        html += '<div style="font-size:22px">' + s.icon + '</div>';
-        html += '<div class="zen-flex-1"><div class="zen-text-sm zen-text-bold">' + s.user + ' ' + s.action + ' ' + s.cls + '</div>';
-        html += '<div class="zen-text-xs zen-text-muted">' + s.time + '</div></div></div>';
+        html += '<div class="zen-flex" style="align-items:center;gap:12px;padding:10px 12px;background:var(--white);border-radius:10px;box-shadow:0 1px 2px rgba(0,0,0,0.04);margin-bottom:8px">';
+        html += '<div style="font-size:22px;width:36px;text-align:center;flex-shrink:0">' + s.icon + '</div>';
+        html += '<div class="zen-flex-1">';
+        html += '<div class="zen-flex" style="align-items:center;gap:6px;flex-wrap:wrap">';
+        html += '<span class="zen-text-sm zen-text-bold">' + s.title + '</span>';
+        html += '<span style="font-size:9px;background:#2563eb;color:#fff;padding:1px 6px;border-radius:3px;font-weight:600">' + s.tag + '</span>';
+        html += '</div>';
+        html += '<div class="zen-text-xs zen-text-muted" style="margin-top:2px">' + s.desc + '</div>';
+        html += '<div class="zen-text-xs" style="color:#94a3b8;margin-top:1px;font-size:10px">' + s.time + '</div>';
+        html += '</div></div>';
       });
       return html;
     }
