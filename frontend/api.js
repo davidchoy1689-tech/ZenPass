@@ -966,11 +966,14 @@ document.addEventListener('DOMContentLoaded', function() {
 (function(){
   var style = document.createElement('style');
   style.textContent = `
-    @keyframes sk-pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.4; }
+    @keyframes sk-shimmer {
+      100% { transform: translateX(100%); }
     }
-    .sk-pulse { animation: sk-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+    .sk-shimmer {
+      background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
+      background-size: 200% 100%;
+      animation: sk-shimmer 1.5s infinite;
+    }
     .sk-block { background: #e5e7eb; border-radius: 8px; }
     .dark .sk-block { background: #334155; }
     .sk-h-40 { height: 160px; }  .sk-h-32 { height: 128px; }
@@ -1011,7 +1014,7 @@ function showSkeleton(container, type, count) {
   var card, i;
 
   function line(w, h) {
-    return '<div class="sk-block sk-pulse sk-' + h + ' sk-' + w + ' sk-mb-2"></div>';
+    return '<div class="sk-block sk-shimmer sk-' + h + ' sk-' + w + ' sk-mb-2"></div>';
   }
 
   switch(type) {
@@ -1020,13 +1023,13 @@ function showSkeleton(container, type, count) {
       html = '<div class="sk-grid">';
       for(i = 0; i < count; i++) {
         card = '<div class="sk-card">' +
-          '<div class="sk-block sk-pulse sk-h-32 sk-w-full"></div>' +
+          '<div class="sk-block sk-shimmer sk-h-32 sk-w-full"></div>' +
           '<div class="sk-card-body">' +
           line('w-3\\/4', 'h-4') +
           line('w-1\\/2', 'h-4') +
           '<div class="sk-flex sk-gap-2" style="margin-top:4px">' +
-          '<div class="sk-block sk-pulse sk-h-4 sk-w-20"></div>' +
-          '<div class="sk-block sk-pulse sk-h-4 sk-w-16"></div>' +
+          '<div class="sk-block sk-shimmer sk-h-4 sk-w-20"></div>' +
+          '<div class="sk-block sk-shimmer sk-h-4 sk-w-16"></div>' +
           '</div></div></div>';
         html += card;
       }
@@ -1035,7 +1038,7 @@ function showSkeleton(container, type, count) {
     case 'featured':
       for(i = 0; i < count; i++) {
         html += '<div class="sk-card sk-flex" style="margin-bottom:8px">' +
-          '<div class="sk-block sk-pulse sk-h-20 sk-w-20 sk-flex-shrink-0" style="border-radius:0"></div>' +
+          '<div class="sk-block sk-shimmer sk-h-20 sk-w-20 sk-flex-shrink-0" style="border-radius:0"></div>' +
           '<div class="sk-p-3 sk-flex-1">' +
           line('w-3\\/4', 'h-4') +
           line('w-1\\/2', 'h-3') +
@@ -1046,7 +1049,7 @@ function showSkeleton(container, type, count) {
     case 'activity':
       for(i = 0; i < count; i++) {
         html += '<div class="sk-flex sk-items-center sk-gap-3 sk-p-3">' +
-          '<div class="sk-block sk-pulse sk-h-10 sk-w-10 sk-rounded-full sk-flex-shrink-0"></div>' +
+          '<div class="sk-block sk-shimmer sk-h-10 sk-w-10 sk-rounded-full sk-flex-shrink-0"></div>' +
           '<div class="sk-flex-1">' +
           line('w-3\\/4', 'h-3') +
           line('w-1\\/2', 'h-3') +
@@ -1057,7 +1060,7 @@ function showSkeleton(container, type, count) {
       html = '<div class="sk-grid" style="grid-template-columns:repeat(auto-fill,minmax(160px,1fr))">';
       for(i = 0; i < count; i++) {
         html += '<div class="sk-card sk-p-4 sk-flex sk-flex-col sk-items-center sk-gap-3">' +
-          '<div class="sk-block sk-pulse sk-h-16 sk-w-16 sk-rounded-full"></div>' +
+          '<div class="sk-block sk-shimmer sk-h-16 sk-w-16 sk-rounded-full"></div>' +
           line('w-3\\/4', 'h-3') +
           line('w-1\\/2', 'h-3') +
           '</div>';
@@ -1067,7 +1070,7 @@ function showSkeleton(container, type, count) {
     case 'booking':
       for(i = 0; i < count; i++) {
         html += '<div class="sk-flex sk-items-center sk-gap-3 sk-p-3 sk-card sk-mb-3">' +
-          '<div class="sk-block sk-pulse sk-h-14 sk-w-14 sk-rounded sk-flex-shrink-0"></div>' +
+          '<div class="sk-block sk-shimmer sk-h-14 sk-w-14 sk-rounded sk-flex-shrink-0"></div>' +
           '<div class="sk-flex-1">' +
           line('w-3\\/4', 'h-4') +
           line('w-1\\/2', 'h-3') +
@@ -1077,13 +1080,13 @@ function showSkeleton(container, type, count) {
       break;
     case 'detail':
       html = '<div style="max-width:600px;margin:0 auto;padding:16px">' +
-        '<div class="sk-block sk-pulse sk-h-40 sk-w-full sk-mb-4"></div>' +
+        '<div class="sk-block sk-shimmer sk-h-40 sk-w-full sk-mb-4"></div>' +
         line('w-3\\/4', 'h-6') +
         line('w-full', 'h-4') +
         line('w-3\\/4', 'h-4') +
         '<div class="sk-flex sk-gap-3" style="margin-top:12px">' +
-        '<div class="sk-block sk-pulse sk-h-6 sk-w-20"></div>' +
-        '<div class="sk-block sk-pulse sk-h-6 sk-w-16"></div>' +
+        '<div class="sk-block sk-shimmer sk-h-6 sk-w-20"></div>' +
+        '<div class="sk-block sk-shimmer sk-h-6 sk-w-16"></div>' +
         '</div></div>';
       break;
   }
