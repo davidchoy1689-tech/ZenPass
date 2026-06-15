@@ -1179,8 +1179,23 @@ function optimizeImages() {
     a.appendChild(r);
 })(window,document,'https://static.hotjar.com/c/hotjar-','.js?sv=');
 
+// ===== Page view tracking (anonymous) =====
+function trackPageView() {
+  try {
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", API_BASE + "/track/pageview", true);
+    xhr.setRequestHeader("Content-Type", "application/json");
+    xhr.send(JSON.stringify({
+      page: window.location.pathname,
+      title: document.title,
+      referrer: document.referrer || ''
+    }));
+  } catch(e) {}
+}
+
 // ===== Init on load =====
 document.addEventListener("DOMContentLoaded", () => {
   updateNavBar();
   optimizeImages();
+  trackPageView();
 });
