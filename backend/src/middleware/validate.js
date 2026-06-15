@@ -133,7 +133,7 @@ const schemas = {
     payment_type: [
       {
         required: true,
-        oneOf: ["single", "credits", "membership_trial", "free"],
+        oneOf: ["single", "credits", "corporate", "membership_trial", "free"],
         message: "付款方式無效",
       },
     ],
