@@ -600,6 +600,13 @@
           copyReferral();
         }
       }
+
+      function shareWhatsApp() {
+        var code = document.getElementById("referral-code").textContent;
+        var text = encodeURIComponent("用我的 ZenPass 推薦碼 " + code + " 註冊，雙方各得 Credits！ https://zenpass.hk/login.html?ref=" + encodeURIComponent(code));
+        window.open("https://wa.me/?text=" + text, "_blank");
+        }
+      }
       // Loyalty
       function loadLoyalty() {
         var card = document.getElementById("loyaltyCard");
@@ -1055,6 +1062,13 @@
               onclick="shareReferral()"
             >
               📤 分享
+            </button>
+            <button
+              class="zen-btn zen-btn-small"
+              onclick="shareWhatsApp()"
+              style="background:#25D366;color:#fff;border:none;border-radius:8px;padding:6px 12px;font-size:12px;cursor:pointer"
+            >
+              💬 WhatsApp
             </button>
           </div>
           <div

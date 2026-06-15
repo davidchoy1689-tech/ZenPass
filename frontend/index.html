@@ -757,24 +757,36 @@
           .forEach(function (cb) {
             interests.push(cb.value);
           });
+        el.textContent = "⏳ 提交中...";
+        el.style.color = "#6b7280";
         // Save to backend
         fetch(API_BASE + "/marketing/subscribe", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email: email, interests: interests, source: "homepage" })
-        }).catch(function(){});
-        // Save locally
-        localStorage.setItem("zenpass_subscribed", "true");
-        localStorage.setItem("zenpass_sub_email", email);
-        localStorage.setItem("zenpass_sub_interests", JSON.stringify(interests));
-        document.getElementById("newsletter-form").style.display = "none";
-        document.getElementById("nl-subscribed").style.display = "block";
-        document.getElementById("nl-email-display").textContent = "📧 " + email;
-        if (interests.length > 0)
-          document.getElementById("nl-email-display").textContent +=
-            " · " + interests.join(" ");
-        el.style.color = "#059669";
-        el.textContent = "✅ 訂閱成功！";
+        }).then(function(r) {
+          return r.json();
+        }).then(function() {
+          // Success
+          localStorage.setItem("zenpass_subscribed", "true");
+          localStorage.setItem("zenpass_sub_email", email);
+          localStorage.setItem("zenpass_sub_interests", JSON.stringify(interests));
+          document.getElementById("newsletter-form").style.display = "none";
+          document.getElementById("nl-subscribed").style.display = "block";
+          document.getElementById("nl-email-display").textContent = "📧 " + email;
+          if (interests.length > 0)
+            document.getElementById("nl-email-display").textContent +=
+              " · " + interests.join(" ");
+          el.style.color = "#059669";
+          el.textContent = "✅ 訂閱成功！";
+        }).catch(function() {
+          el.style.color = "#ef4444";
+          el.textContent = "❌ 伺服器錯誤，但已保存本地";
+          // Still save locally
+          localStorage.setItem("zenpass_subscribed", "true");
+          localStorage.setItem("zenpass_sub_email", email);
+          localStorage.setItem("zenpass_sub_interests", JSON.stringify(interests));
+        });
       }
       function unsubscribeNewsletter() {
         localStorage.removeItem("zenpass_subscribed");
