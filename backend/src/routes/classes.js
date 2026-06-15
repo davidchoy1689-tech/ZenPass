@@ -226,9 +226,9 @@ router.get("/upcoming", optionalAuth, (req, res) => {
              c.venue_name, c.venue_address, c.latitude, c.longitude, c.coach_id, c.price_hkd, cs.enrolled_count, cs.max_participants
       FROM class_schedules cs, classes c
       WHERE cs.class_id = c.id
-        AND cs.start_time >= datetime('now', '-1 hour')
+        AND cs.start_time >= strftime('%Y-%m-%dT%H:%M:%S', 'now')
         AND cs.status = 'available'
-      ORDER BY cs.start_time
+      ORDER BY cs.start_time ASC
       LIMIT 50
     `,
       )

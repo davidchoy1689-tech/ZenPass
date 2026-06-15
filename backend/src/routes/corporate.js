@@ -221,6 +221,48 @@ router.get("/report", authenticateToken, (req, res) => {
 
 
 
+// ===== GET /api/corporate/my-company — 員工查詢所屬企業資料 =====
+router.get("/my-company", authenticateToken, (req, res) => {
+  try {
+    const db = new Database(DB_PATH);
+    const company = db.prepare(`
+      SELECT cc.id, cc.name as company_name, cc.credit_pool, cc.credit_used,
+        (cc.credit_pool - cc.credit_used) as available_credits,
+        cc.status,
+        COALESCE(cm.monthly_credit_limit, 0) as monthly_credit_limit,
+        COALESCE(cm.monthly_credit_used, 0) as monthly_credit_used
+      FROM corporate_members cm
+      JOIN corporate_companies cc ON cm.company_id = cc.id
+      WHERE cm.user_id = ? AND cm.status = 'active' AND cc.status = 'active'
+    `).get(req.user.id);
+    db.close();
+    if (!company) return res.status(404).json({ error: "你未加入任何企業" });
+    res.json(company);
+  } catch (err) {
+    console.error("[CORPORATE] my-company error:", err);
+    res.status(500).json({ error: "讀取企業資料失敗" });
+  }
+});
+
+// ===== PATCH /api/corporate/members/:memberId/limit — 設定員工月度上限 =====
+router.patch("/members/:memberId/limit", authenticateToken, (req, res) => {
+  if (!isAdmin(req.user.id)) return res.status(403).json({ error: "只限管理員" });
+  try {
+    const { monthly_credit_limit } = req.body;
+    if (monthly_credit_limit === undefined || monthly_credit_limit < 0) {
+      return res.status(400).json({ error: "請輸入有效上限" });
+    }
+    const db = new Database(DB_PATH);
+    db.prepare("UPDATE corporate_members SET monthly_credit_limit = ?, updated_at = datetime('now') WHERE id = ?")
+      .run(monthly_credit_limit, req.params.memberId);
+    db.close();
+    res.json({ message: "✅ 已更新員工月度上限" });
+  } catch (err) {
+    console.error("[CORPORATE] Set limit error:", err);
+    res.status(500).json({ error: "更新上限失敗" });
+  }
+});
+
 // ===== GET /api/corporate/my/hr-dashboard — 企業 HR 儀錶板（員工自助）=====
 router.get("/my/hr-dashboard", authenticateToken, (req, res) => {
   try {

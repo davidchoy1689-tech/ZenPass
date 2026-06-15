@@ -209,6 +209,84 @@ router.post(
         );
       }
 
+      if (payment_type === "corporate") {
+        const classData = db
+          .prepare("SELECT credits_cost FROM classes WHERE id = ?")
+          .get(class_id);
+        if (!classData) {
+          db.close();
+          return res.status(404).json({ error: "課程不存在" });
+        }
+        const needed = classData.credits_cost || 12;
+
+        // Check corporate membership
+        const corpMember = db.prepare(`
+          SELECT cm.*, cc.name as company_name, cc.credit_pool, cc.credit_used
+          FROM corporate_members cm
+          JOIN corporate_companies cc ON cm.company_id = cc.id
+          WHERE cm.user_id = ? AND cm.status = 'active' AND cc.status = 'active'
+        `).get(req.user.id);
+
+        if (!corpMember) {
+          db.close();
+          return res.status(403).json({ error: "你不是企業員工" });
+        }
+
+        let fromCompany = 0;
+        let fromPersonal = 0;
+        const availablePool = corpMember.credit_pool - corpMember.credit_used;
+
+        // Check monthly limit
+        const monthlyLimit = corpMember.monthly_credit_limit || 999999;
+        const monthlyUsed = corpMember.monthly_credit_used || 0;
+        const monthlyRemaining = monthlyLimit - monthlyUsed;
+
+        if (availablePool <= 0 && (user.credits || 0) < needed) {
+          db.close();
+          return res.status(400).json({ error: "公司 Credits 不足，你的個人 Credits 亦不足夠" });
+        }
+
+        // Try company pool first (hybrid)
+        if (availablePool > 0 && monthlyRemaining > 0) {
+          fromCompany = Math.min(needed, availablePool, monthlyRemaining);
+        }
+
+        // Fall back to personal credits if needed
+        if (fromCompany < needed) {
+          const remaining = needed - fromCompany;
+          if ((user.credits || 0) >= remaining) {
+            fromPersonal = remaining;
+          } else {
+            // Not enough personal credits either
+            db.close();
+            return res.status(400).json({
+              error: `公司 Credits 不足（可用 ${availablePool} cr，月剩 ${monthlyRemaining} cr），你亦只有 ${user.credits || 0} 個人 Credits`
+            });
+          }
+        }
+
+        // Deduct from company pool
+        if (fromCompany > 0) {
+          db.prepare("UPDATE corporate_companies SET credit_used = credit_used + ?, updated_at = datetime('now') WHERE id = ?")
+            .run(fromCompany, corpMember.company_id);
+          db.prepare("UPDATE corporate_members SET monthly_credit_used = COALESCE(monthly_credit_used, 0) + ?, updated_at = datetime('now') WHERE user_id = ? AND company_id = ?")
+            .run(fromCompany, req.user.id, corpMember.company_id);
+        }
+
+        // Deduct from personal credits
+        if (fromPersonal > 0) {
+          db.prepare("UPDATE users SET credits = credits - ? WHERE id = ?")
+            .run(fromPersonal, req.user.id);
+        }
+
+        // Store deduction info for response
+        req._corporateDeduction = {
+          from_company: fromCompany,
+          from_personal: fromPersonal,
+          company_name: corpMember.company_name
+        };
+      }
+
       // 建立預約 — 未付款用 pending_payment，唔會 block 住重試
       const bookingId = uuidv4();
       const bookingRef = generateBookingRef();
@@ -398,6 +476,7 @@ router.post(
               end_time: scheduleTimes.end_time,
             }
           : null,
+        corporate: req._corporateDeduction || null,
       });
     } catch (err) {
       console.error("預約錯誤:", err);
