@@ -434,7 +434,7 @@ router.post("/my/invite", authenticateToken, (req, res) => {
       message: user.new
         ? `✅ ${name} 已加入！臨時密碼：${user.temp_password}（請即修改）`
         : `✅ ${name} 已加入公司！`,
-      user: { email, name, new_account: user.new }
+      user: { email, name, new_account: user.new, temp_password: user.temp_password || null }
     });
   } catch (err) {
     console.error("[HR INVITE] Error:", err);
