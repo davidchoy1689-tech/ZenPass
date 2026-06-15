@@ -1193,6 +1193,41 @@ function trackPageView() {
   } catch(e) {}
 }
 
+// ===== A/B Testing Framework =====
+var ZP_AB = (function() {
+  var sessionId = localStorage.getItem('zp_session') || 'sess_' + Date.now() + '_' + Math.random().toString(36).slice(2,8);
+  localStorage.setItem('zp_session', sessionId);
+
+  function getVariant(experimentId, variants) {
+    // Deterministic assignment based on session + experiment
+    var hash = 0;
+    var str = sessionId + '_' + experimentId;
+    for (var i = 0; i < str.length; i++) {
+      hash = ((hash << 5) - hash) + str.charCodeAt(i);
+      hash |= 0;
+    }
+    var idx = Math.abs(hash) % variants.length;
+    return variants[idx];
+  }
+
+  function track(experimentId, variant, eventType) {
+    try {
+      var xhr = new XMLHttpRequest();
+      xhr.open('POST', API_BASE + '/ab/track', true);
+      xhr.setRequestHeader('Content-Type', 'application/json');
+      xhr.send(JSON.stringify({
+        experiment_id: experimentId,
+        variant: variant,
+        event_type: eventType,
+        session_id: sessionId,
+        page: window.location.pathname
+      }));
+    } catch(e) {}
+  }
+
+  return { getVariant: getVariant, track: track };
+})();
+
 // ===== Init on load =====
 document.addEventListener("DOMContentLoaded", () => {
   updateNavBar();

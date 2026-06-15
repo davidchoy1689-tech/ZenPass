@@ -751,20 +751,22 @@
           el.textContent = "請輸入有效電郵";
           return;
         }
-        // Save subscription
         var interests = [];
         document
           .querySelectorAll(".nl-interest:checked")
           .forEach(function (cb) {
             interests.push(cb.value);
           });
+        // Save to backend
+        fetch(API_BASE + "/marketing/subscribe", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: email, interests: interests, source: "homepage" })
+        }).catch(function(){});
+        // Save locally
         localStorage.setItem("zenpass_subscribed", "true");
         localStorage.setItem("zenpass_sub_email", email);
-        localStorage.setItem(
-          "zenpass_sub_interests",
-          JSON.stringify(interests),
-        );
-        // Show subscribed state
+        localStorage.setItem("zenpass_sub_interests", JSON.stringify(interests));
         document.getElementById("newsletter-form").style.display = "none";
         document.getElementById("nl-subscribed").style.display = "block";
         document.getElementById("nl-email-display").textContent = "📧 " + email;

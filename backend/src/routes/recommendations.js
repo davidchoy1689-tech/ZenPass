@@ -74,7 +74,6 @@ router.post("/pageview", function (req, res) {
     var referrer = body.referrer || '';
     var title = body.title || '';
     if (!page) {
-      console.log("[PAGEVIEW] No page in body:", JSON.stringify(body).substring(0,200));
       return res.json({ tracked: false });
     }
 

@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="zh-HK">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>ZenPass App — 即將登場</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:"Noto Sans TC",-apple-system,sans-serif;background:linear-gradient(135deg,#1a1a2e 0%,#2d2d44 50%,#c94420 100%);min-height:100vh;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;text-align:center}
+.logo{font-size:48px;margin-bottom:8px}
+h1{font-size:28px;font-weight:700;margin-bottom:8px}
+.sub{font-size:14px;color:rgba(255,255,255,.6);margin-bottom:32px;line-height:1.6}
+.features{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-bottom:32px}
+.feat{background:rgba(255,255,255,.08);padding:10px 18px;border-radius:20px;font-size:13px}
+.feat span{display:block;font-size:11px;opacity:.6;margin-top:2px}
+.card{background:rgba(255,255,255,.12);backdrop-filter:blur(8px);border-radius:20px;padding:28px 24px;max-width:400px;width:100%;margin-bottom:24px}
+.card h2{font-size:16px;margin-bottom:16px}
+.input-group{display:flex;gap:8px;flex-wrap:wrap}
+.input-group input{flex:1;min-width:180px;padding:12px 14px;border:none;border-radius:12px;font-size:14px;background:rgba(255,255,255,.9);color:#1a1a2e;outline:none;font-family:inherit}
+.input-group input::placeholder{color:#999}
+.input-group button{padding:12px 20px;border:none;border-radius:12px;background:var(--orange,#c94420);color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap}
+.input-group button:disabled{opacity:.5;cursor:default}
+#result{font-size:13px;margin-top:12px;min-height:20px}
+.count{font-size:12px;color:rgba(255,255,255,.5);margin-top:16px}
+.back{display:inline-block;margin-top:20px;color:rgba(255,255,255,.5);text-decoration:none;font-size:12px}
+.back:hover{color:#fff}
+</style>
+</head>
+<body>
+<div class="logo">📱</div>
+<h1>ZenPass App 即將登場</h1>
+<p class="sub">iOS · Android · 一個 App 通行全城運動體驗</p>
+<div class="features">
+<div class="feat">⏱ 更快預約<span>一鍵 book 堂</span></div>
+<div class="feat">🔔 即時推送<span>上堂提醒</span></div>
+<div class="feat">📊 運動紀錄<span>睇住自己進步</span></div>
+<div class="feat">🎯 個人推薦<span>AI 幫你揀課</span></div>
+</div>
+<div class="card">
+<h2>📩 第一時間收到上架通知</h2>
+<div class="input-group">
+<input type="email" id="waitlistEmail" placeholder="your@email.com" required>
+<button id="waitlistBtn" onclick="joinWaitlist()">📲 加入 Waitlist</button>
+</div>
+<div id="result"></div>
+</div>
+<div id="countDisplay" class="count"></div>
+<a href="index.html" class="back">← 返回 ZenPass 首頁</a>
+<script>
+async function joinWaitlist(){
+var email=document.getElementById('waitlistEmail').value.trim();
+var btn=document.getElementById('waitlistBtn');
+var result=document.getElementById('result');
+if(!email||!email.includes('@')){result.innerHTML='<span style="color:#fca5a5">請輸入有效電郵</span>';return}
+btn.disabled=true;btn.textContent='加入中...';
+try{
+var r=await fetch('/api/waitlist/app',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email})});
+var d=await r.json();
+if(!r.ok)throw new Error(d.error||'失敗');
+result.innerHTML='<span style="color:#86efac">✅ '+d.message+'</span>';
+document.getElementById('waitlistEmail').value='';
+loadCount();
+}catch(e){result.innerHTML='<span style="color:#fca5a5">❌ '+e.message+'</span>'}
+btn.disabled=false;btn.textContent='📲 加入 Waitlist'
+}
+async function loadCount(){
+try{
+var r=await fetch('/api/waitlist/app/count');
+var d=await r.json();
+document.getElementById('countDisplay').textContent='👥 '+d.count+' 人已加入等候'
+}catch(e){}
+}
+loadCount();
+</script>
+</body>
+</html>

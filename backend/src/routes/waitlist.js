@@ -255,5 +255,48 @@ function autoNotifyOnCancel(schedule_id) {
   }
 }
 
+// ===== App Waitlist =====
+
+// POST /api/waitlist/app — 加入 App 等候名單
+router.post("/app", function (req, res) {
+  try {
+    var email = (req.body && req.body.email || "").trim().toLowerCase();
+    if (!email || !email.includes("@")) {
+      return res.status(400).json({ error: "請輸入有效電郵" });
+    }
+    var db = new Database(DB_PATH);
+    db.exec("CREATE TABLE IF NOT EXISTS app_waitlist (id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT UNIQUE NOT NULL, source TEXT DEFAULT '', created_at TEXT DEFAULT (datetime('now')))");
+    try {
+      db.prepare("INSERT INTO app_waitlist (email, source) VALUES (?, 'app_page')").run(email);
+      db.close();
+      res.json({ message: "已加入等候名單！App 推出時會第一時間通知你 🎉" });
+    } catch (e) {
+      db.close();
+      if (e.message && e.message.includes("UNIQUE")) {
+        res.json({ message: "你已經喺等候名單上 📱" });
+      } else {
+        res.status(500).json({ error: "加入失敗" });
+      }
+    }
+  } catch (err) {
+    console.error("[APP WAITLIST] Error:", err);
+    res.status(500).json({ error: "加入失敗" });
+  }
+});
+
+// GET /api/waitlist/app/count — 等候人數
+router.get("/app/count", function (req, res) {
+  try {
+    var db = new Database(DB_PATH);
+    db.exec("CREATE TABLE IF NOT EXISTS app_waitlist (id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT UNIQUE NOT NULL, source TEXT DEFAULT '', created_at TEXT DEFAULT (datetime('now')))");
+    var row = db.prepare("SELECT COUNT(*) as count FROM app_waitlist").get();
+    db.close();
+    res.json({ count: row.count });
+  } catch (err) {
+    console.error("[APP WAITLIST COUNT] Error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;
 module.exports.autoNotifyOnCancel = autoNotifyOnCancel;
