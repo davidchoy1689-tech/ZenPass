@@ -1151,6 +1151,23 @@ function optimizeImages() {
       img.setAttribute('width', img.naturalWidth);
       img.setAttribute('height', img.naturalHeight);
     }
+    // Alt text for dynamic images
+    if (!img.hasAttribute('alt') || img.getAttribute('alt') === '') {
+      // Try parent elements for context clues
+      var parent = img.parentElement;
+      var context = '';
+      if (parent) {
+        var titleEl = parent.querySelector('.class-title, .course-title, [class*=title], [class*=name]');
+        if (titleEl) context = titleEl.textContent.trim().substring(0,60);
+      }
+      if (!context && img.src) {
+        // Extract from URL filename or pexels alt
+        var parts = img.src.split('/');
+        var last = parts[parts.length-1].split('?')[0].replace(/[_-]/g,' ');
+        if (last && last.length < 40) context = last;
+      }
+      img.setAttribute('alt', context || 'ZenPass 課程圖片');
+    }
   });
   // Also observe new images added dynamically
   if (window.MutationObserver) {
@@ -1160,6 +1177,9 @@ function optimizeImages() {
           if (n.nodeType === 1 && n.tagName === 'IMG') {
             if (n.src && n.src.includes('pexels.com') && !n.src.includes('fm=webp')) {
               n.src = n.src.replace('auto=compress', 'auto=compress&fm=webp');
+            }
+            if (!n.hasAttribute('alt') || n.getAttribute('alt') === '') {
+              n.setAttribute('alt', 'ZenPass 課程圖片');
             }
           }
         }
@@ -1228,9 +1248,23 @@ var ZP_AB = (function() {
   return { getVariant: getVariant, track: track };
 })();
 
+// ===== Auto-skeleton: replace "載入中" text with skeleton placeholders =====
+function autoSkeleton() {
+  var containers = document.querySelectorAll('[id$="loading"], [id$="Loading"], [id$="loadingState"], .loading-state, .loading-spinner');
+  containers.forEach(function(el) {
+    if (!el.querySelector('.sk-block')) {
+      var type = 'grid';
+      if (el.closest('.coach-card, [class*=coach]')) type = 'coach';
+      if (el.closest('.booking-card, [class*=booking]')) type = 'booking';
+      if (window.showSkeleton) showSkeleton(el, type, 3, 10);
+    }
+  });
+}
+
 // ===== Init on load =====
 document.addEventListener("DOMContentLoaded", () => {
   updateNavBar();
   optimizeImages();
   trackPageView();
+  autoSkeleton();
 });
