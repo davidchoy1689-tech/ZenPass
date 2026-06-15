@@ -1257,15 +1257,7 @@
           if (userStr) {
             user = JSON.parse(userStr);
             // Ignore stale demo users
-            if (
-              user &&
-              (user.name === "張三同學" || user.email === "student@zenpass.hk")
-            ) {
-              user = null;
-              localStorage.removeItem("zenpass_user");
-              localStorage.removeItem("zenpass_name");
-              localStorage.removeItem("zenpass_token");
-            }
+            // Quick login users are valid - do not clear
           }
         } catch (e) {}
         return user;
