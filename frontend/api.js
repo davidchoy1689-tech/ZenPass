@@ -1134,7 +1134,43 @@ function showError(container, title, msg, retryFn) {
     '</div>';
 }
 
+// ===== Perf: Convert Pexels images to WebP + lazy load =====
+function optimizeImages() {
+  document.querySelectorAll('img').forEach(function(img) {
+    // Pexels to WebP
+    if (img.src && img.src.includes('pexels.com') && !img.src.includes('fm=webp')) {
+      img.src = img.src.replace('auto=compress', 'auto=compress&fm=webp');
+    }
+    // Lazy loading (skip first few above-fold images)
+    var rect = img.getBoundingClientRect();
+    if (rect.top > 600 && !img.hasAttribute('loading')) {
+      img.setAttribute('loading', 'lazy');
+    }
+    // Dimension hints to prevent CLS
+    if (!img.hasAttribute('width') && img.naturalWidth) {
+      img.setAttribute('width', img.naturalWidth);
+      img.setAttribute('height', img.naturalHeight);
+    }
+  });
+  // Also observe new images added dynamically
+  if (window.MutationObserver) {
+    var observer = new MutationObserver(function(muts) {
+      for (var m of muts) {
+        for (var n of m.addedNodes) {
+          if (n.nodeType === 1 && n.tagName === 'IMG') {
+            if (n.src && n.src.includes('pexels.com') && !n.src.includes('fm=webp')) {
+              n.src = n.src.replace('auto=compress', 'auto=compress&fm=webp');
+            }
+          }
+        }
+      }
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+  }
+}
+
 // ===== Init on load =====
 document.addEventListener("DOMContentLoaded", () => {
   updateNavBar();
+  optimizeImages();
 });

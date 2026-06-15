@@ -860,6 +860,46 @@
               ];
 
         renderClassDetail({ class: currentClass, schedules, reviews });
+        
+        // 🔍 Update SEO Course schema with live data
+        var ldScript = document.getElementById('ld-json');
+        if (ldScript && currentClass) {
+          ldScript.textContent = JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Course",
+            "name": currentClass.title || '課程',
+            "description": (currentClass.description || '').substring(0, 200),
+            "provider": {
+              "@type": "Organization",
+              "name": "ZenPass 禪流",
+              "url": "https://zenpass.hk"
+            },
+            "offers": {
+              "@type": "Offer",
+              "price": currentClass.price_hkd || 0,
+              "priceCurrency": "HKD",
+              "availability": "https://schema.org/InStock"
+            }
+          });
+        }
+        
+        // 🖼️ Convert Pexels images to WebP for better performance
+        if (currentClass && currentClass.image_url && currentClass.image_url.includes('pexels.com')) {
+          currentClass.image_url = currentClass.image_url.replace('auto=compress', 'auto=compress&fm=webp');
+        }
+        document.querySelectorAll('img[src*="pexels.com"]').forEach(function(img) {
+          if (img.src && !img.src.includes('fm=webp')) {
+            img.src = img.src.replace('auto=compress', 'auto=compress&fm=webp');
+          }
+          // Add lazy loading
+          if (!img.hasAttribute('loading')) {
+            img.setAttribute('loading', 'lazy');
+          }
+          if (!img.hasAttribute('width') && img.naturalWidth) {
+            img.setAttribute('width', img.naturalWidth);
+            img.setAttribute('height', img.naturalHeight);
+          }
+        });
       }
 
       function renderClassDetail(data) {
