@@ -209,7 +209,7 @@ router.get("/public/testimonials", (req, res) => {
       .prepare(`
       SELECT r.id, r.rating, r.comment, r.created_at,
         u.name as user_name,
-        COALESCE((SELECT title FROM classes WHERE id = r.class_id), '') as class_name
+        COALESCE((SELECT c.title FROM bookings b JOIN classes c ON b.class_id = c.id WHERE b.id = r.booking_id), '') as class_name
       FROM reviews r
       JOIN users u ON r.from_user_id = u.id
       WHERE r.comment IS NOT NULL AND r.comment != ''
