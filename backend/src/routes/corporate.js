@@ -113,12 +113,12 @@ router.post("/companies/:id/employees", authenticateToken, (req, res) => {
       let user = db.prepare("SELECT id, name FROM users WHERE email = ?").get(emp.email);
       if (!user) {
         const userId = uuidv4();
-        const bcrypt = require("bcrypt");
+        const bcryptjs = require("bcryptjs");
         const tempPass = "zp" + Math.random().toString(36).substring(2, 10) + "!";
         db.prepare(`
           INSERT INTO users (id, name, email, password_hash, role, status, credits, created_at)
           VALUES (?, ?, ?, ?, 'user', 'active', 0, datetime('now'))
-        `).run(userId, emp.name || emp.email.split("@")[0], emp.email, bcrypt.hashSync(tempPass, 10));
+        `).run(userId, emp.name || emp.email.split("@")[0], emp.email, bcryptjs.hashSync(tempPass, 10));
         user = { id: userId, temp_password: tempPass, new: true };
       } else {
         user.new = false;
@@ -410,12 +410,12 @@ router.post("/my/invite", authenticateToken, (req, res) => {
     let user = db.prepare("SELECT id, name, email FROM users WHERE email = ?").get(email);
     if (!user) {
       const userId = uuidv4();
-      const bcrypt = require("bcrypt");
+      const bcryptjs = require("bcryptjs");
       const tempPass = "zp" + Math.random().toString(36).substring(2, 10) + "!";
       db.prepare(`
         INSERT INTO users (id, name, email, password_hash, role, status, credits, created_at)
         VALUES (?, ?, ?, ?, 'user', 'active', 0, datetime('now'))
-      `).run(userId, name, email, bcrypt.hashSync(tempPass, 10));
+      `).run(userId, name, email, bcryptjs.hashSync(tempPass, 10));
       user = { id: userId, temp_password: tempPass, new: true };
     } else {
       user.new = false;
