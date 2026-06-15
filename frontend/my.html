@@ -1264,6 +1264,12 @@
       }
 
       async function loadData() {
+        // Check if logged in first
+        var token = getToken();
+        if (!token) {
+          window.location.href = "login.html?redirect=my.html";
+          return;
+        }
         showLoading();
 
         // Fetch fresh user profile from API
