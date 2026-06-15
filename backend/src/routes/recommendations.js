@@ -10,6 +10,8 @@ var {
   getRecommendations,
   getPopularByCategory,
 } = require("../services/recommendation");
+var path = require("path");
+const DB_PATH = process.env.DB_PATH || path.join(__dirname, "..", "..", "data", "zenpass.db");
 
 // ===== POST /api/track — 記錄用戶行為 =====
 router.post("/", optionalAuth, function (req, res) {
