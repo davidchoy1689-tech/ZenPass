@@ -223,7 +223,7 @@ router.get("/upcoming", optionalAuth, (req, res) => {
       .prepare(
         `
       SELECT cs.id as schedule_id, c.title, c.id as class_id, cs.start_time, cs.end_time,
-             c.venue_name, c.venue_address, c.latitude, c.longitude, c.coach_id, c.price_hkd, cs.enrolled_count, cs.max_participants
+             c.venue_name, c.venue_address, c.latitude, c.longitude, c.coach_id, c.price_hkd, c.credits_cost, cs.enrolled_count, cs.max_participants
       FROM class_schedules cs, classes c
       WHERE cs.class_id = c.id
         AND cs.start_time >= strftime('%Y-%m-%dT%H:%M:%S', 'now')
