@@ -66,8 +66,15 @@ router.get("/", optionalAuth, function (req, res) {
 // ===== POST /api/track/pageview — 匿名頁面瀏覽統計 =====
 router.post("/pageview", function (req, res) {
   try {
-    var { page, referrer, title } = req.body;
-    if (!page) return res.json({ tracked: false });
+    var body = req.body || {};
+    if (typeof body === 'string') { try { body = JSON.parse(body); } catch(e) {} }
+    var page = body.page;
+    var referrer = body.referrer || '';
+    var title = body.title || '';
+    if (!page) {
+      console.log("[PAGEVIEW] No page in body:", JSON.stringify(body).substring(0,200));
+      return res.json({ tracked: false });
+    }
 
     const Database = require("better-sqlite3");
     var db = new Database(DB_PATH);
