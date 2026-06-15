@@ -1,0 +1,1290 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZenPass 企業計劃 - 計劃書</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  @page {
+    size: A4;
+    margin: 22mm 22mm 28mm 22mm;
+    @bottom-center { content: counter(page) " / " counter(pages); font-size: 9px; color: #999; }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Noto Sans TC', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-size: 11pt;
+    line-height: 1.7;
+    color: #333;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+
+  /* Cover page */
+  .cover {
+    position: relative;
+    text-align: center;
+    padding: 10px 0 0;
+    page-break-after: always;
+    border-bottom: none;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 92vh;
+  }
+  .cover-bg {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 60%;
+    background: linear-gradient(135deg, #1a1a2e 0%, #2563eb 100%);
+    border-radius: 0 0 40px 40px;
+  }
+  .cover .logo { font-size: 64px; margin-bottom: 8px; position: relative; z-index: 1; }
+  .cover h1 { font-size: 30pt; color: #fff; margin: 16px 0 6px; position: relative; z-index: 1; letter-spacing: 2px; }
+  .cover .subtitle { font-size: 13pt; color: #93c5fd; margin-bottom: 0; position: relative; z-index: 1; font-weight: 300; }
+  .cover .divider {
+    width: 50px; height: 3px; background: #60a5fa;
+    margin: 20px auto; position: relative; z-index: 1;
+  }
+  .cover .meta {
+    position: relative; z-index: 1;
+    margin-top: auto;
+    padding-bottom: 40px;
+    font-size: 10pt;
+    color: #999;
+  }
+  .cover .meta p { margin: 4px 0; }
+  .cover .meta .doc-type {
+    display: inline-block;
+    background: #1a1a2e;
+    color: #fff;
+    padding: 4px 20px;
+    border-radius: 20px;
+    font-size: 9pt;
+    font-weight: 600;
+    letter-spacing: 1px;
+    margin-bottom: 16px;
+  }
+  .cover .value-row {
+    position: relative; z-index: 1;
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin: 12px auto 0;
+    max-width: 420px;
+    flex-wrap: wrap;
+  }
+  .cover .value-tag {
+    background: rgba(255,255,255,0.12);
+    color: #bfdbfe;
+    padding: 5px 12px;
+    border-radius: 16px;
+    font-size: 9pt;
+    backdrop-filter: blur(4px);
+    white-space: nowrap;
+  }
+  .cover .slogan {
+    position: relative; z-index: 1;
+    margin-top: 16px;
+    font-size: 10pt;
+    color: #666;
+    font-style: italic;
+  }
+
+  /* Content pages */
+  h1 { font-size: 20pt; color: #1a1a2e; margin-top: 12px; margin-bottom: 14px; border-bottom: 2px solid #2563eb; padding-bottom: 6px; }
+  h2 { font-size: 14pt; color: #2563eb; margin-top: 30px; margin-bottom: 12px; }
+  h3 { font-size: 12pt; color: #1a1a2e; margin-top: 20px; margin-bottom: 8px; }
+
+  p { margin-bottom: 10px; }
+  ul, ol { padding-left: 24px; margin-bottom: 12px; }
+  li { margin-bottom: 4px; }
+
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 10pt; }
+  th { background: #2563eb; color: #fff; padding: 8px 10px; text-align: left; font-weight: 600; }
+  td { padding: 8px 10px; border-bottom: 1px solid #e5e7eb; }
+  tr:nth-child(even) td { background: #f9fafb; }
+  th:first-child { border-radius: 4px 0 0 0; }
+  th:last-child { border-radius: 0 4px 0 0; }
+
+  pre, .highlight-box {
+    background: #f0f4ff;
+    border-left: 4px solid #2563eb;
+    padding: 12px 16px;
+    margin: 12px 0;
+    font-family: 'SF Mono', monospace;
+    font-size: 10pt;
+    border-radius: 0 6px 6px 0;
+    white-space: pre-wrap;
+  }
+
+  .check-item { color: #059669; }
+  .cross-item { color: #dc2626; }
+
+  .flow-box {
+    background: linear-gradient(135deg, #eff6ff, #f0f4ff);
+    border: 1px solid #bfdbfe;
+    border-radius: 8px;
+    padding: 16px;
+    margin: 12px 0;
+    text-align: center;
+    font-size: 10pt;
+  }
+
+  .roi-highlight {
+    background: #ecfdf5;
+    border: 1px solid #a7f3d0;
+    border-radius: 8px;
+    padding: 16px;
+    margin: 16px 0;
+  }
+  .roi-highlight .big { font-size: 24pt; font-weight: 700; color: #059669; }
+  .roi-highlight .label { font-size: 10pt; color: #666; }
+
+  .contact-box {
+    background: #1a1a2e;
+    color: #fff;
+    border-radius: 8px;
+    padding: 24px;
+    margin-top: 30px;
+    text-align: center;
+  }
+  .contact-box a { color: #60a5fa; text-decoration: none; }
+
+  .page-break { page-break-before: always; }
+  @media print {
+    body { max-width: none; }
+  }
+  
+
+  .toc { margin: 20px 0; }
+  .toc a { color: #2563eb; text-decoration: none; display: block; padding: 4px 0; }
+  .toc a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+
+<!-- ==================== COVER PAGE ==================== -->
+<div class="cover">
+  <div class="cover-bg"></div>
+  <div class="logo">🏃</div>
+  <h1>ZenPass 企業計劃</h1>
+  <div class="subtitle">香港中小企員工運動福利方案</div>
+  <div class="divider"></div>
+  <div class="value-row">
+    <span class="value-tag">$399/人/月</span>
+    <span class="value-tag">60 Credits</span>
+    <span class="value-tag">零 HR 行政</span>
+    <span class="value-tag">Hybrid 支付</span>
+    <span class="value-tag">7 天上線</span>
+  </div>
+  <div class="slogan">「企業運動福利，由員工自己揀」</div>
+  <div class="meta">
+    <div class="doc-type">計 劃 書</div>
+    <p>2026 年 6 月</p>
+    <p>&nbsp;</p>
+    <p style="font-weight:600; color:#666;">香港康樂及體育有限公司</p>
+    <p style="font-size:9pt;">Hong Kong Leisure and Fitness Company Limited</p>
+  </div>
+</div>
+
+<!-- ==================== TABLE OF CONTENTS ==================== -->
+<div class="page-break"></div>
+<h1>目錄</h1>
+<div class="toc">
+  <a href="#s1">1. 執行摘要</a>
+  <a href="#s2">2. 市場痛點</a>
+  <a href="#s3">3. 解決方案：ZenPass 企業計劃</a>
+  <a href="#s4">4. 系統功能總覽</a>
+  <a href="#s5">5. 運作流程</a>
+  <a href="#s6">6. 收費方案</a>
+  <a href="#s7">7. 企業效益 ROI</a>
+  <a href="#s8">8. 合作流程</a>
+  <a href="#s9">9. 關於我們</a>
+</div>
+
+<!-- ==================== SECTION 1: 執行摘要 ==================== -->
+<div class="page-break"></div>
+
+<div style="background:linear-gradient(135deg,#1a1a2e,#2563eb); border-radius:10px; padding:24px 28px; margin-top:12px;">
+  <div style="display:flex; align-items:center; justify-content:space-between; gap:20px; flex-wrap:wrap;">
+    <div>
+      <div style="font-size:10pt; color:#93c5fd; letter-spacing:1px;">EXECUTIVE SUMMARY</div>
+      <div style="font-size:20pt; font-weight:700; color:#fff; margin-top:4px;">ZenPass 企業計劃</div>
+      <div style="font-size:11pt; color:#bfdbfe; margin-top:6px; max-width:480px; line-height:1.6;">
+        為香港中小企提供一站式員工運動福利管理平台。員工以公司每月派發的 Credits 自由選擇各種新興運動課程，<strong style="color:#fff;">無需 HR 人手處理報名、付款、出勤追蹤。</strong>
+      </div>
+    </div>
+    <div style="background:rgba(255,255,255,0.15); border-radius:10px; padding:14px 20px; text-align:center; min-width:140px;">
+      <div style="font-size:9pt; color:#93c5fd;">每人每月</div>
+      <div style="font-size:30px; font-weight:700; color:#fff; margin:2px 0;">$399</div>
+      <div style="font-size:9pt; color:#93c5fd;">60 Credits ≈ 5 堂運動</div>
+    </div>
+  </div>
+</div>
+
+<div style="margin-top:16px;">
+  <div style="font-size:11pt; font-weight:600; color:#1a1a2e; margin-bottom:10px;">核心價值</div>
+  <div style="display:flex; flex-direction:column; gap:6px;">
+    <div style="display:flex; align-items:center; gap:10px; background:#f9fafb; border:1px solid #e5e7eb; border-radius:8px; padding:8px 14px;">
+      <div style="width:28px; height:28px; background:#eff6ff; border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:14px; flex-shrink:0;">🖥️</div>
+      <div><strong style="color:#1a1a2e;">零 HR 行政負擔</strong><br><span style="font-size:9pt; color:#666;">員工自行預約，系統自動扣數，HR 唔需插手</span></div>
+    </div>
+    <div style="display:flex; align-items:center; gap:10px; background:#f9fafb; border:1px solid #e5e7eb; border-radius:8px; padding:8px 14px;">
+      <div style="width:28px; height:28px; background:#ecfdf5; border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:14px; flex-shrink:0;">💰</div>
+      <div><strong style="color:#1a1a2e;">$399/人/月，60 Credits</strong><br><span style="font-size:9pt; color:#666;">一人價錢 = 每月 5 堂運動，抵過送 Gym Pass</span></div>
+    </div>
+    <div style="display:flex; align-items:center; gap:10px; background:#f9fafb; border:1px solid #e5e7eb; border-radius:8px; padding:8px 14px;">
+      <div style="width:28px; height:28px; background:#fefce8; border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:14px; flex-shrink:0;">🔀</div>
+      <div><strong style="color:#1a1a2e;">Hybrid 支付</strong><br><span style="font-size:9pt; color:#666;">公司俾錢包底，員工唔夠自動用個人 Credits 補</span></div>
+    </div>
+    <div style="display:flex; align-items:center; gap:10px; background:#f9fafb; border:1px solid #e5e7eb; border-radius:8px; padding:8px 14px;">
+      <div style="width:28px; height:28px; background:#fdf2f8; border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:14px; flex-shrink:0;">🔄</div>
+      <div><strong style="color:#1a1a2e;">每月 Reset</strong><br><span style="font-size:9pt; color:#666;">Use it or lose it，鼓勵員工持續運動，唔會浪費</span></div>
+    </div>
+    <div style="display:flex; align-items:center; gap:10px; background:#f9fafb; border:1px solid #e5e7eb; border-radius:8px; padding:8px 14px;">
+      <div style="width:28px; height:28px; background:#f0f9ff; border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:14px; flex-shrink:0;">📊</div>
+      <div><strong style="color:#1a1a2e;">實時 Dashboard</strong><br><span style="font-size:9pt; color:#666;">Admin 一頁睇晒用量、Credits、參與率，數據透明</span></div>
+    </div>
+    <div style="display:flex; align-items:center; gap:10px; background:#f9fafb; border:1px solid #e5e7eb; border-radius:8px; padding:8px 14px;">
+      <div style="width:28px; height:28px; background:#f0fdf4; border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:14px; flex-shrink:0;">✓</div>
+      <div><strong style="color:#1a1a2e;">合法合規</strong><br><span style="font-size:9pt; color:#666;">香港註冊公司，可提供正式發票</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SECTION 2: 市場痛點 ==================== -->
+<div class="page-break"></div>
+<h1 id="s2">2. 市場痛點</h1>
+
+<h3>香港中小企 HR 嘅三大頭痛</h3>
+
+<table>
+  <tr><th>痛點</th><th>描述</th><th>傳統做法</th></tr>
+  <tr>
+    <td>😫 員工福利難搞</td>
+    <td>想俾 wellness 福利，但 admin 跟唔切 - 報名、收錢、簽到全部要人手</td>
+    <td>租場、填 form、Excel 追數</td>
+  </tr>
+  <tr>
+    <td>😩 報銷麻煩</td>
+    <td>員工自己俾錢上堂 → 儲單 → 填報銷 → HR 審批 → 出返錢</td>
+    <td>每次幾百蚊都要走成個流程</td>
+  </tr>
+  <tr>
+    <td>😤 運動率低</td>
+    <td>買咗 gym pass 但員工唔用，錢白俾</td>
+    <td>年費制，員工用 2 次就放棄</td>
+  </tr>
+</table>
+
+<h3>現有市場方案對比</h3>
+
+<table>
+  <tr><th>方案</th><th>優點</th><th>缺點</th></tr>
+  <tr>
+    <td>🏢 傳統 gym</td>
+    <td>實體場地</td>
+    <td>員工嫌遠、用途單一、要簽長約</td>
+  </tr>
+  <tr>
+    <td>📱 ClassPass</td>
+    <td>種類多</td>
+    <td>冇 corporate program、香港少選擇</td>
+  </tr>
+  <tr>
+    <td>📋 自行舉辦</td>
+    <td>HR 自己控制</td>
+    <td>行政負擔極大、難持續</td>
+  </tr>
+  <tr>
+    <td><strong>✅ ZenPass 企業計劃</strong></td>
+    <td><strong>專為 SME 設計</strong></td>
+    <td><strong>Credits 制，零 admin</strong></td>
+  </tr>
+</table>
+
+<!-- ==================== SECTION 3: 解決方案 ==================== -->
+<div class="page-break"></div>
+<h1 id="s3">3. 解決方案：ZenPass 企業計劃</h1>
+
+<style>
+  .flow-diagram {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    margin: 16px 0;
+    flex-wrap: wrap;
+  }
+  .flow-node {
+    flex: 0 0 auto;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 12px 20px;
+    text-align: center;
+    min-width: 120px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  }
+  .flow-node .node-icon { font-size: 24px; }
+  .flow-node .node-label { font-size: 10pt; font-weight: 700; color: #1a1a2e; margin-top: 4px; }
+  .flow-node .node-desc { font-size: 8pt; color: #666; margin-top: 2px; }
+  .flow-node.company { background: linear-gradient(135deg, #fffbeb, #fef3c7); border-color: #fde68a; }
+  .flow-node.employee { background: linear-gradient(135deg, #ecfdf5, #d1fae5); border-color: #a7f3d0; }
+  .flow-node.platform { background: linear-gradient(135deg, #eff6ff, #bfdbfe); border-color: #93c5fd; }
+  .flow-arrow {
+    flex: 0 0 auto;
+    font-size: 20px;
+    color: #2563eb;
+    padding: 0 6px;
+    font-weight: 300;
+  }
+  .flow-annotation {
+    text-align: center;
+    margin-top: 8px;
+    font-size: 9pt;
+  }
+  .flow-annotation .tag {
+    display: inline-block;
+    background: #eff6ff;
+    color: #2563eb;
+    padding: 4px 12px;
+    border-radius: 12px;
+    margin: 0 4px;
+    font-size: 8.5pt;
+  }
+</style>
+
+<div class="flow-diagram">
+  <div class="flow-node company">
+    <div class="node-icon">🏢</div>
+    <div class="node-label">公司</div>
+    <div class="node-desc">每月派發 Credits</div>
+  </div>
+  <div class="flow-arrow">&#10132;</div>
+  <div class="flow-node employee">
+    <div class="node-icon">👤</div>
+    <div class="node-label">員工</div>
+    <div class="node-desc">自由揀選課程</div>
+  </div>
+  <div class="flow-arrow">&#10132;</div>
+  <div class="flow-node platform">
+    <div class="node-icon">🏃</div>
+    <div class="node-label">ZenPass 平台</div>
+    <div class="node-desc">系統自動扣 Credits</div>
+  </div>
+</div>
+
+<div class="flow-annotation">
+  <span class="tag">&#9989; 夠 Credits 就自動扣</span>
+  <span class="tag">&#128256; 唔夠？Hybrid 扣個人 Credits</span>
+</div>
+
+<h3>系統亮點</h3>
+
+<div style="display:flex; gap:12px; margin:14px 0; flex-wrap:wrap;">
+  <div style="flex:1; min-width:200px; border:1px solid #e5e7eb; border-radius:10px; overflow:hidden;">
+    <div style="background:linear-gradient(135deg,#1a1a2e,#2563eb); color:#fff; padding:10px 14px; font-size:10pt; font-weight:600; letter-spacing:0.5px;">🏢 Admin Panel</div>
+    <div style="padding:6px 0;">
+      <div style="display:flex; align-items:center; gap:6px; padding:8px 14px; border-bottom:1px solid #f3f4f6;">
+        <span style="color:#2563eb; font-size:14px;">📊</span>
+        <span style="font-size:9pt; color:#444;">管理員 Dashboard，一頁睇晒</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:6px; padding:8px 14px; border-bottom:1px solid #f3f4f6;">
+        <span style="color:#2563eb; font-size:14px;">💰</span>
+        <span style="font-size:9pt; color:#444;">員工獨立 Credit 上限</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:6px; padding:8px 14px; border-bottom:1px solid #f3f4f6;">
+        <span style="color:#2563eb; font-size:14px;">🔒</span>
+        <span style="font-size:9pt; color:#444;">即時啟用/停用帳戶</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:6px; padding:8px 14px; border-bottom:1px solid #f3f4f6;">
+        <span style="color:#2563eb; font-size:14px;">🔄</span>
+        <span style="font-size:9pt; color:#444;">每月自動 Reset (1 號)</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:6px; padding:8px 14px;">
+        <span style="color:#2563eb; font-size:14px;">📥</span>
+        <span style="font-size:9pt; color:#444;">匯出用量報表 (CSV)</span>
+      </div>
+    </div>
+  </div>
+  <div style="flex:1; min-width:200px; border:1px solid #e5e7eb; border-radius:10px; overflow:hidden;">
+    <div style="background:linear-gradient(135deg,#065f46,#059669); color:#fff; padding:10px 14px; font-size:10pt; font-weight:600; letter-spacing:0.5px;">👤 員工體驗</div>
+    <div style="padding:6px 0;">
+      <div style="display:flex; align-items:center; gap:6px; padding:8px 14px; border-bottom:1px solid #f3f4f6;">
+        <span style="color:#059669; font-size:14px;">📱</span>
+        <span style="font-size:9pt; color:#444;">手機直接用，無需下載 App</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:6px; padding:8px 14px; border-bottom:1px solid #f3f4f6;">
+        <span style="color:#059669; font-size:14px;">👁️</span>
+        <span style="font-size:9pt; color:#444;">即睇餘額、預約記錄</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:6px; padding:8px 14px; border-bottom:1px solid #f3f4f6;">
+        <span style="color:#059669; font-size:14px;">✏️</span>
+        <span style="font-size:9pt; color:#444;">課堂前 24 小時免費取消</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:6px; padding:8px 14px;">
+        <span style="color:#059669; font-size:14px;">📍</span>
+        <span style="font-size:9pt; color:#444;">QR 簽到 + Geofence 自動簽到</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h3>課程選擇（持續擴充中）</h3>
+
+<p style="font-size:9pt; color:#666; margin-bottom:8px;">📌 持續擴充中，涵蓋新興運動、體適能、團體課程等</p>
+
+<div style="display:flex; flex-direction:column; gap:10px;">
+  <div>
+    <div style="font-size:9.5pt; font-weight:700; color:#2563eb; margin-bottom:4px;">🏏 新興運動</div>
+    <div style="display:flex; flex-wrap:wrap; gap:4px;">
+      <span style="background:#eff6ff; color:#1e40af; border-radius:12px; padding:3px 10px; font-size:9pt;">芬蘭木柱</span>
+      <span style="background:#eff6ff; color:#1e40af; border-radius:12px; padding:3px 10px; font-size:9pt;">地板冰壺</span>
+      <span style="background:#eff6ff; color:#1e40af; border-radius:12px; padding:3px 10px; font-size:9pt;">布袋球</span>
+      <span style="background:#eff6ff; color:#1e40af; border-radius:12px; padding:3px 10px; font-size:9pt;">穿雲箭</span>
+      <span style="background:#eff6ff; color:#1e40af; border-radius:12px; padding:3px 10px; font-size:9pt;">圓網球</span>
+      <span style="background:#eff6ff; color:#1e40af; border-radius:12px; padding:3px 10px; font-size:9pt;">柔力球</span>
+      <span style="background:#eff6ff; color:#1e40af; border-radius:12px; padding:3px 10px; font-size:9pt;">匹克球</span>
+      <span style="background:#eff6ff; color:#1e40af; border-radius:12px; padding:3px 10px; font-size:9pt;">躲避盤</span>
+      <span style="background:#eff6ff; color:#1e40af; border-radius:12px; padding:3px 10px; font-size:9pt;">健球</span>
+    </div>
+  </div>
+  <div>
+    <div style="font-size:9.5pt; font-weight:700; color:#059669; margin-bottom:4px;">💪 體適能</div>
+    <div style="display:flex; flex-wrap:wrap; gap:4px;">
+      <span style="background:#ecfdf5; color:#065f46; border-radius:12px; padding:3px 10px; font-size:9pt;">Flexi-Bar</span>
+      <span style="background:#ecfdf5; color:#065f46; border-radius:12px; padding:3px 10px; font-size:9pt;">身心伸展</span>
+      <span style="background:#ecfdf5; color:#065f46; border-radius:12px; padding:3px 10px; font-size:9pt;">北歐式健步行</span>
+      <span style="background:#ecfdf5; color:#065f46; border-radius:12px; padding:3px 10px; font-size:9pt;">HIIT 高強度訓練</span>
+      <span style="background:#ecfdf5; color:#065f46; border-radius:12px; padding:3px 10px; font-size:9pt;">拳擊體適能</span>
+      <span style="background:#ecfdf5; color:#065f46; border-radius:12px; padding:3px 10px; font-size:9pt;">空中瑜伽</span>
+      <span style="background:#ecfdf5; color:#065f46; border-radius:12px; padding:3px 10px; font-size:9pt;">瑜伽伸展</span>
+      <span style="background:#ecfdf5; color:#065f46; border-radius:12px; padding:3px 10px; font-size:9pt;">彈網體操</span>
+    </div>
+  </div>
+  <div>
+    <div style="font-size:9.5pt; font-weight:700; color:#b45309; margin-bottom:4px;">👨‍👩‍👧‍👦 團體及親子</div>
+    <div style="display:flex; flex-wrap:wrap; gap:4px;">
+      <span style="background:#fffbeb; color:#92400e; border-radius:12px; padding:3px 10px; font-size:9pt;">兒童健體</span>
+      <span style="background:#fffbeb; color:#92400e; border-radius:12px; padding:3px 10px; font-size:9pt;">親子體能</span>
+      <span style="background:#fffbeb; color:#92400e; border-radius:12px; padding:3px 10px; font-size:9pt;">伸展放鬆班</span>
+      <span style="background:#fffbeb; color:#92400e; border-radius:12px; padding:3px 10px; font-size:9pt;">跑步訓練班</span>
+      <span style="background:#fffbeb; color:#92400e; border-radius:12px; padding:3px 10px; font-size:9pt;">團隊建立工作坊</span>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SECTION 4: 系統功能 ==================== -->
+<div class="page-break"></div>
+<h1 id="s4">4. 系統功能總覽</h1>
+
+<style>
+  .feat-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 16px 0;
+  }
+  .feat-card {
+    flex: 0 0 calc(50% - 4px);
+    min-width: 0;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 10px 12px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    box-sizing: border-box;
+  }
+  .feat-icon {
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+  }
+  .feat-icon.admin { background: #eff6ff; }
+  .feat-icon.pay { background: #ecfdf5; }
+  .feat-icon.report { background: #fefce8; }
+  .feat-icon.user { background: #fdf2f8; }
+  .feat-icon.tech { background: #f0f9ff; }
+  .feat-info { flex: 1; min-width: 0; }
+  .feat-name {
+    font-size: 10pt;
+    font-weight: 600;
+    color: #1a1a2e;
+  }
+  .feat-desc {
+    font-size: 8.5pt;
+    color: #666;
+    margin-top: 1px;
+    line-height: 1.4;
+  }
+</style>
+
+<div class="feat-grid">
+  <div class="feat-card">
+    <div class="feat-icon admin">👥</div>
+    <div class="feat-info">
+      <div class="feat-name">員工管理</div>
+      <div class="feat-desc">批量開戶、啟用/停用員工帳戶</div>
+    </div>
+  </div>
+  <div class="feat-card">
+    <div class="feat-icon pay">💳</div>
+    <div class="feat-info">
+      <div class="feat-name">每月 Credit 上限</div>
+      <div class="feat-desc">Per-employee monthly limit，由管理員設定</div>
+    </div>
+  </div>
+  <div class="feat-card">
+    <div class="feat-icon admin">🔄</div>
+    <div class="feat-info">
+      <div class="feat-name">每月自動 Reset</div>
+      <div class="feat-desc">Use it or lose it，每月 1 號歸零</div>
+    </div>
+  </div>
+  <div class="feat-card">
+    <div class="feat-icon pay">🔀</div>
+    <div class="feat-info">
+      <div class="feat-name">Hybrid 支付</div>
+      <div class="feat-desc">公司 Credits → 個人 Credits 自動切換</div>
+    </div>
+  </div>
+  <div class="feat-card">
+    <div class="feat-icon report">📊</div>
+    <div class="feat-info">
+      <div class="feat-name">即時 Dashboard</div>
+      <div class="feat-desc">用量、剩餘 Credits、參與率一目了然</div>
+    </div>
+  </div>
+  <div class="feat-card">
+    <div class="feat-icon report">📥</div>
+    <div class="feat-info">
+      <div class="feat-name">CSV 匯出</div>
+      <div class="feat-desc">員工用量報表，一鍵匯出</div>
+    </div>
+  </div>
+  <div class="feat-card">
+    <div class="feat-icon user">📍</div>
+    <div class="feat-info">
+      <div class="feat-name">員工簽到</div>
+      <div class="feat-desc">QR Code 掃描 + 100m Geofence 自動簽到</div>
+    </div>
+  </div>
+  <div class="feat-card">
+    <div class="feat-icon admin">🏢</div>
+    <div class="feat-info">
+      <div class="feat-name">HR Portal</div>
+      <div class="feat-desc">獨立管理後台，HR 自行操作</div>
+    </div>
+  </div>
+  <div class="feat-card">
+    <div class="feat-icon tech">✏️</div>
+    <div class="feat-info">
+      <div class="feat-name">取消政策</div>
+      <div class="feat-desc">開課前 24hr 免費取消，靈活方便</div>
+    </div>
+  </div>
+  <div class="feat-card">
+    <div class="feat-icon tech">🔔</div>
+    <div class="feat-info">
+      <div class="feat-name">通知系統</div>
+      <div class="feat-desc">Telegram / Email 課堂提醒，唔怕 miss</div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SECTION 5: 運作流程 ==================== -->
+<div class="page-break"></div>
+<h1 id="s5">5. 運作流程</h1>
+
+<style>
+  .step-flow {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin: 20px 0;
+    counter-reset: step;
+  }
+  .step-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    position: relative;
+    padding-bottom: 8px;
+  }
+  .step-num {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    background: #2563eb;
+    color: #fff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    position: relative;
+    z-index: 2;
+  }
+  .step-row:not(:last-child) .step-num::after {
+    content: '';
+    position: absolute;
+    top: 32px;
+    left: 50%;
+    width: 2px;
+    height: 24px;
+    background: #bfdbfe;
+    transform: translateX(-50%);
+    z-index: 1;
+  }
+  .step-content {
+    flex: 1;
+    padding-top: 4px;
+  }
+  .step-title {
+    font-size: 11pt;
+    font-weight: 600;
+    color: #1a1a2e;
+  }
+  .step-desc {
+    font-size: 10pt;
+    color: #666;
+    margin-top: 2px;
+  }
+  .step-icon {
+    font-size: 16px;
+    margin-right: 6px;
+  }
+</style>
+
+<div class="step-flow">
+  <div class="step-row">
+    <div class="step-num">1</div>
+    <div class="step-content">
+      <div class="step-title"><span class="step-icon">🔍</span> 瀏覽課程</div>
+      <div class="step-desc">登入 ZenPass，睇晒所有可預約的運動課程、時間和場地</div>
+    </div>
+  </div>
+  <div class="step-row">
+    <div class="step-num">2</div>
+    <div class="step-content">
+      <div class="step-title"><span class="step-icon">📅</span> 揀選課堂</div>
+      <div class="step-desc">選擇心水的運動、日期、時間及場地</div>
+    </div>
+  </div>
+  <div class="step-row">
+    <div class="step-num">3</div>
+    <div class="step-content">
+      <div class="step-title"><span class="step-icon">✓</span> 確認預約</div>
+      <div class="step-desc">系統自動扣公司 Credits，唔夠會 Hybrid 用個人 Credits 補</div>
+    </div>
+  </div>
+  <div class="step-row">
+    <div class="step-num">4</div>
+    <div class="step-content">
+      <div class="step-title"><span class="step-icon">🔔</span> 收到確認</div>
+      <div class="step-desc">即時 Telegram / Email 通知，課堂前亦有提醒</div>
+    </div>
+  </div>
+  <div class="step-row">
+    <div class="step-num">5</div>
+    <div class="step-content">
+      <div class="step-title"><span class="step-icon">📍</span> 到場簽到</div>
+      <div class="step-desc">QR Code 掃描簽到，或進入場地 100m 範圍自動 Geofence 簽到</div>
+    </div>
+  </div>
+</div>
+
+<div class="flow-box" style="margin-top:8px; text-align:center;">
+  <strong>整個過程只需 30 秒，唔洗 HR 任何操作</strong>
+</div>
+
+<h3>每月循環</h3>
+
+<div style="display:flex; align-items:center; justify-content:center; gap:12px; margin:20px 0; flex-wrap:wrap; text-align:center;">
+  <div style="background:#2563eb; color:#fff; border-radius:8px; padding:12px 20px; min-width:100px;">
+    <div style="font-size:20px;">📅</div>
+    <div style="font-size:10pt; font-weight:600;">每月 1 號</div>
+    <div style="font-size:9pt; opacity:0.85;">Credits 自動 Reset</div>
+  </div>
+  <div style="font-size:20px; color:#2563eb;">&gt;</div>
+  <div style="background:#f0f4ff; border-radius:8px; padding:12px 20px; min-width:100px;">
+    <div style="font-size:20px;">🏃</div>
+    <div style="font-size:10pt; font-weight:600;">員工 Book 堂</div>
+    <div style="font-size:9pt; color:#666;">自由選擇運動</div>
+  </div>
+  <div style="font-size:20px; color:#2563eb;">&gt;</div>
+  <div style="background:#f0f4ff; border-radius:8px; padding:12px 20px; min-width:100px;">
+    <div style="font-size:20px;">✅</div>
+    <div style="font-size:10pt; font-weight:600;">用到月底</div>
+    <div style="font-size:9pt; color:#666;">健康 + 福利</div>
+  </div>
+  <div style="font-size:20px; color:#2563eb;">&gt;</div>
+  <div style="background:#fef3c7; border-radius:8px; padding:12px 20px; min-width:100px;">
+    <div style="font-size:20px;">🔄</div>
+    <div style="font-size:10pt; font-weight:600;">用唔完歸零</div>
+    <div style="font-size:9pt; color:#b45309;">鼓勵持續運動</div>
+  </div>
+</div>
+
+<!-- ==================== SECTION 6: 收費方案 ==================== -->
+<div class="page-break"></div>
+<h1 id="s6">6. 收費方案</h1>
+
+<div style="background:#f0f4ff; border:1px solid #bfdbfe; border-radius:8px; padding:12px 16px; margin-bottom:16px; text-align:center;">
+  <div style="font-size:11pt; font-weight:600; color:#1a1a2e;">彈性定價・按需選擇</div>
+  <div style="font-size:9pt; color:#666; margin-top:4px;">無論 5 人定 100 人，都有適合你嘅方案</div>
+</div>
+
+<style>
+  .pricing-grid {
+    display: flex;
+    gap: 10px;
+    margin: 14px 0;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .plan-card {
+    flex: 1;
+    min-width: 130px;
+    max-width: 200px;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 16px 14px;
+    text-align: center;
+    position: relative;
+    background: #fff;
+    transition: all 0.2s;
+  }
+  .plan-card.featured {
+    border-color: #2563eb;
+    background: linear-gradient(180deg, #eff6ff 0%, #fff 100%);
+    box-shadow: 0 2px 8px rgba(37,99,235,0.1);
+    transform: scale(1.04);
+    z-index: 1;
+  }
+  .plan-card .badge {
+    position: absolute;
+    top: -8px;
+    right: 8px;
+    background: #2563eb;
+    color: #fff;
+    font-size: 7.5pt;
+    padding: 2px 10px;
+    border-radius: 10px;
+    font-weight: 600;
+  }
+  .plan-card .plan-name {
+    font-size: 10pt;
+    font-weight: 600;
+    color: #1a1a2e;
+  }
+  .plan-card .plan-desc {
+    font-size: 7.5pt;
+    color: #999;
+    margin-top: 2px;
+  }
+  .plan-card .plan-price {
+    font-size: 22pt;
+    font-weight: 700;
+    color: #2563eb;
+    margin: 8px 0 2px;
+  }
+  .plan-card .plan-price .dollar { font-size: 12pt; }
+  .plan-card .plan-price .per { font-size: 9pt; color: #999; font-weight: 400; }
+  .plan-card .plan-credits {
+    font-size: 9pt;
+    color: #666;
+  }
+  .plan-card .plan-credits strong { color: #1a1a2e; }
+  .plan-card .plan-label {
+    display: inline-block;
+    margin-top: 8px;
+    background: #f0f4ff;
+    color: #2563eb;
+    padding: 3px 12px;
+    border-radius: 12px;
+    font-size: 8pt;
+  }
+  .plan-card .plan-note {
+    font-size: 7.5pt;
+    color: #999;
+    margin-top: 6px;
+  }
+</style>
+
+<!-- 方案一：按人頭 -->
+<div style="display:flex; justify-content:space-between; align-items:baseline;">
+  <h3 style="margin:0;">方案一：按人頭</h3>
+  <span style="font-size:8pt; color:#999;">適合固定員工人數</span>
+</div>
+
+<div class="pricing-grid">
+  <div class="plan-card">
+    <div class="plan-name">小型企業</div>
+    <div class="plan-desc">1 - 20 人</div>
+    <div class="plan-price"><span class="dollar">$</span>399<span class="per">/人/月</span></div>
+    <div class="plan-credits"><strong>60</strong> Credits / 人</div>
+    <div class="plan-label">～5 堂運動</div>
+  </div>
+
+  <div class="plan-card featured">
+    <div class="badge">推薦</div>
+    <div class="plan-name">標準企業</div>
+    <div class="plan-desc">21 - 50 人</div>
+    <div class="plan-price"><span class="dollar">$</span>379<span class="per">/人/月</span></div>
+    <div class="plan-credits"><strong>60</strong> Credits / 人</div>
+    <div class="plan-label">多人折扣</div>
+    <div class="plan-note">慳 $20/人 vs 小型</div>
+  </div>
+
+  <div class="plan-card">
+    <div class="plan-name">大型企業</div>
+    <div class="plan-desc">50+ 人</div>
+    <div class="plan-price"><span class="dollar">$</span>359<span class="per">/人/月</span></div>
+    <div class="plan-credits"><strong>60</strong> Credits / 人</div>
+    <div class="plan-label">大客戶優惠</div>
+    <div class="plan-note">慳 $40/人 vs 小型</div>
+  </div>
+</div>
+
+<!-- 方案二：按總 Credits -->
+<div style="display:flex; justify-content:space-between; align-items:baseline; margin-top:20px;">
+  <h3 style="margin:0;">方案二：按總 Credits</h3>
+  <span style="font-size:8pt; color:#999;">適合人數不固定 / 想靈活控制</span>
+</div>
+
+<div class="pricing-grid">
+  <div class="plan-card" style="border-color:#fde68a;">
+    <div class="plan-name">輕量</div>
+    <div class="plan-desc">小型團隊</div>
+    <div class="plan-price" style="color:#b45309;"><span class="dollar">$</span>2,000<span class="per">/月</span></div>
+    <div class="plan-credits"><strong>~300</strong> Credits</div>
+    <div class="plan-label" style="background:#fffbeb; color:#b45309;">每月滾存</div>
+  </div>
+
+  <div class="plan-card featured">
+    <div class="badge">推薦</div>
+    <div class="plan-name">標準</div>
+    <div class="plan-desc">中型團隊</div>
+    <div class="plan-price"><span class="dollar">$</span>5,000<span class="per">/月</span></div>
+    <div class="plan-credits"><strong>~760</strong> Credits</div>
+    <div class="plan-label">每月滾存</div>
+  </div>
+
+  <div class="plan-card" style="border-color:#a7f3d0;">
+    <div class="plan-name">企業</div>
+    <div class="plan-desc">大型團隊</div>
+    <div class="plan-price" style="color:#059669;"><span class="dollar">$</span>10,000<span class="per">/月</span></div>
+    <div class="plan-credits"><strong>~1,500+</strong> Credits</div>
+    <div class="plan-label" style="background:#ecfdf5; color:#059669;">可自訂</div>
+  </div>
+</div>
+
+<!-- 員工 Top-up -->
+<h3 style="margin-top:20px;">員工 Top-up 選項</h3>
+<p style="font-size:9pt; color:#666; margin-bottom:8px;">員工用完公司 Credits 後，可以用自己 ZenPass Credits 繼續上堂：</p>
+
+<div style="display:flex; gap:8px; flex-wrap:wrap;">
+  <div style="flex:1; min-width:100px; background:#fafafa; border:1px solid #e5e7eb; border-radius:8px; padding:10px 12px; text-align:center;">
+    <div style="font-size:11pt; font-weight:600; color:#1a1a2e;">輕量包</div>
+    <div style="font-size:13pt; color:#2563eb; font-weight:700; margin:4px 0;">$100</div>
+    <div style="font-size:8.5pt; color:#666;">10 Credits</div>
+  </div>
+  <div style="flex:1; min-width:100px; background:#fafafa; border:1px solid #e5e7eb; border-radius:8px; padding:10px 12px; text-align:center;">
+    <div style="font-size:11pt; font-weight:600; color:#1a1a2e;">標準包</div>
+    <div style="font-size:13pt; color:#2563eb; font-weight:700; margin:4px 0;">$225</div>
+    <div style="font-size:8.5pt; color:#666;">25 Credits</div>
+  </div>
+  <div style="flex:1; min-width:100px; background:#fafafa; border:1px solid #e5e7eb; border-radius:8px; padding:10px 12px; text-align:center;">
+    <div style="font-size:11pt; font-weight:600; color:#1a1a2e;">超值包</div>
+    <div style="font-size:13pt; color:#2563eb; font-weight:700; margin:4px 0;">$440</div>
+    <div style="font-size:8.5pt; color:#666;">50+5 Credits</div>
+  </div>
+</div>
+
+<!-- ==================== SECTION 7: ROI ==================== -->
+<div class="page-break"></div>
+<h1 id="s7">7. 企業效益 ROI</h1>
+
+<h3>員工運動 = 公司回報</h3>
+
+<table>
+  <tr><th>範疇</th><th>改善幅度</th><th>參考來源</th></tr>
+  <tr><td>生產力提升</td><td><strong>+12%</strong></td><td>British Journal of Sports Medicine</td></tr>
+  <tr><td>病假減少</td><td><strong>-27%</strong></td><td>WHO Workplace Health Study</td></tr>
+  <tr><td>員工 retention</td><td><strong>+22%</strong></td><td>Harvard Business Review</td></tr>
+  <tr><td>團隊凝聚力</td><td>明顯提升</td><td>團隊運動更有互動</td></tr>
+</table>
+
+<h3>計算案例：20 人員工公司</h3>
+
+<p style="font-size:9.5pt; color:#666; margin-bottom:4px;">📊 參考數據：香港政府統計處 • 2024 年就業人士月入中位數</p>
+
+<table>
+  <tr><th>項目</th><th>數據</th><th>備註</th></tr>
+  <tr><td>香港月入中位數</td><td><strong>$21,000</strong></td><td>政府統計處 2024</td></tr>
+  <tr><td>每日工資成本</td><td>$955</td><td>$21,000 ÷ 22 工作日</td></tr>
+  <tr><td>平均病假日數</td><td>5 日/年/人</td><td>衛生署統計</td></tr>
+  <tr><td>平均流失率 (SME)</td><td>~15%/年</td><td>20 人中約 3 人/年</td></tr>
+  <tr><td>員工更換成本</td><td>~$84,000/人</td><td>招聘 + 培訓 + 產能損失 (3-4 個月)</td></tr>
+</table>
+
+<div class="roi-highlight">
+  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+    <div>
+      <div class="big" style="font-size:20pt;">$7,980/月</div>
+      <div class="label">20 人員工福利成本（$399/人）</div>
+    </div>
+    <div>
+      <div class="big" style="font-size:20pt; color:#2563eb;">$95,760/年</div>
+      <div class="label">全年總成本</div>
+    </div>
+  </div>
+
+  <hr style="border:none; border-top:1px solid #a7f3d0; margin:14px 0;">
+
+  <h4 style="color:#059669; margin-bottom:8px;">回報 1：減少病假</h4>
+  <table style="font-size:9pt; margin:0;">
+    <tr><td>原本每年病假日</td><td>100 日（20人 × 5日）</td></tr>
+    <tr><td>27% 減少 (WHO)</td><td><strong>節省 27 個工作日</strong></td></tr>
+    <tr><td>節省金額</td><td><strong>27日 × $955 = $25,785/年</strong></td></tr>
+  </table>
+
+  <h4 style="color:#059669; margin:12px 0 8px;">回報 2：提升留任</h4>
+  <table style="font-size:9pt; margin:0;">
+    <tr><td>原本每年流失人數</td><td>~3 人（15% × 20人）</td></tr>
+    <tr><td>每更換一人成本</td><td>~$84,000</td></tr>
+    <tr><td>22% 留任提升 (HBR)</td><td><strong>節省約 $42,000/年</strong></td></tr>
+  </table>
+
+  <hr style="border:none; border-top:1px solid #a7f3d0; margin:14px 0;">
+
+  <div style="display:flex; justify-content:space-between; align-items:center;">
+    <div>
+      <div style="font-size:9pt; color:#666;">保守總回報（未計生產力提升）</div>
+      <div class="big" style="font-size:22pt;">$67,785/年</div>
+    </div>
+    <div style="text-align:right;">
+      <div style="background:#059669; color:#fff; padding:4px 14px; border-radius:20px; font-size:13pt; font-weight:700;">ROI 70%+</div>
+    </div>
+  </div>
+</div>
+
+<div style="background:#fefce8; border:1px solid #fde68a; border-radius:8px; padding:12px 16px; margin:16px 0; font-size:10pt;">
+  <strong>💡 關鍵觀點：</strong>每月成本 $7,980 只係一個中位數員工約 8 日人工。<br>
+  如果 20 個員工因此更健康、病假少 27%，一年就慳返成本有餘。
+</div>
+
+<h3>ESG 貢獻</h3>
+
+<div style="background:linear-gradient(135deg,#f0fdf4,#ecfdf5); border:1px solid #a7f3d0; border-radius:8px; padding:14px 18px; margin:12px 0;">
+  <p style="font-size:9pt; color:#666; margin-bottom:8px;">
+    🔗 配合 HKEX ESG 報告框架 (Social Pillar ± Environmental)
+  </p>
+  <table style="font-size:9.5pt;">
+    <tr style="background:#05966933;">
+      <th style="width:80px; background:transparent; color:#059669; padding:6px;">ESG</th>
+      <th style="background:transparent; color:#059669; padding:6px;">貢獻</th>
+      <th style="background:transparent; color:#059669; padding:6px;">HKEX 相關 KPI</th>
+    </tr>
+    <tr>
+      <td style="text-align:center; font-size:16px; width:80px;">🌱 E</td>
+      <td>多點位場地，員工可選就近地點，減少跨區交通碳排放</td>
+      <td style="font-size:8.5pt;">A1.5 溫室氣體排放<br>A2.1 能源消耗</td>
+    </tr>
+    <tr>
+      <td style="text-align:center; font-size:16px;">👥 S</td>
+      <td>
+        <strong>員工身心健康：</strong>每週運動改善健康，減少病假<br>
+        <strong>團隊凝聚：</strong>員工一起參與運動，提升關係<br>
+        <strong>工作生活平衡：</strong>員工自由揀選運動時間
+      </td>
+      <td style="font-size:8.5pt;">B1 僱傭<br>B2 健康與安全<br>B3 發展與培訓</td>
+    </tr>
+    <tr>
+      <td style="text-align:center; font-size:16px;">⚖️ G</td>
+      <td>系統提供 transparent data reporting，HR 可匯出準確使用記錄作 ESG 報告用途</td>
+      <td style="font-size:8.5pt;">B6 供應鏈管理<br>B7 反貪污</td>
+    </tr>
+  </table>
+  <p style="font-size:9pt; color:#666; margin-top:8px;">
+    員工運動福利是香港 ESG 報告中 Social 支柱的關鍵指標之一，特別對 #B2 健康與安全、#B3 發展與培訓 有直接貢獻。
+  </p>
+</div>
+
+<div style="background:linear-gradient(135deg,#f9fafb,#fff); border-radius:10px; border:1px solid #e5e7eb; overflow:hidden; margin-top:8px; page-break-before:always;">
+
+  <h3 style="background:linear-gradient(135deg,#1a1a2e,#374151); color:#fff; margin:0; padding:12px 16px; font-size:11pt; border-bottom:2px solid #2563eb;">點解比起送 Gym Pass 更好？</h3>
+
+  <div style="display:flex; border-bottom:1px solid #e5e7eb;">
+    <div style="flex:1.2; padding:10px 12px; font-size:8.5pt; color:#666; font-weight:500;"></div>
+    <div style="flex:1; padding:10px 12px; text-align:center; font-size:9pt; font-weight:600; color:#dc2626; background:#fef2f2; border-left:1px solid #e5e7eb;">❌ Gym Pass</div>
+    <div style="flex:1; padding:10px 12px; text-align:center; font-size:9pt; font-weight:600; color:#059669; background:#f0fdf4; border-left:1px solid #e5e7eb;">✅ ZenPass 企業計劃</div>
+  </div>
+
+  <div style="display:flex; border-bottom:1px solid #e5e7eb;">
+    <div style="flex:1.2; padding:10px 12px; font-size:9pt; color:#1a1a2e;">📍 一定要去指定場地？</div>
+    <div style="flex:1; padding:10px 12px; text-align:center; color:#dc2626; font-size:10pt; border-left:1px solid #e5e7eb;">員工嫌遠唔去</div>
+    <div style="flex:1; padding:10px 12px; text-align:center; color:#059669; font-size:9pt; border-left:1px solid #e5e7eb;">多場地・多區選擇</div>
+  </div>
+
+  <div style="display:flex; border-bottom:1px solid #e5e7eb;">
+    <div style="flex:1.2; padding:10px 12px; font-size:9pt; color:#1a1a2e;">💰 用得少就蝕底？</div>
+    <div style="flex:1; padding:10px 12px; text-align:center; color:#dc2626; font-size:10pt; border-left:1px solid #e5e7eb;">月費制，用得少蝕</div>
+    <div style="flex:1; padding:10px 12px; text-align:center; color:#059669; font-size:9pt; border-left:1px solid #e5e7eb;">用幾多扣幾多 Credits</div>
+  </div>
+
+  <div style="display:flex; border-bottom:1px solid #e5e7eb;">
+    <div style="flex:1.2; padding:10px 12px; font-size:9pt; color:#1a1a2e;">📊 HR 睇到員工有冇用？</div>
+    <div style="flex:1; padding:10px 12px; text-align:center; color:#dc2626; font-size:10pt; border-left:1px solid #e5e7eb;">完全冇數據</div>
+    <div style="flex:1; padding:10px 12px; text-align:center; color:#059669; font-size:9pt; border-left:1px solid #e5e7eb;">即時 Dashboard</div>
+  </div>
+
+  <div style="display:flex;">
+    <div style="flex:1.2; padding:10px 12px; font-size:9pt; color:#1a1a2e;">📋 員工要申請報銷？</div>
+    <div style="flex:1; padding:10px 12px; text-align:center; color:#dc2626; font-size:10pt; border-left:1px solid #e5e7eb;">要填 form 等審批</div>
+    <div style="flex:1; padding:10px 12px; text-align:center; color:#059669; font-size:9pt; border-left:1px solid #e5e7eb;">零 admin・自動扣數</div>
+  </div>
+
+</div>
+
+<!-- ==================== SECTION 8: 合作流程 ==================== -->
+<div class="page-break"></div>
+<h1 id="s8">8. 合作流程</h1>
+
+<style>
+  .timeline-7 {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin: 20px 0;
+    position: relative;
+  }
+  .timeline-7::before {
+    content: '';
+    position: absolute;
+    left: 20px;
+    top: 16px;
+    bottom: 16px;
+    width: 2px;
+    background: #e5e7eb;
+    z-index: 0;
+  }
+  .tl-day {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    position: relative;
+    z-index: 1;
+    margin-bottom: 4px;
+  }
+  .tl-badge {
+    flex-shrink: 0;
+    width: 42px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding-top: 10px;
+  }
+  .tl-circle {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 700;
+    color: #fff;
+    position: relative;
+    z-index: 2;
+    border: 2px solid #fff;
+  }
+  .tl-card {
+    flex: 1;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 8px 12px;
+    margin-left: 8px;
+    margin-bottom: 6px;
+  }
+  .tl-card.top { border-color: #bfdbfe; background: #eff6ff; }
+  .tl-card.mid { border-color: #e5e7eb; background: #fafafa; }
+  .tl-card.last { border-color: #a7f3d0; background: #ecfdf5; }
+  .tl-day-label {
+    font-size: 9pt;
+    font-weight: 700;
+    color: #1a1a2e;
+    margin-right: 8px;
+  }
+  .tl-day-text {
+    font-size: 9.5pt;
+    color: #444;
+  }
+  .tl-icon {
+    margin-right: 4px;
+  }
+  .tl-arrow {
+    text-align: center;
+    color: #2563eb;
+    font-size: 14px;
+    margin: -2px 0 0 42px;
+    padding-left: 8px;
+  }
+</style>
+
+<div class="timeline-7">
+  <div class="tl-day">
+    <div class="tl-badge"><div class="tl-circle" style="background:#2563eb;">1</div></div>
+    <div class="tl-card top">
+      <span class="tl-day-label">📞 Day 1</span>
+      <span class="tl-day-text">電話傾需求 + 快速 Demo</span>
+      <span style="font-size:8pt; color:#999; margin-left:6px;">15 分鐘</span>
+    </div>
+  </div>
+  <div class="tl-day">
+    <div class="tl-badge"><div class="tl-circle" style="background:#2563eb;">2</div></div>
+    <div class="tl-card top">
+      <span class="tl-day-label">📋 Day 2</span>
+      <span class="tl-day-text">確認方案 + 報價</span>
+    </div>
+  </div>
+  <div class="tl-day">
+    <div class="tl-badge"><div class="tl-circle" style="background:#2563eb;">3</div></div>
+    <div class="tl-card mid">
+      <span class="tl-day-label">✍️ Day 3</span>
+      <span class="tl-day-text">簽約 + 開通帳戶</span>
+    </div>
+  </div>
+  <div class="tl-day">
+    <div class="tl-badge"><div class="tl-circle" style="background:#2563eb;">4</div></div>
+    <div class="tl-card mid">
+      <span class="tl-day-label">👥 Day 4</span>
+      <span class="tl-day-text">批量開員工帳戶</span>
+    </div>
+  </div>
+  <div class="tl-day">
+    <div class="tl-badge"><div class="tl-circle" style="background:#2563eb;">5</div></div>
+    <div class="tl-card mid">
+      <span class="tl-day-label">🎓 Day 5</span>
+      <span class="tl-day-text">HR 培訓</span>
+      <span style="font-size:8pt; color:#999; margin-left:6px;">30 分鐘</span>
+    </div>
+  </div>
+  <div class="tl-day">
+    <div class="tl-badge"><div class="tl-circle" style="background:#2563eb;">6</div></div>
+    <div class="tl-card mid">
+      <span class="tl-day-label">📧 Day 6</span>
+      <span class="tl-day-text">員工 Email 通知 + 開通</span>
+    </div>
+  </div>
+  <div class="tl-day">
+    <div class="tl-badge"><div class="tl-circle" style="background:#059669;">7</div></div>
+    <div class="tl-card last">
+      <span class="tl-day-label">🚀 Day 7</span>
+      <span class="tl-day-text" style="font-weight:700; color:#059669;">正式啟用！</span>
+    </div>
+  </div>
+</div>
+
+<div style="text-align:center; margin:8px 0 16px; font-size:10pt; color:#2563eb; font-weight:500;">
+  由第一次傾到正式上線，只需一星期
+</div>
+
+<h3>試用方案</h3>
+
+<div class="roi-highlight">
+  <h3 style="color:#059669;">🎁 首 2 個月免費試用</h3>
+  <p><strong>最多 10 名員工</strong></p>
+  <ul>
+    <li>包 200 Credits（～16 堂）</li>
+    <li>包管理後台</li>
+    <li>包員工培訓</li>
+    <li>冇合約，隨時可終止</li>
+  </ul>
+</div>
+
+<!-- ==================== SECTION 9: 關於我們 ==================== -->
+<div class="page-break"></div>
+<h1 id="s9">9. 關於我們</h1>
+
+<div style="display:flex; flex-direction:column; gap:12px; margin-top:8px;">
+
+  <!-- Company header -->
+  <div style="text-align:center;">
+    <div style="margin-bottom:4px;"><img src="logo-192.png" width="48" height="48" style="border-radius:8px;" alt="ZenPass logo"></div>
+    <div style="font-size:15pt; font-weight:700; color:#1a1a2e;">香港康樂及體育有限公司</div>
+    <div style="font-size:10pt; color:#666;">Hong Kong Leisure and Fitness Company Limited</div>
+  </div>
+
+  <!-- Vision -->
+  <div style="background:linear-gradient(135deg,#eff6ff,#f0f4ff); border-radius:8px; padding:10px 16px; text-align:center;">
+    <div style="font-size:10pt; color:#2563eb; font-weight:600; margin-bottom:3px;">🎯 核心理念</div>
+    <div style="font-size:10pt; color:#1a1a2e;">
+      透過新興運動促進 <strong>身體健康</strong> · <strong>心理健康</strong> · <strong>社交健康</strong>
+    </div>
+  </div>
+
+  <!-- Stats cards -->
+  <div style="display:flex; gap:6px; flex-wrap:wrap;">
+    <div style="flex:1; min-width:80px; background:#fff; border:1px solid #e5e7eb; border-radius:8px; padding:8px 10px; text-align:center;">
+      <div style="font-size:15pt; font-weight:700; color:#2563eb;">11+</div>
+      <div style="font-size:8pt; color:#666;">運動種類</div>
+    </div>
+    <div style="flex:1; min-width:80px; background:#fff; border:1px solid #e5e7eb; border-radius:8px; padding:8px 10px; text-align:center;">
+      <div style="font-size:15pt; font-weight:700; color:#2563eb;">10+</div>
+      <div style="font-size:8pt; color:#666;">年經驗</div>
+    </div>
+    <div style="flex:1; min-width:80px; background:#fff; border:1px solid #e5e7eb; border-radius:8px; padding:8px 10px; text-align:center;">
+      <div style="font-size:15pt; font-weight:700; color:#2563eb;">🏆</div>
+      <div style="font-size:8pt; color:#666;">獲獎企業</div>
+    </div>
+    <div style="flex:1; min-width:80px; background:#fff; border:1px solid #e5e7eb; border-radius:8px; padding:8px 10px; text-align:center;">
+      <div style="font-size:15pt; font-weight:700; color:#2563eb;">📍</div>
+      <div style="font-size:8pt; color:#666;">香港多區場地</div>
+    </div>
+  </div>
+
+  <!-- Company details -->
+  <div style="background:#fafafa; border:1px solid #e5e7eb; border-radius:8px; padding:10px 14px;">
+    <table style="font-size:9.5pt; margin:0;">
+      <tr><td style="width:85px; font-weight:600; color:#666; border:none; padding:3px 0;">正式名稱</td><td style="border:none; padding:3px 0;">香港康樂及體育有限公司</td></tr>
+      <tr><td style="font-weight:600; color:#666; border:none; padding:3px 0;">英文名稱</td><td style="border:none; padding:3px 0;">Hong Kong Leisure &amp; Fitness Co Ltd</td></tr>
+      <tr><td style="font-weight:600; color:#666; border:none; padding:3px 0;">成立年份</td><td style="border:none; padding:3px 0;">2019 年</td></tr>
+      <tr><td style="font-weight:600; color:#666; border:none; padding:3px 0;">地址</td><td style="border:none; padding:3px 0; font-size:8.5pt;">觀塘鴻圖道 51 號 Two Sky Parc 28 樓 2806 室</td></tr>
+      <tr><td style="font-weight:600; color:#666; border:none; padding:3px 0;">資格</td><td style="border:none; padding:3px 0;">🏛️ 香港政府採購供應商</td></tr>
+      <tr><td style="font-weight:600; color:#666; border:none; padding:3px 0;">獎項</td><td style="border:none; padding:3px 0;">🏆 「商界展關懷」獲獎企業</td></tr>
+      <tr><td style="font-weight:600; color:#666; border:none; padding:3px 0;">服務</td><td style="border:none; padding:3px 0; font-size:8.5pt;">芬蘭木柱 · 地板冰壺 · 布袋球 · 穿雲箭 · 圓網球 · 柔力球 · Flexi-Bar · 身心伸展 · 兒童健體 · 北歐式健步行 · 匹克球</td></tr>
+    </table>
+  </div>
+
+  <!-- Contact -->
+  <div style="background:#1a1a2e; border-radius:8px; padding:14px 18px; text-align:center;">
+    <div style="font-size:10pt; font-weight:600; color:#93c5fd;">立即了解 ZenPass 企業計劃</div>
+    <div style="font-size:14pt; font-weight:700; color:#fff; margin:4px 0;">📞 9033 5538 / 9492 5828</div>
+    <div style="font-size:9.5pt; color:#93c5fd;">📧 davidchoy@hklfcl.com</div>
+    <div style="font-size:9pt; color:#93c5fd; margin-top:2px;">🌐 <a href="https://zenpass.hk/corporate-guide.html" style="color:#60a5fa; text-decoration:none;">zenpass.hk/corporate-guide.html</a></div>
+  </div>
+
+</div>
+
+<div style="text-align:center; margin-top:10px; color:#999; font-size:9.5pt;">
+  <span style="color:#2563eb;">✦</span> ZenPass 禪流 — 企業運動福利，由員工自己揀 <span style="color:#2563eb;">✦</span>
+</div>
+
+</body>
+</html>

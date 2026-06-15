@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZenPass 企業計劃</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  @page { size: A4; margin: 0; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 210mm; height: 297mm; overflow: hidden; }
+  body {
+    font-family: 'Noto Sans TC', sans-serif;
+    background: #fff; color: #0f172a;
+  }
+  .page {
+    width: 210mm; height: 297mm;
+    display: flex; flex-direction: column;
+  }
+
+  /* ===== ACCENT BAR ===== */
+  .accent {
+    height: 3mm; flex-shrink: 0;
+    background: linear-gradient(90deg, #0f172a 0%, #2563eb 40%, #60a5fa 70%, #f97316 100%);
+  }
+
+  /* ===== BANNER ===== */
+  .banner {
+    background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 50%, #1e40af 100%);
+    padding: 6mm 12mm 7mm 12mm;
+    flex-shrink: 0;
+    position: relative;
+    overflow: hidden;
+  }
+  .banner::after {
+    content: '';
+    position: absolute;
+    top: -25mm; right: -20mm;
+    width: 85mm; height: 85mm;
+    background: radial-gradient(circle, rgba(255,255,255,0.05), transparent 70%);
+    border-radius: 50%;
+  }
+  .banner-inner {
+    display: flex; align-items: center; gap: 5mm;
+    position: relative; z-index: 1;
+  }
+  .banner-inner .bl { flex: 1; }
+  .banner-inner .bl .badge {
+    display: inline-flex; align-items: center; gap: 2mm;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 2mm; padding: 0.6mm 2mm;
+    margin-bottom: 1.5mm;
+  }
+  .banner-inner .bl .badge img { width: 4.5mm; height: 4.5mm; border-radius: 0.8mm; }
+  .banner-inner .bl .badge span { font-size: 5.5pt; color: #93c5fd; }
+  .banner-inner .bl h1 {
+    font-size: 20pt; font-weight: 900; color: #fff; line-height: 1.1;
+  }
+  .banner-inner .bl h1 em { color: #60a5fa; font-style: normal; }
+  .banner-inner .bl .desc {
+    font-size: 8pt; color: #bfdbfe; line-height: 1.5; margin-top: 1.5mm;
+    max-width: 115mm;
+  }
+  .banner-inner .br {
+    text-align: center; flex-shrink: 0;
+    background: linear-gradient(180deg, rgba(255,255,255,0.1), rgba(255,255,255,0.04));
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 3mm; padding: 2.5mm 4.5mm;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  }
+  .banner-inner .br .lbl { font-size: 5.5pt; color: #93c5fd; letter-spacing: 1px; }
+  .banner-inner .br .num { font-size: 22pt; font-weight: 900; color: #fff; line-height: 1; margin: 0.8mm 0; }
+  .banner-inner .br .num span { font-size: 9pt; font-weight: 500; color: #93c5fd; }
+  .banner-inner .br .sub { font-size: 6pt; color: #94a3b8; }
+  .banner-inner .br .sub strong { color: #fff; }
+
+  /* ===== FLOW STRIP ===== */
+  .flow {
+    background: #f8fafc; padding: 3.5mm 12mm;
+    display: flex; align-items: center;
+    border-bottom: 1px solid #e2e8f0; flex-shrink: 0;
+  }
+  .flow .flabel {
+    font-size: 6pt; font-weight: 700; color: #2563eb;
+    white-space: nowrap; margin-right: 3mm; letter-spacing: 0.3px;
+  }
+  .flow .fsteps { display: flex; align-items: center; flex: 1; }
+  .flow .fsteps .s {
+    flex: 1; display: flex; align-items: center; gap: 1mm;
+    font-size: 6.5pt; color: #0f172a;
+  }
+  .flow .fsteps .s .si {
+    width: 3.5mm; height: 3.5mm;
+    background: #e2e8f0; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 5pt; flex-shrink: 0;
+  }
+  .flow .fsteps .s .si.act { background: #2563eb; color: #fff; }
+  .flow .fsteps .fa { font-size: 8pt; color: #cbd5e1; margin: 0 0.3mm; }
+  .flow .ftag {
+    font-size: 5.5pt; font-weight: 700; color: #fff;
+    background: #f97316; padding: 0.5mm 2mm; border-radius: 1.5mm;
+    white-space: nowrap; flex-shrink: 0; margin-left: 2mm;
+  }
+
+  /* ===== CFG ROW ===== */
+  .cfg {
+    display: flex; gap: 3mm; padding: 5mm 12mm; flex-shrink: 0;
+  }
+  .cfg .box {
+    flex: 1; background: #fff;
+    border: 1px solid #e2e8f0; border-radius: 3.5mm;
+    overflow: hidden;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.03);
+  }
+  .cfg .box .bh {
+    padding: 2mm 3mm; font-size: 7.5pt; font-weight: 700;
+    color: #fff; letter-spacing: 0.3px;
+  }
+  .cfg .box .bh.b1 { background: linear-gradient(135deg, #1e40af, #3b82f6); }
+  .cfg .box .bh.b2 { background: linear-gradient(135deg, #065f46, #10b981); }
+  .cfg .box .items { }
+  .cfg .box .items .i {
+    display: flex; align-items: center; gap: 2.5mm;
+    padding: 3mm 3.5mm; font-size: 7.5pt; color: #334155;
+    border-bottom: 1px solid #f3f4f6;
+  }
+  .cfg .box .items .i:last-child { border: none; }
+  .cfg .box .items .i .ii {
+    width: 3.5mm; height: 3.5mm; border-radius: 0.8mm;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 5.5pt; flex-shrink: 0;
+  }
+  .cfg .box .items .i .ii.c1 { background: #eff6ff; }
+
+  /* ===== PILL FEATURES ===== */
+  .pills {
+    padding: 5mm 12mm; flex-shrink: 0;
+    display: flex; gap: 3mm; flex-wrap: wrap;
+    justify-content: center;
+  }
+  .pills .p {
+    display: flex; align-items: center; gap: 2.5mm;
+    background: #f8fafc; border: 1px solid #e2e8f0;
+    border-radius: 99px; padding: 2mm 4mm;
+    font-size: 7.5pt; font-weight: 500; color: #0f172a;
+  }
+  .pills .p .pi {
+    width: 5mm; height: 5mm; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 7pt; flex-shrink: 0;
+  }
+  .pills .p .pi.c1 { background: #eff6ff; }
+  .pills .p .pi.c2 { background: #ecfdf5; }
+  .pills .p .pi.c3 { background: #fefce8; }
+  .pills .p .pi.c4 { background: #fdf2f8; }
+
+  /* ===== BOTTOM ===== */
+  .bot {
+    flex: 1;
+    display: flex;
+    padding: 4mm 12mm; gap: 4mm;
+    align-items: stretch;
+  }
+  .bot .c { flex: 1; display: flex; flex-direction: column; justify-content: space-evenly; }
+
+  .sh {
+    font-size: 6pt; font-weight: 600; color: #64748b; letter-spacing: 0.3px;
+  }
+
+  /* COURSE TAGS */
+  .course-tags { line-height: 1.6; }
+  .course-tags .t {
+    display: inline-block; font-size: 6pt; font-weight: 500;
+    padding: 0.5mm 2.5mm; border-radius: 1.5mm; margin: 0.3mm;
+  }
+  .course-tags .t.g1 { background: #eff6ff; color: #1e40af; }
+  .course-tags .t.g2 { background: #ecfdf5; color: #065f46; }
+  .course-tags .t.g3 { background: #fffbeb; color: #92400e; }
+
+  .bot .accred { font-size: 5pt; color: #94a3b8; margin-top: 0.5mm; }
+
+  /* ROI */
+  .roi-s { display: flex; gap: 1mm; }
+  .roi-s .r {
+    flex: 1; text-align: center; border-radius: 2mm; padding: 2mm 0.5mm;
+  }
+  .roi-s .r .rn { font-size: 11pt; font-weight: 900; }
+  .roi-s .r .rl { font-size: 5.5pt; font-weight: 600; color: #0f172a; }
+  .roi-s .r .rs { font-size: 4.5pt; color: #94a3b8; }
+  .roi-s .r.g1 { background: #f0fdf4; border: 1px solid #bbf7d0; }
+  .roi-s .r.g1 .rn { color: #059669; }
+  .roi-s .r.g2 { background: #eff6ff; border: 1px solid #bfdbfe; }
+  .roi-s .r.g2 .rn { color: #2563eb; }
+  .roi-s .r.g3 { background: #fffbeb; border: 1px solid #fde68a; }
+  .roi-s .r.g3 .rn { color: #b45309; }
+
+  /* COMPARE */
+  .cmp-s { display: flex; gap: 1mm; }
+  .cmp-s .c {
+    flex: 1; border-radius: 2mm; padding: 1.5mm 2mm; font-size: 6pt; line-height: 1.5;
+  }
+  .cmp-s .c .ct { font-weight: 700; margin-bottom: 0.3mm; }
+  .cmp-s .c.bd { background: #fef2f2; border: 1px solid #fecaca; }
+  .cmp-s .c.bd .ct { color: #991b1b; }
+  .cmp-s .c.gd { background: #f0fdf4; border: 1px solid #bbf7d0; }
+  .cmp-s .c.gd .ct { color: #059669; }
+
+  /* ESG */
+  .esg-s { display: flex; gap: 1mm; }
+  .esg-s .e {
+    flex: 1; text-align: center; border-radius: 2mm; padding: 1.2mm;
+    font-size: 5.5pt; color: #64748b;
+  }
+  .esg-s .e .ei { font-size: 8pt; }
+  .esg-s .e.e1 { background: #f0fdf4; border: 1px solid #bbf7d0; }
+  .esg-s .e.e2 { background: #eff6ff; border: 1px solid #bfdbfe; }
+  .esg-s .e.e3 { background: #faf5ff; border: 1px solid #e9d5ff; }
+
+  /* ===== FOOTER ===== */
+  .footer {
+    background: #0f172a; padding: 3.5mm 12mm;
+    display: flex; align-items: center; justify-content: space-between;
+    flex-shrink: 0;
+  }
+  .footer .fl { display: flex; align-items: center; gap: 3mm; font-size: 7pt; color: #fff; }
+  .footer .fl .g { color: #94a3b8; font-weight: 400; }
+  .footer .fl .free {
+    background: #f97316; color: #fff; font-size: 6pt; font-weight: 700;
+    padding: 0.8mm 2mm; border-radius: 1.5mm;
+  }
+  .footer .fr { text-align: right; }
+  .footer .fr .fr1 { font-size: 5pt; color: #475569; }
+  .footer .fr .fr2 { font-size: 6pt; color: #60a5fa; text-decoration: none; }
+  .footer .fr .fr2 em { color: #475569; font-style: normal; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ACCENT BAR -->
+  <div class="accent"></div>
+
+  <!-- BANNER -->
+  <div class="banner">
+    <div class="banner-inner">
+      <div class="bl">
+        <div class="badge">
+          <img src="logo-192.png" alt="logo">
+          <span>香港康樂及體育有限公司 · 政府採購供應商</span>
+        </div>
+        <h1>ZenPass <em>企業計劃</em></h1>
+        <div class="desc">一站式員工運動福利平台 — 員工自己 book 堂，系統自動扣 Credits，HR 完全零 admin。</div>
+      </div>
+      <div class="br">
+        <div class="lbl">每人每月</div>
+        <div class="num">$399<span>/人</span></div>
+        <div class="sub"><strong style="color:#fff;">60 Credits</strong> ≈ 5 堂運動</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FLOW -->
+  <div class="flow">
+    <div class="flabel">⚡ 點樣運作</div>
+    <div class="fsteps">
+      <div class="s"><div class="si act">🏢</div>公司派Credits</div>
+      <div class="fa">→</div>
+      <div class="s"><div class="si act">👤</div>員工揀堂</div>
+      <div class="fa">→</div>
+      <div class="s"><div class="si act">✓</div>自動扣數</div>
+      <div class="fa">→</div>
+      <div class="s"><div class="si act">📍</div>簽到</div>
+      <div class="fa">→</div>
+      <div class="s"><div class="si act">📊</div>Dashboard</div>
+    </div>
+    <div class="ftag">HR 零 admin</div>
+  </div>
+
+  <!-- CFG ROW -->
+  <div class="cfg">
+    <div class="box">
+      <div class="bh b1">🏢 Admin Panel</div>
+      <div class="items">
+        <div class="i"><div class="ii c1">📊</div>Dashboard — 一頁睇晒全公司用量</div>
+        <div class="i"><div class="ii c1">💰</div>員工獨立 Credit 上限</div>
+        <div class="i"><div class="ii c1">🔄</div>每月 Reset — Use it or lose it</div>
+        <div class="i"><div class="ii c1">📥</div>CSV 報表 — 一鍵匯出</div>
+      </div>
+    </div>
+    <div class="box">
+      <div class="bh b2">👤 員工體驗</div>
+      <div class="items">
+        <div class="i"><div class="ii c1">📱</div>手機直接用，無需下載 App</div>
+        <div class="i"><div class="ii c1">👁️</div>即睇餘額、預約記錄</div>
+        <div class="i"><div class="ii c1">✏️</div>開課前 24 小時免費取消</div>
+        <div class="i"><div class="ii c1">📍</div>QR 簽到 + 100m Geofence</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PILLS -->
+  <div class="pills">
+    <div class="p"><div class="pi c1">👥</div>員工管理</div>
+    <div class="p"><div class="pi c2">💰</div>Credit 上限</div>
+    <div class="p"><div class="pi c1">🔄</div>每月 Reset</div>
+    <div class="p"><div class="pi c2">🔀</div>Hybrid 支付</div>
+    <div class="p"><div class="pi c3">📊</div>Dashboard</div>
+    <div class="p"><div class="pi c4">📍</div>Geofence 簽到</div>
+    <div class="p"><div class="pi c4">🔔</div>通知系統</div>
+    <div class="p"><div class="pi c3">📥</div>CSV 報表</div>
+  </div>
+
+  <!-- BOTTOM -->
+  <div class="bot">
+    <div class="c">
+      <div class="sh">🎯 課程選擇（18+ 種·持續擴充）</div>
+      <div class="course-tags">
+        <span class="t g1">芬蘭木柱</span><span class="t g1">地板冰壺</span><span class="t g1">布袋球</span>
+        <span class="t g1">穿雲箭</span><span class="t g1">圓網球</span><span class="t g1">柔力球</span>
+        <span class="t g1">匹克球</span><span class="t g1">躲避盤</span><span class="t g1">健球</span>
+        <span class="t g2">Flexi-Bar</span><span class="t g2">HIIT</span><span class="t g2">空中瑜伽</span>
+        <span class="t g2">身心伸展</span><span class="t g2">拳擊</span>
+        <span class="t g3">兒童健體</span><span class="t g3">親子體能</span>
+        <span class="t g3">團隊建立</span><span class="t g3">北歐健步行</span>
+      </div>
+      <div class="accred">🏆 商界展關懷 · 🏛️ 政府採購供應商 · 🌱 ESG 貢獻</div>
+    </div>
+    <div class="c">
+      <div>
+        <div class="sh">📈 企業效益</div>
+        <div class="roi-s" style="margin-top:0.5mm;">
+          <div class="r g1"><div class="rn">-27%</div><div class="rl">病假</div><div class="rs">WHO 研究</div></div>
+          <div class="r g2"><div class="rn">70%+</div><div class="rl">保守 ROI</div><div class="rs">未計生產力</div></div>
+          <div class="r g3"><div class="rn">7 天</div><div class="rl">快速上線</div><div class="rs">由傾到用得</div></div>
+        </div>
+      </div>
+      <div style="display:flex; gap:1.5mm;">
+        <div style="flex:1;">
+          <div class="sh">✅ vs Gym Pass</div>
+          <div class="cmp-s" style="margin-top:0.5mm;">
+            <div class="c bd"><div class="ct">❌ 傳統</div>指定場地·用唔完蝕·冇數據</div>
+            <div class="c gd"><div class="ct">✅ ZenPass</div>多區場地·按用量·Dashboard</div>
+          </div>
+        </div>
+        <div style="flex:1;">
+          <div class="sh">🌱 ESG 貢獻</div>
+          <div class="esg-s" style="margin-top:0.5mm;">
+            <div class="e e1"><div class="ei">🌱</div>跨區減碳</div>
+            <div class="e e2"><div class="ei">👥</div>員工身心健康</div>
+            <div class="e e3"><div class="ei">⚖️</div>合規透明報告</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <div class="fl">
+      <span class="free">🎁 免費試用 2 個月</span>
+      <span>📞 <span class="g">9033 5538 / 9492 5828</span></span>
+      <span>📧 <span class="g">davidchoy@hklfcl.com</span></span>
+    </div>
+    <div class="fr">
+      <div class="fr1">香港康樂及體育有限公司</div>
+      <a class="fr2" href="https://www.zenpass.hk">www.zenpass.hk</a> <em>·</em> <a class="fr2" href="https://zenpass.hk/corporate-guide.html">企業計劃</a>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

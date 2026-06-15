@@ -481,14 +481,20 @@
             .then(function(r) { return r.json(); })
             .then(function(corpData) {
               if (corpData && !corpData.error && corpData.company_name) {
+                var avail = (corpData.credit_pool || 0) - (corpData.credit_used || 0);
                 var corpBanner = document.createElement("div");
-                corpBanner.style.cssText = "background:linear-gradient(135deg,var(--orange-500),var(--orange-400));border-radius:12px;padding:14px 16px;margin-bottom:16px;color:#fff;";
-                corpBanner.innerHTML = "<div style=\"font-weight:600;font-size:14px;\">🏢 " + corpData.company_name + "</div>" +
-                  "<div style=\"display:flex;gap:16px;margin-top:8px;font-size:13px;opacity:0.9;\">" +
-                  "<span>剩餘：<strong>" + (corpData.credit_pool - corpData.credit_used) + "</strong> Credits</span>" +
-                  (corpData.monthly_credit_limit ? "<span>本月：<strong>" + (corpData.monthly_credit_used || 0) + "/" + corpData.monthly_credit_limit + "</strong></span>" : "") +
-                  "</div>";
-                document.getElementById("bookings-list")?.before(corpBanner);
+                corpBanner.className = "corp-banner";
+                corpBanner.style.cssText = "background:linear-gradient(135deg,var(--orange-500),var(--orange-400),#e67a2e);border-radius:14px;padding:18px 20px;margin-bottom:16px;color:#fff;box-shadow:0 2px 12px rgba(201,68,32,0.15);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;";
+                corpBanner.innerHTML = "<div><div style=\"font-weight:700;font-size:16px;margin-bottom:4px;\">🏢 " + corpData.company_name + "</div>" +
+                  "<div style=\"font-size:12px;opacity:0.85;\">" +
+                    "<span>公司池剩 <strong>" + avail + "</strong> cr</span>" +
+                    (corpData.monthly_credit_limit ? "<span style=\"margin-left:14px;\">本月 <strong>" + (corpData.monthly_credit_used || 0) + "/" + corpData.monthly_credit_limit + "</strong> cr</span>" : "") +
+                  "</div></div>" +
+                  "<a href=\"corporate-hr.html\" style=\"padding:6px 14px;background:rgba(255,255,255,0.2);border-radius:8px;font-size:12px;color:#fff;text-decoration:none;font-weight:600;\">管理後台 →</a>";
+                var bkList = document.getElementById("bookings-list");
+                if (bkList) {
+                  bkList.parentNode.insertBefore(corpBanner, bkList);
+                }
               }
             })
             .catch(function() {});

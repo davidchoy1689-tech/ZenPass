@@ -387,4 +387,59 @@ router.get("/my/employee/:userId", authenticateToken, (req, res) => {
     res.status(500).json({ error: "讀取員工資料失敗" });
   }
 });
+
+// ===== POST /api/corporate/my/invite — HR 自助邀請新員工 =====
+router.post("/my/invite", authenticateToken, (req, res) => {
+  try {
+    const { email, name } = req.body;
+    if (!email || !name) return res.status(400).json({ error: "請提供員工電郵及名稱" });
+
+    const db = new Database(DB_PATH);
+    db.pragma("foreign_keys = ON");
+
+    // Verify the requesting user belongs to a company
+    const myCompany = db.prepare(`
+      SELECT cc.* FROM corporate_members cm
+      JOIN corporate_companies cc ON cm.company_id = cc.id
+      WHERE cm.user_id = ? AND cm.status = 'active' AND cc.status = 'active'
+    `).get(req.user.id);
+
+    if (!myCompany) { db.close(); return res.status(403).json({ error: "你不是企業員工" }); }
+
+    // Check existing user
+    let user = db.prepare("SELECT id, name, email FROM users WHERE email = ?").get(email);
+    if (!user) {
+      const userId = uuidv4();
+      const bcrypt = require("bcrypt");
+      const tempPass = "zp" + Math.random().toString(36).substring(2, 10) + "!";
+      db.prepare(`
+        INSERT INTO users (id, name, email, password_hash, role, status, credits, created_at)
+        VALUES (?, ?, ?, ?, 'user', 'active', 0, datetime('now'))
+      `).run(userId, name, email, bcrypt.hashSync(tempPass, 10));
+      user = { id: userId, temp_password: tempPass, new: true };
+    } else {
+      user.new = false;
+    }
+
+    // Check if already member
+    const existing = db.prepare("SELECT id FROM corporate_members WHERE company_id = ? AND user_id = ?")
+      .get(myCompany.id, user.id);
+    if (existing) { db.close(); return res.json({ message: "該員工已在公司內" }); }
+
+    db.prepare("INSERT INTO corporate_members (id, company_id, user_id, status, created_at) VALUES (?, ?, ?, 'active', datetime('now'))")
+      .run(uuidv4(), myCompany.id, user.id);
+
+    db.close();
+    res.json({
+      message: user.new
+        ? `✅ ${name} 已加入！臨時密碼：${user.temp_password}（請即修改）`
+        : `✅ ${name} 已加入公司！`,
+      user: { email, name, new_account: user.new }
+    });
+  } catch (err) {
+    console.error("[HR INVITE] Error:", err);
+    res.status(500).json({ error: "邀請失敗" });
+  }
+});
+
 module.exports = router;

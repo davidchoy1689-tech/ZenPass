@@ -1223,7 +1223,7 @@
               if (creditsOpt.nextElementSibling.getAttribute("data-pay") === "membership_trial") break;
               creditsOpt = creditsOpt.nextElementSibling;
             }
-            var corpHtml = "<div class=payment-option data-pay='corporate' onclick=\"selectPayment('corporate', this)\"><div class=radio></div><div class=pay-name>🏢 公司 Credits</div><div class=pay-price>" + d.company_name + " (餘 " + d.available_credits + " Credits)" + (d.monthly_credit_limit ? " — 本月 " + (d.monthly_credit_used || 0) + "/" + d.monthly_credit_limit + " cr" : "") + "</div></div>";
+            var corpHtml = "<div class=payment-option data-pay='corporate' onclick=\"selectPayment('corporate', this)\"><div class=radio></div><div class=pay-name>🏢 " + d.company_name + " 公司</div><div class=pay-price>公司池剩 " + d.available_credits + " cr" + (d.monthly_credit_limit ? " · 本月 " + (d.monthly_credit_used || 0) + "/" + d.monthly_credit_limit + " cr" : "") + " · 自動混合扣數</div></div>";
             if (creditsOpt) {
               creditsOpt.insertAdjacentHTML("afterend", corpHtml);
             } else {

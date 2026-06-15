@@ -195,6 +195,7 @@
     </script>
     <!-- Footer & Back-to-Top Styles -->
     <style>
+      .modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.4);z-index:9999;display:flex;align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto;}
       .footer-grad {
         background: linear-gradient(135deg, #1a1a2e 0%, #2d2d44 50%, #c94420 100%);
       }
@@ -462,11 +463,12 @@
       const bkTotal = data.total_bookings_30d || 0;
       const usagePct = c.credit_pool > 0 ? Math.round(((c.credit_used || 0) / c.credit_pool) * 100) : 0;
 
+      const resetDate = c.next_reset_at ? formatDate(c.next_reset_at) : '每月1號';
       const cards = [
         { icon: '🏢', num: avail.toLocaleString(), label: '可用 Credits', color: '#059669' },
         { icon: '👥', num: empTotal, label: '員工人數', color: '#2563eb' },
         { icon: '📅', num: bkTotal, label: '本月預約', color: '#c94420' },
-        { icon: '📊', num: usagePct + '%', label: '用量百分比', color: '#7c3aed' }
+        { icon: '🔄', num: resetDate, label: '下次重置', color: '#7c3aed' }
       ];
 
       document.getElementById('overviewGrid').innerHTML = cards.map(card =>
@@ -484,6 +486,16 @@
       const empCount = document.getElementById('empCount');
 
       empCount.textContent = employees.length + ' 人';
+
+      // Invite button
+      var inviteBtn = document.getElementById('inviteBtn');
+      if (!inviteBtn) {
+        var empHeader = document.querySelector('.section-header');
+        if (empHeader) {
+          var btn = '<button id="inviteBtn" onclick="showInviteModal()" style="margin-left:auto;padding:6px 12px;background:var(--orange-500);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;">➕ 邀請員工</button>';
+          empHeader.insertAdjacentHTML('beforeend', btn);
+        }
+      }
 
       if (employees.length === 0) {
         tbody.innerHTML = '';
@@ -585,6 +597,63 @@
       labelsHtml += '</div>';
 
       container.innerHTML = barsHtml + labelsHtml;
+    }
+
+    // ===== Invite Employee Modal =====
+    function showInviteModal() {
+      var overlay = document.createElement('div');
+      overlay.className = 'modal-overlay';
+      overlay.innerHTML = '<div class="modal-box" style="background:#fff;border-radius:16px;padding:24px;max-width:400px;margin:80px auto;box-shadow:0 8px 30px rgba(0,0,0,0.15);position:relative;">' +
+        '<h3 style="margin:0 0 16px;font-size:17px;">➕ 邀請新員工</h3>' +
+        '<input id="inviteName" placeholder="員工名稱" style="width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:8px;margin-bottom:10px;font-size:14px;box-sizing:border-box;">' +
+        '<input id="inviteEmail" type="email" placeholder="員工電郵" style="width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:8px;margin-bottom:16px;font-size:14px;box-sizing:border-box;">' +
+        '<div style="display:flex;gap:8px;justify-content:flex-end;">' +
+          '<button onclick="this.closest(\'.modal-overlay\').remove()" style="padding:8px 16px;border:1px solid #ddd;border-radius:8px;background:#fff;cursor:pointer;font-size:13px;">取消</button>' +
+          '<button onclick="inviteEmployee(this)" id="inviteSubmitBtn" style="padding:8px 16px;background:var(--orange-500);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;">邀請</button>' +
+        '</div>' +
+        '<div id="inviteResult" style="margin-top:12px;font-size:13px;"></div>' +
+      '</div>';
+      document.body.appendChild(overlay);
+      setTimeout(function(){ document.getElementById('inviteName').focus(); }, 100);
+    }
+
+    async function inviteEmployee(btn) {
+      var name = document.getElementById('inviteName').value.trim();
+      var email = document.getElementById('inviteEmail').value.trim();
+      var result = document.getElementById('inviteResult');
+
+      if (!name || !email) {
+        result.innerHTML = '<span style="color:#dc2626;">請填寫員工名稱及電郵</span>';
+        return;
+      }
+      if (!email.includes('@')) {
+        result.innerHTML = '<span style="color:#dc2626;">電郵格式不正確</span>';
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = '邀請中...';
+      result.innerHTML = '';
+
+      try {
+        var r = await fetch(API_BASE + '/corporate/my/invite', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+          body: JSON.stringify({ name: name, email: email })
+        });
+        var d = await r.json();
+        if (!r.ok) throw new Error(d.error || '邀請失敗');
+
+        result.innerHTML = '<span style="color:#059669;">✅ ' + d.message + '</span>';
+        setTimeout(function() {
+          document.querySelector('.modal-overlay')?.remove();
+          loadDashboard(); // Refresh
+        }, 2000);
+      } catch(e) {
+        result.innerHTML = '<span style="color:#dc2626;">❌ ' + e.message + '</span>';
+        btn.disabled = false;
+        btn.textContent = '邀請';
+      }
     }
 
     // Init
