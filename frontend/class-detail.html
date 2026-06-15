@@ -1112,7 +1112,12 @@
 
         // Update book button
         updateBookButton();
-        checkWaitlistStatus(scheduleId);
+        // Check waitlist for first schedule if none selected
+        if (!selectedSchedule && schedules.length > 0) {
+          checkWaitlistStatus(schedules[0].id || schedules[0].schedule_id);
+        } else if (selectedSchedule) {
+          checkWaitlistStatus(selectedSchedule.id);
+        }
       }
 
       function renderScheduleItem(s) {
