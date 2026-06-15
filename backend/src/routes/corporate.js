@@ -116,8 +116,8 @@ router.post("/companies/:id/employees", authenticateToken, (req, res) => {
         const bcryptjs = require("bcryptjs");
         const tempPass = "zp" + Math.random().toString(36).substring(2, 10) + "!";
         db.prepare(`
-          INSERT INTO users (id, name, email, password_hash, role, status, credits, created_at)
-          VALUES (?, ?, ?, ?, 'user', 'active', 0, datetime('now'))
+          INSERT INTO users (id, name, email, password_hash, role, credits, created_at)
+          VALUES (?, ?, ?, ?, 'user', 0, datetime('now'))
         `).run(userId, emp.name || emp.email.split("@")[0], emp.email, bcryptjs.hashSync(tempPass, 10));
         user = { id: userId, temp_password: tempPass, new: true };
       } else {
@@ -413,8 +413,8 @@ router.post("/my/invite", authenticateToken, (req, res) => {
       const bcryptjs = require("bcryptjs");
       const tempPass = "zp" + Math.random().toString(36).substring(2, 10) + "!";
       db.prepare(`
-        INSERT INTO users (id, name, email, password_hash, role, status, credits, created_at)
-        VALUES (?, ?, ?, ?, 'user', 'active', 0, datetime('now'))
+        INSERT INTO users (id, name, email, password_hash, role, credits, created_at)
+        VALUES (?, ?, ?, ?, 'user', 0, datetime('now'))
       `).run(userId, name, email, bcryptjs.hashSync(tempPass, 10));
       user = { id: userId, temp_password: tempPass, new: true };
     } else {
