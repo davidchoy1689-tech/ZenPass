@@ -1768,32 +1768,36 @@
   </div>  <!-- ===== 學員心聲 ===== -->
   <div class="section" style="padding:32px 16px;overflow:hidden">
     <div class="zen-section-title" style="font-size:15px;font-weight:700;margin-bottom:16px;text-align:center">💬 學員心聲</div>
-    <div style="display:flex;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;padding:4px 4px 12px">
-      <div style="flex:0 0 280px;background:#fff;border-radius:14px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,0.06);scroll-snap-align:start">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
-          <div style="width:40px;height:40px;border-radius:50%;background:var(--orange-100);display:flex;align-items:center;justify-content:center;font-size:18px">🧑</div>
-          <div><div style="font-weight:600;font-size:13px">Winnie</div><div style="font-size:11px;color:var(--dark-700)">瑜伽初學者</div></div>
-        </div>
-        <div style="font-size:12px;line-height:1.6;color:var(--dark-700)">「第一次上瑜伽班就愛上咗！靜儀導師好專業，環境又好舒服，而家逢星期三都嚟上堂～」</div>
-        <div style="margin-top:8px;font-size:12px">⭐⭐⭐⭐⭐</div>
-      </div>
-      <div style="flex:0 0 280px;background:#fff;border-radius:14px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,0.06);scroll-snap-align:start">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
-          <div style="width:40px;height:40px;border-radius:50%;background:var(--orange-100);display:flex;align-items:center;justify-content:center;font-size:18px">👨</div>
-          <div><div style="font-weight:600;font-size:13px">阿強</div><div style="font-size:11px;color:var(--dark-700)">健身愛好者</div></div>
-        </div>
-        <div style="font-size:12px;line-height:1.6;color:var(--dark-700)">「用 ZenPass 上咗幾個月堂，一個 Pass 就玩到瑜伽、拳擊、攀岩，好方便！」</div>
-        <div style="margin-top:8px;font-size:12px">⭐⭐⭐⭐⭐</div>
-      </div>
-      <div style="flex:0 0 280px;background:#fff;border-radius:14px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,0.06);scroll-snap-align:start">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
-          <div style="width:40px;height:40px;border-radius:50%;background:var(--orange-100);display:flex;align-items:center;justify-content:center;font-size:18px">👩</div>
-          <div><div style="font-weight:600;font-size:13px">Phoebe</div><div style="font-size:11px;color:var(--dark-700)">在職媽媽</div></div>
-        </div>
-        <div style="font-size:12px;line-height:1.6;color:var(--dark-700)">「產後修復班幫咗我好多！公司嘅企業健康計劃仲可以免費上堂，真係好正～」</div>
-        <div style="margin-top:8px;font-size:12px">⭐⭐⭐⭐⭐</div>
-      </div>
+    <div id="testimonialCarousel" style="display:flex;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;padding:4px 4px 12px">
+      <div style="flex:0 0 280px;padding:20px;text-align:center;color:var(--dark-700)">載入中...</div>
     </div>
+    <script>
+    (function(){
+      fetch('/api/reviews/public/testimonials')
+        .then(function(r){ return r.json(); })
+        .then(function(data){
+          var t = data.testimonials || [];
+          if(t.length === 0) return;
+          var emojis = ['🧑','👨','👩','👦','👧','🧔','👴','👵'];
+          var html = '';
+          for(var i=0;i<t.length;i++){
+            var rv = t[i];
+            var stars = '';
+            for(var s=0;s<(rv.rating||5);s++) stars += '⭐';
+            html += '<div style="flex:0 0 280px;background:#fff;border-radius:14px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,0.06);scroll-snap-align:start">' +
+              '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">' +
+              '<div style="width:40px;height:40px;border-radius:50%;background:var(--orange-100);display:flex;align-items:center;justify-content:center;font-size:18px">' + emojis[i%emojis.length] + '</div>' +
+              '<div><div style="font-weight:600;font-size:13px">' + escHtml(rv.user_name) + '</div><div style="font-size:11px;color:var(--dark-700)">' + escHtml(rv.tag||'學員') + '</div></div>' +
+              '</div>' +
+              '<div style="font-size:12px;line-height:1.6;color:var(--dark-700)">「' + escHtml(rv.comment||'') + '」</div>' +
+              '<div style="margin-top:8px;font-size:12px">' + stars + '</div>' +
+            '</div>';
+          }
+          document.getElementById('testimonialCarousel').innerHTML = html;
+        })
+        .catch(function(){});
+    })();
+    </script>
   </div>
 <footer class="footer-grad">
       <div class="footer-grid">
