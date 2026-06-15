@@ -219,25 +219,26 @@ router.get("/public/testimonials", (req, res) => {
       .all();
     db.close();
 
-    if (testimonials.length === 0) {
-      // Return curated sample testimonials
-      return res.json({
-        testimonials: [
-          { user_name: "Winnie", tag: "瑜伽初學者", comment: "第一次上瑜伽班就愛上咗！靜儀導師好專業，環境又好舒服，而家逢星期三都嚟上堂～", rating: 5 },
-          { user_name: "阿強", tag: "健身愛好者", comment: "用 ZenPass 上咗幾個月堂，一個 Pass 就玩到瑜伽、拳擊、攀岩，好方便！", rating: 5 },
-          { user_name: "Phoebe", tag: "在職媽媽", comment: "產後修復班幫咗我好多！公司嘅企業健康計劃仲可以免費上堂，真係好正～", rating: 5 },
-          { user_name: "小明", tag: "學生", comment: "平價就玩到咁多種運動，性價比超高！推薦俾咗好多同學", rating: 5 },
-          { user_name: "Catherine", tag: "辦公室OL", comment: "Lunch time 去上堂好方便，一個Pass搞掂，唔使逐間俾錢", rating: 4 }
-        ]
-      });
-    }
+    var curatedFallback = [
+      { user_name: "Winnie", tag: "瑜伽初學者", comment: "第一次上瑜伽班就愛上咗！靜儀導師好專業，環境又好舒服，而家逢星期三都嚟上堂～", rating: 5 },
+      { user_name: "阿強", tag: "健身愛好者", comment: "用 ZenPass 上咗幾個月堂，一個 Pass 就玩到瑜伽、拳擊、攀岩，好方便！", rating: 5 },
+      { user_name: "Phoebe", tag: "在職媽媽", comment: "產後修復班幫咗我好多！公司嘅企業健康計劃仲可以免費上堂，真係好正～", rating: 5 },
+      { user_name: "小明", tag: "學生", comment: "平價就玩到咁多種運動，性價比超高！推薦俾咗好多同學", rating: 5 },
+      { user_name: "Catherine", tag: "辦公室OL", comment: "Lunch time 去上堂好方便，一個Pass搞掂，唔使逐間俾錢", rating: 4 }
+    ];
 
-    const formatted = testimonials.map(t => ({
+    var formatted = testimonials.map(function(t) { return {
       user_name: t.user_name,
       tag: t.class_name || "學員",
       comment: t.comment,
       rating: t.rating
-    }));
+    };});
+
+    // If fewer than 3 real reviews, merge with curated
+    if (formatted.length < 3) {
+      formatted = formatted.concat(curatedFallback);
+    }
+
     res.json({ testimonials: formatted });
   } catch (err) {
     console.error("[TESTIMONIALS] Error:", err);
