@@ -42,8 +42,32 @@
     </script>
     <!-- Caching handled by server (nginx) -->
     <title>ZenPass 禪流 — 解鎖全城運動體驗</title>
-    <link rel="stylesheet" href="assets/index.css" />
-    <link rel="stylesheet" href="css/zenpass.css?v=2" />
+    <style>
+      /* Critical above-the-fold CSS */
+      :root{--orange-500:#f06030;--orange-600:#d05020;--orange-400:#f08050;--orange-300:#f0a070;--orange-100:#f5ede0;--orange-50:#f8f2e8;--orange-700:#aa3218;--orange-600-bg:#c94420;--dark-900:#1a1a2e;--dark-800:#2d2d44;--gray-300:#d1d5db;--gray-200:#e5e7eb;--gray-100:#ddd8cd;--gray-50:#e8e4d9;--white:#fcf9f5;--font-en:"Inter",sans-serif;--font-zh:"Noto Sans TC",sans-serif;--max-width:480px;--radius-xl:24px;--radius-md:12px;--radius-sm:8px;--shadow-md:0 4px 12px rgba(0,0,0,.1)}
+      *{margin:0;padding:0;box-sizing:border-box}
+      body{font-family:var(--font-zh);background:var(--gray-50);color:var(--dark-900);max-width:var(--max-width);margin:0 auto;padding-bottom:84px;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+      .hero{background:linear-gradient(135deg,var(--orange-500),#d05020);padding:20px 16px 32px;color:var(--white);border-radius:0 0 var(--radius-xl) var(--radius-xl);position:relative;overflow:hidden}
+      .hero::before{content:"";position:absolute;top:-60px;right:-60px;width:200px;height:200px;background:rgba(255,255,255,.08);border-radius:50%}
+      .hero::after{content:"";position:absolute;bottom:-40px;left:-40px;width:150px;height:150px;background:rgba(255,255,255,.05);border-radius:50%}
+      .hero-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;position:relative;z-index:1}
+      .hero-logo{font-size:22px;font-weight:800;letter-spacing:1px}.hero-logo span{font-weight:300}.hero-logo .zh{font-size:16px;font-weight:500}
+      .hero h1{font-size:28px;font-weight:800;line-height:1.2;margin-bottom:12px;position:relative;z-index:1}
+      .hero p{font-size:14px;opacity:.9;margin-bottom:20px;position:relative;z-index:1}
+      .zen-auth-buttons{display:flex;gap:8px;align-items:center}
+      .zen-btn-ghost{color:var(--white);text-decoration:none;font-size:14px;padding:6px 14px;border-radius:20px;border:1px solid rgba(255,255,255,.4)}
+      .zen-btn-small{color:var(--orange-700);text-decoration:none;font-size:14px;padding:6px 14px;border-radius:20px;background:var(--white);font-weight:600}
+      .search-bar{background:var(--white);border-radius:var(--radius-md);padding:4px 16px;display:flex;align-items:center;gap:12px;box-shadow:var(--shadow-md);position:relative;z-index:2;margin-top:-20px;margin-left:16px;margin-right:16px}
+      .search-bar input{flex:1;border:none;outline:none;padding:14px 0;font-size:15px;font-family:var(--font-zh);background:transparent}
+      .search-bar button{background:var(--orange-600-bg);border:none;color:var(--white);width:40px;height:40px;border-radius:var(--radius-sm);font-size:18px;cursor:pointer}
+      .zen-flex{display:flex}.zen-flex-center{display:flex;align-items:center;justify-content:center}.zen-flex-1{flex:1}
+      .zen-gap-sm{gap:8px}.zen-gap-md{gap:12px}
+      @media(max-width:768px){.hero{padding:16px;min-height:auto}.hero-top{flex-direction:column;align-items:flex-start;gap:12px}.zen-auth-buttons{width:100%}}
+      @media(max-width:480px){.hero{padding:12px}.hero-top{gap:8px}}
+    </style>
+    <link rel="preload" href="assets/index.css" as="style" />
+    <link rel="stylesheet" href="assets/index.css" media="print" onload="this.media='all'" />
+    <noscript><link rel="stylesheet" href="assets/index.css" /></noscript>
     <script>
       // Fix PWA manifest path for localhost vs GitHub Pages
       (function () {
@@ -93,7 +117,7 @@
       .sk-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
     </style>
     <script>
-    // Inline skeleton renderer (fallback before api.js loads)
+    <!-- Inline skeleton renderer — deferred until needed (avoids blocking parse)
     (function(){
       if(typeof showSkeleton === 'function') return;
       window._skQueue = [];
@@ -123,7 +147,7 @@
         c.innerHTML = h;
       };
     })();
-    </script>
+    </script> -->
 
     <script src="api.js?v=2" defer></script>
 
@@ -196,20 +220,9 @@
       >跳到主要內容</a
     >
     <style>
-      @keyframes heroShift {
-        0% {
-          background-position: 0% 50%;
-        }
-        50% {
-          background-position: 100% 50%;
-        }
-        100% {
-          background-position: 0% 50%;
-        }
-      }
       .hero {
-        animation: heroShift 8s ease infinite;
-        background-size: 200% 200% !important;
+        /* Static gradient — no animation for FCP improvement */
+        background-size: 100% 100% !important;
       }
       .home-card {
         border-radius: 14px;
@@ -264,7 +277,7 @@
         margin-bottom: 6px;
       }
       .footer-link {
-        color: rgba(255,255,255,0.6);
+        color: rgba(255,255,255,0.85);
         text-decoration: none;
         transition: color 0.2s;
         font-size: 13px;
@@ -1768,10 +1781,10 @@
   <div class="section" style="text-align:center;padding:32px 16px;margin-bottom:0">
     <div class="zen-section-title" style="font-size:15px;font-weight:700;margin-bottom:16px">🤝 合作夥伴</div>
     <div class="zen-flex zen-flex-center" style="gap:20px;flex-wrap:wrap;justify-content:center;">
-      <span style="font-size:13px;background:var(--gray-100);padding:8px 20px;border-radius:20px;font-weight:600;display:inline-flex;align-items:center;gap:6px"><img src="https://www.google.com/s2/favicons?domain=hklfcl.com&sz=16" width="16" height="16" alt="" style="border-radius:3px" onerror="this.style.display='none'"> 香港康樂及體育</span>
-      <span style="font-size:13px;background:var(--gray-100);padding:8px 20px;border-radius:20px;font-weight:600;display:inline-flex;align-items:center;gap:6px"><img src="https://www.google.com/s2/favicons?domain=zenpass.hk&sz=16" width="16" height="16" alt="" style="border-radius:3px" onerror="this.style.display='none'"> FitLab 健身工房</span>
-      <span style="font-size:13px;background:var(--gray-100);padding:8px 20px;border-radius:20px;font-weight:600;display:inline-flex;align-items:center;gap:6px"><img src="https://www.google.com/s2/favicons?domain=zenpass.hk&sz=16" width="16" height="16" alt="" style="border-radius:3px" onerror="this.style.display='none'"> ZenSpace 瑜伽教室</span>
-      <span style="font-size:13px;background:var(--gray-100);padding:8px 20px;border-radius:20px;font-weight:600;display:inline-flex;align-items:center;gap:6px"><img src="https://www.google.com/s2/favicons?domain=caringcompany.org.hk&sz=16" width="16" height="16" alt="" style="border-radius:3px" onerror="this.style.display='none'"> 商界展關懷</span>
+      <span style="font-size:13px;background:var(--gray-100);padding:8px 20px;border-radius:20px;font-weight:600;display:inline-flex;align-items:center;gap:6px"><img src="https://www.google.com/s2/favicons?domain=hklfcl.com&sz=16" width="16" height="16" alt="" loading="lazy" style="border-radius:3px" onerror="this.style.display='none'"> 香港康樂及體育</span>
+      <span style="font-size:13px;background:var(--gray-100);padding:8px 20px;border-radius:20px;font-weight:600;display:inline-flex;align-items:center;gap:6px"><img src="https://www.google.com/s2/favicons?domain=zenpass.hk&sz=16" width="16" height="16" alt="" loading="lazy" style="border-radius:3px" onerror="this.style.display='none'"> FitLab 健身工房</span>
+      <span style="font-size:13px;background:var(--gray-100);padding:8px 20px;border-radius:20px;font-weight:600;display:inline-flex;align-items:center;gap:6px"><img src="https://www.google.com/s2/favicons?domain=zenpass.hk&sz=16" width="16" height="16" alt="" loading="lazy" style="border-radius:3px" onerror="this.style.display='none'"> ZenSpace 瑜伽教室</span>
+      <span style="font-size:13px;background:var(--gray-100);padding:8px 20px;border-radius:20px;font-weight:600;display:inline-flex;align-items:center;gap:6px"><img src="https://www.google.com/s2/favicons?domain=caringcompany.org.hk&sz=16" width="16" height="16" alt="" loading="lazy" style="border-radius:3px" onerror="this.style.display='none'"> 商界展關懷</span>
       <span style="font-size:13px;background:var(--gray-100);padding:8px 20px;border-radius:20px;font-weight:600;display:inline-flex;align-items:center;gap:6px">➕ 更多夥伴加入中</span>
     </div>
   </div>  <!-- ===== 學員心聲 ===== -->
