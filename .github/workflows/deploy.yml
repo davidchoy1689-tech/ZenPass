@@ -16,4 +16,4 @@ jobs:
         run: |
           echo "$SSH_KEY" > /tmp/deploy_key
           chmod 600 /tmp/deploy_key
-          ssh -o StrictHostKeyChecking=no -i /tmp/deploy_key root@47.242.246.2 "cd /var/www/zenpass && git pull origin main && pm2 restart zenpass-api"
+          ssh -o StrictHostKeyChecking=no -i /tmp/deploy_key root@47.242.246.2 "cd /var/www/zenpass && git pull origin main && ln -sf /var/www/zenpass/deploy/nginx.conf /etc/nginx/sites-available/zenpass && nginx -t && systemctl reload nginx && pm2 restart zenpass-api"
