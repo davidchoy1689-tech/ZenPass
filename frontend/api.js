@@ -1261,10 +1261,36 @@ function autoSkeleton() {
   });
 }
 
+// ===== GA4 Conversion Events =====
+function gaEvent(action, label, value) {
+  try {
+    if (typeof gtag === 'function') {
+      gtag('event', action, { event_category: 'engagement', event_label: label, value: value || 1 });
+    }
+  } catch(e) {}
+}
+
+// Track key page interactions
+function initConversionTracking() {
+  // Booking clicks
+  document.addEventListener('click', function(e) {
+    var el = e.target.closest('[href*="class-detail.html"]');
+    if (el) { gaEvent('view_item', el.getAttribute('href') || 'class-detail'); return; }
+    el = e.target.closest('.btn-primary, [class*=btn-], .zen-btn-small, .cta-btn');
+    if (el) {
+      var txt = (el.textContent || el.innerText || '').trim().slice(0, 30);
+      if (txt) gaEvent('click', txt);
+    }
+    el = e.target.closest('#searchBtn');
+    if (el) gaEvent('search', 'header_search');
+  });
+}
+
 // ===== Init on load =====
 document.addEventListener("DOMContentLoaded", () => {
   updateNavBar();
   optimizeImages();
   trackPageView();
   autoSkeleton();
+  initConversionTracking();
 });
