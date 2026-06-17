@@ -22,8 +22,8 @@ router.get("/feed", (req, res) => {
     `).all();
     db.close();
 
-    // If no real activity yet, use demo data
-    const source = (realFeed && realFeed.length > 0) ? realFeed : [
+    // Always pad with demo activities so the feed looks alive
+    const demos = [
       { id: 'demo-1', time: new Date(Date.now() - 1*3600000).toISOString(), user_name: '小美', class_title: '辦公室伸展舒壓', venue_name: 'ZenSpace 瑜伽教室', category: '伸展' },
       { id: 'demo-2', time: new Date(Date.now() - 3*3600000).toISOString(), user_name: '阿強', class_title: '拳擊有氧 Boxing Fitness', venue_name: 'ZenSpace 健身室', category: '拳擊搏擊' },
       { id: 'demo-3', time: new Date(Date.now() - 8*3600000).toISOString(), user_name: 'Winnie', class_title: '頌缽療癒 Sound Bath', venue_name: 'ZenSpace 瑜伽教室', category: '冥想' },
@@ -31,8 +31,9 @@ router.get("/feed", (req, res) => {
       { id: 'demo-5', time: new Date(Date.now() - 48*3600000).toISOString(), user_name: '小明', class_title: '芭蕾塑形 Barre', venue_name: 'ZenSpace 舞蹈室', category: '舞蹈' },
       { id: 'demo-6', time: new Date(Date.now() - 72*3600000).toISOString(), user_name: 'Catherine', class_title: '空中瑜伽 Aerial Yoga', venue_name: 'ZenSpace 瑜伽教室', category: '瑜伽' },
     ];
+    const merged = (realFeed || []).concat(demos).slice(0, 10);
 
-    const anonymized = source.map(function(item) {
+    const anonymized = merged.map(function(item) {
       var nameParts = (item.user_name || '').split(' ');
       var displayName = nameParts[0] || 'User';
       if (nameParts.length > 1) {
