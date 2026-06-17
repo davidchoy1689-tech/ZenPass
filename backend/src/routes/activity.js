@@ -9,7 +9,7 @@ const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
 router.get("/feed", (req, res) => {
   try {
     const db = new Database(DB_PATH);
-    const feed = db.prepare(`
+    const realFeed = db.prepare(`
       SELECT b.id, b.created_at as time, b.status,
         u.name as user_name, c.title as class_title, c.venue_name,
         c.category
@@ -17,14 +17,22 @@ router.get("/feed", (req, res) => {
       JOIN users u ON b.user_id = u.id
       JOIN classes c ON b.class_id = c.id
       JOIN class_schedules cs ON b.schedule_id = cs.id
-      WHERE b.status IN ('confirmed', 'attended')
-        AND b.created_at >= datetime('now', '-7 days')
+      WHERE b.status IN ('confirmed', 'attended', 'checked_in')
       ORDER BY b.created_at DESC LIMIT 15
     `).all();
     db.close();
 
-    // Anonymize: show first name + last initial
-    const anonymized = feed.map(function(item) {
+    // If no real activity yet, use demo data
+    const source = (realFeed && realFeed.length > 0) ? realFeed : [
+      { id: 'demo-1', time: new Date(Date.now() - 1*3600000).toISOString(), user_name: '小美', class_title: '辦公室伸展舒壓', venue_name: 'ZenSpace 瑜伽教室', category: '伸展' },
+      { id: 'demo-2', time: new Date(Date.now() - 3*3600000).toISOString(), user_name: '阿強', class_title: '拳擊有氧 Boxing Fitness', venue_name: 'ZenSpace 健身室', category: '拳擊搏擊' },
+      { id: 'demo-3', time: new Date(Date.now() - 8*3600000).toISOString(), user_name: 'Winnie', class_title: '頌缽療癒 Sound Bath', venue_name: 'ZenSpace 瑜伽教室', category: '冥想' },
+      { id: 'demo-4', time: new Date(Date.now() - 24*3600000).toISOString(), user_name: 'Phoebe', class_title: '產後修復 Pilates', venue_name: 'ZenSpace 瑜伽教室', category: '產後修復' },
+      { id: 'demo-5', time: new Date(Date.now() - 48*3600000).toISOString(), user_name: '小明', class_title: '芭蕾塑形 Barre', venue_name: 'ZenSpace 舞蹈室', category: '舞蹈' },
+      { id: 'demo-6', time: new Date(Date.now() - 72*3600000).toISOString(), user_name: 'Catherine', class_title: '空中瑜伽 Aerial Yoga', venue_name: 'ZenSpace 瑜伽教室', category: '瑜伽' },
+    ];
+
+    const anonymized = source.map(function(item) {
       var nameParts = (item.user_name || '').split(' ');
       var displayName = nameParts[0] || 'User';
       if (nameParts.length > 1) {
