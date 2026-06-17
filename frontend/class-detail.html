@@ -11,15 +11,6 @@
     />
     <meta name="theme-color" content="#f06030" />
     
-    <meta name="description" content="瀏覽課程詳情、教練資料、時間表及收費 | 課程詳情 - ZenPass 禪流" />
-    <meta property="og:title" content="課程詳情 | ZenPass 禪流" />
-    <meta property="og:description" content="瀏覽課程詳情、教練資料、時間表及收費 | 課程詳情 - ZenPass 禪流" />
-    <meta property="og:url" content="https://zenpass.hk/class-detail.html" />
-    <meta property="og:type" content="website" />
-    <meta property="og:locale" content="zh_HK" />
-    <meta property="og:site_name" content="ZenPass 禪流" />
-    <meta property="og:image" content="https://zenpass.hk/favicon.png" />
-    <meta name="twitter:card" content="summary_large_image" />
     <script>
       // Fix PWA manifest path for localhost vs GitHub Pages
       (function () {
@@ -552,6 +543,47 @@
       };
     })();
     </script>
+  
+    <title>課程詳情 | ZenPass 禪流</title>
+    <meta name="description" content="瀏覽課程詳情、教練資料、時間表及收費 | 課程詳情 - ZenPass 禪流" />
+    <meta property="og:title" content="課程詳情 | ZenPass 禪流" />
+    <meta property="og:description" content="瀏覽課程詳情、教練資料、時間表及收費 | 課程詳情 - ZenPass 禪流" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://zenpass.hk/class-detail.html" />
+    <meta property="og:image" content="https://zenpass.hk/favicon.png" />
+    <meta property="og:site_name" content="ZenPass 禪流" />
+    <meta property="og:locale" content="zh_HK" />
+    <meta name="twitter:card" content="summary_large_image" />
+  
+  <script>
+  (function() {
+    var _orig = window.renderCourseData || null;
+    window.renderCourseData = function(cls) {
+      if (_orig) _orig(cls);
+      var ogT = document.querySelector('meta[property="og:title"]');
+      var ogD = document.querySelector('meta[property="og:description"]');
+      if (ogT) ogT.setAttribute('content', cls.title + ' | ZenPass 禪流');
+      if (ogD) ogD.setAttribute('content', (cls.description || '') + ' - 預約 ' + cls.title);
+      document.title = cls.title + ' | ZenPass 禪流';
+      var old = document.getElementById('course-schema');
+      if (old) old.remove();
+      var s = document.createElement('script');
+      s.id = 'course-schema';
+      s.type = 'application/ld+json';
+      s.textContent = JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'Course',
+        'name': cls.title,
+        'description': cls.description || '',
+        'provider': { '@type': 'Organization', 'name': 'ZenPass 禪流', 'url': 'https://zenpass.hk' },
+        'offers': { '@type': 'Offer', 'price': cls.price_hkd || (cls.credits_cost || 4) * 8, 'priceCurrency': 'HKD', 'availability': 'https://schema.org/InStock' },
+        'timeRequired': 'PT' + (cls.duration || 60) + 'M',
+        'coursePrerequisites': cls.difficulty || 'beginner'
+      });
+      document.head.appendChild(s);
+    };
+  })();
+  </script>
   </head>
   <body>
     <div class="class-image" id="class-image">
