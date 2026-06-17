@@ -880,7 +880,11 @@
             var clsId = cls.id || cls.class_id || '';
             var icon = cls.icon || '🏋';
             var bg = cls.color || 'linear-gradient(135deg, var(--orange-100), var(--orange-200))';
-            card.innerHTML = '<div class="featured-card-img" style="background:' + bg + '">' + icon + '</div>' +
+            // Badge: 熱門 or 新課
+            var badge = (cls.booking_count && cls.booking_count >= 5)
+              ? '<span style="position:absolute;top:8px;right:8px;background:#ef4444;color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;z-index:2;backdrop-filter:blur(4px);box-shadow:0 2px 4px rgba(0,0,0,0.2)">🔥 熱門</span>'
+              : '<span style="position:absolute;top:8px;right:8px;background:#10b981;color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;z-index:2;backdrop-filter:blur(4px);box-shadow:0 2px 4px rgba(0,0,0,0.2)">🌟 新課</span>';
+            card.innerHTML = '<div class="featured-card-img" style="background:' + bg + ';position:relative">' + icon + badge + '</div>' +
               '<div class="featured-card-body"><h3>' + escHtmlF(clsTitle) + '' +
               '<p>' + (cls.coach_name || '') + '</p><span class="tag tag-' + (cls.category || '').toLowerCase() + '">' + (cls.category || '') + '</span></div>';
             card.onclick = function() { window.location.href = 'class-detail.html?id=' + clsId; };
@@ -908,7 +912,11 @@
             var clsId = cls.id || cls.class_id || '';
             var icon = cls.icon || '🏋';
             var bg = cls.color || 'linear-gradient(135deg, var(--orange-100), var(--orange-200))';
-            card.innerHTML = '<div class="featured-card-img" style="background:' + bg + '">' + icon + '</div>' +
+            // Badge: 熱門 or 新課
+            var badge = (cls.booking_count && cls.booking_count >= 5)
+              ? '<span style="position:absolute;top:8px;right:8px;background:#ef4444;color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;z-index:2;backdrop-filter:blur(4px);box-shadow:0 2px 4px rgba(0,0,0,0.2)">🔥 熱門</span>'
+              : '<span style="position:absolute;top:8px;right:8px;background:#10b981;color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;z-index:2;backdrop-filter:blur(4px);box-shadow:0 2px 4px rgba(0,0,0,0.2)">🌟 新課</span>';
+            card.innerHTML = '<div class="featured-card-img" style="background:' + bg + ';position:relative">' + icon + badge + '</div>' +
               '<div class="featured-card-body"><h3>' + escHtmlF(clsTitle) + '' +
               '<p>' + (cls.coach_name || '') + '</p><span class="tag tag-' + (cls.category || '').toLowerCase() + '">' + (cls.category || '') + '</span></div>';
             card.onclick = function() { window.location.href = 'class-detail.html?id=' + clsId; };
@@ -1933,5 +1941,70 @@
   #quickBookBtn:hover { transform: scale(1.1); box-shadow: 0 6px 20px rgba(201,68,32,0.5); }
   @media (max-width:480px) { #quickBookBtn { width:52px; height:52px; font-size:22px; bottom:82px; right:12px; } }
 </style>
+<!-- Micro-animations Script -->
+<script>
+// === 1. Count-up Animation (Intersection Observer) ===
+(function(){
+  var stats = document.getElementById('visitor-stats');
+  if (!stats) return;
+  var counted = false;
+  var observer = new IntersectionObserver(function(entries) {
+    if (entries[0].isIntersecting && !counted) {
+      counted = true;
+      var targets = stats.querySelectorAll('.zen-text-bold');
+      targets.forEach(function(el) {
+        var txt = el.textContent.trim();
+        var suffix = txt.replace(/[0-9]/g,'');
+        var target = parseInt(txt) || 0;
+        if (target === 0) return;
+        var current = 0;
+        var step = Math.max(1, Math.floor(target / 40));
+        var timer = setInterval(function() {
+          current += step;
+          if (current >= target) { current = target; clearInterval(timer); }
+          el.textContent = current + suffix;
+        }, 25);
+      });
+    }
+  }, { threshold: 0.5 });
+  observer.observe(stats);
+})();
+
+// === 2. Testimonial Carousel Auto-play + Swipe ===
+(function(){
+  var carousel = document.getElementById('testimonialCarousel');
+  if (!carousel) return;
+  var touchStartX = 0;
+  carousel.addEventListener('touchstart', function(e) {
+    touchStartX = e.touches[0].clientX;
+  }, { passive: true });
+  carousel.addEventListener('touchend', function(e) {
+    var diff = touchStartX - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 30) {
+      carousel.scrollBy({ left: diff > 0 ? 280 : -280, behavior: 'smooth' });
+    }
+  }, { passive: true });
+  // Auto-play: scroll every 4s
+  var autoTimer = setInterval(function() {
+    if (!document.hidden) {
+      var maxScroll = carousel.scrollWidth - carousel.clientWidth;
+      if (carousel.scrollLeft >= maxScroll - 10) {
+        carousel.scrollTo({ left: 0, behavior: 'smooth' });
+      } else {
+        carousel.scrollBy({ left: 280, behavior: 'smooth' });
+      }
+    }
+  }, 4000);
+})();
+
+// === 3. Shimmer enhancement (add gradient shimmer) ===
+(function(){
+  var style = document.createElement('style');
+  style.textContent = '.sk-shimmer { background: linear-gradient(110deg,#e5e7eb 30%,#f9fafb 50%,#e5e7eb 70%) !important; background-size:200% 100% !important; animation:shimmer 1.8s ease-in-out infinite !important; } @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }';
+  document.head.appendChild(style);
+})();
+
+console.log('✅ Micro-animations loaded: count-up, carousel auto-play, shimmer');
+</script>
 </body>
 </html>
