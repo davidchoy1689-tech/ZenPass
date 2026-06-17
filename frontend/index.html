@@ -875,7 +875,7 @@
         });
     } else if (categoryFilter) {
       // No token but has interests — filter from public classes endpoint
-      fetch(apiBase + '/classes?status=active&limit=6' + categoryFilter)
+      fetch(apiBase + '/api/classes?status=active&limit=6' + categoryFilter)
       .then(function(r) { return r.json(); })
       .then(function(data) {
         var classes = data.classes || data || [];
@@ -1043,7 +1043,7 @@
         var d = await r.json();
         var container = document.getElementById("activityFeed");
         if (!container || !d.feed || d.feed.length === 0) {
-          if (container) showError(container, '無法載入最新動態', '請檢查網絡連線');
+          if (container) { container.innerHTML = '<div style="text-align:center;padding:20px;color:#94a3b8;font-size:13px">暫無最新動態，成為第一個預約嘅學員吧！</div>'; }
           return;
         }
         var html = "";
@@ -1058,7 +1058,7 @@
         container.innerHTML = html;
       } catch (e) {
         var container = document.getElementById("activityFeed");
-        if (container) showError(container, '無法載入最新動態', '請檢查網絡連線');
+        if (container) { container.innerHTML = '<div style="text-align:center;padding:20px;color:#94a3b8;font-size:13px">暫無最新動態，成為第一個預約嘅學員吧！</div>'; }
       }
     }
 
