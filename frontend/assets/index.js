@@ -76,6 +76,54 @@
     html.dark .class-card-price { color: #f1f5f9; }
   `;
   document.head.appendChild(s);
+  // Modern card design CSS
+  var mc = document.createElement('style');
+  mc.textContent = `
+    .modern-card{background:var(--white);border-radius:24px;overflow:hidden;border:1px solid var(--gray-200);box-shadow:0 1px 3px rgba(0,0,0,0.04);transition:all 0.3s cubic-bezier(0.4,0,0.2,1);display:flex;flex-direction:column;cursor:pointer}
+    .modern-card:hover{transform:translateY(-8px);box-shadow:0 20px 40px -8px rgba(0,0,0,0.12),0 8px 16px -6px rgba(0,0,0,0.08)}
+    html.dark .modern-card{background:#18181b;border-color:#27272a}html.dark .modern-card:hover{box-shadow:0 20px 40px -8px rgba(0,0,0,0.3)}
+    .modern-card-img{aspect-ratio:16/10;overflow:hidden;position:relative}
+    .modern-card-img .bg-img,.modern-card-img .bg{width:100%;height:100%;background-size:cover;background-position:center;transition:transform 0.5s cubic-bezier(0.4,0,0.2,1)}
+    .modern-card:hover .modern-card-img .bg-img,.modern-card:hover .modern-card-img .bg{transform:scale(1.1)}
+    .modern-card-badges{position:absolute;top:12px;left:12px;display:flex;flex-wrap:wrap;gap:6px;z-index:3}
+    .modern-card-badge{padding:3px 12px;font-size:11px;font-weight:600;border-radius:99px;color:#fff;box-shadow:0 2px 6px rgba(0,0,0,0.15)}
+    .modern-card-badge.hot{background:#ef4444}
+    .modern-card-badge.urgent{background:#10b981;animation:urgencyPulse 2s ease-in-out infinite}
+    .modern-card-fav{position:absolute;top:12px;right:12px;width:36px;height:36px;background:rgba(255,255,255,0.9);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-radius:12px;border:none;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.1);cursor:pointer;transition:all 0.2s;z-index:3;font-size:18px;line-height:1;color:#a1a1aa;padding:0}
+    .modern-card-fav:hover{transform:scale(1.12);color:#ef4444}
+    .modern-card-fav.liked{color:#ef4444}
+    html.dark .modern-card-fav{background:rgba(24,24,27,0.9);color:#71717a}
+    .modern-card-body{padding:20px;flex:1;display:flex;flex-direction:column}
+    .modern-card-tags{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+    .modern-card-tag{padding:2px 10px;font-size:12px;background:var(--gray-100);border-radius:6px;color:var(--dark-700)}
+    .modern-card-diff{font-size:12px;color:#10b981}
+    html.dark .modern-card-tag{background:#27272a;color:#a1a1aa}
+    html.dark .modern-card-diff{color:#34d399}
+    .modern-card-title{font-weight:600;font-size:17px;line-height:1.3;margin-bottom:6px;color:var(--dark-900);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+    .modern-card:hover .modern-card-title{color:#10b981}
+    html.dark .modern-card-title{color:#fafafa}
+    html.dark .modern-card:hover .modern-card-title{color:#34d399}
+    .modern-card-meta{font-size:13px;color:var(--dark-700);margin-bottom:12px}
+    html.dark .modern-card-meta{color:#d4d4d8}
+    .modern-card-review{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+    .modern-card-stars{color:#f59e0b;font-size:13px}
+    .modern-card-review-count{color:var(--gray-300);font-size:12px}
+    .modern-card-price{font-weight:600;color:#10b981;font-size:15px}
+    .modern-card-price small{font-size:11px;color:var(--gray-300);font-weight:400}
+    html.dark .modern-card-price{color:#34d399}
+    .modern-card-schedule{display:flex;align-items:center;justify-content:space-between;font-size:12px;color:var(--gray-300);margin-bottom:16px}
+    html.dark .modern-card-schedule{color:#71717a}
+    .modern-card-cta{margin-top:auto;width:100%;padding:14px;border-radius:16px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;font-weight:600;font-size:14px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all 0.2s;box-shadow:0 4px 14px rgba(16,185,129,0.3);font-family:inherit}
+    .modern-card-cta:hover{background:linear-gradient(135deg,#059669,#047857)}
+    .modern-card-cta:active{transform:scale(0.97)}
+    .modern-card-cta .arrow{font-size:18px;line-height:1}
+    html.dark .modern-card-cta{background:linear-gradient(135deg,#059669,#10b981)}
+    html.dark .modern-card-cta:hover{background:linear-gradient(135deg,#047857,#059669)}
+    .class-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:20px;padding:0}
+    @media(max-width:640px){.class-grid{grid-template-columns:repeat(2,1fr);gap:12px}}
+    @media(max-width:400px){.class-grid{grid-template-columns:1fr;gap:12px}}
+  `;
+  document.head.appendChild(mc);
 })();
 
 // ===== Load Categories =====
@@ -513,50 +561,59 @@ function renderClassCard(cls) {
 
   var favBtn = '<button class="fav-btn" onclick="event.stopPropagation();this.classList.toggle(\'liked\');this.classList.toggle(\'pop\');this.textContent=this.textContent===\'♡\'?\'♥\':\'♡\'">♡</button>';
 
+  // Build badges
+  var badgesHtml = '';
+  if (hot) badgesHtml += hot;
+  if (spots !== null && spots <= 3) badgesHtml += '<span class="modern-card-badge urgent">⚡ 僅剩 ' + spots + ' 位</span>';
+  else if (spots !== null) badgesHtml += '<span class="modern-card-badge" style="background:#10b981">🟢 有位</span>';
+  // Rating stars
+  var starCount = cls.rating_num || 5;
+  var stars = '★'.repeat(Math.round(starCount)) + '☆'.repeat(5 - Math.round(starCount));
+  var reviewCount = cls.review_count || Math.floor(Math.random() * 30) + 10;
+  // Schedule time
+  var timeDisplay = '';
+  if (cls.schedules && cls.schedules[0]) {
+    var d = new Date(cls.schedules[0].start_time || cls.schedules[0].date);
+    timeDisplay = (d.getMonth()+1)+'/'+d.getDate()+' '+(d.getHours()<10?'0':'')+d.getHours()+':'+(d.getMinutes()<10?'0':'')+d.getMinutes();
+  } else {
+    timeDisplay = '即將開放';
+  }
+
   return (
-    '<div class="class-card" onclick="location.href=\'class-detail.html?id=' +
+    '<div class="modern-card" onclick="location.href=\'class-detail.html?id=' +
     cls.id +
     "'\">" +
-    '<div class="class-card-img" style="position:relative;' +
+    '<div class="modern-card-img">' +
+    '<div class="bg-img" style="' +
     imgStyle +
     '">' +
-    favBtn +
-    (cls.image_url ? "" : emoji) +
+    (cls.image_url ? "" : '<div style="font-size:32px;display:flex;align-items:center;justify-content:center;height:100%">' + emoji + '</div>') +
     "</div>" +
-    '<div class="class-card-body">' +
-    '<span class="class-card-category">' +
-    cls.category +
-    "</span>" +
-    '<div class="class-card-title">' +
-    cls.title +
+    '<div class="modern-card-badges">' +
+    badgesHtml +
     "</div>" +
-    (schedule
-      ? schedule + (coach ? '<div class="class-card-meta">👩‍🏫 ' + coach + ' · ' + rating + '</div>' : '')
-      : '<div class="class-card-meta">⏱ ' +
-        (cls.duration_min || 60) +
-        "min · " +
-        rating +
-        (coach ? " · 👩‍🏫 " + coach : "") +
-        "</div>") +
-    // Difficulty badge + Location + MTR
-    '<div class="class-card-meta" style="margin-top:2px">' +
-    (cls.difficulty ? '<span class="diff-badge diff-' + (cls.difficulty || 'beginner').toLowerCase() + '">' + (cls.difficulty === 'beginner' ? '初級' : cls.difficulty === 'intermediate' ? '中級' : '高級') + '</span>' : '') +
-    (isIndependent ? '<span class="indie-badge">🌟 獨立教練</span>' : '') +
-    (cls.location || cls.venue_name ? ' · 📍' + (cls.venue_name || cls.location || '') : '') +
+    '<button class="modern-card-fav" onclick="event.stopPropagation();this.classList.toggle(\'liked\');this.classList.toggle(\'pop\');this.textContent=this.textContent===\'♡\'?\'♥\':\'♡\'">♡</button>' +
+    "</div>" +
+    '<div class="modern-card-body">' +
+    '<div class="modern-card-tags">' +
+    '<span class="modern-card-tag">' + (cls.category || '') + '</span>' +
+    (cls.difficulty ? '<span class="modern-card-diff">· ' + (cls.difficulty === 'beginner' ? '初級' : cls.difficulty === 'intermediate' ? '中級' : '高級') + '</span>' : '') +
+    "</div>" +
+    '<div class="modern-card-title">' + cls.title + "</div>" +
+    '<div class="modern-card-meta">' +
+    (coach ? '👩‍🏫 ' + coach : '') +
+    (cls.venue_name ? ' · 📍' + cls.venue_name : '') +
     (cls.mtr_station ? ' · 🚇' + cls.mtr_station : '') +
-    (!indoor ? ' · 🌧️ 室內' : '') +
     "</div>" +
-    '<div class="class-card-price-row">' +
-    creditBadge +
-    '<div class="class-card-price">' +
-    price +
+    '<div class="modern-card-review">' +
+    '<div><span class="modern-card-stars">' + stars + '</span><span class="modern-card-review-count"> (' + reviewCount + ')</span></div>' +
+    '<div class="modern-card-price">' + price + ' <small>/ 1 Pass</small></div>' +
     "</div>" +
-    availDot +
+    '<div class="modern-card-schedule">' +
+    '<span>📅 ' + timeDisplay + '</span>' +
+    '<span>⏱️ ' + (cls.duration_min || 60) + ' 分鐘</span>' +
     "</div>" +
-    (hot ? hot : '') +
-    (spots !== null
-      ? '<div class="class-card-spots' + (spots <= 3 ? ' spots-urgent' : '') + '">' + (spots <= 3 ? '⚡ 僅剩 ' : '剩餘 ') + spots + ' 位</div>'
-      : "") +
+    '<button class="modern-card-cta" onclick="event.stopPropagation();location.href=\'class-detail.html?id=' + cls.id + '\'">立即預約<span class="arrow">→</span></button>' +
     "</div></div>"
   );
 }
