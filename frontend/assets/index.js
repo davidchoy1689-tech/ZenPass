@@ -571,12 +571,22 @@ function renderClassCard(cls) {
   var stars = '★'.repeat(Math.round(starCount)) + '☆'.repeat(5 - Math.round(starCount));
   var reviewCount = cls.review_count || Math.floor(Math.random() * 30) + 10;
   // Schedule time
+  // Generate varied demo times when no schedule
   var timeDisplay = '';
   if (cls.schedules && cls.schedules[0]) {
     var d = new Date(cls.schedules[0].start_time || cls.schedules[0].date);
     timeDisplay = (d.getMonth()+1)+'/'+d.getDate()+' '+(d.getHours()<10?'0':'')+d.getHours()+':'+(d.getMinutes()<10?'0':'')+d.getMinutes();
   } else {
-    timeDisplay = '即將開放';
+    // Generate varied times based on class ID
+    var idNum = parseInt(cls.id) || Math.floor(Math.random() * 100);
+    var days = ['日','一','二','三','四','五','六'];
+    var today = new Date();
+    var dayOffset = (idNum % 7) + 1;
+    var d = new Date(today);
+    d.setDate(d.getDate() + dayOffset);
+    var hours = [9,10,11,14,15,16,18,19,20][idNum % 9];
+    var mins = [0,15,30,45][idNum % 4];
+    timeDisplay = (d.getMonth()+1)+'/'+d.getDate()+' ('+days[d.getDay()]+') '+hours+':'+(mins<10?'0':'')+mins;
   }
 
   return (

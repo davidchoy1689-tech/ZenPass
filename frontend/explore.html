@@ -2190,6 +2190,17 @@
       }
 
       var _renderIdx = 0;
+      function genDemoTime(id) {
+        var idNum = parseInt(id) || Math.floor(Math.random() * 100);
+        var days = ['日','一','二','三','四','五','六'];
+        var today = new Date();
+        var dayOffset = (idNum % 7) + 1;
+        var d = new Date(today);
+        d.setDate(d.getDate() + dayOffset);
+        var hours = [9,10,11,14,15,16,18,19,20][idNum % 9];
+        var mins = [0,15,30,45][idNum % 4];
+        return (d.getMonth()+1)+'/'+d.getDate()+' ('+days[d.getDay()]+') '+hours+':'+(mins<10?'0':'')+mins;
+      }
       function renderCard(cls) {
         var cfg = ZENPASS_CATEGORY[cls.category];
         var emoji = (cfg && cfg.emoji) || "🏃";
@@ -2219,7 +2230,7 @@
           '<div class="modern-card-meta">' + (cls.coach_name ? '👩‍🏫 ' + cls.coach_name : '') + (cls.venue_name ? ' · 📍' + cls.venue_name : '') + "</div>" +
           '<div class="modern-card-review"><div><span class="modern-card-stars">★★★' + (cls.rating >= 4 ? '★' : '☆') + (cls.rating >= 5 ? '★' : '☆') + '</span></div>' +
           '<div class="modern-card-price">HK$' + cls.price_hkd + ' <small>/ 1 Pass</small></div></div>' +
-          '<div class="modern-card-schedule"><span>📅 即將開放</span><span>⏱️ ' + (cls.duration_min || 60) + ' 分鐘</span></div>' +
+          '<div class="modern-card-schedule"><span>📅 ' + genDemoTime(cls.id) + '</span><span>⏱️ ' + (cls.duration_min || 60) + ' 分鐘</span></div>' +
           '<button class="modern-card-cta" onclick="event.stopPropagation();location.href=\'class-detail.html?id=' + cls.id + "\'">立即預約<span class=\"arrow\">→</span></button>" +
           "</div></div>"
         );
