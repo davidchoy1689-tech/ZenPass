@@ -22,6 +22,53 @@
   };
 })();
 
+// ===== Inject Card Enhancement CSS =====
+(function(){
+  var s = document.createElement('style');
+  s.textContent = `
+    .credit-badge {
+      display: inline-flex; align-items: center; gap: 2px;
+      padding: 2px 8px; border-radius: 6px;
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: #fff; font-size: 11px; font-weight: 700;
+      white-space: nowrap;
+    }
+    html.dark .credit-badge { background: linear-gradient(135deg, #059669, #047857); }
+    .class-card-price-row {
+      display: flex; align-items: center; gap: 8px;
+      margin-top: 4px;
+    }
+    .class-card-price { flex: 1; }
+    .avail-dot {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 10px; color: #10b981; font-weight: 600;
+    }
+    .avail-green {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: #10b981; display: inline-block;
+      animation: availPulse 2s ease-in-out infinite;
+    }
+    .avail-red { width: 7px; height: 7px; border-radius: 50%; background: #ef4444; display: inline-block; }
+    @keyframes availPulse {
+      0%,100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    .spots-urgent {
+      color: #ef4444 !important;
+      font-weight: 800 !important;
+      animation: urgencyPulse 2s ease-in-out infinite;
+    }
+    @keyframes urgencyPulse {
+      0%,100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.8; transform: scale(1.05); }
+    }
+    .class-card-spots { font-size: 11px; color: #6b7280; margin-top: 4px; }
+    html.dark .class-card-spots { color: #94a3b8; }
+    html.dark .class-card-price { color: #f1f5f9; }
+  `;
+  document.head.appendChild(s);
+})();
+
 // ===== Load Categories =====
 async function loadCategories() {
   var container = document.getElementById("category-list");
@@ -429,8 +476,17 @@ function renderClassCard(cls) {
   var rating = cls.rating || "⭐4.8";
   var spots = cls.remaining_spots !== undefined ? cls.remaining_spots : null;
   var coach = cls.coach_name || "";
+  // Credit cost: use API field or default to 12cr
+  var creditCost = cls.credit_cost || (cls.pricing_tier === 'peak' ? 15 : 12);
+  var creditBadge = '<span class="credit-badge">' + creditCost + 'cr</span>';
+  // Hot badge
   var hot =
     cls.is_hot || cls.popular ? '<span class="spots-badge" style="background:rgba(239,68,68,0.9)">🔥 熱門</span>' : "";
+  // Availability dot
+  var availDot = spots !== null && spots > 0
+    ? '<span class="avail-dot"><span class="avail-green"></span> 有位</span>'
+    : spots === 0 ? '<span class="avail-dot"><span class="avail-red"></span> 滿額</span>' : '';
+  // Schedule
   var schedule =
     cls.schedules && cls.schedules[0]
       ? '<div class="class-card-meta">📅 ' +
@@ -471,6 +527,13 @@ function renderClassCard(cls) {
     price +
     " " +
     hot +
+    "</div>" +
+    '<div class="class-card-price-row">' +
+    creditBadge +
+    '<div class="class-card-price">' +
+    price +
+    "</div>" +
+    availDot +
     "</div>" +
     (spots !== null
       ? '<div class="class-card-spots' + (spots <= 3 ? ' spots-urgent' : '') + '">' + (spots <= 3 ? '⚡ 僅剩 ' : '剩餘 ') + spots + ' 位</div>'
