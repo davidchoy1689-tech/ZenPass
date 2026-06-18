@@ -1114,6 +1114,7 @@
             ? '<div style="font-size:11px;color:var(--green-500);">\u2705 \u7d93\u9a57\u78ba\u8a8d\u6559\u7df4</div>'
             : "") +
           coachRatingHtml +
+          (cls.coach_bio ? '<div style="font-size:13px;color:var(--dark-700);line-height:1.5;margin-top:4px">' + cls.coach_bio + '</div>' : '') +
           "</div>" +
           "</div>" +
           // Meta info
@@ -1143,13 +1144,14 @@
           "</div>" +
           "</div>" +
           "</div>" +
-          // Venue
+          // Venue + Transport
           (cls.venue_name
-            ? '<div style="display:flex;align-items:center;gap:6px;margin-bottom:12px;font-size:13px;color:var(--dark-700);"><span>\ud83d\udccd</span>' +
+            ? '<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;font-size:13px;color:var(--dark-700);"><span>\ud83d\udccd</span>' +
               (cls.venue_name || "") +
               (cls.venue_address ? " - " + cls.venue_address : "") +
               "</div>"
             : "") +
+          (cls.mtr_station ? '<div style="display:flex;align-items:center;gap:6px;margin-bottom:12px;font-size:12px;color:#10b981;"><span>\ud83d\ude87</span>' + cls.mtr_station + '站步行 3 分鐘</div>' : '') +
           // Description
           (cls.description
             ? '<div style="margin-bottom:16px;padding:12px;background:var(--gray-50);border-radius:var(--radius-sm);font-size:14px;color:var(--dark-700);line-height:1.7;">' +
