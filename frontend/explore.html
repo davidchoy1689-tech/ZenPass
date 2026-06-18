@@ -1827,12 +1827,55 @@
         var group = el.parentElement;
         group.querySelectorAll('.sort-btn').forEach(function(b){ b.classList.remove('active'); });
         el.classList.add('active');
-        // Map to existing filter vars and reload
+        // Map to existing filter vars and apply client-side filter
         if (type === 'region') currentDistrict = val || 'all';
         if (type === 'difficulty') currentDifficulty = val || 'all';
         if (type === 'spots') currentSpots = val || 'all';
         if (type === 'price') currentPrice = val || 'all';
-        loadClasses();
+        applyClientFilter();
+      }
+
+      function applyClientFilter() {
+        var cards = document.querySelectorAll('.modern-card');
+        var visible = 0;
+        cards.forEach(function(card) {
+          var show = true;
+          // Category filter
+          if (currentCategory && currentCategory !== 'all') {
+            if (card.getAttribute('data-category') !== currentCategory) show = false;
+          }
+          // Difficulty filter
+          if (show && currentDifficulty && currentDifficulty !== 'all') {
+            var diff = card.getAttribute('data-difficulty') || '';
+            var diffMap = {beginner:'初級', intermediate:'中級', advanced:'高級'};
+            if (diff !== (diffMap[currentDifficulty] || currentDifficulty)) show = false;
+          }
+          // Price filter
+          if (show && currentPrice && currentPrice !== 'all') {
+            var price = parseInt(card.getAttribute('data-price')) || 0;
+            if (currentPrice === 'under100' && price >= 100) show = false;
+            else if (currentPrice === '100-200' && (price < 100 || price > 200)) show = false;
+            else if (currentPrice === 'over200' && price <= 200) show = false;
+          }
+          // Spots filter
+          if (show && currentSpots && currentSpots !== 'all') {
+            var spots = parseInt(card.getAttribute('data-spots'));
+            if (currentSpots === 'available' && (isNaN(spots) || spots <= 0)) show = false;
+            else if (currentSpots === 'few' && (isNaN(spots) || spots > 3)) show = false;
+          }
+          // Time of day filter
+          if (show && currentTimeOfDay && currentTimeOfDay !== 'all') {
+            var time = card.getAttribute('data-time') || '';
+            var hour = parseInt(time.split(':')[0]);
+            if (currentTimeOfDay === 'morning' && (isNaN(hour) || hour < 6 || hour >= 12)) show = false;
+            else if (currentTimeOfDay === 'afternoon' && (isNaN(hour) || hour < 12 || hour >= 18)) show = false;
+            else if (currentTimeOfDay === 'evening' && (isNaN(hour) || hour < 18 || hour >= 23)) show = false;
+          }
+          card.style.display = show ? '' : 'none';
+          if (show) visible++;
+        });
+        document.getElementById('resultCount').textContent = visible + ' 個課程';
+        document.getElementById('load-more-btn').style.display = visible === 0 ? 'none' : '';
       }
       function closeMobileFilterSheet() {
         document.getElementById('filterOverlay').classList.remove('open');
@@ -2090,9 +2133,14 @@
           var result = await classes.list(params);
           var items = result.classes || [];
           if (items.length === 0) {
-            container.innerHTML =
-              '<div class="empty-state"><span>📭</span><p>暫無符合條件的課程<br>試試調整篩選條件</p></div>' +
-              '<div style="text-align:center;margin-top:8px;"><button class="sort-btn" onclick="clearFilters()" style="background:var(--orange-600-bg);color:white;border:none;padding:8px 20px;border-radius:6px;cursor:pointer;">🔄 清除篩選</button></div>';
+            // Try client-side filter on existing cards instead
+            applyClientFilter();
+            var visible = document.querySelectorAll('.modern-card[style*=""]').length;
+            if (visible === 0) {
+              container.innerHTML =
+                '<div class="empty-state"><span>📭</span><p>暫無符合條件的課程<br>試試調整篩選條件</p></div>' +
+                '<div style="text-align:center;margin-top:8px;"><button class="sort-btn" onclick="clearFilters()" style="background:var(--orange-600-bg);color:white;border:none;padding:8px 20px;border-radius:6px;cursor:pointer;">🔄 清除篩選</button></div>';
+            }
             return;
           }
           var isAppend = arguments && arguments[0] === true;
@@ -2100,13 +2148,12 @@
             ? result.pagination.total
             : items.length;
           if (!isAppend) {
-            document.getElementById("resultCount").textContent =
-              items.length + " / " + totalClasses + " 個課程";
             container.innerHTML = items
               .map(function (cls) {
                 return renderCard(cls);
               })
               .join("");
+            applyClientFilter();
           } else {
             container.insertAdjacentHTML(
               "beforeend",
@@ -2217,8 +2264,14 @@
           badgesHtml += '<span class="modern-card-badge urgent">⚡ 僅剩 ' + remaining + ' 位</span>';
         }
         var isFav = favorites && favorites[cls.id];
+        var diffLabel = (cls.difficulty === 'beginner' ? '初級' : cls.difficulty === 'intermediate' ? '中級' : cls.difficulty === 'advanced' ? '高級' : '');
+        var timeVal = '';
+        if (cls.schedules && cls.schedules[0]) {
+          var d = new Date(cls.schedules[0].start_time || cls.schedules[0].date);
+          timeVal = d.getHours() + ':' + (d.getMinutes()<10?'0':'') + d.getMinutes();
+        }
         return (
-          '<div class="modern-card" onclick="location.href=\'class-detail.html?id=' + cls.id + "'\">" +
+          '<div class="modern-card" data-category="' + (cls.category || '') + '" data-difficulty="' + (diffLabel || '') + '" data-price="' + (cls.price_hkd || 0) + '" data-spots="' + (remaining !== undefined ? remaining : '') + '" data-time="' + timeVal + '" data-credits="' + creditCost + '" onclick="location.href=\'class-detail.html?id=' + cls.id + "'\">" +
           '<div class="modern-card-img">' +
           '<div class="bg-img" style="' + imgStyle + '">' + imgContent + "</div>" +
           (badgesHtml ? '<div class="modern-card-badges">' + badgesHtml + '</div>' : '') +
