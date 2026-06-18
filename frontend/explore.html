@@ -858,6 +858,9 @@
     html.dark .class-card-img-wrap { background: rgba(30,41,59,0.9); }
     html.dark .sort-btn { background: #1e293b; color: #f1f5f9; border-color: #334155; }
     html.dark .sort-btn.active { background: var(--orange-600-bg); color: #fff; border-color: var(--orange-600-bg); }
+    html.dark #filterPanel { background: #1e293b !important; }
+    html.dark #filterPanelBtn, html.dark #mapToggleBtn { background: #1e293b !important; border-color: #334155 !important; color: #f1f5f9 !important; }
+    html.dark #mapContainer { background: #1e293b !important; }
     html.dark .class-card-spots { color: #94a3b8 !important; }
     html.dark .class-card-meta { color: #94a3b8; }
     html.dark .empty-state { color: #94a3b8; }
@@ -1042,8 +1045,63 @@
           <div class="category-chip" onclick="window.location='explore.html?mtr=觀塘'" style="padding:5px 12px;font-size:11px">🚇 觀塘線</div>
           <div class="category-chip" onclick="window.location='explore.html?mtr=荃灣'" style="padding:5px 12px;font-size:11px">🚇 荃灣線</div>
         </div>
+        <!-- Advanced Filter Toggle + Panel -->
+        <div style="display:flex;gap:6px;margin-bottom:6px">
+          <button onclick="toggleFilterPanel()" id="filterPanelBtn" style="padding:4px 12px;border-radius:20px;background:var(--white);border:1px solid var(--gray-200);font-size:11px;font-weight:600;cursor:pointer;color:var(--dark-900)">🔍 進階篩選</button>
+          <button onclick="toggleMap()" id="mapToggleBtn" style="padding:4px 12px;border-radius:20px;background:var(--white);border:1px solid var(--gray-200);font-size:11px;font-weight:600;cursor:pointer;color:var(--dark-900)">🗺️ 地圖</button>
+          <button onclick="clearAllFilters()" style="padding:4px 12px;border-radius:20px;background:transparent;border:1px solid var(--gray-200);font-size:11px;cursor:pointer;color:var(--dark-700)">🔄</button>
+        </div>
+        <div id="filterPanel" style="display:none;background:var(--white);border-radius:14px;padding:14px;margin-bottom:8px;box-shadow:0 2px 8px rgba(0,0,0,0.06)">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div>
+              <div style="font-size:11px;font-weight:600;color:var(--dark-700);margin-bottom:4px">📍 地區</div>
+              <div style="display:flex;gap:4px;flex-wrap:wrap">
+                <span class="sort-btn active" onclick="selectFilter('region','',this)" style="padding:3px 10px;font-size:10px">全部</span>
+                <span class="sort-btn" onclick="selectFilter('region','港島',this)" style="padding:3px 10px;font-size:10px">🏙️ 港島</span>
+                <span class="sort-btn" onclick="selectFilter('region','九龍',this)" style="padding:3px 10px;font-size:10px">🏘️ 九龍</span>
+                <span class="sort-btn" onclick="selectFilter('region','新界',this)" style="padding:3px 10px;font-size:10px">🌳 新界</span>
+              </div>
+            </div>
+            <div>
+              <div style="font-size:11px;font-weight:600;color:var(--dark-700);margin-bottom:4px">📊 難度</div>
+              <div style="display:flex;gap:4px;flex-wrap:wrap">
+                <span class="sort-btn active" onclick="selectFilter('difficulty','',this)" style="padding:3px 10px;font-size:10px">全部</span>
+                <span class="sort-btn" onclick="selectFilter('difficulty','beginner',this)" style="padding:3px 10px;font-size:10px">🌱 初級</span>
+                <span class="sort-btn" onclick="selectFilter('difficulty','intermediate',this)" style="padding:3px 10px;font-size:10px">🔥 中級</span>
+                <span class="sort-btn" onclick="selectFilter('difficulty','advanced',this)" style="padding:3px 10px;font-size:10px">⚡ 高級</span>
+              </div>
+            </div>
+            <div>
+              <div style="font-size:11px;font-weight:600;color:var(--dark-700);margin-bottom:4px">🪑 名額</div>
+              <div style="display:flex;gap:4px;flex-wrap:wrap">
+                <span class="sort-btn active" onclick="selectFilter('spots','',this)" style="padding:3px 10px;font-size:10px">全部</span>
+                <span class="sort-btn" onclick="selectFilter('spots','available',this)" style="padding:3px 10px;font-size:10px">🟢 有位</span>
+                <span class="sort-btn" onclick="selectFilter('spots','few',this)" style="padding:3px 10px;font-size:10px">⚡ 僅剩少量</span>
+              </div>
+            </div>
+            <div>
+              <div style="font-size:11px;font-weight:600;color:var(--dark-700);margin-bottom:4px">💵 價格</div>
+              <div style="display:flex;gap:4px;flex-wrap:wrap">
+                <span class="sort-btn active" onclick="selectFilter('price','',this)" style="padding:3px 10px;font-size:10px">全部</span>
+                <span class="sort-btn" onclick="selectFilter('price','under100',this)" style="padding:3px 10px;font-size:10px"><$100</span>
+                <span class="sort-btn" onclick="selectFilter('price','100-200',this)" style="padding:3px 10px;font-size:10px">$100-200</span>
+                <span class="sort-btn" onclick="selectFilter('price','over200',this)" style="padding:3px 10px;font-size:10px">>$200</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Map View Container (hidden by default) -->
+        <div id="mapContainer" style="display:none;height:300px;border-radius:14px;overflow:hidden;margin-bottom:10px;background:var(--gray-100);position:relative">
+          <div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--dark-700);font-size:13px">
+            <div style="text-align:center">
+              <div style="font-size:32px;margin-bottom:8px">🗺️</div>
+              <div style="font-weight:600">地圖檢視</div>
+              <div style="font-size:11px;margin-top:4px">接入 Google Maps API 後顯示課程位置</div>
+            </div>
+          </div>
+        </div>
         <!-- Result count + Clear + Filter Toggle -->
-        <div style="display: flex; align-items: center; margin-top: 4px">
+        <div style="display: flex; align-items: center; margin-top: 2px">
           <span class="zen-text-xs zen-text-muted" id="resultCount"></span>
           <button
             onclick="clearAllFilters()"
@@ -1057,7 +1115,7 @@
             id="mobileFilterToggle"
             class="filter-btn"
             style="margin-left: 6px; padding: 4px 12px; font-size: 12px; white-space: nowrap"
-          >
+  ">
             🔍 進階篩選 <span class="badge-count" id="filterBadgeCount">0</span>
           </button>
         </div>
@@ -1740,6 +1798,41 @@
         document.getElementById('filterOverlay').classList.add('open');
         document.getElementById('mobileFilterSheet').classList.add('open');
         document.body.style.overflow = 'hidden';
+      }
+      function toggleFilterPanel() {
+        var panel = document.getElementById('filterPanel');
+        var btn = document.getElementById('filterPanelBtn');
+        if (panel.style.display === 'none') {
+          panel.style.display = 'block';
+          btn.textContent = '🔽 收起篩選';
+        } else {
+          panel.style.display = 'none';
+          btn.textContent = '🔍 進階篩選';
+        }
+      }
+      function toggleMap() {
+        var map = document.getElementById('mapContainer');
+        var btn = document.getElementById('mapToggleBtn');
+        if (map.style.display === 'none') {
+          map.style.display = 'block';
+          btn.textContent = '🗺️ 關閉地圖';
+        } else {
+          map.style.display = 'none';
+          btn.textContent = '🗺️ 地圖';
+        }
+      }
+      var _filters = {};
+      function selectFilter(type, val, el) {
+        _filters[type] = val;
+        var group = el.parentElement;
+        group.querySelectorAll('.sort-btn').forEach(function(b){ b.classList.remove('active'); });
+        el.classList.add('active');
+        // Map to existing filter vars and reload
+        if (type === 'region') currentDistrict = val || 'all';
+        if (type === 'difficulty') currentDifficulty = val || 'all';
+        if (type === 'spots') currentSpots = val || 'all';
+        if (type === 'price') currentPrice = val || 'all';
+        loadClasses();
       }
       function closeMobileFilterSheet() {
         document.getElementById('filterOverlay').classList.remove('open');
