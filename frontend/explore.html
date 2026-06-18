@@ -2193,91 +2193,34 @@
       function renderCard(cls) {
         var cfg = ZENPASS_CATEGORY[cls.category];
         var emoji = (cfg && cfg.emoji) || "🏃";
-        var hot =
-          cls.popular || cls.is_hot
-            ? '<span class="badge-hot" style="background:var(--orange-600-bg);color:var(--white);font-size:10px;padding:2px 8px;border-radius:10px;font-weight:600;">🔥 熱門</span>'
-            : "";
+        var bg = (cfg && cfg.gradient) || "linear-gradient(135deg,var(--orange-100),var(--orange-200))";
         var idx = _renderIdx++;
-        var fp = idx === 0 ? ' fetchpriority="high"' : ' loading="lazy"';
-        var imgHtml = cls.image_url
-          ? "<img" +
-            fp +
-            ' src="' +
-            cls.image_url +
-            '" alt="' +
-            cls.title +
-            '" class="class-card-img" style="width:100%;height:100%;object-fit:cover;display:block" loading="lazy" width="400" height="300" />'
-          : '<div class="class-card-img" style="background:' +
-            (cfg
-              ? cfg.gradient
-              : "linear-gradient(135deg,var(--orange-100),var(--orange-200))") +
-            ';display:flex;align-items:center;justify-content:center;font-size:32px;width:100%;height:100%">' +
-            emoji +
-            "</div>";
-
-        // Credit badge (use pricing_tier or credit_cost, default to 12cr for off-peak)
+        var imgStyle = cls.image_url
+          ? "background-image:url(" + cls.image_url + ");background-size:cover;background-position:center"
+          : "background:" + bg + ";display:flex;align-items:center;justify-content:center;font-size:32px";
+        var imgContent = cls.image_url ? '' : emoji;
         var creditCost = cls.credit_cost || (cls.pricing_tier === 'peak' ? 15 : 12);
-        var creditBadge = '<div class="credit-badge">' + creditCost + 'cr</div>';
-
-        // Urgency badge (if remaining_spots <= 3)
         var remaining = cls.remaining_spots;
-        var urgencyBadge = '';
+        var badgesHtml = cls.popular || cls.is_hot ? '<span class="modern-card-badge hot">🔥 熱門</span>' : '';
         if (remaining !== undefined && remaining <= 3 && remaining > 0) {
-          urgencyBadge = '<div class="urgency-badge">⚡ 今晚只剩 ' + remaining + ' 位</div>';
+          badgesHtml += '<span class="modern-card-badge urgent">⚡ 僅剩 ' + remaining + ' 位</span>';
         }
-
-        // Availability dot
-        var availHtml = '';
-        if (remaining !== undefined) {
-          var dotColor = remaining > 5 ? 'green' : remaining > 0 ? 'orange' : 'red';
-          var availText = remaining > 5 ? '有位' : remaining > 0 ? '少量 ' + remaining + '位' : '已滿';
-          availHtml = '<div class="class-card-spots" style="font-size:11px;color:var(--dark-700);margin-top:3px;display:flex;align-items:center;gap:4px">' +
-            '<span class="avail-dot ' + dotColor + '"></span><span class="avail-label">' + availText + '</span></div>';
-        }
-
+        var isFav = favorites && favorites[cls.id];
         return (
-          '<div class="class-card" style="position:relative" onclick="location.href=\'class-detail.html?id=' +
-          cls.id +
-          "'\">" +
-          '<div style="position:relative;width:100%;overflow:hidden;background:var(--orange-100)" class="class-card-img-wrap">' +
-          imgHtml +
-          creditBadge +
-          urgencyBadge +
+          '<div class="modern-card" onclick="location.href=\'class-detail.html?id=' + cls.id + "'\">" +
+          '<div class="modern-card-img">' +
+          '<div class="bg-img" style="' + imgStyle + '">' + imgContent + "</div>" +
+          (badgesHtml ? '<div class="modern-card-badges">' + badgesHtml + '</div>' : '') +
+          '<button class="modern-card-fav" onclick="event.stopPropagation();toggleFavorite(this.dataset.id)" data-id="' + cls.id + '" style="color:' + (isFav ? '#ef4444' : '') + '">' + (isFav ? '♥' : '♡') + "</button>" +
           "</div>" +
-          '<div class="class-card-body">' +
-          '<span class="class-card-category">' +
-          cls.category +
-          "</span>" +
-          '<div style="display:flex;justify-content:space-between;align-items:flex-start">' +
-          '<div class="class-card-title">' +
-          cls.title +
-          "</div>" +
-          '<button class="fav-btn" data-id="' +
-          cls.id +
-          '" onclick="event.stopPropagation();toggleFavorite(this.dataset.id)" style="background:none;border:none;font-size:18px;cursor:pointer;padding:2px;line-height:1;color:' +
-          (favorites[cls.id] ? "#ef4444" : "var(--dark-400)") +
-          '">' +
-          (favorites[cls.id] ? "❤️" : "♡") +
-          "</button>" +
-          "</div>" +
-          (cls.venue_name
-            ? '<div style="font-size:11px;color:var(--orange-700);margin-bottom:2px">📍 ' +
-              cls.venue_name +
-              "</div>"
-            : "") +
-          '<div class="class-card-meta">⏱ ' +
-          (cls.duration_min || 60) +
-          "min · ⭐" +
-          (cls.coach_avg_rating || cls.rating || "4.8") +
-          " · 👤 " +
-          (cls.coach_name || "教練") +
-          "</div>" +
-          '<div class="class-card-price">HK$' +
-          cls.price_hkd +
-          " " +
-          hot +
-          "</div>" +
-          availHtml +
+          '<div class="modern-card-body">' +
+          '<div class="modern-card-tags"><span class="modern-card-tag">' + cls.category + "</span></div>" +
+          '<div class="modern-card-title">' + cls.title + "</div>" +
+          '<div class="modern-card-meta">' + (cls.coach_name ? '👩‍🏫 ' + cls.coach_name : '') + (cls.venue_name ? ' · 📍' + cls.venue_name : '') + "</div>" +
+          '<div class="modern-card-review"><div><span class="modern-card-stars">★★★' + (cls.rating >= 4 ? '★' : '☆') + (cls.rating >= 5 ? '★' : '☆') + '</span></div>' +
+          '<div class="modern-card-price">HK$' + cls.price_hkd + ' <small>/ 1 Pass</small></div></div>' +
+          '<div class="modern-card-schedule"><span>📅 即將開放</span><span>⏱️ ' + (cls.duration_min || 60) + ' 分鐘</span></div>' +
+          '<button class="modern-card-cta" onclick="event.stopPropagation();location.href=\'class-detail.html?id=' + cls.id + "\'">立即預約<span class=\"arrow\">→</span></button>" +
           "</div></div>"
         );
       }
