@@ -32,7 +32,7 @@
         --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.5);
       }
       *{margin:0;padding:0;box-sizing:border-box}
-      body{font-family:var(--font-zh);background:var(--gray-50);color:var(--dark-900);max-width:var(--max-width);margin:0 auto;padding-bottom:84px;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+      body{font-family:var(--font-zh);background:var(--gray-50);color:var(--dark-900);max-width:100%;margin:0 auto;padding-bottom:84px;-webkit-font-smoothing:antialiased;overflow-x:hidden}@media(min-width:768px){body{max-width:1200px;padding:0 32px 84px}}
       .hero{background:linear-gradient(135deg,var(--orange-500),#d05020);padding:20px 16px 32px;color:var(--white);border-radius:0 0 var(--radius-xl) var(--radius-xl);position:relative;overflow:hidden}
       .hero::before{content:"";position:absolute;top:-60px;right:-60px;width:200px;height:200px;background:rgba(255,255,255,.08);border-radius:50%}
       .hero::after{content:"";position:absolute;bottom:-40px;left:-40px;width:150px;height:150px;background:rgba(255,255,255,.05);border-radius:50%}
@@ -2129,6 +2129,30 @@
 <style>
   #quickBookBtn:hover { transform: scale(1.1); box-shadow: 0 6px 20px rgba(201,68,32,0.5); }
   @media (max-width:480px) { #quickBookBtn { width:52px; height:52px; font-size:22px; bottom:82px; right:12px; } }
+
+/* ===== Desktop Responsive Styles (≥768px) ===== */
+@media(min-width:768px){
+  body{max-width:1200px;padding:0 32px 84px}
+  .hero{border-radius:0 0 32px 32px;padding:40px 48px 48px;margin:0 -32px}.hero h1{font-size:40px;line-height:1.3}.hero p{font-size:16px;max-width:500px}.hero-top{gap:16px}.zen-auth-buttons{gap:12px}.hero-btn-primary,.hero-btn-secondary{font-size:15px;padding:12px 28px}
+  .search-bar{max-width:600px;margin-left:auto;margin-right:auto}
+  .categories-scroll,.featured-scroll,.zen-scroll-x{overflow-x:visible;flex-wrap:wrap;gap:16px}.categories-scroll>*{flex:0 0 calc(20% - 13px)!important;max-width:calc(20% - 13px)!important}.featured-scroll>*{flex:0 0 calc(33.33% - 11px)!important;max-width:calc(33.33% - 11px)!important}.featured-scroll{display:flex;flex-wrap:wrap}
+  .section,.glass-section{max-width:none}
+  .glass-section{padding:28px}
+  .coach-scroll{display:flex;flex-wrap:wrap;gap:16px}.coach-scroll>*{flex:0 0 calc(33.33% - 11px)}
+  .testimonial-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .newsletter-row{display:flex;gap:24px;align-items:stretch}.newsletter-row>*{flex:1}
+  .footer-grid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:24px}.footer-grid>div{margin-bottom:0}.footer-partners{display:flex;flex-wrap:wrap;gap:12px}.footer-partners>*{flex:0 0 calc(50% - 6px)}
+  .zen-section-title{font-size:18px;margin-bottom:16px}
+  #quickBookBtn{right:32px;bottom:32px;width:60px;height:60px;font-size:26px}
+  .hero-logo{font-size:26px}
+  .demo-card{transition:transform 0.2s}.demo-card:hover{transform:translateY(-4px);box-shadow:0 8px 24px rgba(0,0,0,0.1)}
+  .sk-card{flex:0 0 calc(33.33% - 11px)}
+}
+@media(min-width:1024px){
+  .categories-scroll>*{flex:0 0 calc(16.66% - 14px)!important}
+  .featured-scroll>*{flex:0 0 calc(25% - 12px)!important}
+  .hero h1{font-size:48px}.hero{padding:48px 64px 56px}
+}
 </style>
 <!-- Micro-animations Script -->
 <script>
