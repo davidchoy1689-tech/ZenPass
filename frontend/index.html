@@ -1229,7 +1229,7 @@
   function escHtmlF(s) {
     return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
-  // Load recommendations for logged-in users based on interests + API
+  // Load recommendations — for all users (personalized if logged in, popular if not)
   setTimeout(function() {
     var section = document.getElementById('recommended-section');
     var container = document.getElementById('recommended-classes');
@@ -1244,8 +1244,11 @@
         categoryFilter = '&categories=' + encodeURIComponent(interests.join(','));
       }
     } catch(e) {}
-    if (!token && !categoryFilter) return;
+    // Always show recommended section (popular classes for visitors)
     section.style.display = '';
+    // Change label based on login state
+    var recLabel = section.querySelector('h2');
+    if (recLabel) recLabel.textContent = token ? '🎯 為你推薦' : (categoryFilter ? '🎯 你可能鍾意' : '🔥 熱門課程');
     showSkeleton(container, 'featured', 3);
     var url = (apiBase + '/api/recommendations?limit=6' + categoryFilter);
     if (token) {
@@ -1261,7 +1264,6 @@
             var clsId = cls.id || cls.class_id || '';
             var icon = cls.icon || '🏋';
             var bg = cls.color || 'linear-gradient(135deg, var(--orange-100), var(--orange-200))';
-            // Badge: 熱門 or 新課
             var badge = (cls.booking_count && cls.booking_count >= 5)
               ? '<span style="position:absolute;top:8px;right:8px;background:#ef4444;color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;z-index:2;backdrop-filter:blur(4px);box-shadow:0 2px 4px rgba(0,0,0,0.2)">🔥 熱門</span>'
               : '<span style="position:absolute;top:8px;right:8px;background:#10b981;color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;z-index:2;backdrop-filter:blur(4px);box-shadow:0 2px 4px rgba(0,0,0,0.2)">🌟 新課</span>';
@@ -1278,9 +1280,9 @@
       .catch(function() {
           container.innerHTML = '<div style="text-align:center;padding:20px;color:#6b7280;font-size:13px">載入推薦失敗</div>';
         });
-    } else if (categoryFilter) {
-      // No token but has interests — filter from public classes endpoint
-      fetch(apiBase + '/api/classes?status=active&limit=6' + categoryFilter)
+    } else {
+      // No token — show popular classes (always visible)
+      fetch(apiBase + '/api/classes?status=active&limit=6&sort=popular' + categoryFilter)
       .then(function(r) { return r.json(); })
       .then(function(data) {
         var classes = data.classes || data || [];
