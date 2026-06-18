@@ -523,7 +523,7 @@ function renderClassCard(cls) {
     cls.title +
     "</div>" +
     (schedule
-      ? schedule
+      ? schedule + (coach ? '<div class="class-card-meta">👩‍🏫 ' + coach + ' · ' + rating + '</div>' : '')
       : '<div class="class-card-meta">⏱ ' +
         (cls.duration_min || 60) +
         "min · " +
