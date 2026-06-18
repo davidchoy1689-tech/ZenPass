@@ -408,7 +408,7 @@ function renderClassCard(cls) {
   var spots = cls.remaining_spots !== undefined ? cls.remaining_spots : null;
   var coach = cls.coach_name || "";
   var hot =
-    cls.is_hot || cls.popular ? '<span class="badge-hot">🔥 熱門</span>' : "";
+    cls.is_hot || cls.popular ? '<span class="spots-badge" style="background:rgba(239,68,68,0.9)">🔥 熱門</span>' : "";
   var schedule =
     cls.schedules && cls.schedules[0]
       ? '<div class="class-card-meta">📅 ' +
@@ -418,13 +418,16 @@ function renderClassCard(cls) {
         "</div>"
       : "";
 
+  var favBtn = '<button class="fav-btn" onclick="event.stopPropagation();this.classList.toggle(\'liked\');this.classList.toggle(\'pop\');this.textContent=this.textContent===\'♡\'?\'♥\':\'♡\'">♡</button>';
+
   return (
     '<div class="class-card" onclick="location.href=\'class-detail.html?id=' +
     cls.id +
     "'\">" +
-    '<div class="class-card-img" style="' +
+    '<div class="class-card-img" style="position:relative;' +
     imgStyle +
     '">' +
+    favBtn +
     (cls.image_url ? "" : emoji) +
     "</div>" +
     '<div class="class-card-body">' +
@@ -448,7 +451,7 @@ function renderClassCard(cls) {
     hot +
     "</div>" +
     (spots !== null
-      ? '<div class="class-card-spots">剩餘 ' + spots + " 位</div>"
+      ? '<div class="class-card-spots' + (spots <= 3 ? ' spots-urgent' : '') + '">' + (spots <= 3 ? '⚡ 僅剩 ' : '剩餘 ') + spots + ' 位</div>'
       : "") +
     "</div></div>"
   );
