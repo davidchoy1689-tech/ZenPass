@@ -684,8 +684,13 @@
 </script>
     <header class="hero" id="hero-section" role="banner" style="position:relative;min-height:92vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:100px 20px 60px;color:#fff;overflow:hidden;border-radius:0 0 30px 30px;background:none">
       <!-- Dynamic workout background with parallax feel -->
-      <div class="hero-bg" style="position:absolute;inset:0;background:url('https://images.pexels.com/photos/841130/pexels-photo-841130.jpeg?fm=webp&auto=compress&cs=tinysrgb&w=1920') center/cover no-repeat;z-index:0;filter:brightness(0.6) saturate(1.1)"></div>
+      <div class="hero-bg" style="position:absolute;inset:0;background:url('https://images.pexels.com/photos/841130/pexels-photo-841130.jpeg?fm=webp&auto=compress&cs=tinysrgb&w=1920') center/cover no-repeat;z-index:0;filter:brightness(0.6) saturate(1.1);transition:filter 0.5s ease"></div>
       <div class="hero-overlay" style="position:absolute;inset:0;background:linear-gradient(135deg,rgba(15,23,42,0.85) 0%,rgba(15,23,42,0.4) 40%,rgba(16,185,129,0.35) 70%,transparent 100%);z-index:1"></div>
+      <!-- Dark mode hero enhancement: moody zen atmosphere -->
+      <style>
+        html.dark .hero-bg { filter: brightness(0.4) saturate(0.8) contrast(1.1) !important; }
+        html.dark .hero-overlay { background: linear-gradient(135deg,rgba(0,0,0,0.9) 0%,rgba(15,23,42,0.6) 50%,rgba(16,185,129,0.2) 80%,transparent 100%) !important; }
+      </style>
       <div style="position:relative;z-index:2;width:100%">
         <div class="hero-top" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:40px;padding:0 4px">
           <div class="hero-logo" style="font-size:24px;font-weight:800;letter-spacing:1px;color:#fff;text-shadow:0 2px 10px rgba(0,0,0,0.3)">
@@ -699,11 +704,12 @@
             <button id="darkModeToggle" onclick="toggleDarkMode()" style="background:none;border:none;font-size:20px;cursor:pointer;padding:8px;min-width:44px;min-height:44px;color:#fff" aria-label="切換深色模式">🌙</button>
           </div>
         </div>
-        <h1 class="hero-title" style="font-size:clamp(36px,10vw,68px);font-weight:900;line-height:1.1;margin-bottom:16px;opacity:0;animation:fadeInUp 0.8s ease 0.2s forwards;background:linear-gradient(135deg,#fff 40%,#10b981,#34d399);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;text-shadow:none;letter-spacing:-0.5px">解鎖全城<br>運動體驗</h1>
-        <p class="hero-subtitle" style="font-size:clamp(15px,3.2vw,20px);opacity:0;color:rgba(255,255,255,0.9);margin-bottom:36px;animation:fadeInUp 0.8s ease 0.4s forwards;font-weight:400">超過 100+ 課程・頂尖教練・自由預約</p>
-        <div class="hero-cta" style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;opacity:0;animation:fadeInUp 0.8s ease 0.6s forwards">
-          <a href="explore.html" class="hero-btn-primary" style="display:inline-flex;align-items:center;gap:12px;padding:20px 52px;border-radius:60px;background:linear-gradient(135deg,#10b981 0%,#059669 100%);color:#fff;font-size:20px;font-weight:800;text-decoration:none;box-shadow:0 0 30px rgba(16,185,129,0.5),0 0 60px rgba(16,185,129,0.2),0 4px 15px rgba(0,0,0,0.2);transition:all 0.3s cubic-bezier(0.4,0,0.2,1);letter-spacing:0.5px;animation:ctaGlow 3s ease-in-out infinite">🔥 立即探索課程</a>
-          <a href="signup.html" class="hero-btn-secondary" style="display:inline-flex;align-items:center;gap:10px;padding:18px 44px;border-radius:60px;background:linear-gradient(135deg,rgba(255,255,255,0.15),rgba(255,255,255,0.08));backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:2px solid rgba(255,255,255,0.3);color:#fff;font-size:18px;font-weight:700;text-decoration:none;transition:all 0.3s cubic-bezier(0.4,0,0.2,1);letter-spacing:0.5px;box-shadow:0 0 20px rgba(255,255,255,0.1),inset 0 0 40px rgba(255,255,255,0.05)">🎁 免費試堂</a>
+        <h1 class="hero-title" style="font-size:clamp(36px,10vw,68px);font-weight:900;line-height:1.1;margin-bottom:10px;opacity:0;animation:fadeInUp 0.8s ease 0.2s forwards;background:linear-gradient(135deg,#fff 40%,#10b981,#34d399);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;text-shadow:none;letter-spacing:-0.5px">解鎖全城<br>運動體驗</h1>
+        <p class="hero-tagline" style="font-size:clamp(14px,2.5vw,17px);opacity:0;color:#10b981;font-weight:600;margin-bottom:6px;animation:fadeInUp 0.8s ease 0.3s forwards;letter-spacing:1px;text-shadow:0 0 20px rgba(16,185,129,0.3)">一 Pass 通行全城 · 零壓力試堂</p>
+        <p class="hero-subtitle" style="font-size:clamp(14px,3vw,19px);opacity:0;color:rgba(255,255,255,0.85);margin-bottom:32px;animation:fadeInUp 0.8s ease 0.4s forwards;font-weight:400">超過 100+ 課程・頂尖教練・自由預約</p>
+        <div class="hero-cta" style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;opacity:0;animation:fadeInUp 0.8s ease 0.6s forwards">
+          <a href="explore.html" class="hero-btn-primary" style="display:inline-flex;align-items:center;gap:12px;padding:20px 48px;border-radius:60px;background:linear-gradient(135deg,#10b981 0%,#059669 100%);color:#fff;font-size:19px;font-weight:800;text-decoration:none;box-shadow:0 0 30px rgba(16,185,129,0.5),0 0 60px rgba(16,185,129,0.2),0 4px 15px rgba(0,0,0,0.2);transition:all 0.3s cubic-bezier(0.4,0,0.2,1);letter-spacing:0.5px;animation:ctaGlow 3s ease-in-out infinite">🔥 立即探索課程</a>
+          <a href="signup.html" class="hero-btn-secondary" style="display:inline-flex;align-items:center;gap:10px;padding:18px 40px;border-radius:60px;background:linear-gradient(135deg,rgba(255,255,255,0.15),rgba(255,255,255,0.08));backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:2px solid rgba(255,255,255,0.3);color:#fff;font-size:17px;font-weight:700;text-decoration:none;transition:all 0.3s cubic-bezier(0.4,0,0.2,1);letter-spacing:0.5px;box-shadow:0 0 20px rgba(255,255,255,0.1),inset 0 0 40px rgba(255,255,255,0.05)"><span style="background:rgba(255,255,255,0.15);padding:2px 8px;border-radius:8px;font-size:11px;margin-right:4px">FREE</span> 首堂免費體驗</a>
         </div>
       </div>
     </header>
@@ -730,6 +736,22 @@
     </div>
     <!-- Sidebar Overlay -->
     <div id="sidebarOverlay" onclick="toggleMobileMenu()" style="position:fixed;top:0;left:0;width:100%;height:100vh;background:rgba(0,0,0,0.5);z-index:999;display:none;backdrop-filter:blur(2px)"></div>
+
+    <!-- Trial Offer Banner -->
+    <div class="trial-banner" style="margin:16px 0 8px;padding:16px;border-radius:16px;background:linear-gradient(135deg,#1a1a2e,#2d2d44);position:relative;overflow:hidden">
+      <div style="position:absolute;top:-30px;right:-30px;width:120px;height:120px;background:rgba(16,185,129,0.1);border-radius:50%"></div>
+      <div style="position:relative;z-index:1">
+        <div style="display:flex;align-items:center;gap:12px">
+          <div style="font-size:32px">🎁</div>
+          <div style="flex:1">
+            <div style="color:#10b981;font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase">零壓力試堂</div>
+            <div style="color:#fff;font-size:16px;font-weight:700;margin-top:2px">首堂免費 · 無需綁約</div>
+            <div style="color:rgba(255,255,255,0.6);font-size:12px;margin-top:4px">一個 Pass 玩盡 100+ 課程，今日就開始</div>
+          </div>
+          <a href="signup.html" style="flex-shrink:0;padding:10px 20px;border-radius:50px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;font-size:14px;font-weight:700;text-decoration:none;white-space:nowrap;box-shadow:0 4px 12px rgba(16,185,129,0.3)">免費登記 <span style="margin-left:4px">→</span></a>
+        </div>
+      </div>
+    </div>
 
     <!-- Demo Cards Section -->
     <div class="zen-flex zen-gap-sm zen-scroll-x" style="margin: 0 0 12px; padding: 2px 0">

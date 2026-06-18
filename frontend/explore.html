@@ -957,15 +957,16 @@
         />
         <button
           class="filter-btn"
-          onclick="
-            document.getElementById('filter-panel').classList.toggle('hidden')
-          "
+          onclick="openMobileFilterSheet()"
           style="white-space: nowrap"
         >
-          ☰ 篩選
+          ☰ 篩選 <span class="badge-count" id="headerFilterBadge">0</span>
         </button>
       </div>
     </div>
+
+    <!-- Active Filter Bar (Mobile: sticky, horizontal scroll) -->
+    <div class="active-filter-bar" id="activeFilterBar"></div>
 
     <div class="section">
       <div style="padding: 0 12px; margin: 6px 0">
@@ -1034,282 +1035,7 @@
             >
           </div>
         </div>
-        <!-- Advanced: Difficulty, Price, District, Sort -->
-        <div
-          style="
-            display: flex;
-            gap: 3px;
-            overflow-x: auto;
-            scrollbar-width: none;
-            padding: 2px 0;
-          "
-          id="advanced-filters"
-        >
-          <div
-            class="date-chip active"
-            onclick="filterByDifficulty('all', this)"
-            style="
-              min-width: auto;
-              padding: 3px 8px;
-              font-size: 10px;
-              line-height: 1.6;
-            "
-          >
-            🌱全部
-          </div>
-          <div
-            class="date-chip"
-            onclick="filterByDifficulty('beginner', this)"
-            style="
-              min-width: auto;
-              padding: 3px 8px;
-              font-size: 10px;
-              line-height: 1.6;
-            "
-          >
-            🌱初級
-          </div>
-          <div
-            class="date-chip"
-            onclick="filterByDifficulty('intermediate', this)"
-            style="
-              min-width: auto;
-              padding: 3px 8px;
-              font-size: 10px;
-              line-height: 1.6;
-            "
-          >
-            🔥中級
-          </div>
-          <div
-            class="date-chip"
-            onclick="filterByDifficulty('advanced', this)"
-            style="
-              min-width: auto;
-              padding: 3px 8px;
-              font-size: 10px;
-              line-height: 1.6;
-            "
-          >
-            💎高級
-          </div>
-          <span
-            style="
-              width: 1px;
-              height: 14px;
-              background: var(--gray-200);
-              margin: auto 2px;
-              flex-shrink: 0;
-            "
-          ></span>
-          <div
-            class="date-chip active"
-            onclick="filterByPrice('all', this)"
-            style="
-              min-width: auto;
-              padding: 3px 8px;
-              font-size: 10px;
-              line-height: 1.6;
-            "
-          >
-            💰全部
-          </div>
-          <div
-            class="date-chip"
-            onclick="filterByPrice('0-100', this)"
-            style="
-              min-width: auto;
-              padding: 3px 8px;
-              font-size: 10px;
-              line-height: 1.6;
-            "
-          >
-            $0-100
-          </div>
-          <div
-            class="date-chip"
-            onclick="filterByPrice('100-200', this)"
-            style="
-              min-width: auto;
-              padding: 3px 8px;
-              font-size: 10px;
-              line-height: 1.6;
-            "
-          >
-            $100-200
-          </div>
-          <div
-            class="date-chip"
-            onclick="filterByPrice('200-300', this)"
-            style="
-              min-width: auto;
-              padding: 3px 8px;
-              font-size: 10px;
-              line-height: 1.6;
-            "
-          >
-            $200-300
-          </div>
-          <div
-            class="date-chip"
-            onclick="filterByPrice('300+', this)"
-            style="
-              min-width: auto;
-              padding: 3px 8px;
-              font-size: 10px;
-              line-height: 1.6;
-            "
-          >
-            $300+
-          </div>
-          <span
-            style="
-              width: 1px;
-              height: 14px;
-              background: var(--gray-200);
-              margin: auto 2px;
-              flex-shrink: 0;
-            "
-          ></span>
-          <div
-            class="date-chip active"
-            onclick="filterByDistrict('all', this)"
-            style="
-              min-width: auto;
-              padding: 3px 8px;
-              font-size: 10px;
-              line-height: 1.6;
-            "
-          >
-            📍全部
-          </div>
-          <div
-            class="date-chip"
-            onclick="filterByDistrict('港島', this)"
-            style="
-              min-width: auto;
-              padding: 3px 8px;
-              font-size: 10px;
-              line-height: 1.6;
-            "
-          >
-            港島
-          </div>
-          <div
-            class="date-chip"
-            onclick="filterByDistrict('九龍', this)"
-            style="
-              min-width: auto;
-              padding: 3px 8px;
-              font-size: 10px;
-              line-height: 1.6;
-            "
-          >
-            九龍
-          </div>
-          <div
-            class="date-chip"
-            onclick="filterByDistrict('新界', this)"
-            style="
-              min-width: auto;
-              padding: 3px 8px;
-              font-size: 10px;
-              line-height: 1.6;
-            "
-          >
-            新界
-          </div>
-          <div
-            class="date-chip"
-            onclick="filterByDistrict('線上', this)"
-            style="
-              min-width: auto;
-              padding: 3px 8px;
-              font-size: 10px;
-              line-height: 1.6;
-            "
-          >
-            線上
-          </div>
-          <span
-            style="
-              width: 1px;
-              height: 14px;
-              background: var(--gray-200);
-              margin: auto 2px;
-              flex-shrink: 0;
-            "
-          ></span>
-          <div
-            class="sort-btn active"
-            onclick="setSort('popular', this)"
-            style="
-              padding: 3px 8px;
-              border-radius: 6px;
-              border: 1px solid var(--gray-200);
-              font-size: 10px;
-              cursor: pointer;
-              background: var(--white);
-              color: var(--dark-700);
-              flex-shrink: 0;
-              line-height: 1.6;
-            "
-          >
-            🔥熱門
-          </div>
-          <div
-            class="sort-btn"
-            onclick="setSort('price_low', this)"
-            style="
-              padding: 3px 8px;
-              border-radius: 6px;
-              border: 1px solid var(--gray-200);
-              font-size: 10px;
-              cursor: pointer;
-              background: var(--white);
-              color: var(--dark-700);
-              flex-shrink: 0;
-              line-height: 1.6;
-            "
-          >
-            💵低→高
-          </div>
-          <div
-            class="sort-btn"
-            onclick="setSort('price_high', this)"
-            style="
-              padding: 3px 8px;
-              border-radius: 6px;
-              border: 1px solid var(--gray-200);
-              font-size: 10px;
-              cursor: pointer;
-              background: var(--white);
-              color: var(--dark-700);
-              flex-shrink: 0;
-              line-height: 1.6;
-            "
-          >
-            💵高→低
-          </div>
-          <div
-            class="sort-btn"
-            onclick="setSort('rating', this)"
-            style="
-              padding: 3px 8px;
-              border-radius: 6px;
-              border: 1px solid var(--gray-200);
-              font-size: 10px;
-              cursor: pointer;
-              background: var(--white);
-              color: var(--dark-700);
-              flex-shrink: 0;
-              line-height: 1.6;
-            "
-          >
-            ⭐評分
-          </div>
-        </div>
-        <!-- Result count + Clear -->
+        <!-- Result count + Clear + Filter Toggle -->
         <div style="display: flex; align-items: center; margin-top: 4px">
           <span class="zen-text-xs zen-text-muted" id="resultCount"></span>
           <button
@@ -1319,9 +1045,94 @@
           >
             🔄 清除
           </button>
+          <button
+            onclick="openMobileFilterSheet()"
+            id="mobileFilterToggle"
+            class="filter-btn"
+            style="margin-left: 6px; padding: 4px 12px; font-size: 12px; white-space: nowrap"
+          >
+            🔍 進階篩選 <span class="badge-count" id="filterBadgeCount">0</span>
+          </button>
         </div>
       </div>
     </div>
+
+    <!-- Mobile Filter Sheet -->
+    <div class="filter-overlay" id="filterOverlay" onclick="closeMobileFilterSheet()"></div>
+    <div class="mobile-filter-sheet" id="mobileFilterSheet">
+      <div class="sheet-header">
+        <h2>進階篩選</h2>
+        <button class="sheet-close" onclick="closeMobileFilterSheet()">✕</button>
+      </div>
+      <div class="sheet-body">
+        <!-- Time of Day -->
+        <div class="filter-section">
+          <div class="filter-section-title">⏰ 時段</div>
+          <div class="filter-chip-group" id="timeOfDayGroup">
+            <span class="filter-toggle-chip active" data-time="all" onclick="toggleFilterChip('timeOfDay', 'all', this)">全部</span>
+            <span class="filter-toggle-chip" data-time="morning" onclick="toggleFilterChip('timeOfDay', 'morning', this)">🌅 早上 (06-12)</span>
+            <span class="filter-toggle-chip" data-time="afternoon" onclick="toggleFilterChip('timeOfDay', 'afternoon', this)">☀️ 下午 (12-18)</span>
+            <span class="filter-toggle-chip" data-time="evening" onclick="toggleFilterChip('timeOfDay', 'evening', this)">🌙 晚上 (18-23)</span>
+          </div>
+        </div>
+        <!-- Difficulty -->
+        <div class="filter-section">
+          <div class="filter-section-title">📊 難度</div>
+          <div class="filter-chip-group" id="difficultyGroup">
+            <span class="filter-toggle-chip active" data-difficulty="all" onclick="toggleFilterChip('difficulty', 'all', this)">全部</span>
+            <span class="filter-toggle-chip" data-difficulty="beginner" onclick="toggleFilterChip('difficulty', 'beginner', this)">🌱 初級</span>
+            <span class="filter-toggle-chip" data-difficulty="intermediate" onclick="toggleFilterChip('difficulty', 'intermediate', this)">🔥 中級</span>
+            <span class="filter-toggle-chip" data-difficulty="advanced" onclick="toggleFilterChip('difficulty', 'advanced', this)">💎 高級</span>
+          </div>
+        </div>
+        <!-- Price Range -->
+        <div class="filter-section">
+          <div class="filter-section-title">💰 價格範圍</div>
+          <div class="filter-chip-group" id="priceGroup">
+            <span class="filter-toggle-chip active" data-price="all" onclick="toggleFilterChip('price', 'all', this)">全部</span>
+            <span class="filter-toggle-chip" data-price="0-100" onclick="toggleFilterChip('price', '0-100', this)">HK$100 以下</span>
+            <span class="filter-toggle-chip" data-price="100-200" onclick="toggleFilterChip('price', '100-200', this)">HK$100-200</span>
+            <span class="filter-toggle-chip" data-price="200-300" onclick="toggleFilterChip('price', '200-300', this)">HK$200-300</span>
+            <span class="filter-toggle-chip" data-price="300+" onclick="toggleFilterChip('price', '300+', this)">HK$300+</span>
+          </div>
+        </div>
+        <!-- Remaining Spots -->
+        <div class="filter-section">
+          <div class="filter-section-title">🪑 剩餘名額</div>
+          <div class="filter-chip-group" id="spotsGroup">
+            <span class="filter-toggle-chip active" data-spots="all" onclick="toggleFilterChip('spots', 'all', this)">全部</span>
+            <span class="filter-toggle-chip" data-spots="5plus" onclick="toggleFilterChip('spots', '5plus', this)">5+ 位</span>
+            <span class="filter-toggle-chip" data-spots="under5" onclick="toggleFilterChip('spots', 'under5', this)">5 位以下</span>
+            <span class="filter-toggle-chip" data-spots="full" onclick="toggleFilterChip('spots', 'full', this)">已滿</span>
+          </div>
+        </div>
+        <!-- Credit Cost -->
+        <div class="filter-section">
+          <div class="filter-section-title">💳 課堂點數</div>
+          <div class="filter-chip-group" id="creditGroup">
+            <span class="filter-toggle-chip active" data-credit="all" onclick="toggleFilterChip('credit', 'all', this)">全部</span>
+            <span class="filter-toggle-chip" data-credit="12cr" onclick="toggleFilterChip('credit', '12cr', this)">12cr</span>
+            <span class="filter-toggle-chip" data-credit="15cr" onclick="toggleFilterChip('credit', '15cr', this)">15cr</span>
+          </div>
+        </div>
+        <!-- Sort -->
+        <div class="filter-section">
+          <div class="filter-section-title">📌 排序</div>
+          <div class="filter-chip-group" id="sortGroup">
+            <span class="filter-toggle-chip active" data-sort="popular" onclick="toggleFilterChip('sort', 'popular', this)">🔥 熱門</span>
+            <span class="filter-toggle-chip" data-sort="price_low" onclick="toggleFilterChip('sort', 'price_low', this)">💵 價格低→高</span>
+            <span class="filter-toggle-chip" data-sort="price_high" onclick="toggleFilterChip('sort', 'price_high', this)">💵 價格高→低</span>
+            <span class="filter-toggle-chip" data-sort="newest" onclick="toggleFilterChip('sort', 'newest', this)">🆕 最新</span>
+            <span class="filter-toggle-chip" data-sort="nearest" onclick="toggleFilterChip('sort', 'nearest', this)">📍 最近</span>
+          </div>
+        </div>
+      </div>
+      <div class="sheet-actions">
+        <button class="btn-clear" onclick="clearAllFilters()">🔄 清除全部</button>
+        <button class="btn-apply" onclick="closeMobileFilterSheet(); loadClasses();">✓ 套用篩選</button>
+      </div>
+    </div>
+
     <div
       class="class-grid"
       id="class-grid"
@@ -1482,6 +1293,14 @@
       var currentTimeline = "";
       var currentSort = "popular";
       var currentPage = 1;
+      // New advanced filter state
+      var currentTimeOfDay = "all";
+      var currentDifficulty = "all";
+      var currentPrice = "all";
+      var currentSpots = "all";
+      var currentCredit = "all";
+      var currentDistrict = "all";
+      var currentSortMethod = "popular";
       var currentLimit = 20;
       var totalClasses = 0;
       var favorites = JSON.parse(
@@ -1508,6 +1327,12 @@
           params.dist = currentDistrict;
         if (currentSortMethod && currentSortMethod !== "popular")
           params.sort = currentSortMethod;
+        if (currentTimeOfDay && currentTimeOfDay !== "all")
+          params.time = currentTimeOfDay;
+        if (currentSpots && currentSpots !== "all")
+          params.spots = currentSpots;
+        if (currentCredit && currentCredit !== "all")
+          params.credit = currentCredit;
         var qs = Object.keys(params)
           .map(function (k) {
             return k + "=" + encodeURIComponent(params[k]);
@@ -1534,6 +1359,9 @@
             currentSortMethod = val;
             currentSort = val;
           }
+          else if (key === "time") currentTimeOfDay = val;
+          else if (key === "spots") currentSpots = val;
+          else if (key === "credit") currentCredit = val;
         }
       }
 
@@ -1748,35 +1576,54 @@
         loadClasses();
       }
 
-      // ===== Difficulty Filter =====
-
-      var currentPrice = "all";
-      var currentDistrict = "all";
-      var currentSortMethod = "popular";
+      // ===== Enhanced Unified Filter System =====
       var currentView = "grid";
+
+      // Toggle chip filter (for mobile sheet)
+      function toggleFilterChip(type, value, el) {
+        // Deactivate all siblings, then activate this one
+        var parent = el.parentNode;
+        var chips = parent.querySelectorAll('.filter-toggle-chip');
+        chips.forEach(function(c) { c.classList.remove('active'); });
+        el.classList.add('active');
+        
+        // Update state
+        switch(type) {
+          case 'timeOfDay': currentTimeOfDay = value; break;
+          case 'difficulty': currentDifficulty = value; break;
+          case 'price': currentPrice = value; break;
+          case 'spots': currentSpots = value; break;
+          case 'credit': currentCredit = value; break;
+          case 'sort': 
+            currentSortMethod = value;
+            currentSort = value;
+            break;
+        }
+        currentPage = 1;
+        updateURL();
+        updateActiveFilterBar();
+        updateFilterBadge();
+        loadClasses();
+      }
 
       function filterByPrice(price, el) {
         currentPrice = price;
         currentPage = 1;
         updateURL();
-        document
-          .querySelectorAll("#price-filter .date-chip")
-          .forEach(function (e) {
-            e.classList.remove("active");
-          });
-        if (el) el.classList.add("active");
+        // Sync sheet
+        var chips = document.querySelectorAll('#priceGroup .filter-toggle-chip');
+        chips.forEach(function(c) { c.classList.remove('active'); });
+        chips.forEach(function(c) { if(c.dataset.price === price) c.classList.add('active'); });
+        updateActiveFilterBar();
+        updateFilterBadge();
         loadClasses();
       }
       function filterByDistrict(dist, el) {
         currentDistrict = dist;
         currentPage = 1;
         updateURL();
-        document
-          .querySelectorAll("#district-filter .date-chip")
-          .forEach(function (e) {
-            e.classList.remove("active");
-          });
-        if (el) el.classList.add("active");
+        updateActiveFilterBar();
+        updateFilterBadge();
         loadClasses();
       }
       function setSort(method, el) {
@@ -1784,64 +1631,165 @@
         currentSort = method;
         currentPage = 1;
         updateURL();
-        document.querySelectorAll(".sort-btn").forEach(function (e) {
-          e.classList.remove("active");
-        });
-        if (el) el.classList.add("active");
+        // Sync sheet
+        var chips = document.querySelectorAll('#sortGroup .filter-toggle-chip');
+        chips.forEach(function(c) { c.classList.remove('active'); });
+        chips.forEach(function(c) { if(c.dataset.sort === method) c.classList.add('active'); });
+        updateActiveFilterBar();
+        updateFilterBadge();
         loadClasses();
       }
       function clearAllFilters() {
-        currentCategory = "all";
-        currentDate = "";
-        currentDifficulty = "all";
-        currentPrice = "all";
-        currentDistrict = "all";
-        currentSortMethod = "popular";
+        currentCategory = 'all';
+        currentDate = '';
+        currentTimeOfDay = 'all';
+        currentDifficulty = 'all';
+        currentPrice = 'all';
+        currentSpots = 'all';
+        currentCredit = 'all';
+        currentDistrict = 'all';
+        currentSortMethod = 'popular';
+        currentSort = 'popular';
         currentPage = 1;
         updateURL();
-        document
-          .querySelectorAll(".category-chip, .date-chip, .sort-btn")
-          .forEach(function (e) {
-            e.classList.remove("active");
-          });
-        var first = document.querySelector(".category-chip");
-        if (first) first.classList.add("active");
-        var firstD = document.querySelector("#date-filter .date-chip");
-        if (firstD) firstD.classList.add("active");
-        var firstP = document.querySelector("#price-filter .date-chip");
-        if (firstP) firstP.classList.add("active");
-        var firstDist = document.querySelector("#district-filter .date-chip");
-        if (firstDist) firstDist.classList.add("active");
-        var firstS = document.querySelector(".sort-btn");
-        if (firstS) firstS.classList.add("active");
-        document.getElementById("search-input").value = "";
-        searchTerm = "";
+        // Reset category chips
+        document.querySelectorAll('#category-list .category-chip').forEach(function(e) { e.classList.remove('active'); });
+        var first = document.querySelector('#category-list .category-chip');
+        if (first) first.classList.add('active');
+        // Reset date chips
+        document.querySelectorAll('#date-list .date-chip').forEach(function(e) { e.classList.remove('active'); });
+        var firstD = document.querySelector('#date-list .date-chip');
+        if (firstD) firstD.classList.add('active');
+        // Reset sheet chips
+        document.querySelectorAll('.filter-chip-group .filter-toggle-chip').forEach(function(e) { e.classList.remove('active'); });
+        document.querySelectorAll('.filter-chip-group .filter-toggle-chip[data-time="all"], .filter-chip-group .filter-toggle-chip[data-difficulty="all"], .filter-chip-group .filter-toggle-chip[data-price="all"], .filter-chip-group .filter-toggle-chip[data-spots="all"], .filter-chip-group .filter-toggle-chip[data-credit="all"], .filter-chip-group .filter-toggle-chip[data-sort="popular"]').forEach(function(e) { e.classList.add('active'); });
+        document.getElementById('search-input').value = '';
+        searchTerm = '';
+        updateActiveFilterBar();
+        updateFilterBadge();
         loadClasses();
       }
       function setView(view) {
         currentView = view;
-        var grid = document.getElementById("classGrid");
-        if (grid) grid.style.display = view === "grid" ? "flex" : "block";
-        document.getElementById("viewGrid").style.background =
-          view === "grid" ? "var(--orange-600-bg)" : "var(--white)";
-        document.getElementById("viewGrid").style.color =
-          view === "grid" ? "white" : "var(--dark-700)";
-        document.getElementById("viewList").style.background =
-          view === "list" ? "var(--orange-600-bg)" : "var(--white)";
-        document.getElementById("viewList").style.color =
-          view === "list" ? "white" : "var(--dark-700)";
+        var grid = document.getElementById('classGrid');
+        if (grid) grid.style.display = view === 'grid' ? 'flex' : 'block';
+        document.getElementById('viewGrid').style.background = view === 'grid' ? 'var(--orange-600-bg)' : 'var(--white)';
+        document.getElementById('viewGrid').style.color = view === 'grid' ? 'white' : 'var(--dark-700)';
+        document.getElementById('viewList').style.background = view === 'list' ? 'var(--orange-600-bg)' : 'var(--white)';
+        document.getElementById('viewList').style.color = view === 'list' ? 'white' : 'var(--dark-700)';
       }
 
-      var currentDifficulty = "all";
       function filterByDifficulty(diff, el) {
-        var chips = document.querySelectorAll("#difficulty-filter .date-chip");
-        for (var ci = 0; ci < chips.length; ci++)
-          chips[ci].classList.remove("active");
-        el.classList.add("active");
         currentDifficulty = diff;
         currentPage = 1;
         updateURL();
+        // Sync sheet
+        var chips = document.querySelectorAll('#difficultyGroup .filter-toggle-chip');
+        chips.forEach(function(c) { c.classList.remove('active'); });
+        chips.forEach(function(c) { if(c.dataset.difficulty === diff) c.classList.add('active'); });
+        updateActiveFilterBar();
+        updateFilterBadge();
         loadClasses();
+      }
+
+      // ===== Active Filter Bar =====
+      function getActiveFilters() {
+        var filters = [];
+        if (currentCategory && currentCategory !== 'all') filters.push({ label: currentCategory, type: 'category', value: currentCategory });
+        if (currentDate) filters.push({ label: currentDate.replace('2026-',''), type: 'date', value: currentDate });
+        if (currentTimeOfDay && currentTimeOfDay !== 'all') {
+          var timeLabels = { morning: '🌅 早上', afternoon: '☀️ 下午', evening: '🌙 晚上' };
+          filters.push({ label: timeLabels[currentTimeOfDay] || currentTimeOfDay, type: 'timeOfDay', value: currentTimeOfDay });
+        }
+        if (currentDifficulty && currentDifficulty !== 'all') {
+          var diffLabels = { beginner: '🌱初級', intermediate: '🔥中級', advanced: '💎高級' };
+          filters.push({ label: diffLabels[currentDifficulty] || currentDifficulty, type: 'difficulty', value: currentDifficulty });
+        }
+        if (currentPrice && currentPrice !== 'all') {
+          var priceLabels = { '0-100': 'HK$100↓', '100-200': 'HK$100-200', '200-300': 'HK$200-300', '300+': 'HK$300+' };
+          filters.push({ label: priceLabels[currentPrice] || currentPrice, type: 'price', value: currentPrice });
+        }
+        if (currentSpots && currentSpots !== 'all') {
+          var spotsLabels = { '5plus': '5+位', under5: '5位↓', full: '已滿' };
+          filters.push({ label: '🪑' + (spotsLabels[currentSpots] || currentSpots), type: 'spots', value: currentSpots });
+        }
+        if (currentCredit && currentCredit !== 'all') {
+          filters.push({ label: currentCredit, type: 'credit', value: currentCredit });
+        }
+        if (currentDistrict && currentDistrict !== 'all') {
+          filters.push({ label: '📍' + currentDistrict, type: 'district', value: currentDistrict });
+        }
+        if (currentSortMethod && currentSortMethod !== 'popular') {
+          var sortLabels = { price_low: '💵低→高', price_high: '💵高→低', newest: '🆕最新', nearest: '📍最近' };
+          filters.push({ label: sortLabels[currentSortMethod] || currentSortMethod, type: 'sort', value: currentSortMethod });
+        }
+        return filters;
+      }
+
+      function updateActiveFilterBar() {
+        var bar = document.getElementById('activeFilterBar');
+        if (!bar) return;
+        var filters = getActiveFilters();
+        if (filters.length === 0) {
+          bar.innerHTML = '';
+          return;
+        }
+        bar.innerHTML = filters.map(function(f) {
+          return '<span class="active-filter-chip">' + f.label + '<button class="remove-chip" onclick="removeFilter(\'' + f.type + '\', \'' + f.value + '\')">✕</button></span>';
+        }).join('') + '<span class="active-filter-chip" style="background:var(--gray-100);color:var(--dark-700);border-color:var(--gray-200);cursor:pointer" onclick="clearAllFilters()">🔄 清除全部</span>';
+      }
+
+      function removeFilter(type, value) {
+        switch(type) {
+          case 'category': currentCategory = 'all'; break;
+          case 'date': currentDate = ''; break;
+          case 'timeOfDay': currentTimeOfDay = 'all'; break;
+          case 'difficulty': currentDifficulty = 'all'; break;
+          case 'price': currentPrice = 'all'; break;
+          case 'spots': currentSpots = 'all'; break;
+          case 'credit': currentCredit = 'all'; break;
+          case 'district': currentDistrict = 'all'; break;
+          case 'sort': currentSortMethod = 'popular'; currentSort = 'popular'; break;
+        }
+        currentPage = 1;
+        updateURL();
+        // Reset active chip styling
+        document.querySelectorAll('.filter-toggle-chip').forEach(function(c) {
+          var chipType = c.dataset.time ? 'timeOfDay' : c.dataset.difficulty ? 'difficulty' : c.dataset.price ? 'price' : c.dataset.spots ? 'spots' : c.dataset.credit ? 'credit' : c.dataset.sort ? 'sort' : null;
+          if (chipType === type) { c.classList.remove('active'); }
+        });
+        // Set the 'all' chip active for that group
+        document.querySelectorAll('.filter-toggle-chip[data-' + type + '="all"]').forEach(function(c) { c.classList.add('active'); });
+        // Reset category chip
+        if (type === 'category') {
+          document.querySelectorAll('#category-list .category-chip').forEach(function(e) { e.classList.remove('active'); });
+          var first = document.querySelector('#category-list .category-chip');
+          if (first) first.classList.add('active');
+        }
+        updateActiveFilterBar();
+        updateFilterBadge();
+        loadClasses();
+      }
+
+      function updateFilterBadge() {
+        var count = getActiveFilters().length;
+        var badges = document.querySelectorAll('.badge-count');
+        badges.forEach(function(b) {
+          b.textContent = count;
+          b.classList.toggle('show', count > 0);
+        });
+      }
+
+      // ===== Mobile Filter Sheet =====
+      function openMobileFilterSheet() {
+        document.getElementById('filterOverlay').classList.add('open');
+        document.getElementById('mobileFilterSheet').classList.add('open');
+        document.body.style.overflow = 'hidden';
+      }
+      function closeMobileFilterSheet() {
+        document.getElementById('filterOverlay').classList.remove('open');
+        document.getElementById('mobileFilterSheet').classList.remove('open');
+        document.body.style.overflow = '';
       }
 
       var mapView = false;
@@ -1997,38 +1945,8 @@
         loadClasses();
       }
       function clearFilters() {
-        document.getElementById("search-input").value = "";
-        document.getElementById("filter-difficulty").value = "";
-        document.getElementById("filter-price-min").value = "";
-        document.getElementById("filter-price-max").value = "";
-        currentSort = "popular";
-        currentCategory = "all";
-        currentDate = "";
-        currentPage = 1;
-        updateURL();
-        document.querySelectorAll(".sort-btn").forEach(function (b) {
-          b.classList.remove("active");
-        });
-        document.querySelector('[data-sort="popular"]').classList.add("active");
-        document.querySelectorAll(".category-chip").forEach(function (c) {
-          c.classList.remove("active");
-        });
-        document
-          .querySelector(
-            ".category-chip.active, #category-list .category-chip:first-child",
-          )
-          .classList.add("active");
-        loadClasses();
+        clearAllFilters();
       }
-      function setSort(sort, el) {
-        document.querySelectorAll(".sort-btn").forEach(function (b) {
-          b.classList.remove("active");
-        });
-        el.classList.add("active");
-        currentSort = sort;
-        loadClasses();
-      }
-
       function applyFilters() {
         loadClasses();
       }
@@ -2089,6 +2007,18 @@
           params.difficulty = currentDifficulty;
         if (currentDistrict && currentDistrict !== "all")
           params.district = currentDistrict;
+        if (currentTimeOfDay && currentTimeOfDay !== "all")
+          params.time_of_day = currentTimeOfDay;
+        if (currentSpots && currentSpots !== "all") {
+          switch (currentSpots) {
+            case "5plus": params.min_spots = 5; break;
+            case "under5": params.max_spots = 5; params.min_spots = 1; break;
+            case "full": params.max_spots = 0; break;
+          }
+        }
+        if (currentCredit && currentCredit !== "all") {
+          params.credit_cost = parseInt(currentCredit);
+        }
 
         // Get search from URL
         var search = null;
@@ -2232,12 +2162,35 @@
             ';display:flex;align-items:center;justify-content:center;font-size:32px;width:100%;height:100%">' +
             emoji +
             "</div>";
+
+        // Credit badge (use pricing_tier or credit_cost, default to 12cr for off-peak)
+        var creditCost = cls.credit_cost || (cls.pricing_tier === 'peak' ? 15 : 12);
+        var creditBadge = '<div class="credit-badge">' + creditCost + 'cr</div>';
+
+        // Urgency badge (if remaining_spots <= 3)
+        var remaining = cls.remaining_spots;
+        var urgencyBadge = '';
+        if (remaining !== undefined && remaining <= 3 && remaining > 0) {
+          urgencyBadge = '<div class="urgency-badge">⚡ 今晚只剩 ' + remaining + ' 位</div>';
+        }
+
+        // Availability dot
+        var availHtml = '';
+        if (remaining !== undefined) {
+          var dotColor = remaining > 5 ? 'green' : remaining > 0 ? 'orange' : 'red';
+          var availText = remaining > 5 ? '有位' : remaining > 0 ? '少量 ' + remaining + '位' : '已滿';
+          availHtml = '<div class="class-card-spots" style="font-size:11px;color:var(--dark-700);margin-top:3px;display:flex;align-items:center;gap:4px">' +
+            '<span class="avail-dot ' + dotColor + '"></span><span class="avail-label">' + availText + '</span></div>';
+        }
+
         return (
           '<div class="class-card" style="position:relative" onclick="location.href=\'class-detail.html?id=' +
           cls.id +
           "'\">" +
           '<div style="position:relative;width:100%;overflow:hidden;background:var(--orange-100)" class="class-card-img-wrap">' +
           imgHtml +
+          creditBadge +
+          urgencyBadge +
           "</div>" +
           '<div class="class-card-body">' +
           '<span class="class-card-category">' +
@@ -2272,11 +2225,7 @@
           " " +
           hot +
           "</div>" +
-          (cls.remaining_spots !== undefined
-            ? '<div class="class-card-spots" style="font-size:11px;color:var(--dark-700);margin-top:3px;display:flex;align-items:center;gap:4px"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#10b981"></span>' +
-              cls.remaining_spots +
-              " 位</div>"
-            : "") +
+          availHtml +
           "</div></div>"
         );
       }
