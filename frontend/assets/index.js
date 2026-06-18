@@ -1,5 +1,27 @@
 // ZenPass Index JS — extracted from index.html
 
+// ===== Skeleton Loader =====
+(function(){
+  if(typeof showSkeleton === 'function') return;
+  var S = {grid:4,featured:3,booking:3,coach:6,activity:4,detail:1};
+  window.showSkeleton = function(c,t,n){
+    if(!c) return;
+    n=n||S[t]||3;
+    function L(w,h){return '<div class="sk-block sk-shimmer sk-'+h+' sk-'+w+' sk-mb-2"></div>'}
+    var h='',i;
+    if(t==='grid'||t==='course'){
+      h='<div class="sk-grid">';
+    }else if(t==='featured'){
+      for(i=0;i<n;i++){h+='<div class="sk-flex sk-items-center sk-gap-3 sk-p-3">'+'<div class="sk-block sk-shimmer sk-h-10 sk-w-10 sk-rounded-full sk-flex-shrink-0"></div>'+'<div class="sk-flex-1">'+L('w-3\\/4','h-3')+L('w-1\\/2','h-3')+'</div></div>';}
+    }else if(t==='booking'){
+      for(i=0;i<n;i++){h+='<div class="sk-flex sk-items-center sk-gap-3 sk-p-3 sk-card sk-mb-3">'+'<div class="sk-block sk-shimmer sk-h-14 sk-w-14 sk-rounded sk-flex-shrink-0"></div>'+'<div class="sk-flex-1">'+L('w-3\\/4','h-4')+L('w-1\\/2','h-3')+L('w-1\\/3','h-3')+'</div></div>';}
+    }else if(t==='detail'){
+      h='<div style="max-width:600px;margin:0 auto;padding:16px">'+'<div class="sk-block sk-shimmer sk-h-40 sk-w-full sk-mb-4"></div>'+L('w-3\\/4','h-6')+L('w-full','h-4')+L('w-3\\/4','h-4')+'<div class="sk-flex sk-gap-3" style="margin-top:12px">'+'<div class="sk-block sk-shimmer sk-h-6 sk-w-20"></div>'+'<div class="sk-block sk-shimmer sk-h-6 sk-w-16"></div>'+'</div></div>';
+    }
+    c.innerHTML = h;
+  };
+})();
+
 // ===== Load Categories =====
 async function loadCategories() {
   var container = document.getElementById("category-list");
@@ -226,7 +248,7 @@ async function loadAllClasses(params) {
     params = {};
   }
   var container = document.getElementById("all-classes");
-  container.innerHTML = '<div class="loading-spinner">載入中...</div>';
+  container.innerHTML = '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;padding:0 8px">' + Array(6).fill('<div class="sk-block sk-shimmer" style="height:170px;border-radius:14px"></div>').join('') + '</div>';
   try {
     var mergedParams = { limit: 50 };
     for (var pk in params) {
