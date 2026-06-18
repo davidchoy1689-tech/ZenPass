@@ -1024,13 +1024,26 @@
         var interests = interestsRaw ? JSON.parse(interestsRaw) : [];
         if (interests.length > 0) {
           var interestNames = interests.join('、');
-          var tip = '';
-          if (interests.includes('瑷伽')) tip = '🧘 瑷伽課最嘙你！';
-          else if (interests.includes('健身')) tip = '💪 健身操肌最嘙你！';
-          else if (interests.includes('冥想')) tip = '🧠 冥想放鬆最嘙你！';
-          else tip = '🔥 ' + interestNames + ' 適合你！';
+          var h = new Date().getHours();
+          var greeting = h < 12 ? '🌅 早晨' : h < 18 ? '☀️ 午安' : '🌙 晚安';
+          var tip = greeting + '！';
+          if (interests.length > 0) {
+            if (interests.includes('瑜伽')) tip = greeting + '！🧘 瑜伽課 ready for you';
+            else if (interests.includes('健身')) tip = greeting + '！💪 健身操肌，今日開練';
+            else if (interests.includes('冥想')) tip = greeting + '！🧠 冥想一下，放鬆身心';
+            else if (interests.includes('伸展')) tip = greeting + '！🤸 伸展拉筋，趕走疲勞';
+            else tip = greeting + '！🔥 ' + interestNames + ' 適合你';
+          } else {
+            var timeTips = [
+              '🔥 晨間運動燃脂效果最佳',
+              '☕ 午後瑜伽幫你 reset 個 mind',
+              '🌙 晚間放鬆伸展，好瞓啲'
+            ];
+            var idx = h < 12 ? 0 : h < 18 ? 1 : 2;
+            tip = greeting + '！' + timeTips[idx];
+          }
           var tipEl = document.getElementById('personalised-tip');
-          if (tipEl) tipEl.textContent = tip;
+          if (tipEl) { tipEl.style.display = 'block'; tipEl.textContent = tip; }
         }
       } catch(e) {}
       fetch(apiBase + '/api/users/credits', {
@@ -2158,6 +2171,57 @@
           </div>
         </div>
       </div>
+
+      <!-- 🧘 Zen Zone — Breathing Guide -->
+      <div class="section" style="margin-bottom:0;padding-bottom:0">
+        <div class="zen-section-title" style="font-size:15px;margin:0 0 12px">
+          <span>🧘 Zen Zone · 呼吸練習</span>
+        </div>
+        <div style="background:linear-gradient(135deg,#0f172a,#1e293b);border-radius:16px;padding:20px;position:relative;overflow:hidden">
+          <div style="position:absolute;top:-20px;right:-20px;width:100px;height:100px;background:rgba(16,185,129,0.08);border-radius:50%"></div>
+          <div style="position:relative;z-index:1;text-align:center">
+            <div style="font-size:40px;margin-bottom:8px">🌬️</div>
+            <div style="color:#10b981;font-size:16px;font-weight:700">4-7-8 呼吸法</div>
+            <div style="color:rgba(255,255,255,0.6);font-size:12px;margin:6px auto 16px;max-width:260px">吸氣 4 秒 · 閉氣 7 秒 · 呼氣 8 秒 · 重複 3 次</div>
+            <div style="display:flex;gap:12px;justify-content:center">
+              <button onclick="startBreathing()" style="padding:10px 28px;border-radius:50px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;font-size:14px;font-weight:700;border:none;cursor:pointer;transition:all 0.3s" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">▶️ 開始練習</button>
+              <a href="explore.html?category=冥想" style="padding:10px 20px;border-radius:50px;background:rgba(255,255,255,0.1);color:#fff;font-size:13px;font-weight:600;text-decoration:none;border:1px solid rgba(255,255,255,0.15)">瀏覽冥想課 →</a>
+            </div>
+            <div id="breathing-display" style="margin-top:16px;font-size:13px;color:rgba(255,255,255,0.5);min-height:20px"></div>
+          </div>
+        </div>
+      </div>
+      <script>
+      function startBreathing() {
+        var display = document.getElementById('breathing-display');
+        if (!display) return;
+        var phases = ['🌬️ 吸氣...', '😤 閉氣...', '💨 呼氣...'];
+        var times = [4000, 7000, 8000];
+        var cycle = 0;
+        var btn = event.target;
+        btn.disabled = true;
+        btn.textContent = '⏳ 練習中...';
+        function runPhase(i) {
+          if (cycle >= 3) {
+            display.innerHTML = '✅ 完成！放鬆身心，繼續探索 🧘';
+            btn.disabled = false;
+            btn.textContent = '🔄 再來一次';
+            return;
+          }
+          display.style.color = i === 0 ? '#10b981' : i === 1 ? '#f59e0b' : '#6366f1';
+          display.textContent = phases[i] + ' (' + (cycle+1) + '/3)';
+          setTimeout(function() {
+            if (i < 2) {
+              runPhase(i + 1);
+            } else {
+              cycle++;
+              runPhase(0);
+            }
+          }, times[i]);
+        }
+        runPhase(0);
+      }
+      </script>
 
       <!-- Recent Updates — Happenings + Activity Feed -->
       <div class="section">

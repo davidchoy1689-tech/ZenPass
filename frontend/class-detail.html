@@ -1289,6 +1289,21 @@
         updateBookButton();
       }
 
+      // ===== Auto Select Payment (2-click booking) =====
+      function autoSelectPayment() {
+        if (typeof isLoggedIn !== 'function' || !isLoggedIn()) return;
+        try {
+          var u = JSON.parse(localStorage.getItem('zenpass_user') || '{}');
+          if (u.credits > 0) {
+            var creditsEl = document.querySelector('.payment-option[onclick*="credits"]');
+            if (creditsEl) {
+              selectPayment('credits', creditsEl);
+              window.bookingStep2Click = true;
+            }
+          }
+        } catch (e) {}
+      }
+
       function getPriceLabel() {
         var price = (currentClass || {}).price_hkd || 120;
         var credits = (currentClass || {}).credits_cost || 15;
