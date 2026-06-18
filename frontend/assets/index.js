@@ -71,6 +71,8 @@
     html.dark .diff-beginner { background:#1b5e20; color:#a5d6a7; }
     html.dark .diff-intermediate { background:#e65100; color:#ffcc80; }
     html.dark .diff-advanced { background:#b71c1c; color:#ef9a9a; }
+    .indie-badge { display:inline-block; padding:1px 8px; border-radius:10px; font-size:10px; font-weight:600; margin-right:4px; background:linear-gradient(135deg,#fbbf24,#f59e0b); color:#1a1a2e; }
+    html.dark .indie-badge { background:linear-gradient(135deg,#b45309,#92400e); color:#fef3c7; }
     html.dark .class-card-price { color: #f1f5f9; }
   `;
   document.head.appendChild(s);
@@ -483,6 +485,8 @@ function renderClassCard(cls) {
   var rating = cls.rating || "⭐4.8";
   var spots = cls.remaining_spots !== undefined ? cls.remaining_spots : null;
   var coach = cls.coach_name || "";
+  var isIndependent = cls.coach_type === 'independent' || cls.is_independent;
+  var indoor = cls.indoor !== undefined ? cls.indoor : true; // default indoor
   // Credit cost: use API field or default to 12cr
   var creditCost = cls.credit_cost || (cls.pricing_tier === 'peak' ? 15 : 12);
   var creditBadge = '<span class="credit-badge">' + creditCost + 'cr</span>';
@@ -533,8 +537,10 @@ function renderClassCard(cls) {
     // Difficulty badge + Location + MTR
     '<div class="class-card-meta" style="margin-top:2px">' +
     (cls.difficulty ? '<span class="diff-badge diff-' + (cls.difficulty || 'beginner').toLowerCase() + '">' + (cls.difficulty === 'beginner' ? '初級' : cls.difficulty === 'intermediate' ? '中級' : '高級') + '</span>' : '') +
+    (isIndependent ? '<span class="indie-badge">🌟 獨立教練</span>' : '') +
     (cls.location || cls.venue_name ? ' · 📍' + (cls.venue_name || cls.location || '') : '') +
     (cls.mtr_station ? ' · 🚇' + cls.mtr_station : '') +
+    (!indoor ? ' · 🌧️ 室內' : '') +
     "</div>" +
     '<div class="class-card-price-row">' +
     creditBadge +
