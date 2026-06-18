@@ -530,10 +530,11 @@ function renderClassCard(cls) {
         rating +
         (coach ? " · 👩‍🏫 " + coach : "") +
         "</div>") +
-    // Difficulty badge + Location
+    // Difficulty badge + Location + MTR
     '<div class="class-card-meta" style="margin-top:2px">' +
     (cls.difficulty ? '<span class="diff-badge diff-' + (cls.difficulty || 'beginner').toLowerCase() + '">' + (cls.difficulty === 'beginner' ? '初級' : cls.difficulty === 'intermediate' ? '中級' : '高級') + '</span>' : '') +
     (cls.location || cls.venue_name ? ' · 📍' + (cls.venue_name || cls.location || '') : '') +
+    (cls.mtr_station ? ' · 🚇' + cls.mtr_station : '') +
     "</div>" +
     '<div class="class-card-price-row">' +
     creditBadge +
