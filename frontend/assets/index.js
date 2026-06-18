@@ -592,7 +592,7 @@ function renderClassCard(cls) {
     '<div class="modern-card-badges">' +
     badgesHtml +
     "</div>" +
-    '<button class="modern-card-fav" onclick="event.stopPropagation();this.classList.toggle(\'liked\');this.classList.toggle(\'pop\');this.textContent=this.textContent===\'♡\'?\'♥\':\'♡\'">♡</button>' +
+    '<button class="modern-card-fav" onclick="event.stopPropagation();toggleFavorite(this)">♡</button>' +
     "</div>" +
     '<div class="modern-card-body">' +
     '<div class="modern-card-tags">' +
@@ -613,7 +613,7 @@ function renderClassCard(cls) {
     '<span>📅 ' + timeDisplay + '</span>' +
     '<span>⏱️ ' + (cls.duration_min || 60) + ' 分鐘</span>' +
     "</div>" +
-    '<button class="modern-card-cta" onclick="event.stopPropagation();location.href=\'class-detail.html?id=' + cls.id + '\'">立即預約<span class="arrow">→</span></button>' +
+    '<button class="modern-card-cta" onclick="event.stopPropagation();bookClass(this)" data-id="' + cls.id + '">立即預約<span class="arrow">→</span></button>' +
     "</div></div>"
   );
 }
@@ -625,6 +625,33 @@ function handleSearch(e) {
   if (query) {
     window.location.href = "explore.html?search=" + encodeURIComponent(query);
   }
+}
+
+// ===== Favorite Toggle =====
+function toggleFavorite(btn) {
+  var heart = btn.querySelector('span');
+  if (!heart) return;
+  if (heart.textContent === '♡') {
+    heart.textContent = '♥';
+    heart.classList.add('text-red-500');
+    btn.classList.add('liked');
+  } else {
+    heart.textContent = '♡';
+    heart.classList.remove('text-red-500');
+    btn.classList.remove('liked');
+  }
+}
+
+// ===== Quick Book (card CTA) =====
+function bookClass(btn) {
+  btn.innerHTML = '⏳ 預約中...';
+  btn.disabled = true;
+  setTimeout(function() {
+    var id = btn.getAttribute('data-id');
+    if (id) {
+      window.location.href = 'class-detail.html?id=' + id;
+    }
+  }, 600);
 }
 
 // ===== User Menu Placeholder =====
