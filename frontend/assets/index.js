@@ -644,14 +644,8 @@ function toggleFavorite(btn) {
 
 // ===== Quick Book (card CTA) =====
 function bookClass(btn) {
-  btn.innerHTML = '⏳ 預約中...';
-  btn.disabled = true;
-  setTimeout(function() {
-    var id = btn.getAttribute('data-id');
-    if (id) {
-      window.location.href = 'class-detail.html?id=' + id;
-    }
-  }, 600);
+  var id = btn.getAttribute('data-id');
+  if (id) window.location.href = 'class-detail.html?id=' + id;
 }
 
 // ===== User Menu Placeholder =====
