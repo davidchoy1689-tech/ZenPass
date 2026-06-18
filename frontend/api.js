@@ -794,6 +794,16 @@ function updateNavBar() {
   const userInfo = document.querySelectorAll(".zen-user-info");
 
   authBtns.forEach((el) => {
+    // Preserve dark mode toggle and hamburger button
+    var extras = '';
+    var existingHamburger = el.querySelector('#hamburgerBtn');
+    var existingDark = el.querySelector('#darkModeToggle');
+    if (existingHamburger) extras += existingHamburger.outerHTML;
+    if (existingDark) extras += existingDark.outerHTML;
+    // Also add them if they don't exist (for JS-reinjected headers)
+    if (!existingHamburger) extras += '<button id="hamburgerBtn" onclick="toggleMobileMenu()" style="background:rgba(255,255,255,0.15);backdrop-filter:blur(4px);border:none;border-radius:50%;font-size:22px;cursor:pointer;width:42px;height:42px;padding:0;color:#fff;display:flex;align-items:center;justify-content:center" aria-label="選單">☰</button>';
+    if (!existingDark) extras += '<button id="darkModeToggle" onclick="toggleDarkMode()" style="background:none;border:none;font-size:20px;cursor:pointer;padding:8px;min-width:44px;min-height:44px;color:#fff" aria-label="切換深色模式">🌙</button>';
+    
     if (isLoggedIn() && user) {
       var pts = user.points || 0;
       el.innerHTML = `
@@ -802,12 +812,12 @@ function updateNavBar() {
                     <span class="zen-user-name">${user.name}</span>
                     <span class="zen-points-badge" style="background:#fff0e8;color:#ff6b35;font-size:11px;font-weight:600;padding:2px 8px;border-radius:99px;margin-left:6px;white-space:nowrap">🎯 ${pts}</span>
                 </div>
-            `;
+            ` + extras;
     } else {
       el.innerHTML = `
                 <a href="#" class="zen-btn-ghost" onclick="showLoginModal(); return false;">登入</a>
                 <a href="#" class="zen-btn-small" onclick="showLoginModal(); return false;">註冊</a>
-            `;
+            ` + extras;
     }
   });
 }
