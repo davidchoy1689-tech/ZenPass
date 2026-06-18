@@ -709,6 +709,7 @@
     </div>
 
     <div class="book-btn" id="book-btn">
+      <div id="credit-balance" style="display:none;text-align:center;font-size:13px;font-weight:600;color:#059669;margin-bottom:8px;"></div>
       <button id="book-button" onclick="handleBooking()" disabled>
         請選擇時段
       </button>
@@ -1194,8 +1195,14 @@
         // ⚠️ Show/hide waiver checkbox when schedule is selected
         var waiverSection = document.getElementById("waiver-checkbox");
         var waiverAgree = document.getElementById("waiver-agree");
+        var user = JSON.parse(localStorage.getItem("zenpass_user") || "{}");
         if (waiverSection) {
-          waiverSection.style.display = "block";
+          // 如果 user 已同意過一次免責聲明，隱藏 checkbox
+          if (user.waiver_agreed) {
+            waiverSection.style.display = "none";
+          } else {
+            waiverSection.style.display = "block";
+          }
         }
         if (waiverAgree) {
           waiverAgree.checked = false;
@@ -1205,7 +1212,6 @@
         // ⚠️ Penalty consent — 一次過同意（ClassPass 模式）
         var penaltySection = document.getElementById("penalty-checkbox");
         var penaltyAgree = document.getElementById("penalty-agree");
-        var user = JSON.parse(localStorage.getItem("zenpass_user") || "{}");
         if (penaltySection) {
           // 如果 user 已同意過一次，隱藏 checkbox
           if (user.penalty_consent) {
@@ -1269,7 +1275,14 @@
         // ⚠️ Show waiver checkbox when schedule is selected
         var waiverSection = document.getElementById("waiver-checkbox");
         var waiverAgree = document.getElementById("waiver-agree");
-        if (waiverSection) waiverSection.style.display = "block";
+        try {
+          var user = JSON.parse(localStorage.getItem("zenpass_user") || "{}");
+          if (waiverSection) {
+            waiverSection.style.display = user.waiver_agreed ? "none" : "block";
+          }
+        } catch (e) {
+          if (waiverSection) waiverSection.style.display = "block";
+        }
         if (waiverAgree) {
           waiverAgree.checked = false;
           var we = document.getElementById("waiver-error");
@@ -1277,6 +1290,7 @@
         }
 
         updateBookButton();
+        autoSelectPayment();
       }
 
       // ===== Select Payment =====
@@ -1292,6 +1306,7 @@
       // ===== Auto Select Payment (2-click booking) =====
       function autoSelectPayment() {
         if (typeof isLoggedIn !== 'function' || !isLoggedIn()) return;
+        updateCreditBalance();
         try {
           var u = JSON.parse(localStorage.getItem('zenpass_user') || '{}');
           if (u.credits > 0) {
@@ -1304,11 +1319,32 @@
         } catch (e) {}
       }
 
+      // ===== Update Credit Balance Indicator =====
+      function updateCreditBalance() {
+        var el = document.getElementById('credit-balance');
+        if (!el) return;
+        if (typeof isLoggedIn !== 'function' || !isLoggedIn()) {
+          el.style.display = 'none';
+          return;
+        }
+        try {
+          var u = JSON.parse(localStorage.getItem('zenpass_user') || '{}');
+          if (u.credits > 0) {
+            el.textContent = '💎 錢包: ' + u.credits + 'cr';
+            el.style.display = 'block';
+          } else {
+            el.style.display = 'none';
+          }
+        } catch (e) {
+          el.style.display = 'none';
+        }
+      }
+
       function getPriceLabel() {
         var price = (currentClass || {}).price_hkd || 120;
         var credits = (currentClass || {}).credits_cost || 15;
         if (selectedPayment === "single") return "HK$" + price;
-        if (selectedPayment === "credits") return credits + " Credits";
+        if (selectedPayment === "credits") return "💎 " + credits + "cr";
         if (selectedPayment === "membership_trial") return "免費 (試玩)";
         if (selectedPayment === "corporate") return "公司 Credits";
         if (selectedPayment === "membership_standard")
@@ -1363,6 +1399,7 @@
 
       // ===== Update Book Button =====
       function updateBookButton() {
+        updateCreditBalance();
         var btn = document.getElementById("book-button");
         var wlBtn = document.getElementById("waitlist-btn");
         if (!selectedSchedule) {
@@ -1387,7 +1424,11 @@
           }
         } else {
           btn.disabled = false;
-          btn.textContent = "確認預約 — " + getPriceLabel();
+          if (selectedPayment === "credits") {
+            btn.textContent = getPriceLabel() + " 確認預約";
+          } else {
+            btn.textContent = "確認預約 — " + getPriceLabel();
+          }
           if (wlBtn) {
             wlBtn.style.display = "none";
           }
@@ -1454,29 +1495,39 @@
           });
           return;
         }
-        // ⚠️ Check waiver agreement
-        var waiverEl = document.getElementById("waiver-agree");
-        if (waiverEl && !waiverEl.checked) {
-          document.getElementById("waiver-error").style.display = "block";
-          waiverEl.focus();
-          return;
-        }
-        document.getElementById("waiver-error").style.display = "none";
-
-        // ⚠️ Check penalty consent (ClassPass mode — one-time agreement)
-        var penaltyContainer = document.getElementById("penalty-checkbox");
-        var penaltyEl = document.getElementById("penalty-agree");
         var user = JSON.parse(localStorage.getItem("zenpass_user") || "{}");
-        
-        // 如果未同意過，顯示 checkbox 並要求 tick
-        if (penaltyContainer && penaltyContainer.style.display !== "none") {
-          if (!penaltyEl || !penaltyEl.checked) {
-            document.getElementById("penalty-error").style.display = "block";
-            if (penaltyEl) penaltyEl.focus();
+
+        // ⚠️ Check waiver agreement (skip if already agreed)
+        if (!user.waiver_agreed) {
+          var waiverEl = document.getElementById("waiver-agree");
+          if (waiverEl && !waiverEl.checked) {
+            document.getElementById("waiver-error").style.display = "block";
+            waiverEl.focus();
             return;
           }
+          document.getElementById("waiver-error").style.display = "none";
+        } else {
+          // Already agreed, hide error
+          var we = document.getElementById("waiver-error");
+          if (we) we.style.display = "none";
         }
-        document.getElementById("penalty-error").style.display = "none";
+
+        // ⚠️ Check penalty consent (ClassPass mode — one-time agreement, skip if already agreed)
+        if (!user.penalty_consent) {
+          var penaltyContainer = document.getElementById("penalty-checkbox");
+          var penaltyEl = document.getElementById("penalty-agree");
+          if (penaltyContainer && penaltyContainer.style.display !== "none") {
+            if (!penaltyEl || !penaltyEl.checked) {
+              document.getElementById("penalty-error").style.display = "block";
+              if (penaltyEl) penaltyEl.focus();
+              return;
+            }
+          }
+          document.getElementById("penalty-error").style.display = "none";
+        } else {
+          var pe = document.getElementById("penalty-error");
+          if (pe) pe.style.display = "none";
+        }
 
         doBooking();
       }
@@ -1589,6 +1640,13 @@
               (user.credits || 0) - (currentClass.credits_cost || 15),
             );
           }
+          // ✏️ 一次過同意免責聲明後 save 落 localStorage
+          var waiverCheck = document.getElementById("waiver-agree");
+          if (waiverCheck && waiverCheck.checked) {
+            user.waiver_agreed = true;
+            var ws = document.getElementById("waiver-checkbox");
+            if (ws) ws.style.display = "none";
+          }
           // ✏️ 一次過同意罰款規則後 save 落 localStorage
           var penaltyCheck = document.getElementById("penalty-agree");
           if (penaltyCheck && penaltyCheck.checked) {
@@ -1640,7 +1698,13 @@
                 : selectedPayment === "corporate" && apiData.corporate
                   ? "公司俾了 " + apiData.corporate.from_company + " Credits" + (apiData.corporate.from_personal > 0 ? "，你自己俾了 " + apiData.corporate.from_personal + " Credits" : "")
                   : "試玩";
-          showToast("✅ 預約成功! (" + statusText + ")", "success");
+          if (selectedPayment === "credits") {
+            var usedCredits = currentClass.credits_cost || 15;
+            var remainingCredits = Math.max(0, (user.credits || 0) - usedCredits);
+            showToast("✅ 預約成功！已使用 " + usedCredits + " Credits（剩 " + remainingCredits + " Credits）", "success");
+          } else {
+            showToast("✅ 預約成功! (" + statusText + ")", "success");
+          }
           btn.textContent = "✅ 已預約";
           btn.disabled = true;
 
