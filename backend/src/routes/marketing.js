@@ -118,4 +118,28 @@ router.get("/subscribers", authenticateToken, requireAdmin, function (req, res) 
   }
 });
 
+// ===== POST /api/marketing/feedback — 網站意見回饋 =====
+router.post("/feedback", function (req, res) {
+  try {
+    const { name, email, rating, comment, page } = req.body;
+    if (!comment || !comment.trim()) {
+      return res.status(400).json({ error: "請輸入意見內容" });
+    }
+    var db = getDB();
+    db.exec("CREATE TABLE IF NOT EXISTS feedback (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT DEFAULT '', email TEXT DEFAULT '', rating INTEGER DEFAULT 0, comment TEXT NOT NULL, page TEXT DEFAULT '', created_at TEXT DEFAULT (datetime('now')))");
+    db.prepare("INSERT INTO feedback (name, email, rating, comment, page) VALUES (?, ?, ?, ?, ?)").run(name || '', email || '', rating || 0, comment.trim(), page || '');
+    // Send Telegram notification if configured
+    try {
+      var notif = require('../services/notification');
+      notif.sendNotification('telegram_admin', {
+        title: '💬 新意見回饋',
+        message: `評分: ${'⭐'.repeat(rating || 0)}\n用戶: ${name || '匿名'}\n意見: ${comment.trim().substring(0, 200)}`
+      });
+    } catch(e) { /* notification optional */ }
+    res.json({ success: true, message: "感謝你的意見，我們會繼續改進！" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;
