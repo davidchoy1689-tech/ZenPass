@@ -64,6 +64,13 @@
     }
     .class-card-spots { font-size: 11px; color: #6b7280; margin-top: 4px; }
     html.dark .class-card-spots { color: #94a3b8; }
+    .diff-badge { display:inline-block; padding:1px 8px; border-radius:10px; font-size:10px; font-weight:600; margin-right:4px; }
+    .diff-beginner { background:#e8f5e9; color:#2e7d32; }
+    .diff-intermediate { background:#fff3e0; color:#e65100; }
+    .diff-advanced { background:#fce4ec; color:#c62828; }
+    html.dark .diff-beginner { background:#1b5e20; color:#a5d6a7; }
+    html.dark .diff-intermediate { background:#e65100; color:#ffcc80; }
+    html.dark .diff-advanced { background:#b71c1c; color:#ef9a9a; }
     html.dark .class-card-price { color: #f1f5f9; }
   `;
   document.head.appendChild(s);
@@ -523,10 +530,10 @@ function renderClassCard(cls) {
         rating +
         (coach ? " · 👩‍🏫 " + coach : "") +
         "</div>") +
-    '<div class="class-card-price">' +
-    price +
-    " " +
-    hot +
+    // Difficulty badge + Location
+    '<div class="class-card-meta" style="margin-top:2px">' +
+    (cls.difficulty ? '<span class="diff-badge diff-' + (cls.difficulty || 'beginner').toLowerCase() + '">' + (cls.difficulty === 'beginner' ? '初級' : cls.difficulty === 'intermediate' ? '中級' : '高級') + '</span>' : '') +
+    (cls.location || cls.venue_name ? ' · 📍' + (cls.venue_name || cls.location || '') : '') +
     "</div>" +
     '<div class="class-card-price-row">' +
     creditBadge +
@@ -535,6 +542,7 @@ function renderClassCard(cls) {
     "</div>" +
     availDot +
     "</div>" +
+    (hot ? hot : '') +
     (spots !== null
       ? '<div class="class-card-spots' + (spots <= 3 ? ' spots-urgent' : '') + '">' + (spots <= 3 ? '⚡ 僅剩 ' : '剩餘 ') + spots + ' 位</div>'
       : "") +
