@@ -1703,9 +1703,9 @@
           if (selectedPayment === "credits") {
             var usedCredits = currentClass.credits_cost || 15;
             var remainingCredits = Math.max(0, (user.credits || 0) - usedCredits);
-            showToast("✅ 預約成功！已使用 " + usedCredits + " Credits（剩 " + remainingCredits + " Credits）", "success");
+            showBookingConfirmation(currentClass, selectedSchedule, usedCredits, remainingCredits, statusText);
           } else {
-            showToast("✅ 預約成功! (" + statusText + ")", "success");
+            showBookingConfirmation(currentClass, selectedSchedule, 0, user.credits || 0, statusText);
           }
           btn.textContent = "✅ 已預約";
           btn.disabled = true;
@@ -1767,6 +1767,30 @@
         }
       }
       // 🎯 Show points earned toast
+      function showBookingConfirmation(cls, sched, used, remaining, statusText) {
+        var overlay = document.createElement('div');
+        overlay.style.cssText = 'position:fixed;inset:0;z-index:1001;background:rgba(0,0,0,0.5);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:20px';
+        var d = new Date(sched ? (sched.start_time || sched.date) : '');
+        var dateStr = sched ? (d.toLocaleDateString('zh-HK',{month:'short',day:'numeric'}) + ' ' + (sched.start_time ? sched.start_time.substring(11,16) : '')) : '';
+        overlay.innerHTML = '<div style="background:' + (document.documentElement.classList.contains('dark') ? '#1e293b' : '#fff') + ';border-radius:20px;padding:28px 24px;max-width:360px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.2);animation:fadeInUp 0.3s ease">' +
+          '<div style="font-size:48px;margin-bottom:8px">🎉</div>' +
+          '<div style="font-size:20px;font-weight:800;color:' + (document.documentElement.classList.contains('dark') ? '#f1f5f9' : '#1a1a2e') + ';margin-bottom:4px">預約成功！</div>' +
+          '<div style="font-size:13px;color:var(--dark-700);margin-bottom:16px">' + (cls.title || '課程') + ' · ' + dateStr + '</div>' +
+          '<div style="background:var(--gray-50);border-radius:12px;padding:16px;margin-bottom:16px">' +
+          '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--gray-200)"><span style="font-size:13px;color:var(--dark-700)">使用</span><span style="font-size:13px;font-weight:700;color:#10b981">' + used + ' Credits</span></div>' +
+          '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--gray-200)"><span style="font-size:13px;color:var(--dark-700)">剩餘</span><span style="font-size:13px;font-weight:700;color:var(--dark-900)">' + remaining + ' Credits</span></div>' +
+          '<div style="display:flex;justify-content:space-between;padding:6px 0"><span style="font-size:13px;color:var(--dark-700)">狀態</span><span style="font-size:13px;font-weight:700;color:#10b981">✅ 已確認</span></div>' +
+          '</div>' +
+          '<div style="background:var(--white);border:2px dashed var(--gray-300);border-radius:12px;padding:12px;margin-bottom:16px">' +
+          '<div style="font-size:40px;margin-bottom:4px">📱</div>' +
+          '<div style="font-size:11px;color:var(--dark-700)">到場時展示此確認畫面</div>' +
+          '<div style="font-size:10px;color:var(--gray-300);margin-top:4px">QR code 將於正式版啟用</div>' +
+          '</div>' +
+          '<button onclick="this.closest(\'[style*=\"z-index:1001\"]\').remove()" style="width:100%;padding:12px;border-radius:12px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;font-size:15px;font-weight:700;border:none;cursor:pointer">👍 我知道了</button>' +
+          '</div>';
+        document.body.appendChild(overlay);
+      }
+
       function showPointsToast(points) {
         var toast = document.createElement("div");
         toast.style.cssText =
