@@ -966,7 +966,7 @@
           "
           onfocus="this.style.borderColor='#10b981'"
           onblur="this.style.borderColor=''"
-          oninput="efilterCourses()"
+          oninput="filterCourses()"
         />
         <button
           class="filter-btn"
@@ -2755,49 +2755,65 @@
       ↑
     </button>
 <script>
-// 所有課程卡
-const ecards = document.querySelectorAll('.modern-card');
+// ==================== 變數 ====================
+const courses = document.querySelectorAll('.modern-card');
+const searchInput = document.getElementById('search-input');
 const filterCount = document.getElementById('filter-count') || document.getElementById('resultCount');
+const coursesGrid = document.getElementById('courses-grid');
 
-function efilterCourses() {
+// ==================== 主篩選函數 ====================
+function filterCourses() {
+  const keyword = searchInput?.value?.toLowerCase().trim() || '';
   let visibleCount = 0;
-  // Read current filter values from buttons
+  
+  // Active filter values from existing UI
+  var activeCat = document.querySelector('#category-list .category-chip.active')?.textContent?.trim() || '全部';
   var activeTime = document.querySelector('#timeline-list .date-chip.active')?.textContent?.trim() || '全部';
   var activeDiff = document.querySelector('#filterPanel .sort-btn.active[onclick*="difficulty"]')?.textContent?.trim() || '全部';
   var activePrice = document.querySelector('#filterPanel .sort-btn.active[onclick*="price"]')?.textContent?.trim() || '全部';
   var activeSpots = document.querySelector('#filterPanel .sort-btn.active[onclick*="spots"]')?.textContent?.trim() || '全部';
-  var searchQuery = (document.getElementById('search-input')?.value || '').trim().toLowerCase();
-  
-  ecards.forEach(function(card) {
-    var category = card.getAttribute('data-category') || '';
-    var difficulty = card.getAttribute('data-difficulty') || '';
-    var price = parseInt(card.getAttribute('data-price')) || 0;
-    var spots = parseInt(card.getAttribute('data-spots'));
-    var timeStr = card.getAttribute('data-time') || '';
-    var show = true;
+
+  courses.forEach(function(card) {
+    const title = card.querySelector('.modern-card-title')?.textContent?.toLowerCase() || '';
+    const instructor = (card.getAttribute('data-instructor') || card.textContent.match(/👩[^\s🟢]*/)?.[0] || '').toLowerCase();
+    const category = (card.getAttribute('data-category') || '').toLowerCase();
+    const location = (card.getAttribute('data-location') || card.textContent.match(/📍[^🟢]*/)?.[0] || '').toLowerCase();
+    const difficulty = (card.getAttribute('data-difficulty') || '').toLowerCase();
+    const price = parseInt(card.getAttribute('data-price')) || 0;
+    const spots = parseInt(card.getAttribute('data-spots'));
+    const timeStr = card.getAttribute('data-time') || '';
     
-    // Category filter (active category chip)
-    var activeCat = document.querySelector('#category-list .category-chip.active')?.textContent?.trim() || '全部';
-    if (activeCat !== '全部' && activeCat !== '🏠 全部' && !category.includes(activeCat.replace(/\s*\d+$/, ''))) show = false;
-    
-    // Time filter
+    let show = true;
+
+    // 關鍵字搜尋
+    if (keyword) {
+      const cardText = (card.textContent || '').toLowerCase();
+      show = cardText.includes(keyword);
+    }
+
+    // 類別 filter
+    if (show && activeCat && activeCat !== '全部' && activeCat !== '🏠 全部') {
+      show = category.includes(activeCat.replace(/🏠|\s/g, '').toLowerCase());
+    }
+
+    // 時段 filter
     if (show && activeTime && activeTime !== '📅 全部') {
-      var hour = parseInt(timeStr.split(':')[0]);
+      const hour = parseInt(timeStr.split(':')[0]);
       if (!isNaN(hour)) {
-        if (activeTime.includes('早上') || activeTime.includes('Morning') && (hour < 6 || hour >= 12)) show = false;
+        if ((activeTime.includes('早上') || activeTime.includes('Morning')) && (hour < 6 || hour >= 12)) show = false;
         else if ((activeTime.includes('下午') || activeTime.includes('Afternoon')) && (hour < 12 || hour >= 18)) show = false;
         else if ((activeTime.includes('晚上') || activeTime.includes('Evening')) && hour < 18) show = false;
       }
     }
-    
-    // Difficulty filter
+
+    // 難度 filter
     if (show && activeDiff && activeDiff !== '全部') {
       if (activeDiff === '🌱 初級' && difficulty !== '初級') show = false;
       else if (activeDiff === '🔥 中級' && difficulty !== '中級') show = false;
       else if (activeDiff === '⚡ 高級' && difficulty !== '高級') show = false;
     }
-    
-    // Price filter
+
+    // 價格 filter
     if (show && activePrice && activePrice !== '全部') {
       if (activePrice.includes('<') && price >= 100) show = false;
       else if (activePrice.includes('-')) {
@@ -2805,54 +2821,53 @@ function efilterCourses() {
         if (parts && parts.length >= 2 && (price < parseInt(parts[0]) || price > parseInt(parts[1]))) show = false;
       } else if (activePrice.includes('>') && price <= 200) show = false;
     }
-    
-    // Spots filter
+
+    // 剩餘名額 filter
     if (show && activeSpots && activeSpots !== '全部') {
       if (activeSpots === '🟢 有位' && (isNaN(spots) || spots <= 0)) show = false;
       else if (activeSpots === '⚡ 僅剩少量' && (isNaN(spots) || spots > 3)) show = false;
     }
-    
-    // Search filter
-    if (show && searchQuery) {
-      var cardText = (card.textContent || '').toLowerCase();
-      if (!cardText.includes(searchQuery)) show = false;
-    }
-    
+
     card.style.display = show ? '' : 'none';
     if (show) visibleCount++;
   });
-  
-  // Update count
+
   if (filterCount) filterCount.textContent = visibleCount + ' 個課程';
   var lmBtn = document.getElementById('load-more-btn');
   if (lmBtn) lmBtn.style.display = visibleCount === 0 ? 'none' : '';
 }
 
-// Override selectFilter to also apply client filter
-var origFilter = window.selectFilter;
-window.selectFilter = function(type, val, el) {
-  if (typeof origFilter === 'function') origFilter(type, val, el);
-  setTimeout(efilterCourses, 100);
-};
+// ==================== 事件監聽 ====================
+document.addEventListener('DOMContentLoaded', function() {
+  // 即時搜尋
+  if (searchInput) {
+    searchInput.addEventListener('input', filterCourses);
+  }
 
-// Hijack category chip clicks
-var catChips = document.querySelectorAll('#category-list .category-chip');
-catChips.forEach(function(chip) {
-  chip.addEventListener('click', function() {
-    setTimeout(efilterCourses, 200);
+  // 掛 hook 到現有 filter 按鈕
+  var origFilter = window.selectFilter;
+  window.selectFilter = function(type, val, el) {
+    if (typeof origFilter === 'function') origFilter(type, val, el);
+    setTimeout(filterCourses, 100);
+  };
+
+  // Category chips
+  document.querySelectorAll('#category-list .category-chip').forEach(function(chip) {
+    chip.addEventListener('click', function() { setTimeout(filterCourses, 200); });
   });
+
+  // Clear button
+  var clearBtn = document.getElementById('clear-filters');
+  if (clearBtn) {
+    clearBtn.addEventListener('click', function() {
+      if (searchInput) searchInput.value = '';
+      setTimeout(filterCourses, 300);
+    });
+  }
+
+  // Initial load
+  setTimeout(filterCourses, 1500);
 });
-
-// Search input real-time filter
-var searchInput = document.getElementById('search-input');
-if (searchInput) {
-  searchInput.addEventListener('input', function() {
-    efilterCourses();
-  });
-}
-
-// Init on load
-setTimeout(efilterCourses, 1500);
 </script>
   </body>
 </html>
