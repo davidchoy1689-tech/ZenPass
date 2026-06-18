@@ -2756,6 +2756,7 @@ function efilterCourses() {
   var activeDiff = document.querySelector('#filterPanel .sort-btn.active[onclick*="difficulty"]')?.textContent?.trim() || '全部';
   var activePrice = document.querySelector('#filterPanel .sort-btn.active[onclick*="price"]')?.textContent?.trim() || '全部';
   var activeSpots = document.querySelector('#filterPanel .sort-btn.active[onclick*="spots"]')?.textContent?.trim() || '全部';
+  var searchQuery = (document.getElementById('search-input')?.value || '').trim().toLowerCase();
   
   ecards.forEach(function(card) {
     var category = card.getAttribute('data-category') || '';
@@ -2801,6 +2802,12 @@ function efilterCourses() {
       else if (activeSpots === '⚡ 僅剩少量' && (isNaN(spots) || spots > 3)) show = false;
     }
     
+    // Search filter
+    if (show && searchQuery) {
+      var cardText = (card.textContent || '').toLowerCase();
+      if (!cardText.includes(searchQuery)) show = false;
+    }
+    
     card.style.display = show ? '' : 'none';
     if (show) visibleCount++;
   });
@@ -2825,6 +2832,14 @@ catChips.forEach(function(chip) {
     setTimeout(efilterCourses, 200);
   });
 });
+
+// Search input real-time filter
+var searchInput = document.getElementById('search-input');
+if (searchInput) {
+  searchInput.addEventListener('input', function() {
+    efilterCourses();
+  });
+}
 
 // Init on load
 setTimeout(efilterCourses, 1500);
