@@ -966,7 +966,6 @@
           "
           onfocus="this.style.borderColor='#10b981'"
           onblur="this.style.borderColor=''"
-          oninput="filterCourses()"
         />
         <button
           class="filter-btn"
@@ -2839,9 +2838,13 @@ function filterCourses() {
 
 // ==================== 事件監聽 ====================
 document.addEventListener('DOMContentLoaded', function() {
-  // 即時搜尋
+  // 即時搜尋（含 debounce，避免輸入太快卡住）
   if (searchInput) {
-    searchInput.addEventListener('input', filterCourses);
+    var timeout;
+    searchInput.addEventListener('input', function() {
+      clearTimeout(timeout);
+      timeout = setTimeout(filterCourses, 150);
+    });
   }
 
   // 掛 hook 到現有 filter 按鈕
