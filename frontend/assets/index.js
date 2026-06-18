@@ -590,7 +590,7 @@ function renderClassCard(cls) {
   }
 
   return (
-    '<div class="modern-card" onclick="location.href=\'class-detail.html?id=' +
+    '<div class="modern-card" data-title="' + (cls.title || '') + '" data-instructor="' + (cls.coach_name || '') + '" data-category="' + (cls.category || '') + '" data-location="' + (cls.venue_name || '') + '" data-difficulty="' + (cls.difficulty === 'beginner' ? '初級' : cls.difficulty === 'intermediate' ? '中級' : cls.difficulty === 'advanced' ? '高級' : '') + '" data-price="' + (cls.price_hkd || 0) + '" data-spots="' + (spots !== null ? spots : '') + '" data-time="' + timeDisplay.split(' ').pop() + '" data-credits="' + creditCost + '" onclick="location.href=\'class-detail.html?id=' +
     cls.id +
     "'\">" +
     '<div class="modern-card-img">' +

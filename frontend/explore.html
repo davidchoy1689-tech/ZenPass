@@ -2281,7 +2281,7 @@
           timeVal = d.getHours() + ':' + (d.getMinutes()<10?'0':'') + d.getMinutes();
         }
         return (
-          '<div class="modern-card" data-category="' + (cls.category || '') + '" data-difficulty="' + (diffLabel || '') + '" data-price="' + (cls.price_hkd || 0) + '" data-spots="' + (remaining !== undefined ? remaining : '') + '" data-time="' + timeVal + '" data-credits="' + creditCost + '" onclick="location.href=\'class-detail.html?id=' + cls.id + "'\">" +
+          '<div class="modern-card" data-title="' + (cls.title || '') + '" data-instructor="' + (cls.coach_name || '') + '" data-category="' + (cls.category || '') + '" data-location="' + (cls.venue_name || '') + '" data-difficulty="' + (diffLabel || '') + '" data-price="' + (cls.price_hkd || 0) + '" data-spots="' + (remaining !== undefined ? remaining : '') + '" data-time="' + timeVal + '" data-credits="' + creditCost + '" onclick="location.href=\'class-detail.html?id=' + cls.id + "'\">" +
           '<div class="modern-card-img">' +
           '<div class="bg-img" style="' + imgStyle + '">' + imgContent + "</div>" +
           (badgesHtml ? '<div class="modern-card-badges">' + badgesHtml + '</div>' : '') +
@@ -2774,10 +2774,10 @@ function filterCourses() {
   var activeSpots = document.querySelector('#filterPanel .sort-btn.active[onclick*="spots"]')?.textContent?.trim() || '全部';
 
   courses.forEach(function(card) {
-    const title = card.querySelector('.modern-card-title')?.textContent?.toLowerCase() || '';
-    const instructor = (card.getAttribute('data-instructor') || card.textContent.match(/👩[^\s🟢]*/)?.[0] || '').toLowerCase();
+    const title = (card.getAttribute('data-title') || '').toLowerCase();
+    const instructor = (card.getAttribute('data-instructor') || '').toLowerCase();
     const category = (card.getAttribute('data-category') || '').toLowerCase();
-    const location = (card.getAttribute('data-location') || card.textContent.match(/📍[^🟢]*/)?.[0] || '').toLowerCase();
+    const location = (card.getAttribute('data-location') || '').toLowerCase();
     const difficulty = (card.getAttribute('data-difficulty') || '').toLowerCase();
     const price = parseInt(card.getAttribute('data-price')) || 0;
     const spots = parseInt(card.getAttribute('data-spots'));
