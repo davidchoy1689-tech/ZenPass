@@ -125,9 +125,10 @@ router.post("/feedback", function (req, res) {
     if (!comment || !comment.trim()) {
       return res.status(400).json({ error: "請輸入意見內容" });
     }
-    var db = getDB();
+    var db = new Database(DB_PATH);
     db.exec("CREATE TABLE IF NOT EXISTS feedback (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT DEFAULT '', email TEXT DEFAULT '', rating INTEGER DEFAULT 0, comment TEXT NOT NULL, page TEXT DEFAULT '', created_at TEXT DEFAULT (datetime('now')))");
     db.prepare("INSERT INTO feedback (name, email, rating, comment, page) VALUES (?, ?, ?, ?, ?)").run(name || '', email || '', rating || 0, comment.trim(), page || '');
+    db.close();
     // Send Telegram notification if configured
     try {
       var notif = require('../services/notification');
