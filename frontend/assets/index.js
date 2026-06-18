@@ -299,12 +299,16 @@ async function loadFeaturedClasses() {
 }
 
 // ===== Load All Classes =====
+var _firstLoadAll = true;
 async function loadAllClasses(params) {
   if (params === undefined) {
     params = {};
   }
   var container = document.getElementById("all-classes");
-  container.innerHTML = '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;padding:0 8px">' + Array(6).fill('<div class="sk-block sk-shimmer" style="height:170px;border-radius:14px"></div>').join('') + '</div>';
+  if (!_firstLoadAll) {
+    container.innerHTML = '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;padding:0 8px">' + Array(6).fill('<div class="sk-block sk-shimmer" style="height:170px;border-radius:14px"></div>').join('') + '</div>';
+  }
+  _firstLoadAll = false;
   try {
     var mergedParams = { limit: 50 };
     for (var pk in params) {
