@@ -2885,6 +2885,91 @@ document.addEventListener('DOMContentLoaded', function() {
   // Initial load
   setTimeout(filterCourses, 1500);
 });
+
+// ===== Booking Modal =====
+var _bookingData = null;
+function bookClass(btn) {
+  var card = btn.closest('.modern-card');
+  _bookingData = {
+    id: btn.getAttribute('data-id'),
+    title: card?.querySelector('.modern-card-title')?.textContent || '課程',
+    price: card?.querySelector('.modern-card-price')?.textContent || '',
+    img: card?.querySelector('.bg-img')?.getAttribute('style') || ''
+  };
+  document.getElementById('modal-course-title').textContent = _bookingData.title;
+  document.getElementById('modal-details').textContent = '價格: ' + _bookingData.price;
+  // Fill date options
+  var sel = document.getElementById('modal-date');
+  sel.innerHTML = '';
+  var days = ['今日','明日','後天'];
+  var times = ['09:00','10:00','11:00','14:00','15:00','16:00','18:00','19:00','20:00'];
+  for(var i=0;i<3;i++){
+    var d = new Date(); d.setDate(d.getDate()+i);
+    var opt = document.createElement('option');
+    opt.value = d.toISOString().split('T')[0] + 'T' + times[i*3];
+    opt.textContent = days[i] + ' ' + (d.getMonth()+1)+'/'+d.getDate()+' ('+['日','一','二','三','四','五','六'][d.getDay()]+') ' + times[i*3];
+    sel.appendChild(opt);
+  }
+  // Also add time slots
+  for(var i=0;i<times.length;i++){
+    var opts = document.createElement('option');
+    opts.value = times[i];
+    opts.textContent = '  └ ' + times[i];
+    sel.appendChild(opts);
+  }
+  document.getElementById('booking-modal').classList.remove('hidden');
+  document.getElementById('booking-modal').style.display = 'flex';
+}
+function closeModal() {
+  document.getElementById('booking-modal').classList.add('hidden');
+  document.getElementById('booking-modal').style.display = 'none';
+}
+function confirmBooking() {
+  var sel = document.getElementById('modal-date');
+  var dateTime = sel.options[sel.selectedIndex]?.text || '已選時段';
+  var btn = document.querySelector('#booking-modal .book-confirm');
+  btn.textContent = '⏳ 處理中...';
+  btn.disabled = true;
+  setTimeout(function(){
+    btn.textContent = '✅ 已預約';
+    // Show success
+    document.getElementById('modal-course-title').textContent = '🎉 預約成功！';
+    document.getElementById('modal-details').textContent = _bookingData.title + ' · ' + dateTime;
+    document.querySelector('#booking-modal .modal-footer').innerHTML = '<button onclick="closeModal();window.location.href=\'my-bookings.html\'" class="flex-1 bg-emerald-600 text-white py-4 rounded-2xl" style="flex:1;padding:14px;border-radius:12px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;font-size:14px;font-weight:700;border:none;cursor:pointer">📋 查看預約</button><button onclick="closeModal()" class="flex-1 py-4 border rounded-2xl" style="flex:1;padding:14px;border-radius:12px;background:var(--gray-100);color:var(--dark-700);font-size:14px;border:none;cursor:pointer">繼續瀏覽</button>';
+  }, 1200);
+}
+</script>
+
+<!-- Booking Modal HTML -->
+<div id="booking-modal" class="hidden" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);backdrop-filter:blur(4px);align-items:center;justify-content:center;z-index:1001;padding:16px">
+  <div style="background:var(--white);border-radius:24px;padding:32px;max-width:400px;width:100%;margin:auto">
+    <div style="font-size:22px;font-weight:800;margin-bottom:6px" id="modal-course-title"></div>
+    <div style="font-size:14px;color:var(--dark-700);margin-bottom:20px" id="modal-details"></div>
+    <div style="margin-bottom:20px">
+      <div style="font-size:13px;font-weight:600;margin-bottom:6px;color:var(--dark-700)">📅 選擇日期 / 時段</div>
+      <select id="modal-date" style="width:100%;padding:12px 14px;border:1.5px solid var(--gray-200);border-radius:16px;font-size:15px;font-family:var(--font-zh);background:var(--white);outline:none;color:var(--dark-900)"></select>
+    </div>
+    <div class="modal-footer" style="display:flex;gap:10px">
+      <button onclick="closeModal()" style="flex:1;padding:14px;border-radius:12px;background:var(--gray-100);color:var(--dark-700);font-size:14px;font-weight:600;border:none;cursor:pointer">取消</button>
+      <button class="book-confirm" onclick="confirmBooking()" style="flex:1;padding:14px;border-radius:12px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;font-size:14px;font-weight:700;border:none;cursor:pointer">確認預約</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// Dark mode support for modal
+var _obs_modal = new MutationObserver(function(){ 
+  var m = document.getElementById('booking-modal');
+  if(!m) return;
+  var dark = document.documentElement.classList.contains('dark');
+  var div = m.querySelector('div[style*="background"]');
+  if(div) div.style.background = dark ? '#1e293b' : '#fff';
+  var t = document.getElementById('modal-course-title');
+  if(t) t.style.color = dark ? '#f1f5f9' : '#1a1a2e';
+  var d = document.getElementById('modal-details');
+  if(d) d.style.color = dark ? '#94a3b8' : '#6b7280';
+});
+_obs_modal.observe(document.documentElement, {attributes:true,attributeFilter:['class']});
 </script>
   </body>
 </html>
