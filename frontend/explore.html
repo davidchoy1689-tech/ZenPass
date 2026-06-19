@@ -2927,42 +2927,62 @@ document.addEventListener('DOMContentLoaded', function() {
 <script>
 // ===== Booking Modal Functions =====
 var _bookingData = {};
-function bookClass(btn) {
-  var card = btn.closest('.modern-card');
-  var title = card?.querySelector('.modern-card-title')?.textContent || '課程';
-  var metaStr = card?.querySelector('.modern-card-meta')?.textContent || '';
-  var instructor = metaStr.replace(/\s*[·\|].*/,'').replace(/^[^\u4e00-\u9fffA-Za-z]*/,'').trim();
-  var location = card?.getAttribute('data-location') || '';
-  var price = card?.querySelector('.modern-card-price')?.textContent || '';
-  var imgStyle = card?.querySelector('.bg-img')?.getAttribute('style') || '';
-  var imgUrl = (imgStyle.match(/url\([\'\"]?([^\'\")]+)[\'\"]?\)/)||[])[1] || '';
+let currentCourse = null;
+
+function openBookingModal(course) {
+  currentCourse = course;
   document.getElementById('modal-course-title').textContent = '預約課程';
-  document.getElementById('modal-course-name').textContent = title;
-  document.getElementById('modal-instructor').textContent = instructor || '教練';
-  document.getElementById('modal-location').textContent = location || '';
+  document.getElementById('modal-course-name').textContent = course.title;
+  document.getElementById('modal-instructor').textContent = course.instructor || '';
+  document.getElementById('modal-location').textContent = course.location || '';
   var imgEl = document.getElementById('modal-course-img');
-  if (imgUrl) { imgEl.style.backgroundImage = "url('" + imgUrl + "')"; imgEl.style.backgroundSize = 'cover'; }
-  else { imgEl.style.background = 'var(--gray-100)'; imgEl.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:28px">📅</div>'; }
-  var sel = document.getElementById('modal-datetime'); sel.innerHTML = '';
-  var days = ['今日','明日','後天']; var times = ['09:00','10:00','11:00','14:00','15:00','16:00','18:00','19:00','20:00'];
-  for(var i=0;i<3;i++){var d=new Date();d.setDate(d.getDate()+i);var o=document.createElement('option');o.value=d.toISOString().split('T')[0]+'T'+times[i*3];o.textContent=days[i]+' '+(d.getMonth()+1)+'/'+d.getDate()+' ('+['日','一','二','三','四','五','六'][d.getDay()]+') '+times[i*3];sel.appendChild(o);}
-  for(var i=0;i<times.length;i++){var o=document.createElement('option');o.value=times[i];o.textContent='  └ '+times[i];sel.appendChild(o);}
-  document.getElementById('modal-credits').textContent = price || '1 Pass';
+  if (course.image) {
+    imgEl.style.backgroundImage = "url('" + course.image + "')";
+    imgEl.style.backgroundSize = 'cover'; imgEl.innerHTML = '';
+  } else {
+    imgEl.style.background = 'var(--gray-100)';
+    imgEl.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:28px">📅</div>';
+  }
+  var sel = document.getElementById('modal-datetime');
+  sel.innerHTML = '<option value="">請選擇時段</option>';
+  var d1=new Date();var d2=new Date();d2.setDate(d2.getDate()+1);var d3=new Date();d3.setDate(d3.getDate()+2);
+  sel.innerHTML += '<option value="' + d1.toISOString().split('T')[0] + 'T09:30">' + (d1.getMonth()+1)+'月'+d1.getDate()+'日 ('+['日','一','二','三','四','五','六'][d1.getDay()]+') 09:30-10:30</option>';
+  sel.innerHTML += '<option value="' + d1.toISOString().split('T')[0] + 'T18:00">' + (d1.getMonth()+1)+'月'+d1.getDate()+'日 ('+['日','一','二','三','四','五','六'][d1.getDay()]+') 18:00-19:00</option>';
+  sel.innerHTML += '<option value="' + d2.toISOString().split('T')[0] + 'T12:00">' + (d2.getMonth()+1)+'月'+d2.getDate()+'日 ('+['日','一','二','三','四','五','六'][d2.getDay()]+') 12:00-13:00</option>';
+  document.getElementById('modal-credits').textContent = (course.credits || 1) + ' Pass';
   var uc = parseInt(localStorage.getItem('zenpass_credits') || '0') || 45;
-  document.getElementById('modal-remaining').textContent = uc + ' Credits';
+  document.getElementById('modal-remaining').textContent = course.remaining || uc + ' Credits';
   document.getElementById('booking-modal').style.display = 'flex';
   _syncModalDark();
 }
+
+function bookClass(btn) {
+  var card = btn.closest('.modern-card');
+  if (!card) return;
+  var imgStyle = card.querySelector('.bg-img')?.getAttribute('style') || '';
+  var imgUrl = (imgStyle.match(/url\([\'\"]?([^\'\")]+)[\'\"]?\)/)||[])[1] || '';
+  openBookingModal({
+    title: card.querySelector('.modern-card-title')?.textContent || '課程',
+    image: imgUrl,
+    instructor: card.getAttribute('data-instructor') || '',
+    location: card.getAttribute('data-location') || '',
+    credits: 1,
+    remaining: '45 Credits'
+  });
+}
+
 function closeBookingModal() {
   document.getElementById('booking-modal').style.display = 'none';
   var btn = document.querySelector('.book-confirm');
   if(btn){btn.textContent='確認預約';btn.disabled=false}
 }
+
 function confirmBooking() {
   var sel = document.getElementById('modal-datetime');
-  var dt = sel.options[sel.selectedIndex]?.text || '已選時段';
+  if (!sel.value) { alert('請選擇日期 / 時段'); return; }
+  var dt = sel.options[sel.selectedIndex]?.text || '';
   var btn = document.querySelector('.book-confirm');
-  btn.textContent = '⏳ 處理中...';
+  btn.textContent = '⏳ 預約中...';
   btn.disabled = true;
   setTimeout(function(){
     document.getElementById('modal-course-title').textContent = '🎉 預約成功！';
@@ -2972,10 +2992,10 @@ function confirmBooking() {
     var imgEl = document.getElementById('modal-course-img');
     imgEl.style.background = 'linear-gradient(135deg,#10b981,#059669)';
     imgEl.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:32px">✅</div>';
-    var footer = document.querySelector('#booking-modal .book-confirm')?.parentElement;
+    var footer = document.querySelector('.book-confirm')?.parentElement;
     if(footer) footer.innerHTML = '<button onclick="closeBookingModal();window.location.href=\'my-bookings.html\'" style="flex:1;padding:14px;border-radius:14px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;font-size:14px;font-weight:700;border:none;cursor:pointer;box-shadow:0 4px 14px rgba(16,185,129,0.3)">📋 查看預約</button><button onclick="closeBookingModal()" style="flex:1;padding:14px;border-radius:14px;border:1.5px solid var(--gray-200);background:var(--white);color:var(--dark-700);font-size:14px;font-weight:600;cursor:pointer">繼續瀏覽</button>';
     _syncModalDark();
-  }, 1200);
+  }, 800);
 }
 </script>
 
