@@ -2816,6 +2816,37 @@ function filterCourses() {
   if (lmBtn) lmBtn.style.display = visibleCount === 0 ? 'none' : '';
 }
 
+// ==================== Book Class Modal ====================
+function bookClass(btn) {
+  var id = btn.getAttribute('data-id');
+  var card = btn.closest('.modern-card');
+  var title = card?.querySelector('.modern-card-title')?.textContent || '課程';
+  var price = card?.querySelector('.modern-card-price')?.textContent || '';
+  var imgStyle = card?.querySelector('.bg-img')?.getAttribute('style') || '';
+  var m = document.getElementById('bookModal');
+  if (m) m.remove();
+  var dark = document.documentElement.classList.contains('dark');
+  var bg = dark ? '#1e293b' : '#fff';
+  var txt = dark ? '#f1f5f9' : '#1a1a2e';
+  var sub = dark ? '#94a3b8' : '#6b7280';
+  var modal = document.createElement('div');
+  modal.id = 'bookModal';
+  modal.style.cssText = 'position:fixed;inset:0;z-index:1001;background:rgba(0,0,0,0.5);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:20px';
+  modal.innerHTML = '<div style="background:' + bg + ';border-radius:20px;padding:0;max-width:340px;width:100%;overflow:hidden;box-shadow:0 25px 60px rgba(0,0,0,0.3);animation:fadeInUp 0.3s ease">' +
+    (imgStyle ? '<div style="height:130px;background:' + imgStyle.replace(/['"]/g,'').substring(0,200) + ';background-size:cover;background-position:center"></div>' : '') +
+    '<div style="padding:20px 20px 24px">' +
+    '<div style="font-size:17px;font-weight:800;color:' + txt + ';margin-bottom:4px">' + title + '</div>' +
+    '<div style="font-size:13px;color:' + sub + ';margin-bottom:14px">' + price + '</div>' +
+    '<div style="display:flex;gap:8px;margin-bottom:12px">' +
+    '<button class="book-btn-primary" onclick="event.stopPropagation();this.innerHTML=\'⏳ 處理中...\';this.disabled=true;var that=this;setTimeout(function(){that.innerHTML=\'✅ 預約成功！🎉\';that.style.background=\'#059669\'},800)" style="flex:1;padding:12px;border-radius:12px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;font-size:14px;font-weight:700;border:none;cursor:pointer">💎 即時預約</button>' +
+    '<button onclick="event.stopPropagation();window.location.href=\'class-detail.html?id=' + id + '\'" style="width:44px;border-radius:12px;background:var(--gray-100);color:var(--dark-700);font-size:16px;border:none;cursor:pointer">🔍</button>' +
+    '</div>' +
+    '<button onclick="this.closest(\'[style*=\"z-index:1001\"]\').remove()" style="width:100%;padding:8px;border-radius:10px;background:none;color:' + sub + ';font-size:13px;border:none;cursor:pointer">取消</button>' +
+    '</div></div>';
+  document.body.appendChild(modal);
+  modal.onclick = function(e) { if (e.target === modal) modal.remove(); };
+}
+
 // ==================== 事件監聽 ====================
 document.addEventListener('DOMContentLoaded', function() {
   // 即時搜尋（含 debounce，避免輸入太快卡住）
