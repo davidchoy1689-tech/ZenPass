@@ -6,23 +6,21 @@
 })();
 
 // ==================== Toast 通知 ====================
-function showToast(title, message, icon) {
+function showToast(title, message, type) {
   var container = document.getElementById('toast-container');
   if (!container) return;
-  var toast = document.createElement('div');
-  toast.style.cssText = 'display:flex;align-items:center;gap:12px;background:#fff;border:1px solid #e4e4e7;border-radius:16px;box-shadow:0 8px 24px rgba(0,0,0,0.1);padding:14px 18px;min-width:260px;max-width:340px;animation:fadeInUp 0.3s ease;pointer-events:auto';
+  var tmpl = document.getElementById('toast-template');
+  if (!tmpl) return;
+  var toast = tmpl.content.cloneNode(true).querySelector('.toast');
+  toast.querySelector('#toast-icon').textContent = type === 'error' ? '❌' : type === 'info' ? 'ℹ️' : '✅';
+  toast.querySelector('#toast-title').textContent = title;
+  toast.querySelector('#toast-message').textContent = message || '';
+  if (type === 'error') toast.style.borderColor = '#ef4444';
+  else if (type === 'success') toast.style.borderColor = '#10b981';
   var dark = document.documentElement.classList.contains('dark');
-  if (dark) toast.style.background = '#18181b'; toast.style.border = '1px solid #27272a';
-  toast.innerHTML = '<span style="font-size:24px">' + (icon || '✅') + '</span>' +
-    '<div style="flex:1"><div style="font-weight:600;font-size:14px;color:' + (dark?'#fafafa':'#18181b') + '">' + title + '</div>' +
-    (message ? '<div style="font-size:12px;color:' + (dark?'#a1a1aa':'#71717a') + ';margin-top:2px">' + message + '</div>' : '') + '</div>' +
-    '<button onclick="this.parentElement.remove()" style="background:none;border:none;color:#a1a1aa;font-size:16px;cursor:pointer;padding:4px">✕</button>';
+  if (dark) { toast.style.background = '#18181b'; toast.querySelector('#toast-title').style.color = '#fafafa'; toast.querySelector('#toast-message').style.color = '#a1a1aa'; }
   container.appendChild(toast);
-  setTimeout(function() {
-    toast.style.transition = 'opacity 0.3s, transform 0.3s';
-    toast.style.opacity = '0'; toast.style.transform = 'translateY(10px)';
-    setTimeout(function() { if (toast.parentElement) toast.remove(); }, 300);
-  }, 3000);
+  setTimeout(function() { if (toast.parentNode) { toast.style.transition = 'opacity 0.3s'; toast.style.opacity = '0'; setTimeout(function() { if (toast.parentNode) toast.remove(); }, 300); } }, 4500);
 }
 
 // ==================== ZenPass Booking System UI Layer ====================
