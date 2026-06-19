@@ -2943,9 +2943,29 @@ function setButtonAsBooked(btn) {
   btn.textContent = '✅ 已預約';
   btn.style.background = '#a1a1aa';
   btn.style.color = '#fff';
-  btn.style.cursor = 'not-allowed';
+  btn.style.cursor = 'pointer';
   btn.style.boxShadow = 'none';
-  btn.disabled = true;
+  btn.disabled = false;
+  btn.onclick = null;
+  btn.addEventListener('click', function cancelHandler(e) {
+    e.stopPropagation();
+    if (confirm('取消預約「' + (btn._courseTitle || '') + '」？')) {
+      var card = btn.closest('.modern-card');
+      var cid = card?.getAttribute('data-id');
+      if (cid && bookedCourses[cid]) {
+        delete bookedCourses[cid];
+        localStorage.setItem('zenpass_booked', JSON.stringify(bookedCourses));
+      }
+      btn.textContent = '立即預約';
+      btn.style.background = '';
+      btn.style.color = '';
+      btn.style.cursor = '';
+      btn.style.boxShadow = '';
+      btn.disabled = false;
+      btn.removeEventListener('click', cancelHandler);
+      btn.onclick = function(){ handleBookingClick(btn); };
+    }
+  });
 }
 
 function handleBookingClick(btn) {
@@ -2953,6 +2973,7 @@ function handleBookingClick(btn) {
   if (!card) return;
   var cid = card.getAttribute('data-id');
   if (cid && bookedCourses[cid]) { return; }
+  btn._courseTitle = card.getAttribute('data-title') || '課程';
   openBookingModal(card);
 }
 
