@@ -140,3 +140,13 @@ async function cancelBooking(courseId) {
     showToast('取消失敗', '請稍後再試', 'error');
   }
 }
+
+// Listen for updates from other tabs
+window.addEventListener('bookingUpdated', function() {
+  updateAllBookingButtons();
+});
+
+// Init on load
+document.addEventListener('DOMContentLoaded', function() {
+  setTimeout(updateAllBookingButtons, 800);
+});

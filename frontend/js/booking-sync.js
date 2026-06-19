@@ -111,6 +111,9 @@ window.ZenPassBooking = {
   getAll: function() { return Object.fromEntries(bookedMap); }
 };
 
+// 跨頁面通知（其他分頁的 bookingUpdated 事件）
+// booking-system.js 已監聽此事件用於更新按鈕狀態
+
 // 跨頁面同步
 window.addEventListener('storage', function(e) {
   if (e.key === 'zenpass_booked') {
