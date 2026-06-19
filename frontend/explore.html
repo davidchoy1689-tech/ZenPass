@@ -3046,6 +3046,16 @@ function initBookingButtons() {
     if (courseId && btn) { updateButtonState(btn, courseId); }
   });
 }
+
+// 全域函數，供 my-bookings.html 使用
+window.updateAllBookingButtons = function() {
+  document.querySelectorAll('.modern-card').forEach(function(card) {
+    var courseId = card.getAttribute('data-id');
+    var btn = card.querySelector('.booking-btn');
+    if (courseId && btn) { updateButtonState(btn, courseId); }
+  });
+};
+
 // ==================== 初始化 ====================
 document.addEventListener('DOMContentLoaded', function() {
   initBookingButtons();

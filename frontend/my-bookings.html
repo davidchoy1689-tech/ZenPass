@@ -946,6 +946,8 @@
       var data = JSON.parse(localStorage.getItem('zenpass_booked') || '{}');
       delete data[id];
       localStorage.setItem('zenpass_booked', JSON.stringify(data));
+      // 同步更新 explore 頁面 button 狀態（如果係同一頁面 session）
+      if (window.updateAllBookingButtons) { window.updateAllBookingButtons(); }
       location.reload();
     }
     </script>
