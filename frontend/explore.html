@@ -2201,11 +2201,9 @@
                 })
                 .join(""),
             );
-            var countEl = document.getElementById("resultCount");
+            var countEl = document.getElementById("filter-count");
             if (countEl) {
-              var totalShown = container.querySelectorAll(".class-card").length;
-              countEl.textContent =
-                totalShown + " / " + totalClasses + " 個課程";
+              countEl.textContent = totalClasses + " 個課程";
             }
           }
           // Show/hide load more
@@ -2745,6 +2743,23 @@ const searchInput = document.getElementById('search-input');
 const filterCount = document.getElementById('filter-count') || document.getElementById('resultCount');
 const coursesGrid = document.getElementById('courses-grid');
 
+// ==================== URL 同步 ====================
+function updateURL() {
+  var params = new URLSearchParams();
+  if (searchInput?.value?.trim()) params.set('search', searchInput.value.trim());
+  var newUrl = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
+  history.replaceState(null, '', newUrl);
+}
+
+function loadFromURL() {
+  try {
+    var params = new URLSearchParams(window.location.search);
+    if (searchInput && params.get('search')) {
+      searchInput.value = params.get('search');
+    }
+  } catch(e) {}
+}
+
 // ==================== 主篩選函數 ====================
 function filterCourses() {
   const keyword = searchInput?.value?.toLowerCase().trim() || '';
@@ -2871,7 +2886,7 @@ document.addEventListener('DOMContentLoaded', function() {
     var timeout;
     searchInput.addEventListener('input', function() {
       clearTimeout(timeout);
-      timeout = setTimeout(filterCourses, 200);
+      timeout = setTimeout(function(){ filterCourses(); updateURL(); }, 200);
     });
   }
 
@@ -2888,6 +2903,9 @@ document.addEventListener('DOMContentLoaded', function() {
   document.querySelectorAll('#timeline-list .date-chip').forEach(function(chip) {
     chip.addEventListener('click', function() { setTimeout(filterCourses, 100); });
   });
+
+  // 初始: 從 URL 恢復
+  loadFromURL();
 
   // Sort select
   var sortSelect = document.getElementById('sort-select');
