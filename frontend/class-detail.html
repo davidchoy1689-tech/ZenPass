@@ -940,7 +940,7 @@ var currentClass = null;
           id: demoId || 'demo',
           title: demo.title,
           category: demo.cat,
-          image_url: demo.img ? pexelsBase + demo.img + '/pexels-photo-' + demo.img + '.jpeg?fm=webp&auto=compress&cs=tinysrgb&w=800' : '',
+          image_url: demo.img ? pexelsBase + demo.img + '/pexels-photo-' + demo.img + '.jpeg?auto=compress&cs=tinysrgb&w=800' : '',
           difficulty: demo.diff,
           duration: demo.duration,
           max_participants: 15,
@@ -1050,11 +1050,11 @@ var currentClass = null;
         
         // 🖼️ Convert Pexels images to WebP for better performance
         if (currentClass && currentClass.image_url && currentClass.image_url.includes('pexels.com')) {
-          currentClass.image_url = currentClass.image_url.replace('auto=compress', 'auto=compress&fm=webp');
+          currentClass.image_url = currentClass.image_url.replace('auto=compress', 'auto=compress');
         }
         document.querySelectorAll('img[src*="pexels.com"]').forEach(function(img) {
           if (img.src && !img.src.includes('fm=webp')) {
-            img.src = img.src.replace('auto=compress', 'auto=compress&fm=webp');
+            img.src = img.src.replace('auto=compress', 'auto=compress');
           }
           // Add lazy loading
           if (!img.hasAttribute('loading')) {
@@ -1280,7 +1280,7 @@ var currentClass = null;
             var sameCat = [], all = _DEMO_COURSES || [];
             for(var ri=0;ri<all.length;ri++){if(all[ri].cat===cls.category&&all[ri].id!==cls.id)sameCat.push(all[ri]);if(sameCat.length>=4)break}
             if(sameCat.length<4){for(var ri=0;ri<all.length&&sameCat.length<4;ri++){if(all[ri].id!==cls.id&&!sameCat.find(function(x){return x.id===all[ri].id}))sameCat.push(all[ri])}}
-            var h='';for(var ri=0;ri<sameCat.length;ri++){var c=sameCat[ri];var pb='https://images.pexels.com/photos/'+c.img+'/pexels-photo-'+c.img+'.jpeg?fm=webp&auto=compress&cs=tinysrgb&w=300';h+='<div class="related-card" onclick="location.href=\'class-detail.html?id='+c.id+'\'"><div style="height:80px;background:url(\''+pb+'\') center/cover"></div><div style="padding:8px 10px"><div style="font-size:12px;font-weight:600">'+c.title+'</div><div style="font-size:10px;color:var(--dark-700)">'+c.coach+'</div><div style="font-size:11px;color:#10b981;font-weight:600;margin-top:4px">HK$'+c.price+' <small style="color:var(--gray-300)">/ 1 Pass</small></div></div></div>'}
+            var h='';for(var ri=0;ri<sameCat.length;ri++){var c=sameCat[ri];var pb='https://images.pexels.com/photos/'+c.img+'/pexels-photo-'+c.img+'.jpeg?auto=compress&cs=tinysrgb&w=300';h+='<div class="related-card" onclick="location.href=\'class-detail.html?id='+c.id+'\'"><div style="height:80px;background:url(\''+pb+'\') center/cover"></div><div style="padding:8px 10px"><div style="font-size:12px;font-weight:600">'+c.title+'</div><div style="font-size:10px;color:var(--dark-700)">'+c.coach+'</div><div style="font-size:11px;color:#10b981;font-weight:600;margin-top:4px">HK$'+c.price+' <small style="color:var(--gray-300)">/ 1 Pass</small></div></div></div>'}
             return '<h3 style="font-size:16px;font-weight:700;margin:16px 0 12px;">🔗 相關課程</h3><div style="display:flex;gap:12px;overflow-x:auto;padding:0 0 8px;-webkit-overflow-scrolling:touch">'+h+'</div>';
           })() +
           "</div>";
