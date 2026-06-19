@@ -608,7 +608,7 @@ function renderClassCard(cls) {
     '<div class="modern-card-badges">' +
     badgesHtml +
     "</div>" +
-    '<button class="modern-card-fav" onclick="event.stopPropagation();toggleFavorite(this)">♡</button>' +
+    '<button class="modern-card-fav" onclick="event.stopPropagation();toggleFavorite(this)" aria-label="收藏課程">♡</button>' +
     "</div>" +
     '<div class="modern-card-body">' +
     '<div class="modern-card-tags">' +
@@ -629,7 +629,7 @@ function renderClassCard(cls) {
     '<span>📅 ' + timeDisplay + '</span>' +
     '<span>⏱️ ' + (cls.duration_min || 60) + ' 分鐘</span>' +
     "</div>" +
-    '<button class="modern-card-cta" onclick="event.stopPropagation();bookClass(this)" data-id="' + cls.id + '">立即預約<span class="arrow">→</span></button>' +
+    '<button class="modern-card-cta" onclick="event.stopPropagation();bookClass(this)" data-id="' + cls.id + '" role="button" aria-label="預約 ' + (cls.title || '課程') + '">立即預約<span class="arrow">→</span></button>' +
     "</div></div>"
   );
 }
