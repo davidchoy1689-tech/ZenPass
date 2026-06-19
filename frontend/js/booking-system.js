@@ -127,20 +127,16 @@ function closeBookingModal() {
 }
 
 async function cancelBooking(courseId) {
-  if (confirm('\u78ba\u5b9a\u53d6\u6d88\u6b64\u9810\u7d04\uff1f')) {
+  if (!confirm('確定要取消此預約嗎？')) return;
+  try {
     if (window.ZenPassBooking) await window.ZenPassBooking.cancelCourse(courseId);
-    alert('\u2705 \u9810\u7d04\u5df2\u53d6\u6d88');
+    showToast('預約已取消', '您的課程預約已成功取消。如需重新預約，請再次選擇時段。', 'info');
     if (typeof renderBookings === 'function') renderBookings();
     updateAllBookingButtons();
+    setTimeout(function() {
+      showToast('取消確認電郵已寄出', '取消詳情已發送到您的註冊電郵', 'info');
+    }, 800);
+  } catch(err) {
+    showToast('取消失敗', '請稍後再試', 'error');
   }
 }
-
-// Listen for updates from other tabs
-window.addEventListener('bookingUpdated', function() {
-  updateAllBookingButtons();
-});
-
-// Init
-document.addEventListener('DOMContentLoaded', function() {
-  setTimeout(updateAllBookingButtons, 800);
-});
