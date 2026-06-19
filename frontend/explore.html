@@ -1685,11 +1685,15 @@
         // Reset sheet chips
         document.querySelectorAll('.filter-chip-group .filter-toggle-chip').forEach(function(e) { e.classList.remove('active'); });
         document.querySelectorAll('.filter-chip-group .filter-toggle-chip[data-time="all"], .filter-chip-group .filter-toggle-chip[data-difficulty="all"], .filter-chip-group .filter-toggle-chip[data-price="all"], .filter-chip-group .filter-toggle-chip[data-spots="all"], .filter-chip-group .filter-toggle-chip[data-credit="all"], .filter-chip-group .filter-toggle-chip[data-sort="popular"]').forEach(function(e) { e.classList.add('active'); });
+        // Reset advanced filter panel (sort-btn chips)
+        document.querySelectorAll('#filterPanel .sort-btn').forEach(function(e) { e.classList.remove('active'); });
+        document.querySelectorAll('#filterPanel .sort-btn').forEach(function(e) { if (e.textContent.trim() === '全部') e.classList.add('active'); });
         document.getElementById('search-input').value = '';
         searchTerm = '';
         updateActiveFilterBar();
         updateFilterBadge();
-        loadClasses();
+        // Use client-side filter instead of API reload
+        filterCourses();
       }
       function setView(view) {
         currentView = view;
@@ -1836,55 +1840,12 @@
         var group = el.parentElement;
         group.querySelectorAll('.sort-btn').forEach(function(b){ b.classList.remove('active'); });
         el.classList.add('active');
-        // Map to existing filter vars and apply client-side filter
+        // Update vars and trigger single filter function
         if (type === 'region') currentDistrict = val || 'all';
         if (type === 'difficulty') currentDifficulty = val || 'all';
         if (type === 'spots') currentSpots = val || 'all';
         if (type === 'price') currentPrice = val || 'all';
-        applyClientFilter();
-      }
-
-      function applyClientFilter() {
-        var cards = document.querySelectorAll('.modern-card');
-        var visible = 0;
-        cards.forEach(function(card) {
-          var show = true;
-          // Category filter
-          if (currentCategory && currentCategory !== 'all') {
-            if (card.getAttribute('data-category') !== currentCategory) show = false;
-          }
-          // Difficulty filter
-          if (show && currentDifficulty && currentDifficulty !== 'all') {
-            var diff = card.getAttribute('data-difficulty') || '';
-            var diffMap = {beginner:'初級', intermediate:'中級', advanced:'高級'};
-            if (diff !== (diffMap[currentDifficulty] || currentDifficulty)) show = false;
-          }
-          // Price filter
-          if (show && currentPrice && currentPrice !== 'all') {
-            var price = parseInt(card.getAttribute('data-price')) || 0;
-            if (currentPrice === 'under100' && price >= 100) show = false;
-            else if (currentPrice === '100-200' && (price < 100 || price > 200)) show = false;
-            else if (currentPrice === 'over200' && price <= 200) show = false;
-          }
-          // Spots filter
-          if (show && currentSpots && currentSpots !== 'all') {
-            var spots = parseInt(card.getAttribute('data-spots'));
-            if (currentSpots === 'available' && (isNaN(spots) || spots <= 0)) show = false;
-            else if (currentSpots === 'few' && (isNaN(spots) || spots > 3)) show = false;
-          }
-          // Time of day filter
-          if (show && currentTimeOfDay && currentTimeOfDay !== 'all') {
-            var time = card.getAttribute('data-time') || '';
-            var hour = parseInt(time.split(':')[0]);
-            if (currentTimeOfDay === 'morning' && (isNaN(hour) || hour < 6 || hour >= 12)) show = false;
-            else if (currentTimeOfDay === 'afternoon' && (isNaN(hour) || hour < 12 || hour >= 18)) show = false;
-            else if (currentTimeOfDay === 'evening' && (isNaN(hour) || hour < 18 || hour >= 23)) show = false;
-          }
-          card.style.display = show ? '' : 'none';
-          if (show) visible++;
-        });
-        document.getElementById('resultCount').textContent = visible + ' 個課程';
-        document.getElementById('load-more-btn').style.display = visible === 0 ? 'none' : '';
+        filterCourses();
       }
       function closeMobileFilterSheet() {
         document.getElementById('filterOverlay').classList.remove('open');
@@ -2847,25 +2808,22 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  // 掛 hook 到現有 filter 按鈕
-  var origFilter = window.selectFilter;
-  window.selectFilter = function(type, val, el) {
-    if (typeof origFilter === 'function') origFilter(type, val, el);
-    setTimeout(filterCourses, 100);
-  };
-
-  // Category chips
+  // Category chips 用 DOM event 觸發 filter
   document.querySelectorAll('#category-list .category-chip').forEach(function(chip) {
-    chip.addEventListener('click', function() { setTimeout(filterCourses, 200); });
+    chip.addEventListener('click', function() { setTimeout(filterCourses, 150); });
   });
 
-  // Clear button
+  // Clear / 套用篩選按鈕
   var clearBtn = document.getElementById('clear-filters');
   if (clearBtn) {
     clearBtn.addEventListener('click', function() {
       if (searchInput) searchInput.value = '';
-      setTimeout(filterCourses, 300);
+      setTimeout(filterCourses, 200);
     });
+  }
+  var applyBtn = document.getElementById('apply-filters');
+  if (applyBtn) {
+    applyBtn.addEventListener('click', function() { setTimeout(filterCourses, 100); });
   }
 
   // Initial load
