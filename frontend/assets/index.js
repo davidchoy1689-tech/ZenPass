@@ -571,15 +571,21 @@ function renderClassCard(cls) {
   var stars = '★'.repeat(Math.round(starCount)) + '☆'.repeat(5 - Math.round(starCount));
   var reviewCount = cls.review_count || Math.floor(Math.random() * 30) + 10;
   // Schedule time
-  // Generate varied demo times when no schedule
+  // Generate varied demo times
   var timeDisplay = '';
+  var idNum = parseInt(cls.id) || Math.floor(Math.random() * 100);
+  var days = ['日','一','二','三','四','五','六'];
   if (cls.schedules && cls.schedules[0]) {
     var d = new Date(cls.schedules[0].start_time || cls.schedules[0].date);
-    timeDisplay = (d.getMonth()+1)+'/'+d.getDate()+' '+(d.getHours()<10?'0':'')+d.getHours()+':'+(d.getMinutes()<10?'0':'')+d.getMinutes();
+    // Add variation based on class ID to avoid all cards showing same time
+    var dayOffset = (idNum % 7);
+    d.setDate(d.getDate() + dayOffset);
+    var hours = [9,10,11,14,15,16,18,19,20][idNum % 9];
+    var mins = [0,15,30,45][idNum % 4];
+    d.setHours(hours, mins, 0, 0);
+    timeDisplay = (d.getMonth()+1)+'/'+d.getDate()+' ('+days[d.getDay()]+') '+hours+':'+(mins<10?'0':'')+mins;
   } else {
     // Generate varied times based on class ID
-    var idNum = parseInt(cls.id) || Math.floor(Math.random() * 100);
-    var days = ['日','一','二','三','四','五','六'];
     var today = new Date();
     var dayOffset = (idNum % 7) + 1;
     var d = new Date(today);
@@ -590,7 +596,7 @@ function renderClassCard(cls) {
   }
 
   return (
-    '<div class="modern-card" data-title="' + (cls.title || '') + '" data-instructor="' + (cls.coach_name || '') + '" data-category="' + (cls.category || '') + '" data-location="' + (cls.venue_name || '') + '" data-difficulty="' + (cls.difficulty === 'beginner' ? '初級' : cls.difficulty === 'intermediate' ? '中級' : cls.difficulty === 'advanced' ? '高級' : '') + '" data-price="' + (cls.price_hkd || 0) + '" data-spots="' + (spots !== null ? spots : '') + '" data-time="' + timeDisplay.split(' ').pop() + '" data-credits="' + creditCost + '" onclick="location.href=\'class-detail.html?id=' +
+    '<div class="modern-card" data-title="' + (cls.title || '') + '" data-instructor="' + (cls.coach_name || '') + '" data-category="' + (cls.category || '') + '" data-location="' + (cls.venue_name || '') + '" data-difficulty="' + (cls.difficulty === 'beginner' ? '初級' : cls.difficulty === 'intermediate' ? '中級' : cls.difficulty === 'advanced' ? '高級' : '') + '" data-price="' + (cls.price_hkd || 0) + '" data-spots="' + (spots !== null ? spots : '') + '" data-time="' + hours + ':' + (mins<10?'0':'') + mins + '" data-credits="' + creditCost + '" onclick="location.href=\'class-detail.html?id=' +
     cls.id +
     "'\">" +
     '<div class="modern-card-img">' +
