@@ -146,7 +146,72 @@ window.addEventListener('bookingUpdated', function() {
   updateAllBookingButtons();
 });
 
+// ==================== 鈴鐺通知中心 ====================
+var _notifications = [];
+
+window.addNotification = function(title, msg, icon) {
+  _notifications.unshift({ title: title, msg: msg, icon: icon || '📌', time: new Date() });
+  if (_notifications.length > 20) _notifications.pop();
+  updateNotifBadge();
+};
+
+function updateNotifBadge() {
+  var badge = document.getElementById('notif-count');
+  if (!badge) return;
+  if (_notifications.length > 0) {
+    badge.style.display = 'flex';
+    badge.textContent = _notifications.length > 9 ? '9+' : _notifications.length;
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+window.toggleNotify = function() {
+  var panel = document.getElementById('notif-panel');
+  var list = document.getElementById('notif-list');
+  if (!panel || !list) return;
+  if (panel.style.display === 'block') {
+    panel.style.display = 'none';
+    return;
+  }
+  panel.style.display = 'block';
+  if (_notifications.length === 0) {
+    list.innerHTML = '<div style="padding:24px;text-align:center;color:#a1a1aa;font-size:13px">暫無通知</div>';
+  } else {
+    list.innerHTML = _notifications.map(function(n) {
+      var h = n.time.getHours().toString().padStart(2,'0');
+      var m = n.time.getMinutes().toString().padStart(2,'0');
+      return '<div style="padding:12px 16px;border-bottom:1px solid #f4f4f5;display:flex;gap:10px;align-items:flex-start">' +
+        '<span style="font-size:18px;flex-shrink:0">' + (n.icon || '📌') + '</span>' +
+        '<div style="flex:1"><div style="font-size:13px;font-weight:600">' + n.title + '</div>' +
+        (n.msg ? '<div style="font-size:11px;color:#71717a;margin-top:2px">' + n.msg + '</div>' : '') +
+        '<div style="font-size:10px;color:#a1a1aa;margin-top:4px">' + h + ':' + m + '</div></div></div>';
+    }).join('');
+  }
+  // Click outside to close
+  setTimeout(function() {
+    document.addEventListener('click', function closeNotif(e) {
+      if (!e.target.closest('#notif-panel') && !e.target.closest('[onclick*="toggleNotify"]')) {
+        panel.style.display = 'none';
+        document.removeEventListener('click', closeNotif);
+      }
+    });
+  }, 100);
+};
+
+// Auto-add notification on booking
+var _origConfirm = confirmBooking;
+confirmBooking = function() {
+  var result = _origConfirm.apply(this, arguments);
+  if (currentCourse) addNotification('預約成功', currentCourse.title, '✅');
+  return result;
+};
+
 // Init on load
 document.addEventListener('DOMContentLoaded', function() {
   setTimeout(updateAllBookingButtons, 800);
+  // Dark mode for notif panel
+  var dark = document.documentElement.classList.contains('dark');
+  var p = document.getElementById('notif-panel');
+  if (p && dark) { p.style.background = '#18181b'; p.style.borderColor = '#27272a'; }
 });
