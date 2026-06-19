@@ -2962,9 +2962,9 @@ function handleBookingClick(btn) {
 }
 
 function showCancelConfirm(courseId, btn) {
-  if (confirm('確定要取消預約「' + (bookedCourses[courseId]?.title || '此課程') + '」？')) {
-    delete bookedCourses[courseId];
-    localStorage.setItem('zenpass_booked', JSON.stringify(bookedCourses));
+  if (confirm('確定要取消預約「' + (window.ZenPassBooking.getAll()[courseId]?.title || '此課程') + '」？')) {
+    window.ZenPassBooking.cancel(courseId);
+    bookedCourses = window.ZenPassBooking.getAll();
     alert('✅ 預約已取消');
     updateButtonState(btn, courseId);
   }
@@ -3028,8 +3028,8 @@ function confirmBooking() {
   btn.disabled = true;
 
   setTimeout(function() {
-    bookedCourses[currentCourse.id] = { title: currentCourse.title, datetime: dt };
-    localStorage.setItem('zenpass_booked', JSON.stringify(bookedCourses));
+    window.ZenPassBooking.book(currentCourse.id, { title: currentCourse.title, datetime: dt, instructor: currentCourse.instructor, location: currentCourse.location });
+    bookedCourses = window.ZenPassBooking.getAll();
     alert('✅ 預約成功！
 
 課程：' + currentCourse.title + '

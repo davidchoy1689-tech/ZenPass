@@ -96,8 +96,8 @@
 
  window.cancelBooking = function(id) {
  if (confirm('確定取消呢個預約？')) {
- delete bookedCourses[id];
- localStorage.setItem('zenpass_booked', JSON.stringify(bookedCourses));
+ window.ZenPassBooking.cancel(id);
+ bookedCourses = window.ZenPassBooking.getAll();
  renderBookings();
  }
  };
