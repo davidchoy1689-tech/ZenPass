@@ -924,6 +924,30 @@
       style.textContent =
         "@keyframes fadeInUp { from { opacity:0; transform:translateX(-50%) translateY(10px); } to { opacity:1; transform:translateX(-50%) translateY(0); } }";
       document.head.appendChild(style);
+    // ===== Load localStorage bookings (from quick booking modal) =====
+    (function(){
+      var localBookings = JSON.parse(localStorage.getItem('zenpass_booked') || '{}');
+      var container = document.getElementById('bookings-list');
+      if (!container || Object.keys(localBookings).length === 0) return;
+      var html = '<h3 style="font-size:16px;font-weight:700;margin:20px 0 12px;padding-top:16px;border-top:2px solid var(--gray-200)">📱 快速預約記錄</h3>';
+      Object.keys(localBookings).forEach(function(id){
+        var b = localBookings[id];
+        html += '<div class="booking-card" style="background:var(--white);border-radius:16px;padding:18px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,0.06);display:flex;justify-content:space-between;align-items:center">' +
+          '<div><div style="font-weight:600;font-size:15px">' + (b.title || '課程') + '</div>' +
+          '<div style="font-size:12px;color:var(--dark-700);margin-top:4px">📅 ' + (b.datetime || '') + '</div></div>' +
+          '<div style="text-align:right"><span style="display:inline-block;padding:3px 10px;background:#ecfdf5;color:#059669;border-radius:20px;font-size:11px;font-weight:600">✅ 已確認</span>' +
+          '<button onclick="cancelLocalBooking(\'' + id + '\')" style="display:block;margin-top:6px;background:none;border:none;color:#ef4444;font-size:12px;cursor:pointer">取消預約</button></div></div>';
+      });
+      container.insertAdjacentHTML('beforeend', html);
+    })();
+
+    function cancelLocalBooking(id) {
+      if (!confirm('確定要取消呢個預約？')) return;
+      var data = JSON.parse(localStorage.getItem('zenpass_booked') || '{}');
+      delete data[id];
+      localStorage.setItem('zenpass_booked', JSON.stringify(data));
+      location.reload();
+    }
     </script>
 
     <!-- ZenPass 統一頁腳 -->
