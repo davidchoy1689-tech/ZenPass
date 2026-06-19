@@ -4,12 +4,11 @@
 let currentCourse = null;
 
 function updateAllBookingButtons() {
-  var data = window.ZenPassBooking ? window.ZenPassBooking.getAll() : {};
   document.querySelectorAll('.modern-card, .course-card').forEach(function(card) {
     var id = card.getAttribute('data-id');
     var btn = card.querySelector('.booking-btn');
     if (!id || !btn) return;
-    if (data[id]) {
+    if (window.ZenPassBooking && window.ZenPassBooking.isBooked(id)) {
       btn.textContent = '\u2705 \u5df2\u9810\u7d04';
       btn.style.background = '#a1a1aa'; btn.style.color = '#fff'; btn.style.cursor = 'default'; btn.style.boxShadow = 'none';
       btn.disabled = true;
