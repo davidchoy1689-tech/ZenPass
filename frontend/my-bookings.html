@@ -70,42 +70,38 @@
  </footer>
 
  <script>
- let bookedCourses = JSON.parse(localStorage.getItem('zenpass_booked')) || {};
+function renderBookings() {
+  var data = bookedCourses;
+  var container = document.getElementById('bookings-list');
+  var empty = document.getElementById('no-bookings');
+  container.innerHTML = '';
+  if (Object.keys(data).length === 0) { empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+  Object.keys(data).forEach(function(id) {
+    var b = data[id];
+    container.innerHTML += '' +
+    '<div class="booking-card"><div style="display:flex;flex-direction:column;gap:16px">' +
+    '<div style="display:flex;flex-direction:column;gap:12px">' +
+    '<div class="booking-title">' + (b.title || '') + '</div>' +
+    (b.instructor ? '<div class="booking-instructor">' + b.instructor + '</div>' : '') +
+    '<div class="booking-meta">\U0001f4c5 ' + (b.datetime || '\u672a\u6307\u5b9a\u6642\u9593') + '<br>\U0001f4cd ' + (b.location || '\u9999\u6e2f') + '</div>' +
+    '</div>' +
+    '<div style="display:flex;justify-content:space-between;align-items:center">' +
+    '<span class="booking-status">\u5df2\u78ba\u8a8d</span>' +
+    '<button onclick="cancelBooking(\'' + id + '\')" class="cancel-btn">\u2715 \u53d6\u6d88\u9810\u7d04</button>' +
+    '</div></div></div>';
+  });
+}
 
- function renderBookings() {
- const container = document.getElementById('bookings-list');
- const empty = document.getElementById('no-bookings');
- container.innerHTML = '';
- if (Object.keys(bookedCourses).length === 0) { empty.style.display = 'block'; return; }
- empty.style.display = 'none';
- Object.keys(bookedCourses).forEach(function(id) {
- var b = bookedCourses[id];
- container.innerHTML += '' +
- '<div class="booking-card"><div style="display:flex;flex-direction:column;gap:16px">' +
- '<div style="display:flex;flex-direction:column;gap:12px">' +
- '<div class="booking-title">' + (b.title || '') + '</div>' +
- (b.instructor ? '<div class="booking-instructor">' + b.instructor + '</div>' : '') +
- '<div class="booking-meta">📅 ' + (b.datetime || '未指定時間') + '<br>📍 ' + (b.location || '香港') + '</div>' +
- '</div>' +
- '<div style="display:flex;justify-content:space-between;align-items:center">' +
- '<span class="booking-status">已確認</span>' +
- '<button onclick="cancelBooking(\'' + id + '\')" class="cancel-btn">✕ 取消預約</button>' +
- '</div></div></div>';
- });
- }
-
- window.cancelBooking = function(id) {
- if (confirm('確定取消呢個預約？')) {
- window.ZenPassBooking.cancel(id);
- bookedCourses = window.ZenPassBooking.getAll();
- renderBookings();
- }
- };
-
- document.addEventListener('DOMContentLoaded', renderBookings);
-document.addEventListener('bookingUpdated', renderBookings);
+document.addEventListener('DOMContentLoaded', async function() {
+  if (typeof loadBookings === 'function') await loadBookings();
+  renderBookings();
+});
+document.addEventListener('bookingUpdated', async function() {
+  if (typeof loadBookings === 'function') await loadBookings();
+  renderBookings();
+});
  </script>
-<script src="js/db.js"></script>
-<script src="js/booking-sync.js"></script>
+<script src="js/booking-system.js"></script>
 </body>
 </html>
