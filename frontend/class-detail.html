@@ -779,6 +779,7 @@ var currentClass = null;
           return q;
         })();
         var classId = urlParams["id"];
+        window._lastClassId = classId;
 
         if (!classId) {
           // Show demo data
@@ -898,7 +899,8 @@ var currentClass = null;
           223:{title:'芭蕾把杆基礎',cat:'舞蹈',diff:'beginner',duration:50,price:120,credits:12,desc:'芭蕾基礎動作訓練課程。',coach:'Grace導師',venue:'銅鑼灣 ZenFit',addr:'銅鑼灣軒尼詩道 300 號'},
           224:{title:'呼吸與冥想工作坊',cat:'冥想',diff:'beginner',duration:45,price:90,credits:12,desc:'呼吸法與冥想結合的工作坊。',coach:'慧心導師',venue:'中環 ZenSpace',addr:'中環皇后大道中 100 號'}
         };
-        var demoId = parseInt(classId) || 0;
+        var cid = (typeof classId !== 'undefined') ? classId : (window._lastClassId || '');
+        var demoId = parseInt(cid) || 0;
         var demo = demoCourses[demoId];
         if (!demo) demo = demoCourses[54];
         currentClass = {
