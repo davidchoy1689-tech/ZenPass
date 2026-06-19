@@ -3025,8 +3025,8 @@ function confirmBooking() {
   var btn = document.querySelector('.book-confirm');
   btn.textContent = '⏳ 預約中...';
   btn.disabled = true;
-  setTimeout(function() {
-    window.ZenPassBooking.book(currentCourse.id, {
+  setTimeout(async function() {
+    await window.ZenPassBooking.book(currentCourse.id, {
       title: currentCourse.title,
       instructor: currentCourse.instructor,
       location: currentCourse.location,
@@ -3039,9 +3039,9 @@ function confirmBooking() {
   }, 800);
 }
 
-window.cancelBooking = function(courseId) {
+window.cancelBooking = async function(courseId) {
   if (confirm('確定取消此預約？')) {
-    window.ZenPassBooking.cancel(courseId);
+    await window.ZenPassBooking.cancel(courseId);
     alert('✅ 預約已取消');
     if (typeof renderBookings === 'function') renderBookings();
     updateAllBookingButtons();
@@ -3222,8 +3222,10 @@ function _syncModalDark() {
 var _obs = new MutationObserver(function(){ _syncModalDark(); });
 _obs.observe(document.documentElement, {attributes:true,attributeFilter:['class']});
 </script>
-  <script src="js/booking-sync.js"></script>
+  <script src="js/db.js"></script>
+<script src="js/booking-sync.js"></script>
 
+<script src="js/db.js"></script>
 <script src="js/booking-sync.js"></script>
 </body>
 </html>
