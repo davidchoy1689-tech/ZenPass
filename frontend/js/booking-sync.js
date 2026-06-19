@@ -35,6 +35,27 @@ window.addEventListener('storage', (e) => {
   }
 });
 
+// 更新所有頁面 button 狀態
+window.updateAllBookingButtons = function() {
+  document.querySelectorAll('.modern-card, .course-card').forEach(function(card) {
+    var courseId = card.getAttribute('data-id');
+    var btn = card.querySelector('.booking-btn');
+    if (!courseId || !btn) return;
+    var isBooked = bookedCourses[courseId] !== undefined;
+    if (isBooked) {
+      btn.textContent = '✅ 已預約';
+      btn.style.background = '#a1a1aa'; btn.style.color = '#fff'; btn.style.cursor = 'default'; btn.style.boxShadow = 'none';
+      btn.disabled = true;
+      btn.onclick = function(e) { e.stopPropagation(); window.cancelBooking(courseId); };
+    } else {
+      btn.textContent = '立即預約';
+      btn.style.background = ''; btn.style.color = ''; btn.style.cursor = ''; btn.style.boxShadow = '';
+      btn.disabled = false;
+      btn.onclick = function(e) { e.stopPropagation(); handleBookingClick(btn); };
+    }
+  });
+};
+
 // 初始化
 document.addEventListener('DOMContentLoaded', () => {
   // 確保資料同步
