@@ -2740,26 +2740,18 @@
     </button>
 <script>
 // ==================== 變數 ====================
+const courses = document.querySelectorAll('.modern-card');
 const searchInput = document.getElementById('search-input');
+const filterCount = document.getElementById('filter-count') || document.getElementById('resultCount');
 const coursesGrid = document.getElementById('courses-grid');
 
 // ==================== 主篩選函數 ====================
 function filterCourses() {
-  // Live query to handle card replacements by loadClasses()
-  var courses = document.querySelectorAll('.modern-card');
-  var filterCount = document.getElementById('filter-count') || document.getElementById('resultCount');
   const keyword = searchInput?.value?.toLowerCase().trim() || '';
   let visibleCount = 0;
-  
-  // Active filter values from existing UI
-  var activeCat = document.querySelector('#category-list .category-chip.active')?.textContent?.trim() || '全部';
-  var activeTime = document.querySelector('#timeline-list .date-chip.active')?.textContent?.trim() || '全部';
-  var activeDiff = document.querySelector('#filterPanel .sort-btn.active[onclick*="difficulty"]')?.textContent?.trim() || '全部';
-  var activePrice = document.querySelector('#filterPanel .sort-btn.active[onclick*="price"]')?.textContent?.trim() || '全部';
-  var activeSpots = document.querySelector('#filterPanel .sort-btn.active[onclick*="spots"]')?.textContent?.trim() || '全部';
 
   courses.forEach(function(card) {
-    const title = (card.getAttribute('data-title') || '').toLowerCase();
+    const title = (card.getAttribute('data-title') || card.querySelector('.modern-card-title')?.textContent || '').toLowerCase();
     const instructor = (card.getAttribute('data-instructor') || '').toLowerCase();
     const category = (card.getAttribute('data-category') || '').toLowerCase();
     const location = (card.getAttribute('data-location') || '').toLowerCase();
@@ -2767,95 +2759,93 @@ function filterCourses() {
     const price = parseInt(card.getAttribute('data-price')) || 0;
     const spots = parseInt(card.getAttribute('data-spots'));
     const timeStr = card.getAttribute('data-time') || '';
-    
-    let show = true;
 
-    // 關鍵字搜尋
+    let matchKeyword = !keyword;
     if (keyword) {
       const cardText = (card.textContent || '').toLowerCase();
-      show = cardText.includes(keyword);
+      matchKeyword = cardText.includes(keyword);
     }
 
-    // 類別 filter
-    if (show && activeCat && activeCat !== '全部' && activeCat !== '🏠 全部') {
-      show = category.includes(activeCat.replace(/🏠|\s/g, '').toLowerCase());
-    }
+    const matchFilter = checkFilters(card, price, spots, timeStr);
+    const shouldShow = matchKeyword && matchFilter;
 
-    // 時段 filter
-    if (show && activeTime && activeTime !== '📅 全部') {
-      const hour = parseInt(timeStr.split(':')[0]);
-      if (!isNaN(hour)) {
-        if ((activeTime.includes('早上') || activeTime.includes('Morning')) && (hour < 6 || hour >= 12)) show = false;
-        else if ((activeTime.includes('下午') || activeTime.includes('Afternoon')) && (hour < 12 || hour >= 18)) show = false;
-        else if ((activeTime.includes('晚上') || activeTime.includes('Evening')) && hour < 18) show = false;
-      }
-    }
-
-    // 難度 filter
-    if (show && activeDiff && activeDiff !== '全部') {
-      if (activeDiff === '🌱 初級' && difficulty !== '初級') show = false;
-      else if (activeDiff === '🔥 中級' && difficulty !== '中級') show = false;
-      else if (activeDiff === '⚡ 高級' && difficulty !== '高級') show = false;
-    }
-
-    // 價格 filter
-    if (show && activePrice && activePrice !== '全部') {
-      if (activePrice.includes('<') && price >= 100) show = false;
-      else if (activePrice.includes('-')) {
-        var parts = activePrice.match(/\d+/g);
-        if (parts && parts.length >= 2 && (price < parseInt(parts[0]) || price > parseInt(parts[1]))) show = false;
-      } else if (activePrice.includes('>') && price <= 200) show = false;
-    }
-
-    // 剩餘名額 filter
-    if (show && activeSpots && activeSpots !== '全部') {
-      if (activeSpots === '🟢 有位' && (isNaN(spots) || spots <= 0)) show = false;
-      else if (activeSpots === '⚡ 僅剩少量' && (isNaN(spots) || spots > 3)) show = false;
-    }
-
-    card.style.display = show ? '' : 'none';
-    if (show) visibleCount++;
+    card.style.display = shouldShow ? '' : 'none';
+    if (shouldShow) visibleCount++;
   });
 
-  if (filterCount) filterCount.textContent = visibleCount + ' 個課程';
+  if (filterCount) filterCount.textContent = '找到 ' + visibleCount + ' 個課程';
   var lmBtn = document.getElementById('load-more-btn');
   if (lmBtn) lmBtn.style.display = visibleCount === 0 ? 'none' : '';
 }
 
-// ==================== Book Class Modal ====================
-function bookClass(btn) {
-  var id = btn.getAttribute('data-id');
-  var card = btn.closest('.modern-card');
-  var title = card?.querySelector('.modern-card-title')?.textContent || '課程';
-  var price = card?.querySelector('.modern-card-price')?.textContent || '';
-  var imgStyle = card?.querySelector('.bg-img')?.getAttribute('style') || '';
-  var m = document.getElementById('bookModal');
-  if (m) m.remove();
-  var dark = document.documentElement.classList.contains('dark');
-  var bg = dark ? '#1e293b' : '#fff';
-  var txt = dark ? '#f1f5f9' : '#1a1a2e';
-  var sub = dark ? '#94a3b8' : '#6b7280';
-  var modal = document.createElement('div');
-  modal.id = 'bookModal';
-  modal.style.cssText = 'position:fixed;inset:0;z-index:1001;background:rgba(0,0,0,0.5);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:20px';
-  modal.innerHTML = '<div style="background:' + bg + ';border-radius:20px;padding:0;max-width:340px;width:100%;overflow:hidden;box-shadow:0 25px 60px rgba(0,0,0,0.3);animation:fadeInUp 0.3s ease">' +
-    (imgStyle ? '<div style="height:130px;background:' + imgStyle.replace(/['"]/g,'').substring(0,200) + ';background-size:cover;background-position:center"></div>' : '') +
-    '<div style="padding:20px 20px 24px">' +
-    '<div style="font-size:17px;font-weight:800;color:' + txt + ';margin-bottom:4px">' + title + '</div>' +
-    '<div style="font-size:13px;color:' + sub + ';margin-bottom:14px">' + price + '</div>' +
-    '<div style="display:flex;gap:8px;margin-bottom:12px">' +
-    '<button class="book-btn-primary" onclick="event.stopPropagation();this.innerHTML=\'⏳ 處理中...\';this.disabled=true;var that=this;setTimeout(function(){that.innerHTML=\'✅ 預約成功！🎉\';that.style.background=\'#059669\'},800)" style="flex:1;padding:12px;border-radius:12px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;font-size:14px;font-weight:700;border:none;cursor:pointer">💎 即時預約</button>' +
-    '<button onclick="event.stopPropagation();window.location.href=\'class-detail.html?id=' + id + '\'" style="width:44px;border-radius:12px;background:var(--gray-100);color:var(--dark-700);font-size:16px;border:none;cursor:pointer">🔍</button>' +
-    '</div>' +
-    '<button onclick="this.closest(\'[style*=\"z-index:1001\"]\').remove()" style="width:100%;padding:8px;border-radius:10px;background:none;color:' + sub + ';font-size:13px;border:none;cursor:pointer">取消</button>' +
-    '</div></div>';
-  document.body.appendChild(modal);
-  modal.onclick = function(e) { if (e.target === modal) modal.remove(); };
+// ==================== 其他 Filter 邏輯 ====================
+function checkFilters(card, price, spots, timeStr) {
+  var activeCat = document.querySelector('#category-list .category-chip.active')?.textContent?.trim() || '全部';
+  var activeTime = document.querySelector('#timeline-list .date-chip.active')?.textContent?.trim() || '全部';
+  var activeDiff = document.querySelectorAll('#filterPanel .sort-btn.active');
+  var activePrice = '';
+  var activeSpots = '';
+  
+  activeDiff.forEach(function(b) {
+    var t = b.textContent.trim();
+    var o = b.getAttribute('onclick') || '';
+    if (o.includes('difficulty') && t !== '全部') { /* handled below */ }
+    if (o.includes('price') && t !== '全部') activePrice = t;
+    if (o.includes('spots') && t !== '全部') activeSpots = t;
+  });
+  
+  // Get difficulty from text of active chip
+  var diffText = '';
+  activeDiff.forEach(function(b) {
+    if ((b.getAttribute('onclick')||'').includes('difficulty') && b.textContent.trim() !== '全部') diffText = b.textContent.trim();
+  });
+
+  // Category filter
+  if (activeCat && activeCat !== '全部' && activeCat !== '🏠 全部') {
+    var cat = (card.getAttribute('data-category') || '').toLowerCase();
+    if (!cat.includes(activeCat.replace(/🏠|\s/g, '').toLowerCase())) return false;
+  }
+
+  // Difficulty
+  if (diffText) {
+    var diff = card.getAttribute('data-difficulty') || '';
+    if (diffText.includes('初級') && diff !== '初級') return false;
+    if (diffText.includes('中級') && diff !== '中級') return false;
+    if (diffText.includes('高級') && diff !== '高級') return false;
+  }
+
+  // Price
+  if (activePrice && activePrice !== '全部') {
+    if (activePrice.includes('<') && price >= 100) return false;
+    if (activePrice.includes('-')) {
+      var parts = activePrice.match(/\d+/g);
+      if (parts && parts.length >= 2 && (price < parseInt(parts[0]) || price > parseInt(parts[1]))) return false;
+    }
+    if (activePrice.includes('>') && price <= 200) return false;
+  }
+
+  // Spots
+  if (activeSpots && activeSpots !== '全部') {
+    if (activeSpots.includes('有位') && (isNaN(spots) || spots <= 0)) return false;
+    if (activeSpots.includes('僅剩') && (isNaN(spots) || spots > 3)) return false;
+  }
+
+  // Time
+  if (activeTime && activeTime !== '📅 全部') {
+    var hour = parseInt(timeStr.split(':')[0]);
+    if (!isNaN(hour)) {
+      if ((activeTime.includes('早上') || activeTime.includes('Morning')) && (hour < 6 || hour >= 12)) return false;
+      if ((activeTime.includes('下午') || activeTime.includes('Afternoon')) && (hour < 12 || hour >= 18)) return false;
+      if ((activeTime.includes('晚上') || activeTime.includes('Evening')) && hour < 18) return false;
+    }
+  }
+
+  return true;
 }
 
-// ==================== 事件監聽 ====================
+// ==================== 事件監聽（完全即時聯動） ====================
 document.addEventListener('DOMContentLoaded', function() {
-  // 即時搜尋（含 debounce，避免輸入太快卡住）
+  // 搜尋框即時反應
   if (searchInput) {
     var timeout;
     searchInput.addEventListener('input', function() {
@@ -2864,80 +2854,36 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  // Category chips 用 DOM event 觸發 filter
+  // 所有外部 filter 變化 → 即時 filter
+  // Category chips
   document.querySelectorAll('#category-list .category-chip').forEach(function(chip) {
-    chip.addEventListener('click', function() { setTimeout(filterCourses, 150); });
+    chip.addEventListener('click', function() { setTimeout(filterCourses, 100); });
+  });
+  // Advanced filter panel
+  document.querySelectorAll('#filterPanel .sort-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() { setTimeout(filterCourses, 100); });
+  });
+  // Timeline chips
+  document.querySelectorAll('#timeline-list .date-chip').forEach(function(chip) {
+    chip.addEventListener('click', function() { setTimeout(filterCourses, 100); });
   });
 
-  // Clear / 套用篩選按鈕
-  var clearBtn = document.getElementById('clear-filters');
-  if (clearBtn) {
-    clearBtn.addEventListener('click', function() {
-      if (searchInput) searchInput.value = '';
-      setTimeout(filterCourses, 200);
-    });
-  }
-  var applyBtn = document.getElementById('apply-filters');
-  if (applyBtn) {
-    applyBtn.addEventListener('click', function() { setTimeout(filterCourses, 100); });
+  // Sort select
+  var sortSelect = document.getElementById('sort-select');
+  if (sortSelect) {
+    sortSelect.addEventListener('change', function() { filterCourses(); });
   }
 
-  // Initial load
+  // Clear button
+  var clearBtns = document.querySelectorAll('[onclick*="clearAllFilters"]');
+  clearBtns.forEach(function(btn) {
+    btn.addEventListener('click', function() { setTimeout(filterCourses, 200); });
+  });
+
+  // 初始載入
   setTimeout(filterCourses, 1500);
 });
-
-// ===== Booking Modal =====
-var _bookingData = null;
-function bookClass(btn) {
-  var card = btn.closest('.modern-card');
-  _bookingData = {
-    id: btn.getAttribute('data-id'),
-    title: card?.querySelector('.modern-card-title')?.textContent || '課程',
-    price: card?.querySelector('.modern-card-price')?.textContent || '',
-    img: card?.querySelector('.bg-img')?.getAttribute('style') || ''
-  };
-  document.getElementById('modal-course-title').textContent = _bookingData.title;
-  document.getElementById('modal-details').textContent = '價格: ' + _bookingData.price;
-  // Fill date options
-  var sel = document.getElementById('modal-date');
-  sel.innerHTML = '';
-  var days = ['今日','明日','後天'];
-  var times = ['09:00','10:00','11:00','14:00','15:00','16:00','18:00','19:00','20:00'];
-  for(var i=0;i<3;i++){
-    var d = new Date(); d.setDate(d.getDate()+i);
-    var opt = document.createElement('option');
-    opt.value = d.toISOString().split('T')[0] + 'T' + times[i*3];
-    opt.textContent = days[i] + ' ' + (d.getMonth()+1)+'/'+d.getDate()+' ('+['日','一','二','三','四','五','六'][d.getDay()]+') ' + times[i*3];
-    sel.appendChild(opt);
-  }
-  // Also add time slots
-  for(var i=0;i<times.length;i++){
-    var opts = document.createElement('option');
-    opts.value = times[i];
-    opts.textContent = '  └ ' + times[i];
-    sel.appendChild(opts);
-  }
-  document.getElementById('booking-modal').classList.remove('hidden');
-  document.getElementById('booking-modal').style.display = 'flex';
-}
-function closeModal() {
-  document.getElementById('booking-modal').classList.add('hidden');
-  document.getElementById('booking-modal').style.display = 'none';
-}
-function confirmBooking() {
-  var sel = document.getElementById('modal-date');
-  var dateTime = sel.options[sel.selectedIndex]?.text || '已選時段';
-  var btn = document.querySelector('#booking-modal .book-confirm');
-  btn.textContent = '⏳ 處理中...';
-  btn.disabled = true;
-  setTimeout(function(){
-    btn.textContent = '✅ 已預約';
-    // Show success
-    document.getElementById('modal-course-title').textContent = '🎉 預約成功！';
-    document.getElementById('modal-details').textContent = _bookingData.title + ' · ' + dateTime;
-    document.querySelector('#booking-modal .modal-footer').innerHTML = '<button onclick="closeModal();window.location.href=\'my-bookings.html\'" class="flex-1 bg-emerald-600 text-white py-4 rounded-2xl" style="flex:1;padding:14px;border-radius:12px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;font-size:14px;font-weight:700;border:none;cursor:pointer">📋 查看預約</button><button onclick="closeModal()" class="flex-1 py-4 border rounded-2xl" style="flex:1;padding:14px;border-radius:12px;background:var(--gray-100);color:var(--dark-700);font-size:14px;border:none;cursor:pointer">繼續瀏覽</button>';
-  }, 1200);
-}
+</script>
 </script>
 
 <!-- Booking Modal HTML -->
