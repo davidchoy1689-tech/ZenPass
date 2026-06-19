@@ -288,6 +288,9 @@
       .reviews {
         margin-bottom: 20px;
       }
+      .related-card{flex:0 0 180px;background:var(--white);border-radius:12px;overflow:hidden;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,0.06);transition:all 0.2s}
+      .related-card:hover{transform:translateY(-4px);box-shadow:0 8px 16px rgba(0,0,0,0.1)}
+      html.dark .related-card{background:#1e293b}
       .review-item {
         padding: 12px 0;
         border-bottom: 1px solid var(--gray-100);
@@ -759,6 +762,32 @@ if (typeof showSkeleton !== 'function') {
   };
 }
 
+window._DEMO_COURSES = [
+{id:201,img:'8769173',title:'辦公室伸展舒壓',cat:'伸展',price:90,coach:'靜儀導師'},
+{id:202,img:'7113345',title:'頌缽療癒 Sound Bath',cat:'療癒',price:120,coach:'靜儀導師'},
+{id:203,img:'9472322',title:'產後修復 Pilates',cat:'Pilates',price:180,coach:'靜儀導師'},
+{id:204,img:'5635615',title:'芭蕾塑形 Barre',cat:'舞蹈',price:160,coach:'Grace導師'},
+{id:205,img:'4999228',title:'空中瑜伽 Aerial Yoga',cat:'瑜伽',price:200,coach:'靜儀導師'},
+{id:206,img:'1153369',title:'拳擊有氧 Boxing',cat:'拳擊',price:150,coach:'Michael教練'},
+{id:207,img:'6453230',title:'Reformer Pilates',cat:'Pilates',price:220,coach:'Grace導師'},
+{id:208,img:'3822627',title:'哈達瑜伽初階班',cat:'瑜伽',price:130,coach:'慧心導師'},
+{id:209,img:'841130',title:'HIIT 高強度訓練',cat:'健身',price:170,coach:'Alex教練'},
+{id:210,img:'3823488',title:'正念冥想初階',cat:'冥想',price:80,coach:'慧心導師'},
+{id:211,img:'5635615',title:'Zumba 舞動燃脂',cat:'舞蹈',price:130,coach:'Grace導師'},
+{id:212,img:'1153369',title:'TRX 全身訓練',cat:'健身',price:190,coach:'Alex教練'},
+{id:213,img:'3822627',title:'陰瑜伽深層放鬆',cat:'瑜伽',price:110,coach:'靜儀導師'},
+{id:214,img:'841130',title:'壺鈴訓練入門',cat:'健身',price:160,coach:'Michael教練'},
+{id:215,img:'3823488',title:'睡眠冥想引導',cat:'冥想',price:90,coach:'慧心導師'},
+{id:216,img:'9472322',title:'地板冰壺體驗',cat:'新興運動',price:100,coach:'Ken教練'},
+{id:217,img:'841130',title:'動感單車 Spinning',cat:'健身',price:140,coach:'Alex教練'},
+{id:218,img:'3822627',title:'Vinyasa 流動瑜伽',cat:'瑜伽',price:150,coach:'靜儀導師'},
+{id:219,img:'4761345',title:'泰拳 Muay Thai',cat:'拳擊',price:200,coach:'Michael教練'},
+{id:220,img:'9472322',title:'親子瑜伽班',cat:'瑜伽',price:160,coach:'慧心導師'},
+{id:221,img:'8769173',title:'筋膜放鬆滾筒',cat:'伸展',price:100,coach:'靜儀導師'},
+{id:222,img:'1552251',title:'戶外健行團',cat:'新興運動',price:80,coach:'Ken教練'},
+{id:223,img:'5635615',title:'芭蕾把杆基礎',cat:'舞蹈',price:120,coach:'Grace導師'},
+{id:224,img:'3823488',title:'呼吸與冥想工作坊',cat:'冥想',price:90,coach:'慧心導師'}
+];
 var currentClass = null;
       var selectedSchedule = null;
       var selectedPayment = "single";
@@ -1243,6 +1272,14 @@ var currentClass = null;
               ")</h3>"
             : "") +
           (reviewsHtml || "") +
+          // Related Courses
+          (function(){
+            var sameCat = [], all = _DEMO_COURSES || [];
+            for(var ri=0;ri<all.length;ri++){if(all[ri].cat===cls.category&&all[ri].id!==cls.id)sameCat.push(all[ri]);if(sameCat.length>=4)break}
+            if(sameCat.length<4){for(var ri=0;ri<all.length&&sameCat.length<4;ri++){if(all[ri].id!==cls.id&&!sameCat.find(function(x){return x.id===all[ri].id}))sameCat.push(all[ri])}}
+            var h='';for(var ri=0;ri<sameCat.length;ri++){var c=sameCat[ri];var pb='https://images.pexels.com/photos/'+c.img+'/pexels-photo-'+c.img+'.jpeg?fm=webp&auto=compress&cs=tinysrgb&w=300';h+='<div class="related-card" onclick="location.href=\'class-detail.html?id='+c.id+'\'"><div style="height:80px;background:url(\''+pb+'\') center/cover"></div><div style="padding:8px 10px"><div style="font-size:12px;font-weight:600">'+c.title+'</div><div style="font-size:10px;color:var(--dark-700)">'+c.coach+'</div><div style="font-size:11px;color:#10b981;font-weight:600;margin-top:4px">HK$'+c.price+' <small style="color:var(--gray-300)">/ 1 Pass</small></div></div></div>'}
+            return '<h3 style="font-size:16px;font-weight:700;margin:16px 0 12px;">🔗 相關課程</h3><div style="display:flex;gap:12px;overflow-x:auto;padding:0 0 8px;-webkit-overflow-scrolling:touch">'+h+'</div>';
+          })() +
           "</div>";
 
         // Update book button
