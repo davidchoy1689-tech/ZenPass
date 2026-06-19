@@ -661,7 +661,30 @@ function toggleFavorite(btn) {
 // ===== Quick Book (card CTA) =====
 function bookClass(btn) {
   var id = btn.getAttribute('data-id');
-  if (id) window.location.href = 'class-detail.html?id=' + id;
+  var card = btn.closest('.modern-card');
+  var title = card?.querySelector('.modern-card-title')?.textContent || '課程';
+  var price = card?.querySelector('.modern-card-price')?.textContent || '';
+  var existing = document.getElementById('bookConfirmModal');
+  if (existing) existing.remove();
+  var dark = document.documentElement.classList.contains('dark');
+  var bg = dark ? '#1e293b' : '#fff';
+  var txt = dark ? '#f1f5f9' : '#1a1a2e';
+  var sub = dark ? '#94a3b8' : '#6b7280';
+  var modal = document.createElement('div');
+  modal.id = 'bookConfirmModal';
+  modal.style.cssText = 'position:fixed;inset:0;z-index:1001;background:rgba(0,0,0,0.5);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:20px';
+  modal.innerHTML = '<div style="background:' + bg + ';border-radius:20px;padding:28px 24px;max-width:340px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.2);animation:fadeInUp 0.3s ease">' +
+    '<div style="font-size:40px;margin-bottom:8px">📅</div>' +
+    '<div style="font-size:18px;font-weight:800;color:' + txt + ';margin-bottom:4px">' + title + '</div>' +
+    '<div style="font-size:13px;color:' + sub + ';margin-bottom:16px">' + price + '</div>' +
+    '<div style="background:var(--gray-50);border-radius:12px;padding:14px;margin-bottom:16px;text-align:left">' +
+    '<div style="font-size:12px;color:var(--dark-700);margin-bottom:8px">選擇預約方式</div>' +
+    '<button onclick="event.stopPropagation();window.location.href=\'class-detail.html?id=' + id + '\'" style="display:block;width:100%;padding:12px;border-radius:10px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;font-size:14px;font-weight:700;border:none;cursor:pointer;margin-bottom:8px">💎 用 Credits 預約</button>' +
+    '<button onclick="event.stopPropagation();window.location.href=\'class-detail.html?id=' + id + '\'" style="display:block;width:100%;padding:12px;border-radius:10px;background:var(--white);color:var(--dark-900);font-size:14px;font-weight:600;border:1.5px solid var(--gray-200);cursor:pointer;margin-bottom:8px">🔍 查看詳情</button>' +
+    '</div>' +
+    '<button onclick="this.closest(\'[style*=\"z-index:1001\"]\').remove()" style="background:none;border:none;font-size:13px;color:' + sub + ';cursor:pointer">取消</button></div>';
+  document.body.appendChild(modal);
+  modal.onclick = function(e) { if (e.target === modal) modal.remove(); };
 }
 
 // ===== User Menu Placeholder =====
