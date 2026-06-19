@@ -130,10 +130,13 @@ async function cancelBooking(courseId) {
   if (!confirm('確定要取消此預約嗎？')) return;
   try {
     if (window.ZenPassBooking) await window.ZenPassBooking.cancelCourse(courseId);
+    addNotification('ℹ️ 預約已取消', courseId ? (window.ZenPassBooking?.getAll()?.[courseId]?.title || '課程') : '', 'info');
     showToast('預約已取消', '您的課程預約已成功取消。如需重新預約，請再次選擇時段。', 'info');
     if (typeof renderBookings === 'function') renderBookings();
     updateAllBookingButtons();
     setTimeout(function() {
+      var title = window.ZenPassBooking?.getAll()?.[courseId]?.title || '課程';
+      showEmailPreview('預約取消確認 - ' + title, '親愛的會員：<br><br>你已成功取消以下課程：<br><br>📅 ' + title + '<br><br>如需重新預約，歡迎隨時返回 ZenPass 探索更多課程。<br><br>ZenPass 禪流團隊');
       showToast('取消確認電郵已寄出', '取消詳情已發送到您的註冊電郵', 'info');
     }, 800);
   } catch(err) {
