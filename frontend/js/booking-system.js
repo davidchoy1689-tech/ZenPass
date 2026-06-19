@@ -146,67 +146,87 @@ window.addEventListener('bookingUpdated', function() {
   updateAllBookingButtons();
 });
 
-// ==================== 鈴鐺通知中心 ====================
-var _notifications = [];
+// ==================== 通知中心 + Email 模擬 ====================
+var _notifications = JSON.parse(localStorage.getItem('zenpass_notifications')) || [];
 
-window.addNotification = function(title, msg, icon) {
-  _notifications.unshift({ title: title, msg: msg, icon: icon || '📌', time: new Date() });
-  if (_notifications.length > 20) _notifications.pop();
-  updateNotifBadge();
-};
-
-function updateNotifBadge() {
-  var badge = document.getElementById('notif-count');
-  if (!badge) return;
-  if (_notifications.length > 0) {
-    badge.style.display = 'flex';
-    badge.textContent = _notifications.length > 9 ? '9+' : _notifications.length;
-  } else {
-    badge.style.display = 'none';
-  }
+function addNotification(title, message, type) {
+  var n = { id: Date.now(), title: title, message: message || '', type: type || 'info', time: new Date().toLocaleTimeString('zh-HK', {hour:'2-digit',minute:'2-digit'}), read: false };
+  _notifications.unshift(n);
+  if (_notifications.length > 30) _notifications.pop();
+  localStorage.setItem('zenpass_notifications', JSON.stringify(_notifications));
+  renderNotifications();
+  updateNotificationCount();
 }
 
-window.toggleNotify = function() {
-  var panel = document.getElementById('notif-panel');
-  var list = document.getElementById('notif-list');
-  if (!panel || !list) return;
-  if (panel.style.display === 'block') {
-    panel.style.display = 'none';
+function renderNotifications() {
+  var list = document.getElementById('notification-list');
+  if (!list) return;
+  if (_notifications.length === 0) {
+    list.innerHTML = '<div style="padding:32px;text-align:center;color:#a1a1aa;font-size:13px">暫無新通知</div>';
     return;
   }
+  list.innerHTML = _notifications.map(function(n) {
+    return '<div style="padding:14px 16px;border-bottom:1px solid #f4f4f5;cursor:pointer;opacity:' + (n.read ? '0.6' : '1') + '" onclick="markNotifRead(' + n.id + ')">' +
+      '<div style="display:flex;justify-content:space-between"><span style="font-weight:600;font-size:13px">' + n.title + '</span><span style="font-size:11px;color:#a1a1aa">' + n.time + '</span></div>' +
+      (n.message ? '<div style="font-size:12px;color:#71717a;margin-top:4px">' + n.message + '</div>' : '') + '</div>';
+  }).join('');
+}
+
+function updateNotificationCount() {
+  var unread = 0; _notifications.forEach(function(n){ if(!n.read) unread++; });
+  var badge = document.getElementById('notification-count');
+  if (!badge) return;
+  if (unread > 0) { badge.style.display = 'flex'; badge.textContent = unread > 9 ? '9+' : unread; }
+  else { badge.style.display = 'none'; }
+}
+
+function markNotifRead(id) {
+  _notifications = _notifications.map(function(n){ return n.id === id ? Object.assign({}, n, {read: true}) : n; });
+  localStorage.setItem('zenpass_notifications', JSON.stringify(_notifications));
+  renderNotifications();
+  updateNotificationCount();
+}
+
+function toggleNotify() {
+  var panel = document.getElementById('notification-center');
+  if (!panel) return;
+  if (panel.style.display === 'block') { panel.style.display = 'none'; return; }
   panel.style.display = 'block';
-  if (_notifications.length === 0) {
-    list.innerHTML = '<div style="padding:24px;text-align:center;color:#a1a1aa;font-size:13px">暫無通知</div>';
-  } else {
-    list.innerHTML = _notifications.map(function(n) {
-      var h = n.time.getHours().toString().padStart(2,'0');
-      var m = n.time.getMinutes().toString().padStart(2,'0');
-      return '<div style="padding:12px 16px;border-bottom:1px solid #f4f4f5;display:flex;gap:10px;align-items:flex-start">' +
-        '<span style="font-size:18px;flex-shrink:0">' + (n.icon || '📌') + '</span>' +
-        '<div style="flex:1"><div style="font-size:13px;font-weight:600">' + n.title + '</div>' +
-        (n.msg ? '<div style="font-size:11px;color:#71717a;margin-top:2px">' + n.msg + '</div>' : '') +
-        '<div style="font-size:10px;color:#a1a1aa;margin-top:4px">' + h + ':' + m + '</div></div></div>';
-    }).join('');
-  }
-  // Click outside to close
+  renderNotifications();
   setTimeout(function() {
-    document.addEventListener('click', function closeNotif(e) {
-      if (!e.target.closest('#notif-panel') && !e.target.closest('[onclick*="toggleNotify"]')) {
+    document.addEventListener('click', function closeN(e) {
+      if (!e.target.closest('#notification-center') && !e.target.closest('[onclick*="toggleNotify"]')) {
         panel.style.display = 'none';
-        document.removeEventListener('click', closeNotif);
+        document.removeEventListener('click', closeN);
       }
     });
   }, 100);
-};
+}
 
-// Auto-add notification on booking
+function showEmailPreview(subject, content) {
+  var overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:300;padding:16px';
+  overlay.onclick = function(e) { if (e.target === overlay) overlay.remove(); };
+  overlay.innerHTML = '<div style="background:var(--white);border-radius:24px;max-width:480px;width:100%;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.2)">' +
+    '<div style="background:#059669;padding:20px 24px;color:#fff"><div style="font-size:11px;opacity:0.7">zenpass.hk</div><div style="font-size:15px;font-weight:600">ZenPass 禪流</div></div>' +
+    '<div style="padding:24px"><div style="font-size:18px;font-weight:700;margin-bottom:16px">' + subject + '</div>' +
+    '<div style="font-size:14px;line-height:1.6;color:var(--dark-700)">' + content + '</div></div>' +
+    '<div style="padding:16px 24px;border-top:1px solid var(--gray-200);text-align:center;font-size:11px;color:#a1a1aa">此為系統模擬電郵 • 如有問題請聯絡 support@zenpass.hk</div></div>';
+  document.body.appendChild(overlay);
+}
+
+// Auto-add notification on booking + email preview
 var _origConfirm = confirmBooking;
 confirmBooking = function() {
   var result = _origConfirm.apply(this, arguments);
-  if (currentCourse) addNotification('預約成功', currentCourse.title, '✅');
+  if (currentCourse) {
+    addNotification('✅ 預約成功', currentCourse.title, 'success');
+    setTimeout(function() {
+      showEmailPreview('預約確認 - ' + currentCourse.title, '親愛的會員：<br><br>你已成功預約以下課程：<br><br>📅 時間：' + (document.getElementById('modal-datetime')?.value || '') + '<br>📍 地點：' + currentCourse.location + '<br>👤 教練：' + currentCourse.instructor + '<br><br>請於課堂開始前 10 分鐘到達場地。<br>如需取消，請於開課 12 小時前操作。<br><br>ZenPass 禪流團隊');
+    }, 1500);
+  }
   return result;
 };
-
 // Init on load
 document.addEventListener('DOMContentLoaded', function() {
   setTimeout(updateAllBookingButtons, 800);
