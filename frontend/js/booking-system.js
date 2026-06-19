@@ -95,9 +95,9 @@ function openBookingModal(card) {
 
 async function confirmBooking() {
   var datetime = document.getElementById('modal-datetime').value;
-  if (!datetime || !currentCourse) return alert('\u8acb\u9078\u64c7\u6642\u6bb5');
+  if (!datetime || !currentCourse) return showToast('請選擇時段', '', 'info');
   var btn = document.querySelector('.book-confirm');
-  btn.textContent = '\u23f3 \u9810\u7d04\u4e2d...';
+  btn.textContent = '⏳ 預約中...';
   btn.disabled = true;
   try {
     if (window.ZenPassBooking) {
@@ -110,11 +110,11 @@ async function confirmBooking() {
         credits: currentCourse.credits
       });
     }
-    alert('\u2705 \u9810\u7d04\u6210\u529f\uff01\n\n' + currentCourse.title + '\n' + datetime);
+    showToast('✅ 預約成功！', currentCourse.title + '· ' + datetime, 'success');
     closeBookingModal();
     updateAllBookingButtons();
   } catch(e) {
-    alert('\u9810\u7d04\u5931\u6557\uff0c\u8acb\u7a0d\u5f8c\u518d\u8a66');
+    showToast('預約失敗', '請稍後再試', 'error');
   }
 }
 
