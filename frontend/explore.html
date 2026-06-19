@@ -3226,7 +3226,12 @@ _obs.observe(document.documentElement, {attributes:true,attributeFilter:['class'
 <script src="js/booking-sync.js"></script>
 <script src="js/booking-system.js"></script>
 <!-- Toast Container -->
-<div id="toast-container" style="position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:10px"></div>
+<div id="toast-container" style="position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:9999;display:flex;flex-direction:column;gap:8px;align-items:center;width:100%;max-width:360px;padding:0 16px"></div>
+<style>
+  @media(min-width:768px){
+    #toast-container{left:auto;right:24px;transform:none;max-width:380px;padding:0}
+  }
+</style>
 <template id="toast-template">
   <div class="toast" style="display:flex;align-items:center;gap:12px;background:#fff;border:2px solid #e4e4e7;border-radius:16px;box-shadow:0 8px 24px rgba(0,0,0,0.1);padding:14px 18px;min-width:280px;max-width:360px;animation:toastIn 0.3s ease">
     <span id="toast-icon" style="font-size:24px"></span>
