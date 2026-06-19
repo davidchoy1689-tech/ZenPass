@@ -2929,74 +2929,126 @@ document.addEventListener('DOMContentLoaded', function() {
 var _bookingData = {};
 function bookClass(btn) {
   var card = btn.closest('.modern-card');
-  _bookingData = {
-    id: btn.getAttribute('data-id'),
-    title: card?.querySelector('.modern-card-title')?.textContent || '課程',
-    price: card?.querySelector('.modern-card-price')?.textContent || ''
-  };
-  document.getElementById('modal-course-title').textContent = _bookingData.title;
-  document.getElementById('modal-details').textContent = '價格: ' + _bookingData.price + ' · 可用 Credits 支付';
-  var sel = document.getElementById('modal-date');
-  sel.innerHTML = '';
-  var days = ['今日','明日','後天'];
-  var times = ['09:00','10:00','11:00','14:00','15:00','16:00','18:00','19:00','20:00'];
+  var title = card?.querySelector('.modern-card-title')?.textContent || '課程';
+  var metaStr = card?.querySelector('.modern-card-meta')?.textContent || '';
+  var instructor = metaStr.replace(/\s*[·\|].*/,'').replace(/^[^\u4e00-\u9fffA-Za-z]*/,'').trim();
+  var location = card?.getAttribute('data-location') || '';
+  var price = card?.querySelector('.modern-card-price')?.textContent || '';
+  var imgStyle = card?.querySelector('.bg-img')?.getAttribute('style') || '';
+  var imgUrl = (imgStyle.match(/url\([\'\"]?([^\'\")]+)[\'\"]?\)/)||[])[1] || '';
+  document.getElementById('modal-course-title').textContent = '預約課程';
+  document.getElementById('modal-course-name').textContent = title;
+  document.getElementById('modal-instructor').textContent = instructor || '教練';
+  document.getElementById('modal-location').textContent = location || '';
+  var imgEl = document.getElementById('modal-course-img');
+  if (imgUrl) { imgEl.style.backgroundImage = "url('" + imgUrl + "')"; imgEl.style.backgroundSize = 'cover'; }
+  else { imgEl.style.background = 'var(--gray-100)'; imgEl.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:28px">📅</div>'; }
+  var sel = document.getElementById('modal-datetime'); sel.innerHTML = '';
+  var days = ['今日','明日','後天']; var times = ['09:00','10:00','11:00','14:00','15:00','16:00','18:00','19:00','20:00'];
   for(var i=0;i<3;i++){var d=new Date();d.setDate(d.getDate()+i);var o=document.createElement('option');o.value=d.toISOString().split('T')[0]+'T'+times[i*3];o.textContent=days[i]+' '+(d.getMonth()+1)+'/'+d.getDate()+' ('+['日','一','二','三','四','五','六'][d.getDay()]+') '+times[i*3];sel.appendChild(o);}
   for(var i=0;i<times.length;i++){var o=document.createElement('option');o.value=times[i];o.textContent='  └ '+times[i];sel.appendChild(o);}
+  document.getElementById('modal-credits').textContent = price || '1 Pass';
+  var uc = parseInt(localStorage.getItem('zenpass_credits') || '0') || 45;
+  document.getElementById('modal-remaining').textContent = uc + ' Credits';
   document.getElementById('booking-modal').style.display = 'flex';
-  var dark=document.documentElement.classList.contains('dark');
-  var div=document.querySelector('#booking-modal > div');
-  if(div){div.style.background=dark?'#1e293b':'#fff'}
+  _syncModalDark();
 }
-function closeModal() {
+function closeBookingModal() {
   document.getElementById('booking-modal').style.display = 'none';
   var btn = document.querySelector('.book-confirm');
   if(btn){btn.textContent='確認預約';btn.disabled=false}
 }
 function confirmBooking() {
-  var sel = document.getElementById('modal-date');
-  var dateTime = sel.options[sel.selectedIndex]?.text || '已選時段';
+  var sel = document.getElementById('modal-datetime');
+  var dt = sel.options[sel.selectedIndex]?.text || '已選時段';
   var btn = document.querySelector('.book-confirm');
   btn.textContent = '⏳ 處理中...';
   btn.disabled = true;
   setTimeout(function(){
     document.getElementById('modal-course-title').textContent = '🎉 預約成功！';
-    document.getElementById('modal-details').textContent = _bookingData.title + ' · ' + dateTime;
-    var footer = document.querySelector('.modal-footer');
-    if(footer) footer.innerHTML = '<button onclick="closeModal();window.location.href=\'my-bookings.html\'" style="flex:1;padding:14px;border-radius:12px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;font-size:14px;font-weight:700;border:none;cursor:pointer">📋 查看預約</button><button onclick="closeModal()" style="flex:1;padding:14px;border-radius:12px;background:var(--gray-100);color:var(--dark-700);font-size:14px;border:none;cursor:pointer">繼續瀏覽</button>';
+    document.getElementById('modal-course-name').textContent = '已預約 ' + dt;
+    document.getElementById('modal-instructor').style.display = 'none';
+    document.getElementById('modal-location').style.display = 'none';
+    var imgEl = document.getElementById('modal-course-img');
+    imgEl.style.background = 'linear-gradient(135deg,#10b981,#059669)';
+    imgEl.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:32px">✅</div>';
+    var footer = document.querySelector('#booking-modal .book-confirm')?.parentElement;
+    if(footer) footer.innerHTML = '<button onclick="closeBookingModal();window.location.href=\'my-bookings.html\'" style="flex:1;padding:14px;border-radius:14px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;font-size:14px;font-weight:700;border:none;cursor:pointer;box-shadow:0 4px 14px rgba(16,185,129,0.3)">📋 查看預約</button><button onclick="closeBookingModal()" style="flex:1;padding:14px;border-radius:14px;border:1.5px solid var(--gray-200);background:var(--white);color:var(--dark-700);font-size:14px;font-weight:600;cursor:pointer">繼續瀏覽</button>';
+    _syncModalDark();
   }, 1200);
 }
 </script>
 
 <!-- Booking Modal HTML -->
-<div id="booking-modal" class="hidden" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);backdrop-filter:blur(4px);align-items:center;justify-content:center;z-index:1001;padding:16px">
-  <div style="background:var(--white);border-radius:24px;padding:32px;max-width:400px;width:100%;margin:auto">
-    <div style="font-size:22px;font-weight:800;margin-bottom:6px" id="modal-course-title"></div>
-    <div style="font-size:14px;color:var(--dark-700);margin-bottom:20px" id="modal-details"></div>
-    <div style="margin-bottom:20px">
-      <div style="font-size:13px;font-weight:600;margin-bottom:6px;color:var(--dark-700)">📅 選擇日期 / 時段</div>
-      <select id="modal-date" style="width:100%;padding:12px 14px;border:1.5px solid var(--gray-200);border-radius:16px;font-size:15px;font-family:var(--font-zh);background:var(--white);outline:none;color:var(--dark-900)"></select>
+<div id="booking-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.65);backdrop-filter:blur(4px);align-items:center;justify-content:center;z-index:100;padding:16px">
+  <div style="background:var(--white);border-radius:24px;max-width:440px;width:100%;overflow:hidden;box-shadow:0 25px 60px rgba(0,0,0,0.2)">
+    <!-- Header -->
+    <div style="padding:24px 24px 16px;border-bottom:1px solid var(--gray-200);display:flex;align-items:center;justify-content:space-between">
+      <div style="font-size:22px;font-weight:700;color:var(--dark-900)" id="modal-course-title">預約課程</div>
+      <button onclick="closeBookingModal()" style="background:none;border:none;font-size:28px;color:var(--gray-300);cursor:pointer;padding:4px;line-height:1">×</button>
     </div>
-    <div class="modal-footer" style="display:flex;gap:10px">
-      <button onclick="closeModal()" style="flex:1;padding:14px;border-radius:12px;background:var(--gray-100);color:var(--dark-700);font-size:14px;font-weight:600;border:none;cursor:pointer">取消</button>
-      <button class="book-confirm" onclick="confirmBooking()" style="flex:1;padding:14px;border-radius:12px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;font-size:14px;font-weight:700;border:none;cursor:pointer">確認預約</button>
+    <!-- Content -->
+    <div style="padding:20px 24px">
+      <!-- Course Info -->
+      <div style="display:flex;gap:14px;margin-bottom:20px">
+        <div id="modal-course-img" style="width:90px;height:90px;border-radius:16px;background:var(--gray-100);flex-shrink:0;background-size:cover;background-position:center"></div>
+        <div style="flex:1">
+          <div style="font-size:17px;font-weight:600;color:var(--dark-900);margin-bottom:4px" id="modal-course-name"></div>
+          <div style="font-size:13px;color:#10b981;margin-bottom:2px" id="modal-instructor"></div>
+          <div style="font-size:12px;color:var(--gray-300)" id="modal-location"></div>
+        </div>
+      </div>
+      <!-- Date/Time Selection -->
+      <div style="margin-bottom:16px">
+        <div style="font-size:13px;font-weight:600;color:var(--dark-700);margin-bottom:8px">📅 選擇日期 / 時段</div>
+        <select id="modal-datetime" style="width:100%;padding:14px;border:1.5px solid var(--gray-200);border-radius:16px;font-size:15px;font-family:var(--font-zh);background:var(--white);outline:none;color:var(--dark-900);cursor:pointer"></select>
+      </div>
+      <!-- Pass Info -->
+      <div style="background:var(--gray-50);border-radius:16px;padding:16px;margin-bottom:16px">
+        <div style="display:flex;justify-content:space-between;font-size:14px">
+          <span style="color:var(--dark-700)">使用 Pass</span>
+          <span style="font-weight:700;color:#10b981" id="modal-credits">1 Pass</span>
+        </div>
+        <div style="height:1px;background:var(--gray-200);margin:12px 0"></div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--gray-300)">
+          <span>剩餘 Pass</span>
+          <span style="font-weight:600;color:var(--dark-900)" id="modal-remaining">12</span>
+        </div>
+      </div>
+      <!-- Policy -->
+      <div style="font-size:11px;color:var(--gray-300);line-height:1.6">
+        取消政策：開課前 12 小時前可免費取消<br>
+        到場後請準時出席，遲到 15 分鐘可能被取消資格
+      </div>
+    </div>
+    <!-- Footer Buttons -->
+    <div style="padding:16px 24px 24px;display:flex;gap:12px;border-top:1px solid var(--gray-200)">
+      <button onclick="closeBookingModal()" style="flex:1;padding:14px;border-radius:14px;border:1.5px solid var(--gray-200);background:var(--white);color:var(--dark-700);font-size:14px;font-weight:600;cursor:pointer;transition:all 0.2s">取消</button>
+      <button class="book-confirm" onclick="confirmBooking()" style="flex:1;padding:14px;border-radius:14px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;font-size:14px;font-weight:700;border:none;cursor:pointer;transition:all 0.2s;box-shadow:0 4px 14px rgba(16,185,129,0.3)">確認預約</button>
     </div>
   </div>
 </div>
-
 <script>
-// Dark mode support for modal
-var _obs_modal = new MutationObserver(function(){ 
+// Dark mode sync
+function _syncModalDark() {
   var m = document.getElementById('booking-modal');
-  if(!m) return;
+  if (!m || m.style.display === 'none') return;
   var dark = document.documentElement.classList.contains('dark');
-  var div = m.querySelector('div[style*="background"]');
-  if(div) div.style.background = dark ? '#1e293b' : '#fff';
-  var t = document.getElementById('modal-course-title');
-  if(t) t.style.color = dark ? '#f1f5f9' : '#1a1a2e';
-  var d = document.getElementById('modal-details');
-  if(d) d.style.color = dark ? '#94a3b8' : '#6b7280';
-});
-_obs_modal.observe(document.documentElement, {attributes:true,attributeFilter:['class']});
+  var c = m.firstElementChild;
+  if (c) c.style.background = dark ? '#18181b' : '#fff';
+  ['modal-course-title','modal-course-name','modal-remaining'].forEach(function(id){
+    var el = document.getElementById(id);
+    if (el) el.style.color = dark ? '#fafafa' : '#1a1a2e';
+  });
+  ['modal-instructor','modal-credits'].forEach(function(id){
+    var el = document.getElementById(id);
+    if (el) el.style.color = dark ? '#34d399' : '#10b981';
+  });
+}
+var _obs = new MutationObserver(function(){ _syncModalDark(); });
+_obs.observe(document.documentElement, {attributes:true,attributeFilter:['class']});
 </script>
+  </body>
+</html></script>
   </body>
 </html>
