@@ -2676,13 +2676,14 @@
     </button>
 <script>
 // ==================== 變數 ====================
-const courses = document.querySelectorAll('.modern-card');
 const searchInput = document.getElementById('search-input');
-const filterCount = document.getElementById('filter-count') || document.getElementById('resultCount');
 const coursesGrid = document.getElementById('courses-grid');
 
 // ==================== 主篩選函數 ====================
 function filterCourses() {
+  // Live query to handle card replacements by loadClasses()
+  var courses = document.querySelectorAll('.modern-card');
+  var filterCount = document.getElementById('filter-count') || document.getElementById('resultCount');
   const keyword = searchInput?.value?.toLowerCase().trim() || '';
   let visibleCount = 0;
   
