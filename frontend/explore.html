@@ -2776,6 +2776,27 @@ function filterCourses() {
   if (filterCount) filterCount.textContent = '找到 ' + visibleCount + ' 個課程';
   var lmBtn = document.getElementById('load-more-btn');
   if (lmBtn) lmBtn.style.display = visibleCount === 0 ? 'none' : '';
+  // No results message
+  var emptyEl = document.getElementById('no-results');
+  if (visibleCount === 0 && courses.length > 0) {
+    if (!emptyEl) {
+      emptyEl = document.createElement('div');
+      emptyEl.id = 'no-results';
+      emptyEl.style.cssText = 'text-align:center;padding:40px 20px;color:var(--dark-700)';
+      emptyEl.innerHTML = '<div style="font-size:48px;margin-bottom:12px">🔍</div><div style="font-size:16px;font-weight:600;margin-bottom:6px">搵唔到相關課程</div><div style="font-size:13px;color:var(--gray-300);margin-bottom:16px">試試調整篩選條件或搜尋其他關鍵字</div><button onclick="clearAllFilters()" style="padding:10px 24px;border-radius:50px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;font-size:13px;font-weight:600;border:none;cursor:pointer">🔄 清除所有篩選</button>';
+      coursesGrid?.appendChild(emptyEl);
+    }
+    emptyEl.style.display = 'block';
+  } else if (emptyEl) {
+    emptyEl.style.display = 'none';
+  }
+  // URL sync: save filter state
+  try {
+    var params = new URLSearchParams(window.location.search);
+    if (keyword) params.set('q', keyword); else params.delete('q');
+    var newUrl = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
+    window.history.replaceState(null, '', newUrl);
+  } catch(e) {}
 }
 
 // ==================== 其他 Filter 邏輯 ====================
@@ -2850,7 +2871,7 @@ document.addEventListener('DOMContentLoaded', function() {
     var timeout;
     searchInput.addEventListener('input', function() {
       clearTimeout(timeout);
-      timeout = setTimeout(filterCourses, 150);
+      timeout = setTimeout(filterCourses, 200);
     });
   }
 
