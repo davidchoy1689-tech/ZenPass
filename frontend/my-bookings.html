@@ -101,19 +101,18 @@ function renderBookings() {
 document.addEventListener('DOMContentLoaded', function() {
   renderBookings();
   // Re-render after booking-sync loads data
-  setTimeout(function() {
-    if (typeof ZenPassBooking !== 'undefined') {
-      var d = ZenPassBooking.getAll();
-      if (Object.keys(d).length > 0) {
-        renderBookings();
-        return;
-      }
-    }
-    // Retry once more after IndexedDB loads
-    setTimeout(function() {
+  // Retry until data is loaded (IndexedDB may still be initializing)
+  var retries = 0;
+  function tryRender() {
+    var d = (typeof ZenPassBooking !== 'undefined') ? ZenPassBooking.getAll() : {};
+    if (Object.keys(d).length > 0 || retries > 20) {
       renderBookings();
-    }, 500);
-  }, 50);
+      return;
+    }
+    retries++;
+    setTimeout(tryRender, 200);
+  }
+  setTimeout(tryRender, 100);
 });
 document.addEventListener('bookingUpdated', function() {
   renderBookings();
