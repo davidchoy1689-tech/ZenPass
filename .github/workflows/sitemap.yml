@@ -1,0 +1,31 @@
+# .github/workflows/sitemap.yml
+# Auto-generate sitemap on push to main
+name: Generate Sitemap
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '0 3 * * *'  # Daily 3AM (backup)
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Generate sitemap
+        run: node generate-sitemap.cjs
+
+      - name: Commit updated sitemap
+        run: |
+          git config user.name "zenpass-bot"
+          git config user.email "bot@zenpass.hk"
+          git add frontend/sitemap.xml sitemap.xml
+          git diff --cached --quiet || git commit -m "chore: auto-update sitemap [skip ci]"
+          git push
