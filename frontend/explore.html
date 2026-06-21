@@ -512,12 +512,19 @@
       z-index: 201;
       background: var(--white);
       border-radius: 20px 20px 0 0;
-      max-height: 80vh;
+      max-height: 90vh;
       overflow-y: auto;
       transform: translateY(100%);
       transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
       padding: 0 0 calc(20px + env(safe-area-inset-bottom));
       box-shadow: 0 -8px 30px rgba(0,0,0,0.15);
+    }
+    .mobile-filter-sheet .drag-handle {
+      width: 36px; height: 4px;
+      background: var(--gray-300);
+      border-radius: 2px;
+      margin: 8px auto 0;
+      display: block;
     }
     .mobile-filter-sheet.open {
       transform: translateY(0);
@@ -974,11 +981,14 @@
           <div class="category-chip" onclick="window.location='explore.html?mtr=觀塘'" style="padding:5px 12px;font-size:11px">🚇 觀塘線</div>
           <div class="category-chip" onclick="window.location='explore.html?mtr=荃灣'" style="padding:5px 12px;font-size:11px">🚇 荃灣線</div>
         </div>
-        <!-- Advanced Filter Toggle + Panel -->
-        <div style="display:flex;gap:6px;margin-bottom:6px">
-          <button onclick="toggleFilterPanel()" id="filterPanelBtn" style="padding:4px 12px;border-radius:20px;background:var(--white);border:1px solid var(--gray-200);font-size:11px;font-weight:600;cursor:pointer;color:var(--dark-900)">🔍 進階篩選</button>
-          <button onclick="toggleMap()" id="mapToggleBtn" style="padding:4px 12px;border-radius:20px;background:var(--white);border:1px solid var(--gray-200);font-size:11px;font-weight:600;cursor:pointer;color:var(--dark-900)">🗺️ 地圖</button>
-          <button id="clear-filters" onclick="clearAllFilters()" style="padding:4px 12px;border-radius:20px;background:transparent;border:1px solid var(--gray-200);font-size:11px;cursor:pointer;color:var(--dark-700)">🔄</button>
+        <!-- List / Map Toggle + Filter + Clear -->
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:0 2px">
+          <div class="view-toggle-pill" style="display:flex;background:var(--gray-100);border-radius:20px;padding:3px;gap:2px;flex-shrink:0">
+            <button id="viewGridBtn" onclick="setMapView(false)" class="toggle-pill-btn active" style="padding:6px 14px;border-radius:18px;border:none;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:all 0.2s;background:var(--white);color:var(--dark-900);box-shadow:0 1px 3px rgba(0,0,0,0.08)">📋 列表</button>
+            <button id="viewMapBtn" onclick="setMapView(true)" class="toggle-pill-btn" style="padding:6px 14px;border-radius:18px;border:none;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:all 0.2s;background:transparent;color:var(--dark-700)">🗺️ 地圖</button>
+          </div>
+          <button onclick="openMobileFilterSheet()" style="flex:1;padding:7px 12px;border-radius:20px;background:var(--white);border:1px solid var(--gray-200);font-size:11px;font-weight:600;cursor:pointer;color:var(--dark-900);font-family:inherit;text-align:center">⚙️ 篩選 <span class="badge-count" id="filterBadgeCount2">0</span></button>
+          <button id="clear-filters" onclick="clearAllFilters()" style="padding:6px 12px;border-radius:20px;background:transparent;border:1px solid var(--gray-200);font-size:12px;cursor:pointer;color:var(--dark-700);font-family:inherit;flex-shrink:0">🔄</button>
         </div>
         <div id="filterPanel" style="display:none;background:var(--white);border-radius:14px;padding:14px;margin-bottom:8px;box-shadow:0 2px 8px rgba(0,0,0,0.06)">
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
@@ -1054,6 +1064,7 @@
     <!-- Mobile Filter Sheet -->
     <div class="filter-overlay" id="filterOverlay" onclick="closeMobileFilterSheet()"></div>
     <div class="mobile-filter-sheet" id="mobileFilterSheet">
+      <div class="drag-handle"></div>
       <div class="sheet-header">
         <h2>進階篩選</h2>
         <button class="sheet-close" onclick="closeMobileFilterSheet()">✕</button>
@@ -1253,11 +1264,40 @@
       var mapInstance = null;
       var mapMarkers = [];
 
+      var _perPage = 12;
+      var _loadStep = 8;
+
       function loadMore() {
-        // Show all existing cards (24 already loaded)
-        document.querySelectorAll('.modern-card').forEach(function(c){c.style.display=''});
-        filterCourses();
-        document.getElementById('load-more-container').style.display = 'none';
+        // Show 8 more cards each click
+        var allCards = document.querySelectorAll('#courses-grid .modern-card');
+        _loadMoreVisible = Math.min(_loadMoreVisible + _loadStep, allCards.length);
+        allCards.forEach(function(c, i) {
+          if (i < _loadMoreVisible) c.style.display = '';
+        });
+        filterCourses(); // re-apply filters
+        updateLoadMoreBtn(allCards.length);
+      }
+
+      function initIncrementalLoad() {
+        // On page load, only show first N cards (filters not yet active)
+        var allCards = document.querySelectorAll('#courses-grid .modern-card');
+        _loadMoreVisible = Math.min(_perPage, allCards.length);
+        allCards.forEach(function(c, i) {
+          c.style.display = i < _perPage ? '' : 'none';
+        });
+        updateLoadMoreBtn(allCards.length);
+      }
+
+      var _loadMoreVisible = 0;
+
+      function updateLoadMoreBtn(total) {
+        var container = document.getElementById('load-more-container');
+        if (!container) return;
+        if (_loadMoreVisible >= total) {
+          container.style.display = 'none';
+        } else {
+          container.style.display = '';
+        }
       }
 
       function updateURL() {
@@ -1794,15 +1834,30 @@
         if (showMap) {
           grid.style.display = "none";
           mapEl.style.display = "block";
-          document.getElementById("viewGridBtn").classList.remove("active");
-          document.getElementById("viewMapBtn").classList.add("active");
+          setTogglePill("viewGridBtn", false);
+          setTogglePill("viewMapBtn", true);
           initMap();
         } else {
           grid.style.display = "flex";
           mapEl.style.display = "none";
-          document.getElementById("viewMapBtn").classList.remove("active");
-          document.getElementById("viewGridBtn").classList.add("active");
+          setTogglePill("viewMapBtn", false);
+          setTogglePill("viewGridBtn", true);
         }
+      }
+
+      function setTogglePill(id, active) {
+        var btn = document.getElementById(id);
+        if (!btn) return;
+        if (active) {
+          btn.style.background = 'var(--white)';
+          btn.style.color = 'var(--dark-900)';
+          btn.style.boxShadow = '0 1px 3px rgba(0,0,0,0.08)';
+        } else {
+          btn.style.background = 'transparent';
+          btn.style.color = 'var(--dark-700)';
+          btn.style.boxShadow = 'none';
+        }
+      }
       }
 
       function initMap() {
@@ -2166,6 +2221,7 @@
         loadDates();
         updateActiveFilterBar();
         updateFilterBadge();
+        initIncrementalLoad();
         loadClasses();
         updateNavBar();
 
@@ -2621,7 +2677,10 @@ function filterCourses() {
   const keyword = searchInput?.value?.toLowerCase().trim() || '';
   let visibleCount = 0;
 
-  courses.forEach(function(card) {
+  // Ensure _loadMoreVisible is defined (fallback if script 11 broke)
+  if (typeof _loadMoreVisible === 'undefined') _loadMoreVisible = 999;
+
+  courses.forEach(function(card, idx) {
     const title = (card.getAttribute('data-title') || card.querySelector('.modern-card-title')?.textContent || '').toLowerCase();
     const instructor = (card.getAttribute('data-instructor') || '').toLowerCase();
     const category = (card.getAttribute('data-category') || '').toLowerCase();
@@ -2640,8 +2699,8 @@ function filterCourses() {
     const matchFilter = checkFilters(card, price, spots, timeStr);
     const shouldShow = matchKeyword && matchFilter;
 
-    card.style.display = shouldShow ? '' : 'none';
-    if (shouldShow) visibleCount++;
+    card.style.display = (shouldShow && idx < _loadMoreVisible) ? '' : 'none';
+    if (shouldShow && idx < _loadMoreVisible) visibleCount++;
   });
 
   if (filterCount) filterCount.textContent = '找到 ' + visibleCount + ' 個課程';
@@ -3097,6 +3156,43 @@ _obs.observe(document.documentElement, {attributes:true,attributeFilter:['class'
     <button onclick="this.closest('.toast').remove()" style="background:none;border:none;color:#a1a1aa;font-size:16px;cursor:pointer;padding:4px">✕</button>
   </div>
 </template>
+<script>
+// 递增量 load more
+var _loadMoreVisible = 0;
+var _perPageLm = 12;
+var _loadStepLm = 8;
+
+window.initIncrementalLoad = function() {
+  var cards = document.querySelectorAll('#courses-grid .modern-card');
+  if (!cards.length) return;
+  _loadMoreVisible = Math.min(_perPageLm, cards.length);
+  cards.forEach(function(c, i) {
+    c.style.display = i < _perPageLm ? '' : 'none';
+  });
+  _updateLoadMoreBtn(cards.length);
+};
+
+window.loadMore = function() {
+  var cards = document.querySelectorAll('#courses-grid .modern-card');
+  _loadMoreVisible = Math.min(_loadMoreVisible + _loadStepLm, cards.length);
+  cards.forEach(function(c, i) {
+    if (i < _loadMoreVisible) c.style.display = '';
+  });
+  if (typeof filterCourses === 'function') filterCourses();
+  _updateLoadMoreBtn(cards.length);
+};
+
+function _updateLoadMoreBtn(total) {
+  var container = document.getElementById('load-more-container');
+  if (!container) return;
+  container.style.display = _loadMoreVisible >= total ? 'none' : '';
+}
+
+// 自動初始化
+document.addEventListener('DOMContentLoaded', function() {
+  setTimeout(initIncrementalLoad, 100);
+});
+</script>
 <script src="js/nav.js"></script>
 </body>
 </html>
