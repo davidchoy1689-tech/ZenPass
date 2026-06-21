@@ -1498,6 +1498,25 @@
           document.getElementById("checkin-reminder").style.display = "";
       })();
     
+    // ===== App Notify =====
+    window.notifyAppLaunch = function() {
+      var email = document.getElementById('appNotifyEmail')?.value?.trim();
+      var msg = document.getElementById('appNotifyMsg');
+      if (!email || !email.includes('@')) {
+        if (msg) { msg.textContent = '⚠️ 請輸入有效嘅電郵地址'; msg.style.color = '#f87171'; }
+        return;
+      }
+      var list = JSON.parse(localStorage.getItem('app_notify_list') || '[]');
+      if (list.includes(email)) {
+        if (msg) { msg.textContent = '✅ 你已經喺通知名單中！'; msg.style.color = '#34d399'; }
+        return;
+      }
+      list.push(email);
+      localStorage.setItem('app_notify_list', JSON.stringify(list));
+      if (msg) { msg.textContent = '✅ 已登記！App 上線時會通知你 📱'; msg.style.color = '#34d399'; }
+      document.getElementById('appNotifyEmail').value = '';
+    };
+
     // ===== Sample Activity Data =====
     function renderSampleActivity() {
       var samples = [
@@ -1634,46 +1653,30 @@
     <main id="main-content">
       <!-- App Download CTA -->
       <div
-        class="zen-flex"
         style="
           background: linear-gradient(135deg, #1a1a2e, #2d2d44);
-          border-radius: 14px;
+          border-radius: 16px;
           margin: 0 16px 16px;
-          padding: 18px;
-          align-items: center;
-          gap: 12px;
+          padding: 20px;
           box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         "
       >
-        <div style="font-size: 32px">📱</div>
-        <div class="zen-flex-1">
-          <div class="zen-text-bold" style="font-size: 15px; color: white">
-            即將推出 ZenPass App
-          </div>
-          <div
-            style="
-              font-size: 12px;
-              color: rgba(255, 255, 255, 0.6);
-              margin-top: 2px;
-            "
-          >
-            iOS · Android · 一個Pass通行全城
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+          <div style="font-size: 36px">📱</div>
+          <div class="zen-flex-1">
+            <div class="zen-text-bold" style="font-size: 16px; color: white">
+              即將推出 ZenPass App
+            </div>
+            <div style="font-size: 12px; color: rgba(255, 255, 255, 0.6); margin-top: 2px">
+              iOS · Android · 一個Pass通行全城
+            </div>
           </div>
         </div>
-        <div
-          class="zen-tag"
-          style="
-            background: var(--orange-600-bg);
-            color: white;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-            white-space: nowrap;
-          "
-        >
-          關注進度 →
+        <div style="display:flex;gap:8px">
+          <input type="email" id="appNotifyEmail" placeholder="你的電郵，App 上線即通知你" style="flex:1;padding:12px 14px;border-radius:12px;border:none;font-size:14px;font-family:var(--font-zh);background:rgba(255,255,255,0.12);color:#fff;outline:none" onfocus="this.style.background='rgba(255,255,255,0.2)'" onblur="this.style.background='rgba(255,255,255,0.12)'" />
+          <button onclick="notifyAppLaunch()" style="padding:12px 20px;border-radius:12px;border:none;background:var(--orange-600-bg);color:#fff;font-size:14px;font-weight:700;cursor:pointer;white-space:nowrap;font-family:var(--font-zh)">通知我</button>
         </div>
+        <div id="appNotifyMsg" style="font-size:11px;color:rgba(255,255,255,0.5);margin-top:6px">💡 上線後第一時間通知你，無 spam</div>
       </div>
 
       <div id="categories-section" role="region" aria-label="運動分類">
