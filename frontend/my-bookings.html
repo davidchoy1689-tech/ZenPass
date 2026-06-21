@@ -98,18 +98,11 @@ function renderBookings() {
 <script src="js/booking-sync.js"></script>
 <script src="js/booking-system.js"></script>
 <script>
-// Direct call (DOMContentLoaded may have already fired)
 renderBookings();
-// Retry until data is loaded (IndexedDB may still be initializing)
-var retries = 0;
-(function tryRender() {
-  var d = (typeof ZenPassBooking !== 'undefined') ? ZenPassBooking.getAll() : {};
-  if (Object.keys(d).length > 0 || retries > 20) {
-    renderBookings();
-    return;
-  }
-  retries++;
-  setTimeout(tryRender, 200);
+// Retry a few times for IndexedDB to initialize
+var _rt = 0;
+(function _tryR() {
+  if (++_rt < 10) { setTimeout(function() { renderBookings(); _tryR(); }, 300); }
 })();
 document.addEventListener('bookingUpdated', function() {
   renderBookings();
