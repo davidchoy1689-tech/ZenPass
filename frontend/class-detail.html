@@ -1855,32 +1855,29 @@ var currentClass = null;
             }, 800);
           }
         } catch (err) {
-          // ⚠️ Fallback: save booking locally (demo mode)
-          var bkKey = typeof zpKey === "function" ? zpKey("bookings") : "zenpass_bookings";
-          var bookings = JSON.parse(localStorage.getItem(bkKey) || "[]");
-          var today = new Date();
-          var dateStr = today.getFullYear() + "-" + String(today.getMonth() + 1).padStart(2,"0") + "-" + String(today.getDate()).padStart(2,"0");
-          bookings.push({
-            id: "local_" + Date.now(),
-            booking_reference: "ZP-LOCAL-" + Math.floor(Math.random() * 100000),
-            classId: currentClass.id,
-            className: currentClass.title,
-            coach: currentClass.coach_name || "",
-            date: selectedSchedule.start_time ? selectedSchedule.start_time.split("T")[0] : dateStr,
-            time: selectedSchedule.start_time ? selectedSchedule.start_time.split("T")[1]?.substring(0,5) : "",
-            payment: selectedPayment,
-            credits: selectedPayment === "credits" ? (currentClass.credits_cost || 12) : 0,
-            status: "confirmed",
-            pending_amount: 0,
-            bookedAt: dateStr,
-          });
-          localStorage.setItem(bkKey, JSON.stringify(bookings));
+          // ⚠️ Fallback: save booking via IndexedDB/localStorage (demo mode)
+          try {
+            var fbData = {
+              courseId: currentClass.id,
+              title: currentClass.title,
+              instructor: currentClass.coach_name || '',
+              location: (currentClass.venue_name || '') + ' · ' + (selectedSchedule.start_time || ''),
+              datetime: selectedSchedule.start_time ? (selectedSchedule.start_time.split('T')[0] + ' ' + (selectedSchedule.start_time.split('T')[1]?.substring(0,5) || '')) : '待定',
+              credits: currentClass.credits_cost || 12,
+            };
+            if (typeof window.ZenPassBooking?.bookCourse === 'function') {
+              window.ZenPassBooking.bookCourse(fbData);
+            } else {
+              var bk = JSON.parse(localStorage.getItem('zenpass_booked') || '{}');
+              bk[currentClass.id] = fbData;
+              localStorage.setItem('zenpass_booked', JSON.stringify(bk));
+            }
+          } catch(innerErr) { /* silent */ }
           // Deduct credits locally
           var user = JSON.parse(localStorage.getItem("zenpass_user") || "{}");
           if (selectedPayment === "credits") {
             user.credits = Math.max(0, (user.credits || 0) - (currentClass.credits_cost || 12));
           }
-          // Save waiver/penalty consent
           var waiverCheck = document.getElementById("waiver-agree");
           if (waiverCheck && waiverCheck.checked) user.waiver_agreed = true;
           var penaltyCheck = document.getElementById("penalty-agree");
