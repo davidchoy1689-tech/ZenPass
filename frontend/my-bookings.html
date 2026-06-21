@@ -94,18 +94,22 @@ function renderBookings() {
     '</div></div></div>';
   });
 }
-
-document.addEventListener('DOMContentLoaded', async function() {
-  if (typeof loadBookings === 'function') await loadBookings();
-  renderBookings();
-});
-document.addEventListener('bookingUpdated', async function() {
-  if (typeof loadBookings === 'function') await loadBookings();
-  renderBookings();
-});
  </script>
 <script src="js/booking-sync.js"></script>
 <script src="js/booking-system.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  renderBookings();
+  // Re-render after booking-sync loads data
+  setTimeout(function() {
+    if (typeof ZenPassBooking !== 'undefined') {
+      renderBookings();
+    }
+  }, 50);
+});
+document.addEventListener('bookingUpdated', function() {
+  renderBookings();
+});
 <!-- Toast Container -->
 <div id="toast-container" style="position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:9999;display:flex;flex-direction:column;gap:8px;align-items:center;width:100%;max-width:360px;padding:0 16px"></div>
 <style>
