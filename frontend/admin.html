@@ -929,7 +929,7 @@ async function loadCorporateTab() {
     '<h3 id="corp-detail-name"></h3><div id="corp-detail-content"></div><hr>' +
     '<h4>新增員工</h4>' +
     '<textarea id="corp-employees-input" placeholder="每行一個：姓名, 電郵" rows="4" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;"></textarea>' +
-    '<button class="btn" onclick="addCorporateEmployees()" style="margin-top:8px;">批量新增</button></div>';
+    '<button class="btn" onclick="addCorporateEmployees()" style="margin-top:8px;">批量新增</button> <input type="file" id="corp-csv-file" accept=".csv" style="display:none" onchange="importCSVEmployees(this)" /> <button class="btn" onclick="document.getElementById('corp-csv-file').click()" style="margin-top:8px;margin-left:4px">📄 上傳 CSV</button></div>';
   try {
     var data = await apiGet('/corporate/companies');
     if (!data.companies) throw new Error('no data');
@@ -1558,7 +1558,28 @@ function apiPost(path, body) {
         return "—";
       }
       function showReceipt(bookingId) {
-        var p = window._pendingPayments || [];
+        
+      function importCSVEmployees(input) {
+        var file = input.files[0];
+        if (!file) return;
+        var reader = new FileReader();
+        reader.onload = function(e) {
+          var lines = e.target.result.split('\n').filter(function(l) { return l.trim(); });
+          var entries = [];
+          lines.forEach(function(line) {
+            var parts = line.split(',');
+            if (parts.length >= 2) {
+              entries.push(parts[0].trim() + ', ' + parts[1].trim());
+            }
+          });
+          document.getElementById('corp-employees-input').value = entries.join('\n');
+          alert('已載入 ' + entries.length + ' 位員工，請檢查後按「批量新增」');
+        };
+        reader.readAsText(file);
+        input.value = '';
+      }
+
+      var p = window._pendingPayments || [];
         var item = null;
         for (var i = 0; i < p.length; i++) {
           if (p[i].booking_id === bookingId) {
