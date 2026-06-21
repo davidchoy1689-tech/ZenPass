@@ -1231,6 +1231,28 @@ async function topupCorporateCredits(id) {
           document.querySelector("#loginScreen .btn").disabled = false;
         }
       }
+      // ─── Session Timeout (30 min inactivity) ────────────────────
+      var _lastActivity = Date.now();
+      var _sessionTimeout = 30 * 60 * 1000; // 30 min
+      
+      function resetSessionTimer() {
+        _lastActivity = Date.now();
+      }
+      
+      // Track user activity
+      document.addEventListener('click', resetSessionTimer);
+      document.addEventListener('keydown', resetSessionTimer);
+      document.addEventListener('scroll', resetSessionTimer);
+      document.addEventListener('mousemove', resetSessionTimer);
+      
+      // Check every 60s
+      setInterval(function() {
+        if (Date.now() - _lastActivity > _sessionTimeout) {
+          clearToken();
+          window.location.href = 'login.html?timeout=1';
+        }
+      }, 60000);
+
       function logout() {
         clearToken();
         location.reload();
