@@ -933,8 +933,7 @@ var currentClass = null;
         };
         var cid = (typeof classId !== 'undefined') ? classId : (window._lastClassId || '');
         var demoId = parseInt(cid) || 0;
-        var demo = demoCourses[demoId];
-        if (!demo) demo = demoCourses[54];
+        var demo = demoCourses[demoId] || demoCourses[54] || {img:'949132',title:'課程',cat:'健身',diff:'beginner',duration:60,price:120,credits:12,desc:'立即預約體驗',coach:'教練',venue:'ZenPass 場地',addr:'香港'};
         var pexelsBase = 'https://images.pexels.com/photos/';
         currentClass = {
           id: demoId || 'demo',
@@ -1072,6 +1071,26 @@ var currentClass = null;
         var schedules = data.schedules || [];
         var reviews = data.reviews || [];
         currentClass = cls;
+
+        // ⚠️ Fallback: if API returned no schedules, use demo data
+        if (schedules.length === 0) {
+          var demoDays = ['明天', '後天', '3 天後', '4 天後'];
+          var baseHour = 9;
+          for (var si = 0; si < 4; si++) {
+            var d = new Date();
+            d.setDate(d.getDate() + si + 1);
+            var startH = baseHour + si * 3;
+            var endH = startH + 1;
+            schedules.push({
+              id: 'demo_sched_' + si,
+              start_time: d.toISOString().split('T')[0] + 'T' + String(startH).padStart(2,'0') + ':00:00',
+              end_time: d.toISOString().split('T')[0] + 'T' + String(endH).padStart(2,'0') + ':00:00',
+              enrolled_count: Math.floor(Math.random() * 10),
+              max_participants: 15,
+              status: 'available'
+            });
+          }
+        }
 
         // Update JSON-LD structured data for SEO
         try {
