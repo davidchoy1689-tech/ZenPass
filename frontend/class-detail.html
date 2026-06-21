@@ -813,50 +813,36 @@ var currentClass = null;
         var classId = urlParams["id"];
         window._lastClassId = classId;
 
-        if (!classId) {
-          // Show demo data
-          renderDemoData();
-          return;
-        }
+        // 🚀 Show demo data IMMEDIATELY (no loading screen)
+        renderDemoData();
 
-        var container = document.getElementById("class-content");
-        showSkeleton(container, 'detail', 1);
+        if (!classId) return;
 
-        try {
-          var result = await classes.get(classId);
-          currentClass = result.class;
-          renderClassDetail(result);
-          // Auto-select schedule from URL (supports refresh persist)
-          var scheduleId = urlParams["schedule"];
-          if (scheduleId) {
-            setTimeout(function () {
-              selectSchedule(scheduleId);
-            }, 100);
-          }
-          // Check trial status
-          checkTrialStatus();
-          checkCorporateStatus();
-          // Start real-time polling for spot updates (every 15s)
-          startSpotPolling(classId);
-          // ⭐ Check pending rating
-          setTimeout(checkPendingRating, 1500);
-        } catch (err) {
-          renderDemoData();
-          // Auto-select first available schedule (or URL schedule if valid)
-          setTimeout(function () {
+        // 🔄 In background, try to fetch real data from API
+        setTimeout(async function () {
+          try {
+            var result = await classes.get(classId);
+            if (!result || !result.class) return;
+            currentClass = result.class;
+            renderClassDetail(result);
+            // Auto-select schedule from URL (supports refresh persist)
             var scheduleId = urlParams["schedule"];
             if (scheduleId) {
-              var el = document.querySelector('[data-id="' + scheduleId + '"]');
-              if (el) { selectSchedule(scheduleId); return; }
+              setTimeout(function () {
+                selectSchedule(scheduleId);
+              }, 100);
             }
-            // Fallback: select first available schedule
-            var first = document.querySelector('.schedule-item:not(.full)');
-            if (first) {
-              var id = first.getAttribute('data-id');
-              if (id) selectSchedule(id);
-            }
-          }, 300);
-        }
+            // Check trial status
+            checkTrialStatus();
+            checkCorporateStatus();
+            // Start real-time polling for spot updates (every 15s)
+            startSpotPolling(classId);
+            // ⭐ Check pending rating
+            setTimeout(checkPendingRating, 1500);
+          } catch (err) {
+            // Demo data is already showing — nothing more to do
+          }
+        }, 50);
       }
 
       // ===== Real-time spot polling (多人同時預約時即時更新名額) =====
