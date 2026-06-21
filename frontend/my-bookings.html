@@ -103,8 +103,16 @@ document.addEventListener('DOMContentLoaded', function() {
   // Re-render after booking-sync loads data
   setTimeout(function() {
     if (typeof ZenPassBooking !== 'undefined') {
-      renderBookings();
+      var d = ZenPassBooking.getAll();
+      if (Object.keys(d).length > 0) {
+        renderBookings();
+        return;
+      }
     }
+    // Retry once more after IndexedDB loads
+    setTimeout(function() {
+      renderBookings();
+    }, 500);
   }, 50);
 });
 document.addEventListener('bookingUpdated', function() {
