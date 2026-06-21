@@ -37,9 +37,18 @@ async function loadAllBookings() {
     bookedMap.clear();
     all.forEach(function(b) { bookedMap.set(b.courseId, b); });
   } catch (err) {
-    var data = JSON.parse(localStorage.getItem('zenpass_booked') || '{}');
-    bookedMap = new Map(Object.entries(data));
+    // IndexedDB fail → try localStorage
   }
+  // Always merge from zenpass_booked (class-detail booking fallback)
+  try {
+    var localData = JSON.parse(localStorage.getItem('zenpass_booked') || '{}');
+    Object.keys(localData).forEach(function(k) {
+      var item = localData[k];
+      if (!bookedMap.has(item.courseId || k)) {
+        bookedMap.set(item.courseId || k, item);
+      }
+    });
+  } catch(e) {}
 }
 
 async function bookCourse(bookingData) {
