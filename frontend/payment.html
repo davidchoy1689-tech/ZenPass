@@ -311,33 +311,7 @@
       .hidden {
         display: none !important;
       }
-      .bottom-nav {
-        position: fixed;
-        bottom: 0;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 100%;
-        max-width: var(--max-width);
-        background: var(--white);
-        border-top: 1px solid var(--gray-200);
-        display: flex;
-        justify-content: space-around;
-        padding: 8px 0 calc(8px + env(safe-area-inset-bottom));
-        z-index: 100;
-      }
-      .nav-item {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        text-decoration: none;
-        color: var(--gray-300);
-        font-size: 10px;
-        gap: 2px;
-        padding: 4px 12px;
-      }
-      .nav-item.active {
-        color: var(--orange-700);
-      }
+      
       .nav-item .nav-icon {
         font-size: 22px;
         line-height: 1;
@@ -1024,19 +998,12 @@
         >
       </div>
     </div>
-    <nav class="bottom-nav">
-      <a href="index.html" class="nav-item"
-        ><span class="nav-icon">🏠</span>首頁</a
-      >
-      <a href="explore.html" class="nav-item"
-        ><span class="nav-icon">🔍</span>探索</a
-      >
-      <a href="my-bookings.html" class="nav-item"
-        ><span class="nav-icon">📋</span>預約</a
-      >
-      <a href="login.html" class="nav-item"
-        ><span class="nav-icon">👤</span>登入</a
-      >
+        <nav class="bottom-nav" role="navigation" aria-label="底部導航">
+      <a href="index.html" class="nav-item"><span class="nav-icon">🏠</span><span>Home</span></a>
+      <a href="explore.html" class="nav-item"><span class="nav-icon">🔍</span><span>探索</span></a>
+      <a href="coaches.html" class="nav-item"><span class="nav-icon">👥</span><span>教練</span></a>
+      <a href="my.html" class="nav-item"><span class="nav-icon">📅</span><span>我的</span></a>
+      <a href="my.html" class="nav-item"><span class="nav-icon">👤</span><span>帳戶</span></a>
     </nav>
 
     <script src="api.js?v=2"></script>
@@ -1118,7 +1085,8 @@
           ts +
           "</div>" +
           "<div>Hong Kong Leisure and Fitness Co. Ltd.</div>" +
-          "<div>support@zenpass.hk</div></div></body></html>";
+          "<div>support@zenpass.hk</div></div><script src="js/nav.js"></script>
+</body></html>";
         var blob = new Blob([html], { type: "text/html" });
         var a = document.createElement("a");
         a.href = URL.createObjectURL(blob);
@@ -2356,5 +2324,6 @@
     >
       ↑
     </button>
-  </body>
+  <script src="js/nav.js"></script>
+</body>
 </html>
