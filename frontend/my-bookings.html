@@ -73,7 +73,7 @@
 
  <script>
 function renderBookings() {
-  var data = bookedCourses;
+  var data = (typeof ZenPassBooking !== 'undefined') ? ZenPassBooking.getAll() : (JSON.parse(localStorage.getItem('zenpass_booked') || '{}'));
   var container = document.getElementById('bookings-list');
   var empty = document.getElementById('no-bookings');
   container.innerHTML = '';
