@@ -38,10 +38,18 @@ const staticPages = [
   { url: '/terms.html',          priority: 0.4, changefreq: 'monthly' },
 ];
 
-// ─── Dynamic Courses (from API/DB) ──────────────────────────────
-// TODO: Replace with real course data fetch from database
-// Example: const db = require('./backend/data/db');
-// const courses = db.prepare('SELECT id, title, updated_at FROM classes WHERE active = 1').all();
+// ─── Dynamic Courses (from SQLite DB) ──────────────────────────
+// When real course data is in the DB, uncomment below:
+/*
+const Database = require('better-sqlite3');
+const db = new Database('./backend/data/zenpass.db');  // run from project root
+const rows = db.prepare('SELECT id, title FROM classes WHERE status = ? OR status IS NULL').all('active');
+rows.forEach(row => {
+  dynamicCourses.push({ id: row.id, title: row.title });
+});
+db.close();
+console.log('   DB courses:', rows.length);
+*/
 const dynamicCourses = [];
 
 // ─── Generator ──────────────────────────────────────────────────
