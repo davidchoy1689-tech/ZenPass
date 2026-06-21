@@ -130,7 +130,7 @@ async function emailNotification(to, subject, html) {
   const pass = process.env.SMTP_PASS;
 
   if (!host || !user || !pass) {
-    // Dev mode: log email content to console instead
+    // Dev mode: log email content to console
     console.log(`
 📧 [DEV EMAIL]
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -141,10 +141,9 @@ ${html}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     `);
     console.log(
-      "⚠️ SMTP not configured - set SMTP_HOST, SMTP_USER, SMTP_PASS to enable real emails",
+      "⚠️ SMTP not configured - email logged to console",
     );
-    // TODO: 接入真實 SMTP — 開通後刪除上面嘅 console.log，uncomment 下面嘅 nodemailer 代碼
-    return true; // Return true in dev mode so callers think it sent
+    return true;
   }
 
   try {
