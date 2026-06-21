@@ -167,116 +167,21 @@
         background: linear-gradient(to right, transparent, var(--white));
         pointer-events: none;
       }
+      /* ===== Modern Course Card Grid (2026) ===== */
       .class-grid {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 10px;
-        padding: 0 12px;
+        display: grid !important;
+        grid-template-columns: 1fr !important;
+        gap: 14px !important;
+        padding: 0 14px !important;
       }
-      .class-grid > .class-card {
-        width: 100%;
+      @media (min-width: 520px) {
+        .class-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 16px !important; }
       }
-      .class-card-img {
-        height: 90px;
-        font-size: 32px;
+      @media (min-width: 820px) {
+        .class-grid { grid-template-columns: repeat(3, 1fr) !important; gap: 20px !important; padding: 0 20px !important; }
       }
-      .class-card-body {
-        padding: 8px 10px;
-      }
-      .class-card-title {
-        font-size: 13px;
-      }
-      .class-card-meta {
-        font-size: 11px;
-      }
-      .class-card-price {
-        font-size: 14px;
-      }
-      .spots-badge { position: absolute; top: 10px; right: 10px; background: rgba(239,68,68,0.9); color: #fff; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px; z-index: 2; backdrop-filter: blur(4px); box-shadow: 0 2px 4px rgba(0,0,0,0.15); }
-      .class-card {
-        background: var(--white);
-        border-radius: 14px;
-        overflow: hidden;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-        cursor: pointer;
-        border: 1px solid var(--gray-200);
-        display: flex;
-        flex-direction: column;
-        transition:
-          transform 0.2s ease,
-          box-shadow 0.2s ease;
-      }
-      .class-card:hover, .course-card:hover {
-        transform: translateY(-6px);
-        box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1) !important;
-      }
-      html.dark .class-card:hover, html.dark .course-card:hover {
-        box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3), 0 8px 10px -6px rgba(0,0,0,0.2) !important;
-      }
-      .class-card:active {
-        transform: scale(0.97);
-      }
-      .class-card-img-wrap {
-        position: relative;
-        width: 100%;
-        aspect-ratio: 3 / 2;
-        overflow: hidden;
-        background: var(--orange-100);
-      }
-      .class-card-img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        display: block;
-      }
-      .class-card-img-wrap .class-card-img[src] {
-        background: none;
-      }
-      .class-card-body {
-        padding: 10px 10px 8px;
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-      }
-      .class-card-body .class-card-spots {
-        margin-top: auto;
-      }
-      .class-card-category {
-        font-size: 10px;
-        color: var(--orange-700);
-        font-weight: 600;
-        background: var(--orange-100);
-        padding: 1px 7px;
-        border-radius: 3px;
-        display: inline-block;
-        margin-bottom: 5px;
-        letter-spacing: 0.3px;
-        text-transform: uppercase;
-      }
-      .class-card-title {
-        font-size: 14px;
-        font-weight: 600;
-        margin-bottom: 3px;
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
-        line-height: 1.3;
-      }
-      .class-card-meta {
-        font-size: 11px;
-        color: var(--dark-700);
-        display: flex;
-        align-items: center;
-        gap: 4px;
-        margin-bottom: 3px;
-      }
-      .class-card-price {
-        font-size: 16px;
-        font-weight: 700;
-        color: var(--orange-700);
-        margin-top: 4px;
-        letter-spacing: -0.3px;
+      @media (min-width: 1100px) {
+        .class-grid { grid-template-columns: repeat(3, 1fr) !important; gap: 20px !important; padding: 0 32px !important; max-width: 1200px !important; margin: 0 auto !important; }
       }
       
       .nav-item .nav-icon {
@@ -407,10 +312,7 @@
           padding: 6px 12px;
           font-size: 12px;
         }
-        .class-grid {
-          flex-wrap: wrap;
-          gap: 10px;
-        }
+
         .class-card-img-wrap {
           height: 90px;
           min-height: 90px;
@@ -427,16 +329,6 @@
       @media (min-width: 768px) {
         body {
           max-width: 100% !important;
-        }
-        .class-grid {
-          grid-template-columns: 1fr 1fr 1fr !important;
-          max-width: 1100px;
-          margin: 0 auto;
-        }
-      }
-      @media (min-width: 1024px) {
-        .class-grid {
-          grid-template-columns: 1fr 1fr 1fr 1fr !important;
         }
       }
 
@@ -915,47 +807,45 @@
       .modern-card{background:var(--white);border-radius:24px;overflow:hidden;border:1px solid var(--gray-200);box-shadow:0 1px 3px rgba(0,0,0,0.04);transition:all 0.3s cubic-bezier(0.4,0,0.2,1);display:flex;flex-direction:column;cursor:pointer}
       .modern-card:hover{transform:translateY(-8px);box-shadow:0 20px 40px -8px rgba(0,0,0,0.12),0 8px 16px -6px rgba(0,0,0,0.08)}
       html.dark .modern-card{background:#18181b;border-color:#27272a}html.dark .modern-card:hover{box-shadow:0 20px 40px -8px rgba(0,0,0,0.3)}
-      .modern-card-img{aspect-ratio:16/10;overflow:hidden;position:relative}
+      .modern-card-img{aspect-ratio:4/3;overflow:hidden;position:relative}
       .modern-card-img .bg-img{width:100%;height:100%;background-size:cover;background-position:center;transition:transform 0.5s cubic-bezier(0.4,0,0.2,1)}
-      .modern-card:hover .modern-card-img .bg-img{transform:scale(1.1)}
-      .modern-card-badges{position:absolute;top:12px;left:12px;display:flex;flex-wrap:wrap;gap:6px;z-index:3}
-      .modern-card-badge{padding:3px 12px;font-size:11px;font-weight:600;border-radius:99px;color:#fff;box-shadow:0 2px 6px rgba(0,0,0,0.15)}
+      .modern-card:hover .modern-card-img .bg-img{transform:scale(1.08)}
+      .modern-card-badges{position:absolute;top:10px;left:10px;display:flex;flex-wrap:wrap;gap:5px;z-index:3}
+      .modern-card-badge{padding:3px 10px;font-size:11px;font-weight:700;border-radius:99px;color:#fff;box-shadow:0 2px 6px rgba(0,0,0,0.15)}
       .modern-card-badge.hot{background:#ef4444}
       .modern-card-badge.urgent{background:#10b981;animation:urgencyPulse 2s ease-in-out infinite}
-      .modern-card-fav{position:absolute;top:12px;right:12px;width:36px;height:36px;background:rgba(255,255,255,0.9);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-radius:12px;border:none;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.1);cursor:pointer;transition:all 0.2s;z-index:3;font-size:18px;line-height:1;color:#a1a1aa;padding:0}
+      .modern-card-fav{position:absolute;top:12px;right:12px;width:44px;height:44px;min-width:44px;min-height:44px;background:rgba(255,255,255,0.9);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-radius:14px;border:none;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.1);cursor:pointer;transition:all 0.2s;z-index:3;font-size:18px;line-height:1;color:#a1a1aa;padding:0}
       .modern-card-fav:hover{transform:scale(1.12);color:#ef4444}
       .modern-card-fav.liked{color:#ef4444}
       html.dark .modern-card-fav{background:rgba(24,24,27,0.9);color:#71717a}
-      .modern-card-body{padding:20px;flex:1;display:flex;flex-direction:column}
-      .modern-card-tags{display:flex;align-items:center;gap:8px;margin-bottom:8px}
-      .modern-card-tag{padding:2px 10px;font-size:12px;background:var(--gray-100);border-radius:6px;color:var(--dark-700)}
-      .modern-card-diff{font-size:12px;color:#10b981}
+      .modern-card-body{padding:16px;flex:1;display:flex;flex-direction:column}
+      .modern-card-tags{display:flex;align-items:center;gap:6px;margin-bottom:6px}
+      .modern-card-tag{padding:2px 8px;font-size:11px;background:var(--gray-100);border-radius:6px;color:var(--dark-700);letter-spacing:0.3px}
+      .modern-card-diff{font-size:11px;color:#10b981}
       html.dark .modern-card-tag{background:#27272a;color:#a1a1aa}
       html.dark .modern-card-diff{color:#34d399}
-      .modern-card-title{font-weight:600;font-size:17px;line-height:1.3;margin-bottom:6px;color:var(--dark-900);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+      .modern-card-title{font-weight:700;font-size:16px;line-height:1.3;margin-bottom:4px;color:var(--dark-900);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
       .modern-card:hover .modern-card-title{color:#10b981}
       html.dark .modern-card-title{color:#fafafa}
       html.dark .modern-card:hover .modern-card-title{color:#34d399}
-      .modern-card-meta{font-size:13px;color:var(--dark-700);margin-bottom:12px}
+      .modern-card-meta{font-size:12px;color:var(--dark-700);margin-bottom:6px;display:flex;align-items:center;gap:4px;flex-wrap:wrap}
       html.dark .modern-card-meta{color:#d4d4d8}
-      .modern-card-review{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
-      .modern-card-stars{color:#f59e0b;font-size:13px}
-      .modern-card-review-count{color:var(--gray-300);font-size:12px}
-      .modern-card-price{font-weight:600;color:#10b981;font-size:15px}
-      .modern-card-price small{font-size:11px;color:var(--gray-300);font-weight:400}
+      .modern-card-review{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+      .modern-card-stars{color:#f59e0b;font-size:12px}
+      .modern-card-review-count{color:var(--gray-300);font-size:11px}
+      .modern-card-price{font-weight:700;color:#10b981;font-size:14px}
+      .modern-card-price small{font-size:10px;color:var(--gray-300);font-weight:400}
       html.dark .modern-card-price{color:#34d399}
-      .modern-card-schedule{display:flex;align-items:center;justify-content:space-between;font-size:12px;color:var(--gray-300);margin-bottom:16px}
+      .modern-card-schedule{display:flex;align-items:center;justify-content:space-between;font-size:11px;color:var(--gray-300);margin-bottom:12px}
       html.dark .modern-card-schedule{color:#71717a}
-      .modern-card-cta{margin-top:auto;width:100%;padding:14px;border-radius:16px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;font-weight:600;font-size:14px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all 0.2s;box-shadow:0 4px 14px rgba(16,185,129,0.3);font-family:inherit}
+      .modern-card-cta{margin-top:auto;width:100%;padding:12px;min-height:48px;border-radius:14px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;font-weight:700;font-size:14px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all 0.2s;box-shadow:0 4px 14px rgba(16,185,129,0.3);font-family:inherit}
       .modern-card-cta:hover{background:linear-gradient(135deg,#059669,#047857)}
       .modern-card-cta:active{transform:scale(0.97)}
-      .modern-card-cta .arrow{font-size:18px;line-height:1}
+      .modern-card-cta .arrow{font-size:16px;line-height:1}
       html.dark .modern-card-cta{background:linear-gradient(135deg,#059669,#10b981)}
-      html.dark .modern-card-cta:hover{background:linear-gradient(135deg,#047857,#059669)}
+      html.dark .modern-card-cta:hover{background:linear-gradient(135deg,#047857,#059657)}
       @keyframes urgencyPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.85;transform:scale(1.05)}}
-      .class-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:20px;padding:0}
-      @media(max-width:640px){.class-grid{grid-template-columns:repeat(2,1fr);gap:12px}}
-      @media(max-width:400px){.class-grid{grid-template-columns:1fr;gap:12px}}
+      /* .class-grid defined above with mobile-first responsive rules */
     </style>
   </head>
   <body>
@@ -1240,12 +1130,7 @@
     <div
       class="class-grid"
       id="courses-grid"
-      style="
-        display: grid !important;
-        grid-template-columns: 1fr 1fr !important;
-        gap: 10px !important;
-        min-height: 200px;
-      "
+      style="min-height: 200px"
     >
       <!-- Static demo cards (shown immediately, replaced by JS when loaded) -->
       <div class="modern-card" data-title="辦公室伸展舒壓" data-instructor="靜儀導師" data-category="伸展" data-location="觀塘 Two Sky Parc" data-difficulty="初級" data-price="90" data-spots="8" data-credits="12" data-time="9:30" onclick="location.href='class-detail.html?id=201'"><div class="modern-card-img"><div class="bg-img" style="background-image:url('https://images.pexels.com/photos/949132/pexels-photo-949132.jpeg?auto=compress&cs=tinysrgb&w=400')"></div><div class="modern-card-badges"><span class="modern-card-badge" style="background:#10b981">🟢 有位</span></div><button class="modern-card-fav" onclick="event.stopPropagation();toggleFavorite(this.dataset.id)" data-id="201" aria-label="收藏課程">♡</button></div><div class="modern-card-body"><div class="modern-card-tags"><span class="modern-card-tag">伸展</span><span class="modern-card-diff" style="font-size:12px;color:#10b981">· 初級</span></div><div class="modern-card-title">辦公室伸展舒壓</div><div class="modern-card-meta">👩‍🏫 靜儀導師 · 📍觀塘 Two Sky Parc · 🚇牛頭角</div><div class="modern-card-review"><div><span class="modern-card-stars">★★★★★</span></div><div class="modern-card-price">HK$90 <small>/ 1 Pass</small></div></div><div class="modern-card-schedule"><span>📅 6/20 (五) 9:00</span><span>⏱️ 40 分鐘</span></div><button class="modern-card-cta booking-btn" onclick="event.stopPropagation();handleBookingClick(this)" data-id="201" role="button" aria-label="預約課程">立即預約<span class="arrow">→</span></button></div></div>

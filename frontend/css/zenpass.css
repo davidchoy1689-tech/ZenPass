@@ -1044,3 +1044,60 @@ html.dark .sidebar-footer {
   border-color: var(--gray-200);
   color: var(--gray-300);
 }
+
+/* ===== Modern Course Card Grid ===== */
+.class-grid {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 14px !important;
+  padding: 0 14px !important;
+}
+@media (min-width: 520px) {
+  .class-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 16px !important; }
+}
+@media (min-width: 820px) {
+  .class-grid { grid-template-columns: repeat(3, 1fr) !important; gap: 20px !important; padding: 0 20px !important; }
+}
+@media (min-width: 1100px) {
+  .class-grid { grid-template-columns: repeat(3, 1fr) !important; gap: 20px !important; padding: 0 32px !important; max-width: 1200px !important; margin: 0 auto !important; }
+}
+
+/* ===== Modern Course Card ===== */
+.modern-card{background:var(--white);border-radius:24px;overflow:hidden;border:1px solid var(--gray-200);box-shadow:0 1px 3px rgba(0,0,0,0.04);transition:all 0.3s cubic-bezier(0.4,0,0.2,1);display:flex;flex-direction:column;cursor:pointer}
+.modern-card:hover{transform:translateY(-8px);box-shadow:0 20px 40px -8px rgba(0,0,0,0.12),0 8px 16px -6px rgba(0,0,0,0.08)}
+html.dark .modern-card{background:#18181b;border-color:#27272a}html.dark .modern-card:hover{box-shadow:0 20px 40px -8px rgba(0,0,0,0.3)}
+.modern-card-img{aspect-ratio:4/3;overflow:hidden;position:relative}
+.modern-card-img .bg-img{width:100%;height:100%;background-size:cover;background-position:center;transition:transform 0.5s cubic-bezier(0.4,0,0.2,1)}
+.modern-card:hover .modern-card-img .bg-img{transform:scale(1.08)}
+.modern-card-badges{position:absolute;top:10px;left:10px;display:flex;flex-wrap:wrap;gap:5px;z-index:3}
+.modern-card-badge{padding:3px 10px;font-size:11px;font-weight:700;border-radius:99px;color:#fff;box-shadow:0 2px 6px rgba(0,0,0,0.15)}
+.modern-card-badge.hot{background:#ef4444}
+.modern-card-badge.urgent{background:#10b981;animation:urgencyPulse 2s ease-in-out infinite}
+.modern-card-fav{position:absolute;top:12px;right:12px;width:44px;height:44px;min-width:44px;min-height:44px;background:rgba(255,255,255,0.9);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-radius:14px;border:none;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.1);cursor:pointer;transition:all 0.2s;z-index:3;font-size:18px;line-height:1;color:#a1a1aa;padding:0}
+.modern-card-fav:hover{transform:scale(1.12);color:#ef4444}
+.modern-card-fav.liked{color:#ef4444}
+html.dark .modern-card-fav{background:rgba(24,24,27,0.9);color:#71717a}
+.modern-card-body{padding:16px;flex:1;display:flex;flex-direction:column}
+.modern-card-tags{display:flex;align-items:center;gap:6px;margin-bottom:6px}
+.modern-card-tag{padding:2px 8px;font-size:11px;background:var(--gray-100);border-radius:6px;color:var(--dark-700);letter-spacing:0.3px}
+html.dark .modern-card-tag{background:#27272a;color:#a1a1aa}
+.modern-card-title{font-weight:700;font-size:16px;line-height:1.3;margin-bottom:4px;color:var(--dark-900);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.modern-card:hover .modern-card-title{color:#10b981}
+html.dark .modern-card-title{color:#fafafa}
+html.dark .modern-card:hover .modern-card-title{color:#34d399}
+.modern-card-meta{font-size:12px;color:var(--dark-700);margin-bottom:6px;display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+html.dark .modern-card-meta{color:#d4d4d8}
+.modern-card-review{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.modern-card-stars{color:#f59e0b;font-size:12px}
+.modern-card-price{font-weight:700;color:#10b981;font-size:14px}
+.modern-card-price small{font-size:10px;color:var(--gray-300);font-weight:400}
+html.dark .modern-card-price{color:#34d399}
+.modern-card-schedule{display:flex;align-items:center;justify-content:space-between;font-size:11px;color:var(--gray-300);margin-bottom:12px}
+html.dark .modern-card-schedule{color:#71717a}
+.modern-card-cta{margin-top:auto;width:100%;padding:12px;min-height:48px;border-radius:14px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;font-weight:700;font-size:14px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all 0.2s;box-shadow:0 4px 14px rgba(16,185,129,0.3);font-family:inherit}
+.modern-card-cta:hover{background:linear-gradient(135deg,#059669,#047857)}
+.modern-card-cta:active{transform:scale(0.97)}
+.modern-card-cta .arrow{font-size:16px;line-height:1}
+html.dark .modern-card-cta{background:linear-gradient(135deg,#059669,#10b981)}
+html.dark .modern-card-cta:hover{background:linear-gradient(135deg,#047857,#059657)}
+@keyframes urgencyPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.85;transform:scale(1.05)}}
