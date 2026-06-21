@@ -403,6 +403,7 @@
           var result = await auth.login({ email: email, password: password });
           setToken(result.token);
           storeUser(result.user);
+          if (typeof gtag === "function") gtag("event", "login", { method: "email" });
           setMsg("login-msg", "✅ 登入成功！", "success");
           setTimeout(function () {
             window.location.href = loginRedirect || "explore.html";

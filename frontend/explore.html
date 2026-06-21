@@ -2675,6 +2675,7 @@ function loadFromURL() {
 // ==================== 主篩選函數 ====================
 function filterCourses() {
   const keyword = searchInput?.value?.toLowerCase().trim() || '';
+  if (keyword && typeof gtag === "function") gtag("event", "search", { search_term: keyword });
   let visibleCount = 0;
 
   // Ensure _loadMoreVisible is defined (fallback if script 11 broke)
