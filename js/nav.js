@@ -55,7 +55,10 @@
 
   // ─── Bottom Tab Bar ─────────────────────────────────────────────
   function buildBottomNav() {
-    if (document.querySelector('.bottom-nav')) return; // already exists
+    // Remove ALL existing bottom-nav elements (inline from HTML)
+    document.querySelectorAll('.bottom-nav').forEach(function (el) {
+      el.remove();
+    });
 
     const nav = document.createElement('nav');
     nav.className = 'bottom-nav';
@@ -147,14 +150,10 @@
     document.body.appendChild(sidebar);
   }
 
-  // ─── Hamburger Button ──────────────────────────────────────────
+  // ─── Hamburger Button (CSS hides on desktop via @media) ───────
   function addHamburgerButton() {
     if (document.querySelector('.hamburger-btn')) return;
 
-    // Try to find a good spot: existing headers, hero-tops, etc.
-    // Prefer placing inside existing header structures
-    const header = document.querySelector('.hero-top, .header, .zen-header, [class*="header"]');
-    
     const btn = document.createElement('button');
     btn.className = 'hamburger-btn';
     btn.setAttribute('aria-label', '開啟選單');
@@ -164,37 +163,30 @@
       openSidebar();
     };
 
-    if (header && isMobile()) {
-      // Insert into existing header (right side)
+    // Find best place: hero-top (index.html), .header (explore/my), or floating
+    const hero = document.querySelector('.hero-top');
+    if (hero) {
+      btn.classList.add('hero-hamburger');
+      hero.style.display = 'flex';
+      hero.style.alignItems = 'center';
+      hero.appendChild(btn);
+      return;
+    }
+
+    const header = document.querySelector('.header, .zen-header, [class*="header"]');
+    if (header) {
       header.style.display = 'flex';
       header.style.alignItems = 'center';
       header.appendChild(btn);
-    } else {
-      // Floating button as fallback
-      btn.style.position = 'fixed';
-      btn.style.top = '12px';
-      btn.style.right = '12px';
-      btn.style.zIndex = '9999';
-      document.body.appendChild(btn);
+      return;
     }
-  }
 
-  // ─── Inject Hamburger Into Hero Section (index.html specific) ──
-  function addHeroHamburger() {
-    const hero = document.querySelector('.hero-top');
-    if (!hero) return;
-    if (hero.querySelector('.hamburger-btn')) return;
-    if (!isMobile()) return;
-
-    const btn = document.createElement('button');
-    btn.className = 'hamburger-btn hero-hamburger';
-    btn.setAttribute('aria-label', '開啟選單');
-    btn.innerHTML = '☰';
-    btn.onclick = function (e) {
-      e.stopPropagation();
-      openSidebar();
-    };
-    hero.appendChild(btn);
+    // Fallback: floating fixed position
+    btn.style.position = 'fixed';
+    btn.style.top = '12px';
+    btn.style.right = '12px';
+    btn.style.zIndex = '9999';
+    document.body.appendChild(btn);
   }
 
   // ─── Global Functions (used by onclick) ────────────────────────
@@ -226,16 +218,7 @@
     });
   }
 
-  // ─── Prevent double bottom-nav on pages that already have it ──
-  function deduplicateBottomNav() {
-    const existing = document.querySelectorAll('.bottom-nav');
-    if (existing.length > 1) {
-      // Keep the first one (likely the manual one) — remove JS-injected duplicates
-      for (let i = 1; i < existing.length; i++) {
-        existing[i].remove();
-      }
-    }
-  }
+  // (no longer needed — buildBottomNav removes all existing and injects unified one)
 
   // ─── Init ──────────────────────────────────────────────────────
   function init() {
@@ -246,13 +229,12 @@
 
     buildSidebar();
     buildBottomNav();
-    deduplicateBottomNav();
     updateAccountTab();
     updateSidebarAccount();
     highlightActive();
 
-    // Add hamburger button to hero (index.html)
-    addHeroHamburger();
+    // Add hamburger button (CSS hides on desktop ≥768px)
+    addHamburgerButton();
 
     // Re-run after dynamic content loads
     window.addEventListener('load', function () {
@@ -282,10 +264,63 @@
     });
   }
 
+  // ─── Lazy Load Images (IntersectionObserver) ───────────────────
+  function initLazyImages() {
+    if (!window.IntersectionObserver) {
+      // Fallback: show all images immediately
+      document.querySelectorAll('[data-bg]').forEach(function(el) {
+        if (el.dataset.bg) { el.style.backgroundImage = el.dataset.bg; }
+      });
+      return;
+    }
+
+    var observer = new IntersectionObserver(function(entries) {
+      entries.forEach(function(entry) {
+        if (entry.isIntersecting) {
+          var el = entry.target;
+          if (el.dataset.bg) {
+            el.style.backgroundImage = el.dataset.bg;
+            el.removeAttribute('data-bg');
+          }
+          observer.unobserve(el);
+        }
+      });
+    }, { rootMargin: '200px', threshold: 0.01 });
+
+    // Find all card images with background-image
+    document.querySelectorAll('.modern-card-img .bg-img, .class-card-img-wrap, [class*="card-img"] .bg-img, [class*="hero-bg"]').forEach(function(el) {
+      var bg = el.style.backgroundImage;
+      if (bg && bg !== 'none' && !el.classList.contains('hero-bg-layer') && !el.classList.contains('hero-bg-workout')) {
+        // Store and clear the background
+        el.dataset.bg = bg;
+        // Only lazy-load cards below the fold
+        var rect = el.getBoundingClientRect();
+        if (rect.top > window.innerHeight || rect.top + rect.height > window.innerHeight) {
+          el.style.backgroundImage = 'none';
+          observer.observe(el);
+        }
+      }
+    });
+
+    // Also observe dynamically added cards
+    var mutationObserver = new MutationObserver(function() {
+      document.querySelectorAll('.modern-card-img .bg-img[data-bg], [class*="card-img"] .bg-img[data-bg]').forEach(function(el) {
+        if (el.dataset.bg && !el.style.backgroundImage || el.style.backgroundImage === 'none') {
+          observer.observe(el);
+        }
+      });
+    });
+    mutationObserver.observe(document.body, { childList: true, subtree: true });
+  }
+
   // Run after DOM ready
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
+    document.addEventListener('DOMContentLoaded', function() {
+      init();
+      setTimeout(initLazyImages, 500);
+    });
   } else {
     init();
+    setTimeout(initLazyImages, 500);
   }
 })();

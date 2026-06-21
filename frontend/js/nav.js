@@ -264,10 +264,63 @@
     });
   }
 
+  // ─── Lazy Load Images (IntersectionObserver) ───────────────────
+  function initLazyImages() {
+    if (!window.IntersectionObserver) {
+      // Fallback: show all images immediately
+      document.querySelectorAll('[data-bg]').forEach(function(el) {
+        if (el.dataset.bg) { el.style.backgroundImage = el.dataset.bg; }
+      });
+      return;
+    }
+
+    var observer = new IntersectionObserver(function(entries) {
+      entries.forEach(function(entry) {
+        if (entry.isIntersecting) {
+          var el = entry.target;
+          if (el.dataset.bg) {
+            el.style.backgroundImage = el.dataset.bg;
+            el.removeAttribute('data-bg');
+          }
+          observer.unobserve(el);
+        }
+      });
+    }, { rootMargin: '200px', threshold: 0.01 });
+
+    // Find all card images with background-image
+    document.querySelectorAll('.modern-card-img .bg-img, .class-card-img-wrap, [class*="card-img"] .bg-img, [class*="hero-bg"]').forEach(function(el) {
+      var bg = el.style.backgroundImage;
+      if (bg && bg !== 'none' && !el.classList.contains('hero-bg-layer') && !el.classList.contains('hero-bg-workout')) {
+        // Store and clear the background
+        el.dataset.bg = bg;
+        // Only lazy-load cards below the fold
+        var rect = el.getBoundingClientRect();
+        if (rect.top > window.innerHeight || rect.top + rect.height > window.innerHeight) {
+          el.style.backgroundImage = 'none';
+          observer.observe(el);
+        }
+      }
+    });
+
+    // Also observe dynamically added cards
+    var mutationObserver = new MutationObserver(function() {
+      document.querySelectorAll('.modern-card-img .bg-img[data-bg], [class*="card-img"] .bg-img[data-bg]').forEach(function(el) {
+        if (el.dataset.bg && !el.style.backgroundImage || el.style.backgroundImage === 'none') {
+          observer.observe(el);
+        }
+      });
+    });
+    mutationObserver.observe(document.body, { childList: true, subtree: true });
+  }
+
   // Run after DOM ready
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
+    document.addEventListener('DOMContentLoaded', function() {
+      init();
+      setTimeout(initLazyImages, 500);
+    });
   } else {
     init();
+    setTimeout(initLazyImages, 500);
   }
 })();
