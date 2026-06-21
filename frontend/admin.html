@@ -5001,10 +5001,14 @@ function apiPost(path, body) {
   if (!token) return;
   
   function checkNotifs() {
-    // Check coach applications
+    var apiBase = window.API_BASE || '';
+    var token = localStorage.getItem('zenpass_token');
+    if (!token) return;
+    var headers = { 'Authorization': 'Bearer ' + token };
+    
+    // 1. Coach applications badge
     try {
-      var apiBase = window.API_BASE || '';
-      fetch(apiBase + '/api/admin/coach-applications?status=pending')
+      fetch(apiBase + '/api/admin/coach-applications?status=pending', { headers: headers })
         .then(function(r) { return r.json(); })
         .then(function(data) {
           var count = 0;
@@ -5014,6 +5018,27 @@ function apiPost(path, body) {
           if (badge) {
             badge.textContent = count || '';
             badge.style.display = count ? '' : 'none';
+          }
+        })
+        .catch(function() {});
+    } catch(e) {}
+    
+    // 2. Pending payments / new bookings
+    try {
+      fetch(apiBase + '/api/admin/pending-payments', { headers: headers })
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+          var pending = d.pending_payments || [];
+          var sidebarPay = document.querySelector('.nav-item a[href*="payment"], .nav-item span');
+          if (sidebarPay && pending.length) {
+            var existingBadge = sidebarPay.querySelector('.notif-badge');
+            if (!existingBadge) {
+              existingBadge = document.createElement('span');
+              existingBadge.className = 'notif-badge';
+              existingBadge.style.cssText = 'background:#ef4444;color:#fff;font-size:10px;padding:1px 6px;border-radius:10px;margin-left:4px';
+              sidebarPay.appendChild(existingBadge);
+            }
+            existingBadge.textContent = pending.length;
           }
         })
         .catch(function() {});
