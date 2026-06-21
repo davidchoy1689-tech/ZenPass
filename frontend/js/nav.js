@@ -42,7 +42,7 @@
   }
 
   function isLoggedIn() {
-    return !!localStorage.getItem('token');
+    return !!localStorage.getItem('zenpass_token') || !!localStorage.getItem('token');
   }
 
   function isMobile() {
