@@ -4994,6 +4994,36 @@ function apiPost(path, body) {
     });
   }
 })();
+
+// ─── Real-time Notification Polling ───────────────────────────
+(function() {
+  var token = localStorage.getItem('zenpass_token');
+  if (!token) return;
+  
+  function checkNotifs() {
+    // Check coach applications
+    try {
+      var apiBase = window.API_BASE || '';
+      fetch(apiBase + '/api/admin/coach-applications?status=pending')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          var count = 0;
+          if (data && data.length) count = data.length;
+          else if (data && data.data && data.data.length) count = data.data.length;
+          var badge = document.getElementById('coach-app-badge');
+          if (badge) {
+            badge.textContent = count || '';
+            badge.style.display = count ? '' : 'none';
+          }
+        })
+        .catch(function() {});
+    } catch(e) {}
+  }
+  
+  // Check every 30 seconds
+  checkNotifs();
+  setInterval(checkNotifs, 30000);
+})();
 </script>
 </body>
 </html>
