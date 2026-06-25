@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" href="favicon.png" type="image/png" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <link rel="stylesheet" href="css/zenpass.css?v=2" />
+  <style>
+    :root {
+      --orange-500: #ff6b35;
+      --orange-700: #aa3218;
+      --orange-600-bg: #c94420;
+      --teal-600: #0d9488;
+      --dark-900: #1a1a2e;
+      --dark-700: #6b7280;
+      --gray-200: #e5e7eb;
+      --gray-50: #f9fafb;
+      --white: #ffffff;
+      --font-zh: "Noto Sans TC", system-ui, sans-serif;
+      --max-width: 480px;
+    }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      font-family: var(--font-zh);
+      background: var(--gray-50);
+      color: var(--dark-900);
+      max-width: var(--max-width);
+      margin: 0 auto;
+      padding: 0 0 72px;
+      -webkit-font-smoothing: antialiased;
+    }
+    .header {
+      background: linear-gradient(135deg, var(--orange-600-bg), var(--orange-500));
+      color: white;
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .header .back-btn { background:rgba(255,255,255,0.2); border:none; width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:20px; cursor:pointer; color:white; text-decoration:none; }
+    .header h1 { font-size:17px; font-weight:600; flex:1; color:white; margin:0; }
+    .content { padding: 12px 16px; }
+    
+    .search-bar {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+    .search-bar input {
+      flex: 1;
+      padding: 10px 14px;
+      border: 1px solid var(--gray-200);
+      border-radius: 12px;
+      font-size: 14px;
+      font-family: var(--font-zh);
+      background: var(--white);
+    }
+    .search-bar input:focus { outline: none; border-color: var(--orange-600-bg); }
+    
+    .filters {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 14px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+      -webkit-overflow-scrolling: touch;
+    }
+    .filter-chip {
+      padding: 6px 14px;
+      border: 1px solid var(--gray-200);
+      border-radius: 99px;
+      font-size: 12px;
+      cursor: pointer;
+      white-space: nowrap;
+      background: var(--white);
+      transition: all 0.15s;
+    }
+    .filter-chip.active {
+      background: var(--orange-600-bg);
+      color: white;
+      border-color: var(--orange-600-bg);
+    }
+    .filter-chip:hover:not(.active) { border-color: var(--orange-400); }
+
+    .stats-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      font-size: 12px;
+      color: var(--dark-700);
+    }
+
+    .venue-list { display: flex; flex-direction: column; gap: 10px; }
+    
+    .venue-card {
+      background: var(--white);
+      border-radius: 14px;
+      padding: 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      border: 1px solid rgba(0,0,0,0.04);
+      transition: all 0.15s;
+      cursor: pointer;
+    }
+    .venue-card:active { transform: scale(0.98); }
+    
+    .venue-card .top {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+    .venue-card .icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      background: var(--orange-50);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      flex-shrink: 0;
+    }
+    .venue-card .info { flex: 1; min-width: 0; }
+    .venue-card .name {
+      font-size: 15px;
+      font-weight: 700;
+      margin-bottom: 2px;
+    }
+    .venue-card .meta {
+      font-size: 12px;
+      color: var(--dark-700);
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .venue-card .meta .tag {
+      background: var(--gray-50);
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-size: 11px;
+    }
+    .venue-card .actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .venue-card .actions a {
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.15s;
+    }
+    .venue-card .visit-btn {
+      background: var(--orange-600-bg);
+      color: white;
+    }
+    .venue-card .claim-btn {
+      background: var(--teal-600);
+      color: white;
+    }
+    .venue-card .claim-btn:hover { opacity: 0.9; }
+
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: var(--dark-700);
+    }
+    .empty {
+      text-align: center;
+      padding: 40px;
+      color: var(--dark-700);
+    }
+    .empty .big-icon { font-size: 48px; margin-bottom: 10px; }
+    .empty p { font-size: 14px; line-height: 1.6; }
+
+    /* Bottom Nav */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100%;
+      max-width: var(--max-width);
+      background: white;
+      border-top: 1px solid var(--gray-200);
+      display: flex;
+      padding: 6px 0;
+      padding-bottom: max(6px, env(safe-area-inset-bottom));
+      z-index: 100;
+    }
+    .bottom-nav .nav-item {
+      flex: 1;
+      text-align: center;
+      padding: 6px 0;
+      color: var(--dark-700);
+      font-size: 10px;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .bottom-nav .nav-item .nav-icon { font-size: 20px; display: block; margin-bottom: 2px; }
+    .bottom-nav .nav-item.active { color: var(--orange-600-bg); }
+    .bottom-nav .nav-item.active .nav-icon { filter: brightness(0.8) sepia(1) hue-rotate(0deg) saturate(5); }
+  </style>
+  <title>場地總覽 | ZenPass 禪流</title>
+</head>
+<body>
+  <div class="header">
+    <a class="back-btn" href="javascript:history.back()">←</a>
+    <h1>🏪 場地總覽</h1>
+    <span style="width:32px"></span>
+  </div>
+  <div class="content">
+    <div class="search-bar">
+      <input type="text" id="searchInput" placeholder="搜尋場地..." oninput="filterVenues()" />
+    </div>
+    <div class="filters" id="filterChips">
+      <div class="filter-chip active" data-cat="all" onclick="setFilter('all')">全部</div>
+      <div class="filter-chip" data-cat="瑜伽" onclick="setFilter('瑜伽')">🧘 瑜伽</div>
+      <div class="filter-chip" data-cat="健身" onclick="setFilter('健身')">💪 健身</div>
+      <div class="filter-chip" data-cat="伸展" onclick="setFilter('伸展')">🤸 伸展</div>
+    </div>
+    <div class="stats-bar" id="statsBar"></div>
+    <div class="venue-list" id="venueList">
+      <div class="loading">🔄 載入中...</div>
+    </div>
+  </div>
+  <div class="bottom-nav">
+    <a href="index.html" class="nav-item"><span class="nav-icon">🏠</span>首頁</a>
+    <a href="explore.html" class="nav-item"><span class="nav-icon">🔍</span>探索</a>
+    <a href="venues.html" class="nav-item active"><span class="nav-icon">🏪</span>場地</a>
+    <a href="partner-apply.html" class="nav-item"><span class="nav-icon">➕</span>加盟</a>
+    <a href="my.html" class="nav-item"><span class="nav-icon">👤</span>我的</a>
+  </div>
+
+  <script src="api.js?v=2"></script>
+  <script>
+    var allVenues = [];
+    var currentFilter = 'all';
+    var currentSearch = '';
+
+    function iconForCategory(cat) {
+      var icons = { '瑜伽': '🧘', '健身': '💪', '伸展': '🤸', '舞蹈': '💃', '冥想': '🧠' };
+      return icons[cat] || '🏪';
+    }
+
+    async function loadVenues() {
+      try {
+        var resp = await fetch(API_BASE + '/crawler/venues');
+        var data = await resp.json();
+        if (data.success && data.data && Array.isArray(data.data)) {
+          allVenues = data.data;
+        } else if (data.success && data.data && data.data.venues) {
+          allVenues = data.data.venues;
+        } else {
+          allVenues = [];
+        }
+        filterVenues();
+      } catch(e) {
+        console.error('load error:', e);
+        document.getElementById('venueList').innerHTML = '<div class="empty"><div class="big-icon">😕</div><p>暫時未能載入場地資料</p></div>';
+      }
+    }
+
+    function setFilter(cat) {
+      currentFilter = cat;
+      document.querySelectorAll('.filter-chip').forEach(function(el) {
+        el.classList.toggle('active', el.dataset.cat === cat);
+      });
+      filterVenues();
+    }
+
+    function filterVenues() {
+      currentSearch = (document.getElementById('searchInput').value || '').toLowerCase().trim();
+      var filtered = allVenues.filter(function(v) {
+        if (currentFilter !== 'all' && v.category !== currentFilter) return false;
+        if (currentSearch && !v.name.toLowerCase().includes(currentSearch)) return false;
+        return true;
+      });
+      renderVenues(filtered);
+    }
+
+    function renderVenues(venues) {
+      var list = document.getElementById('venueList');
+      var stats = document.getElementById('statsBar');
+
+      if (!venues || venues.length === 0) {
+        list.innerHTML = '<div class="empty"><div class="big-icon">🔍</div><p>搵唔到相關場地<br>我哋會持續加入更多場地</p></div>';
+        stats.textContent = '0 個場地';
+        return;
+      }
+
+      stats.textContent = venues.length + ' 個場地';
+      
+      var html = '';
+      for (var v of venues) {
+        var typeLabel = '';
+        if (v.type === 'mindbody') typeLabel = '🧘 Online Booking';
+        else if (v.type === 'table') typeLabel = '📋 Timetable';
+        else if (v.type === 'image') typeLabel = '🖼 Timetable';
+        else typeLabel = '⚙️ Available';
+
+        html += '<div class="venue-card" onclick="visitVenue(\'' + escHtml(v.url) + '\')">' +
+          '<div class="top">' +
+            '<div class="icon">' + iconForCategory(v.category) + '</div>' +
+            '<div class="info">' +
+              '<div class="name">' + escHtml(v.name) + '</div>' +
+              '<div class="meta">' +
+                '<span class="tag">' + escHtml(v.category || '其他') + '</span>' +
+                '<span class="tag">' + typeLabel + '</span>' +
+              '</div>' +
+            '</div>' +
+          '</div>' +
+          '<div class="actions">' +
+            '<a href="' + escHtml(v.url) + '" target="_blank" class="visit-btn" onclick="event.stopPropagation()">🔗 網站</a>' +
+            '<a href="partner-apply.html" class="claim-btn" onclick="event.stopPropagation()">✋ Claim 場地</a>' +
+          '</div>' +
+        '</div>';
+      }
+      list.innerHTML = html;
+    }
+
+    function escHtml(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+    
+    // Simple redirect for venue cards
+    function visitVenue(url) {
+      if (url) window.open(url, '_blank');
+    }
+
+    loadVenues();
+  </script>
+</body>
+</html>

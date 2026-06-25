@@ -8,10 +8,14 @@
  */
 
 const express = require("express");
+const path = require("path");
 const router = express.Router();
+const Database = require("better-sqlite3");
 const { crawlVenueCourses, crawlMultipleVenues } = require("../services/course-crawler");
 const { authenticateToken, requireRole } = require("../middleware/auth");
 const { ok, fail, serverError } = require("../services/response");
+
+const DB_PATH = process.env.DB_PATH || path.resolve(__dirname, "../../data/zenpass.db");
 
 // ===== Test URLs (公開，唔使 login) =====
 const TEST_URLS = [
@@ -172,5 +176,33 @@ function escHtml(s) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
 }
+
+// ===== GET /api/crawler/venues — 列出所有 crawl 到嘅場地 =====
+router.get("/venues", (req, res) => {
+  try {
+    const db = new Database(DB_PATH);
+    const { status, category } = req.query;
+    
+    let sql = "SELECT id, name, url, category, type, has_mindbody, has_html_table, has_timetable_images, status FROM crawled_venues";
+    const conditions = [];
+    const params = [];
+    
+    if (status) { conditions.push("status = ?"); params.push(status); }
+    if (category) { conditions.push("category = ?"); params.push(category); }
+    
+    if (conditions.length > 0) {
+      sql += " WHERE " + conditions.join(" AND ");
+    }
+    sql += " ORDER BY name ASC";
+    
+    const venues = db.prepare(sql).all(...params);
+    db.close();
+    
+    return ok(res, { venues, total: venues.length });
+  } catch (err) {
+    console.error("❌ crawler/venues error:", err.message);
+    return serverError(res, "載入場地列表失敗");
+  }
+});
 
 module.exports = router;
