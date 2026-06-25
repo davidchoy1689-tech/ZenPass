@@ -4,9 +4,22 @@
     <meta charset="UTF-8" />
     <link rel="icon" href="favicon.png" type="image/png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
-    
     <link rel="stylesheet" href="css/zenpass.css?v=2" />
     <style>
+      :root {
+        --orange-500: #ff6b35;
+        --orange-700: #aa3218;
+        --orange-600-bg: #c94420;
+        --dark-900: #1a1a2e;
+        --dark-700: #6b7280;
+        --gray-200: #e5e7eb;
+        --gray-50: #f9fafb;
+        --teal-600: #0d9488;
+        --white: #ffffff;
+        --font-zh: "Noto Sans TC", system-ui, sans-serif;
+        --max-width: 480px;
+      }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
       body {
         font-family: var(--font-zh);
         background: var(--gray-50);
@@ -14,13 +27,10 @@
         max-width: var(--max-width);
         margin: 0 auto;
         padding: 0 0 40px;
+        -webkit-font-smoothing: antialiased;
       }
       .header {
-        background: linear-gradient(
-          135deg,
-          var(--orange-600-bg),
-          var(--orange-500)
-        );
+        background: linear-gradient(135deg, var(--orange-600-bg), var(--orange-500));
         color: white;
         padding: 14px 16px;
         display: flex;
@@ -31,10 +41,9 @@
         z-index: 10;
       }
       .header .back-btn {
-        background: rgba(255, 255, 255, 0.2);
+        background: rgba(255,255,255,0.2);
         border: none;
-        width: 32px;
-        height: 32px;
+        width: 32px; height: 32px;
         border-radius: 50%;
         display: flex;
         align-items: center;
@@ -44,126 +53,62 @@
         color: white;
         text-decoration: none;
       }
-      .header h1 {
-        font-size: 17px;
-        font-weight: 600;
-        flex: 1;
-        color: white;
-        margin: 0;
-      }
+      .header h1 { font-size: 17px; font-weight: 600; flex: 1; color: white; margin: 0; }
 
-      .content {
-        padding: 20px 16px;
-      }
+      .content { padding: 16px; }
 
-      /* Step Progress */
-      .step-progress {
-        display: flex;
-        justify-content: center;
-        gap: 4px;
-        margin-bottom: 24px;
-      }
-      .step-dot {
-        width: 32px;
-        height: 32px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 13px;
-        font-weight: 700;
-        background: var(--gray-200);
-        color: var(--gray-300);
-        transition: all 0.3s;
-      }
-      .step-dot.active {
-        background: var(--orange-600-bg);
-        color: white;
-      }
-      .step-dot.done {
-        background: var(--green-500);
-        color: white;
-      }
-      .step-line {
-        width: 48px;
-        height: 2px;
-        align-self: center;
-        background: var(--gray-200);
-      }
-      .step-line.active {
-        background: var(--orange-600-bg);
-      }
-      .step-line.done {
-        background: var(--green-500);
-      }
-
-      /* Hero */
-      .hero-card {
-        background: linear-gradient(
-          135deg,
-          var(--orange-600-bg),
-          var(--orange-500)
-        );
+      /* Hero Banner */
+      .hero {
+        background: linear-gradient(135deg, #0f766e, #14b8a6);
         border-radius: 14px;
         padding: 24px 20px;
         text-align: center;
         color: white;
-        margin-bottom: 20px;
+        margin-bottom: 16px;
       }
-      .hero-card h2 {
-        font-size: 20px;
-        font-weight: 700;
-        margin-bottom: 6px;
+      .hero .icon { font-size: 36px; margin-bottom: 6px; }
+      .hero h2 { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+      .hero p { font-size: 13px; opacity: 0.9; line-height: 1.6; }
+      .hero .cta-tag {
+        display: inline-block;
+        background: rgba(255,255,255,0.2);
+        padding: 4px 14px;
+        border-radius: 99px;
+        font-size: 12px;
+        font-weight: 600;
+        margin-top: 10px;
       }
-      .hero-card p {
-        font-size: 13px;
-        opacity: 0.85;
-        line-height: 1.6;
-      }
-      .hero-card .stats {
+
+      /* Benefits */
+      .benefits {
         display: flex;
-        justify-content: center;
-        gap: 24px;
-        margin-top: 16px;
+        gap: 8px;
+        margin-bottom: 16px;
       }
-      .hero-card .stats div {
+      .benefits .card {
+        flex: 1;
+        background: white;
+        border-radius: 12px;
+        padding: 14px 10px;
         text-align: center;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+        border: 1px solid rgba(0,0,0,0.04);
       }
-      .hero-card .stats .num {
-        font-size: 22px;
-        font-weight: 700;
-        display: block;
-      }
-      .hero-card .stats .lbl {
-        font-size: 11px;
-        opacity: 0.75;
-        display: block;
-      }
+      .benefits .card .num { font-size: 22px; font-weight: 700; color: var(--orange-600-bg); }
+      .benefits .card .lbl { font-size: 11px; color: var(--dark-700); margin-top: 2px; }
 
-      /* Step panels */
-      .step-panel {
-        display: none;
-      }
-      .step-panel.active {
-        display: block;
-      }
-
+      /* Form */
       .form-card {
         background: white;
         border-radius: 14px;
         padding: 20px;
         margin-bottom: 14px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-        border: 1px solid rgba(0, 0, 0, 0.04);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        border: 1px solid rgba(0,0,0,0.04);
       }
-      .form-card h3 {
-        font-size: 15px;
-        font-weight: 700;
-        margin-bottom: 12px;
-      }
-      .form-group {
-        margin-bottom: 14px;
-      }
+      .form-card h3 { font-size: 15px; font-weight: 700; margin-bottom: 14px; display: flex; align-items: center; gap: 6px; }
+      .form-group { margin-bottom: 14px; }
+      .form-group:last-child { margin-bottom: 0; }
       .form-group label {
         display: block;
         font-size: 12px;
@@ -171,6 +116,7 @@
         margin-bottom: 4px;
         color: var(--dark-700);
       }
+      .form-group label .required { color: #ef4444; }
       .form-group input,
       .form-group select,
       .form-group textarea {
@@ -188,144 +134,45 @@
       .form-group select:focus,
       .form-group textarea:focus {
         outline: none;
-        border-color: var(--orange-700);
+        border-color: var(--orange-600-bg);
       }
-      .form-group textarea {
-        height: 80px;
-        resize: vertical;
-      }
-      .form-row {
-        display: flex;
-        gap: 10px;
-      }
-      .form-row .form-group {
-        flex: 1;
-      }
+      .form-group textarea { height: 70px; resize: vertical; }
+      .form-row { display: flex; gap: 10px; }
+      .form-row .form-group { flex: 1; }
 
-      /* Commission Plans */
-      .plan-grid {
+      /* Free tag */
+      .free-tag {
         display: flex;
-        flex-direction: column;
-        gap: 12px;
-      }
-      .plan-card {
-        background: var(--white);
-        border: 2px solid var(--gray-200);
+        align-items: center;
+        gap: 10px;
+        background: #f0fdfa;
+        border: 1px solid #99f6e4;
         border-radius: 14px;
-        padding: 16px;
-        cursor: pointer;
-        transition: all 0.2s;
-        position: relative;
+        padding: 14px 16px;
+        margin-bottom: 16px;
       }
-      .plan-card:hover {
-        border-color: var(--orange-400);
-      }
-      .plan-card.selected {
-        border-color: var(--orange-700);
-        background: var(--orange-50);
-      }
-      .plan-card .plan-name {
-        font-size: 15px;
-        font-weight: 700;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-      }
-      .plan-card .plan-name .badge {
-        font-size: 10px;
-        padding: 2px 8px;
-        border-radius: 99px;
-        background: var(--orange-100);
-        color: var(--orange-700);
-        font-weight: 600;
-      }
-      .plan-card .plan-price {
-        font-size: 13px;
-        color: var(--teal-600);
-        font-weight: 600;
-        margin: 2px 0;
-      }
-      .plan-card .plan-desc {
-        font-size: 12px;
-        color: var(--dark-700);
-        margin-top: 4px;
-      }
-      .plan-card .plan-rate {
-        font-size: 11px;
-        color: var(--dark-700);
-        margin-top: 2px;
-        background: var(--gray-50);
-        padding: 2px 8px;
-        border-radius: 6px;
-        display: inline-block;
-      }
-      .plan-card.selected::after {
-        content: "✓";
-        position: absolute;
-        top: 12px;
-        right: 12px;
-        background: var(--orange-700);
-        color: white;
-        width: 24px;
-        height: 24px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: 700;
-        font-size: 13px;
-      }
+      .free-tag .emoji { font-size: 28px; }
+      .free-tag .text { font-size: 13px; line-height: 1.5; color: #115e59; }
+      .free-tag .text strong { font-size: 15px; }
 
-      /* Photo Upload */
-      .photo-upload-area {
-        border: 2px dashed var(--gray-200);
-        border-radius: 12px;
-        padding: 24px;
-        text-align: center;
-        cursor: pointer;
-        transition: all 0.2s;
-        background: var(--gray-50);
-      }
-      .photo-upload-area:hover {
-        border-color: var(--orange-400);
-        background: var(--orange-50);
-      }
-      .photo-upload-area .icon {
-        font-size: 32px;
-      }
-      .photo-upload-area .text {
-        font-size: 13px;
-        color: var(--dark-700);
-        margin-top: 4px;
-      }
-      .photo-upload-area .sub {
-        font-size: 11px;
-        color: var(--gray-300);
-        margin-top: 2px;
-      }
-      .photo-preview {
-        display: flex;
-        gap: 8px;
-        flex-wrap: wrap;
-        margin-top: 12px;
-      }
-      .photo-preview img {
-        width: 80px;
-        height: 80px;
-        object-fit: cover;
-        border-radius: 8px;
+      /* Checkbox tags */
+      .tag-group { display: flex; flex-wrap: wrap; gap: 6px; }
+      .tag-group label {
+        padding: 6px 12px;
         border: 1px solid var(--gray-200);
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 12px;
+        transition: all 0.15s;
+        user-select: none;
       }
+      .tag-group label:has(input:checked) {
+        background: var(--orange-600-bg);
+        color: white;
+        border-color: var(--orange-600-bg);
+      }
+      .tag-group input { display: none; }
 
-      /* Buttons */
-      .step-buttons {
-        display: flex;
-        gap: 10px;
-        margin-top: 20px;
-      }
-      .step-buttons button {
-        flex: 1;
-      }
       .btn-primary {
         width: 100%;
         padding: 14px;
@@ -339,1250 +186,295 @@
         font-family: var(--font-zh);
         transition: all 0.2s;
       }
-      .btn-primary:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
+      .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+      .btn-primary:hover:not(:disabled) { background: #aa3218; }
+
+      .msg {
+        font-size: 13px;
+        text-align: center;
+        padding: 10px;
+        border-radius: 8px;
+        margin-bottom: 10px;
+        display: none;
       }
-      .btn-secondary {
-        width: 100%;
-        padding: 14px;
-        background: var(--white);
-        color: var(--orange-700);
-        border: 1.5px solid var(--orange-500);
-        border-radius: 14px;
-        font-size: 16px;
-        font-weight: 600;
-        cursor: pointer;
-        font-family: var(--font-zh);
+      .msg.error {
+        display: block;
+        background: #fef2f2;
+        color: #ef4444;
       }
 
       /* Success */
       .success-card {
         display: none;
-        background: #ecfdf5;
-        border: 2px solid #a7f3d0;
-        border-radius: 14px;
+        text-align: center;
         padding: 32px 20px;
-        text-align: center;
       }
-      .success-card .icon {
-        font-size: 56px;
-        margin-bottom: 12px;
-      }
+      .success-card .icon { font-size: 64px; margin-bottom: 10px; }
       .success-card h3 {
-        font-size: 18px;
-        font-weight: 700;
-        color: #065f46;
-        margin-bottom: 6px;
-      }
-      .success-card p {
-        font-size: 13px;
-        color: #6b7280;
-        line-height: 1.6;
-      }
-      .success-card .ref-number {
         font-size: 20px;
-        font-weight: 800;
+        font-weight: 700;
+        background: linear-gradient(135deg, var(--orange-600-bg), var(--orange-500));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+      .success-card p { font-size: 14px; color: var(--dark-700); line-height: 1.6; margin-top: 8px; }
+      .success-card .actions { margin-top: 20px; display: flex; flex-direction: column; gap: 10px; }
+      .success-card .actions a {
+        display: block;
+        padding: 14px;
+        border-radius: 14px;
+        font-size: 15px;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.2s;
+      }
+      .success-card .actions .primary-link {
+        background: var(--orange-600-bg);
+        color: white;
+      }
+      .success-card .actions .primary-link:hover { background: #aa3218; }
+      .success-card .actions .secondary-link {
+        background: white;
         color: var(--orange-700);
-        margin: 10px 0;
-        letter-spacing: 2px;
+        border: 1.5px solid var(--orange-500);
       }
-      .msg {
-        font-size: 13px;
-        text-align: center;
-        margin-bottom: 10px;
-        padding: 8px;
-        border-radius: 8px;
-      }
-      .msg.error {
-        background: #fef2f2;
-        color: #ef4444;
-      }
+      .success-card .actions .secondary-link:hover { background: var(--orange-50); }
     </style>
-    <!-- Google tag (gtag.js) -->
-    <script
-      async
-      src="https://www.googletagmanager.com/gtag/js?id=G-MKF5N4YLBM"
-    ></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag() {
-        dataLayer.push(arguments);
-      }
-      gtag("js", new Date());
-      gtag("config", "G-MKF5N4YLBM");
-    </script>
-  
-    <title>場地合作計劃 | ZenPass 禪流</title>
-    <meta name="description" content="場地合作計劃 - ZenPass 禪流" />
-    <meta property="og:title" content="場地合作計劃 | ZenPass 禪流" />
-    <meta property="og:description" content="場地合作計劃 - ZenPass 禪流" />
+
+    <title>免費登記場地 | ZenPass 禪流</title>
+    <meta name="description" content="免費登記 ZenPass 場地，30秒開通，即時上架課程，零佣金零月費。" />
+    <meta property="og:title" content="免費登記場地 | ZenPass 禪流" />
+    <meta property="og:description" content="免費登記 ZenPass 場地，30秒開通，即時上架課程，零佣金零月費。" />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://zenpass.hk/partner-apply.html" />
     <meta property="og:image" content="https://zenpass.hk/favicon.png" />
-    <meta property="og:site_name" content="ZenPass 禪流" />
     <meta property="og:locale" content="zh_HK" />
     <meta name="twitter:card" content="summary_large_image" />
   </head>
   <body>
     <div class="header">
       <a class="back-btn" href="javascript:history.back()">←</a>
-      <h1>🏪 場地加盟</h1>
+      <h1>🏪 免費登記場地</h1>
       <span style="width: 32px"></span>
     </div>
 
-    <div class="content">
+    <div class="content" id="app">
       <!-- Hero -->
-      <div class="hero-card">
-        <h2>將你的場地帶上 ZenPass</h2>
-        <p>
-          加入全港最大運動體驗平台，接觸更多學生<br />免費申請 · 自定時間 ·
-          即時收款
+      <div class="hero">
+        <div class="icon">🎯</div>
+        <h2>30秒免費登記，即時啟用</h2>
+        <p>將你嘅課程放上 ZenPass，接觸更多學生<br />完全免費 · 無限課程 · 即時管理</p>
+        <div class="cta-tag">✨ 零月費 · 零佣金 · 零風險</div>
+      </div>
+
+      <!-- Free tag -->
+      <div class="free-tag">
+        <div class="emoji">🎁</div>
+        <div class="text">
+          <strong>而家登記完全免費</strong><br />
+          唔限課程數量，冇隱藏收費，唔使信用卡
+        </div>
+      </div>
+
+      <!-- Benefits -->
+      <div class="benefits">
+        <div class="card"><div class="num">∞</div><div class="lbl">無限課程</div></div>
+        <div class="card"><div class="num">$0</div><div class="lbl">月費</div></div>
+        <div class="card"><div class="num">0%</div><div class="lbl">佣金</div></div>
+        <div class="card"><div class="num">⚡</div><div class="lbl">即時開通</div></div>
+      </div>
+
+      <!-- Form -->
+      <div id="formContainer">
+        <div class="form-card">
+          <h3>📋 場地資料</h3>
+          <div class="form-group">
+            <label>場地名稱 <span class="required">*</span></label>
+            <input type="text" id="f-name" placeholder="例如：FitZone 健身中心" />
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>類別 <span class="required">*</span></label>
+              <select id="f-category">
+                <option value="">請選擇...</option>
+                <option value="瑜伽">🧘 瑜伽</option>
+                <option value="健身">💪 健身</option>
+                <option value="舞蹈">💃 舞蹈</option>
+                <option value="新興運動">🎯 新興運動</option>
+                <option value="冥想">🧠 冥想</option>
+                <option value="伸展">🤸 伸展</option>
+                <option value="兒童體適能">🧒 兒童體適能</option>
+                <option value="其他">其他</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>地區 <span class="required">*</span></label>
+              <select id="f-district">
+                <option value="">請選擇...</option>
+                <option value="港島">港島</option>
+                <option value="九龍">九龍</option>
+                <option value="新界">新界</option>
+                <option value="線上">線上</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>地址</label>
+            <input type="text" id="f-address" placeholder="詳細地址（選填）" />
+          </div>
+          <div class="form-group">
+            <label>場地簡介</label>
+            <textarea id="f-desc" placeholder="介紹你的場地、設施、特色...（選填）"></textarea>
+          </div>
+          <div class="form-group">
+            <label>場地設施（選填）</label>
+            <div class="tag-group" id="facilitiesTags">
+              <label><input type="checkbox" value="wifi" /> Wi-Fi</label>
+              <label><input type="checkbox" value="shower" /> 沖涼房</label>
+              <label><input type="checkbox" value="locker" /> 儲物櫃</label>
+              <label><input type="checkbox" value="parking" /> 泊車</label>
+              <label><input type="checkbox" value="changing" /> 更衣室</label>
+              <label><input type="checkbox" value="equipment" /> 器材提供</label>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-card">
+          <h3>📞 聯絡資料</h3>
+          <div class="form-group">
+            <label>聯絡人姓名 <span class="required">*</span></label>
+            <input type="text" id="f-contact" placeholder="你的姓名" />
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>聯絡電話 <span class="required">*</span></label>
+              <input type="tel" id="f-phone" placeholder="6123 4567" />
+            </div>
+            <div class="form-group">
+              <label>電郵 <span class="required">*</span></label>
+              <input type="email" id="f-email" placeholder="your@email.com" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label>網站 / IG（選填）</label>
+            <input type="text" id="f-website" placeholder="https://instagram.com/your_studio" />
+          </div>
+        </div>
+
+        <div class="msg" id="form-msg"></div>
+        <button class="btn-primary" id="submitBtn" onclick="handleSubmit()">
+          🚀 免費登記 — 即時啟用
+        </button>
+        <p style="font-size: 11px; color: #9ca3af; text-align: center; margin-top: 12px;">
+          點擊即表示你同意 <a href="terms.html" style="color: var(--orange-700);">服務條款</a> 及 <a href="privacy.html" style="color: var(--orange-700);">私隱政策</a>
         </p>
-        <div class="stats">
-          <div><span class="num">110+</span><span class="lbl">課程</span></div>
-          <div><span class="num">5+</span><span class="lbl">教練</span></div>
-          <div>
-            <span class="num">HK</span><span class="lbl">全港覆蓋</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Step Progress -->
-      <div class="step-progress" id="stepProgress">
-        <div class="step-dot active" id="stepDot1">1</div>
-        <div class="step-line" id="stepLine1"></div>
-        <div class="step-dot" id="stepDot2">2</div>
-        <div class="step-line" id="stepLine2"></div>
-        <div class="step-dot" id="stepDot3">3</div>
-        <div class="step-line" id="stepLine3"></div>
-        <div class="step-dot" id="stepDot4">4</div>
-      </div>
-
-      <!-- Apply Form -->
-      <div id="apply-form">
-        <!-- Step 1: 場地資料 -->
-        <div class="step-panel active" id="step1">
-          <div class="form-card">
-            <h3>📋 場地資料</h3>
-            <div class="form-group">
-              <label>場地名稱 *</label>
-              <input
-                type="text"
-                id="f-name"
-                placeholder="例如：FitZone 健身中心"
-              />
-            </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label>類別 *</label>
-                <select id="f-category">
-                  <option value="">請選擇...</option>
-                  <option value="瑜伽">🧘 瑜伽</option>
-                  <option value="健身">💪 健身</option>
-                  <option value="舞蹈">💃 舞蹈</option>
-                  <option value="新興運動">🎯 新興運動</option>
-                  <option value="冥想">🧠 冥想</option>
-                  <option value="伸展">🤸 伸展</option>
-                  <option value="兒童體適能">🧒 兒童體適能</option>
-                  <option value="其他">其他</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label>地區 *</label>
-                <select id="f-district">
-                  <option value="">請選擇...</option>
-                  <option value="港島">港島</option>
-                  <option value="九龍">九龍</option>
-                  <option value="新界">新界</option>
-                  <option value="線上">線上</option>
-                </select>
-              </div>
-            </div>
-            <div class="form-group">
-              <label>地址</label>
-              <input
-                type="text"
-                id="f-address"
-                placeholder="詳細地址（選填）"
-              />
-            </div>
-            <div class="form-group">
-              <label>場地簡介</label>
-              <textarea
-                id="f-desc"
-                placeholder="介紹你的場地、設施、特色..."
-              ></textarea>
-            </div>
-            <div class="form-group">
-              <label>場地設施（選填，可揀多個）</label>
-              <div
-                style="
-                  display: flex;
-                  flex-wrap: wrap;
-                  gap: 6px;
-                  margin-top: 4px;
-                "
-                id="facilities-tags"
-              >
-                <label
-                  class="fac-tag"
-                  style="
-                    padding: 6px 12px;
-                    border: 1px solid var(--gray-200);
-                    border-radius: 8px;
-                    cursor: pointer;
-                    font-size: 12px;
-                  "
-                  ><input
-                    type="checkbox"
-                    value="wifi"
-                    style="margin-right: 4px"
-                  />
-                  Wi-Fi</label
-                >
-                <label
-                  class="fac-tag"
-                  style="
-                    padding: 6px 12px;
-                    border: 1px solid var(--gray-200);
-                    border-radius: 8px;
-                    cursor: pointer;
-                    font-size: 12px;
-                  "
-                  ><input
-                    type="checkbox"
-                    value="shower"
-                    style="margin-right: 4px"
-                  />
-                  沖涼房</label
-                >
-                <label
-                  class="fac-tag"
-                  style="
-                    padding: 6px 12px;
-                    border: 1px solid var(--gray-200);
-                    border-radius: 8px;
-                    cursor: pointer;
-                    font-size: 12px;
-                  "
-                  ><input
-                    type="checkbox"
-                    value="locker"
-                    style="margin-right: 4px"
-                  />
-                  儲物櫃</label
-                >
-                <label
-                  class="fac-tag"
-                  style="
-                    padding: 6px 12px;
-                    border: 1px solid var(--gray-200);
-                    border-radius: 8px;
-                    cursor: pointer;
-                    font-size: 12px;
-                  "
-                  ><input
-                    type="checkbox"
-                    value="parking"
-                    style="margin-right: 4px"
-                  />
-                  泊車</label
-                >
-                <label
-                  class="fac-tag"
-                  style="
-                    padding: 6px 12px;
-                    border: 1px solid var(--gray-200);
-                    border-radius: 8px;
-                    cursor: pointer;
-                    font-size: 12px;
-                  "
-                  ><input
-                    type="checkbox"
-                    value="changing"
-                    style="margin-right: 4px"
-                  />
-                  更衣室</label
-                >
-                <label
-                  class="fac-tag"
-                  style="
-                    padding: 6px 12px;
-                    border: 1px solid var(--gray-200);
-                    border-radius: 8px;
-                    cursor: pointer;
-                    font-size: 12px;
-                  "
-                  ><input
-                    type="checkbox"
-                    value="equipment"
-                    style="margin-right: 4px"
-                  />
-                  器材提供</label
-                >
-              </div>
-            </div>
-          </div>
-          <button class="btn-primary" onclick="goStep(2)">
-            下一步：佣金計劃
-          </button>
-        </div>
-
-        <!-- Step 2: 佣金計劃 -->
-        <div class="step-panel" id="step2">
-          <div class="form-card">
-            <h3>💰 選擇佣金計劃</h3>
-            <p
-              style="
-                font-size: 12px;
-                color: var(--dark-700);
-                margin-bottom: 14px;
-              "
-            >
-              根據場地規模揀最適合你嘅計劃
-            </p>
-            <div class="plan-grid" id="planGrid"></div>
-            <div
-              id="planCalc"
-              style="
-                display: none;
-                margin-top: 14px;
-                padding: 12px;
-                background: var(--teal-50);
-                border-radius: 10px;
-                font-size: 13px;
-                line-height: 1.8;
-              "
-            >
-              <div style="font-weight: 600; margin-bottom: 4px">
-                📊 預估計算
-              </div>
-              <div>月費：<span id="calcFee">$0</span></div>
-              <div>佣金率：<span id="calcRate">25%</span></div>
-              <div>每 $100 收入場地實收：<span id="calcNet">$75</span></div>
-            </div>
-          </div>
-          <div class="step-buttons">
-            <button class="btn-secondary" onclick="goStep(1)">上一步</button>
-            <button class="btn-primary" onclick="goStep(3)">
-              下一步：聯絡資料
-            </button>
-          </div>
-        </div>
-
-        <!-- Step 3: 聯絡資料 + 上傳相片 -->
-        <div class="step-panel" id="step3">
-          <div class="form-card">
-            <h3>📞 聯絡資料</h3>
-            <div class="form-group">
-              <label>聯絡人姓名 *</label>
-              <input type="text" id="f-contact" placeholder="你的姓名" />
-            </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label>聯絡電話 *</label>
-                <input type="tel" id="f-phone" placeholder="6123 4567" />
-              </div>
-              <div class="form-group">
-                <label>電郵 *</label>
-                <input type="email" id="f-email" placeholder="your@email.com" />
-              </div>
-            </div>
-            <div class="form-group">
-              <label>網站/IG（選填）</label>
-              <input
-                type="text"
-                id="f-website"
-                placeholder="https://instagram.com/your_studio"
-              />
-            </div>
-          </div>
-
-          <div class="form-card">
-            <h3>📸 場地相片（選填）</h3>
-            <div
-              class="photo-upload-area"
-              id="photoUploadArea"
-              onclick="document.getElementById('photoInput').click()"
-            >
-              <div class="icon">📷</div>
-              <div class="text">點擊上傳場地相片</div>
-              <div class="sub">支援 JPG/PNG，最多 5 張</div>
-              <input
-                type="file"
-                id="photoInput"
-                accept="image/jpeg,image/png,image/webp"
-                multiple
-                style="display: none"
-                onchange="handlePhotoUpload(event)"
-              />
-            </div>
-            <div class="photo-preview" id="photoPreview"></div>
-          </div>
-
-          <div class="msg" id="apply-msg"></div>
-          <div class="step-buttons">
-            <button class="btn-secondary" onclick="goStep(2)">上一步</button>
-            <button
-              class="btn-primary"
-              id="apply-btn"
-              onclick="submitApplication()"
-            >
-              📤 提交申請
-            </button>
-          </div>
-        </div>
-
-        <!-- Step 4: 確認提交 -->
-        <div class="step-panel" id="step4">
-          <div class="form-card" style="background: var(--orange-50)">
-            <h3>🔍 確認資料</h3>
-            <div
-              id="confirmSummary"
-              style="font-size: 13px; line-height: 2"
-            ></div>
-          </div>
-          <div class="msg" id="confirm-msg"></div>
-          <div class="step-buttons">
-            <button class="btn-secondary" onclick="goStep(3)">上一步</button>
-            <button
-              class="btn-primary"
-              id="confirm-btn"
-              onclick="finalSubmit()"
-            >
-              ✅ 確認提交
-            </button>
-          </div>
-        </div>
       </div>
 
       <!-- Success -->
-      <div class="success-card" id="success-card">
+      <div class="success-card" id="successCard">
         <div class="icon">🎉</div>
-        <h3>申請已提交！</h3>
-        <div class="ref-number" id="appRefNumber">ZP-XXXX</div>
-        <p style="font-size: 14px; color: var(--dark-700); margin: 8px 0">
-          申請編號：<strong id="appRefDisplay" style="color: var(--orange-700)"
-            >—</strong
-          >
+        <h3>登記成功！場地已啟用</h3>
+        <p>你嘅場地 <strong id="successName"></strong> 已經準備就緒，<br>而家可以開始加入課程同管理時間表。</p>
+        <div class="actions">
+          <a href="partner-dashboard.html" class="primary-link">📊 進入場地管理後台</a>
+          <a href="add-demo-class.html" class="secondary-link">➕ 加入第一個課程</a>
+          <a href="index.html" class="secondary-link" style="border-color: var(--gray-200); color: var(--dark-700);">🏠 返回首頁</a>
+        </div>
+        <p style="font-size: 12px; color: #9ca3af; margin-top: 20px;">
+          如有問題，可致電 📞 2387 0724
         </p>
-        <p>
-          感謝你嘅申請！我哋嘅團隊會喺
-          <strong>1-3 個工作天</strong>
-          內審核資料，<br />並透過電話或電郵聯絡你。
-        </p>
-        <p style="margin-top: 12px">如有疑問，可致電 📞 2387 0724</p>
-        <a
-          href="index.html"
-          style="
-            display: inline-block;
-            margin-top: 16px;
-            padding: 10px 24px;
-            background: var(--orange-600-bg);
-            color: white;
-            border-radius: 12px;
-            text-decoration: none;
-            font-weight: 600;
-          "
-          >🏠 返回首頁</a
-        >
       </div>
-
-      <script src="api.js?v=2"></script>
-      <script>
-        // ===== State =====
-        var currentStep = 1;
-        var selectedPlan = "basic";
-        var uploadedPhotos = [];
-        var submissionData = {};
-
-        // ===== Commission Plans =====
-        var plans = [
-          {
-            key: "basic",
-            label: "Basic 基本計劃",
-            badge: "免費",
-            fee: 0,
-            rate: 0.25,
-            desc: "適合小型工作室，無需月費，按次分佣 25%",
-          },
-          {
-            key: "standard",
-            label: "Standard 標準計劃",
-            badge: "熱門",
-            fee: 388,
-            rate: 0.18,
-            desc: "適合中型場地，月費 $388，佣金率降至 18%",
-          },
-          {
-            key: "premium",
-            label: "Premium 高級計劃",
-            badge: "省最多",
-            fee: 888,
-            rate: 0.12,
-            desc: "適合大型連鎖，月費 $888，佣金率低至 12%",
-          },
-        ];
-
-        // ===== Init =====
-        renderPlanCards();
-
-        function renderPlanCards() {
-          var html = "";
-          plans.forEach(function (p) {
-            var sel = p.key === selectedPlan ? " selected" : "";
-            html +=
-              '<div class="plan-card' +
-              sel +
-              '" onclick="selectPlan(\'' +
-              p.key +
-              "')\">" +
-              '<div class="plan-name">' +
-              p.label +
-              '<span class="badge">' +
-              p.badge +
-              "</span>" +
-              "</div>" +
-              '<div class="plan-price">' +
-              (p.fee > 0 ? "月費 HK$" + p.fee.toLocaleString() : "免費") +
-              "</div>" +
-              '<div class="plan-rate">佣金率 ' +
-              Math.round(p.rate * 100) +
-              "%</div>" +
-              (p.key === "basic"
-                ? '<div class="plan-desc">無月費，適合初起步場地</div>'
-                : p.key === "standard"
-                  ? '<div class="plan-desc">低佣金率，適合穩定經營場地</div>'
-                  : '<div class="plan-desc">最低佣金率，適合高流量大型場地</div>') +
-              "</div>";
-          });
-          document.getElementById("planGrid").innerHTML = html;
-          updatePlanCalc();
-        }
-
-        function selectPlan(key) {
-          selectedPlan = key;
-          renderPlanCards();
-        }
-
-        function updatePlanCalc() {
-          var p = plans.find(function (x) {
-            return x.key === selectedPlan;
-          });
-          if (!p) return;
-          document.getElementById("calcFee").textContent =
-            p.fee > 0 ? "HK$" + p.fee.toLocaleString() : "免費";
-          document.getElementById("calcRate").textContent =
-            Math.round(p.rate * 100) + "%";
-          document.getElementById("calcNet").textContent =
-            "HK$" + Math.round(100 * (1 - p.rate));
-          document.getElementById("planCalc").style.display = "block";
-        }
-
-        // ===== Step Navigation =====
-        function goStep(n) {
-          // Validate current step
-          if (n > currentStep) {
-            if (!validateStep(currentStep)) return;
-          }
-
-          currentStep = n;
-
-          // Update dots
-          for (var i = 1; i <= 4; i++) {
-            var dot = document.getElementById("stepDot" + i);
-            dot.className = "step-dot";
-            if (i === n) dot.classList.add("active");
-            else if (i < n) dot.classList.add("done");
-
-            var line = document.getElementById("stepLine" + i);
-            if (line) {
-              line.className = "step-line";
-              if (i < n) line.classList.add("done");
-            }
-          }
-
-          // Show/hide panels
-          document.querySelectorAll(".step-panel").forEach(function (p) {
-            p.classList.remove("active");
-          });
-          var panel = document.getElementById("step" + n);
-          if (panel) panel.classList.add("active");
-
-          if (n === 4) renderConfirmSummary();
-        }
-
-        function validateStep(n) {
-          if (n === 1) {
-            var name = document.getElementById("f-name").value.trim();
-            var cat = document.getElementById("f-category").value;
-            var dist = document.getElementById("f-district").value;
-            if (!name) {
-              showMsg("請輸入場地名稱", "error");
-              return false;
-            }
-            if (!cat) {
-              showMsg("請選擇場地類別", "error");
-              return false;
-            }
-            if (!dist) {
-              showMsg("請選擇地區", "error");
-              return false;
-            }
-          }
-          if (n === 2) {
-            // Plan already selected
-          }
-          if (n === 3) {
-            var contact = document.getElementById("f-contact").value.trim();
-            var phone = document.getElementById("f-phone").value.trim();
-            var email = document.getElementById("f-email").value.trim();
-            if (!contact) {
-              showMsg("請輸入聯絡人姓名", "error");
-              return false;
-            }
-            if (!phone) {
-              showMsg("請輸入聯絡電話", "error");
-              return false;
-            }
-            if (!email) {
-              showMsg("請輸入電郵地址", "error");
-              return false;
-            }
-          }
-          return true;
-        }
-
-        // ===== Photo Upload =====
-        async function handlePhotoUpload(event) {
-          var files = event.target.files;
-          if (!files || files.length === 0) return;
-
-          for (var i = 0; i < files.length; i++) {
-            if (uploadedPhotos.length >= 5) {
-              showMsg("最多上傳 5 張相片", "error");
-              break;
-            }
-            var f = files[i];
-            if (f.size > 5 * 1024 * 1024) {
-              showMsg("每張相片不能超過 5MB", "error");
-              continue;
-            }
-            // Try to upload via API
-            try {
-              var formData = new FormData();
-              formData.append("files", f);
-              var resp = await fetch(API_BASE + "/upload", {
-                method: "POST",
-                headers: {
-                  Authorization:
-                    "Bearer " + (localStorage.getItem("zenpass_token") || ""),
-                },
-                body: formData,
-              });
-              var data = await resp.json();
-              if (data.files && data.files.length > 0) {
-                uploadedPhotos.push(data.files[0].url);
-              } else {
-                // Fallback: local object URL
-                uploadedPhotos.push(URL.createObjectURL(f));
-              }
-            } catch (e) {
-              // Upload failed, use local object URL
-              uploadedPhotos.push(URL.createObjectURL(f));
-            }
-          }
-
-          renderPhotoPreview();
-          event.target.value = "";
-        }
-
-        function renderPhotoPreview() {
-          var container = document.getElementById("photoPreview");
-          if (uploadedPhotos.length === 0) {
-            container.innerHTML = "";
-            return;
-          }
-          container.innerHTML = uploadedPhotos
-            .map(function (url, i) {
-              return (
-                '<div style="position:relative;display:inline-block;">' +
-                '<img src="' +
-                url +
-                '" />' +
-                '<button onclick="removePhoto(' +
-                i +
-                ')" style="position:absolute;top:-4px;right:-4px;width:20px;height:20px;border-radius:50%;border:none;background:#ef4444;color:white;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;">×</button>' +
-                "</div>"
-              );
-            })
-            .join("");
-        }
-
-        function removePhoto(idx) {
-          uploadedPhotos.splice(idx, 1);
-          renderPhotoPreview();
-        }
-
-        // ===== Confirm Summary =====
-        function renderConfirmSummary() {
-          collectionData();
-
-          var html =
-            '<div style="background:white;border-radius:10px;padding:12px;margin-bottom:8px;">' +
-            "<b>🏪 場地</b><br>" +
-            "名稱：" +
-            escHtml(submissionData.name) +
-            "<br>" +
-            "類別：" +
-            escHtml(submissionData.category) +
-            " · " +
-            "地區：" +
-            escHtml(submissionData.district) +
-            (submissionData.address
-              ? "<br>地址：" + escHtml(submissionData.address)
-              : "") +
-            "</div>" +
-            '<div style="background:white;border-radius:10px;padding:12px;margin-bottom:8px;">' +
-            "<b>💰 佣金計劃</b><br>" +
-            "計劃：" +
-            escHtml(submissionData.planLabel) +
-            "<br>" +
-            "佣金率：" +
-            Math.round(submissionData.planRate * 100) +
-            "%" +
-            (submissionData.planFee > 0
-              ? "<br>月費：HK$" + submissionData.planFee.toLocaleString()
-              : "<br>月費：免費") +
-            "</div>" +
-            '<div style="background:white;border-radius:10px;padding:12px;margin-bottom:8px;">' +
-            "<b>📞 聯絡</b><br>" +
-            "聯絡人：" +
-            escHtml(submissionData.contact) +
-            "<br>" +
-            "電話：" +
-            escHtml(submissionData.phone) +
-            "<br>" +
-            "電郵：" +
-            escHtml(submissionData.email) +
-            (submissionData.website
-              ? "<br>網站：" + escHtml(submissionData.website)
-              : "") +
-            (uploadedPhotos.length > 0
-              ? "<br>📸 相片：" + uploadedPhotos.length + " 張"
-              : "") +
-            "</div>";
-
-          document.getElementById("confirmSummary").innerHTML = html;
-        }
-
-        function collectionData() {
-          submissionData = {
-            name: document.getElementById("f-name").value.trim(),
-            category: document.getElementById("f-category").value,
-            district: document.getElementById("f-district").value,
-            address: document.getElementById("f-address").value.trim(),
-            description: document.getElementById("f-desc").value.trim(),
-            contact: document.getElementById("f-contact").value.trim(),
-            phone: document.getElementById("f-phone").value.trim(),
-            email: document.getElementById("f-email").value.trim(),
-            website: document.getElementById("f-website").value.trim(),
-            facilities: Array.from(
-              document.querySelectorAll("#facilities-tags input:checked"),
-            ).map(function (cb) {
-              return cb.value;
-            }),
-          };
-
-          var plan = plans.find(function (p) {
-            return p.key === selectedPlan;
-          });
-          submissionData.planKey = selectedPlan;
-          submissionData.planLabel = plan ? plan.label : "Basic 基本計劃";
-          submissionData.planRate = plan ? plan.rate : 0.25;
-          submissionData.planFee = plan ? plan.fee : 0;
-        }
-
-        // ===== Submit =====
-        async function submitApplication() {
-          if (!validateStep(3)) return;
-          goStep(4);
-        }
-
-        async function finalSubmit() {
-          var btn = document.getElementById("confirm-btn");
-          if (!btn) return;
-          btn.disabled = true;
-          btn.textContent = "⏳ 提交中...";
-
-          collectionData();
-
-          try {
-            var resp = await fetch(API_BASE + "/partner/apply", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                name: submissionData.name,
-                category: submissionData.category,
-                district: submissionData.district,
-                address: submissionData.address,
-                description: submissionData.description,
-                contact_person: submissionData.contact,
-                phone: submissionData.phone,
-                email: submissionData.email,
-                website: submissionData.website,
-                commission_plan: submissionData.planKey,
-                logo_urls: uploadedPhotos,
-                facilities: submissionData.facilities,
-              }),
-            });
-            var data = await resp.json();
-            if (resp.ok) {
-              showSuccess(data.reference || data.id);
-              return;
-            }
-            document.getElementById("confirm-msg").textContent =
-              data.error || "提交失敗";
-            document.getElementById("confirm-msg").className = "msg error";
-            btn.disabled = false;
-            btn.textContent = "✅ 確認提交";
-          } catch (e) {
-            // API offline — save locally
-            try {
-              var apps = JSON.parse(
-                localStorage.getItem("zenpass_partner_apps") || "[]",
-              );
-              var localRef = "PENDING-" + Date.now().toString(36).toUpperCase();
-              apps.push({
-                id: localRef,
-                ...submissionData,
-                submitted_at: new Date().toISOString(),
-              });
-              localStorage.setItem(
-                "zenpass_partner_apps",
-                JSON.stringify(apps),
-              );
-              showSuccess(localRef);
-            } catch (e2) {
-              document.getElementById("confirm-msg").textContent =
-                "❌ 提交失敗，請稍後再試";
-              document.getElementById("confirm-msg").className = "msg error";
-              btn.disabled = false;
-              btn.textContent = "✅ 確認提交";
-            }
-          }
-        }
-
-        function showSuccess(ref) {
-          document.getElementById("apply-form").style.display = "none";
-          document.getElementById("success-card").style.display = "block";
-          document.getElementById("appRefDisplay").textContent = ref || "—";
-          document.getElementById("appRefNumber").textContent =
-            ref || "ZP-2024";
-        }
-
-        // ===== Utilities =====
-        function escHtml(s) {
-          if (!s) return "";
-          return String(s)
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/"/g, "&quot;");
-        }
-
-        function showMsg(text, type) {
-          var el = document.getElementById("apply-msg");
-          if (!el) return;
-          el.textContent = text;
-          el.className = "msg " + (type || "");
-        }
-      </script>
     </div>
 
-    <!-- ZenPass 統一頁腳 -->
-    <style>
-      .zp-footer {
-        background: linear-gradient(
-          135deg,
-          #1a1a2e 0%,
-          #2d2d44 50%,
-          #c94420 100%
-        );
-        color: rgba(255, 255, 255, 0.6);
-        padding: 40px 16px 24px;
-        margin-top: 48px;
+    <script src="api.js?v=2"></script>
+    <script>
+      function getVal(id) { return (document.getElementById(id) || {}).value || ''; }
+      function showMsg(text, type) {
+        var el = document.getElementById('form-msg');
+        el.textContent = text;
+        el.className = 'msg ' + (type || '');
       }
-      .zp-footer a {
-        color: rgba(255, 255, 255, 0.6);
-        text-decoration: none;
-        transition: color 0.2s;
-        font-size: 13px;
-      }
-      .zp-footer a:hover {
-        color: #fff;
-      }
-      .zp-footer-inner {
-        max-width: 1200px;
-        margin: 0 auto;
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 32px;
-      }
-      @media (min-width: 768px) {
-        .zp-footer-inner {
-          grid-template-columns: 1.5fr 1fr 1fr 1fr;
-        }
-      }
-      .zp-footer-title {
-        color: #fff;
-        font-size: 14px;
-        font-weight: 700;
-        margin-bottom: 12px;
-      }
-      .zp-footer ul {
-        list-style: none;
-        padding: 0;
-        margin: 0;
-      }
-      .zp-footer ul li {
-        margin-bottom: 6px;
-      }
-      .zp-footer-brand-desc {
-        font-size: 12px;
-        line-height: 1.6;
-      }
-      .zp-footer-social {
-        display: flex;
-        gap: 8px;
-        margin-top: 12px;
-      }
-      .zp-footer-social a {
-        width: 32px;
-        height: 32px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 50%;
-        background: rgba(255, 255, 255, 0.1);
-        font-size: 14px;
-        transition: background 0.2s;
-      }
-      .zp-footer-social a:hover {
-        background: rgba(255, 255, 255, 0.25);
-      }
-      .zp-footer-bottom {
-        max-width: 1200px;
-        margin: 24px auto 0;
-        padding-top: 16px;
-        border-top: 1px solid rgba(255, 255, 255, 0.1);
-        text-align: center;
-        font-size: 11px;
-        color: rgba(255, 255, 255, 0.3);
-      }
-    </style>
 
-    <!-- 統一頁腳 Canonical (以原版首頁為標準) -->
-    <style>
-      .footer-grad {
-        background: linear-gradient(
-          135deg,
-          #1a1a2e 0%,
-          #2d2d44 50%,
-          #c94420 100%
-        );
+      function getFacilities() {
+        return Array.from(
+          document.querySelectorAll('#facilitiesTags input:checked')
+        ).map(function(cb) { return cb.value; });
       }
-      .footer-grad .footer-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 24px;
-        max-width: 400px;
-        margin: 0 auto;
-      }
-      @media (min-width: 768px) {
-        .footer-grad .footer-grid {
-          grid-template-columns: 1fr 1fr 1fr 1fr;
-          max-width: 720px;
-        }
-      }
-      .footer-grad .footer-section-title {
-        color: rgba(255, 255, 255, 0.5);
-        font-size: 11px;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        margin-bottom: 10px;
-      }
-      .footer-grad ul {
-        list-style: none;
-        padding: 0;
-        margin: 0;
-      }
-      .footer-grad li {
-        margin-bottom: 6px;
-      }
-      .footer-link {
-        color: rgba(255, 255, 255, 0.6);
-        text-decoration: none;
-        transition: color 0.2s;
-        font-size: 13px;
-      }
-      .footer-link:hover {
-        color: white;
-      }
-      .back-to-top {
-        position: fixed;
-        bottom: 80px;
-        right: 16px;
-        width: 44px;
-        height: 44px;
-        border-radius: 50%;
-        background: var(--orange-600-bg, #c94420);
-        color: #fff;
-        border: none;
-        font-size: 20px;
-        cursor: pointer;
-        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
-        z-index: 999;
-        opacity: 0;
-        transform: translateY(20px);
-        transition:
-          opacity 0.3s,
-          transform 0.3s;
-        pointer-events: none;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-      .back-to-top.visible {
-        opacity: 1;
-        transform: translateY(0);
-        pointer-events: auto;
-      }
-      .back-to-top:hover {
-        background: #aa3218;
-      }
-    </style>
-    <!-- SEO -->
-    
-    <meta name="description" content="成為 ZenPass 合作場地，拓展你的運動業務。">
-    <meta name="twitter:card" content="summary_large_image">
-    <!-- Footer & Back-to-Top Styles -->
-    <style>
-      .footer-grad {
-        background: linear-gradient(135deg, #1a1a2e 0%, #2d2d44 50%, #c94420 100%);
-      }
-      .footer-grad .footer-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 24px;
-        max-width: 400px;
-        margin: 0 auto;
-        padding: 40px 16px 0;
-      }
-      @media (min-width: 768px) {
-        .footer-grad .footer-grid {
-          grid-template-columns: 1fr 1fr 1fr 1fr;
-          max-width: 720px;
-        }
-      }
-      .footer-grad .footer-section-title {
-        color: rgba(255,255,255,0.5);
-        font-size: 11px;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        margin-bottom: 10px;
-      }
-      .footer-grad ul {
-        list-style: none;
-        padding: 0;
-        margin: 0;
-      }
-      .footer-grad li {
-        margin-bottom: 6px;
-      }
-      .footer-link {
-        color: rgba(255,255,255,0.6);
-        text-decoration: none;
-        transition: color 0.2s;
-        font-size: 13px;
-      }
-      .footer-link:hover {
-        color: #fff;
-      }
-      .back-to-top {
-        position: fixed;
-        bottom: 80px;
-        right: 16px;
-        width: 44px;
-        height: 44px;
-        border-radius: 50%;
-        background: var(--orange-600-bg, #c94420);
-        color: #fff;
-        border: none;
-        font-size: 20px;
-        cursor: pointer;
-        box-shadow: 0 2px 12px rgba(0,0,0,0.2);
-        z-index: 999;
-        opacity: 0;
-        transform: translateY(20px);
-        transition: opacity 0.3s, transform 0.3s;
-        pointer-events: none;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-      .back-to-top.visible {
-        opacity: 1;
-        transform: translateY(0);
-        pointer-events: auto;
-      }
-      .back-to-top:hover {
-        background: #aa3218;
-      }
-    </style>
 
-    <footer class="footer-grad">
-      <div class="footer-grid">
-        <div style="grid-column: span 2">
-          <div
-            style="
-              color: white;
-              font-weight: 700;
-              font-size: 14px;
-              margin-bottom: 6px;
-            "
-          >
-            🧘 ZenPass 禪流
-          </div>
-          <div
-            style="
-              font-size: 12px;
-              line-height: 1.6;
-              color: rgba(255, 255, 255, 0.6);
-            "
-          >
-            一個Pass，通行全城運動體驗。<br />香港康樂及體育有限公司
-          </div>
-        </div>
-        <div>
-          <div class="footer-section-title">探索</div>
-          <ul>
-            <li><a href="explore.html" class="footer-link">探索課程</a></li>
-            <li><a href="coaches.html" class="footer-link">星級教練</a></li>
-            <li><a href="membership.html" class="footer-link">會籍方案</a></li>
-            <li><a href="coach-apply.html" class="footer-link">成為教練</a></li>
-            <li>
-              <a href="partner-apply.html" class="footer-link">場地加盟</a>
-            </li>
-          </ul>
-        </div>
-        <div>
-          <div class="footer-section-title">支援</div>
-          <ul>
-            <li><a href="faq.html" class="footer-link">常見問題</a></li>
-            <li><a href="corporate-guide.html" class="footer-link">企業計劃</a></li>
-            <li><a href="privacy.html" class="footer-link">私隱政策</a></li>
-            <li><a href="terms.html" class="footer-link">服務條款</a></li>
-            <li><a href="about.html" class="footer-link">關於我們</a></li>
-          </ul>
-        </div>
-        <div>
-          <div class="footer-section-title">聯絡我們</div>
-          <ul>
-            <li style="margin-bottom: 4px">📧 support@zenpass.hk</li>
-            <li style="margin-bottom: 4px">📞 2387 0724</li>
-            <li style="margin-bottom: 4px">📍 香港九龍觀塘</li>
-          </ul>
-          <div style="display: flex; gap: 8px; margin-top: 10px">
-            <a
-              href="https://www.instagram.com/zenpass_hk"
-              style="
-                width: 32px;
-                height: 32px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                border-radius: 50%;
-                background: rgba(255, 255, 255, 0.1);
-                font-size: 14px;
-                text-decoration: none;
-              "
-              >📸</a
-            >
-            <a
-              href="https://www.facebook.com/zenpass.hk"
-              style="
-                width: 32px;
-                height: 32px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                border-radius: 50%;
-                background: rgba(255, 255, 255, 0.1);
-                font-size: 14px;
-                text-decoration: none;
-              "
-              >👍</a
-            >
-            <a
-              href="https://wa.me/85290335538"
-              style="
-                width: 32px;
-                height: 32px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                border-radius: 50%;
-                background: rgba(255, 255, 255, 0.1);
-                font-size: 14px;
-                text-decoration: none;
-              "
-              >💬</a
-            >
-            <a
-              href="https://hklfcl.com"
-              style="
-                width: 32px;
-                height: 32px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                border-radius: 50%;
-                background: rgba(255, 255, 255, 0.1);
-                font-size: 14px;
-                text-decoration: none;
-              "
-              >🏛️</a
-            >
-          </div>
-        </div>
-      </div>
-      <div
-        style="
-          max-width: 400px;
-          margin: 24px auto 0;
-          padding-top: 16px;
-          border-top: 1px solid rgba(255, 255, 255, 0.1);
-          text-align: center;
-          font-size: 11px;
-          color: rgba(255, 255, 255, 0.3);
-        "
-      >
-        &copy; 2026 ZenPass 禪流 · 香港康樂及體育有限公司 · All rights reserved.
-      </div>
-    </footer>
+      function validate() {
+        if (!getVal('f-name')) { showMsg('請輸入場地名稱', 'error'); return false; }
+        if (!getVal('f-category')) { showMsg('請選擇場地類別', 'error'); return false; }
+        if (!getVal('f-district')) { showMsg('請選擇地區', 'error'); return false; }
+        if (!getVal('f-contact')) { showMsg('請輸入聯絡人姓名', 'error'); return false; }
+        if (!getVal('f-phone')) { showMsg('請輸入聯絡電話', 'error'); return false; }
+        if (!getVal('f-email')) { showMsg('請輸入電郵地址', 'error'); return false; }
+        return true;
+      }
 
-    <button
-      class="back-to-top"
-      id="backToTop"
-      onclick="window.scrollTo({ top: 0, behavior: 'smooth' })"
-      aria-label="返回頂部"
-    >
-      ↑
-    </button>
-  <script src="js/nav.js"></script>
-</body>
+      async function handleSubmit() {
+        if (!validate()) return;
+        var btn = document.getElementById('submitBtn');
+        btn.disabled = true;
+        btn.textContent = '⏳ 登記中...';
+        showMsg('', '');
+
+        var payload = {
+          name: getVal('f-name'),
+          category: getVal('f-category'),
+          district: getVal('f-district'),
+          address: getVal('f-address'),
+          description: getVal('f-desc'),
+          contact_person: getVal('f-contact'),
+          phone: getVal('f-phone'),
+          email: getVal('f-email'),
+          website: getVal('f-website'),
+          facilities: getFacilities(),
+          commission_plan: 'free',
+        };
+
+        try {
+          var resp = await fetch(API_BASE + '/partner/apply', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+          var data = await resp.json();
+
+          if (resp.ok && data.success) {
+            document.getElementById('successName').textContent = payload.name;
+            document.getElementById('formContainer').style.display = 'none';
+            document.getElementById('successCard').style.display = 'block';
+
+            // Auto-login: redirect to partner dashboard
+            var token = localStorage.getItem('zenpass_token');
+            if (token) {
+              // Already logged in — offer dashboard
+              document.querySelector('.success-card .primary-link').href = 'partner-dashboard.html';
+            }
+            return;
+          }
+
+          showMsg(data.error || data.message || '登記失敗，請稍後再試', 'error');
+        } catch (e) {
+          console.error('partner apply error:', e);
+          // Fallback: save locally
+          try {
+            var apps = JSON.parse(localStorage.getItem('zenpass_partner_apps') || '[]');
+            apps.push({ id: 'LOCAL-' + Date.now(), ...payload, submitted_at: new Date().toISOString() });
+            localStorage.setItem('zenpass_partner_apps', JSON.stringify(apps));
+            document.getElementById('successName').textContent = payload.name;
+            document.getElementById('formContainer').style.display = 'none';
+            document.getElementById('successCard').style.display = 'block';
+            return;
+          } catch(e2) {
+            showMsg('❌ 登記失敗，請稍後再試', 'error');
+          }
+        }
+
+        btn.disabled = false;
+        btn.textContent = '🚀 免費登記 — 即時啟用';
+      }
+    </script>
+  </body>
 </html>

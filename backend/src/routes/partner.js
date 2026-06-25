@@ -32,31 +32,23 @@ const router = express.Router();
 const DB_PATH =
   process.env.DB_PATH || path.resolve(__dirname, "../../data/zenpass.db");
 
-// ===== 佣金計劃定義 =====
+// ===== 佣金計劃定義 (2026-06-26: 全面免費，吸引場地 onboard) =====
 const COMMISSION_PLANS = {
+  free: {
+    key: "free",
+    label: "Free",
+    labelZh: "免費計劃",
+    monthly_fee: 0,
+    commission_rate: 0,
+    description: "完全免費，不限課程數量，無隱藏收費",
+  },
   basic: {
     key: "basic",
     label: "Basic",
     labelZh: "基本計劃",
     monthly_fee: 0,
-    commission_rate: 0.25,
-    description: "適合小型工作室，無月費",
-  },
-  standard: {
-    key: "standard",
-    label: "Standard",
-    labelZh: "標準計劃",
-    monthly_fee: 388,
-    commission_rate: 0.18,
-    description: "適合中型場地，月費 $388",
-  },
-  premium: {
-    key: "premium",
-    label: "Premium",
-    labelZh: "高級計劃",
-    monthly_fee: 888,
-    commission_rate: 0.12,
-    description: "適合大型連鎖，月費 $888",
+    commission_rate: 0,
+    description: "完全免費，不限課程數量，無隱藏收費",
   },
 };
 
@@ -134,7 +126,7 @@ router.post("/apply", (req, res) => {
       return fail(res, "請填寫電郵地址", 400);
     }
 
-    const planKey = commission_plan || "basic";
+    const planKey = commission_plan || "free";
     const plan = getCommissionPlan(planKey);
 
     const db = new Database(DB_PATH);
@@ -160,7 +152,7 @@ router.post("/apply", (req, res) => {
       INSERT INTO partner_venues (id, partner_type, name, description, address, phone, email,
         contact_person, category, district, logo_url, website, facilities,
         commission_plan, commission_rate, status, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', datetime('now'), datetime('now'))
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', datetime('now'), datetime('now'))
     `,
     ).run(
       id,
@@ -187,8 +179,9 @@ router.post("/apply", (req, res) => {
       reference: refNumber,
       commission_plan: planKey,
       commission_rate: plan.commission_rate,
-      message: "已收到申請，我哋會喺 3 個工作天內聯絡你",
-      estimated_review_time: "1-3 個工作天",
+      status: 'active',
+      dashboard_url: '/partner-dashboard.html',
+      message: "🎉 登記成功！你嘅場地已自動啟用，而家可以開始加入課程",
     });
   } catch (err) {
     console.error("❌ partner/apply error:", err.message);
