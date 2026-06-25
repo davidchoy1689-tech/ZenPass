@@ -562,36 +562,6 @@
     <meta property="og:site_name" content="ZenPass 禪流" />
     <meta property="og:locale" content="zh_HK" />
     <meta name="twitter:card" content="summary_large_image" />
-  
-  <script>
-  (function() {
-    var _orig = window.renderCourseData || null;
-    window.renderCourseData = function(cls) {
-      if (_orig) _orig(cls);
-      var ogT = document.querySelector('meta[property="og:title"]');
-      var ogD = document.querySelector('meta[property="og:description"]');
-      if (ogT) ogT.setAttribute('content', cls.title + ' | ZenPass 禪流');
-      if (ogD) ogD.setAttribute('content', (cls.description || '') + ' - 預約 ' + cls.title);
-      document.title = cls.title + ' | ZenPass 禪流';
-      var old = document.getElementById('course-schema');
-      if (old) old.remove();
-      var s = document.createElement('script');
-      s.id = 'course-schema';
-      s.type = 'application/ld+json';
-      s.textContent = JSON.stringify({
-        '@context': 'https://schema.org',
-        '@type': 'Course',
-        'name': cls.title,
-        'description': cls.description || '',
-        'provider': { '@type': 'Organization', 'name': 'ZenPass 禪流', 'url': 'https://zenpass.hk' },
-        'offers': { '@type': 'Offer', 'price': cls.price_hkd || (cls.credits_cost || 4) * 8, 'priceCurrency': 'HKD', 'availability': 'https://schema.org/InStock' },
-        'timeRequired': 'PT' + (cls.duration || 60) + 'M',
-        'coursePrerequisites': cls.difficulty || 'beginner'
-      });
-      document.head.appendChild(s);
-    };
-  })();
-  </script>
   </head>
   <body>
     <div class="class-image" id="class-image">
@@ -2113,7 +2083,6 @@ var currentClass = null;
         updateNavBar();
       });
     </script>
-    <script></script>
     <script>
       (function () {
         var n = localStorage.getItem("zenpass_name");
