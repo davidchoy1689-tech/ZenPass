@@ -870,6 +870,9 @@
       var selectedSchedule = null;
       var schedulesData = [];
       var selectedPayment = "single";
+      // 👥 Team Booking（hold 住）
+      // var selectedTeammates = [];
+      // var teammatesLoaded = false;
 
       // ===== Load Class Detail =====
       async function loadClass() {
@@ -1368,10 +1371,7 @@
         if (!selectedSchedule) {
           btn.disabled = true;
           btn.textContent = "請選擇時段";
-          if (wlBtn) {
-            wlBtn.style.display = "none";
-          }
-          // ⚠️ Hide waiver when no schedule selected
+          if (wlBtn) wlBtn.style.display = "none";
           var ws = document.getElementById("waiver-checkbox");
           if (ws) ws.style.display = "none";
           return;

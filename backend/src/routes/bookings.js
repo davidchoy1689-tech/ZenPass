@@ -6,6 +6,7 @@ const express = require("express");
 const { v4: uuidv4 } = require("uuid");
 const Database = require("better-sqlite3");
 const { authenticateToken } = require("../middleware/auth");
+const { scalpGuard } = require("../middleware/anti-scalping");
 const { validate, schemas } = require("../middleware/validate");
 
 const { sendNotification } = require("../services/notification");
@@ -36,6 +37,7 @@ function generateBookingRef() {
 router.post(
   "/",
   authenticateToken,
+  scalpGuard,
   requireIdempotency,
   validate(schemas.booking),
   (req, res) => {
@@ -355,6 +357,10 @@ router.post(
           : []),
       );
 
+      // 👥 Team Booking：同伴清單（hold 住，有需要時啟用）
+      // if (req.body.teammate_ids && Array.isArray(req.body.teammate_ids) && req.body.teammate_ids.length > 0) {
+      //   ... }
+
       // 讀取課程/教練/時間資料（用於通知同 response）
       let classInfo, coachInfo, scheduleTimes;
       try {
@@ -588,6 +594,7 @@ router.get("/my", authenticateToken, (req, res) => {
 router.post(
   "/:id/complete-payment",
   authenticateToken,
+  scalpGuard,
   requireIdempotency,
   validate(schemas.payment_confirm),
   (req, res) => {
@@ -707,7 +714,7 @@ router.post(
 );
 
 // ===== POST /api/bookings/:id/cancel — 取消預約 =====
-router.post("/:id/cancel", authenticateToken, (req, res) => {
+router.post("/:id/cancel", authenticateToken, scalpGuard, (req, res) => {
   try {
     const db = new Database(DB_PATH);
     db.pragma("foreign_keys = ON");
@@ -1262,6 +1269,59 @@ router.post("/checkin", authenticateToken, (req, res) => {
   }
 });
 
+
+// ===== Booking 同伴路線（hold 住，有需要時啟用）=====
+/*
+// GET /api/bookings/:bookingId/teammates — 取得 booking 嘅同伴
+router.get("/:bookingId/teammates", authenticateToken, (req, res) => {
+  try {
+    const db = new Database(DB_PATH);
+    const booking = db.prepare("SELECT id, user_id FROM bookings WHERE id = ?").get(req.params.bookingId);
+    if (!booking) { db.close(); return res.status(404).json({ error: "預約不存在" }); }
+    if (booking.user_id !== req.user.id && req.user.role !== "admin") { db.close(); return res.status(403).json({ error: "無權限查看" }); }
+    const teammates = db.prepare("SELECT bt.id, bt.name, bt.phone, bt.status, bt.checked_in_at FROM booking_teammates bt WHERE bt.booking_id = ? ORDER BY bt.id").all(req.params.bookingId);
+    db.close(); res.json({ teammates });
+  } catch (err) {
+    console.error("獲取 booking 同伴錯誤:", err.message);
+    res.status(500).json({ error: "獲取同伴資料失敗" });
+  }
+});
+
+// POST /api/bookings/:bookingId/checkin-teammate/:teammateId — 團體簽到（簽到一個同伴）
+router.post("/:bookingId/checkin-teammate/:teammateId", authenticateToken, (req, res) => {
+  try {
+    const db = new Database(DB_PATH);
+    const booking = db.prepare("SELECT id, user_id FROM bookings WHERE id = ?").get(req.params.bookingId);
+    if (!booking) { db.close(); return res.status(404).json({ error: "預約不存在" }); }
+    if (booking.user_id !== req.user.id && req.user.role !== "admin") { db.close(); return res.status(403).json({ error: "無權限操作" }); }
+    const teammate = db.prepare("SELECT id, status FROM booking_teammates WHERE id = ? AND booking_id = ?").get(req.params.teammateId, req.params.bookingId);
+    if (!teammate) { db.close(); return res.status(404).json({ error: "同伴不存在" }); }
+    if (teammate.status === "attended") { db.close(); return res.json({ message: "同伴已簽到", already_checked_in: true }); }
+    db.prepare("UPDATE booking_teammates SET status = 'attended', checked_in_at = datetime('now') WHERE id = ? AND status != 'attended'").run(req.params.teammateId);
+    db.close();
+    res.json({ message: "✅ 同伴簽到成功", teammate_id: req.params.teammateId });
+  } catch (err) {
+    console.error("團體簽到錯誤:", err.message);
+    res.status(500).json({ error: "簽到失敗" });
+  }
+});
+
+// POST /api/bookings/:bookingId/bulk-checkin — 一次過簽到所有同伴
+router.post("/:bookingId/bulk-checkin", authenticateToken, (req, res) => {
+  try {
+    const db = new Database(DB_PATH);
+    const booking = db.prepare("SELECT id, user_id FROM bookings WHERE id = ?").get(req.params.bookingId);
+    if (!booking) { db.close(); return res.status(404).json({ error: "預約不存在" }); }
+    if (booking.user_id !== req.user.id && req.user.role !== "admin") { db.close(); return res.status(403).json({ error: "無權限操作" }); }
+    const result = db.prepare("UPDATE booking_teammates SET status = 'attended', checked_in_at = datetime('now') WHERE booking_id = ? AND status != 'attended'").run(req.params.bookingId);
+    db.close();
+    res.json({ message: `✅ 已簽到 ${result.changes} 位同伴`, count: result.changes });
+  } catch (err) {
+    console.error("批量簽到錯誤:", err.message);
+    res.status(500).json({ error: "批量簽到失敗" });
+  }
+});
+*/
 
 module.exports = router;
 // ===== POST /api/bookings/:id/no-show =====

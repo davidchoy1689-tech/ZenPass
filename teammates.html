@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <meta name="theme-color" content="#f06030" />
+  <title>我的同伴 — ZenPass 禪流</title>
+  <link rel="stylesheet" href="css/zenpass.css" />
+  <script src="api.js"></script>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:var(--font-zh); background:var(--gray-50); max-width:480px; margin:0 auto; min-height:100vh; padding-bottom:100px; }
+    .header { position:sticky; top:0; z-index:10; background:var(--white); padding:12px 16px; display:flex; align-items:center; gap:12px; border-bottom:1px solid var(--gray-200); }
+    .header .back { text-decoration:none; color:var(--dark-900); font-size:24px; line-height:1; }
+    .header h1 { font-size:18px; font-weight:700; flex:1; }
+    .header .add-btn { background:var(--orange-600-bg); color:white; border:none; padding:8px 16px; border-radius:20px; font-size:13px; cursor:pointer; font-family:var(--font-zh); }
+    .card { background:var(--white); border-radius:12px; margin:12px 16px; padding:16px; box-shadow:0 1px 3px rgba(0,0,0,0.06); display:flex; align-items:center; gap:12px; }
+    .card .avatar { width:44px; height:44px; border-radius:50%; background:var(--orange-100); display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0; }
+    .card .info { flex:1; }
+    .card .name { font-size:15px; font-weight:600; }
+    .card .detail { font-size:12px; color:var(--dark-700); margin-top:2px; }
+    .card .action { background:none; border:none; font-size:18px; cursor:pointer; padding:4px 8px; border-radius:8px; color:var(--gray-300); }
+    .card .action:hover { background:var(--gray-100); color:var(--red); }
+    .empty-state { text-align:center; padding:60px 20px; color:var(--dark-700); }
+    .empty-state span { font-size:48px; display:block; margin-bottom:12px; }
+    .modal-overlay { position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; z-index:100; padding:20px; }
+    .modal { background:var(--white); border-radius:16px; padding:24px; width:100%; max-width:380px; }
+    .modal h2 { font-size:18px; margin-bottom:16px; }
+    .form-group { margin-bottom:12px; }
+    .form-group label { display:block; font-size:13px; font-weight:600; margin-bottom:4px; color:var(--dark-700); }
+    .form-group input { width:100%; padding:10px 12px; border:1px solid var(--gray-200); border-radius:8px; font-size:14px; font-family:var(--font-zh); }
+    .form-group input:focus { outline:none; border-color:var(--orange-600-bg); }
+    .btn { background:var(--orange-600-bg); color:white; border:none; padding:12px; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer; font-family:var(--font-zh); width:100%; }
+    .btn:hover { opacity:0.9; }
+    .btn:disabled { opacity:0.5; cursor:not-allowed; }
+    .btn-secondary { background:var(--gray-100); color:var(--dark-900); margin-top:8px; }
+    .msg { text-align:center; margin-top:10px; font-size:13px; padding:8px; border-radius:6px; }
+    .msg.success { background:#ecfdf5; color:#059669; }
+    .msg.error { background:#fef2f2; color:var(--red); }
+    .loading { text-align:center; padding:30px; color:var(--dark-700); }
+    .bottom-nav { position:fixed; bottom:0; left:50%; transform:translateX(-50%); width:100%; max-width:480px; background:var(--white); border-top:1px solid var(--gray-200); display:flex; justify-content:space-around; padding:8px 0 calc(8px + env(safe-area-inset-bottom)); z-index:100; }
+    .nav-item { display:flex; flex-direction:column; align-items:center; text-decoration:none; color:var(--gray-300); font-size:10px; gap:2px; padding:4px 12px; }
+    .nav-item.active { color:var(--orange-700); }
+    .nav-item .nav-icon { font-size:22px; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <a href="my.html" class="back">←</a>
+    <h1>我的同伴</h1>
+    <button class="add-btn" onclick="showAddModal()">+ 新增</button>
+  </div>
+  <div id="teammateList"></div>
+
+  <!-- Add/Edit Modal -->
+  <div id="modalOverlay" class="modal-overlay" style="display:none">
+    <div class="modal">
+      <h2 id="modalTitle">新增同伴</h2>
+      <div class="form-group">
+        <label>姓名 *</label>
+        <input id="inputName" placeholder="例如：陳小明" />
+      </div>
+      <div class="form-group">
+        <label>電話</label>
+        <input id="inputPhone" placeholder="5XXXXXXX" />
+      </div>
+      <div class="form-group">
+        <label>備註</label>
+        <input id="inputNotes" placeholder="例如：同事／同學" />
+      </div>
+      <button class="btn" id="submitBtn" onclick="saveTeammate()">儲存</button>
+      <button class="btn btn-secondary" onclick="closeModal()">取消</button>
+      <div id="modalMsg"></div>
+    </div>
+  </div>
+
+  <!-- Bottom Nav -->
+  <div class="bottom-nav">
+    <a href="explore.html" class="nav-item"><span class="nav-icon">🧘</span>探索</a>
+    <a href="my-bookings.html" class="nav-item"><span class="nav-icon">📋</span>預約</a>
+    <a href="my.html" class="nav-item active"><span class="nav-icon">👤</span>我的</a>
+  </div>
+
+  <script>
+    let teammates = [];
+    let editingId = null;
+
+    async function loadTeammates() {
+      const list = document.getElementById('teammateList');
+      list.innerHTML = '<div class="loading">載入中...</div>';
+
+      try {
+        const res = await api.get('/me/teammates');
+        const data = await res.json();
+        teammates = data.teammates || [];
+
+        if (teammates.length === 0) {
+          list.innerHTML = '<div class="empty-state"><span>👥</span>未有同伴<br><small>按右上角「+ 新增」加入同伴</small></div>';
+          return;
+        }
+
+        list.innerHTML = teammates.map(t => `
+          <div class="card">
+            <div class="avatar">👤</div>
+            <div class="info">
+              <div class="name">${escHtml(t.name)}</div>
+              <div class="detail">${t.phone ? '📞 ' + escHtml(t.phone) : ''}${t.notes ? ' · ' + escHtml(t.notes) : ''}</div>
+            </div>
+            <button class="action" onclick="deleteTeammate(${t.id})" title="刪除">✕</button>
+          </div>
+        `).join('');
+      } catch (err) {
+        list.innerHTML = '<div class="empty-state"><span>⚠️</span>載入失敗<br><small>請確認已登入</small></div>';
+      }
+    }
+
+    function showAddModal(teammate) {
+      editingId = teammate?.id || null;
+      document.getElementById('modalTitle').textContent = editingId ? '編輯同伴' : '新增同伴';
+      document.getElementById('inputName').value = teammate?.name || '';
+      document.getElementById('inputPhone').value = teammate?.phone || '';
+      document.getElementById('inputNotes').value = teammate?.notes || '';
+      document.getElementById('modalMsg').textContent = '';
+      document.getElementById('modalOverlay').style.display = 'flex';
+    }
+
+    function closeModal() { document.getElementById('modalOverlay').style.display = 'none'; }
+
+    async function saveTeammate() {
+      const name = document.getElementById('inputName').value.trim();
+      if (!name) { document.getElementById('modalMsg').className = 'msg error'; document.getElementById('modalMsg').textContent = '請輸入姓名'; return; }
+
+      const btn = document.getElementById('submitBtn');
+      btn.disabled = true; btn.textContent = '儲存中...';
+      document.getElementById('modalMsg').textContent = '';
+
+      try {
+        if (editingId) {
+          await api.put('/me/teammates/' + editingId, { name, phone: document.getElementById('inputPhone').value.trim(), notes: document.getElementById('inputNotes').value.trim() });
+        } else {
+          await api.post('/me/teammates', { name, phone: document.getElementById('inputPhone').value.trim(), notes: document.getElementById('inputNotes').value.trim() });
+        }
+        closeModal();
+        loadTeammates();
+      } catch (err) {
+        document.getElementById('modalMsg').className = 'msg error';
+        document.getElementById('modalMsg').textContent = '儲存失敗';
+      }
+      btn.disabled = false; btn.textContent = '儲存';
+    }
+
+    async function deleteTeammate(id) {
+      if (!confirm('確定刪除此同伴？')) return;
+      try {
+        await api.delete('/me/teammates/' + id);
+        loadTeammates();
+      } catch (err) { alert('刪除失敗'); }
+    }
+
+    function escHtml(s) {
+      const d = document.createElement('div');
+      d.textContent = s || '';
+      return d.innerHTML;
+    }
+
+    // Close modal on overlay click
+    document.getElementById('modalOverlay').addEventListener('click', function(e) {
+      if (e.target === this) closeModal();
+    });
+
+    loadTeammates();
+  </script>
+</body>
+</html>

@@ -148,6 +148,50 @@ function initDatabase() {
     // ignore if table already exists
   }
 
+  // 附加欄位：team_booking_id（相容升級）
+  try {
+    const cols = db.prepare("PRAGMA table_info('bookings')").all();
+    if (!cols.find((c) => c.name === "team_booking_id")) {
+      db.exec("ALTER TABLE bookings ADD COLUMN team_booking_id TEXT DEFAULT NULL");
+    }
+  } catch (e) {}
+
+  // ===== 用戶同伴列表 =====
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS user_teammates (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id TEXT NOT NULL,
+      name TEXT NOT NULL,
+      phone TEXT,
+      email TEXT,
+      notes TEXT DEFAULT '',
+      created_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    );
+  `);
+  try {
+    db.exec("CREATE INDEX IF NOT EXISTS idx_teammates_user ON user_teammates(user_id)");
+  } catch (e) {}
+
+  // ===== 預約同伴（Team Booking 關聯）=====
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS booking_teammates (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      booking_id TEXT NOT NULL,
+      teammate_id INTEGER,
+      name TEXT NOT NULL,
+      phone TEXT,
+      status TEXT DEFAULT 'pending' CHECK(status IN ('pending','confirmed','attended','cancelled','no_show')),
+      checked_in_at TEXT,
+      created_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE CASCADE,
+      FOREIGN KEY (teammate_id) REFERENCES user_teammates(id)
+    );
+  `);
+  try {
+    db.exec("CREATE INDEX IF NOT EXISTS idx_booking_teammates_booking ON booking_teammates(booking_id)");
+  } catch (e) {}
+
   // ===== 會籍表 =====
   db.exec(`
     CREATE TABLE IF NOT EXISTS memberships (
@@ -1176,6 +1220,60 @@ function initDatabase() {
   try {
     db.exec("CREATE INDEX IF NOT EXISTS idx_coach_ratings_coach ON coach_ratings(coach_id)");
     db.exec("CREATE INDEX IF NOT EXISTS idx_coach_ratings_user ON coach_ratings(user_id)");
+  } catch (e) {}
+
+  // ===== Anti-Scalping 反炒場系統表 =====
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS suspicious_activity (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id TEXT,
+      ip_address TEXT,
+      action_type TEXT NOT NULL,
+      score INTEGER NOT NULL DEFAULT 1,
+      reason TEXT,
+      details TEXT DEFAULT '{}',
+      created_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    );
+  `);
+  try {
+    db.exec("CREATE INDEX IF NOT EXISTS idx_suspicious_user ON suspicious_activity(user_id)");
+    db.exec("CREATE INDEX IF NOT EXISTS idx_suspicious_ip ON suspicious_activity(ip_address)");
+    db.exec("CREATE INDEX IF NOT EXISTS idx_suspicious_created ON suspicious_activity(created_at)");
+  } catch (e) {}
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS user_suspensions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active', 'expired', 'lifted')),
+      reason TEXT NOT NULL,
+      expires_at TEXT NOT NULL,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT,
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    );
+  `);
+  try {
+    db.exec("CREATE INDEX IF NOT EXISTS idx_suspensions_user ON user_suspensions(user_id)");
+    db.exec("CREATE INDEX IF NOT EXISTS idx_suspensions_status ON user_suspensions(status)");
+  } catch (e) {}
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS request_log (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id TEXT,
+      ip_address TEXT,
+      path TEXT,
+      method TEXT,
+      created_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    );
+  `);
+  try {
+    db.exec("CREATE INDEX IF NOT EXISTS idx_request_log_user ON request_log(user_id)");
+    db.exec("CREATE INDEX IF NOT EXISTS idx_request_log_ip ON request_log(ip_address)");
+    db.exec("CREATE INDEX IF NOT EXISTS idx_request_log_created ON request_log(created_at)");
   } catch (e) {}
 
   // IPO audit log migration
