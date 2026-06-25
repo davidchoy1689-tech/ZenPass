@@ -78,7 +78,7 @@ app.use(
 
 // Security headers (Helmet) — 有啲 inline script/style 用 nonce 處理
 app.use(
-  helmet({
+  helmet({hsts:false,
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
