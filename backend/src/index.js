@@ -88,8 +88,9 @@ app.use(
           "'unsafe-eval'",
           "https://www.googletagmanager.com",
           "https://cdn.jsdelivr.net",
+          "https://unpkg.com",
         ],
-        styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
+        styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://unpkg.com"],
         imgSrc: ["'self'", "data:", "https:"],
         connectSrc: ["'self'", "https://zenpass.hk", "https://www.zenpass.hk"],
         fontSrc: ["'self'", "https://cdn.jsdelivr.net"],
@@ -115,6 +116,16 @@ app.use("/admin.html", (req, res, next) => {
 app.use(express.static(path.join(__dirname, "../../frontend")));
 // admin files served from frontend/admin/ via root static middleware
 app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
+
+// ===== 反炒場中介軟體（放在 rate limiter 之後）=====
+const { antiScalping, scalpGuard, getSuspensionRoutes } = require("./middleware/anti-scalping");
+
+// 針對 booking 相關 endpoint 啟用反炒場
+app.use("/api/bookings", antiScalping);
+
+// 反炒場管理 API（只限 admin）
+const { authenticateToken, requireAdmin } = require("./middleware/auth");
+app.use("/api/anti-scalping", authenticateToken, requireAdmin, getSuspensionRoutes());
 
 // Rate limiting
 const limiter = rateLimit({
@@ -146,6 +157,8 @@ app.use("/api", responseNormalizer);
 // ===== 路由 =====
 app.use("/api/auth", require("./routes/auth"));
 app.use("/api/users", require("./routes/users"));
+// 👥 團隊預訂（hold 住，有需要時 uncomment）
+// app.use("/api/me/teammates", require("./routes/teammates"));
 app.use("/api/classes", require("./routes/classes"));
 app.use("/api/bookings", require("./routes/bookings"));
 app.use("/api/coach", require("./routes/coach"));
@@ -172,6 +185,7 @@ app.use("/api/reporting", require("./routes/reporting"));
 app.use("/api/referral", require("./routes/referral"));
 app.use("/api/loyalty", require("./routes/referral"));
 app.use("/api/partner", require("./routes/partner"));
+app.use("/api/crawler", require("./routes/crawler"));
 app.use("/api/recommendations", require("./routes/recommendations"));
 app.use("/api/track", require("./routes/recommendations"));
 app.use("/api/pricing", require("./routes/pricing"));
