@@ -32,6 +32,33 @@ const router = express.Router();
 const DB_PATH =
   process.env.DB_PATH || path.resolve(__dirname, "../../data/zenpass.db");
 
+// ===== 合作夥伴編號生成器 — 永久追溯用 =====
+function generatePartnerReference() {
+  const dbb = new Database(DB_PATH);
+  const max = dbb
+    .prepare(
+      "SELECT MAX(CAST(SUBSTR(partner_reference, 4) AS INTEGER)) as m FROM partner_venues WHERE partner_reference GLOB 'PT-[0-9]*'",
+    )
+    .get().m || 0;
+  dbb.close();
+  return "PT-" + String(max + 1).padStart(4, "0");
+}
+
+// ===== 區塊鏈式 hash — 追溯 partner 建立/審批記錄 =====
+function partnerBlockchainHash({ venueId, reference, action, performedBy, data }) {
+  try {
+    const { writeBlock } = require("../services/blockchain-audit");
+    return writeBlock({
+      entityType: "partner_venue",
+      entityId: venueId,
+      data: JSON.stringify({ reference, action, performedBy, data, timestamp: new Date().toISOString() }),
+    });
+  } catch (e) {
+    console.error("[PARTNER-BLOCKCHAIN] Error:", e.message);
+    return { error: e.message };
+  }
+}
+
 // ===== 佣金計劃定義 (2026-06-26: 全面免費，吸引場地 onboard) =====
 const COMMISSION_PLANS = {
   free: {
@@ -338,11 +365,24 @@ router.post(
           finalRate = getCommissionPlan(finalPlan).commission_rate;
         }
 
+        // 生成區塊鏈可追溯的機構編號
+        const partnerRef = venue.partner_reference || generatePartnerReference();
+
         db.prepare(
           `UPDATE partner_venues SET status = 'active',
             commission_plan = ?, commission_rate = ?,
+            partner_reference = COALESCE(partner_reference, ?),
             updated_at = ? WHERE id = ?`,
-        ).run(finalPlan, finalRate, now, venue_id);
+        ).run(finalPlan, finalRate, partnerRef, now, venue_id);
+
+        // 寫入區塊鏈 — 永久記錄審批事件
+        partnerBlockchainHash({
+          venueId: venue_id,
+          reference: partnerRef,
+          action: "approved",
+          performedBy: req.user?.email || req.user?.id || "system",
+          data: { plan: finalPlan, rate: finalRate },
+        });
 
         db.close();
 
@@ -351,6 +391,7 @@ router.post(
         return ok(res, {
           message: "已通過申請，商戶可以開始使用平台",
           venue_id,
+          partner_reference: partnerRef,
           status: "active",
           commission_plan: finalPlan,
           commission_rate: finalRate,

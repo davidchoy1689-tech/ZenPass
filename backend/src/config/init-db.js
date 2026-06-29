@@ -1379,6 +1379,10 @@ function initDatabase() {
   // 相容升級：plan_id on memberships
   try { db.exec("ALTER TABLE memberships ADD COLUMN plan_id TEXT"); } catch (e) {}
 
+  // 相容升級：partner_reference on partner_venues（區塊鏈追溯用）
+  try { db.exec("ALTER TABLE partner_venues ADD COLUMN partner_reference TEXT"); } catch (e) {}
+  try { db.exec("CREATE INDEX IF NOT EXISTS idx_partner_reference ON partner_venues(partner_reference)"); } catch (e) {}
+
   console.log("✅ 數據庫初始化完成:", DB_PATH);
   db.close();
 }
