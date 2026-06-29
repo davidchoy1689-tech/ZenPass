@@ -14,16 +14,16 @@
     <style>
       :root {
         --orange-500: #ff6b35;
-        --orange-700: #aa3218;
-        --orange-600-bg: #c94420;
+        --orange-700: var(--orange-700);
+        --orange-600-bg: var(--orange-600-bg);
         --orange-400: #ff8555;
         --orange-100: #fff0e8;
         --orange-50: #fff8f4;
         --teal-600: #0d9488;
         --teal-50: #f0fdfa;
         --teal-100: #ccfbf1;
-        --dark-900: #1a1a2e;
-        --dark-800: #2d2d44;
+        --dark-900: var(--dark-900);
+        --dark-800: var(--dark-800);
         --dark-700: #6b7280;
         --gray-200: #e5e7eb;
         --gray-300: #888;
@@ -100,11 +100,44 @@
         margin-left: 6px;
       }
 
-      /* Bottom Nav */
-      
-      .nav-item .nav-icon {
+      /* Bottom Nav (partner dashboard) */
+      .p-dash-nav {
+        position: fixed;
+        bottom: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 100%;
+        max-width: var(--max-width, 480px);
+        background: var(--white);
+        border-top: 1px solid var(--gray-200);
+        display: flex;
+        padding: 4px 0;
+        padding-bottom: max(4px, env(safe-area-inset-bottom));
+        z-index: 999;
+      }
+      .p-dash-nav .nav-item {
+        flex: 1;
+        text-align: center;
+        padding: 6px 2px;
+        color: var(--dark-700);
+        font-size: 10px;
+        cursor: pointer;
+        background: none;
+        border: none;
+        font-family: var(--font-zh);
+        transition: color 0.15s;
+      }
+      .p-dash-nav .nav-item .nav-icon {
+        display: block;
         font-size: 20px;
         line-height: 1.2;
+        margin-bottom: 1px;
+      }
+      .p-dash-nav .nav-item.active {
+        color: var(--orange-600-bg);
+      }
+      .p-dash-nav .nav-item.active .nav-icon {
+        filter: brightness(0.8) sepia(1) hue-rotate(0deg) saturate(5);
       }
 
       /* Section/Tab */
@@ -882,6 +915,99 @@
           max-width: 1100px;
         }
       }
+
+      /* Dark mode */
+      html.dark body {
+        background: var(--gray-900);
+        color: var(--gray-50);
+      }
+      html.dark .p-header {
+        background: linear-gradient(135deg, var(--orange-700), var(--orange-600));
+      }
+      html.dark .p-header .venue-name {
+        color: rgba(255,255,255,0.6);
+      }
+      html.dark .card {
+        background: var(--gray-800);
+        box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+      }
+      html.dark .card-title {
+        color: var(--gray-50);
+      }
+      html.dark .card-title .count,
+      html.dark .card-subtitle {
+        color: var(--gray-300);
+      }
+      html.dark .stat-box {
+        background: var(--gray-800);
+        box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+      }
+      html.dark .stat-box .num {
+        color: var(--orange-400);
+      }
+      html.dark .stat-box .num.teal {
+        color: #2dd4bf;
+      }
+      html.dark .stat-box .num.green {
+        color: #34d399;
+      }
+      html.dark .stat-box .num.purple {
+        color: #a78bfa;
+      }
+      html.dark .stat-box .label {
+        color: var(--gray-300);
+      }
+      html.dark .booking-item {
+        background: var(--gray-700);
+        border-color: var(--gray-600);
+      }
+      html.dark .booking-item .b-class {
+        color: var(--gray-50);
+      }
+      html.dark .p-dash-nav {
+        background: var(--gray-800);
+        border-top-color: var(--gray-700);
+      }
+      html.dark .p-dash-nav .nav-item {
+        color: var(--gray-300);
+      }
+      html.dark .p-dash-nav .nav-item.active {
+        color: var(--orange-400);
+      }
+      html.dark .modal-content {
+        background: var(--gray-800);
+      }
+      html.dark .modal-content label {
+        color: var(--gray-200);
+      }
+      html.dark .modal-content input,
+      html.dark .modal-content select,
+      html.dark .modal-content textarea {
+        background: var(--gray-700);
+        border-color: var(--gray-600);
+        color: var(--gray-50);
+      }
+      html.dark .modal-content input:focus,
+      html.dark .modal-content select:focus {
+        border-color: var(--orange-500);
+      }
+      html.dark .section-title {
+        color: var(--gray-50);
+      }
+      html.dark .class-card {
+        background: var(--gray-800);
+        border-color: var(--gray-700);
+      }
+      html.dark .class-card .c-title {
+        color: var(--gray-50);
+      }
+      html.dark .class-card .c-meta {
+        color: var(--gray-300);
+      }
+      html.dark .tag,
+      html.dark .status-badge {
+        opacity: 0.9;
+      }
     </style>
     <script defer src="api.js?v=2"></script>
     <!-- Google tag (gtag.js) -->
@@ -1126,7 +1252,7 @@
     </div>
 
     <!-- Bottom Nav -->
-    <div class="bottom-nav" id="bottomNav">
+    <div class="p-dash-nav" id="pDashNav">
       <div class="nav-item active" data-tab="overview">
         <span class="nav-icon">📊</span>總覽
       </div>
@@ -1623,7 +1749,7 @@
         }
 
         // Build bottom nav
-        var nav = document.getElementById("bottomNav");
+        var nav = document.getElementById("pDashNav");
         nav.innerHTML = "";
         var icons = {
           overview: "📊",
@@ -2843,173 +2969,10 @@
       init();
     </script>
 
-    <!-- ZenPass 統一頁腳 -->
-    <style>
-      .zp-footer {
-        background: linear-gradient(
-          135deg,
-          #1a1a2e 0%,
-          #2d2d44 50%,
-          #c94420 100%
-        );
-        color: rgba(255, 255, 255, 0.6);
-        padding: 40px 16px 24px;
-        margin-top: 48px;
-      }
-      .zp-footer a {
-        color: rgba(255, 255, 255, 0.6);
-        text-decoration: none;
-        transition: color 0.2s;
-        font-size: 13px;
-      }
-      .zp-footer a:hover {
-        color: #fff;
-      }
-      .zp-footer-inner {
-        max-width: 1200px;
-        margin: 0 auto;
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 32px;
-      }
-      @media (min-width: 768px) {
-        .zp-footer-inner {
-          grid-template-columns: 1.5fr 1fr 1fr 1fr;
-        }
-      }
-      .zp-footer-title {
-        color: #fff;
-        font-size: 14px;
-        font-weight: 700;
-        margin-bottom: 12px;
-      }
-      .zp-footer ul {
-        list-style: none;
-        padding: 0;
-        margin: 0;
-      }
-      .zp-footer ul li {
-        margin-bottom: 6px;
-      }
-      .zp-footer-brand-desc {
-        font-size: 12px;
-        line-height: 1.6;
-      }
-      .zp-footer-social {
-        display: flex;
-        gap: 8px;
-        margin-top: 12px;
-      }
-      .zp-footer-social a {
-        width: 32px;
-        height: 32px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 50%;
-        background: rgba(255, 255, 255, 0.1);
-        font-size: 14px;
-        transition: background 0.2s;
-      }
-      .zp-footer-social a:hover {
-        background: rgba(255, 255, 255, 0.25);
-      }
-      .zp-footer-bottom {
-        max-width: 1200px;
-        margin: 24px auto 0;
-        padding-top: 16px;
-        border-top: 1px solid rgba(255, 255, 255, 0.1);
-        text-align: center;
-        font-size: 11px;
-        color: rgba(255, 255, 255, 0.3);
-      }
-    </style>
-
-    <!-- 統一頁腳 Canonical (以原版首頁為標準) -->
-    <style>
-      .footer-grad {
-        background: linear-gradient(
-          135deg,
-          #1a1a2e 0%,
-          #2d2d44 50%,
-          #c94420 100%
-        );
-      }
-      .footer-grad .footer-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 24px;
-        max-width: 400px;
-        margin: 0 auto;
-      }
-      @media (min-width: 768px) {
-        .footer-grad .footer-grid {
-          grid-template-columns: 1fr 1fr 1fr 1fr;
-          max-width: 720px;
-        }
-      }
-      .footer-grad .footer-section-title {
-        color: rgba(255, 255, 255, 0.5);
-        font-size: 11px;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        margin-bottom: 10px;
-      }
-      .footer-grad ul {
-        list-style: none;
-        padding: 0;
-        margin: 0;
-      }
-      .footer-grad li {
-        margin-bottom: 6px;
-      }
-      .footer-link {
-        color: rgba(255, 255, 255, 0.6);
-        text-decoration: none;
-        transition: color 0.2s;
-        font-size: 13px;
-      }
-      .footer-link:hover {
-        color: white;
-      }
-      .back-to-top {
-        position: fixed;
-        bottom: 80px;
-        right: 16px;
-        width: 44px;
-        height: 44px;
-        border-radius: 50%;
-        background: var(--orange-600-bg, #c94420);
-        color: #fff;
-        border: none;
-        font-size: 20px;
-        cursor: pointer;
-        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
-        z-index: 999;
-        opacity: 0;
-        transform: translateY(20px);
-        transition:
-          opacity 0.3s,
-          transform 0.3s;
-        pointer-events: none;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-      .back-to-top.visible {
-        opacity: 1;
-        transform: translateY(0);
-        pointer-events: auto;
-      }
-      .back-to-top:hover {
-        background: #aa3218;
-      }
-    </style>
 <!-- Footer & Back-to-Top Styles -->
     <style>
       .footer-grad {
-        background: linear-gradient(135deg, #1a1a2e 0%, #2d2d44 50%, #c94420 100%);
+        background: linear-gradient(135deg, var(--dark-900) 0%, var(--dark-800) 50%, var(--orange-600-bg) 100%);
       }
       .footer-grad .footer-grid {
         display: grid;
@@ -3057,7 +3020,7 @@
         width: 44px;
         height: 44px;
         border-radius: 50%;
-        background: var(--orange-600-bg, #c94420);
+        background: var(--orange-600-bg, var(--orange-600-bg));
         color: #fff;
         border: none;
         font-size: 20px;
@@ -3078,7 +3041,7 @@
         pointer-events: auto;
       }
       .back-to-top:hover {
-        background: #aa3218;
+        background: var(--orange-700);
       }
     </style>
 

@@ -2,11 +2,10 @@
 <html lang="zh-HK">
   <head>
     <meta charset="UTF-8" />
-    <meta
     <link rel="icon" href="favicon.png" type="image/png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5" />
     <meta name="description" content="ZenPass 禪流健身課程預約平台管理後台" />
-    <meta
+    <meta name="theme-color" content="#FF6B35" />
     
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -35,20 +34,33 @@
         box-sizing: border-box;
       }
       :root {
-        --primary: #c94420;
-        --primary-light: #fff0e8;
-        --primary-bg: #fff8f4;
-        --dark: #1c1816;
-        --dark2: #2d2d44;
-        --gray: #8a7e78;
-        --gray-light: #ede8e4;
-        --gray-bg: #fbf9f6;
-        --white: #fff;
-        --green: #5b8c5a;
-        --red: #c45a5a;
+        --primary: var(--orange-600);
+        --primary-light: var(--orange-100);
+        --primary-bg: var(--orange-50);
+        --dark: var(--dark-900);
+        --dark2: var(--dark-800);
+        --gray: var(--gray-300);
+        --gray-light: var(--gray-200);
+        --gray-bg: var(--gray-50);
+        --white: var(--white);
+        --green: var(--green-500);
+        --red: var(--red-500);
         --yellow: #c49a4a;
-        --radius: 14px;
-        --shadow: 0 2px 8px rgba(28, 24, 22, 0.06);
+        --radius: var(--radius-md);
+        --shadow: var(--shadow-md);
+      }
+
+      /* Dark mode overrides for admin */
+      html.dark {
+        --primary-light: #3d2218;
+        --primary-bg: #2d1b14;
+        --dark: var(--gray-50);
+        --dark2: var(--gray-100);
+        --gray: var(--gray-300);
+        --gray-light: var(--gray-700);
+        --gray-bg: var(--gray-900);
+        --white: var(--gray-800);
+        --shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
       }
       body {
         font-family: "Noto Sans TC", "PingFang HK", sans-serif;
@@ -486,12 +498,12 @@
         grid-template-columns: repeat(3, 1fr);
         gap: 12px;
         padding: 16px;
-        background: #f9fafb;
+        background: var(--gray-100, #f9fafb);
         border-radius: 8px;
       }
       .detail-field label {
         font-size: 11px;
-        color: #6b7280;
+        color: var(--gray-300, #6b7280);
         display: block;
         margin-bottom: 2px;
       }
@@ -500,7 +512,7 @@
         font-weight: 500;
       }
       .detail-schedule {
-        background: #f9fafb;
+        background: var(--gray-100, #f9fafb);
         border-radius: 8px;
         padding: 12px;
         margin-bottom: 8px;
@@ -514,23 +526,23 @@
       .mini-table th {
         text-align: left;
         padding: 4px 8px;
-        background: #e5e7eb;
+        background: var(--gray-200, #e5e7eb);
         font-weight: 600;
       }
       .mini-table td {
         padding: 4px 8px;
-        border-bottom: 1px solid #e5e7eb;
+        border-bottom: 1px solid var(--gray-200, #e5e7eb);
       }
       .btn-outline {
         padding: 8px 16px;
-        border: 1px solid #d1d5db;
+        border: 1px solid var(--gray-200, #d1d5db);
         border-radius: 8px;
-        background: white;
+        background: var(--white);
         cursor: pointer;
         font-size: 13px;
       }
       .btn-outline:hover {
-        background: #f3f4f6;
+        background: var(--gray-100, #f3f4f6);
       }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
@@ -553,7 +565,7 @@
       id="admin-topbar"
       style="
         display: none;
-        background: #1a1a2e;
+        background: var(--dark-900);
         color: white;
         padding: 8px 16px;
         font-size: 13px;
@@ -635,6 +647,123 @@
         .action-row .btn {
           width: 100%;
         }
+      }
+      /* Dark mode admin components */
+      html.dark body {
+        background: var(--gray-900);
+        color: var(--gray-50);
+      }
+      html.dark .sidebar {
+        background: var(--gray-800);
+      }
+      html.dark .sidebar-logo {
+        color: var(--gray-50);
+        border-bottom-color: rgba(255,255,255,0.08);
+      }
+      html.dark .nav-item {
+        color: rgba(255,255,255,0.55);
+      }
+      html.dark .nav-item:hover {
+        background: rgba(255,255,255,0.06);
+        color: var(--white);
+      }
+      html.dark .nav-item.active {
+        background: rgba(255,107,53,0.15);
+        color: var(--orange-400);
+        border-left-color: var(--orange-500);
+      }
+      html.dark .stat-card,
+      html.dark .card,
+      html.dark .detail-card,
+      html.dark .login-box,
+      html.dark .modal {
+        background: var(--gray-800);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      }
+      html.dark .stat-card .lbl,
+      html.dark .card-header h3 {
+        color: var(--gray-300);
+      }
+      html.dark .top-bar .sub,
+      html.dark .top-bar .user-info {
+        color: var(--gray-300);
+      }
+      html.dark table th,
+      html.dark table td {
+        border-bottom-color: var(--gray-700);
+        color: var(--gray-100);
+      }
+      html.dark tr:hover td {
+        background: rgba(255,255,255,0.03);
+      }
+      html.dark .search-bar input {
+        background: var(--gray-800);
+        border-color: var(--gray-700);
+        color: var(--gray-50);
+      }
+      html.dark .search-bar input:focus {
+        border-color: var(--orange-500);
+      }
+      html.dark .detail-grid {
+        background: var(--gray-700);
+      }
+      html.dark .detail-field label {
+        color: var(--gray-300);
+      }
+      html.dark .detail-field div {
+        color: var(--gray-50);
+      }
+      html.dark .detail-schedule {
+        background: var(--gray-700);
+      }
+      html.dark .mini-table th {
+        background: var(--gray-700);
+        color: var(--gray-200);
+      }
+      html.dark .mini-table td {
+        border-bottom-color: var(--gray-700);
+        color: var(--gray-100);
+      }
+      html.dark .btn-outline {
+        border-color: var(--gray-600);
+        background: var(--gray-800);
+        color: var(--gray-200);
+      }
+      html.dark .btn-outline:hover {
+        background: var(--gray-700);
+      }
+      html.dark .loading {
+        color: var(--gray-300);
+      }
+      html.dark .empty {
+        color: var(--gray-300);
+      }
+      html.dark .modal-overlay {
+        background: rgba(0,0,0,0.6);
+      }
+      html.dark .modal p {
+        color: var(--gray-300);
+      }
+      html.dark .login-box input {
+        background: var(--gray-800);
+        border-color: var(--gray-700);
+        color: var(--gray-50);
+      }
+      html.dark .login-box input:focus {
+        border-color: var(--orange-500);
+      }
+      html.dark .details-row {
+        background: var(--gray-900);
+      }
+      html.dark .details-row td {
+        border-bottom-color: var(--gray-700);
+      }
+      html.dark #loginScreen {
+        background: var(--gray-900);
+      }
+      html.dark #admin-topbar {
+        background: var(--dark-900) !important;
+        color: var(--gray-100) !important;
       }
       .hamburger {
         display: none;
@@ -4606,9 +4735,9 @@ function apiPost(path, body) {
       .zp-footer {
         background: linear-gradient(
           135deg,
-          #1a1a2e 0%,
-          #2d2d44 50%,
-          #c94420 100%
+          var(--dark-900) 0%,
+          var(--dark-800) 50%,
+          var(--orange-600-bg) 100%
         );
         color: rgba(255, 255, 255, 0.6);
         padding: 40px 16px 24px;
@@ -4735,87 +4864,6 @@ function apiPost(path, body) {
       }
     </style>
 
-    <!-- 統一頁腳 Canonical (以原版首頁為標準) -->
-    <style>
-      .footer-grad {
-        background: linear-gradient(
-          135deg,
-          #1a1a2e 0%,
-          #2d2d44 50%,
-          #c94420 100%
-        );
-      }
-      .footer-grad .footer-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 24px;
-        max-width: 400px;
-        margin: 0 auto;
-      }
-      @media (min-width: 768px) {
-        .footer-grad .footer-grid {
-          grid-template-columns: 1fr 1fr 1fr 1fr;
-          max-width: 720px;
-        }
-      }
-      .footer-grad .footer-section-title {
-        color: rgba(255, 255, 255, 0.5);
-        font-size: 11px;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        margin-bottom: 10px;
-      }
-      .footer-grad ul {
-        list-style: none;
-        padding: 0;
-        margin: 0;
-      }
-      .footer-grad li {
-        margin-bottom: 6px;
-      }
-      .footer-link {
-        color: rgba(255, 255, 255, 0.6);
-        text-decoration: none;
-        transition: color 0.2s;
-        font-size: 13px;
-      }
-      .footer-link:hover {
-        color: white;
-      }
-      .back-to-top {
-        position: fixed;
-        bottom: 80px;
-        right: 16px;
-        width: 44px;
-        height: 44px;
-        border-radius: 50%;
-        background: var(--orange-600-bg, #c94420);
-        color: #fff;
-        border: none;
-        font-size: 20px;
-        cursor: pointer;
-        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
-        z-index: 999;
-        opacity: 0;
-        transform: translateY(20px);
-        transition:
-          opacity 0.3s,
-          transform 0.3s;
-        pointer-events: none;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-      .back-to-top.visible {
-        opacity: 1;
-        transform: translateY(0);
-        pointer-events: auto;
-      }
-      .back-to-top:hover {
-        background: #aa3218;
-      }
-    </style>
     <!-- SEO -->
     <title>管理後台 — ZenPass 禪流</title>
     <meta name="description" content="ZenPass 平台管理後台：用戶、課程、訂單和系統設定。">
@@ -4827,7 +4875,7 @@ function apiPost(path, body) {
     <!-- Footer & Back-to-Top Styles -->
     <style>
       .footer-grad {
-        background: linear-gradient(135deg, #1a1a2e 0%, #2d2d44 50%, #c94420 100%);
+        background: linear-gradient(135deg, var(--dark-900) 0%, var(--dark-800) 50%, var(--orange-600-bg) 100%);
       }
       .footer-grad .footer-grid {
         display: grid;
@@ -4896,7 +4944,7 @@ function apiPost(path, body) {
         pointer-events: auto;
       }
       .back-to-top:hover {
-        background: #aa3218;
+        background: var(--orange-700);
       }
     </style>
 
@@ -5119,5 +5167,96 @@ function apiPost(path, body) {
   setInterval(checkNotifs, 30000);
 })();
 </script>
+
+<!-- Mobile bottom-nav for admin (visible on small screens) -->
+<div class="admin-bottom-nav">
+  <a href="admin.html" class="nav-item active" data-tab="dashboard" aria-label="儀表板"><span class="icon">📊</span><span>儀表</span></a>
+  <a class="nav-item" data-tab="payments" role="button" tabindex="0" aria-label="付款"><span class="icon">📎</span><span>付款</span></a>
+  <a class="nav-item" data-tab="coaches" role="button" tabindex="0" aria-label="教練"><span class="icon">🏋️</span><span>教練</span></a>
+  <a class="nav-item" data-tab="courses" role="button" tabindex="0" aria-label="課程"><span class="icon">📚</span><span>課程</span></a>
+  <a class="nav-item" data-tab="users" role="button" tabindex="0" aria-label="用戶"><span class="icon">👥</span><span>用戶</span></a>
+</div>
+
+<style>
+.admin-bottom-nav {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 999;
+  background: var(--dark);
+  border-top: 1px solid rgba(255,255,255,0.08);
+  padding: 4px 0;
+  padding-bottom: max(4px, env(safe-area-inset-bottom));
+}
+.admin-bottom-nav .nav-item {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 20%;
+  color: rgba(255,255,255,0.45);
+  text-decoration: none;
+  font-size: 9px;
+  cursor: pointer;
+  border: none;
+  background: none;
+  padding: 4px 0;
+  gap: 1px;
+  transition: color 0.15s;
+}
+.admin-bottom-nav .nav-item .icon {
+  font-size: 16px;
+}
+.admin-bottom-nav .nav-item.active,
+.admin-bottom-nav .nav-item:hover {
+  color: var(--primary);
+}
+@media (max-width: 768px) {
+  .admin-bottom-nav {
+    display: flex;
+  }
+  body.admin-page {
+    padding-bottom: 56px;
+  }
+}
+</style>
+
+<script>
+// Admin bottom-nav tab switching
+(function() {
+  var navItems = document.querySelectorAll('.admin-bottom-nav .nav-item');
+  navItems.forEach(function(item) {
+    item.addEventListener('click', function(e) {
+      e.preventDefault();
+      var tab = this.dataset.tab;
+      if (!tab) return;
+      // Remove active from all bottom nav items
+      navItems.forEach(function(n) { n.classList.remove('active'); });
+      this.classList.add('active');
+      // Also activate same tab in sidebar
+      var sidebarLink = document.querySelector('.sidebar .nav-item[data-tab="' + tab + '"]');
+      if (sidebarLink) sidebarLink.click();
+    });
+  });
+  // Highlight bottom nav on sidebar tab change
+  var observer = new MutationObserver(function() {
+    var activeSidebar = document.querySelector('.sidebar .nav-item.active');
+    if (activeSidebar) {
+      var tab = activeSidebar.dataset.tab;
+      document.querySelectorAll('.admin-bottom-nav .nav-item').forEach(function(n) {
+        n.classList.toggle('active', n.dataset.tab === tab);
+      });
+    }
+  });
+  var sidebar = document.querySelector('.sidebar');
+  if (sidebar) {
+    observer.observe(sidebar, { subtree: true, attributes: true, attributeFilter: ['class'] });
+  }
+})();
+</script>
+
+<script src="js/nav.js"></script>
 </body>
 </html>

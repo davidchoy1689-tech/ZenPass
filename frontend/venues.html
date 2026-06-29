@@ -9,7 +9,7 @@
   <style>
     :root {
       --orange-500: #ff6b35;
-      --orange-700: #aa3218;
+      --orange-700: var(--orange-700);
       --orange-600-bg: #c94420;
       --teal-600: #0d9488;
       --dark-900: #1a1a2e;
@@ -206,6 +206,73 @@
     .bottom-nav .nav-item .nav-icon { font-size: 20px; display: block; margin-bottom: 2px; }
     .bottom-nav .nav-item.active { color: var(--orange-600-bg); }
     .bottom-nav .nav-item.active .nav-icon { filter: brightness(0.8) sepia(1) hue-rotate(0deg) saturate(5); }
+
+    /* Dark mode */
+    html.dark body {
+      background: var(--gray-900);
+      color: var(--gray-50);
+    }
+    html.dark .header {
+      background: linear-gradient(135deg, var(--orange-700), var(--orange-600));
+    }
+    html.dark .venue-card {
+      background: var(--gray-800);
+      border-color: var(--gray-700);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+    html.dark .venue-card .name {
+      color: var(--gray-50);
+    }
+    html.dark .venue-card .meta {
+      color: var(--gray-300);
+    }
+    html.dark .venue-card .meta .tag {
+      background: var(--gray-700);
+      color: var(--gray-200);
+    }
+    html.dark .venue-card .icon {
+      background: rgba(255,107,53,0.15);
+    }
+    html.dark .search-bar input {
+      background: var(--gray-800);
+      border-color: var(--gray-700);
+      color: var(--gray-50);
+    }
+    html.dark .search-bar input:focus {
+      border-color: var(--orange-500);
+    }
+    html.dark .filter-chip {
+      background: var(--gray-800);
+      border-color: var(--gray-700);
+      color: var(--gray-200);
+    }
+    html.dark .filter-chip.active {
+      background: var(--orange-600);
+      color: var(--white);
+      border-color: var(--orange-600);
+    }
+    html.dark .filter-chip:hover:not(.active) {
+      border-color: var(--orange-400);
+    }
+    html.dark .stats-bar {
+      color: var(--gray-300);
+    }
+    html.dark .bottom-nav {
+      background: var(--gray-800);
+      border-top-color: var(--gray-700);
+    }
+    html.dark .bottom-nav .nav-item {
+      color: var(--gray-300);
+    }
+    html.dark .bottom-nav .nav-item.active {
+      color: var(--orange-400);
+    }
+    html.dark .loading {
+      color: var(--gray-300);
+    }
+    html.dark .empty {
+      color: var(--gray-300);
+    }
   </style>
   <title>場地總覽 | ZenPass 禪流</title>
 </head>
