@@ -10,6 +10,8 @@ const { authenticateToken } = require("../middleware/auth");
 const { getSupabase } = require("../services/supabase");
 const { sendNotification } = require("../services/notification");
 
+const { writeBlock } = require("../services/blockchain-audit");
+
 const router = express.Router();
 const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
 
@@ -327,6 +329,27 @@ router.post("/schedules", authenticateToken, (req, res) => {
         currentEnd = nextEnd;
         count++;
       }
+    }
+
+    // ⛓️ 區塊鏈：記錄課堂時間建立
+    try {
+      for (const sid of scheduleIds) {
+        writeBlock({
+          entityType: "class_schedule",
+          entityId: sid,
+          data: {
+            class_id,
+            start_time,
+            end_time,
+            recurring: recurringType,
+            max_participants: max_participants || classData.max_participants,
+            status: "available",
+            coach_id: req.user.id,
+          },
+        });
+      }
+    } catch (bcErr) {
+      console.error("⚠️ Blockchain write failed (schedule create):", bcErr.message);
     }
 
     db.close();

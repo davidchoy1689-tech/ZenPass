@@ -408,6 +408,26 @@ router.post("/stripe/webhook", async (req, res) => {
           paymentIntentId,
         );
 
+        // ⛓️ 區塊鏈：記錄 webhook 付款交易
+        try {
+          const { writeBlock } = require("../services/blockchain-audit");
+          writeBlock({
+            entityType: "transaction",
+            entityId: `stripe_${paymentIntentId}`,
+            data: {
+              user_id: session.metadata.user_id || booking.user_id,
+              amount: session.amount_total / 100,
+              type: "single_booking",
+              payment_method: "stripe",
+              status: "completed",
+              booking_id,
+              stripe_payment_intent: paymentIntentId,
+            },
+          });
+        } catch (bcErr) {
+          console.error("⚠️ Blockchain write failed (webhook):", bcErr.message);
+        }
+
         // Send notification
         try {
           const notifData = {

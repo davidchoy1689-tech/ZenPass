@@ -15,6 +15,7 @@
 
 const Database = require("better-sqlite3");
 const { v4: uuidv4 } = require("uuid");
+const { writeBlock } = require("./blockchain-audit");
 
 const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
 
@@ -94,6 +95,24 @@ function creditCoachEarning({
     console.log(
       `[WALLET] Credited HK$${netAmount} to coach ${coachId} (tx: ${txId})`,
     );
+
+    // ⛓️ 區塊鏈：記錄錢包入帳
+    try {
+      writeBlock({
+        entityType: "wallet_transaction",
+        entityId: txId,
+        data: {
+          user_id: coachId,
+          amount: netAmount,
+          type: "class_income",
+          balance_after: balanceAfter,
+          status: "completed",
+          source_type: bookingId ? "booking" : "schedule",
+        },
+      });
+    } catch (bcErr) {
+      console.error("⚠️ Blockchain write failed (credit wallet):", bcErr.message);
+    }
 
     db.close();
     return {
@@ -176,6 +195,24 @@ function debitWallet({
       reference,
       fee,
     );
+
+    // ⛓️ 區塊鏈：記錄錢包扣數
+    try {
+      writeBlock({
+        entityType: "wallet_transaction",
+        entityId: txId,
+        data: {
+          user_id: userId,
+          amount: -amount,
+          type,
+          balance_after: balanceAfter,
+          fee,
+          status: "completed",
+        },
+      });
+    } catch (bcErr) {
+      console.error("⚠️ Blockchain write failed (debit wallet):", bcErr.message);
+    }
 
     db.close();
     return {

@@ -18,6 +18,7 @@ const { v4: uuidv4 } = require("uuid");
 const Database = require("better-sqlite3");
 const { authenticateToken } = require("../middleware/auth");
 const walletService = require("../services/wallet-service");
+const { writeBlock } = require("../services/blockchain-audit");
 
 const router = express.Router();
 const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
@@ -148,6 +149,24 @@ router.post("/withdraw", authenticateToken, (req, res) => {
       );
     payoutDb.close();
 
+    // ⛓️ 區塊鏈：記錄提現交易
+    try {
+      writeBlock({
+        entityType: "wallet_transaction",
+        entityId: result.transaction_id,
+        data: {
+          user_id: req.user.id,
+          amount,
+          type: "withdrawal",
+          balance_after: result.balance_after,
+          fee: WITHDRAWAL_FEE,
+          status: "completed",
+        },
+      });
+    } catch (bcErr) {
+      console.error("⚠️ Blockchain write failed (wallet withdraw):", bcErr.message);
+    }
+
     res.json({
       success: true,
       amount,
@@ -201,6 +220,23 @@ router.post("/pay-rental", authenticateToken, (req, res) => {
 
     if (!result.success) {
       return res.status(400).json({ error: result.error });
+    }
+
+    // ⛓️ 區塊鏈：記錄租場扣數
+    try {
+      writeBlock({
+        entityType: "wallet_transaction",
+        entityId: result.transaction_id,
+        data: {
+          user_id: req.user.id,
+          amount,
+          type: "rental_payment",
+          balance_after: result.balance_after,
+          status: "completed",
+        },
+      });
+    } catch (bcErr) {
+      console.error("⚠️ Blockchain write failed (rental pay):", bcErr.message);
     }
 
     res.json({

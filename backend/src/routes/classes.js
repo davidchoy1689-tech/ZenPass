@@ -13,6 +13,8 @@ const {
   requireCoach,
 } = require("../middleware/auth");
 
+const { writeBlock } = require("../services/blockchain-audit");
+
 const router = express.Router();
 const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
 
@@ -420,6 +422,24 @@ router.post("/", authenticateToken, requireCoach, (req, res) => {
       image_url || null,
     );
 
+    // ⛓️ 區塊鏈：記錄課程建立
+    try {
+      writeBlock({
+        entityType: "class",
+        entityId: id,
+        data: {
+          title,
+          category,
+          price: price_hkd,
+          coach_id: req.user.id,
+          status: "active",
+          class_reference: clRef,
+        },
+      });
+    } catch (bcErr) {
+      console.error("⚠️ Blockchain write failed (class create):", bcErr.message);
+    }
+
     db.close();
 
     res.status(201).json({ message: "課程已建立", class_id: id });
@@ -480,6 +500,26 @@ router.put("/:id", authenticateToken, requireCoach, (req, res) => {
     db.prepare(`UPDATE classes SET ${updates.join(", ")} WHERE id = ?`).run(
       ...params,
     );
+
+    // ⛓️ 區塊鏈：記錄課程更新
+    try {
+      writeBlock({
+        entityType: "class",
+        entityId: req.params.id,
+        data: {
+          class_id: req.params.id,
+          updates: Object.fromEntries(
+            allowedFields
+              .filter((f) => req.body[f] !== undefined)
+              .map((f) => [f, req.body[f]]),
+          ),
+          changed_by: req.user.id,
+        },
+      });
+    } catch (bcErr) {
+      console.error("⚠️ Blockchain write failed (class update):", bcErr.message);
+    }
+
     db.close();
 
     res.json({ message: "課程已更新" });

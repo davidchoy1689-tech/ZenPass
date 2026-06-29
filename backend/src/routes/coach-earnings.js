@@ -9,6 +9,7 @@ const Database = require("better-sqlite3");
 const { authenticateToken, requireCoach } = require("../middleware/auth");
 
 const { sendNotification } = require("../services/notification");
+const { writeBlock } = require("../services/blockchain-audit");
 
 const router = express.Router();
 const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
@@ -275,6 +276,23 @@ router.post("/earnings/calculate", authenticateToken, async (req, res) => {
 
     transaction();
 
+    // ⛓️ 區塊鏈：記錄收入計算
+    if (calculated > 0) {
+      try {
+        writeBlock({
+          entityType: "coach_earning",
+          entityId: `batch-${req.user.id}-${Date.now()}`,
+          data: {
+            coach_id: req.user.id,
+            batch_calculated: calculated,
+            status: "calculated",
+          },
+        });
+      } catch (bcErr) {
+        console.error("⚠️ Blockchain write failed (earnings calculate):", bcErr.message);
+      }
+    }
+
     db.close();
     res.json({
       message:
@@ -398,6 +416,24 @@ router.post("/payout-request", authenticateToken, (req, res) => {
       newPending.total,
       req.user.id,
     );
+
+    // ⛓️ 區塊鏈：記錄提現申請
+    try {
+      writeBlock({
+        entityType: "coach_earning",
+        entityId: payoutId,
+        data: {
+          coach_id: req.user.id,
+          amount,
+          fee,
+          net_amount: netPayout,
+          payout_reference: poRef,
+          status: "pending",
+        },
+      });
+    } catch (bcErr) {
+      console.error("⚠️ Blockchain write failed (payout request):", bcErr.message);
+    }
 
     db.close();
     res.status(201).json({
@@ -1000,6 +1036,26 @@ function syncCoachEarningsForSchedule(scheduleId) {
     ).run(totals.total, totals.pending, info.coach_id);
 
     // Auto-credit wallet if enrolled > 0 and earning was created/updated
+    // ⛓️ 區塊鏈：記錄教練收入變更
+    try {
+      writeBlock({
+        entityType: "coach_earning",
+        entityId: earningId || scheduleId,
+        data: {
+          coach_id: info.coach_id,
+          schedule_id: info.schedule_id,
+          class_title: info.class_title,
+          enrolled_count: enrolled,
+          gross_amount: gross,
+          net_amount: net,
+          commission_rate: info.commission_rate,
+          status: enrolled > 0 ? "approved" : "cancelled",
+        },
+      });
+    } catch (bcErr) {
+      console.error("⚠️ Blockchain write failed (earnings sync):", bcErr.message);
+    }
+
     if (enrolled > 0 && earningId) {
       try {
         const walletService = require("../services/wallet-service");

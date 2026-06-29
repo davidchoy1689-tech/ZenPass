@@ -27,6 +27,7 @@ const {
   unauthorized,
   serverError,
 } = require("../services/response");
+const { writeBlock } = require("../services/blockchain-audit");
 
 const router = express.Router();
 const DB_PATH =
@@ -1399,6 +1400,23 @@ router.put(
         )
         .get(id);
       db.close();
+
+      // ⛓️ 區塊鏈：記錄用戶角色變更
+      try {
+        writeBlock({
+          entityType: "user_role_change",
+          entityId: id,
+          data: {
+            user_id: id,
+            old_role: user.role,
+            new_role: role,
+            changed_by: req.user.id,
+            reason: `Role changed by ${req.user.role}`,
+          },
+        });
+      } catch (bcErr) {
+        console.error("⚠️ Blockchain write failed (role change):", bcErr.message);
+      }
 
       return ok(res, {
         message: `已更新用戶 ${updated.name} 角色為 ${role}`,

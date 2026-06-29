@@ -13,6 +13,7 @@ const {
   sendTelegramAlert,
 } = require("../services/notification");
 const { audit, trackAdminAction, queryAudit } = require("../services/audit");
+const { writeBlock } = require("../services/blockchain-audit");
 
 const router = express.Router();
 const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
@@ -192,6 +193,26 @@ router.post("/approve-payment", authenticateToken, requireAdmin, (req, res) => {
       console.error("⚠️ Audit record failed:", auditErr.message);
     }
 
+    // ⛓️ 區塊鏈：記錄管理員確認付款
+    try {
+      writeBlock({
+        entityType: "admin_action",
+        entityId: booking_id,
+        data: {
+          admin_user: req.user.id,
+          action: "approve_payment",
+          target_type: "booking",
+          target_id: booking_id,
+          details: {
+            amount: booking?.amount,
+            payment_method: booking?.fps_reference ? "fps" : "payme",
+          },
+        },
+      });
+    } catch (bcErr) {
+      console.error("⚠️ Blockchain write failed (admin approve):", bcErr.message);
+    }
+
     db.close();
 
     res.json({
@@ -296,6 +317,23 @@ router.post("/reject-payment", authenticateToken, requireAdmin, (req, res) => {
       );
     } catch (auditErr) {
       console.error("⚠️ Audit record failed:", auditErr.message);
+    }
+
+    // ⛓️ 區塊鏈：記錄管理員拒絕付款
+    try {
+      writeBlock({
+        entityType: "admin_action",
+        entityId: booking_id,
+        data: {
+          admin_user: req.user.id,
+          action: "reject_payment",
+          target_type: "booking",
+          target_id: booking_id,
+          details: { reason: reason || "無原因" },
+        },
+      });
+    } catch (bcErr) {
+      console.error("⚠️ Blockchain write failed (admin reject):", bcErr.message);
     }
 
     db.close();
@@ -661,6 +699,26 @@ router.post("/process-payouts", authenticateToken, requireAdmin, (req, res) => {
       console.error("⚠️ Audit record failed:", auditErr.message);
     }
 
+    // ⛓️ 區塊鏈：記錄管理員批量出糧
+    try {
+      writeBlock({
+        entityType: "admin_action",
+        entityId: `payout-batch-${Date.now()}`,
+        data: {
+          admin_user: req.user.id,
+          action: "process_payouts",
+          target_type: "coach_payout",
+          target_id: `batch-${Date.now()}`,
+          details: {
+            coaches_processed: processed,
+            total_amount: results.reduce((s, r) => s + (r.amount || 0), 0),
+          },
+        },
+      });
+    } catch (bcErr) {
+      console.error("⚠️ Blockchain write failed (process payouts):", bcErr.message);
+    }
+
     db.close();
 
     res.json({
@@ -807,6 +865,23 @@ router.post("/coach-approve", authenticateToken, requireAdmin, (req, res) => {
       data: { message: "✅ 教練申請已獲批！現在可以開班授課啦！" },
     });
 
+    // ⛓️ 區塊鏈：記錄管理員審批教練
+    try {
+      writeBlock({
+        entityType: "admin_action",
+        entityId: application_id,
+        data: {
+          admin_user: req.user.id,
+          action: "coach_approve",
+          target_type: "coach_application",
+          target_id: application_id,
+          details: { coach_user_id: app.user_id, coach_name: app.name },
+        },
+      });
+    } catch (bcErr) {
+      console.error("⚠️ Blockchain write failed (coach approve):", bcErr.message);
+    }
+
     db.close();
 
     res.json({
@@ -849,6 +924,23 @@ router.post("/coach-reject", authenticateToken, requireAdmin, (req, res) => {
       recipient: app.user_id,
       data: { message: reason || "❌ 教練申請未獲批，如有疑問請聯絡我們。" },
     });
+
+    // ⛓️ 區塊鏈：記錄管理員拒絕教練
+    try {
+      writeBlock({
+        entityType: "admin_action",
+        entityId: application_id,
+        data: {
+          admin_user: req.user.id,
+          action: "coach_reject",
+          target_type: "coach_application",
+          target_id: application_id,
+          details: { reason: reason || "無原因" },
+        },
+      });
+    } catch (bcErr) {
+      console.error("⚠️ Blockchain write failed (coach reject):", bcErr.message);
+    }
 
     db.close();
 
