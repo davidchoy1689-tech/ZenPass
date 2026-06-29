@@ -168,18 +168,14 @@ router.post("/apply", (req, res) => {
     }
 
     const id = uuidv4();
-    const refNumber =
-      "ZP-" +
-      Date.now().toString(36).toUpperCase() +
-      "-" +
-      id.slice(0, 4).toUpperCase();
+    const refNumber = generatePartnerReference();
 
     db.prepare(
       `
       INSERT INTO partner_venues (id, partner_type, name, description, address, phone, email,
         contact_person, category, district, logo_url, website, facilities,
-        commission_plan, commission_rate, status, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', datetime('now'), datetime('now'))
+        commission_plan, commission_rate, partner_reference, status, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', datetime('now'), datetime('now'))
     `,
     ).run(
       id,
@@ -197,7 +193,17 @@ router.post("/apply", (req, res) => {
       JSON.stringify(Array.isArray(facilities) ? facilities : []),
       planKey,
       plan.commission_rate,
+      refNumber,
     );
+
+    // 寫入區塊鏈 — 永久記錄商戶建立事件
+    partnerBlockchainHash({
+      venueId: id,
+      reference: refNumber,
+      action: "created",
+      performedBy: email,
+      data: { name, category, plan: planKey },
+    });
 
     db.close();
 
