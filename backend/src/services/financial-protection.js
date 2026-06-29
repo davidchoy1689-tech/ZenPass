@@ -12,7 +12,7 @@ const Database = require("better-sqlite3");
 const path = require("path");
 
 const DB_PATH =
-  process.env.DB_PATH || path.resolve(__dirname, "../data/zenpass.db");
+  process.env.DB_PATH || path.resolve(__dirname, "../../data/zenpass.db");
 
 // 所有受保護嘅金融 table
 const PROTECTED_TABLES = [

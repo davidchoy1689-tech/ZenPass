@@ -13,7 +13,7 @@ const crypto = require("crypto");
 const path = require("path");
 
 const DB_PATH =
-  process.env.DB_PATH || path.resolve(__dirname, "../data/zenpass.db");
+  process.env.DB_PATH || path.resolve(__dirname, "../../data/zenpass.db");
 
 /**
  * 產生 SHA-256 hash（用嚟做區塊鏈式鏈接）

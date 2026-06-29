@@ -1326,6 +1326,59 @@ function initDatabase() {
     console.error("⚠️ RBAC migration failed:", migErr.message);
   }
 
+  // Corporate Credit System (企業月費制)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS corporate_companies (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      contact_email TEXT,
+      contact_phone TEXT,
+      credit_pool INTEGER DEFAULT 0,
+      credit_used INTEGER DEFAULT 0,
+      monthly_allocation INTEGER DEFAULT 0,
+      employee_count INTEGER DEFAULT 0,
+      billing_cycle TEXT DEFAULT 'monthly',
+      status TEXT DEFAULT 'active',
+      next_reset_at TEXT,
+      last_reset_at TEXT,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    );
+  `);
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS corporate_members (
+      id TEXT PRIMARY KEY,
+      company_id TEXT REFERENCES corporate_companies(id),
+      user_id TEXT REFERENCES users(id),
+      monthly_credit_used INTEGER DEFAULT 0,
+      monthly_limit INTEGER DEFAULT 0,
+      monthly_reset_at TEXT,
+      role TEXT DEFAULT 'member',
+      joined_at TEXT DEFAULT (datetime('now'))
+    );
+  `);
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS booking_payments (
+      id TEXT PRIMARY KEY,
+      booking_id TEXT,
+      amount REAL NOT NULL,
+      credits_used INTEGER DEFAULT 0,
+      payment_method TEXT,
+      status TEXT DEFAULT 'completed',
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+  `);
+
+  // 相容升級：email_verified, verification_token
+  try { db.exec("ALTER TABLE users ADD COLUMN email_verified INTEGER DEFAULT 0"); } catch (e) {}
+  try { db.exec("ALTER TABLE users ADD COLUMN verification_token TEXT"); } catch (e) {}
+  try { db.exec("ALTER TABLE users ADD COLUMN verification_token_expires TEXT"); } catch (e) {}
+
+  // 相容升級：plan_id on memberships
+  try { db.exec("ALTER TABLE memberships ADD COLUMN plan_id TEXT"); } catch (e) {}
+
   console.log("✅ 數據庫初始化完成:", DB_PATH);
   db.close();
 }
