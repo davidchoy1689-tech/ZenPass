@@ -19,6 +19,7 @@
 
 const Database = require("better-sqlite3");
 const { v4: uuidv4 } = require("uuid");
+const { writeBlock } = require("./blockchain-audit");
 
 const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
 
@@ -221,6 +222,30 @@ function createEntry({
     });
 
     insertMany(entries);
+
+    // ⛓️ 區塊鏈：記錄 ledger 分錄
+    try {
+      writeBlock({
+        entityType: "ledger",
+        entityId: ref,
+        data: {
+          reference: ref,
+          booking_id: bookingId,
+          user_id: userId,
+          amount,
+          type,
+          method,
+          description,
+          entries_count: entries.length,
+          debit_total: entries.reduce((s, e) => s + e.debit, 0),
+          credit_total: entries.reduce((s, e) => s + e.credit, 0),
+          account_codes: [...new Set(entries.map((e) => e.accountCode))],
+          balanced: true,
+        },
+      });
+    } catch (bcErr) {
+      console.error("⚠️ Blockchain write failed (ledger):", bcErr.message);
+    }
 
     return { reference: ref, entries: entries.length, balanced: true };
   } catch (err) {

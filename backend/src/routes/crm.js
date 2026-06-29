@@ -8,6 +8,7 @@ const { v4: uuidv4 } = require("uuid");
 const Database = require("better-sqlite3");
 const { authenticateToken, requireCoach } = require("../middleware/auth");
 const { sendNotification } = require("../services/notification");
+const { writeBlock } = require("../services/blockchain-audit");
 
 const router = express.Router();
 const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
@@ -190,6 +191,19 @@ router.post("/students/:id/notes", authenticateToken, (req, res) => {
       VALUES (?, ?, ?, ?)
     `,
     ).run(id, req.params.id, req.user.id, content);
+    try {
+      writeBlock({
+        entityType: "student_note",
+        entityId: id,
+        data: JSON.stringify({
+          student_id: req.params.id,
+          coach_id: req.user.id,
+          content: (content || "").substring(0, 100),
+        }),
+      });
+    } catch (bcErr) {
+      console.error("⚠️ Blockchain write failed (student_note):", bcErr.message);
+    }
 
     const note = db
       .prepare(
@@ -340,6 +354,20 @@ router.post("/waiver", authenticateToken, (req, res) => {
       req.user.id,
       `📋 健康申報\n姓名: ${name}\n年齡: ${age}\n性別: ${gender}\n電話: ${phone}\n健康狀況: ${conditions || "無"}\n其他: ${other || "無"}`,
     );
+    try {
+      const waiverId = require("uuid").v4();
+      writeBlock({
+        entityType: "student_note",
+        entityId: waiverId,
+        data: JSON.stringify({
+          student_id: req.user.id,
+          coach_id: req.user.id,
+          content: "📋 健康申報",
+        }),
+      });
+    } catch (bcErr) {
+      console.error("⚠️ Blockchain write failed (waiver):", bcErr.message);
+    }
     db.close();
 
     sendNotification("waiver.submitted", {

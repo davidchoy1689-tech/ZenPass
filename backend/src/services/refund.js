@@ -7,6 +7,7 @@
 
 const Database = require("better-sqlite3");
 const { v4: uuidv4 } = require("uuid");
+const { writeBlock } = require("./blockchain-audit");
 const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
 
 /**
@@ -111,6 +112,31 @@ function processRefund({
       );
     } catch (auditErr) {
       console.error("[REFUND] Audit entry failed:", auditErr.message);
+    }
+
+    // ⛓️ 區塊鏈：記錄退款
+    try {
+      writeBlock({
+        entityType: "refund",
+        entityId: refundId,
+        data: {
+          refund_id: refundId,
+          booking_id: bookingId,
+          user_id: booking.user_id,
+          amount,
+          currency: "HKD",
+          payment_method: payMethod,
+          reason,
+          initiated_by: initiatedBy,
+          approved_by: approvedBy || initiatedBy,
+          status: "completed",
+          new_status:
+            newTotalRefunded >= maxRefund ? "fully_refunded" : "partially_refunded",
+          total_refunded: newTotalRefunded,
+        },
+      });
+    } catch (bcErr) {
+      console.error("⚠️ Blockchain write failed (refund):", bcErr.message);
     }
 
     return {

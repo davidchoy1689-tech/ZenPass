@@ -5,6 +5,7 @@ const express = require("express");
 const { v4: uuidv4 } = require("uuid");
 const Database = require("better-sqlite3");
 const { authenticateToken, requireCoach } = require("../middleware/auth");
+const { writeBlock } = require("../services/blockchain-audit");
 const router = express.Router();
 const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
 
@@ -46,6 +47,25 @@ router.post("/", authenticateToken, (req, res) => {
         "UPDATE locations SET is_primary = 0 WHERE coach_id = ? AND id != ?",
       ).run(req.user.id, id);
     }
+    // ⛓️ 區塊鏈：記錄新增場地
+    try {
+      writeBlock({
+        entityType: "location",
+        entityId: id,
+        data: {
+          location_id: id,
+          coach_id: req.user.id,
+          name,
+          address: address || null,
+          phone: phone || null,
+          is_primary: is_primary ? 1 : 0,
+          action: "create",
+        },
+      });
+    } catch (bcErr) {
+      console.error("⚠️ Blockchain write failed (location create):", bcErr.message);
+    }
+
     db.close();
     res.status(201).json({ message: "場地已建立", location_id: id });
   } catch (err) {
@@ -61,6 +81,21 @@ router.delete("/:id", authenticateToken, (req, res) => {
       req.params.id,
       req.user.id,
     );
+    // ⛓️ 區塊鏈：記錄刪除場地
+    try {
+      writeBlock({
+        entityType: "location",
+        entityId: req.params.id,
+        data: {
+          location_id: req.params.id,
+          coach_id: req.user.id,
+          action: "delete",
+        },
+      });
+    } catch (bcErr) {
+      console.error("⚠️ Blockchain write failed (location delete):", bcErr.message);
+    }
+
     db.close();
     res.json({ message: "已刪除" });
   } catch (err) {
@@ -114,6 +149,30 @@ router.post("/sale", authenticateToken, (req, res) => {
       }
     }
     db.close();
+
+    // ⛓️ 區塊鏈：記錄銷售
+    try {
+      writeBlock({
+        entityType: "sale",
+        entityId: id,
+        data: {
+          sale_id: id,
+          coach_id: req.user.id,
+          location_id: location_id || null,
+          type: type || "other",
+          item_name,
+          quantity: quantity || 1,
+          unit_price,
+          total_amount: total,
+          payment_method: payment_method || null,
+          customer_name: customer_name || null,
+          customer_phone: customer_phone || null,
+        },
+      });
+    } catch (bcErr) {
+      console.error("⚠️ Blockchain write failed (sale):", bcErr.message);
+    }
+
     res
       .status(201)
       .json({ message: "✅ 銷售已記錄", sale_id: id, total_amount: total });

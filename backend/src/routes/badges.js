@@ -9,6 +9,7 @@ const express = require("express");
 const { v4: uuidv4 } = require("uuid");
 const Database = require("better-sqlite3");
 const { authenticateToken } = require("../middleware/auth");
+const { writeBlock } = require("../services/blockchain-audit");
 
 const router = express.Router();
 const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
@@ -284,6 +285,25 @@ function checkAndAwardBadges(userId) {
             VALUES (?, ?, ?, datetime('now'))
           `,
           ).run(badgeId, userId, badge.id);
+          // ⛓️ 區塊鏈：記錄勳章頒發
+          try {
+            writeBlock({
+              entityType: "badge_award",
+              entityId: badgeId,
+              data: {
+                user_id: userId,
+                badge_id: badge.id,
+                badge_name: badge.name,
+                badge_category: badge.category,
+                condition_type: badge.condition_type,
+                condition_value: badge.condition_value,
+                awarded_at: new Date().toISOString(),
+              },
+            });
+          } catch (bcErr) {
+            console.error("⚠️ Blockchain write failed (badge award):", bcErr.message);
+          }
+
           newBadges.push({
             id: badge.id,
             name: badge.name,

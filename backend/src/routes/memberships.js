@@ -6,6 +6,7 @@ const express = require("express");
 const { v4: uuidv4 } = require("uuid");
 const Database = require("better-sqlite3");
 const { authenticateToken } = require("../middleware/auth");
+const { writeBlock } = require("../services/blockchain-audit");
 
 const router = express.Router();
 const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
@@ -164,6 +165,28 @@ router.post("/subscribe", authenticateToken, async (req, res) => {
       `${plan.name}會籍 (${plan.duration_days}日)`,
     );
 
+    // ⛓️ Blockchain audit trail
+    try {
+      writeBlock({
+        entityType: "membership",
+        entityId: membershipId,
+        data: {
+          userId: req.user.id,
+          type,
+          plan_name: plan.name,
+          price_hkd: plan.price_hkd,
+          credits_granted: plan.credits_granted,
+          start_date: startDateStr,
+          end_date: endDateStr,
+          duration_days: plan.duration_days,
+          payment_method: payment_method || "stripe",
+          action: "subscribe",
+        },
+      });
+    } catch (blockErr) {
+      console.error("[BLOCKCHAIN] Failed to write membership block:", blockErr.message);
+    }
+
     db.close();
 
     res.status(201).json({
@@ -266,6 +289,26 @@ router.post("/credits", authenticateToken, (req, res) => {
     const user = db
       .prepare("SELECT credits FROM users WHERE id = ?")
       .get(req.user.id);
+
+    // ⛓️ Blockchain audit trail
+    try {
+      writeBlock({
+        entityType: "membership",
+        entityId: uuidv4(),
+        data: {
+          userId: req.user.id,
+          credits_purchased: creditsToAdd,
+          bonus_credits: bonusCredits,
+          total_credits_added: creditsToAdd + bonusCredits,
+          amount_paid: actualAmount,
+          new_balance: user.credits,
+          action: "credits_topup",
+        },
+      });
+    } catch (blockErr) {
+      console.error("[BLOCKCHAIN] Failed to write credits topup block:", blockErr.message);
+    }
+
     db.close();
 
     res.json({
@@ -374,6 +417,26 @@ router.post("/stripe-subscribe", authenticateToken, async (req, res) => {
     db.prepare(
       "UPDATE users SET stripe_subscription_id = ?, auto_renew = 1 WHERE id = ?",
     ).run(subscription.id, req.user.id);
+
+    // ⛓️ Blockchain audit trail
+    try {
+      writeBlock({
+        entityType: "membership",
+        entityId: subscription.id,
+        data: {
+          userId: req.user.id,
+          type,
+          plan_name: plan.name,
+          price_hkd: plan.price_hkd,
+          credits_granted: plan.credits_granted,
+          stripe_subscription_id: subscription.id,
+          action: "stripe_subscribe",
+        },
+      });
+    } catch (blockErr) {
+      console.error("[BLOCKCHAIN] Failed to write stripe subscription block:", blockErr.message);
+    }
+
     db.close();
 
     res.json({

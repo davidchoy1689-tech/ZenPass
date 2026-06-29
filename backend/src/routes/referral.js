@@ -5,6 +5,7 @@ const express = require("express");
 const { v4: uuidv4 } = require("uuid");
 const Database = require("better-sqlite3");
 const { authenticateToken } = require("../middleware/auth");
+const { writeBlock } = require("../services/blockchain-audit");
 const router = express.Router();
 const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
 
@@ -83,6 +84,21 @@ router.post("/redeem", authenticateToken, (req, res) => {
     db.prepare(
       "UPDATE users SET credits = COALESCE(credits,0) + 20, referral_credits_earned = COALESCE(referral_credits_earned,0) + 20 WHERE id = ?",
     ).run(ref.user_id);
+    try {
+      writeBlock({
+        entityType: "referral_redemption",
+        entityId: id,
+        data: JSON.stringify({
+          referrer_id: ref.user_id,
+          referred_user_id: req.user.id,
+          code,
+          credits_granted_referrer: 20,
+          credits_granted_referred: 10,
+        }),
+      });
+    } catch (bcErr) {
+      console.error("⚠️ Blockchain write failed (referral):", bcErr.message);
+    }
     db.close();
     res.json({ message: "✅ 推薦碼已使用！你獲得 10 Credits", bonus: 10 });
   } catch (err) {

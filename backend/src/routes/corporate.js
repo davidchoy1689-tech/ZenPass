@@ -11,6 +11,7 @@
 
 const express = require("express");
 const { v4: uuidv4 } = require("uuid");
+const { writeBlock } = require("../services/blockchain-audit");
 const Database = require("better-sqlite3");
 const { authenticateToken } = require("../middleware/auth");
 const { sendNotification } = require("../services/notification");
@@ -60,6 +61,9 @@ router.post("/companies", authenticateToken, (req, res) => {
       VALUES (?, ?, ?, ?, ?, ?, 0, ?, 'active', datetime('now'))
     `).run(id, name, contact_name || "", contact_email || "", contact_phone || "", credit_pool || 0, billing_cycle || "monthly");
     db.close();
+    try {
+      writeBlock({ entityType: "corporate_company", entityId: id, data: { name, contact_name: contact_name || "", contact_email: contact_email || "", credit_pool: credit_pool || 0, billing_cycle: billing_cycle || "monthly", created_by: req.user.id } });
+    } catch (be) { console.error("[BLOCKCHAIN] writeBlock error:", be.message); }
     res.json({ id, message: `✅ 企業「${name}」已建立` });
   } catch (err) {
     console.error("[CORPORATE] Create error:", err);
@@ -86,6 +90,9 @@ router.post("/companies/:id/topup", authenticateToken, (req, res) => {
     `).run(uuidv4(), req.params.id, req.user.id, JSON.stringify({ credits_added: credits, new_pool: company.credit_pool + credits }));
 
     db.close();
+    try {
+      writeBlock({ entityType: "corporate_credit", entityId: req.params.id, data: { action: "topup", credits_added: credits, previous_pool: company.credit_pool, new_pool: company.credit_pool + credits, performed_by: req.user.id } });
+    } catch (be) { console.error("[BLOCKCHAIN] writeBlock error:", be.message); }
     res.json({ message: `✅ 已加值 ${credits} Credits（總餘額：${company.credit_pool + credits}）` });
   } catch (err) {
     console.error("[CORPORATE] Topup error:", err);
@@ -130,6 +137,13 @@ router.post("/companies/:id/employees", authenticateToken, (req, res) => {
         db.prepare("INSERT INTO corporate_members (id, company_id, user_id, status, created_at) VALUES (?, ?, ?, 'active', datetime('now'))")
           .run(uuidv4(), req.params.id, user.id);
       }
+
+      // Blockchain audit for member creation
+      try {
+        if (!existing) {
+          writeBlock({ entityType: "corporate_member", entityId: user.id, data: { action: "added", company_id: req.params.id, email: emp.email, name: emp.name, added_by: req.user.id } });
+        }
+      } catch (be) { console.error("[BLOCKCHAIN] writeBlock error:", be.message); }
 
       created.push({ email: emp.email, name: emp.name, user_id: user.id, new_account: user.new, temp_password: user.temp_password });
     }
@@ -192,6 +206,11 @@ router.patch("/companies/:id", authenticateToken, (req, res) => {
     const db = new Database(DB_PATH);
     db.prepare(`UPDATE corporate_companies SET ${updates.join(", ")} WHERE id = ?`).run(...params);
     db.close();
+    try {
+      const changedFields = {};
+      for (const f of fields) { if (req.body[f] !== undefined) changedFields[f] = req.body[f]; }
+      writeBlock({ entityType: "corporate_company", entityId: req.params.id, data: { action: "update", changes: changedFields, performed_by: req.user.id } });
+    } catch (be) { console.error("[BLOCKCHAIN] writeBlock error:", be.message); }
     res.json({ message: "✅ 已更新" });
   } catch (err) {
     console.error("[CORPORATE] Update error:", err);
@@ -256,6 +275,9 @@ router.patch("/members/:memberId/limit", authenticateToken, (req, res) => {
     db.prepare("UPDATE corporate_members SET monthly_credit_limit = ?, updated_at = datetime('now') WHERE id = ?")
       .run(monthly_credit_limit, req.params.memberId);
     db.close();
+    try {
+      writeBlock({ entityType: "corporate_member", entityId: req.params.memberId, data: { action: "limit_update", monthly_credit_limit, performed_by: req.user.id } });
+    } catch (be) { console.error("[BLOCKCHAIN] writeBlock error:", be.message); }
     res.json({ message: "✅ 已更新員工月度上限" });
   } catch (err) {
     console.error("[CORPORATE] Set limit error:", err);
@@ -430,6 +452,9 @@ router.post("/my/invite", authenticateToken, (req, res) => {
       .run(uuidv4(), myCompany.id, user.id);
 
     db.close();
+    try {
+      writeBlock({ entityType: "corporate_member", entityId: user.id, data: { action: "hr_invite", company_id: myCompany.id, company_name: myCompany.name, email, name, invited_by: req.user.id, new_account: !!user.new } });
+    } catch (be) { console.error("[BLOCKCHAIN] writeBlock error:", be.message); }
     res.json({
       message: user.new
         ? `✅ ${name} 已加入！臨時密碼：${user.temp_password}（請即修改）`

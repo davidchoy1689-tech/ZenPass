@@ -14,6 +14,7 @@ const path = require("path");
 const { v4: uuidv4 } = require("uuid");
 const Database = require("better-sqlite3");
 const { authenticateToken, optionalAuth } = require("../middleware/auth");
+const { writeBlock } = require("../services/blockchain-audit");
 
 const router = express.Router();
 const DB_PATH = process.env.DB_PATH || path.resolve(__dirname, "../../data/zenpass.db");
@@ -105,6 +106,24 @@ router.post("/", authenticateToken, (req, res) => {
         "UPDATE coach_ratings SET rating = ?, comment = ?, created_at = datetime('now') WHERE id = ?",
       ).run(ratingNum, comment || "", existing.id);
 
+      // ⛓️ 區塊鏈：記錄評分更新
+      try {
+        writeBlock({
+          entityType: "coach_rating",
+          entityId: existing.id,
+          data: {
+            coach_id,
+            user_id: req.user.id,
+            booking_id,
+            rating: ratingNum,
+            comment: comment || "",
+            action: "update",
+          },
+        });
+      } catch (bcErr) {
+        console.error("⚠️ Blockchain write failed (rating update):", bcErr.message);
+      }
+
       db.close();
       return res.json({ message: "評分已更新", id: existing.id, rating: ratingNum });
     }
@@ -118,6 +137,26 @@ router.post("/", authenticateToken, (req, res) => {
 
     // Mark booking as reviewed
     db.prepare("UPDATE bookings SET reviewed_student = 1 WHERE id = ?").run(booking_id);
+
+    // ⛓️ 區塊鏈：記錄評分
+    try {
+      writeBlock({
+        entityType: "coach_rating",
+        entityId: id,
+        data: {
+          coach_id,
+          user_id: req.user.id,
+          booking_id,
+          rating: ratingNum,
+          comment: comment || "",
+          schedule_id: booking_id,
+          class_title: booking.class_title,
+          action: "create",
+        },
+      });
+    } catch (bcErr) {
+      console.error("⚠️ Blockchain write failed (rating):", bcErr.message);
+    }
 
     db.close();
 

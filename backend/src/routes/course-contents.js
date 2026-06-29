@@ -8,6 +8,7 @@ const router = express.Router();
 const Database = require("better-sqlite3");
 const { v4: uuidv4 } = require("uuid");
 const { authenticateToken, requireAdmin } = require("../middleware/auth");
+const { writeBlock } = require("../services/blockchain-audit");
 
 const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
 
@@ -152,6 +153,25 @@ router.post("/", authenticateToken, requireAdmin, (req, res) => {
       now,
     );
 
+    // ⛓️ 區塊鏈：記錄新增課程內容
+    try {
+      writeBlock({
+        entityType: "course_content",
+        entityId: id,
+        data: {
+          course_id,
+          content_id: id,
+          title: title || "",
+          level: level || "beginner",
+          video_url: video_url || null,
+          modified_by: req.user.id,
+          action: "create",
+        },
+      });
+    } catch (bcErr) {
+      console.error("⚠️ Blockchain write failed (course_content create):", bcErr.message);
+    }
+
     db.close();
 
     res.status(201).json({
@@ -238,6 +258,25 @@ router.put("/:id", authenticateToken, requireAdmin, (req, res) => {
     const updated = db
       .prepare("SELECT * FROM course_contents WHERE id = ?")
       .get(req.params.id);
+
+    // ⛓️ 區塊鏈：記錄更新課程內容
+    try {
+      writeBlock({
+        entityType: "course_content",
+        entityId: req.params.id,
+        data: {
+          course_id: updated.course_id,
+          content_id: req.params.id,
+          title: updated.title || "",
+          level: updated.level || "beginner",
+          modified_by: req.user.id,
+          action: "update",
+        },
+      });
+    } catch (bcErr) {
+      console.error("⚠️ Blockchain write failed (course_content update):", bcErr.message);
+    }
+
     db.close();
 
     res.json({ data: updated });
@@ -253,6 +292,21 @@ router.delete("/:id", authenticateToken, requireAdmin, (req, res) => {
     const result = db
       .prepare("DELETE FROM course_contents WHERE id = ?")
       .run(req.params.id);
+
+    // ⛓️ 區塊鏈：記錄刪除課程內容
+    try {
+      writeBlock({
+        entityType: "course_content",
+        entityId: req.params.id,
+        data: {
+          content_id: req.params.id,
+          modified_by: req.user.id,
+          action: "delete",
+        },
+      });
+    } catch (bcErr) {
+      console.error("⚠️ Blockchain write failed (course_content delete):", bcErr.message);
+    }
 
     db.close();
 

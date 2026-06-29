@@ -631,6 +631,29 @@ router.post("/private-income", authenticateToken, (req, res) => {
     );
 
     db.close();
+
+    // ⛓️ 區塊鏈：記錄私人收入
+    try {
+      writeBlock({
+        entityType: "private_income",
+        entityId: id,
+        data: {
+          income_id: id,
+          coach_id: req.user.id,
+          date,
+          description,
+          amount,
+          category: category || "其他",
+          client_name: client_name || null,
+          client_phone: client_phone || null,
+          notes: notes || null,
+          type: "income",
+        },
+      });
+    } catch (bcErr) {
+      console.error("⚠️ Blockchain write failed (private income):", bcErr.message);
+    }
+
     res.status(201).json({ message: "私人收入已記錄", id });
   } catch (err) {
     console.error("新增私人收入錯誤:", err);

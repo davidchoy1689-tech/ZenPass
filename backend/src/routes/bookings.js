@@ -16,6 +16,7 @@ const {
   trackPaymentChange,
 } = require("../services/audit");
 const { requireIdempotency } = require("../middleware/idempotency");
+const { writeBlock } = require("../services/blockchain-audit");
 const { processRefund } = require("../services/refund");
 
 const router = express.Router();
@@ -447,15 +448,24 @@ router.post(
 
       // ⛓️ 寫入 blockchain block（即時 hash + 永久儲存）
       try {
-        const { writeBookingBlock } = require("../services/blockchain-audit");
-        const block = writeBookingBlock(bookingId);
-        if (block && block.hash) {
-          console.log(
-            `[BLOCKCHAIN] 📝 Block written: ${bookingRef} hash=${block.hash.slice(0, 12)}...`,
-          );
-        }
+        writeBlock({
+          entityType: "booking",
+          entityId: bookingId,
+          data: {
+            booking_reference: bookingRef,
+            user_id: req.user.id,
+            class_id: class_id,
+            schedule_id: schedule_id,
+            amount: amount || 0,
+            payment_type: payment_type,
+            status: bookingStatus,
+            payment_status: paymentStatus,
+            action: "created",
+          },
+        });
+        console.log(`[BLOCKCHAIN] 📝 Block written: ${bookingRef}`);
       } catch (bcErr) {
-        console.error("⚠️ Blockchain write failed:", bcErr.message);
+        console.error("⚠️ Blockchain write failed (booking):", bcErr.message);
       }
 
       db.close();
@@ -698,6 +708,28 @@ router.post(
         console.error("⚠️ Audit record failed:", auditErr.message);
       }
 
+      // ⛓️ Blockchain: 付款完成
+      try {
+        writeBlock({
+          entityType: "booking",
+          entityId: booking.id,
+          data: {
+            booking_reference: booking.booking_reference,
+            user_id: req.user.id,
+            class_id: booking.class_id,
+            schedule_id: booking.schedule_id,
+            amount: amount || booking.amount || 0,
+            payment_method: payment_method || "fps",
+            payment_reference: payment_reference || null,
+            status: "confirmed",
+            payment_status: "paid",
+            action: "payment_completed",
+          },
+        });
+      } catch (bcErr) {
+        console.error("⚠️ Blockchain write failed (booking):", bcErr.message);
+      }
+
       db.close();
 
       res.json({
@@ -774,6 +806,28 @@ router.post("/:id/cancel", authenticateToken, scalpGuard, (req, res) => {
           trackBookingChange(booking.id, req.user.id, booking.status, "cancelled", req);
         } catch (e) {}
 
+        // ⛓️ Blockchain: 遲取消
+        try {
+          writeBlock({
+            entityType: "booking",
+            entityId: booking.id,
+            data: {
+              booking_reference: booking.booking_reference,
+              user_id: req.user.id,
+              class_id: booking.class_id,
+              schedule_id: booking.schedule_id,
+              amount: booking.amount || 0,
+              status: "cancelled",
+              action: "late_cancelled",
+              hours_before_class: hoursUntilClass,
+              credits_forfeited: true,
+              refunded: false,
+            },
+          });
+        } catch (bcErr) {
+          console.error("⚠️ Blockchain write failed (booking):", bcErr.message);
+        }
+
     // Send cancellation notification
     try {
       sendNotification("booking.cancelled", {
@@ -827,6 +881,30 @@ router.post("/:id/cancel", authenticateToken, scalpGuard, (req, res) => {
           method: booking.payment_method || "fps",
         });
         console.log("[REFUND] Auto-refund:", refundResult.refund_id);
+
+        // ⛓️ 區塊鏈：記錄自動退款
+        if (refundResult.success) {
+          try {
+            writeBlock({
+              entityType: "refund",
+              entityId: refundResult.refund_id,
+              data: {
+                refund_id: refundResult.refund_id,
+                booking_id: req.params.id,
+                user_id: req.user.id,
+                amount: booking.amount,
+                currency: "HKD",
+                payment_method: booking.payment_method || "fps",
+                reason: "用戶取消預約",
+                initiated_by: req.user.id,
+                approved_by: "system",
+                status: "completed",
+              },
+            });
+          } catch (bcErr) {
+            console.error("⚠️ Blockchain write failed (auto-refund):", bcErr.message);
+          }
+        }
       } catch (refundErr) {
         console.error("⚠️ Auto-refund failed:", refundErr.message);
       }
@@ -843,6 +921,26 @@ router.post("/:id/cancel", authenticateToken, scalpGuard, (req, res) => {
       );
     } catch (auditErr) {
       console.error("⚠️ Audit record failed:", auditErr.message);
+    }
+
+    // ⛓️ Blockchain: 取消預約
+    try {
+      writeBlock({
+        entityType: "booking",
+        entityId: booking.id,
+        data: {
+          booking_reference: booking.booking_reference,
+          user_id: req.user.id,
+          class_id: booking.class_id,
+          schedule_id: booking.schedule_id,
+          amount: booking.amount || 0,
+          payment_type: booking.payment_type,
+          status: "cancelled",
+          action: "cancelled",
+        },
+      });
+    } catch (bcErr) {
+      console.error("⚠️ Blockchain write failed (booking):", bcErr.message);
     }
 
     // Send cancellation notification
@@ -1009,6 +1107,27 @@ router.post("/:id/attend", authenticateToken, (req, res) => {
       );
     } catch (auditErr) {
       console.error("⚠️ Audit record failed:", auditErr.message);
+    }
+
+    // ⛓️ Blockchain: 簽到
+    try {
+      const b = db.prepare("SELECT * FROM bookings WHERE id = ?").get(req.params.id);
+      if (b) {
+        writeBlock({
+          entityType: "booking",
+          entityId: req.params.id,
+          data: {
+            booking_reference: b.booking_reference,
+            user_id: b.user_id,
+            amount: b.amount || 0,
+            status: "attended",
+            action: "checked_in",
+            checkin_method: checkinMethod,
+          },
+        });
+      }
+    } catch (bcErr) {
+      console.error("⚠️ Blockchain write failed (booking):", bcErr.message);
     }
 
     db.close();
@@ -1247,6 +1366,26 @@ router.post("/checkin", authenticateToken, (req, res) => {
       req.headers["user-agent"] || "",
     );
 
+    // ⛓️ Blockchain: QR 簽到
+    try {
+      writeBlock({
+        entityType: "booking",
+        entityId: booking.id,
+        data: {
+          booking_reference: booking.booking_reference,
+          user_id: booking.user_id,
+          class_id: booking.class_id,
+          schedule_id: booking.schedule_id,
+          amount: booking.amount || 0,
+          status: "attended",
+          action: "qr_checked_in",
+          checkin_method: "qr",
+        },
+      });
+    } catch (bcErr) {
+      console.error("⚠️ Blockchain write failed (booking):", bcErr.message);
+    }
+
     // Sync coach earnings
     try {
       const { syncCoachEarningsForSchedule } = require("./coach-earnings");
@@ -1336,6 +1475,26 @@ router.post("/:id/no-show", authenticateToken, (req, res) => {
     if (!booking) { db.close(); return res.status(404).json({ error: "Booking not found or already processed" }); }
     const result = db.prepare("UPDATE bookings SET status = 'no_show', checked_in_at = datetime('now'), checkin_method = 'coach' WHERE id = ? AND status = 'confirmed'").run(req.params.id);
     if (result.changes === 0) { db.close(); return res.status(400).json({ error: "Cannot mark no-show" }); }
+
+    // ⛓️ Blockchain: no-show
+    try {
+      writeBlock({
+        entityType: "booking",
+        entityId: booking.id,
+        data: {
+          booking_reference: booking.booking_reference,
+          user_id: booking.user_id,
+          class_id: booking.class_id,
+          schedule_id: booking.schedule_id,
+          amount: booking.amount || 0,
+          status: "no_show",
+          action: "no_show",
+        },
+      });
+    } catch (bcErr) {
+      console.error("⚠️ Blockchain write failed (booking):", bcErr.message);
+    }
+
     db.close();
     res.json({ success: true, message: "Marked as no-show" });
   } catch (err) {

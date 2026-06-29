@@ -9,6 +9,7 @@ const path = require("path");
 const Database = require("better-sqlite3");
 const { v4: uuidv4 } = require("uuid");
 const { authenticateToken } = require("../middleware/auth");
+const { writeBlock } = require("../services/blockchain-audit");
 
 const DB_PATH = path.join(__dirname, "..", "..", "data", "zenpass.db");
 
@@ -107,6 +108,27 @@ router.post("/", authenticateToken, (req, res) => {
         coachRating.avg_rating,
         booking.coach_id,
       );
+    }
+
+    // ⛓️ 區塊鏈：記錄評價
+    try {
+      writeBlock({
+        entityType: "review",
+        entityId: reviewId,
+        data: {
+          user_id: from_user_id,
+          coach_id: isStudent ? to_user_id : from_user_id,
+          booking_id,
+          rating,
+          comment: comment || "",
+          class_id: booking.class_id,
+          class_title: booking.class_title,
+          role,
+          is_anonymous: is_anonymous ? 1 : 0,
+        },
+      });
+    } catch (bcErr) {
+      console.error("⚠️ Blockchain write failed (review):", bcErr.message);
     }
 
     db.close();

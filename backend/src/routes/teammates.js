@@ -8,6 +8,7 @@
 const express = require("express");
 const Database = require("better-sqlite3");
 const { authenticateToken } = require("../middleware/auth");
+const { writeBlock } = require("../services/blockchain-audit");
 
 const router = express.Router();
 const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
@@ -61,6 +62,24 @@ router.post("/", authenticateToken, (req, res) => {
       .prepare("SELECT id, name, phone, email, notes, created_at FROM user_teammates WHERE id = ?")
       .get(result.lastInsertRowid);
 
+    // ⛓️ 區塊鏈：記錄新增同伴
+    try {
+      writeBlock({
+        entityType: "user_teammate",
+        entityId: teammate.id,
+        data: {
+          user_id: req.user.id,
+          teammate_id: teammate.id,
+          name: teammate.name,
+          phone: teammate.phone,
+          email: teammate.email,
+          action: "create",
+        },
+      });
+    } catch (bcErr) {
+      console.error("⚠️ Blockchain write failed (teammate create):", bcErr.message);
+    }
+
     db.close();
     res.status(201).json({ teammate });
   } catch (err) {
@@ -80,6 +99,21 @@ router.delete("/:id", authenticateToken, (req, res) => {
     if (result.changes === 0) {
       db.close();
       return res.status(404).json({ error: "找不到該同伴" });
+    }
+
+    // ⛓️ 區塊鏈：記錄刪除同伴
+    try {
+      writeBlock({
+        entityType: "user_teammate",
+        entityId: req.params.id,
+        data: {
+          user_id: req.user.id,
+          teammate_id: req.params.id,
+          action: "delete",
+        },
+      });
+    } catch (bcErr) {
+      console.error("⚠️ Blockchain write failed (teammate delete):", bcErr.message);
     }
 
     db.close();
@@ -112,6 +146,25 @@ router.put("/:id", authenticateToken, (req, res) => {
     const teammate = db
       .prepare("SELECT id, name, phone, email, notes, created_at FROM user_teammates WHERE id = ?")
       .get(req.params.id);
+
+    // ⛓️ 區塊鏈：記錄更新同伴
+    try {
+      writeBlock({
+        entityType: "user_teammate",
+        entityId: req.params.id,
+        data: {
+          user_id: req.user.id,
+          teammate_id: req.params.id,
+          name: teammate.name,
+          phone: teammate.phone,
+          email: teammate.email,
+          notes: teammate.notes,
+          action: "update",
+        },
+      });
+    } catch (bcErr) {
+      console.error("⚠️ Blockchain write failed (teammate update):", bcErr.message);
+    }
 
     db.close();
     res.json({ teammate });

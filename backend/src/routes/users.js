@@ -5,6 +5,7 @@
 const express = require("express");
 const Database = require("better-sqlite3");
 const { authenticateToken } = require("../middleware/auth");
+const { writeBlock } = require("../services/blockchain-audit");
 
 const router = express.Router();
 const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
@@ -90,6 +91,14 @@ router.put("/profile", authenticateToken, (req, res) => {
       ...params,
     );
     db.close();
+
+    const changedFields = {};
+    if (name) changedFields.name = name;
+    if (phone !== undefined) changedFields.phone = phone;
+    if (avatar_url) changedFields.avatar_url = avatar_url;
+    try {
+      writeBlock({ entityType: "user", entityId: req.user.id, data: { action: "profile_update", changes: changedFields } });
+    } catch (be) { console.error("[BLOCKCHAIN] writeBlock error:", be.message); }
 
     res.json({ message: "資料已更新" });
   } catch (err) {

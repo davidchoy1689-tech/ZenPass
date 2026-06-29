@@ -950,6 +950,20 @@ router.post(
         VALUES (?, ?, ?, 'coach', 'active', datetime('now'))
       `,
         ).run(uuidv4(), cid, venue.id);
+        try {
+          writeBlock({
+            entityType: "partner_member",
+            entityId: uuidv4(),
+            data: JSON.stringify({
+              user_id: cid,
+              partner_id: venue.id,
+              role: "coach",
+              status: "active",
+            }),
+          });
+        } catch (bcErr) {
+          console.error("⚠️ Blockchain write failed (partner_member course):", bcErr.message);
+        }
       }
 
       db.close();
@@ -1539,6 +1553,20 @@ router.post(
       VALUES (?, ?, ?, ?, 'active', datetime('now'))
     `,
       ).run(id, user_id, venue.id, memberRole);
+      try {
+        writeBlock({
+          entityType: "partner_member",
+          entityId: id,
+          data: JSON.stringify({
+            user_id,
+            partner_id: venue.id,
+            role: memberRole,
+            status: "active",
+          }),
+        });
+      } catch (bcErr) {
+        console.error("⚠️ Blockchain write failed (partner_member add):", bcErr.message);
+      }
 
       // Also update user's role to coach/partner_staff if they're just a regular user
       const targetUser = db
@@ -1800,6 +1828,20 @@ router.put(
         db.prepare(
           "INSERT INTO partner_members (id, user_id, partner_id, role, status, created_at) VALUES (?, ?, ?, 'partner_owner', 'active', datetime('now'))",
         ).run(mid, owner_id, id);
+        try {
+          writeBlock({
+            entityType: "partner_member",
+            entityId: mid,
+            data: JSON.stringify({
+              user_id: owner_id,
+              partner_id: id,
+              role: "partner_owner",
+              status: "active",
+            }),
+          });
+        } catch (bcErr) {
+          console.error("⚠️ Blockchain write failed (partner_member owner):", bcErr.message);
+        }
       }
 
       db.close();

@@ -10,6 +10,7 @@ const express = require("express");
 const { v4: uuidv4 } = require("uuid");
 const Database = require("better-sqlite3");
 const { authenticateToken } = require("../middleware/auth");
+const { writeBlock } = require("../services/blockchain-audit");
 
 const router = express.Router();
 const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
@@ -338,6 +339,26 @@ router.post("/checkin", authenticateToken, (req, res) => {
       .run(streak, req.user.id);
     db2.close();
 
+    // ⛓️ Blockchain audit trail
+    try {
+      writeBlock({
+        entityType: "points_reward",
+        entityId: result.txId,
+        data: {
+          userId: req.user.id,
+          points: totalPoints,
+          source: "checkin",
+          streak,
+          streak_bonus: streakBonus,
+          description: desc,
+          new_balance: result.points,
+          action: "checkin",
+        },
+      });
+    } catch (blockErr) {
+      console.error("[BLOCKCHAIN] Failed to write checkin block:", blockErr.message);
+    }
+
     res.json({
       success: true,
       points: totalPoints,
@@ -442,6 +463,26 @@ router.post("/redeem", authenticateToken, (req, res) => {
         .run(reward_id);
     }
     db3.close();
+
+    // ⛓️ Blockchain audit trail
+    try {
+      writeBlock({
+        entityType: "points_redemption",
+        entityId: redId,
+        data: {
+          userId: req.user.id,
+          reward_id,
+          reward_name: reward.name,
+          reward_icon: reward.icon,
+          points_cost: reward.points_cost,
+          reward_value: reward.reward_value,
+          new_balance: result.points,
+          action: "redeem",
+        },
+      });
+    } catch (blockErr) {
+      console.error("[BLOCKCHAIN] Failed to write redemption block:", blockErr.message);
+    }
 
     res.json({
       success: true,
@@ -640,6 +681,43 @@ router.post("/earn-booking", authenticateToken, (req, res) => {
       );
       db2.close();
 
+      // ⛓️ Blockchain audit trail — booking points
+      try {
+        writeBlock({
+          entityType: "points_reward",
+          entityId: result.txId,
+          data: {
+            userId: req.user.id,
+            booking_id,
+            points,
+            source: "booking",
+            description: desc,
+            new_balance: result.points,
+            action: "earn_booking",
+          },
+        });
+      } catch (blockErr) {
+        console.error("[BLOCKCHAIN] Failed to write booking points block:", blockErr.message);
+      }
+      // ⛓️ Blockchain audit trail — weekly bonus
+      try {
+        writeBlock({
+          entityType: "points_reward",
+          entityId: bonusResult.txId,
+          data: {
+            userId: req.user.id,
+            booking_id,
+            points: 30,
+            source: "weekly_bonus",
+            description: "本週第一堂額外獎勵",
+            new_balance: bonusResult.points,
+            action: "weekly_bonus",
+          },
+        });
+      } catch (blockErr) {
+        console.error("[BLOCKCHAIN] Failed to write weekly bonus block:", blockErr.message);
+      }
+
       return res.json({
         success: true,
         bookingPoints: points,
@@ -652,6 +730,25 @@ router.post("/earn-booking", authenticateToken, (req, res) => {
     }
 
     db2.close();
+
+    // ⛓️ Blockchain audit trail
+    try {
+      writeBlock({
+        entityType: "points_reward",
+        entityId: result.txId,
+        data: {
+          userId: req.user.id,
+          booking_id,
+          points,
+          source: "booking",
+          description: desc,
+          new_balance: result.points,
+          action: "earn_booking",
+        },
+      });
+    } catch (blockErr) {
+      console.error("[BLOCKCHAIN] Failed to write booking points block:", blockErr.message);
+    }
 
     res.json({
       success: true,
@@ -724,6 +821,25 @@ router.post("/review", authenticateToken, (req, res) => {
       booking_id,
     );
 
+    // ⛓️ Blockchain audit trail
+    try {
+      writeBlock({
+        entityType: "points_reward",
+        entityId: result.txId,
+        data: {
+          userId: req.user.id,
+          booking_id,
+          points,
+          source: "review",
+          description: desc,
+          new_balance: result.points,
+          action: "review",
+        },
+      });
+    } catch (blockErr) {
+      console.error("[BLOCKCHAIN] Failed to write review points block:", blockErr.message);
+    }
+
     res.json({
       success: true,
       points,
@@ -754,6 +870,25 @@ router.post("/referral", authenticateToken, (req, res) => {
       desc,
       referred_user_id,
     );
+
+    // ⛓️ Blockchain audit trail
+    try {
+      writeBlock({
+        entityType: "points_reward",
+        entityId: result.txId,
+        data: {
+          userId: req.user.id,
+          referred_user_id,
+          points,
+          source: "referral",
+          description: desc,
+          new_balance: result.points,
+          action: "referral",
+        },
+      });
+    } catch (blockErr) {
+      console.error("[BLOCKCHAIN] Failed to write referral points block:", blockErr.message);
+    }
 
     res.json({
       success: true,

@@ -14,6 +14,7 @@
 
 const Database = require("better-sqlite3");
 const path = require("path");
+const { writeBlock } = require("../services/blockchain-audit");
 
 const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
 
@@ -130,6 +131,27 @@ function logSuspiciousActivity({
       }
     }
 
+    // ⛓️ 區塊鏈：記錄可疑活動
+    if (user_id) {
+      try {
+        writeBlock({
+          entityType: "suspicious_activity",
+          entityId: `${user_id}_${Date.now()}`,
+          data: {
+            user_id,
+            ip_address: ip || null,
+            action_type: action,
+            score,
+            reason,
+            details,
+            created_at: new Date().toISOString(),
+          },
+        });
+      } catch (bcErr) {
+        console.error("⚠️ Blockchain write failed (suspicious_activity):", bcErr.message);
+      }
+    }
+
     db.close();
   } catch (err) {
     console.error("[ANTI-SCALPING] Log error:", err.message);
@@ -181,6 +203,25 @@ function suspendUser(userId, durationDays, reason) {
       `INSERT INTO audit_log (id, action_type, entity_type, entity_id, user_id, description, created_at)
        VALUES (?, 'user.suspended', 'user', ?, ?, ?, datetime('now'))`,
     ).run(uuidv4(), userId, userId, `系統自動停權: ${reason}`);
+
+    // ⛓️ 區塊鏈：記錄用戶停權
+    try {
+      writeBlock({
+        entityType: "user_suspension",
+        entityId: `${userId}_${Date.now()}`,
+        data: {
+          user_id: userId,
+          admin_id: null,
+          reason,
+          duration_days: durationDays,
+          expires_at: expiresAt,
+          action: existing ? "extend" : "create",
+          source: "anti_scalping",
+        },
+      });
+    } catch (bcErr) {
+      console.error("⚠️ Blockchain write failed (user_suspension):", bcErr.message);
+    }
 
     db.close();
     return true;
@@ -550,6 +591,23 @@ function getSuspensionRoutes() {
         `INSERT INTO audit_log (id, action_type, entity_type, entity_id, user_id, description, created_at)
          VALUES (?, 'admin.unsuspend', 'user', ?, ?, ?, datetime('now'))`,
       ).run(uuidv4(), req.params.userId, req.user?.id || "admin", `管理員手動解除停權: ${req.body.reason || "no reason"}`);
+
+      // ⛓️ 區塊鏈：記錄解除停權
+      try {
+        writeBlock({
+          entityType: "user_suspension",
+          entityId: `${req.params.userId}_unsuspend_${Date.now()}`,
+          data: {
+            user_id: req.params.userId,
+            admin_id: req.user?.id || "admin",
+            reason: req.body.reason || "管理員手動解除停權",
+            action: "unsuspend",
+            source: "admin",
+          },
+        });
+      } catch (bcErr) {
+        console.error("⚠️ Blockchain write failed (unsuspend):", bcErr.message);
+      }
 
       db.close();
       res.json({ message: "✅ 已解除停權" });
