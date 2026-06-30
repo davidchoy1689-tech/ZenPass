@@ -179,33 +179,7 @@
     .empty .big-icon { font-size: 48px; margin-bottom: 10px; }
     .empty p { font-size: 14px; line-height: 1.6; }
 
-    /* Bottom Nav */
-    .bottom-nav {
-      position: fixed;
-      bottom: 0;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 100%;
-      max-width: var(--max-width);
-      background: white;
-      border-top: 1px solid var(--gray-200);
-      display: flex;
-      padding: 6px 0;
-      padding-bottom: max(6px, env(safe-area-inset-bottom));
-      z-index: 100;
-    }
-    .bottom-nav .nav-item {
-      flex: 1;
-      text-align: center;
-      padding: 6px 0;
-      color: var(--dark-700);
-      font-size: 10px;
-      cursor: pointer;
-      text-decoration: none;
-    }
-    .bottom-nav .nav-item .nav-icon { font-size: 20px; display: block; margin-bottom: 2px; }
-    .bottom-nav .nav-item.active { color: var(--orange-600-bg); }
-    .bottom-nav .nav-item.active .nav-icon { filter: brightness(0.8) sepia(1) hue-rotate(0deg) saturate(5); }
+    /* Bottom Nav styles — handled by nav.js + zenpass.css */
 
     /* Dark mode */
     html.dark body {
@@ -257,16 +231,7 @@
     html.dark .stats-bar {
       color: var(--gray-300);
     }
-    html.dark .bottom-nav {
-      background: var(--gray-800);
-      border-top-color: var(--gray-700);
-    }
-    html.dark .bottom-nav .nav-item {
-      color: var(--gray-300);
-    }
-    html.dark .bottom-nav .nav-item.active {
-      color: var(--orange-400);
-    }
+
     html.dark .loading {
       color: var(--gray-300);
     }
@@ -277,11 +242,7 @@
   <title>場地總覽 | ZenPass 禪流</title>
 </head>
 <body>
-  <div class="header">
-    <a class="back-btn" href="javascript:history.back()">←</a>
-    <h1>🏪 場地總覽</h1>
-    <span style="width:32px"></span>
-  </div>
+  <script>window.ZENPASS_PAGE_CONFIG = { title: '🏪 場地總覽', showBack: true };</script>
   <div class="content">
     <div class="search-bar">
       <input type="text" id="searchInput" placeholder="搜尋場地..." oninput="filterVenues()" />
@@ -297,13 +258,7 @@
       <div class="loading">🔄 載入中...</div>
     </div>
   </div>
-  <div class="bottom-nav">
-    <a href="index.html" class="nav-item"><span class="nav-icon">🏠</span>首頁</a>
-    <a href="explore.html" class="nav-item"><span class="nav-icon">🔍</span>探索</a>
-    <a href="venues.html" class="nav-item active"><span class="nav-icon">🏪</span>場地</a>
-    <a href="partner-apply.html" class="nav-item"><span class="nav-icon">➕</span>加盟</a>
-    <a href="my.html" class="nav-item"><span class="nav-icon">👤</span>我的</a>
-  </div>
+
 
   <script defer src="api.js?v=2"></script>
   <script>
@@ -404,5 +359,6 @@
 <script src="js/nav.js"></script>
 <div id="zp-footer"></div>
 <script src="assets/footer-loader.js"></script>
+<script src="js/footer.js"></script>
 </body>
 </html>

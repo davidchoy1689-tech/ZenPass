@@ -71,16 +71,20 @@
         font-size: 14px;
         line-height: 1.6;
       }
-      /* Sidebar */
+      /* Sidebar - Glassmorphism */
       .sidebar {
         width: 220px;
-        background: var(--dark);
-        color: var(--white);
+        background: rgba(255, 255, 255, 0.87);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        color: var(--dark);
         position: fixed;
         height: 100vh;
         display: flex;
         flex-direction: column;
         z-index: 10;
+        border-right: 1px solid rgba(0,0,0,0.06);
+        transition: background 0.3s;
       }
       html {
         scroll-behavior: smooth;
@@ -106,7 +110,7 @@
         display: block;
         font-size: 11px;
         font-weight: 400;
-        color: rgba(255, 255, 255, 0.3);
+        color: rgba(0,0,0,0.35);
         margin-top: 2px;
       }
       .nav-item {
@@ -114,19 +118,21 @@
         align-items: center;
         gap: 10px;
         padding: 10px 18px;
-        color: rgba(255, 255, 255, 0.55);
+        color: rgba(0, 0, 0, 0.55);
         cursor: pointer;
         border-left: 3px solid transparent;
         font-size: 13px;
-        transition: all 0.12s;
+        transition: all 0.15s ease;
         text-decoration: none;
+        border-radius: 0 8px 8px 0;
+        margin: 1px 8px 1px 0;
       }
       .nav-item:hover {
-        background: rgba(255, 255, 255, 0.04);
-        color: var(--white);
+        background: rgba(0, 0, 0, 0.045);
+        color: var(--dark);
       }
       .nav-item.active {
-        background: rgba(200, 106, 74, 0.1);
+        background: rgba(255, 107, 53, 0.1);
         color: var(--primary);
         border-left-color: var(--primary);
         font-weight: 600;
@@ -145,7 +151,6 @@
           min-height: 100vh;
           max-width: 1200px;
         }
-      }
       }
       .top-bar {
         display: flex;
@@ -166,7 +171,7 @@
         font-size: 12px;
         color: var(--gray);
       }
-      /* Stats */
+      /* Stats - Glassmorphism */
       .stats-grid {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
@@ -174,10 +179,18 @@
         margin-bottom: 20px;
       }
       .stat-card {
-        background: var(--white);
-        border-radius: var(--radius);
+        background: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255,255,255,0.2);
+        border-radius: 14px;
         padding: 16px;
-        box-shadow: var(--shadow);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+        transition: box-shadow 0.2s, transform 0.2s;
+      }
+      .stat-card:hover {
+        box-shadow: 0 6px 20px rgba(0,0,0,0.07);
+        transform: translateY(-1px);
       }
       .stat-card .val {
         font-size: 24px;
@@ -192,13 +205,20 @@
         font-size: 18px;
         margin-bottom: 4px;
       }
-      /* Cards */
+      /* Cards - Glassmorphism */
       .card {
-        background: var(--white);
-        border-radius: var(--radius);
+        background: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255,255,255,0.2);
+        border-radius: 14px;
         padding: 16px;
         margin-bottom: 10px;
-        box-shadow: var(--shadow);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+        transition: box-shadow 0.2s;
+      }
+      .card:hover {
+        box-shadow: 0 6px 20px rgba(0,0,0,0.07);
       }
       .card-header {
         display: flex;
@@ -415,6 +435,32 @@
         border-radius: 50%;
         animation: spin 0.6s linear infinite;
       }
+      /* Admin glass card utility */
+      .admin-card {
+        background: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255,255,255,0.2);
+        border-radius: 16px;
+        padding: 20px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+        transition: box-shadow 0.2s;
+      }
+      .admin-card:hover {
+        box-shadow: 0 6px 20px rgba(0,0,0,0.07);
+      }
+      html.dark .admin-card {
+        background: rgba(30, 41, 59, 0.75);
+        border-color: rgba(255,255,255,0.06);
+      }
+
+      /* Dark mode sidebar glass */
+      html.dark .sidebar {
+        background: rgba(30, 41, 59, 0.87);
+        border-color: rgba(255,255,255,0.06);
+        color: var(--gray-50);
+      }
+
       @keyframes spin {
         to {
           transform: rotate(360deg);
@@ -579,6 +625,9 @@
       /* Mobile Responsive - Hamburger Sidebar */
       @media (max-width: 768px) {
         .sidebar {
+          background: rgba(255, 255, 255, 0.92);
+          backdrop-filter: blur(20px);
+          -webkit-backdrop-filter: blur(20px);
           position: fixed !important;
           left: 0 !important;
           top: 0 !important;
@@ -591,6 +640,11 @@
           display: flex;
           flex-direction: column;
           overflow-y: auto;
+          color: var(--dark);
+        }
+        html.dark .sidebar {
+          background: rgba(30, 41, 59, 0.92);
+          color: var(--gray-50);
         }
         .sidebar.open {
           transform: translateX(0);
@@ -609,13 +663,19 @@
         .sidebar-logo {
           display: flex !important;
           padding: 16px 16px 12px;
-          border-bottom: 1px solid rgba(255,255,255,0.08);
+          border-bottom: 1px solid rgba(0,0,0,0.07);
+        }
+        html.dark .sidebar-logo {
+          border-bottom-color: rgba(255,255,255,0.08);
         }
         .sidebar .nav-item {
           display: block;
           padding: 12px 16px;
           font-size: 14px;
-          border-bottom: 1px solid rgba(255,255,255,0.05);
+          border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+        html.dark .sidebar .nav-item {
+          border-bottom-color: rgba(255,255,255,0.06);
         }
         .sidebar .nav-item .icon {
           font-size: 16px;
@@ -653,22 +713,22 @@
         background: var(--gray-900);
         color: var(--gray-50);
       }
-      html.dark .sidebar {
-        background: var(--gray-800);
-      }
       html.dark .sidebar-logo {
         color: var(--gray-50);
-        border-bottom-color: rgba(255,255,255,0.08);
+        border-bottom-color: rgba(255,255,255,0.1);
+      }
+      html.dark .sidebar-logo small {
+        color: rgba(255,255,255,0.35);
       }
       html.dark .nav-item {
         color: rgba(255,255,255,0.55);
       }
       html.dark .nav-item:hover {
-        background: rgba(255,255,255,0.06);
-        color: var(--white);
+        background: rgba(255,255,255,0.07);
+        color: var(--gray-50);
       }
       html.dark .nav-item.active {
-        background: rgba(255,107,53,0.15);
+        background: rgba(255,107,53,0.18);
         color: var(--orange-400);
         border-left-color: var(--orange-500);
       }
@@ -677,8 +737,11 @@
       html.dark .detail-card,
       html.dark .login-box,
       html.dark .modal {
-        background: var(--gray-800);
-        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        background: rgba(30, 41, 59, 0.75);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255,255,255,0.06);
+        box-shadow: 0 4px 16px rgba(0,0,0,0.15);
       }
       html.dark .stat-card .lbl,
       html.dark .card-header h3 {
@@ -4872,222 +4935,9 @@ function apiPost(path, body) {
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="ZenPass 禪流">
     <meta name="twitter:card" content="summary_large_image">
-    <!-- Footer & Back-to-Top Styles -->
-    <style>
-      .footer-grad {
-        background: linear-gradient(135deg, var(--dark-900) 0%, var(--dark-800) 50%, var(--orange-600-bg) 100%);
-      }
-      .footer-grad .footer-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 24px;
-        max-width: 400px;
-        margin: 0 auto;
-        padding: 40px 16px 0;
-      }
-      @media (min-width: 768px) {
-        .footer-grad .footer-grid {
-          grid-template-columns: 1fr 1fr 1fr 1fr;
-          max-width: 720px;
-        }
-      }
-      .footer-grad .footer-section-title {
-        color: rgba(255,255,255,0.5);
-        font-size: 11px;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        margin-bottom: 10px;
-      }
-      .footer-grad ul {
-        list-style: none;
-        padding: 0;
-        margin: 0;
-      }
-      .footer-grad li {
-        margin-bottom: 6px;
-      }
-      .footer-link {
-        color: rgba(255,255,255,0.6);
-        text-decoration: none;
-        transition: color 0.2s;
-        font-size: 13px;
-      }
-      .footer-link:hover {
-        color: #fff;
-      }
-      .back-to-top {
-        position: fixed;
-        bottom: 80px;
-        right: 16px;
-        width: 44px;
-        height: 44px;
-        border-radius: 50%;
-        background: var(--orange-600-bg, #c94420);
-        color: #fff;
-        border: none;
-        font-size: 20px;
-        cursor: pointer;
-        box-shadow: 0 2px 12px rgba(0,0,0,0.2);
-        z-index: 999;
-        opacity: 0;
-        transform: translateY(20px);
-        transition: opacity 0.3s, transform 0.3s;
-        pointer-events: none;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-      .back-to-top.visible {
-        opacity: 1;
-        transform: translateY(0);
-        pointer-events: auto;
-      }
-      .back-to-top:hover {
-        background: var(--orange-700);
-      }
-    </style>
 
-    <footer class="footer-grad">
-      <div class="footer-grid">
-        <div style="grid-column: span 2">
-          <div
-            style="
-              color: white;
-              font-weight: 700;
-              font-size: 14px;
-              margin-bottom: 6px;
-            "
-          >
-            🧘 ZenPass 禪流
-          </div>
-          <div
-            style="
-              font-size: 12px;
-              line-height: 1.6;
-              color: rgba(255, 255, 255, 0.6);
-            "
-          >
-            一個Pass，通行全城運動體驗。<br />香港康樂及體育有限公司
-          </div>
-        </div>
-        <div>
-          <div class="footer-section-title">探索</div>
-          <ul>
-            <li><a href="explore.html" class="footer-link">探索課程</a></li>
-            <li><a href="coaches.html" class="footer-link">星級教練</a></li>
-            <li><a href="membership.html" class="footer-link">會籍方案</a></li>
-            <li><a href="coach-apply.html" class="footer-link">成為教練</a></li>
-            <li>
-              <a href="partner-apply.html" class="footer-link">場地加盟</a>
-            </li>
-          </ul>
-        </div>
-        <div>
-          <div class="footer-section-title">支援</div>
-          <ul>
-            <li><a href="faq.html" class="footer-link">常見問題</a></li>
-            <li><a href="corporate-guide.html" class="footer-link">企業計劃</a></li>
-            <li><a href="privacy.html" class="footer-link">私隱政策</a></li>
-            <li><a href="terms.html" class="footer-link">服務條款</a></li>
-            <li><a href="about.html" class="footer-link">關於我們</a></li>
-          </ul>
-        </div>
-        <div>
-          <div class="footer-section-title">聯絡我們</div>
-          <ul>
-            <li style="margin-bottom: 4px">📧 support@zenpass.hk</li>
-            <li style="margin-bottom: 4px">📞 2387 0724</li>
-            <li style="margin-bottom: 4px">📍 香港九龍觀塘</li>
-          </ul>
-          <div style="display: flex; gap: 8px; margin-top: 10px">
-            <a
-              href="https://www.instagram.com/zenpass_hk"
-              style="
-                width: 32px;
-                height: 32px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                border-radius: 50%;
-                background: rgba(255, 255, 255, 0.1);
-                font-size: 14px;
-                text-decoration: none;
-              "
-              >📸</a
-            >
-            <a
-              href="https://www.facebook.com/zenpass.hk"
-              style="
-                width: 32px;
-                height: 32px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                border-radius: 50%;
-                background: rgba(255, 255, 255, 0.1);
-                font-size: 14px;
-                text-decoration: none;
-              "
-              >👍</a
-            >
-            <a
-              href="https://wa.me/85290335538"
-              style="
-                width: 32px;
-                height: 32px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                border-radius: 50%;
-                background: rgba(255, 255, 255, 0.1);
-                font-size: 14px;
-                text-decoration: none;
-              "
-              >💬</a
-            >
-            <a
-              href="https://hklfcl.com"
-              style="
-                width: 32px;
-                height: 32px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                border-radius: 50%;
-                background: rgba(255, 255, 255, 0.1);
-                font-size: 14px;
-                text-decoration: none;
-              "
-              >🏛️</a
-            >
-          </div>
-        </div>
-      </div>
-      <div
-        style="
-          max-width: 400px;
-          margin: 24px auto 0;
-          padding-top: 16px;
-          border-top: 1px solid rgba(255, 255, 255, 0.1);
-          text-align: center;
-          font-size: 11px;
-          color: rgba(255, 255, 255, 0.3);
-        "
-      >
-        &copy; 2026 ZenPass 禪流 · 香港康樂及體育有限公司 · All rights reserved.
-      </div>
-    </footer>
-
-    <button
-      class="back-to-top"
-      id="backToTop"
-      onclick="window.scrollTo({ top: 0, behavior: 'smooth' })"
-      aria-label="返回頂部"
-    >
-      ↑
-    </button>
-<script>
+    
+    <script>
 // Mobile hamburger menu
 (function() {
   var btn = document.getElementById('menuToggle');
@@ -5258,5 +5108,6 @@ function apiPost(path, body) {
 </script>
 
 <script src="js/nav.js"></script>
+<script src="js/footer.js"></script>
 </body>
 </html>
