@@ -1,5 +1,5 @@
 // @ts-check
-const Database = require("better-sqlite3");
+const { getDb } = require("./database");
 
 /**
  * ZenPass Notification Service
@@ -12,13 +12,12 @@ const Database = require("better-sqlite3");
  * - SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS
  */
 
-const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
 const { sendPushNotification } = require("./push");
 
 // ===== 1. 站內通知（持久化到 DB）=====
 function dbNotification(recipientId, type, title, message, data = {}) {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     const { v4: uuidv4 } = require("uuid");
 
     db.prepare(
@@ -28,7 +27,6 @@ function dbNotification(recipientId, type, title, message, data = {}) {
     `,
     ).run(uuidv4(), recipientId, type, title, message, JSON.stringify(data));
 
-    db.close();
     return true;
   } catch (err) {
     console.error("DB notification error:", err.message);
@@ -213,6 +211,19 @@ async function sendNotification(type, payload) {
       message = `❌ 管理員已拒絕付款！\n金額：$${data?.amount || "—"}\n方式：${data?.method || "—"}\n課程：${data?.class_title || "—"}\n原因：${data?.reason || "請聯絡管理員查詢"}`;
       html = `<h2>❌ 付款被拒絕</h2><p><b>金額：</b>$${data?.amount || "—"}<br><b>方式：</b>${data?.method || "—"}<br><b>課程：</b>${data?.class_title || "—"}<br><b>原因：</b>${data?.reason || "請聯絡管理員查詢"}</p>`;
       break;
+    case "topup.auto_completed":
+      title = "Auto Top-up 完成";
+      message = `🤖 已自動加購 ${data?.bundle_label || ""}！
+新增 ${data?.credits_added || 0} Credits
+金額：HK$${data?.amount_paid || 0}
+現有 Credits：${data?.new_balance || 0}`;
+      html = `<h2>🤖 Auto Top-up 完成</h2><p><b>已加購：</b>${data?.bundle_label || ""}<br><b>新增：</b>${data?.credits_added || 0} Credits<br><b>金額：</b>HK$${data?.amount_paid || 0}<br><b>現有 Credits：</b>${data?.new_balance || 0}</p>`;
+      break;
+    case "credit_expiring":
+      title = "Credits 即將到期";
+      message = `⏰ 你嘅 ${data?.plan_name || "月費"} Plan 將於 ${data?.expiry_date || "下月 1 日"} 重置，剩餘 ${data?.remaining_credits || 0} Credits 將歸零。快啲用埋佢啦！`;
+      html = `<h2>⏰ Credits 即將到期</h2><p>你嘅 <b>${data?.plan_name || "月費"}</b> Plan 將於 <b>${data?.expiry_date || "下月 1 日"}</b> 重置，剩餘 <b>${data?.remaining_credits || 0}</b> Credits 將歸零。</p><p>快啲用埋佢啦！</p>`;
+      break;
     default:
       title = type;
       message = data?.message || "你有一則新通知";
@@ -239,7 +250,7 @@ async function sendNotification(type, payload) {
         let emailTo = data?.email;
         if (!emailTo && recipient) {
           try {
-            const userDb = new Database(DB_PATH);
+            const db = getDb();
             const user = userDb
               .prepare("SELECT email FROM users WHERE id = ? OR email = ?")
               .get(recipient, recipient);
@@ -277,7 +288,7 @@ function getNotifications(
   { page = 1, limit = 50, unreadOnly = false } = {},
 ) {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     const offset = (page - 1) * limit;
 
     let whereClause = "WHERE user_id = ?";
@@ -294,7 +305,6 @@ function getNotifications(
         `SELECT * FROM notifications ${whereClause} ORDER BY created_at DESC LIMIT ? OFFSET ?`,
       )
       .all(...params, limit, offset);
-    db.close();
 
     return {
       notifications: rows,
@@ -311,13 +321,13 @@ function getNotifications(
 
 function getUnreadCount(userId) {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     const row = db
       .prepare(
         "SELECT COUNT(*) as count FROM notifications WHERE user_id = ? AND is_read = 0",
       )
       .get(userId);
-    db.close();
+
     return row.count;
   } catch (err) {
     console.error("getUnreadCount error:", err.message);
@@ -327,13 +337,13 @@ function getUnreadCount(userId) {
 
 function markAsRead(id, userId) {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     const result = db
       .prepare(
         "UPDATE notifications SET is_read = 1 WHERE id = ? AND user_id = ?",
       )
       .run(id, userId);
-    db.close();
+
     return result.changes > 0;
   } catch (err) {
     console.error("markAsRead error:", err.message);
@@ -343,13 +353,13 @@ function markAsRead(id, userId) {
 
 function markAllAsRead(userId) {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     const result = db
       .prepare(
         "UPDATE notifications SET is_read = 1 WHERE user_id = ? AND is_read = 0",
       )
       .run(userId);
-    db.close();
+
     return result.changes;
   } catch (err) {
     console.error("markAllAsRead error:", err.message);

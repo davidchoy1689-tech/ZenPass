@@ -4,8 +4,7 @@
  * 需要設定 VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT
  */
 const webpush = require("web-push");
-const Database = require("better-sqlite3");
-const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
+const { getDb } = require("./database");
 
 // 初始化 VAPID
 const vapidPublicKey = process.env.VAPID_PUBLIC_KEY || "";
@@ -26,11 +25,10 @@ async function sendPushNotification(userId, title, body, data = {}) {
   }
 
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     const subs = db
       .prepare("SELECT subscription FROM push_subscriptions WHERE user_id = ?")
       .all(userId);
-    db.close();
 
     let sent = 0;
     for (const row of subs) {

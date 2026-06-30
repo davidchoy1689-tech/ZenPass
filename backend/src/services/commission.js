@@ -3,8 +3,7 @@
  * 根據佣金計劃自動計算每筆交易嘅分佣
  */
 
-const Database = require("better-sqlite3");
-const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
+const { getDb } = require("./database");
 
 // 佣金計劃定義
 const PLANS = {
@@ -57,13 +56,13 @@ function calcRentalCommission(amount, planKey) {
 
 // ===== 從 DB 攞場地嘅計劃 =====
 function getVenuePlan(venueId) {
-  const db = new Database(DB_PATH);
+  const db = getDb();
   const venue = db
     .prepare(
       "SELECT commission_plan, partner_type FROM partner_venues WHERE id = ?",
     )
     .get(venueId);
-  db.close();
+
   return venue || { commission_plan: "basic", partner_type: "full" };
 }
 

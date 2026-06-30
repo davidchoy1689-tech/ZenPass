@@ -5,7 +5,7 @@
 
 const express = require("express");
 const { v4: uuidv4 } = require("uuid");
-const Database = require("better-sqlite3");
+const { getDb } = require("../services/database");
 const { authenticateToken } = require("../middleware/auth");
 const { validate, schemas } = require("../middleware/validate");
 
@@ -21,7 +21,6 @@ const {
 } = require("../services/accounting");
 
 const router = express.Router();
-const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
 const UPLOAD_DIR = path.join(__dirname, "../../uploads");
 
 // ===== POST /api/payments/upload-receipt — 上傳收據圖片 (壓縮 + 永久儲存) =====
@@ -277,7 +276,7 @@ router.post("/stripe/confirm-payment", authenticateToken, async (req, res) => {
 // ===== Helper: 完成 Stripe 付款 (更新 booking + transaction) =====
 async function completeStripePayment(req, res, booking_id, paymentIntentId) {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.pragma("foreign_keys = ON");
 
     if (booking_id) {
@@ -320,8 +319,6 @@ async function completeStripePayment(req, res, booking_id, paymentIntentId) {
       VALUES (?, ?, 'single_booking', ?, 'stripe', ?, 'completed')
     `,
     ).run(uuidv4(), req.user.id, req.body.amount || 0, paymentIntentId);
-
-    db.close();
 
     res.json({
       message: "💳 信用卡付款成功！",
@@ -369,7 +366,7 @@ router.post("/stripe/webhook", async (req, res) => {
       const paymentIntentId = session.payment_intent;
 
       if (booking_id) {
-        const db = new Database(DB_PATH);
+        const db = getDb();
         db.pragma("foreign_keys = ON");
 
         const booking = db
@@ -443,7 +440,6 @@ router.post("/stripe/webhook", async (req, res) => {
           console.error("Webhook notification error:", e.message);
         }
 
-        db.close();
         console.log(
           "✅ Webhook: Booking",
           booking_id,
@@ -468,7 +464,7 @@ router.post("/fps", authenticateToken, (req, res) => {
       return res.status(400).json({ error: "請提供轉數快參考編號" });
     }
 
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.pragma("foreign_keys = ON");
 
     // 檢查 booking 存在
@@ -476,7 +472,7 @@ router.post("/fps", authenticateToken, (req, res) => {
       ? db.prepare("SELECT * FROM bookings WHERE id = ?").get(booking_id)
       : null;
     if (booking_id && !booking) {
-      db.close();
+
       return res.status(404).json({ error: "預約不存在" });
     }
 
@@ -538,8 +534,6 @@ router.post("/fps", authenticateToken, (req, res) => {
       );
     }, 0);
 
-    db.close();
-
     res.json({
       message: "✅ FPS 付款資料已提交，等待管理員確認",
       status: "pending_payment",
@@ -566,14 +560,14 @@ router.post("/payme", authenticateToken, (req, res) => {
       return res.status(400).json({ error: "請提供 PayMe 參考編號" });
     }
 
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.pragma("foreign_keys = ON");
 
     const booking = booking_id
       ? db.prepare("SELECT * FROM bookings WHERE id = ?").get(booking_id)
       : null;
     if (booking_id && !booking) {
-      db.close();
+
       return res.status(404).json({ error: "預約不存在" });
     }
 
@@ -618,8 +612,6 @@ router.post("/payme", authenticateToken, (req, res) => {
           `⏰ ${new Date().toLocaleString("zh-HK", { timeZone: "Asia/Hong_Kong" })}`,
       );
     }, 0);
-
-    db.close();
 
     res.json({
       message: "✅ PayMe 付款資料已提交，等待管理員確認",
@@ -757,7 +749,7 @@ router.post(
           .json({ error: "缺少必要資料（booking_id, payment_method）" });
       }
 
-      const db = new Database(DB_PATH);
+      const db = getDb();
       db.pragma("foreign_keys = ON");
 
       // 檢查 booking 係咪屬於呢個 user 且係 pending_payment
@@ -774,7 +766,7 @@ router.post(
         .get(booking_id, req.user.id);
 
       if (!booking) {
-        db.close();
+
         return res
           .status(404)
           .json({ error: "未找到待付款的預約或預約已取消" });
@@ -897,8 +889,6 @@ router.post(
         } catch (e) {}
       }, 0);
 
-      db.close();
-
       if (isAdminApprovalRequired) {
         res.json({
           message: "✅ 付款資料已提交，等待管理員確認",
@@ -937,14 +927,13 @@ router.post("/setup-intent", authenticateToken, async (req, res) => {
     }
 
     // Find or create Stripe customer
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.pragma("foreign_keys = ON");
     const user = db
       .prepare(
         "SELECT id, email, name, stripe_customer_id FROM users WHERE id = ?",
       )
       .get(req.user.id);
-    db.close();
 
     let customerId = user?.stripe_customer_id;
     if (!customerId) {
@@ -954,12 +943,12 @@ router.post("/setup-intent", authenticateToken, async (req, res) => {
         metadata: { user_id: req.user.id },
       });
       customerId = customer.id;
-      const db2 = new Database(DB_PATH);
+      const db = getDb();
       db2.pragma("foreign_keys = ON");
       db2
         .prepare("UPDATE users SET stripe_customer_id = ? WHERE id = ?")
         .run(customerId, req.user.id);
-      db2.close();
+
     }
 
     const setupIntent = await stripe.setupIntents.create({
@@ -989,12 +978,11 @@ router.post("/save-payment-method", authenticateToken, async (req, res) => {
       });
 
     // Attach to customer
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.pragma("foreign_keys = ON");
     const user = db
       .prepare("SELECT stripe_customer_id FROM users WHERE id = ?")
       .get(req.user.id);
-    db.close();
 
     if (!user?.stripe_customer_id) {
       return res.status(400).json({ error: "請先建立付款設定" });
@@ -1029,7 +1017,7 @@ router.post("/create-subscription", authenticateToken, async (req, res) => {
     const stripe = getStripe();
     if (!stripe || !plan_id.startsWith("price_")) {
       // Dev mode - just update the user record
-      const db = new Database(DB_PATH);
+      const db = getDb();
       db.pragma("foreign_keys = ON");
       db.prepare(
         "UPDATE users SET membership_type = ?, membership_expires_at = ? WHERE id = ?",
@@ -1038,7 +1026,7 @@ router.post("/create-subscription", authenticateToken, async (req, res) => {
         new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
         req.user.id,
       );
-      db.close();
+
       return res.json({
         dev_mode: true,
         message: "Dev mode: subscription created",
@@ -1046,12 +1034,11 @@ router.post("/create-subscription", authenticateToken, async (req, res) => {
     }
 
     // Get or create customer
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.pragma("foreign_keys = ON");
     const user = db
       .prepare("SELECT stripe_customer_id FROM users WHERE id = ?")
       .get(req.user.id);
-    db.close();
 
     if (!user?.stripe_customer_id) {
       return res.status(400).json({ error: "請先儲存付款方式" });
@@ -1083,12 +1070,12 @@ router.post("/cancel-subscription", authenticateToken, async (req, res) => {
 
     const stripe = getStripe();
     if (!stripe) {
-      const db = new Database(DB_PATH);
+      const db = getDb();
       db.pragma("foreign_keys = ON");
       db.prepare(
         "UPDATE users SET membership_type = 'none', membership_expires_at = NULL WHERE id = ?",
       ).run(req.user.id);
-      db.close();
+
       return res.json({ dev_mode: true, message: "會籍已取消" });
     }
 
@@ -1109,7 +1096,7 @@ router.post("/credits/purchase", authenticateToken, async (req, res) => {
       return res.status(400).json({ error: "缺少必要資料" });
     }
 
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.pragma("foreign_keys = ON");
 
     // 加點數
@@ -1131,8 +1118,6 @@ router.post("/credits/purchase", authenticateToken, async (req, res) => {
       `購買 ${credits} Credits`,
     );
 
-    db.close();
-
     res.json({
       success: true,
       message: `✅ 成功加購 ${credits} Credits`,
@@ -1149,14 +1134,14 @@ router.post("/credits/purchase", authenticateToken, async (req, res) => {
 router.get("/transactions", authenticateToken, (req, res) => {
   try {
     const { type, limit = 50, offset = 0 } = req.query;
-    const db = new Database(DB_PATH);
+    const db = getDb();
     let query = "SELECT * FROM transactions WHERE user_id = ?";
     const params = [req.user.id];
     if (type) { query += " AND type = ?"; params.push(type); }
     query += " ORDER BY created_at DESC LIMIT ? OFFSET ?";
     const txs = db.prepare(query).all(...params, parseInt(limit), parseInt(offset));
     const count = db.prepare("SELECT COUNT(*) as c FROM transactions WHERE user_id = ?" + (type ? " AND type = ?" : "")).get(...(type ? [req.user.id, type] : [req.user.id]));
-    db.close();
+
     res.json({ transactions: txs, total: count.c });
   } catch (err) {
     console.error("[PAYMENTS] GET /transactions error:", err);

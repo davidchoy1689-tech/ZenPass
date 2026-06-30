@@ -5,12 +5,11 @@
 
 const express = require("express");
 const { v4: uuidv4 } = require("uuid");
-const Database = require("better-sqlite3");
+const { getDb } = require("../services/database");
 const { authenticateToken } = require("../middleware/auth");
 const { sendNotification } = require("../services/notification");
 
 const router = express.Router();
-const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
 
 // ===== POST /api/waitlist/join — 加入候補 =====
 router.post("/join", authenticateToken, (req, res) => {
@@ -20,7 +19,7 @@ router.post("/join", authenticateToken, (req, res) => {
       return res.status(400).json({ error: "缺少時段 ID" });
     }
 
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.pragma("foreign_keys = ON");
 
     // Check schedule exists
@@ -30,7 +29,7 @@ router.post("/join", authenticateToken, (req, res) => {
       )
       .get(schedule_id);
     if (!schedule) {
-      db.close();
+
       return res.status(404).json({ error: "該時段不存在" });
     }
 
@@ -41,7 +40,7 @@ router.post("/join", authenticateToken, (req, res) => {
       )
       .get(schedule_id, req.user.id);
     if (existing) {
-      db.close();
+
       return res
         .status(200)
         .json({ message: "你已在候補名單中", waitlist_id: existing.id });
@@ -54,7 +53,7 @@ router.post("/join", authenticateToken, (req, res) => {
       )
       .get(schedule_id, req.user.id);
     if (booked) {
-      db.close();
+
       return res.status(400).json({ error: "你已預約了此課程" });
     }
 
@@ -70,7 +69,6 @@ router.post("/join", authenticateToken, (req, res) => {
     db.prepare(
       "INSERT INTO waitlist (id, schedule_id, user_id, status) VALUES (?, ?, ?, 'waiting')",
     ).run(id, schedule_id, req.user.id);
-    db.close();
 
     // Get class info for response
     const classInfo = db
@@ -96,11 +94,11 @@ router.post("/join", authenticateToken, (req, res) => {
 router.post("/leave", authenticateToken, (req, res) => {
   try {
     const { schedule_id } = req.body;
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.prepare(
       "UPDATE waitlist SET status = 'cancelled' WHERE schedule_id = ? AND user_id = ? AND status = 'waiting'",
     ).run(schedule_id, req.user.id);
-    db.close();
+
     res.json({ success: true, message: "✅ 已離開候補名單" });
   } catch (err) {
     res.status(500).json({ error: "無法離開候補" });
@@ -111,7 +109,7 @@ router.post("/leave", authenticateToken, (req, res) => {
 router.get("/status", authenticateToken, (req, res) => {
   try {
     const { schedule_id } = req.query;
-    const db = new Database(DB_PATH);
+    const db = getDb();
     const entry = db
       .prepare(
         "SELECT * FROM waitlist WHERE schedule_id = ? AND user_id = ? ORDER BY created_at DESC LIMIT 1",
@@ -122,7 +120,6 @@ router.get("/status", authenticateToken, (req, res) => {
         "SELECT COUNT(*) as count FROM waitlist WHERE schedule_id = ? AND status = 'waiting'",
       )
       .get(schedule_id).count;
-    db.close();
 
     if (entry) {
       const position =
@@ -146,7 +143,7 @@ router.post("/notify-next", authenticateToken, (req, res) => {
     const { schedule_id } = req.body;
     if (!schedule_id) return res.status(400).json({ error: "缺少時段 ID" });
 
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.pragma("foreign_keys = ON");
 
     // 搵下一位候補
@@ -157,7 +154,7 @@ router.post("/notify-next", authenticateToken, (req, res) => {
       .get(schedule_id);
 
     if (!next) {
-      db.close();
+
       return res.json({ notified: false, message: "冇候補" });
     }
 
@@ -165,7 +162,6 @@ router.post("/notify-next", authenticateToken, (req, res) => {
     db.prepare(
       "UPDATE waitlist SET status = 'notified', notified_at = datetime('now') WHERE id = ?",
     ).run(next.id);
-    db.close();
 
     // Send notification
     const classTitle =
@@ -192,7 +188,7 @@ router.post("/notify-next", authenticateToken, (req, res) => {
  */
 function autoNotifyOnCancel(schedule_id) {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     const next = db
       .prepare(
         "SELECT w.*, u.name as user_name FROM waitlist w JOIN users u ON w.user_id = u.id WHERE w.schedule_id = ? AND w.status = 'waiting' ORDER BY w.created_at ASC LIMIT 1",
@@ -200,25 +196,24 @@ function autoNotifyOnCancel(schedule_id) {
       .get(schedule_id);
 
     if (!next) {
-      db.close();
+
       return;
     }
 
     db.prepare(
       "UPDATE waitlist SET status = 'notified', notified_at = datetime('now') WHERE id = ?",
     ).run(next.id);
-    db.close();
 
     // Get class info for notification
     let classTitle = "";
     let classDate = "";
     let classTime = "";
     try {
-      const schedDb = new Database(DB_PATH);
+      const db = getDb();
       const schedInfo = schedDb.prepare(
         "SELECT c.title, cs.start_time FROM classes c JOIN class_schedules cs ON c.id = cs.class_id WHERE cs.id = ?"
       ).get(schedule_id);
-      schedDb.close();
+
       if (schedInfo) {
         classTitle = schedInfo.title || "";
         const dt = new Date(schedInfo.start_time);
@@ -264,14 +259,14 @@ router.post("/app", function (req, res) {
     if (!email || !email.includes("@")) {
       return res.status(400).json({ error: "請輸入有效電郵" });
     }
-    var db = new Database(DB_PATH);
+    var db = getDb();
     db.exec("CREATE TABLE IF NOT EXISTS app_waitlist (id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT UNIQUE NOT NULL, source TEXT DEFAULT '', created_at TEXT DEFAULT (datetime('now')))");
     try {
       db.prepare("INSERT INTO app_waitlist (email, source) VALUES (?, 'app_page')").run(email);
-      db.close();
+
       res.json({ message: "已加入等候名單！App 推出時會第一時間通知你 🎉" });
     } catch (e) {
-      db.close();
+
       if (e.message && e.message.includes("UNIQUE")) {
         res.json({ message: "你已經喺等候名單上 📱" });
       } else {
@@ -287,10 +282,10 @@ router.post("/app", function (req, res) {
 // GET /api/waitlist/app/count — 等候人數
 router.get("/app/count", function (req, res) {
   try {
-    var db = new Database(DB_PATH);
+    var db = getDb();
     db.exec("CREATE TABLE IF NOT EXISTS app_waitlist (id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT UNIQUE NOT NULL, source TEXT DEFAULT '', created_at TEXT DEFAULT (datetime('now')))");
     var row = db.prepare("SELECT COUNT(*) as count FROM app_waitlist").get();
-    db.close();
+
     res.json({ count: row.count });
   } catch (err) {
     console.error("[APP WAITLIST COUNT] Error:", err);

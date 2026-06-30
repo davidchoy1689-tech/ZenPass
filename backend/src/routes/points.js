@@ -8,12 +8,11 @@
 
 const express = require("express");
 const { v4: uuidv4 } = require("uuid");
-const Database = require("better-sqlite3");
+const { getDb } = require("../services/database");
 const { authenticateToken } = require("../middleware/auth");
 const { writeBlock } = require("../services/blockchain-audit");
 
 const router = express.Router();
-const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
 
 // ===== 等級門檻定義 =====
 const TIERS = [
@@ -43,7 +42,7 @@ function calcTier(points) {
  * 寫入積分交易紀錄 + 更新用戶積分
  */
 function addPointsTx(userId, type, points, source, description, referenceId) {
-  const db = new Database(DB_PATH);
+  const db = getDb();
   db.pragma("foreign_keys = ON");
   try {
     const user = db
@@ -86,7 +85,7 @@ function addPointsTx(userId, type, points, source, description, referenceId) {
 
     return { txId, points: newBalance, tier: tier.current };
   } finally {
-    db.close();
+
   }
 }
 
@@ -94,7 +93,7 @@ function addPointsTx(userId, type, points, source, description, referenceId) {
  * 獲取用戶積分摘要
  */
 function getUserPointsSummary(userId) {
-  const db = new Database(DB_PATH);
+  const db = getDb();
   db.pragma("foreign_keys = ON");
   try {
     const user = db
@@ -179,7 +178,7 @@ function getUserPointsSummary(userId) {
       totalSpent: totalSpent.total,
     };
   } finally {
-    db.close();
+
   }
 }
 
@@ -198,7 +197,7 @@ router.get("/", authenticateToken, (req, res) => {
 // ===== GET /api/points/history — 積分交易紀錄 =====
 router.get("/history", authenticateToken, (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.pragma("foreign_keys = ON");
 
     const limit = Math.min(parseInt(req.query.limit) || 50, 100);
@@ -223,7 +222,6 @@ router.get("/history", authenticateToken, (req, res) => {
       )
       .get(req.user.id);
 
-    db.close();
     res.json({ transactions, total: total.count, limit, offset });
   } catch (err) {
     console.error("取積分歷史錯誤:", err);
@@ -239,7 +237,7 @@ router.get("/tiers", (req, res) => {
 // ===== GET /api/points/rewards — 獎勵目錄 =====
 router.get("/rewards", authenticateToken, (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.pragma("foreign_keys = ON");
 
     const rewards = db
@@ -249,8 +247,6 @@ router.get("/rewards", authenticateToken, (req, res) => {
     `,
       )
       .all();
-
-    db.close();
 
     res.json({ rewards });
   } catch (err) {
@@ -262,7 +258,7 @@ router.get("/rewards", authenticateToken, (req, res) => {
 // ===== POST /api/points/checkin — 每日簽到 =====
 router.post("/checkin", authenticateToken, (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.pragma("foreign_keys = ON");
 
     const user = db
@@ -274,7 +270,7 @@ router.post("/checkin", authenticateToken, (req, res) => {
       .get(req.user.id);
 
     if (!user) {
-      db.close();
+
       return res.status(404).json({ error: "用戶不存在" });
     }
 
@@ -282,7 +278,7 @@ router.post("/checkin", authenticateToken, (req, res) => {
 
     // 檢查今日是否已簽到
     if (user.last_checkin && user.last_checkin.startsWith(today)) {
-      db.close();
+
       return res
         .status(400)
         .json({ error: "今日已簽到", alreadyCheckedIn: true });
@@ -309,8 +305,6 @@ router.post("/checkin", authenticateToken, (req, res) => {
     const streakBonus = Math.min(Math.floor((streak - 1) / 5), 5) * 2; // 每連續5日+2分，上限額外10分
     const totalPoints = basePoints + streakBonus;
 
-    db.close();
-
     // 記錄簽到交易
     const desc = `📅 每日簽到 Day ${streak}${streakBonus > 0 ? `（連續獎勵 +${streakBonus}）` : ""}`;
     const result = addPointsTx(
@@ -327,9 +321,8 @@ router.post("/checkin", authenticateToken, (req, res) => {
     }
 
     // 更新 last_checkin 和 checkin_streak
-    const db2 = new Database(DB_PATH);
-    db2.pragma("foreign_keys = ON");
-    db2
+    db.pragma("foreign_keys = ON");
+    db
       .prepare(
         `
       UPDATE users SET last_checkin = datetime('now'), checkin_streak = ?, updated_at = datetime('now')
@@ -337,7 +330,6 @@ router.post("/checkin", authenticateToken, (req, res) => {
     `,
       )
       .run(streak, req.user.id);
-    db2.close();
 
     // ⛓️ Blockchain audit trail
     try {
@@ -380,7 +372,7 @@ router.post("/redeem", authenticateToken, (req, res) => {
     const { reward_id } = req.body;
     if (!reward_id) return res.status(400).json({ error: "請選擇獎勵" });
 
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.pragma("foreign_keys = ON");
 
     // 檢查獎勵
@@ -393,12 +385,12 @@ router.post("/redeem", authenticateToken, (req, res) => {
       .get(reward_id);
 
     if (!reward) {
-      db.close();
+
       return res.status(404).json({ error: "獎勵不存在或已下架" });
     }
 
     if (reward.stock !== -1 && reward.stock <= 0) {
-      db.close();
+
       return res.status(400).json({ error: "獎勵已兌換完畢" });
     }
 
@@ -407,15 +399,13 @@ router.post("/redeem", authenticateToken, (req, res) => {
       .prepare("SELECT points FROM users WHERE id = ?")
       .get(req.user.id);
     if (!user || (user.points || 0) < reward.points_cost) {
-      db.close();
+
       return res.status(400).json({
         error: "積分不足",
         required: reward.points_cost,
         current: user?.points || 0,
       });
     }
-
-    db.close();
 
     // 扣積分
     const desc = `🎁 兌換：${reward.icon} ${reward.name}`;
@@ -437,9 +427,7 @@ router.post("/redeem", authenticateToken, (req, res) => {
     const expiresAt = new Date();
     expiresAt.setMonth(expiresAt.getMonth() + 3); // 3個月有效期
 
-    const db3 = new Database(DB_PATH);
-    db3.pragma("foreign_keys = ON");
-    db3
+    db
       .prepare(
         `
       INSERT INTO points_redemptions (id, user_id, reward_id, reward_name, points_spent, reward_value, expires_at)
@@ -458,11 +446,10 @@ router.post("/redeem", authenticateToken, (req, res) => {
 
     // 扣庫存
     if (reward.stock !== -1) {
-      db3
+      db
         .prepare("UPDATE points_rewards SET stock = stock - 1 WHERE id = ?")
         .run(reward_id);
     }
-    db3.close();
 
     // ⛓️ Blockchain audit trail
     try {
@@ -507,7 +494,7 @@ router.post("/redeem", authenticateToken, (req, res) => {
 // ===== GET /api/points/checkin-dates — 簽到日曆資料 =====
 router.get("/checkin-dates", authenticateToken, (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.pragma("foreign_keys = ON");
 
     // 獲取當前月份首日和末日
@@ -532,7 +519,6 @@ router.get("/checkin-dates", authenticateToken, (req, res) => {
       )
       .all(req.user.id, monthStart, monthEnd + "T23:59:59");
 
-    db.close();
     res.json({
       year: now.getFullYear(),
       month: now.getMonth() + 1,
@@ -547,7 +533,7 @@ router.get("/checkin-dates", authenticateToken, (req, res) => {
 // ===== GET /api/points/leaderboard — 積分排行榜 =====
 router.get("/leaderboard", (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.pragma("foreign_keys = ON");
 
     const topUsers = db
@@ -562,7 +548,6 @@ router.get("/leaderboard", (req, res) => {
       )
       .all();
 
-    db.close();
     res.json({ leaderboard: topUsers });
   } catch (err) {
     console.error("取排行榜錯誤:", err);
@@ -572,7 +557,7 @@ router.get("/leaderboard", (req, res) => {
 
 router.get("/redemptions", authenticateToken, (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.pragma("foreign_keys = ON");
 
     const redemptions = db
@@ -588,7 +573,6 @@ router.get("/redemptions", authenticateToken, (req, res) => {
       )
       .all(req.user.id);
 
-    db.close();
     res.json({ redemptions });
   } catch (err) {
     console.error("取兌換記錄錯誤:", err);
@@ -602,7 +586,7 @@ router.post("/earn-booking", authenticateToken, (req, res) => {
     const { booking_id } = req.body;
     if (!booking_id) return res.status(400).json({ error: "缺少預約編號" });
 
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.pragma("foreign_keys = ON");
 
     // 檢查 booking 是否存在且屬於該用戶，狀態為 attended
@@ -619,7 +603,7 @@ router.post("/earn-booking", authenticateToken, (req, res) => {
       .get(booking_id, req.user.id);
 
     if (!booking) {
-      db.close();
+
       return res.status(404).json({ error: "預約不存在、未出席或未簽到" });
     }
 
@@ -634,11 +618,9 @@ router.post("/earn-booking", authenticateToken, (req, res) => {
       .get(req.user.id, booking_id);
 
     if (existing) {
-      db.close();
+
       return res.status(400).json({ error: "已領取過課堂積分" });
     }
-
-    db.close();
 
     // 獎勵積分
     const points = 50;
@@ -653,13 +635,11 @@ router.post("/earn-booking", authenticateToken, (req, res) => {
     );
 
     // 順便檢查是否係本週第一堂（額外獎勵）
-    const db2 = new Database(DB_PATH);
-    db2.pragma("foreign_keys = ON");
     const weekStart = new Date();
     weekStart.setDate(weekStart.getDate() - weekStart.getDay());
     const weekStartStr = weekStart.toISOString().split("T")[0];
 
-    const weekBookings = db2
+    const weekBookings = db
       .prepare(
         `
       SELECT COUNT(*) as count FROM points_transactions
@@ -679,7 +659,6 @@ router.post("/earn-booking", authenticateToken, (req, res) => {
         `🏆 本週第一堂額外獎勵 +30`,
         booking_id,
       );
-      db2.close();
 
       // ⛓️ Blockchain audit trail — booking points
       try {
@@ -729,8 +708,6 @@ router.post("/earn-booking", authenticateToken, (req, res) => {
       });
     }
 
-    db2.close();
-
     // ⛓️ Blockchain audit trail
     try {
       writeBlock({
@@ -772,7 +749,7 @@ router.post("/review", authenticateToken, (req, res) => {
     if (!booking_id) return res.status(400).json({ error: "缺少預約編號" });
 
     // 檢查 booking（至少要是 attended 或 confirmed）
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.pragma("foreign_keys = ON");
 
     const booking = db
@@ -784,12 +761,12 @@ router.post("/review", authenticateToken, (req, res) => {
       .get(booking_id, req.user.id);
 
     if (!booking) {
-      db.close();
+
       return res.status(404).json({ error: "預約不存在" });
     }
 
     if (booking.status !== "attended" && booking.status !== "confirmed") {
-      db.close();
+
       return res.status(400).json({ error: "只能評價已完成的課堂" });
     }
 
@@ -804,11 +781,9 @@ router.post("/review", authenticateToken, (req, res) => {
       .get(req.user.id, booking_id);
 
     if (existing) {
-      db.close();
+
       return res.status(400).json({ error: "已評價過此課堂" });
     }
-
-    db.close();
 
     const points = 20;
     const desc = `⭐ 課後評價獎勵 +${points}`;

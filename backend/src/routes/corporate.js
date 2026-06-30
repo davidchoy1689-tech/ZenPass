@@ -12,18 +12,17 @@
 const express = require("express");
 const { v4: uuidv4 } = require("uuid");
 const { writeBlock } = require("../services/blockchain-audit");
-const Database = require("better-sqlite3");
+const { getDb } = require("../services/database");
 const { authenticateToken } = require("../middleware/auth");
 const { sendNotification } = require("../services/notification");
 
 const router = express.Router();
-const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
 
 // ===== Helper: Admin check =====
 function isAdmin(userId) {
-  const db = new Database(DB_PATH);
+  const db = getDb();
   const u = db.prepare("SELECT role FROM users WHERE id = ?").get(userId);
-  db.close();
+
   return u && u.role === "admin";
 }
 
@@ -31,14 +30,14 @@ function isAdmin(userId) {
 router.get("/companies", authenticateToken, (req, res) => {
   if (!isAdmin(req.user.id)) return res.status(403).json({ error: "只限管理員" });
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     const companies = db.prepare(`
       SELECT c.*,
         (SELECT COUNT(*) FROM corporate_members cm JOIN users u ON cm.user_id = u.id WHERE cm.company_id = c.id AND u.id IS NOT NULL) as active_employees,
         (SELECT COALESCE(SUM(b.amount), 0) FROM corporate_members cm JOIN bookings b ON cm.user_id = b.user_id WHERE cm.company_id = c.id AND b.status IN ('confirmed', 'attended')) as total_spent
       FROM corporate_companies c ORDER BY c.created_at DESC
     `).all();
-    db.close();
+
     res.json({ companies });
   } catch (err) {
     console.error("[CORPORATE] List error:", err);
@@ -53,14 +52,14 @@ router.post("/companies", authenticateToken, (req, res) => {
     const { name, contact_name, contact_email, contact_phone, credit_pool, billing_cycle } = req.body;
     if (!name) return res.status(400).json({ error: "請輸入企業名稱" });
 
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.pragma("foreign_keys = ON");
     const id = uuidv4();
     db.prepare(`
       INSERT INTO corporate_companies (id, name, contact_name, contact_email, contact_phone, credit_pool, credit_used, billing_cycle, status, created_at)
       VALUES (?, ?, ?, ?, ?, ?, 0, ?, 'active', datetime('now'))
     `).run(id, name, contact_name || "", contact_email || "", contact_phone || "", credit_pool || 0, billing_cycle || "monthly");
-    db.close();
+
     try {
       writeBlock({ entityType: "corporate_company", entityId: id, data: { name, contact_name: contact_name || "", contact_email: contact_email || "", credit_pool: credit_pool || 0, billing_cycle: billing_cycle || "monthly", created_by: req.user.id } });
     } catch (be) { console.error("[BLOCKCHAIN] writeBlock error:", be.message); }
@@ -78,9 +77,9 @@ router.post("/companies/:id/topup", authenticateToken, (req, res) => {
     const { credits } = req.body;
     if (!credits || credits <= 0) return res.status(400).json({ error: "請輸入有效數量" });
 
-    const db = new Database(DB_PATH);
+    const db = getDb();
     const company = db.prepare("SELECT * FROM corporate_companies WHERE id = ?").get(req.params.id);
-    if (!company) { db.close(); return res.status(404).json({ error: "企業不存在" }); }
+    if (!company) { return res.status(404).json({ error: "企業不存在" }); }
 
     db.prepare("UPDATE corporate_companies SET credit_pool = credit_pool + ?, updated_at = datetime('now') WHERE id = ?")
       .run(credits, req.params.id);
@@ -89,7 +88,6 @@ router.post("/companies/:id/topup", authenticateToken, (req, res) => {
       VALUES (?, 'corporate.topup', 'corporate_company', ?, ?, ?, datetime('now'))
     `).run(uuidv4(), req.params.id, req.user.id, JSON.stringify({ credits_added: credits, new_pool: company.credit_pool + credits }));
 
-    db.close();
     try {
       writeBlock({ entityType: "corporate_credit", entityId: req.params.id, data: { action: "topup", credits_added: credits, previous_pool: company.credit_pool, new_pool: company.credit_pool + credits, performed_by: req.user.id } });
     } catch (be) { console.error("[BLOCKCHAIN] writeBlock error:", be.message); }
@@ -108,10 +106,10 @@ router.post("/companies/:id/employees", authenticateToken, (req, res) => {
     if (!employees || !Array.isArray(employees) || employees.length === 0)
       return res.status(400).json({ error: "請提供員工列表" });
 
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.pragma("foreign_keys = ON");
     const company = db.prepare("SELECT * FROM corporate_companies WHERE id = ? AND status = 'active'").get(req.params.id);
-    if (!company) { db.close(); return res.status(404).json({ error: "企業不存在或已停用" }); }
+    if (!company) { return res.status(404).json({ error: "企業不存在或已停用" }); }
 
     const created = [];
     for (const emp of employees) {
@@ -148,7 +146,6 @@ router.post("/companies/:id/employees", authenticateToken, (req, res) => {
       created.push({ email: emp.email, name: emp.name, user_id: user.id, new_account: user.new, temp_password: user.temp_password });
     }
 
-    db.close();
     res.json({ created: created.length, employees: created });
   } catch (err) {
     console.error("[CORPORATE] Add employees error:", err);
@@ -160,9 +157,9 @@ router.post("/companies/:id/employees", authenticateToken, (req, res) => {
 router.get("/companies/:id", authenticateToken, (req, res) => {
   if (!isAdmin(req.user.id)) return res.status(403).json({ error: "只限管理員" });
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     const company = db.prepare("SELECT * FROM corporate_companies WHERE id = ?").get(req.params.id);
-    if (!company) { db.close(); return res.status(404).json({ error: "企業不存在" }); }
+    if (!company) { return res.status(404).json({ error: "企業不存在" }); }
 
     const employees = db.prepare(`
       SELECT u.id, u.name, u.email, u.role as status, u.credits,
@@ -180,7 +177,6 @@ router.get("/companies/:id", authenticateToken, (req, res) => {
       GROUP BY DATE(b.created_at) ORDER BY date DESC LIMIT 90
     `).all(req.params.id);
 
-    db.close();
     res.json({ company, employees, usage, total_employees: employees.length });
   } catch (err) {
     console.error("[CORPORATE] Detail error:", err);
@@ -203,9 +199,9 @@ router.patch("/companies/:id", authenticateToken, (req, res) => {
     updates.push("updated_at = datetime('now')");
     params.push(req.params.id);
 
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.prepare(`UPDATE corporate_companies SET ${updates.join(", ")} WHERE id = ?`).run(...params);
-    db.close();
+
     try {
       const changedFields = {};
       for (const f of fields) { if (req.body[f] !== undefined) changedFields[f] = req.body[f]; }
@@ -222,7 +218,7 @@ router.patch("/companies/:id", authenticateToken, (req, res) => {
 router.get("/report", authenticateToken, (req, res) => {
   if (!isAdmin(req.user.id)) return res.status(403).json({ error: "只限管理員" });
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     const report = db.prepare(`
       SELECT c.id, c.name, c.credit_pool, c.credit_used, c.status,
         (SELECT COUNT(*) FROM corporate_members WHERE company_id = c.id AND status = 'active') as employees,
@@ -230,7 +226,7 @@ router.get("/report", authenticateToken, (req, res) => {
         (SELECT COALESCE(SUM(b.amount), 0) FROM corporate_members cm JOIN bookings b ON cm.user_id = b.user_id WHERE cm.company_id = c.id AND b.status IN ('confirmed', 'attended')) as total_revenue
       FROM corporate_companies c ORDER BY total_revenue DESC
     `).all();
-    db.close();
+
     res.json({ report });
   } catch (err) {
     console.error("[CORPORATE] Report error:", err);
@@ -238,12 +234,10 @@ router.get("/report", authenticateToken, (req, res) => {
   }
 });
 
-
-
 // ===== GET /api/corporate/my-company — 員工查詢所屬企業資料 =====
 router.get("/my-company", authenticateToken, (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     const company = db.prepare(`
       SELECT cc.id, cc.name as company_name, cc.credit_pool, cc.credit_used,
         (cc.credit_pool - cc.credit_used) as available_credits,
@@ -254,7 +248,7 @@ router.get("/my-company", authenticateToken, (req, res) => {
       JOIN corporate_companies cc ON cm.company_id = cc.id
       WHERE cm.user_id = ? AND cm.status = 'active' AND cc.status = 'active'
     `).get(req.user.id);
-    db.close();
+
     if (!company) return res.status(404).json({ error: "你未加入任何企業" });
     res.json(company);
   } catch (err) {
@@ -271,10 +265,10 @@ router.patch("/members/:memberId/limit", authenticateToken, (req, res) => {
     if (monthly_credit_limit === undefined || monthly_credit_limit < 0) {
       return res.status(400).json({ error: "請輸入有效上限" });
     }
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.prepare("UPDATE corporate_members SET monthly_credit_limit = ?, updated_at = datetime('now') WHERE id = ?")
       .run(monthly_credit_limit, req.params.memberId);
-    db.close();
+
     try {
       writeBlock({ entityType: "corporate_member", entityId: req.params.memberId, data: { action: "limit_update", monthly_credit_limit, performed_by: req.user.id } });
     } catch (be) { console.error("[BLOCKCHAIN] writeBlock error:", be.message); }
@@ -288,7 +282,7 @@ router.patch("/members/:memberId/limit", authenticateToken, (req, res) => {
 // ===== GET /api/corporate/my/hr-dashboard — 企業 HR 儀錶板（員工自助）=====
 router.get("/my/hr-dashboard", authenticateToken, (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     // Try contact_email first
     let company = db.prepare(`
       SELECT id, name, credit_pool, credit_used, contact_name, contact_email, status,
@@ -304,7 +298,7 @@ router.get("/my/hr-dashboard", authenticateToken, (req, res) => {
         JOIN corporate_companies cc ON cm.company_id = cc.id
         WHERE cm.user_id = ? AND cm.status = 'active' AND cc.status = 'active'
       `).get(req.user.id);
-      if (!member) { db.close(); return res.status(403).json({ error: "你不是企業員工" }); }
+      if (!member) { return res.status(403).json({ error: "你不是企業員工" }); }
       company = member;
     }
 
@@ -343,8 +337,6 @@ router.get("/my/hr-dashboard", authenticateToken, (req, res) => {
       GROUP BY DATE(b.created_at) ORDER BY date
     `).all(company.id);
 
-    db.close();
-
     res.json({
       company: {
         id: company.id,
@@ -371,7 +363,7 @@ router.get("/my/hr-dashboard", authenticateToken, (req, res) => {
 // ===== GET /api/corporate/my/employee/:userId — 員工詳細用量 =====
 router.get("/my/employee/:userId", authenticateToken, (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     // Verify the requesting user belongs to a company
     const myMembership = db.prepare(`
       SELECT cm.*, cc.name as company_name FROM corporate_members cm
@@ -379,7 +371,7 @@ router.get("/my/employee/:userId", authenticateToken, (req, res) => {
       WHERE cm.user_id = ? AND cm.status = 'active' AND cc.status = 'active'
     `).get(req.user.id);
 
-    if (!myMembership) { db.close(); return res.status(403).json({ error: "你不是企業員工" }); }
+    if (!myMembership) { return res.status(403).json({ error: "你不是企業員工" }); }
 
     // Target employee must be in the same company
     const targetMember = db.prepare(`
@@ -387,7 +379,7 @@ router.get("/my/employee/:userId", authenticateToken, (req, res) => {
       WHERE cm.user_id = ? AND cm.company_id = ? AND cm.status = 'active'
     `).get(req.params.userId, myMembership.company_id);
 
-    if (!targetMember) { db.close(); return res.status(403).json({ error: "無權限" }); }
+    if (!targetMember) { return res.status(403).json({ error: "無權限" }); }
 
     const user = db.prepare("SELECT id, name, email, credits, created_at, last_visit FROM users WHERE id = ?").get(req.params.userId);
     const bookings = db.prepare(`
@@ -397,7 +389,6 @@ router.get("/my/employee/:userId", authenticateToken, (req, res) => {
       WHERE b.user_id = ? ORDER BY b.created_at DESC LIMIT 50
     `).all(req.params.userId);
 
-    db.close();
     res.json({
       user,
       bookings,
@@ -416,7 +407,7 @@ router.post("/my/invite", authenticateToken, (req, res) => {
     const { email, name } = req.body;
     if (!email || !name) return res.status(400).json({ error: "請提供員工電郵及名稱" });
 
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.pragma("foreign_keys = ON");
 
     // Verify the requesting user belongs to a company
@@ -426,7 +417,7 @@ router.post("/my/invite", authenticateToken, (req, res) => {
       WHERE cm.user_id = ? AND cm.status = 'active' AND cc.status = 'active'
     `).get(req.user.id);
 
-    if (!myCompany) { db.close(); return res.status(403).json({ error: "你不是企業員工" }); }
+    if (!myCompany) { return res.status(403).json({ error: "你不是企業員工" }); }
 
     // Check existing user
     let user = db.prepare("SELECT id, name, email FROM users WHERE email = ?").get(email);
@@ -446,12 +437,11 @@ router.post("/my/invite", authenticateToken, (req, res) => {
     // Check if already member
     const existing = db.prepare("SELECT id FROM corporate_members WHERE company_id = ? AND user_id = ?")
       .get(myCompany.id, user.id);
-    if (existing) { db.close(); return res.json({ message: "該員工已在公司內" }); }
+    if (existing) { return res.json({ message: "該員工已在公司內" }); }
 
     db.prepare("INSERT INTO corporate_members (id, company_id, user_id, status, created_at) VALUES (?, ?, ?, 'active', datetime('now'))")
       .run(uuidv4(), myCompany.id, user.id);
 
-    db.close();
     try {
       writeBlock({ entityType: "corporate_member", entityId: user.id, data: { action: "hr_invite", company_id: myCompany.id, company_name: myCompany.name, email, name, invited_by: req.user.id, new_account: !!user.new } });
     } catch (be) { console.error("[BLOCKCHAIN] writeBlock error:", be.message); }
@@ -464,6 +454,67 @@ router.post("/my/invite", authenticateToken, (req, res) => {
   } catch (err) {
     console.error("[HR INVITE] Error:", err);
     res.status(500).json({ error: "邀請失敗" });
+  }
+});
+
+// ===== GET /api/corporate/stats/:companyId — 企業 Wellness Dashboard 統計 =====
+router.get("/stats/:companyId", authenticateToken, (req, res) => {
+  if (!isAdmin(req.user.id)) return res.status(403).json({ error: "只限管理員" });
+  try {
+    const db = getDb();
+    const { companyId } = req.params;
+    const company = db.prepare("SELECT * FROM corporate_companies WHERE id = ?").get(companyId);
+    if (!company) return res.status(404).json({ error: "企業不存在" });
+
+    // Total bookings (all time)
+    const totalBookings = db.prepare(`
+      SELECT COUNT(*) as count FROM corporate_members cm
+      JOIN bookings b ON cm.user_id = b.user_id
+      WHERE cm.company_id = ? AND b.status IN ('confirmed','attended')
+    `).get(companyId).count;
+
+    // Monthly usage (last 12 months)
+    const monthlyUsage = db.prepare(`
+      SELECT strftime('%Y-%m', b.created_at) as month, COUNT(*) as count
+      FROM corporate_members cm JOIN bookings b ON cm.user_id = b.user_id
+      WHERE cm.company_id = ? AND b.status IN ('confirmed','attended')
+        AND b.created_at >= datetime('now', '-12 months')
+      GROUP BY strftime('%Y-%m', b.created_at) ORDER BY month
+    `).all(companyId);
+
+    // Top employees by bookings
+    const topEmployees = db.prepare(`
+      SELECT u.name, u.email, COUNT(*) as bookings
+      FROM corporate_members cm JOIN users u ON cm.user_id = u.id
+      JOIN bookings b ON cm.user_id = b.user_id
+      WHERE cm.company_id = ? AND b.status IN ('confirmed','attended')
+      GROUP BY u.id ORDER BY bookings DESC LIMIT 10
+    `).all(companyId);
+
+    // Popular categories
+    const popularCategories = db.prepare(`
+      SELECT c.category, COUNT(*) as count
+      FROM corporate_members cm JOIN bookings b ON cm.user_id = b.user_id
+      JOIN classes c ON b.class_id = c.id
+      WHERE cm.company_id = ? AND b.status IN ('confirmed','attended')
+      GROUP BY c.category ORDER BY count DESC
+    `).all(companyId);
+
+    // Credit utilization
+    const creditUtilization = company.credit_pool > 0
+      ? Math.min(1, (company.credit_used || 0) / company.credit_pool)
+      : 0;
+
+    res.json({
+      totalBookings,
+      monthlyUsage,
+      topEmployees,
+      popularCategories,
+      creditUtilization
+    });
+  } catch (err) {
+    console.error("[CORPORATE STATS] Error:", err);
+    res.status(500).json({ error: "讀取統計失敗" });
   }
 });
 

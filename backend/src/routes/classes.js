@@ -5,7 +5,7 @@
 
 const express = require("express");
 const { v4: uuidv4 } = require("uuid");
-const Database = require("better-sqlite3");
+const { getDb } = require("../services/database");
 const { cache } = require("../middleware/cache");
 const {
   authenticateToken,
@@ -16,12 +16,11 @@ const {
 const { writeBlock } = require("../services/blockchain-audit");
 
 const router = express.Router();
-const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
 
 // ===== GET /api/classes — 課程列表（支援分頁、篩選、搜尋） =====
 router.get("/", optionalAuth, cache(30), (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.pragma("foreign_keys = ON");
 
     const {
@@ -149,8 +148,6 @@ router.get("/", optionalAuth, cache(30), (req, res) => {
       schedules: scheduleMap[cls.id] || [],
     }));
 
-    db.close();
-
     res.json({
       classes: classesWithSchedule,
       pagination: {
@@ -169,7 +166,7 @@ router.get("/", optionalAuth, cache(30), (req, res) => {
 // ===== GET /api/classes/categories — 分類列表 =====
 router.get("/available-dates", cache(60), (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     const dates = db
       .prepare(
         `
@@ -182,7 +179,7 @@ router.get("/available-dates", cache(60), (req, res) => {
       )
       .all()
       .map((row) => row.d);
-    db.close();
+
     res.json({ dates });
   } catch (err) {
     console.error("取可用日期錯誤:", err);
@@ -192,12 +189,12 @@ router.get("/available-dates", cache(60), (req, res) => {
 
 router.get("/:id/recommended", (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     const course = db
       .prepare("SELECT category FROM classes WHERE id = ?")
       .get(req.params.id);
     if (!course) {
-      db.close();
+
       return res.json({ classes: [] });
     }
     const classes = db
@@ -209,7 +206,7 @@ router.get("/:id/recommended", (req, res) => {
     `,
       )
       .all(course.category, req.params.id);
-    db.close();
+
     res.json({ classes });
   } catch (err) {
     console.error("推薦課程錯誤:", err);
@@ -220,7 +217,7 @@ router.get("/:id/recommended", (req, res) => {
 // ===== GET /api/classes/upcoming — 即將開課時間表 (for QR checkin) =====
 router.get("/upcoming", optionalAuth, (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     const schedules = db
       .prepare(
         `
@@ -244,7 +241,7 @@ router.get("/upcoming", optionalAuth, (req, res) => {
       delete s.coach_id;
       return s;
     });
-    db.close();
+
     res.json({ schedules: enriched });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -253,7 +250,7 @@ router.get("/upcoming", optionalAuth, (req, res) => {
 
 router.get("/categories", cache(300), (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.pragma("foreign_keys = ON");
 
     const categories = db
@@ -268,7 +265,6 @@ router.get("/categories", cache(300), (req, res) => {
       )
       .all();
 
-    db.close();
     res.json({ categories });
   } catch (err) {
     console.error("分類列表錯誤:", err);
@@ -279,7 +275,7 @@ router.get("/categories", cache(300), (req, res) => {
 // ===== GET /api/classes/:id — 課程詳情 =====
 router.get("/:id", optionalAuth, (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.pragma("foreign_keys = ON");
 
     const classData = db
@@ -295,7 +291,7 @@ router.get("/:id", optionalAuth, (req, res) => {
       .get(req.params.id);
 
     if (!classData) {
-      db.close();
+
       return res.status(404).json({ error: "課程不存在" });
     }
 
@@ -326,8 +322,6 @@ router.get("/:id", optionalAuth, (req, res) => {
     `,
       )
       .all(req.params.id);
-
-    db.close();
 
     // 🔔 追蹤：瀏覽課程行為（async fire-and-forget）
     try {
@@ -382,16 +376,14 @@ router.post("/", authenticateToken, requireCoach, (req, res) => {
     }
 
     const id = uuidv4();
-    const dbC3 = new Database(DB_PATH);
+    const db = getDb();
     const maxS3 =
-      dbC3
+      db
         .prepare(
           "SELECT MAX(CAST(SUBSTR(class_reference, 4) AS INTEGER)) as m FROM classes WHERE class_reference GLOB 'CL-[0-9]*'",
         )
         .get().m || 0;
     const clRef = "CL-" + String(maxS3 + 1).padStart(4, "0");
-    dbC3.close();
-    const db = new Database(DB_PATH);
     db.pragma("foreign_keys = ON");
 
     db.prepare(
@@ -440,8 +432,6 @@ router.post("/", authenticateToken, requireCoach, (req, res) => {
       console.error("⚠️ Blockchain write failed (class create):", bcErr.message);
     }
 
-    db.close();
-
     res.status(201).json({ message: "課程已建立", class_id: id });
   } catch (err) {
     console.error("新增課程錯誤:", err);
@@ -452,7 +442,7 @@ router.post("/", authenticateToken, requireCoach, (req, res) => {
 // ===== PUT /api/classes/:id — 更新課程 =====
 router.put("/:id", authenticateToken, requireCoach, (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.pragma("foreign_keys = ON");
 
     // Verify ownership
@@ -460,7 +450,7 @@ router.put("/:id", authenticateToken, requireCoach, (req, res) => {
       .prepare("SELECT * FROM classes WHERE id = ? AND coach_id = ?")
       .get(req.params.id, req.user.id);
     if (!classData) {
-      db.close();
+
       return res.status(403).json({ error: "你無權限修改此課程" });
     }
 
@@ -490,7 +480,7 @@ router.put("/:id", authenticateToken, requireCoach, (req, res) => {
     });
 
     if (updates.length === 0) {
-      db.close();
+
       return res.status(400).json({ error: "沒有需要更新的資料" });
     }
 
@@ -519,8 +509,6 @@ router.put("/:id", authenticateToken, requireCoach, (req, res) => {
     } catch (bcErr) {
       console.error("⚠️ Blockchain write failed (class update):", bcErr.message);
     }
-
-    db.close();
 
     res.json({ message: "課程已更新" });
   } catch (err) {

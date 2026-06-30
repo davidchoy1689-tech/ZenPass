@@ -5,7 +5,7 @@
 
 const express = require("express");
 const { v4: uuidv4 } = require("uuid");
-const Database = require("better-sqlite3");
+const { getDb } = require("../services/database");
 const { authenticateToken } = require("../middleware/auth");
 const { getSupabase } = require("../services/supabase");
 const { sendNotification } = require("../services/notification");
@@ -13,12 +13,11 @@ const { sendNotification } = require("../services/notification");
 const { writeBlock } = require("../services/blockchain-audit");
 
 const router = express.Router();
-const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
 
 // ===== GET /api/coach/list — 獲取教練列表 =====
 router.get("/list", (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     const coaches = db.prepare(`
       SELECT u.id, u.name, u.avatar_url as avatar, u.email,
         COALESCE(cr.avg_rating, 0) as rating,
@@ -41,7 +40,6 @@ router.get("/list", (req, res) => {
       LIMIT ?
     `).all(parseInt(req.query.limit) || 50);
     res.json({ success: true, coaches: coaches });
-    if (db) db.close();
   } catch(e) {
     console.error("Error fetching coaches:", e.message);
     res.json({ success: true, coaches: [] });
@@ -69,7 +67,7 @@ router.post("/apply", authenticateToken, (req, res) => {
       return res.status(400).json({ error: "請填寫姓名、電話、電郵和住址" });
     }
 
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.pragma("foreign_keys = ON");
 
     // 檢查是否已有申請
@@ -80,7 +78,7 @@ router.post("/apply", authenticateToken, (req, res) => {
       .get(req.user.id);
 
     if (existing) {
-      db.close();
+
       return res.status(409).json({ error: "你已經有進行中的申請" });
     }
 
@@ -94,15 +92,13 @@ router.post("/apply", authenticateToken, (req, res) => {
     const venuePhotosStr = Array.isArray(venue_photos)
       ? venue_photos.join(",")
       : venue_photos;
-    const dbCA = new Database(DB_PATH);
     const maxCA =
-      dbCA
+      db
         .prepare(
           "SELECT MAX(CAST(SUBSTR(application_reference, 4) AS INTEGER)) as m FROM coach_applications WHERE application_reference GLOB 'CA-[0-9]*'",
         )
         .get().m || 0;
     const appRef = "CA-" + String(maxCA + 1).padStart(4, "0");
-    dbCA.close();
 
     db.prepare(
       `
@@ -129,8 +125,6 @@ router.post("/apply", authenticateToken, (req, res) => {
       appRef,
     );
 
-    db.close();
-
     res.status(201).json({
       message: "申請已提交，我們將在 3 個工作日內完成審批",
       application_id: id,
@@ -144,7 +138,7 @@ router.post("/apply", authenticateToken, (req, res) => {
 // ===== GET /api/coach/application — 查詢申請狀態 =====
 router.get("/application", authenticateToken, (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.pragma("foreign_keys = ON");
 
     const application = db
@@ -155,8 +149,6 @@ router.get("/application", authenticateToken, (req, res) => {
     `,
       )
       .get(req.user.id);
-
-    db.close();
 
     if (!application) {
       return res.json({ application: null });
@@ -172,7 +164,7 @@ router.get("/application", authenticateToken, (req, res) => {
 // ===== GET /api/coach/my-classes — 我的課程 =====
 router.get("/my-classes", authenticateToken, (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.pragma("foreign_keys = ON");
 
     const classes = db
@@ -187,8 +179,6 @@ router.get("/my-classes", authenticateToken, (req, res) => {
     `,
       )
       .all(req.user.id);
-
-    db.close();
 
     res.json({ classes });
   } catch (err) {
@@ -213,7 +203,7 @@ router.post("/schedules", authenticateToken, (req, res) => {
       return res.status(400).json({ error: "請填寫課程、開始時間和結束時間" });
     }
 
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.pragma("foreign_keys = ON");
 
     // Verify ownership
@@ -221,7 +211,7 @@ router.post("/schedules", authenticateToken, (req, res) => {
       .prepare("SELECT * FROM classes WHERE id = ? AND coach_id = ?")
       .get(class_id, req.user.id);
     if (!classData) {
-      db.close();
+
       return res.status(403).json({ error: "你無權限操作此課程" });
     }
 
@@ -352,8 +342,6 @@ router.post("/schedules", authenticateToken, (req, res) => {
       console.error("⚠️ Blockchain write failed (schedule create):", bcErr.message);
     }
 
-    db.close();
-
     res.status(201).json({
       message: `時間已新增（共 ${scheduleIds.length} 個時段）`,
       schedule_ids: scheduleIds,
@@ -446,7 +434,7 @@ router.post("/refer", authenticateToken, (req, res) => {
     if (!name || !email)
       return res.status(400).json({ error: "請填寫教練姓名和電郵" });
 
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.pragma("foreign_keys = ON");
 
     // Log the referral
@@ -467,7 +455,6 @@ router.post("/refer", authenticateToken, (req, res) => {
       data: { name, email, phone, referred_by: req.user.name },
     });
 
-    db.close();
     res.json({ success: true, message: "✅ 推薦已提交！管理員會聯絡 " + name });
   } catch (err) {
     console.error("Coach refer error:", err.message);
@@ -480,7 +467,7 @@ module.exports = router;
 // ===== GET /api/coach/class-students — 查看課程學生名單 =====
 router.get("/class-students", authenticateToken, (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     const { schedule_id } = req.query;
 
     // Verify coach owns this schedule's class
@@ -488,7 +475,7 @@ router.get("/class-students", authenticateToken, (req, res) => {
       .prepare("SELECT class_id FROM class_schedules WHERE id = ?")
       .get(schedule_id);
     if (!schedule) {
-      db.close();
+
       return res.status(404).json({ error: "時段不存在" });
     }
 
@@ -496,7 +483,7 @@ router.get("/class-students", authenticateToken, (req, res) => {
       .prepare("SELECT coach_id FROM classes WHERE id = ?")
       .get(schedule.class_id);
     if (!classInfo) {
-      db.close();
+
       return res.status(404).json({ error: "課程不存在" });
     }
 
@@ -527,7 +514,6 @@ router.get("/class-students", authenticateToken, (req, res) => {
       )
       .get(schedule_id);
 
-    db.close();
     res.json({ schedule: schedInfo, students, total: students.length });
   } catch (err) {
     res.status(500).json({ error: err.message });

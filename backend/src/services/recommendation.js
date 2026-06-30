@@ -3,15 +3,14 @@
  * 用戶行為追蹤 + 簡單推薦系統
  */
 
-const Database = require("better-sqlite3");
-const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
+const { getDb } = require("./database");
 
 /**
  * 確保 user_actions 表存在
  */
 function ensureTables() {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.exec(`
       CREATE TABLE IF NOT EXISTS user_actions (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -31,7 +30,7 @@ function ensureTables() {
       CREATE INDEX IF NOT EXISTS idx_user_actions_category 
       ON user_actions(category, created_at DESC);
     `);
-    db.close();
+
     return true;
   } catch (err) {
     console.error("推薦引擎: 建立 user_actions 表失敗:", err.message);
@@ -52,7 +51,7 @@ function trackUserAction(userId, action, data) {
   if (!userId || !action) return false;
 
   try {
-    var db = new Database(DB_PATH);
+    var db = getDb();
     var category = data && data.category ? data.category : null;
     var classId = data && data.class_id ? data.class_id : null;
     var actionData = data ? JSON.stringify(data) : "{}";
@@ -61,7 +60,6 @@ function trackUserAction(userId, action, data) {
       "INSERT INTO user_actions (user_id, action, category, class_id, data) VALUES (?, ?, ?, ?, ?)",
     ).run(userId, action, category, classId, actionData);
 
-    db.close();
     return true;
   } catch (err) {
     console.error("推薦引擎: trackUserAction 錯誤:", err.message);
@@ -78,7 +76,7 @@ function getRecommendations(userId, limit) {
   if (!limit) limit = 10;
 
   try {
-    var db = new Database(DB_PATH);
+    var db = getDb();
     db.pragma("foreign_keys = ON");
 
     var excludedClassIds = [];
@@ -171,7 +169,7 @@ function getRecommendations(userId, limit) {
           `,
             )
             .all(...params, limit);
-          db.close();
+
           return recommendations;
         } else {
           var recommendations = db
@@ -191,12 +189,11 @@ function getRecommendations(userId, limit) {
           `,
             )
             .all(...params, limit);
-          db.close();
+
           return recommendations;
         }
       }
 
-      db.close();
     }
 
     // Fallback: return popular by category
@@ -215,7 +212,7 @@ function getPopularByCategory(limit) {
   if (!limit) limit = 20;
 
   try {
-    var db = new Database(DB_PATH);
+    var db = getDb();
     db.pragma("foreign_keys = ON");
 
     var popular = db
@@ -235,7 +232,6 @@ function getPopularByCategory(limit) {
       )
       .all(limit);
 
-    db.close();
     return popular;
   } catch (err) {
     console.error("推薦引擎: getPopularByCategory 錯誤:", err.message);

@@ -18,7 +18,7 @@
 const fs = require("fs");
 const path = require("path");
 const { execSync } = require("child_process");
-const Database = require("better-sqlite3");
+const { getDb } = require("./database");
 const { emailNotification, sendTelegramAlert } = require("./notification");
 
 const STATE_FILE = path.join(__dirname, "../../data/monitor-state.json");

@@ -5,7 +5,7 @@
 
 const express = require("express");
 const { v4: uuidv4 } = require("uuid");
-const Database = require("better-sqlite3");
+const { getDb } = require("../services/database");
 const { authenticateToken, requireAdmin } = require("../middleware/auth");
 
 const {
@@ -16,12 +16,11 @@ const { audit, trackAdminAction, queryAudit } = require("../services/audit");
 const { writeBlock } = require("../services/blockchain-audit");
 
 const router = express.Router();
-const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
 
 // ===== GET /api/admin/pending-payments — 待確認付款列表 =====
 router.get("/pending-payments", authenticateToken, requireAdmin, (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.pragma("foreign_keys = ON");
 
     const pending = db
@@ -63,8 +62,6 @@ router.get("/pending-payments", authenticateToken, requireAdmin, (req, res) => {
       )
       .all();
 
-    db.close();
-
     res.json({ pending_payments: pending });
   } catch (err) {
     console.error("取待確認付款錯誤:", err);
@@ -81,14 +78,14 @@ router.post("/approve-payment", authenticateToken, requireAdmin, (req, res) => {
       return res.status(400).json({ error: "缺少預約 ID" });
     }
 
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.pragma("foreign_keys = ON");
 
     const booking = db
       .prepare("SELECT * FROM bookings WHERE id = ? AND status = ?")
       .get(booking_id, "pending_payment");
     if (!booking) {
-      db.close();
+
       return res.status(404).json({ error: "預約不存在或已處理" });
     }
 
@@ -213,8 +210,6 @@ router.post("/approve-payment", authenticateToken, requireAdmin, (req, res) => {
       console.error("⚠️ Blockchain write failed (admin approve):", bcErr.message);
     }
 
-    db.close();
-
     res.json({
       message: "✅ 付款已確認，預約已生效",
       booking_id,
@@ -234,14 +229,14 @@ router.post("/reject-payment", authenticateToken, requireAdmin, (req, res) => {
       return res.status(400).json({ error: "缺少預約 ID" });
     }
 
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.pragma("foreign_keys = ON");
 
     const booking = db
       .prepare("SELECT * FROM bookings WHERE id = ? AND status = ?")
       .get(booking_id, "pending_payment");
     if (!booking) {
-      db.close();
+
       return res.status(404).json({ error: "預約不存在或已處理" });
     }
 
@@ -336,8 +331,6 @@ router.post("/reject-payment", authenticateToken, requireAdmin, (req, res) => {
       console.error("⚠️ Blockchain write failed (admin reject):", bcErr.message);
     }
 
-    db.close();
-
     res.json({
       message: "❌ 付款已拒絕，預約已取消",
       booking_id,
@@ -351,7 +344,7 @@ router.post("/reject-payment", authenticateToken, requireAdmin, (req, res) => {
 // ===== GET /api/admin/stats — Dashboard 統計 =====
 router.get("/stats", authenticateToken, requireAdmin, (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.pragma("foreign_keys = ON");
 
     const stats = {
@@ -396,7 +389,6 @@ router.get("/stats", authenticateToken, requireAdmin, (req, res) => {
       })(),
     };
 
-    db.close();
     res.json({ stats });
   } catch (err) {
     console.error("取統計錯誤:", err);
@@ -407,7 +399,7 @@ router.get("/stats", authenticateToken, requireAdmin, (req, res) => {
 // ===== GET /api/admin/bookings — 所有預約記錄 =====
 router.get("/bookings", authenticateToken, requireAdmin, (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.pragma("foreign_keys = ON");
 
     const { status, page = 1, limit = 50 } = req.query;
@@ -451,7 +443,6 @@ router.get("/bookings", authenticateToken, requireAdmin, (req, res) => {
       )
       .get(...params).count;
 
-    db.close();
     res.json({ bookings, total, page: parseInt(page), limit: parseInt(limit) });
   } catch (err) {
     console.error("取預約記錄錯誤:", err);
@@ -462,7 +453,7 @@ router.get("/bookings", authenticateToken, requireAdmin, (req, res) => {
 // ===== GET /api/admin/users — 用戶列表 =====
 router.get("/users", authenticateToken, requireAdmin, (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.pragma("foreign_keys = ON");
 
     const users = db
@@ -476,7 +467,6 @@ router.get("/users", authenticateToken, requireAdmin, (req, res) => {
       )
       .all();
 
-    db.close();
     res.json({ users });
   } catch (err) {
     console.error("取用戶列表錯誤:", err);
@@ -487,7 +477,7 @@ router.get("/users", authenticateToken, requireAdmin, (req, res) => {
 // ===== GET /api/admin/classes — 課程列表 =====
 router.get("/classes", authenticateToken, requireAdmin, (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.pragma("foreign_keys = ON");
 
     const classes = db
@@ -503,7 +493,6 @@ router.get("/classes", authenticateToken, requireAdmin, (req, res) => {
       )
       .all();
 
-    db.close();
     res.json({ classes });
   } catch (err) {
     console.error("取課程列表錯誤:", err);
@@ -595,7 +584,7 @@ router.get("/db", async (req, res) => {
 // ===== POST /api/admin/process-payouts — 管理員批量處理教練出糧 =====
 router.post("/process-payouts", authenticateToken, requireAdmin, (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.pragma("foreign_keys = ON");
 
     // 計算所有 coach 嘅 pending earnings
@@ -719,8 +708,6 @@ router.post("/process-payouts", authenticateToken, requireAdmin, (req, res) => {
       console.error("⚠️ Blockchain write failed (process payouts):", bcErr.message);
     }
 
-    db.close();
-
     res.json({
       message:
         processed > 0 ? `已爲 ${processed} 位教練處理出糧` : "沒有待出糧的教練",
@@ -736,7 +723,7 @@ router.post("/process-payouts", authenticateToken, requireAdmin, (req, res) => {
 // ===== GET /api/admin/payouts — 管理員查看所有出糧記錄 =====
 router.get("/payouts", authenticateToken, requireAdmin, (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
 
     const { status, page = 1, limit = 50 } = req.query;
     let where = "WHERE 1=1";
@@ -782,8 +769,6 @@ router.get("/payouts", authenticateToken, requireAdmin, (req, res) => {
       )
       .get();
 
-    db.close();
-
     res.json({
       payouts,
       total,
@@ -804,7 +789,7 @@ router.get(
   requireAdmin,
   (req, res) => {
     try {
-      const db = new Database(DB_PATH);
+      const db = getDb();
       db.pragma("foreign_keys = ON");
       const { status = "pending" } = req.query;
 
@@ -818,7 +803,6 @@ router.get(
         )
         .all(status);
 
-      db.close();
       res.json({ applications, total: applications.length });
     } catch (err) {
       console.error("取教練申請錯誤:", err);
@@ -834,18 +818,18 @@ router.post("/coach-approve", authenticateToken, requireAdmin, (req, res) => {
       return res.status(400).json({ error: "缺少申請編號" });
     }
 
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.pragma("foreign_keys = ON");
 
     const app = db
       .prepare("SELECT * FROM coach_applications WHERE id = ?")
       .get(application_id);
     if (!app) {
-      db.close();
+
       return res.status(404).json({ error: "申請不存在" });
     }
     if (app.status !== "pending") {
-      db.close();
+
       return res.status(400).json({ error: "申請已處理" });
     }
 
@@ -882,8 +866,6 @@ router.post("/coach-approve", authenticateToken, requireAdmin, (req, res) => {
       console.error("⚠️ Blockchain write failed (coach approve):", bcErr.message);
     }
 
-    db.close();
-
     res.json({
       message: "✅ 教練申請已通過",
       coach_name: app.name,
@@ -901,18 +883,18 @@ router.post("/coach-reject", authenticateToken, requireAdmin, (req, res) => {
       return res.status(400).json({ error: "缺少申請編號" });
     }
 
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.pragma("foreign_keys = ON");
 
     const app = db
       .prepare("SELECT * FROM coach_applications WHERE id = ?")
       .get(application_id);
     if (!app) {
-      db.close();
+
       return res.status(404).json({ error: "申請不存在" });
     }
     if (app.status !== "pending") {
-      db.close();
+
       return res.status(400).json({ error: "申請已處理" });
     }
 
@@ -942,8 +924,6 @@ router.post("/coach-reject", authenticateToken, requireAdmin, (req, res) => {
       console.error("⚠️ Blockchain write failed (coach reject):", bcErr.message);
     }
 
-    db.close();
-
     res.json({
       message: "✅ 已拒絕申請",
       coach_name: app.name,
@@ -961,12 +941,12 @@ router.get(
   requireAdmin,
   (req, res) => {
     try {
-      const db = new Database(DB_PATH);
+      const db = getDb();
       const course = db
         .prepare("SELECT * FROM classes WHERE id = ?")
         .get(req.params.id);
       if (!course) {
-        db.close();
+
         return res.status(404).json({ error: "課程不存在" });
       }
 
@@ -987,7 +967,6 @@ router.get(
         scheduleStudents[s.id] = students;
       }
 
-      db.close();
       res.json({
         course,
         schedules,
@@ -1004,12 +983,12 @@ router.get(
 // ===== GET /api/admin/user-detail/:id — 用戶詳細資料（含預約紀錄） =====
 router.get("/user-detail/:id", authenticateToken, requireAdmin, (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     const user = db
       .prepare("SELECT * FROM users WHERE id = ?")
       .get(req.params.id);
     if (!user) {
-      db.close();
+
       return res.status(404).json({ error: "用戶不存在" });
     }
 
@@ -1031,7 +1010,6 @@ router.get("/user-detail/:id", authenticateToken, requireAdmin, (req, res) => {
       )
       .all(req.params.id);
 
-    db.close();
     res.json({ user, bookings, transactions, membership });
   } catch (err) {
     console.error("取用戶詳情錯誤:", err);
@@ -1042,12 +1020,12 @@ router.get("/user-detail/:id", authenticateToken, requireAdmin, (req, res) => {
 // ===== GET /api/admin/coach-detail/:id — 教練詳細資料（含課程、收入） =====
 router.get("/coach-detail/:id", authenticateToken, requireAdmin, (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     const coach = db
       .prepare("SELECT * FROM users WHERE id = ? AND is_coach = 1")
       .get(req.params.id);
     if (!coach) {
-      db.close();
+
       return res.status(404).json({ error: "教練不存在" });
     }
 
@@ -1069,7 +1047,6 @@ router.get("/coach-detail/:id", authenticateToken, requireAdmin, (req, res) => {
       )
       .all(req.params.id);
 
-    db.close();
     res.json({ coach, classes, earnings, payouts });
   } catch (err) {
     console.error("取教練詳情錯誤:", err);
@@ -1085,7 +1062,7 @@ router.post("/assign-coach", authenticateToken, requireAdmin, (req, res) => {
       return res.status(400).json({ error: "缺少課程編號或教練編號" });
     }
 
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.pragma("foreign_keys = ON");
 
     // 檢查課程是否存在
@@ -1093,7 +1070,7 @@ router.post("/assign-coach", authenticateToken, requireAdmin, (req, res) => {
       .prepare("SELECT * FROM classes WHERE id = ?")
       .get(class_id);
     if (!classData) {
-      db.close();
+
       return res.status(404).json({ error: "課程不存在" });
     }
 
@@ -1102,7 +1079,7 @@ router.post("/assign-coach", authenticateToken, requireAdmin, (req, res) => {
       .prepare("SELECT id, name FROM users WHERE id = ? AND is_coach = 1")
       .get(coach_id);
     if (!coach) {
-      db.close();
+
       return res.status(404).json({ error: "教練不存在或未通過認證" });
     }
 
@@ -1110,7 +1087,6 @@ router.post("/assign-coach", authenticateToken, requireAdmin, (req, res) => {
     db.prepare(
       "UPDATE classes SET coach_id = ?, updated_at = datetime('now') WHERE id = ?",
     ).run(coach_id, class_id);
-    db.close();
 
     res.json({
       success: true,
@@ -1135,7 +1111,7 @@ router.post(
         return res.status(400).json({ error: "缺少課程編號" });
       }
 
-      const db = new Database(DB_PATH);
+      const db = getDb();
       db.pragma("foreign_keys = ON");
 
       // 獲取課程資料
@@ -1143,7 +1119,7 @@ router.post(
         .prepare("SELECT * FROM classes WHERE id = ?")
         .get(class_id);
       if (!course) {
-        db.close();
+
         return res.status(404).json({ error: "課程不存在" });
       }
 
@@ -1173,7 +1149,7 @@ router.post(
         .all(category, category);
 
       if (interestedUsers.length === 0) {
-        db.close();
+
         return res.json({ notified: 0, message: "暫無有興趣嘅學員" });
       }
 
@@ -1191,8 +1167,6 @@ router.post(
           console.error("通知發送失敗:", notifErr.message);
         }
       }
-
-      db.close();
 
       res.json({
         notified: notifiedCount,
@@ -1212,14 +1186,14 @@ router.put(
   requireAdmin,
   (req, res) => {
     try {
-      const db = new Database(DB_PATH);
+      const db = getDb();
       db.pragma("foreign_keys = ON");
 
       const classData = db
         .prepare("SELECT * FROM classes WHERE id = ?")
         .get(req.params.id);
       if (!classData) {
-        db.close();
+
         return res.status(404).json({ error: "課程不存在" });
       }
 
@@ -1254,7 +1228,7 @@ router.put(
       }
 
       if (updates.length === 0) {
-        db.close();
+
         return res.status(400).json({ error: "沒有要更新的欄位" });
       }
 
@@ -1264,7 +1238,6 @@ router.put(
       db.prepare(`UPDATE classes SET ${updates.join(", ")} WHERE id = ?`).run(
         ...params,
       );
-      db.close();
 
       res.json({ success: true, message: "✅ 課程資料已更新" });
     } catch (err) {
@@ -1597,7 +1570,6 @@ router.post(
   },
 );
 
-
 // ===== GET /api/admin/audit-log - audit trail =====
 router.get("/audit-log", authenticateToken, requireAdmin, (req, res) => {
   try {
@@ -1609,6 +1581,92 @@ router.get("/audit-log", authenticateToken, requireAdmin, (req, res) => {
   } catch (err) {
     console.error("[ADMIN] audit-log error:", err.message);
     res.status(500).json({ error: "load audit log failed" });
+  }
+});
+
+// ===== GET /api/admin/revenue-dashboard — 收入 Dashboard =====
+router.get("/revenue-dashboard", authenticateToken, requireAdmin, (req, res) => {
+  try {
+    const db = getDb();
+
+    // Active subscribers (active memberships)
+    const activeSubscribers = db.prepare(`
+      SELECT COUNT(DISTINCT user_id) as count FROM memberships WHERE status = 'active'
+    `).get().count;
+
+    // Total revenue from booking_payments
+    const totalBookingRevenue = db.prepare(`
+      SELECT COALESCE(SUM(amount), 0) as total FROM booking_payments WHERE status = 'completed'
+    `).get().total;
+
+    // Total revenue from transactions (memberships + topups)
+    const membershipRevenue = db.prepare(`
+      SELECT COALESCE(SUM(amount), 0) as total FROM transactions WHERE type = 'membership' AND status = 'completed'
+    `).get().total;
+
+    const topupRevenue = db.prepare(`
+      SELECT COALESCE(SUM(amount), 0) as total FROM transactions WHERE type = 'credits_topup' AND status = 'completed'
+    `).get().total;
+
+    const corporateRevenue = db.prepare(`
+      SELECT COALESCE(SUM(amount), 0) as total FROM transactions WHERE type = 'single_booking' AND status = 'completed' AND description LIKE '%corporate%'
+    `).get().total;
+
+    // Total revenue
+    const totalRevenue = membershipRevenue + topupRevenue + corporateRevenue + totalBookingRevenue;
+
+    // Avg revenue per user
+    const totalUsers = db.prepare("SELECT COUNT(*) as count FROM users").get().count;
+    const avgRevenuePerUser = totalUsers > 0 ? Math.round((totalRevenue / totalUsers) * 100) / 100 : 0;
+
+    // Monthly revenue trends (last 12 months)
+    const monthlyRevenue = db.prepare(`
+      SELECT strftime('%Y-%m', created_at) as month,
+        SUM(CASE WHEN type = 'membership' THEN amount ELSE 0 END) as subscription,
+        SUM(CASE WHEN type = 'credits_topup' THEN amount ELSE 0 END) as topup,
+        SUM(CASE WHEN type = 'single_booking' AND description LIKE '%corporate%' THEN amount ELSE 0 END) as corporate,
+        SUM(amount) as total
+      FROM transactions WHERE status = 'completed'
+        AND created_at >= datetime('now', '-12 months')
+      GROUP BY strftime('%Y-%m', created_at) ORDER BY month
+    `).all();
+
+    // Revenue breakdown by source
+    const totalForPct = totalRevenue || 1;
+    const revenueBreakdown = [
+      { source: "membership", label: "會籍", amount: membershipRevenue, percentage: Math.round((membershipRevenue / totalForPct) * 100 * 100) / 100 },
+      { source: "topup", label: "增值", amount: topupRevenue, percentage: Math.round((topupRevenue / totalForPct) * 100 * 100) / 100 },
+      { source: "corporate", label: "企業", amount: corporateRevenue, percentage: Math.round((corporateRevenue / totalForPct) * 100 * 100) / 100 },
+      { source: "booking", label: "單次預約", amount: totalBookingRevenue, percentage: Math.round((totalBookingRevenue / totalForPct) * 100 * 100) / 100 }
+    ];
+
+    // Recent transactions
+    const recentTransactions = db.prepare(`
+      SELECT t.id, t.user_id, u.name as user_name, u.email as user_email,
+        t.type, t.amount, t.payment_method, t.status, t.description, t.created_at
+      FROM transactions t JOIN users u ON t.user_id = u.id
+      WHERE t.status = 'completed'
+      ORDER BY t.created_at DESC LIMIT 20
+    `).all();
+
+    // MRR: sum of active membership revenue this month
+    const mrr = db.prepare(`
+      SELECT COALESCE(SUM(price_hkd), 0) as total FROM memberships
+      WHERE status = 'active' AND start_date <= datetime('now') AND end_date >= datetime('now')
+    `).get().total;
+
+    res.json({
+      mrr,
+      totalRevenue,
+      activeSubscribers,
+      avgRevenuePerUser,
+      monthlyRevenue,
+      revenueBreakdown,
+      recentTransactions
+    });
+  } catch (err) {
+    console.error("[REVENUE DASHBOARD] Error:", err.message);
+    res.status(500).json({ error: "讀取收入 Dashboard 失敗" });
   }
 });
 

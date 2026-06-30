@@ -98,52 +98,8 @@ function authenticateToken(req, res, next) {
     req.user = decoded;
     next();
   } catch (err) {
-    // Accept demo token ONLY when ALLOW_DEMO_TOKEN=true (dev/testing only)
-    if (
-      token.startsWith("demo_token_") &&
-      process.env.ALLOW_DEMO_TOKEN === "true"
-    ) {
-      const role = token.replace("demo_token_", "");
-      const db = new Database(DB_PATH);
-      let demoUser;
-      if (role === "admin") {
-        demoUser = db
-          .prepare(
-            "SELECT id, email, name, role, partner_id FROM users WHERE email='admin@zenpass.hk'",
-          )
-          .get();
-      } else if (role === "coach") {
-        demoUser = db
-          .prepare(
-            "SELECT id, email, name, role, partner_id FROM users WHERE email='coach@zenpass.hk'",
-          )
-          .get();
-      } else {
-        demoUser = db
-          .prepare(
-            "SELECT id, email, name, role, partner_id FROM users WHERE email='student@zenpass.hk'",
-          )
-          .get();
-      }
-      if (!demoUser) {
-        demoUser = db
-          .prepare(
-            "SELECT id, email, name, role, partner_id FROM users LIMIT 1",
-          )
-          .get();
-      }
-      db.close();
-      if (demoUser) {
-        req.user = {
-          id: demoUser.id,
-          email: demoUser.email,
-          name: demoUser.name,
-          role: role,
-          partner_id: demoUser.partner_id,
-        };
-        return next();
-      }
-    }
+    // Demo token bypass removed for security hardening.
+    // See commit history for ALLOW_DEMO_TOKEN logic (previously here).
     return res.status(403).json({ error: "認證無效或已過期" });
   }
 }

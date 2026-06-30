@@ -1,14 +1,13 @@
 const express = require("express");
-const Database = require("better-sqlite3");
+const { getDb } = require("../services/database");
 const { authenticateToken } = require("../middleware/auth");
 
 const router = express.Router();
-const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
 
 // GET /api/activity/feed — Recent platform activity (anonymized)
 router.get("/feed", (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     const realFeed = db.prepare(`
       SELECT b.id, b.created_at as time, b.status,
         u.name as user_name, c.title as class_title, c.venue_name,
@@ -20,7 +19,6 @@ router.get("/feed", (req, res) => {
       WHERE b.status IN ('confirmed', 'attended', 'checked_in')
       ORDER BY b.created_at DESC LIMIT 15
     `).all();
-    db.close();
 
     // Always pad with demo activities so the feed looks alive
     const demos = [

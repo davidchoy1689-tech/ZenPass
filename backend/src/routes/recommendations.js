@@ -11,7 +11,6 @@ var {
   getPopularByCategory,
 } = require("../services/recommendation");
 var path = require("path");
-const DB_PATH = process.env.DB_PATH || path.join(__dirname, "..", "..", "data", "zenpass.db");
 
 // ===== POST /api/track — 記錄用戶行為 =====
 router.post("/", optionalAuth, function (req, res) {
@@ -77,8 +76,8 @@ router.post("/pageview", function (req, res) {
       return res.json({ tracked: false });
     }
 
-    const Database = require("better-sqlite3");
-    var db = new Database(DB_PATH);
+    const { getDb } = require("../services/database");
+    var db = getDb();
 
     db.exec("CREATE TABLE IF NOT EXISTS pageviews (id INTEGER PRIMARY KEY AUTOINCREMENT, page TEXT NOT NULL, referrer TEXT DEFAULT '', title TEXT DEFAULT '', ip_hash TEXT DEFAULT '', user_agent TEXT DEFAULT '', viewed_at TEXT DEFAULT (datetime('now')))");
 
@@ -88,7 +87,6 @@ router.post("/pageview", function (req, res) {
     db.prepare("INSERT INTO pageviews (page, referrer, title, ip_hash, user_agent, viewed_at) VALUES (?, ?, ?, ?, ?, datetime('now'))")
       .run(page, (referrer || '').substring(0,500), (title || '').substring(0,200), ipHash, (req.headers['user-agent'] || '').substring(0,200));
 
-    db.close();
     res.json({ tracked: true });
   } catch (err) {
     console.error("[PAGEVIEW] Error:", err);
@@ -99,8 +97,7 @@ router.post("/pageview", function (req, res) {
 // ===== GET /api/track/pageviews/stats — 瀏覽統計報表 =====
 router.get("/pageviews/stats", function (req, res) {
   try {
-    const Database = require("better-sqlite3");
-    var db = new Database(DB_PATH);
+    var db = getDb();
     db.pragma("foreign_keys = ON");
 
     var total = db.prepare("SELECT COUNT(*) as count FROM pageviews").get();
@@ -108,7 +105,6 @@ router.get("/pageviews/stats", function (req, res) {
     var daily = db.prepare("SELECT DATE(viewed_at) as date, COUNT(*) as views FROM pageviews WHERE viewed_at >= datetime('now', '-30 days') GROUP BY DATE(viewed_at) ORDER BY date ASC").all();
     var referrers = db.prepare("SELECT CASE WHEN referrer = '' OR referrer IS NULL THEN 'direct' WHEN referrer LIKE '%google%' THEN 'google' WHEN referrer LIKE '%facebook%' THEN 'facebook' WHEN referrer LIKE '%instagram%' THEN 'instagram' ELSE 'other' END as source, COUNT(*) as count FROM pageviews GROUP BY source ORDER BY count DESC").all();
 
-    db.close();
     res.json({ total: total.count, top_pages: topPages, daily_views: daily, referrers: referrers });
   } catch (err) {
     console.error("[PAGEVIEW STATS] Error:", err);

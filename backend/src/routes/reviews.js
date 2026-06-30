@@ -6,7 +6,7 @@
 const express = require("express");
 const router = express.Router();
 const path = require("path");
-const Database = require("better-sqlite3");
+const { getDb } = require("../services/database");
 const { v4: uuidv4 } = require("uuid");
 const { authenticateToken } = require("../middleware/auth");
 const { writeBlock } = require("../services/blockchain-audit");
@@ -27,7 +27,7 @@ router.post("/", authenticateToken, (req, res) => {
       return res.status(400).json({ error: "評分須在 1-5 之間" });
     }
 
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.pragma("foreign_keys = ON");
 
     // Check booking exists and user is participant
@@ -45,7 +45,7 @@ router.post("/", authenticateToken, (req, res) => {
       .get(booking_id);
 
     if (!booking) {
-      db.close();
+
       return res.status(404).json({ error: "預約不存在或未完成" });
     }
 
@@ -53,14 +53,14 @@ router.post("/", authenticateToken, (req, res) => {
     const isStudent = booking.user_id === from_user_id;
     const isCoach = booking.coach_id === from_user_id;
     if (!isStudent && !isCoach) {
-      db.close();
+
       return res.status(403).json({ error: "你不是此預約的參與者" });
     }
 
     // Verify to_user_id matches the other party
     const expectedToId = isStudent ? booking.coach_id : booking.user_id;
     if (to_user_id !== expectedToId) {
-      db.close();
+
       return res.status(400).json({ error: "評價對象不正確" });
     }
 
@@ -71,7 +71,7 @@ router.post("/", authenticateToken, (req, res) => {
       )
       .get(booking_id, from_user_id);
     if (existing) {
-      db.close();
+
       return res.status(400).json({ error: "你已經評價過此預約" });
     }
 
@@ -131,7 +131,6 @@ router.post("/", authenticateToken, (req, res) => {
       console.error("⚠️ Blockchain write failed (review):", bcErr.message);
     }
 
-    db.close();
     res.json({ success: true, review_id: reviewId });
   } catch (err) {
     console.error("建立評價錯誤:", err);
@@ -142,7 +141,7 @@ router.post("/", authenticateToken, (req, res) => {
 // ===== GET /api/reviews/:userId — 取得用戶評價 =====
 router.get("/:userId", (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     const limit = parseInt(req.query.limit) || 20;
     const offset = parseInt(req.query.offset) || 0;
 
@@ -175,7 +174,6 @@ router.get("/:userId", (req, res) => {
       )
       .get(req.params.userId, req.params.userId);
 
-    db.close();
     res.json({ reviews, stats });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -185,7 +183,7 @@ router.get("/:userId", (req, res) => {
 // ===== GET /api/reviews/booking/:bookingId — 取得預約的評價狀態 =====
 router.get("/booking/:bookingId", authenticateToken, (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     const booking = db
       .prepare(
         `
@@ -200,7 +198,7 @@ router.get("/booking/:bookingId", authenticateToken, (req, res) => {
       .get(req.params.bookingId);
 
     if (!booking) {
-      db.close();
+
       return res.status(404).json({ error: "預約不存在" });
     }
 
@@ -216,7 +214,6 @@ router.get("/booking/:bookingId", authenticateToken, (req, res) => {
       )
       .all(req.params.bookingId);
 
-    db.close();
     res.json({ booking, reviews });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -226,7 +223,7 @@ router.get("/booking/:bookingId", authenticateToken, (req, res) => {
 // ===== GET /api/reviews/public/testimonials — 首頁顯示嘅公開評價 =====
 router.get("/public/testimonials", (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     const testimonials = db
       .prepare(`
       SELECT r.id, r.rating, r.comment, r.created_at,
@@ -239,7 +236,6 @@ router.get("/public/testimonials", (req, res) => {
       LIMIT 10
     `)
       .all();
-    db.close();
 
     var curatedFallback = [
       { user_name: "Winnie", tag: "瑜伽初學者", comment: "第一次上瑜伽班就愛上咗！靜儀導師好專業，環境又好舒服，而家逢星期三都嚟上堂～", rating: 5 },

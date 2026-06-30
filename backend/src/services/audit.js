@@ -9,8 +9,7 @@
  * @module services/audit
  */
 
-const Database = require("better-sqlite3");
-const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
+const { getDb } = require("./database");
 
 /**
  * 記錄一筆審計日誌
@@ -49,7 +48,7 @@ function audit({
   userAgent = "",
   requestId = null,
 }) {
-  const db = new Database(DB_PATH);
+  const db = getDb();
   try {
     const id = require("uuid").v4();
     const timestamp = new Date().toISOString();
@@ -91,7 +90,7 @@ function audit({
     console.error("[AUDIT] Failed to write audit log:", err.message);
     return null;
   } finally {
-    db.close();
+
   }
 }
 
@@ -110,7 +109,7 @@ function audit({
  * @returns {Array} 審計紀錄陣列
  */
 function queryAudit(filters = {}) {
-  const db = new Database(DB_PATH);
+  const db = getDb();
   try {
     const conditions = [];
     const params = [];
@@ -154,7 +153,7 @@ function queryAudit(filters = {}) {
     console.error("[AUDIT] Failed to query audit log:", err.message);
     return [];
   } finally {
-    db.close();
+
   }
 }
 
@@ -177,7 +176,7 @@ function getEntityHistory(entityType, entityId) {
  * @returns {Object}
  */
 function getAuditStats(dateFrom, dateTo) {
-  const db = new Database(DB_PATH);
+  const db = getDb();
   try {
     const stats = db
       .prepare(
@@ -199,7 +198,7 @@ function getAuditStats(dateFrom, dateTo) {
     console.error("[AUDIT] Failed to get stats:", err.message);
     return { total: 0, breakdown: [] };
   } finally {
-    db.close();
+
   }
 }
 

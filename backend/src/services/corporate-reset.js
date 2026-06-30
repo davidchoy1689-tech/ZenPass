@@ -7,9 +7,6 @@
 const path = require("path");
 const { v4: uuidv4 } = require("uuid");
 
-const DB_PATH =
-  process.env.DB_PATH || process.env.DB_PATH || path.join(process.cwd(), "data", "zenpass.db");
-
 function calcNextReset(cycle) {
   const now = new Date();
   switch ((cycle || "monthly").toLowerCase()) {
@@ -35,8 +32,8 @@ function calcNextReset(cycle) {
 }
 
 function processCorporateResets() {
-  const Database = require("better-sqlite3");
-  const db = new Database(DB_PATH);
+  const { getDb } = require("./database");
+  const db = getDb();
   db.pragma("foreign_keys = ON");
 
   let resetCount = 0;
@@ -105,7 +102,7 @@ function processCorporateResets() {
   } catch (err) {
     console.error("[CORPORATE RESET] Error:", err.message);
   } finally {
-    db.close();
+
     return resetCount;
   }
 }

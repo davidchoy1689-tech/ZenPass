@@ -1,477 +1,688 @@
 <!doctype html>
 <html lang="zh-HK">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" href="favicon.png" type="image/png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5" />
-    <meta name="mobile-web-app-capable" content="yes" />
-    <meta
-      name="apple-mobile-web-app-status-bar-style"
-      content="black-translucent"
-    />
-    <meta name="theme-color" content="#f06030" />
-    <!-- Preconnect for faster image loading -->
-    <link rel="dns-prefetch" href="https://davidchoy1689-tech.github.io" />
-    <link rel="preconnect" href="https://davidchoy1689-tech.github.io" />
-    <script>
-      // Fix PWA manifest path for localhost vs GitHub Pages
-      (function () {
-        var l = document.createElement("link");
-        l.rel = "manifest";
-        l.href =
-          window.location.hostname.indexOf("github.io") > -1
-            ? "/ZenPass/manifest.json"
-            : "/manifest.json";
-        document.head.appendChild(l);
-      })();
-    </script>
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" href="favicon.png" type="image/png" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="theme-color" content="#f06030" />
+  <!-- Preconnect for faster image loading -->
+  <link rel="dns-prefetch" href="https://davidchoy1689-tech.github.io" />
+  <link rel="preconnect" href="https://davidchoy1689-tech.github.io" />
+  <script>
+    (function () {
+      var l = document.createElement("link");
+      l.rel = "manifest";
+      l.href = window.location.hostname.indexOf("github.io") > -1 ? "/ZenPass/manifest.json" : "/manifest.json";
+      document.head.appendChild(l);
+    })();
+  </script>
+  <link rel="stylesheet" href="css/zenpass.css?v=2" />
+  <link rel="preload" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" as="style" onload="this.onload=null;this.rel='stylesheet'" />
+  <noscript><link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" /></noscript>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
+  <title>探索課程 - ZenPass 禪流</title>
+  <meta name="description" content="探索 ZenPass 全城精彩運動課程，搜尋、篩選、即時預約" />
+</head>
+<body>
+  <!-- Page config for nav.js -->
+  <script>window.ZENPASS_PAGE_CONFIG = { title: '🔍 探索課程', showBack: false, showAuth: true, showTheme: true };</script>
 
-    <link rel="stylesheet" href="css/zenpass.css?v=2" />
-    <link rel="preload" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" as="style" onload="this.onload=null;this.rel='stylesheet'" />
-    <noscript><link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" /></noscript>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
-    
-    
-    <script>
-// ==================== 變數 ====================
-const courses = document.querySelectorAll('.modern-card');
-const searchInput = document.getElementById('search-input');
-const filterCount = document.getElementById('filter-count') || document.getElementById('resultCount');
-const coursesGrid = document.getElementById('courses-grid');
+  <!-- Main content area -->
+  <div id="explore-content" style="position:relative;min-height:60vh">
+    <!-- Search Bar -->
+    <div class="search-wrapper">
+      <span class="search-icon">🔍</span>
+      <input type="search" id="search-input" placeholder="搜尋課程、教練、地點…" autocomplete="off" aria-label="搜尋課程" />
+      <div class="autocomplete-dropdown" id="autocomplete-dropdown"></div>
+    </div>
 
-// ==================== URL 同步 ====================
-function updateURL() {
-  var params = new URLSearchParams();
-  if (searchInput?.value?.trim()) params.set('search', searchInput.value.trim());
-  var newUrl = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
-  history.replaceState(null, '', newUrl);
-}
+    <!-- Recent Searches -->
+    <div id="recent-searches" class="recent-searches" style="display:none"></div>
 
-function loadFromURL() {
-  try {
-    var params = new URLSearchParams(window.location.search);
-    if (searchInput && params.get('search')) {
-      searchInput.value = params.get('search');
-    }
-  } catch(e) {}
-}
+    <!-- Category Filter Pills -->
+    <div class="filter-pills-row" id="category-pills"></div>
 
-// ==================== 主篩選函數 ====================
-function filterCourses() {
-  const keyword = searchInput?.value?.toLowerCase().trim() || '';
-  if (keyword && typeof gtag === "function") gtag("event", "search", { search_term: keyword });
-  let visibleCount = 0;
-  courses.forEach(function(card, idx) {
-    const title = (card.getAttribute('data-title') || card.querySelector('.modern-card-title')?.textContent || '').toLowerCase();
-    const instructor = (card.getAttribute('data-instructor') || '').toLowerCase();
-    const category = (card.getAttribute('data-category') || '').toLowerCase();
-    const location = (card.getAttribute('data-location') || '').toLowerCase();
-    const difficulty = (card.getAttribute('data-difficulty') || '').toLowerCase();
-    const price = parseInt(card.getAttribute('data-price')) || 0;
-    const spots = parseInt(card.getAttribute('data-spots'));
-    const timeStr = card.getAttribute('data-time') || '';
+    <!-- Result Count -->
+    <div style="padding:0 16px 4px;font-size:13px;color:var(--dark-700)" id="filter-count">找到 0 個課程</div>
 
-    let matchKeyword = !keyword;
-    if (keyword) {
-      const cardText = (card.textContent || '').toLowerCase();
-      matchKeyword = cardText.includes(keyword);
-    }
+    <!-- Course Grid -->
+    <div class="class-grid" id="courses-grid"></div>
 
-    const matchFilter = checkFilters(card, price, spots, timeStr);
-    const shouldShow = matchKeyword && matchFilter;
+    <!-- No Results / Empty overlay (handled by state helpers) -->
+    <div id="courses-state-target" style="display:none"></div>
 
-    card.style.display = (shouldShow && idx < _loadMoreVisible) ? '' : 'none';
-    if (shouldShow && idx < _loadMoreVisible) visibleCount++;
-  });
+    <!-- Load More Button -->
+    <div id="load-more-container" style="text-align:center;padding:20px">
+      <button id="load-more-btn" onclick="loadMore()" class="zen-btn zen-btn-secondary zen-btn-small" style="display:none">顯示更多課程 ↓</button>
+    </div>
 
-  if (filterCount) filterCount.textContent = '找到 ' + visibleCount + ' 個課程';
-  var lmBtn = document.getElementById('load-more-btn');
-  if (lmBtn) lmBtn.style.display = visibleCount === 0 ? 'none' : '';
-  // No results message
-  var emptyEl = document.getElementById('no-results');
-  if (visibleCount === 0 && courses.length > 0) {
-    if (!emptyEl) {
-      emptyEl = document.createElement('div');
-      emptyEl.id = 'no-results';
-      emptyEl.style.cssText = 'text-align:center;padding:40px 20px;color:var(--dark-700)';
-      emptyEl.innerHTML = '<div style="font-size:48px;margin-bottom:12px">🔍</div><div style="font-size:16px;font-weight:600;margin-bottom:6px">搵唔到相關課程</div><div style="font-size:13px;color:var(--gray-300);margin-bottom:16px">試試調整篩選條件或搜尋其他關鍵字</div><button onclick="clearAllFilters()" style="padding:10px 24px;border-radius:50px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;font-size:13px;font-weight:600;border:none;cursor:pointer">🔄 清除所有篩選</button>';
-      coursesGrid?.appendChild(emptyEl);
-    }
-    emptyEl.style.display = 'block';
-  } else if (emptyEl) {
-    emptyEl.style.display = 'none';
-  }
-  // URL sync: save filter state
-  try {
-    var params = new URLSearchParams(window.location.search);
-    if (keyword) params.set('q', keyword); else params.delete('q');
+    <!-- Popular Tags -->
+    <div id="popular-tags-section" style="display:none;margin-top:24px;margin-bottom:16px">
+      <div class="section-header-wrap">
+        <div class="section-title">🔥 熱門標籤</div>
+        <div class="section-sub">最多人關注的課程類別</div>
+      </div>
+      <div id="popular-tags-list" class="popular-tags-grid"></div>
+    </div>
+  </div>
+
+  <!-- Booking Modal -->
+  <div id="booking-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.65);backdrop-filter:blur(4px);align-items:center;justify-content:center;z-index:100;padding:16px">
+    <div style="background:var(--white);border-radius:24px;max-width:440px;width:100%;overflow:hidden;box-shadow:0 25px 60px rgba(0,0,0,0.2)">
+      <div style="padding:24px 24px 16px;border-bottom:1px solid var(--gray-200);display:flex;align-items:center;justify-content:space-between">
+        <div style="font-size:22px;font-weight:700;color:var(--dark-900)" id="modal-course-title">預約課程</div>
+        <button onclick="closeBookingModal()" style="background:none;border:none;font-size:28px;color:var(--gray-300);cursor:pointer;padding:4px;line-height:1">×</button>
+      </div>
+      <div style="padding:20px 24px">
+        <div style="display:flex;gap:14px;margin-bottom:20px">
+          <div id="modal-course-img" style="width:90px;height:90px;border-radius:16px;background:var(--gray-100);flex-shrink:0;background-size:cover;background-position:center"></div>
+          <div style="flex:1">
+            <div style="font-size:17px;font-weight:600;color:var(--dark-900);margin-bottom:4px" id="modal-course-name"></div>
+            <div style="font-size:13px;color:#10b981;margin-bottom:2px" id="modal-instructor"></div>
+            <div style="font-size:12px;color:var(--gray-300)" id="modal-location"></div>
+          </div>
+        </div>
+        <div style="margin-bottom:16px">
+          <div style="font-size:13px;font-weight:600;color:var(--dark-700);margin-bottom:8px">📅 選擇日期 / 時段</div>
+          <select id="modal-datetime" style="width:100%;padding:14px;border:1.5px solid var(--gray-200);border-radius:16px;font-size:15px;font-family:var(--font-zh);background:var(--white);outline:none;color:var(--dark-900);cursor:pointer"></select>
+        </div>
+        <div style="background:var(--gray-50);border-radius:16px;padding:16px;margin-bottom:16px">
+          <div style="display:flex;justify-content:space-between;font-size:14px">
+            <span style="color:var(--dark-700)">使用 Pass</span>
+            <span style="font-weight:700;color:#10b981" id="modal-credits">1 Pass</span>
+          </div>
+          <div style="height:1px;background:var(--gray-200);margin:12px 0"></div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--gray-300)">
+            <span>剩餘 Pass</span>
+            <span style="font-weight:600;color:var(--dark-900)" id="modal-remaining">12</span>
+          </div>
+        </div>
+        <div style="font-size:11px;color:var(--gray-300);line-height:1.6">
+          取消政策：開課前 12 小時前可免費取消<br />
+          到場後請準時出席，遲到 15 分鐘可能被取消資格
+        </div>
+      </div>
+      <div style="padding:16px 24px 24px;display:flex;gap:12px;border-top:1px solid var(--gray-200)">
+        <button onclick="closeBookingModal()" style="flex:1;padding:14px;border-radius:14px;border:1.5px solid var(--gray-200);background:var(--white);color:var(--dark-700);font-size:14px;font-weight:600;cursor:pointer;transition:all 0.2s">取消</button>
+        <button class="book-confirm" onclick="confirmBooking()" style="flex:1;padding:14px;border-radius:14px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;font-size:14px;font-weight:700;border:none;cursor:pointer;transition:all 0.2s;box-shadow:0 4px 14px rgba(16,185,129,0.3)">確認預約</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  // ==================== Configuration ====================
+  var API_BASE = window.API_BASE || '/api';
+  var CATEGORIES = ['全部','芬蘭木柱','地板冰壺','布袋球','穿雲箭','北歐健步行','圓網球','柔力球','Flexi-Bar','身心伸展','兒童健體'];
+  var RECENT_SEARCHES_KEY = 'zenpass_recent_searches';
+  var PER_PAGE = 12;
+  var LOAD_STEP = 8;
+  var loadMoreVisible = 0;
+  var allCoursesData = [];
+  var activeCategory = '全部';
+  var searchTimeout = null;
+  var autocompleteTimeout = null;
+
+  // ==================== DOM Refs ====================
+  var searchInput = document.getElementById('search-input');
+  var coursesGrid = document.getElementById('courses-grid');
+  var filterCount = document.getElementById('filter-count');
+  var loadMoreBtn = document.getElementById('load-more-btn');
+  var autocompleteDropdown = document.getElementById('autocomplete-dropdown');
+  var recentSearchesEl = document.getElementById('recent-searches');
+  var popularTagsSection = document.getElementById('popular-tags-section');
+
+  // ==================== URL Sync ====================
+  function updateURL() {
+    var params = new URLSearchParams();
+    var val = searchInput?.value?.trim();
+    if (val) params.set('q', val);
+    if (activeCategory && activeCategory !== '全部') params.set('cat', activeCategory);
     var newUrl = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
-    window.history.replaceState(null, '', newUrl);
-  } catch(e) {}
-}
-
-// ==================== 其他 Filter 邏輯 ====================
-function checkFilters(card, price, spots, timeStr) {
-  var activeCat = document.querySelector('#category-list .category-chip.active')?.textContent?.trim() || '全部';
-  var activeTime = document.querySelector('#timeline-list .date-chip.active')?.textContent?.trim() || '全部';
-  var activeDiff = document.querySelectorAll('#filterPanel .sort-btn.active');
-  var activePrice = '';
-  var activeSpots = '';
-  
-  activeDiff.forEach(function(b) {
-    var t = b.textContent.trim();
-    var o = b.getAttribute('onclick') || '';
-    if (o.includes('difficulty') && t !== '全部') { /* handled below */ }
-    if (o.includes('price') && t !== '全部') activePrice = t;
-    if (o.includes('spots') && t !== '全部') activeSpots = t;
-  });
-  
-  // Get difficulty from text of active chip
-  var diffText = '';
-  activeDiff.forEach(function(b) {
-    if ((b.getAttribute('onclick')||'').includes('difficulty') && b.textContent.trim() !== '全部') diffText = b.textContent.trim();
-  });
-
-  // Category filter
-  if (activeCat && activeCat !== '全部' && activeCat !== '🏠 全部') {
-    var cat = (card.getAttribute('data-category') || '').toLowerCase();
-    if (!cat.includes(activeCat.replace(/🏠|\s/g, '').toLowerCase())) return false;
+    history.replaceState(null, '', newUrl);
   }
 
-  // Difficulty
-  if (diffText) {
-    var diff = card.getAttribute('data-difficulty') || '';
-    if (diffText.includes('初級') && diff !== '初級') return false;
-    if (diffText.includes('中級') && diff !== '中級') return false;
-    if (diffText.includes('高級') && diff !== '高級') return false;
+  function loadFromURL() {
+    try {
+      var params = new URLSearchParams(window.location.search);
+      if (params.get('q')) searchInput.value = params.get('q');
+      if (params.get('cat')) {
+        var cat = params.get('cat');
+        if (CATEGORIES.indexOf(cat) > -1) activeCategory = cat;
+      }
+    } catch(e) {}
   }
 
-  // Price
-  if (activePrice && activePrice !== '全部') {
-    if (activePrice.includes('<') && price >= 100) return false;
-    if (activePrice.includes('-')) {
-      var parts = activePrice.match(/\d+/g);
-      if (parts && parts.length >= 2 && (price < parseInt(parts[0]) || price > parseInt(parts[1]))) return false;
-    }
-    if (activePrice.includes('>') && price <= 200) return false;
-  }
-
-  // Spots
-  if (activeSpots && activeSpots !== '全部') {
-    if (activeSpots.includes('有位') && (isNaN(spots) || spots <= 0)) return false;
-    if (activeSpots.includes('僅剩') && (isNaN(spots) || spots > 3)) return false;
-  }
-
-  // Time
-  if (activeTime && activeTime !== '📅 全部') {
-    var hour = parseInt(timeStr.split(':')[0]);
-    if (!isNaN(hour)) {
-      if ((activeTime.includes('早上') || activeTime.includes('Morning')) && (hour < 6 || hour >= 12)) return false;
-      if ((activeTime.includes('下午') || activeTime.includes('Afternoon')) && (hour < 12 || hour >= 18)) return false;
-      if ((activeTime.includes('晚上') || activeTime.includes('Evening')) && hour < 18) return false;
+  // ==================== Fetch Courses ====================
+  async function fetchCourses() {
+    showState('explore-content', 'loading', { message: '正在載入課程...' });
+    try {
+      var resp = await fetch(API_BASE + '/classes');
+      var data = await resp.json();
+      if (data.classes && Array.isArray(data.classes)) {
+        allCoursesData = data.classes;
+      } else if (Array.isArray(data)) {
+        allCoursesData = data;
+      } else {
+        allCoursesData = [];
+      }
+      // Fallback: if no data from API, generate from existing DOM cards
+      if (allCoursesData.length === 0) {
+        allCoursesData = collectCardsData();
+      }
+      hideState('explore-content');
+      renderCourses();
+      renderPopularTags();
+    } catch(e) {
+      // Fallback to DOM-based cards
+      allCoursesData = collectCardsData();
+      hideState('explore-content');
+      renderCourses();
+      renderPopularTags();
     }
   }
 
-  return true;
-}
-
-// ==================== 事件監聽（完全即時聯動） ====================
-document.addEventListener('DOMContentLoaded', function() {
-  // 搜尋框即時反應
-  if (searchInput) {
-    var timeout;
-    searchInput.addEventListener('input', function() {
-      clearTimeout(timeout);
-      timeout = setTimeout(function(){ filterCourses(); updateURL(); }, 200);
+  function collectCardsData() {
+    var cards = document.querySelectorAll('.modern-card');
+    var data = [];
+    cards.forEach(function(card) {
+      data.push({
+        id: card.getAttribute('data-id') || '',
+        title: card.getAttribute('data-title') || card.querySelector('.modern-card-title')?.textContent || '',
+        category: card.getAttribute('data-category') || '',
+        coach_name: card.getAttribute('data-instructor') || '',
+        location: card.getAttribute('data-location') || '',
+        difficulty: card.getAttribute('data-difficulty') || '',
+        price: parseInt(card.getAttribute('data-price')) || 0,
+        spots: parseInt(card.getAttribute('data-spots')),
+        time: card.getAttribute('data-time') || '',
+        image: card.getAttribute('data-image') || '',
+        credits: parseInt(card.getAttribute('data-credits')) || 1,
+        _domEl: card
+      });
     });
+    return data;
   }
 
-  // 所有外部 filter 變化 → 即時 filter
-  // Category chips
-  document.querySelectorAll('#category-list .category-chip').forEach(function(chip) {
-    chip.addEventListener('click', function() { setTimeout(filterCourses, 100); });
-  });
-  // Advanced filter panel
-  document.querySelectorAll('#filterPanel .sort-btn').forEach(function(btn) {
-    btn.addEventListener('click', function() { setTimeout(filterCourses, 100); });
-  });
-  // Timeline chips
-  document.querySelectorAll('#timeline-list .date-chip').forEach(function(chip) {
-    chip.addEventListener('click', function() { setTimeout(filterCourses, 100); });
-  });
+  // ==================== Render Course Cards ====================
+  function renderCourses() {
+    var keyword = searchInput?.value?.toLowerCase().trim() || '';
+    var filtered = allCoursesData.filter(function(cls) {
+      var catMatch = true;
+      if (activeCategory && activeCategory !== '全部') {
+        catMatch = (cls.category || '').toLowerCase().indexOf(activeCategory.toLowerCase()) > -1;
+      }
+      var kwMatch = true;
+      if (keyword) {
+        var text = ((cls.title || '') + ' ' + (cls.coach_name || '') + ' ' + (cls.category || '') + ' ' + (cls.location || '')).toLowerCase();
+        kwMatch = text.indexOf(keyword) > -1;
+      }
+      return catMatch && kwMatch;
+    });
 
-  // 初始: 從 URL 恢復
-  loadFromURL();
+    // Show count
+    filterCount.textContent = '找到 ' + filtered.length + ' 個課程';
 
-  // Sort select
-  var sortSelect = document.getElementById('sort-select');
-  if (sortSelect) {
-    sortSelect.addEventListener('change', function() { filterCourses(); });
-  }
-
-  // Clear button
-  var clearBtns = document.querySelectorAll('[onclick*="clearAllFilters"]');
-  clearBtns.forEach(function(btn) {
-    btn.addEventListener('click', function() { setTimeout(filterCourses, 200); });
-  });
-
-  // 初始載入
-  setTimeout(filterCourses, 1500);
-});
-</script>
-
-<script>
-// ==================== Booking Modal + 已預約狀態 ====================
-let currentCourse = null;
-const bookedCourses = JSON.parse(localStorage.getItem('zenpass_booked')) || {};
-
-function initBookingButtons() {
-  document.querySelectorAll('.modern-card').forEach(function(card) {
-    var courseId = card.getAttribute('data-id');
-    var btn = card.querySelector('.booking-btn');
-    if (courseId && btn && bookedCourses[courseId]) {
-      setButtonAsBooked(btn);
+    if (filtered.length === 0) {
+      showState('courses-grid', 'empty', {
+        icon: '🔍',
+        title: '搵唔到相關課程',
+        message: '試試調整篩選條件或搜尋其他關鍵字',
+        action: { label: '🔄 清除所有篩選', fn: 'clearAllFilters()' }
+      });
+      loadMoreBtn.style.display = 'none';
+      return;
     }
-  });
-}
 
-function updateButtonState(btn, courseId) {
-  if (bookedCourses[courseId]) {
-    btn.textContent = '✅ 已預約';
-    btn.style.background = '#a1a1aa'; btn.style.color = '#fff'; btn.style.cursor = 'pointer'; btn.style.boxShadow = 'none';
-    btn.disabled = false;
-    btn.onclick = function(e) { e.stopPropagation(); showCancelConfirm(courseId, btn); };
-  } else {
-    btn.textContent = '立即預約';
-    btn.style.background = ''; btn.style.color = ''; btn.style.cursor = ''; btn.style.boxShadow = '';
-    btn.disabled = false;
-    btn.onclick = function(e) { e.stopPropagation(); handleBookingClick(btn); };
+    hideState('courses-grid');
+
+    // Render cards
+    coursesGrid.innerHTML = '';
+    loadMoreVisible = Math.min(PER_PAGE, filtered.length);
+
+    filtered.forEach(function(cls, idx) {
+      if (idx >= loadMoreVisible) return;
+      coursesGrid.appendChild(createCardElement(cls));
+    });
+
+    loadMoreBtn.style.display = loadMoreVisible >= filtered.length ? 'none' : '';
+    loadMoreBtn.textContent = '顯示更多課程 (' + (filtered.length - loadMoreVisible) + ') ↓';
   }
-}
 
-function handleBookingClick(btn) {
-  var card = btn.closest('.modern-card');
-  if (!card) return;
-  btn._courseTitle = card.getAttribute('data-title') || '課程';
-  openBookingModal(card);
-}
+  function createCardElement(cls) {
+    var card = document.createElement('div');
+    card.className = 'modern-card';
+    card.setAttribute('data-id', cls.id || '');
+    card.setAttribute('data-title', cls.title || '');
+    card.setAttribute('data-category', cls.category || '');
+    card.setAttribute('data-instructor', cls.coach_name || '');
+    card.setAttribute('data-location', cls.location || '');
+    card.setAttribute('data-difficulty', cls.difficulty || '');
+    card.setAttribute('data-price', cls.price || 0);
+    card.setAttribute('data-spots', cls.spots || '');
+    card.setAttribute('data-time', cls.time || '');
+    card.setAttribute('data-image', cls.image || '');
+    card.setAttribute('data-credits', cls.credits || 1);
+    card.onclick = function() { window.location.href = 'class-detail.html?id=' + cls.id; };
 
-function showCancelConfirm(courseId, btn) {
-  if (confirm('確定要取消預約「' + (window.ZenPassBooking.getAll()[courseId]?.title || '此課程') + '」？')) {
-    window.ZenPassBooking.cancel(courseId);
-    bookedCourses = window.ZenPassBooking.getAll();
-    alert('✅ 預約已取消');
-    updateButtonState(btn, courseId);
+    var bg = cls.image ? 'url(' + cls.image + ')' : 'linear-gradient(135deg, #10b981, #059669)';
+    var icon = cls.image ? '' : '<div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:32px">🏃</div>';
+
+    card.innerHTML =
+      '<div class="modern-card-img"><div class="bg-img" style="background:' + bg + ';background-size:cover;background-position:center">' + icon + '</div></div>' +
+      '<div class="modern-card-body">' +
+        '<div class="modern-card-tags"><span class="modern-card-tag">' + escHtml(cls.category || '運動') + '</span></div>' +
+        '<div class="modern-card-title">' + escHtml(cls.title || '課程') + '</div>' +
+        '<div class="modern-card-meta">' + escHtml(cls.coach_name || '') + '</div>' +
+        '<div class="modern-card-review"><div><span class="modern-card-stars">⭐⭐⭐⭐⭐</span></div><div class="modern-card-price">' + (cls.credits || 1) + ' Pass <small>起</small></div></div>' +
+        '<div class="modern-card-schedule"><span>📅 ' + escHtml(cls.time || '多個時段') + '</span><span>📍 ' + escHtml(cls.location || '香港') + '</span></div>' +
+        '<button class="modern-card-cta" onclick="event.stopPropagation();openBookingModalFor(this)" data-course=\'' + JSON.stringify(cls).replace(/'/g, "&#39;") + '\'>立即預約<span class="arrow">→</span></button>' +
+      '</div>';
+
+    return card;
   }
-}
 
-// ==================== Modal ====================
-function openBookingModal(card) {
-  currentCourse = {
-    id: card.getAttribute('data-id'),
-    title: card.getAttribute('data-title') || '',
-    instructor: card.getAttribute('data-instructor') || '',
-    location: card.getAttribute('data-location') || '',
-    image: card.getAttribute('data-image') || card.querySelector('img')?.src || '',
-    credits: card.getAttribute('data-credits') || 1,
-    time: card.getAttribute('data-time') || ''
+  function escHtml(s) {
+    if (!s) return '';
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // ==================== Load More ====================
+  window.loadMore = function() {
+    var keyword = searchInput?.value?.toLowerCase().trim() || '';
+    var filtered = allCoursesData.filter(function(cls) {
+      var catMatch = true;
+      if (activeCategory && activeCategory !== '全部') {
+        catMatch = (cls.category || '').toLowerCase().indexOf(activeCategory.toLowerCase()) > -1;
+      }
+      var kwMatch = true;
+      if (keyword) {
+        var text = ((cls.title || '') + ' ' + (cls.coach_name || '') + ' ' + (cls.category || '') + ' ' + (cls.location || '')).toLowerCase();
+        kwMatch = text.indexOf(keyword) > -1;
+      }
+      return catMatch && kwMatch;
+    });
+
+    loadMoreVisible = Math.min(loadMoreVisible + LOAD_STEP, filtered.length);
+    filtered.forEach(function(cls, idx) {
+      if (idx >= loadMoreVisible) return;
+      var existing = coursesGrid.querySelector('[data-id="' + cls.id + '"]');
+      if (!existing) {
+        coursesGrid.appendChild(createCardElement(cls));
+      }
+    });
+
+    loadMoreBtn.style.display = loadMoreVisible >= filtered.length ? 'none' : '';
+    loadMoreBtn.textContent = '顯示更多課程 (' + (filtered.length - loadMoreVisible) + ') ↓';
   };
 
-  document.getElementById('modal-course-title').textContent = '預約課程';
-  document.getElementById('modal-course-name').textContent = currentCourse.title;
-  document.getElementById('modal-instructor').textContent = currentCourse.instructor;
-  document.getElementById('modal-location').textContent = currentCourse.location ? currentCourse.location + ' · ' + currentCourse.time : currentCourse.time;
-
-  var imgEl = document.getElementById('modal-course-img');
-  if (currentCourse.image) {
-    imgEl.style.backgroundImage = "url('" + currentCourse.image + "')";
-    imgEl.style.backgroundSize = 'cover'; imgEl.innerHTML = '';
-  } else {
-    imgEl.style.background = 'var(--gray-100)';
-    imgEl.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:28px">📅</div>';
-  }
-
-  document.getElementById('modal-credits').textContent = (currentCourse.credits || 1) + ' Pass';
-  document.getElementById('modal-remaining').textContent = currentCourse.spots || '充足';
-
-  var sel = document.getElementById('modal-datetime');
-  sel.innerHTML = '<option value="">請選擇時段</option>' +
-    '<option value="today-0930">今天 09:30 - 10:30</option>' +
-    '<option value="today-1800">今天 18:00 - 19:00</option>' +
-    '<option value="tomorrow-1200">明天 12:00 - 13:00</option>';
-
-  var modal = document.getElementById('booking-modal');
-  modal.classList.remove('hidden');
-  modal.style.display = 'flex';
-  _syncModalDark();
-}
-
-function closeBookingModal() {
-  var modal = document.getElementById('booking-modal');
-  modal.classList.add('hidden');
-  modal.style.display = 'none';
-  var confirmBtn = document.querySelector('.book-confirm');
-  if (confirmBtn) { confirmBtn.textContent = '確認預約'; confirmBtn.disabled = false; }
-}
-
-function confirmBooking() {
-  var datetime = document.getElementById('modal-datetime').value;
-  if (!datetime || !currentCourse?.id) { alert('請選擇日期 / 時段'); return; }
-  var btn = document.querySelector('.book-confirm');
-  btn.textContent = '⏳ 預約中...';
-  btn.disabled = true;
-  setTimeout(async function() {
-    await window.ZenPassBooking.book(currentCourse.id, {
-      title: currentCourse.title,
-      instructor: currentCourse.instructor,
-      location: currentCourse.location,
-      datetime: datetime,
-      credits: currentCourse.credits
+  // ==================== Category Filter Pills ====================
+  function buildCategoryPills() {
+    var container = document.getElementById('category-pills');
+    container.innerHTML = '';
+    CATEGORIES.forEach(function(cat) {
+      var pill = document.createElement('button');
+      pill.className = 'filter-pill' + (cat === activeCategory ? ' active' : '');
+      pill.textContent = cat;
+      pill.onclick = function() {
+        if (activeCategory === cat) {
+          activeCategory = '全部';
+        } else {
+          activeCategory = cat;
+        }
+        // Update pill styles
+        container.querySelectorAll('.filter-pill').forEach(function(p) {
+          p.classList.toggle('active', p.textContent === activeCategory);
+        });
+        updateURL();
+        renderCourses();
+        saveRecentSearch(cat);
+      };
+      container.appendChild(pill);
     });
-    alert('✅ 預約成功！\n\n課程：' + currentCourse.title + '\n時間：' + datetime);
-    closeBookingModal();
-    updateAllBookingButtons();
-  }, 800);
-}
-
-window.cancelBooking = async function(courseId) {
-  if (confirm('確定取消此預約？')) {
-    await window.ZenPassBooking.cancel(courseId);
-    alert('✅ 預約已取消');
-    if (typeof renderBookings === 'function') renderBookings();
-    updateAllBookingButtons();
   }
-};
 
-</script>
+  // ==================== Autocomplete ====================
+  function setupAutocomplete() {
+    searchInput.addEventListener('input', function() {
+      clearTimeout(autocompleteTimeout);
+      var val = this.value.trim();
+      if (val.length < 1) {
+        autocompleteDropdown.classList.remove('show');
+        return;
+      }
+      autocompleteTimeout = setTimeout(function() {
+        fetchSuggestions(val);
+      }, 300);
+    });
 
-<!-- Booking Modal HTML -->
-<div id="booking-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.65);backdrop-filter:blur(4px);align-items:center;justify-content:center;z-index:100;padding:16px">
-  <div style="background:var(--white);border-radius:24px;max-width:440px;width:100%;overflow:hidden;box-shadow:0 25px 60px rgba(0,0,0,0.2)">
-    <!-- Header -->
-    <div style="padding:24px 24px 16px;border-bottom:1px solid var(--gray-200);display:flex;align-items:center;justify-content:space-between">
-      <div style="font-size:22px;font-weight:700;color:var(--dark-900)" id="modal-course-title">預約課程</div>
-      <button onclick="closeBookingModal()" style="background:none;border:none;font-size:28px;color:var(--gray-300);cursor:pointer;padding:4px;line-height:1">×</button>
-    </div>
-    <!-- Content -->
-    <div style="padding:20px 24px">
-      <!-- Course Info -->
-      <div style="display:flex;gap:14px;margin-bottom:20px">
-        <div id="modal-course-img" style="width:90px;height:90px;border-radius:16px;background:var(--gray-100);flex-shrink:0;background-size:cover;background-position:center"></div>
-        <div style="flex:1">
-          <div style="font-size:17px;font-weight:600;color:var(--dark-900);margin-bottom:4px" id="modal-course-name"></div>
-          <div style="font-size:13px;color:#10b981;margin-bottom:2px" id="modal-instructor"></div>
-          <div style="font-size:12px;color:var(--gray-300)" id="modal-location"></div>
-        </div>
-      </div>
-      <!-- Date/Time Selection -->
-      <div style="margin-bottom:16px">
-        <div style="font-size:13px;font-weight:600;color:var(--dark-700);margin-bottom:8px">📅 選擇日期 / 時段</div>
-        <select id="modal-datetime" style="width:100%;padding:14px;border:1.5px solid var(--gray-200);border-radius:16px;font-size:15px;font-family:var(--font-zh);background:var(--white);outline:none;color:var(--dark-900);cursor:pointer"></select>
-      </div>
-      <!-- Pass Info -->
-      <div style="background:var(--gray-50);border-radius:16px;padding:16px;margin-bottom:16px">
-        <div style="display:flex;justify-content:space-between;font-size:14px">
-          <span style="color:var(--dark-700)">使用 Pass</span>
-          <span style="font-weight:700;color:#10b981" id="modal-credits">1 Pass</span>
-        </div>
-        <div style="height:1px;background:var(--gray-200);margin:12px 0"></div>
-        <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--gray-300)">
-          <span>剩餘 Pass</span>
-          <span style="font-weight:600;color:var(--dark-900)" id="modal-remaining">12</span>
-        </div>
-      </div>
-      <!-- Policy -->
-      <div style="font-size:11px;color:var(--gray-300);line-height:1.6">
-        取消政策：開課前 12 小時前可免費取消<br>
-        到場後請準時出席，遲到 15 分鐘可能被取消資格
-      </div>
-    </div>
-    <!-- Footer Buttons -->
-    <div style="padding:16px 24px 24px;display:flex;gap:12px;border-top:1px solid var(--gray-200)">
-      <button onclick="closeBookingModal()" style="flex:1;padding:14px;border-radius:14px;border:1.5px solid var(--gray-200);background:var(--white);color:var(--dark-700);font-size:14px;font-weight:600;cursor:pointer;transition:all 0.2s">取消</button>
-      <button class="book-confirm" onclick="confirmBooking()" style="flex:1;padding:14px;border-radius:14px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;font-size:14px;font-weight:700;border:none;cursor:pointer;transition:all 0.2s;box-shadow:0 4px 14px rgba(16,185,129,0.3)">確認預約</button>
-    </div>
-  </div>
-</div>
-<script>
-// Dark mode sync
-function _syncModalDark() {
-  var m = document.getElementById('booking-modal');
-  if (!m || m.style.display === 'none') return;
-  var dark = document.documentElement.classList.contains('dark');
-  var c = m.firstElementChild;
-  if (c) c.style.background = dark ? '#18181b' : '#fff';
-  ['modal-course-title','modal-course-name','modal-remaining'].forEach(function(id){
-    var el = document.getElementById(id);
-    if (el) el.style.color = dark ? '#fafafa' : '#1a1a2e';
-  });
-  ['modal-instructor','modal-credits'].forEach(function(id){
-    var el = document.getElementById(id);
-    if (el) el.style.color = dark ? '#34d399' : '#10b981';
-  });
-}
-var _obs = new MutationObserver(function(){ _syncModalDark(); });
-_obs.observe(document.documentElement, {attributes:true,attributeFilter:['class']});
-</script>
+    searchInput.addEventListener('blur', function() {
+      setTimeout(function() { autocompleteDropdown.classList.remove('show'); }, 200);
+    });
 
-<script src="js/booking-sync.js"></script>
-<script src="js/booking-system.js"></script>
-<!-- Toast Container -->
-<div id="toast-container" style="position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:9999;display:flex;flex-direction:column;gap:8px;align-items:center;width:100%;max-width:360px;padding:0 16px"></div>
-<style>
-  @media(min-width:768px){
-    #toast-container{left:auto;right:24px;transform:none;max-width:380px;padding:0}
+    searchInput.addEventListener('focus', function() {
+      if (this.value.trim().length >= 1) {
+        autocompleteDropdown.classList.add('show');
+      }
+    });
+
+    // Real-time filtering on input
+    searchInput.addEventListener('input', function() {
+      clearTimeout(searchTimeout);
+      searchTimeout = setTimeout(function() {
+        updateURL();
+        renderCourses();
+      }, 200);
+    });
   }
-</style>
-<template id="toast-template">
-  <div class="toast" style="display:flex;align-items:center;gap:12px;background:#fff;border:2px solid #e4e4e7;border-radius:16px;box-shadow:0 8px 24px rgba(0,0,0,0.1);padding:14px 18px;min-width:280px;max-width:360px;animation:toastIn 0.3s ease">
-    <span id="toast-icon" style="font-size:24px"></span>
-    <div style="flex:1">
-      <div id="toast-title" style="font-weight:600;font-size:14px"></div>
-      <div id="toast-message" style="font-size:12px;color:#71717a;margin-top:2px"></div>
+
+  async function fetchSuggestions(q) {
+    try {
+      var resp = await fetch(API_BASE + '/classes/search?q=' + encodeURIComponent(q));
+      var data = await resp.json();
+      var results = data.classes || data.results || data || [];
+      if (!Array.isArray(results)) results = [];
+      renderAutocomplete(results);
+    } catch(e) {
+      // Fallback: filter from loaded data
+      var results = allCoursesData.filter(function(cls) {
+        return ((cls.title || '') + ' ' + (cls.coach_name || '')).toLowerCase().indexOf(q.toLowerCase()) > -1;
+      });
+      renderAutocomplete(results);
+    }
+  }
+
+  function renderAutocomplete(items) {
+    autocompleteDropdown.innerHTML = '';
+    if (items.length === 0) {
+      autocompleteDropdown.classList.remove('show');
+      return;
+    }
+
+    var maxShow = Math.min(items.length, 6);
+    for (var i = 0; i < maxShow; i++) {
+      var item = items[i];
+      var el = document.createElement('div');
+      el.className = 'autocomplete-item';
+      el.innerHTML = '<span class="ac-icon">🏃</span><span>' + escHtml(item.title || item.name || '') + '</span>';
+      el.onclick = function() {
+        window.location.href = 'class-detail.html?id=' + (item.id || '');
+      };
+      (function(id) {
+        el.onclick = function() {
+          window.location.href = 'class-detail.html?id=' + id;
+        };
+      })(item.id);
+      autocompleteDropdown.appendChild(el);
+    }
+    autocompleteDropdown.classList.add('show');
+  }
+
+  // ==================== Recent Searches ====================
+  function getRecentSearches() {
+    try {
+      return JSON.parse(localStorage.getItem(RECENT_SEARCHES_KEY) || '[]');
+    } catch(e) { return []; }
+  }
+
+  function saveRecentSearch(term) {
+    if (!term || term.trim() === '' || term === '全部') return;
+    var searches = getRecentSearches();
+    var idx = searches.indexOf(term);
+    if (idx > -1) searches.splice(idx, 1);
+    searches.unshift(term);
+    if (searches.length > 5) searches = searches.slice(0, 5);
+    localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(searches));
+    renderRecentSearches();
+  }
+
+  function renderRecentSearches() {
+    var searches = getRecentSearches();
+    if (searches.length === 0) {
+      recentSearchesEl.style.display = 'none';
+      return;
+    }
+    recentSearchesEl.style.display = 'flex';
+    recentSearchesEl.innerHTML = '';
+    searches.forEach(function(term) {
+      var el = document.createElement('span');
+      el.className = 'recent-search-item';
+      el.innerHTML = '🕐 ' + escHtml(term) + ' <span class="close-btn" data-term="' + escHtml(term) + '">✕</span>';
+      el.onclick = function(e) {
+        if (e.target.classList.contains('close-btn')) {
+          removeRecentSearch(term);
+          return;
+        }
+        searchInput.value = term;
+        renderCourses();
+        updateURL();
+      };
+      recentSearchesEl.appendChild(el);
+    });
+  }
+
+  function removeRecentSearch(term) {
+    var searches = getRecentSearches();
+    var idx = searches.indexOf(term);
+    if (idx > -1) {
+      searches.splice(idx, 1);
+      localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(searches));
+      renderRecentSearches();
+    }
+  }
+
+  // ==================== Popular Tags ====================
+  function renderPopularTags() {
+    // Extract unique categories from course data
+    var tagCounts = {};
+    allCoursesData.forEach(function(cls) {
+      var cat = cls.category || '';
+      if (cat) {
+        tagCounts[cat] = (tagCounts[cat] || 0) + 1;
+      }
+    });
+
+    var tags = Object.keys(tagCounts).sort(function(a, b) { return tagCounts[b] - tagCounts[a]; });
+    if (tags.length === 0) {
+      popularTagsSection.style.display = 'none';
+      return;
+    }
+
+    popularTagsSection.style.display = 'block';
+    var list = document.getElementById('popular-tags-list');
+    list.innerHTML = '';
+    tags.forEach(function(tag) {
+      var el = document.createElement('span');
+      el.className = 'popular-tag';
+      el.textContent = '🏷️ ' + tag;
+      el.title = tagCounts[tag] + ' 個課程';
+      el.onclick = function() {
+        activeCategory = tag;
+        buildCategoryPills();
+        renderCourses();
+        updateURL();
+      };
+      list.appendChild(el);
+    });
+  }
+
+  // ==================== Clear All Filters ====================
+  window.clearAllFilters = function() {
+    searchInput.value = '';
+    activeCategory = '全部';
+    buildCategoryPills();
+    updateURL();
+    renderCourses();
+  };
+
+  // ==================== Booking Modal (compat) ====================
+  var currentCourse = null;
+  var bookedCourses = JSON.parse(localStorage.getItem('zenpass_booked')) || {};
+
+  function openBookingModalFor(btn) {
+    try {
+      var courseData = JSON.parse(btn.getAttribute('data-course') || '{}');
+      openBookingModalFromData(courseData);
+    } catch(e) {
+      var card = btn.closest('.modern-card');
+      if (card) openBookingModal(card);
+    }
+  }
+
+  function openBookingModalFromData(data) {
+    currentCourse = {
+      id: data.id || '',
+      title: data.title || '',
+      instructor: data.coach_name || '',
+      location: data.location || '',
+      image: data.image || '',
+      credits: data.credits || 1,
+      time: data.time || ''
+    };
+    showModalWithCurrent();
+  }
+
+  function openBookingModal(card) {
+    currentCourse = {
+      id: card.getAttribute('data-id'),
+      title: card.getAttribute('data-title') || '',
+      instructor: card.getAttribute('data-instructor') || '',
+      location: card.getAttribute('data-location') || '',
+      image: card.getAttribute('data-image') || card.querySelector('img')?.src || '',
+      credits: card.getAttribute('data-credits') || 1,
+      time: card.getAttribute('data-time') || ''
+    };
+    showModalWithCurrent();
+  }
+
+  function showModalWithCurrent() {
+    document.getElementById('modal-course-title').textContent = '預約課程';
+    document.getElementById('modal-course-name').textContent = currentCourse.title;
+    document.getElementById('modal-instructor').textContent = currentCourse.instructor;
+    document.getElementById('modal-location').textContent = currentCourse.location ? currentCourse.location + ' · ' + currentCourse.time : currentCourse.time;
+
+    var imgEl = document.getElementById('modal-course-img');
+    if (currentCourse.image) {
+      imgEl.style.backgroundImage = "url('" + currentCourse.image + "')";
+      imgEl.style.backgroundSize = 'cover';
+      imgEl.innerHTML = '';
+    } else {
+      imgEl.style.background = 'var(--gray-100)';
+      imgEl.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:28px">📅</div>';
+    }
+
+    document.getElementById('modal-credits').textContent = (currentCourse.credits || 1) + ' Pass';
+    document.getElementById('modal-remaining').textContent = currentCourse.spots || '充足';
+
+    var sel = document.getElementById('modal-datetime');
+    sel.innerHTML = '<option value="">請選擇時段</option>' +
+      '<option value="today-0930">今天 09:30 - 10:30</option>' +
+      '<option value="today-1800">今天 18:00 - 19:00</option>' +
+      '<option value="tomorrow-1200">明天 12:00 - 13:00</option>';
+
+    var modal = document.getElementById('booking-modal');
+    modal.classList.remove('hidden');
+    modal.style.display = 'flex';
+    syncModalDark();
+  }
+
+  function closeBookingModal() {
+    var modal = document.getElementById('booking-modal');
+    modal.classList.add('hidden');
+    modal.style.display = 'none';
+    var confirmBtn = document.querySelector('.book-confirm');
+    if (confirmBtn) { confirmBtn.textContent = '確認預約'; confirmBtn.disabled = false; }
+  }
+
+  function confirmBooking() {
+    var datetime = document.getElementById('modal-datetime').value;
+    if (!datetime || !currentCourse?.id) { alert('請選擇日期 / 時段'); return; }
+    var btn = document.querySelector('.book-confirm');
+    btn.textContent = '⏳ 預約中...';
+    btn.disabled = true;
+    setTimeout(async function() {
+      if (window.ZenPassBooking) {
+        await window.ZenPassBooking.book(currentCourse.id, {
+          title: currentCourse.title,
+          instructor: currentCourse.instructor,
+          location: currentCourse.location,
+          datetime: datetime,
+          credits: currentCourse.credits
+        });
+      } else {
+        alert('預約系統尚未初始化，請稍後再試');
+      }
+      alert('✅ 預約成功！\n\n課程：' + currentCourse.title + '\n時間：' + datetime);
+      closeBookingModal();
+      updateAllBookingButtons();
+    }, 800);
+  }
+
+  function updateAllBookingButtons() {
+    // Refresh booking state on all cards
+    if (window.ZenPassBooking) {
+      bookedCourses = window.ZenPassBooking.getAll();
+    }
+  }
+
+  window.cancelBooking = async function(courseId) {
+    if (confirm('確定取消此預約？')) {
+      if (window.ZenPassBooking) await window.ZenPassBooking.cancel(courseId);
+      alert('✅ 預約已取消');
+      updateAllBookingButtons();
+    }
+  };
+
+  function syncModalDark() {
+    var m = document.getElementById('booking-modal');
+    if (!m || m.style.display === 'none') return;
+    var dark = document.documentElement.classList.contains('dark');
+    var c = m.firstElementChild;
+    if (c) c.style.background = dark ? '#18181b' : '#fff';
+    ['modal-course-title','modal-course-name','modal-remaining'].forEach(function(id){
+      var el = document.getElementById(id);
+      if (el) el.style.color = dark ? '#fafafa' : '#1a1a2e';
+    });
+    ['modal-instructor','modal-credits'].forEach(function(id){
+      var el = document.getElementById(id);
+      if (el) el.style.color = dark ? '#34d399' : '#10b981';
+    });
+  }
+
+  var _obs = new MutationObserver(function(){ syncModalDark(); });
+  _obs.observe(document.documentElement, {attributes:true,attributeFilter:['class']});
+
+  // ==================== Init ====================
+  document.addEventListener('DOMContentLoaded', function() {
+    loadFromURL();
+    buildCategoryPills();
+    setupAutocomplete();
+    renderRecentSearches();
+    fetchCourses();
+  });
+  </script>
+
+  <script src="js/booking-sync.js"></script>
+  <script src="js/booking-system.js"></script>
+
+  <!-- Toast Container -->
+  <div id="toast-container" style="position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:9999;display:flex;flex-direction:column;gap:8px;align-items:center;width:100%;max-width:360px;padding:0 16px"></div>
+  <style>
+    @media(min-width:768px){#toast-container{left:auto;right:24px;transform:none;max-width:380px;padding:0}}
+  </style>
+  <template id="toast-template">
+    <div class="toast" style="display:flex;align-items:center;gap:12px;background:#fff;border:2px solid #e4e4e7;border-radius:16px;box-shadow:0 8px 24px rgba(0,0,0,0.1);padding:14px 18px;min-width:280px;max-width:360px;animation:toastIn 0.3s ease">
+      <span id="toast-icon" style="font-size:24px"></span>
+      <div style="flex:1">
+        <div id="toast-title" style="font-weight:600;font-size:14px"></div>
+        <div id="toast-message" style="font-size:12px;color:#71717a;margin-top:2px"></div>
+      </div>
+      <button onclick="this.closest('.toast').remove()" style="background:none;border:none;color:#a1a1aa;font-size:16px;cursor:pointer;padding:4px">✕</button>
     </div>
-    <button onclick="this.closest('.toast').remove()" style="background:none;border:none;color:#a1a1aa;font-size:16px;cursor:pointer;padding:4px">✕</button>
-  </div>
-</template>
-<script>
-// 递增量 load more
-_loadMoreVisible = 0; // no var, already declared
-var _perPageLm = 12;
-var _loadStepLm = 8;
+  </template>
 
-window.initIncrementalLoad = function() {
-  var cards = document.querySelectorAll('#courses-grid .modern-card');
-  if (!cards.length) return;
-  _loadMoreVisible = Math.min(_perPageLm, cards.length);
-  cards.forEach(function(c, i) {
-    c.style.display = i < _perPageLm ? '' : 'none';
-  });
-  _updateLoadMoreBtn(cards.length);
-};
-
-window.loadMore = function() {
-  var cards = document.querySelectorAll('#courses-grid .modern-card');
-  _loadMoreVisible = Math.min(_loadMoreVisible + _loadStepLm, cards.length);
-  cards.forEach(function(c, i) {
-    if (i < _loadMoreVisible) c.style.display = '';
-  });
-  if (typeof filterCourses === 'function') filterCourses();
-  _updateLoadMoreBtn(cards.length);
-};
-
-function _updateLoadMoreBtn(total) {
-  var container = document.getElementById('load-more-container');
-  if (!container) return;
-  container.style.display = _loadMoreVisible >= total ? 'none' : '';
-}
-
-// 自動初始化
-document.addEventListener('DOMContentLoaded', function() {
-  setTimeout(initIncrementalLoad, 100);
-});
-</script>
-<script src="js/nav.js"></script>
-<script src="js/footer.js"></script>
+  <script src="js/nav.js"></script>
+  <script src="js/footer.js"></script>
 </body>
 </html>

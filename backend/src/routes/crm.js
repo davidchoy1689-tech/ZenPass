@@ -5,18 +5,17 @@
 
 const express = require("express");
 const { v4: uuidv4 } = require("uuid");
-const Database = require("better-sqlite3");
+const { getDb } = require("../services/database");
 const { authenticateToken, requireCoach } = require("../middleware/auth");
 const { sendNotification } = require("../services/notification");
 const { writeBlock } = require("../services/blockchain-audit");
 
 const router = express.Router();
-const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
 
 // ===== GET /api/crm/students — 學生列表（多條件篩選）=====
 router.get("/students", authenticateToken, (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.pragma("foreign_keys = ON");
 
     const { search, tag, status, page = 1, limit = 50 } = req.query;
@@ -60,7 +59,6 @@ router.get("/students", authenticateToken, (req, res) => {
       )
       .all(...params, parseInt(limit), offset);
 
-    db.close();
     res.json({ students, total: total.c, page: parseInt(page) });
   } catch (err) {
     console.error("CRM student list error:", err);
@@ -71,7 +69,7 @@ router.get("/students", authenticateToken, (req, res) => {
 // ===== GET /api/crm/students/:id — 學生詳情 =====
 router.get("/students/:id", authenticateToken, (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.pragma("foreign_keys = ON");
 
     const student = db
@@ -87,7 +85,7 @@ router.get("/students/:id", authenticateToken, (req, res) => {
       .get(req.params.id);
 
     if (!student) {
-      db.close();
+
       return res.status(404).json({ error: "學生不存在" });
     }
 
@@ -126,7 +124,6 @@ router.get("/students/:id", authenticateToken, (req, res) => {
       )
       .all(req.params.id);
 
-    db.close();
     res.json({ student, bookings, notes, communications: comms });
   } catch (err) {
     console.error("CRM student detail error:", err);
@@ -138,7 +135,7 @@ router.get("/students/:id", authenticateToken, (req, res) => {
 router.put("/students/:id", authenticateToken, (req, res) => {
   try {
     const { tags, notes, lead_source } = req.body;
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.pragma("foreign_keys = ON");
 
     const updates = [];
@@ -157,7 +154,7 @@ router.put("/students/:id", authenticateToken, (req, res) => {
     }
 
     if (updates.length === 0) {
-      db.close();
+
       return res.status(400).json({ error: "沒有需要更新的資料" });
     }
 
@@ -166,7 +163,6 @@ router.put("/students/:id", authenticateToken, (req, res) => {
     db.prepare(`UPDATE users SET ${updates.join(", ")} WHERE id = ?`).run(
       ...params,
     );
-    db.close();
 
     res.json({ message: "已更新" });
   } catch (err) {
@@ -181,7 +177,7 @@ router.post("/students/:id/notes", authenticateToken, (req, res) => {
     const { content } = req.body;
     if (!content) return res.status(400).json({ error: "請填寫筆記內容" });
 
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.pragma("foreign_keys = ON");
 
     const id = uuidv4();
@@ -214,7 +210,6 @@ router.post("/students/:id/notes", authenticateToken, (req, res) => {
       )
       .get(id);
 
-    db.close();
     res.status(201).json({ note });
   } catch (err) {
     console.error("CRM add note error:", err);
@@ -230,7 +225,7 @@ router.post("/import", authenticateToken, (req, res) => {
       return res.status(400).json({ error: "請提供學生資料" });
     }
 
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.pragma("foreign_keys = ON");
 
     let imported = 0,
@@ -259,7 +254,6 @@ router.post("/import", authenticateToken, (req, res) => {
       imported++;
     }
 
-    db.close();
     res.json({ message: `已匯入 ${imported} 個學生，${skipped} 個已存在` });
   } catch (err) {
     console.error("CRM import error:", err);
@@ -273,7 +267,7 @@ router.post("/import", authenticateToken, (req, res) => {
  */
 function autoSegmentUsers() {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.pragma("foreign_keys = ON");
 
     // 新客戶：註冊 <30日 + 預約 <3次
@@ -328,7 +322,6 @@ function autoSegmentUsers() {
     `,
     ).run();
 
-    db.close();
     return true;
   } catch (err) {
     console.error("Auto-segment error:", err.message);
@@ -342,7 +335,7 @@ router.post("/waiver", authenticateToken, (req, res) => {
     const { name, age, gender, phone, conditions, other } = req.body;
     if (!name) return res.status(400).json({ error: "請輸入姓名" });
 
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.prepare(
       `
       INSERT INTO student_notes (id, student_id, coach_id, content, created_at)
@@ -368,7 +361,6 @@ router.post("/waiver", authenticateToken, (req, res) => {
     } catch (bcErr) {
       console.error("⚠️ Blockchain write failed (waiver):", bcErr.message);
     }
-    db.close();
 
     sendNotification("waiver.submitted", {
       user_id: req.user.id,

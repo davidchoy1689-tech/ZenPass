@@ -8,11 +8,8 @@
  * - 禁止 DELETE row
  */
 
-const Database = require("better-sqlite3");
+const { getDb } = require("./database");
 const path = require("path");
-
-const DB_PATH =
-  process.env.DB_PATH || path.resolve(__dirname, "../../data/zenpass.db");
 
 // 所有受保護嘅金融 table
 const PROTECTED_TABLES = [
@@ -34,7 +31,7 @@ const PROTECTED_TABLES = [
  * 安裝 SQLite trigger — 防止 DELETE 金錢記錄
  */
 function installDeleteTriggers() {
-  const db = new Database(DB_PATH);
+  const db = getDb();
   db.pragma("foreign_keys = ON");
 
   let installed = 0;
@@ -66,7 +63,7 @@ function installDeleteTriggers() {
   }
 
   console.log(`[PROTECT] ✅ ${installed} DELETE triggers installed`);
-  db.close();
+
   return installed;
 }
 
@@ -74,7 +71,7 @@ function installDeleteTriggers() {
  * 檢查金融記錄完整性 — 每日維護用
  */
 function verifyFinancialIntegrity() {
-  const db = new Database(DB_PATH);
+  const db = getDb();
   db.pragma("foreign_keys = ON");
 
   const results = {};
@@ -104,7 +101,6 @@ function verifyFinancialIntegrity() {
     }
   }
 
-  db.close();
   return { success: !hasError, tables: results };
 }
 
@@ -112,7 +108,7 @@ function verifyFinancialIntegrity() {
  * 驗證 booking 四邊拆賬數據一致性
  */
 function verifyBookingIntegrity() {
-  const db = new Database(DB_PATH);
+  const db = getDb();
   db.pragma("foreign_keys = ON");
 
   const issues = [];
@@ -156,7 +152,6 @@ function verifyBookingIntegrity() {
     }
   }
 
-  db.close();
   return { issues, total_checked: rows.length };
 }
 

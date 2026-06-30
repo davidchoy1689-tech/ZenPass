@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="zh-HK">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" href="favicon.png" type="image/png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="theme-color" content="#f06030" />
+    <script>
+      (function () {
+        var l = document.createElement("link");
+        l.rel = "manifest";
+        l.href = window.location.hostname.indexOf("github.io") > -1 ? "/ZenPass/manifest.json" : "/manifest.json";
+        document.head.appendChild(l);
+      })();
+    </script>
+    <link rel="stylesheet" href="css/zenpass.css?v=2" />
+    <script>
+      window.ZENPASS_PAGE_CONFIG = { title: '❤️ 收藏課程', showBack: true, showAuth: true, showTheme: true };
+      var API_BASE = window.API_BASE || '';
+    </script>
+    <style>
+      .wishlist-empty {
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        padding: 80px 24px; text-align: center;
+      }
+      .wishlist-empty .empty-icon { font-size: 64px; margin-bottom: 16px; }
+      .wishlist-empty h2 { font-size: 20px; margin: 0 0 8px; color: var(--dark-900); }
+      .wishlist-empty p { font-size: 14px; color: var(--dark-700); margin: 0 0 24px; }
+      html.dark .wishlist-empty h2 { color: var(--light-900); }
+      html.dark .wishlist-empty p { color: var(--gray-400); }
+      .wishlist-grid {
+        display: grid; grid-template-columns: 1fr; gap: 16px;
+        padding: 16px; max-width: 480px; margin: 0 auto 80px;
+      }
+      @media (min-width: 640px) {
+        .wishlist-grid { grid-template-columns: 1fr 1fr; max-width: 720px; }
+      }
+      .wishlist-card {
+        background: var(--light-900); border-radius: 16px; overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06); cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
+        position: relative;
+      }
+      html.dark .wishlist-card { background: var(--dark-800); }
+      .wishlist-card:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.1); }
+      .wishlist-card-img {
+        width: 100%; height: 140px; background-size: cover; background-position: center;
+        background-color: var(--gray-100);
+      }
+      html.dark .wishlist-card-img { background-color: var(--dark-700); }
+      .wishlist-card-body { padding: 12px 14px; }
+      .wishlist-card-title { font-size: 15px; font-weight: 600; margin: 0 0 4px; color: var(--dark-900); }
+      html.dark .wishlist-card-title { color: var(--light-900); }
+      .wishlist-card-meta { font-size: 12px; color: var(--dark-700); display: flex; gap: 8px; flex-wrap: wrap; }
+      html.dark .wishlist-card-meta { color: var(--gray-400); }
+      .wishlist-card-price { font-size: 14px; font-weight: 700; color: var(--orange-600-bg); margin-top: 6px; }
+      .wishlist-remove-btn {
+        position: absolute; top: 8px; right: 8px; width: 32px; height: 32px;
+        border-radius: 50%; border: none; background: rgba(255,255,255,0.9);
+        font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.15); transition: transform 0.15s;
+        color: #ef4444;
+      }
+      .wishlist-remove-btn:hover { transform: scale(1.15); }
+      html.dark .wishlist-remove-btn { background: rgba(0,0,0,0.6); }
+      .wishlist-loading {
+        display: flex; align-items: center; justify-content: center;
+        padding: 80px 24px; font-size: 16px; color: var(--dark-700);
+      }
+      html.dark .wishlist-loading { color: var(--gray-400); }
+      .wishlist-card-coach { display: flex; align-items: center; gap: 4px; font-size: 12px; color: var(--dark-700); margin-top: 4px; }
+      html.dark .wishlist-card-coach { color: var(--gray-400); }
+    </style>
+  </head>
+  <body>
+    <div id="wishlist-container">
+      <div class="wishlist-loading" id="wishlistLoading">⏳ 載入中...</div>
+    </div>
+
+    <script src="js/nav.js"></script>
+    <script src="js/footer.js"></script>
+
+    <script>
+      (function () {
+        'use strict';
+
+        function getAuthHeaders() {
+          var token = localStorage.getItem('zenpass_token') || localStorage.getItem('token');
+          if (!token) return {};
+          return { 'Authorization': 'Bearer ' + token };
+        }
+
+        function isLoggedIn() {
+          return !!localStorage.getItem('zenpass_token') || !!localStorage.getItem('token');
+        }
+
+        var container = document.getElementById('wishlist-container');
+
+        if (!isLoggedIn()) {
+          container.innerHTML =
+            '<div class="wishlist-empty">' +
+              '<div class="empty-icon">🔒</div>' +
+              '<h2>請先登入</h2>' +
+              '<p>登入後即可查看你嘅收藏課程</p>' +
+              '<a href="login.html" class="btn-solid">登入 / 註冊</a>' +
+            '</div>';
+          return;
+        }
+
+        // Fetch wishlist
+        fetch((API_BASE || '') + '/api/wishlist', {
+          headers: getAuthHeaders()
+        })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (!data.wishlist || data.wishlist.length === 0) {
+            container.innerHTML =
+              '<div class="wishlist-empty">' +
+                '<div class="empty-icon">💔</div>' +
+                '<h2>尚未收藏任何課程</h2>' +
+                '<p>瀏覽課程時按 ❤️ 即可收藏</p>' +
+                '<a href="explore.html" class="btn-solid">探索課程</a>' +
+              '</div>';
+            return;
+          }
+
+          var html = '<div class="wishlist-grid">';
+          data.wishlist.forEach(function (item) {
+            var imgStyle = item.image_url
+              ? 'background-image:url(' + JSON.stringify(item.image_url) + ')'
+              : 'background:var(--gray-200);display:flex;align-items:center;justify-content:center;font-size:32px';
+
+            var price = item.price_hkd
+              ? 'HK$' + parseInt(item.price_hkd)
+              : '—';
+
+            var diffMap = { beginner: '初學', intermediate: '中階', advanced: '進階' };
+            var diff = diffMap[item.difficulty] || item.difficulty || '';
+
+            html +=
+              '<div class="wishlist-card" data-class-id="' + item.class_id + '" onclick="window.location.href=\'class-detail.html?id=' + item.class_id + '\'">' +
+                '<div class="wishlist-card-img" style="' + imgStyle + '">' +
+                  (item.image_url ? '' : '🏋️') +
+                '</div>' +
+                '<button class="wishlist-remove-btn" onclick="event.stopPropagation();removeFromWishlist(\'' + item.class_id + '\', this)" title="移除收藏">✕</button>' +
+                '<div class="wishlist-card-body">' +
+                  '<h3 class="wishlist-card-title">' + escapeHtml(item.title || '') + '</h3>' +
+                  '<div class="wishlist-card-meta">' +
+                    '<span>🏷️ ' + (item.category || '') + '</span>' +
+                    (diff ? '<span>📊 ' + diff + '</span>' : '') +
+                    '<span>⏱️ ' + (item.duration || '') + 'min</span>' +
+                  '</div>' +
+                  (item.coach_name ? '<div class="wishlist-card-coach">👤 ' + escapeHtml(item.coach_name) + '</div>' : '') +
+                  '<div class="wishlist-card-price">' + price + '</div>' +
+                '</div>' +
+              '</div>';
+          });
+          html += '</div>';
+          container.innerHTML = html;
+        })
+        .catch(function (err) {
+          container.innerHTML =
+            '<div class="wishlist-empty">' +
+              '<div class="empty-icon">⚠️</div>' +
+              '<h2>載入失敗</h2>' +
+              '<p>' + escapeHtml(err.message) + '</p>' +
+              '<button class="btn-solid" onclick="location.reload()">重新整理</button>' +
+            '</div>';
+        });
+
+        function escapeHtml(str) {
+          if (!str) return '';
+          return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+        }
+
+        // Global remove function
+        window.removeFromWishlist = function (classId, btn) {
+          if (!confirm('確定要移除收藏？')) return;
+          var card = btn ? btn.closest('.wishlist-card') : null;
+
+          fetch((API_BASE || '') + '/api/wishlist/' + classId, {
+            method: 'DELETE',
+            headers: Object.assign({ 'Content-Type': 'application/json' }, getAuthHeaders())
+          })
+          .then(function (r) { return r.json(); })
+          .then(function (data) {
+            if (card) {
+              card.style.transition = 'opacity 0.3s, transform 0.3s';
+              card.style.opacity = '0';
+              card.style.transform = 'scale(0.9)';
+              setTimeout(function () {
+                if (card.parentNode) card.remove();
+                // Check if grid is now empty
+                var remaining = document.querySelectorAll('.wishlist-card');
+                if (remaining.length === 0) {
+                  container.innerHTML =
+                    '<div class="wishlist-empty">' +
+                      '<div class="empty-icon">💔</div>' +
+                      '<h2>尚未收藏任何課程</h2>' +
+                      '<p>瀏覽課程時按 ❤️ 即可收藏</p>' +
+                      '<a href="explore.html" class="btn-solid">探索課程</a>' +
+                    '</div>';
+                }
+              }, 300);
+            }
+          })
+          .catch(function (err) {
+            alert('移除失敗: ' + err.message);
+          });
+        };
+      })();
+    </script>
+  </body>
+</html>

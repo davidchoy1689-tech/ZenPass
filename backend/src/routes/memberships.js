@@ -4,12 +4,11 @@
 
 const express = require("express");
 const { v4: uuidv4 } = require("uuid");
-const Database = require("better-sqlite3");
+const { getDb } = require("../services/database");
 const { authenticateToken } = require("../middleware/auth");
 const { writeBlock } = require("../services/blockchain-audit");
 
 const router = express.Router();
-const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
 
 // 會籍方案定價
 const MEMBERSHIP_PLANS = {
@@ -111,7 +110,7 @@ router.post("/subscribe", authenticateToken, async (req, res) => {
     }
 
     const plan = MEMBERSHIP_PLANS[type];
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.pragma("foreign_keys = ON");
 
     const user = db
@@ -187,8 +186,6 @@ router.post("/subscribe", authenticateToken, async (req, res) => {
       console.error("[BLOCKCHAIN] Failed to write membership block:", blockErr.message);
     }
 
-    db.close();
-
     res.status(201).json({
       message: `🎉 成功訂閱 ${plan.name} 會籍！`,
       membership: {
@@ -208,7 +205,7 @@ router.post("/subscribe", authenticateToken, async (req, res) => {
 // ===== GET /api/memberships/my — 我的會籍 =====
 router.get("/my", authenticateToken, (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.pragma("foreign_keys = ON");
 
     const memberships = db
@@ -229,8 +226,6 @@ router.get("/my", authenticateToken, (req, res) => {
     `,
       )
       .get(req.user.id);
-
-    db.close();
 
     res.json({
       current: {
@@ -265,7 +260,7 @@ router.post("/credits", authenticateToken, (req, res) => {
     else if (creditsToAdd >= 50) bonusCredits = 12;
     else if (creditsToAdd >= 10) bonusCredits = 2;
 
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.pragma("foreign_keys = ON");
 
     db.prepare("UPDATE users SET credits = credits + ? + ? WHERE id = ?").run(
@@ -309,8 +304,6 @@ router.post("/credits", authenticateToken, (req, res) => {
       console.error("[BLOCKCHAIN] Failed to write credits topup block:", blockErr.message);
     }
 
-    db.close();
-
     res.json({
       message: `✅ 成功添加 ${creditsToAdd + bonusCredits} Credits`,
       credits_purchased: creditsToAdd,
@@ -351,7 +344,7 @@ router.post("/stripe-subscribe", authenticateToken, async (req, res) => {
     }
 
     const stripe = require("stripe")(STRIPE_SECRET);
-    const db = new Database(DB_PATH);
+    const db = getDb();
 
     // Get or create Stripe customer
     let customerId = db
@@ -436,8 +429,6 @@ router.post("/stripe-subscribe", authenticateToken, async (req, res) => {
     } catch (blockErr) {
       console.error("[BLOCKCHAIN] Failed to write stripe subscription block:", blockErr.message);
     }
-
-    db.close();
 
     res.json({
       subscription_id: subscription.id,

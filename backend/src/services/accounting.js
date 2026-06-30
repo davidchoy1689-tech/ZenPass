@@ -17,11 +17,9 @@
  *   6000 - 營運開支
  */
 
-const Database = require("better-sqlite3");
+const { getDb } = require("./database");
 const { v4: uuidv4 } = require("uuid");
 const { writeBlock } = require("./blockchain-audit");
-
-const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
 
 /**
  * 建立一筆會計分錄（double-entry pair）
@@ -44,7 +42,7 @@ function createEntry({
   method,
   description = "",
 }) {
-  const db = new Database(DB_PATH);
+  const db = getDb();
   try {
     const now = new Date().toISOString();
     const ref = require("../services/refgen").genRef("GL");
@@ -252,7 +250,7 @@ function createEntry({
     console.error("[ACCOUNTING] Failed to create entry:", err.message);
     return null;
   } finally {
-    db.close();
+
   }
 }
 
@@ -319,7 +317,7 @@ function recordPayout(coachId, amount, method) {
  * @returns {number} 結餘
  */
 function getBalance(accountCode) {
-  const db = new Database(DB_PATH);
+  const db = getDb();
   try {
     const result = db
       .prepare(
@@ -334,7 +332,7 @@ function getBalance(accountCode) {
     console.error("[ACCOUNTING] Failed to get balance:", err.message);
     return 0;
   } finally {
-    db.close();
+
   }
 }
 
@@ -343,7 +341,7 @@ function getBalance(accountCode) {
  * Debits = Credits 先係 balanced
  */
 function trialBalance() {
-  const db = new Database(DB_PATH);
+  const db = getDb();
   try {
     const accounts = db
       .prepare(
@@ -373,7 +371,7 @@ function trialBalance() {
     console.error("[ACCOUNTING] Trial balance failed:", err.message);
     return null;
   } finally {
-    db.close();
+
   }
 }
 
@@ -381,7 +379,7 @@ function trialBalance() {
  * 按 booking 查詢分錄
  */
 function getEntriesByBooking(bookingId) {
-  const db = new Database(DB_PATH);
+  const db = getDb();
   try {
     return db
       .prepare(
@@ -393,7 +391,7 @@ function getEntriesByBooking(bookingId) {
   } catch (err) {
     return [];
   } finally {
-    db.close();
+
   }
 }
 

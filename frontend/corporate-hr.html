@@ -185,6 +185,8 @@
       table.hr-table th, table.hr-table td { padding: 8px 6px; }
     }
   </style>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
     <!-- Google tag (gtag.js) - GA4 -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-MKF5N4YLBM"></script>
     <script>
@@ -280,9 +282,59 @@
         </div>
       </div>
 
-      <!-- Monthly Usage Chart -->
+      <!-- Wellness Dashboard Grid -->
+      <div class="wellness-grid">
+        <!-- Monthly Booking Bar Chart -->
+        <div class="section-wrap chart-card">
+          <h3>📊 每月預約趨勢 <span class="badge" id="totalBkBadge">0</span></h3>
+          <div style="position:relative;height:220px">
+            <canvas id="monthlyBookingChart"></canvas>
+          </div>
+          <div class="no-data" id="noChartMonthly" style="display:none">
+            <span class="nd-icon">📊</span> 暫無月度數據
+          </div>
+        </div>
+
+        <!-- Popular Categories Pie Chart -->
+        <div class="section-wrap chart-card">
+          <h3>🎯 最受歡迎運動</h3>
+          <div style="position:relative;height:220px">
+            <canvas id="categoryPieChart"></canvas>
+          </div>
+          <div class="no-data" id="noCategoryChart" style="display:none">
+            <span class="nd-icon">🎯</span> 暫無分類數據
+          </div>
+        </div>
+
+        <!-- Top Active Employees -->
+        <div class="section-wrap chart-card">
+          <h3>🏆 Top 活躍員工</h3>
+          <div id="topEmployeesList"></div>
+          <div class="no-data" id="noTopEmp" style="display:none">
+            <span class="nd-icon">🏆</span> 暫無排名數據
+          </div>
+        </div>
+
+        <!-- Credit Utilization & Usage Rate -->
+        <div class="section-wrap chart-card">
+          <h3>📈 本月使用率</h3>
+          <div id="creditUtilSection">
+            <div style="text-align:center;padding:20px 0">
+              <div style="font-size:48px;font-weight:800" id="utilPercent">0%</div>
+              <div style="font-size:13px;color:#4b5563;margin-top:8px">
+                <span id="utilUsed">0</span> / <span id="utilTotal">0</span> Credits 已使用
+              </div>
+              <div class="credit-bar" style="margin:12px auto;max-width:200px;height:12px">
+                <div class="credit-bar-fill" id="utilFill" style="width:0%"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Monthly Usage Chart (original) -->
       <div class="section-wrap" id="chartSection">
-        <h3>📈 月度用量趨勢</h3>
+        <h3>📈 每日用量趨勢（最近30天）</h3>
         <div id="monthlyChart"></div>
         <div class="no-data" id="noChart" style="display:none">
           <span class="nd-icon">📊</span> 暫無月度數據
@@ -386,6 +438,9 @@
 
       // Chart
       renderChart(data.monthly_usage || []);
+
+      // Wellness Dashboard (additional stats)
+      loadWellnessStats();
     }
 
     function renderOverviewCards(data) {
@@ -529,6 +584,216 @@
       labelsHtml += '</div>';
 
       container.innerHTML = barsHtml + labelsHtml;
+    }
+
+    // ===== Wellness Dashboard Stats (Chart.js) =====
+    let monthlyChartInstance = null;
+    let pieChartInstance = null;
+
+    function getCompanyIdFromData() {
+      // Extract company ID from the dashboard data
+      const header = document.getElementById('companyName');
+      return header?.dataset?.companyId || '';
+    }
+
+    async function loadWellnessStats() {
+      // Get company ID from the existing data
+      const urlParams = new URLSearchParams(window.location.search);
+      const companyId = urlParams.get('company_id') || getCompanyIdFromData();
+      
+      // Try fetching from the stats API or derive from existing dashboard data
+      try {
+        const token = getToken();
+        // First try to get stats from the existing dashboard data (we already have it)
+        // For the full stats, use the corporate companies detail endpoint
+        const resp = await fetch(API_BASE + '/corporate/companies', { headers: getAuthHeaders() });
+        if (!resp.ok) return;
+        const data = await resp.json();
+        const companies = data.companies || [];
+        
+        // Fall back to use the stats endpoint with first company
+        // Actually, let's use the my/hr-dashboard data we already have
+        enrichWellnessFromDashboard();
+      } catch (e) {
+        console.log('Wellness stats not available');
+      }
+    }
+
+    function enrichWellnessFromDashboard() {
+      // This function is called after the main dashboard loads.
+      // Let's fetch dedicated stats if we know the company
+      const token = getToken();
+      if (!token) return;
+
+      // We already have dashboard data in the page. Let's just enhance the display
+      // with what we have. For proper stats, we need the corporate companies list.
+      fetch(API_BASE + '/corporate/companies', { headers: getAuthHeaders() })
+        .then(r => r.json())
+        .then(data => {
+          const companies = data.companies || [];
+          if (companies.length === 0) return;
+          // Get the first company's stats (or match by name)
+          const companyId = companies[0].id;
+          document.getElementById('companyName').dataset.companyId = companyId;
+          
+          // Fetch detailed stats
+          return fetch(API_BASE + '/corporate/stats/' + companyId, { headers: getAuthHeaders() });
+        })
+        .then(r => r && r.json())
+        .then(stats => {
+          if (!stats) return;
+          renderWellnessCharts(stats);
+          renderTopEmployees(stats.topEmployees || []);
+          renderCreditUtilization(stats);
+        })
+        .catch(e => console.log('Wellness stats extra load failed:', e.message));
+    }
+
+    function renderWellnessCharts(stats) {
+      // Monthly booking bar chart
+      const monthlyCtx = document.getElementById('monthlyBookingChart');
+      if (!monthlyCtx) return;
+
+      const totalBadge = document.getElementById('totalBkBadge');
+      if (totalBadge) totalBadge.textContent = (stats.totalBookings || 0) + ' 次';
+
+      const monthlyData = stats.monthlyUsage || [];
+      const noMonthly = document.getElementById('noChartMonthly');
+      
+      if (monthlyData.length === 0) {
+        if (noMonthly) noMonthly.style.display = '';
+        monthlyCtx.parentElement.style.display = 'none';
+        return;
+      }
+      if (noMonthly) noMonthly.style.display = 'none';
+      monthlyCtx.parentElement.style.display = '';
+
+      if (monthlyChartInstance) monthlyChartInstance.destroy();
+
+      const labels = monthlyData.map(d => d.month);
+      const counts = monthlyData.map(d => d.count);
+
+      monthlyChartInstance = new Chart(monthlyCtx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: '預約次數',
+            data: counts,
+            backgroundColor: 'rgba(201, 68, 32, 0.7)',
+            borderColor: '#c94420',
+            borderWidth: 1,
+            borderRadius: 4
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: { stepSize: 1, font: { size: 11 } },
+              grid: { color: 'rgba(0,0,0,0.06)' }
+            },
+            x: {
+              ticks: { font: { size: 10 }, maxRotation: 45 }
+            }
+          }
+        }
+      });
+
+      // Category pie chart
+      const pieCtx = document.getElementById('categoryPieChart');
+      if (!pieCtx) return;
+
+      const catData = stats.popularCategories || [];
+      const noCat = document.getElementById('noCategoryChart');
+
+      if (catData.length === 0) {
+        if (noCat) noCat.style.display = '';
+        pieCtx.parentElement.style.display = 'none';
+        return;
+      }
+      if (noCat) noCat.style.display = 'none';
+      pieCtx.parentElement.style.display = '';
+
+      if (pieChartInstance) pieChartInstance.destroy();
+
+      const colors = ['#c94420','#f59e0b','#10b981','#3b82f6','#8b5cf6','#ec4899','#14b8a6','#f97316'];
+      
+      pieChartInstance = new Chart(pieCtx, {
+        type: 'pie',
+        data: {
+          labels: catData.map(d => d.category),
+          datasets: [{
+            data: catData.map(d => d.count),
+            backgroundColor: colors.slice(0, catData.length),
+            borderWidth: 2,
+            borderColor: '#fff'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'right',
+              labels: { font: { size: 11 }, boxWidth: 12, padding: 8 }
+            }
+          }
+        }
+      });
+    }
+
+    function renderTopEmployees(employees) {
+      const container = document.getElementById('topEmployeesList');
+      const noEmp = document.getElementById('noTopEmp');
+
+      if (!employees || employees.length === 0) {
+        if (container) container.innerHTML = '';
+        if (noEmp) noEmp.style.display = '';
+        return;
+      }
+      if (noEmp) noEmp.style.display = 'none';
+
+      container.innerHTML = employees.map((emp, i) => {
+        let rankClass = '';
+        let rankLabel = (i + 1);
+        if (i === 0) rankClass = 'gold';
+        else if (i === 1) rankClass = 'silver';
+        else if (i === 2) rankClass = 'bronze';
+
+        return '<div class="top-emp-item">' +
+          '<div class="top-emp-rank ' + rankClass + '">' + rankLabel + '</div>' +
+          '<div class="top-emp-info">' +
+            '<div class="name">' + escHtml(emp.name) + '</div>' +
+            '<div class="email">' + escHtml(emp.email || '') + '</div>' +
+          '</div>' +
+          '<div class="top-emp-bk">' + (emp.bookings || 0) + ' 次</div>' +
+        '</div>';
+      }).join('');
+    }
+
+    function renderCreditUtilization(stats) {
+      const utilEl = document.getElementById('utilPercent');
+      const usedEl = document.getElementById('utilUsed');
+      const totalEl = document.getElementById('utilTotal');
+      const fillEl = document.getElementById('utilFill');
+
+      if (!utilEl) return;
+
+      const pct = Math.round((stats.creditUtilization || 0) * 100);
+      utilEl.textContent = pct + '%';
+      
+      // Update colors based on utilization
+      if (pct > 80) utilEl.style.color = '#dc2626';
+      else if (pct > 50) utilEl.style.color = '#d97706';
+      else utilEl.style.color = '#059669';
+
+      if (fillEl) fillEl.style.width = pct + '%';
     }
 
     // ===== Invite Employee Modal =====

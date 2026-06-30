@@ -5,7 +5,7 @@
 
 const express = require("express");
 const { v4: uuidv4 } = require("uuid");
-const Database = require("better-sqlite3");
+const { getDb } = require("../services/database");
 const { authenticateToken, requireAdmin } = require("../middleware/auth");
 const { sendNotification } = require("../services/notification");
 const {
@@ -15,13 +15,12 @@ const {
 const { recordPayment } = require("../services/accounting");
 
 const router = express.Router();
-const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
 
 // ===== 1. GET /api/venue-rentals/available — 教練搜尋可租場地 =====
 router.get("/available", (req, res) => {
   try {
     const { date, category, district, page = 1, limit = 20 } = req.query;
-    const db = new Database(DB_PATH);
+    const db = getDb();
 
     // Get active venues with their info
     let sql = `SELECT v.id, v.name, v.description, v.category, v.district, 
@@ -74,7 +73,6 @@ router.get("/available", (req, res) => {
         `SELECT COUNT(*) as c FROM partner_venues WHERE status = 'active'`,
       )
       .get().c;
-    db.close();
 
     res.json({ success: true, data: venues, total, page: parseInt(page) });
   } catch (err) {
@@ -99,7 +97,7 @@ router.post("/book", authenticateToken, (req, res) => {
         .json({ success: false, error: "請填寫場地、開始同結束時間" });
     }
 
-    const db = new Database(DB_PATH);
+    const db = getDb();
 
     // Check venue exists and is active
     const venue = db
@@ -108,7 +106,7 @@ router.post("/book", authenticateToken, (req, res) => {
       )
       .get(venue_id);
     if (!venue) {
-      db.close();
+
       return res
         .status(404)
         .json({ success: false, error: "場地不存在或未啟用" });
@@ -126,7 +124,7 @@ router.post("/book", authenticateToken, (req, res) => {
       .get(venue_id, end_time, start_time);
 
     if (conflict) {
-      db.close();
+
       return res.status(409).json({ success: false, error: "該時段已被預約" });
     }
 
@@ -139,8 +137,6 @@ router.post("/book", authenticateToken, (req, res) => {
       VALUES (?, ?, ?, ?, ?, ?, 'confirmed')
     `,
     ).run(id, venue_id, req.user.id, start_time, end_time, price);
-
-    db.close();
 
     res.json({
       success: true,
@@ -160,7 +156,7 @@ router.post("/book", authenticateToken, (req, res) => {
 // ===== 3. GET /api/venue-rentals/my — 教練睇自己租場記錄 =====
 router.get("/my", authenticateToken, (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     const rentals = db
       .prepare(
         `
@@ -172,7 +168,7 @@ router.get("/my", authenticateToken, (req, res) => {
     `,
       )
       .all(req.user.id);
-    db.close();
+
     res.json({ success: true, data: rentals });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
@@ -182,7 +178,7 @@ router.get("/my", authenticateToken, (req, res) => {
 // ===== 4. GET /api/venue-rentals/venue/:venueId — 場地睇自己嘅租賃記錄 =====
 router.get("/venue/:venueId", authenticateToken, (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     const rentals = db
       .prepare(
         `
@@ -194,7 +190,7 @@ router.get("/venue/:venueId", authenticateToken, (req, res) => {
     `,
       )
       .all(req.params.venueId);
-    db.close();
+
     res.json({ success: true, data: rentals });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
@@ -204,22 +200,22 @@ router.get("/venue/:venueId", authenticateToken, (req, res) => {
 // ===== 5. DELETE /api/venue-rentals/:id/cancel — 取消預約 =====
 router.delete("/:id/cancel", authenticateToken, (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     const rental = db
       .prepare("SELECT * FROM venue_rentals WHERE id = ?")
       .get(req.params.id);
     if (!rental) {
-      db.close();
+
       return res.status(404).json({ success: false, error: "租賃記錄不存在" });
     }
     if (rental.coach_id !== req.user.id && req.user.role !== "admin") {
-      db.close();
+
       return res.status(403).json({ success: false, error: "無權限取消" });
     }
     db.prepare(
       "UPDATE venue_rentals SET status = 'cancelled' WHERE id = ?",
     ).run(req.params.id);
-    db.close();
+
     res.json({ success: true, message: "已取消預約" });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });

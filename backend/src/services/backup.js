@@ -9,15 +9,16 @@
  * 4. 一鍵還原
  * 5. 資料庫完整性檢查
  */
-const Database = require("better-sqlite3");
+const { getDb } = require("./database");
 const path = require("path");
 const fs = require("fs");
 const crypto = require("crypto");
 const logger = require("./logger");
 const { getSupabase } = require("./supabase");
 
-const BACKUP_DIR = path.join(__dirname, "..", "..", "backups");
 const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
+
+const BACKUP_DIR = path.join(__dirname, "..", "..", "backups");
 const MAX_BACKUPS = 30; // Keep 30 days of backups
 const DAILY_BACKUP_HOUR = 3; // 3 AM daily
 
@@ -65,7 +66,7 @@ if (!fs.existsSync(BACKUP_DIR)) {
  * Open a read-only connection for backup (avoids lock contention)
  */
 function openReadOnlyDb() {
-  const db = new Database(DB_PATH, { readonly: true });
+  const db = getDb();
   db.pragma("journal_mode = WAL");
   return db;
 }
@@ -156,7 +157,7 @@ async function createSqliteBackup(name, description = "") {
     );
     return backupId;
   } finally {
-    db.close();
+
   }
 }
 
@@ -226,7 +227,7 @@ async function restoreSqliteBackup(backupId) {
     throw new Error("備份檔案 checksum 不符 — 可能已損毀");
   }
 
-  const writeDb = new Database(DB_PATH);
+  const db = getDb();
   writeDb.pragma("journal_mode = WAL");
   writeDb.pragma("foreign_keys = OFF");
   try {
@@ -272,7 +273,7 @@ async function restoreSqliteBackup(backupId) {
     };
   } finally {
     writeDb.pragma("foreign_keys = ON");
-    writeDb.close();
+
   }
 }
 
@@ -486,7 +487,7 @@ async function checkIntegrity() {
   const results = { status: "ok", checks: [] };
 
   try {
-    const db = new Database(DB_PATH, { readonly: true });
+    const db = getDb();
 
     // 1. SQLite integrity
     const integrity = db.prepare("PRAGMA integrity_check").get();
@@ -563,8 +564,6 @@ async function checkIntegrity() {
       status: backupCount > 0 ? "ok" : "warn",
       detail: `${backupCount} backups available`,
     });
-
-    db.close();
 
     // Overall status
     const failures = results.checks.filter((c) => c.status === "fail");

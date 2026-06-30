@@ -5,7 +5,7 @@
 
 const express = require("express");
 const { v4: uuidv4 } = require("uuid");
-const Database = require("better-sqlite3");
+const { getDb } = require("../services/database");
 const { authenticateToken } = require("../middleware/auth");
 const {
   getNotifications,
@@ -17,7 +17,6 @@ const {
 } = require("../services/notification");
 
 const router = express.Router();
-const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
 
 // ===== GET /api/notifications — 通知列表 =====
 router.get("/", authenticateToken, (req, res) => {
@@ -65,7 +64,7 @@ router.post("/read-all", authenticateToken, (req, res) => {
 // ===== DELETE /api/notifications/:id — 刪除通知 =====
 router.delete("/:id", authenticateToken, (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     const result = db
       .prepare(
         `
@@ -73,7 +72,7 @@ router.delete("/:id", authenticateToken, (req, res) => {
     `,
       )
       .run(req.params.id, req.user.id);
-    db.close();
+
     if (result.changes === 0)
       return res.status(404).json({ error: "通知不存在" });
     res.json({ message: "已刪除" });
@@ -92,7 +91,7 @@ router.post("/push-subscribe", authenticateToken, (req, res) => {
       return res.status(400).json({ error: "缺少 subscription 資料" });
     }
 
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.pragma("foreign_keys = ON");
 
     // 避免重複訂閱相同 endpoint
@@ -127,8 +126,6 @@ router.post("/push-subscribe", authenticateToken, (req, res) => {
       );
     }
 
-    db.close();
-
     res.json({ message: "推送訂閱成功" });
   } catch (err) {
     console.error("推送訂閱錯誤:", err);
@@ -140,7 +137,7 @@ router.post("/push-subscribe", authenticateToken, (req, res) => {
 router.delete("/push-unsubscribe", authenticateToken, (req, res) => {
   try {
     const { endpoint } = req.body;
-    const db = new Database(DB_PATH);
+    const db = getDb();
 
     if (endpoint) {
       db.prepare(
@@ -152,7 +149,6 @@ router.delete("/push-unsubscribe", authenticateToken, (req, res) => {
       );
     }
 
-    db.close();
     res.json({ message: "已取消推送訂閱" });
   } catch (err) {
     console.error("取消推送錯誤:", err);

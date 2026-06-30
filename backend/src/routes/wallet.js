@@ -15,13 +15,12 @@
 
 const express = require("express");
 const { v4: uuidv4 } = require("uuid");
-const Database = require("better-sqlite3");
+const { getDb } = require("../services/database");
 const { authenticateToken } = require("../middleware/auth");
 const walletService = require("../services/wallet-service");
 const { writeBlock } = require("../services/blockchain-audit");
 
 const router = express.Router();
-const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
 const WITHDRAWAL_FEE = 1;
 
 // ===== 1. GET /api/wallet/summary — 錢包總覽 =====
@@ -58,13 +57,13 @@ router.get("/transactions", authenticateToken, (req, res) => {
 // ===== 3. GET /api/wallet/balance — 簡單結餘查詢 (backward compat) =====
 router.get("/balance", authenticateToken, (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     const user = db
       .prepare(
         "SELECT wallet_balance, bank_name, bank_account, bank_code FROM users WHERE id = ?",
       )
       .get(req.user.id);
-    db.close();
+
     if (!user) return res.status(404).json({ error: "用戶不存在" });
 
     res.json({
@@ -85,7 +84,7 @@ router.get("/balance", authenticateToken, (req, res) => {
 // ===== 4. POST /api/wallet/withdraw — 提現 =====
 router.post("/withdraw", authenticateToken, (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     const user = db
       .prepare(
         "SELECT wallet_balance, bank_name, bank_account FROM users WHERE id = ?",
@@ -93,18 +92,18 @@ router.post("/withdraw", authenticateToken, (req, res) => {
       .get(req.user.id);
 
     if (!user || !user.bank_account) {
-      db.close();
+
       return res.status(400).json({ error: "請先設定銀行戶口" });
     }
 
     const amount = parseFloat(req.body.amount);
     if (!amount || amount <= 0) {
-      db.close();
+
       return res.status(400).json({ error: "請輸入有效金額" });
     }
 
     if (amount < 100) {
-      db.close();
+
       return res.status(400).json({ error: "最低提現金額為 HK$100" });
     }
 
@@ -119,20 +118,17 @@ router.post("/withdraw", authenticateToken, (req, res) => {
       sourceId: "",
     });
 
-    db.close();
-
     if (!result.success) {
       return res.status(400).json({ error: result.error });
     }
 
     // Also insert payout request record
-    const payoutDb = new Database(DB_PATH);
     const poRef =
       "PO-" +
       new Date().toISOString().slice(0, 10).replace(/-/g, "") +
       "-" +
       Math.random().toString(36).substring(2, 6).toUpperCase();
-    payoutDb
+    db
       .prepare(
         `
       INSERT INTO coach_payouts (id, payout_reference, coach_id, amount, fee, net_amount, status)
@@ -147,7 +143,6 @@ router.post("/withdraw", authenticateToken, (req, res) => {
         WITHDRAWAL_FEE,
         amount - WITHDRAWAL_FEE,
       );
-    payoutDb.close();
 
     // ⛓️ 區塊鏈：記錄提現交易
     try {
@@ -188,11 +183,10 @@ router.post("/bank", authenticateToken, (req, res) => {
       return res.status(400).json({ error: "請填寫銀行名稱同戶口號碼" });
     }
 
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.prepare(
       "UPDATE users SET bank_name = ?, bank_account = ?, bank_code = ? WHERE id = ?",
     ).run(bank_name, bank_account, bank_code || "", req.user.id);
-    db.close();
 
     res.json({ success: true, message: "銀行戶口已設定" });
   } catch (err) {
@@ -257,11 +251,11 @@ router.post("/pay-rental", authenticateToken, (req, res) => {
 // ===== A1. GET /api/wallet/admin/coaches — 所有教練錢包總覽 =====
 router.get("/admin/coaches", authenticateToken, (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     const user = db
       .prepare("SELECT role FROM users WHERE id = ?")
       .get(req.user.id);
-    db.close();
+
     if (!user || user.role !== "admin") {
       return res.status(403).json({ error: "僅管理員可查看" });
     }
@@ -281,11 +275,11 @@ router.get("/admin/coaches", authenticateToken, (req, res) => {
 // ===== A2. GET /api/wallet/admin/txs/:userId — 指定教練交易記錄 =====
 router.get("/admin/txs/:userId", authenticateToken, (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     const user = db
       .prepare("SELECT role FROM users WHERE id = ?")
       .get(req.user.id);
-    db.close();
+
     if (!user || user.role !== "admin") {
       return res.status(403).json({ error: "僅管理員可查看" });
     }
@@ -309,18 +303,18 @@ router.get("/admin/txs/:userId", authenticateToken, (req, res) => {
 // ===== A3. POST /api/wallet/admin/adjust — 管理員調整結餘（audit trail） =====
 router.post("/admin/adjust", authenticateToken, (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     const admin = db
       .prepare("SELECT role FROM users WHERE id = ?")
       .get(req.user.id);
     if (!admin || admin.role !== "admin") {
-      db.close();
+
       return res.status(403).json({ error: "僅管理員可操作" });
     }
 
     const { user_id, amount, reason } = req.body;
     if (!user_id || !amount || !reason) {
-      db.close();
+
       return res
         .status(400)
         .json({ error: "缺少資料 (user_id, amount, reason)" });
@@ -345,8 +339,6 @@ router.post("/admin/adjust", authenticateToken, (req, res) => {
             sourceType: "admin",
             sourceId: req.user.id,
           });
-
-    db.close();
 
     if (!result.success) {
       return res.status(400).json({ error: result.error });

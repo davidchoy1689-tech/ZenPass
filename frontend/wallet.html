@@ -90,11 +90,6 @@
       .tx-amount.positive { color:#059669; }
       .tx-amount.negative { color:#dc2626; }
 
-      .empty-tx {
-        text-align:center;padding:48px 16px;color:#aaa;font-size:14px;
-      }
-      .empty-tx .icon { font-size:40px;margin-bottom:8px; }
-
       .load-more {
         text-align:center;padding:16px;
       }
@@ -103,17 +98,6 @@
         font-size:13px;color:#888;cursor:pointer;
       }
       .load-more button:hover{background:#f5f5f5;}
-
-      /* Loading & Error */
-      .loading-state {
-        text-align:center;padding:60px 16px;color:#aaa;
-      }
-      .loading-state .spinner {
-        display:inline-block;width:32px;height:32px;
-        border:3px solid #f0f0f0;border-top-color:#FF6B35;
-        border-radius:50%;animation:spin 0.8s linear infinite;margin-bottom:12px;
-      }
-      @keyframes spin{to{transform:rotate(360deg)}}
 
       /* Nav styles — handled by nav.js + zenpass.css */
 
@@ -159,6 +143,29 @@
     <!-- Balance Cards -->
     <div class="balance-row" id="balanceCards"></div>
 
+    <!-- Auto Top-up Config (only if logged in) -->
+    <div id="autoTopupStatus" style="margin:12px 16px 0;display:none">
+      <div style="background:#fff;border-radius:12px;padding:12px 14px;box-shadow:0 1px 6px rgba(0,0,0,0.05);display:flex;align-items:center;gap:10px;">
+        <div style="font-size:20px;flex-shrink:0">⚡</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:500;color:#1a1a2e" id="autoTopupStatusText">Auto Top-up 已啟用</div>
+          <div style="font-size:11px;color:#888;margin-top:2px" id="autoTopupStatusDetail">低過 10 cr 時自動加購</div>
+        </div>
+        <a href="topup-auto.html" style="text-decoration:none;font-size:12px;color:#FF6B35;font-weight:600;white-space:nowrap;">設定 →</a>
+      </div>
+    </div>
+
+    <!-- Credit Expiry Warning -->
+    <div id="creditExpiryWarning" style="margin:12px 16px 0;display:none">
+      <div style="background:linear-gradient(135deg,#fef3c7,#fde68a);border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:10px;">
+        <div style="font-size:20px;flex-shrink:0">⏰</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:500;color:#92400e" id="expiryWarningText">Credits 即將到期</div>
+          <div style="font-size:11px;color:#92400e;margin-top:2px" id="expiryWarningDetail">載入中...</div>
+        </div>
+      </div>
+    </div>
+
     <!-- Tab Selector -->
     <div class="tab-row" id="tabRow">
       <div class="tab active" data-tab="credits" onclick="switchTab('credits')">🎫 Credits</div>
@@ -166,11 +173,7 @@
     </div>
 
     <!-- Content -->
-    <div id="content">
-      <div class="loading-state">
-        <div class="spinner"></div>
-        <div>載入中...</div>
-      </div>
+    <div id="content" style="position:relative;min-height:300px">
     </div>
 
 
@@ -193,6 +196,7 @@
 
       // ===== Load wallet data =====
       async function loadWallet() {
+        showState('content', 'loading', { message: '載入中...' });
         try {
           // Load user data for credits
           if (user && user.id) {
@@ -220,8 +224,11 @@
           renderBalanceCards(walletSummary);
           loadCredits();
         } catch(e) {
-          document.getElementById("content").innerHTML =
-            '<div class="empty-tx"><div class="icon">❌</div>載入失敗，請稍後再試</div>';
+          showState('content', 'error', {
+            title: '載入失敗',
+            message: '無法載入錢包資料，請稍後再試',
+            retryFn: loadWallet
+          });
         }
       }
 
@@ -236,6 +243,7 @@
           '<div class="label">🎫 Credits 餘額</div>' +
           '<div class="amount">' + credits + ' <span class="currency">cr</span></div>' +
           '<a href="buy-credits.html" class="action-btn">➕ 加購</a>' +
+          '<a href="topup-auto.html" style="display:block;margin-top:4px;padding:4px 8px;border:none;border-radius:8px;font-size:10px;font-weight:500;cursor:pointer;text-align:center;text-decoration:none;background:#f0f0f0;color:#666;">⚡ Auto Top-up</a>' +
           '</div>';
 
         // Wallet card (show for coaches or if balance > 0)
@@ -268,8 +276,7 @@
 
       // ===== Load credits history =====
       async function loadCredits() {
-        var content = document.getElementById("content");
-        content.innerHTML = '<div class="loading-state"><div class="spinner"></div><div>載入中...</div></div>';
+        showState('content', 'loading', { message: '載入中...' });
 
         try {
           var r = await fetch(API + "/auth/me", {
@@ -349,14 +356,16 @@
           });
         }
 
-        // Also fake some credit spending from bookings if we have user booking data
-        // In a real app, we'd have a dedicated credits transaction endpoint
-
         if (items.length === 0) {
-          document.getElementById("content").innerHTML =
-            '<div class="empty-tx"><div class="icon">🎫</div><div>尚未有交易記錄<br><span style="font-size:12px;color:#ccc">預約課程後會喺呢度顯示</span></div></div>';
+          showState('content', 'empty', {
+            icon: '🎫',
+            title: '尚未有交易記錄',
+            message: '預約課程後會喺呢度顯示'
+          });
           return;
         }
+
+        hideState('content');
 
         items.sort(function(a, b) { return b.rawDate.localeCompare(a.rawDate); });
 
@@ -384,8 +393,7 @@
 
       // ===== Load wallet (HKD) transactions =====
       async function loadWalletTransactions() {
-        var content = document.getElementById("content");
-        content.innerHTML = '<div class="loading-state"><div class="spinner"></div><div>載入中...</div></div>';
+        showState('content', 'loading', { message: '載入中...' });
 
         try {
           var r = await fetch(API + "/wallet/transactions?limit=50", {
@@ -401,10 +409,15 @@
 
       function renderWalletTxs(txs) {
         if (!txs || txs.length === 0) {
-          document.getElementById("content").innerHTML =
-            '<div class="empty-tx"><div class="icon">💰</div><div>尚未有銀包交易<br><span style="font-size:12px;color:#ccc">成為教練或夥伴後，收入會喺呢度顯示</span></div></div>';
+          showState('content', 'empty', {
+            icon: '💰',
+            title: '尚未有銀包交易',
+            message: '成為教練或夥伴後，收入會喺呢度顯示'
+          });
           return;
         }
+
+        hideState('content');
 
         var html = '<div class="tx-list">';
         var lastDay = "";
@@ -462,8 +475,53 @@
         }
       }
 
+      // ===== Check Auto Top-up config =====
+      async function checkAutoTopup() {
+        try {
+          var r = await fetch(API + "/topup/config", {
+            headers: { Authorization: "Bearer " + token }
+          });
+          var d = await r.json();
+          if (d.enabled) {
+            var bundleLabel = { light: "輕量包", standard: "標準包", premium: "超值包" }[d.bundle_type] || d.bundle_type;
+            document.getElementById("autoTopupStatus").style.display = "block";
+            document.getElementById("autoTopupStatusText").textContent = "⚡ Auto Top-up 已啟用";
+            document.getElementById("autoTopupStatusDetail").textContent =
+              "低過 " + d.threshold + " cr 時自動加購 " + bundleLabel + "（" + d.bundle.credits + " cr）";
+          }
+        } catch(e) { /* silently ignore */ }
+      }
+
+      // ===== Check Credit Expiry =====
+      async function checkCreditExpiry() {
+        try {
+          // Load membership info
+          var r = await fetch(API + "/memberships/my", {
+            headers: { Authorization: "Bearer " + token }
+          });
+          var d = await r.json();
+
+          if (d.current && d.current.type && d.current.type !== "none" && d.current.credits > 0) {
+            var today = new Date();
+            var nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, 1);
+            var daysUntilReset = Math.ceil((nextMonth - today) / (1000 * 60 * 60 * 24));
+            var monthNames = ["1月","2月","3月","4月","5月","6月","7月","8月","9月","10月","11月","12月"];
+
+            if (daysUntilReset <= 7 && daysUntilReset > 0) {
+              document.getElementById("creditExpiryWarning").style.display = "block";
+              document.getElementById("expiryWarningText").textContent =
+                "⏰ " + daysUntilReset + " 日後到期，剩餘 " + d.current.credits + " Credits";
+              document.getElementById("expiryWarningDetail").textContent =
+                "你嘅 Plan（" + d.current.type + "）將於 " + monthNames[nextMonth.getMonth()] + " 1 日重置，快啲用埋佢啦！";
+            }
+          }
+        } catch(e) { /* silently ignore */ }
+      }
+
       // ===== Init =====
       loadWallet();
+      setTimeout(checkAutoTopup, 1000);
+      setTimeout(checkCreditExpiry, 1500);
     </script>
   <script src="js/nav.js"></script>
 <div id="zp-footer"></div>

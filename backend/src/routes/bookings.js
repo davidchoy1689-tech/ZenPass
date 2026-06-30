@@ -4,7 +4,7 @@
 
 const express = require("express");
 const { v4: uuidv4 } = require("uuid");
-const Database = require("better-sqlite3");
+const { getDb } = require("../services/database");
 const { authenticateToken } = require("../middleware/auth");
 const { scalpGuard } = require("../middleware/anti-scalping");
 const { validate, schemas } = require("../middleware/validate");
@@ -20,17 +20,16 @@ const { writeBlock } = require("../services/blockchain-audit");
 const { processRefund } = require("../services/refund");
 
 const router = express.Router();
-const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
 
 function generateBookingRef() {
-  const dbb = new Database(DB_PATH);
+  const db = getDb();
   const maxS =
     dbb
       .prepare(
         "SELECT MAX(CAST(SUBSTR(booking_reference, 4) AS INTEGER)) as m FROM bookings WHERE booking_reference GLOB 'ZP-[0-9]*'",
       )
       .get().m || 0;
-  dbb.close();
+
   return "ZP-" + String(maxS + 1).padStart(4, "0");
 }
 
@@ -50,11 +49,11 @@ router.post(
       }
 
       // ⚠️ 檢查罰款同意書（ClassPass 模式）— user 一次過同意就得
-      const userConsent = new Database(DB_PATH).prepare("SELECT penalty_consent FROM users WHERE id = ?").get(req.user.id);
+      const userConsent = getDb().prepare("SELECT penalty_consent FROM users WHERE id = ?").get(req.user.id);
       if (!userConsent || !userConsent.penalty_consent) {
         // 如果今次 submit 有 penalty_consent，就 save 一次 (one-time agreement)
         if (penalty_consent) {
-          new Database(DB_PATH).prepare("UPDATE users SET penalty_consent = 1 WHERE id = ?").run(req.user.id);
+          getDb().prepare("UPDATE users SET penalty_consent = 1 WHERE id = ?").run(req.user.id);
         } else {
           return res.status(400).json({
             error: "請先同意缺席/遲取消罰款規則",
@@ -65,11 +64,11 @@ router.post(
 
       // 試玩都要有足夠 Credits 先 book 得（ClassPass 模式）
       if (payment_type === "membership_trial") {
-        const dbCred = new Database(DB_PATH);
+        const db = getDb();
         const classData = dbCred.prepare("SELECT credits_cost FROM classes WHERE id = ?").get(class_id);
         const neededCredits = classData?.credits_cost || 12;
         const userCredits = dbCred.prepare("SELECT credits FROM users WHERE id = ?").get(req.user.id);
-        dbCred.close();
+
         if (!userCredits || userCredits.credits < neededCredits) {
           return res.status(400).json({
             error: `試玩預約需要至少 ${neededCredits} Credits 作為按金，你目前有 ${userCredits?.credits || 0} Credits。請先購買 Credits。`,
@@ -81,14 +80,14 @@ router.post(
 
       // 試玩：7天內 + 30次上限 + 學生角色
       if (payment_type === "membership_trial") {
-        const db3 = new Database(DB_PATH);
+        const db = getDb();
         const trialUser = db3
           .prepare(`SELECT role, created_at FROM users WHERE id = ?`)
           .get(req.user.id);
 
         // 只限學生角色
         if (!trialUser || trialUser.role !== "user") {
-          db3.close();
+
           return res.status(403).json({ error: "試玩只限學生帳號" });
         }
 
@@ -97,7 +96,7 @@ router.post(
         var now = new Date();
         var daysSinceReg = Math.floor((now - regDate) / (1000 * 60 * 60 * 24));
         if (daysSinceReg >= 7) {
-          db3.close();
+
           return res.status(400).json({ error: "試玩期已過（7天限）" });
         }
 
@@ -108,15 +107,15 @@ router.post(
           )
           .get(req.user.id);
         if (trialCount.cnt >= 30) {
-          db3.close();
+
           return res
             .status(400)
             .json({ error: "試玩次數已滿，請聯絡 info@hklfcl.com" });
         }
-        db3.close();
+
       }
 
-      const db = new Database(DB_PATH);
+      const db = getDb();
       db.pragma("foreign_keys = ON");
 
       // 檢查課程時間表是否存在
@@ -129,7 +128,7 @@ router.post(
         .get(schedule_id);
 
       if (!schedule) {
-        db.close();
+
         return res.status(404).json({ error: "該時段不存在或已滿" });
       }
 
@@ -158,7 +157,7 @@ router.post(
         )
         .run(schedule_id);
       if (capResult.changes === 0) {
-        db.close();
+
         return res.status(400).json({ error: "該時段已滿額" });
       }
 
@@ -175,7 +174,7 @@ router.post(
       if (existing) {
         // 如果係未完成付款，俾佢繼續付款
         if (existing.status === "pending_payment") {
-          db.close();
+
           return res.status(200).json({
             message: "你有一個未完成付款的預約，請繼續付款",
             booking_id: existing.id,
@@ -183,7 +182,7 @@ router.post(
             requires_payment: true,
           });
         }
-        db.close();
+
         return res.status(409).json({ error: "你已經預約了此課程時段" });
       }
 
@@ -198,11 +197,11 @@ router.post(
           .prepare("SELECT credits_cost FROM classes WHERE id = ?")
           .get(class_id);
         if (!classData) {
-          db.close();
+
           return res.status(404).json({ error: "課程不存在" });
         }
         if (user.credits < classData.credits_cost) {
-          db.close();
+
           return res.status(400).json({ error: "點數不足，請先購買點數" });
         }
         // 扣點數
@@ -217,7 +216,7 @@ router.post(
           .prepare("SELECT credits_cost FROM classes WHERE id = ?")
           .get(class_id);
         if (!classData) {
-          db.close();
+
           return res.status(404).json({ error: "課程不存在" });
         }
         const needed = classData.credits_cost || 12;
@@ -231,7 +230,7 @@ router.post(
         `).get(req.user.id);
 
         if (!corpMember) {
-          db.close();
+
           return res.status(403).json({ error: "你不是企業員工" });
         }
 
@@ -245,7 +244,7 @@ router.post(
         const monthlyRemaining = monthlyLimit - monthlyUsed;
 
         if (availablePool <= 0 && (user.credits || 0) < needed) {
-          db.close();
+
           return res.status(400).json({ error: "公司 Credits 不足，你的個人 Credits 亦不足夠" });
         }
 
@@ -261,7 +260,7 @@ router.post(
             fromPersonal = remaining;
           } else {
             // Not enough personal credits either
-            db.close();
+
             return res.status(400).json({
               error: `公司 Credits 不足（可用 ${availablePool} cr，月剩 ${monthlyRemaining} cr），你亦只有 ${user.credits || 0} 個人 Credits`
             });
@@ -468,8 +467,6 @@ router.post(
         console.error("⚠️ Blockchain write failed (booking):", bcErr.message);
       }
 
-      db.close();
-
       res.status(201).json({
         message:
           "預約成功" +
@@ -509,14 +506,14 @@ const TRIAL_MAX_COUNT = 30;
 
 router.get("/trial-status", authenticateToken, (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     const user = db
       .prepare(`SELECT id, role, created_at FROM users WHERE id = ?`)
       .get(req.user.id);
 
     // 1. Only student role
     if (!user || user.role !== "user") {
-      db.close();
+
       return res.json({ eligible: false, reason: "只限學生帳號試玩" });
     }
 
@@ -540,7 +537,6 @@ router.get("/trial-status", authenticateToken, (req, res) => {
     var expiryDate = new Date(regDate);
     expiryDate.setDate(expiryDate.getDate() + TRIAL_WINDOW_DAYS);
 
-    db.close();
     res.json({
       eligible: withinWindow && hasRemaining,
       trial_used: usedCount > 0,
@@ -557,7 +553,7 @@ router.get("/trial-status", authenticateToken, (req, res) => {
 // ===== GET /api/bookings/my — 我的預約 =====
 router.get("/my", authenticateToken, (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.pragma("foreign_keys = ON");
 
     const { status, page = 1, limit = 20 } = req.query;
@@ -591,8 +587,6 @@ router.get("/my", authenticateToken, (req, res) => {
       )
       .all(...params, parseInt(limit), offset);
 
-    db.close();
-
     res.json({ bookings });
   } catch (err) {
     console.error("獲取預約錯誤:", err);
@@ -611,7 +605,7 @@ router.post(
     try {
       const { payment_method, payment_reference, amount } = req.body;
 
-      const db = new Database(DB_PATH);
+      const db = getDb();
       db.pragma("foreign_keys = ON");
 
       const booking = db
@@ -623,7 +617,7 @@ router.post(
         .get(req.params.id, req.user.id);
 
       if (!booking) {
-        db.close();
+
         return res.status(404).json({ error: "未找到待付款的預約" });
       }
 
@@ -730,8 +724,6 @@ router.post(
         console.error("⚠️ Blockchain write failed (booking):", bcErr.message);
       }
 
-      db.close();
-
       res.json({
         message: "付款成功，預約已確認！",
         booking_id: booking.id,
@@ -748,8 +740,9 @@ router.post(
 // ===== POST /api/bookings/:id/cancel — 取消預約 =====
 router.post("/:id/cancel", authenticateToken, scalpGuard, (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.pragma("foreign_keys = ON");
+    const { reason } = req.body;
 
     const booking = db
       .prepare(
@@ -762,7 +755,7 @@ router.post("/:id/cancel", authenticateToken, scalpGuard, (req, res) => {
       .get(req.params.id, req.user.id);
 
     if (!booking) {
-      db.close();
+
       return res.status(404).json({ error: "預約不存在" });
     }
 
@@ -776,7 +769,7 @@ router.post("/:id/cancel", authenticateToken, scalpGuard, (req, res) => {
 
       // < 2 小時 → 完全阻住
       if (hoursUntilClass < 2) {
-        db.close();
+
         return res.status(400).json({
           error: "開課前 2 小時內無法取消預約（太遲）",
         });
@@ -784,7 +777,7 @@ router.post("/:id/cancel", authenticateToken, scalpGuard, (req, res) => {
 
       // 2-12 小時 → 遲取消，唔退 Credits
       if (hoursUntilClass < 12) {
-        db.prepare("UPDATE bookings SET status = 'cancelled' WHERE id = ?").run(booking.id);
+        db.prepare("UPDATE bookings SET status = 'cancelled', cancel_reason = ? WHERE id = ?").run(reason || null, booking.id);
         db.prepare("UPDATE class_schedules SET enrolled_count = MAX(0, enrolled_count - 1) WHERE id = ?")
           .run(booking.schedule_id);
 
@@ -839,7 +832,7 @@ router.post("/:id/cancel", authenticateToken, scalpGuard, (req, res) => {
         }
       });
     } catch (e) {}
-        db.close();
+
         return res.json({
           message: "預約已取消（遲取消）。由於距離開課不足 12 小時，已使用的 Credits 唔會退還。",
           late_cancel: true,
@@ -849,7 +842,7 @@ router.post("/:id/cancel", authenticateToken, scalpGuard, (req, res) => {
     }
 
     // > 12 小時 → 正常取消，全退 Credits
-    db.prepare("UPDATE bookings SET status = 'cancelled' WHERE id = ?").run(booking.id);
+    db.prepare("UPDATE bookings SET status = 'cancelled', cancel_reason = ? WHERE id = ?").run(reason || null, booking.id);
 
     // 釋放名額
     db.prepare("UPDATE class_schedules SET enrolled_count = MAX(0, enrolled_count - 1) WHERE id = ?")
@@ -954,7 +947,6 @@ router.post("/:id/cancel", authenticateToken, scalpGuard, (req, res) => {
         }
       });
     } catch (e) {}
-    db.close();
 
     res.json({ message: "預約已取消" });
   } catch (err) {
@@ -966,7 +958,7 @@ router.post("/:id/cancel", authenticateToken, scalpGuard, (req, res) => {
 // ===== GET /api/bookings/:id/checkin-status — 簽到狀態（含場地資訊）=====
 router.get("/:id/checkin-status", authenticateToken, (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
 
     // Verify the booking belongs to this user
     const booking = db
@@ -981,7 +973,7 @@ router.get("/:id/checkin-status", authenticateToken, (req, res) => {
       .get(req.params.id, req.user.id);
 
     if (!booking) {
-      db.close();
+
       return res.status(404).json({ error: "找不到該預約" });
     }
 
@@ -996,7 +988,6 @@ router.get("/:id/checkin-status", authenticateToken, (req, res) => {
       now >= windowStart &&
       now <= windowEnd;
 
-    db.close();
     res.json({
       can_checkin: canCheckin,
       venue_name: booking.venue_name || "",
@@ -1014,11 +1005,10 @@ router.get("/:id/checkin-status", authenticateToken, (req, res) => {
   }
 });
 
-
 // ===== POST /api/bookings/:id/attend — 標記為已出席 =====
 router.post("/:id/attend", authenticateToken, (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.pragma("foreign_keys = ON");
 
     // Determine if this is a coach/admin or student
@@ -1035,7 +1025,7 @@ router.post("/:id/attend", authenticateToken, (req, res) => {
         .prepare("SELECT * FROM bookings WHERE id = ? AND user_id = ?")
         .get(req.params.id, req.user.id);
       if (!booking) {
-        db.close();
+
         return res.status(403).json({ error: "無權限執行此操作" });
       }
 
@@ -1054,11 +1044,11 @@ router.post("/:id/attend", authenticateToken, (req, res) => {
         const windowEnd = new Date(startTime.getTime() + 60 * 60 * 1000);
 
         if (now < windowStart) {
-          db.close();
+
           return res.status(400).json({ error: "簽到時間未到（可於上課前 15 分鐘開始簽到）" });
         }
         if (now > windowEnd) {
-          db.close();
+
           return res.status(400).json({ error: "簽到時間已過" });
         }
       }
@@ -1074,7 +1064,7 @@ router.post("/:id/attend", authenticateToken, (req, res) => {
       .run(checkinMethod, req.params.id);
 
     if (result.changes === 0) {
-      db.close();
+
       return res
         .status(400)
         .json({ error: "無法簽到，預約可能已取消或已完成" });
@@ -1130,7 +1120,6 @@ router.post("/:id/attend", authenticateToken, (req, res) => {
       console.error("⚠️ Blockchain write failed (booking):", bcErr.message);
     }
 
-    db.close();
     res.json({ message: "✅ 簽到成功！" });
   } catch (err) {
     console.error("簽到錯誤:", err);
@@ -1141,7 +1130,7 @@ router.post("/:id/attend", authenticateToken, (req, res) => {
 // ===== GET /api/bookings/today — 今日課堂（教練用）=====// ===== GET /api/bookings/today — 今日課堂（教練用）=====
 router.get("/today", authenticateToken, (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.pragma("foreign_keys = ON");
 
     const today = new Date().toISOString().split("T")[0];
@@ -1177,7 +1166,6 @@ router.get("/today", authenticateToken, (req, res) => {
       return { ...s, students: students };
     });
 
-    db.close();
     res.json({ schedules: result, date: today });
   } catch (err) {
     console.error("獲取今日課堂錯誤:", err);
@@ -1188,7 +1176,7 @@ router.get("/today", authenticateToken, (req, res) => {
 // ===== GET /api/bookings/:id — 單一預約詳情 =====
 router.get("/:id", authenticateToken, (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     const booking = db
       .prepare(
         `
@@ -1203,7 +1191,7 @@ router.get("/:id", authenticateToken, (req, res) => {
     `,
       )
       .get(req.params.id);
-    db.close();
+
     if (!booking) return res.status(404).json({ error: "預約不存在" });
     res.json(booking);
   } catch (err) {
@@ -1214,7 +1202,7 @@ router.get("/:id", authenticateToken, (req, res) => {
 // ===== GET /api/bookings/:id/qr — 生成 QR Code（返回 QR 資料文字）=====
 router.get("/:id/qr", authenticateToken, (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     const booking = db
       .prepare(
         `SELECT b.*, cs.id as schedule_id
@@ -1223,7 +1211,6 @@ router.get("/:id/qr", authenticateToken, (req, res) => {
          WHERE b.id = ?`,
       )
       .get(req.params.id);
-    db.close();
 
     if (!booking) {
       return res.status(404).json({ error: "預約不存在" });
@@ -1232,11 +1219,11 @@ router.get("/:id/qr", authenticateToken, (req, res) => {
     // Only the booking owner, coach, or admin can get the QR
     if (booking.user_id !== req.user.id && req.user.role !== "admin") {
       // Allow coach access if they teach this class
-      const coachDb = new Database(DB_PATH);
+      const db = getDb();
       const cls = coachDb
         .prepare("SELECT coach_id FROM classes WHERE id = ?")
         .get(booking.class_id);
-      coachDb.close();
+
       if (!cls || cls.coach_id !== req.user.id) {
         return res.status(403).json({ error: "無權限存取此 QR Code" });
       }
@@ -1297,7 +1284,7 @@ router.post("/checkin", authenticateToken, (req, res) => {
       return res.status(400).json({ error: "無法識別預約" });
     }
 
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.pragma("foreign_keys = ON");
 
     // Find booking by reference or id
@@ -1309,19 +1296,19 @@ router.post("/checkin", authenticateToken, (req, res) => {
     }
 
     if (!booking) {
-      db.close();
+
       return res.status(404).json({ error: "預約不存在" });
     }
 
     // Check if already attended
     if (booking.status === "attended") {
-      db.close();
+
       return res.json({ message: "✅ 你已經簽到過了！", already_checked_in: true, booking });
     }
 
     // Only confirmed bookings can check in
     if (booking.status !== "confirmed") {
-      db.close();
+
       return res.status(400).json({
         error: `無法簽到，預約狀態為「${booking.status}」`,
         current_status: booking.status,
@@ -1336,7 +1323,7 @@ router.post("/checkin", authenticateToken, (req, res) => {
       .run(booking.id);
 
     if (result.changes === 0) {
-      db.close();
+
       return res.status(400).json({ error: "簽到失敗" });
     }
 
@@ -1394,8 +1381,6 @@ router.post("/checkin", authenticateToken, (req, res) => {
       console.error("⚠️ Coach earnings sync failed:", e.message);
     }
 
-    db.close();
-
     res.json({
       message: "✅ 簽到成功！",
       booking_id: booking.id,
@@ -1408,18 +1393,17 @@ router.post("/checkin", authenticateToken, (req, res) => {
   }
 });
 
-
 // ===== Booking 同伴路線（hold 住，有需要時啟用）=====
 /*
 // GET /api/bookings/:bookingId/teammates — 取得 booking 嘅同伴
 router.get("/:bookingId/teammates", authenticateToken, (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     const booking = db.prepare("SELECT id, user_id FROM bookings WHERE id = ?").get(req.params.bookingId);
-    if (!booking) { db.close(); return res.status(404).json({ error: "預約不存在" }); }
-    if (booking.user_id !== req.user.id && req.user.role !== "admin") { db.close(); return res.status(403).json({ error: "無權限查看" }); }
+    if (!booking) { return res.status(404).json({ error: "預約不存在" }); }
+    if (booking.user_id !== req.user.id && req.user.role !== "admin") { return res.status(403).json({ error: "無權限查看" }); }
     const teammates = db.prepare("SELECT bt.id, bt.name, bt.phone, bt.status, bt.checked_in_at FROM booking_teammates bt WHERE bt.booking_id = ? ORDER BY bt.id").all(req.params.bookingId);
-    db.close(); res.json({ teammates });
+    res.json({ teammates });
   } catch (err) {
     console.error("獲取 booking 同伴錯誤:", err.message);
     res.status(500).json({ error: "獲取同伴資料失敗" });
@@ -1429,15 +1413,15 @@ router.get("/:bookingId/teammates", authenticateToken, (req, res) => {
 // POST /api/bookings/:bookingId/checkin-teammate/:teammateId — 團體簽到（簽到一個同伴）
 router.post("/:bookingId/checkin-teammate/:teammateId", authenticateToken, (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     const booking = db.prepare("SELECT id, user_id FROM bookings WHERE id = ?").get(req.params.bookingId);
-    if (!booking) { db.close(); return res.status(404).json({ error: "預約不存在" }); }
-    if (booking.user_id !== req.user.id && req.user.role !== "admin") { db.close(); return res.status(403).json({ error: "無權限操作" }); }
+    if (!booking) { return res.status(404).json({ error: "預約不存在" }); }
+    if (booking.user_id !== req.user.id && req.user.role !== "admin") { return res.status(403).json({ error: "無權限操作" }); }
     const teammate = db.prepare("SELECT id, status FROM booking_teammates WHERE id = ? AND booking_id = ?").get(req.params.teammateId, req.params.bookingId);
-    if (!teammate) { db.close(); return res.status(404).json({ error: "同伴不存在" }); }
-    if (teammate.status === "attended") { db.close(); return res.json({ message: "同伴已簽到", already_checked_in: true }); }
+    if (!teammate) { return res.status(404).json({ error: "同伴不存在" }); }
+    if (teammate.status === "attended") { return res.json({ message: "同伴已簽到", already_checked_in: true }); }
     db.prepare("UPDATE booking_teammates SET status = 'attended', checked_in_at = datetime('now') WHERE id = ? AND status != 'attended'").run(req.params.teammateId);
-    db.close();
+
     res.json({ message: "✅ 同伴簽到成功", teammate_id: req.params.teammateId });
   } catch (err) {
     console.error("團體簽到錯誤:", err.message);
@@ -1448,12 +1432,12 @@ router.post("/:bookingId/checkin-teammate/:teammateId", authenticateToken, (req,
 // POST /api/bookings/:bookingId/bulk-checkin — 一次過簽到所有同伴
 router.post("/:bookingId/bulk-checkin", authenticateToken, (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     const booking = db.prepare("SELECT id, user_id FROM bookings WHERE id = ?").get(req.params.bookingId);
-    if (!booking) { db.close(); return res.status(404).json({ error: "預約不存在" }); }
-    if (booking.user_id !== req.user.id && req.user.role !== "admin") { db.close(); return res.status(403).json({ error: "無權限操作" }); }
+    if (!booking) { return res.status(404).json({ error: "預約不存在" }); }
+    if (booking.user_id !== req.user.id && req.user.role !== "admin") { return res.status(403).json({ error: "無權限操作" }); }
     const result = db.prepare("UPDATE booking_teammates SET status = 'attended', checked_in_at = datetime('now') WHERE booking_id = ? AND status != 'attended'").run(req.params.bookingId);
-    db.close();
+
     res.json({ message: `✅ 已簽到 ${result.changes} 位同伴`, count: result.changes });
   } catch (err) {
     console.error("批量簽到錯誤:", err.message);
@@ -1466,15 +1450,15 @@ module.exports = router;
 // ===== POST /api/bookings/:id/no-show =====
 router.post("/:id/no-show", authenticateToken, (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.pragma("foreign_keys = ON");
     const user = db.prepare("SELECT is_coach, coach_verified, role FROM users WHERE id = ?").get(req.user.id);
     const isCoachOrAdmin = user && (user.is_coach || user.role === "admin" || user.coach_verified);
-    if (!isCoachOrAdmin) { db.close(); return res.status(403).json({ error: "Only coach/admin can mark no-show" }); }
+    if (!isCoachOrAdmin) { return res.status(403).json({ error: "Only coach/admin can mark no-show" }); }
     const booking = db.prepare("SELECT * FROM bookings WHERE id = ? AND status = 'confirmed'").get(req.params.id);
-    if (!booking) { db.close(); return res.status(404).json({ error: "Booking not found or already processed" }); }
+    if (!booking) { return res.status(404).json({ error: "Booking not found or already processed" }); }
     const result = db.prepare("UPDATE bookings SET status = 'no_show', checked_in_at = datetime('now'), checkin_method = 'coach' WHERE id = ? AND status = 'confirmed'").run(req.params.id);
-    if (result.changes === 0) { db.close(); return res.status(400).json({ error: "Cannot mark no-show" }); }
+    if (result.changes === 0) { return res.status(400).json({ error: "Cannot mark no-show" }); }
 
     // ⛓️ Blockchain: no-show
     try {
@@ -1495,7 +1479,6 @@ router.post("/:id/no-show", authenticateToken, (req, res) => {
       console.error("⚠️ Blockchain write failed (booking):", bcErr.message);
     }
 
-    db.close();
     res.json({ success: true, message: "Marked as no-show" });
   } catch (err) {
     console.error("No-show error:", err.message);

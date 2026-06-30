@@ -6,23 +6,22 @@
  */
 
 const express = require("express");
-const Database = require("better-sqlite3");
+const { getDb } = require("../services/database");
 const { authenticateToken } = require("../middleware/auth");
 const { writeBlock } = require("../services/blockchain-audit");
 
 const router = express.Router();
-const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
 
 // ===== GET /api/me/teammates — 取得我的同伴列表 =====
 router.get("/", authenticateToken, (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     const teammates = db
       .prepare(
         "SELECT id, name, phone, email, notes, created_at FROM user_teammates WHERE user_id = ? ORDER BY created_at DESC",
       )
       .all(req.user.id);
-    db.close();
+
     res.json({ teammates });
   } catch (err) {
     console.error("獲取同伴列表錯誤:", err.message);
@@ -38,7 +37,7 @@ router.post("/", authenticateToken, (req, res) => {
       return res.status(400).json({ error: "請輸入同伴姓名" });
     }
 
-    const db = new Database(DB_PATH);
+    const db = getDb();
 
     // 檢查重複（同 user 同 name + 同 phone）
     const existing = db
@@ -48,7 +47,7 @@ router.post("/", authenticateToken, (req, res) => {
       .get(req.user.id, name.trim(), phone || null, phone || null);
 
     if (existing) {
-      db.close();
+
       return res.status(409).json({ error: "同伴已存在" });
     }
 
@@ -80,7 +79,6 @@ router.post("/", authenticateToken, (req, res) => {
       console.error("⚠️ Blockchain write failed (teammate create):", bcErr.message);
     }
 
-    db.close();
     res.status(201).json({ teammate });
   } catch (err) {
     console.error("新增同伴錯誤:", err.message);
@@ -91,13 +89,13 @@ router.post("/", authenticateToken, (req, res) => {
 // ===== DELETE /api/me/teammates/:id — 刪除同伴 =====
 router.delete("/:id", authenticateToken, (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     const result = db
       .prepare("DELETE FROM user_teammates WHERE id = ? AND user_id = ?")
       .run(req.params.id, req.user.id);
 
     if (result.changes === 0) {
-      db.close();
+
       return res.status(404).json({ error: "找不到該同伴" });
     }
 
@@ -116,7 +114,6 @@ router.delete("/:id", authenticateToken, (req, res) => {
       console.error("⚠️ Blockchain write failed (teammate delete):", bcErr.message);
     }
 
-    db.close();
     res.json({ message: "✅ 已刪除同伴" });
   } catch (err) {
     console.error("刪除同伴錯誤:", err.message);
@@ -128,14 +125,14 @@ router.delete("/:id", authenticateToken, (req, res) => {
 router.put("/:id", authenticateToken, (req, res) => {
   try {
     const { name, phone, email, notes } = req.body;
-    const db = new Database(DB_PATH);
+    const db = getDb();
 
     const existing = db
       .prepare("SELECT id FROM user_teammates WHERE id = ? AND user_id = ?")
       .get(req.params.id, req.user.id);
 
     if (!existing) {
-      db.close();
+
       return res.status(404).json({ error: "找不到該同伴" });
     }
 
@@ -166,7 +163,6 @@ router.put("/:id", authenticateToken, (req, res) => {
       console.error("⚠️ Blockchain write failed (teammate update):", bcErr.message);
     }
 
-    db.close();
     res.json({ teammate });
   } catch (err) {
     console.error("更新同伴錯誤:", err.message);

@@ -4,6 +4,9 @@
  * 防止重複請求：所有付款、預約等重要操作必須帶 Idempotency-Key
  * 同一 key 重複請求只會 return 第一次結果，唔會 double charge
  *
+ * Fix: 使用 INSERT OR IGNORE 原子操作防止 race condition
+ * 就算兩個完全相同 request 同一時間到，都只會處理一次
+ *
  * IPO-ready：確保 financial transaction 嘅 exactly-once semantics
  */
 
@@ -26,35 +29,58 @@ function requireIdempotency(req, res, next) {
   }
 
   const db = new Database(DB_PATH);
-  try {
-    const existing = db
-      .prepare(
-        "SELECT response_data, created_at FROM idempotency_keys WHERE id = ?",
-      )
-      .get(key);
+  db.pragma("foreign_keys = ON");
 
-    if (existing) {
-      // Same key used before → return cached response
-      const age = (Date.now() - new Date(existing.created_at).getTime()) / 1000;
-      console.log(`[IDEMPOTENCY] Reusing key ${key} (${age.toFixed(1)}s old)`);
-      try {
-        return res.status(200).json(JSON.parse(existing.response_data));
-      } catch {
-        // If cached data is corrupted, allow retry
-        db.prepare("DELETE FROM idempotency_keys WHERE id = ?").run(key);
+  try {
+    // ─── Atomic insert-or-check ───────────────────────────────
+    // INSERT OR IGNORE 係原子操作：如果 id 已存在就 ignore
+    // SQLite 嘅 UNIQUE constraint 保證只有一個 request 可以成功 INSERT
+    const result = db
+      .prepare(
+        "INSERT OR IGNORE INTO idempotency_keys (id, response_data, created_at) VALUES (?, '{}', datetime('now'))",
+      )
+      .run(key);
+
+    if (result.changes === 0) {
+      // ── Key 已存在 → 另一 request 已經佔用 ──
+      // SELECT 現有 response，return cached data
+      const existing = db
+        .prepare("SELECT response_data, created_at FROM idempotency_keys WHERE id = ?")
+        .get(key);
+
+      if (existing) {
+        const age = (Date.now() - new Date(existing.created_at).getTime()) / 1000;
+        console.log(`[IDEMPOTENCY] Reusing key ${key} (${age.toFixed(1)}s old)`);
+
+        // Check if response is still empty (request still processing)
+        if (existing.response_data === "{}" || !existing.response_data) {
+          // Another request is still processing this key.
+          // Return 409 Conflict so caller knows to retry.
+          db.close();
+          return res.status(409).json({
+            error: "Request with this idempotency key is still being processed",
+            code: "IDEMPOTENCY_IN_FLIGHT",
+          });
+        }
+
+        try {
+          db.close();
+          return res.status(200).json(JSON.parse(existing.response_data));
+        } catch {
+          // Corrupted data: delete and let caller retry
+          db.prepare("DELETE FROM idempotency_keys WHERE id = ?").run(key);
+        }
       }
     }
 
-    // Store the key so next call with same key gets blocked until response
-    db.prepare(
-      "INSERT INTO idempotency_keys (id, response_data, created_at) VALUES (?, ?, datetime('now'))",
-    ).run(key, "{}");
-
-    // Attach helper to store response when done
+    // ── 我哋成功建立咗呢個 key → 繼續處理 ──
+    // 標記 key 以便後續 intercept res.json
     res.idempotencyKey = key;
 
-    // Intercept res.json to cache the response
+    // Intercept res.json 以 cache response
     const originalJson = res.json.bind(res);
+    let dbClosed = false;
+
     res.json = function (body) {
       if (res.idempotencyKey && res.statusCode >= 200 && res.statusCode < 300) {
         try {
@@ -65,14 +91,27 @@ function requireIdempotency(req, res, next) {
           console.error("[IDEMPOTENCY] Cache failed:", e.message);
         }
       }
-      db.close();
+      if (!dbClosed) {
+        dbClosed = true;
+        db.close();
+      }
       return originalJson(body);
+    };
+
+    // 喺 response finish 時確保 DB close (for non-json responses / errors)
+    const originalEnd = res.end.bind(res);
+    res.end = function () {
+      if (!dbClosed) {
+        dbClosed = true;
+        db.close();
+      }
+      return originalEnd.apply(res, arguments);
     };
 
     next();
   } catch (err) {
-    db.close();
     console.error("[IDEMPOTENCY] Error:", err.message);
+    try { db.close(); } catch (e) { /* ignore */ }
     next();
   }
 }

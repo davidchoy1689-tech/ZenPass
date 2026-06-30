@@ -3,22 +3,21 @@
  */
 const express = require("express");
 const { v4: uuidv4 } = require("uuid");
-const Database = require("better-sqlite3");
+const { getDb } = require("../services/database");
 const { authenticateToken, requireCoach } = require("../middleware/auth");
 const { writeBlock } = require("../services/blockchain-audit");
 const router = express.Router();
-const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
 
 // ===== GET /api/locations — 場地列表 =====
 router.get("/", authenticateToken, (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     const locations = db
       .prepare(
         "SELECT * FROM locations WHERE coach_id = ? ORDER BY is_primary DESC, created_at ASC",
       )
       .all(req.user.id);
-    db.close();
+
     res.json({ locations });
   } catch (err) {
     res.status(500).json({ error: "無法取得場地列表" });
@@ -30,7 +29,7 @@ router.post("/", authenticateToken, (req, res) => {
   try {
     const { name, address, phone, is_primary } = req.body;
     if (!name) return res.status(400).json({ error: "請填寫場地名稱" });
-    const db = new Database(DB_PATH);
+    const db = getDb();
     const id = uuidv4();
     db.prepare(
       `INSERT INTO locations (id, coach_id, name, address, phone, is_primary) VALUES (?, ?, ?, ?, ?, ?)`,
@@ -66,7 +65,6 @@ router.post("/", authenticateToken, (req, res) => {
       console.error("⚠️ Blockchain write failed (location create):", bcErr.message);
     }
 
-    db.close();
     res.status(201).json({ message: "場地已建立", location_id: id });
   } catch (err) {
     res.status(500).json({ error: "無法建立場地" });
@@ -76,7 +74,7 @@ router.post("/", authenticateToken, (req, res) => {
 // ===== DELETE /api/locations/:id — 刪除場地 =====
 router.delete("/:id", authenticateToken, (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.prepare("DELETE FROM locations WHERE id = ? AND coach_id = ?").run(
       req.params.id,
       req.user.id,
@@ -96,7 +94,6 @@ router.delete("/:id", authenticateToken, (req, res) => {
       console.error("⚠️ Blockchain write failed (location delete):", bcErr.message);
     }
 
-    db.close();
     res.json({ message: "已刪除" });
   } catch (err) {
     res.status(500).json({ error: "刪除失敗" });
@@ -118,7 +115,7 @@ router.post("/sale", authenticateToken, (req, res) => {
     } = req.body;
     if (!item_name || !unit_price)
       return res.status(400).json({ error: "請填寫項目名稱和價錢" });
-    const db = new Database(DB_PATH);
+    const db = getDb();
     const id = uuidv4();
     const total = (quantity || 1) * unit_price;
     db.prepare(
@@ -148,7 +145,6 @@ router.post("/sale", authenticateToken, (req, res) => {
         ).run(total, user.id);
       }
     }
-    db.close();
 
     // ⛓️ 區塊鏈：記錄銷售
     try {
@@ -185,7 +181,7 @@ router.post("/sale", authenticateToken, (req, res) => {
 // ===== GET /api/pos/sales — 銷售記錄 =====
 router.get("/sales", authenticateToken, (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     const sales = db
       .prepare(
         "SELECT s.*, l.name as location_name FROM sales s LEFT JOIN locations l ON s.location_id = l.id WHERE s.coach_id = ? ORDER BY s.created_at DESC LIMIT 100",
@@ -194,7 +190,7 @@ router.get("/sales", authenticateToken, (req, res) => {
     const total = db
       .prepare("SELECT SUM(total_amount) as t FROM sales WHERE coach_id = ?")
       .get(req.user.id);
-    db.close();
+
     res.json({ sales, total_revenue: total?.t || 0 });
   } catch (err) {
     res.status(500).json({ error: "無法取得銷售記錄" });

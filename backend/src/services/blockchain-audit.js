@@ -8,12 +8,9 @@
  *  - 一 call API 就 show 晒成條鏈：學生俾錢 → 平台抽佣 → 教練收入 → 錢包入帳
  */
 
-const Database = require("better-sqlite3");
+const { getDb } = require("./database");
 const crypto = require("crypto");
 const path = require("path");
-
-const DB_PATH =
-  process.env.DB_PATH || path.resolve(__dirname, "../../data/zenpass.db");
 
 /**
  * 產生 SHA-256 hash（用嚟做區塊鏈式鏈接）
@@ -29,7 +26,7 @@ function sha256(data) {
  * @returns {object} { chain, status }
  */
 function traceBooking(bookingId) {
-  const db = new Database(DB_PATH);
+  const db = getDb();
   db.pragma("foreign_keys = ON");
 
   try {
@@ -49,7 +46,7 @@ function traceBooking(bookingId) {
       .get(bookingId);
 
     if (!booking) {
-      db.close();
+
       return { error: "Booking not found" };
     }
 
@@ -334,7 +331,6 @@ function traceBooking(bookingId) {
       lastHash: chain[chain.length - 1]?.hash,
     });
 
-    db.close();
     return {
       booking: {
         id: booking.id,
@@ -351,7 +347,7 @@ function traceBooking(bookingId) {
       verified: verifyChain(chain),
     };
   } catch (err) {
-    db.close();
+
     return { error: err.message };
   }
 }
@@ -376,7 +372,7 @@ function verifyChain(chain) {
  * 直接查 wallet_transactions 嘅 blockchain trail
  */
 function traceWalletTransaction(walletTxId) {
-  const db = new Database(DB_PATH);
+  const db = getDb();
   db.pragma("foreign_keys = ON");
 
   try {
@@ -392,7 +388,7 @@ function traceWalletTransaction(walletTxId) {
       .get(walletTxId);
 
     if (!tx) {
-      db.close();
+
       return { error: "Transaction not found" };
     }
 
@@ -423,10 +419,9 @@ function traceWalletTransaction(walletTxId) {
       }
     }
 
-    db.close();
     return { transaction: tx, booking_trail: bookingTrail };
   } catch (err) {
-    db.close();
+
     return { error: err.message };
   }
 }
@@ -442,7 +437,7 @@ const BLOCKCHAIN_TABLE = "blockchain_blocks";
  * 確保 blockchain_blocks table 存在
  */
 function ensureBlockchainTable() {
-  const db = new Database(DB_PATH);
+  const db = getDb();
   db.pragma("foreign_keys = ON");
 
   db.exec(`
@@ -461,7 +456,6 @@ function ensureBlockchainTable() {
     CREATE INDEX IF NOT EXISTS idx_blockchain_created ON blockchain_blocks(created_at);
   `);
 
-  db.close();
   console.log("[BLOCKCHAIN] ✅ blockchain_blocks table ready");
 }
 
@@ -476,7 +470,7 @@ function ensureBlockchainTable() {
  * @returns {object} { block_id, hash, height }
  */
 function writeBlock({ entityType, entityId, data, previousBlockId }) {
-  const db = new Database(DB_PATH);
+  const db = getDb();
   db.pragma("foreign_keys = ON");
 
   try {
@@ -538,7 +532,6 @@ function writeBlock({ entityType, entityId, data, previousBlockId }) {
       blockHeight,
     );
 
-    db.close();
     return {
       block_id: blockId,
       hash,
@@ -546,7 +539,7 @@ function writeBlock({ entityType, entityId, data, previousBlockId }) {
       previous_hash: previousHash,
     };
   } catch (err) {
-    db.close();
+
     console.error("[BLOCKCHAIN] writeBlock error:", err.message);
     return { error: err.message };
   }
@@ -556,7 +549,7 @@ function writeBlock({ entityType, entityId, data, previousBlockId }) {
  * 驗證一個 block 嘅 hash 同鏈接是否完整
  */
 function verifyBlock(blockId) {
-  const db = new Database(DB_PATH);
+  const db = getDb();
   db.pragma("foreign_keys = ON");
 
   try {
@@ -564,7 +557,7 @@ function verifyBlock(blockId) {
       .prepare("SELECT * FROM blockchain_blocks WHERE id = ?")
       .get(blockId);
     if (!block) {
-      db.close();
+
       return { valid: false, error: "Block not found" };
     }
 
@@ -573,7 +566,7 @@ function verifyBlock(blockId) {
 
     // 驗證 hash 是否一致
     if (recalculatedHash !== block.hash) {
-      db.close();
+
       return {
         valid: false,
         error: "Hash mismatch - data has been tampered with",
@@ -582,10 +575,9 @@ function verifyBlock(blockId) {
       };
     }
 
-    db.close();
     return { valid: true, block };
   } catch (err) {
-    db.close();
+
     return { valid: false, error: err.message };
   }
 }
@@ -594,7 +586,7 @@ function verifyBlock(blockId) {
  * 驗證整條 chain 完整性（由 genesis block 到最新）
  */
 function verifyFullChain() {
-  const db = new Database(DB_PATH);
+  const db = getDb();
   db.pragma("foreign_keys = ON");
 
   try {
@@ -602,7 +594,7 @@ function verifyFullChain() {
       .prepare("SELECT * FROM blockchain_blocks ORDER BY block_height ASC")
       .all();
     if (blocks.length === 0) {
-      db.close();
+
       return { valid: true, blocks: 0 };
     }
 
@@ -612,7 +604,7 @@ function verifyFullChain() {
       const recalculatedHash = sha256(blockData);
 
       if (recalculatedHash !== b.hash) {
-        db.close();
+
         return {
           valid: false,
           broken_at: b.block_height,
@@ -623,7 +615,7 @@ function verifyFullChain() {
 
       // 檢查鏈接（除 genesis block）
       if (i > 0 && b.previous_hash !== blocks[i - 1].hash) {
-        db.close();
+
         return {
           valid: false,
           broken_link: b.block_height,
@@ -634,7 +626,7 @@ function verifyFullChain() {
     }
 
     const latest = blocks[blocks.length - 1];
-    db.close();
+
     return {
       valid: true,
       blocks: blocks.length,
@@ -642,7 +634,7 @@ function verifyFullChain() {
       latest_height: latest.block_height,
     };
   } catch (err) {
-    db.close();
+
     return { valid: false, error: err.message };
   }
 }
@@ -651,7 +643,7 @@ function verifyFullChain() {
  * 快速寫 Booking 嘅 blockchain block
  */
 function writeBookingBlock(bookingId) {
-  const db = new Database(DB_PATH);
+  const db = getDb();
   try {
     const booking = db
       .prepare(
@@ -666,7 +658,6 @@ function writeBookingBlock(bookingId) {
       )
       .get(bookingId);
     if (!booking) return { error: "Booking not found" };
-    db.close();
 
     return writeBlock({
       entityType: "booking",
@@ -683,7 +674,7 @@ function writeBookingBlock(bookingId) {
       },
     });
   } catch (err) {
-    db.close();
+
     return { error: err.message };
   }
 }

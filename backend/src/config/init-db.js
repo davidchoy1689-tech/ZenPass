@@ -1379,6 +1379,23 @@ function initDatabase() {
   // 相容升級：plan_id on memberships
   try { db.exec("ALTER TABLE memberships ADD COLUMN plan_id TEXT"); } catch (e) {}
 
+  // ===== Wishlist 收藏課程表 =====
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS wishlist (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id TEXT NOT NULL,
+      class_id TEXT NOT NULL,
+      created_at TEXT DEFAULT (datetime('now', '+8 hours')),
+      UNIQUE(user_id, class_id),
+      FOREIGN KEY (user_id) REFERENCES users(id),
+      FOREIGN KEY (class_id) REFERENCES classes(id)
+    )
+  `);
+  try {
+    db.exec("CREATE INDEX IF NOT EXISTS idx_wishlist_user ON wishlist(user_id)");
+    db.exec("CREATE INDEX IF NOT EXISTS idx_wishlist_user_class ON wishlist(user_id, class_id)");
+  } catch (e) {}
+
   // 相容升級：partner_reference on partner_venues（區塊鏈追溯用）
   try { db.exec("ALTER TABLE partner_venues ADD COLUMN partner_reference TEXT"); } catch (e) {}
   try { db.exec("CREATE INDEX IF NOT EXISTS idx_partner_reference ON partner_venues(partner_reference)"); } catch (e) {}

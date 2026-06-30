@@ -5,23 +5,20 @@
 
 const express = require("express");
 const router = express.Router();
-const Database = require("better-sqlite3");
+const { getDb } = require("../services/database");
 const path = require("path");
 const fs = require("fs");
 const { authenticateToken, requireAdmin } = require("../middleware/auth");
 
-const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
-
 // ===== GET /api/migrate/course-contents — 檢查並建立 course_contents 表 =====
 router.get("/course-contents", (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     const tableExists = db
       .prepare(
         "SELECT name FROM sqlite_master WHERE type='table' AND name='course_contents'",
       )
       .get();
-    db.close();
 
     res.json({
       exists: !!tableExists,
@@ -37,7 +34,7 @@ router.get("/course-contents", (req, res) => {
 // ===== POST /api/migrate/course-contents — 執行 migration =====
 router.post("/course-contents", authenticateToken, requireAdmin, (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.pragma("foreign_keys = ON");
 
     // Check if table exists
@@ -48,7 +45,7 @@ router.post("/course-contents", authenticateToken, requireAdmin, (req, res) => {
       .get();
 
     if (existing) {
-      db.close();
+
       return res.json({ status: "skipped", message: "Table already exists" });
     }
 
@@ -82,8 +79,6 @@ router.post("/course-contents", authenticateToken, requireAdmin, (req, res) => {
       "CREATE INDEX IF NOT EXISTS idx_course_contents_number ON course_contents(course_number)",
     );
 
-    db.close();
-
     res.json({
       status: "created",
       message: "course_contents table created successfully",
@@ -96,7 +91,7 @@ router.post("/course-contents", authenticateToken, requireAdmin, (req, res) => {
 // ===== POST /api/migrate/bookings-reminders — 新增 reminder_sent_1d 欄位 =====
 router.post("/bookings-reminders", authenticateToken, requireAdmin, (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.pragma("foreign_keys = ON");
 
     // Check if column exists
@@ -106,14 +101,12 @@ router.post("/bookings-reminders", authenticateToken, requireAdmin, (req, res) =
       .find((c) => c.name === "reminder_sent_1d");
 
     if (colCheck) {
-      db.close();
+
       return res.json({ status: "skipped", message: "reminder_sent_1d column already exists" });
     }
 
     // Add column (SQLite allows ALTER TABLE ADD COLUMN)
     db.exec("ALTER TABLE bookings ADD COLUMN reminder_sent_1d INTEGER DEFAULT 0");
-
-    db.close();
 
     res.json({
       status: "created",

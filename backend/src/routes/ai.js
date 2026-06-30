@@ -5,16 +5,15 @@
 
 const express = require("express");
 const { authenticateToken } = require("../middleware/auth");
-const Database = require("better-sqlite3");
+const { getDb } = require("../services/database");
 
 const router = express.Router();
-const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
 
 // POST /api/ai/recommend — 課程推薦
 router.post("/recommend", authenticateToken, async (req, res) => {
   try {
     const { category, maxPrice } = req.body;
-    const db = new Database(DB_PATH);
+    const db = getDb();
 
     // Get user profile
     const user = db
@@ -25,8 +24,6 @@ router.post("/recommend", authenticateToken, async (req, res) => {
     const courses = db
       .prepare("SELECT * FROM classes WHERE status = 'active'")
       .all();
-
-    db.close();
 
     const { recommendCourses } = require("../services/ai");
     const result = await recommendCourses(

@@ -31,6 +31,21 @@
     
     
     
+    <!-- ❤️ Wishlist Button (fixed bottom-right, shown when currentClass is set) -->
+    <div id="wishlist-btn-container" style="display:none;position:fixed;bottom:100px;right:16px;z-index:998">
+      <button id="wishlistBtn" onclick="toggleWishlist()"
+        style="width:52px;height:52px;border-radius:50%;border:2px solid var(--gray-200);background:var(--light-900);font-size:24px;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,0.15);display:flex;align-items:center;justify-content:center;transition:all 0.2s"
+        title="收藏課程">
+        🤍
+      </button>
+    </div>
+    <style>
+      #wishlistBtn:hover { transform: scale(1.1); }
+      html.dark #wishlistBtn { background: var(--dark-800); border-color: var(--dark-700); }
+    </style>
+    <script src="api.js"></script>
+    <script src="config.js"></script>
+
     <!-- ⭐ Rating Modal -->
     <div id="rating-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:9999;display:none;align-items:center;justify-content:center;" onclick="if(event.target===this)closeRatingModal()">
       <div style="background:white;border-radius:16px;padding:24px;width:90%;max-width:360px;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,0.2);">
@@ -53,6 +68,72 @@
     </div>
 
     <script>
+      // ===== Wishlist System =====
+      var _currentClassId = null;
+
+      /** 初始化 wishlist button — 由 class detail 頁面 load 完成後 call */
+      function initWishlistBtn(classId) {
+        _currentClassId = classId;
+        var container = document.getElementById('wishlist-btn-container');
+        if (!container) return;
+        container.style.display = 'block';
+        checkWishlistStatus();
+      }
+
+      /** 檢查 wishlist 狀態 */
+      async function checkWishlistStatus() {
+        if (!_currentClassId || !isLoggedIn()) return;
+        try {
+          var resp = await fetch((window.API_BASE || '/api') + '/api/wishlist/check/' + _currentClassId, {
+            headers: { 'Authorization': 'Bearer ' + (localStorage.getItem('zenpass_token') || localStorage.getItem('token')) }
+          });
+          var data = await resp.json();
+          var btn = document.getElementById('wishlistBtn');
+          if (btn) {
+            btn.innerHTML = data.wishlisted ? '❤️' : '🤍';
+            btn.dataset.wishlisted = data.wishlisted ? 'true' : 'false';
+          }
+        } catch (e) { /* silent */ }
+      }
+
+      /** Toggle wishlist 收藏/取消 */
+      async function toggleWishlist() {
+        if (!isLoggedIn()) {
+          showToast('請先登入以收藏課程', 'warning');
+          window.location.href = 'login.html?redirect=' + encodeURIComponent(window.location.href);
+          return;
+        }
+        if (!_currentClassId) return;
+
+        var btn = document.getElementById('wishlistBtn');
+        var currentlyWishlisted = btn && btn.dataset.wishlisted === 'true';
+        var method = currentlyWishlisted ? 'DELETE' : 'POST';
+        var url = (window.API_BASE || '/api') + '/api/wishlist/' + _currentClassId;
+
+        try {
+          var resp = await fetch(url, {
+            method: method,
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer ' + (localStorage.getItem('zenpass_token') || localStorage.getItem('token'))
+            }
+          });
+          var data = await resp.json();
+          if (resp.ok || resp.status === 200) {
+            var newState = data.wishlisted;
+            if (btn) {
+              btn.innerHTML = newState ? '❤️' : '🤍';
+              btn.dataset.wishlisted = newState ? 'true' : 'false';
+            }
+            showToast(newState ? '✅ 已加入收藏' : '已移除收藏', 'success');
+          } else {
+            showToast('❌ ' + (data.error || '操作失敗'), 'error');
+          }
+        } catch (err) {
+          showToast('❌ ' + err.message, 'error');
+        }
+      }
+
       // ⭐ Rating System
       var currentRating = 0;
       

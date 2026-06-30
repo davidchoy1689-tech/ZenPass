@@ -5,12 +5,11 @@
  */
 
 const express = require("express");
-const Database = require("better-sqlite3");
+const { getDb } = require("../services/database");
 const { v4: uuidv4 } = require("uuid");
 const { authenticateToken } = require("../middleware/auth");
 
 const router = express.Router();
-const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
 
 // POST /api/push/subscribe — Save push subscription
 router.post("/subscribe", authenticateToken, (req, res) => {
@@ -20,7 +19,7 @@ router.post("/subscribe", authenticateToken, (req, res) => {
       return res.status(400).json({ error: "缺少 subscription 資料" });
     }
 
-    const db = new Database(DB_PATH);
+    const db = getDb();
     const subJson = JSON.stringify(subscription);
 
     // Check if already subscribed
@@ -46,7 +45,6 @@ router.post("/subscribe", authenticateToken, (req, res) => {
       );
     }
 
-    db.close();
     res.json({ success: true });
   } catch (err) {
     console.error("[PUSH] Subscribe error:", err);
@@ -58,11 +56,11 @@ router.post("/subscribe", authenticateToken, (req, res) => {
 router.post("/unsubscribe", authenticateToken, (req, res) => {
   try {
     const { endpoint } = req.body;
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.prepare(
       "DELETE FROM push_subscriptions WHERE endpoint = ? AND user_id = ?",
     ).run(endpoint, req.user.id);
-    db.close();
+
     res.json({ success: true });
   } catch (err) {
     console.error("[PUSH] Unsubscribe error:", err);

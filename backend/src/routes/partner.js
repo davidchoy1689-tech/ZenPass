@@ -9,7 +9,7 @@
 const express = require("express");
 const path = require("path");
 const { v4: uuidv4 } = require("uuid");
-const Database = require("better-sqlite3");
+const { getDb } = require("../services/database");
 const {
   authenticateToken,
   requireAdmin,
@@ -30,18 +30,16 @@ const {
 const { writeBlock } = require("../services/blockchain-audit");
 
 const router = express.Router();
-const DB_PATH =
-  process.env.DB_PATH || path.resolve(__dirname, "../../data/zenpass.db");
 
 // ===== 合作夥伴編號生成器 — 永久追溯用 =====
 function generatePartnerReference() {
-  const dbb = new Database(DB_PATH);
+  const db = getDb();
   const max = dbb
     .prepare(
       "SELECT MAX(CAST(SUBSTR(partner_reference, 4) AS INTEGER)) as m FROM partner_venues WHERE partner_reference GLOB 'PT-[0-9]*'",
     )
     .get().m || 0;
-  dbb.close();
+
   return "PT-" + String(max + 1).padStart(4, "0");
 }
 
@@ -97,7 +95,7 @@ function calcCommissionSplit(amount, planKey) {
 
 // ===== Helper: 取得用戶所屬嘅 partner venue =====
 function _getUserVenue(userId) {
-  const db = new Database(DB_PATH);
+  const db = getDb();
   try {
     const user = db
       .prepare("SELECT id, email, partner_id FROM users WHERE id = ?")
@@ -120,7 +118,7 @@ function _getUserVenue(userId) {
       )
       .get(user.email, userId);
   } finally {
-    db.close();
+
   }
 }
 
@@ -157,14 +155,14 @@ router.post("/apply", (req, res) => {
     const planKey = commission_plan || "free";
     const plan = getCommissionPlan(planKey);
 
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.pragma("foreign_keys = ON");
 
     const existing = db
       .prepare("SELECT id FROM partner_venues WHERE email = ?")
       .get(email);
     if (existing) {
-      db.close();
+
       return fail(res, "此電郵已申請過，如有疑問請聯絡我們", 409);
     }
 
@@ -206,8 +204,6 @@ router.post("/apply", (req, res) => {
       data: { name, category, plan: planKey },
     });
 
-    db.close();
-
     return created(res, {
       id,
       reference: refNumber,
@@ -226,13 +222,13 @@ router.post("/apply", (req, res) => {
 // ===== 2. GET /api/partner/status — 商戶睇自己申請狀態 =====
 router.get("/status", authenticateToken, requireRole("user"), (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
 
     const user = db
       .prepare("SELECT email, name, partner_id FROM users WHERE id = ?")
       .get(req.user.id);
     if (!user) {
-      db.close();
+
       return notFound(res, "用戶不存在");
     }
 
@@ -247,8 +243,6 @@ router.get("/status", authenticateToken, requireRole("user"), (req, res) => {
         .prepare("SELECT * FROM partner_venues WHERE email = ?")
         .get(user.email);
     }
-
-    db.close();
 
     if (!venue) {
       return ok(res, { has_application: false });
@@ -303,7 +297,7 @@ router.get(
   requireRole("admin"),
   (req, res) => {
     try {
-      const db = new Database(DB_PATH);
+      const db = getDb();
       const { status } = req.query;
 
       let rows;
@@ -326,7 +320,6 @@ router.get(
         r._plan = plan;
       }
 
-      db.close();
       return ok(res, rows);
     } catch (err) {
       console.error("❌ admin/partner-applications error:", err.message);
@@ -352,14 +345,14 @@ router.post(
         return fail(res, "action 必須係 accept 或 reject", 400);
       }
 
-      const db = new Database(DB_PATH);
+      const db = getDb();
       db.pragma("foreign_keys = ON");
 
       const venue = db
         .prepare("SELECT * FROM partner_venues WHERE id = ?")
         .get(venue_id);
       if (!venue) {
-        db.close();
+
         return notFound(res, "場地不存在");
       }
 
@@ -391,8 +384,6 @@ router.post(
           data: { plan: finalPlan, rate: finalRate },
         });
 
-        db.close();
-
         const planInfo = getCommissionPlan(finalPlan);
 
         return ok(res, {
@@ -410,7 +401,6 @@ router.post(
           `UPDATE partner_venues SET status = 'rejected', updated_at = ? WHERE id = ?`,
         ).run(now, venue_id);
 
-        db.close();
         return ok(res, {
           message: "已拒絕申請",
           venue_id,
@@ -434,12 +424,12 @@ router.put(
       const { id } = req.params;
       const { commission_plan, commission_rate, status, notes } = req.body;
 
-      const db = new Database(DB_PATH);
+      const db = getDb();
       const venue = db
         .prepare("SELECT * FROM partner_venues WHERE id = ?")
         .get(id);
       if (!venue) {
-        db.close();
+
         return notFound(res, "場地不存在");
       }
 
@@ -473,7 +463,6 @@ router.put(
       const updated = db
         .prepare("SELECT * FROM partner_venues WHERE id = ?")
         .get(id);
-      db.close();
 
       return ok(res, { message: "已更新商戶設定", venue: updated });
     } catch (err) {
@@ -490,7 +479,7 @@ router.get(
   requireRole("admin"),
   (req, res) => {
     try {
-      const db = new Database(DB_PATH);
+      const db = getDb();
       const { status } = req.query;
 
       let rows;
@@ -541,7 +530,6 @@ router.get(
         v.course_count = courseCount ? courseCount.count : 0;
       }
 
-      db.close();
       return ok(res, rows);
     } catch (err) {
       console.error("❌ admin/partner-list error:", err.message);
@@ -557,12 +545,12 @@ router.get(
   requireRole("admin"),
   (req, res) => {
     try {
-      const db = new Database(DB_PATH);
+      const db = getDb();
       const venue = db
         .prepare("SELECT * FROM partner_venues WHERE id = ?")
         .get(req.params.id);
       if (!venue) {
-        db.close();
+
         return notFound(res, "場地不存在");
       }
 
@@ -610,8 +598,6 @@ router.get(
         )
         .all(venue.id);
 
-      db.close();
-
       return ok(res, {
         venue: {
           id: venue.id,
@@ -642,7 +628,7 @@ router.get(
         return fail(res, "你未有已開通嘅商戶戶口", 403);
       }
 
-      const db = new Database(DB_PATH);
+      const db = getDb();
 
       const bookingStats = db
         .prepare(
@@ -693,8 +679,6 @@ router.get(
 
       const plan = getCommissionPlan(venue.commission_plan || "basic");
 
-      db.close();
-
       return ok(res, {
         venue: {
           id: venue.id,
@@ -740,7 +724,7 @@ router.get(
         return fail(res, "你未有已開通嘅商戶戶口", 403);
       }
 
-      const db = new Database(DB_PATH);
+      const db = getDb();
       const { group_by = "month", limit: lim = 12 } = req.query;
       const validGroups = { day: "%Y-%m-%d", week: "%Y-%W", month: "%Y-%m" };
       const fmt = validGroups[group_by] || "%Y-%m";
@@ -765,7 +749,6 @@ router.get(
         )
         .all(venue.id, Number(lim));
 
-      db.close();
       return ok(res, { report: rows, group_by });
     } catch (err) {
       console.error("❌ partner/revenue-report error:", err.message);
@@ -786,7 +769,7 @@ router.get(
         return fail(res, "你未有已開通嘅商戶戶口", 403);
       }
 
-      const db = new Database(DB_PATH);
+      const db = getDb();
       const {
         date_from,
         date_to,
@@ -835,7 +818,6 @@ router.get(
         )
         .get(venue.id);
 
-      db.close();
       return ok(res, {
         bookings,
         total,
@@ -861,7 +843,7 @@ router.post(
         return fail(res, "你未有已開通嘅商戶戶口", 403);
       }
 
-      const db = new Database(DB_PATH);
+      const db = getDb();
       db.pragma("foreign_keys = ON");
 
       const {
@@ -879,12 +861,12 @@ router.post(
       } = req.body;
 
       if (!title || !category || !price_hkd || !duration) {
-        db.close();
+
         return fail(res, "請填寫課程標題、類別、價格同時長", 400);
       }
 
       if (!schedules || !Array.isArray(schedules) || schedules.length === 0) {
-        db.close();
+
         return fail(res, "請至少新增一個上堂時段", 400);
       }
 
@@ -966,8 +948,6 @@ router.post(
         }
       }
 
-      db.close();
-
       return created(res, {
         class_id: classId,
         title,
@@ -992,7 +972,7 @@ router.get("/courses", authenticateToken, requireOwnInstitution, (req, res) => {
       return fail(res, "你未有已開通嘅商戶戶口", 403);
     }
 
-    const db = new Database(DB_PATH);
+    const db = getDb();
 
     const courses = db
       .prepare(
@@ -1015,7 +995,6 @@ router.get("/courses", authenticateToken, requireOwnInstitution, (req, res) => {
         .all(course.id);
     }
 
-    db.close();
     return ok(res, courses);
   } catch (err) {
     console.error("❌ partner/courses GET error:", err.message);
@@ -1035,7 +1014,7 @@ router.put(
         return fail(res, "你未有已開通嘅商戶戶口", 403);
       }
 
-      const db = new Database(DB_PATH);
+      const db = getDb();
       db.pragma("foreign_keys = ON");
 
       const classInfo = db
@@ -1044,7 +1023,7 @@ router.put(
         )
         .get(req.params.id, venue.id, venue.id);
       if (!classInfo) {
-        db.close();
+
         return notFound(res, "課程不存在或唔屬於你");
       }
 
@@ -1100,7 +1079,7 @@ router.put(
       const updated = db
         .prepare("SELECT * FROM classes WHERE id = ?")
         .get(req.params.id);
-      db.close();
+
       return ok(res, { message: "課程已更新", class: updated });
     } catch (err) {
       console.error("❌ partner/courses PUT error:", err.message);
@@ -1117,14 +1096,13 @@ router.get("/payouts", authenticateToken, requireOwnInstitution, (req, res) => {
       return fail(res, "你未有已開通嘅商戶戶口", 403);
     }
 
-    const db = new Database(DB_PATH);
+    const db = getDb();
     const payouts = db
       .prepare(
         `SELECT * FROM partner_payouts WHERE venue_id = ? ORDER BY created_at DESC`,
       )
       .all(venue.id);
 
-    db.close();
     return ok(res, payouts);
   } catch (err) {
     console.error("❌ partner/payouts error:", err.message);
@@ -1139,7 +1117,7 @@ router.post(
   requireRole("admin"),
   (req, res) => {
     try {
-      const db = new Database(DB_PATH);
+      const db = getDb();
       db.pragma("foreign_keys = ON");
 
       const { period_start, period_end, venue_id } = req.body;
@@ -1157,7 +1135,7 @@ router.post(
             .all();
 
       if (venues.length === 0) {
-        db.close();
+
         return notFound(res, "沒有已開通嘅商戶需要結算");
       }
 
@@ -1226,7 +1204,6 @@ router.post(
         });
       }
 
-      db.close();
       return ok(res, {
         message: `已處理 ${payouts.length} 間商戶嘅結算`,
         payouts,
@@ -1247,14 +1224,14 @@ router.post("/book", authenticateToken, requireRole("user"), (req, res) => {
       return fail(res, "缺少預約資料", 400);
     }
 
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.pragma("foreign_keys = ON");
 
     const classInfo = db
       .prepare("SELECT * FROM classes WHERE id = ?")
       .get(class_id);
     if (!classInfo) {
-      db.close();
+
       return notFound(res, "課程不存在");
     }
 
@@ -1265,7 +1242,7 @@ router.post("/book", authenticateToken, requireRole("user"), (req, res) => {
       .get(classInfo.partner_id || classInfo.partner_venue_id);
 
     if (!venue) {
-      db.close();
+
       return fail(res, "此課程不屬於合作場地", 400);
     }
 
@@ -1275,7 +1252,7 @@ router.post("/book", authenticateToken, requireRole("user"), (req, res) => {
       )
       .get(schedule_id);
     if (!schedule) {
-      db.close();
+
       return notFound(res, "該時段不存在或已滿");
     }
 
@@ -1285,7 +1262,7 @@ router.post("/book", authenticateToken, requireRole("user"), (req, res) => {
       )
       .run(schedule_id);
     if (capResult.changes === 0) {
-      db.close();
+
       return fail(res, "該時段已滿額", 400);
     }
 
@@ -1313,7 +1290,6 @@ router.post("/book", authenticateToken, requireRole("user"), (req, res) => {
       split.platform_earned,
     );
 
-    db.close();
     return created(res, {
       booking_id: bookingId,
       venue: venue.name,
@@ -1331,7 +1307,7 @@ router.post("/book", authenticateToken, requireRole("user"), (req, res) => {
 // ===== GET /api/partner/list — 公開：合作場地列表 =====
 router.get("/list", (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     const partners = db
       .prepare(
         `
@@ -1341,7 +1317,7 @@ router.get("/list", (req, res) => {
     `,
       )
       .all();
-    db.close();
+
     res.json({ partners });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -1386,12 +1362,12 @@ router.put(
         );
       }
 
-      const db = new Database(DB_PATH);
+      const db = getDb();
       const user = db
         .prepare("SELECT id, email, role, partner_id FROM users WHERE id = ?")
         .get(id);
       if (!user) {
-        db.close();
+
         return notFound(res, "用戶不存在");
       }
 
@@ -1400,7 +1376,7 @@ router.put(
         hasMinimumRole(role, "admin") &&
         !hasMinimumRole(req.user.role, "platform_manager")
       ) {
-        db.close();
+
         return fail(res, "你無法設定管理層級角色", 403);
       }
 
@@ -1413,7 +1389,6 @@ router.put(
           "SELECT id, email, name, role, partner_id FROM users WHERE id = ?",
         )
         .get(id);
-      db.close();
 
       // ⛓️ 區塊鏈：記錄用戶角色變更
       try {
@@ -1451,7 +1426,7 @@ router.get("/members", authenticateToken, requireOwnInstitution, (req, res) => {
       return fail(res, "你未有已開通嘅商戶戶口", 403);
     }
 
-    const db = new Database(DB_PATH);
+    const db = getDb();
     const members = db
       .prepare(
         `
@@ -1500,7 +1475,6 @@ router.get("/members", authenticateToken, requireOwnInstitution, (req, res) => {
       }
     }
 
-    db.close();
     return ok(res, { members });
   } catch (err) {
     console.error("❌ partner/members error:", err.message);
@@ -1527,12 +1501,12 @@ router.post(
 
       const memberRole = role || "coach";
 
-      const db = new Database(DB_PATH);
+      const db = getDb();
       const user = db
         .prepare("SELECT id, name, email FROM users WHERE id = ?")
         .get(user_id);
       if (!user) {
-        db.close();
+
         return notFound(res, "用戶不存在");
       }
 
@@ -1542,7 +1516,7 @@ router.post(
         )
         .get(user_id, venue.id);
       if (existing) {
-        db.close();
+
         return fail(res, "此用戶已是機構成員", 409);
       }
 
@@ -1586,7 +1560,6 @@ router.post(
         );
       }
 
-      db.close();
       return created(res, {
         message: `已新增 ${user.name} 為機構成員`,
         member_id: id,
@@ -1617,7 +1590,7 @@ router.delete(
       }
 
       const { userId } = req.params;
-      const db = new Database(DB_PATH);
+      const db = getDb();
 
       const member = db
         .prepare(
@@ -1625,14 +1598,13 @@ router.delete(
         )
         .get(userId, venue.id);
       if (!member) {
-        db.close();
+
         return notFound(res, "成員不存在");
       }
 
       db.prepare(
         "DELETE FROM partner_members WHERE user_id = ? AND partner_id = ?",
       ).run(userId, venue.id);
-      db.close();
 
       return ok(res, { message: "已移除成員" });
     } catch (err) {
@@ -1656,12 +1628,12 @@ router.put(
         return fail(res, "狀態必需係 active / suspended / rejected", 400);
       }
 
-      const db = new Database(DB_PATH);
+      const db = getDb();
       const venue = db
         .prepare("SELECT * FROM partner_venues WHERE id = ?")
         .get(id);
       if (!venue) {
-        db.close();
+
         return notFound(res, "場地不存在");
       }
 
@@ -1672,7 +1644,6 @@ router.put(
       const updated = db
         .prepare("SELECT * FROM partner_venues WHERE id = ?")
         .get(id);
-      db.close();
 
       return ok(res, { message: `商戶狀態已更新爲 ${status}`, venue: updated });
     } catch (err) {
@@ -1690,13 +1661,13 @@ router.get(
   (req, res) => {
     try {
       const { id } = req.params;
-      const db = new Database(DB_PATH);
+      const db = getDb();
 
       const venue = db
         .prepare("SELECT * FROM partner_venues WHERE id = ?")
         .get(id);
       if (!venue) {
-        db.close();
+
         return notFound(res, "場地不存在");
       }
 
@@ -1720,7 +1691,6 @@ router.get(
         )
         .all(id);
 
-      db.close();
       return ok(res, { courses, venues });
     } catch (err) {
       console.error("❌ admin/partner courses error:", err.message);
@@ -1737,13 +1707,13 @@ router.get(
   (req, res) => {
     try {
       const { id } = req.params;
-      const db = new Database(DB_PATH);
+      const db = getDb();
 
       const venue = db
         .prepare("SELECT * FROM partner_venues WHERE id = ?")
         .get(id);
       if (!venue) {
-        db.close();
+
         return notFound(res, "場地不存在");
       }
 
@@ -1763,7 +1733,6 @@ router.get(
         )
         .all(id);
 
-      db.close();
       return ok(res, {
         venue: { id: venue.id, name: venue.name, owner_id: venue.owner_id },
         owner,
@@ -1790,12 +1759,12 @@ router.put(
         return fail(res, "請提供負責人用戶 ID", 400);
       }
 
-      const db = new Database(DB_PATH);
+      const db = getDb();
       const venue = db
         .prepare("SELECT * FROM partner_venues WHERE id = ?")
         .get(id);
       if (!venue) {
-        db.close();
+
         return notFound(res, "場地不存在");
       }
 
@@ -1803,7 +1772,7 @@ router.put(
         .prepare("SELECT id, name, email, role FROM users WHERE id = ?")
         .get(owner_id);
       if (!user) {
-        db.close();
+
         return notFound(res, "用戶不存在");
       }
 
@@ -1844,7 +1813,6 @@ router.put(
         }
       }
 
-      db.close();
       return ok(res, { message: `已指派 ${user.name} 爲商戶負責人` });
     } catch (err) {
       console.error("❌ admin/partner owner assign error:", err.message);

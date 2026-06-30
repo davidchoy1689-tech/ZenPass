@@ -4,13 +4,12 @@
 
 const express = require("express");
 const { v4: uuidv4 } = require("uuid");
-const Database = require("better-sqlite3");
+const { getDb } = require("../services/database");
 const { authenticateToken, requireAdmin } = require("../middleware/auth");
 const { sendBroadcast } = require("../services/marketing");
 const { sendNotification } = require("../services/notification");
 
 const router = express.Router();
-const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
 
 // ===== POST /api/marketing/send-welcome — 發送歡迎序列（給新用戶）=====
 router.post("/send-welcome", authenticateToken, (req, res) => {
@@ -81,19 +80,19 @@ router.post("/subscribe", function (req, res) {
     var interests = JSON.stringify(req.body.interests || []);
     var source = req.body.source || "web";
 
-    var db2 = new Database(DB_PATH);
+    var db = getDb();
     db2.exec("CREATE TABLE IF NOT EXISTS newsletter_subscribers (id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT UNIQUE NOT NULL, interests TEXT DEFAULT '[]', source TEXT DEFAULT 'web', subscribed_at TEXT DEFAULT (datetime('now')), is_active INTEGER DEFAULT 1, unsubscribed_at TEXT)");
 
     try {
       db2.prepare("INSERT INTO newsletter_subscribers (email, interests, source) VALUES (?, ?, ?)").run(email, interests, source);
-      db2.close();
+
       res.json({ message: "訂閱成功！" });
     } catch (e) {
-      db2.close();
+
       if (e.message && e.message.indexOf("UNIQUE") >= 0) {
-        var db3 = new Database(DB_PATH);
+        var db = getDb();
         db3.prepare("UPDATE newsletter_subscribers SET is_active = 1, interests = ?, source = ?, unsubscribed_at = NULL WHERE email = ?").run(interests, source, email);
-        db3.close();
+
         res.json({ message: "你已經訂閱咗 🎉" });
       } else {
         res.status(500).json({ error: "訂閱失敗" });
@@ -108,16 +107,14 @@ router.post("/subscribe", function (req, res) {
 // ===== GET /api/marketing/subscribers — 訂閱者列表 =====
 router.get("/subscribers", authenticateToken, requireAdmin, function (req, res) {
   try {
-    var db4 = new Database(DB_PATH);
+    var db = getDb();
     var subs = db4.prepare("SELECT email, interests, source, subscribed_at, is_active FROM newsletter_subscribers ORDER BY subscribed_at DESC LIMIT 500").all();
     var count = db4.prepare("SELECT COUNT(*) as total, SUM(CASE WHEN is_active = 1 THEN 1 ELSE 0 END) as active FROM newsletter_subscribers").get();
-    db4.close();
+
     res.json({ subscribers: subs, stats: count });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
-
-
 
 module.exports = router;

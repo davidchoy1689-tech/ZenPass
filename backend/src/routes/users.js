@@ -3,17 +3,16 @@
  */
 
 const express = require("express");
-const Database = require("better-sqlite3");
+const { getDb } = require("../services/database");
 const { authenticateToken } = require("../middleware/auth");
 const { writeBlock } = require("../services/blockchain-audit");
 
 const router = express.Router();
-const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
 
 // ===== GET /api/users/profile — 取個人資料 =====
 router.get("/profile", authenticateToken, (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.pragma("foreign_keys = ON");
 
     const user = db
@@ -27,14 +26,11 @@ router.get("/profile", authenticateToken, (req, res) => {
       )
       .get(req.user.id);
 
-    db.close();
-
     if (!user) return res.status(404).json({ error: "用戶不存在" });
 
     // 獲取預約記錄
-    const db2 = new Database(DB_PATH);
-    db2.pragma("foreign_keys = ON");
-    const bookings = db2
+    db.pragma("foreign_keys = ON");
+    const bookings = db
       .prepare(
         `
       SELECT b.*, c.title, c.category, c.duration, cs.start_time, cs.end_time
@@ -47,7 +43,6 @@ router.get("/profile", authenticateToken, (req, res) => {
     `,
       )
       .all(req.user.id);
-    db2.close();
 
     res.json({ user, bookings });
   } catch (err) {
@@ -60,7 +55,7 @@ router.get("/profile", authenticateToken, (req, res) => {
 router.put("/profile", authenticateToken, (req, res) => {
   try {
     const { name, phone, avatar_url } = req.body;
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.pragma("foreign_keys = ON");
 
     const updates = [];
@@ -80,7 +75,7 @@ router.put("/profile", authenticateToken, (req, res) => {
     }
 
     if (updates.length === 0) {
-      db.close();
+
       return res.status(400).json({ error: "沒有需要更新的資料" });
     }
 
@@ -90,7 +85,6 @@ router.put("/profile", authenticateToken, (req, res) => {
     db.prepare(`UPDATE users SET ${updates.join(", ")} WHERE id = ?`).run(
       ...params,
     );
-    db.close();
 
     const changedFields = {};
     if (name) changedFields.name = name;
@@ -110,7 +104,7 @@ router.put("/profile", authenticateToken, (req, res) => {
 // ===== GET /api/users/credits — 查詢點數 =====
 router.get("/credits", authenticateToken, (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.pragma("foreign_keys = ON");
 
     const user = db
@@ -129,8 +123,6 @@ router.get("/credits", authenticateToken, (req, res) => {
       )
       .all(req.user.id);
 
-    db.close();
-
     res.json({
       credits: user.credits,
       membership_type: user.membership_type,
@@ -146,7 +138,7 @@ router.get("/credits", authenticateToken, (req, res) => {
 router.get("/me", authenticateToken, (req, res) => {
   // Forward to /profile handler logic
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     const user = db
       .prepare(
         `SELECT id, email, name, phone, avatar_url, credits, membership_type,
@@ -156,7 +148,6 @@ router.get("/me", authenticateToken, (req, res) => {
          FROM users WHERE id = ?`,
       )
       .get(req.user.id);
-    db.close();
 
     if (!user) return res.status(404).json({ error: "用戶不存在" });
 

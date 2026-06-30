@@ -3,16 +3,15 @@
  */
 const express = require("express");
 const { v4: uuidv4 } = require("uuid");
-const Database = require("better-sqlite3");
+const { getDb } = require("../services/database");
 const { authenticateToken } = require("../middleware/auth");
 const { writeBlock } = require("../services/blockchain-audit");
 const router = express.Router();
-const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
 
 // ===== GET /api/referral/my-code — 我的推薦碼 =====
 router.get("/my-code", authenticateToken, (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     let code = db
       .prepare("SELECT code FROM referral_codes WHERE user_id = ?")
       .get(req.user.id);
@@ -34,7 +33,7 @@ router.get("/my-code", authenticateToken, (req, res) => {
     const credits = db
       .prepare("SELECT referral_credits_earned FROM users WHERE id = ?")
       .get(req.user.id);
-    db.close();
+
     res.json({
       code: code.code,
       redeemed: count.c,
@@ -51,18 +50,18 @@ router.post("/redeem", authenticateToken, (req, res) => {
     const { code } = req.body;
     if (!code) return res.status(400).json({ error: "請輸入推薦碼" });
 
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.pragma("foreign_keys = ON");
 
     const ref = db
       .prepare("SELECT * FROM referral_codes WHERE code = ?")
       .get(code);
     if (!ref) {
-      db.close();
+
       return res.status(404).json({ error: "推薦碼無效" });
     }
     if (ref.user_id === req.user.id) {
-      db.close();
+
       return res.status(400).json({ error: "唔可以用自己嘅推薦碼" });
     }
 
@@ -70,7 +69,7 @@ router.post("/redeem", authenticateToken, (req, res) => {
       .prepare("SELECT id FROM referral_redemptions WHERE referred_user_id = ?")
       .get(req.user.id);
     if (existing) {
-      db.close();
+
       return res.status(400).json({ error: "你已經用過推薦碼" });
     }
 
@@ -99,7 +98,7 @@ router.post("/redeem", authenticateToken, (req, res) => {
     } catch (bcErr) {
       console.error("⚠️ Blockchain write failed (referral):", bcErr.message);
     }
-    db.close();
+
     res.json({ message: "✅ 推薦碼已使用！你獲得 10 Credits", bonus: 10 });
   } catch (err) {
     console.error("Referral error:", err);

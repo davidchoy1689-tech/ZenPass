@@ -22,13 +22,19 @@
     home:    { href: 'index.html',                icon: '🏠', label: '首頁' },
     explore: { href: 'explore.html',              icon: '🔍', label: '探索' },
     coaches: { href: 'coaches.html',              icon: '👥', label: '教練' },
+    wishlist:{ href: 'wishlist.html',             icon: '❤️', label: '收藏' },
     my:      { href: 'my.html',                   icon: '📅', label: '我的' },
     account: { href: 'login.html',                icon: '👤', label: '帳戶' },
   };
 
+  // WISHLIST_PAGE flag — set true on wishlist.html to avoid 404 loop
+  // Checking URL path is more reliable than relying on a global flag
+  window._isWishlistPage = window.location.pathname.indexOf('wishlist') > -1;
+
   const SIDEBAR_LINKS = [
     { href: 'explore.html',        icon: '🔍', label: '探索課程' },
     { href: 'coaches.html',        icon: '👥', label: '教練' },
+    { href: 'wishlist.html',       icon: '❤️', label: '收藏課程', id: 'sidebarWishlist' },
     { href: 'membership-tailwind.html', icon: '⭐', label: '會員計劃' },
     { href: 'my-bookings.html',    icon: '📅', label: '我的預約' },
     { href: 'login.html',          icon: '👤', label: '登入 / 註冊', id: 'sidebarAccount' },
@@ -50,6 +56,8 @@
     for (const [key, val] of Object.entries(PAGES)) {
       if (val.href === page) return key;
     }
+    // Wishlist page
+    if (page === 'wishlist.html' || page.indexOf('wishlist') !== -1) return 'wishlist';
     // Special cases for sub-pages that map to "my"
     var myPages = ['my-bookings.html','my-membership.html','wallet.html','notifications.html','checkin.html','points.html','buy-credits.html','profile.html','referral.html','badges.html','payment.html'];
     if (myPages.indexOf(page) !== -1) return 'my';
@@ -151,7 +159,7 @@
         loginLink.textContent = '登入';
         authContainer.appendChild(loginLink);
         var regLink = document.createElement('a');
-        regLink.href = 'register.html';
+        regLink.href = 'signup.html';
         regLink.className = 'btn-solid-sm';
         regLink.textContent = '註冊';
         authContainer.appendChild(regLink);
@@ -185,10 +193,49 @@
       a.dataset.nav = key;
       if (key === 'account') a.id = 'navAccount';
       a.innerHTML = '<span class="nav-icon">' + page.icon + '</span><span class="nav-label">' + page.label + '</span>';
+      if (key === 'wishlist') {
+        var badge = document.createElement('span');
+        badge.className = 'wishlist-badge';
+        badge.id = 'wishlistBadge';
+        badge.style.display = 'none';
+        badge.style.cssText = 'position:absolute;top:-4px;right:-4px;min-width:16px;height:16px;background:#ef4444;color:#fff;font-size:10px;font-weight:700;border-radius:8px;display:flex;align-items:center;justify-content:center;padding:0 4px;line-height:1';
+        a.style.position = 'relative';
+        a.appendChild(badge);
+      }
       nav.appendChild(a);
     }
 
     document.body.appendChild(nav);
+
+    // Fetch wishlist count after nav is built
+    fetchWishlistCount();
+  }
+
+  /** Fetch wishlist count and update badge */
+  function fetchWishlistCount() {
+    if (!isLoggedIn()) return;
+    var badge = document.getElementById('wishlistBadge');
+    if (!badge) return;
+    fetch((window.API_BASE || '') + '/api/wishlist/count', {
+      headers: getAuthHeaders()
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.count > 0) {
+        badge.textContent = data.count > 99 ? '99+' : data.count;
+        badge.style.display = 'flex';
+      } else {
+        badge.style.display = 'none';
+      }
+    })
+    .catch(function() { /* silent */ });
+  }
+
+  /** Helper: get auth headers from localStorage */
+  function getAuthHeaders() {
+    var token = localStorage.getItem('zenpass_token') || localStorage.getItem('token');
+    if (!token) return {};
+    return { 'Authorization': 'Bearer ' + token };
   }
 
   // ─── Update Account Tab (auth-aware) ────────────────────────────
@@ -343,6 +390,64 @@
     }
   }
 
+  // ─── Unified Loading/Empty/Error State Helpers ────────────────
+  window.showState = function (containerId, state, options) {
+    var container = document.getElementById(containerId);
+    if (!container) return;
+    options = options || {};
+    // Remove any existing state overlay
+    var existing = container.querySelector('.state-overlay');
+    if (existing) existing.remove();
+    container.style.position = container.style.position || 'relative';
+
+    if (state === 'loading') {
+      var spinner = document.createElement('div');
+      spinner.className = 'state-overlay zen-flex-center';
+      spinner.style.cssText = 'position:absolute;inset:0;background:rgba(255,255,255,0.65);backdrop-filter:blur(2px);z-index:5;border-radius:12px;flex-direction:column;gap:12px;min-height:200px';
+      spinner.innerHTML = '<div class="loading-spinner"></div><div style="color:var(--dark-700);font-size:13px;font-weight:500">' + (options.message || '載入中...') + '</div>';
+      container.appendChild(spinner);
+    } else if (state === 'empty') {
+      var emptyEl = document.createElement('div');
+      emptyEl.className = 'state-overlay zen-empty';
+      emptyEl.style.cssText = 'position:absolute;inset:0;z-index:5;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px';
+      emptyEl.innerHTML = '<div class="empty-icon">' + (options.icon || '📭') + '</div>' +
+        '<div class="empty-title">' + (options.title || '暫無資料') + '</div>' +
+        (options.message ? '<div class="empty-desc">' + options.message + '</div>' : '') +
+        (options.action ? '<button onclick="' + options.action.fn + '" class="zen-btn zen-btn-primary zen-btn-small zen-mt-sm">' + options.action.label + '</button>' : '');
+      container.appendChild(emptyEl);
+    } else if (state === 'error') {
+      var errorEl = document.createElement('div');
+      errorEl.className = 'state-overlay';
+      errorEl.style.cssText = 'position:absolute;inset:0;z-index:5;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;text-align:center';
+      errorEl.innerHTML = '<div style="font-size:40px;margin-bottom:12px">❌</div>' +
+        '<div style="font-size:16px;font-weight:600;margin-bottom:6px;color:var(--red-500)">' + (options.title || '載入失敗') + '</div>' +
+        '<div style="font-size:13px;color:var(--dark-700);margin-bottom:16px;max-width:280px">' + (options.message || '請稍後再試') + '</div>' +
+        (options.retryFn ? '<button onclick="(' + options.retryFn.toString() + ')()" class="zen-btn zen-btn-primary zen-btn-small">🔄 重新載入</button>' : '');
+      container.appendChild(errorEl);
+    } else if (state === 'data') {
+      // Just remove overlay — data is already rendered
+    }
+  };
+
+  window.showLoading = function (containerId) {
+    showState(containerId, 'loading');
+  };
+
+  window.showEmpty = function (containerId, message, icon) {
+    showState(containerId, 'empty', { message: message, icon: icon || '📭', title: '暫無資料' });
+  };
+
+  window.showError = function (containerId, message, retryFn) {
+    showState(containerId, 'error', { message: message, title: '載入失敗', retryFn: retryFn });
+  };
+
+  window.hideState = function (containerId) {
+    var container = document.getElementById(containerId);
+    if (!container) return;
+    var existing = container.querySelector('.state-overlay');
+    if (existing) existing.remove();
+  };
+
   // ─── Init ──────────────────────────────────────────────────────
   function init() {
     // Only inject nav for public-facing pages, not admin
@@ -355,6 +460,9 @@
 
     // Page header (config-driven)
     buildPageHeader();
+
+    // Breadcrumbs (auto-inject after header)
+    renderBreadcrumbs();
 
     // Bottom nav
     buildBottomNav();
@@ -400,6 +508,134 @@
     });
   }
 
+  // ─── Breadcrumbs ───────────────────────────────────────────────
+  // Page title map for breadcrumb display
+  const PAGE_NAMES = {
+    'index.html': '首頁',
+    'explore.html': '探索課程',
+    'coaches.html': '教練',
+    'class-detail.html': '課程詳情',
+    'my.html': '我的帳戶',
+    'my-bookings.html': '我的預約',
+    'my-membership.html': '我的會籍',
+    'profile.html': '編輯個人資料',
+    'wallet.html': '錢包',
+    'payment.html': '付款',
+    'buy-credits.html': '購買 Credits',
+    'notifications.html': '通知',
+    'checkin.html': '簽到',
+    'membership-tailwind.html': '會員計劃',
+    'membership.html': '會籍方案',
+    'badges.html': '勳章',
+    'points.html': '積分中心',
+    'referral.html': '推薦朋友',
+    'faq.html': '常見問題',
+    'about.html': '關於我們',
+    'privacy.html': '私隱政策',
+    'terms.html': '服務條款',
+    'venues.html': '場地',
+    'coach.html': '教練詳情',
+    'coach-profile.html': '教練檔案',
+    'coach-dashboard.html': '教練 Dashboard',
+    'coach-apply.html': '成為教練',
+    'partner-apply.html': '場地加盟',
+    'partner-dashboard.html': '合作夥伴',
+    'guides.html': '使用指南',
+    'corporate-guide.html': '企業計劃',
+    'corporate-hr.html': '企業 HR',
+    'rate.html': '評價',
+    'share.html': '分享',
+  };
+
+  /**
+   * renderBreadcrumbs — inject breadcrumb trail at top of content area
+   * Excludes: index, login, signup, onboarding, password-reset, verify-email
+   * Call after nav.js loads on pages with ZENPASS_PAGE_CONFIG.title set
+   */
+  window.renderBreadcrumbs = function (extraTrail) {
+    var page = currentPage();
+    var skipPages = ['index.html','login.html','signup.html','onboarding.html','password-reset.html','verify-email.html','app-waitlist.html'];
+    if (skipPages.indexOf(page) !== -1) return;
+
+    // Remove existing breadcrumbs
+    document.querySelectorAll('.zp-breadcrumbs').forEach(function(el) { el.remove(); });
+
+    var crumbs = [];
+    // Root: always link to index
+    crumbs.push({ label: '🏠 首頁', href: 'index.html' });
+
+    // Map sub-pages to parent sections
+    var mySubPages = ['my-bookings.html','my-membership.html','wallet.html','payment.html','buy-credits.html','notifications.html','checkin.html','badges.html','points.html','referral.html','profile.html'];
+    if (mySubPages.indexOf(page) !== -1) {
+      crumbs.push({ label: '我的帳戶', href: 'my.html' });
+    } else if (page === 'class-detail.html' || page === 'rate.html') {
+      crumbs.push({ label: '探索課程', href: 'explore.html' });
+    } else if (page === 'coach-profile.html' || page === 'coach.html') {
+      crumbs.push({ label: '教練', href: 'coaches.html' });
+    } else if (page === 'coach-dashboard.html') {
+      crumbs.push({ label: '教練 Dashboard', href: 'coach-dashboard.html' });
+    } else if (page === 'coach-apply.html') {
+      crumbs.push({ label: '成為教練', href: 'coach-apply.html' });
+    } else if (page === 'partner-apply.html' || page === 'partner-dashboard.html') {
+      crumbs.push({ label: '合作夥伴', href: 'partners.html' });
+    } else if (['about.html','faq.html','privacy.html','terms.html','guides.html'].indexOf(page) !== -1) {
+      // No parent section for info pages, just root
+    }
+
+    // Current page
+    var pageName = PAGE_NAMES[page] || page.replace('.html','').replace(/-/g,' ');
+    crumbs.push({ label: pageName, href: null });
+
+    // Extra trail (optional, for dynamic pages like class-detail)
+    if (extraTrail && Array.isArray(extraTrail)) {
+      // Insert extra items before the last crumb
+      crumbs.pop(); // Remove current page
+      extraTrail.forEach(function(item) { crumbs.push(item); });
+      crumbs.push({ label: pageName, href: null });
+    }
+
+    // Build HTML
+    var el = document.createElement('div');
+    el.className = 'zp-breadcrumbs';
+    el.style.cssText = 'padding:12px 24px 0;max-width:1024px;margin:0 auto;font-size:12px;opacity:0.7;display:flex;align-items:center;flex-wrap:wrap;gap:4px;';
+
+    crumbs.forEach(function(crumb, idx) {
+      if (idx > 0) {
+        var sep = document.createElement('span');
+        sep.textContent = '›';
+        sep.style.cssText = 'margin:0 4px;color:var(--dark-700);font-size:14px;';
+        el.appendChild(sep);
+      }
+      if (crumb.href) {
+        var a = document.createElement('a');
+        a.href = crumb.href;
+        a.textContent = crumb.label;
+        a.style.cssText = 'color:var(--orange-700);text-decoration:none;white-space:nowrap;';
+        a.onmouseover = function() { this.style.textDecoration = 'underline'; };
+        a.onmouseout = function() { this.style.textDecoration = 'none'; };
+        el.appendChild(a);
+      } else {
+        var span = document.createElement('span');
+        span.textContent = crumb.label;
+        span.style.cssText = 'color:var(--dark-700);white-space:nowrap;';
+        el.appendChild(span);
+      }
+    });
+
+    // Insert at the top of the content, after page-header if present
+    var header = document.querySelector('.page-header');
+    if (header) {
+      header.parentNode.insertBefore(el, header.nextSibling);
+    } else {
+      var content = document.querySelector('.max-w-5xl, .max-w-lg, .max-w-4xl, .container, main, .content');
+      if (content) {
+        content.parentNode.insertBefore(el, content);
+      } else {
+        document.body.insertBefore(el, document.body.firstChild);
+      }
+    }
+  };
+
   // ─── Update auth buttons in header (on login state change) ─────
   function updateAuthHeader() {
     var authContainer = document.getElementById('auth-buttons');
@@ -407,7 +643,7 @@
     if (isLoggedIn()) {
       authContainer.innerHTML = '<a href="my.html" class="btn-solid-sm">👤 我的</a>';
     } else {
-      authContainer.innerHTML = '<a href="login.html" class="btn-ghost-sm">登入</a><a href="register.html" class="btn-solid-sm">註冊</a>';
+      authContainer.innerHTML = '<a href="login.html" class="btn-ghost-sm">登入</a><a href="signup.html" class="btn-solid-sm">註冊</a>';
     }
   }
 

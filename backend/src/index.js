@@ -11,6 +11,12 @@ const morgan = require("morgan");
 const path = require("path");
 const helmet = require("helmet");
 const compression = require("compression");
+const cookieParser = require("cookie-parser");
+const {
+  generateToken,
+  doubleCsrfProtection,
+  initCsrf,
+} = require("./middleware/csrf");
 const logger = require("./services/logger");
 const { sendNotification } = require("./services/notification");
 const { processCorporateResets } = require("./services/corporate-reset");
@@ -29,10 +35,16 @@ app.set("trust proxy", "loopback");
 // ===== 中介軟體 =====
 
 // Request ID 追蹤 — 每個請求分配唯一 ID
-const { randomUUID } = require("crypto");
+const { randomUUID, randomBytes } = require("crypto");
 app.use((req, res, next) => {
   req.requestId = randomUUID();
   res.setHeader("X-Request-ID", req.requestId);
+  next();
+});
+
+// CSP Nonce — generate a unique nonce per request for script-src allowlisting
+app.use((req, res, next) => {
+  res.locals.cspNonce = randomBytes(16).toString("hex");
   next();
 });
 
@@ -76,30 +88,33 @@ app.use(
   }),
 );
 
-// Security headers (Helmet) — 有啲 inline script/style 用 nonce 處理
+// Security headers (Helmet) — CSP hardened: no unsafe-eval, nonce for scripts
 app.use(
-  helmet({hsts:false,
+  helmet({
+    hsts: false,
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
         scriptSrc: [
           "'self'",
-          "'unsafe-inline'",
-          "'unsafe-eval'",
+          (req, res) => `'nonce-${res.locals.cspNonce}'`,
           "https://www.googletagmanager.com",
-          "https://cdn.jsdelivr.net",
-          "https://unpkg.com",
-          "https://appleid.cdn-apple.com",
-          "https://accounts.google.com",
-          "https://static.hotjar.com",
+          "https://js.stripe.com",
         ],
+        // scriptSrcAttr retains unsafe-inline for existing onclick/onerror handlers
+        // TODO: migrate inline event handlers to addEventListener with nonced scripts
         scriptSrcAttr: ["'unsafe-inline'"],
-        styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://unpkg.com", "https://fonts.googleapis.com", "https://accounts.google.com"],
-        fontSrc: ["'self'", "https://cdn.jsdelivr.net", "https://fonts.gstatic.com"],
-        imgSrc: ["'self'", "data:", "https:"],
-        connectSrc: ["'self'", "https://zenpass.hk", "https://www.zenpass.hk", "https://www.google-analytics.com", "https://google-analytics.com", "https://www.google.com", "https://accounts.google.com"],
-
-        frameSrc: ["'none'", "https://accounts.google.com"],
+        styleSrc: [
+          "'self'",
+          // TODO: remove unsafe-inline once all inline styles use nonces
+          "'unsafe-inline'",
+          "https://cdn.jsdelivr.net",
+          "https://fonts.googleapis.com",
+        ],
+        fontSrc: ["'self'", "https://fonts.gstatic.com", "https://cdn.jsdelivr.net"],
+        imgSrc: ["'self'", "data:", "blob:", "https:"],
+        connectSrc: ["'self'", "https://api.stripe.com", "https://www.google-analytics.com", "https://google-analytics.com"],
+        frameSrc: ["'none'"],
         objectSrc: ["'none'"],
         upgradeInsecureRequests: [],
       },
@@ -107,6 +122,9 @@ app.use(
     crossOriginEmbedderPolicy: false,
   }),
 );
+
+// Cookie parser — required for CSRF token cookie extraction
+app.use(cookieParser());
 
 // Compression middleware (gzip/brotli) — before static file serving
 app.use(compression({ threshold: 256, level: 6 }));
@@ -159,6 +177,25 @@ app.use(express.urlencoded({ extended: true }));
 const responseNormalizer = require("./middleware/response-normalizer");
 app.use("/api", responseNormalizer);
 
+// ===== CSRF Protection =====
+// GET /api/csrf-token — frontend grabs the CSRF token cookie
+app.get("/api/csrf-token", (req, res) => {
+  generateToken(req, res); // sets cookie + responds with JSON
+});
+
+// CSRF protection for state-changing requests on /api routes
+// Stripe webhook and public endpoints are exempt
+app.use("/api", (req, res, next) => {
+  if (req.method === "GET" || req.method === "HEAD" || req.method === "OPTIONS") {
+    return next();
+  }
+  // Exempt Stripe webhook endpoint (external callback with built-in signature verification)
+  if (req.path === "/payments/stripe/webhook") {
+    return next();
+  }
+  doubleCsrfProtection(req, res, next);
+});
+
 // ===== 路由 =====
 app.use("/api/auth", require("./routes/auth"));
 app.use("/api/users", require("./routes/users"));
@@ -201,7 +238,10 @@ app.use("/api/reviews", require("./routes/reviews"));
 app.use("/api/audit", require("./routes/audit").router);
 app.use("/api/penalty", require("./routes/penalty"));
 app.use("/api/corporate", require("./routes/corporate"));
+app.use("/api/school", require("./routes/school"));
 app.use("/api/ratings", require("./routes/ratings"));
+app.use("/api/wishlist", require("./routes/wishlist"));
+app.use("/api/topup", require("./routes/topup"));
 
 // ===== 健康檢查 =====
 const { ok } = require("./services/response");
@@ -539,6 +579,10 @@ setTimeout(autoNotifyLargeVacancies, 60 * 1000);
 setInterval(processCorporateResets, 15 * 60 * 1000);
 processCorporateResets();
 
+// ===== Credit 到期預警通知（每小時檢查，28-31 號發送）=====
+const { startCreditScheduler } = require("./services/credit-scheduler");
+startCreditScheduler();
+
 // ===== Membership EEGC
 function checkExpiringMemberships() {
   try {
@@ -682,6 +726,8 @@ try {
 }
 
 // ===== 啟動 =====
+console.log("🛡️ CSRF protection enabled (Double Submit Cookie)");
+
 const server = app.listen(PORT, "0.0.0.0", () => {
   logger.info(`ZenPass 伺服器已啟動`, {
     port: PORT,

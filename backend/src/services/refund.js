@@ -5,10 +5,9 @@
  * 支援：全額退款、部分退款、系統自動退款、管理員退款
  */
 
-const Database = require("better-sqlite3");
+const { getDb } = require("./database");
 const { v4: uuidv4 } = require("uuid");
 const { writeBlock } = require("./blockchain-audit");
-const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
 
 /**
  * 執行退款
@@ -30,7 +29,7 @@ function processRefund({
   approvedBy,
   method,
 }) {
-  const db = new Database(DB_PATH);
+  const db = getDb();
   try {
     // 1. Verify booking exists
     const booking = db
@@ -153,7 +152,7 @@ function processRefund({
     console.error("[REFUND] Failed:", err.message);
     return { success: false, error: err.message };
   } finally {
-    db.close();
+
   }
 }
 
@@ -161,7 +160,7 @@ function processRefund({
  * 查詢退款記錄
  */
 function getRefundLogs(bookingId) {
-  const db = new Database(DB_PATH);
+  const db = getDb();
   try {
     return db
       .prepare(
@@ -171,7 +170,7 @@ function getRefundLogs(bookingId) {
   } catch (err) {
     return [];
   } finally {
-    db.close();
+
   }
 }
 

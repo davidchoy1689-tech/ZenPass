@@ -3,14 +3,379 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5" />
-    
-    <title>推薦好友 — ZenPass 禪流</title><meta
-    
-    <script defer src="api.js?v=2"></script>
+    <title>推薦好友 — ZenPass 禪流</title>
+    <meta name="description" content="推薦好友加入 ZenPass，送最高 20 Credits！分享推薦碼賺取獎勵。" />
+    <link rel="icon" type="image/png" href="icons/icon-96.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/zenpass.css?v=2" />
-    
-    
-      <script src="js/nav.js"></script>
-<script src="js/footer.js"></script>
-</body>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body {
+        font-family: 'Noto Sans TC', 'Inter', -apple-system, sans-serif;
+        background: linear-gradient(135deg, #f5f5f7 0%, #eef2f7 100%);
+        color: #1a1a2e;
+        min-height: 100vh;
+      }
+      .container { max-width: 600px; margin: 0 auto; padding: 16px 16px 80px; }
+
+      /* Header */
+      .ref-header {
+        text-align: center; padding: 48px 16px 32px;
+        background: linear-gradient(135deg, #1a1a2e 0%, #2d2d44 100%);
+        border-radius: 0 0 30px 30px; color: #fff; margin: -16px -16px 24px;
+      }
+      .ref-header .icon { font-size: 56px; margin-bottom: 8px; display: block; }
+      .ref-header h1 { font-size: 26px; font-weight: 800; }
+      .ref-header h1 span { color: #f97316; }
+      .ref-header p { font-size: 14px; opacity: 0.8; margin-top: 6px; }
+
+      /* Card */
+      .card {
+        background: #fff; border-radius: 16px; padding: 24px;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+        margin-bottom: 16px;
+      }
+      .card h3 {
+        font-size: 15px; font-weight: 600; margin-bottom: 12px;
+        display: flex; align-items: center; gap: 6px;
+      }
+
+      /* Code Box */
+      .code-box {
+        background: linear-gradient(135deg, #fef2ee, #fff7ed);
+        border: 2px dashed #c94420;
+        border-radius: 12px; padding: 20px; text-align: center; margin-bottom: 16px;
+      }
+      .code-box .code {
+        font-size: 28px; font-weight: 800; letter-spacing: 3px;
+        color: #c94420; font-family: 'Inter', monospace;
+        margin-bottom: 8px;
+      }
+      .code-box .hint { font-size: 12px; color: #6b7280; }
+
+      /* Share Buttons */
+      .share-grid {
+        display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px;
+      }
+      .share-btn {
+        display: flex; align-items: center; justify-content: center; gap: 8px;
+        padding: 14px; border-radius: 12px; border: none;
+        font-size: 14px; font-weight: 600; cursor: pointer;
+        transition: transform 0.15s, opacity 0.15s; text-decoration: none; color: #fff;
+      }
+      .share-btn:hover { transform: translateY(-1px); opacity: 0.9; }
+      .share-btn:active { transform: scale(0.97); }
+      .share-whatsapp { background: #25D366; }
+      .share-telegram { background: #0088cc; }
+      .share-copy { background: #6b7280; grid-column: span 2; }
+      .share-copy.copied { background: #059669; }
+
+      /* Stats */
+      .stats-row {
+        display: flex; justify-content: space-around; gap: 12px; padding: 8px 0;
+      }
+      .stat-item { text-align: center; }
+      .stat-item .num { font-size: 22px; font-weight: 800; color: #c94420; }
+      .stat-item .label { font-size: 11px; color: #6b7280; margin-top: 2px; }
+
+      /* Reward Cards */
+      .reward-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+      .reward-card {
+        background: linear-gradient(135deg, #ecfdf5, #d1fae5);
+        border-radius: 12px; padding: 16px; text-align: center;
+      }
+      .reward-card .r-icon { font-size: 28px; margin-bottom: 4px; }
+      .reward-card .r-value { font-size: 20px; font-weight: 800; color: #059669; }
+      .reward-card .r-label { font-size: 11px; color: #4b5563; }
+
+      /* Redeem Input */
+      .redeem-row { display: flex; gap: 8px; }
+      .redeem-row input {
+        flex: 1; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 8px;
+        font-size: 14px; font-family: 'Inter', monospace; letter-spacing: 1px;
+      }
+      .redeem-row input:focus { outline: none; border-color: #c94420; box-shadow: 0 0 0 3px rgba(201,68,32,0.1); }
+      .redeem-row button {
+        padding: 10px 20px; background: #c94420; color: #fff; border: none;
+        border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer;
+      }
+      .redeem-row button:hover { background: #aa3218; }
+      .redeem-row button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+      /* Tiers */
+      .tier-item {
+        display: flex; align-items: center; gap: 12px;
+        padding: 10px 0; border-bottom: 1px solid #f3f4f6;
+      }
+      .tier-item:last-child { border-bottom: none; }
+      .tier-item .tier-name { font-weight: 600; font-size: 14px; min-width: 80px; }
+      .tier-item .tier-benefits { font-size: 12px; color: #6b7280; flex: 1; }
+
+      .result-msg {
+        font-size: 13px; padding: 10px 12px; border-radius: 8px; margin-top: 10px; display: none;
+      }
+      .result-msg.success { display: block; background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; }
+      .result-msg.error { display: block; background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+
+      /* Back link */
+      .back-link {
+        text-align: center; margin-top: 20px;
+      }
+      .back-link a { color: #c94420; text-decoration: none; font-size: 13px; }
+      .back-link a:hover { text-decoration: underline; }
+
+      .loading {
+        text-align: center; padding: 20px; color: #6b7280; font-size: 13px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="ref-header">
+      <span class="icon">🎁</span>
+      <h1>推薦好友 <span>賺 Credits</span></h1>
+      <p>推薦朋友加入 ZenPass，你同朋友各得獎勵！</p>
+    </div>
+
+    <div class="container">
+      <div id="loadingState" class="loading">載入中...</div>
+
+      <div id="errorState" style="display:none">
+        <div class="card" style="text-align:center;padding:30px">
+          <div style="font-size:40px;margin-bottom:8px">🔒</div>
+          <h3 style="margin-bottom:8px">請先登入</h3>
+          <p style="font-size:14px;color:#6b7280;margin-bottom:16px">登入後先可以用推薦功能</p>
+          <a href="login.html" style="display:inline-block;padding:10px 24px;background:#c94420;color:#fff;border-radius:8px;text-decoration:none;font-weight:600">前往登入</a>
+        </div>
+      </div>
+
+      <div id="dashboardContent" style="display:none">
+        <!-- Stats -->
+        <div class="card">
+          <h3>📊 推薦統計</h3>
+          <div class="stats-row">
+            <div class="stat-item">
+              <div class="num" id="redeemedCount">0</div>
+              <div class="label">已推薦人數</div>
+            </div>
+            <div class="stat-item">
+              <div class="num" id="creditsEarned">0</div>
+              <div class="label">賺取 Credits</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Referral Code + Share -->
+        <div class="card">
+          <h3>🔗 你的推薦碼</h3>
+          <div class="code-box">
+            <div class="code" id="referralCode">ZPXXXXX</div>
+            <div class="hint">分享推薦碼，朋友註冊時輸入即可</div>
+          </div>
+
+          <div class="share-grid">
+            <a class="share-btn share-whatsapp" id="shareWa" target="_blank" href="#">
+              💬 WhatsApp
+            </a>
+            <a class="share-btn share-telegram" id="shareTg" target="_blank" href="#">
+              ✈️ Telegram
+            </a>
+            <button class="share-btn share-copy" id="copyBtn" onclick="copyReferralCode()">
+              📋 複製推薦碼
+            </button>
+          </div>
+        </div>
+
+        <!-- Rewards -->
+        <div class="card">
+          <h3>🎁 獎勵</h3>
+          <div class="reward-grid">
+            <div class="reward-card">
+              <div class="r-icon">🤝</div>
+              <div class="r-value">+10</div>
+              <div class="r-label">朋友獲得 Credits</div>
+            </div>
+            <div class="reward-card">
+              <div class="r-icon">🎉</div>
+              <div class="r-value">+20</div>
+              <div class="r-label">你獲得 Credits</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Redeem Code -->
+        <div class="card">
+          <h3>📥 輸入推薦碼</h3>
+          <p style="font-size:13px;color:#6b7280;margin-bottom:12px">朋友俾咗推薦碼你？喺度輸入：</p>
+          <div class="redeem-row">
+            <input type="text" id="redeemInput" placeholder="輸入推薦碼 (e.g. ZPABCDE)" maxlength="20" style="text-transform:uppercase">
+            <button id="redeemBtn" onclick="redeemCode()">兌換</button>
+          </div>
+          <div id="redeemResult" class="result-msg"></div>
+        </div>
+
+        <!-- Loyalty Tiers -->
+        <div class="card">
+          <h3>🏆 忠誠等級</h3>
+          <div id="tierList">
+            <div class="loading">載入等級中...</div>
+          </div>
+        </div>
+
+        <div class="back-link">
+          <a href="my.html">← 返回我的帳戶</a>
+        </div>
+      </div>
+    </div>
+
+    <script defer src="api.js?v=2"></script>
+    <script>
+      const API_BASE = '/api';
+
+      function getToken() {
+        return localStorage.getItem('zenpass_token') || sessionStorage.getItem('zenpass_token');
+      }
+      function getAuthHeaders() {
+        return { Authorization: 'Bearer ' + getToken(), 'Content-Type': 'application/json' };
+      }
+
+      function showLoading() {
+        document.getElementById('loadingState').style.display = '';
+        document.getElementById('errorState').style.display = 'none';
+        document.getElementById('dashboardContent').style.display = 'none';
+      }
+      function showError() {
+        document.getElementById('loadingState').style.display = 'none';
+        document.getElementById('errorState').style.display = '';
+        document.getElementById('dashboardContent').style.display = 'none';
+      }
+      function showDashboard() {
+        document.getElementById('loadingState').style.display = 'none';
+        document.getElementById('errorState').style.display = 'none';
+        document.getElementById('dashboardContent').style.display = '';
+      }
+
+      async function loadReferral() {
+        showLoading();
+        const token = getToken();
+        if (!token) {
+          showError();
+          return;
+        }
+
+        try {
+          // Get referral code
+          const resp = await fetch(API_BASE + '/referral/my-code', { headers: getAuthHeaders() });
+          if (!resp.ok) { showError(); return; }
+          const data = await resp.json();
+
+          document.getElementById('referralCode').textContent = data.code || 'ZP-----';
+          document.getElementById('redeemedCount').textContent = data.redeemed || 0;
+          document.getElementById('creditsEarned').textContent = data.credits_earned || 0;
+
+          // Setup share links
+          const code = data.code || '';
+          const shareText = encodeURIComponent('🎁 用我的推薦碼「' + code + '」註冊 ZenPass，即可獲得額外 Credits！立即體驗全城運動 👉 https://zenpass.hk/signup.html?ref=' + code);
+          document.getElementById('shareWa').href = 'https://wa.me/?text=' + shareText;
+          document.getElementById('shareTg').href = 'https://t.me/share/url?url=https://zenpass.hk/signup.html?ref=' + code + '&text=' + encodeURIComponent('🎁 用我的推薦碼「' + code + '」註冊 ZenPass 送 Credits！');
+
+          showDashboard();
+
+          // Load tiers
+          loadTiers();
+        } catch (e) {
+          showError();
+        }
+      }
+
+      async function redeemCode() {
+        const input = document.getElementById('redeemInput');
+        const code = input.value.trim().toUpperCase();
+        const btn = document.getElementById('redeemBtn');
+        const result = document.getElementById('redeemResult');
+
+        if (!code) {
+          result.className = 'result-msg error';
+          result.textContent = '請輸入推薦碼';
+          return;
+        }
+
+        btn.disabled = true;
+        btn.textContent = '兌換中...';
+        result.style.display = 'none';
+
+        try {
+          const resp = await fetch(API_BASE + '/referral/redeem', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+            body: JSON.stringify({ code: code })
+          });
+          const data = await resp.json();
+          if (!resp.ok) throw new Error(data.error || '兌換失敗');
+
+          result.className = 'result-msg success';
+          result.textContent = data.message || '✅ 兌換成功！';
+          input.value = '';
+          loadReferral(); // Refresh
+        } catch (e) {
+          result.className = 'result-msg error';
+          result.textContent = '❌ ' + e.message;
+        } finally {
+          btn.disabled = false;
+          btn.textContent = '兌換';
+        }
+      }
+
+      async function copyReferralCode() {
+        const code = document.getElementById('referralCode').textContent;
+        const btn = document.getElementById('copyBtn');
+
+        try {
+          await navigator.clipboard.writeText(code + ' — 用呢個推薦碼註冊 ZenPass：https://zenpass.hk/signup.html?ref=' + code);
+          btn.textContent = '✅ 已複製！';
+          btn.classList.add('copied');
+          setTimeout(() => {
+            btn.textContent = '📋 複製推薦碼';
+            btn.classList.remove('copied');
+          }, 2500);
+        } catch (e) {
+          // Fallback
+          const ta = document.createElement('textarea');
+          ta.value = code;
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand('copy');
+          ta.remove();
+          btn.textContent = '✅ 已複製！';
+          btn.classList.add('copied');
+          setTimeout(() => {
+            btn.textContent = '📋 複製推薦碼';
+            btn.classList.remove('copied');
+          }, 2500);
+        }
+      }
+
+      async function loadTiers() {
+        const container = document.getElementById('tierList');
+        try {
+          const resp = await fetch(API_BASE + '/loyalty/tiers', { headers: getAuthHeaders() });
+          if (!resp.ok) { container.innerHTML = '<div style="font-size:13px;color:#6b7280">無法載入等級</div>'; return; }
+          const data = await resp.json();
+          const tiers = data.tiers || [];
+          container.innerHTML = tiers.map(t =>
+            '<div class="tier-item">' +
+              '<div class="tier-name">' + t.name + '</div>' +
+              '<div class="tier-benefits">' + (t.benefits || []).join(' · ') + '</div>' +
+            '</div>'
+          ).join('');
+        } catch (e) {
+          container.innerHTML = '<div style="font-size:13px;color:#6b7280">載入失敗</div>';
+        }
+      }
+
+      document.addEventListener('DOMContentLoaded', loadReferral);
+    </script>
+    <script src="js/nav.js"></script>
+    <script src="js/footer.js"></script>
+  </body>
 </html>

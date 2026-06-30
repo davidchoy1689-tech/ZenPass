@@ -13,24 +13,23 @@
 
 const express = require("express");
 const { v4: uuidv4 } = require("uuid");
-const Database = require("better-sqlite3");
+const { getDb } = require("../services/database");
 const { authenticateToken } = require("../middleware/auth");
 const { sendNotification } = require("../services/notification");
 const { trackBookingChange } = require("../services/audit");
 
 const router = express.Router();
-const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
 
 // ===== Helper: 讀取罰款設定 =====
 function getPenaltyConfig() {
-  const db = new Database(DB_PATH);
+  const db = getDb();
   const penaltyCredits = db
     .prepare("SELECT value FROM pricing_config WHERE key = 'no_show_penalty_credits'")
     .get();
   const graceMinutes = db
     .prepare("SELECT value FROM pricing_config WHERE key = 'no_show_grace_minutes'")
     .get();
-  db.close();
+
   return {
     noShowPenalty: parseInt(penaltyCredits?.value || "2", 10),
     graceMinutes: parseInt(graceMinutes?.value || "30", 10),
@@ -39,7 +38,7 @@ function getPenaltyConfig() {
 
 // ===== Helper: 扣罰款 + 記錄 =====
 function applyPenalty(userId, bookingId, penaltyCredits, reason, type = 'no_show') {
-  const db = new Database(DB_PATH);
+  const db = getDb();
   db.pragma("foreign_keys = ON");
   try {
     // === Grace Period: 首次免罰 ===
@@ -61,7 +60,7 @@ function applyPenalty(userId, bookingId, penaltyCredits, reason, type = 'no_show
       db.prepare(
         "INSERT INTO audit_log (id, action, entity_type, entity_id, user_id, details, created_at) VALUES (?, 'penalty.waived', 'booking', ?, ?, ?, datetime('now'))"
       ).run(uuidv4(), bookingId, userId, JSON.stringify({ penaltyCredits, reason, waived: true, type }));
-      db.close();
+
       return { waived: true, penaltyId };
     }
 
@@ -70,7 +69,7 @@ function applyPenalty(userId, bookingId, penaltyCredits, reason, type = 'no_show
       .run(penaltyCredits, userId);
     if (result.changes === 0) {
       console.error(`[PENALTY] Cannot deduct: user=${userId}, credits=${penaltyCredits}`);
-      db.close();
+
       return { waived: false, applied: false };
     }
     const user = db.prepare("SELECT credits FROM users WHERE id = ?").get(userId);
@@ -119,11 +118,11 @@ function applyPenalty(userId, bookingId, penaltyCredits, reason, type = 'no_show
       INSERT INTO audit_log (id, action, entity_type, entity_id, user_id, details, created_at)
       VALUES (?, ?, 'booking', ?, ?, ?, datetime('now'))
     `).run(uuidv4(), 'penalty.apply', bookingId, userId, JSON.stringify({ penaltyCredits, reason, newCredits, bookingId }));
-    db.close();
+
     return { waived: false, applied: true, penaltyCredits };
   } catch (err) {
     console.error("[PENALTY] applyPenalty error:", err);
-    db.close();
+
     return false;
   }
 }
@@ -132,7 +131,7 @@ function applyPenalty(userId, bookingId, penaltyCredits, reason, type = 'no_show
 router.post("/process-no-shows", (req, res) => {
   try {
     const config = getPenaltyConfig();
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.pragma("foreign_keys = ON");
 
     const cutoffTime = new Date(Date.now() - config.graceMinutes * 60 * 1000).toISOString();
@@ -151,7 +150,7 @@ router.post("/process-no-shows", (req, res) => {
       `).all(cutoffTime);
 
     if (expiredBookings.length === 0) {
-      db.close();
+
       return res.json({ processed: 0, message: "冇需要處理嘅缺席" });
     }
 
@@ -209,7 +208,6 @@ router.post("/process-no-shows", (req, res) => {
       });
     }
 
-    db.close();
     res.json({
       processed: processed.length,
       details: processed,
@@ -225,14 +223,12 @@ router.post("/process-no-shows", (req, res) => {
 // ===== 2. POST /api/penalty/settings — 更新罰款設定（Admin only）=====
 router.post("/settings", authenticateToken, (req, res) => {
   try {
-    const user = new Database(DB_PATH)
-      .prepare("SELECT role FROM users WHERE id = ?")
-      .get(req.user.id);
+    const user = getDb().prepare("SELECT role FROM users WHERE id = ?").get(req.user.id);
     if (!user || user.role !== "admin") {
       return res.status(403).json({ error: "只限管理員" });
     }
     const { no_show_penalty_credits, no_show_grace_minutes } = req.body;
-    const db = new Database(DB_PATH);
+    const db = getDb();
     if (no_show_penalty_credits !== undefined) {
       db.prepare("UPDATE pricing_config SET value = ?, updated_at = datetime('now') WHERE key = 'no_show_penalty_credits'")
         .run(String(no_show_penalty_credits));
@@ -241,7 +237,7 @@ router.post("/settings", authenticateToken, (req, res) => {
       db.prepare("UPDATE pricing_config SET value = ?, updated_at = datetime('now') WHERE key = 'no_show_grace_minutes'")
         .run(String(no_show_grace_minutes));
     }
-    db.close();
+
     res.json({ message: "罰款設定已更新", settings: getPenaltyConfig() });
   } catch (err) {
     console.error("[PENALTY] settings error:", err);
@@ -257,10 +253,10 @@ router.get("/settings", (req, res) => {
 // ===== 4. GET /api/penalty/stats — 罰款統計（Admin only）=====
 router.get("/stats", authenticateToken, (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     const user = db.prepare("SELECT role FROM users WHERE id = ?").get(req.user.id);
     if (!user || user.role !== "admin") {
-      db.close();
+
       return res.status(403).json({ error: "只限管理員" });
     }
 
@@ -287,7 +283,6 @@ router.get("/stats", authenticateToken, (req, res) => {
         AND created_at >= datetime('now', '-30 days')
     `).get();
 
-    db.close();
     const penalty = getPenaltyConfig();
 
     res.json({
@@ -311,7 +306,7 @@ router.get("/stats", authenticateToken, (req, res) => {
 // ===== 5. POST /api/penalty/late-cancel/:bookingId — 遲取消（2-12hr，罰款 = 蝕該堂 Credits）=====
 router.post("/late-cancel/:bookingId", authenticateToken, (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.pragma("foreign_keys = ON");
 
     const booking = db.prepare(`
@@ -323,7 +318,7 @@ router.post("/late-cancel/:bookingId", authenticateToken, (req, res) => {
     `).get(req.params.bookingId, req.user.id);
 
     if (!booking) {
-      db.close();
+
       return res.status(404).json({ error: "預約不存在或已取消" });
     }
 
@@ -333,7 +328,7 @@ router.post("/late-cancel/:bookingId", authenticateToken, (req, res) => {
 
     // < 2 小時 → 阻住
     if (hoursUntilClass < 2) {
-      db.close();
+
       return res.status(400).json({ error: "開課前 2 小時內無法取消預約" });
     }
 
@@ -367,8 +362,6 @@ router.post("/late-cancel/:bookingId", authenticateToken, (req, res) => {
       );
     } catch (e) {}
 
-    db.close();
-
     res.json({
       message: `已取消預約。由於距離開課不足 12 小時，${classCost} Credits 唔會退還。`,
       class_cost_forfeited: classCost,
@@ -382,10 +375,10 @@ router.post("/late-cancel/:bookingId", authenticateToken, (req, res) => {
 // ===== 6. POST /api/penalty/process-specific/:bookingId — 手動標記 no-show（Admin/Coach）=====
 router.post("/process-specific/:bookingId", authenticateToken, (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     const user = db.prepare("SELECT role, is_coach FROM users WHERE id = ?").get(req.user.id);
     if (!user || (user.role !== "admin" && !user.is_coach)) {
-      db.close();
+
       return res.status(403).json({ error: "只限管理員/教練" });
     }
 
@@ -394,7 +387,7 @@ router.post("/process-specific/:bookingId", authenticateToken, (req, res) => {
     ).get(req.params.bookingId);
 
     if (!booking) {
-      db.close();
+
       return res.status(404).json({ error: "預約不存在或已處理" });
     }
 
@@ -419,7 +412,6 @@ router.post("/process-specific/:bookingId", authenticateToken, (req, res) => {
       trackBookingChange(booking.id, req.user.id, "confirmed", "no_show", req);
     } catch (e) {}
 
-    db.close();
     res.json({
       message: `已標記缺席。蝕 ${classCost} Credits + 罰 ${config.noShowPenalty} Credits`,
       class_cost_forfeited: classCost,

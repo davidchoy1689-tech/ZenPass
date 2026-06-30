@@ -5,19 +5,18 @@
 
 const express = require("express");
 const { v4: uuidv4 } = require("uuid");
-const Database = require("better-sqlite3");
+const { getDb } = require("../services/database");
 const { authenticateToken, requireCoach } = require("../middleware/auth");
 
 const { sendNotification } = require("../services/notification");
 const { writeBlock } = require("../services/blockchain-audit");
 
 const router = express.Router();
-const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
 
 // ===== GET /api/coach/earnings — 收入摘要 =====
 router.get("/earnings", authenticateToken, (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.pragma("foreign_keys = ON");
 
     // 本月收入
@@ -106,8 +105,6 @@ router.get("/earnings", authenticateToken, (req, res) => {
       )
       .get(req.user.id);
 
-    db.close();
-
     res.json({
       summary: {
         monthly: monthly.total,
@@ -130,7 +127,7 @@ router.get("/earnings", authenticateToken, (req, res) => {
 // ===== GET /api/coach/earnings/detail — 收入明細 =====
 router.get("/earnings/detail", authenticateToken, (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.pragma("foreign_keys = ON");
 
     const { page = 1, limit = 20, status, start_date, end_date } = req.query;
@@ -171,8 +168,6 @@ router.get("/earnings/detail", authenticateToken, (req, res) => {
       )
       .get(...params);
 
-    db.close();
-
     res.json({
       entries,
       pagination: {
@@ -191,7 +186,7 @@ router.get("/earnings/detail", authenticateToken, (req, res) => {
 // ===== POST /api/coach/earnings/calculate — 自動計算收入 =====
 router.post("/earnings/calculate", authenticateToken, async (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.pragma("foreign_keys = ON");
 
     // Get coach commission rate
@@ -293,7 +288,6 @@ router.post("/earnings/calculate", authenticateToken, async (req, res) => {
       }
     }
 
-    db.close();
     res.json({
       message:
         calculated > 0 ? `已自動計算 ${calculated} 筆收入` : "收入資料已是最新",
@@ -308,7 +302,7 @@ router.post("/earnings/calculate", authenticateToken, async (req, res) => {
 // ===== POST /api/coach/payout-request — 提現申請 =====
 router.post("/payout-request", authenticateToken, (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.pragma("foreign_keys = ON");
 
     const {
@@ -322,12 +316,12 @@ router.post("/payout-request", authenticateToken, (req, res) => {
     } = req.body;
 
     if (!amount || amount <= 0) {
-      db.close();
+
       return res.status(400).json({ error: "請輸入有效金額" });
     }
 
     if (amount < 100) {
-      db.close();
+
       return res.status(400).json({ error: "最低提現金額為 HK$100" });
     }
 
@@ -342,7 +336,7 @@ router.post("/payout-request", authenticateToken, (req, res) => {
       .get(req.user.id);
 
     if (pending.total < amount) {
-      db.close();
+
       return res.status(400).json({
         error: "可提現餘額不足",
         available: pending.total,
@@ -435,7 +429,6 @@ router.post("/payout-request", authenticateToken, (req, res) => {
       console.error("⚠️ Blockchain write failed (payout request):", bcErr.message);
     }
 
-    db.close();
     res.status(201).json({
       message: "提現申請已提交",
       payout_id: payoutId,
@@ -453,7 +446,7 @@ router.post("/payout-request", authenticateToken, (req, res) => {
 // ===== GET /api/coach/payout-history — 提現記錄 =====
 router.get("/payout-history", authenticateToken, (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     const payouts = db
       .prepare(
         `
@@ -465,7 +458,6 @@ router.get("/payout-history", authenticateToken, (req, res) => {
       )
       .all(req.user.id);
 
-    db.close();
     res.json({ payouts });
   } catch (err) {
     console.error("獲取提現記錄錯誤:", err);
@@ -477,14 +469,12 @@ router.get("/payout-history", authenticateToken, (req, res) => {
 router.get("/admin/all-earnings", authenticateToken, (req, res) => {
   try {
     // Admin check
-    const user = new Database(DB_PATH)
-      .prepare("SELECT email FROM users WHERE id = ?")
-      .get(req.user.id);
+    const user = getDb().prepare("SELECT email FROM users WHERE id = ?").get(req.user.id);
     if (!user || user.email !== "david@zenpass.hk") {
       return res.status(403).json({ error: "僅管理員可查看" });
     }
 
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.pragma("foreign_keys = ON");
 
     const { page = 1, limit = 20 } = req.query;
@@ -518,7 +508,6 @@ router.get("/admin/all-earnings", authenticateToken, (req, res) => {
       )
       .get();
 
-    db.close();
     res.json({
       list,
       summary,
@@ -542,14 +531,14 @@ router.post("/payout-process", authenticateToken, (req, res) => {
       return res.status(400).json({ error: "無效的操作" });
     }
 
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.pragma("foreign_keys = ON");
 
     const payout = db
       .prepare("SELECT * FROM coach_payouts WHERE id = ?")
       .get(payout_id);
     if (!payout || payout.status !== "pending") {
-      db.close();
+
       return res.status(400).json({ error: "提現記錄不存在或已處理" });
     }
 
@@ -583,7 +572,6 @@ router.post("/payout-process", authenticateToken, (req, res) => {
       console.error("⚠️ 發送提現通知失敗:", notifErr.message);
     }
 
-    db.close();
     res.json({ message: action === "approve" ? "提現已批准" : "提現已駁回" });
   } catch (err) {
     console.error(err);
@@ -609,7 +597,7 @@ router.post("/private-income", authenticateToken, (req, res) => {
       return res.status(400).json({ error: "請填寫日期、描述和金額" });
     }
 
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.pragma("foreign_keys = ON");
 
     const id = uuidv4();
@@ -629,8 +617,6 @@ router.post("/private-income", authenticateToken, (req, res) => {
       client_phone || null,
       notes || null,
     );
-
-    db.close();
 
     // ⛓️ 區塊鏈：記錄私人收入
     try {
@@ -664,7 +650,7 @@ router.post("/private-income", authenticateToken, (req, res) => {
 // GET /api/coach/private-income — 獲取私人收入列表
 router.get("/private-income", authenticateToken, (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     const { page = 1, limit = 50, start_date, end_date, category } = req.query;
 
     let where = "WHERE coach_id = ?";
@@ -698,7 +684,6 @@ router.get("/private-income", authenticateToken, (req, res) => {
       )
       .get(...params);
 
-    db.close();
     res.json({
       entries,
       total_amount: totalAmount.total,
@@ -717,11 +702,11 @@ router.get("/private-income", authenticateToken, (req, res) => {
 // DELETE /api/coach/private-income/:id — 刪除私人收入
 router.delete("/private-income/:id", authenticateToken, (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     const result = db
       .prepare("DELETE FROM private_income WHERE id = ? AND coach_id = ?")
       .run(req.params.id, req.user.id);
-    db.close();
+
     if (result.changes === 0) {
       return res.status(404).json({ error: "記錄不存在" });
     }
@@ -737,7 +722,7 @@ router.delete("/private-income/:id", authenticateToken, (req, res) => {
 // GET /api/coach/settlements — 獲取月度結算列表 (admin)
 router.get("/settlements", authenticateToken, (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     const { year, month, coach_id, status } = req.query;
 
     let where = "WHERE 1=1";
@@ -780,7 +765,6 @@ router.get("/settlements", authenticateToken, (req, res) => {
       )
       .get(...params);
 
-    db.close();
     res.json({ settlements, summary });
   } catch (err) {
     console.error("獲取結算錯誤:", err);
@@ -794,7 +778,7 @@ router.post("/settlements/generate", authenticateToken, (req, res) => {
     const { year, month } = req.body;
     if (!year || !month) return res.status(400).json({ error: "請提供年月" });
 
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.pragma("foreign_keys = ON");
 
     // Get all earnings for the period, grouped by coach
@@ -818,7 +802,7 @@ router.post("/settlements/generate", authenticateToken, (req, res) => {
       .all(monthStart, monthEnd);
 
     if (earnings.length === 0) {
-      db.close();
+
       return res.json({ message: "該月份暫無收入資料", count: 0 });
     }
 
@@ -851,7 +835,6 @@ router.post("/settlements/generate", authenticateToken, (req, res) => {
     });
     transaction();
 
-    db.close();
     res.json({ message: `已生成 ${count} 筆結算記錄`, count });
   } catch (err) {
     console.error("生成結算錯誤:", err);
@@ -862,11 +845,11 @@ router.post("/settlements/generate", authenticateToken, (req, res) => {
 // POST /api/coach/settlements/:id/pay — 標記為已付款
 router.post("/settlements/:id/pay", authenticateToken, (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.prepare(
       `UPDATE platform_settlements SET status = 'paid', paid_at = datetime('now'), updated_at = datetime('now') WHERE id = ?`,
     ).run(req.params.id);
-    db.close();
+
     res.json({ message: "已標記為已付款" });
   } catch (err) {
     console.error("付款標記錯誤:", err);
@@ -879,11 +862,11 @@ router.post("/settlements/:id/pay", authenticateToken, (req, res) => {
 // GET /api/coach/settings — 獲取所有設定
 router.get("/settings", (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     const settings = db
       .prepare("SELECT * FROM platform_settings ORDER BY key")
       .all();
-    db.close();
+
     res.json({ settings });
   } catch (err) {
     console.error(err);
@@ -894,11 +877,11 @@ router.get("/settings", (req, res) => {
 // GET /api/coach/settings/:key — 獲取單個設定
 router.get("/settings/:key", (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     const setting = db
       .prepare("SELECT * FROM platform_settings WHERE key = ?")
       .get(req.params.key);
-    db.close();
+
     if (!setting) return res.status(404).json({ error: "設定不存在" });
     res.json(setting);
   } catch (err) {
@@ -913,7 +896,7 @@ router.put("/settings/:key", authenticateToken, (req, res) => {
     if (value === undefined)
       return res.status(400).json({ error: "請提供 value" });
 
-    const db = new Database(DB_PATH);
+    const db = getDb();
     const existing = db
       .prepare("SELECT * FROM platform_settings WHERE key = ?")
       .get(req.params.key);
@@ -926,7 +909,7 @@ router.put("/settings/:key", authenticateToken, (req, res) => {
         "UPDATE platform_settings SET value = ?, description = COALESCE(?, description), updated_at = datetime('now') WHERE key = ?",
       ).run(String(value), description || null, req.params.key);
     }
-    db.close();
+
     res.json({
       message: "設定已更新",
       key: req.params.key,
@@ -941,13 +924,13 @@ router.put("/settings/:key", authenticateToken, (req, res) => {
 // GET /api/coach/settings/effective-rate — 取得當前有效佣金率（前端用）
 router.get("/settings/effective-rate", (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     const rate = db
       .prepare(
         "SELECT value FROM platform_settings WHERE key = 'coach_commission_rate'",
       )
       .get();
-    db.close();
+
     res.json({
       coach_rate: parseFloat(rate ? rate.value : 0.75),
       zenpass_rate: 1 - parseFloat(rate ? rate.value : 0.75),
@@ -962,7 +945,7 @@ router.get("/settings/effective-rate", (req, res) => {
  * 公式：net = unit_price × enrolled_count × commission_rate
  */
 function syncCoachEarningsForSchedule(scheduleId) {
-  const db = new Database(DB_PATH);
+  const db = getDb();
   try {
     db.pragma("foreign_keys = ON");
 
@@ -1105,7 +1088,7 @@ function syncCoachEarningsForSchedule(scheduleId) {
     console.error("syncCoachEarningsForSchedule error:", err.message);
     return { error: err.message };
   } finally {
-    db.close();
+
   }
 }
 
@@ -1125,11 +1108,10 @@ router.post(
         });
       }
       const stripe = require("stripe")(STRIPE_SECRET);
-      const db = new Database(DB_PATH);
+      const db = getDb();
       const user = db
         .prepare("SELECT stripe_account_id FROM users WHERE id = ?")
         .get(req.user.id);
-      db.close();
 
       let accountId = user?.stripe_account_id;
       if (!accountId) {
@@ -1142,11 +1124,11 @@ router.post(
           capabilities: { transfers: { requested: true } },
         });
         accountId = account.id;
-        const db2 = new Database(DB_PATH);
+        const db = getDb();
         db2
           .prepare("UPDATE users SET stripe_account_id = ? WHERE id = ?")
           .run(accountId, req.user.id);
-        db2.close();
+
       }
 
       const link = await stripe.accountLinks.create({
@@ -1172,14 +1154,14 @@ router.post("/payouts/request", authenticateToken, async (req, res) => {
       return res.status(400).json({ error: "最低提款金額為 HK$50" });
     }
 
-    const db = new Database(DB_PATH);
+    const db = getDb();
     const user = db
       .prepare(
         "SELECT pending_payout, stripe_account_id FROM users WHERE id = ?",
       )
       .get(req.user.id);
     if (!user || user.pending_payout < amount) {
-      db.close();
+
       return res.status(400).json({ error: "可提款金額不足" });
     }
 
@@ -1190,7 +1172,6 @@ router.post("/payouts/request", authenticateToken, async (req, res) => {
     db.prepare(
       "INSERT INTO coach_payouts (id, coach_id, amount, status) VALUES (?, ?, ?, 'pending')",
     ).run(uuidv4(), req.user.id, amount);
-    db.close();
 
     // Notify admin
     sendNotification("payout.requested", {
@@ -1208,13 +1189,13 @@ router.post("/payouts/request", authenticateToken, async (req, res) => {
 // GET /api/coach/payouts/history — 提款記錄
 router.get("/payouts/history", authenticateToken, (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     const payouts = db
       .prepare(
         "SELECT * FROM coach_payouts WHERE coach_id = ? ORDER BY created_at DESC LIMIT 20",
       )
       .all(req.user.id);
-    db.close();
+
     res.json({ payouts });
   } catch (err) {
     res.status(500).json({ error: "無法獲取提款記錄" });

@@ -4,16 +4,15 @@
  */
 
 const express = require("express");
-const Database = require("better-sqlite3");
+const { getDb } = require("../services/database");
 const { authenticateToken, requireAdmin } = require("../middleware/auth");
 
 const router = express.Router();
-const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
 
 // ===== GET /api/reporting/coach-ranking — 教練業績排名 =====
 router.get("/coach-ranking", authenticateToken, requireAdmin, (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     const coaches = db
       .prepare(
         `
@@ -28,7 +27,7 @@ router.get("/coach-ranking", authenticateToken, requireAdmin, (req, res) => {
     `,
       )
       .all();
-    db.close();
+
     res.json({ coaches });
   } catch (err) {
     console.error("Coach ranking error:", err);
@@ -39,7 +38,7 @@ router.get("/coach-ranking", authenticateToken, requireAdmin, (req, res) => {
 // ===== GET /api/reporting/funnel — 轉化漏斗 =====
 router.get("/funnel", authenticateToken, requireAdmin, (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     const totalUsers = db.prepare("SELECT COUNT(*) as c FROM users").get().c;
     const usersWithBooking = db
       .prepare("SELECT COUNT(DISTINCT user_id) as c FROM bookings")
@@ -63,7 +62,6 @@ router.get("/funnel", authenticateToken, requireAdmin, (req, res) => {
         "SELECT COUNT(DISTINCT user_id) as c FROM bookings WHERE payment_status='paid'",
       )
       .get().c;
-    db.close();
 
     res.json({
       funnel: [
@@ -104,7 +102,7 @@ router.get("/funnel", authenticateToken, requireAdmin, (req, res) => {
 // ===== GET /api/reporting/retention — 留存率 =====
 router.get("/retention", authenticateToken, requireAdmin, (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     const now = new Date().toISOString().split("T")[0];
 
     // Monthly cohorts
@@ -133,7 +131,6 @@ router.get("/retention", authenticateToken, requireAdmin, (req, res) => {
         "SELECT COUNT(DISTINCT user_id) as c FROM bookings WHERE created_at > datetime('now', '-90 days')",
       )
       .get().c;
-    db.close();
 
     res.json({
       cohorts,
@@ -156,7 +153,7 @@ router.get("/retention", authenticateToken, requireAdmin, (req, res) => {
 // ===== GET /api/reporting/revenue-trend — 收入趨勢 =====
 router.get("/revenue-trend", authenticateToken, requireAdmin, (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     const monthly = db
       .prepare(
         `
@@ -185,7 +182,6 @@ router.get("/revenue-trend", authenticateToken, requireAdmin, (req, res) => {
         "SELECT COALESCE(SUM(amount),0) as rev FROM bookings WHERE payment_status='paid' AND substr(created_at,1,7) = substr(datetime('now'),1,7)",
       )
       .get().rev;
-    db.close();
 
     res.json({
       monthly,

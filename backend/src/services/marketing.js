@@ -10,8 +10,7 @@
  * 3. 推廣廣播 — Admin 手動觸發
  */
 
-const Database = require("better-sqlite3");
-const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
+const { getDb } = require("./database");
 const { sendNotification } = require("./notification");
 const logger = require("./logger");
 
@@ -57,7 +56,7 @@ async function sendWelcomeSequence(userId, userName) {
 // ===== 2. 挽回序列 (Win-back) — 30 日冇上堂 =====
 async function checkWinBackCandidates() {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     const candidates = db
       .prepare(
         `
@@ -73,7 +72,6 @@ async function checkWinBackCandidates() {
     `,
       )
       .all();
-    db.close();
 
     for (const user of candidates) {
       const daysSinceActivity = 30;
@@ -99,7 +97,7 @@ async function checkWinBackCandidates() {
 // ===== 3. 推播廣播 (Broadcast) =====
 async function sendBroadcast(subject, message, filters = {}) {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     let query = "SELECT id, name, email FROM users WHERE 1=1";
     const params = [];
 
@@ -113,7 +111,6 @@ async function sendBroadcast(subject, message, filters = {}) {
     }
 
     const users = db.prepare(query).all(...params);
-    db.close();
 
     let sent = 0;
     for (const user of users) {

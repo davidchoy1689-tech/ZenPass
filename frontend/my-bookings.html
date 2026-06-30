@@ -20,23 +20,8 @@
  html.dark .nav-links a{color:#a1a1aa}
  @media(max-width:767px){nav{display:none}.max-w-5xl{padding:0 16px}}
  h1{font-size:36px;font-weight:700;margin-bottom:4px;padding-top:40px}
- .sub{color:#71717a;margin-bottom:40px}
- html.dark .sub{color:#a1a1aa}
- .booking-card{background:#fff;border-radius:24px;padding:24px;margin-bottom:20px;box-shadow:0 1px 3px rgba(0,0,0,0.04);border:1px solid #e4e4e7}
- html.dark .booking-card{background:#18181b;border-color:#27272a}
- .booking-title{font-size:20px;font-weight:600}
- .booking-instructor{color:#059669;margin-top:4px}
- .booking-meta{color:#71717a;margin-top:12px;font-size:14px;line-height:1.6}
- .booking-status{display:inline-block;padding:6px 16px;background:#d1fae5;color:#047857;border-radius:16px;font-size:13px;font-weight:500}
- html.dark .booking-status{background:rgba(4,120,87,0.2);color:#34d399}
- .cancel-btn{background:none;border:none;color:#ef4444;font-size:14px;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:4px}
- .cancel-btn:hover{color:#dc2626}
- .empty-state{text-align:center;padding:80px 20px}
- .empty-icon{font-size:64px;margin-bottom:16px}
- .empty-title{font-size:22px;font-weight:500;margin-bottom:8px}
- .empty-sub{color:#71717a;margin-bottom:24px}
- .explore-btn{display:inline-block;background:#059669;color:#fff;padding:14px 36px;border-radius:24px;text-decoration:none;font-weight:500;transition:background 0.2s}
- .explore-btn:hover{background:#047857}
+ .sub{color:var(--dark-700);margin-bottom:40px}
+ 
  footer{text-align:center;padding:32px 24px;font-size:12px;color:#a1a1aa}
  footer a{color:#059669;text-decoration:none}
 </style>
@@ -57,14 +42,52 @@
  <div class="max-w-5xl">
  <h1>我的預約</h1>
  <p class="sub">已確認的課程 • 可隨時取消</p>
- <div id="bookings-list"></div>
- <div id="no-bookings" class="empty-state" style="display:none">
- <div class="empty-icon">📅</div>
- <div class="empty-title">仲未有任何預約</div>
- <div class="empty-sub">快去探索全城精彩課程啦！</div>
- <a href="explore.html" class="explore-btn">立即探索課程 →</a>
+ <div id="bookings-list" style="position:relative;min-height:200px"></div>
  </div>
- </div>
+
+ <!-- Cancel Reason Modal -->
+<div id="cancel-modal-overlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.45);z-index:1000;opacity:0;transition:opacity 0.3s;" onclick="closeCancelModal(event)">
+  <div id="cancel-modal" style="position:fixed;bottom:-100%;left:0;right:0;background:#fff;border-radius:20px 20px 0 0;padding:24px;max-width:440px;margin:0 auto;transition:bottom 0.3s;box-shadow:0 -4px 24px rgba(0,0,0,0.15);z-index:1001;max-height:80vh;overflow-y:auto;" onclick="event.stopPropagation()">
+    <div style="text-align:center;margin-bottom:16px;">
+      <div style="width:40px;height:4px;background:var(--gray-200);border-radius:2px;margin:0 auto 16px;"></div>
+      <h2 style="font-size:18px;font-weight:700;margin:0;">取消預約</h2>
+      <p style="font-size:13px;color:#71717a;margin-top:4px;">請告知取消原因（選擇性）</p>
+    </div>
+    <div style="margin-bottom:16px;">
+      <label style="display:block;font-size:13px;font-weight:600;margin-bottom:8px;color:#52525b;">取消原因</label>
+      <div id="cancel-reasons" style="display:flex;flex-direction:column;gap:8px;">
+        <label class="cancel-option" style="display:flex;align-items:center;gap:10px;padding:12px;border:1px solid #e4e4e7;border-radius:12px;cursor:pointer;transition:all 0.2s;" onclick="selectCancelReason(this,'schedule_conflict')">
+          <input type="radio" name="cancel_reason" value="schedule_conflict" style="accent-color:#f06030;" />
+          <span style="font-size:14px;">📅 時間衝突</span>
+        </label>
+        <label class="cancel-option" style="display:flex;align-items:center;gap:10px;padding:12px;border:1px solid #e4e4e7;border-radius:12px;cursor:pointer;transition:all 0.2s;" onclick="selectCancelReason(this,'not_interested')">
+          <input type="radio" name="cancel_reason" value="not_interested" style="accent-color:#f06030;" />
+          <span style="font-size:14px;">😐 唔再有興趣</span>
+        </label>
+        <label class="cancel-option" style="display:flex;align-items:center;gap:10px;padding:12px;border:1px solid #e4e4e7;border-radius:12px;cursor:pointer;transition:all 0.2s;" onclick="selectCancelReason(this,'found_other')">
+          <input type="radio" name="cancel_reason" value="found_other" style="accent-color:#f06030;" />
+          <span style="font-size:14px;">🔍 搵到其他課程</span>
+        </label>
+        <label class="cancel-option" style="display:flex;align-items:center;gap:10px;padding:12px;border:1px solid #e4e4e7;border-radius:12px;cursor:pointer;transition:all 0.2s;" onclick="selectCancelReason(this,'too_expensive')">
+          <input type="radio" name="cancel_reason" value="too_expensive" style="accent-color:#f06030;" />
+          <span style="font-size:14px;">💰 費用太貴</span>
+        </label>
+        <label class="cancel-option" style="display:flex;align-items:center;gap:10px;padding:12px;border:1px solid #e4e4e7;border-radius:12px;cursor:pointer;transition:all 0.2s;" onclick="selectCancelReason(this,'other')">
+          <input type="radio" name="cancel_reason" value="other" style="accent-color:#f06030;" />
+          <span style="font-size:14px;">✏️ 其他原因</span>
+        </label>
+      </div>
+      <div id="cancel-reason-other-wrap" style="display:none;margin-top:10px;">
+        <input type="text" id="cancel-reason-other" placeholder="請輸入原因..." style="width:100%;padding:12px;border:1px solid #e4e4e7;border-radius:12px;font-size:14px;font-family:var(--font-zh);" />
+      </div>
+    </div>
+    <button class="btn btn-primary" id="cancel-confirm-btn" onclick="confirmCancel()" style="width:100%;padding:14px;border:none;border-radius:12px;background:#ef4444;color:#fff;font-size:16px;font-weight:700;cursor:pointer;font-family:var(--font-zh);transition:background 0.2s;">
+      確認取消
+    </button>
+    <div class="msg" id="cancel-msg" style="font-size:13px;margin-top:8px;padding:10px;border-radius:10px;display:none;"></div>
+    <button onclick="closeCancelModal()" style="display:block;width:100%;margin-top:12px;padding:10px;border:none;background:none;color:#71717a;font-size:14px;cursor:pointer;font-family:var(--font-zh);">返回</button>
+  </div>
+</div>
 
  <footer>
  <a href="privacy.html">私隱政策</a> · <a href="terms.html">服務條款</a> · <a href="sitemap.xml">網站地圖</a><br>
@@ -72,27 +95,179 @@
  </footer>
 
  <script>
+// ─── Cancel Reason Modal ───
+var __cancelBookingId = null;
+var __selectedCancelReason = null;
+
+function selectCancelReason(labelEl, value) {
+  document.querySelectorAll('.cancel-option').forEach(function(el) {
+    el.style.borderColor = '#e4e4e7';
+    el.style.background = '';
+  });
+  labelEl.style.borderColor = '#f06030';
+  labelEl.style.background = 'rgba(240,96,48,0.04)';
+  labelEl.querySelector('input').checked = true;
+
+  __selectedCancelReason = value;
+  var otherWrap = document.getElementById('cancel-reason-other-wrap');
+  if (value === 'other') {
+    otherWrap.style.display = 'block';
+  } else {
+    otherWrap.style.display = 'none';
+  }
+
+  var msg = document.getElementById('cancel-msg');
+  msg.className = 'msg';
+  msg.style.display = 'none';
+}
+
+function showCancelModal(bookingId) {
+  __cancelBookingId = bookingId;
+  __selectedCancelReason = null;
+  document.querySelectorAll('.cancel-option input').forEach(function(el) { el.checked = false; });
+  document.querySelectorAll('.cancel-option').forEach(function(el) {
+    el.style.borderColor = '#e4e4e7';
+    el.style.background = '';
+  });
+  document.getElementById('cancel-reason-other-wrap').style.display = 'none';
+  document.getElementById('cancel-reason-other').value = '';
+  var msg = document.getElementById('cancel-msg');
+  msg.className = 'msg';
+  msg.style.display = 'none';
+
+  var overlay = document.getElementById('cancel-modal-overlay');
+  var modal = document.getElementById('cancel-modal');
+  overlay.style.display = 'block';
+  setTimeout(function() { overlay.style.opacity = '1'; modal.style.bottom = '0'; }, 10);
+}
+
+function closeCancelModal(e) {
+  var overlay = document.getElementById('cancel-modal-overlay');
+  var modal = document.getElementById('cancel-modal');
+  overlay.style.opacity = '0';
+  modal.style.bottom = '-100%';
+  setTimeout(function() { overlay.style.display = 'none'; }, 300);
+  __cancelBookingId = null;
+}
+
+async function confirmCancel() {
+  var id = __cancelBookingId;
+  if (!id) return;
+
+  var reason = __selectedCancelReason;
+  if (reason === 'other') {
+    reason = document.getElementById('cancel-reason-other').value.trim();
+    if (!reason) {
+      var msg = document.getElementById('cancel-msg');
+      msg.textContent = '請輸入取消原因'; msg.className = 'msg error'; msg.style.display = 'block';
+      return;
+    }
+  }
+
+  var btn = document.getElementById('cancel-confirm-btn');
+  btn.disabled = true;
+  btn.innerHTML = '取消中...';
+  btn.style.opacity = '0.6';
+
+  // Try backend API first
+  var API_BASE = window.API_BASE || '';
+  var token = localStorage.getItem('zenpass_token') || localStorage.getItem('token');
+  var apiSuccess = false;
+
+  if (token) {
+    try {
+      var resp = await fetch(API_BASE + '/bookings/' + id + '/cancel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify({ reason: reason || null })
+      });
+      var data = await resp.json();
+      if (resp.ok) {
+        apiSuccess = true;
+      } else {
+        // Fall through to local cancel
+        console.warn('API cancel failed:', data.error);
+      }
+    } catch(e) {
+      console.warn('API cancel error:', e);
+    }
+  }
+
+  // Fallback: local storage cancel
+  if (!apiSuccess) {
+    if (typeof ZenPassBooking !== 'undefined') {
+      ZenPassBooking.cancel(id);
+    }
+    var booked = JSON.parse(localStorage.getItem('zenpass_booked') || '{}');
+    if (booked[id]) {
+      booked[id].status = 'cancelled';
+      booked[id].cancel_reason = reason;
+      localStorage.setItem('zenpass_booked', JSON.stringify(booked));
+    }
+  }
+
+  closeCancelModal();
+  renderBookings();
+  showToast('✅ 預約已取消');
+
+  btn.disabled = false;
+  btn.textContent = '確認取消';
+  btn.style.opacity = '1';
+}
+
+function showToast(text) {
+  var el = document.createElement('div');
+  el.style.cssText = 'position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:#18181b;color:#fff;padding:12px 24px;border-radius:12px;font-size:14px;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,0.2);max-width:90%;text-align:center;animation:fadeIn 0.3s ease';
+  el.textContent = text;
+  document.body.appendChild(el);
+  setTimeout(function() { el.style.opacity = '0'; el.style.transition = 'opacity 0.3s'; setTimeout(function() { el.remove(); }, 300); }, 2500);
+}
+
 function renderBookings() {
-  var data = (typeof ZenPassBooking !== 'undefined') ? ZenPassBooking.getAll() : (JSON.parse(localStorage.getItem('zenpass_booked') || '{}'));
   var container = document.getElementById('bookings-list');
-  var empty = document.getElementById('no-bookings');
+  showState('bookings-list', 'loading', { message: '正在載入預約...' });
+
+  var data;
+  try {
+    data = (typeof ZenPassBooking !== 'undefined') ? ZenPassBooking.getAll() : (JSON.parse(localStorage.getItem('zenpass_booked') || '{}'));
+  } catch(e) {
+    showError('bookings-list', '無法載入預約資料', renderBookings);
+    return;
+  }
+
+  var activeKeys = Object.keys(data).filter(function(id) { return data[id].status !== 'cancelled'; });
+
+  if (activeKeys.length === 0) {
+    showState('bookings-list', 'empty', {
+      icon: '📅',
+      title: '仲未有任何預約',
+      message: '快去探索全城精彩課程啦！',
+      action: { label: '立即探索課程 →', fn: 'window.location.href=\'explore.html\'' }
+    });
+    return;
+  }
+
+  hideState('bookings-list');
   container.innerHTML = '';
-  if (Object.keys(data).length === 0) { empty.style.display = 'block'; return; }
-  empty.style.display = 'none';
-  Object.keys(data).forEach(function(id) {
+  activeKeys.forEach(function(id) {
     var b = data[id];
     container.innerHTML += '' +
     '<div class="booking-card"><div style="display:flex;flex-direction:column;gap:16px">' +
     '<div style="display:flex;flex-direction:column;gap:12px">' +
-    '<div class="booking-title">' + (b.title || '') + '</div>' +
-    (b.instructor ? '<div class="booking-instructor">' + b.instructor + '</div>' : '') +
-    '<div class="booking-meta">\U0001f4c5 ' + (b.datetime || '\u672a\u6307\u5b9a\u6642\u9593') + '<br>\U0001f4cd ' + (b.location || '\u9999\u6e2f') + '</div>' +
+    '<div class="booking-title">' + escHtml(b.title || '') + '</div>' +
+    (b.instructor ? '<div class="booking-instructor">' + escHtml(b.instructor) + '</div>' : '') +
+    '<div class="booking-meta">📅 ' + (b.datetime || '未指定時間') + '<br>📍 ' + (b.location || '香港') + '</div>' +
     '</div>' +
     '<div style="display:flex;justify-content:space-between;align-items:center">' +
-    '<span class="booking-status">\u5df2\u78ba\u8a8d</span>' +
-    '<button onclick="cancelBooking(\'' + id + '\')" class="cancel-btn">\u2715 \u53d6\u6d88\u9810\u7d04</button>' +
+    '<span class="booking-status">已確認</span>' +
+    '<button onclick="showCancelModal(\'' + id + '\')" class="cancel-btn">✕ 取消預約</button>' +
     '</div></div></div>';
   });
+}
+
+function escHtml(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
  </script>
 <script src="js/booking-sync.js"></script>

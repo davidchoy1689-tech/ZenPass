@@ -6,15 +6,15 @@
 const express = require("express");
 const router = express.Router();
 const path = require("path");
-const Database = require("better-sqlite3");
+const { getDb } = require("../services/database");
 
 const DB_PATH = path.join(__dirname, "..", "..", "data", "zenpass.db");
 
 // ===== Helper: get all pricing config =====
 function getAllConfig() {
-  const db = new Database(DB_PATH);
+  const db = getDb();
   const rows = db.prepare("SELECT key, value FROM pricing_config").all();
-  db.close();
+
   const config = {};
   rows.forEach((r) => {
     try {
@@ -28,11 +28,11 @@ function getAllConfig() {
 
 // ===== Helper: get pricing config by category =====
 function getConfigByCategory(category) {
-  const db = new Database(DB_PATH);
+  const db = getDb();
   const rows = db
     .prepare("SELECT key, value, label FROM pricing_config WHERE category = ?")
     .all(category);
-  db.close();
+
   const result = {};
   rows.forEach((r) => {
     try {
@@ -164,13 +164,13 @@ router.get("/packages", (req, res) => {
 // ===== GET /api/admin/pricing — 管理員睇全部定價設定 =====
 router.get("/admin/pricing", (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     const rows = db
       .prepare(
         "SELECT key, value, label, category FROM pricing_config ORDER BY category, key",
       )
       .all();
-    db.close();
+
     // Group by category
     const grouped = {};
     rows.forEach((r) => {
@@ -196,7 +196,7 @@ router.put("/admin/pricing", (req, res) => {
       return res.status(400).json({ error: "請提供更新資料" });
     }
 
-    const db = new Database(DB_PATH);
+    const db = getDb();
     const update = db.prepare(
       "UPDATE pricing_config SET value = ?, updated_at = datetime('now') WHERE key = ?",
     );
@@ -211,7 +211,6 @@ router.put("/admin/pricing", (req, res) => {
     });
 
     const updatedCount = updateMany();
-    db.close();
 
     res.json({ success: true, updated: updatedCount });
   } catch (err) {
@@ -220,12 +219,11 @@ router.put("/admin/pricing", (req, res) => {
   }
 });
 
-
 // ===== GET /api/pricing/dynamic — 動態時段定價 =====
 // 根據剩餘名額自動調整 Credit 消耗
 router.get('/dynamic', function(req, res) {
   try {
-    var db = new Database(DB_PATH);
+    var db = getDb();
     var now = new Date().toISOString();
     
     // Get upcoming schedules with enrollment data
@@ -308,7 +306,6 @@ router.get('/dynamic', function(req, res) {
       };
     });
 
-    db.close();
     res.json({ schedules: results, rules: {
       peak_hours: peakThreshold + ':00-' + peakEndThreshold + ':00',
       off_peak_days: ['Sat', 'Sun'],

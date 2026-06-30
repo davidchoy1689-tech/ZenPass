@@ -12,12 +12,11 @@
 const express = require("express");
 const path = require("path");
 const { v4: uuidv4 } = require("uuid");
-const Database = require("better-sqlite3");
+const { getDb } = require("../services/database");
 const { authenticateToken, optionalAuth } = require("../middleware/auth");
 const { writeBlock } = require("../services/blockchain-audit");
 
 const router = express.Router();
-const DB_PATH = process.env.DB_PATH || path.resolve(__dirname, "../../data/zenpass.db");
 
 // ===== POST /api/ratings — 提交教練評分 =====
 router.post("/", authenticateToken, (req, res) => {
@@ -34,7 +33,7 @@ router.post("/", authenticateToken, (req, res) => {
       return res.status(400).json({ error: "評分必須為 1-5" });
     }
 
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.pragma("foreign_keys = ON");
 
     // Verify booking exists and belongs to this user
@@ -48,24 +47,24 @@ router.post("/", authenticateToken, (req, res) => {
       .get(booking_id);
 
     if (!booking) {
-      db.close();
+
       return res.status(404).json({ error: "預約記錄不存在" });
     }
 
     if (booking.user_id !== req.user.id) {
-      db.close();
+
       return res.status(403).json({ error: "你無權限評分此預約" });
     }
 
     // Must be attended
     if (booking.status !== "attended") {
-      db.close();
+
       return res.status(400).json({ error: "只能對已出席嘅課程評分" });
     }
 
     // Verify coach_id matches
     if (booking.coach_id !== coach_id) {
-      db.close();
+
       return res.status(400).json({ error: "教練 ID 與課程不符" });
     }
 
@@ -82,7 +81,7 @@ router.post("/", authenticateToken, (req, res) => {
       .get(coach_id, req.user.id, monthStartStr);
 
     if (monthCount.count > 0) {
-      db.close();
+
       return res.status(400).json({ error: "你今個月已經評過呢位教練，每月只能評分一次" });
     }
 
@@ -97,7 +96,7 @@ router.post("/", authenticateToken, (req, res) => {
       const now = Date.now();
       const hoursPassed = (now - createdTime) / (1000 * 60 * 60);
       if (hoursPassed > 48) {
-        db.close();
+
         return res.status(400).json({ error: "評分已超過 48 小時，無法修改" });
       }
 
@@ -124,7 +123,6 @@ router.post("/", authenticateToken, (req, res) => {
         console.error("⚠️ Blockchain write failed (rating update):", bcErr.message);
       }
 
-      db.close();
       return res.json({ message: "評分已更新", id: existing.id, rating: ratingNum });
     }
 
@@ -158,8 +156,6 @@ router.post("/", authenticateToken, (req, res) => {
       console.error("⚠️ Blockchain write failed (rating):", bcErr.message);
     }
 
-    db.close();
-
     res.status(201).json({
       message: "評分已提交",
       id,
@@ -175,7 +171,7 @@ router.post("/", authenticateToken, (req, res) => {
 // ===== GET /api/ratings/coach/:coachId — 查詢教練評分 =====
 router.get("/coach/:coachId", optionalAuth, (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     const { page = 1, limit = 20 } = req.query;
     const offset = (parseInt(page) - 1) * parseInt(limit);
 
@@ -212,8 +208,6 @@ router.get("/coach/:coachId", optionalAuth, (req, res) => {
       .prepare("SELECT COUNT(*) as count FROM coach_ratings WHERE coach_id = ?")
       .get(req.params.coachId);
 
-    db.close();
-
     res.json({
       ratings,
       stats: stats || { total_ratings: 0, average_rating: 0 },
@@ -233,7 +227,7 @@ router.get("/coach/:coachId", optionalAuth, (req, res) => {
 // ===== GET /api/coaches/ranking — 教練排名（按平均評分）=====
 router.get("/ranking", optionalAuth, (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     const { limit = 20, category } = req.query;
 
     let whereClause = "WHERE u.is_coach = 1";
@@ -275,8 +269,6 @@ router.get("/ranking", optionalAuth, (req, res) => {
          LIMIT ?`,
       )
       .all(...params, parseInt(limit));
-
-    db.close();
 
     res.json({
       coaches,

@@ -7,12 +7,11 @@
 
 const express = require("express");
 const { v4: uuidv4 } = require("uuid");
-const Database = require("better-sqlite3");
+const { getDb } = require("../services/database");
 const { authenticateToken } = require("../middleware/auth");
 const { writeBlock } = require("../services/blockchain-audit");
 
 const router = express.Router();
-const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
 
 /**
  * 香港18區關鍵字對照表
@@ -126,7 +125,7 @@ function detectDistrict(address) {
  * 喺關鍵動作（簽到、上堂、評價等）完成後自動觸發
  */
 function checkAndAwardBadges(userId) {
-  const db = new Database(DB_PATH);
+  const db = getDb();
   db.pragma("foreign_keys = ON");
   const newBadges = [];
 
@@ -319,7 +318,7 @@ function checkAndAwardBadges(userId) {
   } catch (err) {
     console.error("勳章檢查錯誤:", err);
   } finally {
-    db.close();
+
   }
 
   return newBadges;
@@ -328,7 +327,7 @@ function checkAndAwardBadges(userId) {
 // ===== GET /api/badges — 取所有勳章定義 =====
 router.get("/", authenticateToken, (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.pragma("foreign_keys = ON");
 
     const badges = db
@@ -363,8 +362,6 @@ router.get("/", authenticateToken, (req, res) => {
         ownedBadges.find((o) => o.badge_id === b.id)?.earned_at || null,
     }));
 
-    db.close();
-
     res.json({
       badges: enriched,
       total: badges.length,
@@ -379,7 +376,7 @@ router.get("/", authenticateToken, (req, res) => {
 // ===== GET /api/badges/mine — 取用戶已獲得勳章 =====
 router.get("/mine", authenticateToken, (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.pragma("foreign_keys = ON");
 
     const badges = db
@@ -395,8 +392,6 @@ router.get("/mine", authenticateToken, (req, res) => {
       .all(req.user.id);
 
     const stats = db.prepare("SELECT COUNT(*) as total FROM badges").get();
-
-    db.close();
 
     res.json({ badges, total: stats.total, earned: badges.length });
   } catch (err) {
@@ -422,7 +417,7 @@ router.post("/check", authenticateToken, (req, res) => {
 // ===== GET /api/badges/progress — 勳章進度 =====
 router.get("/progress", authenticateToken, (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.pragma("foreign_keys = ON");
 
     const user = db
@@ -433,7 +428,7 @@ router.get("/progress", authenticateToken, (req, res) => {
       )
       .get(req.user.id);
     if (!user) {
-      db.close();
+
       return res.status(404).json({ error: "用戶不存在" });
     }
 
@@ -510,8 +505,6 @@ router.get("/progress", authenticateToken, (req, res) => {
       )
       .all(req.user.id);
 
-    db.close();
-
     res.json({
       stats: {
         total_bookings: bookingCount.count,
@@ -536,7 +529,7 @@ router.get("/progress", authenticateToken, (req, res) => {
 // ===== GET /api/badges/profile/:userId — 公開勳章牆（畀其他人睇）=====
 router.get("/profile/:userId", (req, res) => {
   try {
-    const db = new Database(DB_PATH);
+    const db = getDb();
     db.pragma("foreign_keys = ON");
 
     const badges = db
@@ -552,7 +545,6 @@ router.get("/profile/:userId", (req, res) => {
       .all(req.params.userId);
 
     const count = badges.length;
-    db.close();
 
     res.json({ badges, count });
   } catch (err) {

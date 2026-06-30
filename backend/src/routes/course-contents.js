@@ -5,18 +5,10 @@
 
 const express = require("express");
 const router = express.Router();
-const Database = require("better-sqlite3");
+const { getDb } = require("../services/database");
 const { v4: uuidv4 } = require("uuid");
 const { authenticateToken, requireAdmin } = require("../middleware/auth");
 const { writeBlock } = require("../services/blockchain-audit");
-
-const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
-
-function getDb() {
-  const db = new Database(DB_PATH);
-  db.pragma("foreign_keys = ON");
-  return db;
-}
 
 // ===== GET /api/course-contents — 全部課程內容列表 =====
 router.get("/", (req, res) => {
@@ -39,7 +31,6 @@ router.get("/", (req, res) => {
     sql += " ORDER BY cc.created_at DESC";
 
     const data = db.prepare(sql).all(...params);
-    db.close();
 
     // Parse JSON fields
     const parsed = data.map((row) => ({
@@ -69,8 +60,6 @@ router.get("/:id", (req, res) => {
          WHERE cc.id = ?`,
       )
       .get(req.params.id);
-
-    db.close();
 
     if (!row) {
       return res.status(404).json({ error: "course_contents not found" });
@@ -125,7 +114,7 @@ router.post("/", authenticateToken, requireAdmin, (req, res) => {
       .prepare("SELECT id FROM classes WHERE id = ?")
       .get(course_id);
     if (!courseExists) {
-      db.close();
+
       return res.status(400).json({ error: "course_id does not exist" });
     }
 
@@ -172,8 +161,6 @@ router.post("/", authenticateToken, requireAdmin, (req, res) => {
       console.error("⚠️ Blockchain write failed (course_content create):", bcErr.message);
     }
 
-    db.close();
-
     res.status(201).json({
       data: {
         id,
@@ -206,7 +193,7 @@ router.put("/:id", authenticateToken, requireAdmin, (req, res) => {
       .get(req.params.id);
 
     if (!existing) {
-      db.close();
+
       return res.status(404).json({ error: "course_contents not found" });
     }
 
@@ -243,7 +230,7 @@ router.put("/:id", authenticateToken, requireAdmin, (req, res) => {
     }
 
     if (updates.length === 0) {
-      db.close();
+
       return res.status(400).json({ error: "No fields to update" });
     }
 
@@ -277,8 +264,6 @@ router.put("/:id", authenticateToken, requireAdmin, (req, res) => {
       console.error("⚠️ Blockchain write failed (course_content update):", bcErr.message);
     }
 
-    db.close();
-
     res.json({ data: updated });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -307,8 +292,6 @@ router.delete("/:id", authenticateToken, requireAdmin, (req, res) => {
     } catch (bcErr) {
       console.error("⚠️ Blockchain write failed (course_content delete):", bcErr.message);
     }
-
-    db.close();
 
     if (result.changes === 0) {
       return res.status(404).json({ error: "course_contents not found" });

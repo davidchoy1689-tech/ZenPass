@@ -13,11 +13,9 @@
  * - balance 用 double-entry 方式確保準確性
  */
 
-const Database = require("better-sqlite3");
+const { getDb } = require("./database");
 const { v4: uuidv4 } = require("uuid");
 const { writeBlock } = require("./blockchain-audit");
-
-const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
 
 /**
  * 教練收入自動入帳
@@ -39,7 +37,7 @@ function creditCoachEarning({
   description,
   bookingId,
 }) {
-  const db = new Database(DB_PATH);
+  const db = getDb();
   db.pragma("foreign_keys = ON");
 
   try {
@@ -114,7 +112,6 @@ function creditCoachEarning({
       console.error("⚠️ Blockchain write failed (credit wallet):", bcErr.message);
     }
 
-    db.close();
     return {
       success: true,
       transaction_id: txId,
@@ -122,7 +119,7 @@ function creditCoachEarning({
       balance_after: balanceAfter,
     };
   } catch (err) {
-    db.close();
+
     console.error("[WALLET] creditCoachEarning error:", err.message);
     return { success: false, error: err.message };
   }
@@ -144,7 +141,7 @@ function debitWallet({
   sourceType = "",
   sourceId = "",
 }) {
-  const db = new Database(DB_PATH);
+  const db = getDb();
   db.pragma("foreign_keys = ON");
 
   try {
@@ -152,7 +149,7 @@ function debitWallet({
       .prepare("SELECT wallet_balance FROM users WHERE id = ?")
       .get(userId);
     if (!user) {
-      db.close();
+
       return { success: false, error: "用戶不存在" };
     }
 
@@ -160,7 +157,7 @@ function debitWallet({
     const totalDebit = amount + fee;
 
     if (balanceBefore < totalDebit) {
-      db.close();
+
       return {
         success: false,
         error: `餘額不足 (需要 $${totalDebit}，現有 $${balanceBefore})`,
@@ -214,7 +211,6 @@ function debitWallet({
       console.error("⚠️ Blockchain write failed (debit wallet):", bcErr.message);
     }
 
-    db.close();
     return {
       success: true,
       transaction_id: txId,
@@ -223,7 +219,7 @@ function debitWallet({
       fee,
     };
   } catch (err) {
-    db.close();
+
     console.error("[WALLET] debitWallet error:", err.message);
     return { success: false, error: err.message };
   }
@@ -233,7 +229,7 @@ function debitWallet({
  * 查詢錢包結餘（含銀包+教練收入摘要）
  */
 function getWalletSummary(userId) {
-  const db = new Database(DB_PATH);
+  const db = getDb();
   db.pragma("foreign_keys = ON");
 
   try {
@@ -244,7 +240,7 @@ function getWalletSummary(userId) {
       .get(userId);
 
     if (!user) {
-      db.close();
+
       return null;
     }
 
@@ -259,8 +255,6 @@ function getWalletSummary(userId) {
       )
       .all(userId);
 
-    db.close();
-
     return {
       wallet_balance: user.wallet_balance || 0,
       total_earnings: user.total_earnings || 0,
@@ -273,7 +267,7 @@ function getWalletSummary(userId) {
       recent_transactions: recentTxs,
     };
   } catch (err) {
-    db.close();
+
     console.error("[WALLET] getWalletSummary error:", err.message);
     return null;
   }
@@ -290,7 +284,7 @@ function getTransactions({
   startDate,
   endDate,
 }) {
-  const db = new Database(DB_PATH);
+  const db = getDb();
   db.pragma("foreign_keys = ON");
 
   try {
@@ -354,10 +348,9 @@ function getTransactions({
       )
       .get(...params);
 
-    db.close();
     return { transactions: enriched, total: total.count };
   } catch (err) {
-    db.close();
+
     console.error("[WALLET] getTransactions error:", err.message);
     return { transactions: [], total: 0, error: err.message };
   }
@@ -367,7 +360,7 @@ function getTransactions({
  * 管理員：所有教練錢包總覽
  */
 function getAllCoachWallets({ limit = 50, offset = 0 }) {
-  const db = new Database(DB_PATH);
+  const db = getDb();
   db.pragma("foreign_keys = ON");
 
   try {
@@ -390,10 +383,9 @@ function getAllCoachWallets({ limit = 50, offset = 0 }) {
       .prepare("SELECT COUNT(*) as count FROM users WHERE is_coach = 1")
       .get();
 
-    db.close();
     return { wallets, total: total.count };
   } catch (err) {
-    db.close();
+
     console.error("[WALLET] getAllCoachWallets error:", err.message);
     return { wallets: [], total: 0, error: err.message };
   }
