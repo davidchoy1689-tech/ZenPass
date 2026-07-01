@@ -1,0 +1,444 @@
+<!doctype html>
+<html lang="zh-HK">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" href="favicon.png" type="image/png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5" />
+    <meta name="theme-color" content="#FF6B35" />
+    <title>收入 Dashboard — ZenPass 管理</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+    <link rel="stylesheet" href="css/zenpass.css?v=2" />
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      :root {
+        --primary: #c94420;
+        --primary-light: #fef2ee;
+        --dark: #1a1a2e;
+        --gray: #6b7280;
+        --gray-light: #e5e7eb;
+        --green: #059669;
+        --red: #dc2626;
+        --yellow: #f59e0b;
+        --purple: #7c3aed;
+      }
+      body {
+        font-family: 'Noto Sans TC', 'Inter', -apple-system, sans-serif;
+        background: linear-gradient(135deg, #f5f5f7 0%, #eef2f7 100%);
+        color: var(--dark);
+        min-height: 100vh;
+        padding: 20px;
+      }
+      .container { max-width: 1200px; margin: 0 auto; }
+      
+      /* Header */
+      .rev-header {
+        display: flex; justify-content: space-between; align-items: center;
+        margin-bottom: 24px; flex-wrap: wrap; gap: 12px;
+      }
+      .rev-header h1 { font-size: 24px; font-weight: 700; }
+      .rev-header h1 span { color: var(--primary); }
+      .rev-header .sub { font-size: 13px; color: var(--gray); margin-top: 2px; }
+      .rev-header a {
+        padding: 8px 16px; border-radius: 8px; text-decoration: none;
+        font-size: 13px; font-weight: 600;
+        background: var(--dark); color: #fff; transition: opacity 0.2s;
+      }
+      .rev-header a:hover { opacity: 0.85; }
+
+      /* KPI Cards - Glassmorphism */
+      .kpi-grid {
+        display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 24px;
+      }
+      @media (max-width: 768px) { .kpi-grid { grid-template-columns: repeat(2, 1fr); } }
+      @media (max-width: 480px) { .kpi-grid { grid-template-columns: 1fr; } }
+      .kpi-card {
+        background: rgba(255,255,255,0.75);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border: 1px solid rgba(255,255,255,0.3);
+        border-radius: 16px; padding: 20px;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+        transition: transform 0.2s, box-shadow 0.2s;
+      }
+      .kpi-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+      }
+      .kpi-card .kpi-icon { font-size: 24px; margin-bottom: 8px; }
+      .kpi-card .kpi-value { font-size: 28px; font-weight: 800; line-height: 1.2; margin-bottom: 4px; }
+      .kpi-card .kpi-label { font-size: 12px; color: var(--gray); font-weight: 500; }
+      .kpi-card .kpi-change { font-size: 11px; margin-top: 4px; }
+      .kpi-card .kpi-change.up { color: var(--green); }
+      .kpi-card .kpi-change.down { color: var(--red); }
+
+      /* Charts Grid */
+      .charts-grid {
+        display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;
+      }
+      @media (max-width: 768px) { .charts-grid { grid-template-columns: 1fr; } }
+      
+      /* Card */
+      .card {
+        background: rgba(255,255,255,0.75);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border: 1px solid rgba(255,255,255,0.3);
+        border-radius: 16px; padding: 20px;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+      }
+      .card h3 {
+        font-size: 15px; font-weight: 600; margin-bottom: 14px;
+        display: flex; align-items: center; gap: 8px;
+      }
+      
+      /* Table */
+      .table-wrap { overflow-x: auto; }
+      table { width: 100%; border-collapse: collapse; font-size: 13px; }
+      th {
+        text-align: left; padding: 10px 12px; background: rgba(0,0,0,0.02);
+        font-weight: 600; color: var(--gray); font-size: 11px;
+        border-bottom: 1px solid var(--gray-light); white-space: nowrap;
+      }
+      td { padding: 10px 12px; border-bottom: 1px solid rgba(0,0,0,0.04); }
+      tr:hover td { background: rgba(201,68,32,0.03); }
+      .tx-type {
+        display: inline-block; font-size: 11px; padding: 2px 8px;
+        border-radius: 99px; font-weight: 600;
+      }
+      .tx-type.membership { background: #e8f5e9; color: #2e7d32; }
+      .tx-type.credits_topup { background: #e3f2fd; color: #1565c0; }
+      .tx-type.single_booking { background: #fff3e0; color: #e65100; }
+      .tx-type.corporate { background: #f3e5f5; color: #7b1fa2; }
+
+      /* Loading */
+      .loading {
+        text-align: center; padding: 80px 20px; color: var(--gray);
+      }
+      .loading .spinner {
+        display: inline-block; width: 40px; height: 40px;
+        border: 3px solid var(--gray-light); border-top-color: var(--primary);
+        border-radius: 50%; animation: spin 0.8s linear infinite;
+        margin-bottom: 16px;
+      }
+      @keyframes spin { to { transform: rotate(360deg); } }
+
+      /* Error */
+      .error-card {
+        background: #fef2f2; border: 1px solid #fecaca;
+        border-radius: 12px; padding: 30px; text-align: center; margin: 40px auto; max-width: 400px;
+      }
+      .error-card h3 { color: var(--red); margin-bottom: 8px; }
+      .error-card p { color: var(--gray); font-size: 14px; margin-bottom: 16px; }
+
+      .no-data { text-align: center; padding: 30px; color: var(--gray); font-size: 13px; }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="rev-header">
+        <div>
+          <h1>💰 <span>收入</span>Dashboard</h1>
+          <div class="sub" id="lastUpdated">載入中...</div>
+        </div>
+        <a href="admin.html">← 返回管理後台</a>
+      </div>
+
+      <div id="loadingState" class="loading">
+        <div class="spinner"></div>
+        <div>正在載入收入數據...</div>
+      </div>
+
+      <div id="errorState" style="display:none">
+        <div class="error-card">
+          <h3>無法載入</h3>
+          <p id="errorMessage">請確認你已登入管理員帳戶</p>
+          <a href="admin.html" style="color:#dc2626;font-weight:600;text-decoration:underline;">返回管理後台</a>
+        </div>
+      </div>
+
+      <div id="dashboardContent" style="display:none">
+        <!-- KPI Cards -->
+        <div class="kpi-grid" id="kpiGrid"></div>
+
+        <!-- Charts -->
+        <div class="charts-grid">
+          <div class="card">
+            <h3>📈 每月收入趨勢</h3>
+            <div style="position:relative;height:260px">
+              <canvas id="revenueTrendChart"></canvas>
+            </div>
+            <div class="no-data" id="noTrend" style="display:none">暫無收入數據</div>
+          </div>
+          <div class="card">
+            <h3>🥧 收入佔比</h3>
+            <div style="position:relative;height:260px">
+              <canvas id="revenuePieChart"></canvas>
+            </div>
+            <div class="no-data" id="noPie" style="display:none">暫無收入數據</div>
+          </div>
+        </div>
+
+        <!-- Recent Transactions -->
+        <div class="card">
+          <h3>📋 最近交易</h3>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>用戶</th>
+                  <th>類型</th>
+                  <th>金額</th>
+                  <th>方式</th>
+                  <th>描述</th>
+                  <th>日期</th>
+                </tr>
+              </thead>
+              <tbody id="txTableBody"></tbody>
+            </table>
+          </div>
+          <div class="no-data" id="noTx" style="display:none">暫無交易記錄</div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const API_BASE = '/api';
+
+      function getToken() {
+        return localStorage.getItem('zenpass_token') || sessionStorage.getItem('zenpass_token');
+      }
+      function getAuthHeaders() {
+        return { Authorization: 'Bearer ' + getToken(), 'Content-Type': 'application/json' };
+      }
+
+      let trendChart = null;
+      let pieChart = null;
+
+      function showLoading() {
+        document.getElementById('loadingState').style.display = '';
+        document.getElementById('errorState').style.display = 'none';
+        document.getElementById('dashboardContent').style.display = 'none';
+      }
+      function showError(msg) {
+        document.getElementById('loadingState').style.display = 'none';
+        document.getElementById('errorState').style.display = '';
+        document.getElementById('errorMessage').textContent = msg || '無法載入收入數據';
+      }
+      function showDashboard() {
+        document.getElementById('loadingState').style.display = 'none';
+        document.getElementById('errorState').style.display = 'none';
+        document.getElementById('dashboardContent').style.display = '';
+      }
+
+      function formatHKD(n) {
+        return 'HK$' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+      }
+      function formatDate(isoStr) {
+        if (!isoStr) return '—';
+        const d = new Date(isoStr);
+        return d.getFullYear() + '/' + (d.getMonth()+1) + '/' + d.getDate() + ' ' + String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+      }
+
+      async function loadDashboard() {
+        showLoading();
+        const token = getToken();
+        if (!token) {
+          showError('請先以管理員身份登入');
+          return;
+        }
+
+        try {
+          const resp = await fetch(API_BASE + '/admin/revenue-dashboard', { headers: getAuthHeaders() });
+          if (!resp.ok) {
+            const err = await resp.json().catch(() => ({}));
+            if (resp.status === 403) showError('無權限 — 需要管理員帳戶');
+            else showError(err.error || '伺服器錯誤');
+            return;
+          }
+          const data = await resp.json();
+          renderDashboard(data);
+          showDashboard();
+        } catch (e) {
+          showError('網絡錯誤，請稍後再試');
+        }
+      }
+
+      function renderDashboard(data) {
+        document.getElementById('lastUpdated').textContent = '更新於 ' + new Date().toLocaleString('zh-HK');
+
+        // KPI Cards
+        renderKPIs(data);
+
+        // Charts
+        renderTrendChart(data.monthlyRevenue || []);
+        renderPieChart(data.revenueBreakdown || []);
+
+        // Transactions
+        renderTransactions(data.recentTransactions || []);
+      }
+
+      function renderKPIs(data) {
+        const grid = document.getElementById('kpiGrid');
+        const cards = [
+          { icon: '💳', value: formatHKD(data.mrr || 0), label: 'MRR（月度經常性收入）', color: '#059669' },
+          { icon: '💰', value: formatHKD(data.totalRevenue || 0), label: '總收入（至今）', color: '#c94420' },
+          { icon: '👤', value: (data.activeSubscribers || 0).toLocaleString(), label: '活躍訂閱者', color: '#3b82f6' },
+          { icon: '📊', value: formatHKD(data.avgRevenuePerUser || 0), label: '平均每用戶收入', color: '#7c3aed' }
+        ];
+
+        grid.innerHTML = cards.map(c =>
+          '<div class="kpi-card">' +
+            '<div class="kpi-icon">' + c.icon + '</div>' +
+            '<div class="kpi-value" style="color:' + c.color + '">' + c.value + '</div>' +
+            '<div class="kpi-label">' + c.label + '</div>' +
+          '</div>'
+        ).join('');
+      }
+
+      function renderTrendChart(monthlyData) {
+        const ctx = document.getElementById('revenueTrendChart');
+        if (!ctx) return;
+
+        const noTrend = document.getElementById('noTrend');
+        if (!monthlyData || monthlyData.length === 0) {
+          if (noTrend) noTrend.style.display = '';
+          if (ctx) ctx.parentElement.style.display = 'none';
+          return;
+        }
+        if (noTrend) noTrend.style.display = 'none';
+        ctx.parentElement.style.display = '';
+
+        if (trendChart) trendChart.destroy();
+
+        const labels = monthlyData.map(d => d.month);
+        const subscription = monthlyData.map(d => d.subscription || 0);
+        const topup = monthlyData.map(d => d.topup || 0);
+        const corporate = monthlyData.map(d => d.corporate || 0);
+
+        trendChart = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: labels,
+            datasets: [
+              { label: '會籍', data: subscription, backgroundColor: '#059669', borderRadius: 3 },
+              { label: '增值', data: topup, backgroundColor: '#3b82f6', borderRadius: 3 },
+              { label: '企業', data: corporate, backgroundColor: '#7c3aed', borderRadius: 3 }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: 'bottom',
+                labels: { font: { size: 11 }, boxWidth: 12, padding: 10 }
+              }
+            },
+            scales: {
+              x: { stacked: true, ticks: { font: { size: 10 } } },
+              y: {
+                stacked: true,
+                beginAtZero: true,
+                ticks: { font: { size: 10 }, callback: v => 'HK$' + (v/1000).toFixed(0) + 'k' },
+                grid: { color: 'rgba(0,0,0,0.05)' }
+              }
+            }
+          }
+        });
+      }
+
+      function renderPieChart(breakdown) {
+        const ctx = document.getElementById('revenuePieChart');
+        if (!ctx) return;
+
+        const noPie = document.getElementById('noPie');
+        if (!breakdown || breakdown.length === 0) {
+          if (noPie) noPie.style.display = '';
+          ctx.parentElement.style.display = 'none';
+          return;
+        }
+        if (noPie) noPie.style.display = 'none';
+        ctx.parentElement.style.display = '';
+
+        if (pieChart) pieChart.destroy();
+
+        const colors = ['#059669', '#3b82f6', '#7c3aed', '#f59e0b'];
+
+        pieChart = new Chart(ctx, {
+          type: 'pie',
+          data: {
+            labels: breakdown.map(d => d.label),
+            datasets: [{
+              data: breakdown.map(d => d.amount > 0 ? d.amount : 0),
+              backgroundColor: colors.slice(0, breakdown.length),
+              borderWidth: 2,
+              borderColor: '#fff'
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: 'right',
+                labels: { font: { size: 11 }, boxWidth: 12, padding: 8 }
+              },
+              tooltip: {
+                callbacks: {
+                  label: function(ctx) {
+                    const item = breakdown[ctx.dataIndex];
+                    return item.label + ': ' + formatHKD(item.amount) + ' (' + item.percentage + '%)';
+                  }
+                }
+              }
+            }
+          }
+        });
+      }
+
+      function renderTransactions(tx) {
+        const tbody = document.getElementById('txTableBody');
+        const noTx = document.getElementById('noTx');
+
+        if (!tx || tx.length === 0) {
+          tbody.innerHTML = '';
+          noTx.style.display = '';
+          return;
+        }
+        noTx.style.display = 'none';
+
+        const typeStyles = {
+          membership: 'membership',
+          credits_topup: 'credits_topup',
+          single_booking: 'single_booking',
+          corporate: 'corporate'
+        };
+
+        const typeLabels = {
+          membership: '會籍',
+          credits_topup: '增值',
+          single_booking: '預約',
+          corporate: '企業'
+        };
+
+        tbody.innerHTML = tx.map(t => {
+          const typeClass = typeStyles[t.type] || '';
+          const typeLabel = typeLabels[t.type] || t.type;
+          return '<tr>' +
+            '<td><strong>' + (t.user_name || t.user_email || '—') + '</strong></td>' +
+            '<td><span class="tx-type ' + typeClass + '">' + typeLabel + '</span></td>' +
+            '<td><strong>' + formatHKD(t.amount) + '</strong></td>' +
+            '<td>' + (t.payment_method || '—') + '</td>' +
+            '<td style="font-size:12px;color:#6b7280">' + (t.description || '—') + '</td>' +
+            '<td style="font-size:11px;color:#9ca3af">' + formatDate(t.created_at) + '</td>' +
+          '</tr>';
+        }).join('');
+      }
+
+      document.addEventListener('DOMContentLoaded', loadDashboard);
+    </script>
+  </body>
+</html>

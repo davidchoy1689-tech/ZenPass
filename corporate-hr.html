@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5">
+  
+  <link rel="icon" type="image/png" href="icons/icon-96.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/zenpass.css?v=2">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: #f5f5f7;
+      color: #1a1a2e;
+      min-height: 100vh;
+    }
+    .hr-header {
+      background: linear-gradient(135deg, #1a1a2e 0%, #2d2d44 100%);
+      color: white;
+      padding: 20px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .hr-header h1 { font-size: 20px; font-weight: 700; }
+    .hr-header .company-name { font-size: 14px; opacity: 0.7; margin-top: 2px; }
+    .hr-header-actions { display: flex; gap: 8px; align-items: center; }
+    .hr-header-actions a {
+      color: white; text-decoration: none; font-size: 13px;
+      padding: 8px 16px; border-radius: 8px;
+      background: rgba(255,255,255,0.1); transition: background 0.2s;
+    }
+    .hr-header-actions a:hover { background: rgba(255,255,255,0.2); }
+    .hr-header-actions .btn-logout { background: rgba(239,68,68,0.3); }
+    .hr-header-actions .btn-logout:hover { background: rgba(239,68,68,0.5); }
+
+    .container { max-width: 1200px; margin: 0 auto; padding: 20px 16px; }
+
+    /* Loading */
+    .hr-loading {
+      text-align: center; padding: 60px 20px; color: #4b5563;
+    }
+    .hr-loading .spinner {
+      display: inline-block; width: 40px; height: 40px;
+      border: 3px solid #e5e7eb; border-top-color: #c94420;
+      border-radius: 50%; animation: spin 0.8s linear infinite;
+      margin-bottom: 16px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Overview Cards */
+    .overview-grid {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px;
+    }
+    @media (max-width: 768px) { .overview-grid { grid-template-columns: repeat(2, 1fr); } }
+    .ov-card {
+      background: white; border-radius: 14px; padding: 18px 16px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06); border: 1px solid rgba(0,0,0,0.04);
+    }
+    .ov-card .ov-icon { font-size: 28px; margin-bottom: 8px; }
+    .ov-card .ov-num { font-size: 28px; font-weight: 700; line-height: 1.2; margin-bottom: 4px; }
+    .ov-card .ov-label { font-size: 12px; color: #4b5563; font-weight: 500; }
+
+    /* Progress Bar */
+    .credit-section {
+      background: white; border-radius: 14px; padding: 20px;
+      margin-bottom: 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); border: 1px solid rgba(0,0,0,0.04);
+    }
+    .credit-section h3 { font-size: 15px; font-weight: 600; margin-bottom: 12px; }
+    .credit-bar-wrap { margin-bottom: 8px; }
+    .credit-bar {
+      height: 10px; background: #e5e7eb; border-radius: 5px; overflow: hidden;
+    }
+    .credit-bar-fill {
+      height: 100%; border-radius: 5px;
+      background: linear-gradient(90deg, #22c55e, #16a34a);
+      transition: width 0.6s ease;
+    }
+    .credit-stats {
+      display: flex; justify-content: space-between; font-size: 13px; color: #4b5563;
+    }
+    .credit-stats strong { color: #1a1a2e; }
+
+    /* Section */
+    .section-wrap {
+      background: white; border-radius: 14px; padding: 20px;
+      margin-bottom: 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); border: 1px solid rgba(0,0,0,0.04);
+    }
+    .section-wrap h3 {
+      font-size: 15px; font-weight: 600; margin-bottom: 14px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .section-wrap h3 .badge {
+      font-size: 11px; font-weight: 500; background: #f3f4f6; color: #4b5563;
+      padding: 2px 8px; border-radius: 99px; margin-left: 4px;
+    }
+
+    /* Employee Table */
+    .table-wrap { overflow-x: auto; }
+    table.hr-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    table.hr-table th {
+      text-align: left; padding: 10px 12px; background: #f9fafb;
+      font-weight: 600; color: #4b5563; font-size: 12px;
+      border-bottom: 1px solid #e5e7eb; white-space: nowrap;
+    }
+    table.hr-table td {
+      padding: 10px 12px; border-bottom: 1px solid #f3f4f6;
+      vertical-align: middle;
+    }
+    table.hr-table tr:hover td { background: #f9fafb; }
+    table.hr-table .employee-name { font-weight: 600; color: #1a1a2e; }
+    table.hr-table .employee-email { font-size: 12px; color: #4b5563; }
+    .usage-cell { font-weight: 600; }
+    .usage-cell.low { color: #059669; }
+    .usage-cell.med { color: #d97706; }
+    .usage-cell.high { color: #dc2626; }
+
+    /* Booking List */
+    .booking-item {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 10px 0; border-bottom: 1px solid #f3f4f6; gap: 12px;
+    }
+    .booking-item:last-child { border-bottom: none; }
+    .booking-item .bi-left { flex: 1; min-width: 0; }
+    .booking-item .bi-user { font-size: 14px; font-weight: 600; }
+    .booking-item .bi-class { font-size: 12px; color: #4b5563; margin-top: 2px; }
+    .booking-item .bi-venue { font-size: 11px; color: #9ca3af; }
+    .booking-item .bi-right { text-align: right; white-space: nowrap; }
+    .booking-item .bi-date { font-size: 11px; color: #4b5563; }
+    .badge-status {
+      display: inline-block; font-size: 11px; padding: 2px 8px;
+      border-radius: 99px; font-weight: 600;
+    }
+    .badge-status.confirmed { background: #ecfdf5; color: #059669; }
+    .badge-status.attended { background: #e8f5e9; color: #2e7d32; }
+    .badge-status.cancelled { background: #fef2f2; color: #dc2626; }
+    .badge-status.pending_payment { background: #fef3c7; color: #92400e; }
+
+    /* Month chart */
+    .chart-bars {
+      display: flex; align-items: flex-end; gap: 3px; height: 100px; padding: 4px 0;
+    }
+    .chart-bar {
+      flex: 1; border-radius: 3px 3px 0 0;
+      background: linear-gradient(180deg, #c94420, #e65c30);
+      min-height: 2px; transition: height 0.4s ease; position: relative;
+    }
+    .chart-bar .bar-label {
+      position: absolute; top: -16px; left: 50%; transform: translateX(-50%);
+      font-size: 9px; color: #4b5563; white-space: nowrap;
+    }
+    .chart-xlabels {
+      display: flex; gap: 3px; margin-top: 4px;
+    }
+    .chart-xlabels span {
+      flex: 1; text-align: center; font-size: 9px; color: #9ca3af;
+    }
+
+    /* No data */
+    .no-data { text-align: center; padding: 30px 20px; color: #4b5563; font-size: 14px; }
+    .no-data .nd-icon { font-size: 40px; margin-bottom: 10px; display: block; }
+
+    /* Error card */
+    .error-card {
+      background: #fef2f2; border: 1px solid #fecaca; border-radius: 12px;
+      padding: 24px; text-align: center; margin: 40px auto; max-width: 400px;
+    }
+    .error-card h3 { color: #dc2626; margin-bottom: 8px; font-size: 16px; }
+    .error-card p { color: #4b5563; font-size: 14px; margin-bottom: 16px; }
+    .error-card a {
+      display: inline-block; padding: 10px 24px; border-radius: 25px;
+      background: #c94420; color: white; text-decoration: none; font-size: 14px; font-weight: 600;
+    }
+
+    @media (max-width: 480px) {
+      .container { padding: 12px 10px; }
+      .hr-header { padding: 14px 16px; }
+      .hr-header h1 { font-size: 17px; }
+      .ov-card .ov-num { font-size: 22px; }
+      table.hr-table { font-size: 12px; }
+      table.hr-table th, table.hr-table td { padding: 8px 6px; }
+    }
+  </style>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+    <!-- Google tag (gtag.js) - GA4 -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-MKF5N4YLBM"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag() { dataLayer.push(arguments); }
+      gtag("js", new Date());
+      gtag("config", "G-MKF5N4YLBM");
+    </script>
+        <!-- SEO -->
+    <title>企業管理後台 — ZenPass 禪流</title>
+    <meta name="description" content="管理企業 Credit Pool、員工用量和預約記錄。">
+    <meta property="og:title" content="企業管理後台 — ZenPass 禪流">
+    <meta property="og:description" content="管理企業 Credit Pool、員工用量和預約記錄。">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="ZenPass 禪流">
+    <meta name="twitter:card" content="summary_large_image">
+</head>
+<body>
+  <div class="hr-header">
+    <div>
+      <h1>🏢 企業儀錶板</h1>
+      <div class="company-name" id="companyName">載入中...</div>
+    </div>
+    <div class="hr-header-actions">
+      <a href="my.html">👤 我的帳戶</a>
+      <a href="index.html">🏠 首頁</a>
+      <a href="login.html" class="btn-logout">🚪 登出</a>
+    </div>
+  </div>
+
+  <div class="container" id="app">
+    <div class="hr-loading" id="loadingState">
+      <div class="spinner"></div>
+      <div>正在載入企業資料...</div>
+    </div>
+
+    <div id="errorState" style="display:none">
+      <div class="error-card">
+        <h3 id="errorTitle">無法載入</h3>
+        <p id="errorMessage">請確認你已登入並為企業員工</p>
+        <a href="login.html">返回登入</a>
+      </div>
+    </div>
+
+    <div id="dashboardContent" style="display:none">
+      <!-- Overview Cards -->
+      <div class="overview-grid" id="overviewGrid"></div>
+
+      <!-- Credit Status -->
+      <div class="credit-section" id="creditSection">
+        <h3>📊 企業 Credits 狀態</h3>
+        <div class="credit-bar-wrap">
+          <div class="credit-bar">
+            <div class="credit-bar-fill" id="creditFill" style="width:0%"></div>
+          </div>
+        </div>
+        <div class="credit-stats">
+          <span>已使用: <strong id="creditUsed">0</strong></span>
+          <span>可用: <strong id="creditAvailable">0</strong></span>
+          <span>總額: <strong id="creditTotal">0</strong></span>
+        </div>
+      </div>
+
+      <!-- Employees Table -->
+      <div class="section-wrap" id="employeesSection">
+        <h3>👥 員工列表 <span class="badge" id="empCount">0 人</span></h3>
+        <div class="table-wrap">
+          <table class="hr-table">
+            <thead>
+              <tr>
+                <th>姓名</th>
+                <th>電郵</th>
+                <th>月限額</th>
+                <th>已使用</th>
+                <th>30天預約</th>
+                <th>最近到訪</th>
+              </tr>
+            </thead>
+            <tbody id="employeeTableBody"></tbody>
+          </table>
+        </div>
+        <div class="no-data" id="noEmployees" style="display:none">
+          <span class="nd-icon">👥</span> 暫無員工資料
+        </div>
+      </div>
+
+      <!-- Recent Bookings -->
+      <div class="section-wrap" id="bookingsSection">
+        <h3>📅 近期預約 <span class="badge" id="bookingCount">0</span></h3>
+        <div id="recentBookingList"></div>
+        <div class="no-data" id="noBookings" style="display:none">
+          <span class="nd-icon">📅</span> 最近30天未有預約
+        </div>
+      </div>
+
+      <!-- Wellness Dashboard Grid -->
+      <div class="wellness-grid">
+        <!-- Monthly Booking Bar Chart -->
+        <div class="section-wrap chart-card">
+          <h3>📊 每月預約趨勢 <span class="badge" id="totalBkBadge">0</span></h3>
+          <div style="position:relative;height:220px">
+            <canvas id="monthlyBookingChart"></canvas>
+          </div>
+          <div class="no-data" id="noChartMonthly" style="display:none">
+            <span class="nd-icon">📊</span> 暫無月度數據
+          </div>
+        </div>
+
+        <!-- Popular Categories Pie Chart -->
+        <div class="section-wrap chart-card">
+          <h3>🎯 最受歡迎運動</h3>
+          <div style="position:relative;height:220px">
+            <canvas id="categoryPieChart"></canvas>
+          </div>
+          <div class="no-data" id="noCategoryChart" style="display:none">
+            <span class="nd-icon">🎯</span> 暫無分類數據
+          </div>
+        </div>
+
+        <!-- Top Active Employees -->
+        <div class="section-wrap chart-card">
+          <h3>🏆 Top 活躍員工</h3>
+          <div id="topEmployeesList"></div>
+          <div class="no-data" id="noTopEmp" style="display:none">
+            <span class="nd-icon">🏆</span> 暫無排名數據
+          </div>
+        </div>
+
+        <!-- Credit Utilization & Usage Rate -->
+        <div class="section-wrap chart-card">
+          <h3>📈 本月使用率</h3>
+          <div id="creditUtilSection">
+            <div style="text-align:center;padding:20px 0">
+              <div style="font-size:48px;font-weight:800" id="utilPercent">0%</div>
+              <div style="font-size:13px;color:#4b5563;margin-top:8px">
+                <span id="utilUsed">0</span> / <span id="utilTotal">0</span> Credits 已使用
+              </div>
+              <div class="credit-bar" style="margin:12px auto;max-width:200px;height:12px">
+                <div class="credit-bar-fill" id="utilFill" style="width:0%"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Monthly Usage Chart (original) -->
+      <div class="section-wrap" id="chartSection">
+        <h3>📈 每日用量趨勢（最近30天）</h3>
+        <div id="monthlyChart"></div>
+        <div class="no-data" id="noChart" style="display:none">
+          <span class="nd-icon">📊</span> 暫無月度數據
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer style="text-align:center;padding:24px 16px;font-size:11px;color:#9ca3af;border-top:1px solid #e5e7eb;margin-top:32px"><script>copy; 2026 ZenPass 禪流 <script>middot; 香港康樂及體育有限公司 <script>middot; All rights reserved.</footer><script>
+    const API_BASE = '/api';
+
+    function getToken() {
+      return localStorage.getItem('zenpass_token') || sessionStorage.getItem('zenpass_token');
+    }
+    function getAuthHeaders() {
+      return { Authorization: 'Bearer ' + getToken(), 'Content-Type': 'application/json' };
+    }
+
+    function showLoading() {
+      document.getElementById('loadingState').style.display = '';
+      document.getElementById('errorState').style.display = 'none';
+      document.getElementById('dashboardContent').style.display = 'none';
+    }
+    function showError(title, msg) {
+      document.getElementById('loadingState').style.display = 'none';
+      document.getElementById('errorState').style.display = '';
+      document.getElementById('errorTitle').textContent = title || '無法載入';
+      document.getElementById('errorMessage').textContent = msg || '請確認你已登入並為企業員工';
+    }
+    function showDashboard() {
+      document.getElementById('loadingState').style.display = 'none';
+      document.getElementById('errorState').style.display = 'none';
+      document.getElementById('dashboardContent').style.display = '';
+    }
+
+    function escHtml(s) { if (!s) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+    function formatDate(isoStr) {
+      if (!isoStr) return '—';
+      const d = new Date(isoStr);
+      return d.getFullYear() + '/' + (d.getMonth()+1) + '/' + d.getDate();
+    }
+    function formatDateTime(isoStr) {
+      if (!isoStr) return '—';
+      const d = new Date(isoStr);
+      const dd = String(d.getDate()).padStart(2,'0');
+      const mm = String(d.getMonth()+1).padStart(2,'0');
+      return d.getFullYear() + '/' + mm + '/' + dd + ' ' + String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+    }
+
+    async function loadDashboard() {
+      showLoading();
+      const token = getToken();
+      if (!token) {
+        showError('請先登入', '未偵測到登入狀態，請先登入 ZenPass 帳戶。');
+        return;
+      }
+
+      try {
+        const resp = await fetch(API_BASE + '/corporate/my/hr-dashboard', { headers: getAuthHeaders() });
+        if (!resp.ok) {
+          const err = await resp.json().catch(() => ({}));
+          if (resp.status === 403) {
+            showError('無權限', err.error || '你不是企業員工，無權查看此頁面。');
+          } else {
+            showError('載入失敗', err.error || '伺服器錯誤');
+          }
+          return;
+        }
+        const data = await resp.json();
+        renderDashboard(data);
+        showDashboard();
+      } catch (e) {
+        showError('網絡錯誤', '無法連接到伺服器，請稍後再試。');
+      }
+    }
+
+    function renderDashboard(data) {
+      const c = data.company;
+      // Header
+      document.getElementById('companyName').textContent = c.name || '—';
+
+      // Overview cards
+      renderOverviewCards(data);
+
+      // Credit bar
+      const total = c.credit_pool || 0;
+      const used = c.credit_used || 0;
+      const avail = c.available_credits || 0;
+      const pct = total > 0 ? Math.min(100, Math.round((used / total) * 100)) : 0;
+      document.getElementById('creditFill').style.width = pct + '%';
+      document.getElementById('creditUsed').textContent = used.toLocaleString();
+      document.getElementById('creditAvailable').textContent = avail.toLocaleString();
+      document.getElementById('creditTotal').textContent = total.toLocaleString();
+
+      // Employees
+      renderEmployees(data.employees || []);
+
+      // Bookings
+      renderBookings(data.recent_bookings || []);
+
+      // Chart
+      renderChart(data.monthly_usage || []);
+
+      // Wellness Dashboard (additional stats)
+      loadWellnessStats();
+    }
+
+    function renderOverviewCards(data) {
+      const c = data.company;
+      const avail = c.available_credits || 0;
+      const empTotal = data.total_employees || 0;
+      const bkTotal = data.total_bookings_30d || 0;
+      const usagePct = c.credit_pool > 0 ? Math.round(((c.credit_used || 0) / c.credit_pool) * 100) : 0;
+
+      const resetDate = c.next_reset_at ? formatDate(c.next_reset_at) : '每月1號';
+      const cards = [
+        { icon: '🏢', num: avail.toLocaleString(), label: '可用 Credits', color: '#059669' },
+        { icon: '👥', num: empTotal, label: '員工人數', color: '#2563eb' },
+        { icon: '📅', num: bkTotal, label: '本月預約', color: '#c94420' },
+        { icon: '🔄', num: resetDate, label: '下次重置', color: '#7c3aed' }
+      ];
+
+      document.getElementById('overviewGrid').innerHTML = cards.map(card =>
+        '<div class="ov-card">' +
+          '<div class="ov-icon">' + card.icon + '</div>' +
+          '<div class="ov-num" style="color:' + card.color + '">' + card.num + '</div>' +
+          '<div class="ov-label">' + card.label + '</div>' +
+        '</div>'
+      ).join('');
+    }
+
+    function renderEmployees(employees) {
+      const tbody = document.getElementById('employeeTableBody');
+      const noEmp = document.getElementById('noEmployees');
+      const empCount = document.getElementById('empCount');
+
+      empCount.textContent = employees.length + ' 人';
+
+      // Invite button
+      var inviteBtn = document.getElementById('inviteBtn');
+      if (!inviteBtn) {
+        var empHeader = document.querySelector('.section-header');
+        if (empHeader) {
+          var btn = '<button id="inviteBtn" onclick="showInviteModal()" style="margin-left:auto;padding:6px 12px;background:var(--orange-500);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;">➕ 邀請員工</button>';
+          empHeader.insertAdjacentHTML('beforeend', btn);
+        }
+      }
+
+      if (employees.length === 0) {
+        tbody.innerHTML = '';
+        noEmp.style.display = '';
+        return;
+      }
+      noEmp.style.display = 'none';
+
+      tbody.innerHTML = employees.map(emp => {
+        const limit = emp.monthly_limit || 0;
+        const used = emp.monthly_used || 0;
+        const pct = limit > 0 ? Math.round((used / limit) * 100) : 0;
+        let usageClass = 'low';
+        if (pct >= 80) usageClass = 'high';
+        else if (pct >= 50) usageClass = 'med';
+
+        const lastVisit = emp.last_visit ? formatDate(emp.last_visit) : '—';
+        return '<tr>' +
+          '<td><div class="employee-name">' + escHtml(emp.name) + '</div></td>' +
+          '<td><div class="employee-email">' + escHtml(emp.email) + '</div></td>' +
+          '<td>' + limit.toLocaleString() + '</td>' +
+          '<td class="usage-cell ' + usageClass + '">' + used.toLocaleString() + (limit > 0 ? ' (' + pct + '%)' : '') + '</td>' +
+          '<td>' + (emp.bookings_30d || 0) + '</td>' +
+          '<td>' + lastVisit + '</td>' +
+        '</tr>';
+      }).join('');
+    }
+
+    function renderBookings(bookings) {
+      const list = document.getElementById('recentBookingList');
+      const noBk = document.getElementById('noBookings');
+      const bkCount = document.getElementById('bookingCount');
+
+      bkCount.textContent = bookings.length;
+
+      if (bookings.length === 0) {
+        list.innerHTML = '';
+        noBk.style.display = '';
+        return;
+      }
+      noBk.style.display = 'none';
+
+      list.innerHTML = bookings.map(b => {
+        const statusMap = {
+          confirmed: '確認',
+          attended: '已出席',
+          cancelled: '已取消',
+          pending_payment: '待付款'
+        };
+        const badgeClass = b.status || 'confirmed';
+        const statusText = statusMap[b.status] || b.status;
+
+        return '<div class="booking-item">' +
+          '<div class="bi-left">' +
+            '<div class="bi-user">' + escHtml(b.user_name) + '</div>' +
+            '<div class="bi-class">' + escHtml(b.class_title || '課程') + '</div>' +
+            '<div class="bi-venue">' + escHtml(b.venue_name || '') + '</div>' +
+          '</div>' +
+          '<div class="bi-right">' +
+            '<div class="bi-date">' + (b.start_time ? formatDateTime(b.start_time) : formatDateTime(b.created_at)) + '</div>' +
+            '<span class="badge-status ' + badgeClass + '">' + statusText + '</span>' +
+          '</div>' +
+        '</div>';
+      }).join('');
+    }
+
+    function renderChart(usage) {
+      const container = document.getElementById('monthlyChart');
+      const noChart = document.getElementById('noChart');
+
+      if (!usage || usage.length === 0) {
+        container.innerHTML = '';
+        noChart.style.display = '';
+        return;
+      }
+      noChart.style.display = 'none';
+
+      const maxCount = Math.max(...usage.map(u => u.count), 1);
+      const days = usage.map(u => {
+        const date = u.date || '';
+        const parts = date.split('-');
+        const day = parts.length === 3 ? parseInt(parts[2], 10) : date;
+        return { day, count: u.count || 0, revenue: u.revenue || 0 };
+      });
+
+      // Bars
+      let barsHtml = '<div class="chart-bars">';
+      days.forEach(d => {
+        const height = d.count > 0 ? Math.max(4, Math.round((d.count / maxCount) * 96)) : 2;
+        barsHtml += '<div class="chart-bar" style="height:' + height + 'px" title="' + d.day + '日: ' + d.count + ' 次, HK$' + (d.revenue || 0) + '"></div>';
+      });
+      barsHtml += '</div>';
+
+      // X labels
+      let labelsHtml = '<div class="chart-xlabels">';
+      days.forEach(d => {
+        labelsHtml += '<span>' + d.day + '</span>';
+      });
+      labelsHtml += '</div>';
+
+      container.innerHTML = barsHtml + labelsHtml;
+    }
+
+    // ===== Wellness Dashboard Stats (Chart.js) =====
+    let monthlyChartInstance = null;
+    let pieChartInstance = null;
+
+    function getCompanyIdFromData() {
+      // Extract company ID from the dashboard data
+      const header = document.getElementById('companyName');
+      return header?.dataset?.companyId || '';
+    }
+
+    async function loadWellnessStats() {
+      // Get company ID from the existing data
+      const urlParams = new URLSearchParams(window.location.search);
+      const companyId = urlParams.get('company_id') || getCompanyIdFromData();
+      
+      // Try fetching from the stats API or derive from existing dashboard data
+      try {
+        const token = getToken();
+        // First try to get stats from the existing dashboard data (we already have it)
+        // For the full stats, use the corporate companies detail endpoint
+        const resp = await fetch(API_BASE + '/corporate/companies', { headers: getAuthHeaders() });
+        if (!resp.ok) return;
+        const data = await resp.json();
+        const companies = data.companies || [];
+        
+        // Fall back to use the stats endpoint with first company
+        // Actually, let's use the my/hr-dashboard data we already have
+        enrichWellnessFromDashboard();
+      } catch (e) {
+        console.log('Wellness stats not available');
+      }
+    }
+
+    function enrichWellnessFromDashboard() {
+      // This function is called after the main dashboard loads.
+      // Let's fetch dedicated stats if we know the company
+      const token = getToken();
+      if (!token) return;
+
+      // We already have dashboard data in the page. Let's just enhance the display
+      // with what we have. For proper stats, we need the corporate companies list.
+      fetch(API_BASE + '/corporate/companies', { headers: getAuthHeaders() })
+        .then(r => r.json())
+        .then(data => {
+          const companies = data.companies || [];
+          if (companies.length === 0) return;
+          // Get the first company's stats (or match by name)
+          const companyId = companies[0].id;
+          document.getElementById('companyName').dataset.companyId = companyId;
+          
+          // Fetch detailed stats
+          return fetch(API_BASE + '/corporate/stats/' + companyId, { headers: getAuthHeaders() });
+        })
+        .then(r => r && r.json())
+        .then(stats => {
+          if (!stats) return;
+          renderWellnessCharts(stats);
+          renderTopEmployees(stats.topEmployees || []);
+          renderCreditUtilization(stats);
+        })
+        .catch(e => console.log('Wellness stats extra load failed:', e.message));
+    }
+
+    function renderWellnessCharts(stats) {
+      // Monthly booking bar chart
+      const monthlyCtx = document.getElementById('monthlyBookingChart');
+      if (!monthlyCtx) return;
+
+      const totalBadge = document.getElementById('totalBkBadge');
+      if (totalBadge) totalBadge.textContent = (stats.totalBookings || 0) + ' 次';
+
+      const monthlyData = stats.monthlyUsage || [];
+      const noMonthly = document.getElementById('noChartMonthly');
+      
+      if (monthlyData.length === 0) {
+        if (noMonthly) noMonthly.style.display = '';
+        monthlyCtx.parentElement.style.display = 'none';
+        return;
+      }
+      if (noMonthly) noMonthly.style.display = 'none';
+      monthlyCtx.parentElement.style.display = '';
+
+      if (monthlyChartInstance) monthlyChartInstance.destroy();
+
+      const labels = monthlyData.map(d => d.month);
+      const counts = monthlyData.map(d => d.count);
+
+      monthlyChartInstance = new Chart(monthlyCtx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: '預約次數',
+            data: counts,
+            backgroundColor: 'rgba(201, 68, 32, 0.7)',
+            borderColor: '#c94420',
+            borderWidth: 1,
+            borderRadius: 4
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: { stepSize: 1, font: { size: 11 } },
+              grid: { color: 'rgba(0,0,0,0.06)' }
+            },
+            x: {
+              ticks: { font: { size: 10 }, maxRotation: 45 }
+            }
+          }
+        }
+      });
+
+      // Category pie chart
+      const pieCtx = document.getElementById('categoryPieChart');
+      if (!pieCtx) return;
+
+      const catData = stats.popularCategories || [];
+      const noCat = document.getElementById('noCategoryChart');
+
+      if (catData.length === 0) {
+        if (noCat) noCat.style.display = '';
+        pieCtx.parentElement.style.display = 'none';
+        return;
+      }
+      if (noCat) noCat.style.display = 'none';
+      pieCtx.parentElement.style.display = '';
+
+      if (pieChartInstance) pieChartInstance.destroy();
+
+      const colors = ['#c94420','#f59e0b','#10b981','#3b82f6','#8b5cf6','#ec4899','#14b8a6','#f97316'];
+      
+      pieChartInstance = new Chart(pieCtx, {
+        type: 'pie',
+        data: {
+          labels: catData.map(d => d.category),
+          datasets: [{
+            data: catData.map(d => d.count),
+            backgroundColor: colors.slice(0, catData.length),
+            borderWidth: 2,
+            borderColor: '#fff'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'right',
+              labels: { font: { size: 11 }, boxWidth: 12, padding: 8 }
+            }
+          }
+        }
+      });
+    }
+
+    function renderTopEmployees(employees) {
+      const container = document.getElementById('topEmployeesList');
+      const noEmp = document.getElementById('noTopEmp');
+
+      if (!employees || employees.length === 0) {
+        if (container) container.innerHTML = '';
+        if (noEmp) noEmp.style.display = '';
+        return;
+      }
+      if (noEmp) noEmp.style.display = 'none';
+
+      container.innerHTML = employees.map((emp, i) => {
+        let rankClass = '';
+        let rankLabel = (i + 1);
+        if (i === 0) rankClass = 'gold';
+        else if (i === 1) rankClass = 'silver';
+        else if (i === 2) rankClass = 'bronze';
+
+        return '<div class="top-emp-item">' +
+          '<div class="top-emp-rank ' + rankClass + '">' + rankLabel + '</div>' +
+          '<div class="top-emp-info">' +
+            '<div class="name">' + escHtml(emp.name) + '</div>' +
+            '<div class="email">' + escHtml(emp.email || '') + '</div>' +
+          '</div>' +
+          '<div class="top-emp-bk">' + (emp.bookings || 0) + ' 次</div>' +
+        '</div>';
+      }).join('');
+    }
+
+    function renderCreditUtilization(stats) {
+      const utilEl = document.getElementById('utilPercent');
+      const usedEl = document.getElementById('utilUsed');
+      const totalEl = document.getElementById('utilTotal');
+      const fillEl = document.getElementById('utilFill');
+
+      if (!utilEl) return;
+
+      const pct = Math.round((stats.creditUtilization || 0) * 100);
+      utilEl.textContent = pct + '%';
+      
+      // Update colors based on utilization
+      if (pct > 80) utilEl.style.color = '#dc2626';
+      else if (pct > 50) utilEl.style.color = '#d97706';
+      else utilEl.style.color = '#059669';
+
+      if (fillEl) fillEl.style.width = pct + '%';
+    }
+
+    // ===== Invite Employee Modal =====
+    function showInviteModal() {
+      var overlay = document.createElement('div');
+      overlay.className = 'modal-overlay';
+      overlay.innerHTML = '<div class="modal-box" style="background:#fff;border-radius:16px;padding:24px;max-width:400px;margin:80px auto;box-shadow:0 8px 30px rgba(0,0,0,0.15);position:relative;">' +
+        '<h3 style="margin:0 0 16px;font-size:17px;">➕ 邀請新員工</h3>' +
+        '<input id="inviteName" placeholder="員工名稱" style="width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:8px;margin-bottom:10px;font-size:14px;box-sizing:border-box;">' +
+        '<input id="inviteEmail" type="email" placeholder="員工電郵" style="width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:8px;margin-bottom:16px;font-size:14px;box-sizing:border-box;">' +
+        '<div style="display:flex;gap:8px;justify-content:flex-end;">' +
+          '<button onclick="this.closest(\'.modal-overlay\').remove()" style="padding:8px 16px;border:1px solid #ddd;border-radius:8px;background:#fff;cursor:pointer;font-size:13px;">取消</button>' +
+          '<button onclick="inviteEmployee(this)" id="inviteSubmitBtn" style="padding:8px 16px;background:var(--orange-500);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;">邀請</button>' +
+        '</div>' +
+        '<div id="inviteResult" style="margin-top:12px;font-size:13px;"></div>' +
+      '</div>';
+      document.body.appendChild(overlay);
+      setTimeout(function(){ document.getElementById('inviteName').focus(); }, 100);
+    }
+
+    async function inviteEmployee(btn) {
+      var name = document.getElementById('inviteName').value.trim();
+      var email = document.getElementById('inviteEmail').value.trim();
+      var result = document.getElementById('inviteResult');
+
+      if (!name || !email) {
+        result.innerHTML = '<span style="color:#dc2626;">請填寫員工名稱及電郵</span>';
+        return;
+      }
+      if (!email.includes('@')) {
+        result.innerHTML = '<span style="color:#dc2626;">電郵格式不正確</span>';
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = '邀請中...';
+      result.innerHTML = '';
+
+      try {
+        var r = await fetch(API_BASE + '/corporate/my/invite', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+          body: JSON.stringify({ name: name, email: email })
+        });
+        var d = await r.json();
+        if (!r.ok) throw new Error(d.error || '邀請失敗');
+
+        result.innerHTML = '<span style="color:#059669;">✅ ' + d.message + '</span>';
+        setTimeout(function() {
+          document.querySelector('.modal-overlay')?.remove();
+          loadDashboard(); // Refresh
+        }, 2000);
+      } catch(e) {
+        result.innerHTML = '<span style="color:#dc2626;">❌ ' + e.message + '</span>';
+        btn.disabled = false;
+        btn.textContent = '邀請';
+      }
+    }
+
+    // Init
+    document.addEventListener('DOMContentLoaded', loadDashboard);
+  </script>
+<script src="js/nav.js"></script>
+<script src="js/footer.js"></script>
+</body>
+</html>

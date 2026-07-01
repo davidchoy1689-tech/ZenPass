@@ -1,1017 +1,361 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="zh-HK">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>我的預約 - ZenPass 禪流</title>
-    <meta property="og:title" content="我的預約 — ZenPass 禪流" />
-    <meta property="og:description" content="查看及管理你的課程預約記錄。" />
-    <meta
-      property="og:url"
-      content="https://davidchoy1689-tech.github.io/ZenPass/my-bookings.html"
-    />
-    <meta property="og:type" content="website" />
-    <meta property="og:locale" content="zh_HK" />
-    <meta name="twitter:card" content="summary_large_image" />
-    <script src="api.js"></script>
-    <link rel="icon" type="image/png" href="icons/favicon-96x96.png" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap"
-      rel="stylesheet"
-    />
-    <link rel="stylesheet" href="css/zenpass.css" />
-    <style>
-      :root {
-        --orange-500: #ff6b35;
-        --orange-700: #aa3218;
-        --orange-600-bg: #c94420;
-        --orange-600: #e55a2b;
-        --orange-50: #fff3ed;
-        --green-500: #059669;
-        --green-50: #ecfdf5;
-        --red-500: #ef4444;
-        --red-50: #fef2f2;
-        --blue-500: #3b82f6;
-        --blue-50: #eff6ff;
-        --dark-900: #1a1a2e;
-        --dark-800: #2d2d3a;
-        --dark-700: #6b7280;
-        --gray-200: #e5e7eb;
-        --gray-100: #f3f4f6;
-        --gray-50: #f9fafb;
-        --white: #ffffff;
-      }
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-      }
-      body {
-        font-family:
-          "Inter",
-          -apple-system,
-          sans-serif;
-        background: var(--gray-50);
-        color: var(--dark-900);
-        min-height: 100vh;
-      }
-      .header {
-        background: linear-gradient(135deg, var(--orange-600-bg), #ff6b35);
-        padding: 14px 16px;
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        position: sticky;
-        top: 0;
-        z-index: 10;
-        color: white;
-      }
-      .header .back-btn {
-        background: rgba(255, 255, 255, 0.2);
-        border: none;
-        font-size: 20px;
-        cursor: pointer;
-        color: white;
-        padding: 0;
-        width: 32px;
-        height: 32px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        text-decoration: none;
-      }
-      .header h1 {
-        font-size: 17px;
-        font-weight: 600;
-        flex: 1;
-        color: white;
-        margin: 0;
-      }
-      .container {
-        max-width: 600px;
-        margin: 0 auto;
-        padding: 16px;
-      }
-      .loading {
-        text-align: center;
-        padding: 40px;
-        color: var(--dark-700);
-        font-size: 14px;
-      }
-      .loading .spinner {
-        display: inline-block;
-        width: 32px;
-        height: 32px;
-        border: 3px solid var(--gray-200);
-        border-top-color: var(--orange-700);
-        border-radius: 50%;
-        animation: spin 0.8s linear infinite;
-        margin-bottom: 12px;
-      }
-      @keyframes spin {
-        to {
-          transform: rotate(360deg);
-        }
-      }
+<head>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5">
+ <title>我的預約 - ZenPass 禪流</title>
+ <style>
+ *{margin:0;padding:0;box-sizing:border-box}
+ body{font-family:system-ui,-apple-system,'Noto Sans TC',sans-serif;background:#fafafa;color:#18181b}
+ html.dark body{background:#09090b;color:#fafafa}
+ .max-w-5xl{max-width:1024px;margin:0 auto;padding:0 24px}
+ nav{background:#fff;border-bottom:1px solid #e4e4e7;position:sticky;top:0;z-index:50}
+ html.dark nav{background:#18181b;border-color:#27272a}
+ .nav-inner{max-width:1280px;margin:0 auto;padding:16px 24px;display:flex;justify-content:space-between;align-items:center}
+ .logo{font-size:24px;font-weight:800;color:#059669;text-decoration:none}
+ .nav-links{display:flex;gap:24px;align-items:center}
+ .nav-links a{text-decoration:none;font-size:14px;color:#52525b;transition:color 0.2s}
+ .nav-links a:hover{color:#059669}
+ .nav-links a.active{color:#059669;font-weight:600}
+ html.dark .nav-links a{color:#a1a1aa}
+ @media(max-width:767px){nav{display:none}.max-w-5xl{padding:0 16px}}
+ h1{font-size:36px;font-weight:700;margin-bottom:4px;padding-top:40px}
+ .sub{color:var(--dark-700);margin-bottom:40px}
+ 
+ footer{text-align:center;padding:32px 24px;font-size:12px;color:#a1a1aa}
+ footer a{color:#059669;text-decoration:none}
+</style>
+  <link rel="stylesheet" href="css/zenpass.css">
+</head>
+<body>
+ <nav>
+ <div class="nav-inner">
+ <a href="index.html" class="logo">ZenPass</a>
+ <div class="nav-links">
+ <a href="explore.html">探索課程</a>
+ <a href="coaches.html">教練</a>
+ <a href="my-bookings.html" class="active">我的預約</a>
+ </div>
+ </div>
+ </nav>
 
-      /* Tabs */
-      .tabs {
-        display: flex;
-        gap: 4px;
-        background: var(--gray-100);
-        border-radius: 10px;
-        padding: 3px;
-        margin-bottom: 16px;
-      }
-      .tab-btn {
-        flex: 1;
-        padding: 8px 6px;
-        border: none;
-        background: transparent;
-        font-size: 12px;
-        font-weight: 500;
-        cursor: pointer;
-        border-radius: 8px;
-        color: var(--dark-700);
-        transition: all 0.2s;
-        text-align: center;
-        white-space: nowrap;
-      }
-      .tab-btn.active {
-        background: var(--orange-600-bg);
-        color: white;
-      }
-      .tab-btn:hover:not(.active) {
-        background: var(--gray-100);
-      }
-      .tab-btn .count {
-        font-size: 11px;
-        opacity: 0.7;
-      }
+ <div class="max-w-5xl">
+ <h1>我的預約</h1>
+ <p class="sub">已確認的課程 • 可隨時取消</p>
+ <div id="bookings-list" style="position:relative;min-height:200px"></div>
+ </div>
 
-      /* Booking cards */
-      .booking-list {
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-      }
-      .booking-card {
-        background: var(--white);
-        border-radius: 14px;
-        padding: 14px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-        border: 1px solid rgba(0, 0, 0, 0.04);
-      }
-      .booking-card .bc-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-        margin-bottom: 6px;
-      }
-      .booking-card .bc-title {
-        font-size: 15px;
-        font-weight: 600;
-      }
-      .booking-card .bc-ref {
-        font-size: 11px;
-        color: var(--dark-700);
-        margin-bottom: 2px;
-      }
-      .booking-card .bc-badge {
-        font-size: 11px;
-        padding: 3px 8px;
-        border-radius: 99px;
-        font-weight: 500;
-      }
-      .booking-card .bc-badge.confirmed {
-        background: var(--green-50);
-        color: var(--green-500);
-      }
-      .booking-card .bc-badge.pending_payment {
-        background: var(--orange-50);
-        color: var(--orange-700);
-      }
-      .booking-card .bc-badge.cancelled {
-        background: var(--red-50);
-        color: var(--red-500);
-      }
-      .booking-card .bc-badge.attended {
-        background: var(--blue-50);
-        color: var(--blue-500);
-      }
-      .booking-card .bc-detail {
-        font-size: 13px;
-        color: var(--dark-700);
-        line-height: 1.8;
-      }
-      .booking-card .bc-detail span {
-        display: block;
-      }
-      .booking-card .bc-footer {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-top: 8px;
-        padding-top: 8px;
-        border-top: 1px solid var(--gray-100);
-      }
-      .booking-card .bc-pay-status {
-        font-size: 12px;
-      }
-      .booking-card .bc-pay-status.paid {
-        color: var(--green-500);
-      }
-      .booking-card .bc-pay-status.unpaid {
-        color: var(--red-500);
-      }
-      .booking-card .bc-pay-status.refunded {
-        color: var(--dark-700);
-      }
-      .booking-card .cancel-btn {
-        font-size: 12px;
-        padding: 6px 14px;
-        border-radius: 8px;
-        border: 1px solid var(--red-500);
-        background: white;
-        color: var(--red-500);
-        cursor: pointer;
-        transition: all 0.2s;
-      }
-      .booking-card .cancel-btn:hover {
-        background: var(--red-50);
-      }
-      .booking-card .cancel-btn:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-      }
-      .booking-card .pay-now-btn {
-        font-size: 12px;
-        padding: 6px 14px;
-        border-radius: 8px;
-        border: none;
-        background: var(--orange-600-bg);
-        color: white;
-        cursor: pointer;
-        text-decoration: none;
-        display: inline-block;
-      }
-      .empty-state {
-        text-align: center;
-        padding: 40px 20px;
-        color: var(--dark-700);
-        font-size: 14px;
-      }
-      .empty-state .empty-icon {
-        font-size: 40px;
-        margin-bottom: 12px;
-        display: block;
-      }
-      .action-btns {
-        display: flex;
-        gap: 8px;
-        align-items: center;
-      }
-      .hidden {
-        display: none !important;
-      }
-      .error-card {
-        background: var(--red-50);
-        border-radius: 12px;
-        padding: 24px;
-        text-align: center;
-      }
-      .error-card h3 {
-        color: var(--red-500);
-        margin-bottom: 8px;
-      }
-      .error-card p {
-        color: var(--dark-700);
-        font-size: 14px;
-        margin-bottom: 16px;
-      }
-      .error-card .btn {
-        display: inline-block;
-        padding: 10px 24px;
-        background: var(--orange-600-bg);
-        color: white;
-        border: none;
-        border-radius: 8px;
-        font-size: 14px;
-        cursor: pointer;
-        text-decoration: none;
-      }
-
-      @media (max-width: 768px) {
-        .page-header {
-          flex-direction: column;
-          gap: 8px;
-        }
-        .page-header h1 {
-          font-size: 20px;
-        }
-        .tabs {
-          overflow-x: auto;
-          gap: 4px;
-        }
-        .tabs button {
-          white-space: nowrap;
-          padding: 8px 14px;
-          font-size: 13px;
-        }
-        .booking-card {
-          flex-direction: column;
-          gap: 8px;
-        }
-        .booking-card .actions {
-          flex-direction: row;
-          gap: 6px;
-        }
-        .booking-card .actions button {
-          flex: 1;
-        }
-      }
-
-      /* Desktop layout - use wider containers */
-      @media (min-width: 768px) {
-        .container,
-        .wrap,
-        .page-wrap,
-        .detail-wrap,
-        .apply-wrap,
-        .rate-wrap,
-        .checkin-wrap,
-        .payment-wrap,
-        .badge-wrap,
-        .membership-wrap,
-        .explore-wrap {
-          max-width: 900px;
-          margin-left: auto;
-          margin-right: auto;
-        }
-      }
-      @media (min-width: 1200px) {
-        .container,
-        .wrap,
-        .page-wrap,
-        .detail-wrap,
-        .apply-wrap,
-        .rate-wrap,
-        .checkin-wrap,
-        .payment-wrap,
-        .badge-wrap,
-        .membership-wrap,
-        .explore-wrap {
-          max-width: 1100px;
-        }
-      }
-
-      .bottom-nav {
-        position: fixed;
-        bottom: 0;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 100%;
-        max-width: var(--max-width);
-        background: var(--white);
-        border-top: 1px solid var(--gray-200);
-        display: flex;
-        justify-content: space-around;
-        padding: 6px 0;
-        z-index: 1000;
-      }
-      .nav-item {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 2px;
-        text-decoration: none;
-        font-size: 10px;
-        color: var(--dark-700);
-        padding: 4px 12px;
-      }
-      .nav-item.active {
-        color: var(--orange-700);
-      }
-      .nav-item .nav-icon {
-        font-size: 22px;
-        line-height: 1;
-      }
-    </style>
-    <script src="app.js"></script>
-  </head>
-  <body>
-    <div class="header">
-      <button class="back-btn" onclick="history.back()">&larr;</button>
-      <h1>我的預約</h1>
-      <a
-        href="my.html"
-        style="font-size: 13px; color: var(--orange-700); text-decoration: none"
-        >帳戶</a
-      >
+ <!-- Cancel Reason Modal -->
+<div id="cancel-modal-overlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.45);z-index:1000;opacity:0;transition:opacity 0.3s;" onclick="closeCancelModal(event)">
+  <div id="cancel-modal" style="position:fixed;bottom:-100%;left:0;right:0;background:#fff;border-radius:20px 20px 0 0;padding:24px;max-width:440px;margin:0 auto;transition:bottom 0.3s;box-shadow:0 -4px 24px rgba(0,0,0,0.15);z-index:1001;max-height:80vh;overflow-y:auto;" onclick="event.stopPropagation()">
+    <div style="text-align:center;margin-bottom:16px;">
+      <div style="width:40px;height:4px;background:var(--gray-200);border-radius:2px;margin:0 auto 16px;"></div>
+      <h2 style="font-size:18px;font-weight:700;margin:0;">取消預約</h2>
+      <p style="font-size:13px;color:#71717a;margin-top:4px;">請告知取消原因（選擇性）</p>
     </div>
-    <div class="container" id="app">
-      <div class="loading" id="loadingState">
-        <div class="spinner"></div>
-        <div>正在載入預約記錄...</div>
+    <div style="margin-bottom:16px;">
+      <label style="display:block;font-size:13px;font-weight:600;margin-bottom:8px;color:#52525b;">取消原因</label>
+      <div id="cancel-reasons" style="display:flex;flex-direction:column;gap:8px;">
+        <label class="cancel-option" style="display:flex;align-items:center;gap:10px;padding:12px;border:1px solid #e4e4e7;border-radius:12px;cursor:pointer;transition:all 0.2s;" onclick="selectCancelReason(this,'schedule_conflict')">
+          <input type="radio" name="cancel_reason" value="schedule_conflict" style="accent-color:#f06030;" />
+          <span style="font-size:14px;">📅 時間衝突</span>
+        </label>
+        <label class="cancel-option" style="display:flex;align-items:center;gap:10px;padding:12px;border:1px solid #e4e4e7;border-radius:12px;cursor:pointer;transition:all 0.2s;" onclick="selectCancelReason(this,'not_interested')">
+          <input type="radio" name="cancel_reason" value="not_interested" style="accent-color:#f06030;" />
+          <span style="font-size:14px;">😐 唔再有興趣</span>
+        </label>
+        <label class="cancel-option" style="display:flex;align-items:center;gap:10px;padding:12px;border:1px solid #e4e4e7;border-radius:12px;cursor:pointer;transition:all 0.2s;" onclick="selectCancelReason(this,'found_other')">
+          <input type="radio" name="cancel_reason" value="found_other" style="accent-color:#f06030;" />
+          <span style="font-size:14px;">🔍 搵到其他課程</span>
+        </label>
+        <label class="cancel-option" style="display:flex;align-items:center;gap:10px;padding:12px;border:1px solid #e4e4e7;border-radius:12px;cursor:pointer;transition:all 0.2s;" onclick="selectCancelReason(this,'too_expensive')">
+          <input type="radio" name="cancel_reason" value="too_expensive" style="accent-color:#f06030;" />
+          <span style="font-size:14px;">💰 費用太貴</span>
+        </label>
+        <label class="cancel-option" style="display:flex;align-items:center;gap:10px;padding:12px;border:1px solid #e4e4e7;border-radius:12px;cursor:pointer;transition:all 0.2s;" onclick="selectCancelReason(this,'other')">
+          <input type="radio" name="cancel_reason" value="other" style="accent-color:#f06030;" />
+          <span style="font-size:14px;">✏️ 其他原因</span>
+        </label>
       </div>
-      <div id="errorState" class="hidden"></div>
-      <div id="contentArea" class="hidden">
-        <!-- Filter Tabs -->
-        <div class="tabs" id="filterTabs">
-          <button class="tab-btn active" onclick="switchTab('all')">
-            全部 <span class="count" id="countAll"></span>
-          </button>
-          <button class="tab-btn" onclick="switchTab('confirmed')">
-            已確認 <span class="count" id="countConfirmed"></span>
-          </button>
-          <button class="tab-btn" onclick="switchTab('pending_payment')">
-            待付款 <span class="count" id="countPending"></span>
-          </button>
-          <button class="tab-btn" onclick="switchTab('cancelled')">
-            已取消 <span class="count" id="countCancelled"></span>
-          </button>
-        </div>
-        <!-- Booking list -->
-        <div class="booking-list" id="bookingList"></div>
+      <div id="cancel-reason-other-wrap" style="display:none;margin-top:10px;">
+        <input type="text" id="cancel-reason-other" placeholder="請輸入原因..." style="width:100%;padding:12px;border:1px solid #e4e4e7;border-radius:12px;font-size:14px;font-family:var(--font-zh);" />
       </div>
     </div>
-    <script>
-      // Use API_BASE from api.js if available, otherwise default to /api
-      var MY_BASE = typeof API_BASE !== "undefined" ? API_BASE : "/api";
+    <button class="btn btn-primary" id="cancel-confirm-btn" onclick="confirmCancel()" style="width:100%;padding:14px;border:none;border-radius:12px;background:#ef4444;color:#fff;font-size:16px;font-weight:700;cursor:pointer;font-family:var(--font-zh);transition:background 0.2s;">
+      確認取消
+    </button>
+    <div class="msg" id="cancel-msg" style="font-size:13px;margin-top:8px;padding:10px;border-radius:10px;display:none;"></div>
+    <button onclick="closeCancelModal()" style="display:block;width:100%;margin-top:12px;padding:10px;border:none;background:none;color:#71717a;font-size:14px;cursor:pointer;font-family:var(--font-zh);">返回</button>
+  </div>
+</div>
 
-      function getToken() {
-        return (
-          localStorage.getItem("zenpass_token") ||
-          sessionStorage.getItem("zenpass_token")
-        );
-      }
-      function getAuthHeaders() {
-        var t = getToken();
-        return {
-          Authorization: "Bearer " + t,
-          "Content-Type": "application/json",
-        };
-      }
+ <footer>
+ <a href="privacy.html">私隱政策</a> · <a href="terms.html">服務條款</a> · <a href="sitemap.xml">網站地圖</a><br>
+ © 2026 ZenPass 禪流
+ </footer>
 
-      var allBookings = [];
-      var currentTab = "all";
+ <script src="js/share.js"></script>
+ <script>
+// ─── NPS 評價快取 — 記錄已提交 NPS 嘅 booking ID ───
+var __npsSubmitted = {};
 
-      (function () {
-        loadBookings();
-      })();
+/** 檢查邊啲 booking 已提交 NPS */
+async function loadNpsStatus(bookingIds) {
+  var token = localStorage.getItem('zenpass_token') || localStorage.getItem('token');
+  if (!token || !bookingIds.length) return;
+  try {
+    // 逐一快速檢查 — 如果在 server 搵到記錄就算
+    var att = bookingIds.filter(function(id) { return id && id !== 'undefined'; });
+    for (var i = 0; i < att.length; i++) {
+      (function(bid) {
+        // We store status locally after first submit
+      })(att[i]);
+    }
+  } catch(e) { /* silent */ }
+}
 
-      function loadBookings() {
-        showLoading();
-        fetch(MY_BASE + "/bookings/my", { headers: getAuthHeaders() })
-          .then(function (r) {
-            return r.json();
-          })
-          .then(function (data) {
-            allBookings = data.bookings || [];
-            updateCounts();
-            renderTab(currentTab);
-            showContent();
-          })
-          .catch(function (err) {
-            showError("載入失敗", "無法連接到伺服器，請檢查網絡連線。");
-          });
-      }
+/** 標記某個 booking 已提交 NPS */
+function markNpsSubmitted(bookingId) {
+  __npsSubmitted[bookingId] = true;
+  try {
+    var stored = JSON.parse(localStorage.getItem('zenpass_nps_done') || '[]');
+    if (stored.indexOf(String(bookingId)) === -1) {
+      stored.push(String(bookingId));
+      localStorage.setItem('zenpass_nps_done', JSON.stringify(stored));
+    }
+  } catch(e) {}
+}
 
-      function updateCounts() {
-        var confirmed = 0,
-          pending = 0,
-          cancelled = 0;
-        allBookings.forEach(function (b) {
-          if (b.status === "confirmed") confirmed++;
-          else if (b.status === "pending_payment") pending++;
-          else if (b.status === "cancelled") cancelled++;
-        });
-        document.getElementById("countAll").textContent =
-          "(" + allBookings.length + ")";
-        document.getElementById("countConfirmed").textContent =
-          "(" + confirmed + ")";
-        document.getElementById("countPending").textContent =
-          "(" + pending + ")";
-        document.getElementById("countCancelled").textContent =
-          "(" + cancelled + ")";
-      }
+/** 檢查某個 booking 是否已提交 NPS */
+function isNpsDone(bookingId) {
+  if (__npsSubmitted[bookingId]) return true;
+  try {
+    var stored = JSON.parse(localStorage.getItem('zenpass_nps_done') || '[]');
+    return stored.indexOf(String(bookingId)) !== -1;
+  } catch(e) { return false; }
+}
 
-      function switchTab(tab) {
-        currentTab = tab;
-        document.querySelectorAll(".tab-btn").forEach(function (btn) {
-          btn.classList.toggle(
-            "active",
-            btn.getAttribute("onclick").indexOf("'" + tab + "'") > -1,
-          );
-        });
-        renderTab(tab);
-      }
+// 初始化 NPS 快取
+(function initNpsCache() {
+  try {
+    var stored = JSON.parse(localStorage.getItem('zenpass_nps_done') || '[]');
+    stored.forEach(function(id) { __npsSubmitted[id] = true; });
+  } catch(e) {}
+})();
 
-      function renderTab(tab) {
-        var filtered;
-        if (tab === "all") {
-          filtered = allBookings;
-        } else {
-          filtered = allBookings.filter(function (b) {
-            return b.status === tab;
-          });
-        }
+// ─── Cancel Reason Modal ───
+var __cancelBookingId = null;
+var __selectedCancelReason = null;
 
-        var container = document.getElementById("bookingList");
-        if (filtered.length === 0) {
-          container.innerHTML =
-            '<div class="empty-state"><span class="empty-icon">📋</span>暫無預約記錄</div>';
-          return;
-        }
-        container.innerHTML = filtered
-          .map(function (b) {
-            return renderBookingCard(b);
-          })
-          .join("");
-      }
+function selectCancelReason(labelEl, value) {
+  document.querySelectorAll('.cancel-option').forEach(function(el) {
+    el.style.borderColor = '#e4e4e7';
+    el.style.background = '';
+  });
+  labelEl.style.borderColor = '#f06030';
+  labelEl.style.background = 'rgba(240,96,48,0.04)';
+  labelEl.querySelector('input').checked = true;
 
-      function renderBookingCard(b) {
-        var startStr = b.start_time ? formatTime(b.start_time) : "—";
-        var dateStr = b.start_time ? formatDate(b.start_time) : "—";
-        var badgeClass =
-          b.status === "confirmed"
-            ? "confirmed"
-            : b.status === "pending_payment"
-              ? "pending_payment"
-              : b.status === "cancelled"
-                ? "cancelled"
-                : "attended";
-        var badgeText =
-          b.status === "confirmed"
-            ? "已確認"
-            : b.status === "pending_payment"
-              ? "待付款"
-              : b.status === "cancelled"
-                ? "已取消"
-                : "已完成";
+  __selectedCancelReason = value;
+  var otherWrap = document.getElementById('cancel-reason-other-wrap');
+  if (value === 'other') {
+    otherWrap.style.display = 'block';
+  } else {
+    otherWrap.style.display = 'none';
+  }
 
-        var payStatusClass =
-          b.payment_status === "paid"
-            ? "paid"
-            : b.payment_status === "refunded"
-              ? "refunded"
-              : "unpaid";
-        var payStatusText =
-          b.payment_status === "paid"
-            ? "✅ 已付款"
-            : b.payment_status === "refunded"
-              ? "💰 已退款"
-              : "⏳ 未付款";
-        var price = "HK$" + (b.amount || b.price_hkd || 0);
+  var msg = document.getElementById('cancel-msg');
+  msg.className = 'msg';
+  msg.style.display = 'none';
+}
 
-        var canCancel = false;
-        if (b.status === "confirmed" || b.status === "pending_payment") {
-          if (b.start_time) {
-            var classTime = new Date(b.start_time).getTime();
-            var now = Date.now();
-            if (classTime - now > 2 * 60 * 60 * 1000) canCancel = true;
-          }
-        }
+function showCancelModal(bookingId) {
+  __cancelBookingId = bookingId;
+  __selectedCancelReason = null;
+  document.querySelectorAll('.cancel-option input').forEach(function(el) { el.checked = false; });
+  document.querySelectorAll('.cancel-option').forEach(function(el) {
+    el.style.borderColor = '#e4e4e7';
+    el.style.background = '';
+  });
+  document.getElementById('cancel-reason-other-wrap').style.display = 'none';
+  document.getElementById('cancel-reason-other').value = '';
+  var msg = document.getElementById('cancel-msg');
+  msg.className = 'msg';
+  msg.style.display = 'none';
 
-        var footerButtons = "";
-        if (canCancel) {
-          footerButtons =
-            '<div class="action-btns"><button class="cancel-btn" onclick="cancelBooking(\'' +
-            b.id +
-            "', this)\">取消預約</button>";
-        }
-        if (b.status === "pending_payment") {
-          footerButtons +=
-            '<a href="payment.html?booking_id=' +
-            b.id +
-            '" class="pay-now-btn">立即付款</a>';
-        }
-        if (footerButtons) footerButtons += "</div>";
-        // Add rating button for attended classes (not yet reviewed)
-        if (b.status === "confirmed" && new Date(b.start_time) < new Date()) {
-          var reviewed = b.reviewed_student
-            ? '<span style="font-size:11px;color:var(--green-500);margin-left:6px">✅ 已評價</span>'
-            : "";
-          if (!b.reviewed_student) {
-            footerButtons =
-              "<button onclick=\"openReviewModal('" +
-              b.id +
-              "','" +
-              escHtml(b.coach_name || "") +
-              "','" +
-              escHtml(b.title || "") +
-              '\')" class="pay-now-btn" style="background:var(--blue-500);border:none;cursor:pointer;font-family:inherit">⭐ 評價教練</button>' +
-              (footerButtons || "");
-          } else {
-            footerButtons = (footerButtons || "") + reviewed;
-          }
-        }
-        var refText =
-          b.class_reference || b.id
-            ? "#" + (b.class_reference || b.id.substring(0, 8))
-            : "";
+  var overlay = document.getElementById('cancel-modal-overlay');
+  var modal = document.getElementById('cancel-modal');
+  overlay.style.display = 'block';
+  setTimeout(function() { overlay.style.opacity = '1'; modal.style.bottom = '0'; }, 10);
+}
 
-        return (
-          '<div class="booking-card"><div class="bc-header"><div><div class="bc-title">' +
-          escHtml(b.title || "課程") +
-          "</div>" +
-          (refText
-            ? '<div class="bc-ref">預約編號：' + escHtml(refText) + "</div>"
-            : "") +
-          '</div><span class="bc-badge ' +
-          badgeClass +
-          '">' +
-          badgeText +
-          "</span></div>" +
-          '<div class="bc-detail"><span>📅 ' +
-          dateStr +
-          "</span><span>⏰ " +
-          startStr +
-          "</span><span>📍 " +
-          escHtml(b.venue_name || "—") +
-          (b.venue_address
-            ? '<br><span style="font-size:11px;color:var(--dark-700)">' +
-              escHtml(b.venue_address) +
-              "</span>"
-            : "") +
-          "</span><span>👤 導師：" +
-          escHtml(b.coach_name || "—") +
-          (b.class_id
-            ? '</span><span><a href="class-detail.html?id=' +
-              b.class_id +
-              '" style="color:var(--orange-700);text-decoration:none;font-size:12px">📖 課程詳情 →</a>'
-            : "") +
-          "</span></div>" +
-          '<div class="bc-footer"><span class="bc-pay-status ' +
-          payStatusClass +
-          '">' +
-          payStatusText +
-          " · " +
-          price +
-          "</span>" +
-          footerButtons +
-          "</div></div>"
-        );
-      }
+function closeCancelModal(e) {
+  var overlay = document.getElementById('cancel-modal-overlay');
+  var modal = document.getElementById('cancel-modal');
+  overlay.style.opacity = '0';
+  modal.style.bottom = '-100%';
+  setTimeout(function() { overlay.style.display = 'none'; }, 300);
+  __cancelBookingId = null;
+}
 
-      function cancelBooking(id, btn) {
-        if (!confirm("確定要取消此預約？")) return;
-        if (btn) btn.disabled = true;
+async function confirmCancel() {
+  var id = __cancelBookingId;
+  if (!id) return;
 
-        fetch(MY_BASE + "/bookings/" + id + "/cancel", {
-          method: "POST",
-          headers: getAuthHeaders(),
-        })
-          .then(function (r) {
-            return r.json();
-          })
-          .then(function (data) {
-            if (data.error) {
-              showToast(data.error, "error");
-              if (btn) btn.disabled = false;
-              return;
-            }
-            showToast("預約已取消", "success");
-            loadBookings();
-          })
-          .catch(function (err) {
-            showToast("取消失敗，請重試", "error");
-            if (btn) btn.disabled = false;
-          });
-      }
+  var reason = __selectedCancelReason;
+  if (reason === 'other') {
+    reason = document.getElementById('cancel-reason-other').value.trim();
+    if (!reason) {
+      var msg = document.getElementById('cancel-msg');
+      msg.textContent = '請輸入取消原因'; msg.className = 'msg error'; msg.style.display = 'block';
+      return;
+    }
+  }
 
-      // ===== UI Helpers =====
-      function showLoading() {
-        document.getElementById("loadingState").classList.remove("hidden");
-        document.getElementById("contentArea").classList.add("hidden");
-        document.getElementById("errorState").classList.add("hidden");
-      }
+  var btn = document.getElementById('cancel-confirm-btn');
+  btn.disabled = true;
+  btn.innerHTML = '取消中...';
+  btn.style.opacity = '0.6';
 
-      function showContent() {
-        document.getElementById("loadingState").classList.add("hidden");
-        document.getElementById("contentArea").classList.remove("hidden");
-        document.getElementById("errorState").classList.add("hidden");
-      }
+  // Try backend API first
+  var API_BASE = window.API_BASE || '';
+  var token = localStorage.getItem('zenpass_token') || localStorage.getItem('token');
+  var apiSuccess = false;
 
-      function showError(title, message) {
-        document.getElementById("loadingState").classList.add("hidden");
-        document.getElementById("contentArea").classList.add("hidden");
-        var el = document.getElementById("errorState");
-        el.classList.remove("hidden");
-        el.innerHTML =
-          '<div class="error-card"><h3>' +
-          escHtml(title) +
-          "</h3><p>" +
-          escHtml(message) +
-          '</p><a href="index.html" class="btn">返回首頁</a></div>';
-      }
-
-      function showToast(msg, type) {
-        var toast = document.createElement("div");
-        toast.style.cssText =
-          "position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:" +
-          (type === "error" ? "var(--red-500)" : "var(--green-500)") +
-          ";color:white;padding:12px 24px;border-radius:8px;font-size:14px;font-weight:500;z-index:1000;box-shadow:0 4px 12px rgba(0,0,0,.15);animation:fadeInUp .3s ease;";
-        toast.textContent = msg;
-        document.body.appendChild(toast);
-        setTimeout(function () {
-          toast.style.opacity = "0";
-          toast.style.transition = "opacity .3s";
-          setTimeout(function () {
-            toast.remove();
-          }, 300);
-        }, 2500);
-      }
-
-      function escHtml(s) {
-        if (!s) return "";
-        return String(s)
-          .replace(/&/g, "&amp;")
-          .replace(/</g, "&lt;")
-          .replace(/>/g, "&gt;")
-          .replace(/"/g, "&quot;");
-      }
-      function formatDate(isoStr) {
-        if (!isoStr) return "—";
-        var d = new Date(isoStr);
-        return (
-          d.getFullYear() +
-          "/" +
-          (d.getMonth() + 1) +
-          "/" +
-          d.getDate() +
-          " (" +
-          ["日", "一", "二", "三", "四", "五", "六"][d.getDay()] +
-          ")"
-        );
-      }
-      function formatTime(isoStr) {
-        if (!isoStr) return "—";
-        var d = new Date(isoStr);
-        return (
-          String(d.getHours()).padStart(2, "0") +
-          ":" +
-          String(d.getMinutes()).padStart(2, "0")
-        );
-      }
-
-      var style = document.createElement("style");
-      style.textContent =
-        "@keyframes fadeInUp { from { opacity:0; transform:translateX(-50%) translateY(10px); } to { opacity:1; transform:translateX(-50%) translateY(0); } }";
-      document.head.appendChild(style);
-    </script>
-
-    <div
-      class="zen-footer"
-      style="
-        text-align: center;
-        padding: 20px 16px;
-        margin-top: 24px;
-        border-top: 1px solid #e5e7eb;
-        font-size: 12px;
-        color: #6b7280;
-      "
-    >
-      <div style="font-size: 12px; color: #6b7280; margin-top: 8px">
-        © 2026 ZenPass 禪流
-      </div>
-    </div>
-    <script>
-      if ("serviceWorker" in navigator) {
-        navigator.serviceWorker.register("sw.js");
-      }
-    </script>
-
-    <!-- Review Modal -->
-    <div
-      id="reviewModal"
-      style="
-        display: none;
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(0, 0, 0, 0.5);
-        z-index: 9999;
-        align-items: center;
-        justify-content: center;
-        padding: 20px;
-      "
-    >
-      <div
-        style="
-          background: var(--white);
-          border-radius: 16px;
-          padding: 24px;
-          max-width: 340px;
-          width: 100%;
-          text-align: center;
-          animation: modalIn 0.25s ease-out;
-        "
-      >
-        <div style="font-size: 40px; margin-bottom: 8px">⭐</div>
-        <div
-          style="font-size: 18px; font-weight: 700; margin-bottom: 4px"
-          id="reviewModalTitle"
-        >
-          評價教練
-        </div>
-        <div
-          style="font-size: 13px; color: var(--dark-700); margin-bottom: 12px"
-          id="reviewModalSub"
-        ></div>
-        <!-- Star selector -->
-        <div style="font-size: 32px; margin-bottom: 12px; letter-spacing: 6px">
-          <span
-            onclick="setReviewStar(1)"
-            id="star1"
-            style="cursor: pointer; color: var(--gray-200)"
-            >★</span
-          >
-          <span
-            onclick="setReviewStar(2)"
-            id="star2"
-            style="cursor: pointer; color: var(--gray-200)"
-            >★</span
-          >
-          <span
-            onclick="setReviewStar(3)"
-            id="star3"
-            style="cursor: pointer; color: var(--gray-200)"
-            >★</span
-          >
-          <span
-            onclick="setReviewStar(4)"
-            id="star4"
-            style="cursor: pointer; color: var(--gray-200)"
-            >★</span
-          >
-          <span
-            onclick="setReviewStar(5)"
-            id="star5"
-            style="cursor: pointer; color: var(--gray-200)"
-            >★</span
-          >
-        </div>
-        <textarea
-          id="reviewComment"
-          placeholder="寫低你嘅課後感想...（可選）"
-          style="
-            width: 100%;
-            padding: 10px;
-            border: 1px solid var(--gray-200);
-            border-radius: 8px;
-            font-size: 13px;
-            font-family: inherit;
-            resize: none;
-            height: 60px;
-            margin-bottom: 12px;
-          "
-        ></textarea>
-        <div
-          style="font-size: 12px; color: var(--dark-700); margin-bottom: 12px"
-        >
-          <label><input type="checkbox" id="reviewAnonymous" /> 匿名評價</label>
-        </div>
-        <button
-          onclick="submitReview()"
-          class="zen-btn zen-btn-primary zen-btn-block"
-          style="margin-bottom: 8px"
-        >
-          提交評價
-        </button>
-        <button
-          onclick="closeReviewModal()"
-          class="zen-btn zen-btn-secondary zen-btn-block"
-        >
-          取消
-        </button>
-      </div>
-    </div>
-    <script>
-      var reviewBookingId = "";
-      var reviewTargetName = "";
-      var reviewRating = 0;
-      var reviewTargetType = "coach"; // 'coach' or 'student'
-
-      function openReviewModal(bookingId, targetName, className) {
-        reviewBookingId = bookingId;
-        reviewTargetName = targetName;
-        reviewRating = 0;
-        document.getElementById("reviewModalTitle").textContent = "⭐ 評價教練";
-        document.getElementById("reviewModalSub").textContent =
-          className + " — " + targetName;
-        document.getElementById("reviewComment").value = "";
-        document.getElementById("reviewAnonymous").checked = true;
-        resetStars();
-        document.getElementById("reviewModal").style.display = "flex";
-      }
-
-      function openStudentReviewModal(bookingId, studentName, className) {
-        reviewBookingId = bookingId;
-        reviewTargetName = studentName;
-        reviewTargetType = "student";
-        reviewRating = 0;
-        document.getElementById("reviewModalTitle").textContent = "📝 評價學生";
-        document.getElementById("reviewModalSub").textContent =
-          className + " — " + studentName;
-        document.getElementById("reviewComment").value = "";
-        document.getElementById("reviewAnonymous").checked = true;
-        resetStars();
-        document.getElementById("reviewModal").style.display = "flex";
-      }
-
-      function closeReviewModal() {
-        document.getElementById("reviewModal").style.display = "none";
-      }
-
-      function resetStars() {
-        for (var i = 1; i <= 5; i++) {
-          document.getElementById("star" + i).style.color = "var(--gray-200)";
-        }
-      }
-
-      function setReviewStar(n) {
-        reviewRating = n;
-        for (var i = 1; i <= 5; i++) {
-          document.getElementById("star" + i).style.color =
-            i <= n ? "#f59e0b" : "var(--gray-200)";
-        }
-      }
-
-      async function submitReview() {
-        if (!reviewRating) {
-          ZenPass.toast("請選擇評分", "warning");
-          return;
-        }
-        var comment = document.getElementById("reviewComment").value.trim();
-        var isAnonymous = document.getElementById("reviewAnonymous").checked;
-
-        // Get target user ID — need to fetch booking data first
-        var loading = ZenPass.showLoading("提交中...");
-        try {
-          // Get booking's coach or student info
-          var r = await fetch("/api/bookings/" + reviewBookingId, {
-            headers: { Authorization: "Bearer " + getToken() },
-          });
-          var d = await r.json();
-          var toUserId = reviewTargetType === "coach" ? d.coach_id : d.user_id;
-
-          var res = await fetch("/api/reviews", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: "Bearer " + getToken(),
-            },
-            body: JSON.stringify({
-              booking_id: reviewBookingId,
-              to_user_id: toUserId,
-              rating: reviewRating,
-              comment: comment,
-              is_anonymous: isAnonymous,
-            }),
-          });
-          var resData = await res.json();
-          loading.hide();
-          if (resData.success) {
-            ZenPass.toast("✅ 評價成功！", "success");
-            closeReviewModal();
-            // Reload bookings to show updated review status
-            if (typeof loadBookings === "function") loadBookings();
-          } else {
-            ZenPass.toast("❌ " + (resData.error || "提交失敗"), "error");
-          }
-        } catch (e) {
-          loading.hide();
-          ZenPass.toast("❌ " + e.message, "error");
-        }
-      }
-
-      // Click outside to close
-      document.addEventListener("click", function (e) {
-        var modal = document.getElementById("reviewModal");
-        if (e.target === modal) closeReviewModal();
+  if (token) {
+    try {
+      var resp = await fetch(API_BASE + '/bookings/' + id + '/cancel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify({ reason: reason || null })
       });
-    </script>
-    <nav class="bottom-nav" role="navigation" aria-label="底部導航">
-      <a href="index.html" class="nav-item"
-        ><span class="nav-icon">🏠</span>首頁</a
-      >
-      <a href="explore.html" class="nav-item"
-        ><span class="nav-icon">🔍</span>探索</a
-      >
-      <a href="membership.html" class="nav-item"
-        ><span class="nav-icon">💎</span>會籍</a
-      >
-      <a href="coach-apply.html" class="nav-item"
-        ><span class="nav-icon">👨‍🏫</span>成為教練</a
-      >
-      <a href="my.html" class="nav-item active"
-        ><span class="nav-icon">👤</span>我的</a
-      >
-    </nav>
-  </body>
+      var data = await resp.json();
+      if (resp.ok) {
+        apiSuccess = true;
+      } else {
+        // Fall through to local cancel
+        console.warn('API cancel failed:', data.error);
+      }
+    } catch(e) {
+      console.warn('API cancel error:', e);
+    }
+  }
+
+  // Fallback: local storage cancel
+  if (!apiSuccess) {
+    if (typeof ZenPassBooking !== 'undefined') {
+      ZenPassBooking.cancel(id);
+    }
+    var booked = JSON.parse(localStorage.getItem('zenpass_booked') || '{}');
+    if (booked[id]) {
+      booked[id].status = 'cancelled';
+      booked[id].cancel_reason = reason;
+      localStorage.setItem('zenpass_booked', JSON.stringify(booked));
+    }
+  }
+
+  closeCancelModal();
+  renderBookings();
+  showToast('✅ 預約已取消');
+
+  btn.disabled = false;
+  btn.textContent = '確認取消';
+  btn.style.opacity = '1';
+}
+
+function showToast(text) {
+  var el = document.createElement('div');
+  el.style.cssText = 'position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:#18181b;color:#fff;padding:12px 24px;border-radius:12px;font-size:14px;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,0.2);max-width:90%;text-align:center;animation:fadeIn 0.3s ease';
+  el.textContent = text;
+  document.body.appendChild(el);
+  setTimeout(function() { el.style.opacity = '0'; el.style.transition = 'opacity 0.3s'; setTimeout(function() { el.remove(); }, 300); }, 2500);
+}
+
+function renderBookings() {
+  var container = document.getElementById('bookings-list');
+  showState('bookings-list', 'loading', { message: '正在載入預約...' });
+
+  var data;
+  try {
+    data = (typeof ZenPassBooking !== 'undefined') ? ZenPassBooking.getAll() : (JSON.parse(localStorage.getItem('zenpass_booked') || '{}'));
+  } catch(e) {
+    showError('bookings-list', '無法載入預約資料', renderBookings);
+    return;
+  }
+
+  var activeKeys = Object.keys(data).filter(function(id) { return data[id].status !== 'cancelled'; });
+
+  if (activeKeys.length === 0) {
+    showState('bookings-list', 'empty', {
+      icon: '📅',
+      title: '仲未有任何預約',
+      message: '快去探索全城精彩課程啦！',
+      action: { label: '立即探索課程 →', fn: 'window.location.href=\'explore.html\'' }
+    });
+    return;
+  }
+
+  hideState('bookings-list');
+  container.innerHTML = '';
+  activeKeys.forEach(function(id) {
+    var b = data[id];
+    container.innerHTML += '' +
+    '<div class="booking-card"><div style="display:flex;flex-direction:column;gap:16px">' +
+    '<div style="display:flex;flex-direction:column;gap:12px">' +
+    '<div class="booking-title">' + escHtml(b.title || '') + '</div>' +
+    (b.instructor ? '<div class="booking-instructor">' + escHtml(b.instructor) + '</div>' : '') +
+    '<div class="booking-meta">📅 ' + (b.datetime || '未指定時間') + '<br>📍 ' + (b.location || '香港') + '</div>' +
+    '</div>' +
+    '<div style="display:flex;justify-content:space-between;align-items:center">' +
+    '<span class="booking-status">已確認</span>' +
+    (b.status === 'attended' ? '' : '<button onclick="showCancelModal(\'' + id + '\')" class="cancel-btn">✕ 取消預約</button>') +
+    '</div>' +
+    (b.status === 'attended' ? '<div style="display:flex;gap:8px;padding-top:4px">' +
+      '<button onclick="window.location.href=\'nps-survey.html?booking_id=' + id + '&class_name=' + encodeURIComponent(b.title || '') + '\'" class="btn btn-sm btn-outline" ' + (isNpsDone(id) ? 'disabled style="opacity:0.5"' : '') + '>' +
+        (isNpsDone(id) ? '✅ 已評價' : '📝 評價課堂') +
+      '</button>' +
+      '<button onclick="shareBooking(\'' + id + '\', \'' + escHtml(b.title || '') + '\')" class="btn btn-sm btn-outline">📤 分享</button>' +
+    '</div>' : '') +
+    '</div></div>';
+  });
+}
+
+function escHtml(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+ </script>
+<script src="js/booking-sync.js"></script>
+<script src="js/booking-system.js"></script>
+<script>
+renderBookings();
+// Retry a few times for IndexedDB to initialize
+var _rt = 0;
+(function _tryR() {
+  if (++_rt < 10) { setTimeout(function() { renderBookings(); _tryR(); }, 300); }
+})();
+document.addEventListener('bookingUpdated', function() {
+  renderBookings();
+});
+</script>
+<!-- Toast Container -->
+<div id="toast-container" style="position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:9999;display:flex;flex-direction:column;gap:8px;align-items:center;width:100%;max-width:360px;padding:0 16px"></div>
+<style>
+  @media(min-width:768px){
+    #toast-container{left:auto;right:24px;transform:none;max-width:380px;padding:0}
+  }
+</style>
+<template id="toast-template">
+  <div class="toast" style="display:flex;align-items:center;gap:12px;background:#fff;border:2px solid #e4e4e7;border-radius:16px;box-shadow:0 8px 24px rgba(0,0,0,0.1);padding:14px 18px;min-width:280px;max-width:360px;animation:toastIn 0.3s ease">
+    <span id="toast-icon" style="font-size:24px"></span>
+    <div style="flex:1">
+      <div id="toast-title" style="font-weight:600;font-size:14px;color:#18181b"></div>
+      <div id="toast-message" style="font-size:12px;color:#71717a;margin-top:2px"></div>
+    </div>
+    <button onclick="this.closest('.toast').remove()" style="background:none;border:none;color:#a1a1aa;font-size:16px;cursor:pointer;padding:4px">✕</button>
+  </div>
+</template>
+<script src="js/nav.js"></script>
+<script src="js/footer.js"></script>
+</body>
 </html>

@@ -2,313 +2,530 @@
 <html lang="zh-HK">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>銀包 — ZenPass 禪流</title>
-    <link rel="stylesheet" href="css/zenpass.css" />
-    <script src="app.js"></script>
+    <link rel="icon" href="favicon.png" type="image/png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="theme-color" content="#FF6B35" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="manifest" href="manifest.json" />
+    <link rel="stylesheet" href="css/zenpass.css?v=2" />
     <style>
+      * { margin:0; padding:0; box-sizing:border-box; }
+      body {
+        font-family:'Inter','Noto Sans TC',sans-serif;
+        background:#fff8f4;
+        color:#1a1a2e;
+        min-height:100vh;
+        padding-bottom:80px;
+      }
+
+      /* Header */
+      .wallet-header {
+        background:linear-gradient(135deg,#FF6B35,#FF8C42);
+        color:#fff;
+        padding:24px 20px 32px;
+        position:relative;
+      }
+      .wallet-header .back-row {
+        display:flex;align-items:center;gap:8px;margin-bottom:16px;
+      }
+      .wallet-header .back-row a {
+        color:#fff;text-decoration:none;font-size:14px;opacity:0.85;
+      }
+      .wallet-header .back-row a:hover{opacity:1;}
+      .wallet-header h1 { font-size:20px;font-weight:700; }
+
+      /* Balance Cards */
+      .balance-row {
+        display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:-16px 16px 0;
+      }
       .balance-card {
-        background: linear-gradient(135deg, #1a1a2e, #2d2d44);
-        border-radius: 16px;
-        padding: 24px;
-        text-align: center;
-        color: #fff;
-        margin: 16px;
+        background:#fff;border-radius:16px;padding:16px;box-shadow:0 2px 12px rgba(0,0,0,0.06);
+        position:relative;overflow:hidden;
       }
-      .balance-card .label {
-        font-size: 12px;
-        opacity: 0.6;
-      }
+      .balance-card .label { font-size:12px;color:#888;margin-bottom:4px; }
       .balance-card .amount {
-        font-size: 36px;
-        font-weight: 800;
-        margin: 4px 0;
+        font-size:24px;font-weight:700;color:#1a1a2e;
       }
-      .balance-card .sub {
-        font-size: 12px;
-        opacity: 0.5;
+      .balance-card .amount .currency { font-size:14px;color:#888;font-weight:500; }
+      .balance-card .action-btn {
+        display:block;margin-top:10px;padding:6px 12px;border:none;border-radius:8px;
+        font-size:11px;font-weight:600;cursor:pointer;text-align:center;text-decoration:none;
       }
-      .quick-actions {
-        display: flex;
-        gap: 8px;
-        margin: 0 16px 16px;
+      .card-credits .action-btn { background:#fef3c7;color:#92400e; }
+      .card-wallet .action-btn { background:#dbeafe;color:#1e40af; }
+
+      /* Tab selector */
+      .tab-row {
+        display:flex;margin:20px 16px 0;gap:4px;background:#f0f0f0;border-radius:12px;padding:3px;
       }
-      .quick-actions button {
-        flex: 1;
-        padding: 10px;
-        border: none;
-        border-radius: 10px;
-        font-size: 13px;
-        font-weight: 600;
-        cursor: pointer;
-        font-family: inherit;
+      .tab-row .tab {
+        flex:1;text-align:center;padding:10px;border-radius:10px;font-size:13px;font-weight:500;
+        cursor:pointer;transition:all 0.2s;color:#666;
       }
-      .tx-list {
-        padding: 0 16px;
-      }
+      .tab-row .tab.active { background:#fff;color:#1a1a2e;font-weight:600;box-shadow:0 1px 4px rgba(0,0,0,0.08); }
+
+      /* Transaction list */
+      .tx-list { margin:12px 16px 0; }
+      .tx-day { font-size:12px;font-weight:600;color:#888;padding:12px 0 6px; }
       .tx-item {
-        display: flex;
-        justify-content: space-between;
-        padding: 10px 0;
-        border-bottom: 1px solid var(--gray-100);
-        font-size: 13px;
+        display:flex;align-items:center;gap:12px;padding:12px;background:#fff;
+        border-radius:12px;margin-bottom:6px;box-shadow:0 1px 4px rgba(0,0,0,0.04);
       }
-      .tx-item .type {
-        font-weight: 600;
+      .tx-icon {
+        width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+        font-size:14px;flex-shrink:0;
       }
-      .tx-item .income {
-        color: var(--green-500);
+      .tx-icon.credit { background:#fef3c7; }
+      .tx-icon.debit { background:#fee2e2; }
+      .tx-icon.income { background:#d1fae5; }
+      .tx-info { flex:1;min-width:0; }
+      .tx-info .tx-title { font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+      .tx-info .tx-date { font-size:11px;color:#aaa;margin-top:2px; }
+      .tx-amount { font-size:14px;font-weight:600;text-align:right;white-space:nowrap; }
+      .tx-amount.positive { color:#059669; }
+      .tx-amount.negative { color:#dc2626; }
+
+      .load-more {
+        text-align:center;padding:16px;
       }
-      .tx-item .outcome {
-        color: var(--red-500);
+      .load-more button {
+        background:none;border:1px solid #e0e0e0;border-radius:8px;padding:8px 24px;
+        font-size:13px;color:#888;cursor:pointer;
       }
-      .tx-item .date {
-        font-size: 11px;
-        color: var(--gray-300);
-      }
-      .modal-content input {
-        width: 100%;
-        padding: 10px;
-        border: 1px solid var(--gray-200);
-        border-radius: 8px;
-        font-size: 14px;
-        margin-bottom: 8px;
-        box-sizing: border-box;
+      .load-more button:hover{background:#f5f5f5;}
+
+      /* Nav styles — handled by nav.js + zenpass.css */
+
+      @media (max-width:380px) {
+        .balance-row { grid-template-columns:1fr; }
+        .balance-card .amount { font-size:20px; }
       }
     </style>
+    <!-- Google tag (gtag.js) - GA4 -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-MKF5N4YLBM"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag() { dataLayer.push(arguments); }
+      gtag("js", new Date());
+      gtag("config", "G-MKF5N4YLBM");
+    </script>
+        <!-- SEO -->
+    
+    <meta name="description" content="管理你的 ZenPass 錢包、交易記錄和付款方式。">
+    <meta name="twitter:card" content="summary_large_image">
+  
+    <title>錢包與交易記錄 | ZenPass 禪流</title>
+    <meta name="description" content="查看 ZenPass 錢包、交易記錄、Credits 餘額 | 錢包 - ZenPass 禪流" />
+    <meta property="og:title" content="錢包與交易記錄 | ZenPass 禪流" />
+    <meta property="og:description" content="查看 ZenPass 錢包、交易記錄、Credits 餘額 | 錢包 - ZenPass 禪流" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://zenpass.hk/wallet.html" />
+    <meta property="og:image" content="https://zenpass.hk/favicon.png" />
+    <meta property="og:site_name" content="ZenPass 禪流" />
+    <meta property="og:locale" content="zh_HK" />
+    <meta name="twitter:card" content="summary_large_image" />
   </head>
   <body>
-    <div class="zen-header">
-      <a href="javascript:history.back()" class="back-btn">←</a>
-      <h1>💰 銀包</h1>
-    </div>
 
-    <div class="balance-card">
-      <div class="label">可用餘額</div>
-      <div class="amount" id="walletBalance">HK$0</div>
-      <div class="sub">可提取至銀行戶口</div>
-    </div>
-
-    <div class="quick-actions">
-      <button
-        style="background: var(--orange-600-bg); color: white"
-        onclick="showWithdraw()"
-      >
-        🏦 提現
-      </button>
-      <button
-        style="background: var(--gray-100); color: var(--dark-700)"
-        onclick="showBankForm()"
-      >
-        🏧 設定戶口
-      </button>
-    </div>
-
-    <div class="zen-section-title" style="padding: 0 16px">📋 交易記錄</div>
-    <div class="tx-list" id="txList">
-      <div class="loading-spinner">載入中...</div>
-    </div>
-
-    <!-- Withdraw Modal -->
-    <div class="zen-modal-overlay" id="wdModal">
-      <div class="zen-modal">
-        <div style="font-size: 40px; margin-bottom: 8px">🏦</div>
-        <div class="modal-title">提現</div>
-        <div
-          id="wdBankInfo"
-          style="font-size: 12px; color: var(--dark-700); margin-bottom: 8px"
-        ></div>
-        <input type="number" id="wdAmount" placeholder="輸入提取金額" min="1" />
-        <div
-          style="
-            font-size: 11px;
-            color: var(--gray-300);
-            text-align: left;
-            margin-bottom: 8px;
-          "
-        >
-          每次提現行政費 HK$1
-        </div>
-        <button
-          class="zen-btn zen-btn-primary zen-btn-block"
-          onclick="submitWithdraw()"
-        >
-          確認提現
-        </button>
-        <button
-          class="zen-btn zen-btn-secondary zen-btn-block"
-          onclick="closeModal('wdModal')"
-        >
-          取消
-        </button>
+    <!-- Header -->
+    <div class="wallet-header">
+      <div class="back-row">
+        <a href="my.html">← 返回</a>
+        <h1>💰 錢包</h1>
       </div>
     </div>
 
-    <!-- Bank Form Modal -->
-    <div class="zen-modal-overlay" id="bankModal">
-      <div class="zen-modal" style="text-align: left">
-        <div class="modal-title" style="text-align: center">🏧 銀行戶口</div>
-        <div class="zen-form-group">
-          <label>銀行名稱</label
-          ><input type="text" id="f-bank-name" placeholder="例如：HSBC" />
+    <!-- Balance Cards -->
+    <div class="balance-row" id="balanceCards"></div>
+
+    <!-- Auto Top-up Config (only if logged in) -->
+    <div id="autoTopupStatus" style="margin:12px 16px 0;display:none">
+      <div style="background:#fff;border-radius:12px;padding:12px 14px;box-shadow:0 1px 6px rgba(0,0,0,0.05);display:flex;align-items:center;gap:10px;">
+        <div style="font-size:20px;flex-shrink:0">⚡</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:500;color:#1a1a2e" id="autoTopupStatusText">Auto Top-up 已啟用</div>
+          <div style="font-size:11px;color:#888;margin-top:2px" id="autoTopupStatusDetail">低過 10 cr 時自動加購</div>
         </div>
-        <div class="zen-form-group">
-          <label>戶口號碼</label
-          ><input type="text" id="f-bank-account" placeholder="123456789" />
-        </div>
-        <div class="zen-form-group">
-          <label>銀行代碼（選填）</label
-          ><input type="text" id="f-bank-code" placeholder="例如：004" />
-        </div>
-        <button
-          class="zen-btn zen-btn-primary zen-btn-block"
-          onclick="saveBank()"
-        >
-          💾 儲存
-        </button>
-        <button
-          class="zen-btn zen-btn-secondary zen-btn-block"
-          onclick="closeModal('bankModal')"
-        >
-          取消
-        </button>
+        <a href="topup-auto.html" style="text-decoration:none;font-size:12px;color:#FF6B35;font-weight:600;white-space:nowrap;">設定 →</a>
       </div>
     </div>
 
+    <!-- Credit Expiry Warning -->
+    <div id="creditExpiryWarning" style="margin:12px 16px 0;display:none">
+      <div style="background:linear-gradient(135deg,#fef3c7,#fde68a);border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:10px;">
+        <div style="font-size:20px;flex-shrink:0">⏰</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:500;color:#92400e" id="expiryWarningText">Credits 即將到期</div>
+          <div style="font-size:11px;color:#92400e;margin-top:2px" id="expiryWarningDetail">載入中...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab Selector -->
+    <div class="tab-row" id="tabRow">
+      <div class="tab active" data-tab="credits" onclick="switchTab('credits')">🎫 Credits</div>
+      <div class="tab" data-tab="wallet" onclick="switchTab('wallet')">💰 銀包</div>
+    </div>
+
+    <!-- Content -->
+    <div id="content" style="position:relative;min-height:300px">
+    </div>
+
+
+
+    <script defer src="api.js?v=2"></script>
     <script>
+      // ===== Auth check =====
+      var token = localStorage.getItem("zenpass_token");
+      if (!token) { location.href = "login.html?redirect=wallet.html"; }
+
+      var user = null;
+      try { user = JSON.parse(localStorage.getItem("zenpass_user") || "{}"); } catch(e){}
+      var isCoach = user && (user.is_coach === 1 || user.is_coach === true);
+      var API = typeof API_BASE !== "undefined" ? API_BASE : "/api";
+      var currentTab = "credits";
+      var walletTxOffset = 0;
+      var creditTxOffset = 0;
+      var hasMoreWallet = true;
+      var hasMoreCredits = true;
+
+      // ===== Load wallet data =====
       async function loadWallet() {
+        showState('content', 'loading', { message: '載入中...' });
         try {
-          var r = await fetch("/api/wallet/balance", {
-            headers: authHeaders(),
+          // Load user data for credits
+          if (user && user.id) {
+            try {
+              var r = await fetch(API + "/auth/me", {
+                headers: { Authorization: "Bearer " + token }
+              });
+              var d = await r.json();
+              if (d.user) {
+                user = d.user;
+                localStorage.setItem("zenpass_user", JSON.stringify(d.user));
+              }
+            } catch(e){ /* use cached user */ }
+          }
+
+          // Load wallet summary (for coaches/partners)
+          var walletSummary = null;
+          try {
+            var wr = await fetch(API + "/wallet/summary", {
+              headers: { Authorization: "Bearer " + token }
+            });
+            walletSummary = await wr.json();
+          } catch(e) {}
+
+          renderBalanceCards(walletSummary);
+          loadCredits();
+        } catch(e) {
+          showState('content', 'error', {
+            title: '載入失敗',
+            message: '無法載入錢包資料，請稍後再試',
+            retryFn: loadWallet
+          });
+        }
+      }
+
+      // ===== Render balance cards =====
+      function renderBalanceCards(summary) {
+        var credits = user ? user.credits || 0 : 0;
+        var walletBal = summary && summary.wallet_balance ? summary.wallet_balance : 0;
+
+        var html = "";
+        // Credits card
+        html += '<div class="balance-card card-credits">' +
+          '<div class="label">🎫 Credits 餘額</div>' +
+          '<div class="amount">' + credits + ' <span class="currency">cr</span></div>' +
+          '<a href="buy-credits.html" class="action-btn">➕ 加購</a>' +
+          '<a href="topup-auto.html" style="display:block;margin-top:4px;padding:4px 8px;border:none;border-radius:8px;font-size:10px;font-weight:500;cursor:pointer;text-align:center;text-decoration:none;background:#f0f0f0;color:#666;">⚡ Auto Top-up</a>' +
+          '</div>';
+
+        // Wallet card (show for coaches or if balance > 0)
+        if (isCoach || walletBal > 0) {
+          html += '<div class="balance-card card-wallet">' +
+            '<div class="label">💰 銀包結餘</div>' +
+            '<div class="amount">HK$<span class="currency">' + (walletBal || 0).toFixed(2) + '</span></div>' +
+            (isCoach ? '<a href="coach-dashboard.html" class="action-btn">📊 查看詳情</a>' : '') +
+            '</div>';
+        } else {
+          html += '<div class="balance-card card-wallet" style="opacity:0.6">' +
+            '<div class="label">💰 銀包結餘</div>' +
+            '<div class="amount">HK$0.00</div>' +
+            '<div style="font-size:11px;color:#aaa;margin-top:6px">教練／夥伴專用</div>' +
+            '</div>';
+        }
+
+        document.getElementById("balanceCards").innerHTML = html;
+      }
+
+      // ===== Switch tab =====
+      function switchTab(tab) {
+        currentTab = tab;
+        document.querySelectorAll(".tab-row .tab").forEach(function(el) {
+          el.classList.toggle("active", el.dataset.tab === tab);
+        });
+        if (tab === "credits") loadCredits();
+        else loadWalletTransactions();
+      }
+
+      // ===== Load credits history =====
+      async function loadCredits() {
+        showState('content', 'loading', { message: '載入中...' });
+
+        try {
+          var r = await fetch(API + "/auth/me", {
+            headers: { Authorization: "Bearer " + token }
           });
           var d = await r.json();
-          document.getElementById("walletBalance").textContent =
-            "HK$" + (d.balance || 0).toFixed(2);
-          if (d.bank) {
-            document.getElementById("wdBankInfo").innerHTML =
-              "提取至：" + d.bank.name + " (" + d.bank.account + ")";
-          } else {
-            document.getElementById("wdBankInfo").innerHTML =
-              "⚠️ 未設定銀行戶口";
+          if (d.user) {
+            user = d.user;
+            localStorage.setItem("zenpass_user", JSON.stringify(d.user));
           }
-        } catch (e) {}
 
-        try {
-          var r2 = await fetch("/api/wallet/transactions", {
-            headers: authHeaders(),
+          // Get credit transactions from /transactions endpoint
+          var txs = [];
+          try {
+            var tr = await fetch(API + "/payments/transactions?type=credits_topup&limit=50", {
+              headers: { Authorization: "Bearer " + token }
+            });
+            var td = await tr.json();
+            if (td.transactions) txs = td.transactions;
+            else if (Array.isArray(td)) txs = td;
+          } catch(e) {}
+
+          // Also get wallet transactions for booking spends
+          var walletTxs = [];
+          try {
+            var wr = await fetch(API + "/wallet/transactions?limit=50", {
+              headers: { Authorization: "Bearer " + token }
+            });
+            var wd = await wr.json();
+            if (wd.transactions) walletTxs = wd.transactions;
+            else if (Array.isArray(wd)) walletTxs = wd;
+          } catch(e) {}
+
+          renderCredits(txs, walletTxs);
+        } catch(e) {
+          renderCredits([], []);
+        }
+      }
+
+      function renderCredits(creditTxs, walletTxs) {
+        var credits = user ? user.credits || 0 : 0;
+
+        // Build combined list
+        var items = [];
+
+        // Credit top-ups
+        if (Array.isArray(creditTxs)) {
+          creditTxs.forEach(function(tx) {
+            items.push({
+              type: "credit_topup",
+              icon: "🎫",
+              iconClass: "credit",
+              title: tx.description || "加購 Credits",
+              date: tx.created_at || "",
+              amount: "+" + (tx.amount || 0) + " cr",
+              amountClass: "positive",
+              rawDate: tx.created_at || ""
+            });
           });
-          var txs = await r2.json();
-          var el = document.getElementById("txList");
-          if (txs.length === 0) {
-            el.innerHTML =
-              '<div class="zen-empty"><div class="empty-icon">💰</div><div class="empty-title">暫無交易</div></div>';
-            return;
-          }
-          var icons = {
-            income: "💰",
-            rental_payment: "🏟️",
-            withdrawal: "🏦",
-            refund: "🔄",
-          };
-          el.innerHTML = txs
-            .map(function (t) {
-              var isIn = t.type === "income";
-              return (
-                '<div class="tx-item"><div><div class="type">' +
-                (icons[t.type] || "📋") +
-                " " +
-                t.reference +
-                '</div><div class="date">' +
-                (t.created_at || "") +
-                '</div></div><div class="' +
-                (isIn ? "income" : "outcome") +
-                '">' +
-                (isIn ? "+" : "-") +
-                "$" +
-                Math.abs(t.amount).toFixed(2) +
-                (t.fee ? " (費$" + t.fee + ")" : "") +
-                "</div></div>"
-              );
-            })
-            .join("");
-        } catch (e) {}
-      }
+        }
 
-      function showWithdraw() {
-        document.getElementById("wdModal").classList.add("show");
-      }
-      function showBankForm() {
-        document.getElementById("f-bank-name").value = "";
-        document.getElementById("f-bank-account").value = "";
-        document.getElementById("f-bank-code").value = "";
-        document.getElementById("bankModal").classList.add("show");
-      }
-      function closeModal(id) {
-        document.getElementById(id).classList.remove("show");
-      }
+        // Wallet transactions for this user (booking spends, class income)
+        if (Array.isArray(walletTxs)) {
+          walletTxs.forEach(function(tx) {
+            var amt = tx.amount || 0;
+            var isPositive = amt > 0;
+            items.push({
+              type: tx.type || "adjustment",
+              icon: isPositive ? "💰" : "💸",
+              iconClass: isPositive ? "income" : "debit",
+              title: tx.description || (isPositive ? "收入" : "支出"),
+              date: tx.created_at || "",
+              amount: (isPositive ? "+" : "") + "HK$" + Math.abs(amt).toFixed(2),
+              amountClass: isPositive ? "positive" : "negative",
+              rawDate: tx.created_at || ""
+            });
+          });
+        }
 
-      async function submitWithdraw() {
-        var amt = parseFloat(document.getElementById("wdAmount").value);
-        if (!amt || amt <= 0) {
-          ZenPass.toast("請輸入有效金額", "warning");
+        if (items.length === 0) {
+          showState('content', 'empty', {
+            icon: '🎫',
+            title: '尚未有交易記錄',
+            message: '預約課程後會喺呢度顯示'
+          });
           return;
         }
-        if (!confirm("確認提現 HK$" + amt.toFixed(2) + "？（行政費 HK$1）"))
-          return;
+
+        hideState('content');
+
+        items.sort(function(a, b) { return b.rawDate.localeCompare(a.rawDate); });
+
+        var html = '<div class="tx-list">';
+        var lastDay = "";
+        items.forEach(function(item) {
+          var day = item.date ? item.date.substring(0, 10) : "";
+          if (day !== lastDay) {
+            html += '<div class="tx-day">' + formatDay(day) + '</div>';
+            lastDay = day;
+          }
+          html +=
+            '<div class="tx-item">' +
+            '<div class="tx-icon ' + item.iconClass + '">' + item.icon + '</div>' +
+            '<div class="tx-info">' +
+            '<div class="tx-title">' + item.title + '</div>' +
+            '<div class="tx-date">' + (item.date ? item.date.substring(0, 16).replace("T", " ") : "") + '</div>' +
+            '</div>' +
+            '<div class="tx-amount ' + item.amountClass + '">' + item.amount + '</div>' +
+            '</div>';
+        });
+        html += '</div>';
+        document.getElementById("content").innerHTML = html;
+      }
+
+      // ===== Load wallet (HKD) transactions =====
+      async function loadWalletTransactions() {
+        showState('content', 'loading', { message: '載入中...' });
+
         try {
-          var r = await fetch("/api/wallet/withdraw", {
-            method: "POST",
-            headers: authHeaders({ "Content-Type": "application/json" }),
-            body: JSON.stringify({ amount: amt }),
+          var r = await fetch(API + "/wallet/transactions?limit=50", {
+            headers: { Authorization: "Bearer " + token }
           });
           var d = await r.json();
-          if (d.success) {
-            ZenPass.toast("✅ 提現申請成功！扣除 HK$1 行政費", "success");
-            closeModal("wdModal");
-            loadWallet();
-          } else {
-            ZenPass.toast("❌ " + (d.error || "失敗"), "error");
-          }
-        } catch (e) {
-          ZenPass.toast("❌ 失敗", "error");
+          var txs = d.transactions || [];
+          renderWalletTxs(txs);
+        } catch(e) {
+          renderWalletTxs([]);
         }
       }
 
-      async function saveBank() {
-        var data = {
-          bank_name: document.getElementById("f-bank-name").value.trim(),
-          bank_account: document.getElementById("f-bank-account").value.trim(),
-          bank_code: document.getElementById("f-bank-code").value.trim(),
-        };
-        if (!data.bank_name || !data.bank_account) {
-          ZenPass.toast("請填寫銀行名稱同戶口號碼", "warning");
+      function renderWalletTxs(txs) {
+        if (!txs || txs.length === 0) {
+          showState('content', 'empty', {
+            icon: '💰',
+            title: '尚未有銀包交易',
+            message: '成為教練或夥伴後，收入會喺呢度顯示'
+          });
           return;
         }
-        try {
-          var r = await fetch("/api/wallet/bank", {
-            method: "POST",
-            headers: authHeaders({ "Content-Type": "application/json" }),
-            body: JSON.stringify(data),
-          });
-          var d = await r.json();
-          if (d.success) {
-            ZenPass.toast("✅ 銀行戶口已設定", "success");
-            closeModal("bankModal");
-            loadWallet();
-          } else {
-            ZenPass.toast("❌ " + (d.error || "失敗"), "error");
+
+        hideState('content');
+
+        var html = '<div class="tx-list">';
+        var lastDay = "";
+        txs.forEach(function(tx) {
+          var day = tx.created_at ? tx.created_at.substring(0, 10) : "";
+          if (day !== lastDay) {
+            html += '<div class="tx-day">' + formatDay(day) + '</div>';
+            lastDay = day;
           }
-        } catch (e) {
-          ZenPass.toast("❌ 失敗", "error");
+          var amt = tx.amount || 0;
+          var isPositive = amt > 0;
+          var icon, iconClass, label;
+          switch(tx.type) {
+            case "class_income": icon = "📚"; iconClass = "income"; label = "課堂收入"; break;
+            case "withdrawal": icon = "🏧"; iconClass = "debit"; label = "提現"; break;
+            case "rental_payment": icon = "🏠"; iconClass = "debit"; label = "租場"; break;
+            case "refund": icon = "↩️"; iconClass = "income"; label = "退款"; break;
+            case "adjustment": icon = "⚙️"; iconClass = "credit"; label = "調整"; break;
+            default: icon = "💳"; iconClass = isPositive ? "income" : "debit"; label = tx.description || tx.type || "交易"; break;
+          }
+
+          html +=
+            '<div class="tx-item">' +
+            '<div class="tx-icon ' + iconClass + '">' + icon + '</div>' +
+            '<div class="tx-info">' +
+            '<div class="tx-title">' + label + '</div>' +
+            '<div class="tx-date">' + (tx.created_at ? tx.created_at.substring(0, 16).replace("T", " ") : "") + '</div>' +
+            '</div>' +
+            '<div class="tx-amount ' + (isPositive ? "positive" : "negative") + '">' +
+            (isPositive ? "+" : "-") + "HK$" + Math.abs(amt).toFixed(2) +
+            '</div>' +
+            '</div>';
+        });
+        html += '</div>';
+        document.getElementById("content").innerHTML = html;
+      }
+
+      // ===== Helpers =====
+      function formatDay(dateStr) {
+        if (!dateStr) return "";
+        var parts = dateStr.split("-");
+        if (parts.length < 3) return dateStr;
+        try {
+          var d = new Date(dateStr + "T12:00:00");
+          var today = new Date();
+          var yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
+
+          if (d.toDateString() === today.toDateString()) return "今天";
+          if (d.toDateString() === yesterday.toDateString()) return "昨天";
+
+          var monthNames = ["1月","2月","3月","4月","5月","6月","7月","8月","9月","10月","11月","12月"];
+          return parseInt(parts[1]) + "月" + parseInt(parts[2]) + "日";
+        } catch(e) {
+          return dateStr;
         }
       }
 
-      function authHeaders(extra) {
-        var t = localStorage.getItem("zenpass_token") || "";
-        return Object.assign({ Authorization: "Bearer " + t }, extra || {});
+      // ===== Check Auto Top-up config =====
+      async function checkAutoTopup() {
+        try {
+          var r = await fetch(API + "/topup/config", {
+            headers: { Authorization: "Bearer " + token }
+          });
+          var d = await r.json();
+          if (d.enabled) {
+            var bundleLabel = { light: "輕量包", standard: "標準包", premium: "超值包" }[d.bundle_type] || d.bundle_type;
+            document.getElementById("autoTopupStatus").style.display = "block";
+            document.getElementById("autoTopupStatusText").textContent = "⚡ Auto Top-up 已啟用";
+            document.getElementById("autoTopupStatusDetail").textContent =
+              "低過 " + d.threshold + " cr 時自動加購 " + bundleLabel + "（" + d.bundle.credits + " cr）";
+          }
+        } catch(e) { /* silently ignore */ }
       }
 
+      // ===== Check Credit Expiry =====
+      async function checkCreditExpiry() {
+        try {
+          // Load membership info
+          var r = await fetch(API + "/memberships/my", {
+            headers: { Authorization: "Bearer " + token }
+          });
+          var d = await r.json();
+
+          if (d.current && d.current.type && d.current.type !== "none" && d.current.credits > 0) {
+            var today = new Date();
+            var nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, 1);
+            var daysUntilReset = Math.ceil((nextMonth - today) / (1000 * 60 * 60 * 24));
+            var monthNames = ["1月","2月","3月","4月","5月","6月","7月","8月","9月","10月","11月","12月"];
+
+            if (daysUntilReset <= 7 && daysUntilReset > 0) {
+              document.getElementById("creditExpiryWarning").style.display = "block";
+              document.getElementById("expiryWarningText").textContent =
+                "⏰ " + daysUntilReset + " 日後到期，剩餘 " + d.current.credits + " Credits";
+              document.getElementById("expiryWarningDetail").textContent =
+                "你嘅 Plan（" + d.current.type + "）將於 " + monthNames[nextMonth.getMonth()] + " 1 日重置，快啲用埋佢啦！";
+            }
+          }
+        } catch(e) { /* silently ignore */ }
+      }
+
+      // ===== Init =====
       loadWallet();
+      setTimeout(checkAutoTopup, 1000);
+      setTimeout(checkCreditExpiry, 1500);
     </script>
-  </body>
+  <script src="js/nav.js"></script>
+<div id="zp-footer"></div>
+<script src="assets/footer-loader.js"></script>
+<script src="js/footer.js"></script>
+</body>
 </html>

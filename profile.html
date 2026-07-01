@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="zh-HK">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" href="favicon.png" type="image/png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="theme-color" content="#f06030" />
+    <script src="config.js"></script>
+    <script defer src="api.js?v=2"></script>
+    <link rel="stylesheet" href="css/zenpass.css?v=2" />
+    <!-- Google tag (gtag.js) - GA4 -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-MKF5N4YLBM"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag() { dataLayer.push(arguments); }
+      gtag("js", new Date());
+      gtag("config", "G-MKF5N4YLBM");
+    </script>
+    <!-- SEO -->
+    <title>編輯個人資料 — ZenPass 禪流</title>
+    <meta name="description" content="編輯你的 ZenPass 個人資料。">
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body {
+        font-family: var(--font-zh);
+        background: var(--gray-50);
+        color: var(--dark-900);
+        padding: 20px;
+        min-height: 100vh;
+      }
+      html.dark body { background: #0f0f13; color: var(--white); }
+      .max-w-lg { max-width: 560px; margin: 0 auto; padding-top: 60px; }
+      .page-title { font-size: 24px; font-weight: 700; margin-bottom: 4px; }
+      .page-sub { color: var(--dark-700); font-size: 13px; margin-bottom: 24px; }
+      .card {
+        background: var(--white);
+        border-radius: 20px;
+        padding: 24px;
+        margin-bottom: 20px;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+        border: 1px solid var(--gray-200);
+      }
+      html.dark .card { background: #18181b; border-color: #27272a; }
+      .card-title { font-size: 16px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+      .form-group { margin-bottom: 14px; }
+      .form-group label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 4px; color: var(--dark-700); }
+      .form-group input, .form-group .input-display {
+        width: 100%; padding: 12px; border: 1px solid var(--gray-200);
+        border-radius: 12px; font-size: 15px; font-family: var(--font-zh);
+        background: var(--white); transition: border 0.2s;
+      }
+      .form-group input:focus { outline: none; border-color: var(--orange-700); box-shadow: 0 0 0 3px rgba(192,68,32,0.1); }
+      html.dark .form-group input { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.1); color: var(--white); }
+      html.dark .form-group .input-display { background: rgba(255,255,255,0.03); border-color: rgba(255,255,255,0.06); color: var(--dark-700); }
+      .btn {
+        width: 100%; padding: 14px; border: none; border-radius: 12px;
+        font-size: 15px; font-weight: 700; cursor: pointer; font-family: var(--font-zh);
+        transition: all 0.2s;
+      }
+      .btn-primary { background: var(--orange-600-bg); color: var(--white); }
+      .btn-primary:hover { background: #e55a2b; }
+      .btn-primary:disabled { background: var(--gray-200); cursor: not-allowed; }
+      .btn-outline {
+        background: transparent; border: 1px solid var(--gray-200); color: var(--dark-900);
+      }
+      .btn-outline:hover { background: var(--gray-50); }
+      html.dark .btn-outline { border-color: #27272a; color: var(--white); }
+      html.dark .btn-outline:hover { background: rgba(255,255,255,0.06); }
+      .msg { font-size: 13px; margin-top: 8px; padding: 10px; border-radius: 10px; display: none; }
+      .msg.error { display: block; background: #fef2f2; color: var(--red-500); }
+      .msg.success { display: block; background: #ecfdf5; color: var(--green-500); }
+      .msg.info { display: block; background: #eff6ff; color: var(--blue-500); }
+      .avatar-section { text-align: center; margin-bottom: 20px; }
+      .avatar-circle {
+        width: 80px; height: 80px; border-radius: 50%;
+        background: var(--orange-100); display: flex; align-items: center; justify-content: center;
+        font-size: 32px; margin: 0 auto 12px; border: 3px solid var(--white);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1); overflow: hidden;
+      }
+      html.dark .avatar-circle { border-color: #27272a; }
+      .avatar-circle img { width: 100%; height: 100%; object-fit: cover; }
+      .avatar-upload-btn {
+        display: inline-block; padding: 8px 16px; border: 1px solid var(--gray-200);
+        border-radius: 20px; font-size: 13px; cursor: pointer; color: var(--dark-700);
+        background: var(--white); transition: all 0.2s; font-family: var(--font-zh);
+      }
+      html.dark .avatar-upload-btn { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.1); color: var(--dark-300); }
+      .avatar-upload-btn:hover { background: var(--gray-50); }
+      #avatar-upload { display: none; }
+      .section-divider { height: 1px; background: var(--gray-200); margin: 20px 0; }
+      html.dark .section-divider { background: #27272a; }
+      @keyframes spin { to { transform: rotate(360deg); } }
+      .spinner { display: inline-block; width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 0.8s linear infinite; vertical-align: middle; margin-right: 8px; }
+      .input-row { display: flex; gap: 12px; }
+      .input-row .form-group { flex: 1; }
+      @media (max-width: 480px) {
+        body { padding: 16px; }
+        .max-w-lg { padding-top: 40px; }
+        .card { padding: 18px; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="max-w-lg">
+      <div style="margin-bottom: 8px;">
+        <a href="my.html" style="color: var(--orange-700); text-decoration: none; font-size: 14px;">← 返回我的帳戶</a>
+      </div>
+      <h1 class="page-title">編輯個人資料</h1>
+      <p class="page-sub">更新你的基本資料和帳戶設定</p>
+
+      <!-- Avatar Section -->
+      <div class="card">
+        <div class="avatar-section">
+          <div class="avatar-circle" id="avatar-circle">🧘</div>
+          <input type="file" id="avatar-upload" accept="image/*" onchange="handleAvatarUpload(event)" />
+          <button class="avatar-upload-btn" onclick="document.getElementById('avatar-upload').click()">
+            📷 更換頭像
+          </button>
+        </div>
+      </div>
+
+      <!-- Profile Form -->
+      <div class="card">
+        <div class="card-title">👤 基本資料</div>
+        <form id="profile-form" onsubmit="return handleProfileUpdate(event)">
+          <div class="form-group">
+            <label>電郵</label>
+            <div class="input-display" id="profile-email">—</div>
+          </div>
+          <div class="form-group">
+            <label>姓名</label>
+            <input type="text" id="profile-name" placeholder="你的姓名" required />
+          </div>
+          <div class="form-group">
+            <label>電話</label>
+            <input type="tel" id="profile-phone" placeholder="+852 9123 4567" />
+          </div>
+          <button type="submit" class="btn btn-primary" id="profile-save-btn">
+            儲存更改
+          </button>
+          <div class="msg" id="profile-msg"></div>
+        </form>
+      </div>
+
+      <!-- Change Password Section -->
+      <div class="card">
+        <div class="card-title">🔑 變更密碼</div>
+        <form id="password-form" onsubmit="return handlePasswordChange(event)">
+          <div class="form-group">
+            <label>新密碼</label>
+            <input type="password" id="pw-new" placeholder="至少 6 個字元" minlength="6" required />
+          </div>
+          <div class="form-group">
+            <label>確認新密碼</label>
+            <input type="password" id="pw-confirm" placeholder="再次輸入新密碼" required />
+          </div>
+          <button type="submit" class="btn btn-outline" id="pw-btn">
+            更新密碼
+          </button>
+          <div class="msg" id="pw-msg"></div>
+        </form>
+      </div>
+    </div>
+
+    <script>
+      var API_BASE = window.API_BASE || '';
+
+      // ─── Load Profile ───
+      async function loadProfile() {
+        var token = localStorage.getItem('zenpass_token') || localStorage.getItem('token');
+        if (!token) {
+          window.location.href = 'login.html';
+          return;
+        }
+        try {
+          var resp = await fetch(API_BASE + '/auth/me', {
+            headers: { 'Authorization': 'Bearer ' + token }
+          });
+          var data = await resp.json();
+          if (!resp.ok) throw new Error(data.error);
+
+          var user = data.user;
+          document.getElementById('profile-email').textContent = user.email || '—';
+          document.getElementById('profile-name').value = user.name || '';
+          document.getElementById('profile-phone').value = user.phone || '';
+
+          var circle = document.getElementById('avatar-circle');
+          if (user.avatar_url) {
+            circle.innerHTML = '<img src="' + user.avatar_url + '" alt="avatar" />';
+          } else {
+            circle.textContent = user.name ? user.name.charAt(0).toUpperCase() : '🧘';
+          }
+          window.__currentAvatar = user.avatar_url || null;
+        } catch (e) {
+          console.error('Failed to load profile:', e);
+          var msg = document.getElementById('profile-msg');
+          msg.textContent = '❌ 無法載入個人資料';
+          msg.className = 'msg error';
+        }
+      }
+
+      // ─── Handle Avatar Upload ───
+      async function handleAvatarUpload(e) {
+        var file = e.target.files[0];
+        if (!file) return;
+
+        var token = localStorage.getItem('zenpass_token') || localStorage.getItem('token');
+        var formData = new FormData();
+        formData.append('avatar', file);
+
+        try {
+          var resp = await fetch(API_BASE + '/upload/avatar', {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + token },
+            body: formData
+          });
+          var data = await resp.json();
+          if (!resp.ok) throw new Error(data.error || '上傳失敗');
+
+          var url = data.url || data.avatar_url;
+          var circle = document.getElementById('avatar-circle');
+          circle.innerHTML = '<img src="' + url + '" alt="avatar" />';
+          window.__currentAvatar = url;
+
+          // Auto-save avatar to profile
+          await fetch(API_BASE + '/users/profile', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+            body: JSON.stringify({ avatar_url: url })
+          });
+
+          showToast('✅ 頭像已更新');
+        } catch (e) {
+          showToast('❌ ' + (e.message || '上傳失敗'));
+        }
+      }
+
+      // ─── Profile Update ───
+      async function handleProfileUpdate(e) {
+        e.preventDefault();
+        var name = document.getElementById('profile-name').value.trim();
+        var phone = document.getElementById('profile-phone').value.trim();
+        var msg = document.getElementById('profile-msg');
+        var btn = document.getElementById('profile-save-btn');
+
+        if (!name) { msg.textContent = '請填寫姓名'; msg.className = 'msg error'; return; }
+
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner"></span> 儲存中...';
+
+        var token = localStorage.getItem('zenpass_token') || localStorage.getItem('token');
+        try {
+          var body = { name: name, phone: phone || null };
+          if (window.__currentAvatar) body.avatar_url = window.__currentAvatar;
+
+          var resp = await fetch(API_BASE + '/users/profile', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+            body: JSON.stringify(body)
+          });
+          var data = await resp.json();
+
+          if (!resp.ok) throw new Error(data.error || '更新失敗');
+
+          msg.textContent = '✅ 資料已更新';
+          msg.className = 'msg success';
+
+          // Update local user cache
+          var cached = localStorage.getItem('zenpass_user');
+          if (cached) {
+            var u = JSON.parse(cached);
+            u.name = name;
+            u.phone = phone;
+            localStorage.setItem('zenpass_user', JSON.stringify(u));
+          }
+
+          btn.disabled = false;
+          btn.textContent = '儲存更改';
+          setTimeout(function() { msg.className = 'msg'; }, 3000);
+        } catch (e) {
+          msg.textContent = '❌ ' + (e.message || '更新失敗');
+          msg.className = 'msg error';
+          btn.disabled = false;
+          btn.textContent = '儲存更改';
+        }
+      }
+
+      // ─── Change Password ───
+      async function handlePasswordChange(e) {
+        e.preventDefault();
+        var password = document.getElementById('pw-new').value;
+        var confirm = document.getElementById('pw-confirm').value;
+        var msg = document.getElementById('pw-msg');
+        var btn = document.getElementById('pw-btn');
+
+        if (!password || !confirm) { msg.textContent = '請填寫所有欄位'; msg.className = 'msg error'; return; }
+        if (password.length < 6) { msg.textContent = '密碼至少需要 6 個字元'; msg.className = 'msg error'; return; }
+        if (password !== confirm) { msg.textContent = '兩次輸入的密碼不一致'; msg.className = 'msg error'; return; }
+
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner"></span> 更新中...';
+
+        var token = localStorage.getItem('zenpass_token') || localStorage.getItem('token');
+        try {
+          var resp = await fetch(API_BASE + '/auth/change-password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+            body: JSON.stringify({ new_password: password })
+          });
+          var data = await resp.json();
+
+          if (!resp.ok) throw new Error(data.error || '更新失敗');
+
+          msg.textContent = '✅ 密碼已更新';
+          msg.className = 'msg success';
+          document.getElementById('pw-new').value = '';
+          document.getElementById('pw-confirm').value = '';
+
+          btn.disabled = false;
+          btn.textContent = '更新密碼';
+          setTimeout(function() { msg.className = 'msg'; }, 3000);
+        } catch (e) {
+          msg.textContent = '❌ ' + (e.message || '更新失敗');
+          msg.className = 'msg error';
+          btn.disabled = false;
+          btn.textContent = '更新密碼';
+        }
+      }
+
+      // ─── Toast ───
+      function showToast(text) {
+        var el = document.createElement('div');
+        el.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#18181b;color:#fff;padding:12px 24px;border-radius:12px;font-size:14px;z-index:9999;animation:toastIn 0.3s ease;box-shadow:0 4px 16px rgba(0,0,0,0.2);max-width:90%;text-align:center';
+        el.textContent = text;
+        document.body.appendChild(el);
+        setTimeout(function() { el.style.opacity = '0'; el.style.transition = 'opacity 0.3s'; setTimeout(function() { el.remove(); }, 300); }, 2500);
+      }
+
+      loadProfile();
+    </script>
+    <script src="js/nav.js"></script>
+    <script src="js/footer.js"></script>
+  </body>
+</html>

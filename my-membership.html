@@ -3,691 +3,275 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" href="favicon.png" type="image/png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta
-      name="apple-mobile-web-app-status-bar-style"
-      content="black-translucent"
-    />
-    <meta name="theme-color" content="#FF6B35" />
-    <title>我的會籍 — ZenPass 禪流</title>
-    <link rel="manifest" href="manifest.json" />
-
-    <link rel="stylesheet" href="css/zenpass.css" />
-    <style>
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-      }
-      :root {
-        --orange-500: #ff6b35;
-        --orange-700: #aa3218;
-        --orange-600-bg: #c94420;
-        --orange-400: #ff8555;
-        --orange-100: #fff0e8;
-        --orange-50: #fff8f4;
-        --dark-900: #1a1a2e;
-        --dark-800: #2d2d44;
-        --dark-700: #3d3d5a;
-        --gray-200: #e5e7eb;
-        --gray-300: #d1d5db;
-        --gray-50: #f9fafb;
-        --white: #ffffff;
-        --green-500: #059669;
-        --blue-500: #3b82f6;
-        --radius-sm: 8px;
-        --radius-md: 12px;
-        --radius-lg: 16px;
-        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
-        --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
-        --font-zh: "Noto Sans TC", sans-serif;
-        --max-width: 480px;
-        --nav-height: 64px;
-      }
-      body {
-        font-family: var(--font-zh);
-        background: var(--gray-50);
-        color: var(--dark-900);
-        max-width: var(--max-width);
-        margin: 0 auto;
-        padding-bottom: calc(var(--nav-height) + 20px);
-      }
-      .header {
-        background: linear-gradient(135deg, var(--dark-900), var(--dark-800));
-        color: var(--white);
-        padding: 20px;
-        position: sticky;
-        top: 0;
-        z-index: 10;
-        display: flex;
-        align-items: center;
-        gap: 12px;
-      }
-      .header a {
-        color: var(--white);
-        text-decoration: none;
-        font-size: 20px;
-      }
-      .header h1 {
-        font-size: 18px;
-        font-weight: 700;
-      }
-      .section {
-        padding: 16px;
-      }
-      .card {
-        background: var(--white);
-        border-radius: var(--radius-lg);
-        padding: 20px;
-        margin-bottom: 12px;
-        box-shadow: var(--shadow-sm);
-      }
-      .membership-header {
-        text-align: center;
-        padding: 24px 20px;
-        background: linear-gradient(135deg, var(--orange-500), #e85d2c);
-        border-radius: var(--radius-lg);
-        color: var(--white);
-        margin-bottom: 12px;
-      }
-      .membership-header h2 {
-        font-size: 24px;
-        font-weight: 800;
-        margin-bottom: 4px;
-      }
-      .membership-header .status {
-        font-size: 14px;
-        opacity: 0.9;
-      }
-      .membership-header .expire {
-        font-size: 12px;
-        opacity: 0.7;
-        margin-top: 4px;
-      }
-      .credits-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 12px;
-      }
-      .credit-card {
-        background: var(--orange-50);
-        border-radius: var(--radius-md);
-        padding: 16px;
-        text-align: center;
-      }
-      .credit-card .num {
-        font-size: 28px;
-        font-weight: 800;
-        color: var(--orange-700);
-      }
-      .credit-card .label {
-        font-size: 12px;
-        color: var(--dark-700);
-        margin-top: 4px;
-      }
-      .section-title {
-        font-size: 16px;
-        font-weight: 700;
-        margin-bottom: 12px;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-      }
-      .action-btn {
-        width: 100%;
-        padding: 14px;
-        background: var(--orange-600-bg);
-        color: var(--white);
-        border: none;
-        border-radius: var(--radius-sm);
-        font-size: 15px;
-        font-weight: 700;
-        cursor: pointer;
-        font-family: var(--font-zh);
-      }
-      .action-btn:hover {
-        background: #e55a2b;
-      }
-      .action-btn.secondary {
-        background: var(--white);
-        color: var(--orange-700);
-        border: 1.5px solid var(--orange-500);
-      }
-      .action-btn.secondary:hover {
-        background: var(--orange-100);
-      }
-      .plan-list {
-        margin-top: 12px;
-      }
-      .plan-item {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 12px 0;
-        border-bottom: 1px solid var(--gray-200);
-      }
-      .plan-item:last-child {
-        border-bottom: none;
-      }
-      .plan-item .name {
-        font-size: 15px;
-        font-weight: 500;
-      }
-      .plan-item .price {
-        font-size: 15px;
-        font-weight: 700;
-        color: var(--orange-700);
-      }
-      .plan-item .price small {
-        font-size: 12px;
-        font-weight: 400;
-        color: var(--dark-700);
-      }
-      .plan-item .tag {
-        font-size: 11px;
-        padding: 2px 8px;
-        border-radius: 10px;
-        font-weight: 600;
-      }
-      .tag.active-plan {
-        background: var(--orange-600-bg);
-        color: var(--white);
-      }
-      .tag.inactive {
-        background: var(--gray-200);
-        color: var(--dark-700);
-      }
-      .bottom-nav {
-        position: fixed;
-        bottom: 0;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 100%;
-        max-width: var(--max-width);
-        background: var(--white);
-        border-top: 1px solid var(--gray-200);
-        display: flex;
-        justify-content: space-around;
-        padding: 8px 0 calc(8px + env(safe-area-inset-bottom));
-        z-index: 100;
-      }
-      .nav-item {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        text-decoration: none;
-        color: var(--gray-300);
-        font-size: 10px;
-        gap: 2px;
-        padding: 4px 12px;
-      }
-      .nav-item.active {
-        color: var(--orange-700);
-      }
-      .nav-item .nav-icon {
-        font-size: 22px;
-        line-height: 1;
-      }
-
-      .loading {
-        text-align: center;
-        padding: 40px;
-        color: var(--dark-700);
-      }
-      .loading::after {
-        content: "";
-        display: block;
-        width: 32px;
-        height: 32px;
-        margin: 10px auto;
-        border: 3px solid var(--gray-200);
-        border-top-color: var(--orange-700);
-        border-radius: 50%;
-        animation: spin 0.8s linear infinite;
-      }
-      @keyframes spin {
-        to {
-          transform: rotate(360deg);
-        }
-      }
-      @media (max-width: 768px) {
-        .membership-card {
-          padding: 16px;
-        }
-        .membership-card h2 {
-          font-size: 20px;
-        }
-        .benefits {
-          gap: 8px;
-        }
-        .benefit {
-          padding: 10px;
-          font-size: 13px;
-        }
-        .actions {
-          flex-direction: column;
-          gap: 8px;
-        }
-        .actions .btn {
-          width: 100%;
-        }
-      }
-
-      /* Desktop layout - use wider containers */
-      @media (min-width: 768px) {
-        .container,
-        .wrap,
-        .page-wrap,
-        .detail-wrap,
-        .apply-wrap,
-        .rate-wrap,
-        .checkin-wrap,
-        .payment-wrap,
-        .badge-wrap,
-        .membership-wrap,
-        .explore-wrap {
-          max-width: 900px;
-          margin-left: auto;
-          margin-right: auto;
-        }
-      }
-      @media (min-width: 1200px) {
-        .container,
-        .wrap,
-        .page-wrap,
-        .detail-wrap,
-        .apply-wrap,
-        .rate-wrap,
-        .checkin-wrap,
-        .payment-wrap,
-        .badge-wrap,
-        .membership-wrap,
-        .explore-wrap {
-          max-width: 1100px;
-        }
-      }
-
-      /* Desktop: expand content beyond mobile width */
-      @media (min-width: 768px) {
-        body {
-          max-width: 100% !important;
-        }
-      }
-
-      /* Page fade-in animation */
-      @keyframes fadeIn {
-        from {
-          opacity: 0;
-          transform: translateY(8px);
-        }
-        to {
-          opacity: 1;
-          transform: translateY(0);
-        }
-      }
-      body {
-        animation: fadeIn 0.4s ease-out;
-      }
-
-      /* Card hover effects */
-      .class-card:hover,
-      .course-card:hover,
-      .reward-card:hover,
-      .tier-card:hover,
-      .badge-item:hover,
-      .booking-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        transition: all 0.2s ease;
-      }
-      .class-card,
-      .course-card,
-      .reward-card,
-      .tier-card,
-      .badge-item,
-      .booking-card {
-        transition: all 0.2s ease;
-      }
-
-      /* Button hover enhancement */
-      button:hover,
-      .btn:hover,
-      .action-btn:hover:not(:disabled) {
-        opacity: 0.9;
-        transform: translateY(-1px);
-        transition: all 0.15s ease;
-      }
-      button,
-      .btn,
-      .action-btn {
-        transition: all 0.15s ease;
-      }
-
-      /* Unified spinner */
-      .loading-spinner {
-        display: inline-block;
-        width: 24px;
-        height: 24px;
-        border: 3px solid var(--gray-200, #e5e7eb);
-        border-top: 3px solid var(--orange-500, #ff6b35);
-        border-radius: 50%;
-        animation: spin 0.8s linear infinite;
-      }
-      @keyframes spin {
-        to {
-          transform: rotate(360deg);
-        }
-      }
-    </style>
-    <script src="app.js"></script>
-  </head>
-  <body>
-    <div class="header">
-      <a href="index.html">←</a>
-      <h1>💎 我的會籍</h1>
-    </div>
-
-    <div class="section">
-      <div class="membership-header">
-        <h2>💎 試玩會員</h2>
-        <div class="status">剩餘 2 堂試玩</div>
-        <div class="expire">會籍到期：2026-06-01</div>
-      </div>
-
-      <div class="credits-grid">
-        <div class="credit-card">
-          <div class="num">8</div>
-          <div class="label">剩餘點數 (Credits)</div>
-        </div>
-        <div class="credit-card">
-          <div class="num">2</div>
-          <div class="label">本月已用課堂</div>
-        </div>
-      </div>
-
-      <div class="card" style="margin-top: 12px">
-        <div class="section-title">📊 用量</div>
-        <div style="margin: 12px 0">
-          <div
-            style="
-              display: flex;
-              justify-content: space-between;
-              font-size: 13px;
-              margin-bottom: 6px;
-            "
-          >
-            <span>試玩堂數 (4/月)</span><span>2 / 4</span>
-          </div>
-          <div
-            style="
-              height: 8px;
-              background: var(--gray-200);
-              border-radius: 4px;
-              overflow: hidden;
-            "
-          >
-            <div
-              style="
-                height: 100%;
-                width: 50%;
-                background: var(--orange-600-bg);
-                border-radius: 4px;
-              "
-            ></div>
-          </div>
-        </div>
-        <div style="margin: 12px 0">
-          <div
-            style="
-              display: flex;
-              justify-content: space-between;
-              font-size: 13px;
-              margin-bottom: 6px;
-            "
-          >
-            <span>加購點數</span><span>8 Credits</span>
-          </div>
-          <div
-            style="
-              height: 8px;
-              background: var(--gray-200);
-              border-radius: 4px;
-              overflow: hidden;
-            "
-          >
-            <div
-              style="
-                height: 100%;
-                width: 80%;
-                background: var(--blue-500);
-                border-radius: 4px;
-              "
-            ></div>
-          </div>
-        </div>
-      </div>
-
-      <button class="action-btn" onclick="location.href = 'membership.html'">
-        🔥 升級會籍
-      </button>
-
-      <div class="card" style="margin-top: 12px">
-        <div class="section-title">📋 可選方案</div>
-        <div class="plan-list">
-          <div class="plan-item">
-            <div><div class="name">試玩會員</div></div>
-            <div class="price">
-              HK$399 <small>/月</small>
-              <span class="tag active-plan">當前方案</span>
-            </div>
-          </div>
-          <div class="plan-item">
-            <div><div class="name">🔥 標準會員</div></div>
-            <div class="price">
-              HK$699 <small>/月</small> <span class="tag inactive">升級</span>
-            </div>
-          </div>
-          <div class="plan-item">
-            <div><div class="name">🏆 金會員</div></div>
-            <div class="price">
-              HK$1,299 <small>/月</small> <span class="tag inactive">升級</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <button
-        class="action-btn secondary"
-        onclick="location.href = 'buy-credits.html'"
-      >
-        💎 獨立購買點數（無需會籍）
-      </button>
-    </div>
-
-    <nav class="bottom-nav">
-      <a href="index.html" class="nav-item"
-        ><span class="nav-icon">🏠</span>首頁</a
-      >
-      <a href="explore.html" class="nav-item"
-        ><span class="nav-icon">🔍</span>探索</a
-      >
-      <a href="membership.html" class="nav-item active"
-        ><span class="nav-icon">💎</span>會籍</a
-      >
-      <a href="coach-apply.html" class="nav-item"
-        ><span class="nav-icon">👨🏫</span>成為教練</a
-      >
-      <a href="my.html" class="nav-item"
-        ><span class="nav-icon">👤</span>我的</a
-      >
-    </nav>
-
-    <script src="api.js"></script>
-    <script>
-      function getUser() {
-        try {
-          return JSON.parse(localStorage.getItem("zenpass_user"));
-        } catch (e) {
-          return null;
-        }
-      }
-
-      var PLAN_LABELS = {
-        none: { name: "無會籍", credits: 0 },
-        trial: { name: "試玩會員", credits: 4 },
-        standard: { name: "標準會員", credits: 10 },
-        unlimited: { name: "無限通行", credits: 0 },
-      };
-
-      async function loadMembership() {
-        var user = getUser();
-        if (!user) return;
-
-        var memName = "試玩會員";
-        var credits = user.credits || 0;
-        var memType = user.membership_type || "trial";
-        var expiresAt = user.membership_expires_at || "";
-        var used = 0;
-        var total = 4;
-
-        // Try API first — fetch from /api/memberships/my
-        try {
-          var result = await memberships.my();
-          if (result && result.current) {
-            memType = result.current.type || memType;
-            credits =
-              result.current.credits != null ? result.current.credits : credits;
-            expiresAt = result.current.expires_at || expiresAt;
-          }
-        } catch (e) {
-          // Fallback: use local user data
-        }
-
-        var planInfo = PLAN_LABELS[memType] || PLAN_LABELS["trial"];
-        memName = planInfo.name;
-        total = planInfo.credits > 0 ? planInfo.credits : 4;
-
-        document.querySelector(".membership-header h2").textContent =
-          "💎 " + memName;
-        document.querySelectorAll(".credit-card .num")[0].textContent = credits;
-        document.querySelectorAll(".credit-card .num")[1].textContent =
-          used + " / " + total;
-        document.querySelector(".status").textContent =
-          "剩餘 " +
-          (credits > 0 ? credits + " Credits" : total - used + " 堂試玩");
-
-        // Update expiry
-        if (expiresAt) {
-          var expireEl = document.querySelector(".expire");
-          if (expireEl) {
-            var d = new Date(expiresAt);
-            expireEl.textContent =
-              "會籍到期：" +
-              d.getFullYear() +
-              "-" +
-              String(d.getMonth() + 1).padStart(2, "0") +
-              "-" +
-              String(d.getDate()).padStart(2, "0");
-          }
-        }
-
-        // Update progress bars
-        var bars = document.querySelectorAll('div[style*="height:8px"] > div');
-        if (bars.length >= 2) {
-          var pct = Math.min(100, (used / Math.max(total, 1)) * 100);
-          bars[0].style.width = pct + "%";
-          bars[1].style.width = Math.min(100, (credits / 100) * 80) + "%";
-        }
-
-        // Highlight current plan
-        var plans = document.querySelectorAll(".plan-item");
-        for (var i = 0; i < plans.length; i++) {
-          var tag = plans[i].querySelector(".tag");
-          if (tag) {
-            var planName = plans[i].querySelector(".name").textContent.trim();
-            if (
-              planName.includes(memName.replace("會員", "")) ||
-              (i === 0 && !memName.includes("標準") && !memName.includes("金"))
-            ) {
-              tag.className = "tag active-plan";
-              tag.textContent = "當前方案";
-            }
-          }
-        }
-      }
-
-      document.addEventListener("DOMContentLoaded", loadMembership);
-    </script>
-
-    <script>
-      if ("serviceWorker" in navigator) {
-        navigator.serviceWorker.register("sw.js");
-      }
-    </script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="theme-color" content="#f06030" />
     <script>
       (function () {
-        var n = localStorage.getItem("zenpass_name");
-        if (n) {
-          var b = document.createElement("div");
-          b.style.cssText =
-            "position:fixed;top:10px;right:10px;z-index:9999;background:#FF6B35;color:white;padding:5px 12px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.15);font-family:sans-serif;";
-          b.textContent = "👤 " + n;
-          b.onclick = function () {
-            var nn = prompt("切換用戶\n當前：" + n, n);
-            if (nn && nn.trim() && nn.trim() !== n) {
-              localStorage.setItem("zenpass_name", nn.trim());
-              localStorage.removeItem("zenpass_token");
-              localStorage.removeItem("zenpass_user");
-              location.reload();
-            }
-          };
-          document.body.appendChild(b);
-        }
+        var l = document.createElement("link");
+        l.rel = "manifest";
+        l.href =
+          window.location.hostname.indexOf("github.io") > -1
+            ? "/ZenPass/manifest.json"
+            : "/manifest.json";
+        document.head.appendChild(l);
       })();
     </script>
-
-    <div
-      class="zen-footer"
-      style="
-        text-align: center;
-        padding: 20px 16px;
-        margin-top: 24px;
-        border-top: 1px solid #e5e7eb;
-        font-size: 12px;
-        color: #6b7280;
-      "
-    >
-      <div
-        style="
-          display: flex;
-          justify-content: center;
-          gap: 16px;
-          margin-bottom: 8px;
-        "
-      >
-        <a
-          href="/"
-          style="color: #aa3218; text-decoration: none; font-weight: 500"
-          >🏠 首頁</a
-        >
-        <a
-          href="explore.html"
-          style="color: #aa3218; text-decoration: none; font-weight: 500"
-          >📚 課程</a
-        >
-        <a
-          href="my.html"
-          style="color: #aa3218; text-decoration: none; font-weight: 500"
-          >👤 我的</a
-        >
-        <a
-          href="points.html"
-          style="color: #aa3218; text-decoration: none; font-weight: 500"
-          >🎯 積分</a
-        >
+    <link rel="stylesheet" href="css/zenpass.css?v=2" />
+    <script>
+      window.ZENPASS_PAGE_CONFIG = { title: '我的會籍', showBack: true };
+    </script>
+    <style>
+      .pause-card { background: var(--white); border-radius: 16px; padding: 20px; margin-bottom: 16px; box-shadow: var(--shadow-sm); }
+      .pause-card h3 { font-size: 16px; font-weight: 600; margin: 0 0 12px; display: flex; align-items: center; gap: 8px; }
+      .pause-card .pause-stat { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--gray-100); font-size: 14px; }
+      .pause-card .pause-stat:last-child { border-bottom: none; }
+      .pause-card .pause-stat-label { color: var(--dark-700); }
+      .pause-card .pause-stat-value { font-weight: 600; }
+      .pause-reason-grid { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+      .pause-reason-btn { padding: 10px 16px; border-radius: 10px; border: 2px solid var(--gray-200); background: var(--white); cursor: pointer; font-size: 13px; transition: all 0.2s; font-family: inherit; }
+      .pause-reason-btn:hover { border-color: var(--orange-400); }
+      .pause-reason-btn.selected { border-color: var(--orange-600); background: var(--orange-50); color: var(--orange-700); font-weight: 600; }
+      .pause-day-btn { padding: 10px 20px; border-radius: 10px; border: 2px solid var(--gray-200); background: var(--white); cursor: pointer; font-size: 14px; font-weight: 500; transition: all 0.2s; font-family: inherit; }
+      .pause-day-btn:hover { border-color: var(--orange-400); }
+      .pause-day-btn.selected { border-color: var(--orange-600); background: var(--orange-50); color: var(--orange-700); font-weight: 700; }
+      .pause-custom-input { width: 80px; padding: 8px; border: 2px solid var(--gray-200); border-radius: 10px; font-size: 14px; text-align: center; font-family: inherit; }
+      .pause-custom-input:focus { border-color: var(--orange-600); outline: none; }
+      .pause-history-item { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--gray-100); font-size: 13px; }
+      .pause-history-item:last-child { border-bottom: none; }
+      .pause-badge { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+      .pause-badge-active { background: #fef3c7; color: #92400e; }
+      .pause-badge-resumed { background: #d1fae5; color: #065f46; }
+      @media (max-width: 640px) {
+        .pause-reason-btn, .pause-day-btn { flex: 1; text-align: center; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="max-w-lg" style="max-width: 600px; margin: 0 auto; padding: 80px 16px 100px;">
+      <div id="membership-content">
+        <!-- Loading state -->
+        <div id="loading-state" style="text-align: center; padding: 60px 20px;">
+          <div class="loading-spinner"></div>
+          <p style="color: var(--dark-700); margin-top: 12px;">載入中...</p>
+        </div>
       </div>
-      © 2026 ZenPass 禪流
     </div>
+
+    <!-- Pause Confirmation Modal -->
+    <div id="pause-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;" onclick="if(event.target===this)closePauseModal()">
+      <div style="background:white;border-radius:16px;padding:24px;width:90%;max-width:380px;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,0.2);">
+        <div style="font-size:48px;margin-bottom:8px;">⏸️</div>
+        <h3 style="margin:0 0 4px;font-size:18px;">確認暫停會籍</h3>
+        <p id="pause-confirm-text" style="color:var(--dark-700);font-size:14px;margin:12px 0;">暫停後會籍到期日會順延</p>
+        <div style="background:var(--orange-50);border-radius:12px;padding:12px;margin:12px 0;font-size:13px;text-align:left;">
+          <p id="pause-confirm-days" style="margin:0 0 4px;"><strong>暫停日數：</strong><span id="pause-days-display">14</span> 日</p>
+          <p id="pause-confirm-reason" style="margin:0 0 4px;"><strong>原因：</strong><span id="pause-reason-display">旅行</span></p>
+          <p id="pause-confirm-end" style="margin:0;"><strong>到期日：</strong><span id="pause-end-display">—</span></p>
+        </div>
+        <button id="pause-confirm-btn" onclick="confirmPause()" style="width:100%;padding:14px;background:var(--orange-600-bg);color:white;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;">確認暫停</button>
+        <button onclick="closePauseModal()" style="width:100%;padding:10px;background:none;border:none;color:var(--dark-700);font-size:13px;cursor:pointer;margin-top:6px;font-family:inherit;">取消</button>
+      </div>
+    </div>
+
+    <script src="api.js"></script>
+    <script src="js/nav.js"></script>
+    <script src="js/footer.js"></script>
+    <script>
+      var _currentMembership = null;
+      var _selectedPauseDays = 14;
+      var _selectedPauseReason = '旅行';
+
+      document.addEventListener('DOMContentLoaded', function () {
+        loadMembershipData();
+      });
+
+      async function loadMembershipData() {
+        var container = document.getElementById('membership-content');
+        try {
+          var resp = await fetch(API_BASE + '/memberships/my', { headers: getAuthHeaders() });
+          if (!resp.ok) throw new Error('Unauthorized');
+          var data = await resp.json();
+          _currentMembership = data;
+
+          if (!data.current || data.current.type === 'none') {
+            container.innerHTML = '<div class="pause-card" style="text-align:center;padding:40px 20px;"><div style="font-size:48px;margin-bottom:12px;">📋</div><h3>未有會籍</h3><p style="color:var(--dark-700);font-size:14px;">你目前冇 active 嘅會籍</p><a href="membership-tailwind.html" class="zen-btn zen-btn-primary" style="display:inline-block;margin-top:16px;">瀏覽會籍方案</a></div>';
+            return;
+          }
+
+          // 檢查 pause 狀態
+          var pauseResp = await fetch(API_BASE + '/memberships/' + (data.history?.[0]?.id || '') + '/pause-status', { headers: getAuthHeaders() });
+          var pauseStatus = pauseResp.ok ? await pauseResp.json() : null;
+
+          renderMembership(data, pauseStatus);
+        } catch (err) {
+          container.innerHTML = '<div class="pause-card" style="text-align:center;padding:40px 20px;"><div style="font-size:48px;margin-bottom:12px;">❌</div><h3>載入失敗</h3><p style="color:var(--dark-700);font-size:14px;">' + err.message + '</p><button onclick="loadMembershipData()" class="zen-btn zen-btn-primary" style="margin-top:12px;">重新載入</button></div>';
+        }
+      }
+
+      function getAuthHeaders() {
+        var token = getToken();
+        return token ? { 'Authorization': 'Bearer ' + token } : {};
+      }
+
+      function renderMembership(data, pauseStatus) {
+        var c = data.current;
+        var mId = data.history?.[0]?.id || '';
+        var isPaused = pauseStatus && pauseStatus.is_paused;
+
+        var expiresAt = c.expires_at ? new Date(c.expires_at).toLocaleDateString('zh-HK') : '—';
+        var pauseEnd = isPaused && pauseStatus.paused_until ? new Date(pauseStatus.paused_until).toLocaleDateString('zh-HK') : '—';
+
+        var pauseSection = '';
+        if (isPaused) {
+          // Paused state
+          pauseSection = '<div class="pause-card" style="border:2px solid #f59e0b;">' +
+            '<h3>⏸️ 會籍已暫停</h3>' +
+            '<div class="pause-stat"><span class="pause-stat-label">暫停到期</span><span class="pause-stat-value">' + pauseEnd + '</span></div>' +
+            '<div class="pause-stat"><span class="pause-stat-label">剩餘日數</span><span class="pause-stat-value" style="color:var(--orange-600);">' + pauseStatus.remaining_days + ' 日</span></div>' +
+            '<div class="pause-stat"><span class="pause-stat-label">原因</span><span class="pause-stat-value">' + (pauseStatus.pause_reason || '—') + '</span></div>' +
+            '<div class="pause-stat"><span class="pause-stat-label">暫停次數</span><span class="pause-stat-value">' + (pauseStatus.pause_count || 0) + ' 次</span></div>' +
+            '<button onclick="resumeMembership(\'' + mId + '\')" class="zen-btn zen-btn-success" style="width:100%;margin-top:16px;padding:14px;font-size:15px;">🔁 立即恢復會籍</button>' +
+            '</div>';
+        } else if (c.type !== 'none') {
+          // Active state — show pause button
+          pauseSection = '<div class="pause-card">' +
+            '<h3>⏸️ 暫停會籍</h3>' +
+            '<p style="font-size:13px;color:var(--dark-700);margin:0 0 12px;">暫停期間唔會消耗 Credits，會籍到期日會順延。（最多暫停 30 日，每年最多 3 次）</p>' +
+            '<div style="margin-bottom:12px;"><label style="font-size:13px;font-weight:600;display:block;margin-bottom:6px;">暫停日數</label>' +
+            '<div style="display:flex;gap:8px;flex-wrap:wrap;">' +
+            '<button class="pause-day-btn selected" data-days="7" onclick="selectPauseDays(7)">7 日</button>' +
+            '<button class="pause-day-btn" data-days="14" onclick="selectPauseDays(14)">14 日</button>' +
+            '<button class="pause-day-btn" data-days="30" onclick="selectPauseDays(30)">30 日</button>' +
+            '<input type="number" class="pause-custom-input" id="custom-pause-days" placeholder="自訂" min="1" max="30" onchange="selectCustomPauseDays(this.value)" />' +
+            '</div></div>' +
+            '<div style="margin-bottom:12px;"><label style="font-size:13px;font-weight:600;display:block;margin-bottom:6px;">原因</label>' +
+            '<div class="pause-reason-grid">' +
+            '<button class="pause-reason-btn selected" data-reason="旅行" onclick="selectPauseReason(\'旅行\')">✈️ 旅行</button>' +
+            '<button class="pause-reason-btn" data-reason="受傷" onclick="selectPauseReason(\'受傷\')">🩹 受傷</button>' +
+            '<button class="pause-reason-btn" data-reason="考試" onclick="selectPauseReason(\'考試\')">📚 考試</button>' +
+            '<button class="pause-reason-btn" data-reason="工作" onclick="selectPauseReason(\'工作\')">💼 工作</button>' +
+            '<button class="pause-reason-btn" data-reason="其他" onclick="selectPauseReason(\'其他\')">📌 其他</button>' +
+            '</div></div>' +
+            '<button onclick="showPauseConfirm(\'' + mId + '\')" class="zen-btn zen-btn-primary" style="width:100%;padding:14px;font-size:15px;">⏸️ 暫停會籍</button>' +
+            '</div>';
+        }
+
+        // Pause history
+        var historyHtml = '';
+        if (pauseStatus && pauseStatus.pause_history && pauseStatus.pause_history.length > 0) {
+          historyHtml = '<div class="pause-card"><h3>📋 暫停記錄</h3>';
+          for (var i = 0; i < pauseStatus.pause_history.length; i++) {
+            var h = pauseStatus.pause_history[i];
+            var badgeClass = h.action === 'pause' ? 'pause-badge-active' : 'pause-badge-resumed';
+            var badgeLabel = h.action === 'pause' ? '⏸️ 暫停' : '🔁 恢復';
+            historyHtml += '<div class="pause-history-item">' +
+              '<span class="pause-badge ' + badgeClass + '">' + badgeLabel + '</span>' +
+              '<span style="flex:1;font-size:13px;">' + (h.description || '') + '</span>' +
+              (h.timestamp ? '<span style="font-size:11px;color:var(--dark-700);">' + new Date(h.timestamp).toLocaleDateString('zh-HK') + '</span>' : '') +
+              '</div>';
+          }
+          historyHtml += '</div>';
+        }
+
+        container.innerHTML =
+          '<div class="pause-card">' +
+          '<h3>📊 會籍概覽</h3>' +
+          '<div class="pause-stat"><span class="pause-stat-label">會籍類型</span><span class="pause-stat-value">' + (c.type || '—') + '</span></div>' +
+          '<div class="pause-stat"><span class="pause-stat-label">到期日</span><span class="pause-stat-value">' + expiresAt + '</span></div>' +
+          '<div class="pause-stat"><span class="pause-stat-label">Credits</span><span class="pause-stat-value">' + (c.credits || 0) + '</span></div>' +
+          '<div class="pause-stat"><span class="pause-stat-label">狀態</span><span class="pause-stat-value">' + (isPaused ? '⏸️ 暫停中' : '✅ 啟用中') + '</span></div>' +
+          '</div>' +
+          pauseSection +
+          historyHtml;
+      }
+
+      function selectPauseDays(days) {
+        _selectedPauseDays = days;
+        document.querySelectorAll('.pause-day-btn').forEach(function (b) {
+          b.classList.toggle('selected', parseInt(b.dataset.days) === days);
+        });
+        document.getElementById('custom-pause-days').value = '';
+      }
+
+      function selectCustomPauseDays(val) {
+        var days = parseInt(val);
+        if (days > 0 && days <= 30) {
+          _selectedPauseDays = days;
+          document.querySelectorAll('.pause-day-btn').forEach(function (b) { b.classList.remove('selected'); });
+        }
+      }
+
+      function selectPauseReason(reason) {
+        _selectedPauseReason = reason;
+        document.querySelectorAll('.pause-reason-btn').forEach(function (b) {
+          b.classList.toggle('selected', b.dataset.reason === reason);
+        });
+      }
+
+      function showPauseConfirm(membershipId) {
+        // Calculate new end date
+        var expiresAt = _currentMembership?.current?.expires_at;
+        var newEnd = expiresAt ? new Date(new Date(expiresAt).getTime() + _selectedPauseDays * 86400000).toLocaleDateString('zh-HK') : '—';
+
+        document.getElementById('pause-days-display').textContent = _selectedPauseDays;
+        document.getElementById('pause-reason-display').textContent = _selectedPauseReason;
+        document.getElementById('pause-end-display').textContent = newEnd;
+        document.getElementById('pause-confirm-btn').dataset.membershipId = membershipId;
+        document.getElementById('pause-modal').style.display = 'flex';
+      }
+
+      function closePauseModal() {
+        document.getElementById('pause-modal').style.display = 'none';
+      }
+
+      async function confirmPause() {
+        var membershipId = document.getElementById('pause-confirm-btn').dataset.membershipId;
+        var btn = document.getElementById('pause-confirm-btn');
+        btn.disabled = true;
+        btn.textContent = '處理中...';
+
+        try {
+          var resp = await fetch(API_BASE + '/memberships/' + membershipId + '/pause', {
+            method: 'PUT',
+            headers: Object.assign({ 'Content-Type': 'application/json' }, getAuthHeaders()),
+            body: JSON.stringify({ pause_days: _selectedPauseDays, reason: _selectedPauseReason }),
+          });
+          var data = await resp.json();
+          if (resp.ok) {
+            showToast('✅ ' + data.message, 'success');
+            closePauseModal();
+            loadMembershipData();
+          } else {
+            showToast('❌ ' + (data.error || '暫停失敗'), 'error');
+          }
+        } catch (err) {
+          showToast('❌ ' + err.message, 'error');
+        } finally {
+          btn.disabled = false;
+          btn.textContent = '確認暫停';
+        }
+      }
+
+      async function resumeMembership(membershipId) {
+        if (!confirm('確定要立即恢復會籍嗎？')) return;
+        try {
+          var resp = await fetch(API_BASE + '/memberships/' + membershipId + '/resume', {
+            method: 'PUT',
+            headers: Object.assign({ 'Content-Type': 'application/json' }, getAuthHeaders()),
+          });
+          var data = await resp.json();
+          if (resp.ok) {
+            showToast('✅ ' + data.message, 'success');
+            loadMembershipData();
+          } else {
+            showToast('❌ ' + (data.error || '恢復失敗'), 'error');
+          }
+        } catch (err) {
+          showToast('❌ ' + err.message, 'error');
+        }
+      }
+    </script>
   </body>
 </html>

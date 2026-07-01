@@ -1,211 +1,529 @@
 <!doctype html>
 <html lang="zh-HK">
   <head>
+    <meta name="google-site-verification" content="GfscEVMDOcS2YTynV-wQI5EyGdqWg9tBpuDc-6Ri-gk" />
     <meta charset="UTF-8" />
+    <link rel="preconnect" href="https://images.pexels.com">
+    <link rel="preconnect" href="https://www.googletagmanager.com">
+    <link rel="dns-prefetch" href="https://images.pexels.com">
+    <link rel="dns-prefetch" href="https://www.googletagmanager.com">
     <link rel="icon" href="favicon.png" type="image/png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5" />
     <meta name="theme-color" content="#FF6B35" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
     <meta
       name="apple-mobile-web-app-status-bar-style"
       content="black-translucent"
     />
-    <meta
-      name="description"
-      content="ZenPass 禪流健身課程平台 — 瑜伽、健身、冥想、新興運動預約平台"
-    />
-    <title>ZenPass 禪流 — 解鎖全城運動體驗</title>
-    <link rel="stylesheet" href="assets/index.css" />
-    <link rel="stylesheet" href="css/zenpass.css" />
+        <!-- Hero -->
     <script>
-      // Fix PWA manifest path for localhost vs GitHub Pages
-      (function () {
-        var l = document.createElement("link");
-        l.rel = "manifest";
-        l.href =
-          window.location.hostname.indexOf("github.io") > -1
-            ? "/ZenPass/manifest.json"
-            : "/manifest.json";
-        document.head.appendChild(l);
-      })();
-    </script>
-    <!-- Google Analytics 4 (placeholder — 註冊 GA 後替換 G-XXXXXXXX) -->
-    <!-- TODO: 註冊 Google Analytics 後，將 G-XXXXXXXX 替換為實際的 Measurement ID -->
-    <script
-      async
-      src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXX"
-    ></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag() {
-        dataLayer.push(arguments);
+      function toggleMobileMenu() {
+        var menu = document.querySelector('.hero-section .nav-links, .hero-section .nav-right');
+        if (!menu) {
+          var btn = document.getElementById('hamburgerBtn');
+          var parent = btn && btn.parentElement;
+          if (parent) {
+            var existing = document.querySelector('.mobile-menu-fallback');
+            if (existing) { existing.remove(); return; }
+            var fallback = document.createElement('div');
+            fallback.className = 'mobile-menu-fallback';
+            fallback.style.cssText = 'position:fixed;top:60px;left:0;right:0;background:rgba(0,0,0,0.95);padding:20px;z-index:1000;display:flex;flex-direction:column;gap:16px;align-items:center';
+            fallback.innerHTML = '<a href="explore.html" style="color:#fff;font-size:18px;text-decoration:none">探索課程</a><a href="my.html" style="color:#fff;font-size:18px;text-decoration:none">我的帳戶</a><a href="login.html" style="color:#fff;font-size:18px;text-decoration:none">登入</a><a href="signup.html" style="color:#10b981;font-size:18px;text-decoration:none;font-weight:600">註冊</a>';
+            parent.appendChild(fallback);
+          }
+        } else {
+          menu.style.display = menu.style.display === 'flex' ? 'none' : 'flex';
+        }
       }
-      gtag("js", new Date());
-      gtag("config", "G-XXXXXXXX");
-    </script>
 
-    <script src="app.js"></script>
-    <link rel="apple-touch-icon" href="icons/icon-192.png" />
-    <link rel="apple-touch-icon" sizes="256x256" href="icons/icon-192.png" />
-    <link rel="apple-touch-icon" sizes="512x512" href="icons/icon-512.png" />
-    <meta name="apple-mobile-web-app-title" content="ZenPass" />
-    <script type="application/ld+json">
-      {
-        "@context": "https://schema.org",
-        "@type": "SportsActivityLocation",
-        "name": "ZenPass 禪流",
-        "description": "香港首個會員制運動體驗平台 — 瑜伽、健身、新興運動、冥想，一Pass通行",
-        "url": "https://davidchoy1689-tech.github.io/ZenPass/",
-        "areaServed": "香港",
-        "knowsAbout": ["瑜伽", "健身", "新興運動", "冥想", "伸展", "舞蹈"],
-        "offers": {
-          "@type": "AggregateOffer",
-          "priceCurrency": "HKD",
-          "availability": "https://schema.org/InStock"
+      function toggleFavorite(el) {
+        if (!el) return;
+        if (el.textContent === '♡') {
+          el.textContent = '♥';
+          el.style.color = '#ef4444';
+        } else {
+          el.textContent = '♡';
+          el.style.color = '';
         }
       }
-    </script>
-    <!-- Analytics (Plausible) - Enable by setting PLAUSIBLE_DOMAIN in .env -->
-    <script>
-      window.plausible =
-        window.plausible ||
-        function () {
-          (window.plausible.q = window.plausible.q || []).push(arguments);
-        };
-      var pa = document.createElement("script");
-      pa.defer = true;
-      pa.src = "https://plausible.io/js/script.js";
-      pa.setAttribute("data-domain", window.location.hostname);
-      document.head.appendChild(pa);
-    </script>
 
-    <meta property="og:title" content="ZenPass 禪流 — 解鎖全城運動體驗" />
-    <meta
-      property="og:description"
-      content="香港首個會員制運動體驗平台 — 瑜伽、健身、新興運動、冥想，一Pass通行"
-    />
-    <meta
-      property="og:url"
-      content="https://davidchoy1689-tech.github.io/ZenPass/"
-    />
-    <meta property="og:type" content="website" />
-    <meta property="og:locale" content="zh_HK" />
-    <meta name="twitter:card" content="summary_large_image" />
-  </head>
-  <body>
-    <!-- Skip link for accessibility -->
-    <a
-      href="#main-content"
-      style="
-        position: absolute;
-        left: -9999px;
-        top: 0;
-        z-index: 9999;
-        padding: 10px;
-        background: var(--orange-500);
-        color: white;
-        font-weight: 600;
-        text-decoration: none;
-      "
-      onfocus="this.style.left = '10px'"
-      onblur="this.style.left = '-9999px'"
-      >跳到主要內容</a
-    >
-    <style>
-      @keyframes heroShift {
-        0% {
-          background-position: 0% 50%;
-        }
-        50% {
-          background-position: 100% 50%;
-        }
-        100% {
-          background-position: 0% 50%;
-        }
+      function toggleDarkMode() {
+        document.documentElement.classList.toggle('dark');
+        var btn = document.getElementById('darkModeToggle');
+        if (btn) btn.textContent = document.documentElement.classList.contains('dark') ? '\u2600\ufe0f' : '\U0001f319';
+        localStorage.setItem('zenpass_dark', document.documentElement.classList.contains('dark') ? '1' : '0');
       }
-      .hero {
-        animation: heroShift 8s ease infinite;
-        background-size: 200% 200% !important;
+      if (localStorage.getItem('zenpass_dark') === '1') {
+        document.documentElement.classList.add('dark');
       }
-      .home-card {
-        border-radius: 14px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-        border: 1px solid rgba(0, 0, 0, 0.04);
-      }
-      .section {
-        padding: 12px 16px;
-      }
-      .class-grid .class-card {
-        background: var(--white);
-        border-radius: 14px;
-        overflow: hidden;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-        border: 1px solid rgba(0, 0, 0, 0.04);
-        cursor: pointer;
-      }
-    </style>
-    <!-- Hero -->
-    <header class="hero" id="hero-section" role="banner">
-      <div class="hero-top">
-        <div class="hero-logo">
-          ZEN<span>Pass</span> <span class="zh">禪流</span>
+</script>
+    <header class="hero" id="hero-section" role="banner" style="position:relative;min-height:92vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:100px 20px 60px;color:#fff;overflow:hidden;border-radius:0 0 30px 30px;background:linear-gradient(135deg,#1a1a2e,#2d2d44)">
+      <!-- Dynamic workout background with parallax feel -->
+      <!-- Dual-layer hero: HK skyline + workout overlay -->
+      <div class="hero-bg-layer" style="position:absolute;inset:0;background:url('https://images.pexels.com/photos/373912/pexels-photo-373912.jpeg?auto=compress&cs=tinysrgb&w=1200&fm=webp') center/cover no-repeat;z-index:0;filter:brightness(0.5) saturate(0.9);transition:filter 0.5s ease"></div>
+      <div class="hero-bg-workout" style="position:absolute;inset:0;background:url('https://images.pexels.com/photos/2780762/pexels-photo-2780762.jpeg?auto=compress&cs=tinysrgb&w=1200&fm=webp') center/cover no-repeat;z-index:0;opacity:0.45;mix-blend-mode:screen;filter:brightness(0.7) saturate(1.2);transition:opacity 0.5s ease"></div>
+      <div class="hero-overlay" style="position:absolute;inset:0;background:linear-gradient(135deg,rgba(15,23,42,0.88) 0%,rgba(15,23,42,0.35) 40%,rgba(16,185,129,0.3) 70%,rgba(249,115,22,0.1) 100%);z-index:1"></div>
+      <!-- Dark mode enhancement: moody HK neon vibe -->
+      <style>
+        html.dark .hero-bg-layer { filter: brightness(0.35) saturate(0.7) contrast(1.1) !important; }
+        html.dark .hero-bg-workout { opacity: 0.3 !important; }
+        html.dark .hero-overlay { background: linear-gradient(135deg,rgba(0,0,0,0.92) 0%,rgba(15,23,42,0.55) 50%,rgba(16,185,129,0.18) 75%,rgba(249,115,22,0.08) 100%) !important; }
+        /* Neon glow accent on CTA */
+        .hero-btn-primary { border: 1.5px solid rgba(16,185,129,0.3); }
+        .hero-btn-primary:hover { border-color: rgba(16,185,129,0.6); box-shadow: 0 0 50px rgba(16,185,129,0.8), 0 0 100px rgba(16,185,129,0.35), 0 0 120px rgba(249,115,22,0.15), 0 10px 30px rgba(0,0,0,0.25) !important; }
+        .hero-btn-secondary { border-color: rgba(249,115,22,0.25); }
+        .hero-btn-secondary:hover { box-shadow: 0 0 30px rgba(249,115,22,0.2), 0 8px 30px rgba(0,0,0,0.15) !important; }
+      </style>
+      <div style="position:relative;z-index:2;width:100%">
+        <div class="hero-top" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:40px;padding:0 4px">
+          <div class="hero-logo" style="font-size:24px;font-weight:800;letter-spacing:1px;color:#fff;text-shadow:0 2px 10px rgba(0,0,0,0.3)">
+            ZEN<span style="font-weight:300">Pass</span> <span style="font-size:16px;font-weight:500">禅流</span>
+          </div>
+          <div class="zen-auth-buttons" id="auth-buttons" style="display:flex;gap:8px;align-items:center">
+            <a href="my.html" class="zen-btn-ghost" id="my-profile-btn" style="color:#fff;text-decoration:none;font-size:14px;padding:6px 14px;border-radius:20px;border:1px solid rgba(255,255,255,0.5);backdrop-filter:blur(4px)">👤 我的</a>
+            <a href="#" class="zen-btn-ghost" id="zenBtnLogin" style="color:#fff;text-decoration:none;font-size:14px;padding:6px 14px;border-radius:20px;border:1px solid rgba(255,255,255,0.5);backdrop-filter:blur(4px)">登入</a>
+            <a href="#" class="zen-btn-small" id="zenBtnRegister" style="color:#fff;text-decoration:none;font-size:14px;padding:6px 14px;border-radius:20px;background:rgba(16,185,129,0.8);font-weight:600;backdrop-filter:blur(4px)">註冊</a>
+            <button id="hamburgerBtn" onclick="toggleMobileMenu()" style="background:rgba(255,255,255,0.15);backdrop-filter:blur(4px);border:none;border-radius:50%;font-size:22px;cursor:pointer;width:42px;height:42px;padding:0;color:#fff;display:flex;align-items:center;justify-content:center" aria-label="選單">☰</button>
+            <button id="darkModeToggle" onclick="toggleDarkMode()" style="background:none;border:none;font-size:20px;cursor:pointer;padding:8px;min-width:44px;min-height:44px;color:#fff" aria-label="切換深色模式">🌙</button>
+          </div>
         </div>
-        <div class="zen-auth-buttons" id="auth-buttons">
-          <a href="my.html" class="zen-btn-ghost" id="my-profile-btn"
-            >👤 我的</a
-          >
-          <a href="#" class="zen-btn-ghost" id="zenBtnLogin">登入</a>
-          <a href="#" class="zen-btn-small" id="zenBtnRegister">註冊</a>
+        <h1 class="hero-title" style="font-size:clamp(36px,10vw,68px);font-weight:900;line-height:1.1;margin-bottom:10px;opacity:0;animation:fadeInUp 0.8s ease 0.2s forwards;background:linear-gradient(135deg,#fff 40%,#10b981,#34d399);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;text-shadow:none;letter-spacing:-0.5px">解鎖全城<br>運動體驗</h1>
+        <p class="hero-tagline" style="font-size:clamp(14px,2.5vw,17px);opacity:0;color:#10b981;font-weight:600;margin-bottom:6px;animation:fadeInUp 0.8s ease 0.3s forwards;letter-spacing:1px;text-shadow:0 0 20px rgba(16,185,129,0.3)">一 Pass 通行全城 · 零壓力試堂 · v7</p>
+        <p class="hero-subtitle" style="font-size:clamp(14px,3vw,19px);opacity:0;color:rgba(255,255,255,0.85);margin-bottom:32px;animation:fadeInUp 0.8s ease 0.4s forwards;font-weight:400">超過 100+ 課程・頂尖教練・自由預約</p>
+        <div class="hero-cta" style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;opacity:0;animation:fadeInUp 0.8s ease 0.6s forwards">
+          <a href="explore.html" class="hero-btn-primary" style="display:inline-flex;align-items:center;gap:12px;padding:22px 56px;border-radius:60px;background:linear-gradient(135deg,#10b981 0%,#059669 100%);color:#fff;font-size:20px;font-weight:800;text-decoration:none;box-shadow:0 0 40px rgba(16,185,129,0.6),0 0 80px rgba(16,185,129,0.25),0 0 120px rgba(16,185,129,0.1),0 6px 20px rgba(0,0,0,0.2);transition:all 0.3s cubic-bezier(0.4,0,0.2,1);letter-spacing:0.5px;animation:ctaGlow 2.5s ease-in-out infinite">🔥 立即探索課程</a>
+          <a href="signup.html" class="hero-btn-secondary" style="display:inline-flex;align-items:center;gap:10px;padding:20px 46px;border-radius:60px;background:linear-gradient(135deg,rgba(255,255,255,0.18),rgba(255,255,255,0.08));backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:2.5px solid rgba(255,255,255,0.4);color:#fff;font-size:18px;font-weight:700;text-decoration:none;transition:all 0.3s cubic-bezier(0.4,0,0.2,1);letter-spacing:0.5px;box-shadow:0 0 30px rgba(255,255,255,0.12),inset 0 0 50px rgba(255,255,255,0.05)"><span style="background:rgba(255,255,255,0.18);padding:3px 10px;border-radius:8px;font-size:12px;margin-right:6px;font-weight:800">FREE</span> 首堂免費體驗</a>
         </div>
-      </div>
-      <h1>解鎖全城<br />運動體驗</h1>
-      <p>超過 100+ 課程・頂尖教練・自由預約</p>
-      <div class="zen-flex-center" style="gap: 8px; margin-top: 12px">
-        <a
-          href="explore.html"
-          class="zen-btn"
-          style="
-            background: var(--white);
-            color: var(--orange-600-bg);
-            border-radius: 25px;
-            padding: 10px 24px;
-          "
-          >🔍 探索課程</a
-        >
       </div>
     </header>
 
-    <div class="zen-pills" style="margin: 0 16px 12px">
-      <a href="explore.html?category=瑜伽" class="zen-pill">🧘 瑜伽</a>
-      <a href="explore.html?category=健身" class="zen-pill">💪 健身</a>
-      <a href="explore.html?category=新興運動" class="zen-pill">🎯 新興運動</a>
-      <a href="explore.html?category=舞蹈" class="zen-pill">💃 舞蹈</a>
-      <a href="explore.html?category=冥想" class="zen-pill">🧠 冥想</a>
-      <a href="explore.html?category=伸展" class="zen-pill">🤸 伸展</a>
-      <a href="explore.html?category=北歐式健步行" class="zen-pill"
-        >🚶 北歐行</a
+    <!-- Mobile Sidebar -->
+    <div id="mobileSidebar" style="position:fixed;top:0;right:-280px;width:280px;height:100vh;background:linear-gradient(180deg,#1a1a2e,#2d2d44);z-index:1000;transition:right 0.3s cubic-bezier(0.4,0,0.2,1);padding:20px;overflow-y:auto;box-shadow:-4px 0 20px rgba(0,0,0,0.3)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:30px">
+        <div style="color:#fff;font-size:18px;font-weight:800">ZEN<span style="font-weight:300">Pass</span></div>
+        <button onclick="toggleMobileMenu()" style="background:none;border:none;font-size:24px;cursor:pointer;padding:8px;color:#fff" aria-label="關閉選單">✕</button>
+      </div>
+      <nav style="display:flex;flex-direction:column;gap:4px">
+        <a href="my.html" style="display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:12px;color:rgba(255,255,255,0.85);text-decoration:none;font-size:15px;min-height:48px">👤 我的帳戶</a>
+        <a href="explore.html" style="display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:12px;color:rgba(255,255,255,0.85);text-decoration:none;font-size:15px;min-height:48px">🔍 探索課程</a>
+        <a href="coaches.html" style="display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:12px;color:rgba(255,255,255,0.85);text-decoration:none;font-size:15px;min-height:48px">⭐ 星級教練</a>
+        <a href="membership.html" style="display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:12px;color:rgba(255,255,255,0.85);text-decoration:none;font-size:15px;min-height:48px">🎫 會籍方案</a>
+        <a href="faq.html" style="display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:12px;color:rgba(255,255,255,0.85);text-decoration:none;font-size:15px;min-height:48px">❓ 常見問題</a>
+        <hr style="border:none;border-top:1px solid rgba(255,255,255,0.1);margin:12px 0">
+        <a href="#" id="sidebarLogin" style="display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:12px;color:rgba(255,255,255,0.85);text-decoration:none;font-size:15px;min-height:48px">🔑 登入</a>
+        <a href="#" id="sidebarRegister" style="display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:12px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;text-decoration:none;font-size:15px;font-weight:600;min-height:48px">✨ 免費註冊</a>
+      </nav>
+      <div style="margin-top:30px">
+        <button onclick="toggleDarkMode(); toggleMobileMenu();" style="background:rgba(255,255,255,0.1);border:none;border-radius:20px;padding:10px 20px;color:#fff;font-size:13px;cursor:pointer;min-height:44px">🌙 深色模式</button>
+      </div>
+    </div>
+    <!-- Sidebar Overlay -->
+    <div id="sidebarOverlay" onclick="toggleMobileMenu()" style="position:fixed;top:0;left:0;width:100%;height:100vh;background:rgba(0,0,0,0.5);z-index:999;display:none;backdrop-filter:blur(2px)"></div>
+
+    <!-- Trial Offer Banner -->
+    <div class="trial-banner" style="margin:16px 0 8px;padding:16px;border-radius:16px;background:linear-gradient(135deg,#1a1a2e,#2d2d44);position:relative;overflow:hidden">
+      <div style="position:absolute;top:-30px;right:-30px;width:120px;height:120px;background:rgba(16,185,129,0.1);border-radius:50%"></div>
+      <div style="position:relative;z-index:1">
+        <div style="display:flex;align-items:center;gap:12px">
+          <div style="font-size:32px">🎁</div>
+          <div style="flex:1">
+            <div style="color:#10b981;font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase">零壓力試堂</div>
+            <div style="color:#fff;font-size:16px;font-weight:700;margin-top:2px">首堂免費 · 無需綁約</div>
+            <div style="color:rgba(255,255,255,0.6);font-size:12px;margin-top:4px">一個 Pass 玩盡 100+ 課程，今日就開始</div>
+          </div>
+          <a href="signup.html" style="flex-shrink:0;padding:10px 20px;border-radius:50px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;font-size:14px;font-weight:700;text-decoration:none;white-space:nowrap;box-shadow:0 4px 12px rgba(16,185,129,0.3)">免費登記 <span style="margin-left:4px">→</span></a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Demo Cards Section -->
+    <div class="zen-flex zen-gap-sm zen-scroll-x" style="margin: 0 0 12px; padding: 2px 0">
+      <a
+        href="explore.html?category=瑜伽"
+        class="zen-category-pill"
+        style="
+          flex-shrink: 0;
+          padding: 6px 14px;
+          border-radius: 20px;
+          background: rgba(255, 255, 255, 0.9);
+          font-size: 13px;
+          text-decoration: none;
+          color: var(--dark-900);
+          font-weight: 500;
+        "
+        >🧘 瑜伽</a
+      >
+      <a
+        href="explore.html?category=健身"
+        class="zen-category-pill"
+        style="
+          flex-shrink: 0;
+          padding: 6px 14px;
+          border-radius: 20px;
+          background: rgba(255, 255, 255, 0.9);
+          font-size: 13px;
+          text-decoration: none;
+          color: var(--dark-900);
+          font-weight: 500;
+        "
+        >💪 健身</a
+      >
+      <a
+        href="explore.html?category=新興運動"
+        class="zen-category-pill"
+        style="
+          flex-shrink: 0;
+          padding: 6px 14px;
+          border-radius: 20px;
+          background: rgba(255, 255, 255, 0.9);
+          font-size: 13px;
+          text-decoration: none;
+          color: var(--dark-900);
+          font-weight: 500;
+        "
+        >🎯 新興運動</a
+      >
+      <a
+        href="explore.html?category=冥想"
+        class="zen-category-pill"
+        style="
+          flex-shrink: 0;
+          padding: 6px 14px;
+          border-radius: 20px;
+          background: rgba(255, 255, 255, 0.9);
+          font-size: 13px;
+          text-decoration: none;
+          color: var(--dark-900);
+          font-weight: 500;
+        "
+        >🧘 Zen 靜觀</a
+      >
+      <a
+        href="explore.html?category=伸展"
+        class="zen-category-pill"
+        style="
+          flex-shrink: 0;
+          padding: 6px 14px;
+          border-radius: 20px;
+          background: rgba(255, 255, 255, 0.9);
+          font-size: 13px;
+          text-decoration: none;
+          color: var(--dark-900);
+          font-weight: 500;
+        "
+        >🤸 伸展 · 放鬆</a
+      >
+      <a
+        href="explore.html?category=呼吸"
+        class="zen-category-pill"
+        style="
+          flex-shrink: 0;
+          padding: 6px 14px;
+          border-radius: 20px;
+          background: rgba(255, 255, 255, 0.9);
+          font-size: 13px;
+          text-decoration: none;
+          color: var(--dark-900);
+          font-weight: 500;
+        "
+        >🌬️ 呼吸 · 冥想</a
+      >
+      <a
+        href="explore.html?category=瑜伽"
+        class="zen-category-pill"
+        style="
+          flex-shrink: 0;
+          padding: 6px 14px;
+          border-radius: 20px;
+          background: rgba(255, 255, 255, 0.9);
+          font-size: 13px;
+          text-decoration: none;
+          color: var(--dark-900);
+          font-weight: 500;
+        "
+        >🧘 瑜伽</a
+      >
+      <a
+        href="explore.html?category=舞蹈"
+        class="zen-category-pill"
+        style="
+          flex-shrink: 0;
+          padding: 6px 14px;
+          border-radius: 20px;
+          background: rgba(255, 255, 255, 0.9);
+          font-size: 13px;
+          text-decoration: none;
+          color: var(--dark-900);
+          font-weight: 500;
+        "
+        >💃 舞蹈</a
+      >
+      <a
+        href="explore.html?category=冥想"
+        class="zen-category-pill"
+        style="
+          flex-shrink: 0;
+          padding: 6px 14px;
+          border-radius: 20px;
+          background: rgba(255, 255, 255, 0.9);
+          font-size: 13px;
+          text-decoration: none;
+          color: var(--dark-900);
+          font-weight: 500;
+        "
+        >🧠 冥想</a
       >
     </div>
 
-    <div class="zen-card-gradient" id="dailyTip" style="margin: 0 16px 12px">
+    <!-- Search Bar -->
+    <div class="search-bar" role="search" style="margin-left:0;margin-right:0">
+      <input
+        type="text"
+        id="search-input"
+        placeholder="搜尋課程、教練、運動類型..."
+        onkeyup="handleSearch(event)"
+        aria-label="搜尋課程、教練、運動類型"
+      />
+      <button id="searchBtn" aria-label="搜尋">🔍</button>
+    </div>
+
+    <!-- Upcoming Bookings (shown when logged in) -->
+    <div id="upcoming-section" class="section" style="display:none">
+      <div class="zen-section-title">
+        <span>🗓️ 你嘅下一堂</span>
+        <a href="my.html" class="zen-text-xs" style="color: var(--orange-700); text-decoration: none" aria-label="查看全部預約">查看全部 →</a>
+      </div>
+      <div id="upcoming-list" class="zen-flex zen-gap-sm" style="flex-direction: column"><div class="sk-flex sk-items-center sk-gap-3 sk-p-3 sk-card sk-mb-3" aria-hidden="true">
+      <div class="sk-block sk-shimmer sk-h-14 sk-w-14 sk-rounded sk-flex-shrink-0" aria-hidden="true"></div>
+      <div class="sk-flex-1">
+                              </div>
+    </div><div class="sk-flex sk-items-center sk-gap-3 sk-p-3 sk-card sk-mb-3" aria-hidden="true">
+      <div class="sk-block sk-shimmer sk-h-14 sk-w-14 sk-rounded sk-flex-shrink-0" aria-hidden="true"></div>
+      <div class="sk-flex-1">
+                              </div>
+    </div><div class="sk-flex sk-items-center sk-gap-3 sk-p-3 sk-card sk-mb-3" aria-hidden="true">
+      <div class="sk-block sk-shimmer sk-h-14 sk-w-14 sk-rounded sk-flex-shrink-0" aria-hidden="true"></div>
+      <div class="sk-flex-1">
+                              </div>
+    </div>
+        <div class="sk-flex sk-items-center sk-gap-3 sk-p-3 sk-card sk-mb-3" aria-hidden="true">
+      <div class="sk-block sk-shimmer sk-h-14 sk-w-14 sk-rounded sk-flex-shrink-0" aria-hidden="true"></div>
+      <div class="sk-flex-1">
+        <div class="sk-block sk-shimmer sk-h-4 sk-w-3\/4 sk-mb-2" aria-hidden="true"></div>
+        <div class="sk-block sk-shimmer sk-h-3 sk-w-1\/3" aria-hidden="true"></div>
+      </div>
+    </div>
+      </div>
+    </div>
+
+    <!-- Credit Banner -->
+    <div id="credit-banner" class="section" style="display:none;margin-bottom:0;padding-bottom:4px">
+      <a href="my.html" style="display:flex;align-items:center;gap:10px;background:linear-gradient(135deg,#fff0e8,#fff8f4);border-radius:12px;padding:10px 14px;text-decoration:none;transition:all 0.2s">
+        <div style="font-size:22px">💎</div>
+        <div class="zen-flex-1">
+          <div style="font-size:13px;font-weight:600;color:#1a1a2e">我的 Credits</div>
+          <div style="font-size:20px;font-weight:800;color:var(--orange-600-bg)" id="credit-amount">-</div>
+        </div>
+        <div style="font-size:12px;color:var(--dark-700)">查看详情 →</div>
+      </a>
+    </div>
+
+    <script>
+    // Dual-mode auth helper: check localStorage (legacy) or cookie session
+    function _zpGetToken() {
+      return localStorage.getItem('zp_token') || localStorage.getItem('zenpass_token') || sessionStorage.getItem('zenpass_token');
+    }
+
+    // Logged-in detection: show upcoming bookings, hide visitor stats
+    (function() {
+      var token = _zpGetToken();
+      var upcomingSection = document.getElementById('upcoming-section');
+      var statsSection = document.getElementById('visitor-stats');
+
+      if (token && upcomingSection) {
+        // Hide visitor stats
+        if (statsSection) statsSection.style.display = 'none';
+        // Show upcoming section
+        upcomingSection.style.display = '';
+
+        // Fetch upcoming bookings
+        var apiBase = window.API_BASE || '';
+        fetch(apiBase + '/api/bookings/my?status=confirmed&limit=3', {
+          headers: { 'Authorization': 'Bearer ' + token }
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          var list = document.getElementById('upcoming-list');
+          if (!list) return;
+          if (data.bookings && data.bookings.length > 0) {
+            list.innerHTML = '';
+            data.bookings.forEach(function(b) {
+              var cls = b.class_info || b;
+              var title = cls.title || cls.name || '課程';
+              var time = b.start_time || '';
+              var dateStr = '';
+              if (time) {
+                var d = new Date(time);
+                var days = ['日','一','二','三','四','五','六'];
+                var month = (d.getMonth()+1).toString().padStart(2,'0');
+                var day = d.getDate().toString().padStart(2,'0');
+                var hour = d.getHours().toString().padStart(2,'0');
+                var min = d.getMinutes().toString().padStart(2,'0');
+                dateStr = month + '/' + day + ' (' + days[d.getDay()] + ') ' + hour + ':' + min;
+              }
+              var coach = cls.coach_name || '';
+              var location = cls.location || cls.venue || '';
+              var el = document.createElement('a');
+              el.href = 'class-detail.html?id=' + (cls.id || cls.class_id || '');
+              el.className = 'zen-card';
+              el.style.cssText = 'display:flex;align-items:center;gap:14px;padding:14px 16px;text-decoration:none;color:inherit;border-radius:12px;';
+              el.innerHTML = '<div style="font-size:24px;flex-shrink:0">📅</div>' +
+                '<div class="zen-flex-1" style="min-width:0">' +
+                '<div class="zen-text-bold" style="font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + title + '</div>' +
+                '<div style="font-size:12px;color:var(--dark-700);margin-top:2px">' + dateStr + (coach ? ' · ' + coach : '') + '</div>' +
+                (location ? '<div style="font-size:11px;color:var(--dark-600);margin-top:1px">📍 ' + location + '</div>' : '') +
+                '</div>' +
+                '<div style="font-size:16px;color:var(--orange-700)">→</div>';
+              list.appendChild(el);
+            });
+          } else {
+            list.innerHTML = '<div style="padding:16px;background:linear-gradient(135deg,#fff0e8,#ffe8dc);border-radius:14px;text-align:center">' +
+              '<div style="font-size:36px;margin-bottom:8px">🏋️</div>' +
+              '<div class="zen-text-bold" style="font-size:15px;margin-bottom:4px">未有預約</div>' +
+              '<div style="font-size:12px;color:var(--dark-700);margin-bottom:12px;line-height:1.5">你嘅第一堂運動班就係呢度！<br>去探索揀個適合你嘅課程啦 🔥</div>' +
+              '<a href="explore.html" class="zen-btn" style="padding:10px 24px;border-radius:20px;font-size:13px;text-decoration:none;display:inline-block">🔍 探索課程</a></div>';
+          }
+        })
+        .catch(function() {
+          showError(document.getElementById('upcoming-list'), '暫時無法載入預約', '請檢查網絡連線後重新整理');
+        });
+      }
+    })();
+
+    // Credit balance fetch + personalised banner
+    (function() {
+      var token = _zpGetToken();
+      var banner = document.getElementById('credit-banner');
+      if (!token || !banner) return;
+      banner.style.display = '';
+      var apiBase = window.API_BASE || '';
+      var interestsRaw = localStorage.getItem('zenpass_interests');
+      try {
+        var interests = interestsRaw ? JSON.parse(interestsRaw) : [];
+        if (interests.length > 0) {
+          var interestNames = interests.join('、');
+          var h = new Date().getHours();
+          var greeting = h < 12 ? '🌅 早晨' : h < 18 ? '☀️ 午安' : '🌙 晚安';
+          var tip = greeting + '！';
+          if (interests.length > 0) {
+            if (interests.includes('瑜伽')) tip = greeting + '！🧘 瑜伽課 ready for you';
+            else if (interests.includes('健身')) tip = greeting + '！💪 健身操肌，今日開練';
+            else if (interests.includes('冥想')) tip = greeting + '！🧠 冥想一下，放鬆身心';
+            else if (interests.includes('伸展')) tip = greeting + '！🤸 伸展拉筋，趕走疲勞';
+            else tip = greeting + '！🔥 ' + interestNames + ' 適合你';
+          } else {
+            var timeTips = [
+              '🔥 晨間運動燃脂效果最佳',
+              '☕ 午後瑜伽幫你 reset 個 mind',
+              '🌙 晚間放鬆伸展，好瞓啲'
+            ];
+            var idx = h < 12 ? 0 : h < 18 ? 1 : 2;
+            tip = greeting + '！' + timeTips[idx];
+          }
+          var tipEl = document.getElementById('personalised-tip');
+          if (tipEl) { tipEl.style.display = 'block'; tipEl.textContent = tip; }
+        }
+      } catch(e) {}
+      fetch(apiBase + '/api/users/credits', {
+        headers: { 'Authorization': 'Bearer ' + token }
+      })
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        var el = document.getElementById('credit-amount');
+        if (el && d.credits !== undefined) {
+          el.textContent = d.credits + ' Credits';
+        }
+      })
+      .catch(function() {
+        var el = document.getElementById('credit-amount');
+        if (el) el.textContent = '載入失敗';
+      });
+    })();
+    </script>
+
+    <!-- Personalised Tip Banner -->
+    <div id="personalised-tip" class="section" style="display:none;margin:0 16px 12px;padding:10px 14px;background:rgba(255,107,53,0.08);border-radius:10px;font-size:13px;color:var(--orange-700);text-align:center;font-weight:500"></div>
+
+    <!-- Platform Stats (shown when NOT logged in) -->
+    <div
+      id="visitor-stats"
+      class="zen-flex zen-card zen-gap-sm"
+      style="
+        margin: 0 16px 12px;
+        padding: 14px 12px;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+      "
+    >
+      <div class="zen-flex-1 zen-text-center">
+        <div
+          class="zen-text-bold"
+          style="font-size: 22px; color: var(--orange-700)"
+        >
+          110+
+        </div>
+        <div class="zen-text-xs zen-text-muted">課程</div>
+      </div>
+      <div style="width: 1px; background: var(--gray-200)"></div>
+      <div class="zen-flex-1 zen-text-center">
+        <div
+          class="zen-text-bold"
+          style="font-size: 22px; color: var(--orange-700)"
+        >
+          32
+        </div>
+        <div class="zen-text-xs zen-text-muted">運動分類</div>
+      </div>
+      <div style="width: 1px; background: var(--gray-200)"></div>
+      <div class="zen-flex-1 zen-text-center">
+        <div
+          class="zen-text-bold"
+          style="font-size: 22px; color: var(--orange-700)"
+        >
+          5+
+        </div>
+        <div class="zen-text-xs zen-text-muted">教練</div>
+      </div>
+    </div>
+
+    <div
+      class="zen-flex zen-card"
+      id="dailyTip"
+      style="
+        background: linear-gradient(135deg, #1a1a2e, #2d2d44);
+        padding: 16px 18px;
+        margin: 0 16px 12px;
+        gap: 14px;
+        font-size: 14px;
+        color: #fff;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+        border-radius: 16px;
+      "
+    >
       <div
-        class="g-icon"
+        class="zen-flex-center"
         style="
-          font-size: 22px;
           width: 44px;
           height: 44px;
           border-radius: 50%;
           background: var(--orange-600-bg);
-          display: flex;
-          align-items: center;
-          justify-content: center;
+          font-size: 22px;
           flex-shrink: 0;
         "
       >
         💡
       </div>
-      <div class="g-body">
-        <div style="font-size: 11px; opacity: 0.6; margin-bottom: 2px">
+      <div class="zen-flex-1" style="min-width: 0">
+        <div class="zen-text-xs zen-text-muted" style="margin-bottom: 2px">
           今日小貼士
         </div>
         <div
@@ -215,6 +533,7 @@
       </div>
       <button
         onclick="refreshTip()"
+        class="zen-flex-center"
         style="
           width: 36px;
           height: 36px;
@@ -223,9 +542,6 @@
           border: 1px solid rgba(255, 255, 255, 0.15);
           font-size: 16px;
           cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
           flex-shrink: 0;
           transition: background 0.2s;
         "
@@ -264,35 +580,68 @@
         "連續簽到獲取額外積分獎勵 🔥",
       ];
       function subscribeNewsletter() {
-        var email = document.getElementById("newsletter-email").value.trim();
+        var input = document.getElementById("newsletter-email");
+        var email = input.value.trim();
         var el = document.getElementById("newsletter-result");
+        input.style.border = "none";
+        el.style.transition = "all 0.3s ease";
         if (!email || !email.includes("@")) {
           el.style.color = "#ef4444";
-          el.textContent = "請輸入有效電郵";
+          el.textContent = "❌ 請輸入有效電郵地址";
+          el.style.background = "rgba(239,68,68,0.1)";
+          el.style.padding = "8px 12px";
+          el.style.borderRadius = "8px";
+          input.style.border = "1.5px solid #ef4444";
+          setTimeout(function(){ el.style.background = "transparent"; el.style.padding = "0"; input.style.border = "none"; }, 3000);
           return;
         }
-        // Save subscription
         var interests = [];
         document
           .querySelectorAll(".nl-interest:checked")
           .forEach(function (cb) {
             interests.push(cb.value);
           });
-        localStorage.setItem("zenpass_subscribed", "true");
-        localStorage.setItem("zenpass_sub_email", email);
-        localStorage.setItem(
-          "zenpass_sub_interests",
-          JSON.stringify(interests),
-        );
-        // Show subscribed state
-        document.getElementById("newsletter-form").style.display = "none";
-        document.getElementById("nl-subscribed").style.display = "block";
-        document.getElementById("nl-email-display").textContent = "📧 " + email;
-        if (interests.length > 0)
-          document.getElementById("nl-email-display").textContent +=
-            " · " + interests.join(" ");
-        el.style.color = "#059669";
-        el.textContent = "✅ 訂閱成功！";
+        el.textContent = "⏳ 處理中...";
+        el.style.color = "#6b7280";
+        el.style.background = "transparent";
+        el.style.padding = "0";
+        input.disabled = true;
+        // Save to backend
+        fetch(API_BASE + "/marketing/subscribe", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: email, interests: interests, source: "homepage" })
+        }).then(function(r) {
+          return r.json().catch(function(){return {};});
+        }).then(function() {
+          // Success
+          localStorage.setItem("zenpass_subscribed", "true");
+          localStorage.setItem("zenpass_sub_email", email);
+          localStorage.setItem("zenpass_sub_interests", JSON.stringify(interests));
+          document.getElementById("newsletter-form").style.display = "none";
+          document.getElementById("nl-subscribed").style.display = "block";
+          document.getElementById("nl-email-display").textContent = "📧 " + email;
+          if (interests.length > 0)
+            document.getElementById("nl-email-display").textContent +=
+              " · " + interests.join(" ");
+          el.style.color = "#059669";
+          el.style.background = "rgba(5,150,105,0.1)";
+          el.style.padding = "8px 12px";
+          el.style.borderRadius = "8px";
+          el.textContent = "✅ 已訂閱成功！感謝你的支持 🙌";
+          input.disabled = false;
+        }).catch(function() {
+          el.style.color = "#ef4444";
+          el.style.background = "rgba(239,68,68,0.1)";
+          el.style.padding = "8px 12px";
+          el.style.borderRadius = "8px";
+          el.textContent = "❌ 伺服器錯誤，但已保存本地";
+          input.disabled = false;
+          // Still save locally
+          localStorage.setItem("zenpass_subscribed", "true");
+          localStorage.setItem("zenpass_sub_email", email);
+          localStorage.setItem("zenpass_sub_interests", JSON.stringify(interests));
+        });
       }
       function unsubscribeNewsletter() {
         localStorage.removeItem("zenpass_subscribed");
@@ -304,48 +653,125 @@
         document.getElementById("newsletter-result").textContent = "已取消訂閱";
       }
       function showToast(m, t) {
-        window.ZenPass && ZenPass.toast(m, t);
+        var d = document.createElement("div");
+        d.style.cssText =
+          "position:fixed;bottom:80px;left:50%;transform:translateX(-50%);padding:10px 18px;border-radius:10px;font-size:13px;font-weight:500;z-index:999;background:" +
+          (t === "success" ? "#ecfdf5" : "#fef2f2") +
+          ";color:" +
+          (t === "success" ? "#059669" : "#ef4444") +
+          ";box-shadow:0 2px 8px rgba(0,0,0,0.12)";
+        d.textContent = m;
+        document.body.appendChild(d);
+        setTimeout(function () {
+          d.remove();
+        }, 2000);
       }
       function refreshTip() {
         var el = document.getElementById("tipText");
         if (el) el.textContent = TIPS[Math.floor(Math.random() * TIPS.length)];
       }
       document.addEventListener("DOMContentLoaded", refreshTip);
-    </script>
-    <div class="search-bar" role="search">
-      <input
-        type="text"
-        id="search-input"
-        placeholder="搜尋課程、教練、運動類型..."
-        onkeyup="handleSearch(event)"
-        aria-label="搜尋課程、教練、運動類型"
-      />
-      <button id="searchBtn" aria-label="搜尋">🔍</button>
-    </div>
 
-    <!-- Platform Stats -->
-    <div class="zen-stats" style="margin: 0 16px 12px">
-      <div class="zen-stat">
-        <div class="zen-stat-value">110+</div>
-        <div class="zen-stat-label">課程</div>
-      </div>
-      <div class="zen-stat-divider"></div>
-      <div class="zen-stat">
-        <div class="zen-stat-value">32</div>
-        <div class="zen-stat-label">運動分類</div>
-      </div>
-      <div class="zen-stat-divider"></div>
-      <div class="zen-stat">
-        <div class="zen-stat-value">5+</div>
-        <div class="zen-stat-label">教練</div>
-      </div>
-    </div>
+  function escHtmlF(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+  // Load recommendations — for all users (personalized if logged in, popular if not)
+  setTimeout(function() {
+    var section = document.getElementById('recommended-section');
+    var container = document.getElementById('recommended-classes');
+    if (!section || !container) return;
+    var apiBase = window.API_BASE || (window.location.origin === 'https://davidchoy1689-tech.github.io' ? '' : '');
+    var token = _zpGetToken();
+    // Build category filter from onboarding interests (localStorage)
+    var categoryFilter = '';
+    try {
+      var interests = JSON.parse(localStorage.getItem('zenpass_interests') || '[]');
+      if (interests.length > 0) {
+        categoryFilter = '&categories=' + encodeURIComponent(interests.join(','));
+      }
+    } catch(e) {}
+    // Always show recommended section (popular classes for visitors)
+    section.style.display = '';
+    // Change label based on login state
+    var recLabel = section.querySelector('h2');
+    if (recLabel) recLabel.textContent = token ? '🎯 為你推薦' : (categoryFilter ? '🎯 你可能鍾意' : '🔥 熱門課程');
+    showSkeleton(container, 'featured', 3);
+    var url = (apiBase + '/api/recommendations?limit=6' + categoryFilter);
+    if (token) {
+      fetch(url, { headers: { 'Authorization': 'Bearer ' + token } })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.classes && data.classes.length > 0) {
+          container.innerHTML = '';
+          data.classes.forEach(function(cls) {
+            var card = document.createElement('div');
+            card.className = 'modern-card';
+            var clsTitle = cls.title || cls.name || '';
+            var clsId = cls.id || cls.class_id || '';
+            var icon = cls.icon || '🏋';
+            var bg = cls.color || 'linear-gradient(135deg, var(--orange-100), var(--orange-200))';
+            var badge = (cls.booking_count && cls.booking_count >= 5)
+              ? '<span class="modern-card-badge hot">🔥 熱門</span>'
+              : '<span class="modern-card-badge" style="background:#6366f1">🌟 新課</span>';
+            var stars = '★'.repeat(Math.round(cls.rating || 5)) + '☆'.repeat(5 - Math.round(cls.rating || 5));
+            card.innerHTML = '<div class="modern-card-img" style="min-width:220px"><div class="bg-img" style="background:' + bg + '">' + icon + '</div><div class="modern-card-badges">' + badge + '</div></div>' +
+              '<div class="modern-card-body"><div class="modern-card-tags"><span class="modern-card-tag">' + (cls.category || '') + '</span></div>' +
+              '<div class="modern-card-title">' + escHtmlF(clsTitle) + '</div>' +
+              '<div class="modern-card-meta">' + (cls.coach_name || '') + '</div>' +
+              '<div class="modern-card-review"><div><span class="modern-card-stars">' + stars + '</span></div></div>' +
+              '<button class="modern-card-cta" onclick="event.stopPropagation();location.href=\'class-detail.html?id=' + clsId + '\'" role="button" aria-label="預約課程">立即預約<span class="arrow">→</span></button></div>';
+            card.onclick = function() { window.location.href = 'class-detail.html?id=' + clsId; };
+            container.appendChild(card);
+          });
+        } else {
+          container.innerHTML = '<div style="text-align:center;padding:20px;color:var(--dark-700);font-size:13px">暫無推薦課程，去探索看看！</div>';
+        }
+      })
+      .catch(function() {
+          container.innerHTML = '<div style="text-align:center;padding:20px;color:#6b7280;font-size:13px">載入推薦失敗</div>';
+        });
+    } else {
+      // No token — show popular classes (always visible)
+      fetch(apiBase + '/api/classes?status=active&limit=6&sort=popular' + categoryFilter)
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        var classes = data.classes || data || [];
+        if (classes.length > 0) {
+          container.innerHTML = '';
+          classes.forEach(function(cls) {
+            var card = document.createElement('div');
+            card.className = 'modern-card';
+            var clsTitle = cls.title || cls.name || '';
+            var clsId = cls.id || cls.class_id || '';
+            var icon = cls.icon || '🏋';
+            var bg = cls.color || 'linear-gradient(135deg, var(--orange-100), var(--orange-200))';
+            var badge = (cls.booking_count && cls.booking_count >= 5)
+              ? '<span class="modern-card-badge hot">🔥 熱門</span>'
+              : '<span class="modern-card-badge" style="background:#6366f1">🌟 新課</span>';
+            var stars = '★'.repeat(Math.round(cls.rating || 5)) + '☆'.repeat(5 - Math.round(cls.rating || 5));
+            card.innerHTML = '<div class="modern-card-img" style="min-width:220px"><div class="bg-img" style="background:' + bg + '">' + icon + '</div><div class="modern-card-badges">' + badge + '</div></div>' +
+              '<div class="modern-card-body"><div class="modern-card-tags"><span class="modern-card-tag">' + (cls.category || '') + '</span></div>' +
+              '<div class="modern-card-title">' + escHtmlF(clsTitle) + '</div>' +
+              '<div class="modern-card-meta">' + (cls.coach_name || '') + '</div>' +
+              '<div class="modern-card-review"><div><span class="modern-card-stars">' + stars + '</span></div></div>' +
+              '<button class="modern-card-cta" onclick="event.stopPropagation();location.href=\'class-detail.html?id=' + clsId + '\'" role="button" aria-label="預約課程">立即預約<span class="arrow">→</span></button></div>';
+            card.onclick = function() { window.location.href = 'class-detail.html?id=' + clsId; };
+            container.appendChild(card);
+          });
+        }
+      })
+      .catch(function() { console.warn("Loading failed silently"); });
+    }
+  }, 1000);
+
+    </script>
 
     <!-- Role Entry -->
     <div class="section" id="role-entry-section">
-      <div style="display: flex; gap: 12px">
+      <div class="zen-flex zen-gap-md">
         <a
           href="my.html"
+          class="zen-flex"
           style="
             flex: 1;
             background: linear-gradient(135deg, #1a1a2e, #2d2d44);
@@ -353,7 +779,6 @@
             padding: 18px;
             text-decoration: none;
             color: var(--white);
-            display: flex;
             align-items: center;
             gap: 14px;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
@@ -361,14 +786,15 @@
         >
           <div style="font-size: 32px">🎓</div>
           <div>
-            <div style="font-size: 14px; font-weight: 700">學生入口</div>
-            <div style="font-size: 11px; opacity: 0.7; margin-top: 2px">
+            <div class="zen-text-bold" style="font-size: 14px">學生入口</div>
+            <div class="zen-text-xs" style="opacity: 0.7; margin-top: 2px">
               預約課程・會籍管理
             </div>
           </div>
         </a>
         <a
           href="coach-dashboard.html"
+          class="zen-flex"
           style="
             flex: 1;
             background: linear-gradient(135deg, #ff6b35, #e85d2c);
@@ -376,7 +802,6 @@
             padding: 18px;
             text-decoration: none;
             color: var(--white);
-            display: flex;
             align-items: center;
             gap: 14px;
             box-shadow: 0 2px 8px rgba(255, 107, 53, 0.2);
@@ -384,8 +809,8 @@
         >
           <div style="font-size: 32px">🏋️</div>
           <div>
-            <div style="font-size: 14px; font-weight: 700">教練入口</div>
-            <div style="font-size: 11px; opacity: 0.7; margin-top: 2px">
+            <div class="zen-text-bold" style="font-size: 14px">教練入口</div>
+            <div class="zen-text-xs" style="opacity: 0.7; margin-top: 2px">
               開班・收入・時間表
             </div>
           </div>
@@ -396,32 +821,20 @@
     <!-- Partners -->
     <div class="section">
       <div
-        class="section-title"
-        style="font-size: 14px; opacity: 0.7; justify-content: center"
+        class="zen-section-title zen-text-center"
+        style="font-size: 14px; opacity: 0.7"
       >
         <span>合作夥伴</span>
       </div>
-      <div
-        style="
-          display: flex;
-          justify-content: center;
-          gap: 24px;
-          align-items: center;
-          padding: 8px 0;
-        "
-      >
+      <div class="zen-flex zen-flex-center" style="gap: 24px; padding: 8px 0">
         <a
           href="https://hklfcl.com"
           target="_blank"
-          style="
-            font-size: 13px;
-            color: var(--dark-700);
-            text-decoration: none;
-            font-weight: 600;
-          "
+          class="zen-text-sm zen-text-muted zen-text-bold"
+          style="text-decoration: none"
           >🏛️ HK LFCL</a
         >
-        <span style="font-size: 13px; color: var(--dark-700)">🤝 ZenPass</span>
+        <span class="zen-text-sm zen-text-muted">🤝 ZenPass</span>
       </div>
     </div>
 
@@ -429,8 +842,8 @@
     <div id="checkin-reminder" class="section" style="display: none">
       <a
         href="checkin.html"
+        class="zen-flex"
         style="
-          display: flex;
           align-items: center;
           gap: 12px;
           background: linear-gradient(135deg, #fff0e8, #fff8f4);
@@ -441,11 +854,11 @@
         "
       >
         <div style="font-size: 28px">📅</div>
-        <div style="flex: 1">
-          <div style="font-weight: 700; font-size: 15px; color: #1a1a2e">
+        <div class="zen-flex-1">
+          <div class="zen-text-bold" style="font-size: 15px; color: #1a1a2e">
             每日簽到
           </div>
-          <div style="font-size: 12px; color: #6b7280">
+          <div style="font-size: 12px; color: #4b5563">
             連續簽到賺取積分獎勵 🔥
           </div>
         </div>
@@ -454,42 +867,147 @@
     </div>
     <script>
       (function () {
-        if (localStorage.getItem("zenpass_token"))
+        if (_zpGetToken())
           document.getElementById("checkin-reminder").style.display = "";
       })();
-    </script>
+    
+    // ===== App Notify =====
+    window.notifyAppLaunch = function() {
+      var email = document.getElementById('appNotifyEmail')?.value?.trim();
+      var msg = document.getElementById('appNotifyMsg');
+      if (!email || !email.includes('@')) {
+        if (msg) { msg.textContent = '⚠️ 請輸入有效嘅電郵地址'; msg.style.color = '#f87171'; }
+        return;
+      }
+      var list = JSON.parse(localStorage.getItem('app_notify_list') || '[]');
+      if (list.includes(email)) {
+        if (msg) { msg.textContent = '✅ 你已經喺通知名單中！'; msg.style.color = '#34d399'; }
+        return;
+      }
+      list.push(email);
+      localStorage.setItem('app_notify_list', JSON.stringify(list));
+      if (msg) { msg.textContent = '✅ 已登記！App 上線時會通知你 📱'; msg.style.color = '#34d399'; }
+      document.getElementById('appNotifyEmail').value = '';
+    };
 
-    <!-- Coach Recruitment CTA -->
-    <div class="section" id="coach-cta-section">
-      <a
-        href="coach-apply.html"
-        style="
-          display: flex;
-          align-items: center;
-          gap: 14px;
-          background: linear-gradient(135deg, #1a1a2e, #2d2d44);
-          border-radius: 14px;
-          padding: 18px;
-          text-decoration: none;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        "
-      >
-        <div style="font-size: 32px">🏋️</div>
-        <div style="flex: 1">
-          <div style="font-weight: 700; font-size: 15px; color: #fff">
-            成為 ZenPass 教練
-          </div>
-          <div
-            style="
-              font-size: 12px;
-              color: rgba(255, 255, 255, 0.6);
-              margin-top: 2px;
-            "
-          >
-            免費開班・自定時間・即時收款
-          </div>
+    // ===== Sample Activity Data =====
+    function renderSampleActivity() {
+      var samples = [
+        { icon: '🏓', title: '新課程上架：匹克球', desc: '全港最潮新興運動，結合羽毛球、乒乓球、網球元素', tag: 'NEW', time: '今日' },
+        { icon: '🏢', title: 'ZenPass 企業計劃正式推出', desc: '專為中小企而設的員工運動福利方案，$399/人/月', tag: '新服務', time: '2 日前' },
+        { icon: '🧘', title: '早晨瑜伽系列新增 5 個時段', desc: '07:00-08:00 早鳥班，返工前做運動', tag: '更新', time: '3 日前' },
+        { icon: '🎯', title: '新場地合作：觀塘 Two Sky Parc', desc: '全新運動空間，鄰近地鐵站，方便上班族', tag: '新場地', time: '5 日前' },
+        { icon: '💪', title: 'HIIT 燃脂訓練班名額增加', desc: '因反應熱烈，每班由 15 人增至 20 人', tag: '更新', time: '1 週前' },
+        { icon: '📱', title: 'ZenPass App 開發中', desc: 'iOS + Android 版本預計 2026 年第三季推出', tag: '即將推出', time: '1 週前' },
+        { icon: '🏆', title: '香港康樂及體育獲商界展關懷獎', desc: '連續三年獲獎，肯定社區貢獻', tag: '獎項', time: '2 週前' },
+        { icon: '👥', title: '教練招募計劃啟動', desc: '歡迎各類型運動導師加入 ZenPass 平台', tag: '招募', time: '2 週前' },
+      ];
+      var html = '';
+      samples.forEach(function(s) {
+        html += '<div class="zen-flex" style="align-items:center;gap:12px;padding:10px 12px;background:var(--white);border-radius:10px;box-shadow:0 1px 2px rgba(0,0,0,0.04);margin-bottom:8px">';
+        html += '<div style="font-size:22px;width:36px;text-align:center;flex-shrink:0">' + s.icon + '</div>';
+        html += '<div class="zen-flex-1">';
+        html += '<div class="zen-flex" style="align-items:center;gap:6px;flex-wrap:wrap">';
+        html += '<span class="zen-text-sm zen-text-bold">' + s.title + '</span>';
+        html += '<span style="font-size:9px;background:#2563eb;color:#fff;padding:1px 6px;border-radius:3px;font-weight:600">' + s.tag + '</span>';
+        html += '</div>';
+        html += '<div class="zen-text-xs zen-text-muted" style="margin-top:2px">' + s.desc + '</div>';
+        html += '<div class="zen-text-xs" style="color:#94a3b8;margin-top:1px;font-size:10px">' + s.time + '</div>';
+        html += '</div></div>';
+      });
+      return html;
+    }
+
+    // ===== Load Activity Feed =====
+    async function loadActivityFeed() {
+      try {
+        var r = await fetch("/api/activity/feed");
+        if (!r.ok) throw new Error("fail");
+        var d = await r.json();
+        var container = document.getElementById("activityFeed");
+        if (!container || !d.feed || d.feed.length === 0) return;
+        var html = "";
+        d.feed.slice(0, 8).forEach(function(item) {
+          var icon = getCategoryIcon(item.category || "");
+          var timeStr = formatActivityTime(item.time);
+          html += '<div class="zen-flex" style="align-items: center; gap: 12px; padding: 10px 12px; background: var(--white); border-radius: 10px; box-shadow: 0 1px 2px rgba(0,0,0,0.04);">';
+          html += '<div style="font-size: 24px">' + icon + '</div>';
+          html += '<div class="zen-flex-1"><div class="zen-text-sm zen-text-bold">' + escapeHtml(item.user_name) + ' 預約了 ' + escapeHtml(item.class_title) + '</div>';
+          html += '<div class="zen-text-xs zen-text-muted">' + timeStr + '</div></div></div>';
+        });
+        container.innerHTML = html;
+      } catch (e) {}
+    }
+
+    function getCategoryIcon(cat) {
+      if (!cat) return "🏅";
+      var icons = { "瑜伽":"🧘", "健":"💪", "舞":"💃", "拳":"🥊", "跑":"🏃", "泳":"🏊", "單車":"🚴", "伸展":"🙆", "空中":"🎪", "普拉提":"🤸", "冥想":"🧘", "HIIT":"🔥", "騎行":"🚴", "太極":"🌊", "barre":"🩰", "pilates":"🤸", "格鬥":"🥋" };
+      for (var k in icons) {
+        if (cat.indexOf(k) >= 0) return icons[k];
+      }
+      return "🏅";
+    }
+
+    function formatActivityTime(t) {
+      if (!t) return "";
+      var d = new Date(t);
+      var now = new Date();
+      var diff = Math.floor((now - d) / 1000);
+      if (diff < 60) return "剛剛";
+      if (diff < 3600) return Math.floor(diff / 60) + " 分鐘前";
+      if (diff < 86400) return Math.floor(diff / 3600) + " 小時前";
+      return d.toLocaleDateString("zh-HK", { month: "short", day: "numeric" });
+    }
+
+    function escapeHtml(t) {
+      if (!t) return "";
+      return t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    document.addEventListener("DOMContentLoaded", function() {
+      setTimeout(loadActivityFeed, 500);
+    });
+</script>
+
+    <!-- Independent Coaches Section -->
+    <div class="section">
+      <div class="zen-flex" style="align-items:center;justify-content:space-between;margin:0 0 12px">
+        <div class="zen-section-title" style="font-size:15px;margin:0">
+          <span>🏆 本地獨立教練</span>
         </div>
+        <a href="coaches.html" style="font-size:12px;color:var(--orange-600-bg);text-decoration:none;font-weight:600">查看全部 →</a>
+      </div>
+      <div class="zen-flex" style="gap:12px;overflow-x:auto;padding:0 0 8px;-webkit-overflow-scrolling:touch">
+        <a href="coach-profile.html?name=靜儀" style="flex:0 0 150px;background:var(--white);border-radius:14px;padding:14px;text-align:center;text-decoration:none;box-shadow:0 1px 3px rgba(0,0,0,0.06)">
+          <div style="width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#667eea,#764ba2);margin:0 auto 8px;display:flex;align-items:center;justify-content:center;font-size:22px;color:#fff;font-weight:700">靜</div>
+          <div style="font-size:14px;font-weight:700;color:var(--dark-900)">靜儀</div>
+          <div style="font-size:11px;color:var(--dark-700);margin-top:2px">🧘 瑜伽 · 頌缽</div>
+          <div style="font-size:10px;color:#b45309;margin-top:4px">⭐⭐⭐⭐⭐ 4.9</div>
+          <div style="font-size:10px;color:#047857;margin-top:2px">獨立教練</div>
+        </a>
+        <a href="coach-profile.html?name=Michael" style="flex:0 0 150px;background:var(--white);border-radius:14px;padding:14px;text-align:center;text-decoration:none;box-shadow:0 1px 3px rgba(0,0,0,0.06)">
+          <div style="width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#f093fb,#f5576c);margin:0 auto 8px;display:flex;align-items:center;justify-content:center;font-size:22px;color:#fff;font-weight:700">M</div>
+          <div style="font-size:14px;font-weight:700;color:var(--dark-900)">Michael</div>
+          <div style="font-size:11px;color:var(--dark-700);margin-top:2px">🥊 拳擊 · HIIT</div>
+          <div style="font-size:10px;color:#b45309;margin-top:4px">⭐⭐⭐⭐ 4.7</div>
+          <div style="font-size:10px;color:#047857;margin-top:2px">獨立教練</div>
+        </a>
+        <a href="coach-profile.html?name=慧心" style="flex:0 0 150px;background:var(--white);border-radius:14px;padding:14px;text-align:center;text-decoration:none;box-shadow:0 1px 3px rgba(0,0,0,0.06)">
+          <div style="width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#4facfe,#00f2fe);margin:0 auto 8px;display:flex;align-items:center;justify-content:center;font-size:22px;color:#fff;font-weight:700">慧</div>
+          <div style="font-size:14px;font-weight:700;color:var(--dark-900)">慧心</div>
+          <div style="font-size:11px;color:var(--dark-700);margin-top:2px">🧠 冥想 · 呼吸</div>
+          <div style="font-size:10px;color:#b45309;margin-top:4px">⭐⭐⭐⭐⭐ 4.9</div>
+          <div style="font-size:10px;color:#047857;margin-top:2px">獨立教練</div>
+        </a>
+        <a href="coach-apply.html" style="flex:0 0 150px;background:linear-gradient(135deg,#1a1a2e,#2d2d44);border-radius:14px;padding:14px;text-align:center;text-decoration:none;display:flex;flex-direction:column;align-items:center;justify-content:center">
+          <div style="font-size:28px;margin-bottom:6px">➕</div>
+          <div style="font-size:12px;color:#fff;font-weight:600">成為教練</div>
+          <div style="font-size:10px;color:rgba(255,255,255,0.5);margin-top:4px">免費開班</div>
+        </a>
+      </div>
+    </div>
         <div
+          class="zen-tag"
           style="
             background: #c94420;
             color: #fff;
@@ -502,94 +1020,91 @@
         >
           立即申請 →
         </div>
-      </a>
-    </div>
 
     <main id="main-content">
       <!-- App Download CTA -->
-      <div class="section">
-        <div class="zen-card-gradient" style="margin: 0 16px 16px">
-          <div style="font-size: 32px">📱</div>
-          <div style="flex: 1">
-            <div style="font-weight: 700; font-size: 15px; color: white">
+      <div
+        style="
+          background: linear-gradient(135deg, #1a1a2e, #2d2d44);
+          border-radius: 16px;
+          margin: 0 16px 16px;
+          padding: 20px;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        "
+      >
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+          <div style="font-size: 36px">📱</div>
+          <div class="zen-flex-1">
+            <div class="zen-text-bold" style="font-size: 16px; color: white">
               即將推出 ZenPass App
             </div>
-            <div
-              style="
-                font-size: 12px;
-                color: rgba(255, 255, 255, 0.6);
-                margin-top: 2px;
-              "
-            >
+            <div style="font-size: 12px; color: rgba(255, 255, 255, 0.6); margin-top: 2px">
               iOS · Android · 一個Pass通行全城
             </div>
           </div>
-          <div class="g-action">關注進度 →</div>
         </div>
+        <div style="display:flex;gap:8px">
+          <input type="email" id="appNotifyEmail" placeholder="你的電郵，App 上線即通知你" style="flex:1;padding:12px 14px;border-radius:12px;border:none;font-size:14px;font-family:var(--font-zh);background:rgba(255,255,255,0.12);color:#fff;outline:none" onfocus="this.style.background='rgba(255,255,255,0.2)'" onblur="this.style.background='rgba(255,255,255,0.12)'" />
+          <button onclick="notifyAppLaunch()" style="padding:12px 20px;border-radius:12px;border:none;background:var(--orange-600-bg);color:#fff;font-size:14px;font-weight:700;cursor:pointer;white-space:nowrap;font-family:var(--font-zh)">通知我</button>
+        </div>
+        <div id="appNotifyMsg" style="font-size:11px;color:rgba(255,255,255,0.5);margin-top:6px">💡 上線後第一時間通知你，無 spam</div>
       </div>
 
       <div id="categories-section" role="region" aria-label="運動分類">
-        <div class="section-title">
+        <div class="zen-section-title">
           <span>運動分類</span>
         </div>
-        <div class="categories-scroll" id="category-list">
-          <div class="loading-spinner">載入中...</div>
-        </div>
+        <div class="categories-scroll" id="category-list"><div class="sk-grid">                                        </div>
+      </div>
+    </div>                                        </div>
+      </div>
+    </div>                                        </div>
+      </div>
+      <div class="sk-card-body">
+        <div class="sk-block sk-shimmer sk-h-4 sk-w-3/4 sk-mb-2" aria-hidden="true"></div>
+        <div class="sk-block sk-shimmer sk-h-4 sk-w-1/2 sk-mb-2" aria-hidden="true"></div>
+        <div class="sk-flex sk-gap-2" style="margin-top:4px">
+          <div class="sk-block sk-shimmer sk-h-4 sk-w-20" aria-hidden="true"></div>
+                  </div>
+      </div>
+    </div></div>
+          </div>
       </div>
 
       <!-- Featured Coaches -->
       <div class="section">
-        <div
-          class="section-title"
-          style="
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-          "
-        >
+        <div class="zen-section-title">
           <span>🏆 星級教練</span>
           <a
             href="coaches.html"
-            style="
-              font-size: 12px;
-              color: var(--orange-700);
-              text-decoration: none;
-            "
-            >查看全部 →</a
+            class="zen-text-xs"
+            style="color: var(--orange-700); text-decoration: none"
+            aria-label="查看全部教練">查看全部 →</a
           >
         </div>
         <div
-          style="
-            display: flex;
-            gap: 10px;
-            overflow-x: auto;
-            scrollbar-width: none;
-            padding-bottom: 4px;
-          "
+          class="zen-flex zen-scroll-x zen-gap-sm"
+          style="padding-bottom: 4px"
         >
           <a
             href="coach-profile.html?name=靜儀導師"
+            class="zen-card"
             style="
               display: block;
               flex: 0 0 150px;
               padding: 12px;
-              background: var(--white);
-              border-radius: 12px;
-              box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
               text-align: center;
               text-decoration: none;
               color: inherit;
             "
           >
             <div
+              class="zen-flex-center"
               style="
                 width: 50px;
                 height: 50px;
                 border-radius: 50%;
                 background: linear-gradient(135deg, #667eea, #764ba2);
-                display: flex;
-                align-items: center;
-                justify-content: center;
                 font-size: 22px;
                 color: white;
                 margin: 0 auto 6px;
@@ -597,7 +1112,7 @@
             >
               🧘
             </div>
-            <div style="font-size: 13px; font-weight: 600">靜儀導師</div>
+            <div class="zen-text-sm zen-text-bold">靜儀導師</div>
             <div style="font-size: 10px; color: var(--dark-700); margin: 1px 0">
               瑜伽 · 冥想
             </div>
@@ -605,7 +1120,7 @@
             <div
               style="
                 font-size: 10px;
-                color: var(--green-500, #059669);
+                color: var(--green-500, #047857);
                 margin-top: 4px;
               "
             >
@@ -614,27 +1129,23 @@
           </a>
           <a
             href="coach-profile.html?name=Alex教練"
+            class="zen-card"
             style="
               display: block;
               flex: 0 0 150px;
               padding: 12px;
-              background: var(--white);
-              border-radius: 12px;
-              box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
               text-align: center;
               text-decoration: none;
               color: inherit;
             "
           >
             <div
+              class="zen-flex-center"
               style="
                 width: 50px;
                 height: 50px;
                 border-radius: 50%;
                 background: linear-gradient(135deg, #f093fb, #f5576c);
-                display: flex;
-                align-items: center;
-                justify-content: center;
                 font-size: 22px;
                 color: white;
                 margin: 0 auto 6px;
@@ -642,7 +1153,7 @@
             >
               💪
             </div>
-            <div style="font-size: 13px; font-weight: 600">Alex教練</div>
+            <div class="zen-text-sm zen-text-bold">Alex教練</div>
             <div style="font-size: 10px; color: var(--dark-700); margin: 1px 0">
               健身 · TRX · 拳擊
             </div>
@@ -650,7 +1161,7 @@
             <div
               style="
                 font-size: 10px;
-                color: var(--green-500, #059669);
+                color: var(--green-500, #047857);
                 margin-top: 4px;
               "
             >
@@ -659,27 +1170,23 @@
           </a>
           <a
             href="coach-profile.html?name=Ken教練"
+            class="zen-card"
             style="
               display: block;
               flex: 0 0 150px;
               padding: 12px;
-              background: var(--white);
-              border-radius: 12px;
-              box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
               text-align: center;
               text-decoration: none;
               color: inherit;
             "
           >
             <div
+              class="zen-flex-center"
               style="
                 width: 50px;
                 height: 50px;
                 border-radius: 50%;
                 background: linear-gradient(135deg, #43e97b, #38f9d7);
-                display: flex;
-                align-items: center;
-                justify-content: center;
                 font-size: 22px;
                 color: white;
                 margin: 0 auto 6px;
@@ -687,7 +1194,7 @@
             >
               🎯
             </div>
-            <div style="font-size: 13px; font-weight: 600">Ken教練</div>
+            <div class="zen-text-sm zen-text-bold">Ken教練</div>
             <div style="font-size: 10px; color: var(--dark-700); margin: 1px 0">
               新興運動 · 球類
             </div>
@@ -695,7 +1202,7 @@
             <div
               style="
                 font-size: 10px;
-                color: var(--green-500, #059669);
+                color: var(--green-500, #047857);
                 margin-top: 4px;
               "
             >
@@ -704,27 +1211,23 @@
           </a>
           <a
             href="coach-profile.html?name=Grace導師"
+            class="zen-card"
             style="
               display: block;
               flex: 0 0 150px;
               padding: 12px;
-              background: var(--white);
-              border-radius: 12px;
-              box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
               text-align: center;
               text-decoration: none;
               color: inherit;
             "
           >
             <div
+              class="zen-flex-center"
               style="
                 width: 50px;
                 height: 50px;
                 border-radius: 50%;
                 background: linear-gradient(135deg, #ffecd2, #fcb69f);
-                display: flex;
-                align-items: center;
-                justify-content: center;
                 font-size: 22px;
                 color: white;
                 margin: 0 auto 6px;
@@ -732,7 +1235,7 @@
             >
               💃
             </div>
-            <div style="font-size: 13px; font-weight: 600">Grace導師</div>
+            <div class="zen-text-sm zen-text-bold">Grace導師</div>
             <div style="font-size: 10px; color: var(--dark-700); margin: 1px 0">
               舞蹈 · 空中瑜伽
             </div>
@@ -740,7 +1243,7 @@
             <div
               style="
                 font-size: 10px;
-                color: var(--green-500, #059669);
+                color: var(--green-500, #047857);
                 margin-top: 4px;
               "
             >
@@ -749,27 +1252,23 @@
           </a>
           <a
             href="coach-profile.html?name=慧心導師"
+            class="zen-card"
             style="
               display: block;
               flex: 0 0 150px;
               padding: 12px;
-              background: var(--white);
-              border-radius: 12px;
-              box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
               text-align: center;
               text-decoration: none;
               color: inherit;
             "
           >
             <div
+              class="zen-flex-center"
               style="
                 width: 50px;
                 height: 50px;
                 border-radius: 50%;
                 background: linear-gradient(135deg, #a18cd1, #fbc2eb);
-                display: flex;
-                align-items: center;
-                justify-content: center;
                 font-size: 22px;
                 color: white;
                 margin: 0 auto 6px;
@@ -777,7 +1276,7 @@
             >
               🧠
             </div>
-            <div style="font-size: 13px; font-weight: 600">慧心導師</div>
+            <div class="zen-text-sm zen-text-bold">慧心導師</div>
             <div style="font-size: 10px; color: var(--dark-700); margin: 1px 0">
               冥想 · 太極
             </div>
@@ -785,7 +1284,7 @@
             <div
               style="
                 font-size: 10px;
-                color: var(--green-500, #059669);
+                color: var(--green-500, #047857);
                 margin-top: 4px;
               "
             >
@@ -794,27 +1293,23 @@
           </a>
           <a
             href="coach-profile.html?name=陽光教練"
+            class="zen-card"
             style="
               display: block;
               flex: 0 0 150px;
               padding: 12px;
-              background: var(--white);
-              border-radius: 12px;
-              box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
               text-align: center;
               text-decoration: none;
               color: inherit;
             "
           >
             <div
+              class="zen-flex-center"
               style="
                 width: 50px;
                 height: 50px;
                 border-radius: 50%;
                 background: linear-gradient(135deg, #4facfe, #00f2fe);
-                display: flex;
-                align-items: center;
-                justify-content: center;
                 font-size: 22px;
                 color: white;
                 margin: 0 auto 6px;
@@ -822,7 +1317,7 @@
             >
               🏃
             </div>
-            <div style="font-size: 13px; font-weight: 600">陽光教練</div>
+            <div class="zen-text-sm zen-text-bold">陽光教練</div>
             <div style="font-size: 10px; color: var(--dark-700); margin: 1px 0">
               跑步 · 戶外
             </div>
@@ -830,7 +1325,7 @@
             <div
               style="
                 font-size: 10px;
-                color: var(--green-500, #059669);
+                color: var(--green-500, #047857);
                 margin-top: 4px;
               "
             >
@@ -845,77 +1340,84 @@
         class="section"
         id="featured-section"
         role="region"
-        style="min-height: 359px"
+
         aria-label="精選課程"
       >
-        <div class="section-title">
+        <div class="zen-section-title">
           <span>🔥 熱門課程</span>
-          <a href="explore.html" class="more-link">查看全部 →</a>
+          <a href="explore.html" class="more-link" aria-label="查看全部推薦">查看全部 →</a>
         </div>
-        <div class="featured-scroll" id="featured-classes">
-          <div class="loading-spinner">載入中...</div>
+          <div class="featured-scroll" id="featured-classes"><div class="modern-card" onclick="location.href='class-detail.html?id=54'"><div class="modern-card-img" style="min-width:220px"><div class="bg-img" loading="lazy" style="background-image:url('https://images.pexels.com/photos/949132/pexels-photo-949132.jpeg?auto=compress&cs=tinysrgb&w=400&fm=webp')"></div><div class="modern-card-badges"><span class="modern-card-badge hot">🔥 熱門</span></div><button class="modern-card-fav" onclick="event.stopPropagation();toggleFavorite(this)" aria-label="收藏課程">♡</button></div><div class="modern-card-body"><div class="modern-card-tags"><span class="modern-card-tag">伸展</span></div><div class="modern-card-title">辦公室伸展舒壓</div><div class="modern-card-meta">👩‍🏫 靜儀導師 · 40min</div><div class="modern-card-review"><div><span class="modern-card-stars">★★★★★</span></div><div class="modern-card-price">HK$90 <small>/ 1 Pass</small></div></div><button class="modern-card-cta" onclick="event.stopPropagation();location.href='class-detail.html?id=54'" role="button" aria-label="預約課程">立即預約<span class="arrow">→</span></button></div></div>
+<div class="demo-card" style="flex:0 0 220px;background:#fff;border-radius:14px;overflow:hidden;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,0.06)" onclick="window.location.href='class-detail.html?id=26'"><div style="height:120px;background:url('https://images.pexels.com/photos/863988/pexels-photo-863988.jpeg?auto=compress&cs=tinysrgb&w=400&fm=webp') center/cover;position:relative"><button class="fav-btn" onclick="event.stopPropagation();this.classList.toggle('liked');this.classList.toggle('pop');this.textContent=this.textContent==='♡'?'♥':'♡'" aria-label="收藏課程">♡</button><span style="position:absolute;top:8px;right:8px;background:#036a4a;color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px">🌟 新課</span></div><div style="padding:12px"><div style="font-weight:700;font-size:14px;margin-bottom:4px">頌缽療癒 Sound Bath</div><div style="font-size:12px;color:#6b7280;margin-bottom:6px">靜儀導師 · 60min</div><div style="display:flex;justify-content:space-between;align-items:center"><span style="font-weight:700;color:var(--orange-600);font-size:14px">$120</span><span style="font-size:11px;color:#047857">剩 5 位</span></div></div></div>
+<div class="demo-card" style="flex:0 0 220px;background:#fff;border-radius:14px;overflow:hidden;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,0.06)" onclick="window.location.href='class-detail.html?id=39'"><div style="height:120px;background:url('https://images.pexels.com/photos/1552242/pexels-photo-1552242.jpeg?auto=compress&cs=tinysrgb&w=400&fm=webp') center/cover;position:relative"><button class="fav-btn" onclick="event.stopPropagation();this.classList.toggle('liked');this.classList.toggle('pop');this.textContent=this.textContent==='♡'?'♥':'♡'" aria-label="收藏課程">♡</button><span style="position:absolute;top:8px;right:8px;background:#ef4444;color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px">🔥 熱門</span></div><div style="padding:12px"><div style="font-weight:700;font-size:14px;margin-bottom:4px">產後修復 Pilates</div><div style="font-size:12px;color:#6b7280;margin-bottom:6px">靜儀導師 · 50min</div><div style="display:flex;justify-content:space-between;align-items:center"><span style="font-weight:700;color:var(--orange-600);font-size:14px">$180</span><span style="font-size:11px;color:#047857">剩 3 位</span></div></div></div>
+<div class="demo-card" style="flex:0 0 220px;background:#fff;border-radius:14px;overflow:hidden;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,0.06)" onclick="window.location.href='class-detail.html?id=41'"><div style="height:120px;background:url('https://images.pexels.com/photos/1954524/pexels-photo-1954524.jpeg?auto=compress&cs=tinysrgb&w=400&fm=webp') center/cover;position:relative"><button class="fav-btn" onclick="event.stopPropagation();this.classList.toggle('liked');this.classList.toggle('pop');this.textContent=this.textContent==='♡'?'♥':'♡'" aria-label="收藏課程">♡</button><span style="position:absolute;top:8px;right:8px;background:#036a4a;color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px">🌟 新課</span></div><div style="padding:12px"><div style="font-weight:700;font-size:14px;margin-bottom:4px">芭蕾塑形 Barre</div><div style="font-size:12px;color:#6b7280;margin-bottom:6px">靜儀導師 · 50min</div><div style="display:flex;justify-content:space-between;align-items:center"><span style="font-weight:700;color:var(--orange-600);font-size:14px">$160</span><span style="font-size:11px;color:#047857">剩 6 位</span></div></div></div>
+<div class="demo-card" style="flex:0 0 220px;background:#fff;border-radius:14px;overflow:hidden;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,0.06)" onclick="window.location.href='class-detail.html?id=40'"><div style="height:120px;background:url('https://images.pexels.com/photos/260447/pexels-photo-260447.jpeg?auto=compress&cs=tinysrgb&w=400&fm=webp') center/cover;position:relative"><button class="fav-btn" onclick="event.stopPropagation();this.classList.toggle('liked');this.classList.toggle('pop');this.textContent=this.textContent==='♡'?'♥':'♡'" aria-label="收藏課程">♡</button><span style="position:absolute;top:8px;right:8px;background:#036a4a;color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px">🌟 新課</span></div><div style="padding:12px"><div style="font-weight:700;font-size:14px;margin-bottom:4px">空中瑜伽 Aerial Yoga</div><div style="font-size:12px;color:#6b7280;margin-bottom:6px">靜儀導師 · 60min</div><div style="display:flex;justify-content:space-between;align-items:center"><span style="font-weight:700;color:var(--orange-600);font-size:14px">$200</span><span style="font-size:11px;color:#047857">剩 2 位</span></div></div></div>
+<div class="demo-card" style="flex:0 0 220px;background:#fff;border-radius:14px;overflow:hidden;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,0.06)" onclick="window.location.href='class-detail.html?id=22'"><div style="height:120px;background:url('https://images.pexels.com/photos/3755342/pexels-photo-3755342.jpeg?auto=compress&cs=tinysrgb&w=400&fm=webp') center/cover;position:relative"><button class="fav-btn" onclick="event.stopPropagation();this.classList.toggle('liked');this.classList.toggle('pop');this.textContent=this.textContent==='♡'?'♥':'♡'" aria-label="收藏課程">♡</button><span style="position:absolute;top:8px;right:8px;background:#ef4444;color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px">🔥 熱門</span></div><div style="padding:12px"><div style="font-weight:700;font-size:14px;margin-bottom:4px">拳擊有氧 Boxing</div><div style="font-size:12px;color:#6b7280;margin-bottom:6px">Michael教練 · 45min</div><div style="display:flex;justify-content:space-between;align-items:center"><span style="font-weight:700;color:var(--orange-600);font-size:14px">$150</span><span style="font-size:11px;color:#047857">剩 4 位</span></div></div></div>
+            <div class="sk-p-3">
+        <div class="sk-block sk-shimmer sk-h-4 sk-w-3/4 sk-mb-2" aria-hidden="true"></div>
+        <div class="sk-block sk-shimmer sk-h-3 sk-w-1/2 sk-mb-2" aria-hidden="true"></div>
+        <div class="sk-block sk-shimmer sk-h-3 sk-w-1/3" aria-hidden="true"></div>
+      </div>
+    </div>      <div class="sk-p-3">
+        <div class="sk-block sk-shimmer sk-h-4 sk-w-3/4 sk-mb-2" aria-hidden="true"></div>
+        <div class="sk-block sk-shimmer sk-h-3 sk-w-1/2 sk-mb-2" aria-hidden="true"></div>
+        <div class="sk-block sk-shimmer sk-h-3 sk-w-1/3" aria-hidden="true"></div>
+      </div>
+    </div>      <div class="sk-p-3">
+        <div class="sk-block sk-shimmer sk-h-4 sk-w-3/4 sk-mb-2" aria-hidden="true"></div>
+        <div class="sk-block sk-shimmer sk-h-3 sk-w-1/2 sk-mb-2" aria-hidden="true"></div>
+        <div class="sk-block sk-shimmer sk-h-3 sk-w-1/3" aria-hidden="true"></div>
+      </div>
+    </div>
         </div>
       </div>
 
+      <!-- Recommended Section -->
+      <section class="section" id="recommended-section" style="display: none">
+        <div class="zen-flex zen-flex-between" style="margin-bottom: 12px">
+          <h2 style="font-size: 18px; font-weight: 700; margin: 0">
+            🎯 為你推薦
+          </h2>
+          <a
+            href="explore.html"
+            class="zen-text-sm"
+            style="color: var(--orange-700); text-decoration: none"
+            aria-label="查看全部課程">查看全部 →</a
+          >
+        </div>
+        <div class="featured-scroll" id="recommended-classes"></div>
+      </section>
+
       <!-- All Classes -->
       <div class="section">
-        <div
-          class="section"
-          id="all-classes-section"
-          role="region"
-          aria-label="所有課程"
-        >
-          <div class="section-title">
-            <span>你可能也喜歡</span>
-            <a
-              href="explore.html"
-              style="
-                margin-left: auto;
-                font-size: 13px;
-                color: var(--orange-700);
-                text-decoration: none;
-                font-weight: 500;
-              "
-              >查看全部 →</a
-            >
-          </div>
-          <div class="class-grid" id="all-classes" style="margin-bottom: 0">
-            <div class="loading-spinner">載入中...</div>
-          </div>
-        </div>
+        
 
         <!-- Newsletter -->
         <div class="section">
           <div
+            class="zen-text-center"
             style="
               background: linear-gradient(135deg, #1a1a2e, #2d2d44);
               border-radius: 16px;
               padding: 20px 18px;
-              text-align: center;
             "
           >
             <div style="font-size: 28px; margin-bottom: 8px">📬</div>
             <div
-              style="
-                font-weight: 700;
-                font-size: 15px;
-                color: white;
-                margin-bottom: 4px;
-              "
+              class="zen-text-bold"
+              style="font-size: 15px; color: white; margin-bottom: 4px"
             >
               訂閱最新課程資訊
             </div>
             <div
-              style="
-                font-size: 12px;
-                color: rgba(255, 255, 255, 0.6);
-                margin-bottom: 12px;
-              "
+              class="zen-text-xs"
+              style="color: rgba(255, 255, 255, 0.6); margin-bottom: 12px"
             >
               第一時間收到新課程上架同優惠通知
             </div>
             <div
-              style="display: flex; gap: 6px; max-width: 320px; margin: 0 auto"
+              class="zen-flex zen-gap-sm"
+              style="max-width: 320px; margin: 0 auto"
             >
               <input
                 type="email"
@@ -932,24 +1434,16 @@
               />
               <button
                 onclick="subscribeNewsletter()"
-                style="
-                  padding: 10px 18px;
-                  background: var(--orange-600-bg);
-                  color: white;
-                  border: none;
-                  border-radius: 8px;
-                  font-size: 13px;
-                  font-weight: 600;
-                  cursor: pointer;
-                  white-space: nowrap;
-                "
+                class="zen-btn zen-btn-primary zen-btn-block"
+                style="padding: 10px 18px; width: auto; border-radius: 8px"
               >
                 訂閱
               </button>
             </div>
             <div
               id="newsletter-result"
-              style="font-size: 12px; margin-top: 8px"
+              class="zen-text-xs"
+              style="margin-top: 8px"
             ></div>
           </div>
         </div>
@@ -957,8 +1451,8 @@
         <!-- Seasonal Banner -->
         <div class="section">
           <div
+            class="zen-flex"
             style="
-              display: flex;
               align-items: center;
               gap: 14px;
               background: linear-gradient(
@@ -972,13 +1466,10 @@
             "
           >
             <div style="font-size: 36px">🌸</div>
-            <div style="flex: 1">
+            <div class="zen-flex-1">
               <div
-                style="
-                  font-weight: 700;
-                  font-size: 15px;
-                  color: var(--dark-900);
-                "
+                class="zen-text-bold"
+                style="font-size: 15px; color: var(--dark-900)"
               >
                 春日運動推薦
               </div>
@@ -990,6 +1481,7 @@
             </div>
             <a
               href="explore.html"
+              class="zen-tag"
               style="
                 background: var(--orange-600-bg);
                 color: white;
@@ -1016,350 +1508,390 @@
         </div>
       </div>
 
-      <!-- Recent Updates -->
-      <div class="section">
-        <div class="section-title" style="font-size: 15px">
-          <span>📰 最新動態</span>
+      <!-- 🧘 Zen Zone — Breathing Guide -->
+      <div class="section" style="margin-bottom:0;padding-bottom:0">
+        <div class="zen-section-title" style="font-size:15px;margin:0 0 12px">
+          <span>🧘 Zen Zone · 呼吸練習</span>
         </div>
-        <div style="display: flex; flex-direction: column; gap: 8px">
-          <a
-            href="explore.html"
-            style="
-              display: flex;
-              align-items: center;
-              gap: 12px;
-              padding: 10px 12px;
-              background: var(--white);
-              border-radius: 10px;
-              text-decoration: none;
-              color: var(--dark-900);
-              box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-            "
-          >
-            <div style="font-size: 24px">🎉</div>
-            <div style="flex: 1">
-              <div style="font-size: 13px; font-weight: 600">
-                全新 32 個運動分類登場
-              </div>
-              <div style="font-size: 11px; color: var(--dark-700)">
-                更多選擇，更容易搵到適合你嘅運動
-              </div>
+        <div style="background:linear-gradient(135deg,#0f172a,#1e293b);border-radius:16px;padding:20px;position:relative;overflow:hidden">
+          <div style="position:absolute;top:-20px;right:-20px;width:100px;height:100px;background:rgba(16,185,129,0.08);border-radius:50%"></div>
+          <div style="position:relative;z-index:1;text-align:center">
+            <div style="font-size:40px;margin-bottom:8px">🌬️</div>
+            <div style="color:#10b981;font-size:16px;font-weight:700">4-7-8 呼吸法</div>
+            <div style="color:rgba(255,255,255,0.6);font-size:12px;margin:6px auto 16px;max-width:260px">吸氣 4 秒 · 閉氣 7 秒 · 呼氣 8 秒 · 重複 3 次</div>
+            <div style="display:flex;gap:12px;justify-content:center">
+              <button onclick="startBreathing()" style="padding:10px 28px;border-radius:50px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;font-size:14px;font-weight:700;border:none;cursor:pointer;transition:all 0.3s" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">▶️ 開始練習</button>
+              <a href="explore.html?category=冥想" style="padding:10px 20px;border-radius:50px;background:rgba(255,255,255,0.1);color:#fff;font-size:13px;font-weight:600;text-decoration:none;border:1px solid rgba(255,255,255,0.15)">瀏覽冥想課 →</a>
             </div>
-            <div style="font-size: 12px; color: var(--orange-700)">NEW</div>
-          </a>
-          <a
-            href="membership.html"
-            style="
-              display: flex;
-              align-items: center;
-              gap: 12px;
-              padding: 10px 12px;
-              background: var(--white);
-              border-radius: 10px;
-              text-decoration: none;
-              color: var(--dark-900);
-              box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-            "
-          >
-            <div style="font-size: 24px">💎</div>
-            <div style="flex: 1">
-              <div style="font-size: 13px; font-weight: 600">
-                金會員計劃正式推出
-              </div>
-              <div style="font-size: 11px; color: var(--dark-700)">
-                每月 10 堂 + 1 堂私人教練，專屬體驗
-              </div>
-            </div>
-            <div style="font-size: 12px; color: var(--orange-700)">NEW</div>
-          </a>
-          <a
-            href="coach-apply.html"
-            style="
-              display: flex;
-              align-items: center;
-              gap: 12px;
-              padding: 10px 12px;
-              background: var(--white);
-              border-radius: 10px;
-              text-decoration: none;
-              color: var(--dark-900);
-              box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-            "
-          >
-            <div style="font-size: 24px">👨‍🏫</div>
-            <div style="flex: 1">
-              <div style="font-size: 13px; font-weight: 600">教練招募中</div>
-              <div style="font-size: 11px; color: var(--dark-700)">
-                免費開班・自定時間・即時收款
-              </div>
-            </div>
-            <div style="font-size: 12px; color: var(--orange-700)">HOT</div>
-          </a>
+            <div id="breathing-display" style="margin-top:16px;font-size:13px;color:rgba(255,255,255,0.5);min-height:20px"></div>
+          </div>
         </div>
       </div>
-    </main>
-
-    <!-- Bottom Nav -->
-    <nav class="bottom-nav">
-      <a href="index.html" class="nav-item active"
-        ><span class="nav-icon">🏠</span>首頁</a
-      >
-      <a href="explore.html" class="nav-item"
-        ><span class="nav-icon">🔍</span>探索</a
-      >
-      <a href="membership.html" class="nav-item"
-        ><span class="nav-icon">💎</span>會籍</a
-      >
-      <a href="coach-apply.html" class="nav-item"
-        ><span class="nav-icon">👨‍🏫</span>成為教練</a
-      >
-      <a href="my.html" class="nav-item"
-        ><span class="nav-icon">👤</span>我的</a
-      >
-    </nav>
-
-    <script src="api.js"></script>
-    <script src="assets/index.js"></script>
-    <script>
-      if ("serviceWorker" in navigator) {
-        // Clean old service workers
-        navigator.serviceWorker.getRegistrations().then(function (regs) {
-          regs.forEach(function (r) {
-            r.unregister();
-          });
-        });
-        navigator.serviceWorker.register("sw.js");
-      }
-    </script>
-    <script>
-      // User name badge — shows current user, click to switch
-      (function () {
-        var n = localStorage.getItem("zenpass_name");
-        if (n) {
-          var b = document.createElement("div");
-          b.style.cssText =
-            "position:fixed;top:10px;right:10px;z-index:9999;background:#FF6B35;color:white;padding:5px 12px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.15);font-family:sans-serif;";
-          b.textContent = "👤 " + n;
-          b.onclick = function () {
-            var nn = prompt("切換用戶\n當前：" + n, n);
-            if (nn && nn.trim() && nn.trim() !== n) {
-              localStorage.setItem("zenpass_name", nn.trim());
-              localStorage.removeItem("zenpass_token");
-              localStorage.removeItem("zenpass_user");
-              location.reload();
+      <script>
+      function startBreathing() {
+        var display = document.getElementById('breathing-display');
+        if (!display) return;
+        var phases = ['🌬️ 吸氣...', '😤 閉氣...', '💨 呼氣...'];
+        var times = [4000, 7000, 8000];
+        var cycle = 0;
+        var btn = event.target;
+        btn.disabled = true;
+        btn.textContent = '⏳ 練習中...';
+        function runPhase(i) {
+          if (cycle >= 3) {
+            display.innerHTML = '✅ 完成！放鬆身心，繼續探索 🧘';
+            btn.disabled = false;
+            btn.textContent = '🔄 再來一次';
+            return;
+          }
+          display.style.color = i === 0 ? '#10b981' : i === 1 ? '#f59e0b' : '#6366f1';
+          display.textContent = phases[i] + ' (' + (cycle+1) + '/3)';
+          setTimeout(function() {
+            if (i < 2) {
+              runPhase(i + 1);
+            } else {
+              cycle++;
+              runPhase(0);
             }
-          };
-          document.body.appendChild(b);
+          }, times[i]);
         }
-      })();
-    </script>
+        runPhase(0);
+      }
+      </script>
 
-    <footer
-      class="zen-footer"
-      style="
-        text-align: center;
-        padding: 24px 16px 80px;
-        margin-top: 24px;
-        border-top: 1px solid #e5e7eb;
-        font-size: 12px;
-        color: #6b7280;
-      "
-      style="
-        text-align: center;
-        padding: 20px 16px;
-        margin-top: 24px;
-        border-top: 1px solid #e5e7eb;
-        font-size: 12px;
-        color: #6b7280;
-      "
-    >
-      <div
-        style="
-          display: flex;
-          justify-content: center;
-          gap: 12px;
-          margin-bottom: 8px;
-          flex-wrap: wrap;
-        "
-      >
-        <a
-          href="/"
-          style="
-            color: #aa3218;
-            text-decoration: none;
-            font-weight: 500;
-            font-size: 12px;
-          "
-          >🏠 首頁</a
-        >
-        <a
-          href="explore.html"
-          style="
-            color: #aa3218;
-            text-decoration: none;
-            font-weight: 500;
-            font-size: 12px;
-          "
-          >📚 探索</a
-        >
-        <a
-          href="membership.html"
-          style="
-            color: #aa3218;
-            text-decoration: none;
-            font-weight: 500;
-            font-size: 12px;
-          "
-          >💎 會籍</a
-        >
-        <a
-          href="my.html"
-          style="
-            color: #aa3218;
-            text-decoration: none;
-            font-weight: 500;
-            font-size: 12px;
-          "
-          >👤 我的</a
-        >
-        <a
-          href="coach-apply.html"
-          style="
-            color: #aa3218;
-            text-decoration: none;
-            font-weight: 500;
-            font-size: 12px;
-          "
-          >👨‍🏫 成為教練</a
-        >
-        <a
-          href="partner-apply.html"
-          style="
-            color: #aa3218;
-            text-decoration: none;
-            font-weight: 500;
-            font-size: 12px;
-          "
-          >🏪 場地加盟</a
-        >
-        <a
-          href="faq.html"
-          style="
-            color: #aa3218;
-            text-decoration: none;
-            font-weight: 500;
-            font-size: 12px;
-          "
-          >❓ FAQ</a
-        >
-      </div>
-      <div
-        style="
-          font-size: 11px;
-          color: var(--dark-700);
-          margin-bottom: 8px;
-          line-height: 1.8;
-        "
-      >
-        <span>📧 support@zenpass.hk</span>
-        <span style="margin: 0 6px">·</span>
-        <span>📞 2387 0724</span>
-        <div
-          style="
-            display: flex;
-            justify-content: center;
-            gap: 12px;
-            margin-bottom: 6px;
-          "
-        >
-          <a
-            href="https://www.instagram.com/zenpass_hk"
-            target="_blank"
-            style="text-decoration: none; font-size: 18px"
-            title="Instagram"
-            >📸</a
-          >
-          <a
-            href="https://www.facebook.com/zenpass.hk"
-            target="_blank"
-            style="text-decoration: none; font-size: 18px"
-            title="Facebook"
-            >👍</a
-          >
-          <a
-            href="https://www.youtube.com/@zenpass_hk"
-            target="_blank"
-            style="text-decoration: none; font-size: 18px"
-            title="YouTube"
-            >📺</a
-          >
-          <a
-            href="https://wa.me/85290335538"
-            target="_blank"
-            style="text-decoration: none; font-size: 18px"
-            title="WhatsApp"
-            >💬</a
-          >
+      <!-- Recent Updates — Happenings + Activity Feed -->
+      <div class="section">
+        <div class="zen-flex" style="align-items:center;justify-content:space-between;margin:0 0 12px">
+          <div class="zen-section-title" style="font-size:15px;margin:0">
+            <span>📰 ZenPass 動態</span>
+          </div>
+          <a href="guides.html" style="font-size:12px;color:var(--orange-600-bg);text-decoration:none;font-weight:600">運動指南 →</a>
         </div>
-        <span style="margin: 0 6px">·</span>
-        <a
-          href="#"
-          onclick="
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-            return false;
-          "
-          style="color: var(--dark-700); text-decoration: none"
-          >⬆️ 返回頂部</a
-        >
+        
+        <!-- Happenings Cards (Events / Challenges / Partner Classes) -->
+        <div class="zen-flex" style="gap:10px;overflow-x:auto;padding:0 0 8px;-webkit-overflow-scrolling:touch">
+          <a href="explore.html" style="flex:0 0 200px;background:linear-gradient(135deg,#667eea,#764ba2);border-radius:14px;padding:16px;text-decoration:none;color:#fff">
+            <div style="font-size:24px;margin-bottom:8px">🏆</div>
+            <div style="font-size:13px;font-weight:700">7日夏日挑戰</div>
+            <div style="font-size:11px;opacity:0.8;margin-top:4px">每日一堂，連續簽到贏獎賞</div>
+            <div style="font-size:10px;opacity:0.6;margin-top:8px">🔥 128 人參加</div>
+          </a>
+          <a href="explore.html?category=瑜伽" style="flex:0 0 200px;background:linear-gradient(135deg,#f093fb,#f5576c);border-radius:14px;padding:16px;text-decoration:none;color:#fff">
+            <div style="font-size:24px;margin-bottom:8px">🧘</div>
+            <div style="font-size:13px;font-weight:700">瑜伽新手月</div>
+            <div style="font-size:11px;opacity:0.8;margin-top:4px">指定瑜伽課 8折優惠</div>
+            <div style="font-size:10px;opacity:0.6;margin-top:8px">📅 即日至 7/15</div>
+          </a>
+          <a href="partner-apply.html" style="flex:0 0 200px;background:linear-gradient(135deg,#43e97b,#38f9d7);border-radius:14px;padding:16px;text-decoration:none;color:#1a1a2e">
+            <div style="font-size:24px;margin-bottom:8px">🤝</div>
+            <div style="font-size:13px;font-weight:700">場地合作計劃</div>
+            <div style="font-size:11px;opacity:0.7;margin-top:4px">免費加入 ZenPass 場地網絡</div>
+            <div style="font-size:10px;opacity:0.5;margin-top:8px">📋 立即申請</div>
+          </a>
+          <a href="school.html" style="flex:0 0 200px;background:linear-gradient(135deg,#7c3aed,#a855f7);border-radius:14px;padding:16px;text-decoration:none;color:#fff">
+            <div style="font-size:24px;margin-bottom:8px">🏫</div>
+            <div style="font-size:13px;font-weight:700">學校 ECA 方案</div>
+            <div style="font-size:11px;opacity:0.8;margin-top:4px">新興運動課外活動</div>
+            <div style="font-size:10px;opacity:0.6;margin-top:8px">📝 查詢合作</div>
+          </a>
+          <a href="signup.html" style="flex:0 0 200px;background:linear-gradient(135deg,#1a1a2e,#2d2d44);border-radius:14px;padding:16px;text-decoration:none;color:#fff">
+            <div style="font-size:24px;margin-bottom:8px">🎁</div>
+            <div style="font-size:13px;font-weight:700">推薦好友計劃</div>
+            <div style="font-size:11px;opacity:0.8;margin-top:4px">每推薦 1 位送 20 Credits</div>
+            <div style="font-size:10px;opacity:0.6;margin-top:8px">🔄 立即分享</div>
+          </a>
+        </div>
+
+        <!-- Activity Feed + Blog Teaser Row -->
+        <div class="zen-flex" style="flex-direction:column;gap:10px;margin-top:4px">
+          <div class="zen-flex" style="align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--dark-900);padding:0 4px">
+            <span>🟢 即時預約</span>
+            <span style="font-size:10px;color:var(--dark-700);font-weight:400">全城運動正在發生</span>
+          </div>
+          <div class="zen-flex zen-gap-sm" style="flex-direction:column" id="activityFeed"><div class="zen-flex" style="align-items:center;gap:12px;padding:10px 12px;background:var(--white);border-radius:10px;box-shadow:0 1px 2px rgba(0,0,0,0.04)"><div style="font-size:24px">🧘</div><div class="zen-flex-1"><div class="zen-text-sm zen-text-bold">Winnie 預約了 頌缽療癒 Sound Bath</div><div class="zen-text-xs zen-text-muted">剛剛</div></div></div><div class="zen-flex" style="align-items:center;gap:12px;padding:10px 12px;background:var(--white);border-radius:10px;box-shadow:0 1px 2px rgba(0,0,0,0.04)"><div style="font-size:24px">🥊</div><div class="zen-flex-1"><div class="zen-text-sm zen-text-bold">阿強 預約了 拳擊有氧 Boxing Fitness</div><div class="zen-text-xs zen-text-muted">2 小時前</div></div></div><div class="zen-flex" style="align-items:center;gap:12px;padding:10px 12px;background:var(--white);border-radius:10px;box-shadow:0 1px 2px rgba(0,0,0,0.04)"><div style="font-size:24px">💪</div><div class="zen-flex-1"><div class="zen-text-sm zen-text-bold">Alex 預約了 健身 TRX 訓練</div><div class="zen-text-xs zen-text-muted">5 小時前</div></div></div><div class="zen-flex" style="align-items:center;gap:12px;padding:10px 12px;background:var(--white);border-radius:10px;box-shadow:0 1px 2px rgba(0,0,0,0.04)"><div style="font-size:24px">🤸</div><div class="zen-flex-1"><div class="zen-text-sm zen-text-bold">Phoebe 預約了 產後修復 Pilates</div><div class="zen-text-xs zen-text-muted">1 天前</div></div></div></div>
+        </div>
       </div>
-      <div style="font-size: 11px; color: var(--dark-700); line-height: 1.8">
-        <a href="faq.html" style="color: var(--dark-700); text-decoration: none"
-          >❓ 常見問題</a
-        >
-        <span style="margin: 0 4px">·</span>
-        <a
-          href="privacy.html"
-          style="color: var(--dark-700); text-decoration: none"
-          >📄 私隱政策</a
-        >
-        <span style="margin: 0 4px">·</span>
-        <a
-          href="terms.html"
-          style="color: var(--dark-700); text-decoration: none"
-          >📋 服務條款</a
-        >
-        <span style="margin: 0 4px">·</span>
-        <a
-          href="https://hklfcl.com"
-          target="_blank"
-          style="color: var(--dark-700); text-decoration: none"
-          >🌐 HK LFCL</a
-        >
+
+      <!-- Blog / 運動指南 Section -->
+      <div class="section" style="padding-top:0">
+        <div class="zen-flex" style="align-items:center;justify-content:space-between;margin:0 0 12px">
+          <div class="zen-section-title" style="font-size:15px;margin:0">
+            <span>📖 運動指南</span>
+          </div>
+          <a href="guides.html" style="font-size:12px;color:var(--orange-600-bg);text-decoration:none;font-weight:600">查看全部 →</a>
+        </div>
+        <div class="zen-flex" style="gap:12px;overflow-x:auto;padding:0 0 8px;-webkit-overflow-scrolling:touch">
+          <a href="guides.html#beginner-yoga" style="flex:0 0 220px;background:var(--white);border-radius:14px;overflow:hidden;text-decoration:none;box-shadow:0 1px 4px rgba(0,0,0,0.06)">
+            <div style="height:100px;background:url('https://images.pexels.com/photos/949131/pexels-photo-949131.jpeg?auto=compress&cs=tinysrgb&w=400&fm=webp') center/cover"></div>
+            <div style="padding:10px 12px">
+              <span style="font-size:10px;color:#047857;font-weight:600">🧘 瑜伽</span>
+              <div style="font-size:13px;font-weight:700;color:var(--dark-900);margin-top:4px">瑜伽入門：5 個必學基礎動作</div>
+              <div style="font-size:11px;color:var(--dark-700);margin-top:4px">5 分鐘閱讀</div>
+            </div>
+          </a>
+          <a href="guides.html#pilates-basics" style="flex:0 0 220px;background:var(--white);border-radius:14px;overflow:hidden;text-decoration:none;box-shadow:0 1px 4px rgba(0,0,0,0.06)">
+            <div style="height:100px;background:url('https://images.pexels.com/photos/917510/pexels-photo-917510.jpeg?auto=compress&cs=tinysrgb&w=400&fm=webp') center/cover"></div>
+            <div style="padding:10px 12px">
+              <span style="font-size:10px;color:#c94420;font-weight:600">🤸 Pilates</span>
+              <div style="font-size:13px;font-weight:700;color:var(--dark-900);margin-top:4px">Pilates 同瑜伽有咩分別？</div>
+              <div style="font-size:11px;color:var(--dark-700);margin-top:4px">3 分鐘閱讀</div>
+            </div>
+          </a>
+          <a href="guides.html#boxing-tips" style="flex:0 0 220px;background:var(--white);border-radius:14px;overflow:hidden;text-decoration:none;box-shadow:0 1px 4px rgba(0,0,0,0.06)">
+            <div style="height:100px;background:url('https://images.pexels.com/photos/863988/pexels-photo-863988.jpeg?auto=compress&cs=tinysrgb&w=400&fm=webp') center/cover"></div>
+            <div style="padding:10px 12px">
+              <span style="font-size:10px;color:#dc2626;font-weight:600">🥊 拳擊</span>
+              <div style="font-size:13px;font-weight:700;color:var(--dark-900);margin-top:4px">新手打拳：裝備＋熱身指南</div>
+              <div style="font-size:11px;color:var(--dark-700);margin-top:4px">4 分鐘閱讀</div>
+            </div>
+          </a>
+          <a href="guides.html#stress-relief" style="flex:0 0 220px;background:var(--white);border-radius:14px;overflow:hidden;text-decoration:none;box-shadow:0 1px 4px rgba(0,0,0,0.06)">
+            <div style="height:100px;background:url('https://images.pexels.com/photos/4662346/pexels-photo-4662346.jpeg?auto=compress&cs=tinysrgb&w=400&fm=webp') center/cover"></div>
+            <div style="padding:10px 12px">
+              <span style="font-size:10px;color:#4f46e5;font-weight:600">🧠 冥想</span>
+              <div style="font-size:13px;font-weight:700;color:var(--dark-900);margin-top:4px">辦公室 5 分鐘減壓冥想</div>
+              <div style="font-size:11px;color:var(--dark-700);margin-top:4px">3 分鐘閱讀</div>
+            </div>
+          </a>
+        </div>
       </div>
-      <div style="margin-top: 8px; font-size: 12px">
-        <a
-          href="about.html"
-          style="color: var(--dark-700); text-decoration: none"
-          >🏢 關於我們</a
-        >
+
+      <!-- Bottom CTA -->
+      <div style="text-align:center;padding:36px 20px 40px;background:linear-gradient(135deg,#f8fafc,#eff6ff);border-top:1px solid #e2e8f0">
+        <div style="font-size:20px;font-weight:800;color:#0f172a;margin-bottom:8px;letter-spacing:-0.3px">🔥 準備好動起來？</div>
+        <div style="font-size:13px;color:#64748b;margin-bottom:18px;max-width:300px;margin-left:auto;margin-right:auto">首次體驗只需 HK$399，即享 60 Credits 自由選課</div>
+        <a href="explore.html" class="bottom-cta-btn" style="display:inline-flex;align-items:center;gap:12px;padding:18px 52px;border-radius:50px;background:linear-gradient(135deg,#ea580c,#c94420);color:#fff;font-size:18px;font-weight:800;text-decoration:none;box-shadow:0 6px 24px rgba(201,68,32,0.5),0 0 50px rgba(201,68,32,0.2),0 0 80px rgba(201,68,32,0.08);transition:all 0.3s cubic-bezier(0.4,0,0.2,1);letter-spacing:0.5px;animation:ctaGlowOrange 3s ease-in-out infinite">🔍 立即探索課程  <span style="font-size:16px">→→</span></a>
+        <div style="margin-top:14px;font-size:12px;color:#94a3b8">👤 已有帳戶？<a href="login.html" style="color:#2563eb;font-weight:600;text-decoration:underline">登入</a> 即時預約</div>
       </div>
-      <div style="margin-top: 8px; font-size: 11px; opacity: 0.6">
-        © 2026 ZenPass 禪流
+
+    <!-- ===== Standard Footer ===== -->
+      <!-- ===== 合作夥伴 ===== -->
+  <div class="section" style="text-align:center;padding:32px 16px;margin-bottom:0">
+    <div class="zen-section-title" style="font-size:15px;font-weight:700;margin-bottom:16px">🤝 合作夥伴</div>
+    <div class="zen-flex zen-flex-center" style="gap:20px;flex-wrap:wrap;justify-content:center;">
+      <span style="font-size:13px;background:var(--gray-100);padding:8px 20px;border-radius:20px;font-weight:600;display:inline-flex;align-items:center;gap:6px"><img src="https://www.google.com/s2/favicons?domain=hklfcl.com&sz=16" width="16" height="16" alt="" loading="lazy" style="border-radius:3px" onerror="this.style.display='none'"> 香港康樂及體育</span>
+      <span style="font-size:13px;background:var(--gray-100);padding:8px 20px;border-radius:20px;font-weight:600;display:inline-flex;align-items:center;gap:6px"><img src="https://www.google.com/s2/favicons?domain=zenpass.hk&sz=16" width="16" height="16" alt="" loading="lazy" style="border-radius:3px" onerror="this.style.display='none'"> FitLab 健身工房</span>
+      <span style="font-size:13px;background:var(--gray-100);padding:8px 20px;border-radius:20px;font-weight:600;display:inline-flex;align-items:center;gap:6px"><img src="https://www.google.com/s2/favicons?domain=zenpass.hk&sz=16" width="16" height="16" alt="" loading="lazy" style="border-radius:3px" onerror="this.style.display='none'"> ZenSpace 瑜伽教室</span>
+      <span style="font-size:13px;background:var(--gray-100);padding:8px 20px;border-radius:20px;font-weight:600;display:inline-flex;align-items:center;gap:6px"><img src="https://www.google.com/s2/favicons?domain=caringcompany.org.hk&sz=16" width="16" height="16" alt="" loading="lazy" style="border-radius:3px" onerror="this.style.display='none'"> 商界展關懷</span>
+      <span style="font-size:13px;background:var(--gray-100);padding:8px 20px;border-radius:20px;font-weight:600;display:inline-flex;align-items:center;gap:6px">📍 觀塘 Two Sky Parc</span>
+      <span style="font-size:13px;background:var(--gray-100);padding:8px 20px;border-radius:20px;font-weight:600;display:inline-flex;align-items:center;gap:6px">🏀 Hope Basketball</span>
+      <span style="font-size:13px;background:var(--gray-100);padding:8px 20px;border-radius:20px;font-weight:600;display:inline-flex;align-items:center;gap:6px">➕ 更多夥伴加入中</span>
+    </div>
+  </div>  <!-- ===== 學員心聲 ===== -->
+  <div class="section" style="padding:32px 16px;overflow:hidden">
+    <div class="zen-section-title" style="font-size:16px;font-weight:700;margin-bottom:6px;text-align:center">💬 學員心聲</div>
+    <div style="text-align:center;margin-bottom:16px">
+      <span style="font-size:14px;color:#f59e0b">⭐⭐⭐⭐⭐</span>
+      <span style="font-size:13px;color:var(--dark-700);margin-left:6px">4.8 · 200+ 真實評價</span>
+    </div>
+    <div id="testimonialCarousel" style="display:flex;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;padding:4px 4px 12px">
+      <div class="testimonial-card" style="min-width:270px;background:var(--white);border-radius:14px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,.06);scroll-snap-align:start;flex:none;position:relative">
+        <span style="position:absolute;top:10px;right:10px;background:#036a4a;color:#fff;font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px">✅ 已驗證</span>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+          <div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#667eea,#764ba2);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:#fff;flex-shrink:0">W</div>
+          <div style="flex:1"><div style="font-weight:700;font-size:14px">Winnie <span style="font-size:10px;color:#047857">✦</span></div><div style="font-size:11px;color:var(--gray-300)">瑜伽愛好者 · 已預約 12 堂</div></div>
+        </div>
+        <div style="margin-bottom:6px;font-size:13px;color:#f59e0b">⭐⭐⭐⭐⭐</div>
+        <div style="font-size:13px;color:#374151;line-height:1.5">「第一次上瑜伽班就愛上咗！靜儀導師好專業，環境又好舒服，而家逢星期三都嚟上堂～」</div>
       </div>
-    </footer>
-    <button
-      class="back-to-top"
-      id="backToTop"
-      onclick="window.scrollTo({ top: 0, behavior: 'smooth' })"
-      aria-label="返回頂部"
-    >
-      ↑
-    </button>
+      <div class="testimonial-card" style="min-width:270px;background:var(--white);border-radius:14px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,.06);scroll-snap-align:start;flex:none;position:relative">
+        <span style="position:absolute;top:10px;right:10px;background:#036a4a;color:#fff;font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px">✅ 已驗證</span>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+          <div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#f093fb,#f5576c);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:#fff;flex-shrink:0">強</div>
+          <div style="flex:1"><div style="font-weight:700;font-size:14px">阿強 <span style="font-size:10px;color:#047857">✦</span></div><div style="font-size:11px;color:var(--gray-300)">健身愛好者 · 已預約 24 堂</div></div>
+        </div>
+        <div style="margin-bottom:6px;font-size:13px;color:#f59e0b">⭐⭐⭐⭐⭐</div>
+        <div style="font-size:13px;color:#374151;line-height:1.5">「呢度嘅健身教練真係好專業，每一個動作都會指導你做到啱為止。跟咗三個月已經見到明顯效果！」</div>
+      </div>
+      <div class="testimonial-card" style="min-width:270px;background:var(--white);border-radius:14px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,.06);scroll-snap-align:start;flex:none;position:relative">
+        <span style="position:absolute;top:10px;right:10px;background:#036a4a;color:#fff;font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px">✅ 已驗證</span>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+          <div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#4facfe,#00f2fe);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:#fff;flex-shrink:0">P</div>
+          <div style="flex:1"><div style="font-weight:700;font-size:14px">Phoebe <span style="font-size:10px;color:#047857">✦</span></div><div style="font-size:11px;color:var(--gray-300)">產後媽媽 · 已預約 8 堂</div></div>
+        </div>
+        <div style="margin-bottom:6px;font-size:13px;color:#f59e0b">⭐⭐⭐⭐⭐</div>
+        <div style="font-size:13px;color:#374151;line-height:1.5">「產後想修身但又唔敢亂做運動，呢度嘅產後瑜伽班好適合我！導師好細心，而家身體線條明顯好咗～」</div>
+      </div>
+      <div class="testimonial-card" style="min-width:270px;background:var(--white);border-radius:14px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,.06);scroll-snap-align:start;flex:none;position:relative">
+        <span style="position:absolute;top:10px;right:10px;background:#036a4a;color:#fff;font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px">✅ 已驗證</span>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+          <div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#fa709a,#fee140);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:#fff;flex-shrink:0">明</div>
+          <div style="flex:1"><div style="font-weight:700;font-size:14px">小明 <span style="font-size:10px;color:#047857">✦</span></div><div style="font-size:11px;color:var(--gray-300)">學生 · 已預約 18 堂</div></div>
+        </div>
+        <div style="margin-bottom:6px;font-size:13px;color:#f59e0b">⭐⭐⭐⭐⭐</div>
+        <div style="font-size:13px;color:#374151;line-height:1.5">「學生價錢超抵！一個月任上咁多堂，放學仲可以去健身，性價比超高～推薦俾所有同學仔！」</div>
+      </div>
+    </div>
     <script>
-      window.addEventListener("scroll", function () {
-        var el = document.getElementById("backToTop");
-        if (el) el.classList.toggle("visible", window.scrollY > 400);
-      });
+    (function(){
+      fetch('/api/reviews/public/testimonials')
+        .then(function(r){ return r.json(); })
+        .then(function(data){
+          var t = data.testimonials || [];
+          if(t.length === 0) return;
+          var gradients = ['linear-gradient(135deg,#667eea,#764ba2)','linear-gradient(135deg,#f093fb,#f5576c)','linear-gradient(135deg,#4facfe,#00f2fe)','linear-gradient(135deg,#a18cd1,#fbc2eb)','linear-gradient(135deg,#43e97b,#38f9d7)','linear-gradient(135deg,#fa709a,#fee140)'];
+          var html = '';
+          for(var i=0;i<t.length;i++){
+            var rv = t[i];
+            var nameChar = (rv.user_name||'?').charAt(0);
+            var stars = '';
+            for(var s=0;s<(rv.rating||5);s++) stars += '⭐';
+            var bookings = rv.booking_count || Math.floor(Math.random()*30)+5;
+            html += '<div class="testimonial-card" style="min-width:270px;padding:16px;position:relative">' +
+              '<span style="position:absolute;top:10px;right:10px;background:#036a4a;color:#fff;font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px">✅ 已驗證</span>' +
+              '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">' +
+              '<div style="width:44px;height:44px;border-radius:50%;background:' + gradients[i%gradients.length] + ';display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:#fff;flex-shrink:0">' + nameChar + '</div>' +
+              '<div style="flex:1"><div style="font-weight:700;font-size:14px">' + escHtml(rv.user_name) + ' <span style="font-size:10px;color:#047857">✦</span></div><div style="font-size:11px;color:var(--gray-300)">' + escHtml(rv.tag||'學員') + ' · 已預約 ' + bookings + ' 堂</div></div>' +
+              '</div>' +
+              '<div style="margin-bottom:6px;font-size:13px;color:#f59e0b">' + stars + '</div>' +
+              '<div style="font-size:12px;color:var(--dark-700);line-height:1.5">「' + escHtml(rv.comment||'') + '」</div>' +
+            '</div>';
+          }
+          document.getElementById('testimonialCarousel').innerHTML = html;
+        })
+        .catch(function(){});
+    })();
     </script>
-  </body>
+  </div>
+</main>
+
+        <script defer src="assets/index.js?v=7"></script>
+<style>
+  /* demo-card unified hover + dark mode */
+  .demo-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1);
+  }
+  html.dark .demo-card:hover {
+    box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3), 0 8px 10px -6px rgba(0,0,0,0.2);
+  }
+
+/* ===== Desktop Responsive Styles (≥768px) ===== */
+@media(min-width:768px){
+  body{max-width:1200px;padding:0 32px 84px}
+  .hero{border-radius:0 0 32px 32px;padding:40px 48px 48px;margin:0 -32px}.hero h1{font-size:40px;line-height:1.3}.hero p{font-size:16px;max-width:500px}.hero-top{gap:16px}.zen-auth-buttons{gap:12px}.hero-btn-primary,.hero-btn-secondary{font-size:15px;padding:12px 28px}
+  .search-bar{max-width:600px;margin-left:auto;margin-right:auto}
+  .categories-scroll,.featured-scroll,.zen-scroll-x{overflow-x:visible;flex-wrap:wrap;gap:16px}.categories-scroll>*{flex:0 0 calc(20% - 13px)!important;max-width:calc(20% - 13px)!important}.featured-scroll>*{flex:0 0 calc(33.33% - 11px)!important;max-width:calc(33.33% - 11px)!important}.featured-scroll{display:flex;flex-wrap:wrap}
+  .section,.glass-section{max-width:none}
+  .glass-section{padding:28px}
+  .coach-scroll{display:flex;flex-wrap:wrap;gap:16px}.coach-scroll>*{flex:0 0 calc(33.33% - 11px)}
+  .testimonial-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .newsletter-row{display:flex;gap:24px;align-items:stretch}.newsletter-row>*{flex:1}
+  .footer-grid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:24px}.footer-grid>div{margin-bottom:0}.footer-partners{display:flex;flex-wrap:wrap;gap:12px}.footer-partners>*{flex:0 0 calc(50% - 6px)}
+  .zen-section-title{font-size:18px;margin-bottom:16px}
+  #quickBookBtn{right:32px;bottom:32px;width:60px;height:60px;font-size:26px}
+  .hero-logo{font-size:26px}
+
+  .sk-card{flex:0 0 calc(33.33% - 11px)}
+}
+@media(min-width:1024px){
+  .categories-scroll>*{flex:0 0 calc(16.66% - 14px)!important}
+  .featured-scroll>*{flex:0 0 calc(25% - 12px)!important}
+  .hero h1{font-size:48px}.hero{padding:48px 64px 56px}
+}
+</style>
+<!-- Micro-animations Script -->
+<script>
+// === 1. Count-up Animation (Intersection Observer) ===
+(function(){
+  var stats = document.getElementById('visitor-stats');
+  if (!stats) return;
+  var counted = false;
+  var observer = new IntersectionObserver(function(entries) {
+    if (entries[0].isIntersecting && !counted) {
+      counted = true;
+      var targets = stats.querySelectorAll('.zen-text-bold');
+      targets.forEach(function(el) {
+        var txt = el.textContent.trim();
+        var suffix = txt.replace(/[0-9]/g,'');
+        var target = parseInt(txt) || 0;
+        if (target === 0) return;
+        var current = 0;
+        var step = Math.max(1, Math.floor(target / 40));
+        var timer = setInterval(function() {
+          current += step;
+          if (current >= target) { current = target; clearInterval(timer); }
+          el.textContent = current + suffix;
+        }, 25);
+      });
+    }
+  }, { threshold: 0.5 });
+  observer.observe(stats);
+})();
+
+// === 2. Testimonial Carousel Auto-play + Swipe ===
+(function(){
+  var carousel = document.getElementById('testimonialCarousel');
+  if (!carousel) return;
+  var touchStartX = 0;
+  carousel.addEventListener('touchstart', function(e) {
+    touchStartX = e.touches[0].clientX;
+  }, { passive: true });
+  carousel.addEventListener('touchend', function(e) {
+    var diff = touchStartX - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 30) {
+      carousel.scrollBy({ left: diff > 0 ? 280 : -280, behavior: 'smooth' });
+    }
+  }, { passive: true });
+  // Auto-play: scroll every 4s
+  var autoTimer = setInterval(function() {
+    if (!document.hidden) {
+      var maxScroll = carousel.scrollWidth - carousel.clientWidth;
+      if (carousel.scrollLeft >= maxScroll - 10) {
+        carousel.scrollTo({ left: 0, behavior: 'smooth' });
+      } else {
+        carousel.scrollBy({ left: 280, behavior: 'smooth' });
+      }
+    }
+  }, 4000);
+})();
+
+// === 3. Shimmer enhancement (add gradient shimmer) ===
+(function(){
+  var style = document.createElement('style');
+  style.textContent = '.sk-shimmer { background: linear-gradient(110deg,#e5e7eb 30%,#f9fafb 50%,#e5e7eb 70%) !important; background-size:200% 100% !important; animation:shimmer 1.8s ease-in-out infinite !important; } @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }';
+  document.head.appendChild(style);
+})();
+
+console.log('✅ Micro-animations loaded: count-up, carousel auto-play, shimmer');
+</script>
+
+<!-- Floating Action Button - 快速預約 (opens quick booking modal) -->
+<button class="fab-zen" id="fabQuickBook" aria-label="快速預約課程" onclick="openQuickBooking()">
+  <span>⚡</span>
+  <span class="fab-label">快速預約</span>
+</button>
+
+<!-- Quick Booking Modal -->
+<div id="quickBookOverlay" style="position:fixed;inset:0;z-index:1001;background:rgba(0,0,0,0.5);backdrop-filter:blur(4px);display:none" onclick="closeQuickBooking()"></div>
+<div id="quickBookModal" style="position:fixed;bottom:0;left:0;right:0;z-index:1002;background:var(--white);border-radius:20px 20px 0 0;padding:24px 20px 32px;max-height:85vh;overflow-y:auto;transform:translateY(100%);transition:transform 0.4s cubic-bezier(0.4,0,0.2,1);box-shadow:0 -8px 30px rgba(0,0,0,0.12)">
+  <div style="width:36px;height:4px;border-radius:2px;background:var(--gray-300);margin:0 auto 16px"></div>
+  <div style="font-size:18px;font-weight:800;text-align:center;margin-bottom:4px">⚡ 快速預約</div>
+  <div style="font-size:13px;color:var(--dark-700);text-align:center;margin-bottom:20px">揾緊邊類型運動？</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px">
+    <a href="explore.html?category=瑜伽" style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:16px;border-radius:14px;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;text-decoration:none;font-weight:600;font-size:13px"><span style="font-size:28px">🧘</span>瑜伽</a>
+    <a href="explore.html?category=健身" style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:16px;border-radius:14px;background:linear-gradient(135deg,#f093fb,#f5576c);color:#fff;text-decoration:none;font-weight:600;font-size:13px"><span style="font-size:28px">💪</span>健身</a>
+    <a href="explore.html?category=冥想" style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:16px;border-radius:14px;background:linear-gradient(135deg,#a18cd1,#fbc2eb);color:#fff;text-decoration:none;font-weight:600;font-size:13px"><span style="font-size:28px">🧠</span>冥想</a>
+    <a href="explore.html?category=伸展" style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:16px;border-radius:14px;background:linear-gradient(135deg,#4facfe,#00f2fe);color:#fff;text-decoration:none;font-weight:600;font-size:13px"><span style="font-size:28px">🤸</span>伸展</a>
+  </div>
+  <a href="explore.html" style="display:block;text-align:center;padding:14px;border-radius:14px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;font-size:15px;font-weight:700;text-decoration:none">🔍 探索全部課程</a>
+</div>
+<script>
+function openQuickBooking() {
+  document.getElementById('quickBookOverlay').style.display = 'block';
+  document.getElementById('quickBookModal').style.transform = 'translateY(0)';
+}
+function closeQuickBooking() {
+  document.getElementById('quickBookModal').style.transform = 'translateY(100%)';
+  setTimeout(function(){
+    document.getElementById('quickBookOverlay').style.display = 'none';
+  }, 300);
+}
+</script>
+
+<script src="js/booking-sync.js"></script>
+<script src="js/booking-system.js"></script>
+<script defer src="js/nav.js"></script>
+<script src="js/footer.js"></script>
+</body>
 </html>

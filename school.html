@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" href="favicon.png" type="image/png" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5" />
+  <meta name="theme-color" content="#f06030" />
+  <meta name="description" content="ZenPass School ECA Pass — 為學校提供新興運動課外活動方案，芬蘭木柱、地板冰壺、穿雲箭等" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/zenpass.css?v=2" />
+  <style>
+    :root { --max-width: 800px; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Noto Sans TC', 'Inter', -apple-system, sans-serif;
+      background: linear-gradient(135deg, #f5f5f7 0%, #eef2f7 100%);
+      color: #1a1a2e;
+      min-height: 100vh;
+    }
+    .container { max-width: var(--max-width); margin: 0 auto; padding: 16px 16px 80px; }
+
+    /* Header */
+    .school-header {
+      text-align: center; padding: 48px 16px 32px;
+      background: linear-gradient(135deg, #1a1a2e 0%, #2d2d44 100%);
+      border-radius: 0 0 30px 30px; color: #fff; margin: -16px -16px 24px;
+    }
+    .school-header .icon { font-size: 56px; margin-bottom: 12px; display: block; }
+    .school-header h1 { font-size: 28px; font-weight: 800; margin-bottom: 8px; }
+    .school-header h1 span { color: #f97316; }
+    .school-header p { font-size: 15px; opacity: 0.85; line-height: 1.6; max-width: 500px; margin: 0 auto; }
+
+    /* CTA */
+    .cta-bar {
+      display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin: 20px 0 32px;
+    }
+    .cta-bar a, .cta-bar button {
+      padding: 12px 24px; border-radius: 25px; font-size: 14px; font-weight: 600;
+      text-decoration: none; transition: all 0.2s; cursor: pointer; border: none;
+    }
+    .cta-primary { background: #c94420; color: #fff; }
+    .cta-primary:hover { background: #aa3218; }
+    .cta-outline { border: 2px solid #c94420; color: #c94420; background: transparent; }
+    .cta-outline:hover { background: #fef2ee; }
+
+    /* Section */
+    .section { margin-bottom: 28px; }
+    .section h2 {
+      font-size: 18px; font-weight: 700; margin-bottom: 14px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .section p { font-size: 14px; line-height: 1.8; color: #4b5563; margin-bottom: 12px; }
+
+    /* Sport cards */
+    .sport-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px;
+    }
+    @media (max-width: 600px) { .sport-grid { grid-template-columns: 1fr; } }
+    .sport-card {
+      background: #fff; border-radius: 14px; padding: 20px 16px;
+      text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      border: 1px solid rgba(0,0,0,0.04); transition: transform 0.2s;
+    }
+    .sport-card:hover { transform: translateY(-3px); }
+    .sport-card .emoji { font-size: 36px; margin-bottom: 8px; display: block; }
+    .sport-card h3 { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+    .sport-card p { font-size: 12px; color: #6b7280; line-height: 1.6; }
+    .sport-card .tag {
+      display: inline-block; margin-top: 8px; font-size: 11px;
+      padding: 2px 10px; border-radius: 99px; font-weight: 600;
+    }
+    .tag-popular { background: #fef2ee; color: #c94420; }
+    .tag-new { background: #e8f5e9; color: #2e7d32; }
+    .tag-trending { background: #e3f2fd; color: #1565c0; }
+
+    /* Benefits */
+    .benefits-grid {
+      display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 20px;
+    }
+    @media (max-width: 600px) { .benefits-grid { grid-template-columns: 1fr; } }
+    .benefit-item {
+      background: #fff; border-radius: 12px; padding: 16px;
+      border: 1px solid rgba(0,0,0,0.04); display: flex; gap: 12px; align-items: flex-start;
+    }
+    .benefit-item .bi-icon { font-size: 28px; flex-shrink: 0; }
+    .benefit-item .bi-text h4 { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+    .benefit-item .bi-text p { font-size: 12px; color: #6b7280; line-height: 1.6; }
+
+    /* Form */
+    .inquiry-form {
+      background: #fff; border-radius: 16px; padding: 24px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+    }
+    .inquiry-form h3 { font-size: 17px; font-weight: 700; margin-bottom: 16px; }
+    .form-group { margin-bottom: 14px; }
+    .form-group label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 4px; color: #374151; }
+    .form-group input, .form-group textarea, .form-group select {
+      width: 100%; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 8px;
+      font-size: 14px; font-family: inherit; transition: border-color 0.2s;
+    }
+    .form-group input:focus, .form-group textarea:focus { outline: none; border-color: #c94420; box-shadow: 0 0 0 3px rgba(201,68,32,0.1); }
+    .form-group textarea { min-height: 80px; resize: vertical; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media (max-width: 480px) { .form-row { grid-template-columns: 1fr; } }
+    .submit-btn {
+      width: 100%; padding: 12px; background: #c94420; color: #fff; border: none;
+      border-radius: 8px; font-size: 15px; font-weight: 700; cursor: pointer;
+      transition: background 0.2s;
+    }
+    .submit-btn:hover { background: #aa3218; }
+    .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .form-result { margin-top: 12px; padding: 12px; border-radius: 8px; font-size: 13px; display: none; }
+    .form-result.success { display: block; background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; }
+    .form-result.error { display: block; background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+
+    /* Footer links */
+    .bottom-links {
+      text-align: center; padding: 24px 0; border-top: 1px solid #e5e7eb; margin-top: 20px;
+    }
+    .bottom-links a { color: #c94420; text-decoration: none; font-size: 13px; margin: 0 10px; }
+    .bottom-links a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="school-header">
+    <span class="icon">🏫</span>
+    <h1>School <span>ECA</span> Pass</h1>
+    <p>為學校引入新興運動課外活動方案<br>芬蘭木柱・地板冰壺・穿雲箭・更多</p>
+  </div>
+
+  <div class="container">
+    <!-- CTA -->
+    <div class="cta-bar">
+      <button class="cta-primary" onclick="document.getElementById('inquiryForm').scrollIntoView({behavior:'smooth'})">📝 查詢合作</button>
+      <a href="corporate-guide.html" class="cta-outline">📖 企業方案</a>
+    </div>
+
+    <!-- Introduction -->
+    <div class="section">
+      <h2>🎯 適合學校嘅新興運動</h2>
+      <p>ZenPass 與香港多個新興體育總會合作，為中小學提供專業教練及器材一站式課外活動方案。所有運動均設有安全指引，適合不同年齡學生參與。</p>
+    </div>
+
+    <!-- Sports -->
+    <div class="sport-grid">
+      <div class="sport-card">
+        <span class="emoji">🎯</span>
+        <h3>芬蘭木柱</h3>
+        <p>芬蘭國技，策略與技巧並重，適合室內外場地，訓練專注力</p>
+        <span class="tag tag-popular">🔥 最受歡迎</span>
+      </div>
+      <div class="sport-card">
+        <span class="emoji">🥌</span>
+        <h3>地板冰壺</h3>
+        <p>簡化版冰壺，無需冰面，任何禮堂場地都玩得，培養團隊合作</p>
+        <span class="tag tag-trending">📈 熱門</span>
+      </div>
+      <div class="sport-card">
+        <span class="emoji">🏹</span>
+        <h3>穿雲箭</h3>
+        <p>安全射箭體驗，使用專利吸盤箭頭，適合初學者，訓練集中力</p>
+        <span class="tag tag-new">🆕 全新</span>
+      </div>
+    </div>
+
+    <!-- Benefits -->
+    <div class="section">
+      <h2>✨ 學校方案優勢</h2>
+      <div class="benefits-grid">
+        <div class="benefit-item">
+          <div class="bi-icon">🏅</div>
+          <div class="bi-text">
+            <h4>專業教練團隊</h4>
+            <p>所有教練均持有相關總會認證，具備學校教學經驗</p>
+          </div>
+        </div>
+        <div class="benefit-item">
+          <div class="bi-icon">🎒</div>
+          <div class="bi-text">
+            <h4>一站式器材</h4>
+            <p>所有運動器材由 ZenPass 提供，學校毋需額外投資</p>
+          </div>
+        </div>
+        <div class="benefit-item">
+          <div class="bi-icon">📋</div>
+          <div class="bi-text">
+            <h4>彈性課時</h4>
+            <p>可按學期、按月或按次收費，配合學校時間表</p>
+          </div>
+        </div>
+        <div class="benefit-item">
+          <div class="bi-icon">📊</div>
+          <div class="bi-text">
+            <h4>進度報告</h4>
+            <p>定期提供學生參與報告，讓學校掌握活動成效</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- How it works -->
+    <div class="section">
+      <h2>📝 合作流程</h2>
+      <p style="margin-bottom:8px;">1️⃣ <strong>查詢</strong> — 填寫以下表格，話俾我哋知你有興趣嘅運動</p>
+      <p style="margin-bottom:8px;">2️⃣ <strong>諮詢</strong> — 專人聯絡了解學校需要，提供報價</p>
+      <p style="margin-bottom:8px;">3️⃣ <strong>試堂</strong> — 安排免費試堂，讓學生體驗新興運動</p>
+      <p style="margin-bottom:8px;">4️⃣ <strong>開展</strong> — 正式開展課外活動，ZenPass 全程支援</p>
+    </div>
+
+    <!-- Inquiry Form -->
+    <div class="inquiry-form" id="inquiryForm">
+      <h3>📝 查詢學校 ECA 合作</h3>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="schoolName">學校名稱 *</label>
+          <input type="text" id="schoolName" placeholder="例如：香港華仁書院" required>
+        </div>
+        <div class="form-group">
+          <label for="contactName">聯絡人姓名 *</label>
+          <input type="text" id="contactName" placeholder="例如：陳老師" required>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="contactEmail">聯絡電郵 *</label>
+          <input type="email" id="contactEmail" placeholder="email@school.edu.hk" required>
+        </div>
+        <div class="form-group">
+          <label for="contactPhone">聯絡電話</label>
+          <input type="tel" id="contactPhone" placeholder="5XXX XXXX">
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="sportsInterest">有興趣嘅運動</label>
+        <select id="sportsInterest">
+          <option value="">請選擇（可多選）</option>
+          <option value="芬蘭木柱">芬蘭木柱</option>
+          <option value="地板冰壺">地板冰壺</option>
+          <option value="穿雲箭">穿雲箭</option>
+          <option value="多項都有興趣">多項都有興趣</option>
+          <option value="其他">其他（請在備註說明）</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="inquiryMessage">備註 / 查詢內容</label>
+        <textarea id="inquiryMessage" placeholder="例如：想為中二至中四學生安排每週一次課外活動..."></textarea>
+      </div>
+      <button class="submit-btn" id="submitBtn" onclick="submitInquiry()">提交查詢 🚀</button>
+      <div class="form-result" id="formResult"></div>
+    </div>
+
+    <div class="bottom-links">
+      <a href="corporate-guide.html">🏢 企業方案</a>
+      <a href="index.html">🏠 首頁</a>
+      <a href="guides.html">📖 使用指南</a>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = '/api';
+
+    async function submitInquiry() {
+      const schoolName = document.getElementById('schoolName').value.trim();
+      const contactName = document.getElementById('contactName').value.trim();
+      const contactEmail = document.getElementById('contactEmail').value.trim();
+      const contactPhone = document.getElementById('contactPhone').value.trim();
+      const sportsInterest = document.getElementById('sportsInterest').value;
+      const message = document.getElementById('inquiryMessage').value.trim();
+      const result = document.getElementById('formResult');
+      const btn = document.getElementById('submitBtn');
+
+      if (!schoolName || !contactName || !contactEmail) {
+        result.className = 'form-result error';
+        result.textContent = '請填寫學校名稱、聯絡人姓名及電郵';
+        result.style.display = 'block';
+        return;
+      }
+      if (!contactEmail.includes('@')) {
+        result.className = 'form-result error';
+        result.textContent = '電郵格式不正確';
+        result.style.display = 'block';
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = '提交中...';
+      result.style.display = 'none';
+
+      try {
+        const resp = await fetch(API_BASE + '/school/inquiry', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            school_name: schoolName,
+            contact_name: contactName,
+            contact_email: contactEmail,
+            contact_phone: contactPhone,
+            sports_of_interest: sportsInterest,
+            message: message
+          })
+        });
+
+        const data = await resp.json();
+        if (!resp.ok) throw new Error(data.error || '提交失敗');
+
+        result.className = 'form-result success';
+        result.textContent = data.message || '✅ 查詢已收到！';
+        result.style.display = 'block';
+
+        // Reset form
+        document.getElementById('schoolName').value = '';
+        document.getElementById('contactName').value = '';
+        document.getElementById('contactEmail').value = '';
+        document.getElementById('contactPhone').value = '';
+        document.getElementById('sportsInterest').value = '';
+        document.getElementById('inquiryMessage').value = '';
+        btn.textContent = '✅ 已提交';
+        setTimeout(() => { btn.textContent = '提交查詢 🚀'; btn.disabled = false; }, 3000);
+      } catch (e) {
+        result.className = 'form-result error';
+        result.textContent = '❌ ' + e.message;
+        result.style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = '提交查詢 🚀';
+      }
+    }
+  </script>
+</body>
+</html>

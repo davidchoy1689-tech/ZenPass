@@ -1,0 +1,559 @@
+<!doctype html>
+<html lang="zh-HK">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" href="favicon.png" type="image/png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="theme-color" content="#FF6B35" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="manifest" href="manifest.json" />
+    <link rel="stylesheet" href="css/zenpass.css?v=2" />
+    <style>
+      * { margin:0; padding:0; box-sizing:border-box; }
+      body {
+        font-family:'Inter','Noto Sans TC',sans-serif;
+        background:#fff8f4;
+        color:#1a1a2e;
+        min-height:100vh;
+        padding-bottom:100px;
+      }
+
+      /* Header */
+      .page-topup-header {
+        background:linear-gradient(135deg,#FF6B35,#FF8C42);
+        color:#fff;padding:24px 20px 28px;position:relative;
+      }
+      .page-topup-header .back-row {
+        display:flex;align-items:center;gap:8px;margin-bottom:12px;
+      }
+      .page-topup-header .back-row a {
+        color:#fff;text-decoration:none;font-size:14px;opacity:0.85;
+      }
+      .page-topup-header .back-row a:hover{opacity:1;}
+      .page-topup-header h1 { font-size:20px;font-weight:700; }
+      .page-topup-header .subtitle { font-size:13px;opacity:0.85;margin-top:4px; }
+
+      /* Card */
+      .topup-card {
+        margin:16px;background:#fff;border-radius:16px;
+        box-shadow:0 2px 12px rgba(0,0,0,0.06);overflow:hidden;
+      }
+      .topup-card .card-body { padding:20px; }
+      .topup-card h2 {
+        font-size:16px;font-weight:600;margin-bottom:16px;
+        display:flex;align-items:center;gap:8px;
+      }
+      .topup-card .desc {
+        font-size:13px;color:#666;line-height:1.5;margin-bottom:16px;
+      }
+
+      /* Toggle */
+      .toggle-row {
+        display:flex;align-items:center;justify-content:space-between;
+        padding:12px 0;
+      }
+      .toggle-row .toggle-label {
+        display:flex;align-items:center;gap:8px;font-size:15px;font-weight:500;
+      }
+      .toggle-row .toggle-label .icon { font-size:20px; }
+
+      /* Toggle switch */
+      .toggle-switch {
+        position:relative;display:inline-block;width:48px;height:26px;flex-shrink:0;
+      }
+      .toggle-switch input { opacity:0;width:0;height:0; }
+      .toggle-switch .slider {
+        position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;
+        background:#ccc;transition:0.3s;border-radius:26px;
+      }
+      .toggle-switch .slider:before {
+        content:"";position:absolute;height:20px;width:20px;left:3px;bottom:3px;
+        background:#fff;transition:0.3s;border-radius:50%;
+      }
+      .toggle-switch input:checked + .slider { background:#FF6B35; }
+      .toggle-switch input:checked + .slider:before { transform:translateX(22px); }
+
+      /* Status indicator */
+      .status-badge {
+        display:inline-flex;align-items:center;gap:4px;
+        padding:4px 10px;border-radius:20px;font-size:12px;font-weight:500;
+      }
+      .status-badge.on { background:#d1fae5;color:#065f46; }
+      .status-badge.off { background:#fee2e2;color:#991b1b; }
+
+      .status-row {
+        display:flex;align-items:center;gap:10px;margin-top:4px;
+        padding:8px 0;font-size:13px;color:#666;
+      }
+
+      /* Divider */
+      .divider { height:1px;background:#f0f0f0;margin:12px 0; }
+
+      /* Threshold slider */
+      .slider-section { padding:8px 0; }
+      .slider-section .slider-label {
+        display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;
+      }
+      .slider-section .slider-label .label-text { font-size:14px;font-weight:500; }
+      .slider-section .slider-label .value {
+        font-size:18px;font-weight:700;color:#FF6B35;
+      }
+      input[type="range"] {
+        width:100%;height:6px;-webkit-appearance:none;appearance:none;
+        background:#e0e0e0;border-radius:3px;outline:none;
+      }
+      input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance:none;appearance:none;
+        width:22px;height:22px;border-radius:50%;
+        background:#FF6B35;cursor:pointer;box-shadow:0 2px 6px rgba(255,107,53,0.3);
+      }
+      input[type="range"]::-moz-range-thumb {
+        width:22px;height:22px;border-radius:50%;
+        background:#FF6B35;cursor:pointer;border:none;
+      }
+      .slider-hints {
+        display:flex;justify-content:space-between;font-size:11px;color:#aaa;margin-top:4px;
+      }
+
+      /* Bundle selector */
+      .bundle-grid {
+        display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:8px;
+      }
+      .bundle-card {
+        padding:12px 8px;border:2px solid #e0e0e0;border-radius:12px;
+        text-align:center;cursor:pointer;transition:all 0.2s;
+      }
+      .bundle-card:hover { border-color:#FF6B35; }
+      .bundle-card.selected {
+        border-color:#FF6B35;background:#fff5ee;
+      }
+      .bundle-card .bundle-emoji { font-size:24px;margin-bottom:4px; }
+      .bundle-card .bundle-name { font-size:12px;font-weight:600;margin-bottom:2px; }
+      .bundle-card .bundle-credits { font-size:13px;font-weight:700;color:#FF6B35; }
+      .bundle-card .bundle-price { font-size:10px;color:#888;margin-top:2px; }
+
+      /* Action buttons */
+      .action-row { margin:20px 16px 0;display:flex;flex-direction:column;gap:8px; }
+      .btn-primary {
+        width:100%;padding:14px;border:none;border-radius:12px;
+        background:linear-gradient(135deg,#FF6B35,#FF8C42);
+        color:#fff;font-size:15px;font-weight:600;cursor:pointer;
+        transition:opacity 0.2s;text-align:center;
+      }
+      .btn-primary:disabled { opacity:0.5;cursor:not-allowed; }
+      .btn-primary:hover:not(:disabled) { opacity:0.9; }
+      .btn-secondary {
+        width:100%;padding:12px;border:1px solid #e0e0e0;border-radius:12px;
+        background:#fff;color:#666;font-size:13px;font-weight:500;cursor:pointer;
+        transition:all 0.2s;text-align:center;
+      }
+      .btn-secondary:hover { border-color:#FF6B35;color:#FF6B35; }
+
+      /* History section */
+      .history-section { margin:20px 16px; }
+      .history-section h3 {
+        font-size:14px;font-weight:600;margin-bottom:12px;
+        display:flex;align-items:center;gap:6px;color:#666;
+      }
+      .history-item {
+        display:flex;align-items:center;gap:12px;
+        padding:12px;background:#fff;border-radius:12px;
+        margin-bottom:6px;box-shadow:0 1px 4px rgba(0,0,0,0.04);
+      }
+      .history-item .h-icon {
+        width:36px;height:36px;border-radius:50%;display:flex;
+        align-items:center;justify-content:center;background:#fef3c7;flex-shrink:0;
+      }
+      .history-item .h-info { flex:1;min-width:0; }
+      .history-item .h-info .h-title { font-size:13px;font-weight:500; }
+      .history-item .h-info .h-date { font-size:11px;color:#aaa;margin-top:2px; }
+      .history-item .h-credits { font-size:14px;font-weight:600;color:#059669; }
+      .history-empty {
+        text-align:center;padding:32px 16px;color:#aaa;font-size:13px;
+      }
+
+      /* Info card */
+      .info-card {
+        margin:16px;padding:16px;border-radius:12px;
+        background:linear-gradient(135deg,#fef3c7,#fde68a);font-size:12px;color:#92400e;
+        line-height:1.5;
+      }
+      .info-card strong { font-weight:600; }
+
+      /* Loading */
+      .loading-spinner {
+        display:inline-block;width:20px;height:20px;
+        border:2px solid #f0f0f0;border-top-color:#FF6B35;
+        border-radius:50%;animation:spin 0.8s linear infinite;
+      }
+      @keyframes spin{to{transform:rotate(360deg)}}
+
+      /* Toast */
+      .toast {
+        position:fixed;bottom:100px;left:16px;right:16px;z-index:9999;
+        padding:14px 16px;border-radius:12px;font-size:13px;font-weight:500;
+        text-align:center;display:none;animation:slideUp 0.3s ease;
+      }
+      .toast.show { display:block; }
+      .toast.success { background:#d1fae5;color:#065f46;border:1px solid #a7f3d0; }
+      .toast.error { background:#fee2e2;color:#991b1b;border:1px solid #fecaca; }
+      @keyframes slideUp {
+        from { transform:translateY(20px);opacity:0; }
+        to { transform:translateY(0);opacity:1; }
+      }
+
+      @media (max-width:380px) {
+        .bundle-grid { grid-template-columns:1fr; }
+      }
+    </style>
+    <title>Auto Top-up 設定 | ZenPass 禪流</title>
+    <meta name="description" content="設定自動加購 Credits，唔使擔心唔夠分" />
+  </head>
+  <body>
+
+    <!-- Header -->
+    <div class="page-topup-header">
+      <div class="back-row">
+        <a href="wallet.html">← 返回錢包</a>
+        <h1>⚡ Auto Top-up</h1>
+      </div>
+      <div class="subtitle">自動加購 Credits，唔使擔心唔夠分</div>
+    </div>
+
+    <!-- Info -->
+    <div class="info-card">
+      💡 <strong>點樣運作？</strong><br>
+      當你嘅 Credits 低過設定嘅 Threshold，系統會自動代你加購選定嘅 Bundle，確保你永遠有足夠 Credits 預約課程。
+    </div>
+
+    <!-- Main Card -->
+    <div class="topup-card" id="configCard">
+      <div class="card-body">
+        <!-- Toggle -->
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <span class="icon">⚡</span> 啟用 Auto Top-up
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="enableToggle" onchange="onToggleChange()" />
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="status-row" id="statusRow">
+          <span class="status-badge off" id="statusBadge">🔴 已停用</span>
+          <span id="statusText">當 Credits 低過 threshold 時自動加購</span>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- Current Credits -->
+        <div style="font-size:13px;color:#666;margin-bottom:8px">
+          🎫 目前 Credits：<strong id="currentCredits" style="color:#1a1a2e">—</strong>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- Threshold Slider -->
+        <div class="slider-section" id="thresholdSection">
+          <div class="slider-label">
+            <span class="label-text">📉 Threshold（低過幾多時觸發）</span>
+            <span class="value" id="thresholdValue">10</span>
+          </div>
+          <input type="range" id="thresholdSlider" min="3" max="50" value="10"
+                 oninput="onThresholdChange(this.value)" />
+          <div class="slider-hints">
+            <span>3 cr</span>
+            <span>25 cr</span>
+            <span>50 cr</span>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- Bundle Selector -->
+        <div>
+          <div style="font-size:14px;font-weight:500;margin-bottom:8px">
+            🎁 Auto Top-up Bundle
+          </div>
+          <div class="bundle-grid" id="bundleGrid">
+            <div class="bundle-card" data-bundle="light" onclick="selectBundle('light')">
+              <div class="bundle-emoji">🌱</div>
+              <div class="bundle-name">輕量包</div>
+              <div class="bundle-credits">10 cr</div>
+              <div class="bundle-price">HK$100</div>
+            </div>
+            <div class="bundle-card selected" data-bundle="standard" onclick="selectBundle('standard')">
+              <div class="bundle-emoji">⭐</div>
+              <div class="bundle-name">標準包</div>
+              <div class="bundle-credits">25 cr</div>
+              <div class="bundle-price">HK$225</div>
+            </div>
+            <div class="bundle-card" data-bundle="premium" onclick="selectBundle('premium')">
+              <div class="bundle-emoji">💎</div>
+              <div class="bundle-name">超值包</div>
+              <div class="bundle-credits">55 cr</div>
+              <div class="bundle-price">HK$440</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="action-row">
+      <button class="btn-primary" id="saveBtn" onclick="saveConfig()">
+        💾 儲存設定
+      </button>
+      <button class="btn-secondary" id="executeBtn" onclick="executeTopup()" disabled>
+        👆 手動觸發 Top-up
+      </button>
+    </div>
+
+    <!-- History -->
+    <div class="history-section" id="historySection">
+      <h3>📜 Top-up 記錄</h3>
+      <div id="historyList">
+        <div class="history-empty">載入中...</div>
+      </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <script defer src="api.js?v=2"></script>
+    <script>
+      var token = localStorage.getItem("zenpass_token");
+      if (!token) { location.href = "login.html?redirect=topup-auto.html"; }
+
+      var API = typeof API_BASE !== "undefined" ? API_BASE : "/api";
+      var selectedBundle = "standard";
+      var currentConfig = null;
+
+      // ===== Load config on page load =====
+      async function loadConfig() {
+        try {
+          // Load user info (for current credits)
+          var userR = await fetch(API + "/auth/me", {
+            headers: { Authorization: "Bearer " + token }
+          });
+          var userD = await userR.json();
+          if (userD.user) {
+            document.getElementById("currentCredits").textContent = userD.user.credits || 0;
+          }
+
+          // Load auto top-up config
+          var r = await fetch(API + "/topup/config", {
+            headers: { Authorization: "Bearer " + token }
+          });
+          var d = await r.json();
+
+          currentConfig = d;
+
+          // Apply config to UI
+          document.getElementById("enableToggle").checked = d.enabled;
+          document.getElementById("thresholdSlider").value = d.threshold;
+          document.getElementById("thresholdValue").textContent = d.threshold;
+          selectBundle(d.bundle_type);
+          updateStatus(d.enabled, d.threshold);
+
+          // Load history
+          loadHistory();
+        } catch(e) {
+          console.error("Load config error:", e);
+          // If no config yet (first time), defaults are fine
+          document.getElementById("currentCredits").textContent = "—";
+          loadHistory();
+        }
+      }
+
+      // ===== Toggle change =====
+      function onToggleChange() {
+        var enabled = document.getElementById("enableToggle").checked;
+        updateStatus(enabled, document.getElementById("thresholdSlider").value);
+      }
+
+      // ===== Threshold change =====
+      function onThresholdChange(val) {
+        document.getElementById("thresholdValue").textContent = val;
+        var enabled = document.getElementById("enableToggle").checked;
+        updateStatus(enabled, val);
+      }
+
+      // ===== Bundle selection =====
+      function selectBundle(bundle) {
+        selectedBundle = bundle;
+        document.querySelectorAll(".bundle-card").forEach(function(el) {
+          el.classList.toggle("selected", el.dataset.bundle === bundle);
+        });
+      }
+
+      // ===== Update status display =====
+      function updateStatus(enabled, threshold) {
+        var badge = document.getElementById("statusBadge");
+        var text = document.getElementById("statusText");
+        var thresholdSection = document.getElementById("thresholdSection");
+
+        if (enabled) {
+          badge.className = "status-badge on";
+          badge.innerHTML = "🟢 已啟用";
+          text.textContent = "當 Credits " + String.fromCharCode(8804) + " " + threshold + " cr 時，自動加購 " + getBundleLabel(selectedBundle);
+          document.getElementById("executeBtn").disabled = false;
+          thresholdSection.style.opacity = "1";
+        } else {
+          badge.className = "status-badge off";
+          badge.innerHTML = "🔴 已停用";
+          text.textContent = "Auto Top-up 已關閉";
+          document.getElementById("executeBtn").disabled = true;
+          thresholdSection.style.opacity = "0.5";
+        }
+      }
+
+      function getBundleLabel(bundle) {
+        var map = { light: "輕量包 (10 cr)", standard: "標準包 (25 cr)", premium: "超值包 (55 cr)" };
+        return map[bundle] || bundle;
+      }
+
+      // ===== Save config =====
+      async function saveConfig() {
+        var btn = document.getElementById("saveBtn");
+        btn.disabled = true;
+        btn.innerHTML = '<span class="loading-spinner"></span> 儲存中...';
+
+        try {
+          var enabled = document.getElementById("enableToggle").checked;
+          var threshold = parseInt(document.getElementById("thresholdSlider").value);
+
+          var r = await fetch(API + "/topup/config", {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + token
+            },
+            body: JSON.stringify({
+              enabled: enabled,
+              threshold: threshold,
+              bundle: selectedBundle
+            })
+          });
+
+          var d = await r.json();
+          if (d.success || d.config) {
+            showToast("✅ " + (d.message || "設定已儲存"), "success");
+            currentConfig = d.config || d;
+            updateStatus(enabled, threshold);
+
+            // Refresh credits display
+            if (d.auto_executed) {
+              setTimeout(function() {
+                var credEl = document.getElementById("currentCredits");
+                if (d.auto_executed.credits_after) {
+                  credEl.textContent = d.auto_executed.credits_after;
+                }
+                loadHistory();
+              }, 500);
+            } else {
+              loadHistory();
+            }
+          } else {
+            showToast("❌ " + (d.error || "儲存失敗"), "error");
+          }
+        } catch(e) {
+          showToast("❌ 網絡錯誤，請稍後再試", "error");
+        } finally {
+          btn.disabled = false;
+          btn.innerHTML = "💾 儲存設定";
+        }
+      }
+
+      // ===== Manual execute =====
+      async function executeTopup() {
+        var btn = document.getElementById("executeBtn");
+        btn.disabled = true;
+        btn.innerHTML = '<span class="loading-spinner"></span> 檢查中...';
+
+        try {
+          var r = await fetch(API + "/topup/execute", {
+            method: "POST",
+            headers: { Authorization: "Bearer " + token }
+          });
+          var d = await r.json();
+
+          if (d.success) {
+            showToast("✅ " + (d.message || "Top-up 完成"), "success");
+            if (d.credits_after) {
+              document.getElementById("currentCredits").textContent = d.credits_after;
+            }
+            loadHistory();
+          } else if (d.credits_ok) {
+            showToast("✅ Credits 足夠，無需 top-up", "success");
+          } else {
+            showToast("❌ " + (d.error || "Top-up 失敗"), "error");
+          }
+        } catch(e) {
+          showToast("❌ 網絡錯誤，請稍後再試", "error");
+        } finally {
+          btn.disabled = false;
+          btn.innerHTML = "👆 手動觸發 Top-up";
+        }
+      }
+
+      // ===== Load history =====
+      async function loadHistory() {
+        var list = document.getElementById("historyList");
+
+        try {
+          var r = await fetch(API + "/topup/history?limit=10", {
+            headers: { Authorization: "Bearer " + token }
+          });
+          var d = await r.json();
+
+          if (!d.history || d.history.length === 0) {
+            list.innerHTML = '<div class="history-empty">📭 未有 Auto Top-up 記錄</div>';
+            return;
+          }
+
+          var html = "";
+          d.history.forEach(function(item) {
+            var date = item.created_at ? item.created_at.substring(0, 16).replace("T", " ") : "";
+            var triggerIcon = item.trigger === "auto" ? "🤖" : "👆";
+            var bundleLabel = { light: "輕量包", standard: "標準包", premium: "超值包" }[item.bundle_type] || item.bundle_type;
+            html +=
+              '<div class="history-item">' +
+              '<div class="h-icon">' + triggerIcon + '</div>' +
+              '<div class="h-info">' +
+              '<div class="h-title">' + bundleLabel + ' · HK$' + item.amount_paid + '</div>' +
+              '<div class="h-date">' + date + ' · ' + (item.trigger === "auto" ? "自動" : "手動") + '</div>' +
+              '</div>' +
+              '<div class="h-credits">+' + item.credits_added + ' cr</div>' +
+              '</div>';
+          });
+          list.innerHTML = html;
+        } catch(e) {
+          list.innerHTML = '<div class="history-empty">❌ 載入記錄失敗</div>';
+        }
+      }
+
+      // ===== Toast =====
+      function showToast(msg, type) {
+        var toast = document.getElementById("toast");
+        toast.textContent = msg;
+        toast.className = "toast show " + (type || "success");
+        setTimeout(function() {
+          toast.className = "toast";
+        }, 3500);
+      }
+
+      // ===== Init =====
+      loadConfig();
+    </script>
+    <script src="js/nav.js"></script>
+    <div id="zp-footer"></div>
+    <script src="assets/footer-loader.js"></script>
+    <script src="js/footer.js"></script>
+  </body>
+</html>

@@ -131,7 +131,10 @@ app.use("/admin.html", (req, res, next) => {
 });
 
 // 靜態檔案服務 - 直接 serve ZenPass 前台和管理後台
-app.use(express.static(path.join(__dirname, "../../frontend")));
+// Serve static files from project root (contains all pages)
+app.use(express.static(path.join(__dirname, "../..")));
+// Also serve frontend/ for admin-internal pages
+app.use("/admin", express.static(path.join(__dirname, "../../frontend/admin")));
 // admin files served from frontend/admin/ via root static middleware
 app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 

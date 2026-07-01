@@ -1,0 +1,322 @@
+<!doctype html>
+<html lang="zh-HK">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" href="favicon.png" type="image/png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="theme-color" content="#f06030" />
+    <script src="config.js"></script>
+    <script defer src="api.js?v=2"></script>
+    <link rel="stylesheet" href="css/zenpass.css?v=2" />
+    <!-- Google tag (gtag.js) - GA4 -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-MKF5N4YLBM"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag() { dataLayer.push(arguments); }
+      gtag("js", new Date());
+      gtag("config", "G-MKF5N4YLBM");
+    </script>
+    <!-- SEO -->
+    <title>註冊 ZenPass 帳戶 — ZenPass 禪流</title>
+    <meta name="description" content="註冊 ZenPass 帳戶，開始你的運動之旅。">
+    <meta property="og:title" content="註冊 — ZenPass 禪流">
+    <meta property="og:description" content="註冊 ZenPass 帳戶，開始你的運動之旅。">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="ZenPass 禪流">
+    <meta name="twitter:card" content="summary_large_image">
+    <style>
+      body.auth-page {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        background: linear-gradient(135deg, var(--gray-50) 0%, #fef2ec 100%);
+      }
+      html.dark body.auth-page {
+        background: linear-gradient(135deg, #0f0f13 0%, #1a1410 100%);
+      }
+      .auth-card {
+        width: 100%;
+        max-width: 440px;
+        background: rgba(255,255,255,0.75);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border: 1px solid rgba(255,255,255,0.4);
+        border-radius: 24px;
+        padding: 32px 24px;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.08);
+      }
+      html.dark .auth-card {
+        background: rgba(24,24,27,0.8);
+        border-color: rgba(255,255,255,0.08);
+        box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+      }
+      .auth-logo { text-align: center; margin-bottom: 24px; }
+      .auth-logo .icon { font-size: 48px; }
+      .auth-logo h1 { font-size: 22px; font-weight: 800; margin-top: 8px; }
+      .auth-logo p { font-size: 13px; color: var(--dark-700); margin-top: 4px; }
+      .auth-tabs {
+        display: flex;
+        gap: 0;
+        margin-bottom: 24px;
+        background: var(--gray-100);
+        border-radius: 12px;
+        padding: 4px;
+      }
+      html.dark .auth-tabs { background: rgba(255,255,255,0.06); }
+      .auth-tab {
+        flex: 1;
+        padding: 10px;
+        text-align: center;
+        border: none;
+        border-radius: 10px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        background: transparent;
+        color: var(--dark-700);
+        font-family: var(--font-zh);
+        transition: all 0.2s;
+      }
+      .auth-tab.active {
+        background: var(--white);
+        color: var(--orange-700);
+        box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      }
+      html.dark .auth-tab.active {
+        background: var(--dark-800);
+        color: var(--orange-400);
+      }
+      .form-group { margin-bottom: 14px; }
+      .form-group label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 4px; color: var(--dark-700); }
+      .form-group input {
+        width: 100%; padding: 12px; border: 1px solid var(--gray-200);
+        border-radius: 12px; font-size: 15px; font-family: var(--font-zh);
+        background: var(--white); transition: border 0.2s;
+      }
+      .form-group input:focus { outline: none; border-color: var(--orange-700); box-shadow: 0 0 0 3px rgba(192,68,32,0.1); }
+      html.dark .form-group input { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.1); color: var(--white); }
+      .btn {
+        width: 100%; padding: 14px; border: none; border-radius: 12px;
+        font-size: 16px; font-weight: 700; cursor: pointer; font-family: var(--font-zh);
+        transition: all 0.2s;
+      }
+      .btn-primary { background: var(--orange-600-bg); color: var(--white); }
+      .btn-primary:hover { background: #e55a2b; }
+      .btn-primary:disabled { background: var(--gray-200); cursor: not-allowed; }
+      .msg { font-size: 13px; margin-top: 8px; padding: 10px; border-radius: 10px; display: none; }
+      .msg.error { display: block; background: #fef2f2; color: var(--red-500); }
+      .msg.success { display: block; background: #ecfdf5; color: var(--green-500); }
+      .msg.info { display: block; background: #eff6ff; color: var(--blue-500); }
+      .divider {
+        display: flex; align-items: center; gap: 12px; margin: 20px 0;
+        color: var(--dark-700); font-size: 12px;
+      }
+      .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: var(--gray-200); }
+      .social-btn {
+        display: flex; align-items: center; justify-content: center; gap: 8px;
+        width: 100%; padding: 12px; border: 1px solid var(--gray-200); border-radius: 12px;
+        background: var(--white); font-size: 14px; font-weight: 600; cursor: pointer;
+        font-family: var(--font-zh); transition: all 0.2s; text-decoration: none; color: var(--dark-900);
+      }
+      .social-btn:hover { background: var(--gray-50); border-color: var(--gray-300); }
+      html.dark .social-btn { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.1); color: var(--white); }
+      html.dark .social-btn:hover { background: rgba(255,255,255,0.1); }
+      .social-btn + .social-btn { margin-top: 10px; }
+      .terms-text { text-align: center; font-size: 11px; color: var(--dark-700); margin-top: 16px; line-height: 1.6; }
+      .terms-text a { color: var(--orange-700); text-decoration: none; }
+      .terms-text a:hover { text-decoration: underline; }
+      @keyframes spin { to { transform: rotate(360deg); } }
+      .spinner {
+        display: inline-block; width: 18px; height: 18px;
+        border: 2px solid rgba(255,255,255,0.3); border-top-color: white;
+        border-radius: 50%; animation: spin 0.8s linear infinite;
+        vertical-align: middle; margin-right: 8px;
+      }
+    </style>
+  </head>
+  <body class="auth-page">
+    <div class="auth-card">
+      <div class="auth-logo">
+        <div class="icon">🧘</div>
+        <h1>註冊 ZenPass 帳戶</h1>
+        <p>一個Pass，通行全城運動體驗</p>
+      </div>
+
+      <!-- Tabs -->
+      <div class="auth-tabs">
+        <button class="auth-tab active" onclick="switchTab('signup')">註冊</button>
+        <button class="auth-tab" onclick="switchTab('login')">登入</button>
+      </div>
+
+      <!-- Signup Form -->
+      <form id="signup-form" onsubmit="return handleSignup(event)">
+        <div class="form-group">
+          <label>姓名 *</label>
+          <input type="text" id="signup-name" placeholder="你的姓名" required />
+        </div>
+        <div class="form-group">
+          <label>電郵 *</label>
+          <input type="email" id="signup-email" placeholder="your@email.com" required />
+        </div>
+        <div class="form-group">
+          <label>密碼 *</label>
+          <input type="password" id="signup-password" placeholder="至少 6 個字元" minlength="6" required />
+        </div>
+        <div class="form-group">
+          <label>確認密碼 *</label>
+          <input type="password" id="signup-confirm" placeholder="再次輸入密碼" required />
+        </div>
+        <div class="form-group">
+          <label>電話（可選）</label>
+          <input type="tel" id="signup-phone" placeholder="+852 9123 4567" />
+        </div>
+        <button type="submit" class="btn btn-primary" id="signup-btn">
+          註冊帳戶
+        </button>
+        <div class="msg" id="signup-msg"></div>
+      </form>
+
+      <div class="divider">或</div>
+
+      <!-- Google Sign In -->
+      <div id="g_id_onload"
+           data-client_id="YOUR_GOOGLE_CLIENT_ID"
+           data-context="signup"
+           data-ux_mode="popup"
+           data-callback="handleGoogleSignIn"
+           data-auto_prompt="false">
+      </div>
+      <div class="g_id_signin social-btn" style="cursor:pointer" onclick="handleGoogleSignUp()">
+        <span style="font-size:18px">G</span> 使用 Google 註冊
+      </div>
+
+      <div class="terms-text">
+        註冊即表示同意 <a href="terms.html">服務條款</a> 及 <a href="privacy.html">私隱政策</a>
+      </div>
+    </div>
+
+    <script>
+      var API_BASE = window.API_BASE || '';
+
+      function switchTab(tab) {
+        var tabs = document.querySelectorAll('.auth-tab');
+        tabs.forEach(function(t) { t.classList.remove('active'); });
+        if (tab === 'login') {
+          window.location.href = 'login.html';
+        } else {
+          tabs[0].classList.add('active');
+        }
+      }
+
+      function setMsg(text, type) {
+        var el = document.getElementById('signup-msg');
+        el.textContent = text;
+        el.className = 'msg ' + type;
+      }
+
+      async function handleSignup(e) {
+        e.preventDefault();
+        var name = document.getElementById('signup-name').value.trim();
+        var email = document.getElementById('signup-email').value.trim();
+        var password = document.getElementById('signup-password').value;
+        var confirm = document.getElementById('signup-confirm').value;
+        var phone = document.getElementById('signup-phone').value.trim();
+
+        if (!name || !email || !password) {
+          setMsg('請填寫所有必需欄位', 'error');
+          return;
+        }
+        if (password.length < 6) {
+          setMsg('密碼至少需要 6 個字元', 'error');
+          return;
+        }
+        if (password !== confirm) {
+          setMsg('兩次輸入的密碼不一致', 'error');
+          return;
+        }
+
+        var btn = document.getElementById('signup-btn');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner"></span> 註冊中...';
+
+        try {
+          var resp = await fetch(API_BASE + '/auth/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: name, email: email, password: password, phone: phone || null })
+          });
+          var data = await resp.json();
+
+          if (!resp.ok) {
+            setMsg('❌ ' + (data.error || '註冊失敗'), 'error');
+            btn.disabled = false;
+            btn.textContent = '註冊帳戶';
+            return;
+          }
+
+          // Save token & user (dual mode: backend also sets HTTP-only cookie)
+          if (data.token) {
+            localStorage.setItem('zenpass_token', data.token);
+            localStorage.setItem('token', data.token);
+          }
+          if (data.user) {
+            localStorage.setItem('zenpass_user', JSON.stringify(data.user));
+          }
+
+          // Redirect to onboarding (cookie auth will work on next page load)
+          window.location.href = 'onboarding.html';
+        } catch (e) {
+          setMsg('❌ 網絡錯誤，請稍後再試', 'error');
+          btn.disabled = false;
+          btn.textContent = '註冊帳戶';
+        }
+      }
+
+      function handleGoogleSignUp() {
+        // Trigger Google One Tap if available
+        if (window.google && google.accounts && google.accounts.id) {
+          google.accounts.id.prompt();
+        } else {
+          // Fallback: redirect to login with signup hint
+          window.location.href = 'login.html?signup=google';
+        }
+      }
+
+      function handleGoogleSignIn(response) {
+        // Forward google credential to /api/auth/social
+        if (response && response.credential) {
+          (async function() {
+            try {
+              var resp = await fetch(API_BASE + '/auth/social', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ provider: 'google', providerToken: response.credential })
+              });
+              var data = await resp.json();
+              if (resp.ok) {
+                // Dual mode: backend also sets HTTP-only cookie
+                if (data.token) {
+                  localStorage.setItem('zenpass_token', data.token);
+                  localStorage.setItem('token', data.token);
+                }
+                if (data.user) localStorage.setItem('zenpass_user', JSON.stringify(data.user));
+                window.location.href = 'onboarding.html';
+              } else {
+                setMsg('❌ ' + (data.error || 'Google 登入失敗'), 'error');
+              }
+            } catch(e) {
+              setMsg('❌ 網絡錯誤', 'error');
+            }
+          })();
+        }
+      }
+    </script>
+    <!-- Google Identity Services -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script src="js/nav.js"></script>
+    <script src="js/footer.js"></script>
+  </body>
+</html>
