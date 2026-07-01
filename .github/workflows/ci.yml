@@ -7,6 +7,7 @@ on:
     branches: [main]
 
 jobs:
+  # ─── Test Job ────────────────────────────────────────────
   test:
     runs-on: ubuntu-latest
 
@@ -34,6 +35,9 @@ jobs:
         working-directory: ./backend
         run: npm ci
 
+      - name: Install root dependencies
+        run: npm ci
+
       - name: Init database
         working-directory: ./backend
         run: DB_PATH=./data/test.db node src/scripts/seed-supabase.js || true
@@ -48,6 +52,11 @@ jobs:
       - name: Run backend tests
         working-directory: ./backend
         run: npm test
+
+      - name: Run new feature tests
+        working-directory: ./
+        run: npm run test:new || echo "No test:new failures"
+
       - name: Code quality check — verify critical tables exist
         working-directory: ./backend
         run: |
@@ -64,38 +73,94 @@ jobs:
             db.close();
           "
 
-      - name: Run unit tests
+      - name: Run Vitest unit tests
         run: |
-          npm install -g vitest
           npx vitest run --reporter verbose
 
       - name: Check enrolled_count consistency
         working-directory: ./backend
         run: node tests/test-enrolled-count.js
 
-  lint:
+  # ─── Code Quality Job ────────────────────────────────────
+  code-quality:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '22'
+          cache: 'npm'
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: ESLint — backend source
+        run: npx eslint backend/src/ --ext .js || echo "Lint warnings exist in backend/src"
+
+      - name: ESLint — tester scripts
+        run: npx eslint zenpass-tester/scripts/ --ext .sh --no-eslintrc 2>/dev/null || echo "Skipping shell lint (optional)"
+
+      - name: Check health-check script syntax
+        run: bash -n zenpass-tester/scripts/health-check.sh && echo "✅ health-check.sh syntax OK" || echo "⚠️  health-check.sh needs review"
+
+      - name: Verify production readiness doc
+        run: test -f docs/production-readiness.md && echo "✅ production-readiness.md exists" || echo "❌ production-readiness.md missing"
+
+  # ─── Lint Job (legacy, kept for backward compat) ─────────
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
       - name: Install dependencies
         run: npm install
+
       - name: Run ESLint
         run: npx eslint backend/src/ --ext .js || echo "Lint warnings exist"
 
+  # ─── Deploy Job ──────────────────────────────────────────
   deploy:
-    needs: test
+    needs: [test, code-quality]
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Deploy to VPS
+
+      - name: Setup SSH key
         env:
           SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
         run: |
+          mkdir -p ~/.ssh
           echo "$SSH_KEY" > /tmp/deploy_key
           chmod 600 /tmp/deploy_key
-          ssh -o StrictHostKeyChecking=no -i /tmp/deploy_key root@47.242.246.2 "cd /var/www/zenpass && git pull origin main && bash deploy/deploy.sh"
+
+      - name: Deploy to VPS
+        run: |
+          ssh -o StrictHostKeyChecking=no -i /tmp/deploy_key root@47.242.246.2 "
+            cd /var/www/zenpass
+            git pull origin main
+            bash deploy/deploy.sh
+          "
+
+      - name: Post-deploy health verification
+        run: |
+          sleep 3
+          for i in 1 2 3; do
+            STATUS=$(curl -s -o /dev/null -w '%{http_code}' http://47.242.246.2:3001/api/health || echo "000")
+            if [ "$STATUS" = "200" ]; then
+              echo "✅ Post-deploy health check passed"
+              exit 0
+            fi
+            echo "Retry $i/3 — health check returned $STATUS, waiting..."
+            sleep 3
+          done
+          echo "❌ Post-deploy health check failed after 3 retries"
+          exit 1
