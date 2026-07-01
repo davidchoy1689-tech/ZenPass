@@ -949,6 +949,9 @@
         <a class="nav-item" data-tab="pricing" role="button" tabindex="0"
           ><span class="icon">💰</span><span>定價設定</span></a
         >
+        <a class="nav-item" data-tab="dynamic-pricing" role="button" tabindex="0"
+          ><span class="icon">📊</span><span>動態定價</span></a
+        >
         <a class="nav-item" data-tab="penalty" role="button" tabindex="0"
           ><span class="icon">⚠️</span><span>缺席罰款</span></a
         >
@@ -1531,6 +1534,9 @@ async function topupCorporateCredits(id) {
             break;
           case "pricing":
             loadPricingSettings();
+            break;
+          case "dynamic-pricing":
+            loadDynamicPricingRules();
             break;
         }
       }
@@ -4436,6 +4442,184 @@ function apiPost(path, body) {
           }
         } catch (e) {
           showToast("❌ 網絡錯誤", "error");
+        }
+      }
+
+      // ===== 📊 動態定價規則管理 =====
+      async function loadDynamicPricingRules() {
+        var main = document.getElementById("mainContent");
+        main.innerHTML = '<div class="loading-spinner">載入中...</div>';
+
+        try {
+          var d = await apiGet("/pricing/rules");
+          var rules = d.rules || [];
+          
+          var html = '';
+          html += '<div class="top-bar"><div><h1>📊 動態定價規則</h1><div class="sub">管理 Dynamic Pricing Engine 規則</div></div></div>';
+          html += '<div id="dynamic-pricing-form">';
+          html += '<div class="card" style="margin-bottom:16px"><div class="card-header" style="font-weight:700;font-size:15px;padding:12px 16px;border-bottom:1px solid var(--gray-200)">定價規則列表</div><div style="padding:12px 16px">';
+          
+          if (rules.length === 0) {
+            html += '<div class="empty" style="padding:20px;text-align:center;color:var(--dark-700)">暫無定價規則，使用預設值</div>';
+          } else {
+            html += '<div id="rules-container">';
+            for (var i = 0; i < rules.length; i++) {
+              var r = rules[i];
+              html += renderRuleCard(r, i);
+            }
+            html += '</div>';
+          }
+          
+          html += '</div></div>';
+          html += '<div style="display:flex;gap:12px;flex-wrap:wrap">';
+          html += '<button class="btn btn-secondary" onclick="addNewRule()">➕ 新增規則</button>';
+          html += '<button class="btn-primary" onclick="saveDynamicRules()">💾 儲存所有規則</button>';
+          html += '<button class="btn btn-secondary" onclick="resetDynamicRules()">🔄 重置預設</button>';
+          html += '</div>';
+          html += '</div>';
+          
+          main.innerHTML = html;
+        } catch (e) {
+          main.innerHTML = '<div class="empty" style="padding:40px;text-align:center;color:#ef4444">❌ 載入動態定價規則失敗</div>';
+        }
+      }
+
+      function renderRuleCard(rule, idx) {
+        var typeLabels = { time: '⏰ 時段', occupancy: '📈 滿座率', early_bird: '🐦 早鳥', last_minute: '⚡ 最後一刻' };
+        var label = typeLabels[rule.type] || rule.type;
+        var pct = rule.multiplier < 1 
+          ? '<span style="color:var(--green-600)">-' + Math.round((1 - rule.multiplier) * 100) + '%</span>'
+          : '<span style="color:var(--red-500)">+' + Math.round((rule.multiplier - 1) * 100) + '%</span>';
+        
+        return '<div class="rule-card" data-idx="' + idx + '" style="border:1px solid var(--gray-200);border-radius:12px;padding:12px;margin-bottom:10px;background:var(--white);">' +
+          '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">' +
+          '<div><strong>' + label + '</strong> <span>' + pct + '</span></div>' +
+          '<div>' +
+          '<button class="btn-icon" onclick="removeRule(' + idx + ')" title="刪除" style="color:var(--red-500);border:none;background:none;cursor:pointer;font-size:16px;">🗑️</button>' +
+          '</div></div>' +
+          '<div style="display:flex;flex-wrap:wrap;gap:8px;">' +
+          '<input type="hidden" class="rule-id" value="' + (rule.id || 'rule_' + idx) + '" />' +
+          '<label style="font-size:11px;flex:1;min-width:120px;">名稱<br><input type="text" class="rule-label" value="' + escape(rule.label || '') + '" style="width:100%;padding:4px 8px;border:1px solid var(--gray-200);border-radius:4px;font-size:12px;" /></label>' +
+          '<label style="font-size:11px;width:100px;">類型<br><select class="rule-type" style="width:100%;padding:4px;border:1px solid var(--gray-200);border-radius:4px;font-size:12px;">' +
+          '<option value="time"' + (rule.type === 'time' ? ' selected' : '') + '>⏰ 時段</option>' +
+          '<option value="occupancy"' + (rule.type === 'occupancy' ? ' selected' : '') + '>📈 滿座率</option>' +
+          '<option value="early_bird"' + (rule.type === 'early_bird' ? ' selected' : '') + '>🐦 早鳥</option>' +
+          '<option value="last_minute"' + (rule.type === 'last_minute' ? ' selected' : '') + '>⚡ 最後一刻</option>' +
+          '</select></label>' +
+          '<label style="font-size:11px;width:80px;">倍率<br><input type="number" step="0.01" class="rule-multiplier" value="' + rule.multiplier + '" style="width:100%;padding:4px 8px;border:1px solid var(--gray-200);border-radius:4px;font-size:12px;" /></label>' +
+          '<label style="font-size:11px;display:flex;align-items:center;gap:4px;">啟用<br><input type="checkbox" class="rule-active" ' + (rule.active !== false ? 'checked' : '') + ' style="width:18px;height:18px;" /></label>' +
+          '</div>' +
+          (rule.type === 'time' ? '<div style="margin-top:8px;font-size:11px;color:var(--dark-700);">💡 提示：days=[0(日),6(六)], hours=[開始,結束] — 可喺進階編輯修改 JSON</div>' : '') +
+          '<div style="margin-top:6px;"><details><summary style="font-size:11px;color:var(--dark-700);cursor:pointer;">進階 (JSON)</summary>' +
+          '<textarea class="rule-json" rows="4" style="width:100%;padding:6px;border:1px solid var(--gray-200);border-radius:6px;font-size:11px;font-family:monospace;margin-top:4px;">' + escape(JSON.stringify(rule, null, 2)) + '</textarea></details></div>' +
+          '</div>';
+      }
+
+      function addNewRule() {
+        var container = document.getElementById('rules-container');
+        if (!container) {
+          // Create container if it doesn't exist
+          var card = document.querySelector('#dynamic-pricing-form .card');
+          if (card) {
+            container = document.createElement('div');
+            container.id = 'rules-container';
+            card.querySelector('div[style]').appendChild(container);
+          } else {
+            return;
+          }
+        }
+        var idx = container.children.length;
+        var defaultRule = { id: 'custom_' + Date.now(), type: 'time', days: [0,6], hours: [9,12], multiplier: 0.85, label: '自訂規則', active: true };
+        var div = document.createElement('div');
+        div.innerHTML = renderRuleCard(defaultRule, idx);
+        container.appendChild(div.firstElementChild || div);
+        showToast('✅ 已新增規則', 'success');
+      }
+
+      function removeRule(idx) {
+        var container = document.getElementById('rules-container');
+        if (!container) return;
+        var cards = container.querySelectorAll('.rule-card');
+        if (cards[idx]) {
+          cards[idx].remove();
+          showToast('已刪除規則', 'info');
+        }
+      }
+
+      async function saveDynamicRules() {
+        var container = document.getElementById('rules-container');
+        if (!container) { showToast('❌ 冇規則需要儲存', 'warning'); return; }
+        
+        var cards = container.querySelectorAll('.rule-card');
+        var rules = [];
+        
+        cards.forEach(function(card) {
+          // Try JSON first (advanced mode)
+          var jsonEl = card.querySelector('.rule-json');
+          if (jsonEl && jsonEl.value.trim()) {
+            try {
+              var parsed = JSON.parse(jsonEl.value.trim());
+              rules.push(parsed);
+              return;
+            } catch (e) { /* fall through to form fields */ }
+          }
+          
+          var id = card.querySelector('.rule-id')?.value || 'rule_' + Date.now();
+          var label = card.querySelector('.rule-label')?.value || '';
+          var type = card.querySelector('.rule-type')?.value || 'time';
+          var multiplier = parseFloat(card.querySelector('.rule-multiplier')?.value) || 1;
+          var active = card.querySelector('.rule-active')?.checked !== false;
+          
+          var rule = { id: id, type: type, multiplier: multiplier, label: label, active: active };
+          
+          // Set type-specific defaults
+          if (type === 'time') { rule.days = [0,6]; rule.hours = [9,12]; }
+          else if (type === 'occupancy') { rule.min = 0.8; }
+          else if (type === 'early_bird') { rule.days_before = 7; }
+          else if (type === 'last_minute') { rule.hours_before = 2; }
+          
+          rules.push(rule);
+        });
+        
+        if (rules.length === 0) {
+          showToast('❌ 請至少保留一條規則', 'warning');
+          return;
+        }
+        
+        try {
+          var resp = await fetch(API_BASE + '/pricing/rules', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + getToken() },
+            body: JSON.stringify({ rules: rules }),
+          });
+          var data = await resp.json();
+          if (data.success) {
+            showToast('✅ ' + (data.message || '已儲存規則'), 'success');
+            loadDynamicPricingRules();
+          } else {
+            showToast('❌ ' + (data.error || '儲存失敗'), 'error');
+          }
+        } catch (e) {
+          showToast('❌ 網絡錯誤: ' + e.message, 'error');
+        }
+      }
+
+      async function resetDynamicRules() {
+        if (!confirm('確定重置為預設定價規則？')) return;
+        try {
+          var resp = await fetch(API_BASE + '/pricing/rules/reset', {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + getToken() },
+          });
+          var data = await resp.json();
+          if (data.success) {
+            showToast('✅ ' + (data.message || '已重置'), 'success');
+            loadDynamicPricingRules();
+          } else {
+            showToast('❌ ' + (data.error || '重置失敗'), 'error');
+          }
+        } catch (e) {
+          showToast('❌ 網絡錯誤: ' + e.message, 'error');
         }
       }
 

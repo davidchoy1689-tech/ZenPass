@@ -3,18 +3,178 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5" />
-    
     <link rel="icon" type="image/png" href="icons/icon-96.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap"
-      rel="stylesheet"
-    />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="css/zenpass.css?v=2" />
-    
+    <meta name="theme-color" content="#f06030" />
+    <script>
+      window.ZENPASS_PAGE_CONFIG = { title: '我的帳戶', showBack: true };
+    </script>
+    <style>
+      .my-card { background: var(--white); border-radius: 16px; padding: 20px; margin-bottom: 12px; box-shadow: var(--shadow-sm); }
+      .my-card h3 { font-size: 15px; font-weight: 600; margin: 0 0 12px; display: flex; align-items: center; gap: 6px; }
+      .my-link { display: flex; align-items: center; gap: 12px; padding: 14px 0; border-bottom: 1px solid var(--gray-100); cursor: pointer; text-decoration: none; color: inherit; }
+      .my-link:last-child { border-bottom: none; }
+      .my-link-icon { font-size: 24px; width: 36px; text-align: center; }
+      .my-link-text { flex: 1; font-size: 14px; font-weight: 500; }
+      .my-link-arrow { color: var(--gray-400); font-size: 16px; }
+      .my-link:hover .my-link-text { color: var(--orange-700); }
 
-    
-      <script src="js/nav.js"></script>
-<script src="js/footer.js"></script>
-</body>
+      .tier-badge-lg { display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 30px; font-size: 15px; font-weight: 700; }
+      .tier-bronze { background: #fef3c7; color: #92400e; }
+      .tier-silver { background: #f1f5f9; color: #334155; }
+      .tier-gold { background: #fef9c3; color: #854d0e; }
+      .tier-vip { background: #ede9fe; color: #5b21b6; }
+
+      .benefit-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; font-size: 13px; border-bottom: 1px solid var(--gray-50); }
+      .benefit-item:last-child { border-bottom: none; }
+      .benefit-icon { font-size: 18px; }
+
+      .tier-progress { margin: 16px 0 0; }
+      .tier-progress-bar { height: 8px; background: var(--gray-200); border-radius: 10px; overflow: hidden; margin-bottom: 4px; }
+      .tier-progress-fill { height: 100%; border-radius: 10px; transition: width 0.6s ease; }
+      .tier-progress-fill.bronze { background: #d97706; }
+      .tier-progress-fill.silver { background: #94a3b8; }
+      .tier-progress-fill.gold { background: #f59e0b; }
+      .tier-progress-fill.vip { background: #8b5cf6; }
+      .tier-progress-labels { display: flex; justify-content: space-between; font-size: 11px; color: var(--dark-700); }
+    </style>
+  </head>
+  <body>
+    <div class="max-w-lg" style="max-width: 600px; margin: 0 auto; padding: 80px 16px 100px;">
+      <div id="my-content">
+        <div id="loading-state" style="text-align: center; padding: 60px 20px;">
+          <div class="loading-spinner"></div>
+          <p style="color: var(--dark-700); margin-top: 12px;">載入中...</p>
+        </div>
+      </div>
+    </div>
+    <script src="api.js"></script>
+    <script src="js/nav.js"></script>
+    <script src="js/footer.js"></script>
+    <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        loadMyPage();
+      });
+
+      function getAuthHeaders() {
+        var token = getToken();
+        return token ? { 'Authorization': 'Bearer ' + token } : {};
+      }
+
+      async function loadMyPage() {
+        var container = document.getElementById('my-content');
+        var user = getStoredUser();
+
+        if (!isLoggedIn()) {
+          container.innerHTML = '<div class="my-card" style="text-align:center;padding:40px 20px;"><div style="font-size:48px;margin-bottom:12px;">🔒</div><h3>請先登入</h3><p style="color:var(--dark-700);font-size:14px;">登入後即可查看帳戶資料</p><a href="login.html" class="zen-btn zen-btn-primary" style="display:inline-block;margin-top:12px;">登入</a></div>';
+          return;
+        }
+
+        var name = user ? user.name || 'User' : 'User';
+        var avatar = user ? user.avatar || '👤' : '👤';
+        var email = user ? user.email || '' : '';
+        var credits = user ? user.credits || 0 : 0;
+
+        // 加載 Loyalty Tier 資訊
+        var tierInfo = null;
+        try {
+          var tierResp = await fetch(API_BASE + '/loyalty/my', { headers: getAuthHeaders() });
+          if (tierResp.ok) tierInfo = await tierResp.json();
+        } catch (e) { /* silent */ }
+
+        var tier = tierInfo ? tierInfo.current_tier : 'bronze';
+        var tierIcon = tierInfo?.current_tier_info?.icon || '🥉';
+        var tierName = tierInfo?.current_tier_info?.name || '銅牌';
+        var tierBenefits = tierInfo?.benefits || [];
+        var nextTier = tierInfo?.next_tier_info || null;
+        var progressPct = tierInfo?.progress_percent || 0;
+        var bookingCount = tierInfo?.booking_count || 0;
+
+        // Build tier badge HTML
+        var tierBadgeClass = 'tier-badge-lg tier-' + tier;
+        var tierHtml = '<div class="my-card" style="text-align:center;">' +
+          '<div class="' + tierBadgeClass + '" style="margin-bottom:12px;">' + tierIcon + ' ' + tierName + '</div>' +
+          '<p style="font-size:13px;color:var(--dark-700);margin:0 0 4px;">本月已預約 ' + bookingCount + ' 次</p>';
+
+        // Progress bar to next tier
+        if (nextTier) {
+          var nextIcon = tier === 'vip' ? '👑' : nextTier.icon;
+          var nextName = tier === 'vip' ? '（已達最高等級）' : nextTier.name;
+          if (tier !== 'vip') {
+            tierHtml += '<div class="tier-progress">' +
+              '<div class="tier-progress-bar"><div class="tier-progress-fill ' + tier + '" style="width:' + progressPct + '%;"></div></div>' +
+              '<div class="tier-progress-labels">' +
+              '<span>' + tierIcon + ' ' + tierName + '</span>' +
+              '<span>' + nextIcon + ' ' + nextName + '</span>' +
+              '</div></div>';
+          }
+        }
+        tierHtml += '</div>';
+
+        // Benefits checklist
+        var benefitsHtml = '<div class="my-card"><h3>🎁 會員權益</h3>';
+        if (tierBenefits.length > 0) {
+          for (var i = 0; i < tierBenefits.length; i++) {
+            var b = tierBenefits[i];
+            benefitsHtml += '<div class="benefit-item"><span class="benefit-icon">' + (b.icon || '✅') + '</span><span>' + (b.text || '') + '</span></div>';
+          }
+        } else {
+          benefitsHtml += '<p style="font-size:13px;color:var(--dark-700);">預約更多課程解鎖更高權益！</p>';
+        }
+        benefitsHtml += '</div>';
+
+        // Navigation links
+        var linksHtml = '<div class="my-card">' +
+          '<a href="my-bookings.html" class="my-link"><span class="my-link-icon">📅</span><span class="my-link-text">我的預約</span><span class="my-link-arrow">›</span></a>' +
+          '<a href="my-membership.html" class="my-link"><span class="my-link-icon">⭐</span><span class="my-link-text">我的會籍</span><span class="my-link-arrow">›</span></a>' +
+          '<a href="wallet.html" class="my-link"><span class="my-link-icon">💳</span><span class="my-link-text">錢包</span><span class="my-link-arrow">›</span></a>' +
+          '<a href="buy-credits.html" class="my-link"><span class="my-link-icon">💰</span><span class="my-link-text">購買 Credits</span><span class="my-link-arrow">›</span></a>' +
+          '<a href="points.html" class="my-link"><span class="my-link-icon">🏆</span><span class="my-link-text">積分中心</span><span class="my-link-arrow">›</span></a>' +
+          '<a href="badges.html" class="my-link"><span class="my-link-icon">🎖️</span><span class="my-link-text">勳章</span><span class="my-link-arrow">›</span></a>' +
+          '<a href="referral.html" class="my-link"><span class="my-link-icon">🤝</span><span class="my-link-text">推薦朋友</span><span class="my-link-arrow">›</span></a>' +
+          '<a href="notifications.html" class="my-link"><span class="my-link-icon">🔔</span><span class="my-link-text">通知設定</span><span class="my-link-arrow">›</span></a>' +
+          '<a href="profile.html" class="my-link"><span class="my-link-icon">✏️</span><span class="my-link-text">編輯個人資料</span><span class="my-link-arrow">›</span></a>' +
+          '<a href="membership.html" class="my-link"><span class="my-link-icon">📋</span><span class="my-link-text">會員計劃條款</span><span class="my-link-arrow">›</span></a>' +
+          '</div>';
+
+        container.innerHTML =
+          '<div class="my-card" style="display:flex;align-items:center;gap:16px;">' +
+          '<div style="font-size:48px;">' + avatar + '</div>' +
+          '<div><div style="font-size:18px;font-weight:700;">' + name + '</div>' +
+          (email ? '<div style="font-size:13px;color:var(--dark-700);">' + email + '</div>' : '') +
+          '<div style="font-size:13px;color:var(--dark-700);margin-top:4px;">💎 ' + credits + ' Credits</div></div>' +
+          '</div>' +
+          tierHtml +
+          benefitsHtml +
+          linksHtml;
+
+        // Refresh button
+        if (tierInfo) {
+          container.innerHTML += '<div style="text-align:center;padding:8px;">' +
+            '<button onclick="refreshLoyalty()" class="zen-btn zen-btn-ghost" style="font-size:12px;">🔄 更新忠誠度等級</button>' +
+            '</div>';
+        }
+      }
+
+      async function refreshLoyalty() {
+        try {
+          var resp = await fetch(API_BASE + '/loyalty/refresh', {
+            method: 'POST',
+            headers: Object.assign({ 'Content-Type': 'application/json' }, getAuthHeaders()),
+          });
+          var data = await resp.json();
+          if (resp.ok) {
+            showToast('✅ ' + (data.message || '已更新'), 'success');
+            loadMyPage();
+          } else {
+            showToast('❌ ' + (data.error || '更新失敗'), 'error');
+          }
+        } catch (err) {
+          showToast('❌ ' + err.message, 'error');
+        }
+      }
+    </script>
+  </body>
 </html>

@@ -440,4 +440,194 @@ router.post("/stripe-subscribe", authenticateToken, async (req, res) => {
   }
 });
 
+// ===== PUT /api/memberships/:id/pause — 暫停會籍 =====
+router.put("/:id/pause", authenticateToken, (req, res) => {
+  try {
+    const { pause_days, reason } = req.body;
+    const days = Math.min(Math.max(parseInt(pause_days) || 14, 1), 30);
+
+    const db = getDb();
+    db.pragma("foreign_keys = ON");
+
+    const membership = db
+      .prepare("SELECT * FROM memberships WHERE id = ? AND user_id = ?")
+      .get(req.params.id, req.user.id);
+
+    if (!membership) {
+      return res.status(404).json({ success: false, error: "會籍不存在" });
+    }
+    if (membership.status !== "active") {
+      return res.status(400).json({ success: false, error: "會籍唔係 active 狀態" });
+    }
+    if (membership.paused_until) {
+      const pausedEnd = new Date(membership.paused_until);
+      if (pausedEnd > new Date()) {
+        return res.status(400).json({ success: false, error: "會籍已經暫停緊" });
+      }
+    }
+    if ((membership.pause_count || 0) >= 3) {
+      return res.status(400).json({ success: false, error: "已達到最大暫停次數 (3次)" });
+    }
+
+    const pausedUntil = new Date(Date.now() + days * 86400000).toISOString();
+
+    // 延長 membership expiry（暫停日數順延）
+    const currentEnd = new Date(membership.end_date);
+    const newEnd = new Date(currentEnd.getTime() + days * 86400000).toISOString();
+
+    db.prepare(
+      `UPDATE memberships SET paused_until = ?, pause_count = COALESCE(pause_count, 0) + 1, pause_reason = ?, end_date = ?, updated_at = datetime('now') WHERE id = ?`
+    ).run(pausedUntil, reason || null, newEnd, req.params.id);
+
+    // ⛓️ Blockchain audit trail
+    try {
+      const { writeBlock } = require("../services/blockchain-audit");
+      writeBlock({
+        entityType: "membership",
+        entityId: membership.id,
+        data: {
+          userId: req.user.id,
+          pause_days: days,
+          reason: reason || null,
+          paused_until: pausedUntil,
+          original_end: membership.end_date,
+          new_end: newEnd,
+          pause_count: (membership.pause_count || 0) + 1,
+          action: "pause",
+        },
+      });
+    } catch (blockErr) {
+      console.error("[BLOCKCHAIN] Failed to write pause block:", blockErr.message);
+    }
+
+    res.json({
+      message: `⏸️ 會籍已暫停 ${days} 日，將於 ${new Date(pausedUntil).toLocaleDateString("zh-HK")} 自動恢復`,
+      paused_until: pausedUntil,
+      new_end_date: newEnd,
+      pause_count: (membership.pause_count || 0) + 1,
+    });
+  } catch (err) {
+    console.error("暫停會籍錯誤:", err);
+    res.status(500).json({ success: false, error: "暫停會籍失敗" });
+  }
+});
+
+// ===== PUT /api/memberships/:id/resume — 恢復會籍 =====
+router.put("/:id/resume", authenticateToken, (req, res) => {
+  try {
+    const db = getDb();
+    db.pragma("foreign_keys = ON");
+
+    const membership = db
+      .prepare("SELECT * FROM memberships WHERE id = ? AND user_id = ?")
+      .get(req.params.id, req.user.id);
+
+    if (!membership) {
+      return res.status(404).json({ success: false, error: "會籍不存在" });
+    }
+    if (!membership.paused_until) {
+      return res.status(400).json({ success: false, error: "會籍未暫停" });
+    }
+
+    db.prepare(
+      `UPDATE memberships SET paused_until = NULL, pause_reason = NULL, updated_at = datetime('now') WHERE id = ?`
+    ).run(req.params.id);
+
+    // ⛓️ Blockchain audit trail
+    try {
+      const { writeBlock } = require("../services/blockchain-audit");
+      writeBlock({
+        entityType: "membership",
+        entityId: membership.id,
+        data: {
+          userId: req.user.id,
+          was_paused_until: membership.paused_until,
+          pause_count: membership.pause_count || 0,
+          action: "resume",
+        },
+      });
+    } catch (blockErr) {
+      console.error("[BLOCKCHAIN] Failed to write resume block:", blockErr.message);
+    }
+
+    res.json({
+      message: "🔁 會籍已恢復！",
+      end_date: membership.end_date,
+    });
+  } catch (err) {
+    console.error("恢復會籍錯誤:", err);
+    res.status(500).json({ success: false, error: "恢復會籍失敗" });
+  }
+});
+
+// ===== GET /api/memberships/:id/pause-status — 睇 pause 狀態 =====
+router.get("/:id/pause-status", authenticateToken, (req, res) => {
+  try {
+    const db = getDb();
+    db.pragma("foreign_keys = ON");
+
+    const membership = db
+      .prepare("SELECT * FROM memberships WHERE id = ? AND user_id = ?")
+      .get(req.params.id, req.user.id);
+
+    if (!membership) {
+      return res.status(404).json({ success: false, error: "會籍不存在" });
+    }
+
+    const isPaused = membership.paused_until && new Date(membership.paused_until) > new Date();
+
+    // 計算剩餘暫停時間
+    let remainingMs = 0;
+    if (isPaused) {
+      remainingMs = new Date(membership.paused_until).getTime() - Date.now();
+    }
+
+    // Pause history: if previously paused, fetch from blockchain audit
+    const pauseHistory = [];
+    if (membership.pause_count > 0) {
+      // Get audit log entries for pause/resume of this membership
+      try {
+        const auditRows = db
+          .prepare(
+            `SELECT created_at, description, new_values FROM audit_log 
+             WHERE entity_type = 'membership' AND entity_id = ? 
+             AND (action_type = 'membership.pause' OR action_type = 'membership.resume')
+             ORDER BY created_at DESC LIMIT 10`
+          )
+          .all(req.params.id);
+        for (const row of auditRows) {
+          pauseHistory.push({
+            action: row.description?.includes("暫停") ? "pause" : "resume",
+            description: row.description,
+            timestamp: row.created_at,
+          });
+        }
+      } catch (e) {
+        // Audit log not available, provide basic info
+        pauseHistory.push({
+          action: "pause",
+          description: `暫停 (x${membership.pause_count})`,
+          timestamp: null,
+        });
+      }
+    }
+
+    res.json({
+      is_paused: !!isPaused,
+      paused_until: isPaused ? membership.paused_until : null,
+      remaining_days: isPaused ? Math.ceil(remainingMs / 86400000) : 0,
+      remaining_hours: isPaused ? Math.ceil(remainingMs / 3600000) : 0,
+      pause_count: membership.pause_count || 0,
+      max_pause_days: membership.max_pause_days || 30,
+      pause_reason: isPaused ? membership.pause_reason : null,
+      can_pause: !isPaused && (membership.pause_count || 0) < 3 && membership.status === "active",
+      can_resume: !!isPaused,
+      pause_history: pauseHistory,
+    });
+  } catch (err) {
+    console.error("查詢暫停狀態錯誤:", err);
+    res.status(500).json({ success: false, error: "無法查詢暫停狀態" });
+  }
+});
+
 module.exports = router;

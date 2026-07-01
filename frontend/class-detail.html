@@ -31,6 +31,19 @@
     
     
     
+    <!-- 📤 Share Button (fixed bottom-right, above wishlist) -->
+    <div id="share-btn-container" style="display:none;position:fixed;bottom:160px;right:16px;z-index:998">
+      <button id="shareClassBtn" onclick="shareCurrentClass()"
+        style="width:52px;height:52px;border-radius:50%;border:2px solid var(--gray-200);background:var(--light-900);font-size:24px;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,0.15);display:flex;align-items:center;justify-content:center;transition:all 0.2s"
+        title="分享課程">
+        📤
+      </button>
+    </div>
+    <style>
+      #shareClassBtn:hover { transform: scale(1.1); }
+      html.dark #shareClassBtn { background: var(--dark-800); border-color: var(--dark-700); }
+    </style>
+
     <!-- ❤️ Wishlist Button (fixed bottom-right, shown when currentClass is set) -->
     <div id="wishlist-btn-container" style="display:none;position:fixed;bottom:100px;right:16px;z-index:998">
       <button id="wishlistBtn" onclick="toggleWishlist()"
@@ -44,7 +57,31 @@
       html.dark #wishlistBtn { background: var(--dark-800); border-color: var(--dark-700); }
     </style>
     <script src="api.js"></script>
+    <!-- 🏷️ Dynamic Pricing Container -->
+    <div id="pricing-breakdown" style="display:none;max-width:600px;margin:16px auto;padding:0 16px;">
+      <div class="pricing-card" style="background:var(--white);border-radius:16px;padding:16px;box-shadow:var(--shadow-sm);">
+        <div id="pricing-header" style="margin-bottom:12px;">
+          <div style="font-size:13px;font-weight:600;color:var(--dark-700);margin-bottom:4px;">💰 價格詳情</div>
+          <div id="pricing-base" style="font-size:14px;">原價：<span id="pricing-base-amount">—</span></div>
+        </div>
+        <div id="pricing-adjustments" style="border-top:1px solid var(--gray-100);padding-top:8px;margin-top:4px;"></div>
+        <div id="pricing-total" style="border-top:2px solid var(--orange-400);padding-top:10px;margin-top:8px;display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-size:15px;font-weight:700;">最終價格</span>
+          <span id="pricing-final-amount" style="font-size:20px;font-weight:800;color:var(--orange-600);">—</span>
+        </div>
+      </div>
+    </div>
+    <style>
+      .pricing-adjustment-item { display:flex;align-items:center;gap:6px;padding:6px 0;font-size:13px;border-bottom:1px solid var(--gray-50); }
+      .pricing-adjustment-item:last-child { border-bottom:none; }
+      .pricing-discount { color:var(--green-600);font-weight:600; }
+      .pricing-surcharge { color:var(--red-500);font-weight:600; }
+      .pricing-badge { display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600; }
+      .pricing-badge-discount { background:#d1fae5;color:#065f46; }
+      .pricing-badge-surcharge { background:#fee2e2;color:#991b1b; }
+    </style>
     <script src="config.js"></script>
+    <script src="js/share.js"></script>
 
     <!-- ⭐ Rating Modal -->
     <div id="rating-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:9999;display:none;align-items:center;justify-content:center;" onclick="if(event.target===this)closeRatingModal()">
@@ -72,11 +109,23 @@
       var _currentClassId = null;
 
       /** 初始化 wishlist button — 由 class detail 頁面 load 完成後 call */
+      /** 分享目前課程 */
+      function shareCurrentClass() {
+        if (!currentClass) {
+          showToast('課程資料尚未載入', 'error');
+          return;
+        }
+        shareClass(currentClass.id, currentClass.title || currentClass.name || '課程');
+      }
+
       function initWishlistBtn(classId) {
         _currentClassId = classId;
         var container = document.getElementById('wishlist-btn-container');
         if (!container) return;
         container.style.display = 'block';
+        // Also show share button
+        var shareContainer = document.getElementById('share-btn-container');
+        if (shareContainer) shareContainer.style.display = 'block';
         checkWishlistStatus();
       }
 
@@ -219,6 +268,60 @@
           }
         } catch (e) {
           // Silent fail
+        }
+      }
+      // ===== Dynamic Pricing =====
+      var _currentScheduleId = null;
+
+      /** Set the current schedule for pricing lookup — call from page init */
+      function setCurrentSchedule(scheduleId) {
+        _currentScheduleId = scheduleId;
+        if (scheduleId) loadPricingBreakdown();
+      }
+
+      async function loadPricingBreakdown() {
+        var container = document.getElementById('pricing-breakdown');
+        if (!container || !_currentScheduleId) return;
+
+        try {
+          var resp = await fetch(API_BASE + '/pricing/estimate?schedule_id=' + _currentScheduleId);
+          if (!resp.ok) return;
+          var data = await resp.json();
+          if (!data.success) return;
+
+          container.style.display = 'block';
+
+          // Base price
+          document.getElementById('pricing-base-amount').textContent = data.basePrice + ' Credits';
+
+          // Adjustments
+          var adjContainer = document.getElementById('pricing-adjustments');
+          adjContainer.innerHTML = '';
+
+          if (data.adjustments && data.adjustments.length > 0) {
+            for (var i = 0; i < data.adjustments.length; i++) {
+              var adj = data.adjustments[i];
+              var isDiscount = adj.multiplier < 1;
+              var pctChange = isDiscount 
+                ? '-' + Math.round((1 - adj.multiplier) * 100) + '%'
+                : '+' + Math.round((adj.multiplier - 1) * 100) + '%';
+              
+              var item = document.createElement('div');
+              item.className = 'pricing-adjustment-item';
+              item.innerHTML = 
+                '<span class="pricing-badge ' + (isDiscount ? 'pricing-badge-discount' : 'pricing-badge-surcharge') + '">' + pctChange + '</span>' +
+                '<span style="flex:1;">' + (adj.description || adj.label || '') + '</span>';
+              adjContainer.appendChild(item);
+            }
+          } else {
+            adjContainer.innerHTML = '<div style="font-size:13px;color:var(--dark-700);padding:6px 0;">今日無特別優惠 🤙</div>';
+          }
+
+          // Final price
+          document.getElementById('pricing-final-amount').textContent = data.finalPrice + ' Credits';
+        } catch (e) {
+          // Silent — pricing is optional
+          container.style.display = 'none';
         }
       }
     </script>

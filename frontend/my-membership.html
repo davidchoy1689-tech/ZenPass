@@ -4,21 +4,274 @@
     <meta charset="UTF-8" />
     <link rel="icon" href="favicon.png" type="image/png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5" />
-    
-    <title>我的會籍 — ZenPass 禪流</title><meta name="mobile-web-app-capable" content="yes" />
-    <meta
-      name="apple-mobile-web-app-status-bar-style"
-      content="black-translucent"
-    />
-    <meta name="theme-color" content="#FF6B35" />
-    <meta
-    
-    <link rel="manifest" href="manifest.json" />
-
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="theme-color" content="#f06030" />
+    <script>
+      (function () {
+        var l = document.createElement("link");
+        l.rel = "manifest";
+        l.href =
+          window.location.hostname.indexOf("github.io") > -1
+            ? "/ZenPass/manifest.json"
+            : "/manifest.json";
+        document.head.appendChild(l);
+      })();
+    </script>
     <link rel="stylesheet" href="css/zenpass.css?v=2" />
-    
-    
-      <script src="js/nav.js"></script>
-<script src="js/footer.js"></script>
-</body>
+    <script>
+      window.ZENPASS_PAGE_CONFIG = { title: '我的會籍', showBack: true };
+    </script>
+    <style>
+      .pause-card { background: var(--white); border-radius: 16px; padding: 20px; margin-bottom: 16px; box-shadow: var(--shadow-sm); }
+      .pause-card h3 { font-size: 16px; font-weight: 600; margin: 0 0 12px; display: flex; align-items: center; gap: 8px; }
+      .pause-card .pause-stat { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--gray-100); font-size: 14px; }
+      .pause-card .pause-stat:last-child { border-bottom: none; }
+      .pause-card .pause-stat-label { color: var(--dark-700); }
+      .pause-card .pause-stat-value { font-weight: 600; }
+      .pause-reason-grid { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+      .pause-reason-btn { padding: 10px 16px; border-radius: 10px; border: 2px solid var(--gray-200); background: var(--white); cursor: pointer; font-size: 13px; transition: all 0.2s; font-family: inherit; }
+      .pause-reason-btn:hover { border-color: var(--orange-400); }
+      .pause-reason-btn.selected { border-color: var(--orange-600); background: var(--orange-50); color: var(--orange-700); font-weight: 600; }
+      .pause-day-btn { padding: 10px 20px; border-radius: 10px; border: 2px solid var(--gray-200); background: var(--white); cursor: pointer; font-size: 14px; font-weight: 500; transition: all 0.2s; font-family: inherit; }
+      .pause-day-btn:hover { border-color: var(--orange-400); }
+      .pause-day-btn.selected { border-color: var(--orange-600); background: var(--orange-50); color: var(--orange-700); font-weight: 700; }
+      .pause-custom-input { width: 80px; padding: 8px; border: 2px solid var(--gray-200); border-radius: 10px; font-size: 14px; text-align: center; font-family: inherit; }
+      .pause-custom-input:focus { border-color: var(--orange-600); outline: none; }
+      .pause-history-item { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--gray-100); font-size: 13px; }
+      .pause-history-item:last-child { border-bottom: none; }
+      .pause-badge { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+      .pause-badge-active { background: #fef3c7; color: #92400e; }
+      .pause-badge-resumed { background: #d1fae5; color: #065f46; }
+      @media (max-width: 640px) {
+        .pause-reason-btn, .pause-day-btn { flex: 1; text-align: center; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="max-w-lg" style="max-width: 600px; margin: 0 auto; padding: 80px 16px 100px;">
+      <div id="membership-content">
+        <!-- Loading state -->
+        <div id="loading-state" style="text-align: center; padding: 60px 20px;">
+          <div class="loading-spinner"></div>
+          <p style="color: var(--dark-700); margin-top: 12px;">載入中...</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pause Confirmation Modal -->
+    <div id="pause-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;" onclick="if(event.target===this)closePauseModal()">
+      <div style="background:white;border-radius:16px;padding:24px;width:90%;max-width:380px;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,0.2);">
+        <div style="font-size:48px;margin-bottom:8px;">⏸️</div>
+        <h3 style="margin:0 0 4px;font-size:18px;">確認暫停會籍</h3>
+        <p id="pause-confirm-text" style="color:var(--dark-700);font-size:14px;margin:12px 0;">暫停後會籍到期日會順延</p>
+        <div style="background:var(--orange-50);border-radius:12px;padding:12px;margin:12px 0;font-size:13px;text-align:left;">
+          <p id="pause-confirm-days" style="margin:0 0 4px;"><strong>暫停日數：</strong><span id="pause-days-display">14</span> 日</p>
+          <p id="pause-confirm-reason" style="margin:0 0 4px;"><strong>原因：</strong><span id="pause-reason-display">旅行</span></p>
+          <p id="pause-confirm-end" style="margin:0;"><strong>到期日：</strong><span id="pause-end-display">—</span></p>
+        </div>
+        <button id="pause-confirm-btn" onclick="confirmPause()" style="width:100%;padding:14px;background:var(--orange-600-bg);color:white;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;">確認暫停</button>
+        <button onclick="closePauseModal()" style="width:100%;padding:10px;background:none;border:none;color:var(--dark-700);font-size:13px;cursor:pointer;margin-top:6px;font-family:inherit;">取消</button>
+      </div>
+    </div>
+
+    <script src="api.js"></script>
+    <script src="js/nav.js"></script>
+    <script src="js/footer.js"></script>
+    <script>
+      var _currentMembership = null;
+      var _selectedPauseDays = 14;
+      var _selectedPauseReason = '旅行';
+
+      document.addEventListener('DOMContentLoaded', function () {
+        loadMembershipData();
+      });
+
+      async function loadMembershipData() {
+        var container = document.getElementById('membership-content');
+        try {
+          var resp = await fetch(API_BASE + '/memberships/my', { headers: getAuthHeaders() });
+          if (!resp.ok) throw new Error('Unauthorized');
+          var data = await resp.json();
+          _currentMembership = data;
+
+          if (!data.current || data.current.type === 'none') {
+            container.innerHTML = '<div class="pause-card" style="text-align:center;padding:40px 20px;"><div style="font-size:48px;margin-bottom:12px;">📋</div><h3>未有會籍</h3><p style="color:var(--dark-700);font-size:14px;">你目前冇 active 嘅會籍</p><a href="membership-tailwind.html" class="zen-btn zen-btn-primary" style="display:inline-block;margin-top:16px;">瀏覽會籍方案</a></div>';
+            return;
+          }
+
+          // 檢查 pause 狀態
+          var pauseResp = await fetch(API_BASE + '/memberships/' + (data.history?.[0]?.id || '') + '/pause-status', { headers: getAuthHeaders() });
+          var pauseStatus = pauseResp.ok ? await pauseResp.json() : null;
+
+          renderMembership(data, pauseStatus);
+        } catch (err) {
+          container.innerHTML = '<div class="pause-card" style="text-align:center;padding:40px 20px;"><div style="font-size:48px;margin-bottom:12px;">❌</div><h3>載入失敗</h3><p style="color:var(--dark-700);font-size:14px;">' + err.message + '</p><button onclick="loadMembershipData()" class="zen-btn zen-btn-primary" style="margin-top:12px;">重新載入</button></div>';
+        }
+      }
+
+      function getAuthHeaders() {
+        var token = getToken();
+        return token ? { 'Authorization': 'Bearer ' + token } : {};
+      }
+
+      function renderMembership(data, pauseStatus) {
+        var c = data.current;
+        var mId = data.history?.[0]?.id || '';
+        var isPaused = pauseStatus && pauseStatus.is_paused;
+
+        var expiresAt = c.expires_at ? new Date(c.expires_at).toLocaleDateString('zh-HK') : '—';
+        var pauseEnd = isPaused && pauseStatus.paused_until ? new Date(pauseStatus.paused_until).toLocaleDateString('zh-HK') : '—';
+
+        var pauseSection = '';
+        if (isPaused) {
+          // Paused state
+          pauseSection = '<div class="pause-card" style="border:2px solid #f59e0b;">' +
+            '<h3>⏸️ 會籍已暫停</h3>' +
+            '<div class="pause-stat"><span class="pause-stat-label">暫停到期</span><span class="pause-stat-value">' + pauseEnd + '</span></div>' +
+            '<div class="pause-stat"><span class="pause-stat-label">剩餘日數</span><span class="pause-stat-value" style="color:var(--orange-600);">' + pauseStatus.remaining_days + ' 日</span></div>' +
+            '<div class="pause-stat"><span class="pause-stat-label">原因</span><span class="pause-stat-value">' + (pauseStatus.pause_reason || '—') + '</span></div>' +
+            '<div class="pause-stat"><span class="pause-stat-label">暫停次數</span><span class="pause-stat-value">' + (pauseStatus.pause_count || 0) + ' 次</span></div>' +
+            '<button onclick="resumeMembership(\'' + mId + '\')" class="zen-btn zen-btn-success" style="width:100%;margin-top:16px;padding:14px;font-size:15px;">🔁 立即恢復會籍</button>' +
+            '</div>';
+        } else if (c.type !== 'none') {
+          // Active state — show pause button
+          pauseSection = '<div class="pause-card">' +
+            '<h3>⏸️ 暫停會籍</h3>' +
+            '<p style="font-size:13px;color:var(--dark-700);margin:0 0 12px;">暫停期間唔會消耗 Credits，會籍到期日會順延。（最多暫停 30 日，每年最多 3 次）</p>' +
+            '<div style="margin-bottom:12px;"><label style="font-size:13px;font-weight:600;display:block;margin-bottom:6px;">暫停日數</label>' +
+            '<div style="display:flex;gap:8px;flex-wrap:wrap;">' +
+            '<button class="pause-day-btn selected" data-days="7" onclick="selectPauseDays(7)">7 日</button>' +
+            '<button class="pause-day-btn" data-days="14" onclick="selectPauseDays(14)">14 日</button>' +
+            '<button class="pause-day-btn" data-days="30" onclick="selectPauseDays(30)">30 日</button>' +
+            '<input type="number" class="pause-custom-input" id="custom-pause-days" placeholder="自訂" min="1" max="30" onchange="selectCustomPauseDays(this.value)" />' +
+            '</div></div>' +
+            '<div style="margin-bottom:12px;"><label style="font-size:13px;font-weight:600;display:block;margin-bottom:6px;">原因</label>' +
+            '<div class="pause-reason-grid">' +
+            '<button class="pause-reason-btn selected" data-reason="旅行" onclick="selectPauseReason(\'旅行\')">✈️ 旅行</button>' +
+            '<button class="pause-reason-btn" data-reason="受傷" onclick="selectPauseReason(\'受傷\')">🩹 受傷</button>' +
+            '<button class="pause-reason-btn" data-reason="考試" onclick="selectPauseReason(\'考試\')">📚 考試</button>' +
+            '<button class="pause-reason-btn" data-reason="工作" onclick="selectPauseReason(\'工作\')">💼 工作</button>' +
+            '<button class="pause-reason-btn" data-reason="其他" onclick="selectPauseReason(\'其他\')">📌 其他</button>' +
+            '</div></div>' +
+            '<button onclick="showPauseConfirm(\'' + mId + '\')" class="zen-btn zen-btn-primary" style="width:100%;padding:14px;font-size:15px;">⏸️ 暫停會籍</button>' +
+            '</div>';
+        }
+
+        // Pause history
+        var historyHtml = '';
+        if (pauseStatus && pauseStatus.pause_history && pauseStatus.pause_history.length > 0) {
+          historyHtml = '<div class="pause-card"><h3>📋 暫停記錄</h3>';
+          for (var i = 0; i < pauseStatus.pause_history.length; i++) {
+            var h = pauseStatus.pause_history[i];
+            var badgeClass = h.action === 'pause' ? 'pause-badge-active' : 'pause-badge-resumed';
+            var badgeLabel = h.action === 'pause' ? '⏸️ 暫停' : '🔁 恢復';
+            historyHtml += '<div class="pause-history-item">' +
+              '<span class="pause-badge ' + badgeClass + '">' + badgeLabel + '</span>' +
+              '<span style="flex:1;font-size:13px;">' + (h.description || '') + '</span>' +
+              (h.timestamp ? '<span style="font-size:11px;color:var(--dark-700);">' + new Date(h.timestamp).toLocaleDateString('zh-HK') + '</span>' : '') +
+              '</div>';
+          }
+          historyHtml += '</div>';
+        }
+
+        container.innerHTML =
+          '<div class="pause-card">' +
+          '<h3>📊 會籍概覽</h3>' +
+          '<div class="pause-stat"><span class="pause-stat-label">會籍類型</span><span class="pause-stat-value">' + (c.type || '—') + '</span></div>' +
+          '<div class="pause-stat"><span class="pause-stat-label">到期日</span><span class="pause-stat-value">' + expiresAt + '</span></div>' +
+          '<div class="pause-stat"><span class="pause-stat-label">Credits</span><span class="pause-stat-value">' + (c.credits || 0) + '</span></div>' +
+          '<div class="pause-stat"><span class="pause-stat-label">狀態</span><span class="pause-stat-value">' + (isPaused ? '⏸️ 暫停中' : '✅ 啟用中') + '</span></div>' +
+          '</div>' +
+          pauseSection +
+          historyHtml;
+      }
+
+      function selectPauseDays(days) {
+        _selectedPauseDays = days;
+        document.querySelectorAll('.pause-day-btn').forEach(function (b) {
+          b.classList.toggle('selected', parseInt(b.dataset.days) === days);
+        });
+        document.getElementById('custom-pause-days').value = '';
+      }
+
+      function selectCustomPauseDays(val) {
+        var days = parseInt(val);
+        if (days > 0 && days <= 30) {
+          _selectedPauseDays = days;
+          document.querySelectorAll('.pause-day-btn').forEach(function (b) { b.classList.remove('selected'); });
+        }
+      }
+
+      function selectPauseReason(reason) {
+        _selectedPauseReason = reason;
+        document.querySelectorAll('.pause-reason-btn').forEach(function (b) {
+          b.classList.toggle('selected', b.dataset.reason === reason);
+        });
+      }
+
+      function showPauseConfirm(membershipId) {
+        // Calculate new end date
+        var expiresAt = _currentMembership?.current?.expires_at;
+        var newEnd = expiresAt ? new Date(new Date(expiresAt).getTime() + _selectedPauseDays * 86400000).toLocaleDateString('zh-HK') : '—';
+
+        document.getElementById('pause-days-display').textContent = _selectedPauseDays;
+        document.getElementById('pause-reason-display').textContent = _selectedPauseReason;
+        document.getElementById('pause-end-display').textContent = newEnd;
+        document.getElementById('pause-confirm-btn').dataset.membershipId = membershipId;
+        document.getElementById('pause-modal').style.display = 'flex';
+      }
+
+      function closePauseModal() {
+        document.getElementById('pause-modal').style.display = 'none';
+      }
+
+      async function confirmPause() {
+        var membershipId = document.getElementById('pause-confirm-btn').dataset.membershipId;
+        var btn = document.getElementById('pause-confirm-btn');
+        btn.disabled = true;
+        btn.textContent = '處理中...';
+
+        try {
+          var resp = await fetch(API_BASE + '/memberships/' + membershipId + '/pause', {
+            method: 'PUT',
+            headers: Object.assign({ 'Content-Type': 'application/json' }, getAuthHeaders()),
+            body: JSON.stringify({ pause_days: _selectedPauseDays, reason: _selectedPauseReason }),
+          });
+          var data = await resp.json();
+          if (resp.ok) {
+            showToast('✅ ' + data.message, 'success');
+            closePauseModal();
+            loadMembershipData();
+          } else {
+            showToast('❌ ' + (data.error || '暫停失敗'), 'error');
+          }
+        } catch (err) {
+          showToast('❌ ' + err.message, 'error');
+        } finally {
+          btn.disabled = false;
+          btn.textContent = '確認暫停';
+        }
+      }
+
+      async function resumeMembership(membershipId) {
+        if (!confirm('確定要立即恢復會籍嗎？')) return;
+        try {
+          var resp = await fetch(API_BASE + '/memberships/' + membershipId + '/resume', {
+            method: 'PUT',
+            headers: Object.assign({ 'Content-Type': 'application/json' }, getAuthHeaders()),
+          });
+          var data = await resp.json();
+          if (resp.ok) {
+            showToast('✅ ' + data.message, 'success');
+            loadMembershipData();
+          } else {
+            showToast('❌ ' + (data.error || '恢復失敗'), 'error');
+          }
+        } catch (err) {
+          showToast('❌ ' + err.message, 'error');
+        }
+      }
+    </script>
+  </body>
 </html>

@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5">
+  <title>課後評價 - ZenPass 禪流</title>
+  <link rel="stylesheet" href="css/zenpass.css">
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:system-ui,-apple-system,'Noto Sans TC',sans-serif;background:#fafafa;color:#18181b;min-height:100vh;display:flex;flex-direction:column}
+    html.dark body{background:#09090b;color:#fafafa}
+    .nps-container{max-width:520px;margin:0 auto;padding:24px;flex:1;display:flex;flex-direction:column;justify-content:center}
+    .nps-card{background:#fff;border-radius:24px;padding:32px 24px;box-shadow:0 4px 24px rgba(0,0,0,0.06);border:1px solid #e4e4e7;text-align:center}
+    html.dark .nps-card{background:#18181b;border-color:#27272a}
+    .nps-emoji{font-size:48px;margin-bottom:12px}
+    .nps-title{font-size:22px;font-weight:700;margin-bottom:6px}
+    .nps-sub{font-size:14px;color:#71717a;margin-bottom:24px;line-height:1.5}
+    /* NPS Scale */
+    .nps-scale{display:flex;gap:4px;justify-content:center;margin-bottom:24px;flex-wrap:wrap}
+    .nps-btn{width:38px;height:42px;border:2px solid #e4e4e7;border-radius:10px;background:#fff;font-size:15px;font-weight:700;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;color:#52525b}
+    html.dark .nps-btn{background:#27272a;border-color:#3f3f46;color:#a1a1aa}
+    .nps-btn:hover{transform:scale(1.1);border-color:#f06030;color:#f06030}
+    .nps-btn.selected{background:#f06030;border-color:#f06030;color:#fff;transform:scale(1.1);box-shadow:0 2px 8px rgba(240,96,48,0.3)}
+    .nps-label{display:flex;justify-content:space-between;font-size:11px;color:#a1a1aa;margin-top:-16px;margin-bottom:24px;padding:0 4px}
+    .nps-input{width:100%;padding:14px 16px;border:2px solid #e4e4e7;border-radius:14px;font-size:14px;font-family:inherit;resize:none;height:80px;transition:border-color 0.2s;margin-bottom:16px;box-sizing:border-box;background:#fff}
+    html.dark .nps-input{background:#27272a;border-color:#3f3f46;color:#fafafa}
+    .nps-input:focus{outline:none;border-color:#f06030}
+    .nps-input::placeholder{color:#a1a1aa}
+    .btn-submit{width:100%;padding:14px;border:none;border-radius:14px;background:#f06030;color:#fff;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;transition:all 0.2s}
+    .btn-submit:hover{background:#e04e20;transform:translateY(-1px)}
+    .btn-submit:disabled{opacity:0.5;cursor:not-allowed;transform:none}
+    /* Thank you state */
+    .thankyou{display:none;text-align:center;padding:20px 0}
+    .thankyou .emoji{font-size:64px;margin-bottom:12px}
+    .thankyou h2{font-size:22px;font-weight:700;margin-bottom:8px}
+    .thankyou p{font-size:14px;color:#71717a;line-height:1.6;margin-bottom:20px}
+    .btn-back{display:inline-block;padding:12px 32px;border-radius:14px;background:#f06030;color:#fff;font-size:15px;font-weight:600;text-decoration:none;transition:all 0.2s}
+    .btn-back:hover{background:#e04e20}
+    .nps-hint{font-size:11px;color:#a1a1aa;margin-top:-20px;margin-bottom:20px;display:flex;justify-content:space-between;padding:0 2px}
+    @media(max-width:480px){
+      .nps-container{padding:16px}
+      .nps-card{padding:24px 16px}
+      .nps-btn{width:32px;height:36px;font-size:13px}
+    }
+  </style>
+</head>
+<body>
+  <div class="nps-container">
+    <div class="nps-card" id="survey-card">
+      <!-- Survey State -->
+      <div id="survey-state">
+        <div class="nps-emoji">📝</div>
+        <div class="nps-title">你覺得呢堂課點樣？</div>
+        <div class="nps-sub">你嘅意見幫助我哋變得更好 💪</div>
+
+        <!-- NPS Question -->
+        <div style="font-weight:600;font-size:14px;margin-bottom:12px;">
+          你有多大概率推薦 ZenPass 俾朋友？
+        </div>
+
+        <!-- NPS Scale 0-10 -->
+        <div class="nps-scale" id="nps-scale">
+        </div>
+        <div class="nps-hint">
+          <span>唔會推薦</span>
+          <span>一定會推薦</span>
+        </div>
+
+        <!-- Would Recommend? -->
+        <div style="font-weight:600;font-size:14px;margin-bottom:12px;">
+          你會推薦俾身邊嘅朋友嗎？
+        </div>
+        <div style="display:flex;gap:12px;justify-content:center;margin-bottom:20px;">
+          <button id="rec-yes" onclick="selectRecommend(true)" 
+            style="flex:1;padding:12px;border:2px solid #e4e4e7;border-radius:12px;background:#fff;font-size:14px;font-weight:600;cursor:pointer;transition:all 0.2s;font-family:inherit;color:#52525b">
+            👍 會推薦
+          </button>
+          <button id="rec-no" onclick="selectRecommend(false)"
+            style="flex:1;padding:12px;border:2px solid #e4e4e7;border-radius:12px;background:#fff;font-size:14px;font-weight:600;cursor:pointer;transition:all 0.2s;font-family:inherit;color:#52525b">
+            👎 唔會
+          </button>
+        </div>
+
+        <!-- Comment -->
+        <textarea class="nps-input" id="nps-comment" placeholder="有任何建議？分享你嘅體驗…（選擇性）"></textarea>
+
+        <!-- Hidden fields -->
+        <input type="hidden" id="nps-booking-id" value="">
+        <input type="hidden" id="nps-class-name" value="">
+
+        <!-- Submit -->
+        <button class="btn-submit" id="nps-submit-btn" onclick="submitNps()">
+          提交評價 📤
+        </button>
+        <div id="nps-msg" class="msg" style="margin-top:10px;font-size:13px;padding:10px;border-radius:10px;display:none;"></div>
+      </div>
+
+      <!-- Thank You State -->
+      <div class="thankyou" id="thankyou-state">
+        <div class="emoji">🙏</div>
+        <h2>多謝你嘅意見！</h2>
+        <p>你嘅評價幫助我哋不斷進步，<br>為大家帶嚟更好嘅課堂體驗 🎉</p>
+        <a href="my-bookings.html" class="btn-back">返去我的預約 →</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="nps-toast" style="position:fixed;bottom:100px;left:50%;transform:translateX(-50%);z-index:9999;display:none;background:#18181b;color:#fff;padding:12px 24px;border-radius:12px;font-size:14px;box-shadow:0 4px 16px rgba(0,0,0,0.2);max-width:90%;text-align:center;"></div>
+
+  <script>
+    var API_BASE = window.API_BASE || '';
+
+    // Build NPS scale 0-10
+    (function buildScale() {
+      var container = document.getElementById('nps-scale');
+      for (var i = 0; i <= 10; i++) {
+        var btn = document.createElement('button');
+        btn.className = 'nps-btn';
+        btn.textContent = i;
+        btn.dataset.value = i;
+        btn.onclick = function() { selectRating(parseInt(this.dataset.value)); };
+        container.appendChild(btn);
+      }
+    })();
+
+    var selectedRating = null;
+    var selectedRecommend = null;
+
+    function selectRating(val) {
+      selectedRating = val;
+      var btns = document.querySelectorAll('.nps-btn');
+      btns.forEach(function(btn, idx) {
+        btn.classList.toggle('selected', idx <= val);
+      });
+      clearMsg();
+    }
+
+    function selectRecommend(val) {
+      selectedRecommend = val;
+      var yesBtn = document.getElementById('rec-yes');
+      var noBtn = document.getElementById('rec-no');
+      if (val) {
+        yesBtn.style.background = '#059669';
+        yesBtn.style.color = '#fff';
+        yesBtn.style.borderColor = '#059669';
+        noBtn.style.background = '#fff';
+        noBtn.style.color = '#52525b';
+        noBtn.style.borderColor = '#e4e4e7';
+      } else {
+        noBtn.style.background = '#ef4444';
+        noBtn.style.color = '#fff';
+        noBtn.style.borderColor = '#ef4444';
+        yesBtn.style.background = '#fff';
+        yesBtn.style.color = '#52525b';
+        yesBtn.style.borderColor = '#e4e4e7';
+      }
+      clearMsg();
+    }
+
+    function clearMsg() {
+      var msg = document.getElementById('nps-msg');
+      msg.className = 'msg';
+      msg.style.display = 'none';
+    }
+
+    function showMsg(text, type) {
+      var msg = document.getElementById('nps-msg');
+      msg.textContent = text;
+      msg.className = 'msg ' + (type || '');
+      msg.style.display = 'block';
+    }
+
+    function showToast(text) {
+      var toast = document.getElementById('nps-toast');
+      toast.textContent = text;
+      toast.style.display = 'block';
+      setTimeout(function() {
+        toast.style.opacity = '0';
+        toast.style.transition = 'opacity 0.3s';
+        setTimeout(function() { toast.style.display = 'none'; toast.style.opacity = '1'; }, 300);
+      }, 2500);
+    }
+
+    // Get booking_id from URL params
+    (function loadBookingInfo() {
+      var params = new URLSearchParams(window.location.search);
+      var bookingId = params.get('booking_id');
+      var className = params.get('class_name');
+      if (bookingId) {
+        document.getElementById('nps-booking-id').value = bookingId;
+      }
+      if (className) {
+        document.getElementById('nps-class-name').value = className;
+        var titleEl = document.querySelector('.nps-sub');
+        if (titleEl) {
+          titleEl.textContent = '同我哋分享你對「' + decodeURIComponent(className) + '」嘅體驗 💪';
+        }
+      }
+    })();
+
+    async function submitNps() {
+      var bookingId = document.getElementById('nps-booking-id').value;
+      if (!bookingId) {
+        showMsg('❌ 缺少預約資訊，請從我的預約頁面進入', 'error');
+        return;
+      }
+      if (selectedRating === null) {
+        showMsg('請選擇一個評分 (0-10)', 'error');
+        return;
+      }
+      if (selectedRecommend === null) {
+        showMsg('請選擇是否推薦俾朋友', 'error');
+        return;
+      }
+
+      var btn = document.getElementById('nps-submit-btn');
+      btn.disabled = true;
+      btn.textContent = '提交中...';
+
+      var comment = document.getElementById('nps-comment').value.trim();
+
+      try {
+        var token = localStorage.getItem('zenpass_token') || localStorage.getItem('token');
+        if (!token) {
+          showMsg('❌ 請先登入', 'error');
+          btn.disabled = false;
+          btn.textContent = '提交評價 📤';
+          return;
+        }
+
+        var resp = await fetch(API_BASE + '/api/nps/submit', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + token
+          },
+          body: JSON.stringify({
+            booking_id: parseInt(bookingId),
+            rating: selectedRating,
+            comment: comment,
+            would_recommend: selectedRecommend
+          })
+        });
+
+        var data = await resp.json();
+
+        if (resp.ok || resp.status === 201) {
+          document.getElementById('survey-state').style.display = 'none';
+          document.getElementById('thankyou-state').style.display = 'block';
+        } else {
+          showMsg('❌ ' + (data.error || '提交失敗'), 'error');
+          btn.disabled = false;
+          btn.textContent = '提交評價 📤';
+        }
+      } catch (err) {
+        showMsg('❌ 網絡錯誤：' + err.message, 'error');
+        btn.disabled = false;
+        btn.textContent = '提交評價 📤';
+      }
+    }
+  </script>
+</body>
+</html>

@@ -465,6 +465,28 @@ function initDatabase() {
     );
   } catch (e) {}
 
+  // ===== Subscription Pause - memberships columns =====
+  try {
+    db.exec("ALTER TABLE memberships ADD COLUMN paused_until TEXT");
+  } catch (e) {}
+  try {
+    db.exec("ALTER TABLE memberships ADD COLUMN pause_count INTEGER DEFAULT 0");
+  } catch (e) {}
+  try {
+    db.exec("ALTER TABLE memberships ADD COLUMN max_pause_days INTEGER DEFAULT 30");
+  } catch (e) {}
+  try {
+    db.exec("ALTER TABLE memberships ADD COLUMN pause_reason TEXT");
+  } catch (e) {}
+
+  // ===== Loyalty Tier - users column =====
+  try {
+    db.exec("ALTER TABLE users ADD COLUMN loyalty_tier TEXT DEFAULT 'bronze'");
+  } catch (e) {}
+  try {
+    db.exec("ALTER TABLE users ADD COLUMN monthly_bookings INTEGER DEFAULT 0");
+  } catch (e) {}
+
   // ===== CRM 學生管理 =====
   try {
     db.exec("ALTER TABLE users ADD COLUMN tags TEXT DEFAULT ''");
@@ -1399,6 +1421,21 @@ function initDatabase() {
   // 相容升級：partner_reference on partner_venues（區塊鏈追溯用）
   try { db.exec("ALTER TABLE partner_venues ADD COLUMN partner_reference TEXT"); } catch (e) {}
   try { db.exec("CREATE INDEX IF NOT EXISTS idx_partner_reference ON partner_venues(partner_reference)"); } catch (e) {}
+
+  // ===== NPS 課後問卷表 =====
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS nps_surveys (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      booking_id INTEGER NOT NULL UNIQUE,
+      user_id INTEGER NOT NULL,
+      rating INTEGER CHECK(rating >= 1 AND rating <= 10),
+      comment TEXT DEFAULT '',
+      would_recommend INTEGER DEFAULT 1,
+      created_at TEXT DEFAULT (datetime('now', '+8 hours')),
+      FOREIGN KEY (booking_id) REFERENCES bookings(id),
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    )
+  `);
 
   console.log("✅ 數據庫初始化完成:", DB_PATH);
   db.close();

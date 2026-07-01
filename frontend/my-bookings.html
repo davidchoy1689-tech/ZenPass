@@ -94,7 +94,55 @@
  © 2026 ZenPass 禪流
  </footer>
 
+ <script src="js/share.js"></script>
  <script>
+// ─── NPS 評價快取 — 記錄已提交 NPS 嘅 booking ID ───
+var __npsSubmitted = {};
+
+/** 檢查邊啲 booking 已提交 NPS */
+async function loadNpsStatus(bookingIds) {
+  var token = localStorage.getItem('zenpass_token') || localStorage.getItem('token');
+  if (!token || !bookingIds.length) return;
+  try {
+    // 逐一快速檢查 — 如果在 server 搵到記錄就算
+    var att = bookingIds.filter(function(id) { return id && id !== 'undefined'; });
+    for (var i = 0; i < att.length; i++) {
+      (function(bid) {
+        // We store status locally after first submit
+      })(att[i]);
+    }
+  } catch(e) { /* silent */ }
+}
+
+/** 標記某個 booking 已提交 NPS */
+function markNpsSubmitted(bookingId) {
+  __npsSubmitted[bookingId] = true;
+  try {
+    var stored = JSON.parse(localStorage.getItem('zenpass_nps_done') || '[]');
+    if (stored.indexOf(String(bookingId)) === -1) {
+      stored.push(String(bookingId));
+      localStorage.setItem('zenpass_nps_done', JSON.stringify(stored));
+    }
+  } catch(e) {}
+}
+
+/** 檢查某個 booking 是否已提交 NPS */
+function isNpsDone(bookingId) {
+  if (__npsSubmitted[bookingId]) return true;
+  try {
+    var stored = JSON.parse(localStorage.getItem('zenpass_nps_done') || '[]');
+    return stored.indexOf(String(bookingId)) !== -1;
+  } catch(e) { return false; }
+}
+
+// 初始化 NPS 快取
+(function initNpsCache() {
+  try {
+    var stored = JSON.parse(localStorage.getItem('zenpass_nps_done') || '[]');
+    stored.forEach(function(id) { __npsSubmitted[id] = true; });
+  } catch(e) {}
+})();
+
 // ─── Cancel Reason Modal ───
 var __cancelBookingId = null;
 var __selectedCancelReason = null;
@@ -260,8 +308,15 @@ function renderBookings() {
     '</div>' +
     '<div style="display:flex;justify-content:space-between;align-items:center">' +
     '<span class="booking-status">已確認</span>' +
-    '<button onclick="showCancelModal(\'' + id + '\')" class="cancel-btn">✕ 取消預約</button>' +
-    '</div></div></div>';
+    (b.status === 'attended' ? '' : '<button onclick="showCancelModal(\'' + id + '\')" class="cancel-btn">✕ 取消預約</button>') +
+    '</div>' +
+    (b.status === 'attended' ? '<div style="display:flex;gap:8px;padding-top:4px">' +
+      '<button onclick="window.location.href=\'nps-survey.html?booking_id=' + id + '&class_name=' + encodeURIComponent(b.title || '') + '\'" class="btn btn-sm btn-outline" ' + (isNpsDone(id) ? 'disabled style="opacity:0.5"' : '') + '>' +
+        (isNpsDone(id) ? '✅ 已評價' : '📝 評價課堂') +
+      '</button>' +
+      '<button onclick="shareBooking(\'' + id + '\', \'' + escHtml(b.title || '') + '\')" class="btn btn-sm btn-outline">📤 分享</button>' +
+    '</div>' : '') +
+    '</div></div>';
   });
 }
 

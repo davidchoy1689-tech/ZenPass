@@ -257,12 +257,13 @@ app.use("/api/marketing", require("./routes/marketing"));
 app.use("/api/ab", require("./routes/ab-test"));
 app.use("/api/reporting", require("./routes/reporting"));
 app.use("/api/referral", require("./routes/referral"));
-app.use("/api/loyalty", require("./routes/referral"));
+app.use("/api/loyalty", require("./routes/loyalty"));
 app.use("/api/partner", require("./routes/partner"));
 app.use("/api/crawler", require("./routes/crawler"));
 app.use("/api/recommendations", require("./routes/recommendations"));
 app.use("/api/track", require("./routes/recommendations"));
 app.use("/api/pricing", require("./routes/pricing"));
+app.use("/api/pricing", require("./routes/pricing-engine"));
 app.use("/api/venue-rentals", require("./routes/venue-rentals"));
 app.use("/api/wallet", require("./routes/wallet"));
 app.use("/api/admin", require("./routes/deploy"));
@@ -274,6 +275,7 @@ app.use("/api/school", require("./routes/school"));
 app.use("/api/ratings", require("./routes/ratings"));
 app.use("/api/wishlist", require("./routes/wishlist"));
 app.use("/api/topup", require("./routes/topup"));
+app.use("/api/nps", require("./routes/nps"));
 
 // ===== 健康檢查 =====
 const { ok } = require("./services/response");
@@ -610,6 +612,123 @@ setTimeout(autoNotifyLargeVacancies, 60 * 1000);
 // ===== Corporate Credit 月度重置（每 15 分鐘檢查）=====
 setInterval(processCorporateResets, 15 * 60 * 1000);
 processCorporateResets();
+
+// ===== Pause 自動恢復排程（每 15 分鐘檢查）=====
+function autoResumePausedMemberships() {
+  try {
+    const Database = require("better-sqlite3");
+    const db = new Database(DB_PATH);
+    db.pragma("foreign_keys = ON");
+
+    const due = db
+      .prepare(
+        `SELECT id, user_id, type, pause_reason FROM memberships 
+         WHERE paused_until IS NOT NULL 
+         AND paused_until <= datetime('now') 
+         AND status = 'active'`
+      )
+      .all();
+
+    for (const m of due) {
+      db.prepare(
+        `UPDATE memberships SET paused_until = NULL, pause_reason = NULL, updated_at = datetime('now') WHERE id = ?`
+      ).run(m.id);
+
+      // Audit log
+      try {
+        db.prepare(
+          `INSERT INTO audit_log (id, action_type, entity_type, entity_id, user_id, description, created_at)
+           VALUES (?, 'membership.resume', 'membership', ?, 'system', ?, datetime('now'))`
+        ).run(
+          require("crypto").randomUUID(),
+          m.id,
+          `🔄 暫停期滿自動恢復: ${m.type} (用戶: ${m.user_id})`,
+        );
+      } catch (e) {}
+
+      // Notify user
+      try {
+        const { sendNotification } = require("./services/notification");
+        sendNotification("membership.resume", {
+          recipient: m.user_id,
+          data: { message: "🔁 會籍已自動恢復！暫停期已結束，立即預約課程！" },
+        });
+      } catch (notifErr) {
+        console.error("[PAUSE RESUME] Notification error:", notifErr.message);
+      }
+
+      console.log(`[PAUSE RESUME] 自動恢復會籍 ${m.id} 用戶 ${m.user_id}`);
+    }
+
+    if (due.length > 0) {
+      console.log(`[PAUSE RESUME] 已恢復 ${due.length} 個暫停會籍`);
+    }
+    db.close();
+  } catch (err) {
+    console.error("[PAUSE RESUME] Error:", err.message);
+  }
+}
+
+setInterval(autoResumePausedMemberships, 15 * 60 * 1000);
+autoResumePausedMemberships();
+
+// ===== Loyalty Tier 每月計算排程（每 30 分鐘檢查月份變化）=====
+let lastLoyaltyCheckMonth = null;
+function checkAndUpdateLoyaltyTiers() {
+  try {
+    const now = new Date();
+    const currentMonth = now.getFullYear() + "-" + (now.getMonth() + 1);
+    if (lastLoyaltyCheckMonth === currentMonth) return;
+    
+    // Check if it's the 1st of the month (run once on the 1st)
+    if (now.getDate() !== 1) {
+      // Still check new users / changes for current month
+      lastLoyaltyCheckMonth = currentMonth;
+      return;
+    }
+    
+    lastLoyaltyCheckMonth = currentMonth;
+    
+    const Database = require("better-sqlite3");
+    const db = new Database(DB_PATH);
+    db.pragma("foreign_keys = ON");
+
+    // Calculate last month's bookings per user
+    const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+    
+    const bookingCounts = db
+      .prepare(
+        `SELECT user_id, COUNT(*) as cnt FROM bookings
+         WHERE status IN ('confirmed', 'attended')
+         AND created_at >= ? AND created_at <= ?
+         GROUP BY user_id`
+      )
+      .all(lastMonth.toISOString(), lastMonthEnd.toISOString());
+
+    let updated = 0;
+    for (const row of bookingCounts) {
+      let tier = "bronze";
+      if (row.cnt >= 20) tier = "vip";
+      else if (row.cnt >= 10) tier = "gold";
+      else if (row.cnt >= 5) tier = "silver";
+
+      db.prepare(
+        `UPDATE users SET loyalty_tier = ?, monthly_bookings = ? WHERE id = ?`
+      ).run(tier, row.cnt, row.user_id);
+      updated++;
+    }
+
+    console.log(`[LOYALTY] 已更新 ${updated} 個用戶嘅忠誠度等級 (${lastMonth.toISOString().slice(0,7)})`);
+    db.close();
+  } catch (err) {
+    console.error("[LOYALTY] Error:", err.message);
+  }
+}
+
+// Check every 30 minutes (will only run on 1st of month)
+setInterval(checkAndUpdateLoyaltyTiers, 30 * 60 * 1000);
+setTimeout(checkAndUpdateLoyaltyTiers, 15000);
 
 // ===== Credit 到期預警通知（每小時檢查，28-31 號發送）=====
 const { startCreditScheduler } = require("./services/credit-scheduler");

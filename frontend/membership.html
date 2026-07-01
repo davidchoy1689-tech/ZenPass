@@ -5,13 +5,9 @@
     <link rel="icon" href="favicon.png" type="image/png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5" />
     <meta name="mobile-web-app-capable" content="yes" />
-    <meta
-      name="apple-mobile-web-app-status-bar-style"
-      content="black-translucent"
-    />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="theme-color" content="#f06030" />
     <script>
-      // Fix PWA manifest path for localhost vs GitHub Pages
       (function () {
         var l = document.createElement("link");
         l.rel = "manifest";
@@ -22,12 +18,63 @@
         document.head.appendChild(l);
       })();
     </script>
-
     <link rel="stylesheet" href="css/zenpass.css?v=2" />
-    
+    <script>
+      window.ZENPASS_PAGE_CONFIG = { title: '會員計劃條款', showBack: true, backUrl: 'membership-tailwind.html' };
+    </script>
+    <style>
+      .terms-card { background: var(--white); border-radius: 16px; padding: 24px; margin-bottom: 16px; box-shadow: var(--shadow-sm); }
+      .terms-card h2 { font-size: 18px; font-weight: 700; margin: 0 0 16px; display: flex; align-items: center; gap: 8px; }
+      .terms-card h3 { font-size: 15px; font-weight: 600; margin: 16px 0 8px; }
+      .terms-card p, .terms-card li { font-size: 14px; line-height: 1.7; color: var(--dark-700); }
+      .terms-card ul { padding-left: 20px; margin: 8px 0; }
+      .terms-card li { margin-bottom: 6px; }
+    </style>
+  </head>
+  <body>
+    <div class="max-w-lg" style="max-width: 600px; margin: 0 auto; padding: 80px 16px 100px;">
+      <div class="terms-card">
+        <h2>📋 會員計劃條款</h2>
 
-    
-      <script src="js/nav.js"></script>
-<script src="js/footer.js"></script>
-</body>
+        <h3>1. 會籍類型</h3>
+        <p>ZenPass 提供四種會籍方案：輕量 Pass、標準 Pass、高階 Pass、VIP Pass。每種方案有不同嘅 Credits 配額同權益。</p>
+
+        <h3>2. 付費與續期</h3>
+        <p>會籍按月收費，每月自動續期。你可以隨時喺「我的會籍」頁面取消自動續期。</p>
+
+        <h3>3. 暫停會籍 🆕</h3>
+        <ul>
+          <li><strong>暫停期限：</strong>每次可暫停最多 30 日</li>
+          <li><strong>暫停次數：</strong>每年最多暫停 3 次</li>
+          <li><strong>暫停期間：</strong>唔會消耗 Credits，會籍到期日會按暫停日數順延</li>
+          <li><strong>暫停原因：</strong>可選擇旅行、受傷、考試、工作、或其他原因</li>
+          <li><strong>自動恢復：</strong>暫停期滿後會籍會自動恢復</li>
+          <li><strong>提前恢復：</strong>你可以隨時提前手動恢復會籍</li>
+        </ul>
+
+        <h3>4. Credits 使用</h3>
+        <p>Credits 有效期為 180 日，可用於預約 ZenPass 平台上任何合作場地嘅課堂。</p>
+
+        <h3>5. 取消政策</h3>
+        <p>開課前 24 小時可以免費取消預約。少於 24 小時取消會扣除該堂嘅 Credits。</p>
+
+        <h3>6. 退款政策</h3>
+        <p>會籍費用一經繳付恕不退還。如有特殊情況，請聯絡客服。*</p>
+
+        <h3>7. 🎖️ 忠誠度等級</h3>
+        <ul>
+          <li><strong>銅牌 🥉</strong> — 每月 0-4 次預約，基礎權益</li>
+          <li><strong>銀牌 🥈</strong> — 每月 5-9 次預約，優先預約 + Top-up 95折</li>
+          <li><strong>金牌 🥇</strong> — 每月 10-19 次預約，優先預約 + Top-up 9折 + 早鳥 24h</li>
+          <li><strong>VIP 👑</strong> — 每月 20+ 次預約，全部 above + 專屬客服 + 免費 Guest Pass</li>
+        </ul>
+
+        <h3>8. 其他</h3>
+        <p>ZenPass 保留隨時修改條款嘅權利。如有更改會喺平台公告。</p>
+      </div>
+    </div>
+    <script src="api.js"></script>
+    <script src="js/nav.js"></script>
+    <script src="js/footer.js"></script>
+  </body>
 </html>

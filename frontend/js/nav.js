@@ -242,12 +242,58 @@
   }
 
   // ─── Update Account Tab (auth-aware) ────────────────────────────
+  /** Cache the user's loyalty tier (fetched once) */
+  var _tierIconCache = null;
+
+  function fetchLoyaltyTierIcon(callback) {
+    if (_tierIconCache) {
+      if (callback) callback(_tierIconCache);
+      return;
+    }
+    if (!isLoggedIn()) {
+      if (callback) callback(null);
+      return;
+    }
+    var token = localStorage.getItem('zenpass_token') || localStorage.getItem('token');
+    if (!token) {
+      if (callback) callback(null);
+      return;
+    }
+    var API_BASE = window.API_BASE || '';
+    fetch(API_BASE + '/api/loyalty/my', {
+      headers: { 'Authorization': 'Bearer ' + token }
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data && data.current_tier_info && data.current_tier_info.icon) {
+        _tierIconCache = data.current_tier_info.icon;
+        if (callback) callback(_tierIconCache);
+      } else {
+        _tierIconCache = '🥉';
+        if (callback) callback(_tierIconCache);
+      }
+    })
+    .catch(function() {
+      _tierIconCache = null;
+      if (callback) callback(null);
+    });
+  }
+
   function updateAccountTab() {
     var link = document.getElementById('navAccount');
     if (!link) return;
     if (isLoggedIn()) {
       link.href = 'my.html';
       link.querySelector('.nav-label').textContent = '帳戶';
+      // Optionally add tier icon
+      var iconSpan = link.querySelector('.nav-icon');
+      if (iconSpan) {
+        fetchLoyaltyTierIcon(function(tierIcon) {
+          if (tierIcon) {
+            iconSpan.textContent = tierIcon;
+          }
+        });
+      }
     } else {
       link.href = 'login.html';
       link.querySelector('.nav-label').textContent = '登入';
@@ -260,6 +306,16 @@
     if (isLoggedIn()) {
       link.href = 'my.html';
       link.innerHTML = '👤 我的帳戶';
+      // Add tier badge
+      fetchLoyaltyTierIcon(function(tierIcon) {
+        if (tierIcon) {
+          var tierBadge = document.createElement('span');
+          tierBadge.className = 'tier-nav-badge';
+          tierBadge.textContent = tierIcon;
+          tierBadge.style.cssText = 'margin-left:4px;font-size:14px;';
+          link.appendChild(tierBadge);
+        }
+      });
     } else {
       link.href = 'login.html';
       link.innerHTML = '👤 登入 / 註冊';
