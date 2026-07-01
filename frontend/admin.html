@@ -1241,6 +1241,19 @@ async function setEmployeeLimit(memberId) {
   } catch(e) { alert('❌ ' + e.message); }
 }
 
+async function resetCorporateNow(id) {
+  if (!confirm('確定立即重置呢間公司嘅所有員工 Credits？呢個操作不能還原。')) return;
+  try {
+    var r = await apiPost('/corporate/companies/' + id + '/reset', {});
+    if (r.success) {
+      alert('✅ 已重置');
+      if (window._corpDetailId) showCorporateDetail(window._corpDetailId);
+    } else {
+      alert('❌ ' + (r.error || '重置失敗'));
+    }
+  } catch(e) { alert('❌ ' + e.message); }
+}
+
 async function topupCorporateCredits(id) {
   var amount = prompt('加值多少 Credits？');
   if (!amount) return;

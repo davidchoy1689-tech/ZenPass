@@ -17,6 +17,36 @@
     />
         <!-- Hero -->
     <script>
+      function toggleMobileMenu() {
+        var menu = document.querySelector('.hero-section .nav-links, .hero-section .nav-right');
+        if (!menu) {
+          var btn = document.getElementById('hamburgerBtn');
+          var parent = btn && btn.parentElement;
+          if (parent) {
+            var existing = document.querySelector('.mobile-menu-fallback');
+            if (existing) { existing.remove(); return; }
+            var fallback = document.createElement('div');
+            fallback.className = 'mobile-menu-fallback';
+            fallback.style.cssText = 'position:fixed;top:60px;left:0;right:0;background:rgba(0,0,0,0.95);padding:20px;z-index:1000;display:flex;flex-direction:column;gap:16px;align-items:center';
+            fallback.innerHTML = '<a href="explore.html" style="color:#fff;font-size:18px;text-decoration:none">探索課程</a><a href="my.html" style="color:#fff;font-size:18px;text-decoration:none">我的帳戶</a><a href="login.html" style="color:#fff;font-size:18px;text-decoration:none">登入</a><a href="signup.html" style="color:#10b981;font-size:18px;text-decoration:none;font-weight:600">註冊</a>';
+            parent.appendChild(fallback);
+          }
+        } else {
+          menu.style.display = menu.style.display === 'flex' ? 'none' : 'flex';
+        }
+      }
+
+      function toggleFavorite(el) {
+        if (!el) return;
+        if (el.textContent === '♡') {
+          el.textContent = '♥';
+          el.style.color = '#ef4444';
+        } else {
+          el.textContent = '♡';
+          el.style.color = '';
+        }
+      }
+
       function toggleDarkMode() {
         document.documentElement.classList.toggle('dark');
         var btn = document.getElementById('darkModeToggle');
