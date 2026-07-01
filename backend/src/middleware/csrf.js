@@ -47,6 +47,7 @@ function doubleCsrfProtection(req, res, next) {
     '/webhook/',
     '/csrf-token',
     '/upload',
+    '/track/',
   ];
   if (publicPaths.some(p => req.path.startsWith(p))) {
     return next();

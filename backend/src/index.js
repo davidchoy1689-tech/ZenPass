@@ -42,12 +42,6 @@ app.use((req, res, next) => {
   next();
 });
 
-// CSP Nonce — generate a unique nonce per request for script-src allowlisting
-app.use((req, res, next) => {
-  res.locals.cspNonce = randomBytes(16).toString("hex");
-  next();
-});
-
 // HTTP 請求日誌 (morgan → winston)
 app.use(
   morgan(":method :url :status :response-time ms", {
@@ -97,12 +91,13 @@ app.use(
         defaultSrc: ["'self'"],
         scriptSrc: [
           "'self'",
-          (req, res) => `'nonce-${res.locals.cspNonce}'`,
+          "'unsafe-inline'",
           "https://www.googletagmanager.com",
           "https://js.stripe.com",
+          "https://accounts.google.com",
+          "https://appleid.cdn-apple.com",
+          "https://static.hotjar.com",
         ],
-        // scriptSrcAttr retains unsafe-inline for existing onclick/onerror handlers
-        // TODO: migrate inline event handlers to addEventListener with nonced scripts
         scriptSrcAttr: ["'unsafe-inline'"],
         styleSrc: [
           "'self'",
