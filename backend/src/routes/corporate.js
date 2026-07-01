@@ -28,7 +28,7 @@ function isAdmin(userId) {
 
 // ===== GET /api/corporate/companies — 企業列表（Admin）=====
 router.get("/companies", authenticateToken, (req, res) => {
-  if (!isAdmin(req.user.id)) return res.status(403).json({ error: "只限管理員" });
+  if (!isAdmin(req.user.id)) return res.status(403).json({ success: false, error: "只限管理員" });
   try {
     const db = getDb();
     const companies = db.prepare(`
@@ -41,16 +41,16 @@ router.get("/companies", authenticateToken, (req, res) => {
     res.json({ companies });
   } catch (err) {
     console.error("[CORPORATE] List error:", err);
-    res.status(500).json({ error: "讀取企業列表失敗" });
+    res.status(500).json({ success: false, error: "讀取企業列表失敗" });
   }
 });
 
 // ===== POST /api/corporate/companies — 建立企業帳戶 =====
 router.post("/companies", authenticateToken, (req, res) => {
-  if (!isAdmin(req.user.id)) return res.status(403).json({ error: "只限管理員" });
+  if (!isAdmin(req.user.id)) return res.status(403).json({ success: false, error: "只限管理員" });
   try {
     const { name, contact_name, contact_email, contact_phone, credit_pool, billing_cycle } = req.body;
-    if (!name) return res.status(400).json({ error: "請輸入企業名稱" });
+    if (!name) return res.status(400).json({ success: false, error: "請輸入企業名稱" });
 
     const db = getDb();
     db.pragma("foreign_keys = ON");
@@ -66,20 +66,20 @@ router.post("/companies", authenticateToken, (req, res) => {
     res.json({ id, message: `✅ 企業「${name}」已建立` });
   } catch (err) {
     console.error("[CORPORATE] Create error:", err);
-    res.status(500).json({ error: "建立企業失敗" });
+    res.status(500).json({ success: false, error: "建立企業失敗" });
   }
 });
 
 // ===== POST /api/corporate/companies/:id/topup — 加值 Credit Pool =====
 router.post("/companies/:id/topup", authenticateToken, (req, res) => {
-  if (!isAdmin(req.user.id)) return res.status(403).json({ error: "只限管理員" });
+  if (!isAdmin(req.user.id)) return res.status(403).json({ success: false, error: "只限管理員" });
   try {
     const { credits } = req.body;
-    if (!credits || credits <= 0) return res.status(400).json({ error: "請輸入有效數量" });
+    if (!credits || credits <= 0) return res.status(400).json({ success: false, error: "請輸入有效數量" });
 
     const db = getDb();
     const company = db.prepare("SELECT * FROM corporate_companies WHERE id = ?").get(req.params.id);
-    if (!company) { return res.status(404).json({ error: "企業不存在" }); }
+    if (!company) { return res.status(404).json({ success: false, error: "企業不存在" }); }
 
     db.prepare("UPDATE corporate_companies SET credit_pool = credit_pool + ?, updated_at = datetime('now') WHERE id = ?")
       .run(credits, req.params.id);
@@ -94,22 +94,22 @@ router.post("/companies/:id/topup", authenticateToken, (req, res) => {
     res.json({ message: `✅ 已加值 ${credits} Credits（總餘額：${company.credit_pool + credits}）` });
   } catch (err) {
     console.error("[CORPORATE] Topup error:", err);
-    res.status(500).json({ error: "加值失敗" });
+    res.status(500).json({ success: false, error: "加值失敗" });
   }
 });
 
 // ===== POST /api/corporate/companies/:id/employees — 批量新增員工 =====
 router.post("/companies/:id/employees", authenticateToken, (req, res) => {
-  if (!isAdmin(req.user.id)) return res.status(403).json({ error: "只限管理員" });
+  if (!isAdmin(req.user.id)) return res.status(403).json({ success: false, error: "只限管理員" });
   try {
     const { employees } = req.body; // [{name, email, phone}]
     if (!employees || !Array.isArray(employees) || employees.length === 0)
-      return res.status(400).json({ error: "請提供員工列表" });
+      return res.status(400).json({ success: false, error: "請提供員工列表" });
 
     const db = getDb();
     db.pragma("foreign_keys = ON");
     const company = db.prepare("SELECT * FROM corporate_companies WHERE id = ? AND status = 'active'").get(req.params.id);
-    if (!company) { return res.status(404).json({ error: "企業不存在或已停用" }); }
+    if (!company) { return res.status(404).json({ success: false, error: "企業不存在或已停用" }); }
 
     const created = [];
     for (const emp of employees) {
@@ -149,17 +149,17 @@ router.post("/companies/:id/employees", authenticateToken, (req, res) => {
     res.json({ created: created.length, employees: created });
   } catch (err) {
     console.error("[CORPORATE] Add employees error:", err);
-    res.status(500).json({ error: "新增員工失敗" });
+    res.status(500).json({ success: false, error: "新增員工失敗" });
   }
 });
 
 // ===== GET /api/corporate/companies/:id — 企業詳情 + 用量報表 =====
 router.get("/companies/:id", authenticateToken, (req, res) => {
-  if (!isAdmin(req.user.id)) return res.status(403).json({ error: "只限管理員" });
+  if (!isAdmin(req.user.id)) return res.status(403).json({ success: false, error: "只限管理員" });
   try {
     const db = getDb();
     const company = db.prepare("SELECT * FROM corporate_companies WHERE id = ?").get(req.params.id);
-    if (!company) { return res.status(404).json({ error: "企業不存在" }); }
+    if (!company) { return res.status(404).json({ success: false, error: "企業不存在" }); }
 
     const employees = db.prepare(`
       SELECT u.id, u.name, u.email, u.role as status, u.credits,
@@ -180,13 +180,13 @@ router.get("/companies/:id", authenticateToken, (req, res) => {
     res.json({ company, employees, usage, total_employees: employees.length });
   } catch (err) {
     console.error("[CORPORATE] Detail error:", err);
-    res.status(500).json({ error: "讀取企業詳情失敗" });
+    res.status(500).json({ success: false, error: "讀取企業詳情失敗" });
   }
 });
 
 // ===== PATCH /api/corporate/companies/:id — 更新企業資料 =====
 router.patch("/companies/:id", authenticateToken, (req, res) => {
-  if (!isAdmin(req.user.id)) return res.status(403).json({ error: "只限管理員" });
+  if (!isAdmin(req.user.id)) return res.status(403).json({ success: false, error: "只限管理員" });
   try {
     const fields = ["name", "contact_name", "contact_email", "contact_phone", "billing_cycle", "status"];
     const updates = [];
@@ -194,7 +194,7 @@ router.patch("/companies/:id", authenticateToken, (req, res) => {
     for (const f of fields) {
       if (req.body[f] !== undefined) { updates.push(`${f} = ?`); params.push(req.body[f]); }
     }
-    if (updates.length === 0) return res.status(400).json({ error: "冇嘢要更新" });
+    if (updates.length === 0) return res.status(400).json({ success: false, error: "冇嘢要更新" });
 
     updates.push("updated_at = datetime('now')");
     params.push(req.params.id);
@@ -210,13 +210,13 @@ router.patch("/companies/:id", authenticateToken, (req, res) => {
     res.json({ message: "✅ 已更新" });
   } catch (err) {
     console.error("[CORPORATE] Update error:", err);
-    res.status(500).json({ error: "更新失敗" });
+    res.status(500).json({ success: false, error: "更新失敗" });
   }
 });
 
 // ===== GET /api/corporate/report — 企業收入報表 =====
 router.get("/report", authenticateToken, (req, res) => {
-  if (!isAdmin(req.user.id)) return res.status(403).json({ error: "只限管理員" });
+  if (!isAdmin(req.user.id)) return res.status(403).json({ success: false, error: "只限管理員" });
   try {
     const db = getDb();
     const report = db.prepare(`
@@ -230,7 +230,7 @@ router.get("/report", authenticateToken, (req, res) => {
     res.json({ report });
   } catch (err) {
     console.error("[CORPORATE] Report error:", err);
-    res.status(500).json({ error: "讀取報表失敗" });
+    res.status(500).json({ success: false, error: "讀取報表失敗" });
   }
 });
 
@@ -249,21 +249,21 @@ router.get("/my-company", authenticateToken, (req, res) => {
       WHERE cm.user_id = ? AND cm.status = 'active' AND cc.status = 'active'
     `).get(req.user.id);
 
-    if (!company) return res.status(404).json({ error: "你未加入任何企業" });
+    if (!company) return res.status(404).json({ success: false, error: "你未加入任何企業" });
     res.json(company);
   } catch (err) {
     console.error("[CORPORATE] my-company error:", err);
-    res.status(500).json({ error: "讀取企業資料失敗" });
+    res.status(500).json({ success: false, error: "讀取企業資料失敗" });
   }
 });
 
 // ===== PATCH /api/corporate/members/:memberId/limit — 設定員工月度上限 =====
 router.patch("/members/:memberId/limit", authenticateToken, (req, res) => {
-  if (!isAdmin(req.user.id)) return res.status(403).json({ error: "只限管理員" });
+  if (!isAdmin(req.user.id)) return res.status(403).json({ success: false, error: "只限管理員" });
   try {
     const { monthly_credit_limit } = req.body;
     if (monthly_credit_limit === undefined || monthly_credit_limit < 0) {
-      return res.status(400).json({ error: "請輸入有效上限" });
+      return res.status(400).json({ success: false, error: "請輸入有效上限" });
     }
     const db = getDb();
     db.prepare("UPDATE corporate_members SET monthly_credit_limit = ?, updated_at = datetime('now') WHERE id = ?")
@@ -275,7 +275,7 @@ router.patch("/members/:memberId/limit", authenticateToken, (req, res) => {
     res.json({ message: "✅ 已更新員工月度上限" });
   } catch (err) {
     console.error("[CORPORATE] Set limit error:", err);
-    res.status(500).json({ error: "更新上限失敗" });
+    res.status(500).json({ success: false, error: "更新上限失敗" });
   }
 });
 
@@ -298,7 +298,7 @@ router.get("/my/hr-dashboard", authenticateToken, (req, res) => {
         JOIN corporate_companies cc ON cm.company_id = cc.id
         WHERE cm.user_id = ? AND cm.status = 'active' AND cc.status = 'active'
       `).get(req.user.id);
-      if (!member) { return res.status(403).json({ error: "你不是企業員工" }); }
+      if (!member) { return res.status(403).json({ success: false, error: "你不是企業員工" }); }
       company = member;
     }
 
@@ -356,7 +356,7 @@ router.get("/my/hr-dashboard", authenticateToken, (req, res) => {
     });
   } catch (err) {
     console.error("[HR DASHBOARD] Error:", err);
-    res.status(500).json({ error: "讀取儀錶板資料失敗" });
+    res.status(500).json({ success: false, error: "讀取儀錶板資料失敗" });
   }
 });
 
@@ -371,7 +371,7 @@ router.get("/my/employee/:userId", authenticateToken, (req, res) => {
       WHERE cm.user_id = ? AND cm.status = 'active' AND cc.status = 'active'
     `).get(req.user.id);
 
-    if (!myMembership) { return res.status(403).json({ error: "你不是企業員工" }); }
+    if (!myMembership) { return res.status(403).json({ success: false, error: "你不是企業員工" }); }
 
     // Target employee must be in the same company
     const targetMember = db.prepare(`
@@ -379,7 +379,7 @@ router.get("/my/employee/:userId", authenticateToken, (req, res) => {
       WHERE cm.user_id = ? AND cm.company_id = ? AND cm.status = 'active'
     `).get(req.params.userId, myMembership.company_id);
 
-    if (!targetMember) { return res.status(403).json({ error: "無權限" }); }
+    if (!targetMember) { return res.status(403).json({ success: false, error: "無權限" }); }
 
     const user = db.prepare("SELECT id, name, email, credits, created_at, last_visit FROM users WHERE id = ?").get(req.params.userId);
     const bookings = db.prepare(`
@@ -397,7 +397,7 @@ router.get("/my/employee/:userId", authenticateToken, (req, res) => {
     });
   } catch (err) {
     console.error("[HR EMPLOYEE] Error:", err);
-    res.status(500).json({ error: "讀取員工資料失敗" });
+    res.status(500).json({ success: false, error: "讀取員工資料失敗" });
   }
 });
 
@@ -405,7 +405,7 @@ router.get("/my/employee/:userId", authenticateToken, (req, res) => {
 router.post("/my/invite", authenticateToken, (req, res) => {
   try {
     const { email, name } = req.body;
-    if (!email || !name) return res.status(400).json({ error: "請提供員工電郵及名稱" });
+    if (!email || !name) return res.status(400).json({ success: false, error: "請提供員工電郵及名稱" });
 
     const db = getDb();
     db.pragma("foreign_keys = ON");
@@ -417,7 +417,7 @@ router.post("/my/invite", authenticateToken, (req, res) => {
       WHERE cm.user_id = ? AND cm.status = 'active' AND cc.status = 'active'
     `).get(req.user.id);
 
-    if (!myCompany) { return res.status(403).json({ error: "你不是企業員工" }); }
+    if (!myCompany) { return res.status(403).json({ success: false, error: "你不是企業員工" }); }
 
     // Check existing user
     let user = db.prepare("SELECT id, name, email FROM users WHERE email = ?").get(email);
@@ -453,18 +453,18 @@ router.post("/my/invite", authenticateToken, (req, res) => {
     });
   } catch (err) {
     console.error("[HR INVITE] Error:", err);
-    res.status(500).json({ error: "邀請失敗" });
+    res.status(500).json({ success: false, error: "邀請失敗" });
   }
 });
 
 // ===== GET /api/corporate/stats/:companyId — 企業 Wellness Dashboard 統計 =====
 router.get("/stats/:companyId", authenticateToken, (req, res) => {
-  if (!isAdmin(req.user.id)) return res.status(403).json({ error: "只限管理員" });
+  if (!isAdmin(req.user.id)) return res.status(403).json({ success: false, error: "只限管理員" });
   try {
     const db = getDb();
     const { companyId } = req.params;
     const company = db.prepare("SELECT * FROM corporate_companies WHERE id = ?").get(companyId);
-    if (!company) return res.status(404).json({ error: "企業不存在" });
+    if (!company) return res.status(404).json({ success: false, error: "企業不存在" });
 
     // Total bookings (all time)
     const totalBookings = db.prepare(`
@@ -514,7 +514,7 @@ router.get("/stats/:companyId", authenticateToken, (req, res) => {
     });
   } catch (err) {
     console.error("[CORPORATE STATS] Error:", err);
-    res.status(500).json({ error: "讀取統計失敗" });
+    res.status(500).json({ success: false, error: "讀取統計失敗" });
   }
 });
 

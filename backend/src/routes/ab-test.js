@@ -29,7 +29,7 @@ router.get("/experiments", (req, res) => {
       try { e.variants = JSON.parse(e.variants); } catch(x) { e.variants = []; }
       return e;
     })});
-  } catch(err) { res.status(500).json({ error: err.message }); }
+  } catch(err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
 // POST /api/ab/track — 記錄 variant impression 或 conversion
@@ -51,13 +51,13 @@ router.get("/results/:id", (req, res) => {
   try {
     var db = getDb();
     var exp = db.prepare("SELECT * FROM ab_experiments WHERE id = ?").get(req.params.id);
-    if (!exp) { return res.status(404).json({ error: "Experiment not found" }); }
+    if (!exp) { return res.status(404).json({ success: false, error: "Experiment not found" }); }
 
     var rows = db.prepare("SELECT variant, event_type, COUNT(*) as count FROM ab_events WHERE experiment_id = ? GROUP BY variant, event_type").all(req.params.id);
 
     try { exp.variants = JSON.parse(exp.variants); } catch(x) { exp.variants = []; }
     res.json({ experiment: exp, results: rows });
-  } catch(err) { res.status(500).json({ error: err.message }); }
+  } catch(err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
 module.exports = router;

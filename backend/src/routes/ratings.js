@@ -25,12 +25,12 @@ router.post("/", authenticateToken, (req, res) => {
 
     // Validation
     if (!booking_id || !coach_id || !rating) {
-      return res.status(400).json({ error: "請提供 booking_id、coach_id 和評分" });
+      return res.status(400).json({ success: false, error: "請提供 booking_id、coach_id 和評分" });
     }
 
     const ratingNum = parseInt(rating);
     if (ratingNum < 1 || ratingNum > 5) {
-      return res.status(400).json({ error: "評分必須為 1-5" });
+      return res.status(400).json({ success: false, error: "評分必須為 1-5" });
     }
 
     const db = getDb();
@@ -48,24 +48,24 @@ router.post("/", authenticateToken, (req, res) => {
 
     if (!booking) {
 
-      return res.status(404).json({ error: "預約記錄不存在" });
+      return res.status(404).json({ success: false, error: "預約記錄不存在" });
     }
 
     if (booking.user_id !== req.user.id) {
 
-      return res.status(403).json({ error: "你無權限評分此預約" });
+      return res.status(403).json({ success: false, error: "你無權限評分此預約" });
     }
 
     // Must be attended
     if (booking.status !== "attended") {
 
-      return res.status(400).json({ error: "只能對已出席嘅課程評分" });
+      return res.status(400).json({ success: false, error: "只能對已出席嘅課程評分" });
     }
 
     // Verify coach_id matches
     if (booking.coach_id !== coach_id) {
 
-      return res.status(400).json({ error: "教練 ID 與課程不符" });
+      return res.status(400).json({ success: false, error: "教練 ID 與課程不符" });
     }
 
     // Check monthly limit: one rating per coach per calendar month
@@ -82,7 +82,7 @@ router.post("/", authenticateToken, (req, res) => {
 
     if (monthCount.count > 0) {
 
-      return res.status(400).json({ error: "你今個月已經評過呢位教練，每月只能評分一次" });
+      return res.status(400).json({ success: false, error: "你今個月已經評過呢位教練，每月只能評分一次" });
     }
 
     // Check if already rated for this booking
@@ -97,7 +97,7 @@ router.post("/", authenticateToken, (req, res) => {
       const hoursPassed = (now - createdTime) / (1000 * 60 * 60);
       if (hoursPassed > 48) {
 
-        return res.status(400).json({ error: "評分已超過 48 小時，無法修改" });
+        return res.status(400).json({ success: false, error: "評分已超過 48 小時，無法修改" });
       }
 
       // Update existing rating
@@ -164,7 +164,7 @@ router.post("/", authenticateToken, (req, res) => {
     });
   } catch (err) {
     console.error("提交評分錯誤:", err);
-    res.status(500).json({ error: "無法提交評分" });
+    res.status(500).json({ success: false, error: "無法提交評分" });
   }
 });
 
@@ -220,7 +220,7 @@ router.get("/coach/:coachId", optionalAuth, (req, res) => {
     });
   } catch (err) {
     console.error("查詢教練評分錯誤:", err);
-    res.status(500).json({ error: "無法取得評分資料" });
+    res.status(500).json({ success: false, error: "無法取得評分資料" });
   }
 });
 
@@ -276,7 +276,7 @@ router.get("/ranking", optionalAuth, (req, res) => {
     });
   } catch (err) {
     console.error("查詢教練排名錯誤:", err);
-    res.status(500).json({ error: "無法取得教練排名" });
+    res.status(500).json({ success: false, error: "無法取得教練排名" });
   }
 });
 

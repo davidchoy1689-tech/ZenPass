@@ -25,7 +25,7 @@ router.get("/", authenticateToken, (req, res) => {
     res.json({ teammates });
   } catch (err) {
     console.error("獲取同伴列表錯誤:", err.message);
-    res.status(500).json({ error: "獲取同伴列表失敗" });
+    res.status(500).json({ success: false, error: "獲取同伴列表失敗" });
   }
 });
 
@@ -34,7 +34,7 @@ router.post("/", authenticateToken, (req, res) => {
   try {
     const { name, phone, email, notes } = req.body;
     if (!name || !name.trim()) {
-      return res.status(400).json({ error: "請輸入同伴姓名" });
+      return res.status(400).json({ success: false, error: "請輸入同伴姓名" });
     }
 
     const db = getDb();
@@ -48,7 +48,7 @@ router.post("/", authenticateToken, (req, res) => {
 
     if (existing) {
 
-      return res.status(409).json({ error: "同伴已存在" });
+      return res.status(409).json({ success: false, error: "同伴已存在" });
     }
 
     const result = db
@@ -82,7 +82,7 @@ router.post("/", authenticateToken, (req, res) => {
     res.status(201).json({ teammate });
   } catch (err) {
     console.error("新增同伴錯誤:", err.message);
-    res.status(500).json({ error: "新增同伴失敗" });
+    res.status(500).json({ success: false, error: "新增同伴失敗" });
   }
 });
 
@@ -96,7 +96,7 @@ router.delete("/:id", authenticateToken, (req, res) => {
 
     if (result.changes === 0) {
 
-      return res.status(404).json({ error: "找不到該同伴" });
+      return res.status(404).json({ success: false, error: "找不到該同伴" });
     }
 
     // ⛓️ 區塊鏈：記錄刪除同伴
@@ -117,7 +117,7 @@ router.delete("/:id", authenticateToken, (req, res) => {
     res.json({ message: "✅ 已刪除同伴" });
   } catch (err) {
     console.error("刪除同伴錯誤:", err.message);
-    res.status(500).json({ error: "刪除同伴失敗" });
+    res.status(500).json({ success: false, error: "刪除同伴失敗" });
   }
 });
 
@@ -133,7 +133,7 @@ router.put("/:id", authenticateToken, (req, res) => {
 
     if (!existing) {
 
-      return res.status(404).json({ error: "找不到該同伴" });
+      return res.status(404).json({ success: false, error: "找不到該同伴" });
     }
 
     db.prepare(
@@ -166,7 +166,7 @@ router.put("/:id", authenticateToken, (req, res) => {
     res.json({ teammate });
   } catch (err) {
     console.error("更新同伴錯誤:", err.message);
-    res.status(500).json({ error: "更新同伴失敗" });
+    res.status(500).json({ success: false, error: "更新同伴失敗" });
   }
 });
 

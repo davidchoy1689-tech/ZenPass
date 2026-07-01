@@ -369,7 +369,7 @@ router.get("/", authenticateToken, (req, res) => {
     });
   } catch (err) {
     console.error("取勳章錯誤:", err);
-    res.status(500).json({ error: "無法取得勳章資料" });
+    res.status(500).json({ success: false, error: "無法取得勳章資料" });
   }
 });
 
@@ -396,7 +396,7 @@ router.get("/mine", authenticateToken, (req, res) => {
     res.json({ badges, total: stats.total, earned: badges.length });
   } catch (err) {
     console.error("取用戶勳章錯誤:", err);
-    res.status(500).json({ error: "無法取得勳章" });
+    res.status(500).json({ success: false, error: "無法取得勳章" });
   }
 });
 
@@ -410,7 +410,7 @@ router.post("/check", authenticateToken, (req, res) => {
     });
   } catch (err) {
     console.error("勳章檢查錯誤:", err);
-    res.status(500).json({ error: "勳章檢查失敗" });
+    res.status(500).json({ success: false, error: "勳章檢查失敗" });
   }
 });
 
@@ -429,7 +429,7 @@ router.get("/progress", authenticateToken, (req, res) => {
       .get(req.user.id);
     if (!user) {
 
-      return res.status(404).json({ error: "用戶不存在" });
+      return res.status(404).json({ success: false, error: "用戶不存在" });
     }
 
     // 統計數據
@@ -522,7 +522,7 @@ router.get("/progress", authenticateToken, (req, res) => {
     });
   } catch (err) {
     console.error("取勳章進度錯誤:", err);
-    res.status(500).json({ error: "無法取得進度" });
+    res.status(500).json({ success: false, error: "無法取得進度" });
   }
 });
 
@@ -549,7 +549,7 @@ router.get("/profile/:userId", (req, res) => {
     res.json({ badges, count });
   } catch (err) {
     console.error("取公開勳章錯誤:", err);
-    res.status(500).json({ error: "無法取得勳章資料" });
+    res.status(500).json({ success: false, error: "無法取得勳章資料" });
   }
 });
 

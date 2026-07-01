@@ -7,7 +7,7 @@ const express = require("express");
 const bcrypt = require("bcryptjs");
 const { v4: uuidv4 } = require("uuid");
 const { getDb } = require("../services/database");
-const { generateToken, authenticateToken } = require("../middleware/auth");
+const { generateToken, authenticateToken, setAuthCookie, clearAuthCookie } = require("../middleware/auth");
 
 const { OAuth2Client } = require("google-auth-library");
 
@@ -48,13 +48,13 @@ router.post("/register", (req, res) => {
 
     // 驗證
     if (!email || !password || !name) {
-      return res.status(400).json({ error: "請填寫姓名、電郵和密碼" });
+      return res.status(400).json({ success: false, error: "請填寫姓名、電郵和密碼" });
     }
     if (password.length < 6) {
-      return res.status(400).json({ error: "密碼至少需要 6 個字元" });
+      return res.status(400).json({ success: false, error: "密碼至少需要 6 個字元" });
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return res.status(400).json({ error: "電郵格式不正確" });
+      return res.status(400).json({ success: false, error: "電郵格式不正確" });
     }
 
     const db = getDb();
@@ -66,7 +66,7 @@ router.post("/register", (req, res) => {
       .get(email);
     if (existing) {
 
-      return res.status(409).json({ error: "此電郵已經註冊" });
+      return res.status(409).json({ success: false, error: "此電郵已經註冊" });
     }
 
     // 建立用戶
@@ -99,6 +99,9 @@ router.post("/register", (req, res) => {
     const token = generateToken(user);
 
     const isDev = !process.env.SMTP_HOST;
+    // Set HTTP-only cookie (dual mode: also returns token in JSON)
+    setAuthCookie(res, token);
+
     res.status(201).json({
       message: "註冊成功",
       token,
@@ -107,7 +110,7 @@ router.post("/register", (req, res) => {
     });
   } catch (err) {
     console.error("註冊錯誤:", err);
-    res.status(500).json({ error: "註冊失敗,請稍後再試" });
+    res.status(500).json({ success: false, error: "註冊失敗,請稍後再試" });
   }
 });
 
@@ -117,7 +120,7 @@ router.post("/login", (req, res) => {
     const { email, password } = req.body;
 
     if (!email || !password) {
-      return res.status(400).json({ error: "請輸入電郵和密碼" });
+      return res.status(400).json({ success: false, error: "請輸入電郵和密碼" });
     }
 
     const db = getDb();
@@ -127,7 +130,7 @@ router.post("/login", (req, res) => {
 
     if (!user) {
 
-      return res.status(401).json({ error: "電郵或密碼不正確" });
+      return res.status(401).json({ success: false, error: "電郵或密碼不正確" });
     }
 
     // Check if password login is allowed
@@ -140,12 +143,15 @@ router.post("/login", (req, res) => {
 
     if (!bcrypt.compareSync(password, user.password_hash)) {
 
-      return res.status(401).json({ error: "電郵或密碼不正確" });
+      return res.status(401).json({ success: false, error: "電郵或密碼不正確" });
     }
 
     const token = generateToken(user);
 
     const { password_hash, ...userData } = user;
+
+    // Set HTTP-only cookie (dual mode: also returns token in JSON)
+    setAuthCookie(res, token);
 
     res.json({
       message: "登入成功",
@@ -154,7 +160,7 @@ router.post("/login", (req, res) => {
     });
   } catch (err) {
     console.error("登入錯誤:", err);
-    res.status(500).json({ error: "登入失敗,請稍後再試" });
+    res.status(500).json({ success: false, error: "登入失敗,請稍後再試" });
   }
 });
 
@@ -164,10 +170,10 @@ router.post("/social", async (req, res) => {
     let { provider, providerId, email, name, providerToken } = req.body;
 
     if (!provider || !providerId) {
-      return res.status(400).json({ error: "缺少第三方登入資料" });
+      return res.status(400).json({ success: false, error: "缺少第三方登入資料" });
     }
     if (!["apple", "google"].includes(provider)) {
-      return res.status(400).json({ error: "不支援的登入方式" });
+      return res.status(400).json({ success: false, error: "不支援的登入方式" });
     }
 
     // Google: verify ID token if provided
@@ -180,7 +186,7 @@ router.post("/social", async (req, res) => {
         name = name || payload.name;
       } else if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_ID !== "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com") {
         // Client ID configured but verification failed - reject
-        return res.status(401).json({ error: "Google 身份驗證失敗" });
+        return res.status(401).json({ success: false, error: "Google 身份驗證失敗" });
       }
     }
 
@@ -225,6 +231,9 @@ router.post("/social", async (req, res) => {
       const token = generateToken(user);
       const { password_hash, ...userData } = user;
 
+      // Set HTTP-only cookie (dual mode)
+      setAuthCookie(res, token);
+
       return res.json({ message: "登入成功", token, user: userData });
     }
 
@@ -249,6 +258,9 @@ router.post("/social", async (req, res) => {
 
     const token = generateToken(user);
 
+    // Set HTTP-only cookie (dual mode)
+    setAuthCookie(res, token);
+
     res.status(201).json({
       message: "註冊成功",
       token,
@@ -256,7 +268,7 @@ router.post("/social", async (req, res) => {
     });
   } catch (err) {
     console.error("第三方登入錯誤:", err);
-    res.status(500).json({ error: "登入失敗" });
+    res.status(500).json({ success: false, error: "登入失敗" });
   }
 });
 
@@ -278,13 +290,13 @@ router.get("/me", authenticateToken, (req, res) => {
       .get(req.user.id);
 
     if (!user) {
-      return res.status(404).json({ error: "用戶不存在" });
+      return res.status(404).json({ success: false, error: "用戶不存在" });
     }
 
     res.json({ user });
   } catch (err) {
     console.error("取用戶資料錯誤:", err);
-    res.status(500).json({ error: "無法取得用戶資料" });
+    res.status(500).json({ success: false, error: "無法取得用戶資料" });
   }
 });
 
@@ -292,21 +304,21 @@ router.get("/me", authenticateToken, (req, res) => {
 router.get("/verify-email", (req, res) => {
   try {
     const { token } = req.query;
-    if (!token) return res.status(400).json({ error: "缺少驗證 token" });
+    if (!token) return res.status(400).json({ success: false, error: "缺少驗證 token" });
 
     const db = getDb();
     const user = db.prepare("SELECT id FROM users WHERE verification_token = ? AND verification_token_expires > datetime('now')").get(token);
 
     if (!user) {
 
-      return res.status(400).json({ error: "驗證連結已過期或無效" });
+      return res.status(400).json({ success: false, error: "驗證連結已過期或無效" });
     }
 
     db.prepare("UPDATE users SET email_verified = 1, verification_token = NULL, verification_token_expires = NULL WHERE id = ?").run(user.id);
 
     res.json({ message: "✅ 電郵已驗證成功" });
   } catch (err) {
-    res.status(500).json({ error: "驗證失敗" });
+    res.status(500).json({ success: false, error: "驗證失敗" });
   }
 });
 
@@ -315,7 +327,7 @@ router.post("/resend-verification", authenticateToken, (req, res) => {
   try {
     const db = getDb();
     const user = db.prepare("SELECT email, email_verified FROM users WHERE id = ?").get(req.user.id);
-    if (!user) { return res.status(404).json({ error: "用戶不存在" }); }
+    if (!user) { return res.status(404).json({ success: false, error: "用戶不存在" }); }
     if (user.email_verified) { return res.json({ message: "電郵已驗證" }); }
 
     // Generate new token
@@ -328,7 +340,7 @@ router.post("/resend-verification", authenticateToken, (req, res) => {
       ...(isDev ? { dev_verify_url: "https://zenpass.hk/verify-email.html?token=" + token } : {})
     });
   } catch (err) {
-    res.status(500).json({ error: "發送失敗" });
+    res.status(500).json({ success: false, error: "發送失敗" });
   }
 });
 
@@ -336,7 +348,7 @@ router.post("/resend-verification", authenticateToken, (req, res) => {
 router.post("/password-reset-request", (req, res) => {
   try {
     const { email } = req.body;
-    if (!email) return res.status(400).json({ error: "請輸入電郵" });
+    if (!email) return res.status(400).json({ success: false, error: "請輸入電郵" });
 
     const db = getDb();
     const user = db.prepare("SELECT id, name FROM users WHERE email = ?").get(email);
@@ -360,7 +372,7 @@ router.post("/password-reset-request", (req, res) => {
 
   } catch (err) {
     console.error("[PASSWORD RESET] Error:", err);
-    res.status(500).json({ error: "處理請求失敗" });
+    res.status(500).json({ success: false, error: "處理請求失敗" });
   }
 });
 
@@ -368,15 +380,15 @@ router.post("/password-reset-request", (req, res) => {
 router.post("/password-reset", (req, res) => {
   try {
     const { token, new_password } = req.body;
-    if (!token || !new_password) return res.status(400).json({ error: "請提供 token 及新密碼" });
-    if (new_password.length < 6) return res.status(400).json({ error: "密碼至少 6 個字元" });
+    if (!token || !new_password) return res.status(400).json({ success: false, error: "請提供 token 及新密碼" });
+    if (new_password.length < 6) return res.status(400).json({ success: false, error: "密碼至少 6 個字元" });
 
     const db = getDb();
     const user = db.prepare("SELECT id FROM users WHERE reset_token = ? AND reset_token_expires > datetime('now')").get(token);
 
     if (!user) {
 
-      return res.status(400).json({ error: "連結已過期或無效,請重新申請" });
+      return res.status(400).json({ success: false, error: "連結已過期或無效,請重新申請" });
     }
 
     const hash = bcrypt.hashSync(new_password, 10);
@@ -386,7 +398,7 @@ router.post("/password-reset", (req, res) => {
     res.json({ message: "✅ 密碼已成功重置,請使用新密碼登入" });
   } catch (err) {
     console.error("[PASSWORD RESET] Error:", err);
-    res.status(500).json({ error: "重置密碼失敗" });
+    res.status(500).json({ success: false, error: "重置密碼失敗" });
   }
 });
 
@@ -394,8 +406,8 @@ router.post("/password-reset", (req, res) => {
 router.post("/change-password", authenticateToken, (req, res) => {
   try {
     const { new_password } = req.body;
-    if (!new_password) return res.status(400).json({ error: "請提供新密碼" });
-    if (new_password.length < 6) return res.status(400).json({ error: "密碼至少需要 6 個字元" });
+    if (!new_password) return res.status(400).json({ success: false, error: "請提供新密碼" });
+    if (new_password.length < 6) return res.status(400).json({ success: false, error: "密碼至少需要 6 個字元" });
 
     const db = getDb();
     const hash = bcrypt.hashSync(new_password, 10);
@@ -405,8 +417,14 @@ router.post("/change-password", authenticateToken, (req, res) => {
     res.json({ message: "✅ 密碼已更新" });
   } catch (err) {
     console.error("[CHANGE PASSWORD] Error:", err);
-    res.status(500).json({ error: "更改密碼失敗" });
+    res.status(500).json({ success: false, error: "更改密碼失敗" });
   }
+});
+
+// ===== POST /api/auth/logout - 登出 =====
+router.post("/logout", (req, res) => {
+  clearAuthCookie(res);
+  res.json({ message: "已登出" });
 });
 
 module.exports = router;

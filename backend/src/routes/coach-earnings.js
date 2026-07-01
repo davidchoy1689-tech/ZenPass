@@ -120,7 +120,7 @@ router.get("/earnings", authenticateToken, (req, res) => {
     });
   } catch (err) {
     console.error("獲取收入錯誤:", err);
-    res.status(500).json({ error: "無法獲取收入資料" });
+    res.status(500).json({ success: false, error: "無法獲取收入資料" });
   }
 });
 
@@ -179,7 +179,7 @@ router.get("/earnings/detail", authenticateToken, (req, res) => {
     });
   } catch (err) {
     console.error("獲取收入明細錯誤:", err);
-    res.status(500).json({ error: "無法獲取收入明細" });
+    res.status(500).json({ success: false, error: "無法獲取收入明細" });
   }
 });
 
@@ -295,7 +295,7 @@ router.post("/earnings/calculate", authenticateToken, async (req, res) => {
     });
   } catch (err) {
     console.error("計算收入錯誤:", err);
-    res.status(500).json({ error: "無法計算收入" });
+    res.status(500).json({ success: false, error: "無法計算收入" });
   }
 });
 
@@ -317,12 +317,12 @@ router.post("/payout-request", authenticateToken, (req, res) => {
 
     if (!amount || amount <= 0) {
 
-      return res.status(400).json({ error: "請輸入有效金額" });
+      return res.status(400).json({ success: false, error: "請輸入有效金額" });
     }
 
     if (amount < 100) {
 
-      return res.status(400).json({ error: "最低提現金額為 HK$100" });
+      return res.status(400).json({ success: false, error: "最低提現金額為 HK$100" });
     }
 
     // Check available balance
@@ -439,7 +439,7 @@ router.post("/payout-request", authenticateToken, (req, res) => {
     });
   } catch (err) {
     console.error("提現申請錯誤:", err);
-    res.status(500).json({ error: "提現申請失敗" });
+    res.status(500).json({ success: false, error: "提現申請失敗" });
   }
 });
 
@@ -461,7 +461,7 @@ router.get("/payout-history", authenticateToken, (req, res) => {
     res.json({ payouts });
   } catch (err) {
     console.error("獲取提現記錄錯誤:", err);
-    res.status(500).json({ error: "無法獲取提現記錄" });
+    res.status(500).json({ success: false, error: "無法獲取提現記錄" });
   }
 });
 
@@ -471,7 +471,7 @@ router.get("/admin/all-earnings", authenticateToken, (req, res) => {
     // Admin check
     const user = getDb().prepare("SELECT email FROM users WHERE id = ?").get(req.user.id);
     if (!user || user.email !== "david@zenpass.hk") {
-      return res.status(403).json({ error: "僅管理員可查看" });
+      return res.status(403).json({ success: false, error: "僅管理員可查看" });
     }
 
     const db = getDb();
@@ -519,7 +519,7 @@ router.get("/admin/all-earnings", authenticateToken, (req, res) => {
     });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "無法獲取收入資料" });
+    res.status(500).json({ success: false, error: "無法獲取收入資料" });
   }
 });
 
@@ -528,7 +528,7 @@ router.post("/payout-process", authenticateToken, (req, res) => {
   try {
     const { payout_id, action, notes } = req.body;
     if (!payout_id || !["approve", "reject"].includes(action)) {
-      return res.status(400).json({ error: "無效的操作" });
+      return res.status(400).json({ success: false, error: "無效的操作" });
     }
 
     const db = getDb();
@@ -539,7 +539,7 @@ router.post("/payout-process", authenticateToken, (req, res) => {
       .get(payout_id);
     if (!payout || payout.status !== "pending") {
 
-      return res.status(400).json({ error: "提現記錄不存在或已處理" });
+      return res.status(400).json({ success: false, error: "提現記錄不存在或已處理" });
     }
 
     if (action === "approve") {
@@ -575,7 +575,7 @@ router.post("/payout-process", authenticateToken, (req, res) => {
     res.json({ message: action === "approve" ? "提現已批准" : "提現已駁回" });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "處理失敗" });
+    res.status(500).json({ success: false, error: "處理失敗" });
   }
 });
 
@@ -594,7 +594,7 @@ router.post("/private-income", authenticateToken, (req, res) => {
       notes,
     } = req.body;
     if (!date || !description || !amount) {
-      return res.status(400).json({ error: "請填寫日期、描述和金額" });
+      return res.status(400).json({ success: false, error: "請填寫日期、描述和金額" });
     }
 
     const db = getDb();
@@ -643,7 +643,7 @@ router.post("/private-income", authenticateToken, (req, res) => {
     res.status(201).json({ message: "私人收入已記錄", id });
   } catch (err) {
     console.error("新增私人收入錯誤:", err);
-    res.status(500).json({ error: "無法記錄收入" });
+    res.status(500).json({ success: false, error: "無法記錄收入" });
   }
 });
 
@@ -695,7 +695,7 @@ router.get("/private-income", authenticateToken, (req, res) => {
     });
   } catch (err) {
     console.error("獲取私人收入錯誤:", err);
-    res.status(500).json({ error: "無法獲取收入列表" });
+    res.status(500).json({ success: false, error: "無法獲取收入列表" });
   }
 });
 
@@ -708,12 +708,12 @@ router.delete("/private-income/:id", authenticateToken, (req, res) => {
       .run(req.params.id, req.user.id);
 
     if (result.changes === 0) {
-      return res.status(404).json({ error: "記錄不存在" });
+      return res.status(404).json({ success: false, error: "記錄不存在" });
     }
     res.json({ message: "已刪除" });
   } catch (err) {
     console.error("刪除私人收入錯誤:", err);
-    res.status(500).json({ error: "無法刪除記錄" });
+    res.status(500).json({ success: false, error: "無法刪除記錄" });
   }
 });
 
@@ -768,7 +768,7 @@ router.get("/settlements", authenticateToken, (req, res) => {
     res.json({ settlements, summary });
   } catch (err) {
     console.error("獲取結算錯誤:", err);
-    res.status(500).json({ error: "無法獲取結算資料" });
+    res.status(500).json({ success: false, error: "無法獲取結算資料" });
   }
 });
 
@@ -776,7 +776,7 @@ router.get("/settlements", authenticateToken, (req, res) => {
 router.post("/settlements/generate", authenticateToken, (req, res) => {
   try {
     const { year, month } = req.body;
-    if (!year || !month) return res.status(400).json({ error: "請提供年月" });
+    if (!year || !month) return res.status(400).json({ success: false, error: "請提供年月" });
 
     const db = getDb();
     db.pragma("foreign_keys = ON");
@@ -838,7 +838,7 @@ router.post("/settlements/generate", authenticateToken, (req, res) => {
     res.json({ message: `已生成 ${count} 筆結算記錄`, count });
   } catch (err) {
     console.error("生成結算錯誤:", err);
-    res.status(500).json({ error: "無法生成結算" });
+    res.status(500).json({ success: false, error: "無法生成結算" });
   }
 });
 
@@ -853,7 +853,7 @@ router.post("/settlements/:id/pay", authenticateToken, (req, res) => {
     res.json({ message: "已標記為已付款" });
   } catch (err) {
     console.error("付款標記錯誤:", err);
-    res.status(500).json({ error: "無法更新狀態" });
+    res.status(500).json({ success: false, error: "無法更新狀態" });
   }
 });
 
@@ -870,7 +870,7 @@ router.get("/settings", (req, res) => {
     res.json({ settings });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "無法獲取設定" });
+    res.status(500).json({ success: false, error: "無法獲取設定" });
   }
 });
 
@@ -882,10 +882,10 @@ router.get("/settings/:key", (req, res) => {
       .prepare("SELECT * FROM platform_settings WHERE key = ?")
       .get(req.params.key);
 
-    if (!setting) return res.status(404).json({ error: "設定不存在" });
+    if (!setting) return res.status(404).json({ success: false, error: "設定不存在" });
     res.json(setting);
   } catch (err) {
-    res.status(500).json({ error: "無法獲取設定" });
+    res.status(500).json({ success: false, error: "無法獲取設定" });
   }
 });
 
@@ -894,7 +894,7 @@ router.put("/settings/:key", authenticateToken, (req, res) => {
   try {
     const { value, description } = req.body;
     if (value === undefined)
-      return res.status(400).json({ error: "請提供 value" });
+      return res.status(400).json({ success: false, error: "請提供 value" });
 
     const db = getDb();
     const existing = db
@@ -917,7 +917,7 @@ router.put("/settings/:key", authenticateToken, (req, res) => {
     });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "無法更新設定" });
+    res.status(500).json({ success: false, error: "無法更新設定" });
   }
 });
 
@@ -936,7 +936,7 @@ router.get("/settings/effective-rate", (req, res) => {
       zenpass_rate: 1 - parseFloat(rate ? rate.value : 0.75),
     });
   } catch (err) {
-    res.status(500).json({ error: "無法獲取佣金率" });
+    res.status(500).json({ success: false, error: "無法獲取佣金率" });
   }
 });
 
@@ -1141,7 +1141,7 @@ router.post(
       res.json({ url: link.url });
     } catch (err) {
       console.error("Stripe Connect error:", err.message);
-      res.status(500).json({ error: "無法建立 Stripe 連結" });
+      res.status(500).json({ success: false, error: "無法建立 Stripe 連結" });
     }
   },
 );
@@ -1151,7 +1151,7 @@ router.post("/payouts/request", authenticateToken, async (req, res) => {
   try {
     const { amount } = req.body;
     if (!amount || amount < 50) {
-      return res.status(400).json({ error: "最低提款金額為 HK$50" });
+      return res.status(400).json({ success: false, error: "最低提款金額為 HK$50" });
     }
 
     const db = getDb();
@@ -1162,7 +1162,7 @@ router.post("/payouts/request", authenticateToken, async (req, res) => {
       .get(req.user.id);
     if (!user || user.pending_payout < amount) {
 
-      return res.status(400).json({ error: "可提款金額不足" });
+      return res.status(400).json({ success: false, error: "可提款金額不足" });
     }
 
     // Deduct pending payout
@@ -1182,7 +1182,7 @@ router.post("/payouts/request", authenticateToken, async (req, res) => {
     res.json({ message: "✅ 提款申請已提交，待 Admin 確認" });
   } catch (err) {
     console.error("Payout request error:", err.message);
-    res.status(500).json({ error: "提款申請失敗" });
+    res.status(500).json({ success: false, error: "提款申請失敗" });
   }
 });
 
@@ -1198,7 +1198,7 @@ router.get("/payouts/history", authenticateToken, (req, res) => {
 
     res.json({ payouts });
   } catch (err) {
-    res.status(500).json({ error: "無法獲取提款記錄" });
+    res.status(500).json({ success: false, error: "無法獲取提款記錄" });
   }
 });
 

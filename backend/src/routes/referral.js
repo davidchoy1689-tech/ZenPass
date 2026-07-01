@@ -40,7 +40,7 @@ router.get("/my-code", authenticateToken, (req, res) => {
       credits_earned: credits?.referral_credits_earned || 0,
     });
   } catch (err) {
-    res.status(500).json({ error: "無法取得推薦碼" });
+    res.status(500).json({ success: false, error: "無法取得推薦碼" });
   }
 });
 
@@ -48,7 +48,7 @@ router.get("/my-code", authenticateToken, (req, res) => {
 router.post("/redeem", authenticateToken, (req, res) => {
   try {
     const { code } = req.body;
-    if (!code) return res.status(400).json({ error: "請輸入推薦碼" });
+    if (!code) return res.status(400).json({ success: false, error: "請輸入推薦碼" });
 
     const db = getDb();
     db.pragma("foreign_keys = ON");
@@ -58,11 +58,11 @@ router.post("/redeem", authenticateToken, (req, res) => {
       .get(code);
     if (!ref) {
 
-      return res.status(404).json({ error: "推薦碼無效" });
+      return res.status(404).json({ success: false, error: "推薦碼無效" });
     }
     if (ref.user_id === req.user.id) {
 
-      return res.status(400).json({ error: "唔可以用自己嘅推薦碼" });
+      return res.status(400).json({ success: false, error: "唔可以用自己嘅推薦碼" });
     }
 
     const existing = db
@@ -70,7 +70,7 @@ router.post("/redeem", authenticateToken, (req, res) => {
       .get(req.user.id);
     if (existing) {
 
-      return res.status(400).json({ error: "你已經用過推薦碼" });
+      return res.status(400).json({ success: false, error: "你已經用過推薦碼" });
     }
 
     const id = uuidv4();
@@ -102,7 +102,7 @@ router.post("/redeem", authenticateToken, (req, res) => {
     res.json({ message: "✅ 推薦碼已使用！你獲得 10 Credits", bonus: 10 });
   } catch (err) {
     console.error("Referral error:", err);
-    res.status(500).json({ error: "使用推薦碼失敗" });
+    res.status(500).json({ success: false, error: "使用推薦碼失敗" });
   }
 });
 

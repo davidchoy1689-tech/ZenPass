@@ -16,7 +16,7 @@ router.post("/subscribe", authenticateToken, (req, res) => {
   try {
     const { subscription, userAgent } = req.body;
     if (!subscription || !subscription.endpoint) {
-      return res.status(400).json({ error: "缺少 subscription 資料" });
+      return res.status(400).json({ success: false, error: "缺少 subscription 資料" });
     }
 
     const db = getDb();
@@ -48,7 +48,7 @@ router.post("/subscribe", authenticateToken, (req, res) => {
     res.json({ success: true });
   } catch (err) {
     console.error("[PUSH] Subscribe error:", err);
-    res.status(500).json({ error: "訂閱推播失敗" });
+    res.status(500).json({ success: false, error: "訂閱推播失敗" });
   }
 });
 
@@ -64,7 +64,7 @@ router.post("/unsubscribe", authenticateToken, (req, res) => {
     res.json({ success: true });
   } catch (err) {
     console.error("[PUSH] Unsubscribe error:", err);
-    res.status(500).json({ error: "取消訂閱失敗" });
+    res.status(500).json({ success: false, error: "取消訂閱失敗" });
   }
 });
 

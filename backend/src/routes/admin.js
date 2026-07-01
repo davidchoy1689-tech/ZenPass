@@ -65,7 +65,7 @@ router.get("/pending-payments", authenticateToken, requireAdmin, (req, res) => {
     res.json({ pending_payments: pending });
   } catch (err) {
     console.error("取待確認付款錯誤:", err);
-    res.status(500).json({ error: "無法取得待確認付款" });
+    res.status(500).json({ success: false, error: "無法取得待確認付款" });
   }
 });
 
@@ -75,7 +75,7 @@ router.post("/approve-payment", authenticateToken, requireAdmin, (req, res) => {
     const { booking_id } = req.body;
 
     if (!booking_id) {
-      return res.status(400).json({ error: "缺少預約 ID" });
+      return res.status(400).json({ success: false, error: "缺少預約 ID" });
     }
 
     const db = getDb();
@@ -86,7 +86,7 @@ router.post("/approve-payment", authenticateToken, requireAdmin, (req, res) => {
       .get(booking_id, "pending_payment");
     if (!booking) {
 
-      return res.status(404).json({ error: "預約不存在或已處理" });
+      return res.status(404).json({ success: false, error: "預約不存在或已處理" });
     }
 
     // Confirm booking + mark payment as paid
@@ -216,7 +216,7 @@ router.post("/approve-payment", authenticateToken, requireAdmin, (req, res) => {
     });
   } catch (err) {
     console.error("確認付款錯誤:", err);
-    res.status(500).json({ error: "確認付款失敗" });
+    res.status(500).json({ success: false, error: "確認付款失敗" });
   }
 });
 
@@ -226,7 +226,7 @@ router.post("/reject-payment", authenticateToken, requireAdmin, (req, res) => {
     const { booking_id, reason } = req.body;
 
     if (!booking_id) {
-      return res.status(400).json({ error: "缺少預約 ID" });
+      return res.status(400).json({ success: false, error: "缺少預約 ID" });
     }
 
     const db = getDb();
@@ -237,7 +237,7 @@ router.post("/reject-payment", authenticateToken, requireAdmin, (req, res) => {
       .get(booking_id, "pending_payment");
     if (!booking) {
 
-      return res.status(404).json({ error: "預約不存在或已處理" });
+      return res.status(404).json({ success: false, error: "預約不存在或已處理" });
     }
 
     // Cancel booking, refund payment status
@@ -337,7 +337,7 @@ router.post("/reject-payment", authenticateToken, requireAdmin, (req, res) => {
     });
   } catch (err) {
     console.error("拒絕付款錯誤:", err);
-    res.status(500).json({ error: "拒絕付款失敗" });
+    res.status(500).json({ success: false, error: "拒絕付款失敗" });
   }
 });
 
@@ -392,7 +392,7 @@ router.get("/stats", authenticateToken, requireAdmin, (req, res) => {
     res.json({ stats });
   } catch (err) {
     console.error("取統計錯誤:", err);
-    res.status(500).json({ error: "無法取得統計資料" });
+    res.status(500).json({ success: false, error: "無法取得統計資料" });
   }
 });
 
@@ -446,7 +446,7 @@ router.get("/bookings", authenticateToken, requireAdmin, (req, res) => {
     res.json({ bookings, total, page: parseInt(page), limit: parseInt(limit) });
   } catch (err) {
     console.error("取預約記錄錯誤:", err);
-    res.status(500).json({ error: "無法取得預約記錄" });
+    res.status(500).json({ success: false, error: "無法取得預約記錄" });
   }
 });
 
@@ -470,7 +470,7 @@ router.get("/users", authenticateToken, requireAdmin, (req, res) => {
     res.json({ users });
   } catch (err) {
     console.error("取用戶列表錯誤:", err);
-    res.status(500).json({ error: "無法取得用戶列表" });
+    res.status(500).json({ success: false, error: "無法取得用戶列表" });
   }
 });
 
@@ -496,7 +496,7 @@ router.get("/classes", authenticateToken, requireAdmin, (req, res) => {
     res.json({ classes });
   } catch (err) {
     console.error("取課程列表錯誤:", err);
-    res.status(500).json({ error: "無法取得課程列表" });
+    res.status(500).json({ success: false, error: "無法取得課程列表" });
   }
 });
 
@@ -505,7 +505,7 @@ router.get("/db/:table", async (req, res) => {
   try {
     const { getSupabase } = require("../services/supabase");
     const supabase = getSupabase();
-    if (!supabase) return res.status(500).json({ error: "DB not connected" });
+    if (!supabase) return res.status(500).json({ success: false, error: "DB not connected" });
 
     const { table } = req.params;
     const limit = parseInt(req.query.limit) || 100;
@@ -525,7 +525,7 @@ router.get("/db/:table", async (req, res) => {
       error: countErr?.message || null,
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
@@ -534,7 +534,7 @@ router.get("/db", async (req, res) => {
   try {
     const { getSupabase } = require("../services/supabase");
     const supabase = getSupabase();
-    if (!supabase) return res.status(500).json({ error: "DB not connected" });
+    if (!supabase) return res.status(500).json({ success: false, error: "DB not connected" });
 
     const tables = [
       "system_config",
@@ -577,7 +577,7 @@ router.get("/db", async (req, res) => {
 
     res.json({ tables: result });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
@@ -716,7 +716,7 @@ router.post("/process-payouts", authenticateToken, requireAdmin, (req, res) => {
     });
   } catch (err) {
     console.error("批量出糧錯誤:", err);
-    res.status(500).json({ error: "出糧處理失敗" });
+    res.status(500).json({ success: false, error: "出糧處理失敗" });
   }
 });
 
@@ -778,7 +778,7 @@ router.get("/payouts", authenticateToken, requireAdmin, (req, res) => {
     });
   } catch (err) {
     console.error("取 payout 記錄錯誤:", err);
-    res.status(500).json({ error: "無法獲取出糧記錄" });
+    res.status(500).json({ success: false, error: "無法獲取出糧記錄" });
   }
 });
 
@@ -806,7 +806,7 @@ router.get(
       res.json({ applications, total: applications.length });
     } catch (err) {
       console.error("取教練申請錯誤:", err);
-      res.status(500).json({ error: "無法獲取教練申請" });
+      res.status(500).json({ success: false, error: "無法獲取教練申請" });
     }
   },
 );
@@ -815,7 +815,7 @@ router.post("/coach-approve", authenticateToken, requireAdmin, (req, res) => {
   try {
     const { application_id } = req.body;
     if (!application_id) {
-      return res.status(400).json({ error: "缺少申請編號" });
+      return res.status(400).json({ success: false, error: "缺少申請編號" });
     }
 
     const db = getDb();
@@ -826,11 +826,11 @@ router.post("/coach-approve", authenticateToken, requireAdmin, (req, res) => {
       .get(application_id);
     if (!app) {
 
-      return res.status(404).json({ error: "申請不存在" });
+      return res.status(404).json({ success: false, error: "申請不存在" });
     }
     if (app.status !== "pending") {
 
-      return res.status(400).json({ error: "申請已處理" });
+      return res.status(400).json({ success: false, error: "申請已處理" });
     }
 
     // Update application status
@@ -872,7 +872,7 @@ router.post("/coach-approve", authenticateToken, requireAdmin, (req, res) => {
     });
   } catch (err) {
     console.error("審批教練錯誤:", err);
-    res.status(500).json({ error: "審批失敗" });
+    res.status(500).json({ success: false, error: "審批失敗" });
   }
 });
 
@@ -880,7 +880,7 @@ router.post("/coach-reject", authenticateToken, requireAdmin, (req, res) => {
   try {
     const { application_id, reason } = req.body;
     if (!application_id) {
-      return res.status(400).json({ error: "缺少申請編號" });
+      return res.status(400).json({ success: false, error: "缺少申請編號" });
     }
 
     const db = getDb();
@@ -891,11 +891,11 @@ router.post("/coach-reject", authenticateToken, requireAdmin, (req, res) => {
       .get(application_id);
     if (!app) {
 
-      return res.status(404).json({ error: "申請不存在" });
+      return res.status(404).json({ success: false, error: "申請不存在" });
     }
     if (app.status !== "pending") {
 
-      return res.status(400).json({ error: "申請已處理" });
+      return res.status(400).json({ success: false, error: "申請已處理" });
     }
 
     db.prepare(
@@ -930,7 +930,7 @@ router.post("/coach-reject", authenticateToken, requireAdmin, (req, res) => {
     });
   } catch (err) {
     console.error("拒絕教練錯誤:", err);
-    res.status(500).json({ error: "操作失敗" });
+    res.status(500).json({ success: false, error: "操作失敗" });
   }
 });
 
@@ -947,7 +947,7 @@ router.get(
         .get(req.params.id);
       if (!course) {
 
-        return res.status(404).json({ error: "課程不存在" });
+        return res.status(404).json({ success: false, error: "課程不存在" });
       }
 
       const schedules = db
@@ -975,7 +975,7 @@ router.get(
       });
     } catch (err) {
       console.error("取課程詳情錯誤:", err);
-      res.status(500).json({ error: "無法獲取課程詳情" });
+      res.status(500).json({ success: false, error: "無法獲取課程詳情" });
     }
   },
 );
@@ -989,7 +989,7 @@ router.get("/user-detail/:id", authenticateToken, requireAdmin, (req, res) => {
       .get(req.params.id);
     if (!user) {
 
-      return res.status(404).json({ error: "用戶不存在" });
+      return res.status(404).json({ success: false, error: "用戶不存在" });
     }
 
     const bookings = db
@@ -1013,7 +1013,7 @@ router.get("/user-detail/:id", authenticateToken, requireAdmin, (req, res) => {
     res.json({ user, bookings, transactions, membership });
   } catch (err) {
     console.error("取用戶詳情錯誤:", err);
-    res.status(500).json({ error: "無法獲取用戶詳情" });
+    res.status(500).json({ success: false, error: "無法獲取用戶詳情" });
   }
 });
 
@@ -1026,7 +1026,7 @@ router.get("/coach-detail/:id", authenticateToken, requireAdmin, (req, res) => {
       .get(req.params.id);
     if (!coach) {
 
-      return res.status(404).json({ error: "教練不存在" });
+      return res.status(404).json({ success: false, error: "教練不存在" });
     }
 
     const classes = db
@@ -1050,7 +1050,7 @@ router.get("/coach-detail/:id", authenticateToken, requireAdmin, (req, res) => {
     res.json({ coach, classes, earnings, payouts });
   } catch (err) {
     console.error("取教練詳情錯誤:", err);
-    res.status(500).json({ error: "無法獲取教練詳情" });
+    res.status(500).json({ success: false, error: "無法獲取教練詳情" });
   }
 });
 
@@ -1059,7 +1059,7 @@ router.post("/assign-coach", authenticateToken, requireAdmin, (req, res) => {
   try {
     const { class_id, coach_id } = req.body;
     if (!class_id || !coach_id) {
-      return res.status(400).json({ error: "缺少課程編號或教練編號" });
+      return res.status(400).json({ success: false, error: "缺少課程編號或教練編號" });
     }
 
     const db = getDb();
@@ -1071,7 +1071,7 @@ router.post("/assign-coach", authenticateToken, requireAdmin, (req, res) => {
       .get(class_id);
     if (!classData) {
 
-      return res.status(404).json({ error: "課程不存在" });
+      return res.status(404).json({ success: false, error: "課程不存在" });
     }
 
     // 檢查教練是否存在
@@ -1080,7 +1080,7 @@ router.post("/assign-coach", authenticateToken, requireAdmin, (req, res) => {
       .get(coach_id);
     if (!coach) {
 
-      return res.status(404).json({ error: "教練不存在或未通過認證" });
+      return res.status(404).json({ success: false, error: "教練不存在或未通過認證" });
     }
 
     // 更新課程教練
@@ -1094,7 +1094,7 @@ router.post("/assign-coach", authenticateToken, requireAdmin, (req, res) => {
     });
   } catch (err) {
     console.error("指派教練錯誤:", err);
-    res.status(500).json({ error: "指派教練失敗" });
+    res.status(500).json({ success: false, error: "指派教練失敗" });
   }
 });
 
@@ -1108,7 +1108,7 @@ router.post(
       var { class_id, message } = req.body;
 
       if (!class_id) {
-        return res.status(400).json({ error: "缺少課程編號" });
+        return res.status(400).json({ success: false, error: "缺少課程編號" });
       }
 
       const db = getDb();
@@ -1120,7 +1120,7 @@ router.post(
         .get(class_id);
       if (!course) {
 
-        return res.status(404).json({ error: "課程不存在" });
+        return res.status(404).json({ success: false, error: "課程不存在" });
       }
 
       var category = course.category;
@@ -1174,7 +1174,7 @@ router.post(
       });
     } catch (err) {
       console.error("通知課程空位錯誤:", err);
-      res.status(500).json({ error: "通知失敗" });
+      res.status(500).json({ success: false, error: "通知失敗" });
     }
   },
 );
@@ -1194,7 +1194,7 @@ router.put(
         .get(req.params.id);
       if (!classData) {
 
-        return res.status(404).json({ error: "課程不存在" });
+        return res.status(404).json({ success: false, error: "課程不存在" });
       }
 
       const allowedFields = [
@@ -1229,7 +1229,7 @@ router.put(
 
       if (updates.length === 0) {
 
-        return res.status(400).json({ error: "沒有要更新的欄位" });
+        return res.status(400).json({ success: false, error: "沒有要更新的欄位" });
       }
 
       updates.push("updated_at = datetime('now')");
@@ -1242,7 +1242,7 @@ router.put(
       res.json({ success: true, message: "✅ 課程資料已更新" });
     } catch (err) {
       console.error("更新課程錯誤:", err);
-      res.status(500).json({ error: "更新課程失敗" });
+      res.status(500).json({ success: false, error: "更新課程失敗" });
     }
   },
 );
@@ -1488,7 +1488,7 @@ router.post(
     try {
       const { title, category, difficulty, venue_name } = req.body;
       if (!title) {
-        return res.status(400).json({ error: "請提供課程名稱" });
+        return res.status(400).json({ success: false, error: "請提供課程名稱" });
       }
 
       // 1. 先根據分類搵對應嘅範本組
@@ -1565,7 +1565,7 @@ router.post(
       res.json({ descriptions, generated: true });
     } catch (err) {
       console.error("生成描述錯誤:", err);
-      res.status(500).json({ error: "生成描述失敗" });
+      res.status(500).json({ success: false, error: "生成描述失敗" });
     }
   },
 );
@@ -1580,7 +1580,7 @@ router.get("/audit-log", authenticateToken, requireAdmin, (req, res) => {
     res.json({ entries });
   } catch (err) {
     console.error("[ADMIN] audit-log error:", err.message);
-    res.status(500).json({ error: "load audit log failed" });
+    res.status(500).json({ success: false, error: "load audit log failed" });
   }
 });
 
@@ -1666,7 +1666,7 @@ router.get("/revenue-dashboard", authenticateToken, requireAdmin, (req, res) => 
     });
   } catch (err) {
     console.error("[REVENUE DASHBOARD] Error:", err.message);
-    res.status(500).json({ error: "讀取收入 Dashboard 失敗" });
+    res.status(500).json({ success: false, error: "讀取收入 Dashboard 失敗" });
   }
 });
 

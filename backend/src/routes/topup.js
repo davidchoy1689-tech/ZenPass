@@ -94,7 +94,7 @@ router.get("/config", authenticateToken, (req, res) => {
     });
   } catch (err) {
     console.error("[TOPUP] /config GET error:", err.message);
-    res.status(500).json({ error: "無法獲取 Auto Top-up 設定" });
+    res.status(500).json({ success: false, error: "無法獲取 Auto Top-up 設定" });
   }
 });
 
@@ -115,7 +115,7 @@ router.put("/config", authenticateToken, (req, res) => {
     if (threshold !== undefined) {
       const t = parseInt(threshold);
       if (isNaN(t) || t < 1 || t > 100) {
-        return res.status(400).json({ error: "Threshold 必須喺 1-100 之間" });
+        return res.status(400).json({ success: false, error: "Threshold 必須喺 1-100 之間" });
       }
     }
 
@@ -154,7 +154,7 @@ router.put("/config", authenticateToken, (req, res) => {
     });
   } catch (err) {
     console.error("[TOPUP] /config PUT error:", err.message);
-    res.status(500).json({ error: "儲存設定失敗" });
+    res.status(500).json({ success: false, error: "儲存設定失敗" });
   }
 });
 
@@ -189,7 +189,7 @@ router.post("/execute", authenticateToken, (req, res) => {
     });
   } catch (err) {
     console.error("[TOPUP] /execute error:", err.message);
-    res.status(500).json({ error: "執行 Auto Top-up 失敗" });
+    res.status(500).json({ success: false, error: "執行 Auto Top-up 失敗" });
   }
 });
 
@@ -217,7 +217,7 @@ router.get("/history", authenticateToken, (req, res) => {
     res.json({ history, total: total.count });
   } catch (err) {
     console.error("[TOPUP] /history error:", err.message);
-    res.status(500).json({ error: "無法獲取 Top-up 記錄" });
+    res.status(500).json({ success: false, error: "無法獲取 Top-up 記錄" });
   }
 });
 

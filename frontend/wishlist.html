@@ -93,7 +93,10 @@
         }
 
         function isLoggedIn() {
-          return !!localStorage.getItem('zenpass_token') || !!localStorage.getItem('token');
+          // Dual mode: localStorage token (legacy) or cookie session (new)
+          return !!localStorage.getItem('zenpass_token') 
+            || !!localStorage.getItem('token')
+            || !!sessionStorage.getItem('zenpass_token');
         }
 
         var container = document.getElementById('wishlist-container');

@@ -45,7 +45,7 @@ router.post(
       const { schedule_id, class_id, payment_type, amount, penalty_consent } = req.body;
 
       if (!schedule_id || !class_id || !payment_type) {
-        return res.status(400).json({ error: "缺少預約資料" });
+        return res.status(400).json({ success: false, error: "缺少預約資料" });
       }
 
       // ⚠️ 檢查罰款同意書（ClassPass 模式）— user 一次過同意就得
@@ -88,7 +88,7 @@ router.post(
         // 只限學生角色
         if (!trialUser || trialUser.role !== "user") {
 
-          return res.status(403).json({ error: "試玩只限學生帳號" });
+          return res.status(403).json({ success: false, error: "試玩只限學生帳號" });
         }
 
         // 7天內
@@ -97,7 +97,7 @@ router.post(
         var daysSinceReg = Math.floor((now - regDate) / (1000 * 60 * 60 * 24));
         if (daysSinceReg >= 7) {
 
-          return res.status(400).json({ error: "試玩期已過（7天限）" });
+          return res.status(400).json({ success: false, error: "試玩期已過（7天限）" });
         }
 
         // 30次上限
@@ -129,7 +129,7 @@ router.post(
 
       if (!schedule) {
 
-        return res.status(404).json({ error: "該時段不存在或已滿" });
+        return res.status(404).json({ success: false, error: "該時段不存在或已滿" });
       }
 
       // 先釋放呢個時段嘅過期 hold 位（15分鐘未付款 = 自動取消）
@@ -158,7 +158,7 @@ router.post(
         .run(schedule_id);
       if (capResult.changes === 0) {
 
-        return res.status(400).json({ error: "該時段已滿額" });
+        return res.status(400).json({ success: false, error: "該時段已滿額" });
       }
 
       // 檢查是否重複預約（包括未付款的 pending_payment）
@@ -183,7 +183,7 @@ router.post(
           });
         }
 
-        return res.status(409).json({ error: "你已經預約了此課程時段" });
+        return res.status(409).json({ success: false, error: "你已經預約了此課程時段" });
       }
 
       // 根據付款類型處理
@@ -198,11 +198,11 @@ router.post(
           .get(class_id);
         if (!classData) {
 
-          return res.status(404).json({ error: "課程不存在" });
+          return res.status(404).json({ success: false, error: "課程不存在" });
         }
         if (user.credits < classData.credits_cost) {
 
-          return res.status(400).json({ error: "點數不足，請先購買點數" });
+          return res.status(400).json({ success: false, error: "點數不足，請先購買點數" });
         }
         // 扣點數
         db.prepare("UPDATE users SET credits = credits - ? WHERE id = ?").run(
@@ -217,7 +217,7 @@ router.post(
           .get(class_id);
         if (!classData) {
 
-          return res.status(404).json({ error: "課程不存在" });
+          return res.status(404).json({ success: false, error: "課程不存在" });
         }
         const needed = classData.credits_cost || 12;
 
@@ -231,7 +231,7 @@ router.post(
 
         if (!corpMember) {
 
-          return res.status(403).json({ error: "你不是企業員工" });
+          return res.status(403).json({ success: false, error: "你不是企業員工" });
         }
 
         let fromCompany = 0;
@@ -245,7 +245,7 @@ router.post(
 
         if (availablePool <= 0 && (user.credits || 0) < needed) {
 
-          return res.status(400).json({ error: "公司 Credits 不足，你的個人 Credits 亦不足夠" });
+          return res.status(400).json({ success: false, error: "公司 Credits 不足，你的個人 Credits 亦不足夠" });
         }
 
         // Try company pool first (hybrid)
@@ -493,7 +493,7 @@ router.post(
       });
     } catch (err) {
       console.error("預約錯誤:", err);
-      res.status(500).json({ error: "預約失敗，請稍後再試" });
+      res.status(500).json({ success: false, error: "預約失敗，請稍後再試" });
     }
   },
 );
@@ -546,7 +546,7 @@ router.get("/trial-status", authenticateToken, (req, res) => {
       reason: !withinWindow ? "試玩期已過" : !hasRemaining ? "" : "",
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
@@ -590,7 +590,7 @@ router.get("/my", authenticateToken, (req, res) => {
     res.json({ bookings });
   } catch (err) {
     console.error("獲取預約錯誤:", err);
-    res.status(500).json({ error: "無法獲取預約記錄" });
+    res.status(500).json({ success: false, error: "無法獲取預約記錄" });
   }
 });
 
@@ -618,7 +618,7 @@ router.post(
 
       if (!booking) {
 
-        return res.status(404).json({ error: "未找到待付款的預約" });
+        return res.status(404).json({ success: false, error: "未找到待付款的預約" });
       }
 
       // 更新 booking 為已付款
@@ -732,7 +732,7 @@ router.post(
       });
     } catch (err) {
       console.error("完成付款錯誤:", err);
-      res.status(500).json({ error: "完成付款失敗" });
+      res.status(500).json({ success: false, error: "完成付款失敗" });
     }
   },
 );
@@ -756,7 +756,7 @@ router.post("/:id/cancel", authenticateToken, scalpGuard, (req, res) => {
 
     if (!booking) {
 
-      return res.status(404).json({ error: "預約不存在" });
+      return res.status(404).json({ success: false, error: "預約不存在" });
     }
 
     // pending_payment (未付款) 可隨時取消
@@ -951,7 +951,7 @@ router.post("/:id/cancel", authenticateToken, scalpGuard, (req, res) => {
     res.json({ message: "預約已取消" });
   } catch (err) {
     console.error("取消預約錯誤:", err);
-    res.status(500).json({ error: "取消預約失敗" });
+    res.status(500).json({ success: false, error: "取消預約失敗" });
   }
 });
 
@@ -974,7 +974,7 @@ router.get("/:id/checkin-status", authenticateToken, (req, res) => {
 
     if (!booking) {
 
-      return res.status(404).json({ error: "找不到該預約" });
+      return res.status(404).json({ success: false, error: "找不到該預約" });
     }
 
     const now = new Date();
@@ -1001,7 +1001,7 @@ router.get("/:id/checkin-status", authenticateToken, (req, res) => {
     });
   } catch (err) {
     console.error("檢查簽到狀態錯誤:", err);
-    res.status(500).json({ error: "檢查簽到狀態失敗" });
+    res.status(500).json({ success: false, error: "檢查簽到狀態失敗" });
   }
 });
 
@@ -1026,7 +1026,7 @@ router.post("/:id/attend", authenticateToken, (req, res) => {
         .get(req.params.id, req.user.id);
       if (!booking) {
 
-        return res.status(403).json({ error: "無權限執行此操作" });
+        return res.status(403).json({ success: false, error: "無權限執行此操作" });
       }
 
       // Time window check for student self-check-in
@@ -1045,11 +1045,11 @@ router.post("/:id/attend", authenticateToken, (req, res) => {
 
         if (now < windowStart) {
 
-          return res.status(400).json({ error: "簽到時間未到（可於上課前 15 分鐘開始簽到）" });
+          return res.status(400).json({ success: false, error: "簽到時間未到（可於上課前 15 分鐘開始簽到）" });
         }
         if (now > windowEnd) {
 
-          return res.status(400).json({ error: "簽到時間已過" });
+          return res.status(400).json({ success: false, error: "簽到時間已過" });
         }
       }
     }
@@ -1123,7 +1123,7 @@ router.post("/:id/attend", authenticateToken, (req, res) => {
     res.json({ message: "✅ 簽到成功！" });
   } catch (err) {
     console.error("簽到錯誤:", err);
-    res.status(500).json({ error: "簽到失敗" });
+    res.status(500).json({ success: false, error: "簽到失敗" });
   }
 });
 
@@ -1169,7 +1169,7 @@ router.get("/today", authenticateToken, (req, res) => {
     res.json({ schedules: result, date: today });
   } catch (err) {
     console.error("獲取今日課堂錯誤:", err);
-    res.status(500).json({ error: "無法取得今日課堂" });
+    res.status(500).json({ success: false, error: "無法取得今日課堂" });
   }
 });
 
@@ -1192,10 +1192,10 @@ router.get("/:id", authenticateToken, (req, res) => {
       )
       .get(req.params.id);
 
-    if (!booking) return res.status(404).json({ error: "預約不存在" });
+    if (!booking) return res.status(404).json({ success: false, error: "預約不存在" });
     res.json(booking);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
@@ -1213,7 +1213,7 @@ router.get("/:id/qr", authenticateToken, (req, res) => {
       .get(req.params.id);
 
     if (!booking) {
-      return res.status(404).json({ error: "預約不存在" });
+      return res.status(404).json({ success: false, error: "預約不存在" });
     }
 
     // Only the booking owner, coach, or admin can get the QR
@@ -1225,7 +1225,7 @@ router.get("/:id/qr", authenticateToken, (req, res) => {
         .get(booking.class_id);
 
       if (!cls || cls.coach_id !== req.user.id) {
-        return res.status(403).json({ error: "無權限存取此 QR Code" });
+        return res.status(403).json({ success: false, error: "無權限存取此 QR Code" });
       }
     }
 
@@ -1248,7 +1248,7 @@ router.get("/:id/qr", authenticateToken, (req, res) => {
     }
   } catch (err) {
     console.error("QR 生成錯誤:", err);
-    res.status(500).json({ error: "QR Code 生成失敗" });
+    res.status(500).json({ success: false, error: "QR Code 生成失敗" });
   }
 });
 
@@ -1258,7 +1258,7 @@ router.post("/checkin", authenticateToken, (req, res) => {
     const { qr_data, booking_reference, schedule_id } = req.body;
 
     if (!qr_data && !booking_reference && !schedule_id) {
-      return res.status(400).json({ error: "請提供 QR Code 資料或預約參考編號" });
+      return res.status(400).json({ success: false, error: "請提供 QR Code 資料或預約參考編號" });
     }
 
     // Parse QR data if provided
@@ -1272,7 +1272,7 @@ router.post("/checkin", authenticateToken, (req, res) => {
         parsedBookingRef = parts[1];
         parsedScheduleId = parts[2];
       } else {
-        return res.status(400).json({ error: "無效的 QR Code 格式" });
+        return res.status(400).json({ success: false, error: "無效的 QR Code 格式" });
       }
     }
 
@@ -1281,7 +1281,7 @@ router.post("/checkin", authenticateToken, (req, res) => {
     const schedId = parsedScheduleId || schedule_id;
 
     if (!ref) {
-      return res.status(400).json({ error: "無法識別預約" });
+      return res.status(400).json({ success: false, error: "無法識別預約" });
     }
 
     const db = getDb();
@@ -1297,7 +1297,7 @@ router.post("/checkin", authenticateToken, (req, res) => {
 
     if (!booking) {
 
-      return res.status(404).json({ error: "預約不存在" });
+      return res.status(404).json({ success: false, error: "預約不存在" });
     }
 
     // Check if already attended
@@ -1324,7 +1324,7 @@ router.post("/checkin", authenticateToken, (req, res) => {
 
     if (result.changes === 0) {
 
-      return res.status(400).json({ error: "簽到失敗" });
+      return res.status(400).json({ success: false, error: "簽到失敗" });
     }
 
     // Update enrolled_count on the schedule
@@ -1389,7 +1389,7 @@ router.post("/checkin", authenticateToken, (req, res) => {
     });
   } catch (err) {
     console.error("QR 簽到錯誤:", err);
-    res.status(500).json({ error: "簽到失敗，請稍後再試" });
+    res.status(500).json({ success: false, error: "簽到失敗，請稍後再試" });
   }
 });
 
@@ -1400,13 +1400,13 @@ router.get("/:bookingId/teammates", authenticateToken, (req, res) => {
   try {
     const db = getDb();
     const booking = db.prepare("SELECT id, user_id FROM bookings WHERE id = ?").get(req.params.bookingId);
-    if (!booking) { return res.status(404).json({ error: "預約不存在" }); }
-    if (booking.user_id !== req.user.id && req.user.role !== "admin") { return res.status(403).json({ error: "無權限查看" }); }
+    if (!booking) { return res.status(404).json({ success: false, error: "預約不存在" }); }
+    if (booking.user_id !== req.user.id && req.user.role !== "admin") { return res.status(403).json({ success: false, error: "無權限查看" }); }
     const teammates = db.prepare("SELECT bt.id, bt.name, bt.phone, bt.status, bt.checked_in_at FROM booking_teammates bt WHERE bt.booking_id = ? ORDER BY bt.id").all(req.params.bookingId);
     res.json({ teammates });
   } catch (err) {
     console.error("獲取 booking 同伴錯誤:", err.message);
-    res.status(500).json({ error: "獲取同伴資料失敗" });
+    res.status(500).json({ success: false, error: "獲取同伴資料失敗" });
   }
 });
 
@@ -1415,17 +1415,17 @@ router.post("/:bookingId/checkin-teammate/:teammateId", authenticateToken, (req,
   try {
     const db = getDb();
     const booking = db.prepare("SELECT id, user_id FROM bookings WHERE id = ?").get(req.params.bookingId);
-    if (!booking) { return res.status(404).json({ error: "預約不存在" }); }
-    if (booking.user_id !== req.user.id && req.user.role !== "admin") { return res.status(403).json({ error: "無權限操作" }); }
+    if (!booking) { return res.status(404).json({ success: false, error: "預約不存在" }); }
+    if (booking.user_id !== req.user.id && req.user.role !== "admin") { return res.status(403).json({ success: false, error: "無權限操作" }); }
     const teammate = db.prepare("SELECT id, status FROM booking_teammates WHERE id = ? AND booking_id = ?").get(req.params.teammateId, req.params.bookingId);
-    if (!teammate) { return res.status(404).json({ error: "同伴不存在" }); }
+    if (!teammate) { return res.status(404).json({ success: false, error: "同伴不存在" }); }
     if (teammate.status === "attended") { return res.json({ message: "同伴已簽到", already_checked_in: true }); }
     db.prepare("UPDATE booking_teammates SET status = 'attended', checked_in_at = datetime('now') WHERE id = ? AND status != 'attended'").run(req.params.teammateId);
 
     res.json({ message: "✅ 同伴簽到成功", teammate_id: req.params.teammateId });
   } catch (err) {
     console.error("團體簽到錯誤:", err.message);
-    res.status(500).json({ error: "簽到失敗" });
+    res.status(500).json({ success: false, error: "簽到失敗" });
   }
 });
 
@@ -1434,14 +1434,14 @@ router.post("/:bookingId/bulk-checkin", authenticateToken, (req, res) => {
   try {
     const db = getDb();
     const booking = db.prepare("SELECT id, user_id FROM bookings WHERE id = ?").get(req.params.bookingId);
-    if (!booking) { return res.status(404).json({ error: "預約不存在" }); }
-    if (booking.user_id !== req.user.id && req.user.role !== "admin") { return res.status(403).json({ error: "無權限操作" }); }
+    if (!booking) { return res.status(404).json({ success: false, error: "預約不存在" }); }
+    if (booking.user_id !== req.user.id && req.user.role !== "admin") { return res.status(403).json({ success: false, error: "無權限操作" }); }
     const result = db.prepare("UPDATE booking_teammates SET status = 'attended', checked_in_at = datetime('now') WHERE booking_id = ? AND status != 'attended'").run(req.params.bookingId);
 
     res.json({ message: `✅ 已簽到 ${result.changes} 位同伴`, count: result.changes });
   } catch (err) {
     console.error("批量簽到錯誤:", err.message);
-    res.status(500).json({ error: "批量簽到失敗" });
+    res.status(500).json({ success: false, error: "批量簽到失敗" });
   }
 });
 */
@@ -1454,11 +1454,11 @@ router.post("/:id/no-show", authenticateToken, (req, res) => {
     db.pragma("foreign_keys = ON");
     const user = db.prepare("SELECT is_coach, coach_verified, role FROM users WHERE id = ?").get(req.user.id);
     const isCoachOrAdmin = user && (user.is_coach || user.role === "admin" || user.coach_verified);
-    if (!isCoachOrAdmin) { return res.status(403).json({ error: "Only coach/admin can mark no-show" }); }
+    if (!isCoachOrAdmin) { return res.status(403).json({ success: false, error: "Only coach/admin can mark no-show" }); }
     const booking = db.prepare("SELECT * FROM bookings WHERE id = ? AND status = 'confirmed'").get(req.params.id);
-    if (!booking) { return res.status(404).json({ error: "Booking not found or already processed" }); }
+    if (!booking) { return res.status(404).json({ success: false, error: "Booking not found or already processed" }); }
     const result = db.prepare("UPDATE bookings SET status = 'no_show', checked_in_at = datetime('now'), checkin_method = 'coach' WHERE id = ? AND status = 'confirmed'").run(req.params.id);
-    if (result.changes === 0) { return res.status(400).json({ error: "Cannot mark no-show" }); }
+    if (result.changes === 0) { return res.status(400).json({ success: false, error: "Cannot mark no-show" }); }
 
     // ⛓️ Blockchain: no-show
     try {
@@ -1482,6 +1482,6 @@ router.post("/:id/no-show", authenticateToken, (req, res) => {
     res.json({ success: true, message: "Marked as no-show" });
   } catch (err) {
     console.error("No-show error:", err.message);
-    res.status(500).json({ error: "Operation failed" });
+    res.status(500).json({ success: false, error: "Operation failed" });
   }
 });

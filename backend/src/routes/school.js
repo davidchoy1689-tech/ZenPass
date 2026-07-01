@@ -20,7 +20,7 @@ router.post("/inquiry", async (req, res) => {
     const { school_name, contact_name, contact_email, contact_phone, sports_of_interest, message } = req.body;
 
     if (!school_name || !contact_name || !contact_email) {
-      return res.status(400).json({ error: "請填寫學校名稱、聯絡人姓名及電郵" });
+      return res.status(400).json({ success: false, error: "請填寫學校名稱、聯絡人姓名及電郵" });
     }
 
     const db = getDb();
@@ -67,7 +67,7 @@ router.post("/inquiry", async (req, res) => {
     });
   } catch (err) {
     console.error("[SCHOOL] Inquiry error:", err);
-    res.status(500).json({ error: "提交查詢失敗，請稍後再試" });
+    res.status(500).json({ success: false, error: "提交查詢失敗，請稍後再試" });
   }
 });
 
@@ -84,7 +84,7 @@ router.get("/inquiries", (req, res) => {
       const inquiries = db2.prepare("SELECT * FROM school_inquiries ORDER BY created_at DESC").all();
       res.json({ inquiries });
     } catch (e) {
-      return res.status(403).json({ error: "Unauthorized" });
+      return res.status(403).json({ success: false, error: "Unauthorized" });
     }
   }
 
@@ -94,7 +94,7 @@ router.get("/inquiries", (req, res) => {
     res.json({ inquiries });
   } catch (err) {
     console.error("[SCHOOL] List error:", err);
-    res.status(500).json({ error: "讀取查詢列表失敗" });
+    res.status(500).json({ success: false, error: "讀取查詢列表失敗" });
   }
 });
 

@@ -159,7 +159,7 @@ router.get("/", optionalAuth, cache(30), (req, res) => {
     });
   } catch (err) {
     console.error("課程列表錯誤:", err);
-    res.status(500).json({ error: "無法取得課程列表" });
+    res.status(500).json({ success: false, error: "無法取得課程列表" });
   }
 });
 
@@ -183,7 +183,7 @@ router.get("/available-dates", cache(60), (req, res) => {
     res.json({ dates });
   } catch (err) {
     console.error("取可用日期錯誤:", err);
-    res.status(500).json({ error: "無法取得可用日期" });
+    res.status(500).json({ success: false, error: "無法取得可用日期" });
   }
 });
 
@@ -210,7 +210,7 @@ router.get("/:id/recommended", (req, res) => {
     res.json({ classes });
   } catch (err) {
     console.error("推薦課程錯誤:", err);
-    res.status(500).json({ error: "無法取得推薦" });
+    res.status(500).json({ success: false, error: "無法取得推薦" });
   }
 });
 
@@ -244,7 +244,7 @@ router.get("/upcoming", optionalAuth, (req, res) => {
 
     res.json({ schedules: enriched });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
@@ -268,7 +268,7 @@ router.get("/categories", cache(300), (req, res) => {
     res.json({ categories });
   } catch (err) {
     console.error("分類列表錯誤:", err);
-    res.status(500).json({ error: "無法取得分類" });
+    res.status(500).json({ success: false, error: "無法取得分類" });
   }
 });
 
@@ -292,7 +292,7 @@ router.get("/:id", optionalAuth, (req, res) => {
 
     if (!classData) {
 
-      return res.status(404).json({ error: "課程不存在" });
+      return res.status(404).json({ success: false, error: "課程不存在" });
     }
 
     // Get schedules
@@ -344,7 +344,7 @@ router.get("/:id", optionalAuth, (req, res) => {
     });
   } catch (err) {
     console.error("課程詳情錯誤:", err);
-    res.status(500).json({ error: "無法取得課程詳情" });
+    res.status(500).json({ success: false, error: "無法取得課程詳情" });
   }
 });
 
@@ -435,7 +435,7 @@ router.post("/", authenticateToken, requireCoach, (req, res) => {
     res.status(201).json({ message: "課程已建立", class_id: id });
   } catch (err) {
     console.error("新增課程錯誤:", err);
-    res.status(500).json({ error: "無法建立課程" });
+    res.status(500).json({ success: false, error: "無法建立課程" });
   }
 });
 
@@ -451,7 +451,7 @@ router.put("/:id", authenticateToken, requireCoach, (req, res) => {
       .get(req.params.id, req.user.id);
     if (!classData) {
 
-      return res.status(403).json({ error: "你無權限修改此課程" });
+      return res.status(403).json({ success: false, error: "你無權限修改此課程" });
     }
 
     const updates = [];
@@ -481,7 +481,7 @@ router.put("/:id", authenticateToken, requireCoach, (req, res) => {
 
     if (updates.length === 0) {
 
-      return res.status(400).json({ error: "沒有需要更新的資料" });
+      return res.status(400).json({ success: false, error: "沒有需要更新的資料" });
     }
 
     updates.push("updated_at = datetime('now')");
@@ -513,7 +513,7 @@ router.put("/:id", authenticateToken, requireCoach, (req, res) => {
     res.json({ message: "課程已更新" });
   } catch (err) {
     console.error("更新課程錯誤:", err);
-    res.status(500).json({ error: "無法更新課程" });
+    res.status(500).json({ success: false, error: "無法更新課程" });
   }
 });
 

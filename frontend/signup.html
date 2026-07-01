@@ -257,14 +257,16 @@
             return;
           }
 
-          // Save token & user
-          localStorage.setItem('zenpass_token', data.token);
-          localStorage.setItem('token', data.token);
+          // Save token & user (dual mode: backend also sets HTTP-only cookie)
+          if (data.token) {
+            localStorage.setItem('zenpass_token', data.token);
+            localStorage.setItem('token', data.token);
+          }
           if (data.user) {
             localStorage.setItem('zenpass_user', JSON.stringify(data.user));
           }
 
-          // Redirect to onboarding
+          // Redirect to onboarding (cookie auth will work on next page load)
           window.location.href = 'onboarding.html';
         } catch (e) {
           setMsg('❌ 網絡錯誤，請稍後再試', 'error');
@@ -295,8 +297,11 @@
               });
               var data = await resp.json();
               if (resp.ok) {
-                localStorage.setItem('zenpass_token', data.token);
-                localStorage.setItem('token', data.token);
+                // Dual mode: backend also sets HTTP-only cookie
+                if (data.token) {
+                  localStorage.setItem('zenpass_token', data.token);
+                  localStorage.setItem('token', data.token);
+                }
                 if (data.user) localStorage.setItem('zenpass_user', JSON.stringify(data.user));
                 window.location.href = 'onboarding.html';
               } else {

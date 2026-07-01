@@ -16,19 +16,19 @@ router.post("/write-file", authenticateToken, (req, res) => {
   try {
     const { filename, content } = req.body;
     if (!filename || content === undefined) {
-      return res.status(400).json({ error: "需要 filename 同 content" });
+      return res.status(400).json({ success: false, error: "需要 filename 同 content" });
     }
 
     // Security: only allow writing to frontend/ directory
     const safePath = path.resolve(FRONTEND_DIR, filename);
     if (!safePath.startsWith(FRONTEND_DIR)) {
-      return res.status(403).json({ error: "路徑唔允許" });
+      return res.status(403).json({ success: false, error: "路徑唔允許" });
     }
 
     fs.writeFileSync(safePath, content, "utf8");
     res.json({ success: true, file: filename });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 

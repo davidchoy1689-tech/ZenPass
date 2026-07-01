@@ -38,7 +38,7 @@ router.get("/unread-count", authenticateToken, (req, res) => {
 // ===== PUT /api/notifications/:id/read — 標記單條為已讀 =====
 router.put("/:id/read", authenticateToken, (req, res) => {
   const ok = markAsRead(req.params.id, req.user.id);
-  if (!ok) return res.status(404).json({ error: "通知不存在" });
+  if (!ok) return res.status(404).json({ success: false, error: "通知不存在" });
   res.json({ message: "已標記為已讀" });
 });
 
@@ -51,7 +51,7 @@ router.put("/read-all", authenticateToken, (req, res) => {
 // ===== POST /api/notifications/:id/read — 標記單條為已讀 (POST 版本) =====
 router.post("/:id/read", authenticateToken, (req, res) => {
   const ok = markAsRead(req.params.id, req.user.id);
-  if (!ok) return res.status(404).json({ error: "通知不存在" });
+  if (!ok) return res.status(404).json({ success: false, error: "通知不存在" });
   res.json({ message: "已標記為已讀" });
 });
 
@@ -74,11 +74,11 @@ router.delete("/:id", authenticateToken, (req, res) => {
       .run(req.params.id, req.user.id);
 
     if (result.changes === 0)
-      return res.status(404).json({ error: "通知不存在" });
+      return res.status(404).json({ success: false, error: "通知不存在" });
     res.json({ message: "已刪除" });
   } catch (err) {
     console.error("刪除通知錯誤:", err);
-    res.status(500).json({ error: "無法刪除通知" });
+    res.status(500).json({ success: false, error: "無法刪除通知" });
   }
 });
 
@@ -88,7 +88,7 @@ router.post("/push-subscribe", authenticateToken, (req, res) => {
     const { subscription } = req.body;
 
     if (!subscription || !subscription.endpoint) {
-      return res.status(400).json({ error: "缺少 subscription 資料" });
+      return res.status(400).json({ success: false, error: "缺少 subscription 資料" });
     }
 
     const db = getDb();
@@ -129,7 +129,7 @@ router.post("/push-subscribe", authenticateToken, (req, res) => {
     res.json({ message: "推送訂閱成功" });
   } catch (err) {
     console.error("推送訂閱錯誤:", err);
-    res.status(500).json({ error: "無法註冊推送" });
+    res.status(500).json({ success: false, error: "無法註冊推送" });
   }
 });
 
@@ -152,7 +152,7 @@ router.delete("/push-unsubscribe", authenticateToken, (req, res) => {
     res.json({ message: "已取消推送訂閱" });
   } catch (err) {
     console.error("取消推送錯誤:", err);
-    res.status(500).json({ error: "無法取消推送" });
+    res.status(500).json({ success: false, error: "無法取消推送" });
   }
 });
 
@@ -179,7 +179,7 @@ router.post("/test", authenticateToken, async (req, res) => {
     res.json({ message: "通知已發送", results: result });
   } catch (err) {
     console.error("測試通知錯誤:", err);
-    res.status(500).json({ error: "發送通知失敗" });
+    res.status(500).json({ success: false, error: "發送通知失敗" });
   }
 });
 

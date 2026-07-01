@@ -54,7 +54,7 @@ const upload = multer({
 router.post("/", authenticateToken, upload.array("files", 10), (req, res) => {
   try {
     if (!req.files || req.files.length === 0) {
-      return res.status(400).json({ error: "請選擇檔案" });
+      return res.status(400).json({ success: false, error: "請選擇檔案" });
     }
 
     const files = req.files.map((f) => ({
@@ -67,7 +67,7 @@ router.post("/", authenticateToken, upload.array("files", 10), (req, res) => {
     res.json({ files });
   } catch (err) {
     console.error("Upload error:", err);
-    res.status(500).json({ error: "上傳失敗：" + err.message });
+    res.status(500).json({ success: false, error: "上傳失敗：" + err.message });
   }
 });
 

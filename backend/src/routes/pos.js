@@ -20,7 +20,7 @@ router.get("/", authenticateToken, (req, res) => {
 
     res.json({ locations });
   } catch (err) {
-    res.status(500).json({ error: "無法取得場地列表" });
+    res.status(500).json({ success: false, error: "無法取得場地列表" });
   }
 });
 
@@ -28,7 +28,7 @@ router.get("/", authenticateToken, (req, res) => {
 router.post("/", authenticateToken, (req, res) => {
   try {
     const { name, address, phone, is_primary } = req.body;
-    if (!name) return res.status(400).json({ error: "請填寫場地名稱" });
+    if (!name) return res.status(400).json({ success: false, error: "請填寫場地名稱" });
     const db = getDb();
     const id = uuidv4();
     db.prepare(
@@ -67,7 +67,7 @@ router.post("/", authenticateToken, (req, res) => {
 
     res.status(201).json({ message: "場地已建立", location_id: id });
   } catch (err) {
-    res.status(500).json({ error: "無法建立場地" });
+    res.status(500).json({ success: false, error: "無法建立場地" });
   }
 });
 
@@ -96,7 +96,7 @@ router.delete("/:id", authenticateToken, (req, res) => {
 
     res.json({ message: "已刪除" });
   } catch (err) {
-    res.status(500).json({ error: "刪除失敗" });
+    res.status(500).json({ success: false, error: "刪除失敗" });
   }
 });
 
@@ -114,7 +114,7 @@ router.post("/sale", authenticateToken, (req, res) => {
       location_id,
     } = req.body;
     if (!item_name || !unit_price)
-      return res.status(400).json({ error: "請填寫項目名稱和價錢" });
+      return res.status(400).json({ success: false, error: "請填寫項目名稱和價錢" });
     const db = getDb();
     const id = uuidv4();
     const total = (quantity || 1) * unit_price;
@@ -174,7 +174,7 @@ router.post("/sale", authenticateToken, (req, res) => {
       .json({ message: "✅ 銷售已記錄", sale_id: id, total_amount: total });
   } catch (err) {
     console.error("POS error:", err);
-    res.status(500).json({ error: "記錄銷售失敗" });
+    res.status(500).json({ success: false, error: "記錄銷售失敗" });
   }
 });
 
@@ -193,7 +193,7 @@ router.get("/sales", authenticateToken, (req, res) => {
 
     res.json({ sales, total_revenue: total?.t || 0 });
   } catch (err) {
-    res.status(500).json({ error: "無法取得銷售記錄" });
+    res.status(500).json({ success: false, error: "無法取得銷售記錄" });
   }
 });
 

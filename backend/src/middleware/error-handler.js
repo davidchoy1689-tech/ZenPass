@@ -77,4 +77,7 @@ function errorHandler(err, req, res, _next) {
   res.status(statusCode).json(body);
 }
 
-module.exports = { AppError, notFound, errorHandler };
+// APIError — alias for AppError for backward compatibility
+class APIError extends AppError {}
+
+module.exports = { AppError, APIError, notFound, errorHandler };

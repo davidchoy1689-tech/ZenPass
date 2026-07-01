@@ -16,7 +16,7 @@ router.post("/join", authenticateToken, (req, res) => {
   try {
     const { schedule_id } = req.body;
     if (!schedule_id) {
-      return res.status(400).json({ error: "缺少時段 ID" });
+      return res.status(400).json({ success: false, error: "缺少時段 ID" });
     }
 
     const db = getDb();
@@ -30,7 +30,7 @@ router.post("/join", authenticateToken, (req, res) => {
       .get(schedule_id);
     if (!schedule) {
 
-      return res.status(404).json({ error: "該時段不存在" });
+      return res.status(404).json({ success: false, error: "該時段不存在" });
     }
 
     // Check if already in waitlist
@@ -54,7 +54,7 @@ router.post("/join", authenticateToken, (req, res) => {
       .get(schedule_id, req.user.id);
     if (booked) {
 
-      return res.status(400).json({ error: "你已預約了此課程" });
+      return res.status(400).json({ success: false, error: "你已預約了此課程" });
     }
 
     // Get position
@@ -86,7 +86,7 @@ router.post("/join", authenticateToken, (req, res) => {
     });
   } catch (err) {
     console.error("Waitlist join error:", err);
-    res.status(500).json({ error: "無法加入候補" });
+    res.status(500).json({ success: false, error: "無法加入候補" });
   }
 });
 
@@ -101,7 +101,7 @@ router.post("/leave", authenticateToken, (req, res) => {
 
     res.json({ success: true, message: "✅ 已離開候補名單" });
   } catch (err) {
-    res.status(500).json({ error: "無法離開候補" });
+    res.status(500).json({ success: false, error: "無法離開候補" });
   }
 });
 
@@ -133,7 +133,7 @@ router.get("/status", authenticateToken, (req, res) => {
       res.json({ in_waitlist: false, total });
     }
   } catch (err) {
-    res.status(500).json({ error: "無法獲取候補狀態" });
+    res.status(500).json({ success: false, error: "無法獲取候補狀態" });
   }
 });
 
@@ -141,7 +141,7 @@ router.get("/status", authenticateToken, (req, res) => {
 router.post("/notify-next", authenticateToken, (req, res) => {
   try {
     const { schedule_id } = req.body;
-    if (!schedule_id) return res.status(400).json({ error: "缺少時段 ID" });
+    if (!schedule_id) return res.status(400).json({ success: false, error: "缺少時段 ID" });
 
     const db = getDb();
     db.pragma("foreign_keys = ON");
@@ -179,7 +179,7 @@ router.post("/notify-next", authenticateToken, (req, res) => {
     res.json({ notified: true, user: next.user_name, class_title: classTitle });
   } catch (err) {
     console.error("Waitlist notify error:", err);
-    res.status(500).json({ error: "通知失敗" });
+    res.status(500).json({ success: false, error: "通知失敗" });
   }
 });
 
@@ -257,7 +257,7 @@ router.post("/app", function (req, res) {
   try {
     var email = (req.body && req.body.email || "").trim().toLowerCase();
     if (!email || !email.includes("@")) {
-      return res.status(400).json({ error: "請輸入有效電郵" });
+      return res.status(400).json({ success: false, error: "請輸入有效電郵" });
     }
     var db = getDb();
     db.exec("CREATE TABLE IF NOT EXISTS app_waitlist (id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT UNIQUE NOT NULL, source TEXT DEFAULT '', created_at TEXT DEFAULT (datetime('now')))");
@@ -270,12 +270,12 @@ router.post("/app", function (req, res) {
       if (e.message && e.message.includes("UNIQUE")) {
         res.json({ message: "你已經喺等候名單上 📱" });
       } else {
-        res.status(500).json({ error: "加入失敗" });
+        res.status(500).json({ success: false, error: "加入失敗" });
       }
     }
   } catch (err) {
     console.error("[APP WAITLIST] Error:", err);
-    res.status(500).json({ error: "加入失敗" });
+    res.status(500).json({ success: false, error: "加入失敗" });
   }
 });
 
@@ -289,7 +289,7 @@ router.get("/app/count", function (req, res) {
     res.json({ count: row.count });
   } catch (err) {
     console.error("[APP WAITLIST COUNT] Error:", err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 

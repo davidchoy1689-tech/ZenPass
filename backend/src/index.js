@@ -150,13 +150,45 @@ app.use("/api/bookings", antiScalping);
 const { authenticateToken, requireAdmin } = require("./middleware/auth");
 app.use("/api/anti-scalping", authenticateToken, requireAdmin, getSuspensionRoutes());
 
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15分鐘
-  max: process.env.NODE_ENV === "test" ? 1000 : 500,
-  message: { error: "太多請求，請稍後再試" },
+// ===== 細緻 Rate Limiting =====
+// 分層限流：Auth > Admin > General API
+const windowMinutes = process.env.NODE_ENV === "test" ? 0.1 : 1; // 1 min in dev/prod, 6s in test
+
+// 每個 endpoint 各自獨立限流（Store per-route, not per-path, because we mount at /api/... prefixes）
+const authLimiter = rateLimit({
+  windowMs: windowMinutes * 60 * 1000,
+  max: process.env.NODE_ENV === "test" ? 1000 : 10,
+  message: { success: false, error: "登入嘗試次數過多，請 1 分鐘後再試" },
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => req.ip || req.connection?.remoteAddress || "unknown",
 });
-app.use("/api/", limiter);
+
+const adminLimiter = rateLimit({
+  windowMs: windowMinutes * 60 * 1000,
+  max: process.env.NODE_ENV === "test" ? 1000 : 30,
+  message: { success: false, error: "管理操作請求過多，請稍後再試" },
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => req.ip || req.connection?.remoteAddress || "unknown",
+});
+
+const generalLimiter = rateLimit({
+  windowMs: windowMinutes * 60 * 1000,
+  max: process.env.NODE_ENV === "test" ? 1000 : 100,
+  message: { success: false, error: "太多請求，請稍後再試" },
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => req.ip || req.connection?.remoteAddress || "unknown",
+});
+
+// Apply specific limiters before general one
+// Auth endpoints: strict rate limit (10/min) to prevent brute force
+app.use("/api/auth/", authLimiter);
+// Admin endpoints: moderate limit (30/min)
+app.use("/api/admin/", adminLimiter);
+// Everything else under /api/: standard limit (100/min)
+app.use("/api/", generalLimiter);
 
 // Stripe webhook must receive raw body — register BEFORE express.json()
 const paymentsRouter = require("./routes/payments");

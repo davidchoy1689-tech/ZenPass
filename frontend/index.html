@@ -299,9 +299,14 @@
     </div>
 
     <script>
+    // Dual-mode auth helper: check localStorage (legacy) or cookie session
+    function _zpGetToken() {
+      return localStorage.getItem('zp_token') || localStorage.getItem('zenpass_token') || sessionStorage.getItem('zenpass_token');
+    }
+
     // Logged-in detection: show upcoming bookings, hide visitor stats
     (function() {
-      var token = localStorage.getItem('zp_token') || localStorage.getItem('zenpass_token');
+      var token = _zpGetToken();
       var upcomingSection = document.getElementById('upcoming-section');
       var statsSection = document.getElementById('visitor-stats');
 
@@ -367,7 +372,7 @@
 
     // Credit balance fetch + personalised banner
     (function() {
-      var token = localStorage.getItem('zp_token') || localStorage.getItem('zenpass_token');
+      var token = _zpGetToken();
       var banner = document.getElementById('credit-banner');
       if (!token || !banner) return;
       banner.style.display = '';
@@ -646,7 +651,7 @@
     var container = document.getElementById('recommended-classes');
     if (!section || !container) return;
     var apiBase = window.API_BASE || (window.location.origin === 'https://davidchoy1689-tech.github.io' ? '' : '');
-    var token = localStorage.getItem('zp_token') || localStorage.getItem('zenpass_token');
+    var token = _zpGetToken();
     // Build category filter from onboarding interests (localStorage)
     var categoryFilter = '';
     try {
@@ -832,7 +837,7 @@
     </div>
     <script>
       (function () {
-        if (localStorage.getItem("zenpass_token"))
+        if (_zpGetToken())
           document.getElementById("checkin-reminder").style.display = "";
       })();
     

@@ -21,10 +21,10 @@ router.post("/", authenticateToken, (req, res) => {
     const role = req.user.role === "coach" ? "coach" : "student";
 
     if (!booking_id || !to_user_id || !rating) {
-      return res.status(400).json({ error: "缺少必要資料" });
+      return res.status(400).json({ success: false, error: "缺少必要資料" });
     }
     if (rating < 1 || rating > 5) {
-      return res.status(400).json({ error: "評分須在 1-5 之間" });
+      return res.status(400).json({ success: false, error: "評分須在 1-5 之間" });
     }
 
     const db = getDb();
@@ -46,7 +46,7 @@ router.post("/", authenticateToken, (req, res) => {
 
     if (!booking) {
 
-      return res.status(404).json({ error: "預約不存在或未完成" });
+      return res.status(404).json({ success: false, error: "預約不存在或未完成" });
     }
 
     // Verify user is part of this booking
@@ -54,14 +54,14 @@ router.post("/", authenticateToken, (req, res) => {
     const isCoach = booking.coach_id === from_user_id;
     if (!isStudent && !isCoach) {
 
-      return res.status(403).json({ error: "你不是此預約的參與者" });
+      return res.status(403).json({ success: false, error: "你不是此預約的參與者" });
     }
 
     // Verify to_user_id matches the other party
     const expectedToId = isStudent ? booking.coach_id : booking.user_id;
     if (to_user_id !== expectedToId) {
 
-      return res.status(400).json({ error: "評價對象不正確" });
+      return res.status(400).json({ success: false, error: "評價對象不正確" });
     }
 
     // Check if already reviewed
@@ -72,7 +72,7 @@ router.post("/", authenticateToken, (req, res) => {
       .get(booking_id, from_user_id);
     if (existing) {
 
-      return res.status(400).json({ error: "你已經評價過此預約" });
+      return res.status(400).json({ success: false, error: "你已經評價過此預約" });
     }
 
     // Create review
@@ -134,7 +134,7 @@ router.post("/", authenticateToken, (req, res) => {
     res.json({ success: true, review_id: reviewId });
   } catch (err) {
     console.error("建立評價錯誤:", err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
@@ -176,7 +176,7 @@ router.get("/:userId", (req, res) => {
 
     res.json({ reviews, stats });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
@@ -199,7 +199,7 @@ router.get("/booking/:bookingId", authenticateToken, (req, res) => {
 
     if (!booking) {
 
-      return res.status(404).json({ error: "預約不存在" });
+      return res.status(404).json({ success: false, error: "預約不存在" });
     }
 
     // Get reviews for this booking
@@ -216,7 +216,7 @@ router.get("/booking/:bookingId", authenticateToken, (req, res) => {
 
     res.json({ booking, reviews });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
@@ -260,7 +260,7 @@ router.get("/public/testimonials", (req, res) => {
     res.json({ testimonials: formatted });
   } catch (err) {
     console.error("[TESTIMONIALS] Error:", err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 

@@ -18,7 +18,7 @@ const router = express.Router();
 router.get("/booking/:id", authenticateToken, (req, res) => {
   try {
     const result = traceBooking(req.params.id);
-    if (result.error) return res.status(404).json({ error: result.error });
+    if (result.error) return res.status(404).json({ success: false, error: result.error });
 
     res.json({
       booking: result.booking,
@@ -29,7 +29,7 @@ router.get("/booking/:id", authenticateToken, (req, res) => {
     });
   } catch (err) {
     console.error("[AUDIT] trace booking error:", err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
@@ -37,11 +37,11 @@ router.get("/booking/:id", authenticateToken, (req, res) => {
 router.get("/wallet/:id", authenticateToken, (req, res) => {
   try {
     const result = traceWalletTransaction(req.params.id);
-    if (result.error) return res.status(404).json({ error: result.error });
+    if (result.error) return res.status(404).json({ success: false, error: result.error });
     res.json(result);
   } catch (err) {
     console.error("[AUDIT] trace wallet error:", err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 

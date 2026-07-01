@@ -83,11 +83,57 @@ function _getUserWithPartner(userId) {
 }
 
 /**
+ * Set HTTP-only JWT cookie on response
+ * Supports dual mode: cookie auth + Authorization header
+ */
+function setAuthCookie(res, token) {
+  res.cookie("token", token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    path: "/",
+  });
+}
+
+/**
+ * Clear auth cookie (for logout)
+ */
+function clearAuthCookie(res) {
+  res.clearCookie("token", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+  });
+}
+
+/**
+ * Extract JWT token from request — checks Authorization header first,
+ * then falls back to HTTP-only cookie (dual mode).
+ */
+function extractToken(req) {
+  // 1. Authorization header
+  const authHeader = req.headers["authorization"];
+  if (authHeader) {
+    const parts = authHeader.split(" ");
+    if (parts.length === 2 && parts[0] === "Bearer") {
+      return parts[1];
+    }
+  }
+  // 2. HTTP-only cookie fallback
+  if (req.cookies && req.cookies.token) {
+    return req.cookies.token;
+  }
+  return null;
+}
+
+/**
  * 驗證 JWT Token
+ * Support dual mode: Authorization header first, then cookie fallback
  */
 function authenticateToken(req, res, next) {
-  const authHeader = req.headers["authorization"];
-  const token = authHeader && authHeader.split(" ")[1]; // Bearer TOKEN
+  const token = extractToken(req);
 
   if (!token) {
     return res.status(401).json({ error: "需要登入認證" });
@@ -106,10 +152,10 @@ function authenticateToken(req, res, next) {
 
 /**
  * 可選認證（有 token 就解析，冇都唔阻）
+ * Support dual mode: Authorization header first, then cookie fallback
  */
 function optionalAuth(req, res, next) {
-  const authHeader = req.headers["authorization"];
-  const token = authHeader && authHeader.split(" ")[1];
+  const token = extractToken(req);
 
   if (token) {
     try {
@@ -120,6 +166,8 @@ function optionalAuth(req, res, next) {
   }
   next();
 }
+
+
 
 /**
  * 驗證用戶是否為教練
@@ -382,6 +430,9 @@ module.exports = {
   requirePartnerAccess,
   getQueryPartnerId,
   generateToken,
+  setAuthCookie,
+  clearAuthCookie,
+  extractToken,
   ROLE_HIERARCHY,
   hasMinimumRole,
 };

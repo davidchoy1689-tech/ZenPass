@@ -62,7 +62,7 @@ router.get("/students", authenticateToken, (req, res) => {
     res.json({ students, total: total.c, page: parseInt(page) });
   } catch (err) {
     console.error("CRM student list error:", err);
-    res.status(500).json({ error: "無法取得學生列表" });
+    res.status(500).json({ success: false, error: "無法取得學生列表" });
   }
 });
 
@@ -86,7 +86,7 @@ router.get("/students/:id", authenticateToken, (req, res) => {
 
     if (!student) {
 
-      return res.status(404).json({ error: "學生不存在" });
+      return res.status(404).json({ success: false, error: "學生不存在" });
     }
 
     const bookings = db
@@ -127,7 +127,7 @@ router.get("/students/:id", authenticateToken, (req, res) => {
     res.json({ student, bookings, notes, communications: comms });
   } catch (err) {
     console.error("CRM student detail error:", err);
-    res.status(500).json({ error: "無法取得學生詳情" });
+    res.status(500).json({ success: false, error: "無法取得學生詳情" });
   }
 });
 
@@ -155,7 +155,7 @@ router.put("/students/:id", authenticateToken, (req, res) => {
 
     if (updates.length === 0) {
 
-      return res.status(400).json({ error: "沒有需要更新的資料" });
+      return res.status(400).json({ success: false, error: "沒有需要更新的資料" });
     }
 
     updates.push("updated_at = datetime('now')");
@@ -167,7 +167,7 @@ router.put("/students/:id", authenticateToken, (req, res) => {
     res.json({ message: "已更新" });
   } catch (err) {
     console.error("CRM update error:", err);
-    res.status(500).json({ error: "更新失敗" });
+    res.status(500).json({ success: false, error: "更新失敗" });
   }
 });
 
@@ -175,7 +175,7 @@ router.put("/students/:id", authenticateToken, (req, res) => {
 router.post("/students/:id/notes", authenticateToken, (req, res) => {
   try {
     const { content } = req.body;
-    if (!content) return res.status(400).json({ error: "請填寫筆記內容" });
+    if (!content) return res.status(400).json({ success: false, error: "請填寫筆記內容" });
 
     const db = getDb();
     db.pragma("foreign_keys = ON");
@@ -213,7 +213,7 @@ router.post("/students/:id/notes", authenticateToken, (req, res) => {
     res.status(201).json({ note });
   } catch (err) {
     console.error("CRM add note error:", err);
-    res.status(500).json({ error: "新增筆記失敗" });
+    res.status(500).json({ success: false, error: "新增筆記失敗" });
   }
 });
 
@@ -222,7 +222,7 @@ router.post("/import", authenticateToken, (req, res) => {
   try {
     const { students } = req.body;
     if (!students || !Array.isArray(students) || students.length === 0) {
-      return res.status(400).json({ error: "請提供學生資料" });
+      return res.status(400).json({ success: false, error: "請提供學生資料" });
     }
 
     const db = getDb();
@@ -257,7 +257,7 @@ router.post("/import", authenticateToken, (req, res) => {
     res.json({ message: `已匯入 ${imported} 個學生，${skipped} 個已存在` });
   } catch (err) {
     console.error("CRM import error:", err);
-    res.status(500).json({ error: "匯入失敗" });
+    res.status(500).json({ success: false, error: "匯入失敗" });
   }
 });
 
@@ -333,7 +333,7 @@ function autoSegmentUsers() {
 router.post("/waiver", authenticateToken, (req, res) => {
   try {
     const { name, age, gender, phone, conditions, other } = req.body;
-    if (!name) return res.status(400).json({ error: "請輸入姓名" });
+    if (!name) return res.status(400).json({ success: false, error: "請輸入姓名" });
 
     const db = getDb();
     db.prepare(
@@ -370,7 +370,7 @@ router.post("/waiver", authenticateToken, (req, res) => {
     res.json({ success: true, message: "✅ 健康申報已提交" });
   } catch (err) {
     console.error("Waiver error:", err.message);
-    res.status(500).json({ error: "提交失敗" });
+    res.status(500).json({ success: false, error: "提交失敗" });
   }
 });
 

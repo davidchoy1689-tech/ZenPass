@@ -27,11 +27,11 @@ const WITHDRAWAL_FEE = 1;
 router.get("/summary", authenticateToken, (req, res) => {
   try {
     const summary = walletService.getWalletSummary(req.user.id);
-    if (!summary) return res.status(404).json({ error: "用戶不存在" });
+    if (!summary) return res.status(404).json({ success: false, error: "用戶不存在" });
     res.json(summary);
   } catch (err) {
     console.error("[WALLET] /summary error:", err);
-    res.status(500).json({ error: "無法獲取錢包資料" });
+    res.status(500).json({ success: false, error: "無法獲取錢包資料" });
   }
 });
 
@@ -50,7 +50,7 @@ router.get("/transactions", authenticateToken, (req, res) => {
     res.json(result);
   } catch (err) {
     console.error("[WALLET] /transactions error:", err);
-    res.status(500).json({ error: "無法獲取交易記錄" });
+    res.status(500).json({ success: false, error: "無法獲取交易記錄" });
   }
 });
 
@@ -64,7 +64,7 @@ router.get("/balance", authenticateToken, (req, res) => {
       )
       .get(req.user.id);
 
-    if (!user) return res.status(404).json({ error: "用戶不存在" });
+    if (!user) return res.status(404).json({ success: false, error: "用戶不存在" });
 
     res.json({
       balance: user.wallet_balance || 0,
@@ -77,7 +77,7 @@ router.get("/balance", authenticateToken, (req, res) => {
         : null,
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
@@ -93,18 +93,18 @@ router.post("/withdraw", authenticateToken, (req, res) => {
 
     if (!user || !user.bank_account) {
 
-      return res.status(400).json({ error: "請先設定銀行戶口" });
+      return res.status(400).json({ success: false, error: "請先設定銀行戶口" });
     }
 
     const amount = parseFloat(req.body.amount);
     if (!amount || amount <= 0) {
 
-      return res.status(400).json({ error: "請輸入有效金額" });
+      return res.status(400).json({ success: false, error: "請輸入有效金額" });
     }
 
     if (amount < 100) {
 
-      return res.status(400).json({ error: "最低提現金額為 HK$100" });
+      return res.status(400).json({ success: false, error: "最低提現金額為 HK$100" });
     }
 
     const result = walletService.debitWallet({
@@ -119,7 +119,7 @@ router.post("/withdraw", authenticateToken, (req, res) => {
     });
 
     if (!result.success) {
-      return res.status(400).json({ error: result.error });
+      return res.status(400).json({ success: false, error: result.error });
     }
 
     // Also insert payout request record
@@ -171,7 +171,7 @@ router.post("/withdraw", authenticateToken, (req, res) => {
       transaction_id: result.transaction_id,
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
@@ -180,7 +180,7 @@ router.post("/bank", authenticateToken, (req, res) => {
   try {
     const { bank_name, bank_account, bank_code } = req.body;
     if (!bank_name || !bank_account) {
-      return res.status(400).json({ error: "請填寫銀行名稱同戶口號碼" });
+      return res.status(400).json({ success: false, error: "請填寫銀行名稱同戶口號碼" });
     }
 
     const db = getDb();
@@ -190,7 +190,7 @@ router.post("/bank", authenticateToken, (req, res) => {
 
     res.json({ success: true, message: "銀行戶口已設定" });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
@@ -199,7 +199,7 @@ router.post("/pay-rental", authenticateToken, (req, res) => {
   try {
     const { rental_id, amount } = req.body;
     if (!rental_id || !amount) {
-      return res.status(400).json({ error: "缺少資料" });
+      return res.status(400).json({ success: false, error: "缺少資料" });
     }
 
     const result = walletService.debitWallet({
@@ -213,7 +213,7 @@ router.post("/pay-rental", authenticateToken, (req, res) => {
     });
 
     if (!result.success) {
-      return res.status(400).json({ error: result.error });
+      return res.status(400).json({ success: false, error: result.error });
     }
 
     // ⛓️ 區塊鏈：記錄租場扣數
@@ -240,7 +240,7 @@ router.post("/pay-rental", authenticateToken, (req, res) => {
       transaction_id: result.transaction_id,
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
@@ -257,7 +257,7 @@ router.get("/admin/coaches", authenticateToken, (req, res) => {
       .get(req.user.id);
 
     if (!user || user.role !== "admin") {
-      return res.status(403).json({ error: "僅管理員可查看" });
+      return res.status(403).json({ success: false, error: "僅管理員可查看" });
     }
 
     const { limit = 50, offset = 0 } = req.query;
@@ -268,7 +268,7 @@ router.get("/admin/coaches", authenticateToken, (req, res) => {
     res.json(result);
   } catch (err) {
     console.error("[WALLET] admin/coaches error:", err);
-    res.status(500).json({ error: "無法獲取教練錢包資料" });
+    res.status(500).json({ success: false, error: "無法獲取教練錢包資料" });
   }
 });
 
@@ -281,7 +281,7 @@ router.get("/admin/txs/:userId", authenticateToken, (req, res) => {
       .get(req.user.id);
 
     if (!user || user.role !== "admin") {
-      return res.status(403).json({ error: "僅管理員可查看" });
+      return res.status(403).json({ success: false, error: "僅管理員可查看" });
     }
 
     const { type, limit = 100, offset = 0, start_date, end_date } = req.query;
@@ -296,7 +296,7 @@ router.get("/admin/txs/:userId", authenticateToken, (req, res) => {
     res.json(result);
   } catch (err) {
     console.error("[WALLET] admin/txs error:", err);
-    res.status(500).json({ error: "無法獲取交易記錄" });
+    res.status(500).json({ success: false, error: "無法獲取交易記錄" });
   }
 });
 
@@ -309,7 +309,7 @@ router.post("/admin/adjust", authenticateToken, (req, res) => {
       .get(req.user.id);
     if (!admin || admin.role !== "admin") {
 
-      return res.status(403).json({ error: "僅管理員可操作" });
+      return res.status(403).json({ success: false, error: "僅管理員可操作" });
     }
 
     const { user_id, amount, reason } = req.body;
@@ -341,12 +341,12 @@ router.post("/admin/adjust", authenticateToken, (req, res) => {
           });
 
     if (!result.success) {
-      return res.status(400).json({ error: result.error });
+      return res.status(400).json({ success: false, error: result.error });
     }
 
     res.json({ success: true, ...result });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 

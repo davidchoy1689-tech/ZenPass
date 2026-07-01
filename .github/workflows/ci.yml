@@ -48,6 +48,21 @@ jobs:
       - name: Run backend tests
         working-directory: ./backend
         run: npm test
+      - name: Code quality check — verify critical tables exist
+        working-directory: ./backend
+        run: |
+          node -e "
+            const Database = require('better-sqlite3');
+            const db = new Database('./data/test.db');
+            const tables = db.prepare('SELECT name FROM sqlite_master WHERE type = ?').all('table');
+            console.log('Tables:', tables.length);
+            const required = ['bookings', 'classes', 'users', 'wishlist', 'auto_topup_config', 'school_inquiries'];
+            required.forEach(t => {
+              const exists = tables.some(r => r.name === t);
+              console.log(exists ? '✅' : '❌', t);
+            });
+            db.close();
+          "
 
       - name: Run unit tests
         run: |
@@ -78,12 +93,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Deploy to VPS
+        env:
+          SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
         run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_HOST }} "
-            cd /var/www/zenpass &&
-            git pull origin main &&
-            bash deploy/deploy.sh
-          "
+          echo "$SSH_KEY" > /tmp/deploy_key
+          chmod 600 /tmp/deploy_key
+          ssh -o StrictHostKeyChecking=no -i /tmp/deploy_key root@47.242.246.2 "cd /var/www/zenpass && git pull origin main && bash deploy/deploy.sh"

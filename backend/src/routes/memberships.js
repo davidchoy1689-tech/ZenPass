@@ -106,7 +106,7 @@ router.post("/subscribe", authenticateToken, async (req, res) => {
     const { type, payment_method } = req.body;
 
     if (!type || !MEMBERSHIP_PLANS[type]) {
-      return res.status(400).json({ error: "無效的會籍類型" });
+      return res.status(400).json({ success: false, error: "無效的會籍類型" });
     }
 
     const plan = MEMBERSHIP_PLANS[type];
@@ -198,7 +198,7 @@ router.post("/subscribe", authenticateToken, async (req, res) => {
     });
   } catch (err) {
     console.error("訂閱會籍錯誤:", err);
-    res.status(500).json({ error: "訂閱會籍失敗" });
+    res.status(500).json({ success: false, error: "訂閱會籍失敗" });
   }
 });
 
@@ -237,7 +237,7 @@ router.get("/my", authenticateToken, (req, res) => {
     });
   } catch (err) {
     console.error("查詢會籍錯誤:", err);
-    res.status(500).json({ error: "無法查詢會籍" });
+    res.status(500).json({ success: false, error: "無法查詢會籍" });
   }
 });
 
@@ -247,7 +247,7 @@ router.post("/credits", authenticateToken, (req, res) => {
     const { amount } = req.body; // 金額 (HKD)
 
     if (!amount || amount < 20) {
-      return res.status(400).json({ error: "最低購買金額為 HK$20" });
+      return res.status(400).json({ success: false, error: "最低購買金額為 HK$20" });
     }
 
     // 匯率: HK$8 = 1 Credit
@@ -313,7 +313,7 @@ router.post("/credits", authenticateToken, (req, res) => {
     });
   } catch (err) {
     console.error("購買點數錯誤:", err);
-    res.status(500).json({ error: "購買點數失敗" });
+    res.status(500).json({ success: false, error: "購買點數失敗" });
   }
 });
 
@@ -333,7 +333,7 @@ router.post("/stripe-subscribe", authenticateToken, async (req, res) => {
   try {
     const { type, payment_method_id } = req.body;
     const plan = MEMBERSHIP_PLANS[type];
-    if (!plan) return res.status(400).json({ error: "無效的會籍類型" });
+    if (!plan) return res.status(400).json({ success: false, error: "無效的會籍類型" });
 
     const STRIPE_SECRET = process.env.STRIPE_SECRET_KEY;
     if (!STRIPE_SECRET || STRIPE_SECRET.startsWith("sk_test_51TTH5l")) {
@@ -436,7 +436,7 @@ router.post("/stripe-subscribe", authenticateToken, async (req, res) => {
     });
   } catch (err) {
     console.error("Stripe subscription error:", err.message);
-    res.status(500).json({ error: "建立訂閱失敗" });
+    res.status(500).json({ success: false, error: "建立訂閱失敗" });
   }
 });
 

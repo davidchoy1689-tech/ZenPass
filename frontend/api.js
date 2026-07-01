@@ -189,8 +189,38 @@ function isAdmin() {
   return user && (user.role === "admin" || user.email === "david@zenpass.hk");
 }
 
+/**
+ * Check if user is logged in (synchronous fast path).
+ * Checks localStorage token, then falls back to sessionStorage.
+ * For cookie-only auth detection, use checkCookieSession() on page load.
+ */
 function isLoggedIn() {
-  return !!getToken();
+  return !!(getToken() || sessionStorage.getItem("zenpass_token"));
+}
+
+/**
+ * Check server-side auth session via cookie (async).
+ * Call on page load to detect cookie-only authenticated users.
+ * If cookie session exists, populate localStorage with user data.
+ * @returns {Promise<boolean>}
+ */
+var _cookieSessionChecked = false;
+async function checkCookieSession() {
+  if (_cookieSessionChecked) return isLoggedIn();
+  _cookieSessionChecked = true;
+  
+  // Already have localStorage token, no need to check
+  if (getToken()) return true;
+  
+  try {
+    var user = await auth.checkSession();
+    if (user) {
+      storeUser(user);
+      sessionStorage.setItem("zenpass_token", "cookie_session");
+      return true;
+    }
+  } catch (e) {}
+  return false;
 }
 
 // ===== API 請求封裝 =====
@@ -203,7 +233,9 @@ async function apiRequest(method, path, data = null) {
     headers["Authorization"] = `Bearer ${token}`;
   }
 
-  const options = { method, headers };
+  // credentials: 'include' ensures HTTP-only cookies are sent
+  // This enables cookie-based auth alongside the Authorization header fallback
+  const options = { method, headers, credentials: "include" };
   if (data && (method === "POST" || method === "PUT")) {
     options.body = JSON.stringify(data);
   }
@@ -259,11 +291,12 @@ async function apiPost(path, body, isFormData = false) {
 
   // Don't set Content-Type for FormData (browser sets it with boundary)
   const options = isFormData
-    ? { method: "POST", headers, body }
+    ? { method: "POST", headers, body, credentials: "include" }
     : {
         method: "POST",
         headers: { ...headers, "Content-Type": "application/json" },
         body: JSON.stringify(body),
+        credentials: "include",
       };
 
   try {
@@ -290,6 +323,29 @@ const auth = {
   login: (data) => apiRequest("POST", "/auth/login", data),
   social: (data) => apiRequest("POST", "/auth/social", data),
   me: () => apiRequest("GET", "/auth/me"),
+  logout: () => apiRequest("POST", "/auth/logout"),
+  /**
+   * Check if user is authenticated by calling /api/auth/me
+   * Used for cookie-only auth check when localStorage has no token
+   * @returns {Promise<object|null>} user object or null
+   */
+  checkSession: async () => {
+    try {
+      var resp = await fetch(API_BASE + "/auth/me", {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include", // Send cookies even for cross-origin
+      });
+      if (!resp.ok) return null;
+      var data = await resp.json();
+      if (data && data.user) {
+        return data.user;
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
 };
 
 // ===== Courses.json fallback (when backend is offline) =====
@@ -860,9 +916,19 @@ function showUserMenu() {
 }
 
 function logout() {
-  clearToken();
-  showToast("已登出", "info");
-  location.reload();
+  // Call backend to clear HTTP-only cookie, then clear localStorage
+  // Use raw fetch to avoid circular dependency with apiRequest
+  fetch(API_BASE + "/auth/logout", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+  }).catch(function() {
+    // Silently fail - cookie might not exist
+  }).finally(function() {
+    clearToken();
+    showToast("已登出", "info");
+    location.reload();
+  });
 }
 
 // ===== 全局錯誤監控 (Error Monitoring) =====
@@ -1303,4 +1369,13 @@ document.addEventListener("DOMContentLoaded", () => {
   trackPageView();
   autoSkeleton();
   initConversionTracking();
+  
+  // Cookie-based auth detection: check if user has a server session
+  // without localStorage token (e.g. new signup via backend cookie)
+  checkCookieSession().then(function(loggedIn) {
+    if (loggedIn) {
+      // Re-render nav with user data from cookie session
+      updateNavBar();
+    }
+  }).catch(function() {});
 });

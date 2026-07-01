@@ -27,7 +27,7 @@ router.get("/course-contents", (req, res) => {
         : "course_contents table NOT found",
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
@@ -84,7 +84,7 @@ router.post("/course-contents", authenticateToken, requireAdmin, (req, res) => {
       message: "course_contents table created successfully",
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
@@ -113,7 +113,7 @@ router.post("/bookings-reminders", authenticateToken, requireAdmin, (req, res) =
       message: "reminder_sent_1d column added to bookings table",
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 

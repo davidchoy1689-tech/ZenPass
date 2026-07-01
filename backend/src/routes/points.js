@@ -186,11 +186,11 @@ function getUserPointsSummary(userId) {
 router.get("/", authenticateToken, (req, res) => {
   try {
     const summary = getUserPointsSummary(req.user.id);
-    if (!summary) return res.status(404).json({ error: "用戶不存在" });
+    if (!summary) return res.status(404).json({ success: false, error: "用戶不存在" });
     res.json(summary);
   } catch (err) {
     console.error("取積分摘要錯誤:", err);
-    res.status(500).json({ error: "無法取得積分資料" });
+    res.status(500).json({ success: false, error: "無法取得積分資料" });
   }
 });
 
@@ -225,7 +225,7 @@ router.get("/history", authenticateToken, (req, res) => {
     res.json({ transactions, total: total.count, limit, offset });
   } catch (err) {
     console.error("取積分歷史錯誤:", err);
-    res.status(500).json({ error: "無法取得積分歷史" });
+    res.status(500).json({ success: false, error: "無法取得積分歷史" });
   }
 });
 
@@ -251,7 +251,7 @@ router.get("/rewards", authenticateToken, (req, res) => {
     res.json({ rewards });
   } catch (err) {
     console.error("取獎勵目錄錯誤:", err);
-    res.status(500).json({ error: "無法取得獎勵目錄" });
+    res.status(500).json({ success: false, error: "無法取得獎勵目錄" });
   }
 });
 
@@ -271,7 +271,7 @@ router.post("/checkin", authenticateToken, (req, res) => {
 
     if (!user) {
 
-      return res.status(404).json({ error: "用戶不存在" });
+      return res.status(404).json({ success: false, error: "用戶不存在" });
     }
 
     const today = new Date().toISOString().split("T")[0];
@@ -317,7 +317,7 @@ router.post("/checkin", authenticateToken, (req, res) => {
     );
 
     if (!result) {
-      return res.status(500).json({ error: "簽到失敗" });
+      return res.status(500).json({ success: false, error: "簽到失敗" });
     }
 
     // 更新 last_checkin 和 checkin_streak
@@ -362,7 +362,7 @@ router.post("/checkin", authenticateToken, (req, res) => {
     });
   } catch (err) {
     console.error("簽到錯誤:", err);
-    res.status(500).json({ error: "簽到失敗" });
+    res.status(500).json({ success: false, error: "簽到失敗" });
   }
 });
 
@@ -370,7 +370,7 @@ router.post("/checkin", authenticateToken, (req, res) => {
 router.post("/redeem", authenticateToken, (req, res) => {
   try {
     const { reward_id } = req.body;
-    if (!reward_id) return res.status(400).json({ error: "請選擇獎勵" });
+    if (!reward_id) return res.status(400).json({ success: false, error: "請選擇獎勵" });
 
     const db = getDb();
     db.pragma("foreign_keys = ON");
@@ -386,12 +386,12 @@ router.post("/redeem", authenticateToken, (req, res) => {
 
     if (!reward) {
 
-      return res.status(404).json({ error: "獎勵不存在或已下架" });
+      return res.status(404).json({ success: false, error: "獎勵不存在或已下架" });
     }
 
     if (reward.stock !== -1 && reward.stock <= 0) {
 
-      return res.status(400).json({ error: "獎勵已兌換完畢" });
+      return res.status(400).json({ success: false, error: "獎勵已兌換完畢" });
     }
 
     // 檢查用戶積分
@@ -419,7 +419,7 @@ router.post("/redeem", authenticateToken, (req, res) => {
     );
 
     if (!result) {
-      return res.status(500).json({ error: "兌換失敗" });
+      return res.status(500).json({ success: false, error: "兌換失敗" });
     }
 
     // 建立兌換記錄
@@ -486,7 +486,7 @@ router.post("/redeem", authenticateToken, (req, res) => {
     });
   } catch (err) {
     console.error("兌換錯誤:", err);
-    res.status(500).json({ error: "兌換失敗" });
+    res.status(500).json({ success: false, error: "兌換失敗" });
   }
 });
 
@@ -526,7 +526,7 @@ router.get("/checkin-dates", authenticateToken, (req, res) => {
     });
   } catch (err) {
     console.error("取簽到日期錯誤:", err);
-    res.status(500).json({ error: "無法取得簽到日期" });
+    res.status(500).json({ success: false, error: "無法取得簽到日期" });
   }
 });
 
@@ -551,7 +551,7 @@ router.get("/leaderboard", (req, res) => {
     res.json({ leaderboard: topUsers });
   } catch (err) {
     console.error("取排行榜錯誤:", err);
-    res.status(500).json({ error: "無法取得排行榜" });
+    res.status(500).json({ success: false, error: "無法取得排行榜" });
   }
 });
 
@@ -576,7 +576,7 @@ router.get("/redemptions", authenticateToken, (req, res) => {
     res.json({ redemptions });
   } catch (err) {
     console.error("取兌換記錄錯誤:", err);
-    res.status(500).json({ error: "無法取得兌換記錄" });
+    res.status(500).json({ success: false, error: "無法取得兌換記錄" });
   }
 });
 
@@ -584,7 +584,7 @@ router.get("/redemptions", authenticateToken, (req, res) => {
 router.post("/earn-booking", authenticateToken, (req, res) => {
   try {
     const { booking_id } = req.body;
-    if (!booking_id) return res.status(400).json({ error: "缺少預約編號" });
+    if (!booking_id) return res.status(400).json({ success: false, error: "缺少預約編號" });
 
     const db = getDb();
     db.pragma("foreign_keys = ON");
@@ -604,7 +604,7 @@ router.post("/earn-booking", authenticateToken, (req, res) => {
 
     if (!booking) {
 
-      return res.status(404).json({ error: "預約不存在、未出席或未簽到" });
+      return res.status(404).json({ success: false, error: "預約不存在、未出席或未簽到" });
     }
 
     // 檢查是否已領過積分
@@ -619,7 +619,7 @@ router.post("/earn-booking", authenticateToken, (req, res) => {
 
     if (existing) {
 
-      return res.status(400).json({ error: "已領取過課堂積分" });
+      return res.status(400).json({ success: false, error: "已領取過課堂積分" });
     }
 
     // 獎勵積分
@@ -738,7 +738,7 @@ router.post("/earn-booking", authenticateToken, (req, res) => {
     });
   } catch (err) {
     console.error("課堂積分獎勵錯誤:", err);
-    res.status(500).json({ error: "無法發放課堂積分" });
+    res.status(500).json({ success: false, error: "無法發放課堂積分" });
   }
 });
 
@@ -746,7 +746,7 @@ router.post("/earn-booking", authenticateToken, (req, res) => {
 router.post("/review", authenticateToken, (req, res) => {
   try {
     const { booking_id } = req.body;
-    if (!booking_id) return res.status(400).json({ error: "缺少預約編號" });
+    if (!booking_id) return res.status(400).json({ success: false, error: "缺少預約編號" });
 
     // 檢查 booking（至少要是 attended 或 confirmed）
     const db = getDb();
@@ -762,12 +762,12 @@ router.post("/review", authenticateToken, (req, res) => {
 
     if (!booking) {
 
-      return res.status(404).json({ error: "預約不存在" });
+      return res.status(404).json({ success: false, error: "預約不存在" });
     }
 
     if (booking.status !== "attended" && booking.status !== "confirmed") {
 
-      return res.status(400).json({ error: "只能評價已完成的課堂" });
+      return res.status(400).json({ success: false, error: "只能評價已完成的課堂" });
     }
 
     // 檢查是否已領過評價積分
@@ -782,7 +782,7 @@ router.post("/review", authenticateToken, (req, res) => {
 
     if (existing) {
 
-      return res.status(400).json({ error: "已評價過此課堂" });
+      return res.status(400).json({ success: false, error: "已評價過此課堂" });
     }
 
     const points = 20;
@@ -823,7 +823,7 @@ router.post("/review", authenticateToken, (req, res) => {
     });
   } catch (err) {
     console.error("評價獎勵錯誤:", err);
-    res.status(500).json({ error: "無法發放評價積分" });
+    res.status(500).json({ success: false, error: "無法發放評價積分" });
   }
 });
 
@@ -832,7 +832,7 @@ router.post("/referral", authenticateToken, (req, res) => {
   try {
     const { referred_user_id } = req.body;
     if (!referred_user_id)
-      return res.status(400).json({ error: "請提供被推薦用戶 ID" });
+      return res.status(400).json({ success: false, error: "請提供被推薦用戶 ID" });
 
     // 推薦人獲得 100 積分（新用戶首次預約完成時觸發）
     const points = 100;
@@ -873,7 +873,7 @@ router.post("/referral", authenticateToken, (req, res) => {
     });
   } catch (err) {
     console.error("推薦獎勵錯誤:", err);
-    res.status(500).json({ error: "無法發放推薦積分" });
+    res.status(500).json({ success: false, error: "無法發放推薦積分" });
   }
 });
 

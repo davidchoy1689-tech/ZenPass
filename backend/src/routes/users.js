@@ -26,7 +26,7 @@ router.get("/profile", authenticateToken, (req, res) => {
       )
       .get(req.user.id);
 
-    if (!user) return res.status(404).json({ error: "用戶不存在" });
+    if (!user) return res.status(404).json({ success: false, error: "用戶不存在" });
 
     // 獲取預約記錄
     db.pragma("foreign_keys = ON");
@@ -47,7 +47,7 @@ router.get("/profile", authenticateToken, (req, res) => {
     res.json({ user, bookings });
   } catch (err) {
     console.error("取用戶資料錯誤:", err);
-    res.status(500).json({ error: "無法取得用戶資料" });
+    res.status(500).json({ success: false, error: "無法取得用戶資料" });
   }
 });
 
@@ -76,7 +76,7 @@ router.put("/profile", authenticateToken, (req, res) => {
 
     if (updates.length === 0) {
 
-      return res.status(400).json({ error: "沒有需要更新的資料" });
+      return res.status(400).json({ success: false, error: "沒有需要更新的資料" });
     }
 
     updates.push("updated_at = datetime('now')");
@@ -97,7 +97,7 @@ router.put("/profile", authenticateToken, (req, res) => {
     res.json({ message: "資料已更新" });
   } catch (err) {
     console.error("更新用戶資料錯誤:", err);
-    res.status(500).json({ error: "更新失敗" });
+    res.status(500).json({ success: false, error: "更新失敗" });
   }
 });
 
@@ -130,7 +130,7 @@ router.get("/credits", authenticateToken, (req, res) => {
     });
   } catch (err) {
     console.error("查詢點數錯誤:", err);
-    res.status(500).json({ error: "無法查詢點數" });
+    res.status(500).json({ success: false, error: "無法查詢點數" });
   }
 });
 
@@ -149,7 +149,7 @@ router.get("/me", authenticateToken, (req, res) => {
       )
       .get(req.user.id);
 
-    if (!user) return res.status(404).json({ error: "用戶不存在" });
+    if (!user) return res.status(404).json({ success: false, error: "用戶不存在" });
 
     res.json({
       ...user,
@@ -157,7 +157,7 @@ router.get("/me", authenticateToken, (req, res) => {
     });
   } catch (err) {
     console.error("GET /users/me error:", err);
-    res.status(500).json({ error: "無法取得用戶資料" });
+    res.status(500).json({ success: false, error: "無法取得用戶資料" });
   }
 });
 

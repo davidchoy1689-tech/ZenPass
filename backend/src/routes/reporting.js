@@ -31,7 +31,7 @@ router.get("/coach-ranking", authenticateToken, requireAdmin, (req, res) => {
     res.json({ coaches });
   } catch (err) {
     console.error("Coach ranking error:", err);
-    res.status(500).json({ error: "無法獲取教練排名" });
+    res.status(500).json({ success: false, error: "無法獲取教練排名" });
   }
 });
 
@@ -95,7 +95,7 @@ router.get("/funnel", authenticateToken, requireAdmin, (req, res) => {
     });
   } catch (err) {
     console.error("Funnel error:", err);
-    res.status(500).json({ error: "無法獲取轉化漏斗" });
+    res.status(500).json({ success: false, error: "無法獲取轉化漏斗" });
   }
 });
 
@@ -146,7 +146,7 @@ router.get("/retention", authenticateToken, requireAdmin, (req, res) => {
     });
   } catch (err) {
     console.error("Retention error:", err);
-    res.status(500).json({ error: "無法獲取留存率" });
+    res.status(500).json({ success: false, error: "無法獲取留存率" });
   }
 });
 
@@ -193,7 +193,7 @@ router.get("/revenue-trend", authenticateToken, requireAdmin, (req, res) => {
     });
   } catch (err) {
     console.error("Revenue trend error:", err);
-    res.status(500).json({ error: "無法獲取收入趨勢" });
+    res.status(500).json({ success: false, error: "無法獲取收入趨勢" });
   }
 });
 

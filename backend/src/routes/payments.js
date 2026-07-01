@@ -29,13 +29,13 @@ router.post("/upload-receipt", authenticateToken, (req, res) => {
     const { image } = req.body; // base64 data URL
 
     if (!image || !image.startsWith("data:image/")) {
-      return res.status(400).json({ error: "請提供有效嘅圖片" });
+      return res.status(400).json({ success: false, error: "請提供有效嘅圖片" });
     }
 
     // Decode base64
     const matches = image.match(/^data:image\/([a-zA-Z]+);base64,(.+)$/);
     if (!matches) {
-      return res.status(400).json({ error: "圖片格式無效" });
+      return res.status(400).json({ success: false, error: "圖片格式無效" });
     }
 
     const ext = matches[1] === "png" ? "png" : "jpg";
@@ -43,7 +43,7 @@ router.post("/upload-receipt", authenticateToken, (req, res) => {
 
     // Size limit: max 2MB after decode
     if (buffer.length > 2 * 1024 * 1024) {
-      return res.status(400).json({ error: "圖片太大，請上載 2MB 以下嘅圖片" });
+      return res.status(400).json({ success: false, error: "圖片太大，請上載 2MB 以下嘅圖片" });
     }
 
     // Ensure upload directory exists
@@ -72,7 +72,7 @@ router.post("/upload-receipt", authenticateToken, (req, res) => {
     });
   } catch (err) {
     console.error("上載圖片錯誤:", err);
-    res.status(500).json({ error: "上載圖片失敗" });
+    res.status(500).json({ success: false, error: "上載圖片失敗" });
   }
 });
 
@@ -171,7 +171,7 @@ router.post("/stripe/create-checkout", authenticateToken, async (req, res) => {
       req.body;
 
     if (!amount || amount < 1) {
-      return res.status(400).json({ error: "無效金額" });
+      return res.status(400).json({ success: false, error: "無效金額" });
     }
 
     // 預先計算手續費
@@ -233,7 +233,7 @@ router.post("/stripe/create-checkout", authenticateToken, async (req, res) => {
     });
   } catch (err) {
     console.error("Stripe Checkout 錯誤:", err);
-    res.status(500).json({ error: "無法建立付款頁面" });
+    res.status(500).json({ success: false, error: "無法建立付款頁面" });
   }
 });
 
@@ -258,18 +258,18 @@ router.post("/stripe/confirm-payment", authenticateToken, async (req, res) => {
       const session = await getStripe().checkout.sessions.retrieve(session_id);
 
       if (session.payment_status !== "paid") {
-        return res.status(400).json({ error: "付款尚未完成" });
+        return res.status(400).json({ success: false, error: "付款尚未完成" });
       }
 
       const paymentIntentId = session.payment_intent;
       return await completeStripePayment(req, res, booking_id, paymentIntentId);
     } catch (stripeErr) {
       console.error("Stripe session retrieval error:", stripeErr);
-      return res.status(500).json({ error: "無法確認付款狀態" });
+      return res.status(500).json({ success: false, error: "無法確認付款狀態" });
     }
   } catch (err) {
     console.error("確認付款錯誤:", err);
-    res.status(500).json({ error: "確認付款失敗" });
+    res.status(500).json({ success: false, error: "確認付款失敗" });
   }
 });
 
@@ -328,7 +328,7 @@ async function completeStripePayment(req, res, booking_id, paymentIntentId) {
     });
   } catch (err) {
     console.error("Stripe 完成付款錯誤:", err);
-    res.status(500).json({ error: "付款確認失敗" });
+    res.status(500).json({ success: false, error: "付款確認失敗" });
   }
 }
 
@@ -451,7 +451,7 @@ router.post("/stripe/webhook", async (req, res) => {
     res.json({ received: true });
   } catch (err) {
     console.error("Webhook error:", err);
-    res.status(500).json({ error: "Webhook error" });
+    res.status(500).json({ success: false, error: "Webhook error" });
   }
 });
 
@@ -461,7 +461,7 @@ router.post("/fps", authenticateToken, (req, res) => {
     const { amount, booking_id, fps_reference, receipt_image } = req.body;
 
     if (!fps_reference) {
-      return res.status(400).json({ error: "請提供轉數快參考編號" });
+      return res.status(400).json({ success: false, error: "請提供轉數快參考編號" });
     }
 
     const db = getDb();
@@ -473,7 +473,7 @@ router.post("/fps", authenticateToken, (req, res) => {
       : null;
     if (booking_id && !booking) {
 
-      return res.status(404).json({ error: "預約不存在" });
+      return res.status(404).json({ success: false, error: "預約不存在" });
     }
 
     // 儲存 FPS 資料，保持 pending_payment，等 Admin 核實
@@ -547,7 +547,7 @@ router.post("/fps", authenticateToken, (req, res) => {
     });
   } catch (err) {
     console.error("轉數快付款錯誤:", err);
-    res.status(500).json({ error: "轉數快付款失敗" });
+    res.status(500).json({ success: false, error: "轉數快付款失敗" });
   }
 });
 
@@ -557,7 +557,7 @@ router.post("/payme", authenticateToken, (req, res) => {
     const { amount, booking_id, payme_reference, receipt_image } = req.body;
 
     if (!payme_reference) {
-      return res.status(400).json({ error: "請提供 PayMe 參考編號" });
+      return res.status(400).json({ success: false, error: "請提供 PayMe 參考編號" });
     }
 
     const db = getDb();
@@ -568,7 +568,7 @@ router.post("/payme", authenticateToken, (req, res) => {
       : null;
     if (booking_id && !booking) {
 
-      return res.status(404).json({ error: "預約不存在" });
+      return res.status(404).json({ success: false, error: "預約不存在" });
     }
 
     // 儲存 PayMe 資料，保持 pending_payment，等 Admin 核實
@@ -625,7 +625,7 @@ router.post("/payme", authenticateToken, (req, res) => {
     });
   } catch (err) {
     console.error("PayMe 付款錯誤:", err);
-    res.status(500).json({ error: "PayMe 付款失敗" });
+    res.status(500).json({ success: false, error: "PayMe 付款失敗" });
   }
 });
 
@@ -692,7 +692,7 @@ router.post("/create-payment-intent", authenticateToken, async (req, res) => {
     const { amount, booking_id, description } = req.body;
 
     if (!amount || amount < 1) {
-      return res.status(400).json({ error: "無效金額" });
+      return res.status(400).json({ success: false, error: "無效金額" });
     }
 
     // 如果沒 Stripe key，fallback 做本地 mock（FPS/PayMe QR）
@@ -728,7 +728,7 @@ router.post("/create-payment-intent", authenticateToken, async (req, res) => {
     });
   } catch (err) {
     console.error("❌ Create PaymentIntent error:", err);
-    res.status(500).json({ error: "無法建立付款" });
+    res.status(500).json({ success: false, error: "無法建立付款" });
   }
 });
 
@@ -909,7 +909,7 @@ router.post(
       }
     } catch (err) {
       console.error("❌ 確認付款錯誤:", err);
-      res.status(500).json({ error: "確認付款失敗" });
+      res.status(500).json({ success: false, error: "確認付款失敗" });
     }
   },
 );
@@ -959,7 +959,7 @@ router.post("/setup-intent", authenticateToken, async (req, res) => {
     res.json({ client_secret: setupIntent.client_secret, dev_mode: false });
   } catch (err) {
     console.error("SetupIntent error:", err);
-    res.status(500).json({ error: "無法建立付款設定" });
+    res.status(500).json({ success: false, error: "無法建立付款設定" });
   }
 });
 
@@ -968,7 +968,7 @@ router.post("/save-payment-method", authenticateToken, async (req, res) => {
   try {
     const { payment_method_id } = req.body;
     if (!payment_method_id)
-      return res.status(400).json({ error: "缺少付款方式" });
+      return res.status(400).json({ success: false, error: "缺少付款方式" });
 
     const stripe = getStripe();
     if (!stripe)
@@ -985,7 +985,7 @@ router.post("/save-payment-method", authenticateToken, async (req, res) => {
       .get(req.user.id);
 
     if (!user?.stripe_customer_id) {
-      return res.status(400).json({ error: "請先建立付款設定" });
+      return res.status(400).json({ success: false, error: "請先建立付款設定" });
     }
 
     const paymentMethod = await stripe.paymentMethods.attach(
@@ -1003,7 +1003,7 @@ router.post("/save-payment-method", authenticateToken, async (req, res) => {
     res.json({ message: "✅ 付款方式已儲存", card: paymentMethod.card?.last4 });
   } catch (err) {
     console.error("Save payment method error:", err);
-    res.status(500).json({ error: "無法儲存付款方式" });
+    res.status(500).json({ success: false, error: "無法儲存付款方式" });
   }
 });
 
@@ -1012,7 +1012,7 @@ router.post("/create-subscription", authenticateToken, async (req, res) => {
   try {
     const { plan_id, price } = req.body;
     if (!plan_id || !price)
-      return res.status(400).json({ error: "缺少會籍資料" });
+      return res.status(400).json({ success: false, error: "缺少會籍資料" });
 
     const stripe = getStripe();
     if (!stripe || !plan_id.startsWith("price_")) {
@@ -1041,7 +1041,7 @@ router.post("/create-subscription", authenticateToken, async (req, res) => {
       .get(req.user.id);
 
     if (!user?.stripe_customer_id) {
-      return res.status(400).json({ error: "請先儲存付款方式" });
+      return res.status(400).json({ success: false, error: "請先儲存付款方式" });
     }
 
     // Create subscription
@@ -1059,7 +1059,7 @@ router.post("/create-subscription", authenticateToken, async (req, res) => {
     });
   } catch (err) {
     console.error("Create subscription error:", err);
-    res.status(500).json({ error: "無法建立會籍" });
+    res.status(500).json({ success: false, error: "無法建立會籍" });
   }
 });
 
@@ -1084,7 +1084,7 @@ router.post("/cancel-subscription", authenticateToken, async (req, res) => {
     res.json({ message: "✅ 會籍已取消" });
   } catch (err) {
     console.error("Cancel subscription error:", err);
-    res.status(500).json({ error: "無法取消會籍" });
+    res.status(500).json({ success: false, error: "無法取消會籍" });
   }
 });
 
@@ -1093,7 +1093,7 @@ router.post("/credits/purchase", authenticateToken, async (req, res) => {
   try {
     const { credits, amount, payment_method, payment_reference } = req.body;
     if (!credits || !amount || !payment_method) {
-      return res.status(400).json({ error: "缺少必要資料" });
+      return res.status(400).json({ success: false, error: "缺少必要資料" });
     }
 
     const db = getDb();
@@ -1126,7 +1126,7 @@ router.post("/credits/purchase", authenticateToken, async (req, res) => {
     });
   } catch (err) {
     console.error("Credits purchase error:", err);
-    res.status(500).json({ error: "加購點數失敗" });
+    res.status(500).json({ success: false, error: "加購點數失敗" });
   }
 });
 
@@ -1145,7 +1145,7 @@ router.get("/transactions", authenticateToken, (req, res) => {
     res.json({ transactions: txs, total: count.c });
   } catch (err) {
     console.error("[PAYMENTS] GET /transactions error:", err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 

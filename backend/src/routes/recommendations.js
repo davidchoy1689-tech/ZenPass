@@ -18,12 +18,12 @@ router.post("/", optionalAuth, function (req, res) {
     var { action, data } = req.body;
 
     if (!action) {
-      return res.status(400).json({ error: "缺少 action 參數" });
+      return res.status(400).json({ success: false, error: "缺少 action 參數" });
     }
 
     var validActions = ["view_class", "book_class", "search", "favorite"];
     if (validActions.indexOf(action) === -1) {
-      return res.status(400).json({ error: "無效的 action: " + action });
+      return res.status(400).json({ success: false, error: "無效的 action: " + action });
     }
 
     var userId = req.user ? req.user.id : null;
@@ -39,7 +39,7 @@ router.post("/", optionalAuth, function (req, res) {
     res.json({ tracked: result });
   } catch (err) {
     console.error("追蹤錯誤:", err);
-    res.status(500).json({ error: "追蹤失敗" });
+    res.status(500).json({ success: false, error: "追蹤失敗" });
   }
 });
 
@@ -60,7 +60,7 @@ router.get("/", optionalAuth, function (req, res) {
     res.json({ classes: recommendations });
   } catch (err) {
     console.error("推薦錯誤:", err);
-    res.status(500).json({ error: "無法獲取推薦" });
+    res.status(500).json({ success: false, error: "無法獲取推薦" });
   }
 });
 
@@ -108,7 +108,7 @@ router.get("/pageviews/stats", function (req, res) {
     res.json({ total: total.count, top_pages: topPages, daily_views: daily, referrers: referrers });
   } catch (err) {
     console.error("[PAGEVIEW STATS] Error:", err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 

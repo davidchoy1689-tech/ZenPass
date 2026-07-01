@@ -52,7 +52,7 @@ router.get("/", authenticateToken, (req, res) => {
     res.json({ wishlist, count: wishlist.length });
   } catch (err) {
     console.error("[WISHLIST] GET error:", err.message);
-    res.status(500).json({ error: "無法獲取收藏列表" });
+    res.status(500).json({ success: false, error: "無法獲取收藏列表" });
   }
 });
 
@@ -66,7 +66,7 @@ router.get("/count", authenticateToken, (req, res) => {
     res.json({ count: row.count });
   } catch (err) {
     console.error("[WISHLIST] COUNT error:", err.message);
-    res.status(500).json({ error: "無法獲取收藏數量" });
+    res.status(500).json({ success: false, error: "無法獲取收藏數量" });
   }
 });
 
@@ -80,7 +80,7 @@ router.get("/check/:classId", authenticateToken, (req, res) => {
     res.json({ wishlisted: !!row, created_at: row?.created_at || null });
   } catch (err) {
     console.error("[WISHLIST] CHECK error:", err.message);
-    res.status(500).json({ error: "無法檢查收藏狀態" });
+    res.status(500).json({ success: false, error: "無法檢查收藏狀態" });
   }
 });
 
@@ -96,7 +96,7 @@ router.post("/:classId", authenticateToken, (req, res) => {
       .prepare("SELECT id, title FROM classes WHERE id = ? AND status = 'active'")
       .get(classId);
     if (!classExists) {
-      return res.status(404).json({ error: "課程不存在或已下架" });
+      return res.status(404).json({ success: false, error: "課程不存在或已下架" });
     }
 
     // Check if already wishlisted
@@ -120,7 +120,7 @@ router.post("/:classId", authenticateToken, (req, res) => {
     if (err.message && err.message.includes("UNIQUE")) {
       return res.json({ success: true, message: "已喺收藏列表", wishlisted: true });
     }
-    res.status(500).json({ error: "無法加入收藏" });
+    res.status(500).json({ success: false, error: "無法加入收藏" });
   }
 });
 
@@ -138,7 +138,7 @@ router.delete("/:classId", authenticateToken, (req, res) => {
     res.json({ success: true, message: "✅ 已移除收藏", wishlisted: false });
   } catch (err) {
     console.error("[WISHLIST] DELETE error:", err.message);
-    res.status(500).json({ error: "無法移除收藏" });
+    res.status(500).json({ success: false, error: "無法移除收藏" });
   }
 });
 

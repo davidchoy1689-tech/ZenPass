@@ -64,7 +64,7 @@ router.post("/apply", authenticateToken, (req, res) => {
     } = req.body;
 
     if (!name || !phone || !email || !venue_address) {
-      return res.status(400).json({ error: "請填寫姓名、電話、電郵和住址" });
+      return res.status(400).json({ success: false, error: "請填寫姓名、電話、電郵和住址" });
     }
 
     const db = getDb();
@@ -79,7 +79,7 @@ router.post("/apply", authenticateToken, (req, res) => {
 
     if (existing) {
 
-      return res.status(409).json({ error: "你已經有進行中的申請" });
+      return res.status(409).json({ success: false, error: "你已經有進行中的申請" });
     }
 
     const id = uuidv4();
@@ -131,7 +131,7 @@ router.post("/apply", authenticateToken, (req, res) => {
     });
   } catch (err) {
     console.error("教練申請錯誤:", err);
-    res.status(500).json({ error: "提交申請失敗" });
+    res.status(500).json({ success: false, error: "提交申請失敗" });
   }
 });
 
@@ -157,7 +157,7 @@ router.get("/application", authenticateToken, (req, res) => {
     res.json({ application });
   } catch (err) {
     console.error("查詢申請錯誤:", err);
-    res.status(500).json({ error: "無法查詢申請狀態" });
+    res.status(500).json({ success: false, error: "無法查詢申請狀態" });
   }
 });
 
@@ -183,7 +183,7 @@ router.get("/my-classes", authenticateToken, (req, res) => {
     res.json({ classes });
   } catch (err) {
     console.error("獲取課程錯誤:", err);
-    res.status(500).json({ error: "無法獲取課程列表" });
+    res.status(500).json({ success: false, error: "無法獲取課程列表" });
   }
 });
 
@@ -200,7 +200,7 @@ router.post("/schedules", authenticateToken, (req, res) => {
     } = req.body;
 
     if (!class_id || !start_time || !end_time) {
-      return res.status(400).json({ error: "請填寫課程、開始時間和結束時間" });
+      return res.status(400).json({ success: false, error: "請填寫課程、開始時間和結束時間" });
     }
 
     const db = getDb();
@@ -212,7 +212,7 @@ router.post("/schedules", authenticateToken, (req, res) => {
       .get(class_id, req.user.id);
     if (!classData) {
 
-      return res.status(403).json({ error: "你無權限操作此課程" });
+      return res.status(403).json({ success: false, error: "你無權限操作此課程" });
     }
 
     const recurringType = recurring || "none";
@@ -349,7 +349,7 @@ router.post("/schedules", authenticateToken, (req, res) => {
     });
   } catch (err) {
     console.error("新增時間錯誤:", err);
-    res.status(500).json({ error: "無法新增時間" });
+    res.status(500).json({ success: false, error: "無法新增時間" });
   }
 });
 
@@ -358,7 +358,7 @@ router.post("/profile", authenticateToken, async (req, res) => {
   try {
     const supabase = getSupabase();
     if (!supabase) {
-      return res.status(500).json({ error: "資料庫連接失敗" });
+      return res.status(500).json({ success: false, error: "資料庫連接失敗" });
     }
 
     const {
@@ -400,7 +400,7 @@ router.post("/profile", authenticateToken, async (req, res) => {
     res.json({ message: "個人資料已更新", coach: data?.[0] || null });
   } catch (err) {
     console.error("更新教練資料錯誤:", err);
-    res.status(500).json({ error: "更新失敗：" + err.message });
+    res.status(500).json({ success: false, error: "更新失敗：" + err.message });
   }
 });
 
@@ -409,7 +409,7 @@ router.get("/profile", authenticateToken, async (req, res) => {
   try {
     const supabase = getSupabase();
     if (!supabase) {
-      return res.status(500).json({ error: "資料庫連接失敗" });
+      return res.status(500).json({ success: false, error: "資料庫連接失敗" });
     }
 
     const { data, error } = await supabase
@@ -423,7 +423,7 @@ router.get("/profile", authenticateToken, async (req, res) => {
     res.json({ coach: data || null });
   } catch (err) {
     console.error("獲取教練資料錯誤:", err);
-    res.status(500).json({ error: "無法獲取資料" });
+    res.status(500).json({ success: false, error: "無法獲取資料" });
   }
 });
 
@@ -432,7 +432,7 @@ router.post("/refer", authenticateToken, (req, res) => {
   try {
     const { name, email, phone } = req.body;
     if (!name || !email)
-      return res.status(400).json({ error: "請填寫教練姓名和電郵" });
+      return res.status(400).json({ success: false, error: "請填寫教練姓名和電郵" });
 
     const db = getDb();
     db.pragma("foreign_keys = ON");
@@ -458,7 +458,7 @@ router.post("/refer", authenticateToken, (req, res) => {
     res.json({ success: true, message: "✅ 推薦已提交！管理員會聯絡 " + name });
   } catch (err) {
     console.error("Coach refer error:", err.message);
-    res.status(500).json({ error: "推薦失敗" });
+    res.status(500).json({ success: false, error: "推薦失敗" });
   }
 });
 
@@ -476,7 +476,7 @@ router.get("/class-students", authenticateToken, (req, res) => {
       .get(schedule_id);
     if (!schedule) {
 
-      return res.status(404).json({ error: "時段不存在" });
+      return res.status(404).json({ success: false, error: "時段不存在" });
     }
 
     const classInfo = db
@@ -484,7 +484,7 @@ router.get("/class-students", authenticateToken, (req, res) => {
       .get(schedule.class_id);
     if (!classInfo) {
 
-      return res.status(404).json({ error: "課程不存在" });
+      return res.status(404).json({ success: false, error: "課程不存在" });
     }
 
     // Get students
@@ -516,6 +516,6 @@ router.get("/class-students", authenticateToken, (req, res) => {
 
     res.json({ schedule: schedInfo, students, total: students.length });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ success: false, error: err.message });
   }
 });

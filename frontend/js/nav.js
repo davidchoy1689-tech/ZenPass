@@ -65,7 +65,10 @@
   }
 
   function isLoggedIn() {
-    return !!localStorage.getItem('zenpass_token') || !!localStorage.getItem('token');
+    // Dual mode: localStorage token (legacy) or cookie session (new)
+    return !!localStorage.getItem('zenpass_token') 
+      || !!localStorage.getItem('token')
+      || !!sessionStorage.getItem('zenpass_token');
   }
 
   function isMobile() {
@@ -231,7 +234,7 @@
     .catch(function() { /* silent */ });
   }
 
-  /** Helper: get auth headers from localStorage */
+  /** Helper: get auth headers from localStorage (dual mode, cookie auto-sends) */
   function getAuthHeaders() {
     var token = localStorage.getItem('zenpass_token') || localStorage.getItem('token');
     if (!token) return {};
@@ -486,12 +489,23 @@
 
     // Handle login state changes (e.g., after login/logout)
     window.addEventListener('storage', function (e) {
-      if (e.key === 'zenpass_token' || e.key === 'token') {
+      if (e.key === 'zenpass_token' || e.key === 'token' || e.key === 'zenpass_user') {
         updateAccountTab();
         updateSidebarAccount();
         updateAuthHeader();
       }
     });
+
+    // Check for cookie-based session (no localStorage token)
+    if (typeof checkCookieSession === 'function') {
+      checkCookieSession().then(function(loggedIn) {
+        if (loggedIn) {
+          updateAccountTab();
+          updateSidebarAccount();
+          updateAuthHeader();
+        }
+      }).catch(function() {});
+    }
 
     // On resize
     var resizeTimer;

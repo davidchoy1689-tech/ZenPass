@@ -44,7 +44,7 @@ router.get("/", (req, res) => {
 
     res.json({ data: parsed });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
@@ -62,7 +62,7 @@ router.get("/:id", (req, res) => {
       .get(req.params.id);
 
     if (!row) {
-      return res.status(404).json({ error: "course_contents not found" });
+      return res.status(404).json({ success: false, error: "course_contents not found" });
     }
 
     // Parse JSON fields
@@ -77,7 +77,7 @@ router.get("/:id", (req, res) => {
 
     res.json({ data: parsed });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
@@ -98,7 +98,7 @@ router.post("/", authenticateToken, requireAdmin, (req, res) => {
     } = req.body;
 
     if (!course_id) {
-      return res.status(400).json({ error: "course_id is required" });
+      return res.status(400).json({ success: false, error: "course_id is required" });
     }
 
     const courseNumber =
@@ -115,7 +115,7 @@ router.post("/", authenticateToken, requireAdmin, (req, res) => {
       .get(course_id);
     if (!courseExists) {
 
-      return res.status(400).json({ error: "course_id does not exist" });
+      return res.status(400).json({ success: false, error: "course_id does not exist" });
     }
 
     const id = uuidv4();
@@ -180,7 +180,7 @@ router.post("/", authenticateToken, requireAdmin, (req, res) => {
       },
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
@@ -194,7 +194,7 @@ router.put("/:id", authenticateToken, requireAdmin, (req, res) => {
 
     if (!existing) {
 
-      return res.status(404).json({ error: "course_contents not found" });
+      return res.status(404).json({ success: false, error: "course_contents not found" });
     }
 
     const allowed = [
@@ -231,7 +231,7 @@ router.put("/:id", authenticateToken, requireAdmin, (req, res) => {
 
     if (updates.length === 0) {
 
-      return res.status(400).json({ error: "No fields to update" });
+      return res.status(400).json({ success: false, error: "No fields to update" });
     }
 
     updates.push("updated_at = ?");
@@ -266,7 +266,7 @@ router.put("/:id", authenticateToken, requireAdmin, (req, res) => {
 
     res.json({ data: updated });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
@@ -294,12 +294,12 @@ router.delete("/:id", authenticateToken, requireAdmin, (req, res) => {
     }
 
     if (result.changes === 0) {
-      return res.status(404).json({ error: "course_contents not found" });
+      return res.status(404).json({ success: false, error: "course_contents not found" });
     }
 
     res.json({ status: "deleted" });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 

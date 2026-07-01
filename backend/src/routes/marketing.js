@@ -15,7 +15,7 @@ const router = express.Router();
 router.post("/send-welcome", authenticateToken, (req, res) => {
   try {
     const { user_id, name } = req.body;
-    if (!user_id) return res.status(400).json({ error: "缺少用戶 ID" });
+    if (!user_id) return res.status(400).json({ success: false, error: "缺少用戶 ID" });
 
     const messages = [
       {
@@ -37,7 +37,7 @@ router.post("/send-welcome", authenticateToken, (req, res) => {
 
     res.json({ success: true, message: "✅ 歡迎訊息已發送" });
   } catch (err) {
-    res.status(500).json({ error: "發送失敗" });
+    res.status(500).json({ success: false, error: "發送失敗" });
   }
 });
 
@@ -46,12 +46,12 @@ router.post("/broadcast", authenticateToken, requireAdmin, async (req, res) => {
   try {
     const { subject, message, filters } = req.body;
     if (!subject || !message)
-      return res.status(400).json({ error: "缺少主題或內容" });
+      return res.status(400).json({ success: false, error: "缺少主題或內容" });
 
     const result = await sendBroadcast(subject, message, filters || {});
     res.json({ success: true, ...result });
   } catch (err) {
-    res.status(500).json({ error: "廣播發送失敗" });
+    res.status(500).json({ success: false, error: "廣播發送失敗" });
   }
 });
 
@@ -62,7 +62,7 @@ router.post("/winback", authenticateToken, requireAdmin, async (req, res) => {
     const count = await checkWinBackCandidates();
     res.json({ success: true, notified: count });
   } catch (err) {
-    res.status(500).json({ error: "挽回檢查失敗" });
+    res.status(500).json({ success: false, error: "挽回檢查失敗" });
   }
 });
 
@@ -75,7 +75,7 @@ router.post("/subscribe", function (req, res) {
   try {
     var email = (req.body.email || "").trim().toLowerCase();
     if (!email || !email.includes("@")) {
-      return res.status(400).json({ error: "請輸入有效電郵" });
+      return res.status(400).json({ success: false, error: "請輸入有效電郵" });
     }
     var interests = JSON.stringify(req.body.interests || []);
     var source = req.body.source || "web";
@@ -95,12 +95,12 @@ router.post("/subscribe", function (req, res) {
 
         res.json({ message: "你已經訂閱咗 🎉" });
       } else {
-        res.status(500).json({ error: "訂閱失敗" });
+        res.status(500).json({ success: false, error: "訂閱失敗" });
       }
     }
   } catch (err) {
     console.error("[NEWSLETTER] Error:", err);
-    res.status(500).json({ error: "訂閱失敗" });
+    res.status(500).json({ success: false, error: "訂閱失敗" });
   }
 });
 
@@ -113,7 +113,7 @@ router.get("/subscribers", authenticateToken, requireAdmin, function (req, res) 
 
     res.json({ subscribers: subs, stats: count });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 

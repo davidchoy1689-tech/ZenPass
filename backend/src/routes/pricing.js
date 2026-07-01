@@ -100,7 +100,7 @@ router.get("/all", (req, res) => {
     });
   } catch (err) {
     console.error("獲取定價錯誤:", err);
-    res.status(500).json({ error: "無法獲取定價資料" });
+    res.status(500).json({ success: false, error: "無法獲取定價資料" });
   }
 });
 
@@ -134,7 +134,7 @@ router.get("/plans", (req, res) => {
     res.json({ plans });
   } catch (err) {
     console.error("獲取會籍方案錯誤:", err);
-    res.status(500).json({ error: "無法獲取會籍方案" });
+    res.status(500).json({ success: false, error: "無法獲取會籍方案" });
   }
 });
 
@@ -157,7 +157,7 @@ router.get("/packages", (req, res) => {
     res.json({ packages });
   } catch (err) {
     console.error("獲取點數方案錯誤:", err);
-    res.status(500).json({ error: "無法獲取點數方案" });
+    res.status(500).json({ success: false, error: "無法獲取點數方案" });
   }
 });
 
@@ -184,7 +184,7 @@ router.get("/admin/pricing", (req, res) => {
     res.json({ categories: grouped });
   } catch (err) {
     console.error("獲取定價設定錯誤:", err);
-    res.status(500).json({ error: "無法獲取定價設定" });
+    res.status(500).json({ success: false, error: "無法獲取定價設定" });
   }
 });
 
@@ -193,7 +193,7 @@ router.put("/admin/pricing", (req, res) => {
   try {
     const { updates } = req.body; // { key: value, ... }
     if (!updates || typeof updates !== "object") {
-      return res.status(400).json({ error: "請提供更新資料" });
+      return res.status(400).json({ success: false, error: "請提供更新資料" });
     }
 
     const db = getDb();
@@ -215,7 +215,7 @@ router.put("/admin/pricing", (req, res) => {
     res.json({ success: true, updated: updatedCount });
   } catch (err) {
     console.error("更新定價錯誤:", err);
-    res.status(500).json({ error: "更新定價失敗" });
+    res.status(500).json({ success: false, error: "更新定價失敗" });
   }
 });
 
@@ -314,7 +314,7 @@ router.get('/dynamic', function(req, res) {
     }});
   } catch(err) {
     console.error('[PRICING] dynamic error:', err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 

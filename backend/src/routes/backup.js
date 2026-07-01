@@ -21,7 +21,7 @@ router.get("/health", async (req, res) => {
     const result = await checkIntegrity();
     res.json({ success: true, data: result });
   } catch (err) {
-    res.status(500).json({ error: "完整性檢查失敗：" + err.message });
+    res.status(500).json({ success: false, error: "完整性檢查失敗：" + err.message });
   }
 });
 
@@ -36,7 +36,7 @@ router.post("/create", authenticateToken, async (req, res) => {
     res.json({ success: true, backupId, message: "備份已創建 ✅" });
   } catch (err) {
     logger.error("備份失敗:", err);
-    res.status(500).json({ error: "備份失敗：" + err.message });
+    res.status(500).json({ success: false, error: "備份失敗：" + err.message });
   }
 });
 
@@ -47,7 +47,7 @@ router.post("/restore/:id", authenticateToken, async (req, res) => {
     res.json({ success: true, ...result });
   } catch (err) {
     logger.error("還原失敗:", err);
-    res.status(500).json({ error: "還原失敗：" + err.message });
+    res.status(500).json({ success: false, error: "還原失敗：" + err.message });
   }
 });
 
@@ -57,7 +57,7 @@ router.get("/list", authenticateToken, async (req, res) => {
     const backups = await listBackups(parseInt(req.query.limit) || 20);
     res.json({ success: true, data: { backups } });
   } catch (err) {
-    res.status(500).json({ error: "無法獲取備份列表" });
+    res.status(500).json({ success: false, error: "無法獲取備份列表" });
   }
 });
 
@@ -67,7 +67,7 @@ router.delete("/:id", authenticateToken, async (req, res) => {
     await deleteBackup(req.params.id);
     res.json({ success: true, message: "備份已刪除" });
   } catch (err) {
-    res.status(500).json({ error: "刪除失敗：" + err.message });
+    res.status(500).json({ success: false, error: "刪除失敗：" + err.message });
   }
 });
 
@@ -85,7 +85,7 @@ router.get("/", authenticateToken, async (req, res) => {
       },
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 

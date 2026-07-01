@@ -216,7 +216,7 @@ router.post("/process-no-shows", (req, res) => {
     });
   } catch (err) {
     console.error("[PENALTY] process-no-shows error:", err);
-    res.status(500).json({ error: "處理缺席失敗", details: err.message });
+    res.status(500).json({ success: false, error: "處理缺席失敗", details: err.message });
   }
 });
 
@@ -225,7 +225,7 @@ router.post("/settings", authenticateToken, (req, res) => {
   try {
     const user = getDb().prepare("SELECT role FROM users WHERE id = ?").get(req.user.id);
     if (!user || user.role !== "admin") {
-      return res.status(403).json({ error: "只限管理員" });
+      return res.status(403).json({ success: false, error: "只限管理員" });
     }
     const { no_show_penalty_credits, no_show_grace_minutes } = req.body;
     const db = getDb();
@@ -241,7 +241,7 @@ router.post("/settings", authenticateToken, (req, res) => {
     res.json({ message: "罰款設定已更新", settings: getPenaltyConfig() });
   } catch (err) {
     console.error("[PENALTY] settings error:", err);
-    res.status(500).json({ error: "更新設定失敗" });
+    res.status(500).json({ success: false, error: "更新設定失敗" });
   }
 });
 
@@ -257,7 +257,7 @@ router.get("/stats", authenticateToken, (req, res) => {
     const user = db.prepare("SELECT role FROM users WHERE id = ?").get(req.user.id);
     if (!user || user.role !== "admin") {
 
-      return res.status(403).json({ error: "只限管理員" });
+      return res.status(403).json({ success: false, error: "只限管理員" });
     }
 
     const stats = db.prepare(`
@@ -299,7 +299,7 @@ router.get("/stats", authenticateToken, (req, res) => {
     });
   } catch (err) {
     console.error("[PENALTY] stats error:", err);
-    res.status(500).json({ error: "讀取統計失敗" });
+    res.status(500).json({ success: false, error: "讀取統計失敗" });
   }
 });
 
@@ -319,7 +319,7 @@ router.post("/late-cancel/:bookingId", authenticateToken, (req, res) => {
 
     if (!booking) {
 
-      return res.status(404).json({ error: "預約不存在或已取消" });
+      return res.status(404).json({ success: false, error: "預約不存在或已取消" });
     }
 
     const now = new Date();
@@ -329,7 +329,7 @@ router.post("/late-cancel/:bookingId", authenticateToken, (req, res) => {
     // < 2 小時 → 阻住
     if (hoursUntilClass < 2) {
 
-      return res.status(400).json({ error: "開課前 2 小時內無法取消預約" });
+      return res.status(400).json({ success: false, error: "開課前 2 小時內無法取消預約" });
     }
 
     // 2-12 小時：蝕該堂 Credits（不另扣罰款），因為 credits 已於 booking 時扣咗
@@ -368,7 +368,7 @@ router.post("/late-cancel/:bookingId", authenticateToken, (req, res) => {
     });
   } catch (err) {
     console.error("[PENALTY] late-cancel error:", err);
-    res.status(500).json({ error: "遲取消失敗" });
+    res.status(500).json({ success: false, error: "遲取消失敗" });
   }
 });
 
@@ -379,7 +379,7 @@ router.post("/process-specific/:bookingId", authenticateToken, (req, res) => {
     const user = db.prepare("SELECT role, is_coach FROM users WHERE id = ?").get(req.user.id);
     if (!user || (user.role !== "admin" && !user.is_coach)) {
 
-      return res.status(403).json({ error: "只限管理員/教練" });
+      return res.status(403).json({ success: false, error: "只限管理員/教練" });
     }
 
     const booking = db.prepare(
@@ -388,7 +388,7 @@ router.post("/process-specific/:bookingId", authenticateToken, (req, res) => {
 
     if (!booking) {
 
-      return res.status(404).json({ error: "預約不存在或已處理" });
+      return res.status(404).json({ success: false, error: "預約不存在或已處理" });
     }
 
     const config = getPenaltyConfig();
@@ -419,7 +419,7 @@ router.post("/process-specific/:bookingId", authenticateToken, (req, res) => {
     });
   } catch (err) {
     console.error("[PENALTY] process-specific error:", err);
-    res.status(500).json({ error: "標記缺席失敗" });
+    res.status(500).json({ success: false, error: "標記缺席失敗" });
   }
 });
 
