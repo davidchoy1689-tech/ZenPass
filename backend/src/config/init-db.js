@@ -477,6 +477,10 @@ function initDatabase() {
   } catch (e) {}
   try {
     db.exec("ALTER TABLE memberships ADD COLUMN pause_reason TEXT");
+    // updated_at 用 SQLite trigger 自動管理
+    try {
+      db.exec("ALTER TABLE memberships ADD COLUMN updated_at TEXT");
+    } catch (e) { /* already exists */ }
   } catch (e) {}
 
   // ===== Loyalty Tier - users column =====
