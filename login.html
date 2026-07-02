@@ -445,31 +445,37 @@
           btn.textContent = "註冊";
         }
       }
-      function quickLogin(role) {
-        var names = {
-          admin: "David Choy",
-          coach: "靜儀導師",
-          student: "張三同學",
+      async function quickLogin(role) {
+        var credentials = {
+          admin: { email: "admin@zenpass.hk", password: "student123" },
+          coach: { email: "coach@zenpass.hk", password: "student123" },
+          student: { email: "student@zenpass.hk", password: "student123" },
         };
-        var emails = {
-          admin: "david@zenpass.hk",
-          coach: "coach@zenpass.hk",
-          student: "student@zenpass.hk",
-        };
-        setToken("demo_token_" + role);
-        storeUser({
-          name: names[role],
-          email: emails[role],
-          phone: "",
-          role: role,
-          credits: role === "coach" ? 0 : 45,
-        });
-        var roleMap = {
-          admin: "admin.html",
-          coach: "coach-dashboard.html",
-          venue: "partner-dashboard.html",
-          user: "explore.html",
-        };
+        var cred = credentials[role];
+        if (!cred) return alert('帳戶未設定');
+        try {
+          var resp = await fetch((window.API_BASE || '/api') + '/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: cred.email, password: cred.password })
+          });
+          var data = await resp.json();
+          if (data.success && data.token) {
+            setToken(data.token);
+            if (data.user) storeUser(data.user);
+          } else {
+            // Fallback to demo token
+            setToken("demo_token_" + role);
+            var names = {
+              admin: "David Choy", coach: "靜儀導師", student: "張三同學"
+            };
+            storeUser({ name: names[role], email: cred.email, phone: "", role: role, credits: role === "coach" ? 0 : 45 });
+          }
+        } catch(e) {
+          setToken("demo_token_" + role);
+          storeUser({ name: role === 'admin' ? 'David Choy' : role === 'coach' ? '靜儀導師' : '張三同學', email: cred.email, phone: "", role: role, credits: role === "coach" ? 0 : 45 });
+        }
+        var roleMap = { admin: "admin.html", coach: "coach-dashboard.html", venue: "partner-dashboard.html", user: "explore.html" };
         window.location.href = roleMap[role] || "explore.html";
       }
 

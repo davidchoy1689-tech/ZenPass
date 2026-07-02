@@ -576,10 +576,35 @@
     document.getElementById('modal-remaining').textContent = currentCourse.spots || '充足';
 
     var sel = document.getElementById('modal-datetime');
-    sel.innerHTML = '<option value="">請選擇時段</option>' +
-      '<option value="today-0930">今天 09:30 - 10:30</option>' +
-      '<option value="today-1800">今天 18:00 - 19:00</option>' +
-      '<option value="tomorrow-1200">明天 12:00 - 13:00</option>';
+    // 從 API 數據中獲取真實 schedule_id
+    var schedules = [];
+    if (currentCourse && currentCourse.id) {
+      var found = allCoursesData.find(function(c) { return c.id === currentCourse.id; });
+      if (found && found.schedules) schedules = found.schedules;
+    }
+    if (schedules.length > 0) {
+      var now = new Date();
+      var opts = '<option value="">請選擇時段</option>';
+      for (var i = 0; i < schedules.length; i++) {
+        var s = schedules[i];
+        if (s.status !== 'available') continue;
+        var t = new Date(s.start_time);
+        if (t < now) continue; // 過期時段唔顯示
+        var dateLabel = t.toLocaleDateString('zh-HK', { month: 'short', day: 'numeric' });
+        var timeLabel = t.toLocaleTimeString('zh-HK', { hour: '2-digit', minute: '2-digit' });
+        var endTime = new Date(s.end_time).toLocaleTimeString('zh-HK', { hour: '2-digit', minute: '2-digit' });
+        opts += '<option value="' + s.id + '">' + dateLabel + ' ' + timeLabel + ' - ' + endTime + '</option>';
+      }
+      if (opts === '<option value="">請選擇時段</option>') {
+        opts += '<option value="" disabled>暫無可預約時段</option>';
+      }
+      sel.innerHTML = opts;
+    } else {
+      sel.innerHTML = '<option value="">請選擇時段</option>' +
+        '<option value="today-0930">今天 09:30 - 10:30</option>' +
+        '<option value="today-1800">今天 18:00 - 19:00</option>' +
+        '<option value="tomorrow-1200">明天 12:00 - 13:00</option>';
+    }
 
     var modal = document.getElementById('booking-modal');
     modal.classList.remove('hidden');
@@ -595,28 +620,45 @@
     if (confirmBtn) { confirmBtn.textContent = '確認預約'; confirmBtn.disabled = false; }
   }
 
-  function confirmBooking() {
+  async function confirmBooking() {
     var datetime = document.getElementById('modal-datetime').value;
     if (!datetime || !currentCourse?.id) { alert('請選擇日期 / 時段'); return; }
     var btn = document.querySelector('.book-confirm');
     btn.textContent = '⏳ 預約中...';
     btn.disabled = true;
-    setTimeout(async function() {
-      if (window.ZenPassBooking) {
-        await window.ZenPassBooking.book(currentCourse.id, {
-          title: currentCourse.title,
-          instructor: currentCourse.instructor,
-          location: currentCourse.location,
-          datetime: datetime,
-          credits: currentCourse.credits
+    try {
+      var token = localStorage.getItem('zenpass_token') || localStorage.getItem('token');
+      var scheduleId = datetime;
+      // 攞 CSRF token
+      var csrfResp = await fetch((window.API_BASE || '/api') + '/csrf-token');
+      var csrfData = await csrfResp.json();
+      var csrfToken = csrfData.csrf_token || csrfData.token || '';
+      var headers = { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token };
+      if (csrfToken) headers['x-csrf-token'] = csrfToken;
+      headers['Idempotency-Key'] = 'bk_' + Date.now() + '_' + Math.random().toString(36).substr(2,6);
+      var resp = await fetch((window.API_BASE || '/api') + '/bookings', {
+        method: 'POST', headers: headers,
+        body: JSON.stringify({ schedule_id: scheduleId, class_id: currentCourse.id, payment_type: 'credits', penalty_consent: true })
+      });
+      var data = await resp.json();
+      if (!resp.ok || !data.success) {
+        alert('❌ 預約失敗：' + (data.error || '請稍後再試'));
+        btn.textContent = '確認預約'; btn.disabled = false; return;
+      }
+      if (window.ZenPassBooking && window.ZenPassBooking.bookCourse) {
+        await window.ZenPassBooking.bookCourse({
+          courseId: currentCourse.id, title: currentCourse.title,
+          instructor: currentCourse.instructor, location: currentCourse.location,
+          datetime: datetime, credits: currentCourse.credits
         });
-      } else {
-        alert('預約系統尚未初始化，請稍後再試');
       }
       alert('✅ 預約成功！\n\n課程：' + currentCourse.title + '\n時間：' + datetime);
       closeBookingModal();
       updateAllBookingButtons();
-    }, 800);
+    } catch(e) {
+      alert('❌ 預約失敗：' + e.message);
+      btn.textContent = '確認預約'; btn.disabled = false;
+    }
   }
 
   function updateAllBookingButtons() {
