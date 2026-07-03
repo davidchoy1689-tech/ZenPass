@@ -1081,7 +1081,7 @@
       var currentClass = null;
       var selectedSchedule = null;
       var schedulesData = [];
-      var selectedPayment = "single";
+      var selectedPayment = null; // set dynamically
       // 👥 Team Booking（hold 住）
       // var selectedTeammates = [];
       // var teammatesLoaded = false;
@@ -1222,6 +1222,15 @@
         var reviews = data.reviews || [];
         currentClass = cls;
 
+        // Auto-select payment method based on available options
+        var price = cls.price_hkd ? Number(cls.price_hkd) : 0;
+        var credits = cls.credits_cost ? Number(cls.credits_cost) : 0;
+        if (credits > 0 && price <= 0) {
+          selectedPayment = "credits";
+        } else {
+          selectedPayment = "single";
+        }
+
         // Update JSON-LD structured data for SEO
         try {
           var ld = document.getElementById("ld-json");
@@ -1321,12 +1330,31 @@
           })
           .join("");
 
-        var price = cls.price_hkd || 120;
-        var creditsCost = cls.credits_cost || 15;
+        var price = cls.price_hkd ? Number(cls.price_hkd) : 0;
+        var creditsCost = cls.credits_cost ? Number(cls.credits_cost) : 0;
+        var hasPrice = price > 0;
+        var hasCredits = creditsCost > 0;
         var duration = cls.duration || 60;
         var diffLabel = diffMap[cls.difficulty] || "";
 
         var container = document.getElementById("class-content");
+        // Build dynamic meta info
+          var metaHtml = '<div style="display:flex;gap:12px;margin-bottom:12px;padding:8px 0;flex-wrap:wrap;">' +
+          '<div style="text-align:center;"><div style="font-size:20px;font-weight:700;color:var(--orange-500);">' +
+          duration +
+          '</div><div style="font-size:11px;color:var(--dark-700);">分鐘</div></div>';
+          if (hasPrice) {
+            metaHtml += '<div style="text-align:center;"><div style="font-size:20px;font-weight:700;color:var(--orange-500);">HK$' +
+            price +
+            '</div><div style="font-size:11px;color:var(--dark-700);">單次課程</div></div>';
+          }
+          if (hasCredits) {
+            metaHtml += '<div style="text-align:center;"><div style="font-size:20px;font-weight:700;color:var(--orange-500);">' +
+            creditsCost +
+            '</div><div style="font-size:11px;color:var(--dark-700);">Credits</div></div>';
+          }
+          metaHtml += "</div>";
+
         container.innerHTML =
           "" +
           '<div class="section">' +
@@ -1355,33 +1383,7 @@
             : "") +
           "</div>" +
           "</div>" +
-          // Meta info
-          '<div style="display:flex;gap:12px;margin-bottom:12px;padding:8px 0;flex-wrap:wrap;">' +
-          '<div style="text-align:center;"><div style="font-size:20px;font-weight:700;color:var(--orange-500);">' +
-          duration +
-          '</div><div style="font-size:11px;color:var(--dark-700);">\u5206\u9418</div></div>' +
-          '<div style="text-align:center;"><div style="font-size:20px;font-weight:700;color:var(--orange-500);">HK$' +
-          price +
-          '</div><div style="font-size:11px;color:var(--dark-700);">\u55ae\u6b21\u8ab2\u7a0b</div></div>' +
-          '<div style="text-align:center;"><div style="font-size:20px;font-weight:700;color:var(--orange-500);">' +
-          creditsCost +
-          '</div><div style="font-size:11px;color:var(--dark-700);">Credits</div></div>' +
-          "</div>" +
-          // Member Price
-          '<div style="display:flex;gap:6px;margin-bottom:12px">' +
-          '<div style="flex:1;padding:8px 4px;background:var(--orange-50);border-radius:8px;text-align:center">' +
-          '<div style="font-size:9px;color:var(--dark-700)">試玩會員</div>' +
-          '<div style="font-size:14px;font-weight:700;color:var(--orange-700)">HK$' +
-          Math.round(price * 0.85) +
-          "</div>" +
-          "</div>" +
-          '<div style="flex:1;padding:8px 4px;background:#ecfdf5;border-radius:8px;text-align:center">' +
-          '<div style="font-size:9px;color:var(--dark-700)">金會員</div>' +
-          '<div style="font-size:14px;font-weight:700;color:#059669">HK$' +
-          Math.round(price * 0.75) +
-          "</div>" +
-          "</div>" +
-          "</div>" +
+          metaHtml +
           // Venue
           (cls.venue_name
             ? '<div style="display:flex;align-items:center;gap:6px;margin-bottom:12px;font-size:13px;color:var(--dark-700);"><span>\ud83d\udccd</span>' +
@@ -1401,12 +1403,16 @@
           // Payment options heading
           '<h3 style="font-size:16px;font-weight:700;margin:16px 0 12px;">\ud83d\udcb3 \u652f\u4ed8\u65b9\u5f0f</h3>' +
           '<div class="payment-options">' +
-          '<div class="payment-option selected" onclick="selectPayment(\'single\', this)"><div class="radio">\u2713</div><div class="pay-name">\ud83d\udcb5 \u55ae\u6b21\u8cfc\u8cb7</div><div class="pay-price">HK$' +
-          price +
-          "</div></div>" +
-          '<div class="payment-option" onclick="selectPayment(\'credits\', this)"><div class="radio"></div><div class="pay-name">\ud83d\udc8e Credits \u652f\u4ed8</div><div class="pay-price">' +
-          creditsCost +
-          " Credits</div></div>" +
+          (hasPrice
+            ? '<div class="payment-option' + (hasCredits ? '' : ' selected') + '" onclick="selectPayment(\'single\', this)"><div class="radio">\u2713</div><div class="pay-name">\ud83d\udcb5 \u55ae\u6b21\u8cfc\u8cb7</div><div class="pay-price">HK$' +
+            price +
+            "</div></div>"
+          : "") +
+          (hasCredits
+            ? '<div class="payment-option' + (hasPrice ? '' : ' selected') + '" onclick="selectPayment(\'credits\', this)"><div class="radio"></div><div class="pay-name">\ud83d\udc8e Credits \u652f\u4ed8</div><div class="pay-price">' +
+            creditsCost +
+            " Credits</div></div>"
+          : "") +
           '<div class="payment-option" data-pay="membership_trial" onclick="selectPayment(\'membership_trial\', this)"><div class="radio"></div><div class="pay-name">\ud83c\udfc5 \u8a66\u73a9\u6703\u54e1</div><div class="pay-price free">\u514d\u8cbb</div></div>' +
           "</div>" +
           // Reviews heading
@@ -1444,7 +1450,7 @@
         // Dynamic credit cost based on peak/off-peak
         var creditInfo = window.ZPricing
           ? ZPricing.getCreditDisplay(
-              currentClass.price_hkd || 120,
+              currentClass.price_hkd ? Number(currentClass.price_hkd) : 0,
               s.start_time,
             )
           : null;
@@ -1526,8 +1532,8 @@
       }
 
       function getPriceLabel() {
-        var price = (currentClass || {}).price_hkd || 120;
-        var credits = (currentClass || {}).credits_cost || 15;
+        var price = (currentClass || {}).price_hkd ? Number((currentClass || {}).price_hkd) : 0;
+        var credits = (currentClass || {}).credits_cost ? Number((currentClass || {}).credits_cost) : 0;
         // Use dynamic credit cost if schedule is selected and pricing engine available
         var dynCredits = credits;
         if (selectedSchedule && window.ZPricing) {
@@ -1660,12 +1666,12 @@
 
       async function doBooking() {
         if (!selectedSchedule || !currentClass) return;
-        var price = currentClass.price_hkd || 120;
+        var price = currentClass.price_hkd ? Number(currentClass.price_hkd) : 0;
 
         // If credits payment, check balance
         if (selectedPayment === "credits") {
           var userCredits = getUserCredits();
-          var needed = currentClass.credits_cost || 15;
+          var needed = currentClass.credits_cost ? Number(currentClass.credits_cost) : 0;
           if (userCredits < needed) {
             showToast(
               "❌ 點數不足!需要 " + needed + " Credits,你只有 " + userCredits,
@@ -1727,7 +1733,7 @@
           if (selectedPayment === "credits") {
             user.credits = Math.max(
               0,
-              (user.credits || 0) - (currentClass.credits_cost || 15),
+              (user.credits || 0) - (currentClass.credits_cost ? Number(currentClass.credits_cost) : 0),
             );
             localStorage.setItem("zenpass_user", JSON.stringify(user));
           }
@@ -1757,7 +1763,7 @@
             payment: paymentType,
             credits:
               selectedPayment === "credits"
-                ? currentClass.credits_cost || 15
+                ? currentClass.credits_cost ? Number(currentClass.credits_cost) : 0
                 : 0,
             status: bookingStatus,
             pending_amount: bookingStatus === "pending_payment" ? price : 0,
@@ -1769,7 +1775,7 @@
             bookingStatus === "pending_payment"
               ? "單次購買"
               : selectedPayment === "credits"
-                ? (currentClass.credits_cost || 15) + " Credits"
+                ? (currentClass.credits_cost ? Number(currentClass.credits_cost) : 0) + " Credits"
                 : "試玩";
           showToast("✅ 預約成功! (" + statusText + ")", "success");
           btn.textContent = "✅ 已預約";
