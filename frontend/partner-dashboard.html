@@ -2979,20 +2979,23 @@
             ? API_BASE + "/partner/courses/" + editId
             : API_BASE + "/partner/courses";
           var method = editId ? "PUT" : "POST";
+          // Use pricing mode to determine what to send
+          var sendPrice = mode === "credits" ? 0 : price;
+          var sendCredits = mode === "hkd" ? 0 : credits;
           var body = editId
             ? {
                 title,
-                price_hkd: price,
+                price_hkd: sendPrice,
                 description,
                 difficulty,
                 max_participants: maxP,
-                credits_cost: credits || undefined,
+                credits_cost: mode === "hkd" ? 0 : (credits || undefined),
               }
             : {
                 title,
                 category,
-                price_hkd: price,
-                credits_cost: credits || undefined,
+                price_hkd: sendPrice,
+                credits_cost: mode === "hkd" ? 0 : (credits || undefined),
                 duration,
                 max_participants: maxP,
                 description,
