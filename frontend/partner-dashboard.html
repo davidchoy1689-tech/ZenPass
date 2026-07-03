@@ -1339,11 +1339,11 @@
         </div>
         <div id="nc-price-group">
           <label>價格 (HK$) <span id="nc-price-req" class="req-star">*</span></label>
-          <input type="number" id="nc-price" placeholder="150" min="0" step="0.01" />
+          <input type="number" id="nc-price" placeholder="150" min="0" step="0.01" oninput="autoCalcCredits()" />
         </div>
         <div id="nc-credits-group">
           <label>Credits 消耗 <span id="nc-credits-req" class="req-star" style="display:none">*</span></label>
-          <input type="number" id="nc-credits" placeholder="自動計算" min="0" />
+          <input type="number" id="nc-credits" placeholder="自動計算" min="0" oninput="autoCalcPrice()" />
         </div>
         <div style="display: flex; gap: 8px">
           <div style="flex: 1">
@@ -2859,6 +2859,28 @@
             ? '<div class="settings-row"><div class="s-label" style="font-size:10px;color:var(--dark-700);">審批通常需要 1-3 個工作天</div></div>'
             : "") +
           "</div>";
+      }
+
+      // ===== Auto-calculate Credits from price =====
+      function autoCalcCredits() {
+        var mode = document.querySelector('input[name="pricing-mode"]:checked');
+        if (!mode || mode.value === "credits") return;
+        var price = parseFloat(document.getElementById("nc-price").value);
+        if (price > 0) {
+          var credits = Math.max(3, Math.round(price / 38));
+          document.getElementById("nc-credits").value = credits;
+        }
+      }
+
+      // ===== Auto-calculate price from Credits =====
+      function autoCalcPrice() {
+        var mode = document.querySelector('input[name="pricing-mode"]:checked');
+        if (!mode || mode.value === "hkd") return;
+        var credits = parseInt(document.getElementById("nc-credits").value);
+        if (credits > 0) {
+          var price = credits * 38;
+          document.getElementById("nc-price").value = price;
+        }
       }
 
       // ===== Pricing mode toggle =====
