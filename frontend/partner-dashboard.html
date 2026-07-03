@@ -665,6 +665,34 @@
         margin-bottom: 3px;
         color: var(--dark-700);
       }
+      .pricing-toggle {
+        display: flex;
+        gap: 6px;
+        margin-bottom: 10px;
+      }
+      .toggle-radio {
+        flex: 1;
+        display: flex !important;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        padding: 8px 4px;
+        border: 2px solid var(--gray-200);
+        border-radius: 10px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.15s;
+        color: var(--dark-700) !important;
+        background: var(--white);
+      }
+      .toggle-radio input { display: none; }
+      .toggle-radio:has(input:checked) {
+        border-color: var(--primary);
+        background: var(--primary);
+        color: var(--white) !important;
+      }
+      .req-star { color: #e53e3e; }
       .modal-content input,
       .modal-content select,
       .modal-content textarea {
@@ -1294,16 +1322,29 @@
           <option value="普拉提">普拉提</option>
           <option value="其他">其他</option>
         </select>
-        <label>價格 (HK$) *</label>
-        <input
-          type="number"
-          id="nc-price"
-          placeholder="150"
-          min="0"
-          step="0.01"
-        />
-        <label>Credits 消耗（選填）</label>
-        <input type="number" id="nc-credits" placeholder="自動計算" min="0" />
+        <label>收費模式</label>
+        <div class="pricing-toggle">
+          <label class="toggle-radio">
+            <input type="radio" name="pricing-mode" value="hkd" checked onchange="togglePricingMode()" />
+            💵 HK$
+          </label>
+          <label class="toggle-radio">
+            <input type="radio" name="pricing-mode" value="credits" onchange="togglePricingMode()" />
+            💎 Credits
+          </label>
+          <label class="toggle-radio">
+            <input type="radio" name="pricing-mode" value="both" onchange="togglePricingMode()" />
+            兩者
+          </label>
+        </div>
+        <div id="nc-price-group">
+          <label>價格 (HK$) <span id="nc-price-req" class="req-star">*</span></label>
+          <input type="number" id="nc-price" placeholder="150" min="0" step="0.01" />
+        </div>
+        <div id="nc-credits-group">
+          <label>Credits 消耗 <span id="nc-credits-req" class="req-star" style="display:none">*</span></label>
+          <input type="number" id="nc-credits" placeholder="自動計算" min="0" />
+        </div>
         <div style="display: flex; gap: 8px">
           <div style="flex: 1">
             <label>時長 (分鐘) *</label
@@ -2504,7 +2545,18 @@
               '<button class="remove-sched" onclick="removeSchedule(this)" title="移除">✕</button>';
             schedContainer.appendChild(div);
           });
+        // Auto-select pricing mode based on data
+        var hasPrice = course.price_hkd && Number(course.price_hkd) > 0;
+        var hasCredits = course.credits_cost && Number(course.credits_cost) > 0;
+        var modeRadio;
+        if (hasPrice && hasCredits) {
+          modeRadio = document.querySelector('input[name="pricing-mode"][value="both"]');
+        } else if (hasCredits && !hasPrice) {
+          modeRadio = document.querySelector('input[name="pricing-mode"][value="credits"]');
+        } else {
+          modeRadio = document.querySelector('input[name="pricing-mode"][value="hkd"]');
         }
+        if (modeRadio) { modeRadio.checked = true; togglePricingMode(); }
 
         document.getElementById("newClassModal").classList.add("active");
       }
@@ -2809,6 +2861,21 @@
           "</div>";
       }
 
+      // ===== Pricing mode toggle =====
+      function togglePricingMode() {
+        var mode = document.querySelector('input[name="pricing-mode"]:checked');
+        if (!mode) return;
+        var v = mode.value;
+        document.getElementById("nc-price-group").style.display =
+          v === "credits" ? "none" : "block";
+        document.getElementById("nc-credits-group").style.display =
+          v === "hkd" ? "none" : "block";
+        document.getElementById("nc-price-req").style.display =
+          v === "hkd" || v === "both" ? "inline" : "none";
+        document.getElementById("nc-credits-req").style.display =
+          v === "credits" ? "inline" : "none";
+      }
+
       // ===== Modal: New/Edit Class =====
       function openNewClassModal() {
         document.getElementById("classModalTitle").textContent = "📅 開新班";
@@ -2851,7 +2918,7 @@
       async function submitNewClass() {
         var title = document.getElementById("nc-title").value.trim();
         var category = document.getElementById("nc-category").value;
-        var price = parseFloat(document.getElementById("nc-price").value);
+        var price = parseFloat(document.getElementById("nc-price").value) || 0;
         var credits =
           parseInt(document.getElementById("nc-credits").value) || 0;
         var duration = parseInt(document.getElementById("nc-duration").value);
@@ -2861,6 +2928,8 @@
           .getElementById("nc-description")
           .value.trim();
         var editId = document.getElementById("nc-edit-id").value;
+        var pricingMode = document.querySelector('input[name="pricing-mode"]:checked');
+        var mode = pricingMode ? pricingMode.value : "both";
 
         if (!title) {
           showToast("請填寫課程標題", "error");
@@ -2870,8 +2939,12 @@
           showToast("請選擇類別", "error");
           return;
         }
-        if (!price || price <= 0) {
-          showToast("請填寫有效價格", "error");
+        if ((mode === "hkd" || mode === "both") && (!price || price <= 0)) {
+          showToast("請填寫有效嘅 HK$ 價格", "error");
+          return;
+        }
+        if ((mode === "credits") && (!credits || credits <= 0)) {
+          showToast("請填寫有效嘅 Credits 消耗", "error");
           return;
         }
         if (!duration || duration <= 0) {

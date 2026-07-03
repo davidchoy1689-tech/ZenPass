@@ -337,8 +337,12 @@ function createCourse(userId, body) {
   const { title, category, price_hkd, credits_cost, duration, max_participants,
           description, difficulty, schedules, image_url, coach_id } = body;
 
-  if (!title || !category || !price_hkd || !duration) {
-    return { status: 400, body: { success: false, error: "請填寫課程標題、類別、價格同時長" } };
+  if (!title || !category || !duration) {
+    return { status: 400, body: { success: false, error: "請填寫課程標題、類別同時長" } };
+  }
+  // 至少要填 HK$ 價格或 Credits 其中一個
+  if (!price_hkd && !credits_cost) {
+    return { status: 400, body: { success: false, error: "請填寫 HK$ 價格或 Credits 消耗（可二選一或兩者都填）" } };
   }
   if (!schedules || !Array.isArray(schedules) || schedules.length === 0) {
     return { status: 400, body: { success: false, error: "請至少新增一個上堂時段" } };
@@ -346,7 +350,10 @@ function createCourse(userId, body) {
 
   const classId = uuidv4();
   const cid = coach_id || userId;
-  const computedCredits = credits_cost || Math.max(5, Math.round(price_hkd / 38));
+  const computedCredits = credits_cost
+    ? Number(credits_cost)
+    : Math.max(3, Math.round(price_hkd / 38));
+  const finalPrice = price_hkd ? Number(price_hkd) : 0;
 
   db.prepare(
     `INSERT INTO classes (id, coach_id, title, description, category, difficulty,
@@ -354,7 +361,7 @@ function createCourse(userId, body) {
        image_url, partner_venue_id, partner_id, status, created_at, updated_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', datetime('now'), datetime('now'))`
   ).run(classId, cid, title, description || "", category, difficulty || "beginner",
-    duration, max_participants || 15, price_hkd, computedCredits,
+    duration, max_participants || 15, finalPrice, computedCredits,
     venue.name, venue.address || "", image_url || null, venue.id, venue.id);
 
   const scheduleIds = [];
@@ -390,7 +397,8 @@ function createCourse(userId, body) {
   return {
     status: 201,
     body: {
-      class_id: classId, title, credits_cost: computedCredits,
+      class_id: classId, title, price_hkd: finalPrice,
+      credits_cost: computedCredits,
       schedules_count: scheduleIds.length, schedules: scheduleIds,
       partner_id: venue.id, message: "課程已成功建立",
     },
