@@ -132,3 +132,9 @@
     initFooter();
   }
 })();
+
+// ===== Debug script =====
+console.log('%cZenPass v1.0 🎯 - 如有問題請清 cache (Ctrl+Shift+R)', 'color: #7C3AED; font-size:14px; font-weight:bold');
+if (window.location.search.includes('debug')) {
+  alert('🔍 Debug mode: 清 cache 後重試');
+}
