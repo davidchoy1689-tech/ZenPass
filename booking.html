@@ -111,6 +111,12 @@
       <div class="detail-row"><span class="label">場地</span><span class="value" id="sVenue">—</span></div>
       <div class="detail-row"><span class="label">預約編號</span><span class="value" id="sRef" style="font-size:13px">—</span></div>
     </div>
+    <!-- QR Code for check-in -->
+    <div id="qrContainer" style="margin:20px auto;width:180px;height:180px;background:var(--bg);border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--text-muted)">
+      <span>載入 QR Code...</span>
+    </div>
+    <div style="font-size:12px;color:var(--text-muted);margin-bottom:20px">到場時出示此碼簽到</div>
+
     <button class="btn btn-primary" style="margin-top:24px" onclick="window.location.href='/my-bookings.html'">📅 查看我的預約</button>
     <button class="btn btn-secondary" onclick="window.location.href='/'">🏠 返回首頁</button>
   </div>
@@ -121,6 +127,8 @@
 var state = { classId: null, scheduleId: null, selectedDate: null, selectedStart: null, selectedEnd: null, classData: null, bookingId: null, bookingRef: null };
 var API = (window.API_BASE || '/api');
 var _csrfToken = null;
+
+function escapeHtml(s) { if (!s) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
 function getToken() { return localStorage.getItem('zenpass_token') || localStorage.getItem('token'); }
 
@@ -226,6 +234,25 @@ function renderSlots(schedules) {
   document.getElementById('slotList').innerHTML = html;
 }
 
+function loadQRCode() {
+  if (!state.bookingId) return;
+  var container = document.getElementById('qrContainer');
+  if (!container) return;
+
+  fetch(API + '/bookings/' + state.bookingId + '/qr', { headers: authHeaders() })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.qr_data_url) {
+        container.innerHTML = '<img src="' + data.qr_data_url + '" alt="QR Code" style="width:160px;height:160px;border-radius:12px" />';
+      } else {
+        container.innerHTML = '<div style="font-size:11px;color:var(--text-muted);text-align:center">🔑 ' + escapeHtml(data.qr_text || state.bookingRef) + '</div>';
+      }
+    })
+    .catch(function() {
+      container.innerHTML = '<div style="font-size:12px;color:var(--text-muted)">🔑 ' + escapeHtml(state.bookingRef || '') + '</div>';
+    });
+}
+
 function selectSlot(el) {
   document.querySelectorAll('.slot').forEach(function(s) { s.classList.remove('selected'); });
   el.classList.add('selected');
@@ -278,6 +305,7 @@ function doBooking() {
     document.getElementById('sTime').textContent = state.selectedDate + ' ' + state.selectedStart;
     document.getElementById('sVenue').textContent = state.classData?.venue_name || '—';
     document.getElementById('sRef').textContent = state.bookingRef;
+    loadQRCode();
     setStep(3);
   })
   .catch(function(err) {
