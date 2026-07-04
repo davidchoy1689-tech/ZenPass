@@ -272,9 +272,10 @@
     var priceHkd = cls.price_hkd || 0;
     var displayPrice = '';
     if (creditsCost > 0) {
-      displayPrice = creditsCost + ' Pass <small>起</small>';
+      displayPrice = creditsCost + ' <small>Credits</small>';
+      if (priceHkd > 0) displayPrice += ' <small style="font-size:11px;color:var(--dark-700);font-weight:400">(HK$' + priceHkd + ')</small>';
     } else if (priceHkd > 0) {
-      displayPrice = 'HK$' + priceHkd + ' <small>起</small>';
+      displayPrice = 'HK$' + priceHkd;
     } else {
       displayPrice = '免費';
     }

@@ -645,7 +645,7 @@ function renderClassCard(cls) {
     "</div>" +
     '<div class="modern-card-review">' +
     '<div><span class="modern-card-stars">' + stars + '</span><span class="modern-card-review-count"> (' + reviewCount + ')</span></div>' +
-    '<div class="modern-card-price">' + price + ' <small>/ 1 Pass</small></div>' +
+    '<div class="modern-card-price">' + (creditCost > 0 ? creditCost + ' <small>Credits</small>' : price) + (price ? ' <small>(' + price + ')</small>' : '') + '</div>' +
     "</div>" +
     '<div class="modern-card-schedule">' +
     '<span>📅 ' + timeDisplay + '</span>' +
