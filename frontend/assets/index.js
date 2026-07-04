@@ -80,7 +80,7 @@
   var mc = document.createElement('style');
   mc.textContent = `
     .modern-card{background:var(--white);border-radius:24px;overflow:hidden;border:1px solid var(--gray-200);box-shadow:0 1px 3px rgba(0,0,0,0.04);transition:all 0.3s cubic-bezier(0.4,0,0.2,1);display:flex;flex-direction:column;cursor:pointer}
-    .modern-card:hover{transform:translateY(-8px);box-shadow:0 20px 40px -8px rgba(0,0,0,0.12),0 8px 16px -6px rgba(0,0,0,0.08)}
+    .modern-card{transition:all 0.4s cubic-bezier(0.4,0,0.2,1)}.modern-card:hover{transform:translateY(-12px) scale(1.03);box-shadow:0 25px 50px -12px rgba(0,0,0,0.25)}
     html.dark .modern-card{background:#18181b;border-color:#27272a}html.dark .modern-card:hover{box-shadow:0 20px 40px -8px rgba(0,0,0,0.3)}
     .modern-card-img{aspect-ratio:16/10;overflow:hidden;position:relative}
     .modern-card-img .bg-img,.modern-card-img .bg{width:100%;height:100%;background-size:cover;background-position:center;transition:transform 0.5s cubic-bezier(0.4,0,0.2,1)}
