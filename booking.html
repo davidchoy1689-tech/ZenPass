@@ -1,0 +1,492 @@
+<!doctype html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8" />
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="icon" href="favicon.png" type="image/png" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5" />
+  <meta name="theme-color" content="#7C3AED" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <title>預約課程 — ZenPass 禪流</title>
+  <link rel="stylesheet" href="css/zenpass.css?v=2" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --purple: #7C3AED;
+      --purple-light: #8B5CF6;
+      --purple-dark: #6D28D9;
+      --bg: #f5f3f0;
+      --card: #ffffff;
+      --text: #1a1a2e;
+      --text-muted: #6b7280;
+      --border: #e5e7eb;
+      --green: #059669;
+      --red: #ef4444;
+    }
+    html.dark {
+      --bg: #0f0f13;
+      --card: #18181b;
+      --text: #f1f5f9;
+      --text-muted: #a1a1aa;
+      --border: #27272a;
+    }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Noto Sans TC", -apple-system, sans-serif;
+      min-height: 100vh;
+    }
+    .container { max-width: 600px; margin: 0 auto; background: var(--card); min-height: 100vh; }
+    .header {
+      background: var(--purple);
+      color: #fff;
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .header .back { font-size: 22px; cursor: pointer; background: none; border: none; color: #fff; padding: 4px; }
+    .header h1 { font-size: 18px; font-weight: 700; flex: 1; }
+
+    /* Step Progress */
+    .steps {
+      display: flex;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+    }
+    .step {
+      flex: 1;
+      text-align: center;
+      color: var(--text-muted);
+      position: relative;
+      transition: all 0.3s;
+    }
+    .step::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      right: -50%;
+      width: 100%;
+      height: 2px;
+      background: var(--border);
+      z-index: 0;
+    }
+    .step:last-child::after { display: none; }
+    .step.active { color: var(--purple); font-weight: 600; }
+    .step.done { color: var(--green); }
+    .step .num {
+      display: inline-flex;
+      width: 26px; height: 26px;
+      border-radius: 50%;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+      background: var(--border);
+      color: var(--text-muted);
+      margin-bottom: 4px;
+      position: relative;
+      z-index: 1;
+    }
+    .step.active .num { background: var(--purple); color: #fff; }
+    .step.done .num { background: var(--green); color: #fff; }
+
+    .panel { padding: 20px; display: none; }
+    .panel.active { display: block; }
+
+    .slot {
+      border: 2px solid transparent;
+      border-radius: 16px;
+      padding: 16px;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: var(--bg);
+      margin-bottom: 10px;
+    }
+    .slot:hover { border-color: var(--purple-light); }
+    .slot.selected { border-color: var(--purple); background: rgba(124,58,237,0.06); }
+    .slot .time { font-size: 22px; font-weight: 700; }
+    .slot .spots { font-size: 13px; color: var(--green); font-weight: 600; }
+    .slot .spots.full { color: var(--red); }
+    .slot .price { font-size: 14px; color: var(--text-muted); }
+
+    .btn {
+      width: 100%;
+      padding: 16px;
+      border: none;
+      border-radius: 16px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.2s;
+    }
+    .btn-primary { background: var(--purple); color: #fff; }
+    .btn-primary:hover { background: var(--purple-dark); }
+    .btn-primary:disabled { background: var(--border); color: var(--text-muted); cursor: not-allowed; }
+    .btn-secondary { background: transparent; color: var(--purple); border: 1px solid var(--border); margin-top: 10px; }
+
+    .detail-card {
+      background: var(--bg);
+      border-radius: 16px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+    .detail-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      font-size: 14px;
+    }
+    .detail-row + .detail-row { border-top: 1px solid var(--border); }
+    .detail-row .label { color: var(--text-muted); }
+    .detail-row .value { font-weight: 600; }
+
+    .success-icon { font-size: 64px; margin-bottom: 12px; }
+    .success-title { font-size: 28px; font-weight: 800; color: var(--green); margin-bottom: 8px; }
+    .success-sub { color: var(--text-muted); margin-bottom: 24px; }
+
+    label { font-size: 14px; display: block; margin-bottom: 6px; font-weight: 500; }
+    textarea {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      font-size: 14px;
+      font-family: inherit;
+      resize: vertical;
+      min-height: 80px;
+    }
+    input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--purple); }
+    .agree-row { display: flex; align-items: center; gap: 10px; font-size: 13px; margin-top: 16px; }
+    .agree-row a { color: var(--purple); text-decoration: none; }
+
+    .loader {
+      display: inline-block;
+      width: 20px; height: 20px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .error-msg {
+      padding: 12px;
+      background: #fef2f2;
+      color: var(--red);
+      border-radius: 12px;
+      font-size: 13px;
+      margin-bottom: 12px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+<div class="container" id="app">
+  <!-- Header -->
+  <div class="header">
+    <button class="back" onclick="goBack()">←</button>
+    <h1>預約課程</h1>
+  </div>
+
+  <!-- Step Progress -->
+  <div class="steps">
+    <div class="step active" id="step1"><div class="num">1</div>選時段</div>
+    <div class="step" id="step2"><div class="num">2</div>確認資料</div>
+    <div class="step" id="step3"><div class="num">3</div>完成</div>
+  </div>
+
+  <!-- Error -->
+  <div class="error-msg" id="errorMsg"></div>
+
+  <!-- Step 1: Select Slot -->
+  <div class="panel active" id="panel1">
+    <h2 style="font-size:22px;font-weight:700;margin-bottom:4px" id="className"></h2>
+    <p style="color:var(--text-muted);font-size:14px;margin-bottom:20px" id="classMeta"></p>
+
+    <div style="font-weight:600;font-size:15px;margin-bottom:10px">🗓️ 可選時段</div>
+    <div id="slotList">
+      <div style="text-align:center;padding:40px;color:var(--text-muted)">載入時段中...</div>
+    </div>
+
+    <button class="btn btn-primary" id="step1Btn" onclick="goStep2()" disabled>
+      下一步：確認資料
+    </button>
+  </div>
+
+  <!-- Step 2: Confirm -->
+  <div class="panel" id="panel2">
+    <h3 style="font-size:18px;font-weight:700;margin-bottom:16px">📋 預約詳情</h3>
+
+    <div class="detail-card">
+      <div class="detail-row">
+        <span class="label">課程</span>
+        <span class="value" id="confirmName">—</span>
+      </div>
+      <div class="detail-row">
+        <span class="label">時間</span>
+        <span class="value" id="confirmTime">—</span>
+      </div>
+      <div class="detail-row">
+        <span class="label">導師</span>
+        <span class="value" id="confirmCoach">—</span>
+      </div>
+      <div class="detail-row">
+        <span class="label">場地</span>
+        <span class="value" id="confirmVenue">—</span>
+      </div>
+      <div class="detail-row">
+        <span class="label">扣除</span>
+        <span class="value" style="color:var(--red)" id="confirmCredits">—</span>
+      </div>
+    </div>
+
+    <label for="note">備註（可選）</label>
+    <textarea id="note" placeholder="如有特別需要可以寫低..."></textarea>
+
+    <div class="agree-row">
+      <input type="checkbox" id="agreeCheck" />
+      <label for="agreeCheck" style="margin:0">
+        我已閱讀並同意 <a href="faq.html">缺席罰款政策</a>
+      </label>
+    </div>
+
+    <button class="btn btn-primary" id="step2Btn" onclick="goStep3()">
+      確認預約並扣除 Credits
+    </button>
+    <button class="btn btn-secondary" onclick="goStep1()">返回揀時段</button>
+  </div>
+
+  <!-- Step 3: Success -->
+  <div class="panel" id="panel3" style="text-align:center;padding-top:60px">
+    <div class="success-icon">🎉</div>
+    <div class="success-title">預約成功！</div>
+    <p class="success-sub">確認已發送至你嘅帳戶</p>
+
+    <div class="detail-card" style="text-align:left;background:rgba(5,150,105,0.06);border:1px solid rgba(5,150,105,0.2)">
+      <div class="detail-row"><span class="label">課程</span><span class="value" id="sName">—</span></div>
+      <div class="detail-row"><span class="label">時間</span><span class="value" id="sTime">—</span></div>
+      <div class="detail-row"><span class="label">場地</span><span class="value" id="sVenue">—</span></div>
+    </div>
+
+    <button class="btn btn-primary" style="margin-top:24px" onclick="window.location.href='/my-bookings.html'">
+      📅 查看我的預約
+    </button>
+    <button class="btn btn-secondary" onclick="window.location.href='/'">
+      🏠 返回首頁
+    </button>
+  </div>
+</div>
+
+<script src="js/nav.js"></script>
+<script>
+// ===== State =====
+var state = {
+  classId: null,
+  scheduleId: null,
+  selectedDate: null,
+  selectedStart: null,
+  selectedEnd: null,
+  classData: null,
+  bookingId: null,
+};
+
+// ===== Helpers =====
+var API = (window.API_BASE || '/api');
+
+function getToken() {
+  return localStorage.getItem('zenpass_token') || localStorage.getItem('token');
+}
+
+function authHeaders() {
+  var t = getToken();
+  return t ? { 'Authorization': 'Bearer ' + t, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' };
+}
+
+function showError(msg) {
+  var el = document.getElementById('errorMsg');
+  el.textContent = msg;
+  el.style.display = 'block';
+  setTimeout(function() { el.style.display = 'none'; }, 4000);
+}
+
+function goBack() {
+  if (document.getElementById('panel2').classList.contains('active')) { goStep1(); return; }
+  if (document.getElementById('panel3').classList.contains('active')) { goStep1(); return; }
+  history.back();
+}
+
+// ===== Step Navigation =====
+function setStep(n) {
+  for (var i = 1; i <= 3; i++) {
+    document.getElementById('step' + i).className = i < n ? 'step done' : (i === n ? 'step active' : 'step');
+    document.getElementById('panel' + i).classList.toggle('active', i === n);
+  }
+}
+
+function goStep1() { setStep(1); }
+function goStep2() {
+  if (!state.scheduleId) { showError('請先揀選時段'); return; }
+  document.getElementById('confirmName').textContent = state.classData ? state.classData.name : '—';
+  document.getElementById('confirmTime').textContent = state.selectedDate + ' ' + state.selectedStart + '-' + state.selectedEnd;
+  document.getElementById('confirmCoach').textContent = (state.classData && state.classData.coach_name) || '—';
+  document.getElementById('confirmVenue').textContent = (state.classData && state.classData.venue_name) || '—';
+  document.getElementById('confirmCredits').textContent = '-' + ((state.classData && state.classData.credits_cost) || '?') + ' Credits';
+  setStep(2);
+}
+
+function goStep3() {
+  if (!document.getElementById('agreeCheck').checked) { showError('請同意缺席罰款政策'); return; }
+  doBooking();
+}
+
+// ===== Load Class Data =====
+function loadClass() {
+  var params = new URLSearchParams(window.location.search);
+  state.classId = params.get('classId') || params.get('id');
+  var scheduleId = params.get('scheduleId');
+
+  if (!state.classId && !scheduleId) {
+    document.getElementById('slotList').innerHTML = '<div style="text-align:center;padding:40px;color:var(--red)">❌ 缺少課程編號</div>';
+    return;
+  }
+
+  // Fetch class data
+  var url = state.classId ? (API + '/classes/' + state.classId + '/schedules') : (API + '/schedules/' + scheduleId);
+  if (state.classId) url = API + '/classes/' + state.classId + '/schedules';
+
+  fetch(url, { headers: authHeaders() })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      var schedules = data.schedules || data.data || (data.success ? data.data : []) || [];
+      if (!Array.isArray(schedules) && data.schedule) schedules = [data.schedule];
+      if (!Array.isArray(schedules)) schedules = [];
+
+      // Class metadata
+      var cls = data.class || data.classData || data;
+      if (schedules.length && schedules[0].class_data) cls = schedules[0].class_data;
+
+      state.classData = cls || {};
+      document.getElementById('className').textContent = cls.name || '課程';
+      document.getElementById('classMeta').textContent =
+        (cls.coach_name || '教練') + ' · ' +
+        (cls.duration || schedules[0]?.duration || '60') + '分鐘 · ' +
+        (cls.credits_cost || '1') + ' Credit';
+
+      // Render slots
+      renderSlots(schedules);
+    })
+    .catch(function(err) {
+      document.getElementById('slotList').innerHTML =
+        '<div style="text-align:center;padding:40px;color:var(--red)">❌ 載入失敗：' + err.message + '</div>';
+    });
+}
+
+function renderSlots(schedules) {
+  var html = '';
+  if (!schedules || schedules.length === 0) {
+    html = '<div style="text-align:center;padding:40px;color:var(--text-muted)">暫無可預約時段</div>';
+    document.getElementById('slotList').innerHTML = html;
+    return;
+  }
+
+  schedules.forEach(function(s) {
+    var date = s.date || s.schedule_date || '';
+    var start = s.start_time || s.start || '';
+    var end = s.end_time || s.end || '';
+    var spots = s.available_spots !== undefined ? s.available_spots : (s.max_participants - (s.enrolled_count || 0));
+    var spotsText = spots > 0 ? '剩 ' + spots + ' 位' : '已滿';
+    var spotsClass = spots > 3 ? 'spots' : (spots > 0 ? 'spots' : 'spots full');
+    var sid = s.id || s.schedule_id;
+
+    html += '<div class="slot" data-schedule-id="' + sid +
+      '" data-date="' + date +
+      '" data-start="' + start +
+      '" data-end="' + end +
+      '" onclick="selectSlot(this)" data-spots="' + spots + '">';
+    html += '  <div style="display:flex;justify-content:space-between;align-items:center">';
+    html += '    <div>';
+    if (date) html += '      <div style="font-size:13px;color:var(--text-muted)">' + date + '</div>';
+    html += '      <div class="time">' + start + ' - ' + end + '</div>';
+    html += '    </div>';
+    html += '    <div style="text-align:right">';
+    html += '      <div class="' + spotsClass + '">' + spotsText + '</div>';
+    html += '      <div class="price">' + (state.classData?.credits_cost || '1') + ' Credit</div>';
+    html += '    </div>';
+    html += '  </div>';
+    html += '</div>';
+  });
+
+  document.getElementById('slotList').innerHTML = html;
+}
+
+function selectSlot(el) {
+  document.querySelectorAll('.slot').forEach(function(s) { s.classList.remove('selected'); });
+  el.classList.add('selected');
+  state.scheduleId = el.getAttribute('data-schedule-id');
+  state.selectedDate = el.getAttribute('data-date');
+  state.selectedStart = el.getAttribute('data-start');
+  state.selectedEnd = el.getAttribute('data-end');
+  document.getElementById('step1Btn').disabled = false;
+}
+
+// ===== Booking API =====
+function doBooking() {
+  if (!state.scheduleId) { showError('請先揀選時段'); return; }
+
+  var btn = document.getElementById('step2Btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="loader"></span> 預約中...';
+
+  var body = {
+    scheduleId: state.scheduleId,
+    classId: state.classId,
+    note: document.getElementById('note').value.trim() || ''
+  };
+  if (state.classId) body.classId = state.classId;
+
+  fetch(API + '/bookings', {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify(body)
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    btn.disabled = false;
+    btn.innerHTML = '確認預約並扣除 Credits';
+
+    if (data.error) { showError('❌ ' + data.error); return; }
+
+    state.bookingId = data.id || data.bookingId || data.booking?.id;
+    document.getElementById('sName').textContent = state.classData?.name || '—';
+    document.getElementById('sTime').textContent = state.selectedDate + ' ' + state.selectedStart;
+    document.getElementById('sVenue').textContent = state.classData?.venue_name || '—';
+    setStep(3);
+  })
+  .catch(function(err) {
+    btn.disabled = false;
+    btn.innerHTML = '確認預約並扣除 Credits';
+    showError('❌ 網絡錯誤：' + err.message);
+  });
+}
+
+// ===== Init =====
+document.addEventListener('DOMContentLoaded', function() {
+  // Check login
+  if (!getToken()) {
+    window.location.href = '/login.html?redirect=' + encodeURIComponent(window.location.pathname + window.location.search);
+    return;
+  }
+  loadClass();
+});
+</script>
+<script src="js/footer.js"></script>
+</body>
+</html>
