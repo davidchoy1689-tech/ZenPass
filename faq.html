@@ -1,39 +1,183 @@
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "FAQPage",
-  "mainEntity": [
-    {"@type":"Question","name":"如何預約課程？","acceptedAnswer":{"@type":"Answer","text":"瀏覽課程頁 → 揀選有興趣嘅課程 → 選擇時間 → 確認預約 → 完成付款。預約成功後會收到確認通知。"}},
-    {"@type":"Question","name":"可以取消預約嗎？","acceptedAnswer":{"@type":"Answer","text":"✅ 可以。以下係取消規則： 取消時間 後果 🟢 開課 12 小時前 ✅ 正常取消，全額退還 Credits 🟡 開課前 2-12 小時 ⚠️ 遲取消 — 唔退還已使用嘅 Credits（等同罰款） 🔴 開課前 少於 2 小時 ❌ 無法取消，缺席將被記名 📌 Note：預約時需要同意罰款規則先可以完成預約。取消後名額會自動釋放俾候補名單嘅用戶。"}},
-    {"@type":"Question","name":"缺席（No-show）有咩後果？","acceptedAnswer":{"@type":"Answer","text":"如果預約咗課程但冇出席（缺席／No-show）： 已使用嘅 Credits 唔會退還（等於俾咗錢但冇上堂） 另外會被扣除 額外 2 Credits 缺席罰款（類似 ClassPass $15 USD 政策） 系統會自動檢測缺席（課程結束 30 分鐘後）並扣除罰款 💡 提示：如果知道上唔到堂，請喺開課 12 小時前取消，咁就唔會有任何損失。"}},
-    {"@type":"Question","name":"咩係候補名單（Waitlist）？","acceptedAnswer":{"@type":"Answer","text":"當課程滿座時，你可以加入候補名單。如果有人取消預約，系統會自動通知排隊最耐嘅人。"}},
-    {"@type":"Question","name":"點樣簽到？","acceptedAnswer":{"@type":"Answer","text":"上堂時可以向教練出示 QR Code 簽到，或者喺 checkin 頁手動輸入課堂編號。"}},
-    {"@type":"Question","name":"接受咩付款方式？","acceptedAnswer":{"@type":"Answer","text":"我哋接受信用卡（Visa/Mastercard/AMEX，經 Stripe）、轉數快 FPS、PayMe。信用卡付款會自動確認，FPS/PayMe 需要 admin 核實。"}},
-    {"@type":"Question","name":"會籍自動續費點樣運作？","acceptedAnswer":{"@type":"Answer","text":"升級會籍後，系統會每月自動從你嘅信用卡扣款。你隨時可以取消自動續費。"}},
-    {"@type":"Question","name":"咩係 Credits？","acceptedAnswer":{"@type":"Answer","text":"Credits 係 ZenPass 嘅平台點數，可以用嚟預約課程。你可以購買 Credits 套票或者透過推薦朋友賺取。"}},
-    {"@type":"Question","name":"點樣賺取積分？","acceptedAnswer":{"@type":"Answer","text":"每日簽到 +5 分、完成課堂 +50 分、課後評價 +20 分、推薦朋友 +100 分。連續簽到仲有額外獎勵！"}},
-    {"@type":"Question","name":"積分有咩用？","acceptedAnswer":{"@type":"Answer","text":"積分可以兌換折扣碼、Credits、免費堂數同 ZenPass 周邊商品。去「積分中心」睇吓有咩獎勵。"}},
-    {"@type":"Question","name":"勳章系統係點運作？","acceptedAnswer":{"@type":"Answer","text":"完成指定條件會自動解鎖勳章，例如出席 1 堂、完成 5 堂、連續簽到 7 日等。收集勳章可以解鎖特殊福利。"}},
-    {"@type":"Question","name":"點樣成為 ZenPass 教練？","acceptedAnswer":{"@type":"Answer","text":"去「成為教練」頁填寫申請表，我哋嘅 team 會聯絡你跟進。審批通過後就可以開班教學。"}},
-    {"@type":"Question","name":"教練點樣收取費用？","acceptedAnswer":{"@type":"Answer","text":"教練可以喺 Dashboard 查看收入同申請提款。提款可以經 Stripe Connect 自動轉賬到你嘅銀行戶口。"}},
-    {"@type":"Question","name":"推薦其他教練有獎勵嗎？","acceptedAnswer":{"@type":"Answer","text":"有！喺教練 Dashboard 嘅「推薦教練」功能，推薦成功後可獲得額外收入。"}},
-    {"@type":"Question","name":"點樣註冊帳戶？","acceptedAnswer":{"@type":"Answer","text":"去登入頁面揀「註冊」，輸入姓名、電郵同密碼即可。註冊後會引導你完成基本設定。"}},
-    {"@type":"Question","name":"忘記密碼點算？","acceptedAnswer":{"@type":"Answer","text":"喺登入頁㩒「忘記密碼」即可重置。輸入已註冊嘅電郵，系統會發送重置指示。如果收唔到電郵，可以檢查垃圾郵件箱或聯絡我們。"}},
-    {"@type":"Question","name":"我嘅個人資料安全嗎？","acceptedAnswer":{"@type":"Answer","text":"所有資料經加密傳輸（HTTPS），密碼經 bcrypt 加密儲存。付款資料經 Stripe 處理，我哋唔會儲存你嘅信用卡資料。"}}
-  ]
-}
-</script>
-      <!doctype html>
+<!doctype html>
 <html lang="zh-HK">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" href="favicon.png" type="image/png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5" />
-    
-    <link rel="stylesheet" href="css/zenpass.css?v=2" />
-    
-    
-      <script src="js/nav.js"></script>
-<script src="js/footer.js"></script>
+<head>
+  <meta charset="UTF-8" />
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="icon" href="favicon.png" type="image/png" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5" />
+  <meta name="theme-color" content="#7C3AED" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <link rel="stylesheet" href="css/zenpass.css?v=2" />
+  <title>常見問題 — ZenPass 禪流</title>
+  <style>
+    body { background: var(--gray-50); color: var(--dark-900); font-family: var(--font-zh); }
+    html.dark body { background: #0f0f13; color: #f1f5f9; }
+    .faq-container { max-width: 640px; margin: 0 auto; padding: 24px 16px 80px; }
+    .faq-title { font-size: 28px; font-weight: 800; text-align: center; margin-bottom: 32px; }
+    details.faq-item {
+      margin-bottom: 12px;
+      border: 1px solid var(--gray-200);
+      border-radius: 16px;
+      overflow: hidden;
+      background: var(--white);
+      transition: all 0.2s;
+    }
+    html.dark details.faq-item { background: #18181b; border-color: #27272a; }
+    details.faq-item[open] { box-shadow: var(--shadow-md); }
+    summary.faq-q {
+      padding: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      user-select: none;
+    }
+    summary.faq-q::-webkit-details-marker { display: none; }
+    summary.faq-q::after {
+      content: '+';
+      font-size: 20px;
+      color: var(--orange-700);
+      transition: transform 0.2s;
+      flex-shrink: 0;
+      margin-left: 12px;
+    }
+    details.faq-item[open] summary.faq-q::after {
+      content: '−';
+      transform: rotate(180deg);
+    }
+    .faq-a {
+      padding: 0 16px 16px;
+      font-size: 14px;
+      color: var(--dark-700);
+      line-height: 1.7;
+    }
+    html.dark .faq-a { color: #a1a1aa; }
+    .faq-a a { color: var(--orange-700); text-decoration: none; }
+    .faq-a a:hover { text-decoration: underline; }
+  </style>
+  <!-- JSON-LD Structured Data (SEO) -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {"@type":"Question","name":"如何預約課程？","acceptedAnswer":{"@type":"Answer","text":"瀏覽課程頁，揀選有興趣嘅課程，選擇時間，確認預約，完成付款。預約成功後會收到確認通知。"}},
+      {"@type":"Question","name":"可以取消預約嗎？","acceptedAnswer":{"@type":"Answer","text":"開課12小時前取消：全額退還 Credits。開課前2-12小時取消：唔退還已使用 Credits。開課前少於2小時：無法取消。"}},
+      {"@type":"Question","name":"缺席有咩後果？","acceptedAnswer":{"@type":"Answer","text":"已使用 Credits 唔退還，另扣 2 Credits 缺席罰款。系統會自動檢測缺席（課程結束30分鐘後）。"}},
+      {"@type":"Question","name":"咩係候補名單？","acceptedAnswer":{"@type":"Answer","text":"課程滿座時可以加入候補名單。有人取消時系統會自動通知排隊最耐嘅人。"}},
+      {"@type":"Question","name":"點樣簽到？","acceptedAnswer":{"@type":"Answer","text":"向教練出示 QR Code 簽到，或喺 checkin 頁手動輸入課堂編號。"}},
+      {"@type":"Question","name":"接受咩付款方式？","acceptedAnswer":{"@type":"Answer","text":"信用卡（Visa/Mastercard/AMEX，經 Stripe）、轉數快 FPS、PayMe。"}},
+      {"@type":"Question","name":"咩係 Credits？","acceptedAnswer":{"@type":"Answer","text":"Credits 係 ZenPass 嘅平台點數，可用嚟預約課程。可購買 Credits 套票或透過推薦朋友賺取。"}},
+      {"@type":"Question","name":"點樣賺取積分？","acceptedAnswer":{"@type":"Answer","text":"每日簽到 +5 分、完成課堂 +50 分、課後評價 +20 分、推薦朋友 +100 分。連續簽到有額外獎勵。"}},
+      {"@type":"Question","name":"忘記密碼點算？","acceptedAnswer":{"@type":"Answer","text":"喺登入頁㩒「忘記密碼」輸入已註冊電郵，系統會發送重置指示。"}},
+      {"@type":"Question","name":"我嘅個人資料安全嗎？","acceptedAnswer":{"@type":"Answer","text":"所有資料經加密傳輸（HTTPS），密碼經 bcrypt 加密儲存。付款資料經 Stripe 處理。"}}
+    ]
+  }
+  </script>
+</head>
+<body>
+  <script src="js/nav.js"></script>
+
+  <div class="faq-container">
+    <h1 class="faq-title">❓ 常見問題</h1>
+
+    <details class="faq-item">
+      <summary class="faq-q">如何預約課程？</summary>
+      <div class="faq-a">
+        瀏覽課程頁 → 揀選有興趣嘅課程 → 選擇時間 → 確認預約 → 完成付款。<br>
+        預約成功後會收到確認通知。你亦可以喺「我的預約」度睇到所有已預約課堂。
+      </div>
+    </details>
+
+    <details class="faq-item">
+      <summary class="faq-q">可以取消預約嗎？</summary>
+      <div class="faq-a">
+        ✅ 可以。以下係取消規則：<br><br>
+        🟢 <strong>開課 12 小時前</strong> → 正常取消，全額退還 Credits<br>
+        🟡 <strong>開課前 2–12 小時</strong> → 唔退還已使用 Credits（等同罰款）<br>
+        🔴 <strong>開課前少於 2 小時</strong> → 無法取消，缺席將被記名<br><br>
+        💡 如果知道上唔到堂，請喺開課 12 小時前取消，咁就唔會有任何損失。
+      </div>
+    </details>
+
+    <details class="faq-item">
+      <summary class="faq-q">缺席（No-show）有咩後果？</summary>
+      <div class="faq-a">
+        如果預約咗課程但冇出席：<br><br>
+        ❌ 已使用嘅 Credits 唔會退還<br>
+        ❌ 另外會被扣除 <strong>額外 2 Credits</strong> 缺席罰款<br>
+        🤖 系統會自動檢測缺席（課程結束 30 分鐘後）並扣除罰款
+      </div>
+    </details>
+
+    <details class="faq-item">
+      <summary class="faq-q">咩係候補名單（Waitlist）？</summary>
+      <div class="faq-a">
+        當課程滿座時，你可以加入候補名單。如果有人取消預約，系統會自動通知排隊最耐嘅人，等你可以補上。
+      </div>
+    </details>
+
+    <details class="faq-item">
+      <summary class="faq-q">點樣簽到？</summary>
+      <div class="faq-a">
+        上堂時可以向教練出示 QR Code 簽到，或者喺 <a href="checkin.html">checkin 頁</a> 手動輸入課堂編號。
+      </div>
+    </details>
+
+    <details class="faq-item">
+      <summary class="faq-q">接受咩付款方式？</summary>
+      <div class="faq-a">
+        我哋接受：<br>
+        💳 信用卡（Visa / Mastercard / AMEX，經 Stripe 處理）<br>
+        📱 轉數快 FPS<br>
+        💬 PayMe<br><br>
+        💳 信用卡付款會自動確認，FPS / PayMe 需要 admin 核實。
+      </div>
+    </details>
+
+    <details class="faq-item">
+      <summary class="faq-q">咩係 Credits？</summary>
+      <div class="faq-a">
+        Credits 係 ZenPass 嘅平台點數，可以用嚟預約課程。<br><br>
+        🎯 <strong>1 Credit ≈ HK$8</strong><br>
+        🧘 伸展 / 瑜伽 約 1 Credit<br>
+        💪 Pilates / HIIT 約 2 Credits<br><br>
+        你可以購買 Credits 套票或者透過推薦朋友賺取額外 Credits。<br>
+        👉 <a href="membership.html">查看會籍方案</a>
+      </div>
+    </details>
+
+    <details class="faq-item">
+      <summary class="faq-q">點樣賺取積分？</summary>
+      <div class="faq-a">
+        🌟 每日簽到：<strong>+5 分</strong><br>
+        🏋️ 完成課堂：<strong>+50 分</strong><br>
+        ⭐ 課後評價：<strong>+20 分</strong><br>
+        👥 推薦朋友：<strong>+100 分</strong><br><br>
+        連續簽到仲有額外獎勵！去 <a href="checkin.html">每日簽到</a> 頁開始。
+      </div>
+    </details>
+
+    <details class="faq-item">
+      <summary class="faq-q">忘記密碼點算？</summary>
+      <div class="faq-a">
+        喺 <a href="login.html">登入頁</a> 㩒「忘記密碼」即可重置。輸入已註冊嘅電郵，系統會發送重置指示。<br><br>
+        如果收唔到電郵，可以檢查垃圾郵件箱或 <a href="https://wa.me/85290335538">WhatsApp 聯絡我們</a>。
+      </div>
+    </details>
+
+    <details class="faq-item">
+      <summary class="faq-q">我嘅個人資料安全嗎？</summary>
+      <div class="faq-a">
+        🔒 所有資料經加密傳輸（HTTPS）<br>
+        🔑 密碼經 bcrypt 加密儲存<br>
+        💳 付款資料經 Stripe 處理，我哋唔會儲存你嘅信用卡資料
+      </div>
+    </details>
+  </div>
+
+  <script src="js/footer.js"></script>
 </body>
 </html>
