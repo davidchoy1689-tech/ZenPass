@@ -11,17 +11,6 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
-    services:
-      api:
-        image: node:22
-        ports:
-          - 3001:3001
-        options: >-
-          --health-cmd "curl -f http://localhost:3001/api/health || exit 1"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
     steps:
       - uses: actions/checkout@v4
 

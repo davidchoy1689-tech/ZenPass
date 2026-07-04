@@ -154,7 +154,7 @@ function initDatabase() {
     if (!cols.find((c) => c.name === "team_booking_id")) {
       db.exec("ALTER TABLE bookings ADD COLUMN team_booking_id TEXT DEFAULT NULL");
     }
-  } catch (e) {}
+  } catch (e) {/* unused /*/}
 
   // ===== 用戶同伴列表 =====
   db.exec(`
@@ -171,7 +171,7 @@ function initDatabase() {
   `);
   try {
     db.exec("CREATE INDEX IF NOT EXISTS idx_teammates_user ON user_teammates(user_id)");
-  } catch (e) {}
+  } catch (e) {/* unused /*/}
 
   // ===== 預約同伴（Team Booking 關聯）=====
   db.exec(`
@@ -190,7 +190,7 @@ function initDatabase() {
   `);
   try {
     db.exec("CREATE INDEX IF NOT EXISTS idx_booking_teammates_booking ON booking_teammates(booking_id)");
-  } catch (e) {}
+  } catch (e) {/* unused /*/}
 
   // ===== 會籍表 =====
   db.exec(`
@@ -307,8 +307,8 @@ function initDatabase() {
     );
 
     // ===== 教練提現 Reference（相容升級）=====
-    try { db.exec("ALTER TABLE coach_payouts ADD COLUMN payout_reference TEXT"); } catch (e) {}
-    try { db.exec("ALTER TABLE coach_payouts ADD COLUMN updated_at TEXT DEFAULT (datetime('now'))"); } catch (e) {}
+    try { db.exec("ALTER TABLE coach_payouts ADD COLUMN payout_reference TEXT"); } catch (e) {/* unused /*/}
+    try { db.exec("ALTER TABLE coach_payouts ADD COLUMN updated_at TEXT DEFAULT (datetime('now'))"); } catch (e) {/* unused /*/}
 
     // ===== 教練私人收入表 =====
     db.exec(`
@@ -330,8 +330,8 @@ function initDatabase() {
       db.exec(
         "CREATE INDEX IF NOT EXISTS idx_private_income_coach ON private_income(coach_id)",
       );
-    } catch (e) {}
-  } catch (e) {}
+    } catch (e) {/* unused /*/}
+  } catch (e) {/* unused /*/}
 
   // ===== 通知記錄表 (in-app 推送) =====
   db.exec(`
@@ -354,7 +354,7 @@ function initDatabase() {
     db.exec(
       "CREATE INDEX IF NOT EXISTS idx_notif_user_read ON notification_logs(user_id, is_read)",
     );
-  } catch (e) {}
+  } catch (e) {/* unused /*/}
 
   // ===== 站內通知表 (對外的 notification API) =====
   db.exec(`
@@ -377,7 +377,7 @@ function initDatabase() {
     db.exec(
       "CREATE INDEX IF NOT EXISTS idx_notifications_user_read ON notifications(user_id, is_read)",
     );
-  } catch (e) {}
+  } catch (e) {/* unused /*/}
 
   // ===== 瀏覽器推送訂閱表 =====
   db.exec(`
@@ -395,7 +395,7 @@ function initDatabase() {
     db.exec(
       "CREATE INDEX IF NOT EXISTS idx_push_user ON push_subscriptions(user_id)",
     );
-  } catch (e) {}
+  } catch (e) {/* unused /*/}
 
   // ===== 課程內容表 (course_contents) =====
   db.exec(`
@@ -426,93 +426,93 @@ function initDatabase() {
     db.exec(
       "CREATE INDEX IF NOT EXISTS idx_course_contents_number ON course_contents(course_number)",
     );
-  } catch (e) {}
+  } catch (e) {/* unused /*/}
 
   // ===== 積分系統 (Points/Loyalty) - 相容升級 =====
   try {
     db.exec("ALTER TABLE users ADD COLUMN points INTEGER DEFAULT 0");
-  } catch (e) {}
+  } catch (e) {/* unused /*/}
   try {
     db.exec("ALTER TABLE users ADD COLUMN points_tier TEXT DEFAULT 'bronze'");
-  } catch (e) {}
+  } catch (e) {/* unused /*/}
   try {
     db.exec(
       "ALTER TABLE users ADD COLUMN points_tier_label TEXT DEFAULT '🥉 銅牌'",
     );
-  } catch (e) {}
+  } catch (e) {/* unused /*/}
   try {
     db.exec("ALTER TABLE users ADD COLUMN last_checkin TEXT");
-  } catch (e) {}
+  } catch (e) {/* unused /*/}
   try {
     db.exec("ALTER TABLE users ADD COLUMN checkin_streak INTEGER DEFAULT 0");
-  } catch (e) {}
+  } catch (e) {/* unused /*/}
   try {
     db.exec("ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'user'");
-  } catch (e) {}
+  } catch (e) {/* unused /*/}
   try {
     db.exec("ALTER TABLE users ADD COLUMN stripe_customer_id TEXT");
-  } catch (e) {}
+  } catch (e) {/* unused /*/}
   try {
     db.exec("ALTER TABLE users ADD COLUMN stripe_subscription_id TEXT");
-  } catch (e) {}
+  } catch (e) {/* unused /*/}
   try {
     db.exec("ALTER TABLE users ADD COLUMN auto_renew INTEGER DEFAULT 0");
-  } catch (e) {}
+  } catch (e) {/* unused /*/}
   // Set admin role for existing admin users
   try {
     db.exec(
       "UPDATE users SET role = 'admin' WHERE email LIKE '%admin%' AND email NOT IN ('coach@zenpass.hk','student@zenpass.hk')",
     );
-  } catch (e) {}
+  } catch (e) {/* unused /*/}
 
   // ===== Subscription Pause - memberships columns =====
   try {
     db.exec("ALTER TABLE memberships ADD COLUMN paused_until TEXT");
-  } catch (e) {}
+  } catch (e) {/* unused /*/}
   try {
     db.exec("ALTER TABLE memberships ADD COLUMN pause_count INTEGER DEFAULT 0");
-  } catch (e) {}
+  } catch (e) {/* unused /*/}
   try {
     db.exec("ALTER TABLE memberships ADD COLUMN max_pause_days INTEGER DEFAULT 30");
-  } catch (e) {}
+  } catch (e) {/* unused /*/}
   try {
     db.exec("ALTER TABLE memberships ADD COLUMN pause_reason TEXT");
     // updated_at 用 SQLite trigger 自動管理
     try {
       db.exec("ALTER TABLE memberships ADD COLUMN updated_at TEXT");
     } catch (e) { /* already exists */ }
-  } catch (e) {}
+  } catch (e) {/* unused /*/}
 
   // ===== Loyalty Tier - users column =====
   try {
     db.exec("ALTER TABLE users ADD COLUMN loyalty_tier TEXT DEFAULT 'bronze'");
-  } catch (e) {}
+  } catch (e) {/* unused /*/}
   try {
     db.exec("ALTER TABLE users ADD COLUMN monthly_bookings INTEGER DEFAULT 0");
-  } catch (e) {}
+  } catch (e) {/* unused /*/}
 
   // ===== CRM 學生管理 =====
   try {
     db.exec("ALTER TABLE users ADD COLUMN tags TEXT DEFAULT ''");
-  } catch (e) {}
+  } catch (e) {/* unused /*/}
   try {
     db.exec("ALTER TABLE users ADD COLUMN notes TEXT DEFAULT ''");
-  } catch (e) {}
+  } catch (e) {/* unused /*/}
   try {
     db.exec("ALTER TABLE users ADD COLUMN last_visit TEXT");
-  } catch (e) {}
+  } catch (e) {/* unused /*/}
   try {
     db.exec("ALTER TABLE users ADD COLUMN total_visits INTEGER DEFAULT 0");
-  } catch (e) {}
+  } catch (e) {/* unused /*/}
   try {
     db.exec("ALTER TABLE users ADD COLUMN total_spent REAL DEFAULT 0");
-  } catch (e) {}
+  } catch (e) {/* unused /*/}
   try {
     db.exec("ALTER TABLE users ADD COLUMN rating REAL DEFAULT 0");
-  } catch (e) {}
+  } catch (e) {/* unused /*/}
   try {
     db.exec("ALTER TABLE users ADD COLUMN lead_source TEXT DEFAULT ''");
-  } catch (e) {}
+  } catch (e) {/* unused /*/}
 
   // Student notes table (per-coach notes)
   db.exec(`
@@ -544,10 +544,10 @@ function initDatabase() {
     db.exec(
       "ALTER TABLE class_schedules ADD COLUMN location_id TEXT REFERENCES locations(id)",
     );
-  } catch (e) {}
+  } catch (e) {/* unused /*/}
   try {
     db.exec("ALTER TABLE class_schedules ADD COLUMN notes TEXT");
-  } catch (e) {}
+  } catch (e) {/* unused /*/}
 
   // ===== POS / 銷售記錄 =====
   db.exec(`
@@ -572,15 +572,15 @@ function initDatabase() {
   // ===== 推薦計劃 =====
   try {
     db.exec("ALTER TABLE users ADD COLUMN referral_code TEXT");
-  } catch (e) {}
+  } catch (e) {/* unused /*/}
   try {
     db.exec("ALTER TABLE users ADD COLUMN referred_by TEXT");
-  } catch (e) {}
+  } catch (e) {/* unused /*/}
   try {
     db.exec(
       "ALTER TABLE users ADD COLUMN referral_credits_earned INTEGER DEFAULT 0",
     );
-  } catch (e) {}
+  } catch (e) {/* unused /*/}
 
   db.exec(`
     CREATE TABLE IF NOT EXISTS referral_codes (
@@ -627,7 +627,7 @@ function initDatabase() {
     db.exec(
       "CREATE INDEX IF NOT EXISTS idx_points_user_time ON points_transactions(user_id, created_at DESC)",
     );
-  } catch (e) {}
+  } catch (e) {/* unused /*/}
 
   // ===== 積分獎勵目錄 =====
   db.exec(`
@@ -665,7 +665,7 @@ function initDatabase() {
     db.exec(
       "CREATE INDEX IF NOT EXISTS idx_redemptions_user ON points_redemptions(user_id)",
     );
-  } catch (e) {}
+  } catch (e) {/* unused /*/}
 
   // ===== 預設獎勵種子數據 =====
   const existingRewards = db
@@ -780,7 +780,7 @@ function initDatabase() {
     db.exec(
       "CREATE INDEX IF NOT EXISTS idx_user_badges_user ON user_badges(user_id)",
     );
-  } catch (e) {}
+  } catch (e) {/* unused /*/}
 
   // ===== 評價系統 (雙方互評: 學生↔教練) =====
   db.exec(`
@@ -804,10 +804,10 @@ function initDatabase() {
     db.exec(
       "ALTER TABLE bookings ADD COLUMN reviewed_student INTEGER DEFAULT 0",
     );
-  } catch (e) {}
+  } catch (e) {/* unused /*/}
   try {
     db.exec("ALTER TABLE bookings ADD COLUMN reviewed_coach INTEGER DEFAULT 0");
-  } catch (e) {}
+  } catch (e) {/* unused /*/}
 
   // ===== 預設勳章種子數據 =====
   const existingBadges = db
@@ -1246,7 +1246,7 @@ function initDatabase() {
   try {
     db.exec("CREATE INDEX IF NOT EXISTS idx_coach_ratings_coach ON coach_ratings(coach_id)");
     db.exec("CREATE INDEX IF NOT EXISTS idx_coach_ratings_user ON coach_ratings(user_id)");
-  } catch (e) {}
+  } catch (e) {/* unused /*/}
 
   // ===== Anti-Scalping 反炒場系統表 =====
   db.exec(`
@@ -1266,7 +1266,7 @@ function initDatabase() {
     db.exec("CREATE INDEX IF NOT EXISTS idx_suspicious_user ON suspicious_activity(user_id)");
     db.exec("CREATE INDEX IF NOT EXISTS idx_suspicious_ip ON suspicious_activity(ip_address)");
     db.exec("CREATE INDEX IF NOT EXISTS idx_suspicious_created ON suspicious_activity(created_at)");
-  } catch (e) {}
+  } catch (e) {/* unused /*/}
 
   db.exec(`
     CREATE TABLE IF NOT EXISTS user_suspensions (
@@ -1283,7 +1283,7 @@ function initDatabase() {
   try {
     db.exec("CREATE INDEX IF NOT EXISTS idx_suspensions_user ON user_suspensions(user_id)");
     db.exec("CREATE INDEX IF NOT EXISTS idx_suspensions_status ON user_suspensions(status)");
-  } catch (e) {}
+  } catch (e) {/* unused /*/}
 
   db.exec(`
     CREATE TABLE IF NOT EXISTS request_log (
@@ -1300,7 +1300,7 @@ function initDatabase() {
     db.exec("CREATE INDEX IF NOT EXISTS idx_request_log_user ON request_log(user_id)");
     db.exec("CREATE INDEX IF NOT EXISTS idx_request_log_ip ON request_log(ip_address)");
     db.exec("CREATE INDEX IF NOT EXISTS idx_request_log_created ON request_log(created_at)");
-  } catch (e) {}
+  } catch (e) {/* unused /*/}
 
   // IPO audit log migration
   try {
@@ -1398,12 +1398,12 @@ function initDatabase() {
   `);
 
   // 相容升級：email_verified, verification_token
-  try { db.exec("ALTER TABLE users ADD COLUMN email_verified INTEGER DEFAULT 0"); } catch (e) {}
-  try { db.exec("ALTER TABLE users ADD COLUMN verification_token TEXT"); } catch (e) {}
-  try { db.exec("ALTER TABLE users ADD COLUMN verification_token_expires TEXT"); } catch (e) {}
+  try { db.exec("ALTER TABLE users ADD COLUMN email_verified INTEGER DEFAULT 0"); } catch (e) {/* unused /*/}
+  try { db.exec("ALTER TABLE users ADD COLUMN verification_token TEXT"); } catch (e) {/* unused /*/}
+  try { db.exec("ALTER TABLE users ADD COLUMN verification_token_expires TEXT"); } catch (e) {/* unused /*/}
 
   // 相容升級：plan_id on memberships
-  try { db.exec("ALTER TABLE memberships ADD COLUMN plan_id TEXT"); } catch (e) {}
+  try { db.exec("ALTER TABLE memberships ADD COLUMN plan_id TEXT"); } catch (e) {/* unused /*/}
 
   // ===== Wishlist 收藏課程表 =====
   db.exec(`
@@ -1420,11 +1420,11 @@ function initDatabase() {
   try {
     db.exec("CREATE INDEX IF NOT EXISTS idx_wishlist_user ON wishlist(user_id)");
     db.exec("CREATE INDEX IF NOT EXISTS idx_wishlist_user_class ON wishlist(user_id, class_id)");
-  } catch (e) {}
+  } catch (e) {/* unused /*/}
 
   // 相容升級：partner_reference on partner_venues（區塊鏈追溯用）
-  try { db.exec("ALTER TABLE partner_venues ADD COLUMN partner_reference TEXT"); } catch (e) {}
-  try { db.exec("CREATE INDEX IF NOT EXISTS idx_partner_reference ON partner_venues(partner_reference)"); } catch (e) {}
+  try { db.exec("ALTER TABLE partner_venues ADD COLUMN partner_reference TEXT"); } catch (e) {/* unused /*/}
+  try { db.exec("CREATE INDEX IF NOT EXISTS idx_partner_reference ON partner_venues(partner_reference)"); } catch (e) {/* unused /*/}
 
   // ===== NPS 課後問卷表 =====
   db.exec(`
