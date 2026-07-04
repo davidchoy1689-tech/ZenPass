@@ -282,7 +282,8 @@
     card.setAttribute('data-price', priceHkd || 0);
     card.onclick = function() { window.location.href = 'booking.html?classId=' + cls.id; };
 
-    var bg = cls.image ? 'url(' + cls.image + ')' : 'linear-gradient(135deg, #10b981, #059669)';
+    var catImg = getCategoryImage(cls.category || cls.cat || "");
+    var bg = cls.image ? 'url(' + cls.image + ')' : (catImg ? 'url(' + catImg + ')' : 'linear-gradient(135deg, #10b981, #059669)');
     var icon = cls.image ? '' : '<div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:32px">🏃</div>';
 
     card.innerHTML =
