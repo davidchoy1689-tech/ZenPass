@@ -282,7 +282,7 @@
     card.setAttribute('data-price', priceHkd || 0);
     card.onclick = function() { window.location.href = 'booking.html?classId=' + cls.id; };
 
-    var catImg = getCategoryImage(cls.category || cls.cat || "");
+    var catImg = typeof getCategoryImage === "function" ? getCategoryImage(cls.category || cls.cat || "") : ({"伸展":"https://images.pexels.com/photos/4056535/pexels-photo-4056535.jpeg?auto=compress&cs=tinysrgb&w=600&h=400&fit=crop","瑜伽":"https://images.pexels.com/photos/4056535/pexels-photo-4056535.jpeg?auto=compress&cs=tinysrgb&w=600&h=400&fit=crop","冥想":"https://images.pexels.com/photos/3822622/pexels-photo-3822622.jpeg?auto=compress&cs=tinysrgb&w=600&h=400&fit=crop","拳擊":"https://images.pexels.com/photos/3755342/pexels-photo-3755342.jpeg?auto=compress&cs=tinysrgb&w=600&h=400&fit=crop"}[cls.category || cls.cat] || "");
     var bg = cls.image ? 'url(' + cls.image + ')' : (catImg ? 'url(' + catImg + ')' : 'linear-gradient(135deg, #10b981, #059669)');
     var icon = cls.image ? '' : '<div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:32px">🏃</div>';
 
@@ -774,6 +774,7 @@
   });
   </script>
 
+  <script src="category-images.js"></script>
   <script src="js/booking-sync.js"></script>
   <script src="js/booking-system.js"></script>
 
