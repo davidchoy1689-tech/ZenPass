@@ -8,10 +8,15 @@ echo "===================="
 
 # ——— Pre-flight checks ———
 
-# Check JWT_SECRET
+# Check JWT_SECRET — fallback to .env file if not in env
 if [ -z "$JWT_SECRET" ] || [ ${#JWT_SECRET} -lt 32 ]; then
-  echo "❌ JWT_SECRET 未設定或太短（需要 ≥32 字元）"
-  exit 1
+  if [ -f /var/www/zenpass/backend/.env ]; then
+    source /var/www/zenpass/backend/.env 2>/dev/null
+  fi
+  if [ -z "$JWT_SECRET" ] || [ ${#JWT_SECRET} -lt 32 ]; then
+    echo "❌ JWT_SECRET 未設定或太短（需要 ≥32 字元）"
+    exit 1
+  fi
 fi
 
 # Install backend dependencies
