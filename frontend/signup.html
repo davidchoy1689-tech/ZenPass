@@ -141,7 +141,7 @@
     <div class="auth-card">
       <div class="auth-logo">
         <div class="icon">🧘</div>
-        <h1>註冊 ZenPass 帳戶</h1>
+        <h1>零壓力開始</h1>
         <p>一個Pass，通行全城運動體驗</p>
       </div>
 
@@ -150,6 +150,16 @@
         <button class="auth-tab active" onclick="switchTab('signup')">註冊</button>
         <button class="auth-tab" onclick="switchTab('login')">登入</button>
       </div>
+
+      <!-- One-click Login -->
+      <button type="button" onclick="appleLogin()" class="social-btn" style="background:#000;color:#fff;border:none;padding:14px;margin-bottom:10px">
+        <span style="font-size:20px"></span> 用 Apple 登入
+      </button>
+      <div class="g_id_signin social-btn" style="cursor:pointer;padding:14px" onclick="handleGoogleSignUp()">
+        <span style="font-size:18px;font-weight:700;color:#4285f4">G</span> 用 Google 登入
+      </div>
+
+      <div class="divider">或用電郵註冊</div>
 
       <!-- Signup Form -->
       <form id="signup-form" onsubmit="return handleSignup(event)">
@@ -174,12 +184,13 @@
           <input type="tel" id="signup-phone" placeholder="+852 9123 4567" />
         </div>
         <button type="submit" class="btn btn-primary" id="signup-btn">
-          註冊帳戶
+          免費註冊並領取首堂
         </button>
         <div class="msg" id="signup-msg"></div>
       </form>
 
-      <div class="divider">或</div>
+      <!-- Apple Sign In redirect -->
+      <div id="appleid-signin" data-color="black" data-border="true" data-type="sign-in" style="display:none"></div>
 
       <!-- Google Sign In -->
       <div id="g_id_onload"
@@ -273,6 +284,11 @@
           btn.disabled = false;
           btn.textContent = '註冊帳戶';
         }
+      }
+
+      function appleLogin() {
+        // Apple Sign In redirect
+        window.location.href = 'login.html?apple=1';
       }
 
       function handleGoogleSignUp() {
