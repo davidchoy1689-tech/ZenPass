@@ -1952,17 +1952,9 @@ function closeQuickBooking() {
 <script>
   function hideSkeleton() {
     var sk = document.getElementById('skeleton-loader');
-    if (sk) {
-      sk.style.transition = 'opacity 0.4s';
-      sk.style.opacity = '0';
-      setTimeout(function(){if(sk.parentNode)sk.parentNode.removeChild(sk)}, 500);
-    }
+    if (sk) sk.style.display = 'none';
   }
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', function(){setTimeout(hideSkeleton, 300);});
-  } else {
-    setTimeout(hideSkeleton, 300);
-  }
+  window.addEventListener('load', function() { setTimeout(hideSkeleton, 100); });
 </script>
 </body>
 </html>
