@@ -52,6 +52,9 @@ const API_BASE = (() => {
   return "/api";
 })();
 
+// Also expose globally so other scripts (nav.js, etc.) can reference it
+window.API_BASE = API_BASE;
+
 // ===== OAuth Config (injected via login.html or .env) =====
 // Set these before GIS/Apple SDK loads
 window.ZENPASS_GOOGLE_CLIENT_ID = window.ZENPASS_GOOGLE_CLIENT_ID || "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com";

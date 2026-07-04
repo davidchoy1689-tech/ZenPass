@@ -219,7 +219,7 @@
     if (!isLoggedIn()) return;
     var badge = document.getElementById('wishlistBadge');
     if (!badge) return;
-    fetch((window.API_BASE || '') + '/wishlist/count', {
+    fetch((window.API_BASE || '/api') + '/wishlist/count', {
       headers: getAuthHeaders()
     })
     .then(function(r) { return r.json(); })
@@ -259,7 +259,7 @@
       if (callback) callback(null);
       return;
     }
-    var API_BASE = window.API_BASE || '';
+    var API_BASE = window.API_BASE || '/api';
     fetch(API_BASE + '/loyalty/my', {
       headers: { 'Authorization': 'Bearer ' + token }
     })

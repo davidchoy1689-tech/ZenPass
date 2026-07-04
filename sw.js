@@ -1,12 +1,12 @@
-/* ZenPass Service Worker — v5 (improved offline + push)
+/* ZenPass Service Worker — v7 (full file sync)
  * Cache-first for static assets, network-first for pages
  * Install event pre-caches critical assets
  */
 
-const CACHE_STATIC = "zenpass-static-v5";
-const CACHE_PAGES = "zenpass-pages-v5";
-const CACHE_DYNAMIC = "zenpass-dynamic-v5";
-const CACHE_IMAGES = "zenpass-images-v5";
+const CACHE_STATIC = "zenpass-static-v7";
+const CACHE_PAGES = "zenpass-pages-v7";
+const CACHE_DYNAMIC = "zenpass-dynamic-v7";
+const CACHE_IMAGES = "zenpass-images-v7";
 
 const STATIC_ASSETS = [
   "/css/zenpass.css",

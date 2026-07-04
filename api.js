@@ -3,6 +3,16 @@
  * 連接前端與後端的橋樑
  */
 
+// ===== Global Utility Helpers =====
+function escHtml(s) {
+  if (!s) return "";
+  return String(s)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
 // ===== Name-keyed Storage Helper =====
 function zpKey(baseKey) {
   var name = localStorage.getItem("zenpass_name") || "default";
@@ -41,6 +51,17 @@ const API_BASE = (() => {
   // In that case, the courses.json fallback kicks in for read-only viewing
   return "/api";
 })();
+
+// Also expose globally so other scripts (nav.js, etc.) can reference it
+window.API_BASE = API_BASE;
+
+// ===== OAuth Config (injected via login.html or .env) =====
+// Set these before GIS/Apple SDK loads
+window.ZENPASS_GOOGLE_CLIENT_ID = window.ZENPASS_GOOGLE_CLIENT_ID || "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com";
+window.ZENPASS_APPLE_CLIENT_ID = window.ZENPASS_APPLE_CLIENT_ID || "YOUR_APPLE_CLIENT_ID";
+
+// Store Apple client ID for login.html usage
+localStorage.setItem("zenpass_apple_client_id", window.ZENPASS_APPLE_CLIENT_ID);
 
 // ===== Backend Health Check (for GitHub Pages) =====
 var BACKEND_ONLINE = true;
@@ -171,8 +192,38 @@ function isAdmin() {
   return user && (user.role === "admin" || user.email === "david@zenpass.hk");
 }
 
+/**
+ * Check if user is logged in (synchronous fast path).
+ * Checks localStorage token, then falls back to sessionStorage.
+ * For cookie-only auth detection, use checkCookieSession() on page load.
+ */
 function isLoggedIn() {
-  return !!getToken();
+  return !!(getToken() || sessionStorage.getItem("zenpass_token"));
+}
+
+/**
+ * Check server-side auth session via cookie (async).
+ * Call on page load to detect cookie-only authenticated users.
+ * If cookie session exists, populate localStorage with user data.
+ * @returns {Promise<boolean>}
+ */
+var _cookieSessionChecked = false;
+async function checkCookieSession() {
+  if (_cookieSessionChecked) return isLoggedIn();
+  _cookieSessionChecked = true;
+  
+  // Already have localStorage token, no need to check
+  if (getToken()) return true;
+  
+  try {
+    var user = await auth.checkSession();
+    if (user) {
+      storeUser(user);
+      sessionStorage.setItem("zenpass_token", "cookie_session");
+      return true;
+    }
+  } catch (e) {}
+  return false;
 }
 
 // ===== API 請求封裝 =====
@@ -185,7 +236,9 @@ async function apiRequest(method, path, data = null) {
     headers["Authorization"] = `Bearer ${token}`;
   }
 
-  const options = { method, headers };
+  // credentials: 'include' ensures HTTP-only cookies are sent
+  // This enables cookie-based auth alongside the Authorization header fallback
+  const options = { method, headers, credentials: "include" };
   if (data && (method === "POST" || method === "PUT")) {
     options.body = JSON.stringify(data);
   }
@@ -195,6 +248,18 @@ async function apiRequest(method, path, data = null) {
     const result = await response.json();
 
     if (!response.ok) {
+      // Token expired / auth invalid → auto redirect to login
+      if (
+        response.status === 401 ||
+        (result.error &&
+          (result.error.includes("認證無效") || result.error.includes("過期")))
+      ) {
+        var redirectUrl = window.location.href;
+        localStorage.removeItem("zenpass_token");
+        window.location.href =
+          "login.html?redirect=" + encodeURIComponent(redirectUrl);
+        return;
+      }
       throw new Error(result.error || `請求失敗 (${response.status})`);
     }
 
@@ -205,6 +270,13 @@ async function apiRequest(method, path, data = null) {
       err.message.includes("NetworkError")
     ) {
       throw new Error("無法連接到伺服器，請檢查網絡連線");
+    }
+    if (err.message.includes("認證無效") || err.message.includes("過期")) {
+      var redirectUrl = window.location.href;
+      localStorage.removeItem("zenpass_token");
+      window.location.href =
+        "login.html?redirect=" + encodeURIComponent(redirectUrl);
+      return;
     }
     throw err;
   }
@@ -222,11 +294,12 @@ async function apiPost(path, body, isFormData = false) {
 
   // Don't set Content-Type for FormData (browser sets it with boundary)
   const options = isFormData
-    ? { method: "POST", headers, body }
+    ? { method: "POST", headers, body, credentials: "include" }
     : {
         method: "POST",
         headers: { ...headers, "Content-Type": "application/json" },
         body: JSON.stringify(body),
+        credentials: "include",
       };
 
   try {
@@ -253,6 +326,29 @@ const auth = {
   login: (data) => apiRequest("POST", "/auth/login", data),
   social: (data) => apiRequest("POST", "/auth/social", data),
   me: () => apiRequest("GET", "/auth/me"),
+  logout: () => apiRequest("POST", "/auth/logout"),
+  /**
+   * Check if user is authenticated by calling /api/auth/me
+   * Used for cookie-only auth check when localStorage has no token
+   * @returns {Promise<object|null>} user object or null
+   */
+  checkSession: async () => {
+    try {
+      var resp = await fetch(API_BASE + "/auth/me", {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include", // Send cookies even for cross-origin
+      });
+      if (!resp.ok) return null;
+      var data = await resp.json();
+      if (data && data.user) {
+        return data.user;
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
 };
 
 // ===== Courses.json fallback (when backend is offline) =====
@@ -478,7 +574,7 @@ const memberships = {
   subscribe: (data) => apiRequest("POST", "/memberships/subscribe", data),
   my: () => apiRequest("GET", "/memberships/my"),
   credits: (data) => apiRequest("POST", "/memberships/credits", data),
-  packages: () => apiRequest("GET", "/memberships/credits/packages"),
+  packages: () => apiRequest("GET", "/pricing/packages"),
 };
 
 // ===== 用戶 API =====
@@ -710,13 +806,24 @@ function showLoginModal(callback) {
     }
   };
 
-  // Social login placeholder
+  // Social login — Google / Apple
   overlay.querySelectorAll(".zen-btn-social").forEach((btn) => {
-    btn.onclick = () => {
-      showToast(
-        `${btn.dataset.provider === "apple" ? "Apple" : "Google"} 登入將在正式部署後啟用`,
-        "info",
-      );
+    btn.onclick = async function () {
+      var provider = this.dataset.provider;
+      if (provider === "google") {
+        // Trigger Google Sign-In popup via GIS
+        if (typeof google !== "undefined" && google.accounts) {
+          google.accounts.id.prompt(function (notification) {
+            if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+              showToast("Google 登入視窗未能顯示，請檢查瀏覽器設定", "warning");
+            }
+          });
+        } else {
+          showToast("Google SDK 尚未載入，請刷新頁面", "info");
+        }
+      } else if (provider === "apple") {
+        showToast("Apple 登入請到 login.html 頁面操作", "info");
+      }
     };
   });
 }
@@ -746,6 +853,16 @@ function updateNavBar() {
   const userInfo = document.querySelectorAll(".zen-user-info");
 
   authBtns.forEach((el) => {
+    // Preserve dark mode toggle and hamburger button
+    var extras = '';
+    var existingHamburger = el.querySelector('#hamburgerBtn');
+    var existingDark = el.querySelector('#darkModeToggle');
+    if (existingHamburger) extras += existingHamburger.outerHTML;
+    if (existingDark) extras += existingDark.outerHTML;
+    // Also add them if they don't exist (for JS-reinjected headers)
+    if (!existingHamburger) extras += '<button id="hamburgerBtn" onclick="toggleMobileMenu()" style="background:rgba(255,255,255,0.15);backdrop-filter:blur(4px);border:none;border-radius:50%;font-size:22px;cursor:pointer;width:42px;height:42px;padding:0;color:#fff;display:flex;align-items:center;justify-content:center" aria-label="選單">☰</button>';
+    if (!existingDark) extras += '<button id="darkModeToggle" onclick="toggleDarkMode()" style="background:none;border:none;font-size:20px;cursor:pointer;padding:8px;min-width:44px;min-height:44px;color:#fff" aria-label="切換深色模式">🌙</button>';
+    
     if (isLoggedIn() && user) {
       var pts = user.points || 0;
       el.innerHTML = `
@@ -754,12 +871,12 @@ function updateNavBar() {
                     <span class="zen-user-name">${user.name}</span>
                     <span class="zen-points-badge" style="background:#fff0e8;color:#ff6b35;font-size:11px;font-weight:600;padding:2px 8px;border-radius:99px;margin-left:6px;white-space:nowrap">🎯 ${pts}</span>
                 </div>
-            `;
+            ` + extras;
     } else {
       el.innerHTML = `
                 <a href="#" class="zen-btn-ghost" onclick="showLoginModal(); return false;">登入</a>
                 <a href="#" class="zen-btn-small" onclick="showLoginModal(); return false;">註冊</a>
-            `;
+            ` + extras;
     }
   });
 }
@@ -802,9 +919,19 @@ function showUserMenu() {
 }
 
 function logout() {
-  clearToken();
-  showToast("已登出", "info");
-  location.reload();
+  // Call backend to clear HTTP-only cookie, then clear localStorage
+  // Use raw fetch to avoid circular dependency with apiRequest
+  fetch(API_BASE + "/auth/logout", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+  }).catch(function() {
+    // Silently fail - cookie might not exist
+  }).finally(function() {
+    clearToken();
+    showToast("已登出", "info");
+    location.reload();
+  });
 }
 
 // ===== 全局錯誤監控 (Error Monitoring) =====
@@ -845,9 +972,55 @@ function logout() {
   }
 })();
 
+// ===== Push Notification Subscription =====
+function subscribePush() {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+
+  var token = localStorage.getItem('zenpass_token');
+  if (!token) return;
+
+  navigator.serviceWorker.register('/sw.js')
+    .then(function(reg) {
+      return reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array('BGOuSvnpcbHhzdPBhNlMhk28DpyDzMgkLJMSdPcWhzDk_VoRUMdqhU6BzDktjwX9jyNfGDzHpr13cX8cRciQb08')
+      });
+    })
+    .then(function(sub) {
+      return fetch('/api/notifications/push-subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify({ subscription: sub.toJSON() })
+      });
+    })
+    .catch(function(err) {
+      console.log('Push subscription skipped:', err.message);
+    });
+}
+
+// Convert base64url to Uint8Array (required by pushManager.subscribe)
+function urlBase64ToUint8Array(base64String) {
+  var padding = '='.repeat((4 - base64String.length % 4) % 4);
+  var base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  var rawData = window.atob(base64);
+  var output = new Uint8Array(rawData.length);
+  for (var i = 0; i < rawData.length; ++i) {
+    output[i] = rawData.charCodeAt(i);
+  }
+  return output;
+}
+
+// Call subscription on page load if logged in
+document.addEventListener('DOMContentLoaded', function() {
+  if (localStorage.getItem('zenpass_token')) {
+    subscribePush();
+  }
+});
+
 // ===== Google Analytics 4 (pages that include api.js get GA automatically) =====
-// TODO: 註冊 Google Analytics 後，將 G-XXXXXXXX 替換為實際的 Measurement ID
+// Measurement ID: G-MKF5N4YLBM — 由 David Choy 開通
 (function () {
+  var gaId = "G-MKF5N4YLBM";
   if (
     window.gtag ||
     document.querySelector('script[src*="googletagmanager.com/gtag/js"]')
@@ -855,17 +1028,357 @@ function logout() {
     return;
   var s = document.createElement("script");
   s.async = true;
-  s.src = "https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXX";
+  s.src = "https://www.googletagmanager.com/gtag/js?id=" + gaId;
   document.head.appendChild(s);
   window.dataLayer = window.dataLayer || [];
   window.gtag = function () {
     dataLayer.push(arguments);
   };
   gtag("js", new Date());
-  gtag("config", "G-XXXXXXXX");
+  gtag("config", gaId);
 })();
+
+// ===== Skeleton Loading System =====
+// Tailwind-style pulse skeleton - 輕量、冇 Layout Shift
+// 核心原則：數據到就即 replace
+
+(function(){
+  var style = document.createElement('style');
+  style.textContent = `
+    @keyframes sk-shimmer {
+      100% { transform: translateX(100%); }
+    }
+    .sk-shimmer {
+      background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
+      background-size: 200% 100%;
+      animation: sk-shimmer 1.5s infinite;
+    }
+    .sk-block { background: #e5e7eb; border-radius: 8px; }
+    .dark .sk-block { background: #334155; }
+    .sk-h-40 { height: 160px; }  .sk-h-32 { height: 128px; }
+    .sk-h-24 { height: 96px; }   .sk-h-20 { height: 80px; }
+    .sk-h-16 { height: 64px; }   .sk-h-14 { height: 56px; }
+    .sk-h-12 { height: 48px; }   .sk-h-10 { height: 40px; }
+    .sk-h-8  { height: 32px; }   .sk-h-6  { height: 24px; }
+    .sk-h-4  { height: 16px; }   .sk-h-3  { height: 12px; }
+    .sk-w-full { width: 100%; }  .sk-w-3\\/4 { width: 75%; }
+    .sk-w-1\\/2 { width: 50%; }  .sk-w-1\\/3 { width: 33%; }
+    .sk-w-20 { width: 80px; }    .sk-w-16 { width: 64px; }
+    .sk-w-12 { width: 48px; }
+    .sk-rounded { border-radius: 8px; }
+    .sk-mb-2 { margin-bottom: 8px; } .sk-mb-3 { margin-bottom: 12px; }
+    .sk-mb-4 { margin-bottom: 16px; }
+    .sk-card { background: #fff; border-radius: 14px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border: 1px solid rgba(0,0,0,0.04); }
+    .sk-card-body { padding: 12px; }
+    .sk-flex { display: flex; }  .sk-flex-col { flex-direction: column; }
+    .sk-items-center { align-items: center; }
+    .sk-gap-2 { gap: 8px; } .sk-gap-3 { gap: 12px; } .sk-gap-4 { gap: 16px; }
+    .sk-p-3 { padding: 12px; }  .sk-p-4 { padding: 16px; }
+    .sk-flex-shrink-0 { flex-shrink: 0; }
+    .sk-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
+  `;
+  document.head.appendChild(style);
+})();
+
+/**
+ * Show Tailwind-style skeleton loader in a container
+ * @param {HTMLElement} container - target element
+ * @param {string} type - 'grid'|'featured'|'booking'|'coach'|'activity'|'detail'
+ * @param {number} count - number of items (default 3)
+ */
+function showSkeleton(container, type, count, timeoutSec) {
+  if (!container) return;
+  count = count || 3;
+  timeoutSec = timeoutSec || 15;
+  container.setAttribute('aria-busy', 'true');
+  var html = '';
+  var card, i;
+
+  function line(w, h) {
+    return '<div class="sk-block sk-shimmer sk-' + h + ' sk-' + w + ' sk-mb-2" aria-hidden="true"></div>';
+  }
+
+  // Timeout fallback
+  if (container._skTimeout) clearTimeout(container._skTimeout);
+  container._skTimeout = setTimeout(function() {
+    if (container.getAttribute('aria-busy') === 'true') {
+      showError(container, '載入時間較長', '請檢查網絡連線或重新整理');
+      container.setAttribute('aria-busy', 'false');
+    }
+  }, timeoutSec * 1000);
+
+  switch(type) {
+    case 'grid':
+    case 'course':
+      html = '<div class="sk-grid">';
+      for(i = 0; i < count; i++) {
+        card = '<div class="sk-card">' +
+          '<div class="sk-block sk-shimmer sk-h-32 sk-w-full" aria-hidden="true"></div>' +
+          '<div class="sk-card-body">' +
+          line('w-3\\/4', 'h-4') +
+          line('w-1\\/2', 'h-4') +
+          '<div class="sk-flex sk-gap-2" style="margin-top:4px">' +
+          '<div class="sk-block sk-shimmer sk-h-4 sk-w-20" aria-hidden="true"></div>' +
+          '<div class="sk-block sk-shimmer sk-h-4 sk-w-16" aria-hidden="true"></div>' +
+          '</div></div></div>';
+        html += card;
+      }
+      html += '</div>';
+      break;
+    case 'featured':
+      for(i = 0; i < count; i++) {
+        html += '<div class="sk-card sk-flex" style="margin-bottom:8px">' +
+          '<div class="sk-block sk-shimmer sk-h-20 sk-w-20 sk-flex-shrink-0" style="border-radius:0" aria-hidden="true"></div>' +
+          '<div class="sk-p-3 sk-flex-1">' +
+          line('w-3\\/4', 'h-4') +
+          line('w-1\\/2', 'h-3') +
+          line('w-1\\/3', 'h-3') +
+          '</div></div>';
+      }
+      break;
+    case 'activity':
+      for(i = 0; i < count; i++) {
+        html += '<div class="sk-flex sk-items-center sk-gap-3 sk-p-3">' +
+          '<div class="sk-block sk-shimmer sk-h-10 sk-w-10 sk-rounded-full sk-flex-shrink-0" aria-hidden="true"></div>' +
+          '<div class="sk-flex-1">' +
+          line('w-3\\/4', 'h-3') +
+          line('w-1\\/2', 'h-3') +
+          '</div></div>';
+      }
+      break;
+    case 'coach':
+      html = '<div class="sk-grid" style="grid-template-columns:repeat(auto-fill,minmax(160px,1fr))">';
+      for(i = 0; i < count; i++) {
+        html += '<div class="sk-card sk-p-4 sk-flex sk-flex-col sk-items-center sk-gap-3">' +
+          '<div class="sk-block sk-shimmer sk-h-16 sk-w-16 sk-rounded-full" aria-hidden="true"></div>' +
+          line('w-3\\/4', 'h-3') +
+          line('w-1\\/2', 'h-3') +
+          '</div>';
+      }
+      html += '</div>';
+      break;
+    case 'booking':
+      for(i = 0; i < count; i++) {
+        html += '<div class="sk-flex sk-items-center sk-gap-3 sk-p-3 sk-card sk-mb-3">' +
+          '<div class="sk-block sk-shimmer sk-h-14 sk-w-14 sk-rounded sk-flex-shrink-0" aria-hidden="true"></div>' +
+          '<div class="sk-flex-1">' +
+          line('w-3\\/4', 'h-4') +
+          line('w-1\\/2', 'h-3') +
+          line('w-1\\/3', 'h-3') +
+          '</div></div>';
+      }
+      break;
+    case 'detail':
+      html = '<div style="max-width:600px;margin:0 auto;padding:16px">' +
+        '<div class="sk-block sk-shimmer sk-h-40 sk-w-full sk-mb-4" aria-hidden="true"></div>' +
+        line('w-3\\/4', 'h-6') +
+        line('w-full', 'h-4') +
+        line('w-3\\/4', 'h-4') +
+        '<div class="sk-flex sk-gap-3" style="margin-top:12px">' +
+        '<div class="sk-block sk-shimmer sk-h-6 sk-w-20" aria-hidden="true"></div>' +
+        '<div class="sk-block sk-shimmer sk-h-6 sk-w-16" aria-hidden="true"></div>' +
+        '</div></div>';
+      break;
+  }
+  container.innerHTML = html;
+}
+
+/** Remove skeleton from container */
+function hideSkeleton(container) {
+  if (!container) return;
+  if (container._skTimeout) clearTimeout(container._skTimeout);
+  container.setAttribute('aria-busy', 'false');
+  container.innerHTML = '';
+}
+
+// ===== Unified Error Display =====
+/**
+ * Show consistent error message in a container
+ * @param {HTMLElement} container - target element
+ * @param {string} title - short error title (e.g. '載入失敗')
+ * @param {string} msg - detail message
+ * @param {function} retryFn - optional retry callback
+ */
+function showError(container, title, msg, retryFn) {
+  if (!container) return;
+  hideSkeleton(container);
+  var btnHtml = retryFn
+    ? '<button onclick="location.reload()" style="margin-top:12px;padding:8px 20px;background:#2563eb;color:#fff;border:none;border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit">🔄 重試</button>'
+    : '<a href="#" onclick="location.reload();return false" style="color:#2563eb;text-decoration:underline;font-size:13px;display:inline-block;margin-top:12px">🔄 重新整理</a>';
+  container.innerHTML = '<div style="text-align:center;padding:40px 20px">' +
+    '<div style="font-size:40px;margin-bottom:8px">😵</div>' +
+    '<div style="font-size:15px;font-weight:600;color:#1a1a2e;margin-bottom:4px">' + escHtml(title) + '</div>' +
+    '<div style="font-size:12px;color:#666;margin-bottom:4px;line-height:1.5">' + escHtml(msg) + '</div>' +
+    btnHtml +
+    '</div>';
+}
+
+// ===== Perf: Convert Pexels images to WebP + lazy load =====
+function optimizeImages() {
+  document.querySelectorAll('img').forEach(function(img) {
+    // Pexels to WebP
+    if (img.src && img.src.includes('pexels.com') && !img.src.includes('fm=webp')) {
+      img.src = img.src.replace('auto=compress', 'auto=compress&fm=webp');
+    }
+    // Lazy loading (skip first few above-fold images)
+    var rect = img.getBoundingClientRect();
+    if (rect.top > 600 && !img.hasAttribute('loading')) {
+      img.setAttribute('loading', 'lazy');
+    }
+    // Dimension hints to prevent CLS
+    if (!img.hasAttribute('width') && img.naturalWidth) {
+      img.setAttribute('width', img.naturalWidth);
+      img.setAttribute('height', img.naturalHeight);
+    }
+    // Alt text for dynamic images
+    if (!img.hasAttribute('alt') || img.getAttribute('alt') === '') {
+      // Try parent elements for context clues
+      var parent = img.parentElement;
+      var context = '';
+      if (parent) {
+        var titleEl = parent.querySelector('.class-title, .course-title, [class*=title], [class*=name]');
+        if (titleEl) context = titleEl.textContent.trim().substring(0,60);
+      }
+      if (!context && img.src) {
+        // Extract from URL filename or pexels alt
+        var parts = img.src.split('/');
+        var last = parts[parts.length-1].split('?')[0].replace(/[_-]/g,' ');
+        if (last && last.length < 40) context = last;
+      }
+      img.setAttribute('alt', context || 'ZenPass 課程圖片');
+    }
+  });
+  // Also observe new images added dynamically
+  if (window.MutationObserver) {
+    var observer = new MutationObserver(function(muts) {
+      for (var m of muts) {
+        for (var n of m.addedNodes) {
+          if (n.nodeType === 1 && n.tagName === 'IMG') {
+            if (n.src && n.src.includes('pexels.com') && !n.src.includes('fm=webp')) {
+              n.src = n.src.replace('auto=compress', 'auto=compress&fm=webp');
+            }
+            if (!n.hasAttribute('alt') || n.getAttribute('alt') === '') {
+              n.setAttribute('alt', 'ZenPass 課程圖片');
+            }
+          }
+        }
+      }
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+  }
+}
+
+// ===== Hotjar (load on all pages) =====
+(function(h,o,t,j,a,r){
+    h.hj=h.hj||function(){(h.hj.q=h.hj.q||[]).push(arguments)};
+    h._hjSettings={hjid:0,hjsv:6};
+    a=o.getElementsByTagName('head')[0];
+    r=o.createElement('script');r.async=1;
+    r.src=t+h._hjSettings.hjid+j+h._hjSettings.hjsv;
+    a.appendChild(r);
+})(window,document,'https://static.hotjar.com/c/hotjar-','.js?sv=');
+
+// ===== Page view tracking (anonymous) =====
+function trackPageView() {
+  try {
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", API_BASE + "/track/pageview", true);
+    xhr.setRequestHeader("Content-Type", "application/json");
+    xhr.send(JSON.stringify({
+      page: window.location.pathname,
+      title: document.title,
+      referrer: document.referrer || ''
+    }));
+  } catch(e) {}
+}
+
+// ===== A/B Testing Framework =====
+var ZP_AB = (function() {
+  var sessionId = localStorage.getItem('zp_session') || 'sess_' + Date.now() + '_' + Math.random().toString(36).slice(2,8);
+  localStorage.setItem('zp_session', sessionId);
+
+  function getVariant(experimentId, variants) {
+    // Deterministic assignment based on session + experiment
+    var hash = 0;
+    var str = sessionId + '_' + experimentId;
+    for (var i = 0; i < str.length; i++) {
+      hash = ((hash << 5) - hash) + str.charCodeAt(i);
+      hash |= 0;
+    }
+    var idx = Math.abs(hash) % variants.length;
+    return variants[idx];
+  }
+
+  function track(experimentId, variant, eventType) {
+    try {
+      var xhr = new XMLHttpRequest();
+      xhr.open('POST', API_BASE + '/ab/track', true);
+      xhr.setRequestHeader('Content-Type', 'application/json');
+      xhr.send(JSON.stringify({
+        experiment_id: experimentId,
+        variant: variant,
+        event_type: eventType,
+        session_id: sessionId,
+        page: window.location.pathname
+      }));
+    } catch(e) {}
+  }
+
+  return { getVariant: getVariant, track: track };
+})();
+
+// ===== Auto-skeleton: replace "載入中" text with skeleton placeholders =====
+function autoSkeleton() {
+  var containers = document.querySelectorAll('[id$="loading"], [id$="Loading"], [id$="loadingState"], .loading-state, .loading-spinner');
+  containers.forEach(function(el) {
+    if (!el.querySelector('.sk-block')) {
+      var type = 'grid';
+      if (el.closest('.coach-card, [class*=coach]')) type = 'coach';
+      if (el.closest('.booking-card, [class*=booking]')) type = 'booking';
+      if (window.showSkeleton) showSkeleton(el, type, 3, 10);
+    }
+  });
+}
+
+// ===== GA4 Conversion Events =====
+function gaEvent(action, label, value) {
+  try {
+    if (typeof gtag === 'function') {
+      gtag('event', action, { event_category: 'engagement', event_label: label, value: value || 1 });
+    }
+  } catch(e) {}
+}
+
+// Track key page interactions
+function initConversionTracking() {
+  // Booking clicks
+  document.addEventListener('click', function(e) {
+    var el = e.target.closest('[href*="class-detail.html"]');
+    if (el) { gaEvent('view_item', el.getAttribute('href') || 'class-detail'); return; }
+    el = e.target.closest('.btn-primary, [class*=btn-], .zen-btn-small, .cta-btn');
+    if (el) {
+      var txt = (el.textContent || el.innerText || '').trim().slice(0, 30);
+      if (txt) gaEvent('click', txt);
+    }
+    el = e.target.closest('#searchBtn');
+    if (el) gaEvent('search', 'header_search');
+  });
+}
 
 // ===== Init on load =====
 document.addEventListener("DOMContentLoaded", () => {
   updateNavBar();
+  optimizeImages();
+  trackPageView();
+  autoSkeleton();
+  initConversionTracking();
+  
+  // Cookie-based auth detection: check if user has a server session
+  // without localStorage token (e.g. new signup via backend cookie)
+  checkCookieSession().then(function(loggedIn) {
+    if (loggedIn) {
+      // Re-render nav with user data from cookie session
+      updateNavBar();
+    }
+  }).catch(function() {});
 });

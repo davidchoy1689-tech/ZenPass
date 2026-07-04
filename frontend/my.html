@@ -80,7 +80,7 @@
         // 加載 Loyalty Tier 資訊
         var tierInfo = null;
         try {
-          var tierResp = await fetch(API_BASE + '/loyalty/my', { headers: getAuthHeaders() });
+          var tierResp = await fetch((window.API_BASE || '/api') + '/loyalty/my', { headers: getAuthHeaders() });
           if (tierResp.ok) tierInfo = await tierResp.json();
         } catch (e) { /* silent */ }
 
