@@ -167,7 +167,7 @@ function generateDemoHtml(result) {
 }
 
 function escHtml(s) {
-  if (s == null) return "";
+  if (s === null || s === undefined) return "";
   return String(s)
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
