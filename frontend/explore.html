@@ -280,7 +280,7 @@
     }
     card.setAttribute('data-credits', creditsCost || 0);
     card.setAttribute('data-price', priceHkd || 0);
-    card.onclick = function() { window.location.href = 'class-detail.html?id=' + cls.id; };
+    card.onclick = function() { window.location.href = 'booking.html?classId=' + cls.id; };
 
     var bg = cls.image ? 'url(' + cls.image + ')' : 'linear-gradient(135deg, #10b981, #059669)';
     var icon = cls.image ? '' : '<div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:32px">🏃</div>';
@@ -293,7 +293,7 @@
         '<div class="modern-card-meta">' + escHtml(cls.coach_name || '') + '</div>' +
         '<div class="modern-card-review"><div><span class="modern-card-stars">⭐⭐⭐⭐⭐</span></div><div class="modern-card-price">' + displayPrice + '</div></div>' +
         '<div class="modern-card-schedule"><span>📅 ' + escHtml(cls.time || '多個時段') + '</span><span>📍 ' + escHtml(cls.location || '香港') + '</span></div>' +
-        '<button class="modern-card-cta" onclick="event.stopPropagation();openBookingModalFor(this)" data-course=\'' + JSON.stringify(cls).replace(/'/g, "&#39;") + '\'>立即預約<span class="arrow">→</span></button>' +
+        '<button class="modern-card-cta" onclick="event.stopPropagation();bookClass(cls.id)" data-course=\'' + JSON.stringify(cls).replace(/'/g, "&#39;") + '\'>立即預約<span class="arrow">→</span></button>' +
       '</div>';
 
     return card;
@@ -423,11 +423,11 @@
       el.className = 'autocomplete-item';
       el.innerHTML = '<span class="ac-icon">🏃</span><span>' + escHtml(item.title || item.name || '') + '</span>';
       el.onclick = function() {
-        window.location.href = 'class-detail.html?id=' + (item.id || '');
+        window.location.href = 'booking.html?classId=' + (item.id || '');
       };
       (function(id) {
         el.onclick = function() {
-          window.location.href = 'class-detail.html?id=' + id;
+          window.location.href = 'booking.html?classId=' + id;
         };
       })(item.id);
       autocompleteDropdown.appendChild(el);
@@ -536,6 +536,11 @@
   var currentCourse = null;
   var explorePaymentType = 'credits';
   var bookedCourses = JSON.parse(localStorage.getItem('zenpass_booked')) || {};
+
+  // Direct booking page redirect
+  function bookClass(classId) {
+    window.location.href = 'booking.html?classId=' + classId;
+  }
 
   function openBookingModalFor(btn) {
     try {

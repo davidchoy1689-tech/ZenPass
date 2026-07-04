@@ -88,14 +88,19 @@
           <div style="font-size:13px;font-weight:600;color:var(--dark-700);margin-bottom:8px">📅 選擇日期 / 時段</div>
           <select id="modal-datetime" style="width:100%;padding:14px;border:1.5px solid var(--gray-200);border-radius:16px;font-size:15px;font-family:var(--font-zh);background:var(--white);outline:none;color:var(--dark-900);cursor:pointer"></select>
         </div>
-        <div style="background:var(--gray-50);border-radius:16px;padding:16px;margin-bottom:16px">
+        <!-- Payment info (dynamic) -->
+        <div id="modal-payment-info" style="background:var(--gray-50);border-radius:16px;padding:16px;margin-bottom:16px">
+          <div id="modal-payment-methods" style="display:none;gap:6px;margin-bottom:10px">
+            <button class="pay-tab active" data-pay="credits" onclick="selectExplorePayment('credits')">💎 Credits</button>
+            <button class="pay-tab" data-pay="single" onclick="selectExplorePayment('single')">💵 HK$</button>
+          </div>
           <div style="display:flex;justify-content:space-between;font-size:14px">
-            <span style="color:var(--dark-700)">使用 Pass</span>
+            <span style="color:var(--dark-700)" id="modal-pay-label">使用 Pass</span>
             <span style="font-weight:700;color:#10b981" id="modal-credits">1 Pass</span>
           </div>
           <div style="height:1px;background:var(--gray-200);margin:12px 0"></div>
           <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--gray-300)">
-            <span>剩餘 Pass</span>
+            <span>你嘅點數</span>
             <span style="font-weight:600;color:var(--dark-900)" id="modal-remaining">12</span>
           </div>
         </div>
@@ -198,7 +203,7 @@
         spots: parseInt(card.getAttribute('data-spots')),
         time: card.getAttribute('data-time') || '',
         image: card.getAttribute('data-image') || '',
-        credits: parseInt(card.getAttribute('data-credits')) || 1,
+        credits: parseInt(card.getAttribute('data-credits')) || 0,
         _domEl: card
       });
     });
@@ -259,12 +264,23 @@
     card.setAttribute('data-instructor', cls.coach_name || '');
     card.setAttribute('data-location', cls.location || '');
     card.setAttribute('data-difficulty', cls.difficulty || '');
-    card.setAttribute('data-price', cls.price || 0);
+    card.setAttribute('data-price', priceHkd || 0);
     card.setAttribute('data-spots', cls.spots || '');
     card.setAttribute('data-time', cls.time || '');
     card.setAttribute('data-image', cls.image || '');
-    card.setAttribute('data-credits', cls.credits || 1);
-    card.onclick = function() { window.location.href = 'class-detail.html?id=' + cls.id; };
+    var creditsCost = cls.credits_cost || 0;
+    var priceHkd = cls.price_hkd || 0;
+    var displayPrice = '';
+    if (creditsCost > 0) {
+      displayPrice = creditsCost + ' Pass <small>起</small>';
+    } else if (priceHkd > 0) {
+      displayPrice = 'HK$' + priceHkd + ' <small>起</small>';
+    } else {
+      displayPrice = '免費';
+    }
+    card.setAttribute('data-credits', creditsCost || 0);
+    card.setAttribute('data-price', priceHkd || 0);
+    card.onclick = function() { window.location.href = 'booking.html?classId=' + cls.id; };
 
     var bg = cls.image ? 'url(' + cls.image + ')' : 'linear-gradient(135deg, #10b981, #059669)';
     var icon = cls.image ? '' : '<div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:32px">🏃</div>';
@@ -275,9 +291,9 @@
         '<div class="modern-card-tags"><span class="modern-card-tag">' + escHtml(cls.category || '運動') + '</span></div>' +
         '<div class="modern-card-title">' + escHtml(cls.title || '課程') + '</div>' +
         '<div class="modern-card-meta">' + escHtml(cls.coach_name || '') + '</div>' +
-        '<div class="modern-card-review"><div><span class="modern-card-stars">⭐⭐⭐⭐⭐</span></div><div class="modern-card-price">' + (cls.credits || 1) + ' Pass <small>起</small></div></div>' +
+        '<div class="modern-card-review"><div><span class="modern-card-stars">⭐⭐⭐⭐⭐</span></div><div class="modern-card-price">' + displayPrice + '</div></div>' +
         '<div class="modern-card-schedule"><span>📅 ' + escHtml(cls.time || '多個時段') + '</span><span>📍 ' + escHtml(cls.location || '香港') + '</span></div>' +
-        '<button class="modern-card-cta" onclick="event.stopPropagation();openBookingModalFor(this)" data-course=\'' + JSON.stringify(cls).replace(/'/g, "&#39;") + '\'>立即預約<span class="arrow">→</span></button>' +
+        '<button class="modern-card-cta" onclick="event.stopPropagation();bookClass(cls.id)" data-course=\'' + JSON.stringify(cls).replace(/'/g, "&#39;") + '\'>立即預約<span class="arrow">→</span></button>' +
       '</div>';
 
     return card;
@@ -407,11 +423,11 @@
       el.className = 'autocomplete-item';
       el.innerHTML = '<span class="ac-icon">🏃</span><span>' + escHtml(item.title || item.name || '') + '</span>';
       el.onclick = function() {
-        window.location.href = 'class-detail.html?id=' + (item.id || '');
+        window.location.href = 'booking.html?classId=' + (item.id || '');
       };
       (function(id) {
         el.onclick = function() {
-          window.location.href = 'class-detail.html?id=' + id;
+          window.location.href = 'booking.html?classId=' + id;
         };
       })(item.id);
       autocompleteDropdown.appendChild(el);
@@ -518,7 +534,13 @@
 
   // ==================== Booking Modal (compat) ====================
   var currentCourse = null;
+  var explorePaymentType = 'credits';
   var bookedCourses = JSON.parse(localStorage.getItem('zenpass_booked')) || {};
+
+  // Direct booking page redirect
+  function bookClass(classId) {
+    window.location.href = 'booking.html?classId=' + classId;
+  }
 
   function openBookingModalFor(btn) {
     try {
@@ -537,7 +559,8 @@
       instructor: data.coach_name || '',
       location: data.location || '',
       image: data.image || '',
-      credits: data.credits || 1,
+      credits: data.credits_cost || 0,
+      price_hkd: data.price_hkd || 0,
       time: data.time || ''
     };
     showModalWithCurrent();
@@ -550,7 +573,8 @@
       instructor: card.getAttribute('data-instructor') || '',
       location: card.getAttribute('data-location') || '',
       image: card.getAttribute('data-image') || card.querySelector('img')?.src || '',
-      credits: card.getAttribute('data-credits') || 1,
+      credits: parseInt(card.getAttribute('data-credits')) || 0,
+      price_hkd: parseFloat(card.getAttribute('data-price')) || 0,
       time: card.getAttribute('data-time') || ''
     };
     showModalWithCurrent();
@@ -572,7 +596,33 @@
       imgEl.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:28px">📅</div>';
     }
 
-    document.getElementById('modal-credits').textContent = (currentCourse.credits || 1) + ' Pass';
+    // Determine available payment methods
+    var hasCredits = currentCourse.credits > 0;
+    var hasPrice = currentCourse.price_hkd > 0;
+    explorePaymentType = hasCredits ? 'credits' : (hasPrice ? 'single' : 'credits');
+
+    // Show payment method tabs
+    var payMethods = document.getElementById('modal-payment-methods');
+    var payTabs = payMethods.querySelectorAll('.pay-tab');
+    if (hasCredits && hasPrice) {
+      payMethods.style.display = 'flex';
+      payTabs.forEach(function(t) {
+        t.classList.toggle('active', t.getAttribute('data-pay') === explorePaymentType);
+      });
+    } else {
+      payMethods.style.display = 'none';
+    }
+
+    var payLabel = document.getElementById('modal-pay-label');
+    var payAmount = document.getElementById('modal-credits');
+    if (explorePaymentType === 'credits') {
+      payLabel.textContent = '使用 Pass';
+      payAmount.textContent = (currentCourse.credits || 0) + ' Pass';
+    } else {
+      payLabel.textContent = '單次購買';
+      payAmount.textContent = 'HK$' + (currentCourse.price_hkd || 0);
+    }
+
     document.getElementById('modal-remaining').textContent = currentCourse.spots || '充足';
 
     var sel = document.getElementById('modal-datetime');
@@ -612,6 +662,24 @@
     syncModalDark();
   }
 
+  // ===== Payment method toggle for explore modal =====
+  function selectExplorePayment(type) {
+    explorePaymentType = type;
+    var payMethods = document.getElementById('modal-payment-methods');
+    payMethods.querySelectorAll('.pay-tab').forEach(function(t) {
+      t.classList.toggle('active', t.getAttribute('data-pay') === type);
+    });
+    var payLabel = document.getElementById('modal-pay-label');
+    var payAmount = document.getElementById('modal-credits');
+    if (type === 'credits') {
+      payLabel.textContent = '使用 Pass';
+      payAmount.textContent = (currentCourse.credits || 0) + ' Pass';
+    } else {
+      payLabel.textContent = '單次購買';
+      payAmount.textContent = 'HK$' + (currentCourse.price_hkd || 0);
+    }
+  }
+
   function closeBookingModal() {
     var modal = document.getElementById('booking-modal');
     modal.classList.add('hidden');
@@ -638,7 +706,7 @@
       headers['Idempotency-Key'] = 'bk_' + Date.now() + '_' + Math.random().toString(36).substr(2,6);
       var resp = await fetch((window.API_BASE || '/api') + '/bookings', {
         method: 'POST', headers: headers,
-        body: JSON.stringify({ schedule_id: scheduleId, class_id: currentCourse.id, payment_type: 'credits', penalty_consent: true })
+        body: JSON.stringify({ schedule_id: scheduleId, class_id: currentCourse.id, payment_type: explorePaymentType, penalty_consent: true })
       });
       var data = await resp.json();
       if (!resp.ok || !data.success) {
@@ -712,6 +780,9 @@
   <div id="toast-container" style="position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:9999;display:flex;flex-direction:column;gap:8px;align-items:center;width:100%;max-width:360px;padding:0 16px"></div>
   <style>
     @media(min-width:768px){#toast-container{left:auto;right:24px;transform:none;max-width:380px;padding:0}}
+    .pay-tab{flex:1;padding:6px 8px;border-radius:8px;border:1.5px solid var(--gray-200);background:var(--white);font-size:12px;font-weight:600;cursor:pointer;transition:all 0.15s;font-family:inherit;color:var(--dark-700)}
+    .pay-tab.active{border-color:#10b981;background:#ecfdf5;color:#059669}
+    .pay-tab:hover{border-color:var(--gray-300)}
   </style>
   <template id="toast-template">
     <div class="toast" style="display:flex;align-items:center;gap:12px;background:#fff;border:2px solid #e4e4e7;border-radius:16px;box-shadow:0 8px 24px rgba(0,0,0,0.1);padding:14px 18px;min-width:280px;max-width:360px;animation:toastIn 0.3s ease">
