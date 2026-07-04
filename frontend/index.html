@@ -8,6 +8,14 @@
     <link rel="dns-prefetch" href="https://images.pexels.com">
     <link rel="dns-prefetch" href="https://www.googletagmanager.com">
     <link rel="stylesheet" href="assets/index.css" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: { extend: { colors: { zenpurple: '#7C3AED', zengreen: '#10B981' } } }
+    }
+  </script>
+
     <link rel="manifest" href="/manifest.json" />
     <link rel="icon" href="favicon.png" type="image/png" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -60,50 +68,66 @@
         document.documentElement.classList.add('dark');
       }
 </script>
-    <header class="hero" id="hero-section" role="banner" style="position:relative;min-height:92vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:100px 20px 60px;color:#fff;overflow:hidden;border-radius:0 0 30px 30px;background:linear-gradient(135deg,#1a1a2e,#2d2d44)">
-      <!-- Dynamic workout background with parallax feel -->
-      <!-- Dual-layer hero: HK skyline + workout overlay -->
-      <div class="hero-bg-layer" style="position:absolute;inset:0;background:url('https://images.pexels.com/photos/373912/pexels-photo-373912.jpeg?auto=compress&cs=tinysrgb&w=1200&fm=webp') center/cover no-repeat;z-index:0;filter:brightness(0.5) saturate(0.9);transition:filter 0.5s ease"></div>
-      <div class="hero-bg-workout" style="position:absolute;inset:0;background:url('https://images.pexels.com/photos/2780762/pexels-photo-2780762.jpeg?auto=compress&cs=tinysrgb&w=1200&fm=webp') center/cover no-repeat;z-index:0;opacity:0.45;mix-blend-mode:screen;filter:brightness(0.7) saturate(1.2);transition:opacity 0.5s ease"></div>
-      <div class="hero-overlay" style="position:absolute;inset:0;background:linear-gradient(135deg,rgba(15,23,42,0.88) 0%,rgba(15,23,42,0.35) 40%,rgba(16,185,129,0.3) 70%,rgba(249,115,22,0.1) 100%);z-index:1"></div>
-      <!-- Dark mode enhancement: moody HK neon vibe -->
-      <style>
-        html.dark .hero-bg-layer { filter: brightness(0.35) saturate(0.7) contrast(1.1) !important; }
-        html.dark .hero-bg-workout { opacity: 0.3 !important; }
-        html.dark .hero-overlay { background: linear-gradient(135deg,rgba(0,0,0,0.92) 0%,rgba(15,23,42,0.55) 50%,rgba(16,185,129,0.18) 75%,rgba(249,115,22,0.08) 100%) !important; }
-        /* Neon glow accent on CTA */
-        .hero-btn-primary { border: 1.5px solid rgba(16,185,129,0.3); }
-        .hero-btn-primary:hover { border-color: rgba(16,185,129,0.6); box-shadow: 0 0 50px rgba(16,185,129,0.8), 0 0 100px rgba(16,185,129,0.35), 0 0 120px rgba(249,115,22,0.15), 0 10px 30px rgba(0,0,0,0.25) !important; }
-        .hero-btn-secondary { border-color: rgba(249,115,22,0.25); }
-        .hero-btn-secondary:hover { box-shadow: 0 0 30px rgba(249,115,22,0.2), 0 8px 30px rgba(0,0,0,0.15) !important; }
-      </style>
-      <div style="position:relative;z-index:2;width:100%">
-        <div class="hero-top" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:40px;padding:0 4px">
-          <div class="hero-logo" style="font-size:24px;font-weight:800;letter-spacing:1px;color:#fff;text-shadow:0 2px 10px rgba(0,0,0,0.3)">
-            ZEN<span style="font-weight:300">Pass</span> <span style="font-size:16px;font-weight:500">禅流</span>
-          </div>
-          <div class="zen-auth-buttons" id="auth-buttons" style="display:flex;gap:8px;align-items:center">
-            <a href="my.html" class="zen-btn-ghost" id="my-profile-btn" style="color:#fff;text-decoration:none;font-size:14px;padding:6px 14px;border-radius:20px;border:1px solid rgba(255,255,255,0.5);backdrop-filter:blur(4px)">👤 我的</a>
-            <a href="#" class="zen-btn-ghost" id="zenBtnLogin" style="color:#fff;text-decoration:none;font-size:14px;padding:6px 14px;border-radius:20px;border:1px solid rgba(255,255,255,0.5);backdrop-filter:blur(4px)">登入</a>
-            <a href="#" class="zen-btn-small" id="zenBtnRegister" style="color:#fff;text-decoration:none;font-size:14px;padding:6px 14px;border-radius:20px;background:rgba(16,185,129,0.8);font-weight:600;backdrop-filter:blur(4px)">註冊</a>
-            <button id="hamburgerBtn" onclick="toggleMobileMenu()" style="background:rgba(255,255,255,0.15);backdrop-filter:blur(4px);border:none;border-radius:50%;font-size:22px;cursor:pointer;width:42px;height:42px;padding:0;color:#fff;display:flex;align-items:center;justify-content:center" aria-label="選單">☰</button>
-            <button id="darkModeToggle" onclick="toggleDarkMode()" style="background:none;border:none;font-size:20px;cursor:pointer;padding:8px;min-width:44px;min-height:44px;color:#fff" aria-label="切換深色模式">🌙</button>
-          </div>
+<!-- Hero Section (Tailwind) -->
+<section class="bg-gradient-to-br from-purple-700 via-purple-600 to-indigo-600 text-white pt-16 pb-20 md:pt-24 md:pb-28 relative overflow-hidden">
+  <!-- Background decoration -->
+  <div class="absolute inset-0 bg-[radial-gradient(at_top_right,#ffffff15_0%,transparent_50%)]"></div>
+  <div class="max-w-5xl mx-auto px-6 relative">
+    <div class="grid md:grid-cols-2 gap-12 items-center">
+      <!-- Left Content -->
+      <div class="space-y-8">
+        <div class="inline-flex items-center gap-2 bg-white/20 backdrop-blur-md px-5 py-2 rounded-full text-sm">
+          <span class="relative flex h-3 w-3">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+          </span>
+          110+ 堂課・即時可約
         </div>
-        <h1 class="hero-title" style="font-size:clamp(36px,10vw,68px);font-weight:900;line-height:1.1;margin-bottom:10px;opacity:0;animation:fadeInUp 0.8s ease 0.2s forwards;background:linear-gradient(135deg,#fff 40%,#10b981,#34d399);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;text-shadow:none;letter-spacing:-0.5px">解鎖全城<br>運動體驗</h1>
-        <p class="hero-tagline" style="font-size:clamp(14px,2.5vw,17px);opacity:0;color:#10b981;font-weight:600;margin-bottom:6px;animation:fadeInUp 0.8s ease 0.3s forwards;letter-spacing:1px;text-shadow:0 0 20px rgba(16,185,129,0.3)">一 Pass 通行全城 · 零壓力試堂 · v7</p>
-        <p class="hero-subtitle" style="font-size:clamp(14px,3vw,19px);opacity:0;color:rgba(255,255,255,0.85);margin-bottom:32px;animation:fadeInUp 0.8s ease 0.4s forwards;font-weight:400">超過 100+ 課程・頂尖教練・自由預約</p>
-        <div class="hero-cta" style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;opacity:0;animation:fadeInUp 0.8s ease 0.6s forwards">
-          <a href="explore.html" class="hero-btn-primary" style="display:inline-flex;align-items:center;gap:12px;padding:22px 56px;border-radius:60px;background:linear-gradient(135deg,#10b981 0%,#059669 100%);color:#fff;font-size:20px;font-weight:800;text-decoration:none;box-shadow:0 0 40px rgba(16,185,129,0.6),0 0 80px rgba(16,185,129,0.25),0 0 120px rgba(16,185,129,0.1),0 6px 20px rgba(0,0,0,0.2);transition:all 0.3s cubic-bezier(0.4,0,0.2,1);letter-spacing:0.5px;animation:ctaGlow 2.5s ease-in-out infinite">🔥 立即探索課程</a>
-          <a href="signup.html" class="hero-btn-secondary" style="display:inline-flex;align-items:center;gap:10px;padding:22px 52px;border-radius:60px;background:linear-gradient(135deg,rgba(255,255,255,0.22),rgba(255,255,255,0.1));backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:3px solid rgba(255,255,255,0.6);color:#fff;font-size:19px;font-weight:800;text-decoration:none;transition:all 0.3s cubic-bezier(0.4,0,0.2,1);letter-spacing:0.5px;box-shadow:0 0 30px rgba(255,255,255,0.2),inset 0 0 50px rgba(255,255,255,0.08)"><span style="background:linear-gradient(135deg,#10b981,#059669);padding:4px 14px;border-radius:8px;font-size:13px;margin-right:8px;font-weight:800">FREE</span> 首堂免費體驗</a></div>
-          <div style="margin-top:18px;display:flex;justify-content:center;gap:24px;font-size:13px;color:rgba(255,255,255,0.7)">
-            <span>👥 <strong style="color:#fff">200+</strong> 已服務用戶</span>
-            <span>📅 <strong style="color:#fff">100+</strong> 堂已預約</span>
-            <span>⭐ <strong style="color:#fff">4.8</strong> 用戶評分</span>
-          </div>
+        <h1 class="text-5xl md:text-6xl font-bold leading-tight">
+          一個 Pass，<br>
+          <span class="text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-white">玩盡全城運動</span>
+        </h1>
+        <p class="text-xl md:text-2xl text-purple-100 max-w-lg">
+          首堂免費 · 無需綁約<br>
+          瑜伽・Pilates・拳擊・空中瑜伽・更多
+        </p>
+        <div class="flex flex-col sm:flex-row gap-4">
+          <a href="/signup.html" class="bg-white text-purple-700 hover:bg-yellow-300 hover:text-purple-800 transition-all font-semibold text-xl px-10 py-5 rounded-3xl text-center shadow-xl shadow-purple-500/30 flex-1">免費登記試堂 →</a>
+          <a href="/explore.html" class="border-2 border-white/80 hover:bg-white/10 transition-all font-medium text-xl px-8 py-5 rounded-3xl text-center flex items-center justify-center gap-2"><span>瀏覽課程</span><span class="text-2xl">→</span></a>
+        </div>
+        <!-- Trust signals -->
+        <div class="flex items-center gap-8 text-sm pt-4">
+          <div><div class="flex text-yellow-400">★★★★★</div><div class="text-purple-100">4.8 (200+ 評價)</div></div>
+          <div class="h-10 w-px bg-white/30"></div>
+          <div class="text-purple-100"><span class="font-semibold text-2xl">60</span> Credits<br><span class="text-sm">首次 HK$399</span></div>
         </div>
       </div>
-    </header>
+
+      <!-- Right Visual -->
+      <div class="relative hidden md:block">
+        <div class="bg-white/10 backdrop-blur-xl rounded-3xl p-3 shadow-2xl">
+          <img src="https://images.pexels.com/photos/1552242/pexels-photo-1552242.jpeg?auto=compress&cs=tinysrgb&w=600&h=520&fit=crop" alt="ZenPass 用戶上課" class="rounded-3xl shadow-inner w-full">
+        </div>
+        <div class="absolute -top-6 -right-6 bg-white text-purple-700 px-6 py-3 rounded-2xl shadow-xl flex items-center gap-3">
+          <div class="text-3xl">🎉</div>
+          <div><div class="font-bold">首堂免費</div><div class="text-sm">無需信用卡</div></div>
+        </div>
+        <div class="absolute -bottom-6 -left-6 bg-white text-emerald-600 px-5 py-3 rounded-2xl shadow-xl">
+          <span class="font-bold">128 人</span> 正在參加夏日挑戰
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom stats -->
+  <div class="mt-16 md:mt-20 border-t border-white/20 pt-8">
+    <div class="max-w-5xl mx-auto px-6 grid grid-cols-3 md:grid-cols-3 gap-8 text-center">
+      <div><div class="text-4xl font-bold">110+</div><div class="text-purple-100 text-sm">優質課程</div></div>
+      <div><div class="text-4xl font-bold">32</div><div class="text-purple-100 text-sm">運動類別</div></div>
+      <div><div class="text-4xl font-bold">5+</div><div class="text-purple-100 text-sm">專業教練</div></div>
+    </div>
+  </div>
+</section>
 
     <!-- Mobile Sidebar -->
     <div id="mobileSidebar" style="position:fixed;top:0;right:-280px;width:280px;height:100vh;background:linear-gradient(180deg,#1a1a2e,#2d2d44);z-index:1000;transition:right 0.3s cubic-bezier(0.4,0,0.2,1);padding:20px;overflow-y:auto;box-shadow:-4px 0 20px rgba(0,0,0,0.3)">
