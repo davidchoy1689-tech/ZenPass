@@ -1,6 +1,7 @@
 /**
- * ZenPass 禪流 - 預約路由（精簡版）
- * Business logic 已移至 services/booking-service.js
+ * ZenPass 禪流 - 預約路由
+ * Routes → Service → Model pattern
+ * Thin router, thick service, clean model
  */
 
 const express = require("express");
@@ -10,6 +11,7 @@ const { scalpGuard } = require("../middleware/anti-scalping");
 const { validate, schemas } = require("../middleware/validate");
 const { requireIdempotency } = require("../middleware/idempotency");
 const bookingService = require("../services/booking-service");
+const Booking = require("../models/Booking");
 
 const router = express.Router();
 
@@ -20,9 +22,24 @@ router.post(
   scalpGuard,
   requireIdempotency,
   validate(schemas.booking),
-  (req, res) => {
+  async (req, res) => {
     try {
-      const result = bookingService.createBooking(req);
+      // 1. Check availability via model
+      const { scheduleId, classId, paymentType, penaltyConsent } = req.body;
+      const avail = Booking.checkAvailability(scheduleId);
+      if (!avail.available) {
+        const msg = avail.reason === "full" ? "該時段已滿額" : "該時段不存在或已滿";
+        return res.status(400).json({ success: false, error: msg });
+      }
+
+      // 2. Validate penalty consent
+      const consent = Booking.validatePenaltyConsent(req.user.id, penaltyConsent);
+      if (!consent.ok) {
+        return res.status(400).json({ error: consent.error, code: consent.code });
+      }
+
+      // 3. Business logic via service
+      const result = await bookingService.createBooking(req);
       return res.status(result.status).json(result.body);
     } catch (err) {
       console.error("預約錯誤:", err);
