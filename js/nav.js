@@ -17,6 +17,38 @@
 (function () {
   'use strict';
 
+  // Inject Toast CSS + JS (once per page)
+  if (!document.getElementById('toastStyle')) {
+    var ts = document.createElement('link');
+    ts.id = 'toastStyle'; ts.rel = 'stylesheet'; ts.href = 'css/toast.css';
+    document.head.appendChild(ts);
+  }
+  if (typeof Toast === 'undefined') {
+    var tj = document.createElement('script');
+    tj.src = 'js/toast.js';
+    document.head.appendChild(tj);
+  }
+  // Global loading spinner helper
+  window.showLoading = function(btn, text) {
+    if (!btn) return;
+    btn._origText = btn.textContent || btn.innerHTML || text;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="loader" style="display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin 0.8s linear infinite;vertical-align:middle;margin-right:8px"></span>' + (text || '處理中...');
+  };
+  window.hideLoading = function(btn) {
+    if (!btn) return;
+    btn.disabled = false;
+    btn.innerHTML = btn._origText || '確認';
+  };
+  // Inject spinner keyframes once
+  if (!document.getElementById('spinKeyframes')) {
+    var sk = document.createElement('style');
+    sk.id = 'spinKeyframes';
+    sk.textContent = '@keyframes spin { to { transform: rotate(360deg); } }';
+    document.head.appendChild(sk);
+  }
+
+
   // ─── Config ─────────────────────────────────────────────────────
   const PAGES = {
     home:    { href: 'index.html',                icon: '🏠', label: '首頁' },
