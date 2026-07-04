@@ -94,6 +94,8 @@
     .modern-card-fav.liked{color:#ef4444}
     html.dark .modern-card-fav{background:rgba(24,24,27,0.9);color:#71717a}
     .modern-card-body{padding:20px;flex:1;display:flex;flex-direction:column}
+    .modern-card-body .modern-card-title{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:2.6em}
+    .modern-card-body .modern-card-detail{margin-top:auto}
     .modern-card-tags{display:flex;align-items:center;gap:8px;margin-bottom:8px}
     .modern-card-tag{padding:2px 10px;font-size:12px;background:var(--gray-100);border-radius:6px;color:var(--dark-700)}
     .modern-card-diff{font-size:12px;color:#10b981}
