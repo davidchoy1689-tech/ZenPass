@@ -74,6 +74,9 @@
   .hero-text:nth-child(1) { animation-delay: 0.1s; }
   .hero-text:nth-child(2) { animation-delay: 0.3s; }
   .hero-text:nth-child(3) { animation-delay: 0.5s; }
+  .cta-button { position: relative; overflow: hidden; }
+  .cta-button::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent); transform: translateX(-100%); animation: shine 3s infinite; }
+  @keyframes shine { 0% { transform: translateX(-100%); } 20% { transform: translateX(300%); } 100% { transform: translateX(300%); } }
 </style>
 <!-- Hero Section -->
 <section class="hero-bg" style="background:linear-gradient(135deg,#6b21a8,#4c1d95);color:#fff;padding:64px 0 80px;position:relative;overflow:hidden">
@@ -89,7 +92,7 @@
       </div>
       <p class="hero-text" style="font-size:20px;color:rgba(255,255,255,0.85);margin-bottom:24px">首堂免費 · 無需綁約</p>
       <div style="display:flex;flex-direction:column;gap:12px;max-width:320px;margin:0 auto">
-        <a href="/signup.html" style="display:block;background:#fff;color:#6b21a8;font-size:18px;font-weight:700;padding:16px 40px;border-radius:24px;text-decoration:none;box-shadow:0 6px 20px rgba(0,0,0,0.15);transition:all 0.2s">免費登記試堂 →</a>
+        <a href="/signup.html" class="cta-button" style="display:block;background:#fff;color:#6b21a8;font-size:18px;font-weight:700;padding:16px 40px;border-radius:24px;text-decoration:none;box-shadow:0 6px 20px rgba(0,0,0,0.15);transition:all 0.2s">免費登記試堂 →</a>
         <a href="/explore.html" style="display:block;border:2px solid rgba(255,255,255,0.6);font-size:16px;padding:14px 28px;border-radius:24px;text-decoration:none;color:#fff;transition:all 0.2s">瀏覽所有課程 <span style="font-size:20px">→</span></a>
       </div>
     </div>
