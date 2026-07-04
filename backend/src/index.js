@@ -97,6 +97,7 @@ app.use(
           "https://accounts.google.com",
           "https://appleid.cdn-apple.com",
           "https://static.hotjar.com",
+          "https://cdn.tailwindcss.com",
         ],
         scriptSrcAttr: ["'unsafe-inline'"],
         styleSrc: [
@@ -105,7 +106,9 @@ app.use(
           "'unsafe-inline'",
           "https://cdn.jsdelivr.net",
           "https://fonts.googleapis.com",
+          "https://cdn.tailwindcss.com",
         ],
+        imgSrc: ["'self'", "https://images.pexels.com", "https://*.googleusercontent.com", "data:", "blob:", "https://picsum.photos"],
         fontSrc: ["'self'", "https://fonts.gstatic.com", "https://cdn.jsdelivr.net"],
         imgSrc: ["'self'", "data:", "blob:", "https:"],
         connectSrc: ["'self'", "https://api.stripe.com", "https://www.google-analytics.com", "https://google-analytics.com"],
