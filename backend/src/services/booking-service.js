@@ -550,6 +550,14 @@ function createBooking(req) {
   trackUserActionAsync(req.user.id, class_id, classInfo?.category);
   trackBookingAudit(bookingId, req.user.id, null, bookingStatus, req);
 
+  // Include pricing formula version in booking blockchain record
+  const creditConversion = {
+    version: 2,
+    rate: "1 Credit = HK$10",
+    formula: "credits = floor(hkd / 10), actual = credits * 10",
+    effective_from: "2026-07-05",
+  };
+
   writeBookingBlock({
     entityId: bookingId,
     blockData: {
@@ -562,6 +570,10 @@ function createBooking(req) {
       status: bookingStatus,
       payment_status: paymentStatus,
       action: "created",
+      credit_conversion: creditConversion,
+      calculation: classInfo?.credits_cost
+        ? `${classInfo.credits_cost}cr × HK$10 = HK$${classInfo.credits_cost * 10}`
+        : `HK$${amount || 0} ÷ 10 = ${Math.floor((amount || 0) / 10)}cr`,
     },
   });
 

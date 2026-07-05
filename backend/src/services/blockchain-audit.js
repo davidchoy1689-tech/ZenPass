@@ -121,9 +121,46 @@ function traceBooking(bookingId) {
       hash: rootHash,
     });
 
-    // ───── Step 1: 學生俾錢 ─────
+    // ───── Step 1: Credit 換算 ─────
+    const credits_cost = booking.credits_cost;
+    const price_hkd = booking.price_hkd;
+    const creditConversionInfo = {
+      rate: "1 Credit = HK$10",
+      pricing_version: 2,
+      formula: "hkd ÷ 10 = credits",
+    };
+    let calcDetail, calcSummary;
+    if (credits_cost && credits_cost > 0) {
+      calcDetail = `HK$${price_hkd} @ HK$10/cr = ${credits_cost}cr`;
+      calcSummary = `${credits_cost}cr × HK$10 = HK$${credits_cost * 10}`;
+    } else {
+      calcDetail = `HK$${booking.amount} @ HK$10/cr = ${Math.floor(booking.amount / 10)}cr (floor)`;
+      calcSummary = `${Math.floor(booking.amount / 10)}cr × HK$10 = HK$${Math.floor(booking.amount / 10) * 10}`;
+    }
+
+    const step1Hash = sha256({
+      step: 1,
+      bookingId,
+      calcDetail,
+      calcSummary,
+      conversion: creditConversionInfo,
+      prev: rootHash,
+    });
+
     chain.push({
       step: 1,
+      title: "💰 Credit 換算",
+      type: "conversion",
+      conversion: creditConversionInfo,
+      calculation: calcDetail,
+      summary: calcSummary,
+      previous_hash: rootHash,
+      hash: step1Hash,
+    });
+
+    // ───── Step 2: 學生俾錢 ─────
+    chain.push({
+      step: 2,
       title: "🎓 學生付款",
       from: booking.student_name,
       to: "ZenPass 平台",
@@ -133,13 +170,13 @@ function traceBooking(bookingId) {
       timestamp: booking.created_at,
       booking_ref: booking.booking_reference,
       class: booking.class_title,
-      previous_hash: rootHash,
+      previous_hash: step1Hash,
       hash: sha256({
-        step: 1,
+        step: 2,
         bookingId,
         amount: booking.amount,
         time: booking.created_at,
-        prev: rootHash,
+        prev: step1Hash,
       }),
     });
 
@@ -648,16 +685,26 @@ function writeBookingBlock(bookingId) {
     const booking = db
       .prepare(
         `
-      SELECT b.*, u.name as student_name, c.title as class_title
+      SELECT b.*, u.name as student_name, c.title as class_title,
+             cls.price_hkd, cls.credits_cost
       FROM bookings b
       JOIN users u ON b.user_id = u.id
       JOIN class_schedules cs ON b.schedule_id = cs.id
       JOIN classes c ON cs.class_id = c.id
+      JOIN classes cls ON cs.class_id = cls.id
       WHERE b.id = ?
     `,
       )
       .get(bookingId);
     if (!booking) return { error: "Booking not found" };
+
+    // Pricing formula version tracking
+    const creditConversion = {
+      version: 2,
+      rate: "1 Credit = HK$10",
+      formula: "credits = floor(hkd / 10), actual = credits * 10",
+      effective_from: "2026-07-05",
+    };
 
     return writeBlock({
       entityType: "booking",
@@ -670,6 +717,12 @@ function writeBookingBlock(bookingId) {
         status: booking.status,
         student: booking.student_name,
         class: booking.class_title,
+        price_hkd: booking.price_hkd,
+        credits_cost: booking.credits_cost,
+        credit_conversion: creditConversion,
+        calculation: booking.credits_cost
+          ? `${booking.credits_cost}cr × HK$10 = HK$${booking.credits_cost * 10}`
+          : "N/A",
         created_at: booking.created_at,
       },
     });

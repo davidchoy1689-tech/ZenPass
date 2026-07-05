@@ -20,7 +20,7 @@ const MEMBERSHIP_PLANS = {
     duration_days: 30,
     description: "每月 37 Credits，適合輕度運動用戶",
     features: ["每月 37 Credits", "優先預約權", "自由取消（適用於開課前一日）"],
-    avg_price: 8,
+    avg_price: 10,
     popular: false,
   },
   standard: {
@@ -36,7 +36,7 @@ const MEMBERSHIP_PLANS = {
       "高峰有 premium",
       "自由取消（適用於開課前一日）",
     ],
-    avg_price: 8,
+    avg_price: 10,
     popular: true,
   },
   silver: {
@@ -53,7 +53,7 @@ const MEMBERSHIP_PLANS = {
       "每月 1 堂私人教練",
       "自由取消（適用於開課前一日）",
     ],
-    avg_price: 8,
+    avg_price: 10,
     popular: false,
   },
   gold: {
@@ -71,7 +71,7 @@ const MEMBERSHIP_PLANS = {
       "專屬客服",
       "自由取消（適用於開課前一日）",
     ],
-    avg_price: 8,
+    avg_price: 10,
     popular: false,
   },
 };
@@ -250,9 +250,9 @@ router.post("/credits", authenticateToken, (req, res) => {
       return res.status(400).json({ success: false, error: "最低購買金額為 HK$20" });
     }
 
-    // 匯率: HK$8 = 1 Credit
-    const creditsToAdd = Math.floor(amount / 8);
-    const actualAmount = creditsToAdd * 8;
+    // 匯率: HK$10 = 1 Credit
+    const creditsToAdd = Math.floor(amount / 10);
+    const actualAmount = creditsToAdd * 10;
 
     // Bonus
     let bonusCredits = 0;
@@ -320,10 +320,10 @@ router.post("/credits", authenticateToken, (req, res) => {
 // ===== GET /api/memberships/credits/packages — 點數套餐 =====
 router.get("/credits/packages", (req, res) => {
   const packages = [
-    { credits: 10, bonus: 2, price: 80, label: "輕量包" },
-    { credits: 50, bonus: 12, price: 400, label: "標準包", popular: false },
-    { credits: 100, bonus: 30, price: 800, label: "超值包", popular: true },
-    { credits: 200, bonus: 70, price: 1600, label: "尊尚包" },
+    { credits: 10, bonus: 2, price: 100, label: "輕量包" },
+    { credits: 50, bonus: 12, price: 500, label: "標準包", popular: false },
+    { credits: 100, bonus: 30, price: 1000, label: "超值包", popular: true },
+    { credits: 200, bonus: 70, price: 2000, label: "尊尚包" },
   ];
   res.json({ packages });
 });

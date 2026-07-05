@@ -352,7 +352,7 @@ function createCourse(userId, body) {
   const cid = coach_id || userId;
   const computedCredits = credits_cost
     ? Number(credits_cost)
-    : Math.max(3, Math.round(price_hkd / 38));
+    : Math.max(3, Math.round(price_hkd / 10));
   const finalPrice = price_hkd ? Number(price_hkd) : 0;
 
   db.prepare(

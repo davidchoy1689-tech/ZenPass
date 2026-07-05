@@ -25,8 +25,8 @@ const router = express.Router();
 // Bundle definitions
 const BUNDLES = {
   light: { credits: 10, price: 100, label: "輕量包" },
-  standard: { credits: 25, price: 225, label: "標準包" },
-  premium: { credits: 55, price: 440, label: "超值包" },
+  standard: { credits: 25, price: 250, label: "標準包" },
+  premium: { credits: 55, price: 550, label: "超值包" },
 };
 
 // ===== 資料庫 Migration =====
