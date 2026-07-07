@@ -43,6 +43,7 @@ function doubleCsrfProtection(req, res, next) {
   const publicPaths = [
     '/auth/',
     '/school/inquiry',
+    '/partner/apply',
     '/health',
     '/webhook/',
     '/csrf-token',

@@ -13,7 +13,7 @@ const BASE = "http://localhost:3001";
 const API = BASE + "/api";
 
 // ===== 輔助 =====
-function request(method, path, body = null, token = null) {
+function request(method, path, body = null, token = null, csrfInfo = null) {
   return new Promise((resolve, reject) => {
     const url = new URL(path, BASE);
     const options = {
@@ -24,6 +24,10 @@ function request(method, path, body = null, token = null) {
       headers: { "Content-Type": "application/json" },
     };
     if (token) options.headers["Authorization"] = `Bearer ${token}`;
+    if (csrfInfo) {
+      options.headers["Cookie"] = csrfInfo.cookie;
+      options.headers["x-csrf-token"] = csrfInfo.token;
+    }
 
     const req = http.request(options, (res) => {
       let data = "";
@@ -42,9 +46,31 @@ function request(method, path, body = null, token = null) {
   });
 }
 
+function getCsrfToken() {
+  return new Promise((resolve, reject) => {
+    const url = new URL(API + "/csrf-token");
+    const req = http.get(url, (res) => {
+      var cookie = "";
+      var setCookie = res.headers["set-cookie"];
+      if (setCookie) {
+        cookie = setCookie.map(c => c.split(";")[0]).join("; ");
+      }
+      var data = "";
+      res.on("data", chunk => data += chunk);
+      res.on("end", () => {
+        try {
+          var parsed = JSON.parse(data);
+          resolve({ cookie, token: parsed.csrfToken || parsed.token || "" });
+        } catch (e) { reject(e); }
+      });
+    });
+    req.on("error", reject);
+  });
+}
+
 const api = {
   get: (path, token) => request("GET", path, null, token),
-  post: (path, body, token) => request("POST", path, body, token),
+  post: (path, body, token, csrfInfo) => request("POST", path, body, token, csrfInfo),
 };
 
 // ===== Test Data =====
@@ -101,8 +127,8 @@ async function run() {
     });
     assert.strictEqual(res.status, 201);
     assert.ok(res.body.success, "申請應該成功");
-    assert.ok(res.body.data.id, "應該有 venue id");
-    venueId = res.body.data.id;
+    assert.ok(res.body.id, "應該有 venue id");
+    venueId = res.body.id;
     console.log(`      venue_id: ${venueId}`);
   });
 
@@ -143,6 +169,7 @@ async function run() {
 
   // ====== 5. Admin 審批通過 ======
   await test("POST /api/admin/partner-approve — 通過申請", async () => {
+    var csrf = await getCsrfToken();
     const res = await api.post(
       API + "/partner/admin/partner-approve",
       {
@@ -151,6 +178,7 @@ async function run() {
         commission_rate: 0.25,
       },
       adminToken,
+      csrf,
     );
     assert.strictEqual(res.status, 200);
     assert.strictEqual(res.body.data?.status || res.body.status, "active");
