@@ -11,6 +11,7 @@ const express = require("express");
 const { v4: uuidv4 } = require("uuid");
 const { getDb } = require("../services/database");
 const { sendTelegramAlert, sendNotification } = require("../services/notification");
+const { writeBlock } = require("../services/blockchain-audit");
 
 const router = express.Router();
 
@@ -45,6 +46,26 @@ router.post("/inquiry", async (req, res) => {
       INSERT INTO school_inquiries (id, school_name, contact_name, contact_email, contact_phone, sports_of_interest, message, status)
       VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')
     `).run(id, school_name, contact_name, contact_email, contact_phone || "", sports_of_interest || "", message || "");
+
+    // Record in blockchain audit trail
+    try {
+      writeBlock({
+        entityType: "school_inquiry",
+        entityId: id,
+        data: {
+          school_name,
+          contact_name,
+          contact_email,
+          contact_phone: contact_phone || "",
+          sports_of_interest: sports_of_interest || "",
+          message: message || "",
+          status: "pending",
+          created_at: new Date().toISOString(),
+        },
+      });
+    } catch (be) {
+      console.error("[BLOCKCHAIN] writeBlock error:", be.message);
+    }
 
     // Notify admin
     try {

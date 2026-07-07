@@ -1,0 +1,554 @@
+<!doctype html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" href="favicon.png" type="image/png" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5" />
+  <meta name="description" content="ZenPass 企業健康計劃管理後台" />
+  <meta name="theme-color" content="#1a1a2e" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/zenpass.css?v=2" />
+  <title>ZenPass 企業管理後台</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --primary: #c94420; --primary-light: #fef2f0; --primary-bg: #fff5f3;
+      --dark: #1a1a2e; --dark2: #2d2d44; --gray: #6b7280; --gray-light: #e5e7eb;
+      --gray-bg: #f3f4f6; --white: #fff; --green: #22c55e; --red: #ef4444;
+      --yellow: #c49a4a; --blue: #3b82f6; --radius: 12px; --shadow: 0 1px 4px rgba(0,0,0,0.06);
+    }
+    body {
+      font-family: "Noto Sans TC", "PingFang HK", sans-serif;
+      background: var(--gray-bg); color: var(--dark); min-height: 100vh;
+      font-size: 14px; line-height: 1.6;
+    }
+    .sidebar {
+      width: 220px; background: var(--dark); color: #fff;
+      position: fixed; height: 100vh; display: flex; flex-direction: column; z-index: 10;
+    }
+    .sidebar-logo { padding: 20px; font-size: 18px; font-weight: 700; border-bottom: 1px solid rgba(255,255,255,0.08); }
+    .sidebar-logo small { display: block; font-size: 11px; font-weight: 400; color: rgba(255,255,255,0.4); margin-top: 2px; }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px; padding: 10px 18px;
+      color: rgba(255,255,255,0.6); cursor: pointer; border-left: 3px solid transparent;
+      font-size: 13px; transition: all 0.15s; text-decoration: none; margin: 1px 8px 1px 0; border-radius: 0 8px 8px 0;
+    }
+    .nav-item:hover { background: rgba(255,255,255,0.08); color: #fff; }
+    .nav-item.active { background: rgba(255,255,255,0.12); color: #fff; border-left-color: var(--primary); font-weight: 600; }
+    .nav-item .icon { font-size: 15px; width: 20px; text-align: center; }
+    .main { margin-left: 220px; flex: 1; padding: 24px 28px; min-height: 100vh; max-width: 1400px; }
+    .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
+    .top-bar h1 { font-size: 20px; font-weight: 700; }
+    .top-bar .sub { font-size: 12px; color: var(--gray); margin-top: 2px; }
+    .top-bar .user-info { font-size: 12px; color: var(--gray); }
+    .btn { padding: 8px 16px; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+    .btn-secondary { background: #e5e7eb; color: var(--dark); }
+    .btn-secondary:hover { background: #d1d5db; }
+    .btn-success { background: var(--green); color: #fff; }
+    .btn-danger { background: var(--red); color: #fff; }
+    .btn-sm { padding: 4px 10px; font-size: 12px; }
+    .card {
+      background: var(--white); border-radius: var(--radius); padding: 20px;
+      box-shadow: var(--shadow); border: 1px solid rgba(0,0,0,0.04); margin-bottom: 16px;
+    }
+    .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px; }
+    .card-header h3 { font-size: 15px; font-weight: 600; }
+    .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+    @media (max-width: 768px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } .main { margin-left: 0; padding: 16px; } .sidebar { display: none; } }
+    .stat-card { background: var(--white); border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow); border: 1px solid rgba(0,0,0,0.04); }
+    .stat-card .val { font-size: 24px; font-weight: 700; }
+    .stat-card .lbl { font-size: 12px; color: var(--gray); margin-top: 4px; }
+    .table-wrap { width: 100%; overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { text-align: left; padding: 10px 12px; font-weight: 600; font-size: 12px; color: var(--gray); border-bottom: 2px solid var(--gray-light); white-space: nowrap; }
+    td { padding: 10px 12px; border-bottom: 1px solid var(--gray-light); }
+    tr:hover { background: #f9fafb; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+    .badge-success { background: #dcfce7; color: #16a34a; }
+    .badge-warning { background: #fef3c7; color: #d97706; }
+    .badge-danger { background: #fee2e2; color: #dc2626; }
+    .badge-secondary { background: #f3f4f6; color: #6b7280; }
+    .loading { text-align: center; padding: 60px 20px; color: var(--gray); }
+    .loading .spinner { display: inline-block; width: 40px; height: 40px; border: 3px solid var(--gray-light); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 16px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .search-bar { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+    .search-bar input { padding: 8px 12px; border: 1px solid var(--gray-light); border-radius: 8px; font-size: 13px; flex: 1; min-width: 200px; }
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center; padding: 20px; }
+    .modal-overlay.active { display: flex; }
+    .modal { background: var(--white); border-radius: 14px; max-width: 900px; width: 100%; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 40px rgba(0,0,0,0.15); }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 20px 24px; border-bottom: 1px solid var(--gray-light); position: sticky; top: 0; background: var(--white); z-index: 1; }
+    .modal-header h2 { font-size: 18px; font-weight: 700; }
+    .modal-close { background: none; border: none; font-size: 24px; cursor: pointer; color: var(--gray); padding: 4px; }
+    .modal-body { padding: 20px 24px; }
+    .modal-footer { padding: 16px 24px; border-top: 1px solid var(--gray-light); display: flex; gap: 8px; justify-content: flex-end; }
+    .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+    @media (max-width: 640px) { .detail-grid { grid-template-columns: 1fr; } }
+    .detail-item { padding: 12px; background: var(--gray-bg); border-radius: 8px; }
+    .detail-item .label { font-size: 11px; color: var(--gray); font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+    .detail-item .value { font-size: 16px; font-weight: 600; }
+    .detail-item .value.small { font-size: 13px; font-weight: 400; }
+    .progress-bar { height: 8px; background: var(--gray-light); border-radius: 4px; overflow: hidden; margin: 4px 0; }
+    .progress-fill { height: 100%; border-radius: 4px; transition: width 0.3s; }
+    .employee-row { display: grid; grid-template-columns: 2fr 2fr 1fr 1fr 1fr 1fr; gap: 8px; align-items: center; padding: 8px 12px; border-bottom: 1px solid var(--gray-light); font-size: 13px; }
+    .employee-row:hover { background: #f9fafb; }
+    .employee-header { font-weight: 600; color: var(--gray); font-size: 12px; text-transform: uppercase; }
+    .inline-form { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .inline-form input, .inline-form select { padding: 6px 10px; border: 1px solid var(--gray-light); border-radius: 6px; font-size: 13px; }
+    .inline-form input[type="number"] { width: 80px; }
+    .tab-buttons { display: flex; gap: 4px; margin-bottom: 16px; }
+    .tab-btn { padding: 8px 16px; border: none; background: transparent; cursor: pointer; font-size: 13px; font-weight: 500; border-radius: 8px; color: var(--gray); transition: all 0.2s; }
+    .tab-btn.active { background: var(--primary); color: #fff; }
+    .tab-btn:hover:not(.active) { background: var(--gray-light); }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    .usage-row { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+    .usage-bar { flex: 1; height: 16px; background: var(--gray-light); border-radius: 3px; overflow: hidden; }
+    .usage-fill { height: 100%; min-width: 2px; }
+    .txt-mono { font-family: 'Inter', monospace; font-size: 12px; }
+    .hover-tip { cursor: help; border-bottom: 1px dashed var(--gray); }
+    .section-title { font-size: 14px; font-weight: 600; margin: 16px 0 8px; padding-bottom: 4px; border-bottom: 1px solid var(--gray-light); }
+  </style>
+</head>
+<body>
+<div class="sidebar">
+  <div class="sidebar-logo">🏢 <span>ZenPass</span><small>企業管理後台</small></div>
+  <a class="nav-item active" onclick="switchView('dashboard')"><span class="icon">📊</span>儀表板</a>
+  <a class="nav-item" onclick="switchView('companies')"><span class="icon">🏢</span>企業列表</a>
+  <a class="nav-item" onclick="switchView('settings')"><span class="icon">⚙️</span>設定</a>
+  <div style="flex:1"></div>
+  <a class="nav-item" onclick="logout()"><span class="icon">🚪</span>登出</a>
+</div>
+
+<div class="main" id="mainContent">
+  <div class="top-bar">
+    <div><h1>🏢 企業管理後台</h1><div class="sub" id="subtitle">載入中...</div></div>
+    <div class="user-info" id="userInfo"></div>
+  </div>
+  <div id="viewContent">
+    <div class="loading"><div class="spinner"></div><p>載入中...</p></div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-header"><h2 id="modalTitle">企業詳情</h2><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-footer" id="modalFooter"></div>
+  </div>
+</div>
+
+<script>
+// ===== Config =====
+const API_URL = window.location.origin;
+let user = null;
+let allCompanies = [];
+let currentView = 'dashboard';
+
+// ===== Auth =====
+(async function() {
+  try {
+    const token = localStorage.getItem('token');
+    if (token) {
+      const r = await fetch(API_URL + '/api/users/me', { headers: { 'Authorization': 'Bearer ' + token } });
+      if (r.ok) { const d = await r.json(); user = d.user || d; }
+    }
+  } catch(e) {}
+  if (!user || user.role !== 'admin') {
+    document.getElementById('mainContent').innerHTML = '<div class="card" style="max-width:400px;margin:80px auto;text-align:center;padding:40px;">' +
+      '<div style="font-size:48px;margin-bottom:16px;">🔒</div><h2>管理員登入</h2>' +
+      '<div style="margin:20px 0;"><input id="loginEmail" placeholder="管理員電郵" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;margin-bottom:8px;">' +
+      '<input id="loginPassword" type="password" placeholder="密碼" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;"></div>' +
+      '<button class="btn btn-primary" onclick="login()">登入</button>' +
+      '<p style="margin-top:12px;font-size:12px;color:#6b7280;">需要管理員權限</p></div>';
+  } else {
+    document.getElementById('userInfo').textContent = '👤 ' + (user.name || user.email);
+    loadDashboard();
+  }
+})();
+
+async function login() {
+  const email = document.getElementById('loginEmail').value;
+  const password = document.getElementById('loginPassword').value;
+  if (!email || !password) return alert('請輸入電郵及密碼');
+  try {
+    const r = await fetch(API_URL + '/api/auth/login', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    });
+    const d = await r.json();
+    if (d.token || d.data?.token) {
+      const token = d.token || d.data.token;
+      localStorage.setItem('token', token);
+      location.reload();
+    } else if (d.success !== false && d.user) {
+      localStorage.setItem('token', d.token || '');
+      location.reload();
+    } else {
+      alert('❌ ' + (d.error || '登入失敗'));
+    }
+  } catch(e) { alert('❌ ' + e.message); }
+}
+
+function logout() { localStorage.removeItem('token'); location.reload(); }
+
+// ===== API Helpers =====
+async function apiGet(path) {
+  const token = localStorage.getItem('token');
+  const r = await fetch(API_URL + '/api' + path, {
+    headers: { 'Authorization': 'Bearer ' + token }
+  });
+  if (!r.ok) {
+    let err = 'HTTP ' + r.status;
+    try { const d = await r.json(); err = d.error || err; } catch(e) {}
+    throw new Error(err);
+  }
+  return r.json();
+}
+
+async function apiPost(path, body) {
+  const token = localStorage.getItem('token');
+  const r = await fetch(API_URL + '/api' + path, {
+    method: 'POST', headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  const d = await r.json();
+  if (!r.ok || d.success === false) throw new Error(d.error || 'Request failed');
+  return d;
+}
+
+async function apiPatch(path, body) {
+  const token = localStorage.getItem('token');
+  const r = await fetch(API_URL + '/api' + path, {
+    method: 'PATCH', headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  const d = await r.json();
+  if (!r.ok || d.success === false) throw new Error(d.error || 'Request failed');
+  return d;
+}
+
+// ===== View Switcher =====
+function switchView(view) {
+  currentView = view;
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => {
+    if (n.textContent.includes(view === 'dashboard' ? '儀表板' : view === 'companies' ? '企業' : '設定')) {
+      n.classList.add('active');
+    }
+  });
+  switch(view) {
+    case 'dashboard': loadDashboard(); break;
+    case 'companies': loadCompanies(); break;
+    case 'settings': loadSettings(); break;
+  }
+}
+
+// ===== 1. Dashboard =====
+async function loadDashboard() {
+  setSubtitle('企業總覽');
+  const view = document.getElementById('viewContent');
+  view.innerHTML = '<div class="loading"><div class="spinner"></div><p>載入中...</p></div>';
+  try {
+    const data = await apiGet('/corporate/companies');
+    allCompanies = data.companies || [];
+    renderDashboard();
+  } catch(e) {
+    view.innerHTML = '<div class="card"><p style="color:var(--red)">❌ 載入失敗: ' + e.message + '</p></div>';
+  }
+}
+
+function renderDashboard() {
+  const cs = allCompanies;
+  const active = cs.filter(c => c.status === 'active');
+  const totalPool = cs.reduce((s,c) => s + (c.credit_pool || 0), 0);
+  const totalUsed = cs.reduce((s,c) => s + (c.credit_used || 0), 0);
+  const totalEmp = cs.reduce((s,c) => s + (c.active_employees || 0), 0);
+  const totalRev = cs.reduce((s,c) => s + (c.total_spent || 0), 0);
+
+  const view = document.getElementById('viewContent');
+  view.innerHTML = '';
+  view.innerHTML += '<div class="stats-grid">' +
+    '<div class="stat-card"><div class="val">' + active.length + '</div><div class="lbl">活躍企業</div></div>' +
+    '<div class="stat-card"><div class="val">' + totalEmp + '</div><div class="lbl">企業員工</div></div>' +
+    '<div class="stat-card"><div class="val">' + totalPool.toLocaleString() + '</div><div class="lbl">Credit Pool</div></div>' +
+    '<div class="stat-card"><div class="val">HK$' + totalRev.toLocaleString() + '</div><div class="lbl">總收入</div></div>' +
+  '</div>';
+
+  view.innerHTML += '<div class="card"><div class="card-header"><h3>📈 用量概覽</h3></div>' +
+    '<div class="stats-grid">' +
+    '<div class="stat-card"><div class="val">' + totalUsed.toLocaleString() + '</div><div class="lbl">已用 Credits</div></div>' +
+    '<div class="stat-card"><div class="val">' + (totalPool - totalUsed).toLocaleString() + '</div><div class="lbl">可用 Credits</div></div>' +
+    '<div class="stat-card"><div class="val">' + (totalPool > 0 ? Math.round((totalUsed / (totalPool + totalUsed)) * 100) + '%' : '0%') + '</div><div class="lbl">使用率</div></div>' +
+    '<div class="stat-card"><div class="val">' + cs.length + '</div><div class="lbl">總企業數</div></div>' +
+  '</div></div>';
+
+  view.innerHTML += '<div class="card"><div class="card-header"><h3>🏢 最近活躍企業</h3><button class="btn btn-sm btn-secondary" onclick="switchView(\'companies\')">查看全部 →</button></div>';
+  view.innerHTML += '<table class="table-wrap"><thead><tr><th>企業</th><th>員工</th><th>Credit Pool</th><th>已用</th><th>使用率</th><th>收入</th><th>狀態</th></tr></thead><tbody>';
+  cs.sort((a,b) => (b.total_spent || 0) - (a.total_spent || 0)).slice(0,5).forEach(function(c) {
+    const usage = c.credit_pool > 0 ? Math.round((c.credit_used || 0) / (c.credit_pool + (c.credit_used || 0)) * 100) : 0;
+    view.innerHTML += '<tr onclick="openCompanyDetail(\'' + c.id + '\')" style="cursor:pointer">' +
+      '<td><strong>' + (c.name || '-') + '</strong></td>' +
+      '<td>' + (c.active_employees || 0) + '</td>' +
+      '<td>' + (c.credit_pool || 0) + '</td>' +
+      '<td>' + (c.credit_used || 0) + '</td>' +
+      '<td><div class="progress-bar" style="width:80px;display:inline-block;vertical-align:middle;margin-right:4px;"><div class="progress-fill" style="width:' + usage + '%;background:' + (usage > 80 ? 'var(--red)' : usage > 50 ? 'var(--yellow)' : 'var(--green)') + '"></div></div>' + usage + '%</td>' +
+      '<td>HK$' + (c.total_spent || 0).toLocaleString() + '</td>' +
+      '<td><span class="badge ' + (c.status === 'active' ? 'badge-success' : 'badge-secondary') + '">' + c.status + '</span></td></tr>';
+  });
+  view.innerHTML += '</tbody></table></div>';
+}
+
+// ===== 2. Company List =====
+async function loadCompanies() {
+  setSubtitle('管理所有企業客戶');
+  const view = document.getElementById('viewContent');
+  view.innerHTML = '<div class="loading"><div class="spinner"></div><p>載入中...</p></div>';
+  try {
+    const data = await apiGet('/corporate/companies');
+    allCompanies = data.companies || [];
+    renderCompanies();
+  } catch(e) {
+    view.innerHTML = '<div class="card"><p style="color:var(--red)">❌ 載入失敗: ' + e.message + '</p></div>';
+  }
+}
+
+function renderCompanies(filter) {
+  const view = document.getElementById('viewContent');
+  const list = filter ? allCompanies.filter(c => (c.name || '').includes(filter) || (c.contact_name || '').includes(filter)) : allCompanies;
+
+  view.innerHTML = '<div class="search-bar">' +
+    '<input id="searchCompany" placeholder="🔍 搜尋企業名稱／聯絡人..." oninput="renderCompanies(this.value)" value="' + (filter || '') + '">' +
+    '<button class="btn btn-primary" onclick="showCreateCompany()">+ 新增企業</button>' +
+  '</div>';
+
+  view.innerHTML += '<div class="card"><div class="card-header"><h3>🏢 企業列表 (' + list.length + ')</h3></div>';
+  view.innerHTML += '<table class="table-wrap"><thead><tr>' +
+    '<th>企業名稱</th><th>聯絡人</th><th>員工</th><th>Credit Pool</th><th>已用</th><th>使用率</th><th>月配額</th><th>收入</th><th>下次重置</th><th>狀態</th><th>操作</th>' +
+  '</tr></thead><tbody>';
+  list.forEach(function(c) {
+    const usage = (c.credit_pool || 0) > 0 ? Math.round((c.credit_used || 0) / ((c.credit_pool || 0) + (c.credit_used || 0)) * 100) : 0;
+    view.innerHTML += '<tr>' +
+      '<td><strong>' + (c.name || '-') + '</strong></td>' +
+      '<td>' + (c.contact_name || '-') + '</td>' +
+      '<td>' + (c.active_employees || 0) + '</td>' +
+      '<td>' + (c.credit_pool || 0) + '</td>' +
+      '<td>' + (c.credit_used || 0) + '</td>' +
+      '<td><div class="progress-bar" style="width:60px;display:inline-block;vertical-align:middle;margin-right:4px;"><div class="progress-fill" style="width:' + usage + '%;background:' + (usage > 80 ? 'var(--red)' : usage > 50 ? 'var(--yellow)' : 'var(--green)') + '"></div></div>' + usage + '%</td>' +
+      '<td>' + (c.monthly_allocation || 0) + '</td>' +
+      '<td>HK$' + (c.total_spent || 0).toLocaleString() + '</td>' +
+      '<td>' + (c.next_reset_at ? c.next_reset_at.slice(0,10) : '-') + '</td>' +
+      '<td><span class="badge ' + (c.status === 'active' ? 'badge-success' : 'badge-secondary') + '">' + c.status + '</span></td>' +
+      '<td><button class="btn btn-sm btn-primary" onclick="openCompanyDetail(\'' + c.id + '\')">詳情</button></td></tr>';
+  });
+  view.innerHTML += '</tbody></table></div>';
+}
+
+// ===== 3. Company Detail Modal =====
+async function openCompanyDetail(companyId) {
+  showModal('🏢 企業詳情', '<div class="loading"><div class="spinner"></div></div>', '');
+  try {
+    const data = await apiGet('/corporate/companies/' + companyId);
+    const co = data.company;
+    const employees = data.employees || [];
+
+    let html = '<div class="detail-grid">' +
+      '<div class="detail-item"><div class="label">企業名稱</div><div class="value">' + (co.name || '-') + '</div></div>' +
+      '<div class="detail-item"><div class="label">狀態</div><div class="value"><span class="badge ' + (co.status === 'active' ? 'badge-success' : 'badge-secondary') + '">' + co.status + '</span></div></div>' +
+      '<div class="detail-item"><div class="label">聯絡人</div><div class="value small">' + (co.contact_name || '-') + ' | ' + (co.contact_email || '-') + ' | ' + (co.contact_phone || '-') + '</div></div>' +
+      '<div class="detail-item"><div class="label">結算週期</div><div class="value small">' + (co.billing_cycle || 'monthly') + '</div></div>' +
+      '<div class="detail-item"><div class="label">💰 Credit Pool</div><div class="value">' + (co.credit_pool || 0).toLocaleString() + ' cr</div></div>' +
+      '<div class="detail-item"><div class="label">💳 已用 Credits</div><div class="value">' + (co.credit_used || 0).toLocaleString() + ' cr</div></div>' +
+      '<div class="detail-item"><div class="label">✅ 可用 Credits</div><div class="value" style="color:' + (co.credit_pool - co.credit_used > 0 ? 'var(--green)' : 'var(--red)') + '">' + ((co.credit_pool - co.credit_used) || 0).toLocaleString() + ' cr</div></div>' +
+      '<div class="detail-item"><div class="label">📊 使用率</div><div class="value">' + co.pool_usage_rate + '</div></div>' +
+      '<div class="detail-item"><div class="label">📅 月配額</div><div class="value">' + (co.monthly_allocation || 0) + ' cr</div></div>' +
+      '<div class="detail-item"><div class="label">👥 員工數</div><div class="value">' + employees.length + '</div></div>' +
+      '<div class="detail-item"><div class="label">🔄 下次重置</div><div class="value small">' + (co.next_reset_at ? co.next_reset_at.slice(0,10) : '-') + '</div></div>' +
+      '<div class="detail-item"><div class="label">🔄 上次重置</div><div class="value small">' + (co.last_reset_at ? co.last_reset_at.slice(0,10) : '-') + '</div></div>' +
+    '</div>';
+
+    // Usage bar
+    const usagePct = co.credit_pool > 0 ? Math.round(((co.credit_used || 0) / (co.credit_pool + (co.credit_used || 0))) * 100) : 0;
+    html += '<div class="card" style="margin-top:12px;"><div class="section-title">Credit Pool 使用情況</div>' +
+      '<div class="progress-bar" style="height:20px;"><div class="progress-fill" style="width:' + usagePct + '%;background:' + (usagePct > 80 ? 'var(--red)' : usagePct > 50 ? 'var(--yellow)' : 'var(--green)') + '"></div></div>' +
+      '<div style="display:flex;justify-content:space-between;font-size:12px;color:var(--gray);margin-top:4px;"><span>已用 ' + (co.credit_used || 0) + ' cr</span><span>可用 ' + (co.credit_pool - co.credit_used || 0) + ' cr</span><span>總計 ' + ((co.credit_pool || 0) + (co.credit_used || 0)) + ' cr</span></div></div>';
+
+    // Tabs: Employees / Topup / Audit
+    html += '<div class="tab-buttons">' +
+      '<button class="tab-btn active" onclick="switchDetailTab(this,\'empTab\')">👥 員工 (' + employees.length + ')</button>' +
+      '<button class="tab-btn" onclick="switchDetailTab(this,\'topupTab\')">💰 Credit 管理</button>' +
+    '</div>';
+
+    // Employee Tab
+    html += '<div class="tab-content active" id="empTab">';
+    html += '<div class="employee-row employee-header"><span>姓名</span><span>電郵</span><span>Role</span><span>每月上限</span><span>本月用</span><span>使用率</span><span>操作</span></div>';
+    employees.forEach(function(e) {
+      const limit = e.monthly_credit_limit || co.monthly_allocation || '無限';
+      const used = e.monthly_credit_used || 0;
+      const rate = e.monthly_credit_limit > 0 ? Math.round((used / e.monthly_credit_limit) * 100) : 0;
+      html += '<div class="employee-row">' +
+        '<span>' + (e.name || '-') + '</span>' +
+        '<span>' + (e.email || '-') + '</span>' +
+        '<span>' + (e.role || 'employee') + '</span>' +
+        '<span>' + limit + '</span>' +
+        '<span>' + used + ' cr</span>' +
+        '<span><div class="progress-bar" style="width:50px;display:inline-block;vertical-align:middle;margin-right:4px;"><div class="progress-fill" style="width:' + rate + '%;background:' + (rate > 80 ? 'var(--red)' : rate > 50 ? 'var(--yellow)' : 'var(--green)') + '"></div></div>' + rate + '%</span>' +
+        '<span><button class="btn btn-sm btn-secondary" onclick="setEmployeeLimit(\'' + e.id + '\',\'' + (e.monthly_credit_limit || '') + '\')">限額</button></span></div>';
+    });
+    html += '</div>';
+
+    // Topup Tab
+    html += '<div class="tab-content" id="topupTab">' +
+      '<div class="card"><div class="section-title">加值 Credit Pool</div>' +
+      '<div class="inline-form"><input type="number" id="topupAmount" placeholder="Credits" min="1"> ' +
+      '<button class="btn btn-primary" onclick="topupCredits(\'' + co.id + '\')">加值</button></div></div>' +
+      '<div class="card"><div class="section-title">修改企業資料</div>' +
+      '<div class="inline-form">' +
+      '<input id="editName" value="' + (co.name || '') + '" placeholder="名稱" style="flex:2">' +
+      '<input id="editContact" value="' + (co.contact_name || '') + '" placeholder="聯絡人">' +
+      '<input id="editEmail" value="' + (co.contact_email || '') + '" placeholder="電郵">' +
+      '<input id="editPhone" value="' + (co.contact_phone || '') + '" placeholder="電話">' +
+      '<select id="editStatus"><option value="active"' + (co.status === 'active' ? ' selected' : '') + '>Active</option><option value="suspended"' + (co.status === 'suspended' ? ' selected' : '') + '>Suspended</option></select>' +
+      '<button class="btn btn-primary" onclick="updateCompany(\'' + co.id + '\')">更新</button></div></div>';
+
+    const nextReset = co.next_reset_at ? new Date(co.next_reset_at) : null;
+    if (nextReset) {
+      const daysLeft = Math.ceil((nextReset - new Date()) / (1000*60*60*24));
+      html += '<div class="card"><div class="section-title">⏰ 下次重置倒數</div><p>距離下次重置仲有 <strong>' + daysLeft + ' 日</strong> (' + nextReset.toISOString().slice(0,10) + ')</p>' +
+        '<button class="btn btn-danger btn-sm" onclick="if(confirm(\'確定立即重置？\')) resetNow(\'' + co.id + '\')">↻ 立即重置</button></div>';
+    }
+
+    html += '</div>';
+
+    document.getElementById('modalBody').innerHTML = html;
+    document.getElementById('modalFooter').innerHTML =
+      '<button class="btn btn-secondary" onclick="closeModal()">關閉</button>';
+
+    // Store current detail id for limit dialog
+    window._currentDetailId = companyId;
+    document.getElementById('modalFooter').innerHTML =
+      '<button class="btn btn-secondary" onclick="closeModal()">關閉</button>';
+
+  } catch(e) {
+    document.getElementById('modalBody').innerHTML = '<p style="color:var(--red)">❌ ' + e.message + '</p>';
+  }
+}
+
+// ===== Detail Tab Switching =====
+function switchDetailTab(btn, tabId) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById(tabId).classList.add('active');
+}
+
+// ===== Actions: Create Company =====
+function showCreateCompany() {
+  showModal('🏢 新增企業', '' +
+    '<div style="display:grid;gap:12px;">' +
+    '<div><label style="font-size:12px;color:var(--gray);font-weight:600;">企業名稱 *</label><input id="newName" placeholder="e.g. 香港金融集團" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;"></div>' +
+    '<div><label style="font-size:12px;color:var(--gray);font-weight:600;">聯絡人</label><input id="newContact" placeholder="姓名" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;"></div>' +
+    '<div><label style="font-size:12px;color:var(--gray);font-weight:600;">電郵</label><input id="newEmail" type="email" placeholder="admin@corp.hk" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;"></div>' +
+    '<div><label style="font-size:12px;color:var(--gray);font-weight:600;">電話</label><input id="newPhone" placeholder="+852 1234 5678" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;"></div>' +
+    '<div><label style="font-size:12px;color:var(--gray);font-weight:600;">初始 Credits</label><input id="newCredits" type="number" value="0" min="0" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;"></div>' +
+    '<div><label style="font-size:12px;color:var(--gray);font-weight:600;">結算週期</label><select id="newBilling" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;"><option value="monthly">Monthly</option><option value="quarterly">Quarterly</option><option value="annual">Annual</option></select></div>' +
+    '</div>', '<button class="btn btn-primary" onclick="createCompany()">建立企業</button><button class="btn btn-secondary" onclick="closeModal()">取消</button>');
+}
+
+async function createCompany() {
+  const name = document.getElementById('newName').value.trim();
+  if (!name) return alert('請輸入企業名稱');
+  try {
+    const r = await apiPost('/corporate/companies', {
+      name, contact_name: document.getElementById('newContact').value.trim(),
+      contact_email: document.getElementById('newEmail').value.trim(),
+      contact_phone: document.getElementById('newPhone').value.trim(),
+      credit_pool: parseInt(document.getElementById('newCredits').value) || 0
+    });
+    alert(r.message || '✅ 已建立');
+    closeModal();
+    loadCompanies();
+  } catch(e) { alert('❌ ' + e.message); }
+}
+
+// ===== Actions: Topup =====
+async function topupCredits(companyId) {
+  const amount = document.getElementById('topupAmount').value;
+  if (!amount || amount <= 0) return alert('請輸入有效數量');
+  try {
+    const r = await apiPost('/corporate/companies/' + companyId + '/topup', { credits: parseInt(amount) });
+    alert(r.message);
+    openCompanyDetail(companyId);
+  } catch(e) { alert('❌ ' + e.message); }
+}
+
+// ===== Actions: Update Company =====
+async function updateCompany(companyId) {
+  try {
+    const r = await apiPatch('/corporate/companies/' + companyId, {
+      name: document.getElementById('editName').value.trim(),
+      contact_name: document.getElementById('editContact').value.trim(),
+      contact_email: document.getElementById('editEmail').value.trim(),
+      contact_phone: document.getElementById('editPhone').value.trim(),
+      status: document.getElementById('editStatus').value
+    });
+    alert(r.message || '✅ 已更新');
+    openCompanyDetail(companyId);
+  } catch(e) { alert('❌ ' + e.message); }
+}
+
+// ===== Actions: Employee Limit =====
+async function setEmployeeLimit(memberId, currentLimit) {
+  const val = prompt('設定每月 Credit 上限（留空 = 無限）：', currentLimit || '');
+  if (val === null) return;
+  try {
+    const r = await apiPatch('/corporate/members/' + memberId + '/limit', { monthly_credit_limit: val === '' ? null : parseInt(val) });
+    alert(r.message);
+    if (window._currentDetailId) openCompanyDetail(window._currentDetailId);
+  } catch(e) { alert('❌ ' + e.message); }
+}
+
+// ===== Actions: Reset =====
+async function resetNow(companyId) {
+  try {
+    const r = await apiPost('/corporate/companies/' + companyId + '/reset', {});
+    if (r.success) { alert('✅ 已重置'); openCompanyDetail(companyId); }
+    else alert('❌ ' + (r.error || '重置失敗'));
+  } catch(e) { alert('❌ ' + e.message); }
+}
+
+// ===== 5. Settings =====
+function loadSettings() {
+  setSubtitle('設定');
+  const view = document.getElementById('viewContent');
+  view.innerHTML = '<div class="card"><div class="card-header"><h3>⚙️ 設定</h3></div>' +
+    '<p>管理員: <strong>' + (user?.name || user?.email || '-') + '</strong></p>' +
+    '<p>Role: ' + (user?.role || '-') + '</p>' +
+    '<hr style="margin:12px 0;">' +
+    '<p style="color:var(--gray);font-size:13px;">ZenPass 企業管理後台 v2.0</p>' +
+    '<p style="color:var(--gray);font-size:12px;">所有企業操作記錄已寫入 audit trail，不可篡改。</p></div>';
+}
+
+// ===== Modal =====
+function showModal(title, body, footer) {
+  document.getElementById('modalTitle').textContent = title;
+  document.getElementById('modalBody').innerHTML = body;
+  document.getElementById('modalFooter').innerHTML = footer || '';
+  document.getElementById('modalOverlay').classList.add('active');
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('active');
+}
+
+// ===== Helpers =====
+function setSubtitle(text) {
+  document.getElementById('subtitle').textContent = text;
+}
+</script>
+</body>
+</html>

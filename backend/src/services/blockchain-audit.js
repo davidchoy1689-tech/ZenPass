@@ -677,6 +677,231 @@ function verifyFullChain() {
 }
 
 /**
+/**
+ * 追溯學校查詢嘅 blockchain trail
+ */
+function traceSchoolInquiry(inquiryId) {
+  const db = getDb();
+  db.pragma("foreign_keys = ON");
+
+  try {
+    const inquiry = db
+      .prepare("SELECT * FROM school_inquiries WHERE id = ?")
+      .get(inquiryId);
+
+    if (!inquiry) {
+      return { error: "School inquiry not found" };
+    }
+
+    // Fetch all blockchain blocks for this inquiry
+    const blocks = db
+      .prepare(
+        "SELECT * FROM blockchain_blocks WHERE entity_type = ? AND entity_id = ? ORDER BY block_height ASC",
+      )
+      .all("school_inquiry", inquiryId);
+
+    // Build chain from blockchain_blocks
+    const chain = blocks.map((b) => ({
+      block_id: b.id,
+      block_height: b.block_height,
+      previous_hash: b.previous_hash,
+      hash: b.hash,
+      data: JSON.parse(b.data),
+      created_at: b.created_at,
+    }));
+
+    // Verify chain integrity
+    let verified = { valid: true, length: chain.length };
+    if (chain.length > 0) {
+      verified = verifyChain(chain);
+    }
+
+    return {
+      inquiry: {
+        id: inquiry.id,
+        school_name: inquiry.school_name,
+        contact_name: inquiry.contact_name,
+        contact_email: inquiry.contact_email,
+        status: inquiry.status,
+        created_at: inquiry.created_at,
+      },
+      chain,
+      total_blocks: chain.length,
+      verified,
+    };
+  } catch (err) {
+    return { error: err.message };
+  }
+}
+
+/**
+ * 追溯企業帳戶嘅完整 blockchain trail
+ *
+ * 支援：
+ *  - corporate_company（企業檔案、修改）
+ *  - corporate_member（員工加入、限額修改）
+ *  - corporate_credit（Credit topup）
+ */
+function traceCorporate(companyId) {
+  const db = getDb();
+  db.pragma("foreign_keys = ON");
+
+  try {
+    const company = db
+      .prepare("SELECT * FROM corporate_companies WHERE id = ?")
+      .get(companyId);
+
+    if (!company) {
+      return { error: "Corporate company not found" };
+    }
+
+    // Employee count & usage
+    const employeeCount = db
+      .prepare(
+        "SELECT COUNT(*) as count FROM corporate_members WHERE company_id = ?",
+      )
+      .get(companyId);
+
+    // Total spent by this company's employees
+    const companySpent = db
+      .prepare(
+        `SELECT COALESCE(SUM(b.amount), 0) as total, COALESCE(SUM(b.credits_cost), 0) as total_credits
+         FROM bookings b
+         JOIN corporate_members cm ON b.user_id = cm.user_id
+         WHERE cm.company_id = ? AND b.status IN ('confirmed','attended')`,
+      )
+      .get(companyId);
+
+    // Credit pool usage rate
+    const poolUsageRate =
+      company.credit_pool > 0
+        ? Math.round((company.credit_used / (company.credit_pool + company.credit_used)) * 100)
+        : 0;
+
+    // All blockchain blocks for this company
+    const companyBlocks = db
+      .prepare(
+        "SELECT * FROM blockchain_blocks WHERE entity_type = ? AND entity_id = ? ORDER BY block_height ASC",
+      )
+      .all("corporate_company", companyId);
+
+    // Credit blocks for this company
+    const creditBlocks = db
+      .prepare(
+        "SELECT * FROM blockchain_blocks WHERE entity_type = ? AND entity_id = ? ORDER BY block_height ASC",
+      )
+      .all("corporate_credit", companyId);
+
+    // Member blocks for this company's members
+    const members = db
+      .prepare(
+        `SELECT cm.*, u.name as user_name, u.email as user_email
+         FROM corporate_members cm
+         JOIN users u ON cm.user_id = u.id
+         WHERE cm.company_id = ?`,
+      )
+      .all(companyId);
+
+    const memberIds = members.map((m) => m.user_id);
+    const memberBlocks = [];
+    if (memberIds.length > 0) {
+      const placeholders = memberIds.map(() => "?").join(",");
+      memberBlocks.push(
+        ...db
+          .prepare(
+            `SELECT * FROM blockchain_blocks WHERE entity_type = ? AND entity_id IN (${placeholders}) ORDER BY block_height ASC`,
+          )
+          .all("corporate_member", ...memberIds),
+      );
+    }
+
+    // Build chain analysis
+    const allBlocks = [
+      ...companyBlocks,
+      ...creditBlocks,
+      ...memberBlocks,
+    ].sort((a, b) => a.block_height - b.block_height);
+
+    const chain = allBlocks.map((b) => ({
+      block_id: b.id,
+      block_height: b.block_height,
+      entity_type: b.entity_type,
+      entity_id: b.entity_id,
+      previous_hash: b.previous_hash,
+      hash: b.hash,
+      data: JSON.parse(b.data),
+      created_at: b.created_at,
+    }));
+
+    // Verify chain integrity
+    let verified = { valid: true, length: chain.length };
+    if (chain.length > 0) {
+      verified = verifyChain(chain);
+    }
+
+    // Per-employee booking details
+    const employeeBookings = members.map((m) => {
+      const usage = db
+        .prepare(
+          `SELECT COUNT(*) as count, COALESCE(SUM(COALESCE(b.credits_cost,0)),0) as credits, COALESCE(SUM(b.amount),0) as amount
+           FROM bookings b
+           WHERE b.user_id = ? AND b.status IN ('confirmed','attended')`,
+        )
+        .get(m.user_id);
+      return {
+        user_id: m.user_id,
+        name: m.user_name,
+        email: m.user_email,
+        monthly_limit: m.monthly_limit || company.monthly_allocation,
+        monthly_credit_used: m.monthly_credit_used,
+        usage_rate: m.monthly_limit > 0
+          ? Math.round((m.monthly_credit_used / m.monthly_limit) * 100)
+          : 0,
+        total_bookings: usage.count,
+        total_credits_used: usage.credits,
+        total_spent: usage.amount,
+        role: m.role,
+        joined_at: m.joined_at,
+      };
+    });
+
+    return {
+      company: {
+        id: company.id,
+        name: company.name,
+        status: company.status,
+        billing_cycle: company.billing_cycle,
+        // 帳戶餘額
+        credit_pool: company.credit_pool,
+        credit_used: company.credit_used,
+        available_balance: company.credit_pool - company.credit_used,
+        pool_usage_rate: poolUsageRate + "%",
+        monthly_allocation: company.monthly_allocation,
+        // 開支
+        total_spent: companySpent.total,
+        total_credits_consumed: companySpent.total_credits,
+        employee_count: employeeCount.count,
+        // 時間
+        next_reset_at: company.next_reset_at,
+        last_reset_at: company.last_reset_at,
+        created_at: company.created_at,
+      },
+      members: employeeBookings,
+      chain,
+      total_blocks: chain.length,
+      breakdown: {
+        company_blocks: companyBlocks.length,
+        credit_blocks: creditBlocks.length,
+        member_blocks: memberBlocks.length,
+      },
+      verified,
+    };
+  } catch (err) {
+    return { error: err.message };
+  }
+}
+
+/**
  * 快速寫 Booking 嘅 blockchain block
  */
 function writeBookingBlock(bookingId) {
@@ -740,6 +965,8 @@ module.exports = {
   ensureBlockchainTable,
   writeBlock,
   writeBookingBlock,
+  traceSchoolInquiry,
+  traceCorporate,
   verifyBlock,
   verifyFullChain,
 };

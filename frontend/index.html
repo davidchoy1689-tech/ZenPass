@@ -77,6 +77,9 @@
   .cta-button { position: relative; overflow: hidden; }
   .cta-button::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent); transform: translateX(-100%); animation: shine 3s infinite; }
   @keyframes shine { 0% { transform: translateX(-100%); } 20% { transform: translateX(300%); } 100% { transform: translateX(300%); } }
+  .modern-card-credit { font-size: 14px; font-weight: 800; color: var(--orange-600); margin-top: 4px; }
+  .modern-card-venue { font-size: 12px; color: var(--dark-700); margin-top: 2px; }
+  .zen-filter-btn:hover { background: var(--gray-100) !important; border-color: var(--orange-200) !important; color: var(--orange-600) !important; }
 </style>
 <!-- Skeleton Loading -->
 <div id="skeleton-loader" style="background:#f5f3f0">
@@ -284,6 +287,40 @@
         >🧠 冥想</a
       >
     </div>
+
+    <!-- Filter Bar -->
+    <div class="zen-flex zen-gap-xs" style="margin: 0 0 12px; gap: 6px; overflow-x: auto; padding: 2px 0">
+      <button class="zen-filter-btn" style="flex-shrink:0;padding:7px 16px;border-radius:50px;border:1px solid var(--gray-200);background:var(--white);font-size:13px;color:var(--dark-900);cursor:pointer;white-space:nowrap;transition:all 0.2s">📍 地區</button>
+      <button class="zen-filter-btn" style="flex-shrink:0;padding:7px 16px;border-radius:50px;border:1px solid var(--gray-200);background:var(--white);font-size:13px;color:var(--dark-900);cursor:pointer;white-space:nowrap;transition:all 0.2s">📅 日期</button>
+      <button class="zen-filter-btn" style="flex-shrink:0;padding:7px 16px;border-radius:50px;border:1px solid var(--gray-200);background:var(--white);font-size:13px;color:var(--dark-900);cursor:pointer;white-space:nowrap;transition:all 0.2s">⏰ 時段</button>
+      <button class="zen-filter-btn" style="flex-shrink:0;padding:7px 16px;border-radius:50px;border:1px solid var(--gray-200);background:var(--white);font-size:13px;color:var(--dark-900);cursor:pointer;white-space:nowrap;transition:all 0.2s">🏷️ 離峰優惠</button>
+    </div>
+
+    <script>
+    (function() {
+      var pills = document.querySelectorAll('.zen-category-pill');
+      pills.forEach(function(pill) {
+        pill.addEventListener('click', function(e) {
+          pills.forEach(function(p) { p.style.background = 'rgba(255,255,255,0.9)'; p.style.fontWeight = '500'; });
+          this.style.background = 'var(--orange-600)';
+          this.style.color = '#fff';
+          this.style.fontWeight = '600';
+        });
+      });
+      // Check URL params for active category on load
+      var params = new URLSearchParams(window.location.search);
+      var activeCat = params.get('category');
+      if (activeCat) {
+        pills.forEach(function(p) {
+          if (p.textContent.includes(activeCat) || p.getAttribute('href').includes(encodeURIComponent(activeCat))) {
+            p.style.background = 'var(--orange-600)';
+            p.style.color = '#fff';
+            p.style.fontWeight = '600';
+          }
+        });
+      }
+    })();
+    </script>
 
     <!-- 💰 Credits 使用對照表 -->
         <div class="section" style="margin-bottom:4px">
@@ -730,6 +767,23 @@
   function escHtmlF(s) {
     return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
+  function toggleFavoriteModern(el, classId) {
+    event.stopPropagation();
+    if (el.textContent === '♡') {
+      el.textContent = '♥';
+      el.classList.add('liked');
+      var favs = JSON.parse(localStorage.getItem('zenpass_favorites') || '[]');
+      if (favs.indexOf(classId) === -1) { favs.push(classId); }
+      localStorage.setItem('zenpass_favorites', JSON.stringify(favs));
+    } else {
+      el.textContent = '♡';
+      el.classList.remove('liked');
+      var favs = JSON.parse(localStorage.getItem('zenpass_favorites') || '[]');
+      var idx = favs.indexOf(classId);
+      if (idx !== -1) { favs.splice(idx, 1); }
+      localStorage.setItem('zenpass_favorites', JSON.stringify(favs));
+    }
+  }
   // Load recommendations — for all users (personalized if logged in, popular if not)
   setTimeout(function() {
     var section = document.getElementById('recommended-section');
@@ -769,10 +823,12 @@
               ? '<span class="modern-card-badge hot">🔥 熱門</span>'
               : '<span class="modern-card-badge" style="background:#6366f1">🌟 新課</span>';
             var stars = '★'.repeat(Math.round(cls.rating || 5)) + '☆'.repeat(5 - Math.round(cls.rating || 5));
-            card.innerHTML = '<div class="modern-card-img" style="min-width:220px"><div class="bg-img" style="background:' + bg + '">' + icon + '</div><div class="modern-card-badges">' + badge + '</div></div>' +
+            card.innerHTML = '<div class="modern-card-img" style="min-width:220px"><div class="bg-img" style="background:' + bg + '">' + icon + '</div><div class="modern-card-badges">' + badge + '</div><button class="modern-card-fav" onclick="event.stopPropagation();toggleFavoriteModern(this,\'' + clsId + '\')" aria-label="收藏">♡</button></div>' +
               '<div class="modern-card-body"><div class="modern-card-tags"><span class="modern-card-tag">' + (cls.category || '') + '</span></div>' +
               '<div class="modern-card-title">' + escHtmlF(clsTitle) + '</div>' +
               '<div class="modern-card-meta">' + (cls.coach_name || '') + '</div>' +
+              '<div class="modern-card-credit">' + (cls.credits_cost ? cls.credits_cost + ' cr' : '12 cr') + '</div>' +
+              '<div class="modern-card-venue">📍 ' + escHtmlF(cls.venue_name || '') + '</div>' +
               '<div class="modern-card-review"><div><span class="modern-card-stars">' + stars + '</span></div></div>' +
               '<button class="modern-card-cta" onclick="event.stopPropagation();location.href=\'booking.html?classId=' + clsId + '\'" role="button" aria-label="預約課程">立即預約<span class="arrow">→</span></button></div>';
             card.onclick = function() { window.location.href = 'booking.html?classId=' + clsId; };
@@ -804,10 +860,12 @@
               ? '<span class="modern-card-badge hot">🔥 熱門</span>'
               : '<span class="modern-card-badge" style="background:#6366f1">🌟 新課</span>';
             var stars = '★'.repeat(Math.round(cls.rating || 5)) + '☆'.repeat(5 - Math.round(cls.rating || 5));
-            card.innerHTML = '<div class="modern-card-img" style="min-width:220px"><div class="bg-img" style="background:' + bg + '">' + icon + '</div><div class="modern-card-badges">' + badge + '</div></div>' +
+            card.innerHTML = '<div class="modern-card-img" style="min-width:220px"><div class="bg-img" style="background:' + bg + '">' + icon + '</div><div class="modern-card-badges">' + badge + '</div><button class="modern-card-fav" onclick="event.stopPropagation();toggleFavoriteModern(this,\'' + clsId + '\')" aria-label="收藏">♡</button></div>' +
               '<div class="modern-card-body"><div class="modern-card-tags"><span class="modern-card-tag">' + (cls.category || '') + '</span></div>' +
               '<div class="modern-card-title">' + escHtmlF(clsTitle) + '</div>' +
               '<div class="modern-card-meta">' + (cls.coach_name || '') + '</div>' +
+              '<div class="modern-card-credit">' + (cls.credits_cost ? cls.credits_cost + ' cr' : '12 cr') + '</div>' +
+              '<div class="modern-card-venue">📍 ' + escHtmlF(cls.venue_name || '') + '</div>' +
               '<div class="modern-card-review"><div><span class="modern-card-stars">' + stars + '</span></div></div>' +
               '<button class="modern-card-cta" onclick="event.stopPropagation();location.href=\'booking.html?classId=' + clsId + '\'" role="button" aria-label="預約課程">立即預約<span class="arrow">→</span></button></div>';
             card.onclick = function() { window.location.href = 'booking.html?classId=' + clsId; };

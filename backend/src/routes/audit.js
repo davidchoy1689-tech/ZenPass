@@ -9,7 +9,10 @@ const { authenticateToken } = require("../middleware/auth");
 const {
   traceBooking,
   traceWalletTransaction,
+  traceSchoolInquiry,
+  traceCorporate,
   verifyChain,
+  verifyFullChain,
 } = require("../services/blockchain-audit");
 
 const router = express.Router();
@@ -45,4 +48,39 @@ router.get("/wallet/:id", authenticateToken, (req, res) => {
   }
 });
 
-module.exports = { router, traceBooking, traceWalletTransaction };
+// ===== GET /api/audit/school/:id — 追溯學校查詢嘅 blockchain trail =====
+router.get("/school/:id", authenticateToken, (req, res) => {
+  try {
+    const result = traceSchoolInquiry(req.params.id);
+    if (result.error) return res.status(404).json({ success: false, error: result.error });
+    res.json(result);
+  } catch (err) {
+    console.error("[AUDIT] trace school inquiry error:", err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ===== GET /api/audit/corporate/:id — 追溯企業帳戶嘅完整 blockchain trail =====
+router.get("/corporate/:id", authenticateToken, (req, res) => {
+  try {
+    const result = traceCorporate(req.params.id);
+    if (result.error) return res.status(404).json({ success: false, error: result.error });
+    res.json(result);
+  } catch (err) {
+    console.error("[AUDIT] trace corporate error:", err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ===== GET /api/audit/verify — 全區塊鏈驗證 =====
+router.get("/verify", authenticateToken, (req, res) => {
+  try {
+    const result = verifyFullChain();
+    res.json(result);
+  } catch (err) {
+    console.error("[AUDIT] verify full chain error:", err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+module.exports = { router, traceBooking, traceWalletTransaction, traceSchoolInquiry, traceCorporate };
