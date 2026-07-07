@@ -18,11 +18,15 @@ let failed = 0;
 let token = "";
 let userId = "";
 
-function request(method, path, body, authToken) {
+function request(method, path, body, authToken, csrfInfo) {
   return new Promise((resolve, reject) => {
     const url = new URL(path, API_BASE);
     const headers = { "Content-Type": "application/json" };
     if (authToken) headers["Authorization"] = "Bearer " + authToken;
+    if (csrfInfo) {
+      headers["Cookie"] = csrfInfo.cookie;
+      headers["x-csrf-token"] = csrfInfo.token;
+    }
 
     const options = {
       hostname: url.hostname,
@@ -176,8 +180,9 @@ async function runTests() {
   // ===== 5. Points Checkin =====
   console.log("\n📅 Points Checkin");
   try {
+    var csrf = await getCsrfToken();
     // First checkin of the day may fail if already checked in
-    const checkin = await request("POST", "/api/points/checkin", {}, token);
+    const checkin = await request("POST", "/api/points/checkin", {}, token, csrf);
     if (checkin.status === 200) {
       assert(
         "POST /api/points/checkin 成功",
@@ -243,11 +248,13 @@ async function runTests() {
   // ===== 8. Redeem (test with insufficient points) =====
   console.log("\n🎯 Points Redeem");
   try {
+    var csrf = await getCsrfToken();
     const redeem = await request(
       "POST",
       "/api/points/redeem",
       { reward_id: "rwd_01" },
       token,
+      csrf,
     );
     // We expect either success (if user has enough points) or "積分不足" error
     if (redeem.status === 200) {
@@ -295,6 +302,7 @@ async function runTests() {
   // ===== 10. Waiver Submit =====
   console.log("\n📝 Waiver Submit");
   try {
+    var csrf = await getCsrfToken();
     const waiver = await request(
       "POST",
       "/api/crm/waiver",
@@ -307,6 +315,7 @@ async function runTests() {
         other: "測試用 waiver submission",
       },
       token,
+      csrf,
     );
     assert(
       "POST /api/crm/waiver 回傳 200",
@@ -434,6 +443,28 @@ async function runTests() {
 
   // Print summary
   printSummary();
+}
+
+function getCsrfToken() {
+  return new Promise((resolve, reject) => {
+    const url = new URL("/api/csrf-token", API_BASE);
+    const req = http.get(url, (res) => {
+      var cookie = "";
+      var setCookie = res.headers["set-cookie"];
+      if (setCookie) {
+        cookie = setCookie.map(function(c) { return c.split(";")[0]; }).join("; ");
+      }
+      var data = "";
+      res.on("data", function(chunk) { data += chunk; });
+      res.on("end", function() {
+        try {
+          var parsed = JSON.parse(data);
+          resolve({ cookie: cookie, token: parsed.csrfToken || parsed.token || "" });
+        } catch (e) { reject(e); }
+      });
+    });
+    req.on("error", reject);
+  });
 }
 
 function printSummary() {
