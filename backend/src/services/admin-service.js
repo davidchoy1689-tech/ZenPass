@@ -31,7 +31,7 @@ function listPendingPayments() {
        FROM bookings b
        JOIN users u ON b.user_id = u.id
        JOIN classes c ON b.class_id = c.id
-       JOIN class_schedules cs ON b.schedule_id = cs.id
+       LEFT JOIN class_schedules cs ON b.schedule_id = cs.id
        WHERE b.status = 'pending_payment'
          AND (b.fps_reference IS NOT NULL OR b.payme_reference IS NOT NULL)
          AND b.payment_status = 'pending'
@@ -274,11 +274,11 @@ function listAllBookings(query) {
       `SELECT b.id, b.user_id, b.amount, b.payment_type, b.payment_status, b.status,
               b.booking_reference, b.fps_reference, b.payme_reference, b.stripe_payment_intent_id,
               b.created_at, u.name as user_name, u.email as user_email, u.user_reference,
-              c.title as class_title, c.category, c.class_reference, cs.start_time, cs.end_time
+              c.title as class_title, c.category, cs.start_time, cs.end_time
        FROM bookings b
        JOIN users u ON b.user_id = u.id
        JOIN classes c ON b.class_id = c.id
-       JOIN class_schedules cs ON b.schedule_id = cs.id
+       LEFT JOIN class_schedules cs ON b.schedule_id = cs.id
        WHERE ${whereClause}
        ORDER BY b.created_at DESC
        LIMIT ? OFFSET ?`

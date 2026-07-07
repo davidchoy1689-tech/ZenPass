@@ -14,7 +14,7 @@ const API = BASE + "/api";
 
 // ===== 輔助函數 =====
 
-function request(method, path, body = null, token = null) {
+function request(method, path, body = null, token = null, csrfInfo = null) {
   return new Promise((resolve, reject) => {
     const url = new URL(path, BASE);
     const options = {
@@ -25,6 +25,10 @@ function request(method, path, body = null, token = null) {
       headers: { "Content-Type": "application/json" },
     };
     if (token) options.headers["Authorization"] = `Bearer ${token}`;
+    if (csrfInfo) {
+      options.headers["Cookie"] = csrfInfo.cookie;
+      options.headers["x-csrf-token"] = csrfInfo.token;
+    }
 
     const req = http.request(options, (res) => {
       let data = "";
@@ -52,9 +56,31 @@ function request(method, path, body = null, token = null) {
   });
 }
 
+function getCsrfToken() {
+  return new Promise((resolve, reject) => {
+    const url = new URL(API + "/csrf-token");
+    const req = http.get(url, (res) => {
+      var cookie = "";
+      var setCookie = res.headers["set-cookie"];
+      if (setCookie) {
+        cookie = setCookie.map(function(c) { return c.split(";")[0]; }).join("; ");
+      }
+      var data = "";
+      res.on("data", function(chunk) { data += chunk; });
+      res.on("end", function() {
+        try {
+          var parsed = JSON.parse(data);
+          resolve({ cookie: cookie, token: parsed.csrfToken || parsed.token || "" });
+        } catch (e) { reject(e); }
+      });
+    });
+    req.on("error", reject);
+  });
+}
+
 const api = {
   get: (path, token) => request("GET", path, null, token),
-  post: (path, body, token) => request("POST", path, body, token),
+  post: (path, body, token, csrfInfo) => request("POST", path, body, token, csrfInfo),
   put: (path, body, token) => request("PUT", path, body, token),
   delete: (path, token) => request("DELETE", path, null, token),
 };
@@ -348,7 +374,8 @@ async function test_14_points() {
 
   // Check-in test
   console.log("  🎯 Testing check-in...");
-  const chkRes = await api.post(API + "/points/checkin", {}, testToken);
+  const csrf = await getCsrfToken();
+  const chkRes = await api.post(API + "/points/checkin", {}, testToken, csrf);
   assert.ok(
     chkRes.status === 200 || chkRes.status === 400,
     `Checkin status should be 200/400, got ${chkRes.status}`,
