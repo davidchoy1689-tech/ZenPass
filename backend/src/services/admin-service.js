@@ -89,15 +89,33 @@ function approvePayment(bookingId, adminId, req) {
     );
   }, 0);
 
-  // Accounting
+  // Accounting (double-entry, idempotent)
   try {
-    const { recordPayment, recordCommission } = require("./accounting");
-    recordPayment(bookingId, booking.user_id, booking.amount || 0, booking.fps_reference ? "fps" : "payme");
-    const commissionAmt = Math.round((booking.amount || 0) * (booking.platform_commission_rate || 0.2) * 100) / 100;
-    if (commissionAmt > 0) {
-      recordCommission(bookingId, booking.user_id, commissionAmt, booking.fps_reference ? "fps" : "payme");
-    }
-  } catch (acctErr) { console.error("⚠️ Accounting entry failed:", acctErr.message); }
+    const { postBookingLedger } = require("./accounting");
+    postBookingLedger(
+      bookingId,
+      booking.user_id,
+      booking.amount || 0,
+      booking.fps_reference ? "fps" : "payme",
+      booking.platform_commission_rate,
+    );
+  } catch (acctErr) {
+    console.error("⚠️ Accounting entry failed:", acctErr.message);
+    try {
+      audit({
+        actionType: "ledger_write_failed",
+        entityType: "booking",
+        entityId: bookingId,
+        userId: booking.user_id,
+        description: `Ledger 寫入失敗 (admin approve): ${acctErr.message}`,
+      });
+    } catch (_e) {}
+    try {
+      sendTelegramAlert(
+        `⚠️ <b>Ledger 寫入失敗</b>\n🆔 Booking：${bookingId}\n⚠️ 錯誤：${acctErr.message}`,
+      );
+    } catch (_e) {}
+  }
 
   // Audit
   try { trackAdminAction(adminId, "approve_payment", { booking_id: bookingId, amount: booking?.amount }, req); }

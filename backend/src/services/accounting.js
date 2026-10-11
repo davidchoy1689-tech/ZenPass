@@ -312,6 +312,40 @@ function recordPayout(coachId, amount, method) {
 }
 
 /**
+ * 為一筆已付款 booking 落 double-entry（idempotent）
+ * 會寫：payment（收款）+ commission（平台佣金）
+ * 若該 booking 已有 ledger 記錄，則不重複寫入。
+ * 失敗會 throw，等呼叫方決定點處理（例如 audit + alert）。
+ */
+function postBookingLedger(bookingId, userId, amount, method, commissionRate) {
+  amount = Number(amount) || 0;
+  if (amount <= 0) return false;
+  if (getEntriesByBooking(bookingId).length > 0) return false; // 已入帳，唔重複
+
+  let rate = commissionRate;
+  if (rate == null) {
+    try {
+      const row = getDb()
+        .prepare("SELECT platform_commission_rate FROM bookings WHERE id = ?")
+        .get(bookingId);
+      rate =
+        row && row.platform_commission_rate != null
+          ? row.platform_commission_rate
+          : 0.2;
+    } catch (_e) {
+      rate = 0.2;
+    }
+  }
+
+  recordPayment(bookingId, userId, amount, method || "cash");
+  const commissionAmt = Math.round(amount * rate * 100) / 100;
+  if (commissionAmt > 0) {
+    recordCommission(bookingId, userId, commissionAmt, method || "cash");
+  }
+  return true;
+}
+
+/**
  * 查詢帳戶結餘
  * @param {string} accountCode - e.g. "1000"
  * @returns {number} 結餘
@@ -401,6 +435,7 @@ module.exports = {
   recordRefund,
   recordCommission,
   recordPayout,
+  postBookingLedger,
   getBalance,
   trialBalance,
   getEntriesByBooking,

@@ -18,6 +18,7 @@ const {
   recordRefund,
   recordCommission,
   recordPayout,
+  postBookingLedger,
 } = require("../services/accounting");
 
 const router = express.Router();
@@ -281,7 +282,7 @@ async function completeStripePayment(req, res, booking_id, paymentIntentId) {
 
     if (booking_id) {
       const booking = db
-        .prepare("SELECT status, schedule_id FROM bookings WHERE id = ?")
+        .prepare("SELECT status, schedule_id, user_id, amount, platform_commission_rate FROM bookings WHERE id = ?")
         .get(booking_id);
       if (booking && booking.status === "pending_payment") {
         db.prepare(
@@ -301,6 +302,28 @@ async function completeStripePayment(req, res, booking_id, paymentIntentId) {
           } catch (e) {
             console.error("auto coach earnings:", e.message);
           }
+        }
+
+        // Ledger double-entry (idempotent)
+        try {
+          postBookingLedger(
+            booking_id,
+            booking.user_id,
+            req.body.amount || booking.amount || 0,
+            "stripe",
+            booking.platform_commission_rate,
+          );
+        } catch (ledgerErr) {
+          console.error("⚠️ Ledger entry failed (stripe confirm):", ledgerErr.message);
+          try {
+            audit({
+              actionType: "ledger_write_failed",
+              entityType: "booking",
+              entityId: booking_id,
+              userId: booking.user_id,
+              description: `Ledger 寫入失敗 (stripe confirm): ${ledgerErr.message}`,
+            });
+          } catch (_e) {}
         }
       } else {
         db.prepare(
@@ -370,7 +393,7 @@ router.post("/stripe/webhook", async (req, res) => {
         db.pragma("foreign_keys = ON");
 
         const booking = db
-          .prepare("SELECT status, schedule_id FROM bookings WHERE id = ?")
+          .prepare("SELECT status, schedule_id, user_id, amount, platform_commission_rate FROM bookings WHERE id = ?")
           .get(booking_id);
         if (booking && booking.status === "pending_payment") {
           db.prepare(
@@ -390,6 +413,28 @@ router.post("/stripe/webhook", async (req, res) => {
             } catch (e) {
               console.error("auto coach earnings:", e.message);
             }
+          }
+
+          // Ledger double-entry (idempotent)
+          try {
+            postBookingLedger(
+              booking_id,
+              session.metadata?.user_id || booking.user_id,
+              session.amount_total / 100,
+              "stripe",
+              booking.platform_commission_rate,
+            );
+          } catch (ledgerErr) {
+            console.error("⚠️ Ledger entry failed (stripe webhook):", ledgerErr.message);
+            try {
+              audit({
+                actionType: "ledger_write_failed",
+                entityType: "booking",
+                entityId: booking_id,
+                userId: session.metadata?.user_id || booking.user_id,
+                description: `Ledger 寫入失敗 (stripe webhook): ${ledgerErr.message}`,
+              });
+            } catch (_e) {}
           }
         }
 

@@ -10,6 +10,7 @@ const { sendNotification } = require("./notification");
 const { processRefund } = require("./refund");
 const { audit, trackBookingChange, trackPaymentChange } = require("./audit");
 const { writeBlock } = require("./blockchain-audit");
+const { postBookingLedger } = require("./accounting");
 
 
 // ==================== Helpers ====================
@@ -577,6 +578,30 @@ function createBooking(req) {
     },
   });
 
+  // 11b. Ledger double-entry（非 single 已即時 confirmed/paid 嘅 booking）
+  if (bookingStatus === "confirmed" && (amount || 0) > 0) {
+    try {
+      postBookingLedger(
+        bookingId,
+        req.user.id,
+        amount || 0,
+        payment_type === "credits" ? "credits" : "cash",
+        partnerInfo?.platform_commission_rate,
+      );
+    } catch (ledgerErr) {
+      console.error("⚠️ Ledger entry failed (createBooking):", ledgerErr.message);
+      try {
+        audit({
+          actionType: "ledger_write_failed",
+          entityType: "booking",
+          entityId: bookingId,
+          userId: req.user.id,
+          description: `Ledger 寫入失敗 (createBooking): ${ledgerErr.message}`,
+        });
+      } catch (_e) {}
+    }
+  }
+
   return {
     status: 201,
     body: {
@@ -665,6 +690,27 @@ function completePayment(req) {
     payment_method || "fps",
     payment_reference || null,
   );
+
+  // Ledger double-entry
+  try {
+    postBookingLedger(
+      req.params.id,
+      req.user.id,
+      amount || booking.amount || 0,
+      payment_method || "fps",
+    );
+  } catch (ledgerErr) {
+    console.error("⚠️ Ledger entry failed (completePayment):", ledgerErr.message);
+    try {
+      audit({
+        actionType: "ledger_write_failed",
+        entityType: "booking",
+        entityId: req.params.id,
+        userId: req.user.id,
+        description: `Ledger 寫入失敗 (completePayment): ${ledgerErr.message}`,
+      });
+    } catch (_e) {}
+  }
 
   // Notifications
   const classDataNotif = db
