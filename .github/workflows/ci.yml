@@ -77,9 +77,36 @@ jobs:
         working-directory: ./backend
         run: node tests/test-enrolled-count.js
 
+  # ─── Audit Job (ledger / wallet reconciliation) ──────────
+  audit:
+    runs-on: ubuntu-latest
+    env:
+      DB_PATH: ${{ github.workspace }}/backend/data/audit.db
+      JWT_SECRET: ci-only-jwt-secret-please-rotate-0123456789abcdef
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install backend dependencies
+        working-directory: ./backend
+        run: npm ci
+
+      - name: Init schema (fresh DB)
+        working-directory: ./backend
+        run: node src/config/init-db.js
+
+      - name: Ledger unit test (idempotency + balance)
+        working-directory: ./backend
+        run: node tests/test-ledger-unit.js
+
       - name: Audit reconciliation — ledger / wallet integrity
         working-directory: ./backend
-        run: python3 ../scripts/reconcile-audit.py ./data/test.db --integrity-only
+        run: python3 ../scripts/reconcile-audit.py ./data/audit.db --integrity-only
 
   # ─── Code Quality Job ────────────────────────────────────
   code-quality:
