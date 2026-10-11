@@ -29,7 +29,9 @@ jobs:
 
       - name: Init database
         working-directory: ./backend
-        run: DB_PATH=./data/test.db node src/scripts/seed-supabase.js || true
+        run: |
+          mkdir -p ./data
+          DB_PATH=./data/test.db node src/scripts/seed-supabase.js || true
 
       - name: Start backend server
         working-directory: ./backend
