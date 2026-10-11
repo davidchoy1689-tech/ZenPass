@@ -1,6 +1,8 @@
 const fs = require("fs");
+const os = require("os");
+const path = require("path");
 const Database = require("better-sqlite3");
-const tmp = "/tmp/ledger-test.db";
+const tmp = path.join(os.tmpdir(), "ledger-test.db");
 try { fs.unlinkSync(tmp); } catch {}
 try { fs.unlinkSync(tmp + "-wal"); } catch {}
 try { fs.unlinkSync(tmp + "-shm"); } catch {}
@@ -15,7 +17,7 @@ CREATE TABLE ledger(id TEXT PRIMARY KEY, booking_id TEXT, user_id TEXT, referenc
 `);
 db.prepare("INSERT INTO bookings VALUES(?,?,?,?)").run("b1", "u1", 100, 0.25);
 
-const acc = require("/Users/user/.openclaw/workspace/zenpass-platform/backend/src/services/accounting.js");
+const acc = require("../src/services/accounting");
 
 const r1 = acc.postBookingLedger("b1", "u1", 100, "credits", 0.25);
 const rows = db.prepare("SELECT * FROM ledger WHERE booking_id='b1'").all();
