@@ -10,6 +10,9 @@ jobs:
   # ─── Test Job ────────────────────────────────────────────
   test:
     runs-on: ubuntu-latest
+    env:
+      DB_PATH: ${{ github.workspace }}/backend/data/test.db
+      JWT_SECRET: ci-only-jwt-secret-please-rotate-0123456789abcdef
 
     steps:
       - uses: actions/checkout@v4
