@@ -35,6 +35,8 @@ jobs:
 
       - name: Start backend server
         working-directory: ./backend
+        env:
+          JWT_SECRET: ci-only-jwt-secret-please-rotate-0123456789abcdef
         run: |
           PORT=3001 DB_PATH=./data/test.db node src/index.js &
           sleep 3
