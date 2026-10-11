@@ -70,6 +70,10 @@ jobs:
         working-directory: ./backend
         run: node tests/test-enrolled-count.js
 
+      - name: Audit reconciliation — ledger / wallet integrity
+        working-directory: ./backend
+        run: python3 ../scripts/reconcile-audit.py ./data/test.db --integrity-only
+
   # ─── Code Quality Job ────────────────────────────────────
   code-quality:
     runs-on: ubuntu-latest

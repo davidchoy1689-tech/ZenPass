@@ -26,6 +26,7 @@ def main():
         print("usage: reconcile-audit.py <db> [--json]"); sys.exit(2)
     db_path = sys.argv[1]
     as_json = "--json" in sys.argv
+    integrity_only = "--integrity-only" in sys.argv
     db = sqlite3.connect(db_path)
     db.row_factory = sqlite3.Row
     q = lambda s, *a: db.execute(s, a).fetchall()
@@ -114,6 +115,11 @@ def main():
     }
     errors = [f for f in findings if f[1] == "error"]
     warns = [f for f in findings if f[1] == "warn"]
+    HARD = {"C2.double_entry", "C4.wallet_math", "C4.wallet_chain", "C5.earning_math", "C5.eaming_paid", "C6.ref"}
+    if integrity_only:
+        # 只將「硬性」完整度錯誤當 block（借貸平衡/餘額鏈/算式/引用）；覆蓋率(C1/C3)降為 advisory
+        errors = [f for f in findings if f[1] == "error" and f[0] in HARD]
+        warns = [f for f in findings if f[1] == "error" and f[0] not in HARD] + [f for f in findings if f[1] == "warn"]
 
     if as_json:
         print(json.dumps({"counts": counts, "errors": errors, "warnings": warns}, ensure_ascii=False, indent=2))
