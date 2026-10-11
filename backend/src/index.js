@@ -226,6 +226,19 @@ app.use("/api", (req, res, next) => {
   if (req.path === "/payments/stripe/webhook") {
     return next();
   }
+  // Exempt internal server-to-server calls (scheduler / cron).
+  // CSRF defends against cross-site *browser* requests. An internal call is a
+  // direct loopback connection that carries NO X-Forwarded-For header. External
+  // traffic always reaches node through nginx (127.0.0.1 proxy) and therefore
+  // always has XFF set, so it is still fully CSRF-protected. A remote attacker
+  // hitting the app directly never has a loopback peer address.
+  const rawPeer = (req.socket && req.socket.remoteAddress) || "";
+  const isLoopback =
+    rawPeer === "127.0.0.1" || rawPeer === "::1" || rawPeer === "::ffff:127.0.0.1";
+  const viaProxy = Boolean(req.headers["x-forwarded-for"]);
+  if (isLoopback && !viaProxy) {
+    return next();
+  }
   doubleCsrfProtection(req, res, next);
 });
 
