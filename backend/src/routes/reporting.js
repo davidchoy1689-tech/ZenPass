@@ -19,7 +19,7 @@ router.get("/coach-ranking", authenticateToken, requireAdmin, (req, res) => {
       SELECT u.id, u.name, u.email, u.total_earnings, u.pending_payout, u.commission_rate,
         (SELECT COUNT(*) FROM classes WHERE coach_id = u.id AND status = 'active') as class_count,
         (SELECT COUNT(*) FROM coach_earnings WHERE coach_id = u.id) as earning_entries,
-        (SELECT COALESCE(SUM(ce.net_amount), 0) FROM coach_earnings ce WHERE ce.coach_id = u.id) as total_earned,
+        (SELECT COALESCE(SUM(COALESCE(ce.net_amount_cents, CAST(ROUND(ce.net_amount*100) AS INTEGER))), 0)/100.0 FROM coach_earnings ce WHERE ce.coach_id = u.id) as total_earned,
         (SELECT COUNT(*) FROM bookings b JOIN classes c ON b.class_id = c.id WHERE c.coach_id = u.id) as total_bookings,
         (SELECT COUNT(*) FROM bookings b JOIN classes c ON b.class_id = c.id WHERE c.coach_id = u.id AND b.status = 'attended') as attended_bookings
       FROM users u WHERE u.is_coach = 1 AND u.coach_verified = 1
@@ -158,7 +158,7 @@ router.get("/revenue-trend", authenticateToken, requireAdmin, (req, res) => {
       .prepare(
         `
       SELECT substr(created_at,1,7) as month,
-        SUM(CASE WHEN payment_status='paid' THEN amount ELSE 0 END) as revenue,
+        SUM(CASE WHEN payment_status='paid' THEN COALESCE(amount_cents, CAST(ROUND(amount*100) AS INTEGER)) ELSE 0 END)/100.0 as revenue,
         COUNT(CASE WHEN payment_status='paid' THEN 1 END) as paid_bookings,
         COUNT(*) as total_bookings
       FROM bookings
@@ -169,17 +169,17 @@ router.get("/revenue-trend", authenticateToken, requireAdmin, (req, res) => {
 
     const totalRevenue = db
       .prepare(
-        "SELECT COALESCE(SUM(amount),0) as rev FROM bookings WHERE payment_status='paid'",
+        "SELECT COALESCE(SUM(COALESCE(amount_cents, CAST(ROUND(amount*100) AS INTEGER))),0)/100.0 as rev FROM bookings WHERE payment_status='paid'",
       )
       .get().rev;
     const pendingRevenue = db
       .prepare(
-        "SELECT COALESCE(SUM(amount),0) as rev FROM bookings WHERE payment_status='pending'",
+        "SELECT COALESCE(SUM(COALESCE(amount_cents, CAST(ROUND(amount*100) AS INTEGER))),0)/100.0 as rev FROM bookings WHERE payment_status='pending'",
       )
       .get().rev;
     const thisMonth = db
       .prepare(
-        "SELECT COALESCE(SUM(amount),0) as rev FROM bookings WHERE payment_status='paid' AND substr(created_at,1,7) = substr(datetime('now'),1,7)",
+        "SELECT COALESCE(SUM(COALESCE(amount_cents, CAST(ROUND(amount*100) AS INTEGER))),0)/100.0 as rev FROM bookings WHERE payment_status='paid' AND substr(created_at,1,7) = substr(datetime('now'),1,7)",
       )
       .get().rev;
 

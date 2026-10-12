@@ -8,6 +8,7 @@
 const { getDb } = require("./database");
 const { v4: uuidv4 } = require("uuid");
 const { writeBlock } = require("./blockchain-audit");
+const { toCents, fromCents } = require("../lib/money");
 
 /**
  * 執行退款
@@ -45,11 +46,14 @@ function processRefund({
         "SELECT COALESCE(SUM(amount), 0) as total FROM refund_logs WHERE booking_id = ? AND status = 'completed'",
       )
       .get(bookingId);
-    const maxRefund = booking.amount || 0;
-    if (refundedSoFar.total + amount > maxRefund) {
+    // 用整數 cents 比較，避免浮點誤判（例如差一分就判定超額）
+    const maxRefundCents = toCents(booking.amount || 0);
+    const refundedCents = toCents(refundedSoFar.total);
+    const amountCents = toCents(amount);
+    if (refundedCents + amountCents > maxRefundCents) {
       return {
         success: false,
-        error: `退款金額超出上限：已退 HK$${refundedSoFar.total}，可退 HK$${maxRefund - refundedSoFar.total}`,
+        error: `退款金額超出上限：已退 HK$${fromCents(refundedCents)}，可退 HK$${fromCents(maxRefundCents - refundedCents)}`,
       };
     }
 
@@ -74,8 +78,10 @@ function processRefund({
     );
 
     // 4. Update booking payment status
-    const newTotalRefunded = refundedSoFar.total + amount;
-    if (newTotalRefunded >= maxRefund) {
+    const newTotalCents = refundedCents + amountCents;
+    const newTotalRefunded = fromCents(newTotalCents);
+    const fullyRefunded = newTotalCents >= maxRefundCents;
+    if (fullyRefunded) {
       db.prepare(
         "UPDATE bookings SET payment_status = 'refunded', status = 'cancelled' WHERE id = ?",
       ).run(bookingId);
@@ -129,8 +135,7 @@ function processRefund({
           initiated_by: initiatedBy,
           approved_by: approvedBy || initiatedBy,
           status: "completed",
-          new_status:
-            newTotalRefunded >= maxRefund ? "fully_refunded" : "partially_refunded",
+          new_status: fullyRefunded ? "fully_refunded" : "partially_refunded",
           total_refunded: newTotalRefunded,
         },
       });
@@ -144,8 +149,7 @@ function processRefund({
       booking_id: bookingId,
       amount,
       reason,
-      new_status:
-        newTotalRefunded >= maxRefund ? "fully_refunded" : "partially_refunded",
+      new_status: fullyRefunded ? "fully_refunded" : "partially_refunded",
       total_refunded: newTotalRefunded,
     };
   } catch (err) {
