@@ -260,6 +260,44 @@ function updateDatabase() {
   }
   console.log("✅ users schema parity migration 完成");
 
+  // ===== Migration 10: Schema parity (prod -> repo) =====
+  // 生產有、但 repo schema 未定義嘅表 / 欄位（避免 fresh / CI DB 唔完整）。
+  // 表用 schema-parity.sql（CREATE IF NOT EXISTS）；欄用 ALTER（逐條 try/catch）。
+  try {
+    const fs = require("fs");
+    const path = require("path");
+    const paritySql = fs.readFileSync(
+      path.join(__dirname, "schema-parity.sql"),
+      "utf8",
+    );
+    db.exec(paritySql);
+    const alters = JSON.parse(
+      fs.readFileSync(path.join(__dirname, "schema-parity-columns.json"), "utf8"),
+    );
+    let applied = 0;
+    for (const a of alters) {
+      try {
+        db.exec(a);
+        applied++;
+      } catch (e) {
+        /* 已存在 → 略過 */
+      }
+    }
+    // indexes 要喺欄位之後（部分 index 建喺新增欄上）
+    try {
+      db.exec(
+        fs.readFileSync(path.join(__dirname, "schema-parity-indexes.sql"), "utf8"),
+      );
+    } catch (e) {
+      /* ignore */
+    }
+    console.log(
+      `✅ schema parity：tables/indexes 已補；欄位 +${applied}/${alters.length}`,
+    );
+  } catch (e) {
+    console.log("⚠️ schema parity migration：", e.message);
+  }
+
   console.log("✅ 資料庫更新完成");
   db.close();
 }
