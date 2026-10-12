@@ -8,10 +8,11 @@ echo "===================="
 
 # ——— Pre-flight checks ———
 
-# Check JWT_SECRET — fallback to .env file if not in env
+# Check JWT_SECRET — fallback to backend/.env if not in env
+# ⚠️ 唔用 `source`：.env 內某啲值含特殊字元，`source` 會被當 shell 執行 → set -e 令 deploy 中止
 if [ -z "$JWT_SECRET" ] || [ ${#JWT_SECRET} -lt 32 ]; then
   if [ -f /var/www/zenpass/backend/.env ]; then
-    source /var/www/zenpass/backend/.env 2>/dev/null
+    JWT_SECRET="$(grep -E '^JWT_SECRET=' /var/www/zenpass/backend/.env 2>/dev/null | head -1 | cut -d= -f2- | tr -d '\r\"')"
   fi
   if [ -z "$JWT_SECRET" ] || [ ${#JWT_SECRET} -lt 32 ]; then
     echo "❌ JWT_SECRET 未設定或太短（需要 ≥32 字元）"
