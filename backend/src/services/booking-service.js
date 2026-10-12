@@ -11,6 +11,7 @@ const { processRefund } = require("./refund");
 const { audit, trackBookingChange, trackPaymentChange } = require("./audit");
 const { writeBlock } = require("./blockchain-audit");
 const { postBookingLedger } = require("./accounting");
+const { splitByRate } = require("../lib/money");
 
 
 /**
@@ -293,15 +294,13 @@ function computePartnerCommission(db, classId, amount) {
       const planRates = { basic: 0.25, standard: 0.18, premium: 0.12 };
       const planRate =
         planRates[planKey] || partnerVenue.commission_rate || 0.25;
-      const platformEarned =
-        Math.round(amount * planRate * 100) / 100;
-      const venueEarned =
-        Math.round(amount * (1 - planRate) * 100) / 100;
+      // 用整數 cents 拆賬，餘額歸場地 → platform + venue 必定等於原額（審計用）
+      const split = splitByRate(amount, planRate);
       return {
         venue: partnerVenue,
         commissionRate: planRate,
-        venueEarned,
-        platformEarned,
+        venueEarned: split.venue,
+        platformEarned: split.platform,
       };
     }
   } catch (e) {
