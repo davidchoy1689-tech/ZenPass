@@ -61,7 +61,8 @@ function calculatePrice(basePrice, scheduleInfo, options = {}) {
   // 使用 partner 自定義規則（如有）
   const rules = options.partner_overrides?.rules || getActiveRules();
 
-  const now = new Date();
+  // 可用 options.now 注入「現在」時間（測試用；預設為真實時間）
+  const now = options.now ? new Date(options.now) : new Date();
   const startTime = new Date(scheduleInfo.start_time);
   const dayOfWeek = startTime.getDay();
   const hour = startTime.getHours();

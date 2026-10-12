@@ -502,14 +502,17 @@ function testPricingEngine() {
     assertEqual(result.adjustments[0].rule_id, "low_occupancy");
   });
 
+  // 固定「現在」= 星期二 09:00 HKT（非週末、非繁忙時段）→ 測試可重複、唔受執行時間影響
+  const FIXED_NOW = new Date("2026-07-07T09:00:00+08:00"); // Tuesday 9am HKT
+
   // Test 6: Early bird discount — 15% off (7+ days ahead)
   test("Early bird discount (15% off)", () => {
-    const futureDate = new Date(Date.now() + 10 * 86400000); // 10 days from now
+    const futureDate = new Date(FIXED_NOW.getTime() + 10 * 86400000); // 10 days from FIXED_NOW
     const result = calculatePrice(100, {
       start_time: futureDate.toISOString(),
       enrolled_count: 10,  // 50% fill
       max_participants: 20,
-    });
+    }, { now: FIXED_NOW });
     assertEqual(result.finalPrice, 85, "15% off = 85");
     const earlyBirdAdj = result.adjustments.find(a => a.rule_id === "early_bird");
     assertOk(earlyBirdAdj, "Early bird adjustment present");
@@ -517,12 +520,12 @@ function testPricingEngine() {
 
   // Test 7: Last minute discount — 25% off (<2 hours before)
   test("Last minute discount (25% off)", () => {
-    const soonDate = new Date(Date.now() + 60 * 60 * 1000); // 1 hour from now
+    const soonDate = new Date(FIXED_NOW.getTime() + 60 * 60 * 1000); // 1 hour from FIXED_NOW
     const result = calculatePrice(100, {
       start_time: soonDate.toISOString(),
       enrolled_count: 10,  // 50% fill
       max_participants: 20,
-    });
+    }, { now: FIXED_NOW });
     assertEqual(result.finalPrice, 75, "25% off = 75");
     const lastMinAdj = result.adjustments.find(a => a.rule_id === "last_minute");
     assertOk(lastMinAdj, "Last minute adjustment present");
