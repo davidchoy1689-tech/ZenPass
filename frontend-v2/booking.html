@@ -189,7 +189,8 @@
       const code = $("promo").value.trim(); const msg = $("promoMsg");
       if (!code) { msg.textContent = "請輸入優惠碼"; return; }
       msg.textContent = "檢查中…";
-      const r = await api.get("/promo/validate?code=*** + encodeURIComponent(code) + "&class_id=" + encodeURIComponent(classId));
+      const pvUrl = `/promo/validate?code=${encodeURIComponent(code)}&class_id=${encodeURIComponent(classId)}`;
+      const r = await api.get(pvUrl);
       if (r.ok && r.data && r.data.success) {
         promoFinal = { code: code.toUpperCase(), final_price: r.data.final_price };
         msg.innerHTML = `✅ 已套用 · 每堂折後 <b>${hkd(r.data.final_price)}</b>（總額會用折後價）`;
