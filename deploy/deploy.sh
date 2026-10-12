@@ -24,15 +24,20 @@ echo "📦 Installing backend dependencies..."
 cd /var/www/zenpass/backend
 npm ci --production || npm ci
 
-# Apply nginx config & reload
+# Reload nginx
+# 註：實際 config 由 /etc/nginx/conf.d/zenpass.conf 管理，唔依賴 sites-available symlink
+# （舊 step 曾因 sites-available 唔存在而令 deploy.sh 中止 → pm2 永遠唔重啟）
 echo "🔧 Reloading nginx..."
-ln -sf /var/www/zenpass/deploy/nginx.conf /etc/nginx/sites-available/zenpass
 nginx -t && systemctl reload nginx
 
-# Restart app with PM2
+# Restart app with PM2（確保一定有重啟）
 echo "🔄 Restarting ZenPass API..."
-if command -v pm2 &> /dev/null; then
-  pm2 restart zenpass-api 2>/dev/null || pm2 start src/index.js --name zenpass-api
+PM2_BIN="$(command -v pm2 || echo /usr/bin/pm2)"
+if [ -x "$PM2_BIN" ]; then
+  "$PM2_BIN" restart zenpass-api --update-env || "$PM2_BIN" start src/index.js --name zenpass-api
+else
+  echo "❌ pm2 搵唔到 — 無法重啟"
+  exit 1
 fi
 
 # Health check
