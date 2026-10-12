@@ -95,6 +95,7 @@ router.get("/", optionalAuth, cache(30), (req, res) => {
     let orderBy = "c.created_at DESC";
     if (sort === "popular")
       orderBy = "(SELECT COUNT(*) FROM bookings WHERE class_id = c.id) DESC";
+    if (sort === "newest") orderBy = "c.created_at DESC";
     if (sort === "price_asc") orderBy = "c.price_hkd ASC";
     if (sort === "price_desc") orderBy = "c.price_hkd DESC";
     if (sort === "rating") orderBy = "coach_avg_rating DESC";
