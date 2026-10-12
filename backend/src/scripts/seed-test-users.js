@@ -12,14 +12,14 @@
  *  - 只影響測試 DB（DB_PATH 環境變數）
  *
  * 用法:
- *   DB_PATH=./data/test.db node tests/seed-test-users.js
+ *   DB_PATH=./data/test.db node src/scripts/seed-test-users.js
  */
 
 const path = require("path");
 const bcrypt = require("bcryptjs");
 const Database = require("better-sqlite3");
-const initDatabase = require("../src/config/init-db");
-const updateDatabase = require("../src/config/update-db");
+const initDatabase = require("../config/init-db");
+const updateDatabase = require("../config/update-db");
 
 const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
 
