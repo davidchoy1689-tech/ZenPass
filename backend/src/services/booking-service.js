@@ -13,6 +13,20 @@ const { writeBlock } = require("./blockchain-audit");
 const { postBookingLedger } = require("./accounting");
 
 
+/**
+ * createBooking 流程中止錯誤：攜帶要回傳嘅 response。
+ * 喺 db.transaction 內拋出 → 會令整個 transaction 回滾（
+ * 避免 enrolled_count / credits 因中途失敗而洩漏）。
+ */
+class BookingFlowError extends Error {
+  constructor(response) {
+    super("booking_flow_aborted");
+    this.name = "BookingFlowError";
+    this.response = response;
+  }
+}
+
+
 // ==================== Helpers ====================
 
 function generateBookingRef() {
@@ -469,64 +483,90 @@ function createBooking(req) {
     return { status: 404, body: { success: false, error: "該時段不存在或已滿" } };
   }
 
-  // 4. Release expired holds
-  releaseExpiredHolds(db, schedule_id);
-
-  // 5. Capacity check (atomic)
-  const capResult = incrementEnrolledCount(db, schedule_id);
-  if (capResult.changes === 0) {
-    return { status: 400, body: { success: false, error: "該時段已滿額" } };
-  }
-
-  // 6. Duplicate check
-  const existing = findExistingBookingForUser(db, req.user.id, schedule_id);
-  if (existing) {
-    if (existing.status === "pending_payment") {
-      return {
-        status: 200,
-        body: {
-          message: "你有一個未完成付款的預約，請繼續付款",
-          booking_id: existing.id,
-          status: "pending_payment",
-          requires_payment: true,
-        },
-      };
-    }
-    return { status: 409, body: { success: false, error: "你已經預約了此課程時段" } };
-  }
-
-  // 7. Payment processing
-  let corporateDeduction = null;
-  if (payment_type === "credits") {
-    const result = deductCredits(db, req.user.id, class_id);
-    if (!result.ok) {
-      return { status: 400, body: { success: false, error: result.error } };
-    }
-  }
-
-  if (payment_type === "corporate") {
-    const result = processCorporatePayment(db, req.user.id, class_id);
-    if (!result.ok) {
-      return { status: 400, body: { error: result.error } };
-    }
-    corporateDeduction = result.deduction;
-  }
-
-  // 8. Partner commission
-  const partnerInfo = computePartnerCommission(db, class_id, amount || 0);
-
-  // 9. Create booking record
+  // 4-9. 原子化：釋放過期 hold → 佔位 → 重複檢查 → 扣款 → 寫 booking row
+  //      任何一步失敗 → 成個 transaction 回滾（避免 enrolled_count / credits 洩漏）
+  //      （fire-and-forget 嘅通知/審計/ledger 留喺 commit 之後）
   const bookingId = uuidv4();
   const bookingRef = generateBookingRef();
   const bookingStatus =
     payment_type === "single" ? "pending_payment" : "confirmed";
   const paymentStatus = payment_type === "single" ? "pending" : "paid";
 
-  insertBookingRow(
-    db,
-    { bookingId, bookingRef, userId: req.user.id, scheduleId: schedule_id, classId: class_id, paymentType: payment_type, paymentStatus, bookingStatus, amount: amount || 0 },
-    partnerInfo,
-  );
+  let partnerInfo = null;
+  let corporateDeduction = null;
+
+  const bookingFlow = db.transaction(() => {
+    // 4. Release expired holds
+    releaseExpiredHolds(db, schedule_id);
+
+    // 5. Capacity check (atomic conditional update)
+    const capResult = incrementEnrolledCount(db, schedule_id);
+    if (capResult.changes === 0) {
+      throw new BookingFlowError({
+        status: 400,
+        body: { success: false, error: "該時段已滿額" },
+      });
+    }
+
+    // 6. Duplicate check
+    const existing = findExistingBookingForUser(db, req.user.id, schedule_id);
+    if (existing) {
+      if (existing.status === "pending_payment") {
+        throw new BookingFlowError({
+          status: 200,
+          body: {
+            message: "你有一個未完成付款的預約，請繼續付款",
+            booking_id: existing.id,
+            status: "pending_payment",
+            requires_payment: true,
+          },
+        });
+      }
+      throw new BookingFlowError({
+        status: 409,
+        body: { success: false, error: "你已經預約了此課程時段" },
+      });
+    }
+
+    // 7. Payment processing
+    if (payment_type === "credits") {
+      const result = deductCredits(db, req.user.id, class_id);
+      if (!result.ok) {
+        throw new BookingFlowError({
+          status: 400,
+          body: { success: false, error: result.error },
+        });
+      }
+    }
+
+    if (payment_type === "corporate") {
+      const result = processCorporatePayment(db, req.user.id, class_id);
+      if (!result.ok) {
+        throw new BookingFlowError({
+          status: 400,
+          body: { error: result.error },
+        });
+      }
+      corporateDeduction = result.deduction;
+    }
+
+    // 8. Partner commission
+    partnerInfo = computePartnerCommission(db, class_id, amount || 0);
+
+    // 9. Create booking record
+    insertBookingRow(
+      db,
+      { bookingId, bookingRef, userId: req.user.id, scheduleId: schedule_id, classId: class_id, paymentType: payment_type, paymentStatus, bookingStatus, amount: amount || 0 },
+      partnerInfo,
+    );
+  });
+
+  try {
+    bookingFlow();
+  } catch (e) {
+    if (e instanceof BookingFlowError) return e.response;
+    throw e;
+  }
 
   // 10. Read related info
   let classInfo, coachInfo, scheduleTimes;
