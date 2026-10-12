@@ -19,6 +19,8 @@ bash scripts/switch-frontend.sh rollback  # 回滾：live → v1
 - [x] 設計系統 `assets/v2.css`（tokens + buttons/cards/chips/stepper/slots/bottom-nav）
 - [x] `index.html`（首頁樣板）
 - [x] `booking.html`（預約 3 步：選時段 → 確認 → 付款 + 15 分鐘倒數）
-- [ ] 課程詳情 / 我的預約 / 錢包 / 會員 / 簽到
+- [x] `class-detail.html`（課程詳情：hero/tabs/時間表/評價 + sticky CTA）
+- [x] `my-bookings.html`（我的預約：即將/已完成/已取消 tabs）
+- [ ] 錢包 / 會員 / 簽到
 - [ ] admin / partner-dashboard（參考 shadcn-admin / Mazer）
 - [ ] 接真實 API（現時樣板多為靜態 demo 數據）
