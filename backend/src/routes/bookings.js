@@ -48,6 +48,50 @@ router.post(
   }
 );
 
+// ===== POST /api/bookings/batch — 一次過建立多筆預約（多選時段／按月） =====
+router.post(
+  "/batch",
+  authenticateToken,
+  requireIdempotency,
+  async (req, res) => {
+    try {
+      const items = Array.isArray(req.body && req.body.items) ? req.body.items : [];
+      if (!items.length) {
+        return res.status(400).json({ success: false, error: "冇選擇任何時段" });
+      }
+      if (items.length > 40) {
+        return res.status(400).json({ success: false, error: "一次最多 40 個時段" });
+      }
+      const results = [];
+      for (const it of items) {
+        const fakeReq = {
+          body: {
+            schedule_id: it.scheduleId,
+            class_id: it.classId,
+            payment_type: it.paymentType || "single",
+            penalty_consent: it.penaltyConsent,
+            promo_code: it.promoCode,
+            amount: it.amount,
+          },
+          user: req.user,
+        };
+        let r;
+        try {
+          r = await bookingService.createBooking(fakeReq);
+        } catch (e) {
+          r = { status: 500, body: { success: false, error: "預約失敗" } };
+        }
+        results.push({ scheduleId: it.scheduleId, status: r.status, body: r.body });
+      }
+      const created = results.filter((x) => x.status === 201).length;
+      res.json({ success: true, created, total: items.length, results });
+    } catch (e) {
+      console.error("批量預約錯誤:", e);
+      res.status(500).json({ success: false, error: "批量預約失敗" });
+    }
+  }
+);
+
 // ===== GET /api/bookings/trial-status — 試玩資格 =====
 router.get("/trial-status", authenticateToken, (req, res) => {
   try {
