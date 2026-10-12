@@ -134,6 +134,65 @@ function updateDatabase() {
     console.log("⚠️ Migration skip (maybe already applied):", e.message);
   }
 
+  // ===== Migration: 放寬 bookings.payment_status CHECK 加入 'partial_refund' =====
+  // refund.js 會寫 'partial_refund'，但舊 CHECK 唔准 → 部分退款會 throw。
+  // SQLite 改唔到 CHECK，所以要重建表（用現有 DDL 改字串，保留所有欄位/index/trigger）。
+  try {
+    const bk = db
+      .prepare(
+        "SELECT sql FROM sqlite_master WHERE type='table' AND name='bookings'",
+      )
+      .get();
+    if (bk && bk.sql && bk.sql.indexOf("'partial_refund'") === -1) {
+      const cols = db
+        .prepare("PRAGMA table_info(bookings)")
+        .all()
+        .map((c) => c.name);
+      const colList = cols.map((c) => `"${c}"`).join(", ");
+      const idxSqls = db
+        .prepare(
+          "SELECT sql FROM sqlite_master WHERE type='index' AND tbl_name='bookings' AND sql IS NOT NULL",
+        )
+        .all()
+        .map((r) => r.sql);
+      const trgSqls = db
+        .prepare(
+          "SELECT sql FROM sqlite_master WHERE type='trigger' AND tbl_name='bookings'",
+        )
+        .all()
+        .map((r) => r.sql);
+      const newSql = bk.sql
+        .replace(
+          /CREATE TABLE\s+(IF NOT EXISTS\s+)?"?bookings"?/i,
+          "CREATE TABLE bookings_new",
+        )
+        .replace("'refunded'", "'refunded','partial_refund'");
+      db.pragma("foreign_keys = OFF");
+      db.exec("BEGIN");
+      try {
+        db.exec(newSql);
+        db.prepare(
+          `INSERT INTO bookings_new (${colList}) SELECT ${colList} FROM bookings`,
+        ).run();
+        db.exec("DROP TABLE bookings");
+        db.exec("ALTER TABLE bookings_new RENAME TO bookings");
+        for (const s of idxSqls) db.exec(s);
+        for (const s of trgSqls) db.exec(s);
+        db.exec("COMMIT");
+        console.log(
+          "✅ Migration: bookings payment_status CHECK 加入 partial_refund",
+        );
+      } catch (e) {
+        db.exec("ROLLBACK");
+        throw e;
+      } finally {
+        db.pragma("foreign_keys = ON");
+      }
+    }
+  } catch (e) {
+    console.log("⚠️ partial_refund migration skip:", e.message);
+  }
+
   // ===== Migration: Auto-set old pending bookings to pending_payment =====
   try {
     db.exec(

@@ -122,7 +122,7 @@ function initDatabase() {
       schedule_id TEXT NOT NULL,
       class_id TEXT NOT NULL,
       payment_type TEXT CHECK(payment_type IN ('single','credits','membership_trial','membership_standard','membership_unlimited')),
-      payment_status TEXT DEFAULT 'pending' CHECK(payment_status IN ('pending','paid','refunded','cancelled')),
+      payment_status TEXT DEFAULT 'pending' CHECK(payment_status IN ('pending','paid','refunded','partial_refund','cancelled')),
       amount REAL,
       stripe_payment_intent_id TEXT,
       fps_reference TEXT,
