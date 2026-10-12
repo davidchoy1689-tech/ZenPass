@@ -21,6 +21,11 @@ TOL = 0.01
 HARD = {"C2.double_entry", "C4.wallet_math", "C4.wallet_chain",
         "C5.earning_math", "C5.eaming_paid", "C6.ref"}
 
+# Double-entry ledger 上線日期（commit f0516e24）。
+# 呢日之前建立嘅 booking 冇 ledger 屬已知歷史情況（多為測試/seed），
+# 只列為 advisory；呢日或之後嘅 booking 冇 ledger 才 block。
+LEDGER_GO_LIVE = "2026-10-12"
+
 
 def close(a, b):
     return abs((a or 0) - (b or 0)) <= TOL
@@ -94,9 +99,13 @@ def main():
             if not close(d, c):
                 add("C2.double_entry", "error", f"ledger reference {str(ref)[:12]} 借貸不平：debit={round(d,2)} credit={round(c,2)}")
         if has_table("bookings"):
-            for b in q("SELECT id,amount FROM bookings WHERE payment_status='paid' AND status IN ('confirmed','attended','no_show')"):
+            for b in q("SELECT id,amount,created_at FROM bookings WHERE payment_status='paid' AND status IN ('confirmed','attended','no_show')"):
                 if by_booking.get(b["id"], 0) == 0:
-                    add("C3.coverage", "error", f"已付款 booking {b['id'][:8]} (amount={b['amount']}) 冇 ledger 記錄（double-entry 缺失）")
+                    created = (b["created_at"] or "")[:10]
+                    if created and created < LEDGER_GO_LIVE:
+                        add("C3.coverage_legacy", "warn", f"已付款 booking {b['id'][:8]} (amount={b['amount']}, {created}) 冇 ledger（ledger 上線前歷史 booking，已知非生產數據）")
+                    else:
+                        add("C3.coverage", "error", f"已付款 booking {b['id'][:8]} (amount={b['amount']}) 冇 ledger 記錄（double-entry 缺失）")
 
     # ---- C4: wallet chain ----
     if not has_table("wallet_transactions"):
