@@ -96,17 +96,10 @@ async function runTests() {
   }
 
   if (!token) {
-    // Try demo login
-    try {
-      const demo = await request("POST", "/api/auth/demo-login", {});
-      assert("Demo 登入成功", demo.status === 200, `status=${demo.status}`);
-      if (demo.body && demo.body.token) {
-        token = demo.body.token;
-        userId = demo.body.user?.id || "";
-      }
-    } catch (e) {
-      assert("Demo 登入成功", false, e.message);
-    }
+    // 無 demo-login route（已移除）— 直接提示需要 seed 用戶
+    console.log(
+      "  ⚠️  無法取得 admin token — 請先執行 `node tests/seed-test-users.js`（CI 已自動執行）",
+    );
   }
 
   // ===== 2. Points Rewards =====
