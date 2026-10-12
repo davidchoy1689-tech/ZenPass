@@ -11,6 +11,26 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
+# 執行命令；若因 rate limit（429）而失敗，自動等 45 秒重試（最多 3 次）
+# （測試會打 localhost:3001，連續跑多輪會撞限流 → 唔應該因此擋 commit）
+run_retry() {
+  _attempt=1
+  while [ "$_attempt" -le 3 ]; do
+    if "$@" >/tmp/zenpass-hook-test.log 2>&1; then
+      cat /tmp/zenpass-hook-test.log
+      return 0
+    fi
+    cat /tmp/zenpass-hook-test.log
+    if [ "$_attempt" -lt 3 ] && grep -qE "429|Too Many Requests|rate limit|次數過多|請 1 分鐘" /tmp/zenpass-hook-test.log; then
+      echo "${YELLOW}⚠️  偵測到 rate limit (429) — 等 45 秒重試（第 $((_attempt+1))/3 次）...${NC}"
+      sleep 45
+      _attempt=$((_attempt+1))
+      continue
+    fi
+    return 1
+  done
+}
+
 echo ""
 echo "🧪 ZenPass Pre-commit Hook: Running tests..."
 echo ""
@@ -41,7 +61,7 @@ if [ "$HAS_BACKEND_CHANGES" -gt 0 ]; then
 
   # 執行所有 test（若 package.json 有 test script）
   if grep -q '"test"' backend/package.json 2>/dev/null; then
-    (cd backend && npm test 2>&1) || {
+    run_retry sh -c 'cd backend && npm test' || {
       echo ""
       echo "${RED}❌ Backend tests FAILED — commit 被阻止${NC}"
       echo "${YELLOW}請修正測試錯誤後再 commit${NC}"
@@ -56,11 +76,12 @@ if [ "$HAS_BACKEND_CHANGES" -gt 0 ]; then
   # 如果有 test 目錄，直接執行指定 test files
   if [ -d "backend/tests" ]; then
     echo "${YELLOW}📋 執行 backend/tests/ 目錄下的測試...${NC}"
-    TEST_FILES=$(find backend/tests -name "*.js" 2>/dev/null | grep -v node_modules)
+    # 跳過 npm test 已跑嘅檔（避免重複打 server 導致限流假失敗）
+    TEST_FILES=$(find backend/tests -name "*.js" 2>/dev/null | grep -v node_modules | grep -vE "test-(enrolled-count|points-waiver|improvements)\.js$")
     if [ -n "$TEST_FILES" ]; then
       for tf in $TEST_FILES; do
         echo "   測試: $tf"
-        node "$tf" 2>&1 || {
+        run_retry node "$tf" || {
           echo ""
           echo "${RED}❌ 測試失敗: $tf${NC}"
           echo "${RED}❌ Commit 被阻止 — 請修正測試錯誤後再 commit${NC}"
