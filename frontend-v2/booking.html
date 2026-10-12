@@ -21,7 +21,7 @@
   <div class="topbar"><a class="back" href="javascript:history.back()">‹</a><div class="title" id="title">預約</div><div style="margin-left:auto" class="price" id="topPrice"></div></div>
 
   <div class="stepper">
-    <div class="step active" id="s1"><span class="dot">1</span>選時段</div>
+    <div class="step active" id="s1"><span class="dot">1</span>選班別/堂數</div>
     <div class="line"></div>
     <div class="step" id="s2"><span class="dot">2</span>確認</div>
     <div class="line"></div>
@@ -30,7 +30,8 @@
 
   <div class="wrap" style="padding-bottom:110px">
     <section id="step1">
-      <p class="muted" style="font-size:13px">可一次勾選多個時段（例如成個月）。</p>
+      <p class="muted" style="font-size:13px">預設已選該月全部堂數；如有人缺席，可取消勾選減少堂數。</p>
+      <div class="hscroll" id="banchips"></div>
       <div id="groups"></div>
     </section>
 
@@ -48,7 +49,7 @@
       </div>
       <div class="spacer"></div>
       <div class="card"><div class="body">
-        <div class="muted" style="font-size:13px;margin-bottom:6px">優惠碼（可選，適用於信用卡/FPS）</div>
+        <div class="muted" style="font-size:13px;margin-bottom:6px">優惠碼（可選，信用卡/FPS 用）</div>
         <div style="display:flex;gap:8px">
           <input id="promo" placeholder="輸入優惠碼" style="flex:1;border:1px solid var(--border);border-radius:12px;padding:10px 12px;font:inherit;background:var(--surface);color:var(--text)" />
           <button class="btn btn-secondary" id="applyPromo">套用</button>
@@ -90,7 +91,7 @@
 
   <div id="bar" class="cta" style="display:none">
     <div><div id="barTotal" style="font-weight:800;color:var(--brand-600);font-size:18px">—</div>
-      <div class="muted" style="font-size:12px" id="barCount">已選 0 個時段</div></div>
+      <div class="muted" style="font-size:12px" id="barCount">已選 0 堂</div></div>
     <button class="btn btn-primary" style="flex:1" id="barNext">下一步</button>
   </div>
 
@@ -101,10 +102,12 @@
     const setStep = (n) => [1,2,3].forEach(i => { $("s"+i).classList.toggle("active", i===n); $("s"+i).classList.toggle("done", i<n); });
     const params = new URLSearchParams(location.search);
     const classId = params.get("id");
-    let cls = null, sessions = [], sel = new Set(), promoFinal = null;
+    let cls = null, sessions = [], sel = new Set(), promoFinal = null, ban = "A";
 
+    const banOf = (s) => (s.notes||"").includes("A班") ? "A" : (s.notes||"").includes("B班") ? "B" : "全";
     const monthKey = (iso) => { const d = new Date(iso); return d.getFullYear() + "年" + (d.getMonth()+1) + "月"; };
-    const unitPrice = () => (promoFinal ? promoFinal.final_price : (cls ? cls.price_hkd : 0));
+    const unit = () => (promoFinal ? promoFinal.final_price : (cls ? cls.price_hkd : 0));
+    const visible = () => sessions.filter(s => ban === "all" || banOf(s) === ban);
 
     if (api.requireLogin("booking.html" + location.search)) (async () => {
       if (!classId) { $("groups").innerHTML = `<div class="card"><div class="body">缺少課程。</div></div>`; return; }
@@ -114,15 +117,33 @@
       if (!cls) { $("groups").innerHTML = `<div class="card"><div class="body">搵唔到課程。</div></div>`; return; }
       $("title").textContent = cls.title;
       $("topPrice").innerHTML = cr(cls.price_hkd) + "cr";
+      // 預設：A班 + 選足最近一個月
+      const hasA = sessions.some(s => banOf(s) === "A");
+      ban = hasA ? "A" : (sessions.some(s => banOf(s) === "B") ? "B" : "all");
+      renderChips();
+      defaultSelectFirstMonth();
       render();
     })();
 
+    function renderChips() {
+      const opts = [["A","A班（星期二）"],["B","B班（星期四）"],["all","全部"]].filter(([k]) => k==="all" || sessions.some(s=>banOf(s)===k));
+      $("banchips").innerHTML = opts.map(([k,l]) => `<span class="chip ${ban===k?"on":""}" data-ban="${k}">${l}</span>`).join("");
+      document.querySelectorAll("#banchips .chip").forEach(c => c.onclick = () => { sel.clear(); ban = c.dataset.ban; renderChips(); defaultSelectFirstMonth(); render(); });
+    }
+    function defaultSelectFirstMonth() {
+      const vis = visible().slice().sort((a,b)=>a.start_time.localeCompare(b.start_time));
+      if (!vis.length) return;
+      const m0 = monthKey(vis[0].start_time);
+      vis.filter(s => monthKey(s.start_time) === m0).forEach(s => sel.add(s.id));
+    }
+
     function render() {
+      const vis = visible();
       const byM = {};
-      sessions.forEach(s => { (byM[monthKey(s.start_time)] ||= []).push(s); });
+      vis.forEach(s => { (byM[monthKey(s.start_time)] ||= []).push(s); });
       const months = Object.keys(byM);
       $("groups").innerHTML = months.length ? months.map(m => `
-        <div class="monthbar"><b>${esc(m)}</b><button data-month="${esc(m)}">全選 / 取消</button></div>
+        <div class="monthbar"><b>${esc(m)} · ${byM[m].length} 堂</b><button data-month="${esc(m)}">全選 / 取消</button></div>
         <div class="card">${byM[m].map(s => `
           <label class="sess"><input type="checkbox" data-sid="${esc(s.id)}" ${sel.has(s.id)?"checked":""} />
             <span class="t">${fmtTime(s.start_time)}<small>${esc(s.notes||"")} · 剩 ${(s.max_participants-s.enrolled_count)} 位</small></span>
@@ -138,27 +159,26 @@
     }
     function updateBar() {
       const n = sel.size;
-      $("barCount").textContent = "已選 " + n + " 個時段";
-      $("barTotal").innerHTML = n ? (cr(unitPrice()*n) + "cr <span class='muted' style='font-weight:500;font-size:12px'>/ " + hkd(unitPrice()*n) + "</span>") : "—";
+      $("barCount").textContent = "已選 " + n + " 堂";
+      $("barTotal").innerHTML = n ? (cr(unit()*n) + "cr <span class='muted' style='font-weight:500;font-size:12px'>/ " + hkd(unit()*n) + "</span>") : "—";
       $("bar").style.display = ($("step1").classList.contains("hide") ? "none" : "flex");
     }
 
-    function goStep2() {
-      if (!sel.size) { alert("請揀最少一個時段"); return; }
+    $("barNext").onclick = () => {
+      if (!sel.size) { alert("請揀最少一堂"); return; }
       const chosen = sessions.filter(s => sel.has(s.id)).sort((a,b)=>a.start_time.localeCompare(b.start_time));
       $("summary").innerHTML = `<div class="row"><span class="k">課程</span><span class="v">${esc(cls.title)}</span></div>
-        <div class="row"><span class="k">已選</span><span class="v">${chosen.length} 個時段</span></div>`
+        <div class="row"><span class="k">堂數</span><span class="v">${chosen.length} 堂</span></div>`
         + chosen.map(s => `<div class="row"><span class="k">${fmtTime(s.start_time)}</span><span class="v muted">${esc(s.notes||"")}</span></div>`).join("");
       show("step2"); setStep(2); updateBar();
-    }
-    $("barNext").onclick = goStep2;
+    };
     $("toStep3").onclick = () => {
       if (!$("consent").checked) { alert("請先同意缺席政策"); return; }
       const pm = document.querySelector("input[name=pm]:checked").value;
       const n = sel.size;
       let acc = pm === "credits" ? (cr(cls.price_hkd)*n) + " credits"
         : (promoFinal ? hkd(promoFinal.final_price*n) + " <small class='muted'>（已用優惠碼）</small>" : hkd(cls.price_hkd*n));
-      $("paySummary").innerHTML = `<div class="row"><span class="k">時段</span><span class="v">${n} 個</span></div>
+      $("paySummary").innerHTML = `<div class="row"><span class="k">堂數</span><span class="v">${n} 堂</span></div>
         <div class="row"><span class="k">應付</span><span class="v" style="color:var(--brand-600)">${acc}</span></div>`;
       $("holdBanner").style.display = pm === "credits" ? "none" : "flex";
       show("step3"); setStep(3); updateBar();
@@ -169,10 +189,10 @@
       const code = $("promo").value.trim(); const msg = $("promoMsg");
       if (!code) { msg.textContent = "請輸入優惠碼"; return; }
       msg.textContent = "檢查中…";
-      const r = await api.get("/promo/validate?code=" + encodeURIComponent(code) + "&class_id=" + encodeURIComponent(classId));
+      const r = await api.get("/promo/validate?code=*** + encodeURIComponent(code) + "&class_id=" + encodeURIComponent(classId));
       if (r.ok && r.data && r.data.success) {
         promoFinal = { code: code.toUpperCase(), final_price: r.data.final_price };
-        msg.innerHTML = `✅ 已套用 · 每堂折後 <b>${hkd(r.data.final_price)}</b>`;
+        msg.innerHTML = `✅ 已套用 · 每堂折後 <b>${hkd(r.data.final_price)}</b>（總額會用折後價）`;
       } else { promoFinal = null; msg.textContent = "❌ " + ((r.data && r.data.error) || "優惠碼無效"); }
     };
 
@@ -188,9 +208,9 @@
       if (r.ok && r.data && r.data.success) {
         const d = r.data;
         $("doneIcon").textContent = d.created ? "✅" : "⚠️";
-        $("doneTitle").textContent = d.created + " / " + d.total + " 個時段預約成功";
+        $("doneTitle").textContent = d.created + " / " + d.total + " 堂預約成功";
         const failed = (d.results || []).filter(x => x.status !== 201).length;
-        $("doneMsg").textContent = failed ? (failed + " 個時段未能預約（可能已滿或重複）") : "全部預約成功 🎉";
+        $("doneMsg").textContent = failed ? (failed + " 堂未能預約（可能已滿或重複）") : "全部預約成功 🎉";
         show("done"); $("bar").style.display = "none";
       } else if (r.status === 401) {
         location.href = "login.html?next=" + encodeURIComponent(location.pathname + location.search);
