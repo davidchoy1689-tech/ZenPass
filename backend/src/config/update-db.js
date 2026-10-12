@@ -238,6 +238,28 @@ function updateDatabase() {
     console.log("✅ 加入 users.agree_terms");
   } catch (e) {}
 
+  // ===== Migration 9: 補回生產已有嘅 users 欄位（schema parity） =====
+  // 呢啲欄位喺生產已存在（wallet-service / auth 有用），但 repo schema 漏咗 →
+  // 令 fresh / CI DB 會 missing column。喺度冪等補回。
+  const userCols = [
+    ["wallet_balance", "REAL DEFAULT 0"],
+    ["bank_name", "TEXT"],
+    ["bank_account", "TEXT"],
+    ["bank_code", "TEXT"],
+    ["reset_token", "TEXT"],
+    ["reset_token_expires", "TEXT"],
+    ["plan_id", "TEXT"],
+  ];
+  for (const [name, def] of userCols) {
+    try {
+      db.exec(`ALTER TABLE users ADD COLUMN ${name} ${def}`);
+      console.log(`✅ 加入 users.${name}`);
+    } catch (e) {
+      /* 已存在 → 略過 */
+    }
+  }
+  console.log("✅ users schema parity migration 完成");
+
   console.log("✅ 資料庫更新完成");
   db.close();
 }

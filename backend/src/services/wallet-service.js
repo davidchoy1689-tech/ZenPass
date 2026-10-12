@@ -16,6 +16,7 @@
 const { getDb } = require("./database");
 const { v4: uuidv4 } = require("uuid");
 const { writeBlock } = require("./blockchain-audit");
+const { toCents, fromCents } = require("../lib/money");
 
 /**
  * 教練收入自動入帳
@@ -60,7 +61,8 @@ function creditCoachEarning({
       .prepare("SELECT wallet_balance FROM users WHERE id = ?")
       .get(coachId);
     const balanceBefore = user ? user.wallet_balance || 0 : 0;
-    const balanceAfter = Math.round((balanceBefore + netAmount) * 100) / 100;
+    // 用整數 cents 加總，避免浮點累積誤差
+    const balanceAfter = fromCents(toCents(balanceBefore) + toCents(netAmount));
 
     const txId = uuidv4();
 
@@ -154,9 +156,9 @@ function debitWallet({
     }
 
     const balanceBefore = user.wallet_balance || 0;
-    const totalDebit = amount + fee;
+    const totalDebit = fromCents(toCents(amount) + toCents(fee));
 
-    if (balanceBefore < totalDebit) {
+    if (toCents(balanceBefore) < toCents(totalDebit)) {
 
       return {
         success: false,
@@ -164,7 +166,7 @@ function debitWallet({
       };
     }
 
-    const balanceAfter = Math.round((balanceBefore - totalDebit) * 100) / 100;
+    const balanceAfter = fromCents(toCents(balanceBefore) - toCents(totalDebit));
     const txId = uuidv4();
 
     db.prepare("UPDATE users SET wallet_balance = ? WHERE id = ?").run(
