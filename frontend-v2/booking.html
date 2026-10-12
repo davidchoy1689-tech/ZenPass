@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#ff6b35" />
+  <title>預約 · 芬蘭木柱體驗班（v2 預覽）</title>
+  <link rel="stylesheet" href="assets/v2.css" />
+</head>
+<body>
+  <div class="topbar">
+    <a class="back" href="index.html">‹</a>
+    <div class="title">芬蘭木柱體驗班</div>
+    <div style="margin-left:auto" class="price" id="topPrice">17cr</div>
+  </div>
+
+  <div class="stepper">
+    <div class="step active" id="s1"><span class="dot">1</span>選時段</div>
+    <div class="line"></div>
+    <div class="step" id="s2"><span class="dot">2</span>確認</div>
+    <div class="line"></div>
+    <div class="step" id="s3"><span class="dot">3</span>付款</div>
+  </div>
+
+  <div class="wrap">
+    <!-- STEP 1 -->
+    <section id="step1">
+      <div class="section-title">選擇日期</div>
+      <div class="hscroll">
+        <span class="chip on">今日 週五</span>
+        <span class="chip">週六 12/13</span>
+        <span class="chip">週日 12/14</span>
+        <span class="chip">下週一</span>
+      </div>
+
+      <div class="section-title">選擇時段</div>
+      <div class="slots" id="slots">
+        <div class="slot" data-on="1">10:00<small>剩 3 位</small></div>
+        <div class="slot" disabled>12:00<small>已滿</small></div>
+        <div class="slot">14:00<small>剩 8 位</small></div>
+        <div class="slot">16:00<small>剩 5 位</small></div>
+        <div class="slot">18:00<small>剩 2 位</small></div>
+        <div class="slot">20:00<small>剩 6 位</small></div>
+      </div>
+
+      <div class="spacer"></div>
+      <button class="btn btn-primary btn-block" id="toStep2">下一步：確認</button>
+    </section>
+
+    <!-- STEP 2 -->
+    <section id="step2" class="hide">
+      <div class="section-title">確認預約</div>
+      <div class="card">
+        <div class="row"><span class="k">課程</span><span class="v">芬蘭木柱體驗班</span></div>
+        <div class="row"><span class="k">時間</span><span class="v">週六 12/13 · 10:00</span></div>
+        <div class="row"><span class="k">地點</span><span class="v">旺角體育館</span></div>
+        <div class="row"><span class="k">人數</span><span class="v">1 位</span></div>
+      </div>
+
+      <div class="spacer"></div>
+      <div class="banner">ℹ️ 開課前一日可自由取消（退回 credit）</div>
+
+      <div class="section-title">用邊種方式付款？</div>
+      <div class="stack" id="payMethods">
+        <label class="card" style="display:flex"><div class="body" style="display:flex;width:100%;justify-content:space-between;align-items:center">
+          <span>💳 信用卡 / FPS / PayMe</span><span class="muted">$170</span>
+          <input type="radio" name="pm" checked /></div></label>
+        <label class="card" style="display:flex"><div class="body" style="display:flex;width:100%;justify-content:space-between;align-items:center">
+          <span>🎫 用 Credit 扣（17cr）</span><span class="muted">餘 362cr</span>
+          <input type="radio" name="pm" /></div></label>
+      </div>
+
+      <div class="spacer"></div>
+      <div class="grid2">
+        <button class="btn btn-secondary" id="back1">上一步</button>
+        <button class="btn btn-primary" id="toStep3">確認付款</button>
+      </div>
+    </section>
+
+    <!-- STEP 3 -->
+    <section id="step3" class="hide">
+      <div class="banner" id="holdBanner">⏳ 名額已為你保留 · <b id="countdown">15:00</b></div>
+      <div class="section-title">付款</div>
+      <div class="card">
+        <div class="row"><span class="k">應付</span><span class="v" style="color:var(--brand-600)">HK$170</span></div>
+        <div class="row"><span class="k">或</span><span class="v">17 credits</span></div>
+      </div>
+      <div class="spacer"></div>
+      <button class="btn btn-primary btn-block" id="payNow">立即付款</button>
+      <div class="spacer"></div>
+      <button class="btn btn-ghost btn-block" id="back2">返回</button>
+    </section>
+
+    <!-- SUCCESS -->
+    <section id="done" class="hide center">
+      <div style="font-size:56px;margin:32px 0 8px">✅</div>
+      <h2 style="margin:0 0 6px">預約成功！</h2>
+      <p class="muted">預約號 <b>ZP-20261213-1042</b></p>
+      <div class="card" style="text-align:left;margin-top:16px">
+        <div class="row"><span class="k">時間</span><span class="v">週六 12/13 · 10:00</span></div>
+        <div class="row"><span class="k">地點</span><span class="v">旺角體育館</span></div>
+      </div>
+      <div class="spacer"></div>
+      <button class="btn btn-primary btn-block">加入日曆</button>
+      <div class="spacer"></div>
+      <button class="btn btn-secondary btn-block">分享畀朋友</button>
+    </section>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const show = (id) => ["step1","step2","step3","done"].forEach(s => $(s).classList.toggle("hide", s !== id));
+    const setStep = (n) => [1,2,3].forEach(i => {
+      const el = $("s"+i);
+      el.classList.toggle("active", i === n);
+      el.classList.toggle("done", i < n);
+    });
+
+    document.querySelectorAll("#slots .slot").forEach(el => {
+      if (el.hasAttribute("disabled")) return;
+      el.addEventListener("click", () => {
+        document.querySelectorAll("#slots .slot").forEach(s => s.classList.remove("on"));
+        el.classList.add("on");
+      });
+    });
+    document.querySelectorAll(".hscroll .chip").forEach(el => {
+      el.addEventListener("click", () => {
+        document.querySelectorAll(".hscroll .chip").forEach(c => c.classList.remove("on"));
+        el.classList.add("on");
+      });
+    });
+
+    $("toStep2").onclick = () => { show("step2"); setStep(2); };
+    $("back1").onclick = () => { show("step1"); setStep(1); };
+    $("toStep3").onclick = () => { show("step3"); setStep(3); startCountdown(); };
+    $("back2").onclick = () => { stopCountdown(); show("step2"); setStep(2); };
+    $("payNow").onclick = () => { stopCountdown(); show("done"); };
+
+    let timer = null, left = 15 * 60;
+    function startCountdown() {
+      left = 15 * 60;
+      stopCountdown();
+      const tick = () => {
+        const m = String(Math.floor(left/60)).padStart(2,"0");
+        const s = String(left%60).padStart(2,"0");
+        $("countdown").textContent = m + ":" + s;
+        if (left-- <= 0) { stopCountdown(); $("holdBanner").textContent = "⌛ 保留已逾時，名額已釋放"; }
+      };
+      tick();
+      timer = setInterval(tick, 1000);
+    }
+    function stopCountdown() { if (timer) clearInterval(timer); timer = null; }
+  </script>
+</body>
+</html>
