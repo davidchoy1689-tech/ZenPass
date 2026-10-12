@@ -12,6 +12,7 @@ const { audit, trackBookingChange, trackPaymentChange } = require("./audit");
 const { writeBlock } = require("./blockchain-audit");
 const { postBookingLedger } = require("./accounting");
 const { splitByRate } = require("../lib/money");
+const { validatePromo, redeemPromo } = require("./promo");
 
 
 /**
@@ -444,8 +445,9 @@ function writeBookingBlock(data) {
 // ==================== Core: Create Booking ====================
 
 function createBooking(req) {
-  const { schedule_id, class_id, payment_type, amount, penalty_consent } =
-    req.body;
+  const { schedule_id, class_id, payment_type, penalty_consent } = req.body;
+  let amount = req.body.amount;
+  const promo_code = req.body.promo_code || req.body.promoCode;
 
   if (!schedule_id || !class_id || !payment_type) {
     return { status: 400, body: { success: false, error: "缺少預約資料" } };
@@ -480,6 +482,21 @@ function createBooking(req) {
     .get(schedule_id);
   if (!schedule) {
     return { status: 404, body: { success: false, error: "該時段不存在或已滿" } };
+  }
+
+  // 3.5 優惠碼（只適用於單次付款；用伺服器端課程價計算，唔信 client amount）
+  let promoApply = null;
+  if (promo_code && payment_type === "single") {
+    const clsRow = db.prepare("SELECT price_hkd FROM classes WHERE id = ?").get(class_id);
+    const v = validatePromo(db, {
+      code: promo_code,
+      basePrice: clsRow ? clsRow.price_hkd : 0,
+      classId: class_id,
+      userId: req.user.id,
+    });
+    if (!v.ok) return { status: 400, body: { success: false, error: v.error } };
+    amount = v.final_price;
+    promoApply = v.promo;
   }
 
   // 4-9. 原子化：釋放過期 hold → 佔位 → 重複檢查 → 扣款 → 寫 booking row
@@ -558,6 +575,7 @@ function createBooking(req) {
       { bookingId, bookingRef, userId: req.user.id, scheduleId: schedule_id, classId: class_id, paymentType: payment_type, paymentStatus, bookingStatus, amount: amount || 0 },
       partnerInfo,
     );
+    if (promoApply) redeemPromo(db, promoApply.id, req.user.id, bookingId, amount);
   });
 
   try {

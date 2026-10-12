@@ -44,6 +44,15 @@
         <span>我明白如缺席（no-show）會按政策收取 penalty credits。</span>
       </label>
       <div class="spacer"></div>
+      <div class="card"><div class="body">
+        <div class="muted" style="font-size:13px;margin-bottom:6px">優惠碼（可選，適用於信用卡/FPS）</div>
+        <div style="display:flex;gap:8px">
+          <input id="promo" placeholder="輸入優惠碼" style="flex:1;border:1px solid var(--border);border-radius:12px;padding:10px 12px;font:inherit;background:var(--surface);color:var(--text)" />
+          <button class="btn btn-secondary" id="applyPromo">套用</button>
+        </div>
+        <div id="promoMsg" class="muted" style="font-size:12px;margin-top:6px"></div>
+      </div></div>
+      <div class="spacer"></div>
       <div class="grid2">
         <button class="btn btn-secondary" id="back1">上一步</button>
         <button class="btn btn-primary" id="toStep3">確認付款</button>
@@ -81,6 +90,7 @@
     const classId = params.get("id");
     let scheduleId = params.get("sid") || "";
     let cls = null, schedules = [];
+    let promoFinal = null;
 
     if (!api.requireLogin("booking.html" + location.search)) { /* redirected */ }
     else (async () => {
@@ -116,10 +126,28 @@
       show("step2"); setStep(2);
     };
     $("back1").onclick = () => { show("step1"); setStep(1); };
+    $("applyPromo").onclick = async () => {
+      const code = $("promo").value.trim();
+      const msg = $("promoMsg");
+      if (!code) { msg.textContent = "請輸入優惠碼"; return; }
+      msg.textContent = "檢查中…";
+      const r = await api.get("/promo/validate?code=" + encodeURIComponent(code) + "&class_id=" + encodeURIComponent(classId));
+      if (r.ok && r.data && r.data.success) {
+        promoFinal = { code: code.toUpperCase(), final_price: r.data.final_price };
+        msg.innerHTML = `✅ 已套用 · 折後 <b>${hkd(r.data.final_price)}</b>（省 ${hkd(r.data.discount)}）`;
+      } else {
+        promoFinal = null;
+        msg.textContent = "❌ " + ((r.data && r.data.error) || "優惠碼無效");
+      }
+    };
     $("toStep3").onclick = () => {
       if (!$("consent").checked) { alert("請先同意缺席政策"); return; }
       const pm = document.querySelector("input[name=pm]:checked").value;
-      $("paySummary").innerHTML = `<div class="row"><span class="k">應付</span><span class="v" style="color:var(--brand-600)">${pm==="credits" ? cr(cls.price_hkd)+" credits" : hkd(cls.price_hkd)}</span></div>`;
+      let acc;
+      if (pm === "credits") acc = cr(cls.price_hkd) + " credits";
+      else if (promoFinal) acc = hkd(promoFinal.final_price) + " <small class='muted'>（已用優惠碼）</small>";
+      else acc = hkd(cls.price_hkd);
+      $("paySummary").innerHTML = `<div class="row"><span class="k">應付</span><span class="v" style="color:var(--brand-600)">${acc}</span></div>`;
       $("holdBanner").style.display = pm === "credits" ? "none" : "flex";
       show("step3"); setStep(3);
     };
@@ -128,7 +156,9 @@
     $("payNow").onclick = async () => {
       const pm = document.querySelector("input[name=pm]:checked").value;
       const btn = $("payNow"); btn.disabled = true; btn.textContent = "處理中…";
-      const r = await api.post("/bookings", { scheduleId, classId, paymentType: pm, penaltyConsent: true });
+      const payload = { scheduleId, classId, paymentType: pm, penaltyConsent: true };
+      if (promoFinal) payload.promo_code = promoFinal.code;
+      const r = await api.post("/bookings", payload);
       btn.disabled = false;
       if (r.status === 201 || r.ok) {
         const b = r.data || {};

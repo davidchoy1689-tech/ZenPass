@@ -268,6 +268,7 @@ app.use("/api/waitlist", require("./routes/waitlist"));
 app.use("/api/activity", require("./routes/activity"));
 app.use("/api/ai", require("./routes/ai"));
 app.use("/api/marketing", require("./routes/marketing"));
+app.use("/api/promo", require("./routes/promo"));
 app.use("/api/ab", require("./routes/ab-test"));
 app.use("/api/reporting", require("./routes/reporting"));
 app.use("/api/referral", require("./routes/referral"));

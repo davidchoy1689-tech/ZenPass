@@ -357,6 +357,41 @@ function updateDatabase() {
     console.log("⚠️ schema parity migration：", e.message);
   }
 
+  // ===== Migration 11: 優惠碼 (promo / coupon) =====
+  try {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS promo_codes (
+        id TEXT PRIMARY KEY,
+        code TEXT UNIQUE NOT NULL,
+        type TEXT NOT NULL CHECK(type IN ('fixed_price','fixed_discount','percent')),
+        value REAL NOT NULL,
+        class_id TEXT,
+        max_uses INTEGER,
+        used_count INTEGER DEFAULT 0,
+        per_user_limit INTEGER DEFAULT 1,
+        valid_from TEXT,
+        valid_to TEXT,
+        active INTEGER DEFAULT 1,
+        description TEXT,
+        created_at TEXT DEFAULT (datetime('now'))
+      );
+    `);
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS promo_redemptions (
+        id TEXT PRIMARY KEY,
+        code_id TEXT NOT NULL,
+        user_id TEXT,
+        booking_id TEXT,
+        amount REAL,
+        created_at TEXT DEFAULT (datetime('now'))
+      );
+    `);
+    db.exec("CREATE INDEX IF NOT EXISTS idx_promo_redemptions_code ON promo_redemptions(code_id)");
+    console.log("✅ promo_codes / promo_redemptions ready");
+  } catch (e) {
+    console.log("⚠️ promo migration:", e.message);
+  }
+
   console.log("✅ 資料庫更新完成");
   db.close();
 }
