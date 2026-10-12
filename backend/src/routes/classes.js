@@ -300,7 +300,7 @@ router.get("/:id", optionalAuth, (req, res) => {
     const schedules = db
       .prepare(
         `
-      SELECT id, start_time, end_time, enrolled_count, max_participants, status
+      SELECT id, start_time, end_time, enrolled_count, max_participants, status, notes
       FROM class_schedules
       WHERE class_id = ? AND start_time > datetime('now')
       ORDER BY start_time ASC
