@@ -21,6 +21,11 @@ bash scripts/switch-frontend.sh rollback  # 回滾：live → v1
 - [x] `booking.html`（預約 3 步：選時段 → 確認 → 付款 + 15 分鐘倒數）
 - [x] `class-detail.html`（課程詳情：hero/tabs/時間表/評價 + sticky CTA）
 - [x] `my-bookings.html`（我的預約：即將/已完成/已取消 tabs）
-- [ ] 錢包 / 會員 / 簽到
+- [x] `explore.html`（探索/課程列表）、`my.html`（帳戶中心 hub）
+- [x] `wallet.html`、`membership.html`、`checkin.html`、`buy-credits.html`、
+      `points.html`、`notifications.html`、`referral.html`、`profile.html`、`faq.html`、`login.html`
+- [x] 全站互相連結（bottom-nav：主頁/探索/預約/我的）
+- [ ] admin / partner-dashboard（參考 shadcn-admin / Mazer）
+- [ ] 接真實 API（現時多為靜態 demo 數據）
 - [ ] admin / partner-dashboard（參考 shadcn-admin / Mazer）
 - [ ] 接真實 API（現時樣板多為靜態 demo 數據）

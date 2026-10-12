@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#ff6b35" />
+  <title>課堂簽到 · ZenPass v2</title>
+  <link rel="stylesheet" href="assets/v2.css" />
+  <style>
+    .ring { width: 200px; height: 200px; border-radius: 50%; margin: 24px auto 8px;
+            display: grid; place-items: center; background: var(--brand-500); color:#fff;
+            font-weight: 800; font-size: 22px; box-shadow: var(--sh-lg); text-align:center; }
+    .ring.locked { background: var(--ink-300); color: var(--ink-700); }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <a class="back" href="my.html">‹</a>
+    <div class="title">課堂簽到</div>
+  </div>
+
+  <div class="wrap center">
+    <p class="muted">芬蘭木柱體驗班 · 週六 12/13 10:00</p>
+    <p class="muted" style="font-size:13px">📍 旺角體育館</p>
+
+    <div class="ring" id="ring">撳一下<br />簽到</div>
+
+    <div class="banner" style="justify-content:center" id="geo">✅ 已喺場地範圍內（100 米內）· 可簽到</div>
+
+    <div class="spacer"></div>
+    <div class="card"><div class="body muted" style="font-size:13px;text-align:left">
+      簽到時間：上堂前 15 分鐘 至 落堂後 60 分鐘。
+      未到範圍時簽到掣會鎖上，行到場地附近即解鎖。
+    </div></div>
+
+    <div class="spacer"></div>
+    <p class="muted center" style="font-size:12px">v2 預覽樣板 · 示範互動</p>
+  </div>
+
+  <nav class="bottomnav">
+    <a href="index.html"><span class="ic">🏠</span>主頁</a>
+    <a href="explore.html"><span class="ic">🔍</span>探索</a>
+    <a href="booking.html"><span class="ic">📅</span>預約</a>
+    <a class="active" href="my.html"><span class="ic">🎫</span>我的</a>
+  </nav>
+
+  <script>
+    const ring = document.getElementById("ring");
+    ring.onclick = () => {
+      ring.style.background = "#047857";
+      ring.innerHTML = "✅ 已簽到";
+      document.getElementById("geo").textContent = "🎉 簽到成功 · 已記錄";
+    };
+  </script>
+</body>
+</html>
