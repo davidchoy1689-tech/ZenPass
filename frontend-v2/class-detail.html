@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#ff6b35" />
-  <title>芬蘭木柱體驗班 · ZenPass v2</title>
+  <title>課程詳情 · ZenPass 禪流</title>
   <link rel="stylesheet" href="assets/v2.css" />
   <style>
     .hero-img { height: 200px; background: linear-gradient(135deg, var(--brand-500), var(--brand-700)); position: relative; }
@@ -20,71 +20,79 @@
 <body>
   <div class="wrap" style="padding-bottom:96px">
     <div class="hero-img" style="margin:0 -16px;border-radius:0 0 24px 24px">
-      <div class="top">
-        <a class="iconbtn" href="index.html">‹</a>
-        <span class="iconbtn">↗</span>
-      </div>
+      <div class="top"><a class="iconbtn" href="javascript:history.back()">‹</a><span class="iconbtn">↗</span></div>
     </div>
 
-    <div style="margin-top:16px">
-      <div style="display:flex;gap:8px;margin-bottom:8px">
-        <span class="chip on">新興運動</span>
-        <span class="chip">戶外/室內</span>
-      </div>
-      <h1 style="margin:0 0 6px;font-size:22px">芬蘭木柱體驗班</h1>
-      <p class="muted" style="margin:0">👥 6–12 人 · ⏱ 60 分鐘 · 📍 旺角體育館</p>
-    </div>
-
-    <div class="card" style="margin-top:16px">
-      <div class="row"><span class="k">教練</span><span class="v">陳 Sir · ⭐4.9</span></div>
-      <div class="row"><span class="k">程度</span><span class="v">新手友善</span></div>
-      <div class="row"><span class="k">語言</span><span class="v">粵語</span></div>
+    <div style="margin-top:16px" id="head">
+      <div class="card"><div class="body muted">載入中…</div></div>
     </div>
 
     <div class="tabs" style="margin-top:16px">
-      <a class="on" href="#intro">介紹</a>
-      <a href="#schedule">時間表</a>
-      <a href="#reviews">評價</a>
+      <a class="on" href="#intro">介紹</a><a href="#schedule">時間表</a><a href="#reviews">評價</a>
     </div>
 
     <section id="intro">
       <div class="section-title">課程介紹</div>
-      <p>芬蘭木柱（Mölkky）係一項易上手嘅戶外投擲運動，講求策略同手眼協調。呢個 60 分鐘體驗班會由基本握法、計分規則教起，玩到分組對賽，零經驗都玩得開心。</p>
-      <div class="section-title">你會學到</div>
-      <div class="stack">
-        <div class="card"><div class="body">🎯 基本投擲姿勢同力水控制</div></div>
-        <div class="card"><div class="body">🧮 計分規則同戰術</div></div>
-        <div class="card"><div class="body">🤝 分組對賽實戰</div></div>
-      </div>
+      <p id="desc" class="muted">…</p>
+      <div class="card"><div class="body" id="facts"></div></div>
     </section>
 
     <section id="schedule">
       <div class="section-title">近期時段</div>
-      <div class="stack">
-        <a class="card" href="booking.html"><div class="body" style="display:flex;justify-content:space-between">
-          <span>週六 12/13 · 10:00</span><span class="badge ok">剩 3 位</span></div></a>
-        <a class="card" href="booking.html"><div class="body" style="display:flex;justify-content:space-between">
-          <span>週日 12/14 · 14:00</span><span class="badge ok">剩 8 位</span></div></a>
-        <a class="card" href="booking.html"><div class="body" style="display:flex;justify-content:space-between">
-          <span>週六 12/20 · 16:00</span><span class="badge warn">快滿</span></div></a>
-      </div>
+      <div class="stack" id="scheds"><div class="card"><div class="body muted">載入中…</div></div></div>
     </section>
 
     <section id="reviews">
-      <div class="section-title">學員評價 · 4.9 ⭐</div>
-      <div class="card"><div class="body">
-        <p style="margin:0 0 4px">「好好玩，教練好有耐性，即刻 book 咗下星期。」</p>
-        <span class="muted" style="font-size:13px">— Amy · 2 日前</span>
-      </div></div>
+      <div class="section-title">學員評價</div>
+      <div class="stack" id="revs"><div class="card"><div class="body muted">暫無評價。</div></div></div>
     </section>
   </div>
 
   <div class="cta">
-    <div>
-      <div style="font-weight:800;color:var(--brand-600);font-size:18px">17cr <span class="muted" style="font-weight:500;font-size:13px">/ $170</span></div>
-      <div class="muted" style="font-size:12px">開課前一日可取消</div>
-    </div>
-    <a class="btn btn-primary" style="flex:1" href="booking.html">即刻預約</a>
+    <div><div id="price" style="font-weight:800;color:var(--brand-600);font-size:18px">—</div>
+      <div class="muted" style="font-size:12px">開課前一日可取消</div></div>
+    <a id="book" class="btn btn-primary" style="flex:1" href="#">即刻預約</a>
   </div>
+
+  <script src="assets/api.js"></script>
+  <script>
+    const id = new URLSearchParams(location.search).get("id");
+    const wrap = document.getElementById("head");
+    let firstSid = "";
+    (async () => {
+      if (!id) { wrap.innerHTML = `<div class="card"><div class="body">課程不存在。</div></div>`; return; }
+      const r = await api.get("/classes/" + encodeURIComponent(id));
+      const c = r.data && r.data.class;
+      if (!c) { wrap.innerHTML = `<div class="card"><div class="body">搵唔到課程。</div></div>`; return; }
+      document.title = c.title + " · ZenPass 禪流";
+      wrap.innerHTML = `
+        <div style="display:flex;gap:8px;margin-bottom:8px"><span class="chip on">${esc(c.category || "課程")}</span></div>
+        <h1 style="margin:0 0 6px;font-size:22px">${esc(c.title)}</h1>
+        <p class="muted" style="margin:0">👤 ${esc(c.coach_name || "教練")} · ⏱ ${c.duration || "-"} 分鐘${c.venue_name ? " · 📍 " + esc(c.venue_name) : ""}</p>`;
+      document.getElementById("desc").textContent = c.description || "暫無介紹。";
+      document.getElementById("facts").innerHTML =
+        `<div class="row"><span class="k">程度</span><span class="v">${esc(c.difficulty || "新手友善")}</span></div>
+         <div class="row"><span class="k">人數上限</span><span class="v">${esc(c.max_participants || "-")} 人</span></div>
+         <div class="row"><span class="k">價錢</span><span class="v">${cr(c.price_hkd)} credits (${hkd(c.price_hkd)})</span></div>`;
+      document.getElementById("price").innerHTML = `${cr(c.price_hkd)}cr <span class="muted" style="font-weight:500;font-size:13px">/ ${hkd(c.price_hkd)}</span>`;
+
+      const scheds = (r.data.schedules || []).filter(s => s.status !== "cancelled");
+      firstSid = scheds[0] ? scheds[0].id : "";
+      document.getElementById("scheds").innerHTML = scheds.length ? scheds.slice(0, 10).map(s => {
+        const left = (s.max_participants || 0) - (s.enrolled_count || 0);
+        const full = left <= 0;
+        return `<a class="card" href="booking.html?id=${encodeURIComponent(id)}&sid=${encodeURIComponent(s.id)}"><div class="body" style="display:flex;justify-content:space-between;align-items:center">
+          <span>${fmtTime(s.start_time)}</span>
+          <span class="badge ${full ? "off" : "ok"}">${full ? "已滿" : "剩 " + left + " 位"}</span></div></a>`;
+      }).join("") : `<div class="card"><div class="body muted">暫無可預約時段。</div></div>`;
+
+      const revs = r.data.reviews || [];
+      document.getElementById("revs").innerHTML = revs.length ? revs.map(v =>
+        `<div class="card"><div class="body"><p style="margin:0 0 4px">${esc(v.rating_text || "★★★★★")}</p><span class="muted" style="font-size:13px">— ${esc(v.user_name || "學員")}</span></div></div>`).join("")
+        : `<div class="card"><div class="body muted">暫無評價。</div></div>`;
+
+      document.getElementById("book").href = "booking.html?id=" + encodeURIComponent(id) + (firstSid ? "&sid=" + encodeURIComponent(firstSid) : "");
+    })();
+  </script>
 </body>
 </html>

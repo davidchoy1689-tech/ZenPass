@@ -4,78 +4,22 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#ff6b35" />
-  <title>探索課程 · ZenPass v2</title>
+  <title>探索課程 · ZenPass 禪流</title>
   <link rel="stylesheet" href="assets/v2.css" />
 </head>
 <body>
-  <div class="topbar">
-    <div class="title">探索課程</div>
-  </div>
+  <div class="topbar"><div class="title">探索課程</div></div>
 
   <div class="wrap">
-    <input class="card" style="width:100%;border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px"
+    <input id="q" class="card" style="width:100%;border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px"
            placeholder="🔍 搜尋運動 / 課程 / 教練" />
+    <div class="hscroll" id="cats"><span class="chip on" data-cat="">全部</span></div>
 
-    <div class="hscroll">
-      <span class="chip on">全部</span>
-      <span class="chip">芬蘭木柱</span>
-      <span class="chip">地板冰壺</span>
-      <span class="chip">布袋球</span>
-      <span class="chip">穿雲箭</span>
-      <span class="chip">圓網球</span>
+    <div class="section-title" id="count">課程</div>
+    <div class="stack" id="list">
+      <div class="card"><div class="body muted">載入中…</div></div>
     </div>
-    <div class="hscroll">
-      <span class="chip">📍 旺角</span>
-      <span class="chip">⏱ 60 分鐘</span>
-      <span class="chip">💰 12cr 以下</span>
-      <span class="chip on">新手友善</span>
-    </div>
-
-    <div class="section-title">12 個課程</div>
-    <div class="stack">
-      <a class="card" href="class-detail.html"><div class="body course">
-        <div class="thumb"></div>
-        <div class="meta">
-          <p class="name">芬蘭木柱體驗班</p>
-          <p class="sub">旺角 · 週六 10:00 · 60 分鐘</p>
-          <span class="badge ok" style="margin-top:6px">剩 3 位</span>
-        </div>
-        <div class="price">17cr</div>
-      </div></a>
-
-      <a class="card" href="class-detail.html"><div class="body course">
-        <div class="thumb" style="background:linear-gradient(135deg,#2563eb,#1e3a8a)"></div>
-        <div class="meta">
-          <p class="name">地板冰壺入門</p>
-          <p class="sub">銅鑼灣 · 週日 14:00 · 90 分鐘</p>
-          <span class="badge pending" style="margin-top:6px">新上架</span>
-        </div>
-        <div class="price">12cr</div>
-      </div></a>
-
-      <a class="card" href="class-detail.html"><div class="body course">
-        <div class="thumb" style="background:linear-gradient(135deg,#047857,#065f46)"></div>
-        <div class="meta">
-          <p class="name">布袋球家庭班</p>
-          <p class="sub">沙田 · 週六 15:00 · 60 分鐘</p>
-          <span class="badge warn" style="margin-top:6px">快滿</span>
-        </div>
-        <div class="price">12cr</div>
-      </div></a>
-
-      <a class="card" href="class-detail.html"><div class="body course">
-        <div class="thumb" style="background:linear-gradient(135deg,#8b5cf6,#6d28d9)"></div>
-        <div class="meta">
-          <p class="name">穿雲箭挑戰營</p>
-          <p class="sub">觀塘 · 週五 19:00 · 75 分鐘</p>
-          <span class="badge ok" style="margin-top:6px">剩 6 位</span>
-        </div>
-        <div class="price">15cr</div>
-      </div></a>
-    </div>
-
     <div class="spacer"></div>
-    <p class="muted center" style="font-size:12px">v2 預覽樣板 · 靜態示範數據</p>
   </div>
 
   <nav class="bottomnav">
@@ -84,5 +28,45 @@
     <a href="booking.html"><span class="ic">📅</span>預約</a>
     <a href="my.html"><span class="ic">🎫</span>我的</a>
   </nav>
+
+  <script src="assets/api.js"></script>
+  <script>
+    const list = document.getElementById("list");
+    function card(c) {
+      return `<a class="card" href="class-detail.html?id=${encodeURIComponent(c.id)}"><div class="body course">
+        <div class="thumb"></div>
+        <div class="meta"><p class="name">${esc(c.title)}</p>
+          <p class="sub">${esc(c.category || "")}${c.duration ? " · " + c.duration + " 分鐘" : ""}</p></div>
+        <div class="price">${cr(c.price_hkd)}cr</div>
+      </div></a>`;
+    }
+    async function load(cat, q) {
+      list.innerHTML = `<div class="card"><div class="body muted">載入中…</div></div>`;
+      let url = "/classes?limit=30&sort=popular";
+      if (cat) url += "&category=" + encodeURIComponent(cat);
+      if (q) url += "&search=" + encodeURIComponent(q);
+      const r = await api.get(url);
+      const arr = (r.data && (r.data.classes || r.data.items)) || [];
+      document.getElementById("count").textContent = arr.length + " 個課程";
+      list.innerHTML = arr.length ? arr.map(card).join("") : `<div class="card"><div class="body muted">冇符合嘅課程，試下清除篩選。</div></div>`;
+    }
+    document.getElementById("cats").addEventListener("click", (e) => {
+      const chip = e.target.closest(".chip"); if (!chip) return;
+      document.querySelectorAll("#cats .chip").forEach(x => x.classList.remove("on")); chip.classList.add("on");
+      load(chip.dataset.cat, document.getElementById("q").value.trim());
+    });
+    let t; document.getElementById("q").addEventListener("input", (e) => {
+      clearTimeout(t); t = setTimeout(() => load(document.querySelector("#cats .chip.on").dataset.cat, e.target.value.trim()), 350);
+    });
+    (async () => {
+      const r = await api.get("/classes/categories");
+      const cats = (r.data && (r.data.categories || r.data)) || [];
+      if (Array.isArray(cats) && cats.length) {
+        document.getElementById("cats").innerHTML = `<span class="chip on" data-cat="">全部</span>` +
+          cats.map(c => { const n = (typeof c === "string" ? c : (c.name || c.category)); return `<span class="chip" data-cat="${esc(n)}">${esc(n)}</span>`; }).join("");
+      }
+      load("", "");
+    })();
+  </script>
 </body>
 </html>

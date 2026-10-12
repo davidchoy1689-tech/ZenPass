@@ -4,78 +4,37 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#ff6b35" />
-  <title>ZenPass 禪流（升級版預覽）</title>
+  <title>ZenPass 禪流</title>
   <link rel="stylesheet" href="assets/v2.css" />
 </head>
 <body>
   <div class="wrap">
     <div class="hero">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-        <strong style="font-size:15px;letter-spacing:.5px">ZenPass 禪流 · <span style="opacity:.8">v2 預覽</span></strong>
+        <strong style="font-size:15px;letter-spacing:.5px">ZenPass 禪流</strong>
+        <a href="my.html" style="font-size:13px;opacity:.9">我的 ›</a>
       </div>
       <h1>郁一郁，身體好</h1>
       <p>芬蘭木柱・地板冰壺・布袋球… 搵堂、預約、簽到，一 app 搞掂。</p>
-      <a class="btn btn-primary btn-block" href="booking.html">即刻預約 →</a>
+      <a class="btn btn-primary btn-block" href="explore.html">即刻預約 →</a>
     </div>
 
     <div style="padding:12px 0 0">
-      <input class="card" style="width:100%;border:1px solid var(--border);border-radius:12px;padding:12px 14px"
+      <input id="q" class="card" style="width:100%;border:1px solid var(--border);border-radius:12px;padding:12px 14px"
              placeholder="🔍 搜尋運動 / 課程 / 教練" />
     </div>
 
-    <div class="hscroll">
-      <span class="chip on">全部</span>
-      <span class="chip">芬蘭木柱</span>
-      <span class="chip">地板冰壺</span>
-      <span class="chip">布袋球</span>
-      <span class="chip">穿雲箭</span>
-      <span class="chip">圓網球</span>
+    <div class="hscroll" id="cats">
+      <span class="chip on" data-cat="">全部</span>
     </div>
 
-    <div class="section-title">🔥 今日熱門</div>
-    <div class="stack">
-      <a class="card" href="class-detail.html">
-        <div class="body course">
-          <div class="thumb"></div>
-          <div class="meta">
-            <p class="name">芬蘭木柱體驗班</p>
-            <p class="sub">旺角・週六 10:00・60 分鐘</p>
-            <span class="badge ok" style="margin-top:6px">剩 3 位</span>
-          </div>
-          <div class="price">17cr<br /><small class="muted" style="font-weight:500">$170</small></div>
-        </div>
-      </a>
-
-      <a class="card" href="class-detail.html">
-        <div class="body course">
-          <div class="thumb" style="background:linear-gradient(135deg,#2563eb,#1e3a8a)"></div>
-          <div class="meta">
-            <p class="name">地板冰壺入門</p>
-            <p class="sub">銅鑼灣・週日 14:00・90 分鐘</p>
-            <span class="badge pending" style="margin-top:6px">新上架</span>
-          </div>
-          <div class="price">12cr<br /><small class="muted" style="font-weight:500">$120</small></div>
-        </div>
-      </a>
-
-      <a class="card" href="class-detail.html">
-        <div class="body course">
-          <div class="thumb" style="background:linear-gradient(135deg,#047857,#065f46)"></div>
-          <div class="meta">
-            <p class="name">布袋球家庭班</p>
-            <p class="sub">沙田・週六 15:00・60 分鐘</p>
-            <span class="badge warn" style="margin-top:6px">快滿</span>
-          </div>
-          <div class="price">12cr<br /><small class="muted" style="font-weight:500">$120</small></div>
-        </div>
-      </a>
+    <div class="section-title">🔥 熱門課程</div>
+    <div class="stack" id="courses">
+      <div class="card"><div class="body muted">載入中…</div></div>
     </div>
-
-    <div class="section-title">📍 你附近</div>
-    <div class="card"><div class="body muted">開啟定位後，顯示最近場地同班。</div></div>
 
     <div class="spacer"></div>
-    <p class="muted center" style="font-size:12px">此為 UI 升級樣板（v2 預覽）· 正式站不受影響</p>
+    <p class="muted center" style="font-size:12px">ZenPass 禪流 · v2</p>
   </div>
 
   <nav class="bottomnav">
@@ -84,5 +43,49 @@
     <a href="booking.html"><span class="ic">📅</span>預約</a>
     <a href="my.html"><span class="ic">🎫</span>我的</a>
   </nav>
+
+  <script src="assets/api.js"></script>
+  <script>
+    const box = document.getElementById("courses");
+    function card(c) {
+      return `<a class="card" href="class-detail.html?id=${encodeURIComponent(c.id)}">
+        <div class="body course">
+          <div class="thumb"></div>
+          <div class="meta">
+            <p class="name">${esc(c.title)}</p>
+            <p class="sub">${esc(c.category || "")}${c.duration ? " · " + c.duration + " 分鐘" : ""}</p>
+          </div>
+          <div class="price">${cr(c.price_hkd)}cr<br /><small class="muted" style="font-weight:500">${hkd(c.price_hkd)}</small></div>
+        </div></a>`;
+    }
+    async function load(cat, q) {
+      box.innerHTML = `<div class="card"><div class="body muted">載入中…</div></div>`;
+      let url = "/classes?limit=6&sort=popular";
+      if (cat) url += "&category=" + encodeURIComponent(cat);
+      if (q) url += "&search=" + encodeURIComponent(q);
+      const r = await api.get(url);
+      const list = (r.data && (r.data.classes || r.data.items)) || [];
+      if (!list.length) { box.innerHTML = `<div class="card"><div class="body muted">暫時冇課程。</div></div>`; return; }
+      box.innerHTML = list.map(card).join("");
+    }
+    document.getElementById("cats").addEventListener("click", (e) => {
+      const chip = e.target.closest(".chip"); if (!chip) return;
+      document.querySelectorAll("#cats .chip").forEach(x => x.classList.remove("on"));
+      chip.classList.add("on");
+      load(chip.dataset.cat, document.getElementById("q").value.trim());
+    });
+    let t; document.getElementById("q").addEventListener("input", (e) => {
+      clearTimeout(t); t = setTimeout(() => load(document.querySelector("#cats .chip.on").dataset.cat, e.target.value.trim()), 350);
+    });
+    (async () => {
+      const r = await api.get("/classes/categories");
+      const cats = (r.data && (r.data.categories || r.data)) || [];
+      if (Array.isArray(cats)) {
+        document.getElementById("cats").innerHTML = `<span class="chip on" data-cat="">全部</span>` +
+          cats.map(c => { const n = (typeof c === "string" ? c : (c.name || c.category)); return `<span class="chip" data-cat="${esc(n)}">${esc(n)}</span>`; }).join("");
+      }
+      load("", "");
+    })();
+  </script>
 </body>
 </html>

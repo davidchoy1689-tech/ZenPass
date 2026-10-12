@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#ff6b35" />
-  <title>我的 · ZenPass v2</title>
+  <title>我的 · ZenPass 禪流</title>
   <link rel="stylesheet" href="assets/v2.css" />
   <style>
     .profile { display: flex; align-items: center; gap: 12px; padding: 16px 0; }
@@ -19,22 +19,22 @@
 <body>
   <div class="wrap">
     <div class="profile">
-      <div class="avatar">D</div>
+      <div class="avatar" id="av">?</div>
       <div>
-        <div style="font-weight:800;font-size:18px">David Choy</div>
-        <div class="muted" style="font-size:13px">🥉 銅牌會員 · 可享優先預約</div>
+        <div style="font-weight:800;font-size:18px" id="nm">訪客</div>
+        <div class="muted" style="font-size:13px" id="tier">載入中…</div>
       </div>
     </div>
 
     <div class="grid2c">
-      <a class="tile" href="wallet.html"><div class="muted" style="font-size:13px">🎫 Credits 餘額</div><div class="big" style="color:var(--brand-600)">362</div></a>
-      <a class="tile" href="points.html"><div class="muted" style="font-size:13px">🏅 積分</div><div class="big">1,280</div></a>
+      <a class="tile" href="wallet.html"><div class="muted" style="font-size:13px">🎫 Credits 餘額</div><div class="big" id="mCredits" style="color:var(--brand-600)">—</div></a>
+      <a class="tile" href="points.html"><div class="muted" style="font-size:13px">🏅 積分</div><div class="big" id="mPoints">—</div></a>
     </div>
 
     <div class="spacer"></div>
     <div class="card menu">
       <a href="my-bookings.html"><span>📅 我的預約</span><span class="muted">›</span></a>
-      <a href="membership.html"><span>👑 會員計劃</span><span class="muted">🥉 銅牌 ›</span></a>
+      <a href="membership.html"><span>👑 會員計劃</span><span class="muted" id="mPlan">›</span></a>
       <a href="wallet.html"><span>💳 錢包 / 交易記錄</span><span class="muted">›</span></a>
       <a href="buy-credits.html"><span>➕ 增值 Credits / 套票</span><span class="muted">›</span></a>
       <a href="checkin.html"><span>📍 課堂簽到</span><span class="muted">›</span></a>
@@ -47,11 +47,10 @@
     <div class="card menu">
       <a href="profile.html"><span>⚙️ 帳戶設定</span><span class="muted">›</span></a>
       <a href="faq.html"><span>❓ 常見問題</span><span class="muted">›</span></a>
-      <a href="login.html"><span>🚪 登出</span><span class="muted">›</span></a>
+      <a href="javascript:api.logout()"><span>🚪 登出</span><span class="muted">›</span></a>
     </div>
 
     <div class="spacer"></div>
-    <p class="muted center" style="font-size:12px">v2 預覽樣板 · 靜態示範數據</p>
   </div>
 
   <nav class="bottomnav">
@@ -60,5 +59,23 @@
     <a href="booking.html"><span class="ic">📅</span>預約</a>
     <a class="active" href="my.html"><span class="ic">🎫</span>我的</a>
   </nav>
+
+  <script src="assets/api.js"></script>
+  <script>
+    (async () => {
+      if (!api.requireLogin("my.html")) return;
+      const me = await api.get("/users/me");
+      const u = (me.data && (me.data.user || me.data)) || {};
+      const name = u.name || u.email || "用戶";
+      document.getElementById("nm").textContent = name;
+      document.getElementById("av").textContent = name.slice(0, 1).toUpperCase();
+      document.getElementById("mCredits").textContent = (u.credits != null ? u.credits : 0);
+      const pts = await api.get("/points");
+      const d = (pts.data && (pts.data.summary || pts.data)) || {};
+      document.getElementById("mPoints").textContent = (d.points != null ? d.points : 0).toLocaleString();
+      const tier = d.tier || "";
+      document.getElementById("tier").textContent = typeof tier === "string" ? tier : ((tier.emoji || "") + " " + (tier.name || ""));
+    })();
+  </script>
 </body>
 </html>
