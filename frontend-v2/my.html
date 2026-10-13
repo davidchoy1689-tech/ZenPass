@@ -47,6 +47,7 @@
     <div class="card menu">
       <a href="profile.html"><span>⚙️ 帳戶設定</span><span class="muted">›</span></a>
       <a href="faq.html"><span>❓ 常見問題</span><span class="muted">›</span></a>
+      <a href="admin.html" id="adminLink" style="display:none"><span>🛠️ 管理後台（核實付款）</span><span class="muted">›</span></a>
       <a href="javascript:api.logout()"><span>🚪 登出</span><span class="muted">›</span></a>
     </div>
 
@@ -75,6 +76,9 @@
       document.getElementById("mPoints").textContent = (d.points != null ? d.points : 0).toLocaleString();
       const tier = d.tier || "";
       document.getElementById("tier").textContent = typeof tier === "string" ? tier : ((tier.emoji || "") + " " + (tier.name || ""));
+      if (u.role === "admin" || u.role === "super_admin") {
+        const al = document.getElementById("adminLink"); if (al) al.style.display = "";
+      }
     })();
   </script>
 </body>

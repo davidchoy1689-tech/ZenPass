@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#ff6b35" />
+  <title>核實付款 · 管理 · ZenPass 禪流</title>
+  <link rel="stylesheet" href="assets/v2.css" />
+  <style>
+    .pm-row { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
+    .pm-actions { display: flex; gap: 8px; margin-top: 12px; }
+    .pm-actions .btn { min-height: 42px; padding: 0 14px; font-size: 14px; flex: 1; }
+    .kv { font-size: 13px; color: var(--text-muted); margin: 3px 0; }
+    .amt { font-size: 18px; font-weight: 800; color: var(--brand-600); }
+  </style>
+</head>
+<body>
+  <div class="topbar"><a class="back" href="my.html">‹</a><div class="title">核實付款</div></div>
+
+  <div class="wrap">
+    <div id="stats" class="muted" style="font-size:13px;margin:4px 0 10px"></div>
+    <div class="stack" id="list"><div class="card"><div class="body muted">載入中…</div></div></div>
+  </div>
+
+  <nav class="bottomnav">
+    <a href="index.html"><span class="ic">🏠</span>主頁</a>
+    <a href="explore.html"><span class="ic">🔍</span>探索</a>
+    <a href="booking.html"><span class="ic">📅</span>預約</a>
+    <a class="active" href="my.html"><span class="ic">🎫</span>我的</a>
+  </nav>
+
+  <script src="assets/api.js"></script>
+  <script>
+    function card(p) {
+      const pm = p.payment_method === "fps" ? "轉數快 FPS" : (p.payment_method === "payme" ? "PayMe" : (p.payment_method || "—"));
+      const ref = p.fps_reference || p.payme_reference || "—";
+      const when = p.start_time ? fmtDateTime(p.start_time, p.end_time) : "—";
+      return `<div class="card" data-id="${esc(p.booking_id)}"><div class="body">
+        <div class="pm-row">
+          <div><p style="font-weight:700;margin:0 0 2px">${esc(p.class_title || "課程")}</p>
+            <p class="kv">${esc(p.user_name || "")} · ${esc(p.user_email || "")}${p.user_phone ? " · " + esc(p.user_phone) : ""}</p></div>
+          <div style="text-align:right"><span class="amt">${hkd(p.amount)}</span><div class="kv">${esc(pm)}</div></div>
+        </div>
+        <p class="kv">🎟️ ${esc(when)}</p>
+        <p class="kv">參考編號：<b>${esc(ref)}</b> · 預約號 ${esc(p.booking_reference || "—")}</p>
+        <div class="pm-actions">
+          <button class="btn btn-primary" data-act="approve">✅ 確認收款</button>
+          <button class="btn btn-ghost" data-act="reject">✖ 拒絕</button>
+        </div>
+      </div></div>`;
+    }
+    function bind() {
+      document.querySelectorAll('[data-act]').forEach(b => b.onclick = async () => {
+        const id = b.closest('.card').dataset.id;
+        const act = b.dataset.act;
+        const btn = b; btn.disabled = true;
+        if (act === "approve") {
+          if (!confirm("確認已收到此筆付款？")) { btn.disabled = false; return; }
+          const r = await api.post("/admin/approve-payment", { booking_id: id });
+          if (r.ok && r.data && r.data.success !== false) await load();
+          else { btn.disabled = false; alert((r.data && r.data.error) || "確認失敗"); }
+        } else {
+          const reason = prompt("拒絕原因（可留空）") || "";
+          const r = await api.post("/admin/reject-payment", { booking_id: id, reason });
+          if (r.ok && r.data && r.data.success !== false) await load();
+          else { btn.disabled = false; alert((r.data && r.data.error) || "拒絕失敗"); }
+        }
+      });
+    }
+    async function load() {
+      const r = await api.get("/admin/pending-payments");
+      if (r.status === 401 || r.status === 403) {
+        document.getElementById("stats").textContent = "";
+        document.getElementById("list").innerHTML = `<div class="card"><div class="body center">🔒 需要管理員權限。<br><br><a class="btn btn-primary" href="login.html?next=admin.html">管理員登入</a></div></div>`;
+        return;
+      }
+      const arr = (r.data && r.data.pending_payments) || [];
+      document.getElementById("stats").textContent = "待核實付款：" + arr.length + " 筆";
+      document.getElementById("list").innerHTML = arr.length ? arr.map(card).join("")
+        : `<div class="card"><div class="body muted center">目前冇待核實付款 ✅</div></div>`;
+      bind();
+    }
+    if (api.requireLogin("admin.html")) load();
+  </script>
+</body>
+</html>
