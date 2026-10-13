@@ -78,6 +78,17 @@
       <button class="btn btn-ghost btn-block" id="back2">返回</button>
     </section>
 
+    <section id="pay" class="hide">
+      <div class="banner" id="payBanner">⏳ 名額已為你保留，請於 <b id="payCountdown">15:00</b> 內完成付款</div>
+      <div class="section-title">付款</div>
+      <div class="card" id="paySummary2"></div>
+      <div class="spacer"></div>
+      <div class="hscroll" id="payTabs"></div>
+      <div id="payPanels"></div>
+      <div class="spacer"></div>
+      <button class="btn btn-ghost btn-block" id="backFromPay">返回</button>
+    </section>
+
     <section id="done" class="hide center">
       <div style="font-size:56px;margin:24px 0 8px" id="doneIcon">✅</div>
       <h2 style="margin:0 0 6px" id="doneTitle">預約完成！</h2>
@@ -99,11 +110,12 @@
   <script src="assets/api.js"></script>
   <script>
     const $ = (x) => document.getElementById(x);
-    const show = (x) => ["step1","step2","step3","done"].forEach(s => $(s).classList.toggle("hide", s !== x));
+    const show = (x) => ["step1","step2","step3","pay","done"].forEach(s => $(s).classList.toggle("hide", s !== x));
     const setStep = (n) => [1,2,3].forEach(i => { $("s"+i).classList.toggle("active", i===n); $("s"+i).classList.toggle("done", i<n); });
     const params = new URLSearchParams(location.search);
     const classId = params.get("id");
     let cls = null, sessions = [], sel = new Set(), promoFinal = null, ban = "A";
+    let payIds = [], payUnit = 0, payMethod = "fps", cdTimer = null;
 
     const banOf = (s) => (s.notes||"").includes("A班") ? "A" : (s.notes||"").includes("B班") ? "B" : "全";
     const monthKey = (iso) => { const d = new Date(iso); return d.getFullYear() + "年" + (d.getMonth()+1) + "月"; };
@@ -218,11 +230,17 @@
       btn.disabled = false; btn.textContent = "立即確認預約";
       if (r.ok && r.data && r.data.success) {
         const d = r.data;
-        $("doneIcon").textContent = d.created ? "✅" : "⚠️";
-        $("doneTitle").textContent = d.created + " / " + d.total + " 堂預約成功";
-        const failed = (d.results || []).filter(x => x.status !== 201).length;
-        $("doneMsg").textContent = failed ? (failed + " 堂未能預約（可能已滿或重複）") : "全部預約成功 🎉";
-        show("done"); $("bar").style.display = "none";
+        const created = (d.results || []).filter(x => x.status === 201);
+        if (pm === "single" && created.length) {
+          // 信用卡/FPS/PayMe：booking 係 pending_payment，要完成付款
+          startPayStep(created.map(x => x.body.booking_id), unitForPay());
+        } else {
+          $("doneIcon").textContent = d.created ? "✅" : "⚠️";
+          $("doneTitle").textContent = d.created + " / " + d.total + " 堂預約成功";
+          const failed = (d.results || []).filter(x => x.status !== 201).length;
+          $("doneMsg").textContent = failed ? (failed + " 堂未能預約（可能已滿或重複）") : "全部預約成功 🎉";
+          show("done"); $("bar").style.display = "none";
+        }
       } else if (r.status === 401 || r.status === 403) {
         alert("登入已過期，請重新登入");
         location.href = "login.html?next=" + encodeURIComponent(location.pathname + location.search);
@@ -230,6 +248,83 @@
         alert((r.data && (r.data.error || r.data.message)) || "預約失敗");
       }
     };
+
+    function unitForPay(){ return promoFinal ? promoFinal.final_price : cls.price_hkd; }
+    function startPayStep(ids, unit){
+      payIds = ids; payUnit = unit; payMethod = "fps";
+      $("paySummary2").innerHTML = `<div class="row"><span class="k">堂數</span><span class="v">${ids.length} 堂</span></div>
+        <div class="row"><span class="k">應付</span><span class="v" style="color:var(--brand-600)">${hkd(unit*ids.length)}</span></div>`;
+      renderPayTabs();
+      show("pay"); setStep(3); $("bar").style.display = "none";
+      startCountdown();
+    }
+    function renderPayTabs(){
+      const opts=[["fps","轉數快 FPS"],["payme","PayMe"],["card","信用卡"]];
+      $("payTabs").innerHTML = opts.map(([k,l])=>`<span class="chip ${payMethod===k?'on':''}" data-pm="${k}">${l}</span>`).join("");
+      document.querySelectorAll("#payTabs .chip").forEach(c=>c.onclick=()=>{ payMethod=c.dataset.pm; renderPayTabs(); });
+      renderPayPanel();
+    }
+    function renderPayPanel(){
+      const input = `<input id="payRef" placeholder="輸入${payMethod==="fps"?" FPS ":" PayMe "}參考編號" style="width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:12px;padding:10px 12px;font:inherit;background:var(--surface);color:var(--text)" />`;
+      if(payMethod==="fps"){
+        $("payPanels").innerHTML = `<div class="card"><div class="body">
+          <p class="muted" style="font-size:13px;margin:0 0 8px">請用「轉數快 FPS」轉賬至：</p>
+          <p style="font-weight:800;font-size:20px;margin:0">9033 5538</p>
+          <p class="muted" style="font-size:12px;margin:4px 0 12px">收款：ZenPass（HSBC）</p>
+          ${input}<div style="height:10px"></div>
+          <button class="btn btn-primary btn-block" id="paySubmit">我已付款，提交核實</button>
+        </div></div>`;
+      } else if(payMethod==="payme"){
+        $("payPanels").innerHTML = `<div class="card"><div class="body">
+          <p class="muted" style="font-size:13px;margin:0 0 8px">請用「PayMe」付款至：</p>
+          <p style="font-weight:800;font-size:20px;margin:0">9492 5828</p>
+          <p class="muted" style="font-size:12px;margin:4px 0 12px">備註：ZenPass 課程</p>
+          ${input}<div style="height:10px"></div>
+          <button class="btn btn-primary btn-block" id="paySubmit">我已付款，提交核實</button>
+        </div></div>`;
+      } else {
+        $("payPanels").innerHTML = `<div class="card"><div class="body">
+          <p class="muted" style="font-size:13px;margin:0 0 12px">信用卡（Stripe 安全付款）</p>
+          <button class="btn btn-primary btn-block" id="payCard">前往信用卡付款</button>
+        </div></div>`;
+      }
+      const sub=$("paySubmit"); if(sub) sub.onclick=submitManualPay;
+      const cd=$("payCard"); if(cd) cd.onclick=payByCard;
+    }
+    async function submitManualPay(){
+      const ref=$("payRef").value.trim(); if(!ref){ alert("請輸入參考編號"); return; }
+      const btn=$("paySubmit"); btn.disabled=true; btn.textContent="提交中…";
+      let ok=0;
+      for(const id of payIds){
+        const body={ booking_id:id, amount:payUnit };
+        if(payMethod==="fps") body.fps_reference=ref; else body.payme_reference=ref;
+        const r = await api.post("/payments/"+payMethod, body);
+        if(r.ok) ok++;
+      }
+      if(ok){ payDone(payMethod==="fps"?"轉數快":"PayMe"); }
+      else { btn.disabled=false; btn.textContent="我已付款，提交核實"; alert("提交失敗，請重試"); }
+    }
+    async function payByCard(){
+      const r = await api.post("/payments/stripe/create-checkout", { amount: payUnit*payIds.length, booking_id: payIds[0], description: (cls?cls.title:"ZenPass 課程") });
+      if(r.ok && r.data && r.data.checkout_url){ location.href = r.data.checkout_url; }
+      else if(r.data && r.data.dev_mode){ alert("信用卡測試模式未開放，請改用轉數快或 PayMe 完成付款。"); }
+      else { alert((r.data&&r.data.error)||"信用卡暫不可用"); }
+    }
+    function payDone(label){
+      stopCountdown();
+      $("doneIcon").textContent="✅";
+      $("doneTitle").textContent = label+" 資料已提交";
+      $("doneMsg").textContent = "管理員核實後，預約會轉為「已確認」。你可喺「我的預約」睇最新狀態。";
+      show("done");
+    }
+    function startCountdown(){
+      stopCountdown();
+      let s=15*60; const el=$("payCountdown"); const p=n=>String(n).padStart(2,"0");
+      el.textContent="15:00";
+      cdTimer=setInterval(()=>{ s--; if(s<0){ stopCountdown(); el.textContent="00:00"; return; } el.textContent=p(Math.floor(s/60))+":"+p(s%60); },1000);
+    }
+    function stopCountdown(){ if(cdTimer){ clearInterval(cdTimer); cdTimer=null; } }
+    $("backFromPay").onclick = () => { stopCountdown(); show("step3"); setStep(3); };
   </script>
 </body>
 </html>
