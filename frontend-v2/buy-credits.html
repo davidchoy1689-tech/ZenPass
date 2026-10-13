@@ -1,24 +1,19 @@
 <!doctype html>
 <html lang="zh-HK"><head>
 <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-<meta name="theme-color" content="#ff6b35" /><title>增值 Credits · ZenPass v2</title>
-<link rel="stylesheet" href="assets/v2.css" /></head>
+<meta name="theme-color" content="#ff6b35" /><title>增值 Credits · ZenPass 禪流</title>
+<link rel="stylesheet" href="assets/v2.css" />
+<style>.pkg.hot{border-color:var(--brand-500);box-shadow:var(--sh-md)}.pkg .tag{position:absolute;top:-10px;right:16px;background:var(--brand-500);color:#fff;font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px}.pkg{position:relative}</style>
+</head>
 <body>
   <div class="topbar"><a class="back" href="my.html">‹</a><div class="title">增值 Credits</div></div>
   <div class="wrap">
-    <p class="muted">1 credit = HK$10。買套票更抵。</p>
-    <div class="stack">
-      <div class="card"><div class="body" style="display:flex;justify-content:space-between;align-items:center">
-        <div><b>輕量包</b><div class="muted" style="font-size:13px">10 credits</div></div><div><b>HK$100</b></div></div></div>
-      <div class="card"><div class="body" style="display:flex;justify-content:space-between;align-items:center">
-        <div><b>標準包</b><div class="muted" style="font-size:13px">25 credits</div></div><div><b>HK$250</b></div></div></div>
-      <div class="card" style="border-color:var(--brand-500)"><div class="body" style="display:flex;justify-content:space-between;align-items:center">
-        <div><b>超值包</b><div class="muted" style="font-size:13px">55 credits</div></div><div><b>HK$550</b></div></div></div>
-    </div>
+    <p class="muted">1 credit = HK$10。買套票有額外贈送，更抵。</p>
+    <div id="bal" class="muted" style="font-size:13px;margin:4px 0"></div>
+    <div class="stack" id="pkgs"><div class="card"><div class="body muted">載入中…</div></div></div>
     <div class="spacer"></div>
-    <a class="btn btn-primary btn-block" href="wallet.html">前往付款</a>
+    <div class="banner">💰 付款方式：信用卡 / 轉數快 FPS / PayMe（提交後待管理員核實）</div>
     <div class="spacer"></div>
-    <p class="muted center" style="font-size:12px">v2 預覽樣板 · 靜態示範數據</p>
   </div>
   <nav class="bottomnav">
     <a href="index.html"><span class="ic">🏠</span>主頁</a>
@@ -26,4 +21,40 @@
     <a href="booking.html"><span class="ic">📅</span>預約</a>
     <a class="active" href="my.html"><span class="ic">🎫</span>我的</a>
   </nav>
+  <script src="assets/api.js"></script>
+  <script>
+    let pkgs = [];
+    function card(p) {
+      return `<div class="card pkg ${p.popular ? "hot" : ""}">${p.popular ? '<span class="tag">最抵</span>' : ""}<div class="body">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div><b>${esc(p.label)}</b>
+            <div class="muted" style="font-size:13px">${p.credits} credits${p.bonus ? " + 送 " + p.bonus : ""}</div></div>
+          <div style="text-align:right"><b>${hkd(p.price)}</b>
+            <div class="muted" style="font-size:12px">≈ $${((p.price) / (p.credits + (p.bonus || 0))).toFixed(2)}/cr</div></div>
+        </div>
+        <button class="btn ${p.popular ? "btn-primary" : "btn-secondary"} btn-block" style="margin-top:12px" data-price="${p.price}">購買</button>
+      </div></div>`;
+    }
+    async function load() {
+      const r = await api.get("/memberships/credits/packages");
+      pkgs = (r.data && r.data.packages) || [];
+      document.getElementById("pkgs").innerHTML = pkgs.length ? pkgs.map(card).join("")
+        : '<div class="card"><div class="body muted">暫無套票。</div></div>';
+      document.querySelectorAll("#pkgs [data-price]").forEach(b => b.onclick = () => buy(Number(b.dataset.price)));
+      if (api.isLoggedIn()) {
+        const me = await api.get("/users/me");
+        const u = me.data && (me.data.user || me.data);
+        if (u && u.credits != null) document.getElementById("bal").textContent = "你現時有 " + u.credits + " credits。";
+      }
+    }
+    async function buy(price) {
+      if (!api.requireLogin("buy-credits.html")) return;
+      const p = pkgs.find(x => x.price === price);
+      if (!confirm(`購買${p ? "「" + p.label + "」" : ""}？\n${hkd(price)} → ${(p ? p.credits + (p.bonus || 0) : Math.floor(price / 10))} credits`)) return;
+      const r = await api.post("/memberships/credits", { amount: price });
+      if (r.ok && r.data) { alert(r.data.message || "購買成功"); await load(); }
+      else alert((r.data && r.data.error) || "購買失敗");
+    }
+    load();
+  </script>
 </body></html>

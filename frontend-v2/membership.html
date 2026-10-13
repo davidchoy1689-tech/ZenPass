@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#ff6b35" />
-  <title>會員計劃 · ZenPass v2</title>
+  <title>會員計劃 · ZenPass 禪流</title>
   <link rel="stylesheet" href="assets/v2.css" />
   <style>
     .plan { border:1px solid var(--border); }
@@ -12,6 +12,7 @@
     .plan .tag { position:absolute; top:-10px; right:16px; background:var(--brand-500); color:#fff; font-size:11px; font-weight:700; padding:3px 10px; border-radius:999px; }
     .plan { position:relative; }
     .per { color:var(--text-muted); font-size:13px; }
+    .feat { font-size:13px; color:var(--text-muted); margin:3px 0; }
   </style>
 </head>
 <body>
@@ -21,43 +22,12 @@
   </div>
 
   <div class="wrap">
-    <p class="muted">用 Credits 玩盡所有課程，月費越貴、每堂越平。</p>
-
-    <div class="stack">
-      <div class="card plan"><div class="body">
-        <div style="display:flex;justify-content:space-between"><b>輕量 Pass</b><b>HK$299/月</b></div>
-        <div class="per">37 credits · ≈$8.08/credit（19% off）</div>
-        <div class="muted" style="font-size:13px;margin-top:6px">離峰/一般每堂 ~$120 · 高峰 ~$150</div>
-        <button class="btn btn-secondary btn-block" style="margin-top:12px">選擇</button>
-      </div></div>
-
-      <div class="card plan hot"><span class="tag">最受歡迎</span><div class="body">
-        <div style="display:flex;justify-content:space-between"><b>標準 Pass</b><b>HK$799/月</b></div>
-        <div class="per">100 credits · ≈$7.99/credit（20% off）</div>
-        <div class="muted" style="font-size:13px;margin-top:6px">優先預約 · 離峰/一般每堂 ~$120</div>
-        <button class="btn btn-primary btn-block" style="margin-top:12px">選擇</button>
-      </div></div>
-
-      <div class="card plan"><div class="body">
-        <div style="display:flex;justify-content:space-between"><b>高階 Pass</b><b>HK$1,899/月</b></div>
-        <div class="per">237 credits · ≈$8.01/credit（20% off）</div>
-        <div class="muted" style="font-size:13px;margin-top:6px">早鳥 24h · 全部優先</div>
-        <button class="btn btn-secondary btn-block" style="margin-top:12px">選擇</button>
-      </div></div>
-
-      <div class="card plan"><div class="body">
-        <div style="display:flex;justify-content:space-between"><b>VIP Pass 👑</b><b>HK$2,899/月</b></div>
-        <div class="per">362 credits · ≈$8.01/credit（20% off）</div>
-        <div class="muted" style="font-size:13px;margin-top:6px">專屬客服 · guest pass · 全部權益</div>
-        <button class="btn btn-secondary btn-block" style="margin-top:12px">選擇</button>
-      </div></div>
-    </div>
-
+    <p class="muted">用 Credits 玩盡所有課程，月費越高、每堂越平。</p>
+    <div id="current"></div>
+    <div class="stack" id="plans"><div class="card"><div class="body muted">載入中…</div></div></div>
     <div class="spacer"></div>
     <div class="banner">ℹ️ 所有計劃：自由取消（適用於開課前一日）</div>
-
     <div class="spacer"></div>
-    <p class="muted center" style="font-size:12px">v2 預覽樣板 · 靜態示範數據</p>
   </div>
 
   <nav class="bottomnav">
@@ -66,5 +36,46 @@
     <a href="booking.html"><span class="ic">📅</span>預約</a>
     <a class="active" href="my.html"><span class="ic">🎫</span>我的</a>
   </nav>
+
+  <script src="assets/api.js"></script>
+  <script>
+    let planList = [];
+    function card(p) {
+      const per = p.credits_granted ? (p.price_hkd / p.credits_granted).toFixed(2) : "—";
+      const feats = (p.features || []).map(f => `<div class="feat">✓ ${esc(f)}</div>`).join("");
+      return `<div class="card plan ${p.popular ? "hot" : ""}">${p.popular ? '<span class="tag">最受歡迎</span>' : ""}<div class="body">
+        <div style="display:flex;justify-content:space-between"><b>${esc(p.name)}</b><b>${hkd(p.price_hkd)}/月</b></div>
+        <div class="per">${p.credits_granted} credits · ≈$${per}/credit</div>
+        ${p.description ? `<div class="muted" style="font-size:13px;margin-top:6px">${esc(p.description)}</div>` : ""}
+        ${feats}
+        <button class="btn ${p.popular ? "btn-primary" : "btn-secondary"} btn-block" style="margin-top:12px" data-plan="${esc(p.key)}">選擇</button>
+      </div></div>`;
+    }
+    async function load() {
+      const r = await api.get("/memberships/plans");
+      const plans = (r.data && r.data.plans) || {};
+      planList = Object.keys(plans).map(k => Object.assign({ key: k }, plans[k]));
+      document.getElementById("plans").innerHTML = planList.length ? planList.map(card).join("")
+        : '<div class="card"><div class="body muted">暫無計劃。</div></div>';
+      document.querySelectorAll("#plans [data-plan]").forEach(b => b.onclick = () => subscribe(b.dataset.plan));
+      if (api.isLoggedIn()) {
+        const my = await api.get("/memberships/my");
+        const cur = my.data && my.data.current;
+        if (cur && cur.type && cur.type !== "none") {
+          document.getElementById("current").innerHTML = `<div class="banner">👑 現時會籍：<b>${esc(cur.type)}</b>${cur.expires_at ? "（到期 " + String(cur.expires_at).slice(0, 10) + "）" : ""}</div><div class="spacer"></div>`;
+        }
+      }
+    }
+    async function subscribe(type) {
+      if (!api.requireLogin("membership.html")) return;
+      const p = planList.find(x => x.key === type);
+      if (!p) return;
+      if (!confirm(`訂閱「${p.name}」？\n月費 ${hkd(p.price_hkd)}，即時獲得 ${p.credits_granted} credits。`)) return;
+      const r = await api.post("/memberships/subscribe", { type });
+      if (r.ok && r.data) { alert(r.data.message || "訂閱成功"); await load(); }
+      else alert((r.data && r.data.error) || "訂閱失敗");
+    }
+    load();
+  </script>
 </body>
 </html>
