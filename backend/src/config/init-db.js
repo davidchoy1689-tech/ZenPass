@@ -35,7 +35,7 @@ function initDatabase() {
       auth_provider TEXT DEFAULT 'email' CHECK(auth_provider IN ('email','apple','google')),
       auth_provider_id TEXT,
       credits INTEGER DEFAULT 0,
-      membership_type TEXT DEFAULT 'none' CHECK(membership_type IN ('none','trial','standard','unlimited')),
+      membership_type TEXT DEFAULT 'none',
       membership_expires_at TEXT,
       is_coach INTEGER DEFAULT 0,
       coach_verified INTEGER DEFAULT 0,
@@ -45,6 +45,44 @@ function initDatabase() {
       agree_terms INTEGER DEFAULT 0
     );
   `);
+
+  // 遷移：users.membership_type CHECK 過時（只准 none/trial/standard/unlimited）→ 重建 users（放寬）
+  try {
+    const u = db
+      .prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='users'")
+      .get();
+    if (u && u.sql && u.sql.includes("membership_type IN ('none','trial','standard','unlimited')")) {
+      const objs = db
+        .prepare("SELECT type,name,sql FROM sqlite_master WHERE tbl_name='users' AND sql IS NOT NULL AND name<>'users'")
+        .all();
+      const colList = db
+        .prepare("PRAGMA table_info('users')")
+        .all()
+        .map((c) => '"' + c.name + '"')
+        .join(",");
+      const newSql = u.sql
+        .replace(/CHECK\s*\(\s*membership_type IN \('none','trial','standard','unlimited'\)\s*\)/, "")
+        .replace(/^CREATE TABLE users/, "CREATE TABLE users__new");
+      const nOld = db.prepare("SELECT COUNT(*) c FROM users").get().c;
+      db.exec("PRAGMA foreign_keys=OFF");
+      db.exec(newSql);
+      db.exec(`INSERT INTO users__new (${colList}) SELECT ${colList} FROM users`);
+      db.exec("DROP TABLE users");
+      db.exec("ALTER TABLE users__new RENAME TO users");
+      for (const o of objs) {
+        try {
+          db.exec(o.sql);
+        } catch (e) {
+          /* index/trigger 可能已存在 */
+        }
+      }
+      db.exec("PRAGMA foreign_keys=ON");
+      const nNew = db.prepare("SELECT COUNT(*) c FROM users").get().c;
+      console.log(`✅ 遷移：重建 users（放寬 membership_type CHECK）；rows ${nOld} → ${nNew}`);
+    }
+  } catch (e) {
+    console.error("users 遷移失敗:", e.message);
+  }
 
   // ===== 教練申請表 =====
   db.exec(`
