@@ -206,7 +206,7 @@ function initDatabase() {
     CREATE TABLE IF NOT EXISTS memberships (
       id TEXT PRIMARY KEY,
       user_id TEXT NOT NULL,
-      type TEXT NOT NULL CHECK(type IN ('trial','standard','unlimited')),
+      type TEXT NOT NULL,
       price_hkd REAL NOT NULL,
       credits_granted INTEGER DEFAULT 0,
       start_date TEXT NOT NULL,
@@ -217,6 +217,53 @@ function initDatabase() {
       FOREIGN KEY (user_id) REFERENCES users(id)
     );
   `);
+
+  // 遷移：memberships.type CHECK 過時（只准 trial/standard/unlimited）→ 重建表（放寬）
+  try {
+    const t = db
+      .prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='memberships'")
+      .get();
+    if (t && t.sql && t.sql.includes("trial','standard','unlimited")) {
+      db.exec("PRAGMA foreign_keys=OFF");
+      db.exec("ALTER TABLE memberships RENAME TO memberships__old");
+      db.exec(`
+        CREATE TABLE memberships (
+          id TEXT PRIMARY KEY,
+          user_id TEXT NOT NULL,
+          type TEXT NOT NULL,
+          price_hkd REAL NOT NULL,
+          credits_granted INTEGER DEFAULT 0,
+          start_date TEXT NOT NULL,
+          end_date TEXT NOT NULL,
+          status TEXT DEFAULT 'active' CHECK(status IN ('active','expired','cancelled')),
+          stripe_subscription_id TEXT,
+          created_at TEXT DEFAULT (datetime('now')),
+          plan_id TEXT,
+          paused_until TEXT,
+          pause_count INTEGER DEFAULT 0,
+          max_pause_days INTEGER DEFAULT 30,
+          pause_reason TEXT,
+          updated_at TEXT,
+          price_hkd_cents INTEGER,
+          FOREIGN KEY (user_id) REFERENCES users(id)
+        )
+      `);
+      db.exec(`
+        INSERT INTO memberships (id,user_id,type,price_hkd,credits_granted,start_date,end_date,status,stripe_subscription_id,created_at,plan_id,paused_until,pause_count,max_pause_days,pause_reason,updated_at,price_hkd_cents)
+        SELECT id,user_id,type,price_hkd,credits_granted,start_date,end_date,status,stripe_subscription_id,created_at,plan_id,paused_until,pause_count,max_pause_days,pause_reason,updated_at,price_hkd_cents FROM memberships__old
+      `);
+      db.exec("DROP TABLE memberships__old");
+      db.exec("CREATE INDEX IF NOT EXISTS idx_memberships_user ON memberships(user_id)");
+      db.exec(`CREATE TRIGGER IF NOT EXISTS trg_memberships_price_hkd_cents_ai AFTER INSERT ON memberships FOR EACH ROW WHEN NEW.price_hkd IS NOT NULL
+        BEGIN UPDATE memberships SET price_hkd_cents = CAST(ROUND(NEW.price_hkd*100) AS INTEGER) WHERE id = NEW.id AND (price_hkd_cents IS NULL OR price_hkd_cents != CAST(ROUND(NEW.price_hkd*100) AS INTEGER)); END`);
+      db.exec(`CREATE TRIGGER IF NOT EXISTS trg_memberships_price_hkd_cents_au AFTER UPDATE OF price_hkd ON memberships FOR EACH ROW WHEN NEW.price_hkd IS NOT NULL
+        BEGIN UPDATE memberships SET price_hkd_cents = CAST(ROUND(NEW.price_hkd*100) AS INTEGER) WHERE id = NEW.id AND (price_hkd_cents IS NULL OR price_hkd_cents != CAST(ROUND(NEW.price_hkd*100) AS INTEGER)); END`);
+      db.exec("PRAGMA foreign_keys=ON");
+      console.log("✅ 遷移：重建 memberships（放寬 type CHECK）");
+    }
+  } catch (e) {
+    console.error("memberships 遷移失敗:", e.message);
+  }
 
   // ===== 課金交易紀錄 =====
   db.exec(`
