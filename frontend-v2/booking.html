@@ -231,9 +231,10 @@
       if (r.ok && r.data && r.data.success) {
         const d = r.data;
         const created = (d.results || []).filter(x => x.status === 201);
-        if (pm === "single" && created.length) {
-          // 信用卡/FPS/PayMe：booking 係 pending_payment，要完成付款
-          startPayStep(created.map(x => x.body.booking_id), unitForPay());
+        const resumable = (d.results || []).filter(x => x.status === 200 && x.body && x.body.requires_payment);
+        if (pm === "single" && (created.length || resumable.length)) {
+          // 信用卡/FPS/PayMe：booking 係 pending_payment，要完成付款（含未完成付款嘅舊 booking）
+          startPayStep(created.concat(resumable).map(x => x.body.booking_id), unitForPay());
         } else {
           $("doneIcon").textContent = d.created ? "✅" : "⚠️";
           $("doneTitle").textContent = d.created + " / " + d.total + " 堂預約成功";
