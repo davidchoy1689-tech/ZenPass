@@ -1,21 +1,37 @@
 <!doctype html>
 <html lang="zh-HK"><head>
 <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-<meta name="theme-color" content="#ff6b35" /><title>推薦朋友 · ZenPass v2</title>
-<link rel="stylesheet" href="assets/v2.css" /></head>
+<meta name="theme-color" content="#ff6b35" /><title>推薦朋友 · ZenPass 禪流</title>
+<link rel="stylesheet" href="assets/v2.css" />
+<style>input.field{border:1px solid var(--border);border-radius:12px;padding:12px 14px;width:100%;box-sizing:border-box;font:inherit;background:var(--surface);color:var(--text);text-align:center;letter-spacing:2px;font-weight:700}</style>
+</head>
 <body>
   <div class="topbar"><a class="back" href="my.html">‹</a><div class="title">推薦朋友</div></div>
-  <div class="wrap center">
-    <p class="muted">你同朋友各得 3 credits 🎉</p>
-    <div class="card" style="margin:16px 0"><div class="body">
+  <div class="wrap">
+    <p class="muted center">推薦朋友一齊玩！朋友用你嘅碼，<b>佢得 10 credits、你得 20 credits</b> 🎉</p>
+    <div class="card" style="margin:12px 0"><div class="body center">
       <div class="muted" style="font-size:13px">你嘅推薦碼</div>
-      <div style="font-size:26px;font-weight:800;letter-spacing:2px;color:var(--brand-600)">DAVID3C</div>
+      <div id="code" style="font-size:28px;font-weight:800;letter-spacing:3px;color:var(--brand-600);margin:6px 0">…</div>
+      <button class="btn btn-secondary" id="copy">複製</button>
     </div></div>
-    <button class="btn btn-primary btn-block">分享畀朋友</button>
+    <div class="actions" style="display:flex;gap:8px">
+      <a class="btn btn-primary" id="wa" target="_blank" rel="noopener" style="flex:1">WhatsApp 分享</a>
+      <a class="btn btn-secondary" id="tg" target="_blank" rel="noopener" style="flex:1">Telegram 分享</a>
+    </div>
     <div class="spacer"></div>
-    <div class="card"><div class="body">已成功推薦 <b>4</b> 位 · 獲得 <b>12</b> credits</div></div>
+    <div class="card"><div class="body" style="display:flex;justify-content:space-between">
+      <span class="muted">已成功推薦</span><b id="redeemed">—</b></div>
+      <div class="body" style="display:flex;justify-content:space-between;border-top:1px solid var(--border)">
+      <span class="muted">累積獎勵</span><b id="earned" style="color:var(--brand-600)">—</b></div>
+    </div>
     <div class="spacer"></div>
-    <p class="muted center" style="font-size:12px">v2 預覽樣板 · 靜態示範數據</p>
+    <div class="section-title">輸入朋友嘅推薦碼</div>
+    <div class="card"><div class="body" style="display:flex;flex-direction:column;gap:10px">
+      <input class="field" id="refcode" placeholder="例：ZPABCD1234" />
+      <button class="btn btn-secondary btn-block" id="redeem">使用推薦碼</button>
+      <div id="msg" class="muted center" style="font-size:13px"></div>
+    </div></div>
+    <div class="spacer"></div>
   </div>
   <nav class="bottomnav">
     <a href="index.html"><span class="ic">🏠</span>主頁</a>
@@ -23,4 +39,35 @@
     <a href="booking.html"><span class="ic">📅</span>預約</a>
     <a class="active" href="my.html"><span class="ic">🎫</span>我的</a>
   </nav>
+  <script src="assets/api.js"></script>
+  <script>
+    const shareText = (code) => `我一齊玩緊 ZenPass 禪流！用我嘅推薦碼 ${code}，大家都有 Credits 送 🎉 https://zenpass.hk/v2/register.html`;
+    let myCode = "";
+    async function load() {
+      const r = await api.get("/referral/my-code");
+      const d = r.data || {};
+      myCode = d.code || "";
+      document.getElementById("code").textContent = myCode || "（未能取得）";
+      document.getElementById("redeemed").textContent = (d.redeemed != null ? d.redeemed : 0) + " 位";
+      document.getElementById("earned").textContent = (d.credits_earned != null ? d.credits_earned : 0) + " credits";
+      const t = encodeURIComponent(shareText(myCode));
+      document.getElementById("wa").href = "https://wa.me/?text=" + t;
+      document.getElementById("tg").href = "https://t.me/share/url?url=" + encodeURIComponent("https://zenpass.hk/v2/register.html") + "&text=" + t;
+    }
+    document.getElementById("copy").onclick = async () => {
+      try { await navigator.clipboard.writeText(myCode); alert("已複製推薦碼：" + myCode); }
+      catch (e) { prompt("請手動複製推薦碼：", myCode); }
+    };
+    document.getElementById("redeem").onclick = async () => {
+      const code = document.getElementById("refcode").value.trim();
+      const msg = document.getElementById("msg");
+      if (!code) { msg.textContent = "請輸入推薦碼"; return; }
+      const btn = document.getElementById("redeem"); btn.disabled = true; btn.textContent = "處理中…";
+      const r = await api.post("/referral/redeem", { code });
+      btn.disabled = false; btn.textContent = "使用推薦碼";
+      msg.textContent = (r.ok && r.data) ? ("✅ " + (r.data.message || "推薦碼已使用")) : ("❌ " + ((r.data && r.data.error) || "使用失敗"));
+      if (r.ok) { document.getElementById("refcode").value = ""; await load(); }
+    };
+    if (api.requireLogin("referral.html")) load();
+  </script>
 </body></html>
