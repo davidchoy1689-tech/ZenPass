@@ -81,8 +81,9 @@
       document.getElementById("scheds").innerHTML = scheds.length ? scheds.slice(0, 10).map(s => {
         const left = (s.max_participants || 0) - (s.enrolled_count || 0);
         const full = left <= 0;
-        return `<a class="card" href="booking.html?id=${encodeURIComponent(id)}&sid=${encodeURIComponent(s.id)}"><div class="body" style="display:flex;justify-content:space-between;align-items:center">
-          <span>${fmtTime(s.start_time)}</span>
+        const ban = (s.notes || "").trim();
+        return `<a class="card" href="booking.html?id=${encodeURIComponent(id)}&sid=${encodeURIComponent(s.id)}"><div class="body" style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+          <span>${ban ? `<span class="chip on" style="margin-right:6px">${esc(ban)}</span>` : ""}${fmtDateTime(s.start_time, s.end_time)}</span>
           <span class="badge ${full ? "off" : "ok"}">${full ? "已滿" : "剩 " + left + " 位"}</span></div></a>`;
       }).join("") : `<div class="card"><div class="body muted">暫無可預約時段。</div></div>`;
 

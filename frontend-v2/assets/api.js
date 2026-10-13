@@ -82,4 +82,18 @@
     const p = (n) => String(n).padStart(2, "0");
     return `週${wd} ${d.getMonth() + 1}/${d.getDate()} ${p(d.getHours())}:${p(d.getMinutes())}`;
   };
+  // 完整日期（年月日）+ 時間，例：2026年10月20日（週二）19:00–20:00
+  window.fmtDateTime = (s, e) => {
+    if (!s) return "";
+    const d = new Date(String(s).replace(" ", "T"));
+    if (isNaN(d)) return s;
+    const wd = ["日","一","二","三","四","五","六"][d.getDay()];
+    const p = (n) => String(n).padStart(2, "0");
+    let out = `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日（週${wd}） ${p(d.getHours())}:${p(d.getMinutes())}`;
+    if (e) {
+      const d2 = new Date(String(e).replace(" ", "T"));
+      if (!isNaN(d2)) out += `–${p(d2.getHours())}:${p(d2.getMinutes())}`;
+    }
+    return out;
+  };
 })();
