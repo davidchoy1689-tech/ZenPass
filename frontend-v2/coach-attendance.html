@@ -63,7 +63,7 @@
       if (!sid) { $("roster").innerHTML = `<div class="body muted">請選擇時段。</div>`; $("schedTitle").style.display="none"; return; }
       $("roster").innerHTML = `<div class="body muted">載入名單…</div>`;
       const r = await api.get("/coach/class-students?schedule_id=" + encodeURIComponent(sid));
-      const st = (r.data && r.data.students) || [];
+      const st = ((r.data && r.data.students) || []).filter(s => ["confirmed", "attended", "no_show"].includes(s.booking_status));
       const sched = (r.data && r.data.schedule) || {};
       $("schedTitle").style.display = "";
       $("schedTitle").textContent = "學生名單（" + st.length + "）";
