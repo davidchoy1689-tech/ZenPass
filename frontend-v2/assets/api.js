@@ -24,25 +24,38 @@
   }
 
   async function req(method, path, body) {
-    const headers = {};
-    const t = getToken();
-    if (t) headers["Authorization"] = "Bearer " + t;
-    if (method !== "GET") {
-      headers["Content-Type"] = "application/json";
-      headers["Idempotency-Key"] = uuid();
-      headers["x-csrf-token"] = await csrf();
+    const idem = method !== "GET" ? uuid() : null;
+    const csrfToken = method !== "GET" ? await csrf() : null;
+    async function attempt(useToken) {
+      const headers = {};
+      if (useToken) {
+        const t = getToken();
+        if (t) headers["Authorization"] = "Bearer " + t;
+      }
+      if (method !== "GET") {
+        headers["Content-Type"] = "application/json";
+        headers["Idempotency-Key"] = idem;
+        headers["x-csrf-token"] = csrfToken;
+      }
+      try {
+        const res = await fetch(API_BASE + path, {
+          method, headers, credentials: "include",
+          body: body != null ? JSON.stringify(body) : undefined,
+        });
+        const data = await res.json().catch(() => null);
+        return { res, data };
+      } catch (e) {
+        return { res: { ok: false, status: 0 }, data: { error: "網絡錯誤，請重試" } };
+      }
     }
-    let res, data = null;
-    try {
-      res = await fetch(API_BASE + path, {
-        method, headers, credentials: "include",
-        body: body != null ? JSON.stringify(body) : undefined,
-      });
-      data = await res.json().catch(() => null);
-    } catch (e) {
-      return { ok: false, status: 0, data: { error: "網絡錯誤，請重試" } };
+    let out = await attempt(true);
+    // 舊／失效 localStorage token：清走，改用 HTTP-only cookie 重試一次（同一 Idempotency-Key）
+    const authErr = out.data && (out.data.error === "認證無效或已過期" || out.data.error === "需要登入認證");
+    if (authErr && getToken()) {
+      try { localStorage.removeItem("zenpass_token"); localStorage.removeItem("zenpass_user"); } catch (e) {}
+      out = await attempt(false);
     }
-    return { ok: res.ok, status: res.status, data };
+    return { ok: out.res.ok, status: out.res.status, data: out.data };
   }
 
   const api = {

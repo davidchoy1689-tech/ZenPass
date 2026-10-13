@@ -223,7 +223,8 @@
         const failed = (d.results || []).filter(x => x.status !== 201).length;
         $("doneMsg").textContent = failed ? (failed + " 堂未能預約（可能已滿或重複）") : "全部預約成功 🎉";
         show("done"); $("bar").style.display = "none";
-      } else if (r.status === 401) {
+      } else if (r.status === 401 || r.status === 403) {
+        alert("登入已過期，請重新登入");
         location.href = "login.html?next=" + encodeURIComponent(location.pathname + location.search);
       } else {
         alert((r.data && (r.data.error || r.data.message)) || "預約失敗");
