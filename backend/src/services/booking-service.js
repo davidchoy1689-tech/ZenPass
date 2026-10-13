@@ -987,15 +987,21 @@ function _processNormalCancel(db, booking, reason, req) {
     autoNotifyOnCancel(booking.schedule_id);
   } catch (e) {}
 
-  // Refund credits
+  // Refund credits（按實際扣除嘅 credits 退，優惠價如 $95 → 9.5cr）
   if (booking.payment_type === "credits") {
     const classData = db
       .prepare("SELECT credits_cost FROM classes WHERE id = ?")
       .get(booking.class_id);
-    if (classData) {
+    const refundCredits =
+      booking.amount > 0
+        ? Math.round((booking.amount / 10) * 10) / 10
+        : classData
+          ? classData.credits_cost
+          : 0;
+    if (refundCredits > 0) {
       db.prepare(
         "UPDATE users SET credits = credits + ? WHERE id = ?",
-      ).run(classData.credits_cost, req.user.id);
+      ).run(refundCredits, req.user.id);
     }
   }
 

@@ -129,6 +129,7 @@ function initDatabase() {
       payme_reference TEXT,
       status TEXT DEFAULT 'pending_payment' CHECK(status IN ('pending_payment','confirmed','attended','cancelled','no_show')),
       reminder_sent_1h INTEGER DEFAULT 0,
+      cancel_reason TEXT,
       created_at TEXT DEFAULT (datetime('now')),
       FOREIGN KEY (user_id) REFERENCES users(id),
       FOREIGN KEY (schedule_id) REFERENCES class_schedules(id),
@@ -153,6 +154,14 @@ function initDatabase() {
     const cols = db.prepare("PRAGMA table_info('bookings')").all();
     if (!cols.find((c) => c.name === "team_booking_id")) {
       db.exec("ALTER TABLE bookings ADD COLUMN team_booking_id TEXT DEFAULT NULL");
+    }
+  } catch (e) {/* unused /*/}
+
+  // 附加欄位：cancel_reason（相容升級）
+  try {
+    const cols = db.prepare("PRAGMA table_info('bookings')").all();
+    if (!cols.find((c) => c.name === "cancel_reason")) {
+      db.exec("ALTER TABLE bookings ADD COLUMN cancel_reason TEXT DEFAULT NULL");
     }
   } catch (e) {/* unused /*/}
 
