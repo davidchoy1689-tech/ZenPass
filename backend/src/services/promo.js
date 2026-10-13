@@ -43,8 +43,15 @@ function validatePromo(db, { code, basePrice, classId, userId }) {
   const now = new Date();
   if (promo.valid_from && new Date(promo.valid_from) > now) return { ok: false, error: "優惠碼未生效" };
   if (promo.valid_to && new Date(promo.valid_to) < now) return { ok: false, error: "優惠碼已過期" };
-  if (promo.class_id && classId && promo.class_id !== classId)
-    return { ok: false, error: "此優惠碼唔適用於此課程" };
+  if (promo.class_id && classId) {
+    // class_id 可為單一 id，或逗號分隔多個 id（例如 A班,B班）
+    const allowed = String(promo.class_id)
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (allowed.length && !allowed.includes(classId))
+      return { ok: false, error: "此優惠碼唔適用於此課程" };
+  }
   if (promo.max_uses != null && promo.used_count >= promo.max_uses)
     return { ok: false, error: "優惠碼已用完" };
   if (promo.per_user_limit && userId) {
