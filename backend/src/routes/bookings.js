@@ -11,6 +11,7 @@ const { scalpGuard } = require("../middleware/anti-scalping");
 const { validate, schemas } = require("../middleware/validate");
 const { requireIdempotency } = require("../middleware/idempotency");
 const bookingService = require("../services/booking-service");
+const { validatePromo } = require("../services/promo");
 const Booking = require("../models/Booking");
 
 const router = express.Router();
@@ -62,16 +63,39 @@ router.post(
       if (items.length > 40) {
         return res.status(400).json({ success: false, error: "一次最多 40 個時段" });
       }
+      // 優惠碼：一次過驗證，適用於全個 batch（每堂折後價），只兌換一次。
+      // 之前逐個 item 帶 promo_code → per_user_limit=1 會令第 2 堂起 fail。
+      let batchPromo = null;
+      const promoCode = items.map((it) => it.promoCode).find((c) => c && String(c).trim());
+      const firstSingle = items.find((it) => (it.paymentType || "single") === "single");
+      if (promoCode && firstSingle) {
+        const db = getDb();
+        const clsRow = db
+          .prepare("SELECT price_hkd FROM classes WHERE id = ?")
+          .get(firstSingle.classId);
+        const v = validatePromo(db, {
+          code: promoCode,
+          basePrice: clsRow ? clsRow.price_hkd : 0,
+          classId: firstSingle.classId,
+          userId: req.user.id,
+        });
+        if (!v.ok) return res.status(400).json({ success: false, error: v.error });
+        batchPromo = { final_price: v.final_price };
+      }
+
       const results = [];
+      let promoRedeemed = false;
       for (const it of items) {
+        const isSingle = (it.paymentType || "single") === "single";
+        const usePromo = batchPromo && isSingle && !promoRedeemed;
         const fakeReq = {
           body: {
             schedule_id: it.scheduleId,
             class_id: it.classId,
             payment_type: it.paymentType || "single",
             penalty_consent: it.penaltyConsent,
-            promo_code: it.promoCode,
-            amount: it.amount,
+            promo_code: usePromo ? promoCode : undefined,
+            amount: batchPromo && isSingle ? batchPromo.final_price : it.amount,
           },
           user: req.user,
         };
@@ -81,6 +105,7 @@ router.post(
         } catch (e) {
           r = { status: 500, body: { success: false, error: "預約失敗" } };
         }
+        if (usePromo && r.status === 201) promoRedeemed = true;
         results.push({ scheduleId: it.scheduleId, status: r.status, body: r.body });
       }
       const created = results.filter((x) => x.status === 201).length;
