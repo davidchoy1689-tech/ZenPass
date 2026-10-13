@@ -202,6 +202,7 @@
         promoFinal = { code: code.toUpperCase(), final_price: r.data.final_price };
         msg.innerHTML = `✅ 已套用 · 每堂折後 <b>${hkd(r.data.final_price)}</b>（總額會用折後價）`;
       } else { promoFinal = null; msg.textContent = "❌ " + ((r.data && r.data.error) || "優惠碼無效"); }
+      if (typeof updateBar === "function") updateBar();
     };
 
     $("payNow").onclick = async () => {
