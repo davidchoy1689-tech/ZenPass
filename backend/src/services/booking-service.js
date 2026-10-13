@@ -185,20 +185,21 @@ function findExistingBookingForUser(db, userId, scheduleId) {
 
 // ==================== Payment Processing ====================
 
-function deductCredits(db, userId, classId) {
+function deductCredits(db, userId, classId, overrideCost) {
   const classData = db
     .prepare("SELECT credits_cost FROM classes WHERE id = ?")
     .get(classId);
   if (!classData) return { ok: false, error: "課程不存在" };
+  const cost = overrideCost != null ? Number(overrideCost) : classData.credits_cost;
   const user = db.prepare("SELECT credits FROM users WHERE id = ?").get(userId);
-  if (user.credits < classData.credits_cost) {
+  if (user.credits < cost) {
     return { ok: false, error: "點數不足，請先購買點數" };
   }
   db.prepare("UPDATE users SET credits = credits - ? WHERE id = ?").run(
-    classData.credits_cost,
+    cost,
     userId,
   );
-  return { ok: true, creditsCost: classData.credits_cost };
+  return { ok: true, creditsCost: cost };
 }
 
 function processCorporatePayment(db, userId, classId) {
@@ -448,6 +449,8 @@ function createBooking(req) {
   const { schedule_id, class_id, payment_type, penalty_consent } = req.body;
   let amount = req.body.amount;
   const promo_code = req.body.promo_code || req.body.promoCode;
+  // 可選：由 caller（例如 batch）指定要扣嘅 credits（支援小數，例 $95 → 9.5cr）
+  let creditsOverride = req.body.credits_cost != null ? Number(req.body.credits_cost) : undefined;
 
   if (!schedule_id || !class_id || !payment_type) {
     return { status: 400, body: { success: false, error: "缺少預約資料" } };
@@ -486,7 +489,7 @@ function createBooking(req) {
 
   // 3.5 優惠碼（只適用於單次付款；用伺服器端課程價計算，唔信 client amount）
   let promoApply = null;
-  if (promo_code && payment_type === "single") {
+  if (promo_code && (payment_type === "single" || payment_type === "credits")) {
     const clsRow = db.prepare("SELECT price_hkd FROM classes WHERE id = ?").get(class_id);
     const v = validatePromo(db, {
       code: promo_code,
@@ -497,6 +500,8 @@ function createBooking(req) {
     if (!v.ok) return { status: 400, body: { success: false, error: v.error } };
     amount = v.final_price;
     promoApply = v.promo;
+    // 用 credits 付款：扣折後 credits（$95 → 9.5cr），保留 1 位小數
+    if (payment_type === "credits") creditsOverride = Math.round((v.final_price / 10) * 10) / 10;
   }
 
   // 4-9. 原子化：釋放過期 hold → 佔位 → 重複檢查 → 扣款 → 寫 booking row
@@ -546,7 +551,7 @@ function createBooking(req) {
 
     // 7. Payment processing
     if (payment_type === "credits") {
-      const result = deductCredits(db, req.user.id, class_id);
+      const result = deductCredits(db, req.user.id, class_id, creditsOverride);
       if (!result.ok) {
         throw new BookingFlowError({
           status: 400,

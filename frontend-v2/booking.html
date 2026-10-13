@@ -49,7 +49,7 @@
       </div>
       <div class="spacer"></div>
       <div class="card"><div class="body">
-        <div class="muted" style="font-size:13px;margin-bottom:6px">優惠碼（可選，信用卡/FPS 用）</div>
+        <div class="muted" style="font-size:13px;margin-bottom:6px">優惠碼（可選）</div>
         <div style="display:flex;gap:8px">
           <input id="promo" placeholder="輸入優惠碼" style="flex:1;border:1px solid var(--border);border-radius:12px;padding:10px 12px;font:inherit;background:var(--surface);color:var(--text)" />
           <button class="btn btn-secondary" id="applyPromo">套用</button>
@@ -183,8 +183,10 @@
       if (!$("consent").checked) { alert("請先同意缺席政策"); return; }
       const pm = document.querySelector("input[name=pm]:checked").value;
       const n = sel.size;
-      let acc = pm === "credits" ? (cr(cls.price_hkd)*n) + " credits"
-        : (promoFinal ? hkd(promoFinal.final_price*n) + " <small class='muted'>（已用優惠碼）</small>" : hkd(cls.price_hkd*n));
+      const unitPrice = promoFinal ? promoFinal.final_price : cls.price_hkd;
+      const promoTag = promoFinal ? " <small class='muted'>（已用優惠碼）</small>" : "";
+      let acc = pm === "credits" ? (cr(unitPrice*n) + " credits" + promoTag)
+        : (hkd(unitPrice*n) + promoTag);
       $("paySummary").innerHTML = `<div class="row"><span class="k">堂數</span><span class="v">${n} 堂</span></div>
         <div class="row"><span class="k">應付</span><span class="v" style="color:var(--brand-600)">${acc}</span></div>`;
       $("holdBanner").style.display = pm === "credits" ? "none" : "flex";
@@ -209,7 +211,7 @@
       const pm = document.querySelector("input[name=pm]:checked").value;
       const items = sessions.filter(s => sel.has(s.id)).map(s => ({
         scheduleId: s.id, classId, paymentType: pm, penaltyConsent: true,
-        promoCode: pm === "single" && promoFinal ? promoFinal.code : undefined,
+        promoCode: promoFinal ? promoFinal.code : undefined,
       }));
       const btn = $("payNow"); btn.disabled = true; btn.textContent = "處理中…";
       const r = await api.post("/bookings/batch", { items });

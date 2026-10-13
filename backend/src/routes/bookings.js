@@ -67,16 +67,16 @@ router.post(
       // 之前逐個 item 帶 promo_code → per_user_limit=1 會令第 2 堂起 fail。
       let batchPromo = null;
       const promoCode = items.map((it) => it.promoCode).find((c) => c && String(c).trim());
-      const firstSingle = items.find((it) => (it.paymentType || "single") === "single");
-      if (promoCode && firstSingle) {
+      const firstBillable = items.find((it) => ["single", "credits"].includes(it.paymentType || "single"));
+      if (promoCode && firstBillable) {
         const db = getDb();
         const clsRow = db
           .prepare("SELECT price_hkd FROM classes WHERE id = ?")
-          .get(firstSingle.classId);
+          .get(firstBillable.classId);
         const v = validatePromo(db, {
           code: promoCode,
           basePrice: clsRow ? clsRow.price_hkd : 0,
-          classId: firstSingle.classId,
+          classId: firstBillable.classId,
           userId: req.user.id,
         });
         if (!v.ok) return res.status(400).json({ success: false, error: v.error });
@@ -85,9 +85,12 @@ router.post(
 
       const results = [];
       let promoRedeemed = false;
+      const promoCr = batchPromo ? Math.round((batchPromo.final_price / 10) * 10) / 10 : null;
       for (const it of items) {
         const isSingle = (it.paymentType || "single") === "single";
-        const usePromo = batchPromo && isSingle && !promoRedeemed;
+        const isCredits = it.paymentType === "credits";
+        const discounted = batchPromo && (isSingle || isCredits);
+        const usePromo = !!discounted && !promoRedeemed;
         const fakeReq = {
           body: {
             schedule_id: it.scheduleId,
@@ -95,7 +98,8 @@ router.post(
             payment_type: it.paymentType || "single",
             penalty_consent: it.penaltyConsent,
             promo_code: usePromo ? promoCode : undefined,
-            amount: batchPromo && isSingle ? batchPromo.final_price : it.amount,
+            amount: discounted ? batchPromo.final_price : it.amount,
+            credits_cost: discounted && isCredits ? promoCr : undefined,
           },
           user: req.user,
         };
