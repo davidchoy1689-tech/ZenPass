@@ -1,25 +1,33 @@
 <!doctype html>
 <html lang="zh-HK"><head>
 <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-<meta name="theme-color" content="#ff6b35" /><title>帳戶設定 · ZenPass v2</title>
-<link rel="stylesheet" href="assets/v2.css" /></head>
+<meta name="theme-color" content="#ff6b35" /><title>帳戶設定 · ZenPass 禪流</title>
+<link rel="stylesheet" href="assets/v2.css" />
+<style>input.field{border:1px solid var(--border);border-radius:12px;padding:12px 14px;width:100%;box-sizing:border-box;font:inherit;background:var(--surface);color:var(--text)}.lbl{font-size:13px;color:var(--text-muted);margin:0 0 6px}</style>
+</head>
 <body>
   <div class="topbar"><a class="back" href="my.html">‹</a><div class="title">帳戶設定</div></div>
   <div class="wrap">
-    <div class="card">
-      <div class="row"><span class="k">姓名</span><span class="v">David Choy</span></div>
-      <div class="row"><span class="k">電郵</span><span class="v">david@…</span></div>
-      <div class="row"><span class="k">電話</span><span class="v">+852 **** 1234</span></div>
-      <div class="row"><span class="k">密碼</span><span class="muted">更改 ›</span></div>
-    </div>
-    <div class="section-title">偏好</div>
-    <div class="card">
-      <div class="row"><span class="k">推送通知</span><span class="badge ok">開</span></div>
-      <div class="row"><span class="k">語言</span><span class="v">繁體中文</span></div>
-      <div class="row"><span class="k">深色模式</span><span class="muted">跟系統 ›</span></div>
-    </div>
+    <div class="section-title">個人資料</div>
+    <div class="card"><div class="body" style="display:flex;flex-direction:column;gap:12px">
+      <div><div class="lbl">姓名</div><input class="field" id="name" placeholder="姓名" /></div>
+      <div><div class="lbl">電話</div><input class="field" id="phone" type="tel" placeholder="電話（選填）" /></div>
+      <div><div class="lbl">電郵</div><input class="field" id="email" disabled /></div>
+      <button class="btn btn-primary btn-block" id="save">儲存</button>
+      <div id="msg" class="muted center" style="font-size:13px"></div>
+    </div></div>
+
+    <div class="section-title">更改密碼</div>
+    <div class="card"><div class="body" style="display:flex;flex-direction:column;gap:12px">
+      <div><div class="lbl">新密碼（至少 6 位）</div><input class="field" id="npw" type="password" autocomplete="new-password" /></div>
+      <div><div class="lbl">確認新密碼</div><input class="field" id="npw2" type="password" autocomplete="new-password" /></div>
+      <button class="btn btn-secondary btn-block" id="chpw">更新密碼</button>
+      <div id="pwmsg" class="muted center" style="font-size:13px"></div>
+    </div></div>
+
     <div class="spacer"></div>
-    <p class="muted center" style="font-size:12px">v2 預覽樣板 · 靜態示範數據</p>
+    <div class="card menu"><a href="javascript:api.logout()"><span>🚪 登出</span><span class="muted">›</span></a></div>
+    <div class="spacer"></div>
   </div>
   <nav class="bottomnav">
     <a href="index.html"><span class="ic">🏠</span>主頁</a>
@@ -27,4 +35,39 @@
     <a href="booking.html"><span class="ic">📅</span>預約</a>
     <a class="active" href="my.html"><span class="ic">🎫</span>我的</a>
   </nav>
+  <script src="assets/api.js"></script>
+  <script>
+    async function load() {
+      const r = await api.get("/users/me");
+      const u = (r.data && (r.data.user || r.data)) || {};
+      document.getElementById("name").value = u.name || "";
+      document.getElementById("phone").value = u.phone || "";
+      document.getElementById("email").value = u.email || "";
+    }
+    document.getElementById("save").onclick = async () => {
+      const name = document.getElementById("name").value.trim();
+      const phone = document.getElementById("phone").value.trim();
+      const msg = document.getElementById("msg");
+      if (!name) { msg.textContent = "請輸入姓名"; return; }
+      const btn = document.getElementById("save"); btn.disabled = true; btn.textContent = "儲存中…";
+      const r = await api.put("/users/profile", { name, phone });
+      btn.disabled = false; btn.textContent = "儲存";
+      msg.textContent = (r.ok && r.data) ? "✅ 資料已更新" : "❌ " + ((r.data && r.data.error) || "更新失敗");
+      if (r.ok) {
+        const u = api.getUser() || {}; u.name = name; u.phone = phone; api.setUser(u);
+      }
+    };
+    document.getElementById("chpw").onclick = async () => {
+      const p1 = document.getElementById("npw").value, p2 = document.getElementById("npw2").value;
+      const msg = document.getElementById("pwmsg");
+      if (p1.length < 6) { msg.textContent = "密碼至少需要 6 個字元"; return; }
+      if (p1 !== p2) { msg.textContent = "兩次輸入的密碼唔一致"; return; }
+      const btn = document.getElementById("chpw"); btn.disabled = true; btn.textContent = "更新中…";
+      const r = await api.post("/auth/change-password", { new_password: p1 });
+      btn.disabled = false; btn.textContent = "更新密碼";
+      msg.textContent = (r.ok && r.data) ? "✅ 密碼已更新" : "❌ " + ((r.data && r.data.error) || "更新失敗");
+      if (r.ok) { document.getElementById("npw").value = ""; document.getElementById("npw2").value = ""; }
+    };
+    if (api.requireLogin("profile.html")) load();
+  </script>
 </body></html>
