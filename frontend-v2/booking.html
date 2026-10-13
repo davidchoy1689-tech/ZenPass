@@ -95,6 +95,7 @@
     <button class="btn btn-primary" style="flex:1" id="barNext">下一步</button>
   </div>
 
+  <script src="assets/holidays.js"></script>
   <script src="assets/api.js"></script>
   <script>
     const $ = (x) => document.getElementById(x);
@@ -113,7 +114,7 @@
       if (!classId) { $("groups").innerHTML = `<div class="card"><div class="body">缺少課程。</div></div>`; return; }
       const r = await api.get("/classes/" + encodeURIComponent(classId));
       cls = r.data && r.data.class;
-      sessions = ((r.data && r.data.schedules) || []).filter(s => s.status !== "cancelled" && (s.max_participants - s.enrolled_count) > 0);
+      sessions = ((r.data && r.data.schedules) || []).filter(s => s.status !== "cancelled" && (s.max_participants - s.enrolled_count) > 0 && !(window.zpIsHoliday && zpIsHoliday(s.start_time)));
       if (!cls) { $("groups").innerHTML = `<div class="card"><div class="body">搵唔到課程。</div></div>`; return; }
       $("title").textContent = cls.title;
       $("topPrice").innerHTML = cr(cls.price_hkd) + "cr";

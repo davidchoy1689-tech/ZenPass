@@ -153,18 +153,18 @@ async function run() {
     assert.ok(!res.body.success || res.body.error);
   });
 
-  // ====== 4. Admin 睇 pending 申請 ======
-  await test("GET /api/admin/partner-applications — pending 列表", async () => {
+  // ====== 4. Admin 睇商戶名單（apply 已改為自動啟用，見 99ff80b6） ======
+  await test("GET /api/admin/partner-applications — active 列表（自動啟用）", async () => {
     const res = await api.get(
-      API + "/partner/admin/partner-applications",
+      API + "/partner/admin/partner-applications?status=active",
       adminToken,
     );
     assert.strictEqual(res.status, 200);
     assert.ok(Array.isArray(res.body.data) || Array.isArray(res.body));
     const data = Array.isArray(res.body.data) ? res.body.data : res.body;
     const found = data.find((v) => v.id === venueId);
-    assert.ok(found, "應該喺 pending list 見到新申請");
-    assert.strictEqual(found.status, "pending");
+    assert.ok(found, "自動啟用後應該喺 active 名單見到新申請");
+    assert.strictEqual(found.status, "active");
   });
 
   // ====== 5. Admin 審批通過 ======
