@@ -16,7 +16,8 @@ var CATEGORY_IMAGES = {
   "心肺": "https://images.pexels.com/photos/1552242/pexels-photo-1552242.jpeg?auto=compress&cs=tinysrgb&w=600&h=400&fit=crop",
   "攀岩": "https://images.pexels.com/photos/373912/pexels-photo-373912.jpeg?auto=compress&cs=tinysrgb&w=600&h=400&fit=crop",
   "芭蕾": "https://images.pexels.com/photos/4662321/pexels-photo-4662321.jpeg?auto=compress&cs=tinysrgb&w=600&h=400&fit=crop",
-  "露營": "https://images.pexels.com/photos/917510/pexels-photo-917510.jpeg?auto=compress&cs=tinysrgb&w=600&h=400&fit=crop"
+  "露營": "https://images.pexels.com/photos/917510/pexels-photo-917510.jpeg?auto=compress&cs=tinysrgb&w=600&h=400&fit=crop",
+  "兒童健體": "https://images.pexels.com/photos/8613089/pexels-photo-8613089.jpeg?auto=compress&cs=tinysrgb&w=600&h=400&fit=crop"
 };
 
 function getCategoryImage(cat) {
