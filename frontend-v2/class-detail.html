@@ -15,6 +15,8 @@
     .tabs a.on { color: var(--brand-600); border-color: var(--brand-500); }
     .cta { position: fixed; left: 0; right: 0; bottom: 0; max-width: var(--max-w); margin: 0 auto;
            background: var(--surface); border-top: 1px solid var(--border); padding: 12px 16px; display: flex; gap: 12px; align-items: center; }
+    .month-label { font-size: 13px; font-weight: 800; color: var(--text-muted); margin: 16px 0 6px; letter-spacing: .3px; }
+    .month-label:first-child { margin-top: 4px; }
   </style>
 </head>
 <body>
@@ -79,13 +81,33 @@
 
       const scheds = (r.data.schedules || []).filter(s => s.status !== "cancelled" && !(window.zpIsHoliday && zpIsHoliday(s.start_time)));
       firstSid = scheds[0] ? scheds[0].id : "";
-      document.getElementById("scheds").innerHTML = scheds.length ? scheds.slice(0, 10).map(s => {
-        const left = (s.max_participants || 0) - (s.enrolled_count || 0);
-        const full = left <= 0;
-        return `<a class="card" href="booking.html?id=${encodeURIComponent(id)}&sid=${encodeURIComponent(s.id)}"><div class="body" style="display:flex;justify-content:space-between;align-items:center;gap:8px">
-          <span>${fmtDateTime(s.start_time, s.end_time)}</span>
-          <span class="badge ${full ? "off" : "ok"}">${full ? "已滿" : "剩 " + left + " 位"}</span></div></a>`;
-      }).join("") : `<div class="card"><div class="body muted">暫無可預約時段。</div></div>`;
+      const _d = (t) => new Date(String(t).replace(" ", "T"));
+      const _p = (n) => String(n).padStart(2, "0");
+      const _wd = ["日","一","二","三","四","五","六"];
+      const monthLabel = (t) => { const d = _d(t); return isNaN(d) ? "" : (d.getFullYear() + "年" + (d.getMonth() + 1) + "月"); };
+      const dayLine = (s) => {
+        const d = _d(s.start_time); if (isNaN(d)) return s.start_time;
+        let out = `${d.getDate()}日（週${_wd[d.getDay()]}） ${_p(d.getHours())}:${_p(d.getMinutes())}`;
+        const e = _d(s.end_time); if (!isNaN(e)) out += `–${_p(e.getHours())}:${_p(e.getMinutes())}`;
+        return out;
+      };
+      const schedsEl = document.getElementById("scheds");
+      if (!scheds.length) {
+        schedsEl.innerHTML = `<div class="card"><div class="body muted">暫無可預約時段。</div></div>`;
+      } else {
+        const groups = {};
+        scheds.forEach(s => { const k = monthLabel(s.start_time); (groups[k] = groups[k] || []).push(s); });
+        schedsEl.innerHTML = Object.keys(groups).map(m =>
+          `<div class="month-label">${esc(m)}</div>` +
+          groups[m].map(s => {
+            const left = (s.max_participants || 0) - (s.enrolled_count || 0);
+            const full = left <= 0;
+            return `<a class="card" href="booking.html?id=${encodeURIComponent(id)}&sid=${encodeURIComponent(s.id)}"><div class="body" style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+              <span>${dayLine(s)}</span>
+              <span class="badge ${full ? "off" : "ok"}">${full ? "已滿" : "剩 " + left + " 位"}</span></div></a>`;
+          }).join("")
+        ).join("");
+      }
 
       const revs = r.data.reviews || [];
       document.getElementById("revs").innerHTML = revs.length ? revs.map(v =>
