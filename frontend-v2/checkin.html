@@ -4,37 +4,28 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#ff6b35" />
-  <title>課堂簽到 · ZenPass v2</title>
+  <title>課堂簽到 · ZenPass 禪流</title>
   <link rel="stylesheet" href="assets/v2.css" />
   <style>
-    .ring { width: 200px; height: 200px; border-radius: 50%; margin: 24px auto 8px;
+    .ring { width: 200px; height: 200px; border-radius: 50%; margin: 20px auto 8px;
             display: grid; place-items: center; background: var(--brand-500); color:#fff;
-            font-weight: 800; font-size: 22px; box-shadow: var(--sh-lg); text-align:center; }
-    .ring.locked { background: var(--ink-300); color: var(--ink-700); }
+            font-weight: 800; font-size: 22px; box-shadow: var(--sh-lg); text-align:center; cursor:pointer; }
+    .ring.locked { background: var(--ink-300); color: var(--ink-700); cursor: not-allowed; }
   </style>
 </head>
 <body>
-  <div class="topbar">
-    <a class="back" href="my.html">‹</a>
-    <div class="title">課堂簽到</div>
-  </div>
+  <div class="topbar"><a class="back" href="my.html">‹</a><div class="title">課堂簽到</div></div>
 
   <div class="wrap center">
-    <p class="muted">芬蘭木柱體驗班 · 週六 12/13 10:00</p>
-    <p class="muted" style="font-size:13px">📍 旺角體育館</p>
-
-    <div class="ring" id="ring">撳一下<br />簽到</div>
-
-    <div class="banner" style="justify-content:center" id="geo">✅ 已喺場地範圍內（100 米內）· 可簽到</div>
-
+    <div id="info"><div class="card"><div class="body muted center">載入中…</div></div></div>
+    <div class="ring locked" id="ring" style="display:none">撳一下<br />簽到</div>
+    <div class="banner" id="geo" style="justify-content:center;display:none"></div>
     <div class="spacer"></div>
     <div class="card"><div class="body muted" style="font-size:13px;text-align:left">
-      簽到時間：上堂前 15 分鐘 至 落堂後 60 分鐘。
-      未到範圍時簽到掣會鎖上，行到場地附近即解鎖。
+      簽到時間：上堂前 15 分鐘 至 落堂後 60 分鐘。<br />
+      需喺場地 100 米範圍內先可簽到。
     </div></div>
-
     <div class="spacer"></div>
-    <p class="muted center" style="font-size:12px">v2 預覽樣板 · 示範互動</p>
   </div>
 
   <nav class="bottomnav">
@@ -44,13 +35,70 @@
     <a class="active" href="my.html"><span class="ic">🎫</span>我的</a>
   </nav>
 
+  <script src="assets/api.js"></script>
   <script>
-    const ring = document.getElementById("ring");
-    ring.onclick = () => {
-      ring.style.background = "#047857";
-      ring.innerHTML = "✅ 已簽到";
-      document.getElementById("geo").textContent = "🎉 簽到成功 · 已記錄";
+    let booking = null, canCheckin = false, geoOk = false, nearVenue = false, venue = null;
+    const $ = (id) => document.getElementById(id);
+    function dist(lat1, lon1, lat2, lon2) {
+      const R = 6371000, r = Math.PI / 180;
+      const dLat = (lat2 - lat1) * r, dLon = (lon2 - lon1) * r;
+      const a = Math.sin(dLat/2)**2 + Math.cos(lat1*r)*Math.cos(lat2*r)*Math.sin(dLon/2)**2;
+      return 2 * R * Math.asin(Math.sqrt(a));
+    }
+    function paint() {
+      const ring = $("ring");
+      if (!booking) return;
+      ring.style.display = "grid";
+      const locked = !(canCheckin && (geoOk ? nearVenue : true));
+      ring.className = "ring" + (locked ? " locked" : "");
+      ring.innerHTML = locked ? "未能簽到" : "撳一下<br />簽到";
+      const g = $("geo"); g.style.display = "flex";
+      if (!canCheckin) {
+        g.textContent = "⏳ 未到簽到時間（上堂前 15 分鐘 至 落堂後 60 分鐘）";
+      } else if (!geoOk) {
+        g.textContent = "📍 未能定位（示範可簽到）· " + (venue && venue.name ? venue.name : "");
+      } else if (nearVenue) {
+        g.textContent = "✅ 已喺場地範圍內（100 米內）· 可簽到";
+      } else {
+        g.textContent = "🚫 未喺場地 100 米範圍內，行近啲先簽到";
+      }
+    }
+    async function load() {
+      const r = await api.get("/bookings/my?limit=50");
+      const bks = (r.data && r.data.bookings) || [];
+      const cand = bks.filter(b => b.status === "confirmed").sort((a,b)=>String(a.start_time).localeCompare(String(b.start_time)));
+      booking = cand[0];
+      if (!booking) {
+        $("info").innerHTML = `<div class="card"><div class="body muted center">而家冇可簽到嘅預約。</div></div>`;
+        return;
+      }
+      $("info").innerHTML = `<div class="card"><div class="body center">
+        <b>${esc(booking.title || "課程")}</b>
+        <div class="muted" style="font-size:13px">${fmtDateTime(booking.start_time, booking.end_time)}</div>
+        ${booking.venue_name ? `<div class="muted" style="font-size:13px">📍 ${esc(booking.venue_name)}</div>` : ""}
+      </div></div>`;
+      const st = await api.get("/bookings/" + encodeURIComponent(booking.id) + "/checkin-status");
+      const d = st.data || {};
+      canCheckin = !!d.can_checkin;
+      venue = { name: d.venue_name, lat: d.venue_lat, lng: d.venue_lng };
+      if (d.checked_in) { $("ring").style.display = "grid"; $("ring").className = "ring"; $("ring").innerHTML = "✅ 已簽到"; $("geo").style.display="flex"; $("geo").textContent = "🎉 已完成簽到"; return; }
+      paint();
+      if (navigator.geolocation && venue.lat && venue.lng) {
+        navigator.geolocation.getCurrentPosition(
+          (p) => { geoOk = true; nearVenue = dist(p.coords.latitude, p.coords.longitude, venue.lat, venue.lng) <= 100; paint(); },
+          () => { geoOk = false; paint(); },
+          { enableHighAccuracy: true, timeout: 8000 }
+        );
+      }
+    }
+    $("ring").onclick = async () => {
+      if (!booking || $("ring").classList.contains("locked")) return;
+      $("ring").innerHTML = "簽到中…";
+      const r = await api.post("/bookings/" + encodeURIComponent(booking.id) + "/attend", { checkin_method: "self" });
+      if (r.ok && r.data) { $("ring").className = "ring"; $("ring").innerHTML = "✅ 已簽到"; $("geo").textContent = "🎉 簽到成功 · 已記錄"; }
+      else { alert((r.data && r.data.error) || "簽到失敗"); paint(); }
     };
+    if (api.requireLogin("checkin.html")) load();
   </script>
 </body>
 </html>
