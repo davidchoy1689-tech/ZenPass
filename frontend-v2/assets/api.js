@@ -72,7 +72,7 @@
   // helpers
   window.api = api;
   window.esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-  window.cr = (hkd) => (hkd == null ? "" : Math.round(Number(hkd) / 10)); // price_hkd → credits
+  window.cr = (hkd) => (hkd == null ? "" : String(Math.round((Number(hkd) / 10) * 10) / 10)); // price_hkd → credits（$95→9.5cr，保留 1 位小數）
   window.hkd = (n) => (n == null ? "" : "HK$" + Number(n).toLocaleString());
   window.fmtTime = (s) => {
     if (!s) return "";
