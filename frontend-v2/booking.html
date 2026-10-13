@@ -127,8 +127,14 @@
     })();
 
     function renderChips() {
+      const hasA = sessions.some(s => banOf(s) === "A");
+      const hasB = sessions.some(s => banOf(s) === "B");
+      const el = $("banchips");
+      // 班別已拆成獨立課程時，冇需要再分 — 隱藏班別 chips
+      if (!hasA && !hasB) { el.innerHTML = ""; el.style.display = "none"; return; }
+      el.style.display = "";
       const opts = [["A","A班（星期二）"],["B","B班（星期四）"],["all","全部"]].filter(([k]) => k==="all" || sessions.some(s=>banOf(s)===k));
-      $("banchips").innerHTML = opts.map(([k,l]) => `<span class="chip ${ban===k?"on":""}" data-ban="${k}">${l}</span>`).join("");
+      el.innerHTML = opts.map(([k,l]) => `<span class="chip ${ban===k?"on":""}" data-ban="${k}">${l}</span>`).join("");
       document.querySelectorAll("#banchips .chip").forEach(c => c.onclick = () => { sel.clear(); ban = c.dataset.ban; renderChips(); defaultSelectFirstMonth(); render(); });
     }
     function defaultSelectFirstMonth() {
@@ -147,7 +153,7 @@
         <div class="monthbar"><b>${esc(m)} · ${byM[m].length} 堂</b><button data-month="${esc(m)}">全選 / 取消</button></div>
         <div class="card">${byM[m].map(s => `
           <label class="sess"><input type="checkbox" data-sid="${esc(s.id)}" ${sel.has(s.id)?"checked":""} />
-            <span class="t">${fmtTime(s.start_time)}<small>${esc(s.notes||"")} · 剩 ${(s.max_participants-s.enrolled_count)} 位</small></span>
+            <span class="t">${fmtTime(s.start_time)}<small>${s.notes ? esc(s.notes) + " · " : ""}剩 ${(s.max_participants-s.enrolled_count)} 位</small></span>
           </label>`).join("")}</div>`).join("")
         : `<div class="card"><div class="body muted">暫無可預約時段。</div></div>`;
 
