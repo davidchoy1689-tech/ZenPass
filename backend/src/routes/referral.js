@@ -81,7 +81,7 @@ router.post("/redeem", authenticateToken, (req, res) => {
       "UPDATE users SET credits = COALESCE(credits,0) + 10, referral_credits_earned = COALESCE(referral_credits_earned,0) + 10 WHERE id = ?",
     ).run(req.user.id);
     db.prepare(
-      "UPDATE users SET credits = COALESCE(credits,0) + 20, referral_credits_earned = COALESCE(referral_credits_earned,0) + 20 WHERE id = ?",
+      "UPDATE users SET credits = COALESCE(credits,0) + 10, referral_credits_earned = COALESCE(referral_credits_earned,0) + 10 WHERE id = ?",
     ).run(ref.user_id);
     try {
       writeBlock({
@@ -91,7 +91,7 @@ router.post("/redeem", authenticateToken, (req, res) => {
           referrer_id: ref.user_id,
           referred_user_id: req.user.id,
           code,
-          credits_granted_referrer: 20,
+          credits_granted_referrer: 10,
           credits_granted_referred: 10,
         }),
       });
