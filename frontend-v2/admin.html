@@ -40,7 +40,7 @@
     const TABS = [
       ["dash","概覽"], ["pay","付款核實"], ["inq","查詢"], ["classes","課程"],
       ["bookings","預約"], ["users","用戶"], ["coach","教練申請"], ["payouts","出糧"],
-      ["reports","報表"], ["corp","企業"], ["jobs","Job"], ["pricing","定價"], ["penalty","罰則"], ["analytics","分析"], ["audit","審計"],
+      ["reports","報表"], ["corp","企業"], ["jobs","Job"], ["pricing","定價"], ["penalty","罰則"], ["analytics","分析"], ["nps","評價"], ["audit","審計"],
     ];
     let cur = "dash";
 
@@ -60,7 +60,7 @@
         if (cur === "inq") return inquiries();
         if (cur === "classes") return listGeneric("/admin/classes?limit=100", "classes", clsRow, "課程");
         if (cur === "bookings") return listGeneric("/admin/bookings?limit=100", "bookings", bkRow, "預約");
-        if (cur === "users") return listGeneric("/admin/users?limit=200", "users", userRow, "用戶");
+        if (cur === "users") return usersTab();
         if (cur === "coach") return coachApps();
         if (cur === "payouts") return payouts();
         if (cur === "reports") return reports();
@@ -69,6 +69,7 @@
         if (cur === "pricing") return pricing();
         if (cur === "penalty") return penalty();
         if (cur === "analytics") return analytics();
+        if (cur === "nps") return npsTab();
         if (cur === "audit") return listGeneric("/admin/audit-log?limit=100", "entries", auditRow, "審計記錄");
       } catch (e) { panel().innerHTML = `<div class="card"><div class="body muted">載入失敗：${esc2(e.message)}</div></div>`; }
     }
@@ -140,6 +141,42 @@
     const auditRow = (e) => row(`${esc2(e.description||e.action_type)}<div class="kv">${esc2(e.entity_type||"")} ${esc2(String(e.created_at||"").slice(0,16))}</div>`, `<span class="pill">${esc2(e.action_type||"")}</span>`);
     const corpRow = (c) => row(`${esc2(c.name)}<div class="kv">${esc2(c.contact_email||"")} · 可用 ${c.credit_pool||0} / 已用 ${c.credit_used||0}</div>`, `<span class="pill ${c.status==='active'?'ok':'off'}">${esc2(st(c.status))}</span>`);
     const jobRow = (j) => row(`${esc2(j.title)}<div class="kv">${esc2(j.job_date||"")}${j.venue?" · "+esc2(j.venue):""}${j.pay_hkd?" · HK$"+j.pay_hkd:""}</div>`, `${j.accepted_count||0}/${j.slots||1} <span class="pill ${j.status==='open'?'ok':'off'}">${esc2(st(j.status))}</span>`);
+
+    function openModal(html) { const o = document.createElement("div"); o.className = "modal-overlay"; o.innerHTML = `<div class="modal">${html}</div>`; document.body.appendChild(o); o.onclick = (ev) => { if (ev.target === o) o.remove(); }; return o; }
+    window.closeModal = (el) => { const o = el.closest(".modal-overlay"); if (o) o.remove(); };
+
+    async function usersTab() {
+      const r = await api.get("/admin/users?limit=200");
+      if (r.status === 401 || r.status === 403) return needAdmin();
+      const arr = (r.data && r.data.users) || [];
+      if (!arr.length) { panel().innerHTML = `<div class="card"><div class="body muted center">暫無用戶。</div></div>`; return; }
+      panel().innerHTML = `<div class="card">${arr.map(u => `<div class="row" data-u="${esc2(u.id)}" style="cursor:pointer"><span>${esc2(u.name || u.email)}<div class="kv">${esc2(u.email)}${u.is_coach ? " · 🧑‍🏫" : ""}</div></span><span style="text-align:right">${u.credits||0} cr <span class="pill">${esc2(u.membership_type||"none")}</span> ›</span></div>`).join("")}</div>`;
+      panel().querySelectorAll("[data-u]").forEach(el => el.onclick = () => openUser(el.dataset.u));
+    }
+    async function openUser(id) {
+      const r = await api.get("/admin/user-detail/" + encodeURIComponent(id));
+      if (!r.ok) { alert((r.data&&r.data.error)||"載入失敗"); return; }
+      const u = r.data.user || {}; const bk = r.data.bookings || []; const mem = r.data.membership; const tx = r.data.transactions || [];
+      openModal(`<h3>👤 ${esc2(u.name || u.email)}</h3>
+        <p class="kv">${esc2(u.email)} · ${esc2(u.phone||"")}${u.role?" · "+esc2(u.role):""}${u.is_coach?" · 🧑‍🏫":""}</p>
+        <p class="kv">Credits：${u.credits||0} · 會籍：${esc2(u.membership_type||(mem&&mem.type)||"none")}</p>
+        <p class="kv">預約：${bk.length} 筆 · 交易：${tx.length} 筆</p>
+        ${bk.length?`<div style="max-height:180px;overflow:auto">${bk.slice(0,10).map(b=>`<div class="kv">${esc2(b.booking_reference||b.id)} · ${esc2(st(b.status))} · ${b.amount?money(b.amount):""}</div>`).join("")}</div>`:""}
+        <div class="actions"><button class="btn btn-secondary" onclick="closeModal(this)">關閉</button></div>`);
+    }
+
+    async function npsTab() {
+      const r = await api.get("/nps/stats");
+      if (r.status === 401 || r.status === 403) return needAdmin();
+      const d = r.data || {}; const s = d.stats || {}; const dist = d.distribution || {}; const recent = d.recent || [];
+      let html = `<div class="card"><div class="body"><b>NPS 概覽</b>`;
+      html += Object.keys(s).length ? Object.entries(s).map(([k,v])=>row(esc2(k), esc2(typeof v==="object"?JSON.stringify(v):v))).join("") : '<div class="kv">暫無資料</div>';
+      html += `</div></div>`;
+      const dk = Object.keys(dist);
+      if (dk.length) html += `<div class="card" style="margin-top:10px"><div class="body"><b>評分分佈</b>${dk.map(k=>row(esc2(k)+" 分", esc2(dist[k]))).join("")}</div></div>`;
+      html += `<div class="card" style="margin-top:10px">${recent.length?recent.slice(0,15).map(v=>row(`${esc2(v.class_title||v.booking_id||"")}<div class="kv">${esc2(v.comment||"")} ${esc2(String(v.created_at||"").slice(0,10))}</div>`, `⭐ ${esc2(v.rating||0)}`)).join(""):'<div class="body muted center">暫無評價。</div>'}</div>`;
+      panel().innerHTML = html;
+    }
 
     async function pricing() {
       const r = await api.get("/pricing/admin/pricing");
