@@ -717,7 +717,10 @@ function showMyBookings() {
 // ===== Load Recommendations =====
 async function loadRecommendations() {
   try {
-    var result = await apiRequest("GET", "/recommendations?limit=10");
+    var res = await fetch("/api/recommendations?limit=10", { credentials: "include" });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    var result = await res.json();
+    if (result && result.data && !result.classes) result = result.data;
     var items = result.classes || [];
     if (items.length === 0) {
       return;
