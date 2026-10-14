@@ -61,10 +61,58 @@
       if (api.isLoggedIn()) {
         const my = await api.get("/memberships/my");
         const cur = my.data && my.data.current;
+        const hist = (my.data && my.data.history) || [];
         if (cur && cur.type && cur.type !== "none") {
-          document.getElementById("current").innerHTML = `<div class="banner">👑 現時會籍：<b>${esc(cur.type)}</b>${cur.expires_at ? "（到期 " + String(cur.expires_at).slice(0, 10) + "）" : ""}</div><div class="spacer"></div>`;
+          let html = `<div class="banner">👑 現時會籍：<b>${esc(cur.type)}</b>${cur.expires_at ? "（到期 " + String(cur.expires_at).slice(0, 10) + "）" : ""}</div>`;
+          const act = hist.find(m => m.status === "active");
+          if (act) {
+            const paused = act.paused_until && new Date(act.paused_until) > new Date();
+            if (paused) {
+              html += `<div class="banner" style="background:#fff7ed;margin-top:8px">⏸️ 已暫停至 ${esc(String(act.paused_until).slice(0, 10))}（第 ${esc(act.pause_count || 1)} 次）</div>`;
+              html += `<div class="spacer"></div><button class="btn btn-secondary btn-block" id="resumeBtn" data-id="${esc(act.id)}">▶️ 恢復會籍</button>`;
+            } else {
+              html += `<div class="spacer"></div><button class="btn btn-secondary btn-block" id="pauseBtn" data-id="${esc(act.id)}">⏸️ 暫停會籍</button>`;
+            }
+          }
+          document.getElementById("current").innerHTML = html + `<div class="spacer"></div>`;
+          const pb = document.getElementById("pauseBtn");
+          if (pb) pb.onclick = () => openPause(pb.dataset.id);
+          const rb = document.getElementById("resumeBtn");
+          if (rb) rb.onclick = () => resumeMember(rb.dataset.id);
         }
       }
+    }
+
+    window.closeModal = (el) => { const o = el.closest(".modal-overlay"); if (o) o.remove(); };
+    function openPause(id) {
+      const o = document.createElement("div");
+      o.className = "modal-overlay";
+      o.innerHTML = `<div class="modal">
+        <h3>⏸️ 暫停會籍</h3>
+        <p class="muted" style="font-size:13px;margin-top:0">暫停期間會籍到期日會順延（最多 3 次，每次最多 30 日）。</p>
+        <div class="stack" id="pdays">
+          <button class="btn btn-secondary" data-d="7">暫停 7 日</button>
+          <button class="btn btn-secondary" data-d="14">暫停 14 日</button>
+          <button class="btn btn-secondary" data-d="30">暫停 30 日</button>
+        </div>
+        <div class="actions"><button class="btn btn-secondary" onclick="closeModal(this)">取消</button></div>
+      </div>`;
+      document.body.appendChild(o);
+      o.onclick = (e) => { if (e.target === o) o.remove(); };
+      o.querySelectorAll("#pdays button").forEach(b => b.onclick = async () => {
+        const days = Number(b.dataset.d);
+        b.disabled = true;
+        const r = await api.put("/memberships/" + encodeURIComponent(id) + "/pause", { pause_days: days });
+        if (r.ok) { alert((r.data && r.data.message) || "已暫停"); o.remove(); await load(); }
+        else { b.disabled = false; alert((r.data && r.data.error) || "暫停失敗"); }
+      });
+    }
+
+    async function resumeMember(id) {
+      if (!confirm("確定恢復會籍？")) return;
+      const r = await api.put("/memberships/" + encodeURIComponent(id) + "/resume", {});
+      if (r.ok) { alert((r.data && r.data.message) || "已恢復會籍"); await load(); }
+      else alert((r.data && r.data.error) || "恢復失敗");
     }
     async function subscribe(type) {
       if (!api.requireLogin("membership.html")) return;
