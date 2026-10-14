@@ -467,6 +467,52 @@ function updateCourse(userId, courseId, body) {
   return { status: 200, body: { message: "課程已更新", class: updated } };
 }
 
+// 加時段（商戶自助）
+function addCourseSchedule(userId, courseId, body) {
+  const venue = _getUserVenue(userId);
+  if (!venue) {
+    return { status: 403, body: { success: false, error: "你未有已開通嘅商戶戶口" } };
+  }
+  const db = getDb();
+  db.pragma("foreign_keys = ON");
+  const cls = db
+    .prepare(
+      "SELECT id, max_participants FROM classes WHERE id = ? AND (partner_id = ? OR partner_venue_id = ? OR venue_name = ?)",
+    )
+    .get(courseId, venue.id, venue.id, venue.name);
+  if (!cls) {
+    return { status: 404, body: { success: false, error: "課程不存在或唔屬於你" } };
+  }
+  const list = body.schedules || (body.start_time ? [body] : []);
+  if (!Array.isArray(list) || list.length === 0) {
+    return { status: 400, body: { success: false, error: "請至少提供一個時段" } };
+  }
+  const ids = [];
+  for (const s of list) {
+    if (!s.start_time || !s.end_time) continue;
+    const id = uuidv4();
+    db.prepare(
+      `INSERT INTO class_schedules (id, class_id, start_time, end_time,
+         max_participants, enrolled_count, status, created_at)
+       VALUES (?, ?, ?, ?, ?, 0, 'available', datetime('now'))`,
+    ).run(
+      id,
+      courseId,
+      s.start_time,
+      s.end_time,
+      s.max_participants || cls.max_participants || 15,
+    );
+    ids.push(id);
+  }
+  if (ids.length === 0) {
+    return { status: 400, body: { success: false, error: "時段資料不完整" } };
+  }
+  return {
+    status: 201,
+    body: { message: `已新增 ${ids.length} 個時段`, schedules: ids },
+  };
+}
+
 // ==================== Partner Members ====================
 
 function listMembers(userId) {
@@ -996,6 +1042,7 @@ module.exports = {
   createCourse,
   listCourses,
   updateCourse,
+  addCourseSchedule,
 
   // Members
   listMembers,

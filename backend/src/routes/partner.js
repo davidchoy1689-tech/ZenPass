@@ -116,6 +116,26 @@ router.put("/courses/:id", authenticateToken, requireOwnInstitution, (req, res) 
   }
 });
 
+// ===== POST /api/partner/courses/:id/schedules — 加時段 =====
+router.post(
+  "/courses/:id/schedules",
+  authenticateToken,
+  requireOwnInstitution,
+  (req, res) => {
+    try {
+      const result = partnerService.addCourseSchedule(
+        req.user.id,
+        req.params.id,
+        req.body,
+      );
+      return res.status(result.status).json(result.body);
+    } catch (err) {
+      console.error("❌ partner/courses schedules error:", err.message);
+      return serverError(res, "新增時段失敗");
+    }
+  },
+);
+
 // ===== GET /api/partner/payouts =====
 router.get("/payouts", authenticateToken, requireOwnInstitution, (req, res) => {
   try {
