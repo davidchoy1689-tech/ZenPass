@@ -36,7 +36,7 @@ router.get("/list", (req, res) => {
         GROUP BY coach_id
       ) cr ON cr.coach_id = u.id
       WHERE u.is_coach = 1
-      ORDER BY cr.avg_rating DESC NULLS LAST
+      ORDER BY COALESCE(cr.avg_rating, 0) DESC
       LIMIT ?
     `).all(parseInt(req.query.limit) || 50);
     res.json({ success: true, coaches: coaches });
