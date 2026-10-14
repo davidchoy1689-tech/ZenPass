@@ -4,137 +4,167 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#ff6b35" />
-  <title>管理 · ZenPass 禪流</title>
+  <title>管理後台 · ZenPass 禪流</title>
   <link rel="stylesheet" href="assets/v2.css" />
   <style>
-    .pm-row { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
-    .pm-actions { display: flex; gap: 8px; margin-top: 12px; }
-    .pm-actions .btn { min-height: 42px; padding: 0 14px; font-size: 14px; flex: 1; }
     .kv { font-size: 13px; color: var(--text-muted); margin: 3px 0; }
     .amt { font-size: 18px; font-weight: 800; color: var(--brand-600); }
-    .tabs { display: flex; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--surface); z-index: 10; }
-    .tabs button { flex: 1; padding: 14px 0; background: none; border: 0; font: inherit; font-weight: 700; color: var(--text-muted); border-bottom: 2px solid transparent; cursor: pointer; }
-    .tabs button.on { color: var(--brand-600); border-color: var(--brand-500); }
+    .adm-tabs { display: flex; gap: 8px; overflow-x: auto; padding: 0 0 8px; margin: 0 -16px 8px; padding-left:16px; padding-right:16px; position: sticky; top: 0; background: var(--bg, #fff); z-index: 10; }
+    .adm-tabs button { white-space: nowrap; border: 1px solid var(--border); background: var(--surface); color: var(--text); border-radius: 999px; padding: 8px 14px; font: inherit; font-weight: 700; font-size: 13px; cursor: pointer; }
+    .adm-tabs button.on { background: var(--brand-500); color: #fff; border-color: var(--brand-500); }
+    .row { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--border); gap: 10px; }
+    .row:last-child { border-bottom: 0; }
+    .kpis { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .kpi { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 12px; }
+    .kpi .big { font-size: 20px; font-weight: 800; color: var(--brand-600); }
+    .kpi .lbl { font-size: 12px; color: var(--text-muted); }
+    .pill { font-size: 11px; padding: 2px 8px; border-radius: 999px; background: var(--border); }
+    .pill.ok { background:#dcfce7; color:#166534; } .pill.warn { background:#fef3c7; color:#92400e; } .pill.off { background:#e5e7eb; color:#374151; }
   </style>
 </head>
 <body>
   <div class="topbar"><a class="back" href="my.html">‹</a><div class="title">管理後台</div></div>
-
   <div class="wrap">
-    <div class="tabs" style="margin:0 -16px 12px">
-      <button class="on" data-tab="pay">核實付款</button>
-      <button data-tab="inq">查詢</button>
-    </div>
-
-    <div id="panel-pay">
-      <div id="stats" class="muted" style="font-size:13px;margin:4px 0 10px"></div>
-      <div class="stack" id="list"><div class="card"><div class="body muted">載入中…</div></div></div>
-    </div>
-
-    <div id="panel-inq" style="display:none">
-      <div id="inqStats" class="muted" style="font-size:13px;margin:4px 0 10px"></div>
-      <div class="stack" id="inquiries"><div class="card"><div class="body muted">載入中…</div></div></div>
-    </div>
+    <div class="adm-tabs" id="tabs"></div>
+    <div id="panel"><div class="card"><div class="body muted">載入中…</div></div></div>
+    <div class="spacer"></div>
   </div>
-
-  <nav class="bottomnav">
-    <a href="index.html"><span class="ic">🏠</span>主頁</a>
-    <a href="explore.html"><span class="ic">🔍</span>探索</a>
-    <a href="booking.html"><span class="ic">📅</span>預約</a>
-    <a class="active" href="my.html"><span class="ic">🎫</span>我的</a>
-  </nav>
-
   <script src="assets/api.js"></script>
   <script>
-    function card(p) {
-      const pm = p.payment_method === "fps" ? "轉數快 FPS" : (p.payment_method === "payme" ? "PayMe" : (p.payment_method || "—"));
-      const ref = p.fps_reference || p.payme_reference || "—";
-      const when = p.start_time ? fmtDateTime(p.start_time, p.end_time) : "—";
-      return `<div class="card" data-id="${esc(p.booking_id)}"><div class="body">
-        <div class="pm-row">
-          <div><p style="font-weight:700;margin:0 0 2px">${esc(p.class_title || "課程")}</p>
-            <p class="kv">${esc(p.user_name || "")} · ${esc(p.user_email || "")}${p.user_phone ? " · " + esc(p.user_phone) : ""}</p></div>
-          <div style="text-align:right"><span class="amt">${hkd(p.amount)}</span><div class="kv">${esc(pm)}</div></div>
-        </div>
-        <p class="kv">🎟️ ${esc(when)}</p>
-        <p class="kv">參考編號：<b>${esc(ref)}</b> · 預約號 ${esc(p.booking_reference || "—")}</p>
-        <div class="pm-actions">
-          <button class="btn btn-primary" data-act="approve">✅ 確認收款</button>
-          <button class="btn btn-ghost" data-act="reject">✖ 拒絕</button>
-        </div>
-      </div></div>`;
+    const $ = (x) => document.getElementById(x);
+    const panel = () => $("panel");
+    const esc2 = (v) => esc(v == null ? "" : v);
+    const money = (n) => hkd(Number(n) || 0);
+    const st = (s) => ({ confirmed:"已確認", attended:"已出席", pending_payment:"待付款", cancelled:"已取消", no_show:"缺席", pending:"待處理", approved:"已通過", rejected:"已拒絕", active:"生效" }[s] || s || "");
+
+    const TABS = [
+      ["dash","概覽"], ["pay","付款核實"], ["inq","查詢"], ["classes","課程"],
+      ["bookings","預約"], ["users","用戶"], ["coach","教練申請"], ["payouts","出糧"], ["audit","審計"],
+    ];
+    let cur = "dash";
+
+    function renderTabs() {
+      $("tabs").innerHTML = TABS.map(([k,l]) => `<button data-t="${k}" class="${cur===k?"on":""}">${l}</button>`).join("");
+      document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => { cur = b.dataset.t; renderTabs(); load(); });
     }
-    function bind() {
-      document.querySelectorAll('[data-act]').forEach(b => b.onclick = async () => {
-        const id = b.closest('.card').dataset.id;
-        const act = b.dataset.act;
-        const btn = b; btn.disabled = true;
-        if (act === "approve") {
-          if (!confirm("確認已收到此筆付款？")) { btn.disabled = false; return; }
-          const r = await api.post("/admin/approve-payment", { booking_id: id });
-          if (r.ok && r.data && r.data.success !== false) await load();
-          else { btn.disabled = false; alert((r.data && r.data.error) || "確認失敗"); }
-        } else {
-          const reason = prompt("拒絕原因（可留空）") || "";
-          const r = await api.post("/admin/reject-payment", { booking_id: id, reason });
-          if (r.ok && r.data && r.data.success !== false) await load();
-          else { btn.disabled = false; alert((r.data && r.data.error) || "拒絕失敗"); }
-        }
+    const loading = () => { panel().innerHTML = `<div class="card"><div class="body muted">載入中…</div></div>`; };
+    const needAdmin = () => { panel().innerHTML = `<div class="card"><div class="body center">🔒 需要管理員權限。<br><br><a class="btn btn-primary" href="login.html?next=admin.html">管理員登入</a></div></div>`; };
+    const row = (l, r) => `<div class="row"><span>${l}</span><span style="text-align:right">${r||""}</span></div>`;
+
+    async function load() {
+      loading();
+      try {
+        if (cur === "dash") return dash();
+        if (cur === "pay") return payments();
+        if (cur === "inq") return inquiries();
+        if (cur === "classes") return listGeneric("/admin/classes?limit=100", "classes", clsRow, "課程");
+        if (cur === "bookings") return listGeneric("/admin/bookings?limit=100", "bookings", bkRow, "預約");
+        if (cur === "users") return listGeneric("/admin/users?limit=200", "users", userRow, "用戶");
+        if (cur === "coach") return coachApps();
+        if (cur === "payouts") return payouts();
+        if (cur === "audit") return listGeneric("/admin/audit-log?limit=100", "entries", auditRow, "審計記錄");
+      } catch (e) { panel().innerHTML = `<div class="card"><div class="body muted">載入失敗：${esc2(e.message)}</div></div>`; }
+    }
+
+    async function dash() {
+      const r = await api.get("/admin/stats");
+      if (r.status === 401 || r.status === 403) return needAdmin();
+      const s = (r.data && r.data.stats) || {};
+      panel().innerHTML = `<div class="kpis">
+        <div class="kpi"><div class="big">${s.total_users||0}</div><div class="lbl">總用戶</div></div>
+        <div class="kpi"><div class="big">${s.total_classes||0}</div><div class="lbl">課程總數</div></div>
+        <div class="kpi"><div class="big">${s.total_bookings||0}</div><div class="lbl">總預約</div></div>
+        <div class="kpi"><div class="big">${s.confirmed_bookings||0}</div><div class="lbl">已確認</div></div>
+        <div class="kpi"><div class="big">${s.pending_payments||0}</div><div class="lbl">待核實付款</div></div>
+        <div class="kpi"><div class="big">${money(s.total_revenue)}</div><div class="lbl">總收入</div></div>
+      </div>`;
+    }
+
+    async function payments() {
+      const r = await api.get("/admin/pending-payments");
+      if (r.status === 401 || r.status === 403) return needAdmin();
+      const arr = (r.data && r.data.pending_payments) || [];
+      if (!arr.length) { panel().innerHTML = `<div class="card"><div class="body muted center">目前冇待核實付款 ✅</div></div>`; return; }
+      panel().innerHTML = arr.map(p => {
+        const pm = p.payment_method === "fps" ? "轉數快 FPS" : (p.payment_method === "payme" ? "PayMe" : (p.payment_method||"—"));
+        const ref = p.fps_reference || p.payme_reference || "—";
+        return `<div class="card" data-bid="${esc2(p.booking_id)}"><div class="body">
+          <div style="display:flex;justify-content:space-between"><b>${esc2(p.class_title||"課程")}</b><span class="amt">${money(p.amount)}</span></div>
+          <p class="kv">${esc2(p.user_name)} · ${esc2(p.user_email)}${p.user_phone?" · "+esc2(p.user_phone):""}</p>
+          <p class="kv">${esc2(pm)} · 參考 ${esc2(ref)} · ${esc2(p.booking_reference||"")}</p>
+          <div style="display:flex;gap:8px;margin-top:10px">
+            <button class="btn btn-primary" data-a="approve" style="flex:1">✅ 確認收款</button>
+            <button class="btn btn-ghost" data-a="reject" style="flex:1">✖ 拒絕</button></div>
+        </div></div>`;
+      }).join("");
+      panel().querySelectorAll("[data-a]").forEach(b => b.onclick = async () => {
+        const id = b.closest(".card").dataset.bid; const a = b.dataset.a; b.disabled = true;
+        if (a === "approve") { if (!confirm("確認已收到此筆付款？")) { b.disabled=false; return; } const r = await api.post("/admin/approve-payment", { booking_id: id }); if (r.ok && r.data && r.data.success !== false) return load(); b.disabled=false; alert((r.data&&r.data.error)||"失敗"); }
+        else { const reason = prompt("拒絕原因（可留空）") || ""; const r = await api.post("/admin/reject-payment", { booking_id: id, reason }); if (r.ok && r.data && r.data.success !== false) return load(); b.disabled=false; alert((r.data&&r.data.error)||"失敗"); }
       });
     }
-    async function load() {
-      const r = await api.get("/admin/pending-payments");
-      if (r.status === 401 || r.status === 403) {
-        document.getElementById("stats").textContent = "";
-        document.getElementById("list").innerHTML = `<div class="card"><div class="body center">🔒 需要管理員權限。<br><br><a class="btn btn-primary" href="login.html?next=admin.html">管理員登入</a></div></div>`;
-        return;
-      }
-      const arr = (r.data && r.data.pending_payments) || [];
-      document.getElementById("stats").textContent = "待核實付款：" + arr.length + " 筆";
-      document.getElementById("list").innerHTML = arr.length ? arr.map(card).join("")
-        : `<div class="card"><div class="body muted center">目前冇待核實付款 ✅</div></div>`;
-      bind();
-    }
 
-    const STATUS = { pending: "待跟進", contacted: "已聯絡", converted: "已成交", closed: "已結束" };
-    function inqCard(x) {
-      return `<div class="card"><div class="body">
-        <div style="display:flex;justify-content:space-between;gap:8px">
-          <b>${esc(x.type)} ${esc(x.name || "")}</b>
-          <span class="badge ${x.status === "pending" ? "warn" : "ok"}">${esc(STATUS[x.status] || x.status || "")}</span>
-        </div>
-        <p class="kv">${esc(x.contact || "")} · ${esc(x.email || "")}${x.phone ? " · " + esc(x.phone) : ""}</p>
-        ${x.interest ? `<p class="kv">有興趣：${esc(x.interest)}</p>` : ""}
-        ${x.msg ? `<p class="kv">備註：${esc(x.msg)}</p>` : ""}
-        <p class="kv">${esc(String(x.created_at || "").slice(0, 16))}</p>
-      </div></div>`;
-    }
-    async function loadInquiries() {
-      const box = document.getElementById("inquiries");
+    async function inquiries() {
       const [s, c] = await Promise.all([api.get("/school/inquiries"), api.get("/corporate/inquiries")]);
-      if (s.status === 401 || s.status === 403 || c.status === 401 || c.status === 403) {
-        document.getElementById("inqStats").textContent = "";
-        box.innerHTML = `<div class="card"><div class="body center">🔒 需要管理員權限。</div></div>`;
-        return;
-      }
+      if (s.status===401||s.status===403||c.status===401||c.status===403) return needAdmin();
       const rows = [
-        ...((c.data && c.data.inquiries) || []).map(x => ({ type: "🏢 企業", name: x.company_name, contact: x.contact_name, email: x.contact_email, phone: x.contact_phone, interest: x.activities, msg: x.message, status: x.status, created_at: x.created_at })),
-        ...((s.data && s.data.inquiries) || []).map(x => ({ type: "🏫 學校", name: x.school_name, contact: x.contact_name, email: x.contact_email, phone: x.contact_phone, interest: x.sports_of_interest, msg: x.message, status: x.status, created_at: x.created_at })),
-      ].sort((a, b) => String(b.created_at || "").localeCompare(String(a.created_at || "")));
-      document.getElementById("inqStats").textContent = "查詢：" + rows.length + " 筆";
-      box.innerHTML = rows.length ? rows.map(inqCard).join("")
-        : `<div class="card"><div class="body muted center">暫無查詢。</div></div>`;
+        ...((c.data&&c.data.inquiries)||[]).map(x=>({type:"🏢 企業", who:x.company_name, ct:x.contact_name, em:x.contact_email, ph:x.contact_phone, it:x.activities, msg:x.message, st:x.status, at:x.created_at})),
+        ...((s.data&&s.data.inquiries)||[]).map(x=>({type:"🏫 學校", who:x.school_name, ct:x.contact_name, em:x.contact_email, ph:x.contact_phone, it:x.sports_of_interest, msg:x.message, st:x.status, at:x.created_at})),
+      ].sort((a,b)=>String(b.at||"").localeCompare(String(a.at||"")));
+      if (!rows.length) { panel().innerHTML = `<div class="card"><div class="body muted center">暫無查詢。</div></div>`; return; }
+      panel().innerHTML = rows.map(x => `<div class="card"><div class="body">
+        <div style="display:flex;justify-content:space-between"><b>${x.type} ${esc2(x.who)}</b><span class="pill ${x.st==='pending'?'warn':'ok'}">${esc2(st(x.st))}</span></div>
+        <p class="kv">${esc2(x.ct)} · ${esc2(x.em)}${x.ph?" · "+esc2(x.ph):""}</p>
+        ${x.it?`<p class="kv">有興趣：${esc2(x.it)}</p>`:""}
+        ${x.msg?`<p class="kv">備註：${esc2(x.msg)}</p>`:""}
+        <p class="kv">${esc2(String(x.at||"").slice(0,16))}</p></div></div>`).join("");
     }
 
-    document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => {
-      document.querySelectorAll(".tabs button").forEach(x => x.classList.remove("on"));
-      b.classList.add("on");
-      const tab = b.dataset.tab;
-      document.getElementById("panel-pay").style.display = tab === "pay" ? "" : "none";
-      document.getElementById("panel-inq").style.display = tab === "inq" ? "" : "none";
-      if (tab === "inq") loadInquiries();
-    });
+    async function listGeneric(url, key, rowFn, emptyLabel) {
+      const r = await api.get(url);
+      if (r.status === 401 || r.status === 403) return needAdmin();
+      const arr = (r.data && r.data[key]) || [];
+      if (!arr.length) { panel().innerHTML = `<div class="card"><div class="body muted center">暫無${emptyLabel}。</div></div>`; return; }
+      panel().innerHTML = `<div class="card">${arr.map(rowFn).join("")}</div>`;
+    }
+    const clsRow = (c) => row(`${esc2(c.title)}<div class="kv">${esc2(c.category||"")} · ${c.duration||""}分 · ${c.max_participants||""}人</div>`, `${c.price_hkd?money(c.price_hkd):((c.credits_cost||0)+"cr")} <span class="pill ${c.status==='active'?'ok':'off'}">${esc2(st(c.status))}</span>`);
+    const userRow = (u) => row(`${esc2(u.name||u.email)}<div class="kv">${esc2(u.email)}${u.role?" · "+esc2(u.role):""}${u.is_coach?" · 🧑‍🏫":""}</div>`, `${u.credits||0} cr <span class="pill">${esc2(u.membership_type||"none")}</span>`);
+    const bkRow = (b) => row(`${esc2(b.booking_reference||b.id)}<div class="kv">${esc2(b.class_title||b.class_id||"")}</div>`, `${b.amount?money(b.amount):(b.credits_used||"")} <span class="pill ${b.status==='attended'?'ok':(b.status==='cancelled'||b.status==='no_show'?'off':'warn')}">${esc2(st(b.status))}</span>`);
+    const auditRow = (e) => row(`${esc2(e.description||e.action_type)}<div class="kv">${esc2(e.entity_type||"")} ${esc2(String(e.created_at||"").slice(0,16))}</div>`, `<span class="pill">${esc2(e.action_type||"")}</span>`);
 
+    async function coachApps() {
+      const r = await api.get("/admin/coach-applications");
+      if (r.status === 401 || r.status === 403) return needAdmin();
+      const arr = (r.data && r.data.applications) || [];
+      if (!arr.length) { panel().innerHTML = `<div class="card"><div class="body muted center">暫無教練申請。</div></div>`; return; }
+      panel().innerHTML = arr.map(a => `<div class="card" data-ai="${esc2(a.id)}"><div class="body">
+        <div style="display:flex;justify-content:space-between"><b>${esc2(a.name||"")}</b><span class="pill ${a.status==='approved'?'ok':(a.status==='rejected'?'off':'warn')}">${esc2(st(a.status))}</span></div>
+        <p class="kv">${esc2(a.email||"")} · ${esc2(a.phone||"")}</p>
+        ${a.specialties?`<p class="kv">專長：${esc2(a.specialties)}</p>`:""}
+        ${a.status==='pending'?`<div style="display:flex;gap:8px;margin-top:10px"><button class="btn btn-primary" data-ca="approve" style="flex:1">批准</button><button class="btn btn-ghost" data-ca="reject" style="flex:1">拒絕</button></div>`:""}
+      </div></div>`).join("");
+      panel().querySelectorAll("[data-ca]").forEach(b => b.onclick = async () => {
+        const id = b.closest(".card").dataset.ai; b.disabled = true;
+        const r = await api.post("/admin/coach-" + b.dataset.ca, { application_id: id });
+        if (r.ok && r.data && r.data.success !== false) return load();
+        b.disabled = false; alert((r.data&&r.data.error)||"失敗");
+      });
+    }
+
+    async function payouts() {
+      const r = await api.get("/admin/payouts");
+      if (r.status === 401 || r.status === 403) return needAdmin();
+      const s = (r.data && r.data.summary) || {};
+      const arr = (r.data && r.data.payouts) || [];
+      let html = `<div class="kpis" style="margin-bottom:10px">
+        <div class="kpi"><div class="big">${money(s.pending_total)}</div><div class="lbl">待出糧</div></div>
+        <div class="kpi"><div class="big">${money(s.paid_total)}</div><div class="lbl">已出糧</div></div></div>`;
+      html += arr.length ? `<div class="card">${arr.map(p => row(`${esc2(p.coach_name||p.coach_id||"")}<div class="kv">${esc2(String(p.created_at||"").slice(0,10))}</div>`, `${money(p.amount)} <span class="pill ${p.status==='paid'?'ok':'warn'}">${esc2(st(p.status))}</span>`)).join("")}</div>`
+        : `<div class="card"><div class="body muted center">暫無出糧紀錄。</div></div>`;
+      panel().innerHTML = html;
+    }
+
+    renderTabs();
     if (api.requireLogin("admin.html")) load();
   </script>
 </body>
