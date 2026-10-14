@@ -1150,6 +1150,24 @@ function attendBooking(req) {
     .get(req.user.id);
   const isCoachOrAdmin =
     user && (user.is_coach || user.role === "admin" || user.coach_verified);
+  const isAdmin = user && (user.role === "admin" || user.role === "super_admin");
+
+  // 非管理員嘅教練：只可以為「自己嘅班」簽到（防止亂簽其他人嘅學生）
+  if (isCoachOrAdmin && !isAdmin) {
+    const owned = db
+      .prepare(
+        `SELECT c.coach_id AS coach_id
+         FROM bookings b JOIN classes c ON b.class_id = c.id
+         WHERE b.id = ?`,
+      )
+      .get(req.params.id);
+    if (!owned || owned.coach_id !== req.user.id) {
+      return {
+        status: 403,
+        body: { success: false, error: "無權限為此課堂簽到" },
+      };
+    }
+  }
 
   let booking;
   if (!isCoachOrAdmin) {

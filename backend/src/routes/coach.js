@@ -487,6 +487,17 @@ router.get("/class-students", authenticateToken, (req, res) => {
       return res.status(404).json({ success: false, error: "課程不存在" });
     }
 
+    // 權限：只有該班教練或管理員可以查看學生名單
+    const me = db
+      .prepare("SELECT role FROM users WHERE id = ?")
+      .get(req.user.id);
+    const isAdmin = me && (me.role === "admin" || me.role === "super_admin");
+    if (!isAdmin && classInfo.coach_id !== req.user.id) {
+      return res
+        .status(403)
+        .json({ success: false, error: "無權限查看此課程嘅學生名單" });
+    }
+
     // Get students
     const students = db
       .prepare(
