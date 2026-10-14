@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#ff6b35" />
+  <title>商戶中心 · ZenPass 禪流</title>
+  <link rel="stylesheet" href="assets/v2.css" />
+  <style>
+    .kpis { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    .kpi { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:14px; }
+    .kpi .big { font-size:22px; font-weight:800; color:var(--brand-600); }
+    .kpi .lbl { font-size:12px; color:var(--text-muted); }
+    .row { display:flex; justify-content:space-between; align-items:center; padding:13px 16px; border-bottom:1px solid var(--border); gap:10px; }
+    .row:last-child { border-bottom:0; }
+    .venue-head { background:linear-gradient(135deg,var(--brand-500),var(--brand-700)); color:#fff; border-radius:18px; padding:18px; }
+    .venue-head .name { font-size:20px; font-weight:800; }
+    .venue-head .sub { font-size:13px; opacity:.92; margin-top:4px; }
+    .venue-head .tags { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+    .venue-head .tag { background:rgba(255,255,255,.2); border-radius:999px; padding:4px 12px; font-size:12px; font-weight:600; }
+    .rep { display:flex; justify-content:space-between; padding:11px 16px; border-bottom:1px solid var(--border); font-size:14px; }
+    .rep:last-child { border-bottom:0; }
+  </style>
+</head>
+<body>
+  <div class="topbar"><a class="back" href="my.html">‹</a><div class="title">商戶中心</div></div>
+
+  <div class="wrap">
+    <div id="guard" style="display:none"></div>
+    <div id="main" style="display:none">
+      <div class="venue-head" id="venueHead">
+        <div class="name" id="vName">—</div>
+        <div class="sub" id="vSub"></div>
+        <div class="tags" id="vTags"></div>
+      </div>
+
+      <div class="section-title">收入概覽</div>
+      <div class="kpis" id="kpis"><div class="kpi"><div class="big">—</div><div class="lbl">載入中…</div></div></div>
+
+      <div class="section-title">每月收入</div>
+      <div class="card" id="revenue"><div class="body muted">載入中…</div></div>
+
+      <div class="section-title">我嘅課程</div>
+      <div class="card" id="courses"><div class="body muted">載入中…</div></div>
+
+      <div class="section-title">最近預約</div>
+      <div class="card" id="bookings"><div class="body muted">載入中…</div></div>
+
+      <div class="section-title">出糧紀錄</div>
+      <div class="card" id="payouts"><div class="body muted">載入中…</div></div>
+      <div class="spacer"></div>
+    </div>
+    <div class="spacer"></div>
+  </div>
+
+  <nav class="bottomnav">
+    <a href="index.html"><span class="ic">🏠</span>主頁</a>
+    <a href="explore.html"><span class="ic">🔍</span>探索</a>
+    <a href="booking.html"><span class="ic">📅</span>預約</a>
+    <a class="active" href="my.html"><span class="ic">🎫</span>我的</a>
+  </nav>
+
+  <script src="assets/api.js"></script>
+  <script>
+    const $ = (id) => document.getElementById(id);
+
+    (async () => {
+      if (!api.requireLogin("partner.html")) return;
+      const dash = await api.get("/partner/dashboard");
+      if (!dash.ok || !dash.data || !dash.data.venue) {
+        $("guard").style.display = "";
+        $("guard").innerHTML = `<div class="card"><div class="body center">呢頁只供已開通嘅商戶使用。<br><span class="muted" style="font-size:13px">${esc((dash.data && dash.data.error) || "")}</span><br><br><a class="btn btn-secondary" href="my.html">返回</a></div></div>`;
+        return;
+      }
+      $("main").style.display = "";
+      const v = dash.data.venue || {};
+      const s = dash.data.stats || {};
+
+      $("vName").textContent = v.name || "商戶";
+      $("vSub").textContent = [v.category, v.district].filter(Boolean).join(" · ") || "商戶";
+      $("vTags").innerHTML = [
+        v.commission_plan_label || v.commission_plan,
+        (v.commission_rate != null ? "佣金 " + Math.round(Number(v.commission_rate) * 100) + "%" : ""),
+        (v.status === "active" ? "✅ 已開通" : v.status),
+      ].filter(Boolean).map(t => `<span class="tag">${esc(t)}</span>`).join("");
+
+      $("kpis").innerHTML = [
+        ["本月收入", hkd(s.this_month_earnings || 0)],
+        ["總收入", hkd(s.total_earned || 0)],
+        ["總預約", (s.total_bookings || 0).toLocaleString()],
+        ["學生數", (s.total_students || 0).toLocaleString()],
+        ["平台費", hkd(s.total_platform_fee || 0)],
+        ["已出糧", hkd(s.total_paid_out || 0)],
+      ].map(([l, val]) => `<div class="kpi"><div class="big">${val}</div><div class="lbl">${l}</div></div>`).join("");
+
+      loadRevenue();
+      loadCourses();
+      loadBookings();
+      loadPayouts();
+    })();
+
+    async function loadRevenue() {
+      const r = await api.get("/partner/revenue-report?group_by=month&limit=12");
+      const rows = (r.data && r.data.report) || [];
+      $("revenue").innerHTML = rows.length
+        ? rows.map(x => `<div class="rep"><span>${esc(x.period)}（${x.booking_count} 堂）</span><span><b>${hkd(x.venue_earned || 0)}</b> <span class="muted" style="font-size:12px">/ ${hkd(x.total_revenue || 0)}</span></span></div>`).join("")
+        : '<div class="body muted">暫無收入紀錄。</div>';
+    }
+
+    async function loadCourses() {
+      const r = await api.get("/partner/courses");
+      const list = Array.isArray(r.data) ? r.data : [];
+      $("courses").innerHTML = list.length
+        ? list.slice(0, 30).map(c => `<a class="row" href="class-detail.html?id=${encodeURIComponent(c.id)}"><span>${esc(c.title)}<span class="muted" style="font-size:12px"> · ${esc(c.category || "")}</span></span><span class="muted">${c.booking_count || 0} 預約 ›</span></a>`).join("")
+        : '<div class="body muted">暫無課程。</div>';
+    }
+
+    async function loadBookings() {
+      const r = await api.get("/partner/bookings?limit=20");
+      const list = (r.data && r.data.bookings) || [];
+      $("bookings").innerHTML = list.length
+        ? list.map(b => {
+            const st = ({ confirmed: "已確認", attended: "已出席", pending_payment: "待付款", cancelled: "已取消", no_show: "缺席" }[b.status] || b.status);
+            return `<div class="row"><div><b>${esc(b.class_title || "")}</b><div class="muted" style="font-size:12px">${esc(b.student_name || "")} · ${fmtTime(b.start_time)}</div></div><div style="text-align:right"><div>${hkd(b.venue_earned_amount || 0)}</div><div class="muted" style="font-size:12px">${esc(st)}</div></div></div>`;
+          }).join("")
+        : '<div class="body muted">暫無預約。</div>';
+    }
+
+    async function loadPayouts() {
+      const r = await api.get("/partner/payouts");
+      const list = Array.isArray(r.data) ? r.data : [];
+      $("payouts").innerHTML = list.length
+        ? list.slice(0, 12).map(p => `<div class="row"><span>${esc((p.created_at || "").slice(0, 10))} <span class="muted" style="font-size:12px">${esc(p.status || "")}</span></span><span>${hkd(p.amount || 0)}</span></div>`).join("")
+        : '<div class="body muted">暫無出糧紀錄。</div>';
+    }
+  </script>
+</body>
+</html>

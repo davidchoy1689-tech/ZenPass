@@ -49,6 +49,7 @@
       <a href="faq.html"><span>❓ 常見問題</span><span class="muted">›</span></a>
       <a href="admin.html" id="adminLink" style="display:none"><span>🛠️ 管理後台（核實付款）</span><span class="muted">›</span></a>
       <a href="coach.html" id="coachLink" style="display:none"><span>🧑‍🏫 教練中心</span><span class="muted">›</span></a>
+      <a href="partner.html" id="partnerLink" style="display:none"><span>🏪 商戶中心</span><span class="muted">›</span></a>
       <a href="javascript:api.logout()"><span>🚪 登出</span><span class="muted">›</span></a>
     </div>
 
@@ -82,6 +83,9 @@
       }
       if (u.is_coach || u.coach_verified || u.role === "coach" || u.role === "admin" || u.role === "super_admin") {
         const cl = document.getElementById("coachLink"); if (cl) cl.style.display = "";
+      }
+      if (u.partner_id || u.role === "partner_owner" || u.role === "partner_staff" || u.role === "admin" || u.role === "super_admin") {
+        const pl = document.getElementById("partnerLink"); if (pl) pl.style.display = "";
       }
     })();
   </script>
