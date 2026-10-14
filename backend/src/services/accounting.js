@@ -312,37 +312,105 @@ function recordPayout(coachId, amount, method) {
 }
 
 /**
- * 為一筆已付款 booking 落 double-entry（idempotent）
- * 會寫：payment（收款）+ commission（平台佣金）
- * 若該 booking 已有 ledger 記錄，則不重複寫入。
- * 失敗會 throw，等呼叫方決定點處理（例如 audit + alert）。
+ * 四邊拆賬（idempotent）—— 學生付款 → 平台收入 + 教練應付 + 場地應付
+ * 每筆 booking 一組平衡分錄（transaction_type='payment'）。
+ * 帳：借 資產(total) / 貸 3000 平台收入 + 2001 教練應付 + 2002 場地應付
  */
-function postBookingLedger(bookingId, userId, amount, method, commissionRate) {
+function postBookingSplitLedger(bookingId, userId, amount, method) {
   amount = Number(amount) || 0;
   if (amount <= 0) return false;
-  if (getEntriesByBooking(bookingId).length > 0) return false; // 已入帳，唔重複
+  if (
+    getEntriesByBooking(bookingId).some(
+      (e) => e.transaction_type === "payment",
+    )
+  ) {
+    return false; // 已入帳，唔重複
+  }
 
-  let rate = commissionRate;
-  if (rate == null) {
-    try {
-      const row = getDb()
-        .prepare("SELECT platform_commission_rate FROM bookings WHERE id = ?")
-        .get(bookingId);
-      rate =
-        row && row.platform_commission_rate != null
-          ? row.platform_commission_rate
-          : 0.2;
-    } catch (_e) {
-      rate = 0.2;
+  const db = getDb();
+  let b = {};
+  try {
+    b =
+      db
+        .prepare(
+          "SELECT amount, platform_earned_amount, venue_earned_amount FROM bookings WHERE id = ?",
+        )
+        .get(bookingId) || {};
+  } catch (_e) {
+    // 舊/精簡 schema 冇 split 欄位時退回
+    b = db.prepare("SELECT amount FROM bookings WHERE id = ?").get(bookingId) || {};
+  }
+  const total = Number((b && b.amount) || amount) || 0;
+  const platform = Number((b && b.platform_earned_amount) || 0);
+  const venue = Number((b && b.venue_earned_amount) || 0);
+  if (platform + venue > total + 0.005) {
+    console.error(
+      `[ACCOUNTING] split > total for booking ${bookingId} (platform=${platform}, venue=${venue}, total=${total}) — skip`,
+    );
+    return false;
+  }
+  const coach = Math.round((total - platform - venue) * 100) / 100;
+
+  const assetAccount =
+    method === "stripe" ? "1100" : method === "credits" ? "1200" : "1000";
+  const assetName =
+    method === "stripe"
+      ? "Stripe 待結算"
+      : method === "credits"
+        ? "點數收入"
+        : "現金";
+  const now = new Date().toISOString();
+  const ref = require("../services/refgen").genRef("GL");
+
+  const rows = [
+    { debit: total, credit: 0, accountCode: assetAccount, accountName: assetName },
+    { debit: 0, credit: platform, accountCode: "3000", accountName: "平台收入" },
+    { debit: 0, credit: coach, accountCode: "2001", accountName: "教練應付" },
+    { debit: 0, credit: venue, accountCode: "2002", accountName: "場地應付" },
+  ].filter((r) => r.debit > 0 || r.credit > 0);
+
+  const stmt = db.prepare(
+    `INSERT INTO ledger (id, booking_id, user_id, reference, debit, credit,
+       account_code, account_name, transaction_type, payment_method, description, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  );
+  const tx = db.transaction((list) => {
+    for (const r of list) {
+      stmt.run(
+        uuidv4(),
+        bookingId,
+        userId,
+        ref,
+        r.debit,
+        r.credit,
+        r.accountCode,
+        r.accountName,
+        "payment",
+        method || "cash",
+        "booking split (4-way)",
+        now,
+      );
     }
-  }
+  });
+  tx(rows);
 
-  recordPayment(bookingId, userId, amount, method || "cash");
-  const commissionAmt = Math.round(amount * rate * 100) / 100;
-  if (commissionAmt > 0) {
-    recordCommission(bookingId, userId, commissionAmt, method || "cash");
-  }
+  try {
+    writeBlock({
+      entityType: "ledger",
+      entityId: ref,
+      data: { booking_id: bookingId, split: { total, platform, coach, venue }, method },
+    });
+  } catch (e) {}
+
   return true;
+}
+
+/**
+ * 為一筆已付款 booking 落 double-entry（idempotent）
+ * @deprecated 用 postBookingSplitLedger（四邊拆賬）；此函數保留向後兼容。
+ */
+function postBookingLedger(bookingId, userId, amount, method, commissionRate) {
+  return postBookingSplitLedger(bookingId, userId, amount, method);
 }
 
 /**
@@ -436,6 +504,7 @@ module.exports = {
   recordCommission,
   recordPayout,
   postBookingLedger,
+  postBookingSplitLedger,
   getBalance,
   trialBalance,
   getEntriesByBooking,
