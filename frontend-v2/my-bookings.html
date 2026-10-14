@@ -50,7 +50,7 @@
       let actions = "";
       if (b.status === "confirmed") actions = `<button class="btn btn-secondary" onclick="cancelBk('${esc(b.id)}')">取消預約</button>`;
       if (b.status === "pending_payment") actions = `<a class="btn btn-primary" href="booking.html?id=${encodeURIComponent(b.class_id)}&sid=${encodeURIComponent(b.schedule_id)}">繼續付款</a>`;
-      if (b.status === "attended") actions = `<a class="btn btn-secondary" href="class-detail.html?id=${encodeURIComponent(b.class_id)}">再預約</a>`;
+      if (b.status === "attended") actions = `<button class="btn btn-primary" onclick="openNps('${esc(b.id)}')">⭐ 評價</button><a class="btn btn-secondary" href="class-detail.html?id=${encodeURIComponent(b.class_id)}">再預約</a>`;
       return `<div class="card"><div class="body">
         <div style="display:flex;justify-content:space-between;align-items:start">
           <div><p class="bk-title">${esc(b.title || "課程")}</p>
@@ -76,6 +76,39 @@
       if (!confirm("確定取消呢個預約？")) return;
       const r = await api.post("/bookings/" + encodeURIComponent(id) + "/cancel", {});
       if (r.ok) { await load(); } else { alert((r.data && r.data.error) || "取消失敗"); }
+    };
+
+    window.closeModal = (el) => { const o = el.closest(".modal-overlay"); if (o) o.remove(); };
+    window.openNps = (id) => {
+      const b = all.find(x => String(x.id) === String(id)) || {};
+      const o = document.createElement("div");
+      o.className = "modal-overlay";
+      o.innerHTML = `<div class="modal">
+        <h3>⭐ 課程評價</h3>
+        <p class="muted" style="font-size:13px;margin-top:0">${esc(b.title || "")}</p>
+        <div class="muted" style="font-size:13px">你幾大機會推薦呢個課程？（1 = 唔會，10 = 一定會）</div>
+        <div class="rate-grid">${[...Array(10)].map((_, i) => `<button type="button" data-v="${i + 1}">${i + 1}</button>`).join("")}</div>
+        <textarea rows="3" placeholder="有咩意見？（可選）" style="width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:12px;padding:11px;font:inherit;background:var(--surface);color:var(--text);margin-top:8px"></textarea>
+        <label class="muted" style="font-size:13px;display:block;margin-top:8px"><input type="checkbox" checked> 我會推薦俾朋友</label>
+        <div class="actions"><button class="btn btn-secondary" onclick="closeModal(this)">取消</button><button class="btn btn-primary" id="npsSend">提交</button></div>
+      </div>`;
+      document.body.appendChild(o);
+      o.onclick = (e) => { if (e.target === o) o.remove(); };
+      let val = 0;
+      o.querySelectorAll(".rate-grid button").forEach(btn => btn.onclick = () => {
+        val = Number(btn.dataset.v);
+        o.querySelectorAll(".rate-grid button").forEach(x => x.classList.toggle("on", x === btn));
+      });
+      o.querySelector("#npsSend").onclick = async () => {
+        if (!val) { alert("請揀 1-10 分"); return; }
+        const r = await api.post("/nps/submit", {
+          booking_id: id, rating: val,
+          comment: o.querySelector("textarea").value,
+          would_recommend: o.querySelector("input[type=checkbox]").checked ? 1 : 0,
+        });
+        if (r.ok) { alert((r.data && r.data.message) || "多謝你嘅評價！"); o.remove(); }
+        else alert((r.data && r.data.error) || "提交失敗");
+      };
     };
 
     async function load() {

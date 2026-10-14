@@ -63,7 +63,7 @@ router.post("/submit", authenticateToken, (req, res) => {
       return res.status(404).json({ success: false, error: "預約記錄不存在" });
     }
 
-    if (Number(booking.user_id) !== Number(req.user.id)) {
+    if (String(booking.user_id) !== String(req.user.id)) {
       return res.status(403).json({ success: false, error: "你無權限評價此預約" });
     }
 
