@@ -22,17 +22,15 @@ router.get("/list", (req, res) => {
       SELECT u.id, u.name, u.avatar_url as avatar, u.email,
         COALESCE(cr.avg_rating, 0) as rating,
         COALESCE(cr.total_students, 0) as students,
-        COALESCE(cr.total_courses, 0) as courses,
-        COALESCE(cr.bio, '') as bio
+        (SELECT COUNT(*) FROM classes c WHERE c.coach_id = u.id) as courses,
+        COALESCE((SELECT ca.bio FROM coach_applications ca WHERE ca.user_id = u.id ORDER BY ca.created_at DESC LIMIT 1), '') as bio
       FROM users u
       LEFT JOIN (
-        SELECT 
+        SELECT
           cr.coach_id,
-          ROUND(AVG(rating), 1) as avg_rating,
-          COUNT(DISTINCT student_id) as total_students,
-          COUNT(DISTINCT c.id) as total_courses
+          ROUND(AVG(cr.rating), 1) as avg_rating,
+          COUNT(DISTINCT cr.user_id) as total_students
         FROM coach_ratings cr
-        LEFT JOIN classes c ON c.coach_id = cr.coach_id
         GROUP BY cr.coach_id
       ) cr ON cr.coach_id = u.id
       WHERE u.is_coach = 1
