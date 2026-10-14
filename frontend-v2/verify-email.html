@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#ff6b35" />
+  <title>電郵驗證 · ZenPass 禪流</title>
+  <link rel="stylesheet" href="assets/v2.css" />
+</head>
+<body>
+  <div class="topbar"><a class="back" href="index.html">‹</a><div class="title">電郵驗證</div></div>
+  <div class="wrap" style="padding-top:24px">
+    <div id="box"><div class="card"><div class="body center muted">驗證中…</div></div></div>
+    <div class="spacer"></div>
+    <p class="muted center" style="font-size:13px"><a href="login.html" style="color:var(--brand-600);font-weight:700">前往登入</a></p>
+  </div>
+  <script src="assets/api.js"></script>
+  <script>
+    const token = new URLSearchParams(location.search).get("token") || "";
+
+    (async () => {
+      const box = document.getElementById("box");
+      if (token) {
+        const r = await api.get("/auth/verify-email?token=" + encodeURIComponent(token));
+        if (r.ok) {
+          box.innerHTML = `<div class="card"><div class="body center"><div style="font-size:44px">✅</div><p>${esc((r.data && r.data.message) || "電郵已驗證成功")}</p><a class="btn btn-primary" href="my.html" style="margin-top:8px">開始預約</a></div></div>`;
+        } else {
+          box.innerHTML = `<div class="card"><div class="body center"><div style="font-size:44px">⚠️</div><p>${esc((r.data && r.data.error) || "驗證連結已過期或無效")}</p>${resendHtml()}</div></div>`;
+          bindResend();
+        }
+      } else {
+        box.innerHTML = `<div class="card"><div class="body center"><div style="font-size:44px">📧</div><p>如果你收到驗證連結，撳入面嘅按鈕即可完成驗證。</p>${resendHtml()}</div></div>`;
+        bindResend();
+      }
+    })();
+
+    function resendHtml() {
+      return api.isLoggedIn()
+        ? `<button class="btn btn-secondary" id="resend" style="margin-top:8px">重新發送驗證電郵</button><div id="rmsg" class="muted" style="font-size:13px;margin-top:8px"></div>`
+        : "";
+    }
+    function bindResend() {
+      const b = document.getElementById("resend");
+      if (!b) return;
+      b.onclick = async () => {
+        b.disabled = true; b.textContent = "發送中…";
+        const r = await api.post("/auth/resend-verification", {});
+        b.disabled = false; b.textContent = "重新發送驗證電郵";
+        const m = document.getElementById("rmsg");
+        m.textContent = (r.data && (r.data.message || r.data.error)) || (r.ok ? "已發送" : "發送失敗");
+        const dev = r.data && r.data.dev_verify_url;
+        if (dev) m.innerHTML = `開發模式：<a href="${esc(dev)}">驗證連結</a>`;
+      };
+    }
+  </script>
+</body>
+</html>

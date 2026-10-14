@@ -103,11 +103,26 @@ router.post("/register", (req, res) => {
     // Set HTTP-only cookie (dual mode: also returns token in JSON)
     setAuthCookie(res, token);
 
+    if (!isDev) {
+      const base = process.env.PUBLIC_BASE_URL || "https://zenpass.hk";
+      const vlink = `${base}/v2/verify-email.html?token=${encodeURIComponent(verificationToken)}`;
+      emailNotification(
+        email,
+        "ZenPass 禪流 — 驗證你嘅電郵",
+        `<div style="font-family:system-ui,-apple-system,'PingFang HK',sans-serif;max-width:520px;margin:auto;color:#222">
+          <h2 style="color:#f06030">歡迎加入 ZenPass 禪流</h2>
+          <p>你好${name}，多謝你註冊！請撳以下按鈕驗證你嘅電郵（連結 24 小時內有效）：</p>
+          <p><a href="${vlink}" style="display:inline-block;background:#f06030;color:#fff;padding:12px 20px;border-radius:10px;text-decoration:none;font-weight:700">驗證電郵</a></p>
+          <p style="color:#888;font-size:13px">如非本人操作，可以忽略呢封電郵。</p>
+        </div>`,
+      ).catch((e) => console.error("[REGISTER] verify email error:", e.message));
+    }
+
     res.status(201).json({
       message: "註冊成功",
       token,
       user,
-      ...(isDev ? { dev_verify_url: "https://zenpass.hk/verify-email.html?token=" + verificationToken } : {})
+      ...(isDev ? { dev_verify_url: `https://zenpass.hk/v2/verify-email.html?token=${verificationToken}` } : {})
     });
   } catch (err) {
     console.error("註冊錯誤:", err);
@@ -336,9 +351,22 @@ router.post("/resend-verification", authenticateToken, (req, res) => {
     db.prepare("UPDATE users SET verification_token = ?, verification_token_expires = datetime('now', '+24 hours') WHERE id = ?").run(token, req.user.id);
 
     const isDev = !process.env.SMTP_HOST;
+    if (!isDev) {
+      const base = process.env.PUBLIC_BASE_URL || "https://zenpass.hk";
+      const vlink = `${base}/v2/verify-email.html?token=${encodeURIComponent(token)}`;
+      emailNotification(
+        user.email,
+        "ZenPass 禪流 — 驗證你嘅電郵",
+        `<div style="font-family:system-ui,sans-serif;max-width:520px;margin:auto;color:#222">
+          <h2 style="color:#f06030">驗證你嘅電郵</h2>
+          <p>請撳以下按鈕驗證你嘅電郵（連結 24 小時內有效）：</p>
+          <p><a href="${vlink}" style="display:inline-block;background:#f06030;color:#fff;padding:12px 20px;border-radius:10px;text-decoration:none;font-weight:700">驗證電郵</a></p>
+        </div>`,
+      ).catch((e) => console.error("[RESEND] verify email error:", e.message));
+    }
     res.json({
       message: "驗證電郵已發送",
-      ...(isDev ? { dev_verify_url: "https://zenpass.hk/verify-email.html?token=" + token } : {})
+      ...(isDev ? { dev_verify_url: `https://zenpass.hk/v2/verify-email.html?token=${token}` } : {})
     });
   } catch (err) {
     res.status(500).json({ success: false, error: "發送失敗" });
