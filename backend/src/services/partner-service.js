@@ -137,6 +137,20 @@ function applyPartner(req) {
     performedBy: email, data: { name, category, plan: planKey },
   });
 
+  // 若申請人已登入：將場地連結到該用戶，方便佢即時進入商戶中心
+  if (req.user && req.user.id) {
+    try {
+      db.prepare("UPDATE partner_venues SET user_id = ?, owner_id = ? WHERE id = ?").run(
+        req.user.id,
+        req.user.id,
+        id,
+      );
+      db.prepare("UPDATE users SET partner_id = ? WHERE id = ?").run(id, req.user.id);
+    } catch (e) {
+      console.error("⚠️ link partner venue to user failed:", e.message);
+    }
+  }
+
   return {
     status: 201,
     body: {

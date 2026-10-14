@@ -9,6 +9,7 @@ const {
   authenticateToken,
   requireRole,
   requireOwnInstitution,
+  optionalAuth,
   ROLE_HIERARCHY,
   hasMinimumRole,
 } = require("../middleware/auth");
@@ -18,8 +19,8 @@ const partnerService = require("../services/partner-service");
 
 const router = express.Router();
 
-// ===== POST /api/partner/apply — 公開申請 =====
-router.post("/apply", (req, res) => {
+// ===== POST /api/partner/apply — 公開申請（登入後會自動連結場地）=====
+router.post("/apply", optionalAuth, (req, res) => {
   try {
     const result = partnerService.applyPartner(req);
     return res.status(result.status).json(result.body);

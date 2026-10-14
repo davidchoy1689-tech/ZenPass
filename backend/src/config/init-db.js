@@ -100,6 +100,7 @@ function initDatabase() {
       venue_address TEXT,
       venue_photos TEXT,
       facilities TEXT,
+      application_reference TEXT,
       status TEXT DEFAULT 'pending' CHECK(status IN ('pending','approved','rejected')),
       reviewed_by TEXT,
       reviewed_at TEXT,
@@ -107,6 +108,9 @@ function initDatabase() {
       FOREIGN KEY (user_id) REFERENCES users(id)
     );
   `);
+
+  // ===== 兼容升級：coach_applications.application_reference =====
+  try { db.exec("ALTER TABLE coach_applications ADD COLUMN application_reference TEXT"); } catch (e) { /* unused */ }
 
   // ===== 課程表 =====
   db.exec(`

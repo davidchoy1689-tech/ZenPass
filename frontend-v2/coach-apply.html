@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#ff6b35" />
+  <title>成為教練 · ZenPass 禪流</title>
+  <link rel="stylesheet" href="assets/v2.css" />
+  <style>
+    .fld{width:100%;box-sizing:border-box;padding:12px 14px;border:1px solid var(--border);border-radius:12px;font:inherit;background:var(--surface);color:var(--text)}
+    label.lbl{font-size:13px;color:var(--text-muted);display:block;margin:10px 0 4px}
+    .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+    .chips label{font-size:13px;border:1px solid var(--border);border-radius:999px;padding:6px 12px;cursor:pointer;background:var(--surface)}
+    .chips input{display:none}
+    .chips input:checked + span{color:var(--brand-600);font-weight:700}
+    .chips label.on{border-color:var(--brand-500);background:#fff5f0}
+  </style>
+</head>
+<body>
+  <div class="topbar"><a class="back" href="my.html">‹</a><div class="title">成為教練</div></div>
+  <div class="wrap">
+    <div id="status"></div>
+    <div id="form">
+      <p class="muted" style="font-size:13px">填寫資料後，我哋會喺 3 個工作日內完成審批。</p>
+      <label class="lbl">姓名 *</label><input class="fld" id="f-name" />
+      <label class="lbl">電話 *</label><input class="fld" id="f-phone" type="tel" />
+      <label class="lbl">電郵 *</label><input class="fld" id="f-email" type="email" />
+      <div class="grid2">
+        <div><label class="lbl">年資（年）</label><input class="fld" id="f-years" type="number" min="0" /></div>
+        <div><label class="lbl">證書 / 資格（可選）</label><input class="fld" id="f-certs" placeholder="例：NSCA-CPT" /></div>
+      </div>
+      <label class="lbl">專長（可多選）</label>
+      <div class="chips" id="specialties"></div>
+      <label class="lbl">簡介</label><textarea class="fld" id="f-bio" rows="3" placeholder="介紹下你自己"></textarea>
+      <label class="lbl">慣用場地名稱（可選）</label><input class="fld" id="f-venue" />
+      <label class="lbl">居住地區 / 地址 *</label><input class="fld" id="f-address" />
+      <div class="spacer"></div>
+      <button class="btn btn-primary btn-block" id="submit">提交申請</button>
+      <div id="msg" class="center muted" style="font-size:13px;margin-top:10px"></div>
+    </div>
+    <div class="spacer"></div>
+  </div>
+
+  <script src="assets/api.js"></script>
+  <script>
+    const SPECS = ["芬蘭木柱","地板冰壺","布袋球","穿雲箭","北歐式健步行","圓網球","柔力球","健體","瑜伽","伸展","兒童健體","其他"];
+    let chosen = new Set();
+
+    (async () => {
+      if (!api.requireLogin("coach-apply.html")) return;
+      // 專長 chips
+      document.getElementById("specialties").innerHTML = SPECS.map(s =>
+        `<label><input type="checkbox" value="${s}"><span>${s}</span></label>`).join("");
+      document.querySelectorAll("#specialties input").forEach(cb => cb.onchange = () => {
+        cb.closest("label").classList.toggle("on", cb.checked);
+        if (cb.checked) chosen.add(cb.value); else chosen.delete(cb.value);
+      });
+      // 預填
+      const me = await api.get("/users/me");
+      const u = (me.data && (me.data.user || me.data)) || {};
+      if (u.name) document.getElementById("f-name").value = u.name;
+      if (u.email) document.getElementById("f-email").value = u.email;
+      if (u.phone) document.getElementById("f-phone").value = u.phone;
+      // 已有申請？
+      const ap = await api.get("/coach/application");
+      const app = ap.data && ap.data.application;
+      if (app) showStatus(app);
+      document.getElementById("submit").onclick = submit;
+    })();
+
+    const statusText = (s) => ({ pending: "⏳ 審批中", approved: "✅ 已通過", rejected: "❌ 未通過" }[s] || s);
+
+    function showStatus(app) {
+      document.getElementById("form").style.display = "none";
+      document.getElementById("status").innerHTML =
+        `<div class="card"><div class="body">
+          <h3 style="margin:0 0 6px">你嘅申請</h3>
+          <p class="muted" style="margin:0;font-size:13px">編號：${esc(app.application_reference || "")} · ${statusText(app.status)}</p>
+          <p class="muted" style="margin:8px 0 0;font-size:13px">提交時間：${esc((app.created_at || "").slice(0, 16))}</p>
+        </div></div>`;
+    }
+
+    async function submit() {
+      const msg = document.getElementById("msg");
+      const body = {
+        name: document.getElementById("f-name").value.trim(),
+        phone: document.getElementById("f-phone").value.trim(),
+        email: document.getElementById("f-email").value.trim(),
+        venue_address: document.getElementById("f-address").value.trim(),
+        years_experience: document.getElementById("f-years").value || null,
+        certificates: document.getElementById("f-certs").value.trim() || null,
+        specialties: [...chosen],
+        bio: document.getElementById("f-bio").value.trim() || null,
+        venue_name: document.getElementById("f-venue").value.trim() || null,
+      };
+      if (!body.name || !body.phone || !body.email || !body.venue_address) { msg.textContent = "請填姓名、電話、電郵同地址"; return; }
+      const btn = document.getElementById("submit"); btn.disabled = true; btn.textContent = "提交中…";
+      const r = await api.post("/coach/apply", body);
+      btn.disabled = false; btn.textContent = "提交申請";
+      if (r.ok) {
+        document.getElementById("form").innerHTML = `<div class="card"><div class="body center"><div style="font-size:40px">🎉</div><p>${esc((r.data && r.data.message) || "申請已提交，我哋會盡快審批")}</p></div></div>`;
+      } else {
+        msg.textContent = (r.data && r.data.error) || "提交失敗";
+      }
+    }
+  </script>
+</body>
+</html>

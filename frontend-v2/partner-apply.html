@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#ff6b35" />
+  <title>場地加盟 · ZenPass 禪流</title>
+  <link rel="stylesheet" href="assets/v2.css" />
+  <style>
+    .fld{width:100%;box-sizing:border-box;padding:12px 14px;border:1px solid var(--border);border-radius:12px;font:inherit;background:var(--surface);color:var(--text)}
+    label.lbl{font-size:13px;color:var(--text-muted);display:block;margin:10px 0 4px}
+  </style>
+</head>
+<body>
+  <div class="topbar"><a class="back" href="index.html">‹</a><div class="title">場地加盟</div></div>
+  <div class="wrap">
+    <div id="form">
+      <p class="muted" style="font-size:13px">登記你嘅場地，即時開通，開始上架課程搵學生。</p>
+      <label class="lbl">場地名稱 *</label><input class="fld" id="p-name" />
+      <label class="lbl">類別 *</label>
+      <select class="fld" id="p-category">
+        <option value="">選擇類別…</option>
+        <option>健身室</option><option>瑜伽 / 伸展</option><option>舞蹈室</option>
+        <option>運動場</option><option>戶外場地</option><option>多功能室</option><option>其他</option>
+      </select>
+      <div class="grid2">
+        <div><label class="lbl">地區</label><input class="fld" id="p-district" placeholder="例：觀塘" /></div>
+        <div><label class="lbl">聯絡人</label><input class="fld" id="p-contact" /></div>
+      </div>
+      <label class="lbl">電話 *</label><input class="fld" id="p-phone" type="tel" />
+      <label class="lbl">電郵 *</label><input class="fld" id="p-email" type="email" />
+      <label class="lbl">地址</label><input class="fld" id="p-address" />
+      <label class="lbl">網站（可選）</label><input class="fld" id="p-website" placeholder="https://" />
+      <label class="lbl">簡介</label><textarea class="fld" id="p-desc" rows="3"></textarea>
+      <div class="spacer"></div>
+      <button class="btn btn-primary btn-block" id="submit">提交加盟</button>
+      <div id="msg" class="center muted" style="font-size:13px;margin-top:10px"></div>
+    </div>
+    <div class="spacer"></div>
+    <p class="muted center" style="font-size:13px">已經加盟？<a href="login.html" style="color:var(--brand-600);font-weight:700">登入商戶中心</a></p>
+  </div>
+
+  <script src="assets/api.js"></script>
+  <script>
+    (async () => {
+      // 若已登入，預填電郵
+      if (api.isLoggedIn()) {
+        const me = await api.get("/users/me");
+        const u = (me.data && (me.data.user || me.data)) || {};
+        if (u.email) document.getElementById("p-email").value = u.email;
+      }
+      document.getElementById("submit").onclick = submit;
+    })();
+
+    async function submit() {
+      const msg = document.getElementById("msg");
+      const body = {
+        name: document.getElementById("p-name").value.trim(),
+        category: document.getElementById("p-category").value,
+        district: document.getElementById("p-district").value.trim(),
+        contact_person: document.getElementById("p-contact").value.trim(),
+        phone: document.getElementById("p-phone").value.trim(),
+        email: document.getElementById("p-email").value.trim(),
+        address: document.getElementById("p-address").value.trim(),
+        website: document.getElementById("p-website").value.trim(),
+        description: document.getElementById("p-desc").value.trim(),
+        commission_plan: "free",
+      };
+      if (!body.name || !body.category || !body.phone || !body.email) { msg.textContent = "請填名稱、類別、電話同電郵"; return; }
+      const btn = document.getElementById("submit"); btn.disabled = true; btn.textContent = "提交中…";
+      const r = await api.post("/partner/apply", body);
+      btn.disabled = false; btn.textContent = "提交加盟";
+      if (r.ok) {
+        const d = r.data || {};
+        const loggedIn = api.isLoggedIn();
+        document.getElementById("form").innerHTML =
+          `<div class="card"><div class="body center"><div style="font-size:40px">🎉</div>
+            <p>${esc(d.message || "登記成功！場地已開通")}</p>
+            ${d.reference ? `<p class="muted" style="font-size:13px">商戶編號：${esc(d.reference)}</p>` : ""}
+            ${loggedIn ? '<div class="actions" style="margin-top:12px"><a class="btn btn-primary" href="partner.html">前往商戶中心</a></div>' : '<p class="muted" style="font-size:13px">記得註冊/登入以管理商戶中心</p>'}
+          </div></div>`;
+      } else {
+        msg.textContent = (r.data && r.data.error) || "提交失敗";
+      }
+    }
+  </script>
+</body>
+</html>
