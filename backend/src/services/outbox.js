@@ -11,8 +11,8 @@ function enqueue({ topic, refType, refId, payload }) {
   try {
     getDb()
       .prepare(
-        `INSERT INTO outbox_events (id, topic, ref_type, ref_id, payload_json)
-         VALUES (?, ?, ?, ?, ?)`,
+        `INSERT INTO outbox_events (id, topic, ref_type, ref_id, payload_json, status)
+         VALUES (?, ?, ?, ?, ?, 'pending')`,
       )
       .run(
         uuidv4(),
