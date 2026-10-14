@@ -224,6 +224,11 @@ async function sendNotification(type, payload) {
       message = `⏰ 你嘅 ${data?.plan_name || "月費"} Plan 將於 ${data?.expiry_date || "下月 1 日"} 重置，剩餘 ${data?.remaining_credits || 0} Credits 將歸零。快啲用埋佢啦！`;
       html = `<h2>⏰ Credits 即將到期</h2><p>你嘅 <b>${data?.plan_name || "月費"}</b> Plan 將於 <b>${data?.expiry_date || "下月 1 日"}</b> 重置，剩餘 <b>${data?.remaining_credits || 0}</b> Credits 將歸零。</p><p>快啲用埋佢啦！</p>`;
       break;
+    case "marketing.broadcast":
+      title = data?.title || "ZenPass 通知";
+      message = data?.message || "";
+      html = `<h2>${data?.title || "ZenPass 通知"}</h2><p>${String(data?.message || "").replace(/\n/g, "<br>")}</p>`;
+      break;
     default:
       title = type;
       message = data?.message || "你有一則新通知";

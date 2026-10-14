@@ -116,7 +116,7 @@ async function sendBroadcast(subject, message, filters = {}) {
     for (const user of users) {
       try {
         await sendNotification("marketing.broadcast", {
-          user_id: user.id,
+          recipient: user.id,
           data: { title: subject, message },
         });
         sent++;
