@@ -8,6 +8,7 @@ const bcrypt = require("bcryptjs");
 const { v4: uuidv4 } = require("uuid");
 const { getDb } = require("../services/database");
 const { generateToken, authenticateToken, setAuthCookie, clearAuthCookie } = require("../middleware/auth");
+const { emailNotification } = require("../services/notification");
 
 const { OAuth2Client } = require("google-auth-library");
 
@@ -365,6 +366,22 @@ router.post("/password-reset-request", (req, res) => {
       .run(token, expiresAt, user.id);
 
     const isDev = !process.env.SMTP_HOST;
+    if (!isDev) {
+      const base = process.env.PUBLIC_BASE_URL || "https://zenpass.hk";
+      const link = `${base}/v2/reset.html?token=${encodeURIComponent(token)}`;
+      emailNotification(
+        email,
+        "ZenPass 禪流 — 重設密碼",
+        `<div style="font-family:system-ui,-apple-system,'PingFang HK',sans-serif;max-width:520px;margin:auto;color:#222">
+          <h2 style="color:#f06030">重設密碼</h2>
+          <p>你好${user.name ? " " + user.name : ""}，</p>
+          <p>我們收到你嘅 ZenPass 密碼重設要求。撳以下按鈕設定新密碼（連結 1 小時內有效）：</p>
+          <p><a href="${link}" style="display:inline-block;background:#f06030;color:#fff;padding:12px 20px;border-radius:10px;text-decoration:none;font-weight:700">重設密碼</a></p>
+          <p style="color:#888;font-size:13px">如非本人操作，可以忽略呢封電郵。</p>
+        </div>`,
+      ).catch((e) => console.error("[PASSWORD RESET] email error:", e.message));
+    }
+
     res.json({
       message: "如果此電郵已註冊,你將會收到重置密碼指示",
       ...(isDev ? { dev_token: token, dev_message: "開發模式:使用此 token 重置密碼" } : {})
