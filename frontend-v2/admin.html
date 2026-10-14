@@ -41,7 +41,7 @@
     const TABS = [
       ["dash","概覽"], ["pay","付款核實"], ["inq","查詢"], ["classes","課程"],
       ["bookings","預約"], ["users","用戶"], ["coach","教練申請"], ["payouts","出糧"],
-      ["reports","報表"], ["corp","企業"], ["partners","商戶"], ["jobs","Job"], ["pricing","定價"], ["penalty","罰則"], ["analytics","分析"], ["nps","評價"], ["marketing","推廣"], ["migrate","遷移"], ["audit","審計"],
+      ["reports","報表"], ["corp","企業"], ["partners","商戶"], ["jobs","Job"], ["pricing","定價"], ["penalty","罰則"], ["analytics","分析"], ["nps","評價"], ["promo","優惠碼"], ["marketing","推廣"], ["migrate","遷移"], ["audit","審計"],
     ];
     let cur = "dash";
 
@@ -74,6 +74,7 @@
         if (cur === "analytics") return analytics();
         if (cur === "nps") return npsTab();
         if (cur === "marketing") return marketingTab();
+        if (cur === "promo") return promoTab();
         if (cur === "audit") return listGeneric("/admin/audit-log?limit=100", "entries", auditRow, "審計記錄");
       } catch (e) { panel().innerHTML = `<div class="card"><div class="body muted">載入失敗：${esc2(e.message)}</div></div>`; }
     }
@@ -323,6 +324,39 @@
         const sr = await api.post("/admin/update-course/" + encodeURIComponent(id), data);
         if (sr.ok && sr.data && sr.data.success !== false) { o.remove(); alert((sr.data&&sr.data.message)||"已更新"); load(); }
         else alert((sr.data&&sr.data.error)||"更新失敗");
+      };
+    }
+
+    async function promoTab() {
+      const r = await api.get("/promo");
+      if (r.status === 401 || r.status === 403) return needAdmin();
+      const codes = (r.data && r.data.codes) || [];
+      const typeOpts = [["fixed_price", "固定價"], ["fixed_discount", "固定減"], ["percent", "百分比"]];
+      let html = `<div class="card" style="margin-bottom:10px"><div class="body">
+        <b>➕ 新增優惠碼</b>
+        <input class="ef" id="pc-code" placeholder="優惠碼（例：WELCOME20）" style="margin-top:8px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
+          <select class="ef" id="pc-type">${typeOpts.map(([k,l])=>`<option value="${k}">${l}</option>`).join("")}</select>
+          <input class="ef" id="pc-value" type="number" placeholder="值（$ 或 %）">
+          <input class="ef" id="pc-max" type="number" placeholder="總用量上限（可空）">
+          <input class="ef" id="pc-per" type="number" placeholder="每人限用（預設 1）">
+        </div>
+        <input class="ef" id="pc-desc" placeholder="描述（可空）" style="margin-top:8px">
+        <button class="btn btn-primary btn-block" id="pc-add" style="margin-top:10px">新增優惠碼</button>
+        <div id="pc-status" class="muted center" style="font-size:13px;margin-top:8px"></div>
+      </div></div>`;
+      html += codes.length ? `<div class="card">${codes.map(c => row(`${esc2(c.code)} <span class="pill ${c.active?'ok':'off'}">${c.active?'啟用':'停用'}</span><div class="kv">${esc2(c.type)} ${esc2(c.value)} · 用咗 ${c.used_count||0}${c.max_uses?'/'+c.max_uses:''}${c.class_id?' · 限指定班':''}</div>`, "")).join("")}</div>` : `<div class="card"><div class="body muted center">暫無優惠碼。</div></div>`;
+      panel().innerHTML = html;
+      document.getElementById("pc-add").onclick = async () => {
+        const code = document.getElementById("pc-code").value.trim();
+        const type = document.getElementById("pc-type").value;
+        const value = document.getElementById("pc-value").value;
+        const stt = document.getElementById("pc-status");
+        if (!code || value === "") { stt.textContent = "請填優惠碼同數值"; return; }
+        if (!confirm("確定新增優惠碼 " + code + "？")) return;
+        const r2 = await api.post("/promo", { code, type, value: Number(value), max_uses: document.getElementById("pc-max").value || undefined, per_user_limit: document.getElementById("pc-per").value || 1, description: document.getElementById("pc-desc").value || undefined });
+        stt.textContent = r2.ok ? ("✅ 已新增 " + ((r2.data&&r2.data.code)||code)) : ("❌ " + ((r2.data&&r2.data.error)||"失敗"));
+        if (r2.ok) load();
       };
     }
 
