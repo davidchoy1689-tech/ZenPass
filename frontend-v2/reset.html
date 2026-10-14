@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#ff6b35" />
+  <title>重設密碼 · ZenPass 禪流</title>
+  <link rel="stylesheet" href="assets/v2.css" />
+  <style>
+    input.field{border:1px solid var(--border);border-radius:12px;padding:13px 14px;width:100%;box-sizing:border-box;font:inherit;background:var(--surface);color:var(--text)}
+  </style>
+</head>
+<body>
+  <div class="wrap" style="padding-top:32px">
+    <div class="center" style="margin:24px 0 8px">
+      <div style="font-size:34px">🔐</div>
+      <h1 style="margin:8px 0 2px">重設密碼</h1>
+      <p class="muted">設定一個新密碼。</p>
+    </div>
+    <div class="stack">
+      <input class="field" id="token" placeholder="重設 token" />
+      <input class="field" id="np" type="password" placeholder="新密碼（至少 6 個字元）" autocomplete="new-password" />
+      <input class="field" id="np2" type="password" placeholder="確認新密碼" autocomplete="new-password" />
+      <button class="btn btn-primary btn-block" id="go">重設密碼</button>
+      <div id="msg" class="muted center" style="font-size:13px"></div>
+    </div>
+    <div class="spacer"></div>
+    <p class="muted center" style="font-size:13px"><a href="login.html" style="color:var(--brand-600);font-weight:700">← 返回登入</a></p>
+  </div>
+
+  <script src="assets/api.js"></script>
+  <script>
+    const urlToken = new URLSearchParams(location.search).get("token") || "";
+    if (urlToken) { document.getElementById("token").value = urlToken; document.getElementById("token").style.display = "none"; }
+
+    async function doReset() {
+      const token = document.getElementById("token").value.trim();
+      const np = document.getElementById("np").value;
+      const np2 = document.getElementById("np2").value;
+      const msg = document.getElementById("msg");
+      if (!token) { msg.textContent = "請輸入重設 token"; return; }
+      if (np.length < 6) { msg.textContent = "密碼至少 6 個字元"; return; }
+      if (np !== np2) { msg.textContent = "兩次輸入嘅密碼唔一致"; return; }
+      const btn = document.getElementById("go"); btn.disabled = true; btn.textContent = "重設中…";
+      const r = await api.post("/auth/password-reset", { token, new_password: np });
+      btn.disabled = false; btn.textContent = "重設密碼";
+      if (r.ok) {
+        msg.textContent = (r.data && r.data.message) || "✅ 密碼已成功重置";
+        setTimeout(() => { location.href = "login.html"; }, 1200);
+      } else {
+        msg.textContent = (r.data && (r.data.error || r.data.message)) || "重設失敗，請重新申請";
+      }
+    }
+    document.getElementById("go").onclick = doReset;
+    document.getElementById("np2").addEventListener("keydown", e => { if (e.key === "Enter") doReset(); });
+  </script>
+</body>
+</html>

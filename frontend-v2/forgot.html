@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#ff6b35" />
+  <title>忘記密碼 · ZenPass 禪流</title>
+  <link rel="stylesheet" href="assets/v2.css" />
+  <style>
+    input.field{border:1px solid var(--border);border-radius:12px;padding:13px 14px;width:100%;box-sizing:border-box;font:inherit;background:var(--surface);color:var(--text)}
+    .dev{background:#fef9c3;border:1px solid #fde68a;border-radius:12px;padding:12px;margin-top:14px;font-size:13px;color:#7c5e00;word-break:break-all}
+    .dev code{background:#fff;padding:2px 6px;border-radius:4px}
+  </style>
+</head>
+<body>
+  <div class="wrap" style="padding-top:32px">
+    <div class="center" style="margin:24px 0 8px">
+      <div style="font-size:34px">🔑</div>
+      <h1 style="margin:8px 0 2px">忘記密碼</h1>
+      <p class="muted">輸入你註冊嘅電郵，我哋會發重設指示。</p>
+    </div>
+    <div class="stack">
+      <input class="field" id="email" placeholder="電郵" type="email" autocomplete="username" />
+      <button class="btn btn-primary btn-block" id="go">發送重設指示</button>
+      <div id="msg" class="muted center" style="font-size:13px"></div>
+    </div>
+    <div id="devbox"></div>
+    <div class="spacer"></div>
+    <p class="muted center" style="font-size:13px"><a href="login.html" style="color:var(--brand-600);font-weight:700">← 返回登入</a></p>
+  </div>
+
+  <script src="assets/api.js"></script>
+  <script>
+    async function doRequest() {
+      const email = document.getElementById("email").value.trim();
+      const msg = document.getElementById("msg");
+      if (!email) { msg.textContent = "請輸入電郵"; return; }
+      const btn = document.getElementById("go"); btn.disabled = true; btn.textContent = "發送中…";
+      const r = await api.post("/auth/password-reset-request", { email });
+      btn.disabled = false; btn.textContent = "發送重設指示";
+      if (!r.ok) { msg.textContent = (r.data && (r.data.error || r.data.message)) || "發送失敗，請重試"; return; }
+      msg.textContent = (r.data && r.data.message) || "如果此電郵已註冊，你將會收到重設指示。";
+      const tok = r.data && r.data.dev_token;
+      if (tok) {
+        document.getElementById("devbox").innerHTML =
+          '<div class="dev">🔧 開發模式（未設定電郵）<br>Token: <code>' + esc(tok) + '</code><br>' +
+          '<a href="reset.html?token=' + encodeURIComponent(tok) + '" style="display:inline-block;margin-top:8px;font-weight:700;color:#7c5e00">前往重設密碼 →</a></div>';
+      }
+    }
+    document.getElementById("go").onclick = doRequest;
+    document.getElementById("email").addEventListener("keydown", e => { if (e.key === "Enter") doRequest(); });
+  </script>
+</body>
+</html>
