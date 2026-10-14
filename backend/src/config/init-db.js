@@ -506,6 +506,24 @@ function initDatabase() {
     db.exec("CREATE INDEX IF NOT EXISTS idx_entitlements_user ON entitlements(user_id)");
   } catch (e) { /* optional */ }
 
+  // ===== v2.1：Outbox（可靠事件流 / 非同步消費者）=====
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS outbox_events (
+      id TEXT PRIMARY KEY,
+      topic TEXT NOT NULL,
+      ref_type TEXT,
+      ref_id TEXT,
+      payload_json TEXT,
+      status TEXT DEFAULT 'pending' CHECK(status IN ('pending','dispatched','failed')),
+      attempts INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT (datetime('now')),
+      dispatched_at TEXT
+    );
+  `);
+  try {
+    db.exec("CREATE INDEX IF NOT EXISTS idx_outbox_status ON outbox_events(status)");
+  } catch (e) { /* optional */ }
+
   // ===== 索引 =====
   try {
     db.exec("CREATE INDEX IF NOT EXISTS idx_coach_jobs_status ON coach_jobs(status)");

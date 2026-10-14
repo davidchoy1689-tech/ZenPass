@@ -23,6 +23,14 @@ function logBookingEvent({ bookingId, event, fromStatus, toStatus, actor, meta }
         actor || null,
         meta ? JSON.stringify(meta) : null,
       );
+    try {
+      require("./outbox").enqueue({
+        topic: "booking." + event,
+        refType: "booking",
+        refId: bookingId,
+        payload: { from: fromStatus || null, to: toStatus || null, actor: actor || null, meta: meta || null },
+      });
+    } catch (e) {}
     return true;
   } catch (e) {
     console.error("⚠️ [BOOKING_EVENT] log failed:", e.message);

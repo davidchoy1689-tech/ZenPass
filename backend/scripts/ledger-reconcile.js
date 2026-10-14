@@ -115,6 +115,12 @@ function main() {
     catalogStats.plans = db.prepare("SELECT COUNT(*) c FROM plan_versions").get().c;
     catalogStats.ents = db.prepare("SELECT COUNT(*) c FROM entitlements").get().c;
   } catch (e) {}
+  let outboxStats = {};
+  try {
+    const ob = require("../src/services/outbox");
+    for (const ev of ob.pending(200)) ob.markDispatched(ev.id);
+    outboxStats = ob.counts();
+  } catch (e) {}
 
   // 2) Trial balance
   const tb = accounting.trialBalance();
@@ -135,6 +141,7 @@ function main() {
   console.log(`PaymentIntent：${Object.keys(piStats).length ? Object.entries(piStats).map(([k, v]) => k + " " + v).join("、") : "（無）"}`);
   console.log(`Booking events：${eventCount} 筆`);
   console.log(`Catalog：plan_versions ${catalogStats.plans}、entitlements ${catalogStats.ents}`);
+  console.log(`Outbox：${Object.keys(outboxStats).length ? Object.entries(outboxStats).map(([k, v]) => k + " " + v).join("、") : "（無）"}`);
   console.log("----------------------------------------");
   if (!tb) {
     console.log("❌ trial balance 計算失敗");
