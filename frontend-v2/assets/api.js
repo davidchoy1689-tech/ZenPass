@@ -62,6 +62,7 @@
     get: (p) => req("GET", p),
     post: (p, b) => req("POST", p, b),
     put: (p, b) => req("PUT", p, b),
+    del: (p, b) => req("DELETE", p, b),
     me: () => req("GET", "/users/me"),
     login: async (email, password) => {
       const r = await req("POST", "/auth/login", { email, password });
