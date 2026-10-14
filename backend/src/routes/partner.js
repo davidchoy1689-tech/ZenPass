@@ -136,6 +136,62 @@ router.post(
   },
 );
 
+// ===== GET /api/partner/coach-requests — 教練加入申請 =====
+router.get(
+  "/coach-requests",
+  authenticateToken,
+  requireOwnInstitution,
+  (req, res) => {
+    try {
+      const result = partnerService.listCoachRequests(req.user.id);
+      return res.status(result.status).json(result.body);
+    } catch (err) {
+      console.error("❌ partner/coach-requests error:", err.message);
+      return serverError(res, "查詢教練申請失敗");
+    }
+  },
+);
+
+// ===== POST /api/partner/coach-requests/:id/approve =====
+router.post(
+  "/coach-requests/:id/approve",
+  authenticateToken,
+  requireOwnInstitution,
+  (req, res) => {
+    try {
+      const result = partnerService.setCoachRequestStatus(
+        req.user.id,
+        req.params.id,
+        "active",
+      );
+      return res.status(result.status).json(result.body);
+    } catch (err) {
+      console.error("❌ partner/coach-requests approve error:", err.message);
+      return serverError(res, "批准失敗");
+    }
+  },
+);
+
+// ===== POST /api/partner/coach-requests/:id/reject =====
+router.post(
+  "/coach-requests/:id/reject",
+  authenticateToken,
+  requireOwnInstitution,
+  (req, res) => {
+    try {
+      const result = partnerService.setCoachRequestStatus(
+        req.user.id,
+        req.params.id,
+        "rejected",
+      );
+      return res.status(result.status).json(result.body);
+    } catch (err) {
+      console.error("❌ partner/coach-requests reject error:", err.message);
+      return serverError(res, "拒絕失敗");
+    }
+  },
+);
+
 // ===== GET /api/partner/payouts =====
 router.get("/payouts", authenticateToken, requireOwnInstitution, (req, res) => {
   try {

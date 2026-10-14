@@ -6,6 +6,7 @@
 const { v4: uuidv4 } = require("uuid");
 const { getDb } = require("./database");
 const { writeBlock } = require("./blockchain-audit");
+const { dbNotification } = require("./notification");
 
 // ==================== Helpers ====================
 
@@ -511,6 +512,63 @@ function addCourseSchedule(userId, courseId, body) {
     status: 201,
     body: { message: `已新增 ${ids.length} 個時段`, schedules: ids },
   };
+}
+
+// ==================== 教練加入商戶（自助申請 / 審批）====================
+
+function listCoachRequests(userId) {
+  const venue = _getUserVenue(userId);
+  if (!venue) {
+    return { status: 403, body: { success: false, error: "你未有已開通嘅商戶戶口" } };
+  }
+  const db = getDb();
+  const requests = db
+    .prepare(
+      `SELECT pm.id, pm.user_id, pm.status, pm.created_at, u.name, u.email, u.phone
+       FROM partner_members pm JOIN users u ON pm.user_id = u.id
+       WHERE pm.partner_id = ? AND pm.status = 'pending'
+       ORDER BY pm.created_at DESC`,
+    )
+    .all(venue.id);
+  const members = db
+    .prepare(
+      `SELECT pm.id, pm.user_id, pm.created_at, u.name, u.email, u.phone
+       FROM partner_members pm JOIN users u ON pm.user_id = u.id
+       WHERE pm.partner_id = ? AND pm.status = 'active'
+       ORDER BY pm.created_at DESC`,
+    )
+    .all(venue.id);
+  return { status: 200, body: { requests, members } };
+}
+
+function setCoachRequestStatus(userId, memberId, status) {
+  const venue = _getUserVenue(userId);
+  if (!venue) {
+    return { status: 403, body: { success: false, error: "你未有已開通嘅商戶戶口" } };
+  }
+  if (!["active", "rejected"].includes(status)) {
+    return { status: 400, body: { success: false, error: "無效狀態" } };
+  }
+  const db = getDb();
+  const row = db
+    .prepare("SELECT * FROM partner_members WHERE id = ? AND partner_id = ?")
+    .get(memberId, venue.id);
+  if (!row) {
+    return { status: 404, body: { success: false, error: "申請不存在" } };
+  }
+  db.prepare(
+    "UPDATE partner_members SET status = ?, updated_at = datetime('now') WHERE id = ?",
+  ).run(status, memberId);
+  try {
+    dbNotification(
+      row.user_id,
+      status === "active" ? "coach.venue_approved" : "coach.venue_rejected",
+      status === "active" ? "✅ 商戶已批准你加入" : "❌ 商戶未批准你嘅申請",
+      `「${venue.name}」`,
+      { partner_id: venue.id },
+    );
+  } catch (e) {}
+  return { status: 200, body: { ok: true, status } };
 }
 
 // ==================== Partner Members ====================
@@ -1051,6 +1109,10 @@ module.exports = {
 
   // Payouts
   listPayouts,
+
+  // Coach requests
+  listCoachRequests,
+  setCoachRequestStatus,
 
   // Partner booking
   partnerBook,

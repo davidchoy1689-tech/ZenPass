@@ -32,6 +32,9 @@
 
       <div class="section-title">出糧紀錄</div>
       <div class="card" id="payouts"><div class="body muted">載入中…</div></div>
+
+      <div class="section-title">商戶合作</div>
+      <div class="card" id="venues"><div class="body muted">載入中…</div></div>
       <div class="spacer"></div>
     </div>
     <div class="spacer"></div>
@@ -78,6 +81,30 @@
       $("payouts").innerHTML = pays.length ? pays.slice(0, 10).map(p =>
         `<div class="body" style="display:flex;justify-content:space-between"><span>${esc(p.created_at || p.requested_at || "")}</span><span>${hkd(p.amount || 0)}</span></div>`
       ).join("") : '<div class="body muted">暫無出糧紀錄。</div>';
+
+      await loadVenues();
+    }
+
+    async function loadVenues() {
+      const vr = await api.get("/coach/venues");
+      const vs = (vr.data && vr.data.venues) || [];
+      const right = (v) => v.my_status === "active"
+        ? '<span class="badge ok">已加入</span>'
+        : v.my_status === "pending"
+          ? '<span class="badge warn">待審批</span>'
+          : `<button class="btn btn-secondary" style="min-height:36px;padding:0 14px" data-join="${esc(v.id)}">申請加入</button>`;
+      $("venues").innerHTML = vs.length
+        ? vs.map(v => `<div class="cl"><div>${esc(v.name)}<div class="muted" style="font-size:12px">${esc([v.category, v.district].filter(Boolean).join(" · ") || "商戶")}</div></div><div>${right(v)}</div></div>`).join("")
+        : '<div class="body muted">暫無商戶。</div>';
+      $("venues").querySelectorAll("[data-join]").forEach(b => b.onclick = () => joinVenue(b.dataset.join, b));
+    }
+
+    async function joinVenue(id, btn) {
+      if (!confirm("申請加入呢個商戶？")) return;
+      btn.disabled = true; btn.textContent = "申請中…";
+      const r = await api.post("/coach/join-venue", { partner_id: id });
+      if (r.ok) { alert("✅ 已提交申請，待商戶審批"); await loadVenues(); }
+      else { btn.disabled = false; btn.textContent = "申請加入"; alert((r.data && r.data.error) || "申請失敗"); }
     }
     if (api.requireLogin("coach.html")) load();
   </script>

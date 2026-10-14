@@ -8,7 +8,7 @@ const { v4: uuidv4 } = require("uuid");
 const { getDb } = require("../services/database");
 const { authenticateToken } = require("../middleware/auth");
 const { getSupabase } = require("../services/supabase");
-const { sendNotification } = require("../services/notification");
+const { sendNotification, dbNotification } = require("../services/notification");
 
 const { writeBlock } = require("../services/blockchain-audit");
 
@@ -528,5 +528,95 @@ router.get("/class-students", authenticateToken, (req, res) => {
     res.json({ schedule: schedInfo, students, total: students.length });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ===== GET /api/coach/venues — 可加入嘅商戶 + 我嘅狀態 =====
+router.get("/venues", authenticateToken, (req, res) => {
+  try {
+    const db = getDb();
+    const venues = db
+      .prepare(
+        "SELECT id, name, category, district, logo_url FROM partner_venues WHERE status = 'active' ORDER BY name",
+      )
+      .all();
+    const mine = db
+      .prepare("SELECT id, partner_id, status FROM partner_members WHERE user_id = ?")
+      .all(req.user.id);
+    const map = {};
+    for (const m of mine) map[m.partner_id] = m;
+    const out = venues.map((v) => ({
+      ...v,
+      my_status: (map[v.id] && map[v.id].status) || null,
+      member_id: (map[v.id] && map[v.id].id) || null,
+    }));
+    res.json({ venues: out });
+  } catch (err) {
+    console.error("coach venues error:", err);
+    res.status(500).json({ success: false, error: "無法取得商戶列表" });
+  }
+});
+
+// ===== POST /api/coach/join-venue — 教練申請加入商戶 =====
+router.post("/join-venue", authenticateToken, (req, res) => {
+  try {
+    const db = getDb();
+    const me = db
+      .prepare("SELECT is_coach, coach_verified, role, name FROM users WHERE id = ?")
+      .get(req.user.id);
+    const okCoach =
+      me &&
+      (me.is_coach ||
+        me.coach_verified ||
+        me.role === "coach" ||
+        me.role === "admin" ||
+        me.role === "super_admin");
+    if (!okCoach) {
+      return res.status(403).json({ success: false, error: "只有教練可以申請加入商戶" });
+    }
+    const partnerId = String(req.body.partner_id || "");
+    const venue = db
+      .prepare(
+        "SELECT id, name, owner_id, user_id FROM partner_venues WHERE id = ? AND status = 'active'",
+      )
+      .get(partnerId);
+    if (!venue) {
+      return res.status(404).json({ success: false, error: "商戶不存在或未開通" });
+    }
+    const existing = db
+      .prepare("SELECT id, status FROM partner_members WHERE user_id = ? AND partner_id = ?")
+      .get(req.user.id, venue.id);
+    if (existing) {
+      if (existing.status === "active") {
+        return res.status(400).json({ success: false, error: "你已經加入咗呢個商戶" });
+      }
+      if (existing.status === "pending") {
+        return res.status(400).json({ success: false, error: "你嘅申請待審批中" });
+      }
+      db.prepare(
+        "UPDATE partner_members SET status = 'pending', updated_at = datetime('now') WHERE id = ?",
+      ).run(existing.id);
+    } else {
+      db.prepare(
+        `INSERT INTO partner_members (id, user_id, partner_id, role, status, created_at, updated_at)
+         VALUES (?, ?, ?, 'coach', 'pending', datetime('now'), datetime('now'))`,
+      ).run(uuidv4(), req.user.id, venue.id);
+    }
+    try {
+      const ownerId = venue.owner_id || venue.user_id;
+      if (ownerId) {
+        dbNotification(
+          ownerId,
+          "partner.coach_request",
+          "🧑‍🏫 新教練申請加入",
+          `${me.name || "教練"} 申請加入「${venue.name}」`,
+          { partner_id: venue.id },
+        );
+      }
+    } catch (e) {}
+    res.json({ ok: true, message: "已提交申請，待商戶審批" });
+  } catch (err) {
+    console.error("join-venue error:", err);
+    res.status(500).json({ success: false, error: "申請失敗" });
   }
 });
