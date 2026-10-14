@@ -382,8 +382,42 @@ function initDatabase() {
     );
   `);
 
+  // ===== 派 Job（管理員派工作畀所有教練）=====
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS coach_jobs (
+      id TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      description TEXT,
+      job_date TEXT,
+      venue TEXT,
+      pay_hkd REAL,
+      slots INTEGER DEFAULT 1,
+      link TEXT,
+      status TEXT DEFAULT 'open' CHECK(status IN ('open','closed','cancelled')),
+      created_by TEXT,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    );
+  `);
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS coach_job_responses (
+      id TEXT PRIMARY KEY,
+      job_id TEXT NOT NULL,
+      coach_id TEXT NOT NULL,
+      response TEXT NOT NULL CHECK(response IN ('accepted','declined')),
+      note TEXT,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now')),
+      UNIQUE(job_id, coach_id),
+      FOREIGN KEY (job_id) REFERENCES coach_jobs(id),
+      FOREIGN KEY (coach_id) REFERENCES users(id)
+    );
+  `);
   // ===== 索引 =====
   try {
+    db.exec("CREATE INDEX IF NOT EXISTS idx_coach_jobs_status ON coach_jobs(status)");
+    db.exec("CREATE INDEX IF NOT EXISTS idx_coach_job_resp_job ON coach_job_responses(job_id)");
+    db.exec("CREATE INDEX IF NOT EXISTS idx_coach_job_resp_coach ON coach_job_responses(coach_id)");
     db.exec(
       "CREATE INDEX IF NOT EXISTS idx_earnings_coach ON coach_earnings(coach_id)",
     );

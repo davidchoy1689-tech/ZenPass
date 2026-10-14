@@ -254,6 +254,7 @@ app.use("/api/memberships", require("./routes/memberships"));
 app.use("/api/payments", express.json(), paymentsRouter);
 app.use("/api/coach", require("./routes/coach-earnings"));
 app.use("/api/admin", require("./routes/admin"));
+app.use("/api", require("./routes/coach-jobs"));
 app.use("/api/notifications", require("./routes/notifications"));
 app.use("/api/upload", require("./routes/upload"));
 app.use("/api/backup", require("./routes/backup"));

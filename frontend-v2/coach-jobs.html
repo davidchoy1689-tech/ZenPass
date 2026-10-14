@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#ff6b35" />
+  <title>工作機會（教練）· ZenPass 禪流</title>
+  <link rel="stylesheet" href="assets/v2.css" />
+  <style>
+    .job { padding:16px; border-bottom:1px solid var(--border); }
+    .job:last-child { border-bottom:0; }
+    .job h3 { margin:0 0 6px; font-size:16px; }
+    .job .meta { color:var(--text-muted); font-size:13px; display:flex; flex-wrap:wrap; gap:10px; margin:6px 0; }
+    .job .desc { font-size:14px; margin:8px 0; white-space:pre-wrap; }
+    .job .actions { display:flex; gap:8px; margin-top:10px; }
+    .job .actions .btn { min-height:40px; padding:0 14px; }
+    .muted { color:var(--text-muted); }
+  </style>
+</head>
+<body>
+  <div class="topbar"><a class="back" href="coach.html">‹</a><div class="title">工作機會</div></div>
+  <div class="wrap">
+    <p class="muted" style="font-size:13px">管理員派發嘅工作，你可以接單或唔接。</p>
+    <div id="list"><div class="card"><div class="body muted">載入中…</div></div></div>
+    <div class="spacer"></div>
+  </div>
+  <nav class="bottomnav">
+    <a href="index.html"><span class="ic">🏠</span>主頁</a>
+    <a href="explore.html"><span class="ic">🔍</span>探索</a>
+    <a href="booking.html"><span class="ic">📅</span>預約</a>
+    <a class="active" href="my.html"><span class="ic">🎫</span>我的</a>
+  </nav>
+  <script src="assets/api.js"></script>
+  <script>
+    const $ = (id) => document.getElementById(id);
+    let jobs = [];
+
+    (async () => {
+      if (!api.requireLogin("coach-jobs.html")) return;
+      await load();
+    })();
+
+    async function load() {
+      $("list").innerHTML = `<div class="card"><div class="body muted">載入中…</div></div>`;
+      const r = await api.get("/coach/jobs");
+      if (!r.ok) {
+        $("list").innerHTML = `<div class="card"><div class="body muted">${esc((r.data && r.data.error) || "載入失敗")}</div></div>`;
+        return;
+      }
+      jobs = (r.data && r.data.jobs) || [];
+      render();
+    }
+
+    function render() {
+      if (!jobs.length) {
+        $("list").innerHTML = `<div class="card"><div class="body muted">暫時未有工作機會。</div></div>`;
+        return;
+      }
+      $("list").innerHTML = `<div class="card">` + jobs.map(j => {
+        const mine = j.my_response;
+        const badge = mine === "accepted"
+          ? '<span class="badge ok">已接單</span>'
+          : mine === "declined"
+            ? '<span class="badge off">已拒絕</span>'
+            : '<span class="badge warn">等你回覆</span>';
+        const meta = [];
+        if (j.job_date) meta.push("🗓 " + esc(j.job_date));
+        if (j.venue) meta.push("📍 " + esc(j.venue));
+        if (j.pay_hkd != null) meta.push("💰 HK$" + esc(j.pay_hkd));
+        if (j.slots > 1) meta.push("👥 需要 " + esc(j.slots) + " 位（已接 " + esc(j.accepted_count || 0) + "）");
+        return `
+          <div class="job" data-id="${esc(j.id)}">
+            <h3>${esc(j.title)} ${badge}</h3>
+            <div class="meta">${meta.join("")}</div>
+            ${j.description ? `<div class="desc">${esc(j.description)}</div>` : ""}
+            ${j.link ? `<div class="meta">🔗 <a href="${esc(j.link)}" target="_blank" rel="noopener">詳情連結</a></div>` : ""}
+            <div class="actions">
+              <button class="btn btn-primary" data-accept ${mine === "accepted" ? "disabled" : ""}>${mine === "accepted" ? "✅ 已接單" : "接單"}</button>
+              <button class="btn btn-secondary" data-decline ${mine === "declined" ? "disabled" : ""}>${mine === "declined" ? "已拒絕" : "唔接"}</button>
+            </div>
+          </div>`;
+      }).join("") + `</div>`;
+
+      $("list").querySelectorAll(".job").forEach(el => {
+        const id = el.dataset.id;
+        const a = el.querySelector("[data-accept]");
+        const d = el.querySelector("[data-decline]");
+        if (a && !a.disabled) a.onclick = () => respond(id, "accepted", a);
+        if (d && !d.disabled) d.onclick = () => respond(id, "declined", d);
+      });
+    }
+
+    async function respond(id, response, btn) {
+      const label = response === "accepted" ? "接單" : "唔接";
+      if (!confirm(`確定${label}呢份工作？`)) return;
+      btn.disabled = true; const old = btn.textContent; btn.textContent = "處理中…";
+      const r = await api.post("/coach/jobs/" + encodeURIComponent(id) + "/respond", { response });
+      if (r.ok) { await load(); }
+      else { btn.disabled = false; btn.textContent = old; alert((r.data && r.data.error) || "操作失敗"); }
+    }
+  </script>
+</body>
+</html>

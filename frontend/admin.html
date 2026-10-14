@@ -940,6 +940,9 @@
             ></span
           ></a
         >
+        <a class="nav-item" data-tab="jobs" role="button" tabindex="0"
+          ><span class="icon">🧰</span><span>派 Job</span></a
+        >
         <a class="nav-item" data-tab="wallets" role="button" tabindex="0"
           ><span class="icon">🪙</span><span>錢包管理</span></a
         >
@@ -1270,6 +1273,37 @@ async function topupCorporateCredits(id) {
       var user = null;
       var API_URL = window.location.origin + ""; // Auto-detect // Auto-detect: use same origin as page
 
+      // ===== CSRF-aware fetch shim =====
+      // Backend requires x-csrf-token on all state-changing /api requests.
+      // Wrap window.fetch so every POST/PUT/PATCH/DELETE to /api auto-attaches it.
+      (function () {
+        var _fetch = window.fetch.bind(window);
+        var _csrf = null;
+        function getCsrf() {
+          if (_csrf) return Promise.resolve(_csrf);
+          return _fetch('/api/csrf-token', { credentials: 'include' })
+            .then(function (r) { return r.json(); })
+            .then(function (j) { _csrf = (j && j.token) || ''; return _csrf; })
+            .catch(function () { return ''; });
+        }
+        window.fetch = function (input, init) {
+          init = init || {};
+          var url = typeof input === 'string' ? input : (input && input.url) || '';
+          var method = (init.method || 'GET').toUpperCase();
+          var isApi = url.indexOf('/api/') === 0 || url === '/api' || url.indexOf('/api?') === 0;
+          if (isApi && method !== 'GET' && method !== 'HEAD' && method !== 'OPTIONS') {
+            return getCsrf().then(function (token) {
+              var h = new Headers(init.headers || {});
+              if (token) h.set('x-csrf-token', token);
+              init.headers = h;
+              init.credentials = init.credentials || 'include';
+              return _fetch(input, init);
+            });
+          }
+          return _fetch(input, init);
+        };
+      })();
+
       // Auto-login for dev mode
       (async function () {
         try {
@@ -1497,6 +1531,162 @@ async function topupCorporateCredits(id) {
         });
       });
 
+      // ===== 派 Job =====
+      async function loadJobsTab() {
+        var main = document.getElementById("mainContent");
+        main.innerHTML =
+          '<div class="top-bar"><div><h1>🧰 派 Job</h1><div class="sub">派工作畀所有教練，睇邊個接單</div></div></div>' +
+          '<div class="card" style="margin-bottom:16px"><div style="padding:16px">' +
+          '<h3 style="margin-top:0">＋ 建立新 Job</h3>' +
+          '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;max-width:760px">' +
+          '<input id="job-title" placeholder="標題（必填）例：芬蘭木柱活動教練" style="grid-column:1/-1;padding:10px;border:1px solid #ddd;border-radius:8px">' +
+          '<input id="job-date" type="datetime-local" style="padding:10px;border:1px solid #ddd;border-radius:8px">' +
+          '<input id="job-venue" placeholder="地點" style="padding:10px;border:1px solid #ddd;border-radius:8px">' +
+          '<input id="job-pay" type="number" placeholder="報酬 HK$" style="padding:10px;border:1px solid #ddd;border-radius:8px">' +
+          '<input id="job-slots" type="number" min="1" value="1" placeholder="需要幾位教練" style="padding:10px;border:1px solid #ddd;border-radius:8px">' +
+          '<input id="job-link" placeholder="連結（可選）" style="grid-column:1/-1;padding:10px;border:1px solid #ddd;border-radius:8px">' +
+          '<textarea id="job-desc" placeholder="描述" rows="3" style="grid-column:1/-1;padding:10px;border:1px solid #ddd;border-radius:8px"></textarea>' +
+          '</div>' +
+          '<div style="margin-top:12px"><button class="btn btn-primary" id="job-create-btn" onclick="createJob()">📣 派畀所有教練</button></div>' +
+          '</div></div>' +
+          '<div id="job-list"><div class="loading">載入中...</div></div>';
+        await renderJobList();
+      }
+
+      async function renderJobList() {
+        var box = document.getElementById("job-list");
+        try {
+          var d = await apiGet("/admin/jobs");
+          var jobs = d.jobs || [];
+          window._jobs = jobs;
+          var html =
+            '<div class="card"><div style="padding:16px"><h3 style="margin-top:0">已派 Job（共 ' +
+            jobs.length +
+            '）· 教練總數 ' +
+            (d.coach_total || 0) +
+            "</h3>";
+          if (!jobs.length) {
+            html += '<div class="empty"><div class="ico">🧰</div>未派過 Job</div>';
+          } else {
+            html +=
+              "<div class=\"table-wrap\"><table><thead><tr><th>標題</th><th>日期</th><th>地點</th><th>報酬</th><th>需要</th><th>已接</th><th>狀態</th><th>操作</th></tr></thead><tbody>";
+            jobs.forEach(function (j) {
+              var st =
+                j.status === "open"
+                  ? '<span class="badge badge-success">開放中</span>'
+                  : j.status === "closed"
+                    ? '<span class="badge badge-secondary">已結束</span>'
+                    : '<span class="badge">已取消</span>';
+              html +=
+                "<tr><td>" +
+                escape(j.title) +
+                "</td><td>" +
+                (j.job_date || "—") +
+                "</td><td>" +
+                (j.venue || "—") +
+                "</td><td>" +
+                (j.pay_hkd != null ? "$" + j.pay_hkd : "—") +
+                "</td><td>" +
+                (j.slots || 1) +
+                "</td><td>" +
+                (j.accepted_count || 0) +
+                "</td><td>" +
+                st +
+                "</td><td><button class=\"btn btn-outline btn-sm\" onclick=\"viewJob('" +
+                j.id +
+                "')\">查看</button> " +
+                (j.status === "open"
+                  ? '<button class="btn btn-outline btn-sm" onclick="dispatchJob(\'' + j.id + '\')">再派</button> <button class="btn btn-outline btn-sm" onclick="setJobStatus(\'' + j.id + '\',\'closed\')">關閉</button>'
+                  : '<button class="btn btn-outline btn-sm" onclick="setJobStatus(\'' + j.id + '\',\'open\')">重開</button>') +
+                "</td></tr>";
+            });
+            html += "</tbody></table></div>";
+          }
+          html += "</div></div>";
+          box.innerHTML = html;
+        } catch (e) {
+          box.innerHTML =
+            '<div class="card"><p style="color:red;padding:16px">載入失敗: ' +
+            e.message +
+            "</p></div>";
+        }
+      }
+
+      async function createJob() {
+        var title = (document.getElementById("job-title").value || "").trim();
+        if (!title) {
+          alert("請輸入標題");
+          return;
+        }
+        var btn = document.getElementById("job-create-btn");
+        btn.disabled = true;
+        btn.textContent = "派發中...";
+        try {
+          var d = await apiPost("/admin/jobs", {
+            title: title,
+            job_date: document.getElementById("job-date").value || null,
+            venue: document.getElementById("job-venue").value || null,
+            pay_hkd: document.getElementById("job-pay").value || null,
+            slots: document.getElementById("job-slots").value || 1,
+            link: document.getElementById("job-link").value || null,
+            description: document.getElementById("job-desc").value || null,
+          });
+          alert("✅ 已派畀 " + (d.notified || 0) + " 位教練");
+          await renderJobList();
+        } catch (e) {
+          alert("派發失敗: " + e.message);
+        } finally {
+          btn.disabled = false;
+          btn.textContent = "📣 派畀所有教練";
+        }
+      }
+
+      async function dispatchJob(id) {
+        if (!confirm("重新派發呢個 Job 畀所有教練？")) return;
+        try {
+          var d = await apiPost("/admin/jobs/" + id + "/dispatch", {});
+          alert("✅ 已通知 " + (d.notified || 0) + " 位教練");
+        } catch (e) {
+          alert("派發失敗: " + e.message);
+        }
+      }
+
+      async function setJobStatus(id, status) {
+        if (!confirm(status === "closed" ? "確定關閉此 Job？" : "確定重開此 Job？")) return;
+        try {
+          await apiPost("/admin/jobs/" + id + "/status", { status: status });
+          await renderJobList();
+        } catch (e) {
+          alert("操作失敗: " + e.message);
+        }
+      }
+
+      async function viewJob(id) {
+        try {
+          var d = await apiGet("/admin/jobs/" + id);
+          var j = d.job || {};
+          var rows = d.responses || [];
+          var acc = rows.filter(function (r) { return r.response === "accepted"; });
+          var dec = rows.filter(function (r) { return r.response === "declined"; });
+          var html =
+            '<div class="modal"><h3>🧰 ' + escape(j.title) + "</h3>" +
+            "<p>" + (j.description ? escape(j.description) : "") + "</p>" +
+            "<p>🗓 " + (j.job_date || "—") + "　\ud83d\udccd " + (j.venue || "—") + "　\ud83d\udcb0 " + (j.pay_hkd != null ? "HK$" + j.pay_hkd : "—") + "　\ud83d\udc65 " + (j.slots || 1) + "</p>" +
+            "<h4>✅ 接單（" + acc.length + "）</h4>" +
+            (acc.length ? "<ul>" + acc.map(function (r) { return "<li>" + escape(r.name || "教練") + (r.phone ? " · " + escape(r.phone) : "") + (r.note ? " — " + escape(r.note) : "") + "</li>"; }).join("") + "</ul>" : '<p class="muted">暫無</p>') +
+            "<h4>❌ 唔接（" + dec.length + "）</h4>" +
+            (dec.length ? "<ul>" + dec.map(function (r) { return "<li>" + escape(r.name || "教練") + (r.note ? " — " + escape(r.note) : "") + "</li>"; }).join("") + "</ul>" : '<p class="muted">暫無</p>') +
+            '<div class="actions"><button class="btn btn-outline" onclick="this.closest(\'.modal-overlay\').remove()">關閉</button></div></div>';
+          var overlay = document.createElement("div");
+          overlay.className = "modal-overlay";
+          overlay.innerHTML = html;
+          document.body.appendChild(overlay);
+          overlay.onclick = function (e) { if (e.target === overlay) overlay.remove(); };
+        } catch (e) {
+          alert("載入失敗: " + e.message);
+        }
+      }
+
       // ===== Load Tab =====
       function loadTab(tab) {
         var main = document.getElementById("mainContent");
@@ -1534,6 +1724,9 @@ async function topupCorporateCredits(id) {
             break;
           case "coach-apps":
             loadCoachAppsTab();
+            break;
+          case "jobs":
+            loadJobsTab();
             break;
           case "penalty":
             loadPenaltyTab();
