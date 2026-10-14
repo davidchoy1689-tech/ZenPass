@@ -475,6 +475,37 @@ function initDatabase() {
     db.exec("CREATE INDEX IF NOT EXISTS idx_booking_events_bid ON booking_events(booking_id)");
   } catch (e) { /* optional */ }
 
+  // ===== v2.1：會籍 Catalog（計劃版本化）+ Entitlements =====
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS plan_versions (
+      id TEXT PRIMARY KEY,
+      plan_key TEXT NOT NULL,
+      version INTEGER NOT NULL DEFAULT 1,
+      price_hkd REAL,
+      credits_granted INTEGER,
+      features_json TEXT,
+      effective_from TEXT DEFAULT (datetime('now')),
+      created_at TEXT DEFAULT (datetime('now')),
+      UNIQUE(plan_key, version)
+    );
+  `);
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS entitlements (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      key TEXT NOT NULL,
+      value INTEGER DEFAULT 1,
+      source TEXT,
+      valid_until TEXT,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now')),
+      UNIQUE(user_id, key)
+    );
+  `);
+  try {
+    db.exec("CREATE INDEX IF NOT EXISTS idx_entitlements_user ON entitlements(user_id)");
+  } catch (e) { /* optional */ }
+
   // ===== 索引 =====
   try {
     db.exec("CREATE INDEX IF NOT EXISTS idx_coach_jobs_status ON coach_jobs(status)");

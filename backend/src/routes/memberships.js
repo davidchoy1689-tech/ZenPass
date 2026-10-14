@@ -76,6 +76,13 @@ const MEMBERSHIP_PLANS = {
   },
 };
 
+// v2.1：seed 計劃版本（首次啟動）
+try {
+  require("../services/membership-catalog").seedPlanVersions(MEMBERSHIP_PLANS);
+} catch (e) {
+  console.error("⚠️ seedPlanVersions failed:", e.message);
+}
+
 // ===== GET /api/memberships/plans — 取得會籍方案 =====
 // 改用 DB pricing_config，管理員可隨時調整
 router.get("/plans", (req, res) => {
@@ -149,6 +156,17 @@ router.post("/subscribe", authenticateToken, async (req, res) => {
       WHERE id = ?
     `,
     ).run(type, endDateStr, plan.credits_granted, req.user.id);
+
+    // v2.1：授予會籍權益（entitlements）
+    try {
+      require("../services/membership-catalog").grantEntitlements(
+        req.user.id,
+        type,
+        endDateStr,
+      );
+    } catch (entErr) {
+      console.error("⚠️ [ENTITLEMENT] grant failed:", entErr.message);
+    }
 
     // 記錄交易
     db.prepare(
