@@ -38,7 +38,7 @@ echo ""
 # 檢查是否有 staged 的檔案跟 backend 有關
 STAGED_FILES=$(git diff --cached --name-only)
 HAS_BACKEND_CHANGES=$(echo "$STAGED_FILES" | grep -c "^backend/" || true)
-HAS_FRONTEND_CHANGES=$(echo "$STAGED_FILES" | grep -c "^frontend/" || true)
+HAS_FRONTEND_CHANGES=$(echo "$STAGED_FILES" | grep -c "^frontend" || true)
 
 if [ "$HAS_BACKEND_CHANGES" -eq 0 ] && [ "$HAS_FRONTEND_CHANGES" -eq 0 ]; then
   echo "${YELLOW}⚠️  沒有 backend 或 frontend 改動，跳過測試${NC}"
@@ -119,6 +119,18 @@ if [ "$HAS_FRONTEND_CHANGES" -gt 0 ]; then
       echo "  ✅ $f — HTML 結構正常"
     fi
   done
+
+  # 🧠 檢查 inline <script> 語法（一個 syntax error 就會搞死成頁，例如 admin.html 曾中招）
+  HTML_FILES=$(echo "$STAGED_FILES" | grep -E "\.html$" || true)
+  if [ -n "$HTML_FILES" ]; then
+    echo "${YELLOW}🔎 檢查 inline <script> JS 語法...${NC}"
+    python3 zenpass-tester/scripts/check-inline-js.py $HTML_FILES || {
+      echo ""
+      echo "${RED}❌ inline <script> 有 JS 語法錯誤 — commit 被阻止${NC}"
+      echo "${YELLOW}請修正後再 commit${NC}"
+      exit 1
+    }
+  fi
 
   # 🦶 自動統一 Footer：任何 frontend HTML 若無 footer-grad 就自動 inline
   FOOTER_SCRIPT="zenpass-tester/scripts/inline-footer.py"
