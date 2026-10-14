@@ -361,6 +361,20 @@ function insertBookingRow(db, bookingData, partnerInfo) {
       amount,
     );
   }
+
+  // 🕒 v2.1：兩階段 hold（落單即 hold，付款/取消再 commit/void）
+  if (bookingStatus === "pending_payment") {
+    try {
+      require("./ledger-holds").createHold(
+        bookingId,
+        userId,
+        amount,
+        paymentType === "credits" ? "credits" : "hkd",
+      );
+    } catch (e) {
+      console.error("⚠️ [HOLD] create failed:", e.message);
+    }
+  }
 }
 
 // ==================== Notifications (fire-and-forget) ====================
@@ -852,6 +866,13 @@ function completePayment(req) {
     }
   }
 
+  // 🕒 v2.1：付款成功 → commit hold
+  try {
+    require("./ledger-holds").commitHold(booking.id);
+  } catch (holdErr) {
+    console.error("⚠️ [HOLD] commit failed:", holdErr.message);
+  }
+
   return {
     status: 200,
     body: {
@@ -976,6 +997,11 @@ function _processLateCancel(db, booking, hoursUntilClass, reason, req) {
     });
   } catch (e) {}
 
+  // 🕒 v2.1：遲取消 → void hold
+  try {
+    require("./ledger-holds").voidHold(booking.id, "late_cancelled");
+  } catch (e) {}
+
   return {
     status: 200,
     body: {
@@ -991,6 +1017,11 @@ function _processNormalCancel(db, booking, reason, req) {
   db.prepare(
     "UPDATE bookings SET status = 'cancelled', cancel_reason = ? WHERE id = ?",
   ).run(reason || null, booking.id);
+
+  // 🕒 v2.1：取消 → void hold
+  try {
+    require("./ledger-holds").voidHold(booking.id, "cancelled");
+  } catch (e) {}
 
   db.prepare(
     "UPDATE class_schedules SET enrolled_count = MAX(0, enrolled_count - 1) WHERE id = ?",
