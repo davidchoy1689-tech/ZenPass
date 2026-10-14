@@ -375,6 +375,21 @@ function insertBookingRow(db, bookingData, partnerInfo) {
       console.error("⚠️ [HOLD] create failed:", e.message);
     }
   }
+
+  // 💳 v2.1：PaymentIntent（統一支付編排）
+  if (bookingStatus === "pending_payment") {
+    try {
+      require("./payment-intents").upsertIntent({
+        bookingId,
+        userId,
+        amount,
+        method: paymentType,
+        state: "requires_payment",
+      });
+    } catch (e) {
+      console.error("⚠️ [PAYINTENT] create failed:", e.message);
+    }
+  }
 }
 
 // ==================== Notifications (fire-and-forget) ====================
@@ -871,6 +886,20 @@ function completePayment(req) {
     require("./ledger-holds").commitHold(booking.id);
   } catch (holdErr) {
     console.error("⚠️ [HOLD] commit failed:", holdErr.message);
+  }
+
+  // 💳 v2.1：PaymentIntent 標記成功
+  try {
+    require("./payment-intents").upsertIntent({
+      bookingId: booking.id,
+      userId: booking.user_id,
+      amount: amount || booking.amount || 0,
+      method: payment_method || "fps",
+      pspRef: payment_reference || null,
+      state: "succeeded",
+    });
+  } catch (piErr) {
+    console.error("⚠️ [PAYINTENT] update failed:", piErr.message);
   }
 
   return {

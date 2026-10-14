@@ -99,6 +99,14 @@ function main() {
     console.error("hold sync error:", e.message);
   }
 
+  // 1c) PaymentIntent 概覽
+  let piStats = {};
+  try {
+    db.prepare("SELECT state, COUNT(*) c FROM payment_intents GROUP BY state")
+      .all()
+      .forEach((r) => (piStats[r.state] = r.c));
+  } catch (e) {}
+
   // 2) Trial balance
   const tb = accounting.trialBalance();
 
@@ -115,6 +123,7 @@ function main() {
   }
   console.log("----------------------------------------");
   console.log(`Hold 同步：新增 ${holdStats.created}、committed ${holdStats.committed}、voided ${holdStats.voided}、expired ${holdStats.expired}、仍 pending ${holdStats.pending}`);
+  console.log(`PaymentIntent：${Object.keys(piStats).length ? Object.entries(piStats).map(([k, v]) => k + " " + v).join("、") : "（無）"}`);
   console.log("----------------------------------------");
   if (!tb) {
     console.log("❌ trial balance 計算失敗");

@@ -438,6 +438,26 @@ function initDatabase() {
     db.exec("CREATE INDEX IF NOT EXISTS idx_ledger_holds_booking ON ledger_holds(booking_id)");
   } catch (e) { /* indexes optional */ }
 
+  // ===== v2.1：PaymentIntent（統一支付編排）=====
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS payment_intents (
+      id TEXT PRIMARY KEY,
+      booking_id TEXT UNIQUE,
+      user_id TEXT,
+      amount REAL NOT NULL DEFAULT 0,
+      currency TEXT DEFAULT 'HKD',
+      method TEXT,
+      psp TEXT,
+      psp_ref TEXT,
+      state TEXT DEFAULT 'requires_payment' CHECK(state IN ('requires_payment','processing','succeeded','failed','cancelled')),
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    );
+  `);
+  try {
+    db.exec("CREATE INDEX IF NOT EXISTS idx_payment_intents_state ON payment_intents(state)");
+  } catch (e) { /* optional */ }
+
   // ===== 索引 =====
   try {
     db.exec("CREATE INDEX IF NOT EXISTS idx_coach_jobs_status ON coach_jobs(status)");
