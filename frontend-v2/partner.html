@@ -27,6 +27,7 @@
     .sched button { border:0; background:var(--ink-200); color:var(--ink-500); border-radius:10px; height:38px; padding:0 12px; cursor:pointer; font:inherit; }
     .mini { min-height:34px; padding:0 12px; font-size:13px; }
     .lbl2 { font-size:12px; color:var(--text-muted); margin:2px 0 2px; }
+    .bktools { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
   </style>
 </head>
 <body>
@@ -80,7 +81,28 @@
       </div>
       <div class="card" id="courses"><div class="body muted">載入中…</div></div>
 
-      <div class="section-title">最近預約</div>
+      <div class="section-title">預約管理</div>
+      <div class="card" style="margin-bottom:10px"><div class="body">
+        <div class="bktools">
+          <select class="fld" id="bk-course"><option value="">全部課程</option></select>
+          <select class="fld" id="bk-status">
+            <option value="">全部狀態</option>
+            <option value="confirmed">已確認</option>
+            <option value="attended">已出席</option>
+            <option value="pending_payment">待付款</option>
+            <option value="cancelled">已取消</option>
+            <option value="no_show">缺席</option>
+          </select>
+          <input class="fld" id="bk-from" type="date" />
+          <input class="fld" id="bk-to" type="date" />
+        </div>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button class="btn btn-primary mini" id="bk-apply">套用篩選</button>
+          <button class="btn btn-secondary mini" id="bk-reset">清除</button>
+          <button class="btn btn-secondary mini" id="bk-csv">⬇ 匯出 CSV</button>
+        </div>
+        <div class="muted" id="bk-count" style="margin-top:8px;font-size:12px"></div>
+      </div></div>
       <div class="card" id="bookings"><div class="body muted">載入中…</div></div>
 
       <div class="section-title">出糧紀錄</div>
@@ -102,6 +124,7 @@
     const $ = (id) => document.getElementById(id);
     let venueCoaches = [];
     let courses = [];
+    let allBookings = [];
 
     (async () => {
       if (!api.requireLogin("partner.html")) return;
@@ -142,10 +165,14 @@
       };
       $("addSched").onclick = () => addSchedRow();
       $("createBtn").onclick = createCourse;
+      $("bk-apply").onclick = loadBookings;
+      $("bk-reset").onclick = () => { $("bk-course").value = ""; $("bk-status").value = ""; $("bk-from").value = ""; $("bk-to").value = ""; loadBookings(); };
+      $("bk-csv").onclick = exportBookingsCSV;
+      $("bk-course").onchange = renderBookings;
       addSchedRow();
 
       loadRevenue();
-      loadCourses();
+      await loadCourses();
       loadBookings();
       loadPayouts();
     })();
@@ -224,17 +251,64 @@
             </div>
           </div>`).join("")
         : '<div class="body muted">暫無課程。</div>';
+      // course filter
+      const cur = $("bk-course").value;
+      $("bk-course").innerHTML = `<option value="">全部課程</option>` +
+        courses.map(c => `<option value="${esc(c.id)}">${esc(c.title)}</option>`).join("");
+      $("bk-course").value = cur;
     }
 
     async function loadBookings() {
-      const r = await api.get("/partner/bookings?limit=20");
-      const list = (r.data && r.data.bookings) || [];
+      const qs = ["limit=500"];
+      if ($("bk-status").value) qs.push("status=" + encodeURIComponent($("bk-status").value));
+      if ($("bk-from").value) qs.push("date_from=" + encodeURIComponent($("bk-from").value));
+      if ($("bk-to").value) qs.push("date_to=" + encodeURIComponent($("bk-to").value));
+      $("bookings").innerHTML = '<div class="body muted">載入中…</div>';
+      const r = await api.get("/partner/bookings?" + qs.join("&"));
+      allBookings = (r.data && r.data.bookings) || [];
+      renderBookings();
+    }
+
+    const STATUS_LABEL = { confirmed: "已確認", attended: "已出席", pending_payment: "待付款", cancelled: "已取消", no_show: "缺席" };
+
+    function filteredBookings() {
+      const cid = $("bk-course").value;
+      return allBookings.filter(b => !cid || b.class_id === cid);
+    }
+
+    function renderBookings() {
+      const list = filteredBookings();
+      const total = list.reduce((a, b) => a + (b.venue_earned_amount || 0), 0);
+      $("bk-count").textContent = `顯示 ${list.length} 筆 · 場地實收合計 ${hkd(total)}`;
       $("bookings").innerHTML = list.length
         ? list.map(b => {
-            const st = ({ confirmed: "已確認", attended: "已出席", pending_payment: "待付款", cancelled: "已取消", no_show: "缺席" }[b.status] || b.status);
-            return `<div class="row"><div><b>${esc(b.class_title || "")}</b><div class="muted" style="font-size:12px">${esc(b.student_name || "")} · ${fmtTime(b.start_time)}</div></div><div style="text-align:right"><div>${hkd(b.venue_earned_amount || 0)}</div><div class="muted" style="font-size:12px">${esc(st)}</div></div></div>`;
+            const st = STATUS_LABEL[b.status] || b.status;
+            return `<div class="row">
+              <div><b>${esc(b.student_name || "學生")}</b>
+                <div class="muted" style="font-size:12px">${esc(b.class_title || "")} · ${fmtTime(b.start_time)}</div>
+                <div class="muted" style="font-size:12px">${esc(b.student_email || "")}${b.student_phone ? " · " + esc(b.student_phone) : ""}</div></div>
+              <div style="text-align:right;white-space:nowrap"><div>${hkd(b.venue_earned_amount || 0)}</div><div class="muted" style="font-size:12px">${esc(st)}</div></div>
+            </div>`;
           }).join("")
         : '<div class="body muted">暫無預約。</div>';
+    }
+
+    function exportBookingsCSV() {
+      const rows = filteredBookings();
+      if (!rows.length) { alert("冇資料可匯出"); return; }
+      const head = ["預約編號", "學生", "電郵", "電話", "課程", "開始時間", "金額", "場地實收", "狀態"];
+      const esc2 = (v) => `"${String(v == null ? "" : v).replace(/"/g, '""')}"`;
+      const lines = [head.map(esc2).join(",")];
+      rows.forEach(b => lines.push([
+        b.id, b.student_name, b.student_email, b.student_phone, b.class_title,
+        b.start_time, b.amount, b.venue_earned_amount, STATUS_LABEL[b.status] || b.status,
+      ].map(esc2).join(",")));
+      const blob = new Blob(["\ufeff" + lines.join("\r\n")], { type: "text/csv;charset=utf-8" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "zenpass-bookings-" + new Date().toISOString().slice(0, 10) + ".csv";
+      a.click();
+      URL.revokeObjectURL(a.href);
     }
 
     async function loadPayouts() {
