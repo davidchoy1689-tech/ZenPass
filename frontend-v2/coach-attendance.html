@@ -10,6 +10,10 @@
     select.field { border:1px solid var(--border); border-radius:12px; padding:12px 14px; width:100%; box-sizing:border-box; font:inherit; background:var(--surface); color:var(--text); }
     .st { display:flex; justify-content:space-between; align-items:center; padding:14px 16px; border-bottom:1px solid var(--border); gap:10px; }
     .st:last-child { border-bottom:0; }
+    .toolbar { display:flex; align-items:center; gap:8px; margin-bottom:8px; flex-wrap:wrap; }
+    .toolbar .grow { flex:1; }
+    .chip { cursor:pointer; border:1px solid transparent; font:inherit; }
+    .chip.on { border-color:var(--brand-500); }
   </style>
 </head>
 <body>
@@ -22,6 +26,11 @@
     </div>
     <div class="spacer"></div>
     <div class="section-title" id="schedTitle" style="display:none">學生名單</div>
+    <div class="toolbar" id="rosterBar" style="display:none">
+      <button type="button" class="chip" id="toggleCancelled">顯示已取消/缺席</button>
+      <div class="grow"></div>
+      <button type="button" class="btn btn-primary" id="attendAll" style="min-height:38px;padding:0 14px">全部簽到</button>
+    </div>
     <div class="card" id="roster"><div class="body muted">請選擇課程及時段。</div></div>
     <div class="spacer"></div>
   </div>
@@ -35,10 +44,14 @@
   <script>
     const $ = (id) => document.getElementById(id);
     let schedList = [];
+    let allStudents = [];
+    let showCancelled = false;
     const statusBadge = (s) => ({ confirmed:'<span class="badge warn">已確認</span>', attended:'<span class="badge ok">已出席</span>', cancelled:'<span class="badge off">已取消</span>', no_show:'<span class="badge off">缺席</span>' }[s] || `<span class="badge off">${esc(s)}</span>`);
 
     (async () => {
       if (!api.requireLogin("coach-attendance.html")) return;
+      $("toggleCancelled").onclick = () => { showCancelled = !showCancelled; renderRoster(); };
+      $("attendAll").onclick = attendAll;
       const r = await api.get("/coach/my-classes");
       const cls = (r.data && r.data.classes) || [];
       $("cls").innerHTML = `<option value="">選擇課程…</option>` + cls.map(c => `<option value="${esc(c.id)}">${esc(c.title)}</option>`).join("");
@@ -48,6 +61,8 @@
 
     async function loadSchedules() {
       const cid = $("cls").value;
+      allStudents = [];
+      $("rosterBar").style.display = "none";
       $("roster").innerHTML = `<div class="body muted">請選擇時段。</div>`;
       $("schedTitle").style.display = "none";
       if (!cid) { $("sched").innerHTML = `<option>先揀課程</option>`; return; }
@@ -60,20 +75,40 @@
 
     async function loadRoster() {
       const sid = $("sched").value;
-      if (!sid) { $("roster").innerHTML = `<div class="body muted">請選擇時段。</div>`; $("schedTitle").style.display="none"; return; }
+      if (!sid) { allStudents = []; $("rosterBar").style.display = "none"; $("roster").innerHTML = `<div class="body muted">請選擇時段。</div>`; $("schedTitle").style.display="none"; return; }
       $("roster").innerHTML = `<div class="body muted">載入名單…</div>`;
       const r = await api.get("/coach/class-students?schedule_id=" + encodeURIComponent(sid));
-      const st = ((r.data && r.data.students) || []).filter(s => ["confirmed", "attended", "no_show"].includes(s.booking_status));
-      const sched = (r.data && r.data.schedule) || {};
+      allStudents = (r.data && r.data.students) || [];
       $("schedTitle").style.display = "";
-      $("schedTitle").textContent = "學生名單（" + st.length + "）";
-      $("roster").innerHTML = st.length ? st.map(s => `
+      $("rosterBar").style.display = "flex";
+      renderRoster();
+    }
+
+    function renderRoster() {
+      const confirmed = allStudents.filter(s => s.booking_status === "confirmed");
+      const visible = showCancelled
+        ? allStudents
+        : allStudents.filter(s => ["confirmed", "attended", "no_show"].includes(s.booking_status));
+
+      // toggle chip state
+      const t = $("toggleCancelled");
+      t.classList.toggle("on", showCancelled);
+
+      // batch button state
+      const ab = $("attendAll");
+      ab.disabled = confirmed.length === 0;
+      ab.textContent = confirmed.length ? `全部簽到（${confirmed.length}）` : "全部簽到";
+
+      $("schedTitle").textContent = "學生名單（" + visible.length + "）";
+
+      $("roster").innerHTML = visible.length ? visible.map(s => `
         <div class="st" data-bid="${esc(s.id)}">
           <div><b>${esc(s.name || "學生")}</b>
             <div class="muted" style="font-size:12px">${esc(s.email || "")}${s.phone ? " · " + esc(s.phone) : ""}</div>
             <div style="margin-top:4px">${statusBadge(s.booking_status)}</div></div>
           <div>${s.booking_status === "confirmed" ? `<button class="btn btn-primary" style="min-height:40px;padding:0 14px" data-attend>簽到</button>` : (s.booking_status === "attended" ? "✅" : "")}</div>
         </div>`).join("") : `<div class="body muted">此時段暫無學生。</div>`;
+
       $("roster").querySelectorAll("[data-attend]").forEach(b => b.onclick = () => attend(b.closest(".st").dataset.bid, b));
     }
 
@@ -83,6 +118,22 @@
       const r = await api.post("/bookings/" + encodeURIComponent(bookingId) + "/attend", { checkin_method: "coach" });
       if (r.ok && r.data) { await loadRoster(); }
       else { btn.disabled = false; btn.textContent = "簽到"; alert((r.data && r.data.error) || "簽到失敗"); }
+    }
+
+    async function attendAll() {
+      const confirmed = allStudents.filter(s => s.booking_status === "confirmed");
+      if (!confirmed.length) return;
+      if (!confirm(`為全部 ${confirmed.length} 位「已確認」學生簽到？`)) return;
+      const btn = $("attendAll");
+      btn.disabled = true;
+      let ok = 0, fail = 0;
+      for (let i = 0; i < confirmed.length; i++) {
+        btn.textContent = `簽到中… ${i + 1}/${confirmed.length}`;
+        const r = await api.post("/bookings/" + encodeURIComponent(confirmed[i].id) + "/attend", { checkin_method: "coach" });
+        if (r.ok) ok++; else fail++;
+      }
+      await loadRoster();
+      alert(`✅ 完成：${ok} 位已簽到${fail ? `，${fail} 位失敗` : ""}`);
     }
   </script>
 </body>
