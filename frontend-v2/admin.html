@@ -41,7 +41,7 @@
     const TABS = [
       ["dash","概覽"], ["pay","付款核實"], ["inq","查詢"], ["classes","課程"],
       ["bookings","預約"], ["users","用戶"], ["coach","教練申請"], ["payouts","出糧"],
-      ["reports","報表"], ["corp","企業"], ["jobs","Job"], ["pricing","定價"], ["penalty","罰則"], ["analytics","分析"], ["nps","評價"], ["marketing","推廣"], ["audit","審計"],
+      ["reports","報表"], ["corp","企業"], ["partners","商戶"], ["jobs","Job"], ["pricing","定價"], ["penalty","罰則"], ["analytics","分析"], ["nps","評價"], ["marketing","推廣"], ["migrate","遷移"], ["audit","審計"],
     ];
     let cur = "dash";
 
@@ -66,6 +66,8 @@
         if (cur === "payouts") return payouts();
         if (cur === "reports") return reports();
         if (cur === "corp") return listGeneric("/corporate/companies", "companies", corpRow, "企業");
+        if (cur === "partners") return partnersTab();
+        if (cur === "migrate") return migrateTab();
         if (cur === "jobs") return listGeneric("/admin/jobs", "jobs", jobRow, "Job");
         if (cur === "pricing") return pricing();
         if (cur === "penalty") return penalty();
@@ -212,6 +214,34 @@
       let html = `<div class="card"><div class="body"><b>教練排名</b>${coaches.length ? coaches.slice(0, 15).map(c => row(`${esc2(c.name || c.coach_name || c.coach_id || "")}<div class="kv">⭐ ${esc2(c.avg_rating || c.rating || 0)} · ${esc2(c.total_students || c.students || 0)} 學生</div>`, "")).join("") : '<div class="kv">暫無資料</div>'}</div></div>`;
       html += `<div class="card" style="margin-top:10px"><div class="body"><b>每月收入趨勢</b>${monthly.length ? monthly.slice(-6).map(m => row(esc2(m.month || m.period || ""), money(m.revenue || m.total))).join("") : '<div class="kv">暫無資料</div>'}</div></div>`;
       panel().innerHTML = html;
+    }
+
+    async function partnersTab() {
+      const r = await api.get("/partner/admin/partner-list");
+      if (r.status === 401 || r.status === 403) return needAdmin();
+      const arr = (r.data && r.data.data) || [];
+      if (!arr.length) { panel().innerHTML = `<div class="card"><div class="body muted center">暫無商戶。</div></div>`; return; }
+      panel().innerHTML = `<div class="card">${arr.map(p => row(`${esc2(p.name)}<div class="kv">${esc2([p.category,p.district].filter(Boolean).join(" · "))}${p.phone?" · "+esc2(p.phone):""}</div>`, `<span class="pill ${p.status==='active'||!p.status?'ok':'off'}">${esc2(st(p.status||'active'))}</span>`)).join("")}</div>`;
+    }
+
+    async function migrateTab() {
+      const r = await api.get("/migrate/course-contents");
+      if (r.status === 401 || r.status === 403) return needAdmin();
+      const d = r.data || {};
+      panel().innerHTML = `<div class="card"><div class="body">
+        <b>🔧 課程內容遷移</b>
+        <p class="kv">狀態：${d.exists ? "✅ 已存在／已遷移" : "⏳ 可執行"}</p>
+        <p class="kv">${esc2(d.message||"")}</p>
+        <button class="btn btn-secondary btn-block" id="mg-run" style="margin-top:8px">執行遷移</button>
+        <div id="mg-status" class="muted center" style="font-size:13px;margin-top:8px"></div>
+      </div></div>`;
+      document.getElementById("mg-run").onclick = async () => {
+        if (!confirm("確定執行課程內容遷移？（demo 資料）")) return;
+        const b = document.getElementById("mg-run"); b.disabled = true; b.textContent = "執行中…";
+        const pr = await api.post("/migrate/course-contents", {});
+        b.disabled = false; b.textContent = "執行遷移";
+        document.getElementById("mg-status").textContent = pr.ok ? ("✅ " + ((pr.data&&pr.data.message)||"完成")) : ("❌ " + ((pr.data&&pr.data.error)||"失敗"));
+      };
     }
 
     async function clsTab() {
