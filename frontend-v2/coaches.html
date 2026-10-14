@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#ff6b35" />
+  <title>星級教練 · ZenPass 禪流</title>
+  <link rel="stylesheet" href="assets/v2.css" />
+  <style>
+    .coach { display:flex; gap:12px; align-items:center; padding:14px 16px; border-bottom:1px solid var(--border); }
+    .coach:last-child { border-bottom:0; }
+    .avi { width:48px; height:48px; border-radius:50%; background:linear-gradient(135deg,var(--brand-500),var(--brand-700)); color:#fff; display:grid; place-items:center; font-weight:800; font-size:18px; flex:0 0 auto; }
+    .nm { font-weight:800; }
+    .meta { font-size:12px; color:var(--text-muted); }
+  </style>
+</head>
+<body>
+  <div class="topbar"><a class="back" href="explore.html">‹</a><div class="title">星級教練</div></div>
+  <div class="wrap">
+    <div class="card" id="list"><div class="body muted">載入中…</div></div>
+    <div class="spacer"></div>
+  </div>
+  <nav class="bottomnav">
+    <a href="index.html"><span class="ic">🏠</span>主頁</a>
+    <a class="active" href="explore.html"><span class="ic">🔍</span>探索</a>
+    <a href="booking.html"><span class="ic">📅</span>預約</a>
+    <a href="my.html"><span class="ic">🎫</span>我的</a>
+  </nav>
+  <script src="assets/api.js"></script>
+  <script>
+    (async () => {
+      const r = await api.get("/coach/list?limit=100");
+      const list = (r.data && r.data.coaches) || [];
+      document.getElementById("list").innerHTML = list.length ? list.map(c => `
+        <a class="coach" href="coach-profile.html?id=${encodeURIComponent(c.id)}">
+          <div class="avi">${esc((c.name || "教").slice(0,1))}</div>
+          <div style="flex:1;min-width:0">
+            <div class="nm">${esc(c.name || "教練")} ${Number(c.rating) > 0 ? `<span style="color:#f59e0b">⭐ ${esc(c.rating)}</span>` : ""}</div>
+            <div class="meta">${c.courses ? c.courses + " 個課程 · " : ""}${c.students ? c.students + " 位學生" : "新晉教練"}</div>
+            ${c.bio ? `<div class="meta" style="margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(c.bio)}</div>` : ""}
+          </div>
+          <span class="muted">›</span>
+        </a>`).join("") : `<div class="body muted center">暫無教練資料。</div>`;
+    })();
+  </script>
+</body>
+</html>
