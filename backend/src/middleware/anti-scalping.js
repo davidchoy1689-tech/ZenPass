@@ -402,7 +402,9 @@ function antiScalping(req, res, next) {
 
   // ═══ 3. 預約保護（POST booking） ═══
   // Booking 特定限制用 IP（因為 user 未 auth），每個 IP 每分鐘最多 N 次
-  const isBookingEndpoint = (fullPath.includes("/api/bookings") || fullPath.includes("/bookings")) && method === "POST";
+  // 註：簽到（/attend、/checkin）唔屬炒場行為，教練批量簽到需要，故豁免
+  const isCheckinEndpoint = /\/attend(\?|$)/.test(fullPath) || /\/checkin(\?|$)/.test(fullPath);
+  const isBookingEndpoint = !isCheckinEndpoint && (fullPath.includes("/api/bookings") || fullPath.includes("/bookings")) && method === "POST";
   if (isBookingEndpoint) {
     const bookingLimitResult = checkUserRateLimit(
       `booking:${ip}`,
@@ -445,7 +447,8 @@ function scalpGuard(req, res, next) {
   const ip = req.ip || req.connection.remoteAddress || "unknown";
   const fullPath = req.originalUrl || req.url || req.path || "";
   const method = req.method;
-  const isBookingEndpoint = (fullPath.includes("/api/bookings") || fullPath.includes("/bookings")) && method === "POST";
+  const isCheckinEndpoint = /\/attend(\?|$)/.test(fullPath) || /\/checkin(\?|$)/.test(fullPath);
+  const isBookingEndpoint = !isCheckinEndpoint && (fullPath.includes("/api/bookings") || fullPath.includes("/bookings")) && method === "POST";
 
   // ═══ A. 檢查用戶停權狀態 ═══
   const suspension = checkUserSuspension(userId);

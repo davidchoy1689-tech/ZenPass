@@ -43,6 +43,7 @@
   <script src="assets/api.js"></script>
   <script>
     const $ = (id) => document.getElementById(id);
+    const sleep = (ms) => new Promise(r => setTimeout(r, ms));
     let schedList = [];
     let allStudents = [];
     let showCancelled = false;
@@ -129,8 +130,14 @@
       let ok = 0, fail = 0;
       for (let i = 0; i < confirmed.length; i++) {
         btn.textContent = `簽到中… ${i + 1}/${confirmed.length}`;
-        const r = await api.post("/bookings/" + encodeURIComponent(confirmed[i].id) + "/attend", { checkin_method: "coach" });
+        let r = await api.post("/bookings/" + encodeURIComponent(confirmed[i].id) + "/attend", { checkin_method: "coach" });
+        // 遇到 rate limit 自動等一等再試一次
+        if (!r.ok && r.status === 429) {
+          await sleep(2000);
+          r = await api.post("/bookings/" + encodeURIComponent(confirmed[i].id) + "/attend", { checkin_method: "coach" });
+        }
         if (r.ok) ok++; else fail++;
+        if (i < confirmed.length - 1) await sleep(250);
       }
       await loadRoster();
       alert(`✅ 完成：${ok} 位已簽到${fail ? `，${fail} 位失敗` : ""}`);
