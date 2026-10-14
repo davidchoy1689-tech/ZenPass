@@ -72,6 +72,7 @@
             <input class="fld" id="nc-credits" type="number" min="0" placeholder="Credits 消耗" />
             <select class="fld full" id="nc-coach"></select>
             <textarea class="fld full" id="nc-desc" rows="3" placeholder="課程描述"></textarea>
+            <input class="fld full" id="nc-audience" placeholder="對象（例：在職人士・初學者・任何年齡）" />
           </div>
           <div class="lbl2" style="margin-top:10px">上堂時段</div>
           <div id="schedRows"></div>
@@ -219,6 +220,7 @@
         price_hkd: price ? Number(price) : undefined,
         credits_cost: credits ? Number(credits) : undefined,
         description: $("nc-desc").value || "",
+        target_audience: ($("nc-audience").value || "").trim() || undefined,
         coach_id: $("nc-coach").value || undefined,
         schedules,
       });
@@ -226,7 +228,7 @@
       if (r.ok) {
         alert("✅ 課程已建立");
         $("createCard").style.display = "none";
-        ["nc-title","nc-category","nc-duration","nc-max","nc-price","nc-credits","nc-desc"].forEach(id => $(id).value = "");
+        ["nc-title","nc-category","nc-duration","nc-max","nc-price","nc-credits","nc-desc","nc-audience"].forEach(id => $(id).value = "");
         $("schedRows").innerHTML = ""; addSchedRow();
         await loadCourses();
       } else {
@@ -397,6 +399,7 @@
             <option value="beginner">初級</option><option value="intermediate">中級</option><option value="advanced">高級</option>
           </select>
           <input class="fld" id="ed-max" type="number" value="${c.max_participants || ""}" placeholder="人數上限">
+          <input class="fld full" id="ed-audience" value="${esc(c.target_audience || "")}" placeholder="對象（例：在職人士・初學者）">
           <textarea class="fld full" id="ed-desc" rows="3" placeholder="描述">${esc(c.description || "")}</textarea>
         </div>
         <div class="actions">
@@ -411,6 +414,7 @@
           credits_cost: o.querySelector("#ed-credits").value !== "" ? Number(o.querySelector("#ed-credits").value) : undefined,
           difficulty: o.querySelector("#ed-difficulty").value,
           max_participants: o.querySelector("#ed-max").value || undefined,
+          target_audience: o.querySelector("#ed-audience").value.trim() || undefined,
           description: o.querySelector("#ed-desc").value || "",
         };
         const r = await api.put(`/partner/courses/${encodeURIComponent(id)}`, body);

@@ -31,6 +31,8 @@
   <div class="wrap" style="padding-bottom:110px">
     <section id="step1">
       <p class="muted" style="font-size:13px">預設已選該月全部堂數；如有人缺席，可取消勾選減少堂數。</p>
+      <div class="card" id="courseInfo"></div>
+      <div class="spacer"></div>
       <div class="hscroll" id="banchips"></div>
       <div id="groups"></div>
     </section>
@@ -130,6 +132,14 @@
       if (!cls) { $("groups").innerHTML = `<div class="card"><div class="body">搵唔到課程。</div></div>`; return; }
       $("title").textContent = cls.title;
       $("topPrice").innerHTML = cr(cls.price_hkd) + "cr";
+      const _loc = [cls.venue_name, cls.venue_address].filter(Boolean).join("（") + (cls.venue_name && cls.venue_address ? "）" : "");
+      $("courseInfo").innerHTML = `<div class="body">
+        <div class="row"><span class="k">📍 地點</span><span class="v">${esc(_loc || "待定")}</span></div>
+        <div class="row"><span class="k">📅 對象</span><span class="v">${esc(cls.target_audience || "—")}</span></div>
+        <div class="row"><span class="k">👥 人數上限</span><span class="v">${esc(cls.max_participants || "-")} 人</span></div>
+        <div class="row"><span class="k">⏱ 時長</span><span class="v">${esc(cls.duration || "-")} 分鐘</span></div>
+        ${cls.description ? `<div class="muted" style="font-size:13px;margin-top:8px">${esc(cls.description)}</div>` : ""}
+      </div>`;
       // 預設：A班 + 選足最近一個月
       const hasA = sessions.some(s => banOf(s) === "A");
       ban = hasA ? "A" : (sessions.some(s => banOf(s) === "B") ? "B" : "all");
@@ -187,6 +197,8 @@
       if (!sel.size) { alert("請揀最少一堂"); return; }
       const chosen = sessions.filter(s => sel.has(s.id)).sort((a,b)=>a.start_time.localeCompare(b.start_time));
       $("summary").innerHTML = `<div class="row"><span class="k">課程</span><span class="v">${esc(cls.title)}</span></div>
+        <div class="row"><span class="k">地點</span><span class="v">${esc(cls.venue_name || "—")}</span></div>
+        <div class="row"><span class="k">對象</span><span class="v">${esc(cls.target_audience || "—")}</span></div>
         <div class="row"><span class="k">堂數</span><span class="v">${chosen.length} 堂</span></div>`
         + chosen.map(s => `<div class="row"><span class="k">${fmtTime(s.start_time)}</span><span class="v muted">${esc(s.notes||"")}</span></div>`).join("");
       show("step2"); setStep(2); updateBar();

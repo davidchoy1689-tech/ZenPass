@@ -350,7 +350,7 @@ function createCourse(userId, body) {
   db.pragma("foreign_keys = ON");
 
   const { title, category, price_hkd, credits_cost, duration, max_participants,
-          description, difficulty, schedules, image_url, coach_id } = body;
+          description, difficulty, schedules, image_url, coach_id, target_audience } = body;
 
   if (!title || !category || !duration) {
     return { status: 400, body: { success: false, error: "請填寫課程標題、類別同時長" } };
@@ -373,11 +373,11 @@ function createCourse(userId, body) {
   db.prepare(
     `INSERT INTO classes (id, coach_id, title, description, category, difficulty,
        duration, max_participants, price_hkd, credits_cost, venue_name, venue_address,
-       image_url, partner_venue_id, partner_id, status, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', datetime('now'), datetime('now'))`
+       target_audience, image_url, partner_venue_id, partner_id, status, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', datetime('now'), datetime('now'))`
   ).run(classId, cid, title, description || "", category, difficulty || "beginner",
     duration, max_participants || 15, finalPrice, computedCredits,
-    venue.name, venue.address || "", image_url || null, venue.id, venue.id);
+    venue.name, venue.address || "", target_audience || null, image_url || null, venue.id, venue.id);
 
   const scheduleIds = [];
   for (const s of schedules) {
@@ -460,7 +460,7 @@ function updateCourse(userId, courseId, body) {
     return { status: 404, body: { success: false, error: "課程不存在或唔屬於你" } };
   }
 
-  const { title, price_hkd, description, difficulty, max_participants, credits_cost, image_url } = body;
+  const { title, price_hkd, description, difficulty, max_participants, credits_cost, image_url, target_audience } = body;
   const updates = [];
   const params = [];
 
@@ -471,6 +471,7 @@ function updateCourse(userId, courseId, body) {
   if (max_participants) { updates.push("max_participants = ?"); params.push(max_participants); }
   if (credits_cost !== undefined) { updates.push("credits_cost = ?"); params.push(credits_cost); }
   if (image_url !== undefined) { updates.push("image_url = ?"); params.push(image_url); }
+  if (target_audience !== undefined) { updates.push("target_audience = ?"); params.push(target_audience); }
 
   if (updates.length > 0) {
     updates.push("updated_at = datetime('now')");
