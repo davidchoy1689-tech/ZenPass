@@ -221,8 +221,8 @@ router.post("/stripe/create-checkout", authenticateToken, async (req, res) => {
         stripe_fee: String(feeInfo.fee),
         net_amount: String(feeInfo.net),
       },
-      success_url: `${FRONTEND_URL}/payment.html?stripe=success&session_id={CHECKOUT_SESSION_ID}&booking_id=${booking_id || ""}`,
-      cancel_url: `${FRONTEND_URL}/payment.html?stripe=cancel&booking_id=${booking_id || ""}`,
+      success_url: `${FRONTEND_URL}/my-bookings.html?stripe=success&session_id={CHECKOUT_SESSION_ID}&booking_id=${booking_id || ""}`,
+      cancel_url: `${FRONTEND_URL}/booking.html?stripe=cancel&booking_id=${booking_id || ""}`,
     });
 
     res.json({
