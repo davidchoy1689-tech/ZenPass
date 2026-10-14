@@ -420,6 +420,16 @@ function insertBookingRow(db, bookingData, partnerInfo) {
     } catch (e) {
       console.error("⚠️ [PAYINTENT] credits record failed:", e.message);
     }
+    try {
+      let ledAmt = Number(amount) || 0;
+      if (ledAmt <= 0) {
+        const cr = db.prepare("SELECT credits_cost FROM classes WHERE id = ?").get(classId);
+        ledAmt = (cr && cr.credits_cost ? cr.credits_cost : 0) * 10; // 1 credit = HK$10
+      }
+      if (ledAmt > 0) require("./accounting").postBookingSplitLedger(bookingId, userId, ledAmt, "credits");
+    } catch (e) {
+      console.error("⚠️ [LEDGER] credits split failed:", e.message);
+    }
   }
 }
 
