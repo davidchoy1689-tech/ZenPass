@@ -1142,7 +1142,7 @@ async function loadCorporateTab() {
     '<h3 id="corp-detail-name"></h3><div id="corp-detail-content"></div><hr>' +
     '<h4>新增員工</h4>' +
     '<textarea id="corp-employees-input" placeholder="每行一個：姓名, 電郵" rows="4" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;"></textarea>' +
-    '<button class="btn" onclick="addCorporateEmployees()" style="margin-top:8px;">批量新增</button> <input type="file" id="corp-csv-file" accept=".csv" style="display:none" onchange="importCSVEmployees(this)" /> <button class="btn" onclick="document.getElementById('corp-csv-file').click()" style="margin-top:8px;margin-left:4px">📄 上傳 CSV</button></div>';
+    '<button class="btn" onclick="addCorporateEmployees()" style="margin-top:8px;">批量新增</button> <input type="file" id="corp-csv-file" accept=".csv" style="display:none" onchange="importCSVEmployees(this)" /> <button class="btn" onclick="document.getElementById(\'corp-csv-file\').click()" style="margin-top:8px;margin-left:4px">📄 上傳 CSV</button></div>';
   try {
     var data = await apiGet('/corporate/companies');
     if (!data.companies) throw new Error('no data');
@@ -1194,7 +1194,7 @@ async function showCorporateDetail(id) {
     if (data.employees && data.employees.length > 0) {
       detailHtml += '<table class="mini-table"><thead><tr><th>姓名</th><th>電郵</th><th>30日預約</th><th>Credits</th><th>每月上限</th><th>本月用</th><th>操作</th></tr></thead><tbody>';
       data.employees.forEach(function(e) {
-        detailHtml += '<tr><td>' + e.name + '</td><td>' + e.email + '</td><td>' + (e.bookings_30d || 0) + '</td><td>' + (e.credits || 0) + '</td><td>' + (e.monthly_credit_limit || '無限') + '</td><td>' + (e.monthly_credit_used || 0) + '</td><td><input type="number" id="limit-' + e.id + '" value="' + (e.monthly_credit_limit || '') + '" style="width:60px" placeholder="無限"> <button class="btn-sm" onclick="setEmployeeLimit('' + e.id + '')">設定</button></td></tr>';
+        detailHtml += '<tr><td>' + e.name + '</td><td>' + e.email + '</td><td>' + (e.bookings_30d || 0) + '</td><td>' + (e.credits || 0) + '</td><td>' + (e.monthly_credit_limit || '無限') + '</td><td>' + (e.monthly_credit_used || 0) + '</td><td><input type="number" id="limit-' + e.id + '" value="' + (e.monthly_credit_limit || '') + '" style="width:60px" placeholder="無限"> <button class="btn-sm" onclick="setEmployeeLimit(\'' + e.id + '\')">設定</button></td></tr>';
       });
       detailHtml += '</tbody></table>';
     }
@@ -1567,13 +1567,12 @@ async function topupCorporateCredits(id) {
         if (d.error) throw new Error(d.error);
         return d;
       }
-      async 
-function apiPatch(url, data) {
+      async function apiPatch(url, data) {
   var token = localStorage.getItem('zenpass_token');
   return fetch('/api' + url, { method: 'PATCH', headers: { 'Content-Type': 'application/json', 'Authorization': token ? 'Bearer ' + token : '' }, body: JSON.stringify(data) }).then(function(r) { if (!r.ok) return r.json().then(function(d) { throw new Error(d.error || 'Request failed'); }); return r.json(); });
 }
 
-function apiPost(path, body) {
+      async function apiPost(path, body) {
         var t = getToken();
         var r = await fetch(API + path, {
           method: "POST",
@@ -1786,8 +1785,6 @@ function apiPost(path, body) {
         }
         return "—";
       }
-      function showReceipt(bookingId) {
-        
       function importCSVEmployees(input) {
         var file = input.files[0];
         if (!file) return;
@@ -1808,7 +1805,8 @@ function apiPost(path, body) {
         input.value = '';
       }
 
-      var p = window._pendingPayments || [];
+      function showReceipt(bookingId) {
+        var p = window._pendingPayments || [];
         var item = null;
         for (var i = 0; i < p.length; i++) {
           if (p[i].booking_id === bookingId) {
