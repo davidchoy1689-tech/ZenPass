@@ -27,13 +27,13 @@ router.get("/list", (req, res) => {
       FROM users u
       LEFT JOIN (
         SELECT 
-          coach_id,
+          cr.coach_id,
           ROUND(AVG(rating), 1) as avg_rating,
           COUNT(DISTINCT student_id) as total_students,
           COUNT(DISTINCT c.id) as total_courses
         FROM coach_ratings cr
         LEFT JOIN classes c ON c.coach_id = cr.coach_id
-        GROUP BY coach_id
+        GROUP BY cr.coach_id
       ) cr ON cr.coach_id = u.id
       WHERE u.is_coach = 1
       ORDER BY COALESCE(cr.avg_rating, 0) DESC
