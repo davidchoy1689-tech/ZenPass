@@ -837,6 +837,21 @@ function completePayment(req) {
     console.error("⚠️ Blockchain write failed (booking):", bcErr.message);
   }
 
+  // 📒 v2.1 影子複式帳（ledger）：與現有流程並行，idempotent、永不影響結果
+  if (process.env.LEDGER_SHADOW !== "0") {
+    try {
+      const { postBookingLedger } = require("./accounting");
+      postBookingLedger(
+        booking.id,
+        req.user.id,
+        amount || booking.amount || 0,
+        payment_method || "fps",
+      );
+    } catch (ledErr) {
+      console.error("⚠️ [LEDGER] shadow write failed:", ledErr.message);
+    }
+  }
+
   return {
     status: 200,
     body: {
