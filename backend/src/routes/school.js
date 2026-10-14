@@ -11,6 +11,7 @@ const express = require("express");
 const { v4: uuidv4 } = require("uuid");
 const { getDb } = require("../services/database");
 const { sendTelegramAlert, sendNotification } = require("../services/notification");
+const { authenticateToken, requireAdmin } = require("../middleware/auth");
 const { writeBlock } = require("../services/blockchain-audit");
 
 const router = express.Router();
@@ -93,25 +94,10 @@ router.post("/inquiry", async (req, res) => {
 });
 
 // ===== GET /api/school/inquiries — 查詢列表（Admin only）=====
-router.get("/inquiries", (req, res) => {
-  // Simple API key check or admin check
-  const apiKey = req.query.key || req.headers["x-api-key"];
-  if (apiKey !== process.env.ADMIN_API_KEY && apiKey !== "zenpass-admin") {
-    const db = getDb();
-    const { authenticateToken } = require("../middleware/auth");
-    // We'll handle it inline
-    try {
-      const db2 = getDb();
-      const inquiries = db2.prepare("SELECT * FROM school_inquiries ORDER BY created_at DESC").all();
-      res.json({ inquiries });
-    } catch (e) {
-      return res.status(403).json({ success: false, error: "Unauthorized" });
-    }
-  }
-
+router.get("/inquiries", authenticateToken, requireAdmin, (req, res) => {
   try {
     const db = getDb();
-    const inquiries = db.prepare("SELECT * FROM school_inquiries ORDER BY created_at DESC").all();
+    const inquiries = db.prepare("SELECT * FROM school_inquiries ORDER BY created_at DESC LIMIT 200").all();
     res.json({ inquiries });
   } catch (err) {
     console.error("[SCHOOL] List error:", err);

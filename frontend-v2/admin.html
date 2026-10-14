@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#ff6b35" />
-  <title>核實付款 · 管理 · ZenPass 禪流</title>
+  <title>管理 · ZenPass 禪流</title>
   <link rel="stylesheet" href="assets/v2.css" />
   <style>
     .pm-row { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
@@ -12,14 +12,29 @@
     .pm-actions .btn { min-height: 42px; padding: 0 14px; font-size: 14px; flex: 1; }
     .kv { font-size: 13px; color: var(--text-muted); margin: 3px 0; }
     .amt { font-size: 18px; font-weight: 800; color: var(--brand-600); }
+    .tabs { display: flex; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--surface); z-index: 10; }
+    .tabs button { flex: 1; padding: 14px 0; background: none; border: 0; font: inherit; font-weight: 700; color: var(--text-muted); border-bottom: 2px solid transparent; cursor: pointer; }
+    .tabs button.on { color: var(--brand-600); border-color: var(--brand-500); }
   </style>
 </head>
 <body>
-  <div class="topbar"><a class="back" href="my.html">‹</a><div class="title">核實付款</div></div>
+  <div class="topbar"><a class="back" href="my.html">‹</a><div class="title">管理後台</div></div>
 
   <div class="wrap">
-    <div id="stats" class="muted" style="font-size:13px;margin:4px 0 10px"></div>
-    <div class="stack" id="list"><div class="card"><div class="body muted">載入中…</div></div></div>
+    <div class="tabs" style="margin:0 -16px 12px">
+      <button class="on" data-tab="pay">核實付款</button>
+      <button data-tab="inq">查詢</button>
+    </div>
+
+    <div id="panel-pay">
+      <div id="stats" class="muted" style="font-size:13px;margin:4px 0 10px"></div>
+      <div class="stack" id="list"><div class="card"><div class="body muted">載入中…</div></div></div>
+    </div>
+
+    <div id="panel-inq" style="display:none">
+      <div id="inqStats" class="muted" style="font-size:13px;margin:4px 0 10px"></div>
+      <div class="stack" id="inquiries"><div class="card"><div class="body muted">載入中…</div></div></div>
+    </div>
   </div>
 
   <nav class="bottomnav">
@@ -80,6 +95,46 @@
         : `<div class="card"><div class="body muted center">目前冇待核實付款 ✅</div></div>`;
       bind();
     }
+
+    const STATUS = { pending: "待跟進", contacted: "已聯絡", converted: "已成交", closed: "已結束" };
+    function inqCard(x) {
+      return `<div class="card"><div class="body">
+        <div style="display:flex;justify-content:space-between;gap:8px">
+          <b>${esc(x.type)} ${esc(x.name || "")}</b>
+          <span class="badge ${x.status === "pending" ? "warn" : "ok"}">${esc(STATUS[x.status] || x.status || "")}</span>
+        </div>
+        <p class="kv">${esc(x.contact || "")} · ${esc(x.email || "")}${x.phone ? " · " + esc(x.phone) : ""}</p>
+        ${x.interest ? `<p class="kv">有興趣：${esc(x.interest)}</p>` : ""}
+        ${x.msg ? `<p class="kv">備註：${esc(x.msg)}</p>` : ""}
+        <p class="kv">${esc(String(x.created_at || "").slice(0, 16))}</p>
+      </div></div>`;
+    }
+    async function loadInquiries() {
+      const box = document.getElementById("inquiries");
+      const [s, c] = await Promise.all([api.get("/school/inquiries"), api.get("/corporate/inquiries")]);
+      if (s.status === 401 || s.status === 403 || c.status === 401 || c.status === 403) {
+        document.getElementById("inqStats").textContent = "";
+        box.innerHTML = `<div class="card"><div class="body center">🔒 需要管理員權限。</div></div>`;
+        return;
+      }
+      const rows = [
+        ...((c.data && c.data.inquiries) || []).map(x => ({ type: "🏢 企業", name: x.company_name, contact: x.contact_name, email: x.contact_email, phone: x.contact_phone, interest: x.activities, msg: x.message, status: x.status, created_at: x.created_at })),
+        ...((s.data && s.data.inquiries) || []).map(x => ({ type: "🏫 學校", name: x.school_name, contact: x.contact_name, email: x.contact_email, phone: x.contact_phone, interest: x.sports_of_interest, msg: x.message, status: x.status, created_at: x.created_at })),
+      ].sort((a, b) => String(b.created_at || "").localeCompare(String(a.created_at || "")));
+      document.getElementById("inqStats").textContent = "查詢：" + rows.length + " 筆";
+      box.innerHTML = rows.length ? rows.map(inqCard).join("")
+        : `<div class="card"><div class="body muted center">暫無查詢。</div></div>`;
+    }
+
+    document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => {
+      document.querySelectorAll(".tabs button").forEach(x => x.classList.remove("on"));
+      b.classList.add("on");
+      const tab = b.dataset.tab;
+      document.getElementById("panel-pay").style.display = tab === "pay" ? "" : "none";
+      document.getElementById("panel-inq").style.display = tab === "inq" ? "" : "none";
+      if (tab === "inq") loadInquiries();
+    });
+
     if (api.requireLogin("admin.html")) load();
   </script>
 </body>

@@ -54,16 +54,16 @@
     document.getElementById("submit").onclick = async () => {
       const msg = document.getElementById("msg");
       const body = {
-        school_name: document.getElementById("c-name").value.trim(),
+        company_name: document.getElementById("c-name").value.trim(),
         contact_name: document.getElementById("c-contact").value.trim(),
         contact_email: document.getElementById("c-email").value.trim(),
         contact_phone: document.getElementById("c-phone").value.trim(),
-        sports_of_interest: document.getElementById("c-interest").value.trim(),
-        message: "[企業健康計劃] " + document.getElementById("c-msg").value.trim(),
+        activities: document.getElementById("c-interest").value.trim(),
+        message: document.getElementById("c-msg").value.trim(),
       };
-      if (!body.school_name || !body.contact_name || !body.contact_email) { msg.textContent = "請填公司名稱、聯絡人、電郵"; return; }
+      if (!body.company_name || !body.contact_name || !body.contact_email) { msg.textContent = "請填公司名稱、聯絡人、電郵"; return; }
       const btn = document.getElementById("submit"); btn.disabled = true; btn.textContent = "提交中…";
-      const r = await api.post("/school/inquiry", body);
+      const r = await api.post("/corporate/inquiry", body);
       btn.disabled = false; btn.textContent = "提交查詢 🚀";
       if (r.ok) {
         document.getElementById("formCard").innerHTML = `<div class="body center"><div style="font-size:40px">🎉</div><p>${esc((r.data && r.data.message) || "查詢已提交，我哋會盡快聯絡你")}</p></div>`;

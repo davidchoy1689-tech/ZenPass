@@ -26,6 +26,62 @@ function isAdmin(userId) {
   return u && u.role === "admin";
 }
 
+// ===== 企業查詢（公開）=====
+function ensureCorporateInquiryTable() {
+  const db = getDb();
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS corporate_inquiries (
+      id TEXT PRIMARY KEY,
+      company_name TEXT NOT NULL,
+      contact_name TEXT NOT NULL,
+      contact_email TEXT NOT NULL,
+      contact_phone TEXT DEFAULT '',
+      activities TEXT DEFAULT '',
+      message TEXT DEFAULT '',
+      status TEXT DEFAULT 'pending' CHECK(status IN ('pending','contacted','converted','closed')),
+      created_at TEXT DEFAULT (datetime('now'))
+    )
+  `);
+}
+
+// ===== POST /api/corporate/inquiry — 企業查詢（公開）=====
+router.post("/inquiry", (req, res) => {
+  try {
+    const { company_name, contact_name, contact_email, contact_phone, activities, message } = req.body;
+    if (!company_name || !contact_name || !contact_email) {
+      return res.status(400).json({ success: false, error: "請填公司名稱、聯絡人姓名及電郵" });
+    }
+    ensureCorporateInquiryTable();
+    const db = getDb();
+    const id = uuidv4();
+    db.prepare(
+      `INSERT INTO corporate_inquiries (id, company_name, contact_name, contact_email, contact_phone, activities, message, status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')`,
+    ).run(id, company_name, contact_name, contact_email, contact_phone || "", activities || "", message || "");
+    try {
+      writeBlock({ entityType: "corporate_inquiry", entityId: id, data: { company_name, contact_name, contact_email } });
+    } catch (e) {}
+    res.status(201).json({ success: true, id, message: "✅ 查詢已收到！我哋嘅企業團隊會儘快同你聯絡。" });
+  } catch (err) {
+    console.error("[CORPORATE] inquiry error:", err.message);
+    res.status(500).json({ success: false, error: "提交失敗，請稍後再試" });
+  }
+});
+
+// ===== GET /api/corporate/inquiries — 查詢列表（Admin）=====
+router.get("/inquiries", authenticateToken, (req, res) => {
+  try {
+    if (!isAdmin(req.user.id)) return res.status(403).json({ success: false, error: "需要管理員權限" });
+    ensureCorporateInquiryTable();
+    const db = getDb();
+    const inquiries = db.prepare("SELECT * FROM corporate_inquiries ORDER BY created_at DESC LIMIT 200").all();
+    res.json({ inquiries });
+  } catch (err) {
+    console.error("[CORPORATE] inquiries error:", err.message);
+    res.status(500).json({ success: false, error: "無法取得查詢列表" });
+  }
+});
+
 // ===== GET /api/corporate/companies — 企業列表（Admin）=====
 router.get("/companies", authenticateToken, (req, res) => {
   if (!isAdmin(req.user.id)) return res.status(403).json({ success: false, error: "只限管理員" });
