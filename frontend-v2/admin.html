@@ -20,6 +20,7 @@
     .kpi .lbl { font-size: 12px; color: var(--text-muted); }
     .pill { font-size: 11px; padding: 2px 8px; border-radius: 999px; background: var(--border); }
     .pill.ok { background:#dcfce7; color:#166534; } .pill.warn { background:#fef3c7; color:#92400e; } .pill.off { background:#e5e7eb; color:#374151; }
+    .ef { width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid var(--border); border-radius: 12px; font: inherit; background: var(--surface); color: var(--text); }
   </style>
 </head>
 <body>
@@ -40,7 +41,7 @@
     const TABS = [
       ["dash","概覽"], ["pay","付款核實"], ["inq","查詢"], ["classes","課程"],
       ["bookings","預約"], ["users","用戶"], ["coach","教練申請"], ["payouts","出糧"],
-      ["reports","報表"], ["corp","企業"], ["jobs","Job"], ["pricing","定價"], ["penalty","罰則"], ["analytics","分析"], ["nps","評價"], ["audit","審計"],
+      ["reports","報表"], ["corp","企業"], ["jobs","Job"], ["pricing","定價"], ["penalty","罰則"], ["analytics","分析"], ["nps","評價"], ["marketing","推廣"], ["audit","審計"],
     ];
     let cur = "dash";
 
@@ -58,7 +59,7 @@
         if (cur === "dash") return dash();
         if (cur === "pay") return payments();
         if (cur === "inq") return inquiries();
-        if (cur === "classes") return listGeneric("/admin/classes?limit=100", "classes", clsRow, "課程");
+        if (cur === "classes") return clsTab();
         if (cur === "bookings") return listGeneric("/admin/bookings?limit=100", "bookings", bkRow, "預約");
         if (cur === "users") return usersTab();
         if (cur === "coach") return coachApps();
@@ -70,6 +71,7 @@
         if (cur === "penalty") return penalty();
         if (cur === "analytics") return analytics();
         if (cur === "nps") return npsTab();
+        if (cur === "marketing") return marketingTab();
         if (cur === "audit") return listGeneric("/admin/audit-log?limit=100", "entries", auditRow, "審計記錄");
       } catch (e) { panel().innerHTML = `<div class="card"><div class="body muted">載入失敗：${esc2(e.message)}</div></div>`; }
     }
@@ -157,11 +159,14 @@
       const r = await api.get("/admin/user-detail/" + encodeURIComponent(id));
       if (!r.ok) { alert((r.data&&r.data.error)||"載入失敗"); return; }
       const u = r.data.user || {}; const bk = r.data.bookings || []; const mem = r.data.membership; const tx = r.data.transactions || [];
+      const wt = await api.get("/wallet/admin/txs/" + encodeURIComponent(id) + "?limit=50");
+      const txs = (wt.data && wt.data.transactions) || [];
       openModal(`<h3>👤 ${esc2(u.name || u.email)}</h3>
         <p class="kv">${esc2(u.email)} · ${esc2(u.phone||"")}${u.role?" · "+esc2(u.role):""}${u.is_coach?" · 🧑‍🏫":""}</p>
         <p class="kv">Credits：${u.credits||0} · 會籍：${esc2(u.membership_type||(mem&&mem.type)||"none")}</p>
-        <p class="kv">預約：${bk.length} 筆 · 交易：${tx.length} 筆</p>
-        ${bk.length?`<div style="max-height:180px;overflow:auto">${bk.slice(0,10).map(b=>`<div class="kv">${esc2(b.booking_reference||b.id)} · ${esc2(st(b.status))} · ${b.amount?money(b.amount):""}</div>`).join("")}</div>`:""}
+        <p class="kv">預約：${bk.length} 筆 · 交易：${tx.length} 筆 · 錢包紀錄：${txs.length} 筆</p>
+        ${bk.length?`<div style="max-height:150px;overflow:auto">${bk.slice(0,10).map(b=>`<div class="kv">${esc2(b.booking_reference||b.id)} · ${esc2(st(b.status))} · ${b.amount?money(b.amount):""}</div>`).join("")}</div>`:""}
+        ${txs.length?`<div style="max-height:150px;overflow:auto;border-top:1px solid var(--border);margin-top:8px;padding-top:8px">${txs.slice(0,15).map(t=>`<div class="kv">${esc2(t.type||"")} ${t.amount?money(t.amount):""} ${esc2(String(t.created_at||"").slice(0,10))}</div>`).join("")}</div>`:""}
         <div class="actions"><button class="btn btn-secondary" onclick="closeModal(this)">關閉</button></div>`);
     }
 
@@ -207,6 +212,84 @@
       let html = `<div class="card"><div class="body"><b>教練排名</b>${coaches.length ? coaches.slice(0, 15).map(c => row(`${esc2(c.name || c.coach_name || c.coach_id || "")}<div class="kv">⭐ ${esc2(c.avg_rating || c.rating || 0)} · ${esc2(c.total_students || c.students || 0)} 學生</div>`, "")).join("") : '<div class="kv">暫無資料</div>'}</div></div>`;
       html += `<div class="card" style="margin-top:10px"><div class="body"><b>每月收入趨勢</b>${monthly.length ? monthly.slice(-6).map(m => row(esc2(m.month || m.period || ""), money(m.revenue || m.total))).join("") : '<div class="kv">暫無資料</div>'}</div></div>`;
       panel().innerHTML = html;
+    }
+
+    async function clsTab() {
+      const r = await api.get("/admin/classes?limit=100");
+      if (r.status === 401 || r.status === 403) return needAdmin();
+      const arr = (r.data && r.data.classes) || [];
+      if (!arr.length) { panel().innerHTML = `<div class="card"><div class="body muted center">暫無課程。</div></div>`; return; }
+      panel().innerHTML = `<div class="card">${arr.map(c => `<div class="row" data-c="${esc2(c.id)}" style="cursor:pointer"><span>${esc2(c.title)}<div class="kv">${esc2(c.category||"")} · ${c.duration||""}分 · ${c.max_participants||""}人</div></span><span style="text-align:right">${c.price_hkd?money(c.price_hkd):((c.credits_cost||0)+"cr")} <span class="pill ${c.status==='active'?'ok':'off'}">${esc2(st(c.status))}</span> ›</span></div>`).join("")}</div>`;
+      panel().querySelectorAll("[data-c]").forEach(el => el.onclick = () => openCourse(el.dataset.c));
+    }
+    async function openCourse(id) {
+      const r = await api.get("/admin/course-detail/" + encodeURIComponent(id));
+      if (!r.ok) { alert((r.data&&r.data.error)||"載入失敗"); return; }
+      const c = r.data.course || {};
+      const dif = ["beginner","intermediate","advanced"].map(d=>`<option value="${d}" ${c.difficulty===d?"selected":""}>${d}</option>`).join("");
+      const stt = ["active","inactive"].map(s=>`<option value="${s}" ${c.status===s?"selected":""}>${s}</option>`).join("");
+      const o = openModal(`<h3>✏️ 編輯課程</h3>
+        <input class="ef" id="ef-title" value="${esc2(c.title||"")}" placeholder="標題">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
+          <input class="ef" id="ef-category" value="${esc2(c.category||"")}" placeholder="類別">
+          <select class="ef" id="ef-difficulty">${dif}</select>
+          <input class="ef" id="ef-duration" type="number" value="${c.duration||""}" placeholder="時長(分)">
+          <input class="ef" id="ef-price" type="number" value="${c.price_hkd||""}" placeholder="HK$">
+          <input class="ef" id="ef-credits" type="number" value="${c.credits_cost||""}" placeholder="Credits">
+          <input class="ef" id="ef-max" type="number" value="${c.max_participants||""}" placeholder="人數上限">
+        </div>
+        <input class="ef" id="ef-venue" value="${esc2(c.venue_name||"")}" placeholder="場地名稱" style="margin-top:8px">
+        <input class="ef" id="ef-address" value="${esc2(c.venue_address||"")}" placeholder="場地地址" style="margin-top:8px">
+        <textarea class="ef" id="ef-desc" rows="4" placeholder="課程內容" style="margin-top:8px">${esc2(c.description||"")}</textarea>
+        <div style="display:flex;gap:8px;margin-top:8px"><select class="ef" id="ef-status">${stt}</select><button class="btn btn-secondary" id="ef-gen" style="white-space:nowrap">🤖 生成描述</button></div>
+        <div id="ef-genopts"></div>
+        <div class="actions"><button class="btn btn-secondary" onclick="closeModal(this)">取消</button><button class="btn btn-primary" id="ef-save">儲存</button></div>`);
+      const v = (id2) => o.querySelector("#" + id2).value;
+      o.querySelector("#ef-gen").onclick = async () => {
+        const b = o.querySelector("#ef-gen"); b.disabled = true; b.textContent = "生成中…";
+        const gr = await api.post("/admin/generate-description", { title: v("ef-title"), category: v("ef-category"), difficulty: v("ef-difficulty"), venue_name: v("ef-venue") });
+        b.disabled = false; b.textContent = "🤖 生成描述";
+        const list = (gr.data && (gr.data.descriptions || gr.data.descriptions)) || (gr.data && gr.data.descriptions) || [];
+        if (Array.isArray(list) && list.length) {
+          o.querySelector("#ef-genopts").innerHTML = list.map((d,i)=>`<div class="card" data-d="${i}" style="margin-top:8px;cursor:pointer"><div class="body" style="font-size:13px">${esc2(d)}</div></div>`).join("");
+          o.querySelectorAll("#ef-genopts [data-d]").forEach(el=>el.onclick=()=>{ o.querySelector("#ef-desc").value = list[Number(el.dataset.d)]; });
+        } else alert("冇生成結果（可能未設 AI key）");
+      };
+      o.querySelector("#ef-save").onclick = async () => {
+        const data = { title: v("ef-title"), category: v("ef-category"), difficulty: v("ef-difficulty"), duration: parseInt(v("ef-duration"))||0, price_hkd: parseFloat(v("ef-price"))||0, credits_cost: parseInt(v("ef-credits"))||0, max_participants: parseInt(v("ef-max"))||0, venue_name: v("ef-venue"), venue_address: v("ef-address"), description: v("ef-desc"), status: v("ef-status") };
+        const sr = await api.post("/admin/update-course/" + encodeURIComponent(id), data);
+        if (sr.ok && sr.data && sr.data.success !== false) { o.remove(); alert((sr.data&&sr.data.message)||"已更新"); load(); }
+        else alert((sr.data&&sr.data.error)||"更新失敗");
+      };
+    }
+
+    async function marketingTab() {
+      panel().innerHTML = `<div class="card"><div class="body">
+        <b>📢 廣播訊息</b>
+        <input class="ef" id="mk-subject" placeholder="主旨" style="margin-top:8px">
+        <textarea class="ef" id="mk-msg" rows="4" placeholder="內容" style="margin-top:8px"></textarea>
+        <button class="btn btn-primary btn-block" id="mk-send" style="margin-top:10px">📤 發送廣播</button>
+        <div class="spacer"></div>
+        <button class="btn btn-secondary btn-block" id="mk-winback">🔁 觸發流失用戶 winback</button>
+        <div id="mk-status" class="muted center" style="font-size:13px;margin-top:10px"></div>
+      </div></div>`;
+      document.getElementById("mk-send").onclick = async () => {
+        const s = document.getElementById("mk-subject").value.trim(), m = document.getElementById("mk-msg").value.trim();
+        const stt = document.getElementById("mk-status");
+        if (!s || !m) { stt.textContent = "請填主旨同內容"; return; }
+        if (!confirm("確定發送廣播俾所有用戶？")) return;
+        const b = document.getElementById("mk-send"); b.disabled = true; b.textContent = "傳送中…";
+        const r = await api.post("/marketing/broadcast", { subject: s, message: m });
+        b.disabled = false; b.textContent = "📤 發送廣播";
+        stt.textContent = r.ok ? `✅ 已發送 ${(r.data&&r.data.sent)||0}/${(r.data&&r.data.total)||0} 位用戶` : ("❌ " + ((r.data&&r.data.error)||"失敗"));
+      };
+      document.getElementById("mk-winback").onclick = async () => {
+        if (!confirm("確定觸發 winback（通知流失用戶）？")) return;
+        const b = document.getElementById("mk-winback"); b.disabled = true; b.textContent = "檢查中…";
+        const r = await api.post("/marketing/winback", {});
+        b.disabled = false; b.textContent = "🔁 觸發流失用戶 winback";
+        document.getElementById("mk-status").textContent = r.ok ? `✅ 已通知 ${(r.data&&r.data.notified)||0} 個流失用戶` : ("❌ " + ((r.data&&r.data.error)||"失敗"));
+      };
     }
 
     async function reports() {
