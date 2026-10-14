@@ -458,6 +458,23 @@ function initDatabase() {
     db.exec("CREATE INDEX IF NOT EXISTS idx_payment_intents_state ON payment_intents(state)");
   } catch (e) { /* optional */ }
 
+  // ===== v2.1：Booking Events（append-only 狀態 timeline）=====
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS booking_events (
+      id TEXT PRIMARY KEY,
+      booking_id TEXT NOT NULL,
+      event TEXT NOT NULL,
+      from_status TEXT,
+      to_status TEXT,
+      actor TEXT,
+      meta TEXT,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+  `);
+  try {
+    db.exec("CREATE INDEX IF NOT EXISTS idx_booking_events_bid ON booking_events(booking_id)");
+  } catch (e) { /* optional */ }
+
   // ===== 索引 =====
   try {
     db.exec("CREATE INDEX IF NOT EXISTS idx_coach_jobs_status ON coach_jobs(status)");

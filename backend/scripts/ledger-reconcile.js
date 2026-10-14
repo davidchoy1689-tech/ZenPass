@@ -106,6 +106,10 @@ function main() {
       .all()
       .forEach((r) => (piStats[r.state] = r.c));
   } catch (e) {}
+  let eventCount = 0;
+  try {
+    eventCount = db.prepare("SELECT COUNT(*) c FROM booking_events").get().c;
+  } catch (e) {}
 
   // 2) Trial balance
   const tb = accounting.trialBalance();
@@ -124,6 +128,7 @@ function main() {
   console.log("----------------------------------------");
   console.log(`Hold 同步：新增 ${holdStats.created}、committed ${holdStats.committed}、voided ${holdStats.voided}、expired ${holdStats.expired}、仍 pending ${holdStats.pending}`);
   console.log(`PaymentIntent：${Object.keys(piStats).length ? Object.entries(piStats).map(([k, v]) => k + " " + v).join("、") : "（無）"}`);
+  console.log(`Booking events：${eventCount} 筆`);
   console.log("----------------------------------------");
   if (!tb) {
     console.log("❌ trial balance 計算失敗");

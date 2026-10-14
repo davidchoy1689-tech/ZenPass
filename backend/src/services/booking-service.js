@@ -390,6 +390,15 @@ function insertBookingRow(db, bookingData, partnerInfo) {
       console.error("⚠️ [PAYINTENT] create failed:", e.message);
     }
   }
+
+  // 🧾 v2.1：booking timeline（append-only）
+  try {
+    require("./booking-events").logBookingEvent({
+      bookingId,
+      event: "created",
+      toStatus: bookingStatus,
+    });
+  } catch (e) {}
 }
 
 // ==================== Notifications (fire-and-forget) ====================
@@ -902,6 +911,18 @@ function completePayment(req) {
     console.error("⚠️ [PAYINTENT] update failed:", piErr.message);
   }
 
+  // 🧾 v2.1：booking timeline
+  try {
+    require("./booking-events").logBookingEvent({
+      bookingId: booking.id,
+      event: "paid",
+      fromStatus: "pending_payment",
+      toStatus: "confirmed",
+      actor: req.user.id,
+      meta: { method: payment_method || "fps", amount: amount || booking.amount || 0 },
+    });
+  } catch (e) {}
+
   return {
     status: 200,
     body: {
@@ -1030,6 +1051,13 @@ function _processLateCancel(db, booking, hoursUntilClass, reason, req) {
   try {
     require("./ledger-holds").voidHold(booking.id, "late_cancelled");
   } catch (e) {}
+  // 🧾 v2.1：booking timeline
+  try {
+    require("./booking-events").logBookingEvent({
+      bookingId: booking.id, event: "cancelled", fromStatus: booking.status,
+      toStatus: "cancelled", actor: req.user.id, meta: { late: true },
+    });
+  } catch (e) {}
 
   return {
     status: 200,
@@ -1050,6 +1078,13 @@ function _processNormalCancel(db, booking, reason, req) {
   // 🕒 v2.1：取消 → void hold
   try {
     require("./ledger-holds").voidHold(booking.id, "cancelled");
+  } catch (e) {}
+  // 🧾 v2.1：booking timeline
+  try {
+    require("./booking-events").logBookingEvent({
+      bookingId: booking.id, event: "cancelled", fromStatus: booking.status,
+      toStatus: "cancelled", actor: req.user.id, meta: { reason: reason || null },
+    });
   } catch (e) {}
 
   db.prepare(
