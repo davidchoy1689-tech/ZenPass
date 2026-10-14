@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#ff6b35" />
+  <title>免責聲明及參加者同意書 · ZenPass 禪流</title>
+  <link rel="stylesheet" href="assets/v2.css" />
+  <style>
+    .doc h3 { margin: 18px 0 6px; font-size: 15px; }
+    .doc p, .doc li { color: var(--text-muted); font-size: 14px; line-height: 1.7; }
+    .doc ol, .doc ul { padding-left: 20px; margin: 6px 0; }
+  </style>
+</head>
+<body>
+  <div class="topbar"><a class="back" href="my.html">‹</a><div class="title">免責聲明及同意書</div></div>
+  <div class="wrap">
+    <div class="card doc"><div class="body">
+      <p>本《免責聲明及參加者同意書》（下稱「本同意書」）適用於所有透過 ZenPass 禪流平台報名或參與活動之人士（下稱「參加者」）。提交報名即表示閣下已閱讀、理解並同意以下條款。</p>
+
+      <h3>1. 健康狀況聲明</h3>
+      <p>參加者聲明其身體狀況適合參與所報名之運動或課程，並無隱瞞任何可能影響安全之疾病或狀況（包括但不限於心臟病、高血壓、癲癇、懷孕等）。如有疑問，參加者應於參與前諮詢醫生意見。</p>
+
+      <h3>2. 風險認知</h3>
+      <p>參加者明白所有體育及康樂活動均存在一定風險，包括身體受傷之可能。參加者自願承擔參與活動之相關風險，並同意遵守教練及場地人員之安全指示。</p>
+
+      <h3>3. 責任限制</h3>
+      <p>在法律允許之最大範圍內，ZenPass 禪流平台及其合作場地、教練，就因參加者自身疏忽、隱瞞健康狀況或未遵從指示而引致之任何損傷或損失，概不承擔責任。平台之角色為連繫參加者與場地／教練之媒介。</p>
+
+      <h3>4. 預約及取消</h3>
+      <p>取消及退款安排依平台不時公佈之《預約及取消政策》為準（一般為開課前一日可自由取消）。缺席（no-show）可能按政策扣減相關費用或積分。</p>
+
+      <h3>5. 個人物品</h3>
+      <p>參加者應自行保管個人物品，平台及場地不會就個人物品之遺失或損壞負責。</p>
+
+      <h3>6. 肖像使用</h3>
+      <p>活動期間或會進行拍攝。參加者同意平台可將活動照片／影片用於推廣用途；如不欲被拍攝，請於活動前通知現場職員。</p>
+
+      <h3>7. 個人資料</h3>
+      <p>參加者之個人資料將依平台《私隱政策》收集、使用及保存，並僅用於提供服務及相關通訊。</p>
+
+      <h3>8. 其他</h3>
+      <p>本同意書受香港特別行政區法律管轄。平台保留隨時修訂本同意書之權利，最新版本將於平台公佈。</p>
+
+      <label style="display:flex;gap:8px;align-items:flex-start;margin-top:18px;font-size:14px">
+        <input type="checkbox" id="agree" style="width:20px;height:20px;margin-top:2px">
+        <span>我已閱讀並同意以上《免責聲明及參加者同意書》。</span>
+      </label>
+    </div></div>
+    <div class="spacer"></div>
+    <p class="muted center" style="font-size:12px">最後更新：2026-10</p>
+    <div class="spacer"></div>
+  </div>
+  <script src="assets/api.js"></script>
+  <script>
+    document.getElementById("agree").onchange = (e) => {
+      try { localStorage.setItem("zenpass_waiver_agreed", e.target.checked ? "1" : "0"); } catch (x) {}
+    };
+    try { if (localStorage.getItem("zenpass_waiver_agreed") === "1") document.getElementById("agree").checked = true; } catch (x) {}
+  </script>
+</body>
+</html>

@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#ff6b35" />
+  <title>自動增值 · ZenPass 禪流</title>
+  <link rel="stylesheet" href="assets/v2.css" />
+  <style>
+    .fld{width:100%;box-sizing:border-box;padding:12px 14px;border:1px solid var(--border);border-radius:12px;font:inherit;background:var(--surface);color:var(--text)}
+    label.lbl{font-size:13px;color:var(--text-muted);display:block;margin:10px 0 4px}
+    .switch{display:flex;justify-content:space-between;align-items:center;padding:14px 16px}
+    .bundle{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border:1px solid var(--border);border-radius:12px;margin-bottom:8px;cursor:pointer}
+    .bundle.on{border-color:var(--brand-500);background:#fff5f0}
+  </style>
+</head>
+<body>
+  <div class="topbar"><a class="back" href="wallet.html">‹</a><div class="title">自動增值</div></div>
+  <div class="wrap">
+    <p class="muted" style="font-size:13px">當 Credits 低於你設定嘅門檻，系統會自動幫你增值指定套票。</p>
+    <div id="box"><div class="card"><div class="body muted">載入中…</div></div></div>
+    <div class="spacer"></div>
+  </div>
+  <script src="assets/api.js"></script>
+  <script>
+    const BUNDLES = [
+      { key: "light", label: "輕量包", credits: 10, price: 100 },
+      { key: "standard", label: "標準包", credits: 25, price: 250 },
+      { key: "premium", label: "超值包", credits: 55, price: 550 },
+    ];
+    let cfg = { enabled: false, threshold: 10, bundle_type: "standard" };
+
+    (async () => {
+      if (!api.requireLogin("topup-auto.html")) return;
+      const r = await api.get("/topup/config");
+      if (r.ok && r.data) cfg = { enabled: !!r.data.enabled, threshold: r.data.threshold || 10, bundle_type: r.data.bundle_type || "standard" };
+      render();
+    })();
+
+    function render() {
+      document.getElementById("box").innerHTML = `<div class="card">
+        <div class="switch"><div><b>啟用自動增值</b><div class="muted" style="font-size:12px">低於門檻自動加購</div></div>
+          <input type="checkbox" id="en" ${cfg.enabled ? "checked" : ""} style="width:22px;height:22px"></div>
+        <div class="body" style="border-top:1px solid var(--border)">
+          <label class="lbl">當 Credits 低於（門檻）</label>
+          <input class="fld" id="th" type="number" min="1" max="100" value="${esc(cfg.threshold)}">
+          <label class="lbl">加購套票</label>
+          <div id="bundles">${BUNDLES.map(b => `
+            <div class="bundle ${cfg.bundle_type === b.key ? "on" : ""}" data-k="${b.key}">
+              <span><b>${b.label}</b><div class="muted" style="font-size:12px">${b.credits} credits</div></span>
+              <span>${hkd(b.price)}</span>
+            </div>`).join("")}</div>
+        </div>
+        <div class="body" style="border-top:1px solid var(--border)">
+          <button class="btn btn-primary btn-block" id="save">儲存設定</button>
+          <div id="msg" class="center muted" style="font-size:13px;margin-top:10px"></div>
+        </div>
+      </div>`;
+      document.querySelectorAll("#bundles .bundle").forEach(el => el.onclick = () => {
+        cfg.bundle_type = el.dataset.k;
+        document.querySelectorAll("#bundles .bundle").forEach(x => x.classList.toggle("on", x === el));
+      });
+      document.getElementById("save").onclick = save;
+    }
+
+    async function save() {
+      const msg = document.getElementById("msg");
+      const body = {
+        enabled: document.getElementById("en").checked,
+        threshold: Number(document.getElementById("th").value) || 10,
+        bundle: cfg.bundle_type,
+      };
+      const btn = document.getElementById("save"); btn.disabled = true; btn.textContent = "儲存中…";
+      const r = await api.put("/topup/config", body);
+      btn.disabled = false; btn.textContent = "儲存設定";
+      if (r.ok) {
+        msg.textContent = (r.data && r.data.message) || "✅ 已儲存";
+        const ae = r.data && r.data.auto_executed;
+        if (ae && ae.executed) msg.textContent += `（已即時增值 ${ae.credits_added || ""} credits）`;
+      } else {
+        msg.textContent = (r.data && r.data.error) || "儲存失敗";
+      }
+    }
+  </script>
+</body>
+</html>
