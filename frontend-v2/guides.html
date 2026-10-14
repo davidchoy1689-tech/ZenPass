@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#ff6b35" />
+  <meta name="description" content="ZenPass 運動指南：瑜伽、Pilates、拳擊、冥想、北歐健行精選知識。" />
+  <title>運動指南 · ZenPass 禪流</title>
+  <link rel="stylesheet" href="assets/v2.css" />
+  <style>
+    .guide{padding:16px;border-bottom:1px solid var(--border)}
+    .guide:last-child{border-bottom:0}
+    .guide .cat{font-size:12px;color:var(--brand-600);font-weight:700}
+    .guide h3{margin:4px 0 6px;font-size:16px}
+    .guide .meta{font-size:12px;color:var(--text-muted)}
+  </style>
+</head>
+<body>
+  <div class="topbar"><a class="back" href="index.html">‹</a><div class="title">運動指南</div></div>
+  <div class="wrap">
+    <p class="muted" style="font-size:13px">由 ZenPass 團隊整理，助你搵到最適合嘅運動。</p>
+    <div class="card" id="list"><div class="body muted">載入中…</div></div>
+    <div class="spacer"></div>
+    <p class="muted center" style="font-size:13px"><a href="explore.html" style="color:var(--brand-600);font-weight:700">探索課程 →</a></p>
+    <div class="spacer"></div>
+  </div>
+  <script>
+    const GUIDES = [
+      { cat: "🧘 瑜伽", title: "瑜伽入門：5 個必學基礎動作", desc: "由下犬式、山式到戰士式，等你慢慢 build up 信心。", meta: "2026-06-15 · 5 分鐘閱讀" },
+      { cat: "🤸 Pilates", title: "Pilates 同瑜伽有咩分別？", desc: "Pilates 注重核心力量同姿勢矯正，瑜伽則更強調柔韌度同心靈放鬆。", meta: "3 分鐘閱讀" },
+      { cat: "🥊 拳擊", title: "新手打拳裝備＋熱身指南", desc: "纏手帶、拳套點揀？打拳前必做嘅 5 個熱身動作。", meta: "4 分鐘閱讀" },
+      { cat: "🧠 冥想", title: "辦公室 5 分鐘減壓冥想", desc: "返工壓力大？坐喺位就得，即刻幫你 reset 個 mind。", meta: "3 分鐘閱讀" },
+      { cat: "🚶 北歐健行", title: "北歐式健步行：全身 90% 肌肉運動", desc: "比普通散步有效 3 倍，膝蓋零壓力，適合任何年齡。", meta: "4 分鐘閱讀" },
+    ];
+    document.getElementById("list").innerHTML = GUIDES.map(g => `
+      <div class="guide">
+        <div class="cat">${esc(g.cat)}</div>
+        <h3>${esc(g.title)}</h3>
+        <div class="muted" style="font-size:14px">${esc(g.desc)}</div>
+        <div class="meta" style="margin-top:6px">${esc(g.meta)}</div>
+      </div>`).join("");
+  </script>
+</body>
+</html>

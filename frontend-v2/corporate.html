@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#ff6b35" />
+  <meta name="description" content="ZenPass 企業健康計劃：為公司團隊提供新興運動、運動班及健康活動方案。" />
+  <title>企業健康計劃 · ZenPass 禪流</title>
+  <link rel="stylesheet" href="assets/v2.css" />
+  <style>
+    .fld{width:100%;box-sizing:border-box;padding:12px 14px;border:1px solid var(--border);border-radius:12px;font:inherit;background:var(--surface);color:var(--text)}
+    label.lbl{font-size:13px;color:var(--text-muted);display:block;margin:10px 0 4px}
+    .adv{display:flex;gap:12px;padding:12px 16px}
+    .adv .ic{font-size:22px}
+  </style>
+</head>
+<body>
+  <div class="hero"><h1>🏢 企業健康計劃</h1><p>提升團隊身心健康，同時凝聚士氣<br>為公司度身訂造運動與健康方案</p></div>
+  <div class="wrap">
+    <div class="section-title">✨ 計劃優勢</div>
+    <div class="card">
+      <div class="adv"><div class="ic">🏅</div><div><b>專業教練到會</b><div class="muted" style="font-size:13px">持認證教練到公司／指定場地授課</div></div></div>
+      <div class="adv"><div class="ic">🧘</div><div><b>多元運動選擇</b><div class="muted" style="font-size:13px">瑜伽、伸展、新興運動、團隊競技等</div></div></div>
+      <div class="adv"><div class="ic">💳</div><div><b>企業 Credits 制度</b><div class="muted" style="font-size:13px">公司先購 Credits，員工自助預約，靈活方便</div></div></div>
+      <div class="adv"><div class="ic">📊</div><div><b>參與報告</b><div class="muted" style="font-size:13px">定期健康活動成效報告</div></div></div>
+    </div>
+
+    <div class="section-title">🧭 合作流程</div>
+    <div class="card"><div class="body">
+      <div>1️⃣ 查詢 — 填寫表格，告知公司需要</div>
+      <div style="margin-top:8px">2️⃣ 諮詢 — 專人了解團隊規模與目標，提供報價</div>
+      <div style="margin-top:8px">3️⃣ 試辦 — 安排一次體驗活動</div>
+      <div style="margin-top:8px">4️⃣ 開展 — 正式推行企業健康計劃</div>
+    </div></div>
+
+    <div class="section-title">✉️ 查詢企業方案</div>
+    <div class="card" id="formCard"><div class="body">
+      <label class="lbl">公司名稱 *</label><input class="fld" id="c-name" />
+      <label class="lbl">聯絡人姓名 *</label><input class="fld" id="c-contact" />
+      <label class="lbl">聯絡電郵 *</label><input class="fld" id="c-email" type="email" />
+      <label class="lbl">聯絡電話</label><input class="fld" id="c-phone" type="tel" />
+      <label class="lbl">有興趣嘅活動</label><input class="fld" id="c-interest" placeholder="例：瑜伽班、團隊新興運動日" />
+      <label class="lbl">備註 / 查詢內容</label><textarea class="fld" id="c-msg" rows="3"></textarea>
+      <div class="spacer"></div>
+      <button class="btn btn-primary btn-block" id="submit">提交查詢 🚀</button>
+      <div id="msg" class="center muted" style="font-size:13px;margin-top:10px"></div>
+    </div></div>
+    <div class="spacer"></div>
+    <p class="muted center" style="font-size:13px"><a href="school.html" style="color:var(--brand-600);font-weight:700">🏫 睇學校 ECA 方案</a></p>
+    <div class="spacer"></div>
+  </div>
+  <script src="assets/api.js"></script>
+  <script>
+    document.getElementById("submit").onclick = async () => {
+      const msg = document.getElementById("msg");
+      const body = {
+        school_name: document.getElementById("c-name").value.trim(),
+        contact_name: document.getElementById("c-contact").value.trim(),
+        contact_email: document.getElementById("c-email").value.trim(),
+        contact_phone: document.getElementById("c-phone").value.trim(),
+        sports_of_interest: document.getElementById("c-interest").value.trim(),
+        message: "[企業健康計劃] " + document.getElementById("c-msg").value.trim(),
+      };
+      if (!body.school_name || !body.contact_name || !body.contact_email) { msg.textContent = "請填公司名稱、聯絡人、電郵"; return; }
+      const btn = document.getElementById("submit"); btn.disabled = true; btn.textContent = "提交中…";
+      const r = await api.post("/school/inquiry", body);
+      btn.disabled = false; btn.textContent = "提交查詢 🚀";
+      if (r.ok) {
+        document.getElementById("formCard").innerHTML = `<div class="body center"><div style="font-size:40px">🎉</div><p>${esc((r.data && r.data.message) || "查詢已提交，我哋會盡快聯絡你")}</p></div>`;
+      } else { msg.textContent = (r.data && r.data.error) || "提交失敗，請稍後再試"; }
+    };
+  </script>
+</body>
+</html>
