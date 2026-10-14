@@ -39,7 +39,8 @@
 
     const TABS = [
       ["dash","概覽"], ["pay","付款核實"], ["inq","查詢"], ["classes","課程"],
-      ["bookings","預約"], ["users","用戶"], ["coach","教練申請"], ["payouts","出糧"], ["audit","審計"],
+      ["bookings","預約"], ["users","用戶"], ["coach","教練申請"], ["payouts","出糧"],
+      ["reports","報表"], ["corp","企業"], ["jobs","Job"], ["audit","審計"],
     ];
     let cur = "dash";
 
@@ -62,6 +63,9 @@
         if (cur === "users") return listGeneric("/admin/users?limit=200", "users", userRow, "用戶");
         if (cur === "coach") return coachApps();
         if (cur === "payouts") return payouts();
+        if (cur === "reports") return reports();
+        if (cur === "corp") return listGeneric("/corporate/companies", "companies", corpRow, "企業");
+        if (cur === "jobs") return listGeneric("/admin/jobs", "jobs", jobRow, "Job");
         if (cur === "audit") return listGeneric("/admin/audit-log?limit=100", "entries", auditRow, "審計記錄");
       } catch (e) { panel().innerHTML = `<div class="card"><div class="body muted">載入失敗：${esc2(e.message)}</div></div>`; }
     }
@@ -131,6 +135,25 @@
     const userRow = (u) => row(`${esc2(u.name||u.email)}<div class="kv">${esc2(u.email)}${u.role?" · "+esc2(u.role):""}${u.is_coach?" · 🧑‍🏫":""}</div>`, `${u.credits||0} cr <span class="pill">${esc2(u.membership_type||"none")}</span>`);
     const bkRow = (b) => row(`${esc2(b.booking_reference||b.id)}<div class="kv">${esc2(b.class_title||b.class_id||"")}</div>`, `${b.amount?money(b.amount):(b.credits_used||"")} <span class="pill ${b.status==='attended'?'ok':(b.status==='cancelled'||b.status==='no_show'?'off':'warn')}">${esc2(st(b.status))}</span>`);
     const auditRow = (e) => row(`${esc2(e.description||e.action_type)}<div class="kv">${esc2(e.entity_type||"")} ${esc2(String(e.created_at||"").slice(0,16))}</div>`, `<span class="pill">${esc2(e.action_type||"")}</span>`);
+    const corpRow = (c) => row(`${esc2(c.name)}<div class="kv">${esc2(c.contact_email||"")} · 可用 ${c.credit_pool||0} / 已用 ${c.credit_used||0}</div>`, `<span class="pill ${c.status==='active'?'ok':'off'}">${esc2(st(c.status))}</span>`);
+    const jobRow = (j) => row(`${esc2(j.title)}<div class="kv">${esc2(j.job_date||"")}${j.venue?" · "+esc2(j.venue):""}${j.pay_hkd?" · HK$"+j.pay_hkd:""}</div>`, `${j.accepted_count||0}/${j.slots||1} <span class="pill ${j.status==='open'?'ok':'off'}">${esc2(st(j.status))}</span>`);
+
+    async function reports() {
+      const r = await api.get("/admin/revenue-dashboard");
+      if (r.status === 401 || r.status === 403) return needAdmin();
+      const d = r.data || {};
+      let html = `<div class="kpis">
+        <div class="kpi"><div class="big">${money(d.mrr)}</div><div class="lbl">MRR</div></div>
+        <div class="kpi"><div class="big">${money(d.totalRevenue)}</div><div class="lbl">總收入</div></div>
+        <div class="kpi"><div class="big">${d.activeSubscribers||0}</div><div class="lbl">活躍訂閱</div></div>
+        <div class="kpi"><div class="big">${money(d.avgRevenuePerUser)}</div><div class="lbl">人均收入</div></div>
+      </div>`;
+      const monthly = Array.isArray(d.monthlyRevenue) ? d.monthlyRevenue : [];
+      if (monthly.length) html += `<div class="card" style="margin-top:10px"><div class="body"><b>每月收入</b>${monthly.slice(-6).map(m=>`<div class="kv">${esc2(m.month||m.period||"")}：${money(m.revenue||m.total)}</div>`).join("")}</div></div>`;
+      const tx = Array.isArray(d.recentTransactions) ? d.recentTransactions : [];
+      if (tx.length) html += `<div class="card" style="margin-top:10px">${tx.slice(0,15).map(t=>row(`${esc2(t.description||t.type||"")}<div class="kv">${esc2(String(t.created_at||"").slice(0,16))}</div>`, money(t.amount))).join("")}</div>`;
+      panel().innerHTML = html;
+    }
 
     async function coachApps() {
       const r = await api.get("/admin/coach-applications");
