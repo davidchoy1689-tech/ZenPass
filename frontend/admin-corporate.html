@@ -143,6 +143,37 @@
 </div>
 
 <script>
+// ===== CSRF-aware fetch shim（為 /api 非 GET 自動加 x-csrf-token）=====
+(function () {
+  var _fetch = window.fetch.bind(window);
+  var _csrf = null;
+  function getCsrf() {
+    if (_csrf) return Promise.resolve(_csrf);
+    return _fetch('/api/csrf-token', { credentials: 'include' })
+      .then(function (r) { return r.json(); })
+      .then(function (j) { _csrf = (j && j.token) || ''; return _csrf; })
+      .catch(function () { return ''; });
+  }
+  window.fetch = function (input, init) {
+    init = init || {};
+    var raw = typeof input === 'string' ? input : (input && input.url) || '';
+    var path = raw;
+    try { path = new URL(raw, window.location.origin).pathname; } catch (e) { path = raw; }
+    var method = (init.method || 'GET').toUpperCase();
+    var isApi = path.indexOf('/api/') === 0 || path === '/api';
+    if (isApi && method !== 'GET' && method !== 'HEAD' && method !== 'OPTIONS') {
+      return getCsrf().then(function (token) {
+        var h = new Headers(init.headers || {});
+        if (token) h.set('x-csrf-token', token);
+        init.headers = h;
+        init.credentials = init.credentials || 'include';
+        return _fetch(input, init);
+      });
+    }
+    return _fetch(input, init);
+  };
+})();
+
 // ===== Config =====
 const API_URL = window.location.origin;
 let user = null;
