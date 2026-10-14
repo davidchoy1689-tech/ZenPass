@@ -40,7 +40,7 @@
     const TABS = [
       ["dash","概覽"], ["pay","付款核實"], ["inq","查詢"], ["classes","課程"],
       ["bookings","預約"], ["users","用戶"], ["coach","教練申請"], ["payouts","出糧"],
-      ["reports","報表"], ["corp","企業"], ["jobs","Job"], ["audit","審計"],
+      ["reports","報表"], ["corp","企業"], ["jobs","Job"], ["pricing","定價"], ["penalty","罰則"], ["analytics","分析"], ["audit","審計"],
     ];
     let cur = "dash";
 
@@ -66,6 +66,9 @@
         if (cur === "reports") return reports();
         if (cur === "corp") return listGeneric("/corporate/companies", "companies", corpRow, "企業");
         if (cur === "jobs") return listGeneric("/admin/jobs", "jobs", jobRow, "Job");
+        if (cur === "pricing") return pricing();
+        if (cur === "penalty") return penalty();
+        if (cur === "analytics") return analytics();
         if (cur === "audit") return listGeneric("/admin/audit-log?limit=100", "entries", auditRow, "審計記錄");
       } catch (e) { panel().innerHTML = `<div class="card"><div class="body muted">載入失敗：${esc2(e.message)}</div></div>`; }
     }
@@ -137,6 +140,37 @@
     const auditRow = (e) => row(`${esc2(e.description||e.action_type)}<div class="kv">${esc2(e.entity_type||"")} ${esc2(String(e.created_at||"").slice(0,16))}</div>`, `<span class="pill">${esc2(e.action_type||"")}</span>`);
     const corpRow = (c) => row(`${esc2(c.name)}<div class="kv">${esc2(c.contact_email||"")} · 可用 ${c.credit_pool||0} / 已用 ${c.credit_used||0}</div>`, `<span class="pill ${c.status==='active'?'ok':'off'}">${esc2(st(c.status))}</span>`);
     const jobRow = (j) => row(`${esc2(j.title)}<div class="kv">${esc2(j.job_date||"")}${j.venue?" · "+esc2(j.venue):""}${j.pay_hkd?" · HK$"+j.pay_hkd:""}</div>`, `${j.accepted_count||0}/${j.slots||1} <span class="pill ${j.status==='open'?'ok':'off'}">${esc2(st(j.status))}</span>`);
+
+    async function pricing() {
+      const r = await api.get("/pricing/admin/pricing");
+      if (r.status === 401 || r.status === 403) return needAdmin();
+      const cats = (r.data && r.data.categories) || [];
+      panel().innerHTML = cats.length ? `<div class="card">${cats.map(c => row(`${esc2(c.name || c.category || "")}<div class="kv">${esc2(c.tiers ? JSON.stringify(c.tiers) : (c.base_price != null ? "基本 " + money(c.base_price) : ""))}</div>`, "")).join("")}</div>` : `<div class="card"><div class="body muted center">暫無定價資料。</div></div>`;
+    }
+
+    async function penalty() {
+      const [s, st] = await Promise.all([api.get("/penalty/settings"), api.get("/penalty/stats")]);
+      if (s.status === 401 || s.status === 403) return needAdmin();
+      const set = s.data || {}; const stats = (st.data && st.data.stats) || {};
+      panel().innerHTML = `<div class="card"><div class="body">
+        <b>罰則設定</b>
+        ${row("No-show 罰分", esc2(set.noShowPenalty != null ? set.noShowPenalty : "—"))}
+        ${row("寬限分鐘", esc2(set.graceMinutes != null ? set.graceMinutes : "—"))}
+      </div></div>
+      <div class="card" style="margin-top:10px"><div class="body"><b>統計</b>
+        ${Object.keys(stats).length ? Object.entries(stats).map(([k, v]) => row(esc2(k), esc2(typeof v === "object" ? JSON.stringify(v) : v))).join("") : '<div class="kv">暫無資料</div>'}
+      </div></div>`;
+    }
+
+    async function analytics() {
+      const [cr, rt] = await Promise.all([api.get("/reporting/coach-ranking"), api.get("/reporting/revenue-trend")]);
+      if (cr.status === 401 || cr.status === 403) return needAdmin();
+      const coaches = (cr.data && cr.data.coaches) || [];
+      const monthly = (rt.data && rt.data.monthly) || [];
+      let html = `<div class="card"><div class="body"><b>教練排名</b>${coaches.length ? coaches.slice(0, 15).map(c => row(`${esc2(c.name || c.coach_name || c.coach_id || "")}<div class="kv">⭐ ${esc2(c.avg_rating || c.rating || 0)} · ${esc2(c.total_students || c.students || 0)} 學生</div>`, "")).join("") : '<div class="kv">暫無資料</div>'}</div></div>`;
+      html += `<div class="card" style="margin-top:10px"><div class="body"><b>每月收入趨勢</b>${monthly.length ? monthly.slice(-6).map(m => row(esc2(m.month || m.period || ""), money(m.revenue || m.total))).join("") : '<div class="kv">暫無資料</div>'}</div></div>`;
+      panel().innerHTML = html;
+    }
 
     async function reports() {
       const r = await api.get("/admin/revenue-dashboard");
