@@ -129,6 +129,7 @@ function initDatabase() {
       credits_cost INTEGER DEFAULT 0,
       venue_name TEXT,
       venue_address TEXT,
+      target_audience TEXT,
       latitude REAL,
       longitude REAL,
       image_url TEXT,
@@ -138,6 +139,9 @@ function initDatabase() {
       FOREIGN KEY (coach_id) REFERENCES users(id)
     );
   `);
+
+  // ===== 兼容升級：classes.target_audience（課程對象）=====
+  try { db.exec("ALTER TABLE classes ADD COLUMN target_audience TEXT"); } catch (e) { /* exists */ }
 
   // ===== 課程時間表 =====
   db.exec(`

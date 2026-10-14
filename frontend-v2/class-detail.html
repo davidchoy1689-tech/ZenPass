@@ -34,8 +34,9 @@
     </div>
 
     <section id="intro">
-      <div class="section-title">課程介紹</div>
+      <div class="section-title">課程內容</div>
       <p id="desc" class="muted">…</p>
+      <div class="section-title" style="font-size:15px">課程資料</div>
       <div class="card"><div class="body" id="facts"></div></div>
     </section>
 
@@ -73,10 +74,16 @@
         <h1 style="margin:0 0 6px;font-size:22px">${esc(c.title)}</h1>
         <p class="muted" style="margin:0">👤 ${esc(c.coach_name || "教練")} · ⏱ ${c.duration || "-"} 分鐘${c.venue_name ? " · 📍 " + esc(c.venue_name) : ""}</p>`;
       document.getElementById("desc").textContent = c.description || "暫無介紹。";
-      document.getElementById("facts").innerHTML =
-        `<div class="row"><span class="k">程度</span><span class="v">${esc(c.difficulty || "新手友善")}</span></div>
-         <div class="row"><span class="k">人數上限</span><span class="v">${esc(c.max_participants || "-")} 人</span></div>
-         <div class="row"><span class="k">價錢</span><span class="v">${cr(c.price_hkd)} credits (${hkd(c.price_hkd)})</span></div>`;
+      const _dmap = { beginner: "初級 / 新手友善", intermediate: "中級", advanced: "高級" };
+      const _loc = [c.venue_name, c.venue_address].filter(Boolean).join("（") + (c.venue_name && c.venue_address ? "）" : "");
+      document.getElementById("facts").innerHTML = [
+        ["📅 對象", c.target_audience || _dmap[c.difficulty] || "適合初學者"],
+        ["📍 地點", _loc || "待定"],
+        ["👥 人數上限", (c.max_participants || "-") + " 人"],
+        ["📊 程度", _dmap[c.difficulty] || c.difficulty || "新手友善"],
+        ["⏱ 時長", (c.duration || "-") + " 分鐘"],
+        ["💰 價錢", `${cr(c.price_hkd)} credits (${hkd(c.price_hkd)})`],
+      ].map(([k, v]) => `<div class="row"><span class="k">${k}</span><span class="v">${esc(v)}</span></div>`).join("");
       document.getElementById("price").innerHTML = `${cr(c.price_hkd)}cr <span class="muted" style="font-weight:500;font-size:13px">/ ${hkd(c.price_hkd)}</span>`;
 
       const scheds = (r.data.schedules || []).filter(s => s.status !== "cancelled" && !(window.zpIsHoliday && zpIsHoliday(s.start_time)));

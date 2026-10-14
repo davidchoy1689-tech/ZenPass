@@ -33,10 +33,24 @@
   <script>
     const list = document.getElementById("list");
     function card(c) {
+      const wd = ["日", "一", "二", "三", "四", "五", "六"];
+      const s = (c.schedules && c.schedules[0]) || null;
+      let next = "";
+      if (s) {
+        const d = new Date(String(s.start_time).replace(" ", "T"));
+        if (!isNaN(d)) {
+          const p = (n) => String(n).padStart(2, "0");
+          const left = (s.max_participants || 0) - (s.enrolled_count || 0);
+          next = `${d.getMonth() + 1}/${d.getDate()}（週${wd[d.getDay()]}）${p(d.getHours())}:${p(d.getMinutes())} · 剩 ${left} 位`;
+        }
+      }
+      const aud = c.target_audience || ({ beginner: "初級 / 新手友善", intermediate: "中級", advanced: "高級" }[c.difficulty]) || "";
       return `<a class="card" href="class-detail.html?id=${encodeURIComponent(c.id)}"><div class="body course">
         <div class="thumb"></div>
         <div class="meta"><p class="name">${esc(c.title)}</p>
-          <p class="sub">${esc(c.category || "")}${c.duration ? " · " + c.duration + " 分鐘" : ""}</p></div>
+          <p class="sub">${esc(c.category || "")}${c.duration ? " · " + c.duration + " 分鐘" : ""}${c.venue_name ? " · 📍 " + esc(c.venue_name) : ""}</p>
+          ${next ? `<p class="sub" style="color:var(--brand-600)">📅 ${esc(next)}</p>` : `<p class="sub">暫無時段</p>`}
+          <p class="sub">${esc(aud)}${c.max_participants ? " · 上限 " + c.max_participants + " 人" : ""}</p></div>
         <div class="price">${cr(c.price_hkd)}cr</div>
       </div></a>`;
     }
