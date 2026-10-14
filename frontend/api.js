@@ -1268,15 +1268,9 @@ function optimizeImages() {
   }
 }
 
-// ===== Hotjar (load on all pages) =====
-(function(h,o,t,j,a,r){
-    h.hj=h.hj||function(){(h.hj.q=h.hj.q||[]).push(arguments)};
-    h._hjSettings={hjid:0,hjsv:6};
-    a=o.getElementsByTagName('head')[0];
-    r=o.createElement('script');r.async=1;
-    r.src=t+h._hjSettings.hjid+j+h._hjSettings.hjsv;
-    a.appendChild(r);
-})(window,document,'https://static.hotjar.com/c/hotjar-','.js?sv=');
+// ===== Hotjar removed =====
+// Hotjar 注入已移除（hjid:0 從未設定，只會產生 CSP 擋截嘅 console 錯誤）。
+// 如日後要接 Hotjar，請先喺 nginx CSP script-src/connect-src 加 *.hotjar.com 再重新加入。
 
 // ===== Page view tracking (anonymous) =====
 function trackPageView() {
