@@ -399,6 +399,28 @@ function insertBookingRow(db, bookingData, partnerInfo) {
       toStatus: bookingStatus,
     });
   } catch (e) {}
+
+  // 🕒💳 credits 即時付款：補記 committed hold + succeeded intent（審計完整性，零行為改動）
+  if (bookingStatus === "confirmed" && paymentType === "credits") {
+    try {
+      const lh = require("./ledger-holds");
+      lh.createHold(bookingId, userId, amount, "credits");
+      lh.commitHold(bookingId);
+    } catch (e) {
+      console.error("⚠️ [HOLD] credits record failed:", e.message);
+    }
+    try {
+      require("./payment-intents").upsertIntent({
+        bookingId,
+        userId,
+        amount,
+        method: "credits",
+        state: "succeeded",
+      });
+    } catch (e) {
+      console.error("⚠️ [PAYINTENT] credits record failed:", e.message);
+    }
+  }
 }
 
 // ==================== Notifications (fire-and-forget) ====================

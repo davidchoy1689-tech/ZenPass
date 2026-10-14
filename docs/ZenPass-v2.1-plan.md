@@ -133,3 +133,15 @@
 
 ## 9. 建議
 **即刻可做（低風險、高回報）**：Phase 0 + Phase 1（財務核心 + hold 兩階段轉帳）。其餘按階段推進。
+
+---
+
+## ✅ 實作進度（2026-10-14）
+- **財務核心**：四邊拆賬 `postBookingSplitLedger`（學生→平台/教練/場地），ledger balanced。
+- **兩階段 hold**：`ledger_holds`（pending→committed/voided/expired），live 接入（落單 hold／付款 commit／取消 void）+ 對帳 backstop。
+- **PaymentIntent**：`payment_intents` 統一支付編排（requires_payment→succeeded）。
+- **Booking events**：`booking_events` append-only timeline（created/paid/cancelled）。
+- **會籍 Catalog + Entitlements**：`plan_versions`（版本化）+ `entitlements`（訂閱授予、hasEntitlement）。
+- **Outbox**：`outbox_events` 可靠事件流（booking 事件入 outbox，對帳 dispatch pending）。
+- **每日對帳**：`scripts/ledger-reconcile.js` + cron `zenpass-ledger-reconcile`（09:00 HKT，唔平衡先通知）。
+- **Credits**：建立時即扣（deduct-at-create）＝實質凍結；credits booking 亦補記 committed hold + succeeded intent（審計完整）。
