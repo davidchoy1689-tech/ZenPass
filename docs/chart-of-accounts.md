@@ -22,7 +22,7 @@
 | 3100 | 佣金收入 | 收入 | 平台抽佣（舊模型） |
 | 5000 | 退款 | 費用 | 退款 |
 
-## 分錄模型（v2.2 四邊拆賬）
+## 分錄模型（v2.1 四邊拆賬）
 每筆已付款 booking → **一組平衡分錄**（`postBookingSplitLedger`）：
 ```
 借 1000/1100/1200 資產      = amount（學生實付）
@@ -47,10 +47,10 @@ node scripts/ledger-reconcile.js --backfill  # 補寫未入帳嘅已付款 booki
 1. `sum(ledger.debit) == sum(ledger.credit)`（全域平衡）
 2. 每張已付款 booking 至少有一筆 `payment` 分錄
 3. 金錢表只准 INSERT / UPDATE status，不准 DELETE（trigger 保護）
-4. `platform_earned_amount + venue_earned_amount + coach_earnings == amount`（四邊拆賬，待 v2.2 全面覆蓋）
+4. `platform_earned_amount + venue_earned_amount + coach_earnings == amount`（四邊拆賬，待 v2.1 全面覆蓋）
 
-## 缺口 / 下一步（v2.2+）
-- 目前科目未完全反映「四邊拆賬」（學生/平台/教練/場地）；v2.2 擴充科目：1200 教練應付、1300 場地應付。
+## 缺口 / 下一步（v2.1+）
+- 目前科目未完全反映「四邊拆賬」（學生/平台/教練/場地）；v2.1 擴充科目：1200 教練應付、1300 場地應付。
 - Hold 位改兩階段轉帳（pending→commit/void）。
 - 每日自動對帳（加入 daily-maintenance 或 cron）。
 - `payment_intent` 抽象統一 Stripe/FPS/PayMe。

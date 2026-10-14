@@ -1,4 +1,4 @@
-# ZenPass v3 架構升級計劃
+# ZenPass v2.1 計劃（持續強化）
 ### 參考 8 個世界級開源專案，抽取可落地模式，目標：可審計 · 可擴展 · 合規（IPO-ready）
 
 > 作者：CEO Assistant　日期：2026-10-14　狀態：**待 David 批准開工**
@@ -109,7 +109,7 @@
 ## 6. 唔好抄嘅嘢（避免過早複雜化）
 - **唔即上 microservices / Kafka**：SQLite + 模組化單體 + Outbox 已足夠，將來先換 Postgres/隊列。
 - **唔照搬 Cal.com 全功能**（團隊/round-robin 等）：只取 availability + idempotency。
-- **唔重寫前端**：v2 已完成；v3 專注後端交易核心。
+- **唔重寫前端**：v2 已完成；v2.1 專注後端交易核心。
 - **唔引入重 framework 綁死**：保持零 lock-in。
 
 ---

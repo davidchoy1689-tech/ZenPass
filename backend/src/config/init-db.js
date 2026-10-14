@@ -417,6 +417,27 @@ function initDatabase() {
       FOREIGN KEY (coach_id) REFERENCES users(id)
     );
   `);
+  // ===== v2.1：Ledger Hold（兩階段轉帳 hold 位）=====
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS ledger_holds (
+      id TEXT PRIMARY KEY,
+      booking_id TEXT NOT NULL UNIQUE,
+      user_id TEXT NOT NULL,
+      amount REAL NOT NULL,
+      asset TEXT DEFAULT 'credits',
+      state TEXT DEFAULT 'pending' CHECK(state IN ('pending','committed','voided','expired')),
+      expires_at TEXT,
+      committed_at TEXT,
+      voided_at TEXT,
+      reason TEXT,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+  `);
+  try {
+    db.exec("CREATE INDEX IF NOT EXISTS idx_ledger_holds_state ON ledger_holds(state)");
+    db.exec("CREATE INDEX IF NOT EXISTS idx_ledger_holds_booking ON ledger_holds(booking_id)");
+  } catch (e) { /* indexes optional */ }
+
   // ===== 索引 =====
   try {
     db.exec("CREATE INDEX IF NOT EXISTS idx_coach_jobs_status ON coach_jobs(status)");
