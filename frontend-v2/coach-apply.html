@@ -65,12 +65,7 @@
         cb.closest("label").classList.toggle("on", cb.checked);
         if (cb.checked) chosen.add(cb.value); else chosen.delete(cb.value);
       });
-      // 預填
-      const me = await api.get("/users/me");
-      const u = (me.data && (me.data.user || me.data)) || {};
-      if (u.name) document.getElementById("f-name").value = u.name;
-      if (u.email) document.getElementById("f-email").value = u.email;
-      if (u.phone) document.getElementById("f-phone").value = u.phone;
+      // 姓名 / 電郵 / 電話一律留空，唔預填帳戶資料
       // 已有申請？
       const ap = await api.get("/coach/application");
       const app = ap.data && ap.data.application;

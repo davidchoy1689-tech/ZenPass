@@ -922,20 +922,7 @@
           const token = localStorage.getItem("zenpass_token");
           if (token) return token;
 
-          // Attempt login with default admin
-          const res = await fetch(API_BASE + "/auth/login", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              email: "admin@zenpass.hk",
-              password: "admin123",
-            }),
-          });
-          const json = await res.json();
-          if (json.token) {
-            localStorage.setItem("zenpass_token", json.token);
-            return json.token;
-          }
+          // (default admin auto-login removed — security)
           return null;
         } catch (e) {
           console.error("Auth error:", e);

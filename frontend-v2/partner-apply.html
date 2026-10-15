@@ -53,12 +53,7 @@
   <script src="assets/api.js"></script>
   <script>
     (async () => {
-      // 若已登入，預填電郵
-      if (api.isLoggedIn()) {
-        const me = await api.get("/users/me");
-        const u = (me.data && (me.data.user || me.data)) || {};
-        if (u.email) document.getElementById("p-email").value = u.email;
-      }
+      // 電郵一律留空，唔預填帳戶資料
       document.getElementById("submit").onclick = submit;
     })();
 

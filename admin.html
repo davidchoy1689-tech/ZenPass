@@ -856,13 +856,11 @@
           type="email"
           id="loginEmail"
           placeholder="admin@zenpass.hk"
-          value="admin@zenpass.hk"
         />
         <input
           type="password"
           id="loginPass"
           placeholder="密碼"
-          value="admin123"
         />
         <button class="btn btn-primary" onclick="login()">登入</button>
         <div id="loginMsg" class="msg"></div>
@@ -1140,7 +1138,7 @@ async function loadCorporateTab() {
     '<h3 id="corp-detail-name"></h3><div id="corp-detail-content"></div><hr>' +
     '<h4>新增員工</h4>' +
     '<textarea id="corp-employees-input" placeholder="每行一個：姓名, 電郵" rows="4" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;"></textarea>' +
-    '<button class="btn" onclick="addCorporateEmployees()" style="margin-top:8px;">批量新增</button> <input type="file" id="corp-csv-file" accept=".csv" style="display:none" onchange="importCSVEmployees(this)" /> <button class="btn" onclick="document.getElementById('corp-csv-file').click()" style="margin-top:8px;margin-left:4px">📄 上傳 CSV</button></div>';
+    '<button class="btn" onclick="addCorporateEmployees()" style="margin-top:8px;">批量新增</button> <input type="file" id="corp-csv-file" accept=".csv" style="display:none" onchange="importCSVEmployees(this)" /> <button class="btn" onclick="document.getElementById(\'corp-csv-file\').click()" style="margin-top:8px;margin-left:4px">📄 上傳 CSV</button></div>';
   try {
     var data = await apiGet('/corporate/companies');
     if (!data.companies) throw new Error('no data');
@@ -1192,7 +1190,7 @@ async function showCorporateDetail(id) {
     if (data.employees && data.employees.length > 0) {
       detailHtml += '<table class="mini-table"><thead><tr><th>姓名</th><th>電郵</th><th>30日預約</th><th>Credits</th><th>每月上限</th><th>本月用</th><th>操作</th></tr></thead><tbody>';
       data.employees.forEach(function(e) {
-        detailHtml += '<tr><td>' + e.name + '</td><td>' + e.email + '</td><td>' + (e.bookings_30d || 0) + '</td><td>' + (e.credits || 0) + '</td><td>' + (e.monthly_credit_limit || '無限') + '</td><td>' + (e.monthly_credit_used || 0) + '</td><td><input type="number" id="limit-' + e.id + '" value="' + (e.monthly_credit_limit || '') + '" style="width:60px" placeholder="無限"> <button class="btn-sm" onclick="setEmployeeLimit('' + e.id + '')">設定</button></td></tr>';
+        detailHtml += '<tr><td>' + e.name + '</td><td>' + e.email + '</td><td>' + (e.bookings_30d || 0) + '</td><td>' + (e.credits || 0) + '</td><td>' + (e.monthly_credit_limit || '無限') + '</td><td>' + (e.monthly_credit_used || 0) + '</td><td><input type="number" id="limit-' + e.id + '" value="' + (e.monthly_credit_limit || '') + '" style="width:60px" placeholder="無限"> <button class="btn-sm" onclick="setEmployeeLimit(\'' + e.id + '\')">設定</button></td></tr>';
       });
       detailHtml += '</tbody></table>';
     }
@@ -1267,34 +1265,7 @@ async function topupCorporateCredits(id) {
     <script>
       var user = null;
       var API_URL = window.location.origin + ""; // Auto-detect // Auto-detect: use same origin as page
-
-      // Auto-login for dev mode
-      (async function () {
-        try {
-          var loginScreen = document.getElementById("loginScreen");
-          var app = document.getElementById("app");
-          if (loginScreen && loginScreen.style.display !== "none") {
-            var r = await fetch(API_URL + "/api/auth/login", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                email: "admin@zenpass.hk",
-                password: "admin123",
-              }),
-            });
-            var d = await r.json();
-            if (d.token) {
-              setToken(d.token);
-              storeUser(d.user);
-              loginScreen.style.display = "none";
-              app.style.display = "flex";
-              loadTab("dashboard");
-            }
-          }
-        } catch (e) {
-          console.log("Auto-login failed:", e.message);
-        }
-      })();
+      // (dev auto-login removed — security)
 
       // ===== Auth =====
       function filterUsers() {
@@ -1571,7 +1542,7 @@ function apiPatch(url, data) {
   return fetch('/api' + url, { method: 'PATCH', headers: { 'Content-Type': 'application/json', 'Authorization': token ? 'Bearer ' + token : '' }, body: JSON.stringify(data) }).then(function(r) { if (!r.ok) return r.json().then(function(d) { throw new Error(d.error || 'Request failed'); }); return r.json(); });
 }
 
-function apiPost(path, body) {
+async function apiPost(path, body) {
         var t = getToken();
         var r = await fetch(API + path, {
           method: "POST",

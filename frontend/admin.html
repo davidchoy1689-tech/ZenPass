@@ -856,13 +856,11 @@
           type="email"
           id="loginEmail"
           placeholder="admin@zenpass.hk"
-          value="admin@zenpass.hk"
         />
         <input
           type="password"
           id="loginPass"
           placeholder="密碼"
-          value="admin123"
         />
         <button class="btn btn-primary" onclick="login()">登入</button>
         <div id="loginMsg" class="msg"></div>
@@ -1303,34 +1301,7 @@ async function topupCorporateCredits(id) {
           return _fetch(input, init);
         };
       })();
-
-      // Auto-login for dev mode
-      (async function () {
-        try {
-          var loginScreen = document.getElementById("loginScreen");
-          var app = document.getElementById("app");
-          if (loginScreen && loginScreen.style.display !== "none") {
-            var r = await fetch(API_URL + "/api/auth/login", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                email: "admin@zenpass.hk",
-                password: "admin123",
-              }),
-            });
-            var d = await r.json();
-            if (d.token) {
-              setToken(d.token);
-              storeUser(d.user);
-              loginScreen.style.display = "none";
-              app.style.display = "flex";
-              loadTab("dashboard");
-            }
-          }
-        } catch (e) {
-          console.log("Auto-login failed:", e.message);
-        }
-      })();
+      // (dev auto-login removed — security)
 
       // ===== Auth =====
       function filterUsers() {
