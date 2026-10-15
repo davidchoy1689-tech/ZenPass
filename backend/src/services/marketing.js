@@ -136,7 +136,11 @@ async function sendBroadcast(subject, message, filters = {}) {
 }
 
 function getBaseUrl() {
-  return process.env.BASE_URL || "https://davidchoy1689-tech.github.io/ZenPass";
+  return (
+    process.env.PUBLIC_BASE_URL ||
+    process.env.BASE_URL ||
+    "https://zenpass.hk"
+  ).replace(/\/$/, "");
 }
 
 // ===== 排程檢查（每小時）=====
