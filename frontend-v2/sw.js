@@ -1,13 +1,14 @@
-/* ZenPass v2 Service Worker — app shell (v2)
+/* ZenPass v2 Service Worker — app shell (v3)
  * 導航：network-first（離線 fallback 去 app shell）
  * 靜態資源：cache-first
  * /api/：永不快取（確保資料即時）
  */
-const CACHE = "zenpass-v2-shell-v2";
+const CACHE = "zenpass-v2-shell-v3";
 const ASSETS = [
   "/",
   "/index.html",
   "/explore.html",
+  "/offline.html",
   "/assets/v2.css",
   "/assets/api.js",
   "/assets/holidays.js",
@@ -43,7 +44,11 @@ self.addEventListener("fetch", (e) => {
   if (url.pathname.startsWith("/api/")) return; // 永不快取 API
 
   if (req.mode === "navigate") {
-    e.respondWith(fetch(req).catch(() => caches.match("/index.html")));
+    e.respondWith(
+      fetch(req).catch(() =>
+        caches.match(req).then((r) => r || caches.match("/offline.html")),
+      ),
+    );
     return;
   }
   e.respondWith(
