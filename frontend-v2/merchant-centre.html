@@ -23,6 +23,9 @@
     .fld { width:100%; box-sizing:border-box; padding:11px 12px; border:1px solid var(--border); border-radius:12px; font:inherit; background:var(--surface); color:var(--text); }
     .frm { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
     .frm .full { grid-column:1/-1; }
+    .rdays { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+    .rday { display: inline-flex; align-items: center; gap: 5px; font-size: 13px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 999px; padding: 6px 11px; cursor: pointer; }
+    .rday input { margin: 0; }
     .sched { display:grid; grid-template-columns:1fr 1fr auto; gap:6px; margin-bottom:6px; align-items:center; }
     .sched button { border:0; background:var(--ink-200); color:var(--ink-500); border-radius:10px; height:38px; padding:0 12px; cursor:pointer; font:inherit; }
     .mini { min-height:34px; padding:0 12px; font-size:13px; }
@@ -260,6 +263,7 @@
             <div><b>${esc(c.title)}</b><div class="muted" style="font-size:12px">${esc(c.category || "")} · ${c.booking_count || 0} 預約 · ${c.price_hkd ? hkd(c.price_hkd) : ((c.credits_cost||0)+" cr")}</div></div>
             <div style="white-space:nowrap">
               <button class="btn btn-secondary mini" onclick="openAddSched('${esc(c.id)}')">🔁 排班</button>
+              <button class="btn btn-secondary mini" onclick="openRentSlots('${esc(c.id)}')">🏟️ 租場時段</button>
               <button class="btn btn-secondary mini" onclick="openEdit('${esc(c.id)}')">編輯</button>
             </div>
           </div>`).join("")
@@ -374,6 +378,68 @@
       return o;
     }
     function closeModal(el) { const o = el.closest(".modal-overlay"); if (o) o.remove(); }
+
+    /* ===== 場地可租時段：多星期批量發佈 ===== */
+    function genRentSlots(fromDate, toDate, weekdays, startTime, durMin, maxP) {
+      const out = [];
+      const pad2 = (n) => String(n).padStart(2, "0");
+      const localInput = (d) => d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate()) + "T" + pad2(d.getHours()) + ":" + pad2(d.getMinutes());
+      const start = new Date(fromDate + "T00:00:00");
+      const end = new Date(toDate + "T23:59:59");
+      if (isNaN(start) || isNaN(end) || end < start) return out;
+      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+        if (weekdays.indexOf(d.getDay()) < 0) continue;   // 0=日 … 6=六
+        const st = new Date(d.getFullYear(), d.getMonth(), d.getDate(), Number(startTime.slice(0, 2)), Number(startTime.slice(3, 5)));
+        const en = new Date(st.getTime() + durMin * 60000);
+        out.push({ start_time: toISO(localInput(st)), end_time: toISO(localInput(en)), max_participants: maxP || undefined });
+        if (out.length >= 400) break;
+      }
+      return out;
+    }
+
+    function openRentSlots(id) {
+      const DAYS = [["1","一"],["2","二"],["3","三"],["4","四"],["5","五"],["6","六"],["0","日"]];
+      const o = openModal(`
+        <h3>🏟️ 批量發佈可租時段</h3>
+        <div class="lbl2">租出邊幾日（可多選）</div>
+        <div class="rdays" id="rdays">${DAYS.map(d => `<label class="rday"><input type="checkbox" value="${d[0]}" checked>${d[1]}</label>`).join("")}</div>
+        <div style="display:flex;gap:8px;margin-top:6px">
+          <div style="flex:1"><div class="lbl2">由</div><input class="fld full rs-from" type="date"></div>
+          <div style="flex:1"><div class="lbl2">至</div><input class="fld full rs-to" type="date"></div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <div style="flex:1"><div class="lbl2">開始</div><input class="fld full rs-start" type="time" value="10:00"></div>
+          <div style="flex:1"><div class="lbl2">幾長（分鐘）</div><input class="fld full rs-dur" type="number" min="30" step="30" value="120"></div>
+          <div style="flex:1"><div class="lbl2">名額</div><input class="fld full rs-max" type="number" min="1"></div>
+        </div>
+        <p class="muted rs-preview" style="font-size:12.5px;margin:10px 0 0;min-height:18px"></p>
+        <div class="actions">
+          <button class="btn btn-primary" id="rsSave">一鍵發佈</button>
+          <button class="btn btn-secondary" onclick="closeModal(this)">取消</button>
+        </div>`);
+      const q = (sel) => o.querySelector(sel);
+      const from0 = new Date();
+      const to0 = new Date(Date.now() + 27 * 86400000);
+      const iso = (d) => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+      q(".rs-from").value = iso(from0);
+      q(".rs-to").value = iso(to0);
+      function picked() { return [...o.querySelectorAll("#rdays input:checked")].map((x) => Number(x.value)); }
+      function preview() {
+        const list = genRentSlots(q(".rs-from").value, q(".rs-to").value, picked(), q(".rs-start").value || "10:00", Number(q(".rs-dur").value || 120), q(".rs-max").value ? Number(q(".rs-max").value) : null);
+        q(".rs-preview").textContent = list.length ? ("將發佈 " + list.length + " 個可租時段（" + list[0].start_time.slice(0, 10) + " 起）") : "請檢查日期同星期";
+        return list;
+      }
+      o.querySelectorAll("input").forEach((el) => el.addEventListener("change", preview));
+      preview();
+      q("#rsSave").onclick = async () => {
+        const list = preview();
+        if (!list.length) { alert("冇時段可以發佈，請檢查日期同星期"); return; }
+        if (!confirm("確定發佈 " + list.length + " 個可租時段？")) return;
+        const r = await api.post("/partner/courses/" + encodeURIComponent(id) + "/schedules", { schedules: list });
+        if (r.ok) { o.remove(); alert("✅ 已發佈 " + list.length + " 個可租時段"); location.reload(); }
+        else alert((r.data && r.data.error) || "發佈失敗");
+      };
+    }
 
     /* ===== 快速排班：一次過開一學期（支援重複）===== */
     function genSlots(baseDate, startTime, durationMin, repeat, untilDate, maxP) {
