@@ -37,7 +37,7 @@
   <meta name="twitter:title" content="ZenPass 禪流 | 一Pass通行全城運動與新興運動體驗" />
   <meta name="twitter:description" content="免費登記 ZenPass！新用戶輸入優惠碼 WELCOME50 即享首堂半價。精選全港瑜伽、芬蘭木柱、地板冰壺、HIIT 等百款運動體驗。" />
   <meta name="twitter:image" content="https://zenpass.hk/assets/og/zenpass-og.jpg" />
-  <link rel="stylesheet" href="assets/v2.css?v=16" />
+  <link rel="stylesheet" href="assets/v2.css?v=17" />
 </head>
 <body>
   <div class="wrap">
@@ -144,7 +144,12 @@
     <p class="muted center" style="font-size:12px">ZenPass 禪流 · v2</p>
   </div>
 
-  <button class="install-btn" id="installBtn" type="button" hidden>⬇️ 新增至主畫面</button>
+  <div class="install-bar" id="installBar" hidden>
+    <span class="ib-ic">📱</span>
+    <span class="ib-tx">將 ZenPass 安裝到手機，預約更方便！</span>
+    <button class="ib-go" id="installGo" type="button">立即安裝</button>
+    <button class="ib-x" id="installX" type="button" aria-label="關閉提示">✕</button>
+  </div>
 
   <nav class="bottomnav">
     <a class="active" href="index.html"><span class="ic">🏠</span>主頁</a>
@@ -232,28 +237,45 @@
   </script>
   <script>
     (function () {
-      var btn = document.getElementById("installBtn");
+      var bar = document.getElementById("installBar");
+      var go = document.getElementById("installGo");
+      var x = document.getElementById("installX");
+      if (!bar) return;
       var deferred = null;
+      var DISMISS_KEY = "zp_install_dismissed";
+      var DISMISS_DAYS = 7;
       var standalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
       var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+      var force = location.search.indexOf("homescreen") >= 0;
+
       function toast(msg) {
         var t = document.getElementById("toast");
         if (!t) return;
         t.textContent = msg; t.classList.add("show");
         clearTimeout(window.__it); window.__it = setTimeout(function () { t.classList.remove("show"); }, 2600);
       }
-      if (!standalone && btn) {
-        if (isIOS) btn.hidden = false;
+      function dismissedRecently() {
+        try {
+          var v = parseInt(localStorage.getItem(DISMISS_KEY) || "0", 10);
+          return v && (Date.now() - v) < DISMISS_DAYS * 864e5;
+        } catch (e) { return false; }
+      }
+      function show() { if (!standalone && !dismissedRecently()) bar.hidden = false; }
+      function hide() { bar.hidden = true; }
+
+      if (force) { bar.hidden = false; }
+      else if (!standalone) {
+        if (isIOS) show();                                   // iOS 冇 beforeinstallprompt
         window.addEventListener("beforeinstallprompt", function (e) {
-          e.preventDefault(); deferred = e; btn.hidden = false;
+          e.preventDefault(); deferred = e; show();
         });
       }
-      if (btn) btn.addEventListener("click", function () {
+      if (go) go.addEventListener("click", function () {
         if (deferred) {
           deferred.prompt();
           deferred.userChoice.then(function (r) {
-            deferred = null; btn.hidden = true;
-            if (r && r.outcome === "accepted") toast("已加入主畫面 🎉");
+            deferred = null;
+            if (r && r.outcome === "accepted") { hide(); toast("已加入主畫面 🎉"); }
           }).catch(function () {});
         } else if (isIOS) {
           toast("分享 ➜ 加到主畫面");
@@ -261,9 +283,11 @@
           toast("用瀏覽器選單 ➜ 安裝 App");
         }
       });
-      window.addEventListener("appinstalled", function () { if (btn) btn.hidden = true; toast("已加入主畫面 🎉"); });
-      /* 加 ?homescreen=1 可直接顯示安裝提示 */
-      if (location.search.indexOf("homescreen") >= 0 && btn) btn.hidden = false;
+      if (x) x.addEventListener("click", function () {
+        hide();
+        try { localStorage.setItem(DISMISS_KEY, String(Date.now())); } catch (e) {}
+      });
+      window.addEventListener("appinstalled", function () { hide(); toast("已加入主畫面 🎉"); });
     })();
   </script>
   <script>
