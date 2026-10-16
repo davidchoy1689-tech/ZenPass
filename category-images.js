@@ -30,6 +30,10 @@ function getCategoryImage(cat) {
 
 // Category → local SVG icon mapping (self-hosted flat icon set, no external requests)
 var SPORT_ICONS = [
+  ["長曲棍球", "lacrosse"], ["lacrosse", "lacrosse"],
+  ["壘球", "softball"], ["softball", "softball"],
+  ["飛盤高爾夫", "disc-golf"], ["disc golf", "disc-golf"],
+  ["迷你高爾夫", "mini-golf"], ["mini golf", "mini-golf"],
   ["熱瑜伽", "hot-yoga"], ["高溫瑜伽", "hot-yoga"], ["高温瑜伽", "hot-yoga"], ["hot yoga", "hot-yoga"],
   ["孕婦瑜伽", "prenatal-yoga"], ["產前瑜伽", "prenatal-yoga"], ["產後", "prenatal-yoga"], ["prenatal", "prenatal-yoga"],
   ["健身舞", "aerobics"], ["健美操", "aerobics"], ["有氧操", "aerobics"], ["帶氧", "aerobics"], ["跳操", "aerobics"],
@@ -91,6 +95,10 @@ var SPORT_ICONS = [
   ["扇舞", "fan-dance"], ["fan dance", "fan-dance"],
   ["中國鼓", "chinese-drum"], ["chinese drum", "chinese-drum"],
   ["射擊", "shooting"], ["氣槍", "shooting"], ["shooting", "shooting"],
+  ["短柄牆球", "racquetball"], ["racquetball", "racquetball"],
+  ["硬地滾球", "boccia"], ["boccia", "boccia"],
+  ["劍球", "kendama"], ["kendama", "kendama"],
+  ["疊杯", "sport-stacking"], ["sport stacking", "sport-stacking"],
   ["芬蘭木柱", "moelkkyla"], ["木柱", "moelkkyla"], ["molkky", "moelkkyla"], ["mölkky", "moelkkyla"],
   ["地板冰壺", "floor-curling"], ["地板冰壶", "floor-curling"],
   ["布袋球", "cornhole"], ["cornhole", "cornhole"],

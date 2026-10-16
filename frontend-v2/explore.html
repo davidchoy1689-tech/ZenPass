@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#ff6b35" />
   <title>探索課程 · ZenPass 禪流</title>
-  <link rel="stylesheet" href="assets/v2.css?v=2" />
+  <link rel="stylesheet" href="assets/v2.css?v=3" />
 </head>
 <body>
   <div class="topbar"><div class="title">探索課程</div></div>
@@ -14,6 +14,9 @@
     <input id="q" class="card" style="width:100%;border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px"
            placeholder="🔍 搜尋運動 / 課程 / 教練" />
     <div class="hscroll" id="cats"><span class="chip on" data-cat="">全部</span></div>
+
+    <div class="section-title">🏅 運動項目 <span class="sport-count">（撳一下即搵該項目課堂）</span></div>
+    <div class="sport-grid" id="sportGrid"></div>
 
     <div class="section-title" id="count">課程</div>
     <div class="stack" id="list">
@@ -30,7 +33,7 @@
   </nav>
 
   <script src="assets/api.js"></script>
-  <script src="assets/sport-icons.js?v=3"></script>
+  <script src="assets/sport-icons.js?v=4"></script>
   <script>
     const list = document.getElementById("list");
     function card(c) {
@@ -74,13 +77,15 @@
       clearTimeout(t); t = setTimeout(() => load(document.querySelector("#cats .chip.on").dataset.cat, e.target.value.trim()), 350);
     });
     (async () => {
+      const q0 = new URLSearchParams(location.search).get("q") || "";
+      if (q0) document.getElementById("q").value = q0;
       const r = await api.get("/classes/categories");
       const cats = (r.data && (r.data.categories || r.data)) || [];
       if (Array.isArray(cats) && cats.length) {
         document.getElementById("cats").innerHTML = `<span class="chip on" data-cat="">全部</span>` +
           cats.map(c => { const n = (typeof c === "string" ? c : (c.name || c.category)); return `<span class="chip" data-cat="${esc(n)}">${esc(n)}</span>`; }).join("");
       }
-      load("", "");
+      load("", q0);
     })();
   </script>
   <script src="assets/footer.js" defer></script>

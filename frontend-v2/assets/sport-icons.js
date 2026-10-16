@@ -1,7 +1,16 @@
-/* ZenPass 項目圖案：分類 → 本地 SVG（self-hosted）
-   由 category-images.js 抽出，保持同一份映射。
-   自動為 .chip[data-cat] / .modern-card-tag / .class-card-category 加上對應圖案。 */
+/* ZenPass 項目圖案（self-hosted SVG）
+ * - SPORT_ICONS: 分類關鍵字 → 圖案（由 category-images.js 抽出，保持同一份映射）
+ * - SPORTS_CATALOGUE: 全部運動項目（單一來源：manifest.json）
+ * - 自動為 .chip[data-cat] / .modern-card-tag / .class-card-category 加圖案
+ * - 自動 render 到 #sportGrid（如頁面有此容器）
+ */
+var SPORTS_CATALOGUE = [{"slug":"moelkkyla","name":"芬蘭木柱","group":"新興運動 (HKLFC)"},{"slug":"floor-curling","name":"地板冰壺","group":"新興運動 (HKLFC)"},{"slug":"cornhole","name":"布袋球","group":"新興運動 (HKLFC)"},{"slug":"air-storm","name":"穿雲箭","group":"新興運動 (HKLFC)"},{"slug":"nordic-walking","name":"北歐式健步行","group":"新興運動 (HKLFC)"},{"slug":"roundnet","name":"圓網球","group":"新興運動 (HKLFC)"},{"slug":"rouliqiu","name":"柔力球","group":"新興運動 (HKLFC)"},{"slug":"flexi-bar","name":"Flexi-Bar","group":"新興運動 (HKLFC)"},{"slug":"stretching","name":"身心伸展","group":"新興運動 (HKLFC)"},{"slug":"kids-fitness","name":"兒童健體","group":"新興運動 (HKLFC)"},{"slug":"yoga","name":"瑜伽","group":"課堂類別"},{"slug":"meditation","name":"冥想","group":"課堂類別"},{"slug":"gym","name":"健身","group":"課堂類別"},{"slug":"hiit","name":"HIIT","group":"課堂類別"},{"slug":"boxing","name":"拳擊","group":"課堂類別"},{"slug":"dance","name":"舞蹈","group":"課堂類別"},{"slug":"pilates","name":"皮拉提斯","group":"課堂類別"},{"slug":"aerial-yoga","name":"空中瑜伽","group":"課堂類別"},{"slug":"tai-chi","name":"太極","group":"課堂類別"},{"slug":"climbing","name":"攀岩","group":"課堂類別"},{"slug":"hiking","name":"遠足","group":"課堂類別"},{"slug":"camping","name":"露營","group":"課堂類別"},{"slug":"ballet","name":"芭蕾","group":"更多活動"},{"slug":"senior","name":"長者樂齡","group":"更多活動"},{"slug":"swimming","name":"游泳","group":"更多活動"},{"slug":"cycling","name":"單車","group":"更多活動"},{"slug":"billiards","name":"桌球","group":"更多活動"},{"slug":"table-tennis","name":"乒乓球","group":"球類及其他"},{"slug":"badminton","name":"羽毛球","group":"球類及其他"},{"slug":"basketball","name":"籃球","group":"球類及其他"},{"slug":"football","name":"足球","group":"球類及其他"},{"slug":"volleyball","name":"排球","group":"球類及其他"},{"slug":"tennis","name":"網球","group":"球類及其他"},{"slug":"martial-arts","name":"武術","group":"球類及其他"},{"slug":"skipping","name":"跳繩","group":"球類及其他"},{"slug":"running","name":"跑步","group":"球類及其他"},{"slug":"bowling","name":"保齡球","group":"球類及其他"},{"slug":"golf","name":"高爾夫","group":"球類及其他"},{"slug":"archery","name":"射箭","group":"球類及其他"},{"slug":"squash","name":"壁球","group":"香港熱門"},{"slug":"dragon-boat","name":"龍舟","group":"香港熱門"},{"slug":"kayaking","name":"獨木舟","group":"香港熱門"},{"slug":"windsurfing","name":"滑浪風帆","group":"香港熱門"},{"slug":"diving","name":"潛水","group":"香港熱門"},{"slug":"fencing","name":"劍擊","group":"香港熱門"},{"slug":"taekwondo","name":"跆拳道","group":"香港熱門"},{"slug":"judo","name":"柔道","group":"香港熱門"},{"slug":"gymnastics","name":"體操","group":"香港熱門"},{"slug":"skateboarding","name":"滑板","group":"香港熱門"},{"slug":"inline-skating","name":"滾軸溜冰","group":"香港熱門"},{"slug":"pickleball","name":"匹克球","group":"香港熱門"},{"slug":"frisbee","name":"飛盤","group":"香港熱門"},{"slug":"darts","name":"飛鏢","group":"香港熱門"},{"slug":"beach-volleyball","name":"沙灘排球","group":"戶外及體能"},{"slug":"handball","name":"手球","group":"戶外及體能"},{"slug":"cheerleading","name":"啦啦隊","group":"戶外及體能"},{"slug":"weightlifting","name":"舉重","group":"戶外及體能"},{"slug":"trampoline","name":"跳彈床","group":"戶外及體能"},{"slug":"parkour","name":"跑酷","group":"戶外及體能"},{"slug":"orienteering","name":"定向越野","group":"戶外及體能"},{"slug":"triathlon","name":"三項鐵人","group":"戶外及體能"},{"slug":"breakdance","name":"霹靂舞","group":"戶外及體能"},{"slug":"ballroom","name":"排舞／社交舞","group":"戶外及體能"},{"slug":"surfing","name":"衝浪","group":"戶外及體能"},{"slug":"rowing","name":"划艇","group":"戶外及體能"},{"slug":"fishing","name":"釣魚","group":"戶外及體能"},{"slug":"hula-hoop","name":"呼拉圈","group":"戶外及體能"},{"slug":"hot-yoga","name":"熱瑜伽","group":"健體及新興"},{"slug":"prenatal-yoga","name":"孕婦瑜伽","group":"健體及新興"},{"slug":"qigong","name":"氣功／八段錦","group":"健體及新興"},{"slug":"aerobics","name":"健身舞／有氧操","group":"健體及新興"},{"slug":"step-aerobics","name":"踏板操","group":"健體及新興"},{"slug":"spinning","name":"飛輪","group":"健體及新興"},{"slug":"core-training","name":"核心訓練","group":"健體及新興"},{"slug":"wrestling","name":"摔跤","group":"健體及新興"},{"slug":"rugby","name":"欖球","group":"健體及新興"},{"slug":"cricket","name":"板球","group":"健體及新興"},{"slug":"baseball","name":"棒球","group":"健體及新興"},{"slug":"dodgeball","name":"閃避球","group":"健體及新興"},{"slug":"aqua-aerobics","name":"水中有氧","group":"健體及新興"},{"slug":"kitesurfing","name":"風箏衝浪","group":"健體及新興"},{"slug":"chinese-dance","name":"中國舞","group":"舞蹈・文化・其他"},{"slug":"jazz-dance","name":"爵士舞","group":"舞蹈・文化・其他"},{"slug":"belly-dance","name":"肚皮舞","group":"舞蹈・文化・其他"},{"slug":"contemporary-dance","name":"現代舞","group":"舞蹈・文化・其他"},{"slug":"kpop-dance","name":"K-pop 舞","group":"舞蹈・文化・其他"},{"slug":"lion-dance","name":"舞獅","group":"舞蹈・文化・其他"},{"slug":"diabolo","name":"扯鈴","group":"舞蹈・文化・其他"},{"slug":"calisthenics","name":"街頭健身","group":"舞蹈・文化・其他"},{"slug":"water-polo","name":"水球","group":"舞蹈・文化・其他"},{"slug":"synchronized-swimming","name":"韻律泳","group":"舞蹈・文化・其他"},{"slug":"ice-hockey","name":"冰球","group":"舞蹈・文化・其他"},{"slug":"hockey","name":"曲棍球","group":"舞蹈・文化・其他"},{"slug":"kids-gymnastics","name":"兒童體操","group":"舞蹈・文化・其他"},{"slug":"esports","name":"電子競技","group":"舞蹈・文化・其他"},{"slug":"kendo","name":"劍道","group":"健體班・養生"},{"slug":"karate","name":"空手道","group":"健體班・養生"},{"slug":"kickboxing","name":"踢拳","group":"健體班・養生"},{"slug":"self-defence","name":"自衛術","group":"健體班・養生"},{"slug":"tchoukball","name":"巧固球","group":"健體班・養生"},{"slug":"kin-ball","name":"健球","group":"健體班・養生"},{"slug":"woodball","name":"木球","group":"健體班・養生"},{"slug":"freestyle-skipping","name":"花式跳繩","group":"健體班・養生"},{"slug":"shuffle-dance","name":"曳步舞","group":"健體班・養生"},{"slug":"weight-management","name":"體重管理","group":"健體班・養生"},{"slug":"rehab","name":"復康運動","group":"健體班・養生"},{"slug":"foam-rolling","name":"筋膜放鬆","group":"健體班・養生"},{"slug":"sound-bath","name":"頌缽聲療","group":"健體班・養生"},{"slug":"forest-bathing","name":"森林浴","group":"健體班・養生"},{"slug":"gateball","name":"門球","group":"場地・戶外進階"},{"slug":"lawn-bowls","name":"草地滾球","group":"場地・戶外進階"},{"slug":"petanque","name":"法式滾球","group":"場地・戶外進階"},{"slug":"padel","name":"板式網球","group":"場地・戶外進階"},{"slug":"curling","name":"冰壺","group":"場地・戶外進階"},{"slug":"skiing","name":"滑雪","group":"場地・戶外進階"},{"slug":"equestrian","name":"馬術","group":"場地・戶外進階"},{"slug":"trail-running","name":"越野跑","group":"場地・戶外進階"},{"slug":"mtb","name":"山地單車","group":"場地・戶外進階"},{"slug":"bouldering","name":"抱石","group":"場地・戶外進階"},{"slug":"zipline","name":"飛索／歷奇","group":"場地・戶外進階"},{"slug":"obstacle-race","name":"障礙賽","group":"場地・戶外進階"},{"slug":"tug-of-war","name":"拔河","group":"場地・戶外進階"},{"slug":"rhythmic-gymnastics","name":"藝術體操","group":"場地・戶外進階"},{"slug":"pole-dance","name":"鋼管舞","group":"表演・小眾"},{"slug":"aerial-hoop","name":"空中吊環","group":"表演・小眾"},{"slug":"pilates-reformer","name":"器械普拉提","group":"表演・小眾"},{"slug":"barre","name":"芭蕾塑形","group":"表演・小眾"},{"slug":"netball","name":"籃網球","group":"表演・小眾"},{"slug":"floorball","name":"地板球","group":"表演・小眾"},{"slug":"sepak-takraw","name":"藤球","group":"表演・小眾"},{"slug":"korfball","name":"合球","group":"表演・小眾"},{"slug":"american-football","name":"美式足球","group":"表演・小眾"},{"slug":"shuttlecock","name":"踢毽","group":"表演・小眾"},{"slug":"tai-chi-sword","name":"太極劍","group":"表演・小眾"},{"slug":"fan-dance","name":"扇舞","group":"表演・小眾"},{"slug":"chinese-drum","name":"中國鼓","group":"表演・小眾"},{"slug":"shooting","name":"射擊","group":"表演・小眾"},{"slug":"lacrosse","name":"長曲棍球","group":"趣味・競技"},{"slug":"softball","name":"壘球","group":"趣味・競技"},{"slug":"racquetball","name":"短柄牆球","group":"趣味・競技"},{"slug":"boccia","name":"硬地滾球","group":"趣味・競技"},{"slug":"kendama","name":"劍球","group":"趣味・競技"},{"slug":"sport-stacking","name":"疊杯","group":"趣味・競技"},{"slug":"disc-golf","name":"飛盤高爾夫","group":"趣味・競技"},{"slug":"mini-golf","name":"迷你高爾夫","group":"趣味・競技"}];
+
 var SPORT_ICONS = [
+  ["長曲棍球", "lacrosse"], ["lacrosse", "lacrosse"],
+  ["壘球", "softball"], ["softball", "softball"],
+  ["飛盤高爾夫", "disc-golf"], ["disc golf", "disc-golf"],
+  ["迷你高爾夫", "mini-golf"], ["mini golf", "mini-golf"],
   ["熱瑜伽", "hot-yoga"], ["高溫瑜伽", "hot-yoga"], ["高温瑜伽", "hot-yoga"], ["hot yoga", "hot-yoga"],
   ["孕婦瑜伽", "prenatal-yoga"], ["產前瑜伽", "prenatal-yoga"], ["產後", "prenatal-yoga"], ["prenatal", "prenatal-yoga"],
   ["健身舞", "aerobics"], ["健美操", "aerobics"], ["有氧操", "aerobics"], ["帶氧", "aerobics"], ["跳操", "aerobics"],
@@ -63,6 +72,10 @@ var SPORT_ICONS = [
   ["扇舞", "fan-dance"], ["fan dance", "fan-dance"],
   ["中國鼓", "chinese-drum"], ["chinese drum", "chinese-drum"],
   ["射擊", "shooting"], ["氣槍", "shooting"], ["shooting", "shooting"],
+  ["短柄牆球", "racquetball"], ["racquetball", "racquetball"],
+  ["硬地滾球", "boccia"], ["boccia", "boccia"],
+  ["劍球", "kendama"], ["kendama", "kendama"],
+  ["疊杯", "sport-stacking"], ["sport stacking", "sport-stacking"],
   ["芬蘭木柱", "moelkkyla"], ["木柱", "moelkkyla"], ["molkky", "moelkkyla"], ["mölkky", "moelkkyla"],
   ["地板冰壺", "floor-curling"], ["地板冰壶", "floor-curling"],
   ["布袋球", "cornhole"], ["cornhole", "cornhole"],
@@ -155,6 +168,19 @@ function sportIconImg(cat, size) {
   return '<img src="' + src + '" alt="" width="' + n + '" height="' + n + '" style="width:' + n + 'px;height:' + n + 'px;vertical-align:-2px;margin-right:3px" loading="lazy">';
 }
 
+function sportIconPath(slug) { return "assets/icons/sports/" + slug + ".svg"; }
+
+function renderSportGrid(elId, limit) {
+  var g = document.getElementById(elId || "sportGrid");
+  if (!g || !SPORTS_CATALOGUE) return;
+  var list = limit ? SPORTS_CATALOGUE.slice(0, limit) : SPORTS_CATALOGUE;
+  g.innerHTML = list.map(function (s) {
+    return '<a class="sport-card" href="explore.html?q=' + encodeURIComponent(s.name) + '">' +
+      '<img src="' + sportIconPath(s.slug) + '" alt="" loading="lazy">' +
+      '<span>' + s.name + '</span></a>';
+  }).join("");
+}
+
 (function () {
   var SELECTOR = ".chip[data-cat], .modern-card-tag, .class-card-category";
   function decorate(root) {
@@ -169,6 +195,8 @@ function sportIconImg(cat, size) {
   }
   function run() {
     decorate(document);
+    renderSportGrid("sportGrid");
+    renderSportGrid("sportGridMini", 14);
     if (window.MutationObserver && document.body) {
       new MutationObserver(function () { decorate(document); }).observe(document.body, { childList: true, subtree: true });
     }
