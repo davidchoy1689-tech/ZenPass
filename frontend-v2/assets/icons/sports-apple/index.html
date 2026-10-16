@@ -3,142 +3,80 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Apple 風格圖案 v3 · 版面 Mock</title>
+<title>Apple 風格圖案 · 無重複</title>
 <style>
   *{box-sizing:border-box}
   body{margin:0;padding:36px;font-family:-apple-system,"SF Pro Text","PingFang HK",sans-serif;background:#f5f5f7;color:#1d1d1f}
-  h1{font-size:26px;margin:0 0 4px;letter-spacing:-.5px}
-  p.sub{color:#6e6e73;margin:0 0 26px;font-size:13.5px}
-  h2{font-size:13px;font-weight:600;color:#6e6e73;margin:28px 0 12px}
-  .wrap{display:flex;gap:34px;align-items:flex-start;flex-wrap:wrap}
-  /* tiles */
-  .grid{display:grid;grid-template-columns:repeat(6,1fr);gap:16px;max-width:520px}
+  h1{font-size:25px;margin:0 0 4px;letter-spacing:-.5px}
+  p.sub{color:#6e6e73;margin:0 0 22px;font-size:13.5px}
+  h2{font-size:13px;font-weight:600;color:#6e6e73;margin:22px 0 12px}
+  .wrap{display:flex;gap:32px;align-items:flex-start;flex-wrap:wrap}
+  .grid{display:grid;grid-template-columns:repeat(8,1fr);gap:14px;max-width:660px}
   .tilewrap{text-align:center}
-  .tile{width:58px;height:58px;border-radius:16px;display:flex;align-items:center;justify-content:center;margin:0 auto 7px;box-shadow:0 1px 3px rgba(0,0,0,.06),inset 0 0 0 .5px rgba(0,0,0,.04)}
-  .tile svg{width:33px;height:33px;display:block}
-  .tilewrap .lbl{font-size:11px;font-weight:600;color:#3a3a3c}
-  .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
-  .tab{border:1px solid #e5e5ea;background:#fff;color:#6e6e73;border-radius:999px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit}
-  .tab.on{background:#ff6b35;border-color:#ff6b35;color:#fff}
-  /* phone mock */
-  .phone{width:340px;background:#fff;border-radius:34px;box-shadow:0 10px 40px rgba(0,0,0,.14),0 0 0 10px #e9e9ee;overflow:hidden;flex:0 0 auto}
+  .tile{width:56px;height:56px;border-radius:16px;display:flex;align-items:center;justify-content:center;margin:0 auto 6px;box-shadow:0 1px 3px rgba(0,0,0,.06),inset 0 0 0 .5px rgba(0,0,0,.04)}
+  .tile img{width:32px;height:32px;display:block}
+  .tilewrap .lbl{font-size:10.5px;font-weight:600;color:#3a3a3c}
+  .phone{width:330px;background:#fff;border-radius:34px;box-shadow:0 10px 40px rgba(0,0,0,.14),0 0 0 10px #e9e9ee;overflow:hidden;flex:0 0 auto}
   .ph-status{height:26px;display:flex;justify-content:space-between;align-items:center;padding:0 18px;font-size:11px;color:#8e8e93}
-  .ph-hero{background:linear-gradient(135deg,#ff6b35,#e55a2b);color:#fff;padding:16px 18px 18px;border-radius:0 0 22px 22px}
-  .ph-hero h3{margin:0 0 6px;font-size:17px}
-  .ph-hero p{margin:0;font-size:11.5px;opacity:.92}
+  .ph-hero{background:linear-gradient(135deg,#ff6b35,#e55a2b);color:#fff;padding:15px 18px 17px;border-radius:0 0 22px 22px}
+  .ph-hero h3{margin:0 0 5px;font-size:16.5px}
+  .ph-hero p{margin:0;font-size:11px;opacity:.92}
   .ph-body{padding:12px 14px 6px}
-  .ph-search{background:#f2f2f7;border-radius:11px;padding:9px 12px;font-size:12.5px;color:#8e8e93;margin-bottom:10px}
-  .ph-chips{display:flex;gap:6px;overflow:hidden;margin-bottom:6px}
-  .ch{font-size:11px;padding:5px 10px;border-radius:999px;background:#f2f2f7;color:#6e6e73;white-space:nowrap;font-weight:600}
-  .ch.on{background:#ff6b35;color:#fff}
-  .ph-title{font-size:13px;font-weight:700;margin:14px 2px 9px}
-  .ph-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
-  .ph-item{text-align:center}
-  .ph-item .tile{width:52px;height:52px;border-radius:15px;margin-bottom:5px}
-  .ph-item .tile svg{width:29px;height:29px}
+  .ph-search{background:#f2f2f7;border-radius:11px;padding:9px 12px;font-size:12px;color:#8e8e93;margin-bottom:10px}
+  .ph-title{font-size:13px;font-weight:700;margin:12px 2px 9px}
+  .ph-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:6px}
+  .ph-item .tile{width:50px;height:50px;border-radius:15px;margin-bottom:5px}
+  .ph-item .tile img{width:28px;height:28px}
   .ph-item .lbl{font-size:9.5px;font-weight:600;color:#3a3a3c}
-  .ph-card{display:flex;gap:10px;align-items:center;border:1px solid #ececf0;border-radius:14px;padding:9px;margin-bottom:8px}
-  .ph-card .tile{width:46px;height:46px;border-radius:13px;margin:0}
-  .ph-card .tile svg{width:26px;height:26px}
-  .ph-card .nm{font-size:12.5px;font-weight:600;line-height:1.3}
-  .ph-card .sub{font-size:10.5px;color:#8e8e93}
+  .ph-card{display:flex;gap:10px;align-items:center;border:1px solid #ececf0;border-radius:14px;padding:8px;margin-bottom:8px}
+  .ph-card .tile{width:44px;height:44px;border-radius:13px;margin:0}
+  .ph-card .tile img{width:24px;height:24px}
+  .ph-card .nm{font-size:12px;font-weight:600}
+  .ph-card .s2{font-size:10px;color:#8e8e93}
   .ph-nav{display:flex;justify-content:space-around;border-top:.5px solid #e5e5ea;padding:9px 0 12px;font-size:9.5px;color:#8e8e93}
-  .ph-nav b{display:block;font-size:15px;font-weight:400;margin-bottom:2px}
-  .ph-nav .on{color:#ff6b35}
-  .dark{background:#1c1c1e;border-radius:18px;padding:18px;display:flex;gap:14px;flex-wrap:wrap;max-width:520px}
-  .dark .tile{background:#2c2c2e;box-shadow:none}
-  .dark svg{color:#fff}
 </style>
 </head>
 <body>
-  <h1>Apple 風格圖案 v3 · 版面 Mock</h1>
-  <p class="sub">24 個示範 · 圖示方塊 + 分組 + 手機版面預覽 — 自家繪製，非 Apple SF Symbols</p>
-
+  <h1>Apple 風格圖案 · 每項目獨立（無重複）</h1>
+  <p class="sub">通用項目用 Phosphor Icons (MIT)；HK 專屬項目自家繪製。已驗證：冇任何兩個項目共用同一圖案。</p>
   <div class="wrap">
     <div>
-      <h2>分組 + 篩選</h2>
-      <div class="tabs" id="tabs"></div>
+      <h2>已完成圖案（<span id="cnt">0</span> 個，未完成嘅自動隱藏）</h2>
       <div class="grid" id="grid"></div>
-      <h2>深色底</h2>
-      <div class="dark" id="dark"></div>
     </div>
-
     <div>
-      <h2>手機版面預覽（用落網站）</h2>
+      <h2>手機版面預覽</h2>
       <div class="phone">
         <div class="ph-status"><span>9:41</span><span>▮▮▯ 5G ▮</span></div>
-        <div class="ph-hero">
-          <h3>郁一郁，身體好</h3>
-          <p>145 個運動項目・搵堂、預約、簽到</p>
-        </div>
+        <div class="ph-hero"><h3>郁一郁，身體好</h3><p>搵堂、預約、簽到，一 app 搞掂</p></div>
         <div class="ph-body">
           <div class="ph-search">🔍 搜尋運動 / 課程 / 教練</div>
-          <div class="ph-chips"><span class="ch on">全部</span><span class="ch">新興運動</span><span class="ch">瑜伽</span><span class="ch">球類</span><span class="ch">戶外</span></div>
           <div class="ph-title">🏅 運動項目</div>
           <div class="ph-grid" id="phgrid"></div>
           <div class="ph-title">🆕 最新上架</div>
           <div id="phcards"></div>
         </div>
-        <div class="ph-nav"><span class="on"><b>⌂</b>主頁</span><span><b>⌕</b>探索</span><span><b>▤</b>預約</span><span><b>◍</b>我的</span></div>
+        <div class="ph-nav"><span>⌂ 主頁</span><span>⌕ 探索</span><span>▤ 預約</span><span>◍ 我的</span></div>
       </div>
     </div>
   </div>
-
 <script>
-  const items = [
-    ["moelkkyla","芬蘭木柱","#FDF0E4","#B45309","新興運動"],
-    ["floor-curling","地板冰壺","#EAF1FE","#2563EB","新興運動"],
-    ["cornhole","布袋球","#FCE9E9","#DC2626","新興運動"],
-    ["air-storm","穿雲箭","#F1EBFD","#7C3AED","新興運動"],
-    ["roundnet","圓網球","#FFF0E9","#FF6B35","新興運動"],
-    ["rouliqiu","柔力球","#FCE9F3","#DB2777","新興運動"],
-    ["yoga","瑜伽","#F1EBFD","#7C3AED","課堂類別"],
-    ["meditation","冥想","#E4F4FD","#0EA5E9","課堂類別"],
-    ["gym","健身","#FDEBE3","#EA580C","課堂類別"],
-    ["tai-chi","太極","#E6F1E7","#166534","課堂類別"],
-    ["pilates","皮拉提斯","#E3F5F2","#0D9488","課堂類別"],
-    ["dance","舞蹈","#F8E9FB","#A21CAF","課堂類別"],
-    ["basketball","籃球","#FDEBE3","#EA580C","球類"],
-    ["football","足球","#E7F6EC","#16A34A","球類"],
-    ["tennis","網球","#FAF3D8","#CA8A04","球類"],
-    ["badminton","羽毛球","#F1EBFD","#7C3AED","球類"],
-    ["swimming","游泳","#E2F1FC","#0284C7","戶外"],
-    ["running","跑步","#EDEBFD","#4F46E5","戶外"],
-    ["cycling","單車","#E7F6EC","#16A34A","戶外"],
-    ["hiking","遠足","#E6F6F0","#059669","戶外"],
-    ["climbing","攀岩","#FDF0E4","#B45309","戶外"],
-    ["boxing","拳擊","#FCE9E9","#DC2626","課堂類別"],
-    ["kids-fitness","兒童健體","#FEF3E2","#F59E0B","課堂類別"],
-    ["nordic-walking","北歐健步行","#E6F6F0","#059669","新興運動"]
-  ];
-  const svgInto = (el, s) => fetch(s + ".svg").then(r => r.text()).then(t => el.insertAdjacentHTML("afterbegin", t));
-  const D = "data-s";
-
-  // tabs
-  const groups = ["全部","新興運動","課堂類別","球類","戶外"];
-  document.getElementById("tabs").innerHTML = groups.map((g,i)=>`<button class="tab${i===0?' on':''}" data-g="${g==='全部'?'':g}">${g}</button>`).join("");
-  const grid = document.getElementById("grid");
-  function renderGrid(g){
-    const list = items.filter(it => !g || it[4] === g);
-    grid.innerHTML = list.map(([s,zh,bg,fg]) => `<div class="tilewrap"><div class="tile" ${D}="${s}" style="background:${bg};color:${fg}"></div><div class="lbl">${zh}</div></div>`).join("");
-    Promise.all([...grid.querySelectorAll("[data-s]")].map(el=>svgInto(el, el.getAttribute("data-s"))));
+  const GTINT = {"新興運動":"#FFF0E9","課堂類別":"#F1EBFD","更多活動":"#EAF1FE","球類及其他":"#FDEBE3","香港熱門":"#E2F1FC","戶外及體能":"#E7F6EC","健體及新興":"#E3F5F2","舞蹈・文化・其他":"#FAE7FB","健體班・養生":"#E6F1E7","場地・戶外進階":"#F7EDE3","表演・小眾":"#FCE9F3","趣味・競技":"#EDEBFD"};
+  let N = 0;
+  function card(slug, name, group, cls) {
+    const tint = GTINT[group] || "#F2F2F7";
+    return `<div class="tilewrap ${cls||''}"><div class="tile" style="background:${tint}"><img src="${slug}.svg" alt="" loading="lazy" onerror="this.closest('.tilewrap').remove()" onload="window.__c()"></div><div class="lbl">${name}</div></div>`;
   }
-  document.getElementById("tabs").addEventListener("click", e=>{
-    const t=e.target.closest(".tab"); if(!t) return;
-    document.querySelectorAll("#tabs .tab").forEach(x=>x.classList.remove("on")); t.classList.add("on");
-    renderGrid(t.getAttribute("data-g"));
+  window.__c = () => { document.getElementById("cnt").textContent = ++N; };
+  fetch("../sports/manifest.json").then(r=>r.json()).then(m=>{
+    const groupOf = {}; Object.keys(m.groups).forEach(g=>m.groups[g].forEach(s=>groupOf[s]=g));
+    document.getElementById("grid").innerHTML = m.icons.map(i=>card(i.slug, i.name, groupOf[i.slug]||"")).join("");
+    // phone preview: pick first 8 that exist (common ones)
+    const pick = ["yoga","basketball","football","swimming","running","cycling","boxing","dance"];
+    document.getElementById("phgrid").innerHTML = pick.map(s=>{ const it=m.icons.find(x=>x.slug===s); return it? card(it.slug, it.name, groupOf[s]||"", "ph-item") : ""; }).join("");
+    const pc = [["yoga","流瑜伽 Flow Yoga","靜儀導師 · 60min","課堂類別"],["basketball","週末籃球班","Alex 教練 · 90min","球類及其他"]];
+    document.getElementById("phcards").innerHTML = pc.map(([s,nm,sub,g])=>`<div class="ph-card"><div class="tile" style="background:${GTINT[g]}"><img src="${s}.svg" alt=""></div><div><div class="nm">${nm}</div><div class="s2">${sub}</div></div></div>`).join("");
   });
-  renderGrid("");
-
-  // dark
-  document.getElementById("dark").innerHTML = items.slice(0,10).map(([s])=>`<span class="tile" ${D}="${s}"></span>`).join("");
-
-  // phone grid + cards
-  document.getElementById("phgrid").innerHTML = items.slice(0,8).map(([s,zh,bg,fg])=>`<div class="ph-item"><div class="tile" ${D}="${s}" style="background:${bg};color:${fg}"></div><div class="lbl">${zh}</div></div>`).join("");
-  const pcards = [["yoga","流瑜伽 Flow Yoga","靜儀導師 · 60min","#F1EBFD","#7C3AED"],["basketball","週末籃球班","Alex 教練 · 90min","#FDEBE3","#EA580C"]];
-  document.getElementById("phcards").innerHTML = pcards.map(([s,nm,sub,bg,fg])=>`<div class="ph-card"><div class="tile" ${D}="${s}" style="background:${bg};color:${fg}"></div><div><div class="nm">${nm}</div><div class="sub">${sub}</div></div></div>`).join("");
-
-  Promise.all([...document.querySelectorAll("[data-s]")].map(el=>svgInto(el, el.getAttribute("data-s"))));
 </script>
 </body>
 </html>
