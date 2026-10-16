@@ -286,12 +286,13 @@
     var catImg = typeof getCategoryImage === "function" ? getCategoryImage(cls.category || cls.cat || "") : ({"伸展":"https://images.pexels.com/photos/4056535/pexels-photo-4056535.jpeg?auto=compress&cs=tinysrgb&w=600&h=400&fit=crop","瑜伽":"https://images.pexels.com/photos/4056535/pexels-photo-4056535.jpeg?auto=compress&cs=tinysrgb&w=600&h=400&fit=crop","冥想":"https://images.pexels.com/photos/3822622/pexels-photo-3822622.jpeg?auto=compress&cs=tinysrgb&w=600&h=400&fit=crop","拳擊":"https://images.pexels.com/photos/3755342/pexels-photo-3755342.jpeg?auto=compress&cs=tinysrgb&w=600&h=400&fit=crop"}[cls.category || cls.cat] || "");
     var imgUrl = cls.image_url || cls.image || catImg || '';
     var bg = imgUrl ? 'url(' + imgUrl + ')' : 'linear-gradient(135deg, #10b981, #059669)';
-    var icon = imgUrl ? '' : '<div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:32px">🏃</div>';
+    var catIcon = (typeof getCategoryIcon === "function") ? getCategoryIcon(cls.category || cls.cat || "") : "";
+    var icon = imgUrl ? '' : (catIcon ? '<div style="display:flex;align-items:center;justify-content:center;height:100%"><img src="' + catIcon + '" alt="" style="width:56px;height:56px"></div>' : '<div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:32px">🏃</div>');
 
     card.innerHTML =
       '<div class="modern-card-img"><div class="bg-img" style="background:' + bg + ';background-size:cover;background-position:center">' + icon + '</div></div>' +
       '<div class="modern-card-body">' +
-        '<div class="modern-card-tags"><span class="modern-card-tag">' + escHtml(cls.category || '運動') + '</span></div>' +
+        '<div class="modern-card-tags"><span class="modern-card-tag">' + (typeof categoryIconImg === "function" ? categoryIconImg(cls.category || cls.cat || "") : "") + escHtml(cls.category || '運動') + '</span></div>' +
         '<div class="modern-card-title">' + escHtml(cls.title || '課程') + '</div>' +
         '<div class="modern-card-meta">' + escHtml(cls.coach_name || '') + '</div>' +
         '<div class="modern-card-review"><div><span class="modern-card-stars">⭐⭐⭐⭐⭐</span></div><div class="modern-card-price">' + displayPrice + '</div></div>' +

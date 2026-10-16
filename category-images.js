@@ -27,3 +27,73 @@ function getCategoryImage(cat) {
   }
   return "";
 }
+
+// Category → local SVG icon mapping (self-hosted flat icon set, no external requests)
+var SPORT_ICONS = [
+  ["芬蘭木柱", "moelkkyla"], ["木柱", "moelkkyla"], ["molkky", "moelkkyla"], ["mölkky", "moelkkyla"],
+  ["地板冰壺", "floor-curling"], ["冰壺", "floor-curling"], ["curling", "floor-curling"],
+  ["布袋球", "cornhole"], ["cornhole", "cornhole"],
+  ["穿雲箭", "air-storm"], ["air storm", "air-storm"],
+  ["北歐", "nordic-walking"], ["nordic", "nordic-walking"],
+  ["圓網球", "roundnet"], ["roundnet", "roundnet"],
+  ["柔力球", "rouliqiu"], ["rouliqiu", "rouliqiu"],
+  ["flexi", "flexi-bar"],
+  ["身心伸展", "stretching"], ["伸展", "stretching"], ["stretch", "stretching"],
+  ["兒童健體", "kids-fitness"], ["兒童", "kids-fitness"], ["kids", "kids-fitness"],
+  ["空中瑜伽", "aerial-yoga"], ["aerial", "aerial-yoga"],
+  ["瑜伽", "yoga"], ["yoga", "yoga"],
+  ["冥想", "meditation"], ["靜觀", "meditation"], ["meditation", "meditation"],
+  ["健身", "gym"], ["gym", "gym"],
+  ["hiit", "hiit"], ["間歇", "hiit"], ["心肺", "hiit"],
+  ["拳擊", "boxing"], ["boxing", "boxing"],
+  ["芭蕾", "dance"], ["舞蹈", "dance"], ["dance", "dance"],
+  ["皮拉提斯", "pilates"], ["pilates", "pilates"],
+  ["太極", "tai-chi"], ["tai chi", "tai-chi"], ["太极", "tai-chi"],
+  ["攀岩", "climbing"], ["抱石", "climbing"], ["climb", "climbing"],
+  ["遠足", "hiking"], ["行山", "hiking"], ["hiking", "hiking"],
+  ["露營", "camping"], ["camping", "camping"]
+];
+
+function getCategoryIcon(cat) {
+  if (!cat) return "";
+  var s = String(cat).toLowerCase();
+  for (var i = 0; i < SPORT_ICONS.length; i++) {
+    if (s.indexOf(SPORT_ICONS[i][0].toLowerCase()) >= 0) return "assets/icons/sports/" + SPORT_ICONS[i][1] + ".svg";
+  }
+  return "";
+}
+
+function categoryIconImg(cat, size) {
+  var src = getCategoryIcon(cat);
+  if (!src) return "";
+  var n = size || 13;
+  return '<img src="' + src + '" alt="" width="' + n + '" height="' + n + '" style="width:' + n + 'px;height:' + n + 'px;vertical-align:-2px;margin-right:3px" loading="lazy">';
+}
+
+// Auto-decorate category labels with local icons on any page that loads this file.
+(function () {
+  var SELECTOR = ".modern-card-tag, .class-card-category, .chip[data-cat]";
+  function decorate(root) {
+    if (!root || !root.querySelectorAll) return;
+    var nodes = root.querySelectorAll(SELECTOR);
+    for (var i = 0; i < nodes.length; i++) {
+      var el = nodes[i];
+      if (el.getAttribute("data-iconized") || el.querySelector("img")) continue;
+      var img = categoryIconImg((el.textContent || "").trim(), 13);
+      if (img) { el.insertAdjacentHTML("afterbegin", img); el.setAttribute("data-iconized", "1"); }
+    }
+  }
+  function run() {
+    decorate(document);
+    if (window.MutationObserver && document.body) {
+      new MutationObserver(function (muts) {
+        for (var i = 0; i < muts.length; i++) {
+          var added = muts[i].addedNodes;
+          for (var j = 0; j < added.length; j++) { if (added[j].nodeType === 1) decorate(added[j]); }
+        }
+      }).observe(document.body, { childList: true, subtree: true });
+    }
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", run);
+  else run();
+})();
