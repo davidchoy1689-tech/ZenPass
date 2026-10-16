@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="ZenPass" />
   <title>ZenPass 禪流</title>
-  <link rel="stylesheet" href="assets/v2.css?v=4" />
+  <link rel="stylesheet" href="assets/v2.css?v=5" />
 </head>
 <body>
   <div class="wrap">
@@ -37,13 +37,13 @@
       <span class="chip on" data-cat="">全部</span>
     </div>
 
-    <div class="section-title">🏅 運動項目 <span class="sport-count">（全部項目，撳入去搵堂）</span></div>
-    <div class="sport-grid" id="sportGrid"></div>
-
     <div class="section-title">🆕 最新上架</div>
     <div class="stack" id="courses">
       <div class="card"><div class="body muted">載入中…</div></div>
     </div>
+
+    <div class="section-title">🏅 運動項目 <span class="sport-count">撳一下即搵該項目課堂</span></div>
+    <div class="sport-grid" id="sportGrid"></div>
 
     <div class="section-title">🧑‍🏫 成為教練 / 🏪 場地加盟</div>
     <div class="card"><div class="body">
@@ -62,13 +62,13 @@
   </nav>
 
   <script src="assets/api.js"></script>
-  <script src="assets/sport-icons.js?v=5"></script>
+  <script src="assets/sport-icons.js?v=6"></script>
   <script>
     const box = document.getElementById("courses");
     function card(c) {
       return `<a class="card" href="class-detail.html?id=${encodeURIComponent(c.id)}">
         <div class="body course">
-          <div class="thumb">${(typeof sportIconImg === "function" ? sportIconImg(c.category || c.cat || "", 52) : "")}</div>
+          <div class="thumb" style="background:${(typeof sportTint === "function" ? sportTint(c.category || c.cat || "", 0.14) : "#f4f4f6")}">${(typeof sportIconImg === "function" ? sportIconImg(c.category || c.cat || "", 46) : "")}</div>
           <div class="meta">
             <p class="name">${esc(c.title)}</p>
             <p class="sub">${esc(c.category || "")}${c.duration ? " · " + c.duration + " 分鐘" : ""}</p>

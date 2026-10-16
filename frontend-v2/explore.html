@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#ff6b35" />
   <title>探索課程 · ZenPass 禪流</title>
-  <link rel="stylesheet" href="assets/v2.css?v=4" />
+  <link rel="stylesheet" href="assets/v2.css?v=5" />
 </head>
 <body>
   <div class="topbar"><div class="title">探索課程</div></div>
@@ -15,13 +15,13 @@
            placeholder="🔍 搜尋運動 / 課程 / 教練" />
     <div class="hscroll" id="cats"><span class="chip on" data-cat="">全部</span></div>
 
-    <div class="section-title">🏅 運動項目 <span class="sport-count">（撳一下即搵該項目課堂）</span></div>
-    <div class="sport-grid" id="sportGrid"></div>
-
     <div class="section-title" id="count">課程</div>
     <div class="stack" id="list">
       <div class="card"><div class="body muted">載入中…</div></div>
     </div>
+
+    <div class="section-title">🏅 更多運動項目 <span class="sport-count">撳一下即搵該項目課堂</span></div>
+    <div class="sport-grid" id="sportGrid"></div>
     <div class="spacer"></div>
   </div>
 
@@ -33,7 +33,7 @@
   </nav>
 
   <script src="assets/api.js"></script>
-  <script src="assets/sport-icons.js?v=5"></script>
+  <script src="assets/sport-icons.js?v=6"></script>
   <script>
     const list = document.getElementById("list");
     function card(c) {
@@ -50,7 +50,7 @@
       }
       const aud = c.target_audience || ({ beginner: "初級 / 新手友善", intermediate: "中級", advanced: "高級" }[c.difficulty]) || "";
       return `<a class="card" href="class-detail.html?id=${encodeURIComponent(c.id)}"><div class="body course">
-        <div class="thumb">${(typeof sportIconImg === "function" ? sportIconImg(c.category || c.cat || "", 52) : "")}</div>
+        <div class="thumb" style="background:${(typeof sportTint === "function" ? sportTint(c.category || c.cat || "", 0.14) : "#f4f4f6")}">${(typeof sportIconImg === "function" ? sportIconImg(c.category || c.cat || "", 46) : "")}</div>
         <div class="meta"><p class="name">${esc(c.title)}</p>
           <p class="sub">${esc(c.category || "")}${c.duration ? " · " + c.duration + " 分鐘" : ""}${c.venue_name ? " · 📍 " + esc(c.venue_name) : ""}</p>
           ${next ? `<p class="sub" style="color:var(--brand-600)">📅 ${esc(next)}</p>` : `<p class="sub">暫無時段</p>`}
