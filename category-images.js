@@ -60,6 +60,7 @@ var SPORT_ICONS = [
   ["羽毛球", "badminton"], ["羽球", "badminton"], ["badminton", "badminton"],
   ["籃球", "basketball"], ["篮球", "basketball"], ["basketball", "basketball"],
   ["足球", "football"], ["足球", "football"], ["football", "football"], ["soccer", "football"],
+  ["沙灘排球", "beach-volleyball"], ["沙滩排球", "beach-volleyball"], ["beach volleyball", "beach-volleyball"],
   ["排球", "volleyball"], ["volleyball", "volleyball"],
   ["網球", "tennis"], ["网球", "tennis"], ["tennis", "tennis"],
   ["武術", "martial-arts"], ["功夫", "martial-arts"], ["詠春", "martial-arts"], ["泰拳", "martial-arts"], ["martial", "martial-arts"], ["kung fu", "martial-arts"], ["karate", "martial-arts"],
@@ -76,12 +77,25 @@ var SPORT_ICONS = [
   ["劍擊", "fencing"], ["击剑", "fencing"], ["劍道", "fencing"], ["fencing", "fencing"],
   ["跆拳道", "taekwondo"], ["taekwondo", "taekwondo"],
   ["柔道", "judo"], ["柔術", "judo"], ["judo", "judo"], ["bjj", "judo"],
-  ["體操", "gymnastics"], ["体操", "gymnastics"], ["蹦床", "gymnastics"], ["gymnastics", "gymnastics"],
+  ["體操", "gymnastics"], ["体操", "gymnastics"], ["gymnastics", "gymnastics"],
   ["滑板", "skateboarding"], ["skateboard", "skateboarding"],
   ["滾軸溜冰", "inline-skating"], ["溜冰", "inline-skating"], ["直排輪", "inline-skating"], ["滑輪", "inline-skating"], ["roller", "inline-skating"], ["skate", "inline-skating"],
   ["匹克球", "pickleball"], ["pickleball", "pickleball"],
   ["飛盤", "frisbee"], ["飛碟", "frisbee"], ["frisbee", "frisbee"], ["ultimate", "frisbee"],
-  ["飛鏢", "darts"], ["飛標", "darts"], ["dart", "darts"]
+  ["飛鏢", "darts"], ["飛標", "darts"], ["dart", "darts"],
+  ["手球", "handball"], ["handball", "handball"],
+  ["啦啦隊", "cheerleading"], ["啦啦", "cheerleading"], ["cheer", "cheerleading"],
+  ["舉重", "weightlifting"], ["健力", "weightlifting"], ["槓鈴", "weightlifting"], ["weightlift", "weightlifting"], ["powerlift", "weightlifting"],
+  ["彈床", "trampoline"], ["蹦床", "trampoline"], ["trampoline", "trampoline"],
+  ["跑酷", "parkour"], ["飛躍道", "parkour"], ["parkour", "parkour"],
+  ["定向", "orienteering"], ["定向越野", "orienteering"], ["orienteering", "orienteering"],
+  ["三項鐵人", "triathlon"], ["鐵人", "triathlon"], ["triathlon", "triathlon"],
+  ["霹靂舞", "breakdance"], ["街舞", "breakdance"], ["breaking", "breakdance"], ["breakdance", "breakdance"], ["hip hop", "breakdance"],
+  ["排舞", "ballroom"], ["社交舞", "ballroom"], ["標準舞", "ballroom"], ["拉丁舞", "ballroom"], ["ballroom", "ballroom"],
+  ["衝浪", "surfing"], ["滑浪", "surfing"], ["surfing", "surfing"], ["surf", "surfing"],
+  ["划艇", "rowing"], ["賽艇", "rowing"], ["rowing", "rowing"], ["划船", "rowing"],
+  ["釣魚", "fishing"], ["釣魚", "fishing"], ["fishing", "fishing"],
+  ["呼拉圈", "hula-hoop"], ["呼啦圈", "hula-hoop"], ["hula", "hula-hoop"]
 ];
 
 function getCategoryIcon(cat) {
