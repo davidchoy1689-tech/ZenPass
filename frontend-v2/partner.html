@@ -147,54 +147,30 @@
       </div>
     </div>
 
-    <div class="section-title" id="join">立即免費登記加盟</div>
+    <div class="section-title" id="join">合作意向申請表單 <span class="sport-count">免費・1 分鐘</span></div>
     <div class="card">
-      <div class="body">
-        <div class="seg" id="seg">
+      <div class="body" id="leadForm">
+        <div class="lbl">身份選擇</div>
+        <div class="seg" id="seg" style="margin-top:6px">
           <button type="button" class="on" data-role="coach">🧑‍🏫 教練</button>
-          <button type="button" data-role="venue">🏟️ 場地</button>
-          <button type="button" data-role="org">🏫 機構／學校</button>
+          <button type="button" data-role="venue">🏪 場地負責人</button>
+          <button type="button" data-role="both">🤝 兩者皆是</button>
         </div>
 
         <div class="frm" style="margin-top:12px">
-          <div class="full lbl" id="nameLbl">姓名</div>
-          <input class="fld full" id="f-name" placeholder="你的姓名" autocomplete="name" />
-
-          <div class="full lbl" id="contactLbl" style="display:none">聯絡人</div>
-          <input class="fld full is-hidden" id="f-contact" placeholder="聯絡人姓名" />
-
-          <input class="fld" id="f-phone" placeholder="聯絡電話 / WhatsApp" inputmode="tel" autocomplete="tel" />
-          <input class="fld" id="f-email" placeholder="電郵" inputmode="email" autocomplete="email" />
-
-          <!-- 教練 -->
-          <div class="full lbl coach-only">專長項目（可多選）</div>
-          <div class="full specs coach-only" id="specs"></div>
-          <input class="fld coach-only" id="f-years" placeholder="教學年資（年）" inputmode="numeric" />
-          <input class="fld coach-only" id="f-certs" placeholder="證書 / 資歷（可選）" />
-          <input class="fld full coach-only" id="f-vaddr" placeholder="主要場地地址（例：觀塘 XX 體育館）" />
-          <input class="fld full coach-only" id="f-venue" placeholder="常用場地名稱（可選）" />
-          <textarea class="fld full coach-only" id="f-bio" rows="3" placeholder="簡介：你教咩、對象、風格（可選）"></textarea>
-
-          <!-- 場地 -->
-          <div class="full lbl venue-only is-hidden">場地名稱</div>
-          <input class="fld full venue-only is-hidden" id="f-vname" placeholder="場地名稱" />
-          <select class="fld venue-only is-hidden" id="f-cat">
-            <option value="">場地類別…</option>
-            <option>體育館</option><option>球場</option><option>瑜伽／舞蹈室</option>
-            <option>會所</option><option>學校禮堂</option><option>戶外場地</option><option>其他</option>
-          </select>
-          <input class="fld venue-only is-hidden" id="f-district" placeholder="地區（例：觀塘）" />
-          <input class="fld full venue-only is-hidden" id="f-address" placeholder="詳細地址" />
-          <input class="fld full venue-only is-hidden" id="f-website" placeholder="網站 / IG（可選）" />
-          <textarea class="fld full venue-only is-hidden" id="f-desc" rows="3" placeholder="場地簡介：面積、設施、可容納人數（可選）"></textarea>
+          <input class="fld full" id="f-name" placeholder="姓名 / 品牌名稱　例：陳大文 / XX 運動工作室" autocomplete="name" />
+          <input class="fld full" id="f-phone" placeholder="聯絡電話（WhatsApp）" inputmode="tel" autocomplete="tel" />
+          <input class="fld full" id="f-email" placeholder="電子郵件" inputmode="email" autocomplete="email" />
+          <input class="fld full" id="f-area" placeholder="主打運動項目 / 場地地區　例：芬蘭木柱・觀塘" />
+          <textarea class="fld full" id="f-notes" rows="3" placeholder="備註 / 網站 or IG 連結（可選）"></textarea>
         </div>
 
         <label style="display:flex;gap:8px;align-items:flex-start;margin-top:12px;font-size:12px;color:var(--text-muted);line-height:1.5">
           <input type="checkbox" id="f-agree" style="margin-top:2px" />
-          <span>我同意 ZenPass 就加盟事宜透過電話／WhatsApp／電郵與我聯絡，並已閱讀<a href="terms.html" style="color:var(--brand-600)">服務條款</a>。</span>
+          <span>我同意 ZenPass 就加盟事宜透過電話／WhatsApp／電郵與我聯絡，並已閱讀 <a href="terms.html" style="color:var(--brand-600)">服務條款</a>。</span>
         </label>
 
-        <button class="btn btn-primary btn-block" id="submit" style="margin-top:12px">立即免費登記加盟</button>
+        <button class="btn btn-primary btn-block" id="submit" style="margin-top:12px">提交加盟申請</button>
         <p class="muted center" id="msg" style="font-size:12.5px;margin:10px 0 0;min-height:18px"></p>
       </div>
     </div>
@@ -217,31 +193,10 @@
   <script>
     (function () {
       var role = "coach";
-      var SPECS = ["瑜伽","普拉提","健身 / HIIT","拳擊 / 格鬥","太極 / 氣功","舞蹈","籃球","足球","羽毛球","乒乓球","游泳","跑步 / 田徑","攀岩 / 抱石","單車","遠足 / 露營","芬蘭木柱","地板冰壺","布袋球","穿雲箭","圓網球","兒童體適能","長者健體","其他"];
-      var chosen = [];
-
-      var specs = document.getElementById("specs");
-      specs.innerHTML = SPECS.map(function (s, i) { return '<span class="chip" data-s="' + i + '">' + s + "</span>"; }).join("");
-      specs.addEventListener("click", function (e) {
-        var c = e.target.closest(".chip"); if (!c) return;
-        c.classList.toggle("on");
-        var v = SPECS[+c.getAttribute("data-s")];
-        var idx = chosen.indexOf(v);
-        if (idx >= 0) chosen.splice(idx, 1); else chosen.push(v);
-      });
 
       function setRole(r) {
         role = r;
         document.querySelectorAll("#seg button").forEach(function (b) { b.classList.toggle("on", b.getAttribute("data-role") === r); });
-        var isCoach = r === "coach", isVenue = r !== "coach";
-        document.querySelectorAll(".coach-only").forEach(function (el) { el.classList.toggle("is-hidden", !isCoach); });
-        document.querySelectorAll(".venue-only").forEach(function (el) { el.classList.toggle("is-hidden", !isVenue); });
-        document.getElementById("nameLbl").textContent = isCoach ? "姓名" : "場地名稱";
-        document.getElementById("f-name").placeholder = isCoach ? "你的姓名" : "場地名稱";
-        document.getElementById("f-name").classList.toggle("is-hidden", false);
-        document.getElementById("f-contact").classList.toggle("is-hidden", isCoach);
-        document.getElementById("contactLbl").style.display = isCoach ? "none" : "block";
-        if (isVenue) { document.getElementById("f-vname").classList.add("is-hidden"); }
       }
       document.getElementById("seg").addEventListener("click", function (e) {
         var b = e.target.closest("button[data-role]"); if (!b) return; setRole(b.getAttribute("data-role"));
@@ -252,9 +207,7 @@
       var whoSeg = document.getElementById("whoSeg");
       function setWho(w) {
         document.querySelectorAll("#whoSeg button").forEach(function (b) { b.classList.toggle("on", b.getAttribute("data-who") === w); });
-        document.querySelectorAll(".who-panel").forEach(function (p) {
-          p.classList.toggle("is-hidden", p.id !== "who-" + w);
-        });
+        document.querySelectorAll(".who-panel").forEach(function (p) { p.classList.toggle("is-hidden", p.id !== "who-" + w); });
       }
       if (whoSeg) whoSeg.addEventListener("click", function (e) {
         var b = e.target.closest("button[data-who]"); if (!b) return;
@@ -265,55 +218,66 @@
       });
       setWho("coach");
 
+      /* 提交 */
       var btn = document.getElementById("submit"), msg = document.getElementById("msg");
+      function toast(t) {
+        var el = document.getElementById("toast");
+        if (!el) return;
+        el.textContent = t; el.classList.add("show");
+        clearTimeout(window.__t); window.__t = setTimeout(function () { el.classList.remove("show"); }, 2600);
+      }
+      function splitArea(v) {
+        if (!v) return { items: [], area: "" };
+        var parts = v.split(/[・、,，/|]+/).map(function (x) { return x.trim(); }).filter(Boolean);
+        return { items: parts.slice(0, 6), area: parts[parts.length - 1] || "" };
+      }
       btn.addEventListener("click", async function () {
         var name = document.getElementById("f-name").value.trim();
         var phone = document.getElementById("f-phone").value.trim();
         var email = document.getElementById("f-email").value.trim();
-        if (!name || !phone || !email) { msg.textContent = "請填名稱、電話同電郵"; return; }
+        var area = document.getElementById("f-area").value.trim();
+        var notes = document.getElementById("f-notes").value.trim();
+
+        if (!name) { msg.textContent = "請填姓名 / 品牌名稱"; return; }
+        if (!/^[0-9+\-\s()]{8,}$/.test(phone)) { msg.textContent = "請填有效嘅聯絡電話（WhatsApp）"; return; }
+        if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { msg.textContent = "請填有效嘅電子郵件"; return; }
+        if (!area) { msg.textContent = "請填主打運動項目 / 場地地區"; return; }
         if (!document.getElementById("f-agree").checked) { msg.textContent = "請先勾選同意聯絡條款"; return; }
+
+        var sa = splitArea(area);
         btn.disabled = true; var old = btn.textContent; btn.textContent = "提交中…"; msg.textContent = "";
 
-        var body, url;
-        if (role === "coach") {
-          var vaddr = document.getElementById("f-vaddr").value.trim();
-          if (!vaddr) { msg.textContent = "請填主要場地地址"; btn.disabled = false; btn.textContent = old; return; }
-          body = {
-            name: name, phone: phone, email: email, venue_address: vaddr,
-            years_experience: document.getElementById("f-years").value || null,
-            certificates: document.getElementById("f-certs").value.trim() || null,
-            specialties: chosen, bio: document.getElementById("f-bio").value.trim() || null,
-            venue_name: document.getElementById("f-venue").value.trim() || null,
-          };
-          url = "/coach/apply";
-        } else {
-          var cat = document.getElementById("f-cat").value || "其他";
-          body = {
-            name: name, category: cat, district: document.getElementById("f-district").value.trim(),
-            contact_person: document.getElementById("f-contact").value.trim() || name,
-            phone: phone, email: email,
-            address: document.getElementById("f-address").value.trim(),
-            website: document.getElementById("f-website").value.trim(),
-            description: document.getElementById("f-desc").value.trim(),
+        var calls = [];
+        if (role === "coach" || role === "both") {
+          calls.push(api.post("/coach/apply", {
+            name: name, phone: phone, email: email,
+            venue_address: sa.area || "待補充",
+            specialties: sa.items, bio: notes || null, venue_name: null,
+            years_experience: null, certificates: null,
+          }));
+        }
+        if (role === "venue" || role === "both") {
+          calls.push(api.post("/partner/apply", {
+            name: name, category: "其他", district: sa.area || "",
+            contact_person: name, phone: phone, email: email,
+            address: sa.area || "", website: notes || "", description: notes || "",
             commission_plan: "free",
-          };
-          url = "/partner/apply";
+          }));
         }
         try {
-          var r = await api.post(url, body);
-          if (r.ok) {
-            document.getElementById("join").insertAdjacentHTML("afterend",
-              '<div class="card" style="margin-top:10px"><div class="body center">' +
-              '<div style="font-size:40px">🎉</div>' +
-              '<p>' + esc((r.data && r.data.message) || "登記成功！我哋會盡快聯絡你") + '</p>' +
-              ((r.data && r.data.reference) ? '<p class="muted" style="font-size:13px">參考編號：' + esc(r.data.reference) + '</p>' : '') +
-              '<p class="muted" style="font-size:12.5px">24 小時內回覆，請留意 WhatsApp／來電。</p>' +
-              '<div class="actions" style="margin-top:10px"><a class="btn btn-secondary btn-block" href="index.html">返回主頁</a></div>' +
-              "</div></div>");
-            document.querySelector("#join + .card").scrollIntoView({ behavior: "smooth", block: "center" });
-            btn.classList.add("is-hidden"); msg.textContent = "";
+          var rs = await Promise.all(calls);
+          var ok = rs.some(function (r) { return r && r.ok; });
+          var ref = rs.map(function (r) { return r && r.data && r.data.reference; }).filter(Boolean)[0];
+          if (ok) {
+            document.getElementById("leadForm").innerHTML =
+              '<div class="center"><div style="font-size:42px">🎉</div>' +
+              '<p style="font-weight:700;font-size:15px;margin:6px 0 0">已提交加盟申請！</p>' +
+              '<p class="muted" style="font-size:13px;margin:8px 0 0">我哋會喺 24 小時內用 WhatsApp／電話聯絡你。</p>' +
+              (ref ? '<p class="muted" style="font-size:12.5px">參考編號：' + esc(ref) + "</p>" : "") +
+              '<div style="margin-top:12px"><a class="btn btn-secondary btn-block" href="index.html">返回主頁</a></div></div>';
+            toast("已提交加盟申請！");
           } else {
-            msg.textContent = (r.data && r.data.error) || "提交失敗，請稍後再試";
+            msg.textContent = (rs[0] && rs[0].data && rs[0].data.error) || "提交失敗，請稍後再試";
             btn.disabled = false; btn.textContent = old;
           }
         } catch (e) {
@@ -327,6 +291,7 @@
       });
     })();
   </script>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <script src="assets/footer.js" defer></script>
 </body>
 </html>
