@@ -62,12 +62,26 @@ var SPORT_ICONS = [
   ["足球", "football"], ["足球", "football"], ["football", "football"], ["soccer", "football"],
   ["排球", "volleyball"], ["volleyball", "volleyball"],
   ["網球", "tennis"], ["网球", "tennis"], ["tennis", "tennis"],
-  ["武術", "martial-arts"], ["功夫", "martial-arts"], ["詠春", "martial-arts"], ["泰拳", "martial-arts"], ["跆拳", "martial-arts"], ["martial", "martial-arts"], ["kung fu", "martial-arts"], ["karate", "martial-arts"],
+  ["武術", "martial-arts"], ["功夫", "martial-arts"], ["詠春", "martial-arts"], ["泰拳", "martial-arts"], ["martial", "martial-arts"], ["kung fu", "martial-arts"], ["karate", "martial-arts"],
   ["跳繩", "skipping"], ["跳绳", "skipping"], ["jump rope", "skipping"],
   ["跑步", "running"], ["馬拉松", "running"], ["田徑", "running"], ["running", "running"],
   ["保齡", "bowling"], ["bowling", "bowling"],
   ["高爾夫", "golf"], ["golf", "golf"],
-  ["射箭", "archery"], ["archery", "archery"]
+  ["射箭", "archery"], ["archery", "archery"],
+  ["壁球", "squash"], ["squash", "squash"],
+  ["龍舟", "dragon-boat"], ["龙舟", "dragon-boat"], ["dragon boat", "dragon-boat"],
+  ["獨木舟", "kayaking"], ["独木舟", "kayaking"], ["皮划艇", "kayaking"], ["kayak", "kayaking"], ["canoe", "kayaking"],
+  ["滑浪風帆", "windsurfing"], ["風帆", "windsurfing"], ["帆板", "windsurfing"], ["帆船", "windsurfing"], ["windsurf", "windsurfing"],
+  ["潛水", "diving"], ["潜水", "diving"], ["浮潛", "diving"], ["水肺", "diving"], ["diving", "diving"], ["snorkel", "diving"],
+  ["劍擊", "fencing"], ["击剑", "fencing"], ["劍道", "fencing"], ["fencing", "fencing"],
+  ["跆拳道", "taekwondo"], ["taekwondo", "taekwondo"],
+  ["柔道", "judo"], ["柔術", "judo"], ["judo", "judo"], ["bjj", "judo"],
+  ["體操", "gymnastics"], ["体操", "gymnastics"], ["蹦床", "gymnastics"], ["gymnastics", "gymnastics"],
+  ["滑板", "skateboarding"], ["skateboard", "skateboarding"],
+  ["滾軸溜冰", "inline-skating"], ["溜冰", "inline-skating"], ["直排輪", "inline-skating"], ["滑輪", "inline-skating"], ["roller", "inline-skating"], ["skate", "inline-skating"],
+  ["匹克球", "pickleball"], ["pickleball", "pickleball"],
+  ["飛盤", "frisbee"], ["飛碟", "frisbee"], ["frisbee", "frisbee"], ["ultimate", "frisbee"],
+  ["飛鏢", "darts"], ["飛標", "darts"], ["dart", "darts"]
 ];
 
 function getCategoryIcon(cat) {
