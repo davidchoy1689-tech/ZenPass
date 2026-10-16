@@ -172,6 +172,53 @@ function sportTint(cat, p){ var c=sportColor(cat); if(!c) return "#f2f2f7"; retu
 function tileBg(cat){ var c=sportColor(cat)||"#ff6b35"; return "linear-gradient(150deg,"+mixHex(c,"#ffffff",0.14)+","+mixHex(c,"#000000",0.20)+")"; }
 function tileGlow(cat){ var c=sportColor(cat)||"#ff6b35"; return mixHex(c,"#ffffff",0.45); }
 
+var MEGA = [
+  { k: "🔥 熱門新興", types: ["新興運動", "趣味・技巧"], c: "#FF6B35", ic: "moelkkyla" },
+  { k: "🧘 身心瑜伽", types: ["瑜伽・普拉提"], c: "#7C3AED", ic: "yoga" },
+  { k: "💪 健身HIIT", types: ["健身・體能"], c: "#EA580C", ic: "gym" },
+  { k: "🥊 拳擊格鬥", types: ["武術・格鬥"], c: "#DC2626", ic: "boxing" },
+  { k: "🏀 團體球類", types: ["球類運動", "球拍運動"], c: "#2563EB", ic: "basketball" },
+  { k: "🏃 戶外體能", types: ["戶外・山野", "水上活動"], c: "#16A34A", ic: "hiking" },
+  { k: "💃 舞蹈藝術", types: ["舞蹈", "體操・表演"], c: "#DB2777", ic: "ballet" },
+  { k: "🌿 養生復康", types: ["精準・目標", "兒童・長者"], c: "#0D9488", ic: "rehab" }
+];
+function megaOfType(t) {
+  for (var i = 0; i < MEGA.length; i++) { if (MEGA[i].types.indexOf(t) >= 0) return MEGA[i]; }
+  return null;
+}
+function megaCount(m) {
+  var n = 0;
+  SPORTS_CATALOGUE.forEach(function (s) { if (m.types.indexOf(s.group) >= 0) n++; });
+  return n;
+}
+function renderMegaCards(elId) {
+  var el = document.getElementById(elId || "megaGrid");
+  if (!el) return;
+  el.innerHTML = MEGA.map(function (m) {
+    var c = m.c;
+    return '<a class="mega-card" href="javascript:void(0)" data-mega="' + m.k + '">' +
+      '<span class="mega-ic" style="background:linear-gradient(150deg,' + mixHex(c, "#ffffff", 0.16) + ',' + mixHex(c, "#000000", 0.18) + ')">' +
+      '<img src="assets/icons/sports-white/' + m.ic + '.svg" alt=""></span>' +
+      '<span class="mega-tx"><b class="mega-name">' + m.k + '</b><i class="mega-sub">' + megaCount(m) + ' 個項目</i></span>' +
+      '<span class="mega-arrow">›</span></a>';
+  }).join("");
+}
+function renderSportGridMega(elId) {
+  var g = document.getElementById(elId);
+  if (!g || !SPORTS_CATALOGUE) return;
+  function tileHtml(s) {
+    return '<a class="sport-card" href="explore.html?q=' + encodeURIComponent(s.name) + '">' +
+      '<span class="sport-tile" style="background:' + tileBg(s.name) + ';--glow:' + tileGlow(s.name) + '"><img src="assets/icons/sports-white/' + s.slug + '.svg" alt="" loading="lazy"></span>' +
+      '<span class="sport-name">' + s.name + '</span></a>';
+  }
+  g.innerHTML = MEGA.map(function (m) {
+    var items = SPORTS_CATALOGUE.filter(function (s) { return m.types.indexOf(s.group) >= 0; });
+    return '<section class="sport-group" data-mega="' + m.k + '">' +
+      '<div class="sport-group-title">' + m.k + ' <span class="n">' + items.length + '</span></div>' +
+      '<div class="sport-row">' + items.map(tileHtml).join("") + '</div></section>';
+  }).join("");
+}
+
 function renderSportGrid(elId, limit) {
   var g = document.getElementById(elId || "sportGrid");
   if (!g || !SPORTS_CATALOGUE) return;
@@ -222,9 +269,34 @@ function renderSportGrid(elId, limit) {
       el.setAttribute("data-iconized", "1");
     }
   }
+  function openAccordion(megaKey) {
+    var panel = document.getElementById("sportGridAll");
+    var btn = document.getElementById("accBtn");
+    if (!panel) return;
+    if (panel.hasAttribute("hidden")) {
+      renderSportGridMega("sportGridAll");
+      panel.removeAttribute("hidden");
+      if (btn) { btn.setAttribute("aria-expanded", "true"); btn.textContent = "▲ 收起運動項目"; }
+    }
+    if (megaKey) {
+      var sec = panel.querySelector('.sport-group[data-mega="' + megaKey + '"]');
+      if (sec) { setTimeout(function () { sec.scrollIntoView({ behavior: "smooth", block: "start" }); }, 60); }
+    }
+  }
   function run() {
     decorate(document);
     renderSportGrid("sportGrid");
+    renderMegaCards("megaGrid");
+    renderSportGridMega("sportGridAll");
+    var panel = document.getElementById("sportGridAll");
+    if (panel) panel.setAttribute("hidden", "");
+    var btn = document.getElementById("accBtn");
+    if (btn) btn.addEventListener("click", function () { openAccordion(null); });
+    var mg = document.getElementById("megaGrid");
+    if (mg) mg.addEventListener("click", function (e) {
+      var c = e.target.closest(".mega-card"); if (!c) return;
+      openAccordion(c.getAttribute("data-mega"));
+    });
     if (window.MutationObserver && document.body) {
       new MutationObserver(function () { decorate(document); }).observe(document.body, { childList: true, subtree: true });
     }
