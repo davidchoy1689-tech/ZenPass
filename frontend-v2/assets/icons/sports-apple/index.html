@@ -39,7 +39,7 @@
 </head>
 <body>
   <h1>Apple 風格 · 彩色版</h1>
-  <p class="sub">乾淨單線（Phosphor MIT + 自家繪製）＋ 每個項目有自己的主色，放喺柔和底色方塊。零重複。</p>
+  <p class="sub">每個項目：<b>獨立圖案</b>（零重複）＋ <b>獨立顏色</b>（145 色全部不同）。乾淨單線 + 柔和底色方塊。</p>
   <div class="wrap">
     <div>
       <h2>彩色方塊（<span id="cnt">0</span> 個）</h2>
@@ -77,8 +77,8 @@
       document.getElementById("cnt").textContent = ++N;
     }catch(e){ const w = el.closest(".tilewrap") || el.closest(".ph-card"); if(w) w.remove(); }
   }
-  fetch("../sports/manifest.json").then(r=>r.json()).then(m=>{
-    const acc = {}; m.icons.forEach(i => acc[i.slug] = i.accent);
+  Promise.all([fetch("../sports/manifest.json").then(r=>r.json()), fetch("colors.json").then(r=>r.json())]).then(([m,COL])=>{
+    const acc = {}; m.icons.forEach(i => acc[i.slug] = COL[i.slug] || i.accent);
     const tile = (i, cls) => `<div class="tilewrap ${cls||''}"><div class="tile" data-s="${i.slug}" style="background:linear-gradient(150deg,${tint(i.accent,.22)},${tint(i.accent,.07)});color:${i.accent}"></div><div class="lbl">${i.name}</div></div>`;
     document.getElementById("grid").innerHTML = m.icons.map(i => tile(i)).join("");
     const pick = ["moelkkyla","floor-curling","roundnet","yoga","basketball","football","swimming","boxing"];
