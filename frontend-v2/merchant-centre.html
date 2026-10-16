@@ -110,6 +110,15 @@
         </div>
       </div></div>
       <div class="card" id="rentals"><div class="body muted">載入中…</div></div>
+      <div class="card" style="margin-top:10px"><div class="body">
+        <b style="font-size:14px">📄 場地月結單</b>
+        <div class="muted" style="font-size:12px;margin-bottom:8px">自動結算每月租場收入（毛收入 / 平台佣金 / 場地實收），可列印成 PDF 或電郵俾場地</div>
+        <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
+          <div><div class="lbl2">月份</div><input class="fld" id="stmtMonth" type="month"></div>
+          <button class="btn btn-secondary mini" onclick="openStatement()">📄 睇月結單</button>
+          <button class="btn btn-secondary mini" id="stmtEmail">✉️ 電郵月結單</button>
+        </div>
+      </div></div>
 
       <div class="section-title">預約管理</div>
       <div class="card" style="margin-bottom:10px"><div class="body">
@@ -335,6 +344,34 @@
       if (r.ok) { alert(ok ? "✅ 已確認" : "已拒絕"); loadRentals(); }
       else alert((r.data && r.data.error) || "操作失敗");
     }
+
+    /* ===== 📄 場地月結單 ===== */
+    function stmtMonthVal() {
+      const el = $("stmtMonth");
+      if (!el.value) {
+        const d = new Date(Date.now() + 8 * 3600 * 1000); // HKT
+        el.value = d.getUTCFullYear() + "-" + String(d.getUTCMonth() + 1).padStart(2, "0");
+      }
+      return el.value;
+    }
+    function openStatement() {
+      const m = stmtMonthVal();
+      window.open("/api/venue-rentals/statement.html?month=" + encodeURIComponent(m), "_blank");
+    }
+    async function emailStatement() {
+      const btn = $("stmtEmail");
+      const m = stmtMonthVal();
+      if (!confirm("電郵 " + m + " 月結單俾場地？")) return;
+      if (btn) { btn.disabled = true; btn.textContent = "發送中…"; }
+      const r = await api.post("/venue-rentals/statement/email", { month: m });
+      if (btn) { btn.disabled = false; btn.textContent = "✉️ 電郵月結單"; }
+      if (r.ok) alert("✅ 已電郵月結單" + (r.data && r.data.to ? " → " + r.data.to : ""));
+      else alert((r.data && r.data.error) || "發送失敗");
+    }
+    (function () {
+      const b = $("stmtEmail");
+      if (b) b.addEventListener("click", emailStatement);
+    })();
 
     async function loadBookings() {
       const qs = ["limit=500"];

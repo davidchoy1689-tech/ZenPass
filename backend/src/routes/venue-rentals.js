@@ -344,6 +344,50 @@ router.post("/:id/reject", authenticateToken, requireOwnInstitution, (req, res) 
   }
 });
 
+// ===== GET /api/venue-rentals/statement — 場地月結單（JSON）=====
+router.get("/statement", authenticateToken, requireOwnInstitution, (req, res) => {
+  try {
+    const venue = _venueOf(req.user.id);
+    if (!venue) return res.status(403).json({ success: false, error: "只有場地負責人可以使用" });
+    const { buildStatement } = require("../services/venue-statement");
+    const stmt = buildStatement(venue.id, req.query.month);
+    res.json({ success: true, data: stmt });
+  } catch (err) {
+    console.error("venue-rentals/statement error:", err.message);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ===== GET /api/venue-rentals/statement.html — 可列印／儲存 PDF =====
+router.get("/statement.html", authenticateToken, requireOwnInstitution, (req, res) => {
+  try {
+    const venue = _venueOf(req.user.id);
+    if (!venue) return res.status(403).send("只有場地負責人可以使用");
+    const { buildStatement, renderStatementHtml } = require("../services/venue-statement");
+    const stmt = buildStatement(venue.id, req.query.month);
+    res.type("html").send(renderStatementHtml(stmt));
+  } catch (err) {
+    console.error("venue-rentals/statement.html error:", err.message);
+    res.status(500).send("產生月結單失敗：" + err.message);
+  }
+});
+
+// ===== POST /api/venue-rentals/statement/email — 電郵上月／指定月月結單 =====
+router.post("/statement/email", authenticateToken, requireOwnInstitution, async (req, res) => {
+  try {
+    const venue = _venueOf(req.user.id);
+    if (!venue) return res.status(403).json({ success: false, error: "只有場地負責人可以使用" });
+    const { emailStatement, prevMonthKey } = require("../services/venue-statement");
+    const month = req.body && req.body.month ? req.body.month : prevMonthKey();
+    const r = await emailStatement(venue.id, month);
+    if (r && r.sent) return res.json({ success: true, sent: true, to: venue.email || "", month });
+    return res.status(400).json({ success: false, error: (r && r.error) || "發送失敗（可能未設定 SMTP 或場地電郵）" });
+  } catch (err) {
+    console.error("venue-rentals/statement/email error:", err.message);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // ===== GET/POST /api/venue-rentals/auto — 自動接受設定 =====
 router.get("/auto", authenticateToken, requireOwnInstitution, (req, res) => {
   try {

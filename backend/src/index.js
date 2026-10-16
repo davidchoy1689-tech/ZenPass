@@ -792,6 +792,42 @@ function checkExpiringMemberships() {
 
 setInterval(checkExpiringMemberships, 60 * 60 * 1000);
 setTimeout(checkExpiringMemberships, 10000);
+
+// ===== 場地月結單：每月 1 號（HKT）自動電郵上月結算 =====
+function sendMonthlyVenueStatements() {
+  try {
+    const HK = new Date(Date.now() + 8 * 3600 * 1000);
+    if (HK.getUTCDate() !== 1) return; // 只喺每月 1 號
+    if (HK.getUTCHours() < 9) return; // 早上 9 點後
+    const { getDb } = require("./services/database");
+    const { emailStatement, prevMonthKey } = require("./services/venue-statement");
+    const db = getDb();
+    const month = prevMonthKey();
+    const marker = "venue.statement.last_sent";
+    db.prepare("CREATE TABLE IF NOT EXISTS platform_settings (key TEXT PRIMARY KEY, value TEXT, description TEXT, created_at TEXT DEFAULT (datetime('now')), updated_at TEXT DEFAULT (datetime('now')))").run();
+    const row = db.prepare("SELECT value FROM platform_settings WHERE key = ?").get(marker);
+    if (row && row.value === month) return; // 本月已發
+    const venues = db.prepare("SELECT id, name FROM partner_venues WHERE status = 'active' AND email IS NOT NULL AND email != ''").all();
+    (async () => {
+      let sent = 0;
+      for (const v of venues) {
+        try {
+          const r = await emailStatement(v.id, month);
+          if (r && r.sent) sent++;
+        } catch (e) {
+          console.error("[VENUE-STMT] " + v.id + ":", e.message);
+        }
+      }
+      const exists = db.prepare("SELECT key FROM platform_settings WHERE key = ?").get(marker);
+      if (exists) db.prepare("UPDATE platform_settings SET value=?, updated_at=datetime('now') WHERE key=?").run(month, marker);
+      else db.prepare("INSERT INTO platform_settings (key,value,description) VALUES (?,?,?)").run(marker, month, "場地月結單最後發送月份");
+      console.log(`[VENUE-STMT] ${month} 已發送 ${sent}/${venues.length} 份月結單`);
+    })();
+  } catch (err) {
+    console.error("[VENUE-STMT] Error:", err.message);
+  }
+}
+setInterval(sendMonthlyVenueStatements, 6 * 60 * 60 * 1000);
 // ===== Startup Health Check =====
 function startupHealthCheck() {
   const checks = {
