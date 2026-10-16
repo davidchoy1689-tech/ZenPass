@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="ZenPass" />
   <title>ZenPass 禪流</title>
-  <link rel="stylesheet" href="assets/v2.css?v=11" />
+  <link rel="stylesheet" href="assets/v2.css?v=12" />
 </head>
 <body>
   <div class="wrap">
@@ -30,16 +30,64 @@
 
     <div style="padding:12px 0 0">
       <input id="q" class="card" style="width:100%;border:1px solid var(--border);border-radius:12px;padding:12px 14px"
-             placeholder="🔍 搜尋運動 / 課程 / 教練" />
+             placeholder="🔍 搜尋運動 / 課程 / 教練（按 Enter）" />
     </div>
 
-    <div class="hscroll" id="cats">
-      <span class="chip on" data-cat="">全部</span>
-    </div>
+    <div class="section-title">🔥 本週熱門推薦</div>
+    <div class="hot-rail" id="hotRail">
 
-    <div class="section-title">🆕 最新上架</div>
-    <div class="stack" id="courses">
-      <div class="card"><div class="body muted">載入中…</div></div>
+      <a class="hot-card" href="explore.html?q=%E8%8A%AC%E8%98%AD%E6%9C%A8%E6%9F%B1">
+        <div class="hot-media" style="background:linear-gradient(150deg,#FDF0E4,#F6DCC6)">
+          <span class="hot-cat">新興運動 · 芬蘭木柱</span>
+          <span class="hot-tile" style="background:linear-gradient(150deg,#C4650F,#8F4207)"><img src="assets/icons/sports-white/moelkkyla.svg" alt=""></span>
+        </div>
+        <div class="hot-body">
+          <p class="hot-name">【新手體驗】芬蘭木柱 Mölkky 基礎技巧與對戰</p>
+          <p class="hot-meta">📍 觀塘 · 60 分鐘 · 剩 6 位</p>
+          <p class="hot-price"><s>HK$150</s> <b>HK$75</b> <span class="hot-off">半價</span></p>
+          <span class="btn btn-primary btn-block hot-cta">立即預約</span>
+        </div>
+      </a>
+
+      <a class="hot-card" href="explore.html?q=%E5%9C%B0%E6%9D%BF%E5%86%B0%E5%A3%BA">
+        <div class="hot-media" style="background:linear-gradient(150deg,#EAF1FE,#D3E2FB)">
+          <span class="hot-cat">新興運動 · 地板冰壺</span>
+          <span class="hot-tile" style="background:linear-gradient(150deg,#3B82F6,#1D4FD8)"><img src="assets/icons/sports-white/floor-curling.svg" alt=""></span>
+        </div>
+        <div class="hot-body">
+          <p class="hot-name">【親子班】地板冰壺 冰上策略入門</p>
+          <p class="hot-meta">📍 旺角 · 90 分鐘 · 剩 4 位</p>
+          <p class="hot-price"><s>HK$180</s> <b>HK$90</b> <span class="hot-off">半價</span></p>
+          <span class="btn btn-primary btn-block hot-cta">立即預約</span>
+        </div>
+      </a>
+
+      <a class="hot-card" href="explore.html?q=%E5%B8%83%E8%A2%8B%E7%90%83">
+        <div class="hot-media" style="background:linear-gradient(150deg,#FCE9E9,#F7CFCF)">
+          <span class="hot-cat">球類運動 · 布袋球</span>
+          <span class="hot-tile" style="background:linear-gradient(150deg,#EF5350,#C62828)"><img src="assets/icons/sports-white/cornhole.svg" alt=""></span>
+        </div>
+        <div class="hot-body">
+          <p class="hot-name">【週末班】布袋球 Cornhole 投擲技巧</p>
+          <p class="hot-meta">📍 沙田 · 60 分鐘 · 剩 8 位</p>
+          <p class="hot-price"><s>HK$140</s> <b>HK$70</b> <span class="hot-off">半價</span></p>
+          <span class="btn btn-primary btn-block hot-cta">立即預約</span>
+        </div>
+      </a>
+
+      <a class="hot-card" href="explore.html?q=%E7%A9%BF%E9%9B%B2%E7%AE%AD">
+        <div class="hot-media" style="background:linear-gradient(150deg,#F1EBFD,#E0D3FB)">
+          <span class="hot-cat">香港熱門 · 穿雲箭</span>
+          <span class="hot-tile" style="background:linear-gradient(150deg,#8B5CF6,#6D28D9)"><img src="assets/icons/sports-white/air-storm.svg" alt=""></span>
+        </div>
+        <div class="hot-body">
+          <p class="hot-name">【挑戰班】穿雲箭 AIR STORM 精準射擊</p>
+          <p class="hot-meta">📍 銅鑼灣 · 45 分鐘 · 剩 5 位</p>
+          <p class="hot-price"><s>HK$160</s> <b>HK$80</b> <span class="hot-off">半價</span></p>
+          <span class="btn btn-primary btn-block hot-cta">立即預約</span>
+        </div>
+      </a>
+
     </div>
 
     <div class="section-title">🏅 運動項目 <span class="sport-count">撳一下即搵該項目課堂</span></div>
@@ -64,45 +112,16 @@
   <script src="assets/api.js"></script>
   <script src="assets/sport-icons.js?v=9"></script>
   <script>
-    const box = document.getElementById("courses");
-    function card(c) {
-      return `<a class="card" href="class-detail.html?id=${encodeURIComponent(c.id)}">
-        <div class="body course">
-          <div class="thumb" style="background:${(typeof sportTint === "function" ? sportTint(c.category || c.cat || "", 0.14) : "#f4f4f6")}">${(typeof sportIconImg === "function" ? sportIconImg(c.category || c.cat || "", 46) : "")}</div>
-          <div class="meta">
-            <p class="name">${esc(c.title)}</p>
-            <p class="sub">${esc(c.category || "")}${c.duration ? " · " + c.duration + " 分鐘" : ""}</p>
-          </div>
-          <div class="price">${cr(c.price_hkd)}cr<br /><small class="muted" style="font-weight:500">${hkd(c.price_hkd)}</small></div>
-        </div></a>`;
-    }
-    async function load(cat, q) {
-      box.innerHTML = `<div class="card"><div class="body muted">載入中…</div></div>`;
-      let url = "/classes?limit=8&sort=newest";
-      if (cat) url += "&category=" + encodeURIComponent(cat);
-      if (q) url += "&search=" + encodeURIComponent(q);
-      const r = await api.get(url);
-      const list = (r.data && (r.data.classes || r.data.items)) || [];
-      if (!list.length) { box.innerHTML = `<div class="card"><div class="body muted">暫時冇課程。</div></div>`; return; }
-      box.innerHTML = list.map(card).join("");
-    }
-    document.getElementById("cats").addEventListener("click", (e) => {
-      const chip = e.target.closest(".chip"); if (!chip) return;
-      document.querySelectorAll("#cats .chip").forEach(x => x.classList.remove("on"));
-      chip.classList.add("on");
-      load(chip.dataset.cat, document.getElementById("q").value.trim());
-    });
-    let t; document.getElementById("q").addEventListener("input", (e) => {
-      clearTimeout(t); t = setTimeout(() => load(document.querySelector("#cats .chip.on").dataset.cat, e.target.value.trim()), 350);
-    });
-    (async () => {
-      const r = await api.get("/classes/categories");
-      const cats = (r.data && (r.data.categories || r.data)) || [];
-      if (Array.isArray(cats)) {
-        document.getElementById("cats").innerHTML = `<span class="chip on" data-cat="">全部</span>` +
-          cats.map(c => { const n = (typeof c === "string" ? c : (c.name || c.category)); return `<span class="chip" data-cat="${esc(n)}">${esc(n)}</span>`; }).join("");
-      }
-      load("", "");
+    (function () {
+      var q = document.getElementById("q");
+      if (!q) return;
+      q.addEventListener("keydown", function (e) {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          var v = q.value.trim();
+          location.href = "explore.html" + (v ? ("?q=" + encodeURIComponent(v)) : "");
+        }
+      });
     })();
   </script>
   <script>
