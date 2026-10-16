@@ -291,7 +291,20 @@ function renderSportGrid(elId, limit) {
     var panel = document.getElementById("sportGridAll");
     if (panel) panel.setAttribute("hidden", "");
     var btn = document.getElementById("accBtn");
-    if (btn) btn.addEventListener("click", function () { openAccordion(null); });
+    if (btn) {
+      btn.textContent = "🔍 查看全部 " + SPORTS_CATALOGUE.length + " 個運動項目";
+      btn.addEventListener("click", function () {
+        var panel = document.getElementById("sportGridAll");
+        if (panel && !panel.hasAttribute("hidden")) {
+          panel.setAttribute("hidden", "");
+          btn.setAttribute("aria-expanded", "false");
+          btn.textContent = "🔍 查看全部 " + SPORTS_CATALOGUE.length + " 個運動項目";
+          btn.scrollIntoView({ behavior: "smooth", block: "center" });
+        } else {
+          openAccordion(null);
+        }
+      });
+    }
     var mg = document.getElementById("megaGrid");
     if (mg) mg.addEventListener("click", function (e) {
       var c = e.target.closest(".mega-card"); if (!c) return;
