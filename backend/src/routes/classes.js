@@ -25,6 +25,7 @@ router.get("/", optionalAuth, cache(30), (req, res) => {
 
     const {
       category,
+      sport_slug,
       difficulty,
       coach_id,
       search,
@@ -390,9 +391,9 @@ router.post("/", authenticateToken, requireCoach, (req, res) => {
     db.prepare(
       `
       INSERT INTO classes (id, class_reference, coach_id, title, title_en, description, description_en, 
-        category, difficulty, duration, max_participants, price_hkd, credits_cost,
+        category, sport_slug, difficulty, duration, max_participants, price_hkd, credits_cost,
         venue_name, venue_address, latitude, longitude, image_url)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
     ).run(
       id,
@@ -403,6 +404,7 @@ router.post("/", authenticateToken, requireCoach, (req, res) => {
       description || null,
       description_en || null,
       category,
+      sport_slug || null,
       difficulty || "beginner",
       duration,
       max_participants || 15,
@@ -463,6 +465,7 @@ router.put("/:id", authenticateToken, requireCoach, (req, res) => {
       "description",
       "description_en",
       "category",
+      "sport_slug",
       "difficulty",
       "duration",
       "max_participants",

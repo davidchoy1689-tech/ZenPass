@@ -62,7 +62,7 @@
 
   <script src="assets/holidays.js"></script>
   <script src="assets/api.js"></script>
-  <script src="assets/sport-icons.js?v=12"></script>
+  <script src="assets/sport-icons.js?v=13"></script>
   <script>
     const id = new URLSearchParams(location.search).get("id");
     const wrap = document.getElementById("head");
@@ -73,7 +73,8 @@
       const c = r.data && r.data.class;
       if (!c) { wrap.innerHTML = `<div class="card"><div class="body">搵唔到課程。</div></div>`; return; }
       document.title = c.title + " · ZenPass 禪流";
-      var _hi = (typeof getCategoryIcon === "function") ? getCategoryIcon(c.category || "") : "";
+      var _slug = (typeof courseSlug === "function") ? courseSlug(c) : "";
+      var _hi = _slug ? ("assets/icons/sports/" + _slug + ".svg") : "";
       if (_hi) { var _el = document.getElementById("heroIc"); _el.src = _hi; _el.classList.add("show"); }
       wrap.innerHTML = `
         <div style="display:flex;gap:8px;margin-bottom:8px"><span class="chip on">${esc(c.category || "課程")}</span></div>

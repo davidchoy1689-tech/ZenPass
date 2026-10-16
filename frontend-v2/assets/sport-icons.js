@@ -75,6 +75,10 @@ var SPORT_ICONS = [
   ["硬地滾球", "boccia"], ["boccia", "boccia"],
   ["劍球", "kendama"], ["kendama", "kendama"],
   ["疊杯", "sport-stacking"], ["sport stacking", "sport-stacking"],
+  ["瑜珈", "yoga"], ["瑜伽球", "yoga"], ["拉筋", "stretching"], ["體適能", "gym"], ["健體", "kids-fitness"],
+  ["藍球", "basketball"], ["藍網球", "netball"], ["乒乓波", "ping-pong"], ["羽毛球拍", "badminton"],
+  ["詠春拳", "martial-arts"], ["太極拳", "tai-chi"], ["空手道場", "karate"], ["飛標", "darts"],
+  ["拳", "boxing"], ["泳", "swimming"],
   ["芬蘭木柱", "moelkkyla"], ["木柱", "moelkkyla"], ["molkky", "moelkkyla"], ["mölkky", "moelkkyla"],
   ["地板冰壺", "floor-curling"], ["地板冰壶", "floor-curling"],
   ["布袋球", "cornhole"], ["cornhole", "cornhole"],
@@ -159,6 +163,24 @@ function sportSlug(cat) {
   }
   return ;
 }
+function sportIconImgSlug(slug, size) {
+  var n = size || 16;
+  var g = slug || SPORT_DEFAULT_SLUG;
+  return '<img class="sport-ic" src="assets/icons/sports/' + g + '.svg" alt="" width="' + n + '" height="' + n + '" style="width:' + n + 'px;height:' + n + 'px" loading="lazy">';
+}
+function sportTintSlug(slug, p) {
+  var c = SPORT_COLORS[slug || SPORT_DEFAULT_SLUG] || "#ff6b35";
+  return mixHex(c, "#ffffff", 1 - (p || 0.14));
+}
+/* 課程 → 圖案：優先用 sport_slug（結構化），冇就用標題/分類關鍵字 */
+function courseSlug(c) {
+  if (!c) return SPORT_DEFAULT_SLUG;
+  var s = c.sport_slug || c.sportSlug;
+  if (s && SPORT_COLORS[s]) return s;
+  return sportSlugLoose(c.category || c.cat || "", c.title || "");
+}
+function courseIconImg(c, size) { return sportIconImgSlug(courseSlug(c), size); }
+function courseTint(c, p) { return sportTintSlug(courseSlug(c), p); }
 var SPORT_DEFAULT_SLUG = "running";
 function sportSlugLoose(cat, title) {
   var b = sportSlug(title);          // 標題通常寫明該運動（例：【新手體驗】芬蘭木柱…）

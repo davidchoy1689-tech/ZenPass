@@ -129,6 +129,7 @@ CREATE TABLE IF NOT EXISTS users (
       description TEXT,
       description_en TEXT,
       category TEXT NOT NULL,
+      sport_slug TEXT,
       difficulty TEXT DEFAULT 'beginner' CHECK(difficulty IN ('beginner','intermediate','advanced')),
       duration INTEGER NOT NULL,
       max_participants INTEGER DEFAULT 15,

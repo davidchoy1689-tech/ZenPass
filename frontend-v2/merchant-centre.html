@@ -54,7 +54,8 @@
         <div class="body">
           <div class="frm">
             <input class="fld full" id="nc-title" placeholder="課程名稱（必填）" />
-            <input class="fld" id="nc-category" list="cats" placeholder="類別（必填）" />
+            <select class="fld" id="nc-category"><option value="">類別（必填）…</option></select>
+            <input class="fld" id="nc-category-other" placeholder="自行輸入類別" style="display:none" />
             <datalist id="cats">
               <option>芬蘭木柱</option><option>地板冰壺</option><option>布袋球</option>
               <option>穿雲箭</option><option>北歐式健步行</option><option>圓網球</option>
@@ -124,7 +125,7 @@
   </nav>
 
   <script src="assets/api.js"></script>
-  <script src="assets/sport-icons.js?v=12"></script>
+  <script src="assets/sport-icons.js?v=13"></script>
   <script>
     const $ = (id) => document.getElementById(id);
     let venueCoaches = [];
@@ -205,7 +206,11 @@
 
     async function createCourse() {
       const title = ($("nc-title").value || "").trim();
-      const category = ($("nc-category").value || "").trim();
+      const selEl = $("nc-category");
+      const otherEl = $("nc-category-other");
+      const isOther = selEl.value === "__other";
+      const category = isOther ? ((otherEl.value || "").trim()) : (selEl.options[selEl.selectedIndex] ? selEl.options[selEl.selectedIndex].textContent.trim() : "");
+      const sport_slug = isOther ? "" : (selEl.value || "");
       const duration = $("nc-duration").value;
       const price = $("nc-price").value;
       const credits = $("nc-credits").value;
@@ -215,7 +220,7 @@
       if (!schedules.length) { alert("請至少加一個時段"); return; }
       const btn = $("createBtn"); btn.disabled = true; btn.textContent = "建立中…";
       const r = await api.post("/partner/courses", {
-        title, category, duration: Number(duration),
+        title, category, sport_slug: sport_slug || undefined, duration: Number(duration),
         difficulty: $("nc-difficulty").value,
         max_participants: $("nc-max").value || undefined,
         price_hkd: price ? Number(price) : undefined,
@@ -230,6 +235,7 @@
         alert("✅ 課程已建立");
         $("createCard").style.display = "none";
         ["nc-title","nc-category","nc-duration","nc-max","nc-price","nc-credits","nc-desc","nc-audience"].forEach(id => $(id).value = "");
+        if ($("nc-category-other")) { $("nc-category-other").value = ""; $("nc-category-other").style.display = "none"; }
         $("schedRows").innerHTML = ""; addSchedRow();
         await loadCourses();
       } else {
@@ -426,12 +432,22 @@
   </script>
   <script>
     (function () {
-      var dl = document.getElementById("cats");
-      if (!dl || !window.SPORTS_CATALOGUE) return;
-      var existing = [...dl.querySelectorAll("option")].map(function (o) { return o.textContent; });
-      var names = SPORTS_CATALOGUE.map(function (s) { return s.name; });
-      var all = existing.concat(names.filter(function (n) { return existing.indexOf(n) < 0; }));
-      dl.innerHTML = all.map(function (n) { return "<option>" + n + "</option>"; }).join("");
+      var sel = document.getElementById("nc-category");
+      var other = document.getElementById("nc-category-other");
+      if (!sel || !window.SPORTS_CATALOGUE) return;
+      var byGroup = {};
+      SPORTS_CATALOGUE.forEach(function (s) { (byGroup[s.group] = byGroup[s.group] || []).push(s); });
+      var html = '<option value="">類別（必填）…</option>';
+      Object.keys(byGroup).forEach(function (g) {
+        html += '<optgroup label="' + g + '">' +
+          byGroup[g].map(function (s) { return '<option value="' + s.slug + '">' + s.name + "</option>"; }).join("") +
+          "</optgroup>";
+      });
+      html += '<option value="__other">其他（自行輸入）</option>';
+      sel.innerHTML = html;
+      sel.addEventListener("change", function () {
+        if (other) other.style.display = sel.value === "__other" ? "" : "none";
+      });
     })();
   </script>
   <script src="assets/footer.js?v=2" defer></script>
