@@ -20,7 +20,16 @@
     '.zp-footer a.zp-link{color:rgba(255,255,255,.8);text-decoration:none}' +
     '.zp-footer a.zp-link:hover{color:#fff}' +
     '.zp-footer-social{display:flex;gap:8px;margin-top:12px}' +
-    '.zp-footer-social a{width:32px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:rgba(255,255,255,.12);text-decoration:none;font-size:14px}' +
+    '.zp-footer-social a{width:34px;height:34px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:rgba(255,255,255,.12);text-decoration:none;font-size:15px;color:#fff;transition:transform .15s}' +
+    '.zp-footer-social a:active{transform:scale(.94)}' +
+    '.zp-footer-social a.wa{background:#25D366}' +
+    '.zp-footer-social a.ig{background:linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888)}' +
+    '.zp-footer-social a.fb{background:#1877F2}' +
+    '.zp-pay{margin-top:22px}' +
+    '.zp-pay-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:2px}' +
+    '.zp-pay-badge{display:inline-flex;border-radius:5px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.25)}' +
+    '.zp-pay-badge svg{display:block}' +
+    '.zp-pay-note{font-size:11px;color:rgba(255,255,255,.55);margin-top:8px}' +
     '.zp-footer-copy{border-top:1px solid rgba(255,255,255,.12);margin-top:18px;padding:14px 18px 22px;text-align:center;font-size:11px;color:rgba(255,255,255,.5)}' +
     '.zp-back-top{position:fixed;right:16px;bottom:88px;width:42px;height:42px;border-radius:50%;background:#c94420;color:#fff;border:none;font-size:18px;cursor:pointer;box-shadow:0 2px 12px rgba(0,0,0,.25);z-index:800;opacity:0;transform:translateY(16px);transition:.3s;pointer-events:none}' +
     '.zp-back-top.on{opacity:1;transform:none;pointer-events:auto}';
@@ -32,9 +41,9 @@
           '<div class="zp-footer-brand">🧘 ZenPass 禪流</div>' +
           '<div class="zp-footer-desc">一個Pass，通行全城運動體驗。<br>由 香港康樂及體育有限公司 營運<br>專注新興運動推廣・運動連結社區</div>' +
           '<div class="zp-footer-social">' +
-            '<a href="https://wa.me/85290335538" title="WhatsApp">💬</a>' +
-            '<a href="https://www.instagram.com/zenpass_hk" title="Instagram">📸</a>' +
-            '<a href="https://www.facebook.com/zenpass.hk" title="Facebook">👍</a>' +
+            '<a class="wa" href="https://wa.me/85290335538" target="_blank" rel="noopener" title="WhatsApp 客服" aria-label="WhatsApp 客服">💬</a>' +
+            '<a class="ig" href="https://www.instagram.com/zenpass_hk" target="_blank" rel="noopener" title="Instagram 專頁" aria-label="Instagram 專頁">📸</a>' +
+            '<a class="fb" href="https://www.facebook.com/zenpass.hk" target="_blank" rel="noopener" title="Facebook 專頁" aria-label="Facebook 專頁">👍</a>' +
           '</div>' +
         '</div>' +
         '<div>' +
@@ -68,6 +77,16 @@
             '<li>📍 香港九龍觀塘</li>' +
           '</ul>' +
         '</div>' +
+      '</div>' +
+      '<div class="zp-pay">' +
+        '<div class="zp-footer-title">接受付款方式</div>' +
+        '<div class="zp-pay-row">' +
+          '<span class="zp-pay-badge"><svg viewBox="0 0 48 16" width="48" height="16" role="img" aria-label="Visa"><rect width="48" height="16" rx="3" fill="#fff"/><text x="24" y="11.7" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="9.5" font-weight="800" font-style="italic" fill="#1A1F71">VISA</text></svg></span>' +
+          '<span class="zp-pay-badge"><svg viewBox="0 0 48 16" width="48" height="16" role="img" aria-label="Mastercard"><rect width="48" height="16" rx="3" fill="#fff"/><circle cx="20" cy="8" r="5.4" fill="#EB001B"/><circle cx="28" cy="8" r="5.4" fill="#F79E1B" fill-opacity=".9"/><text x="24" y="15.1" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="3.4" fill="#111">Mastercard</text></svg></span>' +
+          '<span class="zp-pay-badge"><svg viewBox="0 0 48 16" width="48" height="16" role="img" aria-label="轉數快 FPS"><rect width="48" height="16" rx="3" fill="#E30613"/><text x="7" y="11" font-family="Arial,Helvetica,sans-serif" font-size="7.4" font-weight="800" fill="#fff">轉數快</text><text x="33" y="11" font-family="Arial,Helvetica,sans-serif" font-size="7.4" font-weight="800" fill="#fff">FPS</text></svg></span>' +
+          '<span class="zp-pay-badge"><svg viewBox="0 0 48 16" width="48" height="16" role="img" aria-label="PayMe"><rect width="48" height="16" rx="3" fill="#E6007E"/><text x="24" y="11.2" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="9" font-weight="800" fill="#fff">PayMe</text></svg></span>' +
+        '</div>' +
+        '<div class="zp-pay-note">付款後由平台確認入賬，安全可靠</div>' +
       '</div>' +
     '</div>' +
     '<div class="zp-footer-copy">© ' + new Date().getFullYear() + ' 香港康樂及體育有限公司 · ZenPass 禪流<br>一個Pass，通行全城運動體驗</div>' +
