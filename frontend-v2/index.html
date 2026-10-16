@@ -37,16 +37,18 @@
   <meta name="twitter:title" content="ZenPass 禪流 | 一Pass通行全城運動與新興運動體驗" />
   <meta name="twitter:description" content="免費登記 ZenPass！新用戶輸入優惠碼 WELCOME50 即享首堂半價。精選全港瑜伽、芬蘭木柱、地板冰壺、HIIT 等百款運動體驗。" />
   <meta name="twitter:image" content="https://zenpass.hk/assets/og/zenpass-og.jpg" />
-  <link rel="stylesheet" href="assets/v2.css?v=20" />
+  <link rel="stylesheet" href="assets/v2.css?v=21" />
 </head>
 <body>
   <div class="wrap">
     <div class="hero">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-        <strong style="font-size:15px;letter-spacing:.5px">ZenPass 禪流</strong>
-        <div style="display:flex;align-items:center;gap:10px">
+      <div class="hero-top">
+        <strong class="hero-logo">ZenPass 禪流</strong>
+        <div class="hero-actions">
           <button class="hero-btn" id="shareBtn" type="button">分享 ↗</button>
-          <a href="my.html" style="font-size:13px;opacity:.9">我的 ›</a>
+          <a class="hero-chip" id="walletChip" href="wallet.html" hidden>💳 <span id="walletBal">—</span></a>
+          <a class="hero-btn hero-login" id="loginBtn" href="login.html">登入 / 註冊</a>
+          <a class="hero-chip" id="userChip" href="my.html" hidden>👤 <span id="heroName">我的</span></a>
         </div>
       </div>
       <h1>郁一郁，身體好</h1>
@@ -66,6 +68,15 @@
           <select id="qsCat"><option value="">全部類別</option></select>
         </label>
         <button class="btn btn-primary qs-go" id="qsGo" type="button">🔍 搜尋</button>
+      </div>
+    </div>
+
+    <div class="why">
+      <div class="section-title">🌱 什麼是新興運動？</div>
+      <div class="why-grid">
+        <div class="why-card"><div class="ic">🌱</div><b>零經驗上手</b><p>規則簡單、裝備輕巧，第一次玩都即刻上手。</p></div>
+        <div class="why-card"><div class="ic">👥</div><b>跨年齡・朋友包班</b><p>一家大細、三五知己都可以一齊玩，運動兼社交。</p></div>
+        <div class="why-card"><div class="ic">🏆</div><b>國際認可運動</b><p>芬蘭木柱、地板冰壺等已係國際賽事項目，有得玩有得進步。</p></div>
       </div>
     </div>
 
@@ -199,6 +210,29 @@
         }
       }
       if (btn) btn.addEventListener("click", doCopy);
+
+      /* --- Header：登入狀態 / 錢包餘額 --- */
+      (function () {
+        var loginBtn = document.getElementById("loginBtn");
+        var userChip = document.getElementById("userChip");
+        var walletChip = document.getElementById("walletChip");
+        if (!window.api) return;
+        api.me().then(function (r) {
+          if (!r || !r.ok) return; // 未登入 → 保持「登入 / 註冊」
+          var u = (r.data && (r.data.user || r.data)) || {};
+          var name = u.name || u.email || "我的";
+          var nm = document.getElementById("heroName");
+          if (nm) nm.textContent = String(name).length > 8 ? String(name).slice(0, 8) + "…" : name;
+          if (loginBtn) loginBtn.hidden = true;
+          if (userChip) userChip.hidden = false;
+          var credits = u.credits != null ? u.credits : null;
+          if (walletChip && credits != null) {
+            var b = document.getElementById("walletBal");
+            if (b) b.textContent = credits + " cr";
+            walletChip.hidden = false;
+          }
+        }).catch(function () {});
+      })();
 
       /* --- 分享 --- */
       var SHARE = {
