@@ -38,6 +38,8 @@ router.post("/lead-notify-config", authenticateToken, requireAdmin, (req, res) =
     const pairs = [
       ["lead.webhook_url", req.body && req.body.webhook_url, "加盟申請 Webhook（Google Sheet / Formspree）"],
       ["lead.admin_email", req.body && req.body.admin_email, "加盟申請通知 Email"],
+      ["lead.whatsapp_key", req.body && req.body.whatsapp_key, "CallMeBot API key（WhatsApp 通知）"],
+      ["lead.whatsapp_to", req.body && req.body.whatsapp_to, "收 WhatsApp 通知嘅電話（連國碼）"],
     ];
     let updated = 0;
     for (const [key, value, desc] of pairs) {

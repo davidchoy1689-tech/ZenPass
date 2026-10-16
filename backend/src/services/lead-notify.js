@@ -51,10 +51,14 @@ function getSetting(key, fallback) {
 function config() {
   const webhook = getSetting("lead.webhook_url", process.env.LEAD_WEBHOOK_URL || "");
   const adminMail = getSetting("lead.admin_email", process.env.ADMIN_EMAIL || "");
+  const waKey = getSetting("lead.whatsapp_key", process.env.WHATSAPP_CALLMEBOT_KEY || "");
+  const waTo = getSetting("lead.whatsapp_to", process.env.WHATSAPP_CALLMEBOT_TO || "");
   return {
     webhook,
     adminMail,
-    whatsapp: !!(process.env.WHATSAPP_CALLMEBOT_KEY && process.env.WHATSAPP_CALLMEBOT_TO),
+    waKey,
+    waTo,
+    whatsapp: !!(waKey && waTo),
     telegram: !!(process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_CHAT_ID),
     email: !!(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS),
   };
@@ -122,7 +126,7 @@ async function notifyNewApplication(kind, data = {}, ref = "") {
 
   if (cfg.whatsapp) {
     try {
-      sent.whatsapp = await whatsappFreeNotification(text);
+      sent.whatsapp = await whatsappFreeNotification(text, cfg.waTo, cfg.waKey);
     } catch (err) {
       console.error("lead whatsapp error:", err.message);
     }

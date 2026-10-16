@@ -373,8 +373,8 @@ function markAllAsRead(userId) {
 }
 
 // ===== 3b. WhatsApp 通知 (CallMeBot - 免費，唔使 account) =====
-async function whatsappFreeNotification(message, phone) {
-  const apiKey = process.env.WHATSAPP_CALLMEBOT_KEY;
+async function whatsappFreeNotification(message, phone, apiKeyIn) {
+  const apiKey = apiKeyIn || process.env.WHATSAPP_CALLMEBOT_KEY;
   const to = phone || process.env.WHATSAPP_CALLMEBOT_TO;
 
   if (!apiKey || !to) {
