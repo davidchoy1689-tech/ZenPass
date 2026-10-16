@@ -185,12 +185,7 @@ function categoryIconImg(cat, size) {
   function run() {
     decorate(document);
     if (window.MutationObserver && document.body) {
-      new MutationObserver(function (muts) {
-        for (var i = 0; i < muts.length; i++) {
-          var added = muts[i].addedNodes;
-          for (var j = 0; j < added.length; j++) { if (added[j].nodeType === 1) decorate(added[j]); }
-        }
-      }).observe(document.body, { childList: true, subtree: true });
+      new MutationObserver(function () { decorate(document); }).observe(document.body, { childList: true, subtree: true });
     }
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", run);

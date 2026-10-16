@@ -156,12 +156,7 @@ function sportIconImg(cat, size) {
   function run() {
     decorate(document);
     if (window.MutationObserver && document.body) {
-      new MutationObserver(function (muts) {
-        for (var i = 0; i < muts.length; i++) {
-          var a = muts[i].addedNodes;
-          for (var j = 0; j < a.length; j++) { if (a[j].nodeType === 1) decorate(a[j]); }
-        }
-      }).observe(document.body, { childList: true, subtree: true });
+      new MutationObserver(function () { decorate(document); }).observe(document.body, { childList: true, subtree: true });
     }
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", run);
