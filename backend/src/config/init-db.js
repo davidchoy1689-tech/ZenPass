@@ -154,20 +154,22 @@ CREATE TABLE IF NOT EXISTS users (
   // ===== 兼容升級：classes.district（按課程地區自動分區）=====
   try { db.exec("ALTER TABLE classes ADD COLUMN district TEXT"); } catch (e) { /* exists */ }
   try {
-    const { resolveDistrict } = require("../services/district");
-    const _rows = db.prepare("SELECT id, venue_address, venue_name, partner_venue_id FROM classes WHERE district IS NULL OR district = ''").all();
-    if (_rows.length) {
-      const _upd = db.prepare("UPDATE classes SET district = ? WHERE id = ?");
-      const _pv = db.prepare("SELECT district FROM partner_venues WHERE id = ?");
-      let _n = 0;
-      for (const r of _rows) {
-        let dist = "";
-        if (r.partner_venue_id) { try { const p = _pv.get(r.partner_venue_id); if (p && p.district) dist = p.district; } catch (e) {} }
-        if (!dist) dist = resolveDistrict([r.venue_address, r.venue_name].filter(Boolean).join(" "));
-        if (dist) { _upd.run(dist, r.id); _n++; }
-      }
-      if (_n) console.log(`✅ classes.district backfill: ${_n} 條`);
+    const { resolveDistrict, DISTRICTS } = require("../services/district");
+    const _names = new Set(DISTRICTS.map((d) => d.name));
+    const _rows = db.prepare("SELECT id, venue_address, venue_name, partner_venue_id, district FROM classes").all();
+    const _upd = db.prepare("UPDATE classes SET district = ? WHERE id = ?");
+    const _pv = db.prepare("SELECT district FROM partner_venues WHERE id = ?");
+    let _n = 0;
+    for (const r of _rows) {
+      let pvDist = "";
+      if (r.partner_venue_id) { try { const p = _pv.get(r.partner_venue_id); if (p && p.district) pvDist = p.district; } catch (e) {} }
+      const raw = [pvDist, r.venue_address, r.venue_name].filter(Boolean).join(" ");
+      let dist = resolveDistrict(raw);
+      if (!dist && pvDist && _names.has(pvDist)) dist = pvDist;
+      if (!dist && r.district && _names.has(r.district)) dist = r.district;
+      if (dist && dist !== r.district) { _upd.run(dist, r.id); _n++; }
     }
+    if (_n) console.log(`✅ classes.district 標準化: ${_n} 條`);
   } catch (e) { /* 非致命 */ }
 
   // ===== 課程時間表 =====

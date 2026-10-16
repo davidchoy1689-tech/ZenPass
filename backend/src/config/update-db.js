@@ -327,7 +327,8 @@ function updateDatabase() {
     /* 已存在 */
   }
   try {
-    const { resolveDistrict } = require("../services/district");
+    const { resolveDistrict, DISTRICTS } = require("../services/district");
+    const names = new Set(DISTRICTS.map((d) => d.name));
     const rows = db
       .prepare("SELECT id, venue_address, venue_name, partner_venue_id, district FROM classes")
       .all();
@@ -335,23 +336,25 @@ function updateDatabase() {
     const pvStmt = db.prepare("SELECT district FROM partner_venues WHERE id = ?");
     let n = 0;
     for (const r of rows) {
-      if (r.district) continue; // 已有就不覆寫
-      let dist = "";
+      let pvDist = "";
       if (r.partner_venue_id) {
         try {
           const pv = pvStmt.get(r.partner_venue_id);
-          if (pv && pv.district) dist = pv.district;
+          if (pv && pv.district) pvDist = pv.district;
         } catch (e) {
           /* partner_venues 可能未存在 */
         }
       }
-      if (!dist) dist = resolveDistrict([r.venue_address, r.venue_name].filter(Boolean).join(" "));
-      if (dist) {
+      const raw = [pvDist, r.venue_address, r.venue_name].filter(Boolean).join(" ");
+      let dist = resolveDistrict(raw);
+      if (!dist && pvDist && names.has(pvDist)) dist = pvDist;
+      if (!dist && r.district && names.has(r.district)) dist = r.district;
+      if (dist && dist !== r.district) {
         upd.run(dist, r.id);
         n++;
       }
     }
-    console.log(`✅ classes.district backfill: ${n} 條`);
+    console.log(`✅ classes.district 標準化: ${n} 條`);
   } catch (e) {
     console.log("⚠️ classes.district backfill:", e.message);
   }

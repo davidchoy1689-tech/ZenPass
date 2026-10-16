@@ -131,8 +131,8 @@
       if (!ZONE || !ZONES[ZONE]) return true;
       const z = ZONES[ZONE];
       const name = String(z.label || "").replace(/^📍\s*/, "");
-      // 有結構化 district → 精準比對（按課程地區自動分區）
-      if (c.district) return c.district === name;
+      // 有結構化 district → 精準比對（標準 18 區名或區内地段）
+      if (c.district) return c.district === name || (z.kw || []).indexOf(c.district) >= 0;
       // 未有 district（舊資料）→ 退回關鍵字比對
       const hay = [c.venue_name, c.venue_address, c.location, c.area, c.district].filter(Boolean).join(" ");
       return z.kw.some(k => hay.indexOf(k) >= 0);

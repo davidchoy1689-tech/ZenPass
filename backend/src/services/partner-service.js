@@ -377,15 +377,15 @@ function createCourse(userId, body) {
     ? Number(credits_cost)
     : Math.max(3, Math.round(price_hkd / 10));
   const finalPrice = price_hkd ? Number(price_hkd) : 0;
-  // 自動分區：優先用場地登記嘅 district，否則由地址／場地名推斷
-  let district = venue.district || "";
-  if (!district) {
-    try {
-      district = require("./district").resolveDistrict([venue.address, venue.name].filter(Boolean).join(" "));
-    } catch (e) {
-      district = "";
-    }
+  // 自動分區：標準化為香港 18 區名（優先用地址／場地名，否則沿用場地登記 district）
+  let district = "";
+  try {
+    const { resolveDistrict } = require("./district");
+    district = resolveDistrict([venue.district, venue.address, venue.name].filter(Boolean).join(" "));
+  } catch (e) {
+    district = "";
   }
+  if (!district) district = venue.district || "";
 
   db.prepare(
     `INSERT INTO classes (id, coach_id, title, description, category, difficulty,
