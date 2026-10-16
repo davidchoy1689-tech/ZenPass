@@ -28,13 +28,16 @@ has(idx, "Pass 優惠套票", "card 2");
 has(idx, "全城通行", "card 3");
 has(css, ".how-grid", "how grid css");
 
-// 3. 地區 pills
-["kte", "ktw", "hki", "nte"].forEach(z => has(idx, "explore.html?zone=" + z, "zone pill " + z));
-has(idx, "觀塘 / 九龍東", "kte label");
+// 3. 地區 pills（香港 18 區）
+["cw", "wc", "east", "south", "ytm", "ssp", "kc", "wts", "kt", "kts", "tw", "tm", "yl", "north", "tp", "st", "sk", "islands"].forEach(z => has(idx, "explore.html?zone=" + z, "zone pill " + z));
+has(idx, "中西區", "cw label");
+has(idx, "離島", "islands label");
 has(css, ".loc-pill", "loc pill css");
 has(exp, "const ZONES", "explore ZONES");
 has(exp, "function inZone", "inZone");
 if (!/filter\(inArea\)\.filter\(inScene\)\.filter\(inZone\)/.test(exp)) fails.push("load should filter area+scene+zone");
+// 確認 18 區齊全
+["cw", "wc", "east", "south", "ytm", "ssp", "kc", "wts", "kt", "kts", "tw", "tm", "yl", "north", "tp", "st", "sk", "islands"].forEach(z => has(exp, z + ": { label:", "explore zone " + z));
 
 // 4. Footer 付款 + 信任
 ["Visa", "Mastercard", "轉數快 FPS", "PayMe", "八達通", "AlipayHK"].forEach(p => has(ftr, 'aria-label="' + p, "pay " + p));
