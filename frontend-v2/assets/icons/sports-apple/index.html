@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="zh-HK">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Apple 風格圖案（示範）</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;padding:36px;font-family:-apple-system,"SF Pro Text","PingFang HK",sans-serif;background:#f5f5f7;color:#1d1d1f}
+  h1{font-size:26px;margin:0 0 4px;letter-spacing:-.5px}
+  p.sub{color:#6e6e73;margin:0 0 26px;font-size:14px}
+  h2{font-size:14px;font-weight:600;color:#6e6e73;margin:26px 0 12px}
+  .grid{display:grid;grid-template-columns:repeat(6,1fr);gap:14px;max-width:900px}
+  .card{background:#fff;border-radius:18px;padding:18px 8px;text-align:center;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+  .card svg{width:52px;height:52px;color:#1d1d1f;display:block;margin:0 auto 10px}
+  .card .zh{font-size:13px;font-weight:600}
+  .card .en{font-size:10px;color:#86868b;margin-top:2px}
+  .tints .card svg{color:#ff6b35}
+  .dark{background:#1c1c1e;border-radius:18px;padding:20px;display:flex;gap:16px;align-items:center;max-width:900px;flex-wrap:wrap}
+  .dark svg{width:44px;height:44px;color:#fff}
+  .dark.small svg{width:26px;height:26px}
+</style>
+</head>
+<body>
+  <h1>Apple 風格圖案（示範 12 個）</h1>
+  <p class="sub">單線 monoline・統一筆觸 (3/64)・圓頭圓角・單色可染色・無底框 — 自家繪製，非 Apple SF Symbols（避開授權限制）</p>
+
+  <h2>單色（墨黑）</h2>
+  <div class="grid" id="g1"></div>
+  <h2>可染色（品牌橙 #ff6b35）</h2>
+  <div class="grid tints" id="g2"></div>
+  <h2>深色背景 / 小尺寸</h2>
+  <div class="dark" id="g3"></div>
+  <div class="dark small" id="g4"></div>
+
+<script>
+  const items = [
+    ["moelkkyla","芬蘭木柱","MÖLKKY"],["floor-curling","地板冰壺","FLOOR CURLING"],
+    ["cornhole","布袋球","CORNHOLE"],["air-storm","穿雲箭","AIR STORM"],
+    ["roundnet","圓網球","ROUNDNET"],["rouliqiu","柔力球","ROULIQIU"],
+    ["nordic-walking","北歐式健步行","NORDIC WALKING"],["yoga","瑜伽","YOGA"],
+    ["meditation","冥想","MEDITATION"],["gym","健身","GYM"],
+    ["tai-chi","太極","TAI CHI"],["basketball","籃球","BASKETBALL"]
+  ];
+  function svgInto(el, slug){ return fetch(slug+".svg").then(r=>r.text()).then(t=>{ el.insertAdjacentHTML("afterbegin", t); }); }
+  document.getElementById("g1").innerHTML = items.map(([s,zh,en])=>`<div class="card" data-s="${s}"><span class="zh">${zh}</span><div class="en">${en}</div></div>`).join("");
+  document.getElementById("g2").innerHTML = document.getElementById("g1").innerHTML;
+  document.getElementById("g3").innerHTML = items.slice(0,8).map(([s])=>`<span data-s="${s}"></span>`).join("");
+  document.getElementById("g4").innerHTML = items.map(([s])=>`<span data-s="${s}"></span>`).join("");
+  Promise.all([...document.querySelectorAll("[data-s]")].map(el=>svgInto(el, el.getAttribute("data-s"))));
+</script>
+</body>
+</html>
