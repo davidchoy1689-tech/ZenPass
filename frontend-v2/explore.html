@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#ff6b35" />
   <title>探索課程 · ZenPass 禪流</title>
-  <link rel="stylesheet" href="assets/v2.css?v=23" />
+  <link rel="stylesheet" href="assets/v2.css?v=24" />
 </head>
 <body>
   <div class="topbar"><div class="title">探索課程</div></div>
@@ -65,9 +65,10 @@
       if (q) url += "&search=" + encodeURIComponent(q);
       const r = await api.get(url);
       let arr = (r.data && (r.data.classes || r.data.items)) || [];
-      arr = arr.filter(inArea).filter(inScene);
+      arr = arr.filter(inArea).filter(inScene).filter(inZone);
       const cnt = document.getElementById("count");
-      cnt.textContent = (SCENE && SCENES[SCENE] ? SCENES[SCENE].label + " · " : "") + arr.length + " 個課程";
+      const lbl = (ZONE && ZONES[ZONE] ? ZONES[ZONE].label + " · " : "") + (SCENE && SCENES[SCENE] ? SCENES[SCENE].label + " · " : "");
+      cnt.textContent = lbl + arr.length + " 個課程";
       list.innerHTML = arr.length ? arr.map(card).join("") : `<div class="card"><div class="body muted">冇符合嘅課程，試下清除篩選。</div></div>`;
     }
     document.getElementById("cats").addEventListener("click", (e) => {
@@ -104,6 +105,19 @@
       const hay = [c.title, c.category, c.target_audience, c.sport_slug, c.difficulty].filter(Boolean).join(" ").toLowerCase();
       return SCENES[SCENE].kw.some(k => hay.indexOf(k) >= 0);
     }
+    // 地區分區快速搵堂
+    const ZONES = {
+      kte: { label: "📍 觀塘 / 九龍東", kw: ["觀塘", "九龍灣", "牛頭角", "藍田", "油塘", "啟德", "新蒲崗", "彩虹", "慈雲山", "黃大仙", "鑽石山", "樂富"] },
+      ktw: { label: "📍 旺角 / 九龍西", kw: ["旺角", "太子", "油麻地", "佐敦", "尖沙咀", "尖東", "大角咀", "深水埗", "長沙灣", "荔枝角", "美孚", "九龍城", "土瓜灣", "紅磡", "何文田"] },
+      hki: { label: "📍 中環 / 港島", kw: AREA_KW["香港島"] },
+      nte: { label: "📍 荃灣 / 新界", kw: ["荃灣", "葵涌", "青衣", "沙田", "大圍", "火炭", "馬鞍山", "大埔", "粉嶺", "上水", "元朗", "天水圍", "屯門", "將軍澳", "西貢", "深井", "東涌", "錦田"] },
+    };
+    const ZONE = new URLSearchParams(location.search).get("zone") || "";
+    function inZone(c) {
+      if (!ZONE || !ZONES[ZONE]) return true;
+      const hay = [c.venue_name, c.venue_address, c.location, c.area, c.district].filter(Boolean).join(" ");
+      return ZONES[ZONE].kw.some(k => hay.indexOf(k) >= 0);
+    }
     (async () => {
       const q0 = new URLSearchParams(location.search).get("q") || "";
       if (AREA0) {
@@ -113,6 +127,10 @@
       if (SCENE && SCENES[SCENE]) {
         const cats = document.getElementById("cats");
         cats.insertAdjacentHTML("beforebegin", '<div class="area-bar">' + SCENES[SCENE].label + ' <a href="explore.html' + (q0 ? ("?q=" + encodeURIComponent(q0)) : "") + '">✕ 清除</a></div>');
+      }
+      if (ZONE && ZONES[ZONE]) {
+        const cats = document.getElementById("cats");
+        cats.insertAdjacentHTML("beforebegin", '<div class="area-bar">' + ZONES[ZONE].label + ' <a href="explore.html' + (q0 ? ("?q=" + encodeURIComponent(q0)) : "") + '">✕ 清除</a></div>');
       }
       if (q0) document.getElementById("q").value = q0;
       const r = await api.get("/classes/categories");
@@ -124,6 +142,6 @@
       load("", q0);
     })();
   </script>
-  <script src="assets/footer.js?v=3" defer></script>
+  <script src="assets/footer.js?v=4" defer></script>
 </body>
 </html>
