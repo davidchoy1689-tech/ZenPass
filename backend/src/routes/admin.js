@@ -11,6 +11,24 @@ const adminService = require("../services/admin-service");
 
 const router = express.Router();
 
+// ===== POST /api/admin/run-migrations — 一鍵套用 DB migration（update-db.js，冪等）=====
+router.post("/run-migrations", authenticateToken, requireAdmin, (req, res) => {
+  try {
+    const updateDatabase = require("../config/update-db");
+    updateDatabase();
+    const db = getDb();
+    const clsCols = db.prepare("PRAGMA table_info(classes)").all().map((c) => c.name);
+    res.json({
+      success: true,
+      message: "migration 已執行",
+      classes_has_sport_slug: clsCols.includes("sport_slug"),
+    });
+  } catch (err) {
+    console.error("run-migrations error:", err.message);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // ===== GET /api/admin/lead-notify-config — 睇加盟通知設定 =====
 router.get("/lead-notify-config", authenticateToken, requireAdmin, (req, res) => {
   try {
