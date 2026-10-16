@@ -4,424 +4,272 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#ff6b35" />
-  <title>商戶中心 · ZenPass 禪流</title>
+  <link rel="manifest" href="/manifest.json?v=4" />
+  <link rel="icon" href="/favicon.png?v=3" type="image/png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon-180.png?v=4" />
+  <title>教練／場地加盟 · ZenPass 禪流</title>
+  <meta name="description" content="加入 ZenPass 禪流｜零成本獲客，讓更多學員預約你的課堂與場地。自動化預約、排班、結算一站式管理工具，免費登記、最快 1 個工作天開通。" />
+  <link rel="canonical" href="https://zenpass.hk/partner.html" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="ZenPass 禪流" />
+  <meta property="og:locale" content="zh_HK" />
+  <meta property="og:title" content="教練／場地加盟 · ZenPass 禪流" />
+  <meta property="og:description" content="零成本獲客，讓更多學員預約你的課堂與場地。免費登記、最快 1 個工作天開通。" />
+  <meta property="og:url" content="https://zenpass.hk/partner.html" />
+  <meta property="og:image" content="https://zenpass.hk/assets/og/zenpass-og.jpg" />
   <link rel="stylesheet" href="assets/v2.css?v=17" />
   <style>
-    .kpis { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-    .kpi { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:14px; }
-    .kpi .big { font-size:22px; font-weight:800; color:var(--brand-600); }
-    .kpi .lbl { font-size:12px; color:var(--text-muted); }
-    .row { display:flex; justify-content:space-between; align-items:center; padding:13px 16px; border-bottom:1px solid var(--border); gap:10px; }
-    .row:last-child { border-bottom:0; }
-    .venue-head { background:linear-gradient(135deg,var(--brand-500),var(--brand-700)); color:#fff; border-radius:18px; padding:18px; }
-    .venue-head .name { font-size:20px; font-weight:800; }
-    .venue-head .sub { font-size:13px; opacity:.92; margin-top:4px; }
-    .venue-head .tags { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
-    .venue-head .tag { background:rgba(255,255,255,.2); border-radius:999px; padding:4px 12px; font-size:12px; font-weight:600; }
-    .rep { display:flex; justify-content:space-between; padding:11px 16px; border-bottom:1px solid var(--border); font-size:14px; }
-    .rep:last-child { border-bottom:0; }
-    .fld { width:100%; box-sizing:border-box; padding:11px 12px; border:1px solid var(--border); border-radius:12px; font:inherit; background:var(--surface); color:var(--text); }
-    .frm { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
-    .frm .full { grid-column:1/-1; }
-    .sched { display:grid; grid-template-columns:1fr 1fr auto; gap:6px; margin-bottom:6px; align-items:center; }
-    .sched button { border:0; background:var(--ink-200); color:var(--ink-500); border-radius:10px; height:38px; padding:0 12px; cursor:pointer; font:inherit; }
-    .mini { min-height:34px; padding:0 12px; font-size:13px; }
-    .lbl2 { font-size:12px; color:var(--text-muted); margin:2px 0 2px; }
-    .bktools { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+    .lp-hero { margin: 0 -16px; padding: 22px 20px 26px; border-radius: 0 0 26px 26px; background: linear-gradient(140deg,#ff7a45,#dc4318); color: #fff; }
+    .lp-eyebrow { display: inline-block; font-size: 11.5px; font-weight: 700; background: rgba(255,255,255,.2); border-radius: 999px; padding: 5px 12px; }
+    .lp-hero h1 { margin: 14px 0 0; font-size: 27px; line-height: 1.28; letter-spacing: -.4px; }
+    .lp-hero .sub { margin: 12px 0 0; font-size: 14px; line-height: 1.65; color: rgba(255,255,255,.94); }
+    .lp-cta { display: flex; flex-direction: column; gap: 9px; margin-top: 18px; }
+    .lp-cta .btn-primary { background: #fff; color: #c2410c; box-shadow: 0 8px 20px rgba(0,0,0,.18); }
+    .lp-cta .btn-ghost { background: rgba(255,255,255,.16); color: #fff; border: 0; }
+    .lp-trust { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+    .lp-trust span { font-size: 11.5px; font-weight: 700; background: rgba(255,255,255,.16); border-radius: 999px; padding: 5px 11px; }
+
+    .lp-grid { display: grid; grid-template-columns: 1fr; gap: 10px; margin-top: 4px; }
+    .lp-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 14px; box-shadow: 0 1px 3px rgba(0,0,0,.05); }
+    .lp-card .ic { width: 38px; height: 38px; border-radius: 11px; display: flex; align-items: center; justify-content: center; font-size: 19px; margin-bottom: 9px; }
+    .lp-card b { display: block; font-size: 14px; margin-bottom: 4px; }
+    .lp-card p { margin: 0; font-size: 12.5px; line-height: 1.6; color: var(--text-muted); }
+
+    .lp-steps { counter-reset: s; display: grid; gap: 10px; margin-top: 4px; }
+    .lp-step { display: flex; gap: 12px; align-items: flex-start; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 14px; }
+    .lp-step::before { counter-increment: s; content: counter(s); flex: 0 0 auto; width: 28px; height: 28px; border-radius: 50%; background: var(--brand-500); color: #fff; font-weight: 800; font-size: 13px; display: flex; align-items: center; justify-content: center; }
+    .lp-step b { font-size: 13.5px; display: block; margin-bottom: 3px; }
+    .lp-step p { margin: 0; font-size: 12.5px; color: var(--text-muted); line-height: 1.55; }
+
+    .seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; background: var(--surface-2); border-radius: 12px; padding: 5px; }
+    .seg button { font: inherit; font-size: 12.5px; font-weight: 700; border: 0; background: transparent; color: var(--text-muted); border-radius: 9px; padding: 9px 4px; cursor: pointer; }
+    .seg button.on { background: var(--surface); color: var(--brand-600); box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+    .fld { width: 100%; box-sizing: border-box; padding: 12px 12px; border: 1px solid var(--border); border-radius: 12px; font: inherit; font-size: 14px; background: var(--surface); color: var(--text); }
+    .fld:focus { outline: 2px solid var(--brand-500); outline-offset: 1px; }
+    .frm { display: grid; grid-template-columns: 1fr; gap: 9px; }
+    .lbl { font-size: 12px; font-weight: 700; color: var(--text-muted); margin: 2px 0 -4px; }
+    .specs { display: flex; flex-wrap: wrap; gap: 7px; }
+    .specs .chip { cursor: pointer; border: 1px solid var(--border); background: var(--surface); color: var(--text-muted); }
+    .specs .chip.on { background: var(--brand-500); border-color: var(--brand-500); color: #fff; }
+    .is-hidden { display: none !important; }
+
+    .faq { display: grid; gap: 8px; }
+    .faq details { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 13px 14px; }
+    .faq summary { font-size: 13.5px; font-weight: 700; cursor: pointer; list-style: none; }
+    .faq summary::-webkit-details-marker { display: none; }
+    .faq summary::after { content: "＋"; float: right; color: var(--text-muted); }
+    .faq details[open] summary::after { content: "－"; }
+    .faq p { margin: 9px 0 0; font-size: 12.5px; color: var(--text-muted); line-height: 1.65; }
+    @media (min-width: 560px) {
+      .lp-grid { grid-template-columns: 1fr 1fr; }
+      .frm { grid-template-columns: 1fr 1fr; }
+      .frm .full { grid-column: 1 / -1; }
+    }
   </style>
 </head>
 <body>
-  <div class="topbar"><a class="back" href="my.html">‹</a><div class="title">商戶中心</div></div>
+  <div class="topbar"><a class="back" href="index.html">‹</a><div class="title">教練／場地加盟</div></div>
 
   <div class="wrap">
-    <div id="guard" style="display:none"></div>
-    <div id="main" style="display:none">
-      <div class="venue-head" id="venueHead">
-        <div class="name" id="vName">—</div>
-        <div class="sub" id="vSub"></div>
-        <div class="tags" id="vTags"></div>
+    <div class="lp-hero">
+      <span class="lp-eyebrow">🏪 教練・場地・機構 招商</span>
+      <h1>加入 ZenPass 禪流｜零成本獲客，讓更多學員預約你的課堂與場地</h1>
+      <p class="sub">專注新興運動與社區推廣，提供自動化預約、排班、結算一站式管理工具。</p>
+      <div class="lp-cta">
+        <a class="btn btn-primary btn-block" href="#join" id="heroCta">立即免費登記加盟</a>
+        <a class="btn btn-ghost btn-block" href="merchant-centre.html">已有帳戶？前往商戶中心</a>
       </div>
+      <div class="lp-trust">
+        <span>✅ 免上架費</span><span>⚡ 最快 1 個工作天開通</span><span>🇭🇰 全港 18 區</span>
+      </div>
+    </div>
 
-      <div class="section-title">收入概覽</div>
-      <div class="kpis" id="kpis"><div class="kpi"><div class="big">—</div><div class="lbl">載入中…</div></div></div>
+    <div class="section-title">加盟好處</div>
+    <div class="lp-grid">
+      <div class="lp-card"><div class="ic" style="background:#FFF0E9">🚀</div><b>零成本獲客</b><p>平台曝光 + 分類／搜尋導流，新學員自動搵到你嘅課堂。</p></div>
+      <div class="lp-card"><div class="ic" style="background:#EDEBFD">📅</div><b>自動預約排班</b><p>時段、名額、候補、課前提醒全自動，唔再逐個 WhatsApp 覆。</p></div>
+      <div class="lp-card"><div class="ic" style="background:#E7F6EC">💰</div><b>結算清晰透明</b><p>每堂拆賬、月結報表、記錄可追溯，收入一目了然。</p></div>
+      <div class="lp-card"><div class="ic" style="background:#E2F1FC">📣</div><b>社群推廣</b><p>新興運動社群、學校／企業配對，幫你拓展新客源。</p></div>
+      <div class="lp-card"><div class="ic" style="background:#FAF3D8">🧾</div><b>合規無憂</b><p>電子免責聲明、掃碼簽到、出席記錄，減少行政風險。</p></div>
+      <div class="lp-card"><div class="ic" style="background:#FCE9F3">📈</div><b>數據洞察</b><p>滿座率、回訪率、熱門時段，用數據調整你嘅班表。</p></div>
+    </div>
 
-      <div class="section-title">每月收入</div>
-      <div class="card" id="revenue"><div class="body muted">載入中…</div></div>
+    <div class="section-title">加盟流程</div>
+    <div class="lp-steps">
+      <div class="lp-step"><div><b>填寫登記表（1 分鐘）</b><p>填基本資料同專長，唔需要即刻上載文件。</p></div></div>
+      <div class="lp-step"><div><b>專人跟進（最快 1 個工作天）</b><p>我哋會 WhatsApp／電話同你確認資料、開通帳戶。</p></div></div>
+      <div class="lp-step"><div><b>上架課堂、開始收款</b><p>設定時段同價錢，即刻可以畀學員預約。</p></div></div>
+    </div>
 
-      <div class="section-title">我嘅課程</div>
-      <button class="btn btn-primary btn-block" id="toggleCreate" style="margin-bottom:10px">➕ 開新班／加時段</button>
-      <div class="card" id="createCard" style="display:none;margin-bottom:10px">
-        <div class="body">
-          <div class="frm">
-            <input class="fld full" id="nc-title" placeholder="課程名稱（必填）" />
-            <input class="fld" id="nc-category" list="cats" placeholder="類別（必填）" />
-            <datalist id="cats">
-              <option>芬蘭木柱</option><option>地板冰壺</option><option>布袋球</option>
-              <option>穿雲箭</option><option>北歐式健步行</option><option>圓網球</option>
-              <option>柔力球</option><option>瑜伽</option><option>Pilates</option>
-              <option>健身</option><option>伸展</option><option>兒童健體</option><option>頌缽</option>
-            </datalist>
-            <select class="fld" id="nc-difficulty">
-              <option value="beginner">初級</option>
-              <option value="intermediate">中級</option>
-              <option value="advanced">高級</option>
-            </select>
-            <input class="fld" id="nc-duration" type="number" min="15" placeholder="時長（分鐘，必填）" />
-            <input class="fld" id="nc-max" type="number" min="1" placeholder="人數上限" />
-            <input class="fld" id="nc-price" type="number" min="0" placeholder="價格 HK$" />
-            <input class="fld" id="nc-credits" type="number" min="0" placeholder="Credits 消耗" />
-            <select class="fld full" id="nc-coach"></select>
-            <textarea class="fld full" id="nc-desc" rows="3" placeholder="課程描述"></textarea>
-            <input class="fld full" id="nc-audience" placeholder="對象（例：在職人士・初學者・任何年齡）" />
-          </div>
-          <div class="lbl2" style="margin-top:10px">上堂時段</div>
-          <div id="schedRows"></div>
-          <button class="btn btn-secondary btn-block mini" id="addSched" style="margin-top:4px">＋ 加多一個時段</button>
-          <button class="btn btn-primary btn-block" id="createBtn" style="margin-top:10px">✅ 建立課程</button>
+    <div class="section-title">適合邊個？</div>
+    <div class="lp-grid">
+      <div class="lp-card"><b>🧑‍🏫 運動教練</b><p>想穩定收新學員、唔想再手動排班／收款嘅個人教練、導師。</p></div>
+      <div class="lp-card"><b>🏟️ 場地負責人</b><p>有空間想提升使用率，想搵穩定客源嘅場地、球場、會所。</p></div>
+      <div class="lp-card"><b>🏫 學校／機構</b><p>想開辦新興運動體驗班、課外活動嘅學校、NGO、企業。</p></div>
+    </div>
+
+    <div class="section-title" id="join">立即免費登記加盟</div>
+    <div class="card">
+      <div class="body">
+        <div class="seg" id="seg">
+          <button type="button" class="on" data-role="coach">🧑‍🏫 教練</button>
+          <button type="button" data-role="venue">🏟️ 場地</button>
+          <button type="button" data-role="org">🏫 機構／學校</button>
         </div>
-      </div>
-      <div class="card" id="courses"><div class="body muted">載入中…</div></div>
 
-      <div class="section-title">預約管理</div>
-      <div class="card" style="margin-bottom:10px"><div class="body">
-        <div class="bktools">
-          <select class="fld" id="bk-course"><option value="">全部課程</option></select>
-          <select class="fld" id="bk-status">
-            <option value="">全部狀態</option>
-            <option value="confirmed">已確認</option>
-            <option value="attended">已出席</option>
-            <option value="pending_payment">待付款</option>
-            <option value="cancelled">已取消</option>
-            <option value="no_show">缺席</option>
+        <div class="frm" style="margin-top:12px">
+          <div class="full lbl" id="nameLbl">姓名</div>
+          <input class="fld full" id="f-name" placeholder="你的姓名" autocomplete="name" />
+
+          <div class="full lbl" id="contactLbl" style="display:none">聯絡人</div>
+          <input class="fld full is-hidden" id="f-contact" placeholder="聯絡人姓名" />
+
+          <input class="fld" id="f-phone" placeholder="聯絡電話 / WhatsApp" inputmode="tel" autocomplete="tel" />
+          <input class="fld" id="f-email" placeholder="電郵" inputmode="email" autocomplete="email" />
+
+          <!-- 教練 -->
+          <div class="full lbl coach-only">專長項目（可多選）</div>
+          <div class="full specs coach-only" id="specs"></div>
+          <input class="fld coach-only" id="f-years" placeholder="教學年資（年）" inputmode="numeric" />
+          <input class="fld coach-only" id="f-certs" placeholder="證書 / 資歷（可選）" />
+          <input class="fld full coach-only" id="f-vaddr" placeholder="主要場地地址（例：觀塘 XX 體育館）" />
+          <input class="fld full coach-only" id="f-venue" placeholder="常用場地名稱（可選）" />
+          <textarea class="fld full coach-only" id="f-bio" rows="3" placeholder="簡介：你教咩、對象、風格（可選）"></textarea>
+
+          <!-- 場地 -->
+          <div class="full lbl venue-only is-hidden">場地名稱</div>
+          <input class="fld full venue-only is-hidden" id="f-vname" placeholder="場地名稱" />
+          <select class="fld venue-only is-hidden" id="f-cat">
+            <option value="">場地類別…</option>
+            <option>體育館</option><option>球場</option><option>瑜伽／舞蹈室</option>
+            <option>會所</option><option>學校禮堂</option><option>戶外場地</option><option>其他</option>
           </select>
-          <input class="fld" id="bk-from" type="date" />
-          <input class="fld" id="bk-to" type="date" />
+          <input class="fld venue-only is-hidden" id="f-district" placeholder="地區（例：觀塘）" />
+          <input class="fld full venue-only is-hidden" id="f-address" placeholder="詳細地址" />
+          <input class="fld full venue-only is-hidden" id="f-website" placeholder="網站 / IG（可選）" />
+          <textarea class="fld full venue-only is-hidden" id="f-desc" rows="3" placeholder="場地簡介：面積、設施、可容納人數（可選）"></textarea>
         </div>
-        <div style="display:flex;gap:8px;margin-top:8px">
-          <button class="btn btn-primary mini" id="bk-apply">套用篩選</button>
-          <button class="btn btn-secondary mini" id="bk-reset">清除</button>
-          <button class="btn btn-secondary mini" id="bk-csv">⬇ 匯出 CSV</button>
-        </div>
-        <div class="muted" id="bk-count" style="margin-top:8px;font-size:12px"></div>
-      </div></div>
-      <div class="card" id="bookings"><div class="body muted">載入中…</div></div>
 
-      <div class="section-title">出糧紀錄</div>
-      <div class="card" id="payouts"><div class="body muted">載入中…</div></div>
+        <label style="display:flex;gap:8px;align-items:flex-start;margin-top:12px;font-size:12px;color:var(--text-muted);line-height:1.5">
+          <input type="checkbox" id="f-agree" style="margin-top:2px" />
+          <span>我同意 ZenPass 就加盟事宜透過電話／WhatsApp／電郵與我聯絡，並已閱讀<a href="terms.html" style="color:var(--brand-600)">服務條款</a>。</span>
+        </label>
 
-      <div class="section-title">教練管理</div>
-      <div class="card" id="coachMgmt"><div class="body muted">載入中…</div></div>
-      <div class="spacer"></div>
+        <button class="btn btn-primary btn-block" id="submit" style="margin-top:12px">立即免費登記加盟</button>
+        <p class="muted center" id="msg" style="font-size:12.5px;margin:10px 0 0;min-height:18px"></p>
+      </div>
+    </div>
+
+    <div class="section-title">常見問題</div>
+    <div class="faq">
+      <details><summary>加盟要收費嗎？</summary><p>登記完全免費、免上架費。平台只喺成功收到學費後按拆賬收佣（單堂／會籍各有方案，開通時會清楚列明）。</p></details>
+      <details><summary>幾時可以開始收到預約？</summary><p>資料齊全嘅話最快 1 個工作天開通；開通後你上架課堂，學員就可以即時預約。</p></details>
+      <details><summary>我冇固定場地，可以加盟嗎？</summary><p>可以。你可以用平台配對場地，或者用你慣用嘅場地登記。</p></details>
+      <details><summary>點樣收款？</summary><p>學員經平台付款，平台代收後按拆賬結算，月結報表可以逐堂對數。</p></details>
+    </div>
+
+    <div style="margin:22px 0 8px">
+      <a class="btn btn-primary btn-block" href="#join">立即免費登記加盟</a>
     </div>
     <div class="spacer"></div>
   </div>
 
-  <nav class="bottomnav">
-    <a href="index.html"><span class="ic">🏠</span>主頁</a>
-    <a href="explore.html"><span class="ic">🔍</span>探索</a>
-    <a href="booking.html"><span class="ic">📅</span>預約</a>
-    <a class="active" href="my.html"><span class="ic">🎫</span>我的</a>
-  </nav>
-
   <script src="assets/api.js"></script>
   <script>
-    const $ = (id) => document.getElementById(id);
-    let venueCoaches = [];
-    let courses = [];
-    let allBookings = [];
+    (function () {
+      var role = "coach";
+      var SPECS = ["瑜伽","普拉提","健身 / HIIT","拳擊 / 格鬥","太極 / 氣功","舞蹈","籃球","足球","羽毛球","乒乓球","游泳","跑步 / 田徑","攀岩 / 抱石","單車","遠足 / 露營","芬蘭木柱","地板冰壺","布袋球","穿雲箭","圓網球","兒童體適能","長者健體","其他"];
+      var chosen = [];
 
-    (async () => {
-      if (!api.requireLogin("partner.html")) return;
-      const dash = await api.get("/partner/dashboard");
-      if (!dash.ok || !dash.data || !dash.data.venue) {
-        $("guard").style.display = "";
-        $("guard").innerHTML = `<div class="card"><div class="body center">呢頁只供已開通嘅商戶使用。<br><span class="muted" style="font-size:13px">${esc((dash.data && dash.data.error) || "")}</span><br><br><a class="btn btn-secondary" href="my.html">返回</a></div></div>`;
-        return;
+      var specs = document.getElementById("specs");
+      specs.innerHTML = SPECS.map(function (s, i) { return '<span class="chip" data-s="' + i + '">' + s + "</span>"; }).join("");
+      specs.addEventListener("click", function (e) {
+        var c = e.target.closest(".chip"); if (!c) return;
+        c.classList.toggle("on");
+        var v = SPECS[+c.getAttribute("data-s")];
+        var idx = chosen.indexOf(v);
+        if (idx >= 0) chosen.splice(idx, 1); else chosen.push(v);
+      });
+
+      function setRole(r) {
+        role = r;
+        document.querySelectorAll("#seg button").forEach(function (b) { b.classList.toggle("on", b.getAttribute("data-role") === r); });
+        var isCoach = r === "coach", isVenue = r !== "coach";
+        document.querySelectorAll(".coach-only").forEach(function (el) { el.classList.toggle("is-hidden", !isCoach); });
+        document.querySelectorAll(".venue-only").forEach(function (el) { el.classList.toggle("is-hidden", !isVenue); });
+        document.getElementById("nameLbl").textContent = isCoach ? "姓名" : "場地名稱";
+        document.getElementById("f-name").placeholder = isCoach ? "你的姓名" : "場地名稱";
+        document.getElementById("f-name").classList.toggle("is-hidden", false);
+        document.getElementById("f-contact").classList.toggle("is-hidden", isCoach);
+        document.getElementById("contactLbl").style.display = isCoach ? "none" : "block";
+        if (isVenue) { document.getElementById("f-vname").classList.add("is-hidden"); }
       }
-      $("main").style.display = "";
-      const v = dash.data.venue || {};
-      const s = dash.data.stats || {};
-      venueCoaches = dash.data.coaches || [];
+      document.getElementById("seg").addEventListener("click", function (e) {
+        var b = e.target.closest("button[data-role]"); if (!b) return; setRole(b.getAttribute("data-role"));
+      });
+      setRole("coach");
 
-      $("vName").textContent = v.name || "商戶";
-      $("vSub").textContent = [v.category, v.district].filter(Boolean).join(" · ") || "商戶";
-      $("vTags").innerHTML = [
-        v.commission_plan_label || v.commission_plan,
-        (v.commission_rate != null ? "佣金 " + Math.round(Number(v.commission_rate) * 100) + "%" : ""),
-        (v.status === "active" ? "✅ 已開通" : v.status),
-      ].filter(Boolean).map(t => `<span class="tag">${esc(t)}</span>`).join("");
+      var btn = document.getElementById("submit"), msg = document.getElementById("msg");
+      btn.addEventListener("click", async function () {
+        var name = document.getElementById("f-name").value.trim();
+        var phone = document.getElementById("f-phone").value.trim();
+        var email = document.getElementById("f-email").value.trim();
+        if (!name || !phone || !email) { msg.textContent = "請填名稱、電話同電郵"; return; }
+        if (!document.getElementById("f-agree").checked) { msg.textContent = "請先勾選同意聯絡條款"; return; }
+        btn.disabled = true; var old = btn.textContent; btn.textContent = "提交中…"; msg.textContent = "";
 
-      $("kpis").innerHTML = [
-        ["本月收入", hkd(s.this_month_earnings || 0)],
-        ["總收入", hkd(s.total_earned || 0)],
-        ["總預約", (s.total_bookings || 0).toLocaleString()],
-        ["學生數", (s.total_students || 0).toLocaleString()],
-        ["平台費", hkd(s.total_platform_fee || 0)],
-        ["已出糧", hkd(s.total_paid_out || 0)],
-      ].map(([l, val]) => `<div class="kpi"><div class="big">${val}</div><div class="lbl">${l}</div></div>`).join("");
+        var body, url;
+        if (role === "coach") {
+          var vaddr = document.getElementById("f-vaddr").value.trim();
+          if (!vaddr) { msg.textContent = "請填主要場地地址"; btn.disabled = false; btn.textContent = old; return; }
+          body = {
+            name: name, phone: phone, email: email, venue_address: vaddr,
+            years_experience: document.getElementById("f-years").value || null,
+            certificates: document.getElementById("f-certs").value.trim() || null,
+            specialties: chosen, bio: document.getElementById("f-bio").value.trim() || null,
+            venue_name: document.getElementById("f-venue").value.trim() || null,
+          };
+          url = "/coach/apply";
+        } else {
+          var cat = document.getElementById("f-cat").value || "其他";
+          body = {
+            name: name, category: cat, district: document.getElementById("f-district").value.trim(),
+            contact_person: document.getElementById("f-contact").value.trim() || name,
+            phone: phone, email: email,
+            address: document.getElementById("f-address").value.trim(),
+            website: document.getElementById("f-website").value.trim(),
+            description: document.getElementById("f-desc").value.trim(),
+            commission_plan: "free",
+          };
+          url = "/partner/apply";
+        }
+        try {
+          var r = await api.post(url, body);
+          if (r.ok) {
+            document.getElementById("join").insertAdjacentHTML("afterend",
+              '<div class="card" style="margin-top:10px"><div class="body center">' +
+              '<div style="font-size:40px">🎉</div>' +
+              '<p>' + esc((r.data && r.data.message) || "登記成功！我哋會盡快聯絡你") + '</p>' +
+              ((r.data && r.data.reference) ? '<p class="muted" style="font-size:13px">參考編號：' + esc(r.data.reference) + '</p>' : '') +
+              '<p class="muted" style="font-size:12.5px">一般 1 個工作天內回覆，請留意 WhatsApp／來電。</p>' +
+              '<div class="actions" style="margin-top:10px"><a class="btn btn-secondary btn-block" href="index.html">返回主頁</a></div>' +
+              "</div></div>");
+            document.querySelector("#join + .card").scrollIntoView({ behavior: "smooth", block: "center" });
+            btn.classList.add("is-hidden"); msg.textContent = "";
+          } else {
+            msg.textContent = (r.data && r.data.error) || "提交失敗，請稍後再試";
+            btn.disabled = false; btn.textContent = old;
+          }
+        } catch (e) {
+          msg.textContent = "網絡問題，請稍後再試";
+          btn.disabled = false; btn.textContent = old;
+        }
+      });
 
-      $("nc-coach").innerHTML = `<option value="">教練：自己</option>` +
-        venueCoaches.map(c => `<option value="${esc(c.id)}">${esc(c.name || c.email || "教練")}</option>`).join("");
-
-      $("toggleCreate").onclick = () => {
-        const c = $("createCard");
-        c.style.display = c.style.display === "none" ? "block" : "none";
-      };
-      $("addSched").onclick = () => addSchedRow();
-      $("createBtn").onclick = createCourse;
-      $("bk-apply").onclick = loadBookings;
-      $("bk-reset").onclick = () => { $("bk-course").value = ""; $("bk-status").value = ""; $("bk-from").value = ""; $("bk-to").value = ""; loadBookings(); };
-      $("bk-csv").onclick = exportBookingsCSV;
-      $("bk-course").onchange = renderBookings;
-      addSchedRow();
-
-      loadRevenue();
-      await loadCourses();
-      loadBookings();
-      loadPayouts();
-      loadCoachRequests();
+      document.getElementById("heroCta").addEventListener("click", function () {
+        setTimeout(function () { document.getElementById("f-name").focus({ preventScroll: true }); }, 450);
+      });
     })();
-
-    function addSchedRow(start, end) {
-      const d = document.createElement("div");
-      d.className = "sched";
-      d.innerHTML = `<input class="fld sched-start" type="datetime-local" value="${start || ""}"><input class="fld sched-end" type="datetime-local" value="${end || ""}"><button type="button" title="移除">✕</button>`;
-      d.querySelector("button").onclick = () => d.remove();
-      $("schedRows").appendChild(d);
-    }
-
-    function toISO(v) { return v ? new Date(v).toISOString() : null; }
-
-    function readSchedules() {
-      const out = [];
-      $("schedRows").querySelectorAll(".sched").forEach(r => {
-        const st = r.querySelector(".sched-start").value;
-        const en = r.querySelector(".sched-end").value;
-        if (st && en) out.push({ start_time: toISO(st), end_time: toISO(en) });
-      });
-      return out;
-    }
-
-    async function createCourse() {
-      const title = ($("nc-title").value || "").trim();
-      const category = ($("nc-category").value || "").trim();
-      const duration = $("nc-duration").value;
-      const price = $("nc-price").value;
-      const credits = $("nc-credits").value;
-      const schedules = readSchedules();
-      if (!title || !category || !duration) { alert("請填課程名稱、類別、時長"); return; }
-      if (!price && !credits) { alert("請填 HK$ 價格 或 Credits"); return; }
-      if (!schedules.length) { alert("請至少加一個時段"); return; }
-      const btn = $("createBtn"); btn.disabled = true; btn.textContent = "建立中…";
-      const r = await api.post("/partner/courses", {
-        title, category, duration: Number(duration),
-        difficulty: $("nc-difficulty").value,
-        max_participants: $("nc-max").value || undefined,
-        price_hkd: price ? Number(price) : undefined,
-        credits_cost: credits ? Number(credits) : undefined,
-        description: $("nc-desc").value || "",
-        target_audience: ($("nc-audience").value || "").trim() || undefined,
-        coach_id: $("nc-coach").value || undefined,
-        schedules,
-      });
-      btn.disabled = false; btn.textContent = "✅ 建立課程";
-      if (r.ok) {
-        alert("✅ 課程已建立");
-        $("createCard").style.display = "none";
-        ["nc-title","nc-category","nc-duration","nc-max","nc-price","nc-credits","nc-desc","nc-audience"].forEach(id => $(id).value = "");
-        $("schedRows").innerHTML = ""; addSchedRow();
-        await loadCourses();
-      } else {
-        alert((r.data && r.data.error) || "建立失敗");
-      }
-    }
-
-    async function loadRevenue() {
-      const r = await api.get("/partner/revenue-report?group_by=month&limit=12");
-      const rows = (r.data && r.data.report) || [];
-      $("revenue").innerHTML = rows.length
-        ? rows.map(x => `<div class="rep"><span>${esc(x.period)}（${x.booking_count} 堂）</span><span><b>${hkd(x.venue_earned || 0)}</b> <span class="muted" style="font-size:12px">/ ${hkd(x.total_revenue || 0)}</span></span></div>`).join("")
-        : '<div class="body muted">暫無收入紀錄。</div>';
-    }
-
-    async function loadCourses() {
-      const r = await api.get("/partner/courses");
-      courses = Array.isArray(r.data) ? r.data : [];
-      $("courses").innerHTML = courses.length
-        ? courses.map(c => `
-          <div class="row">
-            <div><b>${esc(c.title)}</b><div class="muted" style="font-size:12px">${esc(c.category || "")} · ${c.booking_count || 0} 預約 · ${c.price_hkd ? hkd(c.price_hkd) : ((c.credits_cost||0)+" cr")}</div></div>
-            <div style="white-space:nowrap">
-              <button class="btn btn-secondary mini" onclick="openAddSched('${esc(c.id)}')">＋時段</button>
-              <button class="btn btn-secondary mini" onclick="openEdit('${esc(c.id)}')">編輯</button>
-            </div>
-          </div>`).join("")
-        : '<div class="body muted">暫無課程。</div>';
-      // course filter
-      const cur = $("bk-course").value;
-      $("bk-course").innerHTML = `<option value="">全部課程</option>` +
-        courses.map(c => `<option value="${esc(c.id)}">${esc(c.title)}</option>`).join("");
-      $("bk-course").value = cur;
-    }
-
-    async function loadBookings() {
-      const qs = ["limit=500"];
-      if ($("bk-status").value) qs.push("status=" + encodeURIComponent($("bk-status").value));
-      if ($("bk-from").value) qs.push("date_from=" + encodeURIComponent($("bk-from").value));
-      if ($("bk-to").value) qs.push("date_to=" + encodeURIComponent($("bk-to").value));
-      $("bookings").innerHTML = '<div class="body muted">載入中…</div>';
-      const r = await api.get("/partner/bookings?" + qs.join("&"));
-      allBookings = (r.data && r.data.bookings) || [];
-      renderBookings();
-    }
-
-    const STATUS_LABEL = { confirmed: "已確認", attended: "已出席", pending_payment: "待付款", cancelled: "已取消", no_show: "缺席" };
-
-    function filteredBookings() {
-      const cid = $("bk-course").value;
-      return allBookings.filter(b => !cid || b.class_id === cid);
-    }
-
-    function renderBookings() {
-      const list = filteredBookings();
-      const total = list.reduce((a, b) => a + (b.venue_earned_amount || 0), 0);
-      $("bk-count").textContent = `顯示 ${list.length} 筆 · 場地實收合計 ${hkd(total)}`;
-      $("bookings").innerHTML = list.length
-        ? list.map(b => {
-            const st = STATUS_LABEL[b.status] || b.status;
-            return `<div class="row">
-              <div><b>${esc(b.student_name || "學生")}</b>
-                <div class="muted" style="font-size:12px">${esc(b.class_title || "")} · ${fmtTime(b.start_time)}</div>
-                <div class="muted" style="font-size:12px">${esc(b.student_email || "")}${b.student_phone ? " · " + esc(b.student_phone) : ""}</div></div>
-              <div style="text-align:right;white-space:nowrap"><div>${hkd(b.venue_earned_amount || 0)}</div><div class="muted" style="font-size:12px">${esc(st)}</div></div>
-            </div>`;
-          }).join("")
-        : '<div class="body muted">暫無預約。</div>';
-    }
-
-    function exportBookingsCSV() {
-      const rows = filteredBookings();
-      if (!rows.length) { alert("冇資料可匯出"); return; }
-      const head = ["預約編號", "學生", "電郵", "電話", "課程", "開始時間", "金額", "場地實收", "狀態"];
-      const esc2 = (v) => `"${String(v == null ? "" : v).replace(/"/g, '""')}"`;
-      const lines = [head.map(esc2).join(",")];
-      rows.forEach(b => lines.push([
-        b.id, b.student_name, b.student_email, b.student_phone, b.class_title,
-        b.start_time, b.amount, b.venue_earned_amount, STATUS_LABEL[b.status] || b.status,
-      ].map(esc2).join(",")));
-      const blob = new Blob(["\ufeff" + lines.join("\r\n")], { type: "text/csv;charset=utf-8" });
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = "zenpass-bookings-" + new Date().toISOString().slice(0, 10) + ".csv";
-      a.click();
-      URL.revokeObjectURL(a.href);
-    }
-
-    async function loadPayouts() {
-      const r = await api.get("/partner/payouts");
-      const list = Array.isArray(r.data) ? r.data : [];
-      $("payouts").innerHTML = list.length
-        ? list.slice(0, 12).map(p => `<div class="row"><span>${esc((p.created_at || "").slice(0, 10))} <span class="muted" style="font-size:12px">${esc(p.status || "")}</span></span><span>${hkd(p.amount || 0)}</span></div>`).join("")
-        : '<div class="body muted">暫無出糧紀錄。</div>';
-    }
-
-    async function loadCoachRequests() {
-      const r = await api.get("/partner/coach-requests");
-      if (!r.ok) { $("coachMgmt").innerHTML = '<div class="body muted">載入失敗。</div>'; return; }
-      const reqs = (r.data && r.data.requests) || [];
-      const mems = (r.data && r.data.members) || [];
-      let html = "";
-      if (reqs.length) {
-        html += `<div class="lbl2" style="padding:12px 16px 4px">待審批（${reqs.length}）</div>`;
-        html += reqs.map(q => `<div class="row"><div><b>${esc(q.name || "教練")}</b><div class="muted" style="font-size:12px">${esc(q.email || "")}${q.phone ? " · " + esc(q.phone) : ""}</div></div><div style="white-space:nowrap"><button class="btn btn-primary mini" onclick="approveReq('${esc(q.id)}')">批准</button> <button class="btn btn-secondary mini" onclick="rejectReq('${esc(q.id)}')">拒絕</button></div></div>`).join("");
-      } else {
-        html += '<div class="body muted">暫無待審批申請。</div>';
-      }
-      if (mems.length) {
-        html += `<div class="lbl2" style="padding:12px 16px 4px">已加入教練（${mems.length}）</div>`;
-        html += mems.map(m => `<div class="row"><div>${esc(m.name || "教練")}<div class="muted" style="font-size:12px">${esc(m.email || "")}</div></div><span class="badge ok">已加入</span></div>`).join("");
-      }
-      $("coachMgmt").innerHTML = html;
-    }
-
-    async function approveReq(id) {
-      if (!confirm("批准呢位教練加入？")) return;
-      const r = await api.post(`/partner/coach-requests/${encodeURIComponent(id)}/approve`, {});
-      if (r.ok) { alert("✅ 已批准"); await loadCoachRequests(); }
-      else alert((r.data && r.data.error) || "失敗");
-    }
-    async function rejectReq(id) {
-      if (!confirm("拒絕呢位教練嘅申請？")) return;
-      const r = await api.post(`/partner/coach-requests/${encodeURIComponent(id)}/reject`, {});
-      if (r.ok) { alert("已拒絕"); await loadCoachRequests(); }
-      else alert((r.data && r.data.error) || "失敗");
-    }
-
-    // ===== Modal =====
-    function openModal(html) {
-      const o = document.createElement("div");
-      o.className = "modal-overlay";
-      o.innerHTML = `<div class="modal">${html}</div>`;
-      document.body.appendChild(o);
-      o.onclick = (e) => { if (e.target === o) o.remove(); };
-      return o;
-    }
-    function closeModal(el) { const o = el.closest(".modal-overlay"); if (o) o.remove(); }
-
-    function openAddSched(id) {
-      const o = openModal(`
-        <h3>＋ 加時段</h3>
-        <div class="sched"><input class="fld sched-start" type="datetime-local"><input class="fld sched-end" type="datetime-local"><span></span></div>
-        <div class="actions">
-          <button class="btn btn-primary" id="asSave">新增</button>
-          <button class="btn btn-secondary" onclick="closeModal(this)">取消</button>
-        </div>`);
-      o.querySelector("#asSave").onclick = async () => {
-        const st = o.querySelector(".sched-start").value;
-        const en = o.querySelector(".sched-end").value;
-        if (!st || !en) { alert("請填開始同結束時間"); return; }
-        const r = await api.post(`/partner/courses/${encodeURIComponent(id)}/schedules`, { schedules: [{ start_time: toISO(st), end_time: toISO(en) }] });
-        if (r.ok) { o.remove(); alert("✅ 已新增時段"); }
-        else alert((r.data && r.data.error) || "新增失敗");
-      };
-    }
-
-    function openEdit(id) {
-      const c = courses.find(x => x.id === id);
-      if (!c) return;
-      const o = openModal(`
-        <h3>✏️ 編輯課程</h3>
-        <div class="frm">
-          <input class="fld full" id="ed-title" value="${esc(c.title || "")}" placeholder="課程名稱">
-          <input class="fld" id="ed-price" type="number" value="${c.price_hkd || ""}" placeholder="價格 HK$">
-          <input class="fld" id="ed-credits" type="number" value="${c.credits_cost || ""}" placeholder="Credits">
-          <select class="fld" id="ed-difficulty">
-            <option value="beginner">初級</option><option value="intermediate">中級</option><option value="advanced">高級</option>
-          </select>
-          <input class="fld" id="ed-max" type="number" value="${c.max_participants || ""}" placeholder="人數上限">
-          <input class="fld full" id="ed-audience" value="${esc(c.target_audience || "")}" placeholder="對象（例：在職人士・初學者）">
-          <textarea class="fld full" id="ed-desc" rows="3" placeholder="描述">${esc(c.description || "")}</textarea>
-        </div>
-        <div class="actions">
-          <button class="btn btn-primary" id="edSave">儲存</button>
-          <button class="btn btn-secondary" onclick="closeModal(this)">取消</button>
-        </div>`);
-      o.querySelector("#ed-difficulty").value = c.difficulty || "beginner";
-      o.querySelector("#edSave").onclick = async () => {
-        const body = {
-          title: o.querySelector("#ed-title").value.trim(),
-          price_hkd: o.querySelector("#ed-price").value !== "" ? Number(o.querySelector("#ed-price").value) : undefined,
-          credits_cost: o.querySelector("#ed-credits").value !== "" ? Number(o.querySelector("#ed-credits").value) : undefined,
-          difficulty: o.querySelector("#ed-difficulty").value,
-          max_participants: o.querySelector("#ed-max").value || undefined,
-          target_audience: o.querySelector("#ed-audience").value.trim() || undefined,
-          description: o.querySelector("#ed-desc").value || "",
-        };
-        const r = await api.put(`/partner/courses/${encodeURIComponent(id)}`, body);
-        if (r.ok) { o.remove(); alert("✅ 已更新"); await loadCourses(); }
-        else alert((r.data && r.data.error) || "更新失敗");
-      };
-    }
   </script>
   <script src="assets/footer.js" defer></script>
 </body>

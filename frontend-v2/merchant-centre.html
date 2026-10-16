@@ -1,0 +1,428 @@
+<!doctype html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#ff6b35" />
+  <title>商戶中心 · ZenPass 禪流</title>
+  <link rel="stylesheet" href="assets/v2.css?v=17" />
+  <style>
+    .kpis { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    .kpi { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:14px; }
+    .kpi .big { font-size:22px; font-weight:800; color:var(--brand-600); }
+    .kpi .lbl { font-size:12px; color:var(--text-muted); }
+    .row { display:flex; justify-content:space-between; align-items:center; padding:13px 16px; border-bottom:1px solid var(--border); gap:10px; }
+    .row:last-child { border-bottom:0; }
+    .venue-head { background:linear-gradient(135deg,var(--brand-500),var(--brand-700)); color:#fff; border-radius:18px; padding:18px; }
+    .venue-head .name { font-size:20px; font-weight:800; }
+    .venue-head .sub { font-size:13px; opacity:.92; margin-top:4px; }
+    .venue-head .tags { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+    .venue-head .tag { background:rgba(255,255,255,.2); border-radius:999px; padding:4px 12px; font-size:12px; font-weight:600; }
+    .rep { display:flex; justify-content:space-between; padding:11px 16px; border-bottom:1px solid var(--border); font-size:14px; }
+    .rep:last-child { border-bottom:0; }
+    .fld { width:100%; box-sizing:border-box; padding:11px 12px; border:1px solid var(--border); border-radius:12px; font:inherit; background:var(--surface); color:var(--text); }
+    .frm { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+    .frm .full { grid-column:1/-1; }
+    .sched { display:grid; grid-template-columns:1fr 1fr auto; gap:6px; margin-bottom:6px; align-items:center; }
+    .sched button { border:0; background:var(--ink-200); color:var(--ink-500); border-radius:10px; height:38px; padding:0 12px; cursor:pointer; font:inherit; }
+    .mini { min-height:34px; padding:0 12px; font-size:13px; }
+    .lbl2 { font-size:12px; color:var(--text-muted); margin:2px 0 2px; }
+    .bktools { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  </style>
+</head>
+<body>
+  <div class="topbar"><a class="back" href="my.html">‹</a><div class="title">商戶中心</div></div>
+
+  <div class="wrap">
+    <div id="guard" style="display:none"></div>
+    <div id="main" style="display:none">
+      <div class="venue-head" id="venueHead">
+        <div class="name" id="vName">—</div>
+        <div class="sub" id="vSub"></div>
+        <div class="tags" id="vTags"></div>
+      </div>
+
+      <div class="section-title">收入概覽</div>
+      <div class="kpis" id="kpis"><div class="kpi"><div class="big">—</div><div class="lbl">載入中…</div></div></div>
+
+      <div class="section-title">每月收入</div>
+      <div class="card" id="revenue"><div class="body muted">載入中…</div></div>
+
+      <div class="section-title">我嘅課程</div>
+      <button class="btn btn-primary btn-block" id="toggleCreate" style="margin-bottom:10px">➕ 開新班／加時段</button>
+      <div class="card" id="createCard" style="display:none;margin-bottom:10px">
+        <div class="body">
+          <div class="frm">
+            <input class="fld full" id="nc-title" placeholder="課程名稱（必填）" />
+            <input class="fld" id="nc-category" list="cats" placeholder="類別（必填）" />
+            <datalist id="cats">
+              <option>芬蘭木柱</option><option>地板冰壺</option><option>布袋球</option>
+              <option>穿雲箭</option><option>北歐式健步行</option><option>圓網球</option>
+              <option>柔力球</option><option>瑜伽</option><option>Pilates</option>
+              <option>健身</option><option>伸展</option><option>兒童健體</option><option>頌缽</option>
+            </datalist>
+            <select class="fld" id="nc-difficulty">
+              <option value="beginner">初級</option>
+              <option value="intermediate">中級</option>
+              <option value="advanced">高級</option>
+            </select>
+            <input class="fld" id="nc-duration" type="number" min="15" placeholder="時長（分鐘，必填）" />
+            <input class="fld" id="nc-max" type="number" min="1" placeholder="人數上限" />
+            <input class="fld" id="nc-price" type="number" min="0" placeholder="價格 HK$" />
+            <input class="fld" id="nc-credits" type="number" min="0" placeholder="Credits 消耗" />
+            <select class="fld full" id="nc-coach"></select>
+            <textarea class="fld full" id="nc-desc" rows="3" placeholder="課程描述"></textarea>
+            <input class="fld full" id="nc-audience" placeholder="對象（例：在職人士・初學者・任何年齡）" />
+          </div>
+          <div class="lbl2" style="margin-top:10px">上堂時段</div>
+          <div id="schedRows"></div>
+          <button class="btn btn-secondary btn-block mini" id="addSched" style="margin-top:4px">＋ 加多一個時段</button>
+          <button class="btn btn-primary btn-block" id="createBtn" style="margin-top:10px">✅ 建立課程</button>
+        </div>
+      </div>
+      <div class="card" id="courses"><div class="body muted">載入中…</div></div>
+
+      <div class="section-title">預約管理</div>
+      <div class="card" style="margin-bottom:10px"><div class="body">
+        <div class="bktools">
+          <select class="fld" id="bk-course"><option value="">全部課程</option></select>
+          <select class="fld" id="bk-status">
+            <option value="">全部狀態</option>
+            <option value="confirmed">已確認</option>
+            <option value="attended">已出席</option>
+            <option value="pending_payment">待付款</option>
+            <option value="cancelled">已取消</option>
+            <option value="no_show">缺席</option>
+          </select>
+          <input class="fld" id="bk-from" type="date" />
+          <input class="fld" id="bk-to" type="date" />
+        </div>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button class="btn btn-primary mini" id="bk-apply">套用篩選</button>
+          <button class="btn btn-secondary mini" id="bk-reset">清除</button>
+          <button class="btn btn-secondary mini" id="bk-csv">⬇ 匯出 CSV</button>
+        </div>
+        <div class="muted" id="bk-count" style="margin-top:8px;font-size:12px"></div>
+      </div></div>
+      <div class="card" id="bookings"><div class="body muted">載入中…</div></div>
+
+      <div class="section-title">出糧紀錄</div>
+      <div class="card" id="payouts"><div class="body muted">載入中…</div></div>
+
+      <div class="section-title">教練管理</div>
+      <div class="card" id="coachMgmt"><div class="body muted">載入中…</div></div>
+      <div class="spacer"></div>
+    </div>
+    <div class="spacer"></div>
+  </div>
+
+  <nav class="bottomnav">
+    <a href="index.html"><span class="ic">🏠</span>主頁</a>
+    <a href="explore.html"><span class="ic">🔍</span>探索</a>
+    <a href="booking.html"><span class="ic">📅</span>預約</a>
+    <a class="active" href="my.html"><span class="ic">🎫</span>我的</a>
+  </nav>
+
+  <script src="assets/api.js"></script>
+  <script>
+    const $ = (id) => document.getElementById(id);
+    let venueCoaches = [];
+    let courses = [];
+    let allBookings = [];
+
+    (async () => {
+      if (!api.requireLogin("partner.html")) return;
+      const dash = await api.get("/partner/dashboard");
+      if (!dash.ok || !dash.data || !dash.data.venue) {
+        $("guard").style.display = "";
+        $("guard").innerHTML = `<div class="card"><div class="body center">呢頁只供已開通嘅商戶使用。<br><span class="muted" style="font-size:13px">${esc((dash.data && dash.data.error) || "")}</span><br><br><a class="btn btn-secondary" href="my.html">返回</a></div></div>`;
+        return;
+      }
+      $("main").style.display = "";
+      const v = dash.data.venue || {};
+      const s = dash.data.stats || {};
+      venueCoaches = dash.data.coaches || [];
+
+      $("vName").textContent = v.name || "商戶";
+      $("vSub").textContent = [v.category, v.district].filter(Boolean).join(" · ") || "商戶";
+      $("vTags").innerHTML = [
+        v.commission_plan_label || v.commission_plan,
+        (v.commission_rate != null ? "佣金 " + Math.round(Number(v.commission_rate) * 100) + "%" : ""),
+        (v.status === "active" ? "✅ 已開通" : v.status),
+      ].filter(Boolean).map(t => `<span class="tag">${esc(t)}</span>`).join("");
+
+      $("kpis").innerHTML = [
+        ["本月收入", hkd(s.this_month_earnings || 0)],
+        ["總收入", hkd(s.total_earned || 0)],
+        ["總預約", (s.total_bookings || 0).toLocaleString()],
+        ["學生數", (s.total_students || 0).toLocaleString()],
+        ["平台費", hkd(s.total_platform_fee || 0)],
+        ["已出糧", hkd(s.total_paid_out || 0)],
+      ].map(([l, val]) => `<div class="kpi"><div class="big">${val}</div><div class="lbl">${l}</div></div>`).join("");
+
+      $("nc-coach").innerHTML = `<option value="">教練：自己</option>` +
+        venueCoaches.map(c => `<option value="${esc(c.id)}">${esc(c.name || c.email || "教練")}</option>`).join("");
+
+      $("toggleCreate").onclick = () => {
+        const c = $("createCard");
+        c.style.display = c.style.display === "none" ? "block" : "none";
+      };
+      $("addSched").onclick = () => addSchedRow();
+      $("createBtn").onclick = createCourse;
+      $("bk-apply").onclick = loadBookings;
+      $("bk-reset").onclick = () => { $("bk-course").value = ""; $("bk-status").value = ""; $("bk-from").value = ""; $("bk-to").value = ""; loadBookings(); };
+      $("bk-csv").onclick = exportBookingsCSV;
+      $("bk-course").onchange = renderBookings;
+      addSchedRow();
+
+      loadRevenue();
+      await loadCourses();
+      loadBookings();
+      loadPayouts();
+      loadCoachRequests();
+    })();
+
+    function addSchedRow(start, end) {
+      const d = document.createElement("div");
+      d.className = "sched";
+      d.innerHTML = `<input class="fld sched-start" type="datetime-local" value="${start || ""}"><input class="fld sched-end" type="datetime-local" value="${end || ""}"><button type="button" title="移除">✕</button>`;
+      d.querySelector("button").onclick = () => d.remove();
+      $("schedRows").appendChild(d);
+    }
+
+    function toISO(v) { return v ? new Date(v).toISOString() : null; }
+
+    function readSchedules() {
+      const out = [];
+      $("schedRows").querySelectorAll(".sched").forEach(r => {
+        const st = r.querySelector(".sched-start").value;
+        const en = r.querySelector(".sched-end").value;
+        if (st && en) out.push({ start_time: toISO(st), end_time: toISO(en) });
+      });
+      return out;
+    }
+
+    async function createCourse() {
+      const title = ($("nc-title").value || "").trim();
+      const category = ($("nc-category").value || "").trim();
+      const duration = $("nc-duration").value;
+      const price = $("nc-price").value;
+      const credits = $("nc-credits").value;
+      const schedules = readSchedules();
+      if (!title || !category || !duration) { alert("請填課程名稱、類別、時長"); return; }
+      if (!price && !credits) { alert("請填 HK$ 價格 或 Credits"); return; }
+      if (!schedules.length) { alert("請至少加一個時段"); return; }
+      const btn = $("createBtn"); btn.disabled = true; btn.textContent = "建立中…";
+      const r = await api.post("/partner/courses", {
+        title, category, duration: Number(duration),
+        difficulty: $("nc-difficulty").value,
+        max_participants: $("nc-max").value || undefined,
+        price_hkd: price ? Number(price) : undefined,
+        credits_cost: credits ? Number(credits) : undefined,
+        description: $("nc-desc").value || "",
+        target_audience: ($("nc-audience").value || "").trim() || undefined,
+        coach_id: $("nc-coach").value || undefined,
+        schedules,
+      });
+      btn.disabled = false; btn.textContent = "✅ 建立課程";
+      if (r.ok) {
+        alert("✅ 課程已建立");
+        $("createCard").style.display = "none";
+        ["nc-title","nc-category","nc-duration","nc-max","nc-price","nc-credits","nc-desc","nc-audience"].forEach(id => $(id).value = "");
+        $("schedRows").innerHTML = ""; addSchedRow();
+        await loadCourses();
+      } else {
+        alert((r.data && r.data.error) || "建立失敗");
+      }
+    }
+
+    async function loadRevenue() {
+      const r = await api.get("/partner/revenue-report?group_by=month&limit=12");
+      const rows = (r.data && r.data.report) || [];
+      $("revenue").innerHTML = rows.length
+        ? rows.map(x => `<div class="rep"><span>${esc(x.period)}（${x.booking_count} 堂）</span><span><b>${hkd(x.venue_earned || 0)}</b> <span class="muted" style="font-size:12px">/ ${hkd(x.total_revenue || 0)}</span></span></div>`).join("")
+        : '<div class="body muted">暫無收入紀錄。</div>';
+    }
+
+    async function loadCourses() {
+      const r = await api.get("/partner/courses");
+      courses = Array.isArray(r.data) ? r.data : [];
+      $("courses").innerHTML = courses.length
+        ? courses.map(c => `
+          <div class="row">
+            <div><b>${esc(c.title)}</b><div class="muted" style="font-size:12px">${esc(c.category || "")} · ${c.booking_count || 0} 預約 · ${c.price_hkd ? hkd(c.price_hkd) : ((c.credits_cost||0)+" cr")}</div></div>
+            <div style="white-space:nowrap">
+              <button class="btn btn-secondary mini" onclick="openAddSched('${esc(c.id)}')">＋時段</button>
+              <button class="btn btn-secondary mini" onclick="openEdit('${esc(c.id)}')">編輯</button>
+            </div>
+          </div>`).join("")
+        : '<div class="body muted">暫無課程。</div>';
+      // course filter
+      const cur = $("bk-course").value;
+      $("bk-course").innerHTML = `<option value="">全部課程</option>` +
+        courses.map(c => `<option value="${esc(c.id)}">${esc(c.title)}</option>`).join("");
+      $("bk-course").value = cur;
+    }
+
+    async function loadBookings() {
+      const qs = ["limit=500"];
+      if ($("bk-status").value) qs.push("status=" + encodeURIComponent($("bk-status").value));
+      if ($("bk-from").value) qs.push("date_from=" + encodeURIComponent($("bk-from").value));
+      if ($("bk-to").value) qs.push("date_to=" + encodeURIComponent($("bk-to").value));
+      $("bookings").innerHTML = '<div class="body muted">載入中…</div>';
+      const r = await api.get("/partner/bookings?" + qs.join("&"));
+      allBookings = (r.data && r.data.bookings) || [];
+      renderBookings();
+    }
+
+    const STATUS_LABEL = { confirmed: "已確認", attended: "已出席", pending_payment: "待付款", cancelled: "已取消", no_show: "缺席" };
+
+    function filteredBookings() {
+      const cid = $("bk-course").value;
+      return allBookings.filter(b => !cid || b.class_id === cid);
+    }
+
+    function renderBookings() {
+      const list = filteredBookings();
+      const total = list.reduce((a, b) => a + (b.venue_earned_amount || 0), 0);
+      $("bk-count").textContent = `顯示 ${list.length} 筆 · 場地實收合計 ${hkd(total)}`;
+      $("bookings").innerHTML = list.length
+        ? list.map(b => {
+            const st = STATUS_LABEL[b.status] || b.status;
+            return `<div class="row">
+              <div><b>${esc(b.student_name || "學生")}</b>
+                <div class="muted" style="font-size:12px">${esc(b.class_title || "")} · ${fmtTime(b.start_time)}</div>
+                <div class="muted" style="font-size:12px">${esc(b.student_email || "")}${b.student_phone ? " · " + esc(b.student_phone) : ""}</div></div>
+              <div style="text-align:right;white-space:nowrap"><div>${hkd(b.venue_earned_amount || 0)}</div><div class="muted" style="font-size:12px">${esc(st)}</div></div>
+            </div>`;
+          }).join("")
+        : '<div class="body muted">暫無預約。</div>';
+    }
+
+    function exportBookingsCSV() {
+      const rows = filteredBookings();
+      if (!rows.length) { alert("冇資料可匯出"); return; }
+      const head = ["預約編號", "學生", "電郵", "電話", "課程", "開始時間", "金額", "場地實收", "狀態"];
+      const esc2 = (v) => `"${String(v == null ? "" : v).replace(/"/g, '""')}"`;
+      const lines = [head.map(esc2).join(",")];
+      rows.forEach(b => lines.push([
+        b.id, b.student_name, b.student_email, b.student_phone, b.class_title,
+        b.start_time, b.amount, b.venue_earned_amount, STATUS_LABEL[b.status] || b.status,
+      ].map(esc2).join(",")));
+      const blob = new Blob(["\ufeff" + lines.join("\r\n")], { type: "text/csv;charset=utf-8" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "zenpass-bookings-" + new Date().toISOString().slice(0, 10) + ".csv";
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }
+
+    async function loadPayouts() {
+      const r = await api.get("/partner/payouts");
+      const list = Array.isArray(r.data) ? r.data : [];
+      $("payouts").innerHTML = list.length
+        ? list.slice(0, 12).map(p => `<div class="row"><span>${esc((p.created_at || "").slice(0, 10))} <span class="muted" style="font-size:12px">${esc(p.status || "")}</span></span><span>${hkd(p.amount || 0)}</span></div>`).join("")
+        : '<div class="body muted">暫無出糧紀錄。</div>';
+    }
+
+    async function loadCoachRequests() {
+      const r = await api.get("/partner/coach-requests");
+      if (!r.ok) { $("coachMgmt").innerHTML = '<div class="body muted">載入失敗。</div>'; return; }
+      const reqs = (r.data && r.data.requests) || [];
+      const mems = (r.data && r.data.members) || [];
+      let html = "";
+      if (reqs.length) {
+        html += `<div class="lbl2" style="padding:12px 16px 4px">待審批（${reqs.length}）</div>`;
+        html += reqs.map(q => `<div class="row"><div><b>${esc(q.name || "教練")}</b><div class="muted" style="font-size:12px">${esc(q.email || "")}${q.phone ? " · " + esc(q.phone) : ""}</div></div><div style="white-space:nowrap"><button class="btn btn-primary mini" onclick="approveReq('${esc(q.id)}')">批准</button> <button class="btn btn-secondary mini" onclick="rejectReq('${esc(q.id)}')">拒絕</button></div></div>`).join("");
+      } else {
+        html += '<div class="body muted">暫無待審批申請。</div>';
+      }
+      if (mems.length) {
+        html += `<div class="lbl2" style="padding:12px 16px 4px">已加入教練（${mems.length}）</div>`;
+        html += mems.map(m => `<div class="row"><div>${esc(m.name || "教練")}<div class="muted" style="font-size:12px">${esc(m.email || "")}</div></div><span class="badge ok">已加入</span></div>`).join("");
+      }
+      $("coachMgmt").innerHTML = html;
+    }
+
+    async function approveReq(id) {
+      if (!confirm("批准呢位教練加入？")) return;
+      const r = await api.post(`/partner/coach-requests/${encodeURIComponent(id)}/approve`, {});
+      if (r.ok) { alert("✅ 已批准"); await loadCoachRequests(); }
+      else alert((r.data && r.data.error) || "失敗");
+    }
+    async function rejectReq(id) {
+      if (!confirm("拒絕呢位教練嘅申請？")) return;
+      const r = await api.post(`/partner/coach-requests/${encodeURIComponent(id)}/reject`, {});
+      if (r.ok) { alert("已拒絕"); await loadCoachRequests(); }
+      else alert((r.data && r.data.error) || "失敗");
+    }
+
+    // ===== Modal =====
+    function openModal(html) {
+      const o = document.createElement("div");
+      o.className = "modal-overlay";
+      o.innerHTML = `<div class="modal">${html}</div>`;
+      document.body.appendChild(o);
+      o.onclick = (e) => { if (e.target === o) o.remove(); };
+      return o;
+    }
+    function closeModal(el) { const o = el.closest(".modal-overlay"); if (o) o.remove(); }
+
+    function openAddSched(id) {
+      const o = openModal(`
+        <h3>＋ 加時段</h3>
+        <div class="sched"><input class="fld sched-start" type="datetime-local"><input class="fld sched-end" type="datetime-local"><span></span></div>
+        <div class="actions">
+          <button class="btn btn-primary" id="asSave">新增</button>
+          <button class="btn btn-secondary" onclick="closeModal(this)">取消</button>
+        </div>`);
+      o.querySelector("#asSave").onclick = async () => {
+        const st = o.querySelector(".sched-start").value;
+        const en = o.querySelector(".sched-end").value;
+        if (!st || !en) { alert("請填開始同結束時間"); return; }
+        const r = await api.post(`/partner/courses/${encodeURIComponent(id)}/schedules`, { schedules: [{ start_time: toISO(st), end_time: toISO(en) }] });
+        if (r.ok) { o.remove(); alert("✅ 已新增時段"); }
+        else alert((r.data && r.data.error) || "新增失敗");
+      };
+    }
+
+    function openEdit(id) {
+      const c = courses.find(x => x.id === id);
+      if (!c) return;
+      const o = openModal(`
+        <h3>✏️ 編輯課程</h3>
+        <div class="frm">
+          <input class="fld full" id="ed-title" value="${esc(c.title || "")}" placeholder="課程名稱">
+          <input class="fld" id="ed-price" type="number" value="${c.price_hkd || ""}" placeholder="價格 HK$">
+          <input class="fld" id="ed-credits" type="number" value="${c.credits_cost || ""}" placeholder="Credits">
+          <select class="fld" id="ed-difficulty">
+            <option value="beginner">初級</option><option value="intermediate">中級</option><option value="advanced">高級</option>
+          </select>
+          <input class="fld" id="ed-max" type="number" value="${c.max_participants || ""}" placeholder="人數上限">
+          <input class="fld full" id="ed-audience" value="${esc(c.target_audience || "")}" placeholder="對象（例：在職人士・初學者）">
+          <textarea class="fld full" id="ed-desc" rows="3" placeholder="描述">${esc(c.description || "")}</textarea>
+        </div>
+        <div class="actions">
+          <button class="btn btn-primary" id="edSave">儲存</button>
+          <button class="btn btn-secondary" onclick="closeModal(this)">取消</button>
+        </div>`);
+      o.querySelector("#ed-difficulty").value = c.difficulty || "beginner";
+      o.querySelector("#edSave").onclick = async () => {
+        const body = {
+          title: o.querySelector("#ed-title").value.trim(),
+          price_hkd: o.querySelector("#ed-price").value !== "" ? Number(o.querySelector("#ed-price").value) : undefined,
+          credits_cost: o.querySelector("#ed-credits").value !== "" ? Number(o.querySelector("#ed-credits").value) : undefined,
+          difficulty: o.querySelector("#ed-difficulty").value,
+          max_participants: o.querySelector("#ed-max").value || undefined,
+          target_audience: o.querySelector("#ed-audience").value.trim() || undefined,
+          description: o.querySelector("#ed-desc").value || "",
+        };
+        const r = await api.put(`/partner/courses/${encodeURIComponent(id)}`, body);
+        if (r.ok) { o.remove(); alert("✅ 已更新"); await loadCourses(); }
+        else alert((r.data && r.data.error) || "更新失敗");
+      };
+    }
+  </script>
+  <script src="assets/footer.js" defer></script>
+</body>
+</html>
