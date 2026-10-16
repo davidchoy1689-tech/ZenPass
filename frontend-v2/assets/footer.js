@@ -43,8 +43,9 @@
             '<li><a class="zp-link" href="/explore.html">探索課程</a></li>' +
             '<li><a class="zp-link" href="/coaches.html">星級教練</a></li>' +
             '<li><a class="zp-link" href="/membership.html">會籍方案</a></li>' +
-            '<li><a class="zp-link" href="/coach-apply.html">成為教練</a></li>' +
-            '<li><a class="zp-link" href="/partner-apply.html">場地加盟</a></li>' +
+            '<li><a class="zp-link" href="/partner.html">教練／場地加盟</a></li>' +
+            '<li><a class="zp-link" href="/coach-apply.html">申請成為教練</a></li>' +
+            '<li><a class="zp-link" href="/partner-apply.html">場地登記（即開通）</a></li>' +
             '<li><a class="zp-link" href="/corporate.html">企業計劃</a></li>' +
           '</ul>' +
         '</div>' +
