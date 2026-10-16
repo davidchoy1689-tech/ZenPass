@@ -60,6 +60,22 @@
     .faq summary::after { content: "＋"; float: right; color: var(--text-muted); }
     .faq details[open] summary::after { content: "－"; }
     .faq p { margin: 9px 0 0; font-size: 12.5px; color: var(--text-muted); line-height: 1.65; }
+    .who-seg { margin-bottom: 10px; }
+    .who-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
+    .who-head { display: flex; gap: 11px; align-items: center; margin-bottom: 10px; }
+    .who-ic { width: 42px; height: 42px; border-radius: 13px; background: #FFF0E9; display: flex; align-items: center; justify-content: center; font-size: 21px; flex: 0 0 auto; }
+    .who-head b { display: block; font-size: 15px; }
+    .who-head i { font-style: normal; font-size: 12px; color: var(--text-muted); line-height: 1.45; display: block; margin-top: 2px; }
+    .who-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+    .who-tags span { font-size: 11.5px; font-weight: 600; color: var(--brand-600); background: #fff2ec; border-radius: 999px; padding: 4px 10px; }
+    .who-list { margin: 0 0 12px; padding-left: 18px; }
+    .who-list li { font-size: 12.5px; line-height: 1.75; color: var(--text-muted); }
+    .who-list b { color: var(--text); }
+    @media (min-width: 640px) {
+      .who-seg { display: none; }
+      .who-panel[hidden], .who-panel.is-hidden { display: block !important; }
+      .who-grid { grid-template-columns: 1fr 1fr; }
+    }
     @media (min-width: 560px) {
       .lp-grid { grid-template-columns: 1fr 1fr; }
       .frm { grid-template-columns: 1fr 1fr; }
@@ -99,11 +115,36 @@
       <div class="lp-step"><div><b>上架課堂、開始收款</b><p>設定時段同價錢，即刻可以畀學員預約。</p></div></div>
     </div>
 
-    <div class="section-title">適合邊個？</div>
-    <div class="lp-grid">
-      <div class="lp-card"><b>🧑‍🏫 運動教練</b><p>想穩定收新學員、唔想再手動排班／收款嘅個人教練、導師。</p></div>
-      <div class="lp-card"><b>🏟️ 場地負責人</b><p>有空間想提升使用率，想搵穩定客源嘅場地、球場、會所。</p></div>
-      <div class="lp-card"><b>🏫 學校／機構</b><p>想開辦新興運動體驗班、課外活動嘅學校、NGO、企業。</p></div>
+    <div class="section-title">合作對象與模式 <span class="sport-count">Who Can Join</span></div>
+    <div class="seg who-seg" id="whoSeg">
+      <button type="button" class="on" data-who="coach">🧑‍🏫 星級教練</button>
+      <button type="button" data-who="venue">🏪 合作場地</button>
+    </div>
+    <div class="who-grid">
+      <div class="lp-card who-panel" id="who-coach">
+        <div class="who-head"><span class="who-ic">🧑‍🏫</span><div><b>星級教練</b><i>個人教練・新興運動導師・小班教學工作室</i></div></div>
+        <div class="who-tags"><span>個人教練</span><span>新興運動導師</span><span>小班教學工作室</span></div>
+        <ul class="who-list">
+          <li>自訂課堂價錢、時段同程度</li>
+          <li>平台代收學費，按堂拆賬、月結報表</li>
+          <li>自動排班、候補、課前提醒</li>
+          <li>冇固定場地？平台幫你配對場地</li>
+          <li>個人教練頁曝光 + 學員評價累積</li>
+        </ul>
+        <a class="btn btn-secondary btn-block" href="#join" data-pick="coach">我想做教練 →</a>
+      </div>
+      <div class="lp-card who-panel is-hidden" id="who-venue">
+        <div class="who-head"><span class="who-ic">🏪</span><div><b>合作場地</b><i>運動場館・瑜伽房・多功能室・戶外活動場地</i></div></div>
+        <div class="who-tags"><span>運動場館</span><span>瑜伽房</span><span>多功能室</span><span>戶外活動場地</span></div>
+        <ul class="who-list">
+          <li>出租時段 <b>或</b> 同教練拆賬，彈性選擇</li>
+          <li>一鍵發佈可用時段，即時接受預約</li>
+          <li>平台導流，提升非繁忙時段使用率</li>
+          <li>場地月結報表，收入清晰可對數</li>
+          <li>場地頁曝光 + 學校／企業團體查詢</li>
+        </ul>
+        <a class="btn btn-secondary btn-block" href="#join" data-pick="venue">我想加盟場地 →</a>
+      </div>
     </div>
 
     <div class="section-title" id="join">立即免費登記加盟</div>
@@ -206,6 +247,23 @@
         var b = e.target.closest("button[data-role]"); if (!b) return; setRole(b.getAttribute("data-role"));
       });
       setRole("coach");
+
+      /* 合作對象 tab（手機）+ 桌面雙欄 */
+      var whoSeg = document.getElementById("whoSeg");
+      function setWho(w) {
+        document.querySelectorAll("#whoSeg button").forEach(function (b) { b.classList.toggle("on", b.getAttribute("data-who") === w); });
+        document.querySelectorAll(".who-panel").forEach(function (p) {
+          p.classList.toggle("is-hidden", p.id !== "who-" + w);
+        });
+      }
+      if (whoSeg) whoSeg.addEventListener("click", function (e) {
+        var b = e.target.closest("button[data-who]"); if (!b) return;
+        var w = b.getAttribute("data-who"); setWho(w); setRole(w === "venue" ? "venue" : "coach");
+      });
+      document.querySelectorAll("[data-pick]").forEach(function (a) {
+        a.addEventListener("click", function () { setRole(a.getAttribute("data-pick")); });
+      });
+      setWho("coach");
 
       var btn = document.getElementById("submit"), msg = document.getElementById("msg");
       btn.addEventListener("click", async function () {
