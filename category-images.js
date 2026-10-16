@@ -30,6 +30,13 @@ function getCategoryImage(cat) {
 
 // Category → local SVG icon mapping (self-hosted flat icon set, no external requests)
 var SPORT_ICONS = [
+  ["熱瑜伽", "hot-yoga"], ["高溫瑜伽", "hot-yoga"], ["高温瑜伽", "hot-yoga"], ["hot yoga", "hot-yoga"],
+  ["孕婦瑜伽", "prenatal-yoga"], ["產前瑜伽", "prenatal-yoga"], ["產後", "prenatal-yoga"], ["prenatal", "prenatal-yoga"],
+  ["健身舞", "aerobics"], ["健美操", "aerobics"], ["有氧操", "aerobics"], ["帶氧", "aerobics"], ["跳操", "aerobics"],
+  ["踏板", "step-aerobics"], ["階梯", "step-aerobics"], ["step aerobics", "step-aerobics"],
+  ["飛輪", "spinning"], ["動感單車", "spinning"], ["室內單車", "spinning"], ["spinning", "spinning"],
+  ["核心", "core-training"], ["腹肌", "core-training"], ["核心訓練", "core-training"],
+  ["風箏衝浪", "kitesurfing"], ["風箏滑水", "kitesurfing"], ["kitesurf", "kitesurfing"],
   ["芬蘭木柱", "moelkkyla"], ["木柱", "moelkkyla"], ["molkky", "moelkkyla"], ["mölkky", "moelkkyla"],
   ["地板冰壺", "floor-curling"], ["冰壺", "floor-curling"], ["curling", "floor-curling"],
   ["布袋球", "cornhole"], ["cornhole", "cornhole"],
@@ -95,7 +102,15 @@ var SPORT_ICONS = [
   ["衝浪", "surfing"], ["滑浪", "surfing"], ["surfing", "surfing"], ["surf", "surfing"],
   ["划艇", "rowing"], ["賽艇", "rowing"], ["rowing", "rowing"], ["划船", "rowing"],
   ["釣魚", "fishing"], ["釣魚", "fishing"], ["fishing", "fishing"],
-  ["呼拉圈", "hula-hoop"], ["呼啦圈", "hula-hoop"], ["hula", "hula-hoop"]
+  ["呼拉圈", "hula-hoop"], ["呼啦圈", "hula-hoop"], ["hula", "hula-hoop"],
+  ["氣功", "qigong"], ["八段錦", "qigong"], ["易筋", "qigong"], ["qigong", "qigong"], ["chi kung", "qigong"],
+  ["摔跤", "wrestling"], ["角力", "wrestling"], ["wrestling", "wrestling"],
+  ["欖球", "rugby"], ["橄榄球", "rugby"], ["rugby", "rugby"],
+  ["板球", "cricket"], ["cricket", "cricket"],
+  ["棒球", "baseball"], ["壘球", "baseball"], ["baseball", "baseball"], ["softball", "baseball"],
+  ["閃避球", "dodgeball"], ["躲避", "dodgeball"], ["dodgeball", "dodgeball"],
+  ["水中有氧", "aqua-aerobics"], ["水中健體", "aqua-aerobics"], ["水療", "aqua-aerobics"], ["aqua", "aqua-aerobics"],
+  ["kite", "kitesurfing"]
 ];
 
 function getCategoryIcon(cat) {
