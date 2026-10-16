@@ -11,6 +11,50 @@ const adminService = require("../services/admin-service");
 
 const router = express.Router();
 
+// ===== GET /api/admin/lead-notify-config — 睇加盟通知設定 =====
+router.get("/lead-notify-config", authenticateToken, requireAdmin, (req, res) => {
+  try {
+    const { config } = require("../services/lead-notify");
+    const db = getDb();
+    const rows = db
+      .prepare("SELECT key, value, updated_at FROM platform_settings WHERE key IN ('lead.webhook_url','lead.admin_email')")
+      .all();
+    res.json({ success: true, channels: config(), settings: rows });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ===== POST /api/admin/lead-notify-config — 設定加盟通知（存 DB，唔使改 server .env）=====
+router.post("/lead-notify-config", authenticateToken, requireAdmin, (req, res) => {
+  try {
+    const db = getDb();
+    const pairs = [
+      ["lead.webhook_url", req.body && req.body.webhook_url, "加盟申請 Webhook（Google Sheet / Formspree）"],
+      ["lead.admin_email", req.body && req.body.admin_email, "加盟申請通知 Email"],
+    ];
+    let updated = 0;
+    for (const [key, value, desc] of pairs) {
+      if (value === undefined) continue;
+      const existing = db.prepare("SELECT key FROM platform_settings WHERE key = ?").get(key);
+      if (!existing) {
+        db.prepare("INSERT INTO platform_settings (key, value, description) VALUES (?, ?, ?)").run(
+          key, String(value || ""), desc,
+        );
+      } else {
+        db.prepare(
+          "UPDATE platform_settings SET value = ?, updated_at = datetime('now') WHERE key = ?",
+        ).run(String(value || ""), key);
+      }
+      updated++;
+    }
+    const { config } = require("../services/lead-notify");
+    res.json({ success: true, updated, channels: config() });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // ===== POST /api/admin/test-lead-notify — 測試加盟通知管道（唔會寫入任何申請紀錄）=====
 router.post("/test-lead-notify", authenticateToken, requireAdmin, async (req, res) => {
   try {
@@ -28,7 +72,7 @@ router.post("/test-lead-notify", authenticateToken, requireAdmin, async (req, re
       },
       "TEST-" + Date.now().toString().slice(-6),
     );
-    res.json({ success: true, tested: true, at: stamp, channels });
+    res.json({ success: true, tested: true, at: stamp, ...channels });
   } catch (err) {
     console.error("test-lead-notify error:", err.message);
     res.status(500).json({ success: false, error: err.message });

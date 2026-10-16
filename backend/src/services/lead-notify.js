@@ -17,8 +17,27 @@ const {
   whatsappFreeNotification,
 } = require("./notification");
 
-function adminEmail() {
-  return process.env.ADMIN_EMAIL || process.env.SMTP_USER || "";
+// ===== 設定讀取（DB platform_settings 優先，其次 env）=====
+function getSetting(key, fallback) {
+  try {
+    const { getDb } = require("./database");
+    const row = getDb().prepare("SELECT value FROM platform_settings WHERE key = ?").get(key);
+    return (row && row.value) || fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function config() {
+  const webhook = getSetting("lead.webhook_url", process.env.LEAD_WEBHOOK_URL || "");
+  const adminMail = getSetting("lead.admin_email", process.env.ADMIN_EMAIL || "");
+  return {
+    webhook,
+    adminMail,
+    whatsapp: !!(process.env.WHATSAPP_CALLMEBOT_KEY && process.env.WHATSAPP_CALLMEBOT_TO),
+    telegram: !!(process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_CHAT_ID),
+    email: !!(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS),
+  };
 }
 
 function khTime() {
@@ -54,8 +73,8 @@ function buildText(kind, d, ref) {
   return L.join("\n");
 }
 
-async function postWebhook(payload) {
-  const url = process.env.LEAD_WEBHOOK_URL;
+async function postWebhook(payload, url) {
+  url = url || process.env.LEAD_WEBHOOK_URL;
   if (!url) return false;
   try {
     const fetchImpl = typeof fetch === "function" ? fetch : require("node-fetch");
@@ -78,45 +97,53 @@ async function postWebhook(payload) {
  */
 async function notifyNewApplication(kind, data = {}, ref = "") {
   const text = buildText(kind, data, ref);
-  const out = { whatsapp: false, telegram: false, email: false, webhook: false };
+  const cfg = config();
+  const sent = { whatsapp: false, telegram: false, email: false, webhook: false };
 
-  try {
-    out.whatsapp = await whatsappFreeNotification(text);
-  } catch (err) {
-    console.error("lead whatsapp error:", err.message);
+  if (cfg.whatsapp) {
+    try {
+      sent.whatsapp = await whatsappFreeNotification(text);
+    } catch (err) {
+      console.error("lead whatsapp error:", err.message);
+    }
   }
 
-  try {
-    await sendTelegramAlert(text);
-    out.telegram = true;
-  } catch (err) {
-    console.error("lead telegram error:", err.message);
+  if (cfg.telegram) {
+    try {
+      await sendTelegramAlert(text);
+      sent.telegram = true;
+    } catch (err) {
+      console.error("lead telegram error:", err.message);
+    }
   }
 
-  const to = adminEmail();
-  if (to) {
+  if (cfg.email && cfg.adminMail) {
     try {
       await emailNotification(
-        to,
+        cfg.adminMail,
         `【ZenPass】新${kind}加盟申請 — ${data.name || ""}`.trim(),
         `<pre style="font:inherit;white-space:pre-wrap;font-size:14px">${text}</pre>`,
       );
-      out.email = true;
+      sent.email = true;
     } catch (err) {
       console.error("lead email error:", err.message);
     }
   }
 
-  out.webhook = await postWebhook({
-    type: "partner_application",
-    kind,
-    reference: ref || null,
-    submitted_at: new Date().toISOString(),
-    ...data,
-  });
+  sent.webhook = await postWebhook(
+    {
+      type: "partner_application",
+      kind,
+      reference: ref || null,
+      submitted_at: new Date().toISOString(),
+      ...data,
+    },
+    cfg.webhook,
+  );
 
+  const out = { configured: cfg, sent };
   console.log("📣 lead notify:", kind, JSON.stringify(out));
   return out;
 }
 
-module.exports = { notifyNewApplication, buildText };
+module.exports = { notifyNewApplication, buildText, config };
