@@ -18,7 +18,27 @@ const {
 } = require("./notification");
 
 // ===== 設定讀取（DB platform_settings 優先，其次 env）=====
+let settingsReady = false;
+function ensureSettings() {
+  if (settingsReady) return;
+  try {
+    const { getDb } = require("./database");
+    getDb()
+      .prepare(
+        `CREATE TABLE IF NOT EXISTS platform_settings (
+          key TEXT PRIMARY KEY, value TEXT, description TEXT,
+          created_at TEXT DEFAULT (datetime('now')), updated_at TEXT DEFAULT (datetime('now'))
+        )`,
+      )
+      .run();
+    settingsReady = true;
+  } catch (err) {
+    console.error("ensure platform_settings failed:", err.message);
+  }
+}
+
 function getSetting(key, fallback) {
+  ensureSettings();
   try {
     const { getDb } = require("./database");
     const row = getDb().prepare("SELECT value FROM platform_settings WHERE key = ?").get(key);

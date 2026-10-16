@@ -24,7 +24,14 @@ function initDatabase() {
 
   // ===== 用戶表 =====
   db.exec(`
-    CREATE TABLE IF NOT EXISTS users (
+    CREATE TABLE IF NOT EXISTS platform_settings (
+  key TEXT PRIMARY KEY,
+  value TEXT,
+  description TEXT,
+  created_at TEXT DEFAULT (datetime('now')),
+  updated_at TEXT DEFAULT (datetime('now'))
+);
+CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY,
       user_reference TEXT,
       email TEXT UNIQUE,

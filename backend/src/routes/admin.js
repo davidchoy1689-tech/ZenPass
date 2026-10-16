@@ -16,6 +16,9 @@ router.get("/lead-notify-config", authenticateToken, requireAdmin, (req, res) =>
   try {
     const { config } = require("../services/lead-notify");
     const db = getDb();
+    db.prepare(
+      "CREATE TABLE IF NOT EXISTS platform_settings (key TEXT PRIMARY KEY, value TEXT, description TEXT, created_at TEXT DEFAULT (datetime('now')), updated_at TEXT DEFAULT (datetime('now')))",
+    ).run();
     const rows = db
       .prepare("SELECT key, value, updated_at FROM platform_settings WHERE key IN ('lead.webhook_url','lead.admin_email')")
       .all();
@@ -29,6 +32,9 @@ router.get("/lead-notify-config", authenticateToken, requireAdmin, (req, res) =>
 router.post("/lead-notify-config", authenticateToken, requireAdmin, (req, res) => {
   try {
     const db = getDb();
+    db.prepare(
+      "CREATE TABLE IF NOT EXISTS platform_settings (key TEXT PRIMARY KEY, value TEXT, description TEXT, created_at TEXT DEFAULT (datetime('now')), updated_at TEXT DEFAULT (datetime('now')))",
+    ).run();
     const pairs = [
       ["lead.webhook_url", req.body && req.body.webhook_url, "加盟申請 Webhook（Google Sheet / Formspree）"],
       ["lead.admin_email", req.body && req.body.admin_email, "加盟申請通知 Email"],
