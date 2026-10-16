@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#ff6b35" />
+  <title>租用場地 · ZenPass 禪流</title>
+  <link rel="stylesheet" href="assets/v2.css?v=19" />
+  <style>
+    .filters { display:flex; gap:8px; padding:12px 16px; overflow-x:auto; }
+    .filters select, .filters input { flex:0 0 auto; padding:9px 12px; border:1px solid var(--border); border-radius:10px; font-size:13px; font-family:inherit; background:var(--card,#fff); color:inherit; }
+    .freq { display:flex; gap:8px; overflow-x:auto; padding:4px 16px 8px; }
+    .freq-item { flex:0 0 auto; border:1px solid var(--border); border-radius:12px; padding:10px 12px; min-width:150px; cursor:pointer; background:var(--card,#fff); }
+    .freq-item .n { font-weight:700; font-size:14px; }
+    .freq-item .m { font-size:11.5px; color:var(--text-muted); margin-top:3px; }
+    .venue { padding:14px 16px; border-bottom:1px solid var(--border); }
+    .venue:last-child { border-bottom:0; }
+    .venue h3 { margin:0 0 4px; font-size:15.5px; }
+    .venue .meta { font-size:12.5px; color:var(--text-muted); margin-bottom:6px; }
+    .venue .tags { display:flex; gap:4px; flex-wrap:wrap; margin-bottom:8px; }
+    .venue .tag { padding:2px 8px; border-radius:10px; background:rgba(255,107,53,.12); color:#c94420; font-size:11px; }
+    .venue .book { width:100%; min-height:40px; }
+    .rental-row { display:flex; justify-content:space-between; align-items:center; gap:10px; padding:12px 16px; border-bottom:1px solid var(--border); }
+    .rental-row:last-child { border-bottom:0; }
+    .st { font-size:12px; font-weight:600; }
+    .st.pending { color:#b45309; } .st.confirmed { color:#15803d; } .st.cancelled { color:#9ca3af; } .st.completed { color:#0369a1; }
+    .modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:100; align-items:center; justify-content:center; padding:18px; }
+    .modal.show { display:flex; }
+    .modal-content { background:var(--card,#fff); border-radius:16px; padding:20px; max-width:380px; width:100%; max-height:90vh; overflow:auto; }
+    .modal-content h3 { margin:0 0 10px; }
+    .modal-content label { font-size:12px; color:var(--text-muted); display:block; margin:8px 0 3px; }
+    .modal-content input { width:100%; padding:10px; border:1px solid var(--border); border-radius:9px; font-size:14px; font-family:inherit; background:var(--card,#fff); color:inherit; }
+    .muted { color:var(--text-muted); }
+  </style>
+</head>
+<body>
+  <div class="topbar"><a class="back" href="my.html">‹</a><div class="title">租用場地</div></div>
+  <div class="wrap">
+    <div id="freqWrap" style="display:none">
+      <div class="section-title" style="padding:6px 16px 0">⭐ 常用場地</div>
+      <div class="freq" id="freq"></div>
+    </div>
+
+    <div class="filters">
+      <select id="f-district">
+        <option value="">全部地區</option>
+        <option value="港島">港島</option>
+        <option value="九龍">九龍</option>
+        <option value="新界">新界</option>
+      </select>
+      <select id="f-cat"><option value="">全部類別</option></select>
+      <input type="date" id="f-date" />
+      <button class="btn btn-secondary" id="f-go" style="flex:0 0 auto">搜尋</button>
+    </div>
+
+    <div class="section-title" style="padding:6px 16px 0">可租場地</div>
+    <div id="venues"><div class="card"><div class="body muted">載入中…</div></div></div>
+
+    <div class="section-title" style="padding:6px 16px 0">我嘅租場紀錄</div>
+    <div id="mine"><div class="card"><div class="body muted">載入中…</div></div></div>
+    <div class="spacer"></div>
+  </div>
+
+  <nav class="bottomnav">
+    <a href="index.html"><span class="ic">🏠</span>主頁</a>
+    <a href="explore.html"><span class="ic">🔍</span>探索</a>
+    <a href="booking.html"><span class="ic">📅</span>預約</a>
+    <a class="active" href="my.html"><span class="ic">🎫</span>我的</a>
+  </nav>
+
+  <div class="modal" id="bookModal">
+    <div class="modal-content">
+      <h3>📅 預約場地</h3>
+      <p id="mName" class="muted" style="font-size:13px;margin:0 0 6px"></p>
+      <label>開始時間</label>
+      <input type="datetime-local" id="bStart" />
+      <label>結束時間</label>
+      <input type="datetime-local" id="bEnd" />
+      <label>每小時租金（HK$）</label>
+      <input type="number" id="bPrice" min="0" />
+      <p id="mSummary" class="muted" style="font-size:13px;margin:10px 0 0"></p>
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <button class="btn btn-primary btn-block" id="bSubmit">確認預約</button>
+        <button class="btn btn-secondary" id="bCancel" style="flex:0 0 auto">取消</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="assets/api.js"></script>
+  <script>
+    const $ = (id) => document.getElementById(id);
+    let currentVenue = null;   // { id, name, price }
+    let frequent = {};         // venueId -> { last_start, last_end, last_price }
+
+    const pad = (n) => String(n).padStart(2, "0");
+    const localInput = (d) => d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()) + "T" + pad(d.getHours()) + ":" + pad(d.getMinutes());
+
+    (async () => {
+      if (!api.requireLogin("venue-rentals.html")) return;
+      $("f-go").onclick = loadVenues;
+      ["f-district", "f-cat", "f-date"].forEach(id => $(id).addEventListener("change", loadVenues));
+      $("bCancel").onclick = () => $("bookModal").classList.remove("show");
+      $("bSubmit").onclick = submitBooking;
+      // 預覽總額
+      ["bStart", "bEnd", "bPrice"].forEach(id => $(id).addEventListener("input", updateSummary));
+      await loadFrequent();
+      await loadVenues();
+      await loadMine();
+    })();
+
+    /* ===== ⭐ 常用場地記憶 ===== */
+    async function loadFrequent() {
+      const r = await api.get("/venue-rentals/frequent");
+      const rows = (r.data && r.data.data) || [];
+      if (!rows.length) return;
+      rows.forEach(v => {
+        frequent[v.venue_id] = { last_start: v.last_start, last_end: v.last_end, last_price: v.last_price, name: v.venue_name };
+      });
+      $("freqWrap").style.display = "";
+      $("freq").innerHTML = rows.map(v => {
+        const when = String(v.last_start || "").replace("T", " ").slice(0, 10);
+        return '<div class="freq-item" data-id="' + esc(v.venue_id) + '" data-name="' + esc(v.venue_name) + '">' +
+          '<div class="n">' + esc(v.venue_name) + '</div>' +
+          '<div class="m">租過 ' + v.times + ' 次 · 上次 ' + esc(when) + '</div></div>';
+      }).join("");
+      $("freq").querySelectorAll(".freq-item").forEach(el => {
+        el.onclick = () => quickBook(el.dataset.id, el.dataset.name);
+      });
+    }
+
+    async function quickBook(venueId, venueName) {
+      let price = 200;
+      try {
+        const r = await api.get("/venue-rentals/available");
+        const v = ((r.data && r.data.data) || []).find(x => x.id === venueId);
+        if (v && v.suggested_hours) price = v.suggested_hours.price_per_hour || price;
+      } catch (e) {}
+      const f = frequent[venueId];
+      let prefill = null;
+      if (f && f.last_start) {
+        const s = new Date(f.last_start); s.setUTCDate(s.getUTCDate() + 7);
+        const e = new Date(f.last_end); e.setUTCDate(e.getUTCDate() + 7);
+        prefill = { start: localInput(s), end: localInput(e) };
+        if (f.last_price) price = f.last_price;
+      }
+      openBook(venueId, venueName, price, prefill);
+    }
+
+    /* ===== 可租場地 ===== */
+    async function loadVenues() {
+      $("venues").innerHTML = '<div class="card"><div class="body muted">載入中…</div></div>';
+      const qs = [];
+      if ($("f-district").value) qs.push("district=" + encodeURIComponent($("f-district").value));
+      if ($("f-cat").value) qs.push("category=" + encodeURIComponent($("f-cat").value));
+      if ($("f-date").value) qs.push("date=" + encodeURIComponent($("f-date").value));
+      const r = await api.get("/venue-rentals/available" + (qs.length ? "?" + qs.join("&") : ""));
+      if (!r.ok) { $("venues").innerHTML = '<div class="card"><div class="body muted">' + esc((r.data && r.data.error) || "載入失敗") + "</div></div>"; return; }
+      const list = (r.data && r.data.data) || [];
+      // 類別 filter 選項（由資料推導）
+      const cats = Array.from(new Set(list.map(v => v.category).filter(Boolean)));
+      const catSel = $("f-cat");
+      if (catSel.options.length <= 1 && cats.length) {
+        cats.forEach(c => { const o = document.createElement("option"); o.value = c; o.textContent = c; catSel.appendChild(o); });
+      }
+      if (!list.length) { $("venues").innerHTML = '<div class="card"><div class="body muted">暫時未有場地。</div></div>'; return; }
+      $("venues").innerHTML = '<div class="card">' + list.map(v => {
+        const facs = Array.isArray(v.facilities) ? v.facilities : [];
+        const tags = [v.category, v.district].filter(Boolean).concat(facs);
+        const price = (v.suggested_hours && v.suggested_hours.price_per_hour) || Math.round((v.commission_rate || 0.15) * 600);
+        return '<div class="venue">' +
+          '<h3>🏟️ ' + esc(v.name) + '</h3>' +
+          '<div class="meta">📍 ' + esc(v.address || v.district || "") + ' · 💰 約 ' + hkd(price) + '/hr</div>' +
+          '<div class="tags">' + tags.map(t => '<span class="tag">' + esc(t) + '</span>').join("") + '</div>' +
+          (v.rented_slots && v.rented_slots.length ? '<div class="meta">🕐 已有 ' + v.rented_slots.length + ' 個預約時段</div>' : "") +
+          '<button class="btn btn-primary book" data-id="' + esc(v.id) + '" data-name="' + esc(v.name) + '" data-price="' + price + '">📋 預約此場地</button>' +
+          '</div>';
+      }).join("") + '</div>';
+      $("venues").querySelectorAll(".book").forEach(b => {
+        b.onclick = () => openBook(b.dataset.id, b.dataset.name, Number(b.dataset.price), null);
+      });
+    }
+
+    /* ===== 我嘅租場 ===== */
+    async function loadMine() {
+      const r = await api.get("/venue-rentals/my");
+      const rows = (r.data && r.data.data) || [];
+      if (!rows.length) { $("mine").innerHTML = '<div class="card"><div class="body muted">未有任何租場紀錄。</div></div>'; return; }
+      const LAB = { pending: "⏳ 待確認", confirmed: "✅ 已確認", cancelled: "✖ 已取消", completed: "✔ 完成" };
+      $("mine").innerHTML = '<div class="card">' + rows.map(x => {
+        const when = String(x.start_time || "").replace("T", " ").slice(0, 16) + " → " + String(x.end_time || "").slice(11, 16);
+        const st = x.status || "";
+        return '<div class="rental-row"><div><b>' + esc(x.venue_name) + '</b>' +
+          '<div class="muted" style="font-size:12px">' + esc(when) + (x.price_hkd ? " · " + hkd(x.price_hkd) : "") + '</div></div>' +
+          '<div class="st ' + esc(st) + '">' + esc(LAB[st] || st) + '</div></div>';
+      }).join("") + '</div>';
+    }
+
+    /* ===== 預約 Modal ===== */
+    function openBook(venueId, venueName, price, prefill) {
+      currentVenue = { id: venueId, name: venueName };
+      $("mName").textContent = "🏟️ " + venueName;
+      $("bPrice").value = price || 200;
+      if (prefill) {
+        $("bStart").value = prefill.start;
+        $("bEnd").value = prefill.end;
+      } else {
+        const t = new Date(); t.setDate(t.getDate() + 1);
+        const d = localInput(t).slice(0, 11);
+        $("bStart").value = d + "10:00";
+        $("bEnd").value = d + "12:00";
+      }
+      updateSummary();
+      $("bookModal").classList.add("show");
+    }
+
+    function updateSummary() {
+      const s = $("bStart").value, e = $("bEnd").value, p = Number($("bPrice").value) || 0;
+      if (!s || !e) { $("mSummary").textContent = ""; return; }
+      const hours = (new Date(e) - new Date(s)) / 3600000;
+      if (hours <= 0) { $("mSummary").textContent = "⚠️ 結束時間要遲過開始時間"; return; }
+      $("mSummary").textContent = "共 " + hours.toFixed(1) + " 小時 · 總額約 " + hkd(Math.round(p * hours));
+    }
+
+    async function submitBooking() {
+      if (!currentVenue) return;
+      const s = $("bStart").value, e = $("bEnd").value, p = Number($("bPrice").value) || 0;
+      if (!s || !e) { alert("請選擇時間"); return; }
+      const hours = (new Date(e) - new Date(s)) / 3600000;
+      if (hours <= 0) { alert("結束時間要遲過開始時間"); return; }
+      const total = Math.round(p * hours);
+      if (!confirm("預約 " + currentVenue.name + "\n" + s.replace("T", " ") + " → " + e.slice(11) + "\n共 " + hours.toFixed(1) + " 小時 · " + hkd(total) + "\n\n確認預約？")) return;
+      const btn = $("bSubmit"); btn.disabled = true; const old = btn.textContent; btn.textContent = "預約中…";
+      const r = await api.post("/venue-rentals/book", {
+        venue_id: currentVenue.id,
+        start_time: new Date(s).toISOString(),
+        end_time: new Date(e).toISOString(),
+        price_hkd: total,
+      });
+      btn.disabled = false; btn.textContent = old;
+      if (r.ok) {
+        $("bookModal").classList.remove("show");
+        alert("✅ " + ((r.data && r.data.message) || "已預約") + (r.data && r.data.status === "pending" ? "\n（等待場地確認）" : ""));
+        loadMine(); loadFrequent();
+      } else {
+        alert((r.data && r.data.error) || "預約失敗");
+      }
+    }
+  </script>
+  <script src="assets/footer.js?v=2" defer></script>
+</body>
+</html>

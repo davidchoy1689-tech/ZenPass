@@ -180,6 +180,36 @@ router.get("/my", authenticateToken, (req, res) => {
   }
 });
 
+// ===== 3.5 GET /api/venue-rentals/frequent — 常用場地記憶 =====
+router.get("/frequent", authenticateToken, (req, res) => {
+  try {
+    const db = getDb();
+    const rows = db
+      .prepare(
+        `SELECT r.venue_id, v.name AS venue_name, v.district, v.category, v.address,
+                COUNT(*) AS times,
+                MAX(r.start_time) AS last_start,
+                (SELECT r2.end_time FROM venue_rentals r2
+                  WHERE r2.venue_id = r.venue_id AND r2.coach_id = r.coach_id AND r2.status != 'cancelled'
+                  ORDER BY r2.start_time DESC LIMIT 1) AS last_end,
+                (SELECT r2.price_hkd FROM venue_rentals r2
+                  WHERE r2.venue_id = r.venue_id AND r2.coach_id = r.coach_id AND r2.status != 'cancelled'
+                  ORDER BY r2.start_time DESC LIMIT 1) AS last_price
+         FROM venue_rentals r
+         JOIN partner_venues v ON r.venue_id = v.id
+         WHERE r.coach_id = ? AND r.status != 'cancelled'
+         GROUP BY r.venue_id
+         ORDER BY times DESC, last_start DESC
+         LIMIT 6`,
+      )
+      .all(req.user.id);
+    res.json({ success: true, data: rows });
+  } catch (err) {
+    console.error("venue-rentals/frequent error:", err.message);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // ===== 4. GET /api/venue-rentals/venue/:venueId — 場地睇自己嘅租賃記錄 =====
 router.get("/venue/:venueId", authenticateToken, (req, res) => {
   try {
