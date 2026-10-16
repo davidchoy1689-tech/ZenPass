@@ -212,34 +212,51 @@ function sportTint(cat, p){ var c=sportColor(cat); if(!c) return "#f2f2f7"; retu
 function tileBg(cat){ var c=sportColor(cat)||"#ff6b35"; return "linear-gradient(150deg,"+mixHex(c,"#ffffff",0.14)+","+mixHex(c,"#000000",0.20)+")"; }
 function tileGlow(cat){ var c=sportColor(cat)||"#ff6b35"; return mixHex(c,"#ffffff",0.45); }
 
+/* 精選 8 大主題（P1 重構）：8 張大卡 = 8 大主題；「查看全部」accordion 先展開 145 個項目。
+ * prio = 配對優先次序（先配到先算）；slugs = 指定項目 override；groups = 整個組別歸入。
+ */
 var MEGA = [
-  { k: "🔥 熱門新興", types: ["新興運動", "趣味・技巧"], c: "#FF6B35", ic: "moelkkyla" },
-  { k: "🧘 身心瑜伽", types: ["瑜伽・普拉提"], c: "#7C3AED", ic: "yoga" },
-  { k: "💪 健身HIIT", types: ["健身・體能"], c: "#EA580C", ic: "gym" },
-  { k: "🥊 拳擊格鬥", types: ["武術・格鬥"], c: "#DC2626", ic: "boxing" },
-  { k: "🏀 團體球類", types: ["球類運動", "球拍運動"], c: "#2563EB", ic: "basketball" },
-  { k: "🏃 戶外體能", types: ["戶外・山野", "水上活動"], c: "#16A34A", ic: "hiking" },
-  { k: "💃 舞蹈藝術", types: ["舞蹈", "體操・表演"], c: "#DB2777", ic: "ballet" },
-  { k: "🌿 養生復康", types: ["精準・目標", "兒童・長者"], c: "#0D9488", ic: "rehab" }
+  { k: "🔥 新興運動", c: "#FF6B35", ic: "moelkkyla", prio: 1, groups: ["新興運動"], slugs: ["pickleball", "padel", "roundnet"] },
+  { k: "🧘 身心舒壓", c: "#7C3AED", ic: "yoga", prio: 3, groups: ["瑜伽・普拉提"] },
+  { k: "💪 健身體能", c: "#EA580C", ic: "gym", prio: 4, groups: ["健身・體能", "武術・格鬥"], slugs: ["kids-fitness"] },
+  { k: "🏀 團體球類", c: "#2563EB", ic: "basketball", prio: 5, groups: ["球類運動", "球拍運動"] },
+  { k: "🏃 戶外歷奇", c: "#16A34A", ic: "hiking", prio: 6, groups: ["戶外・山野", "水上活動"] },
+  { k: "💃 舞蹈文化", c: "#DB2777", ic: "ballet", prio: 7, groups: ["舞蹈", "體操・表演"] },
+  { k: "🌿 養生復康", c: "#0D9488", ic: "rehab", prio: 2, slugs: ["tai-chi", "tai-chi-sword", "qigong", "rehab", "foam-rolling", "stretching", "weight-management", "forest-bathing", "senior"] },
+  { k: "🏆 趣味競技", c: "#B45309", ic: "frisbee", prio: 8, groups: ["趣味・技巧", "精準・目標"] }
 ];
+function _megaMatchOrder() {
+  return MEGA.slice().sort(function (a, b) { return a.prio - b.prio; });
+}
+function _megaClaims(m, s) {
+  if (m.slugs && m.slugs.indexOf(s.slug) >= 0) return true;
+  return !!(m.groups && m.groups.indexOf(s.group) >= 0);
+}
+function megaOfSport(s) {
+  var order = _megaMatchOrder();
+  for (var i = 0; i < order.length; i++) { if (_megaClaims(order[i], s)) return order[i]; }
+  return MEGA[0];
+}
+function megaItems(m) {
+  return SPORTS_CATALOGUE.filter(function (s) { return megaOfSport(s) === m; });
+}
 function megaOfType(t) {
-  for (var i = 0; i < MEGA.length; i++) { if (MEGA[i].types.indexOf(t) >= 0) return MEGA[i]; }
+  var order = _megaMatchOrder();
+  for (var i = 0; i < order.length; i++) { if (order[i].groups && order[i].groups.indexOf(t) >= 0) return order[i]; }
   return null;
 }
-function megaCount(m) {
-  var n = 0;
-  SPORTS_CATALOGUE.forEach(function (s) { if (m.types.indexOf(s.group) >= 0) n++; });
-  return n;
-}
+function megaCount(m) { return megaItems(m).length; }
 function renderMegaCards(elId) {
   var el = document.getElementById(elId || "megaGrid");
   if (!el) return;
   el.innerHTML = MEGA.map(function (m) {
     var c = m.c;
+    var items = megaItems(m);
+    var eg = items.slice(0, 3).map(function (s) { return s.name; }).join("、");
     return '<a class="mega-card" href="javascript:void(0)" data-mega="' + m.k + '">' +
       '<span class="mega-ic" style="background:linear-gradient(150deg,' + mixHex(c, "#ffffff", 0.16) + ',' + mixHex(c, "#000000", 0.18) + ')">' +
       '<img src="assets/icons/sports-white/' + m.ic + '.svg" alt=""></span>' +
-      '<span class="mega-tx"><b class="mega-name">' + m.k + '</b><i class="mega-sub">' + megaCount(m) + ' 個項目</i></span>' +
+      '<span class="mega-tx"><b class="mega-name">' + m.k + '</b><i class="mega-sub">' + items.length + ' 個項目 · ' + eg + '</i></span>' +
       '<span class="mega-arrow">›</span></a>';
   }).join("");
 }
@@ -252,7 +269,7 @@ function renderSportGridMega(elId) {
       '<span class="sport-name">' + s.name + '</span></a>';
   }
   g.innerHTML = MEGA.map(function (m) {
-    var items = SPORTS_CATALOGUE.filter(function (s) { return m.types.indexOf(s.group) >= 0; });
+    var items = megaItems(m);
     return '<section class="sport-group" data-mega="' + m.k + '">' +
       '<div class="sport-group-title">' + m.k + ' <span class="n">' + items.length + '</span></div>' +
       '<div class="sport-row">' + items.map(tileHtml).join("") + '</div></section>';
