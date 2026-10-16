@@ -377,15 +377,24 @@ function createCourse(userId, body) {
     ? Number(credits_cost)
     : Math.max(3, Math.round(price_hkd / 10));
   const finalPrice = price_hkd ? Number(price_hkd) : 0;
+  // 自動分區：優先用場地登記嘅 district，否則由地址／場地名推斷
+  let district = venue.district || "";
+  if (!district) {
+    try {
+      district = require("./district").resolveDistrict([venue.address, venue.name].filter(Boolean).join(" "));
+    } catch (e) {
+      district = "";
+    }
+  }
 
   db.prepare(
     `INSERT INTO classes (id, coach_id, title, description, category, difficulty,
        duration, max_participants, price_hkd, credits_cost, venue_name, venue_address,
-       target_audience, image_url, partner_venue_id, partner_id, status, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', datetime('now'), datetime('now'))`
+       target_audience, image_url, partner_venue_id, partner_id, district, status, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', datetime('now'), datetime('now'))`
   ).run(classId, cid, title, description || "", category, difficulty || "beginner",
     duration, max_participants || 15, finalPrice, computedCredits,
-    venue.name, venue.address || "", target_audience || null, image_url || null, venue.id, venue.id);
+    venue.name, venue.address || "", target_audience || null, image_url || null, venue.id, venue.id, district || null);
 
   const scheduleIds = [];
   for (const s of schedules) {
@@ -567,13 +576,13 @@ function duplicateCourse(userId, courseId, opts) {
   db.prepare(
     `INSERT INTO classes (id, coach_id, title, description, category, difficulty,
        duration, max_participants, price_hkd, credits_cost, venue_name, venue_address,
-       target_audience, image_url, partner_venue_id, partner_id, status, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', datetime('now'), datetime('now'))`,
+       target_audience, image_url, partner_venue_id, partner_id, district, status, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', datetime('now'), datetime('now'))`,
   ).run(
     newId, src.coach_id, newTitle, src.description || "", src.category, src.difficulty || "beginner",
     src.duration, src.max_participants || 15, src.price_hkd || 0, src.credits_cost || 0,
     src.venue_name || venue.name, src.venue_address || "",
-    src.target_audience || null, src.image_url || null, venue.id, venue.id,
+    src.target_audience || null, src.image_url || null, venue.id, venue.id, src.district || null,
   );
 
   const scheduleIds = [];

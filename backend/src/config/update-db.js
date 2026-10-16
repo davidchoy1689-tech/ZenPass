@@ -319,6 +319,43 @@ function updateDatabase() {
   }
   console.log("✅ users schema parity migration 完成");
 
+  // ===== Migration 11: classes.district（按課程地區自動分區）=====
+  try {
+    db.exec("ALTER TABLE classes ADD COLUMN district TEXT");
+    console.log("✅ 加入 classes.district");
+  } catch (e) {
+    /* 已存在 */
+  }
+  try {
+    const { resolveDistrict } = require("../services/district");
+    const rows = db
+      .prepare("SELECT id, venue_address, venue_name, partner_venue_id, district FROM classes")
+      .all();
+    const upd = db.prepare("UPDATE classes SET district = ? WHERE id = ?");
+    const pvStmt = db.prepare("SELECT district FROM partner_venues WHERE id = ?");
+    let n = 0;
+    for (const r of rows) {
+      if (r.district) continue; // 已有就不覆寫
+      let dist = "";
+      if (r.partner_venue_id) {
+        try {
+          const pv = pvStmt.get(r.partner_venue_id);
+          if (pv && pv.district) dist = pv.district;
+        } catch (e) {
+          /* partner_venues 可能未存在 */
+        }
+      }
+      if (!dist) dist = resolveDistrict([r.venue_address, r.venue_name].filter(Boolean).join(" "));
+      if (dist) {
+        upd.run(dist, r.id);
+        n++;
+      }
+    }
+    console.log(`✅ classes.district backfill: ${n} 條`);
+  } catch (e) {
+    console.log("⚠️ classes.district backfill:", e.message);
+  }
+
   // ===== Migration 10: Schema parity (prod -> repo) =====
   // 生產有、但 repo schema 未定義嘅表 / 欄位（避免 fresh / CI DB 唔完整）。
   // 表用 schema-parity.sql（CREATE IF NOT EXISTS）；欄用 ALTER（逐條 try/catch）。

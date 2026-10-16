@@ -129,8 +129,13 @@
     const ZONE = new URLSearchParams(location.search).get("zone") || "";
     function inZone(c) {
       if (!ZONE || !ZONES[ZONE]) return true;
+      const z = ZONES[ZONE];
+      const name = String(z.label || "").replace(/^📍\s*/, "");
+      // 有結構化 district → 精準比對（按課程地區自動分區）
+      if (c.district) return c.district === name;
+      // 未有 district（舊資料）→ 退回關鍵字比對
       const hay = [c.venue_name, c.venue_address, c.location, c.area, c.district].filter(Boolean).join(" ");
-      return ZONES[ZONE].kw.some(k => hay.indexOf(k) >= 0);
+      return z.kw.some(k => hay.indexOf(k) >= 0);
     }
     (async () => {
       const q0 = new URLSearchParams(location.search).get("q") || "";
