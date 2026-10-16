@@ -102,15 +102,15 @@ if [ "$HAS_FRONTEND_CHANGES" -gt 0 ]; then
   for f in $(echo "$STAGED_FILES" | grep "\.html$" || true); do
     if [ -f "$f" ]; then
       # 檢查是否有未閉合的 <script> 或 <style> 標籤
-      SCRIPT_OPEN=$(grep -c '<script' "$f" 2>/dev/null || echo 0)
-      SCRIPT_CLOSE=$(grep -c '</script>' "$f" 2>/dev/null || echo 0)
+      SCRIPT_OPEN=$(grep -c '<script' "$f" 2>/dev/null || true)
+      SCRIPT_CLOSE=$(grep -c '</script>' "$f" 2>/dev/null || true)
       if [ "$SCRIPT_OPEN" -ne "$SCRIPT_CLOSE" ]; then
         echo "${RED}❌ $f: <script> 標籤數量不匹配 (open=$SCRIPT_OPEN, close=$SCRIPT_CLOSE)${NC}"
         exit 1
       fi
 
-      STYLE_OPEN=$(grep -c '<style' "$f" 2>/dev/null || echo 0)
-      STYLE_CLOSE=$(grep -c '</style>' "$f" 2>/dev/null || echo 0)
+      STYLE_OPEN=$(grep -c '<style' "$f" 2>/dev/null || true)
+      STYLE_CLOSE=$(grep -c '</style>' "$f" 2>/dev/null || true)
       if [ "$STYLE_OPEN" -ne "$STYLE_CLOSE" ]; then
         echo "${RED}❌ $f: <style> 標籤數量不匹配 (open=$STYLE_OPEN, close=$STYLE_CLOSE)${NC}"
         exit 1
