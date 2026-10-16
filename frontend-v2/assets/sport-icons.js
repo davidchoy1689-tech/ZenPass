@@ -170,15 +170,46 @@ function sportIconImg(cat, size) {
 
 function sportIconPath(slug) { return "assets/icons/sports/" + slug + ".svg"; }
 
+function sportCardHtml(s) {
+  return '<a class="sport-card" href="explore.html?q=' + encodeURIComponent(s.name) + '">' +
+    '<img src="' + sportIconPath(s.slug) + '" alt="" loading="lazy">' +
+    '<span>' + s.name + '</span></a>';
+}
+
 function renderSportGrid(elId, limit) {
   var g = document.getElementById(elId || "sportGrid");
   if (!g || !SPORTS_CATALOGUE) return;
   var list = limit ? SPORTS_CATALOGUE.slice(0, limit) : SPORTS_CATALOGUE;
-  g.innerHTML = list.map(function (s) {
-    return '<a class="sport-card" href="explore.html?q=' + encodeURIComponent(s.name) + '">' +
-      '<img src="' + sportIconPath(s.slug) + '" alt="" loading="lazy">' +
-      '<span>' + s.name + '</span></a>';
+  var groups = [], by = {};
+  list.forEach(function (s) {
+    var k = s.group || "運動";
+    if (!by[k]) { by[k] = []; groups.push(k); }
+    by[k].push(s);
+  });
+  var tabs = '<div class="sport-tabs"><button type="button" class="chip sport-tab on" data-g="">全部 ' + list.length + '</button>' +
+    groups.map(function (k) {
+      return '<button type="button" class="chip sport-tab" data-g="' + k + '">' + k + ' ' + by[k].length + '</button>';
+    }).join("") + '</div>';
+  var sections = groups.map(function (k) {
+    return '<section class="sport-group" data-g="' + k + '">' +
+      '<div class="sport-group-title">' + k + ' <span class="n">' + by[k].length + '</span></div>' +
+      '<div class="sport-grid">' + by[k].map(sportCardHtml).join("") + '</div></section>';
   }).join("");
+  g.innerHTML = tabs + sections;
+  var tabsEl = g.querySelector(".sport-tabs");
+  if (tabsEl) {
+    tabsEl.addEventListener("click", function (e) {
+      var t = e.target.closest(".sport-tab"); if (!t) return;
+      var gk = t.getAttribute("data-g");
+      var all = tabsEl.querySelectorAll(".sport-tab");
+      for (var i = 0; i < all.length; i++) all[i].classList.remove("on");
+      t.classList.add("on");
+      var secs = g.querySelectorAll(".sport-group");
+      for (var j = 0; j < secs.length; j++) {
+        secs[j].style.display = (!gk || secs[j].getAttribute("data-g") === gk) ? "" : "none";
+      }
+    });
+  }
 }
 
 (function () {
