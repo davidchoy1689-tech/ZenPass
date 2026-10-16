@@ -4,6 +4,7 @@
  */
 
 const { v4: uuidv4 } = require("uuid");
+const { notifyNewApplication } = require("./lead-notify");
 const { getDb } = require("./database");
 const { writeBlock } = require("./blockchain-audit");
 const { dbNotification } = require("./notification");
@@ -136,6 +137,13 @@ function applyPartner(req) {
     venueId: id, reference: refNumber, action: "created",
     performedBy: email, data: { name, category, plan: planKey },
   });
+
+  // 即時通知負責人（唔阻塞；未配置管道都唔會出錯）
+  notifyNewApplication(
+    "場地",
+    { name, phone, email, contact_person, category, district, address, website, description, commission_plan: planKey },
+    refNumber,
+  ).catch((e) => console.error("lead notify failed:", e.message));
 
   // 若申請人已登入：將場地連結到該用戶，方便佢即時進入商戶中心
   if (req.user && req.user.id) {

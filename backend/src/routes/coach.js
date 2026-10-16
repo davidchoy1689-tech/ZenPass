@@ -9,6 +9,7 @@ const { getDb } = require("../services/database");
 const { authenticateToken } = require("../middleware/auth");
 const { getSupabase } = require("../services/supabase");
 const { sendNotification, dbNotification } = require("../services/notification");
+const { notifyNewApplication } = require("../services/lead-notify");
 
 const { writeBlock } = require("../services/blockchain-audit");
 
@@ -123,9 +124,17 @@ router.post("/apply", authenticateToken, (req, res) => {
       appRef,
     );
 
+    // 即時通知負責人（唔阻塞回應；未配置管道都唔會出錯）
+    notifyNewApplication(
+      "教練",
+      { name, phone, email, specialties, certificates, bio, venue_name, venue_address, years_experience },
+      appRef,
+    ).catch((e) => console.error("lead notify failed:", e.message));
+
     res.status(201).json({
-      message: "申請已提交，我們將在 3 個工作日內完成審批",
+      message: "申請已提交，我哋會喺 24 小時內完成審批",
       application_id: id,
+      reference: appRef,
     });
   } catch (err) {
     console.error("教練申請錯誤:", err);
