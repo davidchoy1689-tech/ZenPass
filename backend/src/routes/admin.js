@@ -11,6 +11,30 @@ const adminService = require("../services/admin-service");
 
 const router = express.Router();
 
+// ===== POST /api/admin/test-lead-notify — 測試加盟通知管道（唔會寫入任何申請紀錄）=====
+router.post("/test-lead-notify", authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const { notifyNewApplication } = require("../services/lead-notify");
+    const stamp = new Date().toISOString();
+    const channels = await notifyNewApplication(
+      "教練",
+      {
+        name: "【系統測試】加盟通知檢查",
+        phone: (req.body && req.body.phone) || "0000 0000",
+        email: (req.body && req.body.email) || "test@zenpass.hk",
+        specialties: ["測試"],
+        venue_address: "測試地址（可忽略）",
+        bio: `呢條係通知管道測試，時間：${stamp}。收到即代表通知正常。`,
+      },
+      "TEST-" + Date.now().toString().slice(-6),
+    );
+    res.json({ success: true, tested: true, at: stamp, channels });
+  } catch (err) {
+    console.error("test-lead-notify error:", err.message);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // ===== GET /api/admin/pending-payments =====
 router.get("/pending-payments", authenticateToken, requireAdmin, (req, res) => {
   try {
