@@ -248,3 +248,22 @@ img { max-width: 100%; display: block; }
 /* 課程卡 thumb（B） */
 .course .thumb { background: #f4f4f6; display: flex; align-items: center; justify-content: center; }
 .course .thumb img { width: 46px; height: 46px; display: block; }
+
+/* ===== 手機排版修正 ===== */
+/* chips 唔好被壓縮（否則中文逐字換行、行高爆） */
+.hscroll .chip, .sport-tabs .chip { flex: 0 0 auto; white-space: nowrap; }
+.hscroll { -webkit-overflow-scrolling: touch; }
+/* 課程卡縮細一點，手機更清爽 */
+.course .thumb { width: 84px; height: 64px; }
+.course .thumb img { width: 40px; height: 40px; }
+/* 運動項目：手機用 5 欄、間距細啲 */
+.sport-grid { gap: 10px; }
+@media (max-width: 420px) {
+  .sport-grid { grid-template-columns: repeat(auto-fill, minmax(60px, 1fr)); gap: 8px; }
+  .sport-tile { width: 52px; height: 52px; border-radius: 15px; }
+  .sport-tile img { width: 43px; height: 43px; }
+  .sport-name { font-size: 10.5px; max-width: 58px; }
+  .sport-tabs .chip { margin-right: 12px; font-size: 12px; }
+  .chip { padding: 4px 9px; font-size: 11.5px; }
+  .section-title { font-size: 15px; }
+}
