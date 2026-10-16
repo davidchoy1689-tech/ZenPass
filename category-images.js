@@ -46,11 +46,15 @@ var SPORT_ICONS = [
   ["健身", "gym"], ["gym", "gym"],
   ["hiit", "hiit"], ["間歇", "hiit"], ["心肺", "hiit"],
   ["拳擊", "boxing"], ["boxing", "boxing"],
-  ["芭蕾", "dance"], ["舞蹈", "dance"], ["dance", "dance"],
+  ["芭蕾", "ballet"], ["舞蹈", "dance"], ["dance", "dance"],
   ["皮拉提斯", "pilates"], ["pilates", "pilates"],
   ["太極", "tai-chi"], ["tai chi", "tai-chi"], ["太极", "tai-chi"],
   ["攀岩", "climbing"], ["抱石", "climbing"], ["climb", "climbing"],
   ["遠足", "hiking"], ["行山", "hiking"], ["hiking", "hiking"],
+  ["長者", "senior"], ["樂齡", "senior"], ["銀髮", "senior"], ["senior", "senior"],
+  ["游泳", "swimming"], ["游水", "swimming"], ["swim", "swimming"],
+  ["單車", "cycling"], ["摺車", "cycling"], ["cycling", "cycling"], ["bike", "cycling"],
+  ["桌球", "billiards"], ["撞球", "billiards"], ["billiard", "billiards"],
   ["露營", "camping"], ["camping", "camping"]
 ];
 

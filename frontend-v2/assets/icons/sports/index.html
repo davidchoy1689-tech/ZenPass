@@ -23,20 +23,24 @@
 </head>
 <body>
   <h1>ZenPass 項目圖案集</h1>
-  <p class="sub">統一 flat 風格 · 64×64 viewBox · SVG 向量 · 兩色系（墨黑 + 項目主色）· 共 22 個</p>
+  <p class="sub">統一 flat 風格 · 64×64 viewBox · SVG 向量 · 兩色系（墨黑 + 項目主色）· 共 27 個</p>
   <h2>新興運動 <span>／ Hong Kong Leisure &amp; Fitness</span></h2>
   <div class="grid" id="g1"></div>
   <h2>課堂類別 <span>／ Class Categories</span></h2>
   <div class="grid" id="g2"></div>
+  <h2>更多活動 <span>／ More Activities</span></h2>
+  <div class="grid" id="g3"></div>
   <div class="row" id="small"></div>
   <div class="note">同一組圖示可放 72px 卡片、40px 標籤、26px inline icon，線條依然清晰。</div>
 <script>
   const g1 = [["moelkkyla","芬蘭木柱","MÖLKKY"],["floor-curling","地板冰壺","FLOOR CURLING"],["cornhole","布袋球","CORNHOLE"],["air-storm","穿雲箭","AIR STORM"],["nordic-walking","北歐式健步行","NORDIC WALKING"],["roundnet","圓網球","ROUNDNET"],["rouliqiu","柔力球","ROULIQIU"],["flexi-bar","Flexi-Bar","FLEXI-BAR"],["stretching","身心伸展","STRETCHING"],["kids-fitness","兒童健體","KIDS FITNESS"]];
   const g2 = [["yoga","瑜伽","YOGA"],["meditation","冥想","MEDITATION"],["gym","健身","GYM"],["hiit","HIIT","HIIT"],["boxing","拳擊","BOXING"],["dance","舞蹈","DANCE"],["pilates","皮拉提斯","PILATES"],["aerial-yoga","空中瑜伽","AERIAL YOGA"],["tai-chi","太極","TAI CHI"],["climbing","攀岩","CLIMBING"],["hiking","遠足","HIKING"],["camping","露營","CAMPING"]];
+  const g3 = [["ballet","芭蕾","BALLET"],["senior","長者樂齡","ACTIVE AGEING"],["swimming","游泳","SWIMMING"],["cycling","單車","CYCLING"],["billiards","桌球","BILLIARDS"]];
   const card = ([s,zh,en]) => `<div class="card"><img src="${s}.svg" alt="${zh}"><div class="zh">${zh}</div><div class="en">${en}</div></div>`;
   document.getElementById("g1").innerHTML = g1.map(card).join("");
   document.getElementById("g2").innerHTML = g2.map(card).join("");
-  document.getElementById("small").innerHTML = [...g1, ...g2].map(([s,zh]) => `<img src="${s}.svg" alt="${zh}" class="sm">`).join("");
+  document.getElementById("g3").innerHTML = g3.map(card).join("");
+  document.getElementById("small").innerHTML = [...g1, ...g2, ...g3].map(([s,zh]) => `<img src="${s}.svg" alt="${zh}" class="sm">`).join("");
 </script>
 </body>
 </html>
