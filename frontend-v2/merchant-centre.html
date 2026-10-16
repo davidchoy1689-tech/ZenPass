@@ -23,6 +23,12 @@
     .fld { width:100%; box-sizing:border-box; padding:11px 12px; border:1px solid var(--border); border-radius:12px; font:inherit; background:var(--surface); color:var(--text); }
     .frm { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
     .frm .full { grid-column:1/-1; }
+    .switch { position: relative; display: inline-block; width: 46px; height: 26px; flex: 0 0 auto; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .switch span { position: absolute; inset: 0; background: #d1d5db; border-radius: 999px; transition: .2s; }
+    .switch span::before { content: ""; position: absolute; width: 20px; height: 20px; left: 3px; top: 3px; background: #fff; border-radius: 50%; transition: .2s; }
+    .switch input:checked + span { background: var(--brand-500); }
+    .switch input:checked + span::before { transform: translateX(20px); }
     .rdays { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
     .rday { display: inline-flex; align-items: center; gap: 5px; font-size: 13px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 999px; padding: 6px 11px; cursor: pointer; }
     .rday input { margin: 0; }
@@ -85,6 +91,25 @@
         </div>
       </div>
       <div class="card" id="courses"><div class="body muted">載入中…</div></div>
+
+      <div class="section-title">🏟️ 租場管理</div>
+      <div class="card" style="margin-bottom:10px"><div class="body">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+          <div><b style="font-size:14px">自動接受租場</b><div class="muted" style="font-size:12px">開啟後，符合規則嘅租場即時確認，其餘仍要你手動批准</div></div>
+          <label class="switch"><input type="checkbox" id="raEnabled"><span></span></label>
+        </div>
+        <div id="raRules" style="display:none;margin-top:10px">
+          <div class="lbl2">接受邊幾日</div>
+          <div class="rdays" id="raDays"></div>
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <div style="flex:1"><div class="lbl2">由</div><input class="fld full" id="raFrom" type="time" value="09:00"></div>
+            <div style="flex:1"><div class="lbl2">至</div><input class="fld full" id="raTo" type="time" value="22:00"></div>
+            <div style="flex:1"><div class="lbl2">最長（小時）</div><input class="fld full" id="raMax" type="number" min="1" max="12" value="4"></div>
+          </div>
+          <button class="btn btn-secondary btn-block mini" id="raSave" style="margin-top:8px">儲存自動接受規則</button>
+        </div>
+      </div></div>
+      <div class="card" id="rentals"><div class="body muted">載入中…</div></div>
 
       <div class="section-title">預約管理</div>
       <div class="card" style="margin-bottom:10px"><div class="body">
@@ -273,6 +298,42 @@
       $("bk-course").innerHTML = `<option value="">全部課程</option>` +
         courses.map(c => `<option value="${esc(c.id)}">${esc(c.title)}</option>`).join("");
       $("bk-course").value = cur;
+    }
+
+    /* ===== 🏟️ 租場管理 ===== */
+    const RA_DAYS = [["1","一"],["2","二"],["3","三"],["4","四"],["5","五"],["6","六"],["0","日"]];
+    async function loadRentals() {
+      const r = await api.get("/venue-rentals/incoming");
+      const box = $("rentals");
+      if (!r.ok) { box.innerHTML = '<div class="body muted">' + esc((r.data && r.data.error) || "未能載入租場") + "</div>"; return; }
+      const d = r.data || {};
+      // 自動接受設定
+      const auto = d.auto || { enabled: false, days: [], from: "09:00", to: "22:00", maxHours: 4 };
+      $("raEnabled").checked = !!auto.enabled;
+      $("raRules").style.display = auto.enabled ? "" : "none";
+      $("raFrom").value = auto.from; $("raTo").value = auto.to; $("raMax").value = auto.maxHours;
+      $("raDays").innerHTML = RA_DAYS.map(function (x) {
+        const on = (auto.days || []).indexOf(Number(x[0])) >= 0 ? " checked" : "";
+        return '<label class="rday"><input type="checkbox" value="' + x[0] + '"' + on + ">" + x[1] + "</label>";
+      }).join("");
+      // 租場列表
+      const rows = d.rentals || [];
+      box.innerHTML = rows.length ? rows.map(function (x) {
+        const st = { pending: "⏳ 待確認", confirmed: "✅ 已確認", cancelled: "✖ 已取消", completed: "✔ 完成" }[x.status] || x.status;
+        const when = String(x.start_time || "").replace("T", " ").slice(0, 16) + " → " + String(x.end_time || "").slice(11, 16);
+        return '<div class="row" style="align-items:flex-start">' +
+          '<div><b>' + esc(x.coach_name || "教練") + "</b> · " + st +
+          '<div class="muted" style="font-size:12px">' + esc(when) + (x.price_hkd ? " · " + hkd(x.price_hkd) : "") + "</div></div>" +
+          (x.status === "pending"
+            ? '<div style="white-space:nowrap"><button class="btn btn-primary mini" onclick="raDecide(\'' + esc(x.id) + '\',1)">確認</button> <button class="btn btn-secondary mini" onclick="raDecide(\'' + esc(x.id) + '\',0)">拒絕</button></div>'
+            : "") +
+          "</div>";
+      }).join("") : '<div class="body muted">暫無租場申請。</div>';
+    }
+    async function raDecide(id, ok) {
+      const r = await api.post("/venue-rentals/" + encodeURIComponent(id) + (ok ? "/confirm" : "/reject"), {});
+      if (r.ok) { alert(ok ? "✅ 已確認" : "已拒絕"); loadRentals(); }
+      else alert((r.data && r.data.error) || "操作失敗");
     }
 
     async function loadBookings() {

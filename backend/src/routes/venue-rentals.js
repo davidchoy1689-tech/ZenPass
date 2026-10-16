@@ -6,7 +6,7 @@
 const express = require("express");
 const { v4: uuidv4 } = require("uuid");
 const { getDb } = require("../services/database");
-const { authenticateToken, requireAdmin } = require("../middleware/auth");
+const { authenticateToken, requireAdmin, requireOwnInstitution } = require("../middleware/auth");
 const { sendNotification } = require("../services/notification");
 const {
   calcRentalCommission,
@@ -131,16 +131,21 @@ router.post("/book", authenticateToken, (req, res) => {
     const id = uuidv4();
     const price = price_hkd || Math.round(venue.commission_rate * 600);
 
+    // 場地若開咗「自動接受」→ 直接 confirmed；否則 pending 待場地確認
+    const autoCfg = _getAuto(venue_id);
+    const bookingStatus = _matchesAuto(autoCfg, start_time, end_time) ? "confirmed" : "pending";
+
     db.prepare(
       `
       INSERT INTO venue_rentals (id, venue_id, coach_id, start_time, end_time, price_hkd, status)
-      VALUES (?, ?, ?, ?, ?, ?, 'confirmed')
+      VALUES (?, ?, ?, ?, ?, ?, ?)
     `,
-    ).run(id, venue_id, req.user.id, start_time, end_time, price);
+    ).run(id, venue_id, req.user.id, start_time, end_time, price, bookingStatus);
 
     res.json({
       success: true,
       rental_id: id,
+      status: bookingStatus,
       venue: venue.name,
       start_time,
       end_time,
@@ -220,6 +225,139 @@ router.delete("/:id/cancel", authenticateToken, (req, res) => {
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
+});
+
+module.exports = router;
+
+// ==================== 場地端：審批 + 自動接受（2026-10-17）====================
+
+function _venueOf(userId) {
+  const db = getDb();
+  return (
+    db.prepare("SELECT * FROM partner_venues WHERE (owner_id = ? OR user_id = ?) AND status = 'active'").get(userId, userId) ||
+    db.prepare("SELECT * FROM partner_venues WHERE owner_id = ? OR user_id = ?").get(userId, userId) ||
+    null
+  );
+}
+
+const AUTO_KEY = (vid) => `venue.${vid}.rental_auto`;
+
+function _getAuto(venueId) {
+  try {
+    const db = getDb();
+    const row = db.prepare("SELECT value FROM platform_settings WHERE key = ?").get(AUTO_KEY(venueId));
+    if (row && row.value) {
+      const c = JSON.parse(row.value);
+      return { enabled: !!c.enabled, days: Array.isArray(c.days) ? c.days : [1, 2, 3, 4, 5], from: c.from || "09:00", to: c.to || "22:00", maxHours: Number(c.maxHours || 4) };
+    }
+  } catch (e) { /* ignore */ }
+  return { enabled: false, days: [1, 2, 3, 4, 5], from: "09:00", to: "22:00", maxHours: 4 };
+}
+
+function _setAuto(venueId, cfg) {
+  const db = getDb();
+  db.prepare("CREATE TABLE IF NOT EXISTS platform_settings (key TEXT PRIMARY KEY, value TEXT, description TEXT, created_at TEXT DEFAULT (datetime('now')), updated_at TEXT DEFAULT (datetime('now')))").run();
+  const clean = {
+    enabled: !!cfg.enabled,
+    days: (Array.isArray(cfg.days) ? cfg.days : []).map(Number).filter((d) => d >= 0 && d <= 6),
+    from: cfg.from || "09:00",
+    to: cfg.to || "22:00",
+    maxHours: Math.min(Math.max(Number(cfg.maxHours || 4), 1), 12),
+  };
+  const exists = db.prepare("SELECT key FROM platform_settings WHERE key = ?").get(AUTO_KEY(venueId));
+  if (exists) db.prepare("UPDATE platform_settings SET value = ?, updated_at = datetime('now') WHERE key = ?").run(JSON.stringify(clean), AUTO_KEY(venueId));
+  else db.prepare("INSERT INTO platform_settings (key, value, description) VALUES (?, ?, ?)").run(AUTO_KEY(venueId), JSON.stringify(clean), "場地租場自動接受規則");
+  return clean;
+}
+
+function _matchesAuto(cfg, startIso, endIso) {
+  if (!cfg.enabled) return false;
+  const st = new Date(startIso), en = new Date(endIso);
+  if (isNaN(st) || isNaN(en) || en <= st) return false;
+  const hk = new Date(st.toLocaleString("en-US", { timeZone: "Asia/Hong_Kong" }));
+  if (cfg.days.length && cfg.days.indexOf(hk.getDay()) < 0) return false;
+  const hours = (en - st) / 3600000;
+  if (hours > cfg.maxHours) return false;
+  const f = (d) => d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Hong_Kong" });
+  return f(st) >= cfg.from && f(en) <= cfg.to;
+}
+
+// ===== GET /api/venue-rentals/incoming — 場地睇自己嘅租場（含教練資料）=====
+router.get("/incoming", authenticateToken, requireOwnInstitution, (req, res) => {
+  try {
+    const db = getDb();
+    const venue = _venueOf(req.user.id);
+    if (!venue) return res.status(403).json({ success: false, error: "只有場地負責人可以使用" });
+    const rows = db.prepare(
+      `SELECT r.*, u.name AS coach_name, u.email AS coach_email, u.phone AS coach_phone
+       FROM venue_rentals r LEFT JOIN users u ON r.coach_id = u.id
+       WHERE r.venue_id = ?
+       ORDER BY CASE r.status WHEN 'pending' THEN 0 ELSE 1 END, r.start_time DESC LIMIT 200`,
+    ).all(venue.id);
+    res.json({ success: true, venue: venue.name, auto: _getAuto(venue.id), rentals: rows });
+  } catch (err) {
+    console.error("venue-rentals/incoming error:", err.message);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ===== POST /api/venue-rentals/:id/confirm — 場地確認（pending → confirmed）=====
+router.post("/:id/confirm", authenticateToken, requireOwnInstitution, (req, res) => {
+  try {
+    const db = getDb();
+    const venue = _venueOf(req.user.id);
+    if (!venue) return res.status(403).json({ success: false, error: "只有場地負責人可以使用" });
+    const r = db.prepare("SELECT * FROM venue_rentals WHERE id = ? AND venue_id = ?").get(req.params.id, venue.id);
+    if (!r) return res.status(404).json({ success: false, error: "租場紀錄不存在" });
+    if (r.status !== "pending") return res.status(400).json({ success: false, error: "只有待確認嘅租場可以確認" });
+    db.prepare("UPDATE venue_rentals SET status = 'confirmed' WHERE id = ?").run(req.params.id);
+    const coach = db.prepare("SELECT name, email FROM users WHERE id = ?").get(r.coach_id);
+    if (coach && coach.email) {
+      require("../services/notification").emailNotification(coach.email, "【ZenPass】租場已確認 ✅",
+        `<p>你嘅租場已獲場地確認：<b>${venue.name}</b><br>${r.start_time} — ${r.end_time}</p>`).catch(() => {});
+    }
+    res.json({ success: true, status: "confirmed" });
+  } catch (err) {
+    console.error("venue-rentals/confirm error:", err.message);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ===== POST /api/venue-rentals/:id/reject — 場地拒絕（→ cancelled）=====
+router.post("/:id/reject", authenticateToken, requireOwnInstitution, (req, res) => {
+  try {
+    const db = getDb();
+    const venue = _venueOf(req.user.id);
+    if (!venue) return res.status(403).json({ success: false, error: "只有場地負責人可以使用" });
+    const r = db.prepare("SELECT * FROM venue_rentals WHERE id = ? AND venue_id = ?").get(req.params.id, venue.id);
+    if (!r) return res.status(404).json({ success: false, error: "租場紀錄不存在" });
+    db.prepare("UPDATE venue_rentals SET status = 'cancelled' WHERE id = ?").run(req.params.id);
+    const coach = db.prepare("SELECT email FROM users WHERE id = ?").get(r.coach_id);
+    if (coach && coach.email) {
+      require("../services/notification").emailNotification(coach.email, "【ZenPass】租場未獲接受",
+        `<p>你嘅租場申請未獲 <b>${venue.name}</b> 接受。<br>${r.start_time} — ${r.end_time}<br>${(req.body && req.body.note) || ""}</p>`).catch(() => {});
+    }
+    res.json({ success: true, status: "cancelled" });
+  } catch (err) {
+    console.error("venue-rentals/reject error:", err.message);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ===== GET/POST /api/venue-rentals/auto — 自動接受設定 =====
+router.get("/auto", authenticateToken, requireOwnInstitution, (req, res) => {
+  try {
+    const venue = _venueOf(req.user.id);
+    res.json({ success: true, auto: venue ? _getAuto(venue.id) : null });
+  } catch (err) { res.status(500).json({ success: false, error: err.message }); }
+});
+
+router.post("/auto", authenticateToken, requireOwnInstitution, (req, res) => {
+  try {
+    const venue = _venueOf(req.user.id);
+    if (!venue) return res.status(403).json({ success: false, error: "只有場地負責人可以設定" });
+    res.json({ success: true, auto: _setAuto(venue.id, req.body || {}) });
+  } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
 module.exports = router;
