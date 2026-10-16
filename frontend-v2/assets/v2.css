@@ -284,3 +284,18 @@ img { max-width: 100%; display: block; }
   .sport-group-title { font-size: 12.5px; margin: 14px 0 8px; }
 }
 .sport-group { scroll-margin-top: 62px; }
+
+/* 運動項目：分類 = 橫向捲動一列 */
+.sport-row { display: flex; gap: 14px; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; padding: 2px 0 12px; }
+.sport-row::-webkit-scrollbar { display: none; }
+.sport-row .sport-card { flex: 0 0 auto; width: 66px; }
+.sport-row .sport-tile { width: 58px; height: 58px; border-radius: 17px; }
+.sport-row .sport-tile img { width: 48px; height: 48px; }
+@media (max-width: 420px) {
+  .sport-row { gap: 12px; }
+  .sport-row .sport-card { width: 60px; }
+  .sport-row .sport-tile { width: 52px; height: 52px; border-radius: 15px; }
+  .sport-row .sport-tile img { width: 43px; height: 43px; }
+}
+.sport-group-title { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: var(--text); margin: 14px 0 8px; padding-bottom: 0; border-bottom: 0; }
+.sport-group-title::after { content: ""; flex: 1; height: 1px; background: var(--border); }

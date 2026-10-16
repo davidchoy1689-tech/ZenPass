@@ -188,7 +188,7 @@ function renderSportGrid(elId, limit) {
   var sections = groups.map(function (k) {
     return '<section class="sport-group" data-g="' + k + '">' +
       '<div class="sport-group-title">' + k + ' <span class="n">' + by[k].length + '</span></div>' +
-      '<div class="sport-grid">' + by[k].map(tileHtml).join("") + '</div></section>';
+      '<div class="sport-row">' + by[k].map(tileHtml).join("") + '</div></section>';
   }).join("");
   g.innerHTML = tabs + sections;
   var tabsEl = g.querySelector(".sport-tabs");
