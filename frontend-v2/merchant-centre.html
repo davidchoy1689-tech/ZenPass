@@ -259,7 +259,7 @@
           <div class="row">
             <div><b>${esc(c.title)}</b><div class="muted" style="font-size:12px">${esc(c.category || "")} · ${c.booking_count || 0} 預約 · ${c.price_hkd ? hkd(c.price_hkd) : ((c.credits_cost||0)+" cr")}</div></div>
             <div style="white-space:nowrap">
-              <button class="btn btn-secondary mini" onclick="openAddSched('${esc(c.id)}')">＋時段</button>
+              <button class="btn btn-secondary mini" onclick="openAddSched('${esc(c.id)}')">🔁 排班</button>
               <button class="btn btn-secondary mini" onclick="openEdit('${esc(c.id)}')">編輯</button>
             </div>
           </div>`).join("")
@@ -375,20 +375,70 @@
     }
     function closeModal(el) { const o = el.closest(".modal-overlay"); if (o) o.remove(); }
 
+    /* ===== 快速排班：一次過開一學期（支援重複）===== */
+    function genSlots(baseDate, startTime, durationMin, repeat, untilDate, maxP) {
+      const out = [];
+      const pad2 = (n) => String(n).padStart(2, "0");
+      const localInput = (d) => d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate()) + "T" + pad2(d.getHours()) + ":" + pad2(d.getMinutes());
+      const step = { none: 0, daily: 1, weekly: 7, biweekly: 14, monthly: 0 }[repeat];
+      const d0 = new Date(baseDate + "T" + startTime + ":00");
+      if (isNaN(d0)) return out;
+      const until = untilDate ? new Date(untilDate + "T23:59:59") : null;
+      let cur = new Date(d0), n = 0;
+      while (n < 400) {
+        const end = new Date(cur.getTime() + durationMin * 60000);
+        out.push({ start_time: toISO(localInput(cur)), end_time: toISO(localInput(end)), max_participants: maxP || undefined });
+        n++;
+        if (repeat === "none") break;
+        if (repeat === "monthly") cur.setMonth(cur.getMonth() + 1);
+        else cur.setDate(cur.getDate() + step);
+        if (until && cur > until) break;
+        if (!until && n >= 8) break;
+      }
+      return out;
+    }
+
     function openAddSched(id) {
       const o = openModal(`
-        <h3>＋ 加時段</h3>
-        <div class="sched"><input class="fld sched-start" type="datetime-local"><input class="fld sched-end" type="datetime-local"><span></span></div>
+        <h3>＋ 快速排班（可重複）</h3>
+        <div class="lbl2">日期</div>
+        <input class="fld full qs-date" type="date">
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <input class="fld qs-time" type="time" value="19:00" style="flex:1">
+          <input class="fld qs-dur" type="number" min="15" value="60" placeholder="分鐘" style="flex:1">
+        </div>
+        <div class="lbl2" style="margin-top:10px">重複</div>
+        <select class="fld full qs-repeat">
+          <option value="none">單次</option>
+          <option value="weekly" selected>每週</option>
+          <option value="biweekly">隔週</option>
+          <option value="daily">每日</option>
+          <option value="monthly">每月</option>
+        </select>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <div style="flex:1"><div class="lbl2">直到（留空＝8 次）</div><input class="fld full qs-until" type="date"></div>
+          <div style="flex:1"><div class="lbl2">名額（可選）</div><input class="fld full qs-max" type="number" min="1"></div>
+        </div>
+        <p class="muted qs-preview" style="font-size:12.5px;margin:10px 0 0;min-height:18px"></p>
         <div class="actions">
-          <button class="btn btn-primary" id="asSave">新增</button>
+          <button class="btn btn-primary" id="asSave">生成時段</button>
           <button class="btn btn-secondary" onclick="closeModal(this)">取消</button>
         </div>`);
-      o.querySelector("#asSave").onclick = async () => {
-        const st = o.querySelector(".sched-start").value;
-        const en = o.querySelector(".sched-end").value;
-        if (!st || !en) { alert("請填開始同結束時間"); return; }
-        const r = await api.post(`/partner/courses/${encodeURIComponent(id)}/schedules`, { schedules: [{ start_time: toISO(st), end_time: toISO(en) }] });
-        if (r.ok) { o.remove(); alert("✅ 已新增時段"); }
+      const q = (sel) => o.querySelector(sel);
+      function preview() {
+        const list = genSlots(q(".qs-date").value, q(".qs-time").value || "19:00", Number(q(".qs-dur").value || 60), q(".qs-repeat").value, q(".qs-until").value, q(".qs-max").value ? Number(q(".qs-max").value) : null);
+        q(".qs-preview").textContent = list.length ? ("將建立 " + list.length + " 個時段（" + list[0].start_time.slice(0, 16) + " 起）") : "請先揀日期";
+        return list;
+      }
+      o.querySelectorAll("input,select").forEach(function (el) { el.addEventListener("change", preview); });
+      q(".qs-date").value = new Date().toISOString().slice(0, 10);
+      preview();
+      q("#asSave").onclick = async () => {
+        const list = preview();
+        if (!list.length) { alert("請先揀日期"); return; }
+        if (!confirm("確定建立 " + list.length + " 個時段？")) return;
+        const r = await api.post("/partner/courses/" + encodeURIComponent(id) + "/schedules", { schedules: list.map(function (x) { return { start_time: x.start_time, end_time: x.end_time, max_participants: x.max_participants }; }) });
+        if (r.ok) { o.remove(); alert("✅ 已新增 " + list.length + " 個時段"); location.reload(); }
         else alert((r.data && r.data.error) || "新增失敗");
       };
     }
