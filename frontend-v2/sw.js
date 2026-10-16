@@ -1,17 +1,24 @@
-/* ZenPass v2 Service Worker — app shell (v1)
+/* ZenPass v2 Service Worker — app shell (v2)
  * 導航：network-first（離線 fallback 去 app shell）
  * 靜態資源：cache-first
  * /api/：永不快取（確保資料即時）
  */
-const CACHE = "zenpass-v2-shell-v1";
+const CACHE = "zenpass-v2-shell-v2";
 const ASSETS = [
   "/",
   "/index.html",
+  "/explore.html",
   "/assets/v2.css",
   "/assets/api.js",
   "/assets/holidays.js",
+  "/assets/sport-icons.js",
   "/manifest.json",
+  "/icons/icon-96.png",
   "/icons/icon-192.png",
+  "/icons/icon-512.png",
+  "/icons/icon-192-maskable.png",
+  "/icons/icon-512-maskable.png",
+  "/icons/apple-touch-icon-180.png",
 ];
 
 self.addEventListener("install", (e) => {
@@ -45,8 +52,10 @@ self.addEventListener("fetch", (e) => {
         r ||
         fetch(req)
           .then((res) => {
-            const copy = res.clone();
-            caches.open(CACHE).then((c) => c.put(req, copy)).catch(() => {});
+            if (res && res.ok && res.type === "basic") {
+              const copy = res.clone();
+              caches.open(CACHE).then((c) => c.put(req, copy)).catch(() => {});
+            }
             return res;
           })
           .catch(() => r),
