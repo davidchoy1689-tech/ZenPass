@@ -13,7 +13,7 @@
   .wrap{display:flex;gap:32px;align-items:flex-start;flex-wrap:wrap}
   .grid{display:grid;grid-template-columns:repeat(8,1fr);gap:14px;max-width:680px}
   .tilewrap{text-align:center}
-  .tile{width:58px;height:58px;border-radius:17px;display:flex;align-items:center;justify-content:center;margin:0 auto 6px;box-shadow:0 1px 3px rgba(0,0,0,.06),inset 0 0 0 .5px rgba(0,0,0,.04)}
+  .tile{width:58px;height:58px;border-radius:17px;display:flex;align-items:center;justify-content:center;margin:0 auto 6px;box-shadow:0 1px 2px rgba(0,0,0,.05),0 5px 14px rgba(0,0,0,.045),inset 0 .5px 0 rgba(255,255,255,.65)}
   .tile svg{width:33px;height:33px;display:block}
   .tilewrap .lbl{font-size:10.5px;font-weight:600;color:#3a3a3c}
   .phone{width:330px;background:#fff;border-radius:34px;box-shadow:0 10px 40px rgba(0,0,0,.14),0 0 0 10px #e9e9ee;overflow:hidden;flex:0 0 auto}
@@ -79,12 +79,12 @@
   }
   fetch("../sports/manifest.json").then(r=>r.json()).then(m=>{
     const acc = {}; m.icons.forEach(i => acc[i.slug] = i.accent);
-    const tile = (i, cls) => `<div class="tilewrap ${cls||''}"><div class="tile" data-s="${i.slug}" style="background:${tint(i.accent,.13)};color:${i.accent}"></div><div class="lbl">${i.name}</div></div>`;
+    const tile = (i, cls) => `<div class="tilewrap ${cls||''}"><div class="tile" data-s="${i.slug}" style="background:linear-gradient(150deg,${tint(i.accent,.22)},${tint(i.accent,.07)});color:${i.accent}"></div><div class="lbl">${i.name}</div></div>`;
     document.getElementById("grid").innerHTML = m.icons.map(i => tile(i)).join("");
     const pick = ["moelkkyla","floor-curling","roundnet","yoga","basketball","football","swimming","boxing"];
-    document.getElementById("phgrid").innerHTML = pick.map(s => { const i = m.icons.find(x=>x.slug===s); return i ? `<div class="ph-item"><div class="tile" data-s="${i.slug}" style="background:${tint(i.accent,.13)};color:${i.accent}"></div><div class="lbl">${i.name}</div></div>` : ""; }).join("");
+    document.getElementById("phgrid").innerHTML = pick.map(s => { const i = m.icons.find(x=>x.slug===s); return i ? `<div class="ph-item"><div class="tile" data-s="${i.slug}" style="background:linear-gradient(150deg,${tint(i.accent,.22)},${tint(i.accent,.07)});color:${i.accent}"></div><div class="lbl">${i.name}</div></div>` : ""; }).join("");
     const pc = [["yoga","流瑜伽 Flow Yoga","靜儀導師 · 60min"],["basketball","週末籃球班","Alex 教練 · 90min"]];
-    document.getElementById("phcards").innerHTML = pc.map(([s,nm,sub])=>{ const i=m.icons.find(x=>x.slug===s); return `<div class="ph-card"><div class="tile" data-s="${s}" style="background:${tint(i.accent,.13)};color:${i.accent}"></div><div><div class="nm">${nm}</div><div class="s2">${sub}</div></div></div>`; }).join("");
+    document.getElementById("phcards").innerHTML = pc.map(([s,nm,sub])=>{ const i=m.icons.find(x=>x.slug===s); return `<div class="ph-card"><div class="tile" data-s="${s}" style="background:linear-gradient(150deg,${tint(i.accent,.22)},${tint(i.accent,.07)});color:${i.accent}"></div><div><div class="nm">${nm}</div><div class="s2">${sub}</div></div></div>`; }).join("");
     const dpick = ["yoga","basketball","football","swimming","cycling","running","boxing","dance","hiking","tai-chi"];
     document.getElementById("dark").innerHTML = dpick.map(s=>{ const i=m.icons.find(x=>x.slug===s); return i?`<div class="tile" data-s="${s}" style="background:${tint(i.accent,.28)};color:${i.accent}"></div>`:""; }).join("");
     // fill
