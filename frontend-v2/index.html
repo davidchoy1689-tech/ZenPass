@@ -36,14 +36,17 @@
   <meta name="twitter:title" content="ZenPass 禪流 | 一Pass通行全城運動與新興運動體驗" />
   <meta name="twitter:description" content="免費登記 ZenPass！新用戶輸入優惠碼 WELCOME50 即享首堂半價。精選全港瑜伽、芬蘭木柱、地板冰壺、HIIT 等百款運動體驗。" />
   <meta name="twitter:image" content="https://zenpass.hk/assets/og/zenpass-og.jpg" />
-  <link rel="stylesheet" href="assets/v2.css?v=14" />
+  <link rel="stylesheet" href="assets/v2.css?v=15" />
 </head>
 <body>
   <div class="wrap">
     <div class="hero">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
         <strong style="font-size:15px;letter-spacing:.5px">ZenPass 禪流</strong>
-        <a href="my.html" style="font-size:13px;opacity:.9">我的 ›</a>
+        <div style="display:flex;align-items:center;gap:10px">
+          <button class="hero-btn" id="shareBtn" type="button">分享 ↗</button>
+          <a href="my.html" style="font-size:13px;opacity:.9">我的 ›</a>
+        </div>
       </div>
       <h1>郁一郁，身體好</h1>
       <p>芬蘭木柱・地板冰壺・布袋球… 搵堂、預約、簽到，一 app 搞掂。</p>
@@ -180,6 +183,22 @@
         }
       }
       if (btn) btn.addEventListener("click", doCopy);
+
+      /* --- 分享 --- */
+      var SHARE = {
+        title: "ZenPass 禪流 | 一Pass通行全城運動與新興運動體驗",
+        text: "免費登記 ZenPass！新用戶輸入優惠碼 WELCOME50 即享首堂半價。",
+        url: "https://zenpass.hk/index.html"
+      };
+      var sb = document.getElementById("shareBtn");
+      if (sb) sb.addEventListener("click", function () {
+        if (navigator.share) {
+          navigator.share(SHARE).catch(function () {});
+          return;
+        }
+        window.open("https://wa.me/?text=" + encodeURIComponent(SHARE.title + "\n" + SHARE.url), "_blank");
+        showToast("已開啟分享（WhatsApp）");
+      });
 
       /* --- 快捷搜尋 --- */
       var FALLBACK_CATS = ["新興運動","伸展","健身","瑜伽","兒童體適能","拳擊","舞蹈","籃球","游泳","太極"];
