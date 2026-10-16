@@ -377,11 +377,12 @@ function createCourse(userId, body) {
     ? Number(credits_cost)
     : Math.max(3, Math.round(price_hkd / 10));
   const finalPrice = price_hkd ? Number(price_hkd) : 0;
-  // 自動分區：標準化為香港 18 區名（優先用地址／場地名，否則沿用場地登記 district）
+  // 自動分區：標準化為香港 18 區名（場地登記 district 優先，其次地址／場地名）
   let district = "";
   try {
     const { resolveDistrict } = require("./district");
-    district = resolveDistrict([venue.district, venue.address, venue.name].filter(Boolean).join(" "));
+    district = resolveDistrict(venue.district);
+    if (!district) district = resolveDistrict([venue.address, venue.name].filter(Boolean).join(" "));
   } catch (e) {
     district = "";
   }

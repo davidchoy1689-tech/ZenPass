@@ -345,9 +345,8 @@ function updateDatabase() {
           /* partner_venues 可能未存在 */
         }
       }
-      const raw = [pvDist, r.venue_address, r.venue_name].filter(Boolean).join(" ");
-      let dist = resolveDistrict(raw);
-      if (!dist && pvDist && names.has(pvDist)) dist = pvDist;
+      let dist = resolveDistrict(pvDist);
+      if (!dist) dist = resolveDistrict([r.venue_address, r.venue_name].filter(Boolean).join(" "));
       if (!dist && r.district && names.has(r.district)) dist = r.district;
       if (dist && dist !== r.district) {
         upd.run(dist, r.id);
