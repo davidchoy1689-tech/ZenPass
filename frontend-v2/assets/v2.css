@@ -299,3 +299,20 @@ img { max-width: 100%; display: block; }
 }
 .sport-group-title { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: var(--text); margin: 14px 0 8px; padding-bottom: 0; border-bottom: 0; }
 .sport-group-title::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+
+/* 運動項目橫排：整齊化 */
+.sport-group-title { margin: 14px 0 6px; font-size: 12.5px; letter-spacing: .2px; }
+.sport-group-title .n { margin-left: auto; }
+.sport-group-title::after { display: none; }
+.sport-row { scroll-snap-type: x proximity; gap: 12px; padding: 2px 16px 12px 0; }
+.sport-row .sport-card { scroll-snap-align: start; width: 62px; }
+.sport-row .sport-tile { width: 56px; height: 56px; border-radius: 16px; }
+.sport-row .sport-tile img { width: 46px; height: 46px; }
+.sport-row .sport-name { width: 62px; height: 2.5em; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; font-size: 10.5px; }
+@media (max-width: 420px) {
+  .sport-row { gap: 10px; }
+  .sport-row .sport-card { width: 58px; }
+  .sport-row .sport-tile { width: 52px; height: 52px; border-radius: 15px; }
+  .sport-row .sport-tile img { width: 43px; height: 43px; }
+  .sport-row .sport-name { width: 58px; font-size: 10px; height: 2.6em; }
+}
