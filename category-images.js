@@ -55,7 +55,19 @@ var SPORT_ICONS = [
   ["游泳", "swimming"], ["游水", "swimming"], ["swim", "swimming"],
   ["單車", "cycling"], ["摺車", "cycling"], ["cycling", "cycling"], ["bike", "cycling"],
   ["桌球", "billiards"], ["撞球", "billiards"], ["billiard", "billiards"],
-  ["露營", "camping"], ["camping", "camping"]
+  ["露營", "camping"], ["camping", "camping"],
+  ["乒乓球", "table-tennis"], ["乒乓", "table-tennis"], ["table tennis", "table-tennis"],
+  ["羽毛球", "badminton"], ["羽球", "badminton"], ["badminton", "badminton"],
+  ["籃球", "basketball"], ["篮球", "basketball"], ["basketball", "basketball"],
+  ["足球", "football"], ["足球", "football"], ["football", "football"], ["soccer", "football"],
+  ["排球", "volleyball"], ["volleyball", "volleyball"],
+  ["網球", "tennis"], ["网球", "tennis"], ["tennis", "tennis"],
+  ["武術", "martial-arts"], ["功夫", "martial-arts"], ["詠春", "martial-arts"], ["泰拳", "martial-arts"], ["跆拳", "martial-arts"], ["martial", "martial-arts"], ["kung fu", "martial-arts"], ["karate", "martial-arts"],
+  ["跳繩", "skipping"], ["跳绳", "skipping"], ["jump rope", "skipping"],
+  ["跑步", "running"], ["馬拉松", "running"], ["田徑", "running"], ["running", "running"],
+  ["保齡", "bowling"], ["bowling", "bowling"],
+  ["高爾夫", "golf"], ["golf", "golf"],
+  ["射箭", "archery"], ["archery", "archery"]
 ];
 
 function getCategoryIcon(cat) {
