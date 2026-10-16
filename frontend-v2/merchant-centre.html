@@ -124,6 +124,7 @@
   </nav>
 
   <script src="assets/api.js"></script>
+  <script src="assets/sport-icons.js?v=12"></script>
   <script>
     const $ = (id) => document.getElementById(id);
     let venueCoaches = [];
@@ -422,6 +423,16 @@
         else alert((r.data && r.data.error) || "更新失敗");
       };
     }
+  </script>
+  <script>
+    (function () {
+      var dl = document.getElementById("cats");
+      if (!dl || !window.SPORTS_CATALOGUE) return;
+      var existing = [...dl.querySelectorAll("option")].map(function (o) { return o.textContent; });
+      var names = SPORTS_CATALOGUE.map(function (s) { return s.name; });
+      var all = existing.concat(names.filter(function (n) { return existing.indexOf(n) < 0; }));
+      dl.innerHTML = all.map(function (n) { return "<option>" + n + "</option>"; }).join("");
+    })();
   </script>
   <script src="assets/footer.js?v=2" defer></script>
 </body>

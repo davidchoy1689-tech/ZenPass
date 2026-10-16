@@ -159,6 +159,24 @@ function sportSlug(cat) {
   }
   return ;
 }
+var SPORT_DEFAULT_SLUG = "running";
+function sportSlugLoose(cat, title) {
+  var b = sportSlug(title);          // 標題通常寫明該運動（例：【新手體驗】芬蘭木柱…）
+  if (b && b !== "roundnet") return b;
+  var a = sportSlug(cat);
+  if (a) return a;
+  if (b) return b;
+  return SPORT_DEFAULT_SLUG;
+}
+function sportIconImgLoose(cat, title, size) {
+  var g = sportSlugLoose(cat, title);
+  var n = size || 16;
+  return '<img class="sport-ic" src="assets/icons/sports/' + g + '.svg" alt="" width="' + n + '" height="' + n + '" style="width:' + n + 'px;height:' + n + 'px" loading="lazy">';
+}
+function sportTintLoose(cat, title, p) {
+  var c = SPORT_COLORS[sportSlugLoose(cat, title)] || "#ff6b35";
+  return mixHex(c, "#ffffff", 1 - (p || 0.14));
+}
 function getCategoryIcon(cat) { var g = sportSlug(cat); return g ? "assets/icons/sports/" + g + ".svg" : ""; }
 function sportColor(cat) { var g = sportSlug(cat); return g ? (SPORT_COLORS[g] || "#ff6b35") : ""; }
 function sportIconImg(cat, size) {
