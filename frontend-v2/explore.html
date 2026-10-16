@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#ff6b35" />
   <title>探索課程 · ZenPass 禪流</title>
-  <link rel="stylesheet" href="assets/v2.css?v=21" />
+  <link rel="stylesheet" href="assets/v2.css?v=22" />
 </head>
 <body>
   <div class="topbar"><div class="title">探索課程</div></div>
@@ -65,8 +65,9 @@
       if (q) url += "&search=" + encodeURIComponent(q);
       const r = await api.get(url);
       let arr = (r.data && (r.data.classes || r.data.items)) || [];
-      arr = arr.filter(inArea);
-      document.getElementById("count").textContent = arr.length + " 個課程";
+      arr = arr.filter(inArea).filter(inScene);
+      const cnt = document.getElementById("count");
+      cnt.textContent = (SCENE && SCENES[SCENE] ? SCENES[SCENE].label + " · " : "") + arr.length + " 個課程";
       list.innerHTML = arr.length ? arr.map(card).join("") : `<div class="card"><div class="body muted">冇符合嘅課程，試下清除篩選。</div></div>`;
     }
     document.getElementById("cats").addEventListener("click", (e) => {
@@ -89,11 +90,29 @@
       const hay = [c.venue_name, c.venue_address, c.location, c.area, c.district].filter(Boolean).join(" ");
       return kws.some(k => hay.indexOf(k) >= 0);
     }
+    // 場景 / 情境快捷搜尋
+    const SCENES = {
+      family:   { label: "👨‍👩‍👧‍👦 親子 / 樂齡好去處", kw: ["兒童", "親子", "長者", "樂齡", "銀髮", "kids", "senior", "家庭", "小童", "幼"] },
+      office:   { label: "💼 放工放鬆 / 辦公室伸展", kw: ["瑜伽", "伸展", "身心", "冥想", "普拉提", "pilates", "yoga", "stretch", "頌缽", "放鬆", "舒壓", "氣功", "太極", "barre"] },
+      burn:     { label: "🥊 高效燃脂 / 減脂汗水", kw: ["hiit", "燃脂", "減脂", "健身", "拳擊", "體能", "飛輪", "跳繩", "核心", "boxing", "cardio", "有氧", "塑形", "體重", "spinning"] },
+      beginner: { label: "🧩 新手友善 / 無需經驗", kw: ["新手", "體驗", "入門", "初級", "beginner", "零基礎", "基礎"] },
+    };
+    const SCENE = new URLSearchParams(location.search).get("scene") || "";
+    function inScene(c) {
+      if (!SCENE || !SCENES[SCENE]) return true;
+      if (SCENE === "beginner" && String(c.difficulty || "").toLowerCase() === "beginner") return true;
+      const hay = [c.title, c.category, c.target_audience, c.sport_slug, c.difficulty].filter(Boolean).join(" ").toLowerCase();
+      return SCENES[SCENE].kw.some(k => hay.indexOf(k) >= 0);
+    }
     (async () => {
       const q0 = new URLSearchParams(location.search).get("q") || "";
       if (AREA0) {
         const cats = document.getElementById("cats");
         cats.insertAdjacentHTML("beforebegin", '<div class="area-bar">📍 ' + AREA0 + ' <a href="explore.html' + (q0 ? ("?q=" + encodeURIComponent(q0)) : "") + '">✕ 清除</a></div>');
+      }
+      if (SCENE && SCENES[SCENE]) {
+        const cats = document.getElementById("cats");
+        cats.insertAdjacentHTML("beforebegin", '<div class="area-bar">' + SCENES[SCENE].label + ' <a href="explore.html' + (q0 ? ("?q=" + encodeURIComponent(q0)) : "") + '">✕ 清除</a></div>');
       }
       if (q0) document.getElementById("q").value = q0;
       const r = await api.get("/classes/categories");
