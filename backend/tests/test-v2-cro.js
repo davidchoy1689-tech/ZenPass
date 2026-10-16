@@ -14,8 +14,8 @@ const has = (s, m, label) => { if (!s.includes(m)) fails.push("missing " + (labe
 
 // 1. WhatsApp 浮動客服
 has(idx, 'class="wa-float"', "wa float");
-has(idx, "https://wa.me/85223870724", "wa number 85223870724");
-if (!/wa\.me\/85223870724\?text=/.test(idx)) fails.push("wa float should prefill text");
+has(idx, "https://wa.me/85290335538", "wa number 85290335538");
+if (!/wa\.me\/85290335538\?text=/.test(idx)) fails.push("wa float should prefill text");
 if (!/class="wa-float"[^>]*target="_blank"[^>]*rel="noopener"/.test(idx)) fails.push("wa float new tab");
 has(css, ".wa-float {", "wa float css");
 has(css, "@keyframes waPulse", "pulse animation");
