@@ -191,20 +191,18 @@ function renderSportGrid(elId, limit) {
       '<div class="sport-grid">' + by[k].map(tileHtml).join("") + '</div></section>';
   }).join("");
   g.innerHTML = tabs + sections;
-  function apply(gk) {
-    var secs = g.querySelectorAll(".sport-group");
-    for (var j = 0; j < secs.length; j++) {
-      secs[j].style.display = (gk === "__all" || secs[j].getAttribute("data-g") === gk) ? "" : "none";
-    }
-  }
-  apply(groups[0]);
   var tabsEl = g.querySelector(".sport-tabs");
-  if (tabsEl) { var ft = tabsEl.querySelector('.sport-tab[data-g="' + groups[0] + '"]'); if (ft) ft.classList.add("on"); }
+  var allTab = tabsEl && tabsEl.querySelector('.sport-tab[data-g="__all"]');
+  if (allTab) allTab.classList.add("on");
   if (tabsEl) tabsEl.addEventListener("click", function (e) {
     var t = e.target.closest(".sport-tab"); if (!t) return;
     var all = tabsEl.querySelectorAll(".sport-tab");
     for (var i = 0; i < all.length; i++) all[i].classList.remove("on");
-    t.classList.add("on"); apply(t.getAttribute("data-g"));
+    t.classList.add("on");
+    var gk = t.getAttribute("data-g");
+    if (gk === "__all") { g.scrollIntoView({ behavior: "smooth", block: "start" }); return; }
+    var sec = g.querySelector('.sport-group[data-g="' + gk + '"]');
+    if (sec) sec.scrollIntoView({ behavior: "smooth", block: "start" });
   });
 }
 
