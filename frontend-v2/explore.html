@@ -30,6 +30,7 @@
   </nav>
 
   <script src="assets/api.js"></script>
+  <script src="assets/sport-icons.js"></script>
   <script>
     const list = document.getElementById("list");
     function card(c) {
@@ -46,7 +47,7 @@
       }
       const aud = c.target_audience || ({ beginner: "初級 / 新手友善", intermediate: "中級", advanced: "高級" }[c.difficulty]) || "";
       return `<a class="card" href="class-detail.html?id=${encodeURIComponent(c.id)}"><div class="body course">
-        <div class="thumb"></div>
+        <div class="thumb">${(typeof sportIconImg === "function" ? sportIconImg(c.category || c.cat || "", 52) : "")}</div>
         <div class="meta"><p class="name">${esc(c.title)}</p>
           <p class="sub">${esc(c.category || "")}${c.duration ? " · " + c.duration + " 分鐘" : ""}${c.venue_name ? " · 📍 " + esc(c.venue_name) : ""}</p>
           ${next ? `<p class="sub" style="color:var(--brand-600)">📅 ${esc(next)}</p>` : `<p class="sub">暫無時段</p>`}

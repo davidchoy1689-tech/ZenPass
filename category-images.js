@@ -76,6 +76,7 @@ var SPORT_ICONS = [
   ["障礙賽", "obstacle-race"], ["障碍", "obstacle-race"], ["obstacle", "obstacle-race"], ["spartan", "obstacle-race"],
   ["拔河", "tug-of-war"], ["tug of war", "tug-of-war"],
   ["藝術體操", "rhythmic-gymnastics"], ["艺术体操", "rhythmic-gymnastics"], ["韻律體操", "rhythmic-gymnastics"], ["rhythmic", "rhythmic-gymnastics"],
+  ["新興運動", "roundnet"], ["trx", "gym"], ["懸吊", "gym"], ["肌力", "weightlifting"], ["水中", "aqua-aerobics"],
   ["芬蘭木柱", "moelkkyla"], ["木柱", "moelkkyla"], ["molkky", "moelkkyla"], ["mölkky", "moelkkyla"],
   ["地板冰壺", "floor-curling"], ["地板冰壶", "floor-curling"],
   ["布袋球", "cornhole"], ["cornhole", "cornhole"],

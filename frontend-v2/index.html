@@ -59,12 +59,13 @@
   </nav>
 
   <script src="assets/api.js"></script>
+  <script src="assets/sport-icons.js"></script>
   <script>
     const box = document.getElementById("courses");
     function card(c) {
       return `<a class="card" href="class-detail.html?id=${encodeURIComponent(c.id)}">
         <div class="body course">
-          <div class="thumb"></div>
+          <div class="thumb">${(typeof sportIconImg === "function" ? sportIconImg(c.category || c.cat || "", 52) : "")}</div>
           <div class="meta">
             <p class="name">${esc(c.title)}</p>
             <p class="sub">${esc(c.category || "")}${c.duration ? " · " + c.duration + " 分鐘" : ""}</p>
