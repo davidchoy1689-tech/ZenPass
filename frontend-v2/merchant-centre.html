@@ -298,6 +298,7 @@
             <div style="white-space:nowrap">
               <button class="btn btn-secondary mini" onclick="openAddSched('${esc(c.id)}')">🔁 排班</button>
               <button class="btn btn-secondary mini" onclick="openRentSlots('${esc(c.id)}')">🏟️ 租場時段</button>
+              <button class="btn btn-secondary mini" onclick="openDuplicate('${esc(c.id)}')">📋 複製</button>
               <button class="btn btn-secondary mini" onclick="openEdit('${esc(c.id)}')">編輯</button>
             </div>
           </div>`).join("")
@@ -604,6 +605,45 @@
         const r = await api.post("/partner/courses/" + encodeURIComponent(id) + "/schedules", { schedules: list.map(function (x) { return { start_time: x.start_time, end_time: x.end_time, max_participants: x.max_participants }; }) });
         if (r.ok) { o.remove(); alert("✅ 已新增 " + list.length + " 個時段"); location.reload(); }
         else alert((r.data && r.data.error) || "新增失敗");
+      };
+    }
+
+    /* ===== 📋 一鍵複製課程（連時段，可複製多期）===== */
+    function openDuplicate(id) {
+      const c = courses.find(x => x.id === id);
+      const o = openModal(`
+        <h3>📋 複製課程</h3>
+        <p class="muted" style="font-size:12.5px;margin:0 0 8px">由「${esc(c ? c.title : '課程')}」複製一個新課程，時段會按星期自動搬去下一期（方便開新一個月）</p>
+        <div style="display:flex;gap:8px">
+          <div style="flex:1"><div class="lbl2">複製幾期</div><input class="fld full dp-copies" type="number" min="1" max="12" value="1"></div>
+          <div style="flex:1"><div class="lbl2">每期間隔（日）</div><input class="fld full dp-shift" type="number" min="1" max="365" value="7"></div>
+        </div>
+        <div class="lbl2" style="margin-top:10px">新標題尾（可選）</div>
+        <input class="fld full dp-suffix" placeholder="例：（11 月）">
+        <p class="muted dp-preview" style="font-size:12.5px;margin:10px 0 0;min-height:18px"></p>
+        <div class="actions">
+          <button class="btn btn-primary" id="dpSave">複製課程</button>
+          <button class="btn btn-secondary" onclick="closeModal(this)">取消</button>
+        </div>`);
+      const q = (sel) => o.querySelector(sel);
+      const srcSchedules = (c && c.schedules) ? c.schedules.length : "?";
+      function preview() {
+        const copies = Math.max(1, Math.min(12, Number(q(".dp-copies").value) || 1));
+        const n = (typeof srcSchedules === "number") ? srcSchedules * copies : null;
+        q(".dp-preview").textContent = n != null ? `將建立 ${copies} 個時段組，共約 ${n} 個新時段` : `將建立 ${copies} 個時段組`;
+      }
+      o.querySelectorAll("input").forEach((el) => el.addEventListener("change", preview));
+      preview();
+      q("#dpSave").onclick = async () => {
+        const body = {
+          copies: Number(q(".dp-copies").value) || 1,
+          shift_days: Number(q(".dp-shift").value) || 7,
+          title_suffix: q(".dp-suffix").value || "",
+        };
+        if (!confirm("確定複製？")) return;
+        const r = await api.post("/partner/courses/" + encodeURIComponent(id) + "/duplicate", body);
+        if (r.ok) { o.remove(); alert("✅ " + ((r.data && r.data.message) || "已複製")); location.reload(); }
+        else alert((r.data && r.data.error) || "複製失敗");
       };
     }
 

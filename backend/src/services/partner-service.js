@@ -537,6 +537,86 @@ function addCourseSchedule(userId, courseId, body) {
   };
 }
 
+// ==================== 課程模板 / 一鍵複製 ====================
+function duplicateCourse(userId, courseId, opts) {
+  const venue = _getUserVenue(userId);
+  if (!venue) {
+    return { status: 403, body: { success: false, error: "你未有已開通嘅商戶戶口" } };
+  }
+  const db = getDb();
+  db.pragma("foreign_keys = ON");
+
+  const src = db
+    .prepare(
+      "SELECT * FROM classes WHERE id = ? AND (partner_id = ? OR partner_venue_id = ? OR venue_name = ?)",
+    )
+    .get(courseId, venue.id, venue.id, venue.name);
+  if (!src) {
+    return { status: 404, body: { success: false, error: "課程不存在或唔屬於你" } };
+  }
+
+  opts = opts || {};
+  const copies = Math.min(Math.max(parseInt(opts.copies, 10) || 1, 1), 12);
+  const shiftDays = Math.min(Math.max(parseFloat(opts.shift_days) || 7, 1), 365);
+  const suffix = typeof opts.title_suffix === "string" ? opts.title_suffix : "";
+  const copySchedules = opts.copy_schedules !== false;
+
+  const newTitle = (src.title || "課程") + suffix;
+  const newId = uuidv4();
+
+  db.prepare(
+    `INSERT INTO classes (id, coach_id, title, description, category, difficulty,
+       duration, max_participants, price_hkd, credits_cost, venue_name, venue_address,
+       target_audience, image_url, partner_venue_id, partner_id, status, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', datetime('now'), datetime('now'))`,
+  ).run(
+    newId, src.coach_id, newTitle, src.description || "", src.category, src.difficulty || "beginner",
+    src.duration, src.max_participants || 15, src.price_hkd || 0, src.credits_cost || 0,
+    src.venue_name || venue.name, src.venue_address || "",
+    src.target_audience || null, src.image_url || null, venue.id, venue.id,
+  );
+
+  const scheduleIds = [];
+  if (copySchedules) {
+    const srcSchedules = db
+      .prepare("SELECT * FROM class_schedules WHERE class_id = ? ORDER BY start_time ASC")
+      .all(courseId);
+    const shift = (iso, days) => {
+      const d = new Date(iso);
+      if (isNaN(d)) return null;
+      d.setUTCDate(d.getUTCDate() + days);
+      return d.toISOString();
+    };
+    for (let i = 1; i <= copies; i++) {
+      for (const s of srcSchedules) {
+        const st = shift(s.start_time, shiftDays * i);
+        const en = shift(s.end_time, shiftDays * i);
+        if (!st || !en) continue;
+        const sid = uuidv4();
+        db.prepare(
+          `INSERT INTO class_schedules (id, class_id, start_time, end_time,
+             max_participants, enrolled_count, status, created_at)
+           VALUES (?, ?, ?, ?, ?, 0, 'available', datetime('now'))`,
+        ).run(sid, newId, st, en, s.max_participants || src.max_participants || 15);
+        scheduleIds.push(sid);
+      }
+    }
+  }
+
+  return {
+    status: 201,
+    body: {
+      class_id: newId,
+      title: newTitle,
+      copied_from: courseId,
+      copies,
+      shift_days: shiftDays,
+      schedules_count: scheduleIds.length,
+      message: `已複製課程「${newTitle}」（${scheduleIds.length} 個新時段）`,
+    },
+  };
+}
+
 // ==================== 教練加入商戶（自助申請 / 審批）====================
 
 function listCoachRequests(userId) {
@@ -1124,6 +1204,7 @@ module.exports = {
   listCourses,
   updateCourse,
   addCourseSchedule,
+  duplicateCourse,
 
   // Members
   listMembers,

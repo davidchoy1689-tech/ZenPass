@@ -117,6 +117,17 @@ router.put("/courses/:id", authenticateToken, requireOwnInstitution, (req, res) 
   }
 });
 
+// ===== POST /api/partner/courses/:id/duplicate — 一鍵複製課程（連時段）=====
+router.post("/courses/:id/duplicate", authenticateToken, requireOwnInstitution, (req, res) => {
+  try {
+    const result = partnerService.duplicateCourse(req.user.id, req.params.id, req.body || {});
+    return res.status(result.status).json(result.body);
+  } catch (err) {
+    console.error("❌ partner/courses duplicate error:", err.message);
+    return serverError(res, "複製課程失敗");
+  }
+});
+
 // ===== POST /api/partner/courses/:id/schedules — 加時段 =====
 router.post(
   "/courses/:id/schedules",
