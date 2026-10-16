@@ -828,6 +828,48 @@ function sendMonthlyVenueStatements() {
   }
 }
 setInterval(sendMonthlyVenueStatements, 6 * 60 * 60 * 1000);
+
+// ===== 空置時段每日提示（HKT 09:00 後，每場地每日一次）=====
+function sendVacancyDigest() {
+  try {
+    const HK = new Date(Date.now() + 8 * 3600 * 1000);
+    if (HK.getUTCHours() < 9) return;
+    const today = HK.toISOString().slice(0, 10);
+    const { getDb } = require("./services/database");
+    const vacancy = require("./services/vacancy");
+    const db = getDb();
+    db.prepare("CREATE TABLE IF NOT EXISTS platform_settings (key TEXT PRIMARY KEY, value TEXT, description TEXT, created_at TEXT DEFAULT (datetime('now')), updated_at TEXT DEFAULT (datetime('now')))").run();
+    for (const { venue } of vacancy.listEnabledVenues()) {
+      try {
+        const marker = `venue.${venue.id}.vacancy_last_digest`;
+        const row = db.prepare("SELECT value FROM platform_settings WHERE key = ?").get(marker);
+        if (row && row.value === today) continue;
+        if (row) db.prepare("UPDATE platform_settings SET value=?, updated_at=datetime('now') WHERE key=?").run(today, marker);
+        else db.prepare("INSERT INTO platform_settings (key,value,description) VALUES (?,?,?)").run(marker, today, "空置提示最後發送日");
+        const data = vacancy.listVacantSchedules({ venueId: venue.id, venueName: venue.name });
+        if (!data.slots.length) continue;
+        const recipient = venue.owner_id || venue.user_id;
+        if (!recipient) continue;
+        Promise.resolve(
+          sendNotification("venue.vacancy", {
+            recipient,
+            data: {
+              venue_name: venue.name,
+              count: data.slots.length,
+              url: "/merchant-centre.html",
+              slots: data.slots.slice(0, 5).map((s) => ({ title: s.title, start_time: s.start_time, discount_pct: s.discount_pct })),
+            },
+          }),
+        ).catch(() => {});
+      } catch (e) {
+        console.error("[VACANCY-DIGEST] " + venue.id + ":", e.message);
+      }
+    }
+  } catch (err) {
+    console.error("[VACANCY-DIGEST] Error:", err.message);
+  }
+}
+setInterval(sendVacancyDigest, 6 * 60 * 60 * 1000);
 // ===== Startup Health Check =====
 function startupHealthCheck() {
   const checks = {

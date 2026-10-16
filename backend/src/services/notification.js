@@ -224,6 +224,21 @@ async function sendNotification(type, payload) {
       message = `⏰ 你嘅 ${data?.plan_name || "月費"} Plan 將於 ${data?.expiry_date || "下月 1 日"} 重置，剩餘 ${data?.remaining_credits || 0} Credits 將歸零。快啲用埋佢啦！`;
       html = `<h2>⏰ Credits 即將到期</h2><p>你嘅 <b>${data?.plan_name || "月費"}</b> Plan 將於 <b>${data?.expiry_date || "下月 1 日"}</b> 重置，剩餘 <b>${data?.remaining_credits || 0}</b> Credits 將歸零。</p><p>快啲用埋佢啦！</p>`;
       break;
+    case "venue.vacancy":
+      title = "📉 有空置時段";
+      message =
+        `${data?.venue_name || "場地"} 有 ${data?.count || 0} 個時段仲有位！\n` +
+        ((data?.slots || [])
+          .map((s) => `• ${s.title || "課程"} ${String(s.start_time || "").slice(0, 16).replace("T", " ")}（減 ${s.discount_pct || 0}%）`)
+          .join("\n") || "") +
+        "\n快啲去商戶／課程頁睇吓啦～";
+      html =
+        `<h2>📉 有空置時段</h2><p><b>${data?.venue_name || "場地"}</b> 有 ${data?.count || 0} 個時段仲有位：</p><ul>` +
+        (data?.slots || [])
+          .map((s) => `<li>${s.title || "課程"} — ${String(s.start_time || "").slice(0, 16).replace("T", " ")}（減 ${s.discount_pct || 0}%）</li>`)
+          .join("") +
+        "</ul>";
+      break;
     case "marketing.broadcast":
       title = data?.title || "ZenPass 通知";
       message = data?.message || "";

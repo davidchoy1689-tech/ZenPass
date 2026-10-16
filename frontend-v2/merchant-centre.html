@@ -120,6 +120,24 @@
         </div>
       </div></div>
 
+      <div class="section-title">📉 空置時段</div>
+      <div class="card" style="margin-bottom:10px"><div class="body">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+          <div><b style="font-size:14px">空置時段自動減價</b><div class="muted" style="font-size:12px">偵測未來 7 日報名率低嘅時段，自動建議折扣，可一鍵發佈優惠碼吸客</div></div>
+          <label class="switch"><input type="checkbox" id="vaEnabled"><span></span></label>
+        </div>
+        <div id="vaRules" style="display:none;margin-top:10px">
+          <div style="display:flex;gap:8px">
+            <div style="flex:1"><div class="lbl2">報名率低於（%）</div><input class="fld full" id="vaFill" type="number" min="5" max="100" value="50"></div>
+            <div style="flex:1"><div class="lbl2">睇未來（日）</div><input class="fld full" id="vaDays" type="number" min="1" max="60" value="7"></div>
+            <div style="flex:1"><div class="lbl2">最多減（%）</div><input class="fld full" id="vaMax" type="number" min="0" max="90" value="30"></div>
+          </div>
+          <button class="btn btn-secondary btn-block mini" id="vaSave" style="margin-top:8px">儲存設定</button>
+        </div>
+        <button class="btn btn-secondary btn-block mini" id="vaNotify" style="margin-top:8px">📣 推薦空置時段俾教練</button>
+      </div></div>
+      <div class="card" id="vacancies"><div class="body muted">載入中…</div></div>
+
       <div class="section-title">預約管理</div>
       <div class="card" style="margin-bottom:10px"><div class="body">
         <div class="bktools">
@@ -219,6 +237,8 @@
       loadBookings();
       loadPayouts();
       loadCoachRequests();
+      loadRentals();
+      loadVacancies();
     })();
 
     function addSchedRow(start, end) {
@@ -372,6 +392,60 @@
     (function () {
       const b = $("stmtEmail");
       if (b) b.addEventListener("click", emailStatement);
+    })();
+
+    /* ===== 📉 空置時段（自動減價 / 推薦教練）===== */
+    let vacData = { slots: [], config: {} };
+    async function loadVacancies() {
+      const box = $("vacancies");
+      const r = await api.get("/partner/vacant-slots");
+      if (!r.ok) { box.innerHTML = '<div class="body muted">' + esc((r.data && r.data.error) || "未能載入") + "</div>"; return; }
+      const d = (r.data && r.data.data) || {};
+      vacData = d;
+      const cfg = d.config || {};
+      $("vaEnabled").checked = !!cfg.enabled;
+      $("vaRules").style.display = cfg.enabled ? "" : "none";
+      if (cfg.fill_below != null) $("vaFill").value = Math.round(cfg.fill_below * 100);
+      if (cfg.within_days != null) $("vaDays").value = cfg.within_days;
+      if (cfg.max_discount != null) $("vaMax").value = Math.round(cfg.max_discount * 100);
+      const slots = d.slots || [];
+      box.innerHTML = slots.length ? slots.map(function (s) {
+        return '<div class="row" style="align-items:flex-start">' +
+          '<div><b>' + esc(s.title) + '</b> · <span style="color:#c94420;font-weight:700">減 ' + s.discount_pct + '%</span>' +
+          '<div class="muted" style="font-size:12px">' + esc(String(s.start_time).replace("T", " ").slice(0, 16)) +
+          ' · 仲有 ' + s.seats_left + '/' + s.max_participants + ' 位（報名率 ' + s.fill_rate + '%）' +
+          (s.original_credits ? ' · ' + s.discounted_credits + 'cr（原 ' + s.original_credits + 'cr）' : '') + '</div></div>' +
+          '<div style="white-space:nowrap"><button class="btn btn-primary mini" onclick="publishVac(\'' + esc(s.class_id) + '\')">發佈優惠碼</button></div></div>';
+      }).join("") : '<div class="body muted">未來 ' + (d.within_days || 7) + ' 日暫無空置時段 👍</div>';
+    }
+    async function publishVac(classId) {
+      if (!confirm("為此課程發佈空置優惠碼？")) return;
+      const r = await api.post("/partner/vacant-slots/publish", { class_id: classId });
+      if (r.ok) alert("✅ " + ((r.data && r.data.message) || "已發佈") + "\n優惠碼：" + ((r.data.promo && r.data.promo.code) || ""));
+      else alert((r.data && r.data.error) || "發佈失敗");
+      loadVacancies();
+    }
+    async function saveVacConfig() {
+      const body = {
+        enabled: $("vaEnabled").checked,
+        fill_below: (Number($("vaFill").value) || 50) / 100,
+        within_days: Number($("vaDays").value) || 7,
+        max_discount: (Number($("vaMax").value) || 30) / 100,
+      };
+      const r = await api.post("/partner/vacant-slots/config", body);
+      if (r.ok) { alert("✅ 已儲存"); loadVacancies(); } else alert((r.data && r.data.error) || "儲存失敗");
+    }
+    async function notifyVacCoaches() {
+      if (!confirm("推薦空置時段俾教練？")) return;
+      const r = await api.post("/partner/vacant-slots/notify-coaches", {});
+      if (r.ok) alert("✅ " + ((r.data && r.data.message) || ("已通知 " + r.data.sent + " 位教練")));
+      else alert((r.data && r.data.error) || "通知失敗");
+    }
+    (function () {
+      const e = $("vaEnabled");
+      if (e) e.addEventListener("change", function () { $("vaRules").style.display = e.checked ? "" : "none"; saveVacConfig(); });
+      const s = $("vaSave"); if (s) s.addEventListener("click", saveVacConfig);
+      const n = $("vaNotify"); if (n) n.addEventListener("click", notifyVacCoaches);
     })();
 
     async function loadBookings() {

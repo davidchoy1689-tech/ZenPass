@@ -117,6 +117,88 @@ router.put("/courses/:id", authenticateToken, requireOwnInstitution, (req, res) 
   }
 });
 
+// ===== 📉 空置時段（自動減價 / 推薦教練）=====
+const vacancyService = require("../services/vacancy");
+
+// GET /api/partner/vacant-slots — 睇場地空置時段 + 建議折扣
+router.get("/vacant-slots", authenticateToken, requireOwnInstitution, (req, res) => {
+  try {
+    const venue = partnerService._getUserVenue(req.user.id);
+    if (!venue) return res.status(403).json({ success: false, error: "你未有已開通嘅商戶戶口" });
+    const data = vacancyService.listVacantSchedules({
+      venueId: venue.id,
+      venueName: venue.name,
+      withinDays: req.query.within_days,
+      fillBelow: req.query.fill_below,
+      limit: req.query.limit,
+    });
+    return res.json({ success: true, data });
+  } catch (err) {
+    console.error("❌ partner/vacant-slots error:", err.message);
+    return serverError(res, "查詢空置時段失敗");
+  }
+});
+
+// POST /api/partner/vacant-slots/config — 儲存空置減價設定
+router.post("/vacant-slots/config", authenticateToken, requireOwnInstitution, (req, res) => {
+  try {
+    const venue = partnerService._getUserVenue(req.user.id);
+    if (!venue) return res.status(403).json({ success: false, error: "你未有已開通嘅商戶戶口" });
+    const cfg = vacancyService.setVacancyConfig(venue.id, req.body || {});
+    return res.json({ success: true, config: cfg });
+  } catch (err) {
+    console.error("❌ partner/vacant-slots/config error:", err.message);
+    return serverError(res, "儲存設定失敗");
+  }
+});
+
+// POST /api/partner/vacant-slots/publish — 一鍵發佈空置優惠碼
+router.post("/vacant-slots/publish", authenticateToken, requireOwnInstitution, (req, res) => {
+  try {
+    const venue = partnerService._getUserVenue(req.user.id);
+    if (!venue) return res.status(403).json({ success: false, error: "你未有已開通嘅商戶戶口" });
+    const body = Object.assign({}, req.body || {}, { venue_name: venue.name });
+    const result = vacancyService.publishVacancyPromo(venue.id, body);
+    if (!result.ok) return res.status(400).json({ success: false, error: result.error });
+    return res.json({ success: true, promo: result.promo, message: result.message });
+  } catch (err) {
+    console.error("❌ partner/vacant-slots/publish error:", err.message);
+    return serverError(res, "發佈優惠碼失敗");
+  }
+});
+
+// POST /api/partner/vacant-slots/notify-coaches — 推薦空置時段俾教練
+router.post("/vacant-slots/notify-coaches", authenticateToken, requireOwnInstitution, async (req, res) => {
+  try {
+    const venue = partnerService._getUserVenue(req.user.id);
+    if (!venue) return res.status(403).json({ success: false, error: "你未有已開通嘅商戶戶口" });
+    const data = vacancyService.listVacantSchedules({ venueId: venue.id, venueName: venue.name, limit: 20 });
+    if (!data.slots.length) return res.json({ success: true, sent: 0, message: "暫時冇空置時段，唔需要通知" });
+    const coaches = vacancyService.recommendedCoaches(venue.id);
+    const { sendNotification } = require("../services/notification");
+    let sent = 0;
+    for (const coach of coaches) {
+      try {
+        await sendNotification("venue.vacancy", {
+          recipient: coach.id,
+          data: {
+            venue_name: venue.name,
+            count: data.slots.length,
+            slots: data.slots.slice(0, 5).map((s) => ({ title: s.title, start_time: s.start_time, discount_pct: s.discount_pct })),
+          },
+        });
+        sent++;
+      } catch (e) {
+        console.error("vacant notify coach error:", e.message);
+      }
+    }
+    return res.json({ success: true, sent, coaches: coaches.length, slots: data.slots.length });
+  } catch (err) {
+    console.error("❌ partner/vacant-slots/notify-coaches error:", err.message);
+    return serverError(res, "通知教練失敗");
+  }
+});
+
 // ===== POST /api/partner/courses/:id/duplicate — 一鍵複製課程（連時段）=====
 router.post("/courses/:id/duplicate", authenticateToken, requireOwnInstitution, (req, res) => {
   try {
