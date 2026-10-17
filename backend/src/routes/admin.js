@@ -263,6 +263,23 @@ router.get("/coach-applications", authenticateToken, requireAdmin, (req, res) =>
   }
 });
 
+// ===== GET /api/admin/coach-ratings — 教練評分總覽（內部）=====
+router.get("/coach-ratings", authenticateToken, requireAdmin, (req, res) => {
+  try {
+    const { computeCoachRating } = require("../services/coach-rating");
+    const db = getDb();
+    const coaches = db
+      .prepare("SELECT id, name, coach_headline FROM users WHERE is_coach = 1 ORDER BY name")
+      .all()
+      .map((u) => ({ ...u, ...computeCoachRating(u.id) }))
+      .sort((a, b) => a.score - b.score);
+    res.json({ success: true, data: coaches });
+  } catch (err) {
+    console.error("admin/coach-ratings error:", err.message);
+    res.status(500).json({ success: false, error: "無法讀取" });
+  }
+});
+
 router.post("/coach-approve", authenticateToken, requireAdmin, (req, res) => {
   try {
     const result = adminService.approveCoach(req.body.application_id, req.user.id);

@@ -24,6 +24,8 @@
       <div class="section-title">收入概覽</div>
       <div class="kpis" id="kpis"><div class="kpi"><div class="big">—</div><div class="lbl">載入中…</div></div></div>
       <div class="spacer"></div>
+      <div class="section-title">⭐ 我的評分（只你自己睇）</div>
+      <div class="card" id="myRating"><div class="body muted">載入中…</div></div>
       <a class="btn btn-secondary btn-block" href="coach-attendance.html">🧑‍🏫 課堂簽到（為學生手動簽到）</a>
       <a class="btn btn-secondary btn-block" href="coach-jobs.html">🧰 工作機會（接 Job）</a>
       <a class="btn btn-secondary btn-block" href="venue-rentals.html">🏟️ 租用場地（開班用）</a>
@@ -84,6 +86,28 @@
       ).join("") : '<div class="body muted">暫無出糧紀錄。</div>';
 
       await loadVenues();
+      await loadMyRating();
+    }
+
+    async function loadMyRating() {
+      const box = $("myRating");
+      const r = await api.get("/coach/my-rating");
+      if (!r.ok) { box.innerHTML = '<div class="body muted">暫無評分資料</div>'; return; }
+      const d = (r.data && r.data.data) || {};
+      const stars = "★★★★★".slice(0, Math.round(d.score || 0)) + "☆☆☆☆☆".slice(0, 5 - Math.round(d.score || 0));
+      const recent = (d.recent || []).slice(0, 3);
+      box.innerHTML =
+        '<div class="body">' +
+        '<div style="display:flex;align-items:baseline;gap:8px">' +
+        '<div style="font-size:26px;font-weight:800">' + (d.count ? Number(d.score).toFixed(1) : "—") + '</div>' +
+        '<div class="muted" style="font-size:13px">' + (d.count ? stars + " · " + d.count + " 則評價" : "暫時未收到評價") + '</div>' +
+        '</div>' +
+        (d.count ? '<div class="muted" style="font-size:12px;margin-top:4px">實際平均 ' + Number(d.raw_avg).toFixed(1) + ' 分（已按貝氏平滑，避免單一負評影響）</div>' : '') +
+        '<div class="muted" style="font-size:12px;margin-top:6px">' + esc(d.note || "") + '</div>' +
+        (recent.length ? '<div style="margin-top:10px;border-top:1px dashed var(--border);padding-top:8px">' +
+          recent.map(x => '<div style="font-size:12.5px;margin-bottom:6px">' + "★".repeat(x.rating) + " " + esc(x.comment || "（無留言）") + ' <span class="muted">· ' + esc(String(x.created_at || "").slice(0, 10)) + '</span></div>').join("") +
+          '</div>' : "") +
+        '</div>';
     }
 
     async function loadVenues() {

@@ -488,6 +488,45 @@ router.post("/public-profile", authenticateToken, (req, res) => {
   }
 });
 
+// ===== GET /api/coach/my-rating — 我嘅教練評分（階段 1：只自己睇）=====
+router.get("/my-rating", authenticateToken, (req, res) => {
+  try {
+    const { computeCoachRating } = require("../services/coach-rating");
+    const db = getDb();
+    const summary = computeCoachRating(req.user.id);
+
+    const dist = db
+      .prepare(
+        `SELECT rating, COUNT(*) c FROM coach_ratings WHERE coach_id = ? GROUP BY rating ORDER BY rating DESC`,
+      )
+      .all(req.user.id);
+
+    const recent = db
+      .prepare(
+        `SELECT rating, comment, created_at FROM coach_ratings
+         WHERE coach_id = ? ORDER BY created_at DESC LIMIT 10`,
+      )
+      .all(req.user.id)
+      .map((r) => ({ ...r, student: "匿名學員" }));
+
+    res.json({
+      success: true,
+      data: {
+        ...summary,
+        distribution: dist,
+        recent,
+        note:
+          summary.count < 10
+            ? "累積 10 個真實評價後，評分才會公開顯示於課程頁。"
+            : "評分已達公開門檻。",
+      },
+    });
+  } catch (err) {
+    console.error("coach/my-rating error:", err.message);
+    res.status(500).json({ success: false, error: "無法讀取評分" });
+  }
+});
+
 // ===== POST /api/coach/refer — 推薦新教練 =====
 router.post("/refer", authenticateToken, (req, res) => {
   try {
