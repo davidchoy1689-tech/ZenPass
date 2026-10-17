@@ -156,13 +156,19 @@ CREATE TABLE IF NOT EXISTS users (
   try { db.exec("ALTER TABLE classes ADD COLUMN booking_open INTEGER DEFAULT 0"); } catch (e) { /* exists */ }
   try {
     // 首階段：只有「身心伸展」相關課程資料係真實 → 開放預約；其餘顯示但唔收預約
-    const r = db
-      .prepare(
-        "UPDATE classes SET booking_open = 1 WHERE category LIKE '%身心%' OR category LIKE '%伸展%' OR title LIKE '%伸展%'",
-      )
-      .run();
-    const r2 = db.prepare("UPDATE classes SET booking_open = 0 WHERE booking_open IS NULL").run();
-    if (r.changes || r2.changes) console.log(`✅ classes.booking_open 初始化: 開放 ${r.changes} / 未開放 ${r2.changes}`);
+    // 只做一次（用 marker），避免日后手動關閉嘅課程被 restart 重新打開
+    db.prepare("CREATE TABLE IF NOT EXISTS platform_settings (key TEXT PRIMARY KEY, value TEXT, description TEXT, created_at TEXT DEFAULT (datetime('now')), updated_at TEXT DEFAULT (datetime('now')))").run();
+    const mk = "migration.booking_open_v1";
+    const _cnt = db.prepare("SELECT COUNT(*) AS c FROM classes").get().c;
+    if (_cnt > 0 && !db.prepare("SELECT value FROM platform_settings WHERE key = ?").get(mk)) {
+      const r = db
+        .prepare(
+          "UPDATE classes SET booking_open = CASE WHEN (category LIKE '%身心%' OR category LIKE '%伸展%' OR title LIKE '%伸展%') THEN 1 ELSE 0 END",
+        )
+        .run();
+      db.prepare("INSERT OR REPLACE INTO platform_settings (key,value,description) VALUES (?,?,?)").run(mk, "1", "booking_open 初始分配：只開放身心伸展");
+      if (r.changes) console.log(`✅ booking_open 初始分配: ${r.changes} 條`);
+    }
   } catch (e) { /* 非致命 */ }
 
   // ===== 兼容升級：classes.district（按課程地區自動分區）=====

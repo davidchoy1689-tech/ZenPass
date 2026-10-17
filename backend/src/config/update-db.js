@@ -366,13 +366,18 @@ function updateDatabase() {
     /* 已存在 */
   }
   try {
-    const r = db
-      .prepare(
-        "UPDATE classes SET booking_open = 1 WHERE category LIKE '%身心%' OR category LIKE '%伸展%' OR title LIKE '%伸展%'",
-      )
-      .run();
-    db.prepare("UPDATE classes SET booking_open = 0 WHERE booking_open IS NULL").run();
-    if (r.changes) console.log(`✅ classes.booking_open 開放 ${r.changes} 條`);
+    db.prepare("CREATE TABLE IF NOT EXISTS platform_settings (key TEXT PRIMARY KEY, value TEXT, description TEXT, created_at TEXT DEFAULT (datetime('now')), updated_at TEXT DEFAULT (datetime('now')))").run();
+    const mk = "migration.booking_open_v1";
+    const _cnt = db.prepare("SELECT COUNT(*) AS c FROM classes").get().c;
+    if (_cnt > 0 && !db.prepare("SELECT value FROM platform_settings WHERE key = ?").get(mk)) {
+      const r = db
+        .prepare(
+          "UPDATE classes SET booking_open = CASE WHEN (category LIKE '%身心%' OR category LIKE '%伸展%' OR title LIKE '%伸展%') THEN 1 ELSE 0 END",
+        )
+        .run();
+      db.prepare("INSERT OR REPLACE INTO platform_settings (key,value,description) VALUES (?,?,?)").run(mk, "1", "booking_open 初始分配：只開放身心伸展");
+      if (r.changes) console.log(`✅ booking_open 初始分配 ${r.changes} 條`);
+    }
   } catch (e) {
     console.log("⚠️ booking_open backfill:", e.message);
   }
