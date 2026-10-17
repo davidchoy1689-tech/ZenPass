@@ -17,7 +17,13 @@ const { writeBlock } = require("../services/blockchain-audit");
 const router = express.Router();
 
 const PAY_INFO = {
-  fps: { label: "轉數快 FPS", phone: "9033 5538", name: "ZenPass / 香港康樂及體育有限公司" },
+  fps: {
+    label: "轉數快 FPS / 銀行轉賬",
+    bank: "HSBC 滙豐銀行",
+    account: "741-293856-838",
+    name: "香港康樂及體育有限公司",
+    name_en: "Hong Kong Leisure and Fitness Company Limited",
+  },
   payme: { label: "PayMe", phone: "9033 5538", link: "https://payme.hsbc/zenpass" },
 };
 

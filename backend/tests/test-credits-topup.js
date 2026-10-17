@@ -58,3 +58,15 @@ ok(admin.includes("/confirm"), "admin 可確認");
 console.log("──────────────────────────────");
 if (fail) { console.error("❌ " + fail + " failed"); process.exit(1); }
 console.log("✅ 增值流程 tests passed");
+
+// 收款戶口必須正確（HSBC 741-293856-838）
+const creditsSrc = fs.readFileSync(path.join(root, "src/routes/credits.js"), "utf8");
+if (!creditsSrc.includes("741-293856-838")) {
+  console.error("  ❌ 增值收款戶口唔正確");
+  process.exit(1);
+}
+if (!creditsSrc.includes("香港康樂及體育有限公司")) {
+  console.error("  ❌ 收款戶名唔正確");
+  process.exit(1);
+}
+console.log("  ✅ 收款戶口 = HSBC 741-293856-838 / 香港康樂及體育有限公司");

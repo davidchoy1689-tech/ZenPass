@@ -585,9 +585,11 @@ router.post("/fps", authenticateToken, (req, res) => {
       payment_status: "pending",
       requires_admin_approval: true,
       fps_info: {
+        bank: "HSBC 滙豐銀行",
+        account: "741-293856-838",
+        name: "香港康樂及體育有限公司",
         phone: "9033 5538",
         email: "info@zenpass.hk",
-        bank: "HSBC",
       },
     });
   } catch (err) {
@@ -714,7 +716,7 @@ router.get("/gateways", (req, res) => {
         icon: "🏦",
         description: "FPS 即時轉帳 · 零手續費",
         fee_info: { fee: 0, label: "免手續費" },
-        account: "9033 5538 (HSBC)",
+        account: "741-293856-838 (HSBC)",
         enabled: true,
       },
       {
