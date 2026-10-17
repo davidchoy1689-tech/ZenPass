@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#ff6b35" />
   <title>預約 · ZenPass 禪流</title>
-  <link rel="stylesheet" href="assets/v2.css?v=25" />
+  <link rel="stylesheet" href="assets/v2.css?v=26" />
   <style>
     .sess { display:flex; align-items:center; gap:12px; padding:12px 16px; border-bottom:1px solid var(--border); }
     .sess:last-child { border-bottom:0; }
@@ -96,6 +96,14 @@
       <h2 style="margin:0 0 6px" id="doneTitle">預約完成！</h2>
       <p class="muted" id="doneMsg"></p>
       <div class="spacer"></div>
+      <div id="doneActions" style="display:none;width:100%">
+        <button class="btn btn-secondary btn-block" id="icsBtn">📅 加到手機行事曆</button>
+        <div class="spacer"></div>
+        <a class="btn btn-secondary btn-block" id="gcalBtn" target="_blank" rel="noopener">📆 加入 Google 日曆</a>
+        <div class="spacer"></div>
+        <a class="btn btn-secondary btn-block" id="waRemind" target="_blank" rel="noopener">💬 用 WhatsApp 接收上課提醒</a>
+      </div>
+      <div class="spacer"></div>
       <a class="btn btn-primary btn-block" href="my-bookings.html">去我的預約</a>
       <div class="spacer"></div>
       <a class="btn btn-secondary btn-block" href="index.html">返回主頁</a>
@@ -130,6 +138,15 @@
       cls = r.data && r.data.class;
       sessions = ((r.data && r.data.schedules) || []).filter(s => s.status !== "cancelled" && (s.max_participants - s.enrolled_count) > 0 && !(window.zpIsHoliday && zpIsHoliday(s.start_time)));
       if (!cls) { $("groups").innerHTML = `<div class="card"><div class="body">搵唔到課程。</div></div>`; return; }
+      // 自動套用已領取嘅優惠碼（index 領取 → localStorage）
+      try {
+        const saved = localStorage.getItem("zp_promo");
+        if (saved && !$("promo").value) {
+          $("promo").value = saved;
+          $("promoMsg").textContent = "已自動套用你領取嘅優惠碼…";
+          setTimeout(() => $("applyPromo").click(), 60);
+        }
+      } catch (e) {}
       $("title").textContent = cls.title;
       $("topPrice").innerHTML = cr(cls.price_hkd) + "cr";
       const _loc = [cls.venue_name, cls.venue_address].filter(Boolean).join("（") + (cls.venue_name && cls.venue_address ? "）" : "");
@@ -252,7 +269,7 @@
           $("doneTitle").textContent = d.created + " / " + d.total + " 堂預約成功";
           const failed = (d.results || []).filter(x => x.status !== 201).length;
           $("doneMsg").textContent = failed ? (failed + " 堂未能預約（可能已滿或重複）") : "全部預約成功 🎉";
-          show("done"); $("bar").style.display = "none";
+          show("done"); setupDoneActions(); $("bar").style.display = "none"; setupDoneActions();
         }
       } else if (r.status === 401 || r.status === 403) {
         alert("登入已過期，請重新登入");
@@ -261,6 +278,58 @@
         alert((r.data && (r.data.error || r.data.message)) || "預約失敗");
       }
     };
+
+    function _selSessions() {
+      return sessions.filter((s) => sel.has(s.id));
+    }
+    function _icsStamp(d) {
+      const p = (n) => String(n).padStart(2, "0");
+      return d.getUTCFullYear() + p(d.getUTCMonth() + 1) + p(d.getUTCDate()) + "T" + p(d.getUTCHours()) + p(d.getUTCMinutes()) + "00Z";
+    }
+    function setupDoneActions() {
+      const box = $("doneActions");
+      if (!box) return;
+      const list = _selSessions();
+      if (!list.length) return;
+      const first = list[0];
+      const st = new Date(first.start_time);
+      const en = new Date(first.end_time);
+      if (isNaN(st)) return;
+      const title = "ZenPass｜" + (cls.title || "課堂");
+      const loc = [cls.venue_name, cls.venue_address].filter(Boolean).join(" ");
+      const details = "已預約 " + list.length + " 堂。請提前 10 分鐘到達。";
+      box.style.display = "";
+
+      // Google Calendar
+      const g = "https://calendar.google.com/calendar/render?action=TEMPLATE" +
+        "&text=" + encodeURIComponent(title) +
+        "&dates=" + _icsStamp(st) + "/" + _icsStamp(en) +
+        "&details=" + encodeURIComponent(details) +
+        "&location=" + encodeURIComponent(loc);
+      const gb = $("gcalBtn"); if (gb) gb.href = g;
+
+      // ICS 下載
+      const ics = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//ZenPass//Booking//ZH-HK", "BEGIN:VEVENT",
+        "UID:" + (first.id || Date.now()) + "@zenpass.hk",
+        "DTSTAMP:" + _icsStamp(new Date()),
+        "DTSTART:" + _icsStamp(st), "DTEND:" + _icsStamp(en),
+        "SUMMARY:" + title, "LOCATION:" + loc, "DESCRIPTION:" + details.replace(/\n/g, " "),
+        "END:VEVENT", "END:VCALENDAR"].join("\r\n");
+      const ib = $("icsBtn");
+      if (ib) ib.onclick = function () {
+        const blob = new Blob([ics], { type: "text/calendar;charset=utf-8" });
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = "zenpass-" + (first.id || "class") + ".ics";
+        document.body.appendChild(a); a.click();
+        setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 800);
+      };
+
+      // WhatsApp 提醒
+      const wa = "https://wa.me/85290335538?text=" + encodeURIComponent(
+        "你好，我想接收 ZenPass 課堂提醒 🎾\n課程：" + (cls.title || "") + "\n時間：" + st.toLocaleString("zh-HK") + "\n地點：" + loc);
+      const wb = $("waRemind"); if (wb) wb.href = wa;
+    }
 
     function unitForPay(){ return promoFinal ? promoFinal.final_price : cls.price_hkd; }
     function startPayStep(ids, unit){
@@ -328,7 +397,7 @@
       $("doneIcon").textContent="✅";
       $("doneTitle").textContent = label+" 資料已提交";
       $("doneMsg").textContent = "管理員核實後，預約會轉為「已確認」。你可喺「我的預約」睇最新狀態。";
-      show("done");
+      show("done"); setupDoneActions();
     }
     function startCountdown(){
       stopCountdown();

@@ -11,12 +11,12 @@ const fails = [];
 const has = (s, m) => { if (!s.includes(m)) fails.push("missing: " + m); };
 
 has(html, 'id="copyPromo"');
-has(html, "📋 一鍵複製");
+has(html, "📋 領取");
 has(html, 'id="promoCode"');
 has(html, "WELCOME50");
 has(html, 'id="toast"');
 // toast 文字包含優惠碼
-if (!/已複製優惠碼\s*"\s*\+\s*PROMO\s*\+\s*"！/.test(html)) fails.push("toast text should be 已複製優惠碼 WELCOME50！ (got dynamic PROMO)");
+if (!/已領取優惠碼\s*"\s*\+\s*PROMO\s*\+\s*"！/.test(html)) fails.push("toast text should be 已領取優惠碼 WELCOME50！ (got dynamic PROMO)");
 has(html, "navigator.clipboard");
 // fallback copy
 has(html, "execCommand");

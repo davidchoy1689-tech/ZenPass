@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#ff6b35" />
   <title>探索課程 · ZenPass 禪流</title>
-  <link rel="stylesheet" href="assets/v2.css?v=25" />
+  <link rel="stylesheet" href="assets/v2.css?v=26" />
 </head>
 <body>
   <div class="topbar"><div class="title">探索課程</div></div>
@@ -46,11 +46,21 @@
         const d = new Date(String(s.start_time).replace(" ", "T"));
         if (!isNaN(d)) {
           const p = (n) => String(n).padStart(2, "0");
-          const left = (s.max_participants || 0) - (s.enrolled_count || 0);
-          next = `${d.getMonth() + 1}/${d.getDate()}（週${wd[d.getDay()]}）${p(d.getHours())}:${p(d.getMinutes())} · 剩 ${left} 位`;
+          next = `${d.getMonth() + 1}/${d.getDate()}（週${wd[d.getDay()]}）${p(d.getHours())}:${p(d.getMinutes())}`;
         }
       }
       const aud = c.target_audience || ({ beginner: "初級 / 新手友善", intermediate: "中級", advanced: "高級" }[c.difficulty]) || "";
+      // 信任元素（只用真實資料，唔造假）
+      const trust = [];
+      const rating = Number(c.avg_rating || c.rating || 0);
+      const rc = Number(c.review_count || c.rating_count || 0);
+      if (rating > 0) trust.push("⭐ " + rating.toFixed(1) + (rc > 0 ? " (" + rc + "則評價)" : ""));
+      if (s) {
+        const left = (Number(s.max_participants) || 0) - (Number(s.enrolled_count) || 0);
+        if (left > 0 && left <= 5) trust.push("👥 剩 " + left + " 個名額");
+      }
+      if (String(c.difficulty || "") === "beginner") trust.push("🧩 新手友善");
+      const trustHtml = trust.length ? `<p class="trust">` + trust.map((t) => `<span>${esc(t)}</span>`).join("") + `</p>` : "";
       const stateLine = expired
         ? `<p class="sub" style="color:#9ca3af">已完結</p>`
         : unopened
@@ -63,6 +73,7 @@
         <div class="meta"><p class="name">${esc(c.title)} ${expired ? '<span class="tag-gray">已完結</span>' : unopened ? '<span class="tag-lock">敬請期待</span>' : ""}</p>
           <p class="sub">${esc(c.category || "")}${c.duration ? " · " + c.duration + " 分鐘" : ""}${c.venue_name ? " · 📍 " + esc(c.venue_name) : ""}</p>
           ${stateLine}
+          ${trustHtml}
           <p class="sub">${esc(aud)}${c.max_participants ? " · 上限 " + c.max_participants + " 人" : ""}</p></div>
         <div class="price">${cr(c.price_hkd)}cr</div>
       </div></a>`;
@@ -74,7 +85,7 @@
       if (q) url += "&search=" + encodeURIComponent(q);
       const r = await api.get(url);
       let arr = (r.data && (r.data.classes || r.data.items)) || [];
-      arr = arr.filter(inArea).filter(inScene).filter(inZone);
+      arr = arr.filter(inArea).filter(inScene).filter(inZone).filter(inDate);
       const cnt = document.getElementById("count");
       const lbl = (ZONE && ZONES[ZONE] ? ZONES[ZONE].label + " · " : "") + (SCENE && SCENES[SCENE] ? SCENES[SCENE].label + " · " : "");
       cnt.textContent = lbl + arr.length + " 個課程";
@@ -135,6 +146,32 @@
       sk: { label: "📍 西貢", kw: ["西貢", "將軍澳", "坑口", "寶琳", "康城", "調景嶺", "清水灣"] },
       islands: { label: "📍 離島", kw: ["東涌", "長洲", "大嶼山", "愉景灣", "坪洲", "南丫島", "赤鱸角", "機場", "梅窩"] },
     };
+    // 日期快捷（今天 / 明天 / 本週末）
+    const DATEQ = new URLSearchParams(location.search).get("date") || "";
+    function _dayStr(d) {
+      const p = (n) => String(n).padStart(2, "0");
+      return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate());
+    }
+    function _targetDays() {
+      const now = new Date();
+      if (DATEQ === "today") return [_dayStr(now)];
+      if (DATEQ === "tomorrow") { const d = new Date(now); d.setDate(d.getDate() + 1); return [_dayStr(d)]; }
+      if (DATEQ === "weekend") {
+        const d = new Date(now); const dow = d.getDay();
+        const toSat = (6 - dow + 7) % 7;
+        const sat = new Date(d); sat.setDate(d.getDate() + toSat);
+        const sun = new Date(sat); sun.setDate(sat.getDate() + 1);
+        return [_dayStr(sat), _dayStr(sun)];
+      }
+      return [];
+    }
+    const _DAYS = _targetDays();
+    function inDate(c) {
+      if (!DATEQ) return true;
+      const days = (c.schedules || []).map((x) => String(x.start_time || "").slice(0, 10));
+      return days.some((d) => _DAYS.indexOf(d) >= 0);
+    }
+
     const ZONE = new URLSearchParams(location.search).get("zone") || "";
     function inZone(c) {
       if (!ZONE || !ZONES[ZONE]) return true;
@@ -155,6 +192,11 @@
       if (SCENE && SCENES[SCENE]) {
         const cats = document.getElementById("cats");
         cats.insertAdjacentHTML("beforebegin", '<div class="area-bar">' + SCENES[SCENE].label + ' <a href="explore.html' + (q0 ? ("?q=" + encodeURIComponent(q0)) : "") + '">✕ 清除</a></div>');
+      }
+      if (DATEQ) {
+        const label = DATEQ === "today" ? "📅 今天" : DATEQ === "tomorrow" ? "📅 明天" : "📅 本週末";
+        const cats = document.getElementById("cats");
+        cats.insertAdjacentHTML("beforebegin", '<div class="area-bar">' + label + ' <a href="explore.html' + (q0 ? ("?q=" + encodeURIComponent(q0)) : "") + '">✕ 清除</a></div>');
       }
       if (ZONE && ZONES[ZONE]) {
         const cats = document.getElementById("cats");
