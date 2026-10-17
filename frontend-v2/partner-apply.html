@@ -43,11 +43,11 @@
       <label class="lbl">網站（可選）</label><input class="fld" id="p-website" placeholder="https://" />
       <label class="lbl">簡介</label><textarea class="fld" id="p-desc" rows="3"></textarea>
       <div class="card" style="margin-top:12px;background:#fff7ed;border:1px solid #fed7aa"><div class="body" style="padding:12px">
-        <b style="font-size:13.5px">🛡️ 保險及風險聲明 *</b>
-        <p class="muted" style="font-size:12.5px;margin:6px 0">ZenPass 只提供配對（轉介）平台；場地安全、設施保險及相關風險由場地營運者自行負責，請按需要購買合適保險。</p>
+        <b style="font-size:13.5px">🛡️ 免責聲明及風險確認 *</b>
+        <p class="muted" style="font-size:12.5px;margin:6px 0">ZenPass 只提供配對（轉介）平台。場地安全、設施及相關保險由場地營運者自行負責；是否購買保險由你按個別情況自行決定。</p>
         <label style="display:flex;gap:8px;align-items:flex-start;font-size:13px">
           <input type="checkbox" id="p-ins" style="margin-top:3px" />
-          <span>本人確認場地已具備適用嘅公眾責任保險（或將於上架前購買）並保持有效。</span>
+          <span>本人已閱讀並同意：ZenPass 僅提供配對平台，場地安全及相關風險由本人自行承擔，並會按需要自行安排合適保險。</span>
         </label>
         <div class="grid2" style="margin-top:10px">
           <div><label class="lbl">保單到期日（可選）</label><input class="fld" id="p-ins-exp" type="date" /></div>
@@ -86,7 +86,7 @@
         insurance_expiry: document.getElementById("p-ins-exp").value || null,
       };
       if (!body.name || !body.category || !body.phone || !body.email) { msg.textContent = "請填名稱、類別、電話同電郵"; return; }
-      if (!body.insurance_declared) { msg.textContent = "請確認保險聲明（平台只提供配對，保險由場地自行負責）"; return; }
+      if (!body.insurance_declared) { msg.textContent = "請先閱讀並勾選免責聲明"; return; }
       // 可選：上載保單
       const insFile = document.getElementById("p-ins-doc").files;
       if (insFile.length) {

@@ -21,18 +21,20 @@ ok(/insurance_declared \? 1 : 0, insurance_doc_url/.test(partner), "場地寫入
 
 const cp = fs.readFileSync(path.join(web, "coach-apply.html"), "utf8");
 ok(cp.includes('id="f-ins"'), "教練表單有保險聲明 checkbox");
-ok(cp.includes("平台只提供配對"), "教練表單寫明平台角色");
-ok(cp.includes("請確認保險聲明"), "未聲明唔可以提交");
-ok(cp.includes('id="f-ins-doc"'), "可上載保單");
+ok(cp.includes("免責聲明及風險確認"), "教練表單為免責聲明（非強制保險）");
+ok(cp.includes("自行決定"), "明確講保險由教練自行決定");
+ok(cp.includes("請先閱讀並勾選免責聲明"), "未勾免責聲明唔可以提交");
+ok(cp.includes('id="f-ins-doc"') && !/id="f-ins-doc"[^>]*required/.test(cp), "保單上載為可選（非必填）");
 
 const pp = fs.readFileSync(path.join(web, "partner-apply.html"), "utf8");
 ok(pp.includes('id="p-ins"'), "場地表單有保險聲明");
-ok(pp.includes("請確認保險聲明"), "場地未聲明唔可以提交");
+ok(pp.includes("請先閱讀並勾選免責聲明"), "場地未勾免責聲明唔可以提交");
 
 const terms = fs.readFileSync(path.join(web, "terms.html"), "utf8");
 ok(terms.includes("配對（轉介）"), "條款寫明只提供配對");
 ok(terms.includes("叫車平台"), "條款用 Uber 模式比喻");
 ok(terms.includes("保險及風險承擔"), "有保險責任專章");
+ok(terms.includes("自行決定"), "條款寫明保險自行決定（非強制）");
 ok(terms.includes("不代任何一方投保"), "寫明平台不投保");
 
 const detail = fs.readFileSync(path.join(web, "detail.html"), "utf8");
