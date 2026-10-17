@@ -1607,6 +1607,24 @@ CREATE TABLE IF NOT EXISTS users (
 
   // ===== Coach Ratings 表（獨立於 reviews，聚焦教練評分）=====
   db.exec(`
+    CREATE TABLE IF NOT EXISTS credit_topup_orders (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      amount_hkd REAL NOT NULL,
+      credits INTEGER NOT NULL DEFAULT 0,
+      bonus_credits INTEGER NOT NULL DEFAULT 0,
+      method TEXT NOT NULL DEFAULT 'fps',
+      reference TEXT,
+      receipt_image TEXT,
+      status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','confirmed','rejected')),
+      note TEXT,
+      admin_id TEXT,
+      confirmed_at TEXT,
+      created_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_topup_orders_status ON credit_topup_orders(status);
+
     CREATE TABLE IF NOT EXISTS mutual_reviews (
       id TEXT PRIMARY KEY,
       target_type TEXT NOT NULL CHECK(target_type IN ('venue','coach')),

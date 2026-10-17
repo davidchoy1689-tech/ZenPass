@@ -39,7 +39,7 @@
     const st = (s) => ({ confirmed:"已確認", attended:"已出席", pending_payment:"待付款", cancelled:"已取消", no_show:"缺席", pending:"待處理", approved:"已通過", rejected:"已拒絕", active:"生效" }[s] || s || "");
 
     const TABS = [
-      ["dash","概覽"], ["pay","付款核實"], ["inq","查詢"], ["classes","課程"],
+      ["dash","概覽"], ["pay","付款核實"], ["topup","增值待確認"], ["inq","查詢"], ["classes","課程"],
       ["bookings","預約"], ["users","用戶"], ["coach","教練申請"], ["payouts","出糧"],
       ["reports","報表"], ["corp","企業"], ["partners","商戶"], ["jobs","Job"], ["pricing","定價"], ["penalty","罰則"], ["analytics","分析"], ["nps","評價"], ["promo","優惠碼"], ["marketing","推廣"], ["migrate","遷移"], ["audit","審計"],
     ];
@@ -58,6 +58,7 @@
       try {
         if (cur === "dash") return dash();
         if (cur === "pay") return payments();
+        if (cur === "topup") return topupOrders();
         if (cur === "inq") return inquiries();
         if (cur === "classes") return clsTab();
         if (cur === "bookings") return listGeneric("/admin/bookings?limit=100", "bookings", bkRow, "預約");
@@ -114,6 +115,35 @@
         const id = b.closest(".card").dataset.bid; const a = b.dataset.a; b.disabled = true;
         if (a === "approve") { if (!confirm("確認已收到此筆付款？")) { b.disabled=false; return; } const r = await api.post("/admin/approve-payment", { booking_id: id }); if (r.ok && r.data && r.data.success !== false) return load(); b.disabled=false; alert((r.data&&r.data.error)||"失敗"); }
         else { const reason = prompt("拒絕原因（可留空）") || ""; const r = await api.post("/admin/reject-payment", { booking_id: id, reason }); if (r.ok && r.data && r.data.success !== false) return load(); b.disabled=false; alert((r.data&&r.data.error)||"失敗"); }
+      });
+    }
+
+    async function topupOrders() {
+      const r = await api.get("/credits/admin/pending");
+      if (r.status === 401 || r.status === 403) return needAdmin();
+      const arr = (r.data && r.data.data) || [];
+      if (!arr.length) { panel().innerHTML = `<div class="card"><div class="body muted center">目前冇待確認增值 ✅</div></div>`; return; }
+      panel().innerHTML = arr.map(o => `<div class="card" data-oid="${esc2(o.id)}"><div class="body">
+        <div style="display:flex;justify-content:space-between"><b>${esc2(o.user_name||"用戶")}</b><span class="amt">${money(o.amount_hkd)}</span></div>
+        <p class="kv">${esc2(o.user_email||"")} · ${esc2((o.method||"").toUpperCase())} · 參考 ${esc2(o.reference||"—")}</p>
+        <p class="kv">將會加 ${o.credits + o.bonus_credits} credits${o.bonus_credits?`（含贈送 ${o.bonus_credits}）`:""} · ${esc2(String(o.created_at||"").slice(0,16))}</p>
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <button class="btn btn-primary" data-t="ok" style="flex:1">✅ 確認收款</button>
+          <button class="btn btn-ghost" data-t="no" style="flex:1">✖ 拒絕</button></div>
+      </div></div>`).join("");
+      panel().querySelectorAll("[data-t]").forEach(b => b.onclick = async () => {
+        const id = b.closest(".card").dataset.oid; const act = b.dataset.t; b.disabled = true;
+        if (act === "ok") {
+          if (!confirm("確認已收到此筆款項？")) { b.disabled = false; return; }
+          const rr = await api.post(`/credits/admin/${id}/confirm`, {});
+          if (rr.ok) return load();
+          b.disabled = false; alert((rr.data && rr.data.error) || "失敗");
+        } else {
+          const reason = prompt("拒絕原因（可留空）") || "";
+          const rr = await api.post(`/credits/admin/${id}/reject`, { reason });
+          if (rr.ok) return load();
+          b.disabled = false; alert((rr.data && rr.data.error) || "失敗");
+        }
       });
     }
 

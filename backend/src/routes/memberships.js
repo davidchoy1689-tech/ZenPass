@@ -261,6 +261,13 @@ router.get("/my", authenticateToken, (req, res) => {
 
 // ===== POST /api/memberships/credits — 購買點數 =====
 router.post("/credits", authenticateToken, (req, res) => {
+  // 🚫 安全（2026-10-17）：唔可以再「一按即加點」，必須經 /api/credits/topup（FPS/PayMe 人手確認收款）
+  return res.status(403).json({
+    success: false,
+    code: "USE_CREDITS_TOPUP",
+    error: "請到「增值」頁建立增值單（FPS / PayMe），管理員確認收款後才會加點。",
+  });
+  /* eslint-disable no-unreachable */
   try {
     const { amount } = req.body; // 金額 (HKD)
 
