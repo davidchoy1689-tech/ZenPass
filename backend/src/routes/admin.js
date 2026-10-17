@@ -263,6 +263,35 @@ router.get("/coach-applications", authenticateToken, requireAdmin, (req, res) =>
   }
 });
 
+// ===== POST /api/admin/close-demo-classes — 下架 demo 課程（保留真實可預約課程）=====
+router.post("/close-demo-classes", authenticateToken, requireAdmin, (req, res) => {
+  try {
+    if ((req.body || {}).confirm !== "CLOSE_DEMO_CLASSES") {
+      return res.status(400).json({ success: false, error: "需要 confirm: CLOSE_DEMO_CLASSES" });
+    }
+    const db = getDb();
+    const before = db.prepare("SELECT COUNT(*) c FROM classes WHERE status = 'active'").get().c;
+    const keep = db.prepare("SELECT COUNT(*) c FROM classes WHERE status = 'active' AND booking_open = 1").get().c;
+    // 只下架「未開放預約」嘅 demo 課程；真實可預約課程不動
+    const r = db
+      .prepare("UPDATE classes SET status = 'inactive', updated_at = datetime('now') WHERE status = 'active' AND COALESCE(booking_open,0) = 0")
+      .run();
+    try {
+      const { writeBlock } = require("../services/blockchain-audit");
+      writeBlock({
+        entityType: "admin_action",
+        entityId: "close-demo-classes-" + Date.now(),
+        data: { admin_user: req.user.id, action: "close_demo_classes", closed: r.changes, kept: keep },
+      });
+    } catch (e) {}
+    console.log(`🧹 下架 demo 課程 ${r.changes} 個（保留 ${keep} 個真實）by`, req.user.email);
+    res.json({ success: true, message: `已下架 ${r.changes} 個 demo 課程`, closed: r.changes, kept_bookable: keep, active_before: before });
+  } catch (err) {
+    console.error("close-demo-classes error:", err.message);
+    res.status(500).json({ success: false, error: "操作失敗" });
+  }
+});
+
 // ===== POST /api/admin/reset-review-data — 清空 demo 評分（需要 confirm）=====
 router.post("/reset-review-data", authenticateToken, requireAdmin, (req, res) => {
   try {

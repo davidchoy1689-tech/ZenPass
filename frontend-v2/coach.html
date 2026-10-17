@@ -30,6 +30,40 @@
       <a class="btn btn-secondary btn-block" href="coach-jobs.html">🧰 工作機會（接 Job）</a>
       <a class="btn btn-secondary btn-block" href="venue-rentals.html">🏟️ 租用場地（開班用）</a>
 
+      <div class="section-title">➕ 開新班</div>
+      <div class="card"><div class="body">
+        <p class="muted" style="font-size:12.5px;margin:0 0 10px">填完即刻上架，學生可以喺探索頁預約。</p>
+        <label class="lbl">課程標題</label><input class="fld" id="ncTitle" placeholder="例：【新手體驗】芬蘭木柱 60 分鐘" />
+        <div class="grid2">
+          <div><label class="lbl">類別</label><select class="fld" id="ncCat"></select></div>
+          <div><label class="lbl">難度</label><select class="fld" id="ncDiff">
+            <option value="beginner">新手友善</option><option value="intermediate">中階</option><option value="advanced">進階</option></select></div>
+        </div>
+        <div class="grid2">
+          <div><label class="lbl">時長（分鐘）</label><input class="fld" id="ncDur" type="number" value="60" min="15" max="300" /></div>
+          <div><label class="lbl">名額</label><input class="fld" id="ncMax" type="number" value="12" min="1" max="200" /></div>
+        </div>
+        <div class="grid2">
+          <div><label class="lbl">價錢 HK$</label><input class="fld" id="ncPrice" type="number" value="150" min="0" /></div>
+          <div><label class="lbl">Credits（留空自動 = 價錢÷10）</label><input class="fld" id="ncCredits" type="number" min="0" /></div>
+        </div>
+        <label class="lbl">場地</label>
+        <select class="fld" id="ncVenue"></select>
+        <div id="ncVenueManual" style="display:none">
+          <div class="grid2">
+            <div><label class="lbl">場地名稱</label><input class="fld" id="ncVenueName" placeholder="例：觀塘社區中心" /></div>
+            <div><label class="lbl">地區</label><input class="fld" id="ncVenueDistrict" placeholder="例：觀塘" /></div>
+          </div>
+          <label class="lbl">地址（可選）</label><input class="fld" id="ncVenueAddr" />
+        </div>
+        <label class="lbl">簡介（可選）</label><textarea class="fld" id="ncDesc" rows="3" placeholder="課堂內容、帶走咩、適合邊個"></textarea>
+        <label class="lbl">時段</label>
+        <div id="ncSlots"></div>
+        <button class="btn btn-secondary btn-block" id="ncAddSlot" style="margin-top:8px">＋ 加多個時段</button>
+        <button class="btn btn-primary btn-block" id="ncSubmit" style="margin-top:10px">開班並上架</button>
+        <div class="muted center" id="ncMsg" style="font-size:12.5px;margin-top:8px"></div>
+      </div></div>
+
       <div class="section-title">我嘅課程</div>
       <div class="card" id="classes"><div class="body muted">載入中…</div></div>
 
@@ -73,11 +107,7 @@
         ["分賬比率", Math.round((d.commission_rate || 0) * 100) + "%"],
       ].map(([l, v]) => `<div class="kpi"><div class="big">${v}</div><div class="lbl">${l}</div></div>`).join("");
 
-      const cr = await api.get("/coach/my-classes");
-      const cls = (cr.data && cr.data.classes) || [];
-      $("classes").innerHTML = cls.length ? cls.slice(0, 20).map(c =>
-        `<a class="cl" href="class-detail.html?id=${encodeURIComponent(c.id)}"><span>${esc(c.title)}<span class="muted" style="font-size:12px"> · ${esc(c.category || "")}</span></span><span class="muted">›</span></a>`
-      ).join("") : '<div class="body muted">暫無課程。</div>';
+      await loadClasses();
 
       const pr = await api.get("/coach/payout-history");
       const pays = (pr.data && (pr.data.payouts || pr.data.history)) || [];
@@ -87,6 +117,7 @@
 
       await loadVenues();
       await loadMyRating();
+      await initNewClass();
     }
 
     async function loadMyRating() {
@@ -108,6 +139,89 @@
           recent.map(x => '<div style="font-size:12.5px;margin-bottom:6px">' + "★".repeat(x.rating) + " " + esc(x.comment || "（無留言）") + ' <span class="muted">· ' + esc(String(x.created_at || "").slice(0, 10)) + '</span></div>').join("") +
           '</div>' : "") +
         '</div>';
+    }
+
+    /* ===== ➕ 開新班 ===== */
+    const NC_CATS = ["新興運動","身心伸展","兒童健體","健身體能","球類運動","舞蹈","戶外歷險","武術格鬥","養生復康","其他"];
+    let ncVenues = [];
+
+    function ncSlotRow() {
+      const d = document.createElement("div");
+      d.className = "nc-slot";
+      d.style.cssText = "display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px";
+      const now = new Date(Date.now() + 864e5);
+      now.setMinutes(0, 0, 0);
+      const pad = (n) => String(n).padStart(2, "0");
+      const val = now.getFullYear() + "-" + pad(now.getMonth() + 1) + "-" + pad(now.getDate()) + "T19:00";
+      d.innerHTML = '<input class="fld" type="datetime-local" data-start value="' + val + '">' +
+                    '<input class="fld" type="datetime-local" data-end value="' + val.replace("T19:00", "T20:00") + '">';
+      return d;
+    }
+
+    async function initNewClass() {
+      $("ncCat").innerHTML = NC_CATS.map(c => '<option>' + c + '</option>').join("");
+      $("ncSlots").appendChild(ncSlotRow());
+      $("ncAddSlot").onclick = () => { if ($("ncSlots").children.length < 10) $("ncSlots").appendChild(ncSlotRow()); };
+
+      const r = await api.get("/coach/venues");
+      ncVenues = (r.data && r.data.venues) || [];
+      const opts = ncVenues.map(v => '<option value="' + esc(v.id) + '">' + esc(v.name) + (v.district ? "（" + esc(v.district) + "）" : "") + '</option>');
+      $("ncVenue").innerHTML = opts.join("") + '<option value="">其他／自行輸入</option>';
+      $("ncVenue").onchange = () => {
+        $("ncVenueManual").style.display = $("ncVenue").value ? "none" : "block";
+      };
+
+      $("ncSubmit").onclick = submitNewClass;
+    }
+
+    async function submitNewClass() {
+      const btn = $("ncSubmit"), msg = $("ncMsg");
+      const title = $("ncTitle").value.trim();
+      if (!title) { msg.textContent = "請填課程標題"; return; }
+      const schedules = [...$("ncSlots").children].map(d => ({
+        start_time: d.querySelector("[data-start]").value.replace("T", " ") + ":00",
+        end_time: d.querySelector("[data-end]").value.replace("T", " ") + ":00",
+      })).filter(s => s.start_time && s.end_time);
+      if (!schedules.length) { msg.textContent = "請加最少一個時段"; return; }
+
+      const venueSel = $("ncVenue").value;
+      const body = {
+        title,
+        category: $("ncCat").value,
+        difficulty: $("ncDiff").value,
+        duration: Number($("ncDur").value),
+        max_participants: Number($("ncMax").value),
+        price_hkd: Number($("ncPrice").value) || 0,
+        credits_cost: $("ncCredits").value ? Number($("ncCredits").value) : undefined,
+        description: $("ncDesc").value.trim(),
+        venue: venueSel ? { partner_venue_id: venueSel } : {
+          name: $("ncVenueName").value.trim(),
+          district: $("ncVenueDistrict").value.trim(),
+          address: $("ncVenueAddr").value.trim(),
+        },
+        schedules,
+      };
+      if (!venueSel && !body.venue.name) { msg.textContent = "請選擇場地或填場地名稱"; return; }
+
+      btn.disabled = true; btn.textContent = "開班中…"; msg.textContent = "";
+      const r = await api.post("/coach/classes", body);
+      btn.disabled = false; btn.textContent = "開班並上架";
+      if (r.ok) {
+        msg.textContent = "✅ 已開班（" + ((r.data && r.data.data && r.data.data.schedules) || schedules.length) + " 個時段），已上架探索頁";
+        $("ncTitle").value = ""; $("ncDesc").value = "";
+        $("ncSlots").innerHTML = ""; $("ncSlots").appendChild(ncSlotRow());
+        await loadClasses();
+      } else {
+        msg.textContent = (r.data && r.data.error) || "開班失敗";
+      }
+    }
+
+    async function loadClasses() {
+      const cr = await api.get("/coach/my-classes");
+      const cls = (cr.data && cr.data.classes) || [];
+      $("classes").innerHTML = cls.length ? cls.slice(0, 20).map(c =>
+        `<a class="cl" href="detail.html?id=${encodeURIComponent(c.id)}"><span>${esc(c.title)}<span class="muted" style="font-size:12px"> · ${esc(c.category || "")}</span></span><span class="muted">›</span></a>`
+      ).join("") : '<div class="body muted">暫無課程。可以上面「➕ 開新班」開第一個。</div>';
     }
 
     async function loadVenues() {

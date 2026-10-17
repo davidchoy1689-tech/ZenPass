@@ -488,6 +488,100 @@ router.post("/public-profile", authenticateToken, (req, res) => {
   }
 });
 
+// ===== POST /api/coach/classes — 教練自助開班（唔需要商戶）=====
+router.post("/classes", authenticateToken, (req, res) => {
+  try {
+    const db = getDb();
+    const me = db.prepare("SELECT id, name, is_coach, coach_verified FROM users WHERE id = ?").get(req.user.id);
+    if (!me) return res.status(404).json({ success: false, error: "用戶不存在" });
+    if (!me.is_coach) return res.status(403).json({ success: false, error: "只限已批核教練開班，請先申請成為教練" });
+
+    const {
+      title, category, sport_slug, description, difficulty, duration,
+      max_participants, price_hkd, credits_cost, target_audience, image_url,
+      venue = {}, schedules,
+    } = req.body || {};
+
+    if (!title || !category || !duration) {
+      return res.status(400).json({ success: false, error: "請填寫課程標題、類別及時長" });
+    }
+    if (!Array.isArray(schedules) || schedules.length === 0) {
+      return res.status(400).json({ success: false, error: "請至少新增一個上堂時段" });
+    }
+    if (schedules.length > 60) return res.status(400).json({ success: false, error: "一次最多 60 個時段" });
+
+    let venueName = String(venue.name || "").trim();
+    let venueAddress = String(venue.address || "").trim();
+    let partnerVenueId = null;
+    let district = "";
+
+    if (venue.partner_venue_id) {
+      const v = db
+        .prepare("SELECT id, name, address, district FROM partner_venues WHERE id = ? AND status = 'active'")
+        .get(venue.partner_venue_id);
+      if (!v) return res.status(400).json({ success: false, error: "場地不存在或未開通" });
+      partnerVenueId = v.id;
+      venueName = v.name;
+      venueAddress = v.address || "";
+      const { resolveDistrict } = require("../services/district");
+      district = resolveDistrict(v.district) || resolveDistrict([v.address, v.name].filter(Boolean).join(" ")) || "";
+    } else {
+      if (!venueName) return res.status(400).json({ success: false, error: "請選擇場地或填寫場地名稱" });
+      const { resolveDistrict } = require("../services/district");
+      district = resolveDistrict([venue.district, venueAddress, venueName].filter(Boolean).join(" ")) || "";
+    }
+
+    // 時段驗證
+    const { v4: uuidv4 } = require("uuid");
+    const now = Date.now();
+    const maxAhead = now + 1000 * 60 * 60 * 24 * 92; // 約 3 個月
+    for (const s of schedules) {
+      const st = new Date(s.start_time).getTime();
+      const et = new Date(s.end_time).getTime();
+      if (!st || !et) return res.status(400).json({ success: false, error: "時段時間格式錯誤" });
+      if (et <= st) return res.status(400).json({ success: false, error: "完結時間必須遲過開始時間" });
+      if (st < now - 1000 * 60 * 5) return res.status(400).json({ success: false, error: "唔可以開過去嘅時段" });
+      if (st > maxAhead) return res.status(400).json({ success: false, error: "只可以開未來 3 個月嘅班" });
+    }
+
+    const finalPrice = Number(price_hkd) || 0;
+    const credits = Number(credits_cost) || Math.max(3, Math.round(finalPrice / 10));
+    const classId = uuidv4();
+
+    db.prepare(
+      `INSERT INTO classes (id, coach_id, title, description, category, difficulty,
+         duration, max_participants, price_hkd, credits_cost, venue_name, venue_address,
+         target_audience, image_url, partner_venue_id, partner_id, district, sport_slug,
+         status, booking_open, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', 1, datetime('now'), datetime('now'))`,
+    ).run(
+      classId, me.id, title, description || "", category, difficulty || "beginner",
+      Number(duration), Number(max_participants) || 15, finalPrice, credits,
+      venueName, venueAddress, target_audience || null, image_url || null,
+      partnerVenueId, partnerVenueId, district || null, sport_slug || null,
+    );
+
+    const ids = [];
+    for (const s of schedules) {
+      const sid = uuidv4();
+      db.prepare(
+        `INSERT INTO class_schedules (id, class_id, start_time, end_time, max_participants, enrolled_count, status, created_at)
+         VALUES (?, ?, ?, ?, ?, 0, 'available', datetime('now'))`,
+      ).run(sid, classId, s.start_time, s.end_time, Number(s.max_participants) || Number(max_participants) || 15);
+      ids.push(sid);
+    }
+
+    res.status(201).json({
+      success: true,
+      message: "✅ 班已開，已出現在探索頁",
+      data: { id: classId, schedules: ids.length, district: district || null },
+    });
+  } catch (err) {
+    console.error("coach/classes POST error:", err.message);
+    res.status(500).json({ success: false, error: "開班失敗：" + err.message });
+  }
+});
+
 // ===== GET /api/coach/my-rating — 我嘅教練評分（階段 1：只自己睇）=====
 router.get("/my-rating", authenticateToken, (req, res) => {
   try {
