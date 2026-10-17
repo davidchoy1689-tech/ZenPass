@@ -63,6 +63,11 @@
     .dt-step .min { font-size: 11px; font-weight: 800; color: var(--brand-600); background: #fff1ea; border-radius: 999px; padding: 2px 8px; }
     .dt-step .d { font-size: 12.5px; color: var(--text-muted); margin-top: 3px; line-height: 1.55; }
     .dt-aud { display: flex; gap: 6px; flex-wrap: wrap; }
+
+    .dt-coach-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
+    .dt-coach-stats .s { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 9px 8px; text-align: center; }
+    .dt-coach-stats .s b { display: block; font-size: 15px; color: var(--brand-600); line-height: 1.2; }
+    .dt-coach-stats .s i { font-style: normal; font-size: 10.5px; color: var(--text-muted); }
     .dt-seats { color: #b45309; font-weight: 700; }
     .dt-sticky { position: fixed; left: 0; right: 0; bottom: 0; z-index: 900; background: rgba(255,255,255,.96); backdrop-filter: blur(10px); border-top: 1px solid var(--border); padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); display: flex; align-items: center; gap: 12px; }
     .dt-price { line-height: 1.15; }
@@ -140,9 +145,11 @@
             <div style="flex:1">
               <div style="font-weight:800;font-size:15px" id="coachName">—</div>
               <div class="muted" style="font-size:12.5px" id="coachMeta">認證教練</div>
-              <div class="dt-tags" style="margin-top:6px" id="coachTags"></div>
             </div>
           </div>
+          <p class="muted" id="coachBio" style="font-size:13px;line-height:1.7;margin:10px 0 0"></p>
+          <div class="dt-tags" style="margin-top:8px" id="coachTags"></div>
+          <div class="dt-coach-stats" id="coachStats"></div>
         </div></div>
       </section>
 
@@ -235,7 +242,12 @@
         id: "", title: "【新手零門檻體驗】芬蘭木柱 Mölkky 基礎技巧與團體樂趣對戰",
         category: "新興運動", duration: 60, max_participants: 8, price_hkd: 150, credits_cost: 15,
         venue_name: "觀塘創紀之城室內場館", venue_address: "九龍觀塘觀塘道 388 號",
-        coach_name: "陳教練", difficulty: "beginner", target_audience: "新手 / 朋友團體",
+        coach_name: "Coach Alex", coach_verified: 1,
+        coach_meta: "香港新興運動總會認可導師",
+        coach_bio: "擁有 5 年以上新興運動教學經驗，曾帶領超過 50+ 場企業 Team Building 及學校推廣活動。教學風格幽默耐性，擅長帶動現場氣氛！",
+        coach_tags: ["認可導師", "廣東話 / English", "500+ 學員指導"],
+        coach_stats: [{ v: "5+", k: "年教學經驗" }, { v: "50+", k: "企業 / 學校場次" }, { v: "500+", k: "學員指導" }],
+        difficulty: "beginner", target_audience: "新手 / 朋友團體",
         description: "由零開始學芬蘭木柱：握棒、投擲、計分規則，最後分組對戰。教練全程指導，裝備全包。",
         avg_rating: 4.9, review_count: 32,
       };
@@ -301,9 +313,15 @@
 
       // 教練
       $("coachName").textContent = c.coach_name || "ZenPass 認證教練";
-      $("coachMeta").textContent = (c.coach_verified ? "✅ 已認證 · " : "") + (c.category ? c.category + " 專業" : "專業教練");
+      $("coachMeta").textContent = c.coach_meta || ((c.coach_verified ? "✅ 已認證 · " : "") + (c.category ? c.category + " 專業教練" : "專業教練"));
       $("coachAvatar").innerHTML = c.coach_avatar ? '<img src="' + esc(c.coach_avatar) + '" alt="">' : "🧑‍🏫";
-      $("coachTags").innerHTML = ["小班教學", "新手友善", "裝備全包"].map((t) => '<span class="dt-tag green">' + t + "</span>").join("");
+      $("coachBio").textContent = c.coach_bio || "具多年新興運動教學經驗，擅長以輕鬆互動方式帶領新手掌握技巧，課堂氣氛輕鬆。";
+      const ctags = Array.isArray(c.coach_tags) && c.coach_tags.length ? c.coach_tags : ["認可導師", "廣東話 / English", "新手友善"];
+      $("coachTags").innerHTML = ctags.map((t) => '<span class="dt-tag green">' + esc(t) + "</span>").join("");
+      const cstats = Array.isArray(c.coach_stats) && c.coach_stats.length ? c.coach_stats : null;
+      $("coachStats").innerHTML = cstats
+        ? cstats.map((x) => '<div class="s"><b>' + esc(x.v) + "</b><i>" + esc(x.k) + "</i></div>").join("")
+        : "";
 
       // 場地設施
       const fac = Array.isArray(c.facilities) ? c.facilities : [];

@@ -29,6 +29,10 @@ has("分鐘</span>", "duration badge");
 // 3 教練
 has("🧑‍🏫 教練", "coach section");
 has('id="coachName"', "coach name");
+has('id="coachBio"', "coach bio");
+has('id="coachTags"', "coach tags");
+has('id="coachStats"', "coach stats");
+has("香港新興運動總會認可導師", "coach credential");
 
 // 4 場地
 has("場地資訊", "venue section");
