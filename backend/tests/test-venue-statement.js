@@ -15,6 +15,7 @@ CREATE TABLE partner_venues (id TEXT PRIMARY KEY, name TEXT, address TEXT, distr
 CREATE TABLE users (id TEXT PRIMARY KEY, name TEXT, email TEXT, phone TEXT, role TEXT);
 CREATE TABLE venue_rentals (id TEXT PRIMARY KEY, venue_id TEXT, coach_id TEXT, start_time TEXT, end_time TEXT, price_hkd REAL, status TEXT, created_at TEXT, commission_rate REAL, commission_amount REAL, venue_earned REAL);
 CREATE TABLE platform_settings (key TEXT PRIMARY KEY, value TEXT, description TEXT);
+CREATE TABLE venue_penalties (id TEXT PRIMARY KEY, rental_id TEXT, venue_id TEXT, coach_id TEXT, type TEXT, amount_hkd REAL, status TEXT, note TEXT, created_at TEXT);
 `);
 db.prepare("INSERT INTO partner_venues VALUES (?,?,?,?,?,?,?,?,?)").run("v1", "康樂中心", "1 號街", "沙田", "運動場", 0.15, "basic", "venue@example.com", "active");
 db.prepare("INSERT INTO users VALUES (?,?,?,?,?)").run("c1", "陳教練", "c1@example.com", "111", "coach");
@@ -29,6 +30,7 @@ db.prepare("INSERT INTO venue_rentals VALUES (?,?,?,?,?,?,?,?,?,?,?)").run("r3",
 db.prepare("INSERT INTO venue_rentals VALUES (?,?,?,?,?,?,?,?,?,?,?)").run("r4", "v1", "c2", "2026-10-20T02:00:00.000Z", "2026-10-20T03:00:00.000Z", 200, "pending", "2026-10-20T01:00:00Z", 0.15, 0, 0);
 // Sept — out of month
 db.prepare("INSERT INTO venue_rentals VALUES (?,?,?,?,?,?,?,?,?,?,?)").run("r5", "v1", "c1", "2026-09-30T02:00:00.000Z", "2026-09-30T03:00:00.000Z", 300, "confirmed", "2026-09-30T01:00:00Z", 0.15, 0, 0);
+db.prepare("INSERT INTO venue_penalties VALUES (?,?,?,?,?,?,?,?,?)").run("p1","r1","v1","c1","venue_failure_200pct",100,"pending_charge","測試罰款","2026-10-10 03:00:00");
 db.close();
 
 const { buildStatement, renderStatementHtml, prevMonthKey } = require("/Users/user/.openclaw/workspace/zenpass-platform/backend/src/services/venue-statement.js");
@@ -44,6 +46,9 @@ eq(stmt.totals.commission, 180, "commission 15%");
 eq(stmt.totals.net, 1020, "net");
 eq(stmt.totals.hours, 6, "hours");
 eq(stmt.pending_count, 1, "pending count");
+eq(stmt.penalties_total, 100, "penalties total 100");
+eq(stmt.payable_to_venue, 920, "payable = net 1020 - 100");
+eq(stmt.carry_forward, 0, "no carry forward");
 eq(stmt.byCoach.length, 2, "byCoach count");
 eq(stmt.byCoach[0].coach_name, "陳教練", "top coach by gross");
 eq(stmt.byCoach[0].gross, 600, "coach1 gross");

@@ -125,6 +125,35 @@ function buildStatement(venueId, monthStr) {
   }
   const byCoach = Object.values(byCoachMap).sort((a, b) => b.gross - a.gross);
 
+  // 場地罰款 / 手續費（該月建立，未結清）
+  let penalties = [];
+  try {
+    penalties = db
+      .prepare(
+        `SELECT id, rental_id, type, amount_hkd, status, note, created_at
+           FROM venue_penalties
+          WHERE venue_id = ?
+            AND status IN ('pending_charge','applied')
+            AND strftime('%Y-%m', datetime(created_at, '+8 hours')) = ?
+          ORDER BY created_at ASC`,
+      )
+      .all(venueId, bounds.key)
+      .map((x) => ({
+        id: x.id,
+        rental_id: x.rental_id,
+        type: x.type,
+        amount: round2(x.amount_hkd),
+        status: x.status,
+        note: x.note || "",
+        date_hkt: String(x.created_at || "").slice(0, 10),
+      }));
+  } catch (e) {
+    penalties = [];
+  }
+  const penaltiesTotal = round2(penalties.reduce((a, x) => a + x.amount, 0));
+  const payableToVenue = round2(Math.max(0, totals.net - penaltiesTotal));
+  const carryForward = round2(Math.max(0, penaltiesTotal - totals.net));
+
   const pendingCount = db
     .prepare(
       `SELECT COUNT(*) AS c FROM venue_rentals
@@ -140,6 +169,10 @@ function buildStatement(venueId, monthStr) {
     rentals,
     byCoach,
     totals,
+    penalties,
+    penalties_total: penaltiesTotal,
+    payable_to_venue: payableToVenue,
+    carry_forward: carryForward,
     pending_count: pendingCount,
     generated_at: new Date().toISOString(),
   };
@@ -216,8 +249,9 @@ function renderStatementHtml(stmt) {
     <div class="box"><div class="k">總時數</div><div class="v">${stmt.totals.hours}</div></div>
     <div class="box"><div class="k">毛收入</div><div class="v">${hkd(stmt.totals.gross)}</div></div>
     <div class="box"><div class="k">平台佣金</div><div class="v">${hkd(stmt.totals.commission)}</div></div>
-    <div class="box net"><div class="k">場地實收</div><div class="v">${hkd(stmt.totals.net)}</div></div>
+    <div class="box net"><div class="k">場地實收</div><div class="v">${hkd(stmt.payable_to_venue != null ? stmt.payable_to_venue : stmt.totals.net)}</div></div>
   </div>
+  ${stmt.penalties && stmt.penalties.length ? `<div class="muted" style="margin-top:10px">※ 已扣除罰款／手續費 ${hkd(stmt.penalties_total)}${stmt.carry_forward > 0 ? `，另有 ${hkd(stmt.carry_forward)} 結轉下月` : ""}</div>` : ""}
 
   <h1 style="font-size:15px">租場明細</h1>
   ${
@@ -231,6 +265,8 @@ function renderStatementHtml(stmt) {
       ? `<h1 style="font-size:15px">按教練統計</h1><table><thead><tr><th>教練</th><th style="text-align:right">次數</th><th style="text-align:right">毛收入</th><th style="text-align:right">佣金</th><th style="text-align:right">實收</th></tr></thead><tbody>${coachRowHtml}</tbody></table>`
       : ""
   }
+
+  ${stmt.penalties && stmt.penalties.length ? `<h1 style="font-size:15px">罰款／手續費</h1><table><thead><tr><th>日期</th><th>類型</th><th>說明</th><th style="text-align:right">金額</th></tr></thead><tbody>` + stmt.penalties.map((p) => `<tr><td>${esc(p.date_hkt)}</td><td>${esc(p.type === "venue_failure_200pct" ? "未能提供場地 (200%)" : p.type === "tenant_cancel_forfeit" ? "租客取消" : p.type)}</td><td>${esc(p.note)}</td><td style="text-align:right">${hkd(p.amount)}</td></tr>`).join("") + `</tbody></table>` : ""}
 
   ${stmt.pending_count ? `<div class="muted" style="margin-top:12px">※ 另有 ${stmt.pending_count} 個待確認租場未計入本月。</div>` : ""}
 
