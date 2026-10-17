@@ -44,6 +44,13 @@ const merchant = fs.readFileSync(path.join(root, "merchant-centre.html"), "utf8"
 ok(merchant.includes("場地評分"), "商戶中心顯示場地評分");
 ok(merchant.includes("曝光"), "商戶中心顯示曝光影響說明");
 
+console.log("── /available 路線 ──");
+const routeSrc = fs.readFileSync(path.join(__dirname, "..", "src", "routes", "venue-rentals.js"), "utf8");
+const avail = routeSrc.slice(routeSrc.indexOf('router.get("/available"'), routeSrc.indexOf('router.get("/available"') + 2500);
+ok(!avail.includes("params.push(limit"), "/available 冇多餘 SQL 參數（曾出 Too many parameter values）");
+ok(avail.includes("computeVenueRating"), "/available 回傳場地評分");
+ok(avail.includes("visibility !== \"hidden\""), "/available 隱藏低分場地");
+
 console.log("──────────────────────────────");
 if (fail) { console.log(`❌ ${fail} failed`); process.exit(1); }
 console.log("✅ 場地評分 / 真實文案 tests passed");

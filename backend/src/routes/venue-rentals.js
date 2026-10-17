@@ -41,7 +41,6 @@ router.get("/available", (req, res) => {
     }
 
     sql += ` ORDER BY v.name`;
-    params.push(limit, (page - 1) * limit);
 
     let venues = db.prepare(sql).all(...params);
 
