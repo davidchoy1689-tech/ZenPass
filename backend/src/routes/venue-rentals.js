@@ -517,6 +517,30 @@ router.post("/:id/venue-cancel", authenticateToken, requireOwnInstitution, (req,
 
     const fee = Math.round((Number(r.price_hkd) || 0) * 2 * 100) / 100; // 200%
     db.prepare("CREATE TABLE IF NOT EXISTS venue_penalties (id TEXT PRIMARY KEY, rental_id TEXT, venue_id TEXT, coach_id TEXT, type TEXT, amount_hkd REAL, status TEXT, note TEXT, created_at TEXT DEFAULT (datetime('now')))").run();
+
+    // 已付款 → 全額退回教練（錢包）
+    let refunded = false;
+    if (r.payment_status === "paid" && Number(r.price_hkd) > 0) {
+      try {
+        const walletService = require("../services/wallet-service");
+        const w = walletService.creditWallet({
+          userId: r.coach_id,
+          amount: Number(r.price_hkd),
+          type: "venue_rental_refund",
+          description: `場地未能提供，全額退款（${r.start_time} - ${r.end_time}）`,
+          reference: r.id,
+          sourceType: "venue_rental",
+          sourceId: r.id,
+        });
+        if (w && w.success) {
+          refunded = true;
+          db.prepare("UPDATE venue_rentals SET payment_status='refunded' WHERE id=?").run(r.id);
+        }
+      } catch (e) {
+        console.error("venue-cancel refund error:", e.message);
+      }
+    }
+
     db.prepare("UPDATE venue_rentals SET status = 'cancelled' WHERE id = ?").run(req.params.id);
     db.prepare(
       "INSERT INTO venue_penalties (id, rental_id, venue_id, coach_id, type, amount_hkd, status, note) VALUES (?,?,?,?,?,?,?,?)",
@@ -531,7 +555,7 @@ router.post("/:id/venue-cancel", authenticateToken, requireOwnInstitution, (req,
       ).catch(() => {});
     }
 
-    res.json({ success: true, status: "cancelled", refund_full: true, venue_fee_hkd: fee, message: "已取消並安排全額退款；場地手續費 HK$" + fee.toFixed(2) + " 已記錄" });
+    res.json({ success: true, status: "cancelled", refund_full: refunded, venue_fee_hkd: fee, message: "已取消" + (refunded ? "並已全額退款" : "") + "；場地手續費 HK$" + fee.toFixed(2) + " 已記錄" });
   } catch (err) {
     console.error("venue-rentals/venue-cancel error:", err.message);
     res.status(500).json({ success: false, error: err.message });

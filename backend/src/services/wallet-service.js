@@ -393,8 +393,35 @@ function getAllCoachWallets({ limit = 50, offset = 0 }) {
   }
 }
 
+/**
+ * 通用入賬（退款、補償等）
+ */
+function creditWallet({ userId, amount, type, description, reference, sourceType = "", sourceId = "" }) {
+  const db = getDb();
+  db.pragma("foreign_keys = ON");
+  try {
+    const user = db.prepare("SELECT wallet_balance FROM users WHERE id = ?").get(userId);
+    if (!user) return { success: false, error: "用戶不存在" };
+    const before = user.wallet_balance || 0;
+    const after = fromCents(toCents(before) + toCents(amount));
+    const txId = uuidv4();
+    db.prepare("UPDATE users SET wallet_balance = ? WHERE id = ?").run(after, userId);
+    db.prepare(
+      `INSERT INTO wallet_transactions
+        (id, user_id, type, amount, balance_before, balance_after, source_type, source_id, description, reference, fee, status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 'completed')`,
+    ).run(txId, userId, type || "credit", amount, before, after, sourceType, sourceId, description || "", reference || null);
+    console.log(`[WALLET] Credited HK$${amount} to ${userId} (tx: ${txId})`);
+    return { success: true, tx_id: txId, balance_before: before, balance_after: after };
+  } catch (e) {
+    console.error("[WALLET] creditWallet error:", e.message);
+    return { success: false, error: e.message };
+  }
+}
+
 module.exports = {
   creditCoachEarning,
+  creditWallet,
   debitWallet,
   getWalletSummary,
   getTransactions,
