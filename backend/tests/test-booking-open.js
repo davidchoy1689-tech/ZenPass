@@ -28,9 +28,12 @@ db.prepare("INSERT INTO class_schedules VALUES (?,?,?,?,?,?,?)").run("s2", "lock
 // 3) 已完結 3 日（仍保留，灰色）
 db.prepare("INSERT INTO classes (id,title,category,status,booking_open) VALUES (?,?,?,?,?)").run("recent", "完結班", "伸展", "active", 1);
 db.prepare("INSERT INTO class_schedules VALUES (?,?,?,?,?,?,?)").run("s3", "recent", iso(-3 * 86400000), iso(-3 * 86400000 + 3600000), 5, 10, "available");
-// 4) 已完結 10 日（應被隱藏）
+// 4) 已完結 10 日（已開放 → 應被隱藏）
 db.prepare("INSERT INTO classes (id,title,category,status,booking_open) VALUES (?,?,?,?,?)").run("old", "過期班", "伸展", "active", 1);
 db.prepare("INSERT INTO class_schedules VALUES (?,?,?,?,?,?,?)").run("s4", "old", iso(-10 * 86400000), iso(-10 * 86400000 + 3600000), 5, 10, "available");
+// 4b) 未開放 + 已完結 10 日（目錄項 → 要繼續顯示）
+db.prepare("INSERT INTO classes (id,title,category,status,booking_open) VALUES (?,?,?,?,?)").run("lockedold", "舊目錄", "新興運動", "active", 0);
+db.prepare("INSERT INTO class_schedules VALUES (?,?,?,?,?,?,?)").run("s5", "lockedold", iso(-10 * 86400000), iso(-10 * 86400000 + 3600000), 5, 10, "available");
 // 5) 完全冇時段（應保留，未開放）
 db.prepare("INSERT INTO classes (id,title,category,status,booking_open) VALUES (?,?,?,?,?)").run("nosched", "即將推出", "新興運動", "active", 0);
 db.close();
@@ -43,14 +46,15 @@ const rows = DB.prepare(`
     ${LAST_END} as last_session_end,
     CASE WHEN ${LAST_END} IS NOT NULL AND ${LAST_END} < datetime('now') THEN 1 ELSE 0 END as is_expired
   FROM classes c
-  WHERE c.status = 'active' AND (${LAST_END} IS NULL OR ${LAST_END} >= datetime('now','-7 days'))
+  WHERE c.status = 'active'
+    AND NOT (COALESCE(c.booking_open,0) = 1 AND ${LAST_END} IS NOT NULL AND ${LAST_END} < datetime('now','-7 days'))
   ORDER BY c.id
 `).all();
 
 const fails = [];
 const eq = (a, b, m) => { if (a !== b) fails.push(`${m}: expected ${b}, got ${a}`); };
 const ids = rows.map((r) => r.id).sort();
-eq(ids.join(","), "locked,nosched,open,recent", "visible classes (old 10d hidden)");
+eq(ids.join(","), "locked,lockedold,nosched,open,recent", "visible classes (open+expired 10d hidden, locked keep)");
 
 const byId = Object.fromEntries(rows.map((r) => [r.id, r]));
 eq(byId.open.is_expired, 0, "open not expired");
@@ -66,12 +70,14 @@ const DB2 = new Database(tmp);
 const arc = DB2.prepare(`
   UPDATE classes SET status='inactive'
   WHERE status='active'
+    AND COALESCE(booking_open,0) = 1
     AND EXISTS (SELECT 1 FROM class_schedules cs WHERE cs.class_id = classes.id)
     AND (SELECT MAX(cs.end_time) FROM class_schedules cs WHERE cs.class_id = classes.id) < datetime('now','-7 days')
 `).run();
 eq(arc.changes, 1, "archive only the >7d class");
 eq(DB2.prepare("SELECT status FROM classes WHERE id='recent'").get().status, "active", "3d class stays active");
 eq(DB2.prepare("SELECT status FROM classes WHERE id='old'").get().status, "inactive", "10d class archived");
+eq(DB2.prepare("SELECT status FROM classes WHERE id='lockedold'").get().status, "active", "locked 10d stays visible");
 DB2.close();
 
 // 前端標記

@@ -881,6 +881,7 @@ function archiveExpiredClasses() {
         `UPDATE classes
             SET status = 'inactive', updated_at = datetime('now')
           WHERE status = 'active'
+            AND COALESCE(booking_open,0) = 1
             AND EXISTS (SELECT 1 FROM class_schedules cs WHERE cs.class_id = classes.id)
             AND (SELECT MAX(cs.end_time) FROM class_schedules cs WHERE cs.class_id = classes.id) < datetime('now','-7 days')`,
       )

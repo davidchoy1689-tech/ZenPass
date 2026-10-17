@@ -167,6 +167,22 @@ CREATE TABLE IF NOT EXISTS users (
 
   // ===== 兼容升級：classes.district（按課程地區自動分區）=====
   try { db.exec("ALTER TABLE classes ADD COLUMN district TEXT"); } catch (e) { /* exists */ }
+
+  // ===== 一次性修復：還原被 7 日歸檔規則誤隱藏嘅「未開放預約」課程 =====
+  try {
+    db.prepare("CREATE TABLE IF NOT EXISTS platform_settings (key TEXT PRIMARY KEY, value TEXT, description TEXT, created_at TEXT DEFAULT (datetime('now')), updated_at TEXT DEFAULT (datetime('now')))").run();
+    const marker = "migration.restore_unopened_classes_20261017";
+    const done = db.prepare("SELECT value FROM platform_settings WHERE key = ?").get(marker);
+    if (!done) {
+      const r = db
+        .prepare(
+          "UPDATE classes SET status='active' WHERE status='inactive' AND COALESCE(booking_open,0)=0 AND updated_at >= datetime('now','-2 days')",
+        )
+        .run();
+      db.prepare("INSERT OR REPLACE INTO platform_settings (key,value,description) VALUES (?,?,?)").run(marker, "1", "還原誤歸檔嘅未開放課程");
+      if (r.changes) console.log(`✅ 還原未開放課程: ${r.changes} 條`);
+    }
+  } catch (e) { /* 非致命 */ }
   try {
     const { resolveDistrict, DISTRICTS } = require("../services/district");
     const _names = new Set(DISTRICTS.map((d) => d.name));
