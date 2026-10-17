@@ -318,6 +318,63 @@ router.post("/close-demo-classes", authenticateToken, requireAdmin, (req, res) =
   }
 });
 
+// ===== 積分兌換：待履行清單 =====
+router.get("/redemptions/pending", authenticateToken, requireAdmin, (req, res) => {
+  try {
+    const db = getDb();
+    const rows = db
+      .prepare(
+        `SELECT r.id, r.user_id, r.reward_name, r.points_spent, r.reward_value, r.status,
+                r.created_at, r.fulfilled_at, u.name AS user_name, u.email AS user_email, u.phone AS user_phone
+         FROM points_redemptions r JOIN users u ON r.user_id = u.id
+         WHERE r.reward_value = 'pending_fulfilment' AND r.fulfilled_at IS NULL
+         ORDER BY r.created_at ASC`,
+      )
+      .all();
+    res.json({ success: true, data: rows });
+  } catch (err) {
+    console.error("admin/redemptions/pending error:", err.message);
+    res.status(500).json({ success: false, error: "無法讀取" });
+  }
+});
+
+// ===== 積分兌換：標記已履行 =====
+router.post("/redemptions/:id/fulfil", authenticateToken, requireAdmin, (req, res) => {
+  try {
+    const db = getDb();
+    const r = db
+      .prepare(
+        "UPDATE points_redemptions SET fulfilled_at = datetime('now'), fulfilled_by = ?, status = 'used' WHERE id = ? AND fulfilled_at IS NULL",
+      )
+      .run(req.user.id, req.params.id);
+    if (!r.changes) return res.status(409).json({ success: false, error: "此兌換已履行或不存在" });
+    res.json({ success: true, message: "已標記為已履行" });
+  } catch (err) {
+    console.error("admin/redemptions/fulfil error:", err.message);
+    res.status(500).json({ success: false, error: "操作失敗" });
+  }
+});
+
+// ===== 積分到期：預覽 / 手動執行 =====
+router.get("/points-expiry/preview", authenticateToken, requireAdmin, (req, res) => {
+  try {
+    const { listExpiring } = require("../services/points-expiry");
+    res.json({ success: true, data: listExpiring() });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+router.post("/points-expiry/run", authenticateToken, requireAdmin, (req, res) => {
+  try {
+    const { expireInactivePoints } = require("../services/points-expiry");
+    const out = expireInactivePoints({ dryRun: !!(req.body && req.body.dry_run) });
+    res.json({ success: true, data: out });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // ===== POST /api/admin/reset-review-data — 清空 demo 評分（需要 confirm）=====
 router.post("/reset-review-data", authenticateToken, requireAdmin, (req, res) => {
   try {

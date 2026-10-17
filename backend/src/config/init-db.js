@@ -1038,6 +1038,8 @@ CREATE TABLE IF NOT EXISTS users (
       points_spent INTEGER NOT NULL,
       reward_value TEXT,
       status TEXT DEFAULT 'active' CHECK(status IN ('active','used','expired')),
+      fulfilled_at TEXT,
+      fulfilled_by TEXT,
       expires_at TEXT,
       created_at TEXT DEFAULT (datetime('now')),
       FOREIGN KEY (user_id) REFERENCES users(id),
@@ -1899,6 +1901,24 @@ CREATE TABLE IF NOT EXISTS users (
     ["insurance_expiry", "TEXT"],
   ]) {
     try { db.exec(`ALTER TABLE partner_venues ADD COLUMN ${col} ${type}`); } catch (e) { /* exists */ }
+  }
+
+  // points_redemptions：履行追蹤欄位
+  for (const [col, type] of [
+    ["fulfilled_at", "TEXT"],
+    ["fulfilled_by", "TEXT"],
+  ]) {
+    try { db.exec(`ALTER TABLE points_redemptions ADD COLUMN ${col} ${type}`); } catch (e) { /* exists */ }
+  }
+
+  // 積分到期：points_expiry_months（預設 12 個月無使用即失效）
+  try {
+    const has = db.prepare("SELECT value FROM platform_settings WHERE key = 'points.expiry_months'").get();
+    if (!has) {
+      db.prepare("INSERT OR REPLACE INTO platform_settings (key, value) VALUES ('points.expiry_months', '12')").run();
+    }
+  } catch (e) {
+    /* platform_settings 未建立 */
   }
 
   // 一次性 backfill：舊評分（reviews / coach_ratings）→ mutual_reviews（單一來源）

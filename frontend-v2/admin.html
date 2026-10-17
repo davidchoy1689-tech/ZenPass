@@ -39,7 +39,7 @@
     const st = (s) => ({ confirmed:"已確認", attended:"已出席", pending_payment:"待付款", cancelled:"已取消", no_show:"缺席", pending:"待處理", approved:"已通過", rejected:"已拒絕", active:"生效" }[s] || s || "");
 
     const TABS = [
-      ["dash","概覽"], ["pay","付款核實"], ["topup","增值待確認"], ["morder","會籍待確認"], ["inq","查詢"], ["classes","課程"],
+      ["dash","概覽"], ["pay","付款核實"], ["topup","增值待確認"], ["morder","會籍待確認"], ["fulfil","兌換待履行"], ["inq","查詢"], ["classes","課程"],
       ["bookings","預約"], ["users","用戶"], ["coach","教練申請"], ["payouts","出糧"],
       ["reports","報表"], ["corp","企業"], ["partners","商戶"], ["jobs","Job"], ["pricing","定價"], ["penalty","罰則"], ["analytics","分析"], ["nps","評價"], ["promo","優惠碼"], ["marketing","推廣"], ["migrate","遷移"], ["audit","審計"],
     ];
@@ -60,6 +60,7 @@
         if (cur === "pay") return payments();
         if (cur === "topup") return topupOrders();
         if (cur === "morder") return membershipOrders();
+        if (cur === "fulfil") return redemptionFulfil();
         if (cur === "inq") return inquiries();
         if (cur === "classes") return clsTab();
         if (cur === "bookings") return listGeneric("/admin/bookings?limit=100", "bookings", bkRow, "預約");
@@ -174,6 +175,25 @@
           if (rr.ok) return load();
           b.disabled = false; alert((rr.data && rr.data.error) || "失敗");
         }
+      });
+    }
+
+    async function redemptionFulfil() {
+      const r = await api.get("/admin/redemptions/pending");
+      if (r.status === 401 || r.status === 403) return needAdmin();
+      const arr = (r.data && r.data.data) || [];
+      if (!arr.length) { panel().innerHTML = `<div class="card"><div class="body muted center">冇待履行兌換 ✅</div></div>`; return; }
+      panel().innerHTML = arr.map(o => `<div class="card" data-rid="${esc2(o.id)}"><div class="body">
+        <div style="display:flex;justify-content:space-between"><b>${esc2(o.reward_name)}</b><span class="amt">${o.points_spent} 分</span></div>
+        <p class="kv">${esc2(o.user_name||"")} · ${esc2(o.user_email||"")}${o.user_phone?` · ${esc2(o.user_phone)}`:""}</p>
+        <p class="kv">兌換時間：${esc2(String(o.created_at||"").slice(0,16))}</p>
+        <button class="btn btn-primary" data-f style="margin-top:8px">✅ 已交付 / 已安排</button>
+      </div></div>`).join("");
+      panel().querySelectorAll("[data-f]").forEach(b => b.onclick = async () => {
+        const id = b.closest(".card").dataset.rid; b.disabled = true;
+        const rr = await api.post(`/admin/redemptions/${id}/fulfil`, {});
+        if (rr.ok) return load();
+        b.disabled = false; alert((rr.data && rr.data.error) || "失敗");
       });
     }
 

@@ -897,6 +897,19 @@ function archiveExpiredClasses() {
 setInterval(archiveExpiredClasses, 6 * 60 * 60 * 1000);
 setTimeout(archiveExpiredClasses, 20000);
 
+// ===== 積分到期（連續 12 個月無使用）=====
+function expireStalePoints() {
+  try {
+    const { expireInactivePoints } = require("./services/points-expiry");
+    const r = expireInactivePoints();
+    if (r.results.length) console.log(`[POINTS-EXPIRY] 已處理 ${r.results.length} 位用戶積分到期`);
+  } catch (e) {
+    console.error("[POINTS-EXPIRY] Error:", e.message);
+  }
+}
+setInterval(expireStalePoints, 6 * 60 * 60 * 1000);
+setTimeout(expireStalePoints, 45000);
+
 // ===== 租場完成自動標記（end_time 過去 + 已付款）=====
 function completeVenueRentals() {
   try {
