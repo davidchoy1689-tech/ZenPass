@@ -44,7 +44,7 @@ const LAST_END = "(SELECT MAX(cs.end_time) FROM class_schedules cs WHERE cs.clas
 const rows = DB.prepare(`
   SELECT c.id, c.booking_open,
     ${LAST_END} as last_session_end,
-    CASE WHEN ${LAST_END} IS NOT NULL AND ${LAST_END} < datetime('now') THEN 1 ELSE 0 END as is_expired
+    CASE WHEN COALESCE(c.booking_open,0) = 1 AND ${LAST_END} IS NOT NULL AND ${LAST_END} < datetime('now') THEN 1 ELSE 0 END as is_expired
   FROM classes c
   WHERE c.status = 'active'
     AND NOT (COALESCE(c.booking_open,0) = 1 AND ${LAST_END} IS NOT NULL AND ${LAST_END} < datetime('now','-7 days'))
@@ -60,6 +60,7 @@ const byId = Object.fromEntries(rows.map((r) => [r.id, r]));
 eq(byId.open.is_expired, 0, "open not expired");
 eq(byId.open.booking_open, 1, "open bookable");
 eq(byId.locked.booking_open, 0, "locked not bookable");
+eq(byId.locked.is_expired, 0, "locked never greyed as expired");
 eq(byId.recent.is_expired, 1, "recent (3d) expired=1 but still visible");
 eq(byId.nosched.is_expired, 0, "no-schedule not expired");
 eq(byId.nosched.booking_open, 0, "no-schedule not bookable");

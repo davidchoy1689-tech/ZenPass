@@ -115,7 +115,7 @@ router.get("/", optionalAuth, cache(30), (req, res) => {
         c.*,
         u.name as coach_name,
         ${LAST_END} as last_session_end,
-        CASE WHEN ${LAST_END} IS NOT NULL AND ${LAST_END} < datetime('now') THEN 1 ELSE 0 END as is_expired,
+        CASE WHEN COALESCE(c.booking_open,0) = 1 AND ${LAST_END} IS NOT NULL AND ${LAST_END} < datetime('now') THEN 1 ELSE 0 END as is_expired,
         (SELECT COUNT(*) FROM bookings WHERE class_id = c.id) as booking_count,
         (SELECT ROUND(AVG(CAST(b.status AS REAL)), 1) FROM bookings b WHERE b.class_id = c.id AND b.status = 'attended') as rating,
         (SELECT COUNT(DISTINCT cs.id) FROM class_schedules cs 
@@ -295,7 +295,8 @@ router.get("/:id", optionalAuth, (req, res) => {
       SELECT c.*, u.name as coach_name, u.avatar_url as coach_avatar,
         u.is_coach, u.coach_verified,
         (SELECT MAX(cs.end_time) FROM class_schedules cs WHERE cs.class_id = c.id) as last_session_end,
-        CASE WHEN (SELECT MAX(cs.end_time) FROM class_schedules cs WHERE cs.class_id = c.id) IS NOT NULL
+        CASE WHEN COALESCE(c.booking_open,0) = 1
+              AND (SELECT MAX(cs.end_time) FROM class_schedules cs WHERE cs.class_id = c.id) IS NOT NULL
               AND (SELECT MAX(cs.end_time) FROM class_schedules cs WHERE cs.class_id = c.id) < datetime('now')
              THEN 1 ELSE 0 END as is_expired
       FROM classes c
