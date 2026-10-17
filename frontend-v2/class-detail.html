@@ -3,6 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <script>
+    // 舊頁 → 新 detail.html（保留 id 參數），避免兩頁並存
+    (function () {
+      var q = location.search || "";
+      if (/[?&]id=/.test(q)) location.replace("detail.html" + q);
+    })();
+  </script>
   <meta name="theme-color" content="#ff6b35" />
   <title>課程詳情 · ZenPass 禪流</title>
   <link rel="stylesheet" href="assets/v2.css?v=26" />
