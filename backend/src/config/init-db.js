@@ -1607,6 +1607,25 @@ CREATE TABLE IF NOT EXISTS users (
 
   // ===== Coach Ratings 表（獨立於 reviews，聚焦教練評分）=====
   db.exec(`
+    CREATE TABLE IF NOT EXISTS mutual_reviews (
+      id TEXT PRIMARY KEY,
+      target_type TEXT NOT NULL CHECK(target_type IN ('venue','coach')),
+      target_id TEXT NOT NULL,
+      rater_role TEXT NOT NULL CHECK(rater_role IN ('student','coach','venue')),
+      rater_id TEXT NOT NULL,
+      context_type TEXT NOT NULL CHECK(context_type IN ('booking','rental')),
+      context_id TEXT NOT NULL,
+      rating INTEGER NOT NULL CHECK(rating >= 1 AND rating <= 5),
+      tags TEXT DEFAULT '',
+      reasons TEXT DEFAULT '',
+      comment TEXT DEFAULT '',
+      visible_at TEXT DEFAULT (datetime('now','+7 days')),
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_mutual_unique
+      ON mutual_reviews(target_type, target_id, rater_id, context_id);
+    CREATE INDEX IF NOT EXISTS idx_mutual_target ON mutual_reviews(target_type, target_id);
+
     CREATE TABLE IF NOT EXISTS coach_ratings (
       id TEXT PRIMARY KEY,
       coach_id TEXT NOT NULL,

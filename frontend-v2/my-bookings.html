@@ -50,7 +50,7 @@
       let actions = "";
       if (b.status === "confirmed") actions = `<button class="btn btn-secondary" onclick="cancelBk('${esc(b.id)}')">取消預約</button>`;
       if (b.status === "pending_payment") actions = `<a class="btn btn-primary" href="booking.html?id=${encodeURIComponent(b.class_id)}&sid=${encodeURIComponent(b.schedule_id)}">繼續付款</a>`;
-      if (b.status === "attended") actions = `<button class="btn btn-primary" onclick="openRateCoach('${esc(b.id)}','${esc(b.coach_name || "")}')">⭐ 評教練</button><button class="btn btn-secondary" onclick="openNps('${esc(b.id)}')">📋 課後問卷</button><a class="btn btn-secondary" href="detail.html?id=${encodeURIComponent(b.class_id)}">再預約</a>`;
+      if (b.status === "attended") actions = `<button class="btn btn-primary" onclick="openRateCoach('${esc(b.id)}','${esc(b.coach_name || "")}')">⭐ 評教練</button><button class="btn btn-secondary" onclick="openNps('${esc(b.id)}')">📋 課後問卷</button>${b.partner_venue_id ? `<button class="btn btn-secondary" onclick="openRateVenue('${esc(b.id)}','${esc(b.partner_venue_id)}','${esc(b.venue_name || "")}')">🏟️ 評場地</button>` : ""}<a class="btn btn-secondary" href="detail.html?id=${encodeURIComponent(b.class_id)}">再預約</a>`;
       return `<div class="card"><div class="body">
         <div style="display:flex;justify-content:space-between;align-items:start">
           <div><p class="bk-title">${esc(b.title || "課程")}</p>
@@ -79,6 +79,57 @@
     };
 
     window.closeModal = (el) => { const o = el.closest(".modal-overlay"); if (o) o.remove(); };
+    /* 🏟️ 評場地及設施（匿名；≤3 星必須選原因） */
+    window.openRateVenue = (bookingId, venueId, venueName) => {
+      const TAGS = ["🧹 清潔", "🛠️ 器材", "📐 空間", "❄️ 冷氣", "🚻 洗手間", "📍 交通"];
+      const REASONS = ["清潔問題", "器材不足/壞", "空間太細", "冷氣/通風差", "職員態度", "其他"];
+      const o = document.createElement("div");
+      o.className = "modal-overlay";
+      o.innerHTML = `<div class="modal">
+        <h3>🏟️ 評價場地及設施</h3>
+        <p class="muted" style="font-size:13px;margin-top:0">${esc(venueName || "場地")}</p>
+        <div class="muted" style="font-size:13px">整體如何？</div>
+        <div class="rate-grid" id="vrStars">${[1,2,3,4,5].map(v => `<button type="button" data-v="${v}">${v}</button>`).join("")}</div>
+        <div class="lbl" style="font-size:13px;color:var(--text-muted);margin-top:10px">邊方面好／唔好？（可多選）</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px" id="vrTags">
+          ${TAGS.map((t, i) => `<label style="font-size:12.5px;border:1px solid var(--border);border-radius:999px;padding:5px 10px"><input type="checkbox" data-tag="${esc(t.replace(/^\S+\s/, ""))}" style="margin-right:4px">${esc(t)}</label>`).join("")}
+        </div>
+        <div id="vrReasonsWrap" style="display:none">
+          <div class="lbl" style="font-size:13px;color:var(--text-muted);margin-top:10px">請揀原因（3 星或以下必須）</div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px" id="vrReasons">
+            ${REASONS.map(t => `<label style="font-size:12.5px;border:1px solid var(--border);border-radius:999px;padding:5px 10px"><input type="checkbox" data-reason="${esc(t)}" style="margin-right:4px">${esc(t)}</label>`).join("")}
+          </div>
+        </div>
+        <textarea rows="3" placeholder="其他意見（可選，7 日後先公開，全部匿名）" style="width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:12px;padding:11px;font:inherit;background:var(--surface);color:var(--text);margin-top:10px"></textarea>
+        <div class="muted" style="font-size:12px;margin-top:6px">🔒 全部匿名：場地只會見到「學員」，見唔到你嘅姓名。</div>
+        <div class="actions"><button class="btn btn-secondary" onclick="closeModal(this)">取消</button><button class="btn btn-primary" id="vrSend">提交評分</button></div>
+      </div>`;
+      document.body.appendChild(o);
+      o.onclick = (e) => { if (e.target === o) o.remove(); };
+      let val = 0;
+      o.querySelectorAll("#vrStars button").forEach(btn => btn.onclick = () => {
+        val = Number(btn.dataset.v);
+        o.querySelectorAll("#vrStars button").forEach(x => x.classList.toggle("on", Number(x.dataset.v) <= val));
+        o.querySelector("#vrReasonsWrap").style.display = val && val <= 3 ? "block" : "none";
+      });
+      o.querySelector("#vrSend").onclick = async () => {
+        if (!val) { alert("請揀 1-5 星"); return; }
+        const tags = [...o.querySelectorAll("#vrTags input:checked")].map(x => x.dataset.tag);
+        const reasons = [...o.querySelectorAll("#vrReasons input:checked")].map(x => x.dataset.reason);
+        if (val <= 3 && !reasons.length) { alert("3 星或以下請揀原因"); return; }
+        const btn = o.querySelector("#vrSend");
+        btn.disabled = true; btn.textContent = "提交中…";
+        const r = await api.post("/mutual-reviews/submit", {
+          target_type: "venue", target_id: venueId, rater_role: "student",
+          context_type: "booking", context_id: bookingId,
+          rating: val, tags, reasons, comment: o.querySelector("textarea").value.trim(),
+        });
+        btn.disabled = false; btn.textContent = "提交評分";
+        if (r.ok) { alert((r.data && r.data.message) || "多謝你嘅評分！"); o.remove(); }
+        else alert((r.data && r.data.error) || "提交失敗");
+      };
+    };
+
     /* ⭐ 評教練（1-5 星；後端驗證：只限已出席、每預約一次、48 小時內可改） */
     window.openRateCoach = (id, coachName) => {
       const b = all.find(x => x.id === id) || {};

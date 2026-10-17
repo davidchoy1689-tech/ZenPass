@@ -203,12 +203,61 @@
         const pay = unpaid
           ? '<button class="btn btn-primary mini" onclick="payRental(\'' + esc(x.id) + '\',' + Number(x.price_hkd || 0) + ')">💳 付款</button>'
           : "";
+        const review = (st === "confirmed" || st === "completed")
+          ? '<button class="btn btn-secondary mini" onclick="rateVenue(\'' + esc(x.id) + '\',\'' + esc(x.venue_id) + '\',\'' + esc(x.venue_name || "") + '\')">⭐ 評場地</button>'
+          : "";
         return '<div class="rental-row"><div><b>' + esc(x.venue_name) + '</b>' +
           '<div class="muted" style="font-size:12px">' + esc(when) + (x.price_hkd ? " · " + hkd(x.price_hkd) : "") +
           (unpaid ? ' · <span style="color:#b45309">未付款</span>' : ' · <span style="color:#15803d">已付款</span>') + '</div></div>' +
-          '<div style="text-align:right">' + pay + '<div class="st ' + esc(st) + '">' + esc(LAB[st] || st) + '</div></div></div>';
+          '<div style="text-align:right">' + pay + review + '<div class="st ' + esc(st) + '">' + esc(LAB[st] || st) + '</div></div></div>';
       }).join("") + '</div>';
     }
+
+    /* ⭐ 教練評場地（匿名；≤3 星必須選原因） */
+    window.rateVenue = (rentalId, venueId, venueName) => {
+      const TAGS = ["清潔", "器材", "空間", "冷氣", "洗手間", "職員態度", "交通"];
+      const REASONS = ["清潔問題", "器材不足/壞", "空間太細", "冷氣/通風差", "職員態度", "場地與描述不符"];
+      const o = document.createElement("div");
+      o.className = "modal-overlay";
+      o.innerHTML = '<div class="modal"><h3>⭐ 評價場地</h3>' +
+        '<p class="muted" style="font-size:13px;margin-top:0">' + esc(venueName || "場地") + '</p>' +
+        '<div class="rate-grid" id="rvStars">' + [1,2,3,4,5].map(v => '<button type="button" data-v="' + v + '">' + v + '</button>').join("") + '</div>' +
+        '<div class="muted" style="font-size:12px;margin-top:8px">邊方面好／唔好？（可多選）</div>' +
+        '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px">' +
+          TAGS.map(t => '<label style="font-size:12.5px;border:1px solid var(--border);border-radius:999px;padding:5px 10px"><input type="checkbox" data-tag="' + t + '" style="margin-right:4px">' + t + '</label>').join("") +
+        '</div>' +
+        '<div id="rvReasonsWrap" style="display:none"><div class="muted" style="font-size:12px;margin-top:10px">原因（3 星或以下必須）</div>' +
+        '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px">' +
+          REASONS.map(t => '<label style="font-size:12.5px;border:1px solid var(--border);border-radius:999px;padding:5px 10px"><input type="checkbox" data-reason="' + t + '" style="margin-right:4px">' + t + '</label>').join("") +
+        '</div></div>' +
+        '<textarea rows="3" placeholder="其他意見（可選）" style="width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:12px;padding:11px;font:inherit;background:var(--surface);color:var(--text);margin-top:10px"></textarea>' +
+        '<div class="muted" style="font-size:12px;margin-top:6px">🔒 匿名：場地只會見到「教練」，見唔到你嘅姓名。</div>' +
+        '<div class="actions"><button class="btn btn-secondary" onclick="closeModal(this)">取消</button><button class="btn btn-primary" id="rvSend">提交評分</button></div></div>';
+      document.body.appendChild(o);
+      o.onclick = (e) => { if (e.target === o) o.remove(); };
+      let val = 0;
+      o.querySelectorAll("#rvStars button").forEach(btn => btn.onclick = () => {
+        val = Number(btn.dataset.v);
+        o.querySelectorAll("#rvStars button").forEach(x => x.classList.toggle("on", Number(x.dataset.v) <= val));
+        o.querySelector("#rvReasonsWrap").style.display = val && val <= 3 ? "block" : "none";
+      });
+      o.querySelector("#rvSend").onclick = async () => {
+        if (!val) { alert("請揀 1-5 星"); return; }
+        const tags = [...o.querySelectorAll("[data-tag]:checked")].map(x => x.dataset.tag);
+        const reasons = [...o.querySelectorAll("[data-reason]:checked")].map(x => x.dataset.reason);
+        if (val <= 3 && !reasons.length) { alert("3 星或以下請揀原因"); return; }
+        const btn = o.querySelector("#rvSend");
+        btn.disabled = true; btn.textContent = "提交中…";
+        const r = await api.post("/mutual-reviews/submit", {
+          target_type: "venue", target_id: venueId, rater_role: "coach",
+          context_type: "rental", context_id: rentalId,
+          rating: val, tags, reasons, comment: o.querySelector("textarea").value.trim(),
+        });
+        btn.disabled = false; btn.textContent = "提交評分";
+        if (r.ok) { alert((r.data && r.data.message) || "多謝你嘅評分！"); o.remove(); }
+        else alert((r.data && r.data.error) || "提交失敗");
+      };
+    };
 
     async function payRental(id, amount) {
       if (!confirm("以錢包支付 " + hkd(amount) + "？\n\n款項由平台代收，租場完成後月結過數給場地。")) return;

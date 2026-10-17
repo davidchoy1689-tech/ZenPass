@@ -494,6 +494,8 @@ router.get("/my-rating", authenticateToken, (req, res) => {
     const { computeCoachRating } = require("../services/coach-rating");
     const db = getDb();
     const summary = computeCoachRating(req.user.id);
+    const { coachComposite } = require("../services/mutual-review");
+    const comp = coachComposite(req.user.id, summary.score);
 
     const dist = db
       .prepare(
@@ -513,6 +515,9 @@ router.get("/my-rating", authenticateToken, (req, res) => {
       success: true,
       data: {
         ...summary,
+        composite_score: comp.score,
+        venue_rating: comp.venue_rating,
+        venue_rating_count: comp.venue_count,
         distribution: dist,
         recent,
         note:

@@ -152,7 +152,7 @@ router.get("/my", authenticateToken, (req, res) => {
 
     const bookings = db
       .prepare(
-        `SELECT b.*, c.title, c.category, c.duration, c.price_hkd, c.venue_name, c.venue_address, c.latitude, c.longitude, c.coach_id, cs.start_time, cs.end_time, u.name as coach_name
+        `SELECT b.*, c.title, c.category, c.duration, c.price_hkd, c.venue_name, c.venue_address, c.latitude, c.longitude, c.coach_id, c.partner_venue_id, cs.start_time, cs.end_time, u.name as coach_name
          FROM bookings b
          JOIN classes c ON b.class_id = c.id
          JOIN class_schedules cs ON b.schedule_id = cs.id

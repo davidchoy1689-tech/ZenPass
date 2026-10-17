@@ -48,7 +48,11 @@ router.get("/available", (req, res) => {
     venues = venues
       .map((v) => {
         const rt = computeVenueRating(v.id);
-        v.rating = rt.score;
+        const { venueComposite } = require("../services/mutual-review");
+        const comp = venueComposite(v.id, rt.score);
+        v.fulfillment_score = rt.score;
+        v.rating = comp.score;
+        v.rating_parts = comp.parts;
         v.rating_band = rt.band;
         v.visibility = rt.visibility;
         return v;
