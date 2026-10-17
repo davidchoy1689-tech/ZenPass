@@ -140,3 +140,19 @@ CREATE TABLE IF NOT EXISTS venue_penalties (
   note TEXT,
   created_at TEXT DEFAULT (datetime('now'))
 );
+
+CREATE TABLE IF NOT EXISTS venue_settlements (
+  id TEXT PRIMARY KEY,
+  venue_id TEXT,
+  month TEXT,
+  gross_hkd REAL DEFAULT 0,
+  commission_hkd REAL DEFAULT 0,
+  penalties_hkd REAL DEFAULT 0,
+  net_hkd REAL DEFAULT 0,
+  status TEXT DEFAULT 'pending',
+  payout_date TEXT,
+  paid_at TEXT,
+  note TEXT,
+  created_at TEXT DEFAULT (datetime('now')),
+  UNIQUE(venue_id, month)
+);

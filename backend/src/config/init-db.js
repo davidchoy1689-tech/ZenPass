@@ -152,6 +152,11 @@ CREATE TABLE IF NOT EXISTS users (
   // ===== 兼容升級：classes.target_audience（課程對象）=====
   try { db.exec("ALTER TABLE classes ADD COLUMN target_audience TEXT"); } catch (e) { /* exists */ }
 
+  // ===== 兼容升級：venue_rentals 收款狀態（escrow）=====
+  try { db.exec("ALTER TABLE venue_rentals ADD COLUMN payment_status TEXT DEFAULT 'unpaid'"); } catch (e) {}
+  try { db.exec("ALTER TABLE venue_rentals ADD COLUMN paid_at TEXT"); } catch (e) {}
+  try { db.exec("ALTER TABLE venue_rentals ADD COLUMN payment_method TEXT"); } catch (e) {}
+
   // ===== 兼容升級：classes.booking_open（是否開放預約）=====
   try { db.exec("ALTER TABLE classes ADD COLUMN booking_open INTEGER DEFAULT 0"); } catch (e) { /* exists */ }
   try {

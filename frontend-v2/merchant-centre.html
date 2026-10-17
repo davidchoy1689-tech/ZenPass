@@ -120,6 +120,8 @@
         </div>
       </div></div>
 
+      <div class="card" style="margin-top:10px"><div class="body" id="settleBox">結算資料載入中…</div></div>
+
       <div class="section-title">📉 空置時段</div>
       <div class="card" style="margin-bottom:10px"><div class="body">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
@@ -239,6 +241,7 @@
       loadCoachRequests();
       loadRentals();
       loadVacancies();
+      loadSettlement();
     })();
 
     function addSchedRow(start, end) {
@@ -388,6 +391,28 @@
       const m = stmtMonthVal();
       window.open("/api/venue-rentals/statement.html?month=" + encodeURIComponent(m), "_blank");
     }
+    /* ===== 平台代收結算 ===== */
+    async function loadSettlement() {
+      const box = $("settleBox");
+      if (!box) return;
+      const r = await api.get("/venue-rentals/settlements");
+      if (!r.ok) { box.innerHTML = '<div class="muted">' + esc((r.data && r.data.error) || "未能載入") + "</div>"; return; }
+      const d = (r.data && r.data.data) || {};
+      const st = d.status === "paid" ? "✅ 已過數" : "⏳ 待過數";
+      box.innerHTML =
+        '<b style="font-size:14px">💰 平台代收結算（' + esc(d.month || "") + '）</b>' +
+        '<div class="muted" style="font-size:12px;margin:4px 0 8px">租場費由平台代收，完成後月結，' +
+        esc(d.payout_date || "") + ' 過數到指定銀行戶口</div>' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12.5px">' +
+        '<div>完成租場：<b>' + (d.rental_count || 0) + '</b></div>' +
+        '<div>毛額：<b>' + hkd(d.gross_hkd || 0) + '</b></div>' +
+        '<div>平台佣金：<b>' + hkd(d.commission_hkd || 0) + '</b></div>' +
+        '<div>罰款：<b>' + hkd(d.penalties_hkd || 0) + '</b></div>' +
+        '</div>' +
+        '<div style="margin-top:8px;font-size:15px">應付場地：<b style="color:#15803d">' + hkd(d.net_hkd || 0) + '</b> ' + st + '</div>' +
+        ((d.carry_forward_hkd || 0) > 0 ? '<div class="muted" style="font-size:12px;color:#b45309">另有 ' + hkd(d.carry_forward_hkd) + ' 結轉下月</div>' : "");
+    }
+
     async function emailStatement() {
       const btn = $("stmtEmail");
       const m = stmtMonthVal();

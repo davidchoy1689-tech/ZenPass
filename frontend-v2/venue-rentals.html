@@ -44,6 +44,7 @@
     <div class="card" style="margin:8px 16px"><div class="body muted" style="font-size:12px;line-height:1.65">
       <b style="color:var(--text);font-size:12.5px">租場須知</b><br>
       • 只開放未來 <b>3 個月</b> 內預約<br>
+      • 租金由平台代收，租場完成後月結，下月 15 號過數給場地<br>
       • 場地確認／付款後，雙方不可更改<br>
       • 租客取消或未能開班：租金全數不退<br>
       • 場地未能提供：全額退款，平台向場地收取租金 200% 手續費
@@ -197,10 +198,22 @@
       $("mine").innerHTML = '<div class="card">' + rows.map(x => {
         const when = String(x.start_time || "").replace("T", " ").slice(0, 16) + " → " + String(x.end_time || "").slice(11, 16);
         const st = x.status || "";
+        const unpaid = x.payment_status !== "paid" && st !== "cancelled";
+        const pay = unpaid
+          ? '<button class="btn btn-primary mini" onclick="payRental(\'' + esc(x.id) + '\',' + Number(x.price_hkd || 0) + ')">💳 付款</button>'
+          : "";
         return '<div class="rental-row"><div><b>' + esc(x.venue_name) + '</b>' +
-          '<div class="muted" style="font-size:12px">' + esc(when) + (x.price_hkd ? " · " + hkd(x.price_hkd) : "") + '</div></div>' +
-          '<div class="st ' + esc(st) + '">' + esc(LAB[st] || st) + '</div></div>';
+          '<div class="muted" style="font-size:12px">' + esc(when) + (x.price_hkd ? " · " + hkd(x.price_hkd) : "") +
+          (unpaid ? ' · <span style="color:#b45309">未付款</span>' : ' · <span style="color:#15803d">已付款</span>') + '</div></div>' +
+          '<div style="text-align:right">' + pay + '<div class="st ' + esc(st) + '">' + esc(LAB[st] || st) + '</div></div></div>';
       }).join("") + '</div>';
+    }
+
+    async function payRental(id, amount) {
+      if (!confirm("以錢包支付 " + hkd(amount) + "？\n\n款項由平台代收，租場完成後月結過數給場地。")) return;
+      const r = await api.post("/venue-rentals/" + encodeURIComponent(id) + "/pay", {});
+      if (r.ok) { alert("✅ " + ((r.data && r.data.message) || "已付款")); loadMine(); }
+      else alert(((r.data && r.data.error) || "付款失敗") + ((r.data && r.data.need_topup) ? "\n請先到錢包增值。" : ""));
     }
 
     /* ===== 預約 Modal ===== */

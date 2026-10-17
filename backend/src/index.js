@@ -893,6 +893,26 @@ function archiveExpiredClasses() {
 }
 setInterval(archiveExpiredClasses, 6 * 60 * 60 * 1000);
 setTimeout(archiveExpiredClasses, 20000);
+
+// ===== 租場完成自動標記（end_time 過去 + 已付款）=====
+function completeVenueRentals() {
+  try {
+    const { getDb } = require("./services/database");
+    const db = getDb();
+    const r = db
+      .prepare(
+        `UPDATE venue_rentals SET status='completed'
+          WHERE status='confirmed' AND COALESCE(payment_status,'paid')='paid'
+            AND datetime(end_time) < datetime('now')`,
+      )
+      .run();
+    if (r.changes) console.log(`[VENUE] 自動完成 ${r.changes} 個租場（可結算）`);
+  } catch (e) {
+    console.error("[VENUE] complete error:", e.message);
+  }
+}
+setInterval(completeVenueRentals, 60 * 60 * 1000);
+setTimeout(completeVenueRentals, 25000);
 // ===== Startup Health Check =====
 function startupHealthCheck() {
   const checks = {

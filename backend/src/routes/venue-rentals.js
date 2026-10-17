@@ -419,6 +419,92 @@ router.post("/:id/reject", authenticateToken, requireOwnInstitution, (req, res) 
   }
 });
 
+// ===== POST /api/venue-rentals/:id/pay — 教練用錢包付款（平台代收）=====
+router.post("/:id/pay", authenticateToken, (req, res) => {
+  try {
+    const db = getDb();
+    const r = db.prepare("SELECT * FROM venue_rentals WHERE id = ?").get(req.params.id);
+    if (!r) return res.status(404).json({ success: false, error: "租場紀錄不存在" });
+    if (r.coach_id !== req.user.id && req.user.role !== "admin") {
+      return res.status(403).json({ success: false, error: "無權限付款" });
+    }
+    if (r.status === "cancelled") return res.status(400).json({ success: false, error: "租場已取消" });
+    if (r.payment_status === "paid") return res.json({ success: true, already_paid: true, message: "此租場已付款" });
+
+    const walletService = require("../services/wallet-service");
+    const w = walletService.debitWallet({
+      userId: r.coach_id,
+      amount: Number(r.price_hkd) || 0,
+      type: "venue_rental",
+      description: `租場費用 ${r.start_time} - ${r.end_time}`,
+      reference: r.id,
+      sourceType: "venue_rental",
+      sourceId: r.id,
+    });
+    if (!w || !w.success) {
+      return res.status(400).json({ success: false, error: (w && w.error) || "付款失敗", need_topup: true });
+    }
+
+    db.prepare("UPDATE venue_rentals SET payment_status='paid', paid_at=datetime('now'), payment_method=COALESCE(payment_method,'wallet') WHERE id=?").run(r.id);
+    res.json({ success: true, payment_status: "paid", amount: Number(r.price_hkd) || 0, message: "已付款，款項由平台代收，完成後月結過數給場地" });
+  } catch (err) {
+    console.error("venue-rentals/pay error:", err.message);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ===== POST /api/venue-rentals/:id/mark-paid — 管理員確認收款（FPS/PayMe 人手）=====
+router.post("/:id/mark-paid", authenticateToken, requireAdmin, (req, res) => {
+  try {
+    const db = getDb();
+    const r = db.prepare("SELECT * FROM venue_rentals WHERE id = ?").get(req.params.id);
+    if (!r) return res.status(404).json({ success: false, error: "租場紀錄不存在" });
+    const method = (req.body && req.body.method) || "fps";
+    db.prepare("UPDATE venue_rentals SET payment_status='paid', paid_at=datetime('now'), payment_method=? WHERE id=?").run(method, r.id);
+    res.json({ success: true, payment_status: "paid", method });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ===== GET /api/venue-rentals/settlements?month= — 場地結算預覽 =====
+router.get("/settlements", authenticateToken, requireOwnInstitution, (req, res) => {
+  try {
+    const venue = _venueOf(req.user.id);
+    if (!venue) return res.status(403).json({ success: false, error: "只有場地負責人可以使用" });
+    const { computeSettlement, monthKey } = require("../services/venue-settlement");
+    const month = req.query.month || monthKey();
+    res.json({ success: true, data: computeSettlement(venue.id, month) });
+  } catch (err) {
+    console.error("venue-rentals/settlements error:", err.message);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ===== POST /api/venue-rentals/settlements/run — 管理員跑月度結算 =====
+router.post("/settlements/run", authenticateToken, requireAdmin, (req, res) => {
+  try {
+    const { runMonth, monthKey } = require("../services/venue-settlement");
+    const month = (req.body && req.body.month) || monthKey();
+    res.json({ success: true, ...runMonth(month) });
+  } catch (err) {
+    console.error("venue-rentals/settlements/run error:", err.message);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ===== POST /api/venue-rentals/settlements/:id/pay — 管理員標記已過數 =====
+router.post("/settlements/:id/pay", authenticateToken, requireAdmin, (req, res) => {
+  try {
+    const { markPaid } = require("../services/venue-settlement");
+    const r = markPaid(req.params.id, req.body && req.body.note);
+    if (!r.ok) return res.status(400).json({ success: false, error: r.error });
+    res.json({ success: true, message: "已標記過數" });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // ===== POST /api/venue-rentals/:id/venue-cancel — 場地方未能提供場地（手續費 200%）=====
 router.post("/:id/venue-cancel", authenticateToken, requireOwnInstitution, (req, res) => {
   try {

@@ -319,6 +319,14 @@ function updateDatabase() {
   }
   console.log("✅ users schema parity migration 完成");
 
+  // ===== Migration 10.5: venue_rentals 收款狀態（escrow）=====
+  try { db.exec("ALTER TABLE venue_rentals ADD COLUMN payment_status TEXT DEFAULT 'unpaid'"); } catch (e) {}
+  try { db.exec("ALTER TABLE venue_rentals ADD COLUMN paid_at TEXT"); } catch (e) {}
+  try { db.exec("ALTER TABLE venue_rentals ADD COLUMN payment_method TEXT"); } catch (e) {}
+  try {
+    db.exec("CREATE TABLE IF NOT EXISTS venue_settlements (id TEXT PRIMARY KEY, venue_id TEXT, month TEXT, gross_hkd REAL DEFAULT 0, commission_hkd REAL DEFAULT 0, penalties_hkd REAL DEFAULT 0, net_hkd REAL DEFAULT 0, status TEXT DEFAULT 'pending', payout_date TEXT, paid_at TEXT, note TEXT, created_at TEXT DEFAULT (datetime('now')), UNIQUE(venue_id, month))");
+  } catch (e) {}
+
   // ===== Migration 11: classes.district（按課程地區自動分區）=====
   try {
     db.exec("ALTER TABLE classes ADD COLUMN district TEXT");
