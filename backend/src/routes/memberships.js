@@ -109,6 +109,14 @@ router.get("/plans", (req, res) => {
 
 // ===== POST /api/memberships/subscribe — 訂閱會籍 =====
 router.post("/subscribe", authenticateToken, async (req, res) => {
+  // 🚫 安全（2026-10-17）：會籍唔可以免付款開通，必須經 /api/membership-orders（FPS/PayMe 人手確認）
+  return res.status(403).json({
+    success: false,
+    code: "USE_MEMBERSHIP_ORDER",
+    error: "請喺會籍頁建立訂單（FPS / PayMe），管理員確認收款後才會開通會籍。",
+    redirect: "membership.html",
+  });
+  /* eslint-disable no-unreachable */
   try {
     const { type, payment_method } = req.body;
 
@@ -656,3 +664,4 @@ router.get("/:id/pause-status", authenticateToken, (req, res) => {
 });
 
 module.exports = router;
+module.exports.MEMBERSHIP_PLANS = MEMBERSHIP_PLANS;

@@ -286,6 +286,7 @@ app.use("/api/admin", require("./routes/deploy"));
 app.use("/api/reviews", require("./routes/reviews"));
 app.use("/api/mutual-reviews", require("./routes/mutual-reviews"));
 app.use("/api/credits", require("./routes/credits"));
+app.use("/api/membership-orders", require("./routes/membership-orders"));
 app.use("/api/audit", require("./routes/audit").router);
 app.use("/api/penalty", require("./routes/penalty"));
 app.use("/api/corporate", require("./routes/corporate"));

@@ -52,8 +52,9 @@
       </div></div>`;
     }
     async function load() {
-      const r = await api.get("/memberships/plans");
-      const plans = (r.data && r.data.plans) || {};
+      const r = await api.get("/membership-orders/plans");
+      const plansObj = (r.data && r.data.data && r.data.data.plans) || (r.data && r.data.plans) || {};
+      const plans = Array.isArray(plansObj) ? Object.fromEntries(plansObj.map(x => [x.key, x])) : plansObj;
       planList = Object.keys(plans).map(k => Object.assign({ key: k }, plans[k]));
       document.getElementById("plans").innerHTML = planList.length ? planList.map(card).join("")
         : '<div class="card"><div class="body muted">暫無計劃。</div></div>';
@@ -114,14 +115,33 @@
       if (r.ok) { alert((r.data && r.data.message) || "已恢復會籍"); await load(); }
       else alert((r.data && r.data.error) || "恢復失敗");
     }
+    /* 🧾 建立會籍訂單（唔會即時開通，等管理員確認收款） */
     async function subscribe(type) {
       if (!api.requireLogin("membership.html")) return;
       const p = planList.find(x => x.key === type);
       if (!p) return;
-      if (!confirm(`訂閱「${p.name}」？\n月費 ${hkd(p.price_hkd)}，即時獲得 ${p.credits_granted} credits。`)) return;
-      const r = await api.post("/memberships/subscribe", { type });
-      if (r.ok && r.data) { alert(r.data.message || "訂閱成功"); await load(); }
-      else alert((r.data && r.data.error) || "訂閱失敗");
+      const ref = prompt(`訂閱「${p.name}」 ${hkd(p.price_hkd)}（${p.credits_granted} credits）\n\n請先入數：\nHSBC 741-293856-838（香港康樂及體育有限公司）\nPayMe: https://qr.payme.hsbc.com.hk/2/8EKv4B8usVVSSdf2YzLSkm\n\n輸入交易參考編號：`);
+      if (ref === null) return;
+      if (!ref || ref.trim().length < 3) { alert("請輸入交易參考編號"); return; }
+      const method = confirm("用 PayMe 付款？\n撳「確定」= PayMe，撳「取消」= 銀行轉賬 / FPS") ? "payme" : "fps";
+      const r = await api.post("/membership-orders", { plan_key: type, method, reference: ref.trim() });
+      if (r.ok && r.data) { alert(r.data.message || "已提交，等管理員確認收款"); await load(); }
+      else alert((r.data && r.data.error) || "提交失敗");
+    }
+
+    async function loadOrders() {
+      if (!api.isLoggedIn()) return;
+      const r = await api.get("/membership-orders/my");
+      const arr = (r.data && r.data.data) || [];
+      const box = document.getElementById("myOrders");
+      if (!box) return;
+      const ST = { pending: "待確認", confirmed: "已開通", rejected: "已拒絕" };
+      box.innerHTML = arr.length ? arr.map(o =>
+        `<div class="body" style="display:flex;justify-content:space-between;gap:8px">
+          <div><b>${esc(o.plan_key)}</b> <span class="muted" style="font-size:12px">${hkd(o.price_hkd)} · ${esc((o.method||"").toUpperCase())}</span>
+            <div class="muted" style="font-size:11.5px">${esc(String(o.created_at||"").slice(0,16))}</div></div>
+          <div class="muted" style="font-size:12px">${ST[o.status] || o.status}</div>
+        </div>`).join("") : '<div class="body muted">暫無訂單。</div>';
     }
     load();
   </script>
