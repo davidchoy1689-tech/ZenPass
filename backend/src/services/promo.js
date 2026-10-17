@@ -13,6 +13,12 @@
 const crypto = require("crypto");
 const { toCents, fromCents } = require("../lib/money");
 
+/** 係咪迎新優惠碼 */
+function isWelcomePromo(promo) {
+  if (!promo) return false;
+  return /^WELCOME/i.test(String(promo.code || "")) || /迎新/.test(String(promo.description || ""));
+}
+
 function normalize(code) {
   return String(code || "").trim().toUpperCase();
 }
@@ -54,6 +60,18 @@ function validatePromo(db, { code, basePrice, classId, userId }) {
   }
   if (promo.max_uses != null && promo.used_count >= promo.max_uses)
     return { ok: false, error: "優惠碼已用完" };
+  // 迎新優惠：每個註冊帳戶只可用一次（即使有唔同迎新碼）
+  if (userId && isWelcomePromo(promo)) {
+    const usedWelcome = db
+      .prepare(
+        `SELECT COUNT(*) AS c FROM promo_redemptions r
+           JOIN promo_codes p ON r.code_id = p.id
+          WHERE r.user_id = ? AND (UPPER(p.code) LIKE 'WELCOME%' OR p.description LIKE '%迎新%')`,
+      )
+      .get(userId).c;
+    if (usedWelcome > 0) return { ok: false, error: "迎新優惠每個帳戶只可使用一次" };
+  }
+
   if (promo.per_user_limit && userId) {
     const used = db
       .prepare("SELECT COUNT(*) c FROM promo_redemptions WHERE code_id = ? AND user_id = ?")
@@ -74,4 +92,4 @@ function redeemPromo(db, promoId, userId, bookingId, amount) {
   ).run(crypto.randomUUID(), promoId, userId || null, bookingId || null, amount != null ? Number(amount) : null);
 }
 
-module.exports = { normalize, computeFinalPrice, validatePromo, redeemPromo };
+module.exports = { normalize, computeFinalPrice, validatePromo, redeemPromo, isWelcomePromo };

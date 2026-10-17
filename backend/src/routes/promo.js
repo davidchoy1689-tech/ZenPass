@@ -11,6 +11,23 @@ const { getDb } = require("../services/database");
 const { validatePromo, normalize } = require("../services/promo");
 const { authenticateToken, requireAdmin, optionalAuth } = require("../middleware/auth");
 
+// GET /api/promo/welcome-status — 目前用戶嘅迎新優惠是否仍可用（每個帳戶一次）
+router.get("/welcome-status", authenticateToken, (req, res) => {
+  try {
+    const db = getDb();
+    const used = db
+      .prepare(
+        `SELECT COUNT(*) AS c FROM promo_redemptions r
+           JOIN promo_codes p ON r.code_id = p.id
+          WHERE r.user_id = ? AND (UPPER(p.code) LIKE 'WELCOME%' OR p.description LIKE '%迎新%')`,
+      )
+      .get(req.user.id).c;
+    res.json({ success: true, available: used === 0, used });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 router.get("/validate", optionalAuth, (req, res) => {
   try {
     const db = getDb();

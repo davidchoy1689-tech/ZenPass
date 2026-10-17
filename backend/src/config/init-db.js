@@ -1753,6 +1753,18 @@ CREATE TABLE IF NOT EXISTS users (
     )
   `);
 
+  // 迎新優惠：每個註冊帳戶只可用一次 → 強制 per_user_limit = 1
+  try {
+    const r = db
+      .prepare(
+        "UPDATE promo_codes SET per_user_limit = 1 WHERE UPPER(code) LIKE 'WELCOME%' AND (per_user_limit IS NULL OR per_user_limit > 1)",
+      )
+      .run();
+    if (r.changes) console.log(`✅ 迎新碼限制每帳戶一次: ${r.changes} 條`);
+  } catch (e) {
+    /* promo_codes 可能未建立 */
+  }
+
   console.log("✅ 數據庫初始化完成:", DB_PATH);
   db.close();
 }
