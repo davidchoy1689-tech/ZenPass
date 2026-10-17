@@ -444,6 +444,36 @@ router.post("/redeem", authenticateToken, (req, res) => {
         expiresAt.toISOString(),
       );
 
+    // 🎁 兌換要真正有用：按類型即時發放
+    let issued = null;
+    try {
+      if (reward.reward_type === "credit") {
+        const n = Math.max(0, parseInt(reward.reward_value, 10) || 0);
+        if (n > 0) {
+          db.prepare("UPDATE users SET credits = COALESCE(credits,0) + ? WHERE id = ?").run(n, req.user.id);
+          issued = { type: "credit", credits: n, text: `已即時加 ${n} Credits` };
+        }
+      } else if (reward.reward_type === "discount") {
+        const amt = Math.max(1, Number(reward.reward_value) || 0);
+        const code = "RWD" + Math.random().toString(36).slice(2, 8).toUpperCase();
+        const validTo = new Date(Date.now() + 90 * 86400000).toISOString().slice(0, 10);
+        db.prepare(
+          `INSERT INTO promo_codes (id, code, type, value, max_uses, used_count, per_user_limit, valid_from, valid_to, active, description)
+           VALUES (?, ?, 'fixed_discount', ?, 1, 0, 1, date('now'), ?, 1, ?)`,
+        ).run(uuidv4(), code, amt, validTo, `積分兌換：${reward.name}`);
+        db.prepare("UPDATE points_redemptions SET reward_value = ? WHERE id = ?").run(code, redId);
+        issued = { type: "discount", code, amount: amt, valid_to: validTo, text: `折扣碼 ${code}（HK$${amt}，有效至 ${validTo}）` };
+      } else if (reward.reward_type === "free_class") {
+        db.prepare("UPDATE points_redemptions SET reward_value = ? WHERE id = ?").run("pending_fulfilment", redId);
+        issued = { type: "free_class", text: "已登記，職員會 3 個工作天內聯絡你安排" };
+      } else if (reward.reward_type === "merchandise") {
+        db.prepare("UPDATE points_redemptions SET reward_value = ? WHERE id = ?").run("pending_fulfilment", redId);
+        issued = { type: "merchandise", text: "已登記，職員會聯絡你安排領取" };
+      }
+    } catch (e) {
+      console.error("兌換發放失敗:", e.message);
+    }
+
     // 扣庫存
     if (reward.stock !== -1) {
       db
@@ -480,6 +510,7 @@ router.post("/redeem", authenticateToken, (req, res) => {
         rewardIcon: reward.icon,
         pointsSpent: reward.points_cost,
         expiresAt: expiresAt.toISOString(),
+        issued,
       },
       balance: result.points,
       tier: result.tier,
