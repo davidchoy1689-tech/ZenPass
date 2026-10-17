@@ -50,6 +50,18 @@
       <input class="fld" id="f-iddoc" type="file" accept="image/*,application/pdf" />
       <label class="lbl">資歷／證書證明 *（可影多張，最多 3 個）</label>
       <input class="fld" id="f-certdoc" type="file" accept="image/*,application/pdf" multiple />
+      <div class="card" style="margin-top:12px;background:#fff7ed;border:1px solid #fed7aa"><div class="body" style="padding:12px">
+        <b style="font-size:13.5px">🛡️ 保險及風險聲明 *</b>
+        <p class="muted" style="font-size:12.5px;margin:6px 0">ZenPass 只提供配對（轉介）平台，課堂由你以獨立服務提供者身分提供。<b>公眾責任保險及相關風險由你自行負責</b>，請按個別情況購買合適保險。</p>
+        <label style="display:flex;gap:8px;align-items:flex-start;font-size:13px;margin-top:6px">
+          <input type="checkbox" id="f-ins" style="margin-top:3px" />
+          <span>本人確認已購買（或將於開班前購買）適用嘅公眾責任保險，並會保持有效。</span>
+        </label>
+        <div class="grid2" style="margin-top:10px">
+          <div><label class="lbl">保單到期日（可選）</label><input class="fld" id="f-ins-exp" type="date" /></div>
+          <div><label class="lbl">上載保單（可選）</label><input class="fld" id="f-ins-doc" type="file" accept="image/*,application/pdf" /></div>
+        </div>
+      </div></div>
       <label class="lbl">慣用場地名稱（可選）</label><input class="fld" id="f-venue" />
       <label class="lbl">居住地區 / 地址 *</label><input class="fld" id="f-address" />
       <div class="spacer"></div>
@@ -175,6 +187,10 @@
       };
 
       // 📎 上載證明文件（身份證 + 資歷證書）
+      if (!document.getElementById("f-ins").checked) {
+        msg.textContent = "請確認保險聲明（平台只提供配對，保險由教練自行負責）";
+        return;
+      }
       const idFiles = document.getElementById("f-iddoc").files;
       const certFiles = document.getElementById("f-certdoc").files;
       if (!idFiles.length) { msg.textContent = "請上載身份證明文件（用於核實身份）"; return; }
@@ -187,6 +203,13 @@
         body.id_doc_url = ids[0] || null;
         body.cert_doc_url = certs.join(",") || null;
         if (!body.id_doc_url) throw new Error("身份證上載失敗");
+        body.insurance_declared = true;
+        body.insurance_expiry = document.getElementById("f-ins-exp").value || null;
+        const insFile = document.getElementById("f-ins-doc").files;
+        if (insFile.length) {
+          const urls = await uploadDocs(insFile);
+          body.insurance_doc_url = urls[0] || null;
+        }
       } catch (e) {
         msg.textContent = "文件上載失敗：" + e.message;
         if (btn0) { btn0.disabled = false; btn0.textContent = "提交申請"; }

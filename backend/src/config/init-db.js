@@ -137,6 +137,9 @@ CREATE TABLE IF NOT EXISTS users (
     ["id_doc_url", "TEXT"],
     ["cert_doc_url", "TEXT"],
     ["doc_verified", "INTEGER DEFAULT 0"],
+    ["insurance_declared", "INTEGER DEFAULT 0"],
+    ["insurance_doc_url", "TEXT"],
+    ["insurance_expiry", "TEXT"],
   ]) {
     try { db.exec(`ALTER TABLE coach_applications ADD COLUMN ${col} ${type}`); } catch (e) { /* exists */ }
   }
@@ -1887,6 +1890,15 @@ CREATE TABLE IF NOT EXISTS users (
     if (r.changes) console.log(`✅ 迎新碼限制每帳戶一次: ${r.changes} 條`);
   } catch (e) {
     /* promo_codes 可能未建立 */
+  }
+
+  // partner_venues：保險聲明（平台只提供配對，保險由場地自行負責）
+  for (const [col, type] of [
+    ["insurance_declared", "INTEGER DEFAULT 0"],
+    ["insurance_doc_url", "TEXT"],
+    ["insurance_expiry", "TEXT"],
+  ]) {
+    try { db.exec(`ALTER TABLE partner_venues ADD COLUMN ${col} ${type}`); } catch (e) { /* exists */ }
   }
 
   // 一次性 backfill：舊評分（reviews / coach_ratings）→ mutual_reviews（單一來源）

@@ -42,6 +42,18 @@
       <label class="lbl">地址</label><input class="fld" id="p-address" />
       <label class="lbl">網站（可選）</label><input class="fld" id="p-website" placeholder="https://" />
       <label class="lbl">簡介</label><textarea class="fld" id="p-desc" rows="3"></textarea>
+      <div class="card" style="margin-top:12px;background:#fff7ed;border:1px solid #fed7aa"><div class="body" style="padding:12px">
+        <b style="font-size:13.5px">🛡️ 保險及風險聲明 *</b>
+        <p class="muted" style="font-size:12.5px;margin:6px 0">ZenPass 只提供配對（轉介）平台；場地安全、設施保險及相關風險由場地營運者自行負責，請按需要購買合適保險。</p>
+        <label style="display:flex;gap:8px;align-items:flex-start;font-size:13px">
+          <input type="checkbox" id="p-ins" style="margin-top:3px" />
+          <span>本人確認場地已具備適用嘅公眾責任保險（或將於上架前購買）並保持有效。</span>
+        </label>
+        <div class="grid2" style="margin-top:10px">
+          <div><label class="lbl">保單到期日（可選）</label><input class="fld" id="p-ins-exp" type="date" /></div>
+          <div><label class="lbl">上載保單（可選）</label><input class="fld" id="p-ins-doc" type="file" accept="image/*,application/pdf" /></div>
+        </div>
+      </div></div>
       <div class="spacer"></div>
       <button class="btn btn-primary btn-block" id="submit">提交加盟</button>
       <div id="msg" class="center muted" style="font-size:13px;margin-top:10px"></div>
@@ -70,8 +82,24 @@
         website: document.getElementById("p-website").value.trim(),
         description: document.getElementById("p-desc").value.trim(),
         commission_plan: "free",
+        insurance_declared: document.getElementById("p-ins").checked,
+        insurance_expiry: document.getElementById("p-ins-exp").value || null,
       };
       if (!body.name || !body.category || !body.phone || !body.email) { msg.textContent = "請填名稱、類別、電話同電郵"; return; }
+      if (!body.insurance_declared) { msg.textContent = "請確認保險聲明（平台只提供配對，保險由場地自行負責）"; return; }
+      // 可選：上載保單
+      const insFile = document.getElementById("p-ins-doc").files;
+      if (insFile.length) {
+        try {
+          const fd = new FormData();
+          fd.append("files", insFile[0]);
+          const tk = await api.get("/csrf-token");
+          const up = await fetch("/api/upload", { method: "POST", credentials: "include",
+            headers: tk && tk.data && tk.data.token ? { "x-csrf-token": tk.data.token } : {}, body: fd });
+          const uj = await up.json();
+          if (uj.files && uj.files[0]) body.insurance_doc_url = uj.files[0].url;
+        } catch (e) { /* 保單上載失敗唔阻止提交 */ }
+      }
       const btn = document.getElementById("submit"); btn.disabled = true; btn.textContent = "提交中…";
       const r = await api.post("/partner/apply", body);
       btn.disabled = false; btn.textContent = "提交加盟";

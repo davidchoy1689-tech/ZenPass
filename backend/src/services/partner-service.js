@@ -100,6 +100,7 @@ function applyPartner(req) {
   const {
     name, description, address, phone, email, contact_person,
     category, district, website, commission_plan, logo_urls, facilities,
+    insurance_declared, insurance_doc_url, insurance_expiry,
   } = req.body;
 
   if (!name || !phone) return { status: 400, body: { success: false, error: "請填寫場地名稱同電話" } };
@@ -123,14 +124,16 @@ function applyPartner(req) {
   db.prepare(
     `INSERT INTO partner_venues (id, partner_type, name, description, address, phone, email,
        contact_person, category, district, logo_url, website, facilities,
-       commission_plan, commission_rate, partner_reference, status, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', datetime('now'), datetime('now'))`
+       commission_plan, commission_rate, partner_reference, status, created_at, updated_at,
+       insurance_declared, insurance_doc_url, insurance_expiry)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', datetime('now'), datetime('now'), ?, ?, ?)`
   ).run(
     id, req.body.partner_type || "full", name, description || "", address || "", phone, email,
     contact_person || "", category, district || "",
     Array.isArray(logo_urls) ? logo_urls[0] : logo_urls || null,
     website || "", JSON.stringify(Array.isArray(facilities) ? facilities : []),
     planKey, plan.commission_rate, refNumber,
+    insurance_declared ? 1 : 0, insurance_doc_url || null, insurance_expiry || null,
   );
 
   partnerBlockchainHash({
