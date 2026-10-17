@@ -129,3 +129,14 @@ CREATE TABLE IF NOT EXISTS waitlist (
       FOREIGN KEY (user_id) REFERENCES users(id)
     );
 
+CREATE TABLE IF NOT EXISTS venue_penalties (
+  id TEXT PRIMARY KEY,
+  rental_id TEXT,
+  venue_id TEXT,
+  coach_id TEXT,
+  type TEXT,
+  amount_hkd REAL DEFAULT 0,
+  status TEXT DEFAULT 'pending_charge',
+  note TEXT,
+  created_at TEXT DEFAULT (datetime('now'))
+);

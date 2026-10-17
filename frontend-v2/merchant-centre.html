@@ -356,10 +356,19 @@
           '<div class="muted" style="font-size:12px">' + esc(when) + (x.price_hkd ? " · " + hkd(x.price_hkd) : "") + "</div></div>" +
           (x.status === "pending"
             ? '<div style="white-space:nowrap"><button class="btn btn-primary mini" onclick="raDecide(\'' + esc(x.id) + '\',1)">確認</button> <button class="btn btn-secondary mini" onclick="raDecide(\'' + esc(x.id) + '\',0)">拒絕</button></div>'
-            : "") +
+            : x.status === "confirmed"
+              ? '<div style="white-space:nowrap"><button class="btn btn-secondary mini" onclick="raVenueCancel(\'' + esc(x.id) + '\')">未能提供場地</button></div>'
+              : "") +
           "</div>";
       }).join("") : '<div class="body muted">暫無租場申請。</div>';
     }
+    async function raVenueCancel(id) {
+      if (!confirm("確認場地未能提供？\n\n系統會標記全額退款俾教練，並向場地收取租金 200% 手續費。")) return;
+      const r = await api.post("/venue-rentals/" + encodeURIComponent(id) + "/venue-cancel", {});
+      if (r.ok) { alert("✅ " + ((r.data && r.data.message) || "已處理")); loadRentals(); }
+      else alert((r.data && r.data.error) || "操作失敗");
+    }
+
     async function raDecide(id, ok) {
       const r = await api.post("/venue-rentals/" + encodeURIComponent(id) + (ok ? "/confirm" : "/reject"), {});
       if (r.ok) { alert(ok ? "✅ 已確認" : "已拒絕"); loadRentals(); }

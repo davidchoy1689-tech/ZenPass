@@ -99,6 +99,26 @@ router.post("/book", authenticateToken, (req, res) => {
 
     const db = getDb();
 
+    // 預約期：只接受未來 3 個月內、且未開始嘅時段
+    {
+      const st = new Date(start_time);
+      const en = new Date(end_time);
+      if (isNaN(st) || isNaN(en)) {
+        return res.status(400).json({ success: false, error: "時間格式有誤" });
+      }
+      if (en <= st) {
+        return res.status(400).json({ success: false, error: "結束時間要遲過開始時間" });
+      }
+      if (st <= new Date()) {
+        return res.status(400).json({ success: false, error: "不可預約過去嘅時段" });
+      }
+      const max = new Date();
+      max.setMonth(max.getMonth() + 3);
+      if (st > max) {
+        return res.status(400).json({ success: false, error: "場地只開放未來 3 個月內預約" });
+      }
+    }
+
     // Check venue exists and is active
     const venue = db
       .prepare(
@@ -247,11 +267,35 @@ router.delete("/:id/cancel", authenticateToken, (req, res) => {
 
       return res.status(403).json({ success: false, error: "無權限取消" });
     }
+
+    // 政策（2026-10-17）：確認／付款後雙方不能更改；租客取消 → 租金全數不退
+    const wasConfirmed = rental.status === "confirmed";
+
     db.prepare(
       "UPDATE venue_rentals SET status = 'cancelled' WHERE id = ?",
     ).run(req.params.id);
 
-    res.json({ success: true, message: "已取消預約" });
+    if (wasConfirmed) {
+      try {
+        const db2 = getDb();
+        db2.prepare(
+          "CREATE TABLE IF NOT EXISTS venue_penalties (id TEXT PRIMARY KEY, rental_id TEXT, venue_id TEXT, coach_id TEXT, type TEXT, amount_hkd REAL, status TEXT, note TEXT, created_at TEXT DEFAULT (datetime('now')))",
+        ).run();
+        db2.prepare(
+          "INSERT INTO venue_penalties (id, rental_id, venue_id, coach_id, type, amount_hkd, status, note) VALUES (?,?,?,?,?,?,?,?)",
+        ).run(uuidv4(), rental.id, rental.venue_id, rental.coach_id, "tenant_cancel_forfeit", rental.price_hkd || 0, "applied", "已確認後租客取消，租金全數不退");
+      } catch (e) {
+        console.error("venue penalty log error:", e.message);
+      }
+    }
+
+    res.json({
+      success: true,
+      message: wasConfirmed
+        ? "已取消。由於確認後取消，租金全數不退還。"
+        : "已取消預約",
+      forfeited: wasConfirmed,
+    });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -361,6 +405,7 @@ router.post("/:id/reject", authenticateToken, requireOwnInstitution, (req, res) 
     if (!venue) return res.status(403).json({ success: false, error: "只有場地負責人可以使用" });
     const r = db.prepare("SELECT * FROM venue_rentals WHERE id = ? AND venue_id = ?").get(req.params.id, venue.id);
     if (!r) return res.status(404).json({ success: false, error: "租場紀錄不存在" });
+    if (r.status !== "pending") return res.status(400).json({ success: false, error: "已確認嘅租場不可更改（如需取消，請用場地方取消）" });
     db.prepare("UPDATE venue_rentals SET status = 'cancelled' WHERE id = ?").run(req.params.id);
     const coach = db.prepare("SELECT email FROM users WHERE id = ?").get(r.coach_id);
     if (coach && coach.email) {
@@ -370,6 +415,39 @@ router.post("/:id/reject", authenticateToken, requireOwnInstitution, (req, res) 
     res.json({ success: true, status: "cancelled" });
   } catch (err) {
     console.error("venue-rentals/reject error:", err.message);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ===== POST /api/venue-rentals/:id/venue-cancel — 場地方未能提供場地（手續費 200%）=====
+router.post("/:id/venue-cancel", authenticateToken, requireOwnInstitution, (req, res) => {
+  try {
+    const db = getDb();
+    const venue = _venueOf(req.user.id);
+    if (!venue) return res.status(403).json({ success: false, error: "只有場地負責人可以使用" });
+    const r = db.prepare("SELECT * FROM venue_rentals WHERE id = ? AND venue_id = ?").get(req.params.id, venue.id);
+    if (!r) return res.status(404).json({ success: false, error: "租場紀錄不存在" });
+    if (r.status !== "confirmed") return res.status(400).json({ success: false, error: "只適用於已確認嘅租場" });
+
+    const fee = Math.round((Number(r.price_hkd) || 0) * 2 * 100) / 100; // 200%
+    db.prepare("CREATE TABLE IF NOT EXISTS venue_penalties (id TEXT PRIMARY KEY, rental_id TEXT, venue_id TEXT, coach_id TEXT, type TEXT, amount_hkd REAL, status TEXT, note TEXT, created_at TEXT DEFAULT (datetime('now')))").run();
+    db.prepare("UPDATE venue_rentals SET status = 'cancelled' WHERE id = ?").run(req.params.id);
+    db.prepare(
+      "INSERT INTO venue_penalties (id, rental_id, venue_id, coach_id, type, amount_hkd, status, note) VALUES (?,?,?,?,?,?,?,?)",
+    ).run(uuidv4(), r.id, venue.id, r.coach_id, "venue_failure_200pct", fee, "pending_charge", (req.body && req.body.note) || "場地方未能提供場地，收取租金 200% 手續費");
+
+    const coach = db.prepare("SELECT name, email FROM users WHERE id = ?").get(r.coach_id);
+    if (coach && coach.email) {
+      require("../services/notification").emailNotification(
+        coach.email,
+        "【ZenPass】場地取消通知 — 全額退款",
+        `<p>抱歉，<b>${venue.name}</b> 未能提供你已預約嘅場地：<br>${r.start_time} — ${r.end_time}<br>租金 HK$${Number(r.price_hkd || 0).toFixed(2)} 將全額退回，平台會向場地收取手續費。</p>`,
+      ).catch(() => {});
+    }
+
+    res.json({ success: true, status: "cancelled", refund_full: true, venue_fee_hkd: fee, message: "已取消並安排全額退款；場地手續費 HK$" + fee.toFixed(2) + " 已記錄" });
+  } catch (err) {
+    console.error("venue-rentals/venue-cancel error:", err.message);
     res.status(500).json({ success: false, error: err.message });
   }
 });

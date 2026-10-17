@@ -568,6 +568,19 @@ function createBooking(req) {
     return { status: 400, body: { success: false, error: "此課程暫未開放預約，敬請期待" } };
   }
 
+  // 3.2 預約期上限：只接受未來 2 個月內嘅課堂
+  {
+    const _start = new Date(schedule.start_time);
+    const _max = new Date();
+    _max.setMonth(_max.getMonth() + 2);
+    if (isNaN(_start)) {
+      return { status: 400, body: { success: false, error: "時段資料有誤" } };
+    }
+    if (_start > _max) {
+      return { status: 400, body: { success: false, error: "課程只開放未來 2 個月內預約" } };
+    }
+  }
+
   // 3.5 優惠碼（只適用於單次付款；用伺服器端課程價計算，唔信 client amount）
   let promoApply = null;
   if (promo_code && (payment_type === "single" || payment_type === "credits")) {
@@ -979,6 +992,20 @@ function completePayment(req) {
 
 // ==================== Cancel Booking ====================
 
+/**
+ * 取消費用比率（2026-10-17 David 定）：
+ *   ≥72 小時（3 日）→ 0%
+ *   24–72 小時（1–3 日）→ 50%
+ *   <24 小時（當日）→ 100%
+ */
+function cancellationFeeRate(hoursUntil) {
+  const h = Number(hoursUntil);
+  if (!isFinite(h)) return 1;
+  if (h >= 72) return 0;
+  if (h >= 24) return 0.5;
+  return 1;
+}
+
 function cancelBooking(req) {
   const db = getDb();
   db.pragma("foreign_keys = ON");
@@ -998,24 +1025,22 @@ function cancelBooking(req) {
 
   const isPendingPayment = booking.status === "pending_payment";
 
+  // 取消政策（2026-10-17 David 定）：
+  //   開課前 ≥3 日：免費取消（全退）
+  //   開課前 1–3 日：扣 50%
+  //   開課前 <1 日（含當日）：扣 100%
+  let feeRate = 0;
   if (!isPendingPayment) {
     const now = new Date();
     const classTime = new Date(booking.start_time);
     const hoursUntilClass = (classTime - now) / (1000 * 60 * 60);
-
-    if (hoursUntilClass < 2) {
-      return {
-        status: 400,
-        body: { error: "開課前 2 小時內無法取消預約（太遲）" },
-      };
+    if (hoursUntilClass < 0) {
+      return { status: 400, body: { success: false, error: "課程已開始，無法取消" } };
     }
-
-    if (hoursUntilClass < 12) {
-      return _processLateCancel(db, booking, hoursUntilClass, reason, req);
-    }
+    feeRate = cancellationFeeRate(hoursUntilClass);
   }
 
-  return _processNormalCancel(db, booking, reason, req);
+  return _processNormalCancel(db, booking, reason, req, feeRate);
 }
 
 function _processLateCancel(db, booking, hoursUntilClass, reason, req) {
@@ -1113,7 +1138,8 @@ function _processLateCancel(db, booking, hoursUntilClass, reason, req) {
   };
 }
 
-function _processNormalCancel(db, booking, reason, req) {
+function _processNormalCancel(db, booking, reason, req, feeRate) {
+  feeRate = feeRate === 0.5 || feeRate === 1 ? feeRate : 0;
   db.prepare(
     "UPDATE bookings SET status = 'cancelled', cancel_reason = ? WHERE id = ?",
   ).run(reason || null, booking.id);
@@ -1146,25 +1172,38 @@ function _processNormalCancel(db, booking, reason, req) {
       .prepare("SELECT credits_cost FROM classes WHERE id = ?")
       .get(booking.class_id);
     const refundCredits =
-      booking.amount > 0
+      (booking.amount > 0
         ? Math.round((booking.amount / 10) * 10) / 10
         : classData
           ? classData.credits_cost
-          : 0;
-    if (refundCredits > 0) {
+          : 0) * (1 - feeRate);
+    const _refundCredits = Math.round(refundCredits * 10) / 10;
+    if (_refundCredits > 0) {
       db.prepare(
         "UPDATE users SET credits = credits + ? WHERE id = ?",
-      ).run(refundCredits, req.user.id);
+      ).run(_refundCredits, req.user.id);
+    }
+    if (feeRate > 0) {
+      try {
+        const full = classData ? classData.credits_cost : 0;
+        db.prepare(
+          `INSERT INTO penalty_logs (id, booking_id, user_id, type, class_cost, penalty_credits, status, reason, created_at)
+           VALUES (?, ?, ?, 'cancel_fee', ?, ?, 'applied', ?, datetime('now'))`,
+        ).run(uuidv4(), booking.id, req.user.id, full, Math.round(full * feeRate * 10) / 10, `取消費用 ${feeRate * 100}%`);
+      } catch (e) {
+        console.error("[PENALTY] cancel fee log error:", e.message);
+      }
     }
   }
 
-  // Refund money if paid
+  // Refund money if paid（按政策扣減）
   if (booking.payment_status === "paid" && booking.amount > 0) {
-    try {
+    const refundAmount = Math.round(booking.amount * (1 - feeRate) * 100) / 100;
+    if (refundAmount > 0) try {
       const refundResult = processRefund({
         bookingId: req.params.id,
-        amount: booking.amount,
-        reason: "用戶取消預約",
+        amount: refundAmount,
+        reason: feeRate > 0 ? `用戶取消預約（扣 ${feeRate * 100}%）` : "用戶取消預約",
         initiatedBy: req.user.id,
         approvedBy: "system",
         method: booking.payment_method || "fps",
@@ -1180,7 +1219,7 @@ function _processNormalCancel(db, booking, reason, req) {
               refund_id: refundResult.refund_id,
               booking_id: req.params.id,
               user_id: req.user.id,
-              amount: booking.amount,
+              amount: refundAmount,
               currency: "HKD",
               payment_method: booking.payment_method || "fps",
               reason: "用戶取消預約",
@@ -1242,7 +1281,15 @@ function _processNormalCancel(db, booking, reason, req) {
 
   return {
     status: 200,
-    body: { message: "預約已取消" },
+    body: {
+      message:
+        feeRate === 0
+          ? "預約已取消（開課前 3 日以上，全額退回）"
+          : feeRate === 0.5
+            ? "預約已取消（開課前 1–3 日，扣除 50% 課程費）"
+            : "預約已取消（開課前不足 1 日／當日，扣除 100% 課程費）",
+      fee_rate: feeRate,
+    },
   };
 }
 
@@ -1639,6 +1686,7 @@ function markNoShow(req) {
 module.exports = {
   // Helpers / core
   generateBookingRef,
+  cancellationFeeRate,
   checkPenaltyConsent,
   checkTrialEligibility,
   getTrialStatus,
