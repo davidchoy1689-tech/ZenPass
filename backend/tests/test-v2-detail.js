@@ -50,7 +50,12 @@ has('id="revs"', "reviews list");
 
 // 6 FAQ
 has("常見問題", "faq section");
-if ((html.match(/<details class="dt-faq">/g) || []).length < 4) fails.push("expect >=4 FAQ items");
+if ((html.match(/<details class="dt-faq"/g) || []).length < 5) fails.push("expect >=5 FAQ items");
+has("穿著什麼衣服", "faq clothing");
+has("冷氣開放", "facility ac");
+has("儲物櫃", "facility locker");
+has("飲水機", "facility water");
+has("比賽級", "facility equipment");
 
 // 7 預約流程 + sticky CTA
 has("預約流程", "flow section");
