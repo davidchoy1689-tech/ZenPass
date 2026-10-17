@@ -60,6 +60,9 @@ router.post("/apply", authenticateToken, (req, res) => {
       venue_address,
       venue_photos,
       facilities,
+      headline,
+      languages,
+      avatar_url,
     } = req.body;
 
     if (!name || !phone || !email || !venue_address) {
@@ -104,8 +107,8 @@ router.post("/apply", authenticateToken, (req, res) => {
       INSERT INTO coach_applications 
         (id, user_id, name, phone, email, years_experience, specialties, 
          certificates, bio, venue_name, venue_address, venue_photos, facilities,
-         application_reference)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         application_reference, headline, languages, avatar_url)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
     ).run(
       id,
@@ -122,6 +125,9 @@ router.post("/apply", authenticateToken, (req, res) => {
       venuePhotosStr || null,
       facilitiesStr || null,
       appRef,
+      headline || null,
+      Array.isArray(languages) ? languages.join(",") : languages || null,
+      avatar_url || null,
     );
 
     // 即時通知負責人（唔阻塞回應；未配置管道都唔會出錯）
@@ -431,6 +437,54 @@ router.get("/profile", authenticateToken, async (req, res) => {
   } catch (err) {
     console.error("獲取教練資料錯誤:", err);
     res.status(500).json({ success: false, error: "無法獲取資料" });
+  }
+});
+
+// ===== GET /api/coach/public-profile — 我嘅教練公開資料 =====
+router.get("/public-profile", authenticateToken, (req, res) => {
+  try {
+    const db = getDb();
+    const u = db
+      .prepare(
+        "SELECT id, name, avatar_url, is_coach, coach_verified, coach_headline, coach_bio, coach_tags, coach_languages, coach_years FROM users WHERE id = ?",
+      )
+      .get(req.user.id);
+    if (!u) return res.status(404).json({ success: false, error: "用戶不存在" });
+    res.json({ success: true, data: u });
+  } catch (err) {
+    console.error("coach/public-profile GET error:", err.message);
+    res.status(500).json({ success: false, error: "無法讀取資料" });
+  }
+});
+
+// ===== POST /api/coach/public-profile — 更新教練公開資料 =====
+router.post("/public-profile", authenticateToken, (req, res) => {
+  try {
+    const db = getDb();
+    const u = db.prepare("SELECT is_coach FROM users WHERE id = ?").get(req.user.id);
+    if (!u) return res.status(404).json({ success: false, error: "用戶不存在" });
+    if (!u.is_coach) return res.status(403).json({ success: false, error: "只限已批核教練" });
+
+    const { headline, bio, tags, languages, years, avatar_url } = req.body || {};
+    const clean = (v) => (v == null ? null : String(v).trim() || null);
+    const join = (v) => (Array.isArray(v) ? v.map((x) => String(x).trim()).filter(Boolean).join(",") : clean(v));
+    const yrs = years === undefined || years === null || years === "" ? null : Math.max(0, Math.min(70, parseInt(years, 10) || 0));
+
+    db.prepare(
+      `UPDATE users SET coach_headline = COALESCE(?, coach_headline),
+                        coach_bio = COALESCE(?, coach_bio),
+                        coach_tags = COALESCE(?, coach_tags),
+                        coach_languages = COALESCE(?, coach_languages),
+                        coach_years = COALESCE(?, coach_years),
+                        avatar_url = COALESCE(?, avatar_url),
+                        updated_at = datetime('now')
+       WHERE id = ?`,
+    ).run(clean(headline), clean(bio), join(tags), join(languages), yrs, clean(avatar_url), req.user.id);
+
+    res.json({ success: true, message: "✅ 教練資料已更新，會自動顯示於你嘅課程頁" });
+  } catch (err) {
+    console.error("coach/public-profile POST error:", err.message);
+    res.status(500).json({ success: false, error: "更新失敗" });
   }
 });
 

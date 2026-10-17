@@ -33,6 +33,7 @@
       </div></div>
       <p class="muted" style="font-size:13px">填寫資料後，我哋會喺 3 個工作日內完成審批。</p>
       <label class="lbl">姓名 *</label><input class="fld" id="f-name" />
+      <label class="lbl">頭銜 / 標語（顯示於課程頁）</label><input class="fld" id="f-headline" placeholder="例：新興運動教練 · 10 年經驗" />
       <label class="lbl">電話 *</label><input class="fld" id="f-phone" type="tel" />
       <label class="lbl">電郵 *</label><input class="fld" id="f-email" type="email" />
       <div class="grid2">
@@ -41,7 +42,10 @@
       </div>
       <label class="lbl">專長（可多選）</label>
       <div class="chips" id="specialties"></div>
-      <label class="lbl">簡介</label><textarea class="fld" id="f-bio" rows="3" placeholder="介紹下你自己"></textarea>
+      <label class="lbl">簡介（會顯示於課程詳情頁）</label><textarea class="fld" id="f-bio" rows="4" placeholder="例：10 年新興運動教學經驗，擅長用遊戲方式帶新手掌握技巧，服務過 30+ 學校同企業團隊。"></textarea>
+      <label class="lbl">授課語言（可多選）</label>
+      <div class="chips" id="langs"></div>
+      <label class="lbl">頭像連結（可選，https://…）</label><input class="fld" id="f-avatar" placeholder="https://…" />
       <label class="lbl">慣用場地名稱（可選）</label><input class="fld" id="f-venue" />
       <label class="lbl">居住地區 / 地址 *</label><input class="fld" id="f-address" />
       <div class="spacer"></div>
@@ -54,7 +58,9 @@
   <script src="assets/api.js"></script>
   <script>
     const SPECS = ["芬蘭木柱","地板冰壺","布袋球","穿雲箭","北歐式健步行","圓網球","柔力球","健體","瑜伽","伸展","兒童健體","其他"];
+    const LANGS = ["廣東話","English","普通話"];
     let chosen = new Set();
+    const chosenLang = new Set();
 
     (async () => {
       if (!api.requireLogin("coach-apply.html")) return;
@@ -65,11 +71,17 @@
         cb.closest("label").classList.toggle("on", cb.checked);
         if (cb.checked) chosen.add(cb.value); else chosen.delete(cb.value);
       });
+      document.getElementById("langs").innerHTML = LANGS.map(s =>
+        `<label><input type="checkbox" value="${s}"><span>${s}</span></label>`).join("");
+      document.querySelectorAll("#langs input").forEach(cb => cb.onchange = () => {
+        cb.closest("label").classList.toggle("on", cb.checked);
+        if (cb.checked) chosenLang.add(cb.value); else chosenLang.delete(cb.value);
+      });
       // 姓名 / 電郵 / 電話一律留空，唔預填帳戶資料
       // 已有申請？
       const ap = await api.get("/coach/application");
       const app = ap.data && ap.data.application;
-      if (app) showStatus(app);
+      if (app) { showStatus(app); if (app.status === "approved") await showProfileEditor(); }
       document.getElementById("submit").onclick = submit;
     })();
 
@@ -85,6 +97,45 @@
         </div></div>`;
     }
 
+    /* 已批核教練 → 可直接維護公開資料（會自動顯示於課程頁） */
+    async function showProfileEditor() {
+      const r = await api.get("/coach/public-profile");
+      const d = (r.data && r.data.data) || {};
+      const tags = String(d.coach_tags || "").split(",").filter(Boolean);
+      const langs = String(d.coach_languages || "").split(",").filter(Boolean);
+      const box = document.getElementById("status");
+      box.innerHTML +=
+        `<div class="card" style="margin-top:10px"><div class="body">
+          <h3 style="margin:0 0 4px">🪪 我的教練資料</h3>
+          <p class="muted" style="font-size:12.5px;margin:0 0 10px">呢啲資料會自動顯示喺你每個課程嘅詳情頁。</p>
+          <label class="lbl">頭銜 / 標語</label><input class="fld" id="p-headline" value="${esc(d.coach_headline || "")}" />
+          <label class="lbl">簡介</label><textarea class="fld" id="p-bio" rows="4">${esc(d.coach_bio || "")}</textarea>
+          <div class="grid2">
+            <div><label class="lbl">教學年資（年）</label><input class="fld" id="p-years" type="number" min="0" value="${d.coach_years || ""}" /></div>
+            <div><label class="lbl">頭像連結</label><input class="fld" id="p-avatar" value="${esc(d.avatar_url || "")}" /></div>
+          </div>
+          <label class="lbl">資歷 / 標籤（逗號分隔）</label><input class="fld" id="p-tags" value="${esc(tags.join(", "))}" placeholder="認可導師, 新手友善" />
+          <label class="lbl">授課語言（逗號分隔）</label><input class="fld" id="p-langs" value="${esc(langs.join(", "))}" placeholder="廣東話, English" />
+          <button class="btn btn-primary btn-block" id="p-save" style="margin-top:12px">儲存教練資料</button>
+          <div id="p-msg" class="center muted" style="font-size:13px;margin-top:8px"></div>
+        </div></div>`;
+      document.getElementById("p-save").onclick = async () => {
+        const btn = document.getElementById("p-save");
+        btn.disabled = true; btn.textContent = "儲存中…";
+        const body = {
+          headline: document.getElementById("p-headline").value.trim(),
+          bio: document.getElementById("p-bio").value.trim(),
+          years: document.getElementById("p-years").value,
+          avatar_url: document.getElementById("p-avatar").value.trim(),
+          tags: document.getElementById("p-tags").value.split(",").map(x => x.trim()).filter(Boolean),
+          languages: document.getElementById("p-langs").value.split(",").map(x => x.trim()).filter(Boolean),
+        };
+        const res2 = await api.post("/coach/public-profile", body);
+        btn.disabled = false; btn.textContent = "儲存教練資料";
+        document.getElementById("p-msg").textContent = res2.ok ? "✅ 已儲存，課程頁會即時更新" : ((res2.data && res2.data.error) || "儲存失敗");
+      };
+    }
+
     async function submit() {
       const msg = document.getElementById("msg");
       const body = {
@@ -97,6 +148,9 @@
         specialties: [...chosen],
         bio: document.getElementById("f-bio").value.trim() || null,
         venue_name: document.getElementById("f-venue").value.trim() || null,
+        headline: document.getElementById("f-headline").value.trim() || null,
+        languages: [...chosenLang],
+        avatar_url: document.getElementById("f-avatar").value.trim() || null,
       };
       if (!body.name || !body.phone || !body.email || !body.venue_address) { msg.textContent = "請填姓名、電話、電郵同地址"; return; }
       const btn = document.getElementById("submit"); btn.disabled = true; btn.textContent = "提交中…";

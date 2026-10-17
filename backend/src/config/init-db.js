@@ -91,6 +91,17 @@ CREATE TABLE IF NOT EXISTS users (
     console.error("users 遷移失敗:", e.message);
   }
 
+  // 遷移：教練公開資料（開班後自動顯示於課程詳情頁）
+  for (const [col, type] of [
+    ["coach_headline", "TEXT"],
+    ["coach_bio", "TEXT"],
+    ["coach_tags", "TEXT"],
+    ["coach_languages", "TEXT"],
+    ["coach_years", "INTEGER"],
+  ]) {
+    try { db.exec(`ALTER TABLE users ADD COLUMN ${col} ${type}`); } catch (e) { /* exists */ }
+  }
+
   // ===== 教練申請表 =====
   db.exec(`
     CREATE TABLE IF NOT EXISTS coach_applications (
@@ -118,6 +129,14 @@ CREATE TABLE IF NOT EXISTS users (
 
   // ===== 兼容升級：coach_applications.application_reference =====
   try { db.exec("ALTER TABLE coach_applications ADD COLUMN application_reference TEXT"); } catch (e) { /* unused */ }
+
+  for (const [col, type] of [
+    ["headline", "TEXT"],
+    ["languages", "TEXT"],
+    ["avatar_url", "TEXT"],
+  ]) {
+    try { db.exec(`ALTER TABLE coach_applications ADD COLUMN ${col} ${type}`); } catch (e) { /* exists */ }
+  }
 
   // ===== 課程表 =====
   db.exec(`

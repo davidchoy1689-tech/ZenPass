@@ -480,7 +480,34 @@ function approveCoach(applicationId, adminId) {
 
   db.prepare("UPDATE coach_applications SET status = 'approved', reviewed_by = ?, reviewed_at = datetime('now') WHERE id = ?")
     .run(adminId, applicationId);
-  db.prepare("UPDATE users SET is_coach = 1, coach_verified = 1 WHERE id = ?").run(app.user_id);
+  // 批核 → 自動把申請資料寫入教練公開 profile（開班後自動顯示於課程頁）
+  const tags = [app.specialties, app.certificates]
+    .filter(Boolean)
+    .join(",")
+    .split(",")
+    .map((t) => t.trim())
+    .filter(Boolean)
+    .filter((t, i, a) => a.indexOf(t) === i)
+    .join(",");
+  db.prepare(
+    `UPDATE users SET is_coach = 1, coach_verified = 1,
+       coach_headline = COALESCE(NULLIF(?, ''), coach_headline),
+       coach_bio = COALESCE(NULLIF(?, ''), coach_bio),
+       coach_tags = COALESCE(NULLIF(?, ''), coach_tags),
+       coach_languages = COALESCE(NULLIF(?, ''), coach_languages),
+       coach_years = COALESCE(?, coach_years),
+       avatar_url = COALESCE(NULLIF(?, ''), avatar_url),
+       updated_at = datetime('now')
+     WHERE id = ?`,
+  ).run(
+    app.headline || "",
+    app.bio || "",
+    tags,
+    app.languages || "",
+    app.years_experience ? parseInt(app.years_experience, 10) || null : null,
+    app.avatar_url || "",
+    app.user_id,
+  );
 
   sendNotification("coach.approved", { recipient: app.user_id, data: { message: "✅ 教練申請已獲批！現在可以開班授課啦！" } });
 

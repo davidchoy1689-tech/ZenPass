@@ -294,6 +294,7 @@ router.get("/:id", optionalAuth, (req, res) => {
         `
       SELECT c.*, u.name as coach_name, u.avatar_url as coach_avatar,
         u.is_coach, u.coach_verified,
+        u.coach_headline, u.coach_bio, u.coach_tags, u.coach_languages, u.coach_years,
         (SELECT MAX(cs.end_time) FROM class_schedules cs WHERE cs.class_id = c.id) as last_session_end,
         CASE WHEN COALESCE(c.booking_open,0) = 1
               AND (SELECT MAX(cs.end_time) FROM class_schedules cs WHERE cs.class_id = c.id) IS NOT NULL
@@ -310,6 +311,24 @@ router.get("/:id", optionalAuth, (req, res) => {
 
       return res.status(404).json({ success: false, error: "課程不存在" });
     }
+
+    // 教練公開資料 → 自動嵌入課程頁（註冊時收集 → 批核時寫入 users → 開班自動帶出）
+    const splitList = (v) =>
+      String(v || "")
+        .split(/[,、，/]/)
+        .map((x) => x.trim())
+        .filter(Boolean);
+    classData.coach_tags = splitList(classData.coach_tags);
+    const langs = splitList(classData.coach_languages);
+    if (langs.length) classData.coach_tags = classData.coach_tags.concat(langs);
+    classData.coach_tags = Array.from(new Set(classData.coach_tags));
+    classData.coach_stats = [];
+    if (classData.coach_years) classData.coach_stats.push({ v: classData.coach_years + " 年", k: "教學年資" });
+    const taughtCount = db
+      .prepare("SELECT COUNT(*) c FROM classes WHERE coach_id = ? AND status = 'active'")
+      .get(classData.coach_id || "").c;
+    if (taughtCount) classData.coach_stats.push({ v: String(taughtCount), k: "開辦課程" });
+    if (langs.length) classData.coach_stats.push({ v: String(langs.length), k: "授課語言" });
 
     // Get schedules
     const schedules = db

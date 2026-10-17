@@ -373,7 +373,7 @@
 
       // 教練
       $("coachName").textContent = c.coach_name || "教練資料待更新";
-      $("coachMeta").textContent = c.coach_meta || [c.coach_verified ? "✅ 已認證" : "", c.category || ""].filter(Boolean).join(" · ");
+      $("coachMeta").textContent = c.coach_meta || c.coach_headline || [c.coach_verified ? "✅ 已認證" : "", c.category || ""].filter(Boolean).join(" · ");
       $("coachAvatar").innerHTML = c.coach_avatar ? '<img src="' + esc(c.coach_avatar) + '" alt="">' : "🧑‍🏫";
       const bioEl = $("coachBio");
       bioEl.textContent = c.coach_bio || "";
