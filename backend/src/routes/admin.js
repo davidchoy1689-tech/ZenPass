@@ -263,6 +263,39 @@ router.get("/coach-applications", authenticateToken, requireAdmin, (req, res) =>
   }
 });
 
+// ===== POST /api/admin/reset-review-data — 清空 demo 評分（需要 confirm）=====
+router.post("/reset-review-data", authenticateToken, requireAdmin, (req, res) => {
+  try {
+    if ((req.body || {}).confirm !== "CLEAR_DEMO_REVIEWS") {
+      return res.status(400).json({ success: false, error: "需要 confirm: CLEAR_DEMO_REVIEWS" });
+    }
+    const db = getDb();
+    const counts = {};
+    for (const t of ["mutual_reviews", "coach_ratings", "reviews"]) {
+      try {
+        const before = db.prepare(`SELECT COUNT(*) c FROM ${t}`).get().c;
+        db.prepare(`DELETE FROM ${t}`).run();
+        counts[t] = before;
+      } catch (e) {
+        counts[t] = "n/a";
+      }
+    }
+    try {
+      const { writeBlock } = require("../services/blockchain-audit");
+      writeBlock({
+        entityType: "admin_action",
+        entityId: "reset-review-data-" + Date.now(),
+        data: { admin_user: req.user.id, action: "reset_review_data", counts },
+      });
+    } catch (e) {}
+    console.log("🧹 清空 demo 評分:", counts, "by", req.user.email);
+    res.json({ success: true, message: "已清空 demo 評分", counts });
+  } catch (err) {
+    console.error("reset-review-data error:", err.message);
+    res.status(500).json({ success: false, error: "清空失敗" });
+  }
+});
+
 // ===== GET /api/admin/coach-ratings — 教練評分總覽（內部）=====
 router.get("/coach-ratings", authenticateToken, requireAdmin, (req, res) => {
   try {
