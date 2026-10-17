@@ -870,6 +870,28 @@ function sendVacancyDigest() {
   }
 }
 setInterval(sendVacancyDigest, 6 * 60 * 60 * 1000);
+
+// ===== 過期課程自動歸檔（完結超過 7 日）=====
+function archiveExpiredClasses() {
+  try {
+    const { getDb } = require("./services/database");
+    const db = getDb();
+    const r = db
+      .prepare(
+        `UPDATE classes
+            SET status = 'inactive', updated_at = datetime('now')
+          WHERE status = 'active'
+            AND EXISTS (SELECT 1 FROM class_schedules cs WHERE cs.class_id = classes.id)
+            AND (SELECT MAX(cs.end_time) FROM class_schedules cs WHERE cs.class_id = classes.id) < datetime('now','-7 days')`,
+      )
+      .run();
+    if (r.changes) console.log(`[ARCHIVE] 已歸檔 ${r.changes} 個過期課程（保留 7 日後）`);
+  } catch (e) {
+    console.error("[ARCHIVE] Error:", e.message);
+  }
+}
+setInterval(archiveExpiredClasses, 6 * 60 * 60 * 1000);
+setTimeout(archiveExpiredClasses, 20000);
 // ===== Startup Health Check =====
 function startupHealthCheck() {
   const checks = {

@@ -38,6 +38,11 @@ router.get("/", optionalAuth, cache(30), (req, res) => {
     let whereConditions = ["c.status = ?"];
     let params = ["active"];
 
+    // 已完結超過 7 日 → 自動不再顯示（系統保留 7 日後歸檔）
+    const LAST_END =
+      "(SELECT MAX(cs.end_time) FROM class_schedules cs WHERE cs.class_id = c.id)";
+    whereConditions.push(`(${LAST_END} IS NULL OR ${LAST_END} >= datetime('now','-7 days'))`);
+
     if (category && category !== "全部" && category !== "all") {
       whereConditions.push("c.category = ?");
       params.push(category);
@@ -107,6 +112,8 @@ router.get("/", optionalAuth, cache(30), (req, res) => {
       SELECT 
         c.*,
         u.name as coach_name,
+        ${LAST_END} as last_session_end,
+        CASE WHEN ${LAST_END} IS NOT NULL AND ${LAST_END} < datetime('now') THEN 1 ELSE 0 END as is_expired,
         (SELECT COUNT(*) FROM bookings WHERE class_id = c.id) as booking_count,
         (SELECT ROUND(AVG(CAST(b.status AS REAL)), 1) FROM bookings b WHERE b.class_id = c.id AND b.status = 'attended') as rating,
         (SELECT COUNT(DISTINCT cs.id) FROM class_schedules cs 
@@ -284,7 +291,11 @@ router.get("/:id", optionalAuth, (req, res) => {
       .prepare(
         `
       SELECT c.*, u.name as coach_name, u.avatar_url as coach_avatar,
-        u.is_coach, u.coach_verified
+        u.is_coach, u.coach_verified,
+        (SELECT MAX(cs.end_time) FROM class_schedules cs WHERE cs.class_id = c.id) as last_session_end,
+        CASE WHEN (SELECT MAX(cs.end_time) FROM class_schedules cs WHERE cs.class_id = c.id) IS NOT NULL
+              AND (SELECT MAX(cs.end_time) FROM class_schedules cs WHERE cs.class_id = c.id) < datetime('now')
+             THEN 1 ELSE 0 END as is_expired
       FROM classes c
       JOIN users u ON c.coach_id = u.id
       WHERE c.id = ? AND c.status = 'active'

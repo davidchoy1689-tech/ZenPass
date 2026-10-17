@@ -557,6 +557,17 @@ function createBooking(req) {
     return { status: 404, body: { success: false, error: "該時段不存在或已滿" } };
   }
 
+  // 3.1 課程狀態 / 是否已開放預約（資料未齊嘅活動只展示、唔收預約）
+  const clsGuard = db
+    .prepare("SELECT status, booking_open FROM classes WHERE id = ?")
+    .get(class_id);
+  if (!clsGuard || clsGuard.status !== "active") {
+    return { status: 400, body: { success: false, error: "此課程已完結或已下架" } };
+  }
+  if (clsGuard.booking_open === 0) {
+    return { status: 400, body: { success: false, error: "此課程暫未開放預約，敬請期待" } };
+  }
+
   // 3.5 優惠碼（只適用於單次付款；用伺服器端課程價計算，唔信 client amount）
   let promoApply = null;
   if (promo_code && (payment_type === "single" || payment_type === "credits")) {

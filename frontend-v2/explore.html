@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#ff6b35" />
   <title>探索課程 · ZenPass 禪流</title>
-  <link rel="stylesheet" href="assets/v2.css?v=24" />
+  <link rel="stylesheet" href="assets/v2.css?v=25" />
 </head>
 <body>
   <div class="topbar"><div class="title">探索課程</div></div>
@@ -38,6 +38,8 @@
     const list = document.getElementById("list");
     function card(c) {
       const wd = ["日", "一", "二", "三", "四", "五", "六"];
+      const expired = Number(c.is_expired) === 1;
+      const unopened = !expired && (c.booking_open === 0 || c.booking_open === false || c.booking_open === null || c.booking_open === undefined);
       const s = (c.schedules && c.schedules[0]) || null;
       let next = "";
       if (s) {
@@ -49,11 +51,18 @@
         }
       }
       const aud = c.target_audience || ({ beginner: "初級 / 新手友善", intermediate: "中級", advanced: "高級" }[c.difficulty]) || "";
-      return `<a class="card" href="class-detail.html?id=${encodeURIComponent(c.id)}"><div class="body course">
+      const stateLine = expired
+        ? `<p class="sub" style="color:#9ca3af">已完結</p>`
+        : unopened
+          ? `<p class="sub" style="color:#b45309">🔒 暫未開放預約</p>`
+          : next
+            ? `<p class="sub" style="color:var(--brand-600)">📅 ${esc(next)}</p>`
+            : `<p class="sub">暫無時段</p>`;
+      return `<a class="card${expired ? " expired" : ""}" href="class-detail.html?id=${encodeURIComponent(c.id)}"><div class="body course">
         <div class="thumb" style="background:${(typeof courseTint === "function" ? courseTint(c, 0.14) : "#f4f4f6")}">${(typeof courseIconImg === "function" ? courseIconImg(c, 46) : "")}</div>
-        <div class="meta"><p class="name">${esc(c.title)}</p>
+        <div class="meta"><p class="name">${esc(c.title)} ${expired ? '<span class="tag-gray">已完結</span>' : unopened ? '<span class="tag-lock">敬請期待</span>' : ""}</p>
           <p class="sub">${esc(c.category || "")}${c.duration ? " · " + c.duration + " 分鐘" : ""}${c.venue_name ? " · 📍 " + esc(c.venue_name) : ""}</p>
-          ${next ? `<p class="sub" style="color:var(--brand-600)">📅 ${esc(next)}</p>` : `<p class="sub">暫無時段</p>`}
+          ${stateLine}
           <p class="sub">${esc(aud)}${c.max_participants ? " · 上限 " + c.max_participants + " 人" : ""}</p></div>
         <div class="price">${cr(c.price_hkd)}cr</div>
       </div></a>`;

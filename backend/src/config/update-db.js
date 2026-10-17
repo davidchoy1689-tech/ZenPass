@@ -358,7 +358,26 @@ function updateDatabase() {
     console.log("⚠️ classes.district backfill:", e.message);
   }
 
-  // ===== Migration 10: Schema parity (prod -> repo) =====
+  // ===== Migration 12: classes.booking_open（是否開放預約）=====
+  try {
+    db.exec("ALTER TABLE classes ADD COLUMN booking_open INTEGER DEFAULT 0");
+    console.log("✅ 加入 classes.booking_open");
+  } catch (e) {
+    /* 已存在 */
+  }
+  try {
+    const r = db
+      .prepare(
+        "UPDATE classes SET booking_open = 1 WHERE category LIKE '%身心%' OR category LIKE '%伸展%' OR title LIKE '%伸展%' OR title LIKE '%瑜伽%'",
+      )
+      .run();
+    db.prepare("UPDATE classes SET booking_open = 0 WHERE booking_open IS NULL").run();
+    if (r.changes) console.log(`✅ classes.booking_open 開放 ${r.changes} 條`);
+  } catch (e) {
+    console.log("⚠️ booking_open backfill:", e.message);
+  }
+
+  // ===== Migration 13: Schema parity (prod -> repo) =====
   // 生產有、但 repo schema 未定義嘅表 / 欄位（避免 fresh / CI DB 唔完整）。
   // 表用 schema-parity.sql（CREATE IF NOT EXISTS）；欄用 ALTER（逐條 try/catch）。
   try {

@@ -141,6 +141,7 @@ CREATE TABLE IF NOT EXISTS users (
       latitude REAL,
       longitude REAL,
       image_url TEXT,
+      booking_open INTEGER DEFAULT 1,
       status TEXT DEFAULT 'active' CHECK(status IN ('active','inactive','deleted')),
       created_at TEXT DEFAULT (datetime('now')),
       updated_at TEXT DEFAULT (datetime('now')),
@@ -150,6 +151,19 @@ CREATE TABLE IF NOT EXISTS users (
 
   // ===== 兼容升級：classes.target_audience（課程對象）=====
   try { db.exec("ALTER TABLE classes ADD COLUMN target_audience TEXT"); } catch (e) { /* exists */ }
+
+  // ===== 兼容升級：classes.booking_open（是否開放預約）=====
+  try { db.exec("ALTER TABLE classes ADD COLUMN booking_open INTEGER DEFAULT 0"); } catch (e) { /* exists */ }
+  try {
+    // 首階段：只有「身心伸展」相關課程資料係真實 → 開放預約；其餘顯示但唔收預約
+    const r = db
+      .prepare(
+        "UPDATE classes SET booking_open = 1 WHERE category LIKE '%身心%' OR category LIKE '%伸展%' OR title LIKE '%伸展%' OR title LIKE '%瑜伽%'",
+      )
+      .run();
+    const r2 = db.prepare("UPDATE classes SET booking_open = 0 WHERE booking_open IS NULL").run();
+    if (r.changes || r2.changes) console.log(`✅ classes.booking_open 初始化: 開放 ${r.changes} / 未開放 ${r2.changes}`);
+  } catch (e) { /* 非致命 */ }
 
   // ===== 兼容升級：classes.district（按課程地區自動分區）=====
   try { db.exec("ALTER TABLE classes ADD COLUMN district TEXT"); } catch (e) { /* exists */ }
