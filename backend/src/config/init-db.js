@@ -134,6 +134,9 @@ CREATE TABLE IF NOT EXISTS users (
     ["headline", "TEXT"],
     ["languages", "TEXT"],
     ["avatar_url", "TEXT"],
+    ["id_doc_url", "TEXT"],
+    ["cert_doc_url", "TEXT"],
+    ["doc_verified", "INTEGER DEFAULT 0"],
   ]) {
     try { db.exec(`ALTER TABLE coach_applications ADD COLUMN ${col} ${type}`); } catch (e) { /* exists */ }
   }

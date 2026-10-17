@@ -475,6 +475,11 @@
         <div style="display:flex;justify-content:space-between"><b>${esc2(a.name||"")}</b><span class="pill ${a.status==='approved'?'ok':(a.status==='rejected'?'off':'warn')}">${esc2(st(a.status))}</span></div>
         <p class="kv">${esc2(a.email||"")} · ${esc2(a.phone||"")}</p>
         ${a.specialties?`<p class="kv">專長：${esc2(a.specialties)}</p>`:""}
+        ${a.certificates?`<p class="kv">資歷：${esc2(a.certificates)}</p>`:""}
+        <p class="kv">📎 證明文件：
+          ${a.id_doc_url?`<a href="${esc2(a.id_doc_url)}" target="_blank" rel="noopener">身份證</a>`:'<span style="color:#b91c1c">未上載身份證</span>'}
+          ${a.cert_doc_url?` · <a href="${esc2(a.cert_doc_url)}" target="_blank" rel="noopener">資歷證書</a>`:' · <span style="color:#b91c1c">未上載資歷</span>'}
+        </p>
         ${a.status==='pending'?`<div style="display:flex;gap:8px;margin-top:10px"><button class="btn btn-primary" data-ca="approve" style="flex:1">批准</button><button class="btn btn-ghost" data-ca="reject" style="flex:1">拒絕</button></div>`:""}
       </div></div>`).join("");
       panel().querySelectorAll("[data-ca]").forEach(b => b.onclick = async () => {

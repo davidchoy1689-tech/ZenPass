@@ -63,6 +63,8 @@ router.post("/apply", authenticateToken, (req, res) => {
       headline,
       languages,
       avatar_url,
+      id_doc_url,
+      cert_doc_url,
     } = req.body;
 
     if (!name || !phone || !email || !venue_address) {
@@ -107,8 +109,8 @@ router.post("/apply", authenticateToken, (req, res) => {
       INSERT INTO coach_applications 
         (id, user_id, name, phone, email, years_experience, specialties, 
          certificates, bio, venue_name, venue_address, venue_photos, facilities,
-         application_reference, headline, languages, avatar_url)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         application_reference, headline, languages, avatar_url, id_doc_url, cert_doc_url)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
     ).run(
       id,
@@ -128,6 +130,8 @@ router.post("/apply", authenticateToken, (req, res) => {
       headline || null,
       Array.isArray(languages) ? languages.join(",") : languages || null,
       avatar_url || null,
+      id_doc_url || null,
+      cert_doc_url || null,
     );
 
     // 即時通知負責人（唔阻塞回應；未配置管道都唔會出錯）

@@ -46,6 +46,10 @@
       <label class="lbl">授課語言（可多選）</label>
       <div class="chips" id="langs"></div>
       <label class="lbl">頭像連結（可選，https://…）</label><input class="fld" id="f-avatar" placeholder="https://…" />
+      <label class="lbl">身份證明文件 *（JPG / PNG / PDF）</label>
+      <input class="fld" id="f-iddoc" type="file" accept="image/*,application/pdf" />
+      <label class="lbl">資歷／證書證明 *（可影多張，最多 3 個）</label>
+      <input class="fld" id="f-certdoc" type="file" accept="image/*,application/pdf" multiple />
       <label class="lbl">慣用場地名稱（可選）</label><input class="fld" id="f-venue" />
       <label class="lbl">居住地區 / 地址 *</label><input class="fld" id="f-address" />
       <div class="spacer"></div>
@@ -136,6 +140,23 @@
       };
     }
 
+    /* 上載證明文件 → 回傳 URL */
+    async function uploadDocs(files) {
+      if (!files || !files.length) return [];
+      const fd = new FormData();
+      for (const f of files) fd.append("files", f);
+      const conf = await api.get("/csrf-token").catch(() => null);
+      const res = await fetch((window.API_BASE || "") + "/api/upload", {
+        method: "POST",
+        credentials: "include",
+        headers: conf && conf.data && conf.data.token ? { "x-csrf-token": conf.data.token } : {},
+        body: fd,
+      });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(j.error || "上載失敗");
+      return (j.files || []).map(x => x.url).filter(Boolean);
+    }
+
     async function submit() {
       const msg = document.getElementById("msg");
       const body = {
@@ -152,6 +173,26 @@
         languages: [...chosenLang],
         avatar_url: document.getElementById("f-avatar").value.trim() || null,
       };
+
+      // 📎 上載證明文件（身份證 + 資歷證書）
+      const idFiles = document.getElementById("f-iddoc").files;
+      const certFiles = document.getElementById("f-certdoc").files;
+      if (!idFiles.length) { msg.textContent = "請上載身份證明文件（用於核實身份）"; return; }
+      if (!certFiles.length) { msg.textContent = "請上載最少一份資歷／證書"; return; }
+      const btn0 = document.getElementById("submit");
+      if (btn0) { btn0.disabled = true; btn0.textContent = "上載文件中…"; }
+      try {
+        const ids = await uploadDocs(idFiles);
+        const certs = await uploadDocs(Array.from(certFiles).slice(0, 3));
+        body.id_doc_url = ids[0] || null;
+        body.cert_doc_url = certs.join(",") || null;
+        if (!body.id_doc_url) throw new Error("身份證上載失敗");
+      } catch (e) {
+        msg.textContent = "文件上載失敗：" + e.message;
+        if (btn0) { btn0.disabled = false; btn0.textContent = "提交申請"; }
+        return;
+      }
+      if (btn0) { btn0.disabled = false; btn0.textContent = "提交申請"; }
       if (!body.name || !body.phone || !body.email || !body.venue_address) { msg.textContent = "請填姓名、電話、電郵同地址"; return; }
       const btn = document.getElementById("submit"); btn.disabled = true; btn.textContent = "提交中…";
       const r = await api.post("/coach/apply", body);
