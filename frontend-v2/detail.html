@@ -90,6 +90,26 @@
     .dt-fac { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 4px; }
     .dt-fac .f { display: flex; align-items: center; gap: 7px; font-size: 12.5px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px; }
     .dt-fac .f span:first-child { font-size: 15px; }
+
+    /* 置底預約欄 + 時段 Drawer */
+    .dt-price .old { font-size: 12px; color: var(--text-muted); text-decoration: line-through; margin-left: 4px; }
+    .dt-price .promo-tag { display: inline-block; font-size: 10px; font-weight: 800; color: #b45309; background: #fef3c7; border-radius: 999px; padding: 1px 7px; margin-left: 6px; vertical-align: 2px; }
+    .dt-sheet-mask { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 940; opacity: 0; pointer-events: none; transition: opacity .2s; }
+    .dt-sheet-mask.show { opacity: 1; pointer-events: auto; }
+    .dt-sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 950; background: var(--card,#fff); border-radius: 18px 18px 0 0; padding: 14px 16px calc(14px + env(safe-area-inset-bottom)); transform: translateY(100%); transition: transform .25s ease; max-height: 78vh; display: flex; flex-direction: column; }
+    .dt-sheet.show { transform: translateY(0); }
+    .dt-sheet h3 { margin: 0 0 10px; font-size: 15px; display: flex; justify-content: space-between; align-items: center; }
+    .dt-sheet h3 span { font-size: 20px; color: var(--text-muted); cursor: pointer; }
+    .dt-sheet-list { overflow-y: auto; -webkit-overflow-scrolling: touch; }
+    .dt-sess { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 12px 2px; border-bottom: 1px solid var(--border); }
+    .dt-sess:last-child { border-bottom: 0; }
+    .dt-sess .d { font-size: 13px; font-weight: 700; }
+    .dt-sess .t { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+    .dt-sess .l { font-size: 11px; font-weight: 800; border-radius: 999px; padding: 2px 8px; white-space: nowrap; }
+    .dt-sess .l.ok { color: #15803d; background: #e8f7ee; }
+    .dt-sess .l.low { color: #b45309; background: #fef3c7; }
+    .dt-sess button { flex: 0 0 auto; }
+    @media (min-width: 720px) { .dt-sheet { max-width: 760px; margin: 0 auto; border-radius: 18px 18px 0 0; } }
     .dt-seats { color: #b45309; font-weight: 700; }
     .dt-sticky { position: fixed; left: 0; right: 0; bottom: 0; z-index: 900; background: rgba(255,255,255,.96); backdrop-filter: blur(10px); border-top: 1px solid var(--border); padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); display: flex; align-items: center; gap: 12px; }
     .dt-price { line-height: 1.15; }
@@ -227,10 +247,17 @@
   <!-- Sticky CTA -->
   <div class="dt-sticky">
     <div class="dt-price">
-      <div class="p" id="price">—</div>
-      <div class="s" id="priceSub">每堂 · 已包裝備</div>
+      <div class="p"><span id="price">—</span><span class="old" id="priceOld" style="display:none"></span></div>
+      <div class="s" id="priceSub">每堂 · 已包裝備 <span class="promo-tag" id="promoTip" style="display:none">已帶入 WELCOME50</span></div>
     </div>
-    <a class="btn btn-primary" id="bookBtn" href="#">立即預約</a>
+    <button class="btn btn-primary" id="bookBtn" type="button">選擇時段並預約</button>
+  </div>
+
+  <!-- 時段 Drawer -->
+  <div class="dt-sheet-mask" id="sheetMask"></div>
+  <div class="dt-sheet" id="sheet">
+    <h3>選擇時段 <span id="sheetClose">✕</span></h3>
+    <div class="dt-sheet-list" id="sheetList"></div>
   </div>
 
   <div class="toast" id="toast"></div>
@@ -400,13 +427,23 @@
         return '<div style="background:' + bg + '">' + (typeof sportIconImg === "function" ? sportIconImg(c, 40) : "📸") + "</div>";
       }).join("");
 
-      // 價格 / CTA
+      // 價格 / CTA（WELCOME50 首堂半價）
       const price = Number(c.price_hkd || 0);
-      $("price").textContent = price ? "HK$" + price : (c.credits_cost ? c.credits_cost + " cr" : "—");
-      $("priceSub").textContent = price ? "每堂 · 約 " + Math.round(price / 10) + " credits" : "每堂";
+      let promoOn = false;
+      try { promoOn = (localStorage.getItem("zp_promo") || "") === "WELCOME50"; } catch (e) {}
+      const finalPrice = promoOn ? Math.round(price * 0.5) : price;
+      $("price").textContent = finalPrice ? "HK$" + finalPrice : (c.credits_cost ? c.credits_cost + " cr" : "—");
+      if (promoOn && price) {
+        $("priceOld").textContent = "HK$" + price;
+        $("priceOld").style.display = "";
+        $("promoTip").style.display = "";
+        $("priceSub").innerHTML = "首堂半價 · 已包裝備 <span class=\"promo-tag\">已帶入 WELCOME50</span>";
+      } else {
+        $("priceSub").textContent = price ? "每堂 · 約 " + Math.round(price / 10) + " credits" : "每堂";
+      }
+
       const book = $("bookBtn");
-      book.href = c.id ? "booking.html?id=" + encodeURIComponent(c.id) : "#";
-      if (!c.id) book.onclick = (e) => { e.preventDefault(); alert("示範頁面：請由課程列表進入再預約。"); };
+      book.onclick = openSheet;
 
       // 封面輪播
       const imgs = [];
@@ -426,6 +463,39 @@
         [...$("dots").children].forEach((d, i) => d.classList.toggle("on", i === idx));
       }, { passive: true });
     }
+
+    function openSheet() {
+      if (!CLS || !CLS.id) { alert("示範頁面：請由課程列表進入再預約。"); return; }
+      const list = SESS.filter(function (s) { return (Number(s.max_participants) || 0) - (Number(s.enrolled_count) || 0) > 0; });
+      if (!list.length) { alert("暫未有可預約時段，請稍後再嚟。"); return; }
+      $("sheetList").innerHTML = list.map(function (s) {
+        const d = new Date(String(s.start_time).replace(" ", "T"));
+        const left = (Number(s.max_participants) || 0) - (Number(s.enrolled_count) || 0);
+        const wd = ["日", "一", "二", "三", "四", "五", "六"];
+        const p = (n) => String(n).padStart(2, "0");
+        const dateTxt = isNaN(d) ? s.start_time : (d.getMonth() + 1) + "月" + d.getDate() + "日（週" + wd[d.getDay()] + "）";
+        const timeTxt = isNaN(d) ? "" : p(d.getHours()) + ":" + p(d.getMinutes());
+        return '<div class="dt-sess"><div><div class="d">' + esc(dateTxt) + ' ' + esc(timeTxt) + '</div>' +
+          '<div class="t">' + (left <= 3 ? '僅剩 ' : '剩 ') + left + ' 個名額</div></div>' +
+          '<span class="l ' + (left <= 3 ? "low" : "ok") + '">' + (left <= 3 ? "快滿" : "可預約") + '</span>' +
+          '<button class="btn btn-primary mini" onclick="goBook(\'' + esc(s.id) + '\')">揀呢個</button></div>';
+      }).join("");
+      $("sheetMask").classList.add("show");
+      $("sheet").classList.add("show");
+    }
+    function closeSheet() {
+      $("sheetMask").classList.remove("show");
+      $("sheet").classList.remove("show");
+    }
+    function goBook(sid) {
+      location.href = "booking.html?id=" + encodeURIComponent(CLS.id) + "&sid=" + encodeURIComponent(sid);
+    }
+    (function () {
+      const m = document.getElementById("sheetMask");
+      const x = document.getElementById("sheetClose");
+      if (m) m.addEventListener("click", closeSheet);
+      if (x) x.addEventListener("click", closeSheet);
+    })();
 
     function seatsLeft() {
       if (!SESS.length) return null;

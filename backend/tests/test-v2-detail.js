@@ -61,6 +61,14 @@ has("比賽級", "facility equipment");
 has("預約流程", "flow section");
 has('class="dt-sticky"', "sticky cta");
 has('id="bookBtn"', "book button");
+has("選擇時段並預約", "bar cta");
+has('id="sheet"', "sheet drawer");
+has("function openSheet", "sheet open");
+has("function goBook", "goBook");
+has("已帶入 WELCOME50", "promo tip");
+has('id="priceOld"', "original price");
+has("position: fixed; left: 0; right: 0; bottom: 0", "sticky bottom");
+has("0.5", "half price");
 has("booking.html?id=", "book link");
 
 // Mobile-first / RWD
