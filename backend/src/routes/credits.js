@@ -24,7 +24,11 @@ const PAY_INFO = {
     name: "香港康樂及體育有限公司",
     name_en: "Hong Kong Leisure and Fitness Company Limited",
   },
-  payme: { label: "PayMe", phone: "9033 5538", link: "https://payme.hsbc/zenpass" },
+  payme: {
+    label: "PayMe",
+    link: "https://qr.payme.hsbc.com.hk/2/8EKv4B8usVVSSdf2YzLSkm",
+    name: "香港康樂及體育有限公司",
+  },
 };
 
 const BONUS_TIERS = [

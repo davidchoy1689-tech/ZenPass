@@ -45,7 +45,7 @@ console.log("── 前端 ──");
 const page = fs.readFileSync(path.join(web, "buy-credits.html"), "utf8");
 ok(page.includes('api.post("/credits/topup"'), "增值頁用新 API");
 ok(!page.includes('"/memberships/credits"'), "已移除舊「即時加點」呼叫");
-ok(page.includes("9033 5538"), "顯示 FPS 收款號碼");
+ok(page.includes("741-293856-838"), "顯示 HSBC 收款戶口");
 ok(page.includes("交易參考編號"), "要求填交易參考編號");
 ok(page.includes("管理員核對") && page.includes("才會入帳"), "明確講明要人手確認");
 ok(page.includes("credits/orders"), "顯示增值紀錄");
@@ -70,3 +70,15 @@ if (!creditsSrc.includes("香港康樂及體育有限公司")) {
   process.exit(1);
 }
 console.log("  ✅ 收款戶口 = HSBC 741-293856-838 / 香港康樂及體育有限公司");
+
+// PayMe 連結必須正確
+const PAYME = "https://qr.payme.hsbc.com.hk/2/8EKv4B8usVVSSdf2YzLSkm";
+if (!creditsSrc.includes(PAYME)) {
+  console.error("  ❌ PayMe 付款連結唔正確");
+  process.exit(1);
+}
+if (!fs.readFileSync(path.join(web, "buy-credits.html"), "utf8").includes(PAYME)) {
+  console.error("  ❌ 增值頁未顯示 PayMe 連結");
+  process.exit(1);
+}
+console.log("  ✅ PayMe 付款連結正確（API + 增值頁）");
