@@ -158,7 +158,7 @@ CREATE TABLE IF NOT EXISTS users (
     // 首階段：只有「身心伸展」相關課程資料係真實 → 開放預約；其餘顯示但唔收預約
     const r = db
       .prepare(
-        "UPDATE classes SET booking_open = 1 WHERE category LIKE '%身心%' OR category LIKE '%伸展%' OR title LIKE '%伸展%' OR title LIKE '%瑜伽%'",
+        "UPDATE classes SET booking_open = 1 WHERE category LIKE '%身心%' OR category LIKE '%伸展%' OR title LIKE '%伸展%'",
       )
       .run();
     const r2 = db.prepare("UPDATE classes SET booking_open = 0 WHERE booking_open IS NULL").run();

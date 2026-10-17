@@ -368,7 +368,7 @@ function updateDatabase() {
   try {
     const r = db
       .prepare(
-        "UPDATE classes SET booking_open = 1 WHERE category LIKE '%身心%' OR category LIKE '%伸展%' OR title LIKE '%伸展%' OR title LIKE '%瑜伽%'",
+        "UPDATE classes SET booking_open = 1 WHERE category LIKE '%身心%' OR category LIKE '%伸展%' OR title LIKE '%伸展%'",
       )
       .run();
     db.prepare("UPDATE classes SET booking_open = 0 WHERE booking_open IS NULL").run();
