@@ -426,6 +426,38 @@
     })();
   </script>
   <script>
+    /* 熱門推薦：優先真實課程（≥3 個），否則保留示範卡 */
+    (async function () {
+      var rail = document.getElementById("hotRail");
+      if (!rail || !window.api) return;
+      try {
+        var r = await api.get("/classes?limit=6&sort=popular");
+        var arr = (r.data && (r.data.classes || r.data.items)) || [];
+        if (arr.length < 3) return; // 太少 → 保留示範卡
+        var GRADS = ["#C06F30,#893F07", "#487CEE,#1C4BB3", "#E24949,#A71D1D", "#915AF0,#5E2CB4", "#0EA5A4,#0F766E", "#DB2777,#9D174D"];
+        var promo = false;
+        try { promo = (localStorage.getItem("zp_promo") || "") === "WELCOME50"; } catch (e) {}
+        rail.innerHTML = arr.slice(0, 6).map(function (c, i) {
+          var sch = (c.schedules || [])[0] || {};
+          var left = Math.max(0, (Number(sch.max_participants) || 0) - (Number(sch.enrolled_count) || 0));
+          var price = Number(c.price_hkd) || 0;
+          var final = promo ? Math.round(price * 0.5) : price;
+          var slug = (typeof sportSlugLoose === "function") ? sportSlugLoose(c.category || "", c.title || "") : "";
+          var art = slug ? '<img class="hot-art" src="assets/icons/sports-white/' + slug + '.svg" alt="">' : "";
+          return '<a class="hot-card" href="detail.html?id=' + encodeURIComponent(c.id) + '">' +
+            '<div class="hot-media" style="background:linear-gradient(145deg,' + GRADS[i % GRADS.length] + ')">' +
+              '<span class="hot-cat">' + esc(c.category || "") + (c.district ? " · " + esc(c.district) : "") + '</span>' + art +
+              (promo ? '<span class="hot-badge">半價</span>' : '') +
+            '</div>' +
+            '<div class="hot-body"><p class="hot-name">' + esc(c.title) + '</p>' +
+            '<p class="hot-meta">📍 ' + esc(c.venue_name || c.district || "") + '｜⏱️ ' + (c.duration || 60) + ' 分鐘' + (left ? ' · 剩 ' + left + ' 位' : '') + '</p>' +
+            '<p class="hot-price">' + (promo && price ? '<s>' + hkd(price) + '</s> ' : '') + '<b>' + hkd(final) + '</b></p>' +
+            '<span class="btn btn-primary btn-block hot-cta">立即預約</span></div></a>';
+        }).join("");
+      } catch (e) { /* 保留示範卡 */ }
+    })();
+  </script>
+  <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
         navigator.serviceWorker.register("/sw.js").catch(() => {});
