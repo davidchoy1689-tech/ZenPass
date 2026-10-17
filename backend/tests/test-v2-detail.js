@@ -77,6 +77,7 @@ const exp = fs.readFileSync(path.join(root, "explore.html"), "utf8");
 if (!exp.includes("detail.html?id=")) fails.push("explore cards should link to detail.html");
 const idx2 = fs.readFileSync(path.join(root, "index.html"), "utf8");
 if (!idx2.includes("/classes?limit=6&sort=popular")) fails.push("index hot rail should fetch real classes");
+if (!idx2.includes("booking_open) === 1")) fails.push("index hot rail should only show bookable classes");
 if (!idx2.includes("hotRail")) fails.push("index hotRail id");
 const cd = fs.readFileSync(path.join(root, "class-detail.html"), "utf8");
 if (!cd.includes('location.replace("detail.html"')) fails.push("class-detail should redirect to detail");

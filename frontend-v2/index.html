@@ -433,7 +433,13 @@
       try {
         var r = await api.get("/classes?limit=6&sort=popular");
         var arr = (r.data && (r.data.classes || r.data.items)) || [];
-        if (arr.length < 3) return; // 太少 → 保留示範卡
+        arr = arr.filter(function (c) { return Number(c.booking_open) === 1; });
+        if (!arr.length) {
+          // 完全冇真實課程 → 隱藏整個熱門區（唔顯示假卡）
+          var sec = rail.closest("section") || rail.parentElement;
+          if (sec) sec.style.display = "none";
+          return;
+        }
         var GRADS = ["#C06F30,#893F07", "#487CEE,#1C4BB3", "#E24949,#A71D1D", "#915AF0,#5E2CB4", "#0EA5A4,#0F766E", "#DB2777,#9D174D"];
         var promo = false;
         try { promo = (localStorage.getItem("zp_promo") || "") === "WELCOME50"; } catch (e) {}
