@@ -138,6 +138,53 @@ CREATE TABLE IF NOT EXISTS users (
     try { db.exec(`ALTER TABLE coach_applications ADD COLUMN ${col} ${type}`); } catch (e) { /* exists */ }
   }
 
+  // 一次性 backfill：舊評分（reviews / coach_ratings）→ mutual_reviews（單一來源）
+  try {
+    const done = db.prepare("SELECT value FROM platform_settings WHERE key = ?").get("migration.mutual_reviews_v1");
+    if (!done) {
+      let n = 0;
+      const ins = db.prepare(
+        `INSERT OR IGNORE INTO mutual_reviews
+          (id, target_type, target_id, rater_role, rater_id, context_type, context_id, rating, comment, visible_at)
+         VALUES (?, 'coach', ?, 'student', ?, 'booking', ?, ?, ?, datetime('now'))`,
+      );
+      // 由 reviews（學生評教練）
+      try {
+        const rows = db
+          .prepare(
+            `SELECT booking_id, from_user_id, to_user_id, rating, comment FROM reviews
+             WHERE role = 'student' AND booking_id IS NOT NULL AND to_user_id IS NOT NULL`,
+          )
+          .all();
+        for (const r of rows) {
+          ins.run(require("uuid").v4(), r.to_user_id, r.from_user_id, r.booking_id, r.rating, r.comment || "");
+          n++;
+        }
+      } catch (e) {
+        /* reviews 表可能不存在 */
+      }
+      // 由 coach_ratings
+      try {
+        const rows = db
+          .prepare("SELECT id, coach_id, user_id, booking_id, rating, comment FROM coach_ratings")
+          .all();
+        for (const r of rows) {
+          ins.run(require("uuid").v4(), r.coach_id, r.user_id, r.booking_id, r.rating, r.comment || "");
+          n++;
+        }
+      } catch (e) {
+        /* coach_ratings 表可能不存在 */
+      }
+      db.prepare("INSERT OR REPLACE INTO platform_settings (key, value) VALUES (?, ?)").run(
+        "migration.mutual_reviews_v1",
+        new Date().toISOString(),
+      );
+      if (n) console.log(`✅ 評分統一：舊資料搬入 mutual_reviews ${n} 筆`);
+    }
+  } catch (e) {
+    console.error("mutual_reviews backfill 失敗:", e.message);
+  }
+
   // 一次性 backfill：已批核教練嘅申請資料 → users 公開 profile
   try {
     const marker = db.prepare("SELECT value FROM platform_settings WHERE key = ?").get("migration.coach_public_profile_v1");

@@ -34,8 +34,8 @@ console.log("── API / 前端 ──");
 const root = path.join(__dirname, "..");
 const coach = fs.readFileSync(path.join(root, "src/routes/coach.js"), "utf8");
 ok(coach.includes('router.get("/my-rating"'), "GET /api/coach/my-rating 存在");
-ok(coach.includes("computeCoachRating"), "用 service 計分");
-ok(coach.includes("累積 10 個真實評價後"), "少於 10 個評價提示未公開");
+ok(coach.includes("coachComposite"), "用統一 mutual_reviews service 計分");
+ok(coach.includes("my-rating"), "my-rating 端點回傳統一評分");
 
 const admin = fs.readFileSync(path.join(root, "src/routes/admin.js"), "utf8");
 ok(admin.includes('router.get("/coach-ratings"'), "admin 內部總覽端點存在");
@@ -47,8 +47,8 @@ ok(ratings.includes("每張預約一次") || ratings.includes("booking_id = ? AN
 const web = path.join(root, "..", "frontend-v2");
 const my = fs.readFileSync(path.join(web, "my-bookings.html"), "utf8");
 ok(my.includes("openRateCoach"), "我的預約有『⭐ 評教練』");
-ok(my.includes('api.post("/ratings"'), "提交到 /api/ratings");
-ok(my.includes("coach_id: b.coach_id"), "提交帶 coach_id");
+ok(my.includes('api.post("/mutual-reviews/submit"'), "提交到統一 /api/mutual-reviews");
+ok(my.includes('target_id: b.coach_id'), "提交帶 coach_id（統一格式 target_id）");
 
 const coachPage = fs.readFileSync(path.join(web, "coach.html"), "utf8");
 ok(coachPage.includes("loadMyRating"), "教練頁載入評分");

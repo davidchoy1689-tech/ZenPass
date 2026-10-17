@@ -67,6 +67,17 @@ function submitReview({ raterId, raterRole, targetType, targetId, contextType, c
       throw Object.assign(new Error("只限已確認的租場評分"), { status: 400 });
     }
     if (rt.venue_id !== targetId) throw Object.assign(new Error("租場與場地不符"), { status: 400 });
+  } else if (raterRole === "student" && targetType === "coach") {
+    const bk = db
+      .prepare(
+        `SELECT b.id, b.status, c.coach_id
+         FROM bookings b JOIN classes c ON b.class_id = c.id
+         WHERE b.id = ? AND b.user_id = ?`,
+      )
+      .get(contextId, raterId);
+    if (!bk) throw Object.assign(new Error("預約不存在"), { status: 404 });
+    if (bk.status !== "attended") throw Object.assign(new Error("只限已出席課堂評分"), { status: 400 });
+    if (bk.coach_id !== targetId) throw Object.assign(new Error("教練與課程不符"), { status: 400 });
   } else if (raterRole === "venue" && targetType === "coach") {
     const rt = db
       .prepare(
@@ -189,22 +200,41 @@ function venueComposite(venueId, fulfillmentScore) {
   };
 }
 
-/** 教練綜合分：學生評 80% + 場地評 20% */
-function coachComposite(coachId, studentScore) {
+/** 教練綜合分：學生評 80% + 場地評 20%（單一來源：mutual_reviews） */
+function coachAggregate(coachId) {
   const db = getDb();
+  const student = db
+    .prepare(
+      "SELECT COUNT(*) c, COALESCE(SUM(rating),0) s FROM mutual_reviews WHERE target_type='coach' AND target_id=? AND rater_role='student'",
+    )
+    .get(coachId);
   const venue = db
     .prepare(
       "SELECT COUNT(*) c, COALESCE(SUM(rating),0) s FROM mutual_reviews WHERE target_type='coach' AND target_id=? AND rater_role='venue'",
     )
     .get(coachId);
-  const parts = [{ w: 0.8, v: Number(studentScore) || 0 }];
-  if (venue.c > 0) parts.push({ w: 0.2, v: smooth(venue.c, venue.s).score });
-  const totalW = parts.reduce((a, b) => a + b.w, 0);
   return {
-    score: Math.round((parts.reduce((a, b) => a + b.w * b.v, 0) / totalW) * 10) / 10,
-    venue_rating: venue.c ? smooth(venue.c, venue.s).score : null,
+    student: student.c ? smooth(student.c, student.s) : { count: 0, raw_avg: 0, score: 0 },
+    venue: venue.c ? smooth(venue.c, venue.s) : { count: 0, raw_avg: 0, score: 0 },
+    student_count: student.c,
     venue_count: venue.c,
   };
 }
 
-module.exports = { submitReview, summary, venueComposite, coachComposite, smooth, ROLE_LABEL };
+function coachComposite(coachId, studentScoreOverride) {
+  const agg = coachAggregate(coachId);
+  const sScore = studentScoreOverride != null ? Number(studentScoreOverride) : agg.student.score || smooth(0, 0).score;
+  const parts = [{ w: 0.8, v: sScore }];
+  if (agg.venue_count > 0) parts.push({ w: 0.2, v: agg.venue.score });
+  const totalW = parts.reduce((a, b) => a + b.w, 0);
+  return {
+    score: Math.round((parts.reduce((a, b) => a + b.w * b.v, 0) / totalW) * 10) / 10,
+    student_rating: agg.student.count ? agg.student.score : null,
+    student_count: agg.student_count,
+    venue_rating: agg.venue_count ? agg.venue.score : null,
+    venue_count: agg.venue_count,
+    raw_student_avg: agg.student.raw_avg,
+  };
+}
+
+module.exports = { submitReview, summary, venueComposite, coachComposite, coachAggregate, smooth, ROLE_LABEL };

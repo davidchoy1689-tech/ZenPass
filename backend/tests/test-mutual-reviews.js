@@ -114,11 +114,17 @@ const ok = (c, m) => {
 
   let dirErr = null;
   try {
-    submitReview({ raterId: "stu1", raterRole: "student", targetType: "coach", targetId: "co1", contextId: "bk1", rating: 5 });
+    submitReview({ raterId: "stu1", raterRole: "venue", targetType: "coach", targetId: "co1", contextId: "bk1", rating: 5 });
   } catch (e) {
     dirErr = e;
   }
-  ok(dirErr && dirErr.status === 400, "不支援方向（學生評教練走 /api/reviews）→ 400");
+  ok(dirErr && dirErr.status === 404, "場地評教練但唔係自己租場 → 拒絕");
+
+  const d = submitReview({
+    raterId: "stu1", raterRole: "student", targetType: "coach", targetId: "co1",
+    contextType: "booking", contextId: "bk1", rating: 5, tags: [], reasons: [], comment: "教得好",
+  });
+  ok(!!d.id, "學生 → 教練（統一入口）提交成功");
 
   console.log("── 匿名彙總 ──");
   const s1 = summary("venue", "v1");
@@ -128,7 +134,7 @@ const ok = (c, m) => {
   ok(s1.comments.every((x) => ["學員", "教練", "場地"].includes(x.by)), "留言只顯示角色，冇姓名");
 
   const sc = summary("coach", "co1");
-  ok(sc.count === 1, "教練收到 1 則場地評分");
+  ok(sc.count === 2, "教練收到 2 則評分（學生 + 場地，同一張表）");
   ok(Array.isArray(sc.comments) && sc.comments.length === 0, "留言要 7 日後才顯示（防對號入座）");
 
   console.log("── 綜合分 ──");
@@ -137,7 +143,7 @@ const ok = (c, m) => {
   ok(vc.score >= 4 && vc.score <= 5, "場地綜合分 = " + vc.score + "（履約50% + 教練25% + 學生25%）");
   ok(vc.parts.coach_rating !== null && vc.parts.student_rating !== null, "綜合分含 3 個部分");
   const cc = coachComposite("co1", 4.5);
-  ok(cc.venue_rating !== null && cc.score >= 4.3, "教練綜合分含場地評分（" + cc.score + "，80% 學生 + 20% 場地）");
+  ok(cc.venue_rating !== null && cc.student_rating !== null, "教練綜合分含學生評 + 場地評（" + cc.score + "）");
 
   console.log("── 前端接線 ──");
   const web = path.join(__dirname, "..", "..", "frontend-v2");

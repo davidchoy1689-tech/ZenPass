@@ -141,8 +141,14 @@
         <p class="muted" style="font-size:13px;margin-top:0">${esc(b.title || "")}${coachName ? " · " + esc(coachName) : ""}</p>
         <div class="muted" style="font-size:13px">今次堂嘅教練表現如何？</div>
         <div class="rate-grid" id="crStars">${[1,2,3,4,5].map(v => `<button type="button" data-v="${v}">${v}</button>`).join("")}</div>
-        <textarea rows="3" placeholder="有咩想同教練講？（可選）" style="width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:12px;padding:11px;font:inherit;background:var(--surface);color:var(--text);margin-top:8px"></textarea>
-        <div class="muted" style="font-size:12px;margin-top:6px">只限已出席課堂，每張預約一次；48 小時內可修改。</div>
+        <div id="crReasonsWrap" style="display:none">
+          <div class="muted" style="font-size:12px;margin-top:10px">原因（3 星或以下必須）</div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px" id="crReasons">
+            ${["遲到/早走","講解唔清楚","態度問題","安全意識不足","課程內容與描述不符"].map(t => `<label style="font-size:12.5px;border:1px solid var(--border);border-radius:999px;padding:5px 10px"><input type="checkbox" data-reason="${t}" style="margin-right:4px">${t}</label>`).join("")}
+          </div>
+        </div>
+        <textarea rows="3" placeholder="有咩想同教練講？（可選，7 日後先公開，全部匿名）" style="width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:12px;padding:11px;font:inherit;background:var(--surface);color:var(--text);margin-top:10px"></textarea>
+        <div class="muted" style="font-size:12px;margin-top:6px">🔒 匿名：教練見到「學員」，見唔到你嘅姓名。每張預約一次。</div>
         <div class="actions"><button class="btn btn-secondary" onclick="closeModal(this)">取消</button><button class="btn btn-primary" id="crSend">提交評分</button></div>
       </div>`;
       document.body.appendChild(o);
@@ -151,13 +157,18 @@
       o.querySelectorAll("#crStars button").forEach(btn => btn.onclick = () => {
         val = Number(btn.dataset.v);
         o.querySelectorAll("#crStars button").forEach(x => x.classList.toggle("on", Number(x.dataset.v) <= val));
+        o.querySelector("#crReasonsWrap").style.display = val && val <= 3 ? "block" : "none";
       });
       o.querySelector("#crSend").onclick = async () => {
         if (!val) { alert("請揀 1-5 星"); return; }
+        const reasons = [...o.querySelectorAll("[data-reason]:checked")].map(x => x.dataset.reason);
+        if (val <= 3 && !reasons.length) { alert("3 星或以下請揀原因"); return; }
         const btn = o.querySelector("#crSend");
         btn.disabled = true; btn.textContent = "提交中…";
-        const r = await api.post("/ratings", {
-          booking_id: id, coach_id: b.coach_id, rating: val,
+        const r = await api.post("/mutual-reviews/submit", {
+          target_type: "coach", target_id: b.coach_id, rater_role: "student",
+          context_type: "booking", context_id: id,
+          rating: val, tags: [], reasons,
           comment: o.querySelector("textarea").value.trim(),
         });
         btn.disabled = false; btn.textContent = "提交評分";

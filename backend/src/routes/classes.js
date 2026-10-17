@@ -121,8 +121,8 @@ router.get("/", optionalAuth, cache(30), (req, res) => {
         (SELECT COUNT(DISTINCT cs.id) FROM class_schedules cs 
          WHERE cs.class_id = c.id AND cs.start_time > datetime('now') AND cs.start_time <= datetime('now','+2 months') AND cs.status = 'available'
         ) as upcoming_sessions,
-        (SELECT ROUND(AVG(rating), 1) FROM coach_ratings WHERE coach_id = c.coach_id) as coach_avg_rating,
-        (SELECT COUNT(*) FROM coach_ratings WHERE coach_id = c.coach_id) as coach_rating_count
+        (SELECT ROUND(AVG(rating), 1) FROM mutual_reviews WHERE target_type='coach' AND target_id = c.coach_id AND rater_role='student') as coach_avg_rating,
+        (SELECT COUNT(*) FROM mutual_reviews WHERE target_type='coach' AND target_id = c.coach_id AND rater_role='student') as coach_rating_count
       FROM classes c
       JOIN users u ON c.coach_id = u.id
       WHERE ${whereClause}

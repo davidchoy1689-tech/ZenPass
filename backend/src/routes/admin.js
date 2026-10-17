@@ -266,12 +266,15 @@ router.get("/coach-applications", authenticateToken, requireAdmin, (req, res) =>
 // ===== GET /api/admin/coach-ratings — 教練評分總覽（內部）=====
 router.get("/coach-ratings", authenticateToken, requireAdmin, (req, res) => {
   try {
-    const { computeCoachRating } = require("../services/coach-rating");
+    const { coachComposite } = require("../services/mutual-review");
     const db = getDb();
     const coaches = db
       .prepare("SELECT id, name, coach_headline FROM users WHERE is_coach = 1 ORDER BY name")
       .all()
-      .map((u) => ({ ...u, ...computeCoachRating(u.id) }))
+      .map((u) => {
+        const c = coachComposite(u.id);
+        return { ...u, score: c.score, count: c.student_count, student_rating: c.student_rating, venue_rating: c.venue_rating };
+      })
       .sort((a, b) => a.score - b.score);
     res.json({ success: true, data: coaches });
   } catch (err) {

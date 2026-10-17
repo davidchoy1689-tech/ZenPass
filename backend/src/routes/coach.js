@@ -491,22 +491,29 @@ router.post("/public-profile", authenticateToken, (req, res) => {
 // ===== GET /api/coach/my-rating — 我嘅教練評分（階段 1：只自己睇）=====
 router.get("/my-rating", authenticateToken, (req, res) => {
   try {
-    const { computeCoachRating } = require("../services/coach-rating");
     const db = getDb();
-    const summary = computeCoachRating(req.user.id);
-    const { coachComposite } = require("../services/mutual-review");
-    const comp = coachComposite(req.user.id, summary.score);
+    const { coachComposite, coachAggregate } = require("../services/mutual-review");
+    const comp = coachComposite(req.user.id);
+    const agg = coachAggregate(req.user.id);
+    const summary = {
+      score: comp.student_rating != null ? comp.student_rating : 0,
+      raw_avg: agg.student.raw_avg,
+      count: agg.student_count,
+    };
 
     const dist = db
       .prepare(
-        `SELECT rating, COUNT(*) c FROM coach_ratings WHERE coach_id = ? GROUP BY rating ORDER BY rating DESC`,
+        `SELECT rating, COUNT(*) c FROM mutual_reviews
+         WHERE target_type='coach' AND target_id=? AND rater_role='student'
+         GROUP BY rating ORDER BY rating DESC`,
       )
       .all(req.user.id);
 
     const recent = db
       .prepare(
-        `SELECT rating, comment, created_at FROM coach_ratings
-         WHERE coach_id = ? ORDER BY created_at DESC LIMIT 10`,
+        `SELECT rating, comment, created_at FROM mutual_reviews
+         WHERE target_type='coach' AND target_id=? AND rater_role='student' AND comment <> ''
+         ORDER BY created_at DESC LIMIT 10`,
       )
       .all(req.user.id)
       .map((r) => ({ ...r, student: "匿名學員" }));
@@ -516,6 +523,7 @@ router.get("/my-rating", authenticateToken, (req, res) => {
       data: {
         ...summary,
         composite_score: comp.score,
+        student_rating: comp.student_rating,
         venue_rating: comp.venue_rating,
         venue_rating_count: comp.venue_count,
         distribution: dist,
