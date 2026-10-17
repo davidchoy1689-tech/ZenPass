@@ -263,6 +263,32 @@ router.get("/coach-applications", authenticateToken, requireAdmin, (req, res) =>
   }
 });
 
+// ===== POST /api/admin/classes/:id/status — 下架／上架單一課程 =====
+router.post("/classes/:id/status", authenticateToken, requireAdmin, (req, res) => {
+  try {
+    const status = String((req.body || {}).status || "");
+    if (!["active", "inactive", "deleted"].includes(status)) {
+      return res.status(400).json({ success: false, error: "status 只可以係 active / inactive / deleted" });
+    }
+    const db = getDb();
+    const c = db.prepare("SELECT id, title, status FROM classes WHERE id = ?").get(req.params.id);
+    if (!c) return res.status(404).json({ success: false, error: "課程不存在" });
+    db.prepare("UPDATE classes SET status = ?, updated_at = datetime('now') WHERE id = ?").run(status, c.id);
+    try {
+      const { writeBlock } = require("../services/blockchain-audit");
+      writeBlock({
+        entityType: "class_status",
+        entityId: c.id,
+        data: { from: c.status, to: status, admin_user: req.user.id },
+      });
+    } catch (e) {}
+    res.json({ success: true, message: `已設為 ${status}`, data: { id: c.id, status } });
+  } catch (err) {
+    console.error("admin/classes/:id/status error:", err.message);
+    res.status(500).json({ success: false, error: "操作失敗" });
+  }
+});
+
 // ===== POST /api/admin/close-demo-classes — 下架 demo 課程（保留真實可預約課程）=====
 router.post("/close-demo-classes", authenticateToken, requireAdmin, (req, res) => {
   try {
