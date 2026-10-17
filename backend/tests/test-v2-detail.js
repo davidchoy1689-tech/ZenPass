@@ -40,6 +40,12 @@ has('id="mapBtn"', "map button");
 
 // 5 評價
 has("學員評價", "reviews section");
+has("學員花絮", "gallery title");
+has('id="revHead"', "review summary");
+has("Sarah K.", "featured review 1");
+has("Jason L.", "featured review 2");
+has("WELCOME50", "review mentions promo");
+has("dt-rev-card", "review card css class");
 has('id="revs"', "reviews list");
 
 // 6 FAQ
