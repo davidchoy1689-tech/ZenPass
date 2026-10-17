@@ -198,7 +198,7 @@
             <div class="dt-avatar" id="coachAvatar">🧑‍🏫</div>
             <div style="flex:1">
               <div style="font-weight:800;font-size:15px" id="coachName">—</div>
-              <div class="muted" style="font-size:12.5px" id="coachMeta">認證教練</div>
+              <div class="muted" style="font-size:12.5px" id="coachMeta"></div>
             </div>
           </div>
           <p class="muted" id="coachBio" style="font-size:13px;line-height:1.7;margin:10px 0 0"></p>
@@ -308,25 +308,18 @@
     }
 
     function renderDemo() {
-      CLS = {
-        id: "", title: "【新手零門檻體驗】芬蘭木柱 Mölkky 基礎技巧與團體樂趣對戰",
-        category: "新興運動", duration: 60, max_participants: 8, price_hkd: 150, credits_cost: 15,
-        venue_name: "觀塘創紀之城室內場館", venue_address: "九龍觀塘觀塘道 388 號",
-        coach_name: "Coach Alex", coach_verified: 1,
-        coach_meta: "香港新興運動總會認可導師",
-        coach_bio: "擁有 5 年以上新興運動教學經驗，曾帶領超過 50+ 場企業 Team Building 及學校推廣活動。教學風格幽默耐性，擅長帶動現場氣氛！",
-        coach_tags: ["認可導師", "廣東話 / English", "500+ 學員指導"],
-        coach_stats: [{ v: "5+", k: "年教學經驗" }, { v: "50+", k: "企業 / 學校場次" }, { v: "500+", k: "學員指導" }],
-        difficulty: "beginner", target_audience: "新手 / 朋友團體",
-        description: "由零開始學芬蘭木柱：握棒、投擲、計分規則，最後分組對戰。教練全程指導，裝備全包。",
-        avg_rating: 4.9, review_count: 32,
-      };
-      SESS = [];
-      renderAll([
-        { user_name: "Karen L.", rating: 5, comment: "好好玩！教練好有耐性，第一次玩都上手。", created_at: "2026-10-02" },
-        { user_name: "阿銘", rating: 5, comment: "一班朋友包班，氣氛一流，下次會再嚟。", created_at: "2026-09-21" },
-        { user_name: "Suki", rating: 4, comment: "場地舒服，裝備齊全，只係時間唔夠玩。", created_at: "2026-09-10" },
-      ]);
+      CLS = null; SESS = [];
+      document.getElementById("title").textContent = "搵唔到課程";
+      document.getElementById("tags").innerHTML = "";
+      document.getElementById("rating").textContent = "";
+      document.getElementById("reviewCount").textContent = "";
+      document.getElementById("sold").textContent = "";
+      document.getElementById("desc").textContent = "請由課程列表重新進入。";
+      const b = document.getElementById("bookBtn");
+      if (b) { b.textContent = "返回探索"; b.disabled = false; b.onclick = function () { location.href = "explore.html"; }; }
+      document.getElementById("revs").innerHTML = '<div class="muted">暫無資料。</div>';
+      document.getElementById("timeline").innerHTML = "";
+      document.getElementById("audience").innerHTML = "";
     }
 
     function renderAll(reviews) {
@@ -356,40 +349,39 @@
 
       // 評分 / 人氣
       const rating = Number(c.avg_rating || 0);
-      const rc = Number(c.review_count || reviews.length || 0);
-      $("rating").textContent = rating > 0 ? "⭐ " + rating.toFixed(1) : "⭐ 新上架";
-      $("reviewCount").textContent = rc > 0 ? "(" + rc + " 則學員評價)" : "";
+      const rc = Number(c.review_count || (reviews ? reviews.length : 0) || 0);
+      $("rating").textContent = rating > 0 ? "⭐ " + rating.toFixed(1) : "🆕 新上架";
+      $("reviewCount").textContent = rc > 0 ? "(" + rc + " 則真實評價)" : "";
       const sold = Number(c.booking_count || c.sold_count || 0);
-      $("sold").textContent = sold > 0 ? "｜已售出 " + sold + "+ 堂" : "";
-      $("revSummary").textContent = rc > 0 ? "平均 " + rating.toFixed(1) + " · " + rc + " 則" : "";
+      $("sold").textContent = sold > 0 ? "｜已售出 " + sold + " 堂" : "";
 
       // 課堂內容（API 有 highlights 用真實，否則用標準流程）
-      const highlights = Array.isArray(c.highlights) && c.highlights.length ? c.highlights : [
-        { title: "芬蘭木柱基本規則與投擲姿勢教學", minutes: 10, desc: "由握棒、站姿到出手，教練逐個修正動作。" },
-        { title: "戰術瞄準與分數結算技巧", minutes: 15, desc: "學習瞄準目標、計算分數同逆境策略。" },
-        { title: "分組實戰對戰賽", minutes: 35, desc: "分組對戰，體驗競技樂趣，教練即場指導。" },
-      ];
-      $("timeline").innerHTML = highlights.map(function (h) {
-        return '<div class="dt-step"><div class="row1"><span class="t">' + esc(h.title) + '</span>' +
-          (h.minutes ? '<span class="min">' + h.minutes + ' 分鐘</span>' : '') + '</div>' +
-          (h.desc ? '<div class="d">' + esc(h.desc) + '</div>' : '') + '</div>';
-      }).join("");
+      const highlights = Array.isArray(c.highlights) ? c.highlights : [];
+      const tl = $("timeline");
+      if (highlights.length) {
+        tl.innerHTML = highlights.map(function (h) {
+          return '<div class="dt-step"><div class="row1"><span class="t">' + esc(h.title) + '</span>' +
+            (h.minutes ? '<span class="min">' + h.minutes + ' 分鐘</span>' : '') + '</div>' +
+            (h.desc ? '<div class="d">' + esc(h.desc) + '</div>' : '') + '</div>';
+        }).join("");
+      } else { tl.innerHTML = ""; tl.style.display = "none"; }
 
       const aud = (c.target_audience || "").split(/[、,，/]/).map(function (x) { return x.trim(); }).filter(Boolean);
-      const audList = aud.length ? aud : ["個人新手", "朋友同行", "親子 / 樂齡同樂"];
-      $("audience").innerHTML = audList.map(function (t) {
+      $("audience").innerHTML = aud.length ? aud.map(function (t) {
         return '<span class="dt-tag green">👤 ' + esc(t) + '</span>';
-      }).join("");
+      }).join("") : "";
 
       // 教練
-      $("coachName").textContent = c.coach_name || "ZenPass 認證教練";
-      $("coachMeta").textContent = c.coach_meta || ((c.coach_verified ? "✅ 已認證 · " : "") + (c.category ? c.category + " 專業教練" : "專業教練"));
+      $("coachName").textContent = c.coach_name || "教練資料待更新";
+      $("coachMeta").textContent = c.coach_meta || [c.coach_verified ? "✅ 已認證" : "", c.category || ""].filter(Boolean).join(" · ");
       $("coachAvatar").innerHTML = c.coach_avatar ? '<img src="' + esc(c.coach_avatar) + '" alt="">' : "🧑‍🏫";
-      $("coachBio").textContent = c.coach_bio || "具多年新興運動教學經驗，擅長以輕鬆互動方式帶領新手掌握技巧，課堂氣氛輕鬆。";
-      const ctags = Array.isArray(c.coach_tags) && c.coach_tags.length ? c.coach_tags : ["認可導師", "廣東話 / English", "新手友善"];
-      $("coachTags").innerHTML = ctags.map((t) => '<span class="dt-tag green">' + esc(t) + "</span>").join("");
-      const cstats = Array.isArray(c.coach_stats) && c.coach_stats.length ? c.coach_stats : null;
-      $("coachStats").innerHTML = cstats
+      const bioEl = $("coachBio");
+      bioEl.textContent = c.coach_bio || "";
+      bioEl.style.display = c.coach_bio ? "" : "none";
+      const ctags = Array.isArray(c.coach_tags) ? c.coach_tags : [];
+      $("coachTags").innerHTML = ctags.length ? ctags.map((t) => '<span class="dt-tag green">' + esc(t) + "</span>").join("") : "";
+      const cstats = Array.isArray(c.coach_stats) ? c.coach_stats : [];
+      $("coachStats").innerHTML = cstats.length
         ? cstats.map((x) => '<div class="s"><b>' + esc(x.v) + "</b><i>" + esc(x.k) + "</i></div>").join("")
         : "";
 
@@ -410,21 +402,16 @@
       }).join("");
 
       // 評價卡（API 有真實評價用真實，否則用精選示範）
-      const FEATURED = [
-        { user_name: "Sarah K.", rating: 5, comment: "第一次玩芬蘭木柱，Alex 教練解釋得好清晰！現場氣氛超好，下個禮拜再約朋友嚟！", created_at: "2026-10-08" },
-        { user_name: "Jason L.", rating: 5, comment: "用 WELCOME50 首堂半價好抵，離地鐵站近，完全無運動底子都玩得好開心。", created_at: "2026-10-03" },
-        { user_name: "Ming C.", rating: 5, comment: "裝備齊全、教練有耐性，成班同事玩到唔捨得走，會再包班！", created_at: "2026-09-26" },
-      ];
-      const list = reviews.length ? reviews.slice(0, 6) : FEATURED;
-      const avg = reviews.length ? (Number(c.avg_rating) || rating) : 5.0;
-      const total = reviews.length ? (Number(c.review_count) || reviews.length) : 32;
+      const list = Array.isArray(reviews) ? reviews.slice(0, 6) : [];
+      const avg = reviews.length ? (Number(c.avg_rating) || rating) : 0;
+      const total = reviews.length ? (Number(c.review_count) || reviews.length) : 0;
       const full = Math.round(Math.max(0, Math.min(5, avg)));
-      $("revHead").innerHTML =
-        '<div class="big">' + (avg ? avg.toFixed(1) : "—") + '</div>' +
-        '<div class="mid"><div class="stars">' + "★★★★★".slice(0, full) + "☆☆☆☆☆".slice(0, 5 - full) + '</div>' +
-        '<div class="cnt">' + total + " 則學員評價 · 全部真實課後評分</div></div>";
-      $("revSummary").textContent = "";
-      $("revs").innerHTML = list.map(function (v) {
+      $("revHead").innerHTML = total
+        ? '<div class="big">' + avg.toFixed(1) + '</div>' +
+          '<div class="mid"><div class="stars">' + "★★★★★".slice(0, full) + "☆☆☆☆☆".slice(0, 5 - full) + '</div>' +
+          '<div class="cnt">' + total + " 則學員評價</div></div>"
+        : '<div class="big">—</div><div class="mid"><div class="cnt">暫無評價，完成課堂後可以留下第一個評價。</div></div>';
+      $("revs").innerHTML = list.length ? list.map(function (v) {
         const r = Math.max(0, Math.min(5, Number(v.rating) || 0));
         const nm = String(v.user_name || "學員");
         const initial = nm.trim().charAt(0).toUpperCase() || "Z";
@@ -432,7 +419,7 @@
           '<div class="n">' + esc(nm) + '</div><div class="r">⭐ ' + r.toFixed(1) + '</div></div>' +
           '<p class="q">「' + esc(v.comment || "") + '」</p>' +
           '<div class="d">' + esc(String(v.created_at || "").slice(0, 10)) + '</div></div>';
-      }).join("");
+      }).join("") : "";
 
       // 學員花絮（有圖用圖，否則用漸變 + 運動圖示）
       const gimgs = (Array.isArray(c.images) && c.images.length ? c.images : (c.image_url ? [c.image_url] : [])).slice(0, 3);
@@ -459,7 +446,13 @@
       }
 
       const book = $("bookBtn");
-      book.onclick = openSheet;
+      if (Number(c.booking_open) === 0) {
+        book.textContent = "已約滿";
+        book.disabled = true;
+        book.onclick = function () { alert("此課程已約滿，可留意下期。"); };
+      } else {
+        book.onclick = openSheet;
+      }
 
       // 封面輪播
       const imgs = [];

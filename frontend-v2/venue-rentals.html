@@ -178,7 +178,8 @@
         const price = (v.suggested_hours && v.suggested_hours.price_per_hour) || Math.round((v.commission_rate || 0.15) * 600);
         return '<div class="venue">' +
           '<h3>🏟️ ' + esc(v.name) + '</h3>' +
-          '<div class="meta">📍 ' + esc(v.address || v.district || "") + ' · 💰 約 ' + hkd(price) + '/hr</div>' +
+          '<div class="meta">📍 ' + esc(v.address || v.district || "") + ' · 💰 約 ' + hkd(price) + '/hr' +
+          (v.rating != null ? ' · ⭐ ' + Number(v.rating).toFixed(1) : '') + '</div>' +
           '<div class="tags">' + tags.map(t => '<span class="tag">' + esc(t) + '</span>').join("") + '</div>' +
           (v.rented_slots && v.rented_slots.length ? '<div class="meta">🕐 已有 ' + v.rented_slots.length + ' 個預約時段</div>' : "") +
           '<button class="btn btn-primary book" data-id="' + esc(v.id) + '" data-name="' + esc(v.name) + '" data-price="' + price + '">📋 預約此場地</button>' +

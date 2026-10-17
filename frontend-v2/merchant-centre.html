@@ -410,7 +410,17 @@
         '<div>罰款：<b>' + hkd(d.penalties_hkd || 0) + '</b></div>' +
         '</div>' +
         '<div style="margin-top:8px;font-size:15px">應付場地：<b style="color:#15803d">' + hkd(d.net_hkd || 0) + '</b> ' + st + '</div>' +
-        ((d.carry_forward_hkd || 0) > 0 ? '<div class="muted" style="font-size:12px;color:#b45309">另有 ' + hkd(d.carry_forward_hkd) + ' 結轉下月</div>' : "");
+        ((d.carry_forward_hkd || 0) > 0 ? '<div class="muted" style="font-size:12px;color:#b45309">另有 ' + hkd(d.carry_forward_hkd) + ' 結轉下月</div>' : "") +
+        (function () {
+          const rt = d.rating || {};
+          if (!rt || rt.score == null) return "";
+          const cls = rt.score >= 4 ? "#15803d" : rt.score >= 3 ? "#b45309" : "#b91c1c";
+          const note = rt.score >= 3 ? "正常曝光" : rt.score >= 2.5 ? "⚠️ 曝光排到最後" : "⛔ 已停止曝光";
+          return '<div style="margin-top:10px;padding-top:8px;border-top:1px dashed #e5e7eb;font-size:12.5px">' +
+            '⭐ 場地評分 <b style="color:' + cls + '">' + rt.score.toFixed(1) + ' / 5.0</b>' +
+            '（完成 ' + (rt.completed || 0) + ' · 失誤 ' + (rt.failures || 0) + '）' +
+            '<div class="muted" style="font-size:11.5px;color:' + cls + '">' + note + '</div></div>';
+        })();
     }
 
     async function emailStatement() {

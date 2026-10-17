@@ -32,7 +32,8 @@ has('id="coachName"', "coach name");
 has('id="coachBio"', "coach bio");
 has('id="coachTags"', "coach tags");
 has('id="coachStats"', "coach stats");
-has("香港新興運動總會認可導師", "coach credential");
+has("教練資料待更新", "coach fallback（唔造假）");
+has("coach_verified", "coach verified 動態顯示");
 
 // 4 場地
 has("場地資訊", "venue section");
@@ -42,8 +43,8 @@ has('id="mapBtn"', "map button");
 has("學員評價", "reviews section");
 has("學員花絮", "gallery title");
 has('id="revHead"', "review summary");
-has("Sarah K.", "featured review 1");
-has("Jason L.", "featured review 2");
+has("暫無評價", "no fake reviews（暫無評價）");
+has("Array.isArray(reviews)", "reviews 只用真實資料");
 has("WELCOME50", "review mentions promo");
 has("dt-rev-card", "review card css class");
 has('id="revs"', "reviews list");

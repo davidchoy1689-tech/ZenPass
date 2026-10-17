@@ -113,7 +113,7 @@
       if (expired || unopened) {
         const _b = document.getElementById("book");
         _b.removeAttribute("href");
-        _b.textContent = expired ? "已完結" : "暫未開放預約";
+        _b.textContent = expired ? "已完結" : "已約滿";
         _b.style.background = "#9ca3af";
         _b.style.pointerEvents = "none";
       }
@@ -129,7 +129,7 @@
       };
       const schedsEl = document.getElementById("scheds");
       if (expired || unopened || !scheds.length) {
-        schedsEl.innerHTML = `<div class="card"><div class="body muted">${expired ? "此課程已完結。" : unopened ? "暫未開放預約，敬請期待。" : "暫無可預約時段。"}</div></div>`;
+        schedsEl.innerHTML = `<div class="card"><div class="body muted">${expired ? "此課程已完結。" : unopened ? "已約滿，可留意下期。" : "暫無可預約時段。"}</div></div>`;
       } else {
         const groups = {};
         scheds.forEach(s => { const k = monthLabel(s.start_time); (groups[k] = groups[k] || []).push(s); });

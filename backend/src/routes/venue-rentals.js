@@ -6,6 +6,7 @@
 const express = require("express");
 const { v4: uuidv4 } = require("uuid");
 const { getDb } = require("../services/database");
+const { computeVenueRating } = require("../services/venue-rating");
 const { authenticateToken, requireAdmin, requireOwnInstitution } = require("../middleware/auth");
 const { sendNotification } = require("../services/notification");
 const {
@@ -39,10 +40,23 @@ router.get("/available", (req, res) => {
       params.push(district);
     }
 
-    sql += ` ORDER BY v.name LIMIT ? OFFSET ?`;
+    sql += ` ORDER BY v.name`;
     params.push(limit, (page - 1) * limit);
 
-    const venues = db.prepare(sql).all(...params);
+    let venues = db.prepare(sql).all(...params);
+
+    // 場地評分（代替保證金）：低分 → 排到最後／停止曝光
+    venues = venues
+      .map((v) => {
+        const rt = computeVenueRating(v.id);
+        v.rating = rt.score;
+        v.rating_band = rt.band;
+        v.visibility = rt.visibility;
+        return v;
+      })
+      .filter((v) => v.visibility !== "hidden")
+      .sort((a, b) => b.rating - a.rating || String(a.name).localeCompare(String(b.name)))
+      .slice((page - 1) * limit, page * limit);
 
     // For each venue, get available time slots (NOT already rented)
     for (const v of venues) {
@@ -474,7 +488,10 @@ router.get("/settlements", authenticateToken, requireOwnInstitution, (req, res) 
     if (!venue) return res.status(403).json({ success: false, error: "只有場地負責人可以使用" });
     const { computeSettlement, monthKey } = require("../services/venue-settlement");
     const month = req.query.month || monthKey();
-    res.json({ success: true, data: computeSettlement(venue.id, month) });
+    res.json({
+      success: true,
+      data: { ...computeSettlement(venue.id, month), rating: computeVenueRating(venue.id) },
+    });
   } catch (err) {
     console.error("venue-rentals/settlements error:", err.message);
     res.status(500).json({ success: false, error: err.message });
