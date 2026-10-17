@@ -51,6 +51,18 @@
     details.dt-faq summary::after { content: "+"; color: var(--text-muted); font-weight: 700; }
     details.dt-faq[open] summary::after { content: "−"; }
     details.dt-faq p { font-size: 13px; color: var(--text-muted); line-height: 1.6; margin: 8px 0 0; }
+
+    /* 課堂內容時間軸 */
+    .dt-timeline { position: relative; padding-left: 26px; }
+    .dt-timeline::before { content: ""; position: absolute; left: 9px; top: 6px; bottom: 6px; width: 2px; background: var(--border); }
+    .dt-step { position: relative; padding: 0 0 16px; }
+    .dt-step:last-child { padding-bottom: 0; }
+    .dt-step::before { content: ""; position: absolute; left: -24px; top: 3px; width: 12px; height: 12px; border-radius: 50%; background: var(--brand-600); box-shadow: 0 0 0 3px var(--surface); }
+    .dt-step .row1 { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+    .dt-step .t { font-size: 13.5px; font-weight: 700; }
+    .dt-step .min { font-size: 11px; font-weight: 800; color: var(--brand-600); background: #fff1ea; border-radius: 999px; padding: 2px 8px; }
+    .dt-step .d { font-size: 12.5px; color: var(--text-muted); margin-top: 3px; line-height: 1.55; }
+    .dt-aud { display: flex; gap: 6px; flex-wrap: wrap; }
     .dt-seats { color: #b45309; font-weight: 700; }
     .dt-sticky { position: fixed; left: 0; right: 0; bottom: 0; z-index: 900; background: rgba(255,255,255,.96); backdrop-filter: blur(10px); border-top: 1px solid var(--border); padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); display: flex; align-items: center; gap: 12px; }
     .dt-price { line-height: 1.15; }
@@ -107,12 +119,15 @@
         </div>
       </div>
 
-      <!-- 2. 你會學到 -->
+      <!-- 2. 課堂內容 -->
       <section class="dt-sec">
-        <h2>✨ 你會學到</h2>
+        <h2>📚 課堂內容</h2>
         <div class="card"><div class="body">
-          <div class="dt-list" id="learn"></div>
-          <p class="muted" id="desc" style="font-size:13px;line-height:1.65;margin:10px 0 0"></p>
+          <div class="dt-timeline" id="timeline"></div>
+          <p class="muted" id="desc" style="font-size:13px;line-height:1.65;margin:12px 0 0"></p>
+          <div style="border-top:1px solid var(--border);margin:12px 0 10px"></div>
+          <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px">適合對象</div>
+          <div class="dt-aud" id="audience"></div>
         </div></div>
       </section>
 
@@ -266,14 +281,23 @@
       $("sold").textContent = sold > 0 ? "｜已售出 " + sold + "+ 堂" : "";
       $("revSummary").textContent = rc > 0 ? "平均 " + rating.toFixed(1) + " · " + rc + " 則" : "";
 
-      // 你會學到
-      const learn = [
-        "🎯 掌握握棒、站姿與投擲力度",
-        "📊 計分規則與戰術部署",
-        "🤝 分組對戰，練習團隊溝通",
-        "🛡️ 安全注意事項與熱身",
+      // 課堂內容（API 有 highlights 用真實，否則用標準流程）
+      const highlights = Array.isArray(c.highlights) && c.highlights.length ? c.highlights : [
+        { title: "芬蘭木柱基本規則與投擲姿勢教學", minutes: 10, desc: "由握棒、站姿到出手，教練逐個修正動作。" },
+        { title: "戰術瞄準與分數結算技巧", minutes: 15, desc: "學習瞄準目標、計算分數同逆境策略。" },
+        { title: "分組實戰對戰賽", minutes: 35, desc: "分組對戰，體驗競技樂趣，教練即場指導。" },
       ];
-      $("learn").innerHTML = learn.map((x) => '<div class="dt-li"><span>' + x + "</span></div>").join("");
+      $("timeline").innerHTML = highlights.map(function (h) {
+        return '<div class="dt-step"><div class="row1"><span class="t">' + esc(h.title) + '</span>' +
+          (h.minutes ? '<span class="min">' + h.minutes + ' 分鐘</span>' : '') + '</div>' +
+          (h.desc ? '<div class="d">' + esc(h.desc) + '</div>' : '') + '</div>';
+      }).join("");
+
+      const aud = (c.target_audience || "").split(/[、,，/]/).map(function (x) { return x.trim(); }).filter(Boolean);
+      const audList = aud.length ? aud : ["個人新手", "朋友同行", "親子 / 樂齡同樂"];
+      $("audience").innerHTML = audList.map(function (t) {
+        return '<span class="dt-tag green">👤 ' + esc(t) + '</span>';
+      }).join("");
 
       // 教練
       $("coachName").textContent = c.coach_name || "ZenPass 認證教練";

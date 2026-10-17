@@ -20,8 +20,11 @@ has('id="capacity"', "capacity");
 has("在地圖查看", "map link");
 
 // 2 你會學到
-has("你會學到", "learn section");
-has('id="learn"', "learn list");
+has("課堂內容", "highlights section");
+has('id="timeline"', "timeline");
+has('id="audience"', "audience");
+has("適合對象", "audience label");
+has("分鐘</span>", "duration badge");
 
 // 3 教練
 has("🧑‍🏫 教練", "coach section");
