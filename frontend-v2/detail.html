@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#ff6b35" />
+  <title>課堂詳情 · ZenPass 禪流</title>
+  <link rel="stylesheet" href="assets/v2.css?v=26" />
+  <style>
+    :root { --dt-pad: 16px; }
+    body { padding-bottom: 96px; }
+    .dt-hero { position: relative; }
+    .dt-carousel { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+    .dt-carousel::-webkit-scrollbar { display: none; }
+    .dt-slide { flex: 0 0 100%; scroll-snap-align: start; height: 232px; display: flex; align-items: center; justify-content: center; position: relative; }
+    .dt-slide img { width: 100%; height: 100%; object-fit: cover; }
+    .dt-dots { position: absolute; bottom: 10px; left: 0; right: 0; display: flex; justify-content: center; gap: 6px; }
+    .dt-dot { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,.55); }
+    .dt-dot.on { background: #fff; width: 16px; border-radius: 3px; }
+    .dt-body { padding: 14px var(--dt-pad) 0; }
+    .dt-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+    .dt-tag { font-size: 11.5px; font-weight: 700; padding: 3px 9px; border-radius: 999px; background: #fff1ea; color: #b8421a; }
+    .dt-tag.green { background: #e8f7ee; color: #15803d; }
+    .dt-tag.blue { background: #e8f0fe; color: #1d4ed8; }
+    .dt-title { font-size: 20px; line-height: 1.35; margin: 0 0 8px; font-weight: 800; letter-spacing: -0.2px; }
+    .dt-social { display: flex; align-items: center; gap: 10px; font-size: 12.5px; color: var(--text-muted); flex-wrap: wrap; }
+    .dt-stars { color: #f59e0b; font-weight: 700; }
+    .dt-sold { display: inline-flex; align-items: center; gap: 4px; }
+    .dt-params { display: grid; gap: 10px; margin-top: 12px; }
+    .dt-param { display: flex; gap: 10px; align-items: flex-start; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 12px; }
+    .dt-param .ic { font-size: 18px; line-height: 1.2; }
+    .dt-param .k { font-size: 12px; color: var(--text-muted); margin-bottom: 2px; }
+    .dt-param .v { font-size: 13.5px; font-weight: 600; }
+    .dt-param a { color: var(--brand-600); text-decoration: none; font-weight: 700; font-size: 12.5px; }
+    .dt-sec { margin-top: 18px; }
+    .dt-sec h2 { font-size: 16px; margin: 0 0 10px; }
+    .dt-list { display: grid; gap: 8px; }
+    .dt-li { display: flex; gap: 9px; font-size: 13.5px; line-height: 1.55; }
+    .dt-coach { display: flex; gap: 12px; align-items: center; }
+    .dt-avatar { width: 54px; height: 54px; border-radius: 50%; background: var(--surface-2); display: flex; align-items: center; justify-content: center; font-size: 22px; overflow: hidden; flex: 0 0 auto; }
+    .dt-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .dt-rev { border-bottom: 1px solid var(--border); padding: 12px 0; }
+    .dt-rev:last-child { border-bottom: 0; }
+    .dt-rev .u { font-size: 12.5px; font-weight: 700; }
+    .dt-rev .m { font-size: 11.5px; color: var(--text-muted); }
+    .dt-rev .c { font-size: 13px; margin-top: 5px; line-height: 1.55; }
+    details.dt-faq { border-bottom: 1px solid var(--border); padding: 12px 0; }
+    details.dt-faq:last-child { border-bottom: 0; }
+    details.dt-faq summary { font-size: 13.5px; font-weight: 700; cursor: pointer; list-style: none; display: flex; justify-content: space-between; gap: 8px; }
+    details.dt-faq summary::-webkit-details-marker { display: none; }
+    details.dt-faq summary::after { content: "+"; color: var(--text-muted); font-weight: 700; }
+    details.dt-faq[open] summary::after { content: "−"; }
+    details.dt-faq p { font-size: 13px; color: var(--text-muted); line-height: 1.6; margin: 8px 0 0; }
+    .dt-seats { color: #b45309; font-weight: 700; }
+    .dt-sticky { position: fixed; left: 0; right: 0; bottom: 0; z-index: 900; background: rgba(255,255,255,.96); backdrop-filter: blur(10px); border-top: 1px solid var(--border); padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); display: flex; align-items: center; gap: 12px; }
+    .dt-price { line-height: 1.15; }
+    .dt-price .p { font-size: 20px; font-weight: 800; color: var(--brand-600); }
+    .dt-price .s { font-size: 11px; color: var(--text-muted); }
+    .dt-sticky .btn { flex: 1; min-height: 46px; }
+    @media (min-width: 720px) {
+      .dt-wrap { max-width: 760px; margin: 0 auto; }
+      .dt-slide { height: 320px; }
+      .dt-params { grid-template-columns: 1fr 1fr; }
+      .dt-sticky { max-width: 760px; margin: 0 auto; border-radius: 16px 16px 0 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar"><a class="back" href="explore.html">‹</a><div class="title" id="topTitle">課堂詳情</div></div>
+
+  <div class="dt-wrap">
+    <!-- 1. Hero -->
+    <section class="dt-hero">
+      <div class="dt-carousel" id="carousel"></div>
+      <div class="dt-dots" id="dots"></div>
+    </section>
+
+    <div class="dt-body">
+      <div class="dt-tags" id="tags"></div>
+      <h1 class="dt-title" id="title">載入中…</h1>
+      <div class="dt-social">
+        <span class="dt-stars" id="rating">⭐ —</span>
+        <span id="reviewCount"></span>
+        <span class="dt-sold" id="sold"></span>
+      </div>
+
+      <div class="dt-params">
+        <div class="dt-param">
+          <div class="ic">📍</div>
+          <div style="flex:1">
+            <div class="k">地點</div>
+            <div class="v" id="venue">—</div>
+            <a id="mapLink" target="_blank" rel="noopener">在地圖查看 ›</a>
+          </div>
+        </div>
+        <div class="dt-param">
+          <div class="ic">⏱️</div>
+          <div><div class="k">時段 / 時長</div><div class="v" id="duration">—</div></div>
+        </div>
+        <div class="dt-param">
+          <div class="ic">👥</div>
+          <div><div class="k">人數</div><div class="v" id="capacity">—</div></div>
+        </div>
+        <div class="dt-param">
+          <div class="ic">🎒</div>
+          <div><div class="k">裝備</div><div class="v" id="gear">提供全套裝備</div></div>
+        </div>
+      </div>
+
+      <!-- 2. 你會學到 -->
+      <section class="dt-sec">
+        <h2>✨ 你會學到</h2>
+        <div class="card"><div class="body">
+          <div class="dt-list" id="learn"></div>
+          <p class="muted" id="desc" style="font-size:13px;line-height:1.65;margin:10px 0 0"></p>
+        </div></div>
+      </section>
+
+      <!-- 3. 教練 -->
+      <section class="dt-sec">
+        <h2>🧑‍🏫 教練</h2>
+        <div class="card"><div class="body">
+          <div class="dt-coach">
+            <div class="dt-avatar" id="coachAvatar">🧑‍🏫</div>
+            <div style="flex:1">
+              <div style="font-weight:800;font-size:15px" id="coachName">—</div>
+              <div class="muted" style="font-size:12.5px" id="coachMeta">認證教練</div>
+              <div class="dt-tags" style="margin-top:6px" id="coachTags"></div>
+            </div>
+          </div>
+        </div></div>
+      </section>
+
+      <!-- 4. 場地 -->
+      <section class="dt-sec">
+        <h2>🏟️ 場地資訊</h2>
+        <div class="card"><div class="body">
+          <div style="font-weight:700;font-size:14px" id="venueName">—</div>
+          <div class="muted" style="font-size:12.5px;margin:3px 0 8px" id="venueAddr">—</div>
+          <div class="dt-tags" id="facilities"></div>
+          <a class="btn btn-secondary btn-block mini" id="mapBtn" target="_blank" rel="noopener" style="margin-top:10px">🗺️ 開啟地圖導航</a>
+        </div></div>
+      </section>
+
+      <!-- 5. 評價 -->
+      <section class="dt-sec">
+        <h2>⭐ 學員評價 <span class="muted" style="font-size:12px;font-weight:500" id="revSummary"></span></h2>
+        <div class="card"><div class="body" id="revs"><div class="muted">暫無評價。</div></div></div>
+      </section>
+
+      <!-- 6. FAQ -->
+      <section class="dt-sec">
+        <h2>❓ 常見問題</h2>
+        <div class="card"><div class="body">
+          <details class="dt-faq"><summary>需要自備裝備嗎？</summary><p>唔需要。場地提供全套裝備，包括器材同基本護具；著輕便運動服飾即可。</p></details>
+          <details class="dt-faq"><summary>完全冇經驗可以玩嗎？</summary><p>可以。呢個係新手零門檻體驗班，教練會由規則、握法、計分逐步教起。</p></details>
+          <details class="dt-faq"><summary>可以幾時取消？</summary><p>開課前 3 日或以上免費取消；1–3 日收取 50%；當日或不足 1 日收取 100%。</p></details>
+          <details class="dt-faq"><summary>惡劣天氣點安排？</summary><p>八號風球或黑色暴雨警告生效時課堂取消，可免費改期或全額退回。</p></details>
+          <details class="dt-faq"><summary>可以包班或團體預約嗎？</summary><p>可以。企業 Team Building／學校活動請 WhatsApp 我們報價。</p></details>
+        </div></div>
+      </section>
+
+      <!-- 7. 預約流程 -->
+      <section class="dt-sec" style="margin-bottom:26px">
+        <h2>🎫 預約流程</h2>
+        <div class="card"><div class="body">
+          <div class="dt-list">
+            <div class="dt-li"><span>1️⃣</span><span><b>揀時段</b> — 選擇下方「立即預約」，系統會保留名額 15 分鐘。</span></div>
+            <div class="dt-li"><span>2️⃣</span><span><b>用 Credit 或現金付款</b> — 1 Credit = HK$10，可用 Pass 套票。</span></div>
+            <div class="dt-li"><span>3️⃣</span><span><b>收到確認</b> — 加入手機行事曆，上課前收到提醒。</span></div>
+            <div class="dt-li"><span>4️⃣</span><span><b>到場簽到</b> — 到場後用手機簽到，即可上課。</span></div>
+          </div>
+        </div></div>
+      </section>
+    </div>
+  </div>
+
+  <!-- Sticky CTA -->
+  <div class="dt-sticky">
+    <div class="dt-price">
+      <div class="p" id="price">—</div>
+      <div class="s" id="priceSub">每堂 · 已包裝備</div>
+    </div>
+    <a class="btn btn-primary" id="bookBtn" href="#">立即預約</a>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="assets/api.js"></script>
+  <script src="assets/sport-icons.js?v=14"></script>
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const qs = new URLSearchParams(location.search);
+    const classId = qs.get("id") || "";
+    const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+    let CLS = null, SESS = [];
+
+    (async () => {
+      if (!classId) {
+        // 冇 id → 取第一個可預約課程示範
+        const r = await api.get("/classes?limit=1");
+        const a = (r.data && (r.data.classes || r.data.items)) || [];
+        if (a[0]) return load(a[0].id);
+        return renderDemo();
+      }
+      await load(classId);
+    })();
+
+    async function load(id) {
+      const r = await api.get("/classes/" + encodeURIComponent(id));
+      if (!r.ok || !r.data || !r.data.class) return renderDemo();
+      CLS = r.data.class;
+      SESS = (r.data.schedules || []).filter((s) => s.status !== "cancelled");
+      renderAll(r.data.reviews || []);
+    }
+
+    function renderDemo() {
+      CLS = {
+        id: "", title: "【新手零門檻體驗】芬蘭木柱 Mölkky 基礎技巧與團體樂趣對戰",
+        category: "新興運動", duration: 60, max_participants: 8, price_hkd: 150, credits_cost: 15,
+        venue_name: "觀塘創紀之城室內場館", venue_address: "九龍觀塘觀塘道 388 號",
+        coach_name: "陳教練", difficulty: "beginner", target_audience: "新手 / 朋友團體",
+        description: "由零開始學芬蘭木柱：握棒、投擲、計分規則，最後分組對戰。教練全程指導，裝備全包。",
+        avg_rating: 4.9, review_count: 32,
+      };
+      SESS = [];
+      renderAll([
+        { user_name: "Karen L.", rating: 5, comment: "好好玩！教練好有耐性，第一次玩都上手。", created_at: "2026-10-02" },
+        { user_name: "阿銘", rating: 5, comment: "一班朋友包班，氣氛一流，下次會再嚟。", created_at: "2026-09-21" },
+        { user_name: "Suki", rating: 4, comment: "場地舒服，裝備齊全，只係時間唔夠玩。", created_at: "2026-09-10" },
+      ]);
+    }
+
+    function renderAll(reviews) {
+      const c = CLS;
+      document.title = c.title + " · ZenPass 禪流";
+      $("topTitle").textContent = c.category || "課堂詳情";
+      $("title").textContent = c.title;
+      $("desc").textContent = c.description || "";
+      $("duration").textContent = (c.duration || 60) + " 分鐘";
+      const cap = Number(c.max_participants) || 8;
+      const left = seatsLeft();
+      $("capacity").textContent = "小班教學（最多 " + cap + " 人" + (left != null ? "，剩餘 " + left + " 個名額" : "") + "）";
+      $("venue").textContent = [c.venue_name, c.venue_address].filter(Boolean).join(" · ") || "地點待定";
+      $("venueName").textContent = c.venue_name || "—";
+      $("venueAddr").textContent = c.venue_address || "";
+      const q = encodeURIComponent([c.venue_name, c.venue_address].filter(Boolean).join(" "));
+      const mapUrl = "https://www.google.com/maps/search/?api=1&query=" + q;
+      ["mapLink", "mapBtn"].forEach((k) => { const el = $(k); if (el) el.href = mapUrl; });
+
+      // 標籤
+      const tags = [];
+      if (c.category) tags.push("🔥 熱門" + c.category);
+      if (String(c.difficulty) === "beginner") tags.push("🧩 新手友善");
+      tags.push("🎒 提供全套裝備");
+      if (c.district) tags.push("📍 " + c.district);
+      $("tags").innerHTML = tags.map((t, i) => '<span class="dt-tag ' + (i === 1 ? "green" : i === 2 ? "blue" : "") + '">' + esc(t) + "</span>").join("");
+
+      // 評分 / 人氣
+      const rating = Number(c.avg_rating || 0);
+      const rc = Number(c.review_count || reviews.length || 0);
+      $("rating").textContent = rating > 0 ? "⭐ " + rating.toFixed(1) : "⭐ 新上架";
+      $("reviewCount").textContent = rc > 0 ? "(" + rc + " 則學員評價)" : "";
+      const sold = Number(c.booking_count || c.sold_count || 0);
+      $("sold").textContent = sold > 0 ? "｜已售出 " + sold + "+ 堂" : "";
+      $("revSummary").textContent = rc > 0 ? "平均 " + rating.toFixed(1) + " · " + rc + " 則" : "";
+
+      // 你會學到
+      const learn = [
+        "🎯 掌握握棒、站姿與投擲力度",
+        "📊 計分規則與戰術部署",
+        "🤝 分組對戰，練習團隊溝通",
+        "🛡️ 安全注意事項與熱身",
+      ];
+      $("learn").innerHTML = learn.map((x) => '<div class="dt-li"><span>' + x + "</span></div>").join("");
+
+      // 教練
+      $("coachName").textContent = c.coach_name || "ZenPass 認證教練";
+      $("coachMeta").textContent = (c.coach_verified ? "✅ 已認證 · " : "") + (c.category ? c.category + " 專業" : "專業教練");
+      $("coachAvatar").innerHTML = c.coach_avatar ? '<img src="' + esc(c.coach_avatar) + '" alt="">' : "🧑‍🏫";
+      $("coachTags").innerHTML = ["小班教學", "新手友善", "裝備全包"].map((t) => '<span class="dt-tag green">' + t + "</span>").join("");
+
+      // 場地設施
+      const fac = Array.isArray(c.facilities) ? c.facilities : [];
+      $("facilities").innerHTML = (fac.length ? fac : ["室內場館", "冷氣", "更衣室"]).map((t) => '<span class="dt-tag blue">' + esc(t) + "</span>").join("");
+
+      // 評價
+      $("revs").innerHTML = reviews.length
+        ? reviews.slice(0, 8).map((v) => {
+            const stars = "★★★★★".slice(0, Math.max(0, Math.min(5, Number(v.rating) || 0))) + "☆☆☆☆☆".slice(0, 5 - Math.max(0, Math.min(5, Number(v.rating) || 0)));
+            return '<div class="dt-rev"><div class="u">' + esc(v.user_name || "學員") + ' <span class="dt-stars" style="font-size:11px">' + stars + "</span></div>" +
+              '<div class="m">' + esc(String(v.created_at || "").slice(0, 10)) + "</div>" +
+              '<div class="c">' + esc(v.comment || "") + "</div></div>";
+          }).join("")
+        : '<div class="muted">暫無評價，成為第一個分享體驗嘅學員。</div>';
+
+      // 價格 / CTA
+      const price = Number(c.price_hkd || 0);
+      $("price").textContent = price ? "HK$" + price : (c.credits_cost ? c.credits_cost + " cr" : "—");
+      $("priceSub").textContent = price ? "每堂 · 約 " + Math.round(price / 10) + " credits" : "每堂";
+      const book = $("bookBtn");
+      book.href = c.id ? "booking.html?id=" + encodeURIComponent(c.id) : "#";
+      if (!c.id) book.onclick = (e) => { e.preventDefault(); alert("示範頁面：請由課程列表進入再預約。"); };
+
+      // 封面輪播
+      const imgs = [];
+      if (c.image_url) imgs.push(c.image_url);
+      if (Array.isArray(c.images)) imgs.push(...c.images);
+      const fallbackBg = "linear-gradient(135deg,#ff6b35,#c94420)";
+      const slides = imgs.length ? imgs.slice(0, 3) : [null, null, null];
+      $("carousel").innerHTML = slides.map((src) =>
+        src
+          ? '<div class="dt-slide"><img src="' + esc(src) + '" alt=""></div>'
+          : '<div class="dt-slide" style="background:' + fallbackBg + '">' + (typeof sportIconImg === "function" ? sportIconImg(c, 120) : "🏅") + "</div>",
+      ).join("");
+      $("dots").innerHTML = slides.map((_, i) => '<span class="dt-dot' + (i === 0 ? " on" : "") + '"></span>').join("");
+      const car = $("carousel");
+      car.addEventListener("scroll", () => {
+        const idx = Math.round(car.scrollLeft / car.clientWidth);
+        [...$("dots").children].forEach((d, i) => d.classList.toggle("on", i === idx));
+      }, { passive: true });
+    }
+
+    function seatsLeft() {
+      if (!SESS.length) return null;
+      return SESS.reduce((m, s) => {
+        const l = (Number(s.max_participants) || 0) - (Number(s.enrolled_count) || 0);
+        return m == null ? l : Math.min(m, l);
+      }, null);
+    }
+  </script>
+  <script src="assets/footer.js?v=4" defer></script>
+</body>
+</html>
