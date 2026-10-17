@@ -138,6 +138,52 @@ CREATE TABLE IF NOT EXISTS users (
     try { db.exec(`ALTER TABLE coach_applications ADD COLUMN ${col} ${type}`); } catch (e) { /* exists */ }
   }
 
+  // 一次性 backfill：已批核教練嘅申請資料 → users 公開 profile
+  try {
+    const marker = db.prepare("SELECT value FROM platform_settings WHERE key = ?").get("migration.coach_public_profile_v1");
+    if (!marker) {
+      const rows = db
+        .prepare(
+          `SELECT a.* FROM coach_applications a
+           WHERE a.status = 'approved' AND a.id IN (
+             SELECT id FROM coach_applications b WHERE b.user_id = a.user_id
+             ORDER BY b.created_at DESC LIMIT 1
+           )`,
+        )
+        .all();
+      const upd = db.prepare(
+        `UPDATE users SET
+           coach_headline = COALESCE(coach_headline, ?),
+           coach_bio = COALESCE(coach_bio, ?),
+           coach_tags = COALESCE(coach_tags, ?),
+           coach_languages = COALESCE(coach_languages, ?),
+           coach_years = COALESCE(coach_years, ?)
+         WHERE id = ?`,
+      );
+      let n = 0;
+      for (const a of rows) {
+        const tags = [a.specialties, a.certificates]
+          .filter(Boolean)
+          .join(",")
+          .split(",")
+          .map((t) => t.trim())
+          .filter(Boolean)
+          .filter((t, i, arr) => arr.indexOf(t) === i)
+          .join(",");
+        const years = a.years_experience ? parseInt(a.years_experience, 10) || null : null;
+        upd.run(a.headline || null, a.bio || null, tags || null, a.languages || null, years, a.user_id);
+        n++;
+      }
+      db.prepare("INSERT OR REPLACE INTO platform_settings (key, value) VALUES (?, ?)").run(
+        "migration.coach_public_profile_v1",
+        new Date().toISOString(),
+      );
+      if (n) console.log(`✅ 教練公開資料 backfill：${n} 位`);
+    }
+  } catch (e) {
+    console.error("coach_public_profile backfill 失敗:", e.message);
+  }
+
   // ===== 課程表 =====
   db.exec(`
     CREATE TABLE IF NOT EXISTS classes (
