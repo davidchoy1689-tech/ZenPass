@@ -1188,8 +1188,8 @@ function _processNormalCancel(db, booking, reason, req, feeRate) {
         const full = classData ? classData.credits_cost : 0;
         db.prepare(
           `INSERT INTO penalty_logs (id, booking_id, user_id, type, class_cost, penalty_credits, status, reason, created_at)
-           VALUES (?, ?, ?, 'cancel_fee', ?, ?, 'applied', ?, datetime('now'))`,
-        ).run(uuidv4(), booking.id, req.user.id, full, Math.round(full * feeRate * 10) / 10, `取消費用 ${feeRate * 100}%`);
+           VALUES (?, ?, ?, 'late_cancel', ?, ?, 'applied', ?, datetime('now'))`,
+        ).run(uuidv4(), booking.id, req.user.id, full, Math.round(full * feeRate * 10) / 10, `取消費用 ${feeRate * 100}%（政策扣費）`);
       } catch (e) {
         console.error("[PENALTY] cancel fee log error:", e.message);
       }

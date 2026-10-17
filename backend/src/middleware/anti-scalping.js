@@ -18,6 +18,22 @@ const { writeBlock } = require("../services/blockchain-audit");
 
 const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
 
+// 安全 JSON：避免 circular structure（曾令 suspicious_activity log 失敗）
+function safeJson(obj) {
+  try {
+    const seen = new WeakSet();
+    return JSON.stringify(obj, (k, v) => {
+      if (typeof v === "object" && v !== null) {
+        if (seen.has(v)) return "[Circular]";
+        seen.add(v);
+      }
+      return v;
+    });
+  } catch (e) {
+    return JSON.stringify({ error: "unserializable" });
+  }
+}
+
 // ===== 設定 =====
 const CONFIG = {
   // 用戶層級 Rate Limit（每個 user_id，獨立 window）
@@ -104,7 +120,7 @@ function logSuspiciousActivity({
       action,
       score,
       reason,
-      JSON.stringify(details),
+      safeJson(details),
     );
 
     // 累計分數：計算過去 24h 內 total_score，夠 threshold 就停權

@@ -20,6 +20,13 @@ function dbNotification(recipientId, type, title, message, data = {}) {
     const db = getDb();
     const { v4: uuidv4 } = require("uuid");
 
+    // recipient 必須存在（避免 FOREIGN KEY constraint failed 洗版）
+    const exists = db.prepare("SELECT 1 FROM users WHERE id = ?").get(recipientId);
+    if (!exists) {
+      console.warn(`[NOTIF] skip ${type}: recipient ${recipientId} 不存在`);
+      return false;
+    }
+
     db.prepare(
       `
       INSERT INTO notifications (id, user_id, type, title, message, data, is_read, created_at)
