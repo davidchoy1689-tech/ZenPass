@@ -25,8 +25,11 @@ router.post(
   validate(schemas.booking),
   async (req, res) => {
     try {
-      // 1. Check availability via model
-      const { scheduleId, classId, paymentType, penaltyConsent } = req.body;
+      // 1. Check availability via model（兼容 camelCase / snake_case）
+      const scheduleId = req.body.scheduleId || req.body.schedule_id;
+      const classId = req.body.classId || req.body.class_id;
+      const paymentType = req.body.paymentType || req.body.payment_type;
+      const penaltyConsent = req.body.penaltyConsent !== undefined ? req.body.penaltyConsent : req.body.penalty_consent;
       const avail = Booking.checkAvailability(scheduleId);
       if (!avail.available) {
         const msg = avail.reason === "full" ? "該時段已滿額" : "該時段不存在或已滿";

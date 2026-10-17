@@ -53,3 +53,11 @@ if (fail) {
   process.exit(1);
 }
 console.log("✅ 教練自助開班 tests passed");
+
+// 追加：單筆預約 API 需兼容 camelCase（前端用 camelCase，validator 用 snake_case）
+const bookingsSrc = fs.readFileSync(path.join(__dirname, "..", "src/routes/bookings.js"), "utf8");
+if (!bookingsSrc.includes("req.body.scheduleId || req.body.schedule_id")) {
+  console.error("  ❌ 單筆預約 API 未兼容 camelCase");
+  process.exit(1);
+}
+console.log("  ✅ 單筆預約 API 兼容 camelCase / snake_case");
