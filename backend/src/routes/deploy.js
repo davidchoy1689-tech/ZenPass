@@ -12,7 +12,7 @@ const router = express.Router();
 const FRONTEND_DIR = path.resolve(__dirname, "../../../frontend");
 
 // ===== POST /api/admin/write-file — Admin 寫檔案 =====
-router.post("/write-file", authenticateToken, (req, res) => {
+router.post("/write-file", authenticateToken, requireAdmin, (req, res) => {
   try {
     const { filename, content } = req.body;
     if (!filename || content === undefined) {
@@ -21,7 +21,7 @@ router.post("/write-file", authenticateToken, (req, res) => {
 
     // Security: only allow writing to frontend/ directory
     const safePath = path.resolve(FRONTEND_DIR, filename);
-    if (!safePath.startsWith(FRONTEND_DIR)) {
+    if (safePath !== FRONTEND_DIR && !safePath.startsWith(FRONTEND_DIR + path.sep)) {
       return res.status(403).json({ success: false, error: "路徑唔允許" });
     }
 
@@ -33,7 +33,7 @@ router.post("/write-file", authenticateToken, (req, res) => {
 });
 
 // ===== POST /api/admin/deploy — Git pull + restart =====
-router.post("/deploy", authenticateToken, (req, res) => {
+router.post("/deploy", authenticateToken, requireAdmin, (req, res) => {
   try {
     const { execSync } = require("child_process");
     const result = execSync(

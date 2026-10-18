@@ -5,7 +5,7 @@
  */
 
 const express = require("express");
-const { authenticateToken } = require("../middleware/auth");
+const { authenticateToken, requireAdmin } = require("../middleware/auth");
 const {
   traceBooking,
   traceWalletTransaction,
@@ -18,7 +18,7 @@ const {
 const router = express.Router();
 
 // ===== GET /api/audit/booking/:id — 追溯一筆 booking 嘅完整資金流向 =====
-router.get("/booking/:id", authenticateToken, (req, res) => {
+router.get("/booking/:id", authenticateToken, requireAdmin, (req, res) => {
   try {
     const result = traceBooking(req.params.id);
     if (result.error) return res.status(404).json({ success: false, error: result.error });
@@ -37,7 +37,7 @@ router.get("/booking/:id", authenticateToken, (req, res) => {
 });
 
 // ===== GET /api/audit/wallet/:id — 追溯一筆 wallet 交易嘅完整流向 =====
-router.get("/wallet/:id", authenticateToken, (req, res) => {
+router.get("/wallet/:id", authenticateToken, requireAdmin, (req, res) => {
   try {
     const result = traceWalletTransaction(req.params.id);
     if (result.error) return res.status(404).json({ success: false, error: result.error });
@@ -49,7 +49,7 @@ router.get("/wallet/:id", authenticateToken, (req, res) => {
 });
 
 // ===== GET /api/audit/school/:id — 追溯學校查詢嘅 blockchain trail =====
-router.get("/school/:id", authenticateToken, (req, res) => {
+router.get("/school/:id", authenticateToken, requireAdmin, (req, res) => {
   try {
     const result = traceSchoolInquiry(req.params.id);
     if (result.error) return res.status(404).json({ success: false, error: result.error });
@@ -61,7 +61,7 @@ router.get("/school/:id", authenticateToken, (req, res) => {
 });
 
 // ===== GET /api/audit/corporate/:id — 追溯企業帳戶嘅完整 blockchain trail =====
-router.get("/corporate/:id", authenticateToken, (req, res) => {
+router.get("/corporate/:id", authenticateToken, requireAdmin, (req, res) => {
   try {
     const result = traceCorporate(req.params.id);
     if (result.error) return res.status(404).json({ success: false, error: result.error });
@@ -73,7 +73,7 @@ router.get("/corporate/:id", authenticateToken, (req, res) => {
 });
 
 // ===== GET /api/audit/verify — 全區塊鏈驗證 =====
-router.get("/verify", authenticateToken, (req, res) => {
+router.get("/verify", authenticateToken, requireAdmin, (req, res) => {
   try {
     const result = verifyFullChain();
     res.json(result);

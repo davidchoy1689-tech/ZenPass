@@ -226,7 +226,7 @@ router.get("/classes", authenticateToken, requireAdmin, (req, res) => {
 });
 
 // ===== GET /api/admin/db/:table & /api/admin/db =====
-router.get("/db/:table", async (req, res) => {
+router.get("/db/:table", authenticateToken, requireAdmin, async (req, res) => {
   try {
     const { getSupabase } = require("../services/supabase");
     const supabase = getSupabase();
@@ -244,7 +244,7 @@ router.get("/db/:table", async (req, res) => {
   }
 });
 
-router.get("/db", async (req, res) => {
+router.get("/db", authenticateToken, requireAdmin, async (req, res) => {
   try {
     const { getSupabase } = require("../services/supabase");
     const supabase = getSupabase();
