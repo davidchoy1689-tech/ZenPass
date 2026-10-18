@@ -1699,6 +1699,13 @@ CREATE TABLE IF NOT EXISTS users (
 
   // ===== Anti-Scalping 反炒場系統表 =====
   db.exec(`
+    CREATE TABLE IF NOT EXISTS points_expiry_notices (
+      user_id TEXT NOT NULL,
+      period TEXT NOT NULL,
+      sent_at TEXT DEFAULT (datetime('now')),
+      PRIMARY KEY (user_id, period)
+    );
+
     CREATE TABLE IF NOT EXISTS consultations (
       id TEXT PRIMARY KEY,
       user_id TEXT NOT NULL,

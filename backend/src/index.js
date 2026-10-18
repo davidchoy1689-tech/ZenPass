@@ -886,6 +886,19 @@ function expireStalePoints() {
 setInterval(expireStalePoints, 6 * 60 * 60 * 1000);
 setTimeout(expireStalePoints, 45000);
 
+// ===== 積分到期前 30 日提醒（每 12 小時）=====
+function notifyPointsExpiringSoon() {
+  try {
+    const { notifyExpiringSoon } = require("./services/points-expiry");
+    const r = notifyExpiringSoon();
+    if (r.notified) console.log(`[POINTS-EXPIRY] 已提醒 ${r.notified} 位用戶積分即將到期`);
+  } catch (e) {
+    console.error("[POINTS-EXPIRY] notify error:", e.message);
+  }
+}
+setInterval(notifyPointsExpiringSoon, 12 * 60 * 60 * 1000);
+setTimeout(notifyPointsExpiringSoon, 60000);
+
 // ===== 租場完成自動標記（end_time 過去 + 已付款）=====
 function completeVenueRentals() {
   try {

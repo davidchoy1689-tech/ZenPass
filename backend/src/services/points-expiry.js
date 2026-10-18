@@ -85,3 +85,56 @@ function expireInactivePoints({ months, dryRun = false } = {}) {
 }
 
 module.exports = { listExpiring, expireInactivePoints, getExpiryMonths, lastActivityAt };
+
+/**
+ * 到期前提醒（預設 30 日內）——每個到期月份只通知一次
+ * @returns {{checked:number, notified:number}}
+ */
+function notifyExpiringSoon({ days = 30, now = new Date() } = {}) {
+  const db = getDb();
+  const m = getExpiryMonths();
+  const day = 86400000;
+  const expiryMs = m * 30 * day;
+
+  const users = db.prepare("SELECT id, name, email, points FROM users WHERE COALESCE(points,0) > 0").all();
+  let notified = 0;
+  let checked = 0;
+
+  for (const u of users) {
+    checked++;
+    const last = lastActivityAt(db, u.id);
+    if (!last) continue;
+    // SQLite "YYYY-MM-DD HH:MM:SS" = UTC
+    const lastMs = Date.parse(String(last).replace(" ", "T") + "Z");
+    if (!Number.isFinite(lastMs)) continue;
+
+    const expiresMs = lastMs + expiryMs;
+    if (expiresMs <= now.getTime()) continue; // 已到期：交由 expireInactivePoints 處理
+    if (expiresMs > now.getTime() + days * day) continue; // 未夠近
+
+    // 到期月份（香港時間）作去重 key
+    const hk = new Date(expiresMs + 8 * 3600 * 1000);
+    const period = hk.toISOString().slice(0, 7);
+    const expiresOn = hk.toISOString().slice(0, 10);
+
+    const ins = db
+      .prepare("INSERT OR IGNORE INTO points_expiry_notices (user_id, period) VALUES (?, ?)")
+      .run(u.id, period);
+    if (!ins.changes) continue;
+
+    try {
+      const { sendNotification } = require("./notification");
+      sendNotification("points.expiry_soon", {
+        recipient: u.id,
+        data: { points: u.points, expires_on: expiresOn },
+      });
+      notified++;
+    } catch (e) {
+      console.error("[POINTS] expiry notify failed:", e.message);
+    }
+  }
+
+  return { checked, notified };
+}
+
+module.exports = { ...module.exports, notifyExpiringSoon };
