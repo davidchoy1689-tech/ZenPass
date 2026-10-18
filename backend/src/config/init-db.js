@@ -1886,6 +1886,8 @@ CREATE TABLE IF NOT EXISTS users (
     );
   `);
   try { db.exec("ALTER TABLE corporate_members ADD COLUMN status TEXT DEFAULT 'active'"); } catch (e) {/* exists */}
+  try { db.exec("ALTER TABLE corporate_companies ADD COLUMN contact_name TEXT"); } catch (e) {/* exists */}
+  try { db.exec("ALTER TABLE corporate_members ADD COLUMN updated_at TEXT"); } catch (e) {/* exists */}
 
   db.exec(`
     CREATE TABLE IF NOT EXISTS booking_payments (

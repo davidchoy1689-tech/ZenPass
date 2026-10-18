@@ -16,11 +16,11 @@ const ok = (c, m) => { if (c) console.log("  ✅ " + m); else { console.log("  �
   pre.exec(`
   CREATE TABLE partner_venues (id TEXT PRIMARY KEY, name TEXT, district TEXT);
   CREATE TABLE users (id TEXT PRIMARY KEY, name TEXT, email TEXT, phone TEXT, password_hash TEXT,
-    role TEXT DEFAULT 'user', credits INTEGER DEFAULT 0, loyalty_tier TEXT DEFAULT 'bronze',
+    role TEXT DEFAULT 'user', email_verified INTEGER DEFAULT 0, credits INTEGER DEFAULT 0, loyalty_tier TEXT DEFAULT 'bronze',
     loyalty_tier_manual INTEGER DEFAULT 0, is_coach INTEGER DEFAULT 0, coach_verified INTEGER DEFAULT 0,
     created_at TEXT DEFAULT (datetime('now')), updated_at TEXT DEFAULT (datetime('now')));
   `);
-  for (const [id, role] of [["admin1","admin"],["super1","super_admin"],["hr1","user"],["emp1","user"],["target1","user"]]) {
+  for (const [id, role] of [["admin1","admin"],["super1","super_admin"],["hr1","user"],["emp1","user"],["target1","user"],["fake","user"]]) {
     pre.prepare("INSERT INTO users (id,name,email,role) VALUES (?,?,?,?)").run(id, id, id + "@x.com", role);
   }
   pre.close();
@@ -35,6 +35,7 @@ const ok = (c, m) => { if (c) console.log("  ✅ " + m); else { console.log("  �
     .run("cm_" + uid, "co1", uid, role);
   addM("hr1", "hr");
   addM("emp1", "member");
+  db.prepare("INSERT INTO corporate_companies (id,name,contact_email,status) VALUES ('co2','公司2','fake@x.com','active')").run();
 
   const router = require("../src/routes/corporate");
   const getHandler = (method, routePath) => {
@@ -68,6 +69,19 @@ const ok = (c, m) => { if (c) console.log("  ✅ " + m); else { console.log("  �
   ok(self.statusCode === 200, "可以睇自己資料");
   const hrPeek = call(employee, { user: { id: "hr1" }, params: { userId: "target1" }, query: {} });
   ok(hrPeek.statusCode === 200, "HR 可以睇員工資料");
+
+  const dashLayer = router.stack.find((l) => l.route && l.route.path === "/my/hr-dashboard");
+  const dash = dashLayer.route.stack[dashLayer.route.stack.length - 1].handle;
+  const dashCall = (uid) => {
+    const res = { statusCode: 200 };
+    res.status = (c) => { res.statusCode = c; return res; };
+    res.json = (x) => { res.body = x; return res; };
+    dash({ user: { id: uid, email: "fake@x.com" }, query: {} }, res);
+    return res;
+  };
+  ok(dashCall("fake").statusCode === 403, "未驗證 email 唔可以用 contact_email 冒充 HR");
+  db.prepare("UPDATE users SET email_verified = 1 WHERE id='fake'").run();
+  ok(dashCall("fake").statusCode === 200, "已驗證 email 可以入 HR dashboard");
 
   const src = fs.readFileSync(path.join(__dirname, "../src/routes/corporate.js"), "utf8");
   ok(/\["admin", "super_admin"\]\.includes\(u\.role\)/.test(src), "isAdmin 接受 super_admin");

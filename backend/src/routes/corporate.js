@@ -311,7 +311,7 @@ router.get("/my-company", authenticateToken, (req, res) => {
       SELECT cc.id, cc.name as company_name, cc.credit_pool, cc.credit_used,
         (cc.credit_pool - cc.credit_used) as available_credits,
         cc.status,
-        COALESCE(cm.monthly_credit_limit, 0) as monthly_credit_limit,
+        COALESCE(cm.monthly_limit, 0) as monthly_credit_limit,
         COALESCE(cm.monthly_credit_used, 0) as monthly_credit_used
       FROM corporate_members cm
       JOIN corporate_companies cc ON cm.company_id = cc.id
@@ -335,7 +335,7 @@ router.patch("/members/:memberId/limit", authenticateToken, (req, res) => {
       return res.status(400).json({ success: false, error: "請輸入有效上限" });
     }
     const db = getDb();
-    db.prepare("UPDATE corporate_members SET monthly_credit_limit = ?, updated_at = datetime('now') WHERE id = ?")
+    db.prepare("UPDATE corporate_members SET monthly_limit = ?, updated_at = datetime('now') WHERE id = ?")
       .run(monthly_credit_limit, req.params.memberId);
 
     try {
@@ -360,6 +360,12 @@ router.get("/my/hr-dashboard", authenticateToken, (req, res) => {
       WHERE contact_email = ? AND status = 'active'
     `).get(req.user.email);
 
+    // contact_email 只算已驗證電郵（防止有人註冊相同 email 冒充 HR）
+    if (company) {
+      const acct = db.prepare("SELECT email_verified FROM users WHERE id = ?").get(req.user.id);
+      if (!acct || !acct.email_verified) company = null;
+    }
+
     if (!company) {
       // Fallback: user is a corporate member
       const member = db.prepare(`
@@ -375,7 +381,7 @@ router.get("/my/hr-dashboard", authenticateToken, (req, res) => {
     // Employee list with usage
     const employees = db.prepare(`
       SELECT u.id, u.name, u.email, u.last_visit,
-        COALESCE(cm.monthly_credit_limit, 0) as monthly_limit,
+        COALESCE(cm.monthly_limit, 0) as monthly_limit,
         COALESCE(cm.monthly_credit_used, 0) as monthly_used,
         (SELECT COUNT(*) FROM bookings WHERE user_id = u.id AND status IN ('confirmed','attended') AND created_at >= datetime('now', '-30 days')) as bookings_30d,
         cm.joined_at as joined_at
@@ -465,7 +471,7 @@ router.get("/my/employee/:userId", authenticateToken, (req, res) => {
     res.json({
       user,
       bookings,
-      monthly_limit: targetMember.monthly_credit_limit,
+      monthly_limit: targetMember.monthly_limit,
       monthly_used: targetMember.monthly_credit_used
     });
   } catch (err) {
