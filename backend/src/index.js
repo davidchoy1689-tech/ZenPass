@@ -753,6 +753,21 @@ function runWalletReconcile() {
 setInterval(runWalletReconcile, 6 * 60 * 60 * 1000);
 setTimeout(runWalletReconcile, 90000);
 
+// ===== 通知清理（每日；財務類永久保留）=====
+function runNotificationCleanup() {
+  try {
+    const { cleanupNotifications } = require("./services/notification-cleanup");
+    const r = cleanupNotifications();
+    if (r.read_deleted || r.unread_deleted) {
+      console.log(`[NOTIFY-CLEANUP] 已讀 ${r.read_deleted} / 未讀 ${r.unread_deleted} 條`);
+    }
+  } catch (e) {
+    console.error("[NOTIFY-CLEANUP] error:", e.message);
+  }
+}
+setInterval(runNotificationCleanup, 24 * 60 * 60 * 1000);
+setTimeout(runNotificationCleanup, 5 * 60 * 1000);
+
 // ===== 租場完成自動標記（end_time 過去 + 已付款）=====
 function completeVenueRentals() {
   try {
