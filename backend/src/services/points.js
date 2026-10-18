@@ -190,6 +190,16 @@ function adjustPoints(userId, delta, { adminId = null, reason = "" } = {}) {
     console.error("⚠️ Blockchain write failed (points adjust):", e.message);
   }
 
+  try {
+    const { sendNotification } = require("./notification");
+    sendNotification("points.adjusted", {
+      recipient: userId,
+      data: { delta: n, reason: why, balance: res ? res.points : before },
+    });
+  } catch (e) {
+    console.error("⚠️ Notify failed (points adjust):", e.message);
+  }
+
   return { user_id: userId, before, delta: n, balance: res ? res.points : before, reason: why };
 }
 

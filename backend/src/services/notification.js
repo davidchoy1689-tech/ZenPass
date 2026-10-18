@@ -251,6 +251,11 @@ async function sendNotification(type, payload) {
       message = `你嘅${data?.kind_label || "健康諮詢"}申請已取消${data?.admin_note ? `（原因：${data.admin_note}）` : ""}。名額已退回，可以重新申請。`;
       html = `<h2>健康諮詢申請已取消</h2><p>你嘅${data?.kind_label || "健康諮詢"}申請已取消${data?.admin_note ? `（原因：${data.admin_note}）` : ""}。</p>`;
       break;
+    case "points.adjusted":
+      title = "積分已調整";
+      message = `🏅 你嘅積分已調整 ${data?.delta > 0 ? "+" : ""}${data?.delta || 0} 分${data?.reason ? `（${data.reason}）` : ""}\n最新餘額：${data?.balance ?? "—"} 分`;
+      html = `<h2>🏅 積分已調整</h2><p>調整：<b>${data?.delta > 0 ? "+" : ""}${data?.delta || 0}</b> 分${data?.reason ? `<br><b>原因：</b>${data.reason}` : ""}<br><b>最新餘額：</b>${data?.balance ?? "—"} 分</p>`;
+      break;
     case "points.expiry_soon":
       title = "積分即將到期";
       message = `⏳ 你嘅 ${data?.points || 0} 積分將於 ${data?.expires_on || "30 日內"} 到期（連續 12 個月無積分活動）。快啲去積分頁兌換啦！`;

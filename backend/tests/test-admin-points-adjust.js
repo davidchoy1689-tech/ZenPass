@@ -35,7 +35,10 @@ const ok = (c, m) => { if (c) console.log("  ✅ " + m); else { console.log("  �
   console.log("🧪 管理員調整積分 tests");
 
   const a1 = adjustPoints("u1", 50, { adminId: "admin1", reason: "課堂延誤補償" });
+  await new Promise((r) => setTimeout(r, 60));
   ok(a1.before === 100 && a1.balance === 150, "+50 → 100 變 150");
+  const pn = db.prepare("SELECT * FROM notifications WHERE user_id='u1' AND type='points.adjusted'").get();
+  ok(!!pn && /\+50/.test(pn.message) && /補償/.test(pn.message), "通知用戶積分調整（+50 + 原因）");
   ok(db.prepare("SELECT points FROM users WHERE id='u1'").get().points === 150, "DB 已更新");
 
   const tx = db.prepare("SELECT * FROM points_transactions WHERE user_id='u1' AND source='admin' ORDER BY created_at DESC").get();
