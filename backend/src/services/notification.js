@@ -231,6 +231,26 @@ async function sendNotification(type, payload) {
 現有 Credits：${data?.new_balance || 0}`;
       html = `<h2>🤖 Auto Top-up 完成</h2><p><b>已加購：</b>${data?.bundle_label || ""}<br><b>新增：</b>${data?.credits_added || 0} Credits<br><b>金額：</b>HK$${data?.amount_paid || 0}<br><b>現有 Credits：</b>${data?.new_balance || 0}</p>`;
       break;
+    case "consultation.requested":
+      title = "🧑‍⚕️ 新健康諮詢申請";
+      message = `會員：${data?.user_name || "—"}\n類型：${data?.kind_label || "—"}\n希望時間：${data?.preferred_time || "未指定"}\n備註：${data?.notes || "—"}\n請去 Admin → 健康諮詢 安排。`;
+      html = `<h2>🧑‍⚕️ 新健康諮詢申請</h2><p><b>會員：</b>${data?.user_name || "—"}<br><b>類型：</b>${data?.kind_label || "—"}<br><b>希望時間：</b>${data?.preferred_time || "未指定"}<br><b>備註：</b>${data?.notes || "—"}</p>`;
+      break;
+    case "consultation.scheduled":
+      title = "📅 健康諮詢已安排";
+      message = `你嘅${data?.kind_label || "健康諮詢"}已安排：${data?.scheduled_at || "—"}${data?.admin_note ? `\n備註：${data.admin_note}` : ""}`;
+      html = `<h2>📅 健康諮詢已安排</h2><p>你嘅 <b>${data?.kind_label || "健康諮詢"}</b> 已安排：<b>${data?.scheduled_at || "—"}</b>${data?.admin_note ? `<br><b>備註：</b>${data.admin_note}` : ""}</p>`;
+      break;
+    case "consultation.completed":
+      title = "✅ 健康諮詢已完成";
+      message = `多謝你完成今次${data?.kind_label || "健康諮詢"}！有意見可以喺 App 內反映。`;
+      html = `<h2>✅ 健康諮詢已完成</h2><p>多謝你完成今次${data?.kind_label || "健康諮詢"}！</p>`;
+      break;
+    case "consultation.cancelled":
+      title = "健康諮詢申請已取消";
+      message = `你嘅${data?.kind_label || "健康諮詢"}申請已取消${data?.admin_note ? `（原因：${data.admin_note}）` : ""}。名額已退回，可以重新申請。`;
+      html = `<h2>健康諮詢申請已取消</h2><p>你嘅${data?.kind_label || "健康諮詢"}申請已取消${data?.admin_note ? `（原因：${data.admin_note}）` : ""}。</p>`;
+      break;
     case "points.expiry_soon":
       title = "積分即將到期";
       message = `⏳ 你嘅 ${data?.points || 0} 積分將於 ${data?.expires_on || "30 日內"} 到期（連續 12 個月無積分活動）。快啲去積分頁兌換啦！`;

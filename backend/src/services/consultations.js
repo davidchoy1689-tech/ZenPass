@@ -173,6 +173,30 @@ function requestConsultation(userId, body = {}) {
     console.error("⚠️ Blockchain write failed (consultation):", e.message);
   }
 
+  // 通知管理員（站內 + Email，跟 notification 設定）
+  try {
+    const { sendNotification } = require("./notification");
+    const admins = db
+      .prepare(
+        "SELECT id FROM users WHERE role IN ('admin','super_admin','platform_manager')",
+      )
+      .all();
+    const me = db.prepare("SELECT name, email FROM users WHERE id = ?").get(userId) || {};
+    for (const a of admins) {
+      sendNotification("consultation.requested", {
+        recipient: a.id,
+        data: {
+          user_name: me.name || me.email || userId,
+          kind_label: KIND_LABEL[kind],
+          preferred_time: preferred,
+          notes,
+        },
+      });
+    }
+  } catch (e) {
+    console.error("⚠️ Admin notify failed (consultation):", e.message);
+  }
+
   return {
     id,
     kind,
@@ -229,7 +253,27 @@ function updateByAdmin(id, { status, scheduled_at, admin_note, adminId } = {}) {
     });
   } catch (e) {}
 
-  return db.prepare("SELECT * FROM consultations WHERE id = ?").get(id);
+  const updated = db.prepare("SELECT * FROM consultations WHERE id = ?").get(id);
+
+  // 通知會員（安排／完成／取消）
+  const notifyType = { scheduled: "consultation.scheduled", completed: "consultation.completed", cancelled: "consultation.cancelled" }[status];
+  if (notifyType && updated) {
+    try {
+      const { sendNotification } = require("./notification");
+      sendNotification(notifyType, {
+        recipient: row.user_id,
+        data: {
+          kind_label: KIND_LABEL[row.kind],
+          scheduled_at: updated.scheduled_at,
+          admin_note: updated.admin_note,
+        },
+      });
+    } catch (e) {
+      console.error("⚠️ Member notify failed (consultation):", e.message);
+    }
+  }
+
+  return updated;
 }
 
 module.exports = {

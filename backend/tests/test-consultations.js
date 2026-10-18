@@ -28,6 +28,7 @@ const ok = (c, m) => { if (c) console.log("  ✅ " + m); else { console.log("  �
   u("lite_u", "lite");
   u("none_u", "none");
   u("viptier_u", "none");
+  u("admin_x", "none");
   pre.close();
 
   const initDatabase = require("../src/config/init-db");
@@ -35,6 +36,7 @@ const ok = (c, m) => { if (c) console.log("  ✅ " + m); else { console.log("  �
 
   const { getDb } = require("../src/services/database");
   const db = getDb();
+  db.prepare("UPDATE users SET role = 'admin' WHERE id = 'admin_x'").run();
   const { requestConsultation, getQuotaSummary, listMine, listForAdmin, updateByAdmin } = require("../src/services/consultations");
 
   console.log("🧪 健康諮詢／身體評估 tests");
@@ -60,6 +62,8 @@ const ok = (c, m) => { if (c) console.log("  ✅ " + m); else { console.log("  �
   console.log("── 高階 Pass：每月 1 次 ──");
   const s1 = requestConsultation("silver_u", { notes: "想改善肩頸" });
   ok(s1.kind === "member" && s1.status === "pending", "提交本人諮詢成功");
+  await new Promise((r) => setTimeout(r, 60));
+  ok(!!db.prepare("SELECT 1 FROM notifications WHERE user_id='admin_x' AND type='consultation.requested'").get(), "提交後通知 admin");
   ok(s1.remaining.member === 0, "剩餘 0 次");
   const s2 = (() => { try { requestConsultation("silver_u", {}); return null; } catch (e) { return e; } })();
   ok(s2 && s2.status === 409, "同一月第二次 → 409");
@@ -92,6 +96,9 @@ const ok = (c, m) => { if (c) console.log("  ✅ " + m); else { console.log("  �
   ok(pending[0].user_name, "有會員名稱");
   const upd = updateByAdmin(again.id, { status: "scheduled", scheduled_at: "2026-11-01 15:00", adminId: "admin1", admin_note: "中環工作室" });
   ok(upd.status === "scheduled" && upd.scheduled_at === "2026-11-01 15:00", "安排時間成功");
+  await new Promise((r) => setTimeout(r, 60));
+  const mNotif = db.prepare("SELECT * FROM notifications WHERE user_id='silver_u' AND type='consultation.scheduled'").get();
+  ok(!!mNotif && /2026-11-01 15:00/.test(mNotif.message), "安排後通知會員（含時間）");
   const bad = (() => { try { updateByAdmin(again.id, { status: "weird" }); return null; } catch (e) { return e; } })();
   ok(bad && bad.status === 400, "無效狀態 → 400");
   const nf = (() => { try { updateByAdmin("nope", { status: "completed" }); return null; } catch (e) { return e; } })();
