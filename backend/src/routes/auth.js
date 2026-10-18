@@ -153,6 +153,32 @@ router.post("/register", (req, res) => {
 });
 
 // ===== POST /api/auth/login - 電郵登入 =====
+// 登入失敗節流（按 email，記憶體；重啟清零）
+const loginFailures = new Map();
+const LOGIN_MAX_FAILS = 10;
+const LOGIN_WINDOW_MS = 15 * 60 * 1000;
+function loginBlocked(email) {
+  const rec = loginFailures.get(email);
+  if (!rec) return false;
+  if (Date.now() - rec.firstAt > LOGIN_WINDOW_MS) {
+    loginFailures.delete(email);
+    return false;
+  }
+  return rec.count >= LOGIN_MAX_FAILS;
+}
+function recordLoginFailure(email) {
+  const rec = loginFailures.get(email);
+  if (!rec || Date.now() - rec.firstAt > LOGIN_WINDOW_MS) {
+    loginFailures.set(email, { count: 1, firstAt: Date.now() });
+  } else {
+    rec.count++;
+  }
+}
+function clearLoginFailures(email) {
+  loginFailures.delete(email);
+}
+
+
 router.post("/login", (req, res) => {
   try {
     const { email, password } = req.body;
@@ -164,10 +190,19 @@ router.post("/login", (req, res) => {
     const db = getDb();
     db.pragma("foreign_keys = ON");
 
+    const emailKey = String(email).trim().toLowerCase();
+    const attemptKey = emailKey + "|" + (req.ip || "");
+    if (loginBlocked(attemptKey)) {
+      return res.status(429).json({
+        success: false,
+        error: "登入嘗試太多次，請 15 分鐘後再試",
+      });
+    }
+
     const user = db.prepare("SELECT * FROM users WHERE email = ?").get(email);
 
     if (!user) {
-
+      recordLoginFailure(attemptKey);
       return res.status(401).json({ success: false, error: "電郵或密碼不正確" });
     }
 
@@ -180,10 +215,11 @@ router.post("/login", (req, res) => {
     }
 
     if (!bcrypt.compareSync(password, user.password_hash)) {
-
+      recordLoginFailure(attemptKey);
       return res.status(401).json({ success: false, error: "電郵或密碼不正確" });
     }
 
+    clearLoginFailures(attemptKey);
     const token = generateToken(user);
 
     const { password_hash, ...userData } = user;
