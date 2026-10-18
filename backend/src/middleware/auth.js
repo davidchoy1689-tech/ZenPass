@@ -184,9 +184,15 @@ function requireCoach(req, res, next) {
     }
 
     // Coach via role-based RBAC or legacy is_coach flag
-    const isCoachViaRole =
-      hasMinimumRole(user.role, "coach") &&
-      !hasMinimumRole(user.role, "partner_staff");
+    // 注意：角色等級數字愈細愈高，admin（3）比 coach（7）高，之前用
+    // !hasMinimumRole(role,"partner_staff") 會連 admin 都排除。
+    const isCoachViaRole = [
+      "super_admin",
+      "platform_manager",
+      "platform_staff",
+      "admin",
+      "coach",
+    ].includes(user.role);
     if (!user.is_coach && !isCoachViaRole) {
       return res.status(403).json({ error: "需要教練權限" });
     }

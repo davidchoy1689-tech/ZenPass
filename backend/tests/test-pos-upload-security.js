@@ -22,6 +22,7 @@ const ok = (c, m) => { if (c) console.log("  ✅ " + m); else { console.log("  �
   `);
   pre.prepare("INSERT INTO users (id,name,email,role,is_coach) VALUES ('u1','普通','u@x.com','user',0)").run();
   pre.prepare("INSERT INTO users (id,name,email,role,is_coach) VALUES ('c1','教練','c@x.com','coach',1)").run();
+  pre.prepare("INSERT INTO users (id,name,email,role,is_coach) VALUES ('admin1','Admin','a@x.com','admin',0)").run();
   pre.close();
 
   const initDatabase = require("../src/config/init-db");
@@ -48,6 +49,7 @@ const ok = (c, m) => { if (c) console.log("  ✅ " + m); else { console.log("  �
   ok(!normal.next && normal.status === 403, "普通用戶記錄銷售 → 403");
   const coach = callGuard("c1");
   ok(coach.next, "教練可以記錄銷售");
+  ok(callGuard("admin1").next, "admin 可以用 POS");
 
   const posSrc = fs.readFileSync(path.join(__dirname, "../src/routes/pos.js"), "utf8");
   ok((posSrc.match(/authenticateToken, requireCoach/g) || []).length === 6, "POS 5 個 route 都 requireCoach（含 import）");

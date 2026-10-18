@@ -23,6 +23,7 @@ const ok = (c, m) => { if (c) console.log("  ✅ " + m); else { console.log("  �
   `);
   pre.prepare("INSERT INTO users (id,name,email,role) VALUES ('u1','普通','u@x.com','user')").run();
   pre.prepare("INSERT INTO users (id,name,email,role) VALUES ('c1','教練','c@x.com','coach')").run();
+  pre.prepare("INSERT INTO users (id,name,email,role) VALUES ('admin1','Admin','a@x.com','admin')").run();
   pre.close();
 
   const initDatabase = require("../src/config/init-db");
@@ -47,6 +48,7 @@ const ok = (c, m) => { if (c) console.log("  ✅ " + m); else { console.log("  �
   const normal = call("u1");
   ok(!normal.next && normal.status === 403, "普通用戶睇學生名單 → 403");
   ok(call("c1").next, "教練可以睇學生名單");
+  ok(call("admin1").next, "admin 都可以用 CRM（之前被 requireCoach 錯誤排除）");
 
   const src = fs.readFileSync(path.join(__dirname, "../src/routes/crm.js"), "utf8");
   ok((src.match(/authenticateToken, requireCoach/g) || []).length === 6, "5 個 CRM route + import 都 requireCoach（含 import 行）");
