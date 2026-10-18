@@ -12,6 +12,7 @@ const express = require("express");
 const { authenticateToken } = require("../middleware/auth");
 const { submitReview, summary } = require("../services/mutual-review");
 const { getDb } = require("../services/database");
+const { awardPointsOnce, EARN_RULES } = require("../services/points");
 
 const router = express.Router();
 
@@ -34,7 +35,30 @@ router.post("/submit", authenticateToken, (req, res) => {
       reasons,
       comment,
     });
-    res.status(201).json({ success: true, message: "✅ 已提交（匿名），多謝你嘅意見", data: out });
+    // 課後評價 → 學生賺積分（每張 booking 只發一次；評教練／評場地共用）
+    let pointsAwarded = 0;
+    if (rater_role === "student" && context_type === "booking" && context_id) {
+      try {
+        const award = awardPointsOnce(req.user.id, {
+          points: EARN_RULES.review,
+          source: "review",
+          referenceId: String(context_id),
+          description: "⭐ 課後評價",
+        });
+        if (award && award.awarded) pointsAwarded = award.awarded;
+      } catch (e) {
+        console.error("⚠️ Points award failed (mutual review):", e.message);
+      }
+    }
+
+    res.status(201).json({
+      success: true,
+      message: pointsAwarded
+        ? `✅ 已提交（匿名），多謝你嘅意見 · +${pointsAwarded} 積分 🎁`
+        : "✅ 已提交（匿名），多謝你嘅意見",
+      points_awarded: pointsAwarded,
+      data: out,
+    });
   } catch (err) {
     const code = err.status || 500;
     if (code >= 500) console.error("mutual-reviews/submit error:", err.message);

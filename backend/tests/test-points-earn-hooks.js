@@ -135,6 +135,13 @@ const ok = (c, m) => { if (c) console.log("  ✅ " + m); else { console.log("  �
   const referralSrc = fs.readFileSync(path.join(__dirname, "../src/routes/referral.js"), "utf8");
   ok(/awardPointsOnce\(/.test(reviewsSrc) && /source:\s*"review"/.test(reviewsSrc), "reviews 路由已接積分");
   ok(/awardPointsOnce\(/.test(referralSrc) && /source:\s*"referral"/.test(referralSrc), "referral 路由已接積分");
+  const mutualSrc = fs.readFileSync(path.join(__dirname, "../src/routes/mutual-reviews.js"), "utf8");
+  ok(/awardPointsOnce\(/.test(mutualSrc) && /source:\s*"review"/.test(mutualSrc), "真正前端用嘅 mutual-reviews 路由已接積分");
+  ok(/context_type === "booking"/.test(mutualSrc) && /rater_role === "student"/.test(mutualSrc), "只限學生評課堂先加分");
+  ok(/referenceId:\s*booking_id/.test(reviewsSrc), "舊 reviews 路由用 booking id 去重（唔會同新路由雙重加分）");
+  const npsSrc = fs.readFileSync(path.join(__dirname, "../src/routes/nps.js"), "utf8");
+  ok(/awardPointsOnce\(/.test(npsSrc) && /source:\s*"review"/.test(npsSrc), "NPS 課後問卷同樣 +20");
+  ok(/referenceId:\s*String\(booking_id\)/.test(npsSrc), "NPS 用 booking id 去重（唔會與評分雙重加）");
 
   console.log(fail === 0 ? "\n🎉 全部通過" : `\n❌ ${fail} 項失敗`);
   process.exit(fail === 0 ? 0 : 1);

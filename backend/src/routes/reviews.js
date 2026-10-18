@@ -139,7 +139,7 @@ router.post("/", authenticateToken, (req, res) => {
         const award = awardPointsOnce(from_user_id, {
           points: EARN_RULES.review,
           source: "review",
-          referenceId: reviewId,
+          referenceId: booking_id,
           description: `⭐ 課後評價（${booking.class_title || booking_id}）`,
         });
         if (award && award.awarded) pointsAwarded = award.awarded;

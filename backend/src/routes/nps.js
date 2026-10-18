@@ -9,6 +9,7 @@
 const express = require("express");
 const { getDb } = require("../services/database");
 const { authenticateToken, requireAdmin } = require("../middleware/auth");
+const { awardPointsOnce, EARN_RULES } = require("../services/points");
 
 const router = express.Router();
 
@@ -89,9 +90,26 @@ router.post("/submit", authenticateToken, (req, res) => {
       )
       .run(booking_id, req.user.id, ratingNum, (comment || "").trim(), would_recommend ? 1 : 0);
 
+    // 課後評價 → +20（同 booking 只發一次；同 ⭐ 評分共用去重鍵）
+    let pointsAwarded = 0;
+    try {
+      const award = awardPointsOnce(req.user.id, {
+        points: EARN_RULES.review,
+        source: "review",
+        referenceId: String(booking_id),
+        description: "⭐ 課後評價（NPS）",
+      });
+      if (award && award.awarded) pointsAwarded = award.awarded;
+    } catch (e) {
+      console.error("⚠️ Points award failed (nps):", e.message);
+    }
+
     res.status(201).json({
       success: true,
-      message: "多謝你嘅評價！你的意見幫助我哋變得更好 🙏",
+      message: pointsAwarded
+        ? `多謝你嘅評價！+${pointsAwarded} 積分 🎁`
+        : "多謝你嘅評價！你的意見幫助我哋變得更好 🙏",
+      points_awarded: pointsAwarded,
       id: result.lastInsertRowid,
     });
   } catch (err) {
