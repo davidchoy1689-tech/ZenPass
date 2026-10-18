@@ -11,10 +11,11 @@ const { v4: uuidv4 } = require("uuid");
 
 // 各計劃帶嘅權益（key → value）
 const PLAN_ENTITLEMENTS = {
-  lite: { priority_booking: 1, free_cancel: 1 },
-  standard: { priority_booking: 1, free_cancel: 1, premium_peak: 1 },
-  silver: { priority_booking: 2, free_cancel: 1, unlimited_cancel: 1, pt_sessions: 1 },
-  gold: { priority_booking: 3, free_cancel: 1, unlimited_cancel: 1, pt_sessions: 2, dedicated_support: 1 },
+  // 優先預約：只限 VIP Pass（David 2026-10-18 定）
+  lite: { free_cancel: 1 },
+  standard: { free_cancel: 1, premium_peak: 1 },
+  silver: { free_cancel: 1, unlimited_cancel: 1, pt_sessions: 1 },
+  gold: { priority_booking: 3, free_cancel: 1, unlimited_cancel: 1, pt_sessions: 2, vip_guest: 1, dedicated_support: 1 },
 };
 
 /**

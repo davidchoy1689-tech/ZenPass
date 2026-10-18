@@ -39,7 +39,7 @@
     const st = (s) => ({ confirmed:"已確認", attended:"已出席", pending_payment:"待付款", cancelled:"已取消", no_show:"缺席", pending:"待處理", approved:"已通過", rejected:"已拒絕", active:"生效" }[s] || s || "");
 
     const TABS = [
-      ["dash","概覽"], ["pay","付款核實"], ["topup","增值待確認"], ["morder","會籍待確認"], ["fulfil","兌換待履行"], ["inq","查詢"], ["classes","課程"],
+      ["dash","概覽"], ["pay","付款核實"], ["topup","增值待確認"], ["morder","會籍待確認"], ["fulfil","兌換待履行"], ["consult","健康諮詢"], ["inq","查詢"], ["classes","課程"],
       ["bookings","預約"], ["users","用戶"], ["coach","教練申請"], ["payouts","出糧"],
       ["reports","報表"], ["corp","企業"], ["partners","商戶"], ["jobs","Job"], ["pricing","定價"], ["penalty","罰則"], ["analytics","分析"], ["nps","評價"], ["promo","優惠碼"], ["marketing","推廣"], ["migrate","遷移"], ["audit","審計"],
     ];
@@ -61,6 +61,7 @@
         if (cur === "topup") return topupOrders();
         if (cur === "morder") return membershipOrders();
         if (cur === "fulfil") return redemptionFulfil();
+        if (cur === "consult") return consultationsTab();
         if (cur === "inq") return inquiries();
         if (cur === "classes") return clsTab();
         if (cur === "bookings") return listGeneric("/admin/bookings?limit=100", "bookings", bkRow, "預約");
@@ -277,6 +278,43 @@
         if (rr.ok) { alert(rr.data.message || "已回復"); openUser(id); }
         else alert((rr.data&&rr.data.error)||"回復失敗");
       };
+    }
+
+    async function consultationsTab() {
+      const r = await api.get("/consultations/admin/list?status=pending");
+      if (r.status === 401 || r.status === 403) return needAdmin();
+      const arr = (r.data && r.data.data) || [];
+      if (!arr.length) { panel().innerHTML = `<div class="card"><div class="body muted center">目前冇待安排諮詢 ✅</div></div>`; return; }
+      panel().innerHTML = arr.map(c => `<div class="card" data-cid="${esc2(c.id)}"><div class="body">
+        <div style="display:flex;justify-content:space-between"><b>${esc2(c.user_name || c.user_email || "會員")}</b>
+          <span class="pill">${c.kind === "vip_guest" ? "🎫 邀請朋友" : "🧑‍⚕️ 本人"}</span></div>
+        <p class="kv">${esc2(c.user_email || "")}${c.user_phone ? " · " + esc2(c.user_phone) : ""}</p>
+        ${c.guest_name ? `<p class="kv">朋友：${esc2(c.guest_name)}${c.guest_phone ? " · " + esc2(c.guest_phone) : ""}</p>` : ""}
+        ${c.preferred_time ? `<p class="kv">希望時間：${esc2(String(c.preferred_time).replace("T", " "))}</p>` : ""}
+        ${c.notes ? `<p class="kv">備註：${esc2(c.notes)}</p>` : ""}
+        <p class="kv">${esc2(String(c.created_at || "").slice(0, 16))}</p>
+        <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+          <button class="btn btn-primary" data-cact="schedule" style="flex:1">📅 安排時間</button>
+          <button class="btn btn-secondary" data-cact="completed" style="flex:1">✅ 已完成</button>
+          <button class="btn btn-ghost" data-cact="cancelled">✖ 取消</button>
+        </div>
+      </div></div>`).join("");
+      panel().querySelectorAll("[data-cact]").forEach(b => b.onclick = async () => {
+        const id = b.closest(".card").dataset.cid;
+        const act = b.dataset.cact;
+        let body = { status: act };
+        if (act === "schedule") {
+          const t = prompt("安排時間（YYYY-MM-DD HH:MM）", "");
+          if (!t) return;
+          body = { status: "scheduled", scheduled_at: t };
+        }
+        if (act === "cancelled" && !confirm("確定取消此申請？")) return;
+        b.disabled = true;
+        const rr = await api.patch("/consultations/admin/" + encodeURIComponent(id), body);
+        if (rr.ok) return load();
+        b.disabled = false;
+        alert((rr.data && rr.data.error) || "更新失敗");
+      });
     }
 
     async function npsTab() {

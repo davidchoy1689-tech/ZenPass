@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#ff6b35" />
+  <title>健康諮詢 · ZenPass 禪流</title>
+  <link rel="stylesheet" href="assets/v2.css?v=27" />
+  <style>
+    .quota{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+    .qchip{background:#fff7ed;border:1px solid #fed7aa;border-radius:999px;padding:6px 12px;font-size:12.5px;font-weight:700;color:var(--brand-700)}
+    .qchip.zero{background:#f3f4f6;border-color:#e5e7eb;color:#6b7280}
+    .st{font-size:11.5px;font-weight:700;padding:2px 8px;border-radius:999px;background:#f3f4f6;color:#6b7280}
+    .st.pending{background:#fef3c7;color:#b45309}.st.scheduled{background:#dbeafe;color:#1d4ed8}
+    .st.completed{background:#dcfce7;color:#15803d}.st.cancelled{background:#fee2e2;color:#b91c1c}
+  </style>
+</head>
+<body>
+  <div class="topbar"><a class="back" href="my.html">‹</a><div class="title">一對一健康諮詢</div></div>
+  <div class="wrap">
+    <div id="quota"><div class="card"><div class="body muted">載入中…</div></div></div>
+
+    <div id="formWrap" style="display:none">
+      <div class="section-title" style="margin-top:16px">📋 提交申請</div>
+      <div class="card"><div class="body">
+        <label class="lbl">服務類型</label>
+        <select class="fld" id="kind"></select>
+        <div id="guestFields" style="display:none;margin-top:10px">
+          <label class="lbl">朋友姓名 *</label>
+          <input class="fld" id="guestName" placeholder="朋友姓名" />
+          <label class="lbl" style="margin-top:10px">朋友電話（可選）</label>
+          <input class="fld" id="guestPhone" inputmode="tel" placeholder="例：9123 4567" />
+        </div>
+        <label class="lbl" style="margin-top:10px">希望時間（可選）</label>
+        <input class="fld" id="pref" type="datetime-local" />
+        <label class="lbl" style="margin-top:10px">備註（可選）</label>
+        <textarea class="fld" id="notes" rows="3" placeholder="例如：想喺中環區、平日晚上；身體狀況／目標"></textarea>
+        <button class="btn btn-primary btn-block" id="send" style="margin-top:12px">提交申請</button>
+        <div class="muted" style="font-size:12px;margin-top:8px">提交後職員會聯絡你確認時間及地點。每月名額以香港時間計算，取消唔計。</div>
+      </div></div>
+    </div>
+
+    <div class="section-title" style="margin-top:18px">📖 申請紀錄</div>
+    <div class="card" id="records"><div class="body muted">載入中…</div></div>
+
+    <div class="card" style="margin-top:14px"><div class="body muted" style="font-size:12.5px">
+      👑 VIP Pass：每月 2 次（本人）＋1 次免費邀請朋友<br />
+      🥈 高階 Pass：每月 1 次（本人）<br />
+      諮詢內容：一對一健康諮詢／身體評估（由專業教練進行）
+    </div></div>
+    <div class="spacer"></div>
+  </div>
+  <nav class="bottomnav">
+    <a href="index.html"><span class="ic">🏠</span>主頁</a>
+    <a href="explore.html"><span class="ic">🔍</span>探索</a>
+    <a href="booking.html"><span class="ic">📅</span>預約</a>
+    <a class="active" href="my.html"><span class="ic">🎫</span>我的</a>
+  </nav>
+  <script src="assets/api.js?v=2"></script>
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const ST = { pending: "待安排", scheduled: "已安排", completed: "已完成", cancelled: "已取消" };
+    let data = null;
+
+    async function load() {
+      const r = await api.get("/consultations/my");
+      if (!r.ok) { $("quota").innerHTML = `<div class="card"><div class="body muted">載入失敗，請重新登入。</div></div>`; return; }
+      data = r.data.data || r.data;
+      renderQuota(); renderForm(); renderRecords();
+    }
+
+    function renderQuota() {
+      const d = data || {};
+      if (!d.plan) {
+        $("quota").innerHTML = `<div class="card"><div class="body center">
+          <b>此服務只限高階 Pass／VIP Pass 會員</b>
+          <div class="muted" style="font-size:13px;margin:8px 0">升級會籍即可享用一對一健康諮詢／身體評估。</div>
+          <a class="btn btn-primary" href="memberships.html">睇會籍計劃</a>
+        </div></div>`;
+        return;
+      }
+      const q = d.quota || {}, u = d.used || {}, rem = d.remaining || {};
+      const chips = [];
+      if (q.member) chips.push(`<span class="qchip ${rem.member ? "" : "zero"}">本人：剩 ${rem.member} / ${q.member} 次</span>`);
+      if (q.vip_guest) chips.push(`<span class="qchip ${rem.vip_guest ? "" : "zero"}">邀請朋友：剩 ${rem.vip_guest} / ${q.vip_guest} 次</span>`);
+      $("quota").innerHTML = `<div class="card"><div class="body">
+        <b>${d.plan === "gold" ? "👑 VIP Pass" : "🥈 高階 Pass"}</b>
+        <div class="muted" style="font-size:12.5px">今個月（${d.period}）名額</div>
+        <div class="quota">${chips.join("")}</div>
+      </div></div>`;
+    }
+
+    function renderForm() {
+      const d = data || {};
+      if (!d.plan) { $("formWrap").style.display = "none"; return; }
+      const rem = d.remaining || {};
+      const opts = [];
+      if (rem.member > 0) opts.push(`<option value="member">本人 — 健康諮詢／身體評估</option>`);
+      if (rem.vip_guest > 0) opts.push(`<option value="vip_guest">邀請朋友（免費）— 健康諮詢／身體評估</option>`);
+      if (!opts.length) {
+        $("formWrap").style.display = "none";
+        return;
+      }
+      $("kind").innerHTML = opts.join("");
+      $("formWrap").style.display = "block";
+      $("kind").onchange = () => {
+        $("guestFields").style.display = $("kind").value === "vip_guest" ? "block" : "none";
+      };
+      $("kind").onchange();
+    }
+
+    function renderRecords() {
+      const arr = (data && data.records) || [];
+      const labels = (data && data.kind_labels) || {};
+      $("records").innerHTML = arr.length ? arr.map(r => `<div class="body" style="border-bottom:1px solid var(--border);padding:10px 0">
+        <div style="display:flex;justify-content:space-between;gap:8px">
+          <b>${r.kind === "vip_guest" ? "🎫 邀請朋友" : "🧑‍⚕️ 本人諮詢"}</b>
+          <span class="st ${r.status}">${ST[r.status] || r.status}</span>
+        </div>
+        <div class="muted" style="font-size:12.5px">${r.guest_name ? "朋友：" + esc(r.guest_name) + " · " : ""}${r.preferred_time ? "希望：" + esc(String(r.preferred_time).replace("T", " ")) + " · " : ""}${esc(r.period)}</div>
+        ${r.scheduled_at ? `<div class="muted" style="font-size:12.5px">✅ 已安排：${esc(String(r.scheduled_at).replace("T", " "))}</div>` : ""}
+        ${r.admin_note ? `<div class="muted" style="font-size:12.5px">📝 ${esc(r.admin_note)}</div>` : ""}
+        <div class="muted" style="font-size:11.5px">${esc(String(r.created_at || "").slice(0, 16))}</div>
+      </div>`).join("") : '<div class="body muted center">未有申請紀錄。</div>';
+    }
+
+    $("send").onclick = async () => {
+      const kind = $("kind").value;
+      const body = {
+        kind,
+        preferred_time: $("pref").value || null,
+        notes: $("notes").value.trim() || null,
+      };
+      if (kind === "vip_guest") {
+        body.guest_name = $("guestName").value.trim();
+        body.guest_phone = $("guestPhone").value.trim() || null;
+        if (!body.guest_name) { alert("請填寫朋友姓名"); return; }
+      }
+      const b = $("send"); b.disabled = true; b.textContent = "提交中…";
+      const r = await api.post("/consultations/request", body);
+      b.disabled = false; b.textContent = "提交申請";
+      if (r.ok) {
+        alert((r.data && r.data.message) || "已提交");
+        $("pref").value = ""; $("notes").value = ""; $("guestName").value = ""; $("guestPhone").value = "";
+        await load();
+      } else {
+        alert((r.data && r.data.error) || "提交失敗");
+      }
+    };
+
+    if (api.requireLogin("consultations.html")) load();
+  </script>
+  <script src="assets/footer.js?v=4" defer></script>
+</body>
+</html>

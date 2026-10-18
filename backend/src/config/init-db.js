@@ -222,6 +222,8 @@ CREATE TABLE IF NOT EXISTS users (
 
   // ===== 兼容升級：classes.target_audience（課程對象）=====
   try { db.exec("ALTER TABLE classes ADD COLUMN target_audience TEXT"); } catch (e) { /* exists */ }
+  // VIP 優先預約（新課開放頭 N 小時只限 VIP）
+  try { db.exec("ALTER TABLE classes ADD COLUMN vip_priority_hours INTEGER DEFAULT 0"); } catch (e) { /* exists */ }
 
   // ===== 兼容升級：venue_rentals 收款狀態（escrow）=====
   try { db.exec("ALTER TABLE venue_rentals ADD COLUMN payment_status TEXT DEFAULT 'unpaid'"); } catch (e) {}
@@ -1697,6 +1699,26 @@ CREATE TABLE IF NOT EXISTS users (
 
   // ===== Anti-Scalping 反炒場系統表 =====
   db.exec(`
+    CREATE TABLE IF NOT EXISTS consultations (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      kind TEXT NOT NULL CHECK(kind IN ('member','vip_guest')),
+      period TEXT NOT NULL,
+      guest_name TEXT,
+      guest_phone TEXT,
+      preferred_time TEXT,
+      notes TEXT,
+      status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','scheduled','completed','cancelled')),
+      scheduled_at TEXT,
+      admin_id TEXT,
+      admin_note TEXT,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_consult_user ON consultations(user_id, period);
+    CREATE INDEX IF NOT EXISTS idx_consult_status ON consultations(status, created_at);
+
     CREATE TABLE IF NOT EXISTS suspicious_activity (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id TEXT,

@@ -514,6 +514,54 @@ function writeBookingBlock(data) {
   }
 }
 
+// ==================== VIP 優先預約 ====================
+
+/**
+ * 是否 VIP 客戶：
+ * - loyalty tier = vip（每月 20+ 堂）
+ * - 或持有生效中嘅 VIP Pass（memberships.type = 'gold'）
+ */
+function isVipCustomer(db, userId) {
+  try {
+    const u = db
+      .prepare("SELECT loyalty_tier, membership_type, membership_expires_at FROM users WHERE id = ?")
+      .get(userId);
+    if (u && u.loyalty_tier === "vip") return true;
+    if (u && u.membership_type === "gold") {
+      const exp = u.membership_expires_at ? new Date(u.membership_expires_at) : null;
+      if (!exp || isNaN(exp) || exp >= new Date()) return true;
+    }
+    const m = db
+      .prepare(
+        `SELECT 1 FROM memberships
+         WHERE user_id = ? AND type = 'gold' AND status = 'active'
+           AND date(end_date) >= date('now') LIMIT 1`,
+      )
+      .get(userId);
+    return !!m;
+  } catch (e) {
+    return false;
+  }
+}
+
+/**
+ * 新課 VIP 優先窗口檢查
+ * @returns {{allowed:boolean, until?:Date}}
+ */
+function checkVipPriorityWindow(db, cls, userId, now = new Date()) {
+  const hours = Number(cls && cls.vip_priority_hours) || 0;
+  if (!hours) return { allowed: true };
+  // SQLite datetime('now') 係 UTC 但冇時區標記 → 補 Z，避免當成本地時間
+  const raw = String((cls && cls.created_at) || "");
+  const iso = /Z$|[+-]\d\d:?\d\d$/.test(raw) ? raw : raw.replace(" ", "T") + "Z";
+  const created = new Date(iso);
+  if (isNaN(created)) return { allowed: true };
+  const until = new Date(created.getTime() + hours * 3600 * 1000);
+  if (now >= until) return { allowed: true };
+  if (isVipCustomer(db, userId)) return { allowed: true };
+  return { allowed: false, until };
+}
+
 // ==================== Core: Create Booking ====================
 
 function createBooking(req) {
@@ -560,13 +608,30 @@ function createBooking(req) {
 
   // 3.1 課程狀態 / 是否已開放預約（資料未齊嘅活動只展示、唔收預約）
   const clsGuard = db
-    .prepare("SELECT status, booking_open FROM classes WHERE id = ?")
+    .prepare("SELECT status, booking_open, created_at, vip_priority_hours FROM classes WHERE id = ?")
     .get(class_id);
   if (!clsGuard || clsGuard.status !== "active") {
     return { status: 400, body: { success: false, error: "此課程已完結或已下架" } };
   }
   if (clsGuard.booking_open === 0) {
     return { status: 400, body: { success: false, error: "此課程暫未開放預約，敬請期待" } };
+  }
+
+  // 3.1.1 VIP 優先預約：新課開放頭 24 小時只限 VIP
+  const vipWin = checkVipPriorityWindow(db, clsGuard, req.user.id);
+  if (!vipWin.allowed) {
+    const untilStr = vipWin.until
+      ? vipWin.until.toLocaleString("zh-HK", { timeZone: "Asia/Hong_Kong", hour12: false })
+      : "";
+    return {
+      status: 403,
+      body: {
+        success: false,
+        error: `此課程設 VIP 優先預約，${untilStr} 起開放給所有會員`,
+        code: "VIP_PRIORITY",
+        vip_only_until: vipWin.until ? vipWin.until.toISOString() : null,
+      },
+    };
   }
 
   // 3.2 預約期上限：只接受未來 2 個月內嘅課堂
@@ -1832,4 +1897,6 @@ module.exports = {
   markNoShow,
   resolveCancellationFeeRate,
   cancellationFeeRate,
+  isVipCustomer,
+  checkVipPriorityWindow,
 };

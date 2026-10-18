@@ -563,13 +563,14 @@ router.post("/classes", authenticateToken, (req, res) => {
       `INSERT INTO classes (id, coach_id, title, description, category, difficulty,
          duration, max_participants, price_hkd, credits_cost, venue_name, venue_address,
          target_audience, image_url, partner_venue_id, partner_id, district, sport_slug,
-         status, booking_open, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', 1, datetime('now'), datetime('now'))`,
+         status, booking_open, vip_priority_hours, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', 1, ?, datetime('now'), datetime('now'))`,
     ).run(
       classId, me.id, title, description || "", category, difficulty || "beginner",
       Number(duration), Number(max_participants) || 15, finalPrice, credits,
       venueName, venueAddress, target_audience || null, image_url || null,
       partnerVenueId, partnerVenueId, district || null, sport_slug || null,
+      req.body.vip_priority_hours === 0 ? 0 : 24,
     );
 
     const ids = [];

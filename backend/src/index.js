@@ -261,6 +261,7 @@ app.use("/api/backup", require("./routes/backup"));
 app.use("/api/course-contents", require("./routes/course-contents"));
 app.use("/api/migrate", require("./routes/migrate"));
 app.use("/api/points", require("./routes/points"));
+app.use("/api/consultations", require("./routes/consultations"));
 app.use("/api/badges", require("./routes/badges"));
 app.use("/api/crm", require("./routes/crm"));
 app.use("/api/locations", require("./routes/pos"));

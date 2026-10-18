@@ -26,7 +26,6 @@ const TIERS = {
     min_bookings: 5,
     max_bookings: 9,
     benefits: [
-      { icon: "🎯", text: "優先預約權" },
       { icon: "💵", text: "Top-up 95折 (5% off)" },
     ],
     next_tier: "gold",
@@ -38,9 +37,7 @@ const TIERS = {
     min_bookings: 10,
     max_bookings: 19,
     benefits: [
-      { icon: "🎯", text: "優先預約權" },
       { icon: "💵", text: "Top-up 9折 (10% off)" },
-      { icon: "⏰", text: "早鳥 24 小時優先預約" },
     ],
     next_tier: "vip",
   },
@@ -51,11 +48,10 @@ const TIERS = {
     min_bookings: 20,
     max_bookings: Infinity,
     benefits: [
-      { icon: "🎯", text: "優先預約權" },
+      { icon: "👑", text: "VIP 優先預約（新課 24 小時）" },
       { icon: "💵", text: "Top-up 9折 (10% off)" },
-      { icon: "⏰", text: "早鳥 24 小時優先預約" },
       { icon: "🎧", text: "專屬客服" },
-      { icon: "🎫", text: "每月免費 Guest Pass 1 張" },
+      { icon: "🎫", text: "每月 1 次免費邀請朋友（健康諮詢／身體評估）" },
     ],
     next_tier: null,
   },

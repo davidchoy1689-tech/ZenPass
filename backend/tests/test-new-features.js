@@ -709,9 +709,9 @@ function testLoyaltyService() {
     assertEqual(result.tier, "vip");
     assertEqual(result.tier_info.name, "VIP");
     assertEqual(result.booking_count, 25);
-    assertOk(result.benefits.length >= 5, "VIP has 5+ benefits");
-    const guestPass = result.benefits.find(b => b.text.includes("Guest Pass"));
-    assertOk(guestPass, "VIP has Guest Pass benefit");
+    assertOk(result.benefits.length >= 4, "VIP has 4+ benefits");
+    const guestPass = result.benefits.find(b => b.text.includes("邀請朋友"));
+    assertOk(guestPass, "VIP has 邀請朋友 benefit");
   });
 
   // Test 4: getUserTierInfo
