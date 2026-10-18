@@ -701,50 +701,21 @@ let lastLoyaltyCheckMonth = null;
 function checkAndUpdateLoyaltyTiers() {
   try {
     const now = new Date();
-    const currentMonth = now.getFullYear() + "-" + (now.getMonth() + 1);
+    // 用香港時間判斷「1 號」
+    const hk = new Date(now.getTime() + 8 * 3600 * 1000);
+    const currentMonth = hk.getUTCFullYear() + "-" + (hk.getUTCMonth() + 1);
     if (lastLoyaltyCheckMonth === currentMonth) return;
-    
-    // Check if it's the 1st of the month (run once on the 1st)
-    if (now.getDate() !== 1) {
-      // Still check new users / changes for current month
+    if (hk.getUTCDate() !== 1) {
       lastLoyaltyCheckMonth = currentMonth;
       return;
     }
-    
     lastLoyaltyCheckMonth = currentMonth;
-    
-    const Database = require("better-sqlite3");
-    const db = new Database(DB_PATH);
-    db.pragma("foreign_keys = ON");
 
-    // Calculate last month's bookings per user
-    const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
-    
-    const bookingCounts = db
-      .prepare(
-        `SELECT user_id, COUNT(*) as cnt FROM bookings
-         WHERE status IN ('confirmed', 'attended')
-         AND created_at >= ? AND created_at <= ?
-         GROUP BY user_id`
-      )
-      .all(lastMonth.toISOString(), lastMonthEnd.toISOString());
-
-    let updated = 0;
-    for (const row of bookingCounts) {
-      let tier = "bronze";
-      if (row.cnt >= 20) tier = "vip";
-      else if (row.cnt >= 10) tier = "gold";
-      else if (row.cnt >= 5) tier = "silver";
-
-      db.prepare(
-        `UPDATE users SET loyalty_tier = ?, monthly_bookings = ? WHERE id = ?`
-      ).run(tier, row.cnt, row.user_id);
-      updated++;
-    }
-
-    console.log(`[LOYALTY] 已更新 ${updated} 個用戶嘅忠誠度等級 (${lastMonth.toISOString().slice(0,7)})`);
-    db.close();
+    const { refreshMonthlyTiers } = require("./services/loyalty");
+    const out = refreshMonthlyTiers(now);
+    console.log(
+      `[LOYALTY] 每月結算完成（${out.period}）：掃描 ${out.scanned} 人，${out.changed} 人等級有變`,
+    );
   } catch (err) {
     console.error("[LOYALTY] Error:", err.message);
   }

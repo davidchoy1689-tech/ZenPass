@@ -138,6 +138,64 @@ function updateAllTiers() {
 }
 
 /**
+ * 每月 1 號自動結算：按「上一個月（香港時間）」已確認／已出席預約數重算等級
+ * - 跳過管理員手動設定（loyalty_tier_manual = 1）
+ * - 冇 booking 嘅用戶會回落 bronze（唔會永遠停留在舊等級）
+ * @param {Date} now 可注入（測試用）
+ */
+function refreshMonthlyTiers(now = new Date()) {
+  const db = getDb();
+  db.pragma("foreign_keys = ON");
+
+  // 香港時區嘅上一個月區間（SQLite 存 UTC 字串）
+  const hk = new Date(now.getTime() + 8 * 3600 * 1000);
+  const y = hk.getUTCFullYear();
+  const m = hk.getUTCMonth(); // 0-based；m 即係上一個月嘅 1-based 月份
+  const startMs = Date.UTC(y, m - 1, 1) - 8 * 3600 * 1000;
+  const endMs = Date.UTC(y, m, 1) - 8 * 3600 * 1000;
+  const toSql = (ms) => new Date(ms).toISOString().slice(0, 19).replace("T", " ");
+
+  const rows = db
+    .prepare(
+      `SELECT user_id, COUNT(*) AS cnt FROM bookings
+       WHERE status IN ('confirmed', 'attended')
+         AND created_at >= ? AND created_at < ?
+       GROUP BY user_id`,
+    )
+    .all(toSql(startMs), toSql(endMs));
+  const counts = new Map(rows.map((r) => [r.user_id, r.cnt]));
+
+  const users = db
+    .prepare("SELECT id, loyalty_tier FROM users WHERE COALESCE(loyalty_tier_manual, 0) = 0")
+    .all();
+
+  let updated = 0;
+  const apply = db.transaction(() => {
+    for (const u of users) {
+      const cnt = counts.get(u.id) || 0;
+      const tier = calculateTier(cnt);
+      if (tier !== u.loyalty_tier || cnt > 0) {
+        db.prepare("UPDATE users SET loyalty_tier = ?, monthly_bookings = ? WHERE id = ?").run(
+          tier,
+          cnt,
+          u.id,
+        );
+      }
+      if (tier !== u.loyalty_tier) updated++;
+    }
+  });
+  apply();
+
+  const prevYear = m === 0 ? y - 1 : y;
+  const prevMonth = m === 0 ? 12 : m;
+  return {
+    period: `${prevYear}-${String(prevMonth).padStart(2, "0")}`,
+    scanned: users.length,
+    changed: updated,
+  };
+}
+
+/**
  * 查詢用戶嘅 tier 資訊
  * @param {string} userId
  * @returns {object}
@@ -331,4 +389,5 @@ module.exports = {
   applyTopUpDiscount,
   setUserTierManually,
   resetUserTierToAuto,
+  refreshMonthlyTiers,
 };
