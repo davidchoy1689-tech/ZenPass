@@ -12,7 +12,7 @@ const path = require("path");
 const router = express.Router();
 const { getDb } = require("../services/database");
 const { crawlVenueCourses, crawlMultipleVenues } = require("../services/course-crawler");
-const { authenticateToken, requireRole } = require("../middleware/auth");
+const { authenticateToken, requireRole, requireAdmin } = require("../middleware/auth");
 const { ok, fail, serverError } = require("../services/response");
 
 // ===== Test URLs (公開，唔使 login) =====
@@ -28,16 +28,34 @@ const TEST_URLS = [
 
 // ===== POST /api/crawler/crawl — 爬取單一場地 =====
 // 公開 endpoint，方便 demo
-router.post("/crawl", async (req, res) => {
+router.post("/crawl", authenticateToken, requireAdmin, async (req, res) => {
   try {
     const { url, useAI } = req.body;
     if (!url) return fail(res, "請提供場地 URL", 400);
 
-    // Validate URL
+    // Validate URL + 防止 SSRF（唔准內網／localhost）
+    let parsed;
     try {
-      new URL(url);
+      parsed = new URL(url);
     } catch {
       return fail(res, "無效嘅 URL 格式", 400);
+    }
+    if (!["http:", "https:"].includes(parsed.protocol)) {
+      return fail(res, "只支援 http/https", 400);
+    }
+    const host = parsed.hostname.toLowerCase();
+    const blocked =
+      host === "localhost" ||
+      host === "::1" ||
+      /^127\./.test(host) ||
+      /^10\./.test(host) ||
+      /^192\.168\./.test(host) ||
+      /^169\.254\./.test(host) ||
+      /^172\.(1[6-9]|2\d|3[01])\./.test(host) ||
+      host.endsWith(".local") ||
+      host.endsWith(".internal");
+    if (blocked) {
+      return fail(res, "唔可以爬取內網地址", 403);
     }
 
     const result = await crawlVenueCourses(url, { useAI: useAI !== false });
