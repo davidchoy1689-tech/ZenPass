@@ -281,6 +281,11 @@ async function sendNotification(type, payload) {
       message = `會籍：${data?.plan || "—"}\n已加：${data?.credits || 0} Credits\n到期日：${data?.expires || "—"}`;
       html = `<h2>🎉 會籍已開通</h2><p><b>會籍：</b>${data?.plan || "—"}<br><b>已加：</b>${data?.credits || 0} Credits<br><b>到期日：</b>${data?.expires || "—"}</p>`;
       break;
+    case "booking.refunded":
+      title = "💸 退款已處理";
+      message = `金額：HK$${data?.amount || 0}\n預約：${data?.booking_reference || ""}\n原因：${data?.reason || "—"}\n退款會按原付款方式處理。`;
+      html = `<h2>💸 退款已處理</h2><p><b>金額：</b>HK$${data?.amount || 0}<br><b>預約：</b>${data?.booking_reference || ""}<br><b>原因：</b>${data?.reason || "—"}</p>`;
+      break;
     case "payment.approved":
       title = "✅ 付款已確認";
       message = `金額：HK$${data?.amount || 0}\n課程：${data?.class_name || data?.class_title || "—"}\n付款已確認，預約正式生效。`;

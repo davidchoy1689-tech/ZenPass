@@ -143,6 +143,22 @@ function processRefund({
       console.error("⚠️ Blockchain write failed (refund):", bcErr.message);
     }
 
+    // 通知會員退款已處理
+    try {
+      const { sendNotification } = require("./notification");
+      sendNotification("booking.refunded", {
+        recipient: booking.user_id,
+        data: {
+          amount,
+          reason,
+          booking_reference: booking.booking_reference,
+          method: payMethod,
+        },
+      });
+    } catch (e) {
+      console.error("[REFUND] notify error:", e.message);
+    }
+
     return {
       success: true,
       refund_id: refundId,
