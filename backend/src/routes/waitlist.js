@@ -8,6 +8,8 @@ const { v4: uuidv4 } = require("uuid");
 const { getDb } = require("../services/database");
 const { authenticateToken } = require("../middleware/auth");
 const { sendNotification } = require("../services/notification");
+const { publicFormLimiter } = require("../middleware/public-form-limit");
+const formLimiter = publicFormLimiter();
 
 const router = express.Router();
 
@@ -248,7 +250,7 @@ function autoNotifyOnCancel(schedule_id) {
 // ===== App Waitlist =====
 
 // POST /api/waitlist/app — 加入 App 等候名單
-router.post("/app", function (req, res) {
+router.post("/app", formLimiter, function (req, res) {
   try {
     var email = (req.body && req.body.email || "").trim().toLowerCase();
     if (!email || !email.includes("@")) {

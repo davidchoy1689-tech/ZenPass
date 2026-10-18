@@ -16,11 +16,13 @@ const {
 const { ok, fail, notFound, created, serverError } = require("../services/response");
 const { writeBlock } = require("../services/blockchain-audit");
 const partnerService = require("../services/partner-service");
+const { publicFormLimiter } = require("../middleware/public-form-limit");
+const formLimiter = publicFormLimiter();
 
 const router = express.Router();
 
 // ===== POST /api/partner/apply — 公開申請（登入後會自動連結場地）=====
-router.post("/apply", optionalAuth, (req, res) => {
+router.post("/apply", formLimiter, optionalAuth, (req, res) => {
   try {
     const result = partnerService.applyPartner(req);
     return res.status(result.status).json(result.body);

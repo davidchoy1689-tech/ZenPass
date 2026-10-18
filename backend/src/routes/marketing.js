@@ -8,6 +8,8 @@ const { getDb } = require("../services/database");
 const { authenticateToken, requireAdmin } = require("../middleware/auth");
 const { sendBroadcast } = require("../services/marketing");
 const { sendNotification } = require("../services/notification");
+const { publicFormLimiter } = require("../middleware/public-form-limit");
+const formLimiter = publicFormLimiter();
 
 const router = express.Router();
 
@@ -71,7 +73,7 @@ function getBaseUrl() {
 }
 
 // ===== POST /api/marketing/subscribe — Newsletter 訂閱 =====
-router.post("/subscribe", function (req, res) {
+router.post("/subscribe", formLimiter, function (req, res) {
   try {
     var email = (req.body.email || "").trim().toLowerCase();
     if (!email || !email.includes("@")) {

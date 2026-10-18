@@ -13,11 +13,13 @@ const { getDb } = require("../services/database");
 const { sendTelegramAlert, sendNotification } = require("../services/notification");
 const { authenticateToken, requireAdmin } = require("../middleware/auth");
 const { writeBlock } = require("../services/blockchain-audit");
+const { publicFormLimiter } = require("../middleware/public-form-limit");
+const formLimiter = publicFormLimiter();
 
 const router = express.Router();
 
 // ===== POST /api/school/inquiry — 學校查詢 ECA 合作 =====
-router.post("/inquiry", async (req, res) => {
+router.post("/inquiry", formLimiter, async (req, res) => {
   try {
     const { school_name, contact_name, contact_email, contact_phone, sports_of_interest, message } = req.body;
 

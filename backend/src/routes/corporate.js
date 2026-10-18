@@ -15,6 +15,8 @@ const { writeBlock } = require("../services/blockchain-audit");
 const { getDb } = require("../services/database");
 const { authenticateToken } = require("../middleware/auth");
 const { sendNotification } = require("../services/notification");
+const { publicFormLimiter } = require("../middleware/public-form-limit");
+const formLimiter = publicFormLimiter();
 
 const router = express.Router();
 
@@ -45,7 +47,7 @@ function ensureCorporateInquiryTable() {
 }
 
 // ===== POST /api/corporate/inquiry — 企業查詢（公開）=====
-router.post("/inquiry", (req, res) => {
+router.post("/inquiry", formLimiter, (req, res) => {
   try {
     const { company_name, contact_name, contact_email, contact_phone, activities, message } = req.body;
     if (!company_name || !contact_name || !contact_email) {
