@@ -25,19 +25,20 @@ const PLAN_NAMES = {
  * 發送 Credit 到期通知
  * 檢查所有 active membership 用戶，如有剩餘 credits 則發通知
  */
-function sendCreditExpiryNotifications() {
+function sendCreditExpiryNotifications({ now = new Date() } = {}) {
   try {
     const db = getDb();
     db.pragma("foreign_keys = ON");
 
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = now.getMonth(); // 0-based
-    const day = now.getDate();
+    // 香港時間
+    const hk = new Date(now.getTime() + 8 * 3600 * 1000);
+    const year = hk.getUTCFullYear();
+    const month = hk.getUTCMonth(); // 0-based
+    const expiryDateStr = `${month === 11 ? year + 1 : year}-${String(((month + 1) % 12) + 1).padStart(2, "0")}-01`;
 
-    // Calculate next month's 1st date
-    const nextMonth = new Date(year, month + 1, 1);
-    const expiryDateStr = `${nextMonth.getFullYear()}-${String(nextMonth.getMonth() + 1).padStart(2, "0")}-01`;
+    // 本月（HKT）已通知過就唔再發（避免每小時重複）
+    const monthStartUtc = new Date(Date.UTC(year, month, 1) - 8 * 3600 * 1000)
+      .toISOString().slice(0, 19).replace("T", " ");
 
     // 尋找所有有 active membership 嘅用戶，而且有剩餘 credits
     const users = db
@@ -61,6 +62,14 @@ function sendCreditExpiryNotifications() {
 
     for (const user of users) {
       try {
+        const already = db
+          .prepare(
+            `SELECT 1 FROM notifications
+             WHERE user_id = ? AND type = 'credit_expiring' AND created_at >= ? LIMIT 1`,
+          )
+          .get(user.id, monthStartUtc);
+        if (already) continue;
+
         const planName = PLAN_NAMES[user.membership_type] || `月費 Plan`;
 
         sendNotification("credit_expiring", {
@@ -106,14 +115,14 @@ function sendCreditExpiryNotifications() {
  * 檢查今日是否係發送到期通知嘅日子
  * 策略：每月 28-31 號（到期前約 1-3 天）
  */
-function isExpiryCheckDay() {
-  const now = new Date();
-  const day = now.getDate();
-  const month = now.getMonth() + 1;
-
-  // Check last few days of month (28 ~ end of month)
-  const lastDay = new Date(now.getFullYear(), month, 0).getDate();
-  return day >= 28 && day <= lastDay;
+function isExpiryCheckDay(now = new Date()) {
+  // 用香港時間判斷「月尾最後 3 日」
+  const hk = new Date(now.getTime() + 8 * 3600 * 1000);
+  const y = hk.getUTCFullYear();
+  const m = hk.getUTCMonth();
+  const day = hk.getUTCDate();
+  const lastDay = new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
+  return day >= lastDay - 2 && day <= lastDay;
 }
 
 // ===== Scheduler runner =====
