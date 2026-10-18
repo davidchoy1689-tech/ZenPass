@@ -220,7 +220,18 @@
       cur = b.dataset.tab; render();
     });
 
-    if (api.requireLogin("my-bookings.html")) load();
+    (async () => {
+      // Stripe Checkout 返回：主動確認付款（webhook 可能未設定）
+      const q = new URLSearchParams(location.search);
+      if (q.get("stripe") === "success" && q.get("session_id")) {
+        const r = await api.post("/payments/stripe/confirm-payment", {
+          session_id: q.get("session_id"),
+        });
+        if (!r.ok) alert((r.data && r.data.error) || "付款確認失敗，請聯絡客服");
+        history.replaceState(null, "", location.pathname);
+      }
+      if (api.requireLogin("my-bookings.html")) load();
+    })();
   </script>
   <script src="assets/footer.js?v=4" defer></script>
 </body>

@@ -80,6 +80,8 @@ const ok = (c, m) => { if (c) console.log("  ✅ " + m); else { console.log("  �
   const src = fs.readFileSync(path.join(__dirname, "../src/routes/payments.js"), "utf8");
   ok(/金額一律由伺服器按 booking 計算/.test(src), "checkout 有伺服器計價");
   ok(/booking_ids/.test(src), "支援多 booking 付款");
+  const mb = fs.readFileSync(path.join(__dirname, "..", "..", "frontend-v2", "my-bookings.html"), "utf8");
+  ok(/confirm-payment/.test(mb) && /stripe.*success/.test(mb), "Stripe 返回後會主動確認付款");
 
   console.log(fail === 0 ? "\n🎉 全部通過" : `\n❌ ${fail} 項失敗`);
   process.exit(fail === 0 ? 0 : 1);
