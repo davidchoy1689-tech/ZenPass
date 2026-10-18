@@ -1157,7 +1157,7 @@ router.post("/payouts/request", authenticateToken, async (req, res) => {
     const db = getDb();
     const user = db
       .prepare(
-        "SELECT pending_payout, stripe_account_id FROM users WHERE id = ?",
+        "SELECT pending_payout, stripe_account_id, name, email FROM users WHERE id = ?",
       )
       .get(req.user.id);
     if (!user || user.pending_payout < amount) {
@@ -1173,11 +1173,20 @@ router.post("/payouts/request", authenticateToken, async (req, res) => {
       "INSERT INTO coach_payouts (id, coach_id, amount, status) VALUES (?, ?, ?, 'pending')",
     ).run(uuidv4(), req.user.id, amount);
 
-    // Notify admin
-    sendNotification("payout.requested", {
-      coach_id: req.user.id,
-      amount: amount,
-    });
+    // Notify admins（原本漏了 recipient，通知永遠冇發）
+    try {
+      const admins = db
+        .prepare("SELECT id FROM users WHERE role IN ('admin','super_admin','platform_manager')")
+        .all();
+      for (const a of admins) {
+        sendNotification("payout.requested", {
+          recipient: a.id,
+          data: { coach_name: (user && (user.name || user.email)) || req.user.id, amount },
+        });
+      }
+    } catch (e) {
+      console.error("⚠️ payout notify failed:", e.message);
+    }
 
     res.json({ message: "✅ 提款申請已提交，待 Admin 確認" });
   } catch (err) {

@@ -251,6 +251,16 @@ async function sendNotification(type, payload) {
       message = `你嘅${data?.kind_label || "健康諮詢"}申請已取消${data?.admin_note ? `（原因：${data.admin_note}）` : ""}。名額已退回，可以重新申請。`;
       html = `<h2>健康諮詢申請已取消</h2><p>你嘅${data?.kind_label || "健康諮詢"}申請已取消${data?.admin_note ? `（原因：${data.admin_note}）` : ""}。</p>`;
       break;
+    case "coach.payout_processed":
+      title = "提現處理結果";
+      message = `${data?.status === "approved" ? "✅ 提現已批准" : "❌ 提現未獲批"}\n金額：HK$${data?.amount || 0}${data?.eta ? `\n預計到賬：${data.eta}` : ""}${data?.reason ? `\n備註：${data.reason}` : ""}`;
+      html = `<h2>提現處理結果</h2><p>${data?.status === "approved" ? "✅ 提現已批准" : "❌ 提現未獲批"}</p><p><b>金額：</b>HK$${data?.amount || 0}${data?.eta ? `<br><b>預計到賬：</b>${data.eta}` : ""}${data?.reason ? `<br><b>備註：</b>${data.reason}` : ""}</p>`;
+      break;
+    case "payout.requested":
+      title = "💰 新提現申請";
+      message = `教練：${data?.coach_name || "—"}\n金額：HK$${data?.amount || 0}\n請去 Admin → 出糧 處理。`;
+      html = `<h2>💰 新提現申請</h2><p><b>教練：</b>${data?.coach_name || "—"}<br><b>金額：</b>HK$${data?.amount || 0}</p>`;
+      break;
     case "points.adjusted":
       title = "積分已調整";
       message = `🏅 你嘅積分已調整 ${data?.delta > 0 ? "+" : ""}${data?.delta || 0} 分${data?.reason ? `（${data.reason}）` : ""}\n最新餘額：${data?.balance ?? "—"} 分`;
