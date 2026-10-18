@@ -875,6 +875,11 @@ CREATE TABLE IF NOT EXISTS users (
   try {
     db.exec("ALTER TABLE users ADD COLUMN monthly_bookings INTEGER DEFAULT 0");
   } catch (e) {/* unused /*/}
+  // corporate_members.status（舊 DB 可能冇；查詢依賴 status='active'）
+  try {
+    db.exec("ALTER TABLE corporate_members ADD COLUMN status TEXT DEFAULT 'active'");
+  } catch (e) {/* exists */}
+
   // 手動等級覆寫（1 = 管理員設定，每月自動計算會跳過）
   try {
     db.exec("ALTER TABLE users ADD COLUMN loyalty_tier_manual INTEGER DEFAULT 0");
@@ -1876,9 +1881,11 @@ CREATE TABLE IF NOT EXISTS users (
       monthly_limit INTEGER DEFAULT 0,
       monthly_reset_at TEXT,
       role TEXT DEFAULT 'member',
+      status TEXT DEFAULT 'active',
       joined_at TEXT DEFAULT (datetime('now'))
     );
   `);
+  try { db.exec("ALTER TABLE corporate_members ADD COLUMN status TEXT DEFAULT 'active'"); } catch (e) {/* exists */}
 
   db.exec(`
     CREATE TABLE IF NOT EXISTS booking_payments (

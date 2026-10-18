@@ -23,7 +23,7 @@ function isAdmin(userId) {
   const db = getDb();
   const u = db.prepare("SELECT role FROM users WHERE id = ?").get(userId);
 
-  return u && u.role === "admin";
+  return u && ["admin", "super_admin"].includes(u.role);
 }
 
 // ===== 企業查詢（公開）=====
@@ -188,7 +188,7 @@ router.post("/companies/:id/employees", authenticateToken, (req, res) => {
       // Check if already member
       const existing = db.prepare("SELECT id FROM corporate_members WHERE company_id = ? AND user_id = ?").get(req.params.id, user.id);
       if (!existing) {
-        db.prepare("INSERT INTO corporate_members (id, company_id, user_id, status, created_at) VALUES (?, ?, ?, 'active', datetime('now'))")
+        db.prepare("INSERT INTO corporate_members (id, company_id, user_id, status, joined_at) VALUES (?, ?, ?, 'active', datetime('now'))")
           .run(uuidv4(), req.params.id, user.id);
       }
 
@@ -220,7 +220,7 @@ router.get("/companies/:id", authenticateToken, (req, res) => {
     const employees = db.prepare(`
       SELECT u.id, u.name, u.email, u.role as status, u.credits,
         (SELECT COUNT(*) FROM bookings WHERE user_id = u.id AND created_at >= datetime('now', '-30 days')) as bookings_30d,
-        cm.created_at as joined_at
+        cm.joined_at as joined_at
       FROM corporate_members cm JOIN users u ON cm.user_id = u.id
       WHERE cm.company_id = ? AND cm.status = 'active'
       ORDER BY u.name
@@ -353,8 +353,9 @@ router.get("/my/hr-dashboard", authenticateToken, (req, res) => {
         SELECT cc.* FROM corporate_members cm
         JOIN corporate_companies cc ON cm.company_id = cc.id
         WHERE cm.user_id = ? AND cm.status = 'active' AND cc.status = 'active'
+          AND cm.role IN ('hr', 'admin', 'owner')
       `).get(req.user.id);
-      if (!member) { return res.status(403).json({ success: false, error: "你不是企業員工" }); }
+      if (!member) { return res.status(403).json({ success: false, error: "只限企業 HR 使用" }); }
       company = member;
     }
 
@@ -364,7 +365,7 @@ router.get("/my/hr-dashboard", authenticateToken, (req, res) => {
         COALESCE(cm.monthly_credit_limit, 0) as monthly_limit,
         COALESCE(cm.monthly_credit_used, 0) as monthly_used,
         (SELECT COUNT(*) FROM bookings WHERE user_id = u.id AND status IN ('confirmed','attended') AND created_at >= datetime('now', '-30 days')) as bookings_30d,
-        cm.created_at as joined_at
+        cm.joined_at as joined_at
       FROM corporate_members cm JOIN users u ON cm.user_id = u.id
       WHERE cm.company_id = ? AND cm.status = 'active'
       ORDER BY u.name
@@ -428,6 +429,9 @@ router.get("/my/employee/:userId", authenticateToken, (req, res) => {
     `).get(req.user.id);
 
     if (!myMembership) { return res.status(403).json({ success: false, error: "你不是企業員工" }); }
+    if (req.params.userId !== req.user.id && !["hr", "admin", "owner"].includes(myMembership.role)) {
+      return res.status(403).json({ success: false, error: "只限 HR 查看其他員工資料" });
+    }
 
     // Target employee must be in the same company
     const targetMember = db.prepare(`
@@ -468,12 +472,15 @@ router.post("/my/invite", authenticateToken, (req, res) => {
 
     // Verify the requesting user belongs to a company
     const myCompany = db.prepare(`
-      SELECT cc.* FROM corporate_members cm
+      SELECT cc.*, cm.role AS my_role FROM corporate_members cm
       JOIN corporate_companies cc ON cm.company_id = cc.id
       WHERE cm.user_id = ? AND cm.status = 'active' AND cc.status = 'active'
     `).get(req.user.id);
 
     if (!myCompany) { return res.status(403).json({ success: false, error: "你不是企業員工" }); }
+    if (!["hr", "admin", "owner"].includes(myCompany.my_role)) {
+      return res.status(403).json({ success: false, error: "只限企業 HR 邀請員工" });
+    }
 
     // Check existing user
     let user = db.prepare("SELECT id, name, email FROM users WHERE email = ?").get(email);
@@ -495,7 +502,7 @@ router.post("/my/invite", authenticateToken, (req, res) => {
       .get(myCompany.id, user.id);
     if (existing) { return res.json({ message: "該員工已在公司內" }); }
 
-    db.prepare("INSERT INTO corporate_members (id, company_id, user_id, status, created_at) VALUES (?, ?, ?, 'active', datetime('now'))")
+    db.prepare("INSERT INTO corporate_members (id, company_id, user_id, status, joined_at) VALUES (?, ?, ?, 'active', datetime('now'))")
       .run(uuidv4(), myCompany.id, user.id);
 
     try {
