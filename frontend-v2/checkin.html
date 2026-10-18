@@ -95,7 +95,7 @@
       if (!booking || $("ring").classList.contains("locked")) return;
       $("ring").innerHTML = "簽到中…";
       const r = await api.post("/bookings/" + encodeURIComponent(booking.id) + "/attend", { checkin_method: "self" });
-      if (r.ok && r.data) { $("ring").className = "ring"; $("ring").innerHTML = "✅ 已簽到"; $("geo").textContent = "🎉 簽到成功 · 已記錄"; }
+      if (r.ok && r.data) { $("ring").className = "ring"; $("ring").innerHTML = "✅ 已簽到"; $("geo").textContent = r.data.points_awarded ? `🎉 簽到成功 · +${r.data.points_awarded} 積分 🎁` : "🎉 簽到成功 · 已記錄"; }
       else { alert((r.data && r.data.error) || "簽到失敗"); paint(); }
     };
     if (api.requireLogin("checkin.html")) load();

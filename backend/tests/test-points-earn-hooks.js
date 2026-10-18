@@ -22,6 +22,7 @@ const ok = (c, m) => { if (c) console.log("  ✅ " + m); else { console.log("  �
   CREATE TABLE users (id TEXT PRIMARY KEY, name TEXT, email TEXT, phone TEXT, password_hash TEXT,
     role TEXT DEFAULT 'user', points INTEGER DEFAULT 0, points_tier TEXT, points_tier_label TEXT,
     credits INTEGER DEFAULT 0, referral_credits_earned INTEGER DEFAULT 0,
+    is_coach INTEGER DEFAULT 0, coach_verified INTEGER DEFAULT 0,
     last_checkin TEXT, created_at TEXT DEFAULT (datetime('now')), updated_at TEXT DEFAULT (datetime('now')));
   `);
   pre.prepare("INSERT INTO users (id,name,email,points) VALUES (?,?,?,?)").run("u1", "學生甲", "a@x.com", 0);
@@ -33,6 +34,8 @@ const ok = (c, m) => { if (c) console.log("  ✅ " + m); else { console.log("  �
 
   const { getDb } = require("../src/services/database");
   const db = getDb();
+  try { db.exec("ALTER TABLE bookings ADD COLUMN checked_in_at TEXT"); } catch (e) {}
+  try { db.exec("ALTER TABLE bookings ADD COLUMN checkin_method TEXT"); } catch (e) {}
   const { awardPointsOnce, EARN_RULES, calcTier } = require("../src/services/points");
 
   console.log("🧪 積分賺取 hook tests");
@@ -77,7 +80,9 @@ const ok = (c, m) => { if (c) console.log("  ✅ " + m); else { console.log("  �
 
   console.log("── QR 簽到整合（真實 service）──");
   db.prepare("INSERT INTO classes (id, coach_id, title, category, duration, price_hkd, venue_name, status) VALUES ('c1','u2','測試瑜伽','瑜伽',60,150,'中環','active')").run();
-  db.prepare("INSERT INTO class_schedules (id, class_id, start_time, end_time, max_participants, enrolled_count) VALUES ('s1','c1',datetime('now'),datetime('now','+1 hour'),10,1)").run();
+  const nowIso = new Date().toISOString();
+  const endIso = new Date(Date.now() + 3600000).toISOString();
+  db.prepare("INSERT INTO class_schedules (id, class_id, start_time, end_time, max_participants, enrolled_count) VALUES ('s1','c1',?,?,10,1)").run(nowIso, endIso);
   db.prepare("INSERT INTO bookings (id, booking_reference, user_id, schedule_id, class_id, status, amount) VALUES ('b1','ZP-TEST01','u1','s1','c1','confirmed',150)").run();
 
   const bookingService = require("../src/services/booking-service");
@@ -101,6 +106,29 @@ const ok = (c, m) => { if (c) console.log("  ✅ " + m); else { console.log("  �
     headers: {},
   });
   ok(res2.body.already_checked_in === true && db.prepare("SELECT points FROM users WHERE id='u1'").get().points === after, "重複簽到 → 唔會再加分");
+
+  console.log("── 自助簽到 /bookings/:id/attend 整合 ──");
+  db.prepare("INSERT INTO bookings (id, booking_reference, user_id, schedule_id, class_id, status, amount) VALUES ('b2','ZP-TEST02','u1','s1','c1','confirmed',150)").run();
+  const before2 = db.prepare("SELECT points FROM users WHERE id='u1'").get().points;
+  const att = bookingService.attendBooking({
+    params: { id: "b2" },
+    user: { id: "u1" },
+    body: {},
+    ip: "127.0.0.1",
+    headers: {},
+  });
+  ok(att.status === 200 && att.body.points_awarded === 50, "自助簽到回應 +50 積分");
+  ok(db.prepare("SELECT points FROM users WHERE id='u1'").get().points === before2 + 50, "自助簽到後積分 +50");
+
+  const att2 = bookingService.attendBooking({
+    params: { id: "b2" },
+    user: { id: "u1" },
+    body: {},
+    ip: "127.0.0.1",
+    headers: {},
+  });
+  ok(att2.status === 400, "重複簽到被拒");
+  ok(db.prepare("SELECT points FROM users WHERE id='u1'").get().points === before2 + 50, "重複簽到冇再加分");
 
   console.log("── 路由接線檢查（文案 vs 實際）──");
   const reviewsSrc = fs.readFileSync(path.join(__dirname, "../src/routes/reviews.js"), "utf8");

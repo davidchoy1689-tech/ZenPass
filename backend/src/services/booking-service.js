@@ -1342,6 +1342,25 @@ function getCheckinStatus(bookingId, userId) {
 
 // ==================== Attend / Check-in ====================
 
+/**
+ * 完成一堂 → 發積分（同一 booking 只發一次）
+ * @returns {number} 實際發放分數（0 = 已發過／失敗）
+ */
+function awardBookingPoints(bookingId, userId, bookingReference) {
+  try {
+    const award = awardPointsOnce(userId, {
+      points: EARN_RULES.booking,
+      source: "booking",
+      referenceId: bookingId,
+      description: `✅ 完成課堂（${bookingReference || bookingId}）`,
+    });
+    return award && award.awarded ? award.awarded : 0;
+  } catch (e) {
+    console.error("⚠️ Points award failed (booking):", e.message);
+    return 0;
+  }
+}
+
 function attendBooking(req) {
   const db = getDb();
   db.pragma("foreign_keys = ON");
@@ -1470,7 +1489,28 @@ function attendBooking(req) {
     console.error("⚠️ Blockchain write failed (booking):", bcErr.message);
   }
 
-  return { status: 200, body: { message: "✅ 簽到成功！" } };
+  // 完成一堂 → 賺積分
+  let pointsAwarded = 0;
+  if (bookingData) {
+    const ref = db
+      .prepare("SELECT booking_reference FROM bookings WHERE id = ?")
+      .get(req.params.id);
+    pointsAwarded = awardBookingPoints(
+      req.params.id,
+      bookingData.user_id,
+      ref && ref.booking_reference,
+    );
+  }
+
+  return {
+    status: 200,
+    body: {
+      message: pointsAwarded
+        ? `✅ 簽到成功！+${pointsAwarded} 積分 🎁`
+        : "✅ 簽到成功！",
+      points_awarded: pointsAwarded,
+    },
+  };
 }
 
 // ==================== QR Check-in ====================
@@ -1610,18 +1650,11 @@ function processQRCheckin(req) {
   }
 
   // 完成一堂 → 賺積分（同一 booking 只發一次）
-  let pointsAwarded = 0;
-  try {
-    const award = awardPointsOnce(booking.user_id, {
-      points: EARN_RULES.booking,
-      source: "booking",
-      referenceId: booking.id,
-      description: `✅ 完成課堂（${booking.booking_reference || booking.id}）`,
-    });
-    if (award && award.awarded) pointsAwarded = award.awarded;
-  } catch (e) {
-    console.error("⚠️ Points award failed (booking):", e.message);
-  }
+  const pointsAwarded = awardBookingPoints(
+    booking.id,
+    booking.user_id,
+    booking.booking_reference,
+  );
 
   return {
     status: 200,
