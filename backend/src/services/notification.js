@@ -351,6 +351,11 @@ async function sendNotification(type, payload) {
       message = `教練：${data?.coach_name || "—"}\n金額：HK$${data?.amount || 0}\n請去 Admin → 出糧 處理。`;
       html = `<h2>💰 新提現申請</h2><p><b>教練：</b>${data?.coach_name || "—"}<br><b>金額：</b>HK$${data?.amount || 0}</p>`;
       break;
+    case "wallet.mismatch":
+      title = "⚠️ 錢包對帳不一致";
+      message = `發現 ${data?.count || 0} 個用戶 wallet_balance 同 pending_payout 不一致（${data?.date || ""}）\n${data?.sample || ""}`;
+      html = `<h2>⚠️ 錢包對帳不一致</h2><p>發現 <b>${data?.count || 0}</b> 個用戶帳目不一致。</p><pre>${data?.sample || ""}</pre>`;
+      break;
     case "points.adjusted":
       title = "積分已調整";
       message = `🏅 你嘅積分已調整 ${data?.delta > 0 ? "+" : ""}${data?.delta || 0} 分${data?.reason ? `（${data.reason}）` : ""}\n最新餘額：${data?.balance ?? "—"} 分`;

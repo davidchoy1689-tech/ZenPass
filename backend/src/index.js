@@ -738,6 +738,21 @@ function notifyPointsExpiringSoon() {
 setInterval(notifyPointsExpiringSoon, 12 * 60 * 60 * 1000);
 setTimeout(notifyPointsExpiringSoon, 60000);
 
+// ===== 錢包對帳巡邏（每 6 小時，每日最多通知一次）=====
+function runWalletReconcile() {
+  try {
+    const { auditWalletBalances } = require("./services/wallet-reconcile");
+    const r = auditWalletBalances();
+    if (r.mismatches) {
+      console.log(`[WALLET] 對帳：${r.checked} 用戶，${r.mismatches} 個不一致`);
+    }
+  } catch (e) {
+    console.error("[WALLET] reconcile error:", e.message);
+  }
+}
+setInterval(runWalletReconcile, 6 * 60 * 60 * 1000);
+setTimeout(runWalletReconcile, 90000);
+
 // ===== 租場完成自動標記（end_time 過去 + 已付款）=====
 function completeVenueRentals() {
   try {
