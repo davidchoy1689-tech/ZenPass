@@ -80,7 +80,8 @@ function updateUserTier(userId, bookingCount) {
 
   if (bookingCount === undefined || bookingCount === null) {
     // Auto-calculate from last 30 days
-    const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString();
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000)
+      .toISOString().slice(0, 19).replace("T", " ");
     const result = db
       .prepare(
         `SELECT COUNT(*) as cnt FROM bookings
@@ -229,7 +230,8 @@ function getUserTierInfo(userId) {
   }
 
   // 計算本月 booking 數（過去30日）
-  const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString();
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000)
+    .toISOString().slice(0, 19).replace("T", " ");
   const thisMonthResult = db
     .prepare(
       `SELECT COUNT(*) as cnt FROM bookings
