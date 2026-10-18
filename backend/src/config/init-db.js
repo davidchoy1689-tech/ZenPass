@@ -2042,6 +2042,38 @@ CREATE TABLE IF NOT EXISTS users (
       );
       if (changed) console.log(`✅ 會籍文案同步：更新 ${changed} 個計劃`);
     }
+
+    // v2（2026-10-18 15:43）：VIP 健康諮詢由 2 次改為 1 次（另加 1 次邀請朋友）
+    const key2 = "migration.plan_features_20261018b";
+    const done2 = db.prepare("SELECT value FROM platform_settings WHERE key = ?").get(key2);
+    if (!done2) {
+      const row = db
+        .prepare("SELECT value FROM pricing_config WHERE key = ?")
+        .get("plan_gold_features");
+      if (row) {
+        let arr = [];
+        try { arr = JSON.parse(row.value); } catch (e) { arr = []; }
+        if (Array.isArray(arr)) {
+          const out = arr.map((x) =>
+            x === "每月 2 次一對一健康諮詢／身體評估"
+              ? "每月 1 次一對一健康諮詢／身體評估"
+              : x,
+          );
+          if (!out.some((x) => String(x).includes("免費邀請朋友"))) {
+            out.push("每月 1 次免費邀請朋友（健康諮詢／身體評估）");
+          }
+          if (JSON.stringify(out) !== JSON.stringify(arr)) {
+            db.prepare("UPDATE pricing_config SET value = ?, updated_at = datetime('now') WHERE key = ?")
+              .run(JSON.stringify(out), "plan_gold_features");
+            console.log("✅ VIP 健康諮詢名額更新為 1 次（+1 次邀請朋友）");
+          }
+        }
+      }
+      db.prepare("INSERT OR REPLACE INTO platform_settings (key, value) VALUES (?, ?)").run(
+        key2,
+        new Date().toISOString(),
+      );
+    }
   } catch (e) {
     console.error("會籍文案同步失敗:", e.message);
   }

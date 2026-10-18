@@ -3,7 +3,7 @@
  *
  * 配額（David 2026-10-18 定）：
  *   - 高階 Pass（silver）：每月 1 次（會員本人）
- *   - VIP Pass（gold）：每月 2 次（會員本人）＋ 1 次免費邀請朋友
+ *   - VIP Pass（gold）：每月 1 次（會員本人）＋ 1 次免費邀請朋友
  *   - 其他計劃：不適用
  *
  * 流程：會員提交申請（pending）→ admin 安排時間（scheduled）→ 完成（completed）
@@ -16,7 +16,7 @@ const { writeBlock } = require("./blockchain-audit");
 
 const PLAN_QUOTA = {
   silver: { member: 1, vip_guest: 0 },
-  gold: { member: 2, vip_guest: 1 },
+  gold: { member: 1, vip_guest: 1 },
 };
 const KIND_LABEL = { member: "會員健康諮詢／身體評估", vip_guest: "VIP 邀請朋友（健康諮詢／身體評估）" };
 

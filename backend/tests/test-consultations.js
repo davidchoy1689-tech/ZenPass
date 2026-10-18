@@ -55,13 +55,12 @@ const ok = (c, m) => { if (c) console.log("  ✅ " + m); else { console.log("  �
   const sg = (() => { try { requestConsultation("silver_u", { kind: "vip_guest", guest_name: "朋友" }); return null; } catch (e) { return e; } })();
   ok(sg && sg.status === 403, "高階 Pass 冇邀請朋友名額");
 
-  console.log("── VIP Pass：2 次 + 1 次邀請 ──");
+  console.log("── VIP Pass：1 次 + 1 次邀請 ──");
   const quota = getQuotaSummary("gold_u");
-  ok(quota.quota.member === 2 && quota.quota.vip_guest === 1, "配額 2 + 1");
+  ok(quota.quota.member === 1 && quota.quota.vip_guest === 1, "配額 1 + 1");
   requestConsultation("gold_u", { notes: "第一次" });
-  requestConsultation("gold_u", { notes: "第二次" });
-  const g3 = (() => { try { requestConsultation("gold_u", {}); return null; } catch (e) { return e; } })();
-  ok(g3 && g3.status === 409, "第三次本人諮詢 → 409");
+  const g2 = (() => { try { requestConsultation("gold_u", {}); return null; } catch (e) { return e; } })();
+  ok(g2 && g2.status === 409, "第二次本人諮詢 → 409（每月 1 次）");
   const noName = (() => { try { requestConsultation("gold_u", { kind: "vip_guest" }); return null; } catch (e) { return e; } })();
   ok(noName && noName.status === 400, "邀請朋友冇姓名 → 400");
   const guest = requestConsultation("gold_u", { kind: "vip_guest", guest_name: "陳大文", guest_phone: "91234567" });
