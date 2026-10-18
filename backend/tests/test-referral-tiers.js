@@ -29,5 +29,12 @@ ok(!/私人教練諮詢/.test(all), "冇再寫私人教練諮詢");
 const src = fs.readFileSync(path.join(__dirname, "../src/routes/referral.js"), "utf8");
 ok(/require\("\.\.\/services\/loyalty"\)/.test(src), "用 services/loyalty 做單一來源");
 
+const web = path.join(__dirname, "..", "..", "frontend-v2");
+const my = fs.readFileSync(path.join(web, "my.html"), "utf8");
+const points = fs.readFileSync(path.join(web, "points.html"), "utf8");
+ok(/\/loyalty\/my/.test(my), "我的頁顯示會籍等級（/loyalty/my）");
+ok(/bronze: "🥉 銅牌"/.test(my), "我的頁有等級 fallback 對照");
+ok(/積分等級/.test(points) && /會籍等級/.test(points), "積分頁清楚標示兩套等級分別");
+
 console.log(fail === 0 ? "\n🎉 全部通過" : `\n❌ ${fail} 項失敗`);
 process.exit(fail === 0 ? 0 : 1);
