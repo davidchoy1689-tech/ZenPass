@@ -9,6 +9,8 @@
 
 const { v4: uuidv4 } = require("uuid");
 const { getDb } = require("./database");
+const { audit } = require("./audit");
+const { writeBlock } = require("./blockchain-audit");
 
 // ===== 等級門檻定義 =====
 const TIERS = [
@@ -114,10 +116,88 @@ function awardPointsOnce(userId, { points, source, referenceId, description }) {
   })();
 }
 
+/**
+ * 管理員調整積分（補償／扣減）
+ * - 必須填原因；寫 audit_log + 區塊鏈
+ * - 扣分唔可以扣到負數
+ */
+function adjustPoints(userId, delta, { adminId = null, reason = "" } = {}) {
+  const db = getDb();
+  db.pragma("foreign_keys = ON");
+
+  const n = Math.trunc(Number(delta));
+  if (!Number.isFinite(n) || n === 0) {
+    const err = new Error("調整分數必須係非零整數");
+    err.status = 400;
+    throw err;
+  }
+  if (Math.abs(n) > 100000) {
+    const err = new Error("單次調整上限 100,000 分");
+    err.status = 400;
+    throw err;
+  }
+  const why = String(reason || "").trim();
+  if (why.length < 2) {
+    const err = new Error("請填寫調整原因");
+    err.status = 400;
+    throw err;
+  }
+
+  const user = db.prepare("SELECT id, name, points FROM users WHERE id = ?").get(userId);
+  if (!user) {
+    const err = new Error("用戶不存在");
+    err.status = 404;
+    throw err;
+  }
+
+  const before = Number(user.points) || 0;
+  if (n < 0 && before + n < 0) {
+    const err = new Error(`積分不足（現有 ${before} 分）`);
+    err.status = 400;
+    throw err;
+  }
+
+  const res = addPointsTx(
+    userId,
+    n > 0 ? "earn" : "spend",
+    Math.abs(n),
+    "admin",
+    `管理員調整：${why}`,
+    null,
+  );
+
+  try {
+    audit({
+      actionType: "points.admin_adjust",
+      entityType: "user",
+      entityId: userId,
+      userId: adminId,
+      oldValues: { points: before },
+      newValues: { points: res ? res.points : before, delta: n },
+      description: `管理員調整積分 ${n > 0 ? "+" : ""}${n}（${why}）`,
+    });
+  } catch (e) {
+    console.error("⚠️ Audit failed (points adjust):", e.message);
+  }
+
+  try {
+    writeBlock({
+      entityType: "points_adjustment",
+      entityId: userId,
+      data: { admin_id: adminId, delta: n, before, after: res ? res.points : before, reason: why },
+    });
+  } catch (e) {
+    console.error("⚠️ Blockchain write failed (points adjust):", e.message);
+  }
+
+  return { user_id: userId, before, delta: n, balance: res ? res.points : before, reason: why };
+}
+
 module.exports = {
   TIERS,
   EARN_RULES,
   calcTier,
   addPointsTx,
   awardPointsOnce,
+  adjustPoints,
 };

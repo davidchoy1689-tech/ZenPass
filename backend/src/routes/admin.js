@@ -186,6 +186,24 @@ router.patch("/users/:id/loyalty-tier", authenticateToken, requireAdmin, (req, r
   }
 });
 
+router.post("/users/:id/points", authenticateToken, requireAdmin, (req, res) => {
+  try {
+    const { adjustPoints } = require("../services/points");
+    const { points, reason } = req.body || {};
+    const out = adjustPoints(req.params.id, points, {
+      adminId: req.user.id,
+      reason,
+    });
+    res.json({
+      success: true,
+      message: `已調整 ${out.delta > 0 ? "+" : ""}${out.delta} 分（餘額 ${out.balance}）`,
+      data: out,
+    });
+  } catch (err) {
+    res.status(err.status || 500).json({ success: false, error: err.message || "調整失敗" });
+  }
+});
+
 router.delete("/users/:id/loyalty-tier", authenticateToken, requireAdmin, (req, res) => {
   try {
     const { resetUserTierToAuto } = require("../services/loyalty");
