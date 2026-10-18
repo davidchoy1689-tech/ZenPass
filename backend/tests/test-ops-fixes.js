@@ -23,7 +23,7 @@ console.log(fail ? `❌ ${fail} failed` : "✅ 運維修正 tests passed");
 if (fail) process.exit(1);
 
 // 名額釋放通知：只發給仍然存在嘅用戶
-const idxSrc = fs.readFileSync(path.join(__dirname, "..", "src/index.js"), "utf8");
+const idxSrc = fs.readFileSync(path.join(__dirname, "..", "src/services/vacancy-notify.js"), "utf8");
 if (!/JOIN users u ON u\.id = b\.user_id/.test(idxSrc)) {
   console.error("  ❌ vacancy notify 未過濾已刪除用戶（會 log [NOTIF] skip）");
   process.exit(1);
