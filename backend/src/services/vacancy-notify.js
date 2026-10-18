@@ -58,13 +58,15 @@ function notifyLargeVacancies({ now = new Date(), maxRecipientsPerClass = 500 } 
              WHERE c.category = ?
                AND b.status IN ('confirmed', 'attended')
                AND b.user_id IS NOT NULL
+               AND u.role NOT IN ('admin','super_admin','platform_manager','platform_staff','partner_owner','partner_admin','partner_staff','coach')
              UNION
              SELECT DISTINCT ua.user_id
              FROM user_actions ua
              JOIN users u2 ON u2.id = ua.user_id
              WHERE ua.category = ?
                AND ua.action IN ('view_class', 'book_class', 'favorite')
-               AND ua.user_id IS NOT NULL`,
+               AND ua.user_id IS NOT NULL
+               AND u2.role NOT IN ('admin','super_admin','platform_manager','platform_staff','partner_owner','partner_admin','partner_staff','coach')`,
           )
           .all(v.category, v.category)
       : db
@@ -75,7 +77,8 @@ function notifyLargeVacancies({ now = new Date(), maxRecipientsPerClass = 500 } 
              JOIN users u ON u.id = b.user_id
              WHERE c.category = ?
                AND b.status IN ('confirmed', 'attended')
-               AND b.user_id IS NOT NULL`,
+               AND b.user_id IS NOT NULL
+               AND u.role NOT IN ('admin','super_admin','platform_manager','platform_staff','partner_owner','partner_admin','partner_staff','coach')`,
           )
           .all(v.category);
 

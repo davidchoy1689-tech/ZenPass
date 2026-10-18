@@ -21,8 +21,8 @@ const ok = (c, m) => { if (c) console.log("  ✅ " + m); else { console.log("  �
     loyalty_tier_manual INTEGER DEFAULT 0, is_coach INTEGER DEFAULT 0, coach_verified INTEGER DEFAULT 0,
     created_at TEXT DEFAULT (datetime('now')), updated_at TEXT DEFAULT (datetime('now')));
   `);
-  for (const id of ["u1", "u2", "u3"]) {
-    pre.prepare("INSERT INTO users (id,name,email) VALUES (?,?,?)").run(id, id, id + "@x.com");
+  for (const [id, role] of [["u1","user"],["u2","user"],["u3","user"],["admin4","admin"]]) {
+    pre.prepare("INSERT INTO users (id,name,email,role) VALUES (?,?,?,?)").run(id, id, id + "@x.com", role);
   }
   pre.close();
 
@@ -48,6 +48,7 @@ const ok = (c, m) => { if (c) console.log("  ✅ " + m); else { console.log("  �
   db.prepare("INSERT INTO bookings (id,booking_reference,user_id,schedule_id,class_id,status) VALUES ('b1','Z1','u1','s1','c1','attended')").run();
   db.prepare("INSERT INTO bookings (id,booking_reference,user_id,schedule_id,class_id,status) VALUES ('b2','Z2','u2','s1','c1','attended')").run();
   db.prepare("INSERT INTO bookings (id,booking_reference,user_id,schedule_id,class_id,status) VALUES ('b3','Z3','u1','s2','c2','confirmed')").run();
+  db.prepare("INSERT INTO bookings (id,booking_reference,user_id,schedule_id,class_id,status) VALUES ('b4','Z4','admin4','s1','c1','attended')").run();
 
   console.log("🧪 空位通知 tests");
 
@@ -58,6 +59,7 @@ const ok = (c, m) => { if (c) console.log("  ✅ " + m); else { console.log("  �
   const n = db.prepare("SELECT * FROM notifications WHERE user_id='u2' AND type='class.vacancy'").get();
   ok(!!n && /新瑜伽/.test(n.message) && /10 個空位/.test(n.message), "通知內容正確");
   ok(!db.prepare("SELECT 1 FROM notifications WHERE user_id='u1' AND type='class.vacancy'").get(), "已報名用戶唔會收到");
+  ok(!db.prepare("SELECT 1 FROM notifications WHERE user_id='admin4' AND type='class.vacancy'").get(), "admin／職員唔會收到空位推廣");
 
   const r2 = notifyLargeVacancies({ now });
   ok(r2.notified === 0, "同日重複執行 → 唔再發");
