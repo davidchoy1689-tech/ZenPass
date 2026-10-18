@@ -42,13 +42,12 @@ const TIERS = {
     next_tier: "vip",
   },
   vip: {
-    name: "VIP",
-    name_en: "VIP",
-    icon: "👑",
+    name: "鉑金",
+    name_en: "Platinum",
+    icon: "💠",
     min_bookings: 20,
     max_bookings: Infinity,
     benefits: [
-      { icon: "👑", text: "VIP 優先預約（新課 24 小時）" },
       { icon: "💵", text: "Top-up 9折 (10% off)" },
       { icon: "🎧", text: "專屬客服" },
       { icon: "🎫", text: "每月 1 次免費邀請朋友（健康諮詢／身體評估）" },

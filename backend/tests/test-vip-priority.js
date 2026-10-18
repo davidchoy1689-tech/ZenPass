@@ -51,11 +51,11 @@ const ok = (c, m) => { if (c) console.log("  ✅ " + m); else { console.log("  �
   ok(reject.allowed === false, "銅牌 + 新課 24h 內 → 拒絕");
   ok(reject.until && Math.round((reject.until - now) / 3600000) === 24, "回傳開放時間（+24h）");
 
-  ok(checkVipPriorityWindow(db, fresh, "vip_u", now).allowed, "loyalty VIP → 可優先預約");
+  ok(!checkVipPriorityWindow(db, fresh, "vip_u", now).allowed, "鉑金會員（loyalty vip）→ 唔算 VIP 優先");
   ok(checkVipPriorityWindow(db, fresh, "goldm_u", now).allowed, "VIP Pass（gold）會員 → 可優先預約");
   ok(!checkVipPriorityWindow(db, fresh, "silverm_u", now).allowed, "高階 Pass（silver）→ 冇優先");
 
-  ok(isVipCustomer(db, "vip_u"), "isVip：loyalty vip");
+  ok(!isVipCustomer(db, "vip_u"), "isVip：鉑金會員唔算（只計付費 VIP Pass）");
   ok(isVipCustomer(db, "goldm_u"), "isVip：VIP Pass");
   ok(!isVipCustomer(db, "bronze_u"), "isVip：銅牌 = false");
 

@@ -517,16 +517,15 @@ function writeBookingBlock(data) {
 // ==================== VIP 優先預約 ====================
 
 /**
- * 是否 VIP 客戶：
- * - loyalty tier = vip（每月 20+ 堂）
- * - 或持有生效中嘅 VIP Pass（memberships.type = 'gold'）
+ * 是否 VIP（只計付費 VIP Pass；鉑金會員等級唔算）
+ * - users.membership_type = 'gold' 且未過期，或
+ * - memberships 表有生效中 gold 會籍
  */
 function isVipCustomer(db, userId) {
   try {
     const u = db
-      .prepare("SELECT loyalty_tier, membership_type, membership_expires_at FROM users WHERE id = ?")
+      .prepare("SELECT membership_type, membership_expires_at FROM users WHERE id = ?")
       .get(userId);
-    if (u && u.loyalty_tier === "vip") return true;
     if (u && u.membership_type === "gold") {
       const exp = u.membership_expires_at ? new Date(u.membership_expires_at) : null;
       if (!exp || isNaN(exp) || exp >= new Date()) return true;

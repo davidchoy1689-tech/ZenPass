@@ -4,6 +4,7 @@
  * 配額（David 2026-10-18 定）：
  *   - 高階 Pass（silver）：每月 1 次（會員本人）
  *   - VIP Pass（gold）：每月 1 次（會員本人）＋ 1 次免費邀請朋友
+ *   - 鉑金會員（loyalty tier vip，每月 20+ 堂）：每月 1 次免費邀請朋友
  *   - 其他計劃：不適用
  *
  * 流程：會員提交申請（pending）→ admin 安排時間（scheduled）→ 完成（completed）
@@ -18,7 +19,7 @@ const PLAN_QUOTA = {
   silver: { member: 1, vip_guest: 0 },
   gold: { member: 1, vip_guest: 1 },
 };
-const KIND_LABEL = { member: "會員健康諮詢／身體評估", vip_guest: "VIP 邀請朋友（健康諮詢／身體評估）" };
+const KIND_LABEL = { member: "會員健康諮詢／身體評估", vip_guest: "邀請朋友（健康諮詢／身體評估）" };
 
 function hkPeriod(date = new Date()) {
   return new Date(date.getTime() + 8 * 3600 * 1000).toISOString().slice(0, 7);
@@ -44,10 +45,10 @@ function getActivePlan(db, userId) {
 }
 
 /**
- * 綜合會籍 + 會員等級（loyalty VIP）嘅諮詢配額
+ * 綜合會籍 + 會員等級（鉑金會員）嘅諮詢配額
  * - 高階 Pass：1 次本人
  * - VIP Pass：1 次本人 + 1 次邀請朋友
- * - loyalty tier = vip（未買 Pass）：每月 1 次邀請朋友（會籍權益文案）
+ * - 鉑金會員（loyalty tier = vip，未買 Pass）：每月 1 次邀請朋友
  */
 function resolveBenefits(db, userId) {
   const plan = getActivePlan(db, userId);
@@ -114,7 +115,7 @@ function requestConsultation(userId, body = {}) {
   const plan = benefits.plan;
   const quota = benefits.quota;
   if (!benefits.loyalty_vip && !plan) {
-    const err = new Error("此服務只限高階 Pass／VIP Pass 會員／VIP 等級");
+    const err = new Error("此服務只限高階 Pass／VIP Pass 會員／鉑金會員");
     err.status = 403;
     throw err;
   }
