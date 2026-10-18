@@ -6,7 +6,7 @@
 const express = require("express");
 const { v4: uuidv4 } = require("uuid");
 const { getDb } = require("../services/database");
-const { authenticateToken } = require("../middleware/auth");
+const { authenticateToken, requireAdmin } = require("../middleware/auth");
 const { sendNotification } = require("../services/notification");
 const { publicFormLimiter } = require("../middleware/public-form-limit");
 const formLimiter = publicFormLimiter();
@@ -140,7 +140,7 @@ router.get("/status", authenticateToken, (req, res) => {
 });
 
 // ===== POST /api/waitlist/notify-next — 通知下一位候補（admin 用，或用 cancel 自動觸發） =====
-router.post("/notify-next", authenticateToken, (req, res) => {
+router.post("/notify-next", authenticateToken, requireAdmin, (req, res) => {
   try {
     const { schedule_id } = req.body;
     if (!schedule_id) return res.status(400).json({ success: false, error: "缺少時段 ID" });

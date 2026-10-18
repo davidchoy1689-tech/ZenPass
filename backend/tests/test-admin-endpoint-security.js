@@ -75,6 +75,8 @@ const ok = (c, m) => { if (c) console.log("  ✅ " + m); else { console.log("  �
   ok(/router\.get\("\/admin\/all-earnings", authenticateToken, requireAdmin/.test(ceSrc), "all-earnings 用 role 而唔係硬編 email");
   const notifSrc2 = fs.readFileSync(path.join(root, "notifications.js"), "utf8");
   ok(/router\.get\("\/config", authenticateToken, requireAdmin/.test(notifSrc2), "通知 config 只限 admin");
+  const wlSrc = fs.readFileSync(path.join(root, "waitlist.js"), "utf8");
+  ok(/router\.post\("\/notify-next", authenticateToken, requireAdmin/.test(wlSrc), "waitlist notify-next 只限 admin");
   ok(/router\.post\("\/test", authenticateToken, requireAdmin/.test(notifSrc2), "通知測試只限 admin");
   ok(/router\.(get|post)\("\/telegram\/[^"]+", authenticateToken, requireAdmin/g.test(notifSrc2) || (/telegram\/auto-detect", authenticateToken, requireAdmin/.test(notifSrc2) && /telegram\/test", authenticateToken, requireAdmin/.test(notifSrc2)), "Telegram 設定只限 admin");
 
