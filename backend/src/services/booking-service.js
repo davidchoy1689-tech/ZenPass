@@ -1343,6 +1343,24 @@ function getCheckinStatus(bookingId, userId) {
 // ==================== Attend / Check-in ====================
 
 /**
+ * 兩點距離（米）— 用於簽到 geofence 伺服器端驗證
+ */
+function distanceMeters(lat1, lon1, lat2, lon2) {
+  const R = 6371000;
+  const r = Math.PI / 180;
+  const dLat = (lat2 - lat1) * r;
+  const dLon = (lon2 - lon1) * r;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1 * r) * Math.cos(lat2 * r) * Math.sin(dLon / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+
+// 簽到距離上限（米）：UI 顯示 100 米，伺服器放寬 50 米容忍 GPS 誤差
+const CHECKIN_MAX_DISTANCE_M = 150;
+
+
+/**
  * 完成一堂 → 發積分（同一 booking 只發一次）
  * @returns {number} 實際發放分數（0 = 已發過／失敗）
  */
@@ -1426,6 +1444,39 @@ function attendBooking(req) {
         return {
           status: 400,
           body: { success: false, error: "簽到時間已過" },
+        };
+      }
+    }
+
+    // 🔒 伺服器端 geofence：場地有座標就一定要喺範圍內（唔靠前端）
+    const loc = db
+      .prepare(
+        `SELECT c.latitude, c.longitude
+         FROM bookings b JOIN classes c ON b.class_id = c.id
+         WHERE b.id = ?`,
+      )
+      .get(req.params.id);
+    if (loc && loc.latitude != null && loc.longitude != null) {
+      const lat = Number(req.body && req.body.latitude);
+      const lng = Number(req.body && req.body.longitude);
+      if (!Number.isFinite(lat) || !Number.isFinite(lng) || (!lat && !lng)) {
+        return {
+          status: 400,
+          body: {
+            success: false,
+            error: "請開啟定位後再簽到（需喺場地 100 米範圍內）",
+          },
+        };
+      }
+      const d = distanceMeters(lat, lng, loc.latitude, loc.longitude);
+      if (d > CHECKIN_MAX_DISTANCE_M) {
+        return {
+          status: 400,
+          body: {
+            success: false,
+            error: `你距離場地約 ${Math.round(d)} 米，需喺 100 米範圍內先可簽到`,
+            distance_m: Math.round(d),
+          },
         };
       }
     }

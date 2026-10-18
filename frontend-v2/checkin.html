@@ -37,7 +37,7 @@
 
   <script src="assets/api.js"></script>
   <script>
-    let booking = null, canCheckin = false, geoOk = false, nearVenue = false, venue = null;
+    let booking = null, canCheckin = false, geoOk = false, nearVenue = false, venue = null, coords = null;
     const $ = (id) => document.getElementById(id);
     function dist(lat1, lon1, lat2, lon2) {
       const R = 6371000, r = Math.PI / 180;
@@ -49,14 +49,16 @@
       const ring = $("ring");
       if (!booking) return;
       ring.style.display = "grid";
-      const locked = !(canCheckin && (geoOk ? nearVenue : true));
+      const needsGeo = !!(venue && venue.lat && venue.lng);
+      const geoGate = needsGeo ? (geoOk && nearVenue) : true;
+      const locked = !(canCheckin && geoGate);
       ring.className = "ring" + (locked ? " locked" : "");
       ring.innerHTML = locked ? "未能簽到" : "撳一下<br />簽到";
       const g = $("geo"); g.style.display = "flex";
       if (!canCheckin) {
         g.textContent = "⏳ 未到簽到時間（上堂前 15 分鐘 至 落堂後 60 分鐘）";
-      } else if (!geoOk) {
-        g.textContent = "📍 未能定位（示範可簽到）· " + (venue && venue.name ? venue.name : "");
+      } else if (needsGeo && !geoOk) {
+        g.textContent = "📍 請開啟定位（需喺場地 100 米內先可簽到）";
       } else if (nearVenue) {
         g.textContent = "✅ 已喺場地範圍內（100 米內）· 可簽到";
       } else {
@@ -85,7 +87,7 @@
       paint();
       if (navigator.geolocation && venue.lat && venue.lng) {
         navigator.geolocation.getCurrentPosition(
-          (p) => { geoOk = true; nearVenue = dist(p.coords.latitude, p.coords.longitude, venue.lat, venue.lng) <= 100; paint(); },
+          (p) => { geoOk = true; coords = { latitude: p.coords.latitude, longitude: p.coords.longitude }; nearVenue = dist(p.coords.latitude, p.coords.longitude, venue.lat, venue.lng) <= 100; paint(); },
           () => { geoOk = false; paint(); },
           { enableHighAccuracy: true, timeout: 8000 }
         );
@@ -94,7 +96,9 @@
     $("ring").onclick = async () => {
       if (!booking || $("ring").classList.contains("locked")) return;
       $("ring").innerHTML = "簽到中…";
-      const r = await api.post("/bookings/" + encodeURIComponent(booking.id) + "/attend", { checkin_method: "self" });
+      const payload = { checkin_method: "self" };
+      if (coords) { payload.latitude = coords.latitude; payload.longitude = coords.longitude; }
+      const r = await api.post("/bookings/" + encodeURIComponent(booking.id) + "/attend", payload);
       if (r.ok && r.data) { $("ring").className = "ring"; $("ring").innerHTML = "✅ 已簽到"; $("geo").textContent = r.data.points_awarded ? `🎉 簽到成功 · +${r.data.points_awarded} 積分 🎁` : "🎉 簽到成功 · 已記錄"; }
       else { alert((r.data && r.data.error) || "簽到失敗"); paint(); }
     };

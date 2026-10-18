@@ -130,6 +130,26 @@ const ok = (c, m) => { if (c) console.log("  ✅ " + m); else { console.log("  �
   ok(att2.status === 400, "重複簽到被拒");
   ok(db.prepare("SELECT points FROM users WHERE id='u1'").get().points === before2 + 50, "重複簽到冇再加分");
 
+  console.log("── Geofence（伺服器端驗證）──");
+  db.prepare("INSERT INTO classes (id, coach_id, title, category, duration, price_hkd, venue_name, latitude, longitude, status) VALUES ('c2','u2','定位測試班','瑜伽',60,150,'中環',22.2800,114.1600,'active')").run();
+  db.prepare("INSERT INTO class_schedules (id, class_id, start_time, end_time, max_participants, enrolled_count) VALUES ('s2','c2',?,?,10,1)").run(nowIso, endIso);
+  db.prepare("INSERT INTO bookings (id, booking_reference, user_id, schedule_id, class_id, status, amount) VALUES ('b3','ZP-GEO1','u1','s2','c2','confirmed',150)").run();
+
+  const noGeo = bookingService.attendBooking({ params: { id: "b3" }, user: { id: "u1" }, body: {}, ip: "", headers: {} });
+  ok(noGeo.status === 400 && /定位/.test(noGeo.body.error), "場地有座標但冇定位 → 拒絕簽到");
+
+  const far = bookingService.attendBooking({ params: { id: "b3" }, user: { id: "u1" }, body: { latitude: 22.2900, longitude: 114.1600 }, ip: "", headers: {} });
+  ok(far.status === 400 && far.body.distance_m > 1000, `距離 1.1km → 拒絕（${far.body.distance_m}m）`);
+
+  const near = bookingService.attendBooking({ params: { id: "b3" }, user: { id: "u1" }, body: { latitude: 22.2802, longitude: 114.1601 }, ip: "", headers: {} });
+  ok(near.status === 200 && near.body.points_awarded === 50, "喺場地 30 米內 → 簽到成功 +50");
+  ok(db.prepare("SELECT status FROM bookings WHERE id='b3'").get().status === "attended", "距離合格後標記 attended");
+
+  db.prepare("UPDATE users SET is_coach = 1 WHERE id='u2'").run();
+  db.prepare("INSERT INTO bookings (id, booking_reference, user_id, schedule_id, class_id, status, amount) VALUES ('b4','ZP-GEO2','u1','s2','c2','confirmed',150)").run();
+  const coachAtt = bookingService.attendBooking({ params: { id: "b4" }, user: { id: "u2" }, body: { checkin_method: "coach" }, ip: "", headers: {} });
+  ok(coachAtt.status === 200, "教練為自己班簽到 → 唔受 geofence 限制");
+
   console.log("── 路由接線檢查（文案 vs 實際）──");
   const reviewsSrc = fs.readFileSync(path.join(__dirname, "../src/routes/reviews.js"), "utf8");
   const referralSrc = fs.readFileSync(path.join(__dirname, "../src/routes/referral.js"), "utf8");
