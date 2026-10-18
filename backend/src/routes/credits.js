@@ -10,9 +10,10 @@
 
 const express = require("express");
 const { v4: uuidv4 } = require("uuid");
-const { authenticateToken, requireAdmin } = require("../middleware/auth");
+const { authenticateToken, requireAdmin, optionalAuth } = require("../middleware/auth");
 const { getDb } = require("../services/database");
 const { writeBlock } = require("../services/blockchain-audit");
+const { applyTopUpDiscount } = require("../services/loyalty");
 
 const router = express.Router();
 
@@ -43,13 +44,26 @@ function creditsFor(amount) {
   return { credits, bonus: tier ? tier.bonus : 0 };
 }
 
-// ===== GET /api/credits/packages — 增值方案（公開）=====
-router.get("/packages", (req, res) => {
+// ===== GET /api/credits/packages — 增值方案（公開；登入後套用會員等級折扣）=====
+router.get("/packages", optionalAuth, (req, res) => {
+  const userId = req.user && req.user.id;
   const list = [100, 250, 550, 1000].map((amount) => {
     const { credits, bonus } = creditsFor(amount);
-    return { amount_hkd: amount, credits, bonus_credits: bonus, total_credits: credits + bonus };
+    const q = applyTopUpDiscount(amount, userId);
+    return {
+      amount_hkd: amount, // 原價（購買價值）
+      original_amount_hkd: q.original_amount_hkd,
+      discount_percent: q.discount_percent,
+      payable_hkd: q.payable_hkd, // 實付（會員折扣後）
+      credits,
+      bonus_credits: bonus,
+      total_credits: credits + bonus,
+    };
   });
-  res.json({ success: true, data: { packages: list, rate: "HK$10 = 1 credit", pay: PAY_INFO } });
+  res.json({
+    success: true,
+    data: { packages: list, rate: "HK$10 = 1 credit", pay: PAY_INFO },
+  });
 });
 
 // ===== POST /api/credits/topup — 建立增值單（pending，唔加點）=====
@@ -66,19 +80,32 @@ router.post("/topup", authenticateToken, (req, res) => {
 
     const db = getDb();
     const { credits, bonus } = creditsFor(amt);
+    // 會員等級增值折扣（銀 5% / 金、VIP 10%）— 伺服器計算，唔信前端
+    const q = applyTopUpDiscount(amt, req.user.id);
     const id = uuidv4();
 
     db.prepare(
-      `INSERT INTO credit_topup_orders (id, user_id, amount_hkd, credits, bonus_credits, method, reference, receipt_image, status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
-    ).run(id, req.user.id, amt, credits, bonus, method, String(reference).trim(), receipt_image || null);
+      `INSERT INTO credit_topup_orders (id, user_id, amount_hkd, original_amount_hkd, discount_percent, credits, bonus_credits, method, reference, receipt_image, status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
+    ).run(
+      id,
+      req.user.id,
+      q.payable_hkd,
+      q.original_amount_hkd,
+      q.discount_percent,
+      credits,
+      bonus,
+      method,
+      String(reference).trim(),
+      receipt_image || null,
+    );
 
     // 通知管理員（Email / 站內）
     try {
       const { sendNotification } = require("../services/notification");
       sendNotification("credits.topup_request", {
         recipient: req.user.id,
-        data: { amount: amt, credits, method, reference },
+        data: { amount: q.payable_hkd, original_amount: q.original_amount_hkd, discount_percent: q.discount_percent, credits, method, reference },
       });
     } catch (e) {}
 
@@ -87,7 +114,9 @@ router.post("/topup", authenticateToken, (req, res) => {
       message: "✅ 已提交，管理員核對收款後會即刻加點",
       data: {
         order_id: id,
-        amount_hkd: amt,
+        amount_hkd: q.payable_hkd,
+        original_amount_hkd: q.original_amount_hkd,
+        discount_percent: q.discount_percent,
         credits_to_add: credits + bonus,
         status: "pending",
         pay: PAY_INFO[method],
@@ -105,7 +134,7 @@ router.get("/orders", authenticateToken, (req, res) => {
     const db = getDb();
     const rows = db
       .prepare(
-        `SELECT id, amount_hkd, credits, bonus_credits, method, reference, status, note, created_at, confirmed_at
+        `SELECT id, amount_hkd, original_amount_hkd, discount_percent, credits, bonus_credits, method, reference, status, note, created_at, confirmed_at
          FROM credit_topup_orders WHERE user_id = ? ORDER BY created_at DESC LIMIT 30`,
       )
       .all(req.user.id);
@@ -142,7 +171,19 @@ router.post("/admin/:id/confirm", authenticateToken, requireAdmin, (req, res) =>
   const actual = req.body && req.body.actual_amount ? Number(req.body.actual_amount) : Number(order.amount_hkd);
   if (!actual || actual <= 0) return res.status(400).json({ success: false, error: "金額無效" });
 
-  const { credits, bonus } = creditsFor(actual);
+  // 實收少於應付（會員價）→ 唔可以確認，避免折扣後收唔足錢但照加點
+  const payable = Number(order.amount_hkd) || 0;
+  if (actual + 0.01 < payable) {
+    return res.status(400).json({
+      success: false,
+      error: `實收 ${actual} 少於應付 ${payable}，請核對後再確認`,
+      expected_amount: payable,
+    });
+  }
+
+  // Credits 以落單時嘅購買價值為準（折扣只影響實付金額，唔會減少 credits）
+  const credits = Number(order.credits) || 0;
+  const bonus = Number(order.bonus_credits) || 0;
   const total = credits + bonus;
 
   try {
@@ -165,7 +206,7 @@ router.post("/admin/:id/confirm", authenticateToken, requireAdmin, (req, res) =>
       writeBlock({
         entityType: "credit_topup",
         entityId: order.id,
-        data: { user_id: order.user_id, amount: actual, credits: total, method: order.method, admin: req.user.id },
+        data: { user_id: order.user_id, amount: actual, original_amount: order.original_amount_hkd, discount_percent: order.discount_percent || 0, credits: total, method: order.method, admin: req.user.id },
       });
     } catch (e) {}
 

@@ -1638,6 +1638,8 @@ CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY,
       user_id TEXT NOT NULL,
       amount_hkd REAL NOT NULL,
+      original_amount_hkd REAL,
+      discount_percent REAL DEFAULT 0,
       credits INTEGER NOT NULL DEFAULT 0,
       bonus_credits INTEGER NOT NULL DEFAULT 0,
       method TEXT NOT NULL DEFAULT 'fps',
@@ -1703,6 +1705,9 @@ CREATE TABLE IF NOT EXISTS users (
       FOREIGN KEY (user_id) REFERENCES users(id)
     );
   `);
+  // 會員等級增值折扣欄位（2026-10-18）
+  try { db.exec("ALTER TABLE credit_topup_orders ADD COLUMN original_amount_hkd REAL"); } catch (e) {}
+  try { db.exec("ALTER TABLE credit_topup_orders ADD COLUMN discount_percent REAL DEFAULT 0"); } catch (e) {}
   try {
     db.exec("CREATE INDEX IF NOT EXISTS idx_suspicious_user ON suspicious_activity(user_id)");
     db.exec("CREATE INDEX IF NOT EXISTS idx_suspicious_ip ON suspicious_activity(ip_address)");

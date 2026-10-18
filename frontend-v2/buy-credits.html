@@ -28,6 +28,7 @@
           <span class="muted" style="font-size:12px">撳連結開啟 PayMe App，付款後記低交易參考編號。</span>
         </div>
         <span class="muted">轉賬後，輸入交易參考編號（銀行 App 內的參考／交易 ID），提交後由管理員核對。</span>
+        <div style="margin-top:6px;color:var(--brand-700);font-weight:700">👑 請轉賬「會員價」金額（已扣會員折扣）；如未登入或銅牌會員，即係原價。</div>
       </div>
       <div style="margin-top:12px">
         <label class="lbl">付款方式</label>
@@ -61,17 +62,24 @@
   <script>
     let pkgs = [];
     let selected = null;
+    let selectedPay = null;
     const ST = { pending: "待確認", confirmed: "已入帳", rejected: "已拒絕" };
 
     function card(p) {
+      const disc = Number(p.discount_percent) || 0;
+      const pay = p.payable_hkd != null ? p.payable_hkd : p.amount_hkd;
+      const price = disc
+        ? `<b>${hkd(pay)}</b> <s class="muted" style="font-size:12px">${hkd(p.amount_hkd)}</s>
+           <span class="st confirmed" style="margin-left:4px">會員 -${disc}%</span>`
+        : `<b>${hkd(pay)}</b>`;
       return `<div class="card pkg ${p.popular ? "hot" : ""}">${p.popular ? '<span class="tag">最抵</span>' : ""}<div class="body">
         <div style="display:flex;justify-content:space-between;align-items:center">
-          <div><b>${hkd(p.amount_hkd)}</b>
+          <div>${price}
             <div class="muted" style="font-size:13px">${p.credits} credits${p.bonus_credits ? " + 送 " + p.bonus_credits : ""}</div></div>
           <div style="text-align:right"><b>${p.total_credits} cr</b>
-            <div class="muted" style="font-size:12px">≈ $${(p.amount_hkd / p.total_credits).toFixed(2)}/cr</div></div>
+            <div class="muted" style="font-size:12px">≈ $${(pay / p.total_credits).toFixed(2)}/cr</div></div>
         </div>
-        <button class="btn btn-primary btn-block" style="margin-top:12px" data-amt="${p.amount_hkd}">選擇此金額</button>
+        <button class="btn btn-primary btn-block" style="margin-top:12px" data-amt="${p.amount_hkd}" data-pay="${pay}">選擇此金額</button>
       </div></div>`;
     }
 
@@ -79,12 +87,16 @@
       const r = await api.get("/credits/packages");
       pkgs = ((r.data && r.data.data && r.data.data.packages) || (r.data && r.data.packages) || []);
       pkgs.forEach(p => { if (p.amount_hkd >= 500) p.popular = true; });
-      document.getElementById("pkgs").innerHTML = pkgs.length ? pkgs.map(card).join("")
-        : '<div class="card"><div class="body muted">暫無方案。</div></div>';
+      const dp = (pkgs.find(p => Number(p.discount_percent) > 0) || {}).discount_percent;
+      document.getElementById("pkgs").innerHTML = (dp
+        ? `<div class="banner" style="margin-bottom:8px">👑 你嘅會員等級享 <b>${dp}%</b> 增值折扣（已顯示會員價）</div>`
+        : "") + (pkgs.length ? pkgs.map(card).join("")
+        : '<div class="card"><div class="body muted">暫無方案。</div></div>');
       document.querySelectorAll("#pkgs [data-amt]").forEach(b => b.onclick = () => {
         selected = Number(b.dataset.amt);
+        selectedPay = Number(b.dataset.pay || b.dataset.amt);
         document.querySelectorAll("#pkgs [data-amt]").forEach(x => { x.textContent = "選擇此金額"; x.classList.remove("btn-secondary"); x.classList.add("btn-primary"); });
-        b.textContent = "✅ 已選擇 " + hkd(selected);
+        b.textContent = "✅ 已選擇 " + hkd(selectedPay);
         b.classList.remove("btn-primary"); b.classList.add("btn-secondary");
         document.getElementById("ref").focus();
       });
@@ -103,7 +115,7 @@
       const arr = (r.data && r.data.data) || [];
       document.getElementById("orders").innerHTML = arr.length ? arr.map(o =>
         `<div class="body" style="display:flex;justify-content:space-between;align-items:center;gap:8px">
-          <div><b>${hkd(o.amount_hkd)}</b> <span class="muted" style="font-size:12px">${esc(o.method.toUpperCase())} · ${esc(o.reference || "")}</span>
+          <div><b>${hkd(o.amount_hkd)}</b>${Number(o.discount_percent) > 0 ? ` <span class="st confirmed">會員 -${o.discount_percent}%</span>` : ""} <span class="muted" style="font-size:12px">${esc(o.method.toUpperCase())} · ${esc(o.reference || "")}</span>
             <div class="muted" style="font-size:11.5px">${esc(String(o.created_at || "").slice(0, 16))}</div></div>
           <div style="text-align:right"><span class="st ${esc(o.status)}">${ST[o.status] || o.status}</span>
             <div class="muted" style="font-size:11.5px">+${o.credits + o.bonus_credits} cr</div></div>
@@ -130,10 +142,12 @@
       const r = await api.post("/credits/topup", { amount: selected, method, reference: ref, receipt_image });
       if (r.ok) {
         const d = (r.data && r.data.data) || {};
-        alert("✅ 已提交！金額 " + hkd(selected) + "，管理員確認後會加 " + (d.credits_to_add || 0) + " credits。");
+        alert("✅ 已提交！實付 " + hkd(d.amount_hkd != null ? d.amount_hkd : selectedPay || selected) +
+          (d.discount_percent ? "（會員 -" + d.discount_percent + "%）" : "") +
+          "，管理員確認後會加 " + (d.credits_to_add || 0) + " credits。");
         document.getElementById("ref").value = "";
         document.getElementById("receipt").value = "";
-        selected = null;
+        selected = null; selectedPay = null;
         await load();
       } else {
         alert((r.data && r.data.error) || "提交失敗");

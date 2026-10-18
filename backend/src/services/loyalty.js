@@ -212,6 +212,21 @@ function getTopUpDiscount(userId) {
   }
 }
 
+/**
+ * 增值折扣报价（單一來源：前台顯示、落單、auto top-up 共用）
+ * @returns {{original_amount_hkd:number, discount_percent:number, payable_hkd:number}}
+ */
+function applyTopUpDiscount(amount, userId) {
+  const pct = userId ? getTopUpDiscount(userId) : 0;
+  const original = Math.round(Number(amount) * 100) / 100;
+  const payable = Math.round(original * (100 - pct)) / 100;
+  return {
+    original_amount_hkd: original,
+    discount_percent: pct,
+    payable_hkd: payable,
+  };
+}
+
 module.exports = {
   TIERS,
   calculateTier,
@@ -219,4 +234,5 @@ module.exports = {
   updateAllTiers,
   getUserTierInfo,
   getTopUpDiscount,
+  applyTopUpDiscount,
 };

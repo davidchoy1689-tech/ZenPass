@@ -18,6 +18,7 @@ const { authenticateToken } = require("../middleware/auth");
 const { getDb } = require("../services/database");
 const { sendNotification } = require("../services/notification");
 const { writeBlock } = require("../services/blockchain-audit");
+const { applyTopUpDiscount, getTopUpDiscount } = require("../services/loyalty");
 
 const router = express.Router();
 
@@ -72,23 +73,34 @@ router.get("/config", authenticateToken, (req, res) => {
       .prepare("SELECT * FROM auto_topup_config WHERE user_id = ?")
       .get(req.user.id);
 
+    const pct = getTopUpDiscount(req.user.id);
+    const bundles = Object.entries(BUNDLES).map(([key, b]) => {
+      const q = applyTopUpDiscount(b.price, req.user.id);
+      return { key, label: b.label, credits: b.credits, price: b.price, payable_hkd: q.payable_hkd };
+    });
+
     if (!config) {
       // Return defaults
       return res.json({
         enabled: false,
         threshold: 10,
         bundle_type: "standard",
-        bundle: BUNDLES.standard,
+        bundle: { ...BUNDLES.standard, payable_hkd: applyTopUpDiscount(BUNDLES.standard.price, req.user.id).payable_hkd },
+        discount_percent: pct,
+        bundles,
         created_at: null,
         updated_at: null,
       });
     }
 
+    const current = BUNDLES[config.bundle_type] || BUNDLES.standard;
     res.json({
       enabled: config.enabled === 1,
       threshold: config.threshold,
       bundle_type: config.bundle_type,
-      bundle: BUNDLES[config.bundle_type] || BUNDLES.standard,
+      bundle: { ...current, payable_hkd: applyTopUpDiscount(current.price, req.user.id).payable_hkd },
+      discount_percent: pct,
+      bundles,
       created_at: config.created_at,
       updated_at: config.updated_at,
     });
@@ -254,7 +266,9 @@ function executeAutoTopup(userId, bundleType, threshold, trigger = "auto") {
 
     const bundle = BUNDLES[bundleType] || BUNDLES.standard;
     const creditsToAdd = bundle.credits;
-    const amountPaid = bundle.price;
+    // 會員等級增值折扣（銀 5% / 金、VIP 10%）
+    const quote = applyTopUpDiscount(bundle.price, userId);
+    const amountPaid = quote.payable_hkd;
 
     // Deduct "payment" — in production this would use Stripe/fpx
     // For now, we add credits directly tracking as a transaction
@@ -293,6 +307,8 @@ function executeAutoTopup(userId, bundleType, threshold, trigger = "auto") {
           bundle_type: bundleType,
           credits_added: creditsToAdd,
           amount_paid: amountPaid,
+          original_amount: quote.original_amount_hkd,
+          discount_percent: quote.discount_percent,
           threshold,
           trigger,
           credits_before: currentCredits,
@@ -311,6 +327,8 @@ function executeAutoTopup(userId, bundleType, threshold, trigger = "auto") {
           credits_added: creditsToAdd,
           bundle_label: bundle.label,
           amount_paid: amountPaid,
+          discount_percent: quote.discount_percent,
+          original_amount: quote.original_amount_hkd,
           new_balance: currentCredits + creditsToAdd,
           trigger,
         },
@@ -327,6 +345,8 @@ function executeAutoTopup(userId, bundleType, threshold, trigger = "auto") {
       bundle,
       credits_added: creditsToAdd,
       amount_paid: amountPaid,
+      original_amount: quote.original_amount_hkd,
+      discount_percent: quote.discount_percent,
       credits_before: currentCredits,
       credits_after: currentCredits + creditsToAdd,
       threshold,

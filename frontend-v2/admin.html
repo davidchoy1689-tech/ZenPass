@@ -129,6 +129,7 @@
         <div style="display:flex;justify-content:space-between"><b>${esc2(o.user_name||"用戶")}</b><span class="amt">${money(o.amount_hkd)}</span></div>
         <p class="kv">${esc2(o.user_email||"")} · ${esc2((o.method||"").toUpperCase())} · 參考 ${esc2(o.reference||"—")}</p>
         <p class="kv">將會加 ${o.credits + o.bonus_credits} credits${o.bonus_credits?`（含贈送 ${o.bonus_credits}）`:""} · ${esc2(String(o.created_at||"").slice(0,16))}</p>
+        ${Number(o.discount_percent) > 0 ? `<p class="kv">👑 會員 -${o.discount_percent}%：原價 ${money(o.original_amount_hkd)} → 實收 ${money(o.amount_hkd)}</p>` : ""}
         <div style="display:flex;gap:8px;margin-top:10px">
           <button class="btn btn-primary" data-t="ok" style="flex:1">✅ 確認收款</button>
           <button class="btn btn-ghost" data-t="no" style="flex:1">✖ 拒絕</button></div>

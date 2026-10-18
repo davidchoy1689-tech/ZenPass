@@ -18,6 +18,7 @@
   <div class="topbar"><a class="back" href="wallet.html">‹</a><div class="title">自動增值</div></div>
   <div class="wrap">
     <p class="muted" style="font-size:13px">當 Credits 低於你設定嘅門檻，系統會自動幫你增值指定套票。</p>
+    <div id="tierNote" class="muted" style="font-size:12.5px"></div>
     <div id="box"><div class="card"><div class="body muted">載入中…</div></div></div>
     <div class="spacer"></div>
   </div>
@@ -28,13 +29,21 @@
       { key: "standard", label: "標準包", credits: 25, price: 250 },
       { key: "premium", label: "超值包", credits: 55, price: 550 },
     ];
-    let cfg = { enabled: false, threshold: 10, bundle_type: "standard" };
+    let cfg = { enabled: false, threshold: 10, bundle_type: "standard", discount_percent: 0 };
+    let PAY = {}; // key -> 會員實付價
 
     (async () => {
       if (!api.requireLogin("topup-auto.html")) return;
       const r = await api.get("/topup/config");
-      if (r.ok && r.data) cfg = { enabled: !!r.data.enabled, threshold: r.data.threshold || 10, bundle_type: r.data.bundle_type || "standard" };
+      if (r.ok && r.data) {
+        cfg = { enabled: !!r.data.enabled, threshold: r.data.threshold || 10, bundle_type: r.data.bundle_type || "standard", discount_percent: Number(r.data.discount_percent) || 0 };
+        (r.data.bundles || []).forEach(b => { PAY[b.key] = b.payable_hkd; });
+      }
       render();
+      if (cfg.discount_percent > 0) {
+        const n = document.getElementById("tierNote");
+        if (n) n.innerHTML = `👑 你嘅會員等級享 <b>${cfg.discount_percent}%</b> 增值折扣（以下為會員價）`;
+      }
     })();
 
     function render() {
@@ -48,7 +57,7 @@
           <div id="bundles">${BUNDLES.map(b => `
             <div class="bundle ${cfg.bundle_type === b.key ? "on" : ""}" data-k="${b.key}">
               <span><b>${b.label}</b><div class="muted" style="font-size:12px">${b.credits} credits</div></span>
-              <span>${hkd(b.price)}</span>
+              <span>${PAY[b.key] != null && PAY[b.key] < b.price ? `<b>${hkd(PAY[b.key])}</b> <s class="muted" style="font-size:11px">${hkd(b.price)}</s>` : hkd(b.price)}</span>
             </div>`).join("")}</div>
         </div>
         <div class="body" style="border-top:1px solid var(--border)">
