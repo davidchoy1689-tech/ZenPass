@@ -576,12 +576,14 @@ function autoNotifyLargeVacancies() {
         SELECT DISTINCT b.user_id
         FROM bookings b
         JOIN classes c ON b.class_id = c.id
+        JOIN users u ON u.id = b.user_id
         WHERE c.category = ?
           AND b.status IN ('confirmed', 'attended')
           AND b.user_id IS NOT NULL
         UNION
         SELECT DISTINCT ua.user_id
         FROM user_actions ua
+        JOIN users u2 ON u2.id = ua.user_id
         WHERE ua.category = ?
           AND ua.action IN ('view_class', 'book_class', 'favorite')
           AND ua.user_id IS NOT NULL
@@ -592,9 +594,11 @@ function autoNotifyLargeVacancies() {
       for (var ui = 0; ui < interestedUsers.length; ui++) {
         try {
           var { sendNotification } = require("./services/notification");
-          sendNotification("booking.confirmed", {
+          sendNotification("class.vacancy", {
             recipient: interestedUsers[ui].user_id,
             data: {
+              class_title: v.title,
+              seats: v.max_participants - v.enrolled_count,
               message:
                 "📢 名額釋放: 「" +
                 v.title +

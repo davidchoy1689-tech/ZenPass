@@ -188,6 +188,11 @@ async function sendNotification(type, payload) {
       message = `✅ 預約成功！\n課程：${data?.class_title || "—"}\n日期：${data?.date || "—"} ${data?.time || "—"}\n場地：${data?.venue || "—"}\n教練：${data?.coach_name || "—"}`;
       html = `<h2>✅ 預約確認</h2><p><b>課程：</b>${data?.class_title || "—"}<br><b>日期：</b>${data?.date || "—"} ${data?.time || "—"}<br><b>場地：</b>${data?.venue || "—"}<br><b>教練：</b>${data?.coach_name || "—"}</p>`;
       break;
+    case "class.vacancy":
+      title = "📢 有位喇！";
+      message = data?.message || `「${data?.class_title || "課程"}」有名額釋放，快啲預約！`;
+      html = `<h2>📢 有位喇！</h2><p>${data?.message || `「${data?.class_title || "課程"}」有名額釋放，快啲預約！`}</p>`;
+      break;
     case "booking.cancelled":
       title = "預約取消";
       message = `❌ 預約已取消\n課程：${data?.class_title || "—"}\n日期：${data?.date || "—"}`;

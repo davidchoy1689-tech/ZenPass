@@ -21,3 +21,27 @@ ok(/type TEXT NOT NULL CHECK\(type IN \('late_cancel', 'no_show'\)\)/.test(schem
 
 console.log(fail ? `❌ ${fail} failed` : "✅ 運維修正 tests passed");
 if (fail) process.exit(1);
+
+// 名額釋放通知：只發給仍然存在嘅用戶
+const idxSrc = fs.readFileSync(path.join(__dirname, "..", "src/index.js"), "utf8");
+if (!/JOIN users u ON u\.id = b\.user_id/.test(idxSrc)) {
+  console.error("  ❌ vacancy notify 未過濾已刪除用戶（會 log [NOTIF] skip）");
+  process.exit(1);
+}
+if (!/JOIN users u2 ON u2\.id = ua\.user_id/.test(idxSrc)) {
+  console.error("  ❌ user_actions 分支未過濾已刪除用戶");
+  process.exit(1);
+}
+console.log("  ✅ 名額釋放通知只發給現存用戶");
+
+// 名額釋放要用獨立通知模板（唔可以借用 booking.confirmed）
+const notifSrc = fs.readFileSync(path.join(__dirname, "..", "src/services/notification.js"), "utf8");
+if (!notifSrc.includes('case "class.vacancy"')) {
+  console.error("  ❌ 缺少 class.vacancy 通知模板");
+  process.exit(1);
+}
+if (!/sendNotification\("class\.vacancy"/.test(idxSrc)) {
+  console.error("  ❌ 名額釋放仍用錯誤通知類型");
+  process.exit(1);
+}
+console.log("  ✅ 名額釋放用 class.vacancy 模板（唔會出「預約確認」錯誤標題）");
