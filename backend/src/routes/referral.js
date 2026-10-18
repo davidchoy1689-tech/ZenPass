@@ -70,8 +70,17 @@ router.post("/redeem", authenticateToken, (req, res) => {
       .prepare("SELECT id FROM referral_redemptions WHERE referred_user_id = ?")
       .get(req.user.id);
     if (existing) {
-
       return res.status(400).json({ success: false, error: "你已經用過推薦碼" });
+    }
+
+    // 🔒 防假帳戶：未驗證電郵唔可以兌換推薦碼
+    const acct = db.prepare("SELECT email_verified FROM users WHERE id = ?").get(req.user.id);
+    if (!acct || !acct.email_verified) {
+      return res.status(403).json({
+        success: false,
+        code: "EMAIL_NOT_VERIFIED",
+        error: "請先驗證電郵地址，之後就可以使用推薦碼（可喺「我的」頁重新發送驗證電郵）。",
+      });
     }
 
     const id = uuidv4();
