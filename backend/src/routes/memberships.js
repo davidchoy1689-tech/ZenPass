@@ -252,10 +252,21 @@ router.get("/my", authenticateToken, (req, res) => {
       )
       .get(req.user.id);
 
+    // 已過期但未清理嘅會籍：對外顯示為 none（避免 UI 以為仍然生效）
+    let type = user.membership_type || "none";
+    let expiresAt = user.membership_expires_at || null;
+    if (type !== "none" && expiresAt) {
+      const exp = new Date(expiresAt);
+      if (!isNaN(exp) && exp < new Date()) {
+        type = "none";
+        expiresAt = null;
+      }
+    }
+
     res.json({
       current: {
-        type: user.membership_type,
-        expires_at: user.membership_expires_at,
+        type,
+        expires_at: expiresAt,
         credits: user.credits,
       },
       history: memberships,
