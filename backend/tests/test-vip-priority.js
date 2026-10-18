@@ -79,6 +79,11 @@ const ok = (c, m) => { if (c) console.log("  ✅ " + m); else { console.log("  �
   ok(/gold: \{ priority_booking: 3/.test(catSrc), "VIP Pass 有 priority_booking");
   ok(!/優先預約權/.test(memSrc), "計劃文案已移除『優先預約權』（只限 VIP）");
   ok(/VIP 優先預約（新課 24 小時）/.test(memSrc), "VIP Pass 文案寫明 24 小時優先");
+  const clsSrc = fs.readFileSync(path.join(root, "src/routes/classes.js"), "utf8");
+  const web = path.join(root, "..", "frontend-v2");
+  const detail = fs.readFileSync(path.join(web, "class-detail.html"), "utf8");
+  ok(/vip_priority_until/.test(clsSrc), "課程詳情 API 回傳 vip_priority_until");
+  ok(/VIP Pass 優先預約中/.test(detail) && /vip_priority_until/.test(detail), "課程頁顯示 VIP 優先提示");
 
   console.log(fail === 0 ? "\n🎉 全部通過" : `\n❌ ${fail} 項失敗`);
   process.exit(fail === 0 ? 0 : 1);

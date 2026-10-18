@@ -92,7 +92,8 @@
       wrap.innerHTML = `
         <div style="display:flex;gap:8px;margin-bottom:8px"><span class="chip on">${esc(c.category || "課程")}</span></div>
         <h1 style="margin:0 0 6px;font-size:22px">${esc(c.title)}</h1>
-        <p class="muted" style="margin:0">👤 ${esc(c.coach_name || "教練")} · ⏱ ${c.duration || "-"} 分鐘${c.venue_name ? " · 📍 " + esc(c.venue_name) : ""}</p>`;
+        <p class="muted" style="margin:0">👤 ${esc(c.coach_name || "教練")} · ⏱ ${c.duration || "-"} 分鐘${c.venue_name ? " · 📍 " + esc(c.venue_name) : ""}</p>
+        ${c.vip_priority_until ? `<div class="banner" style="margin-top:10px">👑 <b>VIP Pass 優先預約中</b><br><span style="font-size:12.5px">${esc(fmtDateTime(c.vip_priority_until))} 起開放給所有會員</span></div>` : ""}`;
       document.getElementById("desc").textContent = c.description || "暫無介紹。";
       const _dmap = { beginner: "初級 / 新手友善", intermediate: "中級", advanced: "高級" };
       const _loc = [c.venue_name, c.venue_address].filter(Boolean).join("（") + (c.venue_name && c.venue_address ? "）" : "");

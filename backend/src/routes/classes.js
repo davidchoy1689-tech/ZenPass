@@ -312,6 +312,17 @@ router.get("/:id", optionalAuth, (req, res) => {
       return res.status(404).json({ success: false, error: "課程不存在" });
     }
 
+    // VIP 優先預約窗口（新課頭 N 小時只限 VIP Pass）— 前端顯示用
+    try {
+      const h = Number(classData.vip_priority_hours) || 0;
+      const raw = String(classData.created_at || "");
+      const iso = /Z$|[+-]\d\d:?\d\d$/.test(raw) ? raw : raw.replace(" ", "T") + "Z";
+      const until = h ? new Date(new Date(iso).getTime() + h * 3600 * 1000) : null;
+      if (until && !isNaN(until) && until > new Date()) {
+        classData.vip_priority_until = until.toISOString();
+      }
+    } catch (e) {}
+
     // 教練公開資料 → 自動嵌入課程頁（註冊時收集 → 批核時寫入 users → 開班自動帶出）
     const splitList = (v) =>
       String(v || "")
