@@ -16,7 +16,7 @@ const ok = (c, m) => { if (c) console.log("  ✅ " + m); else { console.log("  �
   pre.exec(`
   CREATE TABLE partner_venues (id TEXT PRIMARY KEY, name TEXT, district TEXT);
   CREATE TABLE users (id TEXT PRIMARY KEY, name TEXT, email TEXT, phone TEXT, password_hash TEXT,
-    role TEXT DEFAULT 'user', email_verified INTEGER DEFAULT 0, credits INTEGER DEFAULT 0,
+    role TEXT DEFAULT 'user', email_verified INTEGER DEFAULT 0, credits INTEGER DEFAULT 0, avatar_url TEXT, membership_type TEXT DEFAULT 'none', membership_expires_at TEXT, user_reference TEXT, points INTEGER DEFAULT 0, points_tier TEXT, checkin_streak INTEGER DEFAULT 0, total_visits INTEGER DEFAULT 0, total_spent REAL DEFAULT 0,
     referral_credits_earned INTEGER DEFAULT 0, loyalty_tier TEXT DEFAULT 'bronze',
     loyalty_tier_manual INTEGER DEFAULT 0, is_coach INTEGER DEFAULT 0, coach_verified INTEGER DEFAULT 0,
     created_at TEXT DEFAULT (datetime('now')), updated_at TEXT DEFAULT (datetime('now')));
@@ -61,6 +61,19 @@ const ok = (c, m) => { if (c) console.log("  ✅ " + m); else { console.log("  �
 
   const src = fs.readFileSync(path.join(__dirname, "../src/routes/referral.js"), "utf8");
   ok(/EMAIL_NOT_VERIFIED/.test(src), "有防護碼");
+  const usersRouter = require("../src/routes/users");
+  const meLayer = usersRouter.stack.find((l) => l.route && l.route.path === "/me");
+  const meHandler = meLayer.route.stack[meLayer.route.stack.length - 1].handle;
+  const meCall = (uid) => {
+    const res = {};
+    res.status = (c) => { res.statusCode = c; return res; };
+    res.json = (x) => { res.body = x; return res; };
+    meHandler({ user: { id: uid } }, res);
+    return res.body;
+  };
+  ok(meCall("newok").email_verified === 1, "/users/me 回傳 email_verified=1");
+  ok(meCall("new").email_verified === 0, "/users/me 回傳 email_verified=0");
+
   const my = fs.readFileSync(path.join(__dirname, "..", "..", "frontend-v2", "my.html"), "utf8");
   ok(/verifyBanner/.test(my) && /resend-verification/.test(my), "我的頁有未驗證提示 + 重發按鈕");
 
