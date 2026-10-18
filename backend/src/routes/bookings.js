@@ -102,13 +102,14 @@ router.post(
             penalty_consent: it.penaltyConsent,
             promo_code: usePromo ? promoCode : undefined,
             amount: discounted ? batchPromo.final_price : it.amount,
-            credits_cost: discounted && isCredits ? promoCr : undefined,
           },
           user: req.user,
         };
         let r;
         try {
-          r = await bookingService.createBooking(fakeReq);
+          r = await bookingService.createBooking(fakeReq, {
+            creditsOverride: discounted && isCredits ? promoCr : undefined,
+          });
         } catch (e) {
           r = { status: 500, body: { success: false, error: "預約失敗" } };
         }

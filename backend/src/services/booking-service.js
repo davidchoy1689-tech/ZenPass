@@ -563,12 +563,13 @@ function checkVipPriorityWindow(db, cls, userId, now = new Date()) {
 
 // ==================== Core: Create Booking ====================
 
-function createBooking(req) {
+function createBooking(req, options = {}) {
   const { schedule_id, class_id, payment_type, penalty_consent } = req.body;
   let amount = req.body.amount;
   const promo_code = req.body.promo_code || req.body.promoCode;
-  // 可選：由 caller（例如 batch）指定要扣嘅 credits（支援小數，例 $95 → 9.5cr）
-  let creditsOverride = req.body.credits_cost != null ? Number(req.body.credits_cost) : undefined;
+  // credits override 只可以由伺服器內部（batch promo）傳入，唔可以信 req.body
+  let creditsOverride =
+    options.creditsOverride != null ? Number(options.creditsOverride) : undefined;
 
   if (!schedule_id || !class_id || !payment_type) {
     return { status: 400, body: { success: false, error: "缺少預約資料" } };
@@ -674,6 +675,10 @@ function createBooking(req) {
 
   let partnerInfo = null;
   let corporateDeduction = null;
+  let usedCredits = null;
+  const clsPricing = db
+    .prepare("SELECT price_hkd, credits_cost FROM classes WHERE id = ?")
+    .get(class_id);
 
   const bookingFlow = db.transaction(() => {
     // 4. Release expired holds
@@ -717,6 +722,7 @@ function createBooking(req) {
           body: { success: false, error: result.error },
         });
       }
+      usedCredits = result.creditsCost;
     }
 
     if (payment_type === "corporate") {
@@ -728,6 +734,13 @@ function createBooking(req) {
         });
       }
       corporateDeduction = result.deduction;
+    }
+
+    // 7.5 金額以伺服器計算為準（唔信 client amount）
+    if (payment_type === "credits" && usedCredits != null) {
+      amount = Math.round(usedCredits * 10 * 100) / 100;
+    } else if (payment_type === "single" && !promoApply) {
+      amount = Number(clsPricing && clsPricing.price_hkd) || 0;
     }
 
     // 8. Partner commission
