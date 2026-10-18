@@ -18,7 +18,7 @@ const ok = (c, m) => { if (c) console.log("  ✅ " + m); else { console.log("  �
   CREATE TABLE partner_venues (id TEXT PRIMARY KEY, name TEXT, district TEXT);
   CREATE TABLE users (id TEXT PRIMARY KEY, name TEXT, email TEXT, phone TEXT, password_hash TEXT,
     role TEXT DEFAULT 'user', credits INTEGER DEFAULT 0, membership_type TEXT DEFAULT 'none',
-    loyalty_tier TEXT DEFAULT 'bronze', loyalty_tier_manual INTEGER DEFAULT 0,
+    membership_expires_at TEXT, loyalty_tier TEXT DEFAULT 'bronze', loyalty_tier_manual INTEGER DEFAULT 0,
     is_coach INTEGER DEFAULT 0, coach_verified INTEGER DEFAULT 0,
     created_at TEXT DEFAULT (datetime('now')), updated_at TEXT DEFAULT (datetime('now')));
   `);
@@ -52,6 +52,9 @@ const ok = (c, m) => { if (c) console.log("  ✅ " + m); else { console.log("  �
   ok(r1.notified === 2, "7 日內 2 個會籍 → 通知 2 人");
   ok(r1.expired === 1, "已過期會籍標記 expired");
   ok(db.prepare("SELECT status FROM memberships WHERE id='ms0'").get().status === "expired", "ms0 已 expired");
+  const mold = db.prepare("SELECT membership_type, membership_expires_at FROM users WHERE id='mold'").get();
+  ok(mold.membership_type === "none" && mold.membership_expires_at === null, "過期後 users 會籍狀態清空");
+  ok(db.prepare("SELECT membership_type FROM users WHERE id='m5'").get().membership_type === "gold", "仍有效會籍唔受影響");
   ok(!db.prepare("SELECT 1 FROM notifications WHERE user_id='m20'").get(), "18 日後 → 唔通知");
   ok(!db.prepare("SELECT 1 FROM notifications WHERE user_id='m3'").get(), "8 日後 → 今次唔通知");
 

@@ -58,13 +58,33 @@ function checkExpiringMemberships({ now = new Date() } = {}) {
     }
   }
 
-  const expired = db
+  // 逐個過期會籍處理，順便清 users 層級狀態（避免我的頁顯示已過期會籍為現有會籍）
+  const toExpire = db
     .prepare(
-      "UPDATE memberships SET status = 'expired', updated_at = datetime('now') WHERE status = 'active' AND date(end_date) < date(?)",
+      "SELECT id, user_id FROM memberships WHERE status = 'active' AND date(end_date) < date(?)",
     )
-    .run(today);
+    .all(today);
 
-  return { expiring: expiring.length, notified, expired: expired.changes };
+  let expiredCount = 0;
+  for (const m of toExpire) {
+    db.prepare(
+      "UPDATE memberships SET status = 'expired', updated_at = datetime('now') WHERE id = ?",
+    ).run(m.id);
+    expiredCount++;
+
+    const stillActive = db
+      .prepare(
+        "SELECT 1 FROM memberships WHERE user_id = ? AND status = 'active' AND date(end_date) >= date(?) LIMIT 1",
+      )
+      .get(m.user_id, today);
+    if (!stillActive) {
+      db.prepare(
+        "UPDATE users SET membership_type = 'none', membership_expires_at = NULL WHERE id = ?",
+      ).run(m.user_id);
+    }
+  }
+
+  return { expiring: expiring.length, notified, expired: expiredCount };
 }
 
 module.exports = { checkExpiringMemberships };
