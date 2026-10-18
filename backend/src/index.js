@@ -552,54 +552,9 @@ processCorporateResets();
 // ===== Pause 自動恢復排程（每 15 分鐘檢查）=====
 function autoResumePausedMemberships() {
   try {
-    const Database = require("better-sqlite3");
-    const db = new Database(DB_PATH);
-    db.pragma("foreign_keys = ON");
-
-    const due = db
-      .prepare(
-        `SELECT id, user_id, type, pause_reason FROM memberships 
-         WHERE paused_until IS NOT NULL 
-         AND paused_until <= datetime('now') 
-         AND status = 'active'`
-      )
-      .all();
-
-    for (const m of due) {
-      db.prepare(
-        `UPDATE memberships SET paused_until = NULL, pause_reason = NULL, updated_at = datetime('now') WHERE id = ?`
-      ).run(m.id);
-
-      // Audit log
-      try {
-        db.prepare(
-          `INSERT INTO audit_log (id, action_type, entity_type, entity_id, user_id, description, created_at)
-           VALUES (?, 'membership.resume', 'membership', ?, 'system', ?, datetime('now'))`
-        ).run(
-          require("crypto").randomUUID(),
-          m.id,
-          `🔄 暫停期滿自動恢復: ${m.type} (用戶: ${m.user_id})`,
-        );
-      } catch (e) {}
-
-      // Notify user
-      try {
-        const { sendNotification } = require("./services/notification");
-        sendNotification("membership.resume", {
-          recipient: m.user_id,
-          data: { message: "🔁 會籍已自動恢復！暫停期已結束，立即預約課程！" },
-        });
-      } catch (notifErr) {
-        console.error("[PAUSE RESUME] Notification error:", notifErr.message);
-      }
-
-      console.log(`[PAUSE RESUME] 自動恢復會籍 ${m.id} 用戶 ${m.user_id}`);
-    }
-
-    if (due.length > 0) {
-      console.log(`[PAUSE RESUME] 已恢復 ${due.length} 個暫停會籍`);
-    }
-    db.close();
+    const { resumeDueMemberships } = require("./services/membership-pause");
+    const n = resumeDueMemberships();
+    if (n > 0) console.log(`[PAUSE RESUME] 已恢復 ${n} 個暫停會籍`);
   } catch (err) {
     console.error("[PAUSE RESUME] Error:", err.message);
   }

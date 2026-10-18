@@ -256,6 +256,16 @@ async function sendNotification(type, payload) {
       message = `⏳ 你嘅 ${data?.points || 0} 積分將於 ${data?.expires_on || "30 日內"} 到期（連續 12 個月無積分活動）。快啲去積分頁兌換啦！`;
       html = `<h2>⏳ 積分即將到期</h2><p>你嘅 <b>${data?.points || 0}</b> 積分將於 <b>${data?.expires_on || "30 日內"}</b> 到期。</p><p>快啲去積分頁兌換啦！</p>`;
       break;
+    case "membership.paused":
+      title = "會籍已暫停";
+      message = `⏸️ 你嘅會籍已暫停 ${data?.days || 0} 日，會籍到期日已順延至 ${data?.end_date || "—"}。暫停期間仍可睇課程，但不能預約。`;
+      html = `<h2>⏸️ 會籍已暫停</h2><p>你嘅會籍已暫停 <b>${data?.days || 0}</b> 日，到期日已順延至 <b>${data?.end_date || "—"}</b>。</p>`;
+      break;
+    case "membership.resume":
+      title = "會籍已恢復";
+      message = `🔁 你嘅會籍已自動恢復！暫停期已結束，可以繼續預約課程。`;
+      html = `<h2>🔁 會籍已恢復</h2><p>暫停期已結束，可以繼續預約課程。</p>`;
+      break;
     case "membership.expiring":
       title = "會籍即將到期";
       message = `⏰ 你嘅會籍將於 ${data?.end_date || "—"} 到期（剩 ${data?.days_left ?? "—"} 日）。到期後每月 Credits 及會員權益會停止，記得續會啦！`;

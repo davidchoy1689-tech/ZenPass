@@ -475,56 +475,28 @@ router.post("/stripe-subscribe", authenticateToken, async (req, res) => {
 // ===== PUT /api/memberships/:id/pause — 暫停會籍 =====
 router.put("/:id/pause", authenticateToken, (req, res) => {
   try {
-    const { pause_days, reason } = req.body;
-    const days = Math.min(Math.max(parseInt(pause_days) || 14, 1), 30);
-
-    const db = getDb();
-    db.pragma("foreign_keys = ON");
-
-    const membership = db
-      .prepare("SELECT * FROM memberships WHERE id = ? AND user_id = ?")
-      .get(req.params.id, req.user.id);
-
-    if (!membership) {
-      return res.status(404).json({ success: false, error: "會籍不存在" });
-    }
-    if (membership.status !== "active") {
-      return res.status(400).json({ success: false, error: "會籍唔係 active 狀態" });
-    }
-    if (membership.paused_until) {
-      const pausedEnd = new Date(membership.paused_until);
-      if (pausedEnd > new Date()) {
-        return res.status(400).json({ success: false, error: "會籍已經暫停緊" });
-      }
-    }
-    if ((membership.pause_count || 0) >= 3) {
-      return res.status(400).json({ success: false, error: "已達到最大暫停次數 (3次)" });
-    }
-
-    const pausedUntil = new Date(Date.now() + days * 86400000).toISOString();
-
-    // 延長 membership expiry（暫停日數順延）
-    const currentEnd = new Date(membership.end_date);
-    const newEnd = new Date(currentEnd.getTime() + days * 86400000).toISOString();
-
-    db.prepare(
-      `UPDATE memberships SET paused_until = ?, pause_count = COALESCE(pause_count, 0) + 1, pause_reason = ?, end_date = ?, updated_at = datetime('now') WHERE id = ?`
-    ).run(pausedUntil, reason || null, newEnd, req.params.id);
+    const { pauseMembership } = require("../services/membership-pause");
+    const out = pauseMembership(
+      req.user.id,
+      req.params.id,
+      req.body && req.body.pause_days,
+      req.body && req.body.reason,
+    );
 
     // ⛓️ Blockchain audit trail
     try {
       const { writeBlock } = require("../services/blockchain-audit");
       writeBlock({
         entityType: "membership",
-        entityId: membership.id,
+        entityId: out.membership_id,
         data: {
           userId: req.user.id,
-          pause_days: days,
-          reason: reason || null,
-          paused_until: pausedUntil,
-          original_end: membership.end_date,
-          new_end: newEnd,
-          pause_count: (membership.pause_count || 0) + 1,
+          pause_days: out.days,
+          reason: (req.body && req.body.reason) || null,
+          paused_until: out.paused_until,
+          original_end: out.original_end,
+          new_end: out.new_end_date,
+          pause_count: out.pause_count,
           action: "pause",
         },
       });
@@ -533,14 +505,14 @@ router.put("/:id/pause", authenticateToken, (req, res) => {
     }
 
     res.json({
-      message: `⏸️ 會籍已暫停 ${days} 日，將於 ${new Date(pausedUntil).toLocaleDateString("zh-HK")} 自動恢復`,
-      paused_until: pausedUntil,
-      new_end_date: newEnd,
-      pause_count: (membership.pause_count || 0) + 1,
+      message: `⏸️ 會籍已暫停 ${out.days} 日，將於 ${new Date(out.paused_until).toLocaleDateString("zh-HK")} 自動恢復`,
+      paused_until: out.paused_until,
+      new_end_date: out.new_end_date,
+      pause_count: out.pause_count,
     });
   } catch (err) {
-    console.error("暫停會籍錯誤:", err);
-    res.status(500).json({ success: false, error: "暫停會籍失敗" });
+    console.error("暫停會籍錯誤:", err.message);
+    res.status(err.status || 500).json({ success: false, error: err.message || "暫停會籍失敗" });
   }
 });
 
