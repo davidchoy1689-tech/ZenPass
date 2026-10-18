@@ -1,14 +1,15 @@
 const express = require("express");
 const { getDb } = require("../services/database");
-const { authenticateToken } = require("../middleware/auth");
+const { authenticateToken, optionalAuth } = require("../middleware/auth");
 
 const router = express.Router();
 
 // GET /api/activity/feed — Recent platform activity (anonymized)
-router.get("/feed", (req, res) => {
+router.get("/feed", optionalAuth, (req, res) => {
   try {
     const db = getDb();
-    const realFeed = db.prepare(`
+    // 未登入只顯示 demo，避免公開真實用戶嘅上課紀錄
+    const realFeed = req.user ? db.prepare(`
       SELECT b.id, b.created_at as time, b.status,
         u.name as user_name, c.title as class_title, c.venue_name,
         c.category
@@ -18,7 +19,7 @@ router.get("/feed", (req, res) => {
       JOIN class_schedules cs ON b.schedule_id = cs.id
       WHERE b.status IN ('confirmed', 'attended', 'checked_in')
       ORDER BY b.created_at DESC LIMIT 15
-    `).all();
+    `).all() : [];
 
     // Always pad with demo activities so the feed looks alive
     const demos = [
@@ -36,6 +37,9 @@ router.get("/feed", (req, res) => {
       var displayName = nameParts[0] || 'User';
       if (nameParts.length > 1) {
         displayName = nameParts[0] + ' ' + nameParts[1].charAt(0) + '.';
+      } else if (displayName.length > 1) {
+        // 中文名冇空格：只顯示姓氏 + ＊＊
+        displayName = displayName.slice(0, 1) + '＊＊';
       }
       return {
         id: item.id,
