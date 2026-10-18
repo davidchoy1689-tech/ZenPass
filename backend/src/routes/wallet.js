@@ -83,6 +83,15 @@ router.get("/balance", authenticateToken, (req, res) => {
 
 // ===== 4. POST /api/wallet/withdraw — 提現 =====
 router.post("/withdraw", authenticateToken, (req, res) => {
+  // 🚫 安全（2026-10-19）：wallet_balance 同 coach_earnings.pending_payout 係同一筆錢嘅兩個鏡像，
+  // 呢條 route 唔會將 coach_earnings 標記 paid → 可以同教練後台出糧重複提款。
+  return res.status(403).json({
+    success: false,
+    code: "USE_COACH_PAYOUT",
+    error: "請到「教練後台 → 出糧」申請提款（同一筆收入只可以提一次）。",
+  });
+
+  /* eslint-disable no-unreachable */
   try {
     const db = getDb();
     const user = db
@@ -256,7 +265,7 @@ router.get("/admin/coaches", authenticateToken, (req, res) => {
       .prepare("SELECT role FROM users WHERE id = ?")
       .get(req.user.id);
 
-    if (!user || user.role !== "admin") {
+    if (!user || !["admin", "super_admin"].includes(user.role)) {
       return res.status(403).json({ success: false, error: "僅管理員可查看" });
     }
 
@@ -280,7 +289,7 @@ router.get("/admin/txs/:userId", authenticateToken, (req, res) => {
       .prepare("SELECT role FROM users WHERE id = ?")
       .get(req.user.id);
 
-    if (!user || user.role !== "admin") {
+    if (!user || !["admin", "super_admin"].includes(user.role)) {
       return res.status(403).json({ success: false, error: "僅管理員可查看" });
     }
 
@@ -307,7 +316,7 @@ router.post("/admin/adjust", authenticateToken, (req, res) => {
     const admin = db
       .prepare("SELECT role FROM users WHERE id = ?")
       .get(req.user.id);
-    if (!admin || admin.role !== "admin") {
+    if (!admin || !["admin", "super_admin"].includes(admin.role)) {
 
       return res.status(403).json({ success: false, error: "僅管理員可操作" });
     }
