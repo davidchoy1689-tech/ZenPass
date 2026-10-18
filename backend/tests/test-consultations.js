@@ -27,6 +27,7 @@ const ok = (c, m) => { if (c) console.log("  ✅ " + m); else { console.log("  �
   u("gold_u", "gold");
   u("lite_u", "lite");
   u("none_u", "none");
+  u("viptier_u", "none");
   pre.close();
 
   const initDatabase = require("../src/config/init-db");
@@ -45,6 +46,16 @@ const ok = (c, m) => { if (c) console.log("  ✅ " + m); else { console.log("  �
   ok(getQuotaSummary("none_u").plan === null, "非會員冇資格");
   const noPlan = (() => { try { requestConsultation("none_u", {}); return null; } catch (e) { return e; } })();
   ok(noPlan && noPlan.status === 403, "非會員申請 → 403");
+
+  console.log("── loyalty VIP 等級（未買 Pass）──");
+  db.prepare("UPDATE users SET loyalty_tier = 'vip' WHERE id = 'viptier_u'").run();
+  const vq = getQuotaSummary("viptier_u");
+  ok(vq.plan === null && vq.loyalty_vip === true, "loyalty VIP 有資格（非會籍）");
+  ok(vq.quota.member === 0 && vq.quota.vip_guest === 1, "配額 0 次本人 + 1 次邀請朋友");
+  const vm = (() => { try { requestConsultation("viptier_u", {}); return null; } catch (e) { return e; } })();
+  ok(vm && vm.status === 403, "VIP 等級冇本人名額 → 403");
+  const vg = requestConsultation("viptier_u", { kind: "vip_guest", guest_name: "朋友甲" });
+  ok(vg.kind === "vip_guest" && vg.remaining.vip_guest === 0, "VIP 等級可邀請朋友（1 次）");
 
   console.log("── 高階 Pass：每月 1 次 ──");
   const s1 = requestConsultation("silver_u", { notes: "想改善肩頸" });

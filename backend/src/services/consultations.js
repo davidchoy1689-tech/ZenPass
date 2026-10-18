@@ -43,6 +43,23 @@ function getActivePlan(db, userId) {
   return m && PLAN_QUOTA[m.type] ? m.type : null;
 }
 
+/**
+ * 綜合會籍 + 會員等級（loyalty VIP）嘅諮詢配額
+ * - 高階 Pass：1 次本人
+ * - VIP Pass：1 次本人 + 1 次邀請朋友
+ * - loyalty tier = vip（未買 Pass）：每月 1 次邀請朋友（會籍權益文案）
+ */
+function resolveBenefits(db, userId) {
+  const plan = getActivePlan(db, userId);
+  const u = db.prepare("SELECT loyalty_tier FROM users WHERE id = ?").get(userId);
+  const loyaltyVip = !!(u && u.loyalty_tier === "vip");
+  const quota = plan
+    ? { ...PLAN_QUOTA[plan] }
+    : { member: 0, vip_guest: 0 };
+  if (loyaltyVip) quota.vip_guest = Math.max(quota.vip_guest, 1);
+  return { plan, loyalty_vip: loyaltyVip, quota };
+}
+
 /** 本月已用配額（cancelled 唔計） */
 function getUsedQuota(db, userId, period = hkPeriod()) {
   const rows = db
@@ -60,12 +77,14 @@ function getUsedQuota(db, userId, period = hkPeriod()) {
 function getQuotaSummary(userId) {
   const db = getDb();
   const period = hkPeriod();
-  const plan = getActivePlan(db, userId);
-  const quota = plan ? PLAN_QUOTA[plan] : { member: 0, vip_guest: 0 };
+  const benefits = resolveBenefits(db, userId);
+  const plan = benefits.plan;
+  const quota = benefits.quota;
   const used = getUsedQuota(db, userId, period);
   return {
     period,
     plan,
+    loyalty_vip: benefits.loyalty_vip,
     quota,
     used,
     remaining: {
@@ -91,18 +110,19 @@ function requestConsultation(userId, body = {}) {
   const db = getDb();
   db.pragma("foreign_keys = ON");
 
-  const plan = getActivePlan(db, userId);
-  if (!plan) {
-    const err = new Error("此服務只限高階 Pass／VIP Pass 會員");
+  const benefits = resolveBenefits(db, userId);
+  const plan = benefits.plan;
+  const quota = benefits.quota;
+  if (!benefits.loyalty_vip && !plan) {
+    const err = new Error("此服務只限高階 Pass／VIP Pass 會員／VIP 等級");
     err.status = 403;
     throw err;
   }
 
   const kind = body.kind === "vip_guest" ? "vip_guest" : "member";
-  const quota = PLAN_QUOTA[plan];
   if (!quota[kind]) {
     const err = new Error(
-      kind === "vip_guest" ? "VIP 邀請朋友名額只限 VIP Pass" : "你嘅會籍未包括此服務",
+      kind === "vip_guest" ? "你嘅會籍／等級未包括邀請朋友名額" : "你嘅會籍未包括本人諮詢名額",
     );
     err.status = 403;
     throw err;
@@ -217,6 +237,7 @@ module.exports = {
   hkPeriod,
   getActivePlan,
   getQuotaSummary,
+  resolveBenefits,
   listMine,
   requestConsultation,
   listForAdmin,

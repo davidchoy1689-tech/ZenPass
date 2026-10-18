@@ -71,9 +71,9 @@
 
     function renderQuota() {
       const d = data || {};
-      if (!d.plan) {
+      if (!d.plan && !d.loyalty_vip) {
         $("quota").innerHTML = `<div class="card"><div class="body center">
-          <b>此服務只限高階 Pass／VIP Pass 會員</b>
+          <b>此服務只限高階 Pass／VIP Pass 會員／VIP 等級</b>
           <div class="muted" style="font-size:13px;margin:8px 0">升級會籍即可享用一對一健康諮詢／身體評估。</div>
           <a class="btn btn-primary" href="memberships.html">睇會籍計劃</a>
         </div></div>`;
@@ -84,7 +84,7 @@
       if (q.member) chips.push(`<span class="qchip ${rem.member ? "" : "zero"}">本人：剩 ${rem.member} / ${q.member} 次</span>`);
       if (q.vip_guest) chips.push(`<span class="qchip ${rem.vip_guest ? "" : "zero"}">邀請朋友：剩 ${rem.vip_guest} / ${q.vip_guest} 次</span>`);
       $("quota").innerHTML = `<div class="card"><div class="body">
-        <b>${d.plan === "gold" ? "👑 VIP Pass" : "🥈 高階 Pass"}</b>
+        <b>${d.plan === "gold" ? "👑 VIP Pass" : d.plan === "silver" ? "🥈 高階 Pass" : "👑 VIP 會員（等級）"}</b>
         <div class="muted" style="font-size:12.5px">今個月（${d.period}）名額</div>
         <div class="quota">${chips.join("")}</div>
       </div></div>`;
@@ -92,7 +92,7 @@
 
     function renderForm() {
       const d = data || {};
-      if (!d.plan) { $("formWrap").style.display = "none"; return; }
+      if (!d.plan && !d.loyalty_vip) { $("formWrap").style.display = "none"; return; }
       const rem = d.remaining || {};
       const opts = [];
       if (rem.member > 0) opts.push(`<option value="member">本人 — 健康諮詢／身體評估</option>`);
