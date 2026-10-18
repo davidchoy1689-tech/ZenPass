@@ -387,7 +387,7 @@
       else { btn.disabled=false; btn.textContent="我已付款，提交核實"; alert("提交失敗，請重試"); }
     }
     async function payByCard(){
-      const r = await api.post("/payments/stripe/create-checkout", { amount: payUnit*payIds.length, booking_id: payIds[0], description: (cls?cls.title:"ZenPass 課程") });
+      const r = await api.post("/payments/stripe/create-checkout", { booking_ids: payIds, booking_id: payIds[0], description: (cls?cls.title:"ZenPass 課程") });
       if(r.ok && r.data && r.data.checkout_url){ location.href = r.data.checkout_url; }
       else if(r.data && r.data.dev_mode){ alert("信用卡測試模式未開放，請改用轉數快或 PayMe 完成付款。"); }
       else { alert((r.data&&r.data.error)||"信用卡暫不可用"); }

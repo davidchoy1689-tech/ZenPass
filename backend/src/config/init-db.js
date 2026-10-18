@@ -884,6 +884,14 @@ CREATE TABLE IF NOT EXISTS users (
   try {
     db.exec("ALTER TABLE users ADD COLUMN loyalty_tier_manual INTEGER DEFAULT 0");
   } catch (e) {/* unused /*/}
+  // bookings 付款方式／收據（舊 DB 缺欄，FPS/PayMe 提交會 500）
+  try {
+    db.exec("ALTER TABLE bookings ADD COLUMN payment_method TEXT");
+  } catch (e) {/* exists */}
+  try {
+    db.exec("ALTER TABLE bookings ADD COLUMN receipt_image TEXT");
+  } catch (e) {/* exists */}
+
   // 電郵驗證碼（6 位數字，10 分鐘有效）
   try {
     db.exec("ALTER TABLE users ADD COLUMN verification_code TEXT");
