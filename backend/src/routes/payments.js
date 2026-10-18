@@ -859,25 +859,21 @@ router.post(
           .json({ error: "未找到待付款的預約或預約已取消" });
       }
 
-      // 根據付款方式決定是否需要管理員確認
-      // Stripe — 即時確認（Stripe 已驗證付款）
-      // FPS / PayMe — 停留 pending_payment，等待管理員確認
-      const isAdminApprovalRequired =
-        payment_method === "fps" || payment_method === "payme";
-
-      let updateFields = [];
-      let updateParams = [];
-
-      if (isAdminApprovalRequired) {
-        // FPS/PayMe: 儲存參考編號，保持 pending，等 admin 確認
-        updateFields = [
-          "status = 'pending_payment'",
-          "payment_status = 'pending'",
-        ];
-      } else {
-        // Stripe: 即時確認
-        updateFields = ["status = 'confirmed'", "payment_status = 'paid'"];
+      // 🚫 安全（2026-10-19）：唔可以靠客戶自行提交 Stripe 參考就確認付款
+      // Stripe 必須經 webhook 驗證；FPS/PayMe 只保存參考，等 admin 核實。
+      if (payment_method !== "fps" && payment_method !== "payme") {
+        return res.status(400).json({
+          success: false,
+          code: "USE_STRIPE_CHECKOUT",
+          error: "信用卡付款必須經 Stripe 付款頁完成，請返回付款頁重新付款。",
+        });
       }
+
+      const updateFields = [
+        "status = 'pending_payment'",
+        "payment_status = 'pending'",
+      ];
+      const updateParams = [];
 
       if (payment_method === "stripe" && payment_reference) {
         updateFields.push("stripe_payment_intent_id = ?");
@@ -890,11 +886,7 @@ router.post(
         updateParams.push(payment_reference);
       }
 
-      // 如果有傳入 amount 就更新
-      if (amount) {
-        updateFields.push("amount = ?");
-        updateParams.push(amount);
-      }
+      // 金額以 booking 原價為準，唔信 client 傳入嘅 amount
 
       // 記錄付款方式
       updateFields.push("payment_method = ?");

@@ -7,6 +7,7 @@ const express = require("express");
 const router = express.Router();
 const path = require("path");
 const { getDb } = require("../services/database");
+const { authenticateToken, requireAdmin } = require("../middleware/auth");
 
 const DB_PATH = path.join(__dirname, "..", "..", "data", "zenpass.db");
 
@@ -189,7 +190,7 @@ router.get("/admin/pricing", (req, res) => {
 });
 
 // ===== PUT /api/admin/pricing — 管理員更新定價 =====
-router.put("/admin/pricing", (req, res) => {
+router.put("/admin/pricing", authenticateToken, requireAdmin, (req, res) => {
   try {
     const { updates } = req.body; // { key: value, ... }
     if (!updates || typeof updates !== "object") {
