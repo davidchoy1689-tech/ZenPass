@@ -262,7 +262,7 @@ router.get("/stats", authenticateToken, (req, res) => {
   try {
     const db = getDb();
     const user = db.prepare("SELECT role FROM users WHERE id = ?").get(req.user.id);
-    if (!user || user.role !== "admin") {
+    if (!user || !["admin", "super_admin"].includes(user.role)) {
 
       return res.status(403).json({ success: false, error: "只限管理員" });
     }
@@ -384,7 +384,7 @@ router.post("/process-specific/:bookingId", authenticateToken, (req, res) => {
   try {
     const db = getDb();
     const user = db.prepare("SELECT role, is_coach FROM users WHERE id = ?").get(req.user.id);
-    if (!user || (user.role !== "admin" && !user.is_coach)) {
+    if (!user || (!["admin", "super_admin"].includes(user.role) && !user.is_coach)) {
 
       return res.status(403).json({ success: false, error: "只限管理員/教練" });
     }

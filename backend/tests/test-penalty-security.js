@@ -53,7 +53,7 @@ const ok = (c, m) => { if (c) console.log("  ✅ " + m); else { console.log("  �
 
   const src = fs.readFileSync(path.join(__dirname, "../src/routes/penalty.js"), "utf8");
   ok(/router\.post\("\/process-no-shows", adminOrLocal/.test(src), "route 已套用 adminOrLocal");
-  ok(/\[\"admin\", \"super_admin\"\]\.includes\(user\.role\)/.test(src), "settings 接受 super_admin");
+  ok((src.match(/\[\"admin\", \"super_admin\"\]\.includes\(user\.role\)/g) || []).length >= 3, "settings/stats/process 都接受 super_admin");
   ok(/booking\.coach_id !== req\.user\.id/.test(src), "教練只可處理自己班學生");
   ok(/requireAdmin/.test(src), "有 requireAdmin 保護");
 

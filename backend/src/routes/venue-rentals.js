@@ -280,7 +280,7 @@ router.delete("/:id/cancel", authenticateToken, (req, res) => {
 
       return res.status(404).json({ success: false, error: "租賃記錄不存在" });
     }
-    if (rental.coach_id !== req.user.id && req.user.role !== "admin") {
+    if (rental.coach_id !== req.user.id && !["admin", "super_admin"].includes(req.user.role)) {
 
       return res.status(403).json({ success: false, error: "無權限取消" });
     }
@@ -442,7 +442,7 @@ router.post("/:id/pay", authenticateToken, (req, res) => {
     const db = getDb();
     const r = db.prepare("SELECT * FROM venue_rentals WHERE id = ?").get(req.params.id);
     if (!r) return res.status(404).json({ success: false, error: "租場紀錄不存在" });
-    if (r.coach_id !== req.user.id && req.user.role !== "admin") {
+    if (r.coach_id !== req.user.id && !["admin", "super_admin"].includes(req.user.role)) {
       return res.status(403).json({ success: false, error: "無權限付款" });
     }
     if (r.status === "cancelled") return res.status(400).json({ success: false, error: "租場已取消" });
