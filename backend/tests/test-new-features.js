@@ -886,26 +886,21 @@ async function testTopupAPI(userToken) {
   });
 
   // Test 3: PUT /api/topup/config — save config
-  await testAsync("PUT /api/topup/config — 儲存設定", async () => {
+  await testAsync("PUT /api/topup/config — 普通用戶啟用 → 403", async () => {
     const res = await apiPut("/api/topup/config", {
       enabled: true,
       threshold: 15,
       bundle: "premium",
     }, userToken);
-    assertEqual(res.status, 200);
-    assertOk(res.body.success, "Success");
-    assertEqual(res.body.config.enabled, true);
-    assertEqual(res.body.config.threshold, 15);
-    assertEqual(res.body.config.bundle_type, "premium");
+    assertEqual(res.status, 403);
+    assertEqual(res.body.code, "AUTO_TOPUP_DISABLED");
   });
 
   // Test 4: GET /api/topup/config — verify saved config
-  await testAsync("GET /api/topup/config — 確認已儲存", async () => {
+  await testAsync("GET /api/topup/config — 未啟用（安全）", async () => {
     const res = await apiGet("/api/topup/config", userToken);
-    assertEqual(res.body.enabled, true);
-    assertEqual(res.body.threshold, 15);
-    assertEqual(res.body.bundle_type, "premium");
-    assertEqual(res.body.bundle.credits, 55, "Premium bundle = 55 credits");
+    assertEqual(res.body.enabled, false);
+    assertEqual(res.body.bundle_type, "standard");
   });
 
   // Test 5: PUT /api/topup/config — invalid threshold (0)

@@ -131,10 +131,20 @@ router.put("/config", authenticateToken, (req, res) => {
       }
     }
 
+    // 🚫 安全（2026-10-19）：未接真實扣款渠道，唔可以俾用戶啟用／即時加點
+    const isAdmin = ["admin", "super_admin"].includes(req.user && req.user.role);
+    if (enabled && !isAdmin) {
+      return res.status(403).json({
+        success: false,
+        code: "AUTO_TOPUP_DISABLED",
+        error: "自動增值暫停用（未接支付渠道），請到「增值」頁以 FPS／PayMe 入數。",
+      });
+    }
+
     const db = getDb();
     const bundleType = bundle || "standard";
     const finalThreshold = threshold !== undefined ? parseInt(threshold) : 10;
-    const finalEnabled = enabled !== undefined ? (enabled ? 1 : 0) : 0;
+    const finalEnabled = isAdmin && enabled ? 1 : 0;
 
     // Upsert config
     db.prepare(
@@ -147,11 +157,8 @@ router.put("/config", authenticateToken, (req, res) => {
          updated_at = datetime('now', '+8 hours')`,
     ).run(req.user.id, finalEnabled, finalThreshold, bundleType);
 
-    // If enabled, check if immediate top-up needed
-    let autoExecuted = null;
-    if (finalEnabled) {
-      autoExecuted = executeAutoTopup(req.user.id, bundleType, finalThreshold, "auto");
-    }
+    // 永不喺儲存設定時自動加點（避免無付款來源下免費加 credits）
+    const autoExecuted = null;
 
     res.json({
       success: true,

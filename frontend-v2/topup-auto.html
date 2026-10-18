@@ -18,6 +18,7 @@
   <div class="topbar"><a class="back" href="wallet.html">‹</a><div class="title">自動增值</div></div>
   <div class="wrap">
     <p class="muted" style="font-size:13px">當 Credits 低於你設定嘅門檻，系統會自動幫你增值指定套票。</p>
+    <div class="banner" style="margin-bottom:8px">⚠️ 自動增值暫停用（未接支付渠道）。請到「增值」頁以 FPS／PayMe 入數。</div>
     <div id="tierNote" class="muted" style="font-size:12.5px"></div>
     <div id="box"><div class="card"><div class="body muted">載入中…</div></div></div>
     <div class="spacer"></div>
@@ -49,7 +50,7 @@
     function render() {
       document.getElementById("box").innerHTML = `<div class="card">
         <div class="switch"><div><b>啟用自動增值</b><div class="muted" style="font-size:12px">低於門檻自動加購</div></div>
-          <input type="checkbox" id="en" ${cfg.enabled ? "checked" : ""} style="width:22px;height:22px"></div>
+          <input type="checkbox" id="en" ${cfg.enabled ? "checked" : ""} disabled style="width:22px;height:22px"></div>
         <div class="body" style="border-top:1px solid var(--border)">
           <label class="lbl">當 Credits 低於（門檻）</label>
           <input class="fld" id="th" type="number" min="1" max="100" value="${esc(cfg.threshold)}">
