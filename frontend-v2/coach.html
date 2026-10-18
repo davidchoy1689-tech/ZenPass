@@ -43,6 +43,10 @@
           <div><label class="lbl">時長（分鐘）</label><input class="fld" id="ncDur" type="number" value="60" min="15" max="300" /></div>
           <div><label class="lbl">名額</label><input class="fld" id="ncMax" type="number" value="12" min="1" max="200" /></div>
         </div>
+        <label style="display:flex;gap:8px;align-items:flex-start;margin:10px 0;font-size:13.5px">
+          <input type="checkbox" id="ncVip" checked style="width:18px;height:18px;margin-top:2px" />
+          <span><b>VIP Pass 優先預約</b><br /><span class="muted" style="font-size:12px">新班頭 24 小時只限 VIP Pass 會員預約，之後開放給所有會員</span></span>
+        </label>
         <div class="grid2">
           <div><label class="lbl">價錢 HK$</label><input class="fld" id="ncPrice" type="number" value="150" min="0" /></div>
           <div><label class="lbl">Credits（留空自動 = 價錢÷10）</label><input class="fld" id="ncCredits" type="number" min="0" /></div>
@@ -191,6 +195,7 @@
         difficulty: $("ncDiff").value,
         duration: Number($("ncDur").value),
         max_participants: Number($("ncMax").value),
+        vip_priority_hours: $("ncVip") && $("ncVip").checked ? 24 : 0,
         price_hkd: Number($("ncPrice").value) || 0,
         credits_cost: $("ncCredits").value ? Number($("ncCredits").value) : undefined,
         description: $("ncDesc").value.trim(),
