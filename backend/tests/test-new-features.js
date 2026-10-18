@@ -86,6 +86,7 @@ function seedDatabase() {
       membership_type TEXT DEFAULT 'none',
       membership_expires_at TEXT,
       loyalty_tier TEXT DEFAULT 'bronze',
+      loyalty_tier_manual INTEGER DEFAULT 0,
       monthly_bookings INTEGER DEFAULT 0,
       points INTEGER DEFAULT 0,
       is_coach INTEGER DEFAULT 0,

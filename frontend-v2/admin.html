@@ -30,7 +30,7 @@
     <div id="panel"><div class="card"><div class="body muted">載入中…</div></div></div>
     <div class="spacer"></div>
   </div>
-  <script src="assets/api.js"></script>
+  <script src="assets/api.js?v=2"></script>
   <script>
     const $ = (x) => document.getElementById(x);
     const panel = () => $("panel");
@@ -251,7 +251,32 @@
         <p class="kv">預約：${bk.length} 筆 · 交易：${tx.length} 筆 · 錢包紀錄：${txs.length} 筆</p>
         ${bk.length?`<div style="max-height:150px;overflow:auto">${bk.slice(0,10).map(b=>`<div class="kv">${esc2(b.booking_reference||b.id)} · ${esc2(st(b.status))} · ${b.amount?money(b.amount):""}</div>`).join("")}</div>`:""}
         ${txs.length?`<div style="max-height:150px;overflow:auto;border-top:1px solid var(--border);margin-top:8px;padding-top:8px">${txs.slice(0,15).map(t=>`<div class="kv">${esc2(t.type||"")} ${t.amount?money(t.amount):""} ${esc2(String(t.created_at||"").slice(0,10))}</div>`).join("")}</div>`:""}
+        <div class="body" style="border-top:1px solid var(--border);margin-top:10px;padding-top:10px">
+          <b>👑 會員等級</b>
+          <div class="kv" id="loyNow">現時：${esc2(u.loyalty_tier||"bronze")} ${Number(u.loyalty_tier_manual)?"（手動設定）":"（自動計算）"}</div>
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <select class="fld" id="loySel" style="flex:1">
+              ${[["bronze","🥉 銅牌"],["silver","🥈 銀牌"],["gold","🥇 金牌"],["vip","👑 VIP"]].map(([k,l])=>`<option value="${k}"${(u.loyalty_tier||"bronze")===k?" selected":""}>${l}</option>`).join("")}
+            </select>
+            <button class="btn btn-primary" id="loySave">儲存</button>
+          </div>
+          <button class="btn btn-ghost btn-block" id="loyReset" style="margin-top:8px">↩️ 回復自動計算</button>
+          <div class="kv" style="font-size:11.5px;margin-top:6px">手動設定後，每月 1 號自動升級會跳過此用戶。</div>
+        </div>
         <div class="actions"><button class="btn btn-secondary" onclick="closeModal(this)">關閉</button></div>`);
+      document.getElementById("loySave").onclick = async () => {
+        const tier = document.getElementById("loySel").value;
+        const reason = prompt("原因（可留空）") || "";
+        const rr = await api.patch("/admin/users/" + encodeURIComponent(id) + "/loyalty-tier", { tier, reason });
+        if (rr.ok) { alert(rr.data.message || "已更新"); openUser(id); }
+        else alert((rr.data&&rr.data.error)||"設定失敗");
+      };
+      document.getElementById("loyReset").onclick = async () => {
+        if (!confirm("確定回復自動計算？")) return;
+        const rr = await api.del("/admin/users/" + encodeURIComponent(id) + "/loyalty-tier");
+        if (rr.ok) { alert(rr.data.message || "已回復"); openUser(id); }
+        else alert((rr.data&&rr.data.error)||"回復失敗");
+      };
     }
 
     async function npsTab() {

@@ -171,6 +171,31 @@ router.get("/users", authenticateToken, requireAdmin, (req, res) => {
   }
 });
 
+// ===== 會員等級：管理員手動設定 / 回復自動 =====
+router.patch("/users/:id/loyalty-tier", authenticateToken, requireAdmin, (req, res) => {
+  try {
+    const { setUserTierManually } = require("../services/loyalty");
+    const { tier, reason } = req.body || {};
+    const out = setUserTierManually(req.params.id, tier, {
+      adminId: req.user.id,
+      reason: reason || "",
+    });
+    res.json({ success: true, message: `已設定為 ${out.tier_info.icon} ${out.tier_info.name}（不再自動調整）`, data: out });
+  } catch (err) {
+    res.status(err.status || 500).json({ success: false, error: err.message || "設定失敗" });
+  }
+});
+
+router.delete("/users/:id/loyalty-tier", authenticateToken, requireAdmin, (req, res) => {
+  try {
+    const { resetUserTierToAuto } = require("../services/loyalty");
+    const out = resetUserTierToAuto(req.params.id, req.user.id);
+    res.json({ success: true, message: `已回復自動計算（現為 ${out.tier_info.icon} ${out.tier_info.name}）`, data: out });
+  } catch (err) {
+    res.status(err.status || 500).json({ success: false, error: err.message || "回復失敗" });
+  }
+});
+
 // ===== GET /api/admin/classes =====
 router.get("/classes", authenticateToken, requireAdmin, (req, res) => {
   try {

@@ -5,6 +5,8 @@
 
 const { getDb } = require("./database");
 const { v4: uuidv4 } = require("uuid");
+const { audit } = require("./audit");
+const { writeBlock } = require("./blockchain-audit");
 
 // ===== Tier Definitions =====
 const TIERS = {
@@ -118,7 +120,11 @@ function updateAllTiers() {
   db.pragma("foreign_keys = ON");
 
   const users = db
-    .prepare("SELECT id FROM users WHERE credits > 0 OR membership_type != 'none'")
+    .prepare(
+      `SELECT id FROM users
+       WHERE (credits > 0 OR membership_type != 'none')
+         AND COALESCE(loyalty_tier_manual, 0) = 0`,
+    )
     .all();
 
   let updated = 0;
@@ -193,6 +199,98 @@ function getUserTierInfo(userId) {
 }
 
 /**
+ * 管理員手動設定會員等級（設定後每月自動計算會跳過此用戶）
+ */
+function setUserTierManually(userId, tier, { adminId = null, reason = "" } = {}) {
+  const db = getDb();
+  db.pragma("foreign_keys = ON");
+
+  if (!TIERS[tier]) {
+    const err = new Error("無效嘅會員等級");
+    err.status = 400;
+    throw err;
+  }
+
+  const user = db
+    .prepare("SELECT id, name, loyalty_tier, loyalty_tier_manual FROM users WHERE id = ?")
+    .get(userId);
+  if (!user) {
+    const err = new Error("用戶不存在");
+    err.status = 404;
+    throw err;
+  }
+
+  const oldTier = user.loyalty_tier || "bronze";
+  db.prepare(
+    "UPDATE users SET loyalty_tier = ?, loyalty_tier_manual = 1 WHERE id = ?",
+  ).run(tier, userId);
+
+  try {
+    audit({
+      actionType: "loyalty.tier_manual",
+      entityType: "user",
+      entityId: userId,
+      userId: adminId,
+      oldValues: { loyalty_tier: oldTier },
+      newValues: { loyalty_tier: tier, manual: true },
+      description: `管理員手動設定會員等級：${oldTier} → ${tier}${reason ? `（${reason}）` : ""}`,
+    });
+  } catch (e) {
+    console.error("⚠️ Audit failed (loyalty tier):", e.message);
+  }
+
+  try {
+    writeBlock({
+      entityType: "loyalty_tier",
+      entityId: userId,
+      data: { old_tier: oldTier, new_tier: tier, manual: true, admin_id: adminId, reason },
+    });
+  } catch (e) {
+    console.error("⚠️ Blockchain write failed (loyalty tier):", e.message);
+  }
+
+  return {
+    user_id: userId,
+    old_tier: oldTier,
+    tier,
+    tier_info: TIERS[tier],
+    manual: true,
+  };
+}
+
+/**
+ * 取消手動等級，回復每月自動計算
+ */
+function resetUserTierToAuto(userId, adminId = null) {
+  const db = getDb();
+  const user = db
+    .prepare("SELECT id, loyalty_tier FROM users WHERE id = ?")
+    .get(userId);
+  if (!user) {
+    const err = new Error("用戶不存在");
+    err.status = 404;
+    throw err;
+  }
+
+  db.prepare("UPDATE users SET loyalty_tier_manual = 0 WHERE id = ?").run(userId);
+  const result = updateUserTier(userId);
+
+  try {
+    audit({
+      actionType: "loyalty.tier_auto",
+      entityType: "user",
+      entityId: userId,
+      userId: adminId,
+      oldValues: { loyalty_tier: user.loyalty_tier, manual: true },
+      newValues: { loyalty_tier: result.tier, manual: false },
+      description: `取消手動會員等級，回復自動計算（現為 ${result.tier}）`,
+    });
+  } catch (e) {}
+
+  return { user_id: userId, tier: result.tier, tier_info: result.tier_info, manual: false };
+}
+
+/**
  * 頂層優惠計算（用於 top-up 折扣）
  * @param {string} userId
  * @param {number} amount
@@ -235,4 +333,6 @@ module.exports = {
   getUserTierInfo,
   getTopUpDiscount,
   applyTopUpDiscount,
+  setUserTierManually,
+  resetUserTierToAuto,
 };

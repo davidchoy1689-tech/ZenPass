@@ -873,6 +873,10 @@ CREATE TABLE IF NOT EXISTS users (
   try {
     db.exec("ALTER TABLE users ADD COLUMN monthly_bookings INTEGER DEFAULT 0");
   } catch (e) {/* unused /*/}
+  // 手動等級覆寫（1 = 管理員設定，每月自動計算會跳過）
+  try {
+    db.exec("ALTER TABLE users ADD COLUMN loyalty_tier_manual INTEGER DEFAULT 0");
+  } catch (e) {/* unused /*/}
 
   // ===== CRM 學生管理 =====
   try {
