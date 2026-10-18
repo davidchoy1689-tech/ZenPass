@@ -1007,6 +1007,24 @@ function cancellationFeeRate(hoursUntil) {
   return 1;
 }
 
+/**
+ * 會籍權益：免費取消
+ * - unlimited_cancel（高階/VIP Pass）→ 任何時間免罰
+ * - free_cancel（所有 Pass，符合「開課前一日自由取消」）→ ≥24 小時免罰
+ * 未持有有效會籍 → 按原本政策收費
+ */
+function resolveCancellationFeeRate(userId, hoursUntilClass, baseRate) {
+  if (!baseRate || baseRate <= 0) return 0;
+  try {
+    const { hasEntitlement } = require("./membership-catalog");
+    if (hasEntitlement(userId, "unlimited_cancel")) return 0;
+    if (hoursUntilClass >= 24 && hasEntitlement(userId, "free_cancel")) return 0;
+  } catch (e) {
+    console.error("⚠️ Entitlement check failed (cancel):", e.message);
+  }
+  return baseRate;
+}
+
 function cancelBooking(req) {
   const db = getDb();
   db.pragma("foreign_keys = ON");
@@ -1038,7 +1056,11 @@ function cancelBooking(req) {
     if (hoursUntilClass < 0) {
       return { status: 400, body: { success: false, error: "課程已開始，無法取消" } };
     }
-    feeRate = cancellationFeeRate(hoursUntilClass);
+    feeRate = resolveCancellationFeeRate(
+      req.user.id,
+      hoursUntilClass,
+      cancellationFeeRate(hoursUntilClass),
+    );
   }
 
   return _processNormalCancel(db, booking, reason, req, feeRate);
@@ -1808,4 +1830,6 @@ module.exports = {
   attendBooking,
   processQRCheckin,
   markNoShow,
+  resolveCancellationFeeRate,
+  cancellationFeeRate,
 };
