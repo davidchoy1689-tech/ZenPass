@@ -125,41 +125,21 @@ router.post("/redeem", authenticateToken, (req, res) => {
   }
 });
 
-// ===== GET /api/loyalty/tiers — 會籍等級福利 =====
+// ===== GET /api/referral/tiers — 會員等級福利（同 services/loyalty 單一來源）=====
 router.get("/tiers", authenticateToken, (req, res) => {
-  const tiers = [
-    {
-      id: "bronze",
-      name: "🥉 銅牌",
-      min_visits: 0,
-      benefits: ["基本課程預約", "標準支援"],
-    },
-    {
-      id: "silver",
-      name: "🥈 銀牌",
-      min_visits: 10,
-      benefits: ["優先預約", "每月 1 堂免費", "專屬支援"],
-    },
-    {
-      id: "gold",
-      name: "🥇 金牌",
-      min_visits: 30,
-      benefits: [
-        "無限預約",
-        "每月 3 堂免費",
-        "免費取消",
-        "優先客服",
-        "生日優惠",
-      ],
-    },
-    {
-      id: "platinum",
-      name: "💎 鉑金",
-      min_visits: 60,
-      benefits: ["全部金牌功能", "私人教練諮詢", "新課程優先體驗", "活動邀請"],
-    },
-  ];
-  res.json({ tiers });
+  try {
+    const { TIERS } = require("../services/loyalty");
+    const tiers = Object.entries(TIERS).map(([id, t]) => ({
+      id,
+      name: `${t.icon} ${t.name}`,
+      min_bookings: t.min_bookings,
+      benefits: (t.benefits || []).map((b) => b.text),
+    }));
+    res.json({ tiers });
+  } catch (err) {
+    console.error("referral/tiers error:", err.message);
+    res.status(500).json({ success: false, error: "無法讀取等級資料" });
+  }
 });
 
 module.exports = router;
