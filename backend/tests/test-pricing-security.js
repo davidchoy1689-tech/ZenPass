@@ -48,8 +48,14 @@ const ok = (c, m) => { if (c) console.log("  ✅ " + m); else { console.log("  �
   ok(status === 401, "未登入 PUT → 401");
   ok(!!body && body.error, "有錯誤訊息");
 
+  const getLayer = router.stack.find(
+    (l) => l.route && l.route.path === "/admin/pricing" && l.route.methods.get,
+  );
+  ok(!!getLayer && getLayer.route.stack.length >= 3, "GET /admin/pricing 亦有 middleware");
+
   const src = fs.readFileSync(path.join(__dirname, "../src/routes/pricing.js"), "utf8");
-  ok(/router\.put\("\/admin\/pricing", authenticateToken, requireAdmin/.test(src), "router 已加 authenticateToken + requireAdmin");
+  ok(/router\.put\("\/admin\/pricing", authenticateToken, requireAdmin/.test(src), "PUT 已加 authenticateToken + requireAdmin");
+  ok(/router\.get\("\/admin\/pricing", authenticateToken, requireAdmin/.test(src), "GET 已加 authenticateToken + requireAdmin");
 
   console.log(fail === 0 ? "\n🎉 全部通過" : `\n❌ ${fail} 項失敗`);
   process.exit(fail === 0 ? 0 : 1);

@@ -163,7 +163,7 @@ router.get("/packages", (req, res) => {
 });
 
 // ===== GET /api/admin/pricing — 管理員睇全部定價設定 =====
-router.get("/admin/pricing", (req, res) => {
+router.get("/admin/pricing", authenticateToken, requireAdmin, (req, res) => {
   try {
     const db = getDb();
     const rows = db

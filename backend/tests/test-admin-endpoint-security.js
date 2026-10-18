@@ -71,6 +71,8 @@ const ok = (c, m) => { if (c) console.log("  ✅ " + m); else { console.log("  �
   ok(/router\.post\("\/deploy", authenticateToken, requireAdmin/.test(deploySrc), "deploy 有 requireAdmin");
   ok(/startsWith\(FRONTEND_DIR \+ path\.sep\)/.test(deploySrc), "write-file 路徑用 path.sep 邊界檢查");
   ok((auditSrc.match(/authenticateToken, requireAdmin/g) || []).length >= 5, "audit 全部 route 要 admin");
+  const ceSrc = fs.readFileSync(path.join(root, "coach-earnings.js"), "utf8");
+  ok(/router\.get\("\/admin\/all-earnings", authenticateToken, requireAdmin/.test(ceSrc), "all-earnings 用 role 而唔係硬編 email");
 
   console.log(fail === 0 ? "\n🎉 全部通過" : `\n❌ ${fail} 項失敗`);
   process.exit(fail === 0 ? 0 : 1);

@@ -460,14 +460,8 @@ router.get("/payout-history", authenticateToken, (req, res) => {
 });
 
 // ===== Admin: GET /api/admin/coach-earnings — 管理員查看所有教練收入 =====
-router.get("/admin/all-earnings", authenticateToken, (req, res) => {
+router.get("/admin/all-earnings", authenticateToken, requireAdmin, (req, res) => {
   try {
-    // Admin check
-    const user = getDb().prepare("SELECT email FROM users WHERE id = ?").get(req.user.id);
-    if (!user || user.email !== "david@zenpass.hk") {
-      return res.status(403).json({ success: false, error: "僅管理員可查看" });
-    }
-
     const db = getDb();
     db.pragma("foreign_keys = ON");
 
