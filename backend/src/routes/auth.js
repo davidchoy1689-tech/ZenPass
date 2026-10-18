@@ -13,6 +13,24 @@ const { emailNotification } = require("../services/notification");
 const { OAuth2Client } = require("google-auth-library");
 
 const router = express.Router();
+const rateLimit = require("express-rate-limit");
+
+const verifyCodeLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => (req.user && req.user.id) || req.ip,
+  message: { success: false, error: "嘗試太頻繁，請 15 分鐘後再試" },
+});
+const resendVerifyLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 3,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => (req.user && req.user.id) || req.ip,
+  message: { success: false, error: "重發太頻繁，請一小時後再試" },
+});
 
 // Google OAuth2 client (lazy init)
 let googleClient = null;
@@ -343,7 +361,7 @@ router.get("/verify-email", (req, res) => {
 });
 
 // ===== POST /api/auth/verify-code — 用 6 位驗證碼驗證電郵 =====
-router.post("/verify-code", authenticateToken, (req, res) => {
+router.post("/verify-code", authenticateToken, verifyCodeLimiter, (req, res) => {
   try {
     const code = String((req.body && req.body.code) || "").trim();
     if (!/^\d{6}$/.test(code)) {
@@ -384,7 +402,7 @@ router.post("/verify-code", authenticateToken, (req, res) => {
 });
 
 // ===== POST /api/auth/resend-verification — 重新發送驗證電郵 =====
-router.post("/resend-verification", authenticateToken, (req, res) => {
+router.post("/resend-verification", authenticateToken, resendVerifyLimiter, (req, res) => {
   try {
     const db = getDb();
     const user = db.prepare("SELECT email, email_verified FROM users WHERE id = ?").get(req.user.id);

@@ -56,6 +56,8 @@ const ok = (c, m) => { if (c) console.log("  ✅ " + m); else { console.log("  �
   const my = fs.readFileSync(path.join(__dirname, "..", "..", "frontend-v2", "my.html"), "utf8");
   ok(/genVerifyCode/.test(src) && /verification_code/.test(src), "註冊／重發有產生驗證碼");
   ok(/auth\/verify-code/.test(my) && /verifyCode/.test(my), "我的頁有輸入驗證碼 UI");
+  ok(/verifyCodeLimiter/.test(src) && /max: 10/.test(src), "驗證碼嘗試限流 10 次/15 分鐘");
+  ok(/resendVerifyLimiter/.test(src) && /max: 3/.test(src), "重發限流 3 次/小時");
 
   console.log(fail === 0 ? "\n🎉 全部通過" : `\n❌ ${fail} 項失敗`);
   process.exit(fail === 0 ? 0 : 1);
