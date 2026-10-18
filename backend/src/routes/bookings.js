@@ -124,6 +124,16 @@ router.post(
   }
 );
 
+// 只准本人／該班教練／管理員睇 booking 詳情
+function canAccessBooking(booking, user) {
+  const role = (user && user.role) || "";
+  if (["admin", "super_admin", "platform_manager", "platform_staff"].includes(role)) return true;
+  if (!booking || !user) return false;
+  if (booking.user_id === user.id) return true;
+  if (booking.coach_id && booking.coach_id === user.id) return true;
+  return false;
+}
+
 // ===== GET /api/bookings/trial-status — 試玩資格 =====
 router.get("/trial-status", authenticateToken, (req, res) => {
   try {
@@ -280,6 +290,9 @@ router.get("/:id", authenticateToken, (req, res) => {
       .get(req.params.id);
 
     if (!booking) return res.status(404).json({ success: false, error: "預約不存在" });
+    if (!canAccessBooking(booking, req.user)) {
+      return res.status(403).json({ success: false, error: "無權查看此預約" });
+    }
     res.json(booking);
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
@@ -292,13 +305,18 @@ router.get("/:id/qr", authenticateToken, (req, res) => {
     const db = getDb();
     const booking = db
       .prepare(
-        `SELECT b.*, cs.id as schedule_id
-         FROM bookings b JOIN class_schedules cs ON b.schedule_id = cs.id
+        `SELECT b.*, cs.id as schedule_id, c.coach_id
+         FROM bookings b
+         JOIN class_schedules cs ON b.schedule_id = cs.id
+         JOIN classes c ON b.class_id = c.id
          WHERE b.id = ?`
       )
       .get(req.params.id);
 
     if (!booking) return res.status(404).json({ success: false, error: "預約不存在" });
+    if (!canAccessBooking(booking, req.user)) {
+      return res.status(403).json({ success: false, error: "無權取得此預約 QR" });
+    }
 
     if (booking.user_id !== req.user.id && req.user.role !== "admin") {
       const cls = db.prepare("SELECT coach_id FROM classes WHERE id = ?").get(booking.class_id);
