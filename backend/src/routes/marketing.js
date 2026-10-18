@@ -30,7 +30,7 @@ router.post("/send-welcome", authenticateToken, (req, res) => {
 
     for (const msg of messages) {
       sendNotification("marketing.welcome", {
-        user_id,
+        recipient: user_id,
         data: { title: msg.title, message: msg.body },
       }).catch(() => {});
     }

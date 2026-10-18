@@ -172,7 +172,7 @@ router.post("/notify-next", authenticateToken, (req, res) => {
         .get(schedule_id)?.title || "";
 
     sendNotification("waitlist.opened", {
-      user_id: next.user_id,
+      recipient: next.user_id,
       data: { class_title: classTitle, schedule_id },
     });
 
@@ -221,11 +221,6 @@ function autoNotifyOnCancel(schedule_id) {
         classTime = dt.toTimeString().split(" ")[0].substring(0, 5);
       }
     } catch (e) {}
-
-    sendNotification("waitlist.opened", {
-      user_id: next.user_id,
-      data: { schedule_id, class_title: classTitle },
-    });
 
     // Send waitlist.promoted notification to the user
     try {

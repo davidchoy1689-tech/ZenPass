@@ -668,11 +668,25 @@ router.post("/refer", authenticateToken, (req, res) => {
       "COACH-" + Math.random().toString(36).substring(2, 8).toUpperCase(),
     );
 
-    // Notify admin
-    sendNotification("coach.referral", {
-      user_id: req.user.id,
-      data: { name, email, phone, referred_by: req.user.name },
-    });
+    // Notify admins（原本用 user_id，永遠發唔出）
+    try {
+      const admins = db
+        .prepare("SELECT id FROM users WHERE role IN ('admin','super_admin','platform_manager')")
+        .all();
+      for (const a of admins) {
+        sendNotification("coach.referral", {
+          recipient: a.id,
+          data: {
+            name,
+            email,
+            phone,
+            referred_by: req.user.name || req.user.email || req.user.id,
+          },
+        });
+      }
+    } catch (e) {
+      console.error("⚠️ coach referral notify failed:", e.message);
+    }
 
     res.json({ success: true, message: "✅ 推薦已提交！管理員會聯絡 " + name });
   } catch (err) {

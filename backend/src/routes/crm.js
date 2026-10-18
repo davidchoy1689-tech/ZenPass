@@ -362,10 +362,21 @@ router.post("/waiver", authenticateToken, (req, res) => {
       console.error("⚠️ Blockchain write failed (waiver):", bcErr.message);
     }
 
-    sendNotification("waiver.submitted", {
-      user_id: req.user.id,
-      data: { name, conditions },
-    });
+    try {
+      const { sendNotification } = require("../services/notification");
+      const me = db.prepare("SELECT name, email FROM users WHERE id = ?").get(req.user.id) || {};
+      const admins = db
+        .prepare("SELECT id FROM users WHERE role IN ('admin','super_admin','platform_manager')")
+        .all();
+      for (const a of admins) {
+        sendNotification("waiver.submitted", {
+          recipient: a.id,
+          data: { user_name: me.name || me.email || req.user.id, name, conditions },
+        });
+      }
+    } catch (e) {
+      console.error("⚠️ waiver notify failed:", e.message);
+    }
 
     res.json({ success: true, message: "✅ 健康申報已提交" });
   } catch (err) {

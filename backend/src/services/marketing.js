@@ -37,7 +37,7 @@ async function sendWelcomeSequence(userId, userName) {
   for (const msg of messages) {
     try {
       await sendNotification("marketing.welcome", {
-        user_id: userId,
+        recipient: userId,
         data: {
           title: msg.title,
           message: msg.body,
@@ -81,7 +81,7 @@ async function checkWinBackCandidates() {
           body: `Hi ${user.name}，好耐冇見你嚟運動啦！\n\n我哋準備咗特別優惠俾你，而家預約可以享有折扣 🎁\n\n👉 立即預約：${getBaseUrl()}/explore.html`,
         };
         await sendNotification("marketing.winback", {
-          user_id: user.id,
+          recipient: user.id,
           data: msg,
         });
         logger.info(`📨 Win-back sent to ${user.name} (${user.email})`);

@@ -251,6 +251,81 @@ async function sendNotification(type, payload) {
       message = `你嘅${data?.kind_label || "健康諮詢"}申請已取消${data?.admin_note ? `（原因：${data.admin_note}）` : ""}。名額已退回，可以重新申請。`;
       html = `<h2>健康諮詢申請已取消</h2><p>你嘅${data?.kind_label || "健康諮詢"}申請已取消${data?.admin_note ? `（原因：${data.admin_note}）` : ""}。</p>`;
       break;
+    case "booking.reminder_1d":
+      title = "📅 明日課堂提醒";
+      message = `你聽日有堂！\n課程：${data?.class_title || "—"}\n日期：${data?.date || "—"} ${data?.time || "—"}\n場地：${data?.venue || "—"}\n記得準時出席，並喺現場簽到。`;
+      html = `<h2>📅 明日課堂提醒</h2><p><b>課程：</b>${data?.class_title || "—"}<br><b>日期：</b>${data?.date || "—"} ${data?.time || "—"}<br><b>場地：</b>${data?.venue || "—"}</p>`;
+      break;
+    case "booking.reminder_1h":
+      title = "⏰ 一小時後上堂";
+      message = `你嘅課堂一小時後開始！\n課程：${data?.class_title || "—"}\n時間：${data?.date || ""} ${data?.time || ""}\n場地：${data?.venue || "—"}`;
+      html = `<h2>⏰ 一小時後上堂</h2><p><b>課程：</b>${data?.class_title || "—"}<br><b>時間：</b>${data?.date || ""} ${data?.time || ""}<br><b>場地：</b>${data?.venue || "—"}</p>`;
+      break;
+    case "coach.approved":
+      title = "✅ 教練申請已獲批";
+      message = data?.message || "✅ 教練申請已獲批！你而家可以開班授課啦。";
+      html = `<h2>✅ 教練申請已獲批</h2><p>${data?.message || "你而家可以開班授課啦。"}</p>`;
+      break;
+    case "coach.rejected":
+      title = "教練申請結果";
+      message = data?.message || "❌ 教練申請未獲批，如有疑問請聯絡我們。";
+      html = `<h2>教練申請結果</h2><p>${data?.message || "教練申請未獲批，如有疑問請聯絡我們。"}</p>`;
+      break;
+    case "coach.referral":
+      title = "🧑‍🏫 新教練推薦";
+      message = `推薦人：${data?.referred_by || "—"}\n教練：${data?.name || "—"}\n電郵：${data?.email || "—"}\n電話：${data?.phone || "—"}`;
+      html = `<h2>🧑‍🏫 新教練推薦</h2><p><b>推薦人：</b>${data?.referred_by || "—"}<br><b>教練：</b>${data?.name || "—"}<br><b>電郵：</b>${data?.email || "—"}<br><b>電話：</b>${data?.phone || "—"}</p>`;
+      break;
+    case "membership.confirmed":
+      title = "🎉 會籍已開通";
+      message = `會籍：${data?.plan || "—"}\n已加：${data?.credits || 0} Credits\n到期日：${data?.expires || "—"}`;
+      html = `<h2>🎉 會籍已開通</h2><p><b>會籍：</b>${data?.plan || "—"}<br><b>已加：</b>${data?.credits || 0} Credits<br><b>到期日：</b>${data?.expires || "—"}</p>`;
+      break;
+    case "payment.approved":
+      title = "✅ 付款已確認";
+      message = `金額：HK$${data?.amount || 0}\n課程：${data?.class_name || data?.class_title || "—"}\n付款已確認，預約正式生效。`;
+      html = `<h2>✅ 付款已確認</h2><p><b>金額：</b>HK$${data?.amount || 0}<br><b>課程：</b>${data?.class_name || data?.class_title || "—"}</p>`;
+      break;
+    case "payment.rejected":
+      title = "❌ 付款未獲確認";
+      message = `金額：HK$${data?.amount || 0}\n課程：${data?.class_title || "—"}\n原因：${data?.reason || "請聯絡管理員查詢"}`;
+      html = `<h2>❌ 付款未獲確認</h2><p><b>金額：</b>HK$${data?.amount || 0}<br><b>課程：</b>${data?.class_title || "—"}<br><b>原因：</b>${data?.reason || "請聯絡管理員查詢"}</p>`;
+      break;
+    case "waitlist.opened":
+      title = "📢 候補有位！";
+      message = `「${data?.class_title || "課程"}」而家有位，快啲去預約啦！`;
+      html = `<h2>📢 候補有位！</h2><p>「${data?.class_title || "課程"}」而家有位，快啲去預約啦！</p>`;
+      break;
+    case "waitlist.promoted":
+      title = "🎉 你已補上候補";
+      message = `「${data?.class_title || "課程"}」${data?.date || ""} ${data?.time || ""} — 你已由候補補上，記得準時出席。`;
+      html = `<h2>🎉 你已補上候補</h2><p>「${data?.class_title || "課程"}」${data?.date || ""} ${data?.time || ""}</p>`;
+      break;
+    case "waiver.submitted":
+      title = "📋 新健康申報";
+      message = `會員：${data?.user_name || "—"}\n姓名：${data?.name || "—"}\n健康狀況：${data?.conditions || "無"}`;
+      html = `<h2>📋 新健康申報</h2><p><b>會員：</b>${data?.user_name || "—"}<br><b>姓名：</b>${data?.name || "—"}<br><b>健康狀況：</b>${data?.conditions || "無"}</p>`;
+      break;
+    case "credits.topup_request":
+      title = "⏳ 增值單已提交";
+      message = `金額：HK$${data?.amount || 0}${data?.discount_percent ? `（會員 -${data.discount_percent}%）` : ""}\n方式：${String(data?.method || "").toUpperCase()}\n管理員核對收款後會即刻加點。`;
+      html = `<h2>⏳ 增值單已提交</h2><p><b>金額：</b>HK$${data?.amount || 0}<br><b>方式：</b>${String(data?.method || "").toUpperCase()}</p>`;
+      break;
+    case "credits.topup_confirmed":
+      title = "✅ Credits 已入帳";
+      message = `已加 ${data?.credits || 0} Credits（HK$${data?.amount || 0}）`;
+      html = `<h2>✅ Credits 已入帳</h2><p>已加 <b>${data?.credits || 0}</b> Credits（HK$${data?.amount || 0}）</p>`;
+      break;
+    case "marketing.welcome":
+      title = data?.title || "歡迎加入 ZenPass";
+      message = data?.message || "歡迎加入 ZenPass！";
+      html = `<h2>${data?.title || "歡迎加入 ZenPass"}</h2><p>${data?.message || ""}</p>`;
+      break;
+    case "marketing.winback":
+      title = data?.title || "我哋好掛住你！";
+      message = data?.message || data?.body || "返嚟 ZenPass 睇吓新課程啦！";
+      html = `<h2>${data?.title || "我哋好掛住你！"}</h2><p>${data?.message || data?.body || ""}</p>`;
+      break;
     case "coach.payout_processed":
       title = "提現處理結果";
       message = `${data?.status === "approved" ? "✅ 提現已批准" : "❌ 提現未獲批"}\n金額：HK$${data?.amount || 0}${data?.eta ? `\n預計到賬：${data.eta}` : ""}${data?.reason ? `\n備註：${data.reason}` : ""}`;

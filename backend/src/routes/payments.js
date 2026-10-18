@@ -472,15 +472,16 @@ router.post("/stripe/webhook", async (req, res) => {
 
         // Send notification
         try {
-          const notifData = {
-            user_id: session.metadata.user_id || booking.user_id,
-            booking_id: booking_id,
-            class_name: session.metadata.class_name || "課程",
-            amount: session.amount_total / 100,
-            coach_name: session.metadata.coach_name || "",
-            schedule_time: session.metadata.schedule_time || "",
-          };
-          sendNotification("payment.approved", notifData);
+          sendNotification("payment.approved", {
+            recipient: session.metadata.user_id || booking.user_id,
+            data: {
+              booking_id,
+              class_name: session.metadata.class_name || "課程",
+              amount: session.amount_total / 100,
+              coach_name: session.metadata.coach_name || "",
+              schedule_time: session.metadata.schedule_time || "",
+            },
+          });
         } catch (e) {
           console.error("Webhook notification error:", e.message);
         }
