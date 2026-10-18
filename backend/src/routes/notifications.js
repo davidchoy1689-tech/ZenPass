@@ -6,7 +6,7 @@
 const express = require("express");
 const { v4: uuidv4 } = require("uuid");
 const { getDb } = require("../services/database");
-const { authenticateToken } = require("../middleware/auth");
+const { authenticateToken, requireAdmin } = require("../middleware/auth");
 const {
   getNotifications,
   markAsRead,
@@ -157,7 +157,7 @@ router.delete("/push-unsubscribe", authenticateToken, (req, res) => {
 });
 
 // ===== POST /api/notifications/test — 測試通知（即時發送）=====
-router.post("/test", authenticateToken, async (req, res) => {
+router.post("/test", authenticateToken, requireAdmin, async (req, res) => {
   try {
     const { type = "booking.confirmed", data = {} } = req.body;
 
@@ -184,7 +184,7 @@ router.post("/test", authenticateToken, async (req, res) => {
 });
 
 // ===== GET /api/notifications/config — 通知配置狀態 =====
-router.get("/config", authenticateToken, (req, res) => {
+router.get("/config", authenticateToken, requireAdmin, (req, res) => {
   const config = {
     db: true,
     telegram: {
@@ -216,7 +216,7 @@ router.get("/config", authenticateToken, (req, res) => {
 // 1. 設定 TELEGRAM_BOT_TOKEN 喺 .env
 // 2. 喺 Telegram 向 bot 發送一條訊息（例如 /start）
 // 3. 用管理員 token call 呢個 endpoint
-router.get("/telegram/auto-detect", authenticateToken, async (req, res) => {
+router.get("/telegram/auto-detect", authenticateToken, requireAdmin, async (req, res) => {
   const botToken = process.env.TELEGRAM_BOT_TOKEN;
   if (!botToken) {
     return res.status(400).json({
@@ -289,7 +289,7 @@ router.get("/telegram/auto-detect", authenticateToken, async (req, res) => {
 });
 
 // ===== POST /api/notifications/telegram/test — 測試傳送 Telegram 訊息 =====
-router.post("/telegram/test", authenticateToken, async (req, res) => {
+router.post("/telegram/test", authenticateToken, requireAdmin, async (req, res) => {
   const testMessage = `🧪 ZenPass Bot 測試通知
 ━━━━━━━━━━━━━━━━━━━
 ⏰ ${new Date().toLocaleString("zh-HK", { timeZone: "Asia/Hong_Kong" })}
