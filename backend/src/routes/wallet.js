@@ -309,6 +309,60 @@ router.get("/admin/txs/:userId", authenticateToken, (req, res) => {
   }
 });
 
+// ===== A2.5 GET /api/wallet/admin/reconcile — 帳目一致性報告（read-only）=====
+router.get("/admin/reconcile", authenticateToken, (req, res) => {
+  try {
+    const db = getDb();
+    const me = db.prepare("SELECT role FROM users WHERE id = ?").get(req.user.id);
+    if (!me || !["admin", "super_admin"].includes(me.role)) {
+      return res.status(403).json({ success: false, error: "僅管理員可查看" });
+    }
+
+    const rows = db
+      .prepare(
+        `SELECT u.id, u.name, u.email, u.wallet_balance, u.pending_payout,
+                COALESCE((SELECT SUM(net_amount) FROM coach_earnings
+                          WHERE coach_id = u.id AND status = 'pending'), 0) AS earnings_pending
+         FROM users u
+         WHERE COALESCE(u.wallet_balance,0) <> 0 OR COALESCE(u.pending_payout,0) <> 0`,
+      )
+      .all();
+
+    const round = (n) => Math.round((Number(n) || 0) * 100) / 100;
+    const mismatches = [];
+    let walletTotal = 0;
+    let pendingTotal = 0;
+    for (const r of rows) {
+      walletTotal += Number(r.wallet_balance) || 0;
+      pendingTotal += Number(r.pending_payout) || 0;
+      const diff = round((Number(r.wallet_balance) || 0) - (Number(r.pending_payout) || 0));
+      if (Math.abs(diff) > 0.009) {
+        mismatches.push({
+          user_id: r.id,
+          name: r.name,
+          email: r.email,
+          wallet_balance: round(r.wallet_balance),
+          pending_payout: round(r.pending_payout),
+          earnings_pending: round(r.earnings_pending),
+          diff,
+        });
+      }
+    }
+
+    res.json({
+      success: true,
+      users_checked: rows.length,
+      wallet_total: round(walletTotal),
+      pending_total: round(pendingTotal),
+      mismatches: mismatches.slice(0, 50),
+      mismatch_count: mismatches.length,
+    });
+  } catch (err) {
+    console.error("[WALLET] reconcile error:", err.message);
+    res.status(500).json({ success: false, error: "對帳失敗" });
+  }
+});
+
 // ===== A3. POST /api/wallet/admin/adjust — 管理員調整結餘（audit trail） =====
 router.post("/admin/adjust", authenticateToken, (req, res) => {
   try {
