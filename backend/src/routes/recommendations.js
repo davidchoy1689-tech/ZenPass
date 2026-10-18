@@ -5,6 +5,8 @@
 var express = require("express");
 var router = express.Router();
 var { authenticateToken, optionalAuth } = require("../middleware/auth");
+var { publicFormLimiter } = require("../middleware/public-form-limit");
+var pageviewLimiter = publicFormLimiter({ max: 120, message: "請求太頻繁" });
 var {
   trackUserAction,
   getRecommendations,
@@ -65,7 +67,7 @@ router.get("/", optionalAuth, function (req, res) {
 });
 
 // ===== POST /api/track/pageview — 匿名頁面瀏覽統計 =====
-router.post("/pageview", function (req, res) {
+router.post("/pageview", pageviewLimiter, function (req, res) {
   try {
     var body = req.body || {};
     if (typeof body === 'string') { try { body = JSON.parse(body); } catch(e) {} }

@@ -19,6 +19,7 @@ const checks = [
   ["routes/partner.js", 'router.post("/apply", formLimiter'],
   ["routes/waitlist.js", 'router.post("/app", formLimiter'],
   ["routes/marketing.js", 'router.post("/subscribe", formLimiter'],
+  ["routes/recommendations.js", 'router.post("/pageview", pageviewLimiter'],
 ];
 for (const [f, needle] of checks) {
   const s = fs.readFileSync(path.join(root, f), "utf8");
