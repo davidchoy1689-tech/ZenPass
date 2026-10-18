@@ -18,6 +18,23 @@ const formLimiter = publicFormLimiter();
 
 const router = express.Router();
 
+function ensureSchoolInquiryTable() {
+  const db = getDb();
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS school_inquiries (
+      id TEXT PRIMARY KEY,
+      school_name TEXT NOT NULL,
+      contact_name TEXT NOT NULL,
+      contact_email TEXT NOT NULL,
+      contact_phone TEXT DEFAULT '',
+      sports_of_interest TEXT DEFAULT '',
+      message TEXT DEFAULT '',
+      status TEXT DEFAULT 'pending' CHECK(status IN ('pending','contacted','converted','closed')),
+      created_at TEXT DEFAULT (datetime('now'))
+    )
+  `);
+}
+
 // ===== POST /api/school/inquiry — 學校查詢 ECA 合作 =====
 router.post("/inquiry", formLimiter, async (req, res) => {
   try {
@@ -30,19 +47,7 @@ router.post("/inquiry", formLimiter, async (req, res) => {
     const db = getDb();
 
     // Create table if not exists
-    db.exec(`
-      CREATE TABLE IF NOT EXISTS school_inquiries (
-        id TEXT PRIMARY KEY,
-        school_name TEXT NOT NULL,
-        contact_name TEXT NOT NULL,
-        contact_email TEXT NOT NULL,
-        contact_phone TEXT DEFAULT '',
-        sports_of_interest TEXT DEFAULT '',
-        message TEXT DEFAULT '',
-        status TEXT DEFAULT 'pending' CHECK(status IN ('pending','contacted','converted','closed')),
-        created_at TEXT DEFAULT (datetime('now'))
-      )
-    `);
+    ensureSchoolInquiryTable();
 
     const id = uuidv4();
     db.prepare(`
@@ -111,6 +116,7 @@ router.post("/inquiry", formLimiter, async (req, res) => {
 // ===== GET /api/school/inquiries — 查詢列表（Admin only）=====
 router.get("/inquiries", authenticateToken, requireAdmin, (req, res) => {
   try {
+    ensureSchoolInquiryTable();
     const db = getDb();
     const inquiries = db.prepare("SELECT * FROM school_inquiries ORDER BY created_at DESC LIMIT 200").all();
     res.json({ inquiries });

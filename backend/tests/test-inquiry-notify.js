@@ -54,6 +54,15 @@ const ok = (c, m) => { if (c) console.log("  ✅ " + m); else { console.log("  �
   const n2 = db.prepare("SELECT * FROM notifications WHERE user_id='admin1' AND type='school.inquiry'").get();
   ok(!!n2 && /測試學校/.test(n2.message) && /地板冰壺/.test(n2.message), "學校查詢通知內容正確");
 
+  const schoolRouter = require("../src/routes/school");
+  const l2 = schoolRouter.stack.find((l) => l.route && l.route.path === "/inquiries");
+  const listHandler = l2.route.stack[l2.route.stack.length - 1].handle;
+  const res2 = { statusCode: 200 };
+  res2.status = (c) => { res2.statusCode = c; return res2; };
+  res2.json = (x) => { res2.body = x; return res2; };
+  listHandler({ user: { id: "admin1", role: "admin" }, query: {} }, res2);
+  ok(res2.statusCode === 200 && Array.isArray(res2.body.inquiries), "無資料時查詢列表回 200 []（唔再 500）");
+
   console.log("── 接線 ──");
   const schoolSrc = fs.readFileSync(path.join(__dirname, "../src/routes/school.js"), "utf8");
   const corpSrc = fs.readFileSync(path.join(__dirname, "../src/routes/corporate.js"), "utf8");
