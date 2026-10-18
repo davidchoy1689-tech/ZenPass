@@ -13,6 +13,7 @@ const { writeBlock } = require("./blockchain-audit");
 const { postBookingLedger } = require("./accounting");
 const { splitByRate } = require("../lib/money");
 const { validatePromo, redeemPromo } = require("./promo");
+const { awardPointsOnce, EARN_RULES } = require("./points");
 
 
 /**
@@ -1608,13 +1609,30 @@ function processQRCheckin(req) {
     console.error("⚠️ Coach earnings sync failed:", e.message);
   }
 
+  // 完成一堂 → 賺積分（同一 booking 只發一次）
+  let pointsAwarded = 0;
+  try {
+    const award = awardPointsOnce(booking.user_id, {
+      points: EARN_RULES.booking,
+      source: "booking",
+      referenceId: booking.id,
+      description: `✅ 完成課堂（${booking.booking_reference || booking.id}）`,
+    });
+    if (award && award.awarded) pointsAwarded = award.awarded;
+  } catch (e) {
+    console.error("⚠️ Points award failed (booking):", e.message);
+  }
+
   return {
     status: 200,
     body: {
-      message: "✅ 簽到成功！",
+      message: pointsAwarded
+        ? `✅ 簽到成功！+${pointsAwarded} 積分 🎁`
+        : "✅ 簽到成功！",
       booking_id: booking.id,
       booking_reference: booking.booking_reference,
       status: "attended",
+      points_awarded: pointsAwarded,
     },
   };
 }

@@ -10,6 +10,7 @@ const { getDb } = require("../services/database");
 const { v4: uuidv4 } = require("uuid");
 const { authenticateToken } = require("../middleware/auth");
 const { writeBlock } = require("../services/blockchain-audit");
+const { awardPointsOnce, EARN_RULES } = require("../services/points");
 
 const DB_PATH = path.join(__dirname, "..", "..", "data", "zenpass.db");
 
@@ -131,7 +132,23 @@ router.post("/", authenticateToken, (req, res) => {
       console.error("⚠️ Blockchain write failed (review):", bcErr.message);
     }
 
-    res.json({ success: true, review_id: reviewId });
+    // 課後評價 → 學生賺積分（每則評價只發一次）
+    let pointsAwarded = 0;
+    if (isStudent) {
+      try {
+        const award = awardPointsOnce(from_user_id, {
+          points: EARN_RULES.review,
+          source: "review",
+          referenceId: reviewId,
+          description: `⭐ 課後評價（${booking.class_title || booking_id}）`,
+        });
+        if (award && award.awarded) pointsAwarded = award.awarded;
+      } catch (e) {
+        console.error("⚠️ Points award failed (review):", e.message);
+      }
+    }
+
+    res.json({ success: true, review_id: reviewId, points_awarded: pointsAwarded });
   } catch (err) {
     console.error("建立評價錯誤:", err);
     res.status(500).json({ success: false, error: err.message });

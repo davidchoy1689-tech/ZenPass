@@ -14,80 +14,8 @@ const { writeBlock } = require("../services/blockchain-audit");
 
 const router = express.Router();
 
-// ===== 等級門檻定義 =====
-const TIERS = [
-  { id: "bronze", label: "🥉 銅牌", minPoints: 0, color: "#CD7F32" },
-  { id: "silver", label: "🥈 銀牌", minPoints: 500, color: "#C0C0C0" },
-  { id: "gold", label: "🥇 金牌", minPoints: 2000, color: "#FFD700" },
-  { id: "diamond", label: "💎 鑽石", minPoints: 5000, color: "#B9F2FF" },
-];
-
-/**
- * 計算等級
- */
-function calcTier(points) {
-  let current = TIERS[0];
-  let next = TIERS[1];
-  for (let i = TIERS.length - 1; i >= 0; i--) {
-    if (points >= TIERS[i].minPoints) {
-      current = TIERS[i];
-      next = TIERS[i + 1] || null;
-      break;
-    }
-  }
-  return { current, next };
-}
-
-/**
- * 寫入積分交易紀錄 + 更新用戶積分
- */
-function addPointsTx(userId, type, points, source, description, referenceId) {
-  const db = getDb();
-  db.pragma("foreign_keys = ON");
-  try {
-    const user = db
-      .prepare("SELECT points FROM users WHERE id = ?")
-      .get(userId);
-    if (!user) return null;
-
-    const currentPoints = user.points || 0;
-    const delta = type === "earn" ? points : -points;
-    const newBalance = Math.max(0, currentPoints + delta);
-
-    // 計算新等級
-    const tier = calcTier(newBalance);
-
-    // 寫入 transaction
-    const txId = uuidv4();
-    db.prepare(
-      `
-      INSERT INTO points_transactions (id, user_id, type, points, balance_after, source, reference_id, description)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `,
-    ).run(
-      txId,
-      userId,
-      type,
-      points,
-      newBalance,
-      source,
-      referenceId || null,
-      description || null,
-    );
-
-    // 更新用戶積分 + 等級
-    db.prepare(
-      `
-      UPDATE users SET points = ?, points_tier = ?, points_tier_label = ?, updated_at = datetime('now')
-      WHERE id = ?
-    `,
-    ).run(newBalance, tier.current.id, tier.current.label, userId);
-
-    return { txId, points: newBalance, tier: tier.current };
-  } finally {
-
-  }
-}
+// 等級／積分交易邏輯已抽到 services/points.js（routes 與 hook 共用）
+const { TIERS, calcTier, addPointsTx } = require("../services/points");
 
 /**
  * 獲取用戶積分摘要

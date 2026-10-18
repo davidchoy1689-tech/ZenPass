@@ -8,15 +8,16 @@ console.log("🧪 積分計劃 / 商城 tests");
 const root = path.join(__dirname, "..");
 const web = path.join(root, "..", "frontend-v2");
 const pts = fs.readFileSync(path.join(root, "src/routes/points.js"), "utf8");
+const ptsCore = fs.readFileSync(path.join(root, "src/services/points.js"), "utf8");
 const page = fs.readFileSync(path.join(web, "points.html"), "utf8");
 
 console.log("── 賺分機制（後端）──");
 ok(pts.includes("每日簽到"), "每日簽到有積分");
-ok(/const points = 50/.test(pts), "完成課堂 +50");
-ok(/const points = 20/.test(pts), "課後評價 +20");
-ok(/const points = 100/.test(pts), "推薦朋友 +100");
+ok(/booking:\s*50/.test(ptsCore), "完成課堂 +50");
+ok(/review:\s*20/.test(ptsCore), "課後評價 +20");
+ok(/referral:\s*100/.test(ptsCore), "推薦朋友 +100");
 ok(pts.includes("streakBonus"), "連續簽到有加成");
-ok(pts.includes("minPoints: 500"), "等級門檻（500/2000/5000）");
+ok(/minPoints: 500/.test(ptsCore) && /minPoints: 2000/.test(ptsCore) && /minPoints: 5000/.test(ptsCore), "等級門檻（500/2000/5000）");
 
 console.log("── 兌換要真正有用 ──");
 ok(pts.includes('reward.reward_type === "credit"'), "Credits 獎勵即時入賬");

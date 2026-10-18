@@ -6,6 +6,7 @@ const { v4: uuidv4 } = require("uuid");
 const { getDb } = require("../services/database");
 const { authenticateToken } = require("../middleware/auth");
 const { writeBlock } = require("../services/blockchain-audit");
+const { awardPointsOnce, EARN_RULES } = require("../services/points");
 const router = express.Router();
 
 // ===== GET /api/referral/my-code — 我的推薦碼 =====
@@ -99,7 +100,25 @@ router.post("/redeem", authenticateToken, (req, res) => {
       console.error("⚠️ Blockchain write failed (referral):", bcErr.message);
     }
 
-    res.json({ message: "✅ 推薦碼已使用！你獲得 10 Credits", bonus: 10 });
+    // 推薦人賺積分（每個 redemption 只發一次）
+    let pointsAwarded = 0;
+    try {
+      const award = awardPointsOnce(ref.user_id, {
+        points: EARN_RULES.referral,
+        source: "referral",
+        referenceId: id,
+        description: "🤝 推薦朋友加入 ZenPass",
+      });
+      if (award && award.awarded) pointsAwarded = award.awarded;
+    } catch (e) {
+      console.error("⚠️ Points award failed (referral):", e.message);
+    }
+
+    res.json({
+      message: "✅ 推薦碼已使用！你獲得 10 Credits",
+      bonus: 10,
+      referrer_points_awarded: pointsAwarded,
+    });
   } catch (err) {
     console.error("Referral error:", err);
     res.status(500).json({ success: false, error: "使用推薦碼失敗" });
