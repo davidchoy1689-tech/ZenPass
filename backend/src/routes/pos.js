@@ -9,7 +9,7 @@ const { writeBlock } = require("../services/blockchain-audit");
 const router = express.Router();
 
 // ===== GET /api/locations — 場地列表 =====
-router.get("/", authenticateToken, (req, res) => {
+router.get("/", authenticateToken, requireCoach, (req, res) => {
   try {
     const db = getDb();
     const locations = db
@@ -25,7 +25,7 @@ router.get("/", authenticateToken, (req, res) => {
 });
 
 // ===== POST /api/locations — 新增場地 =====
-router.post("/", authenticateToken, (req, res) => {
+router.post("/", authenticateToken, requireCoach, (req, res) => {
   try {
     const { name, address, phone, is_primary } = req.body;
     if (!name) return res.status(400).json({ success: false, error: "請填寫場地名稱" });
@@ -72,7 +72,7 @@ router.post("/", authenticateToken, (req, res) => {
 });
 
 // ===== DELETE /api/locations/:id — 刪除場地 =====
-router.delete("/:id", authenticateToken, (req, res) => {
+router.delete("/:id", authenticateToken, requireCoach, (req, res) => {
   try {
     const db = getDb();
     db.prepare("DELETE FROM locations WHERE id = ? AND coach_id = ?").run(
@@ -101,7 +101,7 @@ router.delete("/:id", authenticateToken, (req, res) => {
 });
 
 // ===== POST /api/pos/sale — 記錄銷售 =====
-router.post("/sale", authenticateToken, (req, res) => {
+router.post("/sale", authenticateToken, requireCoach, (req, res) => {
   try {
     const {
       type,
@@ -179,7 +179,7 @@ router.post("/sale", authenticateToken, (req, res) => {
 });
 
 // ===== GET /api/pos/sales — 銷售記錄 =====
-router.get("/sales", authenticateToken, (req, res) => {
+router.get("/sales", authenticateToken, requireCoach, (req, res) => {
   try {
     const db = getDb();
     const sales = db

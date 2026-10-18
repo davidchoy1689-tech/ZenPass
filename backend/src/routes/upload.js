@@ -8,6 +8,7 @@ const path = require("path");
 const fs = require("fs");
 const { v4: uuidv4 } = require("uuid");
 const { authenticateToken } = require("../middleware/auth");
+const rateLimit = require("express-rate-limit");
 
 const router = express.Router();
 
@@ -50,8 +51,18 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
 });
 
+// 每用戶每小時最多 30 次上傳（每次最多 10 個檔案）
+const uploadLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => (req.user && req.user.id) || req.ip,
+  message: { success: false, error: "上傳太頻繁，請稍後再試" },
+});
+
 // ===== POST /api/upload — 上傳檔案（單個或多個） =====
-router.post("/", authenticateToken, upload.array("files", 10), (req, res) => {
+router.post("/", authenticateToken, uploadLimiter, upload.array("files", 10), (req, res) => {
   try {
     if (!req.files || req.files.length === 0) {
       return res.status(400).json({ success: false, error: "請選擇檔案" });
