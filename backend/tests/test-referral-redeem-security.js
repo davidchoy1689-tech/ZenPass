@@ -61,6 +61,8 @@ const ok = (c, m) => { if (c) console.log("  ✅ " + m); else { console.log("  �
 
   const src = fs.readFileSync(path.join(__dirname, "../src/routes/referral.js"), "utf8");
   ok(/EMAIL_NOT_VERIFIED/.test(src), "有防護碼");
+  const my = fs.readFileSync(path.join(__dirname, "..", "..", "frontend-v2", "my.html"), "utf8");
+  ok(/verifyBanner/.test(my) && /resend-verification/.test(my), "我的頁有未驗證提示 + 重發按鈕");
 
   console.log(fail === 0 ? "\n🎉 全部通過" : `\n❌ ${fail} 項失敗`);
   process.exit(fail === 0 ? 0 : 1);

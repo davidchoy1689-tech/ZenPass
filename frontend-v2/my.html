@@ -25,6 +25,7 @@
         <div class="muted" style="font-size:13px" id="tier">載入中…</div>
       </div>
     </div>
+    <div id="verifyBanner"></div>
 
     <div class="grid2c">
       <a class="tile" href="wallet.html"><div class="muted" style="font-size:13px">🎫 Credits 餘額</div><div class="big" id="mCredits" style="color:var(--brand-600)">—</div></a>
@@ -91,6 +92,23 @@
       const pts = await api.get("/points");
       const d = (pts.data && (pts.data.summary || pts.data)) || {};
       document.getElementById("mPoints").textContent = (d.points != null ? d.points : 0).toLocaleString();
+
+      // 未驗證電郵提示（推薦碼／企業 HR 需要）
+      if (!d.email_verified) {
+        const vb = document.getElementById("verifyBanner");
+        if (vb) {
+          vb.innerHTML = `<div class="banner" style="margin:10px 0;display:flex;justify-content:space-between;gap:8px;align-items:center">
+            <span>📧 請驗證你嘅電郵（使用推薦碼／企業 HR 功能需要）</span>
+            <button class="btn btn-primary" id="resendVerify" style="padding:6px 10px;font-size:12px">重發</button>
+          </div>`;
+          document.getElementById("resendVerify").onclick = async (e) => {
+            e.target.disabled = true;
+            const r = await api.post("/auth/resend-verification", {});
+            e.target.disabled = false;
+            alert(r.ok ? "✅ 驗證電郵已發送，請檢查信箱" : ((r.data && r.data.error) || "發送失敗"));
+          };
+        }
+      }
       // 顯示會籍等級（按每月上課次數），唔係積分等級
       try {
         const lr = await api.get("/loyalty/my");
