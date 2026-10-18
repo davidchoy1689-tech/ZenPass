@@ -7,27 +7,27 @@
 const path = require("path");
 const { v4: uuidv4 } = require("uuid");
 
-function calcNextReset(cycle) {
-  const now = new Date();
+function calcNextReset(cycle, now = new Date()) {
+  // 用香港時間計；回傳 UTC ISO（同 DB datetime('now') 可直接比較）
+  const hk = new Date(now.getTime() + 8 * 3600 * 1000);
+  const y = hk.getUTCFullYear();
+  const m = hk.getUTCMonth(); // 0-based
+  const hkMidnightUtc = (yy, mm) => new Date(Date.UTC(yy, mm, 1) - 8 * 3600 * 1000).toISOString();
+
   switch ((cycle || "monthly").toLowerCase()) {
     case "weekly":
       return new Date(now.getTime() + 7 * 86400000).toISOString();
     case "monthly":
-      now.setMonth(now.getMonth() + 1);
-      now.setDate(1);
-      now.setHours(0, 0, 0, 0);
-      return now.toISOString();
-    case "quarterly":
-      now.setMonth(now.getMonth() + 3);
-      return now.toISOString();
+      return hkMidnightUtc(m === 11 ? y + 1 : y, (m + 1) % 12);
+    case "quarterly": {
+      const q = Math.floor(m / 3);
+      const nextStartMonth = (q + 1) * 3;
+      return hkMidnightUtc(nextStartMonth >= 12 ? y + 1 : y, nextStartMonth % 12);
+    }
     case "yearly":
-      now.setFullYear(now.getFullYear() + 1);
-      return now.toISOString();
+      return hkMidnightUtc(y + 1, 0);
     default:
-      now.setMonth(now.getMonth() + 1);
-      now.setDate(1);
-      now.setHours(0, 0, 0, 0);
-      return now.toISOString();
+      return hkMidnightUtc(m === 11 ? y + 1 : y, (m + 1) % 12);
   }
 }
 
@@ -66,12 +66,13 @@ function processCorporateResets() {
       ).run(calcNextReset(company.billing_cycle), company.id);
 
       // Also reset all employees' monthly_credit_used for this company
+      const hkMonth = new Date(Date.now() + 8 * 3600 * 1000).toISOString().slice(0, 7);
       db.prepare(
         `UPDATE corporate_members
          SET monthly_credit_used = 0,
-             monthly_reset_at = strftime('%Y-%m', 'now')
+             monthly_reset_at = ?
          WHERE company_id = ?`,
-      ).run(company.id);
+      ).run(hkMonth, company.id);
 
       // Audit log
       db.prepare(
