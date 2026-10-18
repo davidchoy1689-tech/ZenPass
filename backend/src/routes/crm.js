@@ -13,7 +13,7 @@ const { writeBlock } = require("../services/blockchain-audit");
 const router = express.Router();
 
 // ===== GET /api/crm/students — 學生列表（多條件篩選）=====
-router.get("/students", authenticateToken, (req, res) => {
+router.get("/students", authenticateToken, requireCoach, (req, res) => {
   try {
     const db = getDb();
     db.pragma("foreign_keys = ON");
@@ -67,7 +67,7 @@ router.get("/students", authenticateToken, (req, res) => {
 });
 
 // ===== GET /api/crm/students/:id — 學生詳情 =====
-router.get("/students/:id", authenticateToken, (req, res) => {
+router.get("/students/:id", authenticateToken, requireCoach, (req, res) => {
   try {
     const db = getDb();
     db.pragma("foreign_keys = ON");
@@ -132,7 +132,7 @@ router.get("/students/:id", authenticateToken, (req, res) => {
 });
 
 // ===== PUT /api/crm/students/:id — 更新學生資料 =====
-router.put("/students/:id", authenticateToken, (req, res) => {
+router.put("/students/:id", authenticateToken, requireCoach, (req, res) => {
   try {
     const { tags, notes, lead_source } = req.body;
     const db = getDb();
@@ -172,7 +172,7 @@ router.put("/students/:id", authenticateToken, (req, res) => {
 });
 
 // ===== POST /api/crm/students/:id/notes — 新增教練筆記 =====
-router.post("/students/:id/notes", authenticateToken, (req, res) => {
+router.post("/students/:id/notes", authenticateToken, requireCoach, (req, res) => {
   try {
     const { content } = req.body;
     if (!content) return res.status(400).json({ success: false, error: "請填寫筆記內容" });
@@ -218,7 +218,7 @@ router.post("/students/:id/notes", authenticateToken, (req, res) => {
 });
 
 // ===== POST /api/crm/import — CSV 匯入學生 =====
-router.post("/import", authenticateToken, (req, res) => {
+router.post("/import", authenticateToken, requireCoach, (req, res) => {
   try {
     const { students } = req.body;
     if (!students || !Array.isArray(students) || students.length === 0) {
