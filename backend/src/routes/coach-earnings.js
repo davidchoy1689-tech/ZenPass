@@ -6,7 +6,7 @@
 const express = require("express");
 const { v4: uuidv4 } = require("uuid");
 const { getDb } = require("../services/database");
-const { authenticateToken, requireCoach } = require("../middleware/auth");
+const { authenticateToken, requireCoach, requireAdmin } = require("../middleware/auth");
 
 const { sendNotification } = require("../services/notification");
 const { writeBlock } = require("../services/blockchain-audit");
@@ -264,9 +264,13 @@ router.post("/earnings/calculate", authenticateToken, async (req, res) => {
         )
         .get(req.user.id);
 
+      db.prepare("UPDATE users SET total_earnings = ? WHERE id = ?").run(
+        totals.total,
+        req.user.id,
+      );
       db.prepare(
-        "UPDATE users SET total_earnings = ?, pending_payout = ? WHERE id = ?",
-      ).run(totals.total, totals.pending, req.user.id);
+        "UPDATE users SET pending_payout = COALESCE(wallet_balance, 0) WHERE id = ?",
+      ).run(req.user.id);
     });
 
     transaction();
@@ -396,20 +400,10 @@ router.post("/payout-request", authenticateToken, (req, res) => {
       remaining -= toMark;
     }
 
-    // Update user pending_payout
-    const newPending = db
-      .prepare(
-        `
-      SELECT COALESCE(SUM(net_amount), 0) as total FROM coach_earnings
-      WHERE coach_id = ? AND status = 'pending'
-    `,
-      )
-      .get(req.user.id);
-
-    db.prepare("UPDATE users SET pending_payout = ? WHERE id = ?").run(
-      newPending.total,
-      req.user.id,
-    );
+    // pending_payout 只作 wallet_balance 鏡像
+    db.prepare(
+      "UPDATE users SET pending_payout = COALESCE(wallet_balance, 0) WHERE id = ?",
+    ).run(req.user.id);
 
     // ⛓️ 區塊鏈：記錄提現申請
     try {
@@ -524,7 +518,7 @@ router.get("/admin/all-earnings", authenticateToken, (req, res) => {
 });
 
 // ===== Admin: POST /api/coach/payout-process — 管理員處理提現 =====
-router.post("/payout-process", authenticateToken, (req, res) => {
+router.post("/payout-process", authenticateToken, requireAdmin, (req, res) => {
   try {
     const { payout_id, action, notes } = req.body;
     if (!payout_id || !["approve", "reject"].includes(action)) {
@@ -554,6 +548,20 @@ router.post("/payout-process", authenticateToken, (req, res) => {
       db.prepare(
         `UPDATE coach_earnings SET status = 'pending', payout_id = NULL WHERE payout_id = ?`,
       ).run(payout_id);
+      // 退回已預留金額
+      try {
+        const { creditWallet } = require("../services/wallet-service");
+        creditWallet({
+          userId: payout.coach_id,
+          amount: Number(payout.amount) || 0,
+          type: "refund",
+          description: "提款被拒，金額已退回錢包",
+          sourceType: "payout",
+          sourceId: payout_id,
+        });
+      } catch (e) {
+        console.error("⚠️ payout refund failed:", e.message);
+      }
     }
 
     // 🔔 通知教練：提現處理結果
@@ -1037,9 +1045,13 @@ function syncCoachEarningsForSchedule(scheduleId) {
       )
       .get(info.coach_id);
 
+    db.prepare("UPDATE users SET total_earnings = ? WHERE id = ?").run(
+      totals.total,
+      info.coach_id,
+    );
     db.prepare(
-      "UPDATE users SET total_earnings = ?, pending_payout = ? WHERE id = ?",
-    ).run(totals.total, totals.pending, info.coach_id);
+      "UPDATE users SET pending_payout = COALESCE(wallet_balance, 0) WHERE id = ?",
+    ).run(info.coach_id);
 
     // Auto-credit wallet if enrolled > 0 and earning was created/updated
     // ⛓️ 區塊鏈：記錄教練收入變更
@@ -1157,21 +1169,29 @@ router.post("/payouts/request", authenticateToken, async (req, res) => {
     const db = getDb();
     const user = db
       .prepare(
-        "SELECT pending_payout, stripe_account_id, name, email FROM users WHERE id = ?",
+        "SELECT wallet_balance, pending_payout, stripe_account_id, name, email FROM users WHERE id = ?",
       )
       .get(req.user.id);
-    if (!user || user.pending_payout < amount) {
-
+    if (!user || (user.wallet_balance || 0) < amount) {
       return res.status(400).json({ success: false, error: "可提款金額不足" });
     }
 
-    // Deduct pending payout
+    // 單一餘額：即時預留（wallet_balance 同 pending_payout 一齊扣）
+    const { reservePayout } = require("../services/wallet-service");
+    const reserved = reservePayout(req.user.id, Number(amount), "教練提款申請");
+    if (!reserved.success) {
+      return res.status(400).json({ success: false, error: reserved.error || "預留金額失敗" });
+    }
+
+    const payoutId = uuidv4();
+    const poRef =
+      "PO-" +
+      new Date().toISOString().slice(0, 10).replace(/-/g, "") +
+      "-" +
+      Math.random().toString(36).substring(2, 6).toUpperCase();
     db.prepare(
-      "UPDATE users SET pending_payout = pending_payout - ? WHERE id = ?",
-    ).run(amount, req.user.id);
-    db.prepare(
-      "INSERT INTO coach_payouts (id, coach_id, amount, status) VALUES (?, ?, ?, 'pending')",
-    ).run(uuidv4(), req.user.id, amount);
+      "INSERT INTO coach_payouts (id, payout_reference, coach_id, amount, status) VALUES (?, ?, ?, ?, 'pending')",
+    ).run(payoutId, poRef, req.user.id, amount);
 
     // Notify admins（原本漏了 recipient，通知永遠冇發）
     try {

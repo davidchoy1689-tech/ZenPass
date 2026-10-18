@@ -68,6 +68,14 @@ function settleCoachEarnings() {
           "-" +
           Math.random().toString(36).substring(2, 6).toUpperCase();
 
+        // 單一餘額：先預留
+        const { reservePayout } = require("../services/wallet-service");
+        const reserved = reservePayout(coach.coach_id, Number(amount), poRef);
+        if (!reserved.success) {
+          console.log(`[${ts}] ⚠️ 跳過 ${coach.coach_id}：${reserved.error || "餘額不足"}`);
+          continue;
+        }
+
         // Create payout record
         db.prepare(
           `INSERT INTO coach_payouts (id, coach_id, amount, fee, net_amount, status, created_at)
@@ -80,17 +88,10 @@ function settleCoachEarnings() {
            WHERE coach_id = ? AND status = 'pending'`,
         ).run(payoutId, coach.coach_id);
 
-        // Update user totals
-        const newPending = db
-          .prepare(
-            `SELECT COALESCE(SUM(net_amount), 0) as pending FROM coach_earnings 
-             WHERE coach_id = ? AND status = 'pending'`,
-          )
-          .get(coach.coach_id);
-
+        // pending_payout 只作 wallet_balance 鏡像
         db.prepare(
-          "UPDATE users SET pending_payout = ? WHERE id = ?",
-        ).run(newPending.pending, coach.coach_id);
+          "UPDATE users SET pending_payout = COALESCE(wallet_balance, 0) WHERE id = ?",
+        ).run(coach.coach_id);
 
         // Send notification to coach
         try {

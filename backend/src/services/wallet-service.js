@@ -67,7 +67,8 @@ function creditCoachEarning({
     const txId = uuidv4();
 
     // Update user wallet balance
-    db.prepare("UPDATE users SET wallet_balance = ? WHERE id = ?").run(
+    db.prepare("UPDATE users SET wallet_balance = ?, pending_payout = ? WHERE id = ?").run(
+      balanceAfter,
       balanceAfter,
       coachId,
     );
@@ -169,7 +170,8 @@ function debitWallet({
     const balanceAfter = fromCents(toCents(balanceBefore) - toCents(totalDebit));
     const txId = uuidv4();
 
-    db.prepare("UPDATE users SET wallet_balance = ? WHERE id = ?").run(
+    db.prepare("UPDATE users SET wallet_balance = ?, pending_payout = ? WHERE id = ?").run(
+      balanceAfter,
       balanceAfter,
       userId,
     );
@@ -419,9 +421,60 @@ function creditWallet({ userId, amount, type, description, reference, sourceType
   }
 }
 
+/**
+ * 通用入帳（退款／提款被拒退回／admin 調整）
+ */
+function creditWallet({
+  userId,
+  amount,
+  type = "adjustment",
+  description = "",
+  reference = "",
+  sourceType = "",
+  sourceId = "",
+}) {
+  const db = getDb();
+  db.pragma("foreign_keys = ON");
+  try {
+    const user = db.prepare("SELECT wallet_balance FROM users WHERE id = ?").get(userId);
+    if (!user) return { success: false, error: "用戶不存在" };
+    const before = user.wallet_balance || 0;
+    const after = fromCents(toCents(before) + toCents(amount));
+    const txId = uuidv4();
+    const tx = db.transaction(() => {
+      db.prepare("UPDATE users SET wallet_balance = ?, pending_payout = ? WHERE id = ?").run(after, after, userId);
+      db.prepare(
+        `INSERT INTO wallet_transactions
+          (id, user_id, type, amount, balance_before, balance_after, source_type, source_id, description, reference, fee, status)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 'completed')`,
+      ).run(txId, userId, type, amount, before, after, sourceType, sourceId, description, reference);
+    });
+    tx();
+    return { success: true, transaction_id: txId, balance_before: before, balance_after: after };
+  } catch (err) {
+    console.error("[WALLET] creditWallet error:", err.message);
+    return { success: false, error: err.message };
+  }
+}
+
+/** 提款預留：即時扣 wallet_balance（pending_payout 保持鏡像） */
+function reservePayout(userId, amount, reference = "") {
+  return debitWallet({
+    userId,
+    amount,
+    type: "withdrawal",
+    description: "提款申請（待處理）",
+    reference,
+    fee: 0,
+    sourceType: "wallet_withdraw",
+    sourceId: "",
+  });
+}
+
 module.exports = {
   creditCoachEarning,
   creditWallet,
+  reservePayout,
   debitWallet,
   getWalletSummary,
   getTransactions,

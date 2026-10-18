@@ -18,7 +18,7 @@ const hits = fs.readdirSync(webDir).filter((f) => f.endsWith(".html"))
 ok(hits.length === 0, "前端冇使用已封鎖嘅 wallet/withdraw");
 
 const ceSrc = fs.readFileSync(path.join(__dirname, "../src/routes/coach-earnings.js"), "utf8");
-ok(/pending_payout = pending_payout - \?/.test(ceSrc), "教練出糧仍然扣 pending_payout");
+ok(/reservePayout\(req\.user\.id/.test(ceSrc), "教練出糧用 reservePayout（wallet + pending 同步扣）");
 
 console.log(fail === 0 ? "\n🎉 全部通過" : `\n❌ ${fail} 項失敗`);
 process.exit(fail === 0 ? 0 : 1);

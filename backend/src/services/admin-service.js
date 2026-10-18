@@ -591,11 +591,19 @@ function processCoachPayouts(adminId, req) {
     const fee = Math.max(0, coach.total_pending * 0.01);
     const netAmount = coach.total_pending - fee;
 
+    // 單一餘額：先預留（wallet_balance = pending_payout）
+    const { reservePayout } = require("./wallet-service");
+    const reserved = reservePayout(coach.coach_id, Number(coach.total_pending), poRef);
+    if (!reserved.success) {
+      results.push({ coach_name: coach.coach_name, error: reserved.error || "餘額不足，跳過" });
+      continue;
+    }
+
     db.prepare("INSERT INTO coach_payouts (id, payout_reference, coach_id, amount, fee, net_amount, payment_method, status) VALUES (?, ?, ?, ?, ?, ?, 'bank', 'processing')")
       .run(payoutId, poRef, coach.coach_id, coach.total_pending, fee, netAmount);
     db.prepare("UPDATE coach_earnings SET status = 'paid', payout_id = ? WHERE coach_id = ? AND status = 'pending'")
       .run(payoutId, coach.coach_id);
-    db.prepare("UPDATE users SET pending_payout = 0, total_earnings = COALESCE(total_earnings, 0) + ? WHERE id = ?")
+    db.prepare("UPDATE users SET total_earnings = COALESCE(total_earnings, 0) + ? WHERE id = ?")
       .run(netAmount, coach.coach_id);
 
     try {

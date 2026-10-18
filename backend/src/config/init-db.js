@@ -2022,6 +2022,67 @@ CREATE TABLE IF NOT EXISTS users (
     console.error("mutual_reviews backfill 失敗:", e.message);
   }
 
+  // ===== 錢包／出糧帳合併（2026-10-19）=====
+  // 原則：wallet_balance = 可提款餘額（單一來源），pending_payout 只作鏡像
+  // 可提款 = 未出糧收入 + 非課堂收入（admin 調整等）
+  try {
+    const key = "migration.wallet_merge_20261019";
+    const done = db.prepare("SELECT value FROM platform_settings WHERE key = ?").get(key);
+    if (!done) {
+      const rows = db
+        .prepare("SELECT id, wallet_balance, pending_payout FROM users")
+        .all();
+      const sumStmt = db.prepare(
+        "SELECT COALESCE(SUM(net_amount), 0) AS total FROM coach_earnings WHERE coach_id = ? AND status != 'cancelled'",
+      );
+      const upd = db.prepare(
+        "UPDATE users SET wallet_balance = ?, pending_payout = ? WHERE id = ?",
+      );
+      let changed = 0;
+      let beforeSum = 0;
+      let afterSum = 0;
+      const run = db.transaction(() => {
+        for (const u of rows) {
+          const wallet = Number(u.wallet_balance) || 0;
+          const pending = Number(u.pending_payout) || 0;
+          const total = Number(sumStmt.get(u.id).total) || 0;
+          const extras = Math.max(0, Math.round((wallet - total) * 100) / 100);
+          const avail = Math.max(0, Math.round((pending + extras) * 100) / 100);
+          beforeSum += wallet;
+          afterSum += avail;
+          if (Math.abs(wallet - avail) > 0.001 || Math.abs(pending - avail) > 0.001) {
+            upd.run(avail, avail, u.id);
+            changed++;
+          }
+        }
+      });
+      run();
+      db.prepare("INSERT OR REPLACE INTO platform_settings (key, value) VALUES (?, ?)").run(
+        key,
+        new Date().toISOString(),
+      );
+      try {
+        db.prepare(
+          `INSERT INTO audit_log (id, action_type, entity_type, entity_id, user_id, description, new_values, created_at)
+           VALUES (?, 'wallet.merge', 'system', 'wallet_payout', 'system', ?, ?, datetime('now'))`,
+        ).run(
+          require("uuid").v4(),
+          `錢包／出糧帳合併：調整 ${changed} 位用戶`,
+          JSON.stringify({
+            changed,
+            wallet_total_before: Math.round(beforeSum * 100) / 100,
+            wallet_total_after: Math.round(afterSum * 100) / 100,
+          }),
+        );
+      } catch (e) {
+        /* audit_log 可能未建立 */
+      }
+      if (changed) console.log(`✅ 錢包帳合併：調整 ${changed} 位用戶（wallet_balance = 可提款餘額）`);
+    }
+  } catch (e) {
+    console.error("錢包帳合併失敗:", e.message);
+  }
+
   // ===== 會籍文案同步（2026-10-18 政策）=====
   // 優先預約只限 VIP；「私人教練」改為一對一健康諮詢／身體評估；VIP 加免費邀請朋友
   try {
