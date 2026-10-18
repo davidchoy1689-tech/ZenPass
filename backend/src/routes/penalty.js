@@ -14,7 +14,14 @@
 const express = require("express");
 const { v4: uuidv4 } = require("uuid");
 const { getDb } = require("../services/database");
-const { authenticateToken } = require("../middleware/auth");
+const { authenticateToken, requireAdmin } = require("../middleware/auth");
+
+// 只准本機 scheduler 或 admin 觸發全體缺席處理
+function adminOrLocal(req, res, next) {
+  const ip = String(req.ip || "").replace("::ffff:", "");
+  if (ip === "127.0.0.1" || ip === "::1") return next();
+  authenticateToken(req, res, () => requireAdmin(req, res, next));
+}
 const { sendNotification } = require("../services/notification");
 const { trackBookingChange } = require("../services/audit");
 
@@ -128,7 +135,7 @@ function applyPenalty(userId, bookingId, penaltyCredits, reason, type = 'no_show
 }
 
 // ===== 1. POST /api/penalty/process-no-shows — 自動處理缺席 =====
-router.post("/process-no-shows", (req, res) => {
+router.post("/process-no-shows", adminOrLocal, (req, res) => {
   try {
     const config = getPenaltyConfig();
     const db = getDb();
@@ -224,7 +231,7 @@ router.post("/process-no-shows", (req, res) => {
 router.post("/settings", authenticateToken, (req, res) => {
   try {
     const user = getDb().prepare("SELECT role FROM users WHERE id = ?").get(req.user.id);
-    if (!user || user.role !== "admin") {
+    if (!user || !["admin", "super_admin"].includes(user.role)) {
       return res.status(403).json({ success: false, error: "只限管理員" });
     }
     const { no_show_penalty_credits, no_show_grace_minutes } = req.body;
@@ -383,12 +390,17 @@ router.post("/process-specific/:bookingId", authenticateToken, (req, res) => {
     }
 
     const booking = db.prepare(
-      "SELECT b.*, c.title, c.credits_cost FROM bookings b JOIN classes c ON b.class_id = c.id WHERE b.id = ? AND b.status = 'confirmed'"
+      "SELECT b.*, c.title, c.credits_cost, c.coach_id FROM bookings b JOIN classes c ON b.class_id = c.id WHERE b.id = ? AND b.status = 'confirmed'"
     ).get(req.params.bookingId);
 
     if (!booking) {
 
       return res.status(404).json({ success: false, error: "預約不存在或已處理" });
+    }
+
+    // 教練只可以標記自己班嘅學生（唔可以罰其他教練嘅學生）
+    if (!["admin", "super_admin"].includes(user.role) && booking.coach_id !== req.user.id) {
+      return res.status(403).json({ success: false, error: "只可以處理自己課程嘅學生" });
     }
 
     const config = getPenaltyConfig();

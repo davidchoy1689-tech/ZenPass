@@ -1177,6 +1177,14 @@ router.post("/cancel-subscription", authenticateToken, async (req, res) => {
 
 // ===== Credits Purchase =====
 router.post("/credits/purchase", authenticateToken, async (req, res) => {
+  // 🚫 安全（2026-10-19）：唔可以信客戶自己填 credits 數量就加點
+  return res.status(403).json({
+    success: false,
+    code: "USE_CREDITS_TOPUP_ORDER",
+    error: "請到「增值」頁建立增值單（FPS／PayMe），管理員確認收款後才會加點。",
+  });
+
+  /* eslint-disable no-unreachable */
   try {
     const { credits, amount, payment_method, payment_reference } = req.body;
     if (!credits || !amount || !payment_method) {

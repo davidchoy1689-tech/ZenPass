@@ -58,6 +58,7 @@ const ok = (c, m) => { if (c) console.log("  ✅ " + m); else { console.log("  �
   ok((paySrc.match(/notifyAdminsOfManualPayment\(/g) || []).length >= 3, "FPS + PayMe 都有站內通知（含 helper 定義）");
   ok(/MANUAL_PAYMENT_REVIEW_REQUIRED/.test(bookingSrc), "service 已封鎖自動確認");
   ok(/fps_reference IS NULL AND payme_reference IS NULL/.test(bookingSrc), "15 分鐘 hold 唔會取消已提交 FPS/PayMe 嘅 booking");
+  ok(/USE_CREDITS_TOPUP_ORDER/.test(paySrc), "credits/purchase 已封鎖（唔可以自填 credits 加點）");
 
   console.log(fail === 0 ? "\n🎉 全部通過" : `\n❌ ${fail} 項失敗`);
   process.exit(fail === 0 ? 0 : 1);
