@@ -256,6 +256,11 @@ async function sendNotification(type, payload) {
       message = `⏳ 你嘅 ${data?.points || 0} 積分將於 ${data?.expires_on || "30 日內"} 到期（連續 12 個月無積分活動）。快啲去積分頁兌換啦！`;
       html = `<h2>⏳ 積分即將到期</h2><p>你嘅 <b>${data?.points || 0}</b> 積分將於 <b>${data?.expires_on || "30 日內"}</b> 到期。</p><p>快啲去積分頁兌換啦！</p>`;
       break;
+    case "membership.expiring":
+      title = "會籍即將到期";
+      message = `⏰ 你嘅會籍將於 ${data?.end_date || "—"} 到期（剩 ${data?.days_left ?? "—"} 日）。到期後每月 Credits 及會員權益會停止，記得續會啦！`;
+      html = `<h2>⏰ 會籍即將到期</h2><p>你嘅會籍將於 <b>${data?.end_date || "—"}</b> 到期（剩 <b>${data?.days_left ?? "—"}</b> 日）。</p><p>到期後每月 Credits 及會員權益會停止，記得續會啦！</p>`;
+      break;
     case "credit_expiring":
       title = "Credits 即將到期";
       message = `⏰ 你嘅 ${data?.plan_name || "月費"} Plan 將於 ${data?.expiry_date || "下月 1 日"} 重置，剩餘 ${data?.remaining_credits || 0} Credits 將歸零。快啲用埋佢啦！`;
