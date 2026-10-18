@@ -884,6 +884,13 @@ CREATE TABLE IF NOT EXISTS users (
   try {
     db.exec("ALTER TABLE users ADD COLUMN loyalty_tier_manual INTEGER DEFAULT 0");
   } catch (e) {/* unused /*/}
+  // 電郵驗證碼（6 位數字，10 分鐘有效）
+  try {
+    db.exec("ALTER TABLE users ADD COLUMN verification_code TEXT");
+  } catch (e) {/* unused /*/}
+  try {
+    db.exec("ALTER TABLE users ADD COLUMN verification_code_expires TEXT");
+  } catch (e) {/* unused /*/}
 
   // ===== CRM 學生管理 =====
   try {

@@ -81,15 +81,17 @@ router.post("/register", (req, res) => {
         .get().m || 0;
     const userRef = "US-" + String(maxS + 1).padStart(4, "0");
 
-    // 生成驗證 token (24小時有效)
+    // 生成驗證 token（連結 24 小時）+ 6 位驗證碼（10 分鐘）
     const verificationToken = Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+    const verificationCode = genVerifyCode();
 
     db.prepare(
       `
-      INSERT INTO users (id, user_reference, email, password_hash, name, phone, auth_provider, email_verified, verification_token, verification_token_expires)
-      VALUES (?, ?, ?, ?, ?, ?, 'email', 0, ?, datetime('now', '+24 hours'))
+      INSERT INTO users (id, user_reference, email, password_hash, name, phone, auth_provider, email_verified,
+                         verification_token, verification_token_expires, verification_code, verification_code_expires)
+      VALUES (?, ?, ?, ?, ?, ?, 'email', 0, ?, datetime('now', '+24 hours'), ?, datetime('now', '+10 minutes'))
     `,
-    ).run(id, userRef, email, passwordHash, name, phone || null, verificationToken);
+    ).run(id, userRef, email, passwordHash, name, phone || null, verificationToken, verificationCode);
 
     const user = db
       .prepare(
@@ -111,7 +113,9 @@ router.post("/register", (req, res) => {
         "ZenPass 禪流 — 驗證你嘅電郵",
         `<div style="font-family:system-ui,-apple-system,'PingFang HK',sans-serif;max-width:520px;margin:auto;color:#222">
           <h2 style="color:#f06030">歡迎加入 ZenPass 禪流</h2>
-          <p>你好${name}，多謝你註冊！請撳以下按鈕驗證你嘅電郵（連結 24 小時內有效）：</p>
+          <p>你好${name}，多謝你註冊！你嘅驗證碼（10 分鐘內有效）：</p>
+          <p style="font-size:28px;font-weight:800;letter-spacing:8px;color:#f06030;margin:10px 0">${verificationCode}</p>
+          <p>或者撳以下按鈕驗證（連結 24 小時內有效）：</p>
           <p><a href="${vlink}" style="display:inline-block;background:#f06030;color:#fff;padding:12px 20px;border-radius:10px;text-decoration:none;font-weight:700">驗證電郵</a></p>
           <p style="color:#888;font-size:13px">如非本人操作，可以忽略呢封電郵。</p>
         </div>`,
@@ -122,7 +126,7 @@ router.post("/register", (req, res) => {
       message: "註冊成功",
       token,
       user,
-      ...(isDev ? { dev_verify_url: `https://zenpass.hk/v2/verify-email.html?token=${verificationToken}` } : {})
+      ...(isDev ? { dev_verify_url: `https://zenpass.hk/v2/verify-email.html?token=${verificationToken}`, dev_verify_code: verificationCode } : {})
     });
   } catch (err) {
     console.error("註冊錯誤:", err);
@@ -338,6 +342,47 @@ router.get("/verify-email", (req, res) => {
   }
 });
 
+// ===== POST /api/auth/verify-code — 用 6 位驗證碼驗證電郵 =====
+router.post("/verify-code", authenticateToken, (req, res) => {
+  try {
+    const code = String((req.body && req.body.code) || "").trim();
+    if (!/^\d{6}$/.test(code)) {
+      return res.status(400).json({ success: false, error: "請輸入 6 位數字驗證碼" });
+    }
+
+    const db = getDb();
+    const user = db
+      .prepare(
+        "SELECT email_verified, verification_code, verification_code_expires FROM users WHERE id = ?",
+      )
+      .get(req.user.id);
+    if (!user) return res.status(404).json({ success: false, error: "用戶不存在" });
+    if (user.email_verified) {
+      return res.json({ success: true, message: "電郵已驗證" });
+    }
+    if (!user.verification_code || user.verification_code !== code) {
+      return res.status(400).json({ success: false, error: "驗證碼不正確" });
+    }
+
+    const exp = user.verification_code_expires
+      ? new Date(String(user.verification_code_expires).replace(" ", "T") + "Z")
+      : null;
+    if (exp && !isNaN(exp) && exp < new Date()) {
+      return res.status(400).json({ success: false, error: "驗證碼已過期，請重新發送" });
+    }
+
+    db.prepare(
+      `UPDATE users SET email_verified = 1, verification_code = NULL, verification_code_expires = NULL,
+         verification_token = NULL, verification_token_expires = NULL WHERE id = ?`,
+    ).run(req.user.id);
+
+    res.json({ success: true, message: "✅ 電郵驗證成功" });
+  } catch (err) {
+    console.error("verify-code error:", err.message);
+    res.status(500).json({ success: false, error: "驗證失敗" });
+  }
+});
+
 // ===== POST /api/auth/resend-verification — 重新發送驗證電郵 =====
 router.post("/resend-verification", authenticateToken, (req, res) => {
   try {
@@ -346,9 +391,12 @@ router.post("/resend-verification", authenticateToken, (req, res) => {
     if (!user) { return res.status(404).json({ success: false, error: "用戶不存在" }); }
     if (user.email_verified) { return res.json({ message: "電郵已驗證" }); }
 
-    // Generate new token
+    // Generate new token + 6 位驗證碼
     const token = Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
-    db.prepare("UPDATE users SET verification_token = ?, verification_token_expires = datetime('now', '+24 hours') WHERE id = ?").run(token, req.user.id);
+    const code = genVerifyCode();
+    db.prepare(
+      "UPDATE users SET verification_token = ?, verification_token_expires = datetime('now', '+24 hours'), verification_code = ?, verification_code_expires = datetime('now', '+10 minutes') WHERE id = ?",
+    ).run(token, code, req.user.id);
 
     const isDev = !process.env.SMTP_HOST;
     if (!isDev) {
@@ -359,14 +407,16 @@ router.post("/resend-verification", authenticateToken, (req, res) => {
         "ZenPass 禪流 — 驗證你嘅電郵",
         `<div style="font-family:system-ui,sans-serif;max-width:520px;margin:auto;color:#222">
           <h2 style="color:#f06030">驗證你嘅電郵</h2>
-          <p>請撳以下按鈕驗證你嘅電郵（連結 24 小時內有效）：</p>
+          <p>你嘅驗證碼（10 分鐘內有效）：</p>
+          <p style="font-size:28px;font-weight:800;letter-spacing:8px;color:#f06030;margin:10px 0">${code}</p>
+          <p>或者撳以下按鈕驗證（連結 24 小時內有效）：</p>
           <p><a href="${vlink}" style="display:inline-block;background:#f06030;color:#fff;padding:12px 20px;border-radius:10px;text-decoration:none;font-weight:700">驗證電郵</a></p>
         </div>`,
       ).catch((e) => console.error("[RESEND] verify email error:", e.message));
     }
     res.json({
       message: "驗證電郵已發送",
-      ...(isDev ? { dev_verify_url: `https://zenpass.hk/v2/verify-email.html?token=${token}` } : {})
+      ...(isDev ? { dev_verify_url: `https://zenpass.hk/v2/verify-email.html?token=${token}`, dev_verify_code: code } : {})
     });
   } catch (err) {
     res.status(500).json({ success: false, error: "發送失敗" });
