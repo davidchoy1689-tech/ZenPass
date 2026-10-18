@@ -68,6 +68,19 @@ router.post("/inquiry", async (req, res) => {
       console.error("[BLOCKCHAIN] writeBlock error:", be.message);
     }
 
+    // Notify admin（站內，避免 Telegram 未設定就漏單）
+    try {
+      const { notifyAdmins } = require("../services/notify-admins");
+      notifyAdmins("school.inquiry", {
+        school_name,
+        contact_name,
+        contact_email,
+        contact_phone: contact_phone || "",
+        sports_of_interest: sports_of_interest || "",
+        message: message || "",
+      });
+    } catch (e) {}
+
     // Notify admin
     try {
       await sendTelegramAlert(

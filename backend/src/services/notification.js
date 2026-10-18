@@ -271,6 +271,16 @@ async function sendNotification(type, payload) {
       message = data?.message || "❌ 教練申請未獲批，如有疑問請聯絡我們。";
       html = `<h2>教練申請結果</h2><p>${data?.message || "教練申請未獲批，如有疑問請聯絡我們。"}</p>`;
       break;
+    case "school.inquiry":
+      title = "🏫 新學校查詢";
+      message = `學校：${data?.school_name || "—"}\n聯絡：${data?.contact_name || "—"}（${data?.contact_email || "—"}）\n電話：${data?.contact_phone || "—"}\n項目：${data?.sports_of_interest || "未指定"}\n備註：${data?.message || "—"}`;
+      html = `<h2>🏫 新學校查詢</h2><p><b>學校：</b>${data?.school_name || "—"}<br><b>聯絡：</b>${data?.contact_name || "—"}（${data?.contact_email || "—"}）<br><b>電話：</b>${data?.contact_phone || "—"}<br><b>項目：</b>${data?.sports_of_interest || "未指定"}<br><b>備註：</b>${data?.message || "—"}</p>`;
+      break;
+    case "corporate.inquiry":
+      title = "🏢 新企業查詢";
+      message = `公司：${data?.company_name || "—"}\n聯絡：${data?.contact_name || "—"}（${data?.contact_email || "—"}）\n電話：${data?.contact_phone || "—"}\n活動：${data?.activities || "未指定"}\n備註：${data?.message || "—"}`;
+      html = `<h2>🏢 新企業查詢</h2><p><b>公司：</b>${data?.company_name || "—"}<br><b>聯絡：</b>${data?.contact_name || "—"}（${data?.contact_email || "—"}）<br><b>電話：</b>${data?.contact_phone || "—"}<br><b>活動：</b>${data?.activities || "未指定"}<br><b>備註：</b>${data?.message || "—"}</p>`;
+      break;
     case "coach.referral":
       title = "🧑‍🏫 新教練推薦";
       message = `推薦人：${data?.referred_by || "—"}\n教練：${data?.name || "—"}\n電郵：${data?.email || "—"}\n電話：${data?.phone || "—"}`;

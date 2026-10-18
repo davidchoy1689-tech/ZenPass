@@ -61,6 +61,17 @@ router.post("/inquiry", (req, res) => {
     try {
       writeBlock({ entityType: "corporate_inquiry", entityId: id, data: { company_name, contact_name, contact_email } });
     } catch (e) {}
+    try {
+      const { notifyAdmins } = require("../services/notify-admins");
+      notifyAdmins("corporate.inquiry", {
+        company_name,
+        contact_name,
+        contact_email,
+        contact_phone: contact_phone || "",
+        activities: activities || "",
+        message: message || "",
+      });
+    } catch (e) {}
     res.status(201).json({ success: true, id, message: "✅ 查詢已收到！我哋嘅企業團隊會儘快同你聯絡。" });
   } catch (err) {
     console.error("[CORPORATE] inquiry error:", err.message);
