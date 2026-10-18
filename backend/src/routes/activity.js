@@ -33,6 +33,17 @@ router.get("/feed", optionalAuth, (req, res) => {
     const merged = (realFeed || []).concat(demos).slice(0, 10);
 
     const anonymized = merged.map(function(item) {
+      // demo 項目顯示原名字（唔需要遮罩）
+      if (String(item.id).startsWith('demo-')) {
+        return {
+          id: item.id,
+          time: item.time,
+          user_name: item.user_name,
+          class_title: item.class_title,
+          venue_name: item.venue_name,
+          category: item.category,
+        };
+      }
       var nameParts = (item.user_name || '').split(' ');
       var displayName = nameParts[0] || 'User';
       if (nameParts.length > 1) {
