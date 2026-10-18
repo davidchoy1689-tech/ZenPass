@@ -3,7 +3,7 @@
  * 支援 SQLite + Supabase
  */
 const express = require("express");
-const { authenticateToken } = require("../middleware/auth");
+const { authenticateToken, requireAdmin } = require("../middleware/auth");
 const {
   createBackup,
   restoreBackup,
@@ -26,7 +26,7 @@ router.get("/health", async (req, res) => {
 });
 
 // ===== POST /api/backup/create — 創建備份 =====
-router.post("/create", authenticateToken, async (req, res) => {
+router.post("/create", authenticateToken, requireAdmin, async (req, res) => {
   try {
     const { name, description } = req.body;
     const backupId = await createBackup(
@@ -41,7 +41,7 @@ router.post("/create", authenticateToken, async (req, res) => {
 });
 
 // ===== POST /api/backup/restore/:id — 一鍵還原 =====
-router.post("/restore/:id", authenticateToken, async (req, res) => {
+router.post("/restore/:id", authenticateToken, requireAdmin, async (req, res) => {
   try {
     const result = await restoreBackup(req.params.id);
     res.json({ success: true, ...result });
@@ -52,7 +52,7 @@ router.post("/restore/:id", authenticateToken, async (req, res) => {
 });
 
 // ===== GET /api/backup/list — 備份列表 =====
-router.get("/list", authenticateToken, async (req, res) => {
+router.get("/list", authenticateToken, requireAdmin, async (req, res) => {
   try {
     const backups = await listBackups(parseInt(req.query.limit) || 20);
     res.json({ success: true, data: { backups } });
@@ -62,7 +62,7 @@ router.get("/list", authenticateToken, async (req, res) => {
 });
 
 // ===== DELETE /api/backup/:id — 刪除備份 =====
-router.delete("/:id", authenticateToken, async (req, res) => {
+router.delete("/:id", authenticateToken, requireAdmin, async (req, res) => {
   try {
     await deleteBackup(req.params.id);
     res.json({ success: true, message: "備份已刪除" });
@@ -72,7 +72,7 @@ router.delete("/:id", authenticateToken, async (req, res) => {
 });
 
 // ===== GET /api/backup — 備份概況 =====
-router.get("/", authenticateToken, async (req, res) => {
+router.get("/", authenticateToken, requireAdmin, async (req, res) => {
   try {
     const backups = await listBackups(5);
     const health = await checkIntegrity();
