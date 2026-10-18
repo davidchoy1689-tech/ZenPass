@@ -347,7 +347,17 @@ function getUserDetail(userId) {
     .prepare("SELECT * FROM memberships WHERE user_id = ? ORDER BY created_at DESC")
     .all(userId);
 
-  return { status: 200, body: { user, bookings, transactions, membership } };
+  // 唔好將密碼 hash／驗證 token 傳去前端
+  const {
+    password_hash,
+    verification_token,
+    verification_token_expires,
+    reset_token,
+    reset_token_expires,
+    ...safeUser
+  } = user;
+
+  return { status: 200, body: { user: safeUser, bookings, transactions, membership } };
 }
 
 // ==================== Course Management ====================
