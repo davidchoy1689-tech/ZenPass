@@ -13,6 +13,29 @@ const fs = require("fs");
 const path = require("path");
 const { audit, trackPaymentChange } = require("../services/audit");
 const { sendTelegramAlert } = require("../services/notification");
+
+/** 站內通知所有 admin（Telegram 可能未設定） */
+function notifyAdminsOfManualPayment(method, info) {
+  try {
+    const { sendNotification } = require("../services/notification");
+    const db = getDb();
+    const admins = db
+      .prepare("SELECT id FROM users WHERE role IN ('admin','super_admin','platform_manager')")
+      .all();
+    for (const a of admins) {
+      sendNotification("payment.new_fps_payme", {
+        recipient: a.id,
+        data: {
+          ...info,
+          method: method.toUpperCase(),
+          submitted_at: new Date().toLocaleString("zh-HK", { timeZone: "Asia/Hong_Kong" }),
+        },
+      });
+    }
+  } catch (e) {
+    console.error("⚠️ admin payment notify failed:", e.message);
+  }
+}
 const {
   recordPayment,
   recordRefund,
@@ -566,6 +589,14 @@ router.post("/fps", authenticateToken, (req, res) => {
       console.error("⚠️ Audit record failed:", auditErr.message);
     }
 
+    notifyAdminsOfManualPayment("fps", {
+      user_name: req.user.name || req.user.email || req.user.id,
+      amount: amount || (booking ? booking.amount : 0),
+      reference: fps_reference,
+      class_title: booking ? booking.title || "" : "",
+      booking_id,
+    });
+
     // 🔔 ADMIN TELEGRAM：通知管理員有新 FPS 付款待確認
     setTimeout(() => {
       const classTitle = booking ? booking.title || "" : "";
@@ -646,6 +677,14 @@ router.post("/payme", authenticateToken, (req, res) => {
       amount || (booking ? booking.amount : 0),
       payme_reference,
     );
+
+    notifyAdminsOfManualPayment("payme", {
+      user_name: req.user.name || req.user.email || req.user.id,
+      amount: amount || (booking ? booking.amount : 0),
+      reference: payme_reference,
+      class_title: booking ? booking.title || "" : "",
+      booking_id,
+    });
 
     // 🔔 ADMIN TELEGRAM：通知管理員有新 PayMe 付款待確認
     setTimeout(() => {

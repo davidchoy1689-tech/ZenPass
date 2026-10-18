@@ -855,6 +855,18 @@ function createBooking(req) {
 // ==================== Complete Payment ====================
 
 function completePayment(req) {
+  // 🚫 安全（2026-10-19）：唔可以靠客戶自行提交參考編號就確認付款
+  // FPS/PayMe 必須經管理員核對銀行紀錄；Stripe 必須經 webhook 驗證。
+  return {
+    status: 403,
+    body: {
+      success: false,
+      code: "MANUAL_PAYMENT_REVIEW_REQUIRED",
+      error: "付款需要管理員核實。請使用「我已付款，提交核實」功能（FPS／PayMe），或信用卡付款。",
+    },
+  };
+
+  /* eslint-disable no-unreachable */
   const { payment_method, payment_reference, amount } = req.body;
   const db = getDb();
   db.pragma("foreign_keys = ON");
