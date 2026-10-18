@@ -1999,6 +1999,53 @@ CREATE TABLE IF NOT EXISTS users (
     console.error("mutual_reviews backfill 失敗:", e.message);
   }
 
+  // ===== 會籍文案同步（2026-10-18 政策）=====
+  // 優先預約只限 VIP；「私人教練」改為一對一健康諮詢／身體評估；VIP 加免費邀請朋友
+  try {
+    const key = "migration.plan_features_20261018";
+    const done = db.prepare("SELECT value FROM platform_settings WHERE key = ?").get(key);
+    if (!done) {
+      const replaceConsult = (x) =>
+        x === "每月 1 堂私人教練" ? "每月 1 次一對一健康諮詢／身體評估"
+        : x === "每月 2 堂私人教練" ? "每月 2 次一對一健康諮詢／身體評估"
+        : x;
+      const planTypes = ["lite", "standard", "silver", "gold"];
+      let changed = 0;
+      for (const type of planTypes) {
+        const row = db
+          .prepare("SELECT value FROM pricing_config WHERE key = ?")
+          .get("plan_" + type + "_features");
+        if (!row) continue;
+        let arr;
+        try { arr = JSON.parse(row.value); } catch (e) { continue; }
+        if (!Array.isArray(arr)) continue;
+        let out = arr.map(replaceConsult).filter(
+          (x) => x !== "優先預約權" && x !== "VIP 優先預約" && x !== "白金優先預約",
+        );
+        if (type === "gold") {
+          if (!out.some((x) => String(x).includes("VIP 優先預約"))) {
+            out.unshift("VIP 優先預約（新課 24 小時）");
+          }
+          if (!out.some((x) => String(x).includes("免費邀請朋友"))) {
+            out.push("每月 1 次免費邀請朋友（健康諮詢／身體評估）");
+          }
+        }
+        if (JSON.stringify(out) !== JSON.stringify(arr)) {
+          db.prepare("UPDATE pricing_config SET value = ?, updated_at = datetime('now') WHERE key = ?")
+            .run(JSON.stringify(out), "plan_" + type + "_features");
+          changed++;
+        }
+      }
+      db.prepare("INSERT OR REPLACE INTO platform_settings (key, value) VALUES (?, ?)").run(
+        key,
+        new Date().toISOString(),
+      );
+      if (changed) console.log(`✅ 會籍文案同步：更新 ${changed} 個計劃`);
+    }
+  } catch (e) {
+    console.error("會籍文案同步失敗:", e.message);
+  }
+
   console.log("✅ 數據庫初始化完成:", DB_PATH);
   db.close();
 }

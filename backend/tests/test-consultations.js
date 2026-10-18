@@ -98,6 +98,8 @@ const ok = (c, m) => { if (c) console.log("  ✅ " + m); else { console.log("  �
   const memSrc = fs.readFileSync(path.join(root, "src/routes/memberships.js"), "utf8");
   ok(/app\.use\("\/api\/consultations"/.test(idx), "route 已 mount");
   ok(/CREATE TABLE IF NOT EXISTS consultations/.test(initSrc), "init-db 建 consultations 表");
+  ok(/migration\.plan_features_20261018/.test(initSrc), "init-db 同步 pricing_config 會籍文案");
+  ok(/一對一健康諮詢／身體評估/.test(initSrc), "文案遷移包含健康諮詢");
   ok(/consultations\.html/.test(my), "我的頁有入口");
   ok(/consultations\/my/.test(page) && /consultations\/request/.test(page), "前端呼叫正確 API");
   ok(/健康諮詢/.test(admin) && /consultationsTab/.test(admin), "admin 有健康諮詢 tab");
