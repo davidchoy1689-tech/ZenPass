@@ -41,7 +41,7 @@
   </nav>
   <script src="assets/api.js"></script>
   <script>
-    const shareText = (code) => `我一齊玩緊 ZenPass 禪流！用我嘅推薦碼 ${code}，大家都有 Credits 送 🎉 https://zenpass.hk/v2/register.html`;
+    const shareText = (code) => `我一齊玩緊 ZenPass 禪流！用我嘅推薦碼 ${code}，大家都有 Credits 送 🎉 https://zenpass.hk/register.html`;
     let myCode = "";
     async function load() {
       const r = await api.get("/referral/my-code");
@@ -52,7 +52,7 @@
       document.getElementById("earned").textContent = (d.credits_earned != null ? d.credits_earned : 0) + " credits";
       const t = encodeURIComponent(shareText(myCode));
       document.getElementById("wa").href = "https://wa.me/?text=" + t;
-      document.getElementById("tg").href = "https://t.me/share/url?url=" + encodeURIComponent("https://zenpass.hk/v2/register.html") + "&text=" + t;
+      document.getElementById("tg").href = "https://t.me/share/url?url=" + encodeURIComponent("https://zenpass.hk/register.html") + "&text=" + t;
     }
     document.getElementById("copy").onclick = async () => {
       try { await navigator.clipboard.writeText(myCode); alert("已複製推薦碼：" + myCode); }
@@ -68,6 +68,10 @@
       msg.textContent = (r.ok && r.data) ? ("✅ " + (r.data.message || "推薦碼已使用")) : ("❌ " + ((r.data && r.data.error) || "使用失敗"));
       if (r.ok) { document.getElementById("refcode").value = ""; await load(); }
     };
+    (function prefill() {
+      const c = new URLSearchParams(location.search).get("code");
+      if (c) { const el = document.getElementById("refcode"); if (el) el.value = c; }
+    })();
     if (api.requireLogin("referral.html")) load();
   </script>
   <script src="assets/footer.js?v=4" defer></script>

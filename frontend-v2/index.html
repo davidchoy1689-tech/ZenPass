@@ -349,8 +349,8 @@
         try {
           var rr = await api.get("/referral/my-code");
           var code = (rr.data && rr.data.code) || "";
-          var url = location.origin + "/index.html?ref=" + encodeURIComponent(code);
-          var text = "我用緊 ZenPass 玩新興運動，用我推薦碼 " + code + " 登記，首堂半價！";
+          var url = location.origin + "/referral.html?code=" + encodeURIComponent(code);
+          var text = "我用緊 ZenPass 玩新興運動，用我推薦碼 " + code + "，大家都有 Credits 送！";
           if (navigator.share) {
             await navigator.share({ title: "ZenPass 禪流", text: text, url: url });
           } else if (navigator.clipboard) {
