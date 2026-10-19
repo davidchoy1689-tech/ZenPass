@@ -16,7 +16,8 @@ const logger = require("../services/logger");
 const router = express.Router();
 
 // ===== GET /api/backup/health — 資料庫完整性檢查 =====
-router.get("/health", async (req, res) => {
+// 🔒 2026-10-19：完整性檢查會掃全庫，只限 admin（避免公開被用作 DoS）
+router.get("/health", authenticateToken, requireAdmin, async (req, res) => {
   try {
     const result = await checkIntegrity();
     res.json({ success: true, data: result });

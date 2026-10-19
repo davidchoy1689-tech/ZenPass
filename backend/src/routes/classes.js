@@ -403,6 +403,7 @@ router.post("/", authenticateToken, requireCoach, (req, res) => {
       description,
       description_en,
       category,
+      sport_slug,
       difficulty,
       duration,
       max_participants,

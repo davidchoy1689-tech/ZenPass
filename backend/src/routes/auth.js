@@ -100,7 +100,7 @@ router.post("/register", (req, res) => {
     const userRef = "US-" + String(maxS + 1).padStart(4, "0");
 
     // 生成驗證 token（連結 24 小時）+ 6 位驗證碼（10 分鐘）
-    const verificationToken = Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+    const verificationToken = require("crypto").randomBytes(24).toString("hex");
     const verificationCode = genVerifyCode();
 
     db.prepare(
@@ -119,7 +119,8 @@ router.post("/register", (req, res) => {
 
     const token = generateToken(user);
 
-    const isDev = !process.env.SMTP_HOST;
+    const isDev =
+      process.env.NODE_ENV !== "production" && process.env.ALLOW_DEV_RESET_TOKEN === "1";
     // Set HTTP-only cookie (dual mode: also returns token in JSON)
     setAuthCookie(res, token);
 
@@ -240,6 +241,16 @@ router.post("/login", (req, res) => {
 
 // ===== POST /api/auth/social - Apple / Google 第三方登入 =====
 router.post("/social", async (req, res) => {
+  // 🚫 安全（2026-10-19）：呢個 endpoint 會信任客戶端傳來嘅 providerId／email（唔驗證簽名），
+  // 只要 POST {provider:"google", providerId:"x", email:"admin@zenpass.hk"} 就可以登入任何帳戶。
+  // 目前前端冇用；待正式接 Google/Apple 簽名驗證後再開（設 ENABLE_SOCIAL_LOGIN=1）。
+  if (process.env.ENABLE_SOCIAL_LOGIN !== "1") {
+    return res.status(403).json({
+      success: false,
+      code: "SOCIAL_LOGIN_DISABLED",
+      error: "第三方登入暫停用，請用電郵登入。",
+    });
+  }
   try {
     let { provider, providerId, email, name, providerToken } = req.body;
 
@@ -446,13 +457,17 @@ router.post("/resend-verification", authenticateToken, resendVerifyLimiter, (req
     if (user.email_verified) { return res.json({ message: "電郵已驗證" }); }
 
     // Generate new token + 6 位驗證碼
-    const token = Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+    // 🔒 2026-10-19：用加密隨機 token（原本 Math.random 可預測）
+    const token = require("crypto").randomBytes(32).toString("hex");
     const code = genVerifyCode();
     db.prepare(
       "UPDATE users SET verification_token = ?, verification_token_expires = datetime('now', '+24 hours'), verification_code = ?, verification_code_expires = datetime('now', '+10 minutes') WHERE id = ?",
     ).run(token, code, req.user.id);
 
-    const isDev = !process.env.SMTP_HOST;
+    // 🔒 2026-10-19：只有明確開發環境才回傳 token。原本 SMTP 一有問題（isDev=true）
+    // 就會將有效 reset token 回俾任何請求者 → 可接管任何帳戶（包括 admin）。
+    const isDev =
+      process.env.NODE_ENV !== "production" && process.env.ALLOW_DEV_RESET_TOKEN === "1";
     if (!isDev) {
       const base = process.env.PUBLIC_BASE_URL || "https://zenpass.hk";
       const vlink = `${base}/v2/verify-email.html?token=${encodeURIComponent(token)}`;
@@ -490,14 +505,17 @@ router.post("/password-reset-request", (req, res) => {
       return res.json({ message: "如果此電郵已註冊,你將會收到重置密碼指示" });
     }
 
-    const token = Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+    // 🔒 2026-10-19：加密隨機 token（原本 Math.random 可預測）
+    const token = require("crypto").randomBytes(32).toString("hex");
     const expiresAt = new Date(Date.now() + 3600000).toISOString();
 
     // Use the already-opened db connection above
     db.prepare("UPDATE users SET reset_token = ?, reset_token_expires = ? WHERE id = ?")
       .run(token, expiresAt, user.id);
 
-    const isDev = !process.env.SMTP_HOST;
+    // 🔒 2026-10-19：生產環境永不回傳 token（原本 SMTP 一壞就泄漏有效 reset token → 可接管任何帳戶）
+    const isDev =
+      process.env.NODE_ENV !== "production" && process.env.ALLOW_DEV_RESET_TOKEN === "1";
     if (!isDev) {
       const base = process.env.PUBLIC_BASE_URL || "https://zenpass.hk";
       const link = `${base}/v2/reset.html?token=${encodeURIComponent(token)}`;

@@ -42,7 +42,7 @@ const ok = (c, m) => { if (c) console.log("  ✅ " + m); else { console.log("  �
 
   const src = fs.readFileSync(path.join(__dirname, "../src/routes/backup.js"), "utf8");
   const authRoutes = src.match(/router\.(get|post|delete)\([^,]+, authenticateToken, requireAdmin/g) || [];
-  ok(authRoutes.length === 5, `5 個 auth route 全部 requireAdmin（實際 ${authRoutes.length}）`);
+  ok(authRoutes.length >= 5, `${authRoutes.length} 個 auth route 全部 requireAdmin`);
   ok(/requireAdmin/.test(src) && !/authenticateToken, async/.test(src), "冇漏 requireAdmin 嘅 auth route");
 
   console.log(fail === 0 ? "\n🎉 全部通過" : `\n❌ ${fail} 項失敗`);
