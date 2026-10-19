@@ -335,7 +335,8 @@ router.patch("/members/:memberId/limit", authenticateToken, (req, res) => {
       return res.status(400).json({ success: false, error: "請輸入有效上限" });
     }
     const db = getDb();
-    db.prepare("UPDATE corporate_members SET monthly_limit = ?, updated_at = datetime('now') WHERE id = ?")
+    // 🔧 2026-10-19：欄位名實際係 monthly_credit_limit（原本寫 monthly_limit → 直接 SQL error）
+    db.prepare("UPDATE corporate_members SET monthly_credit_limit = ?, updated_at = datetime('now') WHERE id = ?")
       .run(monthly_credit_limit, req.params.memberId);
 
     try {

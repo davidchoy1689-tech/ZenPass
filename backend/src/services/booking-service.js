@@ -1131,6 +1131,15 @@ function cancelBooking(req) {
     return { status: 404, body: { success: false, error: "預約不存在" } };
   }
 
+  // 🚫 安全（2026-10-19）：只可以取消未上堂嘅預約。原本重複取消會再次退 credits／退款、
+  // 再減 enrolled_count（booking 已 cancelled 都照做）。
+  if (!["pending_payment", "confirmed"].includes(booking.status)) {
+    return {
+      status: 400,
+      body: { success: false, error: "此預約已經取消或已完成，唔可以再取消" },
+    };
+  }
+
   const isPendingPayment = booking.status === "pending_payment";
 
   // 取消政策（2026-10-17 David 定）：

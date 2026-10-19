@@ -305,6 +305,15 @@ router.post("/earnings/calculate", authenticateToken, async (req, res) => {
 
 // ===== POST /api/coach/payout-request — 提現申請 =====
 router.post("/payout-request", authenticateToken, (req, res) => {
+  // 🚫 安全（2026-10-19）：呢條舊 route 冇預留錢包（wallet_balance 唔扣），
+  // 亦會將 earning 標 paid（部份金額時更會標多過實付）→ 可重複提款／被拒時憑空退款。
+  // 統一路線：POST /api/coach/payouts/request（會 reservePayout）
+  return res.status(403).json({
+    success: false,
+    code: "USE_PAYOUTS_REQUEST",
+    error: "請用新版提款申請（/api/coach/payouts/request）。",
+  });
+  /* eslint-disable no-unreachable */
   try {
     const db = getDb();
     db.pragma("foreign_keys = ON");
