@@ -20,7 +20,7 @@ router.get("/list", (req, res) => {
   try {
     const db = getDb();
     const coaches = db.prepare(`
-      SELECT u.id, u.name, u.avatar_url as avatar, u.email,
+      SELECT u.id, u.name, u.avatar_url as avatar,
         COALESCE(cr.avg_rating, 0) as rating,
         COALESCE(cr.total_students, 0) as students,
         (SELECT COUNT(*) FROM classes c WHERE c.coach_id = u.id) as courses,
@@ -477,7 +477,7 @@ router.post("/public-profile", authenticateToken, (req, res) => {
     if (!u.is_coach) return res.status(403).json({ success: false, error: "只限已批核教練" });
 
     const { headline, bio, tags, languages, years, avatar_url } = req.body || {};
-    const clean = (v) => (v == null ? null : String(v).trim() || null);
+    const clean = (v) => (v === null || v === undefined ? null : String(v).trim() || null);
     const join = (v) => (Array.isArray(v) ? v.map((x) => String(x).trim()).filter(Boolean).join(",") : clean(v));
     const yrs = years === undefined || years === null || years === "" ? null : Math.max(0, Math.min(70, parseInt(years, 10) || 0));
 
@@ -602,7 +602,7 @@ router.get("/my-rating", authenticateToken, (req, res) => {
     const comp = coachComposite(req.user.id);
     const agg = coachAggregate(req.user.id);
     const summary = {
-      score: comp.student_rating != null ? comp.student_rating : 0,
+      score: comp.student_rating !== null && comp.student_rating !== undefined ? comp.student_rating : 0,
       raw_avg: agg.student.raw_avg,
       count: agg.student_count,
     };

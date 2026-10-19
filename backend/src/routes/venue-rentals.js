@@ -268,6 +268,14 @@ router.get("/frequent", authenticateToken, (req, res) => {
 router.get("/venue/:venueId", authenticateToken, (req, res) => {
   try {
     const db = getDb();
+    // 🔒 2026-10-19：只准場地負責人或 admin 睇（原本任何登入用戶可睇任何場地嘅租場紀錄＋教練電郵）
+    const isAdmin = ["admin", "super_admin", "platform_manager"].includes(req.user && req.user.role);
+    if (!isAdmin) {
+      const own = _venueOf(req.user.id);
+      if (!own || own.id !== req.params.venueId) {
+        return res.status(403).json({ success: false, error: "只可以查看自己場地嘅租場紀錄" });
+      }
+    }
     const rentals = db
       .prepare(
         `

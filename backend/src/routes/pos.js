@@ -117,7 +117,16 @@ router.post("/sale", authenticateToken, requireCoach, (req, res) => {
       return res.status(400).json({ success: false, error: "請填寫項目名稱和價錢" });
     const db = getDb();
     const id = uuidv4();
-    const total = (quantity || 1) * unit_price;
+    // 🔒 2026-10-19：數量／單價必須係正數（原來可以傳負數令 total_spent 倒退）
+    const qty = Number(quantity || 1);
+    const unitPrice = Number(unit_price);
+    if (!Number.isFinite(qty) || qty < 1 || qty > 999) {
+      return res.status(400).json({ success: false, error: "數量必須介乎 1–999" });
+    }
+    if (!Number.isFinite(unitPrice) || unitPrice <= 0 || unitPrice > 100000) {
+      return res.status(400).json({ success: false, error: "單價必須大於 0" });
+    }
+    const total = Math.round(qty * unitPrice * 100) / 100;
     db.prepare(
       `INSERT INTO sales (id, coach_id, location_id, type, item_name, quantity, unit_price, total_amount, payment_method, customer_name, customer_phone)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -127,8 +136,8 @@ router.post("/sale", authenticateToken, requireCoach, (req, res) => {
       location_id || null,
       type || "other",
       item_name,
-      quantity || 1,
-      unit_price,
+      qty,
+      unitPrice,
       total,
       payment_method || null,
       customer_name || null,
