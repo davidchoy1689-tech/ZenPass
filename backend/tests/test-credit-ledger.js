@@ -67,6 +67,16 @@ const ok = (c, m) => { if (c) console.log("  ✅ " + m); else { console.log("  �
   const refund = db.prepare("SELECT * FROM credit_transactions WHERE user_id='u1' AND type='refund'").get();
   ok(!!refund && Number(refund.credits) === 12 && Number(refund.balance_after) === 15, "流水有 refund 12 / 結餘 15");
 
+  // 現金退款亦要有交易紀錄（用戶可見）
+  db.prepare("INSERT INTO class_schedules (id,class_id,start_time,end_time,max_participants,enrolled_count,status) VALUES ('s2','c1',datetime('now','+6 day'),datetime('now','+6 day','+1 hour'),10,1,'available')").run();
+  db.prepare(`INSERT INTO bookings (id,booking_reference,user_id,schedule_id,class_id,status,payment_status,payment_type,payment_method,amount)
+              VALUES ('b2','ZP-B2','u1','s2','c1','confirmed','paid','single','fps',150)`).run();
+  svc.cancelBooking({ params: { id: "b2" }, body: { reason: "test cash" }, user: { id: "u1" }, headers: {} });
+  const cashRefund = db.prepare("SELECT type, amount FROM transactions WHERE user_id='u1' AND type='refund' AND description LIKE '%ZP-B2%'").get();
+  ok(!!cashRefund && Number(cashRefund.amount) === 150, `現金退款有交易紀錄（got ${cashRefund && cashRefund.amount}）`);
+  const rl = db.prepare("SELECT amount, status FROM refund_logs WHERE booking_id='b2'").get();
+  ok(!!rl && Number(rl.amount) === 150 && rl.status === "completed", "refund_logs 完整");
+
   // 流水受保護：唔可以 DELETE / UPDATE
   require("../src/services/financial-protection").installDeleteTriggers();
   let delBlocked = false, updBlocked = false;

@@ -77,6 +77,22 @@ function processRefund({
       approvedBy || initiatedBy,
     );
 
+    // 🧾 2026-10-19：寫入用戶交易紀錄（俾用戶喺「交易紀錄」睇到退款）
+    try {
+      db.prepare(
+        `INSERT INTO transactions (id, user_id, type, amount, payment_method, description, status, created_at)
+         VALUES (?, ?, 'refund', ?, ?, ?, 'completed', datetime('now'))`,
+      ).run(
+        uuidv4(),
+        booking.user_id,
+        amount,
+        payMethod,
+        `退款 HK$${Number(amount).toFixed(2)}（${booking.booking_reference || bookingId}）${reason ? " — " + reason : ""}`,
+      );
+    } catch (txErr) {
+      console.error("[REFUND] transactions record failed:", txErr.message);
+    }
+
     // 4. Update booking payment status
     const newTotalCents = refundedCents + amountCents;
     const newTotalRefunded = fromCents(newTotalCents);
