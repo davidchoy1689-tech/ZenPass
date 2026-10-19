@@ -12,6 +12,21 @@ const { writeBlock } = require("../services/blockchain-audit");
 
 const router = express.Router();
 
+// 🔒 2026-10-19：CRM 只可以睇／改自己教過嘅學生（admin 例外）
+function canAccessStudent(db, user, studentId) {
+  if (!user) return false;
+  if (["admin", "super_admin", "platform_manager", "platform_staff"].includes(user.role)) {
+    return true;
+  }
+  const row = db
+    .prepare(
+      `SELECT 1 FROM bookings b JOIN classes c ON b.class_id = c.id
+       WHERE b.user_id = ? AND c.coach_id = ? LIMIT 1`,
+    )
+    .get(studentId, user.id);
+  return !!row;
+}
+
 // ===== GET /api/crm/students — 學生列表（多條件篩選）=====
 router.get("/students", authenticateToken, requireCoach, (req, res) => {
   try {
@@ -35,6 +50,14 @@ router.get("/students", authenticateToken, requireCoach, (req, res) => {
       where.push("u.total_visits > 0");
     } else if (status === "inactive") {
       where.push("(u.total_visits IS NULL OR u.total_visits = 0)");
+    }
+
+    // 非 admin 只睇自己教過嘅學生
+    if (!["admin", "super_admin", "platform_manager", "platform_staff"].includes(req.user.role)) {
+      where.push(
+        "EXISTS (SELECT 1 FROM bookings b JOIN classes c ON b.class_id = c.id WHERE b.user_id = u.id AND c.coach_id = ?)",
+      );
+      params.push(req.user.id);
     }
 
     const offset = (parseInt(page) - 1) * parseInt(limit);
@@ -72,10 +95,16 @@ router.get("/students/:id", authenticateToken, requireCoach, (req, res) => {
     const db = getDb();
     db.pragma("foreign_keys = ON");
 
+    if (!canAccessStudent(db, req.user, req.params.id)) {
+      return res.status(403).json({ success: false, error: "只可以查看自己教過嘅學生" });
+    }
+
     const student = db
       .prepare(
         `
-      SELECT u.*,
+      SELECT u.id, u.name, u.email, u.phone, u.avatar_url, u.tags, u.notes, u.lead_source,
+        u.credits, u.membership_type, u.membership_expires_at, u.total_visits, u.total_spent,
+        u.last_visit, u.created_at,
         (SELECT COUNT(*) FROM bookings WHERE user_id = u.id) as total_bookings,
         (SELECT COUNT(*) FROM bookings WHERE user_id = u.id AND status = 'attended') as attended_bookings,
         (SELECT SUM(amount) FROM bookings WHERE user_id = u.id AND payment_status = 'paid') as total_spent_calc
@@ -138,6 +167,10 @@ router.put("/students/:id", authenticateToken, requireCoach, (req, res) => {
     const db = getDb();
     db.pragma("foreign_keys = ON");
 
+    if (!canAccessStudent(db, req.user, req.params.id)) {
+      return res.status(403).json({ success: false, error: "只可以更新自己教過嘅學生" });
+    }
+
     const updates = [];
     const params = [];
     if (tags !== undefined) {
@@ -179,6 +212,10 @@ router.post("/students/:id/notes", authenticateToken, requireCoach, (req, res) =
 
     const db = getDb();
     db.pragma("foreign_keys = ON");
+
+    if (!canAccessStudent(db, req.user, req.params.id)) {
+      return res.status(403).json({ success: false, error: "只可以為自己教過嘅學生寫筆記" });
+    }
 
     const id = uuidv4();
     db.prepare(

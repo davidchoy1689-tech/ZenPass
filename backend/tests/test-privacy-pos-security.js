@@ -20,12 +20,15 @@ const ok = (c, m) => { if (c) console.log("  ✅ " + m); else { console.log("  �
     wallet_balance REAL DEFAULT 0, pending_payout REAL DEFAULT 0, membership_type TEXT DEFAULT 'none',
     loyalty_tier TEXT DEFAULT 'bronze', loyalty_tier_manual INTEGER DEFAULT 0,
     is_coach INTEGER DEFAULT 1, coach_verified INTEGER DEFAULT 1, total_spent REAL DEFAULT 0,
+    tags TEXT, notes TEXT, lead_source TEXT, total_visits INTEGER DEFAULT 0, last_visit TEXT, avatar_url TEXT, membership_expires_at TEXT,
     created_at TEXT DEFAULT (datetime('now')), updated_at TEXT DEFAULT (datetime('now')));
   CREATE TABLE venue_rentals (id TEXT PRIMARY KEY, venue_id TEXT, coach_id TEXT, start_time TEXT, end_time TEXT,
     price_hkd REAL, status TEXT DEFAULT 'pending', created_at TEXT DEFAULT (datetime('now')));
   `);
   pre.prepare("INSERT INTO users (id,name,email) VALUES ('coach1','教練','c@x.com')").run();
   pre.prepare("INSERT INTO users (id,name,email) VALUES ('u1','路人','u@x.com')").run();
+  pre.prepare("INSERT INTO users (id,name,email) VALUES ('u3','路人三','u3@x.com')").run();
+  pre.prepare("INSERT INTO users (id,name,email) VALUES ('u2','路人二','u2@x.com')").run();
   pre.prepare("INSERT INTO partner_venues (id,name,owner_id) VALUES ('v1','場一','coach1')").run();
   pre.prepare("INSERT INTO venue_rentals (id,venue_id,coach_id,start_time,end_time,price_hkd) VALUES ('r1','v1','coach1',datetime('now'),datetime('now'),500)").run();
   pre.close();
@@ -84,7 +87,7 @@ const ok = (c, m) => { if (c) console.log("  ✅ " + m); else { console.log("  �
   db.prepare("INSERT INTO class_schedules (id,class_id,start_time,end_time,max_participants,enrolled_count,status) VALUES ('sA','cA',datetime('now','+1 hour'),datetime('now','+2 hour'),10,1,'available')").run();
   db.prepare("INSERT INTO class_schedules (id,class_id,start_time,end_time,max_participants,enrolled_count,status) VALUES ('sB','cB',datetime('now','+1 hour'),datetime('now','+2 hour'),10,1,'available')").run();
   db.prepare("INSERT INTO bookings (id,booking_reference,user_id,schedule_id,class_id,status,payment_status,amount) VALUES ('bA','ZP-A','u1','sA','cA','confirmed','paid',150)").run();
-  db.prepare("INSERT INTO bookings (id,booking_reference,user_id,schedule_id,class_id,status,payment_status,amount) VALUES ('bB','ZP-B','u1','sB','cB','confirmed','paid',150)").run();
+  db.prepare("INSERT INTO bookings (id,booking_reference,user_id,schedule_id,class_id,status,payment_status,amount) VALUES ('bB','ZP-B','u3','sB','cB','confirmed','paid',150)").run();
 
   const bookings = require("../src/routes/bookings");
   const todayHandler = pick(bookings, "/today", "get");
@@ -93,6 +96,21 @@ const ok = (c, m) => { if (c) console.log("  ✅ " + m); else { console.log("  �
   ok(todayCoach.statusCode === 200 && scheds.length === 1 && scheds[0].class_id === "cA", `教練只見到自己班（got ${scheds.length} 個）`);
   const bookingSrc = fs.readFileSync(path.join(__dirname, "../src/routes/bookings.js"), "utf8");
   ok(/router\.get\("\/today", authenticateToken, requireCoach/.test(bookingSrc), "/bookings/today 已加 requireCoach");
+
+  // 5. CRM 只可以睇自己教過嘅學生（原本任何教練可讀全平台用戶，包括 password_hash）
+  const crm = require("../src/routes/crm");
+  const stuDetail = pick(crm, "/students/:id", "get");
+  const stuList = pick(crm, "/students", "get");
+  const r1 = await call(stuDetail, { id: "coach1", role: "coach" }, {}, { id: "u1" });
+  ok(r1.statusCode === 200, `教練睇自己學生 → 200（got ${r1.statusCode}）`);
+  ok(r1.body.student && r1.body.student.password_hash === undefined && r1.body.student.reset_token === undefined, "回應冇 password_hash／reset_token");
+  const r2 = await call(stuDetail, { id: "coach2", role: "coach" }, {}, { id: "u2" });
+  ok(r2.statusCode === 403, `教練睇唔到自己冇教過嘅人 → 403（got ${r2.statusCode}）`);
+  const r3 = await call(stuDetail, { id: "adminx", role: "admin" }, {}, { id: "u2" });
+  ok(r3.statusCode === 200, "admin 可以睇任何學生");
+  const list = await call(stuList, { id: "coach2", role: "coach" }, {}, { query: {} });
+  const names = (list.body.students || []).map((x) => x.id);
+  ok(list.statusCode === 200 && names.includes("u3") && !names.includes("u1"), `coach2 名單只有 u3（got ${names.join(",")}）`);
 
   console.log(fail === 0 ? "\n✅ 全部通過" : `\n❌ ${fail} 項失敗`);
   process.exit(fail === 0 ? 0 : 1);
