@@ -19,6 +19,14 @@ router.post("/send-welcome", authenticateToken, (req, res) => {
     const { user_id, name } = req.body;
     if (!user_id) return res.status(400).json({ success: false, error: "缺少用戶 ID" });
 
+    // 🔒 2026-10-19：只可以發俾自己；發俾其他人要 admin（防濫發通知）
+    const isAdmin = ["admin", "super_admin", "platform_manager"].includes(
+      req.user && req.user.role,
+    );
+    if (user_id !== req.user.id && !isAdmin) {
+      return res.status(403).json({ success: false, error: "只可以發送歡迎訊息俾自己" });
+    }
+
     const messages = [
       {
         title: "🎉 歡迎加入 ZenPass！",

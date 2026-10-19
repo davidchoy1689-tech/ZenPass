@@ -724,9 +724,19 @@ router.post("/review", authenticateToken, (req, res) => {
       return res.status(404).json({ success: false, error: "預約不存在" });
     }
 
-    if (booking.status !== "attended" && booking.status !== "confirmed") {
+    // 🔒 2026-10-19：必須已出席，而且真係提交過評價（防止未評價就領積分）
+    if (booking.status !== "attended") {
+      return res.status(400).json({ success: false, error: "只能為已出席嘅課堂領取評價積分" });
+    }
 
-      return res.status(400).json({ success: false, error: "只能評價已完成的課堂" });
+    const hasReview = db
+      .prepare(
+        `SELECT id FROM mutual_reviews
+         WHERE context_type = 'booking' AND context_id = ? AND rater_id = ? LIMIT 1`,
+      )
+      .get(booking_id, req.user.id);
+    if (!hasReview) {
+      return res.status(400).json({ success: false, error: "請先提交評價，之後才可以領取積分" });
     }
 
     // 檢查是否已領過評價積分
@@ -788,6 +798,14 @@ router.post("/review", authenticateToken, (req, res) => {
 
 // ===== POST /api/points/referral — 推薦朋友獎勵 =====
 router.post("/referral", authenticateToken, (req, res) => {
+  // 🚫 安全（2026-10-19）：呢個 endpoint 可以任意傳 referred_user_id 無限刷 100 分（可換 Credits）
+  // 推薦積分只會喺 /api/referral/redeem 經 awardPointsOnce 發放（有電郵驗證 + 去重）
+  return res.status(403).json({
+    success: false,
+    code: "USE_REFERRAL_REDEEM",
+    error: "推薦積分會喺朋友使用你嘅推薦碼後自動發放。",
+  });
+  /* eslint-disable no-unreachable */
   try {
     const { referred_user_id } = req.body;
     if (!referred_user_id)

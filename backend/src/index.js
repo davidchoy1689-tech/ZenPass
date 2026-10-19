@@ -139,7 +139,16 @@ app.use(express.static(path.join(__dirname, "../..")));
 // Also serve frontend/ for admin-internal pages
 app.use("/admin", express.static(path.join(__dirname, "../../frontend/admin")));
 // admin files served from frontend/admin/ via root static middleware
-app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
+app.use(
+  "/uploads",
+  express.static(path.join(__dirname, "../uploads"), {
+    // 🔒 2026-10-19：唔准瀏覽器猜測 MIME（防上傳內容被當 HTML 執行）
+    setHeaders: (res) => {
+      res.setHeader("X-Content-Type-Options", "nosniff");
+      res.setHeader("Content-Security-Policy", "default-src 'none'; img-src 'self' data:; object-src 'none'");
+    },
+  }),
+);
 
 // ===== 反炒場中介軟體（放在 rate limiter 之後）=====
 const { antiScalping, scalpGuard, getSuspensionRoutes } = require("./middleware/anti-scalping");

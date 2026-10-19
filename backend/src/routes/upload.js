@@ -23,7 +23,16 @@ const storage = multer.diskStorage({
     cb(null, uploadPath);
   },
   filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
+    // 🔒 2026-10-19：副檔名由 MIME 決定（防止 image/jpeg + .html 造成 stored XSS）
+    const EXT_BY_MIME = {
+      "image/jpeg": ".jpg",
+      "image/png": ".png",
+      "image/gif": ".gif",
+      "image/webp": ".webp",
+      "application/pdf": ".pdf",
+    };
+    const ext = EXT_BY_MIME[file.mimetype] || "";
+    if (!ext) return cb(new Error("不支援的檔案類型"));
     const name = uuidv4().slice(0, 8) + ext;
     cb(null, name);
   },
