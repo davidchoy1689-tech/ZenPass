@@ -26,7 +26,7 @@ const ok = (c, m) => { if (c) console.log("  ✅ " + m); else { console.log("  �
     role TEXT DEFAULT 'user', email_verified INTEGER DEFAULT 1, credits INTEGER DEFAULT 0, points INTEGER DEFAULT 0,
     wallet_balance REAL DEFAULT 0, pending_payout REAL DEFAULT 0, membership_type TEXT DEFAULT 'none',
     loyalty_tier TEXT DEFAULT 'bronze', loyalty_tier_manual INTEGER DEFAULT 0,
-    is_coach INTEGER DEFAULT 0, coach_verified INTEGER DEFAULT 0, avatar_url TEXT, partner_id TEXT,
+    is_coach INTEGER DEFAULT 0, coach_verified INTEGER DEFAULT 0, avatar_url TEXT, partner_id TEXT, user_reference TEXT,
     reset_token TEXT, reset_token_expires TEXT, auth_provider TEXT, auth_provider_id TEXT,
     created_at TEXT DEFAULT (datetime('now')), updated_at TEXT DEFAULT (datetime('now')));
   `);
@@ -119,6 +119,15 @@ const ok = (c, m) => { if (c) console.log("  ✅ " + m); else { console.log("  �
   ok(!revoked.called && revoked.code === 401, `撤銷後舊 token → 401（got ${revoked.code}）`);
   const tok2 = generateToken({ id: "admin1", email: "admin@zenpass.hk", role: "super_admin" });
   ok(mk(tok2).called, "重新登入（新 token）可通過");
+
+  // 5. 密碼強度
+  const reg = pick("/register");
+  const weak1 = await call(reg, { email: "new1@x.com", password: "abc123", name: "A" });
+  ok(weak1.statusCode === 400, `6 位密碼 → 400（got ${weak1.statusCode}）`);
+  const weak2 = await call(reg, { email: "new2@x.com", password: "abcdefgh", name: "A" });
+  ok(weak2.statusCode === 400, `純字母 → 400（got ${weak2.statusCode}）`);
+  const goodPw = await call(reg, { email: "new3@x.com", password: "abcd1234", name: "A" });
+  ok(goodPw.statusCode === 200 || goodPw.statusCode === 201, `8 位字母+數字 → 接受（got ${goodPw.statusCode}）`);
 
   console.log(fail === 0 ? "\n✅ 全部通過" : `\n❌ ${fail} 項失敗`);
   process.exit(fail === 0 ? 0 : 1);

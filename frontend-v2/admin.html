@@ -272,12 +272,18 @@
       const u = r.data.user || {}; const bk = r.data.bookings || []; const mem = r.data.membership; const tx = r.data.transactions || [];
       const wt = await api.get("/wallet/admin/txs/" + encodeURIComponent(id) + "?limit=50");
       const txs = (wt.data && wt.data.transactions) || [];
+      const wc = await api.get("/admin/users/" + encodeURIComponent(id) + "/credits?limit=10");
+      const cts = (wc.data && wc.data.transactions) || [];
       openModal(`<h3>👤 ${esc2(u.name || u.email)}</h3>
         <p class="kv">${esc2(u.email)} · ${esc2(u.phone||"")}${u.role?" · "+esc2(u.role):""}${u.is_coach?" · 🧑‍🏫":""}</p>
         <p class="kv">Credits：${u.credits||0} · 會籍：${esc2(u.membership_type||(mem&&mem.type)||"none")}</p>
         <p class="kv">預約：${bk.length} 筆 · 交易：${tx.length} 筆 · 錢包紀錄：${txs.length} 筆</p>
         ${bk.length?`<div style="max-height:150px;overflow:auto">${bk.slice(0,10).map(b=>`<div class="kv">${esc2(b.booking_reference||b.id)} · ${esc2(st(b.status))} · ${b.amount?money(b.amount):""}</div>`).join("")}</div>`:""}
         ${txs.length?`<div style="max-height:150px;overflow:auto;border-top:1px solid var(--border);margin-top:8px;padding-top:8px">${txs.slice(0,15).map(t=>`<div class="kv">${esc2(t.type||"")} ${t.amount?money(t.amount):""} ${esc2(String(t.created_at||"").slice(0,10))}</div>`).join("")}</div>`:""}
+        <div style="border-top:1px solid var(--border);margin-top:8px;padding-top:8px">
+          <b>🧾 Credits 流水（最近 10 筆）</b>
+          ${cts.length?`<div style="max-height:150px;overflow:auto">${cts.map(t=>`<div class="kv">${esc2(String(t.created_at||"").replace("T"," ").slice(0,16))} · ${esc2(t.type)} ${t.type==="spend"?"-":"+"}${esc2(t.credits)} · 餘 ${esc2(t.balance_after)} · ${esc2(t.description||t.source||"")}</div>`).join("")}</div>`:`<div class="kv">暫無紀錄</div>`}
+        </div>
         <div class="body" style="border-top:1px solid var(--border);margin-top:10px;padding-top:10px">
           <b>👑 會員等級</b>
           <div class="kv" id="loyNow">現時：${esc2(u.loyalty_tier||"bronze")} ${Number(u.loyalty_tier_manual)?"（手動設定）":"（自動計算）"}</div>
@@ -299,7 +305,10 @@
           <input class="fld" id="ptsReason" placeholder="原因（必填，會寫入審計）" style="margin-top:8px" />
           <div class="kv" style="font-size:11.5px;margin-top:6px">正數＝補償加分，負數＝扣分；扣分唔可以低過 0。</div>
         </div>
-        <div class="actions"><button class="btn btn-secondary" onclick="closeModal(this)">關閉</button></div>`);
+        <div class="actions" style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-ghost" id="revokeBtn">🔒 強制登出所有裝置</button>
+          <button class="btn btn-secondary" onclick="closeModal(this)">關閉</button>
+        </div>`);
       document.getElementById("ptsSave").onclick = async () => {
         const delta = Number(document.getElementById("ptsDelta").value);
         const reason = document.getElementById("ptsReason").value.trim();
@@ -315,6 +324,12 @@
         const rr = await api.patch("/admin/users/" + encodeURIComponent(id) + "/loyalty-tier", { tier, reason });
         if (rr.ok) { alert(rr.data.message || "已更新"); openUser(id); }
         else alert((rr.data&&rr.data.error)||"設定失敗");
+      };
+      document.getElementById("revokeBtn").onclick = async () => {
+        if (!confirm("確定強制此用戶所有裝置重新登入？")) return;
+        const rr = await api.post("/admin/users/" + encodeURIComponent(id) + "/revoke-sessions", {});
+        if (rr.ok) alert(rr.data.message || "已撤銷 session");
+        else alert((rr.data && rr.data.error) || "失敗");
       };
       document.getElementById("loyReset").onclick = async () => {
         if (!confirm("確定回復自動計算？")) return;
@@ -459,7 +474,10 @@
         <p class="kv">總預約 ${t.total_bookings||0} · 場地實收 ${money(t.total_venue_earned)} · 平台費 ${money(t.total_platform_fee)} · 總額 ${money(t.total_revenue)}</p>
         ${ms.length?`<div style="max-height:150px;overflow:auto;border-top:1px solid var(--border);margin-top:8px;padding-top:8px">${ms.slice(0,12).map(m=>`<div class="kv">${esc2(m.month)}：${m.booking_count} 堂 · ${money(m.venue_earned)}</div>`).join("")}</div>`:""}
         ${po.length?`<div style="border-top:1px solid var(--border);margin-top:8px;padding-top:8px"><b>出糧紀錄</b>${po.slice(0,10).map(p=>`<div class="kv">${esc2(String(p.created_at||"").slice(0,10))} · ${money(p.net_amount||p.amount)} · ${esc2(p.status||"")}</div>`).join("")}</div>`:""}
-        <div class="actions"><button class="btn btn-secondary" onclick="closeModal(this)">關閉</button></div>`);
+        <div class="actions" style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-ghost" id="revokeBtn">🔒 強制登出所有裝置</button>
+          <button class="btn btn-secondary" onclick="closeModal(this)">關閉</button>
+        </div>`);
     }
 
     async function migrateTab() {

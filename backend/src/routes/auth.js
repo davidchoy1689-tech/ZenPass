@@ -15,6 +15,11 @@ const { OAuth2Client } = require("google-auth-library");
 const router = express.Router();
 const rateLimit = require("express-rate-limit");
 
+// 6 位電郵驗證碼（加密隨機）
+function genVerifyCode() {
+  return String(require("crypto").randomInt(100000, 1000000));
+}
+
 const verifyCodeLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 10,
@@ -60,6 +65,17 @@ async function verifyGoogleToken(idToken) {
   }
 }
 
+// 🔒 2026-10-19：密碼強度（至少 8 位，須有英文字母及數字）
+function isStrongPassword(pw) {
+  return (
+    typeof pw === "string" &&
+    pw.length >= 8 &&
+    /[A-Za-z]/.test(pw) &&
+    /[0-9]/.test(pw)
+  );
+}
+const STRONG_PW_MSG = "密碼至少 8 個字元，並需包含英文字母及數字";
+
 // ===== POST /api/auth/register - 電郵註冊 =====
 router.post("/register", (req, res) => {
   try {
@@ -69,8 +85,8 @@ router.post("/register", (req, res) => {
     if (!email || !password || !name) {
       return res.status(400).json({ success: false, error: "請填寫姓名、電郵和密碼" });
     }
-    if (password.length < 6) {
-      return res.status(400).json({ success: false, error: "密碼至少需要 6 個字元" });
+    if (!isStrongPassword(password)) {
+      return res.status(400).json({ success: false, error: STRONG_PW_MSG });
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return res.status(400).json({ success: false, error: "電郵格式不正確" });
@@ -548,7 +564,7 @@ router.post("/password-reset", (req, res) => {
   try {
     const { token, new_password } = req.body;
     if (!token || !new_password) return res.status(400).json({ success: false, error: "請提供 token 及新密碼" });
-    if (new_password.length < 6) return res.status(400).json({ success: false, error: "密碼至少 6 個字元" });
+    if (!isStrongPassword(new_password)) return res.status(400).json({ success: false, error: STRONG_PW_MSG });
 
     const db = getDb();
     const user = db.prepare("SELECT id FROM users WHERE reset_token = ? AND reset_token_expires > datetime('now')").get(token);
@@ -574,7 +590,7 @@ router.post("/change-password", authenticateToken, (req, res) => {
   try {
     const { new_password } = req.body;
     if (!new_password) return res.status(400).json({ success: false, error: "請提供新密碼" });
-    if (new_password.length < 6) return res.status(400).json({ success: false, error: "密碼至少需要 6 個字元" });
+    if (!isStrongPassword(new_password)) return res.status(400).json({ success: false, error: STRONG_PW_MSG });
 
     const db = getDb();
     const hash = bcrypt.hashSync(new_password, 10);
