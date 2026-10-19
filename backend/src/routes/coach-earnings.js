@@ -872,7 +872,7 @@ router.post("/settlements/:id/pay", authenticateToken, (req, res) => {
 // ===== Platform Settings (Admin configurable) =====
 
 // GET /api/coach/settings — 獲取所有設定
-router.get("/settings", (req, res) => {
+router.get("/settings", authenticateToken, requireAdmin, (req, res) => {
   try {
     const db = getDb();
     const settings = db
@@ -886,8 +886,23 @@ router.get("/settings", (req, res) => {
   }
 });
 
+// GET /api/coach/settings/effective-rate — 取得當前有效佣金率（前端用）
+router.get("/settings/effective-rate", (req, res) => {
+  try {
+    const db = getDb();
+    const rate = db
+      .prepare(
+        "SELECT value FROM platform_settings WHERE key = 'coach_commission_rate'",
+      )
+      .get();
+
+    res.json({
+      coach_rate: parseFloat(rate ? rate.value : 0.75),
+      zenpass_rate: 1 - parseFloat(rate ? rate.value : 0.75),
+    });
+
 // GET /api/coach/settings/:key — 獲取單個設定
-router.get("/settings/:key", (req, res) => {
+router.get("/settings/:key", authenticateToken, requireAdmin, (req, res) => {
   try {
     const db = getDb();
     const setting = db
@@ -902,7 +917,7 @@ router.get("/settings/:key", (req, res) => {
 });
 
 // PUT /api/coach/settings/:key — 更新設定
-router.put("/settings/:key", authenticateToken, (req, res) => {
+router.put("/settings/:key", authenticateToken, requireAdmin, (req, res) => {
   try {
     const { value, description } = req.body;
     if (value === undefined)
@@ -933,20 +948,7 @@ router.put("/settings/:key", authenticateToken, (req, res) => {
   }
 });
 
-// GET /api/coach/settings/effective-rate — 取得當前有效佣金率（前端用）
-router.get("/settings/effective-rate", (req, res) => {
-  try {
-    const db = getDb();
-    const rate = db
-      .prepare(
-        "SELECT value FROM platform_settings WHERE key = 'coach_commission_rate'",
-      )
-      .get();
 
-    res.json({
-      coach_rate: parseFloat(rate ? rate.value : 0.75),
-      zenpass_rate: 1 - parseFloat(rate ? rate.value : 0.75),
-    });
   } catch (err) {
     res.status(500).json({ success: false, error: "無法獲取佣金率" });
   }

@@ -606,6 +606,11 @@ function createBooking(req, options = {}) {
     return { status: 404, body: { success: false, error: "該時段不存在或已滿" } };
   }
 
+  // 🔒 2026-10-19：時段必須屬於同一課程（否則可以用平班價錢 book 貴班嘅位）
+  if (schedule.class_id !== class_id) {
+    return { status: 400, body: { success: false, error: "時段與課程不相符" } };
+  }
+
   // 3.1 課程狀態 / 是否已開放預約（資料未齊嘅活動只展示、唔收預約）
   const clsGuard = db
     .prepare("SELECT status, booking_open, created_at, vip_priority_hours FROM classes WHERE id = ?")

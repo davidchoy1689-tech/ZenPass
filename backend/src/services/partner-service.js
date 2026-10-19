@@ -1053,7 +1053,7 @@ function listPayouts(userId) {
 // ==================== Partner Booking (via partner/book) ====================
 
 function partnerBook(body, userId) {
-  const { schedule_id, class_id, payment_type, amount } = body;
+  const { schedule_id, class_id, payment_type } = body;
   if (!schedule_id || !class_id || !payment_type) {
     return { status: 400, body: { success: false, error: "缺少預約資料" } };
   }
@@ -1076,24 +1076,55 @@ function partnerBook(body, userId) {
   ).get(schedule_id);
   if (!schedule) return { status: 404, body: { success: false, error: "該時段不存在或已滿" } };
 
-  const capResult = db.prepare(
-    "UPDATE class_schedules SET enrolled_count = enrolled_count + 1 WHERE id = ? AND enrolled_count < max_participants"
-  ).run(schedule_id);
-  if (capResult.changes === 0) {
-    return { status: 400, body: { success: false, error: "該時段已滿額" } };
+  // 🔒 2026-10-19：時段要屬於同一課程，金額由伺服器計（原本信 client amount）
+  if (schedule.class_id !== class_id) {
+    return { status: 400, body: { success: false, error: "時段與課程不相符" } };
+  }
+  const amount =
+    payment_type === "credits"
+      ? Math.round((Number(classInfo.credits_cost) || 0) * 10 * 100) / 100
+      : Number(classInfo.price_hkd) || 0;
+  if (!(amount > 0)) {
+    return { status: 400, body: { success: false, error: "課程未設定價格" } };
   }
 
   const planKey = venue.commission_plan || "basic";
   const split = calcCommissionSplit(amount, planKey);
 
   const bookingId = uuidv4();
-  db.prepare(
-    `INSERT INTO bookings (id, user_id, schedule_id, class_id, payment_type,
-       payment_status, amount, status, venue_partner_id,
-       platform_commission_rate, venue_earned_amount, platform_earned_amount, created_at)
-     VALUES (?, ?, ?, ?, ?, 'pending', ?, 'pending_payment', ?, ?, ?, ?, datetime('now'))`
-  ).run(bookingId, userId, schedule_id, class_id, payment_type,
-    amount, venue.id, split.rate, split.venue_earned, split.platform_earned);
+  try {
+    db.transaction(() => {
+      const capResult = db.prepare(
+        "UPDATE class_schedules SET enrolled_count = enrolled_count + 1 WHERE id = ? AND enrolled_count < max_participants"
+      ).run(schedule_id);
+      if (capResult.changes === 0) {
+        const err = new Error("該時段已滿額");
+        err.full = true;
+        throw err;
+      }
+      const dup = db
+        .prepare(
+          "SELECT id FROM bookings WHERE user_id = ? AND schedule_id = ? AND status != 'cancelled' LIMIT 1",
+        )
+        .get(userId, schedule_id);
+      if (dup) {
+        const err = new Error("你已經預約了此課程時段");
+        err.duplicate = true;
+        throw err;
+      }
+      db.prepare(
+        `INSERT INTO bookings (id, user_id, schedule_id, class_id, payment_type,
+           payment_status, amount, status, venue_partner_id,
+           platform_commission_rate, venue_earned_amount, platform_earned_amount, created_at)
+         VALUES (?, ?, ?, ?, ?, 'pending', ?, 'pending_payment', ?, ?, ?, ?, datetime('now'))`
+      ).run(bookingId, userId, schedule_id, class_id, payment_type,
+        amount, venue.id, split.rate, split.venue_earned, split.platform_earned);
+    })();
+  } catch (e) {
+    if (e.full) return { status: 400, body: { success: false, error: "該時段已滿額" } };
+    if (e.duplicate) return { status: 409, body: { success: false, error: "你已經預約了此課程時段" } };
+    throw e;
+  }
 
   return {
     status: 201,

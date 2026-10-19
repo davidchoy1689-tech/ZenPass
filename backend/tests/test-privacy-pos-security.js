@@ -20,7 +20,7 @@ const ok = (c, m) => { if (c) console.log("  ✅ " + m); else { console.log("  �
     wallet_balance REAL DEFAULT 0, pending_payout REAL DEFAULT 0, membership_type TEXT DEFAULT 'none',
     loyalty_tier TEXT DEFAULT 'bronze', loyalty_tier_manual INTEGER DEFAULT 0,
     is_coach INTEGER DEFAULT 1, coach_verified INTEGER DEFAULT 1, total_spent REAL DEFAULT 0,
-    tags TEXT, notes TEXT, lead_source TEXT, total_visits INTEGER DEFAULT 0, last_visit TEXT, avatar_url TEXT, membership_expires_at TEXT,
+    tags TEXT, notes TEXT, lead_source TEXT, total_visits INTEGER DEFAULT 0, last_visit TEXT, avatar_url TEXT, membership_expires_at TEXT, penalty_consent INTEGER DEFAULT 0,
     created_at TEXT DEFAULT (datetime('now')), updated_at TEXT DEFAULT (datetime('now')));
   CREATE TABLE venue_rentals (id TEXT PRIMARY KEY, venue_id TEXT, coach_id TEXT, start_time TEXT, end_time TEXT,
     price_hkd REAL, status TEXT DEFAULT 'pending', created_at TEXT DEFAULT (datetime('now')));
@@ -111,6 +111,17 @@ const ok = (c, m) => { if (c) console.log("  ✅ " + m); else { console.log("  �
   const list = await call(stuList, { id: "coach2", role: "coach" }, {}, { query: {} });
   const names = (list.body.students || []).map((x) => x.id);
   ok(list.statusCode === 200 && names.includes("u3") && !names.includes("u1"), `coach2 名單只有 u3（got ${names.join(",")}）`);
+
+  // 6. 平台設定：唔可以俾普通用戶讀寫
+  const ceSrc = fs.readFileSync(path.join(__dirname, "../src/routes/coach-earnings.js"), "utf8");
+  ok(/router\.get\("\/settings", authenticateToken, requireAdmin/.test(ceSrc), "GET /coach/settings 只限 admin");
+  ok(/router\.put\("\/settings\/:key", authenticateToken, requireAdmin/.test(ceSrc), "PUT /coach/settings/:key 只限 admin");
+  ok(ceSrc.indexOf('"/settings/effective-rate"') < ceSrc.indexOf('"/settings/:key"'), "effective-rate 喺 :key 之前（唔會被 shadow）");
+
+  // 7. 預約：時段必須屬於同一課程（防平價 book 貴班）
+  const svc = require("../src/services/booking-service");
+  const out = svc.createBooking({ body: { schedule_id: "sB", class_id: "cA", payment_type: "single", penalty_consent: true }, user: { id: "u1" } });
+  ok(out.status === 400 && /時段與課程不相符/.test(out.body.error || ""), `class/schedule 唔配 → 400（got ${out.status}）`);
 
   console.log(fail === 0 ? "\n✅ 全部通過" : `\n❌ ${fail} 項失敗`);
   process.exit(fail === 0 ? 0 : 1);
