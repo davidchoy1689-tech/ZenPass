@@ -37,7 +37,7 @@
   <meta name="twitter:title" content="ZenPass 禪流 | 一Pass通行全城運動與新興運動體驗" />
   <meta name="twitter:description" content="免費登記 ZenPass！新用戶輸入優惠碼 WELCOME50 即享首堂半價。精選全港瑜伽、芬蘭木柱、地板冰壺、HIIT 等百款運動體驗。" />
   <meta name="twitter:image" content="https://zenpass.hk/assets/og/zenpass-og.jpg" />
-  <link rel="stylesheet" href="assets/v2.css?v=29" />
+  <link rel="stylesheet" href="assets/v2.css?v=30" />
 </head>
 <body>
   <div class="wrap">
@@ -92,6 +92,14 @@
         </label>
         <button class="btn btn-primary qs-go" id="qsGo" type="button">🔍 尋找課堂</button>
       </div>
+      <div class="hot-search" aria-label="熱門搜尋">
+        <span class="hot-search-label">🔥 熱搜：</span>
+        <a class="hs-pill" href="explore.html?q=%E8%8A%AC%E8%98%AD%E6%9C%A8%E6%9F%B1">芬蘭木柱</a>
+        <a class="hs-pill" href="explore.html?q=%E5%86%B0%E5%A3%BA">親子冰壺</a>
+        <a class="hs-pill" href="explore.html?zone=kt">觀塘室內</a>
+        <a class="hs-pill" href="explore.html?q=%E7%91%9C%E4%BC%BD&time=evening">放工瑜伽</a>
+        <a class="hs-pill" href="explore.html?q=%E5%B8%83%E8%A2%8B%E7%90%83">布袋球</a>
+      </div>
       <div class="hscroll loc-row" style="display:flex;flex-wrap:nowrap;overflow-x:auto;gap:8px">
         <a class="loc-pill" href="explore.html?zone=cw">📍 中西區</a>
         <a class="loc-pill" href="explore.html?zone=wc">📍 灣仔</a>
@@ -135,6 +143,11 @@
       <a class="chip" href="explore.html?scene=office">💼 放工放鬆 / 辦公室伸展</a>
       <a class="chip" href="explore.html?scene=burn">🥊 高效燃脂 / 減脂汗水</a>
       <a class="chip" href="explore.html?scene=beginner">🧩 新手友善 / 無需經驗</a>
+    </div>
+    <div class="hscroll time-row" aria-label="按時間搵堂">
+      <a class="chip time-chip" href="explore.html?date=today&time=evening">⚡ 今晚有空</a>
+      <a class="chip time-chip" href="explore.html?date=weekend">📅 本週末 (Sat/Sun)</a>
+      <a class="chip time-chip" href="explore.html?time=evening">🌙 放工時段 (18:00+)</a>
     </div>
 
     <div class="section-title">🔥 本週熱門推薦</div>
@@ -240,6 +253,15 @@
       <div class="how-card"><div class="ic">🏆</div><b>全城通行</b><p>一個帳號通行全港合作運動場館。</p></div>
     </div>
 
+    <div class="ref-banner" id="refBanner">
+      <div class="ref-ic">🎁</div>
+      <div class="ref-tx">
+        <b>推薦好友一同體驗，各得 HK$50 優惠券！</b>
+        <p>分享你的專屬連結，好友首次預約你即可獲得 HK$50 Pass 扣減金。</p>
+      </div>
+      <button class="btn btn-primary ref-btn" id="refShare" type="button">立即分享給朋友</button>
+    </div>
+
     <div class="section-title">🏅 運動項目 <span class="sport-count">8 大類</span></div>
     <div class="mega-grid" id="megaGrid"></div>
     <button class="acc-btn" id="accBtn" type="button" aria-expanded="false">🔍 查看全部 145 個運動項目</button>
@@ -319,6 +341,26 @@
       if (btn) btn.addEventListener("click", doCopy);
       var heroCta = document.getElementById("heroCta");
       if (heroCta) heroCta.addEventListener("click", savePromo);
+      var refBtn = document.getElementById("refShare");
+      if (refBtn) refBtn.addEventListener("click", async function () {
+        var logged = false;
+        try { logged = !!localStorage.getItem("zenpass_token"); } catch (e) {}
+        if (!logged) { location.href = "login.html?next=" + encodeURIComponent("referral.html"); return; }
+        try {
+          var rr = await api.get("/referral/my-code");
+          var code = (rr.data && rr.data.code) || "";
+          var url = location.origin + "/index.html?ref=" + encodeURIComponent(code);
+          var text = "我用緊 ZenPass 玩新興運動，用我推薦碼 " + code + " 登記，首堂半價！";
+          if (navigator.share) {
+            await navigator.share({ title: "ZenPass 禪流", text: text, url: url });
+          } else if (navigator.clipboard) {
+            await navigator.clipboard.writeText(text + " " + url);
+            showToast("已複製推薦連結 ✅");
+          } else {
+            prompt("複製推薦連結：", url);
+          }
+        } catch (e) { showToast("分享失敗，請稍後再試"); }
+      });
       var claim = document.getElementById("claimPromo");
       if (claim) {
         claim.addEventListener("click", function (e) { e.preventDefault(); doCopy(); });
