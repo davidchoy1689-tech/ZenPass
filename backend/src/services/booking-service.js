@@ -575,6 +575,12 @@ function createBooking(req, options = {}) {
     return { status: 400, body: { success: false, error: "缺少預約資料" } };
   }
 
+  // 🔒 2026-10-19：只接受已知付款方式（原本傳 "free" 或其他字串 → 直接 confirmed + paid，金額 0）
+  const ALLOWED_PAYMENT_TYPES = ["single", "credits", "corporate", "membership_trial", "free"];
+  if (!ALLOWED_PAYMENT_TYPES.includes(payment_type)) {
+    return { status: 400, body: { success: false, error: "付款方式無效" } };
+  }
+
   const db = getDb();
   db.pragma("foreign_keys = ON");
 
@@ -684,6 +690,15 @@ function createBooking(req, options = {}) {
   const clsPricing = db
     .prepare("SELECT price_hkd, credits_cost FROM classes WHERE id = ?")
     .get(class_id);
+
+  // 🔒 2026-10-19：只有真正免費（HK$0 + 0 credits）嘅活動可以用 free 預約
+  if (payment_type === "free") {
+    const p = Number(clsPricing && clsPricing.price_hkd) || 0;
+    const c = Number(clsPricing && clsPricing.credits_cost) || 0;
+    if (p > 0 || c > 0) {
+      return { status: 400, body: { success: false, error: "此課程需要付費，請選擇付款方式" } };
+    }
+  }
 
   const bookingFlow = db.transaction(() => {
     // 4. Release expired holds

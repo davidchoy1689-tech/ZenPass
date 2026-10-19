@@ -136,6 +136,22 @@ const ok = (c, m) => { if (c) console.log("  ✅ " + m); else { console.log("  �
   const p0 = ((plist.body && plist.body.partners) || [])[0] || {};
   ok(plist.statusCode === 200 && p0.owner_id === undefined, "partner/list 唔再回傳 owner_id");
 
+  // 10. payment_type 只准白名單；free 只限真免費班
+  const freeOut = svc.createBooking({ body: { schedule_id: "sA", class_id: "cA", payment_type: "free", penalty_consent: true }, user: { id: "u1" } });
+  ok(freeOut.status === 400 && /需要付費/.test(freeOut.body.error || ""), `付費班用 free → 400（got ${freeOut.status}）`);
+  const bogusOut = svc.createBooking({ body: { schedule_id: "sA", class_id: "cA", payment_type: "hack", penalty_consent: true }, user: { id: "u1" } });
+  ok(bogusOut.status === 400 && /付款方式無效/.test(bogusOut.body.error || ""), `未知付款方式 → 400（got ${bogusOut.status}）`);
+
+  // 11. 場地取消 → 全額退款（wallet type 必須合法）
+  db.prepare("INSERT INTO venue_rentals (id,venue_id,coach_id,start_time,end_time,price_hkd,status,payment_status) VALUES ('r2','v1','u1',datetime('now','+2 day'),datetime('now','+2 day','+2 hour'),500,'confirmed','paid')").run();
+  const vcancel = pick(vr, "/:id/venue-cancel", "post");
+  const vc = await call(vcancel, { id: "coach1", role: "partner_owner" }, {}, { id: "r2" });
+  ok(vc.statusCode === 200 && vc.body.refund_full === true, `場地取消 → 全額退款（got ${vc.statusCode} / ${vc.body && vc.body.refund_full}）`);
+  ok(db.prepare("SELECT wallet_balance FROM users WHERE id='u1'").get().wallet_balance === 500, "教練錢包 +500");
+  ok(db.prepare("SELECT payment_status FROM venue_rentals WHERE id='r2'").get().payment_status === "refunded", "租場狀態 refunded");
+  const rtx = db.prepare("SELECT type FROM wallet_transactions WHERE source_id='r2'").get();
+  ok(rtx && rtx.type === "refund", `wallet type = refund（got ${rtx && rtx.type}）`);
+
   console.log(fail === 0 ? "\n✅ 全部通過" : `\n❌ ${fail} 項失敗`);
   process.exit(fail === 0 ? 0 : 1);
 })().catch((e) => { console.error(e); process.exit(1); });

@@ -571,7 +571,8 @@ router.post("/:id/venue-cancel", authenticateToken, requireOwnInstitution, (req,
         const w = walletService.creditWallet({
           userId: r.coach_id,
           amount: Number(r.price_hkd),
-          type: "venue_rental_refund",
+          // 🔒 2026-10-19：wallet_transactions CHECK 只准既有 type（venue_rental_refund 會違反 constraint → 退款失敗）
+          type: "refund",
           description: `場地未能提供，全額退款（${r.start_time} - ${r.end_time}）`,
           reference: r.id,
           sourceType: "venue_rental",
