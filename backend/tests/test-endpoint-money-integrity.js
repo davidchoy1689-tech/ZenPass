@@ -23,7 +23,7 @@ const ok = (c, m) => { if (c) console.log("  ✅ " + m); else { console.log("  �
   pre.exec(`
   CREATE TABLE partner_venues (id TEXT PRIMARY KEY, name TEXT, district TEXT, address TEXT,
     category TEXT, commission_plan TEXT DEFAULT 'basic', commission_rate REAL DEFAULT 0.15,
-    status TEXT DEFAULT 'active', visibility TEXT DEFAULT 'visible');
+    status TEXT DEFAULT 'active', visibility TEXT DEFAULT 'visible', updated_at TEXT);
   CREATE TABLE users (id TEXT PRIMARY KEY, name TEXT, email TEXT, phone TEXT, password_hash TEXT,
     role TEXT DEFAULT 'user', email_verified INTEGER DEFAULT 1, credits INTEGER DEFAULT 0,
     wallet_balance REAL DEFAULT 0, pending_payout REAL DEFAULT 0,
@@ -49,6 +49,8 @@ const ok = (c, m) => { if (c) console.log("  ✅ " + m); else { console.log("  �
   const db = getDb();
   try { db.exec("ALTER TABLE users ADD COLUMN wallet_balance REAL DEFAULT 0"); } catch (e) {}
   try { db.exec("ALTER TABLE users ADD COLUMN pending_payout REAL DEFAULT 0"); } catch (e) {}
+  try { db.exec("ALTER TABLE partner_venues ADD COLUMN rental_price_per_hour REAL DEFAULT 300"); } catch (e) {}
+  db.prepare("UPDATE partner_venues SET rental_price_per_hour = 400 WHERE id='v1'").run();
   db.prepare("UPDATE users SET wallet_balance = 5000").run();
 
   db.prepare("INSERT INTO classes (id,coach_id,title,category,duration,price_hkd,credits_cost,status) VALUES ('c1','coach1','班','瑜伽',60,150,15,'active')").run();
@@ -107,8 +109,28 @@ const ok = (c, m) => { if (c) console.log("  ✅ " + m); else { console.log("  �
   const book2 = await call(bookHandler, { id: "coach1", role: "coach" }, {
     venue_id: "v1", start_time: start.toISOString(), end_time: end.toISOString(),
   });
-  const expected = Math.round(Math.round(0.15 * 100 * 600) / 100 * 2);
-  ok(book2.statusCode === 200 && Number(book2.body.price_hkd) === expected, `租金 = 伺服器計算 ${expected}（got ${book2.body && book2.body.price_hkd}）`);
+  const expected = 800; // HK$400/hr（商戶後台設定）× 2 小時
+  ok(book2.statusCode === 200 && Number(book2.body.price_hkd) === expected, `租金 = 場地設定價 ${expected}（got ${book2.body && book2.body.price_hkd}）`);
+
+  // ===== 4b. 商戶後台可設定每小時租金 =====
+  const partner = require("../src/routes/partner");
+  const getVenue = pick(partner, "/venue", "get");
+  const putVenue = pick(partner, "/venue", "put");
+  db.prepare("UPDATE users SET partner_id='v1', role='partner_owner' WHERE id='coach1'").run();
+  const gv = await call(getVenue, { id: "coach1", role: "partner_owner" }, {});
+  ok(gv.statusCode === 200 && Number(gv.body.data.rental_price_per_hour) === 400, `商戶讀到每小時租金 400（got ${gv.body && gv.body.data && gv.body.data.rental_price_per_hour}）`);
+  const bad = await call(putVenue, { id: "coach1", role: "partner_owner" }, { rental_price_per_hour: 10 });
+  ok(bad.statusCode === 400, "租金低於 HK$50 → 400");
+  const good = await call(putVenue, { id: "coach1", role: "partner_owner" }, { rental_price_per_hour: 550 });
+  ok(good.statusCode === 200 && db.prepare("SELECT rental_price_per_hour FROM partner_venues WHERE id='v1'").get().rental_price_per_hour === 550, "商戶改租金 → DB 更新為 550");
+
+  // 改價後新預約用新價（2 小時 = 1100）
+  const start2 = new Date(Date.now() + 4 * 86400000); start2.setMinutes(0, 0, 0);
+  const end2 = new Date(start2.getTime() + 2 * 3600000);
+  const book3 = await call(bookHandler, { id: "coach1", role: "coach" }, {
+    venue_id: "v1", start_time: start2.toISOString(), end_time: end2.toISOString(),
+  });
+  ok(book3.statusCode === 200 && Number(book3.body.price_hkd) === 1100, `新價生效：2 小時 = 1100（got ${book3.body && book3.body.price_hkd}）`);
 
   // ===== 5. venue-rentals/:id/pay 用合法 wallet type =====
   const payHandler = pick(vr, "/:id/pay");

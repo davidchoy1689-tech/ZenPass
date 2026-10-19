@@ -64,6 +64,28 @@ router.get("/dashboard", authenticateToken, requireOwnInstitution, (req, res) =>
   }
 });
 
+// ===== GET /api/partner/venue — 我嘅場地資料（含每小時租金）=====
+router.get("/venue", authenticateToken, requireOwnInstitution, (req, res) => {
+  try {
+    const result = partnerService.getOwnVenue(req.user.id);
+    return res.status(result.status).json(result.body);
+  } catch (err) {
+    console.error("❌ partner/venue GET error:", err.message);
+    return serverError(res, "載入場地資料失敗");
+  }
+});
+
+// ===== PUT /api/partner/venue — 更新場地出租設定（每小時租金）=====
+router.put("/venue", authenticateToken, requireOwnInstitution, (req, res) => {
+  try {
+    const result = partnerService.updateOwnVenue(req.user.id, req.body || {});
+    return res.status(result.status).json(result.body);
+  } catch (err) {
+    console.error("❌ partner/venue PUT error:", err.message);
+    return serverError(res, "更新場地資料失敗");
+  }
+});
+
 // ===== GET /api/partner/revenue-report =====
 router.get("/revenue-report", authenticateToken, requireOwnInstitution, (req, res) => {
   try {

@@ -14,6 +14,7 @@ const {
   getVenuePlan,
 } = require("../services/commission");
 const { recordPayment } = require("../services/accounting");
+const { hourlyRateForVenue, rentalTotal } = require("../services/rental-pricing");
 
 const router = express.Router();
 
@@ -26,7 +27,7 @@ router.get("/available", (req, res) => {
     // Get active venues with their info
     let sql = `SELECT v.id, v.name, v.description, v.category, v.district, 
                v.address, v.logo_url, v.facilities, v.commission_plan,
-               v.commission_rate
+               v.commission_rate, v.rental_price_per_hour
               FROM partner_venues v 
               WHERE v.status = 'active'`;
     let params = [];
@@ -81,7 +82,7 @@ router.get("/available", (req, res) => {
       v.suggested_hours = {
         open: "09:00",
         close: "22:00",
-        price_per_hour: Math.round(v.commission_rate * 100 * 600) / 100 || 200,
+        price_per_hour: hourlyRateForVenue(v),
       };
     }
 
@@ -167,11 +168,10 @@ router.post("/book", authenticateToken, (req, res) => {
 
     const id = uuidv4();
     // 🔒 安全（2026-10-19）：租金一律由伺服器按場地設定計算，唔信客戶端 price_hkd
-    // 與 /available 顯示嘅 price_per_hour 用同一條公式，確保前後端一致
-    const hourly =
-      Math.round(Number(venue.commission_rate || 0) * 100 * 600) / 100 || 200;
+    // 每小時租金由商戶後台設定（partner_venues.rental_price_per_hour）
+    const hourly = hourlyRateForVenue(venue);
     const hours = (new Date(end_time) - new Date(start_time)) / 3600000;
-    const price = Math.max(1, Math.round(hourly * hours));
+    const price = rentalTotal(venue, start_time, end_time);
 
     // 客戶端可傳 price_hkd 作核對；如果同伺服器計算唔一致 → 拒絕（避免有人改細金額，
     // 亦避免前端舊價／竄改價靜靜收多錢）

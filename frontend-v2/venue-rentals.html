@@ -86,7 +86,8 @@
       <label>結束時間</label>
       <input type="datetime-local" id="bEnd" />
       <label>每小時租金（HK$）</label>
-      <input type="number" id="bPrice" min="0" />
+      <input type="number" id="bPrice" min="0" readonly style="background:var(--surface-2);color:var(--text-muted)" />
+      <p class="muted" style="font-size:12px;margin:4px 0 0">租金由場地設定，如有疑問請聯絡場地。</p>
       <p id="mSummary" class="muted" style="font-size:13px;margin:10px 0 0"></p>
       <div style="display:flex;gap:8px;margin-top:12px">
         <button class="btn btn-primary btn-block" id="bSubmit">確認預約</button>
@@ -175,7 +176,7 @@
       $("venues").innerHTML = '<div class="card">' + list.map(v => {
         const facs = Array.isArray(v.facilities) ? v.facilities : [];
         const tags = [v.category, v.district].filter(Boolean).concat(facs);
-        const price = (v.suggested_hours && v.suggested_hours.price_per_hour) || Math.round((v.commission_rate || 0.15) * 600);
+        const price = (v.suggested_hours && v.suggested_hours.price_per_hour) || 300;
         return '<div class="venue">' +
           '<h3>🏟️ ' + esc(v.name) + '</h3>' +
           '<div class="meta">📍 ' + esc(v.address || v.district || "") + ' · 💰 約 ' + hkd(price) + '/hr' +
@@ -270,7 +271,7 @@
     function openBook(venueId, venueName, price, prefill) {
       currentVenue = { id: venueId, name: venueName };
       $("mName").textContent = "🏟️ " + venueName;
-      $("bPrice").value = price || 200;
+      $("bPrice").value = price || 300;
       if (prefill) {
         $("bStart").value = prefill.start;
         $("bEnd").value = prefill.end;

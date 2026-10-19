@@ -230,6 +230,9 @@ CREATE TABLE IF NOT EXISTS users (
   try { db.exec("ALTER TABLE venue_rentals ADD COLUMN paid_at TEXT"); } catch (e) {}
   try { db.exec("ALTER TABLE venue_rentals ADD COLUMN payment_method TEXT"); } catch (e) {}
 
+  // ===== 兼容升級：partner_venues 每小時租金（由商戶後台設定）=====
+  try { db.exec("ALTER TABLE partner_venues ADD COLUMN rental_price_per_hour REAL DEFAULT 300"); } catch (e) { /* exists */ }
+
   // ===== 兼容升級：classes.booking_open（是否開放預約）=====
   try { db.exec("ALTER TABLE classes ADD COLUMN booking_open INTEGER DEFAULT 0"); } catch (e) { /* exists */ }
   try {

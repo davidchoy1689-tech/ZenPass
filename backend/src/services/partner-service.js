@@ -265,6 +265,7 @@ function partnerDashboard(userId) {
         commission_plan: venue.commission_plan || "basic",
         commission_plan_label: plan.labelZh,
         commission_plan_fee: plan.monthly_fee, description: plan.description,
+        rental_price_per_hour: require("../services/rental-pricing").hourlyRateForVenue(venue),
       },
       stats: {
         total_bookings: bookingStats.total_bookings || 0,
@@ -279,6 +280,72 @@ function partnerDashboard(userId) {
       coaches,
     },
   };
+}
+
+// ===== 商戶自助：場地資料／租場定價 =====
+function getOwnVenue(userId) {
+  const venue = _getUserVenue(userId);
+  if (!venue || venue.status !== "active") {
+    return { status: 403, body: { success: false, error: "你未有已開通嘅商戶戶口" } };
+  }
+  const { hourlyRateForVenue, DEFAULT_RENTAL_PRICE_PER_HOUR } = require("../services/rental-pricing");
+  return {
+    status: 200,
+    body: {
+      success: true,
+      data: {
+        id: venue.id,
+        name: venue.name,
+        category: venue.category,
+        district: venue.district,
+        address: venue.address,
+        phone: venue.phone,
+        description: venue.description,
+        rental_price_per_hour: hourlyRateForVenue(venue),
+        default_rental_price_per_hour: DEFAULT_RENTAL_PRICE_PER_HOUR,
+      },
+    },
+  };
+}
+
+function updateOwnVenue(userId, body) {
+  const venue = _getUserVenue(userId);
+  if (!venue || venue.status !== "active") {
+    return { status: 403, body: { success: false, error: "你未有已開通嘅商戶戶口" } };
+  }
+
+  const updates = [];
+  const params = [];
+
+  if (body && body.rental_price_per_hour !== undefined) {
+    const price = Number(body.rental_price_per_hour);
+    if (!Number.isFinite(price) || price < 50 || price > 5000) {
+      return {
+        status: 400,
+        body: { success: false, error: "每小時租金必須介乎 HK$50–5,000" },
+      };
+    }
+    updates.push("rental_price_per_hour = ?");
+    params.push(Math.round(price));
+  }
+
+  if (!updates.length) {
+    return { status: 400, body: { success: false, error: "沒有可更新嘅資料" } };
+  }
+
+  updates.push("updated_at = datetime('now')");
+  params.push(venue.id);
+  getDb().prepare(`UPDATE partner_venues SET ${updates.join(", ")} WHERE id = ?`).run(...params);
+
+  try {
+    writeBlock({
+      entityType: "partner_venue",
+      entityId: venue.id,
+      data: { action: "update_rental_price", rental_price_per_hour: Number(body.rental_price_per_hour), updated_by: userId },
+    });
+  } catch (e) {}
+
+  return getOwnVenue(userId);
 }
 
 function revenueReport(userId, query) {
@@ -1209,6 +1276,10 @@ module.exports = {
 
   // Dashboard & Reports
   partnerDashboard,
+
+  // Venue settings (partner self-service)
+  getOwnVenue,
+  updateOwnVenue,
   revenueReport,
   partnerBookings,
 
