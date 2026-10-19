@@ -47,18 +47,15 @@
       if (pw.length < 8 || !/[A-Za-z]/.test(pw) || !/[0-9]/.test(pw)) { msg.textContent = "密碼至少 8 個字元，並需包含英文字母及數字"; return; }
       if (pw !== pw2) { msg.textContent = "兩次輸入的密碼唔一致"; return; }
       const btn = document.getElementById("go"); btn.disabled = true; btn.textContent = "註冊中…";
-      const r = await api.post("/auth/register", { name, email, phone, password: pw });
+      let ref = REFQ;
+      if (!ref) { try { ref = localStorage.getItem("zp_ref") || ""; } catch (e) {} }
+      const r = await api.post("/auth/register", { name, email, phone, password: pw, ref });
       btn.disabled = false; btn.textContent = "註冊";
       if (r.ok && r.data) {
         if (r.data.token) api.setToken(r.data.token);
         if (r.data.user) api.setUser(r.data.user);
-        // 有推薦碼 → 嘗試即時兌換（需先驗證電郵，失敗會留待 referral 頁再試）
-        let ref = "";
-        try { ref = localStorage.getItem("zp_ref") || ""; } catch (e) {}
-        if (ref) {
-          const rr = await api.post("/referral/redeem", { code: ref });
-          if (rr.ok) { try { localStorage.removeItem("zp_ref"); } catch (e) {} }
-        }
+        // 推薦碼已交後端排隊，驗證電郵後自動入賬
+        try { localStorage.removeItem("zp_ref"); } catch (e) {}
         location.href = next;
       } else {
         msg.textContent = (r.data && (r.data.error || r.data.message)) || "註冊失敗，請重試";

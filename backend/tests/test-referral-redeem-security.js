@@ -59,7 +59,9 @@ const ok = (c, m) => { if (c) console.log("  ✅ " + m); else { console.log("  �
   const again = call("newok");
   ok(again.statusCode === 400, "同一用戶不可重複兌換");
 
-  const src = fs.readFileSync(path.join(__dirname, "../src/routes/referral.js"), "utf8");
+  const src =
+    fs.readFileSync(path.join(__dirname, "../src/routes/referral.js"), "utf8") +
+    fs.readFileSync(path.join(__dirname, "../src/services/referral-service.js"), "utf8");
   ok(/EMAIL_NOT_VERIFIED/.test(src), "有防護碼");
   const usersRouter = require("../src/routes/users");
   const meLayer = usersRouter.stack.find((l) => l.route && l.route.path === "/me");

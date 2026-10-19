@@ -5,8 +5,6 @@ const express = require("express");
 const { v4: uuidv4 } = require("uuid");
 const { getDb } = require("../services/database");
 const { authenticateToken } = require("../middleware/auth");
-const { writeBlock } = require("../services/blockchain-audit");
-const { awardPointsOnce, EARN_RULES } = require("../services/points");
 const router = express.Router();
 
 // ===== GET /api/referral/my-code — 我的推薦碼 =====
@@ -48,103 +46,11 @@ router.get("/my-code", authenticateToken, (req, res) => {
 // ===== POST /api/referral/redeem — 使用推薦碼 =====
 router.post("/redeem", authenticateToken, (req, res) => {
   try {
-    const { code } = req.body;
-    if (!code) return res.status(400).json({ success: false, error: "請輸入推薦碼" });
-
-    const db = getDb();
-    db.pragma("foreign_keys = ON");
-
-    const ref = db
-      .prepare("SELECT * FROM referral_codes WHERE code = ?")
-      .get(code);
-    if (!ref) {
-
-      return res.status(404).json({ success: false, error: "推薦碼無效" });
-    }
-    if (ref.user_id === req.user.id) {
-
-      return res.status(400).json({ success: false, error: "唔可以用自己嘅推薦碼" });
-    }
-
-    const existing = db
-      .prepare("SELECT id FROM referral_redemptions WHERE referred_user_id = ?")
-      .get(req.user.id);
-    if (existing) {
-      return res.status(400).json({ success: false, error: "你已經用過推薦碼" });
-    }
-
-    // 🔒 防假帳戶：未驗證電郵唔可以兌換推薦碼
-    const acct = db.prepare("SELECT email_verified FROM users WHERE id = ?").get(req.user.id);
-    if (!acct || !acct.email_verified) {
-      return res.status(403).json({
-        success: false,
-        code: "EMAIL_NOT_VERIFIED",
-        error: "請先驗證電郵地址，之後就可以使用推薦碼（可喺「我的」頁重新發送驗證電郵）。",
-      });
-    }
-
-    const id = uuidv4();
-    db.prepare(
-      "INSERT INTO referral_redemptions (id, referrer_id, referred_user_id, code_used, status) VALUES (?, ?, ?, ?, 'completed')",
-    ).run(id, ref.user_id, req.user.id, code);
-    const ledger = require("../services/credit-ledger");
-    ledger.applyCredits(db, {
-      userId: req.user.id,
-      credits: 5,
-      type: "earn",
-      source: "referral",
-      referenceId: id,
-      description: "使用推薦碼迎新獎賞",
-    });
-    db.prepare(
-      "UPDATE users SET referral_credits_earned = COALESCE(referral_credits_earned,0) + 5 WHERE id = ?",
-    ).run(req.user.id);
-    ledger.applyCredits(db, {
-      userId: ref.user_id,
-      credits: 5,
-      type: "earn",
-      source: "referral",
-      referenceId: id,
-      description: "推薦朋友獎賞",
-    });
-    db.prepare(
-      "UPDATE users SET referral_credits_earned = COALESCE(referral_credits_earned,0) + 5 WHERE id = ?",
-    ).run(ref.user_id);
-    try {
-      writeBlock({
-        entityType: "referral_redemption",
-        entityId: id,
-        data: JSON.stringify({
-          referrer_id: ref.user_id,
-          referred_user_id: req.user.id,
-          code,
-          credits_granted_referrer: 10,
-          credits_granted_referred: 10,
-        }),
-      });
-    } catch (bcErr) {
-      console.error("⚠️ Blockchain write failed (referral):", bcErr.message);
-    }
-
-    // 推薦人賺積分（每個 redemption 只發一次）
-    let pointsAwarded = 0;
-    try {
-      const award = awardPointsOnce(ref.user_id, {
-        points: EARN_RULES.referral,
-        source: "referral",
-        referenceId: id,
-        description: "🤝 推薦朋友加入 ZenPass",
-      });
-      if (award && award.awarded) pointsAwarded = award.awarded;
-    } catch (e) {
-      console.error("⚠️ Points award failed (referral):", e.message);
-    }
-
-    res.json({
-      message: "✅ 推薦碼已使用！你獲得 5 Credits（≈HK$50）",
-      bonus: 10,
-      referrer_points_awarded: pointsAwarded,
-    });
+    const out = require("../services/referral-service").redeemCode(
+      req.user.id,
+      req.body && req.body.code,
+    );
+    return res.status(out.status).json(out.body);
   } catch (err) {
     console.error("Referral error:", err);
     res.status(500).json({ success: false, error: "使用推薦碼失敗" });

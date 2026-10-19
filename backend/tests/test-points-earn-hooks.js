@@ -152,7 +152,9 @@ const ok = (c, m) => { if (c) console.log("  ✅ " + m); else { console.log("  �
 
   console.log("── 路由接線檢查（文案 vs 實際）──");
   const reviewsSrc = fs.readFileSync(path.join(__dirname, "../src/routes/reviews.js"), "utf8");
-  const referralSrc = fs.readFileSync(path.join(__dirname, "../src/routes/referral.js"), "utf8");
+  const referralSrc =
+    fs.readFileSync(path.join(__dirname, "../src/routes/referral.js"), "utf8") +
+    fs.readFileSync(path.join(__dirname, "../src/services/referral-service.js"), "utf8");
   ok(/awardPointsOnce\(/.test(reviewsSrc) && /source:\s*"review"/.test(reviewsSrc), "reviews 路由已接積分");
   ok(/awardPointsOnce\(/.test(referralSrc) && /source:\s*"referral"/.test(referralSrc), "referral 路由已接積分");
   const mutualSrc = fs.readFileSync(path.join(__dirname, "../src/routes/mutual-reviews.js"), "utf8");

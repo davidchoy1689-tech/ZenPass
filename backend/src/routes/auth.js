@@ -79,7 +79,7 @@ const STRONG_PW_MSG = "密碼至少 8 個字元，並需包含英文字母及數
 // ===== POST /api/auth/register - 電郵註冊 =====
 router.post("/register", (req, res) => {
   try {
-    const { email, password, name, phone } = req.body;
+    const { email, password, name, phone, ref } = req.body;
 
     // 驗證
     if (!email || !password || !name) {
@@ -126,6 +126,15 @@ router.post("/register", (req, res) => {
       VALUES (?, ?, ?, ?, ?, ?, 'email', 0, ?, datetime('now', '+24 hours'), ?, datetime('now', '+10 minutes'))
     `,
     ).run(id, userRef, email, passwordHash, name, phone || null, verificationToken, verificationCode);
+
+    // 🎁 推薦碼：註冊時帶入，驗證電郵後自動入賬
+    const refCode = String(ref || "").trim();
+    if (refCode) {
+      const rc = db.prepare("SELECT user_id FROM referral_codes WHERE code = ?").get(refCode);
+      if (rc && rc.user_id !== id) {
+        db.prepare("UPDATE users SET pending_referral_code = ? WHERE id = ?").run(refCode, id);
+      }
+    }
 
     const user = db
       .prepare(
@@ -417,7 +426,14 @@ router.get("/verify-email", (req, res) => {
 
     db.prepare("UPDATE users SET email_verified = 1, verification_token = NULL, verification_token_expires = NULL WHERE id = ?").run(user.id);
 
-    res.json({ message: "✅ 電郵已驗證成功" });
+    // 🎁 自動兌換註冊時帶入嘅推薦碼（雙方各 5 Credits）
+    const rr = require("../services/referral-service").autoRedeemPending(user.id);
+
+    res.json({
+      message: rr.redeemed ? "✅ 電郵已驗證，推薦獎賞 5 Credits 已存入錢包" : "✅ 電郵已驗證成功",
+      referral_redeemed: !!rr.redeemed,
+      referral_credits: rr.redeemed ? 5 : 0,
+    });
   } catch (err) {
     res.status(500).json({ success: false, error: "驗證失敗" });
   }
@@ -457,7 +473,15 @@ router.post("/verify-code", authenticateToken, verifyCodeLimiter, (req, res) => 
          verification_token = NULL, verification_token_expires = NULL WHERE id = ?`,
     ).run(req.user.id);
 
-    res.json({ success: true, message: "✅ 電郵驗證成功" });
+    // 🎁 自動兌換推薦碼
+    const rr2 = require("../services/referral-service").autoRedeemPending(req.user.id);
+
+    res.json({
+      success: true,
+      message: rr2.redeemed ? "✅ 電郵驗證成功，推薦獎賞 5 Credits 已存入錢包" : "✅ 電郵驗證成功",
+      referral_redeemed: !!rr2.redeemed,
+      referral_credits: rr2.redeemed ? 5 : 0,
+    });
   } catch (err) {
     console.error("verify-code error:", err.message);
     res.status(500).json({ success: false, error: "驗證失敗" });
