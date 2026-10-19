@@ -342,6 +342,12 @@ CREATE TABLE IF NOT EXISTS users (
         "ALTER TABLE bookings ADD COLUMN reminder_sent_1h INTEGER DEFAULT 0",
       );
     }
+    // 1 日前提醒（scheduler/booking-reminder.js 需要）
+    if (!cols.find((c) => c.name === "reminder_sent_1d")) {
+      db.exec(
+        "ALTER TABLE bookings ADD COLUMN reminder_sent_1d INTEGER DEFAULT 0",
+      );
+    }
   } catch (e) {
     // ignore if table already exists
   }

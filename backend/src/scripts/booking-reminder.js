@@ -13,7 +13,7 @@ const Database = require("better-sqlite3");
 const { sendNotification } = require("../services/notification");
 
 const PROJECT_ROOT = path.resolve(__dirname, "../..");
-const DB_PATH = path.join(PROJECT_ROOT, "data", "zenpass.db");
+const DB_PATH = process.env.DB_PATH || path.join(PROJECT_ROOT, "data", "zenpass.db");
 
 function sendBookingReminders() {
   const db = new Database(DB_PATH);
@@ -56,25 +56,6 @@ function sendBookingReminders() {
         const startTime = booking.start_time;
         const date = startTime ? startTime.split("T")[0] : "—";
         const time = startTime ? startTime.split("T")[1]?.slice(0, 5) : "—";
-
-        // Insert notification record (DB)
-        db.prepare(
-          `INSERT INTO notifications (id, user_id, type, title, message, data, is_read, created_at)
-           VALUES (?, ?, ?, ?, ?, ?, 0, datetime('now'))`,
-        ).run(
-          `rem-${booking.id}-${Date.now()}`,
-          booking.user_id,
-          "booking.reminder_1h",
-          `⏰ 課前提醒：${booking.class_title}`,
-          `你的課程「${booking.class_title}」將於 ${date} ${time} 開始！\n地點：${booking.venue_name || "—"}`,
-          JSON.stringify({
-            class_title: booking.class_title,
-            date,
-            time,
-            venue: booking.venue_name || "—",
-            booking_id: booking.id,
-          }),
-        );
 
         // 🔔 Send via notification service (Telegram + Email if configured)
         try {
@@ -151,23 +132,6 @@ function sendDayBeforeReminders() {
       for (const b of due) {
         const d = (b.start_time || "").split("T")[0];
         const t = (b.start_time || "").split("T")[1]?.slice(0, 5) || "";
-        db.prepare(
-          `INSERT INTO notifications (id, user_id, type, title, message, data, is_read, created_at)
-           VALUES (?, ?, ?, ?, ?, ?, 0, datetime('now'))`,
-        ).run(
-          `rem1d-${b.id}-${Date.now()}`,
-          b.user_id,
-          "booking.reminder_1d",
-          `📅 明日提醒：${b.class_title}`,
-          `你的課程「${b.class_title}」將於明日 ${d} ${t} 開始！\n地點：${b.venue_name || "—"}\n記得準時出席！`,
-          JSON.stringify({
-            class_title: b.class_title,
-            date: d,
-            time: t,
-            venue: b.venue_name || "—",
-            booking_id: b.id,
-          }),
-        );
 
         // 🔔 Send via notification service (Telegram + Email if configured)
         try {
