@@ -147,9 +147,18 @@ router.post("/admin/:id/confirm", authenticateToken, requireAdmin, (req, res) =>
       ).run(membershipId, order.user_id, order.plan_key, order.price_hkd, order.credits_granted, startStr, endStr);
 
       db.prepare(
-        `UPDATE users SET membership_type = ?, membership_expires_at = ?,
-           credits = COALESCE(credits,0) + ? WHERE id = ?`,
-      ).run(order.plan_key, endStr, order.credits_granted, order.user_id);
+        `UPDATE users SET membership_type = ?, membership_expires_at = ? WHERE id = ?`,
+      ).run(order.plan_key, endStr, order.user_id);
+
+      require("../services/credit-ledger").applyCredits(db, {
+        userId: order.user_id,
+        credits: Number(order.credits_granted) || 0,
+        type: "earn",
+        source: "membership",
+        referenceId: order.id,
+        description: `會籍 ${order.plan_key} 贈送 Credits`,
+        actorId: req.user.id,
+      });
 
       db.prepare(
         `INSERT INTO transactions (id, user_id, type, amount, payment_method, description)

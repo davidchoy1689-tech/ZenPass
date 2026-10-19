@@ -279,10 +279,14 @@ function executeAutoTopup(userId, bundleType, threshold, trigger = "auto") {
 
     // Deduct "payment" — in production this would use Stripe/fpx
     // For now, we add credits directly tracking as a transaction
-    db.prepare("UPDATE users SET credits = credits + ? WHERE id = ?").run(
-      creditsToAdd,
+    require("../services/credit-ledger").applyCredits(db, {
       userId,
-    );
+      credits: creditsToAdd,
+      type: "earn",
+      source: "auto_topup",
+      referenceId: String(bundleType),
+      description: `自動增值 ${bundleType}（HK$${amountPaid}）`,
+    });
 
     // Record in auto_topup_history
     const historyId = db

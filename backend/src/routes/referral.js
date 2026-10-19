@@ -87,11 +87,28 @@ router.post("/redeem", authenticateToken, (req, res) => {
     db.prepare(
       "INSERT INTO referral_redemptions (id, referrer_id, referred_user_id, code_used, status) VALUES (?, ?, ?, ?, 'completed')",
     ).run(id, ref.user_id, req.user.id, code);
+    const ledger = require("../services/credit-ledger");
+    ledger.applyCredits(db, {
+      userId: req.user.id,
+      credits: 10,
+      type: "earn",
+      source: "referral",
+      referenceId: id,
+      description: "使用推薦碼迎新獎賞",
+    });
     db.prepare(
-      "UPDATE users SET credits = COALESCE(credits,0) + 10, referral_credits_earned = COALESCE(referral_credits_earned,0) + 10 WHERE id = ?",
+      "UPDATE users SET referral_credits_earned = COALESCE(referral_credits_earned,0) + 10 WHERE id = ?",
     ).run(req.user.id);
+    ledger.applyCredits(db, {
+      userId: ref.user_id,
+      credits: 10,
+      type: "earn",
+      source: "referral",
+      referenceId: id,
+      description: "推薦朋友獎賞",
+    });
     db.prepare(
-      "UPDATE users SET credits = COALESCE(credits,0) + 10, referral_credits_earned = COALESCE(referral_credits_earned,0) + 10 WHERE id = ?",
+      "UPDATE users SET referral_credits_earned = COALESCE(referral_credits_earned,0) + 10 WHERE id = ?",
     ).run(ref.user_id);
     try {
       writeBlock({

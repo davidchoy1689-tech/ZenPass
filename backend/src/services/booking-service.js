@@ -194,7 +194,7 @@ function findExistingBookingForUser(db, userId, scheduleId) {
 
 // ==================== Payment Processing ====================
 
-function deductCredits(db, userId, classId, overrideCost) {
+function deductCredits(db, userId, classId, overrideCost, meta = {}) {
   const classData = db
     .prepare("SELECT credits_cost FROM classes WHERE id = ?")
     .get(classId);
@@ -204,10 +204,15 @@ function deductCredits(db, userId, classId, overrideCost) {
   if (user.credits < cost) {
     return { ok: false, error: "點數不足，請先購買點數" };
   }
-  db.prepare("UPDATE users SET credits = credits - ? WHERE id = ?").run(
-    cost,
+  // 🧾 2026-10-19：所有 credits 變動寫入流水
+  require("./credit-ledger").applyCredits(db, {
     userId,
-  );
+    credits: -cost,
+    type: "spend",
+    source: meta.source || "booking",
+    referenceId: meta.referenceId || null,
+    description: meta.description || "預約課堂扣除 Credits",
+  });
   return { ok: true, creditsCost: cost };
 }
 
@@ -272,10 +277,14 @@ function processCorporatePayment(db, userId, classId) {
   }
 
   if (fromPersonal > 0) {
-    db.prepare("UPDATE users SET credits = credits - ? WHERE id = ?").run(
-      fromPersonal,
+    require("./credit-ledger").applyCredits(db, {
       userId,
-    );
+      credits: -fromPersonal,
+      type: "spend",
+      source: "corporate",
+      referenceId: classId,
+      description: "企業混合付款：個人 Credits 補足",
+    });
   }
 
   return {
@@ -743,7 +752,11 @@ function createBooking(req, options = {}) {
 
     // 7. Payment processing
     if (payment_type === "credits") {
-      const result = deductCredits(db, req.user.id, class_id, creditsOverride);
+      const result = deductCredits(db, req.user.id, class_id, creditsOverride, {
+        source: "booking",
+        referenceId: bookingId,
+        description: `預約課堂（${class_id}）`,
+      });
       if (!result.ok) {
         throw new BookingFlowError({
           status: 400,
@@ -757,7 +770,11 @@ function createBooking(req, options = {}) {
     if (payment_type === "membership_trial") {
       const baseCredits = Number(clsPricing && clsPricing.credits_cost) || 12;
       const half = trialCreditsCost(baseCredits);
-      const result = deductCredits(db, req.user.id, class_id, half);
+      const result = deductCredits(db, req.user.id, class_id, half, {
+        source: "trial",
+        referenceId: bookingId,
+        description: `迎新半價優惠（原價 ${baseCredits} credits）`,
+      });
       if (!result.ok) {
         throw new BookingFlowError({
           status: 400,
@@ -1344,9 +1361,14 @@ function _processNormalCancel(db, booking, reason, req, feeRate) {
           : 0) * (1 - feeRate);
     const _refundCredits = Math.round(refundCredits * 10) / 10;
     if (_refundCredits > 0) {
-      db.prepare(
-        "UPDATE users SET credits = credits + ? WHERE id = ?",
-      ).run(_refundCredits, req.user.id);
+      require("./credit-ledger").applyCredits(db, {
+        userId: req.user.id,
+        credits: _refundCredits,
+        type: "refund",
+        source: "cancel",
+        referenceId: booking.id,
+        description: `取消預約退款${feeRate > 0 ? `（扣 ${feeRate * 100}% 手續費）` : ""}`,
+      });
     }
     if (feeRate > 0) {
       try {

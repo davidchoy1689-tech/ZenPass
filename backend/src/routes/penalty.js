@@ -71,21 +71,29 @@ function applyPenalty(userId, bookingId, penaltyCredits, reason, type = 'no_show
       return { waived: true, penaltyId };
     }
 
-    const result = db
-      .prepare("UPDATE users SET credits = MAX(0, credits - ?) WHERE id = ?")
-      .run(penaltyCredits, userId);
-    if (result.changes === 0) {
+    const before = db.prepare("SELECT credits FROM users WHERE id = ?").get(userId);
+    const actualDeduct = Math.min(penaltyCredits, Math.max(0, Number(before && before.credits) || 0));
+    if (actualDeduct <= 0) {
       console.error(`[PENALTY] Cannot deduct: user=${userId}, credits=${penaltyCredits}`);
 
       return { waived: false, applied: false };
     }
+    // 🧾 2026-10-19：罰款扣分寫入 credit ledger
+    require("../services/credit-ledger").applyCredits(db, {
+      userId,
+      credits: -actualDeduct,
+      type: "spend",
+      source: "penalty",
+      referenceId: bookingId,
+      description: reason || "缺席／遲取消罰款",
+    });
     const user = db.prepare("SELECT credits FROM users WHERE id = ?").get(userId);
     const newCredits = user ? user.credits : 0;
     const txId = uuidv4();
     db.prepare(`
       INSERT INTO transactions (id, user_id, type, amount, currency, payment_method, status, description, created_at)
       VALUES (?, ?, 'penalty', ?, 'HKD', 'credits', 'completed', ?, datetime('now'))
-    `).run(txId, userId, -penaltyCredits, reason);
+    `).run(txId, userId, -actualDeduct, reason);
 
     // === 50/50 分拆：罰款收入 50%→平台, 50%→教練 ===
     try {
@@ -97,11 +105,17 @@ function applyPenalty(userId, bookingId, penaltyCredits, reason, type = 'no_show
           "SELECT c.user_id FROM classes cl JOIN coaches c ON cl.coach_id = c.id WHERE cl.id = ?"
         ).get(booking.class_id);
         if (coach) {
-          const penaltyHalf = Math.floor(penaltyCredits / 2);
+          const penaltyHalf = Math.floor(actualDeduct / 2);
           if (penaltyHalf > 0) {
             // 給教練 50%
-            db.prepare("UPDATE users SET credits = COALESCE(credits,0) + ? WHERE id = ?")
-              .run(penaltyHalf, coach.user_id);
+            require("../services/credit-ledger").applyCredits(db, {
+              userId: coach.user_id,
+              credits: penaltyHalf,
+              type: "earn",
+              source: "penalty_split",
+              referenceId: bookingId,
+              description: `罰款分拆 50%：${reason}`,
+            });
             db.prepare(
               "INSERT INTO coach_earnings (id, coach_id, amount, type, source, description, created_at) VALUES (?, ?, ?, 'penalty_split', 'penalty', ?, datetime('now'))"
             ).run(uuidv4(), coach.user_id, penaltyHalf,

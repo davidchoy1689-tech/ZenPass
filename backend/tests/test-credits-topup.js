@@ -31,7 +31,7 @@ ok(cr.includes('"/admin/:id/confirm"'), "管理員確認（加點）");
 ok(cr.includes('"/admin/:id/reject"'), "管理員拒絕");
 ok(cr.includes("status IN ('pending','confirmed','rejected')") || cr.includes("status = 'pending'"), "有 pending 狀態控制");
 const confirmPart = cr.slice(cr.indexOf('"/admin/:id/confirm"'));
-ok(confirmPart.indexOf("UPDATE users SET credits") > 0, "加點只喺管理員確認時發生");
+ok(confirmPart.includes("applyCredits") || confirmPart.indexOf("UPDATE users SET credits") > 0, "加點只喺管理員確認時發生（經 credit ledger）");
 ok(confirmPart.includes("transactions"), "確認後寫入交易紀錄");
 ok(confirmPart.includes("writeBlock"), "確認後寫區塊鏈 audit");
 

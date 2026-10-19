@@ -54,13 +54,34 @@ router.get("/transactions", authenticateToken, (req, res) => {
   }
 });
 
+// ===== 2.5 GET /api/wallet/credits — Credits 餘額 + 完整流水 =====
+router.get("/credits", authenticateToken, (req, res) => {
+  try {
+    const db = getDb();
+    const user = db.prepare("SELECT credits FROM users WHERE id = ?").get(req.user.id);
+    if (!user) return res.status(404).json({ success: false, error: "用戶不存在" });
+    const limit = Math.min(200, parseInt(req.query.limit) || 50);
+    const offset = Math.max(0, parseInt(req.query.offset) || 0);
+    const { listCreditTransactions } = require("../services/credit-ledger");
+    const transactions = listCreditTransactions(db, req.user.id, {
+      limit,
+      offset,
+      type: req.query.type || null,
+    });
+    res.json({ success: true, balance: user.credits || 0, transactions, limit, offset });
+  } catch (err) {
+    console.error("[WALLET] credits error:", err.message);
+    res.status(500).json({ success: false, error: "無法讀取 Credits 紀錄" });
+  }
+});
+
 // ===== 3. GET /api/wallet/balance — 簡單結餘查詢 (backward compat) =====
 router.get("/balance", authenticateToken, (req, res) => {
   try {
     const db = getDb();
     const user = db
       .prepare(
-        "SELECT wallet_balance, bank_name, bank_account, bank_code FROM users WHERE id = ?",
+        "SELECT wallet_balance, credits, bank_name, bank_account, bank_code FROM users WHERE id = ?",
       )
       .get(req.user.id);
 
@@ -68,6 +89,7 @@ router.get("/balance", authenticateToken, (req, res) => {
 
     res.json({
       balance: user.wallet_balance || 0,
+      credits: user.credits || 0,
       bank: user.bank_name
         ? {
             name: user.bank_name,

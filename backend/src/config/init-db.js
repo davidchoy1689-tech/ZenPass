@@ -2209,6 +2209,52 @@ CREATE TABLE IF NOT EXISTS users (
     console.error("會籍文案同步失敗:", e.message);
   }
 
+  // ===== Credits 完整流水賬（2026-10-19）=====
+  try {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS credit_transactions (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        type TEXT NOT NULL CHECK(type IN ('earn','spend','refund','adjust')),
+        credits REAL NOT NULL,
+        balance_after REAL NOT NULL,
+        source TEXT,
+        reference_id TEXT,
+        description TEXT,
+        actor_id TEXT,
+        created_at TEXT DEFAULT (datetime('now')),
+        FOREIGN KEY (user_id) REFERENCES users(id)
+      );
+      CREATE INDEX IF NOT EXISTS idx_credit_tx_user ON credit_transactions(user_id, created_at);
+      CREATE INDEX IF NOT EXISTS idx_credit_tx_source ON credit_transactions(source, reference_id);
+    `);
+
+    // 一次性：為現有用戶建立「期初結餘」，令舊數據都有起點可對賬
+    const marker = db
+      .prepare("SELECT value FROM platform_settings WHERE key = ?")
+      .get("migration.credit_ledger_opening");
+    if (!marker) {
+      const users = db.prepare("SELECT id, credits FROM users WHERE COALESCE(credits,0) <> 0").all();
+      const ins = db.prepare(
+        `INSERT INTO credit_transactions (id, user_id, type, credits, balance_after, source, description)
+         VALUES (?, ?, 'adjust', ?, ?, 'opening', '期初結餘')`,
+      );
+      const tx = db.transaction(() => {
+        for (const u of users) {
+          ins.run(require("uuid").v4(), u.id, Number(u.credits) || 0, Number(u.credits) || 0);
+        }
+        db.prepare("INSERT OR REPLACE INTO platform_settings (key, value) VALUES (?, ?)").run(
+          "migration.credit_ledger_opening",
+          new Date().toISOString(),
+        );
+      });
+      tx();
+      if (users.length) console.log(`✅ Credits 流水：已建立 ${users.length} 個期初結餘`);
+    }
+  } catch (e) {
+    console.error("Credits 流水 migration 失敗:", e.message);
+  }
+
   console.log("✅ 數據庫初始化完成:", DB_PATH);
   db.close();
 }

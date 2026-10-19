@@ -21,7 +21,7 @@ ok(/minPoints: 500/.test(ptsCore) && /minPoints: 2000/.test(ptsCore) && /minPoin
 
 console.log("── 兌換要真正有用 ──");
 ok(pts.includes('reward.reward_type === "credit"'), "Credits 獎勵即時入賬");
-ok(pts.includes('UPDATE users SET credits = COALESCE(credits,0) + ?'), "真加 credits");
+ok(pts.includes("applyCredits") || pts.includes('UPDATE users SET credits = COALESCE(credits,0) + ?'), "真加 credits（經 ledger）");
 ok(pts.includes('reward.reward_type === "discount"'), "折扣獎勵產生優惠碼");
 ok(pts.includes("INSERT INTO promo_codes"), "寫入 promo_codes");
 ok(pts.includes("pending_fulfilment"), "實體禮品/免費堂標記待履行");

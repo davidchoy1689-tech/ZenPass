@@ -378,7 +378,14 @@ router.post("/redeem", authenticateToken, (req, res) => {
       if (reward.reward_type === "credit") {
         const n = Math.max(0, parseInt(reward.reward_value, 10) || 0);
         if (n > 0) {
-          db.prepare("UPDATE users SET credits = COALESCE(credits,0) + ? WHERE id = ?").run(n, req.user.id);
+          require("../services/credit-ledger").applyCredits(db, {
+            userId: req.user.id,
+            credits: n,
+            type: "earn",
+            source: "points",
+            referenceId: redId,
+            description: `積分兌換：${reward.name}`,
+          });
           issued = { type: "credit", credits: n, text: `已即時加 ${n} Credits` };
         }
       } else if (reward.reward_type === "discount") {

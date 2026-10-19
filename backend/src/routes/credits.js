@@ -194,7 +194,15 @@ router.post("/admin/:id/confirm", authenticateToken, requireAdmin, (req, res) =>
          WHERE id=? AND status='pending'`,
       ).run(actual, credits, bonus, req.user.id, (req.body && req.body.note) || null, order.id);
 
-      db.prepare("UPDATE users SET credits = COALESCE(credits,0) + ? WHERE id = ?").run(total, order.user_id);
+      require("../services/credit-ledger").applyCredits(db, {
+        userId: order.user_id,
+        credits: total,
+        type: "earn",
+        source: "topup",
+        referenceId: order.id,
+        description: `增值 ${credits} Credits${bonus ? ` + 贈送 ${bonus}` : ""}（${order.method.toUpperCase()} ${order.reference}）`,
+        actorId: req.user.id,
+      });
       db.prepare(
         `INSERT INTO transactions (id, user_id, type, amount, description)
          VALUES (?, ?, 'credits_topup', ?, ?)`,
