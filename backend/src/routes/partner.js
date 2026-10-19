@@ -359,7 +359,7 @@ router.get("/list", (req, res) => {
   try {
     const db = getDb();
     const partners = db.prepare(
-      `SELECT id, name, description, category, district, logo_url, commission_plan, owner_id
+      `SELECT id, name, description, category, district, logo_url, commission_plan
        FROM partner_venues WHERE status = 'active' ORDER BY created_at DESC`
     ).all();
     res.json({ partners });

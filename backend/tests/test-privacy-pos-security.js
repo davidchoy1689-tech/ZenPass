@@ -14,7 +14,7 @@ const ok = (c, m) => { if (c) console.log("  ✅ " + m); else { console.log("  �
 (async () => {
   const pre = new Database(tmp);
   pre.exec(`
-  CREATE TABLE partner_venues (id TEXT PRIMARY KEY, name TEXT, owner_id TEXT, user_id TEXT, status TEXT DEFAULT 'active');
+  CREATE TABLE partner_venues (id TEXT PRIMARY KEY, name TEXT, owner_id TEXT, user_id TEXT, status TEXT DEFAULT 'active', description TEXT, category TEXT, district TEXT, logo_url TEXT, commission_plan TEXT DEFAULT 'basic', created_at TEXT DEFAULT (datetime('now')));
   CREATE TABLE users (id TEXT PRIMARY KEY, name TEXT, email TEXT, phone TEXT, password_hash TEXT,
     role TEXT DEFAULT 'user', email_verified INTEGER DEFAULT 1, credits INTEGER DEFAULT 0, points INTEGER DEFAULT 0,
     wallet_balance REAL DEFAULT 0, pending_payout REAL DEFAULT 0, membership_type TEXT DEFAULT 'none',
@@ -122,6 +122,19 @@ const ok = (c, m) => { if (c) console.log("  ✅ " + m); else { console.log("  �
   const svc = require("../src/services/booking-service");
   const out = svc.createBooking({ body: { schedule_id: "sB", class_id: "cA", payment_type: "single", penalty_consent: true }, user: { id: "u1" } });
   ok(out.status === 400 && /時段與課程不相符/.test(out.body.error || ""), `class/schedule 唔配 → 400（got ${out.status}）`);
+
+  // 8. 匿名評價唔可以泄漏評價人
+  db.prepare("INSERT INTO reviews (id,booking_id,from_user_id,to_user_id,role,rating,comment,is_anonymous) VALUES ('rev1','bA','u1','coach1','student',5,'好',1)").run();
+  const reviews = require("../src/routes/reviews");
+  const rlist = await call(pick(reviews, "/:userId", "get"), { id: "x", role: "user" }, {}, { userId: "coach1" });
+  const rv = ((rlist.body && rlist.body.reviews) || [])[0] || {};
+  ok(rlist.statusCode === 200 && !rv.from_name && !rv.from_user_id, `匿名評價隱藏來源（got ${rv.from_name}）`);
+
+  // 9. 公開 partner 列表唔回傳 owner_id
+  const partnerRoutes = require("../src/routes/partner");
+  const plist = await call(pick(partnerRoutes, "/list", "get"), null, {}, {});
+  const p0 = ((plist.body && plist.body.partners) || [])[0] || {};
+  ok(plist.statusCode === 200 && p0.owner_id === undefined, "partner/list 唔再回傳 owner_id");
 
   console.log(fail === 0 ? "\n✅ 全部通過" : `\n❌ ${fail} 項失敗`);
   process.exit(fail === 0 ? 0 : 1);

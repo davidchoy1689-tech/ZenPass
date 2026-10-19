@@ -178,6 +178,13 @@ router.get("/:userId", (req, res) => {
       )
       .all(req.params.userId, limit, offset);
 
+    // 🔒 2026-10-19：匿名評價唔可以泄漏評價人姓名／ID
+    const safeReviews = reviews.map((r) =>
+      r.is_anonymous
+        ? { ...r, from_name: null, from_user_id: null }
+        : r,
+    );
+
     const stats = db
       .prepare(
         `
@@ -191,7 +198,7 @@ router.get("/:userId", (req, res) => {
       )
       .get(req.params.userId, req.params.userId);
 
-    res.json({ reviews, stats });
+    res.json({ reviews: safeReviews, stats });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }

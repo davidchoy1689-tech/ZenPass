@@ -6,6 +6,8 @@ const express = require("express");
 const router = express.Router();
 const path = require("path");
 const { getDb } = require("../services/database");
+const { publicFormLimiter } = require("../middleware/public-form-limit");
+const trackLimiter = publicFormLimiter({ max: 120, message: "請求太頻繁" });
 
 // Ensure A/B testing tables exist on module load
 const db = getDb();
@@ -33,14 +35,20 @@ router.get("/experiments", (req, res) => {
 });
 
 // POST /api/ab/track — 記錄 variant impression 或 conversion
-router.post("/track", (req, res) => {
+router.post("/track", trackLimiter, (req, res) => {
   try {
     var { experiment_id, variant, event_type, session_id, page } = req.body;
     if (!experiment_id || !variant || !event_type) return res.json({ tracked: false });
 
     var db = getDb();
     db.prepare("INSERT INTO ab_events (experiment_id, variant, event_type, session_id, page) VALUES (?, ?, ?, ?, ?)")
-      .run(experiment_id, variant, event_type, session_id || '', page || '');
+      .run(
+        String(experiment_id).slice(0, 64),
+        String(variant).slice(0, 32),
+        String(event_type).slice(0, 32),
+        String(session_id || "").slice(0, 64),
+        String(page || "").slice(0, 128),
+      );
 
     res.json({ tracked: true });
   } catch(err) { res.json({ tracked: false }); }
