@@ -207,10 +207,8 @@ function requireCoach(req, res, next) {
 
 /**
  * [向後兼容] 驗證管理員權限（需要先執行 authenticateToken）
- * 支援三種方式：
- * 1. 新 RBAC: role >= 'admin' 或更高 (super_admin, platform_manager, platform_staff, admin)
- * 2. email 含有 admin 或 @zenpass.hk 域名 (向後兼容)
- * 3. role 欄位為 'admin' (向後兼容)
+ * 只按 RBAC role 判斷：role >= 'admin'（admin / platform_staff / platform_manager / super_admin）
+ * ⚠️ 2026-10-19 已移除 email 判斷（曾被用作 privilege escalation）
  */
 function requireAdmin(req, res, next) {
   if (!req.user) {
@@ -223,10 +221,9 @@ function requireAdmin(req, res, next) {
       return res.status(403).json({ error: "用戶不存在" });
     }
 
-    const isAdmin =
-      hasMinimumRole(user.role, "admin") ||
-      (user.email &&
-        (user.email.includes("admin") || user.email.endsWith("@zenpass.hk")));
+    // 🔒 2026-10-19：只信 role。原本 email 含 "admin" 或 @zenpass.hk 就當 admin，
+    // 任何人用 admin@gmail.com 註冊就即時有後台權限。
+    const isAdmin = hasMinimumRole(user.role, "admin");
 
     if (!isAdmin) {
       return res.status(403).json({ error: "需要管理員權限" });

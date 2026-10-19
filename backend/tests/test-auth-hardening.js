@@ -21,11 +21,12 @@ const ok = (c, m) => { if (c) console.log("  ✅ " + m); else { console.log("  �
 (async () => {
   const pre = new Database(tmp);
   pre.exec(`
+  CREATE TABLE partner_venues (id TEXT PRIMARY KEY, name TEXT, owner_id TEXT, user_id TEXT, status TEXT DEFAULT 'active');
   CREATE TABLE users (id TEXT PRIMARY KEY, name TEXT, email TEXT, phone TEXT, password_hash TEXT,
     role TEXT DEFAULT 'user', email_verified INTEGER DEFAULT 1, credits INTEGER DEFAULT 0, points INTEGER DEFAULT 0,
     wallet_balance REAL DEFAULT 0, pending_payout REAL DEFAULT 0, membership_type TEXT DEFAULT 'none',
     loyalty_tier TEXT DEFAULT 'bronze', loyalty_tier_manual INTEGER DEFAULT 0,
-    is_coach INTEGER DEFAULT 0, coach_verified INTEGER DEFAULT 0,
+    is_coach INTEGER DEFAULT 0, coach_verified INTEGER DEFAULT 0, avatar_url TEXT, partner_id TEXT,
     reset_token TEXT, reset_token_expires TEXT, auth_provider TEXT, auth_provider_id TEXT,
     created_at TEXT DEFAULT (datetime('now')), updated_at TEXT DEFAULT (datetime('now')));
   `);
@@ -82,6 +83,25 @@ const ok = (c, m) => { if (c) console.log("  ✅ " + m); else { console.log("  �
   const src = fs.readFileSync(path.join(__dirname, "../src/routes/auth.js"), "utf8");
   ok(!/verificationToken = Math\.random/.test(src) && !/const token = Math\.random/.test(src), "verification／reset token 冇用 Math.random");
   ok(src.includes("ALLOW_DEV_RESET_TOKEN"), "dev token 需要明確開關");
+
+  // 3. requireAdmin 唔可以靠 email 判定
+  pre2 = new Database(process.env.DB_PATH);
+  pre2.prepare("INSERT INTO users (id,name,email,role,email_verified) VALUES ('evil1','Evil','admin@gmail.com','user',1)").run();
+  pre2.prepare("INSERT INTO users (id,name,email,role,email_verified) VALUES ('evil2','Evil2','someone@zenpass.hk','user',1)").run();
+  pre2.close();
+  const { requireAdmin } = require("../src/middleware/auth");
+  const check = (uid) => {
+    let code = 200, called = false;
+    const res = { status(c){ code=c; return res; }, json(){ return res; } };
+    requireAdmin({ user: { id: uid } }, res, () => { called = true; });
+    return { code, called };
+  };
+  const e1 = check("evil1");
+  ok(!e1.called && e1.code === 403, `admin@gmail.com 普通用戶 → 403（got ${e1.code}）`);
+  const e2 = check("evil2");
+  ok(!e2.called && e2.code === 403, `@zenpass.hk 普通用戶 → 403（got ${e2.code}）`);
+  const a1 = check("admin1");
+  ok(a1.called, "真正 super_admin 可通過");
 
   console.log(fail === 0 ? "\n✅ 全部通過" : `\n❌ ${fail} 項失敗`);
   process.exit(fail === 0 ? 0 : 1);
