@@ -41,7 +41,7 @@
   </nav>
   <script src="assets/api.js"></script>
   <script>
-    const shareText = (code) => `我一齊玩緊 ZenPass 禪流！用我嘅推薦碼 ${code}，大家都有 Credits 送 🎉 https://zenpass.hk/register.html`;
+    const shareText = (code) => `我一齊玩緊 ZenPass 禪流！用我嘅推薦碼 ${code}，你我各得 5 Credits（≈HK$50）🎉 https://zenpass.hk/register.html?ref=${code}`;
     let myCode = "";
     async function load() {
       const r = await api.get("/referral/my-code");
@@ -52,7 +52,7 @@
       document.getElementById("earned").textContent = (d.credits_earned != null ? d.credits_earned : 0) + " credits";
       const t = encodeURIComponent(shareText(myCode));
       document.getElementById("wa").href = "https://wa.me/?text=" + t;
-      document.getElementById("tg").href = "https://t.me/share/url?url=" + encodeURIComponent("https://zenpass.hk/register.html") + "&text=" + t;
+      document.getElementById("tg").href = "https://t.me/share/url?url=" + encodeURIComponent("https://zenpass.hk/register.html?ref=" + myCode) + "&text=" + t;
     }
     document.getElementById("copy").onclick = async () => {
       try { await navigator.clipboard.writeText(myCode); alert("已複製推薦碼：" + myCode); }
