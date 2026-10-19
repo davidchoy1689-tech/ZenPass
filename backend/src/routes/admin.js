@@ -171,6 +171,23 @@ router.get("/users", authenticateToken, requireAdmin, (req, res) => {
   }
 });
 
+// ===== GET /api/admin/users/:id/credits — Credits 流水（審計用）=====
+router.get("/users/:id/credits", authenticateToken, requireAdmin, (req, res) => {
+  try {
+    const db = getDb();
+    const user = db.prepare("SELECT id, name, email, credits FROM users WHERE id = ?").get(req.params.id);
+    if (!user) return res.status(404).json({ success: false, error: "用戶不存在" });
+    const { listCreditTransactions } = require("../services/credit-ledger");
+    const limit = Math.min(500, parseInt(req.query.limit) || 100);
+    const offset = Math.max(0, parseInt(req.query.offset) || 0);
+    const transactions = listCreditTransactions(db, user.id, { limit, offset, type: req.query.type || null });
+    res.json({ success: true, user, transactions, limit, offset });
+  } catch (err) {
+    console.error("[ADMIN] user credits error:", err.message);
+    res.status(500).json({ success: false, error: "無法讀取 Credits 紀錄" });
+  }
+});
+
 // ===== 會員等級：管理員手動設定 / 回復自動 =====
 router.patch("/users/:id/loyalty-tier", authenticateToken, requireAdmin, (req, res) => {
   try {

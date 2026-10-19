@@ -50,11 +50,17 @@
       const clist = (cr.data && cr.data.transactions) || [];
       const cel = document.getElementById("ctxs");
       const typeLabel = { earn: "收入", spend: "支出", refund: "退款", adjust: "調整" };
+      const fmtTime = (s) => {
+        if (!s) return "";
+        const iso = /Z$|[+-]\d\d:?\d\d$/.test(s) ? s : String(s).replace(" ", "T") + "Z";
+        const d = new Date(iso);
+        return isNaN(d) ? String(s) : d.toLocaleString("zh-HK", { timeZone: "Asia/Hong_Kong", hour12: false });
+      };
       cel.innerHTML = Array.isArray(clist) && clist.length
         ? clist.map(t => {
             const sign = (t.type === "spend") ? "-" : "+";
             return `<div class="row"><div><div style="font-weight:600">${esc(t.description || typeLabel[t.type] || t.type)}</div>
-              <div class="muted" style="font-size:12px">${esc((t.created_at || "").replace("T", " ").slice(0, 16))} · ${esc(typeLabel[t.type] || t.type)} · 餘 ${esc(t.balance_after)}</div></div>
+              <div class="muted" style="font-size:12px">${esc(fmtTime(t.created_at))} · ${esc(typeLabel[t.type] || t.type)} · 餘 ${esc(t.balance_after)}</div></div>
               <div class="v" style="color:${sign === "+" ? "var(--green-600)" : "var(--red-600)"}">${sign}${esc(t.credits)}</div></div>`;
           }).join("")
         : `<div class="body muted">暫無 Credits 紀錄。</div>`;
@@ -67,7 +73,7 @@
         const amt = (t.amount != null ? t.amount : t.credits);
         const pos = typeof amt === "number" && amt > 0;
         return `<div class="row"><div><div style="font-weight:600">${esc(t.description || t.type || "交易")}</div>
-          <div class="muted" style="font-size:12px">${esc((t.created_at || "").replace("T", " ").slice(0, 16))}${t.balance_after != null ? " · 餘 " + esc(t.balance_after) : ""}</div></div>
+          <div class="muted" style="font-size:12px">${esc(fmtTime(t.created_at))}${t.balance_after != null ? " · 餘 " + esc(t.balance_after) : ""}</div></div>
           <div class="v" style="color:${pos ? "var(--green-600)" : "var(--red-600)"}">${pos ? "+" : ""}${esc(amt)}</div></div>`;
       }).join("");
     })();
