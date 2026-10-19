@@ -69,7 +69,8 @@
       if (r.ok) { document.getElementById("refcode").value = ""; await load(); }
     };
     (function prefill() {
-      const c = new URLSearchParams(location.search).get("code");
+      let c = new URLSearchParams(location.search).get("code");
+      if (!c) { try { c = localStorage.getItem("zp_ref") || ""; } catch (e) {} }
       if (c) { const el = document.getElementById("refcode"); if (el) el.value = c; }
     })();
     if (api.requireLogin("referral.html")) load();
