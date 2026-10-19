@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#10b981" />
+  <title>套票與會籍 · ZenPass 禪流</title>
+  <meta name="description" content="ZenPass 靈活套票與會籍方案：買得越多越抵，一個 Pass 通行全港新興運動課堂，彈性扣點，無隱藏收費。" />
+  <link rel="canonical" href="https://zenpass.hk/pass.html" />
+  <link rel="stylesheet" href="assets/v2.css?v=31" />
+  <style>
+    .pass-hero { margin: 0 -16px; padding: 24px 20px 26px; border-radius: 0 0 26px 26px; background: linear-gradient(140deg,#10b981,#047857); color: #fff; }
+    .pass-hero h1 { margin: 0; font-size: 25px; line-height: 1.3; letter-spacing: -.4px; }
+    .pass-hero p { margin: 10px 0 0; font-size: 13.5px; line-height: 1.65; color: rgba(255,255,255,.94); }
+    .pass-trust { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+    .pass-trust span { font-size: 11.5px; font-weight: 700; background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.24); border-radius: 999px; padding: 5px 11px; }
+
+    .pass-tabs { display: flex; gap: 8px; background: #f3f4f6; padding: 4px; border-radius: 12px; margin: 16px 0 6px; }
+    .pass-tab { flex: 1; border: 0; background: transparent; padding: 10px 8px; border-radius: 9px; font-size: 13px; font-weight: 800; color: var(--text-muted); cursor: pointer; }
+    .pass-tab.is-active { background: #fff; color: #047857; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+
+    .pack-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
+    @media (min-width: 760px) { .pack-grid { grid-template-columns: repeat(3, 1fr); } }
+    .pack { position: relative; background: var(--surface); border: 1.5px solid var(--border); border-radius: 18px; padding: 16px; display: flex; flex-direction: column; transition: .18s; }
+    .pack.is-on { border-color: #10b981; box-shadow: 0 0 0 3px rgba(16,185,129,.14); }
+    .pack.hot { border-color: #10b981; background: linear-gradient(180deg,#f0fdf4,#fff); }
+    .pack-badge { position: absolute; top: -11px; left: 16px; background: #10b981; color: #fff; font-size: 11px; font-weight: 800; padding: 4px 10px; border-radius: 999px; box-shadow: 0 4px 10px rgba(16,185,129,.3); }
+    .pack h3 { margin: 2px 0 2px; font-size: 15.5px; }
+    .pack .meta { font-size: 12px; color: var(--text-muted); }
+    .pack .price { margin: 10px 0 2px; font-size: 26px; font-weight: 900; color: #047857; }
+    .pack .price small { font-size: 12px; color: var(--text-muted); font-weight: 600; margin-left: 4px; }
+    .pack .avg { font-size: 12.5px; font-weight: 700; color: #059669; }
+    .pack .save { display: inline-block; margin-top: 6px; font-size: 11.5px; font-weight: 800; color: #b45309; background: #fef3c7; border-radius: 999px; padding: 3px 9px; }
+    .pack ul { margin: 10px 0 14px; padding: 0 0 0 18px; font-size: 12.5px; line-height: 1.7; color: var(--text); }
+    .pack .btn { margin-top: auto; }
+
+    .usage-list { display: grid; gap: 8px; }
+    .usage-row { display: flex; align-items: center; gap: 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 12px 14px; }
+    .usage-row .dot { width: 10px; height: 10px; border-radius: 50%; flex: 0 0 auto; }
+    .usage-row b { font-size: 13px; }
+    .usage-row span { font-size: 12px; color: var(--text-muted); }
+    .usage-row .pts { margin-left: auto; font-weight: 900; color: #047857; white-space: nowrap; }
+    .calc-mini { margin-top: 12px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 14px; padding: 14px; }
+    .calc-mini label { font-size: 12.5px; font-weight: 700; color: #065f46; display: block; margin-bottom: 6px; }
+    .calc-mini select, .calc-mini input { width: 100%; border: 1px solid #a7f3d0; border-radius: 10px; padding: 10px 12px; font: inherit; background: #fff; margin-bottom: 10px; }
+    .calc-out { font-size: 14px; font-weight: 800; color: #047857; }
+    .calc-out small { display: block; font-size: 11.5px; font-weight: 500; color: #065f46; margin-top: 2px; }
+
+    .faq details { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 12px 14px; margin-bottom: 8px; }
+    .faq summary { cursor: pointer; font-size: 13.5px; font-weight: 700; list-style: none; position: relative; padding-right: 20px; }
+    .faq summary::-webkit-details-marker { display: none; }
+    .faq summary::after { content: "＋"; position: absolute; right: 0; top: -2px; color: #10b981; font-weight: 800; }
+    .faq details[open] summary::after { content: "－"; }
+    .faq p { margin: 8px 0 0; font-size: 12.5px; line-height: 1.65; color: var(--text-muted); }
+
+    .sticky-buy { position: fixed; left: 0; right: 0; bottom: 64px; z-index: 40; padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); background: rgba(255,255,255,.97); border-top: 1px solid var(--border); box-shadow: 0 -6px 20px rgba(0,0,0,.08); display: none; }
+    .sticky-buy.show { display: block; }
+    .sticky-inner { max-width: 520px; margin: 0 auto; display: flex; align-items: center; gap: 12px; }
+    .sticky-inner .info { flex: 1; min-width: 0; }
+    .sticky-inner .info b { display: block; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .sticky-inner .info span { font-size: 12px; color: #047857; font-weight: 800; }
+    .sticky-inner .btn { width: auto; white-space: nowrap; }
+
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 999; display: flex; align-items: center; justify-content: center; padding: 18px; }
+    .modal-overlay[hidden] { display: none; }
+    .modal-card { background: #fff; border-radius: 20px; padding: 20px 18px; width: 100%; max-width: 420px; }
+    .modal-card h3 { margin: 0 0 4px; font-size: 17px; }
+    .modal-card .sub { margin: 0 0 12px; font-size: 12.5px; color: var(--text-muted); }
+    .pay-info { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 10px 12px; font-size: 12px; line-height: 1.6; color: #065f46; margin-bottom: 12px; }
+    .modal-card select, .modal-card input { width: 100%; border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; font: inherit; margin-bottom: 10px; }
+    .modal-actions { display: flex; gap: 8px; }
+    .modal-actions .btn { flex: 1; }
+  </style>
+</head>
+<body>
+  <div class="topbar"><a class="back" href="index.html">‹</a><div class="title">套票與會籍</div></div>
+
+  <div class="wrap">
+    <div class="pass-hero">
+      <h1>🎟️ ZenPass 靈活套票與會籍方案</h1>
+      <p>買得越多越抵！一個 Pass 通行全港百款新興運動與體驗課堂，彈性扣點，無隱藏收費。</p>
+      <div class="pass-trust"><span>⏳ 無時間限制</span><span>👥 可與朋友共用點數</span><span>📍 不限場館及項目</span></div>
+    </div>
+
+    <div class="pass-tabs" role="tablist">
+      <button class="pass-tab is-active" id="tabPass" type="button" role="tab" aria-selected="true">🎟️ 靈活 Pass 點數包</button>
+      <button class="pass-tab" id="tabMember" type="button" role="tab" aria-selected="false">💳 月度通行會籍</button>
+    </div>
+
+    <section id="panePass">
+      <div class="pack-grid" id="packGrid">
+        <article class="pack" data-pack="starter">
+          <h3>新手體驗 Pack</h3>
+          <div class="meta">5 堂 / 50 點</div>
+          <div class="price">HK$600<small>/ 5 堂</small></div>
+          <div class="avg">平均 HK$120 / 堂</div>
+          <span class="save">原價 $750，立省 HK$150</span>
+          <ul><li>適合想試玩 2–3 種新興運動嘅新手</li><li>點數可分次使用，無需一次用完</li></ul>
+          <button class="btn btn-secondary btn-block" data-buy="starter" type="button">選擇購買</button>
+        </article>
+
+        <article class="pack hot" data-pack="popular">
+          <span class="pack-badge">🔥 最多人選擇</span>
+          <h3>熱門超值 Pack</h3>
+          <div class="meta">10 堂 / 100 點</div>
+          <div class="price">HK$1,080<small>/ 10 堂</small></div>
+          <div class="avg">平均 HK$108 / 堂 · 相當於 72 折</div>
+          <span class="save">原價 $1,500，立省 HK$420</span>
+          <ul><li>加送 1 堂免費好友體驗券</li><li>可 2 人共用帳號扣點</li></ul>
+          <button class="btn btn-primary btn-block" data-buy="popular" type="button">立即以 72 折購買</button>
+        </article>
+
+        <article class="pack" data-pack="pro">
+          <h3>運動達人 Pack</h3>
+          <div class="meta">20 堂 / 200 點</div>
+          <div class="price">HK$1,920<small>/ 20 堂</small></div>
+          <div class="avg">平均 HK$96 / 堂 · 低至 64 折</div>
+          <span class="save">原價 $3,000，立省 HK$1,080</span>
+          <ul><li>優先預約熱門課堂</li><li>免費取消退回點數</li></ul>
+          <button class="btn btn-secondary btn-block" data-buy="pro" type="button">選擇購買</button>
+        </article>
+      </div>
+
+      <div class="section-title">點數點樣扣？</div>
+      <div class="usage-list">
+        <div class="usage-row"><span class="dot" style="background:#10b981"></span><div><b>🟢 普通體驗班</b><br><span>如：布袋球、身心伸展</span></div><div class="pts">10 點</div></div>
+        <div class="usage-row"><span class="dot" style="background:#3b82f6"></span><div><b>🔵 進階 / 熱門班</b><br><span>如：芬蘭木柱、地板冰壺</span></div><div class="pts">12 點</div></div>
+        <div class="usage-row"><span class="dot" style="background:#8b5cf6"></span><div><b>🟣 小班 / 星級教練班</b><br><span>如：空中瑜伽、擊劍</span></div><div class="pts">15 點</div></div>
+      </div>
+      <div class="calc-mini">
+        <label for="calcType">算算看：以你嘅 Pass 可以上幾多堂？</label>
+        <select id="calcType">
+          <option value="10">🟢 普通體驗班（10 點）</option>
+          <option value="12">🔵 進階 / 熱門班（12 點）</option>
+          <option value="15">🟣 小班 / 星級教練班（15 點）</option>
+        </select>
+        <input id="calcCredits" type="number" min="10" step="10" value="100" inputmode="numeric" placeholder="你嘅點數（例：100）" />
+        <div class="calc-out" id="calcOut">大約可以上 10 堂<small>以 100 點、每堂 10 點計算</small></div>
+      </div>
+    </section>
+
+    <section id="paneMember" hidden>
+      <div class="pack-grid">
+        <article class="pack">
+          <h3>輕量 Pass</h3><div class="meta">每月 37 Credits</div>
+          <div class="price">HK$299<small>/ 月</small></div>
+          <ul><li>約 3 堂 / 月</li><li>自由取消（開課前一日）</li></ul>
+          <a class="btn btn-secondary btn-block" href="membership.html">查看詳情</a>
+        </article>
+        <article class="pack hot">
+          <h3>標準 Pass</h3><div class="meta">每月 100 Credits</div>
+          <div class="price">HK$799<small>/ 月</small></div>
+          <ul><li>約 8 堂 / 月</li><li>優先預約 + 會員價</li></ul>
+          <a class="btn btn-primary btn-block" href="membership.html">查看詳情</a>
+        </article>
+        <article class="pack">
+          <h3>高階 / VIP Pass</h3><div class="meta">237 – 362 Credits</div>
+          <div class="price">HK$1,899<small> 起 / 月</small></div>
+          <ul><li>高階 237cr / VIP 362cr</li><li>早鳥 + 專屬活動</li></ul>
+          <a class="btn btn-secondary btn-block" href="membership.html">查看詳情</a>
+        </article>
+      </div>
+    </section>
+
+    <div class="section-title">常見問題</div>
+    <div class="faq">
+      <details><summary>買了 Pass 可以跟朋友一起用嗎？</summary><p>可以！「熱門超值 Pack」及以上支援一帳號同行扣點。</p></details>
+      <details><summary>點數有使用期限嗎？</summary><p>點數有效期長達 12 個月，未用完可申請展延。</p></details>
+      <details><summary>預約課堂後臨時有事可以取消嗎？</summary><p>上課前 24 小時免費取消並全數退回點數。</p></details>
+    </div>
+
+    <div class="spacer"></div>
+  </div>
+
+  <div class="sticky-buy" id="stickyBuy">
+    <div class="sticky-inner">
+      <div class="info"><b id="sbName">未選擇方案</b><span id="sbPrice"></span></div>
+      <button class="btn btn-primary" id="sbGo" type="button">前往結賬</button>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="payModal" hidden>
+    <div class="modal-card">
+      <h3 id="pmTitle">結賬</h3>
+      <p class="sub" id="pmSub"></p>
+      <div class="pay-info" id="pmInfo"></div>
+      <select id="pmMethod">
+        <option value="fps">轉數快 FPS / 銀行轉賬</option>
+        <option value="payme">PayMe</option>
+      </select>
+      <input id="pmRef" placeholder="付款參考編號（交易編號）" />
+      <div class="modal-actions">
+        <button class="btn btn-ghost" id="pmCancel" type="button">取消</button>
+        <button class="btn btn-primary" id="pmSubmit" type="button">提交付款核實</button>
+      </div>
+      <p class="muted center" id="pmMsg" style="font-size:12px;margin:10px 0 0;min-height:16px"></p>
+    </div>
+  </div>
+
+  <nav class="bottomnav">
+    <a href="index.html"><span class="ic">🏠</span>主頁</a>
+    <a href="explore.html"><span class="ic">🔍</span>探索</a>
+    <a href="my-bookings.html"><span class="ic">📅</span>預約</a>
+    <a href="my.html"><span class="ic">🎫</span>我的</a>
+  </nav>
+
+  <script src="assets/api.js"></script>
+  <script>
+    (function () {
+      var PACKS = {};
+      var selected = null;
+      var PAY = {};
+      var $ = function (id) { return document.getElementById(id); };
+
+      fetch("/api/credits/pass-packs").then(function (r) { return r.json(); }).then(function (d) {
+        if (d && d.success) {
+          (d.data.packs || []).forEach(function (p) { PACKS[p.id] = p; });
+          PAY = d.data.pay || {};
+        }
+      }).catch(function () {});
+
+      function selectPack(id) {
+        selected = PACKS[id] || { id: id, name: id, amount_hkd: 0 };
+        document.querySelectorAll(".pack[data-pack]").forEach(function (el) {
+          el.classList.toggle("is-on", el.getAttribute("data-pack") === id);
+        });
+        $("sbName").textContent = selected.name;
+        $("sbPrice").textContent = "HK$" + Number(selected.amount_hkd).toLocaleString("en-HK") + " · " + (selected.note || "");
+        $("stickyBuy").classList.add("show");
+      }
+
+      document.querySelectorAll("[data-buy]").forEach(function (b) {
+        b.addEventListener("click", function () { selectPack(b.getAttribute("data-buy")); });
+      });
+
+      $("tabPass").addEventListener("click", function () {
+        $("panePass").hidden = false; $("paneMember").hidden = true;
+        this.classList.add("is-active"); $("tabMember").classList.remove("is-active");
+        this.setAttribute("aria-selected", "true"); $("tabMember").setAttribute("aria-selected", "false");
+      });
+      $("tabMember").addEventListener("click", function () {
+        $("panePass").hidden = true; $("paneMember").hidden = false;
+        this.classList.add("is-active"); $("tabPass").classList.remove("is-active");
+        this.setAttribute("aria-selected", "true"); $("tabPass").setAttribute("aria-selected", "false");
+        $("stickyBuy").classList.remove("show");
+      });
+
+      function calc() {
+        var cost = Number($("calcType").value) || 10;
+        var credits = Number($("calcCredits").value) || 0;
+        var n = Math.floor(credits / cost);
+        $("calcOut").innerHTML = "大約可以上 " + n + " 堂<small>以 " + credits + " 點、每堂 " + cost + " 點計算</small>";
+      }
+      $("calcType").addEventListener("change", calc);
+      $("calcCredits").addEventListener("input", calc);
+      calc();
+
+      $("sbGo").addEventListener("click", function () {
+        if (!selected) return;
+        $("pmTitle").textContent = "結賬：" + selected.name;
+        $("pmSub").textContent = "HK$" + Number(selected.amount_hkd).toLocaleString("en-HK") + " · " + (selected.note || "");
+        $("pmMsg").textContent = "";
+        $("pmRef").value = "";
+        $("pmInfo").innerHTML = "轉數快：HSBC 741-293856-838（香港康樂及體育有限公司）<br>PayMe：請用 PayMe 掃碼／轉賬至同一個商戶";
+        $("payModal").hidden = false;
+      });
+      $("pmCancel").addEventListener("click", function () { $("payModal").hidden = true; });
+      $("pmSubmit").addEventListener("click", async function () {
+        var ref = $("pmRef").value.trim();
+        var method = $("pmMethod").value;
+        if (ref.length < 3) { $("pmMsg").textContent = "請填寫付款參考編號"; return; }
+        if (!api.requireLogin("pass.html")) return;
+        var btn = $("pmSubmit"); btn.disabled = true; btn.textContent = "提交中…";
+        var r = await api.post("/credits/pass-order", { pack: selected.id, method: method, reference: ref });
+        btn.disabled = false; btn.textContent = "提交付款核實";
+        if (r.ok && r.data && r.data.success) {
+          $("pmMsg").innerHTML = "✅ 已提交！管理員確認收款後，<b>" + r.data.data.credits_to_add + " 點</b>會自動入賬到你的錢包。";
+          $("pmRef").value = "";
+          setTimeout(function () { $("payModal").hidden = true; }, 2200);
+        } else {
+          $("pmMsg").textContent = (r.data && r.data.error) || "提交失敗，請重試";
+        }
+      });
+    })();
+  </script>
+  <script src="assets/footer.js?v=4" defer></script>
+</body>
+</html>

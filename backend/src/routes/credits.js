@@ -128,6 +128,64 @@ router.post("/topup", authenticateToken, (req, res) => {
   }
 });
 
+
+// ===== 套票 Pass（2026-10-20）=====
+const PASS_PACKS = {
+  starter: { id: "starter", name: "新手體驗 Pack", amount_hkd: 600, credits: 50, bonus: 0, classes: 5, note: "5 堂 / 50 點" },
+  popular: { id: "popular", name: "熱門超值 Pack", amount_hkd: 1080, credits: 100, bonus: 10, classes: 10, note: "10 堂 / 100 點（送 1 堂好友體驗）" },
+  pro: { id: "pro", name: "運動達人 Pack", amount_hkd: 1920, credits: 200, bonus: 0, classes: 20, note: "20 堂 / 200 點" },
+};
+
+router.get("/pass-packs", (req, res) => {
+  const packs = Object.values(PASS_PACKS).map((p) => ({
+    ...p,
+    total_credits: p.credits + p.bonus,
+    per_class_hkd: Math.round(p.amount_hkd / p.classes),
+  }));
+  res.json({ success: true, data: { packs, pay: PAY_INFO } });
+});
+
+router.post("/pass-order", authenticateToken, (req, res) => {
+  try {
+    const { pack, method = "fps", reference } = req.body || {};
+    const p = PASS_PACKS[String(pack || "")];
+    if (!p) return res.status(400).json({ success: false, error: "套票方案無效" });
+    if (!PAY_INFO[method]) return res.status(400).json({ success: false, error: "付款方式無效" });
+    if (!reference || String(reference).trim().length < 3) {
+      return res.status(400).json({ success: false, error: "請填寫轉數快／PayMe 參考編號" });
+    }
+    const db = getDb();
+    const id = uuidv4();
+    db.prepare(
+      `INSERT INTO credit_topup_orders (id, user_id, amount_hkd, original_amount_hkd, discount_percent, credits, bonus_credits, method, reference, status, note)
+       VALUES (?, ?, ?, ?, 0, ?, ?, ?, ?, 'pending', ?)`,
+    ).run(id, req.user.id, p.amount_hkd, p.amount_hkd, p.credits, p.bonus, method, String(reference).trim(), `pass:${p.id} ${p.note}`);
+
+    try {
+      const { sendNotification } = require("../services/notification");
+      sendNotification("credits.topup_request", {
+        recipient: req.user.id,
+        data: { amount: p.amount_hkd, credits: p.credits + p.bonus, method, reference, pack: p.name },
+      });
+    } catch (e) {}
+
+    res.status(201).json({
+      success: true,
+      message: "✅ 已提交套票訂單，管理員確認收款後點數會自動入賬",
+      data: {
+        order_id: id,
+        pack: p,
+        credits_to_add: p.credits + p.bonus,
+        status: "pending",
+        pay: PAY_INFO[method],
+      },
+    });
+  } catch (err) {
+    console.error("credits/pass-order error:", err.message);
+    res.status(500).json({ success: false, error: "提交失敗" });
+  }
+});
+
 // ===== GET /api/credits/orders — 我嘅增值紀錄 =====
 router.get("/orders", authenticateToken, (req, res) => {
   try {
