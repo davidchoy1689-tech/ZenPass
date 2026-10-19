@@ -319,10 +319,18 @@ function updateOwnVenue(userId, body) {
 
   if (body && body.rental_price_per_hour !== undefined) {
     const price = Number(body.rental_price_per_hour);
-    if (!Number.isFinite(price) || price < 100 || price > 3000) {
+    const exception = Number(venue.rental_price_exception);
+    const inRange = Number.isFinite(price) && price >= 100 && price <= 3000;
+    const isApprovedException =
+      Number.isFinite(exception) && exception > 0 && Math.abs(price - exception) < 0.01;
+    if (!inRange && !isApprovedException) {
       return {
         status: 400,
-        body: { success: false, error: "每小時租金必須介乎 HK$100–3,000" },
+        body: {
+          success: false,
+          code: "OUT_OF_RANGE",
+          error: "每小時租金必須介乎 HK$100–3,000；超出範圍請提交申請，由管理員審批。",
+        },
       };
     }
     updates.push("rental_price_per_hour = ?");
@@ -346,6 +354,174 @@ function updateOwnVenue(userId, body) {
   } catch (e) {}
 
   return getOwnVenue(userId);
+}
+
+// ===== 超出範圍租金：商戶申請 / 管理員審批 =====
+const RENTAL_PRICE_MIN = 100;
+const RENTAL_PRICE_MAX = 3000;
+const RENTAL_PRICE_REQUEST_MAX = 50000;
+
+function createRentalPriceRequest(userId, body) {
+  const venue = _getUserVenue(userId);
+  if (!venue || venue.status !== "active") {
+    return { status: 403, body: { success: false, error: "你未有已開通嘅商戶戶口" } };
+  }
+
+  const price = Number(body && body.requested_price);
+  if (!Number.isFinite(price) || price <= 0 || price > RENTAL_PRICE_REQUEST_MAX) {
+    return { status: 400, body: { success: false, error: `申請金額必須介乎 HK$1–${RENTAL_PRICE_REQUEST_MAX}` } };
+  }
+  if (price >= RENTAL_PRICE_MIN && price <= RENTAL_PRICE_MAX) {
+    return {
+      status: 400,
+      body: { success: false, code: "IN_RANGE", error: "呢個金額喺標準範圍內，可以直接儲存，毋須申請。" },
+    };
+  }
+
+  const db = getDb();
+  const pending = db
+    .prepare("SELECT id FROM rental_price_requests WHERE venue_id = ? AND status = 'pending'")
+    .get(venue.id);
+  if (pending) {
+    return { status: 409, body: { success: false, error: "你已有一個待審批嘅租金申請，請等管理員處理。" } };
+  }
+
+  const id = uuidv4();
+  const reason = String((body && body.reason) || "").trim().slice(0, 500) || null;
+  db.prepare(
+    `INSERT INTO rental_price_requests (id, venue_id, user_id, requested_price, reason, status)
+     VALUES (?, ?, ?, ?, ?, 'pending')`,
+  ).run(id, venue.id, userId, Math.round(price * 100) / 100, reason);
+
+  try {
+    const { sendNotification } = require("./notification");
+    const admins = db
+      .prepare("SELECT id FROM users WHERE role IN ('admin','super_admin','platform_manager')")
+      .all();
+    for (const a of admins) {
+      sendNotification("partner.rental_price_request", {
+        recipient: a.id,
+        data: { venue_name: venue.name, requested_price: Math.round(price * 100) / 100, reason },
+      });
+    }
+  } catch (e) {}
+
+  return {
+    status: 201,
+    body: {
+      success: true,
+      message: "✅ 已提交申請，管理員審批後會自動更新租金。",
+      data: { id, requested_price: Math.round(price * 100) / 100, status: "pending" },
+    },
+  };
+}
+
+function listOwnRentalPriceRequests(userId) {
+  const venue = _getUserVenue(userId);
+  if (!venue || venue.status !== "active") {
+    return { status: 403, body: { success: false, error: "你未有已開通嘅商戶戶口" } };
+  }
+  const rows = getDb()
+    .prepare(
+      `SELECT id, requested_price, reason, status, admin_note, created_at, reviewed_at
+       FROM rental_price_requests WHERE venue_id = ? ORDER BY created_at DESC LIMIT 10`,
+    )
+    .all(venue.id);
+  return {
+    status: 200,
+    body: {
+      success: true,
+      data: {
+        requests: rows,
+        current_price: require("./rental-pricing").hourlyRateForVenue(venue),
+        range: { min: RENTAL_PRICE_MIN, max: RENTAL_PRICE_MAX },
+      },
+    },
+  };
+}
+
+function adminListRentalPriceRequests(status) {
+  const db = getDb();
+  const where = status ? "WHERE r.status = ?" : "WHERE r.status = 'pending'";
+  const rows = db
+    .prepare(
+      `SELECT r.*, v.name AS venue_name, u.name AS user_name, u.email AS user_email
+       FROM rental_price_requests r
+       JOIN partner_venues v ON r.venue_id = v.id
+       JOIN users u ON r.user_id = u.id
+       ${where} ORDER BY r.created_at ASC LIMIT 100`,
+    )
+    .all(...(status ? [status] : []));
+  return { status: 200, body: { success: true, data: rows } };
+}
+
+function adminReviewRentalPriceRequest(adminId, requestId, body) {
+  const db = getDb();
+  const action = body && body.action;
+  if (!["approve", "reject"].includes(action)) {
+    return { status: 400, body: { success: false, error: "action 必須係 approve 或 reject" } };
+  }
+
+  const reqRow = db.prepare("SELECT * FROM rental_price_requests WHERE id = ?").get(requestId);
+  if (!reqRow) return { status: 404, body: { success: false, error: "申請不存在" } };
+  if (reqRow.status !== "pending") {
+    return { status: 409, body: { success: false, error: "此申請已處理" } };
+  }
+
+  const note = String((body && body.note) || "").trim().slice(0, 500) || null;
+  const venue = db.prepare("SELECT id, name FROM partner_venues WHERE id = ?").get(reqRow.venue_id);
+
+  const tx = db.transaction(() => {
+    db.prepare(
+      `UPDATE rental_price_requests SET status = ?, admin_id = ?, admin_note = ?, reviewed_at = datetime('now')
+       WHERE id = ? AND status = 'pending'`,
+    ).run(action === "approve" ? "approved" : "rejected", adminId, note, requestId);
+
+    if (action === "approve") {
+      db.prepare(
+        `UPDATE partner_venues SET rental_price_per_hour = ?, rental_price_exception = ?, updated_at = datetime('now')
+         WHERE id = ?`,
+      ).run(reqRow.requested_price, reqRow.requested_price, reqRow.venue_id);
+    }
+  });
+  tx();
+
+  try {
+    writeBlock({
+      entityType: "rental_price_request",
+      entityId: requestId,
+      data: {
+        action,
+        venue_id: reqRow.venue_id,
+        requested_price: reqRow.requested_price,
+        admin_id: adminId,
+        note,
+      },
+    });
+  } catch (e) {}
+
+  try {
+    const { sendNotification } = require("./notification");
+    sendNotification("partner.rental_price_result", {
+      recipient: reqRow.user_id,
+      data: {
+        venue_name: venue ? venue.name : "",
+        status: action,
+        requested_price: reqRow.requested_price,
+        note: note || "",
+      },
+    });
+  } catch (e) {}
+
+  return {
+    status: 200,
+    body: {
+      success: true,
+      message: action === "approve" ? "✅ 已批准，場地租金已更新" : "已拒絕申請",
+      venue_name: venue ? venue.name : "",
+      requested_price: reqRow.requested_price,
+    },
+  };
 }
 
 function revenueReport(userId, query) {
@@ -1280,6 +1456,10 @@ module.exports = {
   // Venue settings (partner self-service)
   getOwnVenue,
   updateOwnVenue,
+  createRentalPriceRequest,
+  listOwnRentalPriceRequests,
+  adminListRentalPriceRequests,
+  adminReviewRentalPriceRequest,
   revenueReport,
   partnerBookings,
 

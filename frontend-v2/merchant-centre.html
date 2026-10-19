@@ -105,6 +105,17 @@
           <button class="btn btn-primary mini" id="rentalPriceSave">儲存租金</button>
           <span class="muted" id="rentalPriceMsg" style="font-size:12px"></span>
         </div>
+        <div id="priceReqBox" style="display:none;margin-top:12px;border-top:1px solid var(--border);padding-top:10px">
+          <b style="font-size:13px">🏷️ 申請超出範圍租金</b>
+          <div class="muted" style="font-size:12px">標準範圍 HK$100–3,000／小時；超出範圍需提交申請，由管理員審批。</div>
+          <div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap">
+            <input class="fld" id="priceReqValue" type="number" min="1" max="50000" step="10" placeholder="申請金額" style="width:130px" />
+            <input class="fld" id="priceReqReason" placeholder="原因（例如：含器材租借／教練駐場）" style="flex:1;min-width:180px" />
+            <button class="btn btn-secondary mini" id="priceReqSubmit">提交申請</button>
+          </div>
+          <div class="muted" id="priceReqMsg" style="font-size:12px;margin-top:6px"></div>
+          <div id="priceReqList" class="muted" style="font-size:12px;margin-top:6px"></div>
+        </div>
       </div></div>
 
       <div class="section-title">🏟️ 租場管理</div>
@@ -358,11 +369,41 @@
       if (!r.ok || !r.data || !r.data.data) return;
       const v = r.data.data;
       $("rentalPrice").value = v.rental_price_per_hour || 300;
+      loadPriceRequests();
+    }
+    async function loadPriceRequests() {
+      const r = await api.get("/partner/venue/price-request");
+      if (!r.ok || !r.data || !r.data.data) return;
+      const list = (r.data.data.requests || []).slice(0, 3);
+      if (!list.length) { $("priceReqList").innerHTML = ""; return; }
+      const stTxt = { pending: "⏳ 待審批", approved: "✅ 已批准", rejected: "❌ 已拒絕", cancelled: "已取消" };
+      $("priceReqList").innerHTML = list.map(x =>
+        `<div>${stTxt[x.status] || x.status} · HK$${hkd(x.requested_price)}/小時${x.admin_note ? " · " + esc(x.admin_note) : ""}</div>`
+      ).join("");
+      if (list.some(x => x.status === "pending")) {
+        $("priceReqBox").style.display = "block";
+        $("priceReqMsg").textContent = "已提交申請，等待管理員審批。";
+      }
+    }
+    async function submitPriceRequest() {
+      const price = Number($("priceReqValue").value);
+      const reason = $("priceReqReason").value.trim();
+      if (!price || price <= 0) { $("priceReqMsg").textContent = "請輸入申請金額"; return; }
+      const btn = $("priceReqSubmit");
+      btn.disabled = true;
+      const r = await api.post("/partner/venue/price-request", { requested_price: price, reason });
+      btn.disabled = false;
+      $("priceReqMsg").textContent = r.ok
+        ? ((r.data && r.data.message) || "✅ 已提交申請")
+        : ((r.data && r.data.error) || "提交失敗");
+      if (r.ok) loadPriceRequests();
     }
     async function saveRentalPrice() {
       const price = Number($("rentalPrice").value);
       if (!price || price < 100 || price > 3000) {
-        $("rentalPriceMsg").textContent = "請輸入 HK$100–3,000";
+        $("rentalPriceMsg").textContent = "超出標準範圍 → 請提交申請";
+        $("priceReqBox").style.display = "block";
+        $("priceReqValue").value = price || "";
         return;
       }
       const btn = $("rentalPriceSave");
@@ -376,6 +417,8 @@
     document.addEventListener("DOMContentLoaded", () => {
       const b = $("rentalPriceSave");
       if (b) b.onclick = saveRentalPrice;
+      const s = $("priceReqSubmit");
+      if (s) s.onclick = submitPriceRequest;
     });
 
     async function loadRentals() {

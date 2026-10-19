@@ -232,6 +232,8 @@ CREATE TABLE IF NOT EXISTS users (
 
   // ===== 兼容升級：partner_venues 每小時租金（由商戶後台設定）=====
   try { db.exec("ALTER TABLE partner_venues ADD COLUMN rental_price_per_hour REAL DEFAULT 300"); } catch (e) { /* exists */ }
+  // 超出標準範圍而獲批嘅租金（admin 審批後寫入）
+  try { db.exec("ALTER TABLE partner_venues ADD COLUMN rental_price_exception REAL"); } catch (e) { /* exists */ }
 
   // ===== 兼容升級：classes.booking_open（是否開放預約）=====
   try { db.exec("ALTER TABLE classes ADD COLUMN booking_open INTEGER DEFAULT 0"); } catch (e) { /* exists */ }
@@ -1682,6 +1684,24 @@ CREATE TABLE IF NOT EXISTS users (
       FOREIGN KEY (user_id) REFERENCES users(id)
     );
     CREATE INDEX IF NOT EXISTS idx_topup_orders_status ON credit_topup_orders(status);
+
+    -- 租場租金超出標準範圍 → 商戶申請，admin 審批（2026-10-19）
+    CREATE TABLE IF NOT EXISTS rental_price_requests (
+      id TEXT PRIMARY KEY,
+      venue_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      requested_price REAL NOT NULL,
+      reason TEXT,
+      status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','approved','rejected','cancelled')),
+      admin_id TEXT,
+      admin_note TEXT,
+      created_at TEXT DEFAULT (datetime('now')),
+      reviewed_at TEXT,
+      FOREIGN KEY (venue_id) REFERENCES partner_venues(id),
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_rental_price_req_status ON rental_price_requests(status);
+    CREATE INDEX IF NOT EXISTS idx_rental_price_req_venue ON rental_price_requests(venue_id);
 
     CREATE TABLE IF NOT EXISTS mutual_reviews (
       id TEXT PRIMARY KEY,

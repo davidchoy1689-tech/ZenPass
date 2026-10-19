@@ -134,6 +134,47 @@ const ok = (c, m) => { if (c) console.log("  ✅ " + m); else { console.log("  �
   });
   ok(book3.statusCode === 200 && Number(book3.body.price_hkd) === 1100, `新價生效：2 小時 = 1100（got ${book3.body && book3.body.price_hkd}）`);
 
+  // ===== 4c. 超出範圍 → 申請 → admin 審批 =====
+  const reqPost = pick(partner, "/venue/price-request", "post");
+  const reqGet = pick(partner, "/venue/price-request", "get");
+  const adminList = pick(partner, "/admin/rental-price-requests", "get");
+  const adminReview = pick(partner, "/admin/rental-price-requests/:id/review", "post");
+
+  const inRangeReq = await call(reqPost, { id: "coach1" }, { requested_price: 500, reason: "測試" });
+  ok(inRangeReq.statusCode === 400 && inRangeReq.body.code === "IN_RANGE", "範圍內金額唔需要申請（400 IN_RANGE）");
+
+  const bigReq = await call(reqPost, { id: "coach1" }, { requested_price: 6000, reason: "含器材及教練駐場" });
+  ok(bigReq.statusCode === 201, `超範圍申請成功（got ${bigReq.statusCode}）`);
+  const reqId = bigReq.body.data.id;
+  ok(db.prepare("SELECT status FROM rental_price_requests WHERE id=?").get(reqId).status === "pending", "申請狀態 = pending");
+
+  const dupReq = await call(reqPost, { id: "coach1" }, { requested_price: 8000, reason: "重複" });
+  ok(dupReq.statusCode === 409, "已有待審批申請 → 409");
+
+  const ownList = await call(reqGet, { id: "coach1" }, {});
+  ok(ownList.statusCode === 200 && ownList.body.data.requests.length === 1, "商戶睇到自己嘅申請");
+
+  const pList = await call(adminList, { id: "admin1", role: "admin" }, {}, {});
+  ok(pList.statusCode === 200 && pList.body.data.length === 1, "admin 睇到待審批申請");
+
+  const approve = await call(adminReview, { id: "admin1", role: "admin" }, { action: "approve", note: "OK" }, { id: reqId });
+  ok(approve.statusCode === 200, `admin 批准（got ${approve.statusCode}）`);
+  const vrow = db.prepare("SELECT rental_price_per_hour, rental_price_exception FROM partner_venues WHERE id='v1'").get();
+  ok(Number(vrow.rental_price_per_hour) === 6000 && Number(vrow.rental_price_exception) === 6000, "批准後場地租金 = 6000（例外已記錄）");
+  ok(db.prepare("SELECT status FROM rental_price_requests WHERE id=?").get(reqId).status === "approved", "申請狀態 = approved");
+
+  const rePutSame = await call(putVenue, { id: "coach1" }, { rental_price_per_hour: 6000 });
+  ok(rePutSame.statusCode === 200, "已批核例外價可以再儲存");
+  const rePutOther = await call(putVenue, { id: "coach1" }, { rental_price_per_hour: 7000 });
+  ok(rePutOther.statusCode === 400, "未批核嘅超範圍價 → 400");
+
+  const book4start = new Date(Date.now() + 5 * 86400000); book4start.setMinutes(0, 0, 0);
+  const book4end = new Date(book4start.getTime() + 3600000);
+  const book4 = await call(bookHandler, { id: "coach1", role: "coach" }, {
+    venue_id: "v1", start_time: book4start.toISOString(), end_time: book4end.toISOString(),
+  });
+  ok(book4.statusCode === 200 && Number(book4.body.price_hkd) === 6000, `例外價用於新預約：1 小時 = 6000（got ${book4.body && book4.body.price_hkd}）`);
+
   // ===== 5. venue-rentals/:id/pay 用合法 wallet type =====
   const payHandler = pick(vr, "/:id/pay");
   const pay1 = await call(payHandler, { id: "coach1", role: "coach" }, {}, { id: "r1" });

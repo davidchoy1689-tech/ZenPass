@@ -86,6 +86,28 @@ router.put("/venue", authenticateToken, requireOwnInstitution, (req, res) => {
   }
 });
 
+// ===== 超出範圍租金：商戶提交申請 =====
+router.post("/venue/price-request", authenticateToken, requireOwnInstitution, (req, res) => {
+  try {
+    const result = partnerService.createRentalPriceRequest(req.user.id, req.body || {});
+    return res.status(result.status).json(result.body);
+  } catch (err) {
+    console.error("❌ partner/venue/price-request POST error:", err.message);
+    return serverError(res, "提交租金申請失敗");
+  }
+});
+
+// ===== 商戶查自己嘅租金申請 =====
+router.get("/venue/price-request", authenticateToken, requireOwnInstitution, (req, res) => {
+  try {
+    const result = partnerService.listOwnRentalPriceRequests(req.user.id);
+    return res.status(result.status).json(result.body);
+  } catch (err) {
+    console.error("❌ partner/venue/price-request GET error:", err.message);
+    return serverError(res, "載入租金申請失敗");
+  }
+});
+
 // ===== GET /api/partner/revenue-report =====
 router.get("/revenue-report", authenticateToken, requireOwnInstitution, (req, res) => {
   try {
@@ -465,6 +487,27 @@ router.put("/admin/partner/:id", authenticateToken, requireRole("admin"), (req, 
   } catch (err) {
     console.error("❌ admin/partner update error:", err.message);
     return serverError(res, "更新商戶設定失敗");
+  }
+});
+
+// ===== 管理員：超出標準範圍租金申請 =====
+router.get("/admin/rental-price-requests", authenticateToken, requireRole("admin"), (req, res) => {
+  try {
+    const result = partnerService.adminListRentalPriceRequests(req.query.status);
+    return res.status(result.status).json(result.body);
+  } catch (err) {
+    console.error("❌ admin/rental-price-requests error:", err.message);
+    return serverError(res, "載入租金申請失敗");
+  }
+});
+
+router.post("/admin/rental-price-requests/:id/review", authenticateToken, requireRole("admin"), (req, res) => {
+  try {
+    const result = partnerService.adminReviewRentalPriceRequest(req.user.id, req.params.id, req.body || {});
+    return res.status(result.status).json(result.body);
+  } catch (err) {
+    console.error("❌ admin/rental-price-requests review error:", err.message);
+    return serverError(res, "處理租金申請失敗");
   }
 });
 

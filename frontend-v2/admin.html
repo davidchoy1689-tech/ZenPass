@@ -380,11 +380,19 @@
     }
 
     async function partnersTab() {
-      const [pl, ap] = await Promise.all([api.get("/partner/admin/partner-list"), api.get("/partner/admin/partner-applications")]);
+      const [pl, ap, rq] = await Promise.all([
+        api.get("/partner/admin/partner-list"),
+        api.get("/partner/admin/partner-applications"),
+        api.get("/partner/admin/rental-price-requests"),
+      ]);
       if (pl.status === 401 || pl.status === 403) return needAdmin();
       const arr = (pl.data && pl.data.data) || [];
       const apps = (ap.data && ap.data.data) || [];
+      const reqs = (rq && rq.data && rq.data.data) || [];
       let html = "";
+      if (reqs.length) {
+        html += `<div class="card" style="margin-bottom:10px"><div class="body"><b>🏷️ 租金超出範圍申請（${reqs.length}）</b>${reqs.map(r => `<div class="row"><span>${esc2(r.venue_name)}<div class="kv">申請 HK$${esc2(r.requested_price)}/小時${r.reason ? " · " + esc2(r.reason) : ""}</div></span><span style="white-space:nowrap"><button class="btn btn-primary" data-rq="approve" data-rid="${esc2(r.id)}">批准</button> <button class="btn btn-ghost" data-rq="reject" data-rid="${esc2(r.id)}">拒絕</button></span></div>`).join("")}</div></div>`;
+      }
       if (apps.length) {
         html += `<div class="card" style="margin-bottom:10px"><div class="body"><b>待審批申請（${apps.length}）</b>${apps.map(a => `<div class="row"><span>${esc2(a.name)}<div class="kv">${esc2(a.email||"")} ${esc2([a.category,a.district].filter(Boolean).join(" · "))}</div></span><span style="white-space:nowrap"><button class="btn btn-primary" data-pa="accept" data-vid="${esc2(a.id)}">批准</button> <button class="btn btn-ghost" data-pa="reject" data-vid="${esc2(a.id)}">拒絕</button></span></div>`).join("")}</div></div>`;
       }
@@ -393,7 +401,15 @@
       panel().innerHTML = html;
       panel().querySelectorAll("[data-pid]").forEach(el => el.onclick = () => openPartner(el.dataset.pid));
       panel().querySelectorAll("[data-pa]").forEach(b => b.onclick = () => approvePartner(b.dataset.vid, b.dataset.pa));
+      panel().querySelectorAll("[data-rq]").forEach(b => b.onclick = () => reviewPriceRequest(b.dataset.rid, b.dataset.rq));
       document.getElementById("pp-payout").onclick = processPayouts;
+    }
+    async function reviewPriceRequest(id, action) {
+      const note = prompt((action === "approve" ? "批准" : "拒絕") + "呢個租金申請？可填備註（可留空）", "");
+      if (note === null) return;
+      const r = await api.post("/partner/admin/rental-price-requests/" + encodeURIComponent(id) + "/review", { action, note });
+      if (r.ok && r.data && r.data.success !== false) { alert((r.data && r.data.message) || "已處理"); load(); }
+      else alert((r.data && r.data.error) || "處理失敗");
     }
     async function approvePartner(venueId, action) {
       if (!confirm((action==="accept"?"通過":"拒絕") + "呢個商戶申請？")) return;

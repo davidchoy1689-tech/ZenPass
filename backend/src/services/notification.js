@@ -406,6 +406,16 @@ async function sendNotification(type, payload) {
       message = data?.message || "";
       html = `<h2>${data?.title || "ZenPass 通知"}</h2><p>${String(data?.message || "").replace(/\n/g, "<br>")}</p>`;
       break;
+    case "partner.rental_price_request":
+      title = "🏷️ 商戶租金申請";
+      message = `場地：${data?.venue_name || "—"}\n申請租金：HK$${data?.requested_price || 0}/小時\n原因：${data?.reason || "（未填）"}\n請去 Admin → 商戶 審批。`;
+      html = `<h2>🏷️ 商戶租金申請</h2><p><b>場地：</b>${data?.venue_name || "—"}<br><b>申請租金：</b>HK$${data?.requested_price || 0}/小時<br><b>原因：</b>${data?.reason || "（未填）"}</p>`;
+      break;
+    case "partner.rental_price_result":
+      title = data?.status === "approved" ? "✅ 租金申請已批准" : "❌ 租金申請未獲批";
+      message = `場地：${data?.venue_name || "—"}\n申請租金：HK$${data?.requested_price || 0}/小時${data?.note ? `\n備註：${data.note}` : ""}`;
+      html = `<h2>${data?.status === "approved" ? "✅ 租金申請已批准" : "❌ 租金申請未獲批"}</h2><p><b>場地：</b>${data?.venue_name || "—"}<br><b>申請租金：</b>HK$${data?.requested_price || 0}/小時${data?.note ? `<br><b>備註：</b>${data.note}` : ""}</p>`;
+      break;
     default:
       title = type;
       message = data?.message || "你有一則新通知";
