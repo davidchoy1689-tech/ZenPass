@@ -167,17 +167,29 @@
       return [];
     }
     const _DAYS = _targetDays();
+    // 將 DB 時間（UTC）轉香港時間，避免 date/time 篩選因時區出錯
+    function _hkt(s) {
+      if (!s) return null;
+      var iso = String(s);
+      if (!/Z|[+-]\d\d:?\d\d$/.test(iso)) iso = iso.replace(" ", "T") + "Z";
+      var d = new Date(iso);
+      if (isNaN(d)) return null;
+      var parts = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Asia/Hong_Kong", year: "numeric", month: "2-digit", day: "2-digit",
+        hour: "2-digit", hour12: false,
+      }).formatToParts(d);
+      var o = {};
+      parts.forEach(function (p) { o[p.type] = p.value; });
+      return { date: o.year + "-" + o.month + "-" + o.day, hour: Number(o.hour) };
+    }
     function inDate(c) {
       if (!DATEQ) return true;
-      const days = (c.schedules || []).map((x) => String(x.start_time || "").slice(0, 10));
+      const days = (c.schedules || []).map((x) => { const h = _hkt(x.start_time); return h && h.date; }).filter(Boolean);
       return days.some((d) => _DAYS.indexOf(d) >= 0);
     }
     function inTime(c) {
       if (TIMEQ !== "evening") return true;
-      return (c.schedules || []).some((x) => {
-        const d = new Date(String(x.start_time || "").replace(" ", "T"));
-        return !isNaN(d) && d.getHours() >= 18;
-      });
+      return (c.schedules || []).some((x) => { const h = _hkt(x.start_time); return h && h.hour >= 18; });
     }
 
     const ZONE = new URLSearchParams(location.search).get("zone") || "";
