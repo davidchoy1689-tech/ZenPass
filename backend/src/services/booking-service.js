@@ -175,12 +175,13 @@ function releaseExpiredHolds(db, scheduleId) {
   return expiredHolds;
 }
 
-function incrementEnrolledCount(db, scheduleId) {
+function incrementEnrolledCount(db, scheduleId, seats = 1) {
+  const n = Math.max(1, Number(seats) || 1);
   return db
     .prepare(
-      "UPDATE class_schedules SET enrolled_count = enrolled_count + 1 WHERE id = ? AND enrolled_count < max_participants",
+      "UPDATE class_schedules SET enrolled_count = enrolled_count + ? WHERE id = ? AND enrolled_count + ? <= max_participants",
     )
-    .run(scheduleId);
+    .run(n, scheduleId, n);
 }
 
 function findExistingBookingForUser(db, userId, scheduleId) {
@@ -342,12 +343,14 @@ function insertBookingRow(db, bookingData, partnerInfo) {
     paymentStatus,
     bookingStatus,
     amount,
+    groupSize = 1,
+    groupInviteCode = null,
   } = bookingData;
 
   if (partnerInfo) {
     db.prepare(
-      `INSERT INTO bookings (id, booking_reference, user_id, schedule_id, class_id, payment_type, payment_status, status, amount, venue_partner_id, platform_commission_rate, venue_earned_amount, platform_earned_amount)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO bookings (id, booking_reference, user_id, schedule_id, class_id, payment_type, payment_status, status, amount, venue_partner_id, platform_commission_rate, venue_earned_amount, platform_earned_amount, group_size, group_invite_code)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     ).run(
       bookingId,
       bookingRef,
@@ -362,11 +365,13 @@ function insertBookingRow(db, bookingData, partnerInfo) {
       partnerInfo.commissionRate,
       partnerInfo.venueEarned,
       partnerInfo.platformEarned,
+      groupSize,
+      groupInviteCode,
     );
   } else {
     db.prepare(
-      `INSERT INTO bookings (id, booking_reference, user_id, schedule_id, class_id, payment_type, payment_status, status, amount)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO bookings (id, booking_reference, user_id, schedule_id, class_id, payment_type, payment_status, status, amount, group_size, group_invite_code)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     ).run(
       bookingId,
       bookingRef,
@@ -377,6 +382,8 @@ function insertBookingRow(db, bookingData, partnerInfo) {
       paymentStatus,
       bookingStatus,
       amount,
+      groupSize,
+      groupInviteCode,
     );
   }
 
@@ -598,6 +605,12 @@ function createBooking(req, options = {}) {
     return { status: 400, body: { success: false, error: "付款方式無效" } };
   }
 
+  // 👥 三人同行（2026-10-20）：只限單次付款／Credits
+  const groupSize = Number(req.body.group_size) === 3 ? 3 : 1;
+  if (groupSize === 3 && !["single", "credits"].includes(payment_type)) {
+    return { status: 400, body: { success: false, error: "三人同行只適用於單次付款或 Credits" } };
+  }
+
   const db = getDb();
   db.pragma("foreign_keys = ON");
 
@@ -704,6 +717,7 @@ function createBooking(req, options = {}) {
   let partnerInfo = null;
   let corporateDeduction = null;
   let usedCredits = null;
+  let groupInviteCode = null;
   const clsPricing = db
     .prepare("SELECT price_hkd, credits_cost FROM classes WHERE id = ?")
     .get(class_id);
@@ -722,7 +736,7 @@ function createBooking(req, options = {}) {
     releaseExpiredHolds(db, schedule_id);
 
     // 5. Capacity check (atomic conditional update)
-    const capResult = incrementEnrolledCount(db, schedule_id);
+    const capResult = incrementEnrolledCount(db, schedule_id, groupSize);
     if (capResult.changes === 0) {
       throw new BookingFlowError({
         status: 400,
@@ -752,7 +766,9 @@ function createBooking(req, options = {}) {
 
     // 7. Payment processing
     if (payment_type === "credits") {
-      const result = deductCredits(db, req.user.id, class_id, creditsOverride, {
+      const baseCost = creditsOverride != null ? Number(creditsOverride) : Number(clsPricing && clsPricing.credits_cost) || 0;
+      const groupCost = Math.round(baseCost * groupSize * (groupSize === 3 ? 0.8 : 1) * 10) / 10;
+      const result = deductCredits(db, req.user.id, class_id, groupCost, {
         source: "booking",
         referenceId: bookingId,
         description: `預約課堂（${class_id}）`,
@@ -803,6 +819,15 @@ function createBooking(req, options = {}) {
     } else if (payment_type === "single" && !promoApply) {
       amount = Number(clsPricing && clsPricing.price_hkd) || 0;
     }
+    if (payment_type === "single" && groupSize === 3) {
+      amount = Math.round(amount * 3 * 0.8 * 100) / 100;
+    }
+    if (groupSize === 3 && !groupInviteCode) {
+      const abc = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+      let code = "ZP";
+      for (let i = 0; i < 5; i++) code += abc[Math.floor(Math.random() * abc.length)];
+      groupInviteCode = code;
+    }
 
     // 8. Partner commission
     partnerInfo = computePartnerCommission(db, class_id, amount || 0);
@@ -810,7 +835,7 @@ function createBooking(req, options = {}) {
     // 9. Create booking record
     insertBookingRow(
       db,
-      { bookingId, bookingRef, userId: req.user.id, scheduleId: schedule_id, classId: class_id, paymentType: payment_type, paymentStatus, bookingStatus, amount: amount || 0 },
+      { bookingId, bookingRef, userId: req.user.id, scheduleId: schedule_id, classId: class_id, paymentType: payment_type, paymentStatus, bookingStatus, amount: amount || 0, groupSize, groupInviteCode },
       partnerInfo,
     );
     if (promoApply) redeemPromo(db, promoApply.id, req.user.id, bookingId, amount);
@@ -922,6 +947,8 @@ function createBooking(req, options = {}) {
           }
         : null,
       corporate: corporateDeduction || null,
+      group_size: groupSize,
+      group_invite_code: groupInviteCode,
     },
   };
 }
@@ -1230,8 +1257,8 @@ function _processLateCancel(db, booking, hoursUntilClass, reason, req) {
     "UPDATE bookings SET status = 'cancelled', cancel_reason = ? WHERE id = ?",
   ).run(reason || null, booking.id);
   db.prepare(
-    "UPDATE class_schedules SET enrolled_count = MAX(0, enrolled_count - 1) WHERE id = ?",
-  ).run(booking.schedule_id);
+    "UPDATE class_schedules SET enrolled_count = MAX(0, enrolled_count - ?) WHERE id = ?",
+  ).run(Number(booking.group_size) || 1, booking.schedule_id);
 
   // Notify waitlist
   try {
@@ -1339,8 +1366,8 @@ function _processNormalCancel(db, booking, reason, req, feeRate) {
   } catch (e) {}
 
   db.prepare(
-    "UPDATE class_schedules SET enrolled_count = MAX(0, enrolled_count - 1) WHERE id = ?",
-  ).run(booking.schedule_id);
+    "UPDATE class_schedules SET enrolled_count = MAX(0, enrolled_count - ?) WHERE id = ?",
+  ).run(Number(booking.group_size) || 1, booking.schedule_id);
 
   // Notify waitlist
   try {

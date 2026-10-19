@@ -102,6 +102,7 @@ router.post(
             penalty_consent: it.penaltyConsent,
             promo_code: usePromo ? promoCode : undefined,
             amount: discounted ? batchPromo.final_price : it.amount,
+            group_size: Number(it.groupSize) === 3 ? 3 : 1,
           },
           user: req.user,
         };
