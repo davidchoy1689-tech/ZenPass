@@ -522,10 +522,10 @@ function sendClassReminders() {
   }
 }
 
-// 每 5 分鐘 check 一次
-setInterval(sendClassReminders, 5 * 60 * 1000);
-// 啟動時 check 一次
-setTimeout(sendClassReminders, 5000);
+// 🔁 2026-10-19：1 小時提醒統一由 scripts/scheduler.js（booking-reminder.js）負責，
+// 避免兩個 process 同時查到未標記 booking → 重複發送通知。
+// setInterval(sendClassReminders, 5 * 60 * 1000);
+// setTimeout(sendClassReminders, 5000);
 
 // ===== 行銷自動化 Cron =====
 const marketing = require("./services/marketing");

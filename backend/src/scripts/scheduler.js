@@ -67,9 +67,29 @@ setTimeout(processNoShows, 15000); // Run 15s after startup
 function checkAndRunSettlement() {
   const today = new Date().getDay();
   if (today === 1) {
-    // Monday
-    console.log("💰 檢測到星期一，執行自動結算...");
-    runAutoSettlement();
+    // Monday — 只跑一次（用 platform_settings 標記日期）
+    try {
+      const Database = require("better-sqlite3");
+      const dbPath =
+        process.env.DB_PATH || path.join(__dirname, "../../data/zenpass.db");
+      const db = new Database(dbPath);
+      const key = "settlement.last_run";
+      const todayKey = new Date().toISOString().slice(0, 10);
+      const row = db.prepare("SELECT value FROM platform_settings WHERE key = ?").get(key);
+      if (row && row.value === todayKey) {
+        db.close();
+        return;
+      }
+      console.log("💰 檢測到星期一，執行自動結算...");
+      runAutoSettlement();
+      db.prepare("INSERT OR REPLACE INTO platform_settings (key, value) VALUES (?, ?)").run(
+        key,
+        todayKey,
+      );
+      db.close();
+    } catch (e) {
+      console.error("[SETTLEMENT] Monday settlement error:", e.message);
+    }
   }
 }
 
