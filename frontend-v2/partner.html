@@ -108,6 +108,28 @@
       .frm { grid-template-columns: 1fr 1fr; }
       .frm .full { grid-column: 1 / -1; }
     }
+    /* ---- 加盟收益計算器 ---- */
+    .calc-card { background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 16px; box-shadow: 0 6px 20px rgba(16,185,129,.08); margin-top: 14px; }
+    .calc-head b { font-size: 16px; }
+    .calc-head p { margin: 4px 0 12px; font-size: 12.5px; color: var(--text-muted); }
+    .calc-tabs { display: flex; gap: 8px; background: #f3f4f6; padding: 4px; border-radius: 12px; }
+    .calc-tab { flex: 1; border: 0; background: transparent; padding: 9px 8px; border-radius: 9px; font-size: 13px; font-weight: 700; color: var(--text-muted); cursor: pointer; }
+    .calc-tab.is-active { background: #fff; color: #047857; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+    .calc-body { margin-top: 14px; }
+    .calc-row { margin-bottom: 14px; }
+    .calc-row label { display: flex; justify-content: space-between; align-items: center; font-size: 13px; font-weight: 600; margin-bottom: 8px; }
+    .calc-val { color: #047857; font-weight: 800; }
+    .calc-row input[type="range"] { width: 100%; height: 28px; accent-color: #10b981; cursor: pointer; }
+    .calc-num { width: 100%; border: 1px solid var(--border); border-radius: 12px; padding: 11px 12px; font: inherit; background: var(--surface); color: var(--text); }
+    .calc-result { margin-top: 6px; background: linear-gradient(135deg,#ecfdf5,#d1fae5); border: 1px solid #a7f3d0; border-radius: 14px; padding: 14px; text-align: center; }
+    .calc-result-label { font-size: 12.5px; color: #065f46; font-weight: 700; }
+    .calc-big { margin: 4px 0 2px; font-size: 30px; font-weight: 900; color: #047857; letter-spacing: -.5px; }
+    .calc-big small { font-size: 13px; font-weight: 700; margin-left: 4px; color: #059669; }
+    .calc-note { font-size: 12px; color: #065f46; }
+    .calc-tags { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-top: 10px; }
+    .calc-tags span { font-size: 11px; font-weight: 700; background: #fff; color: #047857; border: 1px solid #a7f3d0; border-radius: 999px; padding: 3px 9px; }
+    .calc-cta { margin-top: 12px; }
+    .calc-fine { margin: 8px 0 0; font-size: 11px; color: var(--text-muted); line-height: 1.5; }
   </style>
 </head>
 <body>
@@ -135,6 +157,114 @@
       <div class="lp-card"><div class="ic" style="background:#EDEBFD">📅</div><b>智能排班系統</b><p>一鍵設定可預約時段，免去 WhatsApp 人工對單煩惱。</p></div>
       <div class="lp-card"><div class="ic" style="background:#E2F1FC">🛡️</div><b>品牌聯動與宣傳</b><p>獲得 ZenPass 官方 社媒/電子報 深度推廣曝光。</p></div>
     </div>
+
+    <div class="calc-card" id="revCalc">
+      <div class="calc-head">
+        <b>💰 加盟收益預估計算器</b>
+        <p>拖一拖，即刻睇下加入 ZenPass 每月可以多賺幾多。</p>
+      </div>
+      <div class="calc-tabs" role="tablist">
+        <button class="calc-tab is-active" id="tabCoach" type="button" role="tab" aria-selected="true">🧑‍🏫 我是教練</button>
+        <button class="calc-tab" id="tabVenue" type="button" role="tab" aria-selected="false">🏪 我是場地負責人</button>
+      </div>
+
+      <div class="calc-body" id="calcCoach">
+        <div class="calc-row">
+          <label for="cWeekly">每週開堂數 <span class="calc-val" id="cWeeklyVal">4 堂</span></label>
+          <input type="range" id="cWeekly" min="1" max="20" step="1" value="4" />
+        </div>
+        <div class="calc-row">
+          <label for="cStudents">每堂平均學員人數 <span class="calc-val" id="cStudentsVal">6 人</span></label>
+          <input type="range" id="cStudents" min="2" max="15" step="1" value="6" />
+        </div>
+        <div class="calc-row">
+          <label for="cFee">每人每堂學費（HK$）</label>
+          <input class="calc-num" type="number" id="cFee" min="50" max="2000" step="10" value="150" inputmode="numeric" />
+        </div>
+      </div>
+
+      <div class="calc-body" id="calcVenue" hidden>
+        <div class="calc-row">
+          <label for="vHours">每週可出租／合作時數 <span class="calc-val" id="vHoursVal">12 小時</span></label>
+          <input type="range" id="vHours" min="5" max="40" step="1" value="12" />
+        </div>
+        <div class="calc-row">
+          <label for="vRate">每小時基本時租／分帳（HK$）</label>
+          <input class="calc-num" type="number" id="vRate" min="100" max="3000" step="10" value="300" inputmode="numeric" />
+        </div>
+      </div>
+
+      <div class="calc-result">
+        <div class="calc-result-label">預估每月額外收入</div>
+        <div class="calc-big"><span id="calcMonthly">HK$ 0</span><small>/ 月</small></div>
+        <div class="calc-note" id="calcAnnual">每年可為你帶來約 HK$ 0 額外生意</div>
+        <div class="calc-tags"><span>✅ 全免上架費</span><span>💸 成功預約才抽成</span><span>⚡ 24 小時自動結算</span></div>
+      </div>
+      <a class="btn btn-primary btn-block calc-cta" id="calcCta" href="#join">🚀 立即免費加盟領取客源</a>
+      <p class="calc-fine">＊以上為估算數字，實際收入視乎課堂／場地安排及預約情況。教練按 85%（扣除 15% 平台服務費）、場地按 90%（扣除 10% 營運費）計算。</p>
+    </div>
+
+    <script>
+      (function () {
+        var isCoach = true;
+        var $ = function (id) { return document.getElementById(id); };
+        function fmt(n) { return "HK$ " + Math.round(n).toLocaleString("en-HK"); }
+        var current = 0;
+        function animateTo(target) {
+          var from = current, start = null, dur = 420;
+          function step(ts) {
+            if (!start) start = ts;
+            var p = Math.min(1, (ts - start) / dur);
+            var eased = 1 - Math.pow(1 - p, 3);
+            current = from + (target - from) * eased;
+            $("calcMonthly").textContent = fmt(current);
+            if (p < 1) requestAnimationFrame(step);
+          }
+          requestAnimationFrame(step);
+          $("calcAnnual").textContent = "每年可為你帶來約 " + fmt(target * 12) + " 額外生意";
+        }
+        function calc() {
+          var monthly = 0;
+          if (isCoach) {
+            var w = Number($("cWeekly").value) || 0;
+            var st = Number($("cStudents").value) || 0;
+            var fee = Number($("cFee").value) || 0;
+            monthly = w * st * fee * 4 * 0.85;
+            $("cWeeklyVal").textContent = w + " 堂";
+            $("cStudentsVal").textContent = st + " 人";
+          } else {
+            var h = Number($("vHours").value) || 0;
+            var rate = Number($("vRate").value) || 0;
+            monthly = h * rate * 4 * 0.9;
+            $("vHoursVal").textContent = h + " 小時";
+          }
+          animateTo(monthly);
+        }
+        ["cWeekly", "cStudents", "cFee", "vHours", "vRate"].forEach(function (id) {
+          var el = $(id); if (el) el.addEventListener("input", calc);
+        });
+        $("tabCoach").addEventListener("click", function () {
+          isCoach = true;
+          $("calcCoach").hidden = false; $("calcVenue").hidden = true;
+          this.classList.add("is-active"); $("tabVenue").classList.remove("is-active");
+          this.setAttribute("aria-selected", "true"); $("tabVenue").setAttribute("aria-selected", "false");
+          calc();
+        });
+        $("tabVenue").addEventListener("click", function () {
+          isCoach = false;
+          $("calcCoach").hidden = true; $("calcVenue").hidden = false;
+          this.classList.add("is-active"); $("tabCoach").classList.remove("is-active");
+          this.setAttribute("aria-selected", "true"); $("tabCoach").setAttribute("aria-selected", "false");
+          calc();
+        });
+        $("calcCta").addEventListener("click", function (e) {
+          e.preventDefault();
+          var j = document.getElementById("join");
+          if (j) j.scrollIntoView({ behavior: "smooth", block: "start" });
+        });
+        calc();
+      })();
+    </script>
 
     <div class="stat-band">
       <div class="stat"><b>145</b><span>運動項目</span></div>
