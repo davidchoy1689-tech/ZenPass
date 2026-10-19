@@ -53,8 +53,8 @@ const ok = (c, m) => { if (c) console.log("  ✅ " + m); else { console.log("  �
 
   const okRes = call("newok");
   ok(okRes.statusCode === 200, "已驗證可兌換");
-  ok(db.prepare("SELECT credits FROM users WHERE id='newok'").get().credits === 10, "新人 +10 credits");
-  ok(db.prepare("SELECT credits FROM users WHERE id='ref'").get().credits === 10, "推薦人 +10 credits");
+  ok(db.prepare("SELECT credits FROM users WHERE id='newok'").get().credits === 5, "新人 +5 credits");
+  ok(db.prepare("SELECT credits FROM users WHERE id='ref'").get().credits === 5, "推薦人 +5 credits");
 
   const again = call("newok");
   ok(again.statusCode === 400, "同一用戶不可重複兌換");

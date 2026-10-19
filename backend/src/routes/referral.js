@@ -90,25 +90,25 @@ router.post("/redeem", authenticateToken, (req, res) => {
     const ledger = require("../services/credit-ledger");
     ledger.applyCredits(db, {
       userId: req.user.id,
-      credits: 10,
+      credits: 5,
       type: "earn",
       source: "referral",
       referenceId: id,
       description: "使用推薦碼迎新獎賞",
     });
     db.prepare(
-      "UPDATE users SET referral_credits_earned = COALESCE(referral_credits_earned,0) + 10 WHERE id = ?",
+      "UPDATE users SET referral_credits_earned = COALESCE(referral_credits_earned,0) + 5 WHERE id = ?",
     ).run(req.user.id);
     ledger.applyCredits(db, {
       userId: ref.user_id,
-      credits: 10,
+      credits: 5,
       type: "earn",
       source: "referral",
       referenceId: id,
       description: "推薦朋友獎賞",
     });
     db.prepare(
-      "UPDATE users SET referral_credits_earned = COALESCE(referral_credits_earned,0) + 10 WHERE id = ?",
+      "UPDATE users SET referral_credits_earned = COALESCE(referral_credits_earned,0) + 5 WHERE id = ?",
     ).run(ref.user_id);
     try {
       writeBlock({
@@ -141,7 +141,7 @@ router.post("/redeem", authenticateToken, (req, res) => {
     }
 
     res.json({
-      message: "✅ 推薦碼已使用！你獲得 10 Credits",
+      message: "✅ 推薦碼已使用！你獲得 5 Credits（≈HK$50）",
       bonus: 10,
       referrer_points_awarded: pointsAwarded,
     });
