@@ -74,8 +74,20 @@ const ok = (c, m) => { if (c) console.log("  ✅ " + m); else { console.log("  �
   svc.cancelBooking({ params: { id: "b2" }, body: { reason: "test cash" }, user: { id: "u1" }, headers: {} });
   const cashRefund = db.prepare("SELECT type, amount FROM transactions WHERE user_id='u1' AND type='refund' AND description LIKE '%ZP-B2%'").get();
   ok(!!cashRefund && Number(cashRefund.amount) === 150, `現金退款有交易紀錄（got ${cashRefund && cashRefund.amount}）`);
-  const rl = db.prepare("SELECT amount, status FROM refund_logs WHERE booking_id='b2'").get();
-  ok(!!rl && Number(rl.amount) === 150 && rl.status === "completed", "refund_logs 完整");
+  const rl = db.prepare("SELECT id, amount, status FROM refund_logs WHERE booking_id='b2'").get();
+  ok(!!rl && Number(rl.amount) === 150 && rl.status === "pending", `FPS 退款 → pending（got ${rl && rl.status}）`);
+  ok(db.prepare("SELECT payment_status FROM bookings WHERE id='b2'").get().payment_status === "paid", "待轉賬期間 booking 仍顯示 paid");
+  const pendingTx = db.prepare("SELECT status FROM transactions WHERE refund_id IS NOT NULL AND description LIKE '%ZP-B2%'").get();
+  ok(pendingTx && pendingTx.status === "pending", "交易紀錄顯示處理中");
+
+  const refundSvc = require("../src/services/refund");
+  const noRef = refundSvc.completeRefund(rl.id, "admin1", {});
+  ok(noRef.success === false, "冇轉賬參考 → 拒絕完成");
+  const done = refundSvc.completeRefund(rl.id, "admin1", { transferReference: "FPS-12345" });
+  ok(done.success === true, "admin 確認轉賬 → 完成");
+  ok(db.prepare("SELECT status FROM refund_logs WHERE id=?").get(rl.id).status === "completed", "refund_logs completed");
+  ok(db.prepare("SELECT payment_status FROM bookings WHERE id='b2'").get().payment_status === "refunded", "booking payment_status refunded");
+  ok(db.prepare("SELECT status FROM transactions WHERE refund_id=?").get(rl.id).status === "completed", "交易紀錄 completed");
 
   // 流水受保護：唔可以 DELETE / UPDATE
   require("../src/services/financial-protection").installDeleteTriggers();

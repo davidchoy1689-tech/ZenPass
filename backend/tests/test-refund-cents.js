@@ -55,11 +55,11 @@ db.close();
 const { processRefund } = require("../src/services/refund");
 
 // 超額 → 拒絕（0.31 > 0.30）
-const r1 = processRefund({ bookingId: "b1", amount: 0.31, reason: "test", initiatedBy: "system" });
+const r1 = processRefund({ bookingId: "b1", amount: 0.31, reason: "test", initiatedBy: "system", method: "stripe" });
 assert(r1.success === false, "退 0.31 超出上限 → 拒絕");
 
 // float 陷阱：0.30000001 > 0.3 會誤判超額；cents(30) > cents(30) = false → 應接受
-const r2 = processRefund({ bookingId: "b1", amount: 0.30000001, reason: "test", initiatedBy: "system" });
+const r2 = processRefund({ bookingId: "b1", amount: 0.30000001, reason: "test", initiatedBy: "system", method: "stripe" });
 assert(r2.success === true, "退 0.30000001 應接受（float 會誤判超額）");
 assert(r2.new_status === "fully_refunded", `標記 fully_refunded（got ${r2.new_status}）`);
 
@@ -70,7 +70,7 @@ dbCheck.close();
 assert(!!refundNotif && /退款已處理/.test(refundNotif.title) && /0\.3/.test(refundNotif.message), "退款後通知會員（金額）");
 
 // 已全退 → 再退拒絕
-const r3 = processRefund({ bookingId: "b1", amount: 0.01, reason: "test", initiatedBy: "system" });
+const r3 = processRefund({ bookingId: "b1", amount: 0.01, reason: "test", initiatedBy: "system", method: "stripe" });
 assert(r3.success === false, "再退 0.01 → 正確拒絕（已達上限）");
 
 console.log(`\n📊 結果: ${passed} passed / ${failed} failed`);

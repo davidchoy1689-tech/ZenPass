@@ -39,7 +39,7 @@
     const st = (s) => ({ confirmed:"已確認", attended:"已出席", pending_payment:"待付款", cancelled:"已取消", no_show:"缺席", pending:"待處理", approved:"已通過", rejected:"已拒絕", active:"生效" }[s] || s || "");
 
     const TABS = [
-      ["dash","概覽"], ["pay","付款核實"], ["topup","增值待確認"], ["morder","會籍待確認"], ["fulfil","兌換待履行"], ["consult","健康諮詢"], ["inq","查詢"], ["classes","課程"],
+      ["dash","概覽"], ["pay","付款核實"], ["refund","退款待轉賬"], ["topup","增值待確認"], ["morder","會籍待確認"], ["fulfil","兌換待履行"], ["consult","健康諮詢"], ["inq","查詢"], ["classes","課程"],
       ["bookings","預約"], ["users","用戶"], ["coach","教練申請"], ["payouts","出糧"],
       ["reports","報表"], ["corp","企業"], ["partners","商戶"], ["jobs","Job"], ["pricing","定價"], ["penalty","罰則"], ["analytics","分析"], ["nps","評價"], ["promo","優惠碼"], ["marketing","推廣"], ["migrate","遷移"], ["audit","審計"],
     ];
@@ -58,6 +58,7 @@
       try {
         if (cur === "dash") return dash();
         if (cur === "pay") return payments();
+        if (cur === "refund") return refundQueue();
         if (cur === "topup") return topupOrders();
         if (cur === "morder") return membershipOrders();
         if (cur === "fulfil") return redemptionFulfil();
@@ -118,6 +119,31 @@
         const id = b.closest(".card").dataset.bid; const a = b.dataset.a; b.disabled = true;
         if (a === "approve") { if (!confirm("確認已收到此筆付款？")) { b.disabled=false; return; } const r = await api.post("/admin/approve-payment", { booking_id: id }); if (r.ok && r.data && r.data.success !== false) return load(); b.disabled=false; alert((r.data&&r.data.error)||"失敗"); }
         else { const reason = prompt("拒絕原因（可留空）") || ""; const r = await api.post("/admin/reject-payment", { booking_id: id, reason }); if (r.ok && r.data && r.data.success !== false) return load(); b.disabled=false; alert((r.data&&r.data.error)||"失敗"); }
+      });
+    }
+
+    async function refundQueue() {
+      const r = await api.get("/admin/refunds?status=pending");
+      if (r.status === 401 || r.status === 403) return needAdmin();
+      const arr = (r.data && r.data.refunds) || [];
+      if (!arr.length) { panel().innerHTML = `<div class="card"><div class="body muted center">目前冇待轉賬退款 ✅</div></div>`; return; }
+      panel().innerHTML = arr.map(x => `<div class="card" data-rid="${esc2(x.id)}"><div class="body">
+        <div style="display:flex;justify-content:space-between"><b>${esc2(x.user_name || "用戶")}</b><span class="amt">${money(x.amount)}</span></div>
+        <p class="kv">${esc2(x.user_email || "")}${x.user_phone ? " · " + esc2(x.user_phone) : ""}</p>
+        <p class="kv">${esc2(x.class_title || "")} · ${esc2(x.booking_reference || "")} · ${esc2(String(x.start_time || "").slice(0, 16))}</p>
+        <p class="kv">方式 ${esc2(String(x.payment_method || "fps").toUpperCase())} · 申請 ${esc2(String(x.created_at || "").slice(0, 16))} · 原因：${esc2(x.reason || "—")}</p>
+        <button class="btn btn-primary" data-done style="margin-top:10px;width:100%">✅ 已人手轉賬，標記完成</button>
+      </div></div>`).join("");
+      panel().querySelectorAll("[data-done]").forEach(b => b.onclick = async () => {
+        const id = b.closest(".card").dataset.rid;
+        const ref = prompt("請輸入轉賬參考編號（例如 FPS ref / 銀行參考）");
+        if (!ref) return;
+        const note = prompt("備註（可留空）") || "";
+        b.disabled = true;
+        const rr = await api.post(`/admin/refunds/${encodeURIComponent(id)}/complete`, { transfer_reference: ref, note });
+        if (rr.ok && rr.data && rr.data.success !== false) return load();
+        b.disabled = false;
+        alert((rr.data && rr.data.error) || "失敗");
       });
     }
 

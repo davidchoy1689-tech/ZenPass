@@ -138,6 +138,47 @@ router.post("/reject-payment", authenticateToken, requireAdmin, (req, res) => {
   }
 });
 
+// ===== 退款待轉賬（FPS／PayMe）=====
+router.get("/refunds", authenticateToken, requireAdmin, (req, res) => {
+  try {
+    const db = getDb();
+    const status = req.query.status || "pending";
+    const rows = db
+      .prepare(
+        `SELECT r.*, b.booking_reference, b.payment_method AS booking_method,
+                u.name AS user_name, u.email AS user_email, u.phone AS user_phone,
+                c.title AS class_title, cs.start_time
+         FROM refund_logs r
+         JOIN bookings b ON r.booking_id = b.id
+         JOIN users u ON r.user_id = u.id
+         LEFT JOIN classes c ON b.class_id = c.id
+         LEFT JOIN class_schedules cs ON b.schedule_id = cs.id
+         WHERE r.status = ?
+         ORDER BY r.created_at ASC LIMIT 200`,
+      )
+      .all(status);
+    res.json({ success: true, refunds: rows });
+  } catch (err) {
+    console.error("[ADMIN] refunds list error:", err.message);
+    res.status(500).json({ success: false, error: "無法讀取退款清單" });
+  }
+});
+
+router.post("/refunds/:id/complete", authenticateToken, requireAdmin, (req, res) => {
+  try {
+    const { transfer_reference, note } = req.body || {};
+    const out = require("../services/refund").completeRefund(req.params.id, req.user.id, {
+      transferReference: transfer_reference,
+      note,
+    });
+    if (!out.success) return res.status(400).json({ success: false, error: out.error });
+    res.json({ success: true, message: "✅ 已確認轉賬，退款完成", ...out });
+  } catch (err) {
+    console.error("[ADMIN] refund complete error:", err.message);
+    res.status(500).json({ success: false, error: "確認退款失敗" });
+  }
+});
+
 // ===== GET /api/admin/stats =====
 router.get("/stats", authenticateToken, requireAdmin, (req, res) => {
   try {

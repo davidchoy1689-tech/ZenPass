@@ -406,6 +406,11 @@ async function sendNotification(type, payload) {
       message = data?.message || "";
       html = `<h2>${data?.title || "ZenPass 通知"}</h2><p>${String(data?.message || "").replace(/\n/g, "<br>")}</p>`;
       break;
+    case "booking.refund_pending":
+      title = "💸 退款處理中";
+      message = `我哋已收到你嘅退款申請（${data?.booking_reference || ""}）。\n退款金額：HK$${data?.amount || 0}\n方式：${String(data?.method || "fps").toUpperCase()}\n管理員會盡快人手轉賬，完成後會再通知你。`;
+      html = `<h2>💸 退款處理中</h2><p><b>預約：</b>${data?.booking_reference || ""}<br><b>金額：</b>HK$${data?.amount || 0}<br><b>方式：</b>${String(data?.method || "fps").toUpperCase()}</p><p>管理員會盡快人手轉賬，完成後會再通知你。</p>`;
+      break;
     case "partner.rental_price_request":
       title = "🏷️ 商戶租金申請";
       message = `場地：${data?.venue_name || "—"}\n申請租金：HK$${data?.requested_price || 0}/小時\n原因：${data?.reason || "（未填）"}\n請去 Admin → 商戶 審批。`;

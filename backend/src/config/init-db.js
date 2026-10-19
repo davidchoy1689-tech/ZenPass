@@ -2211,6 +2211,12 @@ CREATE TABLE IF NOT EXISTS users (
 
   // ===== Credits 完整流水賬（2026-10-19）=====
   try {
+    // 退款人手轉賬流程（2026-10-19）
+    try { db.exec("ALTER TABLE refund_logs ADD COLUMN completed_at TEXT"); } catch (e) {}
+    try { db.exec("ALTER TABLE refund_logs ADD COLUMN completed_by TEXT"); } catch (e) {}
+    try { db.exec("ALTER TABLE refund_logs ADD COLUMN transfer_reference TEXT"); } catch (e) {}
+    try { db.exec("ALTER TABLE transactions ADD COLUMN refund_id TEXT"); } catch (e) {}
+
     db.exec(`
       CREATE TABLE IF NOT EXISTS credit_transactions (
         id TEXT PRIMARY KEY,
