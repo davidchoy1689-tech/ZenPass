@@ -103,6 +103,23 @@ const ok = (c, m) => { if (c) console.log("  ✅ " + m); else { console.log("  �
   const a1 = check("admin1");
   ok(a1.called, "真正 super_admin 可通過");
 
+  // 4. Session 撤銷（token_version）
+  const { generateToken, authenticateToken } = require("../src/middleware/auth");
+  const mk = (tok) => {
+    const req = { headers: { authorization: "Bearer " + tok }, cookies: {} };
+    let code = 200, called = false;
+    const res = { status(c){ code=c; return res; }, json(){ return res; } };
+    authenticateToken(req, res, () => { called = true; });
+    return { code, called };
+  };
+  const tok1 = generateToken({ id: "admin1", email: "admin@zenpass.hk", role: "super_admin" });
+  ok(mk(tok1).called, "有效 token 可通過");
+  db.exec("UPDATE users SET token_version = COALESCE(token_version,0) + 1 WHERE id='admin1'");
+  const revoked = mk(tok1);
+  ok(!revoked.called && revoked.code === 401, `撤銷後舊 token → 401（got ${revoked.code}）`);
+  const tok2 = generateToken({ id: "admin1", email: "admin@zenpass.hk", role: "super_admin" });
+  ok(mk(tok2).called, "重新登入（新 token）可通過");
+
   console.log(fail === 0 ? "\n✅ 全部通過" : `\n❌ ${fail} 項失敗`);
   process.exit(fail === 0 ? 0 : 1);
 })().catch((e) => { console.error(e); process.exit(1); });

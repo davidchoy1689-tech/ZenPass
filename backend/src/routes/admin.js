@@ -213,6 +213,28 @@ router.get("/users", authenticateToken, requireAdmin, (req, res) => {
 });
 
 // ===== GET /api/admin/users/:id/credits — Credits 流水（審計用）=====
+// ===== POST /api/admin/users/:id/revoke-sessions — 強制該用戶重新登入 =====
+router.post("/users/:id/revoke-sessions", authenticateToken, requireAdmin, (req, res) => {
+  try {
+    const db = getDb();
+    const user = db.prepare("SELECT id, name, email FROM users WHERE id = ?").get(req.params.id);
+    if (!user) return res.status(404).json({ success: false, error: "用戶不存在" });
+    db.prepare("UPDATE users SET token_version = COALESCE(token_version,0) + 1, updated_at = datetime('now') WHERE id = ?")
+      .run(user.id);
+    try {
+      require("../services/blockchain-audit").writeBlock({
+        entityType: "user_session",
+        entityId: user.id,
+        data: { action: "revoke_sessions", by: req.user.id },
+      });
+    } catch (e) {}
+    res.json({ success: true, message: `已強制 ${user.email} 重新登入` });
+  } catch (err) {
+    console.error("[ADMIN] revoke sessions error:", err.message);
+    res.status(500).json({ success: false, error: "操作失敗" });
+  }
+});
+
 router.get("/users/:id/credits", authenticateToken, requireAdmin, (req, res) => {
   try {
     const db = getDb();

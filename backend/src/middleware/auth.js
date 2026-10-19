@@ -141,7 +141,23 @@ function authenticateToken(req, res, next) {
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
-    req.user = decoded;
+    // 🔒 2026-10-19：session 撤銷 + 每次讀最新角色（角色被降權即時生效）
+    const db = new Database(DB_PATH);
+    let row = null;
+    try {
+      row = db
+        .prepare("SELECT id, email, role, token_version FROM users WHERE id = ?")
+        .get(decoded.id);
+    } finally {
+      db.close();
+    }
+    if (!row) {
+      return res.status(401).json({ error: "用戶不存在" });
+    }
+    if (Number(decoded.tv || 0) !== Number(row.token_version || 0)) {
+      return res.status(401).json({ error: "登入已失效，請重新登入", code: "SESSION_REVOKED" });
+    }
+    req.user = { ...decoded, role: row.role, email: row.email };
     next();
   } catch (err) {
     // Demo token bypass removed for security hardening.
@@ -407,6 +423,14 @@ function getQueryPartnerId(req) {
  * 生成 JWT Token（含角色資訊）
  */
 function generateToken(user) {
+  // 🔒 讀最新 token_version（用嚟撤銷指定用戶嘅 session）
+  let tv = Number(user.token_version) || 0;
+  try {
+    const db = new Database(DB_PATH);
+    const row = db.prepare("SELECT token_version FROM users WHERE id = ?").get(user.id);
+    if (row) tv = Number(row.token_version) || 0;
+    db.close();
+  } catch (e) {}
   return jwt.sign(
     {
       id: user.id,
@@ -416,6 +440,7 @@ function generateToken(user) {
       partner_id: user.partner_id || null,
       is_coach: user.is_coach || 0,
       membership_type: user.membership_type || "none",
+      tv,
     },
     JWT_SECRET,
     { expiresIn: "7d" },

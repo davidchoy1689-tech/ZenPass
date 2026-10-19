@@ -92,6 +92,9 @@ CREATE TABLE IF NOT EXISTS users (
   }
 
   // 遷移：教練公開資料（開班後自動顯示於課程詳情頁）
+  // Session 撤銷版本（改密碼／強制登出會 +1）
+  try { db.exec("ALTER TABLE users ADD COLUMN token_version INTEGER DEFAULT 0"); } catch (e) { /* exists */ }
+
   for (const [col, type] of [
     ["coach_headline", "TEXT"],
     ["coach_bio", "TEXT"],

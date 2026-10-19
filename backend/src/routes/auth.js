@@ -559,7 +559,7 @@ router.post("/password-reset", (req, res) => {
     }
 
     const hash = bcrypt.hashSync(new_password, 10);
-    db.prepare("UPDATE users SET password_hash = ?, reset_token = NULL, reset_token_expires = NULL, updated_at = datetime('now') WHERE id = ?")
+    db.prepare("UPDATE users SET password_hash = ?, reset_token = NULL, reset_token_expires = NULL, token_version = COALESCE(token_version,0) + 1, updated_at = datetime('now') WHERE id = ?")
       .run(hash, user.id);
 
     res.json({ message: "✅ 密碼已成功重置,請使用新密碼登入" });
@@ -578,7 +578,7 @@ router.post("/change-password", authenticateToken, (req, res) => {
 
     const db = getDb();
     const hash = bcrypt.hashSync(new_password, 10);
-    db.prepare("UPDATE users SET password_hash = ?, updated_at = datetime('now') WHERE id = ?")
+    db.prepare("UPDATE users SET password_hash = ?, token_version = COALESCE(token_version,0) + 1, updated_at = datetime('now') WHERE id = ?")
       .run(hash, req.user.id);
 
     res.json({ message: "✅ 密碼已更新" });
