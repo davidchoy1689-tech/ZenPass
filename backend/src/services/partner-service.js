@@ -319,10 +319,10 @@ function updateOwnVenue(userId, body) {
 
   if (body && body.rental_price_per_hour !== undefined) {
     const price = Number(body.rental_price_per_hour);
-    if (!Number.isFinite(price) || price < 50 || price > 5000) {
+    if (!Number.isFinite(price) || price < 100 || price > 3000) {
       return {
         status: 400,
-        body: { success: false, error: "每小時租金必須介乎 HK$50–5,000" },
+        body: { success: false, error: "每小時租金必須介乎 HK$100–3,000" },
       };
     }
     updates.push("rental_price_per_hour = ?");

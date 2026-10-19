@@ -100,7 +100,7 @@
         </div>
         <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
           <div><div class="lbl2">HK$ / 小時</div>
-            <input class="fld" id="rentalPrice" type="number" min="50" max="5000" step="10" placeholder="300" style="width:140px" />
+            <input class="fld" id="rentalPrice" type="number" min="100" max="3000" step="10" placeholder="300" style="width:140px" />
           </div>
           <button class="btn btn-primary mini" id="rentalPriceSave">儲存租金</button>
           <span class="muted" id="rentalPriceMsg" style="font-size:12px"></span>
@@ -361,8 +361,8 @@
     }
     async function saveRentalPrice() {
       const price = Number($("rentalPrice").value);
-      if (!price || price < 50 || price > 5000) {
-        $("rentalPriceMsg").textContent = "請輸入 HK$50–5,000";
+      if (!price || price < 100 || price > 3000) {
+        $("rentalPriceMsg").textContent = "請輸入 HK$100–3,000";
         return;
       }
       const btn = $("rentalPriceSave");

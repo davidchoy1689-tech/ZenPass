@@ -120,7 +120,9 @@ const ok = (c, m) => { if (c) console.log("  ✅ " + m); else { console.log("  �
   const gv = await call(getVenue, { id: "coach1", role: "partner_owner" }, {});
   ok(gv.statusCode === 200 && Number(gv.body.data.rental_price_per_hour) === 400, `商戶讀到每小時租金 400（got ${gv.body && gv.body.data && gv.body.data.rental_price_per_hour}）`);
   const bad = await call(putVenue, { id: "coach1", role: "partner_owner" }, { rental_price_per_hour: 10 });
-  ok(bad.statusCode === 400, "租金低於 HK$50 → 400");
+  ok(bad.statusCode === 400, "租金低於 HK$100 → 400");
+  const tooHigh = await call(putVenue, { id: "coach1", role: "partner_owner" }, { rental_price_per_hour: 9999 });
+  ok(tooHigh.statusCode === 400, "租金高於 HK$3,000 → 400");
   const good = await call(putVenue, { id: "coach1", role: "partner_owner" }, { rental_price_per_hour: 550 });
   ok(good.statusCode === 200 && db.prepare("SELECT rental_price_per_hour FROM partner_venues WHERE id='v1'").get().rental_price_per_hour === 550, "商戶改租金 → DB 更新為 550");
 
