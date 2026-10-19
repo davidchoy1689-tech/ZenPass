@@ -6,7 +6,7 @@
 
 const express = require("express");
 const { getDb } = require("../services/database");
-const { authenticateToken } = require("../middleware/auth");
+const { authenticateToken, requireCoach } = require("../middleware/auth");
 const { scalpGuard } = require("../middleware/anti-scalping");
 const { validate, schemas } = require("../middleware/validate");
 const { requireIdempotency } = require("../middleware/idempotency");
@@ -236,10 +236,14 @@ router.post("/:id/attend", authenticateToken, (req, res) => {
 });
 
 // ===== GET /api/bookings/today — 今日課堂（教練用）=====
-router.get("/today", authenticateToken, (req, res) => {
+router.get("/today", authenticateToken, requireCoach, (req, res) => {
   try {
     const db = getDb();
     db.pragma("foreign_keys = ON");
+
+    // 🔒 2026-10-19：教練只睇自己嘅班（原本任何登入用戶可睇全平台今日課堂＋學生姓名）
+    const me = db.prepare("SELECT role, is_coach, coach_verified FROM users WHERE id = ?").get(req.user.id);
+    const isAdmin = me && ["admin", "super_admin", "platform_manager", "platform_staff"].includes(me.role);
 
     const today = new Date().toISOString().split("T")[0];
     const schedules = db
@@ -250,9 +254,10 @@ router.get("/today", authenticateToken, (req, res) => {
          FROM class_schedules cs
          JOIN classes c ON cs.class_id = c.id
          WHERE date(cs.start_time) = date(?) AND cs.start_time > datetime('now', '-3 hours')
+           ${isAdmin ? "" : "AND c.coach_id = ?"}
          ORDER BY cs.start_time`
       )
-      .all(today);
+      .all(...(isAdmin ? [today] : [today, req.user.id]));
 
     const result = schedules.map((s) => {
       const students = db

@@ -4,7 +4,7 @@ const os = require("os");
 const path = require("path");
 const Database = require("better-sqlite3");
 
-process.env.JWT_SECRET = "test_secret_for_ci_only_0123456789abcdef";
+process.env.JWT_SECRET = "test_jwt_secret_0123456789abcdefghij";
 const tmp = path.join(os.tmpdir(), "zenpass-misc-" + Date.now() + ".db");
 process.env.DB_PATH = tmp;
 
@@ -76,6 +76,23 @@ const ok = (c, m) => { if (c) console.log("  ✅ " + m); else { console.log("  �
   ok(badQty.statusCode === 400, "負數量 → 400");
   const good = await call(sale, { id: "coach1", role: "coach" }, { item_name: "水", unit_price: 10, quantity: 3 });
   ok(good.statusCode === 201 && good.body.total_amount === 30, `正常銷售 3×10=30（got ${good.body && good.body.total_amount}）`);
+
+  // 4. /bookings/today 只准教練（自己班）
+  db.prepare("INSERT INTO users (id,name,email,role,is_coach,coach_verified) VALUES ('coach2','教練二','c2@x.com','coach',1,1)").run();
+  db.prepare("INSERT INTO classes (id,coach_id,title,category,duration,price_hkd,credits_cost,status) VALUES ('cA','coach1','A班','瑜伽',60,150,12,'active')").run();
+  db.prepare("INSERT INTO classes (id,coach_id,title,category,duration,price_hkd,credits_cost,status) VALUES ('cB','coach2','B班','瑜伽',60,150,12,'active')").run();
+  db.prepare("INSERT INTO class_schedules (id,class_id,start_time,end_time,max_participants,enrolled_count,status) VALUES ('sA','cA',datetime('now','+1 hour'),datetime('now','+2 hour'),10,1,'available')").run();
+  db.prepare("INSERT INTO class_schedules (id,class_id,start_time,end_time,max_participants,enrolled_count,status) VALUES ('sB','cB',datetime('now','+1 hour'),datetime('now','+2 hour'),10,1,'available')").run();
+  db.prepare("INSERT INTO bookings (id,booking_reference,user_id,schedule_id,class_id,status,payment_status,amount) VALUES ('bA','ZP-A','u1','sA','cA','confirmed','paid',150)").run();
+  db.prepare("INSERT INTO bookings (id,booking_reference,user_id,schedule_id,class_id,status,payment_status,amount) VALUES ('bB','ZP-B','u1','sB','cB','confirmed','paid',150)").run();
+
+  const bookings = require("../src/routes/bookings");
+  const todayHandler = pick(bookings, "/today", "get");
+  const todayCoach = await call(todayHandler, { id: "coach1", role: "coach" }, {}, {});
+  const scheds = (todayCoach.body && todayCoach.body.schedules) || [];
+  ok(todayCoach.statusCode === 200 && scheds.length === 1 && scheds[0].class_id === "cA", `教練只見到自己班（got ${scheds.length} 個）`);
+  const bookingSrc = fs.readFileSync(path.join(__dirname, "../src/routes/bookings.js"), "utf8");
+  ok(/router\.get\("\/today", authenticateToken, requireCoach/.test(bookingSrc), "/bookings/today 已加 requireCoach");
 
   console.log(fail === 0 ? "\n✅ 全部通過" : `\n❌ ${fail} 項失敗`);
   process.exit(fail === 0 ? 0 : 1);

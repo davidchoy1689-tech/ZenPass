@@ -204,6 +204,7 @@ router.post("/earnings/calculate", authenticateToken, async (req, res) => {
       FROM class_schedules cs
       JOIN classes c ON cs.class_id = c.id
       WHERE c.coach_id = ? AND cs.enrolled_count > 0
+        AND cs.start_time < datetime('now')  -- 🔒 2026-10-19：未上堂唔可以預先計收入
     `,
       )
       .all(req.user.id);
