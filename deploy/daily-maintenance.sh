@@ -13,10 +13,10 @@ echo "[$TIMESTAMP] 🚀 ZenPass 每日維護開始" >> "$LOG_FILE"
 # 1. 釋放過期 Hold 位（pending_payment 超過 15 分鐘）
 echo "  [1/6] 清理過期 hold 位..." >> "$LOG_FILE"
 sqlite3 "$DB_PATH" "
-  UPDATE bookings SET status = 'cancelled', updated_at = datetime('now')
+  UPDATE bookings SET status = 'cancelled'
   WHERE status = 'pending_payment'
     AND created_at < datetime('now', '-15 minutes');
-" 2>&1 >> "$LOG_FILE"
+" >> "$LOG_FILE" 2>&1
 
 # 2. 同步 enrolled_count（確保同實際 booking 數量一致）
 echo "  [2/6] 同步 enrolled_count..." >> "$LOG_FILE"
@@ -26,14 +26,14 @@ sqlite3 "$DB_PATH" "
     WHERE bookings.schedule_id = class_schedules.id
       AND bookings.status IN ('confirmed', 'attended', 'pending_payment')
   );
-" 2>&1 >> "$LOG_FILE"
+" >> "$LOG_FILE" 2>&1
 
 # 3. 檢查並清理已過去但未完成嘅 schedule
 echo "  [3/6] 清理過期未完成 schedule..." >> "$LOG_FILE"
 sqlite3 "$DB_PATH" "
   UPDATE class_schedules SET status = 'completed'
   WHERE status IS NULL AND end_time < datetime('now');
-" 2>&1 >> "$LOG_FILE"
+" >> "$LOG_FILE" 2>&1
 
 # 4. 驗證 pricing_config 完整性
 echo "  [4/6] 驗證定價設定..." >> "$LOG_FILE"
