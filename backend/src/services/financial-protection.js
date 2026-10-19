@@ -25,6 +25,7 @@ const PROTECTED_TABLES = [
   "partner_payouts",
   "refund_logs",
   "idempotency_keys",
+  "credit_transactions",
 ];
 
 /**
@@ -63,6 +64,25 @@ function installDeleteTriggers() {
   }
 
   console.log(`[PROTECT] ✅ ${installed} DELETE triggers installed`);
+
+  // Credits 流水只准 INSERT，任何 UPDATE／DELETE 都係篡改歷史 → 一律禁止
+  try {
+    const hasUpd = db
+      .prepare("SELECT name FROM sqlite_master WHERE type='trigger' AND name=?")
+      .get("protect_credit_transactions_update");
+    if (!hasUpd) {
+      db.exec(`
+        CREATE TRIGGER protect_credit_transactions_update
+        BEFORE UPDATE ON credit_transactions
+        BEGIN
+          SELECT RAISE(ABORT, '❌ 禁止修改 credit_transactions 記錄 — 流水不可改');
+        END;
+      `);
+      console.log("[PROTECT] ✅ credit_transactions UPDATE trigger installed");
+    }
+  } catch (err) {
+    console.error("[PROTECT] credit update trigger failed:", err.message);
+  }
 
   return installed;
 }

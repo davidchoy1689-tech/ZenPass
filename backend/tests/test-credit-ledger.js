@@ -67,6 +67,14 @@ const ok = (c, m) => { if (c) console.log("  ✅ " + m); else { console.log("  �
   const refund = db.prepare("SELECT * FROM credit_transactions WHERE user_id='u1' AND type='refund'").get();
   ok(!!refund && Number(refund.credits) === 12 && Number(refund.balance_after) === 15, "流水有 refund 12 / 結餘 15");
 
+  // 流水受保護：唔可以 DELETE / UPDATE
+  require("../src/services/financial-protection").installDeleteTriggers();
+  let delBlocked = false, updBlocked = false;
+  try { db.prepare("DELETE FROM credit_transactions WHERE user_id='u1'").run(); } catch (e) { delBlocked = /禁止刪除/.test(e.message); }
+  try { db.prepare("UPDATE credit_transactions SET credits=999 WHERE user_id='u1'").run(); } catch (e) { updBlocked = /禁止修改/.test(e.message); }
+  ok(delBlocked, "credit_transactions 禁止 DELETE");
+  ok(updBlocked, "credit_transactions 禁止 UPDATE");
+
   console.log(fail === 0 ? "\n✅ 全部通過" : `\n❌ ${fail} 項失敗`);
   process.exit(fail === 0 ? 0 : 1);
 })().catch((e) => { console.error(e); process.exit(1); });
