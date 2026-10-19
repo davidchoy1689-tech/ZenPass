@@ -73,7 +73,7 @@ fi
 echo "  [6/6] 金融記錄完整性檢查..." >> "$LOG_FILE"
 
 # 檢查 DELETE trigger 是否存在
-for table in wallet_transactions coach_earnings coach_payouts bookings audit_log ledger transactions private_income venue_rentals partner_payouts refund_logs idempotency_keys; do
+for table in wallet_transactions coach_earnings coach_payouts bookings audit_log ledger transactions private_income venue_rentals partner_payouts refund_logs idempotency_keys credit_transactions; do
   TRIGGER_EXISTS=$(sqlite3 "$DB_PATH" "SELECT name FROM sqlite_master WHERE type='trigger' AND name='protect_${table}_delete';")
   ROW_COUNT=$(sqlite3 "$DB_PATH" "SELECT COUNT(*) FROM $table;" 2>/dev/null || echo "0")
   if [ -n "$TRIGGER_EXISTS" ]; then
@@ -85,6 +85,19 @@ done
 
 # 檢查 wallet 記錄總數
 echo "  ✅ wallet_transactions 記錄永久保存" >> "$LOG_FILE"
+
+# 6b. Credits 對賬：users.credits 必須等於最新一筆流水嘅 balance_after
+CREDIT_MISMATCH=$(sqlite3 "$DB_PATH" "
+  SELECT COUNT(*) FROM users u
+  WHERE COALESCE(u.credits,0) <> COALESCE(
+    (SELECT c.balance_after FROM credit_transactions c
+      WHERE c.user_id = u.id ORDER BY c.rowid DESC LIMIT 1), 0);
+" 2>/dev/null || echo "0")
+if [ "${CREDIT_MISMATCH:-0}" -gt 0 ]; then
+  echo "  ⚠️ $CREDIT_MISMATCH 個用戶嘅 Credits 結餘同流水唔一致（需人手核對）" >> "$LOG_FILE"
+else
+  echo "  ✅ Credits 結餘與流水一致" >> "$LOG_FILE"
+fi
 
 # Summary
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] ✅ 每日維護完成" >> "$LOG_FILE"
