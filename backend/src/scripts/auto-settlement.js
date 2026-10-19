@@ -17,7 +17,7 @@ const { v4: uuidv4 } = require("uuid");
 const { sendNotification } = require("../services/notification");
 
 const PROJECT_ROOT = path.resolve(__dirname, "../..");
-const DB_PATH = path.join(PROJECT_ROOT, "data", "zenpass.db");
+const DB_PATH = process.env.DB_PATH || path.join(PROJECT_ROOT, "data", "zenpass.db");
 
 /**
  * 教練自動結算
@@ -197,10 +197,7 @@ function settlePartnerVenues() {
           WHERE b.status = 'attended'
             AND (b.venue_partner_id = ? OR c.partner_venue_id = ?)
             AND (b.venue_earned_amount IS NOT NULL AND b.venue_earned_amount > 0)
-            AND b.id NOT IN (
-              SELECT pp.reference_id FROM partner_payouts pp 
-              WHERE pp.notes LIKE '%booking:' || b.id || '%'
-            )
+            AND b.partner_settled_at IS NULL
         `,
           )
           .all(venue.id, venue.id);
@@ -224,21 +221,27 @@ function settlePartnerVenues() {
         const payoutId = uuidv4();
         const now = ts;
 
-        db.prepare(
-          `INSERT INTO partner_payouts 
-           (id, venue_id, period_start, period_end, total_revenue, 
-            platform_commission, venue_earned, status, notes, paid_at, created_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?, NULL, datetime('now'))`,
-        ).run(
-          payoutId,
-          venue.id,
-          "auto",
-          "auto",
-          Math.round(totalRevenue * 100) / 100,
-          Math.round(platformCommission * 100) / 100,
-          Math.round(venueEarned * 100) / 100,
-          `auto-settlement:${bookingIds.length} bookings:${bookingIds.join(",")}`,
-        );
+        const placeholders = bookingIds.map(() => "?").join(",");
+        db.transaction(() => {
+          db.prepare(
+            `INSERT INTO partner_payouts
+             (id, venue_id, amount, fee, net_amount, period_start, period_end, status, notes, paid_at, created_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?, NULL, datetime('now'))`,
+          ).run(
+            payoutId,
+            venue.id,
+            Math.round(totalRevenue * 100) / 100,
+            Math.round(platformCommission * 100) / 100,
+            Math.round(venueEarned * 100) / 100,
+            "auto",
+            "auto",
+            `auto-settlement:${bookingIds.length} bookings:${bookingIds.join(",")}`,
+          );
+          db.prepare(
+            `UPDATE bookings SET partner_settled_at = datetime('now'), partner_payout_id = ?
+             WHERE id IN (${placeholders}) AND partner_settled_at IS NULL`,
+          ).run(payoutId, ...bookingIds);
+        })();
 
         // Send notification to venue owner
         if (venue.user_id) {

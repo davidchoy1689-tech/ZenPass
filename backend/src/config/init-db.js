@@ -95,6 +95,7 @@ CREATE TABLE IF NOT EXISTS users (
   // Session 撤銷版本（改密碼／強制登出會 +1）
   try { db.exec("ALTER TABLE users ADD COLUMN token_version INTEGER DEFAULT 0"); } catch (e) { /* exists */ }
 
+
   for (const [col, type] of [
     ["coach_headline", "TEXT"],
     ["coach_bio", "TEXT"],
@@ -2211,6 +2212,10 @@ CREATE TABLE IF NOT EXISTS users (
   } catch (e) {
     console.error("會籍文案同步失敗:", e.message);
   }
+
+  // ===== 商戶分潤結算標記（auto-settlement 用）=====
+  try { db.exec("ALTER TABLE bookings ADD COLUMN partner_settled_at TEXT"); } catch (e) { /* exists */ }
+  try { db.exec("ALTER TABLE bookings ADD COLUMN partner_payout_id TEXT"); } catch (e) { /* exists */ }
 
   // ===== Credits 完整流水賬（2026-10-19）=====
   try {
