@@ -44,7 +44,14 @@ function generateBookingRef() {
 }
 
 const TRIAL_WINDOW_DAYS = 7;
-const TRIAL_MAX_COUNT = 30;
+// 🎁 2026-10-19 David 定：新用戶只可以有一次半價迎新優惠
+const TRIAL_MAX_COUNT = 1;
+const TRIAL_DISCOUNT = 0.5;
+
+function trialCreditsCost(classCredits) {
+  const base = Number(classCredits) || 12;
+  return Math.max(0.1, Math.round(base * TRIAL_DISCOUNT * 10) / 10);
+}
 
 // ==================== Penalty Consent ====================
 
@@ -74,14 +81,15 @@ function checkTrialCreditEligibility(db, userId, classId) {
   const classData = db
     .prepare("SELECT credits_cost FROM classes WHERE id = ?")
     .get(classId);
-  const neededCredits = classData?.credits_cost || 12;
+  const fullCredits = classData?.credits_cost || 12;
+  const neededCredits = trialCreditsCost(fullCredits);
   const userCredits = db
     .prepare("SELECT credits FROM users WHERE id = ?")
     .get(userId);
   if (!userCredits || userCredits.credits < neededCredits) {
     return {
       ok: false,
-      error: `試玩預約需要至少 ${neededCredits} Credits 作為按金，你目前有 ${userCredits?.credits || 0} Credits。請先購買 Credits。`,
+      error: `迎新半價優惠需要 ${neededCredits} Credits（原價 ${fullCredits}），你目前有 ${userCredits?.credits || 0} Credits。請先購買 Credits。`,
       required_credits: neededCredits,
       current_credits: userCredits?.credits || 0,
     };
@@ -745,6 +753,20 @@ function createBooking(req, options = {}) {
       usedCredits = result.creditsCost;
     }
 
+    // 🎁 迎新半價：扣一半 credits（每次新用戶只限一次）
+    if (payment_type === "membership_trial") {
+      const baseCredits = Number(clsPricing && clsPricing.credits_cost) || 12;
+      const half = trialCreditsCost(baseCredits);
+      const result = deductCredits(db, req.user.id, class_id, half);
+      if (!result.ok) {
+        throw new BookingFlowError({
+          status: 400,
+          body: { success: false, error: result.error },
+        });
+      }
+      usedCredits = result.creditsCost;
+    }
+
     if (payment_type === "corporate") {
       const result = processCorporatePayment(db, req.user.id, class_id);
       if (!result.ok) {
@@ -758,6 +780,8 @@ function createBooking(req, options = {}) {
 
     // 7.5 金額以伺服器計算為準（唔信 client amount）
     if (payment_type === "credits" && usedCredits != null) {
+      amount = Math.round(usedCredits * 10 * 100) / 100;
+    } else if (payment_type === "membership_trial" && usedCredits != null) {
       amount = Math.round(usedCredits * 10 * 100) / 100;
     } else if (payment_type === "single" && !promoApply) {
       amount = Number(clsPricing && clsPricing.price_hkd) || 0;
