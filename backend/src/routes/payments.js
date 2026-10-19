@@ -782,8 +782,32 @@ router.get("/gateways", (req, res) => {
 // 比前端用 Stripe Elements 直接 confirm payment，唔經 Checkout redirect
 router.post("/create-payment-intent", authenticateToken, async (req, res) => {
   try {
-    const { amount, booking_id, description } = req.body;
+    // 🚫 安全（2026-10-19）：金額一律由伺服器按 booking 計算，唔信客戶端 amount
+    const { booking_id, booking_ids, description } = req.body || {};
+    const ids = Array.isArray(booking_ids)
+      ? [...new Set(booking_ids.filter(Boolean).map(String))]
+      : booking_id
+        ? [String(booking_id)]
+        : [];
+    if (!ids.length) {
+      return res.status(400).json({ success: false, error: "缺少 booking_id" });
+    }
 
+    const db = getDb();
+    const placeholders = ids.map(() => "?").join(",");
+    const rows = db
+      .prepare(
+        `SELECT id, amount, status FROM bookings
+         WHERE id IN (${placeholders}) AND user_id = ? AND status = 'pending_payment'`,
+      )
+      .all(...ids, req.user.id);
+    if (rows.length !== ids.length) {
+      return res
+        .status(404)
+        .json({ success: false, error: "未找到待付款的預約或預約不屬於你" });
+    }
+
+    const amount = rows.reduce((sum, b) => sum + Number(b.amount || 0), 0);
     if (!amount || amount < 1) {
       return res.status(400).json({ success: false, error: "無效金額" });
     }
@@ -796,6 +820,7 @@ router.post("/create-payment-intent", authenticateToken, async (req, res) => {
         dev_mode: true,
         amount,
         booking_id: booking_id || null,
+        booking_ids: ids,
         message: "Stripe 未設定，請使用 FPS 或 PayMe 付款",
       });
     }
@@ -806,7 +831,7 @@ router.post("/create-payment-intent", authenticateToken, async (req, res) => {
       currency: "hkd",
       description: description || "ZenPass 課程預約",
       metadata: {
-        booking_id: booking_id || "",
+        booking_id: ids.join(","),
         user_id: req.user.id,
       },
       // Stripe.js 需要 client_secret 去 confirm payment
@@ -816,6 +841,7 @@ router.post("/create-payment-intent", authenticateToken, async (req, res) => {
       client_secret: paymentIntent.client_secret,
       payment_intent_id: paymentIntent.id,
       amount,
+      booking_ids: ids,
       currency: "hkd",
       dev_mode: false,
     });
@@ -1100,21 +1126,14 @@ router.post("/create-subscription", authenticateToken, async (req, res) => {
       return res.status(400).json({ success: false, error: "缺少會籍資料" });
 
     const stripe = getStripe();
-    if (!stripe || !plan_id.startsWith("price_")) {
-      // Dev mode - just update the user record
-      const db = getDb();
-      db.pragma("foreign_keys = ON");
-      db.prepare(
-        "UPDATE users SET membership_type = ?, membership_expires_at = ? WHERE id = ?",
-      ).run(
-        plan_id,
-        new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-        req.user.id,
-      );
-
-      return res.json({
-        dev_mode: true,
-        message: "Dev mode: subscription created",
+    // 🚫 安全（2026-10-19）：唔可以喺未付款情況下開通會籍
+    // Stripe 未設定或 plan_id 唔係 Stripe price → 一律引導去人手確認嘅會籍訂單
+    if (!stripe || !String(plan_id).startsWith("price_")) {
+      return res.status(403).json({
+        success: false,
+        code: "USE_MEMBERSHIP_ORDER",
+        error: "請到會籍頁建立訂單（FPS／PayMe），管理員確認收款後才會開通會籍。",
+        redirect: "membership.html",
       });
     }
 

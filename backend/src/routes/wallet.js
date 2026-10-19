@@ -205,6 +205,14 @@ router.post("/bank", authenticateToken, (req, res) => {
 
 // ===== 6. POST /api/wallet/pay-rental — 銀包扣數租場 =====
 router.post("/pay-rental", authenticateToken, (req, res) => {
+  // 🚫 安全（2026-10-19）：客戶端傳入 amount 可以任意改細，而且唔會更新租場紀錄。
+  // 一律改用 POST /api/venue-rentals/:id/pay（金額由租場紀錄決定、有付款冪等檢查）。
+  return res.status(403).json({
+    success: false,
+    code: "USE_VENUE_RENTAL_PAY",
+    error: "請喺「租場紀錄」用付款按鈕繳費。",
+  });
+  /* eslint-disable no-unreachable */
   try {
     const { rental_id, amount } = req.body;
     if (!rental_id || !amount) {

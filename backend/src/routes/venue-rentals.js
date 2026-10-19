@@ -166,7 +166,24 @@ router.post("/book", authenticateToken, (req, res) => {
     }
 
     const id = uuidv4();
-    const price = price_hkd || Math.round(venue.commission_rate * 600);
+    // 🔒 安全（2026-10-19）：租金一律由伺服器按場地設定計算，唔信客戶端 price_hkd
+    // 與 /available 顯示嘅 price_per_hour 用同一條公式，確保前後端一致
+    const hourly =
+      Math.round(Number(venue.commission_rate || 0) * 100 * 600) / 100 || 200;
+    const hours = (new Date(end_time) - new Date(start_time)) / 3600000;
+    const price = Math.max(1, Math.round(hourly * hours));
+
+    // 客戶端可傳 price_hkd 作核對；如果同伺服器計算唔一致 → 拒絕（避免有人改細金額，
+    // 亦避免前端舊價／竄改價靜靜收多錢）
+    if (price_hkd !== null && price_hkd !== undefined && Math.abs(Number(price_hkd) - price) > 0.01) {
+      return res.status(409).json({
+        success: false,
+        code: "PRICE_CHANGED",
+        error: `租金已更新為 HK$${price}（${hours.toFixed(1)} 小時 × HK$${hourly}/hr），請重新整理再預約。`,
+        price_hkd: price,
+        hourly_hkd: hourly,
+      });
+    }
 
     // 場地若開咗「自動接受」→ 直接 confirmed；否則 pending 待場地確認
     const autoCfg = _getAuto(venue_id);
@@ -452,7 +469,7 @@ router.post("/:id/pay", authenticateToken, (req, res) => {
     const w = walletService.debitWallet({
       userId: r.coach_id,
       amount: Number(r.price_hkd) || 0,
-      type: "venue_rental",
+      type: "rental_payment",
       description: `租場費用 ${r.start_time} - ${r.end_time}`,
       reference: r.id,
       sourceType: "venue_rental",
