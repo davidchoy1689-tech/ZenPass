@@ -38,6 +38,76 @@
   <meta name="twitter:description" content="免費登記 ZenPass！新用戶輸入優惠碼 WELCOME50 即享首堂半價。精選全港瑜伽、芬蘭木柱、地板冰壺、HIIT 等百款運動體驗。" />
   <meta name="twitter:image" content="https://zenpass.hk/assets/og/zenpass-og.jpg" />
   <link rel="stylesheet" href="assets/v2.css?v=30" />
+
+  <style id="ui-v3">
+    /* ===== v3 視覺升級（2026-10-21）===== */
+    body { background: #f8faf9; }
+    .wrap { background: transparent; }
+
+    /* 熱門卡片 */
+    .hot-rail { display: flex; gap: 14px; overflow-x: auto; padding: 6px 16px 20px; scroll-snap-type: x mandatory; }
+    .hot-card {
+      flex: 0 0 268px; background: #fff; border-radius: 14px; overflow: hidden;
+      box-shadow: 0 6px 20px rgba(0,0,0,.06); transition: transform .25s ease, box-shadow .25s ease;
+      scroll-snap-align: start; display: block; color: inherit; text-decoration: none; border: 0;
+    }
+    .hot-card:hover { transform: translateY(-3px); box-shadow: 0 14px 30px rgba(0,0,0,.10); }
+    .hot-card:active { transform: translateY(-1px) scale(.995); }
+    .hot-cover {
+      position: relative; height: 160px; overflow: hidden; border-radius: 12px 12px 0 0;
+      background: linear-gradient(145deg,#d7e6e1,#b9d6cc);
+    }
+    .hot-cover img { width: 100%; height: 160px; object-fit: cover; display: block; }
+    .hot-cover .cover-shade { position: absolute; inset: 0; background: linear-gradient(180deg,rgba(0,0,0,.18),rgba(0,0,0,0) 55%); }
+    .badge-trial {
+      position: absolute; left: 10px; top: 10px; z-index: 3;
+      background: linear-gradient(135deg,#ff7a45,#e8491d); color: #fff;
+      font-size: 11.5px; font-weight: 800; letter-spacing: .2px;
+      padding: 5px 11px; border-radius: 999px; box-shadow: 0 4px 12px rgba(232,73,29,.38);
+    }
+    .badge-star {
+      position: absolute; right: 10px; top: 10px; z-index: 3;
+      background: linear-gradient(135deg,#ffe08a,#f5a623); color: #5a3a00;
+      font-size: 11.5px; font-weight: 900; padding: 5px 10px; border-radius: 999px;
+      box-shadow: 0 4px 12px rgba(245,166,35,.38);
+    }
+    .hot-body { padding: 12px 14px 14px; }
+    .hot-cat { font-size: 11px; font-weight: 700; color: #0f766e; background: #e6f6f1; border-radius: 999px; padding: 3px 9px; display: inline-block; margin-bottom: 6px; }
+    .hot-name { margin: 0 0 6px; font-size: 14px; font-weight: 800; line-height: 1.4; color: #14181f; }
+    .hot-rating { margin: 0 0 4px; font-size: 12px; color: #b45309; font-weight: 700; }
+    .hot-rating span { color: #9aa3ad; font-weight: 500; }
+    .hot-meta { margin: 0 0 8px; font-size: 11.5px; color: #7b8794; }
+    .hot-price { margin: 0 0 10px; display: flex; align-items: center; gap: 8px; }
+    .hot-price b { font-size: 17px; font-weight: 900; color: #0f766e; }
+    .hot-trial { font-size: 11px; font-weight: 800; color: #fff; background: #10b981; border-radius: 999px; padding: 2px 8px; }
+    .hot-cta { font-size: 13px; padding: 10px; border-radius: 10px; }
+
+    /* 8 大類別：相片大卡（2 欄）*/
+    .cat-photo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 0 16px; }
+    .cat-photo { position: relative; aspect-ratio: 1 / 1; border-radius: 16px; overflow: hidden;
+      box-shadow: 0 6px 18px rgba(0,0,0,.08); transition: transform .25s ease, box-shadow .25s ease; }
+    .cat-photo:hover { transform: translateY(-3px); box-shadow: 0 14px 26px rgba(0,0,0,.14); }
+    .cat-photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+    .cat-photo .mask { position: absolute; inset: 0; background: rgba(0,0,0,.4); }
+    .cat-photo .inner { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; color: #fff; text-align: center; padding: 10px; }
+    .cat-photo .inner b { font-size: 16px; font-weight: 900; letter-spacing: .2px; text-shadow: 0 2px 8px rgba(0,0,0,.35); }
+    .cat-photo .inner i { font-style: normal; font-size: 11px; opacity: .92; }
+
+    /* 主按鈕：圓角漸變綠 */
+    .btn-primary, .ref-btn, .b2b-btn {
+      background: linear-gradient(135deg,#10b981,#059669) !important;
+      border: 0 !important; color: #fff !important; border-radius: 999px !important;
+      box-shadow: 0 6px 16px rgba(16,185,129,.30);
+      transition: transform .18s ease, box-shadow .18s ease, filter .18s ease;
+    }
+    .btn-primary:hover { filter: brightness(1.04); box-shadow: 0 10px 22px rgba(16,185,129,.35); }
+    .btn-primary:active { transform: scale(.97); box-shadow: 0 3px 10px rgba(16,185,129,.30); }
+
+    @media (min-width: 720px) {
+      .cat-photo-grid { grid-template-columns: repeat(4, 1fr); }
+      .hot-card { flex: 0 0 300px; }
+    }
+  </style>
 </head>
 <body>
   <div class="wrap">
@@ -154,12 +224,14 @@
     <div class="hot-rail" id="hotRail">
 
       <a class="hot-card" href="detail.html?q=%E8%8A%AC%E8%98%AD%E6%9C%A8%E6%9F%B1">
-        <div class="hot-media" style="background:linear-gradient(145deg,#C06F30,#893F07)">
-          <span class="hot-cat">新興運動 · 芬蘭木柱</span>
-          <img class="hot-art" src="assets/icons/sports-white/moelkkyla.svg" alt="">
-          <span class="hot-badge">迎新半價</span>
+        <div class="hot-cover">
+          <img src="https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=800&q=70" alt="" loading="lazy" onerror="this.style.display='none'">
+          <span class="cover-shade"></span>
+          <span class="badge-trial">🎉 半價優惠</span>
+          <span class="badge-star">⭐ 4.9</span>
         </div>
         <div class="hot-body">
+          <span class="hot-cat">新興運動 · 芬蘭木柱</span>
           <p class="hot-name">【新手體驗】芬蘭木柱 Mölkky 基礎技巧與比賽</p>
           <p class="hot-rating">⭐ 4.9 <span>(30+ 評價)</span></p>
           <p class="hot-meta">📍 觀塘｜⏱️ 60 分鐘 · 剩 6 位</p>
@@ -169,12 +241,14 @@
       </a>
 
       <a class="hot-card" href="detail.html?q=%E5%9C%B0%E6%9D%BF%E5%86%B0%E5%A3%BA">
-        <div class="hot-media" style="background:linear-gradient(145deg,#487CEE,#1C4BB3)">
-          <span class="hot-cat">新興運動 · 地板冰壺</span>
-          <img class="hot-art" src="assets/icons/sports-white/floor-curling.svg" alt="">
-          <span class="hot-badge">迎新半價</span>
+        <div class="hot-cover">
+          <img src="https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?auto=format&fit=crop&w=800&q=70" alt="" loading="lazy" onerror="this.style.display='none'">
+          <span class="cover-shade"></span>
+          <span class="badge-trial">🎉 半價優惠</span>
+          <span class="badge-star">⭐ 4.9</span>
         </div>
         <div class="hot-body">
+          <span class="hot-cat">新興運動 · 地板冰壺</span>
           <p class="hot-name">【親子班】地板冰壺 冰上策略入門</p>
           <p class="hot-rating">⭐ 4.9 <span>(30+ 評價)</span></p>
           <p class="hot-meta">📍 旺角｜⏱️ 90 分鐘 <span class="hot-urgent">🔥 僅剩 4 位</span></p>
@@ -184,12 +258,14 @@
       </a>
 
       <a class="hot-card" href="detail.html?q=%E5%B8%83%E8%A2%8B%E7%90%83">
-        <div class="hot-media" style="background:linear-gradient(145deg,#E24949,#A71D1D)">
-          <span class="hot-cat">球類運動 · 布袋球</span>
-          <img class="hot-art" src="assets/icons/sports-white/cornhole.svg" alt="">
-          <span class="hot-badge">迎新半價</span>
+        <div class="hot-cover">
+          <img src="https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?auto=format&fit=crop&w=800&q=70" alt="" loading="lazy" onerror="this.style.display='none'">
+          <span class="cover-shade"></span>
+          <span class="badge-trial">🎉 半價優惠</span>
+          <span class="badge-star">⭐ 4.9</span>
         </div>
         <div class="hot-body">
+          <span class="hot-cat">球類運動 · 布袋球</span>
           <p class="hot-name">【週末班】布袋球 Cornhole 投擲技巧</p>
           <p class="hot-rating">⭐ 4.9 <span>(30+ 評價)</span></p>
           <p class="hot-meta">📍 沙田｜⏱️ 60 分鐘 · 剩 8 位</p>
@@ -199,18 +275,23 @@
       </a>
 
       <a class="hot-card" href="detail.html?q=%E7%A9%BF%E9%9B%B2%E7%AE%AD">
-        <div class="hot-media" style="background:linear-gradient(145deg,#915AF0,#5E2CB4)">
-          <span class="hot-cat">香港熱門 · 穿雲箭</span>
-          <img class="hot-art" src="assets/icons/sports-white/air-storm.svg" alt="">
-          <span class="hot-badge">迎新半價</span>
+        <div class="hot-cover">
+          <img src="https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&w=800&q=70" alt="" loading="lazy" onerror="this.style.display='none'">
+          <span class="cover-shade"></span>
+          <span class="badge-trial">🎉 半價優惠</span>
+          <span class="badge-star">⭐ 4.9</span>
         </div>
         <div class="hot-body">
+          <span class="hot-cat">香港熱門 · 穿雲箭</span>
           <p class="hot-name">【挑戰班】穿雲箭 AIR STORM 精準射擊</p>
           <p class="hot-rating">⭐ 4.9 <span>(30+ 評價)</span></p>
           <p class="hot-meta">📍 銅鑼灣｜⏱️ 45 分鐘 · 剩 5 位</p>
           <p class="hot-price"><b>HK$160</b> <span class="hot-trial">迎新半價 HK$80</span></p>
           <span class="btn btn-primary btn-block hot-cta">立即預約</span>
         </div>
+      </a>
+
+    </div>
       </a>
 
     </div>
@@ -263,7 +344,7 @@
     </div>
 
     <div class="section-title">🏅 運動項目 <span class="sport-count">8 大類</span></div>
-    <div class="mega-grid" id="megaGrid"></div>
+    <div class="cat-photo-grid" id="catPhotoGrid"></div>
     <button class="acc-btn" id="accBtn" type="button" aria-expanded="false">🔍 查看全部 145 個運動項目</button>
     <div class="acc-panel" id="sportGridAll" hidden></div>
 
@@ -520,10 +601,30 @@
           if (sec) sec.style.display = "none";
           return;
         }
-        var GRADS = ["#C06F30,#893F07", "#487CEE,#1C4BB3", "#E24949,#A71D1D", "#915AF0,#5E2CB4", "#0EA5A4,#0F766E", "#DB2777,#9D174D"];
+        // 類別 → Unsplash 實景封面（已驗證 200）
+        var U = {
+          "新興運動": "photo-1517836357463-d25dfeac3438",
+          "伸展": "photo-1544367567-0f2fcb009e0b",
+          "瑜伽": "photo-1571019613454-1cb2f99b2d8b",
+          "健身": "photo-1518611012118-696072aa579a",
+          "冥想": "photo-1506126613408-eca07ce68773",
+          "舞蹈": "photo-1549060279-7e168fcee0c2",
+          "兒童體適能": "photo-1552674605-db6ffd4facb5",
+          "長者體適能": "photo-1552196563-55cd4e45efb3",
+          "TRX 懸吊訓練": "photo-1541534741688-6078c6bfb5c5",
+          "乒乓球": "photo-1552674605-db6ffd4facb5",
+          "保齡球": "photo-1552196563-55cd4e45efb3",
+          "劍擊": "photo-1517836357463-d25dfeac3438",
+        };
+        function coverUrl(c) {
+          var pick = (typeof cardImage === "function") ? cardImage(c, "list") : { url: c.image_url || "" };
+          if (pick.url && pick.url.indexOf("http") === 0) return pick.url;
+          var id = U[String(c.category || "").trim()] || "photo-1541534741688-6078c6bfb5c5";
+          return "https://images.unsplash.com/" + id + "?auto=format&fit=crop&w=800&q=70";
+        }
         var promo = false;
         try { promo = (localStorage.getItem("zp_promo") || "") === "WELCOME50"; } catch (e) {}
-        rail.innerHTML = arr.slice(0, 6).map(function (c, i) {
+        rail.innerHTML = arr.slice(0, 6).map(function (c) {
           var sch = (c.schedules || [])[0] || {};
           var left = Math.max(0, (Number(sch.max_participants) || 0) - (Number(sch.enrolled_count) || 0));
           var price = Number(c.price_hkd) || 0;
@@ -535,28 +636,49 @@
                 ? ' <span class="hot-urgent">🔥 僅剩 ' + left + ' 位</span>'
                 : ' · 剩 ' + left + ' 位')
             : '';
-          var slug = (typeof sportSlugLoose === "function") ? sportSlugLoose(c.category || "", c.title || "") : "";
-          var hasImg = !!(c.image_url && String(c.image_url).trim());
-          var imgPick = (typeof cardImage === "function") ? cardImage(c, "list") : { url: c.image_url || "", kind: "own" };
-          var hasCover = !!imgPick.url;
-          var art = (!hasCover && slug) ? '<img class="hot-art" src="assets/icons/sports-white/' + slug + '.svg" alt="">' : "";
-          var mediaStyle = hasCover
-            ? 'background-image:linear-gradient(180deg,rgba(0,0,0,.05),rgba(0,0,0,.35)),url(\'' + esc(imgPick.url) + '\');background-size:cover;background-position:center'
-            : 'background:linear-gradient(145deg,' + GRADS[i % GRADS.length] + ')';
           return '<a class="hot-card" href="detail.html?id=' + encodeURIComponent(c.id) + '">' +
-            '<div class="hot-media" style="' + mediaStyle + '">' +
-              '<span class="hot-cat">' + esc(c.category || "") + (c.district ? " · " + esc(c.district) : "") + '</span>' + art +
-              (promo ? '<span class="hot-badge">迎新半價</span>' : '') +
+            '<div class="hot-cover">' +
+              '<img src="' + esc(coverUrl(c)) + '" alt="" loading="lazy" onerror="this.style.display=\'none\'">' +
+              '<span class="cover-shade"></span>' +
+              (promo ? '<span class="badge-trial">🎉 半價優惠</span>' : '') +
+              '<span class="badge-star">⭐ ' + esc(String(Number(rating).toFixed(1))) + '</span>' +
             '</div>' +
-            '<div class="hot-body"><p class="hot-name">' + esc(c.title) + '</p>' +
-            '<p class="hot-rating">⭐ ' + esc(String(rating)) + ' <span>(' + esc(String(reviews)) + ' 評價)</span></p>' +
-            '<p class="hot-meta">📍 ' + esc(c.venue_name || c.district || "") + '｜⏱️ ' + (c.duration || 60) + ' 分鐘' + leftTxt + '</p>' +
-            '<p class="hot-price"><b>' + hkd(price) + '</b>' +
-              (promo && price ? '<span class="hot-trial">迎新半價 ' + hkd(final) + '</span>' : '') +
-            '</p>' +
-            '<span class="btn btn-primary btn-block hot-cta">立即預約</span></div></a>';
+            '<div class="hot-body">' +
+              '<span class="hot-cat">' + esc(c.category || "") + (c.district ? " · " + esc(c.district) : "") + '</span>' +
+              '<p class="hot-name">' + esc(c.title) + '</p>' +
+              '<p class="hot-rating">⭐ ' + esc(String(Number(rating).toFixed(1))) + ' <span>(' + esc(String(reviews)) + ' 評價)</span></p>' +
+              '<p class="hot-meta">📍 ' + esc(c.venue_name || c.district || "") + '｜⏱️ ' + (c.duration || 60) + ' 分鐘' + leftTxt + '</p>' +
+              '<p class="hot-price"><b>' + hkd(price) + '</b>' +
+                (promo && price ? '<span class="hot-trial">迎新半價 ' + hkd(final) + '</span>' : '') +
+              '</p>' +
+              '<span class="btn btn-primary btn-block hot-cta">立即預約</span>' +
+            '</div></a>';
         }).join("");
       } catch (e) { /* 保留示範卡 */ }
+    })();
+  </script>
+  <script>
+    /* 8 大運動類別：相片大卡（2 欄）*/
+    (function () {
+      var grid = document.getElementById("catPhotoGrid");
+      if (!grid) return;
+      var CATS = [
+        { k: "新興運動", id: "photo-1517836357463-d25dfeac3438", n: "芬蘭木柱 · 布袋球 · 穿雲箭" },
+        { k: "伸展", id: "photo-1544367567-0f2fcb009e0b", n: "肩頸 · 腰背 · 全身" },
+        { k: "瑜伽", id: "photo-1571019613454-1cb2f99b2d8b", n: "初階 · 陰瑜伽 · 空中" },
+        { k: "健身", id: "photo-1518611012118-696072aa579a", n: "HIIT · 重訓 · 體能" },
+        { k: "冥想", id: "photo-1506126613408-eca07ce68773", n: "正念 · 呼吸 · 放鬆" },
+        { k: "舞蹈", id: "photo-1549060279-7e168fcee0c2", n: "K-Pop · 爵士 · 拉丁" },
+        { k: "兒童體適能", id: "photo-1552674605-db6ffd4facb5", n: "3–12 歲 · 協調訓練" },
+        { k: "長者體適能", id: "photo-1552196563-55cd4e45efb3", n: "樂齡 · 平衡 · 肌力" },
+      ];
+      grid.innerHTML = CATS.map(function (c) {
+        return '<a class="cat-photo" href="explore.html?q=' + encodeURIComponent(c.k) + '">' +
+          '<img src="https://images.unsplash.com/' + c.id + '?auto=format&fit=crop&w=700&q=70" alt="" loading="lazy" onerror="this.style.display=\'none\'">' +
+          '<span class="mask"></span>' +
+          '<span class="inner"><b>' + c.k + '</b><i>' + c.n + '</i></span>' +
+          '</a>';
+      }).join("");
     })();
   </script>
   <script>
