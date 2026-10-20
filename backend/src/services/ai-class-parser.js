@@ -305,9 +305,19 @@ function parseClassText(rawText, opts) {
 
   if (!durationMin && slot) durationMin = slot.endMin - slot.startMin;
 
-  // ── 描述 ──
-  const descLines = lines.filter((l) => l !== title && !/^(查詢|報名|電話|whatsapp)[:：]/i.test(l));
-  const description = descLines.join("\n").slice(0, 800);
+  // ── 描述（自動分段：剷走報名／價錢等行政資料，保留課堂內容）──
+  const descLines = lines
+    .filter((l) => l !== title)
+    .filter((l) => !/^(查詢|報名|電話|whatsapp|聯絡)[:：]/i.test(l))
+    .filter((l) => !META_LINE.test(l))
+    .filter((l) => !/^(星期|逢|每(?:個)?(?:星期|週|禮拜))\s*[:：]?/.test(l))
+    .map((l) => l.trim())
+    .filter(Boolean);
+  let description = descLines.join("\n").slice(0, 1200);
+  // 單一大段（例如一段過嘅 WhatsApp 文字）→ 按句號／問號分段，方便閱讀
+  if (description && !description.includes("\n") && description.length > 90) {
+    description = description.replace(/([。！？!?；;])\s*/g, "$1\n\n").trim();
+  }
 
   const confidence = [title ? 1 : 0, sport ? 1 : 0, price ? 1 : 0, schedules.length ? 1 : 0].reduce((a, b) => a + b, 0);
 
