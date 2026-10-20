@@ -35,6 +35,31 @@ function plans() {
   return require("./memberships").MEMBERSHIP_PLANS || {};
 }
 
+/**
+ * 續期接續：若用戶有仍生效嘅會籍，新一期由舊會籍到期日開始（唔蝕剩餘日數）。
+ * @returns {{start: Date, end: Date, stacked: boolean, previous_end: string|null}}
+ */
+function computeMembershipPeriod(db, userId, durationDays, now = new Date()) {
+  const days = Number(durationDays) || 30;
+  let previousEnd = null;
+  try {
+    const row = db
+      .prepare(
+        `SELECT end_date FROM memberships
+         WHERE user_id = ? AND status = 'active' AND date(end_date) >= date(?) 
+         ORDER BY date(end_date) DESC LIMIT 1`,
+      )
+      .get(userId, now.toISOString().slice(0, 10));
+    if (row && row.end_date) previousEnd = String(row.end_date);
+  } catch (e) {}
+
+  const prevDate = previousEnd ? new Date(previousEnd) : null;
+  const stacked = !!(prevDate && !isNaN(prevDate) && prevDate > now);
+  const start = stacked ? prevDate : now;
+  const end = new Date(start.getTime() + days * 86400000);
+  return { start, end, stacked, previous_end: previousEnd };
+}
+
 // ===== GET /api/membership-orders/plans — 會籍方案 + 收款資料（公開）=====
 router.get("/plans", (req, res) => {
   const all = plans();
@@ -134,9 +159,9 @@ router.post("/admin/:id/confirm", authenticateToken, requireAdmin, (req, res) =>
   if (order.status !== "pending") return res.status(409).json({ success: false, error: "此單已處理" });
 
   const now = new Date();
-  const end = new Date(now.getTime() + Number(order.duration_days) * 86400000);
-  const startStr = now.toISOString();
-  const endStr = end.toISOString();
+  const period = computeMembershipPeriod(db, order.user_id, order.duration_days, now);
+  const startStr = period.start.toISOString();
+  const endStr = period.end.toISOString();
   const membershipId = uuidv4();
 
   try {
@@ -171,7 +196,12 @@ router.post("/admin/:id/confirm", authenticateToken, requireAdmin, (req, res) =>
       db.prepare(
         `UPDATE membership_orders SET status='confirmed', admin_id=?, confirmed_at=datetime('now'), note=?
          WHERE id=? AND status='pending'`,
-      ).run(req.user.id, (req.body && req.body.note) || null, order.id);
+      ).run(
+        req.user.id,
+        [req.body && req.body.note, period.stacked ? `續期接續（舊會籍到期 ${String(period.previous_end).slice(0, 10)}）` : null]
+          .filter(Boolean).join(" | ") || null,
+        order.id,
+      );
     });
     tx();
 
@@ -232,3 +262,4 @@ router.post("/admin/:id/reject", authenticateToken, requireAdmin, (req, res) => 
 });
 
 module.exports = router;
+module.exports.computeMembershipPeriod = computeMembershipPeriod;

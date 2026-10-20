@@ -547,6 +547,11 @@ function writeBookingBlock(data) {
  */
 function isVipCustomer(db, userId) {
   try {
+    // 權益單一來源：會籍授予嘅 priority_booking（VIP Pass）
+    try {
+      const { hasEntitlement } = require("./membership-catalog");
+      if (hasEntitlement(userId, "priority_booking")) return true;
+    } catch (e) {}
     const u = db
       .prepare("SELECT membership_type, membership_expires_at FROM users WHERE id = ?")
       .get(userId);

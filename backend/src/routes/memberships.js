@@ -268,6 +268,10 @@ router.get("/my", authenticateToken, (req, res) => {
         type,
         expires_at: expiresAt,
         credits: user.credits,
+        entitlements:
+          type === "none"
+            ? []
+            : require("../services/membership-catalog").getEntitlements(req.user.id).map((e) => e.key),
       },
       history: memberships,
     });

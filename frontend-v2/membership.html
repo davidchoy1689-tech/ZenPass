@@ -64,7 +64,20 @@
         const cur = my.data && my.data.current;
         const hist = (my.data && my.data.history) || [];
         if (cur && cur.type && cur.type !== "none") {
+          const ENT = {
+            free_cancel: "自由取消（開課前一日）",
+            unlimited_cancel: "無限取消更換",
+            priority_booking: "VIP 優先預約（新課 24 小時）",
+            pt_sessions: "一對一健康諮詢／身體評估",
+            vip_guest: "免費邀請朋友體驗",
+            dedicated_support: "專屬客服",
+            premium_peak: "高峰時段彈性",
+          };
+          const perks = (Array.isArray(cur.entitlements) ? cur.entitlements : [])
+            .map(k => `<span style="display:inline-block;font-size:11.5px;font-weight:700;background:#ecfdf5;color:#047857;border:1px solid #a7f3d0;border-radius:999px;padding:3px 9px;margin:6px 6px 0 0">✓ ${esc(ENT[k] || k)}</span>`)
+            .join("");
           let html = `<div class="banner">👑 現時會籍：<b>${esc(cur.type)}</b>${cur.expires_at ? "（到期 " + String(cur.expires_at).slice(0, 10) + "）" : ""}</div>`;
+          if (perks) html += `<div style="margin-top:2px">${perks}</div>`;
           const act = hist.find(m => m.status === "active");
           if (act) {
             const paused = act.paused_until && new Date(act.paused_until) > new Date();
