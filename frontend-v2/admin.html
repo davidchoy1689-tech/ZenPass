@@ -41,7 +41,7 @@
     const TABS = [
       ["dash","概覽"], ["pay","付款核實"], ["refund","退款待轉賬"], ["topup","增值待確認"], ["morder","會籍待確認"], ["fulfil","兌換待履行"], ["consult","健康諮詢"], ["inq","查詢"], ["classes","課程"],
       ["bookings","預約"], ["users","用戶"], ["coach","教練申請"], ["payouts","出糧"],
-      ["reports","報表"], ["corp","企業"], ["partners","商戶"], ["jobs","Job"], ["pricing","定價"], ["penalty","罰則"], ["analytics","分析"], ["nps","評價"], ["promo","優惠碼"], ["marketing","推廣"], ["migrate","遷移"], ["audit","審計"],
+      ["ai","🤖 AI 開班"], ["reports","報表"], ["corp","企業"], ["partners","商戶"], ["jobs","Job"], ["pricing","定價"], ["penalty","罰則"], ["analytics","分析"], ["nps","評價"], ["promo","優惠碼"], ["marketing","推廣"], ["migrate","遷移"], ["audit","審計"],
     ];
     let cur = "dash";
 
@@ -52,6 +52,15 @@
     const loading = () => { panel().innerHTML = `<div class="card"><div class="body muted">載入中…</div></div>`; };
     const needAdmin = () => { panel().innerHTML = `<div class="card"><div class="body center">🔒 需要管理員權限。<br><br><a class="btn btn-primary" href="login.html?next=admin.html">管理員登入</a></div></div>`; };
     const row = (l, r) => `<div class="row"><span>${l}</span><span style="text-align:right">${r||""}</span></div>`;
+
+    function aiOpenTab() {
+      panel().innerHTML = `<div class="card"><div class="body">
+        <div style="font-size:15px;font-weight:800;margin-bottom:6px">🤖 AI 一鍵開班</div>
+        <div class="kv" style="margin-bottom:12px">影相／貼上宣傳單張 → 自動抽出課程名、日期時間、價錢、名額、地點 → 核對後一鍵建立課堂。</div>
+        <a class="btn btn-primary btn-block" href="ai-open-class.html">開啟 AI 開班</a>
+        <div class="kv" style="margin-top:10px">📋 表單開班：填完即開，零辨識誤差<br/>📷 單張匯入：相片或文字，4 通道 OCR + 自學字典</div>
+      </div></div>`;
+    }
 
     async function load() {
       loading();
@@ -69,6 +78,7 @@
         if (cur === "users") return usersTab();
         if (cur === "coach") return coachApps();
         if (cur === "payouts") return payouts();
+        if (cur === "ai") return aiOpenTab();
         if (cur === "reports") return reports();
         if (cur === "corp") return listGeneric("/corporate/companies", "companies", corpRow, "企業");
         if (cur === "partners") return partnersTab();
