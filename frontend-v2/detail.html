@@ -337,10 +337,11 @@
       const left = seatsLeft();
       // 小班教學定義：最多 7 人；8 人或以上唔算小班
       const SMALL_CLASS_MAX = 7;
+      const seats = left != null ? "，剩餘 " + left + " 個名額" : "";
       const capLabel =
-        (cap <= SMALL_CLASS_MAX ? "小班教學（最多 " + cap + " 人" : "最多 " + cap + " 人（非小班）") +
-        (left != null ? "，剩餘 " + left + " 個名額" : "") +
-        "）";
+        cap <= SMALL_CLASS_MAX
+          ? "小班教學（最多 " + cap + " 人" + seats + "）"
+          : "最多 " + cap + " 人（非小班）" + seats;
       $("capacity").textContent = capLabel;
       $("venue").textContent = [c.venue_name, c.venue_address].filter(Boolean).join(" · ") || "地點待定";
       $("venueName").textContent = c.venue_name || "—";
