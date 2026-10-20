@@ -104,6 +104,74 @@
     .btn-primary:active { transform: scale(.97); box-shadow: 0 3px 10px rgba(16,185,129,.30); }
 
 
+
+    /* ===== 全局卡片質感（2026-10-21 v3.1）===== */
+    .hot-card,
+    .cat-photo,
+    .why-card,
+    .proof-card,
+    .b2b,
+    .banner-claim {
+      background: #ffffff;
+      border: 1px solid rgba(0, 0, 0, 0.05);
+      border-radius: 16px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.03), 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+      transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      will-change: transform;
+    }
+    .hot-card:hover,
+    .cat-photo:hover,
+    .why-card:hover,
+    .proof-card:hover,
+    .b2b:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+    }
+    .hot-card:active,
+    .cat-photo:active,
+    .why-card:active,
+    .proof-card:active,
+    .b2b:active,
+    .banner-claim:active {
+      transform: scale(0.98);
+    }
+
+    /* 封面圖：圓角 + hover 微放大 */
+    .hot-cover,
+    .cat-photo {
+      border-radius: 16px 16px 0 0;
+      overflow: hidden;
+    }
+    .cat-photo { border-radius: 16px; }
+    .hot-cover img,
+    .cat-photo img {
+      transition: transform 0.4s ease;
+      will-change: transform;
+    }
+    .hot-card:hover .hot-cover img,
+    .cat-photo:hover img {
+      transform: scale(1.05);
+    }
+
+    /* 優惠券 / B2B banner：綠色漸變 + 柔和發光 */
+    .banner-claim,
+    .b2b {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      box-shadow: 0 8px 20px rgba(16, 185, 129, 0.25);
+      color: #fff;
+    }
+    .banner-claim .promo-code { background: rgba(255, 255, 255, 0.22); color: #fff; border-color: rgba(255,255,255,.35); }
+    .banner-claim .promo { background: #fff; color: #047857; }
+    .b2b .b2b-tx b, .b2b .b2b-tx p, .b2b .b2b-alt, .b2b .b2b-alt a { color: #fff; }
+    .b2b .b2b-btn { background: rgba(255,255,255,.18) !important; box-shadow: none !important; border: 1px solid rgba(255,255,255,.4) !important; }
+
+    /* 桌面才有 hover 位移／放大，避免手機黏住狀態 */
+    @media (hover: none) {
+      .hot-card:hover, .cat-photo:hover, .why-card:hover, .proof-card:hover, .b2b:hover { transform: none; box-shadow: 0 4px 6px -1px rgba(0,0,0,.03), 0 10px 15px -3px rgba(0,0,0,.05); }
+      .hot-card:hover .hot-cover img, .cat-photo:hover img { transform: none; }
+    }
+
     /* ===== Skeleton screen（2026-10-21）===== */
     .skeleton {
       background-color: #e2e8f0;
