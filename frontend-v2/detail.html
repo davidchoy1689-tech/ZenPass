@@ -232,7 +232,7 @@
       <section class="dt-sec">
         <h2>❓ 常見問題</h2>
         <div class="card"><div class="body">
-          <details class="dt-faq" open><summary>需要自備裝備嗎？</summary><p>不需要，費用已包含所有裝備與器材（比賽級芬蘭木柱）。</p></details>
+          <details class="dt-faq" open><summary>需要自備裝備嗎？</summary><p id="faqGear">裝備安排請參考上方「🎒 裝備」欄；如有疑問，可於預約前向教練查詢。</p></details>
           <details class="dt-faq"><summary>穿著什麼衣服？</summary><p>穿著舒適運動服及平底運動鞋即可。</p></details>
           <details class="dt-faq"><summary>完全冇經驗可以玩嗎？</summary><p>可以。呢個係新手零門檻體驗班，教練會由規則、握法、計分逐步教起。</p></details>
           <details class="dt-faq"><summary>可以幾時取消？</summary><p>開課前 3 日或以上免費取消；1–3 日收取 50%；當日或不足 1 日收取 100%。</p></details>
@@ -345,6 +345,13 @@
       $("capacity").textContent = capLabel;
       const gearEl = $("gear");
       if (gearEl) gearEl.textContent = (c.equipment && String(c.equipment).trim()) || "提供基本裝備（瑜伽墊）";
+      const faqGear = $("faqGear");
+      if (faqGear) {
+        const eq = (c.equipment && String(c.equipment).trim()) || "";
+        faqGear.textContent = eq
+          ? "裝備安排：" + eq + "。如有疑問，可於預約前向教練查詢。"
+          : "裝備安排請參考上方「🎒 裝備」欄；如有疑問，可於預約前向教練查詢。";
+      }
       const _vn = String(c.venue_name || "").trim();
       const _va = String(c.venue_address || "").trim();
       const sameVenue = !_va || _va === _vn || _vn.includes(_va) || _va.includes(_vn);
