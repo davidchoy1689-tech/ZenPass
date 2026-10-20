@@ -225,7 +225,7 @@
 
       <a class="hot-card" href="detail.html?q=%E8%8A%AC%E8%98%AD%E6%9C%A8%E6%9F%B1">
         <div class="hot-cover">
-          <img src="https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=800&q=70" alt="" loading="lazy" onerror="this.style.display='none'">
+          <img src="assets/img/photos/emerging.jpg?v=1" alt="" loading="lazy" onerror="this.style.display='none'">
           <span class="cover-shade"></span>
           <span class="badge-trial">🎉 半價優惠</span>
           <span class="badge-star">⭐ 4.9</span>
@@ -242,7 +242,7 @@
 
       <a class="hot-card" href="detail.html?q=%E5%9C%B0%E6%9D%BF%E5%86%B0%E5%A3%BA">
         <div class="hot-cover">
-          <img src="https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?auto=format&fit=crop&w=800&q=70" alt="" loading="lazy" onerror="this.style.display='none'">
+          <img src="assets/img/photos/stretch.jpg?v=1" alt="" loading="lazy" onerror="this.style.display='none'">
           <span class="cover-shade"></span>
           <span class="badge-trial">🎉 半價優惠</span>
           <span class="badge-star">⭐ 4.9</span>
@@ -259,7 +259,7 @@
 
       <a class="hot-card" href="detail.html?q=%E5%B8%83%E8%A2%8B%E7%90%83">
         <div class="hot-cover">
-          <img src="https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?auto=format&fit=crop&w=800&q=70" alt="" loading="lazy" onerror="this.style.display='none'">
+          <img src="assets/img/photos/yoga.jpg?v=1" alt="" loading="lazy" onerror="this.style.display='none'">
           <span class="cover-shade"></span>
           <span class="badge-trial">🎉 半價優惠</span>
           <span class="badge-star">⭐ 4.9</span>
@@ -276,7 +276,7 @@
 
       <a class="hot-card" href="detail.html?q=%E7%A9%BF%E9%9B%B2%E7%AE%AD">
         <div class="hot-cover">
-          <img src="https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&w=800&q=70" alt="" loading="lazy" onerror="this.style.display='none'">
+          <img src="assets/img/photos/fitness.jpg?v=1" alt="" loading="lazy" onerror="this.style.display='none'">
           <span class="cover-shade"></span>
           <span class="badge-trial">🎉 半價優惠</span>
           <span class="badge-star">⭐ 4.9</span>
@@ -603,24 +603,24 @@
         }
         // 類別 → Unsplash 實景封面（已驗證 200）
         var U = {
-          "新興運動": "photo-1517836357463-d25dfeac3438",
-          "伸展": "photo-1544367567-0f2fcb009e0b",
-          "瑜伽": "photo-1571019613454-1cb2f99b2d8b",
-          "健身": "photo-1518611012118-696072aa579a",
-          "冥想": "photo-1506126613408-eca07ce68773",
-          "舞蹈": "photo-1549060279-7e168fcee0c2",
-          "兒童體適能": "photo-1552674605-db6ffd4facb5",
-          "長者體適能": "photo-1552196563-55cd4e45efb3",
-          "TRX 懸吊訓練": "photo-1541534741688-6078c6bfb5c5",
-          "乒乓球": "photo-1552674605-db6ffd4facb5",
-          "保齡球": "photo-1552196563-55cd4e45efb3",
-          "劍擊": "photo-1517836357463-d25dfeac3438",
+          "新興運動": "emerging",
+          "伸展": "stretch",
+          "瑜伽": "yoga",
+          "健身": "fitness",
+          "冥想": "meditation",
+          "舞蹈": "dance",
+          "兒童體適能": "kids",
+          "長者體適能": "senior",
+          "TRX 懸吊訓練": "trx",
+          "乒乓球": "kids",
+          "保齡球": "senior",
+          "劍擊": "emerging",
         };
         function coverUrl(c) {
           var pick = (typeof cardImage === "function") ? cardImage(c, "list") : { url: c.image_url || "" };
           if (pick.url && pick.url.indexOf("http") === 0) return pick.url;
-          var id = U[String(c.category || "").trim()] || "photo-1541534741688-6078c6bfb5c5";
-          return "https://images.unsplash.com/" + id + "?auto=format&fit=crop&w=800&q=70";
+          var name = U[String(c.category || "").trim()] || "generic";
+          return "assets/img/photos/" + name + ".jpg?v=1";
         }
         var promo = false;
         try { promo = (localStorage.getItem("zp_promo") || "") === "WELCOME50"; } catch (e) {}
@@ -674,7 +674,7 @@
       ];
       grid.innerHTML = CATS.map(function (c) {
         return '<a class="cat-photo" href="explore.html?q=' + encodeURIComponent(c.k) + '">' +
-          '<img src="https://images.unsplash.com/' + c.id + '?auto=format&fit=crop&w=700&q=70" alt="" loading="lazy" onerror="this.style.display=\'none\'">' +
+          '<img src="assets/img/photos/' + c.id + '.jpg?v=1" alt="" loading="lazy" onerror="this.style.display=\'none\'">' +
           '<span class="mask"></span>' +
           '<span class="inner"><b>' + c.k + '</b><i>' + c.n + '</i></span>' +
           '</a>';
