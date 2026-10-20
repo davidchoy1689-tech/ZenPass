@@ -284,7 +284,7 @@
       $("sbGo").addEventListener("click", function () {
         if (!selected) return;
         $("pmTitle").textContent = "結賬：" + selected.name + (selected.kind === "member" ? "（月度會籍）" : "");
-        $("pmSub").textContent = "HK$" + Number(selected.amount_hkd).toLocaleString("en-HK") + (selected.kind === "member" ? "/月" : "") + " · " + (selected.note || "");
+        $("pmSub").textContent = "HK$" + Number(selected.amount_hkd).toLocaleString("en-HK") + (selected.kind === "member" ? "/月 · 每月入 " + selected.note : " · " + (selected.note || ""));
         $("pmMsg").textContent = "";
         $("pmRef").value = "";
         $("pmInfo").innerHTML = "轉數快：HSBC 741-293856-838（香港康樂及體育有限公司）<br>PayMe：請用 PayMe 掃碼／轉賬至同一個商戶";
