@@ -302,6 +302,7 @@
     <a href="my.html"><span class="ic">🎫</span>我的</a>
   </nav>
 
+  <script src="assets/covers.js"></script>
   <script src="assets/api.js"></script>
   <script src="assets/sport-icons.js?v=14"></script>
   <script>
@@ -536,10 +537,13 @@
             : '';
           var slug = (typeof sportSlugLoose === "function") ? sportSlugLoose(c.category || "", c.title || "") : "";
           var hasImg = !!(c.image_url && String(c.image_url).trim());
-          var art = (!hasImg && slug) ? '<img class="hot-art" src="assets/icons/sports-white/' + slug + '.svg" alt="">' : "";
+          var art = (!hasImg && !(typeof coverFor === "function") && slug) ? '<img class="hot-art" src="assets/icons/sports-white/' + slug + '.svg" alt="">' : "";
+          var coverUrl = (typeof coverFor === "function") ? coverFor(c.category, slug) : "";
           var mediaStyle = hasImg
             ? 'background-image:url(\'' + esc(c.image_url) + '\');background-size:cover;background-position:center'
-            : 'background:linear-gradient(145deg,' + GRADS[i % GRADS.length] + ')';
+            : (coverUrl
+                ? 'background-image:linear-gradient(180deg,rgba(0,0,0,.05),rgba(0,0,0,.35)),url(\'' + coverUrl + '\');background-size:cover;background-position:center'
+                : 'background:linear-gradient(145deg,' + GRADS[i % GRADS.length] + ')');
           return '<a class="hot-card" href="detail.html?id=' + encodeURIComponent(c.id) + '">' +
             '<div class="hot-media" style="' + mediaStyle + '">' +
               '<span class="hot-cat">' + esc(c.category || "") + (c.district ? " · " + esc(c.district) : "") + '</span>' + art +
