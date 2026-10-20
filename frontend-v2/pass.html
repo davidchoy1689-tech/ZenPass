@@ -140,26 +140,12 @@
     </section>
 
     <section id="paneMember" hidden>
-      <div class="pack-grid">
-        <article class="pack">
-          <h3>輕量 Pass</h3><div class="meta">每月 37 Credits</div>
-          <div class="price">HK$299<small>/ 月</small></div>
-          <ul><li>約 3 堂 / 月</li><li>自由取消（開課前一日）</li></ul>
-          <a class="btn btn-secondary btn-block" href="membership.html">查看詳情</a>
-        </article>
-        <article class="pack hot">
-          <h3>標準 Pass</h3><div class="meta">每月 100 Credits</div>
-          <div class="price">HK$799<small>/ 月</small></div>
-          <ul><li>約 8 堂 / 月</li><li>優先預約 + 會員價</li></ul>
-          <a class="btn btn-primary btn-block" href="membership.html">查看詳情</a>
-        </article>
-        <article class="pack">
-          <h3>高階 / VIP Pass</h3><div class="meta">237 – 362 Credits</div>
-          <div class="price">HK$1,899<small> 起 / 月</small></div>
-          <ul><li>高階 237cr / VIP 362cr</li><li>早鳥 + 專屬活動</li></ul>
-          <a class="btn btn-secondary btn-block" href="membership.html">查看詳情</a>
-        </article>
+      <p class="muted" style="font-size:12.5px;margin:6px 2px 10px">每月自動入 Credits，比單買更抵；可隨時暫停會籍。價格即時由系統讀取。</p>
+      <div class="pack-grid" id="memberGrid">
+        <div class="pack"><h3>載入中…</h3><div class="meta">正在讀取會籍方案</div></div>
       </div>
+      <div class="spacer"></div>
+      <a class="btn btn-ghost btn-block" href="membership.html">查看會籍詳情 / 暫停會籍</a>
     </section>
 
     <div class="section-title">常見問題</div>
@@ -208,6 +194,7 @@
   <script>
     (function () {
       var PACKS = {};
+      var MEMBERS = {};
       var selected = null;
       var PAY = {};
       var $ = function (id) { return document.getElementById(id); };
@@ -220,14 +207,53 @@
       }).catch(function () {});
 
       function selectPack(id) {
-        selected = PACKS[id] || { id: id, name: id, amount_hkd: 0 };
-        document.querySelectorAll(".pack[data-pack]").forEach(function (el) {
+        selected = Object.assign({ kind: "pack" }, PACKS[id] || { id: id, name: id, amount_hkd: 0 });
+        document.querySelectorAll(".pack[data-pack],.pack[data-member]").forEach(function (el) {
           el.classList.toggle("is-on", el.getAttribute("data-pack") === id);
         });
         $("sbName").textContent = selected.name;
         $("sbPrice").textContent = "HK$" + Number(selected.amount_hkd).toLocaleString("en-HK") + " · " + (selected.note || "");
         $("stickyBuy").classList.add("show");
       }
+
+      function selectMember(key) {
+        var m = MEMBERS[key];
+        if (!m) return;
+        selected = { kind: "member", key: key, name: m.name, amount_hkd: m.price_hkd, note: m.credits_granted + " Credits/月" };
+        document.querySelectorAll(".pack[data-pack],.pack[data-member]").forEach(function (el) {
+          el.classList.toggle("is-on", el.getAttribute("data-member") === key);
+        });
+        $("sbName").textContent = m.name + "（月度會籍）";
+        $("sbPrice").textContent = "HK$" + Number(m.price_hkd).toLocaleString("en-HK") + "/月 · " + m.credits_granted + " Credits";
+        $("stickyBuy").classList.add("show");
+      }
+
+      function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '\"': "&quot;", "'": "&#39;" })[c]; }); }
+
+      fetch("/api/membership-orders/plans").then(function (r) { return r.json(); }).then(function (d) {
+        var list = (d && d.success && d.data && d.data.plans) || [];
+        if (!list.length) { $("memberGrid").innerHTML = '<div class="pack"><h3>暫無會籍方案</h3></div>'; return; }
+        list.forEach(function (m) { MEMBERS[m.key] = m; });
+        $("memberGrid").innerHTML = list.map(function (m) {
+          var per = m.credits_granted ? (m.price_hkd / m.credits_granted).toFixed(2) : "-";
+          var approx = m.credits_granted ? Math.round(m.credits_granted / 12) : 0;
+          var feats = (m.features || []).slice(0, 3).map(function (f) { return "<li>" + esc(f) + "</li>"; }).join("");
+          return '<article class="pack' + (m.popular ? " hot" : "") + '" data-member="' + esc(m.key) + '">' +
+            (m.popular ? '<span class="pack-badge">🔥 最多人選擇</span>' : "") +
+            "<h3>" + esc(m.name) + "</h3>" +
+            '<div class="meta">每月 ' + m.credits_granted + " Credits</div>" +
+            '<div class="price">HK$' + Number(m.price_hkd).toLocaleString("en-HK") + '<small>/ 月</small></div>' +
+            '<div class="avg">≈ HK$' + per + ' / credit · 約 ' + approx + " 堂 / 月</div>" +
+            "<ul>" + feats + "</ul>" +
+            '<button class="btn ' + (m.popular ? "btn-primary" : "btn-secondary") + ' btn-block" data-member-buy="' + esc(m.key) + '" type="button">' + (m.popular ? "立即訂閱" : "選擇購買") + "</button>" +
+            "</article>";
+        }).join("");
+        $("memberGrid").querySelectorAll("[data-member-buy]").forEach(function (b) {
+          b.addEventListener("click", function () { selectMember(b.getAttribute("data-member-buy")); });
+        });
+      }).catch(function () {
+        $("memberGrid").innerHTML = '<div class="pack"><h3>載入失敗</h3><div class="meta">請稍後再試</div></div>';
+      });
 
       document.querySelectorAll("[data-buy]").forEach(function (b) {
         b.addEventListener("click", function () { selectPack(b.getAttribute("data-buy")); });
@@ -257,8 +283,8 @@
 
       $("sbGo").addEventListener("click", function () {
         if (!selected) return;
-        $("pmTitle").textContent = "結賬：" + selected.name;
-        $("pmSub").textContent = "HK$" + Number(selected.amount_hkd).toLocaleString("en-HK") + " · " + (selected.note || "");
+        $("pmTitle").textContent = "結賬：" + selected.name + (selected.kind === "member" ? "（月度會籍）" : "");
+        $("pmSub").textContent = "HK$" + Number(selected.amount_hkd).toLocaleString("en-HK") + (selected.kind === "member" ? "/月" : "") + " · " + (selected.note || "");
         $("pmMsg").textContent = "";
         $("pmRef").value = "";
         $("pmInfo").innerHTML = "轉數快：HSBC 741-293856-838（香港康樂及體育有限公司）<br>PayMe：請用 PayMe 掃碼／轉賬至同一個商戶";
@@ -271,10 +297,15 @@
         if (ref.length < 3) { $("pmMsg").textContent = "請填寫付款參考編號"; return; }
         if (!api.requireLogin("pass.html")) return;
         var btn = $("pmSubmit"); btn.disabled = true; btn.textContent = "提交中…";
-        var r = await api.post("/credits/pass-order", { pack: selected.id, method: method, reference: ref });
+        var isMember = selected.kind === "member";
+        var r = isMember
+          ? await api.post("/membership-orders", { plan_key: selected.key, method: method, reference: ref })
+          : await api.post("/credits/pass-order", { pack: selected.id, method: method, reference: ref });
         btn.disabled = false; btn.textContent = "提交付款核實";
         if (r.ok && r.data && r.data.success) {
-          $("pmMsg").innerHTML = "✅ 已提交！管理員確認收款後，<b>" + r.data.data.credits_to_add + " 點</b>會自動入賬到你的錢包。";
+          $("pmMsg").innerHTML = isMember
+            ? "✅ 已提交會籍訂單！管理員確認收款後會籍自動開通，<b>" + selected.note + "</b> 會入賬到你的帳戶。"
+            : "✅ 已提交！管理員確認收款後，<b>" + r.data.data.credits_to_add + " 點</b>會自動入賬到你的錢包。";
           $("pmRef").value = "";
           setTimeout(function () { $("payModal").hidden = true; }, 2200);
         } else {
