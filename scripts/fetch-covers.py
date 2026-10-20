@@ -19,25 +19,25 @@ import urllib.parse
 import urllib.request
 
 UA = {"User-Agent": "ZenPassBot/1.0 (contact: info.zenpass@gmail.com)"}
-OUT_DIR = os.path.join(os.path.dirname(__file__), "..", "frontend-v2", "assets", "img", "covers")
+OUT_DIR = os.path.join(os.path.dirname(__file__), "..", "frontend-v2", "assets", "img", "covers-photo")
 
 TARGETS = [
-    ("emerging-sports", "新興運動", "molkky finnish"),
-    ("stretch", "伸展", "stretching exercise fitness"),
-    ("yoga", "瑜伽", "yoga class"),
-    ("fitness", "健身", "gym workout weights"),
-    ("meditation", "冥想", "meditation meditation"),
-    ("dance", "舞蹈", "dance class"),
-    ("kids-fitness", "兒童體適能", "children physical activity"),
-    ("senior-fitness", "長者體適能", "senior citizens exercise"),
-    ("trx", "TRX 懸吊訓練", "suspension training trx"),
-    ("table-tennis", "乒乓球", "table tennis"),
-    ("bowling", "保齡球", "bowling"),
-    ("fencing", "劍擊", "fencing sport"),
-    ("default", "其他活動", "sports fitness people"),
+    ("emerging-sports", "新興運動", "molkky players outdoor"),
+    ("stretch", "伸展", "stretching class group"),
+    ("yoga", "瑜伽", "yoga class studio people"),
+    ("fitness", "健身", "gym training weights people"),
+    ("meditation", "冥想", "meditation group sitting"),
+    ("dance", "舞蹈", "dance class studio people"),
+    ("kids-fitness", "兒童體適能", "children sport class playing"),
+    ("senior-fitness", "長者體適能", "elderly exercise group"),
+    ("trx", "TRX 懸吊訓練", "suspension training gym"),
+    ("table-tennis", "乒乓球", "table tennis match player"),
+    ("bowling", "保齡球", "bowling alley player"),
+    ("fencing", "劍擊", "fencing competition fencer"),
+    ("default", "其他活動", "fitness class people"),
 ]
 
-LICENSE_OK = ("public domain", "cc0", "pd", "no restrictions")
+LICENSE_OK = ("public domain", "cc0", "pd", "no restrictions", "cc by")
 
 
 def search(query, limit=25):
