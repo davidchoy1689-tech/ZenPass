@@ -39,7 +39,7 @@
   <meta name="twitter:image" content="https://zenpass.hk/assets/og/zenpass-og.jpg" />
   <link rel="stylesheet" href="assets/v2.css?v=30" />
 
-  <link rel="stylesheet" href="assets/ui-v3.css?v=1" />
+  <link rel="stylesheet" href="assets/ui-v3.css?v=3" />
 </head>
 <body>
   <div class="wrap">
@@ -55,6 +55,11 @@
       </div>
       <h1>郁一郁，身體好</h1>
       <p>芬蘭木柱・地板冰壺・布袋球… 搵堂、預約、簽到，一 app 搞掂。</p>
+
+      <div class="hero-auth" id="heroAuth">
+        <a class="btn btn-primary btn-block" href="register.html?next=index.html">免費註冊，開始預約 →</a>
+        <a class="hero-auth-alt" href="login.html?next=index.html">已有帳號？登入</a>
+      </div>
 
       <div class="quick-search">
         <label class="qs-field"><span>地區</span>
@@ -379,6 +384,8 @@
           if (nm) nm.textContent = String(name).length > 8 ? String(name).slice(0, 8) + "…" : name;
           if (loginBtn) loginBtn.hidden = true;
           if (userChip) userChip.hidden = false;
+          var heroAuth = document.getElementById("heroAuth");
+          if (heroAuth) heroAuth.style.display = "none";
           // 迎新優惠每個帳戶限一次
           api.get("/promo/welcome-status").then(function (w) {
             if (w && w.ok && w.data && w.data.available === false) {
