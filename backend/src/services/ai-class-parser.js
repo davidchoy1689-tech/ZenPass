@@ -1,0 +1,259 @@
+/**
+ * ZenPass — AI 開班：文字／相片 → 課堂草稿
+ *
+ * 設計原則
+ *  1. 唔靠外部收費 API：相片用本機 tesseract OCR（chi_tra/chi_sim/eng），零成本、資料唔出境
+ *  2. 只做「草稿」：所有欄位都會返去前端俾人核對／修改，確認後才建立課堂
+ *  3. 純函數解析（parseClassText）可以獨立測試
+ */
+const { execFile } = require("child_process");
+const fs = require("fs");
+const os = require("os");
+const path = require("path");
+
+const HK_OFFSET_MS = 8 * 3600 * 1000;
+
+// 運動關鍵字 → 分類 / sport_slug（同 data/sport icons 對應）
+const SPORTS = [
+  { re: /芬蘭木柱|mölkky|molkky/i, name: "芬蘭木柱", category: "新興運動", slug: "molkky" },
+  { re: /地板冰壺|地壺/i, name: "地板冰壺", category: "新興運動", slug: "floor-curling" },
+  { re: /布袋球|cornhole/i, name: "布袋球", category: "新興運動", slug: "cornhole" },
+  { re: /穿雲箭|air\s*storm/i, name: "穿雲箭", category: "新興運動", slug: "air-storm" },
+  { re: /北歐式健步|nordic\s*walk/i, name: "北歐式健步行", category: "新興運動", slug: "nordic-walking" },
+  { re: /圓網球|roundnet|spikeball/i, name: "圓網球", category: "新興運動", slug: "roundnet" },
+  { re: /柔力球/i, name: "柔力球", category: "新興運動", slug: "rouliqiu" },
+  { re: /瑜伽|yoga|瑜珈/i, name: "瑜伽", category: "瑜伽", slug: "yoga" },
+  { re: /伸展|stretch/i, name: "伸展", category: "伸展", slug: "stretch" },
+  { re: /冥想|meditation|正念/i, name: "冥想", category: "冥想", slug: "meditation" },
+  { re: /trx/i, name: "TRX 懸吊訓練", category: "TRX 懸吊訓練", slug: "trx" },
+  { re: /劍擊|fencing/i, name: "劍擊", category: "劍擊", slug: "fencing" },
+  { re: /乒乓/i, name: "乒乓球", category: "乒乓球", slug: "table-tennis" },
+  { re: /保齡/i, name: "保齡球", category: "保齡球", slug: "bowling" },
+  { re: /兒童|小朋友|幼兒/i, name: "兒童體適能", category: "兒童體適能", slug: "kids-fitness" },
+  { re: /長者|銀齡|老友記/i, name: "長者體適能", category: "長者體適能", slug: "senior-fitness" },
+  { re: /舞蹈|跳舞|dance|k-?pop/i, name: "舞蹈", category: "舞蹈", slug: "dance" },
+  { re: /健身|重訓|gym|fitness/i, name: "健身", category: "健身", slug: "fitness" },
+];
+
+const WEEKDAY = { 日: 0, 天: 0, 一: 1, 二: 2, 三: 3, 四: 4, 五: 5, 六: 6 };
+
+const META_LINE = /^(地點|場地|地址|費用|收費|價錢|價格|名額|人數|上限|查詢|報名|電話|whatsapp|聯絡|日期|時間|對象|導師|教練|主辦|備註)[:：]/i;
+
+function stripTags(s) {
+  return String(s || "").replace(/[ \t]+/g, " ").replace(/\r/g, "").trim();
+}
+
+/** 由文字抽出課堂草稿（純函數，方便測試） */
+function parseClassText(rawText, opts) {
+  opts = opts || {};
+  const text = stripTags(rawText);
+  const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
+  const flat = lines.join(" ");
+
+  // ── 運動／分類 ──
+  let sport = null;
+  for (const s of SPORTS) {
+    if (s.re.test(flat)) {
+      sport = s;
+      break;
+    }
+  }
+
+  // ── 價格 ──
+  let price = null;
+  const priceMatch =
+    flat.match(/(?:HK\s*\$|港幣|\$)\s*([\d,]+(?:\.\d+)?)/i) ||
+    flat.match(/([\d,]+)\s*(?:元|蚊|hkd)/i) ||
+    flat.match(/(?:費用|收費|價錢|價格)[:：]?\s*([\d,]+)/);
+  if (priceMatch) price = Number(String(priceMatch[1]).replace(/,/g, "")) || null;
+
+  // ── 名額 ──
+  let capacity = null;
+  const capMatch =
+    flat.match(/(?:名額|人數|上限|限額)[:：]?\s*(\d{1,3})/) || flat.match(/(\d{1,3})\s*(?:人|位|個名額)/);
+  if (capMatch) capacity = Number(capMatch[1]) || null;
+
+  // ── 時長（分鐘）──
+  let durationMin = null;
+  const durMatch = flat.match(/(\d+(?:\.\d+)?)\s*(?:小時|hrs?|hours?)/i) || flat.match(/(\d{2,3})\s*分鐘/);
+  if (durMatch) {
+    durationMin = /分鐘/.test(durMatch[0]) ? Number(durMatch[1]) : Math.round(Number(durMatch[1]) * 60);
+  }
+
+  // ── 場地 ──
+  let venue = null;
+  const venueLine = lines.find((l) => /^(地點|場地|地址)[:：]/.test(l));
+  if (venueLine) venue = venueLine.replace(/^(地點|場地|地址)[:：]\s*/, "").trim();
+  else {
+    const vm = flat.match(/(?:地點|場地|地址)[:：]?\s*([^\s,，。;；|]+(?:\s[^\s,，。;；|]+){0,4})/);
+    if (vm) venue = vm[1].trim();
+  }
+
+  // ── 日期 ──
+  const dates = [];
+  const explicit = [...flat.matchAll(/(?:(\d{4})\s*[年\/-]\s*)?(\d{1,2})\s*[月\/-]\s*(\d{1,2})\s*日?/g)];
+  for (const m of explicit) {
+    const y = m[1] ? Number(m[1]) : null;
+    const mo = Number(m[2]);
+    const d = Number(m[3]);
+    if (mo >= 1 && mo <= 12 && d >= 1 && d <= 31) dates.push({ y, mo, d });
+  }
+  // 逢星期幾 / 每週X
+  const weekly = [...flat.matchAll(/(?:逢|每個|每)\s*(?:星期|週|禮拜|周)?\s*([一二三四五六日天])/g)]
+    .map((m) => WEEKDAY[m[1]])
+    .filter((d) => d != null);
+
+  // ── 時間 ──
+  const times = [];
+  const timeRe = /(上午|下午|晚上|早上|中午|am|pm)?\s*(\d{1,2})(?:[:：](\d{2}))?\s*(上午|下午|晚上|早上|中午|am|pm)?\s*[-–~至到]\s*(\d{1,2})(?:[:：](\d{2}))?\s*(上午|下午|晚上|早上|中午|am|pm)?/gi;
+  for (const m of flat.matchAll(timeRe)) {
+    const t = parseTimePair(m);
+    if (t) times.push(t);
+  }
+
+  // ── 標題 ──
+  let title = null;
+  for (const l of lines) {
+    if (META_LINE.test(l)) continue;
+    if (/^(日期|時間|費用|地點)[:：]/.test(l)) continue;
+    if (/^[\d\s:：\-–~至年月日()（）\/.,，]+$/.test(l)) continue;
+    if (l.length < 2) continue;
+    title = l.replace(/^[#*•·\-—\s]+/, "").slice(0, 60);
+    break;
+  }
+  if (!title) title = sport ? sport.name + "體驗班" : "";
+
+  // ── 組 schedules ──
+  const now = opts.now ? new Date(opts.now) : new Date();
+  const hkNow = new Date(now.getTime() + HK_OFFSET_MS);
+  const schedules = [];
+  const slot = times[0] || null;
+
+  if (slot) {
+    for (const d of dates) {
+      const year = d.y || hkNow.getUTCFullYear();
+      const startISO = hkToISO(year, d.mo, d.d, slot.startMin);
+      if (!startISO) continue;
+      schedules.push({
+        start_time: startISO,
+        end_time: hkToISO(year, d.mo, d.d, slot.endMin) || undefined,
+        recurring: "none",
+      });
+    }
+    if (!dates.length && weekly.length) {
+      // 由下一個符合嘅星期幾開始，共 4 堂
+      for (const dow of weekly) {
+        let base = new Date(hkNow.getTime());
+        for (let i = 0; i < 8; i++) {
+          const cand = new Date(base.getTime() + i * 86400000);
+          if (cand.getUTCDay() === dow) {
+            for (let w = 0; w < 4; w++) {
+              const day = new Date(cand.getTime() + w * 7 * 86400000);
+              const iso = hkToISO(day.getUTCFullYear(), day.getUTCMonth() + 1, day.getUTCDate(), slot.startMin);
+              const endIso = hkToISO(day.getUTCFullYear(), day.getUTCMonth() + 1, day.getUTCDate(), slot.endMin);
+              if (iso) schedules.push({ start_time: iso, end_time: endIso || undefined, recurring: "weekly" });
+            }
+            break;
+          }
+        }
+      }
+    }
+    if (!schedules.length && !dates.length && !weekly.length) {
+      // 只有時間冇日期 → 明日同一時段（草稿用，等人改）
+      const tmr = new Date(hkNow.getTime() + 86400000);
+      schedules.push({
+        start_time: hkToISO(tmr.getUTCFullYear(), tmr.getUTCMonth() + 1, tmr.getUTCDate(), slot.startMin),
+        end_time: hkToISO(tmr.getUTCFullYear(), tmr.getUTCMonth() + 1, tmr.getUTCDate(), slot.endMin),
+        recurring: "none",
+      });
+    }
+  }
+
+  if (!durationMin && slot) durationMin = slot.endMin - slot.startMin;
+
+  // ── 描述 ──
+  const descLines = lines.filter((l) => l !== title && !/^(查詢|報名|電話|whatsapp)[:：]/i.test(l));
+  const description = descLines.join("\n").slice(0, 800);
+
+  const confidence = [title ? 1 : 0, sport ? 1 : 0, price ? 1 : 0, schedules.length ? 1 : 0].reduce((a, b) => a + b, 0);
+
+  return {
+    title,
+    title_en: null,
+    description,
+    category: sport ? sport.category : "新興運動",
+    sport_slug: sport ? sport.slug : null,
+    difficulty: "beginner",
+    duration: durationMin || 60,
+    max_participants: capacity || 15,
+    price_hkd: price || 0,
+    credits_cost: price ? Math.round(price / 10) : 0,
+    venue_name: venue,
+    venue_address: venue,
+    image_url: null,
+    schedules,
+    confidence, // 0–4
+    needs_review: confidence < 3 || !schedules.length,
+    source: { chars: text.length, lines: lines.length },
+  };
+}
+
+function parseTimePair(m) {
+  // groups: 1 pre-mer1, 2 h1, 3 m1, 4 post-mer1, 5 h2, 6 m2, 7 mer2
+  const h1 = Number(m[2]);
+  const mi1 = m[3] ? Number(m[3]) : 0;
+  const h2 = Number(m[5]);
+  const mi2 = m[6] ? Number(m[6]) : 0;
+  if (!(h1 >= 0 && h1 <= 24) || !(h2 >= 0 && h2 <= 24)) return null;
+
+  const mer1 = String(m[1] || m[4] || "").toLowerCase();
+  const mer2 = String(m[7] || "").toLowerCase();
+  const pmish = (x) => /pm|下午|晚上|中午/.test(x);
+  const amish = (x) => /am|上午|早上/.test(x);
+
+  let s = h1 * 60 + mi1;
+  if (pmish(mer1) && h1 < 12) s += 12 * 60;
+  if (amish(mer1) && h1 === 12) s -= 12 * 60;
+  if (!mer1 && pmish(mer2) && h1 < 12) s += 12 * 60;
+
+  let e = h2 * 60 + mi2;
+  if (pmish(mer2) && h2 < 12) e += 12 * 60;
+  if (amish(mer2) && h2 === 12) e -= 12 * 60;
+  if (!mer2 && pmish(mer1) && h2 < 12) e += 12 * 60;
+  if (e <= s) e += 12 * 60;
+
+  return { startMin: s, endMin: e };
+}
+
+/** 香港本地時間 → UTC ISO（資料庫一律存 UTC） */
+function hkToISO(year, month, day, minutes) {
+  const ms = Date.UTC(year, month - 1, day, 0, 0, 0) + minutes * 60000 - HK_OFFSET_MS;
+  const d = new Date(ms);
+  return isNaN(d.getTime()) ? null : d.toISOString();
+}
+
+/** 用 tesseract 由圖片抽文字（本機 OCR，唔出機器） */
+function ocrImage(buffer, ext = "png") {
+  return new Promise((resolve, reject) => {
+    const file = path.join(os.tmpdir(), `zp-ocr-${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`);
+    try {
+      fs.writeFileSync(file, buffer);
+    } catch (e) {
+      return reject(e);
+    }
+    execFile(
+      "tesseract",
+      [file, "stdout", "-l", "chi_tra+chi_sim+eng", "--psm", "6"],
+      { timeout: 60000, maxBuffer: 8 * 1024 * 1024 },
+      (err, stdout) => {
+        try {
+          fs.unlinkSync(file);
+        } catch (e) {}
+        if (err) return reject(err);
+        resolve(String(stdout || ""));
+      },
+    );
+  });
+}
+
+module.exports = { parseClassText, ocrImage, hkToISO, SPORTS };

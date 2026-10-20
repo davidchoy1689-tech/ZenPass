@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="zh-HK">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#10b981" />
+<meta name="robots" content="noindex" />
+<title>AI 一鍵開班 · ZenPass</title>
+<link rel="stylesheet" href="assets/v2.css?v=31" />
+<style>
+  .ai-hero { margin: 0 -16px 16px; padding: 22px 20px 24px; background: linear-gradient(140deg,#0ea5e9,#0369a1); color:#fff; border-radius: 0 0 26px 26px; }
+  .ai-hero h1 { margin: 0; font-size: 23px; letter-spacing: -.3px; }
+  .ai-hero p { margin: 8px 0 0; font-size: 13px; line-height: 1.6; opacity: .95; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 14px; margin-bottom: 12px; }
+  .card h2 { margin: 0 0 10px; font-size: 15px; }
+  .row { display: grid; gap: 8px; margin-bottom: 10px; }
+  .row.two { grid-template-columns: 1fr 1fr; }
+  label { font-size: 12px; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 4px; }
+  input[type=text], input[type=number], input[type=datetime-local], textarea, select {
+    width: 100%; border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; font: inherit; background: #fff;
+  }
+  textarea { min-height: 96px; resize: vertical; }
+  .drop { border: 2px dashed #bae6fd; background: #f0f9ff; border-radius: 14px; padding: 18px; text-align: center; font-size: 13px; color: #0369a1; }
+  .drop.ready { border-color: #10b981; background: #f0fdf4; color: #047857; }
+  .drop input { display: none; }
+  .muted { color: var(--text-muted); font-size: 12px; }
+  .sched { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+  .sched input { flex: 1; }
+  .sched button { flex: 0 0 auto; border: 0; background: #fee2e2; color: #b91c1c; border-radius: 8px; width: 34px; height: 34px; font-size: 16px; cursor: pointer; }
+  .msg { font-size: 12.5px; margin-top: 8px; min-height: 16px; }
+  .msg.ok { color: #047857; font-weight: 700; }
+  .msg.err { color: #b91c1c; font-weight: 700; }
+  pre.ocr { white-space: pre-wrap; font-size: 11.5px; background: #f9fafb; border: 1px solid var(--border); border-radius: 10px; padding: 10px; max-height: 180px; overflow: auto; }
+</style>
+</head>
+<body>
+<div class="topbar"><a class="back" href="index.html">‹</a><div class="title">AI 一鍵開班</div></div>
+
+<div class="wrap">
+  <div class="ai-hero">
+    <h1>🤖 AI 一鍵開班</h1>
+    <p>貼上宣傳文字，或者影／上載宣傳單張，AI 會自動抽出課程名、日期時間、價錢、名額、地點。核對一下就可以開班。</p>
+  </div>
+
+  <div class="card">
+    <h2>① 輸入資料</h2>
+    <div class="drop" id="drop">
+      <input id="img" type="file" accept="image/*" capture="environment" />
+      <div id="dropText">📷 撳一下影相／上載宣傳單張</div>
+      <div class="muted" id="dropName" style="margin-top:4px"></div>
+    </div>
+    <div class="row" style="margin-top:12px">
+      <textarea id="text" placeholder="或者直接貼上文字，例如：&#10;芬蘭木柱新手體驗班&#10;日期：10月21日（星期三）&#10;時間：晚上7:00-8:30&#10;地點：觀塘 APM 體育館 3樓&#10;費用：$150&#10;名額：12人"></textarea>
+    </div>
+    <button class="btn btn-primary btn-block" id="btnParse" type="button">✨ 分析</button>
+    <div class="msg" id="parseMsg"></div>
+  </div>
+
+  <div class="card" id="preview" hidden>
+    <h2>② 核對內容（可以改）</h2>
+    <div class="row">
+      <div><label>課程名稱</label><input id="fTitle" type="text" /></div>
+    </div>
+    <div class="row two">
+      <div><label>分類</label>
+        <select id="fCategory">
+          <option>新興運動</option><option>伸展</option><option>瑜伽</option><option>健身</option>
+          <option>冥想</option><option>舞蹈</option><option>兒童體適能</option><option>長者體適能</option>
+          <option>TRX 懸吊訓練</option><option>乒乓球</option><option>保齡球</option><option>劍擊</option>
+        </select>
+      </div>
+      <div><label>時長（分鐘）</label><input id="fDuration" type="number" min="15" step="5" /></div>
+    </div>
+    <div class="row two">
+      <div><label>價錢 HK$</label><input id="fPrice" type="number" min="0" step="10" /></div>
+      <div><label>Credits（自動 = 價錢÷10）</label><input id="fCredits" type="number" min="0" step="1" /></div>
+    </div>
+    <div class="row two">
+      <div><label>名額</label><input id="fMax" type="number" min="1" step="1" /></div>
+      <div><label>地點</label><input id="fVenue" type="text" /></div>
+    </div>
+    <div class="row"><div><label>簡介</label><textarea id="fDesc"></textarea></div></div>
+
+    <label style="margin-top:6px">場次</label>
+    <div id="schedList"></div>
+    <button class="btn btn-secondary btn-block" id="btnAddSched" type="button" style="margin:6px 0 12px">＋ 加場次</button>
+
+    <button class="btn btn-primary btn-block" id="btnCreate" type="button">✅ 一鍵開班</button>
+    <div class="msg" id="createMsg"></div>
+  </div>
+
+  <div class="card" id="ocrCard" hidden>
+    <h2>辨識到嘅原文</h2>
+    <pre class="ocr" id="ocrText"></pre>
+  </div>
+
+  <div class="spacer"></div>
+</div>
+
+<script src="assets/api.js"></script>
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var imageData = null;
+  var imageMime = null;
+
+  function pad(n) { return (n < 10 ? "0" : "") + n; }
+  function toLocalInput(iso) {
+    if (!iso) return "";
+    var d = new Date(iso);
+    if (isNaN(d)) return "";
+    var hk = new Date(d.getTime() + 8 * 3600 * 1000);
+    return hk.getUTCFullYear() + "-" + pad(hk.getUTCMonth() + 1) + "-" + pad(hk.getUTCDate()) +
+      "T" + pad(hk.getUTCHours()) + ":" + pad(hk.getUTCMinutes());
+  }
+  function fromLocalInput(v) {
+    if (!v) return null;
+    // datetime-local 係香港本地時間 → 轉 UTC ISO
+    var d = new Date(v + ":00+08:00");
+    return isNaN(d) ? null : d.toISOString();
+  }
+
+  function addSchedRow(startIso, endIso) {
+    var row = document.createElement("div");
+    row.className = "sched";
+    row.innerHTML = '<input type="datetime-local" class="s-start" />' +
+      '<input type="datetime-local" class="s-end" />' +
+      '<button type="button" title="刪除">×</button>';
+    row.querySelector(".s-start").value = toLocalInput(startIso);
+    row.querySelector(".s-end").value = toLocalInput(endIso);
+    row.querySelector("button").onclick = function () { row.remove(); };
+    $("schedList").appendChild(row);
+  }
+
+  $("drop").onclick = function () { $("img").click(); };
+  $("img").onchange = function () {
+    var f = this.files && this.files[0];
+    if (!f) return;
+    if (f.size > 8 * 1024 * 1024) { $("parseMsg").textContent = "圖片太大（上限 8MB）"; $("parseMsg").className = "msg err"; return; }
+    imageMime = f.type || "image/png";
+    var r = new FileReader();
+    r.onload = function () {
+      imageData = String(r.result).split(",")[1] || "";
+      $("drop").classList.add("ready");
+      $("dropText").textContent = "✅ 已選擇相片";
+      $("dropName").textContent = f.name;
+    };
+    r.readAsDataURL(f);
+  };
+
+  $("fPrice").addEventListener("input", function () {
+    var p = Number($("fPrice").value) || 0;
+    $("fCredits").value = p ? Math.round(p / 10) : 0;
+  });
+
+  $("btnParse").onclick = async function () {
+    var txt = $("text").value.trim();
+    if (!txt && !imageData) {
+      $("parseMsg").textContent = "請貼上文字或選擇相片";
+      $("parseMsg").className = "msg err";
+      return;
+    }
+    var b = this; b.disabled = true; b.textContent = "分析中…";
+    $("parseMsg").textContent = "";
+    var r = await api.post("/ai-class/parse", { text: txt, image_base64: imageData, image_mime: imageMime });
+    b.disabled = false; b.textContent = "✨ 分析";
+    if (!r.ok || !r.data || !r.data.success) {
+      $("parseMsg").textContent = (r.data && r.data.error) || "分析失敗";
+      $("parseMsg").className = "msg err";
+      return;
+    }
+    renderDraft(r.data.data.draft, r.data.data.extracted_text);
+    $("parseMsg").textContent = "✅ 已抽出內容，請核對";
+    $("parseMsg").className = "msg ok";
+  };
+
+  function renderDraft(d, rawText) {
+    $("fTitle").value = d.title || "";
+    $("fCategory").value = d.category || "新興運動";
+    $("fDuration").value = d.duration || 60;
+    $("fPrice").value = d.price_hkd || 0;
+    $("fCredits").value = d.credits_cost || 0;
+    $("fMax").value = d.max_participants || 15;
+    $("fVenue").value = d.venue_name || "";
+    $("fDesc").value = d.description || "";
+    $("schedList").innerHTML = "";
+    (d.schedules || []).forEach(function (s) { addSchedRow(s.start_time, s.end_time); });
+    if (!(d.schedules || []).length) addSchedRow(null, null);
+    $("preview").hidden = false;
+    if (rawText) { $("ocrCard").hidden = false; $("ocrText").textContent = rawText; }
+    $("preview").scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  $("btnAddSched").onclick = function () { addSchedRow(null, null); };
+
+  $("btnCreate").onclick = async function () {
+    var schedules = [];
+    document.querySelectorAll("#schedList .sched").forEach(function (row) {
+      var s = fromLocalInput(row.querySelector(".s-start").value);
+      var e = fromLocalInput(row.querySelector(".s-end").value);
+      if (s) schedules.push({ start_time: s, end_time: e || null, recurring: "none" });
+    });
+    var body = {
+      title: $("fTitle").value.trim(),
+      category: $("fCategory").value,
+      duration: Number($("fDuration").value),
+      price_hkd: Number($("fPrice").value),
+      credits_cost: Number($("fCredits").value),
+      max_participants: Number($("fMax").value),
+      venue_name: $("fVenue").value.trim(),
+      venue_address: $("fVenue").value.trim(),
+      description: $("fDesc").value.trim(),
+      schedules: schedules,
+    };
+    if (!body.title || !body.schedules.length) {
+      $("createMsg").textContent = "請填課程名稱及至少一個場次";
+      $("createMsg").className = "msg err";
+      return;
+    }
+    var b = this; b.disabled = true; b.textContent = "建立中…";
+    var r = await api.post("/ai-class/create", body);
+    b.disabled = false; b.textContent = "✅ 一鍵開班";
+    if (r.ok && r.data && r.data.success) {
+      $("createMsg").innerHTML = "🎉 " + r.data.message + "<br>課程編號：" + (r.data.data.class_reference || "");
+      $("createMsg").className = "msg ok";
+      $("btnCreate").disabled = true;
+    } else {
+      $("createMsg").textContent = (r.data && r.data.error) || "建立失敗";
+      $("createMsg").className = "msg err";
+    }
+  };
+
+  if (api.requireLogin && !api.requireLogin("ai-open-class.html")) {
+    /* 已跳轉登入 */
+  }
+})();
+</script>
+<script src="assets/footer.js?v=4" defer></script>
+</body>
+</html>
