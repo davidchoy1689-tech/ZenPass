@@ -199,6 +199,14 @@ function parseClassText(rawText, opts) {
     }
   }
 
+  // 去重：OCR 兩次可能抽到同一場次（格式略異）
+  const seenSlots = new Set();
+  const uniqSchedules = schedules.filter((s) => {
+    if (!s.start_time || seenSlots.has(s.start_time)) return false;
+    seenSlots.add(s.start_time);
+    return true;
+  });
+
   if (!durationMin && slot) durationMin = slot.endMin - slot.startMin;
 
   // ── 描述 ──
@@ -221,9 +229,9 @@ function parseClassText(rawText, opts) {
     venue_name: venue,
     venue_address: venue,
     image_url: null,
-    schedules,
+    schedules: uniqSchedules,
     confidence, // 0–4
-    needs_review: confidence < 3 || !schedules.length,
+    needs_review: confidence < 3 || !uniqSchedules.length,
     source: { chars: text.length, lines: lines.length },
   };
 }
