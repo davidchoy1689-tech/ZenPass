@@ -69,7 +69,7 @@
             ? `<p class="sub" style="color:var(--brand-600)">📅 ${esc(next)}</p>`
             : `<p class="sub">暫無時段</p>`;
       return `<a class="card${expired ? " expired" : ""}" href="detail.html?id=${encodeURIComponent(c.id)}"><div class="body course">
-        <div class="thumb" style="background:${(typeof courseTint === "function" ? courseTint(c, 0.14) : "#f4f4f6")}">${(typeof courseIconImg === "function" ? courseIconImg(c, 46) : "")}</div>
+        <div class="thumb" style="${c.image_url ? `background-image:url('${esc(c.image_url)}');background-size:cover;background-position:center` : `background:${(typeof courseTint === "function" ? courseTint(c, 0.14) : "#f4f4f6")}`}">${c.image_url ? "" : (typeof courseIconImg === "function" ? courseIconImg(c, 46) : "")}</div>
         <div class="meta"><p class="name">${esc(c.title)} ${expired ? '<span class="tag-gray">已完結</span>' : unopened ? '<span class="tag-gray">已約滿</span>' : ""}</p>
           <p class="sub">${esc(c.category || "")}${c.duration ? " · " + c.duration + " 分鐘" : ""}${c.venue_name ? " · 📍 " + esc(c.venue_name) : ""}</p>
           ${stateLine}

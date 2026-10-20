@@ -535,9 +535,13 @@
                 : ' · 剩 ' + left + ' 位')
             : '';
           var slug = (typeof sportSlugLoose === "function") ? sportSlugLoose(c.category || "", c.title || "") : "";
-          var art = slug ? '<img class="hot-art" src="assets/icons/sports-white/' + slug + '.svg" alt="">' : "";
+          var hasImg = !!(c.image_url && String(c.image_url).trim());
+          var art = (!hasImg && slug) ? '<img class="hot-art" src="assets/icons/sports-white/' + slug + '.svg" alt="">' : "";
+          var mediaStyle = hasImg
+            ? 'background-image:url(\'' + esc(c.image_url) + '\');background-size:cover;background-position:center'
+            : 'background:linear-gradient(145deg,' + GRADS[i % GRADS.length] + ')';
           return '<a class="hot-card" href="detail.html?id=' + encodeURIComponent(c.id) + '">' +
-            '<div class="hot-media" style="background:linear-gradient(145deg,' + GRADS[i % GRADS.length] + ')">' +
+            '<div class="hot-media" style="' + mediaStyle + '">' +
               '<span class="hot-cat">' + esc(c.category || "") + (c.district ? " · " + esc(c.district) : "") + '</span>' + art +
               (promo ? '<span class="hot-badge">迎新半價</span>' : '') +
             '</div>' +
