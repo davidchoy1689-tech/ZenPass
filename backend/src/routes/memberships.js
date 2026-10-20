@@ -371,8 +371,17 @@ router.get("/credits/packages", (req, res) => {
   res.json({ packages });
 });
 
-// ===== POST /api/memberships/stripe-subscribe — Stripe 自動續費會籍 =====
+// ===== POST /api/memberships/stripe-subscribe — ⛔ 已停用（2026-10-20）=====
+// Stripe 自動續費未接入；舊 dev_mode 分支會回「saved locally」假成功，容易誤導。
+// 會籍一律經 /api/membership-orders（FPS / PayMe，人手確認收款）開通。
 router.post("/stripe-subscribe", authenticateToken, async (req, res) => {
+  return res.status(403).json({
+    success: false,
+    code: "USE_MEMBERSHIP_ORDER",
+    error: "會籍訂閱已統一經 FPS／PayMe 人手確認，請喺會籍頁建立訂單。",
+    redirect: "membership.html",
+  });
+  /* eslint-disable no-unreachable */
   try {
     const { type, payment_method_id } = req.body;
     const plan = MEMBERSHIP_PLANS[type];
