@@ -317,7 +317,6 @@ async function ocrChannels(buffer, ext = "png") {
       { source: "enhanced", psm: 3, file: pre.file },
     ];
     if (pre.inverted) {
-      jobs.push({ source: "inverted", psm: 6, file: pre.inverted });
       jobs.push({ source: "inverted", psm: 3, file: pre.inverted });
     }
     const texts = await Promise.all(jobs.map((j) => runTesseract(j.file, j.psm)));

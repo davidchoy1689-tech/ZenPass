@@ -33,6 +33,33 @@ def main():
         if scale > 1.0:
             img = img.resize((int(w * scale), int(h * scale)), Image.LANCZOS)
 
+        gray = ImageOps.autocontrast(img.convert("L"), cutoff=2)
+        # 註：唔做二值化 —— 實測會令「色底白字」變黑塊，tesseract 反而讀唔到標題。
+        gray.save(dst, "PNG")
+        inv_path = dst.replace("-pre.png", "-inv.png")
+        ImageOps.invert(gray).save(inv_path, "PNG")
+        print(json.dumps({"ok": False, "error": "usage: preprocess-image.py <in> <out> [scale]"}))
+        return 2
+    src, dst = sys.argv[1], sys.argv[2]
+    scale = float(sys.argv[3]) if len(sys.argv) > 3 else 2.0
+
+    try:
+        from PIL import Image, ImageOps
+    except Exception as e:
+        print(json.dumps({"ok": False, "error": "PIL unavailable: %s" % e}))
+        return 3
+
+    try:
+        img = Image.open(src)
+        if img.mode not in ("L", "RGB"):
+            img = img.convert("RGB")
+        w, h = img.size
+        # 太大唔好再放大（控制 OCR 時間）
+        if max(w, h) * scale > 2600:
+            scale = max(1.0, 2600.0 / max(w, h))
+        if scale > 1.0:
+            img = img.resize((int(w * scale), int(h * scale)), Image.LANCZOS)
+
         gray = img.convert("L")
         gray = ImageOps.autocontrast(gray, cutoff=2)
         # 自適應式門檻：用中位亮度偏暗者取較低門檻（色底白字／白底黑字都兼顧）
@@ -58,8 +85,7 @@ def main():
             "width": bw.size[0],
             "height": bw.size[1],
             "scale": round(scale, 2),
-            "threshold": threshold,
-            "median": median,
+            "mode": "grayscale+autocontrast",
         }))
         return 0
     except Exception as e:
