@@ -25,30 +25,24 @@
     return MAP[String(category || "").trim()] || (sportSlug && MAP[sportSlug]) || "default";
   }
 
-  // 首頁／列表：類別品牌封面（通用，不含個別課程內容）
-  window.coverFor = function (category, sportSlug) {
-    return "assets/img/covers/" + slugOf(category, sportSlug) + ".jpg?v=" + ART_V;
-  };
-
-  /** 首頁／列表用嘅通用品牌圖（不含個別課程內容） */
-  var GENERIC = "assets/img/covers/generic.jpg?v=2";
+  var GENERIC = "assets/img/covers/generic.jpg?v=3";
 
   window.genericCover = function () { return GENERIC; };
 
   /**
-   * 統一取圖：
-   *   surface = "list"（首頁／探索）：教練真實相片 → 通用品牌圖
-   *   surface = "detail"（課程詳情）：教練相片或每班專屬品牌圖 → 類別品牌封面
+   * 全站只用兩層：
+   *   1. 課堂有自己相片（教練上載）→ 用該相片
+   *   2. 否則 → 通用品牌圖 generic.jpg
+   * surface 參數保留但唔再用於分流。
    */
-  window.cardImage = function (c, surface) {
+  window.cardImage = function (c) {
     c = c || {};
     var own = String(c.image_url || "").trim();
-    var isClassArt = own.indexOf("assets/img/classes/") === 0;
-    if (surface === "list") {
-      if (own && !isClassArt) return { url: own, kind: "own" };
-      return { url: GENERIC, kind: "generic" };
-    }
-    if (own) return { url: own, kind: "own" };
-    return { url: window.coverFor(c.category, c.sport_slug), kind: "art" };
+    var isBrandArt = own.indexOf("assets/img/classes/") === 0 || own.indexOf("assets/img/covers/") === 0;
+    if (own && !isBrandArt) return { url: own, kind: "own" };
+    return { url: GENERIC, kind: "generic" };
   };
+
+  // 兼容舊呼叫（詳情頁 fallback）
+  window.coverFor = function () { return GENERIC; };
 })();
