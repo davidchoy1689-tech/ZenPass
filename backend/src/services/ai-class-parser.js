@@ -422,26 +422,35 @@ function mergeDrafts(drafts) {
     const vals = list
       .map((d) => d[f])
       .filter((v) => v !== null && v !== undefined && v !== "" && !(typeof v === "number" && v === 0));
+    const hasBase =
+      !(out[f] === null || out[f] === undefined || out[f] === "" || (typeof out[f] === "number" && out[f] === 0));
 
-    if (out[f] === null || out[f] === undefined || out[f] === "" || (typeof out[f] === "number" && out[f] === 0)) {
-      // 主稿冇 → 用其他通道一致嘅值
+    if (!hasBase) {
       const pick = majority(vals);
       if (pick.value !== null) {
         out[f] = pick.value;
-        fieldConfidence[f] = Math.round(pick.ratio * 50) / 100; // 最多 0.5（唔係主稿）
+        fieldConfidence[f] = Math.round(pick.ratio * 50) / 100;
       } else {
         fieldConfidence[f] = 0;
       }
       continue;
     }
 
-    // 主稿有 → 睇幾多通道支持
-    const support = vals.filter((v) =>
-      typeof out[f] === "number" ? v === out[f] : dice(out[f], v) >= 0.8,
-    ).length;
-    fieldConfidence[f] = Math.round((support / list.length) * 100) / 100;
+    const same = (v) => (typeof out[f] === "number" ? v === out[f] : dice(out[f], v) >= 0.8);
+    const support = vals.filter(same).length;
+    // 信心 = 支持數 / 有提供此欄位嘅通道數（唔係全部通道）
+    fieldConfidence[f] = Math.round((support / Math.max(1, vals.length)) * 100) / 100;
+
+    // 主稿只係少數、而有另一個值獲多數支持 → 改用多數值
+    if (support / Math.max(1, vals.length) < 0.5) {
+      const pick = majority(vals);
+      if (pick.value !== null && pick.ratio > support / Math.max(1, vals.length) && !same(pick.value)) {
+        out[f] = pick.value;
+        fieldConfidence[f] = Math.round(pick.ratio * 100) / 100;
+      }
+    }
+
     if (f === "title" && cjkRatio(out[f]) < 0.5) {
-      // 主稿標題係亂碼 → 揀 CJK 比例最高嗰個
       const bestTitle = list
         .map((d) => d.title)
         .filter(Boolean)
@@ -474,7 +483,8 @@ function mergeDrafts(drafts) {
   out.description = list.map((d) => d.description || "").sort((a, b) => b.length - a.length)[0] || "";
   out.confidence = Math.min(4, Math.round(Object.values(fieldConfidence).reduce((a, b) => a + b, 0)));
   out.missing_fields = ["title", "price_hkd"].filter((f) => !out[f]).concat(out.schedules.length ? [] : ["schedules"]);
-  out.needs_review = out.missing_fields.length > 0 || (fieldConfidence.title || 0) < 0.5;
+  const weakTitle = (fieldConfidence.title || 0) < 0.5 && cjkRatio(out.title) < 0.5;
+  out.needs_review = out.missing_fields.length > 0 || weakTitle || (fieldConfidence.price_hkd || 0) < 0.34;
   return { draft: out, field_confidence: fieldConfidence, base_channel: scored[0].i };
 }
 
