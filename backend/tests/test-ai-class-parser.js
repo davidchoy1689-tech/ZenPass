@@ -83,5 +83,26 @@ for (const [txt, expected, label] of fmt) {
 const noFalseTime = parseClassText("21/10 木柱班 費用：$150", { now: NOW });
 ok(noFalseTime.schedules.length === 0, "只有日期冇時間 → 唔會亂作場次");
 
+// 7. 真實 WhatsApp 單張（多日期 + 粗體標記 + 每堂價 vs 總價）
+const wa = [
+  "*身心伸展班* 十月份A班 2026",
+  "",
+  "日期：6/10，13/10，20/10，27/10。（4堂）",
+  "",
+  "星期 : *逢星期二*",
+  "地點：*楓樹窩體育館*（活動室）",
+  "時間：12:00-14:00",
+  "費用：每堂. $95 X 4堂 = $380",
+].join("\n");
+const w = parseClassText(wa, { now: NOW });
+ok(w.title === "身心伸展班 十月份A班2026", "粗體 *…* 已清除，標題乾淨");
+ok(w.schedules.length === 4, "4 個日期 → 4 堂（唔會同「逢星期二」重複排）");
+ok(w.schedules[0].start_time === "2026-10-06T04:00:00.000Z", "首堂 6/10 12:00 HKT");
+ok(w.schedules[3].start_time === "2026-10-27T04:00:00.000Z", "第 4 堂 27/10");
+ok(w.price_hkd === 95 && w.credits_cost === 10, "取「每堂 $95」而唔係總數 $380");
+ok(w.duration === 120, "12:00-14:00 → 120 分鐘");
+ok(w.venue_name === "楓樹窩體育館（活動室）", "地點去掉粗體標記");
+ok(w.category === "伸展", "分類＝伸展");
+
 console.log(fail === 0 ? "\n✅ 全部通過" : "\n❌ " + fail + " 項失敗");
 process.exit(fail === 0 ? 0 : 1);

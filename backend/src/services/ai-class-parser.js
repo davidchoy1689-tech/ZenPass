@@ -70,7 +70,12 @@ function normalizeOcr(s) {
 }
 
 function stripTags(s) {
-  return String(s || "").replace(/[ \t]+/g, " ").replace(/\r/g, "").trim();
+  return String(s || "")
+    // WhatsApp / Telegram 粗體斜體標記（*文字* _文字_ `code` ~刪除線~）
+    .replace(/[*_`~＊]+/g, "")
+    .replace(/[ \t]+/g, " ")
+    .replace(/\r/g, "")
+    .trim();
 }
 
 /**
