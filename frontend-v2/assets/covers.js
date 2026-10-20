@@ -15,8 +15,10 @@
     "劍擊": "fencing",
   };
 
+  var V = "2"; // 換圖時 bump，避開 /assets/* 一年 immutable 快取
+
   window.coverFor = function (category, sportSlug) {
     var slug = MAP[String(category || "").trim()] || (sportSlug && MAP[sportSlug]) || "default";
-    return "assets/img/covers/" + slug + ".jpg";
+    return "assets/img/covers/" + slug + ".jpg?v=" + V;
   };
 })();
