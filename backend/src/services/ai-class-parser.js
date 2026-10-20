@@ -73,6 +73,78 @@ function stripTags(s) {
   return String(s || "").replace(/[ \t]+/g, " ").replace(/\r/g, "").trim();
 }
 
+/**
+ * 抽出日期。支援：
+ *   2026年10月21日 / 2026-10-21 / 2026/10/21（年在前）
+ *   21/10/2026、21-10-26（日/月/年）
+ *   10月21日（月/日）
+ *   21/10、21-10、5/11（香港慣例：日/月）
+ * 含糊情況（兩邊都 ≤12）一律當「日/月」，符合香港寫法。
+ * @returns {{dates:Array<{y:number|null,mo:number,d:number}>, masked:string}}
+ */
+function extractDates(text) {
+  let work = String(text || "");
+  const dates = [];
+  const mask = (m) => {
+    work = work.slice(0, m.index) + " ".repeat(m[0].length) + work.slice(m.index + m[0].length);
+  };
+  const push = (y, mo, d) => {
+    if (mo >= 1 && mo <= 12 && d >= 1 && d <= 31) dates.push({ y: y || null, mo, d });
+  };
+
+  // 1) 年在前：2026年10月21日 / 2026-10-21 / 2026/10/21
+  for (const m of [...work.matchAll(/(\d{4})\s*[年\/\-.]\s*(\d{1,2})\s*[月\/\-.]\s*(\d{1,2})\s*日?/g)]) {
+    push(Number(m[1]), Number(m[2]), Number(m[3]));
+    mask(m);
+  }
+
+  // 2) 日在前的三段：21/10/2026、21-10-26
+  for (const m of [...work.matchAll(/(\d{1,2})\s*[\/\-.]\s*(\d{1,2})\s*[\/\-.]\s*(\d{2,4})/g)]) {
+    let d = Number(m[1]);
+    let mo = Number(m[2]);
+    let y = Number(m[3]);
+    if (y < 100) y += 2000;
+    if (d > 31 || mo > 12) continue;
+    if (d > 12 && mo <= 12) {
+      /* 明確日/月 */
+    } else if (mo > 12 && d <= 12) {
+      const t = d;
+      d = mo;
+      mo = t;
+    }
+    push(y, mo, d);
+    mask(m);
+  }
+
+  // 3) 中文月/日：10月21日
+  for (const m of [...work.matchAll(/(\d{1,2})\s*月\s*(\d{1,2})\s*日?/g)]) {
+    push(null, Number(m[1]), Number(m[2]));
+    mask(m);
+  }
+
+  // 4) 兩段數字：10/21、21/10、5-11（香港＝日/月）
+  for (const m of [...work.matchAll(/(\d{1,2})\s*[\/\-.]\s*(\d{1,2})(?![\d:：\/\-.])/g)]) {
+    let a = Number(m[1]);
+    let b = Number(m[2]);
+    let d;
+    let mo;
+    if (a > 12 && b <= 12) {
+      d = a;
+      mo = b; // 21/10 → 10月21日
+    } else if (b > 12 && a <= 12) {
+      d = b;
+      mo = a; // 10/21 → 10月21日
+    } else {
+      d = a;
+      mo = b; // 含糊 → 香港慣例 日/月
+    }
+    push(null, mo, d);
+    mask(m);
+  }
+
+  return { dates, masked: work };
+}
+
 /** 由文字抽出課堂草稿（純函數，方便測試） */
 function parseClassText(rawText, opts) {
   opts = opts || {};
@@ -119,15 +191,12 @@ function parseClassText(rawText, opts) {
     if (vm) venue = vm[1].trim();
   }
 
-  // ── 日期 ──
-  const dates = [];
-  const explicit = [...flat.matchAll(/(?:(\d{4})\s*[年\/-]\s*)?(\d{1,2})\s*[月\/-]\s*(\d{1,2})\s*日?/g)];
-  for (const m of explicit) {
-    const y = m[1] ? Number(m[1]) : null;
-    const mo = Number(m[2]);
-    const d = Number(m[3]);
-    if (mo >= 1 && mo <= 12 && d >= 1 && d <= 31) dates.push({ y, mo, d });
-  }
+  // ── 日期（支援 日/月/年、年/月/日、10月21日；香港慣例：DD/MM 優先）──
+  const parsedDates = extractDates(flat);
+  const dates = parsedDates.dates;
+  // 已當成日期嘅字串要遮蓋，避免 "21/10" 被誤判成時間範圍
+  const flatForTime = parsedDates.masked;
+
   // 逢星期幾 / 每週X
   const weekly = [...flat.matchAll(/(?:逢|每個|每)\s*(?:星期|週|禮拜|周)?\s*([一二三四五六日天])/g)]
     .map((m) => WEEKDAY[m[1]])
@@ -136,7 +205,7 @@ function parseClassText(rawText, opts) {
   // ── 時間 ──
   const times = [];
   const timeRe = /(上午|下午|晚上|早上|中午|am|pm)?\s*(\d{1,2})(?:[:：](\d{2}))?\s*(上午|下午|晚上|早上|中午|am|pm)?\s*[-–~至到]\s*(\d{1,2})(?:[:：](\d{2}))?\s*(上午|下午|晚上|早上|中午|am|pm)?/gi;
-  for (const m of flat.matchAll(timeRe)) {
+  for (const m of flatForTime.matchAll(timeRe)) {
     const t = parseTimePair(m);
     if (t) times.push(t);
   }
@@ -531,6 +600,7 @@ function applyCorrections(value, rules) {
 }
 
 module.exports = {
+  extractDates,
   parseClassText,
   ocrImage,
   ocrChannels,
