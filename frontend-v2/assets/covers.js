@@ -25,16 +25,21 @@
     return MAP[String(category || "").trim()] || (sportSlug && MAP[sportSlug]) || "default";
   }
 
-  // 通用品牌圖（David 2026-10-21：唔用個別課程內容，全部用同一張）
-  window.coverFor = function () {
-    return "assets/img/covers/generic.jpg?v=1";
+  // 首頁／列表：類別品牌封面（通用，不含個別課程內容）
+  window.coverFor = function (category, sportSlug) {
+    return "assets/img/covers/" + slugOf(category, sportSlug) + ".jpg?v=" + ART_V;
   };
 
-  /** 統一取圖：課堂自己相片 → 品牌類別封面 */
-  window.cardImage = function (c) {
+  /**
+   * 統一取圖：
+   *   surface = "list"（首頁／探索）：自己相片 → 類別品牌封面（唔用每班專屬圖）
+   *   surface = "detail"（課程詳情）：自己相片／每班專屬品牌圖 → 類別品牌封面
+   */
+  window.cardImage = function (c, surface) {
     c = c || {};
     var own = String(c.image_url || "").trim();
-    if (own) return { url: own, kind: "own" };
+    var isClassArt = own.indexOf("assets/img/classes/") === 0;
+    if (own && !(isClassArt && surface === "list")) return { url: own, kind: "own" };
     return { url: window.coverFor(c.category, c.sport_slug), kind: "art" };
   };
 })();

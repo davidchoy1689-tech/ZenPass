@@ -280,7 +280,7 @@
 
   <div class="toast" id="toast"></div>
 
-  <script src="assets/covers.js?v=5"></script>
+  <script src="assets/covers.js?v=6"></script>
   <script src="assets/api.js"></script>
   <script src="assets/sport-icons.js?v=14"></script>
   <script>
@@ -484,7 +484,7 @@
       const imgs = [];
       if (c.image_url) imgs.push(c.image_url);
       if (Array.isArray(c.images)) imgs.push(...c.images);
-      const pickImg = (typeof cardImage === "function") ? cardImage(c) : { url: "" };
+      const pickImg = (typeof cardImage === "function") ? cardImage(c, "detail") : { url: "" };
       const coverUrl = (typeof coverFor === "function") ? coverFor(c.category, c.sport_slug) : "";
       const slideFallback = pickImg.url || coverUrl;
       const fallbackBg = slideFallback

@@ -32,7 +32,7 @@
     <a href="my.html"><span class="ic">🎫</span>我的</a>
   </nav>
 
-  <script src="assets/covers.js?v=5"></script>
+  <script src="assets/covers.js?v=6"></script>
   <script src="assets/api.js"></script>
   <script src="assets/sport-icons.js?v=14"></script>
   <script>
@@ -70,7 +70,7 @@
             ? `<p class="sub" style="color:var(--brand-600)">📅 ${esc(next)}</p>`
             : `<p class="sub">暫無時段</p>`;
       return `<a class="card${expired ? " expired" : ""}" href="detail.html?id=${encodeURIComponent(c.id)}"><div class="body course">
-        <div class="thumb" style="${(() => { const pick = (typeof cardImage === "function") ? cardImage(c) : { url: c.image_url || "" }; return pick.url ? `background-image:linear-gradient(180deg,rgba(0,0,0,.04),rgba(0,0,0,.28)),url('${esc(pick.url)}');background-size:cover;background-position:center` : `background:${(typeof courseTint === "function" ? courseTint(c, 0.14) : "#f4f4f6")}`; })()}">${""}</div>
+        <div class="thumb" style="${(() => { const pick = (typeof cardImage === "function") ? cardImage(c, "list") : { url: c.image_url || "" }; return pick.url ? `background-image:linear-gradient(180deg,rgba(0,0,0,.04),rgba(0,0,0,.28)),url('${esc(pick.url)}');background-size:cover;background-position:center` : `background:${(typeof courseTint === "function" ? courseTint(c, 0.14) : "#f4f4f6")}`; })()}">${""}</div>
         <div class="meta"><p class="name">${esc(c.title)} ${expired ? '<span class="tag-gray">已完結</span>' : unopened ? '<span class="tag-gray">已約滿</span>' : ""}</p>
           <p class="sub">${esc(c.category || "")}${c.duration ? " · " + c.duration + " 分鐘" : ""}${c.venue_name ? " · 📍 " + esc(c.venue_name) : ""}</p>
           ${stateLine}

@@ -302,7 +302,7 @@
     <a href="my.html"><span class="ic">🎫</span>我的</a>
   </nav>
 
-  <script src="assets/covers.js?v=5"></script>
+  <script src="assets/covers.js?v=6"></script>
   <script src="assets/api.js"></script>
   <script src="assets/sport-icons.js?v=14"></script>
   <script>
@@ -537,7 +537,7 @@
             : '';
           var slug = (typeof sportSlugLoose === "function") ? sportSlugLoose(c.category || "", c.title || "") : "";
           var hasImg = !!(c.image_url && String(c.image_url).trim());
-          var imgPick = (typeof cardImage === "function") ? cardImage(c) : { url: c.image_url || "", kind: "own" };
+          var imgPick = (typeof cardImage === "function") ? cardImage(c, "list") : { url: c.image_url || "", kind: "own" };
           var hasCover = !!imgPick.url;
           var art = (!hasCover && slug) ? '<img class="hot-art" src="assets/icons/sports-white/' + slug + '.svg" alt="">' : "";
           var mediaStyle = hasCover
