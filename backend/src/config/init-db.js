@@ -671,6 +671,18 @@ CREATE TABLE IF NOT EXISTS users (
       updated_at TEXT DEFAULT (datetime('now')),
       UNIQUE(user_id, key)
     );
+
+    -- AI 開班：OCR 自學字典（每次人手修正 → 下次自動套用）
+    CREATE TABLE IF NOT EXISTS ocr_corrections (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      field TEXT NOT NULL,
+      from_text TEXT NOT NULL,
+      to_text TEXT NOT NULL,
+      hits INTEGER DEFAULT 1,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now')),
+      UNIQUE(field, from_text)
+    );
   `);
   try {
     db.exec("CREATE INDEX IF NOT EXISTS idx_entitlements_user ON entitlements(user_id)");

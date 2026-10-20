@@ -270,7 +270,27 @@ function hkToISO(year, month, day, minutes) {
   return isNaN(d.getTime()) ? null : d.toISOString();
 }
 
-/** 用 tesseract 由圖片抽文字（本機 OCR，唔出機器）；psm 6 抽欄位、psm 3 抽標題，兩者合併 */
+/** 圖片前處理（可選，失敗就 fallback 原圖） */
+function preprocessImage(file) {
+  return new Promise((resolve) => {
+    const out = file.replace(/\.[a-z0-9]+$/i, "") + "-pre.png";
+    execFile(
+      "python3",
+      [path.join(__dirname, "..", "..", "scripts", "preprocess-image.py"), file, out, "2"],
+      { timeout: 30000 },
+      (err, stdout) => {
+        if (err) return resolve({ ok: false, file });
+        try {
+          const j = JSON.parse(String(stdout || "{}"));
+          if (j.ok) return resolve({ ok: true, file: out, meta: j });
+        } catch (e) {}
+        resolve({ ok: false, file });
+      },
+    );
+  });
+}
+
+/** 單通道 OCR */
 function runTesseract(file, psm) {
   return new Promise((resolve) => {
     execFile(
@@ -282,23 +302,27 @@ function runTesseract(file, psm) {
   });
 }
 
-async function ocrImage(buffer, ext = "png") {
+/**
+ * 多通道 OCR：原圖 psm6 + 前處理後 psm 3/4/6，逐通道交返文字，
+ * 畀上層做「一致性投票」（同一欄位多通道都抽到 → 高信心）。
+ */
+async function ocrChannels(buffer, ext = "png") {
   const file = path.join(os.tmpdir(), `zp-ocr-${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`);
   fs.writeFileSync(file, buffer);
   try {
-    const [blockText, autoText] = await Promise.all([runTesseract(file, 6), runTesseract(file, 3)]);
-    // 合併：保留先出現嘅行，避免重複
-    const seen = new Set();
-    const merged = [];
-    for (const line of (autoText + "\n" + blockText).split("\n")) {
-      const key = line.replace(/\s+/g, "");
-      if (!key) continue;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      merged.push(line);
-    }
-    if (!merged.length) throw new Error("OCR returned empty");
-    return merged.join("\n");
+    const pre = await preprocessImage(file);
+    const jobs = [
+      { source: "original", psm: 6, file },
+      { source: "enhanced", psm: 6, file: pre.file },
+      { source: "enhanced", psm: 3, file: pre.file },
+      { source: "enhanced", psm: 4, file: pre.file },
+    ];
+    const texts = await Promise.all(jobs.map((j) => runTesseract(j.file, j.psm)));
+    const channels = jobs
+      .map((j, i) => ({ source: j.source, psm: j.psm, text: texts[i] || "" }))
+      .filter((c) => c.text.trim());
+    if (!channels.length) throw new Error("OCR returned empty");
+    return { channels, preprocess: pre.ok ? pre.meta : null };
   } finally {
     try {
       fs.unlinkSync(file);
@@ -306,4 +330,157 @@ async function ocrImage(buffer, ext = "png") {
   }
 }
 
-module.exports = { parseClassText, ocrImage, hkToISO, normalizeOcr, SPORTS };
+/** 兼容舊介面：合併所有通道文字 */
+async function ocrImage(buffer, ext = "png") {
+  const { channels } = await ocrChannels(buffer, ext);
+  const seen = new Set();
+  const merged = [];
+  for (const ch of channels) {
+    for (const line of ch.text.split("\n")) {
+      const key = line.replace(/\s+/g, "");
+      if (!key || seen.has(key)) continue;
+      seen.add(key);
+      merged.push(line);
+    }
+  }
+  return merged.join("\n");
+}
+
+// ==================== 一致性投票 ====================
+
+function dice(a, b) {
+  const x = String(a || "").replace(/\s+/g, "").toLowerCase();
+  const y = String(b || "").replace(/\s+/g, "").toLowerCase();
+  if (!x || !y) return 0;
+  if (x === y) return 1;
+  const bigrams = (s) => {
+    const m = new Map();
+    for (let i = 0; i < s.length - 1; i++) {
+      const g = s.slice(i, i + 2);
+      m.set(g, (m.get(g) || 0) + 1);
+    }
+    return m;
+  };
+  const A = bigrams(x);
+  const B = bigrams(y);
+  let hit = 0;
+  for (const [g, c] of A) hit += Math.min(c, B.get(g) || 0);
+  const total = Math.max(1, x.length - 1 + y.length - 1);
+  return (2 * hit) / total;
+}
+
+const VOTE_FIELDS = [
+  "title",
+  "category",
+  "sport_slug",
+  "price_hkd",
+  "credits_cost",
+  "max_participants",
+  "duration",
+  "venue_name",
+];
+
+/**
+ * 多通道草稿 → 投票合併
+ * @param {Array<Object>} drafts 已解析嘅草稿（每通道一個）
+ * @returns {{draft:Object, field_confidence:Object}}
+ */
+function mergeDrafts(drafts) {
+  const list = (drafts || []).filter(Boolean);
+  if (!list.length) throw new Error("no drafts");
+  const base = list[0];
+  const out = Object.assign({}, base);
+  const fieldConfidence = {};
+
+  for (const f of VOTE_FIELDS) {
+    const vals = list
+      .map((d) => d[f])
+      .filter((v) => v !== null && v !== undefined && v !== "" && !(typeof v === "number" && v === 0));
+    if (!vals.length) {
+      fieldConfidence[f] = 0;
+      continue;
+    }
+    // 數值用相等，文字用相似度 0.85
+    const clusters = [];
+    for (const v of vals) {
+      const hit = clusters.find((c) =>
+        typeof v === "number" ? c.value === v : dice(c.value, v) >= 0.85,
+      );
+      if (hit) {
+        hit.count++;
+        if (String(v).length > String(hit.value).length) hit.value = v;
+      } else clusters.push({ value: v, count: 1 });
+    }
+    clusters.sort((a, b) => b.count - a.count || String(b.value).length - String(a.value).length);
+    out[f] = clusters[0].value;
+    fieldConfidence[f] = Math.round((clusters[0].count / list.length) * 100) / 100;
+  }
+
+  // 場次：取多數通道都抽到嘅時間（>= 半數），唔夠就用全部去重
+  const slotCount = new Map();
+  for (const d of list) {
+    const seen = new Set();
+    for (const s of d.schedules || []) {
+      if (!s.start_time || seen.has(s.start_time)) continue;
+      seen.add(s.start_time);
+      slotCount.set(s.start_time, (slotCount.get(s.start_time) || 0) + 1);
+    }
+  }
+  const need = Math.max(2, Math.ceil(list.length / 2));
+  let chosen = [...slotCount.entries()].filter(([, c]) => c >= need).map(([t]) => t);
+  if (!chosen.length) chosen = [...slotCount.keys()];
+  out.schedules = chosen.sort().map((t) => {
+    const from = list.flatMap((d) => d.schedules || []).find((s) => s.start_time === t) || {};
+    return { start_time: t, end_time: from.end_time || null, recurring: from.recurring || "none" };
+  });
+  fieldConfidence.schedules = out.schedules.length ? (chosen.length ? 1 : 0) : 0;
+
+  // 描述用最長嗰個
+  out.description = list.map((d) => d.description || "").sort((a, b) => b.length - a.length)[0] || "";
+
+  const missing = ["title", "price_hkd", "schedules"].filter(
+    (f) => (f === "schedules" ? !out.schedules.length : !out[f]),
+  );
+  out.confidence = Math.min(4, Math.round(Object.values(fieldConfidence).reduce((a, b) => a + b, 0)));
+  out.needs_review = missing.length > 0 || (fieldConfidence.title || 0) < 0.5;
+  out.missing_fields = missing;
+  return { draft: out, field_confidence: fieldConfidence };
+}
+
+// ==================== 自學字典 ====================
+
+/** 讀取字典（field + from_text → to_text） */
+function loadCorrections(db, field) {
+  try {
+    return db
+      .prepare("SELECT field, from_text, to_text FROM ocr_corrections WHERE field = ? OR field = '*'")
+      .all(field);
+  } catch (e) {
+    return [];
+  }
+}
+
+/** 用字典修正一個欄位（相似度 >= 0.72 才套用，避免亂改） */
+function applyCorrections(value, rules) {
+  if (value == null || value === "") return { value, learned: null };
+  let best = null;
+  for (const r of rules || []) {
+    const score = dice(r.from_text, value);
+    if (score >= 0.72 && (!best || score > best.score)) best = { rule: r, score };
+  }
+  if (!best) return { value, learned: null };
+  return { value: best.rule.to_text, learned: { from: value, to: best.rule.to_text, score: Math.round(best.score * 100) / 100 } };
+}
+
+module.exports = {
+  parseClassText,
+  ocrImage,
+  ocrChannels,
+  mergeDrafts,
+  loadCorrections,
+  applyCorrections,
+  dice,
+  hkToISO,
+  normalizeOcr,
+  SPORTS,
+};

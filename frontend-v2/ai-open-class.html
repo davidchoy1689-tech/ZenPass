@@ -29,6 +29,11 @@
   .sched button { flex: 0 0 auto; border: 0; background: #fee2e2; color: #b91c1c; border-radius: 8px; width: 34px; height: 34px; font-size: 16px; cursor: pointer; }
   .msg { font-size: 12.5px; margin-top: 8px; min-height: 16px; }
   .msg.ok { color: #047857; font-weight: 700; }
+  .mode-tabs { display:flex; gap:8px; background:#f3f4f6; padding:4px; border-radius:12px; margin:0 0 12px; }
+  .mode-tab { flex:1; border:0; background:transparent; padding:10px 8px; border-radius:9px; font-size:13px; font-weight:800; color:var(--text-muted); cursor:pointer; }
+  .mode-tab.is-active { background:#fff; color:#0369a1; box-shadow:0 1px 4px rgba(0,0,0,.08); }
+  .lowconf { border-color:#f59e0b !important; background:#fffbeb !important; }
+  .hint { font-size:11.5px; color:#b45309; font-weight:700; margin-top:3px; }
   .msg.err { color: #b91c1c; font-weight: 700; }
   pre.ocr { white-space: pre-wrap; font-size: 11.5px; background: #f9fafb; border: 1px solid var(--border); border-radius: 10px; padding: 10px; max-height: 180px; overflow: auto; }
 </style>
@@ -42,7 +47,12 @@
     <p>貼上宣傳文字，或者影／上載宣傳單張，AI 會自動抽出課程名、日期時間、價錢、名額、地點。核對一下就可以開班。</p>
   </div>
 
-  <div class="card">
+  <div class="mode-tabs" role="tablist">
+    <button class="mode-tab is-active" id="modeForm" type="button">📋 表單開班</button>
+    <button class="mode-tab" id="modeScan" type="button">📷 單張／文字匯入</button>
+  </div>
+
+  <div class="card" id="cardScan" hidden>
     <h2>① 輸入資料</h2>
     <div class="drop" id="drop">
       <input id="img" type="file" accept="image/*" capture="environment" />
@@ -57,7 +67,8 @@
   </div>
 
   <div class="card" id="preview" hidden>
-    <h2>② 核對內容（可以改）</h2>
+    <h2 id="previewTitle">② 填寫／核對內容</h2>
+    <div class="muted" id="learnNote" style="margin:-4px 0 10px"></div>
     <div class="row">
       <div><label>課程名稱</label><input id="fTitle" type="text" /></div>
     </div>
@@ -103,6 +114,50 @@
   var $ = function (id) { return document.getElementById(id); };
   var imageData = null;
   var imageMime = null;
+  var parsedOriginal = {};   // 解析出嚟嘅原始值（用嚟學）
+  var mode = "form";         // form | scan
+
+  function setMode(m) {
+    mode = m;
+    $("modeForm").classList.toggle("is-active", m === "form");
+    $("modeScan").classList.toggle("is-active", m === "scan");
+    $("cardScan").hidden = m !== "scan";
+    $("previewTitle").textContent = m === "scan" ? "② 核對內容（可以改）" : "② 填寫內容";
+    if (m === "form" && $("preview").hidden) showBlankForm();
+  }
+
+  function showBlankForm() {
+    parsedOriginal = {};
+    $("fTitle").value = "";
+    $("fCategory").value = "新興運動";
+    $("fDuration").value = 60;
+    $("fPrice").value = 150;
+    $("fCredits").value = 15;
+    $("fMax").value = 15;
+    $("fVenue").value = "";
+    $("fDesc").value = "";
+    $("schedList").innerHTML = "";
+    addSchedRow(null, null);
+    $("preview").hidden = false;
+    $("learnNote").textContent = "";
+  }
+
+  function clearMarks() {
+    ["fTitle", "fCategory", "fDuration", "fPrice", "fMax", "fVenue"].forEach(function (id) {
+      $(id).classList.remove("lowconf");
+    });
+    document.querySelectorAll(".hint").forEach(function (h) { h.remove(); });
+  }
+
+  function markLow(fieldId, message) {
+    var el = $(fieldId);
+    if (!el) return;
+    el.classList.add("lowconf");
+    var hint = document.createElement("div");
+    hint.className = "hint";
+    hint.textContent = message;
+    el.parentNode.appendChild(hint);
+  }
 
   function pad(n) { return (n < 10 ? "0" : "") + n; }
   function toLocalInput(iso) {
@@ -169,12 +224,18 @@
       $("parseMsg").className = "msg err";
       return;
     }
-    renderDraft(r.data.data.draft, r.data.data.extracted_text);
+    renderDraft(r.data.data.draft, r.data.data.extracted_text, r.data.data.field_confidence, r.data.data.corrections_applied);
     $("parseMsg").textContent = "✅ 已抽出內容，請核對";
     $("parseMsg").className = "msg ok";
   };
 
-  function renderDraft(d, rawText) {
+  function renderDraft(d, rawText, conf, learned) {
+    parsedOriginal = {
+      title: d.title || "",
+      venue_name: d.venue_name || "",
+      category: d.category || "",
+    };
+    clearMarks();
     $("fTitle").value = d.title || "";
     $("fCategory").value = d.category || "新興運動";
     $("fDuration").value = d.duration || 60;
@@ -188,6 +249,17 @@
     if (!(d.schedules || []).length) addSchedRow(null, null);
     $("preview").hidden = false;
     if (rawText) { $("ocrCard").hidden = false; $("ocrText").textContent = rawText; }
+    // 低信心欄位提示（唔會靜靜地錯）
+    conf = conf || {};
+    if ((conf.title || 0) < 0.5) markLow("fTitle", "⚠️ 標題辨識信心低，請確認");
+    if ((conf.price_hkd || 0) < 0.5) markLow("fPrice", "⚠️ 價錢辨識信心低，請確認");
+    if ((conf.max_participants || 0) < 0.5) markLow("fMax", "⚠️ 名額辨識信心低，請確認");
+    if ((conf.venue_name || 0) < 0.5) markLow("fVenue", "⚠️ 地點辨識信心低，請確認");
+    var notes = [];
+    if (Array.isArray(learned) && learned.length) {
+      notes.push("📚 已用自學字典修正：" + learned.map(function (x) { return x.from + " → " + x.to; }).join("、"));
+    }
+    $("learnNote").textContent = notes.join(" ");
     $("preview").scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
@@ -200,7 +272,15 @@
       var e = fromLocalInput(row.querySelector(".s-end").value);
       if (s) schedules.push({ start_time: s, end_time: e || null, recurring: "none" });
     });
+    var learned = [];
+    [["title", $("fTitle").value.trim()], ["venue_name", $("fVenue").value.trim()], ["category", $("fCategory").value]]
+      .forEach(function (pair) {
+        var f = pair[0], to = pair[1], from = parsedOriginal[f];
+        if (from && to && from !== to) learned.push({ field: f, from_text: from, to_text: to });
+      });
+
     var body = {
+      learned_corrections: learned,
       title: $("fTitle").value.trim(),
       category: $("fCategory").value,
       duration: Number($("fDuration").value),
@@ -229,6 +309,10 @@
       $("createMsg").className = "msg err";
     }
   };
+
+  $("modeForm").onclick = function () { setMode("form"); };
+  $("modeScan").onclick = function () { setMode("scan"); };
+  setMode("form");
 
   if (api.requireLogin && !api.requireLogin("ai-open-class.html")) {
     /* 已跳轉登入 */

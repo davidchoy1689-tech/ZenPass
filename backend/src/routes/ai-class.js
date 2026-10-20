@@ -10,7 +10,13 @@ const express = require("express");
 const { v4: uuidv4 } = require("uuid");
 const { authenticateToken } = require("../middleware/auth");
 const { getDb } = require("../services/database");
-const { parseClassText, ocrImage } = require("../services/ai-class-parser");
+const {
+  parseClassText,
+  ocrChannels,
+  mergeDrafts,
+  loadCorrections,
+  applyCorrections,
+} = require("../services/ai-class-parser");
 
 const router = express.Router();
 
@@ -36,6 +42,8 @@ router.post("/parse", authenticateToken, requireCoachOrAdmin, async (req, res) =
 
     let extracted = String(text || "");
     let ocrUsed = false;
+    let channels = [];
+    let preprocess = null;
 
     if (image_base64) {
       const b64 = String(image_base64).replace(/^data:[^;]+;base64,/, "");
@@ -47,9 +55,10 @@ router.post("/parse", authenticateToken, requireCoachOrAdmin, async (req, res) =
       const mime = String(image_mime || "").toLowerCase();
       const ext = /png/.test(mime) ? "png" : /webp/.test(mime) ? "webp" : /jpe?g/.test(mime) ? "jpg" : "png";
       try {
-        const ocrText = await ocrImage(buf, ext);
+        const out = await ocrChannels(buf, ext);
+        channels = out.channels;
+        preprocess = out.preprocess;
         ocrUsed = true;
-        extracted = [extracted, ocrText].filter(Boolean).join("\n").trim();
       } catch (e) {
         console.error("ai-class OCR error:", e.message);
         return res.status(503).json({
@@ -60,14 +69,42 @@ router.post("/parse", authenticateToken, requireCoachOrAdmin, async (req, res) =
       }
     }
 
+    const ocrText = channels.map((c) => c.text).join("\n");
+    extracted = [extracted, ocrText].filter(Boolean).join("\n").trim();
     if (!extracted.trim()) {
       return res.status(422).json({ success: false, error: "辨識唔到文字，請影清楚啲或者直接貼上文字" });
     }
 
-    const draft = parseClassText(extracted);
+    // 每個通道各自解析 → 一致性投票
+    const drafts = [];
+    if (text) drafts.push(parseClassText(String(text)));
+    for (const ch of channels) drafts.push(parseClassText(ch.text));
+    const merged = drafts.length ? mergeDrafts(drafts) : { draft: parseClassText(extracted), field_confidence: {} };
+    const draft = merged.draft;
+
+    // 自學字典：相似嘅舊錯誤自動改正
+    const db = getDb();
+    const applied = [];
+    for (const f of ["title", "venue_name", "category"]) {
+      const rules = loadCorrections(db, f);
+      const r = applyCorrections(draft[f], rules);
+      if (r.learned) {
+        draft[f] = r.value;
+        applied.push(Object.assign({ field: f }, r.learned));
+      }
+    }
+
     res.json({
       success: true,
-      data: { draft, extracted_text: extracted.slice(0, 4000), ocr_used: ocrUsed },
+      data: {
+        draft,
+        field_confidence: merged.field_confidence,
+        corrections_applied: applied,
+        extracted_text: extracted.slice(0, 4000),
+        ocr_used: ocrUsed,
+        channels: channels.map((c) => ({ source: c.source, psm: c.psm, chars: c.text.length })),
+        preprocess,
+      },
     });
   } catch (err) {
     console.error("ai-class/parse error:", err.message);
@@ -156,6 +193,27 @@ router.post("/create", authenticateToken, requireCoachOrAdmin, (req, res) => {
       }
     });
     tx();
+
+    // 📚 自學字典：記錄人手修正，下次 OCR 自動套用（只限白名單欄位）
+    try {
+      const LEARNABLE = ["title", "venue_name", "category", "sport_slug"];
+      const learned = Array.isArray(d.learned_corrections) ? d.learned_corrections : [];
+      const up = db.prepare(
+        `INSERT INTO ocr_corrections (field, from_text, to_text, hits)
+         VALUES (?, ?, ?, 1)
+         ON CONFLICT(field, from_text) DO UPDATE SET
+           to_text = excluded.to_text, hits = hits + 1, updated_at = datetime('now')`,
+      );
+      for (const c of learned) {
+        const field = String((c && c.field) || "").trim();
+        const from = String((c && (c.from_text || c.from)) || "").trim();
+        const to = String((c && (c.to_text || c.to)) || "").trim();
+        if (!LEARNABLE.includes(field) || !from || !to || from === to) continue;
+        up.run(field, from.slice(0, 200), to.slice(0, 200));
+      }
+    } catch (e) {
+      console.error("ocr_corrections learn failed:", e.message);
+    }
 
     try {
       const { writeBlock } = require("../services/blockchain-audit");
