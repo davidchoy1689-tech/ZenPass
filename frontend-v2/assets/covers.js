@@ -1,6 +1,6 @@
 /* ZenPass — 課程封面三層優先：
  *   1. 課堂自己相片 (image_url)
- *   2. 類別品牌封面 (assets/img/covers/)
+ *   2. 通用品牌封面 (assets/img/covers/generic.jpg)
  * 相片來源／授權見 credits.html（Wikimedia Commons，CC BY/CC0/PD）
  */
 (function () {
@@ -25,8 +25,9 @@
     return MAP[String(category || "").trim()] || (sportSlug && MAP[sportSlug]) || "default";
   }
 
-  window.coverFor = function (category, sportSlug) {
-    return "assets/img/covers/" + slugOf(category, sportSlug) + ".jpg?v=" + ART_V;
+  // 通用品牌圖（David 2026-10-21：唔用個別課程內容，全部用同一張）
+  window.coverFor = function () {
+    return "assets/img/covers/generic.jpg?v=1";
   };
 
   /** 統一取圖：課堂自己相片 → 品牌類別封面 */
