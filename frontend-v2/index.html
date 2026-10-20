@@ -157,13 +157,13 @@
         <div class="hot-media" style="background:linear-gradient(145deg,#C06F30,#893F07)">
           <span class="hot-cat">新興運動 · 芬蘭木柱</span>
           <img class="hot-art" src="assets/icons/sports-white/moelkkyla.svg" alt="">
-          <span class="hot-badge">半價</span>
+          <span class="hot-badge">迎新半價</span>
         </div>
         <div class="hot-body">
           <p class="hot-name">【新手體驗】芬蘭木柱 Mölkky 基礎技巧與比賽</p>
           <p class="hot-rating">⭐ 4.9 <span>(30+ 評價)</span></p>
           <p class="hot-meta">📍 觀塘｜⏱️ 60 分鐘 · 剩 6 位</p>
-          <p class="hot-price"><s>HK$150</s> <b>HK$75</b></p>
+          <p class="hot-price"><b>HK$150</b> <span class="hot-trial">迎新半價 HK$75</span></p>
           <span class="btn btn-primary btn-block hot-cta">立即預約</span>
         </div>
       </a>
@@ -172,13 +172,13 @@
         <div class="hot-media" style="background:linear-gradient(145deg,#487CEE,#1C4BB3)">
           <span class="hot-cat">新興運動 · 地板冰壺</span>
           <img class="hot-art" src="assets/icons/sports-white/floor-curling.svg" alt="">
-          <span class="hot-badge">半價</span>
+          <span class="hot-badge">迎新半價</span>
         </div>
         <div class="hot-body">
           <p class="hot-name">【親子班】地板冰壺 冰上策略入門</p>
           <p class="hot-rating">⭐ 4.9 <span>(30+ 評價)</span></p>
           <p class="hot-meta">📍 旺角｜⏱️ 90 分鐘 <span class="hot-urgent">🔥 僅剩 4 位</span></p>
-          <p class="hot-price"><s>HK$180</s> <b>HK$90</b></p>
+          <p class="hot-price"><b>HK$180</b> <span class="hot-trial">迎新半價 HK$90</span></p>
           <span class="btn btn-primary btn-block hot-cta">立即預約</span>
         </div>
       </a>
@@ -187,13 +187,13 @@
         <div class="hot-media" style="background:linear-gradient(145deg,#E24949,#A71D1D)">
           <span class="hot-cat">球類運動 · 布袋球</span>
           <img class="hot-art" src="assets/icons/sports-white/cornhole.svg" alt="">
-          <span class="hot-badge">半價</span>
+          <span class="hot-badge">迎新半價</span>
         </div>
         <div class="hot-body">
           <p class="hot-name">【週末班】布袋球 Cornhole 投擲技巧</p>
           <p class="hot-rating">⭐ 4.9 <span>(30+ 評價)</span></p>
           <p class="hot-meta">📍 沙田｜⏱️ 60 分鐘 · 剩 8 位</p>
-          <p class="hot-price"><s>HK$140</s> <b>HK$70</b></p>
+          <p class="hot-price"><b>HK$140</b> <span class="hot-trial">迎新半價 HK$70</span></p>
           <span class="btn btn-primary btn-block hot-cta">立即預約</span>
         </div>
       </a>
@@ -202,13 +202,13 @@
         <div class="hot-media" style="background:linear-gradient(145deg,#915AF0,#5E2CB4)">
           <span class="hot-cat">香港熱門 · 穿雲箭</span>
           <img class="hot-art" src="assets/icons/sports-white/air-storm.svg" alt="">
-          <span class="hot-badge">半價</span>
+          <span class="hot-badge">迎新半價</span>
         </div>
         <div class="hot-body">
           <p class="hot-name">【挑戰班】穿雲箭 AIR STORM 精準射擊</p>
           <p class="hot-rating">⭐ 4.9 <span>(30+ 評價)</span></p>
           <p class="hot-meta">📍 銅鑼灣｜⏱️ 45 分鐘 · 剩 5 位</p>
-          <p class="hot-price"><s>HK$160</s> <b>HK$80</b></p>
+          <p class="hot-price"><b>HK$160</b> <span class="hot-trial">迎新半價 HK$80</span></p>
           <span class="btn btn-primary btn-block hot-cta">立即預約</span>
         </div>
       </a>
@@ -539,12 +539,14 @@
           return '<a class="hot-card" href="detail.html?id=' + encodeURIComponent(c.id) + '">' +
             '<div class="hot-media" style="background:linear-gradient(145deg,' + GRADS[i % GRADS.length] + ')">' +
               '<span class="hot-cat">' + esc(c.category || "") + (c.district ? " · " + esc(c.district) : "") + '</span>' + art +
-              (promo ? '<span class="hot-badge">半價</span>' : '') +
+              (promo ? '<span class="hot-badge">迎新半價</span>' : '') +
             '</div>' +
             '<div class="hot-body"><p class="hot-name">' + esc(c.title) + '</p>' +
             '<p class="hot-rating">⭐ ' + esc(String(rating)) + ' <span>(' + esc(String(reviews)) + ' 評價)</span></p>' +
             '<p class="hot-meta">📍 ' + esc(c.venue_name || c.district || "") + '｜⏱️ ' + (c.duration || 60) + ' 分鐘' + leftTxt + '</p>' +
-            '<p class="hot-price">' + (promo && price ? '<s>' + hkd(price) + '</s> ' : '') + '<b>' + hkd(final) + '</b></p>' +
+            '<p class="hot-price"><b>' + hkd(price) + '</b>' +
+              (promo && price ? '<span class="hot-trial">迎新半價 ' + hkd(final) + '</span>' : '') +
+            '</p>' +
             '<span class="btn btn-primary btn-block hot-cta">立即預約</span></div></a>';
         }).join("");
       } catch (e) { /* 保留示範卡 */ }
