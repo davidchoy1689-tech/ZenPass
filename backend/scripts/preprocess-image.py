@@ -48,8 +48,13 @@ def main():
         threshold = 150 if median > 110 else 110
         bw = gray.point(lambda p: 255 if p > threshold else 0, mode="L")
         bw.save(dst, "PNG")
+        # 白字黑底（例如色 banner 白字）→ 反相版本，tesseract 對黑字白底準確得多
+        inv = ImageOps.invert(bw)
+        inv_path = dst.replace("-pre.png", "-inv.png")
+        inv.save(inv_path, "PNG")
         print(json.dumps({
             "ok": True,
+            "inverted": inv_path,
             "width": bw.size[0],
             "height": bw.size[1],
             "scale": round(scale, 2),

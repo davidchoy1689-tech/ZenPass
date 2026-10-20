@@ -282,7 +282,7 @@ function preprocessImage(file) {
         if (err) return resolve({ ok: false, file });
         try {
           const j = JSON.parse(String(stdout || "{}"));
-          if (j.ok) return resolve({ ok: true, file: out, meta: j });
+          if (j.ok) return resolve({ ok: true, file: out, inverted: j.inverted || null, meta: j });
         } catch (e) {}
         resolve({ ok: false, file });
       },
@@ -315,8 +315,11 @@ async function ocrChannels(buffer, ext = "png") {
       { source: "original", psm: 6, file },
       { source: "enhanced", psm: 6, file: pre.file },
       { source: "enhanced", psm: 3, file: pre.file },
-      { source: "enhanced", psm: 4, file: pre.file },
     ];
+    if (pre.inverted) {
+      jobs.push({ source: "inverted", psm: 6, file: pre.inverted });
+      jobs.push({ source: "inverted", psm: 3, file: pre.inverted });
+    }
     const texts = await Promise.all(jobs.map((j) => runTesseract(j.file, j.psm)));
     const channels = jobs
       .map((j, i) => ({ source: j.source, psm: j.psm, text: texts[i] || "" }))
@@ -380,15 +383,39 @@ const VOTE_FIELDS = [
   "venue_name",
 ];
 
+/** 中文比例（用嚟判斷標題係咪亂碼） */
+function cjkRatio(v) {
+  const s = String(v || "");
+  if (!s) return 0;
+  const cjk = (s.match(/[\u4e00-\u9fff]/g) || []).length;
+  return cjk / s.length;
+}
+
+/** 單一草稿品質分：抽到幾多個有意義欄位（用嚟揀最可信嘅通道，而非少數服從多數） */
+function draftScore(d) {
+  if (!d) return -1;
+  let sc = 0;
+  if (d.title && cjkRatio(d.title) >= 0.5) sc += 3;
+  if (Number(d.price_hkd) > 0) sc += 3;
+  if ((d.schedules || []).length) sc += 2;
+  if (Number(d.duration) > 0) sc += 1;
+  if (Number(d.max_participants) > 0) sc += 1;
+  if (d.venue_name && cjkRatio(d.venue_name) >= 0.4) sc += 2;
+  if (d.category) sc += 1;
+  return sc;
+}
+
 /**
- * 多通道草稿 → 投票合併
- * @param {Array<Object>} drafts 已解析嘅草稿（每通道一個）
- * @returns {{draft:Object, field_confidence:Object}}
+ * 多通道草稿合併：以「品質最高」嘅通道做主稿，其餘通道只用作
+ * ① 補缺欄位 ② 交叉確認（提升信心）。避免兩個差通道一齊錯就蓋過好通道。
  */
 function mergeDrafts(drafts) {
   const list = (drafts || []).filter(Boolean);
   if (!list.length) throw new Error("no drafts");
-  const base = list[0];
+
+  const scored = list.map((d, i) => ({ d, i, score: draftScore(d) }));
+  scored.sort((a, b) => b.score - a.score);
+  const base = scored[0].d;
   const out = Object.assign({}, base);
   const fieldConfidence = {};
 
@@ -396,27 +423,35 @@ function mergeDrafts(drafts) {
     const vals = list
       .map((d) => d[f])
       .filter((v) => v !== null && v !== undefined && v !== "" && !(typeof v === "number" && v === 0));
-    if (!vals.length) {
-      fieldConfidence[f] = 0;
+
+    if (out[f] === null || out[f] === undefined || out[f] === "" || (typeof out[f] === "number" && out[f] === 0)) {
+      // 主稿冇 → 用其他通道一致嘅值
+      const pick = majority(vals);
+      if (pick.value !== null) {
+        out[f] = pick.value;
+        fieldConfidence[f] = Math.round(pick.ratio * 50) / 100; // 最多 0.5（唔係主稿）
+      } else {
+        fieldConfidence[f] = 0;
+      }
       continue;
     }
-    // 數值用相等，文字用相似度 0.85
-    const clusters = [];
-    for (const v of vals) {
-      const hit = clusters.find((c) =>
-        typeof v === "number" ? c.value === v : dice(c.value, v) >= 0.85,
-      );
-      if (hit) {
-        hit.count++;
-        if (String(v).length > String(hit.value).length) hit.value = v;
-      } else clusters.push({ value: v, count: 1 });
+
+    // 主稿有 → 睇幾多通道支持
+    const support = vals.filter((v) =>
+      typeof out[f] === "number" ? v === out[f] : dice(out[f], v) >= 0.8,
+    ).length;
+    fieldConfidence[f] = Math.round((support / list.length) * 100) / 100;
+    if (f === "title" && cjkRatio(out[f]) < 0.5) {
+      // 主稿標題係亂碼 → 揀 CJK 比例最高嗰個
+      const bestTitle = list
+        .map((d) => d.title)
+        .filter(Boolean)
+        .sort((a, b) => cjkRatio(b) - cjkRatio(a) || b.length - a.length)[0];
+      if (bestTitle) out.title = bestTitle;
     }
-    clusters.sort((a, b) => b.count - a.count || String(b.value).length - String(a.value).length);
-    out[f] = clusters[0].value;
-    fieldConfidence[f] = Math.round((clusters[0].count / list.length) * 100) / 100;
   }
 
-  // 場次：取多數通道都抽到嘅時間（>= 半數），唔夠就用全部去重
+  // 場次：主稿優先，再併入至少兩個通道都抽到嘅時間
   const slotCount = new Map();
   for (const d of list) {
     const seen = new Set();
@@ -427,24 +462,38 @@ function mergeDrafts(drafts) {
     }
   }
   const need = Math.max(2, Math.ceil(list.length / 2));
-  let chosen = [...slotCount.entries()].filter(([, c]) => c >= need).map(([t]) => t);
-  if (!chosen.length) chosen = [...slotCount.keys()];
-  out.schedules = chosen.sort().map((t) => {
+  const confirmed = [...slotCount.entries()].filter(([, c]) => c >= need).map(([t]) => t);
+  const baseSlots = (base.schedules || []).map((s) => s.start_time).filter(Boolean);
+  const chosen = [...new Set([...baseSlots, ...confirmed])].sort();
+
+  out.schedules = chosen.map((t) => {
     const from = list.flatMap((d) => d.schedules || []).find((s) => s.start_time === t) || {};
     return { start_time: t, end_time: from.end_time || null, recurring: from.recurring || "none" };
   });
-  fieldConfidence.schedules = out.schedules.length ? (chosen.length ? 1 : 0) : 0;
+  fieldConfidence.schedules = out.schedules.length ? (confirmed.length ? 1 : 0.6) : 0;
 
-  // 描述用最長嗰個
   out.description = list.map((d) => d.description || "").sort((a, b) => b.length - a.length)[0] || "";
-
-  const missing = ["title", "price_hkd", "schedules"].filter(
-    (f) => (f === "schedules" ? !out.schedules.length : !out[f]),
-  );
   out.confidence = Math.min(4, Math.round(Object.values(fieldConfidence).reduce((a, b) => a + b, 0)));
-  out.needs_review = missing.length > 0 || (fieldConfidence.title || 0) < 0.5;
-  out.missing_fields = missing;
-  return { draft: out, field_confidence: fieldConfidence };
+  out.missing_fields = ["title", "price_hkd"].filter((f) => !out[f]).concat(out.schedules.length ? [] : ["schedules"]);
+  out.needs_review = out.missing_fields.length > 0 || (fieldConfidence.title || 0) < 0.5;
+  return { draft: out, field_confidence: fieldConfidence, base_channel: scored[0].i };
+}
+
+/** 眾數（文字用相似度 0.85 聚類） */
+function majority(vals) {
+  if (!vals.length) return { value: null, ratio: 0 };
+  const clusters = [];
+  for (const v of vals) {
+    const hit = clusters.find((c) =>
+      typeof v === "number" ? c.value === v : dice(c.value, v) >= 0.85,
+    );
+    if (hit) {
+      hit.count++;
+      if (String(v).length > String(hit.value).length) hit.value = v;
+    } else clusters.push({ value: v, count: 1 });
+  }
+  clusters.sort((a, b) => b.count - a.count || String(b.value).length - String(a.value).length);
+  return { value: clusters[0].value, ratio: clusters[0].count / vals.length };
 }
 
 // ==================== 自學字典 ====================
