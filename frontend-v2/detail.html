@@ -401,20 +401,24 @@
         ? cstats.map((x) => '<div class="s"><b>' + esc(x.v) + "</b><i>" + esc(x.k) + "</i></div>").join("")
         : "";
 
-      // 場地設施（4 項固定賣點 + API 額外設施）
-      const baseFac = [
-        { i: "❄️", t: "冷氣開放" },
-        { i: "🔒", t: "提供儲物櫃" },
-        { i: "💧", t: "免費飲水機" },
-      ];
-      const extra = (Array.isArray(c.facilities) ? c.facilities : []).filter(function (x) {
-        return !baseFac.some(function (b) { return b.t.indexOf(x) >= 0 || x.indexOf(b.t) >= 0; });
-      });
-      $("facilities").innerHTML = baseFac.map(function (f) {
-        return '<div class="f"><span>' + f.i + "</span><span>" + esc(f.t) + "</span></div>";
-      }).join("") + extra.map(function (t) {
-        return '<div class="f"><span>✅</span><span>' + esc(t) + "</span></div>";
-      }).join("");
+      // 場地設施：只用真實資料；冇資料就整段隱藏（唔再寫死賣點）
+      const facList = (Array.isArray(c.facilities) ? c.facilities : []).map((x) => String(x).trim()).filter(Boolean);
+      const facBox = $("facilities");
+      if (facBox) {
+        if (facList.length) {
+          facBox.innerHTML = facList
+            .map((t) => '<div class="f"><span>✅</span><span>' + esc(t) + "</span></div>")
+            .join("");
+          const lbl = facBox.previousElementSibling;
+          if (lbl && /場地設施/.test(lbl.textContent)) lbl.style.display = "";
+          facBox.style.display = "";
+        } else {
+          facBox.innerHTML = "";
+          facBox.style.display = "none";
+          const lbl = facBox.previousElementSibling;
+          if (lbl && /場地設施/.test(lbl.textContent)) lbl.style.display = "none";
+        }
+      }
 
       // 評價卡（API 有真實評價用真實，否則用精選示範）
       const list = Array.isArray(reviews) ? reviews.slice(0, 6) : [];

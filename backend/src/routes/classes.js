@@ -312,6 +312,23 @@ router.get("/:id", optionalAuth, (req, res) => {
       return res.status(404).json({ success: false, error: "課程不存在" });
     }
 
+    // 場地設施：只有合作場地真實登記嘅設施才回傳（冇 = 唔顯示，避免失實宣傳）
+    try {
+      const pvId = classData.partner_venue_id || null;
+      if (pvId) {
+        const pv = db.prepare("SELECT facilities FROM partner_venues WHERE id = ?").get(pvId);
+        if (pv && pv.facilities) {
+          let arr = [];
+          try {
+            arr = JSON.parse(pv.facilities);
+          } catch (e) {
+            arr = String(pv.facilities).split(/[,，、]/).map((x) => x.trim());
+          }
+          classData.facilities = Array.isArray(arr) ? arr.filter(Boolean) : [];
+        }
+      }
+    } catch (e) {}
+
     // VIP 優先預約窗口（新課頭 N 小時只限 VIP Pass）— 前端顯示用
     try {
       const h = Number(classData.vip_priority_hours) || 0;

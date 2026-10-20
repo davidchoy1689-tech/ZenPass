@@ -53,10 +53,10 @@ has('id="revs"', "reviews list");
 has("常見問題", "faq section");
 if ((html.match(/<details class="dt-faq"/g) || []).length < 5) fails.push("expect >=5 FAQ items");
 has("穿著什麼衣服", "faq clothing");
-has("冷氣開放", "facility ac");
-has("儲物櫃", "facility locker");
-has("飲水機", "facility water");
-has("比賽級", "facility equipment");
+// 場地設施：2026-10-20 改為只用真實資料，唔可以再寫死賣點
+if (/冷氣開放|提供儲物櫃|免費飲水機|全套比賽級器材/.test(html)) fails.push("facilities must not be hardcoded");
+has('id="facilities"', "facility container");
+has("c.facilities", "facility from API data");
 
 // 7 預約流程 + sticky CTA
 has("預約流程", "flow section");
