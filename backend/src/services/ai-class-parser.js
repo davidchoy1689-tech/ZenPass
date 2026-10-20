@@ -15,8 +15,8 @@ const HK_OFFSET_MS = 8 * 3600 * 1000;
 
 // 運動關鍵字 → 分類 / sport_slug（同 data/sport icons 對應）
 const SPORTS = [
-  { re: /芬蘭木柱|mölkky|molkky/i, name: "芬蘭木柱", category: "新興運動", slug: "molkky" },
-  { re: /地板冰壺|地壺/i, name: "地板冰壺", category: "新興運動", slug: "floor-curling" },
+  { re: /(芬蘭)?木柱|mölkky|molkky/i, name: "芬蘭木柱", category: "新興運動", slug: "molkky" },
+  { re: /(地板)?冰壺|地壺/i, name: "地板冰壺", category: "新興運動", slug: "floor-curling" },
   { re: /布袋球|cornhole/i, name: "布袋球", category: "新興運動", slug: "cornhole" },
   { re: /穿雲箭|air\s*storm/i, name: "穿雲箭", category: "新興運動", slug: "air-storm" },
   { re: /北歐式健步|nordic\s*walk/i, name: "北歐式健步行", category: "新興運動", slug: "nordic-walking" },
@@ -262,28 +262,40 @@ function hkToISO(year, month, day, minutes) {
   return isNaN(d.getTime()) ? null : d.toISOString();
 }
 
-/** 用 tesseract 由圖片抽文字（本機 OCR，唔出機器） */
-function ocrImage(buffer, ext = "png") {
-  return new Promise((resolve, reject) => {
-    const file = path.join(os.tmpdir(), `zp-ocr-${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`);
-    try {
-      fs.writeFileSync(file, buffer);
-    } catch (e) {
-      return reject(e);
-    }
+/** 用 tesseract 由圖片抽文字（本機 OCR，唔出機器）；psm 6 抽欄位、psm 3 抽標題，兩者合併 */
+function runTesseract(file, psm) {
+  return new Promise((resolve) => {
     execFile(
       "tesseract",
-      [file, "stdout", "-l", "chi_tra+chi_sim+eng", "--psm", "6"],
+      [file, "stdout", "-l", "chi_tra+chi_sim+eng", "--psm", String(psm)],
       { timeout: 60000, maxBuffer: 8 * 1024 * 1024 },
-      (err, stdout) => {
-        try {
-          fs.unlinkSync(file);
-        } catch (e) {}
-        if (err) return reject(err);
-        resolve(String(stdout || ""));
-      },
+      (err, stdout) => resolve(err ? "" : String(stdout || "")),
     );
   });
+}
+
+async function ocrImage(buffer, ext = "png") {
+  const file = path.join(os.tmpdir(), `zp-ocr-${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`);
+  fs.writeFileSync(file, buffer);
+  try {
+    const [blockText, autoText] = await Promise.all([runTesseract(file, 6), runTesseract(file, 3)]);
+    // 合併：保留先出現嘅行，避免重複
+    const seen = new Set();
+    const merged = [];
+    for (const line of (autoText + "\n" + blockText).split("\n")) {
+      const key = line.replace(/\s+/g, "");
+      if (!key) continue;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      merged.push(line);
+    }
+    if (!merged.length) throw new Error("OCR returned empty");
+    return merged.join("\n");
+  } finally {
+    try {
+      fs.unlinkSync(file);
+    } catch (e) {}
+  }
 }
 
 module.exports = { parseClassText, ocrImage, hkToISO, normalizeOcr, SPORTS };
