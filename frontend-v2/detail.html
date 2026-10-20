@@ -280,6 +280,7 @@
 
   <div class="toast" id="toast"></div>
 
+  <script src="assets/covers.js?v=2"></script>
   <script src="assets/api.js"></script>
   <script src="assets/sport-icons.js?v=14"></script>
   <script>
@@ -483,12 +484,15 @@
       const imgs = [];
       if (c.image_url) imgs.push(c.image_url);
       if (Array.isArray(c.images)) imgs.push(...c.images);
-      const fallbackBg = "linear-gradient(135deg,#ff6b35,#c94420)";
+      const coverUrl = (typeof coverFor === "function") ? coverFor(c.category, c.sport_slug) : "";
+      const fallbackBg = coverUrl
+        ? "linear-gradient(180deg,rgba(0,0,0,.05),rgba(0,0,0,.35)),url('" + coverUrl + "') center/cover no-repeat"
+        : "linear-gradient(135deg,#ff6b35,#c94420)";
       const slides = imgs.length ? imgs.slice(0, 3) : [null, null, null];
       $("carousel").innerHTML = slides.map((src) =>
         src
           ? '<div class="dt-slide"><img src="' + esc(src) + '" alt=""></div>'
-          : '<div class="dt-slide" style="background:' + fallbackBg + '">' + (typeof sportIconImg === "function" ? sportIconImg(c, 120) : "🏅") + "</div>",
+          : '<div class="dt-slide" style="background:' + fallbackBg + '"></div>',
       ).join("");
       $("dots").innerHTML = slides.map((_, i) => '<span class="dt-dot' + (i === 0 ? " on" : "") + '"></span>').join("");
       const car = $("carousel");
