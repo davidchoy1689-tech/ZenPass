@@ -230,6 +230,8 @@ CREATE TABLE IF NOT EXISTS users (
   try { db.exec("ALTER TABLE classes ADD COLUMN target_audience TEXT"); } catch (e) { /* exists */ }
   // VIP 優先預約（新課開放頭 N 小時只限 VIP）
   try { db.exec("ALTER TABLE classes ADD COLUMN vip_priority_hours INTEGER DEFAULT 0"); } catch (e) { /* exists */ }
+  // ===== 兼容升級：classes.equipment（裝備安排）=====
+  try { db.exec("ALTER TABLE classes ADD COLUMN equipment TEXT"); } catch (e) { /* exists */ }
 
   // ===== 兼容升級：venue_rentals 收款狀態（escrow）=====
   try { db.exec("ALTER TABLE venue_rentals ADD COLUMN payment_status TEXT DEFAULT 'unpaid'"); } catch (e) {}

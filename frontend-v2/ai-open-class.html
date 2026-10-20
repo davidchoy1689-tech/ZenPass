@@ -90,6 +90,7 @@
       <div><label>名額</label><input id="fMax" type="number" min="1" step="1" /><div class="hint" id="capHint" style="color:#047857"></div></div>
       <div><label>地點</label><input id="fVenue" type="text" /></div>
     </div>
+    <div class="row"><div><label>裝備（提供／自備）</label><input id="fGear" type="text" placeholder="例：提供基本裝備（瑜伽墊）" /></div></div>
     <div class="row"><div><label>簡介</label><textarea id="fDesc"></textarea></div></div>
 
     <label style="margin-top:6px">場次</label>
@@ -136,6 +137,7 @@
     $("fMax").value = 15;
     if (typeof updateCapHint === "function") updateCapHint();
     $("fVenue").value = "";
+    $("fGear").value = "提供基本裝備（瑜伽墊）";
     $("fDesc").value = "";
     $("schedList").innerHTML = "";
     addSchedRow(null, null);
@@ -259,6 +261,7 @@
     $("fMax").value = d.max_participants || 15;
     if (typeof updateCapHint === "function") updateCapHint();
     $("fVenue").value = d.venue_name || "";
+    $("fGear").value = d.equipment || "";
     $("fDesc").value = d.description || "";
     $("schedList").innerHTML = "";
     (d.schedules || []).forEach(function (s) { addSchedRow(s.start_time, s.end_time); });
@@ -306,6 +309,7 @@
       venue_name: $("fVenue").value.trim(),
       venue_address: "",
       description: $("fDesc").value.trim(),
+      equipment: $("fGear").value.trim(),
       schedules: schedules,
     };
     if (!body.title || !body.schedules.length) {

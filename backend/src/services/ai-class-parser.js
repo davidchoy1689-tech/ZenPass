@@ -214,6 +214,17 @@ function parseClassText(rawText, opts) {
     if (vm) venue = vm[1].trim();
   }
 
+  // ── 裝備 ──
+  let equipment = null;
+  const eqLine = lines.find((l) => /^(裝備|器材|設備|用品)\s*[:：]/.test(l));
+  if (eqLine) {
+    equipment = eqLine.replace(/^(裝備|器材|設備|用品)\s*[:：]\s*/, "").trim();
+  } else {
+    const eqInline = flat.match(/(請自備[^。\n,，;；]{0,28}|自備[^。\n,，;；]{0,28}|提供[^。\n,，;；]{0,28}|請帶[^。\n,，;；]{0,24})/);
+    if (eqInline) equipment = eqInline[1].trim();
+  }
+  if (equipment) equipment = equipment.replace(/[*_`~＊]+/g, "").slice(0, 80);
+
   // ── 日期（支援 日/月/年、年/月/日、10月21日；香港慣例：DD/MM 優先）──
   const parsedDates = extractDates(flat);
   const dates = parsedDates.dates;
@@ -334,6 +345,7 @@ function parseClassText(rawText, opts) {
     credits_cost: price ? Math.round(price / 10) : 0,
     venue_name: venue,
     venue_address: venue,
+    equipment,
     image_url: null,
     schedules: uniqSchedules,
     confidence, // 0–4

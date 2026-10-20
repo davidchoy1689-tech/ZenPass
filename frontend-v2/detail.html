@@ -174,7 +174,7 @@
         </div>
         <div class="dt-param">
           <div class="ic">🎒</div>
-          <div><div class="k">裝備</div><div class="v" id="gear">提供全套裝備</div></div>
+          <div><div class="k">裝備</div><div class="v" id="gear">提供基本裝備（瑜伽墊）</div></div>
         </div>
       </div>
 
@@ -343,6 +343,8 @@
           ? "小班教學（最多 " + cap + " 人" + seats + "）"
           : "最多 " + cap + " 人" + seats;
       $("capacity").textContent = capLabel;
+      const gearEl = $("gear");
+      if (gearEl) gearEl.textContent = (c.equipment && String(c.equipment).trim()) || "提供基本裝備（瑜伽墊）";
       const _vn = String(c.venue_name || "").trim();
       const _va = String(c.venue_address || "").trim();
       const sameVenue = !_va || _va === _vn || _vn.includes(_va) || _va.includes(_vn);

@@ -414,6 +414,7 @@ router.post("/", authenticateToken, requireCoach, (req, res) => {
       latitude,
       longitude,
       image_url,
+      equipment,
     } = req.body;
 
     if (!title || !category || !duration || !price_hkd) {
@@ -437,8 +438,8 @@ router.post("/", authenticateToken, requireCoach, (req, res) => {
       `
       INSERT INTO classes (id, class_reference, coach_id, title, title_en, description, description_en, 
         category, sport_slug, difficulty, duration, max_participants, price_hkd, credits_cost,
-        venue_name, venue_address, latitude, longitude, image_url)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        venue_name, venue_address, latitude, longitude, image_url, equipment)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
     ).run(
       id,
@@ -460,6 +461,7 @@ router.post("/", authenticateToken, requireCoach, (req, res) => {
       latitude || null,
       longitude || null,
       image_url || null,
+      equipment || null,
     );
 
     // ⛓️ 區塊鏈：記錄課程建立
