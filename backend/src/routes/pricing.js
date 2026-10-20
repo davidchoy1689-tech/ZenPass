@@ -220,6 +220,44 @@ router.put("/admin/pricing", authenticateToken, requireAdmin, (req, res) => {
   }
 });
 
+// ===== GET /api/pricing/admin/peak — 高峰附加費設定（唯讀，公開前需登入）=====
+router.get("/admin/peak", authenticateToken, requireAdmin, (req, res) => {
+  try {
+    const db = getDb();
+    const cfg = require("../services/peak-pricing").getConfig(db);
+    res.json({ success: true, data: cfg });
+  } catch (err) {
+    res.status(500).json({ success: false, error: "無法讀取設定" });
+  }
+});
+
+// ===== PUT /api/pricing/admin/peak — 開關高峰附加費（預設關閉）=====
+router.put("/admin/peak", authenticateToken, requireAdmin, (req, res) => {
+  try {
+    const { enabled, multiplier } = req.body || {};
+    const db = getDb();
+    const set = db.prepare(
+      "INSERT INTO platform_settings (key, value, description) VALUES (?, ?, ?) " +
+        "ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+    );
+    if (enabled != null) {
+      set.run("pricing.peak_enabled", enabled ? "1" : "0", "高峰時段附加費開關（1=開，0=關）");
+    }
+    if (multiplier != null) {
+      const m = Number(multiplier);
+      if (!(m >= 1 && m <= 2)) {
+        return res.status(400).json({ success: false, error: "multiplier 必須介乎 1–2" });
+      }
+      set.run("pricing.peak_multiplier", String(m), "高峰時段 credits 倍數（預設 1.15）");
+    }
+    const cfg = require("../services/peak-pricing").getConfig(db);
+    res.json({ success: true, data: cfg });
+  } catch (err) {
+    console.error("更新高峰設定錯誤:", err.message);
+    res.status(500).json({ success: false, error: "更新失敗" });
+  }
+});
+
 // ===== GET /api/pricing/dynamic — 動態時段定價 =====
 // 根據剩餘名額自動調整 Credit 消耗
 router.get('/dynamic', function(req, res) {

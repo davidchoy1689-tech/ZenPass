@@ -200,11 +200,20 @@ function deductCredits(db, userId, classId, overrideCost, meta = {}) {
     .prepare("SELECT credits_cost FROM classes WHERE id = ?")
     .get(classId);
   if (!classData) return { ok: false, error: "課程不存在" };
-  const cost = overrideCost != null ? Number(overrideCost) : classData.credits_cost;
+  const baseCost = overrideCost != null ? Number(overrideCost) : classData.credits_cost;
+  // 🌗 高峰附加費（預設關閉；有 premium_peak 權益則豁免）
+  let peakInfo = { cost: baseCost, surcharge: 0, waived: false, peak: false };
+  if (meta.applyPeak !== false) {
+    try {
+      peakInfo = require("./peak-pricing").applyPeakSurcharge(db, userId, baseCost, meta.startTime);
+    } catch (e) {}
+  }
+  const cost = peakInfo.cost;
   const user = db.prepare("SELECT credits FROM users WHERE id = ?").get(userId);
   if (user.credits < cost) {
     return { ok: false, error: "點數不足，請先購買點數" };
   }
+  const peakNote = peakInfo.surcharge > 0 ? `（含高峰附加 ${peakInfo.surcharge} cr）` : "";
   // 🧾 2026-10-19：所有 credits 變動寫入流水
   require("./credit-ledger").applyCredits(db, {
     userId,
@@ -212,9 +221,9 @@ function deductCredits(db, userId, classId, overrideCost, meta = {}) {
     type: "spend",
     source: meta.source || "booking",
     referenceId: meta.referenceId || null,
-    description: meta.description || "預約課堂扣除 Credits",
+    description: (meta.description || "預約課堂扣除 Credits") + peakNote,
   });
-  return { ok: true, creditsCost: cost };
+  return { ok: true, creditsCost: cost, peak: peakInfo };
 }
 
 function processCorporatePayment(db, userId, classId) {
@@ -777,6 +786,7 @@ function createBooking(req, options = {}) {
         source: "booking",
         referenceId: bookingId,
         description: `預約課堂（${class_id}）`,
+        startTime: schedule && schedule.start_time,
       });
       if (!result.ok) {
         throw new BookingFlowError({
@@ -795,6 +805,7 @@ function createBooking(req, options = {}) {
         source: "trial",
         referenceId: bookingId,
         description: `迎新半價優惠（原價 ${baseCredits} credits）`,
+        applyPeak: false,
       });
       if (!result.ok) {
         throw new BookingFlowError({
