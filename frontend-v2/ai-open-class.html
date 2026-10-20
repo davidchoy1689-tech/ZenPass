@@ -90,6 +90,18 @@
       <div><label>名額</label><input id="fMax" type="number" min="1" step="1" /><div class="hint" id="capHint" style="color:#047857"></div></div>
       <div><label>地點</label><input id="fVenue" type="text" /></div>
     </div>
+    <div class="row two">
+      <div><label>地區（香港 18 區）</label>
+        <select id="fDistrict">
+          <option value="">—</option>
+          <option>中西區</option><option>灣仔</option><option>東區</option><option>南區</option>
+          <option>油尖旺</option><option>深水埗</option><option>九龍城</option><option>黃大仙</option>
+          <option>觀塘</option><option>葵青</option><option>荃灣</option><option>屯門</option>
+          <option>元朗</option><option>北區</option><option>大埔</option><option>沙田</option>
+          <option>西貢</option><option>離島</option>
+        </select>
+      </div><div></div>
+    </div>
     <div class="row"><div><label>裝備（提供／自備）</label><input id="fGear" type="text" placeholder="例：提供基本裝備（瑜伽墊）" /></div></div>
     <div class="row"><div><label>簡介</label><textarea id="fDesc"></textarea></div></div>
 
@@ -137,6 +149,7 @@
     $("fMax").value = 15;
     if (typeof updateCapHint === "function") updateCapHint();
     $("fVenue").value = "";
+    $("fDistrict").value = "";
     $("fGear").value = "提供基本裝備（瑜伽墊）";
     $("fDesc").value = "";
     $("schedList").innerHTML = "";
@@ -261,6 +274,7 @@
     $("fMax").value = d.max_participants || 15;
     if (typeof updateCapHint === "function") updateCapHint();
     $("fVenue").value = d.venue_name || "";
+    $("fDistrict").value = d.district || "";
     $("fGear").value = d.equipment || "";
     $("fDesc").value = d.description || "";
     $("schedList").innerHTML = "";
@@ -307,6 +321,7 @@
       credits_cost: Number($("fCredits").value),
       max_participants: Number($("fMax").value),
       venue_name: $("fVenue").value.trim(),
+      district: $("fDistrict").value,
       venue_address: "",
       description: $("fDesc").value.trim(),
       equipment: $("fGear").value.trim(),

@@ -156,8 +156,8 @@ router.post("/create", authenticateToken, requireCoachOrAdmin, (req, res) => {
       db.prepare(
         `INSERT INTO classes (id, class_reference, coach_id, title, title_en, description, category, sport_slug,
            difficulty, duration, max_participants, price_hkd, credits_cost, venue_name, venue_address,
-           image_url, equipment, status, booking_open, created_at, updated_at)
-         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?, 'active', 1, datetime('now'), datetime('now'))`,
+           image_url, equipment, district, status, booking_open, created_at, updated_at)
+         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?, 'active', 1, datetime('now'), datetime('now'))`,
       ).run(
         id,
         clRef,
@@ -176,6 +176,7 @@ router.post("/create", authenticateToken, requireCoachOrAdmin, (req, res) => {
         (d.venue_address && String(d.venue_address).trim() !== String(d.venue_name || "").trim()) ? d.venue_address : null,
         d.image_url || null,
         d.equipment || null,
+        d.district || null,
       );
 
       const insSched = db.prepare(

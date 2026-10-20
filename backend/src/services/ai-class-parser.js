@@ -78,6 +78,42 @@ function stripTags(s) {
     .trim();
 }
 
+/** 香港 18 區：關鍵字 → 區名（越長優先，避免「沙田」食咗「沙田坳」） */
+const DISTRICT_KEYWORDS = [
+  ["中西區", ["中西區", "中環", "上環", "西環", "金鐘", "半山", "西營盤", "堅尼地城"]],
+  ["灣仔", ["灣仔", "銅鑼灣", "跑馬地", "大坑", "天后"]],
+  ["東區", ["東區", "北角", "鰂魚涌", "太古", "西灣河", "筲箕灣", "柴灣", "小西灣", "炮台山"]],
+  ["南區", ["南區", "香港仔", "鴨脷洲", "赤柱", "薄扶林", "黃竹坑", "淺水灣"]],
+  ["油尖旺", ["油尖旺", "尖沙咀", "尖東", "佐敦", "油麻地", "旺角", "太子", "大角咀"]],
+  ["深水埗", ["深水埗", "長沙灣", "荔枝角", "美孚", "石硤尾", "南昌"]],
+  ["九龍城", ["九龍城", "土瓜灣", "紅磡", "何文田", "啟德", "九龍塘"]],
+  ["黃大仙", ["黃大仙", "鑽石山", "新蒲崗", "彩虹", "慈雲山", "樂富", "牛池灣"]],
+  ["觀塘", ["觀塘", "牛頭角", "九龍灣", "藍田", "油塘", "秀茂坪", "四順", "安達"]],
+  ["葵青", ["葵青", "葵涌", "青衣", "葵芳", "荔景"]],
+  ["荃灣", ["荃灣", "深井", "青龍頭"]],
+  ["屯門", ["屯門", "兆康", "龍門"]],
+  ["元朗", ["元朗", "天水圍", "錦田", "洪水橋", "屏山"]],
+  ["北區", ["北區", "上水", "粉嶺", "沙頭角", "打鼓嶺"]],
+  ["大埔", ["大埔", "太和", "大埔墟"]],
+  ["沙田", ["沙田", "馬鞍山", "大圍", "火炭", "石門"]],
+  ["西貢", ["西貢", "將軍澳", "調景嶺", "坑口", "寶琳"]],
+  ["離島", ["離島", "東涌", "大嶼山", "長洲", "南丫島", "坪洲", "梅窩"]],
+];
+
+/** 由文字（優先地點行）抽香港分區 */
+function extractDistrict(text, venue) {
+  const hay = String([venue || "", text || ""].join(" "));
+  let best = null;
+  for (const [district, words] of DISTRICT_KEYWORDS) {
+    for (const w of words) {
+      const idx = hay.indexOf(w);
+      if (idx < 0) continue;
+      if (!best || w.length > best.len) best = { district, len: w.length };
+    }
+  }
+  return best ? best.district : null;
+}
+
 /**
  * 由一行文字抽出「似標題」嘅部分（處理單行貼上：日期時間價錢同一行）
  */
@@ -214,6 +250,9 @@ function parseClassText(rawText, opts) {
     if (vm) venue = vm[1].trim();
   }
 
+  // ── 分區（香港 18 區）──
+  const district = extractDistrict(flat, venue);
+
   // ── 裝備 ──
   let equipment = null;
   const eqLine = lines.find((l) => /^(裝備|器材|設備|用品)\s*[:：]/.test(l));
@@ -345,6 +384,7 @@ function parseClassText(rawText, opts) {
     credits_cost: price ? Math.round(price / 10) : 0,
     venue_name: venue,
     venue_address: venue,
+    district,
     equipment,
     image_url: null,
     schedules: uniqSchedules,
@@ -498,6 +538,7 @@ const VOTE_FIELDS = [
   "max_participants",
   "duration",
   "venue_name",
+  "district",
 ];
 
 /** 中文比例（用嚟判斷標題係咪亂碼） */
@@ -659,5 +700,6 @@ module.exports = {
   dice,
   hkToISO,
   normalizeOcr,
+  extractDistrict,
   SPORTS,
 };
