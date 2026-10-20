@@ -37,7 +37,37 @@ const SPORTS = [
 
 const WEEKDAY = { 日: 0, 天: 0, 一: 1, 二: 2, 三: 3, 四: 4, 五: 5, 六: 6 };
 
-const META_LINE = /^(地點|場地|地址|費用|收費|價錢|價格|名額|人數|上限|查詢|報名|電話|whatsapp|聯絡|日期|時間|對象|導師|教練|主辦|備註)[:：]/i;
+const META_LINE = /^(地點|場地|地址|費用|收費|價錢|價格|名額|人數|上限|查詢|報名|電話|whatsapp|聯絡|日期|時間|對象|導師|教練|主辦|備註)\s*[:：]/i;
+
+/**
+ * OCR 後處理：tesseract 對中文常會插入空格、用全角標點、簡繁混雜。
+ * 呢步只做「還原成人睇得明嘅格式」，唔會改動數字。
+ */
+function normalizeOcr(s) {
+  return String(s || "")
+    .replace(/[﹕ː:：]/g, ":")
+    .replace(/[﹩＄]/g, "$")
+    .replace(/[﹣－—–−]/g, "-")
+    .replace(/[～~]/g, "~")
+    .replace(/[﹙]/g, "(")
+    .replace(/[﹚]/g, ")")
+    .replace(/[﻿]/g, "")
+    // 中文字之間嘅多餘空格
+    .replace(/([\u4e00-\u9fff])[ \t]+(?=[\u4e00-\u9fff])/g, "$1")
+    // 中文 ↔ 數字／標點之間嘅空格（"10 月 21 日" → "10月21日"）
+    .replace(/([\u4e00-\u9fff])[ \t]+(?=[\d$:(])/g, "$1")
+    .replace(/([\d$）)])[ \t]+(?=[\u4e00-\u9fff])/g, "$1")
+    // 簡體關鍵字 → 繁體（只限宣傳單張常見字，避免誤改地名／品牌）
+    .replace(/地点/g, "地點")
+    .replace(/时间/g, "時間")
+    .replace(/费用/g, "費用")
+    .replace(/名额/g, "名額")
+    .replace(/查询/g, "查詢")
+    .replace(/价[钱錢]/g, "價錢")
+    .replace(/^地\s*點/gm, "地點")
+    .replace(/[ \t]+/g, " ")
+    .replace(/\n{3,}/g, "\n\n");
+}
 
 function stripTags(s) {
   return String(s || "").replace(/[ \t]+/g, " ").replace(/\r/g, "").trim();
@@ -46,7 +76,7 @@ function stripTags(s) {
 /** 由文字抽出課堂草稿（純函數，方便測試） */
 function parseClassText(rawText, opts) {
   opts = opts || {};
-  const text = stripTags(rawText);
+  const text = stripTags(normalizeOcr(rawText));
   const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
   const flat = lines.join(" ");
 
@@ -82,8 +112,8 @@ function parseClassText(rawText, opts) {
 
   // ── 場地 ──
   let venue = null;
-  const venueLine = lines.find((l) => /^(地點|場地|地址)[:：]/.test(l));
-  if (venueLine) venue = venueLine.replace(/^(地點|場地|地址)[:：]\s*/, "").trim();
+  const venueLine = lines.find((l) => /^(地點|场地|地址)\s*[:：]/.test(l));
+  if (venueLine) venue = venueLine.replace(/^(地點|场地|地址)\s*[:：]\s*/, "").trim();
   else {
     const vm = flat.match(/(?:地點|場地|地址)[:：]?\s*([^\s,，。;；|]+(?:\s[^\s,，。;；|]+){0,4})/);
     if (vm) venue = vm[1].trim();
@@ -256,4 +286,4 @@ function ocrImage(buffer, ext = "png") {
   });
 }
 
-module.exports = { parseClassText, ocrImage, hkToISO, SPORTS };
+module.exports = { parseClassText, ocrImage, hkToISO, normalizeOcr, SPORTS };

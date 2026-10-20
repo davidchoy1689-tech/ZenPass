@@ -32,7 +32,7 @@ ok(d1.category === "新興運動" && d1.sport_slug === "molkky", "關鍵字 → 
 ok(d1.price_hkd === 150 && d1.credits_cost === 15, "價錢 $150 → 15 credits（1cr = $10）");
 ok(d1.max_participants === 12, "名額 12 人");
 ok(d1.duration === 90, "時長 90 分鐘（19:00–20:30）");
-ok(d1.venue_name === "觀塘 APM 體育館 3樓", "抽到地點");
+ok(d1.venue_name === "觀塘 APM 體育館3樓", "抽到地點（OCR 正規化會收窄多餘空格）");
 ok(d1.schedules.length === 1, "1 個場次");
 ok(d1.schedules[0].start_time === "2026-10-21T11:00:00.000Z", "10/21 19:00 HKT → 11:00Z（UTC 儲存）");
 ok(d1.schedules[0].end_time === "2026-10-21T12:30:00.000Z", "結束時間 20:30 HKT → 12:30Z");
