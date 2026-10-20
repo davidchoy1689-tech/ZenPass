@@ -87,7 +87,7 @@
       <div><label>Credits（自動 = 價錢÷10）</label><input id="fCredits" type="number" min="0" step="1" /></div>
     </div>
     <div class="row two">
-      <div><label>名額</label><input id="fMax" type="number" min="1" step="1" /></div>
+      <div><label>名額</label><input id="fMax" type="number" min="1" step="1" /><div class="hint" id="capHint" style="color:#047857"></div></div>
       <div><label>地點</label><input id="fVenue" type="text" /></div>
     </div>
     <div class="row"><div><label>簡介</label><textarea id="fDesc"></textarea></div></div>
@@ -134,6 +134,7 @@
     $("fPrice").value = 150;
     $("fCredits").value = 15;
     $("fMax").value = 15;
+    if (typeof updateCapHint === "function") updateCapHint();
     $("fVenue").value = "";
     $("fDesc").value = "";
     $("schedList").innerHTML = "";
@@ -203,6 +204,23 @@
     r.readAsDataURL(f);
   };
 
+  function updateCapHint() {
+    var n = Number($("fMax").value) || 0;
+    var el = $("capHint");
+    if (!el) return;
+    if (n > 0 && n <= 7) {
+      el.textContent = "✅ 小班教學（≤ 7 人）";
+      el.style.color = "#047857";
+    } else if (n >= 8) {
+      el.textContent = "⚠️ 8 人或以上 → 唔屬小班教學";
+      el.style.color = "#b45309";
+    } else {
+      el.textContent = "";
+    }
+  }
+  $("fMax").addEventListener("input", updateCapHint);
+  $("fMax").addEventListener("change", updateCapHint);
+
   $("fPrice").addEventListener("input", function () {
     var p = Number($("fPrice").value) || 0;
     $("fCredits").value = p ? Math.round(p / 10) : 0;
@@ -242,6 +260,7 @@
     $("fPrice").value = d.price_hkd || 0;
     $("fCredits").value = d.credits_cost || 0;
     $("fMax").value = d.max_participants || 15;
+    if (typeof updateCapHint === "function") updateCapHint();
     $("fVenue").value = d.venue_name || "";
     $("fDesc").value = d.description || "";
     $("schedList").innerHTML = "";

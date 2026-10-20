@@ -335,7 +335,13 @@
       $("duration").textContent = (c.duration || 60) + " 分鐘";
       const cap = Number(c.max_participants) || 8;
       const left = seatsLeft();
-      $("capacity").textContent = "小班教學（最多 " + cap + " 人" + (left != null ? "，剩餘 " + left + " 個名額" : "") + "）";
+      // 小班教學定義：最多 7 人；8 人或以上唔算小班
+      const SMALL_CLASS_MAX = 7;
+      const capLabel =
+        (cap <= SMALL_CLASS_MAX ? "小班教學（最多 " + cap + " 人" : "最多 " + cap + " 人（非小班）") +
+        (left != null ? "，剩餘 " + left + " 個名額" : "") +
+        "）";
+      $("capacity").textContent = capLabel;
       $("venue").textContent = [c.venue_name, c.venue_address].filter(Boolean).join(" · ") || "地點待定";
       $("venueName").textContent = c.venue_name || "—";
       $("venueAddr").textContent = c.venue_address || "";
