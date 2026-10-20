@@ -385,7 +385,12 @@
           if (loginBtn) loginBtn.hidden = true;
           if (userChip) userChip.hidden = false;
           var heroAuth = document.getElementById("heroAuth");
-          if (heroAuth) heroAuth.style.display = "none";
+          if (heroAuth) {
+            heroAuth.style.display = "";
+            heroAuth.innerHTML =
+              '<a class="btn btn-primary btn-block" href="referral.html">🎁 邀請朋友註冊，雙方各得 HK$50 →</a>' +
+              '<a class="hero-auth-alt" href="explore.html">或者直接搵堂預約</a>';
+          }
           // 迎新優惠每個帳戶限一次
           api.get("/promo/welcome-status").then(function (w) {
             if (w && w.ok && w.data && w.data.available === false) {
