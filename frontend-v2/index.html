@@ -103,6 +103,34 @@
     .btn-primary:hover { filter: brightness(1.04); box-shadow: 0 10px 22px rgba(16,185,129,.35); }
     .btn-primary:active { transform: scale(.97); box-shadow: 0 3px 10px rgba(16,185,129,.30); }
 
+
+    /* ===== Skeleton screen（2026-10-21）===== */
+    .skeleton {
+      background-color: #e2e8f0;
+      background-image: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,.6) 50%, rgba(255,255,255,0) 100%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+      border-radius: 8px;
+    }
+    @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+    .skeleton-card {
+      flex: 0 0 268px; background: #fff; border-radius: 14px; overflow: hidden;
+      box-shadow: 0 6px 20px rgba(0,0,0,.06); scroll-snap-align: start;
+    }
+    .skeleton-img { height: 160px; border-radius: 12px 12px 0 0; }
+    .skeleton-body { padding: 12px 14px 14px; }
+    .skeleton-text { width: 80%; height: 18px; margin-bottom: 8px; }
+    .skeleton-text-sm { width: 50%; height: 14px; margin-bottom: 12px; }
+    .skeleton-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .skeleton-price { width: 30%; height: 20px; }
+    .skeleton-btn { width: 35%; height: 32px; border-radius: 999px; }
+    .fade-in { animation: fadeIn .35s ease both; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+    @media (prefers-reduced-motion: reduce) {
+      .skeleton { animation: none; }
+      .fade-in { animation: none; }
+    }
+
     @media (min-width: 720px) {
       .cat-photo-grid { grid-template-columns: repeat(4, 1fr); }
       .hot-card { flex: 0 0 300px; }
@@ -221,74 +249,40 @@
     </div>
 
     <div class="section-title">🔥 本週熱門推薦</div>
-    <div class="hot-rail" id="hotRail">
-
-      <a class="hot-card" href="detail.html?q=%E8%8A%AC%E8%98%AD%E6%9C%A8%E6%9F%B1">
-        <div class="hot-cover">
-          <img src="assets/img/photos/emerging.jpg?v=1" alt="" loading="lazy" onerror="this.style.display='none'">
-          <span class="cover-shade"></span>
-          <span class="badge-trial">🎉 半價優惠</span>
-          <span class="badge-star">⭐ 4.9</span>
+    <div class="hot-rail" id="hotRail" aria-busy="true">
+      <div class="skeleton-card" aria-hidden="true">
+        <div class="skeleton skeleton-img"></div>
+        <div class="skeleton-body">
+          <div class="skeleton skeleton-text"></div>
+          <div class="skeleton skeleton-text-sm"></div>
+          <div class="skeleton-row"><div class="skeleton skeleton-price"></div><div class="skeleton skeleton-btn"></div></div>
         </div>
-        <div class="hot-body">
-          <span class="hot-cat">新興運動 · 芬蘭木柱</span>
-          <p class="hot-name">【新手體驗】芬蘭木柱 Mölkky 基礎技巧與比賽</p>
-          <p class="hot-rating">⭐ 4.9 <span>(30+ 評價)</span></p>
-          <p class="hot-meta">📍 觀塘｜⏱️ 60 分鐘 · 剩 6 位</p>
-          <p class="hot-price"><b>HK$150</b> <span class="hot-trial">迎新半價 HK$75</span></p>
-          <span class="btn btn-primary btn-block hot-cta">立即預約</span>
+      </div>
+      <div class="skeleton-card" aria-hidden="true">
+        <div class="skeleton skeleton-img"></div>
+        <div class="skeleton-body">
+          <div class="skeleton skeleton-text"></div>
+          <div class="skeleton skeleton-text-sm"></div>
+          <div class="skeleton-row"><div class="skeleton skeleton-price"></div><div class="skeleton skeleton-btn"></div></div>
         </div>
-      </a>
-
-      <a class="hot-card" href="detail.html?q=%E5%9C%B0%E6%9D%BF%E5%86%B0%E5%A3%BA">
-        <div class="hot-cover">
-          <img src="assets/img/photos/stretch.jpg?v=1" alt="" loading="lazy" onerror="this.style.display='none'">
-          <span class="cover-shade"></span>
-          <span class="badge-trial">🎉 半價優惠</span>
-          <span class="badge-star">⭐ 4.9</span>
+      </div>
+      <div class="skeleton-card" aria-hidden="true">
+        <div class="skeleton skeleton-img"></div>
+        <div class="skeleton-body">
+          <div class="skeleton skeleton-text"></div>
+          <div class="skeleton skeleton-text-sm"></div>
+          <div class="skeleton-row"><div class="skeleton skeleton-price"></div><div class="skeleton skeleton-btn"></div></div>
         </div>
-        <div class="hot-body">
-          <span class="hot-cat">新興運動 · 地板冰壺</span>
-          <p class="hot-name">【親子班】地板冰壺 冰上策略入門</p>
-          <p class="hot-rating">⭐ 4.9 <span>(30+ 評價)</span></p>
-          <p class="hot-meta">📍 旺角｜⏱️ 90 分鐘 <span class="hot-urgent">🔥 僅剩 4 位</span></p>
-          <p class="hot-price"><b>HK$180</b> <span class="hot-trial">迎新半價 HK$90</span></p>
-          <span class="btn btn-primary btn-block hot-cta">立即預約</span>
+      </div>
+      <div class="skeleton-card" aria-hidden="true">
+        <div class="skeleton skeleton-img"></div>
+        <div class="skeleton-body">
+          <div class="skeleton skeleton-text"></div>
+          <div class="skeleton skeleton-text-sm"></div>
+          <div class="skeleton-row"><div class="skeleton skeleton-price"></div><div class="skeleton skeleton-btn"></div></div>
         </div>
-      </a>
-
-      <a class="hot-card" href="detail.html?q=%E5%B8%83%E8%A2%8B%E7%90%83">
-        <div class="hot-cover">
-          <img src="assets/img/photos/yoga.jpg?v=1" alt="" loading="lazy" onerror="this.style.display='none'">
-          <span class="cover-shade"></span>
-          <span class="badge-trial">🎉 半價優惠</span>
-          <span class="badge-star">⭐ 4.9</span>
-        </div>
-        <div class="hot-body">
-          <span class="hot-cat">球類運動 · 布袋球</span>
-          <p class="hot-name">【週末班】布袋球 Cornhole 投擲技巧</p>
-          <p class="hot-rating">⭐ 4.9 <span>(30+ 評價)</span></p>
-          <p class="hot-meta">📍 沙田｜⏱️ 60 分鐘 · 剩 8 位</p>
-          <p class="hot-price"><b>HK$140</b> <span class="hot-trial">迎新半價 HK$70</span></p>
-          <span class="btn btn-primary btn-block hot-cta">立即預約</span>
-        </div>
-      </a>
-
-      <a class="hot-card" href="detail.html?q=%E7%A9%BF%E9%9B%B2%E7%AE%AD">
-        <div class="hot-cover">
-          <img src="assets/img/photos/fitness.jpg?v=1" alt="" loading="lazy" onerror="this.style.display='none'">
-          <span class="cover-shade"></span>
-          <span class="badge-trial">🎉 半價優惠</span>
-          <span class="badge-star">⭐ 4.9</span>
-        </div>
-        <div class="hot-body">
-          <span class="hot-cat">香港熱門 · 穿雲箭</span>
-          <p class="hot-name">【挑戰班】穿雲箭 AIR STORM 精準射擊</p>
-          <p class="hot-rating">⭐ 4.9 <span>(30+ 評價)</span></p>
-          <p class="hot-meta">📍 銅鑼灣｜⏱️ 45 分鐘 · 剩 5 位</p>
-          <p class="hot-price"><b>HK$160</b> <span class="hot-trial">迎新半價 HK$80</span></p>
-          <span class="btn btn-primary btn-block hot-cta">立即預約</span>
-        </div>
+      </div>
+    </div>
       </a>
 
     </div>
@@ -384,6 +378,25 @@
   </nav>
 
   <script src="assets/covers.js?v=8"></script>
+  <script>
+    /* 圖片骨架 → 載入後淡入（含已 cache 嘅圖）*/
+    function hydrateImages(root) {
+      var scope = root || document;
+      var imgs = scope.querySelectorAll("img.card-img, img.cat-img");
+      imgs.forEach(function (img) {
+        function done() {
+          img.classList.remove("skeleton");
+          img.classList.add("fade-in");
+        }
+        if (img.complete && img.naturalWidth > 0) return done();
+        img.addEventListener("load", done, { once: true });
+        img.addEventListener("error", function () {
+          img.classList.remove("skeleton");
+        }, { once: true });
+      });
+    }
+    document.addEventListener("DOMContentLoaded", function () { hydrateImages(document); });
+  </script>
   <script src="assets/api.js"></script>
   <script src="assets/sport-icons.js?v=14"></script>
   <script>
@@ -638,7 +651,7 @@
             : '';
           return '<a class="hot-card" href="detail.html?id=' + encodeURIComponent(c.id) + '">' +
             '<div class="hot-cover">' +
-              '<img src="' + esc(coverUrl(c)) + '" alt="" loading="lazy" onerror="this.style.display=\'none\'">' +
+              '<img class="card-img skeleton" src="' + esc(coverUrl(c)) + '" alt="" loading="lazy" onerror="this.style.display=\'none\'">' +
               '<span class="cover-shade"></span>' +
               (promo ? '<span class="badge-trial">🎉 半價優惠</span>' : '') +
               '<span class="badge-star">⭐ ' + esc(String(Number(rating).toFixed(1))) + '</span>' +
@@ -654,7 +667,9 @@
               '<span class="btn btn-primary btn-block hot-cta">立即預約</span>' +
             '</div></a>';
         }).join("");
-      } catch (e) { /* 保留示範卡 */ }
+        rail.setAttribute("aria-busy", "false");
+        hydrateImages(rail);
+      } catch (e) { /* 保留 skeleton */ }
     })();
   </script>
   <script>
@@ -674,11 +689,12 @@
       ];
       grid.innerHTML = CATS.map(function (c) {
         return '<a class="cat-photo" href="explore.html?q=' + encodeURIComponent(c.k) + '">' +
-          '<img src="assets/img/photos/' + c.id + '.jpg?v=1" alt="" loading="lazy" onerror="this.style.display=\'none\'">' +
+          '<img class="cat-img skeleton" src="assets/img/photos/' + c.id + '.jpg?v=1" alt="" loading="lazy" onerror="this.style.display=\'none\'">' +
           '<span class="mask"></span>' +
           '<span class="inner"><b>' + c.k + '</b><i>' + c.n + '</i></span>' +
           '</a>';
       }).join("");
+      hydrateImages(grid);
     })();
   </script>
   <script>
