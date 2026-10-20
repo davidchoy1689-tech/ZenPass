@@ -173,7 +173,7 @@ router.post("/create", authenticateToken, requireCoachOrAdmin, (req, res) => {
         price,
         creditsCost,
         d.venue_name || null,
-        d.venue_address || null,
+        (d.venue_address && String(d.venue_address).trim() !== String(d.venue_name || "").trim()) ? d.venue_address : null,
         d.image_url || null,
       );
 

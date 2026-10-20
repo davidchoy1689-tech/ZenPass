@@ -343,9 +343,12 @@
           ? "小班教學（最多 " + cap + " 人" + seats + "）"
           : "最多 " + cap + " 人" + seats;
       $("capacity").textContent = capLabel;
-      $("venue").textContent = [c.venue_name, c.venue_address].filter(Boolean).join(" · ") || "地點待定";
-      $("venueName").textContent = c.venue_name || "—";
-      $("venueAddr").textContent = c.venue_address || "";
+      const _vn = String(c.venue_name || "").trim();
+      const _va = String(c.venue_address || "").trim();
+      const sameVenue = !_va || _va === _vn || _vn.includes(_va) || _va.includes(_vn);
+      $("venue").textContent = (_vn && sameVenue) ? _vn : ([_vn, _va].filter(Boolean).join(" · ") || "地點待定");
+      $("venueName").textContent = _vn || "—";
+      $("venueAddr").textContent = sameVenue ? "" : _va;
       const q = encodeURIComponent([c.venue_name, c.venue_address].filter(Boolean).join(" "));
       const mapUrl = "https://www.google.com/maps/search/?api=1&query=" + q;
       ["mapLink", "mapBtn"].forEach((k) => { const el = $(k); if (el) el.href = mapUrl; });
