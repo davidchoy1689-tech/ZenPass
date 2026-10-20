@@ -74,6 +74,24 @@ function stripTags(s) {
 }
 
 /**
+ * 由一行文字抽出「似標題」嘅部分（處理單行貼上：日期時間價錢同一行）
+ */
+function titleFromLine(line) {
+  let t = String(line || "");
+  // 1) 斬走「費用：…」「查詢：…」等尾段
+  t = t.split(/(?:日期|時間|地點|場地|地址|費用|收費|價錢|價格|名額|人數|上限|查詢|報名|電話|whatsapp|聯絡)\s*[:：]?/i)[0];
+  // 2) 斬走開頭嘅日期（年/月/日 或 日/月）
+  t = t.replace(/^[\s:：,，]*\d{4}\s*[年\/\-.]\s*\d{1,2}\s*[月\/\-.]\s*\d{1,2}\s*日?/, "");
+  t = t.replace(/^[\s:：,，]*\d{1,2}\s*[年\/\-.]\s*\d{1,2}\s*[日\/\-.]?(\s*\d{2,4})?/, "");
+  t = t.replace(/^[\s:：,，]*\d{1,2}\s*月\s*\d{1,2}\s*日?/, "");
+  // 3) 斬走開頭嘅時間範圍
+  t = t.replace(/^[\s:：,，]*(?:上午|下午|晚上|早上|中午|am|pm)?\s*\d{1,2}(?:[:：]\d{2})?\s*(?:am|pm|上午|下午|晚上|早上|中午)?\s*[-–~至到]\s*\d{1,2}(?:[:：]\d{2})?\s*(?:am|pm|上午|下午|晚上|早上|中午)?/i, "");
+  // 4) 斬走殘留價錢
+  t = t.replace(/^[\s:：,，]*(?:HK\s*\$|\$)?\s*\d+(?:\.\d+)?\s*(?:元|蚊)?/, "");
+  return t.replace(/^[\s:：,，\-–—•·]+/, "").replace(/[\s:：,，\-–—]+$/, "").trim();
+}
+
+/**
  * 抽出日期。支援：
  *   2026年10月21日 / 2026-10-21 / 2026/10/21（年在前）
  *   21/10/2026、21-10-26（日/月/年）
@@ -217,8 +235,12 @@ function parseClassText(rawText, opts) {
     if (/^(日期|時間|費用|地點)[:：]/.test(l)) continue;
     if (/^[\d\s:：\-–~至年月日()（）\/.,，]+$/.test(l)) continue;
     if (l.length < 2) continue;
-    title = l.replace(/^[#*•·\-—\s]+/, "").slice(0, 60);
-    break;
+    const cand = titleFromLine(l);
+    if (cand && cand.length >= 2 && /[\u4e00-\u9fffA-Za-z]/.test(cand)) {
+      title = cand.slice(0, 60);
+      break;
+    }
+    continue;
   }
   if (!title) title = sport ? sport.name + "體驗班" : "";
 
