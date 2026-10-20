@@ -123,16 +123,16 @@
 
       <div class="section-title">點數點樣扣？</div>
       <div class="usage-list">
-        <div class="usage-row"><span class="dot" style="background:#10b981"></span><div><b>🟢 普通體驗班</b><br><span>如：布袋球、身心伸展</span></div><div class="pts">10 點</div></div>
-        <div class="usage-row"><span class="dot" style="background:#3b82f6"></span><div><b>🔵 進階 / 熱門班</b><br><span>如：芬蘭木柱、地板冰壺</span></div><div class="pts">12 點</div></div>
-        <div class="usage-row"><span class="dot" style="background:#8b5cf6"></span><div><b>🟣 小班 / 星級教練班</b><br><span>如：空中瑜伽、擊劍</span></div><div class="pts">15 點</div></div>
+        <div class="usage-row"><span class="dot" style="background:#10b981"></span><div><b>🟢 一般課堂</b><br><span>如：布袋球、身心伸展</span></div><div class="pts">12 點</div></div>
+        <div class="usage-row"><span class="dot" style="background:#8b5cf6"></span><div><b>🔴 高峰時段</b><br><span>如：平日 17:00–20:00、芬蘭木柱、地板冰壺</span></div><div class="pts">15 點</div></div>
+        <div class="usage-row"><span class="dot" style="background:#f59e0b"></span><div><b>🟡 個別課程按定價</b><br><span>1 Credit = HK$10，例：$140 課堂 = 14 點</span></div><div class="pts">按定價</div></div>
       </div>
       <div class="calc-mini">
         <label for="calcType">算算看：以你嘅 Pass 可以上幾多堂？</label>
         <select id="calcType">
-          <option value="10">🟢 普通體驗班（10 點）</option>
-          <option value="12">🔵 進階 / 熱門班（12 點）</option>
-          <option value="15">🟣 小班 / 星級教練班（15 點）</option>
+          <option value="12">🟢 一般課堂（12 點）</option>
+          <option value="15">🔴 高峰時段（15 點）</option>
+          <option value="14">🟡 個別課程（例：14 點）</option>
         </select>
         <input id="calcCredits" type="number" min="10" step="10" value="100" inputmode="numeric" placeholder="你嘅點數（例：100）" />
         <div class="calc-out" id="calcOut">大約可以上 10 堂<small>以 100 點、每堂 10 點計算</small></div>
@@ -272,7 +272,7 @@
       });
 
       function calc() {
-        var cost = Number($("calcType").value) || 10;
+        var cost = Number($("calcType").value) || 12;
         var credits = Number($("calcCredits").value) || 0;
         var n = Math.floor(credits / cost);
         $("calcOut").innerHTML = "大約可以上 " + n + " 堂<small>以 " + credits + " 點、每堂 " + cost + " 點計算</small>";
