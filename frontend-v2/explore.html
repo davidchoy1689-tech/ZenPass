@@ -7,23 +7,251 @@
   <title>探索課程 · ZenPass 禪流</title>
   <link rel="stylesheet" href="assets/v2.css?v=30" />
   <link rel="stylesheet" href="assets/ui-v3.css?v=5" />
+  <style>
+    /* ===== explore.html 專屬樣式（2026-10-23 v3）===== */
+    body { background: #f6f8f7; }
+    .wrap.ex-wrap { padding-top: 0; }
+
+    /* ---- Sticky 搜尋 / Filter 工具列 ---- */
+    .ex-toolbar {
+      position: sticky; top: var(--ex-top, 52px); z-index: 18;
+      margin: 0 calc(var(--s4) * -1);
+      padding: 10px var(--s4) 8px;
+      background: rgba(246, 248, 247, .86);
+      -webkit-backdrop-filter: blur(16px) saturate(180%);
+      backdrop-filter: blur(16px) saturate(180%);
+      border-bottom: 1px solid rgba(0, 0, 0, .05);
+    }
+    .ex-search { position: relative; display: flex; align-items: center; }
+    .ex-search-ic {
+      position: absolute; left: 14px; font-size: 14px; opacity: .55; pointer-events: none;
+    }
+    .ex-search input {
+      width: 100%; font: inherit; font-size: 14px; color: #14181f;
+      background: #fff; border: 1px solid rgba(0, 0, 0, .06);
+      border-radius: 999px; padding: 12px 40px 12px 38px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, .06);
+      outline: none; transition: box-shadow .18s ease, border-color .18s ease;
+      -webkit-appearance: none;
+    }
+    .ex-search input::placeholder { color: #9aa3ad; }
+    .ex-search input:focus { border-color: rgba(16, 185, 129, .45); box-shadow: 0 4px 16px rgba(16, 185, 129, .16); }
+    .ex-search-clear {
+      position: absolute; right: 8px; width: 26px; height: 26px; border: 0; border-radius: 50%;
+      background: rgba(15, 23, 42, .08); color: #64748b; font-size: 12px; line-height: 1;
+      display: none; align-items: center; justify-content: center; cursor: pointer;
+    }
+    .ex-search-clear.show { display: flex; }
+    .ex-search-clear:active { transform: scale(.92); }
+
+    .ex-chips { display: flex; gap: 8px; overflow-x: auto; padding: 10px 0 2px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+    .ex-chips::-webkit-scrollbar { display: none; }
+    .ex-chip {
+      flex: 0 0 auto; display: inline-flex; align-items: center; gap: 4px;
+      font: inherit; font-size: 12.5px; font-weight: 700; color: #0f172a;
+      background: #fff; border: 1px solid rgba(0, 0, 0, .07); border-radius: 999px;
+      padding: 8px 13px; cursor: pointer; white-space: nowrap;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, .05);
+      transition: transform .15s ease, background .15s ease, box-shadow .15s ease;
+    }
+    .ex-chip:active { transform: scale(.96); }
+    .ex-chip.on {
+      background: linear-gradient(135deg, #10b981, #059669); color: #fff; border-color: transparent;
+      box-shadow: 0 4px 12px rgba(16, 185, 129, .32);
+    }
+    .ex-chip .x { opacity: .7; font-size: 11px; }
+    .ex-chip-clear { color: #b91c1c; border-color: rgba(185, 28, 28, .18); background: #fff5f5; }
+    .ex-chip-clear[hidden] { display: none; }
+
+    /* ---- 已選篩選標籤列 ---- */
+    .ex-active { display: flex; gap: 8px; flex-wrap: wrap; padding: 6px 0 0; }
+    .ex-active:empty { display: none; }
+    .ex-active .tag {
+      display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; font-weight: 700;
+      color: #047857; background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 999px; padding: 4px 10px;
+      cursor: pointer;
+    }
+
+    /* ---- 課程卡格 ---- */
+    .ex-grid { display: grid; grid-template-columns: 1fr; gap: 14px; }
+    @media (min-width: 700px) { .ex-grid { grid-template-columns: 1fr 1fr; gap: 16px; } }
+
+    .ex-card {
+      display: flex; flex-direction: column; background: #fff; border-radius: 16px; overflow: hidden;
+      text-decoration: none; color: inherit;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, .05), 0 10px 24px rgba(0, 0, 0, .04);
+      transition: transform .22s cubic-bezier(.4, 0, .2, 1), box-shadow .22s cubic-bezier(.4, 0, .2, 1);
+      will-change: transform;
+    }
+    .ex-card:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(0, 0, 0, .10), 0 18px 40px rgba(0, 0, 0, .06); }
+    .ex-card:active { transform: scale(.985); }
+    .ex-card.expired { opacity: .62; }
+
+    .ex-cover { position: relative; height: 160px; overflow: hidden; background: linear-gradient(145deg, #d7e6e1, #b9d6cc); }
+    .ex-cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .ex-cover .shade { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0, 0, 0, .20), rgba(0, 0, 0, 0) 55%); }
+    .ex-cover .badge-seats {
+      position: absolute; right: 10px; bottom: 10px; z-index: 3;
+      background: rgba(239, 68, 68, .82);
+      -webkit-backdrop-filter: blur(12px) saturate(180%); backdrop-filter: blur(12px) saturate(180%);
+      border: 1px solid rgba(255, 255, 255, .4); color: #fff; font-size: 11px; font-weight: 800;
+      padding: 4px 9px; border-radius: 999px; text-shadow: 0 1px 2px rgba(0, 0, 0, .22);
+      box-shadow: 0 4px 14px rgba(239, 68, 68, .3);
+    }
+
+    .ex-body { padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 6px; flex: 1; }
+    .ex-name {
+      margin: 0; font-size: 14.5px; font-weight: 800; line-height: 1.42; color: #14181f;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+    }
+    .ex-meta { margin: 0; font-size: 11.5px; color: #7b8794; display: flex; flex-wrap: wrap; gap: 4px 8px; }
+    .ex-state { margin: 0; font-size: 11.5px; font-weight: 700; color: #b45309; }
+    .ex-foot { margin-top: auto; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-top: 4px; }
+    .ex-price { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
+    .ex-price s { font-size: 11.5px; color: #9aa3ad; }
+    .ex-price b { font-size: 17px; font-weight: 900; color: #047857; letter-spacing: -.2px; }
+    .ex-price.shake b { color: #dc2626; }
+    .ex-cta {
+      flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center;
+      font-size: 12.5px; font-weight: 800; color: #fff;
+      background: linear-gradient(135deg, #10b981, #059669);
+      border-radius: 999px; padding: 9px 18px;
+      box-shadow: 0 4px 12px rgba(16, 185, 129, .30);
+    }
+
+    /* 骨架屏 */
+    .ex-skel { background: #fff; border-radius: 16px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,.05); }
+    .ex-skel .s1 { height: 160px; background: linear-gradient(90deg,#eef2f1 25%,#f7faf9 37%,#eef2f1 63%); background-size: 400% 100%; animation: skShimmer 1.4s ease infinite; }
+    .ex-skel .s2 { height: 13px; margin: 14px 14px 8px; border-radius: 6px; background: #eef2f1; }
+    .ex-skel .s3 { height: 11px; margin: 0 14px 16px; width: 60%; border-radius: 6px; background: #f2f5f4; }
+    @keyframes skShimmer { 0% { background-position: 100% 0; } 100% { background-position: -100% 0; } }
+
+    /* ---- Empty State ---- */
+    .ex-empty {
+      text-align: center; padding: 30px 18px 26px; background: #fff; border-radius: 18px;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, .05); margin-top: 4px;
+    }
+    .ex-empty[hidden] { display: none; }
+    .ex-empty-ic { font-size: 40px; line-height: 1; filter: drop-shadow(0 6px 14px rgba(16,185,129,.25)); }
+    .ex-empty h3 { margin: 12px 0 6px; font-size: 15.5px; font-weight: 800; color: #14181f; }
+    .ex-empty p { margin: 0 auto 14px; font-size: 12.5px; color: #7b8794; line-height: 1.6; max-width: 300px; }
+    .ex-empty-chips { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-bottom: 16px; }
+    .ex-empty-chips button {
+      font: inherit; font-size: 12.5px; font-weight: 700; color: #047857;
+      background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 999px; padding: 8px 14px; cursor: pointer;
+    }
+    .ex-empty-chips button:active { transform: scale(.96); }
+    .ex-empty .ex-clear-all {
+      font: inherit; font-size: 12.5px; font-weight: 800; color: #fff; cursor: pointer;
+      background: linear-gradient(135deg, #10b981, #059669); border: 0; border-radius: 999px;
+      padding: 10px 20px; box-shadow: 0 4px 14px rgba(16, 185, 129, .32);
+    }
+
+    /* ---- Accordion 分類 ---- */
+    .ex-acc { display: flex; flex-direction: column; gap: 8px; }
+    .ex-acc-item { background: #fff; border-radius: 14px; box-shadow: 0 2px 10px rgba(0, 0, 0, .04); overflow: hidden; }
+    .ex-acc-head {
+      width: 100%; display: flex; align-items: center; gap: 10px; font: inherit; text-align: left;
+      background: none; border: 0; padding: 14px 14px; cursor: pointer; color: #14181f;
+    }
+    .ex-acc-head .ic { font-size: 17px; }
+    .ex-acc-head b { font-size: 13.5px; font-weight: 800; flex: 1; }
+    .ex-acc-head .cnt { font-size: 11px; font-weight: 700; color: #7b8794; }
+    .ex-acc-head .cv { font-size: 12px; color: #9aa3ad; transition: transform .2s ease; }
+    .ex-acc-item.open .ex-acc-head .cv { transform: rotate(180deg); }
+    .ex-acc-body { display: none; padding: 0 12px 12px; }
+    .ex-acc-item.open .ex-acc-body { display: flex; flex-wrap: wrap; gap: 8px; }
+    .ex-acc-body a {
+      font-size: 12px; font-weight: 600; color: #334155; text-decoration: none;
+      background: #f4f7f6; border: 1px solid rgba(0, 0, 0, .05); border-radius: 999px; padding: 6px 11px;
+    }
+    .ex-acc-body a:active { transform: scale(.96); }
+    .ex-acc-more {
+      width: 100%; font: inherit; font-size: 12.5px; font-weight: 800; color: #047857; cursor: pointer;
+      background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 12px; padding: 11px;
+    }
+
+    /* ---- Bottom Sheet（篩選器）---- */
+    .ex-sheet-mask {
+      position: fixed; inset: 0; z-index: 80; background: rgba(15, 23, 42, .42);
+      opacity: 0; pointer-events: none; transition: opacity .22s ease;
+      display: flex; align-items: flex-end; justify-content: center;
+    }
+    .ex-sheet-mask.show { opacity: 1; pointer-events: auto; }
+    .ex-sheet {
+      width: 100%; max-width: 520px; max-height: 78vh; overflow: auto;
+      background: #fff; border-radius: 20px 20px 0 0; padding: 8px 16px calc(20px + env(safe-area-inset-bottom));
+      transform: translateY(16px); transition: transform .24s cubic-bezier(.4, 0, .2, 1);
+      box-shadow: 0 -8px 40px rgba(0, 0, 0, .18);
+    }
+    .ex-sheet-mask.show .ex-sheet { transform: none; }
+    .ex-sheet .grab { width: 40px; height: 4px; border-radius: 99px; background: #e2e8f0; margin: 6px auto 12px; }
+    .ex-sheet h3 { margin: 0 0 12px; font-size: 15px; font-weight: 800; }
+    .ex-sheet-opts { display: flex; flex-direction: column; gap: 6px; padding-bottom: 6px; }
+    .ex-sheet-opts button {
+      font: inherit; font-size: 13.5px; font-weight: 600; text-align: left; cursor: pointer;
+      background: #f7faf9; border: 1px solid rgba(0, 0, 0, .05); border-radius: 12px; padding: 12px 14px;
+      display: flex; align-items: center; justify-content: space-between; color: #14181f;
+    }
+    .ex-sheet-opts button.on { background: #ecfdf5; border-color: #6ee7b7; color: #047857; font-weight: 800; }
+    .ex-sheet-opts button .tick { color: #10b981; font-weight: 900; }
+    @media (max-width: 420px) { .ex-sheet-opts { flex-direction: row; flex-wrap: wrap; gap: 8px; } .ex-sheet-opts button { flex: 0 0 auto; font-size: 12.5px; padding: 9px 13px; } }
+  </style>
 </head>
 <body>
-  <div class="topbar"><div class="title">探索課程</div></div>
+  <div class="topbar" id="exTopbar"><div class="title">探索課程</div></div>
 
-  <div class="wrap">
-    <input id="q" class="card" style="width:100%;border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px"
-           placeholder="🔍 搜尋運動 / 課程 / 教練" />
-    <div class="hscroll" id="cats"><span class="chip on" data-cat="">全部</span></div>
-
-    <div class="section-title" id="count">課程</div>
-    <div class="stack" id="list">
-      <div class="card"><div class="body muted">載入中…</div></div>
+  <div class="wrap ex-wrap">
+    <!-- 1. Sticky 搜尋 + Filter -->
+    <div class="ex-toolbar" id="exToolbar">
+      <div class="ex-search">
+        <span class="ex-search-ic">🔍</span>
+        <input id="q" type="search" autocomplete="off" placeholder="搜尋運動 / 課程 / 教練" />
+        <button class="ex-search-clear" id="qClear" type="button" aria-label="清除搜尋">✕</button>
+      </div>
+      <div class="ex-chips" id="exChips">
+        <button class="ex-chip" data-open="zone" type="button">📍 地區</button>
+        <button class="ex-chip" data-open="date" type="button">📅 日期</button>
+        <button class="ex-chip" data-open="cat" type="button">🏷️ 分類</button>
+        <button class="ex-chip" data-open="sort" type="button">↕️ 排序</button>
+        <button class="ex-chip ex-chip-clear" id="exClearAll" type="button" hidden>🧹 清除</button>
+      </div>
+      <div class="ex-active" id="exActive"></div>
     </div>
 
+    <div class="section-title" id="count">課程</div>
+    <div class="ex-grid" id="list">
+      <div class="ex-skel"><div class="s1"></div><div class="s2"></div><div class="s3"></div></div>
+      <div class="ex-skel"><div class="s1"></div><div class="s2"></div><div class="s3"></div></div>
+    </div>
+
+    <!-- 3. Empty State -->
+    <div class="ex-empty" id="exEmpty" hidden>
+      <div class="ex-empty-ic">🔍🌿</div>
+      <h3>暫時未找到相關課堂</h3>
+      <p>試下搜尋熱門關鍵字，或者看看以下為你推薦嘅項目：</p>
+      <div class="ex-empty-chips">
+        <button type="button" data-rec="senior">👴 長者樂齡</button>
+        <button type="button" data-rec="beginner">🧩 新手友善</button>
+        <button type="button" data-rec="new">🆕 最新上架</button>
+      </div>
+      <button class="ex-clear-all" id="exEmptyClear" type="button">🧹 清除所有篩選</button>
+    </div>
+
+    <!-- 4. Accordion 分類 -->
     <div class="section-title">🏅 更多運動項目 <span class="sport-count">撳一下即搵該項目課堂</span></div>
-    <div class="sport-grid" id="sportGrid"></div>
+    <div class="ex-acc" id="exAcc"></div>
+    <button class="ex-acc-more" id="exAccMore" type="button" style="margin-top:10px">顯示全部運動分類 ▾</button>
     <div class="spacer"></div>
+  </div>
+
+  <!-- Filter Sheet -->
+  <div class="ex-sheet-mask" id="exSheetMask" aria-hidden="true">
+    <div class="ex-sheet" role="dialog" aria-modal="true" aria-labelledby="exSheetTitle">
+      <div class="grab"></div>
+      <h3 id="exSheetTitle">篩選</h3>
+      <div class="ex-sheet-opts" id="exSheetOpts"></div>
+    </div>
   </div>
 
   <nav class="bottomnav">
@@ -37,201 +265,384 @@
   <script src="assets/api.js"></script>
   <script src="assets/sport-icons.js?v=14"></script>
   <script>
+    /* ================= explore.html v3 ================= */
+    const $ = (s) => document.querySelector(s);
     const list = document.getElementById("list");
-    function card(c) {
-      const wd = ["日", "一", "二", "三", "四", "五", "六"];
-      const expired = Number(c.is_expired) === 1;
-      const unopened = !expired && (c.booking_open === 0 || c.booking_open === false || c.booking_open === null || c.booking_open === undefined);
-      const s = (c.schedules && c.schedules[0]) || null;
-      let next = "";
-      if (s) {
-        const d = new Date(String(s.start_time).replace(" ", "T"));
-        if (!isNaN(d)) {
-          const p = (n) => String(n).padStart(2, "0");
-          next = `${d.getMonth() + 1}/${d.getDate()}（週${wd[d.getDay()]}）${p(d.getHours())}:${p(d.getMinutes())}`;
-        }
-      }
-      const aud = c.target_audience || ({ beginner: "初級 / 新手友善", intermediate: "中級", advanced: "高級" }[c.difficulty]) || "";
-      // 信任元素（只用真實資料，唔造假）
-      const trust = [];
-      const rating = Number(c.avg_rating || c.rating || 0);
-      const rc = Number(c.review_count || c.rating_count || 0);
-      if (rating > 0) trust.push("⭐ " + rating.toFixed(1) + (rc > 0 ? " (" + rc + "則評價)" : ""));
-      if (s) {
-        const left = (Number(s.max_participants) || 0) - (Number(s.enrolled_count) || 0);
-        if (left > 0 && left <= 5) trust.push("👥 剩 " + left + " 個名額");
-      }
-      if (String(c.difficulty || "") === "beginner") trust.push("🧩 新手友善");
-      const trustHtml = trust.length ? `<p class="trust">` + trust.map((t) => `<span>${esc(t)}</span>`).join("") + `</p>` : "";
-      const stateLine = expired
-        ? `<p class="sub" style="color:#9ca3af">已完結</p>`
-        : unopened
-          ? `<p class="sub" style="color:#9ca3af">🔒 已約滿</p>`
-          : next
-            ? `<p class="sub" style="color:var(--brand-600)">📅 ${esc(next)}</p>`
-            : `<p class="sub">暫無時段</p>`;
-      return `<a class="card${expired ? " expired" : ""}" href="detail.html?id=${encodeURIComponent(c.id)}"><div class="body course">
-        <div class="thumb" style="${(() => { const pick = (typeof cardImage === "function") ? cardImage(c, "list") : { url: c.image_url || "" }; return pick.url ? `background-image:linear-gradient(180deg,rgba(0,0,0,.04),rgba(0,0,0,.28)),url('${esc(pick.url)}');background-size:cover;background-position:center` : `background:${(typeof courseTint === "function" ? courseTint(c, 0.14) : "#f4f4f6")}`; })()}">${""}</div>
-        <div class="meta"><p class="name">${esc(c.title)} ${expired ? '<span class="tag-gray">已完結</span>' : unopened ? '<span class="tag-gray">已約滿</span>' : ""}</p>
-          <p class="sub">${esc(c.category || "")}${c.duration ? " · " + c.duration + " 分鐘" : ""}${c.venue_name ? " · 📍 " + esc(c.venue_name) : ""}</p>
-          ${stateLine}
-          ${trustHtml}
-          <p class="sub">${esc(aud)}${c.max_participants ? " · 上限 " + c.max_participants + " 人" : ""}</p></div>
-        <div class="price">${cr(c.price_hkd)}cr</div>
-      </div></a>`;
+    const emptyBox = document.getElementById("exEmpty");
+    const countEl = document.getElementById("count");
+    const qEl = document.getElementById("q");
+    const chipBar = document.getElementById("exChips");
+    const activeBar = document.getElementById("exActive");
+    const clearBtn = document.getElementById("exClearAll");
+
+    // topbar 高度 → 令 sticky 工具列貼實（唔會疊住）
+    function syncTop() {
+      const tb = document.getElementById("exTopbar");
+      if (tb) document.documentElement.style.setProperty("--ex-top", tb.offsetHeight + "px");
     }
-    async function load(cat, q) {
-      list.innerHTML = `<div class="card"><div class="body muted">載入中…</div></div>`;
-      let url = "/classes?limit=60&sort=newest";
-      if (cat) url += "&category=" + encodeURIComponent(cat);
-      if (q) url += "&search=" + encodeURIComponent(q);
-      const r = await api.get(url);
-      let arr = (r.data && (r.data.classes || r.data.items)) || [];
-      arr = arr.filter(inArea).filter(inScene).filter(inZone).filter(inDate).filter(inTime);
-      const cnt = document.getElementById("count");
-      const lbl = (ZONE && ZONES[ZONE] ? ZONES[ZONE].label + " · " : "") + (SCENE && SCENES[SCENE] ? SCENES[SCENE].label + " · " : "");
-      cnt.textContent = lbl + arr.length + " 個課程";
-      list.innerHTML = arr.length ? arr.map(card).join("") : `<div class="card"><div class="body muted">冇符合嘅課程，試下清除篩選。</div></div>`;
-    }
-    document.getElementById("cats").addEventListener("click", (e) => {
-      const chip = e.target.closest(".chip"); if (!chip) return;
-      document.querySelectorAll("#cats .chip").forEach(x => x.classList.remove("on")); chip.classList.add("on");
-      load(chip.dataset.cat, document.getElementById("q").value.trim());
-    });
-    let t; document.getElementById("q").addEventListener("input", (e) => {
-      clearTimeout(t); t = setTimeout(() => load(document.querySelector("#cats .chip.on").dataset.cat, e.target.value.trim()), 350);
-    });
-    const AREA_KW = {
-      "香港島": ["中環","上環","西環","西營盤","堅尼地城","灣仔","銅鑼灣","跑馬地","天后","北角","炮台山","鰂魚涌","太古","西灣河","筲箕灣","柴灣","香港仔","鴨脷洲","薄扶林","半山","山頂","赤柱","淺水灣","數碼港","金鐘"],
-      "九龍": ["尖沙咀","佐敦","油麻地","旺角","太子","大角咀","深水埗","長沙灣","荔枝角","美孚","九龍城","土瓜灣","紅磡","何文田","黃大仙","鑽石山","新蒲崗","彩虹","牛頭角","九龍灣","觀塘","藍田","油塘","啟德","樂富","慈雲山","尖東"],
-      "新界": ["沙田","大圍","火炭","馬鞍山","大埔","粉嶺","上水","元朗","天水圍","屯門","荃灣","葵涌","青衣","將軍澳","西貢","深井","東涌","錦田","長洲","大嶼山"]
-    };
-    const AREA0 = new URLSearchParams(location.search).get("area") || "";
-    function inArea(c) {
-      if (!AREA0) return true;
-      const kws = AREA_KW[AREA0] || [];
-      const hay = [c.venue_name, c.venue_address, c.location, c.area, c.district].filter(Boolean).join(" ");
-      return kws.some(k => hay.indexOf(k) >= 0);
-    }
-    // 場景 / 情境快捷搜尋
-    const SCENES = {
-      family:   { label: "👨‍👩‍👧‍👦 親子 / 樂齡好去處", kw: ["兒童", "親子", "長者", "樂齡", "銀髮", "kids", "senior", "家庭", "小童", "幼"] },
-      office:   { label: "💼 放工放鬆 / 辦公室伸展", kw: ["瑜伽", "伸展", "身心", "冥想", "普拉提", "pilates", "yoga", "stretch", "頌缽", "放鬆", "舒壓", "氣功", "太極", "barre"] },
-      burn:     { label: "🥊 高效燃脂 / 減脂汗水", kw: ["hiit", "燃脂", "減脂", "健身", "拳擊", "體能", "飛輪", "跳繩", "核心", "boxing", "cardio", "有氧", "塑形", "體重", "spinning"] },
-      beginner: { label: "🧩 新手友善 / 無需經驗", kw: ["新手", "體驗", "入門", "初級", "beginner", "零基礎", "基礎"] },
-    };
-    const SCENE = new URLSearchParams(location.search).get("scene") || "";
-    function inScene(c) {
-      if (!SCENE || !SCENES[SCENE]) return true;
-      if (SCENE === "beginner" && String(c.difficulty || "").toLowerCase() === "beginner") return true;
-      const hay = [c.title, c.category, c.target_audience, c.sport_slug, c.difficulty].filter(Boolean).join(" ").toLowerCase();
-      return SCENES[SCENE].kw.some(k => hay.indexOf(k) >= 0);
-    }
-    // 地區分區快速搵堂（香港 18 區）
+    syncTop(); window.addEventListener("resize", syncTop);
+
+    /* ---------- 篩選資料 ---------- */
     const ZONES = {
-      cw: { label: "📍 中西區", kw: ["中環", "上環", "西環", "西營盤", "堅尼地城", "半山", "山頂", "金鐘", "中區", "石塘咀"] },
-      wc: { label: "📍 灣仔", kw: ["灣仔", "銅鑼灣", "跑馬地", "天后", "大坑", "摩理臣山", "鵝頸"] },
-      east: { label: "📍 東區", kw: ["北角", "炮台山", "鰂魚涌", "太古", "西灣河", "筲箕灣", "柴灣", "杏花邨", "小西灣", "東區"] },
-      south: { label: "📍 南區", kw: ["香港仔", "鴨脷洲", "薄扶林", "置富", "赤柱", "淺水灣", "深水灣", "數碼港", "黃竹坑", "石澳", "大潭"] },
-      ytm: { label: "📍 油尖旺", kw: ["尖沙咀", "尖東", "佐敦", "油麻地", "旺角", "太子", "大角咀", "奧運", "西九"] },
-      ssp: { label: "📍 深水埗", kw: ["深水埗", "長沙灣", "荔枝角", "美孚", "南昌", "蘇屋", "石硤尾"] },
-      kc: { label: "📍 九龍城", kw: ["九龍城", "土瓜灣", "紅磡", "何文田", "馬頭圍", "啟德", "九龍塘", "黃埔"] },
-      wts: { label: "📍 黃大仙", kw: ["黃大仙", "鑽石山", "新蒲崗", "彩虹", "慈雲山", "樂富", "橫頭磡", "竹園"] },
-      kt: { label: "📍 觀塘", kw: ["觀塘", "牛頭角", "九龍灣", "藍田", "油塘", "秀茂坪", "四順"] },
-      kts: { label: "📍 葵青", kw: ["葵涌", "葵芳", "青衣", "荔景", "大窩口"] },
-      tw: { label: "📍 荃灣", kw: ["荃灣", "深井", "馬灣", "汀九"] },
-      tm: { label: "📍 屯門", kw: ["屯門", "兆康", "蝴蝶灣", "龍門", "小欖"] },
-      yl: { label: "📍 元朗", kw: ["元朗", "天水圍", "錦田", "八鄉", "新田", "流浮山", "洪水橋"] },
-      north: { label: "📍 北區", kw: ["粉嶺", "上水", "聯和墟", "沙頭角", "古洞"] },
-      tp: { label: "📍 大埔", kw: ["大埔", "太和", "白石角", "林村"] },
-      st: { label: "📍 沙田", kw: ["沙田", "大圍", "火炭", "馬鞍山", "沙田圍", "石門", "第一城"] },
-      sk: { label: "📍 西貢", kw: ["西貢", "將軍澳", "坑口", "寶琳", "康城", "調景嶺", "清水灣"] },
-      islands: { label: "📍 離島", kw: ["東涌", "長洲", "大嶼山", "愉景灣", "坪洲", "南丫島", "赤鱸角", "機場", "梅窩"] },
+      cw: { label: "中西區", kw: ["中環", "上環", "西環", "西營盤", "堅尼地城", "半山", "山頂", "金鐘", "中區", "石塘咀"] },
+      wc: { label: "灣仔", kw: ["灣仔", "銅鑼灣", "跑馬地", "天后", "大坑", "摩理臣山", "鵝頸"] },
+      east: { label: "東區", kw: ["北角", "炮台山", "鰂魚涌", "太古", "西灣河", "筲箕灣", "柴灣", "杏花邨", "小西灣", "東區"] },
+      south: { label: "南區", kw: ["香港仔", "鴨脷洲", "薄扶林", "置富", "赤柱", "淺水灣", "深水灣", "數碼港", "黃竹坑", "石澳", "大潭"] },
+      ytm: { label: "油尖旺", kw: ["尖沙咀", "尖東", "佐敦", "油麻地", "旺角", "太子", "大角咀", "奧運", "西九"] },
+      ssp: { label: "深水埗", kw: ["深水埗", "長沙灣", "荔枝角", "美孚", "南昌", "蘇屋", "石硤尾"] },
+      kc: { label: "九龍城", kw: ["九龍城", "土瓜灣", "紅磡", "何文田", "馬頭圍", "啟德", "九龍塘", "黃埔"] },
+      wts: { label: "黃大仙", kw: ["黃大仙", "鑽石山", "新蒲崗", "彩虹", "慈雲山", "樂富", "橫頭磡", "竹園"] },
+      kt: { label: "觀塘", kw: ["觀塘", "牛頭角", "九龍灣", "藍田", "油塘", "秀茂坪", "四順"] },
+      kts: { label: "葵青", kw: ["葵涌", "葵芳", "青衣", "荔景", "大窩口"] },
+      tw: { label: "荃灣", kw: ["荃灣", "深井", "馬灣", "汀九"] },
+      tm: { label: "屯門", kw: ["屯門", "兆康", "蝴蝶灣", "龍門", "小欖"] },
+      yl: { label: "元朗", kw: ["元朗", "天水圍", "錦田", "八鄉", "新田", "流浮山", "洪水橋"] },
+      north: { label: "北區", kw: ["粉嶺", "上水", "聯和墟", "沙頭角", "古洞"] },
+      tp: { label: "大埔", kw: ["大埔", "太和", "白石角", "林村"] },
+      st: { label: "沙田", kw: ["沙田", "大圍", "火炭", "馬鞍山", "沙田圍", "石門", "第一城"] },
+      sk: { label: "西貢", kw: ["西貢", "將軍澳", "坑口", "寶琳", "康城", "調景嶺", "清水灣"] },
+      islands: { label: "離島", kw: ["東涌", "長洲", "大嶼山", "愉景灣", "坪洲", "南丫島", "香港國際機場", "機場", "梅窩"] },
     };
-    // 日期快捷（今天 / 明天 / 本週末）
-    const DATEQ = new URLSearchParams(location.search).get("date") || "";
-    const TIMEQ = new URLSearchParams(location.search).get("time") || "";
-    function _dayStr(d) {
-      const p = (n) => String(n).padStart(2, "0");
-      return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate());
+    const AREA_KW = {
+      "香港島": ["中環", "上環", "西環", "西營盤", "堅尼地城", "灣仔", "銅鑼灣", "跑馬地", "天后", "北角", "炮台山", "鰂魚涌", "太古", "西灣河", "筲箕灣", "柴灣", "香港仔", "鴨脷洲", "薄扶林", "半山", "山頂", "赤柱", "淺水灣", "數碼港", "金鐘"],
+      "九龍": ["尖沙咀", "佐敦", "油麻地", "旺角", "太子", "大角咀", "深水埗", "長沙灣", "荔枝角", "美孚", "九龍城", "土瓜灣", "紅磡", "何文田", "黃大仙", "鑽石山", "新蒲崗", "彩虹", "牛頭角", "九龍灣", "觀塘", "藍田", "油塘", "啟德", "樂富", "慈雲山", "尖東"],
+      "新界": ["沙田", "大圍", "火炭", "馬鞍山", "大埔", "粉嶺", "上水", "元朗", "天水圍", "屯門", "荃灣", "葵涌", "青衣", "將軍澳", "西貢", "深井", "東涌", "錦田", "長洲", "大嶼山"],
+    };
+    const SCENES = {
+      family: { label: "親子 / 樂齡", kw: ["兒童", "親子", "長者", "樂齡", "銀髮", "kids", "senior", "家庭", "小童", "幼"] },
+      office: { label: "放工放鬆", kw: ["瑜伽", "伸展", "身心", "冥想", "普拉提", "pilates", "yoga", "stretch", "頌缽", "放鬆", "舒壓", "氣功", "太極", "barre"] },
+      burn: { label: "高效燃脂", kw: ["hiit", "燃脂", "減脂", "健身", "拳擊", "體能", "飛輪", "跳繩", "核心", "boxing", "cardio", "有氧", "塑形", "體重", "spinning"] },
+      beginner: { label: "新手友善", kw: ["新手", "體驗", "入門", "初級", "beginner", "零基礎", "基礎"] },
+    };
+    const SORTS = { newest: "最新上架", price_asc: "價格：低 → 高", rating: "評分最高" };
+    const DATES = { "": "不限日期", today: "今天", tomorrow: "明天", weekend: "本週末", evening: "今晚 18:00 後" };
+
+    const P = new URLSearchParams(location.search);
+    const STATE = {
+      q: P.get("q") || "",
+      zone: ZONES[P.get("zone")] ? P.get("zone") : "",
+      date: DATES[P.get("date") || ""] && P.get("date") ? P.get("date") : "",
+      cat: P.get("cat") || "",
+      sort: SORTS[P.get("sort")] ? P.get("sort") : "newest",
+      area: P.get("area") || "",
+      scene: SCENES[P.get("scene")] ? P.get("scene") : "",
+      evening: P.get("time") === "evening",
+    };
+    if (STATE.evening && !STATE.date) STATE.date = "evening";
+
+    /* ---------- 時間工具（UTC → HKT）---------- */
+    function hkt(s) {
+      if (!s) return null;
+      let iso = String(s);
+      if (!/Z|[+-]\d\d:?\d\d$/.test(iso)) iso = iso.replace(" ", "T") + "Z";
+      const d = new Date(iso);
+      if (isNaN(d)) return null;
+      const parts = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Asia/Hong_Kong", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", hour12: false,
+      }).formatToParts(d);
+      const o = {}; parts.forEach((p) => { o[p.type] = p.value; });
+      return { date: o.year + "-" + o.month + "-" + o.day, hour: Number(o.hour) };
     }
-    function _targetDays() {
+    const pad = (n) => String(n).padStart(2, "0");
+    const dayStr = (d) => d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+    function targetDays(kind) {
       const now = new Date();
-      if (DATEQ === "today") return [_dayStr(now)];
-      if (DATEQ === "tomorrow") { const d = new Date(now); d.setDate(d.getDate() + 1); return [_dayStr(d)]; }
-      if (DATEQ === "weekend") {
-        const d = new Date(now); const dow = d.getDay();
-        const toSat = (6 - dow + 7) % 7;
-        const sat = new Date(d); sat.setDate(d.getDate() + toSat);
+      if (kind === "today" || kind === "evening") return [dayStr(now)];
+      if (kind === "tomorrow") { const d = new Date(now); d.setDate(d.getDate() + 1); return [dayStr(d)]; }
+      if (kind === "weekend") {
+        const dow = now.getDay();
+        const sat = new Date(now); sat.setDate(now.getDate() + (6 - dow + 7) % 7);
         const sun = new Date(sat); sun.setDate(sat.getDate() + 1);
-        return [_dayStr(sat), _dayStr(sun)];
+        return [dayStr(sat), dayStr(sun)];
       }
       return [];
     }
-    const _DAYS = _targetDays();
-    // 將 DB 時間（UTC）轉香港時間，避免 date/time 篩選因時區出錯
-    function _hkt(s) {
-      if (!s) return null;
-      var iso = String(s);
-      if (!/Z|[+-]\d\d:?\d\d$/.test(iso)) iso = iso.replace(" ", "T") + "Z";
-      var d = new Date(iso);
-      if (isNaN(d)) return null;
-      var parts = new Intl.DateTimeFormat("en-CA", {
-        timeZone: "Asia/Hong_Kong", year: "numeric", month: "2-digit", day: "2-digit",
-        hour: "2-digit", hour12: false,
-      }).formatToParts(d);
-      var o = {};
-      parts.forEach(function (p) { o[p.type] = p.value; });
-      return { date: o.year + "-" + o.month + "-" + o.day, hour: Number(o.hour) };
+
+    /* ---------- 過濾 ---------- */
+    function hay(c) { return [c.title, c.category, c.venue_name, c.venue_address, c.district, c.target_audience, c.sport_slug, c.difficulty].filter(Boolean).join(" ").toLowerCase(); }
+
+    function matchZone(c) {
+      if (!STATE.zone) return true;
+      const z = ZONES[STATE.zone]; if (!z) return true;
+      if (c.district) return c.district === z.label || z.kw.indexOf(c.district) >= 0;
+      const h = [c.venue_name, c.venue_address, c.district, c.area].filter(Boolean).join(" ");
+      return z.kw.some((k) => h.indexOf(k) >= 0);
     }
-    function inDate(c) {
-      if (!DATEQ) return true;
-      const days = (c.schedules || []).map((x) => { const h = _hkt(x.start_time); return h && h.date; }).filter(Boolean);
-      return days.some((d) => _DAYS.indexOf(d) >= 0);
+    function matchArea(c) {
+      if (!STATE.area) return true;
+      const kws = AREA_KW[STATE.area] || [];
+      const h = [c.venue_name, c.venue_address, c.district, c.area].filter(Boolean).join(" ");
+      return kws.some((k) => h.indexOf(k) >= 0);
     }
-    function inTime(c) {
-      if (TIMEQ !== "evening") return true;
-      return (c.schedules || []).some((x) => { const h = _hkt(x.start_time); return h && h.hour >= 18; });
+    function matchScene(c) {
+      if (!STATE.scene) return true;
+      if (STATE.scene === "beginner" && String(c.difficulty || "").toLowerCase() === "beginner") return true;
+      const h = [c.title, c.category, c.target_audience, c.sport_slug, c.difficulty].filter(Boolean).join(" ").toLowerCase();
+      return SCENES[STATE.scene].kw.some((k) => h.indexOf(k) >= 0);
+    }
+    function matchDate(c) {
+      if (!STATE.date) return true;
+      const days = (c.schedules || []).map((x) => { const h = hkt(x.start_time); return h && h.date; }).filter(Boolean);
+      if (STATE.date === "evening") return (c.schedules || []).some((x) => { const h = hkt(x.start_time); return h && h.hour >= 18; });
+      return days.some((d) => targetDays(STATE.date).indexOf(d) >= 0);
+    }
+    function matchCat(c) { return !STATE.cat || String(c.category || "") === STATE.cat; }
+    function matchQ(c) {
+      const t = STATE.q.trim().toLowerCase();
+      if (!t) return true;
+      return t.split(/\s+/).every((w) => hay(c).indexOf(w) >= 0);
     }
 
-    const ZONE = new URLSearchParams(location.search).get("zone") || "";
-    function inZone(c) {
-      if (!ZONE || !ZONES[ZONE]) return true;
-      const z = ZONES[ZONE];
-      const name = String(z.label || "").replace(/^📍\s*/, "");
-      // 有結構化 district → 精準比對（標準 18 區名或區内地段）
-      if (c.district) return c.district === name || (z.kw || []).indexOf(c.district) >= 0;
-      // 未有 district（舊資料）→ 退回關鍵字比對
-      const hay = [c.venue_name, c.venue_address, c.location, c.area, c.district].filter(Boolean).join(" ");
-      return z.kw.some(k => hay.indexOf(k) >= 0);
+    let ALL = [];
+    function view() {
+      let arr = ALL.filter((c) => matchZone(c) && matchArea(c) && matchScene(c) && matchDate(c) && matchCat(c) && matchQ(c));
+      if (STATE.sort === "price_asc") arr = arr.slice().sort((a, b) => (Number(a.price_hkd) || 0) - (Number(b.price_hkd) || 0));
+      else if (STATE.sort === "rating") arr = arr.slice().sort((a, b) => (Number(b.avg_rating) || 0) - (Number(a.avg_rating) || 0));
+      return arr;
     }
+
+    /* ---------- 卡片 ---------- */
+    const PROMO = (() => { try { return (localStorage.getItem("zp_promo") || "") === "WELCOME50"; } catch (e) { return false; } })();
+    const WDAY = ["日", "一", "二", "三", "四", "五", "六"];
+
+    function coverUrl(c) {
+      try {
+        if (typeof cardImage === "function") { const p = cardImage(c, "list"); if (p && p.url) return p.url; }
+      } catch (e) {}
+      return c.image_url || "assets/img/covers/generic.jpg";
+    }
+    function nextLine(c) {
+      const s = (c.schedules || [])[0]; if (!s) return "";
+      const h = hkt(s.start_time); if (!h) return "";
+      const d = new Date(h.date + "T00:00:00");
+      return h.date.slice(5).replace("-", "/") + `（週${WDAY[d.getDay()]}）${pad(h.hour)}:00`;
+    }
+    function seatsLeft(c) {
+      let best = null;
+      (c.schedules || []).forEach((s) => {
+        const left = (Number(s.max_participants) || 0) - (Number(s.enrolled_count) || 0);
+        if (left > 0 && (best === null || left < best)) best = left;
+      });
+      return best;
+    }
+    function hkd(n) { return "HK$" + Number(n || 0).toLocaleString("en-HK"); }
+
+    function cardHtml(c) {
+      const expired = Number(c.is_expired) === 1;
+      const soldOut = !expired && (c.booking_open === 0 || c.booking_open === false || c.booking_open === null || c.booking_open === undefined);
+      const rating = Number(c.avg_rating || c.rating || 0);
+      const rc = Number(c.review_count || 0);
+      const price = Number(c.price_hkd) || 0;
+      const final = PROMO && price ? Math.round(price / 2) : 0;
+      const left = seatsLeft(c);
+      const where = c.district || c.venue_name || "";
+      const meta = [
+        where ? "📍 " + where : "",
+        c.duration ? "⏱️ " + c.duration + " 分鐘" : "",
+      ].filter(Boolean).join(" ｜ ");
+      const stateLine = expired ? "已完結" : soldOut ? "🔒 已約滿" : (nextLine(c) ? "📅 " + nextLine(c) : "暫無時段");
+      return `<a class="ex-card${expired ? " expired" : ""}" href="detail.html?id=${encodeURIComponent(c.id)}">
+        <div class="ex-cover">
+          <img src="${esc(coverUrl(c))}" alt="" loading="lazy" onerror="this.style.display='none'">
+          <span class="shade"></span>
+          ${PROMO && price ? '<span class="badge-trial glass-badge-highlight">🎉 WELCOME50 半價</span>' : ""}
+          ${rating > 0 ? '<span class="badge-star glass-badge-dark">⭐ ' + rating.toFixed(1) + (rc > 0 ? " (" + (rc > 99 ? "99+" : rc) + ")" : "") + "</span>" : ""}
+          ${left && left <= 5 && !expired && !soldOut ? '<span class="badge-seats">🔥 剩 ' + left + " 位</span>" : ""}
+        </div>
+        <div class="ex-body">
+          <p class="ex-name">${esc(c.title || "未命名課程")}</p>
+          <p class="ex-meta">${esc(meta)}</p>
+          <p class="ex-state">${esc(stateLine)}</p>
+          <div class="ex-foot">
+            <div class="ex-price${PROMO ? " shake" : ""}">
+              ${final ? `<s>${hkd(price)}</s><b>${hkd(final)}</b>` : `<b>${hkd(price)}</b>`}
+            </div>
+            <span class="ex-cta">${expired ? "已完結" : soldOut ? "已約滿" : "預約"}</span>
+          </div>
+        </div>
+      </a>`;
+    }
+
+    function render() {
+      const arr = view();
+      const lbl = [STATE.zone ? "📍 " + ZONES[STATE.zone].label : "", STATE.cat ? STATE.cat : ""].filter(Boolean).join(" · ");
+      countEl.textContent = (lbl ? lbl + " · " : "") + arr.length + " 個課程";
+      if (!arr.length) {
+        list.innerHTML = "";
+        list.hidden = true;
+        emptyBox.hidden = false;
+      } else {
+        emptyBox.hidden = true;
+        list.hidden = false;
+        list.innerHTML = arr.map(cardHtml).join("");
+      }
+      renderActive();
+    }
+
+    /* ---------- 已選條件 / chip 狀態 ---------- */
+    function renderActive() {
+      const on = [];
+      if (STATE.zone) on.push(["zone", "📍 " + ZONES[STATE.zone].label]);
+      if (STATE.date) on.push(["date", "📅 " + DATES[STATE.date]]);
+      if (STATE.cat) on.push(["cat", "🏷️ " + STATE.cat]);
+      if (STATE.area) on.push(["area", "📌 " + STATE.area]);
+      if (STATE.scene) on.push(["scene", "🎯 " + SCENES[STATE.scene].label]);
+      if (STATE.sort !== "newest") on.push(["sort", "↕️ " + SORTS[STATE.sort]]);
+      activeBar.innerHTML = on.map(([k, t]) => `<button class="tag" type="button" data-clear="${k}">${esc(t)} ✕</button>`).join("");
+      clearBtn.hidden = !on.some(([k]) => k !== "sort");
+      chipBar.querySelectorAll(".ex-chip[data-open]").forEach((b) => {
+        const k = b.dataset.open;
+        b.classList.toggle("on", !!STATE[k] && (k !== "sort" || STATE.sort !== "newest"));
+      });
+    }
+
+    function syncUrl() {
+      const p = new URLSearchParams();
+      if (STATE.q) p.set("q", STATE.q);
+      if (STATE.zone) p.set("zone", STATE.zone);
+      if (STATE.date) p.set("date", STATE.date);
+      if (STATE.cat) p.set("cat", STATE.cat);
+      if (STATE.sort !== "newest") p.set("sort", STATE.sort);
+      if (STATE.area) p.set("area", STATE.area);
+      if (STATE.scene) p.set("scene", STATE.scene);
+      const qs = p.toString();
+      history.replaceState(null, "", "explore.html" + (qs ? "?" + qs : ""));
+    }
+
+    /* ---------- Bottom Sheet ---------- */
+    const mask = document.getElementById("exSheetMask");
+    const sheetTitle = document.getElementById("exSheetTitle");
+    const sheetOpts = document.getElementById("exSheetOpts");
+    let sheetKey = null;
+
+    function optionsFor(key) {
+      if (key === "zone") return [["", "全部地區"]].concat(Object.keys(ZONES).map((k) => [k, "📍 " + ZONES[k].label]));
+      if (key === "date") return [["", "不限日期"], ["today", "📅 今天"], ["tomorrow", "📅 明天"], ["weekend", "📅 本週末"], ["evening", "🌙 今晚 18:00 後"]];
+      if (key === "sort") return Object.keys(SORTS).map((k) => [k, SORTS[k]]);
+      if (key === "cat") {
+        const cats = [...new Set(ALL.map((c) => c.category).filter(Boolean))].sort();
+        return [["", "全部分類"]].concat(cats.map((c) => [c, "🏷️ " + c]));
+      }
+      return [];
+    }
+    function openSheet(key) {
+      sheetKey = key;
+      sheetTitle.textContent = { zone: "選擇地區", date: "選擇日期", cat: "選擇分類", sort: "排序方式" }[key] || "篩選";
+      const cur = key === "cat" ? STATE.cat : STATE[key];
+      sheetOpts.innerHTML = optionsFor(key).map(([v, label]) =>
+        `<button type="button" data-val="${esc(v)}" class="${String(cur) === String(v) ? "on" : ""}">${esc(label)}${String(cur) === String(v) ? '<span class="tick">✓</span>' : ""}</button>`
+      ).join("");
+      mask.classList.add("show"); mask.setAttribute("aria-hidden", "false");
+      document.body.style.overflow = "hidden";
+    }
+    function closeSheet() {
+      mask.classList.remove("show"); mask.setAttribute("aria-hidden", "true");
+      document.body.style.overflow = ""; sheetKey = null;
+    }
+    mask.addEventListener("click", (e) => { if (e.target === mask) closeSheet(); });
+    sheetOpts.addEventListener("click", (e) => {
+      const b = e.target.closest("button[data-val]"); if (!b) return;
+      const v = b.dataset.val;
+      if (sheetKey === "zone") { STATE.zone = v; STATE.area = ""; }
+      else if (sheetKey === "date") { STATE.date = v; STATE.evening = v === "evening"; }
+      else if (sheetKey === "cat") STATE.cat = v;
+      else if (sheetKey === "sort") STATE.sort = v || "newest";
+      closeSheet(); syncUrl(); render();
+    });
+
+    chipBar.addEventListener("click", (e) => {
+      const b = e.target.closest(".ex-chip[data-open]");
+      if (b) { openSheet(b.dataset.open); return; }
+      if (e.target.closest("#exClearAll")) { clearAll(); return; }
+    });
+    activeBar.addEventListener("click", (e) => {
+      const t = e.target.closest("[data-clear]"); if (!t) return;
+      const k = t.dataset.clear;
+      if (k === "area" || k === "scene") STATE[k] = "";
+      else if (k === "sort") STATE.sort = "newest";
+      else STATE[k] = "";
+      syncUrl(); render();
+    });
+    function clearAll() {
+      STATE.zone = ""; STATE.date = ""; STATE.cat = ""; STATE.sort = "newest";
+      STATE.area = ""; STATE.scene = ""; STATE.evening = false;
+      qEl.value = ""; STATE.q = ""; qClear.classList.remove("show");
+      syncUrl(); render();
+    }
+    document.getElementById("exEmptyClear").addEventListener("click", clearAll);
+
+    /* ---------- 搜尋 ---------- */
+    const qClear = document.getElementById("qClear");
+    qEl.value = STATE.q;
+    if (STATE.q) qClear.classList.add("show");
+    let tmr;
+    qEl.addEventListener("input", (e) => {
+      const v = e.target.value;
+      qClear.classList.toggle("show", !!v.trim());
+      clearTimeout(tmr);
+      tmr = setTimeout(() => { STATE.q = v.trim(); syncUrl(); render(); }, 300);
+    });
+    qClear.addEventListener("click", () => {
+      qEl.value = ""; STATE.q = ""; qClear.classList.remove("show"); syncUrl(); render(); qEl.focus();
+    });
+
+    /* ---------- Empty State 推薦 ---------- */
+    emptyBox.addEventListener("click", (e) => {
+      const b = e.target.closest("[data-rec]"); if (!b) return;
+      const rec = b.dataset.rec;
+      clearAll();
+      if (rec === "senior") { STATE.q = "長者"; qEl.value = "長者"; qClear.classList.add("show"); }
+      else if (rec === "beginner") { STATE.scene = "beginner"; }
+      else if (rec === "new") { STATE.sort = "newest"; }
+      syncUrl(); render();
+    });
+
+    /* ---------- Accordion（13 組 / 145 項）---------- */
+    const ICONS = { "武術・格鬥": "🥋", "球拍運動": "🏸", "球類運動": "⚽", "精準・目標": "🎯", "水上活動": "🏊", "健身・體能": "🏋️", "瑜伽・普拉提": "🧘", "舞蹈": "💃", "體操・表演": "🤸", "戶外・山野": "⛰️", "新興運動": "🎪", "兒童・長者": "🧒", "趣味・技巧": "🎲" };
+    function buildAccordion() {
+      const cat = (typeof SPORTS_CATALOGUE !== "undefined" && Array.isArray(SPORTS_CATALOGUE)) ? SPORTS_CATALOGUE : [];
+      if (!cat.length) { document.getElementById("exAcc").innerHTML = ""; document.getElementById("exAccMore").hidden = true; return; }
+      const groups = {};
+      cat.forEach((s) => { (groups[s.group] = groups[s.group] || []).push(s.name); });
+      const order = Object.keys(groups);
+      const html = order.map((g, i) => `
+        <div class="ex-acc-item${i >= 8 ? " ex-acc-extra" : ""}" data-group="${esc(g)}"${i >= 8 ? ' style="display:none"' : ""}>
+          <button class="ex-acc-head" type="button">
+            <span class="ic">${ICONS[g] || "🏅"}</span>
+            <b>${esc(g)}</b>
+            <span class="cnt">${groups[g].length} 項</span>
+            <span class="cv">▾</span>
+          </button>
+          <div class="ex-acc-body">
+            ${groups[g].map((n) => `<a href="explore.html?q=${encodeURIComponent(n)}">${esc(n)}</a>`).join("")}
+          </div>
+        </div>`).join("");
+      const acc = document.getElementById("exAcc");
+      acc.innerHTML = html;
+      acc.addEventListener("click", (e) => {
+        const h = e.target.closest(".ex-acc-head"); if (!h) return;
+        h.parentElement.classList.toggle("open");
+      });
+      if (order.length <= 8) document.getElementById("exAccMore").hidden = true;
+    }
+    document.getElementById("exAccMore").addEventListener("click", (e) => {
+      const extras = document.querySelectorAll(".ex-acc-extra");
+      const showing = !extras[0] || extras[0].style.display !== "none";
+      extras.forEach((el) => { el.style.display = showing ? "none" : ""; });
+      e.currentTarget.textContent = showing ? "顯示全部運動分類 ▾" : "收起部分分類 ▴";
+    });
+
+    /* ---------- 載入 ---------- */
     (async () => {
-      const q0 = new URLSearchParams(location.search).get("q") || "";
-      if (AREA0) {
-        const cats = document.getElementById("cats");
-        cats.insertAdjacentHTML("beforebegin", '<div class="area-bar">📍 ' + AREA0 + ' <a href="explore.html' + (q0 ? ("?q=" + encodeURIComponent(q0)) : "") + '">✕ 清除</a></div>');
-      }
-      if (SCENE && SCENES[SCENE]) {
-        const cats = document.getElementById("cats");
-        cats.insertAdjacentHTML("beforebegin", '<div class="area-bar">' + SCENES[SCENE].label + ' <a href="explore.html' + (q0 ? ("?q=" + encodeURIComponent(q0)) : "") + '">✕ 清除</a></div>');
-      }
-      if (DATEQ) {
-        const label = DATEQ === "today" ? "📅 今天" : DATEQ === "tomorrow" ? "📅 明天" : "📅 本週末";
-        const cats = document.getElementById("cats");
-        cats.insertAdjacentHTML("beforebegin", '<div class="area-bar">' + label + ' <a href="explore.html' + (q0 ? ("?q=" + encodeURIComponent(q0)) : "") + '">✕ 清除</a></div>');
-      }
-      if (ZONE && ZONES[ZONE]) {
-        const cats = document.getElementById("cats");
-        cats.insertAdjacentHTML("beforebegin", '<div class="area-bar">' + ZONES[ZONE].label + ' <a href="explore.html' + (q0 ? ("?q=" + encodeURIComponent(q0)) : "") + '">✕ 清除</a></div>');
-      }
-      if (q0) document.getElementById("q").value = q0;
-      const r = await api.get("/classes/categories");
-      const cats = (r.data && (r.data.categories || r.data)) || [];
-      if (Array.isArray(cats) && cats.length) {
-        document.getElementById("cats").innerHTML = `<span class="chip on" data-cat="">全部</span>` +
-          cats.map(c => { const n = (typeof c === "string" ? c : (c.name || c.category)); return `<span class="chip" data-cat="${esc(n)}">${esc(n)}</span>`; }).join("");
-      }
-      load("", q0);
+      buildAccordion();
+      try {
+        const r = await api.get("/classes?limit=200&sort=newest");
+        const d = r.data || {};
+        const inner = d.data && typeof d.data === "object" ? d.data : {};
+        ALL = d.classes || d.items || inner.classes || inner.items || (Array.isArray(d) ? d : []);
+        if (!Array.isArray(ALL)) ALL = [];
+      } catch (e) { ALL = []; }
+      render();
     })();
   </script>
   <script src="assets/footer.js?v=4" defer></script>
