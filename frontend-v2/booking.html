@@ -341,7 +341,17 @@
       if (!classId) { $("groups").innerHTML = `<div class="card"><div class="body">缺少課程。</div></div>`; return; }
       const r = await api.get("/classes/" + encodeURIComponent(classId));
       cls = r.data && r.data.class;
-      sessions = ((r.data && r.data.schedules) || []).filter(s => s.status !== "cancelled" && (s.max_participants - s.enrolled_count) > 0 && !(window.zpIsHoliday && zpIsHoliday(s.start_time)));
+      const _nowMs = Date.now();
+      sessions = ((r.data && r.data.schedules) || []).filter(s => {
+        if (s.status === "cancelled") return false;
+        if ((s.max_participants - s.enrolled_count) <= 0) return false;
+        if (window.zpIsHoliday && zpIsHoliday(s.start_time)) return false;
+        // 已開始／已過去嘅堂唔顯示（後端亦會擋）
+        const _raw = String(s.start_time || "");
+        const _iso = /Z|[+-]\d\d:?\d\d$/.test(_raw) ? _raw : _raw.replace(" ", "T") + "Z";
+        const _t = new Date(_iso).getTime();
+        return isNaN(_t) ? true : _t > _nowMs;
+      });
       if (!cls) { $("groups").innerHTML = `<div class="card"><div class="body">搵唔到課程。</div></div>`; return; }
       // 自動套用已領取嘅優惠碼（index 領取 → localStorage）
       try {

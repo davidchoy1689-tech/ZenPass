@@ -689,13 +689,20 @@ function createBooking(req, options = {}) {
     };
   }
 
-  // 3.2 預約期上限：只接受未來 2 個月內嘅課堂
+  // 3.2 預約期：只接受「未開始」而且「未來 2 個月內」嘅課堂
   {
-    const _start = new Date(schedule.start_time);
+    // 統一時間解析：DB 冇時區標記時當 UTC（同 API 一致），避免本機時區落差 8 小時
+    const _raw = String(schedule.start_time || "");
+    const _iso = /Z|[+-]\d\d:?\d\d$/.test(_raw) ? _raw : _raw.replace(" ", "T") + "Z";
+    const _start = new Date(_iso);
     const _max = new Date();
     _max.setMonth(_max.getMonth() + 2);
     if (isNaN(_start)) {
       return { status: 400, body: { success: false, error: "時段資料有誤" } };
+    }
+    // 已開始／已過去嘅堂唔可以 book（容許 1 分鐘網絡延遲）
+    if (_start.getTime() < Date.now() - 60 * 1000) {
+      return { status: 400, body: { success: false, error: "此課堂已開始或已過去，無法預約" } };
     }
     if (_start > _max) {
       return { status: 400, body: { success: false, error: "課程只開放未來 2 個月內預約" } };

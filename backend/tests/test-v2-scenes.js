@@ -23,9 +23,9 @@ has(idx, "新手友善 / 無需經驗", "beginner label");
 // explore 場景過濾
 has(exp, "const SCENES", "SCENES map");
 has(exp, 'get("scene")', "reads scene param");
-has(exp, "function inScene", "inScene filter");
-if (!/arr\.filter\(inArea\)\.filter\(inScene\)/.test(exp)) fails.push("load() should filter by area then scene");
-has(exp, "area-bar", "scene banner");
+has(exp, "function matchScene", "matchScene filter");
+if (!/matchScene\(c\)/.test(exp)) fails.push("view() should filter by scene");
+has(exp, 'on.push(["scene"', "scene active tag");
 
 // CSS：anchor chip 可點
 if (!/a\.chip/.test(css)) fails.push("a.chip style");

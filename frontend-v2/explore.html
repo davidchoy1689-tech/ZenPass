@@ -412,14 +412,22 @@
       return c.image_url || "assets/img/covers/generic.jpg";
     }
     function nextLine(c) {
-      const s = (c.schedules || [])[0]; if (!s) return "";
+      const nowMs = Date.now();
+      const fut = (c.schedules || []).filter((x) => {
+        const rw = String(x.start_time || ""); const tt = new Date(/Z|[+-]\d\d:?\d\d$/.test(rw) ? rw : rw.replace(" ", "T") + "Z").getTime();
+        return !isNaN(tt) && tt > nowMs;
+      });
+      const s = fut[0]; if (!s) return "";
       const h = hkt(s.start_time); if (!h) return "";
       const d = new Date(h.date + "T00:00:00");
       return h.date.slice(5).replace("-", "/") + `（週${WDAY[d.getDay()]}）${pad(h.hour)}:00`;
     }
     function seatsLeft(c) {
       let best = null;
+      const nowMs = Date.now();
       (c.schedules || []).forEach((s) => {
+        const rw2 = String(s.start_time || ""); const tt = new Date(/Z|[+-]\d\d:?\d\d$/.test(rw2) ? rw2 : rw2.replace(" ", "T") + "Z").getTime();
+        if (!isNaN(tt) && tt <= nowMs) return;
         const left = (Number(s.max_participants) || 0) - (Number(s.enrolled_count) || 0);
         if (left > 0 && (best === null || left < best)) best = left;
       });

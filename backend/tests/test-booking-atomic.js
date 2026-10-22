@@ -85,6 +85,27 @@ const res3 = createBooking({
 assert(res3.status === 409, `重複預約回 409 (got ${res3.status})`);
 assert(snapshot().enrolled === 1, `重複後 enrolled_count 仍 = 1 (got ${snapshot().enrolled}) ← 冇 double count`);
 
+// 4. 已過去嘅堂 → 400（唔准補 book 已開始／已完結嘅堂）
+{
+  const d = new Database(TMP);
+  const past = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+  d.prepare(
+    "INSERT INTO class_schedules (id,class_id,start_time,end_time,max_participants,enrolled_count,status) VALUES ('s2','c1',?,?,2,0,'available')",
+  ).run(past, past);
+  d.close();
+
+  const res4 = createBooking({
+    body: { schedule_id: "s2", class_id: "c1", payment_type: "credits", amount: 120, penalty_consent: true },
+    user: { id: "u-rich" },
+  });
+  assert(res4.status === 400, `已過去堂回 400 (got ${res4.status})`);
+
+  const d2 = new Database(TMP);
+  const enr = d2.prepare("SELECT enrolled_count FROM class_schedules WHERE id='s2'").get().enrolled_count;
+  d2.close();
+  assert(enr === 0, `已過去堂 enrolled_count 保持 0 (got ${enr})`);
+}
+
 console.log(`\n📊 結果: ${passed} passed / ${failed} failed`);
 try {
   fs.unlinkSync(TMP);

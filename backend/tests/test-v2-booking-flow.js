@@ -19,9 +19,9 @@ has(idx, 'value="tomorrow"', "tomorrow option");
 has(idx, 'value="weekend"', "weekend option");
 has(idx, "🔍 尋找課堂", "cta");
 if (!/date=.*encodeURIComponent|parts\.push\("date="/.test(idx)) fails.push("qsGo should pass date param");
-has(exp, "const DATEQ", "explore DATEQ");
-has(exp, "function inDate", "explore inDate");
-if (!/filter\(inZone\)\.filter\(inDate\)/.test(exp)) fails.push("explore filter chain should include inDate");
+has(exp, "const DATES", "explore DATES");
+has(exp, "function matchDate", "explore matchDate");
+if (!/matchDate\(c\)/.test(exp)) fails.push("explore filter chain should include matchDate");
 
 // 2) WELCOME50 領取
 has(idx, 'id="claimPromo"', "claim card");
@@ -30,9 +30,9 @@ if (!/localStorage\.getItem\("zp_promo"\)/.test(bk)) fails.push("booking should 
 has(bk, "applyPromo", "booking auto-apply");
 
 // 3) 信任元素
-has(exp, 'class="trust"', "trust row");
-has(exp, "新手友善", "beginner chip");
-has(exp, "剩 \" + left + \" 個名額", "seats left chip");
+has(exp, 'badge-star glass-badge-dark', "rating trust badge");
+has(exp, 'badge-seats', "seats left badge");
+has(exp, '🔥 剩 ', "seats left text");
 has(css, ".trust", "trust css");
 
 // 4) 完成頁
