@@ -28,12 +28,15 @@ sqlite3 "$DB_PATH" "
   );
 " >> "$LOG_FILE" 2>&1
 
-# 3. 檢查並清理已過去但未完成嘅 schedule
-echo "  [3/6] 清理過期未完成 schedule..." >> "$LOG_FILE"
-sqlite3 "$DB_PATH" "
-  UPDATE class_schedules SET status = 'completed'
-  WHERE status IS NULL AND end_time < datetime('now');
-" >> "$LOG_FILE" 2>&1
+# 3. 監察：已過去但仍標 available 嘅 schedule（唔改 status，因為 CHECK constraint 只准 available/full/cancelled）
+#    預約層（backend createBooking + booking.html）已按 start_time 攔截，呢步只做 observability。
+echo "  [3/6] 檢查已過去但仍 available 嘅 schedule..." >> "$LOG_FILE"
+STALE=$(sqlite3 "$DB_PATH" "
+  SELECT COUNT(*) FROM class_schedules
+   WHERE status = 'available'
+     AND datetime(replace(substr(end_time,1,19),'T',' ')) < datetime('now');
+")
+echo "  ℹ️ 已過去但仍 available：$STALE 堂（正常會累積，唔影響預約）" >> "$LOG_FILE"
 
 # 4. 驗證 pricing_config 完整性
 echo "  [4/6] 驗證定價設定..." >> "$LOG_FILE"
