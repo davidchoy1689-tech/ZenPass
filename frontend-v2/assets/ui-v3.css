@@ -331,3 +331,67 @@ a.card:hover .thumb { transform: scale(1.04); }
   .glass-badge-highlight, .badge-trial { background: #dc2626; }
   .glass-badge-dark, .badge-star { background: #0f172a; }
 }
+
+/* ===== 翡翠綠流光 CTA + 微光掃過動畫（2026-10-23）===== */
+.btn-primary,
+.btn-cta,
+a.btn-action {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #fff;
+  font-weight: 600;
+  border: none;
+  border-radius: 999px; /* 全站 pill 一致性；要 12px 改呢一行 */
+  padding: 12px 24px;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
+  transition: transform .2s cubic-bezier(.4,0,.2,1), box-shadow .2s cubic-bezier(.4,0,.2,1), filter .2s ease;
+  display: inline-flex; align-items: center; justify-content: center;
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* 微光掃過層（用 transform 走 GPU，唔會 reflow） */
+.btn-primary::after,
+.btn-cta::after,
+a.btn-action::after {
+  content: "";
+  position: absolute; top: -60%; bottom: -60%; left: 0; width: 42%;
+  background: linear-gradient(60deg,
+    rgba(255,255,255,0) 20%,
+    rgba(255,255,255,.45) 50%,
+    rgba(255,255,255,0) 80%);
+  transform: translateX(-300%) rotate(18deg);
+  animation: zpShine 3.5s cubic-bezier(.4,0,.2,1) infinite;
+  pointer-events: none;
+  will-change: transform;
+}
+
+@keyframes zpShine {
+  0%, 62%   { transform: translateX(-300%) rotate(18deg); }
+  85%, 100% { transform: translateX(430%) rotate(18deg); }
+}
+
+/* Hover（desktop） */
+.btn-primary:hover,
+.btn-cta:hover,
+a.btn-action:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(16,185,129,.50);
+  filter: brightness(1.03);
+}
+/* Active（手機觸控） */
+.btn-primary:active,
+.btn-cta:active,
+a.btn-action:active {
+  transform: scale(.96);
+  box-shadow: 0 2px 8px rgba(16,185,129,.30);
+}
+
+/* 無障礙／省電：關閉掃光與位移 */
+@media (prefers-reduced-motion: reduce) {
+  .btn-primary::after, .btn-cta::after, a.btn-action::after { animation: none; opacity: 0; }
+  .btn-primary:hover, .btn-cta:hover, a.btn-action:hover { transform: none; }
+  .btn-primary:active, .btn-cta:active, a.btn-action:active { transform: none; }
+}
