@@ -18,7 +18,7 @@ function listPendingPayments() {
   const pending = db
     .prepare(
       `SELECT b.id as booking_id, b.booking_reference, b.user_id,
-              u.user_reference, c.class_reference, b.amount,
+              u.user_reference, b.amount,
               b.fps_reference, b.payme_reference, b.receipt_image,
               COALESCE(b.payment_method,
                 CASE WHEN b.fps_reference IS NOT NULL THEN 'fps'
@@ -307,6 +307,7 @@ function listAllBookings(query) {
       `SELECT b.id, b.user_id, b.amount, b.payment_type, b.payment_status, b.status,
               b.booking_reference, b.fps_reference, b.payme_reference, b.stripe_payment_intent_id,
               b.created_at, u.name as user_name, u.email as user_email, u.user_reference,
+              u.phone as user_phone, u.lead_source,
               c.title as class_title, c.category, cs.start_time, cs.end_time
        FROM bookings b
        JOIN users u ON b.user_id = u.id

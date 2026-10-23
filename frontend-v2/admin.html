@@ -75,7 +75,7 @@
         if (cur === "consult") return consultationsTab();
         if (cur === "inq") return inquiries();
         if (cur === "classes") return clsTab();
-        if (cur === "bookings") return listGeneric("/admin/bookings?limit=100", "bookings", bkRow, "預約");
+        if (cur === "bookings") return bookingsTab();
         if (cur === "users") return usersTab();
         if (cur === "coach") return coachApps();
         if (cur === "payouts") return payouts();
@@ -119,11 +119,13 @@
         const ref = p.fps_reference || p.payme_reference || "—";
         return `<div class="card" data-bid="${esc2(p.booking_id)}"><div class="body">
           <div style="display:flex;justify-content:space-between"><b>${esc2(p.class_title||"課程")}</b><span class="amt">${money(p.amount)}</span></div>
-          <p class="kv">${esc2(p.user_name)} · ${esc2(p.user_email)}${p.user_phone?" · "+esc2(p.user_phone):""}</p>
+          <p class="kv">${esc2(p.user_name)} · ${/^guest\+/.test(String(p.user_email||"")) ? "⚡ 訪客（免註冊）" : esc2(p.user_email)}${p.user_phone?" · "+esc2(p.user_phone):""}</p>
           <p class="kv">${esc2(pm)} · 參考 ${esc2(ref)} · ${esc2(p.booking_reference||"")}</p>
           <div style="display:flex;gap:8px;margin-top:10px">
             <button class="btn btn-primary" data-a="approve" style="flex:1">✅ 確認收款</button>
-            <button class="btn btn-ghost" data-a="reject" style="flex:1">✖ 拒絕</button></div>
+            <button class="btn btn-ghost" data-a="reject" style="flex:1">✖ 拒絕</button>
+            ${p.user_phone ? `<a class="btn btn-secondary" href="${waLink(p.user_phone, `你好 ${p.user_name || ""}，我哋已收到你嘅付款參考編號 ${ref}，正在核實，完成後會再通知你。\n課程：${p.class_title || ""}\n預約編號：${p.booking_reference || ""}`)}" target="_blank" rel="noopener">💬</a>` : ""}
+          </div>
         </div></div>`;
       }).join("");
       panel().querySelectorAll("[data-a]").forEach(b => b.onclick = async () => {
@@ -250,6 +252,48 @@
         ${x.it?`<p class="kv">有興趣：${esc2(x.it)}</p>`:""}
         ${x.msg?`<p class="kv">備註：${esc2(x.msg)}</p>`:""}
         <p class="kv">${esc2(String(x.at||"").slice(0,16))}</p></div></div>`).join("");
+    }
+
+    // 💬 一鍵 WhatsApp（admin 通知客人）
+    function waLink(phone, text) {
+      let d = String(phone || "").replace(/[^\d]/g, "");
+      if (d.startsWith("852") && d.length === 11) d = d.slice(3);
+      if (d.startsWith("0") && d.length === 9) d = d.slice(1);
+      if (d.length !== 8) return "";
+      return "https://wa.me/852" + d + "?text=" + encodeURIComponent(text);
+    }
+    function waBtn(phone, text, label) {
+      const u = waLink(phone, text);
+      if (!u) return "";
+      return `<a class="btn btn-secondary" href="${u}" target="_blank" rel="noopener" style="font-size:12px;padding:8px 10px">${label || "💬 WhatsApp"}</a>`;
+    }
+    function fmtBkTime(t) {
+      if (!t) return "";
+      const d = new Date(String(t).replace(" ", "T"));
+      if (isNaN(d)) return String(t);
+      const p = (n) => String(n).padStart(2, "0");
+      return `${d.getMonth() + 1}/${d.getDate()} ${p(d.getHours())}:${p(d.getMinutes())}`;
+    }
+
+    async function bookingsTab() {
+      const r = await api.get("/admin/bookings?limit=100");
+      if (r.status === 401 || r.status === 403) return needAdmin();
+      const arr = (r.data && r.data.bookings) || [];
+      if (!arr.length) { panel().innerHTML = `<div class="card"><div class="body muted center">暫無預約。</div></div>`; return; }
+      panel().innerHTML = `<div class="card">` + arr.map((b) => {
+        const isGuest = b.lead_source === "guest_checkout";
+        const msg = `你好 ${b.user_name || ""}，ZenPass 預約通知：\n課程：${b.class_title || ""}\n時間：${fmtBkTime(b.start_time)}\n預約編號：${b.booking_reference || ""}\n狀態：${st(b.status)}\n如有問題請回覆此訊息。`;
+        return `<div class="row" style="align-items:flex-start;gap:10px;flex-wrap:wrap">
+          <span style="flex:1;min-width:150px">${esc2(b.booking_reference || b.id)}
+            <div class="kv">${esc2(b.class_title || "")} · ${esc2(fmtBkTime(b.start_time))}</div>
+            <div class="kv">${esc2(b.user_name || b.user_email || "")}${isGuest ? ' <span class="pill warn">訪客</span>' : ""}${b.user_phone ? " · " + esc2(b.user_phone) : ""}</div>
+          </span>
+          <span style="text-align:right">${b.amount ? money(b.amount) : ""}
+            <span class="pill ${b.status === "attended" ? "ok" : (b.status === "cancelled" || b.status === "no_show" ? "off" : "warn")}">${esc2(st(b.status))}</span>
+            ${isGuest ? waBtn(b.user_phone, msg) : ""}
+          </span>
+        </div>`;
+      }).join("") + `</div>`;
     }
 
     async function listGeneric(url, key, rowFn, emptyLabel) {
