@@ -336,7 +336,7 @@
         <div class="spacer"></div>
         <a class="btn btn-secondary btn-block" id="waRemind" target="_blank" rel="noopener">💬 用 WhatsApp 接收上課提醒</a>
       </div>
-      <div class="done-redirect" id="doneRedirBar">系統將在 <b id="redirectSec">5</b> 秒內帶你到「我的預約」…</div>
+      <div class="done-redirect" id="doneRedirBar">系統將在 <b id="redirectSec">30</b> 秒內帶你到「我的預約」…（任何操作會取消自動跳轉）</div>
       <div class="spacer"></div>
       <a class="btn btn-primary btn-block" href="my-bookings.html" id="goBookings">去我的預約 →</a>
       <div class="spacer"></div>
@@ -784,13 +784,35 @@
         const note = $("guestDoneNote");
         if (note) { note.hidden = false; note.querySelector("b").textContent = (guestBookings.map(b => b.booking_reference).filter(Boolean).join("、") || "—"); }
       }
-      startDoneRedirect(opts.redirect === false ? 0 : 5);
+      startDoneRedirect(opts.redirect === false ? 0 : 30);
+      // 用戶一有動作（撳／捲／打字）就取消自動跳轉，唔會搶走加日曆嘅時間
+      cancelRedirectOnInteract();
       try { window.scrollTo({ top: 0, behavior: "smooth" }); } catch (e) { window.scrollTo(0, 0); }
     }
     const _goB = $("goBookings"); if (_goB) _goB.addEventListener("click", stopRedirect);
     const _goH = $("goHome"); if (_goH) _goH.addEventListener("click", stopRedirect);
     const _stay = $("stayBtn"); if (_stay) _stay.addEventListener("click", () => { stopRedirect(); $("doneRedirBar").classList.add("hide"); });
     const _dActs = $("doneActions"); if (_dActs) _dActs.addEventListener("click", stopRedirect);
+
+    let _interactBound = false;
+    function cancelRedirectOnInteract() {
+      const hide = () => {
+        stopRedirect();
+        const bar = $("doneRedirBar"); if (bar) bar.classList.add("hide");
+        unbind();
+      };
+      const unbind = () => {
+        ["click", "touchstart", "keydown", "wheel", "scroll"].forEach((ev) =>
+          document.removeEventListener(ev, hide, true),
+        );
+        _interactBound = false;
+      };
+      if (_interactBound) return;
+      _interactBound = true;
+      ["click", "touchstart", "keydown", "wheel", "scroll"].forEach((ev) =>
+        document.addEventListener(ev, hide, { capture: true, passive: true }),
+      );
+    }
 
     function unitForPay(){ return promoFinal ? promoFinal.final_price : cls.price_hkd; }
     function startPayStep(ids, unit){
@@ -882,7 +904,8 @@
       showDone({
         icon: "⏳",
         title: label + " 付款資料已提交",
-        msg: "管理員核實後，預約會轉為「已確認」。你可喺「我的預約」睇最新狀態。",
+        msg: "管理員核實後，預約會轉為「已確認」。你可先加入手機日曆，我哋核實後會通知你。",
+        redirect: false, // 唔自動跳走：留時間加日曆／記低預約編號
       });
     }
 
