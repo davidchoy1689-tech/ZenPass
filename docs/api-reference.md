@@ -1201,3 +1201,42 @@ The `getDb`-based pricing config also exposes these endpoints (non-admin readabl
 | `GET` | `/api/pricing/dynamic` | 動態時段 pricing（by fill rate） |
 | `GET` | `/api/admin/pricing` | 全部定價設定（admin） |
 | `PUT` | `/api/admin/pricing` | 更新定價設定（admin） |
+
+---
+
+## 訪客快速結賬（Guest Checkout）— 2026-10-23
+
+未登入用戶只需「姓名 + 香港手機（8 位）」即可預約，唔需要密碼。
+電話如已有任何帳號 → 回 `409 PHONE_EXISTS`（防止帳號接管），前端會引導登入。
+
+| Method | Path | 說明 |
+|--------|------|------|
+| `POST` | `/api/guest/book` | 建立訪客帳號 + 預約（body: `name`, `phone`, `classId`, `scheduleIds[]`, `groupSize?`, `promoCode?`）→ 回 `token` |
+| `GET` | `/api/guest/session?token=` | 用 token 查看自己嘅預約（30 日有效） |
+| `POST` | `/api/guest/payment` | 提交 FPS／PayMe 參考編號（body: `token`, `booking_id`, `method`, `reference`） |
+| `POST` | `/api/guest/relock` | 名額保留逾時後重新鎖定 15 分鐘（body: `token`） |
+| `POST` | `/api/guest/cancel` | 訪客自助取消（同一套 72h/24h 政策、退款、audit；body: `token`, `booking_id`） |
+
+**行為**
+- 訪客帳號：`users.lead_source='guest_checkout'`、`tags='guest'`、隨機密碼（不可登入）
+- 只可用單次付款（無 Credits 結餘）；信用卡暫不支援
+- 新訪客預約／付款提交 → 通知所有 admin（`guest.new_booking` / `payment.new_fps_payme`）
+- 前端頁：`guest-booking.html?token=…`（免登入狀態頁 + 自助取消）
+
+## 日曆（iCalendar）
+
+| Method | Path | 說明 |
+|--------|------|------|
+| `GET` | `/api/calendar/schedule.ics?ids=<scheduleId,...>` | 公開 .ics（iOS 直接彈「加入日曆」）；含 VALARM 60 分鐘前提醒 |
+
+## 帳號合併（Admin）
+
+| Method | Path | 說明 |
+|--------|------|------|
+| `GET` | `/api/admin/guest-merges` | 列出「同電話同時有訪客帳號 + 正式帳號」嘅個案 |
+| `POST` | `/api/admin/merge-guest` | 合併（body: `guest_user_id`, `target_user_id`）→ 搬 booking／交易／退款／通知／guest session，寫 `account_merges` + `audit_log`，舊帳號標記 `merged_guest` |
+
+## 退款狀態
+
+`bookings.refund_state`：`pending`（FPS／PayMe 待人手轉賬）→ `completed`（admin 確認轉賬後）。
+`payment_status` 唔會因待退款而改變，報表請用 `refund_state` 區分「已收未退／已退」。
