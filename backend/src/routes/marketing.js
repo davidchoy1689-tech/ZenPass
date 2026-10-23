@@ -91,10 +91,10 @@ router.post("/subscribe", formLimiter, function (req, res) {
     var source = req.body.source || "web";
 
     var db = getDb();
-    db2.exec("CREATE TABLE IF NOT EXISTS newsletter_subscribers (id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT UNIQUE NOT NULL, interests TEXT DEFAULT '[]', source TEXT DEFAULT 'web', subscribed_at TEXT DEFAULT (datetime('now')), is_active INTEGER DEFAULT 1, unsubscribed_at TEXT)");
+    db.exec("CREATE TABLE IF NOT EXISTS newsletter_subscribers (id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT UNIQUE NOT NULL, interests TEXT DEFAULT '[]', source TEXT DEFAULT 'web', subscribed_at TEXT DEFAULT (datetime('now')), is_active INTEGER DEFAULT 1, unsubscribed_at TEXT)");
 
     try {
-      db2.prepare("INSERT INTO newsletter_subscribers (email, interests, source) VALUES (?, ?, ?)").run(email, interests, source);
+      db.prepare("INSERT INTO newsletter_subscribers (email, interests, source) VALUES (?, ?, ?)").run(email, interests, source);
 
       res.json({ message: "訂閱成功！" });
     } catch (e) {

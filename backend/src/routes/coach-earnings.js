@@ -6,7 +6,12 @@
 const express = require("express");
 const { v4: uuidv4 } = require("uuid");
 const { getDb } = require("../services/database");
-const { authenticateToken, requireCoach, requireAdmin } = require("../middleware/auth");
+const {
+  authenticateToken,
+  requireCoach,
+  requireAdmin,
+  requirePermission,
+} = require("../middleware/auth");
 
 const { sendNotification } = require("../services/notification");
 const { writeBlock } = require("../services/blockchain-audit");
@@ -731,8 +736,13 @@ router.delete("/private-income/:id", authenticateToken, (req, res) => {
 
 // ===== Platform Settlements (Admin: ZenPass → Coach monthly payout) =====
 
-// GET /api/coach/settlements — 獲取月度結算列表 (admin)
-router.get("/settlements", authenticateToken, (req, res) => {
+// GET /api/coach/settlements — 獲取月度結算列表 (admin / 財務)
+// 🔒 2026-10-24：原本任何登入用戶都可以讀晒所有教練嘅收入／佣金／出糧
+router.get(
+  "/settlements",
+  authenticateToken,
+  requirePermission("finance.payout.view"),
+  (req, res) => {
   try {
     const db = getDb();
     const { year, month, coach_id, status } = req.query;
@@ -782,10 +792,16 @@ router.get("/settlements", authenticateToken, (req, res) => {
     console.error("獲取結算錯誤:", err);
     res.status(500).json({ success: false, error: "無法獲取結算資料" });
   }
-});
+  },
+);
 
 // POST /api/coach/settlements/generate — 自動生成月度結算
-router.post("/settlements/generate", authenticateToken, (req, res) => {
+// 🔒 2026-10-24：原本任何登入用戶都可以為所有教練生成結算
+router.post(
+  "/settlements/generate",
+  authenticateToken,
+  requirePermission("finance.payout.process"),
+  (req, res) => {
   try {
     const { year, month } = req.body;
     if (!year || !month) return res.status(400).json({ success: false, error: "請提供年月" });
@@ -852,22 +868,52 @@ router.post("/settlements/generate", authenticateToken, (req, res) => {
     console.error("生成結算錯誤:", err);
     res.status(500).json({ success: false, error: "無法生成結算" });
   }
-});
+  },
+);
 
 // POST /api/coach/settlements/:id/pay — 標記為已付款
-router.post("/settlements/:id/pay", authenticateToken, (req, res) => {
-  try {
-    const db = getDb();
-    db.prepare(
-      `UPDATE platform_settlements SET status = 'paid', paid_at = datetime('now'), updated_at = datetime('now') WHERE id = ?`,
-    ).run(req.params.id);
+// 🔒 2026-10-24：原本任何登入用戶都可以將結算標記為「已付款」（無 audit、無權限）
+router.post(
+  "/settlements/:id/pay",
+  authenticateToken,
+  requirePermission("finance.payout.process"),
+  (req, res) => {
+    try {
+      const db = getDb();
+      const before = db
+        .prepare("SELECT * FROM platform_settlements WHERE id = ?")
+        .get(req.params.id);
+      if (!before) {
+        return res.status(404).json({ success: false, error: "結算記錄不存在" });
+      }
+      if (before.status === "paid") {
+        return res.json({ message: "已標記為已付款", idempotent: true });
+      }
 
-    res.json({ message: "已標記為已付款" });
-  } catch (err) {
-    console.error("付款標記錯誤:", err);
-    res.status(500).json({ success: false, error: "無法更新狀態" });
-  }
-});
+      db.prepare(
+        `UPDATE platform_settlements SET status = 'paid', paid_at = datetime('now'), updated_at = datetime('now') WHERE id = ?`,
+      ).run(req.params.id);
+
+      try {
+        require("../services/audit").audit({
+          actionType: "SETTLEMENT_PAID",
+          entityType: "platform_settlement",
+          entityId: req.params.id,
+          userId: req.user.id,
+          oldValues: { status: before.status, coach_payout: before.coach_payout },
+          newValues: { status: "paid" },
+          description: "標記月度結算為已付款",
+          ipAddress: req.ip,
+        });
+      } catch (e) {}
+
+      res.json({ message: "已標記為已付款" });
+    } catch (err) {
+      console.error("付款標記錯誤:", err);
+      res.status(500).json({ success: false, error: "無法更新狀態" });
+    }
+  },
+);
 
 // ===== Platform Settings (Admin configurable) =====
 
@@ -1143,7 +1189,7 @@ router.post(
         });
         accountId = account.id;
         const db = getDb();
-        db2
+        db
           .prepare("UPDATE users SET stripe_account_id = ? WHERE id = ?")
           .run(accountId, req.user.id);
 

@@ -84,5 +84,52 @@ function call(handler, { query = {}, body = {}, user = null, params = {} }) {
   }
 
   if (fail) { console.error(`❌ ${fail} 項失敗`); process.exit(1); }
+
+  // ===== 月度結算（platform_settlements）權限 — 2026-10-24 =====
+  // 之前任何登入用戶都可以讀晒所有教練結算、甚至標記「已付款」
+  const { requirePermission } = require("../src/middleware/auth");
+  function runMw(mw, user) {
+    return new Promise((resolve) => {
+      const res = {
+        code: 200,
+        status(c) { this.code = c; return this; },
+        json(o) { resolve({ status: this.code, body: o }); return this; },
+      };
+      mw({ user, headers: {}, ip: "127.0.0.1", originalUrl: "/test" }, res, () =>
+        resolve({ status: 0, body: "next" }),
+      );
+    });
+  }
+  const payoutMw = requirePermission("finance.payout.process");
+  const viewMw = requirePermission("finance.payout.view");
+
+  ok((await runMw(payoutMw, { id: "stu1", role: "user" })).status === 403, "普通用戶出糧 → 403");
+  ok((await runMw(payoutMw, { id: "coachA", role: "coach" })).status === 403, "教練出糧 → 403");
+  ok((await runMw(payoutMw, { id: "admin1", role: "admin" })).status === 403, "admin（客服級）出糧 → 403");
+  ok((await runMw(payoutMw, { id: "pm1", role: "platform_manager" })).status === 0, "platform_manager 出糧 → 通過");
+  ok((await runMw(viewMw, { id: "coachA", role: "coach" })).status === 403, "教練睇全部結算 → 403");
+
+  // 路由層面確認 permission middleware 已掛上（防止日後被移除）
+  for (const [method, p, label] of [
+    ["get", "/settlements", "GET /settlements"],
+    ["post", "/settlements/generate", "POST /settlements/generate"],
+    ["post", "/settlements/:id/pay", "POST /settlements/:id/pay"],
+  ]) {
+    const layer = earnings.stack.find(
+      (l) => l.route && l.route.path === p && l.route.methods[method],
+    );
+    const handlers = layer ? layer.route.stack.map((s) => s.handle) : [];
+    ok(handlers.length >= 3, `${label} 已掛權限 middleware`);
+  }
+
+  // 私人收入刪除只可刪自己
+  const del = handlerOf(earnings, "delete", "/private-income/:id");
+  db.prepare("INSERT INTO private_income (id,coach_id,date,description,amount) VALUES ('piB','coachB',date('now'),'B私人',100)").run();
+  const d1 = await call(del, { params: { id: "piB" }, user: { id: "coachA", role: "coach" } });
+  ok(d1.status === 404, "coach A 刪 coach B 私人收入 → 404（SQL 層 scope）");
+  const d2 = await call(del, { params: { id: "piB" }, user: { id: "coachB", role: "coach" } });
+  ok(d2.status === 200, "coach B 刪自己私人收入 OK");
+
+  if (fail) { console.error(`❌ ${fail} 項失敗`); process.exit(1); }
   console.log("✅ 教練 scope tests passed");
 })();

@@ -4,7 +4,7 @@ const os = require("os");
 const path = require("path");
 const Database = require("better-sqlite3");
 
-process.env.JWT_SECRET = "test_jwt_secret_for_cancel_idempotency_123456";
+process.env.JWT_SECRET = "test_jwt_secret_0123456789abcdefghij";
 const tmp = path.join(os.tmpdir(), "zenpass-cancelidem-" + Date.now() + ".db");
 process.env.DB_PATH = tmp;
 

@@ -1055,8 +1055,8 @@ router.post("/setup-intent", authenticateToken, async (req, res) => {
       });
       customerId = customer.id;
       const db = getDb();
-      db2.pragma("foreign_keys = ON");
-      db2
+      db.pragma("foreign_keys = ON");
+      db
         .prepare("UPDATE users SET stripe_customer_id = ? WHERE id = ?")
         .run(customerId, req.user.id);
 
