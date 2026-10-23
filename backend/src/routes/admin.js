@@ -885,4 +885,142 @@ router.post("/attend-booking", authenticateToken, requireAdmin, (req, res) => {
   }
 });
 
+// ===== 課程時段管理（2026-10-24）=====
+// 公開網站顯示嘅時段必須可以由後台管理，否則「後台 ↔ 網站」斷鏈。
+
+// GET /api/admin/classes/:id/schedules
+router.get("/classes/:id/schedules", authenticateToken, requireAdmin, (req, res) => {
+  try {
+    const db = getDb();
+    const cls = db.prepare("SELECT id, title, max_participants FROM classes WHERE id = ?").get(req.params.id);
+    if (!cls) return res.status(404).json({ success: false, error: "課程不存在" });
+    const rows = db
+      .prepare(
+        `SELECT id, start_time, end_time, max_participants, enrolled_count, status, notes
+         FROM class_schedules WHERE class_id = ? ORDER BY start_time ASC`,
+      )
+      .all(req.params.id);
+    return res.json({ success: true, class: cls, schedules: rows });
+  } catch (err) {
+    console.error("[ADMIN] list schedules error:", err.message);
+    return res.status(500).json({ success: false, error: "讀取時段失敗" });
+  }
+});
+
+// POST /api/admin/classes/:id/schedules
+router.post("/classes/:id/schedules", authenticateToken, requireAdmin, (req, res) => {
+  try {
+    const db = getDb();
+    const cls = db.prepare("SELECT id, title, max_participants FROM classes WHERE id = ?").get(req.params.id);
+    if (!cls) return res.status(404).json({ success: false, error: "課程不存在" });
+
+    const { start_time, end_time, max_participants, notes } = req.body || {};
+    const st = new Date(start_time);
+    const en = new Date(end_time);
+    if (isNaN(st) || isNaN(en)) return res.status(400).json({ success: false, error: "時間格式不正確" });
+    if (en <= st) return res.status(400).json({ success: false, error: "結束時間必須遲過開始時間" });
+    if (st.getTime() < Date.now()) return res.status(400).json({ success: false, error: "唔可以新增過去嘅時段" });
+    const cap = Number(max_participants || cls.max_participants || 12);
+    if (!(cap > 0)) return res.status(400).json({ success: false, error: "人數上限必須大於 0" });
+
+    const dup = db
+      .prepare("SELECT id FROM class_schedules WHERE class_id = ? AND start_time = ?")
+      .get(cls.id, st.toISOString());
+    if (dup) return res.status(409).json({ success: false, error: "同一時間已經有呢個時段" });
+
+    const id = uuidv4();
+    db.prepare(
+      `INSERT INTO class_schedules (id, class_id, start_time, end_time, max_participants, enrolled_count, status, notes)
+       VALUES (?, ?, ?, ?, ?, 0, 'available', ?)`,
+    ).run(id, cls.id, st.toISOString(), en.toISOString(), cap, notes || null);
+
+    try {
+      require("../services/audit").audit({
+        actionType: "SCHEDULE_CREATE",
+        entityType: "class_schedule",
+        entityId: id,
+        userId: req.user.id,
+        newValues: { class_id: cls.id, start_time: st.toISOString(), end_time: en.toISOString(), max_participants: cap },
+        description: "新增課堂時段",
+        ipAddress: req.ip,
+      });
+    } catch (e) {}
+
+    return res.json({ success: true, id });
+  } catch (err) {
+    console.error("[ADMIN] create schedule error:", err.message);
+    return res.status(500).json({ success: false, error: "新增時段失敗" });
+  }
+});
+
+// POST /api/admin/schedules/:sid/cancel — 取消時段（有報名會全數退款）
+router.post("/schedules/:sid/cancel", authenticateToken, requireAdmin, (req, res) => {
+  try {
+    const db = getDb();
+    const sid = req.params.sid;
+    const reason = String((req.body || {}).reason || "課堂取消").slice(0, 200);
+    const sch = db.prepare("SELECT * FROM class_schedules WHERE id = ?").get(sid);
+    if (!sch) return res.status(404).json({ success: false, error: "時段不存在" });
+    if (sch.status === "cancelled") return res.json({ success: true, message: "時段已經取消" });
+
+    const active = db
+      .prepare("SELECT * FROM bookings WHERE schedule_id = ? AND status IN ('confirmed','pending_payment')")
+      .all(sid);
+
+    let refunded = 0;
+    for (const b of active) {
+      db.prepare(
+        "UPDATE bookings SET status = 'cancelled', cancel_reason = ?, payment_status = CASE WHEN payment_status = 'paid' THEN payment_status ELSE 'cancelled' END WHERE id = ?",
+      ).run(`課程取消：${reason}`, b.id);
+
+      if (b.payment_status === "paid" && Number(b.amount) > 0) {
+        try {
+          const out = require("../services/refund").processRefund({
+            bookingId: b.id,
+            amount: Number(b.amount),
+            reason: `課程取消全額退款：${reason}`,
+            initiatedBy: req.user.id,
+            approvedBy: req.user.id,
+            method: b.payment_method || "fps",
+          });
+          if (out && out.success) refunded++;
+        } catch (e) {
+          console.error("[ADMIN] schedule cancel refund error:", e.message);
+        }
+      }
+      try {
+        require("../services/notification").sendNotification("booking.cancelled", {
+          recipient: b.user_id,
+          data: {
+            booking_reference: b.booking_reference,
+            class_title: "",
+            date: String(sch.start_time || "").slice(0, 10),
+            reason,
+          },
+        });
+      } catch (e) {}
+    }
+
+    db.prepare("UPDATE class_schedules SET status = 'cancelled', enrolled_count = 0 WHERE id = ?").run(sid);
+
+    try {
+      require("../services/audit").audit({
+        actionType: "SCHEDULE_CANCEL",
+        entityType: "class_schedule",
+        entityId: sid,
+        userId: req.user.id,
+        oldValues: { status: sch.status, enrolled_count: sch.enrolled_count },
+        newValues: { status: "cancelled", affected_bookings: active.length, refunded },
+        description: `取消時段：${reason}`,
+        ipAddress: req.ip,
+      });
+    } catch (e) {}
+
+    return res.json({ success: true, affected: active.length, refunded, message: `已取消，處理 ${active.length} 筆預約（${refunded} 筆退款）` });
+  } catch (err) {
+    console.error("[ADMIN] cancel schedule error:", err.message);
+    return res.status(500).json({ success: false, error: "取消時段失敗" });
+  }
+});
+
 module.exports = router;

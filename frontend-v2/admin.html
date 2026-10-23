@@ -656,6 +656,60 @@
       panel().innerHTML = `<div class="card">${arr.map(c => `<div class="row" data-c="${esc2(c.id)}" style="cursor:pointer"><span>${esc2(c.title)}<div class="kv">${esc2(c.category||"")} · ${c.duration||""}分 · ${c.max_participants||""}人</div></span><span style="text-align:right">${c.price_hkd?money(c.price_hkd):((c.credits_cost||0)+"cr")} <span class="pill ${c.status==='active'?'ok':'off'}">${esc2(st(c.status))}</span> ›</span></div>`).join("")}</div>`;
       panel().querySelectorAll("[data-c]").forEach(el => el.onclick = () => openCourse(el.dataset.c));
     }
+    async function loadSchedules(o, classId) {
+      const box = o.querySelector("#ef-sched"); if (!box) return;
+      const r = await api.get("/admin/classes/" + encodeURIComponent(classId) + "/schedules");
+      const rows = (r.data && r.data.schedules) || [];
+      const fmt = (t) => {
+        const d = new Date(t); if (isNaN(d)) return t;
+        const p = (n) => String(n).padStart(2, "0");
+        return `${d.getFullYear()}/${p(d.getMonth() + 1)}/${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+      };
+      box.innerHTML = `<div class="card" style="background:#f8fafc"><div class="body">
+        <b>📅 時段管理（網站即時顯示）</b>
+        <div class="kv" style="margin:4px 0 8px">新增或取消時段會即時反映喺課程頁／預約頁。取消時段會為已報名學生全數退款。</div>
+        ${rows.length ? rows.map((x) => `<div class="row" style="padding:8px 0">
+          <span style="flex:1">${fmt(x.start_time)} – ${String(fmt(x.end_time)).slice(-5)}
+            <div class="kv">${x.enrolled_count}/${x.max_participants} 人 · <span class="pill ${x.status === "available" ? "ok" : (x.status === "cancelled" ? "off" : "warn")}">${esc2(x.status)}</span></div></span>
+          ${x.status !== "cancelled" ? `<button class="btn btn-ghost" data-scancel="${esc2(x.id)}" type="button" style="font-size:12px;padding:6px 10px">取消</button>` : ""}
+        </div>`).join("") : `<div class="kv">暫無時段</div>`}
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">
+          <input class="ef" id="sc-start" type="datetime-local" />
+          <input class="ef" id="sc-end" type="datetime-local" />
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;margin-top:8px">
+          <input class="ef" id="sc-cap" type="number" placeholder="名額（預設課程上限）" />
+          <input class="ef" id="sc-notes" placeholder="備註（可空）" />
+          <button class="btn btn-secondary" id="sc-add" type="button" style="white-space:nowrap">➕ 新增時段</button>
+        </div>
+      </div></div>`;
+      box.querySelectorAll("[data-scancel]").forEach((b) => b.onclick = async () => {
+        const why = prompt("取消原因（會通知已報名學生）", "課堂取消");
+        if (why === null) return;
+        if (!confirm("確定取消此時段？已報名學生會全數退款。")) return;
+        b.disabled = true;
+        const rr = await api.post("/admin/schedules/" + encodeURIComponent(b.dataset.scancel) + "/cancel", { reason: why });
+        if (rr.ok && rr.data && rr.data.success) { alert("✅ " + (rr.data.message || "已取消")); loadSchedules(o, classId); }
+        else { b.disabled = false; alert("❌ " + ((rr.data && rr.data.error) || "失敗")); }
+      });
+      const addBtn = o.querySelector("#sc-add");
+      if (addBtn) addBtn.onclick = async () => {
+        const st = o.querySelector("#sc-start").value;
+        const en = o.querySelector("#sc-end").value;
+        if (!st || !en) { alert("請揀開始同結束時間"); return; }
+        addBtn.disabled = true;
+        const rr = await api.post("/admin/classes/" + encodeURIComponent(classId) + "/schedules", {
+          start_time: new Date(st).toISOString(),
+          end_time: new Date(en).toISOString(),
+          max_participants: Number(o.querySelector("#sc-cap").value) || undefined,
+          notes: o.querySelector("#sc-notes").value || undefined,
+        });
+        addBtn.disabled = false;
+        if (rr.ok && rr.data && rr.data.success) { alert("✅ 已新增時段"); loadSchedules(o, classId); }
+        else alert("❌ " + ((rr.data && rr.data.error) || "新增失敗"));
+      };
+    }
+
     async function openCourse(id) {
       const r = await api.get("/admin/course-detail/" + encodeURIComponent(id));
       if (!r.ok) { alert((r.data&&r.data.error)||"載入失敗"); return; }
@@ -677,6 +731,7 @@
         <textarea class="ef" id="ef-desc" rows="4" placeholder="課程內容" style="margin-top:8px">${esc2(c.description||"")}</textarea>
         <div style="display:flex;gap:8px;margin-top:8px"><select class="ef" id="ef-status">${stt}</select><button class="btn btn-secondary" id="ef-gen" style="white-space:nowrap">🤖 生成描述</button></div>
         <div id="ef-genopts"></div>
+        <div id="ef-sched" style="margin-top:12px"></div>
         <div class="actions"><button class="btn btn-secondary" onclick="closeModal(this)">取消</button><button class="btn btn-primary" id="ef-save">儲存</button></div>`);
       const v = (id2) => o.querySelector("#" + id2).value;
       o.querySelector("#ef-gen").onclick = async () => {
@@ -689,6 +744,7 @@
           o.querySelectorAll("#ef-genopts [data-d]").forEach(el=>el.onclick=()=>{ o.querySelector("#ef-desc").value = list[Number(el.dataset.d)]; });
         } else alert("冇生成結果（可能未設 AI key）");
       };
+      loadSchedules(o, id);
       o.querySelector("#ef-save").onclick = async () => {
         const data = { title: v("ef-title"), category: v("ef-category"), difficulty: v("ef-difficulty"), duration: parseInt(v("ef-duration"))||0, price_hkd: parseFloat(v("ef-price"))||0, credits_cost: parseInt(v("ef-credits"))||0, max_participants: parseInt(v("ef-max"))||0, venue_name: v("ef-venue"), venue_address: v("ef-address"), description: v("ef-desc"), status: v("ef-status") };
         const sr = await api.post("/admin/update-course/" + encodeURIComponent(id), data);
