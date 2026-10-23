@@ -6,7 +6,7 @@
 const express = require("express");
 const { v4: uuidv4 } = require("uuid");
 const { getDb } = require("../services/database");
-const { authenticateToken, requireAdmin } = require("../middleware/auth");
+const { authenticateToken, requireAdmin, requirePermission } = require("../middleware/auth");
 const { queryAudit } = require("../services/audit");
 const adminService = require("../services/admin-service");
 
@@ -118,7 +118,7 @@ router.get("/pending-payments", authenticateToken, requireAdmin, (req, res) => {
 });
 
 // ===== POST /api/admin/approve-payment =====
-router.post("/approve-payment", authenticateToken, requireAdmin, (req, res) => {
+router.post("/approve-payment", authenticateToken, requirePermission("finance.payment.confirm"), (req, res) => {
   try {
     const result = adminService.approvePayment(req.body.booking_id, req.user.id, req);
     return res.status(result.status).json(result.body);
@@ -129,7 +129,7 @@ router.post("/approve-payment", authenticateToken, requireAdmin, (req, res) => {
 });
 
 // ===== POST /api/admin/reject-payment =====
-router.post("/reject-payment", authenticateToken, requireAdmin, (req, res) => {
+router.post("/reject-payment", authenticateToken, requirePermission("finance.payment.reject"), (req, res) => {
   try {
     const result = adminService.rejectPayment(req.body.booking_id, req.body.reason, req.user.id, req);
     return res.status(result.status).json(result.body);
@@ -165,7 +165,7 @@ router.get("/refunds", authenticateToken, requireAdmin, (req, res) => {
   }
 });
 
-router.post("/refunds/:id/complete", authenticateToken, requireAdmin, (req, res) => {
+router.post("/refunds/:id/complete", authenticateToken, requirePermission("finance.refund.complete"), (req, res) => {
   try {
     const { transfer_reference, note } = req.body || {};
     const out = require("../services/refund").completeRefund(req.params.id, req.user.id, {
@@ -355,7 +355,7 @@ router.get("/db", authenticateToken, requireAdmin, async (req, res) => {
 });
 
 // ===== POST /api/admin/process-payouts =====
-router.post("/process-payouts", authenticateToken, requireAdmin, (req, res) => {
+router.post("/process-payouts", authenticateToken, requirePermission("finance.payout.process"), (req, res) => {
   try {
     const result = adminService.processCoachPayouts(req.user.id, req);
     return res.status(result.status).json(result.body);
@@ -628,7 +628,7 @@ router.post("/notify-course-spots", authenticateToken, requireAdmin, (req, res) 
 });
 
 // ===== PUT /api/admin/update-course/:id =====
-router.put("/update-course/:id", authenticateToken, requireAdmin, (req, res) => {
+router.put("/update-course/:id", authenticateToken, requirePermission("ops.class.write"), (req, res) => {
   try {
     const result = adminService.updateCourse(req.params.id, req.body);
     return res.status(result.status).json(result.body);
@@ -757,7 +757,7 @@ router.get("/revenue-dashboard", authenticateToken, requireAdmin, (req, res) => 
 });
 
 // ===== POST /api/admin/merge-guest — 合併訪客帳號（人手核實身份後）=====
-router.post("/merge-guest", authenticateToken, requireAdmin, (req, res) => {
+router.post("/merge-guest", authenticateToken, requirePermission("users.merge"), (req, res) => {
   try {
     const db = getDb();
     const norm = (x) => String(x || "").replace(/[^\d]/g, "").replace(/^852/, "").replace(/^0/, "");
@@ -845,7 +845,7 @@ router.get("/guest-merges", authenticateToken, requireAdmin, (req, res) => {
 });
 
 // ===== POST /api/admin/attend-booking — 代客人標記出席（訪客／無 App 客人）=====
-router.post("/attend-booking", authenticateToken, requireAdmin, (req, res) => {
+router.post("/attend-booking", authenticateToken, requirePermission("ops.booking.write"), (req, res) => {
   try {
     const db = getDb();
     const bookingId = String((req.body || {}).booking_id || "").trim();
@@ -889,7 +889,7 @@ router.post("/attend-booking", authenticateToken, requireAdmin, (req, res) => {
 // 公開網站顯示嘅時段必須可以由後台管理，否則「後台 ↔ 網站」斷鏈。
 
 // GET /api/admin/classes/:id/schedules
-router.get("/classes/:id/schedules", authenticateToken, requireAdmin, (req, res) => {
+router.get("/classes/:id/schedules", authenticateToken, requirePermission("ops.class.view"), (req, res) => {
   try {
     const db = getDb();
     const cls = db.prepare("SELECT id, title, max_participants FROM classes WHERE id = ?").get(req.params.id);
@@ -908,7 +908,7 @@ router.get("/classes/:id/schedules", authenticateToken, requireAdmin, (req, res)
 });
 
 // POST /api/admin/classes/:id/schedules
-router.post("/classes/:id/schedules", authenticateToken, requireAdmin, (req, res) => {
+router.post("/classes/:id/schedules", authenticateToken, requirePermission("ops.class.write"), (req, res) => {
   try {
     const db = getDb();
     const cls = db.prepare("SELECT id, title, max_participants FROM classes WHERE id = ?").get(req.params.id);
@@ -954,7 +954,7 @@ router.post("/classes/:id/schedules", authenticateToken, requireAdmin, (req, res
 });
 
 // POST /api/admin/schedules/:sid/cancel — 取消時段（有報名會全數退款）
-router.post("/schedules/:sid/cancel", authenticateToken, requireAdmin, (req, res) => {
+router.post("/schedules/:sid/cancel", authenticateToken, requirePermission("ops.class.write"), (req, res) => {
   try {
     const db = getDb();
     const sid = req.params.sid;
@@ -1021,6 +1021,68 @@ router.post("/schedules/:sid/cancel", authenticateToken, requireAdmin, (req, res
     console.error("[ADMIN] cancel schedule error:", err.message);
     return res.status(500).json({ success: false, error: "取消時段失敗" });
   }
+});
+
+// ===== POST /api/admin/users/:id/role — 修改角色（需 users.role.write）=====
+router.post("/users/:id/role", authenticateToken, requirePermission("users.role.write"), (req, res) => {
+  try {
+    const { ROLE_HIERARCHY } = require("../middleware/auth");
+    const db = getDb();
+    const targetRole = String((req.body || {}).role || "");
+    const targetId = req.params.id;
+    if (!ROLE_HIERARCHY.hasOwnProperty(targetRole)) {
+      return res.status(400).json({ success: false, error: "無效角色" });
+    }
+    if (targetId === req.user.id) {
+      return res.status(400).json({ success: false, error: "唔可以改自己嘅角色（防止鎖死）" });
+    }
+    const target = db.prepare("SELECT id, email, role FROM users WHERE id = ?").get(targetId);
+    if (!target) return res.status(404).json({ success: false, error: "用戶不存在" });
+
+    const myLevel = ROLE_HIERARCHY[req.user.role];
+    const theirLevel = ROLE_HIERARCHY[target.role];
+    const newLevel = ROLE_HIERARCHY[targetRole];
+    if (newLevel <= myLevel) {
+      return res.status(403).json({ success: false, error: "唔可以設定同等或更高權限嘅角色" });
+    }
+    if (theirLevel <= myLevel) {
+      return res.status(403).json({ success: false, error: "唔可以修改同等或更高權限嘅帳號" });
+    }
+
+    db.prepare("UPDATE users SET role = ?, token_version = COALESCE(token_version,0) + 1, updated_at = datetime('now') WHERE id = ?")
+      .run(targetRole, targetId);
+
+    try {
+      require("../services/audit").audit({
+        actionType: "ROLE_CHANGE",
+        entityType: "user",
+        entityId: targetId,
+        userId: req.user.id,
+        oldValues: { role: target.role },
+        newValues: { role: targetRole },
+        description: `角色變更：${target.role} → ${targetRole}`,
+        ipAddress: req.ip,
+      });
+    } catch (e) {}
+    try {
+      require("../services/blockchain-audit").writeBlock({
+        entityType: "user_role",
+        entityId: targetId,
+        data: { from: target.role, to: targetRole, by: req.user.id },
+      });
+    } catch (e) {}
+
+    return res.json({ success: true, role: targetRole, message: `已改為 ${targetRole}（該用戶需重新登入）` });
+  } catch (err) {
+    console.error("[ADMIN] role change error:", err.message);
+    return res.status(500).json({ success: false, error: "修改角色失敗" });
+  }
+});
+
+// ===== GET /api/admin/permissions — 權限矩陣（參考用）=====
+router.get("/permissions", authenticateToken, requirePermission("users.role.write"), (req, res) => {
+  const { ROLE_PERMISSIONS, PERMISSIONS } = require("../config/permissions");
+  return res.json({ success: true, roles: ROLE_PERMISSIONS, permissions: PERMISSIONS });
 });
 
 module.exports = router;

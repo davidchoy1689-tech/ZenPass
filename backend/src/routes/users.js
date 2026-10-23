@@ -151,9 +151,11 @@ router.get("/me", authenticateToken, (req, res) => {
 
     if (!user) return res.status(404).json({ success: false, error: "用戶不存在" });
 
+    const { permissionsFor } = require("../config/permissions");
     res.json({
       ...user,
       membership_expires_at: user.membership_expires_at || null,
+      permissions: permissionsFor(user.role),
     });
   } catch (err) {
     console.error("GET /users/me error:", err);

@@ -348,6 +348,37 @@ function requireOwnInstitution(req, res, next) {
 }
 
 /**
+ * Permission-based 檢查（2026-10-24）
+ * 用法：router.post("/x", authenticateToken, requirePermission("finance.payout.process"), handler)
+ */
+function requirePermission(perm) {
+  return function (req, res, next) {
+    if (!req.user) return res.status(401).json({ success: false, error: "需要登入認證" });
+    let role = req.user.role;
+    if (!role) {
+      try {
+        role = _getUserWithPartner(req.user.id)?.role;
+      } catch (e) {}
+    }
+    const { hasPermission } = require("../config/permissions");
+    if (!hasPermission(role, perm)) {
+      try {
+        require("../services/audit").audit({
+          actionType: "PERMISSION_DENIED",
+          entityType: "endpoint",
+          entityId: req.originalUrl,
+          userId: req.user.id,
+          description: `缺少權限 ${perm}`,
+          ipAddress: req.ip,
+        });
+      } catch (e) {}
+      return res.status(403).json({ success: false, error: "權限不足", required_permission: perm });
+    }
+    next();
+  };
+}
+
+/**
  * 檢查是否平台員工或以上 (platform_manager, super_admin)
  * 適合需要管理所有機構嘅操作
  */
@@ -452,6 +483,7 @@ module.exports = {
   optionalAuth,
   requireCoach,
   requireAdmin,
+  requirePermission,
   requireRole,
   requireOwnInstitution,
   requirePlatformStaff,

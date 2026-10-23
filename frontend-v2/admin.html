@@ -13,6 +13,9 @@
     .adm-tabs { display: flex; gap: 8px; overflow-x: auto; padding: 0 0 8px; margin: 0 -16px 8px; padding-left:16px; padding-right:16px; position: sticky; top: 0; background: var(--bg, #fff); z-index: 10; }
     .adm-tabs button { white-space: nowrap; border: 1px solid var(--border); background: var(--surface); color: var(--text); border-radius: 999px; padding: 8px 14px; font: inherit; font-weight: 700; font-size: 13px; cursor: pointer; }
     .adm-tabs button.on { background: var(--brand-500); color: #fff; border-color: var(--brand-500); }
+    .adm-groups { display: flex; gap: 6px; overflow-x: auto; margin: 0 -16px 8px; padding: 4px 16px; }
+    .adm-groups button { white-space: nowrap; border: 0; background: transparent; color: var(--text-muted); font: inherit; font-weight: 800; font-size: 13px; padding: 7px 10px; border-radius: 10px; cursor: pointer; }
+    .adm-groups button.on { background: #ecfdf5; color: #047857; }
     .row { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--border); gap: 10px; }
     .row:last-child { border-bottom: 0; }
     .kpis { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -27,6 +30,7 @@
 <body>
   <div class="topbar"><a class="back" href="my.html">‹</a><div class="title">管理後台</div></div>
   <div class="wrap">
+    <div class="adm-groups" id="groups"></div>
     <div class="adm-tabs" id="tabs"></div>
     <div id="panel"><div class="card"><div class="body muted">載入中…</div></div></div>
     <div class="spacer"></div>
@@ -39,17 +43,73 @@
     const money = (n) => hkd(Number(n) || 0);
     const st = (s) => ({ confirmed:"已確認", attended:"已出席", pending_payment:"待付款", cancelled:"已取消", no_show:"缺席", pending:"待處理", approved:"已通過", rejected:"已拒絕", active:"生效" }[s] || s || "");
 
+    // 分組 + 權限（2026-10-24）
+    const GROUPS = [
+      ["overview", "📊 概覽"],
+      ["ops", "🗓️ 營運"],
+      ["finance", "💰 財務"],
+      ["content", "🎨 內容"],
+      ["people", "👥 用戶"],
+      ["system", "⚙️ 系統"],
+    ];
+    // [key, label, group, permission]
     const TABS = [
-      ["dash","概覽"], ["pay","付款核實"], ["refund","退款待轉賬"], ["topup","增值待確認"], ["morder","會籍待確認"], ["fulfil","兌換待履行"], ["consult","健康諮詢"], ["inq","查詢"], ["classes","課程"],
-      ["bookings","預約"], ["users","用戶"], ["coach","教練申請"], ["payouts","出糧"],
-      ["ai","🤖 AI 開班"], ["reports","報表"], ["corp","企業"], ["partners","商戶"], ["jobs","Job"], ["pricing","定價"], ["penalty","罰則"], ["analytics","分析"], ["nps","評價"], ["promo","優惠碼"], ["marketing","推廣"], ["migrate","遷移"], ["audit","審計"],
+      ["dash", "儀表板", "overview", "finance.view"],
+      ["reports", "報表", "overview", "finance.view"],
+      ["analytics", "分析", "overview", "finance.view"],
+      ["pay", "付款核實", "ops", "finance.payment.confirm"],
+      ["refund", "退款待轉賬", "ops", "finance.refund.view"],
+      ["topup", "增值待確認", "ops", "finance.payment.confirm"],
+      ["morder", "會籍待確認", "ops", "finance.payment.confirm"],
+      ["fulfil", "兌換待履行", "ops", "ops.booking.write"],
+      ["consult", "健康諮詢", "ops", "ops.inquiry.view"],
+      ["inq", "查詢", "ops", "ops.inquiry.view"],
+      ["bookings", "預約", "ops", "ops.booking.view"],
+      ["classes", "課程／時段", "ops", "ops.class.view"],
+      ["jobs", "Job", "ops", "ops.booking.view"],
+      ["payouts", "出糧", "finance", "finance.payout.view"],
+      ["pricing", "定價", "finance", "finance.pricing.view"],
+      ["penalty", "罰則", "finance", "finance.penalty.write"],
+      ["ai", "🤖 AI 開班", "content", "content.class.write"],
+      ["promo", "優惠碼", "content", "content.marketing.write"],
+      ["marketing", "推廣", "content", "content.marketing.write"],
+      ["nps", "評價", "content", "content.marketing.write"],
+      ["partners", "商戶", "content", "ops.partner.view"],
+      ["corp", "企業", "content", "ops.partner.view"],
+      ["users", "用戶", "people", "users.view"],
+      ["coach", "教練申請", "people", "ops.coach.view"],
+      ["migrate", "遷移", "system", "system.migrate"],
+      ["audit", "審計", "system", "system.audit.view"],
     ];
     let cur = "dash";
+    let curGroup = "overview";
+    let MY_PERMS = null; // null = 未載入 → 先顯示全部，避免鎖死
+    const can = (perm) => !perm || MY_PERMS === null || MY_PERMS.includes(perm);
+    const allowedTabs = () => TABS.filter((t) => can(t[3]));
 
     function renderTabs() {
-      $("tabs").innerHTML = TABS.map(([k,l]) => `<button data-t="${k}" class="${cur===k?"on":""}">${l}</button>`).join("");
-      document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => { cur = b.dataset.t; renderTabs(); load(); });
+      const tabs = allowedTabs();
+      if (!tabs.some((t) => t[0] === cur)) cur = (tabs[0] || ["dash"])[0];
+      if (!GROUPS.some((g) => g[0] === curGroup)) curGroup = GROUPS[0][0];
+      if (!tabs.some((t) => t[2] === curGroup)) curGroup = (tabs.find((t) => t[0] === cur) || tabs[0] || ["", "", "overview"])[2];
+
+      $("groups").innerHTML = GROUPS.map(([g, l]) => (tabs.some((t) => t[2] === g)
+        ? `<button data-g="${g}" class="${curGroup === g ? "on" : ""}">${l}</button>` : "")).join("");
+      document.querySelectorAll("#groups button").forEach((b) => b.onclick = () => { curGroup = b.dataset.g; renderTabs(); });
+
+      const inGroup = tabs.filter((t) => t[2] === curGroup);
+      if (inGroup.length && !inGroup.some((t) => t[0] === cur)) { cur = inGroup[0][0]; }
+      $("tabs").innerHTML = inGroup.map(([k, l]) => `<button data-t="${k}" class="${cur === k ? "on" : ""}">${l}</button>`).join("");
+      document.querySelectorAll("#tabs button").forEach((b) => b.onclick = () => { cur = b.dataset.t; renderTabs(); load(); });
     }
+
+    async function loadPerms() {
+      try {
+        const me = await api.get("/users/me");
+        if (me.ok && me.data && Array.isArray(me.data.permissions)) MY_PERMS = me.data.permissions;
+      } catch (e) {}
+    }
+
     const loading = () => { panel().innerHTML = `<div class="card"><div class="body muted">載入中…</div></div>`; };
     const needAdmin = () => { panel().innerHTML = `<div class="card"><div class="body center">🔒 需要管理員權限。<br><br><a class="btn btn-primary" href="login.html?next=admin.html">管理員登入</a></div></div>`; };
     const row = (l, r) => `<div class="row"><span>${l}</span><span style="text-align:right">${r||""}</span></div>`;
@@ -146,7 +206,7 @@
         <p class="kv">${esc2(x.class_title || "")} · ${esc2(x.booking_reference || "")} · ${esc2(fmtBkTime(x.start_time))}</p>
         <p class="kv">方式 ${esc2(String(x.payment_method || "fps").toUpperCase())} · 申請 ${esc2(String(x.created_at || "").slice(0, 16))} · 原因：${esc2(x.reason || "—")}</p>
         <div style="display:flex;gap:8px;margin-top:10px">
-          <button class="btn btn-primary" data-done style="flex:1">✅ 已人手轉賬，標記完成</button>
+          ${can("finance.refund.complete") ? `<button class="btn btn-primary" data-done style="flex:1">✅ 已人手轉賬，標記完成</button>` : `<span class="kv" style="flex:1">🔒 冇完成退款權限</span>`}
           ${x.user_phone ? `<a class="btn btn-secondary" style="flex:0 0 auto" target="_blank" rel="noopener"
             href="${waLink(x.user_phone, `你好 ${x.user_name || ""}，關於你嘅預約 ${x.booking_reference || ""} 取消退款 HK$${Number(x.amount || 0).toFixed(2)}，麻煩提供收款戶口（銀行名稱＋戶口號碼）方便我哋安排轉賬，謝謝！`)}">💬 索取戶口</a>` : ""}
         </div>
@@ -301,7 +361,7 @@
           </span>
           <span style="text-align:right">${b.amount ? money(b.amount) : ""}
             <span class="pill ${b.status === "attended" ? "ok" : (b.status === "cancelled" || b.status === "no_show" ? "off" : "warn")}">${esc2(st(b.status))}</span>
-            ${b.status === "confirmed" ? `<button class="btn btn-ghost" data-attend="${esc2(b.id)}" type="button" style="font-size:12px;padding:8px 10px;margin-left:6px">✅ 標記出席</button>` : ""}
+            ${b.status === "confirmed" && can("ops.booking.write") ? `<button class="btn btn-ghost" data-attend="${esc2(b.id)}" type="button" style="font-size:12px;padding:8px 10px;margin-left:6px">✅ 標記出席</button>` : ""}
             ${isGuest ? waBtn(b.user_phone, msg) : ""}
           </span>
         </div>`;
@@ -345,7 +405,7 @@
       try {
         const m = await api.get("/admin/guest-merges");
         const merges = (m.data && m.data.merges) || [];
-        if (merges.length) {
+        if (merges.length && can("users.merge")) {
           _mergeHtml = `<div class="card" style="margin-bottom:12px;border:1.5px solid #f59e0b"><div class="body">
             <b>🔗 可合併訪客帳號（${merges.length}）</b>
             <div class="kv" style="margin:4px 0 8px">同一電話先做過「免註冊」預約，之後正式註冊。合併後舊預約會轉去新帳號。</div>
@@ -428,6 +488,16 @@
           <div class="kv" style="font-size:11.5px;margin-top:6px">正數＝補償加分，負數＝扣分；扣分唔可以低過 0。</div>
         </div>
         <div class="actions" style="display:flex;gap:8px;flex-wrap:wrap">
+        ${can("users.role.write") ? `<div class="body" style="border-top:1px solid var(--border);margin-top:10px;padding-top:10px">
+          <b>🔑 帳號角色</b>
+          <div class="kv">現時：${esc2(u.role || "user")}　（改動即時生效，對方會被強制重新登入）</div>
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <select class="fld" id="roleSel" style="flex:1">
+              ${["user","coach","partner_staff","partner_admin","partner_owner","admin","platform_staff","platform_manager"].map((r)=>`<option value="${r}"${(u.role||"user")===r?" selected":""}>${r}</option>`).join("")}
+            </select>
+            <button class="btn btn-primary" id="roleSave">儲存角色</button>
+          </div>
+        </div>` : ""}
           <button class="btn btn-ghost" id="revokeBtn">🔒 強制登出所有裝置</button>
           <button class="btn btn-secondary" onclick="closeModal(this)">關閉</button>
         </div>`);
@@ -446,6 +516,16 @@
         const rr = await api.patch("/admin/users/" + encodeURIComponent(id) + "/loyalty-tier", { tier, reason });
         if (rr.ok) { alert(rr.data.message || "已更新"); openUser(id); }
         else alert((rr.data&&rr.data.error)||"設定失敗");
+      };
+      const roleSaveEl = document.getElementById("roleSave");
+      if (roleSaveEl) roleSaveEl.onclick = async () => {
+        const role = document.getElementById("roleSel").value;
+        if (!confirm("確定將 " + (u.email || u.name) + " 改為「" + role + "」？")) return;
+        roleSaveEl.disabled = true;
+        const rr = await api.post("/admin/users/" + encodeURIComponent(id) + "/role", { role });
+        roleSaveEl.disabled = false;
+        if (rr.ok && rr.data && rr.data.success !== false) alert("✅ " + (rr.data.message || "已更新"));
+        else alert("❌ " + ((rr.data && rr.data.error) || "失敗"));
       };
       document.getElementById("revokeBtn").onclick = async () => {
         if (!confirm("確定強制此用戶所有裝置重新登入？")) return;
@@ -527,7 +607,11 @@
               style="flex:1;min-width:140px;border:1px solid var(--line);border-radius:8px;padding:7px 9px;font-size:12px" />
           </div>`).join("")}
         </div></div>`;
-      }).join("") + `<button class="btn btn-primary btn-block" id="savePricing" type="button">💾 儲存定價</button>`;
+      }).join("") + (can("finance.pricing.write") ? `<button class="btn btn-primary btn-block" id="savePricing" type="button">💾 儲存定價</button>` : `<div class="kv center" style="margin-top:8px">🔒 你冇修改定價權限（唯讀）</div>`);
+      if (!can("finance.pricing.write")) {
+        panel().querySelectorAll("[data-pk]").forEach((el) => { el.disabled = true; el.style.background = "#f1f5f9"; });
+        return;
+      }
       $("savePricing").onclick = async () => {
         const updates = {}; let bad = null;
         panel().querySelectorAll("[data-pk]").forEach((el) => {
@@ -877,8 +961,12 @@
       panel().innerHTML = html;
     }
 
-    renderTabs();
-    if (api.requireLogin("admin.html")) load();
+    (async () => {
+      if (!api.requireLogin("admin.html")) return;
+      await loadPerms();
+      renderTabs();
+      load();
+    })();
   </script>
 </body>
 </html>

@@ -54,7 +54,7 @@ const ok = (c, m) => { if (c) console.log("  ✅ " + m); else { console.log("  �
   ok(!!getLayer && getLayer.route.stack.length >= 3, "GET /admin/pricing 亦有 middleware");
 
   const src = fs.readFileSync(path.join(__dirname, "../src/routes/pricing.js"), "utf8");
-  ok(/router\.put\("\/admin\/pricing", authenticateToken, requireAdmin/.test(src), "PUT 已加 authenticateToken + requireAdmin");
+  ok(/router\.put\("\/admin\/pricing", authenticateToken, (requireAdmin|requirePermission)/.test(src), "PUT 已加 authenticateToken + admin/permission");
   ok(/router\.get\("\/admin\/pricing", authenticateToken, requireAdmin/.test(src), "GET 已加 authenticateToken + requireAdmin");
 
   console.log(fail === 0 ? "\n🎉 全部通過" : `\n❌ ${fail} 項失敗`);
