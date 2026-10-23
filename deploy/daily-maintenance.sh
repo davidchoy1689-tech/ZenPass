@@ -102,6 +102,46 @@ else
   echo "  ✅ Credits 結餘與流水一致" >> "$LOG_FILE"
 fi
 
+# 7. 退款狀態閉環（2026-10-23）
+# 7a. refund_state=pending 但 refund_logs 冇 pending → 狀態不一致
+REF_STATE_BAD=$(sqlite3 "$DB_PATH" "
+  SELECT COUNT(*) FROM bookings b
+  WHERE b.refund_state = 'pending'
+    AND NOT EXISTS (SELECT 1 FROM refund_logs r WHERE r.booking_id = b.id AND r.status = 'pending');
+" 2>/dev/null || echo "0")
+if [ "${REF_STATE_BAD:-0}" -gt 0 ]; then
+  echo "  ⚠️ $REF_STATE_BAD 筆 booking refund_state=pending 但冇對應 pending 退款紀錄" >> "$LOG_FILE"
+else
+  echo "  ✅ 退款狀態與退款紀錄一致" >> "$LOG_FILE"
+fi
+
+# 7b. 已退款金額超過 booking 金額 → 超退
+OVER_REFUND=$(sqlite3 "$DB_PATH" "
+  SELECT COUNT(*) FROM (
+    SELECT r.booking_id, SUM(r.amount) AS refunded, b.amount
+    FROM refund_logs r JOIN bookings b ON b.id = r.booking_id
+    WHERE r.status IN ('completed','pending')
+    GROUP BY r.booking_id
+    HAVING refunded > b.amount + 0.01
+  );
+" 2>/dev/null || echo "0")
+if [ "${OVER_REFUND:-0}" -gt 0 ]; then
+  echo "  ❌ $OVER_REFUND 筆預約退款總額超過原付款金額（需即時人手核查）" >> "$LOG_FILE"
+else
+  echo "  ✅ 冇超額退款" >> "$LOG_FILE"
+fi
+
+# 7c. 訪客預約：孤兒 booking（user 唔存在）
+GUEST_ORPHAN=$(sqlite3 "$DB_PATH" "
+  SELECT COUNT(*) FROM bookings b
+  WHERE NOT EXISTS (SELECT 1 FROM users u WHERE u.id = b.user_id);
+" 2>/dev/null || echo "0")
+if [ "${GUEST_ORPHAN:-0}" -gt 0 ]; then
+  echo "  ⚠️ $GUEST_ORPHAN 筆 booking 冇對應用戶（外鍵異常）" >> "$LOG_FILE"
+else
+  echo "  ✅ 所有 booking 都有對應用戶" >> "$LOG_FILE"
+fi
+
 # Summary
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] ✅ 每日維護完成" >> "$LOG_FILE"
 echo "" >> "$LOG_FILE"

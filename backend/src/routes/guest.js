@@ -108,6 +108,7 @@ function guestBookings(db, userId) {
     .prepare(
       `SELECT b.id, b.booking_reference, b.status, b.payment_status, b.payment_method,
               b.amount, b.fps_reference, b.payme_reference, b.created_at,
+              b.cancel_reason, b.refund_state,
               s.start_time, s.end_time, c.title AS class_title,
               COALESCE(v.name, c.venue_name) AS venue_name,
               COALESCE(v.address, c.venue_address) AS venue_address
