@@ -724,7 +724,8 @@ router.get("/class-students", authenticateToken, (req, res) => {
     const me = db
       .prepare("SELECT role FROM users WHERE id = ?")
       .get(req.user.id);
-    const isAdmin = me && (me.role === "admin" || me.role === "super_admin");
+    const { hasMinimumRole } = require("../middleware/auth");
+    const isAdmin = me && hasMinimumRole(me.role, "admin");
     if (!isAdmin && classInfo.coach_id !== req.user.id) {
       return res
         .status(403)
