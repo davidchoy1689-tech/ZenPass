@@ -179,8 +179,16 @@ router.put("/config", authenticateToken, (req, res) => {
 
 // ===== 3. POST /api/topup/execute — 手動觸發 =====
 router.post("/execute", authenticateToken, (req, res) => {
-  // 🚫 安全：auto top-up 未有真實扣款來源，只限管理員手動觸發
-  const isAdmin = ["admin", "super_admin", "partner_owner"].includes(req.user && req.user.role);
+  // 🚫 安全（2026-10-24）：完全停用。
+  // 原因：auto top-up 冇真實扣款來源，admin／partner_owner 一按就為自己加免費 credits，
+  // 而且只寫 auto_topup_history（唔經 wallet ledger / 人手核對收款）→ 破壞金錢可審計性。
+  return res.status(403).json({
+    success: false,
+    error: "自動增值暫停用，請到「增值」頁以 FPS / PayMe 入數（管理員核對收款後加點）。",
+    code: "DISABLED",
+  });
+  /* eslint-disable no-unreachable */
+  const isAdmin = ["admin", "super_admin"].includes(req.user && req.user.role);
   if (!isAdmin) {
     return res.status(403).json({
       success: false,

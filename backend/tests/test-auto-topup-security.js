@@ -61,7 +61,11 @@ const ok = (c, m) => { if (c) console.log("  ✅ " + m); else { console.log("  �
   const web = fs.readFileSync(path.join(__dirname, "..", "..", "frontend-v2", "topup-auto.html"), "utf8");
   ok(/AUTO_TOPUP_DISABLED/.test(src), "後端有封鎖碼");
   ok(!/if \(finalEnabled\) \{\s*autoExecuted = executeAutoTopup/.test(src), "已移除即時執行");
-  ok(/DISABLED/.test(src) && /只限管理員/.test(src), "/execute 仍限管理員");
+// 2026-10-24：/execute 完全停用（admin 亦唔可以無付款加點）
+ok(
+  /router\.post\("\/execute"[\s\S]{0,700}code: "DISABLED"/.test(src),
+  "/execute 完全停用（admin 都唔可以無付款加點）",
+);
   ok(/暫停用/.test(web), "前端顯示暫停用提示");
   ok(/id="en"[^>]*disabled/.test(web), "前端開關已停用");
 
