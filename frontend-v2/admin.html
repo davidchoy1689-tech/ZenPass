@@ -274,8 +274,27 @@
       if (r.status === 401 || r.status === 403) return needAdmin();
       const arr = (r.data && r.data.users) || [];
       if (!arr.length) { panel().innerHTML = `<div class="card"><div class="body muted center">暫無用戶。</div></div>`; return; }
-      panel().innerHTML = `<div class="card">${arr.map(u => `<div class="row" data-u="${esc2(u.id)}" style="cursor:pointer"><span>${esc2(u.name || u.email)}<div class="kv">${esc2(u.email)}${u.is_coach ? " · 🧑‍🏫" : ""}</div></span><span style="text-align:right">${u.credits||0} cr <span class="pill">${esc2(u.membership_type||"none")}</span> ›</span></div>`).join("")}</div>`;
+      let mergeHtml = "";
+      try {
+        const m = await api.get("/admin/guest-merges");
+        const merges = (m.data && m.data.merges) || [];
+        if (merges.length) {
+          mergeHtml = `<div class="card" style="margin-bottom:12px;border:1.5px solid #f59e0b"><div class="body">
+            <b>🔗 可合併訪客帳號（${merges.length}）</b>
+            <div class="kv" style="margin:4px 0 8px">同一電話先做過「免註冊」預約，之後正式註冊。合併後舊預約會轉去新帳號。</div>
+            ${merges.map(x => `<div class="row"><span>${esc2(x.guest.name)}（${esc2(x.guest.phone)}）<div class="kv">→ ${esc2(x.target.name || x.target.email)} · ${x.bookings} 個預約</div></span>
+              <button class="btn btn-secondary" data-merge="${esc2(x.guest.id)}" data-target="${esc2(x.target.id)}" type="button">合併</button></div>`).join("")}
+          </div></div>`;
+        }
+      } catch (e) {}
+      panel().innerHTML = mergeHtml + `<div class="card">${arr.map(u => `<div class="row" data-u="${esc2(u.id)}" style="cursor:pointer"><span>${esc2(u.name || u.email)}<div class="kv">${esc2(u.email)}${u.is_coach ? " · 🧑‍🏫" : ""}</div></span><span style="text-align:right">${u.credits||0} cr <span class="pill">${esc2(u.membership_type||"none")}</span> ›</span></div>`).join("")}</div>`;
       panel().querySelectorAll("[data-u]").forEach(el => el.onclick = () => openUser(el.dataset.u));
+      panel().querySelectorAll("[data-merge]").forEach(btn => btn.onclick = async () => {
+        if (!confirm("確定合併？此操作會將訪客預約轉去目標帳號，並記錄 audit。")) return;
+        const r2 = await api.post("/admin/merge-guest", { guest_user_id: btn.dataset.merge, target_user_id: btn.dataset.target });
+        if (r2.ok) { alert("✅ 已合併 " + (r2.data.moved_bookings || 0) + " 個預約"); usersTab(); }
+        else alert("❌ " + ((r2.data && r2.data.error) || "合併失敗"));
+      });
     }
     async function openUser(id) {
       const r = await api.get("/admin/user-detail/" + encodeURIComponent(id));

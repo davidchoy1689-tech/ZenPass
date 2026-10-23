@@ -820,4 +820,28 @@ router.post("/merge-guest", authenticateToken, requireAdmin, (req, res) => {
   }
 });
 
+// ===== GET /api/admin/guest-merges — 列出可合併嘅訪客帳號 =====
+router.get("/guest-merges", authenticateToken, requireAdmin, (req, res) => {
+  try {
+    const db = getDb();
+    const norm = (x) => String(x || "").replace(/[^\d]/g, "").replace(/^852/, "").replace(/^0/, "");
+    const rows = db
+      .prepare("SELECT id, name, email, phone, lead_source, created_at FROM users WHERE phone IS NOT NULL AND phone != ''")
+      .all();
+    const guests = rows.filter((u) => u.lead_source === "guest_checkout");
+    const out = [];
+    for (const g of guests) {
+      const p = norm(g.phone);
+      if (p.length !== 8) continue;
+      const target = rows.find((u) => u.id !== g.id && u.lead_source !== "guest_checkout" && norm(u.phone) === p);
+      if (!target) continue;
+      const cnt = db.prepare("SELECT COUNT(*) AS n FROM bookings WHERE user_id = ?").get(g.id).n;
+      out.push({ guest: g, target, bookings: cnt });
+    }
+    return res.json({ success: true, merges: out });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: "讀取失敗" });
+  }
+});
+
 module.exports = router;
