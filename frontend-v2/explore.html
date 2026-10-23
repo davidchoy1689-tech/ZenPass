@@ -262,7 +262,7 @@
   </nav>
 
   <script src="assets/covers.js?v=8"></script>
-  <script src="assets/api.js"></script>
+  <script src="assets/api.js?v=3"></script>
   <script src="assets/sport-icons.js?v=14"></script>
   <script>
     /* ================= explore.html v3 ================= */
@@ -420,7 +420,9 @@
       const s = fut[0]; if (!s) return "";
       const h = hkt(s.start_time); if (!h) return "";
       const d = new Date(h.date + "T00:00:00");
-      return h.date.slice(5).replace("-", "/") + `（週${WDAY[d.getDay()]}）${pad(h.hour)}:00`;
+      const he = hkt(s.end_time);
+      const range = he ? `- ${pad(he.hour)}:${pad(he.minute)}` : "";
+      return h.date.slice(5).replace("-", "/") + `（週${WDAY[d.getDay()]}）${pad(h.hour)}:${pad(h.minute)} ${range}`.trim();
     }
     function seatsLeft(c) {
       let best = null;

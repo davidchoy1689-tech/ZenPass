@@ -208,7 +208,7 @@
     <a class="active" href="my.html"><span class="ic">🎫</span>我的</a>
   </nav>
 
-  <script src="assets/api.js"></script>
+  <script src="assets/api.js?v=3"></script>
   <script src="assets/sport-icons.js?v=14"></script>
   <script>
     const $ = (id) => document.getElementById(id);
@@ -654,7 +654,7 @@
             const st = STATUS_LABEL[b.status] || b.status;
             return `<div class="row">
               <div><b>${esc(b.student_name || "學生")}</b>
-                <div class="muted" style="font-size:12px">${esc(b.class_title || "")} · ${fmtTime(b.start_time)}</div>
+                <div class="muted" style="font-size:12px">${esc(b.class_title || "")} · ${fmtTime(b.start_time, b.end_time)}</div>
                 <div class="muted" style="font-size:12px">${esc(b.student_email || "")}${b.student_phone ? " · " + esc(b.student_phone) : ""}</div></div>
               <div style="text-align:right;white-space:nowrap"><div>${hkd(b.venue_earned_amount || 0)}</div><div class="muted" style="font-size:12px">${esc(st)}</div></div>
             </div>`;

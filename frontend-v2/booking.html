@@ -294,7 +294,7 @@
   </div>
 
   <script src="assets/holidays.js"></script>
-  <script src="assets/api.js"></script>
+  <script src="assets/api.js?v=3"></script>
   <script>
     const $ = (x) => document.getElementById(x);
     const show = (x) => {
@@ -408,7 +408,7 @@
         <div class="monthbar"><b>${esc(m)} · ${byM[m].length} 堂</b><button data-month="${esc(m)}">全選 / 取消</button></div>
         <div class="card">${byM[m].map(s => `
           <label class="sess"><input type="checkbox" data-sid="${esc(s.id)}" ${sel.has(s.id)?"checked":""} />
-            <span class="t">${fmtTime(s.start_time)}<small>${s.notes ? esc(s.notes) + " · " : ""}剩 ${(s.max_participants-s.enrolled_count)} 位</small></span>
+            <span class="t">${fmtTime(s.start_time, s.end_time)}<small>${s.notes ? esc(s.notes) + " · " : ""}剩 ${(s.max_participants-s.enrolled_count)} 位</small></span>
           </label>`).join("")}</div>`).join("")
         : `<div class="card"><div class="body muted">暫無可預約時段。</div></div>`;
 
@@ -433,7 +433,7 @@
         <div class="row"><span class="k">地點</span><span class="v">${esc(cls.venue_name || "—")}</span></div>
         <div class="row"><span class="k">對象</span><span class="v">${esc(cls.target_audience || "—")}</span></div>
         <div class="row"><span class="k">堂數</span><span class="v">${chosen.length} 堂</span></div>`
-        + chosen.map(s => `<div class="row"><span class="k">${fmtTime(s.start_time)}</span><span class="v muted">${esc(s.notes||"")}</span></div>`).join("");
+        + chosen.map(s => `<div class="row"><span class="k">${fmtTime(s.start_time, s.end_time)}</span><span class="v muted">${esc(s.notes||"")}</span></div>`).join("");
       show("step2"); setStep(2); updateBar();
     };
     $("toStep3").onclick = () => {
@@ -592,7 +592,7 @@
       const n = list.length;
       const gs = groupSize();
       const total = unit() * n * gs * (gs === 3 ? 0.8 : 1);
-      const when = first ? (typeof fmtTime === "function" ? fmtTime(first.start_time) : String(first.start_time)) + (n > 1 ? "　等 " + n + " 堂" : "") : "—";
+      const when = first ? (typeof fmtTime === "function" ? fmtTime(first.start_time, first.end_time) : String(first.start_time)) + (n > 1 ? "　等 " + n + " 堂" : "") : "—";
       const rows = [
         ["課程", (cls && cls.title) || "—"],
         ["時間", when],

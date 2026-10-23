@@ -89,13 +89,19 @@
   window.esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   window.cr = (hkd) => (hkd == null ? "" : String(Math.round((Number(hkd) / 10) * 10) / 10)); // price_hkd → credits（$95→9.5cr，保留 1 位小數）
   window.hkd = (n) => (n == null ? "" : "HK$" + Number(n).toLocaleString());
-  window.fmtTime = (s) => {
+  // 短格式（週X M/D HH:MM–HH:MM），有 end 就自動顯示完堂時間
+  window.fmtTime = (s, e) => {
     if (!s) return "";
-    const d = new Date(s.replace(" ", "T"));
+    const d = new Date(String(s).replace(" ", "T"));
     if (isNaN(d)) return s;
     const wd = ["日","一","二","三","四","五","六"][d.getDay()];
     const p = (n) => String(n).padStart(2, "0");
-    return `週${wd} ${d.getMonth() + 1}/${d.getDate()} ${p(d.getHours())}:${p(d.getMinutes())}`;
+    let out = `週${wd} ${d.getMonth() + 1}/${d.getDate()} ${p(d.getHours())}:${p(d.getMinutes())}`;
+    if (e) {
+      const d2 = new Date(String(e).replace(" ", "T"));
+      if (!isNaN(d2)) out += `–${p(d2.getHours())}:${p(d2.getMinutes())}`;
+    }
+    return out;
   };
   // 完整日期（年月日）+ 時間，例：2026年10月20日（週二）19:00–20:00
   window.fmtDateTime = (s, e) => {

@@ -35,7 +35,7 @@
     <a class="active" href="my.html"><span class="ic">🎫</span>我的</a>
   </nav>
 
-  <script src="assets/api.js"></script>
+  <script src="assets/api.js?v=3"></script>
   <script>
     let all = [];
     let cur = "upcoming";
@@ -55,7 +55,7 @@
       return `<div class="card"><div class="body">
         <div style="display:flex;justify-content:space-between;align-items:start">
           <div><p class="bk-title">${esc(b.title || "課程")}</p>
-            <p class="muted" style="margin:0;font-size:13px">${fmtTime(b.start_time)}${b.venue_name ? " · " + esc(b.venue_name) : ""}</p></div>
+            <p class="muted" style="margin:0;font-size:13px">${fmtTime(b.start_time, b.end_time)}${b.venue_name ? " · " + esc(b.venue_name) : ""}</p></div>
           ${badge(b.status)}
         </div>
         ${actions ? `<div class="actions">${actions}</div>` : ""}
