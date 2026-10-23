@@ -434,6 +434,7 @@ function updateCourse(courseId, body) {
     "title", "title_en", "description", "description_en", "category", "difficulty",
     "duration", "max_participants", "price_hkd", "credits_cost", "venue_name",
     "venue_address", "venue_district", "latitude", "longitude", "image_url", "status",
+    "booking_open", "district", "target_audience", "equipment",
   ];
 
   const updates = [];

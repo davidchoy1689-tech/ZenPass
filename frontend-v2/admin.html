@@ -728,6 +728,14 @@
         </div>
         <input class="ef" id="ef-venue" value="${esc2(c.venue_name||"")}" placeholder="場地名稱" style="margin-top:8px">
         <input class="ef" id="ef-address" value="${esc2(c.venue_address||"")}" placeholder="場地地址" style="margin-top:8px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
+          <input class="ef" id="ef-district" value="${esc2(c.district||"")}" placeholder="地區（例：觀塘）">
+          <input class="ef" id="ef-target" value="${esc2(c.target_audience||"")}" placeholder="適合對象">
+        </div>
+        <input class="ef" id="ef-image" value="${esc2(c.image_url||"")}" placeholder="封面圖 URL（可空＝用通用圖）" style="margin-top:8px">
+        <label style="display:flex;gap:8px;align-items:center;margin-top:8px;font-size:13px">
+          <input type="checkbox" id="ef-open" ${c.booking_open === 0 ? "" : "checked"} /> 開放預約（取消勾選＝網站只展示、唔收單）
+        </label>
         <textarea class="ef" id="ef-desc" rows="4" placeholder="課程內容" style="margin-top:8px">${esc2(c.description||"")}</textarea>
         <div style="display:flex;gap:8px;margin-top:8px"><select class="ef" id="ef-status">${stt}</select><button class="btn btn-secondary" id="ef-gen" style="white-space:nowrap">🤖 生成描述</button></div>
         <div id="ef-genopts"></div>
@@ -746,8 +754,8 @@
       };
       loadSchedules(o, id);
       o.querySelector("#ef-save").onclick = async () => {
-        const data = { title: v("ef-title"), category: v("ef-category"), difficulty: v("ef-difficulty"), duration: parseInt(v("ef-duration"))||0, price_hkd: parseFloat(v("ef-price"))||0, credits_cost: parseInt(v("ef-credits"))||0, max_participants: parseInt(v("ef-max"))||0, venue_name: v("ef-venue"), venue_address: v("ef-address"), description: v("ef-desc"), status: v("ef-status") };
-        const sr = await api.post("/admin/update-course/" + encodeURIComponent(id), data);
+        const data = { title: v("ef-title"), category: v("ef-category"), difficulty: v("ef-difficulty"), duration: parseInt(v("ef-duration"))||0, price_hkd: parseFloat(v("ef-price"))||0, credits_cost: parseInt(v("ef-credits"))||0, max_participants: parseInt(v("ef-max"))||0, venue_name: v("ef-venue"), venue_address: v("ef-address"), district: v("ef-district"), target_audience: v("ef-target"), image_url: v("ef-image") || null, booking_open: o.querySelector("#ef-open").checked ? 1 : 0, description: v("ef-desc"), status: v("ef-status") };
+        const sr = await api.put("/admin/update-course/" + encodeURIComponent(id), data);
         if (sr.ok && sr.data && sr.data.success !== false) { o.remove(); alert((sr.data&&sr.data.message)||"已更新"); load(); }
         else alert((sr.data&&sr.data.error)||"更新失敗");
       };
