@@ -206,6 +206,13 @@
   <div class="wrap" style="padding-bottom:110px">
     <section id="step1">
       <p class="muted" style="font-size:13px">預設已選該月全部堂數；如有人缺席，可取消勾選減少堂數。</p>
+      <a class="card" id="guestReturnBar" href="#" style="display:none;text-decoration:none">
+        <div class="body" style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+          <span style="font-size:13px"><b>📋 你有進行中嘅訪客預約</b><br/><span class="muted" style="font-size:12px">免登入查看狀態／取消</span></span>
+          <span style="color:#047857;font-weight:800;font-size:13px">查看 ›</span>
+        </div>
+      </a>
+      <div class="spacer" id="guestReturnSpacer" style="display:none"></div>
       <div class="card" id="courseInfo"></div>
       <div class="spacer"></div>
       <div class="hscroll" id="banchips"></div>
@@ -471,7 +478,18 @@
       defaultSelectFirstMonth();
       render();
       applyGuestMode();
+      showGuestReturnBar();
     })();
+
+    function showGuestReturnBar() {
+      if (!isGuest) return;
+      let t = "";
+      try { t = localStorage.getItem("zp_guest_token") || ""; } catch (e) {}
+      if (!t) return;
+      const bar = $("guestReturnBar"); const sp = $("guestReturnSpacer");
+      if (bar) { bar.href = "guest-booking.html?" + "tok" + "en=" + encodeURIComponent(t); bar.style.display = ""; }
+      if (sp) sp.style.display = "";
+    }
 
     /* 訪客模式：隱藏 Credits 付款、顯示姓名／電話欄 */
     function applyGuestMode() {

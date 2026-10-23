@@ -142,19 +142,30 @@
       if (!arr.length) { panel().innerHTML = `<div class="card"><div class="body muted center">目前冇待轉賬退款 ✅</div></div>`; return; }
       panel().innerHTML = arr.map(x => `<div class="card" data-rid="${esc2(x.id)}"><div class="body">
         <div style="display:flex;justify-content:space-between"><b>${esc2(x.user_name || "用戶")}</b><span class="amt">${money(x.amount)}</span></div>
-        <p class="kv">${esc2(x.user_email || "")}${x.user_phone ? " · " + esc2(x.user_phone) : ""}</p>
-        <p class="kv">${esc2(x.class_title || "")} · ${esc2(x.booking_reference || "")} · ${esc2(String(x.start_time || "").slice(0, 16))}</p>
+        <p class="kv">${/^guest\+/.test(String(x.user_email||"")) ? "⚡ 訪客（免註冊）" : esc2(x.user_email || "")}${x.user_phone ? " · " + esc2(x.user_phone) : ""}</p>
+        <p class="kv">${esc2(x.class_title || "")} · ${esc2(x.booking_reference || "")} · ${esc2(fmtBkTime(x.start_time))}</p>
         <p class="kv">方式 ${esc2(String(x.payment_method || "fps").toUpperCase())} · 申請 ${esc2(String(x.created_at || "").slice(0, 16))} · 原因：${esc2(x.reason || "—")}</p>
-        <button class="btn btn-primary" data-done style="margin-top:10px;width:100%">✅ 已人手轉賬，標記完成</button>
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <button class="btn btn-primary" data-done style="flex:1">✅ 已人手轉賬，標記完成</button>
+          ${x.user_phone ? `<a class="btn btn-secondary" style="flex:0 0 auto" target="_blank" rel="noopener"
+            href="${waLink(x.user_phone, `你好 ${x.user_name || ""}，關於你嘅預約 ${x.booking_reference || ""} 取消退款 HK$${Number(x.amount || 0).toFixed(2)}，麻煩提供收款戶口（銀行名稱＋戶口號碼）方便我哋安排轉賬，謝謝！`)}">💬 索取戶口</a>` : ""}
+        </div>
       </div></div>`).join("");
       panel().querySelectorAll("[data-done]").forEach(b => b.onclick = async () => {
         const id = b.closest(".card").dataset.rid;
+        const x = arr.find((v) => v.id === id) || {};
         const ref = prompt("請輸入轉賬參考編號（例如 FPS ref / 銀行參考）");
         if (!ref) return;
         const note = prompt("備註（可留空）") || "";
         b.disabled = true;
         const rr = await api.post(`/admin/refunds/${encodeURIComponent(id)}/complete`, { transfer_reference: ref, note });
-        if (rr.ok && rr.data && rr.data.success !== false) return load();
+        if (rr.ok && rr.data && rr.data.success !== false) {
+          if (x.user_phone) {
+            const u = waLink(x.user_phone, `✅ 已退款 HK$${Number(x.amount || 0).toFixed(2)}\n預約：${x.booking_reference || ""}\n轉賬參考：${ref}\n如有問題請回覆此訊息。`);
+            if (u && confirm("退款已完成。要唔要即刻 WhatsApp 通知客人（含轉賬參考）？")) window.open(u, "_blank");
+          }
+          return load();
+        }
         b.disabled = false;
         alert((rr.data && rr.data.error) || "失敗");
       });
