@@ -40,7 +40,7 @@ has(bk, "function setupDoneActions", "done actions");
 has(bk, "icsBtn", "ICS button");
 has(bk, "gcalBtn", "Google Calendar button");
 has(bk, "waRemind", "WhatsApp reminder button");
-has(bk, "BEGIN:VCALENDAR", "ICS content");
+has(bk, "/api/calendar/schedule.ics", "ICS via server endpoint");
 has(bk, "calendar.google.com/calendar/render", "Google Calendar url");
 if (!/setupDoneActions\(\)/.test(bk)) fails.push("setupDoneActions should be called");
 
