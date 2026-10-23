@@ -111,7 +111,7 @@ router.get("/schedule.ics", (req, res) => {
         `DTEND:${toUtc(en)}`,
         fold(`SUMMARY:${icsEscape("ZenPass｜" + (r.title || "課堂"))}`),
         fold(`LOCATION:${icsEscape(loc)}`),
-        fold(`DESCRIPTION:${icsEscape("請提前 10 分鐘到達。如需改期或取消，請於開課前 3 日喺 zenpass.hk 辦理。")}`),
+        fold(`DESCRIPTION:${icsEscape("請提前 10 分鐘到達。如需改期或取消，請於開課前 3 日（72 小時）喺 zenpass.hk 辦理。")}`),
         "STATUS:CONFIRMED",
         "TRANSP:OPAQUE",
         // 上課前 60 分鐘提醒

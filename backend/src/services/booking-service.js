@@ -1210,7 +1210,7 @@ function cancellationFeeRate(hoursUntil) {
 /**
  * 會籍權益：免費取消
  * - unlimited_cancel（高階/VIP Pass）→ 任何時間免罰
- * - free_cancel（所有 Pass，符合「開課前 3 日自由取消」）→ ≥72 小時免罰（<72 小時仍可免罰，屬 Pass 權益）
+ * - free_cancel（所有 Pass，符合「開課前 3 日免費取消」）→ ≥72 小時免罰（<72 小時仍可免罰，屬 Pass 權益）
  * 未持有有效會籍 → 按原本政策收費
  */
 function resolveCancellationFeeRate(userId, hoursUntilClass, baseRate) {
@@ -1521,10 +1521,10 @@ function _processNormalCancel(db, booking, reason, req, feeRate) {
     body: {
       message:
         feeRate === 0
-          ? "預約已取消（開課前 3 日以上，全額退回）"
+          ? "預約已取消（開課前 3 日（72 小時）以上，全數退回）"
           : feeRate === 0.5
-            ? "預約已取消（開課前 1–3 日，扣除 50% 課程費）"
-            : "預約已取消（開課前不足 1 日／當日，扣除 100% 課程費）",
+            ? "預約已取消（開課前 1–3 日（24–72 小時），退回 50%）"
+            : "預約已取消（開課當日或不足 24 小時，不設退款／扣 100%）",
       fee_rate: feeRate,
     },
   };
