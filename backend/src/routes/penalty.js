@@ -14,7 +14,7 @@
 const express = require("express");
 const { v4: uuidv4 } = require("uuid");
 const { getDb } = require("../services/database");
-const { authenticateToken, requireAdmin } = require("../middleware/auth");
+const { authenticateToken, requireAdmin, requirePermission } = require("../middleware/auth");
 
 // 只准本機 scheduler 或 admin 觸發全體缺席處理
 function adminOrLocal(req, res, next) {
@@ -242,12 +242,9 @@ router.post("/process-no-shows", adminOrLocal, (req, res) => {
 });
 
 // ===== 2. POST /api/penalty/settings — 更新罰款設定（Admin only）=====
-router.post("/settings", authenticateToken, (req, res) => {
+// 🔒 2026-10-24：罰則影響金錢 → finance.penalty.write（admin 客服級唔可以改罰款）
+router.post("/settings", authenticateToken, requirePermission("finance.penalty.write"), (req, res) => {
   try {
-    const user = getDb().prepare("SELECT role FROM users WHERE id = ?").get(req.user.id);
-    if (!user || !["admin", "super_admin"].includes(user.role)) {
-      return res.status(403).json({ success: false, error: "只限管理員" });
-    }
     const { no_show_penalty_credits, no_show_grace_minutes } = req.body;
     const db = getDb();
     if (no_show_penalty_credits !== undefined) {

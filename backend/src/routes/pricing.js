@@ -232,7 +232,12 @@ router.get("/admin/peak", authenticateToken, requireAdmin, (req, res) => {
 });
 
 // ===== PUT /api/pricing/admin/peak — 開關高峰附加費（預設關閉）=====
-router.put("/admin/peak", authenticateToken, requireAdmin, (req, res) => {
+// 🔒 2026-10-24：改價屬 finance.pricing.write（admin 客服級唔可以改價）
+router.put(
+  "/admin/peak",
+  authenticateToken,
+  requirePermission("finance.pricing.write"),
+  (req, res) => {
   try {
     const { enabled, multiplier } = req.body || {};
     const db = getDb();
@@ -256,7 +261,8 @@ router.put("/admin/peak", authenticateToken, requireAdmin, (req, res) => {
     console.error("更新高峰設定錯誤:", err.message);
     res.status(500).json({ success: false, error: "更新失敗" });
   }
-});
+  },
+);
 
 // ===== GET /api/pricing/dynamic — 動態時段定價 =====
 // 根據剩餘名額自動調整 Credit 消耗
