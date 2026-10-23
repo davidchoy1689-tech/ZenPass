@@ -332,33 +332,62 @@
     function openModal(html) { const o = document.createElement("div"); o.className = "modal-overlay"; o.innerHTML = `<div class="modal">${html}</div>`; document.body.appendChild(o); o.onclick = (ev) => { if (ev.target === o) o.remove(); }; return o; }
     window.closeModal = (el) => { const o = el.closest(".modal-overlay"); if (o) o.remove(); };
 
+    let _usersCache = [], _mergeHtml = "";
     async function usersTab() {
-      const r = await api.get("/admin/users?limit=200");
+      const r = await api.get("/admin/users?limit=500");
       if (r.status === 401 || r.status === 403) return needAdmin();
       const arr = (r.data && r.data.users) || [];
+      _usersCache = arr;
       if (!arr.length) { panel().innerHTML = `<div class="card"><div class="body muted center">暫無用戶。</div></div>`; return; }
-      let mergeHtml = "";
+
+      // 🔗 可合併訪客帳號
+      _mergeHtml = "";
       try {
         const m = await api.get("/admin/guest-merges");
         const merges = (m.data && m.data.merges) || [];
         if (merges.length) {
-          mergeHtml = `<div class="card" style="margin-bottom:12px;border:1.5px solid #f59e0b"><div class="body">
+          _mergeHtml = `<div class="card" style="margin-bottom:12px;border:1.5px solid #f59e0b"><div class="body">
             <b>🔗 可合併訪客帳號（${merges.length}）</b>
             <div class="kv" style="margin:4px 0 8px">同一電話先做過「免註冊」預約，之後正式註冊。合併後舊預約會轉去新帳號。</div>
-            ${merges.map(x => `<div class="row"><span>${esc2(x.guest.name)}（${esc2(x.guest.phone)}）<div class="kv">→ ${esc2(x.target.name || x.target.email)} · ${x.bookings} 個預約</div></span>
+            ${merges.map((x) => `<div class="row"><span>${esc2(x.guest.name)}（${esc2(x.guest.phone)}）<div class="kv">→ ${esc2(x.target.name || x.target.email)} · ${x.bookings} 個預約</div></span>
               <button class="btn btn-secondary" data-merge="${esc2(x.guest.id)}" data-target="${esc2(x.target.id)}" type="button">合併</button></div>`).join("")}
           </div></div>`;
         }
       } catch (e) {}
-      panel().innerHTML = mergeHtml + `<div class="card">${arr.map(u => `<div class="row" data-u="${esc2(u.id)}" style="cursor:pointer"><span>${esc2(u.name || u.email)}<div class="kv">${esc2(u.email)}${u.is_coach ? " · 🧑‍🏫" : ""}</div></span><span style="text-align:right">${u.credits||0} cr <span class="pill">${esc2(u.membership_type||"none")}</span> ›</span></div>`).join("")}</div>`;
-      panel().querySelectorAll("[data-u]").forEach(el => el.onclick = () => openUser(el.dataset.u));
-      panel().querySelectorAll("[data-merge]").forEach(btn => btn.onclick = async () => {
+
+      panel().innerHTML = _mergeHtml + `<div class="card" style="margin-bottom:12px"><div class="body">
+        <input id="userSearch" placeholder="🔍 搜尋姓名 / Email / 電話 / 編號…" style="width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font:inherit" />
+        <div class="kv" id="userCount" style="margin-top:6px"></div>
+      </div></div><div id="userList"></div>`;
+      const inp = $("userSearch");
+      if (inp) inp.oninput = () => renderUsers(inp.value.trim());
+      renderUsers("");
+      bindMergeButtons();
+    }
+    function renderUsers(q) {
+      const box = $("userList"); if (!box) return;
+      const arr = _usersCache || [];
+      const key = String(q || "").trim().toLowerCase();
+      const list = key
+        ? arr.filter((u) => [u.name, u.email, u.phone, u.user_reference].some((v) => String(v || "").toLowerCase().includes(key)))
+        : arr;
+      const cnt = $("userCount");
+      if (cnt) cnt.textContent = key ? `搵到 ${list.length} / ${arr.length} 位用戶` : `共 ${arr.length} 位用戶（撳一下睇詳情）`;
+      box.innerHTML = list.length
+        ? `<div class="card">${list.map((u) => `<div class="row" data-u="${esc2(u.id)}" style="cursor:pointer"><span>${esc2(u.name || u.email)}${u.lead_source === "guest_checkout" ? ' <span class="pill warn">訪客</span>' : ""}<div class="kv">${esc2(u.email)}${u.phone ? " · " + esc2(u.phone) : ""}${u.is_coach ? " · 🧑‍🏫" : ""}</div></span><span style="text-align:right">${u.credits || 0} cr <span class="pill">${esc2(u.membership_type || "none")}</span> ›</span></div>`).join("")}</div>`
+        : `<div class="card"><div class="body muted center">冇符合嘅用戶。</div></div>`;
+      box.querySelectorAll("[data-u]").forEach((el) => el.onclick = () => openUser(el.dataset.u));
+    }
+    function bindMergeButtons() {
+      panel().querySelectorAll("[data-merge]").forEach((btn) => btn.onclick = async () => {
         if (!confirm("確定合併？此操作會將訪客預約轉去目標帳號，並記錄 audit。")) return;
+        btn.disabled = true;
         const r2 = await api.post("/admin/merge-guest", { guest_user_id: btn.dataset.merge, target_user_id: btn.dataset.target });
         if (r2.ok) { alert("✅ 已合併 " + (r2.data.moved_bookings || 0) + " 個預約"); usersTab(); }
-        else alert("❌ " + ((r2.data && r2.data.error) || "合併失敗"));
+        else { btn.disabled = false; alert("❌ " + ((r2.data && r2.data.error) || "合併失敗")); }
       });
     }
+
     async function openUser(id) {
       const r = await api.get("/admin/user-detail/" + encodeURIComponent(id));
       if (!r.ok) { alert((r.data&&r.data.error)||"載入失敗"); return; }
@@ -485,8 +514,34 @@
     async function pricing() {
       const r = await api.get("/pricing/admin/pricing");
       if (r.status === 401 || r.status === 403) return needAdmin();
-      const cats = (r.data && r.data.categories) || [];
-      panel().innerHTML = cats.length ? `<div class="card">${cats.map(c => row(`${esc2(c.name || c.category || "")}<div class="kv">${esc2(c.tiers ? JSON.stringify(c.tiers) : (c.base_price != null ? "基本 " + money(c.base_price) : ""))}</div>`, "")).join("")}</div>` : `<div class="card"><div class="body muted center">暫無定價資料。</div></div>`;
+      const groups = (r.data && r.data.categories) || {};
+      const cats = Object.keys(groups);
+      if (!cats.length) { panel().innerHTML = `<div class="card"><div class="body muted center">暫無定價資料。</div></div>`; return; }
+      panel().innerHTML = cats.map((cat) => {
+        const items = groups[cat] || [];
+        return `<div class="card" style="margin-bottom:12px"><div class="body">
+          <b style="text-transform:capitalize">${esc2(cat)}</b>
+          ${items.map((it) => `<div class="row" style="gap:10px;align-items:center">
+            <span style="flex:1;min-width:120px">${esc2(it.label || it.key)}${it.label && it.label !== it.key ? `<div class="kv">${esc2(it.key)}</div>` : ""}</span>
+            <input data-pk="${esc2(it.key)}" value="${esc2(String(it.value == null ? "" : it.value))}"
+              style="flex:1;min-width:140px;border:1px solid var(--line);border-radius:8px;padding:7px 9px;font-size:12px" />
+          </div>`).join("")}
+        </div></div>`;
+      }).join("") + `<button class="btn btn-primary btn-block" id="savePricing" type="button">💾 儲存定價</button>`;
+      $("savePricing").onclick = async () => {
+        const updates = {}; let bad = null;
+        panel().querySelectorAll("[data-pk]").forEach((el) => {
+          const v = el.value;
+          updates[el.dataset.pk] = v;
+          try { JSON.parse(v); } catch (e) { if (!bad) bad = el.dataset.pk; }
+        });
+        if (bad) { alert("❌ " + bad + " 唔係有效 JSON，請檢查格式（例如 [12,12,15] 或 \"text\"）"); return; }
+        const btn = $("savePricing"); btn.disabled = true; btn.textContent = "儲存中…";
+        const rr = await api.put("/pricing/admin/pricing", { updates });
+        btn.disabled = false; btn.textContent = "💾 儲存定價";
+        if (rr.ok && rr.data && rr.data.success !== false) { alert("✅ 已更新 " + (rr.data.updated || 0) + " 項"); load(); }
+        else alert("❌ " + ((rr.data && rr.data.error) || "儲存失敗"));
+      };
     }
 
     async function penalty() {
