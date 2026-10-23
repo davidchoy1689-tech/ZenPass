@@ -45,7 +45,12 @@ test.describe("Admin Panel", () => {
     const users = data.users || data;
     expect(users.length).toBeGreaterThan(5);
     for (const u of users) {
-      expect(u.user_reference).toMatch(/^US-/);
+      // 訪客（免註冊）帳號用 G- 開頭；正式用戶 US-
+      if (u.lead_source === "guest_checkout") {
+        expect(u.user_reference).toMatch(/^G/);
+      } else {
+        expect(u.user_reference).toMatch(/^US-/);
+      }
     }
   });
 
@@ -86,7 +91,7 @@ test.describe("Booking Flow", () => {
     await page.goto(BASE + "/courses.html");
     await page.waitForLoadState("networkidle");
     const buttons = page.locator(
-      "button, .category-btn, .filter-btn, .nav-item",
+      "button:visible, .category-btn:visible, .filter-btn:visible, .nav-item:visible",
     );
     await expect(buttons.first()).toBeVisible();
   });

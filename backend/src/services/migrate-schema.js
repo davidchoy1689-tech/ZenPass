@@ -40,6 +40,26 @@ function runMigrations() {
     CREATE INDEX IF NOT EXISTS idx_guest_sessions_user ON guest_sessions(user_id);
   `);
 
+  // 2026-10-24：補回缺少 user_reference 嘅用戶（audit 需要每人有編號）
+  try {
+    const missing = db
+      .prepare("SELECT id FROM users WHERE COALESCE(user_reference,'') = '' ORDER BY created_at ASC")
+      .all();
+    if (missing.length) {
+      let maxRef = db
+        .prepare("SELECT MAX(CAST(SUBSTR(user_reference, 4) AS INTEGER)) AS m FROM users WHERE user_reference GLOB 'US-[0-9]*'")
+        .get().m || 0;
+      const upd = db.prepare("UPDATE users SET user_reference = ? WHERE id = ?");
+      for (const u of missing) {
+        maxRef += 1;
+        upd.run("US-" + String(maxRef).padStart(4, "0"), u.id);
+      }
+      console.log(`[migrate] backfilled ${missing.length} user_reference`);
+    }
+  } catch (e) {
+    console.error("[migrate] user_reference backfill failed:", e.message);
+  }
+
   // 訪客帳號合併紀錄（audit）
   db.exec(`
     CREATE TABLE IF NOT EXISTS account_merges (

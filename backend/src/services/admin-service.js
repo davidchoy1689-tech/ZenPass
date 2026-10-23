@@ -333,7 +333,7 @@ function listAllUsers() {
   const users = db
     .prepare(
       `SELECT id, user_reference, email, name, phone, credits, membership_type,
-              is_coach, coach_verified, created_at
+              is_coach, coach_verified, lead_source, created_at
        FROM users ORDER BY created_at DESC`
     )
     .all();
