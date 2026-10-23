@@ -16,7 +16,7 @@
 const express = require("express");
 const { v4: uuidv4 } = require("uuid");
 const { getDb } = require("../services/database");
-const { authenticateToken } = require("../middleware/auth");
+const { authenticateToken, requirePermission } = require("../middleware/auth");
 const walletService = require("../services/wallet-service");
 const { writeBlock } = require("../services/blockchain-audit");
 
@@ -288,16 +288,14 @@ router.post("/pay-rental", authenticateToken, (req, res) => {
 // =====================
 
 // ===== A1. GET /api/wallet/admin/coaches — 所有教練錢包總覽 =====
-router.get("/admin/coaches", authenticateToken, (req, res) => {
+// 🔒 2026-10-24：改用 permission（原本硬編碼 admin/super_admin）
+router.get(
+  "/admin/coaches",
+  authenticateToken,
+  requirePermission("finance.payout.view"),
+  (req, res) => {
   try {
     const db = getDb();
-    const user = db
-      .prepare("SELECT role FROM users WHERE id = ?")
-      .get(req.user.id);
-
-    if (!user || !["admin", "super_admin"].includes(user.role)) {
-      return res.status(403).json({ success: false, error: "僅管理員可查看" });
-    }
 
     const { limit = 50, offset = 0 } = req.query;
     const result = walletService.getAllCoachWallets({
@@ -309,20 +307,16 @@ router.get("/admin/coaches", authenticateToken, (req, res) => {
     console.error("[WALLET] admin/coaches error:", err);
     res.status(500).json({ success: false, error: "無法獲取教練錢包資料" });
   }
-});
+  },
+);
 
 // ===== A2. GET /api/wallet/admin/txs/:userId — 指定教練交易記錄 =====
-router.get("/admin/txs/:userId", authenticateToken, (req, res) => {
+router.get(
+  "/admin/txs/:userId",
+  authenticateToken,
+  requirePermission("finance.payout.view"),
+  (req, res) => {
   try {
-    const db = getDb();
-    const user = db
-      .prepare("SELECT role FROM users WHERE id = ?")
-      .get(req.user.id);
-
-    if (!user || !["admin", "super_admin"].includes(user.role)) {
-      return res.status(403).json({ success: false, error: "僅管理員可查看" });
-    }
-
     const { type, limit = 100, offset = 0, start_date, end_date } = req.query;
     const result = walletService.getTransactions({
       userId: req.params.userId,
@@ -337,17 +331,17 @@ router.get("/admin/txs/:userId", authenticateToken, (req, res) => {
     console.error("[WALLET] admin/txs error:", err);
     res.status(500).json({ success: false, error: "無法獲取交易記錄" });
   }
-});
+  },
+);
 
 // ===== A2.5 GET /api/wallet/admin/reconcile — 帳目一致性報告（read-only）=====
-router.get("/admin/reconcile", authenticateToken, (req, res) => {
+router.get(
+  "/admin/reconcile",
+  authenticateToken,
+  requirePermission("finance.payout.view"),
+  (req, res) => {
   try {
     const db = getDb();
-    const me = db.prepare("SELECT role FROM users WHERE id = ?").get(req.user.id);
-    if (!me || !["admin", "super_admin"].includes(me.role)) {
-      return res.status(403).json({ success: false, error: "僅管理員可查看" });
-    }
-
     const rows = db
       .prepare(
         `SELECT u.id, u.name, u.email, u.wallet_balance, u.pending_payout,
@@ -391,20 +385,17 @@ router.get("/admin/reconcile", authenticateToken, (req, res) => {
     console.error("[WALLET] reconcile error:", err.message);
     res.status(500).json({ success: false, error: "對帳失敗" });
   }
-});
+  },
+);
 
 // ===== A3. POST /api/wallet/admin/adjust — 管理員調整結餘（audit trail） =====
-router.post("/admin/adjust", authenticateToken, (req, res) => {
+// 🔒 2026-10-24：真金白銀 → 要 finance.payout.process（admin 客服級唔再可以調錢）
+router.post(
+  "/admin/adjust",
+  authenticateToken,
+  requirePermission("finance.payout.process"),
+  (req, res) => {
   try {
-    const db = getDb();
-    const admin = db
-      .prepare("SELECT role FROM users WHERE id = ?")
-      .get(req.user.id);
-    if (!admin || !["admin", "super_admin"].includes(admin.role)) {
-
-      return res.status(403).json({ success: false, error: "僅管理員可操作" });
-    }
-
     const { user_id, amount, reason } = req.body;
     if (!user_id || !amount || !reason) {
 

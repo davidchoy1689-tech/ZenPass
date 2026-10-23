@@ -58,8 +58,26 @@ const ok = (c, m) => { if (c) console.log("  ✅ " + m); else { console.log("  �
   ok(good.body.mismatches[0].user_id === "bad_user" && good.body.mismatches[0].diff === 150, "diff 正確（250 vs 100 = 150）");
   ok(good.body.wallet_total === 350 && good.body.pending_total === 200, "總額正確");
 
-  const denied = call("ok_user");
-  ok(denied.statusCode === 403, "非 admin → 403");
+  // 2026-10-24：權限檢查移去 middleware（requirePermission），
+  // 直接 call handler 會繞過 → 改為驗證 middleware 鏈有掛權限。
+  const mws = layer.route.stack.slice(0, -1).map((s) => s.name || "anon");
+  ok(
+    mws.includes("authenticateToken") &&
+      layer.route.stack.some((s) =>
+        /requirePermission/.test(s.handle.name || "") ||
+        (s.handle.toString && /hasPermission|finance\.payout/.test(s.handle.toString())),
+      ),
+    "非財務角色 → 403（middleware 權限）",
+  );
+  const { requirePermission } = require("../src/middleware/auth");
+  const mw = requirePermission("finance.payout.view");
+  let code = 200;
+  mw(
+    { user: { id: "ok_user", role: "user" }, ip: "127.0.0.1", originalUrl: "/api/wallet/admin/reconcile" },
+    { status(c) { code = c; return this; }, json() { return this; } },
+    () => { code = 0; },
+  );
+  ok(code === 403, "普通用戶睇對帳 → 403");
 
   const src = fs.readFileSync(path.join(__dirname, "../src/routes/wallet.js"), "utf8");
   ok(/\/admin\/reconcile/.test(src), "route 已註冊");

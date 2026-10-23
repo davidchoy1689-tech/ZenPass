@@ -130,6 +130,26 @@ function call(handler, { query = {}, body = {}, user = null, params = {} }) {
   const d2 = await call(del, { params: { id: "piB" }, user: { id: "coachB", role: "coach" } });
   ok(d2.status === 200, "coach B 刪自己私人收入 OK");
 
+  // ===== 錢包 Admin 路由權限 — 2026-10-24 =====
+  // 原本硬編碼 admin/super_admin → admin（客服級）可以任意調整別人錢包
+  const walletRouter = require("../src/routes/wallet");
+  for (const [method, p, label] of [
+    ["get", "/admin/coaches", "GET /wallet/admin/coaches"],
+    ["get", "/admin/txs/:userId", "GET /wallet/admin/txs/:userId"],
+    ["get", "/admin/reconcile", "GET /wallet/admin/reconcile"],
+    ["post", "/admin/adjust", "POST /wallet/admin/adjust"],
+  ]) {
+    const layer = walletRouter.stack.find(
+      (l) => l.route && l.route.path === p && l.route.methods[method],
+    );
+    const handlers = layer ? layer.route.stack.map((s) => s.handle) : [];
+    ok(handlers.length >= 3, `${label} 已掛權限 middleware`);
+  }
+  ok(
+    (await runMw(payoutMw, { id: "admin1", role: "admin" })).status === 403,
+    "admin 唔可以調整錢包（需 platform_manager 以上）",
+  );
+
   if (fail) { console.error(`❌ ${fail} 項失敗`); process.exit(1); }
   console.log("✅ 教練 scope tests passed");
 })();

@@ -10,7 +10,15 @@ console.log("🧪 錢包提現安全 tests");
 const src = fs.readFileSync(path.join(__dirname, "../src/routes/wallet.js"), "utf8");
 ok(/code: "USE_COACH_PAYOUT"/.test(src), "wallet/withdraw 已封鎖（避免與教練出糧重複提款）");
 ok(/唔會將 coach_earnings 標記 paid/.test(src), "有註明原因");
-ok((src.match(/\["admin", "super_admin"\]\.includes\(/g) || []).length >= 3, "admin 路由接受 super_admin");
+// 2026-10-24：改為 permission-based（admin 客服級可以睇，但唔可以調錢）
+ok(
+  (src.match(/requirePermission\("finance\.payout\.view"\)/g) || []).length >= 3,
+  "admin 查詢路由用 finance.payout.view",
+);
+ok(
+  /requirePermission\("finance\.payout\.process"\)/.test(src),
+  "admin/adjust 用 finance.payout.process（admin 唔可以調錢）",
+);
 
 const webDir = path.join(__dirname, "..", "..", "frontend-v2");
 const hits = fs.readdirSync(webDir).filter((f) => f.endsWith(".html"))
