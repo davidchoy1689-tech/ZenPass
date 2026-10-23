@@ -881,12 +881,9 @@ CREATE TABLE IF NOT EXISTS users (
   try {
     db.exec("ALTER TABLE users ADD COLUMN auto_renew INTEGER DEFAULT 0");
   } catch (e) {/* unused /*/}
-  // Set admin role for existing admin users
-  try {
-    db.exec(
-      "UPDATE users SET role = 'admin' WHERE email LIKE '%admin%' AND email NOT IN ('coach@zenpass.hk','student@zenpass.hk')",
-    );
-  } catch (e) {/* unused /*/}
+  // 🚨 2026-10-24 已移除：原本 `UPDATE users SET role='admin' WHERE email LIKE '%admin%'`
+  // 會令任何註冊 admin@gmail.com 嘅人在下次啟動自動取得後台權限（嚴重提權漏洞）。
+  // 角色只可以由 super_admin 經 POST /api/admin/users/:id/role 修改（有 audit）。
 
   // ===== Subscription Pause - memberships columns =====
   try {
