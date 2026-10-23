@@ -267,7 +267,7 @@
       <div class="spacer"></div>
       <div class="guarantee" id="guarantee0">
         <span class="g-ic">🛡️</span>
-        <div>開課前 3 日（72 小時）免費取消，全數退回<small>已付款項（Credits 或原付款方式）</small></div>
+        <div>開課前 3 日（72 小時）免費取消，全數退回<small>已付款項（Credits 即時退回；FPS／PayMe 由人手轉賬）</small></div>
       </div>
       <div class="spacer"></div>
       <div class="grid2">
@@ -285,7 +285,7 @@
       <div class="spacer"></div>
       <div class="guarantee" id="guarantee1">
         <span class="g-ic">🛡️</span>
-        <div>開課前 3 日（72 小時）免費取消，全數退回<small>已付款項（Credits 或原付款方式）</small></div>
+        <div>開課前 3 日（72 小時）免費取消，全數退回<small>已付款項（Credits 即時退回；FPS／PayMe 由人手轉賬）</small></div>
       </div>
       <div class="spacer"></div>
       <button class="btn btn-primary btn-block" id="payNow">立即確認預約</button>
@@ -305,7 +305,7 @@
       <div class="spacer"></div>
       <div class="guarantee">
         <span class="g-ic">🛡️</span>
-        <div>開課前 3 日（72 小時）免費取消，全數退回<small>已付款項（Credits 或原付款方式）</small></div>
+        <div>開課前 3 日（72 小時）免費取消，全數退回<small>已付款項（Credits 即時退回；FPS／PayMe 由人手轉賬）</small></div>
       </div>
       <div class="spacer"></div>
       <button class="btn btn-ghost btn-block" id="backFromPay">返回</button>
@@ -339,6 +339,8 @@
         <div class="spacer"></div>
         <a class="btn btn-secondary btn-block" id="waRemind" target="_blank" rel="noopener">💬 用 WhatsApp 接收上課提醒</a>
       </div>
+      <a class="btn btn-secondary btn-block" id="guestViewLink" href="guest-booking.html" style="display:none">📋 查看我的預約（免登入）</a>
+      <div class="spacer" id="guestViewSpacer" style="display:none"></div>
       <div class="done-redirect" id="doneRedirBar">系統將在 <b id="redirectSec">30</b> 秒內帶你到「我的預約」…（任何操作會取消自動跳轉）</div>
       <div class="spacer"></div>
       <a class="btn btn-primary btn-block" href="my-bookings.html" id="goBookings">去我的預約 →</a>
@@ -609,6 +611,7 @@
         btnG.disabled = false; btnG.textContent = "立即確認預約";
         if (gr.ok && gr.data && gr.data.success) {
           guestToken = gr.data.token; guestInfo = gr.data.user;
+          try { localStorage.setItem("zp_guest_token", guestToken); } catch (e) {}
           const list = gr.data.bookings || [];
           guestBookings = list;
           const ids = list.map(b => b.id);
@@ -781,6 +784,9 @@
       if (isGuest) {
         const gb = $("goBookings");
         if (gb) { gb.textContent = "📋 已記低，返回主頁"; gb.href = "index.html"; }
+        const gv = $("guestViewLink");
+        if (gv) { gv.style.display = ""; gv.href = "guest-booking.html?token=" + encodeURIComponent(guestToken || ""); }
+        const gvs = $("guestViewSpacer"); if (gvs) gvs.style.display = "";
         const note = $("guestDoneNote");
         if (note) { note.hidden = false; note.querySelector("b").textContent = (guestBookings.map(b => b.booking_reference).filter(Boolean).join("、") || "—"); }
       }

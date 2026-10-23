@@ -19,6 +19,7 @@ const bcrypt = require("bcryptjs");
 const { getDb } = require("../services/database");
 const bookingService = require("../services/booking-service");
 const { publicFormLimiter } = require("../middleware/public-form-limit");
+const { notifyAdmins } = require("../services/admin-alerts");
 
 const router = express.Router();
 
@@ -204,6 +205,17 @@ router.post("/book", bookLimiter, async (req, res) => {
     const { token, expires_at } = issueToken(db, userId);
     const rows = guestBookings(db, userId);
     const createdIds = results.filter((r) => r.booking_id).map((r) => r.booking_id);
+
+    // 🔔 通知管理員／客服：新訪客預約要跟進（文案承諾客服會聯絡客人）
+    try {
+      const refs = rows.filter((b) => createdIds.includes(b.id)).map((b) => b.booking_reference).join("、");
+      notifyAdmins("guest.new_booking", {
+        message:
+          `⚡ 新訪客預約（免註冊）\n姓名：${name}\n電話：${phone}\n預約編號：${refs}\n課程：${(rows[0] && rows[0].class_title) || "—"}\n狀態：待付款`,
+      });
+    } catch (e) {
+      console.error("guest notify failed:", e.message);
+    }
     const total = rows
       .filter((b) => createdIds.includes(b.id))
       .reduce((s, b) => s + (Number(b.amount) || 0), 0);
@@ -260,6 +272,12 @@ router.post("/payment", bookLimiter, (req, res) => {
       .get(booking_id, s.id);
     if (!booking) return res.status(404).json({ success: false, error: "預約不存在" });
 
+    const clsTitle = (() => {
+      try {
+        return db.prepare("SELECT title FROM classes WHERE id = ?").get(booking.class_id)?.title || "";
+      } catch (e) { return ""; }
+    })();
+
     const amount = Number(booking.amount) || 0;
     if (m === "fps") {
       db.prepare(
@@ -284,6 +302,20 @@ router.post("/payment", bookLimiter, (req, res) => {
       ref,
       (m === "fps" ? "FPS" : "PayMe") + " 付款（訪客）— 待管理員確認",
     );
+
+    // 🔔 通知管理員核實付款
+    try {
+      notifyAdmins("payment.new_fps_payme", {
+        user_name: `${s.name || "訪客"}（訪客 ${s.phone || ""}）`,
+        amount: amount.toFixed(2),
+        method: m.toUpperCase(),
+        reference: ref,
+        class_title: clsTitle,
+        submitted_at: new Date().toLocaleString("zh-HK", { timeZone: "Asia/Hong_Kong" }),
+      });
+    } catch (e) {
+      console.error("guest payment notify failed:", e.message);
+    }
 
     return res.json({ success: true, message: "付款資料已提交，管理員核實後會確認預約" });
   } catch (err) {
@@ -311,6 +343,37 @@ router.post("/relock", bookLimiter, (req, res) => {
   } catch (err) {
     console.error("guest relock failed:", err);
     return res.status(500).json({ success: false, error: "重新鎖定失敗，請重試" });
+  }
+});
+
+// ============ POST /api/guest/cancel — 訪客自助取消（同一套取消政策） ============
+router.post("/cancel", bookLimiter, async (req, res) => {
+  try {
+    const db = getDb();
+    ensureSchema(db);
+    const s = sessionUser(db, (req.body || {}).token);
+    if (!s) return res.status(401).json({ success: false, error: "連結已失效，請用 WhatsApp 聯絡我們" });
+    const bookingId = String((req.body || {}).booking_id || "").trim();
+    if (!bookingId) return res.status(400).json({ success: false, error: "缺少 booking_id" });
+
+    const owned = db.prepare("SELECT id FROM bookings WHERE id = ? AND user_id = ?").get(bookingId, s.id);
+    if (!owned) return res.status(404).json({ success: false, error: "預約不存在" });
+
+    // 重用同一套取消政策／退款／通知邏輯
+    const out = await bookingService.cancelBooking({
+      params: { id: bookingId },
+      body: { reason: (req.body || {}).reason || "訪客自行取消" },
+      user: { id: s.id },
+      headers: req.headers,
+      ip: req.ip,
+    });
+    if (out && out.status && out.status >= 400) {
+      return res.status(out.status).json(out.body || { success: false });
+    }
+    return res.json({ success: true, bookings: guestBookings(db, s.id) });
+  } catch (err) {
+    console.error("guest cancel failed:", err);
+    return res.status(500).json({ success: false, error: "取消失敗，請用 WhatsApp 聯絡我們" });
   }
 });
 

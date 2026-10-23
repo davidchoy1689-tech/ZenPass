@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#ff6b35" />
+  <title>我的預約（訪客）· ZenPass 禪流</title>
+  <link rel="stylesheet" href="assets/v2.css?v=26" />
+  <link rel="stylesheet" href="assets/ui-v3.css?v=5" />
+  <style>
+    .g-item { background:#fff; border-radius:16px; padding:14px 16px; box-shadow:0 2px 12px rgba(0,0,0,.05); margin-bottom:10px; }
+    .g-item h3 { margin:0 0 6px; font-size:15px; }
+    .g-row { display:flex; justify-content:space-between; gap:10px; font-size:13px; color:#475569; padding:3px 0; }
+    .g-row b { color:#0f172a; }
+    .badge { display:inline-block; font-size:11.5px; font-weight:800; border-radius:999px; padding:3px 10px; }
+    .b-pending { background:#fff7ed; color:#c2410c; }
+    .b-confirmed { background:#ecfdf5; color:#047857; }
+    .b-cancelled { background:#f1f5f9; color:#64748b; }
+    .g-empty { text-align:center; padding:30px 10px; color:#64748b; font-size:13.5px; line-height:1.7; }
+    .policy { font-size:11.5px; color:#64748b; line-height:1.6; background:#f8fafc; border-radius:12px; padding:10px 12px; margin-top:12px; }
+  </style>
+</head>
+<body>
+  <div class="topbar"><a class="back" href="index.html">‹</a><div class="title">我的預約（免登入）</div></div>
+  <div class="wrap" style="padding-bottom:40px">
+    <div id="list"><div class="g-empty">載入中…</div></div>
+    <div class="policy">
+      <b>取消政策</b><br>
+      • 開課前 3 日（72 小時）或以上：免費取消，全數退回<br>
+      • 開課前 1–3 日（24–72 小時）：退回 50%<br>
+      • 開課當日或不足 24 小時：不設退款（扣 100%）<br>
+      <span style="color:#94a3b8">（如已用 FPS／PayMe 付款，退款由人手轉賬處理）</span>
+    </div>
+    <div class="spacer"></div>
+    <a class="btn btn-secondary btn-block" id="waHelp" target="_blank" rel="noopener">💬 有問題？WhatsApp 我們</a>
+  </div>
+
+  <script src="assets/api.js?v=3"></script>
+  <script>
+    const $ = (x) => document.getElementById(x);
+    const qs = new URLSearchParams(location.search);
+    let TOKEN = qs.get("token") || localStorage.getItem("zp_guest_token") || "";
+    if (qs.get("token")) { try { localStorage.setItem("zp_guest_token", qs.get("token")); } catch (e) {} }
+    const STATUS = { pending_payment: ["待付款", "b-pending"], confirmed: ["已確認", "b-confirmed"], cancelled: ["已取消", "b-cancelled"], completed: ["已完成", "b-confirmed"], attended: ["已完成", "b-confirmed"] };
+
+    $("waHelp").href = "https://wa.me/85290335538?text=" + encodeURIComponent("你好，我想查詢我嘅訪客預約");
+
+    async function load() {
+      if (!TOKEN) { $("list").innerHTML = `<div class="g-empty">搵唔到你嘅預約連結。<br>請喺預約成功頁撳「查看我的預約」，或 WhatsApp 我們。</div>`; return; }
+      const r = await api.get("/guest/session?token=" + encodeURIComponent(TOKEN));
+      if (!r.ok || !r.data || !r.data.success) {
+        $("list").innerHTML = `<div class="g-empty">連結已失效或過期。<br>請 WhatsApp 我們，我哋會幫你查返預約。</div>`;
+        return;
+      }
+      const list = r.data.bookings || [];
+      if (!list.length) { $("list").innerHTML = `<div class="g-empty">暫時未有預約紀錄。</div>`; return; }
+      $("list").innerHTML = list.map((b) => {
+        const st = STATUS[b.status] || [b.status, "b-pending"];
+        const canCancel = ["pending_payment", "confirmed"].includes(b.status);
+        return `<div class="g-item">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
+            <h3>${esc(b.class_title || "課堂")}</h3>
+            <span class="badge ${st[1]}">${esc(st[0])}</span>
+          </div>
+          <div class="g-row"><span>時間</span><b>${fmtTime(b.start_time, b.end_time)}</b></div>
+          <div class="g-row"><span>地點</span><b style="text-align:right">${esc(b.venue_name || "—")}</b></div>
+          <div class="g-row"><span>預約編號</span><b>${esc(b.booking_reference || "—")}</b></div>
+          <div class="g-row"><span>金額</span><b>${hkd(b.amount)}</b></div>
+          ${b.payment_status === "pending" && b.status === "pending_payment" ? `<div class="g-row"><span>付款</span><b style="color:#c2410c">待核實</b></div>` : ""}
+          ${canCancel ? `<div style="margin-top:10px"><button class="btn btn-ghost btn-block" data-cancel="${esc(b.id)}" type="button">取消此預約</button></div>` : ""}
+        </div>`;
+      }).join("");
+      document.querySelectorAll("[data-cancel]").forEach((btn) => {
+        btn.onclick = () => doCancel(btn.dataset.cancel, btn);
+      });
+    }
+
+    async function doCancel(id, btn) {
+      if (!confirm("確定取消？\n\n開課前 3 日（72 小時）或以上：全數退回；1–3 日：退回 50%；當日或不足 24 小時：不設退款。")) return;
+      btn.disabled = true; btn.textContent = "取消中…";
+      const r = await api.post("/guest/cancel", { token: TOKEN, booking_id: id });
+      if (r.ok && r.data && r.data.success) {
+        alert("✅ 已取消。退款／退回安排會按政策處理，我們會 WhatsApp 通知你。");
+        load();
+      } else {
+        alert("❌ " + ((r.data && (r.data.error || r.data.message)) || "取消失敗，請 WhatsApp 我們"));
+        btn.disabled = false; btn.textContent = "取消此預約";
+      }
+    }
+
+    load();
+  </script>
+</body>
+</html>

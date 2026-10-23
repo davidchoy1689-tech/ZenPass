@@ -208,6 +208,11 @@ async function sendNotification(type, payload) {
       message = `💰 付款成功！\n金額：$${data?.amount || "—"}\n方式：${data?.method || "—"}\n參考：${data?.reference || "—"}`;
       html = `<h2>💰 付款成功</h2><p><b>金額：</b>$${data?.amount || "—"}<br><b>方式：</b>${data?.method || "—"}<br><b>參考：</b>${data?.reference || "—"}</p>`;
       break;
+    case "guest.new_booking":
+      title = "⚡ 新訪客預約";
+      message = data?.message || "有新訪客預約，請盡快跟進。";
+      html = `<h2>⚡ 新訪客預約</h2><p>${String(data?.message || "有新訪客預約，請盡快跟進。").replace(/\n/g, "<br>")}</p>`;
+      break;
     case "payment.new_fps_payme":
       title = "新 FPS/PayMe 付款通知";
       message = `🆕 有新付款待確認！\n用戶：${data?.user_name || "—"}\n金額：$${data?.amount || "—"}\n方式：${data?.method || "—"}\n參考：${data?.reference || "—"}\n課程：${data?.class_title || "—"}\n⏰ ${data?.submitted_at || ""}`;
