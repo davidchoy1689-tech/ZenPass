@@ -301,10 +301,18 @@
           </span>
           <span style="text-align:right">${b.amount ? money(b.amount) : ""}
             <span class="pill ${b.status === "attended" ? "ok" : (b.status === "cancelled" || b.status === "no_show" ? "off" : "warn")}">${esc2(st(b.status))}</span>
+            ${b.status === "confirmed" ? `<button class="btn btn-ghost" data-attend="${esc2(b.id)}" type="button" style="font-size:12px;padding:8px 10px;margin-left:6px">✅ 標記出席</button>` : ""}
             ${isGuest ? waBtn(b.user_phone, msg) : ""}
           </span>
         </div>`;
       }).join("") + `</div>`;
+      panel().querySelectorAll("[data-attend]").forEach((btn) => btn.onclick = async () => {
+        if (!confirm("確認標記為「已出席」？")) return;
+        btn.disabled = true;
+        const r2 = await api.post("/admin/attend-booking", { booking_id: btn.dataset.attend });
+        if (r2.ok && r2.data && r2.data.success) { alert("✅ 已標記出席"); bookingsTab(); }
+        else { btn.disabled = false; alert("❌ " + ((r2.data && r2.data.error) || "失敗")); }
+      });
     }
 
     async function listGeneric(url, key, rowFn, emptyLabel) {

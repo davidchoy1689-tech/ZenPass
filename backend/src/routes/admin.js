@@ -844,4 +844,45 @@ router.get("/guest-merges", authenticateToken, requireAdmin, (req, res) => {
   }
 });
 
+// ===== POST /api/admin/attend-booking — 代客人標記出席（訪客／無 App 客人）=====
+router.post("/attend-booking", authenticateToken, requireAdmin, (req, res) => {
+  try {
+    const db = getDb();
+    const bookingId = String((req.body || {}).booking_id || "").trim();
+    if (!bookingId) return res.status(400).json({ success: false, error: "缺少 booking_id" });
+
+    const b = db.prepare("SELECT id, status, user_id, schedule_id FROM bookings WHERE id = ?").get(bookingId);
+    if (!b) return res.status(404).json({ success: false, error: "預約不存在" });
+    if (!["confirmed", "attended"].includes(b.status)) {
+      return res.status(400).json({ success: false, error: "只可以標記已確認嘅預約" });
+    }
+    const before = b.status;
+    db.prepare("UPDATE bookings SET status = 'attended', checked_in_at = COALESCE(checked_in_at, datetime('now')), checkin_method = 'admin' WHERE id = ?")
+      .run(bookingId);
+
+    try {
+      require("../services/audit").audit({
+        actionType: "ADMIN_ATTEND",
+        entityType: "booking",
+        entityId: bookingId,
+        userId: req.user.id,
+        oldValues: { status: before },
+        newValues: { status: "attended" },
+        description: "管理員代標記出席",
+        ipAddress: req.ip,
+      });
+    } catch (e) {}
+
+    try {
+      const { syncCoachEarningsForSchedule } = require("./coach-earnings");
+      syncCoachEarningsForSchedule(b.schedule_id);
+    } catch (e) {}
+
+    return res.json({ success: true, booking_id: bookingId, status: "attended" });
+  } catch (err) {
+    console.error("[ADMIN] attend-booking error:", err.message);
+    return res.status(500).json({ success: false, error: "標記失敗" });
+  }
+});
+
 module.exports = router;

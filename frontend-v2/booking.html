@@ -332,9 +332,9 @@
           如需改期／取消，請 WhatsApp <b>9033 5538</b> 並提供預約編號。
         </div>
       </div>
-      <div class="done-qr">
-        <div class="qr-box">▦</div>
-        <div><b>QR Code 簽到</b><p>上堂前 15 分鐘到場，打開「我的預約」即可掃碼簽到</p></div>
+      <div class="done-qr" id="qrCard">
+        <div class="qr-box" id="qrBox">▦</div>
+        <div><b id="qrTitle">QR Code 簽到</b><p id="qrText">上堂前 15 分鐘到場，打開「我的預約」即可掃碼簽到</p></div>
       </div>
       <div id="doneActions" style="display:none;width:100%;margin-top:12px">
         <a class="btn btn-secondary btn-block" id="icsBtn" href="#" download="zenpass-class.ics">📅 加到手機行事曆</a>
@@ -802,6 +802,12 @@
       if (isGuest) {
         const gb = $("goBookings");
         if (gb) { gb.textContent = "📋 已記低，返回主頁"; gb.href = "index.html"; }
+        // 訪客冇「我的預約」掃碼 → 改為出示預約編號
+        const refsTxt = guestBookings.map((b) => b.booking_reference).filter(Boolean).join("、") || "—";
+        const qt = $("qrTitle"); const qx = $("qrText"); const qb = $("qrBox");
+        if (qt) qt.textContent = "到場出示預約編號";
+        if (qx) qx.textContent = "上堂前 15 分鐘到場，向教練／職員出示：" + refsTxt;
+        if (qb) qb.textContent = "ZP";
         const gv = $("guestViewLink");
         if (gv) { gv.style.display = ""; gv.href = "guest-booking.html?token=" + encodeURIComponent(guestToken || ""); }
         const gvs = $("guestViewSpacer"); if (gvs) gvs.style.display = "";
