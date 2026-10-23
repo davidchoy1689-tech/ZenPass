@@ -325,30 +325,29 @@ router.get("/db/:table", authenticateToken, requireAdmin, async (req, res) => {
   }
 });
 
-router.get("/db", authenticateToken, requireAdmin, async (req, res) => {
+// 🔧 2026-10-24：原本查 Supabase（該 project 根本冇呢啲表 → 一直 500），
+// 而且真正嘅生產數據喺本地 SQLite。改為列出 SQLite 表 + 筆數（read-only，唔會查大表）。
+router.get("/db", authenticateToken, requireAdmin, (req, res) => {
   try {
-    const { getSupabase } = require("../services/supabase");
-    const supabase = getSupabase();
-    if (!supabase) return res.status(500).json({ success: false, error: "DB not connected" });
-
-    const tables = [
-      "system_config", "system_backups", "courses", "course_sessions", "course_categories",
-      "bookings", "transactions", "settlements", "users", "profiles", "coaches", "students",
-      "membership_plans", "user_memberships", "payments", "commissions", "payouts",
-      "venues", "partners", "attendance", "reviews", "notifications", "waitlist", "promotions",
-    ];
+    const db = require("../services/database").getDb();
+    const tables = db
+      .prepare(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name",
+      )
+      .all()
+      .map((r) => r.name);
 
     const result = [];
     for (const t of tables) {
       try {
-        const { count } = await supabase.from(t).select("*", { count: "exact", head: true });
-        result.push({ table: t, count: count || 0 });
+        const row = db.prepare(`SELECT COUNT(*) AS c FROM "${t}"`).get();
+        result.push({ table: t, count: row ? row.c : 0 });
       } catch (e) {
         result.push({ table: t, count: -1, error: e.message });
       }
     }
 
-    res.json({ tables: result });
+    res.json({ success: true, engine: "sqlite", table_count: result.length, tables: result });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
