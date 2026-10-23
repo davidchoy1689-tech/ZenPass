@@ -90,11 +90,14 @@ done
 echo "  ✅ wallet_transactions 記錄永久保存" >> "$LOG_FILE"
 
 # 6b. Credits 對賬：users.credits 必須等於最新一筆流水嘅 balance_after
+# 排除測試帳號（@zenpass.test / @test.com），避免每日假警報
 CREDIT_MISMATCH=$(sqlite3 "$DB_PATH" "
   SELECT COUNT(*) FROM users u
   WHERE COALESCE(u.credits,0) <> COALESCE(
     (SELECT c.balance_after FROM credit_transactions c
-      WHERE c.user_id = u.id ORDER BY c.rowid DESC LIMIT 1), 0);
+      WHERE c.user_id = u.id ORDER BY c.rowid DESC LIMIT 1), 0)
+    AND COALESCE(u.email,'') NOT LIKE '%@zenpass.test'
+    AND COALESCE(u.email,'') NOT LIKE '%@test.com';
 " 2>/dev/null || echo "0")
 if [ "${CREDIT_MISMATCH:-0}" -gt 0 ]; then
   echo "  ⚠️ $CREDIT_MISMATCH 個用戶嘅 Credits 結餘同流水唔一致（需人手核對）" >> "$LOG_FILE"
