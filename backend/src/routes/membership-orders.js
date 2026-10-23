@@ -32,7 +32,9 @@ const PLAN_PAY = {
 };
 
 function plans() {
-  return require("./memberships").MEMBERSHIP_PLANS || {};
+  // 優先由 DB（後台可編輯）讀取，冇就用 code 預設
+  const m = require("./memberships");
+  return (m.getMembershipPlans ? m.getMembershipPlans() : m.MEMBERSHIP_PLANS) || {};
 }
 
 /**

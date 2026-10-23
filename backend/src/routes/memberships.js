@@ -658,5 +658,56 @@ router.get("/:id/pause-status", authenticateToken, (req, res) => {
   }
 });
 
+
+/**
+ * 由 pricing_config 讀取後台可編輯嘅會籍方案（2026-10-24）
+ * 後台「定價」tab 改 plan_* → 會員頁／Pass 頁即時反映；DB 冇值就用 code 預設。
+ */
+function getMembershipPlans() {
+  const out = {};
+  for (const [key, base] of Object.entries(MEMBERSHIP_PLANS)) out[key] = { ...base };
+  try {
+    const db = getDb();
+    const rows = db.prepare("SELECT key, value FROM pricing_config WHERE key LIKE 'plan\_%' ESCAPE '\\'").all();
+    for (const r of rows) {
+      const m = /^plan_([a-z0-9]+)_([a-z_]+)$/.exec(r.key);
+      if (!m) continue;
+      const [, pk, field] = m;
+      if (!out[pk]) continue;
+      let val = r.value;
+      try { val = JSON.parse(r.value); } catch (e) {}
+      switch (field) {
+        case "name":
+          if (val && typeof val === "object") { out[pk].name = val.zh || out[pk].name; out[pk].name_en = val.en || out[pk].name_en; }
+          else if (typeof val === "string" && val) out[pk].name = val;
+          break;
+        case "price":
+        case "credits":
+          if (val !== "" && !isNaN(Number(val))) out[pk][field === "price" ? "price_hkd" : "credits_granted"] = Number(val);
+          break;
+        case "description":
+          if (val && typeof val === "object") out[pk].description = val.zh || out[pk].description;
+          else if (typeof val === "string") out[pk].description = val;
+          break;
+        case "features":
+          if (Array.isArray(val)) out[pk].features = val;
+          break;
+        case "popular":
+          out[pk].popular = val === true || val === "true";
+          break;
+        case "duration":
+          if (!isNaN(Number(val))) out[pk].duration_days = Number(val);
+          break;
+        default:
+          break;
+      }
+    }
+  } catch (e) {
+    console.error("getMembershipPlans fallback:", e.message);
+  }
+  return out;
+}
+
 module.exports = router;
 module.exports.MEMBERSHIP_PLANS = MEMBERSHIP_PLANS;
+module.exports.getMembershipPlans = getMembershipPlans;
