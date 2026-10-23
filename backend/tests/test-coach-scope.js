@@ -150,6 +150,17 @@ function call(handler, { query = {}, body = {}, user = null, params = {} }) {
     "admin 唔可以調整錢包（需 platform_manager 以上）",
   );
 
+  // ===== platform_settlements 表存在（原本從來冇 migration → /settlements 500）=====
+  const tbl = db
+    .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='platform_settlements'")
+    .get();
+  ok(!!tbl, "platform_settlements 表已建立（月度結算可查）");
+  const st = await call(handlerOf(earnings, "get", "/settlements"), {
+    query: {},
+    user: { id: "admin1", role: "super_admin" },
+  });
+  ok(st.status === 200, "GET /settlements 回 200（唔再 500）");
+
   if (fail) { console.error(`❌ ${fail} 項失敗`); process.exit(1); }
   console.log("✅ 教練 scope tests passed");
 })();

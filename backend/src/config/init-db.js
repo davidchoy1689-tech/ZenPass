@@ -2298,6 +2298,34 @@ CREATE TABLE IF NOT EXISTS users (
     console.error("Credits 流水 migration 失敗:", e.message);
   }
 
+  // 🧾 教練月度結算表（2026-10-24）：coach-earnings.js 一直 SELECT／INSERT 呢張表，
+  // 但從來冇任何 migration 建立過 → /api/coach/settlements 一直 500。
+  try {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS platform_settlements (
+        id TEXT PRIMARY KEY,
+        coach_id TEXT NOT NULL,
+        coach_name TEXT,
+        period_year INTEGER NOT NULL,
+        period_month INTEGER NOT NULL,
+        total_revenue REAL DEFAULT 0,
+        zenpass_commission REAL DEFAULT 0,
+        coach_payout REAL DEFAULT 0,
+        class_count INTEGER DEFAULT 0,
+        student_count INTEGER DEFAULT 0,
+        status TEXT DEFAULT 'pending',
+        paid_at TEXT,
+        created_at TEXT DEFAULT (datetime('now')),
+        updated_at TEXT DEFAULT (datetime('now')),
+        UNIQUE (coach_id, period_year, period_month)
+      );
+      CREATE INDEX IF NOT EXISTS idx_platform_settlements_period
+        ON platform_settlements (period_year, period_month, status);
+    `);
+  } catch (e) {
+    console.error("platform_settlements migration 失敗:", e.message);
+  }
+
   console.log("✅ 數據庫初始化完成:", DB_PATH);
   db.close();
 }
