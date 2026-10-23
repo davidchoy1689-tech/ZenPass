@@ -134,15 +134,12 @@ function migrate() {
   // Coaches → coach role
   const coachUsers = db
     .prepare(
-      "SELECT id, email FROM users WHERE is_coach = 1 AND (role IS NULL OR role NOT IN ('super_admin','platform_manager','platform_staff','admin'))",
+      "SELECT id, email, role FROM users WHERE is_coach = 1 AND (role IS NULL OR role NOT IN ('super_admin','platform_manager','platform_staff','admin','partner_owner','partner_admin','partner_staff'))",
     )
     .all();
   for (const u of coachUsers) {
-    if (
-      !u.role ||
-      !ROLE_HIERARCHY[u.role] ||
-      ROLE_HIERARCHY[u.role] > ROLE_HIERARCHY.coach
-    ) {
+    // 只喺「未設定／未知角色」或「比 coach 更低權限（user/guest）」時才升級為 coach
+    if (!u.role || !ROLE_HIERARCHY[u.role] || ROLE_HIERARCHY[u.role] > ROLE_HIERARCHY.coach) {
       db.prepare("UPDATE users SET role = 'coach' WHERE id = ?").run(u.id);
     }
   }
