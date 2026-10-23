@@ -1210,7 +1210,7 @@ function cancellationFeeRate(hoursUntil) {
 /**
  * 會籍權益：免費取消
  * - unlimited_cancel（高階/VIP Pass）→ 任何時間免罰
- * - free_cancel（所有 Pass，符合「開課前一日自由取消」）→ ≥24 小時免罰
+ * - free_cancel（所有 Pass，符合「開課前 3 日自由取消」）→ ≥72 小時免罰（<72 小時仍可免罰，屬 Pass 權益）
  * 未持有有效會籍 → 按原本政策收費
  */
 function resolveCancellationFeeRate(userId, hoursUntilClass, baseRate) {
