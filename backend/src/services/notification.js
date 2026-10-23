@@ -208,6 +208,11 @@ async function sendNotification(type, payload) {
       message = `💰 付款成功！\n金額：$${data?.amount || "—"}\n方式：${data?.method || "—"}\n參考：${data?.reference || "—"}`;
       html = `<h2>💰 付款成功</h2><p><b>金額：</b>$${data?.amount || "—"}<br><b>方式：</b>${data?.method || "—"}<br><b>參考：</b>${data?.reference || "—"}</p>`;
       break;
+    case "guest.payment_result":
+      title = "⚡ 訪客付款結果（需 WhatsApp 通知）";
+      message = data?.message || "訪客付款狀態有更新，請 WhatsApp 通知客人。";
+      html = `<h2>⚡ 訪客付款結果</h2><p>${String(data?.message || "").replace(/\n/g, "<br>")}</p>`;
+      break;
     case "guest.merge_needed":
       title = "🔗 可合併訪客預約";
       message = data?.message || "同一電話有新註冊，可合併舊訪客預約。";

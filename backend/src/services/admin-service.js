@@ -82,7 +82,15 @@ function approvePayment(bookingId, adminId, req) {
     });
   } catch (notifErr) { console.error("⚠️ 發送通知失敗:", notifErr.message); }
 
-  const userName = db.prepare("SELECT name, email FROM users WHERE id = ?").get(booking.user_id);
+  const userName = db.prepare("SELECT name, email, phone, lead_source FROM users WHERE id = ?").get(booking.user_id);
+  // ⚡ 訪客冇登入介面 → 通知 admin 用 WhatsApp 通知客人（閉環）
+  try {
+    if (userName && userName.lead_source === "guest_checkout") {
+      require("./admin-alerts").notifyAdmins("guest.payment_result", {
+        message: `✅ 訪客付款已確認，請 WhatsApp 通知客人\n姓名：${userName.name}\n電話：${userName.phone}\n課程：${classTitleNotif?.title || "—"}\n金額：HK$${booking.amount || 0}`,
+      });
+    }
+  } catch (e) {}
   setTimeout(() => {
     sendTelegramAlert(
       `✅ <b>管理員已確認付款</b>\n👤 用戶：${userName?.name || userName?.email || booking.user_id}\n💰 金額：HK$${booking.amount || 0}\n💳 方式：${booking.fps_reference ? "FPS" : "PayMe"}\n📚 課程：${classTitleNotif?.title || "—"}\n🆔 Booking：${bookingId}\n⏰ ${new Date().toLocaleString("zh-HK", { timeZone: "Asia/Hong_Kong" })}`
@@ -161,7 +169,14 @@ function rejectPayment(bookingId, reason, adminId, req) {
     });
   } catch (notifErr) { console.error("⚠️ 發送通知失敗:", notifErr.message); }
 
-  const userNameRej = db.prepare("SELECT name, email FROM users WHERE id = ?").get(booking.user_id);
+  const userNameRej = db.prepare("SELECT name, email, phone, lead_source FROM users WHERE id = ?").get(booking.user_id);
+  try {
+    if (userNameRej && userNameRej.lead_source === "guest_checkout") {
+      require("./admin-alerts").notifyAdmins("guest.payment_result", {
+        message: `❌ 訪客付款被拒，請 WhatsApp 通知客人\n姓名：${userNameRej.name}\n電話：${userNameRej.phone}\n課程：${classTitleNotifRej?.title || "—"}\n原因：${reason || "無提供原因"}`,
+      });
+    }
+  } catch (e) {}
   setTimeout(() => {
     sendTelegramAlert(
       `❌ <b>管理員已拒絕付款</b>\n👤 用戶：${userNameRej?.name || userNameRej?.email || booking.user_id}\n💰 金額：HK$${booking.amount || 0}\n💳 方式：${booking.fps_reference ? "FPS" : "PayMe"}\n📚 課程：${classTitleNotifRej?.title || "—"}\n📝 原因：${reason || "無提供原因"}\n🆔 Booking：${bookingId}\n⏰ ${new Date().toLocaleString("zh-HK", { timeZone: "Asia/Hong_Kong" })}`
