@@ -134,7 +134,10 @@ app.use("/admin.html", (req, res, next) => {
 });
 
 // 靜態檔案服務 - 直接 serve ZenPass 前台和管理後台
-// Serve static files from project root (contains all pages)
+// ⚠️ 2026-10-23：production web root 係 frontend-v2/，所以一定要優先 serve frontend-v2，
+// 否則本機 dev server（直接跑 backend）會 serve 專案根目錄嘅舊版 v1 頁面，
+// 造成「改咗但睇唔到」嘅錯覺。只喺 frontend-v2 冇該檔案時才 fallback 去 root。
+app.use(express.static(path.join(__dirname, "../../frontend-v2")));
 app.use(express.static(path.join(__dirname, "../..")));
 // Also serve frontend/ for admin-internal pages
 app.use("/admin", express.static(path.join(__dirname, "../../frontend/admin")));
