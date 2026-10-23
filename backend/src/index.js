@@ -886,6 +886,13 @@ autoBackupOnStartup();
 // 每日凌晨 3 點自動備份排程
 scheduleDailyBackup();
 
+// ===== Schema migrations（additive only） =====
+try {
+  require("./services/migrate-schema").runMigrations();
+} catch (e) {
+  console.error("⚠️ Schema migration failed:", e.message);
+}
+
 // ===== 安裝金融記錄保護觸發器 =====
 try {
   const { installDeleteTriggers } = require("./services/financial-protection");

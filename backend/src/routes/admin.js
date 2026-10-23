@@ -4,6 +4,7 @@
  */
 
 const express = require("express");
+const { v4: uuidv4 } = require("uuid");
 const { getDb } = require("../services/database");
 const { authenticateToken, requireAdmin } = require("../middleware/auth");
 const { queryAudit } = require("../services/audit");
@@ -752,6 +753,70 @@ router.get("/revenue-dashboard", authenticateToken, requireAdmin, (req, res) => 
   } catch (err) {
     console.error("[REVENUE DASHBOARD] Error:", err.message);
     res.status(500).json({ success: false, error: "讀取收入 Dashboard 失敗" });
+  }
+});
+
+// ===== POST /api/admin/merge-guest — 合併訪客帳號（人手核實身份後）=====
+router.post("/merge-guest", authenticateToken, requireAdmin, (req, res) => {
+  try {
+    const db = getDb();
+    const norm = (x) => String(x || "").replace(/[^\d]/g, "").replace(/^852/, "").replace(/^0/, "");
+    let guestId = String((req.body || {}).guest_user_id || "").trim();
+    const phone = norm((req.body || {}).phone);
+    const targetId = String((req.body || {}).target_user_id || "").trim();
+    if (!targetId) return res.status(400).json({ success: false, error: "缺少 target_user_id" });
+
+    if (!guestId && phone) {
+      const g = db
+        .prepare("SELECT id FROM users WHERE lead_source = 'guest_checkout' AND phone IS NOT NULL")
+        .all()
+        .find((u) => norm(u.phone) === phone);
+      if (g) guestId = g.id;
+    }
+    if (!guestId) return res.status(404).json({ success: false, error: "搵唔到訪客帳號" });
+    if (guestId === targetId) return res.status(400).json({ success: false, error: "同一帳號唔可以合併" });
+
+    const guest = db.prepare("SELECT id, name, phone, lead_source FROM users WHERE id = ?").get(guestId);
+    const target = db.prepare("SELECT id, name, email FROM users WHERE id = ?").get(targetId);
+    if (!guest || !target) return res.status(404).json({ success: false, error: "帳號不存在" });
+    if (guest.lead_source !== "guest_checkout") {
+      return res.status(400).json({ success: false, error: "只可以合併『免註冊』訪客帳號" });
+    }
+
+    let moved = 0;
+    const tx = db.transaction(() => {
+      moved = db.prepare("UPDATE bookings SET user_id = ? WHERE user_id = ?").run(targetId, guestId).changes;
+      // 交易／退款紀錄一齊轉（保持 audit 連續）
+      for (const t of ["transactions", "refund_logs", "wallet_transactions", "notifications"]) {
+        try { db.prepare(`UPDATE ${t} SET user_id = ? WHERE user_id = ?`).run(targetId, guestId); } catch (e) {}
+      }
+      try { db.prepare("UPDATE guest_sessions SET user_id = ? WHERE user_id = ?").run(targetId, guestId); } catch (e) {}
+      // 舊訪客帳號標記為已合併（保留 row 作審計）
+      db.prepare("UPDATE users SET lead_source = 'merged_guest', notes = COALESCE(notes,'') || ? WHERE id = ?")
+        .run(`\n[merged into ${targetId}]`, guestId);
+      db.prepare(
+        "INSERT INTO account_merges (id, guest_user_id, target_user_id, moved_bookings, merged_by, note) VALUES (?,?,?,?,?,?)",
+      ).run(uuidv4(), guestId, targetId, moved, req.user.id, "admin merge");
+    });
+    tx();
+
+    try {
+      require("../services/audit").audit({
+        actionType: "ACCOUNT_MERGE",
+        entityType: "user",
+        entityId: targetId,
+        userId: req.user.id,
+        oldValues: { guest_user_id: guestId, guest_name: guest.name, guest_phone: guest.phone },
+        newValues: { target_user_id: targetId, moved_bookings: moved },
+        description: "合併訪客帳號",
+        ipAddress: req.ip,
+      });
+    } catch (e) {}
+
+    return res.json({ success: true, moved_bookings: moved, guest_user_id: guestId, target_user_id: targetId });
+  } catch (err) {
+    console.error("[ADMIN] merge-guest error:", err.message);
+    return res.status(500).json({ success: false, error: "合併失敗" });
   }
 });
 

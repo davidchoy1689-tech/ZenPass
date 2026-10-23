@@ -127,6 +127,29 @@ router.post("/register", (req, res) => {
     `,
     ).run(id, userRef, email, passwordHash, name, phone || null, verificationToken, verificationCode);
 
+    // ⚡ 訪客帳號偵測（2026-10-23）：同一電話已有「免註冊」預約帳號 → 通知 admin 合併
+    try {
+      if (phone) {
+        const norm = (x) => String(x || "").replace(/[^\d]/g, "").replace(/^852/, "").replace(/^0/, "");
+        const mine = norm(phone);
+        if (mine.length === 8) {
+          const guest = db
+            .prepare("SELECT id, name, phone FROM users WHERE lead_source = 'guest_checkout' AND phone IS NOT NULL")
+            .all()
+            .find((u) => norm(u.phone) === mine);
+          if (guest) {
+            const { notifyAdmins } = require("../services/admin-alerts");
+            notifyAdmins("guest.merge_needed", {
+              message:
+                `🔗 同一電話有新註冊，可合併訪客預約\n電話：${phone}\n訪客帳號：${guest.name}\n新帳號：${name}（${email}）\n請到 Admin → 用戶 合併`,
+            });
+          }
+        }
+      }
+    } catch (e) {
+      console.error("guest merge detect failed:", e.message);
+    }
+
     // 🎁 推薦碼：註冊時帶入，驗證電郵後自動入賬
     const refCode = String(ref || "").trim();
     if (refCode) {

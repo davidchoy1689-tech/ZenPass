@@ -121,6 +121,15 @@ function processRefund({
       }
     }
 
+    // 4.1 退款狀態追蹤（2026-10-23）：唔改 payment_status 嘅 CHECK，另外記錄
+    try {
+      db.prepare(
+        "UPDATE bookings SET refund_state = ?, refund_requested_at = datetime('now') WHERE id = ?",
+      ).run(instant ? "completed" : "pending", bookingId);
+    } catch (e) {
+      console.error("[REFUND] refund_state update failed:", e.message);
+    }
+
     // 5. 座位已由取消流程釋放（唔喺呢度再減，避免重複扣）
 
     // 6. Create accounting entry（待轉賬完成後才入賬）
@@ -249,6 +258,7 @@ function completeRefund(refundId, adminId, { transferReference = null, note = nu
         fully ? "refunded" : "partial_refund",
         row.booking_id,
       );
+      try { db.prepare("UPDATE bookings SET refund_state = 'completed' WHERE id = ?").run(row.booking_id); } catch (e) {}
       db.prepare("UPDATE transactions SET status='completed' WHERE refund_id = ?").run(refundId);
     });
     tx();

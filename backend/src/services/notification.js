@@ -208,6 +208,11 @@ async function sendNotification(type, payload) {
       message = `💰 付款成功！\n金額：$${data?.amount || "—"}\n方式：${data?.method || "—"}\n參考：${data?.reference || "—"}`;
       html = `<h2>💰 付款成功</h2><p><b>金額：</b>$${data?.amount || "—"}<br><b>方式：</b>${data?.method || "—"}<br><b>參考：</b>${data?.reference || "—"}</p>`;
       break;
+    case "guest.merge_needed":
+      title = "🔗 可合併訪客預約";
+      message = data?.message || "同一電話有新註冊，可合併舊訪客預約。";
+      html = `<h2>🔗 可合併訪客預約</h2><p>${String(data?.message || "").replace(/\n/g, "<br>")}</p>`;
+      break;
     case "guest.new_booking":
       title = "⚡ 新訪客預約";
       message = data?.message || "有新訪客預約，請盡快跟進。";
