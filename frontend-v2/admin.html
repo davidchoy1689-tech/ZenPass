@@ -535,21 +535,29 @@
         const x = await api.post(`/admin/impersonate/${targetId}`, {});
         if (!x.ok) { msg.textContent = (x.data && x.data.error) || "預覽失敗"; return; }
         try {
-          localStorage.setItem("admin_token_backup", localStorage.getItem("token") || "");
+          localStorage.setItem("admin_token_backup", localStorage.getItem("zenpass_token") || "");
+          localStorage.setItem("admin_user_backup", localStorage.getItem("zenpass_user") || "");
           localStorage.setItem("imp_mode", x.data.user.email || "");
         } catch (e) {}
-        localStorage.setItem("token", x.data.token);
+        localStorage.setItem("zenpass_token", x.data.token);
+        localStorage.setItem("zenpass_user", JSON.stringify(x.data.user));
         msg.innerHTML = `✅ 已切換為 <b>${esc2(x.data.user.name || x.data.user.email)}</b>（30 分鐘）`;
         $("impExit").style.display = "block";
       };
       $("impExit").onclick = () => {
         const back = localStorage.getItem("admin_token_backup");
-        if (back) localStorage.setItem("token", back);
+        const backUser = localStorage.getItem("admin_user_backup");
+        if (back) localStorage.setItem("zenpass_token", back);
+        if (backUser) localStorage.setItem("zenpass_user", backUser);
         localStorage.removeItem("admin_token_backup");
+        localStorage.removeItem("admin_user_backup");
         localStorage.removeItem("imp_mode");
         location.href = "admin.html";
       };
-      if (localStorage.getItem("admin_token_backup")) $("impExit").style.display = "block";
+      if (localStorage.getItem("admin_token_backup")) {
+        $("impExit").style.display = "block";
+        $("impMsg").textContent = "而家係預覽模式（" + (localStorage.getItem("imp_mode") || "") + "）";
+      }
     }
 
     async function usersTab() {
