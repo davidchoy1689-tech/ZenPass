@@ -6,7 +6,7 @@
 
 const express = require("express");
 const { getDb } = require("../services/database");
-const { authenticateToken, requireCoach } = require("../middleware/auth");
+const { authenticateToken, requireCoach, hasMinimumRole } = require("../middleware/auth");
 const { scalpGuard } = require("../middleware/anti-scalping");
 const { validate, schemas } = require("../middleware/validate");
 const { requireIdempotency } = require("../middleware/idempotency");
@@ -325,7 +325,8 @@ router.get("/:id/qr", authenticateToken, (req, res) => {
       return res.status(403).json({ success: false, error: "無權取得此預約 QR" });
     }
 
-    if (booking.user_id !== req.user.id && req.user.role !== "admin") {
+    // 2026-10-24：改用角色層級（原本硬編碼 "admin" → platform_manager/staff 反而被拒）
+    if (booking.user_id !== req.user.id && !hasMinimumRole(req.user.role, "admin")) {
       const cls = db.prepare("SELECT coach_id FROM classes WHERE id = ?").get(booking.class_id);
       if (!cls || cls.coach_id !== req.user.id) {
         return res.status(403).json({ success: false, error: "無權限存取此 QR Code" });
