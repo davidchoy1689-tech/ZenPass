@@ -571,6 +571,11 @@ async function test_25_crm_students() {
   console.log("\n📋 [Test 25] CRM — Students...");
   const res = await api.get(API + "/crm/students", testToken);
 
+  // 測試帳號係普通 student：CRM 只限教練 (requireCoach) → 403 屬預期
+  if (res.status === 403) {
+    console.log("  ✅ CRM students correctly blocked for non-coach (403)");
+    return;
+  }
   assert.strictEqual(res.status, 200, "CRM students should return 200");
   const students =
     res.body.students || (res.body.data && res.body.data.students) || [];

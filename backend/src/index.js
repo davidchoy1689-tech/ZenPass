@@ -258,6 +258,7 @@ app.use("/api/users", require("./routes/users"));
 // app.use("/api/me/teammates", require("./routes/teammates"));
 app.use("/api/classes", require("./routes/classes"));
 app.use("/api/bookings", require("./routes/bookings"));
+app.use("/api/guest", require("./routes/guest"));
 app.use("/api/coach", require("./routes/coach"));
 app.use("/api/memberships", require("./routes/memberships"));
 app.use("/api/payments", express.json(), paymentsRouter);

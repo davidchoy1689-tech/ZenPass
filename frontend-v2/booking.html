@@ -151,6 +151,47 @@
     }
     .done-redirect b { color: #047857; font-size: 15px; font-variant-numeric: tabular-nums; }
     .done-redirect.hide { display: none; }
+
+    /* ===== 2026-10-23 CRO 優化 ===== */
+    /* 訪客快速結賬 */
+    .guest-box .body { padding: 14px; }
+    .guest-title { font-size: 14px; font-weight: 800; color: #065f46; margin-bottom: 4px; }
+    .guest-box input {
+      width: 100%; box-sizing: border-box; border: 1px solid var(--border); border-radius: 12px;
+      padding: 11px 12px; font: inherit; background: var(--surface); color: var(--text); margin-top: 8px;
+    }
+    .guest-box input:focus { outline: none; border-color: #10b981; box-shadow: 0 0 0 3px rgba(16,185,129,.14); }
+    .guest-box .guest-hint { font-size: 11.5px; color: var(--text-muted); margin-top: 8px; line-height: 1.5; }
+    .guest-box .guest-hint a { color: #047857; font-weight: 700; }
+
+    /* 退改保障標籤 */
+    .guarantee {
+      display: flex; align-items: center; gap: 10px;
+      background: linear-gradient(135deg, #ecfdf5, #f0fdf4);
+      border: 1px solid #a7f3d0; border-radius: 14px; padding: 11px 13px;
+      font-size: 12.5px; color: #065f46; font-weight: 700; line-height: 1.45;
+      box-shadow: 0 2px 10px rgba(16,185,129,.08);
+    }
+    .guarantee .g-ic { font-size: 18px; line-height: 1; }
+    .guarantee small { display: block; font-weight: 600; color: #047857; font-size: 11.5px; margin-top: 2px; }
+
+    /* 付款指引按鈕 */
+    .pay-acct {
+      display: flex; align-items: center; justify-content: space-between; gap: 10px;
+      background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 12px; padding: 10px 12px; margin: 6px 0 10px;
+    }
+    .pay-acct b { font-size: 15.5px; letter-spacing: .3px; color: #0f172a; }
+    .pay-acct button {
+      flex: 0 0 auto; border: 0; background: #10b981; color: #fff; font: inherit; font-weight: 800;
+      font-size: 12px; border-radius: 999px; padding: 8px 12px; cursor: pointer;
+    }
+    .pay-acct button:active { transform: scale(.97); }
+    .pay-note { font-size: 11.5px; color: #64748b; line-height: 1.55; margin: 8px 0 0; }
+    .pay-note b { color: #047857; }
+
+    /* 逾時救回 modal */
+    .timeout-card h3 { margin: 8px 0 6px; font-size: 17px; }
+    .timeout-card p { margin: 0 0 14px; font-size: 13px; color: #475569; line-height: 1.6; }
   </style>
 </head>
 <body>
@@ -202,6 +243,14 @@
         </label>
       </div>
       <div class="spacer"></div>
+      <div class="card guest-box hide" id="guestBox"><div class="body">
+        <div class="guest-title">⚡ 快速預約（免註冊）</div>
+        <div class="muted" style="font-size:12.5px;line-height:1.5">只需姓名同 WhatsApp 電話，即刻完成預約，唔使設密碼。</div>
+        <input id="gName" placeholder="你的姓名" autocomplete="name" maxlength="40" />
+        <input id="gPhone" placeholder="WhatsApp 電話（8 位數字）" inputmode="numeric" autocomplete="tel" maxlength="20" />
+        <div class="guest-hint">📱 請確保號碼正確，客服／教練會用呢個號碼聯絡你確認預約。<br/>已有帳號？<a href="login.html?next=booking.html">登入後可用 Pass 點數</a></div>
+      </div></div>
+      <div class="spacer"></div>
       <div class="card"><div class="body">
         <div class="muted" style="font-size:13px;margin-bottom:6px">優惠碼（可選）</div>
         <div class="promo-row">
@@ -229,6 +278,11 @@
       <div class="section-title">付款</div>
       <div class="card" id="paySummary"></div>
       <div class="spacer"></div>
+      <div class="guarantee" id="guarantee1">
+        <span class="g-ic">🛡️</span>
+        <div>開課前 24 小時可免費取消，全數退回<small>已付款項（Credits 或原付款方式）</small></div>
+      </div>
+      <div class="spacer"></div>
       <button class="btn btn-primary btn-block" id="payNow">立即確認預約</button>
       <div class="spacer"></div>
       <button class="btn btn-ghost btn-block" id="back2">返回</button>
@@ -244,6 +298,11 @@
       <div class="hscroll" id="payTabs"></div>
       <div id="payPanels"></div>
       <div class="spacer"></div>
+      <div class="guarantee">
+        <span class="g-ic">🛡️</span>
+        <div>開課前 24 小時可免費取消，全數退回<small>已付款項（Credits 或原付款方式）</small></div>
+      </div>
+      <div class="spacer"></div>
       <button class="btn btn-ghost btn-block" id="backFromPay">返回</button>
     </section>
 
@@ -255,6 +314,12 @@
         <p class="muted" id="doneMsg" style="margin:0"></p>
       </div>
       <div class="done-card" id="doneSummary"></div>
+      <div class="done-card" id="guestDoneNote" hidden>
+        <div style="font-size:13px;line-height:1.6;color:#334155">
+          📱 預約編號：<b>—</b><br/>
+          如需改期／取消，請 WhatsApp <b>9033 5538</b> 並提供預約編號。
+        </div>
+      </div>
       <div class="done-qr">
         <div class="qr-box">▦</div>
         <div><b>QR Code 簽到</b><p>上堂前 15 分鐘到場，打開「我的預約」即可掃碼簽到</p></div>
@@ -284,6 +349,16 @@
       <div class="invite-link" id="inviteLink"></div>
       <a class="btn btn-wa btn-block" id="waInvite" target="_blank" rel="noopener">💬 一鍵分享至 WhatsApp 群組</a>
       <button class="btn btn-ghost btn-block" id="closeInvite" type="button" style="margin-top:8px">稍後再分享</button>
+    </div>
+  </div>
+
+  <div class="invite-overlay" id="timeoutModal" hidden>
+    <div class="invite-card timeout-card">
+      <div class="invite-emoji">⏰</div>
+      <h3>名額保留已逾時</h3>
+      <p>別擔心，你嘅選擇仍然喺度。點擊下面即刻重新鎖定名額，繼續完成付款。</p>
+      <button class="btn btn-primary btn-block" id="relockBtn" type="button">🔄 重新保留名額</button>
+      <button class="btn btn-ghost btn-block" id="relockCancel" type="button" style="margin-top:8px">返回選擇時段</button>
     </div>
   </div>
 
@@ -337,7 +412,13 @@
     const unit = () => (promoFinal ? promoFinal.final_price : (cls ? cls.price_hkd : 0));
     const visible = () => sessions.filter(s => ban === "all" || banOf(s) === ban);
 
-    if (api.requireLogin("booking.html" + location.search)) (async () => {
+    let isGuest = false, guestToken = null, guestInfo = null, guestBookings = [];
+
+    (async () => {
+      // 登入狀態：localStorage token 或 HTTP-only cookie 都算已登入
+      let loggedIn = api.isLoggedIn();
+      if (!loggedIn) { try { const me = await api.get("/users/me"); loggedIn = !!(me && me.ok); } catch (e) {} }
+      isGuest = !loggedIn;
       if (!classId) { $("groups").innerHTML = `<div class="card"><div class="body">缺少課程。</div></div>`; return; }
       const r = await api.get("/classes/" + encodeURIComponent(classId));
       cls = r.data && r.data.class;
@@ -379,7 +460,34 @@
       renderChips();
       defaultSelectFirstMonth();
       render();
+      applyGuestMode();
     })();
+
+    /* 訪客模式：隱藏 Credits 付款、顯示姓名／電話欄 */
+    function applyGuestMode() {
+      if (!isGuest) return;
+      const gb = $("guestBox"); if (gb) gb.classList.remove("hide");
+      const creditCard = document.querySelector('[data-pm-card="credits"]');
+      if (creditCard) creditCard.style.display = "none";
+      const single = document.querySelector('input[name=pm][value="single"]');
+      if (single) {
+        single.checked = true;
+        document.querySelectorAll("#pmList .pm-card").forEach((c) => c.classList.toggle("on", c.dataset.pmCard === "single"));
+      }
+    }
+    function guestFormValues() {
+      const name = ($("gName") ? $("gName").value : "").trim();
+      let phone = ($("gPhone") ? $("gPhone").value : "").replace(/[^\d]/g, "");
+      if (phone.startsWith("852") && phone.length === 11) phone = phone.slice(3);
+      if (phone.startsWith("0") && phone.length === 9) phone = phone.slice(1);
+      return { name, phone };
+    }
+    function validGuest() {
+      const { name, phone } = guestFormValues();
+      if (name.length < 2) { alert("請填寫姓名（最少 2 個字）"); return false; }
+      if (!/^[4-9]\d{7}$/.test(phone)) { alert("請填寫有效嘅香港手機號碼（8 位數字）"); return false; }
+      return true;
+    }
 
     function renderChips() {
       const hasA = sessions.some(s => banOf(s) === "A");
@@ -438,6 +546,7 @@
     };
     $("toStep3").onclick = () => {
       if (!$("consent").checked) { alert("請先同意缺席政策"); return; }
+      if (isGuest && !validGuest()) return;
       const pm = document.querySelector("input[name=pm]:checked").value;
       const n = sel.size;
       const unitPrice = promoFinal ? promoFinal.final_price : cls.price_hkd;
@@ -450,9 +559,12 @@
         <div class="row"><span class="k">應付</span><span class="v" style="color:var(--brand-600)">${acc}</span></div>`;
       $("holdBanner").style.display = pm === "credits" ? "none" : "flex";
       show("step3"); setStep(3); updateBar();
+      // 名額保留倒數（15 分鐘）
+      if (pm === "credits") stopCountdown();
+      else startHoldCountdown("countdown", showTimeoutModal);
     };
     $("back1").onclick = () => { show("step1"); setStep(1); updateBar(); };
-    $("back2").onclick = () => { show("step2"); setStep(2); };
+    $("back2").onclick = () => { stopCountdown(); show("step2"); setStep(2); };
     $("applyPromo").onclick = async () => {
       const code = $("promo").value.trim(); const msg = $("promoMsg");
       if (!code) { msg.className = "promo-msg bad"; msg.textContent = "請輸入優惠碼"; return; }
@@ -474,6 +586,36 @@
 
     $("payNow").onclick = async () => {
       const pm = document.querySelector("input[name=pm]:checked").value;
+
+      /* ===== 訪客快速結賬 ===== */
+      if (isGuest) {
+        if (!validGuest()) return;
+        const { name, phone } = guestFormValues();
+        const btnG = $("payNow"); btnG.disabled = true; btnG.textContent = "處理中…";
+        const gr = await api.post("/guest/book", {
+          name, phone, classId,
+          scheduleIds: sessions.filter(s => sel.has(s.id)).map(s => s.id),
+          groupSize: groupSize(),
+          promoCode: promoFinal ? promoFinal.code : undefined,
+        });
+        btnG.disabled = false; btnG.textContent = "立即確認預約";
+        if (gr.ok && gr.data && gr.data.success) {
+          guestToken = gr.data.token; guestInfo = gr.data.user;
+          const list = gr.data.bookings || [];
+          guestBookings = list;
+          const ids = list.map(b => b.id);
+          const amt = Number((list[0] || {}).amount) || unitForPay();
+          startPayStep(ids, amt);
+        } else if (gr.data && gr.data.code === "PHONE_EXISTS") {
+          if (confirm(gr.data.error + "\n\n而家帶你去登入頁？")) {
+            location.href = "login.html?next=" + encodeURIComponent("booking.html" + location.search);
+          }
+        } else {
+          alert((gr.data && gr.data.error) || "預約失敗，請重試");
+        }
+        return;
+      }
+
       const items = sessions.filter(s => sel.has(s.id)).map(s => ({
         scheduleId: s.id, classId, paymentType: pm, penaltyConsent: true,
         groupSize: groupSize(),
@@ -600,7 +742,11 @@
         ["堂數", n + " 堂" + (gs === 3 ? "（三人同行）" : "")],
         ["金額", hkd(total)],
       ];
-      box.innerHTML = rows.map(([k, v]) => `<div class="row"><span class="k">${esc(k)}</span><span class="v">${esc(String(v))}</span></div>`).join("");
+      box.innerHTML = rows.map(([k, v]) => `<div class="row"><span class="k">${esc(k)}</span><span class="v">${esc(String(v))}</span></div>`).join("")
+        + (isGuest && guestBookings.length
+          ? `<div class="row"><span class="k">預約編號</span><span class="v">${guestBookings.map(b => esc(b.booking_reference || "")).join("、")}</span></div>
+             <div class="row"><span class="k">電話</span><span class="v">${esc((guestInfo && guestInfo.phone) || "")}</span></div>`
+          : "");
     }
     function startDoneRedirect(sec) {
       stopRedirect();
@@ -612,7 +758,7 @@
       $("redirectSec").textContent = String(redirectLeft);
       redirectTimer = setInterval(() => {
         redirectLeft -= 1;
-        if (redirectLeft <= 0) { stopRedirect(); location.href = "my-bookings.html"; return; }
+        if (redirectLeft <= 0) { stopRedirect(); location.href = isGuest ? "index.html" : "my-bookings.html"; return; }
         $("redirectSec").textContent = String(redirectLeft);
       }, 1000);
     }
@@ -627,6 +773,12 @@
       show("done"); markStepsDone();
       $("bar").style.display = "none";
       setupDoneActions();
+      if (isGuest) {
+        const gb = $("goBookings");
+        if (gb) { gb.textContent = "📋 已記低，返回主頁"; gb.href = "index.html"; }
+        const note = $("guestDoneNote");
+        if (note) { note.hidden = false; note.querySelector("b").textContent = (guestBookings.map(b => b.booking_reference).filter(Boolean).join("、") || "—"); }
+      }
       startDoneRedirect(opts.redirect === false ? 0 : 5);
       try { window.scrollTo({ top: 0, behavior: "smooth" }); } catch (e) { window.scrollTo(0, 0); }
     }
@@ -642,10 +794,13 @@
         <div class="row"><span class="k">應付</span><span class="v" style="color:var(--brand-600)">${hkd(unit*ids.length)}</span></div>`;
       renderPayTabs();
       show("pay"); setStep(3); $("bar").style.display = "none";
-      startCountdown();
+      startHoldCountdown("payCountdown", showTimeoutModal);
     }
     function renderPayTabs(){
-      const opts=[["fps","轉數快 FPS"],["payme","PayMe"],["card","信用卡"]];
+      // 訪客冇 Stripe customer／冇登入 session → 只提供 FPS / PayMe
+      const opts = isGuest
+        ? [["fps","轉數快 FPS"],["payme","PayMe"]]
+        : [["fps","轉數快 FPS"],["payme","PayMe"],["card","信用卡"]];
       $("payTabs").innerHTML = opts.map(([k,l])=>`<span class="chip ${payMethod===k?'on':''}" data-pm="${k}">${l}</span>`).join("");
       document.querySelectorAll("#payTabs .chip").forEach(c=>c.onclick=()=>{ payMethod=c.dataset.pm; renderPayTabs(); });
       renderPayPanel();
@@ -654,19 +809,22 @@
       const input = `<input id="payRef" placeholder="輸入${payMethod==="fps"?" FPS ":" PayMe "}參考編號" style="width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:12px;padding:10px 12px;font:inherit;background:var(--surface);color:var(--text)" />`;
       if(payMethod==="fps"){
         $("payPanels").innerHTML = `<div class="card"><div class="body">
-          <p class="muted" style="font-size:13px;margin:0 0 8px">請用「轉數快 FPS」轉賬至：</p>
-          <p style="font-weight:800;font-size:17px;margin:0">HSBC 741-293856-838</p>
-          <p class="muted" style="font-size:12px;margin:4px 0 12px">收款：ZenPass（HSBC）</p>
+          <p class="muted" style="font-size:13px;margin:0 0 6px">請用「轉數快 FPS」轉賬至：</p>
+          <div class="pay-acct"><span><b>741-293856-838</b><br/><span class="muted" style="font-size:11.5px">HSBC · 收款：ZenPass</span></span>
+            <button type="button" data-copy="741293856838">📋 複製</button></div>
           ${input}<div style="height:10px"></div>
           <button class="btn btn-primary btn-block" id="paySubmit">我已付款，提交核實</button>
+          <p class="pay-note">💡 轉賬時請於備註填寫訂單／電話號碼。提交參考編號後，<b>系統會即時通知我們核實</b>，一般 1-3 分鐘內完成確認。</p>
         </div></div>`;
       } else if(payMethod==="payme"){
         $("payPanels").innerHTML = `<div class="card"><div class="body">
-          <p class="muted" style="font-size:13px;margin:0 0 8px">請用「PayMe」付款至：</p>
-          <p style="font-weight:800;font-size:20px;margin:0">9492 5828</p>
-          <p class="muted" style="font-size:12px;margin:4px 0 12px">備註：ZenPass 課程</p>
+          <p class="muted" style="font-size:13px;margin:0 0 6px">請用「PayMe」付款至：</p>
+          <div class="pay-acct"><span><b>9492 5828</b><br/><span class="muted" style="font-size:11.5px">備註：ZenPass 課程</span></span>
+            <button type="button" data-copy="94925828">📋 複製</button></div>
+          <a class="btn btn-secondary btn-block" href="payme://" id="openPayme" style="margin-bottom:10px">開啟 PayMe App</a>
           ${input}<div style="height:10px"></div>
           <button class="btn btn-primary btn-block" id="paySubmit">我已付款，提交核實</button>
+          <p class="pay-note">💡 未安裝 PayMe？可到 App Store／Play Store 搜尋「PayMe」。提交參考編號後，<b>系統會即時通知我們核實</b>，一般 1-3 分鐘內完成。</p>
         </div></div>`;
       } else {
         $("payPanels").innerHTML = `<div class="card"><div class="body">
@@ -676,15 +834,34 @@
       }
       const sub=$("paySubmit"); if(sub) sub.onclick=submitManualPay;
       const cd=$("payCard"); if(cd) cd.onclick=payByCard;
+      document.querySelectorAll("[data-copy]").forEach((b) => b.onclick = () => copyText(b.dataset.copy, b));
+    }
+    function copyText(txt, btn) {
+      const done = () => { const old = btn.textContent; btn.textContent = "✅ 已複製"; setTimeout(() => { btn.textContent = old; }, 1600); };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(txt).then(done).catch(() => fallbackCopy(txt, done));
+      } else fallbackCopy(txt, done);
+    }
+    function fallbackCopy(txt, done) {
+      try {
+        const t = document.createElement("textarea");
+        t.value = txt; t.style.position = "fixed"; t.style.opacity = "0";
+        document.body.appendChild(t); t.select(); document.execCommand("copy"); t.remove(); done();
+      } catch (e) { alert("複製失敗，請手動記低：" + txt); }
     }
     async function submitManualPay(){
       const ref=$("payRef").value.trim(); if(!ref){ alert("請輸入參考編號"); return; }
       const btn=$("paySubmit"); btn.disabled=true; btn.textContent="提交中…";
       let ok=0;
       for(const id of payIds){
-        const body={ booking_id:id, amount:payUnit };
-        if(payMethod==="fps") body.fps_reference=ref; else body.payme_reference=ref;
-        const r = await api.post("/payments/"+payMethod, body);
+        let r;
+        if (isGuest) {
+          r = await api.post("/guest/payment", { token: guestToken, booking_id: id, method: payMethod, reference: ref });
+        } else {
+          const body={ booking_id:id, amount:payUnit };
+          if(payMethod==="fps") body.fps_reference=ref; else body.payme_reference=ref;
+          r = await api.post("/payments/"+payMethod, body);
+        }
         if(r.ok) ok++;
       }
       if(ok){ payDone(payMethod==="fps"?"轉數快":"PayMe"); }
@@ -703,13 +880,112 @@
         msg: "管理員核實後，預約會轉為「已確認」。你可喺「我的預約」睇最新狀態。",
       });
     }
-    function startCountdown(){
+
+    /* ===== 名額保留倒數 + 逾時救回 ===== */
+    let timeoutCtx = null;
+    function startHoldCountdown(elId, onExpire){
       stopCountdown();
-      let s=15*60; const el=$("payCountdown"); const p=n=>String(n).padStart(2,"0");
+      const el=$(elId); if(!el) return;
+      let s=15*60; const p=n=>String(n).padStart(2,"0");
       el.textContent="15:00";
-      cdTimer=setInterval(()=>{ s--; if(s<0){ stopCountdown(); el.textContent="00:00"; return; } el.textContent=p(Math.floor(s/60))+":"+p(s%60); },1000);
+      cdTimer=setInterval(()=>{
+        s--;
+        if(s<0){ stopCountdown(); el.textContent="00:00"; if(typeof onExpire==="function") onExpire(); return; }
+        el.textContent=p(Math.floor(s/60))+":"+p(s%60);
+      },1000);
     }
     function stopCountdown(){ if(cdTimer){ clearInterval(cdTimer); cdTimer=null; } }
+
+    function showTimeoutModal(){
+      timeoutCtx = payIds.length ? "pay" : "step3";
+      const m = $("timeoutModal"); if (m) m.hidden = false;
+    }
+    function hideTimeoutModal(){ const m=$("timeoutModal"); if (m) m.hidden = true; }
+
+    async function relockHold(){
+      const btn = $("relockBtn");
+      if (btn) { btn.disabled = true; btn.textContent = "重新鎖定中…"; }
+      try {
+        // 未建立 booking（step3 階段）：只需確認時段仍然有位，重新倒數
+        if (!payIds.length) {
+          await reloadSchedules();
+          if (sel.size) {
+            hideTimeoutModal();
+            startHoldCountdown("countdown", showTimeoutModal);
+            alert("✅ 名額仍然有位，已重新為你保留 15 分鐘");
+            return;
+          }
+          throw new Error("原本選擇嘅時段已滿，請重新選擇");
+        }
+
+        if (isGuest) {
+          const r = await api.post("/guest/relock", { token: guestToken });
+          if (r.ok && r.data && r.data.success) {
+            const list = r.data.bookings || [];
+            const ids = list.filter(b => b.status === "pending_payment").map(b => b.id);
+            if (!ids.length) throw new Error("名額已釋放");
+            payIds = ids;
+            hideTimeoutModal();
+            startHoldCountdown("payCountdown", showTimeoutModal);
+            alert("✅ 已重新鎖定名額 15 分鐘，請盡快完成付款");
+            return;
+          }
+          throw new Error((r.data && r.data.error) || "重新鎖定失敗");
+        }
+
+        if (payIds.length) {
+          // 已建立 booking：向 batch 重新提交，舊 pending booking 會 resume
+          const items = sessions.filter(s => sel.has(s.id)).map(s => ({
+            scheduleId: s.id, classId, paymentType: "single", penaltyConsent: true,
+            groupSize: groupSize(), promoCode: promoFinal ? promoFinal.code : undefined,
+          }));
+          const r = await api.post("/bookings/batch", { items });
+          const list = (r.data && r.data.results) || [];
+          const ids = list.filter(x => (x.status === 200 || x.status === 201) && x.body && x.body.booking_id)
+            .map(x => x.body.booking_id);
+          if (ids.length) {
+            payIds = ids;
+            hideTimeoutModal();
+            startHoldCountdown("payCountdown", showTimeoutModal);
+            alert("✅ 已重新鎖定名額 15 分鐘，請盡快完成付款");
+            return;
+          }
+          throw new Error("名額已被其他人預約，請重新選擇時段");
+        }
+        throw new Error("請重新選擇時段");
+      } catch (e) {
+        alert("⏰ " + (e.message || "重新鎖定失敗") + "\n我哋帶你返去選擇時段。");
+        hideTimeoutModal();
+        show("step1"); setStep(1); updateBar();
+        await reloadSchedules();
+      } finally {
+        if (btn) { btn.disabled = false; btn.textContent = "🔄 重新保留名額"; }
+      }
+    }
+
+    async function reloadSchedules(){
+      try {
+        const r = await api.get("/classes/" + encodeURIComponent(classId));
+        if (!r.ok || !r.data) return;
+        const now = Date.now();
+        sessions = ((r.data.schedules) || []).filter(s => {
+          if (s.status === "cancelled") return false;
+          if ((s.max_participants - s.enrolled_count) <= 0) return false;
+          if (window.zpIsHoliday && zpIsHoliday(s.start_time)) return false;
+          const raw = String(s.start_time || "");
+          const iso = /Z|[+-]\d\d:?\d\d$/.test(raw) ? raw : raw.replace(" ", "T") + "Z";
+          const t = new Date(iso).getTime();
+          return isNaN(t) ? true : t > now;
+        });
+        const validIds = new Set(sessions.map(s => s.id));
+        sel.forEach(id => { if (!validIds.has(id)) sel.delete(id); });
+        render();
+      } catch (e) {}
+    }
+
+    const _rk = $("relockBtn"); if (_rk) _rk.onclick = relockHold;
+    const _rc = $("relockCancel"); if (_rc) _rc.onclick = () => { hideTimeoutModal(); show("step1"); setStep(1); updateBar(); reloadSchedules(); };
+
     $("backFromPay").onclick = () => { stopCountdown(); show("step3"); setStep(3); };
   </script>
   <script src="assets/footer.js?v=4" defer></script>
