@@ -1041,10 +1041,11 @@ router.post("/users/:id/role", authenticateToken, requirePermission("users.role.
     const myLevel = ROLE_HIERARCHY[req.user.role];
     const theirLevel = ROLE_HIERARCHY[target.role];
     const newLevel = ROLE_HIERARCHY[targetRole];
-    if (newLevel <= myLevel) {
+    // 👑 super_admin 可以任命任何角色（包括第二位主要管理員）
+    if (req.user.role !== "super_admin" && newLevel <= myLevel) {
       return res.status(403).json({ success: false, error: "唔可以設定同等或更高權限嘅角色" });
     }
-    if (theirLevel <= myLevel) {
+    if (req.user.role !== "super_admin" && theirLevel <= myLevel) {
       return res.status(403).json({ success: false, error: "唔可以修改同等或更高權限嘅帳號" });
     }
 
@@ -1083,5 +1084,348 @@ router.get("/permissions", authenticateToken, requirePermission("users.role.writ
   const { ROLE_PERMISSIONS, PERMISSIONS } = require("../config/permissions");
   return res.json({ success: true, roles: ROLE_PERMISSIONS, permissions: PERMISSIONS });
 });
+
+// ===================================================================
+// 🛡️ 員工／管理員帳號管理（2026-10-24）
+// 主要管理員（super_admin／有 users.role.write）可以：
+//   建立帳號、改角色、重設密碼、停用／啟用、刪除
+// 所有操作都寫 audit_log（＋區塊鏈），金錢相關紀錄永不因刪除帳號而消失。
+// ===================================================================
+
+const bcrypt = require("bcryptjs");
+
+const STAFF_ROLES = [
+  "super_admin",
+  "platform_manager",
+  "platform_staff",
+  "admin",
+  "partner_owner",
+  "partner_admin",
+  "partner_staff",
+  "coach",
+];
+
+function genTempPassword() {
+  // 14 字元，含大小寫／數字／符號（避開易混淆字元）
+  const abc = "abcdefghjkmnpqrstuvwxyz";
+  const ABC = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+  const num = "23456789";
+  const sym = "!@#$%&*?";
+  const crypto = require("crypto");
+  const pick = (s) => s[crypto.randomInt(0, s.length)];
+  let p = pick(ABC) + pick(abc) + pick(num) + pick(sym);
+  const all = abc + ABC + num + sym;
+  while (p.length < 14) p += pick(all);
+  return p
+    .split("")
+    .sort(() => crypto.randomInt(0, 3) - 1)
+    .join("");
+}
+
+function writeAudit(req, actionType, entityId, oldValues, newValues, description) {
+  try {
+    require("../services/audit").audit({
+      actionType,
+      entityType: "user",
+      entityId,
+      userId: req.user.id,
+      oldValues: oldValues || null,
+      newValues: newValues || null,
+      description,
+      ipAddress: req.ip,
+    });
+  } catch (e) {}
+  try {
+    require("../services/blockchain-audit").writeBlock({
+      entityType: "staff_account",
+      entityId,
+      data: { action: actionType, by: req.user.id, old: oldValues || null, new: newValues || null },
+    });
+  } catch (e) {}
+}
+
+// ===== GET /api/admin/staff — 後台帳號清單 =====
+// ===== GET /api/admin/user-lookup?q= — 用 email／名／電話搵用戶（預覽身份用）=====
+router.get(
+  "/user-lookup",
+  authenticateToken,
+  requirePermission("users.role.write"),
+  (req, res) => {
+    try {
+      const q = String(req.query.q || "").trim();
+      if (!q) return res.json({ success: true, users: [] });
+      const db = getDb();
+      const like = `%${q.toLowerCase()}%`;
+      const users = db
+        .prepare(
+          `SELECT id, name, email, phone, role, COALESCE(is_active,1) AS active
+           FROM users
+           WHERE LOWER(email) LIKE ? OR LOWER(COALESCE(name,'')) LIKE ? OR COALESCE(phone,'') LIKE ?
+           ORDER BY CASE WHEN LOWER(email) = ? THEN 0 ELSE 1 END, created_at DESC
+           LIMIT 10`,
+        )
+        .all(like, like, like, q.toLowerCase());
+      res.json({ success: true, users });
+    } catch (err) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  },
+);
+
+router.get("/staff", authenticateToken, requirePermission("users.role.write"), (req, res) => {
+  try {
+    const db = getDb();
+    const rows = db
+      .prepare(
+        `SELECT id, email, name, phone, role, is_active, coach_verified, partner_id,
+                created_at, last_visit, COALESCE(is_active,1) AS active
+         FROM users
+         WHERE role NOT IN ('user','guest')
+         ORDER BY
+           CASE role
+             WHEN 'super_admin' THEN 0 WHEN 'platform_manager' THEN 1
+             WHEN 'platform_staff' THEN 2 WHEN 'admin' THEN 3
+             WHEN 'partner_owner' THEN 4 WHEN 'partner_admin' THEN 5
+             WHEN 'partner_staff' THEN 6 ELSE 7 END,
+           created_at ASC`,
+      )
+      .all();
+    res.json({ success: true, staff: rows, roles: STAFF_ROLES });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ===== POST /api/admin/staff — 建立後台帳號 =====
+router.post("/staff", authenticateToken, requirePermission("users.role.write"), (req, res) => {
+  try {
+    const { ROLE_HIERARCHY } = require("../middleware/auth");
+    const db = getDb();
+    const email = String((req.body || {}).email || "").trim().toLowerCase();
+    const name = String((req.body || {}).name || "").trim();
+    const role = String((req.body || {}).role || "");
+    const phone = (req.body || {}).phone || null;
+
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ success: false, error: "請輸入有效電郵" });
+    }
+    if (!name) return res.status(400).json({ success: false, error: "請輸入姓名" });
+    if (!ROLE_HIERARCHY.hasOwnProperty(role) || role === "user" || role === "guest") {
+      return res.status(400).json({ success: false, error: "無效角色" });
+    }
+    // 👑 主要管理員可以建立任何角色；其他人唔可以建立同等或更高權限
+    if (req.user.role !== "super_admin" && ROLE_HIERARCHY[role] <= ROLE_HIERARCHY[req.user.role]) {
+      return res
+        .status(403)
+        .json({ success: false, error: "唔可以建立同等或更高權限嘅帳號" });
+    }
+    const exists = db.prepare("SELECT id FROM users WHERE email = ?").get(email);
+    if (exists) return res.status(409).json({ success: false, error: "此電郵已被使用" });
+
+    const tempPassword = genTempPassword();
+    const id = uuidv4();
+    const now = new Date().toISOString();
+    db.prepare(
+      `INSERT INTO users (id, email, password_hash, name, phone, auth_provider, role,
+                          email_verified, is_active, created_at, updated_at, token_version)
+       VALUES (?, ?, ?, ?, ?, 'email', ?, 1, 1, ?, ?, 0)`,
+    ).run(id, email, bcrypt.hashSync(tempPassword, 10), name, phone, role, now, now);
+
+    writeAudit(req, "STAFF_CREATE", id, null, { email, name, role }, `建立後台帳號 ${email}（${role}）`);
+
+    res.status(201).json({
+      success: true,
+      message: "✅ 帳號已建立，請將臨時密碼交予對方並要求首次登入後更改",
+      staff: { id, email, name, role },
+      temp_password: tempPassword,
+    });
+  } catch (err) {
+    console.error("[ADMIN] staff create error:", err.message);
+    res.status(500).json({ success: false, error: "建立帳號失敗" });
+  }
+});
+
+// ===== POST /api/admin/staff/:id/password — 重設密碼 =====
+router.post(
+  "/staff/:id/password",
+  authenticateToken,
+  requirePermission("users.role.write"),
+  (req, res) => {
+    try {
+      const { ROLE_HIERARCHY } = require("../middleware/auth");
+      const db = getDb();
+      const target = db.prepare("SELECT id, email, role FROM users WHERE id = ?").get(req.params.id);
+      if (!target) return res.status(404).json({ success: false, error: "帳號不存在" });
+      if (target.id !== req.user.id &&
+          ROLE_HIERARCHY[target.role] <= ROLE_HIERARCHY[req.user.role]) {
+        return res.status(403).json({ success: false, error: "唔可以重設同等或更高權限嘅帳號" });
+      }
+
+      const tempPassword = genTempPassword();
+      db.prepare(
+        "UPDATE users SET password_hash = ?, token_version = COALESCE(token_version,0)+1, updated_at = datetime('now') WHERE id = ?",
+      ).run(bcrypt.hashSync(tempPassword, 10), target.id);
+
+      writeAudit(req, "STAFF_PASSWORD_RESET", target.id, null, { email: target.email },
+        `重設 ${target.email} 密碼（舊 session 已失效）`);
+
+      res.json({ success: true, temp_password: tempPassword, message: "✅ 已重設，舊登入即刻失效" });
+    } catch (err) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  },
+);
+
+// ===== POST /api/admin/staff/:id/status — 停用／啟用 =====
+router.post(
+  "/staff/:id/status",
+  authenticateToken,
+  requirePermission("users.role.write"),
+  (req, res) => {
+    try {
+      const { ROLE_HIERARCHY } = require("../middleware/auth");
+      const db = getDb();
+      const active = req.body && req.body.active ? 1 : 0;
+      const target = db.prepare("SELECT id, email, role, COALESCE(is_active,1) AS is_active FROM users WHERE id = ?").get(req.params.id);
+      if (!target) return res.status(404).json({ success: false, error: "帳號不存在" });
+      if (target.id === req.user.id) {
+        return res.status(400).json({ success: false, error: "唔可以停用自己" });
+      }
+      if (ROLE_HIERARCHY[target.role] <= ROLE_HIERARCHY[req.user.role]) {
+        return res.status(403).json({ success: false, error: "唔可以停用同等或更高權限嘅帳號" });
+      }
+      if (target.role === "super_admin" && active === 0) {
+        const others = db
+          .prepare("SELECT COUNT(*) AS c FROM users WHERE role='super_admin' AND id<>? AND COALESCE(is_active,1)=1")
+          .get(target.id).c;
+        if (!others) return res.status(400).json({ success: false, error: "最少要保留一個啟用中嘅主要管理員" });
+      }
+
+      db.prepare(
+        "UPDATE users SET is_active = ?, token_version = COALESCE(token_version,0)+1, updated_at = datetime('now') WHERE id = ?",
+      ).run(active, target.id);
+
+      writeAudit(req, active ? "STAFF_ENABLE" : "STAFF_DISABLE", target.id,
+        { is_active: target.is_active }, { is_active: active },
+        `${active ? "啟用" : "停用"}帳號 ${target.email}`);
+
+      res.json({ success: true, message: active ? "✅ 已啟用" : "🚫 已停用（該用戶即刻被登出）" });
+    } catch (err) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  },
+);
+
+// ===== DELETE /api/admin/staff/:id — 刪除帳號（有金錢／審計紀錄則拒絕）=====
+router.delete(
+  "/staff/:id",
+  authenticateToken,
+  requirePermission("users.role.write"),
+  (req, res) => {
+    try {
+      const { ROLE_HIERARCHY } = require("../middleware/auth");
+      const db = getDb();
+      const target = db.prepare("SELECT id, email, role FROM users WHERE id = ?").get(req.params.id);
+      if (!target) return res.status(404).json({ success: false, error: "帳號不存在" });
+      if (target.id === req.user.id) {
+        return res.status(400).json({ success: false, error: "唔可以刪除自己" });
+      }
+      if (ROLE_HIERARCHY[target.role] <= ROLE_HIERARCHY[req.user.role]) {
+        return res.status(403).json({ success: false, error: "唔可以刪除同等或更高權限嘅帳號" });
+      }
+
+      // 金錢／審計紀錄永久保存 → 有紀錄一律唔准硬刪，改用停用
+      const checks = [
+        ["bookings", "user_id"],
+        ["wallet_transactions", "user_id"],
+        ["coach_earnings", "coach_id"],
+        ["coach_payouts", "coach_id"],
+        ["ledger", "user_id"],
+        ["audit_log", "user_id"],
+      ];
+      const blockers = [];
+      for (const [tbl, col] of checks) {
+        try {
+          const c = db.prepare(`SELECT COUNT(*) AS c FROM ${tbl} WHERE ${col} = ?`).get(target.id).c;
+          if (c > 0) blockers.push(`${tbl}(${c})`);
+        } catch (e) {}
+      }
+      if (target.role === "super_admin") {
+        const others = db
+          .prepare("SELECT COUNT(*) AS c FROM users WHERE role='super_admin' AND id<>? AND COALESCE(is_active,1)=1")
+          .get(target.id).c;
+        if (!others) blockers.push("最後一個主要管理員");
+      }
+      if (blockers.length) {
+        return res.status(409).json({
+          success: false,
+          code: "HAS_RECORDS",
+          error: `此帳號有歷史紀錄（${blockers.join("、")}），為保留審計鏈唔可以刪除，請改用「停用」。`,
+          blockers,
+        });
+      }
+
+      writeAudit(req, "STAFF_DELETE", target.id, { email: target.email, role: target.role }, null,
+        `刪除後台帳號 ${target.email}`);
+      db.prepare("DELETE FROM users WHERE id = ?").run(target.id);
+      res.json({ success: true, message: `🗑️ 已刪除 ${target.email}` });
+    } catch (err) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  },
+);
+
+// ===== POST /api/admin/impersonate/:userId — 主要管理員「試用身份」=====
+// 只限 users.role.write（即主要管理員）。簽發 30 分鐘 token，並限制唔可以進行金錢／權限操作。
+router.post(
+  "/impersonate/:userId",
+  authenticateToken,
+  requirePermission("users.role.write"),
+  (req, res) => {
+    try {
+      const jwt = require("jsonwebtoken");
+      const db = getDb();
+      const target = db
+        .prepare("SELECT id, email, name, role, partner_id, is_coach, membership_type, token_version FROM users WHERE id = ?")
+        .get(req.params.userId);
+      if (!target) return res.status(404).json({ success: false, error: "用戶不存在" });
+      if (target.role !== "user" && target.role !== "guest" && target.role !== "coach" &&
+          !String(target.role).startsWith("partner_")) {
+        return res
+          .status(403)
+          .json({ success: false, error: "只可以預覽一般用戶／教練／商戶身份" });
+      }
+
+      const token = jwt.sign(
+        {
+          id: target.id,
+          email: target.email,
+          name: target.name,
+          role: target.role || "user",
+          partner_id: target.partner_id || null,
+          is_coach: target.is_coach || 0,
+          membership_type: target.membership_type || "none",
+          tv: Number(target.token_version) || 0,
+          imp: req.user.id,
+        },
+        process.env.JWT_SECRET,
+        { expiresIn: "30m" },
+      );
+
+      writeAudit(req, "IMPERSONATE_START", target.id, null,
+        { impersonated_email: target.email }, `預覽身份：${target.email}（30 分鐘）`);
+
+      res.json({
+        success: true,
+        token,
+        expires_in: 1800,
+        user: { id: target.id, name: target.name, email: target.email, role: target.role },
+        read_only_note: "預覽模式：唔可以出糧、改價、改角色、刪帳號",
+      });
+    } catch (err) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  },
+);
 
 module.exports = router;

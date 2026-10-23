@@ -919,6 +919,10 @@ CREATE TABLE IF NOT EXISTS users (
   try {
     db.exec("ALTER TABLE users ADD COLUMN loyalty_tier_manual INTEGER DEFAULT 0");
   } catch (e) {/* unused /*/}
+  // 🔐 帳號啟用狀態（2026-10-24）：主要管理員可停用／刪除後台人員帳號
+  try {
+    db.exec("ALTER TABLE users ADD COLUMN is_active INTEGER DEFAULT 1");
+  } catch (e) {/* exists */}
   // bookings 付款方式／收據（舊 DB 缺欄，FPS/PayMe 提交會 500）
   try {
     db.exec("ALTER TABLE bookings ADD COLUMN payment_method TEXT");

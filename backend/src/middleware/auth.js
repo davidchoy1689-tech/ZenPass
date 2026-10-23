@@ -146,7 +146,7 @@ function authenticateToken(req, res, next) {
     let row = null;
     try {
       row = db
-        .prepare("SELECT id, email, role, token_version FROM users WHERE id = ?")
+        .prepare("SELECT id, email, role, token_version, is_active FROM users WHERE id = ?")
         .get(decoded.id);
     } finally {
       db.close();
@@ -156,6 +156,9 @@ function authenticateToken(req, res, next) {
     }
     if (Number(decoded.tv || 0) !== Number(row.token_version || 0)) {
       return res.status(401).json({ error: "登入已失效，請重新登入", code: "SESSION_REVOKED" });
+    }
+    if (row.is_active !== undefined && row.is_active !== null && Number(row.is_active) === 0) {
+      return res.status(403).json({ error: "此帳號已被停用", code: "ACCOUNT_DISABLED" });
     }
     req.user = { ...decoded, role: row.role, email: row.email };
     next();
@@ -354,6 +357,14 @@ function requireOwnInstitution(req, res, next) {
 function requirePermission(perm) {
   return function (req, res, next) {
     if (!req.user) return res.status(401).json({ success: false, error: "需要登入認證" });
+    // 🛡️ 預覽身份（impersonation）＝唯讀：唔可以進行金錢／權限／系統操作
+    if (req.user.imp && /^(finance\.|users\.|system\.)/.test(String(perm))) {
+      return res.status(403).json({
+        success: false,
+        code: "IMPERSONATION_READONLY",
+        error: "預覽模式唔可以進行財務／權限操作，請用原本管理員帳號。",
+      });
+    }
     let role = req.user.role;
     if (!role) {
       try {

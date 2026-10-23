@@ -268,6 +268,15 @@ router.post("/login", (req, res) => {
       return res.status(401).json({ success: false, error: "電郵或密碼不正確" });
     }
 
+    // 🔒 2026-10-24：帳號被停用即唔可以登入（主要管理員可喺後台停用／刪除）
+    if (user.is_active !== undefined && Number(user.is_active) === 0) {
+      return res.status(403).json({
+        success: false,
+        error: "此帳號已被停用，請聯絡主要管理員",
+        code: "ACCOUNT_DISABLED",
+      });
+    }
+
     clearLoginFailures(attemptKey);
     const token = generateToken(user);
 
