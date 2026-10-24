@@ -198,7 +198,7 @@ router.get("/my-classes", authenticateToken, (req, res) => {
         (SELECT COUNT(*) FROM bookings WHERE class_id = c.id AND status = 'confirmed') as upcoming_bookings,
         (SELECT COUNT(*) FROM bookings WHERE class_id = c.id AND status = 'attended') as total_attended
       FROM classes c
-      WHERE c.coach_id = ?
+      WHERE c.coach_id = ? AND COALESCE(c.status,'active') <> 'deleted'
       ORDER BY c.created_at DESC
     `,
       )
