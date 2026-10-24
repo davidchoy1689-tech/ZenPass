@@ -306,26 +306,8 @@ router.get("/classes", authenticateToken, requireAdmin, (req, res) => {
   }
 });
 
-// ===== GET /api/admin/db/:table & /api/admin/db =====
-router.get("/db/:table", authenticateToken, requireAdmin, async (req, res) => {
-  try {
-    const { getSupabase } = require("../services/supabase");
-    const supabase = getSupabase();
-    if (!supabase) return res.status(500).json({ success: false, error: "DB not connected" });
-
-    const { table } = req.params;
-    const limit = parseInt(req.query.limit) || 100;
-    const { data, error } = await supabase.from(table).select("*").limit(limit);
-    if (error) throw error;
-    const { count, error: countErr } = await supabase.from(table).select("*", { count: "exact", head: true });
-
-    res.json({ data: data || [], count: count || 0, error: countErr?.message || null });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-// 🔧 2026-10-24：原本查 Supabase（該 project 根本冇呢啲表 → 一直 500），
+// ===== GET /api/admin/db & /api/admin/db/:table =====
+// 🔧 2026-10-24：舊版查 Supabase（該 project 根本冇呢啲表 → 一直 500／DB not connected），
 // 而且真正嘅生產數據喺本地 SQLite。改為列出 SQLite 表 + 筆數（read-only，唔會查大表）。
 router.get("/db", authenticateToken, requirePermission("system.db.view"), (req, res) => {
   try {
