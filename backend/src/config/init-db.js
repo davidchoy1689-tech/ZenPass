@@ -923,6 +923,19 @@ CREATE TABLE IF NOT EXISTS users (
   try {
     db.exec("ALTER TABLE users ADD COLUMN is_active INTEGER DEFAULT 1");
   } catch (e) {/* exists */}
+  // 🧾 學生註冊資料（2026-10-24）：電話必填；以下為選填
+  for (const sql of [
+    "ALTER TABLE users ADD COLUMN birth_year INTEGER",
+    "ALTER TABLE users ADD COLUMN gender TEXT",
+    "ALTER TABLE users ADD COLUMN emergency_name TEXT",
+    "ALTER TABLE users ADD COLUMN emergency_phone TEXT",
+    "ALTER TABLE users ADD COLUMN health_declared INTEGER DEFAULT 0",
+    "ALTER TABLE users ADD COLUMN health_declared_at TEXT",
+  ]) {
+    try {
+      db.exec(sql);
+    } catch (e) {/* exists */}
+  }
   // bookings 付款方式／收據（舊 DB 缺欄，FPS/PayMe 提交會 500）
   try {
     db.exec("ALTER TABLE bookings ADD COLUMN payment_method TEXT");

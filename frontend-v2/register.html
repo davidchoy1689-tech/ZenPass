@@ -20,10 +20,29 @@
     <div class="stack">
       <input class="field" id="name" placeholder="姓名" autocomplete="name" />
       <input class="field" id="email" placeholder="電郵" type="email" autocomplete="username" />
-      <input class="field" id="phone" placeholder="電話（選填）" type="tel" autocomplete="tel" />
+      <input class="field" id="phone" placeholder="電話（必填，8 位）" type="tel" inputmode="tel" autocomplete="tel" required />
       <input class="field" id="pw" placeholder="密碼（至少 6 位）" type="password" autocomplete="new-password" />
       <input class="field" id="pw2" placeholder="確認密碼" type="password" autocomplete="new-password" />
       <input class="field" id="invite" placeholder="邀請碼（測試期需要，如有）" autocomplete="off" />
+      <details style="margin:2px 0 6px">
+        <summary style="cursor:pointer;font-weight:700;font-size:13px;padding:4px 0">＋ 更多資料（選填）</summary>
+        <div class="stack" style="margin-top:8px">
+          <input class="field" id="birthYear" placeholder="出生年份（例如 1990）" inputmode="numeric" maxlength="4" />
+          <select class="field" id="gender">
+            <option value="">性別（選填）</option>
+            <option value="female">女</option>
+            <option value="male">男</option>
+            <option value="other">其他</option>
+            <option value="na">不願透露</option>
+          </select>
+          <input class="field" id="emName" placeholder="緊急聯絡人姓名（選填）" />
+          <input class="field" id="emPhone" placeholder="緊急聯絡人電話（選填）" type="tel" inputmode="tel" />
+          <label style="display:flex;gap:8px;align-items:flex-start;font-size:13px;line-height:1.4">
+            <input type="checkbox" id="health" style="margin-top:3px" />
+            <span>我確認身體狀況適合參與運動課堂，並已閱讀及同意<a href="waiver.html" style="color:var(--brand-600)">免責聲明及參加者同意書</a>。</span>
+          </label>
+        </div>
+      </details>
       <button class="btn btn-primary btn-block" id="go">註冊</button>
       <div id="msg" class="muted center" style="font-size:13px"></div>
     </div>
@@ -45,14 +64,25 @@
       const pw = document.getElementById("pw").value;
       const pw2 = document.getElementById("pw2").value;
       const invite_code = (document.getElementById("invite").value || "").trim();
+      const birth_year = (document.getElementById("birthYear").value || "").trim();
+      const gender = document.getElementById("gender").value || "";
+      const emergency_name = (document.getElementById("emName").value || "").trim();
+      const emergency_phone = (document.getElementById("emPhone").value || "").trim();
+      const health_declared = document.getElementById("health").checked;
       const msg = document.getElementById("msg");
       if (!name || !email || !pw) { msg.textContent = "請填寫姓名、電郵和密碼"; return; }
+      const digits = (phone || "").replace(/\D/g, "").replace(/^852/, "").replace(/^0/, "");
+      if (!digits) { msg.textContent = "請填寫電話號碼"; return; }
+      if (digits.length !== 8) { msg.textContent = "電話號碼格式不正確（香港 8 位數字）"; return; }
       if (pw.length < 8 || !/[A-Za-z]/.test(pw) || !/[0-9]/.test(pw)) { msg.textContent = "密碼至少 8 個字元，並需包含英文字母及數字"; return; }
       if (pw !== pw2) { msg.textContent = "兩次輸入的密碼唔一致"; return; }
       const btn = document.getElementById("go"); btn.disabled = true; btn.textContent = "註冊中…";
       let ref = REFQ;
       if (!ref) { try { ref = localStorage.getItem("zp_ref") || ""; } catch (e) {} }
-      const r = await api.post("/auth/register", { name, email, phone, password: pw, ref, invite_code });
+      const r = await api.post("/auth/register", {
+        name, email, phone: digits, password: pw, ref, invite_code,
+        birth_year, gender, emergency_name, emergency_phone, health_declared,
+      });
       btn.disabled = false; btn.textContent = "註冊";
       if (r.ok && r.data) {
         if (r.data.token) api.setToken(r.data.token);

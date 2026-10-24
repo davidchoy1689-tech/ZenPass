@@ -66,29 +66,29 @@ function call(handler, { body = {}, user = null, params = {} }) {
   ok(s0.allow_domains.includes("zenpass.hk"), "白名單預設含 zenpass.hk");
 
   const r1 = await call(register, {
-    body: { name: "路人", email: "stranger@gmail.com", password: "Abc12345" },
+    body: { name: "路人", email: "stranger@gmail.com", password: "Abc12345", phone: "91234567" },
   });
   ok(r1.status === 403 && r1.body.code === "REGISTRATION_CLOSED", "陌生人註冊 → 403（已暫停）");
 
   const r2 = await call(register, {
-    body: { name: "同事", email: "staff2@zenpass.hk", password: "Abc12345" },
+    body: { name: "同事", email: "staff2@zenpass.hk", password: "Abc12345", phone: "91234568" },
   });
   ok(r2.status === 201, "白名單網域 → 可註冊");
 
   const r3 = await call(register, {
-    body: { name: "朋友", email: "friend@gmail.com", password: "Abc12345", invite_code: s0.invite_code },
+    body: { name: "朋友", email: "friend@gmail.com", password: "Abc12345", phone: "91234569", invite_code: s0.invite_code },
   });
   ok(r3.status === 201, "持邀請碼 → 可註冊");
 
   const r4 = await call(register, {
-    body: { name: "亂碼", email: "bad@gmail.com", password: "Abc12345", invite_code: "ZP-WRONG" },
+    body: { name: "亂碼", email: "bad@gmail.com", password: "Abc12345", phone: "91234570", invite_code: "ZP-WRONG" },
   });
   ok(r4.status === 403, "錯誤邀請碼 → 403");
 
   console.log("── 全面開放 ──");
   launch.set("launch.registration_open", "1");
   const r5 = await call(register, {
-    body: { name: "學員", email: "student@gmail.com", password: "Abc12345" },
+    body: { name: "學員", email: "student@gmail.com", password: "Abc12345", phone: "91234571" },
   });
   ok(r5.status === 201, "開放後任何電郵可註冊");
 

@@ -79,7 +79,19 @@ const STRONG_PW_MSG = "密碼至少 8 個字元，並需包含英文字母及數
 // ===== POST /api/auth/register - 電郵註冊 =====
 router.post("/register", (req, res) => {
   try {
-    const { email, password, name, phone, ref, invite_code } = req.body;
+    const {
+      email,
+      password,
+      name,
+      phone,
+      ref,
+      invite_code,
+      birth_year,
+      gender,
+      emergency_name,
+      emergency_phone,
+      health_declared,
+    } = req.body;
 
     // 🔒 2026-10-24：上線開關 —— 未上架期間暫停公開註冊
     // 允許：allow_domains 內嘅電郵，或持有邀請碼；主要管理員可喺後台一鍵全面開放
@@ -106,6 +118,14 @@ router.post("/register", (req, res) => {
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return res.status(400).json({ success: false, error: "電郵格式不正確" });
+    }
+    // 2026-10-24：電話改為必填（8 位香港號碼，可帶 +852／空格／-）
+    const normPhone = String(phone || "").replace(/[^\d]/g, "").replace(/^852/, "").replace(/^0/, "");
+    if (!normPhone) {
+      return res.status(400).json({ success: false, error: "請填寫電話號碼", code: "PHONE_REQUIRED" });
+    }
+    if (normPhone.length !== 8) {
+      return res.status(400).json({ success: false, error: "電話號碼格式不正確（香港 8 位數字）", code: "PHONE_INVALID" });
     }
 
     const db = getDb();
@@ -138,10 +158,27 @@ router.post("/register", (req, res) => {
     db.prepare(
       `
       INSERT INTO users (id, user_reference, email, password_hash, name, phone, auth_provider, email_verified,
-                         verification_token, verification_token_expires, verification_code, verification_code_expires)
-      VALUES (?, ?, ?, ?, ?, ?, 'email', 0, ?, datetime('now', '+24 hours'), ?, datetime('now', '+10 minutes'))
+                         verification_token, verification_token_expires, verification_code, verification_code_expires,
+                         birth_year, gender, emergency_name, emergency_phone, health_declared, health_declared_at)
+      VALUES (?, ?, ?, ?, ?, ?, 'email', 0, ?, datetime('now', '+24 hours'), ?, datetime('now', '+10 minutes'),
+              ?, ?, ?, ?, ?, ?)
     `,
-    ).run(id, userRef, email, passwordHash, name, phone || null, verificationToken, verificationCode);
+    ).run(
+      id,
+      userRef,
+      email,
+      passwordHash,
+      name,
+      normPhone,
+      verificationToken,
+      verificationCode,
+      birth_year ? parseInt(birth_year) || null : null,
+      gender ? String(gender).slice(0, 12) : null,
+      emergency_name ? String(emergency_name).slice(0, 60) : null,
+      emergency_phone ? String(emergency_phone).replace(/[^\d+]/g, "").slice(0, 20) : null,
+      health_declared ? 1 : 0,
+      health_declared ? new Date().toISOString() : null,
+    );
 
     // ⚡ 訪客帳號偵測（2026-10-23）：同一電話已有「免註冊」預約帳號 → 通知 admin 合併
     try {

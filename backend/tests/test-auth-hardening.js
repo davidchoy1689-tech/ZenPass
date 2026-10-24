@@ -124,11 +124,11 @@ const ok = (c, m) => { if (c) console.log("  ✅ " + m); else { console.log("  �
   // 2026-10-24：上線開關預設暫停公開註冊 → 測試前先開放，否則會收到 403 而非密碼錯誤
   require("../src/services/launch-mode").set("launch.registration_open", "1");
   const reg = pick("/register");
-  const weak1 = await call(reg, { email: "new1@x.com", password: "abc123", name: "A" });
+  const weak1 = await call(reg, { email: "new1@x.com", password: "abc123", name: "A", phone: "91110001" });
   ok(weak1.statusCode === 400, `6 位密碼 → 400（got ${weak1.statusCode}）`);
-  const weak2 = await call(reg, { email: "new2@x.com", password: "abcdefgh", name: "A" });
+  const weak2 = await call(reg, { email: "new2@x.com", password: "abcdefgh", name: "A", phone: "91110002" });
   ok(weak2.statusCode === 400, `純字母 → 400（got ${weak2.statusCode}）`);
-  const goodPw = await call(reg, { email: "new3@x.com", password: "abcd1234", name: "A" });
+  const goodPw = await call(reg, { email: "new3@x.com", password: "abcd1234", name: "A", phone: "91110003" });
   ok(goodPw.statusCode === 200 || goodPw.statusCode === 201, `8 位字母+數字 → 接受（got ${goodPw.statusCode}）`);
 
   console.log(fail === 0 ? "\n✅ 全部通過" : `\n❌ ${fail} 項失敗`);
