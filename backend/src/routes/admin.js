@@ -1180,6 +1180,93 @@ function writeAudit(req, actionType, entityId, oldValues, newValues, description
 // ===== GET /api/admin/staff — 後台帳號清單 =====
 // ===== GET /api/admin/user-lookup?q= — 用 email／名／電話搵用戶（預覽身份用）=====
 // ===== 🚀 上線開關（2026-10-24）=====
+// ===== 👥 學生資料表（2026-10-24）— 只列學生，欄位已整理，可匯出 CSV =====
+function studentWhere(q) {
+  const base = `u.role = 'user'
+    AND u.email NOT LIKE '%@guest.zenpass.local'
+    AND u.email NOT LIKE '%e2e%'
+    AND u.email NOT LIKE '%@zenpass.test'`;
+  if (!q) return { sql: base, params: [] };
+  const like = `%${String(q).toLowerCase()}%`;
+  return {
+    sql: `${base} AND (LOWER(u.name) LIKE ? OR LOWER(u.email) LIKE ? OR COALESCE(u.phone,'') LIKE ?)`,
+    params: [like, like, like],
+  };
+}
+
+const STUDENT_SELECT = `
+  SELECT u.id, u.name, u.email, u.phone, u.user_reference,
+         u.created_at AS registered_at, COALESCE(u.email_verified,0) AS email_verified,
+         COALESCE(u.credits,0) AS credits, COALESCE(u.points,0) AS points,
+         u.membership_type, u.last_visit,
+         (SELECT COUNT(*) FROM bookings b WHERE b.user_id = u.id AND b.status IN ('confirmed','attended')) AS classes_booked,
+         (SELECT COUNT(*) FROM bookings b WHERE b.user_id = u.id AND b.status = 'attended') AS classes_attended,
+         (SELECT COALESCE(SUM(amount),0) FROM bookings b WHERE b.user_id = u.id AND b.payment_status='paid' AND b.status IN ('confirmed','attended')) AS spend_hkd
+  FROM users u`;
+
+router.get(
+  "/students",
+  authenticateToken,
+  requirePermission("users.view"),
+  (req, res) => {
+    try {
+      const db = getDb();
+      const limit = Math.min(Math.max(parseInt(req.query.limit) || 50, 1), 500);
+      const offset = Math.max(parseInt(req.query.offset) || 0, 0);
+      const { sql, params } = studentWhere((req.query.q || "").trim());
+      const total = db.prepare(`SELECT COUNT(*) AS c FROM users u WHERE ${sql}`).get(...params).c;
+      const rows = db
+        .prepare(`${STUDENT_SELECT} WHERE ${sql} ORDER BY u.created_at DESC LIMIT ? OFFSET ?`)
+        .all(...params, limit, offset);
+      res.json({ success: true, total, limit, offset, students: rows });
+    } catch (err) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  },
+);
+
+router.get(
+  "/students.csv",
+  authenticateToken,
+  requirePermission("users.view"),
+  (req, res) => {
+    try {
+      const db = getDb();
+      const { sql, params } = studentWhere((req.query.q || "").trim());
+      const rows = db.prepare(`${STUDENT_SELECT} WHERE ${sql} ORDER BY u.created_at DESC`).all(...params);
+      const cols = [
+        ["name", "姓名"],
+        ["email", "電郵"],
+        ["phone", "電話"],
+        ["user_reference", "會員編號"],
+        ["registered_at", "註冊日期"],
+        ["email_verified", "已驗證電郵"],
+        ["credits", "Credits"],
+        ["points", "積分"],
+        ["membership_type", "會籍"],
+        ["classes_booked", "預約數"],
+        ["classes_attended", "已出席"],
+        ["spend_hkd", "消費總額(HKD)"],
+        ["last_visit", "最後到訪"],
+      ];
+      const esc = (v) => '"' + String(v == null ? "" : v).replace(/"/g, '""') + '"';
+      const csv =
+        "\uFEFF" +
+        cols.map(([, label]) => esc(label)).join(",") +
+        "\n" +
+        rows.map((r) => cols.map(([k]) => esc(r[k])).join(",")).join("\n");
+      res.setHeader("Content-Type", "text/csv; charset=utf-8");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="zenpass-students-${new Date().toISOString().slice(0, 10)}.csv"`,
+      );
+      res.send(csv);
+    } catch (err) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  },
+);
+
 router.get(
   "/launch-mode",
   authenticateToken,

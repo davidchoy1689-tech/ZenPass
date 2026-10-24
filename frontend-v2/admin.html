@@ -77,6 +77,7 @@
       ["partners", "商戶", "content", "ops.partner.view"],
       ["corp", "企業", "content", "ops.partner.view"],
       ["users", "用戶", "people", "users.view"],
+      ["students", "👥 學生資料", "people", "users.view"],
       ["coach", "教練申請", "people", "ops.coach.view"],
       ["migrate", "遷移", "system", "system.migrate"],
       ["launch", "🚀 上線開關", "system", "system.settings.write"],
@@ -158,6 +159,7 @@
         if (cur === "promo") return promoTab();
         if (cur === "audit") return listGeneric("/admin/audit-log?limit=100", "entries", auditRow, "審計記錄");
         if (cur === "staff") return staffTab();
+        if (cur === "students") return studentsTab();
         if (cur === "launch") return launchTab();
         if (cur === "db") return dbTab();
       } catch (e) { panel().innerHTML = `<div class="card"><div class="body muted">載入失敗：${esc2(e.message)}</div></div>`; }
@@ -404,6 +406,76 @@
     // 🔐 管理員帳號管理（2026-10-24）：建立／改角色／重設密碼／停用／刪除／預覽身份
     // 🚀 上線開關：暫停公開註冊 ↔ 全面開放
     // 🗄️ 資料庫（唯讀）：表清單 + 內容瀏覽 + 匯出 CSV（敏感欄已遮蔽）
+    // 👥 學生資料（欄位整理好 + CSV 匯出）
+    async function studentsTab() {
+      panel().innerHTML = `
+        <div class="card" style="margin-bottom:12px"><div class="body">
+          <div style="font-size:15px;font-weight:800;margin-bottom:4px">👥 學生資料</div>
+          <div class="kv" style="margin-bottom:8px">只列學生帳號（唔包員工／教練／商戶／測試帳號）。</div>
+          <input class="ef" id="stuSearch" placeholder="🔍 姓名 / 電郵 / 電話…" />
+          <div style="display:flex;gap:8px;margin-top:8px;align-items:center">
+            <button class="btn btn-secondary" id="stuCsv" type="button">⬇️ 匯出 CSV</button>
+            <span class="kv" id="stuCount"></span>
+          </div>
+        </div></div>
+        <div id="stuList"></div>`;
+      let q = "";
+      const load = async () => {
+        $("stuList").innerHTML = `<div class="card"><div class="body muted center">載入中…</div></div>`;
+        const r = await api.get("/admin/students?limit=100" + (q ? "&q=" + encodeURIComponent(q) : ""));
+        if (r.status === 401 || r.status === 403) return needAdmin();
+        if (!r.ok) {
+          $("stuList").innerHTML = `<div class="card"><div class="body muted">載入失敗：${esc2((r.data && r.data.error) || "")}</div></div>`;
+          return;
+        }
+        const arr = (r.data && r.data.students) || [];
+        $("stuCount").textContent = `共 ${(r.data && r.data.total) || 0} 位學生`;
+        if (!arr.length) {
+          $("stuList").innerHTML = `<div class="card"><div class="body muted center">暫無學生。</div></div>`;
+          return;
+        }
+        $("stuList").innerHTML = `<div class="card"><div class="body" style="padding:0">
+          ${arr
+            .map(
+              (s) => `<div class="row">
+                <span style="min-width:0">
+                  <b>${esc2(s.name || "（未填名）")}</b>
+                  ${Number(s.email_verified) === 1 ? '<span class="pill ok">已驗證</span>' : '<span class="pill warn">未驗證</span>'}
+                  <div class="kv">${esc2(s.email)}${s.phone ? " · " + esc2(s.phone) : ""}</div>
+                  <div class="kv">註冊 ${esc2(String(s.registered_at || "").slice(0, 10))} · 預約 ${s.classes_booked} · 出席 ${s.classes_attended} · 消費 ${money(s.spend_hkd)}</div>
+                </span>
+                <span style="text-align:right;white-space:nowrap">
+                  <b>${Number(s.credits) || 0} cr</b>
+                  <div class="kv">${Number(s.points) || 0} 分</div>
+                </span>
+              </div>`,
+            )
+            .join("")}
+        </div></div>`;
+      };
+      $("stuSearch").oninput = () => {
+        clearTimeout(window.__stuT);
+        window.__stuT = setTimeout(() => {
+          q = $("stuSearch").value.trim();
+          load();
+        }, 300);
+      };
+      $("stuCsv").onclick = async () => {
+        const t = localStorage.getItem("zenpass_token") || "";
+        const res = await fetch("/api/admin/students.csv" + (q ? "?q=" + encodeURIComponent(q) : ""), {
+          headers: t ? { Authorization: "Bearer " + t } : {},
+          credentials: "include",
+        });
+        if (!res.ok) return alert("匯出失敗");
+        const blob = await res.blob();
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = "zenpass-students-" + new Date().toISOString().slice(0, 10) + ".csv";
+        a.click();
+      };
+      load();
+    }
+
     let _dbState = { table: null, offset: 0, limit: 50, rows: [], columns: [], total: 0 };
 
     async function dbTab() {
