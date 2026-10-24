@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="zh-HK">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#ff6b35" />
+<title>運動項目 · ZenPass 禪流</title>
+<meta name="description" content="ZenPass 禪流 — 新興運動體驗，一個 Pass 通行全城。芬蘭木柱、地板冰壺、布袋球、圓網球、身心伸展等。" />
+<link rel="stylesheet" href="assets/v2.css?v=26" />
+<link rel="stylesheet" href="assets/ui-v3.css?v=5" />
+<style>
+  .sport-hero{position:relative;border-radius:22px;overflow:hidden;min-height:260px;display:flex;align-items:flex-end;margin:0 0 14px}
+  .sport-hero img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+  .sport-hero .veil{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.05) 20%,rgba(0,0,0,.72) 100%)}
+  .sport-hero .txt{position:relative;padding:18px;color:#fff}
+  .sport-hero h1{margin:0;font-size:26px;line-height:1.2}
+  .sport-hero p{margin:6px 0 0;font-size:13px;opacity:.92}
+  .chip{display:inline-block;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.35);color:#fff;border-radius:999px;padding:4px 10px;font-size:12px;margin-right:6px}
+  .why{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .why div{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:10px 12px;font-size:13px}
+  .cls{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:12px 0;border-bottom:1px solid var(--border)}
+  .cls:last-child{border-bottom:0}
+  .empty{color:var(--text-muted);font-size:13px;text-align:center;padding:10px 0}
+  .navsp{display:flex;gap:8px;overflow-x:auto;padding:2px 0 10px}
+  .navsp a{white-space:nowrap;font-size:12px;padding:7px 12px;border-radius:999px;border:1px solid var(--border);color:var(--text);text-decoration:none;background:var(--surface)}
+  .navsp a.on{background:var(--brand-500);border-color:var(--brand-500);color:#fff;font-weight:700}
+</style>
+</head>
+<body>
+  <div class="topbar"><a class="back" href="explore.html">‹</a><div class="title" id="topTitle">運動項目</div></div>
+  <div class="wrap">
+    <div class="navsp" id="navsp"></div>
+    <div id="hero"></div>
+    <div id="body"></div>
+    <div class="spacer"></div>
+  </div>
+  <script src="assets/api.js?v=3"></script>
+  <script>
+    const $ = (x) => document.getElementById(x);
+    const SPORTS = {
+      stretch: {
+        name: "身心伸展", icon: "🧘‍♀️", img: "assets/img/photos/stretch.jpg",
+        tag: "久坐族必上", time: "60–120 分鐘", level: "零基礎可",
+        lead: "呼吸、溫和伸展、正念放鬆。專治肩頸腰背痛、姿勢差、睡眠淺。",
+        why: ["舒緩肩頸腰背", "改善姿勢", "提升睡眠", "減壓放鬆"],
+        forWho: "長時間對電腦、久坐、壓力大的上班族；產後或運動新手都適合。",
+        cat: "伸展",
+      },
+      molkky: {
+        name: "芬蘭木柱 Mölkky", icon: "🎯", img: "assets/img/photos/emerging.jpg",
+        tag: "團隊新興運動", time: "60–90 分鐘", level: "零基礎可",
+        lead: "來自芬蘭的投擲木柱運動，講策略、講手感，一隊人玩到笑。",
+        why: ["手眼協調", "團隊合作", "低衝擊", "老少咸宜"],
+        forWho: "朋友聚會、公司團建、學校活動；想運動但唔想跑跳嘅人。",
+        cat: "新興運動",
+      },
+      "floor-curling": {
+        name: "地板冰壺", icon: "🥌", img: "assets/img/photos/emerging.jpg",
+        tag: "腦力＋手感", time: "60–90 分鐘", level: "零基礎可",
+        lead: "冰壺嘅陸上版，唔使上冰都玩到；講究力度同角度，越玩越上癮。",
+        why: ["專注力", "策略思考", "低衝擊", "適合長者"],
+        forWho: "長者中心、復康小組、公司團建。",
+        cat: "新興運動",
+      },
+      cornhole: {
+        name: "布袋球 Cornhole", icon: "🫘", img: "assets/img/photos/emerging.jpg",
+        tag: "派對必備", time: "45–60 分鐘", level: "零基礎可",
+        lead: "擲豆袋入洞，簡單易學、即刻有成功感，最容易帶動氣氛。",
+        why: ["手眼協調", "氣氛熱鬧", "易學", "可室內"],
+        forWho: "派對、市集、學校、公司活動。",
+        cat: "新興運動",
+      },
+      "air-storm": {
+        name: "穿雲箭 AIR STORM", icon: "🏹", img: "assets/img/photos/emerging.jpg",
+        tag: "減壓神器", time: "60 分鐘", level: "零基礎可",
+        lead: "用氣槍射軟箭，安全又刺激；射中靶一刻非常減壓。",
+        why: ["專注力", "減壓", "安全", "有比賽感"],
+        forWho: "青少年、公司團建、想放電嘅人。",
+        cat: "新興運動",
+      },
+      "nordic-walking": {
+        name: "北歐式健走", icon: "🥾", img: "assets/img/photos/senior.jpg",
+        tag: "長者友善", time: "60–90 分鐘", level: "零基礎可",
+        lead: "用健走杖行路，減輕膝關節負擔，同時練上肢同核心。",
+        why: ["護膝", "練全身", "戶外", "心肺"],
+        forWho: "長者、康復人士、想低衝擊帶氧運動嘅人。",
+        cat: "戶外及體能",
+      },
+      roundnet: {
+        name: "圓網球 Roundnet", icon: "🕸️", img: "assets/img/photos/emerging.jpg",
+        tag: "年輕人最愛", time: "60 分鐘", level: "中等",
+        lead: "三下之內回球，節奏快、反應快，兩隊對打非常過癮。",
+        why: ["反應", "爆發力", "團隊", "好玩"],
+        forWho: "青少年、大學生、運動底子較好嘅人。",
+        cat: "新興運動",
+      },
+      rouliqiu: {
+        name: "柔力球", icon: "🎾", img: "assets/img/photos/stretch.jpg",
+        tag: "長者／復康", time: "60 分鐘", level: "零基礎可",
+        lead: "用球拍畫圓接球，動作柔順連貫，練協調同平衡。",
+        why: ["平衡", "協調", "低衝擊", "適合長者"],
+        forWho: "長者、復康、想溫和運動嘅人。",
+        cat: "健體及新興",
+      },
+      "flexi-bar": {
+        name: "Flexi-Bar", icon: "〰️", img: "assets/img/photos/fitness.jpg",
+        tag: "深層核心", time: "45 分鐘", level: "零基礎可",
+        lead: "震動桿帶動深層肌肉，短時間高效練核心同肩背。",
+        why: ["核心", "肩背", "短時高效", "低衝擊"],
+        forWho: "久坐、肩背弱、想練核心但唔想舉重嘅人。",
+        cat: "健體及新興",
+      },
+      kids: {
+        name: "兒童健體", icon: "🧒", img: "assets/img/photos/kids.jpg",
+        tag: "3–12 歲", time: "45–60 分鐘", level: "分齡設計",
+        lead: "用遊戲練平衡、協調、反應；小朋友放電，家長放心。",
+        why: ["大小肌肉", "專注力", "社交", "放電"],
+        forWho: "3–12 歲小朋友；幼稚園、小學、生日會。",
+        cat: "兒童健體",
+      },
+    };
+
+    const slug = new URLSearchParams(location.search).get("slug") || "";
+    const list = Object.entries(SPORTS);
+
+    $("navsp").innerHTML = list.map(([k, v]) => `<a href="sport.html?slug=${k}" class="${k === slug ? "on" : ""}">${v.icon} ${v.name}</a>`).join("");
+
+    if (!slug || !SPORTS[slug]) {
+      $("topTitle").textContent = "運動項目";
+      $("hero").innerHTML = `<div class="card"><div class="body">
+        <b style="font-size:16px">揀一項運動了解多啲</b>
+        <div class="kv" style="margin-top:6px">每項運動都有獨立介紹、適合對象同即將開班。</div></div></div>`;
+      $("body").innerHTML = `<div class="card"><div class="body" style="padding:0">${list
+        .map(([k, v]) => `<a class="cls" style="text-decoration:none;color:inherit;padding:14px 16px" href="sport.html?slug=${k}">
+          <span><b>${v.icon} ${v.name}</b><div class="kv">${v.lead.slice(0, 34)}…</div></span>
+          <span class="pill">${v.tag}</span></a>`)
+        .join("")}</div></div>`;
+    } else {
+      const s = SPORTS[slug];
+      document.title = s.name + " · ZenPass 禪流";
+      $("topTitle").textContent = s.name;
+      $("hero").innerHTML = `<div class="sport-hero">
+        <img src="${s.img}" alt="${s.name}" onerror="this.style.display='none'">
+        <div class="veil"></div>
+        <div class="txt">
+          <div><span class="chip">${s.icon} ${s.tag}</span><span class="chip">${s.time}</span><span class="chip">${s.level}</span></div>
+          <h1>${s.name}</h1>
+          <p>${s.lead}</p>
+        </div></div>`;
+      $("body").innerHTML = `
+        <div class="card" style="margin-bottom:12px"><div class="body">
+          <b>學到咩</b><div class="why" style="margin-top:8px">${s.why.map((w) => `<div>✅ ${w}</div>`).join("")}</div>
+        </div></div>
+        <div class="card" style="margin-bottom:12px"><div class="body"><b>適合邊個</b><div class="kv" style="margin-top:6px">${s.forWho}</div></div></div>
+        <div class="card" style="margin-bottom:12px"><div class="body"><b>即將開班</b><div id="classes" class="kv" style="margin-top:8px">載入中…</div></div></div>
+        <div class="card"><div class="body">
+          <b>想開班／包團？</b>
+          <div class="kv" style="margin:6px 0 10px">可以按你嘅人數、地點、時間安排。</div>
+          <a class="btn btn-primary btn-block" href="https://wa.me/85290335538?text=${encodeURIComponent("我想查詢「" + s.name + "」班組安排")}" target="_blank" rel="noopener">💬 WhatsApp 查詢</a>
+        </div></div>`;
+
+      (async () => {
+        try {
+          const r = await api.get("/classes?category=" + encodeURIComponent(s.cat) + "&limit=20");
+          const arr = (r.data && (r.data.classes || r.data.items)) || [];
+          const el = $("classes");
+          if (!arr.length) {
+            el.innerHTML = `<div class="empty">暫時未有公開班次 — 想開班可以 WhatsApp 我哋。</div>`;
+            return;
+          }
+          el.innerHTML = arr.slice(0, 6).map((c) => {
+            const sch = (c.schedules || [])[0] || {};
+            const when = sch.start_time ? new Date(sch.start_time).toLocaleString("zh-HK", { month: "short", day: "numeric", weekday: "short", hour: "2-digit", minute: "2-digit" }) : "待定";
+            return `<div class="cls"><span><b>${c.title}</b><div class="kv">${when} · ${c.venue_name || ""}</div></span>
+              <a class="btn btn-primary" style="padding:8px 12px;font-size:13px" href="detail.html?id=${encodeURIComponent(c.id)}">報名</a></div>`;
+          }).join("");
+        } catch (e) {
+          $("classes").innerHTML = `<div class="empty">載入失敗</div>`;
+        }
+      })();
+    }
+  </script>
+</body>
+</html>
