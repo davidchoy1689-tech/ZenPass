@@ -23,7 +23,7 @@ router.get("/list", (req, res) => {
       SELECT u.id, u.name, u.avatar_url as avatar,
         COALESCE(cr.avg_rating, 0) as rating,
         COALESCE(cr.total_students, 0) as students,
-        (SELECT COUNT(*) FROM classes c WHERE c.coach_id = u.id) as courses,
+        (SELECT COUNT(*) FROM classes c WHERE c.coach_id = u.id AND c.status = 'active') as courses,
         COALESCE((SELECT ca.bio FROM coach_applications ca WHERE ca.user_id = u.id ORDER BY ca.created_at DESC LIMIT 1), '') as bio
       FROM users u
       LEFT JOIN (
@@ -35,6 +35,12 @@ router.get("/list", (req, res) => {
         GROUP BY cr.coach_id
       ) cr ON cr.coach_id = u.id
       WHERE u.is_coach = 1
+        AND COALESCE(u.is_active, 1) = 1
+        AND COALESCE(u.coach_verified, 0) = 1
+        AND u.email NOT LIKE '%e2e%'
+        AND u.email NOT LIKE '%@zenpass.test'
+        AND u.email NOT LIKE '%@test.hk'
+        AND EXISTS (SELECT 1 FROM classes c2 WHERE c2.coach_id = u.id AND c2.status = 'active')
       ORDER BY COALESCE(cr.avg_rating, 0) DESC
       LIMIT ?
     `).all(parseInt(req.query.limit) || 50);

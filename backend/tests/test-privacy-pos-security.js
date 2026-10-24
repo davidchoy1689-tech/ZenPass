@@ -55,8 +55,10 @@ const ok = (c, m) => { if (c) console.log("  ✅ " + m); else { console.log("  �
 
   // 1. 教練公開列表唔再漏 email
   const coachSrc = fs.readFileSync(path.join(__dirname, "../src/routes/coach.js"), "utf8");
-  const listBlock = coachSrc.slice(coachSrc.indexOf('router.get("/list"'), coachSrc.indexOf('router.get("/list"') + 900);
-  ok(!/u\.email/.test(listBlock), "GET /coach/list 唔再回傳 email");
+  const listBlock = coachSrc.slice(coachSrc.indexOf('router.get("/list"'), coachSrc.indexOf('router.get("/list"') + 1400);
+  // 只檢查 SELECT 清單（WHERE 用 email 做過濾係需要嘅，唔算泄漏）
+  const selectPart = listBlock.slice(listBlock.indexOf("SELECT"), listBlock.indexOf("FROM users"));
+  ok(!/u\.email/.test(selectPart), "GET /coach/list SELECT 唔會回傳 email");
 
   // 2. 場地租場紀錄：只限場地負責人
   const vr = require("../src/routes/venue-rentals");
