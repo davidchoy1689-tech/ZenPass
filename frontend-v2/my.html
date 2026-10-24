@@ -95,6 +95,20 @@
       const d = (pts.data && (pts.data.summary || pts.data)) || {};
       document.getElementById("mPoints").textContent = (d.points != null ? d.points : 0).toLocaleString();
 
+      // 📱 未填電話提示（Google／Apple 登入帳號常見）
+      if (u.needs_phone || !u.phone) {
+        const vb0 = document.getElementById("verifyBanner");
+        if (vb0) {
+          vb0.insertAdjacentHTML(
+            "beforebegin",
+            `<a class="banner" href="profile.html" style="display:block;text-decoration:none;margin:10px 0">
+              <b>📱 請補填電話號碼</b>
+              <div class="muted" style="font-size:13px;margin-top:4px">教練需要電話聯絡你（天氣取消／場地安排）。撳呢度填 8 位電話 ›</div>
+            </a>`,
+          );
+        }
+      }
+
       // 未驗證電郵提示（推薦碼／企業 HR 需要）
       if (!d.email_verified) {
         const vb = document.getElementById("verifyBanner");

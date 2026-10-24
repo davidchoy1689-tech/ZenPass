@@ -75,6 +75,37 @@ const ok = (c, m) => {
   ok(/id="phone"[^>]*required/.test(html), "註冊頁電話欄標示必填");
   ok(/id="birthYear"/.test(html) && /id="emName"/.test(html) && /id="health"/.test(html), "註冊頁有選填欄位");
 
+  console.log("── 社交登入補填（profile.html）──");
+  const users = require("../src/routes/users");
+  const pLayer = users.stack.find((l) => l.route && l.route.path === "/profile" && l.route.methods.put);
+  const putProfile = pLayer.route.stack[pLayer.route.stack.length - 1].handle;
+  const callPut = (body, user) =>
+    new Promise((resolve) => {
+      const res = {
+        statusCode: 200,
+        status(c) { this.statusCode = c; return this; },
+        json(o) { resolve({ status: this.statusCode, body: o }); return this; },
+      };
+      putProfile({ body, user, params: {}, headers: {}, ip: "127.0.0.1" }, res, () => resolve({ status: 0 }));
+    });
+
+  // 模擬社交登入帳號（冇電話）
+  db.prepare(
+    "INSERT INTO users (id,email,name,role,auth_provider,created_at,updated_at) VALUES ('soc1','social@x.com','社交用戶','user','google',datetime('now'),datetime('now'))",
+  ).run();
+  const bad = await callPut({ phone: "123" }, { id: "soc1", role: "user" });
+  ok(bad.status === 400 && bad.body.code === "PHONE_INVALID", "補填錯誤電話 → 400 PHONE_INVALID");
+
+  const goodPut = await callPut(
+    { phone: "+852 6123 4567", birth_year: 1988, gender: "male", emergency_name: "陳太", emergency_phone: "98765432", health_declared: true },
+    { id: "soc1", role: "user" },
+  );
+  ok(goodPut.status === 200, "補填成功 → 200");
+  const soc = db.prepare("select phone,birth_year,gender,emergency_name,health_declared from users where id='soc1'").get();
+  ok(soc.phone === "61234567", "社交帳號電話已正規化");
+  ok(soc.birth_year === 1988 && soc.gender === "male" && soc.emergency_name === "陳太", "選填欄位已更新");
+  ok(soc.health_declared === 1, "健康聲明已記錄");
+
   if (fail) { console.error(`❌ ${fail} 項失敗`); process.exit(1); }
   console.log("✅ 學生註冊資料 tests passed");
 })();

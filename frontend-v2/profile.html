@@ -9,11 +9,36 @@
 <body>
   <div class="topbar"><a class="back" href="my.html">‹</a><div class="title">帳戶設定</div></div>
   <div class="wrap">
+    <div id="phoneWarn" class="card" style="display:none;border:1.5px solid #f59e0b;margin-bottom:12px"><div class="body">
+      <b>⚠️ 仲未填電話號碼</b>
+      <div class="muted" style="font-size:13px;margin-top:4px">教練需要電話聯絡你（例如天氣取消、遲到安排）。請補填 8 位香港電話。</div>
+    </div></div>
     <div class="section-title">個人資料</div>
     <div class="card"><div class="body" style="display:flex;flex-direction:column;gap:12px">
       <div><div class="lbl">姓名</div><input class="field" id="name" placeholder="姓名" /></div>
-      <div><div class="lbl">電話</div><input class="field" id="phone" type="tel" placeholder="電話（選填）" /></div>
+      <div><div class="lbl">電話（必填）</div><input class="field" id="phone" type="tel" inputmode="tel" placeholder="8 位香港電話" /></div>
       <div><div class="lbl">電郵</div><input class="field" id="email" disabled /></div>
+      <details>
+        <summary style="cursor:pointer;font-weight:700;font-size:13px">＋ 更多資料（選填）</summary>
+        <div style="display:flex;flex-direction:column;gap:12px;margin-top:10px">
+          <div><div class="lbl">出生年份</div><input class="field" id="birthYear" inputmode="numeric" maxlength="4" placeholder="例如 1990" /></div>
+          <div><div class="lbl">性別</div>
+            <select class="field" id="gender">
+              <option value="">未填</option>
+              <option value="female">女</option>
+              <option value="male">男</option>
+              <option value="other">其他</option>
+              <option value="na">不願透露</option>
+            </select>
+          </div>
+          <div><div class="lbl">緊急聯絡人姓名</div><input class="field" id="emName" placeholder="選填" /></div>
+          <div><div class="lbl">緊急聯絡人電話</div><input class="field" id="emPhone" type="tel" inputmode="tel" placeholder="選填" /></div>
+          <label style="display:flex;gap:8px;align-items:flex-start;font-size:13px;line-height:1.4">
+            <input type="checkbox" id="health" style="margin-top:3px" />
+            <span>我確認身體狀況適合參與運動課堂，並已閱讀<a href="waiver.html" style="color:var(--brand-600)">免責聲明</a>。</span>
+          </label>
+        </div>
+      </details>
       <button class="btn btn-primary btn-block" id="save">儲存</button>
       <div id="msg" class="muted center" style="font-size:13px"></div>
     </div></div>
@@ -44,18 +69,35 @@
       document.getElementById("name").value = u.name || "";
       document.getElementById("phone").value = u.phone || "";
       document.getElementById("email").value = u.email || "";
+      document.getElementById("birthYear").value = u.birth_year || "";
+      document.getElementById("gender").value = u.gender || "";
+      document.getElementById("emName").value = u.emergency_name || "";
+      document.getElementById("emPhone").value = u.emergency_phone || "";
+      document.getElementById("health").checked = Number(u.health_declared) === 1;
+      if (!u.phone) document.getElementById("phoneWarn").style.display = "block";
     }
     document.getElementById("save").onclick = async () => {
       const name = document.getElementById("name").value.trim();
       const phone = document.getElementById("phone").value.trim();
+      const birth_year = document.getElementById("birthYear").value.trim();
+      const gender = document.getElementById("gender").value;
+      const emergency_name = document.getElementById("emName").value.trim();
+      const emergency_phone = document.getElementById("emPhone").value.trim();
+      const health_declared = document.getElementById("health").checked;
       const msg = document.getElementById("msg");
       if (!name) { msg.textContent = "請輸入姓名"; return; }
+      const digits = phone.replace(/\D/g, "").replace(/^852/, "").replace(/^0/, "");
+      if (!digits) { msg.textContent = "請填寫電話號碼"; return; }
+      if (digits.length !== 8) { msg.textContent = "電話號碼格式不正確（香港 8 位數字）"; return; }
       const btn = document.getElementById("save"); btn.disabled = true; btn.textContent = "儲存中…";
-      const r = await api.put("/users/profile", { name, phone });
+      const r = await api.put("/users/profile", {
+        name, phone: digits, birth_year, gender, emergency_name, emergency_phone, health_declared,
+      });
       btn.disabled = false; btn.textContent = "儲存";
       msg.textContent = (r.ok && r.data) ? "✅ 資料已更新" : "❌ " + ((r.data && r.data.error) || "更新失敗");
       if (r.ok) {
-        const u = api.getUser() || {}; u.name = name; u.phone = phone; api.setUser(u);
+        const u = api.getUser() || {}; u.name = name; u.phone = digits; api.setUser(u);
+        document.getElementById("phoneWarn").style.display = "none";
       }
     };
     document.getElementById("chpw").onclick = async () => {

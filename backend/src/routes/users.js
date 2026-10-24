@@ -54,7 +54,7 @@ router.get("/profile", authenticateToken, (req, res) => {
 // ===== PUT /api/users/profile — 更新個人資料 =====
 router.put("/profile", authenticateToken, (req, res) => {
   try {
-    const { name, phone, avatar_url } = req.body;
+    const { name, phone, avatar_url, birth_year, gender, emergency_name, emergency_phone, health_declared } = req.body;
     const db = getDb();
     db.pragma("foreign_keys = ON");
 
@@ -66,12 +66,38 @@ router.put("/profile", authenticateToken, (req, res) => {
       params.push(name);
     }
     if (phone !== undefined) {
+      // 2026-10-24：電話必填（社交登入帳號補填用），格式同註冊一致
+      const digits = String(phone || "").replace(/[^\d]/g, "").replace(/^852/, "").replace(/^0/, "");
+      if (digits && digits.length !== 8) {
+        return res.status(400).json({ success: false, error: "電話號碼格式不正確（香港 8 位數字）", code: "PHONE_INVALID" });
+      }
       updates.push("phone = ?");
-      params.push(phone);
+      params.push(digits || null);
     }
     if (avatar_url) {
       updates.push("avatar_url = ?");
       params.push(avatar_url);
+    }
+    // 選填個人資料
+    if (birth_year !== undefined) {
+      updates.push("birth_year = ?");
+      params.push(birth_year ? parseInt(birth_year) || null : null);
+    }
+    if (gender !== undefined) {
+      updates.push("gender = ?");
+      params.push(gender ? String(gender).slice(0, 12) : null);
+    }
+    if (emergency_name !== undefined) {
+      updates.push("emergency_name = ?");
+      params.push(emergency_name ? String(emergency_name).slice(0, 60) : null);
+    }
+    if (emergency_phone !== undefined) {
+      updates.push("emergency_phone = ?");
+      params.push(emergency_phone ? String(emergency_phone).replace(/[^\d+]/g, "").slice(0, 20) : null);
+    }
+    if (health_declared !== undefined) {
+      updates.push("health_declared = ?", "health_declared_at = ?");
+      params.push(health_declared ? 1 : 0, health_declared ? new Date().toISOString() : null);
     }
 
     if (updates.length === 0) {
@@ -144,7 +170,8 @@ router.get("/me", authenticateToken, (req, res) => {
         `SELECT id, email, email_verified, name, phone, avatar_url, credits, membership_type,
                 membership_expires_at, is_coach, coach_verified, created_at,
                 role, user_reference, points, points_tier, checkin_streak,
-                total_visits, total_spent
+                total_visits, total_spent,
+                birth_year, gender, emergency_name, emergency_phone, COALESCE(health_declared,0) AS health_declared
          FROM users WHERE id = ?`,
       )
       .get(req.user.id);
@@ -155,6 +182,7 @@ router.get("/me", authenticateToken, (req, res) => {
     res.json({
       ...user,
       membership_expires_at: user.membership_expires_at || null,
+      needs_phone: !user.phone,
       permissions: permissionsFor(user.role),
     });
   } catch (err) {
