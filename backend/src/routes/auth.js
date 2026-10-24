@@ -79,7 +79,23 @@ const STRONG_PW_MSG = "密碼至少 8 個字元，並需包含英文字母及數
 // ===== POST /api/auth/register - 電郵註冊 =====
 router.post("/register", (req, res) => {
   try {
-    const { email, password, name, phone, ref } = req.body;
+    const { email, password, name, phone, ref, invite_code } = req.body;
+
+    // 🔒 2026-10-24：上線開關 —— 未上架期間暫停公開註冊
+    // 允許：allow_domains 內嘅電郵，或持有邀請碼；主要管理員可喺後台一鍵全面開放
+    try {
+      const { canRegister } = require("../services/launch-mode");
+      const gate = canRegister(email, invite_code);
+      if (!gate.allowed) {
+        return res.status(403).json({
+          success: false,
+          code: gate.code || "REGISTRATION_CLOSED",
+          error: gate.notice || "系統測試中，暫停公開註冊。",
+        });
+      }
+    } catch (e) {
+      console.error("[REGISTER GATE] error:", e.message);
+    }
 
     // 驗證
     if (!email || !password || !name) {

@@ -1146,6 +1146,56 @@ function writeAudit(req, actionType, entityId, oldValues, newValues, description
 
 // ===== GET /api/admin/staff — 後台帳號清單 =====
 // ===== GET /api/admin/user-lookup?q= — 用 email／名／電話搵用戶（預覽身份用）=====
+// ===== 🚀 上線開關（2026-10-24）=====
+router.get(
+  "/launch-mode",
+  authenticateToken,
+  requirePermission("system.settings.write"),
+  (req, res) => {
+    try {
+      const { getLaunchSettings } = require("../services/launch-mode");
+      res.json({ success: true, ...getLaunchSettings() });
+    } catch (err) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  },
+);
+
+router.post(
+  "/launch-mode",
+  authenticateToken,
+  requirePermission("system.settings.write"),
+  (req, res) => {
+    try {
+      const { getLaunchSettings, set } = require("../services/launch-mode");
+      const b = req.body || {};
+      if (b.registration_open !== undefined) {
+        set("launch.registration_open", b.registration_open ? "1" : "0");
+      }
+      if (Array.isArray(b.allow_domains)) {
+        set(
+          "launch.allow_domains",
+          b.allow_domains
+            .map((d) => String(d).trim().toLowerCase().replace(/^@/, ""))
+            .filter(Boolean)
+            .join(","),
+        );
+      }
+      if (b.notice !== undefined) set("launch.notice", String(b.notice).slice(0, 300));
+      if (b.rotate_invite) {
+        const crypto = require("crypto");
+        set("launch.invite_code", "ZP-" + crypto.randomBytes(3).toString("hex").toUpperCase());
+      }
+      const s = getLaunchSettings();
+      writeAudit(req, "LAUNCH_MODE_UPDATE", "platform", null, s,
+        `上線開關：註冊${s.registration_open ? "全面開放" : "暫停（白名單／邀請碼）"}`);
+      res.json({ success: true, ...s });
+    } catch (err) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  },
+);
+
 router.get(
   "/user-lookup",
   authenticateToken,

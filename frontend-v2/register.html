@@ -23,6 +23,7 @@
       <input class="field" id="phone" placeholder="電話（選填）" type="tel" autocomplete="tel" />
       <input class="field" id="pw" placeholder="密碼（至少 6 位）" type="password" autocomplete="new-password" />
       <input class="field" id="pw2" placeholder="確認密碼" type="password" autocomplete="new-password" />
+      <input class="field" id="invite" placeholder="邀請碼（測試期需要，如有）" autocomplete="off" />
       <button class="btn btn-primary btn-block" id="go">註冊</button>
       <div id="msg" class="muted center" style="font-size:13px"></div>
     </div>
@@ -43,6 +44,7 @@
       const phone = document.getElementById("phone").value.trim();
       const pw = document.getElementById("pw").value;
       const pw2 = document.getElementById("pw2").value;
+      const invite_code = (document.getElementById("invite").value || "").trim();
       const msg = document.getElementById("msg");
       if (!name || !email || !pw) { msg.textContent = "請填寫姓名、電郵和密碼"; return; }
       if (pw.length < 8 || !/[A-Za-z]/.test(pw) || !/[0-9]/.test(pw)) { msg.textContent = "密碼至少 8 個字元，並需包含英文字母及數字"; return; }
@@ -50,7 +52,7 @@
       const btn = document.getElementById("go"); btn.disabled = true; btn.textContent = "註冊中…";
       let ref = REFQ;
       if (!ref) { try { ref = localStorage.getItem("zp_ref") || ""; } catch (e) {} }
-      const r = await api.post("/auth/register", { name, email, phone, password: pw, ref });
+      const r = await api.post("/auth/register", { name, email, phone, password: pw, ref, invite_code });
       btn.disabled = false; btn.textContent = "註冊";
       if (r.ok && r.data) {
         if (r.data.token) api.setToken(r.data.token);

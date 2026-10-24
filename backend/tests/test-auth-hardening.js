@@ -121,6 +121,8 @@ const ok = (c, m) => { if (c) console.log("  ✅ " + m); else { console.log("  �
   ok(mk(tok2).called, "重新登入（新 token）可通過");
 
   // 5. 密碼強度
+  // 2026-10-24：上線開關預設暫停公開註冊 → 測試前先開放，否則會收到 403 而非密碼錯誤
+  require("../src/services/launch-mode").set("launch.registration_open", "1");
   const reg = pick("/register");
   const weak1 = await call(reg, { email: "new1@x.com", password: "abc123", name: "A" });
   ok(weak1.statusCode === 400, `6 位密碼 → 400（got ${weak1.statusCode}）`);

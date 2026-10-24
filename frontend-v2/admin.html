@@ -79,6 +79,7 @@
       ["users", "用戶", "people", "users.view"],
       ["coach", "教練申請", "people", "ops.coach.view"],
       ["migrate", "遷移", "system", "system.migrate"],
+      ["launch", "🚀 上線開關", "system", "system.settings.write"],
       ["staff", "🔐 管理員帳號", "system", "users.role.write"],
       ["audit", "審計", "system", "system.audit.view"],
     ];
@@ -156,6 +157,7 @@
         if (cur === "promo") return promoTab();
         if (cur === "audit") return listGeneric("/admin/audit-log?limit=100", "entries", auditRow, "審計記錄");
         if (cur === "staff") return staffTab();
+        if (cur === "launch") return launchTab();
       } catch (e) { panel().innerHTML = `<div class="card"><div class="body muted">載入失敗：${esc2(e.message)}</div></div>`; }
     }
 
@@ -398,6 +400,65 @@
 
     let _usersCache = [], _mergeHtml = "";
     // 🔐 管理員帳號管理（2026-10-24）：建立／改角色／重設密碼／停用／刪除／預覽身份
+    // 🚀 上線開關：暫停公開註冊 ↔ 全面開放
+    async function launchTab() {
+      const r = await api.get("/admin/launch-mode");
+      if (r.status === 401 || r.status === 403) return needAdmin();
+      if (!r.ok) {
+        panel().innerHTML = `<div class="card"><div class="body muted">載入失敗：${esc2((r.data && r.data.error) || "")}</div></div>`;
+        return;
+      }
+      const s = r.data || {};
+      const open = !!s.registration_open;
+      panel().innerHTML = `
+        <div class="card" style="margin-bottom:12px"><div class="body">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+            <div>
+              <div style="font-size:15px;font-weight:800">${open ? "🟢 已開放公開註冊" : "🔒 測試中：暫停公開註冊"}</div>
+              <div class="kv" style="margin-top:4px">${open ? "任何人均可註冊並預約課程。" : "只有白名單電郵或持邀請碼者可註冊。"}</div>
+            </div>
+            <button class="btn ${open ? "btn-secondary" : "btn-primary"}" id="lqToggle" type="button">${open ? "⏸️ 暫停註冊" : "🚀 全面開放"}</button>
+          </div>
+          ${open ? "" : `<div class="kv" style="margin-top:10px;padding:10px;background:#fef3c7;border-radius:10px">
+            對外提示：${esc2(s.notice || "")}
+          </div>`}
+        </div></div>
+        <div class="card" style="margin-bottom:12px"><div class="body">
+          <div style="font-weight:800;margin-bottom:6px">🎟️ 測試邀請碼</div>
+          <div class="kv" style="margin-bottom:8px">測試同事／朋友註冊時填呢個碼就可以通過。</div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <code id="lqCode" style="flex:1;background:#f3f4f6;padding:10px;border-radius:10px;font-size:16px;letter-spacing:1px">${esc2(s.invite_code || "")}</code>
+            <button class="btn btn-secondary" id="lqRotate" type="button">🔄 換碼</button>
+          </div>
+        </div></div>
+        <div class="card"><div class="body">
+          <div style="font-weight:800;margin-bottom:6px">📮 白名單電郵網域</div>
+          <div class="kv" style="margin-bottom:8px">呢啲網域嘅電郵可以唔使邀請碼直接註冊（例如 zenpass.hk）。</div>
+          <input class="ef" id="lqDomains" value="${esc2((s.allow_domains || []).join(","))}" placeholder="zenpass.hk,zenpass.test" />
+          <button class="btn btn-secondary btn-block" id="lqSave" type="button" style="margin-top:8px">儲存網域</button>
+          <div class="kv" id="lqMsg" style="margin-top:8px"></div>
+        </div></div>`;
+
+      $("lqToggle").onclick = async () => {
+        const next = !open;
+        if (!confirm(next ? "全面開放註冊？所有學員都可以註冊同預約。" : "暫停公開註冊？只有白名單／邀請碼可註冊。")) return;
+        const x = await api.post("/admin/launch-mode", { registration_open: next });
+        if (!x.ok) return alert((x.data && x.data.error) || "更新失敗");
+        launchTab();
+      };
+      $("lqRotate").onclick = async () => {
+        if (!confirm("換新邀請碼？舊碼即刻失效。")) return;
+        const x = await api.post("/admin/launch-mode", { rotate_invite: true });
+        if (!x.ok) return alert((x.data && x.data.error) || "更新失敗");
+        $("lqCode").textContent = x.data.invite_code;
+      };
+      $("lqSave").onclick = async () => {
+        const arr = $("lqDomains").value.split(",").map((x) => x.trim()).filter(Boolean);
+        const x = await api.post("/admin/launch-mode", { allow_domains: arr });
+        $("lqMsg").textContent = x.ok ? "✅ 已儲存" : "❌ " + ((x.data && x.data.error) || "儲存失敗");
+      };
+    }
+
     const ROLE_LABEL = {
       super_admin: "👑 主要管理員",
       platform_manager: "🧭 平台主管",
