@@ -36,7 +36,6 @@ router.get("/list", (req, res) => {
       ) cr ON cr.coach_id = u.id
       WHERE u.is_coach = 1
         AND COALESCE(u.is_active, 1) = 1
-        AND COALESCE(u.coach_verified, 0) = 1
         AND u.email NOT LIKE '%e2e%'
         AND u.email NOT LIKE '%@zenpass.test'
         AND u.email NOT LIKE '%@test.hk'
