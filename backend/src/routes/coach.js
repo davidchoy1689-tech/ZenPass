@@ -703,6 +703,29 @@ router.post("/refer", authenticateToken, (req, res) => {
 module.exports = router;
 
 // ===== GET /api/coach/class-students — 查看課程學生名單 =====
+// ===== GET /api/coach/upcoming — 教練即將開課（含已報名人數）=====
+router.get("/upcoming", authenticateToken, (req, res) => {
+  try {
+    const db = getDb();
+    const rows = db
+      .prepare(
+        `SELECT cs.id, cs.start_time, cs.end_time, cs.enrolled_count, cs.max_participants, cs.status,
+                c.id AS class_id, c.title, c.venue_name, c.price_hkd
+         FROM class_schedules cs
+         JOIN classes c ON c.id = cs.class_id
+         WHERE c.coach_id = ? AND c.status = 'active'
+           AND cs.start_time >= datetime('now')
+           AND COALESCE(cs.status,'available') = 'available'
+         ORDER BY cs.start_time ASC
+         LIMIT 8`,
+      )
+      .all(req.user.id);
+    res.json({ success: true, schedules: rows });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 router.get("/class-students", authenticateToken, (req, res) => {
   try {
     const db = getDb();
