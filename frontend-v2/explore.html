@@ -196,6 +196,11 @@
     .ex-sheet-opts button.on { background: #ecfdf5; border-color: #6ee7b7; color: #047857; font-weight: 800; }
     .ex-sheet-opts button .tick { color: #10b981; font-weight: 900; }
     @media (max-width: 420px) { .ex-sheet-opts { flex-direction: row; flex-wrap: wrap; gap: 8px; } .ex-sheet-opts button { flex: 0 0 auto; font-size: 12.5px; padding: 9px 13px; } }
+
+    .sport-strip{display:flex;gap:8px;overflow-x:auto;padding:10px 0 6px;margin:0 -16px;padding-left:16px;padding-right:16px;scrollbar-width:none}
+    .sport-strip::-webkit-scrollbar{display:none}
+    .sport-strip a{flex:0 0 auto;display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700;padding:9px 14px;border-radius:999px;border:1px solid var(--border);background:var(--surface);color:var(--text);text-decoration:none}
+    .sport-strip a span{font-size:15px}
   </style>
 </head>
 <body>
@@ -219,6 +224,8 @@
       <div class="ex-active" id="exActive"></div>
     </div>
 
+    <!-- 🏅 運動項目（獨立頁面入口） -->
+    <div class="sport-strip" id="sportStrip"></div>
     <div class="section-title" id="count">課程</div>
     <div class="ex-grid" id="list">
       <div class="ex-skel"><div class="s1"></div><div class="s2"></div><div class="s3"></div></div>
@@ -273,6 +280,29 @@
     const qEl = document.getElementById("q");
     const chipBar = document.getElementById("exChips");
     const activeBar = document.getElementById("exActive");
+    // 🏅 運動項目入口（連去 sport.html 獨立頁）
+    (function sportStrip() {
+      const el = document.getElementById("sportStrip");
+      if (!el) return;
+      const items = [
+        ["stretch", "🧘‍♀️", "身心伸展"],
+        ["molkky", "🎯", "芬蘭木柱"],
+        ["floor-curling", "🥌", "地板冰壺"],
+        ["cornhole", "🫘", "布袋球"],
+        ["air-storm", "🏹", "穿雲箭"],
+        ["nordic-walking", "🥾", "北歐健走"],
+        ["roundnet", "🕸️", "圓網球"],
+        ["rouliqiu", "🎾", "柔力球"],
+        ["flexi-bar", "〰️", "Flexi-Bar"],
+        ["kids", "🧒", "兒童健體"],
+      ];
+      el.innerHTML = items
+        .map(
+          ([s, ic, n]) =>
+            `<a href="sport.html?slug=${s}"><span>${ic}</span>${n}</a>`,
+        )
+        .join("");
+    })();
     const clearBtn = document.getElementById("exClearAll");
 
     // topbar 高度 → 令 sticky 工具列貼實（唔會疊住）
