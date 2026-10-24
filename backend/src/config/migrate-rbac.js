@@ -35,8 +35,9 @@ const ROLE_HIERARCHY = {
   partner_admin: 5,
   partner_staff: 6,
   coach: 7,
-  user: 8,
-  guest: 9,
+  auditor: 8,
+  user: 9,
+  guest: 10,
 };
 
 /**
@@ -85,6 +86,17 @@ function migrate() {
   const userCount = db.prepare("SELECT COUNT(*) as cnt FROM users").get().cnt;
   console.log(`[MIGRATE-RBAC] Migrating ${userCount} user roles...`);
 
+  // 🔒 2026-10-24：角色映射只做一次，避免每次重啟覆寫人手設定（曾把 auditor 降為 platform_staff）
+  let rolesMigrated = false;
+  try {
+    const row = db.prepare("SELECT value FROM platform_settings WHERE key='migration.rbac_roles_done'").get();
+    rolesMigrated = !!row;
+  } catch (e) {
+    try {
+      db.exec("CREATE TABLE IF NOT EXISTS platform_settings (key TEXT PRIMARY KEY, value TEXT)");
+    } catch (e2) {}
+  }
+
   // Map old-style roles to new RBAC roles
   const roleMap = {
     admin: "admin",
@@ -101,7 +113,7 @@ function migrate() {
     )
     .all();
 
-  for (const u of adminUsers) {
+  for (const u of (rolesMigrated ? [] : adminUsers)) {
     // Skip if already has a proper RBAC role
     if (u.role && ROLE_HIERARCHY[u.role] !== undefined) continue;
 
@@ -134,7 +146,7 @@ function migrate() {
   // Coaches → coach role
   const coachUsers = db
     .prepare(
-      "SELECT id, email, role FROM users WHERE is_coach = 1 AND (role IS NULL OR role NOT IN ('super_admin','platform_manager','platform_staff','admin','partner_owner','partner_admin','partner_staff'))",
+      "SELECT id, email, role FROM users WHERE is_coach = 1 AND (role IS NULL OR role NOT IN ('super_admin','platform_manager','platform_staff','admin','auditor','partner_owner','partner_admin','partner_staff'))",
     )
     .all();
   for (const u of coachUsers) {
@@ -148,16 +160,23 @@ function migrate() {
   // Remaining users with no role → 'user'
   const noRoleUsers = db
     .prepare(
-      "SELECT COUNT(*) as cnt FROM users WHERE role IS NULL OR role NOT IN ('super_admin','platform_manager','platform_staff','admin','partner_owner','partner_admin','partner_staff','coach','user','guest')",
+      "SELECT COUNT(*) as cnt FROM users WHERE role IS NULL OR role NOT IN ('super_admin','platform_manager','platform_staff','admin','auditor','partner_owner','partner_admin','partner_staff','coach','user','guest')",
     )
     .get();
   if (noRoleUsers.cnt > 0) {
     db.prepare(
-      "UPDATE users SET role = 'user' WHERE role IS NULL OR role NOT IN ('super_admin','platform_manager','platform_staff','admin','partner_owner','partner_admin','partner_staff','coach','user','guest')",
+      "UPDATE users SET role = 'user' WHERE role IS NULL OR role NOT IN ('super_admin','platform_manager','platform_staff','admin','auditor','partner_owner','partner_admin','partner_staff','coach','user','guest')",
     ).run();
     console.log(
       `[MIGRATE-RBAC] ✓ Mapped ${noRoleUsers.cnt} users with no/unknown role → 'user'`,
     );
+  }
+
+  if (!rolesMigrated) {
+    try {
+      db.prepare("INSERT OR REPLACE INTO platform_settings (key, value) VALUES ('migration.rbac_roles_done', datetime('now'))").run();
+      console.log("[MIGRATE-RBAC] ✓ 已標記角色映射完成（之後重啟唔會再覆寫）");
+    } catch (e) {}
   }
 
   // Step 3: Add owner_id column to partner_venues (who owns the institution)
