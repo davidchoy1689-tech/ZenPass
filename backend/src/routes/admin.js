@@ -1132,6 +1132,7 @@ const STAFF_ROLES = [
   "platform_manager",
   "platform_staff",
   "admin",
+  "auditor",
   "partner_owner",
   "partner_admin",
   "partner_staff",

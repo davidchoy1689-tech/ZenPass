@@ -37,8 +37,9 @@ const ROLE_HIERARCHY = {
   partner_admin: 5,
   partner_staff: 6,
   coach: 7,
-  user: 8,
-  guest: 9,
+  auditor: 8,
+  user: 9,
+  guest: 10,
 };
 
 /**

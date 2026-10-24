@@ -86,6 +86,21 @@ const ROLE_PERMISSIONS = {
     "system.audit.view",
   ],
 
+  // 📊 核數／會計：純唯讀，零金錢操作（2026-10-24）
+  auditor: [
+    "finance.view",
+    "finance.payout.view",
+    "finance.refund.view",
+    "finance.pricing.view",
+    "ops.booking.view",
+    "ops.class.view",
+    "ops.coach.view",
+    "ops.partner.view",
+    "users.view",
+    "system.audit.view",
+    "system.db.view",
+  ],
+
   partner_owner: ["ops.booking.view", "ops.class.view", "ops.class.write", "ops.coach.view", "finance.view"],
   partner_admin: ["ops.booking.view", "ops.class.view", "ops.class.write", "ops.coach.view"],
   partner_staff: ["ops.booking.view", "ops.booking.write"],
