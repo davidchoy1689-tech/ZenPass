@@ -1346,6 +1346,21 @@ router.get(
       }
       add("backup", "本地備份", backupOk, backupDetail);
 
+      // 10) no-show 自動處理（VPS crontab 每 15 分鐘寫 log）
+      try {
+        const fs = require("fs");
+        const p = "/var/log/zenpass/no-show.log";
+        if (fs.existsSync(p)) {
+          const st = fs.statSync(p);
+          const mins = (Date.now() - st.mtimeMs) / 60000;
+          add("nshow", "缺席自動處理", mins < 40, `上次執行 ${mins.toFixed(0)} 分鐘前`);
+        } else {
+          add("nshow", "缺席自動處理", false, "未見 /var/log/zenpass/no-show.log（cron 未跑過？）");
+        }
+      } catch (e) {
+        add("nshow", "缺席自動處理", false, e.message);
+      }
+
       const failed = checks.filter((c) => !c.ok).length;
       res.json({ success: true, ready: failed === 0, failed, checks });
     } catch (err) {
