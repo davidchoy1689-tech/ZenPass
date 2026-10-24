@@ -224,9 +224,13 @@
     var n = Number($("fMax").value) || 0;
     var el = $("capHint");
     if (!el) return;
-    if (n > 0 && n <= 7) {
-      el.textContent = "✅ 小班教學（≤ 7 人）";
+    // 2026-10-24：班別人數政策統一為最多 20 人；唔再標示「小班 ≤7」
+    if (n > 0 && n <= 20) {
+      el.textContent = "✅ 名額 " + n + " 人（上限 20 人）";
       el.style.color = "#047857";
+    } else if (n > 20) {
+      el.textContent = "⚠️ 每班最多 20 人";
+      el.style.color = "#b45309";
     } else {
       el.textContent = "";
     }
