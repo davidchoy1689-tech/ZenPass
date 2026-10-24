@@ -140,7 +140,7 @@ router.post("/reject-payment", authenticateToken, requirePermission("finance.pay
 });
 
 // ===== 退款待轉賬（FPS／PayMe）=====
-router.get("/refunds", authenticateToken, requireAdmin, (req, res) => {
+router.get("/refunds", authenticateToken, requirePermission("finance.refund.view"), (req, res) => {
   try {
     const db = getDb();
     const status = req.query.status || "pending";
@@ -181,7 +181,7 @@ router.post("/refunds/:id/complete", authenticateToken, requirePermission("finan
 });
 
 // ===== GET /api/admin/stats =====
-router.get("/stats", authenticateToken, requireAdmin, (req, res) => {
+router.get("/stats", authenticateToken, requirePermission("finance.view"), (req, res) => {
   try {
     const result = adminService.getDashboardStats();
     res.json(result);
@@ -192,7 +192,7 @@ router.get("/stats", authenticateToken, requireAdmin, (req, res) => {
 });
 
 // ===== GET /api/admin/bookings =====
-router.get("/bookings", authenticateToken, requireAdmin, (req, res) => {
+router.get("/bookings", authenticateToken, requirePermission("ops.booking.view"), (req, res) => {
   try {
     const result = adminService.listAllBookings(req.query);
     res.json(result);
@@ -203,7 +203,7 @@ router.get("/bookings", authenticateToken, requireAdmin, (req, res) => {
 });
 
 // ===== GET /api/admin/users =====
-router.get("/users", authenticateToken, requireAdmin, (req, res) => {
+router.get("/users", authenticateToken, requirePermission("users.view"), (req, res) => {
   try {
     const result = adminService.listAllUsers();
     res.json(result);
@@ -296,7 +296,7 @@ router.delete("/users/:id/loyalty-tier", authenticateToken, requireAdmin, (req, 
 });
 
 // ===== GET /api/admin/classes =====
-router.get("/classes", authenticateToken, requireAdmin, (req, res) => {
+router.get("/classes", authenticateToken, requirePermission("ops.class.view"), (req, res) => {
   try {
     const result = adminService.listAllClasses();
     res.json(result);
@@ -398,7 +398,7 @@ router.post("/process-payouts", authenticateToken, requirePermission("finance.pa
 });
 
 // ===== GET /api/admin/payouts =====
-router.get("/payouts", authenticateToken, requireAdmin, (req, res) => {
+router.get("/payouts", authenticateToken, requirePermission("finance.payout.view"), (req, res) => {
   try {
     const result = adminService.listPayouts(req.query);
     res.json(result);
@@ -764,7 +764,7 @@ router.post("/generate-description", authenticateToken, requireAdmin, (req, res)
 });
 
 // ===== GET /api/admin/audit-log =====
-router.get("/audit-log", authenticateToken, requireAdmin, (req, res) => {
+router.get("/audit-log", authenticateToken, requirePermission("system.audit.view"), (req, res) => {
   try {
     const entries = queryAudit({
       limit: parseInt(req.query.limit) || 200,
@@ -778,7 +778,7 @@ router.get("/audit-log", authenticateToken, requireAdmin, (req, res) => {
 });
 
 // ===== GET /api/admin/revenue-dashboard =====
-router.get("/revenue-dashboard", authenticateToken, requireAdmin, (req, res) => {
+router.get("/revenue-dashboard", authenticateToken, requirePermission("finance.view"), (req, res) => {
   try {
     const result = adminService.getRevenueDashboard();
     res.json(result);
