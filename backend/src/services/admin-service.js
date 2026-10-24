@@ -208,7 +208,12 @@ function getDashboardStats() {
     confirmed_bookings: db.prepare("SELECT COUNT(*) as count FROM bookings WHERE status = 'confirmed'").get().count,
     pending_payments: db.prepare("SELECT COUNT(*) as count FROM bookings WHERE status = 'pending_payment' AND (fps_reference IS NOT NULL OR payme_reference IS NOT NULL)").get().count,
     total_classes: db.prepare("SELECT COUNT(*) as count FROM classes WHERE status = 'active'").get().count,
-    total_revenue: db.prepare("SELECT COALESCE(SUM(amount), 0) as total FROM bookings WHERE payment_status = 'paid'").get().total,
+    // 2026-10-24：只計仍然有效嘅預約（取消／缺席唔算收入）
+    total_revenue: db
+      .prepare(
+        "SELECT COALESCE(SUM(amount), 0) as total FROM bookings WHERE payment_status = 'paid' AND status IN ('confirmed','attended')",
+      )
+      .get().total,
     recent_bookings: (function () {
       var data = [];
       for (var i = 6; i >= 0; i--) {
