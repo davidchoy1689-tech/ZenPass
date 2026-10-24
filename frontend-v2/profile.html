@@ -44,6 +44,15 @@
     </div></div>
 
     <div class="section-title">更改密碼</div>
+    <div class="card" id="upgradeCard" style="display:none;border:1.5px solid #f59e0b;margin-bottom:12px"><div class="body" style="display:flex;flex-direction:column;gap:10px">
+      <b>🔐 設定登入電郵同密碼</b>
+      <div class="muted" style="font-size:13px">你係用 QR 極速登記。設定之後，換電話／換機都可以用電郵登入。</div>
+      <input class="field" id="upEmail" type="email" placeholder="你的電郵" autocomplete="username" />
+      <input class="field" id="upPw" type="password" placeholder="設定密碼（至少 8 位，含字母及數字）" autocomplete="new-password" />
+      <button class="btn btn-primary btn-block" id="upSave">設定登入資料</button>
+      <div id="upMsg" class="muted center" style="font-size:13px"></div>
+    </div></div>
+
     <div class="card"><div class="body" style="display:flex;flex-direction:column;gap:12px">
       <div><div class="lbl">新密碼（至少 6 位）</div><input class="field" id="npw" type="password" autocomplete="new-password" /></div>
       <div><div class="lbl">確認新密碼</div><input class="field" id="npw2" type="password" autocomplete="new-password" /></div>
@@ -75,6 +84,10 @@
       document.getElementById("emPhone").value = u.emergency_phone || "";
       document.getElementById("health").checked = Number(u.health_declared) === 1;
       if (!u.phone) document.getElementById("phoneWarn").style.display = "block";
+      // QR 極速登記帳號：email 係佔位地址 → 提示設定真電郵＋密碼
+      if (u.email && String(u.email).endsWith("@phone.zenpass.local")) {
+        document.getElementById("upgradeCard").style.display = "block";
+      }
     }
     document.getElementById("save").onclick = async () => {
       const name = document.getElementById("name").value.trim();
@@ -98,6 +111,20 @@
       if (r.ok) {
         const u = api.getUser() || {}; u.name = name; u.phone = digits; api.setUser(u);
         document.getElementById("phoneWarn").style.display = "none";
+      }
+    };
+    document.getElementById("upSave").onclick = async () => {
+      const email = document.getElementById("upEmail").value.trim();
+      const pw = document.getElementById("upPw").value;
+      const msg = document.getElementById("upMsg");
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { msg.textContent = "電郵格式不正確"; return; }
+      if (pw.length < 8 || !/[A-Za-z]/.test(pw) || !/[0-9]/.test(pw)) { msg.textContent = "密碼至少 8 位，並需含字母及數字"; return; }
+      const r = await api.post("/auth/upgrade-account", { email, password: pw });
+      msg.textContent = r.ok ? "✅ 已設定，之後可以用電郵登入" : "❌ " + ((r.data && r.data.error) || "設定失敗");
+      if (r.ok) {
+        const u = api.getUser() || {}; u.email = email; api.setUser(u);
+        document.getElementById("email").value = email;
+        document.getElementById("upgradeCard").style.display = "none";
       }
     };
     document.getElementById("chpw").onclick = async () => {

@@ -77,6 +77,147 @@ function isStrongPassword(pw) {
 const STRONG_PW_MSG = "密碼至少 8 個字元，並需包含英文字母及數字";
 
 // ===== POST /api/auth/register - 電郵註冊 =====
+// ===== POST /api/auth/quick-join — QR Code 極速登記（姓名＋電話）=====
+// 2026-10-24：推廣用。掃 QR → 填姓名＋電話 → 即時成為會員並登入。
+// 其他資料（電郵／密碼／健康聲明）可以後補，唔影響報名上堂。
+router.post("/quick-join", (req, res) => {
+  try {
+    const { name, phone, src, campaign } = req.body || {};
+    const cleanName = String(name || "").trim().slice(0, 60);
+    const normPhone = String(phone || "").replace(/[^\d]/g, "").replace(/^852/, "").replace(/^0/, "");
+
+    if (!cleanName) return res.status(400).json({ success: false, error: "請填寫姓名", code: "NAME_REQUIRED" });
+    if (!normPhone) return res.status(400).json({ success: false, error: "請填寫電話號碼", code: "PHONE_REQUIRED" });
+    if (normPhone.length !== 8) {
+      return res.status(400).json({ success: false, error: "電話號碼格式不正確（香港 8 位數字）", code: "PHONE_INVALID" });
+    }
+
+    const db = getDb();
+    db.pragma("foreign_keys = ON");
+
+    // 已存在（同一電話）→ 唔會自動登入（避免知道電話就可以接管帳號）
+    const existing = db
+      .prepare("SELECT id, email, name FROM users WHERE phone = ? OR phone = ?")
+      .get(normPhone, "852" + normPhone);
+    if (existing) {
+      return res.status(409).json({
+        success: false,
+        code: "PHONE_EXISTS",
+        error: "呢個電話已經登記咗，請用原本帳號登入（或聯絡客服幫你找回）。",
+        login_url: "/login.html",
+      });
+    }
+
+    const id = uuidv4();
+    const placeholderEmail = `p${normPhone}@phone.zenpass.local`;
+    const dupEmail = db.prepare("SELECT id FROM users WHERE email = ?").get(placeholderEmail);
+    if (dupEmail) {
+      return res.status(409).json({ success: false, code: "PHONE_EXISTS", error: "呢個電話已經登記咗，請直接登入。" });
+    }
+
+    const maxS =
+      db
+        .prepare(
+          "SELECT MAX(CAST(SUBSTR(user_reference, 4) AS INTEGER)) as m FROM users WHERE user_reference GLOB 'US-[0-9]*'",
+        )
+        .get().m || 0;
+    const userRef = "US-" + String(maxS + 1).padStart(4, "0");
+
+    const randPw = require("crypto").randomBytes(18).toString("base64url");
+    db.prepare(
+      `INSERT INTO users (id, user_reference, email, password_hash, name, phone, auth_provider,
+                          email_verified, lead_source, terms_accepted_at, health_declared, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, 'email', 0, ?, datetime('now'), 0, datetime('now'), datetime('now'))`,
+    ).run(
+      id,
+      userRef,
+      placeholderEmail,
+      bcrypt.hashSync(randPw, 10),
+      cleanName,
+      normPhone,
+      "qr:" + String(src || campaign || "qr").slice(0, 40),
+    );
+
+    const user = db
+      .prepare("SELECT id, email, name, phone, role, credits, email_verified, created_at FROM users WHERE id = ?")
+      .get(id);
+    const token = generateToken(user);
+    setAuthCookie(res, token);
+
+    try {
+      require("../services/audit").audit({
+        actionType: "QUICK_JOIN",
+        entityType: "user",
+        entityId: id,
+        userId: id,
+        newValues: { name: cleanName, phone: normPhone, source: src || campaign || "qr" },
+        description: `QR 極速登記（${src || campaign || "qr"}）`,
+        ipAddress: req.ip,
+      });
+    } catch (e) {}
+    try {
+      const { notifyAdmins } = require("../services/admin-alerts");
+      notifyAdmins("member.quick_join", {
+        message: `🆕 QR 新會員\n姓名：${cleanName}\n電話：${normPhone}\n來源：${src || campaign || "qr"}`,
+      });
+    } catch (e) {}
+
+    res.status(201).json({
+      success: true,
+      message: "✅ 登記成功，已經幫你登入",
+      token,
+      user,
+      needs_profile: true,
+      note: "可以即刻報名；電郵／密碼可以之後喺「帳戶設定」補返。",
+    });
+  } catch (err) {
+    console.error("quick-join error:", err);
+    res.status(500).json({ success: false, error: "登記失敗，請稍後再試" });
+  }
+});
+
+// ===== POST /api/auth/upgrade-account — QR 帳號補上電郵＋密碼 =====
+router.post("/upgrade-account", authenticateToken, (req, res) => {
+  try {
+    const { email, password } = req.body || {};
+    const db = getDb();
+    const me = db.prepare("SELECT id, email FROM users WHERE id = ?").get(req.user.id);
+    if (!me) return res.status(404).json({ success: false, error: "用戶不存在" });
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email || ""))) {
+      return res.status(400).json({ success: false, error: "電郵格式不正確" });
+    }
+    if (!isStrongPassword(password)) {
+      return res.status(400).json({ success: false, error: STRONG_PW_MSG });
+    }
+    const emailKey = String(email).trim().toLowerCase();
+    const dup = db.prepare("SELECT id FROM users WHERE email = ? AND id <> ?").get(emailKey, me.id);
+    if (dup) return res.status(409).json({ success: false, error: "此電郵已被使用" });
+
+    db.prepare(
+      "UPDATE users SET email = ?, password_hash = ?, auth_provider = 'email', updated_at = datetime('now') WHERE id = ?",
+    ).run(emailKey, bcrypt.hashSync(password, 10), me.id);
+
+    try {
+      require("../services/audit").audit({
+        actionType: "ACCOUNT_UPGRADE",
+        entityType: "user",
+        entityId: me.id,
+        userId: me.id,
+        oldValues: { email: me.email },
+        newValues: { email: emailKey },
+        description: "QR 帳號補上電郵及密碼",
+        ipAddress: req.ip,
+      });
+    } catch (e) {}
+
+    res.json({ success: true, message: "✅ 已設定，之後可以用電郵登入" });
+  } catch (err) {
+    console.error("upgrade-account error:", err.message);
+    res.status(500).json({ success: false, error: "設定失敗" });
+  }
+});
+
 router.post("/register", (req, res) => {
   try {
     const {

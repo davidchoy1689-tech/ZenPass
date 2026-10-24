@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="zh-HK">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#ff6b35" />
+<title>極速登記 · ZenPass 禪流</title>
+<link rel="stylesheet" href="assets/v2.css?v=26" />
+<link rel="stylesheet" href="assets/ui-v3.css?v=5" />
+<style>
+  .field{border:1px solid var(--border);border-radius:14px;padding:14px;width:100%;box-sizing:border-box;font:inherit;background:var(--surface);color:var(--text)}
+  .lead{font-size:13px;color:var(--text-muted);line-height:1.6}
+  .ok{background:#ecfdf5;border:1px solid #a7f3d0;border-radius:14px;padding:14px;font-size:14px;line-height:1.6}
+</style>
+</head>
+<body>
+  <div class="topbar"><div class="title">極速登記</div></div>
+  <div class="wrap">
+    <div id="intro">
+      <div class="center" style="margin:14px 0 10px">
+        <div style="font-size:38px">🧭</div>
+        <h1 style="margin:8px 0 4px;font-size:22px">兩個步驟，即刻報名</h1>
+        <p class="lead">只要姓名同電話，就可以成為會員、即刻預約課堂。<br/>其他資料之後再補都得，唔影響報名。</p>
+      </div>
+      <div class="card"><div class="body" style="display:flex;flex-direction:column;gap:12px">
+        <div>
+          <div class="lead" style="margin-bottom:6px">姓名 *</div>
+          <input class="field" id="name" placeholder="你的姓名" autocomplete="name" />
+        </div>
+        <div>
+          <div class="lead" style="margin-bottom:6px">電話 *（8 位香港號碼）</div>
+          <input class="field" id="phone" type="tel" inputmode="tel" placeholder="例如 9123 4567" autocomplete="tel" />
+        </div>
+        <button class="btn btn-primary btn-block" id="go">立即登記</button>
+        <div id="msg" class="lead center"></div>
+        <div class="lead center" style="font-size:12px">登記即表示同意<a href="terms.html" style="color:var(--brand-600)">服務條款</a>及<a href="privacy.html" style="color:var(--brand-600)">私隱政策</a>；健康聲明可以上堂前補。</div>
+      </div></div>
+    </div>
+
+    <div id="done" style="display:none">
+      <div class="card"><div class="body">
+        <div class="ok" id="doneMsg"></div>
+        <div style="display:flex;flex-direction:column;gap:10px;margin-top:14px">
+          <a class="btn btn-primary btn-block" href="explore.html">🔍 睇下有咩班</a>
+          <a class="btn btn-secondary btn-block" href="profile.html">➕ 補填資料（可選）</a>
+          <a class="btn btn-secondary btn-block" href="my.html">🎫 我的帳戶</a>
+        </div>
+      </div></div>
+    </div>
+    <div class="spacer"></div>
+  </div>
+  <script src="assets/api.js?v=3"></script>
+  <script>
+    const SRC = new URLSearchParams(location.search).get("src") || "qr";
+    const $ = (x) => document.getElementById(x);
+
+    async function submit() {
+      const name = $("name").value.trim();
+      const phone = $("phone").value.trim();
+      const msg = $("msg");
+      const digits = phone.replace(/\D/g, "").replace(/^852/, "").replace(/^0/, "");
+      if (!name) { msg.textContent = "請填寫姓名"; return; }
+      if (!digits) { msg.textContent = "請填寫電話號碼"; return; }
+      if (digits.length !== 8) { msg.textContent = "電話號碼格式不正確（8 位）"; return; }
+
+      const btn = $("go");
+      btn.disabled = true; btn.textContent = "登記中…";
+      const r = await api.post("/auth/quick-join", { name, phone: digits, src: SRC });
+      btn.disabled = false; btn.textContent = "立即登記";
+
+      if (r.ok && r.data) {
+        if (r.data.token) api.setToken(r.data.token);
+        if (r.data.user) api.setUser(r.data.user);
+        $("intro").style.display = "none";
+        $("done").style.display = "block";
+        $("doneMsg").innerHTML = `✅ 登記成功，${name}！<br/>你已經自動登入，可以即刻揀班預約。`;
+        window.scrollTo(0, 0);
+        return;
+      }
+      if (r.data && r.data.code === "PHONE_EXISTS") {
+        msg.innerHTML = `呢個電話已經登記咗。<br/><a href="login.html" style="color:var(--brand-600);font-weight:700">去登入 ›</a>`;
+        return;
+      }
+      msg.textContent = (r.data && r.data.error) || "登記失敗，請重試";
+    }
+    $("go").onclick = submit;
+    $("phone").addEventListener("keydown", (e) => { if (e.key === "Enter") submit(); });
+  </script>
+</body>
+</html>

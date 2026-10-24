@@ -73,6 +73,7 @@
       ["ai", "🤖 AI 開班", "content", "content.class.write"],
       ["promo", "優惠碼", "content", "content.marketing.write"],
       ["marketing", "推廣", "content", "content.marketing.write"],
+      ["promoqr", "📣 推廣 QR", "content", "content.marketing.write"],
       ["nps", "評價", "content", "content.marketing.write"],
       ["partners", "商戶", "content", "ops.partner.view"],
       ["corp", "企業", "content", "ops.partner.view"],
@@ -157,6 +158,7 @@
         if (cur === "analytics") return analytics();
         if (cur === "nps") return npsTab();
         if (cur === "marketing") return marketingTab();
+        if (cur === "promoqr") return promoQrTab();
         if (cur === "promo") return promoTab();
         if (cur === "audit") return listGeneric("/admin/audit-log?limit=100", "entries", auditRow, "審計記錄");
         if (cur === "staff") return staffTab();
@@ -410,6 +412,43 @@
     // 🗄️ 資料庫（唯讀）：表清單 + 內容瀏覽 + 匯出 CSV（敏感欄已遮蔽）
     // 👥 學生資料（欄位整理好 + CSV 匯出）
     // 🧪 系統自檢：一頁睇齊上架前狀態
+    // 📣 推廣 QR：產生「掃一掃即登記」QR Code
+    async function promoQrTab() {
+      panel().innerHTML = `
+        <div class="card" style="margin-bottom:12px"><div class="body">
+          <div style="font-size:15px;font-weight:800;margin-bottom:4px">📣 推廣 QR Code</div>
+          <div class="kv" style="margin-bottom:10px">學員掃 QR → 只需填<b>姓名＋電話</b> → 即成為會員並自動登入，可以即刻報名。其他資料之後補。</div>
+          <input class="ef" id="qrCampaign" placeholder="推廣代號（例如 1027-tsingyi、ig-oct）" value="qr" />
+          <button class="btn btn-primary btn-block" id="qrMake" type="button" style="margin-top:8px">產生 QR Code</button>
+        </div></div>
+        <div id="qrOut"></div>`;
+      $("qrMake").onclick = async () => {
+        const campaign = ($("qrCampaign").value || "qr").trim();
+        $("qrOut").innerHTML = `<div class="card"><div class="body muted center">產生中…</div></div>`;
+        const r = await api.get("/admin/promo-qr?campaign=" + encodeURIComponent(campaign));
+        if (!r.ok) {
+          $("qrOut").innerHTML = `<div class="card"><div class="body muted">失敗：${esc2((r.data && r.data.error) || "")}</div></div>`;
+          return;
+        }
+        const d = r.data || {};
+        $("qrOut").innerHTML = `
+          <div class="card"><div class="body center">
+            <img src="${d.qr}" alt="QR" style="width:min(260px,80vw);height:auto;border-radius:14px" />
+            <div class="kv" style="margin-top:8px;word-break:break-all">${esc2(d.url)}</div>
+            <div style="display:flex;gap:8px;justify-content:center;margin-top:10px;flex-wrap:wrap">
+              <a class="btn btn-secondary" download="zenpass-qr-${esc2(d.campaign)}.png" href="${d.qr}">⬇️ 下載 QR</a>
+              <button class="btn btn-secondary" id="qrCopy" type="button">🔗 複製連結</button>
+            </div>
+            <div class="kv" style="margin-top:10px;text-align:left">貼喺傳單／易拉架／IG story 都得；後台「學生資料」可以睇到邊個來源（lead_source = qr:代號）。</div>
+          </div></div>`;
+        $("qrCopy").onclick = () => {
+          navigator.clipboard && navigator.clipboard.writeText(d.url);
+          alert("已複製連結");
+        };
+      };
+      $("qrMake").click();
+    }
+
     async function selfCheckTab() {
       panel().innerHTML = `<div class="card"><div class="body muted center">檢查中…</div></div>`;
       const r = await api.get("/admin/self-check");

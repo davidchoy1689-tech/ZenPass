@@ -1182,6 +1182,26 @@ function writeAudit(req, actionType, entityId, oldValues, newValues, description
 // ===== 🚀 上線開關（2026-10-24）=====
 // ===== 👥 學生資料表（2026-10-24）— 只列學生，欄位已整理，可匯出 CSV =====
 // ===== 🧪 系統自檢（2026-10-24）— 一頁睇齊上架前健康狀況 =====
+// ===== 📣 推廣 QR Code（2026-10-24）=====
+// 掃 QR → /join.html?src=<campaign> → 姓名＋電話即完成登記（自動登入）
+router.get(
+  "/promo-qr",
+  authenticateToken,
+  requirePermission("content.marketing.write"),
+  async (req, res) => {
+    try {
+      const QRCode = require("qrcode");
+      const campaign = String(req.query.campaign || "qr").slice(0, 40).replace(/[^\w-]/g, "-");
+      const base = process.env.PUBLIC_BASE_URL || "https://zenpass.hk";
+      const url = `${base}/join.html?src=${encodeURIComponent(campaign)}`;
+      const dataUrl = await QRCode.toDataURL(url, { width: 720, margin: 2 });
+      res.json({ success: true, url, campaign, qr: dataUrl });
+    } catch (err) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  },
+);
+
 router.get(
   "/self-check",
   authenticateToken,
