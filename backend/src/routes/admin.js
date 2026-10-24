@@ -1181,6 +1181,113 @@ function writeAudit(req, actionType, entityId, oldValues, newValues, description
 // ===== GET /api/admin/user-lookup?q= — 用 email／名／電話搵用戶（預覽身份用）=====
 // ===== 🚀 上線開關（2026-10-24）=====
 // ===== 👥 學生資料表（2026-10-24）— 只列學生，欄位已整理，可匯出 CSV =====
+// ===== 🧪 系統自檢（2026-10-24）— 一頁睇齊上架前健康狀況 =====
+router.get(
+  "/self-check",
+  authenticateToken,
+  requirePermission("system.audit.view"),
+  (req, res) => {
+    const checks = [];
+    const add = (key, label, ok, detail) => checks.push({ key, label, ok: !!ok, detail: String(detail ?? "") });
+    try {
+      const db = getDb();
+
+      // 1) DB
+      const tables = db
+        .prepare("SELECT COUNT(*) c FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")
+        .get().c;
+      add("db", "資料庫連線", tables > 20, `${tables} 張表`);
+
+      // 2) 金錢防刪 trigger
+      const trig = db
+        .prepare("SELECT COUNT(*) c FROM sqlite_master WHERE type='trigger' AND name LIKE 'protect_%'")
+        .get().c;
+      add("triggers", "金錢紀錄防刪保護", trig >= 10, `${trig} 個 trigger`);
+
+      // 3) 對帳（wallet vs pending）
+      const bad = db
+        .prepare(
+          `SELECT COUNT(*) c FROM users
+           WHERE ABS(COALESCE(wallet_balance,0) - COALESCE(pending_payout,0)) > 0.009`,
+        )
+        .get().c;
+      add("reconcile", "錢包對帳", bad === 0, bad === 0 ? "0 個不一致" : `${bad} 個帳戶不一致`);
+
+      // 4) 待處理付款
+      const pend = db
+        .prepare("SELECT COUNT(*) c FROM credit_topup_orders WHERE status='pending'")
+        .get().c;
+      const memPend = (() => {
+        try {
+          return db.prepare("SELECT COUNT(*) c FROM membership_orders WHERE status='pending'").get().c;
+        } catch (e) {
+          return 0;
+        }
+      })();
+      add("pending", "待確認付款／會籍", pend + memPend === 0, `${pend} 增值、${memPend} 會籍`);
+
+      // 5) 註冊開關
+      try {
+        const { getLaunchSettings } = require("../services/launch-mode");
+        const s = getLaunchSettings();
+        add(
+          "launch",
+          "註冊模式",
+          true,
+          s.registration_open ? "🟢 全面開放" : `🔒 暫停（白名單／邀請碼 ${s.invite_code}）`,
+        );
+      } catch (e) {
+        add("launch", "註冊模式", false, e.message);
+      }
+
+      // 6) SMTP 電郵
+      const smtp = process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS;
+      add("smtp", "電郵發送（SMTP）", !!smtp, smtp ? "已設定" : "未設定");
+
+      // 7) 課程／時段
+      const activeClasses = db.prepare("SELECT COUNT(*) c FROM classes WHERE status='active'").get().c;
+      const upcoming = db
+        .prepare(
+          `SELECT COUNT(*) c FROM class_schedules cs JOIN classes c2 ON c2.id=cs.class_id
+           WHERE c2.status='active' AND cs.start_time >= datetime('now')`,
+        )
+        .get().c;
+      add("classes", "可報名課程", activeClasses > 0 && upcoming > 0, `${activeClasses} 個課程／${upcoming} 個未來時段`);
+
+      // 8) 審計紀錄
+      const audit24 = db
+        .prepare("SELECT COUNT(*) c FROM audit_log WHERE created_at >= datetime('now','-1 day')")
+        .get().c;
+      add("audit", "最近 24 小時審計", audit24 >= 0, `${audit24} 筆`);
+
+      // 9) 備份（本機 archive 資料夾）
+      let backupDetail = "未見到備份檔";
+      let backupOk = false;
+      try {
+        const fs = require("fs");
+        const dir = require("path").join(__dirname, "..", "..", "data", "archive");
+        if (fs.existsSync(dir)) {
+          const files = fs.readdirSync(dir).filter((f) => f.endsWith(".db")).sort();
+          if (files.length) {
+            const st = fs.statSync(require("path").join(dir, files[files.length - 1]));
+            const hours = (Date.now() - st.mtimeMs) / 3600000;
+            backupOk = hours < 36;
+            backupDetail = `${files[files.length - 1]}（${hours.toFixed(1)} 小時前）`;
+          }
+        }
+      } catch (e) {
+        backupDetail = e.message;
+      }
+      add("backup", "本地備份", backupOk, backupDetail);
+
+      const failed = checks.filter((c) => !c.ok).length;
+      res.json({ success: true, ready: failed === 0, failed, checks });
+    } catch (err) {
+      res.status(500).json({ success: false, error: err.message, checks });
+    }
+  },
+);
+
 function studentWhere(q) {
   const base = `u.role = 'user'
     AND u.email NOT LIKE '%@guest.zenpass.local'

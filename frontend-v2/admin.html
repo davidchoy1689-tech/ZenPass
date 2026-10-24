@@ -81,6 +81,7 @@
       ["coach", "教練申請", "people", "ops.coach.view"],
       ["migrate", "遷移", "system", "system.migrate"],
       ["launch", "🚀 上線開關", "system", "system.settings.write"],
+      ["selfcheck", "🧪 系統自檢", "system", "system.audit.view"],
       ["db", "🗄️ 資料庫", "system", "system.db.view"],
       ["staff", "🔐 管理員帳號", "system", "users.role.write"],
       ["audit", "審計", "system", "system.audit.view"],
@@ -162,6 +163,7 @@
         if (cur === "students") return studentsTab();
         if (cur === "launch") return launchTab();
         if (cur === "db") return dbTab();
+        if (cur === "selfcheck") return selfCheckTab();
       } catch (e) { panel().innerHTML = `<div class="card"><div class="body muted">載入失敗：${esc2(e.message)}</div></div>`; }
     }
 
@@ -407,6 +409,36 @@
     // 🚀 上線開關：暫停公開註冊 ↔ 全面開放
     // 🗄️ 資料庫（唯讀）：表清單 + 內容瀏覽 + 匯出 CSV（敏感欄已遮蔽）
     // 👥 學生資料（欄位整理好 + CSV 匯出）
+    // 🧪 系統自檢：一頁睇齊上架前狀態
+    async function selfCheckTab() {
+      panel().innerHTML = `<div class="card"><div class="body muted center">檢查中…</div></div>`;
+      const r = await api.get("/admin/self-check");
+      if (r.status === 401 || r.status === 403) return needAdmin();
+      if (!r.ok) {
+        panel().innerHTML = `<div class="card"><div class="body muted">檢查失敗：${esc2((r.data && r.data.error) || "")}</div></div>`;
+        return;
+      }
+      const d = r.data || {};
+      const checks = d.checks || [];
+      panel().innerHTML = `
+        <div class="card" style="margin-bottom:12px"><div class="body">
+          <div style="font-size:15px;font-weight:800">${d.ready ? "✅ 系統狀態正常" : "⚠️ 有 " + d.failed + " 項需要注意"}</div>
+          <div class="kv" style="margin-top:4px">最後檢查：${new Date().toLocaleString("zh-HK")}</div>
+          <button class="btn btn-secondary btn-block" id="scRun" type="button" style="margin-top:10px">🔄 再檢查</button>
+        </div></div>
+        <div class="card"><div class="body" style="padding:0">
+          ${checks
+            .map(
+              (c) => `<div class="row">
+                <span style="min-width:0"><b>${c.ok ? "✅" : "❌"} ${esc2(c.label)}</b>
+                  <div class="kv">${esc2(c.detail)}</div></span>
+              </div>`,
+            )
+            .join("")}
+        </div></div>`;
+      $("scRun").onclick = () => selfCheckTab();
+    }
+
     async function studentsTab() {
       panel().innerHTML = `
         <div class="card" style="margin-bottom:12px"><div class="body">
