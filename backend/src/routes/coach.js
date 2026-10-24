@@ -742,7 +742,9 @@ router.get("/class-students", authenticateToken, (req, res) => {
       .prepare(
         `
       SELECT b.id, b.user_id, u.name, u.email, u.phone, b.status as booking_status,
-             b.payment_status, b.created_at as booking_date
+             b.payment_status, b.created_at as booking_date, b.checked_in_at,
+             u.emergency_name, u.emergency_phone,
+             COALESCE(u.health_declared,0) AS health_declared
       FROM bookings b
       JOIN users u ON b.user_id = u.id
       WHERE b.schedule_id = ? AND b.class_id = ?

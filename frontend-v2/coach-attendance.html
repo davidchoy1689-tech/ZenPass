@@ -107,6 +107,8 @@
         <div class="st" data-bid="${esc(s.id)}">
           <div><b>${esc(s.name || "學生")}</b>
             <div class="muted" style="font-size:12px">${esc(s.email || "")}${s.phone ? " · " + esc(s.phone) : ""}</div>
+            ${s.emergency_name || s.emergency_phone ? `<div class="muted" style="font-size:12px">🆘 緊急：${esc(s.emergency_name || "")}${s.emergency_phone ? " " + esc(s.emergency_phone) : ""}</div>` : `<div class="muted" style="font-size:12px">🆘 未填緊急聯絡人</div>`}
+            <div class="muted" style="font-size:12px">${Number(s.health_declared) === 1 ? "✅ 已簽健康聲明" : "⚠️ 未簽健康聲明"}</div>
             <div style="margin-top:4px">${statusBadge(s.booking_status)}</div></div>
           <div>${s.booking_status === "confirmed" ? `<button class="btn btn-primary" style="min-height:40px;padding:0 14px" data-attend>簽到</button>` : (s.booking_status === "attended" ? "✅" : "")}</div>
         </div>`).join("") : `<div class="body muted">此時段暫無學生。</div>`;

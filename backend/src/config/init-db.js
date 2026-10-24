@@ -2259,6 +2259,9 @@ CREATE TABLE IF NOT EXISTS users (
   // ===== 商戶分潤結算標記（auto-settlement 用）=====
   try { db.exec("ALTER TABLE bookings ADD COLUMN partner_settled_at TEXT"); } catch (e) { /* exists */ }
   try { db.exec("ALTER TABLE bookings ADD COLUMN partner_payout_id TEXT"); } catch (e) { /* exists */ }
+  // 2026-10-24：舊 DB 可能冇簽到欄（教練學生名單會 SELECT checked_in_at）
+  try { db.exec("ALTER TABLE bookings ADD COLUMN checked_in_at TEXT"); } catch (e) { /* exists */ }
+  try { db.exec("ALTER TABLE bookings ADD COLUMN checkin_method TEXT"); } catch (e) { /* exists */ }
   // 三人同行（2026-10-20）：放喺 bookings 表建立之後，確保舊 DB 都加到
   try { db.exec("ALTER TABLE bookings ADD COLUMN group_size INTEGER DEFAULT 1"); } catch (e) { /* exists */ }
   try { db.exec("ALTER TABLE bookings ADD COLUMN group_invite_code TEXT"); } catch (e) { /* exists */ }
