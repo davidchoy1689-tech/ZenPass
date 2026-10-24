@@ -443,6 +443,7 @@
                   ${Number(s.email_verified) === 1 ? '<span class="pill ok">已驗證</span>' : '<span class="pill warn">未驗證</span>'}
                   <div class="kv">${esc2(s.email)}${s.phone ? " · " + esc2(s.phone) : ""}</div>
                   <div class="kv">註冊 ${esc2(String(s.registered_at || "").slice(0, 10))} · 預約 ${s.classes_booked} · 出席 ${s.classes_attended} · 消費 ${money(s.spend_hkd)}</div>
+                  <div class="kv">${s.birth_year ? "出生 " + esc2(s.birth_year) + " · " : ""}${s.gender ? ({"female":"女","male":"男","other":"其他","na":"不願透露"}[s.gender] || esc2(s.gender)) + " · " : ""}${s.emergency_name ? "緊急聯絡 " + esc2(s.emergency_name) + (s.emergency_phone ? "（" + esc2(s.emergency_phone) + "）" : "") : "未填緊急聯絡人"}${Number(s.health_declared) === 1 ? " · ✅ 已簽健康聲明" : ""}</div>
                 </span>
                 <span style="text-align:right;white-space:nowrap">
                   <b>${Number(s.credits) || 0} cr</b>
