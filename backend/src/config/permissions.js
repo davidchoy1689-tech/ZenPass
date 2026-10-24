@@ -47,6 +47,7 @@ const PERMISSIONS = {
 
   // 系統
   "system.audit.view": "查看審計紀錄",
+  "system.db.view": "瀏覽資料庫（唯讀）",
   "system.migrate": "執行資料遷移",
   "system.settings.write": "系統設定",
 };

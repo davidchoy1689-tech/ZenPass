@@ -80,6 +80,7 @@
       ["coach", "教練申請", "people", "ops.coach.view"],
       ["migrate", "遷移", "system", "system.migrate"],
       ["launch", "🚀 上線開關", "system", "system.settings.write"],
+      ["db", "🗄️ 資料庫", "system", "system.db.view"],
       ["staff", "🔐 管理員帳號", "system", "users.role.write"],
       ["audit", "審計", "system", "system.audit.view"],
     ];
@@ -158,6 +159,7 @@
         if (cur === "audit") return listGeneric("/admin/audit-log?limit=100", "entries", auditRow, "審計記錄");
         if (cur === "staff") return staffTab();
         if (cur === "launch") return launchTab();
+        if (cur === "db") return dbTab();
       } catch (e) { panel().innerHTML = `<div class="card"><div class="body muted">載入失敗：${esc2(e.message)}</div></div>`; }
     }
 
@@ -401,6 +403,113 @@
     let _usersCache = [], _mergeHtml = "";
     // 🔐 管理員帳號管理（2026-10-24）：建立／改角色／重設密碼／停用／刪除／預覽身份
     // 🚀 上線開關：暫停公開註冊 ↔ 全面開放
+    // 🗄️ 資料庫（唯讀）：表清單 + 內容瀏覽 + 匯出 CSV（敏感欄已遮蔽）
+    let _dbState = { table: null, offset: 0, limit: 50, rows: [], columns: [], total: 0 };
+
+    async function dbTab() {
+      const r = await api.get("/admin/db");
+      if (r.status === 401 || r.status === 403) return needAdmin();
+      if (!r.ok) {
+        panel().innerHTML = `<div class="card"><div class="body muted">載入失敗：${esc2((r.data && r.data.error) || "")}</div></div>`;
+        return;
+      }
+      const tables = (r.data && r.data.tables) || [];
+      panel().innerHTML = `
+        <div class="card" style="margin-bottom:12px"><div class="body">
+          <div style="font-size:15px;font-weight:800;margin-bottom:4px">🗄️ 資料庫（唯讀）</div>
+          <div class="kv" style="margin-bottom:8px">共 ${tables.length} 張表。只可以睇，唔可以改／刪（金錢紀錄一律經既有流程同 audit）。密碼、Token、銀行帳號等敏感欄會遮蔽。</div>
+          <input class="ef" id="dbSearch" placeholder="🔍 搵表名…" />
+          <div class="kv" id="dbTableInfo" style="margin-top:8px"></div>
+        </div></div>
+        <div id="dbTableList" class="card" style="margin-bottom:12px"><div class="body" style="padding:0"></div></div>
+        <div id="dbRows"></div>`;
+
+      const renderList = (q) => {
+        const arr = tables.filter((t) => !q || t.table.toLowerCase().includes(q.toLowerCase()));
+        $("dbTableInfo").textContent = `${arr.length} 張表`;
+        $("dbTableList").querySelector(".body").innerHTML = arr
+          .map(
+            (t) => `<div class="row"><span>${esc2(t.table)}</span>
+              <span style="display:flex;gap:8px;align-items:center">
+                <span class="pill">${t.count}</span>
+                <button class="btn btn-secondary" data-tbl="${esc2(t.table)}" type="button" style="padding:6px 10px;font-size:12px">睇</button>
+              </span></div>`,
+          )
+          .join("");
+        $("dbTableList").querySelectorAll("[data-tbl]").forEach((b) => (b.onclick = () => loadTable(b.dataset.tbl, 0)));
+      };
+      $("dbSearch").oninput = () => renderList($("dbSearch").value.trim());
+      renderList("");
+    }
+
+    async function loadTable(table, offset) {
+      const st = _dbState;
+      st.table = table;
+      st.offset = offset;
+      $("dbRows").innerHTML = `<div class="card"><div class="body muted center">載入中…</div></div>`;
+      const r = await api.get(`/admin/db/${encodeURIComponent(table)}?limit=${st.limit}&offset=${offset}`);
+      if (!r.ok) {
+        $("dbRows").innerHTML = `<div class="card"><div class="body muted">失敗：${esc2((r.data && r.data.error) || "")}</div></div>`;
+        return;
+      }
+      const d = r.data || {};
+      st.rows = d.rows || [];
+      st.columns = (d.columns || []).map((c) => c.name);
+      st.total = d.total || 0;
+      const from = st.total ? offset + 1 : 0;
+      const to = Math.min(offset + st.limit, st.total);
+      const th = st.columns.map((c) => `<th style="white-space:nowrap;text-align:left;padding:6px 10px;border-bottom:1px solid var(--border);font-size:11px;color:var(--text-muted)">${esc2(c)}</th>`).join("");
+      const tr = st.rows
+        .map(
+          (row) =>
+            `<tr>${st.columns
+              .map((c) => {
+                let v = row[c];
+                if (v == null) v = "";
+                v = String(v);
+                if (v.length > 60) v = v.slice(0, 60) + "…";
+                return `<td style="padding:6px 10px;border-bottom:1px solid var(--border);font-size:12px;white-space:nowrap">${esc2(v)}</td>`;
+              })
+              .join("")}</tr>`,
+        )
+        .join("");
+
+      $("dbRows").innerHTML = `
+        <div class="card"><div class="body" style="padding:0">
+          <div class="row"><b>${esc2(table)}</b><span class="kv">${from}–${to} / ${st.total}</span></div>
+          <div style="overflow:auto;max-height:60vh">
+            <table style="border-collapse:collapse;min-width:100%">
+              <thead><tr>${th}</tr></thead><tbody>${tr || `<tr><td class="kv" style="padding:12px">（冇資料）</td></tr>`}</tbody>
+            </table>
+          </div>
+          <div class="row" style="gap:8px;flex-wrap:wrap">
+            <button class="btn btn-secondary" id="dbPrev" type="button" ${offset <= 0 ? "disabled" : ""}>‹ 上一頁</button>
+            <button class="btn btn-secondary" id="dbNext" type="button" ${to >= st.total ? "disabled" : ""}>下一頁 ›</button>
+            <button class="btn btn-secondary" id="dbCsv" type="button">⬇️ 匯出 CSV</button>
+          </div>
+        </div></div>`;
+      $("dbPrev").onclick = () => loadTable(table, Math.max(0, offset - st.limit));
+      $("dbNext").onclick = () => loadTable(table, offset + st.limit);
+      $("dbCsv").onclick = () => {
+        const head = st.columns.join(",");
+        const body = st.rows
+          .map((row) =>
+            st.columns
+              .map((c) => {
+                const v = row[c] == null ? "" : String(row[c]);
+                return '"' + v.replace(/"/g, '""') + '"';
+              })
+              .join(","),
+          )
+          .join("\n");
+        const blob = new Blob(["\uFEFF" + head + "\n" + body], { type: "text/csv;charset=utf-8" });
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = table + "-" + new Date().toISOString().slice(0, 10) + ".csv";
+        a.click();
+      };
+    }
+
     async function launchTab() {
       const r = await api.get("/admin/launch-mode");
       if (r.status === 401 || r.status === 403) return needAdmin();

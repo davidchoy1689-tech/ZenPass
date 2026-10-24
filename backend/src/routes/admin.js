@@ -327,7 +327,7 @@ router.get("/db/:table", authenticateToken, requireAdmin, async (req, res) => {
 
 // 🔧 2026-10-24：原本查 Supabase（該 project 根本冇呢啲表 → 一直 500），
 // 而且真正嘅生產數據喺本地 SQLite。改為列出 SQLite 表 + 筆數（read-only，唔會查大表）。
-router.get("/db", authenticateToken, requireAdmin, (req, res) => {
+router.get("/db", authenticateToken, requirePermission("system.db.view"), (req, res) => {
   try {
     const db = require("../services/database").getDb();
     const tables = db
@@ -352,6 +352,57 @@ router.get("/db", authenticateToken, requireAdmin, (req, res) => {
     res.status(500).json({ success: false, error: err.message });
   }
 });
+
+// ===== GET /api/admin/db/:table — 唯讀瀏覽單一表（分頁 + 敏感欄遮蔽）=====
+router.get(
+  "/db/:table",
+  authenticateToken,
+  requirePermission("system.db.view"),
+  (req, res) => {
+    try {
+      const db = require("../services/database").getDb();
+      const table = String(req.params.table || "");
+
+      const exists = db
+        .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name=? AND name NOT LIKE 'sqlite_%'")
+        .get(table);
+      if (!exists) return res.status(404).json({ success: false, error: "表不存在" });
+
+      const limit = Math.min(Math.max(parseInt(req.query.limit) || 50, 1), 500);
+      const offset = Math.max(parseInt(req.query.offset) || 0, 0);
+
+      const cols = db.prepare(`PRAGMA table_info("${table}")`).all();
+      const total = db.prepare(`SELECT COUNT(*) AS c FROM "${table}"`).get().c;
+
+      const rows = db
+        .prepare(`SELECT * FROM "${table}" LIMIT ? OFFSET ?`)
+        .all(limit, offset);
+
+      // 敏感欄遮蔽（唔會經 API 泄漏）
+      const SENSITIVE = /^(password_hash|verification_token|reset_token|verification_code|stripe_|bank_account|bank_code|api_key|secret)/i;
+      const masked = rows.map((r) => {
+        const o = {};
+        for (const [k, v] of Object.entries(r)) {
+          if (SENSITIVE.test(k) && v != null && String(v) !== "") o[k] = "••••";
+          else o[k] = v;
+        }
+        return o;
+      });
+
+      res.json({
+        success: true,
+        table,
+        total,
+        limit,
+        offset,
+        columns: cols.map((c) => ({ name: c.name, type: c.type, notnull: c.notnull, pk: c.pk })),
+        rows: masked,
+      });
+    } catch (err) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  },
+);
 
 // ===== POST /api/admin/process-payouts =====
 router.post("/process-payouts", authenticateToken, requirePermission("finance.payout.process"), (req, res) => {

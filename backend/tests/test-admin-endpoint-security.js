@@ -66,7 +66,12 @@ const ok = (c, m) => { if (c) console.log("  ✅ " + m); else { console.log("  �
   const adminSrc = fs.readFileSync(path.join(root, "admin.js"), "utf8");
   const deploySrc = fs.readFileSync(path.join(root, "deploy.js"), "utf8");
   const auditSrc = fs.readFileSync(path.join(root, "audit.js"), "utf8");
-  ok(/router\.get\("\/db", authenticateToken, requireAdmin/.test(adminSrc) && /router\.get\("\/db\/:table", authenticateToken, requireAdmin/.test(adminSrc), "DB dump 兩個 route 都有 admin 權限");
+  // 2026-10-24：DB 瀏覽改用 system.db.view（比 requireAdmin 更嚴）
+  ok(
+    /router\.get\("\/db", authenticateToken, requirePermission\("system\.db\.view"\)/.test(adminSrc) &&
+      /"\/db\/:table",\s*\n\s*authenticateToken,\s*\n\s*requirePermission\("system\.db\.view"\)/.test(adminSrc),
+    "DB dump 兩個 route 都要 system.db.view",
+  );
   ok(!/router\.post\("\/write-file", authenticateToken, \(/.test(deploySrc) && /router\.post\("\/write-file", authenticateToken, requireAdmin/.test(deploySrc), "write-file 有 requireAdmin");
   ok(/router\.post\("\/deploy", authenticateToken, requireAdmin/.test(deploySrc), "deploy 有 requireAdmin");
   ok(/startsWith\(FRONTEND_DIR \+ path\.sep\)/.test(deploySrc), "write-file 路徑用 path.sep 邊界檢查");
