@@ -205,6 +205,7 @@
 
   <div class="wrap" style="padding-bottom:110px">
     <section id="step1">
+      <div id="profileWarn" style="display:none;margin-bottom:10px"></div>
       <p class="muted" style="font-size:13px">預設已選該月全部堂數；如有人缺席，可取消勾選減少堂數。</p>
       <a class="card" id="guestReturnBar" href="#" style="display:none;text-decoration:none">
         <div class="body" style="display:flex;justify-content:space-between;align-items:center;gap:10px">
@@ -436,6 +437,28 @@
       let loggedIn = api.isLoggedIn();
       if (!loggedIn) { try { const me = await api.get("/users/me"); loggedIn = !!(me && me.ok); } catch (e) {} }
       isGuest = !loggedIn;
+      // 📱 已登入但資料未齊（電話／健康聲明）→ 軟提示，唔阻止預約
+      if (!isGuest) {
+        try {
+          const me = await api.get("/users/me");
+          const u = (me.data && (me.data.user || me.data)) || {};
+          const miss = [];
+          if (!u.phone) miss.push("電話號碼");
+          if (Number(u.health_declared) !== 1) miss.push("健康聲明");
+          if (miss.length) {
+            const el = $("profileWarn");
+            if (el) {
+              el.style.display = "block";
+              el.innerHTML = `<a class="card" href="profile.html" style="display:block;text-decoration:none;border:1.5px solid #f59e0b">
+                <div class="body" style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+                  <span style="font-size:13px"><b>📋 仲未填：${miss.join("、")}</b><br/>
+                  <span class="muted" style="font-size:12px">教練需要電話聯絡你；健康聲明係上堂前必須確認</span></span>
+                  <span style="color:#b45309;font-weight:800;font-size:13px">填寫 ›</span>
+                </div></a>`;
+            }
+          }
+        } catch (e) {}
+      }
       if (!classId) { $("groups").innerHTML = `<div class="card"><div class="body">缺少課程。</div></div>`; return; }
       const r = await api.get("/classes/" + encodeURIComponent(classId));
       cls = r.data && r.data.class;

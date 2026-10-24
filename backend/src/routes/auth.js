@@ -159,9 +159,10 @@ router.post("/register", (req, res) => {
       `
       INSERT INTO users (id, user_reference, email, password_hash, name, phone, auth_provider, email_verified,
                          verification_token, verification_token_expires, verification_code, verification_code_expires,
-                         birth_year, gender, emergency_name, emergency_phone, health_declared, health_declared_at)
+                         birth_year, gender, emergency_name, emergency_phone, health_declared, health_declared_at,
+                         terms_accepted_at)
       VALUES (?, ?, ?, ?, ?, ?, 'email', 0, ?, datetime('now', '+24 hours'), ?, datetime('now', '+10 minutes'),
-              ?, ?, ?, ?, ?, ?)
+              ?, ?, ?, ?, ?, ?, datetime('now'))
     `,
     ).run(
       id,

@@ -931,6 +931,7 @@ CREATE TABLE IF NOT EXISTS users (
     "ALTER TABLE users ADD COLUMN emergency_phone TEXT",
     "ALTER TABLE users ADD COLUMN health_declared INTEGER DEFAULT 0",
     "ALTER TABLE users ADD COLUMN health_declared_at TEXT",
+    "ALTER TABLE users ADD COLUMN terms_accepted_at TEXT",
   ]) {
     try {
       db.exec(sql);
