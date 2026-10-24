@@ -419,13 +419,18 @@
           <div style="font-size:15px;font-weight:800;margin-bottom:4px">📣 推廣 QR Code</div>
           <div class="kv" style="margin-bottom:10px">學員掃 QR → 只需填<b>姓名＋電話</b> → 即成為會員並自動登入，可以即刻報名。其他資料之後補。</div>
           <input class="ef" id="qrCampaign" placeholder="推廣代號（例如 1027-tsingyi、ig-oct）" value="qr" />
+          <input class="ef" id="qrNext" placeholder="完成後前往（可選，例如 detail.html?id=…）" style="margin-top:8px" />
           <button class="btn btn-primary btn-block" id="qrMake" type="button" style="margin-top:8px">產生 QR Code</button>
         </div></div>
-        <div id="qrOut"></div>`;
+        <div id="qrOut"></div>
+        <div id="qrStats"></div>`;
       $("qrMake").onclick = async () => {
         const campaign = ($("qrCampaign").value || "qr").trim();
         $("qrOut").innerHTML = `<div class="card"><div class="body muted center">產生中…</div></div>`;
-        const r = await api.get("/admin/promo-qr?campaign=" + encodeURIComponent(campaign));
+        const next = ($("qrNext").value || "").trim();
+        const r = await api.get(
+          "/admin/promo-qr?campaign=" + encodeURIComponent(campaign) + (next ? "&next=" + encodeURIComponent(next) : ""),
+        );
         if (!r.ok) {
           $("qrOut").innerHTML = `<div class="card"><div class="body muted">失敗：${esc2((r.data && r.data.error) || "")}</div></div>`;
           return;
@@ -447,6 +452,23 @@
         };
       };
       $("qrMake").click();
+      loadCampaignStats();
+    }
+
+    async function loadCampaignStats() {
+      const r = await api.get("/admin/campaign-stats");
+      if (!r.ok) return;
+      const arr = (r.data && r.data.sources) || [];
+      $("qrStats").innerHTML = `<div class="card" style="margin-top:12px"><div class="body" style="padding:0">
+        <div class="row"><b>📊 推廣來源成效</b><span class="kv">${arr.length} 個來源</span></div>
+        ${arr
+          .map(
+            (s) => `<div class="row"><span style="min-width:0"><b>${esc2(s.source)}</b>
+              <div class="kv">會員 ${s.members} · 已驗證 ${s.verified} · 預約 ${s.bookings}</div></span>
+              <span style="text-align:right"><b>${money(s.revenue)}</b><div class="kv">收入</div></span></div>`,
+          )
+          .join("") || `<div class="body muted center">暫無資料</div>`}
+      </div></div>`;
     }
 
     async function selfCheckTab() {

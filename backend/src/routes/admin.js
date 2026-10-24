@@ -1192,10 +1192,56 @@ router.get(
     try {
       const QRCode = require("qrcode");
       const campaign = String(req.query.campaign || "qr").slice(0, 40).replace(/[^\w-]/g, "-");
+      // 可選：登記後直接去指定課程頁（只接受站內相對路徑）
+      const nextRaw = String(req.query.next || "").trim();
+      const next = /^[a-zA-Z0-9._?=&\/-]+$/.test(nextRaw) && !nextRaw.startsWith("//") ? nextRaw : "";
       const base = process.env.PUBLIC_BASE_URL || "https://zenpass.hk";
-      const url = `${base}/join.html?src=${encodeURIComponent(campaign)}`;
+      const url = `${base}/join.html?src=${encodeURIComponent(campaign)}${next ? "&next=" + encodeURIComponent(next) : ""}`;
       const dataUrl = await QRCode.toDataURL(url, { width: 720, margin: 2 });
-      res.json({ success: true, url, campaign, qr: dataUrl });
+      res.json({ success: true, url, campaign, next, qr: dataUrl });
+    } catch (err) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  },
+);
+
+// ===== 📊 推廣來源成效（2026-10-24）=====
+router.get(
+  "/campaign-stats",
+  authenticateToken,
+  requirePermission("content.marketing.write"),
+  (req, res) => {
+    try {
+      const db = getDb();
+      const groups = db
+        .prepare(
+          `SELECT COALESCE(NULLIF(lead_source,''),'(直接／其他)') AS source,
+                  COUNT(*) AS members,
+                  SUM(CASE WHEN COALESCE(email_verified,0)=1 THEN 1 ELSE 0 END) AS verified
+           FROM users
+           WHERE role='user' AND email NOT LIKE '%@guest.zenpass.local'
+           GROUP BY source
+           ORDER BY members DESC`,
+        )
+        .all();
+      const sources = groups.map((g) => {
+        const b = db
+          .prepare(
+            `SELECT COUNT(*) c,
+                    COALESCE(SUM(CASE WHEN b.payment_status='paid' AND b.status IN ('confirmed','attended') THEN b.amount ELSE 0 END),0) revenue
+             FROM bookings b JOIN users u ON u.id=b.user_id
+             WHERE COALESCE(NULLIF(u.lead_source,''),'(直接／其他)') = ?`,
+          )
+          .get(g.source);
+        return {
+          source: g.source,
+          members: g.members,
+          verified: g.verified,
+          bookings: b.c,
+          revenue: Math.round(Number(b.revenue) * 100) / 100,
+        };
+      });
+      res.json({ success: true, sources });
     } catch (err) {
       res.status(500).json({ success: false, error: err.message });
     }

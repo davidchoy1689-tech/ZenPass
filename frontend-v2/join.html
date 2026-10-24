@@ -41,7 +41,7 @@
       <div class="card"><div class="body">
         <div class="ok" id="doneMsg"></div>
         <div style="display:flex;flex-direction:column;gap:10px;margin-top:14px">
-          <a class="btn btn-primary btn-block" href="explore.html">🔍 睇下有咩班</a>
+          <a class="btn btn-primary btn-block" id="nextCta" href="explore.html">🔍 睇下有咩班</a>
           <a class="btn btn-secondary btn-block" href="profile.html">➕ 補填資料（可選）</a>
           <a class="btn btn-secondary btn-block" href="my.html">🎫 我的帳戶</a>
         </div>
@@ -52,6 +52,8 @@
   <script src="assets/api.js?v=3"></script>
   <script>
     const SRC = new URLSearchParams(location.search).get("src") || "qr";
+    const NEXT_RAW = new URLSearchParams(location.search).get("next") || "";
+    const NEXT = /^[a-zA-Z0-9._?=&\/-]+$/.test(NEXT_RAW) && !NEXT_RAW.startsWith("//") ? NEXT_RAW : "";
     const $ = (x) => document.getElementById(x);
 
     async function submit() {
@@ -74,6 +76,10 @@
         $("intro").style.display = "none";
         $("done").style.display = "block";
         $("doneMsg").innerHTML = `✅ 登記成功，${name}！<br/>你已經自動登入，可以即刻揀班預約。`;
+        if (NEXT) {
+          $("nextCta").href = NEXT;
+          $("nextCta").textContent = "👉 即刻報名呢班";
+        }
         window.scrollTo(0, 0);
         return;
       }
