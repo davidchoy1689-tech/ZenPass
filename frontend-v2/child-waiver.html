@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#ff6b35" />
+  <meta name="robots" content="noindex" />
+  <title>監護人同意書 · ZenPass 禪流</title>
+  <link rel="stylesheet" href="assets/v2.css?v=26" />
+  <link rel="stylesheet" href="assets/ui-v3.css?v=5" />
+  <style>
+    .fld2{width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:11px;padding:11px 12px;font:inherit;font-size:15px;background:var(--surface);color:var(--text);margin-bottom:10px}
+    .lbl2{font-size:12.5px;font-weight:700;color:var(--text-muted);display:block;margin:0 0 5px 2px}
+    .terms{background:var(--surface-2);border:1px solid var(--border);border-radius:12px;padding:12px;font-size:12.5px;line-height:1.75;color:var(--text);margin:6px 0 12px;max-height:190px;overflow:auto}
+    .terms b{display:block;margin-bottom:6px}
+    .consent{display:flex;gap:9px;align-items:flex-start;font-size:13px;line-height:1.6;margin:6px 0 14px}
+  </style>
+</head>
+<body>
+  <div class="topbar"><a class="back" href="my-bookings.html">‹</a><div class="title">監護人同意書</div></div>
+  <div class="wrap">
+    <div id="app">
+      <div class="card"><div class="body">
+        <b style="font-size:16px">🧒 未成年參加者同意書</b>
+        <div class="muted" style="font-size:12.5px;margin-top:6px;line-height:1.6">
+          ZenPass 禪流（香港康樂及體育有限公司）為 17 歲或以下參加者提供運動課程，須由法定監護人確認以下事項。
+        </div>
+
+        <div class="terms">
+          <b>條款摘要</b>
+          1. 本人為上述參加者之法定監護人，同意其參與 ZenPass 禪流舉辦之運動課堂及相關活動。<br>
+          2. 本人明白運動涉及固有風險（包括扭傷、跌倒等），並確認參加者健康狀況適合參與；如有長期病患／傷患／敏感，已另行通知教練。<br>
+          3. 本人同意在活動期間，如發生意外，平台職員及教練可採取合理急救措施並送院治理。<br>
+          4. 本人同意主辦方可就活動拍攝照片／影片作記錄及宣傳用途；如不同意，將以書面另行通知。<br>
+          5. 本人明白並同意 ZenPass 之取消及退款政策（≥72 小時全退、24–72 小時退 50%、<24 小時不退款）。<br>
+          6. 個人資料依《個人資料（私隱）條例》處理，僅用於報名、聯絡及安全紀錄。
+        </div>
+
+        <label class="lbl2">預約編號 *</label>
+        <input class="fld2" id="ref" placeholder="例如 ZP-0006" autocapitalize="characters" />
+        <label class="lbl2">參加者姓名 *</label>
+        <input class="fld2" id="minorName" placeholder="小朋友姓名" maxlength="40" />
+        <label class="lbl2">參加者年齡 *</label>
+        <input class="fld2" id="minorAge" type="number" min="1" max="17" placeholder="例如 8" inputmode="numeric" />
+        <label class="lbl2">監護人姓名 *</label>
+        <input class="fld2" id="guardianName" placeholder="家長／監護人姓名" maxlength="40" />
+        <label class="lbl2">監護人電話（WhatsApp）</label>
+        <input class="fld2" id="guardianPhone" placeholder="8 位數字" inputmode="numeric" maxlength="8" />
+        <label class="lbl2">與參加者關係</label>
+        <select class="fld2" id="relationship">
+          <option>家長 / 父母</option><option>祖父母</option><option>監護人（其他）</option><option>學校老師</option>
+        </select>
+
+        <label class="consent"><input type="checkbox" id="agree" style="width:18px;height:18px;margin-top:2px" />
+          <span>本人已閱讀並同意上述條款，並確認本人為參加者之法定監護人。</span></label>
+
+        <button class="btn btn-primary btn-block" id="submit">簽署並提交</button>
+        <div class="muted center" id="msg" style="margin-top:10px;font-size:12.5px"></div>
+      </div></div>
+      <div class="card" style="margin-top:10px"><div class="body muted" style="font-size:11.5px;line-height:1.6">
+        📄 提交後會記錄時間、IP 及裝置資訊作法律存證（區塊鏈稽核）。18 歲或以上參加者毋須此同意書。
+      </div></div>
+      <div class="spacer"></div>
+    </div>
+  </div>
+  <script src="assets/api.js?v=3"></script>
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const refParam = new URLSearchParams(location.search).get("ref");
+    if (refParam) $("ref").value = refParam;
+
+    $("submit").onclick = async () => {
+      const body = {
+        booking_reference: $("ref").value.trim().toUpperCase(),
+        minor_name: $("minorName").value.trim(),
+        minor_age: Number($("minorAge").value),
+        guardian_name: $("guardianName").value.trim(),
+        guardian_phone: $("guardianPhone").value.trim(),
+        relationship: $("relationship").value,
+        agreed: $("agree").checked,
+        signature_text: $("guardianName").value.trim(),
+      };
+      const msg = $("msg");
+      if (!body.booking_reference) { msg.textContent = "請填預約編號"; return; }
+      if (!body.minor_name) { msg.textContent = "請填參加者姓名"; return; }
+      if (!(body.minor_age >= 1 && body.minor_age <= 17)) { msg.textContent = "年齡需為 1–17 歲"; return; }
+      if (!body.guardian_name) { msg.textContent = "請填監護人姓名"; return; }
+      if (!body.agreed) { msg.textContent = "請勾選同意條款"; return; }
+      const btn = $("submit"); btn.disabled = true; btn.textContent = "提交中…";
+      const r = await api.post("/guardians/consent", body);
+      btn.disabled = false; btn.textContent = "簽署並提交";
+      if (r.ok) {
+        $("app").innerHTML = `<div class="card"><div class="body center" style="padding:26px 16px">
+          <div style="font-size:44px">✅</div>
+          <b style="display:block;font-size:17px;margin-top:8px">同意書已提交</b>
+          <div class="muted" style="font-size:13px;margin-top:8px;line-height:1.7">${(r.data && r.data.message) || ""}<br>紀錄已保存，教練可於點名時查閱。</div>
+          <div style="margin-top:14px"><a class="btn btn-primary" href="my-bookings.html">返回我的預約</a></div>
+        </div></div>`;
+      } else {
+        msg.textContent = (r.data && r.data.error) || "提交失敗，請稍後再試";
+      }
+    };
+  </script>
+  <script src="assets/footer.js?v=4" defer></script>
+</body>
+</html>

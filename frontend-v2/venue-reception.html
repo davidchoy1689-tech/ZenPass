@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#ff6b35" />
+  <meta name="robots" content="noindex" />
+  <title>場地前台執勤 · ZenPass 禪流</title>
+  <link rel="stylesheet" href="assets/v2.css?v=26" />
+  <link rel="stylesheet" href="assets/ui-v3.css?v=5" />
+  <style>
+    .hero{background:linear-gradient(135deg,#0f172a,#334155);color:#fff;border-radius:18px;padding:14px 16px;margin:6px 0 12px}
+    .hero h2{margin:0;font-size:17px}
+    .hero p{margin:4px 0 0;font-size:12px;opacity:.9}
+    .slot{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:12px 0;border-bottom:1px solid var(--border)}
+    .slot:last-child{border-bottom:0}
+    .slot .t{font-weight:800;font-size:14px}
+    .slot .m{font-size:12px;color:var(--text-muted);margin-top:2px}
+    .pill{font-size:11px;font-weight:800;border-radius:99px;padding:3px 9px;white-space:nowrap}
+    .p-now{background:#fff7ed;color:#c2410c}
+    .p-next{background:#eff6ff;color:#1d4ed8}
+    .p-done{background:#f1f5f9;color:#64748b}
+    .toast7{position:fixed;left:50%;transform:translateX(-50%);bottom:90px;background:rgba(15,23,42,.93);color:#fff;padding:11px 18px;border-radius:99px;font-size:13.5px;z-index:9999}
+  </style>
+</head>
+<body>
+  <div class="topbar"><a class="back" href="merchant-centre.html">‹</a><div class="title">前台執勤</div></div>
+  <div class="wrap">
+    <div id="guard"></div>
+    <div id="app" hidden>
+      <div class="hero" id="hero"></div>
+      <div class="section-title" id="dayTitle">今日場地使用</div>
+      <div class="card"><div class="body" id="list"></div></div>
+      <div class="muted" style="font-size:11.5px;margin-top:10px;line-height:1.6">
+        此頁只顯示今日場次（時間／課堂／教練／人數），<b>不含任何租金、拆帳或財務資料</b>。
+      </div>
+      <div class="spacer"></div>
+    </div>
+  </div>
+  <script src="assets/api.js?v=3"></script>
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    const hm = (t) => { const d = new Date(String(t).replace(" ", "T")); return isNaN(d) ? "" : d.toLocaleTimeString("zh-HK", { hour: "2-digit", minute: "2-digit", hour12: false }); };
+    function toast(m){const t=document.createElement("div");t.className="toast7";t.textContent=m;document.body.appendChild(t);setTimeout(()=>t.remove(),2200);}
+
+    (async () => {
+      if (!api.getUser()) {
+        $("guard").innerHTML = `<div class="card"><div class="body center" style="padding:22px 16px">
+          <div style="font-size:34px">🏟️</div><b style="display:block;margin-top:6px">場地前台執勤</b>
+          <div class="muted" style="font-size:12.5px;margin-top:8px">需要商戶帳號登入</div>
+          <div style="margin-top:14px"><a class="btn btn-primary" href="login.html?next=venue-reception.html">🔑 登入</a></div></div></div>`;
+        return;
+      }
+      const r = await api.get("/partner/venue/schedule?days=1");
+      if (!r.ok) {
+        $("guard").innerHTML = `<div class="card"><div class="body center">${esc((r.data && r.data.error) || "你未有已開通嘅場地")}</div></div>`;
+        return;
+      }
+      $("app").hidden = false;
+      const v = r.data.venue || {};
+      const list = (r.data.sessions || []).filter((s) => s.status !== "cancelled");
+      const today = new Date().toISOString().slice(0, 10);
+      const todays = list.filter((s) => String(s.start_time).slice(0, 10) === today);
+      $("hero").innerHTML = `<h2>🏟️ ${esc(v.name || "")}</h2><p>今日 ${todays.length} 個場次 · 只顯示執勤需要嘅資料</p>`;
+      $("dayTitle").textContent = `今日場地使用（${today}）`;
+      if (!todays.length) { $("list").innerHTML = '<div class="muted center" style="padding:16px 0">今日暫時沒有場地借用。</div>'; return; }
+      const now = Date.now();
+      $("list").innerHTML = todays.map((s) => {
+        const st = new Date(String(s.start_time).replace(" ", "T")).getTime();
+        const en = new Date(String(s.end_time).replace(" ", "T")).getTime();
+        const tag = now >= st && now <= en ? '<span class="pill p-now">進行中</span>' : now < st ? '<span class="pill p-next">未開始</span>' : '<span class="pill p-done">已結束</span>';
+        return `<div class="slot"><div><div class="t">${esc(hm(s.start_time))} – ${esc(hm(s.end_time))} · ${esc(s.title || "")}</div>
+          <div class="m">教練：${esc(s.coach_name || "—")} · 人數 ${s.enrolled_count || 0}/${s.max_participants || 0}</div></div>${tag}</div>`;
+      }).join("");
+    })();
+  </script>
+  <script src="assets/footer.js?v=4" defer></script>
+</body>
+</html>

@@ -74,7 +74,8 @@
 
     function row(b) {
       let actions = "";
-      if (b.status === "confirmed") actions = `<button class="btn btn-primary" onclick="openPass('${esc(b.id)}')">🎫 出示入場憑證</button><button class="btn btn-secondary" onclick="cancelBk('${esc(b.id)}')">取消預約</button>`;
+      if (b.status === "confirmed") actions = `<button class="btn btn-primary" onclick="openPass('${esc(b.id)}')">🎫 出示入場憑證</button><button class="btn btn-secondary" onclick="cancelBk('${esc(b.id)}')">取消預約</button>` +
+        `<a class="btn btn-secondary" href="child-waiver.html?ref=${encodeURIComponent(b.booking_reference || "")}">🧒 家長同意書</a>`;
       if (b.status === "pending_payment") actions = `<a class="btn btn-primary" href="booking.html?id=${encodeURIComponent(b.class_id)}&sid=${encodeURIComponent(b.schedule_id)}">繼續付款</a>`;
       if (b.status === "attended") actions = `<button class="btn btn-primary" onclick="openRateCoach('${esc(b.id)}','${esc(b.coach_name || "")}')">⭐ 評教練</button><button class="btn btn-secondary" onclick="openNps('${esc(b.id)}')">📋 課後問卷</button>${b.partner_venue_id ? `<button class="btn btn-secondary" onclick="openRateVenue('${esc(b.id)}','${esc(b.partner_venue_id)}','${esc(b.venue_name || "")}')">🏟️ 評場地</button>` : ""}<a class="btn btn-secondary" href="detail.html?id=${encodeURIComponent(b.class_id)}">再預約</a>`;
       return `<div class="card"><div class="body">
