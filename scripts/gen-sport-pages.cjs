@@ -367,7 +367,7 @@ function staticPage(s) {
         document.getElementById("ctaSub").textContent = NAME + " 體驗班";
       }
     }
-    api.get("/classes?category=" + encodeURIComponent(CAT) + "&limit=30")
+    api.get("/classes?limit=50")
       .then(function (r) {
         var arr = (r && (r.classes || r.items || (r.data && (r.data.classes || r.data.items)))) || [];
         // 優先 sport_slug，其次標題關鍵字；唔 match 就唔好亂顯示其他運動
