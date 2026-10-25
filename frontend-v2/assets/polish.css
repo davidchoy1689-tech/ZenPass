@@ -111,3 +111,11 @@ h1, .dt-title, .hero h1, .sp-hero h1 { letter-spacing: -0.02em; }
   .badge-star-coach::after { animation: none; }
   .ex-card:hover, .cls:hover, .hot-card:hover { transform: none; }
 }
+
+/* 圖片：統一比例與骨架 */
+.ex-cover, .dt-slide, .hot-cover { background: linear-gradient(145deg, #fff2ea, #ffdcc9); }
+img[loading="lazy"] { background: linear-gradient(100deg, #f1f5f9 25%, #e2e8f0 45%, #f1f5f9 65%); background-size: 220% 100%; animation: zpSkel 1.4s ease-in-out infinite; }
+img[loading="lazy"].zp-loaded { animation: none; background: none; }
+@keyframes zpSkel { 0% { background-position: 120% 0; } 100% { background-position: -120% 0; } }
+.dt-slide img { transition: transform .45s cubic-bezier(.16,1,.3,1); }
+@media (prefers-reduced-motion: reduce) { img[loading="lazy"] { animation: none; } }

@@ -17,7 +17,7 @@ const WA = "85290335538";
 const SPORTS = [
   {
     slug: "stretch", name: "身心伸展", en: "Stretching", icon: "🧘‍♀️",
-    img: "assets/img/photos/stretch.jpg", tag: "久坐族必上",
+    img: "assets/img/sports/stretch.svg", tag: "久坐族必上",
     time: "60–120 分鐘", level: "零基礎可", ages: "12 歲以上成人為主",
     gear: "場地提供瑜伽墊，著寬鬆運動服、赤腳或穿防滑襪即可",
     how: "跟呼吸慢慢伸展，由肩頸到腰背逐節放鬆",
@@ -29,7 +29,7 @@ const SPORTS = [
   },
   {
     slug: "molkky", name: "芬蘭木柱", en: "Mölkky", icon: "🎯",
-    img: "assets/img/photos/emerging.jpg", tag: "團隊新興運動",
+    img: "assets/img/sports/molkky.svg", tag: "團隊新興運動",
     time: "60–90 分鐘", level: "零基礎可", ages: "6 歲以上，一家大細都玩得",
     gear: "木柱同投擲棒由場地提供，著一般運動服波鞋",
     how: "擲木棒撞倒木柱，剛好 50 分即勝，手氣加策略",
@@ -41,7 +41,7 @@ const SPORTS = [
   },
   {
     slug: "floor-curling", name: "地板冰壺", en: "Floor Curling", icon: "🥌",
-    img: "assets/img/photos/emerging.jpg", tag: "腦力＋手感",
+    img: "assets/img/sports/floor-curling.svg", tag: "腦力＋手感",
     time: "60–90 分鐘", level: "零基礎可", ages: "8 歲以上至長者",
     gear: "冰壺同賽道由場地提供，著運動服、室內波鞋",
     how: "推壺入圓心，力度同角度都要計，最後一壺最刺激",
@@ -53,7 +53,7 @@ const SPORTS = [
   },
   {
     slug: "cornhole", name: "布袋球", en: "Cornhole", icon: "🫘",
-    img: "assets/img/photos/emerging.jpg", tag: "派對必備",
+    img: "assets/img/sports/cornhole.svg", tag: "派對必備",
     time: "45–60 分鐘", level: "零基礎可", ages: "5 歲以上",
     gear: "豆袋同板由場地提供，冇裝備要求",
     how: "擲豆袋入斜板個洞，入洞 3 分、板面 1 分，先到 21 分",
@@ -65,7 +65,7 @@ const SPORTS = [
   },
   {
     slug: "air-storm", name: "穿雲箭", en: "Air Storm", icon: "🏹",
-    img: "assets/img/photos/emerging.jpg", tag: "減壓神器",
+    img: "assets/img/sports/air-storm.svg", tag: "減壓神器",
     time: "60 分鐘", level: "零基礎可", ages: "8 歲以上",
     gear: "氣槍同軟箭由場地提供，安全唔會痛",
     how: "用氣槍射軟箭打靶，計分鬥準，一射即上癮",
@@ -77,7 +77,7 @@ const SPORTS = [
   },
   {
     slug: "nordic-walking", name: "北歐式健走", en: "Nordic Walking", icon: "🥾",
-    img: "assets/img/photos/senior.jpg", tag: "長者友善",
+    img: "assets/img/sports/nordic-walking.svg", tag: "長者友善",
     time: "60–90 分鐘", level: "零基礎可", ages: "長者、康復人士最適合",
     gear: "健走杖由教練提供，著波鞋、帶水",
     how: "用兩支杖行路，上肢一齊推，膝頭負擔減一半",
@@ -89,7 +89,7 @@ const SPORTS = [
   },
   {
     slug: "roundnet", name: "圓網球", en: "Roundnet", icon: "🕸️",
-    img: "assets/img/photos/emerging.jpg", tag: "年輕人最愛",
+    img: "assets/img/sports/roundnet.svg", tag: "年輕人最愛",
     time: "60 分鐘", level: "中等", ages: "12 歲以上",
     gear: "彈網同球由場地提供，著運動服波鞋",
     how: "兩隊各三人，三下之內回球過網，節奏快到爆",
@@ -101,7 +101,7 @@ const SPORTS = [
   },
   {
     slug: "rouliqiu", name: "柔力球", en: "Rouliqiu", icon: "🎾",
-    img: "assets/img/photos/senior.jpg", tag: "長者／復康",
+    img: "assets/img/sports/rouliqiu.svg", tag: "長者／復康",
     time: "60 分鐘", level: "零基礎可", ages: "長者、復康人士",
     gear: "球拍同球由教練提供，著鬆身運動服",
     how: "用球拍畫圓接球，動作柔順連貫，唔靠撞擊",
@@ -113,7 +113,7 @@ const SPORTS = [
   },
   {
     slug: "flexi-bar", name: "Flexi-Bar", en: "Flexi-Bar", icon: "〰️",
-    img: "assets/img/photos/fitness.jpg", tag: "深層核心",
+    img: "assets/img/sports/flexi-bar.svg", tag: "深層核心",
     time: "45 分鐘", level: "零基礎可", ages: "16 歲以上",
     gear: "震動桿由場地提供，著貼身運動服方便睇姿勢",
     how: "揸住震動桿穩定震頻，深層肌肉自動收緊",
@@ -125,7 +125,7 @@ const SPORTS = [
   },
   {
     slug: "kids", name: "兒童健體", en: "Kids Fitness", icon: "🧒",
-    img: "assets/img/photos/kids.jpg", tag: "3–12 歲",
+    img: "assets/img/sports/kids.svg", tag: "3–12 歲",
     time: "45–60 分鐘", level: "分齡設計", ages: "3–12 歲（分齡分組）",
     gear: "所有器材由教練準備，小朋友著運動服、帶水同毛巾",
     how: "用遊戲練平衡、協調、反應，玩住做運動",

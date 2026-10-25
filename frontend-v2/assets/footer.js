@@ -4,6 +4,14 @@
  * 用法：<script src="assets/footer.js" defer></script>（放 </body> 之前）
  * 可用 <body data-no-footer> 或頁面加 class="no-footer" 停用。
  */
+(function markImagesLoaded(){
+  function mark(img){ try { img.classList.add("zp-loaded"); } catch(e){} }
+  document.addEventListener("load", (e) => { if (e.target && e.target.tagName === "IMG") mark(e.target); }, true);
+  document.addEventListener("DOMContentLoaded", () => {
+    document.querySelectorAll("img").forEach((img) => { if (img.complete) mark(img); });
+  });
+})();
+
 (function () {
   'use strict';
 
