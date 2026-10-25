@@ -15,6 +15,16 @@ const { authenticateToken, requireAdmin, hasMinimumRole } = require("../middlewa
 
 const router = express.Router();
 
+// 🔒 營運總控台專用：排除 platform_staff（客服級唔應該見到教練電話／FPS 清單）
+const OPS_ROLES = ["super_admin", "platform_manager", "admin"];
+function requireOpsRole(req, res, next) {
+  if (!req.user) return res.status(401).json({ error: "需要登入認證" });
+  if (!OPS_ROLES.includes(req.user.role)) {
+    return res.status(403).json({ error: "需要營運管理員權限" });
+  }
+  next();
+}
+
 function monthRange(month) {
   const m = /^\d{4}-\d{2}$/.test(String(month || "")) ? String(month) : new Date().toISOString().slice(0, 7);
   const [y, mo] = m.split("-").map(Number);
@@ -31,7 +41,7 @@ function ensureCols(db, table, cols) {
 }
 
 // ===== 資金總覽 =====
-router.get("/overview", authenticateToken, requireAdmin, (req, res) => {
+router.get("/overview", authenticateToken, requireAdmin, requireOpsRole, (req, res) => {
   try {
     const db = getDb();
     const { month, start, end } = monthRange(req.query.month);
@@ -92,7 +102,7 @@ router.get("/overview", authenticateToken, requireAdmin, (req, res) => {
 });
 
 // ===== 線索池 =====
-router.get("/leads", authenticateToken, requireAdmin, (req, res) => {
+router.get("/leads", authenticateToken, requireAdmin, requireOpsRole, (req, res) => {
   try {
     const db = getDb();
     const safe = (sql) => { try { return db.prepare(sql).all(); } catch (e) { return []; } };
@@ -108,7 +118,7 @@ router.get("/leads", authenticateToken, requireAdmin, (req, res) => {
 });
 
 // ===== 惡劣天氣／緊急取消 =====
-router.post("/weather-cancel", authenticateToken, requireAdmin, (req, res) => {
+router.post("/weather-cancel", authenticateToken, requireAdmin, requireOpsRole, (req, res) => {
   try {
     const db = getDb();
     const date = String((req.body || {}).date || "").slice(0, 10);
@@ -165,7 +175,7 @@ router.post("/weather-cancel", authenticateToken, requireAdmin, (req, res) => {
 });
 
 // ===== 批量封存結算 =====
-router.post("/batch-settle", authenticateToken, requireAdmin, (req, res) => {
+router.post("/batch-settle", authenticateToken, requireAdmin, requireOpsRole, (req, res) => {
   try {
     const db = getDb();
     ensureCols(db, "class_schedules", [["settled_at", "TEXT"], ["settle_summary", "TEXT"]]);
@@ -211,7 +221,7 @@ router.post("/batch-settle", authenticateToken, requireAdmin, (req, res) => {
 });
 
 // ===== 出糧／場租清單（前端轉 CSV）=====
-router.get("/payout-list", authenticateToken, requireAdmin, (req, res) => {
+router.get("/payout-list", authenticateToken, requireAdmin, requireOpsRole, (req, res) => {
   try {
     const db = getDb();
     const { month, start, end } = monthRange(req.query.month);

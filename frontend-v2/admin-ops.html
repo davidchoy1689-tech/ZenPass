@@ -107,7 +107,7 @@
       }
       const me = await api.get("/users/me").catch(() => null);
       const u = (me && me.data && (me.data.user || me.data)) || api.getUser() || {};
-      if (!["admin", "super_admin", "platform_manager", "platform_staff"].includes(u.role)) {
+      if (!["admin", "super_admin", "platform_manager"].includes(u.role)) {
         $("guard").innerHTML = `<div class="card"><div class="body center">此頁只限管理員使用。<br><br><a class="btn btn-secondary" href="my.html">返回</a></div></div>`;
         return;
       }
