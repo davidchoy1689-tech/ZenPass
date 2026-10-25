@@ -79,6 +79,7 @@
       <details class="card" id="newBox" style="margin-top:12px">
         <summary>➕ 開新班</summary>
         <div class="body" style="padding-top:0">
+          <button class="btn btn-secondary btn-block" id="btnLoadLast" type="button" style="margin-bottom:10px;display:none">⚡ 帶入上次課堂設定</button>
           <label class="lbl2">課程名稱 *</label>
           <input class="fld2" id="cTitle" placeholder="例：芬蘭木柱・週末新手體驗" maxlength="60" />
 
@@ -182,6 +183,11 @@
       };
       addSlot();
       window.__zpUp = window.zpMountPhotoUpload({ mount: "zpPhotoMount", title: "課堂／活動相片" });
+      try {
+        const hasLast = !!localStorage.getItem("zenpass_last_class_template");
+        const bl = $("btnLoadLast"); if (bl && hasLast) bl.style.display = "block";
+        if (bl) bl.onclick = applyLastTemplate;
+      } catch (e) {}
       loadCreds();
       $("cdSave").onclick = async () => {
         const body = {
@@ -312,6 +318,49 @@
       };
     }
 
+    /* ⚡ 帶入上次課堂設定 */
+    function fmtLocal(iso) { const d = new Date(iso); return isNaN(d) ? "" : d.toLocaleString("zh-HK", { month: "short", day: "numeric", weekday: "short", hour: "2-digit", minute: "2-digit" }); }
+
+    function applyLastTemplate() {
+      let t = null;
+      try { t = JSON.parse(localStorage.getItem("zenpass_last_class_template") || "null"); } catch (e) {}
+      if (!t) return;
+      $("cTitle").value = t.title || "";
+      if (t.category) $("cCat").value = t.category;
+      if (t.sport_slug) $("cSport").value = t.sport_slug;
+      if (t.duration) $("cDur").value = t.duration;
+      if (t.max_participants) $("cMax").value = t.max_participants;
+      if (t.min_participants) $("cMin").value = t.min_participants;
+      if (t.price_hkd) $("cPrice").value = t.price_hkd;
+      if (t.venueId) { $("cVenue").value = t.venueId; $("cVenue").dispatchEvent(new Event("change")); }
+      else { $("cVenueName").value = t.venueName || ""; $("cVenueAddr").value = t.venueAddr || ""; }
+      toast("⚡ 已帶入上次設定，只須揀日期時間");
+    }
+
+    /* 📣 開班成功：分享卡 */
+    function showShareCard(id, title, price, slot) {
+      const link = id ? location.origin + "/detail.html?id=" + encodeURIComponent(id) : location.origin + "/explore.html";
+      const when = slot ? fmtLocal(slot.start_time) : "";
+      const txt = `🌟【最新課堂開放預約】\n活動：${title}\n日期：${when}\n費用：HK$${price}\n👉 即刻線上報名留位：${link}`;
+      const ov = document.createElement("div");
+      ov.style.cssText = "position:fixed;inset:0;background:rgba(15,23,42,.72);backdrop-filter:blur(6px);z-index:10050;display:flex;align-items:center;justify-content:center;padding:16px";
+      ov.innerHTML = `<div style="background:#fff;border-radius:20px;padding:20px;max-width:400px;width:100%;color:#0f172a">
+        <div style="font-size:34px">🎉</div>
+        <b style="display:block;font-size:17px;margin-top:6px">班別已建立</b>
+        <div style="font-size:12.5px;color:#64748b;margin-top:6px;line-height:1.6">${esc(title)}${when ? " · " + esc(when) : ""}<br>平台開通後學生即可報名；而家可以先分享俾學員。</div>
+        <div style="margin-top:12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:9px;font-size:11.5px;word-break:break-all">${esc(link)}</div>
+        <button class="btn btn-secondary btn-block" id="shCopy" style="margin-top:10px">📋 複製報名連結</button>
+        <a class="btn btn-primary btn-block" id="shWa" style="margin-top:8px;background:#25d366;color:#04331c" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(txt)}">💬 分享至 WhatsApp</a>
+        <button class="btn btn-secondary btn-block" id="shClose" style="margin-top:8px">關閉</button>
+      </div>`;
+      document.body.appendChild(ov);
+      ov.querySelector("#shClose").onclick = () => ov.remove();
+      ov.querySelector("#shCopy").onclick = async () => {
+        try { await navigator.clipboard.writeText(link); ov.querySelector("#shCopy").textContent = "✅ 已複製"; }
+        catch (e) { prompt("複製呢條連結：", link); }
+      };
+    }
+
     async function createClass() {
       const msg = $("createMsg");
       const title = $("cTitle").value.trim();
@@ -352,6 +401,17 @@
       if (!r.ok) { msg.textContent = (r.data && r.data.error) || "開班失敗"; return; }
       msg.textContent = "";
       toast("✅ 已建立，待平台開通");
+      // 記住今次設定，下次一撳帶入
+      try {
+        localStorage.setItem("zenpass_last_class_template", JSON.stringify({
+          title, category: body.category, sport_slug: body.sport_slug,
+          duration: body.duration, max_participants: body.max_participants,
+          min_participants: body.min_participants, price_hkd: body.price_hkd,
+          venueId: venueId || "", venueName: $("cVenueName").value.trim(), venueAddr: $("cVenueAddr").value.trim(),
+        }));
+      } catch (e) {}
+      const newId = (r.data && r.data.data && r.data.data.id) || "";
+      showShareCard(newId, title, body.price_hkd, slots[0]);
       $("cTitle").value = ""; $("slots").innerHTML = ""; addSlot();
       loadClasses();
     }
