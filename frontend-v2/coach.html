@@ -3,312 +3,360 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <meta name="theme-color" content="#ff6b35" />
+  <meta name="theme-color" content="#0b1220" />
+  <meta name="robots" content="noindex" />
   <title>教練中心 · ZenPass 禪流</title>
   <link rel="stylesheet" href="assets/v2.css?v=26" />
   <link rel="stylesheet" href="assets/ui-v3.css?v=5" />
   <style>
-    .kpis { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-    .kpi { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:14px; }
-    .kpi .big { font-size:22px; font-weight:800; color:var(--brand-600); }
-    .kpi .lbl { font-size:12px; color:var(--text-muted); }
-    .cl { display:flex; justify-content:space-between; align-items:center; padding:14px 16px; border-bottom:1px solid var(--border); }
-    .cl:last-child { border-bottom:0; }
-
-    .coach-hero{margin:6px 0 12px}
-    .hero-card{display:flex;align-items:center;gap:12px;padding:16px;border-radius:20px;color:#fff;
-      background:linear-gradient(135deg,#ff6b35,#ff9f1c 60%,#ffd166);box-shadow:0 8px 24px rgba(255,107,53,.28)}
-    .hero-av{width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,.28);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:20px}
-    .hero-name{font-size:18px;font-weight:800;line-height:1.2}
-    .hero-sub{font-size:12.5px;opacity:.95;margin-top:2px}
-    .hero-cta{background:#fff;color:#e2571f;font-weight:800;font-size:13px;padding:8px 14px;border-radius:999px;text-decoration:none;white-space:nowrap}
-    .qa-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:6px}
-    .qa{display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 6px;border-radius:16px;border:1px solid var(--border);background:var(--surface);text-decoration:none;color:var(--text);font-size:12px;font-weight:700}
-    .qa-ic{font-size:20px}
+    body{background:radial-gradient(1200px 600px at 10% -10%,#0f2e25 0%,#0b1220 55%,#080d18 100%);color:#e6edf5;min-height:100vh}
+    .topbar{background:transparent;border:0;color:#e6edf5}
+    .topbar .title{color:#e6edf5}
+    .topbar .back{color:#8aa0b8}
+    .wrap{max-width:560px;padding-bottom:96px}
+    .glass{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:20px;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 10px 30px rgba(0,0,0,.28)}
+    /* header */
+    .hd{display:flex;align-items:center;gap:12px;padding:14px;margin:4px 0 14px}
+    .hd .av{width:52px;height:52px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:20px;color:#04140f;background:linear-gradient(135deg,#34d399,#10b981)}
+    .hd .nm{font-size:17px;font-weight:800;line-height:1.2}
+    .hd .st{font-size:12px;color:#34d399;margin-top:3px;display:flex;align-items:center;gap:6px}
+    .dot{width:8px;height:8px;border-radius:50%;background:#34d399;box-shadow:0 0 8px #34d399;animation:pulse 1.8s infinite}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+    /* metrics */
+    .mets{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+    .met{padding:13px 12px;border-radius:18px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);backdrop-filter:blur(14px)}
+    .met .v{font-size:19px;font-weight:800;color:#34d399;line-height:1.15;letter-spacing:-.3px}
+    .met .l{font-size:11px;color:#8aa0b8;margin-top:4px;line-height:1.3}
+    /* focus card */
+    .focus{padding:16px;margin-bottom:12px;position:relative;overflow:hidden}
+    .focus:after{content:"";position:absolute;right:-40px;top:-40px;width:140px;height:140px;border-radius:50%;background:radial-gradient(circle,rgba(16,185,129,.35),transparent 70%)}
+    .focus .k{font-size:11.5px;letter-spacing:1px;color:#34d399;font-weight:800}
+    .focus h2{margin:6px 0 4px;font-size:19px;line-height:1.3}
+    .focus .meta{font-size:13px;color:#a7b6c8;line-height:1.6}
+    .pbar{height:9px;border-radius:99px;background:rgba(255,255,255,.12);overflow:hidden;margin:12px 0 6px}
+    .pbar i{display:block;height:100%;width:0;border-radius:99px;background:linear-gradient(90deg,#10b981,#34d399);transition:width .5s ease}
+    .focus .cnt{font-size:12.5px;color:#a7b6c8}
+    .focus .cnt b{color:#e6edf5}
+    .acts{display:grid;grid-template-columns:1.6fr 1fr;gap:10px;margin-top:14px}
+    .btn2{border:0;border-radius:14px;padding:14px 10px;font:inherit;font-size:14.5px;font-weight:800;color:#04140f;background:linear-gradient(135deg,#34d399,#10b981)}
+    .btn2.ghost{background:rgba(255,255,255,.08);color:#dbe6f2;border:1px solid rgba(255,255,255,.16)}
+    .btn2:active{transform:scale(.985)}
+    /* quick grid */
+    .qg{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin:4px 0 14px}
+    .qg a{padding:12px 6px;border-radius:16px;text-align:center;text-decoration:none;color:#dbe6f2;font-size:11.5px;font-weight:700;background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.1)}
+    .qg a span{display:block;font-size:19px;margin-bottom:5px}
+    /* list */
+    .sect{font-size:13px;font-weight:800;color:#a7b6c8;margin:16px 2px 8px;letter-spacing:.3px}
+    .row{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.08)}
+    .row:last-child{border-bottom:0}
+    .row .t{font-size:14px;font-weight:700}
+    .row .s{font-size:11.5px;color:#8aa0b8;margin-top:3px}
+    .pill{font-size:11px;font-weight:800;border-radius:99px;padding:3px 9px;white-space:nowrap}
+    .p-on{background:rgba(52,211,153,.15);color:#34d399}
+    .p-new{background:rgba(251,191,36,.15);color:#fbbf24}
+    /* sheet */
+    .mk{position:fixed;inset:0;background:rgba(2,6,23,.66);z-index:9998;opacity:0;pointer-events:none;transition:opacity .2s}
+    .mk.on{opacity:1;pointer-events:auto}
+    .sh{position:fixed;left:0;right:0;bottom:0;z-index:9999;background:#0d1626;border-radius:22px 22px 0 0;border-top:1px solid rgba(255,255,255,.12);transform:translateY(100%);transition:transform .28s cubic-bezier(.16,1,.3,1);max-height:90vh;overflow:auto;padding-bottom:calc(16px + env(safe-area-inset-bottom))}
+    .sh.on{transform:translateY(0)}
+    .sh .h{position:sticky;top:0;z-index:2;display:flex;justify-content:space-between;align-items:center;padding:14px 16px;background:#0d1626;border-bottom:1px solid rgba(255,255,255,.08)}
+    .sh .h b{font-size:16px}
+    .sh .b{padding:12px 16px}
+    .stu{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:12px 0;border-bottom:1px solid rgba(255,255,255,.08)}
+    .stu:last-child{border-bottom:0}
+    .stu .av{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-size:13px;font-weight:800;background:rgba(52,211,153,.18);color:#34d399;margin-right:10px;flex:none}
+    .stu .l{display:flex;align-items:center;min-width:0}
+    .stu .n{font-size:14px;font-weight:700}
+    .stu .s{font-size:11px;color:#8aa0b8;margin-top:2px}
+    .tog{border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.06);color:#dbe6f2;border-radius:12px;padding:9px 14px;font:inherit;font-size:13px;font-weight:800;white-space:nowrap}
+    .tog.on{background:rgba(52,211,153,.16);border-color:rgba(52,211,153,.45);color:#34d399}
+    .fld4{width:100%;box-sizing:border-box;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.05);color:#e6edf5;border-radius:12px;padding:12px;font:inherit;font-size:15px;margin-bottom:10px}
+    .lbl4{font-size:12px;font-weight:700;color:#8aa0b8;display:block;margin:0 0 5px 2px}
+    .toast4{position:fixed;left:50%;transform:translateX(-50%);bottom:96px;background:rgba(16,185,129,.95);color:#04140f;font-weight:800;padding:11px 18px;border-radius:99px;font-size:13.5px;z-index:10000}
+    .fab{position:fixed;right:16px;bottom:calc(78px + env(safe-area-inset-bottom));width:56px;height:56px;border-radius:50%;border:0;font-size:26px;color:#04140f;background:linear-gradient(135deg,#34d399,#10b981);box-shadow:0 10px 26px rgba(16,185,129,.45);z-index:900}
+    .bottomnav{background:rgba(8,13,24,.92);border-top:1px solid rgba(255,255,255,.1);backdrop-filter:blur(12px)}
+    .bottomnav a{color:#8aa0b8}
+    .bottomnav a.active{color:#34d399}
+    .bottomnav .ic{font-size:18px}
+    .muted4{color:#8aa0b8;font-size:12.5px}
   </style>
 </head>
 <body>
   <div class="topbar"><a class="back" href="my.html">‹</a><div class="title">教練中心</div></div>
-
   <div class="wrap">
-    <div id="guard" style="display:none"></div>
-    <div id="main" style="display:none">
-      <div class="coach-hero" id="coachHero"></div>
-
-      <div class="qa-grid">
-        <a class="qa" href="coach-dashboard.html"><span class="qa-ic">📅</span><span>排班後台</span></a>
-        <a class="qa" href="coach-console.html"><span class="qa-ic">🛠️</span><span>開班後台</span></a>
-        <a class="qa" href="coach-attendance.html"><span class="qa-ic">✅</span><span>課堂點名</span></a>
-        <a class="qa" href="ai-open-class.html"><span class="qa-ic">🤖</span><span>AI 開班</span></a>
-        <a class="qa" href="coach-jobs.html"><span class="qa-ic">🧰</span><span>接 Job</span></a>
-        <a class="qa" href="venue-rentals.html"><span class="qa-ic">🏟️</span><span>租場</span></a>
+    <div id="guard"></div>
+    <div id="app" hidden>
+      <div class="glass hd">
+        <div class="av" id="av">C</div>
+        <div style="flex:1;min-width:0">
+          <div class="nm" id="nm">教練</div>
+          <div class="st"><span class="dot"></span><span id="stTxt">執教中</span></div>
+        </div>
+        <a class="btn2 ghost" href="coach-dashboard.html" style="padding:9px 12px;font-size:12.5px;border-radius:12px;text-decoration:none">排班 ›</a>
       </div>
 
-      <div class="section-title">📅 即將開課</div>
-      <div class="card" id="upcoming"><div class="body muted">載入中…</div></div>
+      <div class="mets" id="mets"></div>
 
-      <div class="section-title">收入概覽</div>
-      <div class="kpis" id="kpis"><div class="kpi"><div class="big">—</div><div class="lbl">載入中…</div></div></div>
-      <div class="spacer"></div>
-      <div class="section-title">⭐ 我的評分（只你自己睇）</div>
-      <div class="card" id="myRating"><div class="body muted">載入中…</div></div>
-      <a class="btn btn-primary btn-block" href="coach-dashboard.html" style="margin-bottom:10px">📅 排班後台（班次、名單、簽到）</a>
-      <a class="btn btn-primary btn-block" href="coach-console.html" style="margin-bottom:10px">🛠️ 開班管理（新增班別）</a>
-      <a class="btn btn-secondary btn-block" href="coach-attendance.html">🧑‍🏫 課堂簽到（為學生手動簽到）</a>
-      <a class="btn btn-secondary btn-block" href="coach-jobs.html">🧰 工作機會（接 Job）</a>
-      <a class="btn btn-secondary btn-block" href="venue-rentals.html">🏟️ 租用場地（開班用）</a>
+      <div class="glass focus" id="focus"></div>
 
-      <div class="section-title">➕ 開新班</div>
-      <a class="btn btn-primary btn-block" href="ai-open-class.html" style="margin-bottom:10px">🤖 AI 一鍵開班（影／貼宣傳單張自動填）</a>
-      <div class="card"><div class="body">
-        <p class="muted" style="font-size:12.5px;margin:0 0 10px">提交後由平台核實（價格／場地），開通後學生就可以喺探索頁預約。</p>
-        <label class="lbl">課程標題</label><input class="fld" id="ncTitle" placeholder="例：【新手體驗】芬蘭木柱 60 分鐘" />
-        <div class="grid2">
-          <div><label class="lbl">類別</label><select class="fld" id="ncCat"></select></div>
-          <div><label class="lbl">難度</label><select class="fld" id="ncDiff">
-            <option value="beginner">新手友善</option><option value="intermediate">中階</option><option value="advanced">進階</option></select></div>
-        </div>
-        <div class="grid2">
-          <div><label class="lbl">時長（分鐘）</label><input class="fld" id="ncDur" type="number" value="60" min="15" max="300" /></div>
-          <div><label class="lbl">名額</label><input class="fld" id="ncMax" type="number" value="12" min="1" max="200" /></div>
-        </div>
-        <label style="display:flex;gap:8px;align-items:flex-start;margin:10px 0;font-size:13.5px">
-          <input type="checkbox" id="ncVip" checked style="width:18px;height:18px;margin-top:2px" />
-          <span><b>VIP Pass 優先預約</b><br /><span class="muted" style="font-size:12px">新班頭 24 小時只限 VIP Pass 會員預約，之後開放給所有會員</span></span>
-        </label>
-        <div class="grid2">
-          <div><label class="lbl">價錢 HK$</label><input class="fld" id="ncPrice" type="number" value="150" min="0" /></div>
-          <div><label class="lbl">Credits（留空自動 = 價錢÷10）</label><input class="fld" id="ncCredits" type="number" min="0" /></div>
-        </div>
-        <label class="lbl">場地</label>
-        <select class="fld" id="ncVenue"></select>
-        <div id="ncVenueManual" style="display:none">
-          <div class="grid2">
-            <div><label class="lbl">場地名稱</label><input class="fld" id="ncVenueName" placeholder="例：觀塘社區中心" /></div>
-            <div><label class="lbl">地區</label><input class="fld" id="ncVenueDistrict" placeholder="例：觀塘" /></div>
-          </div>
-          <label class="lbl">地址（可選）</label><input class="fld" id="ncVenueAddr" />
-        </div>
-        <label class="lbl">簡介（可選）</label><textarea class="fld" id="ncDesc" rows="3" placeholder="課堂內容、帶走咩、適合邊個"></textarea>
-        <label class="lbl">時段</label>
-        <div id="ncSlots"></div>
-        <button class="btn btn-secondary btn-block" id="ncAddSlot" style="margin-top:8px">＋ 加多個時段</button>
-        <button class="btn btn-primary btn-block" id="ncSubmit" style="margin-top:10px">提交開班（待平台開通）</button>
-        <div class="muted center" id="ncMsg" style="font-size:12.5px;margin-top:8px"></div>
-      </div></div>
+      <div class="qg">
+        <a href="coach-dashboard.html"><span>📅</span>排班</a>
+        <a href="verify.html"><span>📷</span>掃描</a>
+        <a href="coach-console.html"><span>🛠️</span>開班</a>
+        <a href="coach-earnings.html" onclick="return goEarn(event)"><span>💰</span>帳目</a>
+      </div>
 
-      <div class="section-title">我嘅課程</div>
-      <div class="card" id="classes"><div class="body muted">載入中…</div></div>
+      <div class="sect">📅 接下來嘅課堂</div>
+      <div class="glass" id="upcoming"></div>
 
-      <div class="section-title">出糧紀錄</div>
-      <div class="card" id="payouts"><div class="body muted">載入中…</div></div>
+      <div class="sect">📊 本月表現</div>
+      <div class="glass" id="perf"></div>
 
-      <div class="section-title">商戶合作</div>
-      <div class="card" id="venues"><div class="body muted">載入中…</div></div>
-      <div class="spacer"></div>
+      <div class="sect">⚙️ 更多</div>
+      <div class="glass">
+        <a class="row" href="coach-console.html" style="text-decoration:none;color:inherit"><span><span class="t">🛠️ 開班管理</span><span class="s">新增班別／時段、最低成團</span></span><span class="muted4">›</span></a>
+        <a class="row" href="coach-attendance.html" style="text-decoration:none;color:inherit"><span><span class="t">✅ 傳統點名頁</span><span class="s">逐堂列出所有學生</span></span><span class="muted4">›</span></a>
+        <a class="row" href="ai-open-class.html" style="text-decoration:none;color:inherit"><span><span class="t">🤖 AI 一鍵開班</span><span class="s">貼宣傳單張自動填表</span></span><span class="muted4">›</span></a>
+        <a class="row" href="coach-jobs.html" style="text-decoration:none;color:inherit"><span><span class="t">🧰 工作機會</span><span class="s">接 Job 增加收入</span></span><span class="muted4">›</span></a>
+        <a class="row" href="venue-rentals.html" style="text-decoration:none;color:inherit"><span><span class="t">🏟️ 租用場地</span><span class="s">開班用場地</span></span><span class="muted4">›</span></a>
+      </div>
+      <div style="height:8px"></div>
     </div>
-    <div class="spacer"></div>
+  </div>
+
+  <button class="fab" id="fab" aria-label="快速開新班" hidden>＋</button>
+
+  <div class="mk" id="mk"></div>
+  <div class="sh" id="sh">
+    <div class="h"><b id="shTitle">學員名冊</b><button class="tog" id="shClose">關閉</button></div>
+    <div class="b" id="shBody"></div>
   </div>
 
   <nav class="bottomnav">
-    <a href="index.html"><span class="ic">🏠</span>主頁</a>
-    <a href="explore.html"><span class="ic">🔍</span>探索</a>
-    <a href="booking.html"><span class="ic">📅</span>預約</a>
-    <a class="active" href="my.html"><span class="ic">🎫</span>我的</a>
+    <a class="active" href="coach.html"><span class="ic">🧑‍🏫</span>教練</a>
+    <a href="coach-dashboard.html"><span class="ic">📅</span>排班</a>
+    <a href="coach-console.html"><span class="ic">🛠️</span>開班</a>
+    <a href="my.html"><span class="ic">🎫</span>我的</a>
   </nav>
 
   <script src="assets/api.js?v=3"></script>
   <script>
-    $ = (id) => document.getElementById(id);
-    function fmtWhen(t){
-      if(!t) return "";
-      const iso = /Z|[+-]\d\d:?\d\d$/.test(String(t)) ? t : String(t).replace(" ","T")+"Z";
-      return new Date(iso).toLocaleString("zh-HK",{month:"short",day:"numeric",weekday:"short",hour:"2-digit",minute:"2-digit"});
+    const $ = (id) => document.getElementById(id);
+    const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    const hkd = (n) => "HK$" + Math.round(Number(n) || 0).toLocaleString("en-HK");
+    const fmt = (t) => { const d = new Date(String(t).replace(" ", "T")); return isNaN(d) ? String(t) : d.toLocaleString("zh-HK", { month: "short", day: "numeric", weekday: "short", hour: "2-digit", minute: "2-digit" }); };
+    const hm = (t) => { const d = new Date(String(t).replace(" ", "T")); return isNaN(d) ? "" : d.toLocaleTimeString("zh-HK", { hour: "2-digit", minute: "2-digit", hour12: false }); };
+    let ME = {}, NEXT = null, MY_CLASSES = [], refreshTimer = null;
+
+    function toast(m) { const t = document.createElement("div"); t.className = "toast4"; t.textContent = m; document.body.appendChild(t); setTimeout(() => t.remove(), 2200); }
+    function buzz() { if (navigator.vibrate) navigator.vibrate(35); }
+    function countUp(el, target, prefix, suffix) {
+      const from = Number(el.dataset.v || 0), to = Number(target) || 0;
+      const t0 = performance.now(), dur = 650;
+      function step(t) {
+        const k = Math.min(1, (t - t0) / dur);
+        const v = Math.round(from + (to - from) * (1 - Math.pow(1 - k, 3)));
+        el.textContent = (prefix || "") + v.toLocaleString("en-HK") + (suffix || "");
+        if (k < 1) requestAnimationFrame(step); else el.dataset.v = to;
+      }
+      requestAnimationFrame(step);
     }
-    async function load() {
-      const me = await api.get("/users/me");
-      const u = (me.data && (me.data.user || me.data)) || {};
-      const isCoach = u.is_coach || u.coach_verified || u.role === "admin" || u.role === "super_admin" || u.role === "coach";
-      if (!isCoach) {
-        $("guard").style.display = "";
-        $("guard").innerHTML = `<div class="card"><div class="body center">呢頁只供教練使用。<br><br><a class="btn btn-secondary" href="my.html">返回</a></div></div>`;
+    function goEarn(e) { e.preventDefault(); location.href = "coach-dashboard.html"; return false; }
+
+    (async () => {
+      if (!api.requireLogin("coach.html")) return;
+      const me = await api.get("/users/me").catch(() => null);
+      ME = (me && me.data && (me.data.user || me.data)) || api.getUser() || {};
+      if (!Number(ME.is_coach) && !["admin", "super_admin", "coach"].includes(ME.role)) {
+        $("guard").innerHTML = `<div class="glass" style="padding:22px;text-align:center">呢頁只供已認證教練使用。<br><br><a class="btn btn-primary" href="coach-apply.html">申請成為教練</a></div>`;
         return;
       }
-      $("main").style.display = "";
+      $("app").hidden = false;
+      $("fab").hidden = false;
+      $("av").textContent = (ME.name || "C").slice(0, 1).toUpperCase();
+      $("nm").textContent = ME.name || "教練";
+      $("mets").innerHTML = `
+        <div class="met"><div class="v" id="mIncome">HK$0</div><div class="l">💰 本月預計分成</div></div>
+        <div class="met"><div class="v" id="mPeople">0</div><div class="l">👥 本月學員人次</div></div>
+        <div class="met"><div class="v" id="mRate">—</div><div class="l">⭐ 學員評分</div></div>`;
+      $("fab").onclick = quickSchedule;
+      $("mk").onclick = closeSheet;
+      $("shClose").onclick = closeSheet;
+      await loadAll();
+      refreshTimer = setInterval(() => { if (!document.hidden && !$("sh").classList.contains("on")) loadAll(true); }, 20000);
+      document.addEventListener("visibilitychange", () => { if (!document.hidden) loadAll(true); });
+    })();
 
-      // 👤 教練 hero + 即將開課
-      const up = await api.get("/coach/upcoming");
-      const scheds = (up.data && up.data.schedules) || [];
-      const next = scheds[0];
-      $("coachHero").innerHTML = `
-        <div class="hero-card">
-          <div class="hero-av">${esc((u.name || "教練").slice(0, 1).toUpperCase())}</div>
-          <div style="flex:1;min-width:0">
-            <div class="hero-name">${esc(u.name || "教練")}</div>
-            <div class="hero-sub">${next ? "下一堂：" + fmtWhen(next.start_time) : "暫時未有待開課堂"}</div>
-          </div>
-          <a class="hero-cta" href="coach-attendance.html">點名 ›</a>
-        </div>`;
-      $("upcoming").innerHTML = scheds.length
-        ? scheds.slice(0, 4).map((s) => `<div class="cl">
-            <span style="min-width:0"><b>${esc(s.title)}</b>
-              <div class="muted" style="font-size:12px">${fmtWhen(s.start_time)} · ${esc(s.venue_name || "")}</div>
-            </span>
-            <span style="text-align:right;white-space:nowrap">
-              <b>${s.enrolled_count}/${s.max_participants}</b>
-              <div style="margin-top:4px"><a class="btn btn-secondary" style="padding:6px 10px;font-size:12px" href="coach-attendance.html?schedule_id=${encodeURIComponent(s.id)}">點名</a></div>
-            </span></div>`).join("")
-        : `<div class="body muted">暫時未有已排期課堂。用下面「開新班」建立。</div>`;
+    async function loadAll(silent) {
+      try {
+        const [er, rr, cr, sr] = await Promise.all([
+          api.get("/coach/earnings"), api.get("/coach/my-rating"), api.get("/coach/my-classes"),
+          api.get("/coach/sessions?filter=upcoming"),
+        ]);
+        MY_CLASSES = (cr.data && cr.data.classes) || [];
+        const sess = (sr.data && sr.data.sessions) || [];
+        NEXT = pickNext(sess);
+        const d = er.data || {};
+        const summary = d.summary || {};
+        const monthly = Number(summary.monthly != null ? summary.monthly : (d.monthly || 0));
+        const rating = (rr.data && rr.data.data) || {};
+        // 本月人次
+        const all = await api.get("/coach/sessions?filter=all");
+        const rows = (all.data && all.data.sessions) || [];
+        const now = new Date();
+        const inMonth = rows.filter((x) => { const t = new Date(String(x.start_time).replace(" ", "T")); return t.getMonth() === now.getMonth() && t.getFullYear() === now.getFullYear() && x.status !== "cancelled"; });
+        const people = inMonth.reduce((s, x) => s + (Number(x.booked) || 0), 0);
 
-      const er = await api.get("/coach/earnings");
-      const d = er.data || {}; const s = d.summary || {};
-      $("kpis").innerHTML = [
-        ["本月收入", hkd(s.monthly || 0)],
-        ["總收入", hkd(d.total_earnings != null ? d.total_earnings : (s.total || 0))],
-        ["待出糧", hkd(d.pending_payout || 0)],
-        ["分賬比率", Math.round((d.commission_rate || 0) * 100) + "%"],
-      ].map(([l, v]) => `<div class="kpi"><div class="big">${v}</div><div class="lbl">${l}</div></div>`).join("");
+        countUp($("mIncome"), monthly, "HK$");
+        countUp($("mPeople"), people);
+        $("mRate").textContent = rating.count ? Number(rating.score).toFixed(2) : "—";
 
-      await loadClasses();
-
-      const pr = await api.get("/coach/payout-history");
-      const pays = (pr.data && (pr.data.payouts || pr.data.history)) || [];
-      $("payouts").innerHTML = pays.length ? pays.slice(0, 10).map(p =>
-        `<div class="body" style="display:flex;justify-content:space-between"><span>${esc(p.created_at || p.requested_at || "")}</span><span>${hkd(p.amount || 0)}</span></div>`
-      ).join("") : '<div class="body muted">暫無出糧紀錄。</div>';
-
-      await loadVenues();
-      await loadMyRating();
-      await initNewClass();
+        renderFocus();
+        renderUpcoming(sess.slice(0, 4));
+        renderPerf(inMonth, people, monthly, rating);
+        if (!silent) $("stTxt").textContent = NEXT ? "下一堂 · " + fmt(NEXT.start_time) : "暫時未有排堂";
+      } catch (e) { if (!silent) $("stTxt").textContent = "載入資料出錯"; }
     }
 
-    async function loadMyRating() {
-      const box = $("myRating");
-      const r = await api.get("/coach/my-rating");
-      if (!r.ok) { box.innerHTML = '<div class="body muted">暫無評分資料</div>'; return; }
-      const d = (r.data && r.data.data) || {};
-      const stars = "★★★★★".slice(0, Math.round(d.score || 0)) + "☆☆☆☆☆".slice(0, 5 - Math.round(d.score || 0));
-      const recent = (d.recent || []).slice(0, 3);
-      box.innerHTML =
-        '<div class="body">' +
-        '<div style="display:flex;align-items:baseline;gap:8px">' +
-        '<div style="font-size:26px;font-weight:800">' + (d.count ? Number(d.score).toFixed(1) : "—") + '</div>' +
-        '<div class="muted" style="font-size:13px">' + (d.count ? stars + " · " + d.count + " 則評價" : "暫時未收到評價") + '</div>' +
-        '</div>' +
-        (d.count ? '<div class="muted" style="font-size:12px;margin-top:4px">實際平均 ' + Number(d.raw_avg).toFixed(1) + ' 分（已按貝氏平滑，避免單一負評影響）</div>' : '') +
-        '<div class="muted" style="font-size:12px;margin-top:6px">' + esc(d.note || "") + '</div>' +
-        (recent.length ? '<div style="margin-top:10px;border-top:1px dashed var(--border);padding-top:8px">' +
-          recent.map(x => '<div style="font-size:12.5px;margin-bottom:6px">' + "★".repeat(x.rating) + " " + esc(x.comment || "（無留言）") + ' <span class="muted">· ' + esc(String(x.created_at || "").slice(0, 10)) + '</span></div>').join("") +
-          '</div>' : "") +
-        '</div>';
+    function pickNext(list) {
+      if (!list.length) return null;
+      const today = new Date().toISOString().slice(0, 10);
+      const score = (x) => (String(x.start_time).slice(0, 10) === today ? 100 : 0) + (Number(x.booked) > 0 ? 50 : 0);
+      return list.slice().sort((a, b) => score(b) - score(a))[0];
     }
 
-    /* ===== ➕ 開新班 ===== */
-    const NC_CATS = ["新興運動","身心伸展","兒童健體","健身體能","球類運動","舞蹈","戶外歷險","武術格鬥","養生復康","其他"];
-    let ncVenues = [];
-
-    function ncSlotRow() {
-      const d = document.createElement("div");
-      d.className = "nc-slot";
-      d.style.cssText = "display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px";
-      const now = new Date(Date.now() + 864e5);
-      now.setMinutes(0, 0, 0);
-      const pad = (n) => String(n).padStart(2, "0");
-      const val = now.getFullYear() + "-" + pad(now.getMonth() + 1) + "-" + pad(now.getDate()) + "T19:00";
-      d.innerHTML = '<input class="fld" type="datetime-local" data-start value="' + val + '">' +
-                    '<input class="fld" type="datetime-local" data-end value="' + val.replace("T19:00", "T20:00") + '">';
-      return d;
-    }
-
-    async function initNewClass() {
-      $("ncCat").innerHTML = NC_CATS.map(c => '<option>' + c + '</option>').join("");
-      $("ncSlots").appendChild(ncSlotRow());
-      $("ncAddSlot").onclick = () => { if ($("ncSlots").children.length < 10) $("ncSlots").appendChild(ncSlotRow()); };
-
-      const r = await api.get("/coach/venues");
-      ncVenues = (r.data && r.data.venues) || [];
-      const opts = ncVenues.map(v => '<option value="' + esc(v.id) + '">' + esc(v.name) + (v.district ? "（" + esc(v.district) + "）" : "") + '</option>');
-      $("ncVenue").innerHTML = opts.join("") + '<option value="">其他／自行輸入</option>';
-      $("ncVenue").onchange = () => {
-        $("ncVenueManual").style.display = $("ncVenue").value ? "none" : "block";
-      };
-
-      $("ncSubmit").onclick = submitNewClass;
-    }
-
-    async function submitNewClass() {
-      const btn = $("ncSubmit"), msg = $("ncMsg");
-      const title = $("ncTitle").value.trim();
-      if (!title) { msg.textContent = "請填課程標題"; return; }
-      const schedules = [...$("ncSlots").children].map(d => ({
-        start_time: d.querySelector("[data-start]").value.replace("T", " ") + ":00",
-        end_time: d.querySelector("[data-end]").value.replace("T", " ") + ":00",
-      })).filter(s => s.start_time && s.end_time);
-      if (!schedules.length) { msg.textContent = "請加最少一個時段"; return; }
-
-      const venueSel = $("ncVenue").value;
-      const body = {
-        title,
-        category: $("ncCat").value,
-        difficulty: $("ncDiff").value,
-        duration: Number($("ncDur").value),
-        max_participants: Number($("ncMax").value),
-        vip_priority_hours: $("ncVip") && $("ncVip").checked ? 24 : 0,
-        price_hkd: Number($("ncPrice").value) || 0,
-        credits_cost: $("ncCredits").value ? Number($("ncCredits").value) : undefined,
-        description: $("ncDesc").value.trim(),
-        venue: venueSel ? { partner_venue_id: venueSel } : {
-          name: $("ncVenueName").value.trim(),
-          district: $("ncVenueDistrict").value.trim(),
-          address: $("ncVenueAddr").value.trim(),
-        },
-        schedules,
-      };
-      if (!venueSel && !body.venue.name) { msg.textContent = "請選擇場地或填場地名稱"; return; }
-
-      btn.disabled = true; btn.textContent = "開班中…"; msg.textContent = "";
-      const r = await api.post("/coach/classes", body);
-      btn.disabled = false; btn.textContent = "提交開班（待平台開通）";
-      if (r.ok) {
-        msg.textContent = "✅ 已建立 " + ((r.data && r.data.data && r.data.data.schedules) || schedules.length) + " 個時段，待平台開通後公開";
-        $("ncTitle").value = ""; $("ncDesc").value = "";
-        $("ncSlots").innerHTML = ""; $("ncSlots").appendChild(ncSlotRow());
-        await loadClasses();
-      } else {
-        msg.textContent = (r.data && r.data.error) || "開班失敗";
+    function renderFocus() {
+      const box = $("focus");
+      if (!NEXT) {
+        box.innerHTML = `<div class="k">今日焦點</div><h2>暫時未有排堂</h2>
+          <div class="meta">撳右下角「＋」或去開班管理新增時段。</div>
+          <div class="acts"><a class="btn2" href="coach-console.html" style="text-align:center;text-decoration:none">🛠️ 開新班</a>
+          <a class="btn2 ghost" href="coach-dashboard.html" style="text-align:center;text-decoration:none">排班</a></div>`;
+        return;
       }
+      const cap = Number(NEXT.max_participants) || 0;
+      const booked = Number(NEXT.booked) || 0;
+      const pct = cap ? Math.min(100, Math.round((booked / cap) * 100)) : 0;
+      box.innerHTML = `
+        <div class="k">今日焦點 · 下一堂</div>
+        <h2>${esc(NEXT.title)}</h2>
+        <div class="meta">🕒 ${esc(hm(NEXT.start_time))}–${esc(hm(NEXT.end_time))} ｜ 📍 ${esc(NEXT.venue_name || "場地待定")}${NEXT.district ? " · " + esc(NEXT.district) : ""}</div>
+        <div class="pbar"><i id="fp" style="width:0%"></i></div>
+        <div class="cnt">已報 <b>${booked}</b> / ${cap || "?"} 人${booked >= cap && cap ? " · 已滿額" : ""}</div>
+        <div class="acts">
+          <button class="btn2" id="btnRoster">📋 展開學員名冊</button>
+          <a class="btn2 ghost" href="verify.html" style="text-align:center;text-decoration:none">📷 掃描</a>
+        </div>`;
+      setTimeout(() => { const el = $("fp"); if (el) el.style.width = pct + "%"; }, 60);
+      $("btnRoster").onclick = () => openRoster(NEXT.id);
     }
 
-    async function loadClasses() {
-      const cr = await api.get("/coach/my-classes");
-      const cls = (cr.data && cr.data.classes) || [];
-      $("classes").innerHTML = cls.length ? cls.slice(0, 20).map(c =>
-        `<a class="cl" href="detail.html?id=${encodeURIComponent(c.id)}"><span>${esc(c.title)}<span class="muted" style="font-size:12px"> · ${esc(c.category || "")}</span></span><span class="muted">›</span></a>`
-      ).join("") : '<div class="body muted">暫無課程。可以上面「➕ 開新班」開第一個。</div>';
+    function renderUpcoming(list) {
+      const box = $("upcoming");
+      if (!list.length) { box.innerHTML = '<div style="padding:16px" class="muted4">暫時未有已排期課堂。</div>'; return; }
+      box.innerHTML = list.map((x) => {
+        const cap = Number(x.max_participants) || 0, booked = Number(x.booked) || 0;
+        const full = cap && booked >= cap;
+        return `<div class="row">
+          <div style="min-width:0"><div class="t">${esc(x.title)}</div>
+            <div class="s">${esc(fmt(x.start_time))} · ${esc(x.venue_name || "")} · ${booked}/${cap || "?"}</div></div>
+          <button class="tog" data-roster="${esc(x.id)}">${full ? "已滿額" : "名冊"}</button>
+        </div>`;
+      }).join("");
+      box.querySelectorAll("[data-roster]").forEach((b) => (b.onclick = () => openRoster(b.dataset.roster)));
     }
 
-    async function loadVenues() {
-      const vr = await api.get("/coach/venues");
-      const vs = (vr.data && vr.data.venues) || [];
-      const right = (v) => v.my_status === "active"
-        ? '<span class="badge ok">已加入</span>'
-        : v.my_status === "pending"
-          ? '<span class="badge warn">待審批</span>'
-          : `<button class="btn btn-secondary" style="min-height:36px;padding:0 14px" data-join="${esc(v.id)}">申請加入</button>`;
-      $("venues").innerHTML = vs.length
-        ? vs.map(v => `<div class="cl"><div>${esc(v.name)}<div class="muted" style="font-size:12px">${esc([v.category, v.district].filter(Boolean).join(" · ") || "商戶")}</div></div><div>${right(v)}</div></div>`).join("")
-        : '<div class="body muted">暫無商戶。</div>';
-      $("venues").querySelectorAll("[data-join]").forEach(b => b.onclick = () => joinVenue(b.dataset.join, b));
+    function renderPerf(rows, people, monthly, rating) {
+      const attended = rows.reduce((s, x) => s + (Number(x.booked) || 0), 0);
+      $("perf").innerHTML = `
+        <div class="row"><span class="t">本月課堂</span><span class="pill p-on">${rows.length} 堂</span></div>
+        <div class="row"><span class="t">學員人次</span><span class="pill p-on">${people} 人</span></div>
+        <div class="row"><span class="t">預計分成</span><span class="pill p-new">${hkd(monthly)}</span></div>
+        <div class="row"><span class="t">學員評分</span><span class="pill p-on">${rating.count ? Number(rating.score).toFixed(2) + " ★" : "暫無"}</span></div>`;
     }
 
-    async function joinVenue(id, btn) {
-      if (!confirm("申請加入呢個商戶？")) return;
-      btn.disabled = true; btn.textContent = "申請中…";
-      const r = await api.post("/coach/join-venue", { partner_id: id });
-      if (r.ok) { alert("✅ 已提交申請，待商戶審批"); await loadVenues(); }
-      else { btn.disabled = false; btn.textContent = "申請加入"; alert((r.data && r.data.error) || "申請失敗"); }
+    /* ===== 名冊抽屜（一撳簽到） ===== */
+    async function openRoster(sid) {
+      $("shTitle").textContent = "學員名冊";
+      $("shBody").innerHTML = '<div class="muted4" style="padding:16px 0">載入中…</div>';
+      $("mk").classList.add("on"); $("sh").classList.add("on");
+      const r = await api.get("/coach/class-students?schedule_id=" + encodeURIComponent(sid));
+      if (!r.ok) { $("shBody").innerHTML = `<div class="muted4">${esc((r.data && r.data.error) || "讀取失敗")}</div>`; return; }
+      const sch = r.data.schedule || {};
+      const list = (r.data.students || []).filter((s) => ["confirmed", "attended", "no_show"].includes(s.booking_status));
+      const done = list.filter((s) => s.booking_status === "attended").length;
+      const waTxt = encodeURIComponent(`【ZenPass】課堂提醒：${sch.title || ""} — ${fmt(sch.start_time)}，地點：${sch.venue_name || ""}。請提早 10 分鐘到場。`);
+      const head = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <div class="muted4">${esc(sch.title || "")} · ${esc(hm(sch.start_time))} · <b style="color:#34d399" id="rDone">${done}</b>/${list.length} 已到</div>
+          <a class="tog" href="https://wa.me/?text=${waTxt}" target="_blank" rel="noopener" style="text-decoration:none">💬 群發</a>
+        </div>`;
+      if (!list.length) { $("shBody").innerHTML = head + '<div class="muted4" style="padding:14px 0">暫時未有人報名。</div>'; return; }
+      $("shBody").innerHTML = head + list.map((s) => {
+        const isOn = s.booking_status === "attended";
+        const guests = Number(s.group_size) || 1;
+        return `<div class="stu" data-row="${esc(s.id)}">
+          <div class="l"><div class="av">${esc((s.name || "學").slice(0, 1))}</div>
+            <div style="min-width:0"><div class="n">${esc(s.name || "學員")}${guests > 1 ? ` <span class="muted4">+${guests - 1}</span>` : ""}</div>
+              <div class="s">${s.phone ? "****" + esc(String(s.phone).slice(-4)) + " · " : ""}核銷碼 ${esc(s.checkin_code || "----")}</div></div></div>
+          <button class="tog ${isOn ? "on" : ""}" data-att="${esc(s.id)}" ${isOn ? "disabled" : ""}>${isOn ? "✅ 已出席" : "○ 簽到"}</button>
+        </div>`;
+      }).join("");
+      $("shBody").querySelectorAll("[data-att]").forEach((b) => (b.onclick = async () => {
+        b.disabled = true; b.textContent = "…";
+        const rr = await api.post("/bookings/" + encodeURIComponent(b.dataset.att) + "/attend", { checkin_method: "coach" });
+        if (rr.ok) {
+          buzz(); b.classList.add("on"); b.textContent = "✅ 已出席"; toast("✅ 已簽到");
+          const n = Number($("rDone").textContent) + 1; $("rDone").textContent = n;
+          loadAll(true);
+        } else {
+          b.disabled = false; b.textContent = "○ 簽到";
+          alert((rr.data && rr.data.error) || "簽到失敗");
+        }
+      }));
     }
-    if (api.requireLogin("coach.html")) load();
+    function closeSheet() { $("mk").classList.remove("on"); $("sh").classList.remove("on"); }
+
+    /* ===== 快速開班（3 步） ===== */
+    function quickSchedule() {
+      if (!MY_CLASSES.length) {
+        $("shTitle").textContent = "快速開班";
+        $("shBody").innerHTML = `<div class="muted4" style="line-height:1.7;padding:6px 0 12px">你仲未有課程，先建立一個班別（運動項目、場地、價錢），之後就可以快速加時段。</div>
+          <a class="btn2" href="coach-console.html" style="display:block;text-align:center;text-decoration:none;padding:14px">🛠️ 去建立班別</a>`;
+        $("mk").classList.add("on"); $("sh").classList.add("on");
+        return;
+      }
+      const opts = MY_CLASSES.filter((c) => c.status === "active").map((c) => `<option value="${esc(c.id)}">${esc(c.title)}</option>`).join("");
+      const d = new Date(Date.now() + 864e5); const p = (n) => String(n).padStart(2, "0");
+      const dv = d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate());
+      $("shTitle").textContent = "快速開班";
+      $("shBody").innerHTML = `
+        <label class="lbl4">1️⃣ 揀班別</label>
+        <select class="fld4" id="qClass">${opts}</select>
+        <label class="lbl4">2️⃣ 日期時間</label>
+        <input class="fld4" type="date" id="qDate" value="${dv}" />
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <input class="fld4" type="time" id="qStart" value="14:00" />
+          <input class="fld4" type="time" id="qEnd" value="15:30" />
+        </div>
+        <label class="lbl4">3️⃣ 名額</label>
+        <input class="fld4" type="number" id="qCap" min="2" max="60" value="8" />
+        <button class="btn2" id="qGo" style="width:100%;margin-top:6px">發布時段</button>
+        <div class="muted4" id="qMsg" style="margin-top:10px"></div>`;
+      $("mk").classList.add("on"); $("sh").classList.add("on");
+      $("qGo").onclick = async () => {
+        const st = new Date($("qDate").value + "T" + $("qStart").value);
+        const en = new Date($("qDate").value + "T" + $("qEnd").value);
+        if (isNaN(st) || isNaN(en) || en <= st) { $("qMsg").textContent = "時間有誤"; return; }
+        const btn = $("qGo"); btn.disabled = true; btn.textContent = "發布中…";
+        const r = await api.post("/coach/schedules", {
+          class_id: $("qClass").value, start_time: st.toISOString(), end_time: en.toISOString(),
+          max_participants: Number($("qCap").value) || 8,
+        });
+        btn.disabled = false; btn.textContent = "發布時段";
+        if (!r.ok) { $("qMsg").textContent = (r.data && r.data.error) || "發布失敗"; return; }
+        closeSheet(); toast("✅ 已發布時段"); loadAll(true);
+      };
+    }
   </script>
   <script src="assets/footer.js?v=4" defer></script>
 </body>
