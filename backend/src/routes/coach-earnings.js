@@ -943,8 +943,8 @@ router.get("/settings/effective-rate", (req, res) => {
       .get();
 
     res.json({
-      coach_rate: parseFloat(rate ? rate.value : 0.8),
-      zenpass_rate: 1 - parseFloat(rate ? rate.value : 0.8),
+      coach_rate: Math.round(parseFloat(rate ? rate.value : 0.8) * 100) / 100,
+      zenpass_rate: Math.round((1 - parseFloat(rate ? rate.value : 0.8)) * 100) / 100,
     });
 
 // GET /api/coach/settings/:key — 獲取單個設定
