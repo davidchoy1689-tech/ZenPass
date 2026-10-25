@@ -108,6 +108,111 @@ router.get("/venue/price-request", authenticateToken, requireOwnInstitution, (re
   }
 });
 
+// ===== 場地不可出租時段（Blackout）=====
+function ensureBlackoutTable(db) {
+  db.prepare(`CREATE TABLE IF NOT EXISTS venue_blackouts (
+    id TEXT PRIMARY KEY,
+    venue_id TEXT NOT NULL,
+    start_time TEXT NOT NULL,
+    end_time TEXT NOT NULL,
+    reason TEXT,
+    created_by TEXT,
+    created_at TEXT DEFAULT (datetime('now'))
+  )`).run();
+}
+
+function myVenue(db, userId) {
+  const user = db.prepare("SELECT id,email,partner_id,role FROM users WHERE id = ?").get(userId);
+  if (!user) return null;
+  const v = user.partner_id
+    ? db.prepare("SELECT * FROM partner_venues WHERE id = ? AND status='active'").get(user.partner_id)
+    : db.prepare("SELECT * FROM partner_venues WHERE (email = ? OR user_id = ?) AND status='active'").get(user.email, userId);
+  return v || null;
+}
+
+router.get("/venue/blackouts", authenticateToken, requireOwnInstitution, (req, res) => {
+  try {
+    const db = getDb();
+    ensureBlackoutTable(db);
+    const v = myVenue(db, req.user.id);
+    if (!v) return res.status(403).json({ success: false, error: "你未有已開通嘅場地" });
+    const rows = db
+      .prepare("SELECT * FROM venue_blackouts WHERE venue_id = ? AND end_time >= datetime('now','-1 day') ORDER BY start_time")
+      .all(v.id);
+    res.json({ success: true, venue: { id: v.id, name: v.name }, blackouts: rows });
+  } catch (err) {
+    console.error("blackouts GET error:", err.message);
+    res.status(500).json({ success: false, error: "讀取失敗" });
+  }
+});
+
+router.post("/venue/blackouts", authenticateToken, requireOwnInstitution, (req, res) => {
+  try {
+    const db = getDb();
+    ensureBlackoutTable(db);
+    const v = myVenue(db, req.user.id);
+    if (!v) return res.status(403).json({ success: false, error: "你未有已開通嘅場地" });
+    const { start_time, end_time, reason } = req.body || {};
+    const st = new Date(start_time), en = new Date(end_time);
+    if (isNaN(st) || isNaN(en) || en <= st) return res.status(400).json({ success: false, error: "時間格式有誤" });
+    const id = require("crypto").randomUUID();
+    db.prepare("INSERT INTO venue_blackouts (id, venue_id, start_time, end_time, reason, created_by) VALUES (?,?,?,?,?,?)")
+      .run(id, v.id, st.toISOString(), en.toISOString(), String(reason || "").slice(0, 120) || null, req.user.id);
+    res.status(201).json({ success: true, message: "✅ 已封鎖該時段", id });
+  } catch (err) {
+    console.error("blackouts POST error:", err.message);
+    res.status(500).json({ success: false, error: "儲存失敗" });
+  }
+});
+
+router.delete("/venue/blackouts/:id", authenticateToken, requireOwnInstitution, (req, res) => {
+  try {
+    const db = getDb();
+    ensureBlackoutTable(db);
+    const v = myVenue(db, req.user.id);
+    if (!v) return res.status(403).json({ success: false, error: "你未有已開通嘅場地" });
+    const r = db.prepare("DELETE FROM venue_blackouts WHERE id = ? AND venue_id = ?").run(req.params.id, v.id);
+    if (!r.changes) return res.status(404).json({ success: false, error: "記錄不存在" });
+    res.json({ success: true, message: "已解除封鎖" });
+  } catch (err) {
+    res.status(500).json({ success: false, error: "刪除失敗" });
+  }
+});
+
+// ===== GET /api/partner/venue/schedule?days=14 — 我場地嘅課堂排期 =====
+router.get("/venue/schedule", authenticateToken, requireOwnInstitution, (req, res) => {
+  try {
+    const db = getDb();
+    const v = myVenue(db, req.user.id);
+    if (!v) return res.status(403).json({ success: false, error: "你未有已開通嘅場地" });
+    const days = Math.min(60, Math.max(1, Number(req.query.days) || 14));
+    const rows = db
+      .prepare(
+        `SELECT s.id, s.start_time, s.end_time, s.enrolled_count, s.max_participants, s.status,
+                c.id as class_id, c.title, c.coach_id, u.name as coach_name, c.price_hkd, c.duration
+         FROM class_schedules s
+         JOIN classes c ON c.id = s.class_id
+         LEFT JOIN users u ON u.id = c.coach_id
+         WHERE c.partner_venue_id = ?
+           AND s.start_time >= datetime('now','-1 day')
+           AND s.start_time <= datetime('now', ?)
+         ORDER BY s.start_time ASC`,
+      )
+      .all(v.id, `+${days} day`);
+    const hours = rows.reduce((sum, r) => sum + (Number(r.duration) || 60) / 60, 0);
+    const rate = Number(v.rental_price_per_hour) || 0;
+    res.json({
+      success: true,
+      venue: { id: v.id, name: v.name, rental_price_per_hour: rate },
+      sessions: rows,
+      summary: { sessions: rows.length, hours: Math.round(hours * 10) / 10, estimated_rent: Math.round(hours * rate) },
+    });
+  } catch (err) {
+    console.error("venue schedule error:", err.message);
+    res.status(500).json({ success: false, error: "讀取排期失敗" });
+  }
+});
+
 // ===== GET /api/partner/revenue-report =====
 router.get("/revenue-report", authenticateToken, requireOwnInstitution, (req, res) => {
   try {

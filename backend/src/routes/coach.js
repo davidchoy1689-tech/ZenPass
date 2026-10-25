@@ -15,6 +15,37 @@ const { writeBlock } = require("../services/blockchain-audit");
 
 const router = express.Router();
 
+// 🏟️ 場地時段衝突檢查：同一場地重疊（含場主封鎖時段）
+function venueConflict(db, partnerVenueId, startTime, endTime, excludeScheduleId) {
+  if (!partnerVenueId) return null;
+  try {
+    if (!hasTable(db, "venue_blackouts")) {
+      // 未有表就照查課堂衝突
+    } else {
+      const bo = db
+        .prepare(
+          `SELECT * FROM venue_blackouts WHERE venue_id = ? AND datetime(start_time) < datetime(?) AND datetime(end_time) > datetime(?) LIMIT 1`,
+        )
+        .get(partnerVenueId, endTime, startTime);
+      if (bo) return { type: "blackout", reason: bo.reason || "場主已封鎖此時段" };
+    }
+    const clash = db
+      .prepare(
+        `SELECT s.id, s.start_time, s.end_time, c.title FROM class_schedules s
+         JOIN classes c ON c.id = s.class_id
+         WHERE c.partner_venue_id = ? AND s.status <> 'cancelled'
+           AND datetime(s.start_time) < datetime(?) AND datetime(s.end_time) > datetime(?)
+           AND (? IS NULL OR s.id <> ?)
+         LIMIT 1`,
+      )
+      .get(partnerVenueId, endTime, startTime, excludeScheduleId || null, excludeScheduleId || null);
+    if (clash) return { type: "class", reason: `${clash.title}（${clash.start_time}）`, schedule_id: clash.id };
+  } catch (e) {
+    console.error("venueConflict error:", e.message);
+  }
+  return null;
+}
+
 // partner_venues 未必存在（舊 DB／測試 DB）→ 動態決定要唔要 JOIN
 function hasCol(db, table, col) {
   try { return db.prepare(`PRAGMA table_info(${table})`).all().some((c) => c.name === col); } catch (e) { return false; }
@@ -349,6 +380,17 @@ router.post("/schedules", authenticateToken, (req, res) => {
       new Date(end_time).getTime() - new Date(start_time).getTime();
     const scheduleIds = [];
 
+    // 🏟️ 合作場地撞期／封鎖檢查（新增時段時）
+    if (classData.partner_venue_id) {
+      const cf = venueConflict(db, classData.partner_venue_id, start_time, end_time, null);
+      if (cf) {
+        return res.status(409).json({
+          success: false,
+          error: cf.type === "blackout" ? `場地此時段唔開放（${cf.reason}）` : `場地撞期：${cf.reason}`,
+        });
+      }
+    }
+
     if (recurringType === "none" || !recurring_until) {
       // Single schedule
       const id = uuidv4();
@@ -658,6 +700,19 @@ router.post("/classes", authenticateToken, (req, res) => {
       if (et <= st) return res.status(400).json({ success: false, error: "完結時間必須遲過開始時間" });
       if (st < now - 1000 * 60 * 5) return res.status(400).json({ success: false, error: "唔可以開過去嘅時段" });
       if (st > maxAhead) return res.status(400).json({ success: false, error: "只可以開未來 3 個月嘅班" });
+    }
+
+    // 🏟️ 合作場地撞期／封鎖檢查
+    if (partnerVenueId) {
+      for (const s of schedules) {
+        const cf = venueConflict(db, partnerVenueId, s.start_time, s.end_time, null);
+        if (cf) {
+          return res.status(409).json({
+            success: false,
+            error: cf.type === "blackout" ? `場地此時段唔開放（${cf.reason}）` : `場地撞期：${cf.reason}`,
+          });
+        }
+      }
     }
 
     const finalPrice = Number(price_hkd) || 0;

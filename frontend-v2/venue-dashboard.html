@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#ff6b35" />
+  <meta name="robots" content="noindex" />
+  <title>場地管理後台 · ZenPass 禪流</title>
+  <link rel="stylesheet" href="assets/v2.css?v=26" />
+  <link rel="stylesheet" href="assets/ui-v3.css?v=5" />
+  <style>
+    .hero{background:linear-gradient(135deg,var(--brand-500),var(--brand-700));color:#fff;border-radius:20px;padding:16px;margin:6px 0 12px}
+    .hero h2{margin:0;font-size:18px}
+    .hero p{margin:4px 0 0;font-size:12.5px;opacity:.95}
+    .kpi{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+    .kpi div{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:13px}
+    .kpi .v{font-size:20px;font-weight:800;color:var(--brand-600)}
+    .kpi .l{font-size:11.5px;color:var(--text-muted);margin-top:3px}
+    .row{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:11px 0;border-bottom:1px solid var(--border);font-size:13.5px}
+    .row:last-child{border-bottom:0}
+    .row .s{font-size:11.5px;color:var(--text-muted);margin-top:2px}
+    .pill{font-size:11px;font-weight:800;border-radius:99px;padding:3px 9px;white-space:nowrap}
+    .p-on{background:#ecfdf5;color:#047857}
+    .p-off{background:#f1f5f9;color:#64748b}
+    .fld{width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:11px;padding:11px;font:inherit;font-size:15px;background:var(--surface);color:var(--text);margin-bottom:8px}
+    .lbl{font-size:12.5px;font-weight:700;color:var(--text-muted);display:block;margin:0 0 5px 2px}
+    .toast5{position:fixed;left:50%;transform:translateX(-50%);bottom:96px;background:rgba(15,23,42,.93);color:#fff;padding:11px 18px;border-radius:99px;font-size:13.5px;z-index:9999}
+  </style>
+</head>
+<body>
+  <div class="topbar"><a class="back" href="merchant-centre.html">‹</a><div class="title">場地管理</div></div>
+  <div class="wrap">
+    <div id="guard"></div>
+    <div id="app" hidden>
+      <div class="hero" id="hero"></div>
+      <div class="kpi" id="kpis"></div>
+
+      <div class="section-title">📅 未來 14 日場地排期</div>
+      <div class="card"><div class="body" id="schedule"></div></div>
+
+      <div class="section-title">🚫 不可出租時段</div>
+      <div class="card"><div class="body">
+        <div class="muted" style="font-size:12px;margin-bottom:8px">封鎖後，教練喺呢段時間唔可以開班（系統會自動擋）。</div>
+        <div id="blackouts" style="margin-bottom:10px"></div>
+        <label class="lbl">新增封鎖</label>
+        <input class="fld" type="datetime-local" id="boStart" />
+        <input class="fld" type="datetime-local" id="boEnd" />
+        <input class="fld" id="boReason" placeholder="原因（可選）例：私人包場／維修" />
+        <button class="btn btn-primary btn-block" id="boAdd">封鎖此時段</button>
+      </div></div>
+
+      <div class="section-title">💰 場租對賬</div>
+      <div class="card"><div class="body">
+        <div class="row"><span>未來 14 日場租估算</span><b id="estRent">—</b></div>
+        <div class="row"><span>費率</span><span id="rateLine">—</span></div>
+        <a class="btn btn-primary btn-block" id="waSettle" style="background:#25d366;color:#04331c;margin-top:10px" target="_blank" rel="noopener">💬 WhatsApp 索取場租對賬單</a>
+      </div></div>
+      <div style="height:10px"></div>
+      <a class="btn btn-secondary btn-block" href="merchant-centre.html">前往完整商戶中心（收入報表／租金設定）</a>
+    </div>
+    <div class="spacer"></div>
+  </div>
+
+  <script src="assets/api.js?v=3"></script>
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    const hkd = (n) => "HK$" + Number(n || 0).toLocaleString("en-HK");
+    const fmt = (t) => { const d = new Date(String(t).replace(" ", "T")); return isNaN(d) ? String(t) : d.toLocaleString("zh-HK", { month: "short", day: "numeric", weekday: "short", hour: "2-digit", minute: "2-digit" }); };
+    const hm = (t) => { const d = new Date(String(t).replace(" ", "T")); return isNaN(d) ? "" : d.toLocaleTimeString("zh-HK", { hour: "2-digit", minute: "2-digit", hour12: false }); };
+    function toast(m) { const t = document.createElement("div"); t.className = "toast5"; t.textContent = m; document.body.appendChild(t); setTimeout(() => t.remove(), 2400); }
+
+    let VENUE = null, SUMMARY = null;
+
+    (async () => {
+      if (!api.getUser()) {
+        $("guard").innerHTML = `<div class="card"><div class="body center" style="padding:24px 16px">
+          <div style="font-size:36px">🏟️</div>
+          <b style="display:block;font-size:16px;margin-top:6px">場地管理後台</b>
+          <div class="muted" style="font-size:13px;margin-top:8px;line-height:1.7">需要已開通嘅商戶帳號登入。</div>
+          <div style="display:grid;gap:9px;margin-top:14px">
+            <a class="btn btn-primary" href="login.html?next=venue-dashboard.html">🔑 商戶登入</a>
+            <a class="btn btn-secondary" href="partner-apply.html">✍️ 申請場地加盟</a>
+          </div></div></div>`;
+        return;
+      }
+      $("app").hidden = false;
+      await loadSchedule();
+      await loadBlackouts();
+    })();
+
+    async function loadSchedule() {
+      const r = await api.get("/partner/venue/schedule?days=14");
+      if (!r.ok) {
+        $("guard").innerHTML = `<div class="card"><div class="body center">${esc((r.data && r.data.error) || "你未有已開通嘅場地")}<br><br><a class="btn btn-secondary" href="partner-apply.html">申請場地加盟</a></div></div>`;
+        $("app").hidden = true;
+        return;
+      }
+      VENUE = r.data.venue; SUMMARY = r.data.summary;
+      $("hero").innerHTML = `<h2>🏟️ ${esc(VENUE.name)}</h2><p>每小時租金 ${hkd(VENUE.rental_price_per_hour)} · 按實際排期計</p>`;
+      $("kpis").innerHTML = `
+        <div><div class="v">${SUMMARY.sessions}</div><div class="l">未來 14 日場次</div></div>
+        <div><div class="v">${SUMMARY.hours}</div><div class="l">使用小時</div></div>
+        <div><div class="v">${hkd(SUMMARY.estimated_rent)}</div><div class="l">估算場租</div></div>
+        <div><div class="v">${hkd(VENUE.rental_price_per_hour)}</div><div class="l">每小時費率</div></div>`;
+      const list = r.data.sessions || [];
+      $("schedule").innerHTML = list.length
+        ? list.map((s) => `<div class="row"><span><b>${esc(s.title)}</b>
+            <span class="s">${esc(fmt(s.start_time))} – ${esc(hm(s.end_time))} · ${esc(s.coach_name || "教練")} · ${s.enrolled_count}/${s.max_participants} 人</span></span>
+            <span class="pill p-on">${hkd((Number(s.duration) || 60) / 60 * (Number(VENUE.rental_price_per_hour) || 0))}</span></div>`).join("")
+        : '<div class="muted center" style="padding:16px 0">未來 14 日暫時冇課堂租用。</div>';
+      $("estRent").textContent = hkd(SUMMARY.estimated_rent);
+      $("rateLine").textContent = hkd(VENUE.rental_price_per_hour) + " / 小時";
+      const msg = `你好，我係「${VENUE.name}」場主，想索取最近 14 日場租對賬單（場次 ${SUMMARY.sessions} 場、${SUMMARY.hours} 小時、估算 ${hkd(SUMMARY.estimated_rent)}）。`;
+      $("waSettle").href = "https://wa.me/85290335538?text=" + encodeURIComponent(msg);
+    }
+
+    async function loadBlackouts() {
+      const r = await api.get("/partner/venue/blackouts");
+      if (!r.ok) return;
+      const rows = r.data.blackouts || [];
+      $("blackouts").innerHTML = rows.length
+        ? rows.map((b) => `<div class="row"><span><b>${esc(fmt(b.start_time))} – ${esc(hm(b.end_time))}</b>
+            <span class="s">${esc(b.reason || "不可出租")}</span></span>
+            <button class="btn btn-secondary" style="min-height:32px;padding:0 10px;font-size:12px" data-del="${esc(b.id)}">解除</button></div>`).join("")
+        : '<div class="muted" style="font-size:12.5px">暫時冇封鎖時段。</div>';
+      $("blackouts").querySelectorAll("[data-del]").forEach((b) => (b.onclick = async () => {
+        if (!confirm("解除呢個封鎖？")) return;
+        const rr = await api.del ? await api.del("/partner/venue/blackouts/" + encodeURIComponent(b.dataset.del)) : await fetch((window.API_BASE || "") + "/api/partner/venue/blackouts/" + encodeURIComponent(b.dataset.del), { method: "DELETE", credentials: "include" });
+        toast("✅ 已解除");
+        loadBlackouts();
+      }));
+    }
+
+    $("boAdd").onclick = async () => {
+      const st = $("boStart").value, en = $("boEnd").value;
+      if (!st || !en) { alert("請揀開始同結束時間"); return; }
+      const r = await api.post("/partner/venue/blackouts", {
+        start_time: new Date(st).toISOString(), end_time: new Date(en).toISOString(), reason: $("boReason").value.trim(),
+      });
+      if (r.ok) { toast("✅ 已封鎖"); $("boStart").value = ""; $("boEnd").value = ""; $("boReason").value = ""; loadBlackouts(); }
+      else alert((r.data && r.data.error) || "封鎖失敗");
+    };
+  </script>
+  <script src="assets/footer.js?v=4" defer></script>
+</body>
+</html>
