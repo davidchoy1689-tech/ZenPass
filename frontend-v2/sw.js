@@ -3,7 +3,7 @@
  * 靜態資源：cache-first
  * /api/：永不快取（確保資料即時）
  */
-const CACHE = "zenpass-v2-shell-v3";
+const CACHE = "zenpass-v2-shell-v4";
 const ASSETS = [
   "/",
   "/index.html",
