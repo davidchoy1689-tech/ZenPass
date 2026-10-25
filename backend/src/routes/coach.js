@@ -14,6 +14,14 @@ const { notifyNewApplication } = require("../services/lead-notify");
 const { writeBlock } = require("../services/blockchain-audit");
 
 const router = express.Router();
+
+// partner_venues 未必存在（舊 DB／測試 DB）→ 動態決定要唔要 JOIN
+function hasCol(db, table, col) {
+  try { return db.prepare(`PRAGMA table_info(${table})`).all().some((c) => c.name === col); } catch (e) { return false; }
+}
+function hasTable(db, name) {
+  try { return !!db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name = ?").get(name); } catch (e) { return false; }
+}
 // 2026-10-25：教練自助開班需要「最低成團人數」（idempotent）
 (function ensureCoachClassColumns() {
   try {
@@ -696,15 +704,18 @@ router.post("/classes", authenticateToken, (req, res) => {
 router.get("/sessions", authenticateToken, (req, res) => {
   try {
     const db = getDb();
+    const HAS_PV = hasTable(db, "partner_venues") && hasCol(db, "partner_venues", "rental_price_per_hour");
     const filter = String(req.query.filter || "upcoming");
     const rows = db
       .prepare(
         `SELECT s.id, s.start_time, s.end_time, s.status, s.enrolled_count, s.max_participants,
                 c.id as class_id, c.title, c.venue_name, c.venue_address, c.district,
                 c.price_hkd, c.min_participants, c.duration, c.booking_open, c.category, c.sport_slug,
+                c.partner_venue_id, ${HAS_PV ? "pv.name" : "NULL"} as partner_venue_name, ${HAS_PV ? "pv.rental_price_per_hour" : "NULL"} as rental_price_per_hour,
                 (SELECT COUNT(*) FROM bookings b WHERE b.schedule_id = s.id AND b.status IN ('confirmed','attended')) as booked
          FROM class_schedules s
          JOIN classes c ON c.id = s.class_id
+         ${HAS_PV ? "LEFT JOIN partner_venues pv ON pv.id = c.partner_venue_id" : ""}
          WHERE c.coach_id = ? AND COALESCE(c.status,'active') <> 'deleted'
          ORDER BY s.start_time DESC
          LIMIT 300`,
@@ -764,7 +775,28 @@ router.post("/schedules/:sid/settle", authenticateToken, (req, res) => {
     const attendedHeads = Number(req.body.attended_heads != null ? req.body.attended_heads : counts.attended_heads) || 0;
     const enrolledHeads = Number(counts.enrolled_heads) || 0;
     const gross = Math.round(attendedHeads * price * 100) / 100;
-    const net = Math.round(gross * rate * 100) / 100;
+
+    // 🏟️ 場地費：平台合作場地可自動計租金；教練自租場地 → 由教練自行支付（可手動輸入實際租金）
+    let venueMode = String(req.body.venue_mode || "").toLowerCase();
+    let venueFee = 0;
+    let venueName = null;
+    let venueAuto = 0;
+    if (row.partner_venue_id) {
+      const v = db
+        .prepare("SELECT name, rental_price_per_hour FROM partner_venues WHERE id = ?")
+        .get(row.partner_venue_id);
+      if (v) {
+        venueName = v.name;
+        const hours = (Number(row.duration) || 60) / 60;
+        venueAuto = Math.round((Number(v.rental_price_per_hour) || 0) * hours * 100) / 100;
+      }
+    }
+    if (!venueMode) venueMode = row.partner_venue_id ? "partner" : "self";
+    if (venueMode === "partner") venueFee = venueAuto;
+    else venueFee = Math.max(0, Number(req.body.venue_fee) || 0);
+
+    const platformFee = Math.round(gross * (1 - rate) * 100) / 100;
+    const net = Math.max(0, Math.round((gross - venueFee - platformFee) * 100) / 100);
 
     const summary = {
       settled_at: new Date().toISOString(),
@@ -773,6 +805,12 @@ router.post("/schedules/:sid/settle", authenticateToken, (req, res) => {
       absent_heads: Math.max(0, enrolledHeads - attendedHeads),
       unit_price: price,
       gross,
+      venue_mode: venueMode,
+      venue_name: venueName,
+      venue_fee: venueFee,
+      venue_fee_auto: venueAuto,
+      platform_rate: Math.round((1 - rate) * 100) / 100,
+      platform_fee: platformFee,
       commission_rate: rate,
       net,
       by: req.user.id,
@@ -786,7 +824,7 @@ router.post("/schedules/:sid/settle", authenticateToken, (req, res) => {
       writeBlock({ entityType: "coach_settlement", entityId: row.id, data: summary });
     } catch (e) {}
 
-    res.json({ success: true, message: "✅ 已封存結算", summary });
+    res.json({ success: true, message: "✅ 已封存結算", summary, venue_auto: venueAuto });
   } catch (err) {
     console.error("coach settle error:", err.message);
     res.status(500).json({ success: false, error: "結算失敗" });
@@ -969,6 +1007,12 @@ router.get("/upcoming", authenticateToken, (req, res) => {
 router.get("/class-students", authenticateToken, (req, res) => {
   try {
     const db = getDb();
+    // 舊 DB／測試 DB 未必有呢啲欄，缺欄時用預設值（避免 500）
+    const bcols = db.prepare("PRAGMA table_info(bookings)").all().map((c) => c.name);
+    const ucols = db.prepare("PRAGMA table_info(users)").all().map((c) => c.name);
+    const PVOK = hasTable(db, "partner_venues") && hasCol(db, "partner_venues", "rental_price_per_hour");
+    const BC = (col, dflt) => (bcols.includes(col) ? `b.${col}` : dflt);
+    const UC = (col, dflt) => (ucols.includes(col) ? `u.${col}` : dflt);
     const { schedule_id } = req.query;
 
     // Verify coach owns this schedule's class
@@ -1005,10 +1049,13 @@ router.get("/class-students", authenticateToken, (req, res) => {
       .prepare(
         `
       SELECT b.id, b.user_id, u.name, u.email, u.phone, b.status as booking_status,
-             b.payment_status, b.created_at as booking_date, b.checked_in_at,
-             COALESCE(b.group_size,1) AS group_size,
-             u.emergency_name, u.emergency_phone,
-             COALESCE(u.health_declared,0) AS health_declared
+             ${BC("payment_status", "NULL")} AS payment_status,
+             b.created_at as booking_date,
+             ${BC("checked_in_at", "NULL")} AS checked_in_at,
+             ${BC("group_size", "1")} AS group_size,
+             ${UC("emergency_name", "NULL")} AS emergency_name,
+             ${UC("emergency_phone", "NULL")} AS emergency_phone,
+             ${UC("health_declared", "0")} AS health_declared
       FROM bookings b
       JOIN users u ON b.user_id = u.id
       WHERE b.schedule_id = ? AND b.class_id = ?
@@ -1022,9 +1069,12 @@ router.get("/class-students", authenticateToken, (req, res) => {
       .prepare(
         `
       SELECT cs.id, cs.start_time, cs.end_time, cs.enrolled_count, cs.max_participants,
-             c.title, c.venue_name, c.venue_address, c.price_hkd, c.min_participants, c.duration
+             c.title, c.venue_name, c.venue_address, c.price_hkd, c.min_participants, c.duration,
+             c.partner_venue_id, ${PVOK ? "pv.name" : "NULL"} AS partner_venue_name,
+             ${PVOK ? "pv.rental_price_per_hour" : "NULL"} AS rental_price_per_hour
       FROM class_schedules cs
       JOIN classes c ON cs.class_id = c.id
+      ${PVOK ? "LEFT JOIN partner_venues pv ON pv.id = c.partner_venue_id" : ""}
       WHERE cs.id = ?
     `,
       )
