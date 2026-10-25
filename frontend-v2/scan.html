@@ -1,0 +1,396 @@
+<!doctype html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1" />
+  <meta name="theme-color" content="#0f172a" />
+  <meta name="robots" content="noindex" />
+  <title>現場掃描核銷 · ZenPass 禪流</title>
+  <link rel="stylesheet" href="assets/v2.css?v=26" />
+  <link rel="stylesheet" href="assets/ui-v3.css?v=5" />
+  <style>
+    :root { --scan:#10b981; }
+    body { background:#0f172a; color:#e2e8f0; }
+    .topbar { background:#0f172a; border-bottom:1px solid #1e293b; color:#e2e8f0; position:sticky; top:0; z-index:20; }
+    .topbar .title { color:#e2e8f0; font-size:16px; }
+    .topbar .back { color:#94a3b8; }
+    .wrap { max-width:520px; }
+    .hdr { padding:12px 4px 6px; }
+    .hdr .nm { font-size:15px; font-weight:800; }
+    .hdr .sub { font-size:12.5px; color:#94a3b8; margin-top:2px; }
+    .counter { margin-top:10px; display:flex; align-items:center; gap:10px; }
+    .counter .n { font-size:22px; font-weight:800; color:var(--scan); }
+    .counter .t { font-size:12px; color:#94a3b8; }
+    .cbar { flex:1; height:8px; border-radius:99px; background:#1e293b; overflow:hidden; }
+    .cbar i { display:block; height:100%; background:linear-gradient(90deg,#10b981,#34d399); border-radius:99px; transition:width .3s; }
+
+    .seg { display:flex; gap:8px; margin:12px 0; }
+    .seg button { flex:1; border:1px solid #1e293b; background:#111c31; color:#94a3b8; border-radius:12px; padding:11px 0; font:inherit; font-size:13.5px; font-weight:700; }
+    .seg button.on { background:#0f2e25; border-color:#10b981; color:#34d399; }
+
+    #reader { width:100%; border-radius:20px; overflow:hidden; position:relative; background:#0b1220; min-height:260px; }
+    #reader video { width:100% !important; height:auto !important; display:block; }
+    .frame { position:absolute; inset:0; pointer-events:none; }
+    .frame .corner { position:absolute; width:34px; height:34px; border:3px solid var(--scan); }
+    .frame .c1 { top:14%; left:10%; border-right:0; border-bottom:0; border-radius:12px 0 0 0; }
+    .frame .c2 { top:14%; right:10%; border-left:0; border-bottom:0; border-radius:0 12px 0 0; }
+    .frame .c3 { bottom:14%; left:10%; border-right:0; border-top:0; border-radius:0 0 0 12px; }
+    .frame .c4 { bottom:14%; right:10%; border-left:0; border-top:0; border-radius:0 0 12px 0; }
+    .frame .laser { position:absolute; left:12%; right:12%; height:2px; background:linear-gradient(90deg,transparent,#10b981,transparent); box-shadow:0 0 12px #10b981; animation:sweep 2.2s ease-in-out infinite; }
+    @keyframes sweep { 0%,100% { top:16% } 50% { top:82% } }
+    .cam-note { text-align:center; font-size:12px; color:#94a3b8; margin-top:8px; line-height:1.6; }
+
+    .code4 { display:flex; gap:10px; justify-content:center; margin:14px 0; }
+    .code4 input { width:58px; height:66px; text-align:center; font:800 28px/1 ui-monospace,Menlo,monospace; background:#111c31; color:#fff; border:2px solid #1e293b; border-radius:14px; }
+    .code4 input:focus { outline:none; border-color:var(--scan); box-shadow:0 0 0 3px rgba(16,185,129,.18); }
+    .ref-in { width:100%; box-sizing:border-box; background:#111c31; color:#e2e8f0; border:1px solid #1e293b; border-radius:12px; padding:12px; font:inherit; font-size:15px; margin-bottom:10px; }
+    .dark-btn { width:100%; border:0; border-radius:13px; padding:14px; font:inherit; font-size:15px; font-weight:800; background:linear-gradient(135deg,#10b981,#059669); color:#fff; }
+    .dark-btn.ghost { background:#111c31; color:#cbd5e1; border:1px solid #1e293b; }
+
+    .roster { margin-top:14px; }
+    .roster .grp { background:#111c31; border:1px solid #1e293b; border-radius:16px; overflow:hidden; }
+    .roster .row { display:flex; justify-content:space-between; align-items:center; gap:10px; padding:12px 14px; border-bottom:1px solid #1e293b; }
+    .roster .row:last-child { border-bottom:0; }
+    .roster .n { font-size:14px; font-weight:700; }
+    .roster .s { font-size:11.5px; color:#94a3b8; margin-top:2px; }
+    .pill { font-size:11.5px; font-weight:800; border-radius:999px; padding:3px 10px; }
+    .pill.ok { background:#052e23; color:#34d399; }
+    .pill.no { background:#231a05; color:#fbbf24; }
+
+    /* 結果 Bottom Sheet */
+    .rs-mask { position:fixed; inset:0; background:rgba(2,6,23,.7); z-index:9998; opacity:0; pointer-events:none; transition:opacity .2s; }
+    .rs-mask.on { opacity:1; pointer-events:auto; }
+    .rs { position:fixed; left:0; right:0; bottom:0; z-index:9999; background:#0b1220; border-radius:22px 22px 0 0; padding:20px 18px calc(20px + env(safe-area-inset-bottom)); transform:translateY(100%); transition:transform .28s cubic-bezier(.16,1,.3,1); max-height:90vh; overflow:auto; border-top:1px solid #1e293b; }
+    .rs.on { transform:translateY(0); }
+    .rs .ic { font-size:52px; text-align:center; line-height:1; }
+    .rs h3 { text-align:center; margin:10px 0 4px; font-size:19px; }
+    .rs .k { display:flex; justify-content:space-between; gap:12px; font-size:13.5px; padding:9px 0; border-bottom:1px solid #1e293b; }
+    .rs .k span:first-child { color:#94a3b8; }
+    .rs .k span:last-child { font-weight:700; }
+    .rs.ok h3 { color:#34d399; }
+    .rs.dup h3 { color:#fbbf24; }
+    .rs.bad h3 { color:#f87171; }
+    .rs .tip { text-align:center; font-size:12px; color:#94a3b8; margin:10px 0 14px; }
+  </style>
+</head>
+<body>
+  <div class="topbar"><a class="back" href="coach-dashboard.html">‹</a><div class="title">現場核銷</div></div>
+  <div class="wrap">
+    <div class="hdr">
+      <div class="nm" id="coachName">教練</div>
+      <div class="sub" id="sessionInfo">今日未有揀選課堂</div>
+      <div class="counter">
+        <div class="n" id="attN">0</div>
+        <div class="t" id="attT">/ 0 已簽到</div>
+        <div class="cbar"><i id="attBar" style="width:0%"></i></div>
+      </div>
+    </div>
+
+    <div class="seg" id="seg">
+      <button class="on" data-m="scan">📷 相機掃描</button>
+      <button data-m="code">⌨️ 4 位驗證碼</button>
+    </div>
+
+    <div id="paneScan">
+      <div id="reader"></div>
+      <div class="frame"><span class="corner c1"></span><span class="corner c2"></span><span class="corner c3"></span><span class="corner c4"></span><span class="laser"></span></div>
+      <div class="cam-note" id="camNote">撳「啟動鏡頭」開始掃描學員入場 QR Code</div>
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <button class="dark-btn" id="btnStart">啟動鏡頭</button>
+        <button class="dark-btn ghost" id="btnTorch" style="max-width:120px">🔦 燈</button>
+      </div>
+      <button class="dark-btn ghost" id="btnSwitch" style="margin-top:8px">🔄 切換鏡頭</button>
+    </div>
+
+    <div id="paneCode" hidden>
+      <div class="cam-note" style="margin:6px 0 0">輸入學員憑證上嘅 4 位數字（無需掃描）</div>
+      <div class="code4" id="code4">
+        <input inputmode="numeric" maxlength="1" />
+        <input inputmode="numeric" maxlength="1" />
+        <input inputmode="numeric" maxlength="1" />
+        <input inputmode="numeric" maxlength="1" />
+      </div>
+      <input class="ref-in" id="ref" placeholder="預約編號（例如 ZP-0006，可留空）" autocapitalize="characters" />
+      <button class="dark-btn" id="btnManual">核銷簽到</button>
+    </div>
+
+    <div class="roster" id="rosterBox">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin:16px 2px 8px">
+        <b style="font-size:14.5px">📋 本班簽到名冊</b>
+        <button class="dark-btn ghost" style="max-width:110px;padding:8px;font-size:12.5px" id="btnReload">重新載入</button>
+      </div>
+      <div class="grp" id="roster"><div style="padding:16px" class="cam-note">載入中…</div></div>
+    </div>
+    <div style="height:16px"></div>
+  </div>
+
+  <div class="rs-mask" id="rsMask"></div>
+  <div class="rs" id="rs">
+    <div class="ic" id="rsIc">✅</div>
+    <h3 id="rsTitle">簽到成功</h3>
+    <div id="rsBody"></div>
+    <div class="tip" id="rsTip"></div>
+    <button class="dark-btn" id="rsNext">繼續掃描下一位</button>
+  </div>
+
+  <script src="assets/api.js?v=3"></script>
+  <script src="assets/vendor/html5-qrcode.min.js"></script>
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    let ME = {}, scanner = null, running = false, torchOn = false, camId = null, cams = [], lastScan = 0, currSchedule = null;
+
+    function showGate() {
+      const ov = document.createElement("div");
+      ov.style.cssText = "position:fixed;inset:0;z-index:10050;background:#0f172a;display:flex;align-items:center;justify-content:center;padding:18px";
+      ov.innerHTML = `<div class="glass" style="padding:24px 18px;text-align:center;width:100%;max-width:420px">
+        <div style="font-size:40px">📷</div>
+        <b style="display:block;font-size:17px;margin-top:8px">現場核銷工具</b>
+        <div style="font-size:12.5px;color:#94a3b8;margin-top:8px;line-height:1.7">需要教練帳號登入。想睇操作介面可以用示範模式。</div>
+        <div style="display:grid;gap:9px;margin-top:16px">
+          <a class="dark-btn" style="text-align:center;text-decoration:none" href="login.html?next=scan.html">🔑 教練登入</a>
+          <a class="dark-btn ghost" style="text-align:center;text-decoration:none" href="verify.html?demo=1">👀 示範預覽（Demo）</a>
+          <a class="dark-btn ghost" style="text-align:center;text-decoration:none" href="coach.html?demo=1">返回教練中心</a>
+        </div></div>`;
+      document.body.appendChild(ov);
+    }
+    // 2026-10-25：無登入都自動示範（唔再顯示 gate、唔會跳登入）
+    const DEMO = new URLSearchParams(location.search).get("demo") === "1" || !api.getUser();
+
+    function beep(ok) {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const o = ctx.createOscillator(), g = ctx.createGain();
+        o.type = "sine";
+        o.frequency.value = ok ? 880 : 320;
+        g.gain.value = 0.06;
+        o.connect(g); g.connect(ctx.destination);
+        o.start();
+        setTimeout(() => { o.stop(); ctx.close(); }, ok ? 130 : 220);
+      } catch (e) {}
+    }
+    function buzz(pattern) { if (navigator.vibrate) navigator.vibrate(pattern); }
+
+    (async () => {
+      if (DEMO) {
+        const b0 = document.createElement("div");
+        b0.style.cssText = "margin:8px 0 0;padding:9px 12px;border-radius:10px;background:rgba(251,191,36,.12);color:#fbbf24;font-size:12px;display:flex;justify-content:space-between;gap:8px;align-items:center";
+        b0.innerHTML = '<span>👀 示範模式 · build 2026-10-25 19:00</span><a href="login.html?next=scan.html" style="color:#34d399;font-weight:800;text-decoration:none;white-space:nowrap">教練登入 ›</a>';
+        document.querySelector(".wrap").prepend(b0);
+        $("coachName").textContent = "陳大文（示範）· 現場核銷";
+        $("sessionInfo").textContent = "🎯 芬蘭木柱 週末體驗班 · 今日 15:00";
+        $("attN").textContent = "2"; $("attT").textContent = "/ 4 已簽到"; $("attBar").style.width = "50%";
+        $("roster").innerHTML = [
+          ["Alex Wong", "6192", true], ["Sarah Chan", "3305", true],
+          ["Michael Lee", "8821", false], ["Jason Lau", "4470", false],
+        ].map(([n, c, on]) => `<div class="row"><div><div class="n">${n}</div><div class="s">核銷碼 ${c}</div></div>
+          <span class="pill ${on ? "ok" : "no"}">${on ? "✅ 已簽到" : "未簽到"}</span></div>`).join("");
+        $("camNote").textContent = "示範模式：相機已停用，輸入任何 4 位數字可預覽核銷結果";
+        $("btnManual").onclick = () => showResult("ok", "✅ 簽到成功（示範）", { student_name: "Michael Lee", phone_last4: "4567", booking_reference: "ZP-9001", guests: 2, checked_in_at: new Date().toISOString() }, "3 / 4 已簽到");
+        $("btnStart").onclick = () => { $("camNote").textContent = "示範模式唔會開相機"; };
+        return;
+      }
+      const me = await api.get("/users/me").catch(() => null);
+      ME = (me && me.data && (me.data.user || me.data)) || api.getUser() || {};
+      $("coachName").textContent = (ME.name || "教練") + " · 現場核銷";
+      // 今日／下一個課堂
+      const r = await api.get("/coach/sessions?filter=upcoming");
+      const list = (r.data && r.data.sessions) || [];
+      // 揀「今日／最近 + 有報名」嘅班，否則第一個
+      const today = new Date().toISOString().slice(0, 10);
+      const score = (x) => (String(x.start_time).slice(0, 10) === today ? 100 : 0) + (Number(x.booked) > 0 ? 50 : 0);
+      currSchedule = list.slice().sort((a, b) => score(b) - score(a))[0] || null;
+      if (currSchedule) {
+        $("sessionInfo").textContent = `${currSchedule.title} · ${new Date(String(currSchedule.start_time).replace(" ", "T")).toLocaleString("zh-HK", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}`;
+      }
+      await loadRoster();
+      // 🔄 名冊／出席人數每 15 秒更新
+      setInterval(() => { if (!document.hidden) loadRoster(true); }, 15000);
+    })();
+
+    $("seg").onclick = (e) => {
+      const b = e.target.closest("button"); if (!b) return;
+      [...$("seg").children].forEach((x) => x.classList.toggle("on", x === b));
+      const m = b.dataset.m;
+      $("paneScan").hidden = m !== "scan";
+      $("paneCode").hidden = m !== "code";
+      if (m === "code" && running) stopScan();
+      if (m === "code") setTimeout(() => $("code4").querySelector("input").focus(), 120);
+    };
+
+    /* ===== 掃描 ===== */
+    $("btnStart").onclick = startScan;
+    $("btnSwitch").onclick = () => {
+      if (cams.length < 2) { $("camNote").textContent = "此裝置只有一個鏡頭"; return; }
+      camId = cams[(cams.findIndex((c) => c.id === camId) + 1) % cams.length].id;
+      stopScan().then(() => startScan());
+    };
+    $("btnTorch").onclick = async () => {
+      try {
+        if (!scanner) return;
+        const state = scanner.getRunningTrackCapabilities ? scanner.getRunningTrackCapabilities() : {};
+        if (!state || !("torch" in state)) { $("camNote").textContent = "此裝置／瀏覽器唔支援手電筒"; return; }
+        torchOn = !torchOn;
+        await scanner.applyVideoConstraints({ advanced: [{ torch: torchOn }] });
+      } catch (e) { $("camNote").textContent = "手電筒唔可用：" + e.message; }
+    };
+
+    async function startScan() {
+      if (running) return;
+      try {
+        if (!window.Html5Qrcode) { $("camNote").textContent = "掃描模組載入失敗，請用 4 位驗證碼"; return; }
+        const devices = await Html5Qrcode.getCameras().catch(() => []);
+        cams = devices || [];
+        if (!camId && cams.length) {
+          const back = cams.find((c) => /back|rear|environment/i.test(c.label)) || cams[0];
+          camId = back.id;
+        }
+        scanner = scanner || new Html5Qrcode("reader", { verbose: false });
+        await scanner.start(
+          camId ? { deviceId: { exact: camId } } : { facingMode: "environment" },
+          { fps: 10, qrbox: { width: 240, height: 240 }, aspectRatio: 1.0 },
+          onDecoded,
+          () => {}
+        );
+        running = true;
+        $("camNote").textContent = "將學員入場 QR Code 對準框內…";
+      } catch (e) {
+        $("camNote").textContent = "開唔到鏡頭（" + (e && e.message ? e.message : "權限被拒") + "）→ 請用「4 位驗證碼」";
+      }
+    }
+
+    async function stopScan() {
+      try { if (scanner && running) await scanner.stop(); } catch (e) {}
+      running = false;
+      try { if (scanner) scanner.clear(); } catch (e) {}
+    }
+
+    function onDecoded(text) {
+      const now = Date.now();
+      if (now - lastScan < 2500) return; // 防連拍
+      lastScan = now;
+      verify({ qr_data: text });
+    }
+
+    /* ===== 4 位碼輸入 ===== */
+    const boxes = [...$("code4").querySelectorAll("input")];
+    boxes.forEach((b, i) => {
+      b.addEventListener("input", () => {
+        b.value = b.value.replace(/\D/g, "").slice(0, 1);
+        if (b.value && i < 3) boxes[i + 1].focus();
+        if (boxes.every((x) => x.value)) $("btnManual").click();
+      });
+      b.addEventListener("keydown", (e) => {
+        if (e.key === "Backspace" && !b.value && i > 0) boxes[i - 1].focus();
+      });
+      b.addEventListener("paste", (e) => {
+        const t = (e.clipboardData || window.clipboardData).getData("text").replace(/\D/g, "").slice(0, 4);
+        if (!t) return;
+        e.preventDefault();
+        boxes.forEach((x, k) => (x.value = t[k] || ""));
+        boxes[Math.min(t.length, 4) - 1].focus();
+      });
+    });
+    $("btnManual").onclick = () => {
+      const code = boxes.map((b) => b.value).join("");
+      const ref = $("ref").value.trim().toUpperCase();
+      if (code.length !== 4 && !ref) { toast("請輸入 4 位驗證碼"); return; }
+      verify(ref ? { booking_reference: ref, code: code || undefined } : { code });
+    };
+    function toast(m) { $("camNote").textContent = m; }
+
+    /* ===== 核銷 ===== */
+    async function verify(payload) {
+      if (DEMO) {
+        const key = JSON.stringify(payload);
+        window.__DEMO_SEEN = window.__DEMO_SEEN || {};
+        if (window.__DEMO_SEEN[key]) {
+          beep(false); buzz([60, 80, 60, 80]);
+          showResult("dup", "⚠️ 此憑證已簽到過（示範）", {
+            student_name: "Michael Lee", phone_last4: "4567", booking_reference: "ZP-9001",
+            guests: 2, checked_in_at: window.__DEMO_SEEN[key],
+          }, "重複掃描／輸入同一組資料會出呢個提示");
+          boxes.forEach((b) => (b.value = ""));
+          return;
+        }
+        window.__DEMO_SEEN[key] = new Date().toISOString();
+        beep(true); buzz([100, 50, 100]);
+        showResult("ok", "✅ 簽到成功（示範）", {
+          student_name: "Michael Lee", phone_last4: "4567", booking_reference: "ZP-9001",
+          title: "🎯 芬蘭木柱 週末體驗班", guests: 2, checked_in_at: new Date().toISOString(), points_awarded: 50,
+        }, "示範模式：唔會真正核銷");
+        boxes.forEach((b) => (b.value = ""));
+        return;
+      }
+      const r = await api.post("/bookings/checkin", payload);
+      const d = r.data || {};
+      if (r.ok && !d.already_checked_in) {
+        beep(true); buzz([100, 50, 100]);
+        showResult("ok", "✅ 簽到成功", d, d.attended_count != null ? `${d.attended_count} / ${d.total_count} 已簽到` : "");
+      } else if (d.already_checked_in) {
+        beep(false); buzz([60, 80, 60, 80]);
+        showResult("dup", "⚠️ 此憑證已簽到過", d, "如學員轉發截圖，請勿重複放行");
+      } else {
+        beep(false); buzz(200);
+        showResult("bad", "❌ 無效票券／非本班次", { error: d.error || "核銷失敗，請確認係今堂嘅憑證" }, "");
+      }
+      boxes.forEach((b) => (b.value = ""));
+      await loadRoster();
+    }
+
+    function fmtClock(s) {
+      if (!s) return "—";
+      const d = new Date(String(s).replace(" ", "T"));
+      if (isNaN(d)) return String(s);
+      return d.toLocaleTimeString("zh-HK", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
+    }
+
+    function showResult(kind, title, d, tip) {
+      const rs = $("rs");
+      rs.className = "rs " + (kind === "dup" ? "dup" : kind === "bad" ? "bad" : "ok");
+      $("rsIc").textContent = kind === "ok" ? "✅" : kind === "dup" ? "⚠️" : "❌";
+      $("rsTitle").textContent = title;
+      const rows = [];
+      if (d.student_name) rows.push(["學員", d.student_name]);
+      if (d.phone_last4) rows.push(["電話", "****" + d.phone_last4]);
+      if (d.booking_reference) rows.push(["預約編號", d.booking_reference]);
+      if (d.title) rows.push(["課堂", d.title]);
+      if (d.guests) rows.push(["同行人數", (Number(d.guests) > 1 ? (d.guests - 1) + " 位同行" : "單人")]);
+      if (d.checked_in_at || kind === "ok") rows.push(["核銷時間", kind === "ok" ? fmtClock(d.checked_in_at || new Date()) : fmtClock(d.checked_in_at)]);
+      if (d.error) rows.push(["原因", d.error]);
+      if (d.points_awarded) rows.push(["積分", "+" + d.points_awarded]);
+      $("rsBody").innerHTML = rows.map(([k, v]) => `<div class="k"><span>${esc(k)}</span><span>${esc(v)}</span></div>`).join("");
+      $("rsTip").textContent = tip || "";
+      $("rsMask").classList.add("on"); rs.classList.add("on");
+      if (kind === "ok") setTimeout(() => { if (rs.classList.contains("on")) closeRs(); }, 2500);
+    }
+    function closeRs() { $("rsMask").classList.remove("on"); $("rs").classList.remove("on"); }
+    $("rsMask").onclick = closeRs;
+    $("rsNext").onclick = () => { closeRs(); if (!$("paneScan").hidden) startScan(); };
+
+    /* ===== 名冊 ===== */
+    $("btnReload").onclick = loadRoster;
+    async function loadRoster(silent) {
+      const box = $("roster");
+      if (silent && box.dataset.loading === "1") return;
+      box.dataset.loading = "1";
+      if (!currSchedule) { box.innerHTML = '<div style="padding:16px" class="cam-note">今日未有課堂。</div>'; return; }
+      const r = await api.get("/coach/class-students?schedule_id=" + encodeURIComponent(currSchedule.id));
+      const list = ((r.data && r.data.students) || []).filter((s) => ["confirmed", "attended", "no_show"].includes(s.booking_status));
+      const attended = list.filter((s) => s.booking_status === "attended").length;
+      $("attN").textContent = attended;
+      $("attT").textContent = "/ " + list.length + " 已簽到";
+      $("attBar").style.width = list.length ? Math.round((attended / list.length) * 100) + "%" : "0%";
+      box.dataset.loading = "0";
+      box.innerHTML = list.length
+        ? list.map((s) => `<div class="row">
+            <div><div class="n">${esc(s.name || "學員")}</div>
+              <div class="s">核銷碼 ${esc(s.checkin_code || "----")}${s.phone ? " · " + esc(String(s.phone).slice(-4)).padStart(8, "*") : ""}</div></div>
+            ${s.booking_status === "attended" ? '<span class="pill ok">✅ 已簽到</span>' : '<span class="pill no">未簽到</span>'}
+          </div>`).join("")
+        : '<div style="padding:16px" class="cam-note">暫時未有人報名。</div>';
+    }
+  </script>
+  <script src="assets/footer.js?v=4" defer></script>
+</body>
+</html>
