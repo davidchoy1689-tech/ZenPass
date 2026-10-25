@@ -111,7 +111,20 @@
     };
 
     (async () => {
-      if (!api.requireLogin("coach-console.html")) return;
+      if (!api.getUser()) {
+        const next = encodeURIComponent("coach-console.html");
+        $("guard").innerHTML = `<div class="card"><div class="body center" style="padding:22px 14px">
+          <div style="font-size:36px">🛠️</div>
+          <b style="display:block;font-size:16px;margin-top:6px">開班管理</b>
+          <div class="muted" style="font-size:13px;margin-top:8px;line-height:1.7">需要教練帳號登入。</div>
+          <div style="display:grid;gap:9px;margin-top:14px">
+            <a class="btn btn-primary" href="login.html?next=${next}">🔑 教練登入</a>
+            <a class="btn btn-secondary" href="coach.html?demo=1">👀 示範預覽（Demo）</a>
+            <a class="btn btn-secondary" href="coach-apply.html">✍️ 申請成為教練</a>
+          </div></div></div>`;
+        $("guard").style.display = "";
+        return;
+      }
       const me = await api.get("/users/me");
       const u = (me.data && (me.data.user || me.data)) || api.getUser() || {};
       if (!Number(u.is_coach)) {
