@@ -125,15 +125,17 @@ function applyPartner(req) {
     `INSERT INTO partner_venues (id, partner_type, name, description, address, phone, email,
        contact_person, category, district, logo_url, website, facilities,
        commission_plan, commission_rate, partner_reference, status, created_at, updated_at,
-       insurance_declared, insurance_doc_url, insurance_expiry)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', datetime('now'), datetime('now'), ?, ?, ?)`
+       insurance_declared, insurance_doc_url, insurance_expiry, photos_gallery)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', datetime('now'), datetime('now'), ?, ?, ?, ?)`
   ).run(
     id, req.body.partner_type || "full", name, description || "", address || "", phone, email,
     contact_person || "", category, district || "",
-    Array.isArray(logo_urls) ? logo_urls[0] : logo_urls || null,
+    Array.isArray(req.body.photos) && req.body.photos.length ? req.body.photos[0]
+      : (Array.isArray(logo_urls) ? logo_urls[0] : logo_urls || null),
     website || "", JSON.stringify(Array.isArray(facilities) ? facilities : []),
     planKey, plan.commission_rate, refNumber,
     insurance_declared ? 1 : 0, insurance_doc_url || null, insurance_expiry || null,
+    Array.isArray(req.body.photos) && req.body.photos.length ? JSON.stringify(req.body.photos.slice(0, 5)) : null,
   );
 
   partnerBlockchainHash({

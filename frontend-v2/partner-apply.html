@@ -57,6 +57,8 @@
         </div>
       </div></div>
 
+      <div id="zpPhotoMount" style="margin-top:12px"></div>
+
       <div class="card" style="margin-top:12px;background:#f8fafc;border:1.5px solid #cbd5e1"><div class="body" style="padding:14px">
         <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
           <span style="font-size:20px">📜</span>
@@ -89,10 +91,13 @@
   </div>
 
   <script src="assets/api.js?v=3"></script>
+  <script src="assets/media-upload.js?v=1"></script>
   <script>
     (async () => {
       // 電郵一律留空，唔預填帳戶資料
-      document.getElementById("submit").onclick = submit;
+      if (window.zpMountPhotoUpload) window.__zpUpP = window.zpMountPhotoUpload({ mount: "zpPhotoMount", title: "場地相片" });
+
+    document.getElementById("submit").onclick = submit;
     })();
 
     async function submit() {
@@ -136,6 +141,11 @@
         agreed_at: new Date().toISOString(), user_agent: navigator.userAgent,
       };
       body.partner_agreement = agreementRecord;
+      if (window.__zpUpP) {
+        const photos = await window.__zpUpP.getUrls();
+        if (photos === null) return;
+        if (photos.length) body.photos = photos;
+      }
       try { localStorage.setItem("zenpass_last_partner_agreement", JSON.stringify(agreementRecord)); } catch (e) {}
 
       const btn = document.getElementById("submit"); btn.disabled = true; btn.textContent = "提交中…";

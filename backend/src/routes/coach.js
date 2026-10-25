@@ -15,6 +15,14 @@ const { writeBlock } = require("../services/blockchain-audit");
 
 const router = express.Router();
 
+// 🖼️ 相片集（idempotent）
+function ensurePhotoCols(db) {
+  try {
+    const cc = db.prepare("PRAGMA table_info(classes)").all().map((c) => c.name);
+    if (!cc.includes("photos_gallery")) db.prepare("ALTER TABLE classes ADD COLUMN photos_gallery TEXT").run();
+  } catch (e) {}
+}
+
 // 🏟️ 場地時段衝突檢查：同一場地重疊（含場主封鎖時段）
 function venueConflict(db, partnerVenueId, startTime, endTime, excludeScheduleId) {
   if (!partnerVenueId) return null;
@@ -665,6 +673,8 @@ router.post("/classes", authenticateToken, (req, res) => {
       venue = {}, schedules,
     } = req.body || {};
 
+    ensurePhotoCols(db);
+    const photos = Array.isArray(req.body.photos) ? req.body.photos.slice(0, 5).map((u) => String(u).slice(0, 300)) : [];
     if (!title || !category || !duration) {
       return res.status(400).json({ success: false, error: "請填寫課程標題、類別及時長" });
     }
@@ -728,15 +738,16 @@ router.post("/classes", authenticateToken, (req, res) => {
       `INSERT INTO classes (id, coach_id, title, description, category, difficulty,
          duration, max_participants, price_hkd, credits_cost, venue_name, venue_address,
          target_audience, image_url, partner_venue_id, partner_id, district, sport_slug,
-         status, booking_open, vip_priority_hours, min_participants, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', 0, ?, ?, datetime('now'), datetime('now'))`,
+         status, booking_open, vip_priority_hours, min_participants, photos_gallery, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', 0, ?, ?, ?, datetime('now'), datetime('now'))`,
     ).run(
       classId, me.id, title, description || "", category, difficulty || "beginner",
       Number(duration), Number(max_participants) || 15, finalPrice, credits,
-      venueName, venueAddress, target_audience || null, image_url || null,
+      venueName, venueAddress, target_audience || null, (photos[0] || image_url || "/assets/images/default-sport.svg"),
       partnerVenueId, partnerVenueId, district || null, sport_slug || null,
       req.body.vip_priority_hours === 0 ? 0 : 24,
       Math.max(1, Number(req.body.min_participants) || 1),
+      photos.length ? JSON.stringify(photos) : null,
     );
 
     const ids = [];

@@ -115,6 +115,7 @@
           <div id="slots"></div>
           <button class="btn btn-secondary btn-block" id="addSlot" type="button" style="margin-bottom:12px">＋ 加多一個時段</button>
 
+          <div id="zpPhotoMount" style="margin-top:10px"></div>
           <button class="btn btn-primary btn-block" id="createBtn" type="button">提交開班（待平台開通）</button>
           <div class="muted2" id="createMsg" style="margin-top:8px"></div>
         </div>
@@ -124,6 +125,7 @@
   </div>
 
   <script src="assets/api.js?v=3"></script>
+  <script src="assets/media-upload.js?v=1"></script>
   <script src="assets/partner-agreement.js?v=1"></script>
   <script>
     const $ = (id) => document.getElementById(id);
@@ -179,6 +181,7 @@
         else $("cVenueName").disabled = false;
       };
       addSlot();
+      window.__zpUp = window.zpMountPhotoUpload({ mount: "zpPhotoMount", title: "課堂／活動相片" });
       loadCreds();
       $("cdSave").onclick = async () => {
         const body = {
@@ -336,6 +339,12 @@
         schedules: slots,
       };
       if (!body.venue.partner_venue_id && !body.venue.name) { msg.textContent = "請填場地名稱"; return; }
+      let photoUrls = [];
+      if (window.__zpUp) {
+        photoUrls = await window.__zpUp.getUrls();
+        if (photoUrls === null) return;
+      }
+      if (photoUrls && photoUrls.length) body.photos = photoUrls;
       const btn = $("createBtn");
       btn.disabled = true; btn.textContent = "提交中…";
       const r = await api.post("/coach/classes", body);
