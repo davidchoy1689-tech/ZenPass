@@ -769,9 +769,14 @@ ${stamp}
         </div>
         ${list.map((s) => {
           const done = s.booking_status === "attended";
+          const isChild = s.attendee_type === "child";
           return `<div class="stu">
-            <div><div class="n">${esc(s.name || "學員")}${s.phone ? ` <span class="muted" style="font-weight:400;font-size:12px">${esc(s.phone)}</span>` : ""}</div>
-              <div class="s">核銷碼 <span class="code">${esc(s.checkin_code || "----")}</span>${done ? " · ✅ 已簽到" : ""}</div></div>
+            <div><div class="n">${esc(isChild ? s.child_name || s.name : s.name || "學員")}
+              ${isChild ? `<span class="badge2" style="background:#eff6ff;color:#1d4ed8;font-size:10.5px">🧒 童 ${esc(s.child_age || "")} 歲</span>` : ""}
+              ${s.phone ? ` <span class="muted" style="font-weight:400;font-size:12px">${esc(s.phone)}</span>` : ""}</div>
+              <div class="s">核銷碼 <span class="code">${esc(s.checkin_code || "----")}</span>${done ? " · ✅ 已簽到" : ""}
+                ${isChild && s.emergency_phone ? ` · ☎️ <a href="tel:${esc(s.emergency_phone)}" style="color:var(--brand-600);font-weight:700">${esc(s.emergency_phone)}</a>` : ""}
+                ${isChild && s.medical_notes ? ` · ⚠️ ${esc(s.medical_notes)}` : ""}</div></div>
             ${done ? '<span class="badge2 b-on">已簽到</span>' : `<button class="btn btn-primary" style="min-height:36px;padding:0 12px;font-size:13px" data-attend="${esc(s.id)}">簽到</button>`}
           </div>`;
         }).join("")}`;

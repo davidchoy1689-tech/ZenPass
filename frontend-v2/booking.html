@@ -260,6 +260,41 @@
       </div></div>
       <div class="spacer"></div>
       <div class="card"><div class="body">
+        <div class="muted" style="font-size:13px;font-weight:700;margin-bottom:8px">參加者身份</div>
+        <div class="att-toggle" id="attToggle">
+          <button type="button" class="on" data-att="self">🙋‍♂️ 本人出席</button>
+          <button type="button" data-att="child">👨‍👩‍👧 代子女報名</button>
+        </div>
+        <div id="childBox" hidden style="margin-top:12px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <b style="font-size:13.5px">👦 參加者（未成年）資料</b>
+            <button type="button" class="linkish" id="loadChild" style="display:none">⚡ 帶入上次資料</button>
+          </div>
+          <div class="grid2">
+            <input id="childName" placeholder="子女全名 *" maxlength="40" />
+            <input id="childAge" type="number" min="3" max="17" placeholder="年齡 *" inputmode="numeric" />
+          </div>
+          <input id="emergencyPhone" placeholder="第二緊急聯絡電話 *" inputmode="numeric" maxlength="12" />
+          <input id="medicalNotes" placeholder="特殊健康／注意事項（可選）" maxlength="120" />
+          <div class="waiver">
+            <b>🛡️ 家長／監護人聲明及責任豁免</b>
+            <div class="waiver-txt">
+              1. 本人確認為上述參加者之法定監護人，並確認其身體狀況適宜參與體育活動。<br>
+              2. 如活動期間發生意外，本人授權現場教練／職員安排緊急醫療救護。<br>
+              3. 本人明白運動涉及固有風險，同意承擔相關風險並遵守 ZenPass 及場地安全守則。
+            </div>
+            <label class="waiver-chk"><input type="checkbox" id="guardianConsent" />
+              <span>本人已閱讀、明白並同意上述條款 *</span></label>
+            <div class="grid2">
+              <input id="guardianName" placeholder="監護人全名 *" maxlength="40" />
+              <input id="guardianHkid" placeholder="身份證前 4 位 *" maxlength="8" />
+            </div>
+          </div>
+        </div>
+      </div></div>
+
+      <div class="spacer"></div>
+      <div class="card"><div class="body">
         <div class="muted" style="font-size:13px;margin-bottom:6px">優惠碼（可選）</div>
         <div class="promo-row">
           <input id="promo" placeholder="輸入優惠碼，例如 WELCOME50" autocomplete="off" />
@@ -598,6 +633,53 @@
         + chosen.map(s => `<div class="row"><span class="k">${fmtTime(s.start_time, s.end_time)}</span><span class="v muted">${esc(s.notes||"")}</span></div>`).join("");
       show("step2"); setStep(2); updateBar();
     };
+    /* 👨‍👩‍👧 家長代報名 */
+    let ATT_TYPE = "self";
+    const _attToggle = $("attToggle");
+    if (_attToggle) _attToggle.onclick = (e) => {
+      const b = e.target.closest("button"); if (!b) return;
+      [..._attToggle.children].forEach((x) => x.classList.toggle("on", x === b));
+      ATT_TYPE = b.dataset.att;
+      $("childBox").hidden = ATT_TYPE !== "child";
+      if (ATT_TYPE === "child") {
+        try { $("loadChild").style.display = localStorage.getItem("zenpass_saved_child") ? "inline-block" : "none"; } catch (err) {}
+      }
+    };
+    const _loadChild = $("loadChild");
+    if (_loadChild) _loadChild.onclick = () => {
+      try {
+        const d = JSON.parse(localStorage.getItem("zenpass_saved_child") || "{}");
+        if (d.childName) $("childName").value = d.childName;
+        if (d.childAge) $("childAge").value = d.childAge;
+        if (d.emergencyPhone) $("emergencyPhone").value = d.emergencyPhone;
+        if (d.guardianName) $("guardianName").value = d.guardianName;
+      } catch (e) {}
+    };
+    function getAttendeePayload(silent) {
+      if (ATT_TYPE !== "child") return { type: "self" };
+      const childName = ($("childName").value || "").trim();
+      const age = Number($("childAge").value);
+      const emergencyPhone = ($("emergencyPhone").value || "").replace(/\D/g, "");
+      const medicalNotes = ($("medicalNotes").value || "").trim();
+      const agreed = $("guardianConsent").checked;
+      const guardianName = ($("guardianName").value || "").trim();
+      const hkid = ($("guardianHkid").value || "").trim();
+      const fail = (m) => { if (!silent) alert(m); return null; };
+      if (!childName) return fail("請填寫子女姓名");
+      if (!(age >= 3 && age <= 17)) return fail("請填寫正確年齡（3–17 歲）");
+      if (emergencyPhone.length < 8) return fail("請填寫第二緊急聯絡電話");
+      if (!agreed) return fail("代子女報名必須勾選監護人責任豁免");
+      if (!guardianName) return fail("請填寫監護人全名");
+      if (!hkid) return fail("請填寫身份證前 4 位作存證");
+      try {
+        localStorage.setItem("zenpass_saved_child", JSON.stringify({ childName, childAge: age, emergencyPhone, guardianName }));
+      } catch (e) {}
+      return {
+        type: "child", childName, childAge: age, emergencyPhone, medicalNotes,
+        waiver: { agreed: true, guardianName, guardianHKIDLast4: hkid, timestamp: new Date().toISOString(), termsVersion: "v2026.1_hk_minor" },
+      };
+    }
+
     $("toStep3").onclick = () => {
       if (!$("consent").checked) { alert("請先同意缺席政策"); return; }
       if (isGuest && !validGuest()) return;
@@ -639,6 +721,8 @@
     };
 
     $("payNow").onclick = async () => {
+      const attendee = getAttendeePayload();
+      if (!attendee) return;
       const pm = document.querySelector("input[name=pm]:checked").value;
 
       /* ===== 訪客快速結賬 ===== */
@@ -651,6 +735,7 @@
           scheduleIds: sessions.filter(s => sel.has(s.id)).map(s => s.id),
           groupSize: groupSize(),
           promoCode: promoFinal ? promoFinal.code : undefined,
+          attendee,
         });
         btnG.disabled = false; btnG.textContent = "立即確認預約";
         if (gr.ok && gr.data && gr.data.success) {
@@ -675,6 +760,7 @@
         scheduleId: s.id, classId, paymentType: pm, penaltyConsent: true,
         groupSize: groupSize(),
         promoCode: promoFinal ? promoFinal.code : undefined,
+        attendee,
       }));
       const btn = $("payNow"); btn.disabled = true; btn.textContent = "處理中…";
       const r = await api.post("/bookings/batch", { items });

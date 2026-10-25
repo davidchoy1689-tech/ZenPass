@@ -168,6 +168,7 @@ router.post("/book", bookLimiter, async (req, res) => {
           penalty_consent: true,
           group_size: groupSize,
           promo_code: promoCode,
+          attendee: req.body.attendee || null,
         },
         user: { id: userId, name, phone },
         headers: req.headers,

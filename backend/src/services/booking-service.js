@@ -32,6 +32,27 @@ class BookingFlowError extends Error {
 
 // ==================== Helpers ====================
 
+// 2026-10-25：家長代報名／未成年人免責（idempotent ALTER）
+function ensureAttendeeColumns(db) {
+  try {
+    const cols = db.prepare("PRAGMA table_info(bookings)").all().map((c) => c.name);
+    const add = [
+      ["attendee_type", "TEXT DEFAULT 'self'"],
+      ["child_name", "TEXT"],
+      ["child_age", "INTEGER"],
+      ["emergency_phone", "TEXT"],
+      ["medical_notes", "TEXT"],
+      ["guardian_name", "TEXT"],
+      ["guardian_hkid4", "TEXT"],
+      ["waiver_at", "TEXT"],
+      ["terms_version", "TEXT"],
+    ];
+    add.forEach(([n, t]) => { if (!cols.includes(n)) db.prepare(`ALTER TABLE bookings ADD COLUMN ${n} ${t}`).run(); });
+  } catch (e) {
+    console.error("attendee 欄位遷移失敗:", e.message);
+  }
+}
+
 const crypto = require("crypto");
 
 // 🎫 4 位現場驗證碼：由 booking id + server secret 派生，穩定、唔可猜
@@ -367,12 +388,27 @@ function insertBookingRow(db, bookingData, partnerInfo) {
     amount,
     groupSize = 1,
     groupInviteCode = null,
+    attendee = null,
   } = bookingData;
+
+  const A = attendee && attendee.type === "child" ? attendee : {};
+  const aVals = [
+    A.type === "child" ? "child" : "self",
+    A.childName || null,
+    A.childAge ? Number(A.childAge) : null,
+    A.emergencyPhone || null,
+    A.medicalNotes || null,
+    (A.waiver && A.waiver.guardianName) || null,
+    (A.waiver && A.waiver.guardianHKIDLast4) || null,
+    A.waiver && A.waiver.agreed ? (A.waiver.timestamp || new Date().toISOString()) : null,
+    A.waiver && A.waiver.agreed ? "v2026.1_hk_minor" : null,
+  ];
 
   if (partnerInfo) {
     db.prepare(
-      `INSERT INTO bookings (id, booking_reference, user_id, schedule_id, class_id, payment_type, payment_status, status, amount, venue_partner_id, platform_commission_rate, venue_earned_amount, platform_earned_amount, group_size, group_invite_code)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO bookings (id, booking_reference, user_id, schedule_id, class_id, payment_type, payment_status, status, amount, venue_partner_id, platform_commission_rate, venue_earned_amount, platform_earned_amount, group_size, group_invite_code,
+        attendee_type, child_name, child_age, emergency_phone, medical_notes, guardian_name, guardian_hkid4, waiver_at, terms_version)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     ).run(
       bookingId,
       bookingRef,
@@ -389,11 +425,13 @@ function insertBookingRow(db, bookingData, partnerInfo) {
       partnerInfo.platformEarned,
       groupSize,
       groupInviteCode,
+      ...aVals,
     );
   } else {
     db.prepare(
-      `INSERT INTO bookings (id, booking_reference, user_id, schedule_id, class_id, payment_type, payment_status, status, amount, group_size, group_invite_code)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO bookings (id, booking_reference, user_id, schedule_id, class_id, payment_type, payment_status, status, amount, group_size, group_invite_code,
+        attendee_type, child_name, child_age, emergency_phone, medical_notes, guardian_name, guardian_hkid4, waiver_at, terms_version)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     ).run(
       bookingId,
       bookingRef,
@@ -406,6 +444,7 @@ function insertBookingRow(db, bookingData, partnerInfo) {
       amount,
       groupSize,
       groupInviteCode,
+      ...aVals,
     );
   }
 
@@ -616,6 +655,9 @@ function checkVipPriorityWindow(db, cls, userId, now = new Date()) {
 
 function createBooking(req, options = {}) {
   const { schedule_id, class_id, payment_type, penalty_consent } = req.body;
+  // 👨‍👩‍👧 家長代報名（未成年人）
+  const attendee = req.body.attendee || null;
+  const attendeeType = attendee && attendee.type === "child" ? "child" : "self";
   let amount = req.body.amount;
   const promo_code = req.body.promo_code || req.body.promoCode;
   // credits override 只可以由伺服器內部（batch promo）傳入，唔可以信 req.body
@@ -640,6 +682,7 @@ function createBooking(req, options = {}) {
 
   const db = getDb();
   db.pragma("foreign_keys = ON");
+  ensureAttendeeColumns(db);
 
   // 1. Penalty consent
   const consent = checkPenaltyConsent(db, req.user.id, penalty_consent);
@@ -871,7 +914,7 @@ function createBooking(req, options = {}) {
     // 9. Create booking record
     insertBookingRow(
       db,
-      { bookingId, bookingRef, userId: req.user.id, scheduleId: schedule_id, classId: class_id, paymentType: payment_type, paymentStatus, bookingStatus, amount: amount || 0, groupSize, groupInviteCode },
+      { bookingId, bookingRef, userId: req.user.id, scheduleId: schedule_id, classId: class_id, paymentType: payment_type, paymentStatus, bookingStatus, amount: amount || 0, groupSize, groupInviteCode, attendee },
       partnerInfo,
     );
     if (promoApply) redeemPromo(db, promoApply.id, req.user.id, bookingId, amount);

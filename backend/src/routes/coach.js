@@ -1108,6 +1108,12 @@ router.get("/class-students", authenticateToken, (req, res) => {
              b.created_at as booking_date,
              ${BC("checked_in_at", "NULL")} AS checked_in_at,
              ${BC("group_size", "1")} AS group_size,
+             ${BC("attendee_type", "'self'")} AS attendee_type,
+             ${BC("child_name", "NULL")} AS child_name,
+             ${BC("child_age", "NULL")} AS child_age,
+             ${BC("emergency_phone", "NULL")} AS emergency_phone,
+             ${BC("medical_notes", "NULL")} AS medical_notes,
+             ${BC("guardian_name", "NULL")} AS guardian_name,
              ${UC("emergency_name", "NULL")} AS emergency_name,
              ${UC("emergency_phone", "NULL")} AS emergency_phone,
              ${UC("health_declared", "0")} AS health_declared
