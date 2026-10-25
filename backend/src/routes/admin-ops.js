@@ -101,6 +101,47 @@ router.get("/overview", authenticateToken, requireAdmin, requireOpsRole, (req, r
   }
 });
 
+// ===== 待開通課堂（booking_open = 0）=====
+router.get("/pending-classes", authenticateToken, requireAdmin, requireOpsRole, (req, res) => {
+  try {
+    const db = getDb();
+    const rows = db.prepare(
+      `SELECT c.id, c.title, c.category, c.price_hkd, c.venue_name, c.district, c.created_at,
+              u.name AS coach_name, u.phone AS coach_phone, u.email AS coach_email,
+              (SELECT MIN(cs.start_time) FROM class_schedules cs
+                WHERE cs.class_id = c.id AND cs.start_time > datetime('now') AND cs.status = 'available') AS next_session,
+              (SELECT COUNT(*) FROM class_schedules cs WHERE cs.class_id = c.id AND cs.start_time > datetime('now')) AS upcoming
+       FROM classes c
+       LEFT JOIN users u ON u.id = c.coach_id
+       WHERE COALESCE(c.booking_open,0) = 0 AND COALESCE(c.status,'active') = 'active'
+       ORDER BY c.created_at DESC LIMIT 100`,
+    ).all();
+    res.json({ success: true, classes: rows });
+  } catch (err) {
+    console.error("pending-classes error:", err.message);
+    res.status(500).json({ success: false, error: "讀取失敗" });
+  }
+});
+
+router.post("/classes/:id/open", authenticateToken, requireAdmin, requireOpsRole, (req, res) => {
+  try {
+    const db = getDb();
+    const id = req.params.id;
+    const c = db.prepare("SELECT id, title, price_hkd FROM classes WHERE id = ?").get(id);
+    if (!c) return res.status(404).json({ success: false, error: "課程不存在" });
+    const open = (req.body || {}).open === false ? 0 : 1;
+    db.prepare("UPDATE classes SET booking_open = ?, updated_at = datetime('now') WHERE id = ?").run(open, id);
+    try {
+      const { writeBlock } = require("../services/blockchain-audit");
+      writeBlock({ entityType: "class_booking_open", entityId: id, data: { to: open, by: req.user.id, price_hkd: c.price_hkd } });
+    } catch (e) {}
+    res.json({ success: true, message: open ? "✅ 已開通，學生可以報名" : "已暫停報名", booking_open: open });
+  } catch (err) {
+    console.error("class open error:", err.message);
+    res.status(500).json({ success: false, error: "操作失敗" });
+  }
+});
+
 // ===== 線索池 =====
 router.get("/leads", authenticateToken, requireAdmin, requireOpsRole, (req, res) => {
   try {

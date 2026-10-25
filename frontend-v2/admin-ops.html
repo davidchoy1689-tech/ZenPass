@@ -44,6 +44,7 @@
         <button data-t="settle">🏁 批量結算</button>
         <button data-t="cred">🪪 教練資質</button>
         <button data-t="agr">🤝 協議簽署</button>
+        <button data-t="pending">⏳ 待開通新班</button>
       </div>
 
       <div id="paneFin">
@@ -79,6 +80,14 @@
           <b>🪪 教練資質核實</b>
           <div class="muted" style="font-size:12px;margin:6px 0 10px">牌照／急救證書核實後，教練會顯示 ✅ 已核實；過期會標示。</div>
           <div id="credList"></div>
+        </div></div>
+      </div>
+
+      <div id="panePending" hidden>
+        <div class="card"><div class="body">
+          <b>⏳ 待開通新班</b>
+          <div class="muted" style="font-size:12px;margin:6px 0 10px">教練新開嘅班預設 <b>booking_open=0</b>，開通後學生先可以報名。價格或內容有疑問就先聯絡教練。</div>
+          <div id="pendList"></div>
         </div></div>
       </div>
 
@@ -146,7 +155,7 @@
       $("tabs").onclick = (e) => {
         const b = e.target.closest("button"); if (!b) return;
         [...$("tabs").children].forEach((x) => x.classList.toggle("on", x === b));
-        ["fin", "leads", "ops", "settle", "cred", "agr"].forEach((k) => ($("pane" + k[0].toUpperCase() + k.slice(1))).hidden = b.dataset.t !== k);
+        ["fin", "leads", "ops", "settle", "cred", "agr", "pending"].forEach((k) => ($("pane" + k[0].toUpperCase() + k.slice(1))).hidden = b.dataset.t !== k);
       };
       $("wxGo").onclick = weatherCancel;
       $("bsGo").onclick = batchSettle;
@@ -160,6 +169,7 @@
       await loadLeads();
       await loadCredentials();
       await loadAgreements();
+      await loadPendingClasses();
     }
 
     async function loadFinance() {
@@ -267,6 +277,29 @@
       if (r === "coach") return "教練";
       if (String(r || "").startsWith("partner")) return "場地";
       return r || "—";
+    }
+
+    async function loadPendingClasses() {
+      const box = $("pendList"); if (!box) return;
+      const r = await api.get("/admin/ops/pending-classes");
+      if (!r.ok) { box.innerHTML = `<div class="muted">${esc((r.data && r.data.error) || "讀取失敗")}</div>`; return; }
+      const rows = (r.data.classes || []);
+      if (!rows.length) { box.innerHTML = '<div class="muted" style="font-size:12.5px">✅ 暫時冇待開通嘅班</div>'; return; }
+      const fmt = (t) => { const d = new Date(String(t).replace(" ", "T")); return isNaN(d) ? (t || "—") : d.toLocaleString("zh-HK", { month: "short", day: "numeric", weekday: "short", hour: "2-digit", minute: "2-digit" }); };
+      box.innerHTML = rows.map((x) => `<div class="row" style="flex-wrap:wrap"><span style="flex:1 1 100%"><b>${esc(x.title)}</b>
+        <span class="s">${esc(x.coach_name || "教練")} · HK$${Math.round(Number(x.price_hkd) || 0)} · ${esc(x.venue_name || "場地待定")}${x.district ? " · " + esc(x.district) : ""}
+        · 下一堂 ${esc(fmt(x.next_session))}（共 ${x.upcoming || 0} 個時段）</span></span>
+        <span style="display:flex;gap:6px;align-items:center;margin-top:6px">
+          <button class="btn btn-primary" style="min-height:32px;padding:0 10px;font-size:12px" data-open="${esc(x.id)}">✅ 一鍵開通</button>
+          <a class="btn btn-secondary" style="min-height:32px;padding:0 10px;font-size:12px;text-decoration:none" href="https://wa.me/852${esc(String(x.coach_phone || "").replace(/\D/g, "").slice(-8))}?text=${encodeURIComponent("你好，關於你新開嘅班「" + (x.title || "") + "」，想確認價格／場地後開通，方便覆一覆？")}" target="_blank" rel="noopener">💬 聯絡教練</a>
+        </span></div>`).join("");
+      box.querySelectorAll("[data-open]").forEach((b) => (b.onclick = async () => {
+        if (!confirm("確認開通呢班？開通後學生即可報名。")) return;
+        b.disabled = true; b.textContent = "開通中…";
+        const rr = await api.post("/admin/ops/classes/" + encodeURIComponent(b.dataset.open) + "/open", { open: true });
+        if (rr.ok) { toast("✅ 已開通"); loadPendingClasses(); }
+        else { b.disabled = false; b.textContent = "✅ 一鍵開通"; alert((rr.data && rr.data.error) || "開通失敗"); }
+      }));
     }
 
     async function weatherCancel() {
