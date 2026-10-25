@@ -80,7 +80,7 @@
     const chosenLang = new Set();
 
     (async () => {
-      if (!api.requireLogin("coach-apply.html")) return;
+      // 2026-10-25：未登入都可以申請（公開加盟表單）
       // 專長 chips
       document.getElementById("specialties").innerHTML = SPECS.map(s =>
         `<label><input type="checkbox" value="${s}"><span>${s}</span></label>`).join("");
@@ -100,7 +100,25 @@
       const app = ap.data && ap.data.application;
       if (app) { showStatus(app); if (app.status === "approved") await showProfileEditor(); }
       document.getElementById("submit").onclick = submit;
+      // 未登入 → 公開模式：隱藏上載文件要求、簡化流程
+      if (!api.getUser || !api.getUser()) {
+        isGuestApply = true;
+        ["f-iddoc", "f-certdoc", "f-ins-doc"].forEach((id) => {
+          const el = document.getElementById(id);
+          if (!el) return;
+          el.style.display = "none";
+          const lab = el.previousElementSibling;
+          if (lab && lab.classList && lab.classList.contains("lbl")) lab.style.display = "none";
+        });
+        const note = document.createElement("div");
+        note.className = "card";
+        note.style.marginTop = "10px";
+        note.innerHTML = '<div class="body muted" style="font-size:12.5px;line-height:1.7">📄 免登入申請：我哋收到表單後會 WhatsApp 聯絡你，到時再補交身份證明同資歷文件。</div>';
+        document.getElementById("msg").after(note);
+      }
     })();
+
+    let isGuestApply = false;
 
     const statusText = (s) => ({ pending: "⏳ 審批中", approved: "✅ 已通過", rejected: "❌ 未通過" }[s] || s);
 
@@ -154,6 +172,44 @@
     }
 
     /* 上載證明文件 → 回傳 URL */
+    async function submitGuest() {
+      const msg = document.getElementById("msg");
+      const name = document.getElementById("f-name").value.trim();
+      const phone = document.getElementById("f-phone").value.replace(/[^0-9]/g, "");
+      const email = document.getElementById("f-email").value.trim();
+      const consent = document.getElementById("f-ins").checked;
+      if (name.length < 2) { msg.textContent = "請填姓名"; return; }
+      if (phone.length !== 8) { msg.textContent = "請填有效 8 位香港電話"; return; }
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { msg.textContent = "請填有效電郵"; return; }
+      if (!chosen.size) { msg.textContent = "請至少揀一項教學項目"; return; }
+      if (!consent) { msg.textContent = "請先閱讀並勾選同意條款"; return; }
+      const btn = document.getElementById("submit");
+      btn.disabled = true; btn.textContent = "提交中…";
+      const r = await api.post("/coach/apply-public", {
+        name, phone, email,
+        years_experience: document.getElementById("f-years").value || null,
+        certificates: document.getElementById("f-certs").value.trim() || null,
+        specialties: [...chosen],
+        bio: document.getElementById("f-bio").value.trim() || null,
+        regions: document.getElementById("f-address").value.trim() || null,
+        headline: document.getElementById("f-headline").value.trim() || null,
+        languages: [...chosenLang],
+        consent: true,
+      });
+      btn.disabled = false; btn.textContent = "提交申請";
+      if (!r.ok) { msg.textContent = (r.data && r.data.error) || "提交失敗，請稍後再試"; return; }
+      const ref = (r.data && r.data.reference) || "";
+      document.getElementById("form").style.display = "none";
+      document.getElementById("status").innerHTML = `<div class="card"><div class="body center" style="padding:26px 18px">
+        <div style="font-size:44px">🎉</div>
+        <b style="font-size:18px;display:block;margin-top:8px">已收到你嘅教練申請！</b>
+        <div class="muted" style="font-size:13px;margin-top:8px;line-height:1.7">申請編號：<b>${esc(ref)}</b><br>我哋會喺 1–3 個工作日內用 WhatsApp 聯絡你，跟進資歷文件同開班安排。</div>
+        <a class="btn btn-primary btn-block" style="margin-top:14px" href="https://wa.me/85290335538?text=${encodeURIComponent("你好，我提交咗教練申請（" + ref + "），想跟進開班詳情")}" target="_blank" rel="noopener">💬 WhatsApp 直接跟進</a>
+        <a class="btn btn-secondary btn-block" style="margin-top:8px" href="partner.html">睇加盟分帳詳情 →</a>
+      </div></div>`;
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
     async function uploadDocs(files) {
       if (!files || !files.length) return [];
       const fd = new FormData();
@@ -172,6 +228,7 @@
 
     async function submit() {
       const msg = document.getElementById("msg");
+      if (isGuestApply) return submitGuest();
       const body = {
         name: document.getElementById("f-name").value.trim(),
         phone: document.getElementById("f-phone").value.trim(),

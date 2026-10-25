@@ -15,6 +15,85 @@ const { writeBlock } = require("../services/blockchain-audit");
 
 const router = express.Router();
 
+// ===== POST /api/coach/apply-public — 公開教練加盟申請（免登入）=====
+// 2026-10-25：教練未加盟就冇帳號，申請表單唔應該要登入
+router.post("/apply-public", require("../middleware/public-form-limit").publicFormLimiter(), (req, res) => {
+  try {
+    const db = getDb();
+    db.prepare(
+      `CREATE TABLE IF NOT EXISTS coach_leads (
+         id TEXT PRIMARY KEY,
+         reference TEXT,
+         name TEXT NOT NULL,
+         phone TEXT NOT NULL,
+         email TEXT,
+         years_experience TEXT,
+         certificates TEXT,
+         specialties TEXT,
+         bio TEXT,
+         regions TEXT,
+         headline TEXT,
+         languages TEXT,
+         note TEXT,
+         status TEXT DEFAULT 'new',
+         created_at TEXT DEFAULT (datetime('now'))
+       )`,
+    ).run();
+
+    const name = String(req.body.name || "").trim().slice(0, 60);
+    const phone = String(req.body.phone || "").replace(/[^0-9]/g, "").slice(-8);
+    const email = String(req.body.email || "").trim().slice(0, 120);
+    const specialties = Array.isArray(req.body.specialties) ? req.body.specialties.slice(0, 12).map((s) => String(s).slice(0, 30)) : [];
+
+    if (!name) return res.status(400).json({ success: false, error: "請填姓名" });
+    if (phone.length !== 8) return res.status(400).json({ success: false, error: "請填有效 8 位香港電話" });
+    if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+      return res.status(400).json({ success: false, error: "請填有效電郵" });
+    }
+    if (!specialties.length) return res.status(400).json({ success: false, error: "請揀最少一項教學項目" });
+    if (!req.body.consent) return res.status(400).json({ success: false, error: "請勾選同意條款" });
+
+    const id = uuidv4();
+    const ref = "CL-" + Date.now().toString().slice(-8);
+    db.prepare(
+      `INSERT INTO coach_leads
+       (id, reference, name, phone, email, years_experience, certificates, specialties, bio, regions, headline, languages, note, status)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,'new')`,
+    ).run(
+      id, ref, name, phone, email,
+      req.body.years_experience ? String(req.body.years_experience).slice(0, 10) : null,
+      req.body.certificates ? String(req.body.certificates).slice(0, 500) : null,
+      JSON.stringify(specialties),
+      req.body.bio ? String(req.body.bio).slice(0, 800) : null,
+      req.body.regions ? String(req.body.regions).slice(0, 200) : null,
+      req.body.headline ? String(req.body.headline).slice(0, 120) : null,
+      Array.isArray(req.body.languages) ? JSON.stringify(req.body.languages.slice(0, 5)) : null,
+      req.body.note ? String(req.body.note).slice(0, 500) : null,
+    );
+
+    // 即時通知平台（Email / Telegram / Webhook，fire-and-forget）
+    try {
+      notifyNewApplication("教練", {
+        name, phone, email,
+        specialties: specialties.join("、"),
+        years: req.body.years_experience || "",
+        regions: req.body.regions || "",
+      }, ref);
+    } catch (e) {
+      console.error("coach lead notify error:", e.message);
+    }
+
+    res.status(201).json({
+      success: true,
+      reference: ref,
+      message: "✅ 已收到你嘅教練申請，我哋會盡快用 WhatsApp 聯絡你",
+    });
+  } catch (err) {
+    console.error("公開教練申請錯誤:", err);
+    res.status(500).json({ success: false, error: "提交失敗，請稍後再試" });
+  }
+});
+
 // ===== GET /api/coach/list — 獲取教練列表 =====
 router.get("/list", (req, res) => {
   try {
