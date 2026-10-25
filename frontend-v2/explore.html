@@ -44,6 +44,8 @@
     }
     .ex-search-clear.show { display: flex; }
     .ex-search-clear:active { transform: scale(.92); }
+    .ex-acc-body a { display: inline-flex; align-items: center; gap: 6px; }
+    .ex-acc-body a .sport-ic { flex: none; opacity: .9; }
     .ex-qhint { font-size: 12px; color: var(--text-muted); margin: 6px 2px 0; line-height: 1.5; }
     .ex-qhint b { color: var(--brand-600); }
     .ex-qhint button { border: 0; background: none; font: inherit; color: var(--brand-600); font-weight: 700; padding: 0 2px; }
@@ -852,7 +854,7 @@
       const cat = (typeof SPORTS_CATALOGUE !== "undefined" && Array.isArray(SPORTS_CATALOGUE)) ? SPORTS_CATALOGUE : [];
       if (!cat.length) { document.getElementById("exAcc").innerHTML = ""; document.getElementById("exAccMore").hidden = true; return; }
       const groups = {};
-      cat.forEach((s) => { (groups[s.group] = groups[s.group] || []).push(s.name); });
+      cat.forEach((s) => { (groups[s.group] = groups[s.group] || []).push({ name: s.name, slug: s.slug }); });
       const order = Object.keys(groups);
       const html = order.map((g, i) => `
         <div class="ex-acc-item${i >= 8 ? " ex-acc-extra" : ""}" data-group="${esc(g)}"${i >= 8 ? ' style="display:none"' : ""}>
@@ -863,7 +865,12 @@
             <span class="cv">▾</span>
           </button>
           <div class="ex-acc-body">
-            ${groups[g].map((n) => `<a href="explore.html?q=${encodeURIComponent(n)}">${esc(n)}</a>`).join("")}
+            ${groups[g].map((item) => {
+              const nm = item.name || item;
+              const slug = item.slug || "";
+              const ic = (typeof sportIconImgSlug === "function" && slug) ? sportIconImgSlug(slug, 18) : "";
+              return `<a href="explore.html?q=${encodeURIComponent(nm)}">${ic}<span>${esc(nm)}</span></a>`;
+            }).join("")}
           </div>
         </div>`).join("");
       const acc = document.getElementById("exAcc");
