@@ -279,6 +279,7 @@
 
   <script src="assets/covers.js?v=8"></script>
   <script src="assets/api.js?v=3"></script>
+  <script src="assets/lifestyle-images.js?v=1"></script>
   <script src="assets/sport-icons.js?v=14"></script>
   <script>
     /* ================= explore.html v3 ================= */
@@ -630,6 +631,11 @@
     function coverUrl(c) {
       // 先用本地品牌圖（每個項目唔同色系，唔會重用同一張罐頭圖）
       const slug = c.sport_slug || guessSportSlug(c);
+      // 若有 AI／實拍圖（lifestyle-images.js），優先使用
+      try {
+        const life = (window.ZP_LIFESTYLE || {})[slug];
+        if (life) return life;
+      } catch (e) {}
       if (slug) return "assets/img/sports/" + slug + ".svg";
       try {
         if (typeof cardImage === "function") { const p = cardImage(c, "list"); if (p && p.url) return p.url; }
