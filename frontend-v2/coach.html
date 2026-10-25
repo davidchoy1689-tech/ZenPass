@@ -59,7 +59,7 @@
       <div class="section-title">➕ 開新班</div>
       <a class="btn btn-primary btn-block" href="ai-open-class.html" style="margin-bottom:10px">🤖 AI 一鍵開班（影／貼宣傳單張自動填）</a>
       <div class="card"><div class="body">
-        <p class="muted" style="font-size:12.5px;margin:0 0 10px">填完即刻上架，學生可以喺探索頁預約。</p>
+        <p class="muted" style="font-size:12.5px;margin:0 0 10px">提交後由平台核實（價格／場地），開通後學生就可以喺探索頁預約。</p>
         <label class="lbl">課程標題</label><input class="fld" id="ncTitle" placeholder="例：【新手體驗】芬蘭木柱 60 分鐘" />
         <div class="grid2">
           <div><label class="lbl">類別</label><select class="fld" id="ncCat"></select></div>
@@ -91,7 +91,7 @@
         <label class="lbl">時段</label>
         <div id="ncSlots"></div>
         <button class="btn btn-secondary btn-block" id="ncAddSlot" style="margin-top:8px">＋ 加多個時段</button>
-        <button class="btn btn-primary btn-block" id="ncSubmit" style="margin-top:10px">開班並上架</button>
+        <button class="btn btn-primary btn-block" id="ncSubmit" style="margin-top:10px">提交開班（待平台開通）</button>
         <div class="muted center" id="ncMsg" style="font-size:12.5px;margin-top:8px"></div>
       </div></div>
 
@@ -266,9 +266,9 @@
 
       btn.disabled = true; btn.textContent = "開班中…"; msg.textContent = "";
       const r = await api.post("/coach/classes", body);
-      btn.disabled = false; btn.textContent = "開班並上架";
+      btn.disabled = false; btn.textContent = "提交開班（待平台開通）";
       if (r.ok) {
-        msg.textContent = "✅ 已開班（" + ((r.data && r.data.data && r.data.data.schedules) || schedules.length) + " 個時段），已上架探索頁";
+        msg.textContent = "✅ 已建立 " + ((r.data && r.data.data && r.data.data.schedules) || schedules.length) + " 個時段，待平台開通後公開";
         $("ncTitle").value = ""; $("ncDesc").value = "";
         $("ncSlots").innerHTML = ""; $("ncSlots").appendChild(ncSlotRow());
         await loadClasses();
