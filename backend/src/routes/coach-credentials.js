@@ -23,6 +23,9 @@ function ensureTable(db) {
     first_aid_type TEXT,
     first_aid_expiry TEXT,
     doc_url TEXT,
+    certificate_url TEXT,
+    insurance_policy_url TEXT,
+    insurance_expiry_date TEXT,
     status TEXT DEFAULT 'pending',
     reviewer_id TEXT,
     review_note TEXT,
@@ -31,6 +34,12 @@ function ensureTable(db) {
     updated_at TEXT DEFAULT (datetime('now')),
     UNIQUE(user_id)
   )`).run();
+  try {
+    const cols = db.prepare("PRAGMA table_info(coach_credentials)").all().map((c) => c.name);
+    [["certificate_url", "TEXT"], ["insurance_policy_url", "TEXT"], ["insurance_expiry_date", "TEXT"]].forEach(([n, t]) => {
+      if (!cols.includes(n)) db.prepare(`ALTER TABLE coach_credentials ADD COLUMN ${n} ${t}`).run();
+    });
+  } catch (e) {}
 }
 
 const isDate = (s) => /^\d{4}-\d{2}-\d{2}$/.test(String(s || ""));
@@ -51,6 +60,9 @@ router.post("/coach/credentials", authenticateToken, (req, res) => {
     const firstAidType = String(b.first_aid_type || "").slice(0, 60);
     const firstAidExpiry = String(b.first_aid_expiry || "").slice(0, 10);
     const docUrl = String(b.doc_url || "").slice(0, 300);
+    const certUrl = String(b.certificate_url || "").slice(0, 300);
+    const insUrl = String(b.insurance_policy_url || "").slice(0, 300);
+    const insExpiry = String(b.insurance_expiry_date || "").slice(0, 10);
 
     if (!licenseType) return res.status(400).json({ success: false, error: "請填寫教練牌照／認證名稱" });
     if (licenseExpiry && !isDate(licenseExpiry)) return res.status(400).json({ success: false, error: "牌照到期日格式要 YYYY-MM-DD" });
@@ -60,13 +72,17 @@ router.post("/coach/credentials", authenticateToken, (req, res) => {
     if (existing) {
       db.prepare(
         `UPDATE coach_credentials SET license_type=?, license_no=?, license_expiry=?, first_aid_type=?, first_aid_expiry=?, doc_url=?,
+          certificate_url=?, insurance_policy_url=?, insurance_expiry_date=?,
           status='pending', review_note=NULL, reviewer_id=NULL, reviewed_at=NULL, updated_at=datetime('now') WHERE user_id=?`,
-      ).run(licenseType, licenseNo || null, licenseExpiry || null, firstAidType || null, firstAidExpiry || null, docUrl || null, me.id);
+      ).run(licenseType, licenseNo || null, licenseExpiry || null, firstAidType || null, firstAidExpiry || null, docUrl || null,
+          certUrl || null, insUrl || null, insExpiry || null, me.id);
     } else {
       db.prepare(
-        `INSERT INTO coach_credentials (id, user_id, license_type, license_no, license_expiry, first_aid_type, first_aid_expiry, doc_url, status)
-         VALUES (?,?,?,?,?,?,?,?, 'pending')`,
-      ).run(crypto.randomUUID(), me.id, licenseType, licenseNo || null, licenseExpiry || null, firstAidType || null, firstAidExpiry || null, docUrl || null);
+        `INSERT INTO coach_credentials (id, user_id, license_type, license_no, license_expiry, first_aid_type, first_aid_expiry, doc_url,
+          certificate_url, insurance_policy_url, insurance_expiry_date, status)
+         VALUES (?,?,?,?,?,?,?,?,?,?,?, 'pending')`,
+      ).run(crypto.randomUUID(), me.id, licenseType, licenseNo || null, licenseExpiry || null, firstAidType || null, firstAidExpiry || null, docUrl || null,
+        certUrl || null, insUrl || null, insExpiry || null);
     }
     try {
       const { writeBlock } = require("../services/blockchain-audit");

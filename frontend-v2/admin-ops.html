@@ -42,6 +42,7 @@
         <button data-t="ops">🚨 異常處理</button>
         <button data-t="settle">🏁 批量結算</button>
         <button data-t="cred">🪪 教練資質</button>
+        <button data-t="agr">🤝 協議簽署</button>
       </div>
 
       <div id="paneFin">
@@ -77,6 +78,24 @@
           <b>🪪 教練資質核實</b>
           <div class="muted" style="font-size:12px;margin:6px 0 10px">牌照／急救證書核實後，教練會顯示 ✅ 已核實；過期會標示。</div>
           <div id="credList"></div>
+        </div></div>
+      </div>
+
+      <div id="paneAgr" hidden>
+        <div class="kpis" id="agrKpis" style="margin-bottom:10px"></div>
+        <div class="card" style="margin-bottom:10px"><div class="body">
+          <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+            <b style="font-size:13.5px">簽署紀錄</b>
+            <select id="agrFilter" class="fld" style="margin:0;flex:1;padding:8px">
+              <option value="all">全部</option><option value="coach">教練</option><option value="venue">場地</option>
+            </select>
+          </div>
+          <div id="agrList"></div>
+        </div></div>
+        <div class="card"><div class="body">
+          <b style="font-size:13.5px">⚠️ 待補簽名單</b>
+          <div class="muted" style="font-size:12px;margin:6px 0 8px">以下教練／場主未簽署協議（會鎖後台，簽完即解鎖）。</div>
+          <div id="agrPending"></div>
         </div></div>
       </div>
 
@@ -126,7 +145,7 @@
       $("tabs").onclick = (e) => {
         const b = e.target.closest("button"); if (!b) return;
         [...$("tabs").children].forEach((x) => x.classList.toggle("on", x === b));
-        ["fin", "leads", "ops", "settle", "cred"].forEach((k) => ($("pane" + k[0].toUpperCase() + k.slice(1))).hidden = b.dataset.t !== k);
+        ["fin", "leads", "ops", "settle", "cred", "agr"].forEach((k) => ($("pane" + k[0].toUpperCase() + k.slice(1))).hidden = b.dataset.t !== k);
       };
       $("wxGo").onclick = weatherCancel;
       $("bsGo").onclick = batchSettle;
@@ -139,6 +158,7 @@
       await loadFinance();
       await loadLeads();
       await loadCredentials();
+      await loadAgreements();
     }
 
     async function loadFinance() {
@@ -195,6 +215,36 @@
         if (rr.ok) { toast("✅ " + rr.data.message); loadCredentials(); }
         else alert((rr.data && rr.data.error) || "審核失敗");
       }));
+    }
+
+    async function loadAgreements() {
+      const list = $("agrList"), pend = $("agrPending"), kp = $("agrKpis");
+      if (!list) return;
+      const [r1, r2] = await Promise.all([api.get("/admin/agreements"), api.get("/admin/agreements/pending")]);
+      const rows = (r1.ok && r1.data.agreements) || [];
+      const pending = (r2.ok && r2.data.pending) || [];
+      const isCoachRow = (x) => Number(x.is_coach) === 1 || ["coach", "platform_manager", "platform_staff"].includes(x.user_role);
+      const coachCount = rows.filter(isCoachRow).length;
+      const venueCount = rows.length - coachCount;
+      if (kp) kp.innerHTML = `
+        <div class="kpi"><div class="v">${rows.length}</div><div class="l">總簽署份數</div></div>
+        <div class="kpi"><div class="v">${coachCount} / ${venueCount}</div><div class="l">教練 / 場地</div></div>
+        <div class="kpi" style="grid-column:span 2"><div class="v" style="color:${pending.length ? "#c2410c" : "#047857"}">${pending.length}</div><div class="l">待補簽（未簽署嘅教練／場主）</div></div>`;
+      const f = ($("agrFilter") && $("agrFilter").value) || "all";
+      const shown = rows.filter((x) => f === "all" ? true : f === "coach" ? isCoachRow(x) : !isCoachRow(x));
+      list.innerHTML = shown.length ? shown.map((x) => `<div class="row"><span><b>${esc(x.name || x.email)}</b>
+        <span class="s">${esc(badgeRole(isCoachRow(x) ? "coach" : x.user_role || x.role_type))} · ${esc(x.signed_name || "")}${x.signer_title ? "（" + esc(x.signer_title) + "）" : ""} · ${esc(x.version || "")} · ${esc(String(x.created_at || "").slice(0, 16))} · IP ${esc(x.ip || "—")}</span></span>
+        <span class="pill p-on">已簽署</span></div>`).join("") : '<div class="muted" style="font-size:12.5px">暫無紀錄</div>';
+      pend.innerHTML = pending.length ? pending.map((x) => `<div class="row"><span><b>${esc(x.name || x.email)}</b>
+        <span class="s">${esc(badgeRole(x.role))} · ${esc(x.email || "")}${x.phone ? " · " + esc(x.phone) : ""}</span></span>
+        <a class="pill p-wait" style="text-decoration:none" href="https://wa.me/852${esc(String(x.phone || "").replace(/\D/g, "").slice(-8))}?text=${encodeURIComponent("你好，請到 ZenPass 後台完成《合作夥伴合規及免責承諾書》簽署，以開通排班／收款功能：https://zenpass.hk/coach-dashboard.html")}" target="_blank" rel="noopener">💬 提醒補簽</a></div>`).join("") : '<div class="muted" style="font-size:12.5px">✅ 全部已簽署</div>';
+      if ($("agrFilter")) $("agrFilter").onchange = loadAgreements;
+    }
+
+    function badgeRole(r) {
+      if (r === "coach") return "教練";
+      if (String(r || "").startsWith("partner")) return "場地";
+      return r || "—";
     }
 
     async function weatherCancel() {

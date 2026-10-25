@@ -81,12 +81,29 @@ router.post("/agreements/partner", authenticateToken, (req, res) => {
   }
 });
 
+router.get("/admin/agreements/pending", authenticateToken, requireAdmin, (req, res) => {
+  try {
+    const db = getDb();
+    ensureTable(db);
+    const rows = db.prepare(
+      `SELECT u.id, u.name, u.email, u.phone, u.role, u.is_coach
+       FROM users u
+       WHERE (u.is_coach = 1 OR u.role IN ('coach','partner_owner','partner_admin'))
+         AND NOT EXISTS (SELECT 1 FROM partner_agreements pa WHERE pa.user_id = u.id AND pa.version = ?)
+       ORDER BY u.name LIMIT 300`,
+    ).all(VERSION);
+    res.json({ success: true, version: VERSION, pending: rows });
+  } catch (err) {
+    res.status(500).json({ success: false, error: "讀取失敗" });
+  }
+});
+
 router.get("/admin/agreements", authenticateToken, requireAdmin, (req, res) => {
   try {
     const db = getDb();
     ensureTable(db);
     const rows = db.prepare(
-      `SELECT pa.*, u.name, u.email FROM partner_agreements pa
+      `SELECT pa.*, u.name, u.email, u.phone, u.role AS user_role, u.is_coach FROM partner_agreements pa
        LEFT JOIN users u ON u.id = pa.user_id ORDER BY pa.created_at DESC LIMIT 200`,
     ).all();
     res.json({ success: true, agreements: rows });

@@ -61,8 +61,15 @@
               </select></div>
             <div><label class="lbl2">急救到期日</label><input class="fld2" id="cdFirstAidExp" type="date" /></div>
           </div>
-          <label class="lbl2">證明文件連結（可選）</label>
+          <label class="lbl2">教練證書／執照連結（可選）</label>
+          <input class="fld2" id="cdCert" placeholder="上載後貼連結（PDF／圖片）" maxlength="300" />
+          <div class="grid2">
+            <div><label class="lbl2">責任保險保單連結（可選）</label><input class="fld2" id="cdIns" placeholder="保單 PDF 連結" maxlength="300" /></div>
+            <div><label class="lbl2">保單到期日</label><input class="fld2" id="cdInsExp" type="date" /></div>
+          </div>
+          <label class="lbl2">其他證明文件連結（可選）</label>
           <input class="fld2" id="cdDoc" placeholder="上載後貼連結，或留空待補" maxlength="300" />
+          <div class="muted2" style="font-size:11.5px;margin-bottom:8px">💡 持有有效證書及保險者可獲「⭐ 星級教練認證」，並優先獲推薦。</div>
           <button class="btn btn-primary btn-block" id="cdSave" type="button">提交／更新資質（待平台核實）</button>
           <div class="muted2" id="cdMsg" style="margin-top:8px"></div>
         </div>
@@ -180,6 +187,9 @@
           first_aid_type: $("cdFirstAidType").value || null,
           first_aid_expiry: $("cdFirstAidExp").value || null,
           doc_url: $("cdDoc").value.trim() || null,
+          certificate_url: $("cdCert").value.trim() || null,
+          insurance_policy_url: $("cdIns").value.trim() || null,
+          insurance_expiry_date: $("cdInsExp").value || null,
         };
         if (!body.license_type) { $("cdMsg").textContent = "請填牌照名稱"; return; }
         const b = $("cdSave"); b.disabled = true; b.textContent = "提交中…";
@@ -218,6 +228,9 @@
       $("cdFirstAidType").value = c.first_aid_type || "";
       $("cdFirstAidExp").value = c.first_aid_expiry || "";
       $("cdDoc").value = c.doc_url || "";
+      $("cdCert").value = c.certificate_url || "";
+      $("cdIns").value = c.insurance_policy_url || "";
+      $("cdInsExp").value = c.insurance_expiry_date || "";
     }
 
     async function loadClasses() {
