@@ -55,6 +55,24 @@
           <div><label class="lbl">上載保單（可選）</label><input class="fld" id="p-ins-doc" type="file" accept="image/*,application/pdf" /></div>
         </div>
       </div></div>
+
+      <div class="card" style="margin-top:12px;background:#f0fdf4;border:1px solid #bbf7d0"><div class="body" style="padding:12px">
+        <b style="font-size:13.5px">🤝 合作夥伴合規及免責承諾書 *</b>
+        <p class="muted" style="font-size:12px;margin:6px 0;line-height:1.7">
+          1. 獨立合約人身分（非僱傭、非合夥）／自行負責稅務及保險　
+          2. 保證持有效專業資格、場地符合消防及公眾安全法規、導師無性罪行紀錄　
+          3. 自備公眾責任保險，並就因其疏忽引致之索償全額彌償 ZenPass　
+          4. 不得引導學員繞過平台私下交易　
+          5. 平台保留最終核實、終止合作及解釋權利
+        </p>
+        <label style="display:flex;gap:8px;align-items:flex-start;font-size:13px">
+          <input type="checkbox" id="p-agree" style="margin-top:3px" />
+          <span>本人已閱讀並同意上述《合作夥伴合規及免責承諾書》全部條款 *</span>
+        </label>
+        <label class="lbl" style="margin-top:8px">法定負責人全名（電子簽署）*</label>
+        <input class="fld" id="p-signname" placeholder="例：陳大文" maxlength="60" />
+      </div></div>
+
       <div class="spacer"></div>
       <button class="btn btn-primary btn-block" id="submit">提交加盟</button>
       <div id="msg" class="center muted" style="font-size:13px;margin-top:10px"></div>
@@ -101,8 +119,16 @@
           if (uj.files && uj.files[0]) body.insurance_doc_url = uj.files[0].url;
         } catch (e) { /* 保單上載失敗唔阻止提交 */ }
       }
+      if (!document.getElementById("p-agree").checked) { msg.textContent = "請勾選同意合作夥伴合規承諾書"; return; }
+      const signName = (document.getElementById("p-signname").value || "").trim();
+      if (!signName) { msg.textContent = "請輸入法定負責人全名"; return; }
+      body.partner_agreement = { agreed: true, signed_name: signName, version: "v2026.1_partner", at: new Date().toISOString() };
+
       const btn = document.getElementById("submit"); btn.disabled = true; btn.textContent = "提交中…";
       const r = await api.post("/partner/apply", body);
+      if (r.ok && api.isLoggedIn()) {
+        try { await api.post("/agreements/partner", { signed_name: signName, agreed: true }); } catch (e) {}
+      }
       btn.disabled = false; btn.textContent = "提交加盟";
       if (r.ok) {
         const d = r.data || {};

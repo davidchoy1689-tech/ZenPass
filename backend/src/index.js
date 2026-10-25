@@ -272,6 +272,7 @@ app.use("/api/admin", require("./routes/admin"));
 app.use("/api/admin/ops", require("./routes/admin-ops"));
 app.use("/api/guardians", require("./routes/guardians"));
 app.use("/api", require("./routes/coach-credentials"));
+app.use("/api", require("./routes/agreements"));
 app.use("/api", require("./routes/coach-jobs"));
 app.use("/api/notifications", require("./routes/notifications"));
 app.use("/api/upload", require("./routes/upload"));

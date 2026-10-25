@@ -116,6 +116,7 @@
   </div>
 
   <script src="assets/api.js?v=3"></script>
+  <script src="assets/partner-agreement.js?v=1"></script>
   <script>
     const $ = (id) => document.getElementById(id);
     const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -189,6 +190,7 @@
       };
       $("addSlot").onclick = () => { if ($("slots").children.length < 8) addSlot(); };
       $("createBtn").onclick = createClass;
+      if (window.zpRequirePartnerAgreement) zpRequirePartnerAgreement(() => location.reload());
       loadClasses();
     })();
 
