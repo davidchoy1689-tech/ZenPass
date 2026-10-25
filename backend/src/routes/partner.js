@@ -188,7 +188,7 @@ router.get("/venue/schedule", authenticateToken, requireOwnInstitution, (req, re
     const days = Math.min(60, Math.max(1, Number(req.query.days) || 14));
     const rows = db
       .prepare(
-        `SELECT s.id, s.start_time, s.end_time, s.enrolled_count, s.max_participants, s.status,
+        `SELECT s.id, s.start_time, s.end_time, s.enrolled_count, s.max_participants, s.status, s.settled_at,
                 c.id as class_id, c.title, c.coach_id, u.name as coach_name, c.price_hkd, c.duration
          FROM class_schedules s
          JOIN classes c ON c.id = s.class_id

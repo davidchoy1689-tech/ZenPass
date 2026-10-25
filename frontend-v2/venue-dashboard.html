@@ -51,7 +51,10 @@
           <button class="btn btn-secondary" id="calNext" style="min-height:32px;padding:0 12px">▶</button>
         </div>
         <div style="position:relative;margin-bottom:8px">
-          <button class="btn btn-secondary btn-block" id="vSyncBtn" style="min-height:36px;font-size:13px">📲 同步場地排期到行事曆 ▾</button>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-secondary" id="vCsvTop" style="flex:1;min-height:36px;font-size:13px">📊 本月 CSV</button>
+            <button class="btn btn-secondary" id="vSyncBtn" style="flex:2;min-height:36px;font-size:13px">📲 同步排期到行事曆 ▾</button>
+          </div>
           <div id="vSyncMenu" style="display:none;position:absolute;left:0;right:0;top:calc(100% + 6px);background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:0 10px 25px rgba(0,0,0,.15);padding:6px;z-index:1000">
             <button class="btn btn-secondary" id="vSyncIcs" style="width:100%;text-align:left;border:0;background:none;margin-bottom:4px">🍏 Apple Calendar / Outlook (.ics)</button>
             <button class="btn btn-secondary" id="vSyncGcal" style="width:100%;text-align:left;border:0;background:none;margin-bottom:4px">🌐 Google Calendar</button>
@@ -129,6 +132,7 @@
       if (vb) vb.onclick = (e) => { e.stopPropagation(); vm.style.display = vm.style.display === "none" ? "block" : "none"; };
       document.addEventListener("click", () => { if (vm) vm.style.display = "none"; });
       const vi = $("vSyncIcs"); if (vi) vi.onclick = (e) => { e.stopPropagation(); vm.style.display = "none"; vDownloadIcsAll(); };
+      const vt = $("vCsvTop"); if (vt) vt.onclick = () => vExportCsv();
       const vc = $("vSyncCsv"); if (vc) vc.onclick = (e) => { e.stopPropagation(); vm.style.display = "none"; vExportCsv(); };
       const vg = $("vSyncGcal"); if (vg) vg.onclick = (e) => {
         e.stopPropagation(); vm.style.display = "none";
@@ -270,28 +274,30 @@
     }
 
     function vExportCsv() {
-      const now = new Date();
+      const y = CAL.y, m = CAL.m;
       const rows = (CAL_SESSIONS || []).filter((x) => {
         const d = new Date(String(x.start_time).replace(" ", "T"));
-        return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && x.status !== "cancelled";
+        return d.getFullYear() === y && d.getMonth() === m && x.status !== "cancelled";
       });
-      if (!rows.length) { alert("本月暫無場地排期"); return; }
-      const head = ["日期","開始","結束","課堂","教練","已報","名額","場租(HK$)"];
+      if (!rows.length) { alert(`${y} 年 ${m + 1} 月暫無場地排期`); return; }
+      const head = ["排期編號","日期","開始","結束","課堂","教練","已報","名額","場租(HK$)","狀態"];
       const lines = [head.join(",")];
       let total = 0;
       rows.forEach((x) => {
         const rent = vRentFor(x);
         total += rent;
-        lines.push([dayKey(x.start_time), hm2(x.start_time), hm2(x.end_time),
+        const ended = new Date(String(x.end_time).replace(" ", "T")).getTime() < Date.now();
+        const st = x.settled_at ? "已結算" : ended ? "已完結待平賬" : "未開始";
+        lines.push([x.id, dayKey(x.start_time), hm2(x.start_time), hm2(x.end_time),
           `"${String(x.title || "").replace(/"/g, '""')}"`,
           `"${String(x.coach_name || "").replace(/"/g, '""')}"`,
-          x.enrolled_count || 0, x.max_participants || 0, rent].join(","));
+          x.enrolled_count || 0, x.max_participants || 0, rent, st].join(","));
       });
-      lines.push(["", "", "", "合計場租", "", "", "", total].join(","));
+      lines.push(["【當月總計】", "", "", "", `${rows.length} 場`, "", "", "", total, ""].join(","));
       const blob = new Blob(["\ufeff" + lines.join("\r\n")], { type: "text/csv;charset=utf-8" });
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
-      a.download = `ZenPass_Venue_${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}.csv`;
+      a.download = `ZenPass_Venue_${y}-${String(m + 1).padStart(2, "0")}.csv`;
       document.body.appendChild(a); a.click(); a.remove();
       setTimeout(() => URL.revokeObjectURL(a.href), 3000);
       toast("📊 已匯出 " + rows.length + " 場");

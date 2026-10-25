@@ -71,7 +71,8 @@
         <button data-v="list" style="flex:1;border:1px solid var(--border);background:var(--surface);color:var(--text-muted);border-radius:12px;padding:9px 0;font:inherit;font-weight:800;font-size:13.5px">📋 列表</button>
         </div>
         <div style="position:relative;flex:none">
-          <button id="btnIcs" class="btn btn-secondary" style="min-height:38px;padding:0 12px;font-size:12.5px">📲 同步日曆 ▾</button>
+          <button id="btnCsvTop" class="btn btn-secondary" style="min-height:38px;padding:0 10px;font-size:12.5px">📊</button>
+          <button id="btnIcs" class="btn btn-secondary" style="min-height:38px;padding:0 10px;font-size:12.5px">📲 ▾</button>
           <div id="calSyncMenu" style="display:none;position:absolute;right:0;top:calc(100% + 6px);background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:0 10px 25px rgba(0,0,0,.15);padding:6px;min-width:230px;z-index:1000">
             <button class="btn btn-secondary" id="syncIcs" style="width:100%;text-align:left;justify-content:flex-start;border:0;background:none;margin-bottom:4px">🍏 Apple Calendar / Outlook (.ics)</button>
             <button class="btn btn-secondary" id="syncGcal" style="width:100%;text-align:left;justify-content:flex-start;border:0;background:none;margin-bottom:4px">🌐 Google Calendar</button>
@@ -412,6 +413,7 @@
     if (_btnIcs) _btnIcs.onclick = (e) => { e.stopPropagation(); _menu.style.display = _menu.style.display === "none" ? "block" : "none"; };
     document.addEventListener("click", () => { if (_menu) _menu.style.display = "none"; });
     const _si = $("syncIcs"); if (_si) _si.onclick = (e) => { e.stopPropagation(); _menu.style.display = "none"; downloadIcsAll(); };
+    const _ct = $("btnCsvTop"); if (_ct) _ct.onclick = () => exportCsv();
     const _sc = $("syncCsv"); if (_sc) _sc.onclick = (e) => { e.stopPropagation(); _menu.style.display = "none"; exportCsv(); };
     const _sg = $("syncGcal"); if (_sg) _sg.onclick = (e) => {
       e.stopPropagation(); _menu.style.display = "none";
@@ -423,13 +425,13 @@
 
     /* 📊 本月 CSV 匯出 */
     function exportCsv() {
-      const now = new Date();
+      const y = CAL.y, m = CAL.m; // 以「當前瀏覽月份」為準
       const rows = CAL_SESSIONS.filter((x) => {
         const d = new Date(String(x.start_time).replace(" ", "T"));
-        return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && x.status !== "cancelled";
+        return d.getFullYear() === y && d.getMonth() === m && x.status !== "cancelled";
       });
-      if (!rows.length) { alert("本月暫無課堂"); return; }
-      const head = ["日期", "開始", "結束", "課堂", "場地", "地區", "已報", "名額", "單價(HK$)", "學費合計(HK$)", "教練80%(HK$)", "場地費(HK$)"];
+      if (!rows.length) { alert(`${y} 年 ${m + 1} 月暫無課堂`); return; }
+      const head = ["排期編號", "日期", "開始", "結束", "課堂", "場地", "地區", "已報", "名額", "單價(HK$)", "學費合計(HK$)", "教練80%(HK$)", "場地費(HK$)", "狀態"];
       const lines = [head.join(",")];
       let totalGross = 0, totalNet = 0, totalVenue = 0;
       rows.forEach((x) => {
@@ -439,18 +441,20 @@
         const net = Math.round(gross * 0.8);
         const rent = x.rental_price_per_hour ? Math.round((Number(x.duration) || 60) / 60 * Number(x.rental_price_per_hour)) : 0;
         totalGross += gross; totalNet += net; totalVenue += rent;
+        const ended = new Date(String(x.end_time).replace(" ", "T")).getTime() < Date.now();
+        const st = x.settled_at ? "已結算" : ended ? "已完結待結算" : "未開始";
         lines.push([
-          dayKey(x.start_time), hhmm2(x.start_time), hhmm2(x.end_time),
+          x.id, dayKey(x.start_time), hhmm2(x.start_time), hhmm2(x.end_time),
           `"${String(x.title || "").replace(/"/g, '""')}"`,
           `"${String(x.venue_name || "").replace(/"/g, '""')}"`,
-          x.district || "", booked, x.max_participants || "", price, gross, net, rent,
+          x.district || "", booked, x.max_participants || "", price, gross, net, rent, st,
         ].join(","));
       });
-      lines.push(["", "", "", "合計", "", "", "", "", "", totalGross, totalNet, totalVenue].join(","));
+      lines.push(["【當月總計】", "", "", "", `${rows.length} 堂`, "", "", "", "", "", totalGross, totalNet, totalVenue, ""].join(","));
       const blob = new Blob(["\ufeff" + lines.join("\r\n")], { type: "text/csv;charset=utf-8" });
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
-      a.download = `ZenPass_Coach_${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}.csv`;
+      a.download = `ZenPass_Coach_${y}-${String(m + 1).padStart(2, "0")}.csv`;
       document.body.appendChild(a); a.click(); a.remove();
       setTimeout(() => URL.revokeObjectURL(a.href), 3000);
       toast("📊 已匯出本月 " + rows.length + " 堂");
