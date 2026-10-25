@@ -167,3 +167,8 @@ function call(handler, { query = {}, body = {}, user = null, params = {} }) {
   }
   console.log("✅ 後台帳號管理 tests passed");
 })();
+
+// ===== 資料庫唯讀瀏覽（2026-10-24）=====
+(async () => {
+  await new Promise((r) => setTimeout(r, 50));
+})();

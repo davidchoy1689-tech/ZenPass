@@ -1022,7 +1022,7 @@ router.get("/class-students", authenticateToken, (req, res) => {
       .prepare(
         `
       SELECT cs.id, cs.start_time, cs.end_time, cs.enrolled_count, cs.max_participants,
-             c.title, c.venue_name, c.venue_address
+             c.title, c.venue_name, c.venue_address, c.price_hkd, c.min_participants, c.duration
       FROM class_schedules cs
       JOIN classes c ON cs.class_id = c.id
       WHERE cs.id = ?

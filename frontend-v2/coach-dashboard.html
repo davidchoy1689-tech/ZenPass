@@ -54,14 +54,17 @@
   </style>
 </head>
 <body>
-  <div class="topbar"><a class="back" href="coach.html">‹</a><div class="title">教練排班後台</div></div>
+  <div class="topbar"><a class="back" href="coach-dashboard.html">‹</a><div class="title">教練排班後台</div></div>
   <div class="wrap">
     <div id="guard"></div>
     <div id="app" hidden>
       <div class="hero" id="hero"></div>
       <div class="metrics" id="metrics"></div>
       <div class="muted" id="updatedAt" style="font-size:11.5px;text-align:right;margin:-4px 2px 8px;color:var(--text-muted)">—</div>
-      <button class="btn btn-primary btn-block" id="btnQuick" style="margin-bottom:12px">➕ 快速新增課堂時段</button>
+      <div style="display:flex;gap:10px;margin-bottom:12px">
+        <button class="btn btn-primary" id="btnQuick" style="flex:2">➕ 快速新增課堂時段</button>
+        <a class="btn btn-secondary" href="/scan" style="flex:1;text-align:center;text-decoration:none">📷 掃描核銷</a>
+      </div>
       <div class="tabs" id="tabs">
         <button class="on" data-f="upcoming">即將開班</button>
         <button data-f="completed">已結束</button>
@@ -75,8 +78,8 @@
   <nav class="bottomnav">
     <a class="active" href="coach-dashboard.html"><span class="ic">📅</span>課堂管理</a>
     <a href="#" id="navAdd"><span class="ic">➕</span>新增時段</a>
-    <a href="coach.html"><span class="ic">💰</span>帳目</a>
-    <a href="coach.html"><span class="ic">👤</span>中心</a>
+    <a href="coach-dashboard.html"><span class="ic">💰</span>帳目</a>
+    <a href="coach-dashboard.html"><span class="ic">👤</span>中心</a>
   </nav>
 
   <div class="sh" id="shMask"></div>
@@ -148,7 +151,7 @@
           <div class="muted" style="font-size:13px;margin-top:8px;line-height:1.7">需要教練帳號登入。想先睇介面可以用示範模式。</div>
           <div style="display:grid;gap:9px;margin-top:14px">
             <a class="btn btn-primary" href="login.html?next=${next}">🔑 教練登入</a>
-            <a class="btn btn-secondary" href="coach.html?demo=1">👀 示範預覽（Demo）</a>
+            <a class="btn btn-secondary" href="coach-dashboard.html?demo=1">👀 示範預覽（Demo）</a>
             <a class="btn btn-secondary" href="coach-apply.html">✍️ 申請成為教練</a>
           </div></div></div>`;
         $("guard").style.display = "";
@@ -354,7 +357,10 @@
       const waText = encodeURIComponent(`【ZenPass】課堂提醒：${sch.title || ""} — ${fmt(sch.start_time)}，地點：${sch.venue_name || ""}${sch.venue_address ? "（" + sch.venue_address + "）" : ""}。請提早 10 分鐘到場，出示入場憑證 QR 簽到。`);
       $("shBody").innerHTML = `
         <div class="muted" style="font-size:12.5px;margin-bottom:10px">${esc(sch.title || "")} · ${esc(fmt(sch.start_time))} · ${list.length} 位</div>
-        <a class="btn btn-secondary btn-block" style="margin-bottom:12px" href="https://wa.me/?text=${waText}" target="_blank" rel="noopener">💬 WhatsApp 群發課堂提醒</a>
+        <div style="display:flex;gap:8px;margin-bottom:12px">
+          <a class="btn btn-secondary" style="flex:1" href="https://wa.me/?text=${waText}" target="_blank" rel="noopener">💬 群發提醒</a>
+          <button class="btn btn-primary" style="flex:1" id="realSettle">🏁 下課結算</button>
+        </div>
         ${list.map((s) => {
           const done = s.booking_status === "attended";
           return `<div class="stu">
@@ -369,6 +375,61 @@
         if (rr.ok) { toast("✅ 已簽到"); roster(sid); loadStats(); }
         else { b.disabled = false; alert((rr.data && rr.data.error) || "簽到失敗"); }
       }));
+      const rs = $("realSettle");
+      if (rs) rs.onclick = () => realSettle(sid, sch, list);
+    }
+
+    /* ===== 🏁 真實數據結算 ===== */
+    async function realSettle(sid, sch, roster) {
+      const er = await api.get("/coach/earnings").catch(() => null);
+      const rate = Number(er && er.data && er.data.commission_rate) || 0.8;
+      const price = Number(sch && sch.price_hkd) || 0;
+      const enrolled = roster.reduce((s2, x) => s2 + (Number(x.group_size) || 1), 0);
+      const attList = roster.filter((x) => x.booking_status === "attended");
+      const attended = attList.reduce((s2, x) => s2 + (Number(x.group_size) || 1), 0);
+      const gross = Math.round(attended * price);
+      const net = Math.round(gross * rate);
+      const names = attList.map((x) => `${x.name || "學員"}（${Number(x.group_size) || 1} 位）`).join("、") || "無學員出席";
+      const report = `🧾 *【ZenPass 禪流 · 課堂結算報表】*
+---------------------------
+👤 *執教教練*：${(api.getUser() || {}).name || "教練"}
+🎯 *項目名稱*：${(sch && sch.title) || ""}
+📅 *日期時間*：${fmt(sch && sch.start_time)}
+📍 *上課地點*：${(sch && sch.venue_name) || ""}
+---------------------------
+📊 *出勤情況*
+• 報名人數：${enrolled} 位
+• 實到出席：${attended} 位
+• 缺席人次：${Math.max(0, enrolled - attended)} 位
+📋 *出席學員*：${names}
+---------------------------
+💰 *收益結算（${Math.round(rate * 100)}% 拆帳）*
+• 實收總學費：${hkd(gross)}
+• 平台及場地費：${hkd(gross - net)}
+👉 *教練應收淨額*：*${hkd(net)}*
+---------------------------
+✅ 課堂已順利結束，請財務核對入賬。謝謝！`;
+      openSheet("🏁 課堂結算確認", `
+        <div class="muted" style="font-size:12.5px;margin-bottom:10px">${esc((sch && sch.title) || "")} · ${esc(fmt(sch && sch.start_time))}</div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px">
+          <div style="background:var(--surface-2);border-radius:12px;padding:9px;text-align:center"><div class="muted" style="font-size:11px">應到人數</div><b>${enrolled} 位</b></div>
+          <div style="background:var(--surface-2);border-radius:12px;padding:9px;text-align:center"><div class="muted" style="font-size:11px">實到簽到</div><b style="color:#047857">${attended} 位</b></div>
+          <div style="background:var(--surface-2);border-radius:12px;padding:9px;text-align:center"><div class="muted" style="font-size:11px">缺席</div><b style="color:#e11d48">${Math.max(0, enrolled - attended)} 位</b></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px"><span>課堂總學費（實到 × ${hkd(price)}）</span><b>${hkd(gross)}</b></div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:10px;color:var(--text-muted)"><span>平台及場地費（${Math.round((1-rate)*100)}%）</span><span>- ${hkd(gross - net)}</span></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;border-top:1px dashed var(--border);padding-top:10px;margin-bottom:12px"><b>教練本堂淨收益（${Math.round(rate*100)}%）</b><b style="font-size:20px;color:#047857">${hkd(net)}</b></div>
+        <div class="muted" style="font-size:11.5px;margin-bottom:12px">📋 出席：${esc(names)}</div>
+        <a class="btn btn-primary btn-block" style="background:#25d366;color:#04331c;margin-bottom:8px" href="https://wa.me/85290335538?text=${encodeURIComponent(report)}" target="_blank" rel="noopener">💬 一鍵發送結算單至 WhatsApp</a>
+        <button class="btn btn-secondary btn-block" id="rsGo">✅ 確認結算並封存此課堂</button>
+        <div class="muted" id="rsMsg" style="text-align:center;margin-top:8px;font-size:12px"></div>`);
+      $("rsGo").onclick = async () => {
+        const b = $("rsGo"); b.disabled = true; b.textContent = "封存中…";
+        const rr = await api.post("/coach/schedules/" + encodeURIComponent(sid) + "/settle", { attended_heads: attended });
+        b.disabled = false; b.textContent = "✅ 確認結算並封存此課堂";
+        if (rr.ok) { $("rsMsg").textContent = "🎉 已封存，數據已記錄"; toast("🎉 已結算封存"); setTimeout(() => { closeSheet(); loadStats(); loadList(); }, 1200); }
+        else $("rsMsg").textContent = (rr.data && rr.data.error) || "結算失敗";
+      };
     }
 
     async function cancelSession(sid) {

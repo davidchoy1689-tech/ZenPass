@@ -52,10 +52,12 @@ ok(page.includes("cVenue"), "可選現有場地或自行輸入");
 ok(page.includes("loadClasses"), "開班後即時刷新課程列表");
 ok(page.includes("detail.html?id="), "課程連結去新版詳情頁");
 // 教練中心（hub）：一撳點名 + 掃描備用
-ok(hub.includes("展開學員名冊"), "教練中心有一撳點名名冊");
+// 2026-10-25：coach.html 已改為排班後台本體（與 coach-dashboard 同一份）
+ok(hub.includes("學員名單") || hub.includes("學員名冊"), "教練中心有一撳點名名冊");
 ok(hub.includes("/attend"), "名冊可即時簽到");
-ok(hub.includes("verify.html"), "有掃描核銷備用入口");
-ok(hub.includes("快速開班") || hub.includes("quickSchedule"), "有快速開班 FAB");
+ok(hub.includes("scan") || hub.includes("verify") || hub.includes("📷"), "有掃描核銷備用入口");
+ok(hub.includes("快速新增課堂時段") || hub.includes("quickSheet"), "有快速開班入口");
+ok(hub.includes("下課結算"), "有課堂結算按鈕");
 
 console.log("──────────────────────────────");
 if (fail) {

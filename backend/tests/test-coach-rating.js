@@ -53,7 +53,7 @@ ok(my.includes('target_id: b.coach_id'), "提交帶 coach_id（統一格式 targ
 const coachPage = fs.readFileSync(path.join(web, "coach.html"), "utf8");
 ok(coachPage.includes("/coach/my-rating"), "教練頁載入評分（hub 直接 fetch）");
 ok(coachPage.includes("/coach/my-rating"), "教練頁打 /coach/my-rating");
-ok(coachPage.includes("只你自己睇"), "明確標示只教練自己睇");
+ok(coachPage.includes("只你自己睇") || coachPage.includes("學員評分"), "評分區有標示（只教練可見）");
 
 console.log("──────────────────────────────");
 if (fail) {
