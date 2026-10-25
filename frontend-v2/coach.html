@@ -70,7 +70,13 @@
         <button class="on" data-v="cal" style="flex:1;border:1px solid var(--border);background:var(--brand-500);color:#fff;border-radius:12px;padding:9px 0;font:inherit;font-weight:800;font-size:13.5px">📅 月曆</button>
         <button data-v="list" style="flex:1;border:1px solid var(--border);background:var(--surface);color:var(--text-muted);border-radius:12px;padding:9px 0;font:inherit;font-weight:800;font-size:13.5px">📋 列表</button>
         </div>
-        <button id="btnIcs" class="btn btn-secondary" style="flex:none;min-height:38px;padding:0 12px;font-size:12.5px">📆 匯出</button>
+        <div style="position:relative;flex:none">
+          <button id="btnIcs" class="btn btn-secondary" style="min-height:38px;padding:0 12px;font-size:12.5px">📲 同步日曆 ▾</button>
+          <div id="calSyncMenu" style="display:none;position:absolute;right:0;top:calc(100% + 6px);background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:0 10px 25px rgba(0,0,0,.15);padding:6px;min-width:230px;z-index:1000">
+            <button class="btn btn-secondary" id="syncIcs" style="width:100%;text-align:left;justify-content:flex-start;border:0;background:none;margin-bottom:4px">🍏 Apple Calendar / Outlook (.ics)</button>
+            <button class="btn btn-secondary" id="syncGcal" style="width:100%;text-align:left;justify-content:flex-start;border:0;background:none">🌐 Google Calendar</button>
+          </div>
+        </div>
       </div>
 
       <!-- 📅 微型月曆 + 當日時程 -->
@@ -392,7 +398,17 @@
       setTimeout(() => URL.revokeObjectURL(a.href), 3000);
       toast(`📆 已匯出 ${list.length} 堂`);
     }
-    const _btnIcs = $("btnIcs"); if (_btnIcs) _btnIcs.onclick = downloadIcsAll;
+    const _btnIcs = $("btnIcs"), _menu = $("calSyncMenu");
+    if (_btnIcs) _btnIcs.onclick = (e) => { e.stopPropagation(); _menu.style.display = _menu.style.display === "none" ? "block" : "none"; };
+    document.addEventListener("click", () => { if (_menu) _menu.style.display = "none"; });
+    const _si = $("syncIcs"); if (_si) _si.onclick = (e) => { e.stopPropagation(); _menu.style.display = "none"; downloadIcsAll(); };
+    const _sg = $("syncGcal"); if (_sg) _sg.onclick = (e) => {
+      e.stopPropagation(); _menu.style.display = "none";
+      const list = CAL_SESSIONS.filter((x) => x.status !== "cancelled" && dayKey(x.start_time) === SEL_DAY);
+      const target = list[0] || CAL_SESSIONS.filter((x) => x.status !== "cancelled")[0];
+      if (!target) { alert("暫無課堂可加入"); return; }
+      googleCalFor(target);
+    };
 
     function loadCal() {
       if (typeof DEMO !== "undefined" && DEMO) { CAL_SESSIONS = DEMO_SESSIONS.slice(); renderCal(); renderAgenda(); }
