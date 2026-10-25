@@ -205,7 +205,8 @@ function faqsFor(s) {
 }
 
 function head(s) {
-  const title = `${s.name} ${s.en} 體驗班｜${s.tag}｜ZenPass 禪流`;
+  const enTag = s.en && s.en.toLowerCase() !== s.name.toLowerCase() ? ` ${s.en}` : "";
+  const title = `${s.name}${enTag} 體驗班｜${s.tag}｜ZenPass 禪流`;
   const desc = `${s.lead} 香港「${s.cat}」體驗班，${s.time}，${s.level}，即刻睇最近開班時段。`;
   const url = `${SITE}/s/${s.slug}.html`;
   const img = `${SITE}/${s.img}`;
