@@ -445,6 +445,52 @@ router.post("/classes/:id/status", authenticateToken, requireAdmin, (req, res) =
   }
 });
 
+// ===== 分賬比率（教練分成）=====
+// GET /api/admin/commission — 全域比率 + 各教練比率
+router.get("/commission", authenticateToken, requirePermission("finance.pricing.view"), (req, res) => {
+  try {
+    const db = getDb();
+    const row = db.prepare("SELECT value FROM platform_settings WHERE key = 'coach_commission_rate'").get();
+    const globalRate = Number(row && row.value) || 0.8;
+    const coaches = db
+      .prepare("SELECT id, name, email, COALESCE(commission_rate, ?) as commission_rate FROM users WHERE is_coach = 1 ORDER BY name")
+      .all(globalRate);
+    res.json({ success: true, global_rate: globalRate, zenpass_rate: Math.round((1 - globalRate) * 1000) / 1000, coaches });
+  } catch (err) {
+    res.status(500).json({ success: false, error: "讀取失敗" });
+  }
+});
+
+// POST /api/admin/commission — { scope: "global"|"coach", rate, coach_id? }
+router.post("/commission", authenticateToken, requirePermission("finance.pricing.write"), (req, res) => {
+  try {
+    const rate = Number(req.body && req.body.rate);
+    if (!(rate > 0 && rate <= 1)) return res.status(400).json({ success: false, error: "比率要介乎 0–1（例：0.8 = 教練 80%）" });
+    const scope = (req.body && req.body.scope) === "coach" ? "coach" : "global";
+    const db = getDb();
+    if (scope === "coach") {
+      const coachId = req.body.coach_id;
+      if (!coachId) return res.status(400).json({ success: false, error: "缺少教練 ID" });
+      const r = db.prepare("UPDATE users SET commission_rate = ? WHERE id = ? AND is_coach = 1").run(rate, coachId);
+      if (!r.changes) return res.status(404).json({ success: false, error: "教練不存在" });
+      res.json({ success: true, message: `已更新該教練分成為 ${Math.round(rate * 100)}%`, scope, rate });
+    } else {
+      const cur = db.prepare("SELECT value FROM platform_settings WHERE key = 'coach_commission_rate'").get();
+      if (cur) db.prepare("UPDATE platform_settings SET value = ? WHERE key = 'coach_commission_rate'").run(String(rate));
+      else db.prepare("INSERT INTO platform_settings (key, value) VALUES ('coach_commission_rate', ?)").run(String(rate));
+      const n = db.prepare("UPDATE users SET commission_rate = ? WHERE is_coach = 1").run(rate).changes;
+      try {
+        const { writeBlock } = require("../services/blockchain-audit");
+        writeBlock({ entityType: "commission_rate", entityId: "global", data: { rate, coaches_updated: n, by: req.user.id } });
+      } catch (e) {}
+      res.json({ success: true, message: `已設全平台教練分成 ${Math.round(rate * 100)}%（${n} 位教練）`, scope, rate, updated: n });
+    }
+  } catch (err) {
+    console.error("admin commission error:", err.message);
+    res.status(500).json({ success: false, error: "儲存失敗" });
+  }
+});
+
 // ===== POST /api/admin/classes/:id/open — 開通／暫停教練自建班別（booking_open）=====
 router.post("/classes/:id/open", authenticateToken, requirePermission("ops.class.write"), (req, res) => {
   try {

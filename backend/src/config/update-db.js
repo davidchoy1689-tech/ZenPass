@@ -9,7 +9,7 @@ function updateDatabase() {
 
   // Add commission_rate column to users (for coach commission)
   try {
-    db.exec("ALTER TABLE users ADD COLUMN commission_rate REAL DEFAULT 0.75");
+    db.exec("ALTER TABLE users ADD COLUMN commission_rate REAL DEFAULT 0.8");
   } catch (e) {}
   try {
     db.exec("ALTER TABLE users ADD COLUMN total_earnings REAL DEFAULT 0");
@@ -30,7 +30,7 @@ function updateDatabase() {
       enrolled_count INTEGER DEFAULT 0,
       unit_price REAL DEFAULT 0,
       gross_amount REAL DEFAULT 0,
-      commission_rate REAL DEFAULT 0.75,
+      commission_rate REAL DEFAULT 0.8,
       net_amount REAL DEFAULT 0,
       status TEXT DEFAULT 'pending' CHECK(status IN ('pending','approved','paid','cancelled')),
       payout_id TEXT,

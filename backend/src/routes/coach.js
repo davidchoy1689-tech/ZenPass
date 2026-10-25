@@ -759,7 +759,7 @@ router.post("/schedules/:sid/settle", authenticateToken, (req, res) => {
       )
       .get(req.params.sid) || {};
     const user = db.prepare("SELECT commission_rate, name FROM users WHERE id = ?").get(req.user.id) || {};
-    const rate = Number(user.commission_rate) || 0.75;
+    const rate = Number(user.commission_rate) || 0.8;
     const price = Number(row.price_hkd) || 0;
     const attendedHeads = Number(req.body.attended_heads != null ? req.body.attended_heads : counts.attended_heads) || 0;
     const enrolledHeads = Number(counts.enrolled_heads) || 0;

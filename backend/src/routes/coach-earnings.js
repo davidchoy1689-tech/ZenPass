@@ -119,7 +119,7 @@ router.get("/earnings", authenticateToken, (req, res) => {
         week_classes: weekClasses.count,
       },
       monthly_trend: monthlyTrend,
-      commission_rate: user ? user.commission_rate : 0.75,
+      commission_rate: user ? user.commission_rate : 0.8,
       total_earnings: user ? user.total_earnings : 0,
       pending_payout: user ? user.pending_payout : 0,
     });
@@ -198,7 +198,7 @@ router.post("/earnings/calculate", authenticateToken, async (req, res) => {
     const user = db
       .prepare("SELECT commission_rate FROM users WHERE id = ?")
       .get(req.user.id);
-    const commissionRate = user ? user.commission_rate : 0.75;
+    const commissionRate = user ? user.commission_rate : 0.8;
 
     // Get all schedules with class info that haven't been calculated yet
     const schedules = db
@@ -943,8 +943,8 @@ router.get("/settings/effective-rate", (req, res) => {
       .get();
 
     res.json({
-      coach_rate: parseFloat(rate ? rate.value : 0.75),
-      zenpass_rate: 1 - parseFloat(rate ? rate.value : 0.75),
+      coach_rate: parseFloat(rate ? rate.value : 0.8),
+      zenpass_rate: 1 - parseFloat(rate ? rate.value : 0.8),
     });
 
 // GET /api/coach/settings/:key — 獲取單個設定

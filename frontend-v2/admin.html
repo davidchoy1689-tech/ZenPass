@@ -1137,6 +1137,16 @@
       if (s.status === 401 || s.status === 403) return needAdmin();
       const set = s.data || {}; const stats = (st.data && st.data.stats) || {};
       panel().innerHTML = `<div class="card"><div class="body">
+        <b>💸 分賬比率</b>
+        <div class="kv" style="margin:6px 0 10px">教練分成（其餘為平台／場地）。改「全平台」會套用到所有教練；亦可以逐個教練設定。</div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <input id="cmRate" type="number" step="1" min="1" max="100" placeholder="80" style="width:90px;padding:9px;border:1px solid var(--border);border-radius:10px;font:inherit" />
+          <span class="kv">％ 教練分成</span>
+          <button class="btn btn-primary" id="cmSaveGlobal">套用全平台</button>
+        </div>
+        <div id="cmList" style="margin-top:12px"></div>
+      </div></div>
+      <div class="card" style="margin-top:10px"><div class="body">
         <b>罰則設定</b>
         ${row("No-show 罰分", esc2(set.noShowPenalty != null ? set.noShowPenalty : "—"))}
         ${row("寬限分鐘", esc2(set.graceMinutes != null ? set.graceMinutes : "—"))}
@@ -1144,6 +1154,43 @@
       <div class="card" style="margin-top:10px"><div class="body"><b>統計</b>
         ${Object.keys(stats).length ? Object.entries(stats).map(([k, v]) => row(esc2(k), esc2(typeof v === "object" ? JSON.stringify(v) : v))).join("") : '<div class="kv">暫無資料</div>'}
       </div></div>`;
+      await loadCommission();
+    }
+
+    async function loadCommission() {
+      const r = await api.get("/admin/commission");
+      if (!r.ok) return;
+      const d = r.data || {};
+      const rate = Math.round((Number(d.global_rate) || 0.8) * 100);
+      const el = document.getElementById("cmRate");
+      if (el) el.value = rate;
+      const list = (d.coaches || []);
+      const box = document.getElementById("cmList");
+      if (box) box.innerHTML = `<div class="kv" style="margin-bottom:6px">全平台現時：教練 ${rate}% ／ 平台 ${100 - rate}%</div>` +
+        list.map(c => `<div class="row" style="display:flex;justify-content:space-between;gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)">
+          <span>${esc2(c.name || c.email)}<div class="kv">${esc2(c.email || "")}</div></span>
+          <span style="white-space:nowrap;display:flex;gap:6px;align-items:center">
+            <input type="number" min="1" max="100" value="${Math.round((Number(c.commission_rate) || 0.8) * 100)}" data-cmid="${esc2(c.id)}" style="width:70px;padding:6px;border:1px solid var(--border);border-radius:8px;font:inherit" />
+            <span class="kv">%</span>
+            <button class="btn btn-ghost" data-cmsave="${esc2(c.id)}">儲存</button>
+          </span></div>`).join("");
+      (box ? box.querySelectorAll("[data-cmsave]") : []).forEach(b => b.onclick = async () => {
+        const inp = box.querySelector(`[data-cmid="${b.dataset.cmsave}"]`);
+        const pct = Number(inp.value);
+        if (!(pct > 0 && pct <= 100)) return alert("請輸入 1–100");
+        const rr = await api.post("/admin/commission", { scope: "coach", coach_id: b.dataset.cmsave, rate: pct / 100 });
+        if (rr.ok) { alert("✅ " + (rr.data.message || "已更新")); loadCommission(); }
+        else alert("❌ " + ((rr.data && rr.data.error) || "儲存失敗"));
+      });
+      const g = document.getElementById("cmSaveGlobal");
+      if (g) g.onclick = async () => {
+        const pct = Number(document.getElementById("cmRate").value);
+        if (!(pct > 0 && pct <= 100)) return alert("請輸入 1–100");
+        if (!confirm(`確定將全平台教練分成設為 ${pct}%（平台 ${100 - pct}%）？`)) return;
+        const rr = await api.post("/admin/commission", { scope: "global", rate: pct / 100 });
+        if (rr.ok) { alert("✅ " + (rr.data.message || "已更新")); loadCommission(); }
+        else alert("❌ " + ((rr.data && rr.data.error) || "儲存失敗"));
+      };
     }
 
     async function analytics() {
