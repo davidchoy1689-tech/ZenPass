@@ -50,6 +50,13 @@
           <b id="calTitle" style="font-size:15px">—</b>
           <button class="btn btn-secondary" id="calNext" style="min-height:32px;padding:0 12px">▶</button>
         </div>
+        <div style="position:relative;margin-bottom:8px">
+          <button class="btn btn-secondary btn-block" id="vSyncBtn" style="min-height:36px;font-size:13px">📲 同步場地排期到行事曆 ▾</button>
+          <div id="vSyncMenu" style="display:none;position:absolute;left:0;right:0;top:calc(100% + 6px);background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:0 10px 25px rgba(0,0,0,.15);padding:6px;z-index:1000">
+            <button class="btn btn-secondary" id="vSyncIcs" style="width:100%;text-align:left;border:0;background:none;margin-bottom:4px">🍏 Apple Calendar / Outlook (.ics)</button>
+            <button class="btn btn-secondary" id="vSyncGcal" style="width:100%;text-align:left;border:0;background:none">🌐 Google Calendar</button>
+          </div>
+        </div>
         <div id="calGrid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center;font-size:12px">
           <div class="cal-wd">日</div><div class="cal-wd">一</div><div class="cal-wd">二</div>
           <div class="cal-wd">三</div><div class="cal-wd">四</div><div class="cal-wd">五</div><div class="cal-wd">六</div>
@@ -117,6 +124,17 @@
       await loadSchedule();
       await loadBlackouts();
       await loadCal();
+      const vb = $("vSyncBtn"), vm = $("vSyncMenu");
+      if (vb) vb.onclick = (e) => { e.stopPropagation(); vm.style.display = vm.style.display === "none" ? "block" : "none"; };
+      document.addEventListener("click", () => { if (vm) vm.style.display = "none"; });
+      const vi = $("vSyncIcs"); if (vi) vi.onclick = (e) => { e.stopPropagation(); vm.style.display = "none"; vDownloadIcsAll(); };
+      const vg = $("vSyncGcal"); if (vg) vg.onclick = (e) => {
+        e.stopPropagation(); vm.style.display = "none";
+        const list2 = (CAL_SESSIONS || []).filter((x) => x.status !== "cancelled" && dayKey(x.start_time) === SEL_DAY);
+        const t = list2[0] || (CAL_SESSIONS || [])[0];
+        if (!t) { alert("暫無排期可加入"); return; }
+        vGoogleFor(t);
+      };
     })();
 
     function renderCal() {
@@ -175,7 +193,10 @@
         html += boList.map((b) => `<div class="row"><span><b>🚫 封鎖時段</b><span class="s">${esc(hm2(b.start_time))} – ${esc(hm2(b.end_time))} · ${esc(b.reason || "不可出租")}</span></span></div>`).join("");
       }
       html += `<button class="btn btn-secondary btn-block" id="blockDay" style="margin-top:10px">🔒 封鎖呢日（內部自用／維修）</button>`;
+      if (list.length) html += `<button class="btn btn-primary btn-block" id="dayGcal" style="margin-top:8px">📅 加入 Google Calendar（當日）</button>`;
       box.innerHTML = html;
+      const dg = $("dayGcal");
+      if (dg) dg.onclick = () => vGoogleFor(list[0]);
       const bd = $("blockDay");
       if (bd) bd.onclick = () => {
         $("boStart").value = SEL_DAY + "T09:00";
@@ -183,6 +204,67 @@
         $("boReason").value = "內部自用／維修";
         $("boStart").scrollIntoView({ behavior: "smooth", block: "center" });
       };
+    }
+
+    /* ===== 📲 場地排期同步到行事曆 ===== */
+    function vIcsDate(t) {
+      const d = new Date(String(t).replace(" ", "T"));
+      if (isNaN(d)) return null;
+      return d.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
+    }
+    function vRentFor(x) { return Math.round((Number(x.duration) || 60) / 60 * (Number(VENUE && VENUE.rental_price_per_hour) || 0)); }
+    function vSummary(x) { return `🏢 [ZenPass 借場] ${VENUE ? VENUE.name : ""} · ${x.title || ""}（教練 ${x.coach_name || "—"}）`; }
+    function vDesc(x) {
+      return [
+        `場租收益：${hkd(vRentFor(x))}`,
+        `入場人數：${x.enrolled_count || 0}/${x.max_participants || 0}`,
+        `教練：${x.coach_name || "—"}`,
+        `排期編號：${x.id}`,
+        `後台：https://zenpass.hk/venue-dashboard.html`,
+      ].join("\n");
+    }
+    function vDownloadIcsAll() {
+      const list = (CAL_SESSIONS || []).filter((x) => x.status !== "cancelled");
+      if (!list.length) { alert("暫無場地排期可匯出"); return; }
+      const now = vIcsDate(new Date());
+      const lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//ZenPass//Venue Bookings//ZH-HK", "CALSCALE:GREGORIAN", "METHOD:PUBLISH", "X-WR-CALNAME:ZenPass 場地借用排期"];
+      list.forEach((x) => {
+        const st = vIcsDate(x.start_time), en = vIcsDate(x.end_time);
+        if (!st || !en) return;
+        lines.push(
+          "BEGIN:VEVENT",
+          "UID:" + (x.id || st) + "@venue.zenpass.hk",
+          "DTSTAMP:" + now,
+          "DTSTART:" + st,
+          "DTEND:" + en,
+          "SUMMARY:" + vSummary(x).replace(/[,;]/g, " "),
+          "LOCATION:" + String((VENUE && VENUE.name) || "").replace(/[,;]/g, " "),
+          "DESCRIPTION:" + vDesc(x).split("\n").join("\\n").replace(/[,;]/g, " "),
+          "STATUS:CONFIRMED",
+          "BEGIN:VALARM", "TRIGGER:-PT30M", "ACTION:DISPLAY",
+          "DESCRIPTION:提醒：30 分鐘後有教練借場", "END:VALARM",
+          "END:VEVENT",
+        );
+      });
+      lines.push("END:VCALENDAR");
+      const blob = new Blob([lines.join("\r\n")], { type: "text/calendar;charset=utf-8" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `ZenPass_Venue_Bookings_${new Date().toISOString().slice(0, 10)}.ics`;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 3000);
+      toast(`📲 已匯出 ${list.length} 場排期`);
+    }
+    function vGoogleFor(x) {
+      const st = vIcsDate(x.start_time), en = vIcsDate(x.end_time);
+      if (!st || !en) { alert("此排期未有確實時間"); return; }
+      const u = new URL("https://calendar.google.com/calendar/render");
+      u.searchParams.append("action", "TEMPLATE");
+      u.searchParams.append("text", vSummary(x));
+      u.searchParams.append("dates", st + "/" + en);
+      u.searchParams.append("details", vDesc(x));
+      u.searchParams.append("location", (VENUE && VENUE.name) || "");
+      window.open(u.toString(), "_blank");
     }
 
     async function loadCal() {
