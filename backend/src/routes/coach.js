@@ -715,16 +715,81 @@ router.get("/sessions", authenticateToken, (req, res) => {
       const t = new Date(String(r.start_time).replace(" ", "T")).getTime();
       return { ...r, end_ms: t + (Number(r.duration) || 60) * 60000, start_ms: t, booked: Number(r.booked) || 0 };
     });
-    const out =
+    let out =
       filter === "completed"
         ? norm.filter((r) => r.status !== "cancelled" && r.end_ms < nowMs)
         : filter === "cancelled"
           ? norm.filter((r) => r.status === "cancelled")
           : norm.filter((r) => r.status !== "cancelled" && r.end_ms >= nowMs);
+    // 「即將開班」要由最近排起（原本 SQL 用 DESC，會顯示最遠嘅先）
+    if (filter === "upcoming") out = out.slice().sort((a, b) => a.start_ms - b.start_ms);
+    if (filter === "completed") out = out.slice().sort((a, b) => b.start_ms - a.start_ms);
+    if (filter === "all") out = out.slice().sort((a, b) => a.start_ms - b.start_ms);
     res.json({ success: true, filter, sessions: out });
   } catch (err) {
     console.error("coach/sessions error:", err.message);
     res.status(500).json({ success: false, error: "無法讀取課堂時段" });
+  }
+});
+
+// ===== POST /api/coach/schedules/:sid/settle — 課堂結束結算（封存對賬）=====
+router.post("/schedules/:sid/settle", authenticateToken, (req, res) => {
+  try {
+    const db = getDb();
+    // idempotent 欄位
+    const cols = db.prepare("PRAGMA table_info(class_schedules)").all().map((c) => c.name);
+    if (!cols.includes("settled_at")) db.prepare("ALTER TABLE class_schedules ADD COLUMN settled_at TEXT").run();
+    if (!cols.includes("settle_summary")) db.prepare("ALTER TABLE class_schedules ADD COLUMN settle_summary TEXT").run();
+
+    const row = db
+      .prepare(
+        `SELECT s.*, c.coach_id, c.title, c.price_hkd FROM class_schedules s
+         JOIN classes c ON c.id = s.class_id WHERE s.id = ?`,
+      )
+      .get(req.params.sid);
+    if (!row) return res.status(404).json({ success: false, error: "時段不存在" });
+    if (row.coach_id !== req.user.id) return res.status(403).json({ success: false, error: "你無權結算此班" });
+
+    const counts = db
+      .prepare(
+        `SELECT COUNT(*) total,
+                SUM(CASE WHEN status = 'attended' THEN COALESCE(group_size,1) ELSE 0 END) attended_heads,
+                SUM(CASE WHEN status IN ('confirmed','attended') THEN COALESCE(group_size,1) ELSE 0 END) enrolled_heads
+         FROM bookings WHERE schedule_id = ? AND status IN ('confirmed','attended','no_show')`,
+      )
+      .get(req.params.sid) || {};
+    const user = db.prepare("SELECT commission_rate, name FROM users WHERE id = ?").get(req.user.id) || {};
+    const rate = Number(user.commission_rate) || 0.75;
+    const price = Number(row.price_hkd) || 0;
+    const attendedHeads = Number(req.body.attended_heads != null ? req.body.attended_heads : counts.attended_heads) || 0;
+    const enrolledHeads = Number(counts.enrolled_heads) || 0;
+    const gross = Math.round(attendedHeads * price * 100) / 100;
+    const net = Math.round(gross * rate * 100) / 100;
+
+    const summary = {
+      settled_at: new Date().toISOString(),
+      attended_heads: attendedHeads,
+      enrolled_heads: enrolledHeads,
+      absent_heads: Math.max(0, enrolledHeads - attendedHeads),
+      unit_price: price,
+      gross,
+      commission_rate: rate,
+      net,
+      by: req.user.id,
+    };
+    db.prepare("UPDATE class_schedules SET settled_at = datetime('now'), settle_summary = ? WHERE id = ?").run(
+      JSON.stringify(summary),
+      row.id,
+    );
+    try {
+      const { writeBlock } = require("../services/blockchain-audit");
+      writeBlock({ entityType: "coach_settlement", entityId: row.id, data: summary });
+    } catch (e) {}
+
+    res.json({ success: true, message: "✅ 已封存結算", summary });
+  } catch (err) {
+    console.error("coach settle error:", err.message);
+    res.status(500).json({ success: false, error: "結算失敗" });
   }
 });
 
@@ -941,6 +1006,7 @@ router.get("/class-students", authenticateToken, (req, res) => {
         `
       SELECT b.id, b.user_id, u.name, u.email, u.phone, b.status as booking_status,
              b.payment_status, b.created_at as booking_date, b.checked_in_at,
+             COALESCE(b.group_size,1) AS group_size,
              u.emergency_name, u.emergency_phone,
              COALESCE(u.health_declared,0) AS health_declared
       FROM bookings b
