@@ -14,22 +14,31 @@
     .bk-title { font-weight: 700; margin: 0 0 2px; }
     .actions { display: flex; gap: 8px; margin-top: 12px; }
     .actions .btn { min-height: 40px; padding: 0 14px; font-size: 14px; flex: 1; }
-    /* 🎫 入場憑證（Ticket） */
-    .ticket { background: var(--surface); border-radius: 20px; overflow: hidden; box-shadow: 0 18px 40px rgba(0,0,0,.22); }
-    .ticket .top { background: linear-gradient(135deg, var(--brand-500), var(--brand-700)); color: #fff; padding: 16px 18px; }
-    .ticket .top .k { font-size: 12px; opacity: .9; letter-spacing: .5px; }
-    .ticket .top h3 { margin: 4px 0 0; font-size: 18px; line-height: 1.3; }
-    .ticket .top .when { font-size: 13px; opacity: .95; margin-top: 4px; }
-    .ticket .perf { position: relative; height: 22px; background: var(--surface); }
-    .ticket .perf:before, .ticket .perf:after { content: ""; position: absolute; top: 6px; width: 22px; height: 22px; border-radius: 50%; background: rgba(0,0,0,.45); }
-    .ticket .perf:before { left: -11px; } .ticket .perf:after { right: -11px; }
-    .ticket .perf i { position: absolute; left: 16px; right: 16px; top: 16px; border-top: 2px dashed var(--border); }
-    .ticket .bot { padding: 6px 18px 18px; text-align: center; }
-    .ticket .bot img { width: 190px; height: 190px; display: block; margin: 4px auto 8px; border-radius: 10px; background: #fff; }
-    .ticket .code { font: 800 30px/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 8px; color: var(--brand-600); margin: 2px 0 4px; }
-    .ticket .ref { font-size: 12.5px; color: var(--text-muted); word-break: break-all; }
-    .ticket .hint { font-size: 12px; color: var(--text-muted); margin-top: 10px; line-height: 1.5; }
-    .ticket .people { font-size: 12.5px; color: var(--text); background: var(--surface-2); border-radius: 10px; padding: 9px 11px; margin-top: 10px; line-height: 1.7; }
+    /* 🎫 入場憑證（機票風格） */
+    .tk-overlay{position:fixed;inset:0;background:rgba(15,23,42,.75);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:16px;z-index:9999;opacity:0;pointer-events:none;transition:opacity .22s ease}
+    .tk-overlay.active{opacity:1;pointer-events:auto}
+    .tk-card{width:100%;max-width:360px;background:#fff;border-radius:20px;overflow:hidden;box-shadow:0 20px 40px rgba(0,0,0,.3);transform:translateY(18px) scale(.96);transition:transform .26s cubic-bezier(.34,1.56,.64,1);color:#0f172a}
+    .tk-overlay.active .tk-card{transform:translateY(0) scale(1)}
+    .tk-head{background:linear-gradient(135deg,var(--brand-500),var(--brand-700));color:#fff;padding:18px 20px;position:relative}
+    .tk-head .brand{font-size:11px;letter-spacing:1.5px;opacity:.9;font-weight:700}
+    .tk-head h3{margin:6px 0 0;font-size:19px;line-height:1.3}
+    .tk-head .st{display:inline-block;margin-top:8px;background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.4);border-radius:999px;padding:3px 10px;font-size:11.5px;font-weight:700}
+    .tk-body{padding:16px 20px 10px}
+    .tk-row{display:flex;justify-content:space-between;gap:12px;font-size:13px;margin-bottom:9px}
+    .tk-row .k{color:#64748b;flex:none}
+    .tk-row .v{font-weight:600;text-align:right}
+    .tk-div{position:relative;height:20px;background:#fff;display:flex;align-items:center}
+    .tk-div:before,.tk-div:after{content:"";position:absolute;width:20px;height:20px;border-radius:50%;background:rgba(15,23,42,.75);top:0}
+    .tk-div:before{left:-10px}
+    .tk-div:after{right:-10px}
+    .tk-div i{width:calc(100% - 30px);margin:0 15px;border-top:2px dashed #e2e8f0}
+    .tk-foot{padding:8px 20px 20px;text-align:center;background:#fff}
+    .tk-foot img{width:170px;height:170px;display:block;margin:0 auto 10px;border-radius:12px;background:#f8fafc;border:1px solid #e2e8f0;padding:8px;box-sizing:border-box}
+    .tk-code{font:800 22px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:5px;color:#0f172a;background:#f1f5f9;border-radius:8px;padding:7px 14px;display:inline-block;margin-bottom:8px}
+    .tk-tip{font-size:11.5px;color:#94a3b8;line-height:1.6}
+    .tk-people{font-size:12px;color:#0f172a;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:8px 10px;margin:0 20px 10px;line-height:1.7;text-align:left}
+    .tk-actions{display:flex;gap:8px;padding:0 20px 20px}
+    .tk-actions .btn{flex:1;min-height:42px;font-size:13.5px}
   </style>
 </head>
 <body>
@@ -97,13 +106,13 @@
 
     window.closeModal = (el) => { const o = el.closest(".modal-overlay"); if (o) o.remove(); };
 
-    /* 🎫 電子入場憑證：QR + 4 位驗證碼 */
+    /* 🎫 電子入場憑證：機票風票券 + QR + 4 位核銷碼 */
     window.openPass = async (id) => {
       const b = all.find((x) => x.id === id) || {};
       const r = await api.get("/bookings/" + encodeURIComponent(id) + "/qr");
       if (!r.ok) { alert((r.data && r.data.error) || "暫時攞唔到入場憑證"); return; }
       const d = r.data || {};
-      // 👥 多人報名：列出參加者
+
       let people = "";
       if (Number(b.group_size) > 1) {
         try {
@@ -111,37 +120,83 @@
           if (pr.ok && pr.data && pr.data.participants) {
             const rows = pr.data.participants;
             const missing = rows.filter((x) => !x.filled).length;
-            people = `<div class="people">👥 共 ${rows.length} 位<br>${rows
+            people = `<div class="tk-people">👥 共 ${rows.length} 位：${rows
               .map((x) => `${x.slot}. ${x.filled ? esc(x.name || "") + (x.is_child ? "（小童）" : "") : "未填寫"}`)
               .join("　")}${missing ? `<br><a href="group.html?code=${encodeURIComponent(b.group_invite_code || "")}" style="color:var(--brand-600);font-weight:700">✍️ 仲有 ${missing} 位未填 → 開啟填寫連結</a>` : ""}</div>`;
           }
         } catch (e) {}
       }
-      const o = document.createElement("div");
-      o.className = "modal-overlay";
-      o.innerHTML = `<div class="modal" style="padding:0;background:transparent;box-shadow:none">
-        <div class="ticket">
-          <div class="top">
-            <div class="k">ZENPASS 禪流 · 入場憑證</div>
+
+      const ov = document.createElement("div");
+      ov.className = "tk-overlay";
+      ov.innerHTML = `
+        <div class="tk-card" role="dialog" aria-modal="true" aria-label="入場憑證">
+          <div class="tk-head">
+            <div class="brand">ZENPASS 禪流</div>
             <h3>${esc(b.title || "課堂")}</h3>
-            <div class="when">${b.start_time ? esc(fmtTime(b.start_time, b.end_time)) : ""}${b.venue_name ? " · " + esc(b.venue_name) : ""}</div>
+            <div class="st">${b.status === "attended" ? "✅ 已簽到" : "🟢 待簽到"}</div>
           </div>
-          <div class="perf"><i></i></div>
-          <div class="bot">
-            ${d.qr_data_url ? `<img src="${d.qr_data_url}" alt="入場 QR Code">` : `<div class="ref" style="padding:20px 0">${esc(d.qr_text || "")}</div>`}
-            <div class="code">${esc(d.checkin_code || "----")}</div>
-            <div class="ref">${esc(d.booking_reference || d.booking_id || "")}</div>
-            ${people}
-            <div class="hint">到場向教練出示 QR Code；如掃描唔到，讀出 4 位驗證碼即可簽到。<br>每個憑證只可使用一次。</div>
-            <div class="actions" style="margin-top:14px">
-              <button class="btn btn-secondary" onclick="closeModal(this)">關閉</button>
-            </div>
+          <div class="tk-body">
+            <div class="tk-row"><span class="k">學員</span><span class="v">${esc(b.student_name || b.user_name || currentName())}</span></div>
+            <div class="tk-row"><span class="k">預約編號</span><span class="v">${esc(d.booking_reference || b.booking_reference || b.id)}</span></div>
+            <div class="tk-row"><span class="k">開課時間</span><span class="v">${esc(b.start_time ? fmtTime(b.start_time, b.end_time) : "")}</span></div>
+            <div class="tk-row"><span class="k">場地</span><span class="v">${esc(b.venue_name || "待定")}</span></div>
+            ${b.venue_address ? `<div class="tk-row"><span class="k">地址</span><span class="v" style="font-weight:500;font-size:12.5px">${esc(b.venue_address)}</span></div>` : ""}
           </div>
-        </div>
-      </div>`;
-      document.body.appendChild(o);
-      o.onclick = (e) => { if (e.target === o) o.remove(); };
+          <div class="tk-div"><i></i></div>
+          ${people}
+          <div class="tk-foot">
+            ${d.qr_data_url ? `<img src="${d.qr_data_url}" alt="簽到 QR Code">` : `<div class="tk-tip" style="padding:14px 0">${esc(d.qr_text || "")}</div>`}
+            <div class="tk-code">${esc(d.checkin_code || "----")}</div>
+            <div class="tk-tip">現場向教練出示此憑證，掃描即完成簽到。<br>掃描唔到時，讀出 4 位驗證碼即可。每張憑證只可使用一次。</div>
+          </div>
+          <div class="tk-actions">
+            <button class="btn btn-secondary" id="tkIcs" type="button">📅 加到行事曆</button>
+            <button class="btn btn-primary" id="tkClose" type="button">✕ 關閉</button>
+          </div>
+        </div>`;
+      document.body.appendChild(ov);
+      requestAnimationFrame(() => ov.classList.add("active"));
+      const close = () => { ov.classList.remove("active"); setTimeout(() => ov.remove(), 220); };
+      ov.onclick = (e) => { if (e.target === ov) close(); };
+      ov.querySelector("#tkClose").onclick = close;
+      ov.querySelector("#tkIcs").onclick = () => downloadIcs(b, d);
     };
+
+    function currentName() {
+      try { return (api.getUser && api.getUser() && api.getUser().name) || ""; } catch (e) { return ""; }
+    }
+
+    /* 📅 匯出 .ics（手機一撳加入行事曆） */
+    function downloadIcs(b, d) {
+      const dt = (s) => {
+        const x = new Date(String(s).replace(" ", "T"));
+        if (isNaN(x)) return null;
+        return x.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
+      };
+      const st = dt(b.start_time), en = dt(b.end_time);
+      if (!st) { alert("此預約未有確實時間，暫時加入唔到行事曆"); return; }
+      const title = (b.title || "ZenPass 課堂") + " · ZenPass 禪流";
+      const loc = [b.venue_name, b.venue_address].filter(Boolean).join(" ");
+      const desc = ["預約編號：" + (d.booking_reference || b.booking_reference || ""), "驗證碼：" + (d.checkin_code || ""), "出示入場憑證 QR Code 簽到。"].join("\n");
+      const ics = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//ZenPass//HK//ZH", "BEGIN:VEVENT",
+        "UID:" + (b.id || Date.now()) + "@zenpass.hk",
+        "DTSTAMP:" + st,
+        "DTSTART:" + st,
+        "DTEND:" + (en || st),
+        "SUMMARY:" + title.replace(/[,;]/g, " "),
+        "LOCATION:" + (loc || "").replace(/[,;]/g, " "),
+        "DESCRIPTION:" + desc.replace(/,/g, "\\,").replace(/\r?\n/g, "\\n"),
+        "BEGIN:VALARM", "TRIGGER:-PT2H", "ACTION:DISPLAY", "DESCRIPTION:課堂 2 小時後開始", "END:VALARM",
+        "END:VEVENT", "END:VCALENDAR"].join("\r\n");
+      const blob = new Blob([ics], { type: "text/calendar;charset=utf-8" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "zenpass-" + (b.booking_reference || "booking") + ".ics";
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 3000);
+    }
+
     /* 🏟️ 評場地及設施（匿名；≤3 星必須選原因） */
     window.openRateVenue = (bookingId, venueId, venueName) => {
       const TAGS = ["🧹 清潔", "🛠️ 器材", "📐 空間", "❄️ 冷氣", "🚻 洗手間", "📍 交通"];

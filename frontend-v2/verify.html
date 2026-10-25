@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#ff6b35" />
+  <meta name="robots" content="noindex" />
+  <title>現場核銷簽到 · ZenPass 禪流</title>
+  <link rel="stylesheet" href="assets/v2.css?v=26" />
+  <link rel="stylesheet" href="assets/ui-v3.css?v=5" />
+  <style>
+    .scan-wrap { position: relative; border-radius: 18px; overflow: hidden; background: #0b1220; aspect-ratio: 4/3; display: grid; place-items: center; }
+    .scan-wrap video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+    .scan-frame { position: relative; width: 62%; aspect-ratio: 1; border: 3px solid rgba(255,255,255,.9); border-radius: 16px; box-shadow: 0 0 0 2000px rgba(0,0,0,.35); }
+    .scan-frame:after { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 3px; background: var(--brand-500); animation: sweep 2s linear infinite; }
+    @keyframes sweep { 0% { top: 0 } 100% { top: 100% } }
+    .scan-hint { position: absolute; bottom: 12px; left: 0; right: 0; text-align: center; color: #fff; font-size: 12.5px; opacity: .9; }
+    .seg { display: flex; background: var(--surface-2); border-radius: 12px; padding: 4px; gap: 4px; margin: 12px 0; }
+    .seg button { flex: 1; border: 0; background: none; font: inherit; font-weight: 700; font-size: 13.5px; color: var(--text-muted); padding: 9px 0; border-radius: 9px; }
+    .seg button.on { background: var(--surface); color: var(--brand-600); box-shadow: var(--sh-sm); }
+    .fld { width: 100%; box-sizing: border-box; border: 1px solid var(--border); border-radius: 12px; padding: 13px; font: inherit; font-size: 16px; background: var(--surface); color: var(--text); margin-bottom: 10px; }
+    .code-in { font: 800 26px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 8px; text-align: center; }
+    .result { border-radius: 16px; padding: 18px; text-align: center; margin-top: 12px; }
+    .result.ok { background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; }
+    .result.err { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; }
+    .result .ic { font-size: 40px; line-height: 1; }
+    .result b { display: block; font-size: 17px; margin-top: 6px; }
+    .result small { display: block; margin-top: 6px; opacity: .85; font-size: 12.5px; line-height: 1.6; }
+    .roster-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 11px 0; border-bottom: 1px solid var(--border); }
+    .roster-row:last-child { border-bottom: 0; }
+    .roster-row .nm { font-weight: 700; font-size: 14px; }
+    .roster-row .sub { font-size: 12px; color: var(--text-muted); }
+  </style>
+</head>
+<body>
+  <div class="topbar"><a class="back" href="coach.html">‹</a><div class="title">現場核銷簽到</div></div>
+  <div class="wrap">
+    <div class="seg" id="seg">
+      <button class="on" data-m="scan">📷 掃描 QR</button>
+      <button data-m="code">⌨️ 輸入驗證碼</button>
+      <button data-m="list">📋 今日點名</button>
+    </div>
+
+    <!-- 掃描 -->
+    <div id="paneScan">
+      <div class="scan-wrap" id="scanWrap">
+        <video id="cam" playsinline muted></video>
+        <div class="scan-frame" id="frame" hidden></div>
+        <div class="scan-hint" id="scanHint">撳下面「啟動鏡頭」開始掃描學員憑證</div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <button class="btn btn-primary" id="btnCam" style="flex:1">啟動鏡頭</button>
+        <button class="btn btn-secondary" id="btnStop" style="flex:none">停止</button>
+      </div>
+      <div class="muted" style="font-size:12px;margin-top:8px">支援 Chrome / Android 內建條碼辨識；iPhone Safari 如唔支援，請用「輸入驗證碼」。</div>
+    </div>
+
+    <!-- 手動碼 -->
+    <div id="paneCode" hidden>
+      <div class="card"><div class="body">
+        <b>4 位驗證碼核銷</b>
+        <div class="muted" style="font-size:12.5px;margin:4px 0 12px">學員憑證上有 4 位數字；如有多位同學同日，請同時輸入預約編號。</div>
+        <input class="fld code-in" id="code" inputmode="numeric" maxlength="4" placeholder="0000" />
+        <input class="fld" id="ref" placeholder="預約編號（例如 ZP-0006，可留空）" autocapitalize="characters" />
+        <button class="btn btn-primary btn-block" id="btnVerify">核銷簽到</button>
+      </div></div>
+    </div>
+
+    <!-- 今日點名 -->
+    <div id="paneList" hidden>
+      <div class="card"><div class="body" id="roster"><div class="muted center">載入中…</div></div></div>
+    </div>
+
+    <div id="out"></div>
+    <div class="spacer"></div>
+  </div>
+
+  <script src="assets/api.js?v=3"></script>
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    let stream = null, raf = null, detector = null, busy = false;
+
+    if (!api.requireLogin("verify.html")) throw new Error("login required");
+
+    // 分頁
+    $("seg").onclick = (e) => {
+      const b = e.target.closest("button"); if (!b) return;
+      [...$("seg").children].forEach((x) => x.classList.toggle("on", x === b));
+      const m = b.dataset.m;
+      $("paneScan").hidden = m !== "scan";
+      $("paneCode").hidden = m !== "code";
+      $("paneList").hidden = m !== "list";
+      if (m !== "scan") stopCam();
+      if (m === "list") loadRoster();
+    };
+
+    function showResult(ok, title, detail) {
+      $("out").innerHTML = `<div class="result ${ok ? "ok" : "err"}">
+        <div class="ic">${ok ? "✅" : "⚠️"}</div><b>${esc(title)}</b>${detail ? `<small>${detail}</small>` : ""}
+      </div>`;
+      if (navigator.vibrate) navigator.vibrate(ok ? 60 : [40, 60, 40]);
+      setTimeout(() => { $("out").innerHTML = ""; }, 9000);
+    }
+
+    async function doCheckin(payload) {
+      if (busy) return;
+      busy = true;
+      try {
+        const r = await api.post("/bookings/checkin", payload);
+        const d = r.data || {};
+        if (r.ok) {
+          showResult(true, d.message || "✅ 簽到成功", `${esc(d.booking_reference || "")}${d.points_awarded ? " · +" + d.points_awarded + " 積分" : ""}`);
+        } else {
+          showResult(false, d.error || "簽到失敗", d.already_checked_in ? "此預約已經簽到過" : "");
+        }
+      } catch (e) {
+        showResult(false, "網絡錯誤，請再試");
+      } finally {
+        setTimeout(() => (busy = false), 1200);
+      }
+    }
+
+    // 手動
+    $("btnVerify").onclick = () => {
+      const code = ($("code").value || "").replace(/\D/g, "");
+      const ref = ($("ref").value || "").trim().toUpperCase();
+      if (!code && !ref) { showResult(false, "請輸入驗證碼或預約編號"); return; }
+      if (!ref && code.length !== 4) { showResult(false, "請輸入 4 位驗證碼，或填預約編號"); return; }
+      doCheckin(ref ? { booking_reference: ref, code: code || undefined } : { code });
+      $("code").value = "";
+    };
+
+    // 掃描
+    $("btnCam").onclick = startCam;
+    $("btnStop").onclick = stopCam;
+
+    async function startCam() {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" } }, audio: false });
+        const v = $("cam"); v.srcObject = stream; await v.play();
+        $("frame").hidden = false;
+        $("scanHint").textContent = "將學員 QR Code 對準框內…";
+        if ("BarcodeDetector" in window) {
+          detector = new window.BarcodeDetector({ formats: ["qr_code"] });
+          tick();
+        } else {
+          $("scanHint").textContent = "此瀏覽器唔支援自動掃描，請用「輸入驗證碼」";
+        }
+      } catch (e) {
+        showResult(false, "開唔到鏡頭", "請確認已允許相機權限，或改用輸入驗證碼");
+      }
+    }
+
+    function stopCam() {
+      if (raf) cancelAnimationFrame(raf), (raf = null);
+      if (stream) { stream.getTracks().forEach((t) => t.stop()); stream = null; }
+      $("cam").srcObject = null;
+      $("frame").hidden = true;
+      $("scanHint").textContent = "撳下面「啟動鏡頭」開始掃描學員憑證";
+    }
+
+    async function tick() {
+      const v = $("cam");
+      if (!stream || !detector) return;
+      try {
+        const codes = await detector.detect(v);
+        if (codes && codes.length) {
+          const raw = codes[0].rawValue || "";
+          stopCam();
+          doCheckin({ qr_data: raw });
+          return;
+        }
+      } catch (e) {}
+      raf = requestAnimationFrame(tick);
+    }
+
+    // 今日點名（教練：/coach/today 或 /coach/upcoming）
+    async function loadRoster() {
+      const box = $("roster");
+      box.innerHTML = '<div class="muted center">載入中…</div>';
+      let list = [];
+      for (const path of ["/coach/today", "/coach/upcoming"]) {
+        const r = await api.get(path);
+        if (r.ok) {
+          const d = r.data || {};
+          list = d.students || d.roster || d.items || [];
+          if (Array.isArray(list) && list.length) break;
+        }
+      }
+      if (!Array.isArray(list) || !list.length) {
+        box.innerHTML = '<div class="muted center" style="padding:10px 0">今日冇課堂或未有名單。<br><a href="coach-attendance.html" style="color:var(--brand-600);font-weight:700">去完整點名頁 →</a></div>';
+        return;
+      }
+      box.innerHTML = list.map((s) => `
+        <div class="roster-row">
+          <div><div class="nm">${esc(s.student_name || s.name || "學員")}</div>
+            <div class="sub">${esc(s.title || s.class_title || "")} ${s.start_time ? "· " + esc(fmtTime(s.start_time, s.end_time)) : ""}</div></div>
+          ${s.booking_status === "attended" ? '<span class="badge ok">已簽到</span>'
+            : `<button class="btn btn-primary" style="min-height:38px;padding:0 14px;font-size:13px" data-attend="${esc(s.booking_id || s.id)}">簽到</button>`}
+        </div>`).join("");
+      box.querySelectorAll("[data-attend]").forEach((b) => (b.onclick = async () => {
+        b.disabled = true;
+        const r = await api.post("/bookings/" + encodeURIComponent(b.dataset.attend) + "/attend", { checkin_method: "coach" });
+        if (r.ok) { b.outerHTML = '<span class="badge ok">已簽到</span>'; showResult(true, "✅ 已簽到"); }
+        else { b.disabled = false; showResult(false, (r.data && r.data.error) || "簽到失敗"); }
+      }));
+    }
+  </script>
+  <script src="assets/footer.js?v=4" defer></script>
+</body>
+</html>
