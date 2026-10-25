@@ -48,112 +48,101 @@
     if (line) ctx.fillText(line, x, y);
   }
 
-  /* 風格 B：淺色極簡（ClassPass 感）+ IG 安全邊距 */
+  /* 淺色極簡版：只用圖片庫 icon，無 emoji／無特殊符號 */
+  const ICON_BASE = "/assets/icons/sports/";
+  const SLUG_TO_ICON = {
+    molkky: "moelkkyla", moelkkyla: "moelkkyla",
+    "floor-curling": "floor-curling", cornhole: "cornhole",
+    "air-storm": "air-storm", "nordic-walking": "nordic-walking",
+    roundnet: "roundnet", rouliqiu: "rouliqiu",
+    "flexi-bar": "flexi-bar", stretch: "stretching", kids: "kids-fitness",
+  };
+  window.zpIconUrl = function (slug) {
+    const k = SLUG_TO_ICON[String(slug || "").toLowerCase()];
+    return ICON_BASE + (k || "sports") + ".svg";
+  };
+
   window.zpMakePoster = async function (d) {
     const W = 1080, H = 1920;
     const cv = document.createElement("canvas");
     cv.width = W; cv.height = H;
     const ctx = cv.getContext("2d");
-    const INK = "#0f172a", TEAL = "#0f766e", GOLD = "#b45309", MUTED = "#8b9aab";
+    const INK = "#111827", TEAL = "#0f766e", GOLD = "#b45309", MUTED = "#6b7280", LINE = "#e5e7eb";
+    const F = "-apple-system,'PingFang HK','Noto Sans TC','Microsoft JhengHei',sans-serif";
 
-    // 背景
-    ctx.fillStyle = "#f7f5f0"; ctx.fillRect(0, 0, W, H);
-    ctx.fillStyle = TEAL; ctx.fillRect(0, 0, W, 14);
+    ctx.fillStyle = "#f6f5f1"; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = TEAL; ctx.fillRect(0, 0, W, 12);
 
-    // 品牌（安全區：頂部留 200px）
-    ctx.fillStyle = INK;
-    if ("letterSpacing" in ctx) ctx.letterSpacing = "3px";
-    ctx.font = "800 40px -apple-system,'PingFang HK',sans-serif";
-    ctx.fillText("ZENPASS", 80, 232);
-    if ("letterSpacing" in ctx) ctx.letterSpacing = "0px";
-    ctx.fillStyle = TEAL; ctx.font = "600 26px -apple-system,'PingFang HK',sans-serif";
-    ctx.fillText("禪流 · 新興運動體驗", 80, 276);
-    if (d.starred) {
-      const bw = 210, bh = 54, bx = W - 80 - bw, by = 200;
-      ctx.fillStyle = "#fef3c7"; roundRect(ctx, bx, by, bw, bh, 27); ctx.fill();
-      ctx.strokeStyle = "#fcd34d"; ctx.lineWidth = 2; ctx.stroke();
-      ctx.fillStyle = GOLD; ctx.font = "800 26px -apple-system,'PingFang HK',sans-serif";
-      ctx.textAlign = "center"; ctx.fillText("★ 星級教練", bx + bw / 2, by + 37); ctx.textAlign = "left";
-    }
+    // 品牌（頂部安全區 200px）
+    ctx.fillStyle = INK; ctx.font = "800 40px " + F;
+    ctx.fillText("ZENPASS", 84, 240);
+    ctx.fillStyle = TEAL; ctx.font = "600 26px " + F;
+    ctx.fillText("禪流｜新興運動體驗", 84, 286);
 
-    // 主視覺（y=330, 920x780, 圓角 36，柔和陰影）
-    const ix = 80, iy = 330, iw = 920, ih = 780, rad = 36;
+    // 圖片庫 icon（920x800 淺卡，置中）
+    const cx = 84, cy = 340, cw = 912, ch = 800, r = 36;
     ctx.save();
-    ctx.shadowColor = "rgba(15,23,42,.16)"; ctx.shadowBlur = 44; ctx.shadowOffsetY = 18;
-    ctx.fillStyle = "#e7f3f1"; roundRect(ctx, ix, iy, iw, ih, rad); ctx.fill();
+    ctx.shadowColor = "rgba(17,24,39,.10)"; ctx.shadowBlur = 40; ctx.shadowOffsetY = 14;
+    ctx.fillStyle = "#eef4f2"; roundRect(ctx, cx, cy, cw, ch, r); ctx.fill();
     ctx.restore();
-    ctx.save(); roundRect(ctx, ix, iy, iw, ih, rad); ctx.clip();
-    const cover = await loadImage(d.coverUrl || "/assets/images/default-sport.svg");
-    if (cover) {
-      const sc = Math.max(iw / cover.naturalWidth, ih / cover.naturalHeight);
-      const dw = cover.naturalWidth * sc, dh = cover.naturalHeight * sc;
-      ctx.drawImage(cover, ix + (iw - dw) / 2, iy + (ih - dh) / 2, dw, dh);
+    const icon = await loadImage(d.iconUrl || window.zpIconUrl(d.slug));
+    if (icon) {
+      const box = 520;
+      const sc = Math.min(box / icon.naturalWidth, box / icon.naturalHeight);
+      const dw = icon.naturalWidth * sc, dh = icon.naturalHeight * sc;
+      ctx.drawImage(icon, cx + (cw - dw) / 2, cy + (ch - dh) / 2, dw, dh);
     }
-    // 底部羽化融入背景
-    const fade = ctx.createLinearGradient(0, iy + ih - 190, 0, iy + ih);
-    fade.addColorStop(0, "rgba(247,245,240,0)"); fade.addColorStop(1, "rgba(247,245,240,.92)");
-    ctx.fillStyle = fade; ctx.fillRect(ix, iy + ih - 190, iw, 190);
-    ctx.restore();
 
-    // 標題
-    ctx.fillStyle = INK; ctx.font = "800 76px -apple-system,'PingFang HK','Noto Sans TC',sans-serif";
-    const lines = wrapLines(ctx, d.title || "新興運動體驗班", 920, 2);
-    let ty = 1232;
-    lines.forEach((ln, i) => ctx.fillText(ln, 80, ty + i * 86));
+    // 標題（無 emoji）
+    ctx.fillStyle = INK; ctx.font = "800 74px " + F;
+    const lines = wrapLines(ctx, d.title || "新興運動體驗班", 912, 2);
+    let ty = 1270;
+    lines.forEach((ln, i) => ctx.fillText(ln, 84, ty + i * 86));
     ty += lines.length * 86;
-    ctx.fillStyle = TEAL; ctx.font = "600 30px -apple-system,'PingFang HK',sans-serif";
-    ctx.fillText(d.sub || "名額有限 · 即刻留位", 80, ty + 24);
+    if (d.sub) { ctx.fillStyle = TEAL; ctx.font = "600 30px " + F; ctx.fillText(d.sub, 84, ty + 16); }
 
     // 分隔線
-    ctx.strokeStyle = "#e5e1d8"; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.moveTo(80, ty + 66); ctx.lineTo(1000, ty + 66); ctx.stroke();
+    const dy = ty + 62;
+    ctx.strokeStyle = LINE; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(84, dy); ctx.lineTo(996, dy); ctx.stroke();
 
-    // 資訊（左）＋ QR（右）
-    const by = ty + 118;
-    ctx.fillStyle = MUTED; ctx.font = "700 24px -apple-system,'PingFang HK',sans-serif";
-    ctx.fillText("日期時段", 80, by);
-    ctx.fillStyle = INK; ctx.font = "800 44px -apple-system,'PingFang HK',sans-serif";
-    ctx.fillText(d.dateStr || "待定", 80, by + 56);
+    // 資訊（左）
+    const by = dy + 66;
+    const row = (label, value, valueFont, color, gap) => {
+      ctx.fillStyle = MUTED; ctx.font = "700 24px " + F;
+      ctx.fillText(label, 84, by + gap);
+      ctx.fillStyle = color; ctx.font = valueFont;
+      ctx.fillText(value, 84, by + gap + 52);
+    };
+    row("日期時段", d.dateStr || "待定", "800 42px " + F, INK, 0);
+    row("集合地點", (d.venue || "場地待定").slice(0, 16), "600 34px " + F, "#374151", 132);
+    row("報名費用", "HK$" + (d.price || "") + " / 位", "800 54px " + F, GOLD, 264);
 
-    ctx.fillStyle = MUTED; ctx.font = "700 24px -apple-system,'PingFang HK',sans-serif";
-    ctx.fillText("集合地點", 80, by + 130);
-    ctx.fillStyle = "#334155"; ctx.font = "600 34px -apple-system,'PingFang HK',sans-serif";
-    ctx.fillText((d.venue || "場地待定").slice(0, 18), 80, by + 180);
-
-    ctx.fillStyle = MUTED; ctx.font = "700 24px -apple-system,'PingFang HK',sans-serif";
-    ctx.fillText("報名費用", 80, by + 254);
-    ctx.fillStyle = GOLD; ctx.font = "800 56px -apple-system,'PingFang HK',sans-serif";
-    ctx.fillText("HK$" + (d.price || "") + " / 位", 80, by + 318);
-
-    // QR：白底板 280、QR 200、上方膠囊標籤
-    const qx = 700, qy = by + 10, qb = 280;
+    // QR（右下，白板 280，靜區 40）
     try {
       const res = await fetch("/api/qr?text=" + encodeURIComponent(d.detailUrl || location.origin) + "&size=400");
       const j = await res.json();
       if (j.success) {
         const qr = await loadImage(j.data_url);
         if (qr) {
-          // 膠囊
-          ctx.fillStyle = "#0f766e";
-          roundRect(ctx, qx + 24, qy - 54, 232, 46, 23); ctx.fill();
-          ctx.fillStyle = "#fff"; ctx.font = "800 24px -apple-system,'PingFang HK',sans-serif";
-          ctx.textAlign = "center"; ctx.fillText("立即掃碼留位", qx + 140, qy - 23); ctx.textAlign = "left";
-          // 白板 + 靜區
+          const qx = 700, qy = by + 20, qb = 280;
           ctx.save();
-          ctx.shadowColor = "rgba(15,23,42,.14)"; ctx.shadowBlur = 30; ctx.shadowOffsetY = 10;
-          ctx.fillStyle = "#fff"; roundRect(ctx, qx, qy + 10, qb, qb, 26); ctx.fill();
+          ctx.shadowColor = "rgba(17,24,39,.12)"; ctx.shadowBlur = 26; ctx.shadowOffsetY = 10;
+          ctx.fillStyle = "#ffffff"; roundRect(ctx, qx, qy, qb, qb, 28); ctx.fill();
           ctx.restore();
-          ctx.drawImage(qr, qx + 40, qy + 50, qb - 80, qb - 80);
+          ctx.drawImage(qr, qx + 40, qy + 40, qb - 80, qb - 80);
+          ctx.fillStyle = MUTED; ctx.font = "700 22px " + F;
+          ctx.textAlign = "center"; ctx.fillText("掃碼報名", qx + qb / 2, qy + qb + 40); ctx.textAlign = "left";
         }
       }
     } catch (e) {}
 
-    // 底部（保留 160px 安全區）
-    ctx.fillStyle = "#9aa6b2"; ctx.font = "500 26px -apple-system,'PingFang HK',sans-serif";
-    ctx.fillText("電子入場憑證 · 家長可代子女報名 · 免責與保險保障", 80, H - 196);
-    ctx.fillStyle = TEAL; ctx.font = "800 30px -apple-system,'PingFang HK',sans-serif";
-    ctx.fillText("zenpass.hk", 80, H - 148);
-    ctx.fillStyle = TEAL; ctx.fillRect(0, H - 12, W, 12);
+    // 底部（留 160px）
+    ctx.fillStyle = MUTED; ctx.font = "500 26px " + F;
+    ctx.fillText("電子入場憑證　家長可代子女報名　免責與保險保障", 84, H - 190);
+    ctx.fillStyle = TEAL; ctx.font = "800 32px " + F;
+    ctx.fillText("zenpass.hk", 84, H - 136);
+    ctx.fillStyle = TEAL; ctx.fillRect(0, H - 10, W, 10);
 
     const dataUrl = cv.toDataURL("image/jpeg", 0.94);
     if (!d.noDownload) {
