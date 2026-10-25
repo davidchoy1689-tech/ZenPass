@@ -24,6 +24,14 @@
     .p-off{background:#f1f5f9;color:#64748b}
     .fld{width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:11px;padding:11px;font:inherit;font-size:15px;background:var(--surface);color:var(--text);margin-bottom:8px}
     .lbl{font-size:12.5px;font-weight:700;color:var(--text-muted);display:block;margin:0 0 5px 2px}
+    .cal-wd{font-size:10.5px;color:var(--text-muted);padding:2px 0;font-weight:700}
+    .cal-cell{position:relative;padding:6px 0 8px;border-radius:10px;cursor:pointer;font-size:12.5px;line-height:1.1}
+    .cal-cell.mute{color:#cbd5e1;pointer-events:none}
+    .cal-cell.today{background:var(--brand-500);color:#fff;font-weight:800}
+    .cal-cell.sel{outline:2px solid #10b981;outline-offset:-2px}
+    .cal-dots{display:flex;gap:2px;justify-content:center;margin-top:3px;height:6px}
+    .cal-dots i{width:5px;height:5px;border-radius:50%;display:block}
+    .d-g{background:#10b981}.d-r{background:#ef4444}
     .toast5{position:fixed;left:50%;transform:translateX(-50%);bottom:96px;background:rgba(15,23,42,.93);color:#fff;padding:11px 18px;border-radius:99px;font-size:13.5px;z-index:9999}
   </style>
 </head>
@@ -35,7 +43,22 @@
       <div class="hero" id="hero"></div>
       <div class="kpi" id="kpis"></div>
 
-      <div class="section-title">📅 未來 14 日場地排期</div>
+      <div class="section-title">📅 場地檔期</div>
+      <div class="card" style="padding:12px 12px 6px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <button class="btn btn-secondary" id="calPrev" style="min-height:32px;padding:0 12px">◀</button>
+          <b id="calTitle" style="font-size:15px">—</b>
+          <button class="btn btn-secondary" id="calNext" style="min-height:32px;padding:0 12px">▶</button>
+        </div>
+        <div id="calGrid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center;font-size:12px">
+          <div class="cal-wd">日</div><div class="cal-wd">一</div><div class="cal-wd">二</div>
+          <div class="cal-wd">三</div><div class="cal-wd">四</div><div class="cal-wd">五</div><div class="cal-wd">六</div>
+        </div>
+        <div style="display:flex;gap:12px;justify-content:center;font-size:11px;color:var(--text-muted);margin-top:8px">
+          <span>🟢 已出租</span><span>🔴 封鎖</span><span>⚪ 空置</span>
+        </div>
+      </div>
+      <div class="section-title" id="agendaTitle">當日場地使用</div>
       <div class="card"><div class="body" id="schedule"></div></div>
 
       <div class="section-title">🚫 不可出租時段</div>
@@ -71,6 +94,12 @@
     function toast(m) { const t = document.createElement("div"); t.className = "toast5"; t.textContent = m; document.body.appendChild(t); setTimeout(() => t.remove(), 2400); }
 
     let VENUE = null, SUMMARY = null;
+    let CAL = { y: new Date().getFullYear(), m: new Date().getMonth() };
+    let CAL_SESSIONS = [], CAL_BLACKOUTS = [];
+    let SEL_DAY = new Date().toISOString().slice(0, 10);
+
+    const dayKey = (t) => { const d = new Date(String(t).replace(" ", "T")); return isNaN(d) ? "" : d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
+    const hm2 = (t) => { const d = new Date(String(t).replace(" ", "T")); return isNaN(d) ? "" : d.toLocaleTimeString("zh-HK", { hour: "2-digit", minute: "2-digit", hour12: false }); };
 
     (async () => {
       if (!api.getUser()) {
@@ -87,7 +116,86 @@
       $("app").hidden = false;
       await loadSchedule();
       await loadBlackouts();
+      await loadCal();
     })();
+
+    function renderCal() {
+      const grid = $("calGrid"); if (!grid) return;
+      const first = new Date(CAL.y, CAL.m, 1);
+      const startDow = first.getDay();
+      const dim = new Date(CAL.y, CAL.m + 1, 0).getDate();
+      const prevDim = new Date(CAL.y, CAL.m, 0).getDate();
+      $("calTitle").textContent = `${CAL.y} 年 ${CAL.m + 1} 月`;
+
+      const byDay = {}, boByDay = {};
+      CAL_SESSIONS.forEach((x) => { const k = dayKey(x.start_time); if (k) (byDay[k] = byDay[k] || []).push(x); });
+      CAL_BLACKOUTS.forEach((b) => {
+        // 展開封鎖時段覆蓋嘅所有日子（簡單逐日掃）
+        let t = new Date(String(b.start_time).replace(" ", "T"));
+        const end = new Date(String(b.end_time).replace(" ", "T"));
+        while (t < end) { const k = dayKey(t.toISOString()); (boByDay[k] = boByDay[k] || 1); t = new Date(t.getTime() + 864e5); }
+      });
+
+      let html = "";
+      for (let i = 0; i < startDow; i++) html += `<div class="cal-cell mute">${prevDim - startDow + 1 + i}</div>`;
+      const todayK = new Date().toISOString().slice(0, 10);
+      for (let d = 1; d <= dim; d++) {
+        const k = `${CAL.y}-${String(CAL.m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+        const sList = byDay[k] || [];
+        const dots = [];
+        if (sList.length) dots.push("d-g");
+        if (boByDay[k]) dots.push("d-r");
+        const cls = ["cal-cell", k === todayK ? "today" : "", k === SEL_DAY ? "sel" : ""].filter(Boolean).join(" ");
+        html += `<div class="${cls}" data-day="${k}">${d}${dots.length ? `<div class="cal-dots">${dots.slice(0,3).map(c=>`<i class="${c}"></i>`).join("")}</div>` : ""}</div>`;
+      }
+      grid.innerHTML = html;
+      grid.querySelectorAll("[data-day]").forEach((el) => (el.onclick = () => { SEL_DAY = el.dataset.day; renderCal(); renderAgenda(); }));
+    }
+
+    function renderAgenda() {
+      const box = $("schedule"); if (!box) return;
+      const list = CAL_SESSIONS.filter((x) => dayKey(x.start_time) === SEL_DAY);
+      const d = new Date(SEL_DAY + "T00:00:00");
+      const wd = ["日","一","二","三","四","五","六"][d.getDay()];
+      $("agendaTitle").textContent = `${d.getMonth()+1} 月 ${d.getDate()} 日（${wd}）· ${list.length} 場`;
+      const rate = Number(VENUE && VENUE.rental_price_per_hour) || 0;
+      const boList = CAL_BLACKOUTS.filter((b) => dayKey(b.start_time) === SEL_DAY || (new Date(b.start_time) <= d && new Date(b.end_time) >= d));
+      let html = "";
+      if (list.length) {
+        html += list.map((x) => {
+          const rent = Math.round((Number(x.duration) || 60) / 60 * rate);
+          return `<div class="row"><span><b>${esc(x.title)}</b>
+            <span class="s">${esc(hm2(x.start_time))} – ${esc(hm2(x.end_time))} · ${esc(x.coach_name || "教練")} · ${x.enrolled_count}/${x.max_participants} 人</span></span>
+            <span class="pill p-on">${hkd(rent)}</span></div>`;
+        }).join("");
+      } else {
+        html += '<div class="muted center" style="padding:12px 0">呢日暫時冇教練租用。</div>';
+      }
+      if (boList.length) {
+        html += boList.map((b) => `<div class="row"><span><b>🚫 封鎖時段</b><span class="s">${esc(hm2(b.start_time))} – ${esc(hm2(b.end_time))} · ${esc(b.reason || "不可出租")}</span></span></div>`).join("");
+      }
+      html += `<button class="btn btn-secondary btn-block" id="blockDay" style="margin-top:10px">🔒 封鎖呢日（內部自用／維修）</button>`;
+      box.innerHTML = html;
+      const bd = $("blockDay");
+      if (bd) bd.onclick = () => {
+        $("boStart").value = SEL_DAY + "T09:00";
+        $("boEnd").value = SEL_DAY + "T18:00";
+        $("boReason").value = "內部自用／維修";
+        $("boStart").scrollIntoView({ behavior: "smooth", block: "center" });
+      };
+    }
+
+    async function loadCal() {
+      const r = await api.get("/partner/venue/schedule?days=60");
+      CAL_SESSIONS = (r.data && r.data.sessions) || [];
+      const b = await api.get("/partner/venue/blackouts");
+      CAL_BLACKOUTS = (b.data && b.data.blackouts) || [];
+      renderCal(); renderAgenda();
+    }
+
+    const _cp = $("calPrev"), _cn = $("calNext");
+    if (_cp) _cp.onclick = () => { CAL.m--; if (CAL.m < 0) { CAL.m = 11; CAL.y--; } renderCal(); };
+    if (_cn) _cn.onclick = () => { CAL.m++; if (CAL.m > 11) { CAL.m = 0; CAL.y++; } renderCal(); };
 
     async function loadSchedule() {
       const r = await api.get("/partner/venue/schedule?days=14");
