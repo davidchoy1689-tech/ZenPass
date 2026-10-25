@@ -328,7 +328,7 @@ function staticPage(s) {
 
   <div class="cta-bar">
     <div class="p"><b id="ctaPrice">首堂體驗</b><span id="ctaSub">睇最近開班時段</span></div>
-    <a class="btn btn-primary" href="#classes-card">查看開班時段 →</a>
+    <a class="btn btn-primary" id="ctaBtn" href="#classes-card">查看開班時段 →</a>
   </div>
 
   <script src="/assets/api.js?v=3"></script>
@@ -346,6 +346,16 @@ function staticPage(s) {
     function render(list) {
       if (!list.length) {
         el.innerHTML = '<div class="empty">最近班別籌備中 — 想我哋開班？<br><a href="https://wa.me/${WA}?text=' + encodeURIComponent("我想「" + NAME + "」開班，請通知我") + '" target="_blank" rel="noopener" style="color:var(--brand-600);font-weight:700">登記開班通知 →</a></div>';
+        // 未有班別 → 底部 CTA 轉做 WhatsApp 開班通知
+        try {
+          var waUrl = "https://wa.me/${WA}?text=" + encodeURIComponent("我想「" + NAME + "」開班，有位／開班請通知我");
+          var btn = document.getElementById("ctaBtn");
+          if (btn) { btn.href = waUrl; btn.target = "_blank"; btn.rel = "noopener"; btn.textContent = "💬 登記開班通知"; }
+          var p = document.getElementById("ctaPrice");
+          var sub = document.getElementById("ctaSub");
+          if (p) p.textContent = "未有班別";
+          if (sub) sub.textContent = "開班即 WhatsApp 通知你";
+        } catch (e) {}
         return;
       }
       el.innerHTML = list.slice(0, 3).map(function (c) {
