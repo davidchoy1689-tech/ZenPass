@@ -474,9 +474,9 @@
 
       const book = $("bookBtn");
       if (Number(c.booking_open) === 0) {
-        book.textContent = "已約滿";
-        book.disabled = true;
-        book.onclick = function () { alert("此課程已約滿，可留意下期。"); };
+        book.textContent = "🔔 加入候補名單";
+        book.disabled = false;
+        book.onclick = openSheet;
       } else {
         book.onclick = openSheet;
       }
@@ -538,12 +538,14 @@
       const byDay = {};
       SESS.forEach(function (s) { const k = _sessDay(s); (byDay[k] = byDay[k] || []).push(s); });
       const firstOpen = days.find(function (x) { return (byDay[x.key] || []).some(function (s) { return _free(s) > 0; }); });
-      SEL_DATE = firstOpen ? firstOpen.key : days[0].key;
+      const firstAny = days.find(function (x) { return (byDay[x.key] || []).length > 0; });
+      SEL_DATE = firstOpen ? firstOpen.key : (firstAny ? firstAny.key : days[0].key);
 
       $("dateStrip").innerHTML = days.map(function (x) {
         const cnt = (byDay[x.key] || []).filter(function (s) { return _free(s) > 0; }).length;
+        const all = (byDay[x.key] || []).length;
         return '<div class="dt-date ' + (x.key === SEL_DATE ? "on " : "") + (cnt ? "" : "off") + '" data-day="' + x.key + '">' +
-          '<div class="w">週' + x.w + '</div><div class="d">' + x.d + '</div><div class="n">' + (cnt ? cnt + " 場" : "—") + '</div></div>';
+          '<div class="w">週' + x.w + '</div><div class="d">' + x.d + '</div><div class="n">' + (cnt ? cnt + " 場" : (all ? "滿" : "—")) + '</div></div>';
       }).join("");
       $("dateStrip").querySelectorAll(".dt-date").forEach(function (el) {
         el.onclick = function () { SEL_DATE = el.dataset.day; SEL_SID = null; renderDates(byDay, days); renderSessions(byDay); };
@@ -582,7 +584,11 @@
           '<span class="l ' + (off ? "low" : left <= 3 ? "low" : "ok") + '">' + (off ? "滿" : left <= 3 ? "快滿" : "可預約") + '</span></div>';
       }).join("");
       $("sheetList").querySelectorAll(".dt-sess").forEach(function (el) {
-        if (el.classList.contains("off")) return;
+        if (el.classList.contains("off")) {
+          // 滿額 → 候補
+          el.onclick = function () { joinWaitlist(el.dataset.sid); };
+          return;
+        }
         el.onclick = function () {
           SEL_SID = el.dataset.sid;
           $("sheetList").querySelectorAll(".dt-sess").forEach(function (x) { x.classList.remove("on"); });
@@ -592,11 +598,30 @@
       });
     }
 
+    /* 🔔 滿額候補 */
+    function joinWaitlist(sid) {
+      const back = "detail.html?id=" + encodeURIComponent(CLS.id) + "&sid=" + encodeURIComponent(sid);
+      if (typeof api.requireLogin === "function" && !api.requireLogin(back)) return;
+      if (!confirm("呢班已滿，要唔要加入候補？一有位會第一時間 WhatsApp 通知你。")) return;
+      api.post("/waitlist/join", { schedule_id: sid }).then(function (r) {
+        if (r.ok) {
+          alert((r.data && r.data.message) || "✅ 已加入候補名單");
+        } else {
+          alert((r.data && r.data.error) || "加入候補失敗，請稍後再試");
+        }
+      });
+    }
+
     function updateConfirm() {
       const btn = $("sheetConfirm");
       if (!btn) return;
       const s = SESS.find(function (x) { return x.id === SEL_SID; });
-      if (!s) { btn.disabled = true; btn.textContent = "請先選擇場次"; return; }
+      const allFull = SESS.length && SESS.every(function (x) { return _free(x) <= 0; });
+      if (!s) {
+        btn.disabled = true;
+        btn.textContent = allFull ? "所有場次已滿 · 撳場次加入候補" : "請先選擇場次";
+        return;
+      }
       btn.disabled = false;
       btn.textContent = "前往結賬 (" + $("price").textContent + ")";
     }

@@ -14,6 +14,21 @@
     .bk-title { font-weight: 700; margin: 0 0 2px; }
     .actions { display: flex; gap: 8px; margin-top: 12px; }
     .actions .btn { min-height: 40px; padding: 0 14px; font-size: 14px; flex: 1; }
+    /* 🎫 入場憑證（Ticket） */
+    .ticket { background: var(--surface); border-radius: 20px; overflow: hidden; box-shadow: 0 18px 40px rgba(0,0,0,.22); }
+    .ticket .top { background: linear-gradient(135deg, var(--brand-500), var(--brand-700)); color: #fff; padding: 16px 18px; }
+    .ticket .top .k { font-size: 12px; opacity: .9; letter-spacing: .5px; }
+    .ticket .top h3 { margin: 4px 0 0; font-size: 18px; line-height: 1.3; }
+    .ticket .top .when { font-size: 13px; opacity: .95; margin-top: 4px; }
+    .ticket .perf { position: relative; height: 22px; background: var(--surface); }
+    .ticket .perf:before, .ticket .perf:after { content: ""; position: absolute; top: 6px; width: 22px; height: 22px; border-radius: 50%; background: rgba(0,0,0,.45); }
+    .ticket .perf:before { left: -11px; } .ticket .perf:after { right: -11px; }
+    .ticket .perf i { position: absolute; left: 16px; right: 16px; top: 16px; border-top: 2px dashed var(--border); }
+    .ticket .bot { padding: 6px 18px 18px; text-align: center; }
+    .ticket .bot img { width: 190px; height: 190px; display: block; margin: 4px auto 8px; border-radius: 10px; background: #fff; }
+    .ticket .code { font: 800 30px/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 8px; color: var(--brand-600); margin: 2px 0 4px; }
+    .ticket .ref { font-size: 12.5px; color: var(--text-muted); word-break: break-all; }
+    .ticket .hint { font-size: 12px; color: var(--text-muted); margin-top: 10px; line-height: 1.5; }
   </style>
 </head>
 <body>
@@ -49,7 +64,7 @@
 
     function row(b) {
       let actions = "";
-      if (b.status === "confirmed") actions = `<button class="btn btn-secondary" onclick="cancelBk('${esc(b.id)}')">取消預約</button>`;
+      if (b.status === "confirmed") actions = `<button class="btn btn-primary" onclick="openPass('${esc(b.id)}')">🎫 出示入場憑證</button><button class="btn btn-secondary" onclick="cancelBk('${esc(b.id)}')">取消預約</button>`;
       if (b.status === "pending_payment") actions = `<a class="btn btn-primary" href="booking.html?id=${encodeURIComponent(b.class_id)}&sid=${encodeURIComponent(b.schedule_id)}">繼續付款</a>`;
       if (b.status === "attended") actions = `<button class="btn btn-primary" onclick="openRateCoach('${esc(b.id)}','${esc(b.coach_name || "")}')">⭐ 評教練</button><button class="btn btn-secondary" onclick="openNps('${esc(b.id)}')">📋 課後問卷</button>${b.partner_venue_id ? `<button class="btn btn-secondary" onclick="openRateVenue('${esc(b.id)}','${esc(b.partner_venue_id)}','${esc(b.venue_name || "")}')">🏟️ 評場地</button>` : ""}<a class="btn btn-secondary" href="detail.html?id=${encodeURIComponent(b.class_id)}">再預約</a>`;
       return `<div class="card"><div class="body">
@@ -80,6 +95,37 @@
     };
 
     window.closeModal = (el) => { const o = el.closest(".modal-overlay"); if (o) o.remove(); };
+
+    /* 🎫 電子入場憑證：QR + 4 位驗證碼 */
+    window.openPass = async (id) => {
+      const b = all.find((x) => x.id === id) || {};
+      const r = await api.get("/bookings/" + encodeURIComponent(id) + "/qr");
+      if (!r.ok) { alert((r.data && r.data.error) || "暫時攞唔到入場憑證"); return; }
+      const d = r.data || {};
+      const o = document.createElement("div");
+      o.className = "modal-overlay";
+      o.innerHTML = `<div class="modal" style="padding:0;background:transparent;box-shadow:none">
+        <div class="ticket">
+          <div class="top">
+            <div class="k">ZENPASS 禪流 · 入場憑證</div>
+            <h3>${esc(b.title || "課堂")}</h3>
+            <div class="when">${b.start_time ? esc(fmtTime(b.start_time, b.end_time)) : ""}${b.venue_name ? " · " + esc(b.venue_name) : ""}</div>
+          </div>
+          <div class="perf"><i></i></div>
+          <div class="bot">
+            ${d.qr_data_url ? `<img src="${d.qr_data_url}" alt="入場 QR Code">` : `<div class="ref" style="padding:20px 0">${esc(d.qr_text || "")}</div>`}
+            <div class="code">${esc(d.checkin_code || "----")}</div>
+            <div class="ref">${esc(d.booking_reference || d.booking_id || "")}</div>
+            <div class="hint">到場向教練出示 QR Code；如掃描唔到，讀出 4 位驗證碼即可簽到。<br>每個憑證只可使用一次。</div>
+            <div class="actions" style="margin-top:14px">
+              <button class="btn btn-secondary" onclick="closeModal(this)">關閉</button>
+            </div>
+          </div>
+        </div>
+      </div>`;
+      document.body.appendChild(o);
+      o.onclick = (e) => { if (e.target === o) o.remove(); };
+    };
     /* 🏟️ 評場地及設施（匿名；≤3 星必須選原因） */
     window.openRateVenue = (bookingId, venueId, venueName) => {
       const TAGS = ["🧹 清潔", "🛠️ 器材", "📐 空間", "❄️ 冷氣", "🚻 洗手間", "📍 交通"];

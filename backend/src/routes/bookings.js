@@ -334,17 +334,23 @@ router.get("/:id/qr", authenticateToken, (req, res) => {
     }
 
     const qrData = `zenpass-checkin:${booking.booking_reference || booking.id}:${booking.schedule_id}`;
-    let qrDataUrl = null;
+    const checkinCode = bookingService.checkinCodeFor(booking);
+    const base = {
+      qr_text: qrData,
+      checkin_code: checkinCode,
+      booking_reference: booking.booking_reference,
+      booking_id: booking.id,
+      schedule_id: booking.schedule_id,
+      status: booking.status,
+    };
     try {
       const QRCode = require("qrcode");
-      QRCode.toDataURL(qrData, { width: 300, margin: 2 }, (err, url) => {
-        if (err) {
-          return res.json({ qr_text: qrData, booking_reference: booking.booking_reference, booking_id: booking.id, schedule_id: booking.schedule_id });
-        }
-        res.json({ qr_data_url: url, qr_text: qrData, booking_reference: booking.booking_reference, booking_id: booking.id, schedule_id: booking.schedule_id });
+      QRCode.toDataURL(qrData, { width: 320, margin: 2 }, (err, url) => {
+        if (err) return res.json(base);
+        res.json(Object.assign({ qr_data_url: url }, base));
       });
     } catch (e) {
-      res.json({ qr_text: qrData, booking_reference: booking.booking_reference, booking_id: booking.id, schedule_id: booking.schedule_id });
+      res.json(base);
     }
   } catch (err) {
     console.error("QR 生成錯誤:", err);

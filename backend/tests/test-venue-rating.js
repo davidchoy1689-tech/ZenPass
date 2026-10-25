@@ -32,7 +32,9 @@ ok(!detail.includes("Jason L.") && !detail.includes("Ming C."), "detail.html 冇
 ok(!detail.includes("500+") && !detail.includes("5+ 年"), "detail.html 冇假教練年資/學員數");
 ok(!detail.includes("32 則"), "detail.html 冇假 32 則評價");
 ok(detail.includes("暫無評價"), "冇評價時顯示「暫無評價」");
-ok(detail.includes("已約滿"), "未開放課程顯示「已約滿」");
+// 2026-10-25：滿額/未開放改為引導候補（唔再死路「已約滿」）
+ok(detail.includes("加入候補名單"), "未開放課程顯示「加入候補名單」");
+ok(detail.includes("waitlist/join"), "detail.html 有駁候補 API");
 ok(!/minutes:\s*\d+,\s*desc:/.test(detail) || detail.includes("Array.isArray(c.highlights)"),
   "課程流程只用真實 highlights");
 

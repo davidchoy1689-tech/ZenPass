@@ -32,6 +32,19 @@ class BookingFlowError extends Error {
 
 // ==================== Helpers ====================
 
+const crypto = require("crypto");
+
+// 🎫 4 位現場驗證碼：由 booking id + server secret 派生，穩定、唔可猜
+function checkinCodeFor(booking) {
+  const secret = process.env.CHECKIN_SECRET || "zenpass-checkin-v1";
+  const h = crypto
+    .createHmac("sha256", secret)
+    .update(String(booking.id))
+    .digest();
+  const n = ((h[0] << 8) | h[1]) % 10000;
+  return String(n).padStart(4, "0");
+}
+
 function generateBookingRef() {
   const db = getDb();
   const max =
@@ -1803,7 +1816,7 @@ function attendBooking(req) {
 // ==================== QR Check-in ====================
 
 function processQRCheckin(req) {
-  const { qr_data, booking_reference, schedule_id } = req.body;
+  const { qr_data, booking_reference, schedule_id, code } = req.body;
 
   if (!qr_data && !booking_reference && !schedule_id) {
     return {
@@ -1850,6 +1863,13 @@ function processQRCheckin(req) {
 
   if (!booking) {
     return { status: 404, body: { success: false, error: "預約不存在" } };
+  }
+
+  // 🎫 教練手動輸入 4 位驗證碼（無 QR 掃描器時用）
+  if (!qr_data && code != null && String(code).trim() !== "") {
+    if (String(code).trim() !== checkinCodeFor(booking)) {
+      return { status: 401, body: { success: false, error: "驗證碼不正確" } };
+    }
   }
 
   if (booking.status === "attended") {
@@ -2042,6 +2062,7 @@ module.exports = {
   cancelBooking,
   getCheckinStatus,
   attendBooking,
+  checkinCodeFor,
   processQRCheckin,
   markNoShow,
   resolveCancellationFeeRate,
