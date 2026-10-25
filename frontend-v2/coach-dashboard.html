@@ -59,6 +59,7 @@
     <div id="app" hidden>
       <div class="hero" id="hero"></div>
       <div class="metrics" id="metrics"></div>
+      <div class="muted" id="updatedAt" style="font-size:11.5px;text-align:right;margin:-4px 2px 8px;color:var(--text-muted)">—</div>
       <button class="btn btn-primary btn-block" id="btnQuick" style="margin-bottom:12px">➕ 快速新增課堂時段</button>
       <div class="tabs" id="tabs">
         <button class="on" data-f="upcoming">即將開班</button>
@@ -132,9 +133,16 @@
       $("btnQuick").onclick = quickSheet;
       await loadStats();
       await loadList();
+      // 🔄 即時數據：每 20 秒靜默更新（有抽屜開住就暫停，免得打斷操作）
+      setInterval(async () => {
+        if (document.hidden) return;
+        if ($("shSheet").classList.contains("on")) return;
+        try { await loadStats(true); await loadList(true); } catch (e) {}
+      }, 20000);
+      document.addEventListener("visibilitychange", () => { if (!document.hidden) { loadStats(true); loadList(true); } });
     })();
 
-    async function loadStats() {
+    async function loadStats(silent) {
       const [er, rr, cr] = await Promise.all([
         api.get("/coach/earnings"), api.get("/coach/my-rating"), api.get("/coach/my-classes"),
       ]);
@@ -153,6 +161,8 @@
       });
       const people = thisMonth.reduce((sum, x) => sum + (Number(x.booked) || 0), 0);
 
+      const stamp = $("updatedAt");
+      if (stamp) stamp.textContent = "已更新 " + new Date().toLocaleTimeString("zh-HK", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
       $("metrics").innerHTML = [
         ["🗓️ 本月已開堂數", thisMonth.length + " 堂"],
         ["👥 本月學員人次", people + " 人"],
@@ -165,9 +175,9 @@
       $("heroTags").innerHTML = (tags.length ? tags : ["教練"]).map((t) => `<span>${icons[t] || "🏅"} ${esc(t)}</span>`).join("");
     }
 
-    async function loadList() {
+    async function loadList(silent) {
       const box = $("list");
-      box.innerHTML = '<div class="card"><div class="body muted center">載入中…</div></div>';
+      if (!silent) box.innerHTML = '<div class="card"><div class="body muted center">載入中…</div></div>';
       const r = await api.get("/coach/sessions?filter=" + encodeURIComponent(FILTER));
       const arr = (r.data && r.data.sessions) || [];
       if (!arr.length) {
