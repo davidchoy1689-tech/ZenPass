@@ -65,9 +65,12 @@
         <button class="btn btn-primary" id="btnQuick" style="flex:2">➕ 快速新增課堂時段</button>
         <button class="btn btn-secondary" id="btnScan" style="flex:1">📷 掃描核銷</button>
       </div>
-      <div class="seg2" id="viewSeg" style="display:flex;gap:8px;margin-bottom:10px">
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        <div class="seg2" id="viewSeg" style="display:flex;gap:8px;flex:1">
         <button class="on" data-v="cal" style="flex:1;border:1px solid var(--border);background:var(--brand-500);color:#fff;border-radius:12px;padding:9px 0;font:inherit;font-weight:800;font-size:13.5px">📅 月曆</button>
         <button data-v="list" style="flex:1;border:1px solid var(--border);background:var(--surface);color:var(--text-muted);border-radius:12px;padding:9px 0;font:inherit;font-weight:800;font-size:13.5px">📋 列表</button>
+        </div>
+        <button id="btnIcs" class="btn btn-secondary" style="flex:none;min-height:38px;padding:0 12px;font-size:12.5px">📆 匯出</button>
       </div>
 
       <!-- 📅 微型月曆 + 當日時程 -->
@@ -312,10 +315,15 @@
           <div class="acts2">
             <button class="btn btn-primary" data-ag-roster="${esc(x.id)}">📋 現場點名</button>
             <button class="btn btn-secondary" data-ag-settle="${esc(x.id)}">🏁 對賬</button>
+            <button class="btn btn-secondary" data-ag-cal="${esc(x.id)}">📅 日曆</button>
             ${!noClass && booked < min ? `<button class="btn btn-secondary" data-ag-recruit="${esc(x.id)}" style="background:#25d366;color:#04331c;border-color:#25d366">💬 招募</button>` : ""}
           </div></div>`;
       }).join("")}</div>`;
       box.querySelectorAll("[data-ag-roster]").forEach((b) => (b.onclick = () => roster(b.dataset.agRoster)));
+      box.querySelectorAll("[data-ag-cal]").forEach((b) => (b.onclick = () => {
+        const x = CAL_SESSIONS.find((z) => z.id === b.dataset.agCal) || {};
+        googleCalFor(x);
+      }));
       box.querySelectorAll("[data-ag-recruit]").forEach((b) => (b.onclick = () => {
         const x = CAL_SESSIONS.find((z) => z.id === b.dataset.agRecruit) || {};
         const left = Math.max(0, (Number(x.min_participants) || 1) - (Number(x.booked) || 0));
@@ -332,6 +340,59 @@
         realSettle(sid, rr.data.schedule || sch, list2);
       }));
     }
+
+    /* ===== 📆 行事曆匯出（ICS / Google）===== */
+    function icsDate(t) {
+      const d = new Date(String(t).replace(" ", "T"));
+      if (isNaN(d)) return null;
+      return d.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
+    }
+    function googleCalFor(x) {
+      const st = icsDate(x.start_time), en = icsDate(x.end_time);
+      if (!st || !en) { alert("此課堂未有確實時間"); return; }
+      const u = new URL("https://calendar.google.com/calendar/render");
+      u.searchParams.append("action", "TEMPLATE");
+      u.searchParams.append("text", x.title || "ZenPass 課堂");
+      u.searchParams.append("dates", st + "/" + en);
+      u.searchParams.append("details", `ZenPass 課堂：${x.title || ""}\n教練後台：https://zenpass.hk/coach-dashboard.html`);
+      u.searchParams.append("location", [x.venue_name, x.district].filter(Boolean).join(" "));
+      window.open(u.toString(), "_blank");
+    }
+    function downloadIcsAll() {
+      const list = CAL_SESSIONS.filter((x) => x.status !== "cancelled");
+      if (!list.length) { alert("暫無課堂可匯出"); return; }
+      const now = icsDate(new Date());
+      const lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//ZenPass//Coach Schedule//ZH-HK", "CALSCALE:GREGORIAN", "METHOD:PUBLISH"];
+      list.forEach((x) => {
+        const st = icsDate(x.start_time), en = icsDate(x.end_time);
+        if (!st || !en) return;
+        const uid = (x.id || st) + "@zenpass.hk";
+        const loc = [x.venue_name, x.district].filter(Boolean).join(" ");
+        lines.push(
+          "BEGIN:VEVENT",
+          "UID:" + uid,
+          "DTSTAMP:" + now,
+          "DTSTART:" + st,
+          "DTEND:" + en,
+          "SUMMARY:" + String(x.title || "ZenPass 課堂").replace(/[,;]/g, " "),
+          "LOCATION:" + loc.replace(/[,;]/g, " "),
+          "DESCRIPTION:ZenPass 教練後台 https://zenpass.hk/coach-dashboard.html",
+          "STATUS:CONFIRMED",
+          "BEGIN:VALARM", "TRIGGER:-PT30M", "ACTION:DISPLAY",
+          "DESCRIPTION:提醒：30 分鐘後開課（" + loc.replace(/[,;]/g, " ") + "）", "END:VALARM",
+          "END:VEVENT",
+        );
+      });
+      lines.push("END:VCALENDAR");
+      const blob = new Blob([lines.join("\r\n")], { type: "text/calendar;charset=utf-8" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `ZenPass_Coach_Schedule_${new Date().toISOString().slice(0, 10)}.ics`;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 3000);
+      toast(`📆 已匯出 ${list.length} 堂`);
+    }
+    const _btnIcs = $("btnIcs"); if (_btnIcs) _btnIcs.onclick = downloadIcsAll;
 
     function loadCal() {
       if (typeof DEMO !== "undefined" && DEMO) { CAL_SESSIONS = DEMO_SESSIONS.slice(); renderCal(); renderAgenda(); }
