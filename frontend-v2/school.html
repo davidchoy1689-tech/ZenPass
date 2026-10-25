@@ -19,7 +19,7 @@
   </style>
 </head>
 <body>
-  <div class="hero"><h1>🏫 學校 ECA Pass</h1><p>為學校引入新興運動課外活動方案<br>芬蘭木柱・地板冰壺・穿雲箭・更多</p></div>
+  <div class="hero"><h1>🏫 學校新興運動方案</h1><p>ECA 興趣班・試後活動・陸運會同樂日<br>持證教練到校 · 自備全套裝備 · 小一至中六</p></div>
   <div class="wrap">
     <div class="section-title">🎯 適合學校嘅新興運動</div>
     <p class="muted" style="font-size:14px">ZenPass 與多個新興體育總會合作，為中小學提供專業教練及器材一站式方案，設安全指引，適合不同年齡。</p>
@@ -35,7 +35,18 @@
       <div class="adv"><div class="ic">🎒</div><div><b>一站式器材</b><div class="muted" style="font-size:13px">所有運動器材由 ZenPass 提供，學校毋需額外投資</div></div></div>
       <div class="adv"><div class="ic">📋</div><div><b>彈性課時</b><div class="muted" style="font-size:13px">可按學期、月或次收費，配合校方時間表</div></div></div>
       <div class="adv"><div class="ic">📊</div><div><b>進度報告</b><div class="muted" style="font-size:13px">定期提供學生參與報告</div></div></div>
+      <div class="adv"><div class="ic">🧾</div><div><b>支援學校採購流程</b><div class="muted" style="font-size:13px">可開 Invoice／報價單，接受支票、轉帳（配合校方程序）</div></div></div>
+      <div class="adv"><div class="ic">🛡️</div><div><b>保險與安全</b><div class="muted" style="font-size:13px">教練具相關認證，活動設風險評估同安全指引</div></div></div>
+      <div class="adv"><div class="ic">👶</div><div><b>全年齡適用</b><div class="muted" style="font-size:13px">小一至中六，按年齡調整難度同器材</div></div></div>
     </div>
+
+    <div class="section-title">🎪 可安排嘅活動形式</div>
+    <div class="card"><div class="body" style="line-height:2">
+      • <b>ECA 興趣班</b>（每週／隔週，整學期）<br>
+      • <b>試後活動 / 全方位學習日</b>（半日或全日）<br>
+      • <b>陸運會 / 同樂日攤位</b>（多項目同時進行）<br>
+      • <b>教師團隊工作坊</b>（教老師帶活動）
+    </div></div>
 
     <div class="section-title">📝 合作流程</div>
     <div class="card"><div class="body">
@@ -46,11 +57,23 @@
     </div></div>
 
     <div class="section-title">✉️ 查詢學校合作</div>
+    <div class="card" style="margin-bottom:10px"><div class="body">
+      <a class="btn btn-primary btn-block" style="background:#25d366;color:#04331c" href="https://wa.me/85290335538?text=%E4%BD%A0%E5%A5%BD%EF%BC%8C%E6%88%91%E5%80%91%E5%AD%B8%E6%A0%A1%E6%83%B3%E4%BA%86%E8%A7%A3%20ZenPass%20%E6%96%B0%E8%88%88%E9%81%8B%E5%8B%95%20ECA%20%E6%96%B9%E6%A1%88" target="_blank" rel="noopener" id="waBtn">💬 WhatsApp 即刻查詢</a>
+      <div class="muted center" style="font-size:11.5px;margin-top:6px">趕時間？直接 WhatsApp 我哋，講低學校名同事宜就得</div>
+    </div></div>
     <div class="card" id="formCard"><div class="body">
       <label class="lbl">學校 / 機構名稱 *</label><input class="fld" id="s-name" />
       <label class="lbl">聯絡人姓名 *</label><input class="fld" id="s-contact" />
       <label class="lbl">聯絡電郵 *</label><input class="fld" id="s-email" type="email" />
       <label class="lbl">聯絡電話</label><input class="fld" id="s-phone" type="tel" />
+      <label class="lbl">活動形式</label>
+      <select class="fld" id="s-type">
+        <option>ECA 興趣班（整學期）</option>
+        <option>試後活動 / 全方位學習日</option>
+        <option>陸運會 / 同樂日攤位</option>
+        <option>教師工作坊</option>
+        <option>其他 / 未定</option>
+      </select>
       <label class="lbl">有興趣嘅運動</label>
       <input class="fld" id="s-interest" placeholder="例：芬蘭木柱、地板冰壺" />
       <label class="lbl">備註 / 查詢內容</label><textarea class="fld" id="s-msg" rows="3"></textarea>
@@ -72,6 +95,7 @@
         contact_email: document.getElementById("s-email").value.trim(),
         contact_phone: document.getElementById("s-phone").value.trim(),
         sports_of_interest: document.getElementById("s-interest").value.trim(),
+        activity_type: document.getElementById("s-type").value,
         message: document.getElementById("s-msg").value.trim(),
       };
       if (!body.school_name || !body.contact_name || !body.contact_email) { msg.textContent = "請填學校名稱、聯絡人、電郵"; return; }
