@@ -367,6 +367,16 @@
     const DATES = { "": "不限日期", today: "今天", tomorrow: "明天", weekend: "本週末", evening: "今晚 18:00 後" };
 
     const P = new URLSearchParams(location.search);
+    // 由底欄「預約」導過嚟（未揀課堂）→ 顯示提示
+    if (P.get("nobook") === "1") {
+      setTimeout(() => {
+        const t = document.createElement("div");
+        t.textContent = "👉 請先選擇你感興趣嘅體驗班";
+        t.style.cssText = "position:fixed;left:50%;transform:translateX(-50%);bottom:88px;background:rgba(15,23,42,.92);color:#fff;padding:11px 18px;border-radius:999px;font-size:13.5px;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,.25)";
+        document.body.appendChild(t);
+        setTimeout(() => t.remove(), 3200);
+      }, 400);
+    }
     const STATE = {
       q: P.get("q") || "",
       zone: ZONES[P.get("zone")] ? P.get("zone") : "",

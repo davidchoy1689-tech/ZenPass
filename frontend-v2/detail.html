@@ -323,8 +323,9 @@
 
     (async () => {
       if (!classId) {
-        // 冇 id → 用 ?q= 搜尋（首頁熱門卡）或取第一個課程
+        // 2026-10-25：冇 id 但有 ?q= → 直接去探索頁搜尋（避免「搵唔到課程」死路）
         const q0 = qs.get("q") || "";
+        if (q0) { location.replace("explore.html?q=" + encodeURIComponent(q0)); return; }
         const url = q0 ? "/classes?search=" + encodeURIComponent(q0) + "&limit=1" : "/classes?limit=1";
         const r = await api.get(url);
         const a = (r.data && (r.data.classes || r.data.items)) || [];

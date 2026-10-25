@@ -423,6 +423,8 @@
     const setStep = (n) => [1,2,3].forEach(i => { $("s"+i).classList.toggle("active", i===n); $("s"+i).classList.toggle("done", i<n); });
     const params = new URLSearchParams(location.search);
     const classId = params.get("id");
+    // 2026-10-25：未揀課堂就直接入預約頁 → 帶去探索頁（避免「缺少課程」死路）
+    if (!classId) { location.replace("explore.html?nobook=1"); }
     let cls = null, sessions = [], sel = new Set(), promoFinal = null, ban = "A";
     let payIds = [], payUnit = 0, payMethod = "fps", cdTimer = null;
 
