@@ -63,6 +63,7 @@
         <label class="zp-br-lbl">WhatsApp 電話（可選）</label>
         <input class="zp-br-in" id="zpBrPhone" inputmode="numeric" placeholder="9123 4567" />
         <button class="zp-br-go" type="button" id="zpBrGo">🚀 即刻下載 PDF 簡介</button>
+        <a class="zp-br-wa" id="zpBrWa" href="#" target="_blank" rel="noopener">💬 WhatsApp 直接索取報價</a>
         <div style="text-align:center;margin-top:8px">
           <button type="button" class="zp-br-skip" id="zpBrSkip">免填資料，直接預覽下載</button>
         </div>
@@ -87,9 +88,20 @@
       : "索取 企業健康與 Team Building 簡介（1 頁 PDF）";
     document.getElementById("zpBrOrgLbl").textContent = CURRENT === "school" ? "學校名稱 *" : "公司名稱 *";
     document.getElementById("zpBrMsg").textContent = "";
+    const wa = document.getElementById("zpBrWa");
+    if (wa) wa.href = buildWa();
     const m = document.getElementById("zpBrochureModal");
     m.classList.add("on"); m.setAttribute("aria-hidden", "false");
+    const orgIn = document.getElementById("zpBrOrg");
+    if (orgIn) orgIn.oninput = () => { const w = document.getElementById("zpBrWa"); if (w) w.href = buildWa(); };
   };
+
+  function buildWa() {
+    const org = (document.getElementById("zpBrOrg") || {}).value || "";
+    const label = CURRENT === "school" ? "學校 ECA 方案" : "企業健康與 Team Building 方案";
+    const txt = `你好，我來自${org ? "「" + org + "」" : "一間機構"}，喺 ZenPass 網站睇咗${label}，想索取活動檔期同報價表。`;
+    return "https://wa.me/" + WA + "?text=" + encodeURIComponent(txt);
+  }
 
   async function submit() {
     const org = document.getElementById("zpBrOrg").value.trim();
@@ -109,7 +121,13 @@
       const path = CURRENT === "school" ? "/api/school/inquiry" : "/api/corporate/inquiry";
       fetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).catch(() => {});
     } catch (e) {}
-    try { localStorage.setItem("zp_b2b_lead", JSON.stringify({ type: CURRENT, org, email, phone, at: new Date().toISOString() })); } catch (e) {}
+    try {
+      const lead = { type: CURRENT, orgName: org, org, email, phone, timestamp: new Date().toISOString() };
+      const arr = JSON.parse(localStorage.getItem("zenpass_b2b_leads") || "[]");
+      arr.push(lead);
+      localStorage.setItem("zenpass_b2b_leads", JSON.stringify(arr));
+      localStorage.setItem("zp_b2b_lead", JSON.stringify(lead));
+    } catch (e) {}
     msg.textContent = "✅ 已開始下載，多謝！";
     setTimeout(close, 600);
     return w;
@@ -212,6 +230,7 @@
   .zp-br-in:focus{outline:none;border-color:#ff6b35;box-shadow:0 0 0 3px rgba(255,107,53,.15)}
   .zp-br-go{width:100%;margin-top:14px;background:linear-gradient(135deg,#ff6b35,#e2571f);color:#fff;border:0;padding:13px;border-radius:12px;font-size:14.5px;font-weight:800}
   .zp-br-skip{background:none;border:0;font-size:12px;color:#94a3b8;text-decoration:underline}
+  .zp-br-wa{display:block;text-align:center;margin-top:10px;background:#25d366;color:#04331c;text-decoration:none;font-weight:800;font-size:13.5px;padding:11px;border-radius:11px}
   .zp-br-msg{font-size:12.5px;color:#c2410c;text-align:center;margin-top:8px;min-height:16px}
   `;
   const s = document.createElement("style");
