@@ -43,6 +43,9 @@
     }
     .ex-search-clear.show { display: flex; }
     .ex-search-clear:active { transform: scale(.92); }
+    .ex-qhint { font-size: 12px; color: var(--text-muted); margin: 6px 2px 0; line-height: 1.5; }
+    .ex-qhint b { color: var(--brand-600); }
+    .ex-qhint button { border: 0; background: none; font: inherit; color: var(--brand-600); font-weight: 700; padding: 0 2px; }
 
     .ex-chips { display: flex; gap: 8px; overflow-x: auto; padding: 10px 0 2px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
     .ex-chips::-webkit-scrollbar { display: none; }
@@ -214,6 +217,9 @@
         <input id="q" type="search" autocomplete="off" placeholder="搜尋運動 / 課程 / 教練" />
         <button class="ex-search-clear" id="qClear" type="button" aria-label="清除搜尋">✕</button>
       </div>
+      <div class="ex-qhint" id="qHint" hidden></div>
+      <div style="display:none">
+      </div>
       <div class="ex-chips" id="exChips">
         <button class="ex-chip" data-open="zone" type="button">📍 地區</button>
         <button class="ex-chip" data-open="date" type="button">📅 日期</button>
@@ -237,6 +243,7 @@
       <div class="ex-empty-ic">🔍🌿</div>
       <h3>暫時未找到相關課堂</h3>
       <p>試下搜尋熱門關鍵字，或者看看以下為你推薦嘅項目：</p>
+      <div id="qSuggest"></div>
       <div class="ex-empty-chips">
         <button type="button" data-rec="senior">👴 長者樂齡</button>
         <button type="button" data-rec="beginner">🧩 新手友善</button>
@@ -338,6 +345,18 @@
       "九龍": ["尖沙咀", "佐敦", "油麻地", "旺角", "太子", "大角咀", "深水埗", "長沙灣", "荔枝角", "美孚", "九龍城", "土瓜灣", "紅磡", "何文田", "黃大仙", "鑽石山", "新蒲崗", "彩虹", "牛頭角", "九龍灣", "觀塘", "藍田", "油塘", "啟德", "樂富", "慈雲山", "尖東"],
       "新界": ["沙田", "大圍", "火炭", "馬鞍山", "大埔", "粉嶺", "上水", "元朗", "天水圍", "屯門", "荃灣", "葵涌", "青衣", "將軍澳", "西貢", "深井", "東涌", "錦田", "長洲", "大嶼山"],
     };
+    const FUNCTIONAL = [
+      { slug: "stretch", icon: "🧘‍♀️", name: "身心伸展", kw: ["伸展", "拉筋", "stretch", "肩頸", "痛症", "放鬆"] },
+      { slug: "molkky", icon: "🎯", name: "芬蘭木柱", kw: ["木柱", "molkky", "mölkky", "芬蘭"] },
+      { slug: "floor-curling", icon: "🥌", name: "地板冰壺", kw: ["冰壺", "curling", "地壺"] },
+      { slug: "cornhole", icon: "🫘", name: "布袋球", kw: ["布袋", "沙包", "cornhole"] },
+      { slug: "air-storm", icon: "🏹", name: "穿雲箭", kw: ["穿雲箭", "射箭", "archery", "氣箭"] },
+      { slug: "nordic-walking", icon: "🥾", name: "北歐式健走", kw: ["北歐", "健走", "nordic", "長者"] },
+      { slug: "roundnet", icon: "🕸️", name: "圓網球", kw: ["圓網", "roundnet", "spikeball"] },
+      { slug: "rouliqiu", icon: "🎾", name: "柔力球", kw: ["柔力", "rouliqiu", "長者"] },
+      { slug: "flexi-bar", icon: "〰️", name: "Flexi-Bar", kw: ["flexi", "震動", "核心"] },
+      { slug: "kids", icon: "🧒", name: "兒童健體", kw: ["兒童", "小朋友", "kids", "親子"] },
+    ];
     const SCENES = {
       family: { label: "親子 / 樂齡", kw: ["兒童", "親子", "長者", "樂齡", "銀髮", "kids", "senior", "家庭", "小童", "幼"] },
       office: { label: "放工放鬆", kw: ["瑜伽", "伸展", "身心", "冥想", "普拉提", "pilates", "yoga", "stretch", "頌缽", "放鬆", "舒壓", "氣功", "太極", "barre"] },
@@ -417,10 +436,112 @@
       return days.some((d) => targetDays(STATE.date).indexOf(d) >= 0);
     }
     function matchCat(c) { return !STATE.cat || String(c.category || "") === STATE.cat; }
+    let Q_TERMS = [];
     function matchQ(c) {
-      const t = STATE.q.trim().toLowerCase();
+      const t = STATE.q.trim();
       if (!t) return true;
-      return t.split(/\s+/).every((w) => hay(c).indexOf(w) >= 0);
+      if (!Q_TERMS.length) Q_TERMS = expandSearchTerms(t);
+      if (!Q_TERMS.length) return true;
+      const corpus = hay(c);
+      // 每個輸入詞各自要有命中（同義詞擴展後），保留 AND 語意
+      const toks = t.toLowerCase().split(/\s+/).filter(Boolean);
+      return toks.every((tok) => {
+        if (corpus.indexOf(tok) >= 0) return true;
+        const exp = expandSearchTerms(tok);
+        return exp.some((x) => corpus.indexOf(x) >= 0);
+      });
+    }
+
+    /* ---------- 中英同義詞 / 模糊搜尋 ---------- */
+    const SYN = {
+      molkky: ["芬蘭木柱", "木柱", "芬蘭木棒", "mölkky", "投擲木柱", "木棒", "芬蘭"],
+      "芬蘭木柱": ["molkky", "mölkky", "木柱", "芬蘭木棒", "投擲木柱"],
+      "木柱": ["芬蘭木柱", "molkky", "木棒"],
+      curling: ["地板冰壺", "冰壺", "地壺", "floor curling", "室內冰壺"],
+      "地板冰壺": ["curling", "冰壺", "地壺", "floor curling", "冰壺策略"],
+      "冰壺": ["地板冰壺", "curling", "floor curling", "地壺"],
+      cornhole: ["布袋球", "沙包球", "拋布袋", "康樂球"],
+      "布袋球": ["cornhole", "沙包球", "拋布袋", "豆袋"],
+      stretch: ["身心伸展", "伸展", "拉筋", "stretching", "肩頸放鬆", "痛症", "瑜伽", "久坐"],
+      stretching: ["身心伸展", "伸展", "拉筋", "stretch"],
+      "身心伸展": ["stretch", "stretching", "伸展", "拉筋", "肩頸腰背", "放鬆"],
+      "拉筋": ["身心伸展", "stretch", "伸展", "筋膜放鬆"],
+      "痛症": ["身心伸展", "拉筋", "復康", "rehab"],
+      "放鬆": ["身心伸展", "冥想", "頌缽", "減壓"],
+      archery: ["穿雲箭", "射箭", "air storm", "氣箭", "安全射箭"],
+      "穿雲箭": ["air storm", "射箭", "archery", "氣槍"],
+      "射箭": ["穿雲箭", "archery", "air storm"],
+      "nordic walking": ["北歐式健走", "北歐健走", "健走杖", "行山杖", "北歐"],
+      nordic: ["北歐式健走", "北歐健走", "健走"],
+      "北歐式健走": ["nordic walking", "北歐健走", "健行杖", "行山杖"],
+      roundnet: ["圓網球", "spikeball", "彈網球"],
+      "圓網球": ["roundnet", "spikeball", "圓網"],
+      spikeball: ["圓網球", "roundnet"],
+      rouliqiu: ["柔力球", "太極柔力球"],
+      "柔力球": ["太極柔力球", "rouliqiu", "長者"],
+      flexibar: ["flexi-bar", "flexi bar", "擺動棒", "震動桿", "深層肌肉", "核心"],
+      "flexi-bar": ["flexibar", "flexi bar", "擺動棒", "震動桿"],
+      "震動桿": ["flexi-bar", "flexibar", "核心"],
+      kids: ["兒童健體", "小朋友運動", "兒童體操", "kids fit", "親子"],
+      "兒童": ["kids", "小朋友", "兒童健體", "兒童體操", "親子"],
+      "兒童健體": ["kids", "小朋友", "兒童體操", "親子"],
+      "長者": ["長者樂齡", "長者體適能", "銀髮族", "老年運動", "樂齡健體", "太極", "senior"],
+      "長者體適能": ["長者樂齡", "柔力球", "北歐式健走", "太極"],
+      senior: ["長者", "樂齡", "銀髮"],
+      yoga: ["瑜伽", "伸展", "放鬆", "冥想"],
+      "瑜伽": ["yoga", "伸展", "放鬆", "pilates", "冥想"],
+      "失眠": ["身心伸展", "冥想", "放鬆", "瑜伽"],
+      "肩頸": ["身心伸展", "拉筋", "放鬆", "痛症"],
+      "減肥": ["hiit", "燃脂", "健身", "有氧", "體重管理"],
+      "團隊": ["團建", "新興運動", "芬蘭木柱", "布袋球", "圓網球"],
+      "團建": ["團隊", "新興運動", "公司", "包團"],
+    };
+    const SYN_KEYS = Object.keys(SYN);
+
+    // 先把輸入拆詞，每個詞各自擴展（支援中英混打、忽略大小寫／多餘空格）
+    function expandSearchTerms(rawQuery) {
+      const clean = String(rawQuery || "").trim().toLowerCase().replace(/\s+/g, " ");
+      if (!clean) return [];
+      const out = new Set();
+      const tokens = clean.split(" ").filter(Boolean);
+      const push = (v) => { const t = String(v).trim().toLowerCase(); if (t) out.add(t); };
+      push(clean);
+      tokens.forEach((tok) => {
+        push(tok);
+        // 1) 直接 key / 同義詞比對（含包含式）
+        SYN_KEYS.forEach((k) => {
+          const kl = k.toLowerCase();
+          const syns = SYN[k].map((x) => x.toLowerCase());
+          const hit = kl === tok || kl.indexOf(tok) >= 0 || tok.indexOf(kl) >= 0 ||
+            syns.some((x) => x === tok || x.indexOf(tok) >= 0 || tok.indexOf(x) >= 0);
+          if (hit) { push(k); syns.forEach(push); }
+        });
+      });
+      return Array.from(out);
+    }
+
+    // 找出「因為同義詞才命中」的解釋，例如 拉筋 → 身心伸展
+    function explainHit(rawQuery, terms) {
+      const corpusAll = ALL.map((c) => hay(c)).join(" ");
+      const q = String(rawQuery || "").trim().toLowerCase();
+      if (!q || corpusAll.indexOf(q) >= 0) return "";
+      const pairs = [];
+      terms.forEach((t) => {
+        if (t === q) return;
+        if (corpusAll.indexOf(t) >= 0 && q.indexOf(t) < 0 && t.indexOf(q) < 0) {
+          pairs.push({ from: q, to: t });
+        }
+      });
+      if (!pairs.length) return "";
+      const seen = new Set();
+      const uniq = pairs.filter((p) => (seen.has(p.to) ? false : seen.add(p.to)));
+      return uniq.slice(0, 2).map((p) => p.to).join(" / ");
+    }
+
+    function isCourseMatched(course, terms) {
+      if (!terms.length) return true;
+      const corpus = hay(course);
+      return terms.some((t) => corpus.indexOf(t) >= 0);
     }
 
     let ALL = [];
@@ -429,6 +550,43 @@
       if (STATE.sort === "price_asc") arr = arr.slice().sort((a, b) => (Number(a.price_hkd) || 0) - (Number(b.price_hkd) || 0));
       else if (STATE.sort === "rating") arr = arr.slice().sort((a, b) => (Number(b.avg_rating) || 0) - (Number(a.avg_rating) || 0));
       return arr;
+    }
+
+    /* ---------- 搜尋提示 / 推薦 ---------- */
+    function renderHint(n) {
+      const box = $("#qHint");
+      if (!box) return;
+      const q = STATE.q.trim();
+      if (!q) { box.hidden = true; box.innerHTML = ""; return; }
+      Q_TERMS = expandSearchTerms(q);
+      const why = explainHit(q, Q_TERMS);
+      box.hidden = false;
+      box.innerHTML = why
+        ? `🔎 「<b>${esc(q)}</b>」以同義詞擴展：<b>${esc(why)}</b> · 搵到 ${n} 個課程`
+        : `🔎 「<b>${esc(q)}</b>」搵到 ${n} 個課程`;
+    }
+
+    function renderSuggest() {
+      const box = $("#qSuggest");
+      if (!box) return;
+      const q = STATE.q.trim().toLowerCase();
+      const picks = [];
+      const push = (slug, icon, name) => { if (!picks.some((p) => p.name === name)) picks.push({ slug, icon, name }); };
+      // 由同義詞表推 2-3 個最接近項目
+      SYN_KEYS.forEach((k) => {
+        const kl = k.toLowerCase();
+        const syns = SYN[k].map((x) => x.toLowerCase());
+        if (kl === q || kl.indexOf(q) >= 0 || syns.some((x) => x.indexOf(q) >= 0 || q.indexOf(x) >= 0)) {
+          SYN[k].slice(0, 2).forEach((alias) => {
+            const hit = FUNCTIONAL.find((f) => f.kw.some((kw) => alias.toLowerCase().indexOf(kw) >= 0));
+            if (hit) push(hit.slug, hit.icon, hit.name);
+          });
+        }
+      });
+      FUNCTIONAL.forEach((f) => { if (picks.length < 3 && f.kw.some((kw) => q.indexOf(kw) >= 0)) push(f.slug, f.icon, f.name); });
+      FUNCTIONAL.slice(0, 3).forEach((f) => { if (picks.length < 3) push(f.slug, f.icon, f.name); });
+      box.innerHTML = "<div style=\"font-size:12.5px;color:var(--text-muted);margin:12px 0 6px\">試試看以下熱門推薦項目：</div>" +
+        picks.slice(0, 3).map((p) => `<a class="ex-empty-chip" href="/s/${p.slug}.html" style="display:inline-block;margin:0 6px 8px 0;padding:8px 12px;border-radius:999px;border:1px solid var(--border);background:var(--surface);text-decoration:none;color:inherit;font-size:13px">${p.icon} ${esc(p.name)}</a>`).join("");
     }
 
     /* ---------- 卡片 ---------- */
@@ -507,10 +665,12 @@
       const arr = view();
       const lbl = [STATE.zone ? "📍 " + ZONES[STATE.zone].label : "", STATE.cat ? STATE.cat : ""].filter(Boolean).join(" · ");
       countEl.textContent = (lbl ? lbl + " · " : "") + arr.length + " 個課程";
+      renderHint(arr.length);
       if (!arr.length) {
         list.innerHTML = "";
         list.hidden = true;
         emptyBox.hidden = false;
+        renderSuggest();
       } else {
         emptyBox.hidden = true;
         list.hidden = false;
