@@ -391,7 +391,7 @@ function insertBookingRow(db, bookingData, partnerInfo) {
     attendee = null,
   } = bookingData;
 
-  const A = attendee && attendee.type === "child" ? attendee : {};
+  const A = attendee || {};
   const aVals = [
     A.type === "child" ? "child" : "self",
     A.childName || null,

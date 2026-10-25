@@ -259,6 +259,22 @@
         <div class="guest-hint">📱 請確保號碼正確，客服／教練會用呢個號碼聯絡你確認預約。<br/>已有帳號？<a href="login.html?next=booking.html">登入後可用 Pass 點數</a></div>
       </div></div>
       <div class="spacer"></div>
+      <div class="card" id="waiverCard"><div class="body">
+        <b style="font-size:13.5px">🛡️ ZenPass 平台轉介服務、健康安全及責任聲明</b>
+        <div class="waiver-txt" style="max-height:150px;margin-top:8px">
+          本人確認／並代表由本人代為報名之參加者（包括未成年子女或長者受監護人）聲明及同意：<br><br>
+          <b>1. 平台轉介性質：</b>ZenPass（由香港康樂及體育有限公司營運）僅提供活動預約、資訊展示及科技轉介服務。所有教練招收開辦之活動、服務及場地出租，各項安全、教學質量與民事責任均由相關主辦教練、個人或場地機構自行全權負責。<br><br>
+          <b>2. 保險及責任自負：</b>平台強烈建議相關活動提供者、教練、場地營運商及參加者，自行評估並決定是否為個別活動及個人購買合適之公眾責任或意外保險；參加者自願承擔體育運動之一切常規動態風險，並自行妥善保管隨身財物。<br><br>
+          <b>3. 身體狀況確認：</b>參加者健康狀況良好並適宜參與所選活動；如有隱疾、受傷或心血管狀況，已諮詢專業醫生意見。如現場遇突發急性身體不適，授權現場人員代為安排合理緊急送醫。<br><br>
+          <b>4. 條款長期有效：</b>此確認一次生效，永久適用於本人日後經 ZenPass 平台預約之所有活動及課堂。（若參加者未滿 18 歲，剔選即代表本人為其合法監護人並確認上述授權。）<br><br>
+          <b>5. 最終解釋權：</b>香港康樂及體育有限公司（ZenPass 平台營運公司）對本條款、服務規則、預約安排及任何爭議，保留一切最終修改及解釋權利。
+        </div>
+        <label class="waiver-chk" style="margin-top:4px"><input type="checkbox" id="waiverAgree" />
+          <span>本人已閱讀並同意《ZenPass 平台轉介服務、健康安全及責任聲明》（確認平台純屬轉介、建議自購保險、營運公司保留最終解釋權，<b>一次簽署長期有效</b>）*</span></label>
+        <div id="waiverSaved" hidden class="muted" style="font-size:12px;color:#047857">✅ 已綁定全平台健康安全及責任聲明（此裝置）</div>
+      </div></div>
+
+      <div class="spacer"></div>
       <div class="card"><div class="body">
         <div class="muted" style="font-size:13px;font-weight:700;margin-bottom:8px">參加者身份</div>
         <div class="att-toggle" id="attToggle">
@@ -277,14 +293,12 @@
           <input id="emergencyPhone" placeholder="第二緊急聯絡電話 *" inputmode="numeric" maxlength="12" />
           <input id="medicalNotes" placeholder="特殊健康／注意事項（可選）" maxlength="120" />
           <div class="waiver">
-            <b>🛡️ 家長／監護人聲明及責任豁免</b>
+            <b>🛡️ 家長／監護人簽署</b>
             <div class="waiver-txt">
-              1. 本人確認為上述參加者之法定監護人，並確認其身體狀況適宜參與體育活動。<br>
-              2. 如活動期間發生意外，本人授權現場教練／職員安排緊急醫療救護。<br>
-              3. 本人明白運動涉及固有風險，同意承擔相關風險並遵守 ZenPass 及場地安全守則。
+              本人為上述參加者之法定監護人，已閱讀並同意上方《平台轉介服務、健康安全及責任聲明》，並確認其身體狀況適宜參與體育活動、授權現場人員於緊急情況安排送醫。
             </div>
             <label class="waiver-chk"><input type="checkbox" id="guardianConsent" />
-              <span>本人已閱讀、明白並同意上述條款 *</span></label>
+              <span>本人以法定監護人身份確認上述授權 *</span></label>
             <div class="grid2">
               <input id="guardianName" placeholder="監護人全名 *" maxlength="40" />
               <input id="guardianHkid" placeholder="身份證前 4 位 *" maxlength="8" />
@@ -655,8 +669,30 @@
         if (d.guardianName) $("guardianName").value = d.guardianName;
       } catch (e) {}
     };
+    /* 免責聲明：一次簽署，長期有效 */
+    (function initWaiver() {
+      let agreed = false;
+      try { agreed = localStorage.getItem("zenpass_waiver_agreed") === "true"; } catch (e) {}
+      if (agreed) {
+        const cb = $("waiverAgree"); if (cb) cb.checked = true;
+        const box = $("waiverSaved"); if (box) box.hidden = false;
+      }
+      const cb = $("waiverAgree");
+      if (cb) cb.onchange = () => { const box = $("waiverSaved"); if (box) box.hidden = !cb.checked; };
+    })();
+    function waiverPayload() {
+      const cb = $("waiverAgree");
+      const agreed = (cb && cb.checked) || (function () { try { return localStorage.getItem("zenpass_waiver_agreed") === "true"; } catch (e) { return false; } })();
+      if (!agreed) return null;
+      return { agreed: true, timestamp: new Date().toISOString(), termsVersion: "v2026.1_hk_minor" };
+    }
+
     function getAttendeePayload(silent) {
-      if (ATT_TYPE !== "child") return { type: "self" };
+      const wv = waiverPayload();
+      if (ATT_TYPE !== "child") {
+        if (!wv) { if (!silent) alert("請先閱讀並同意平台轉介服務及責任聲明"); return null; }
+        return { type: "self", waiver: wv };
+      }
       const childName = ($("childName").value || "").trim();
       const age = Number($("childAge").value);
       const emergencyPhone = ($("emergencyPhone").value || "").replace(/\D/g, "");
@@ -682,6 +718,7 @@
 
     $("toStep3").onclick = () => {
       if (!$("consent").checked) { alert("請先同意缺席政策"); return; }
+      if (!getAttendeePayload()) return; // 免責聲明／子女資料驗證
       if (isGuest && !validGuest()) return;
       const pm = document.querySelector("input[name=pm]:checked").value;
       const n = sel.size;
@@ -745,6 +782,7 @@
           guestBookings = list;
           const ids = list.map(b => b.id);
           const amt = Number((list[0] || {}).amount) || unitForPay();
+          rememberWaiver();
           startPayStep(ids, amt);
         } else if (gr.data && gr.data.code === "PHONE_EXISTS") {
           if (confirm(gr.data.error + "\n\n而家帶你去登入頁？")) {
@@ -783,6 +821,7 @@
             });
           }
         };
+        rememberWaiver();
         if (groupCode) showInvite(groupCode, proceed);
         else proceed();
       } else if (r.status === 401 || r.status === 403) {
