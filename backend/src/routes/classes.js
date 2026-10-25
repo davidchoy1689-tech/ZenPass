@@ -86,6 +86,7 @@ router.get("/", optionalAuth, cache(30), (req, res) => {
     }
 
     const whereClause = whereConditions.join(" AND ");
+    const HAS_CC = !!db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='coach_credentials'").get();
 
     // Count total
     const countResult = db
@@ -122,7 +123,12 @@ router.get("/", optionalAuth, cache(30), (req, res) => {
          WHERE cs.class_id = c.id AND cs.start_time > datetime('now') AND cs.start_time <= datetime('now','+2 months') AND cs.status = 'available'
         ) as upcoming_sessions,
         (SELECT ROUND(AVG(rating), 1) FROM mutual_reviews WHERE target_type='coach' AND target_id = c.coach_id AND rater_role='student') as coach_avg_rating,
-        (SELECT COUNT(*) FROM mutual_reviews WHERE target_type='coach' AND target_id = c.coach_id AND rater_role='student') as coach_rating_count
+        (SELECT COUNT(*) FROM mutual_reviews WHERE target_type='coach' AND target_id = c.coach_id AND rater_role='student') as coach_rating_count,
+        ${HAS_CC ? `(SELECT CASE WHEN cc.status='verified' AND COALESCE(cc.is_starred,0)=1
+                      AND (cc.license_expiry IS NULL OR cc.license_expiry = '' OR cc.license_expiry >= date('now'))
+                 THEN 1 ELSE 0 END
+           FROM coach_credentials cc WHERE cc.user_id = c.coach_id)` : "0"} as coach_starred,
+        ${HAS_CC ? `(SELECT CASE WHEN cc.status='verified' THEN 1 ELSE 0 END FROM coach_credentials cc WHERE cc.user_id = c.coach_id)` : "0"} as coach_verified
       FROM classes c
       JOIN users u ON c.coach_id = u.id
       WHERE ${whereClause}
