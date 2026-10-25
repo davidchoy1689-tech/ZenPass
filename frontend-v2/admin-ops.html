@@ -201,19 +201,40 @@
       const rows = (r.data.credentials || []);
       if (!rows.length) { box.innerHTML = '<div class="muted" style="font-size:12.5px">暫無教練提交資質。</div>'; return; }
       const badge = (x) => x.status === "verified" ? '<span class="pill p-on">✅ 已核實</span>' : x.status === "rejected" ? '<span class="pill" style="background:#fef2f2;color:#b91c1c">❌ 已拒絕</span>' : '<span class="pill p-wait">⏳ 待核實</span>';
-      box.innerHTML = rows.map((x) => `<div class="row"><span><b>${esc(x.name || x.email)}</b>
+      box.innerHTML = rows.map((x) => {
+        const files = [];
+        if (x.certificate_url) files.push(`<a class="btn btn-secondary" style="min-height:30px;padding:0 8px;font-size:11.5px;text-decoration:none" href="${esc(x.certificate_url)}" target="_blank" rel="noopener">📄 證書</a>`);
+        else files.push('<span class="pill" style="background:#f1f5f9;color:#94a3b8">證書未上載</span>');
+        if (x.insurance_policy_url) files.push(`<a class="btn btn-secondary" style="min-height:30px;padding:0 8px;font-size:11.5px;text-decoration:none" href="${esc(x.insurance_policy_url)}" target="_blank" rel="noopener">🛡️ 保單</a>`);
+        else files.push('<span class="pill" style="background:#f1f5f9;color:#94a3b8">保單未上載</span>');
+        const starBadge = Number(x.is_starred) === 1 && x.status === "verified" ? '<span class="pill" style="background:#fef3c7;color:#b45309">⭐ 星級</span>' : "";
+        return `<div class="row" style="flex-wrap:wrap"><span style="flex:1 1 100%"><b>${esc(x.name || x.email)}</b> ${starBadge}
         <span class="s">${esc(x.license_type || "")}${x.license_no ? " · " + esc(x.license_no) : ""}${x.license_expiry ? " · 到期 " + esc(x.license_expiry) : ""}
         ${x.first_aid_type ? " · 🚑 " + esc(x.first_aid_type) + (x.first_aid_expiry ? "（" + esc(x.first_aid_expiry) + "）" : "") : " · 無急救證書"}
+        ${x.insurance_expiry_date ? " · 保單到期 " + esc(x.insurance_expiry_date) : ""}
         ${x.expired ? " · ⚠️ 已過期" : ""}</span></span>
-        <span style="display:flex;gap:6px;align-items:center;white-space:nowrap">${badge(x)}
-        ${x.status !== "verified" ? `<button class="btn btn-primary" style="min-height:32px;padding:0 10px;font-size:12px" data-cv="${esc(x.id)}" data-d="approve">核實</button>` : ""}
-        ${x.status !== "rejected" ? `<button class="btn btn-secondary" style="min-height:32px;padding:0 10px;font-size:12px" data-cv="${esc(x.id)}" data-d="reject">拒絕</button>` : ""}
-        </span></div>`).join("");
+        <span style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:6px">${badge(x)}${files.join("")}
+        ${x.status !== "verified" ? `<button class="btn btn-primary" style="min-height:30px;padding:0 9px;font-size:11.5px" data-cv="${esc(x.id)}" data-d="approve" data-star="1">⭐ 核實並頒星級</button>` : ""}
+        ${x.status === "verified" && Number(x.is_starred) !== 1 ? `<button class="btn btn-primary" style="min-height:30px;padding:0 9px;font-size:11.5px" data-cv="${esc(x.id)}" data-d="approve" data-star="1">⭐ 加星級</button>` : ""}
+        ${x.status !== "rejected" ? `<button class="btn btn-secondary" style="min-height:30px;padding:0 9px;font-size:11.5px" data-cv="${esc(x.id)}" data-d="reject">拒絕</button>` : ""}
+        </span></div>`;
+      }).join("");
       box.querySelectorAll("[data-cv]").forEach((b) => (b.onclick = async () => {
-        const note = b.dataset.d === "reject" ? (prompt("拒絕原因（可留空）") || "") : "";
-        const rr = await api.post("/admin/coach-credentials/" + encodeURIComponent(b.dataset.cv) + "/verify", { decision: b.dataset.d, note });
-        if (rr.ok) { toast("✅ " + rr.data.message); loadCredentials(); }
-        else alert((rr.data && rr.data.error) || "審核失敗");
+        const note = b.dataset.d === "reject" ? (prompt("拒絕原因（例：保單已過期／證書模糊）") || "") : "";
+        const star = b.dataset.star === "1";
+        const rr = await api.post("/admin/coach-credentials/" + encodeURIComponent(b.dataset.cv) + "/verify", { decision: b.dataset.d, note, star });
+        if (rr.ok) {
+          toast("✅ " + rr.data.message + (star ? " ⭐ 已頒星級" : ""));
+          if (b.dataset.d === "reject") {
+            const phone = prompt("要唔要用 WhatsApp 通知教練補交？輸入 8 位電話（留空略過）") || "";
+            const p8 = phone.replace(/\D/g, "").slice(-8);
+            if (p8.length === 8) {
+              const msg = encodeURIComponent(`你好，你提交嘅教練資質需要補交／更正${note ? "（" + note + "）" : ""}，請到 https://zenpass.hk/coach-console.html 更新。`);
+              window.open("https://wa.me/852" + p8 + "?text=" + msg, "_blank");
+            }
+          }
+          loadCredentials();
+        } else alert((rr.data && rr.data.error) || "審核失敗");
       }));
     }
 

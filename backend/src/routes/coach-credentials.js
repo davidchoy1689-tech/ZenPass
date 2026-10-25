@@ -26,6 +26,7 @@ function ensureTable(db) {
     certificate_url TEXT,
     insurance_policy_url TEXT,
     insurance_expiry_date TEXT,
+    is_starred INTEGER DEFAULT 0,
     status TEXT DEFAULT 'pending',
     reviewer_id TEXT,
     review_note TEXT,
@@ -36,7 +37,7 @@ function ensureTable(db) {
   )`).run();
   try {
     const cols = db.prepare("PRAGMA table_info(coach_credentials)").all().map((c) => c.name);
-    [["certificate_url", "TEXT"], ["insurance_policy_url", "TEXT"], ["insurance_expiry_date", "TEXT"]].forEach(([n, t]) => {
+    [["certificate_url", "TEXT"], ["insurance_policy_url", "TEXT"], ["insurance_expiry_date", "TEXT"], ["is_starred", "INTEGER DEFAULT 0"]].forEach(([n, t]) => {
       if (!cols.includes(n)) db.prepare(`ALTER TABLE coach_credentials ADD COLUMN ${n} ${t}`).run();
     });
   } catch (e) {}
@@ -137,9 +138,10 @@ router.post("/admin/coach-credentials/:id/verify", authenticateToken, requireAdm
     const decision = String((req.body || {}).decision || "approve").toLowerCase();
     const note = String((req.body || {}).note || "").slice(0, 200);
     const status = decision === "reject" ? "rejected" : "verified";
+    const star = (req.body || {}).star === true ? 1 : 0;
     const r = db.prepare(
-      `UPDATE coach_credentials SET status=?, reviewer_id=?, review_note=?, reviewed_at=datetime('now'), updated_at=datetime('now') WHERE id=?`,
-    ).run(status, req.user.id, note || null, req.params.id);
+      `UPDATE coach_credentials SET status=?, is_starred=?, reviewer_id=?, review_note=?, reviewed_at=datetime('now'), updated_at=datetime('now') WHERE id=?`,
+    ).run(status, star, req.user.id, note || null, req.params.id);
     if (!r.changes) return res.status(404).json({ success: false, error: "記錄不存在" });
     try {
       const { writeBlock } = require("../services/blockchain-audit");
@@ -149,6 +151,25 @@ router.post("/admin/coach-credentials/:id/verify", authenticateToken, requireAdm
   } catch (err) {
     console.error("verify credential error:", err.message);
     res.status(500).json({ success: false, error: "審核失敗" });
+  }
+});
+
+// ===== 公開：教練星級狀態（前台顯示徽章用）=====
+router.get("/coach-public/:userId", (req, res) => {
+  try {
+    const db = getDb();
+    ensureTable(db);
+    const row = db.prepare("SELECT status, is_starred, license_type, license_expiry, first_aid_type FROM coach_credentials WHERE user_id = ?").get(req.params.userId);
+    const now = new Date().toISOString().slice(0, 10);
+    const expired = !!(row && row.license_expiry && row.license_expiry < now);
+    res.json({
+      success: true,
+      verified: !!(row && row.status === "verified" && !expired),
+      starred: !!(row && row.is_starred === 1 && row.status === "verified" && !expired),
+      first_aid: !!(row && row.first_aid_type),
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: "讀取失敗" });
   }
 });
 

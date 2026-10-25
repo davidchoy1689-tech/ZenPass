@@ -178,6 +178,7 @@
 
     <div class="dt-body">
       <div class="dt-tags" id="tags"></div>
+      <div id="coachBadge" style="margin:0 0 6px"></div>
       <h1 class="dt-title" id="title">載入中…</h1>
       <div class="dt-social">
         <span class="dt-stars" id="rating">⭐ —</span>
@@ -341,6 +342,7 @@
       CLS = r.data.class;
       SESS = (r.data.schedules || []).filter((s) => s.status !== "cancelled");
       renderAll(r.data.reviews || []);
+      loadCoachBadge();
     }
 
     function renderDemo() {
@@ -695,6 +697,20 @@
         const back2 = ov.querySelector("#wlBack");
         if (back2) back2.onclick = function () { close(); setTimeout(function () { location.href = "explore.html"; }, 220); };
       };
+    }
+
+
+    /* ⭐ 星級教練徽章 */
+    async function loadCoachBadge() {
+      try {
+        const cid = CLS && CLS.coach_id;
+        const box = document.getElementById("coachBadge");
+        if (!cid || !box) return;
+        const r = await api.get("/coach-public/" + encodeURIComponent(cid));
+        if (!r.ok || !r.data) return;
+        if (r.data.starred) box.innerHTML = '<span style="display:inline-block;background:#fef3c7;color:#b45309;font-weight:800;font-size:12px;padding:4px 10px;border-radius:999px">⭐ 星級教練（已核實執照及責任保險）</span>';
+        else if (r.data.verified) box.innerHTML = '<span style="display:inline-block;background:#ecfdf5;color:#047857;font-weight:800;font-size:12px;padding:4px 10px;border-radius:999px">✅ 已核實教練</span>';
+      } catch (e) {}
     }
 
     function updateConfirm() {
