@@ -692,6 +692,42 @@ router.post("/classes", authenticateToken, (req, res) => {
   }
 });
 
+// ===== GET /api/coach/sessions — 我嘅所有時段（可 filter=upcoming|completed|cancelled）=====
+router.get("/sessions", authenticateToken, (req, res) => {
+  try {
+    const db = getDb();
+    const filter = String(req.query.filter || "upcoming");
+    const rows = db
+      .prepare(
+        `SELECT s.id, s.start_time, s.end_time, s.status, s.enrolled_count, s.max_participants,
+                c.id as class_id, c.title, c.venue_name, c.venue_address, c.district,
+                c.price_hkd, c.min_participants, c.duration, c.booking_open, c.category, c.sport_slug,
+                (SELECT COUNT(*) FROM bookings b WHERE b.schedule_id = s.id AND b.status IN ('confirmed','attended')) as booked
+         FROM class_schedules s
+         JOIN classes c ON c.id = s.class_id
+         WHERE c.coach_id = ? AND COALESCE(c.status,'active') <> 'deleted'
+         ORDER BY s.start_time DESC
+         LIMIT 300`,
+      )
+      .all(req.user.id);
+    const nowMs = Date.now();
+    const norm = rows.map((r) => {
+      const t = new Date(String(r.start_time).replace(" ", "T")).getTime();
+      return { ...r, end_ms: t + (Number(r.duration) || 60) * 60000, start_ms: t, booked: Number(r.booked) || 0 };
+    });
+    const out =
+      filter === "completed"
+        ? norm.filter((r) => r.status !== "cancelled" && r.end_ms < nowMs)
+        : filter === "cancelled"
+          ? norm.filter((r) => r.status === "cancelled")
+          : norm.filter((r) => r.status !== "cancelled" && r.end_ms >= nowMs);
+    res.json({ success: true, filter, sessions: out });
+  } catch (err) {
+    console.error("coach/sessions error:", err.message);
+    res.status(500).json({ success: false, error: "無法讀取課堂時段" });
+  }
+});
+
 // ===== GET /api/coach/classes/:id/sessions — 我嘅班別時段 =====
 router.get("/classes/:id/sessions", authenticateToken, (req, res) => {
   try {
@@ -928,6 +964,11 @@ router.get("/class-students", authenticateToken, (req, res) => {
       )
       .get(schedule_id);
 
+    // 🎫 每位學員嘅 4 位核銷碼（同入場憑證一致）
+    try {
+      const { checkinCodeFor } = require("../services/booking-service");
+      students.forEach((st) => { st.checkin_code = checkinCodeFor(st); });
+    } catch (e) {}
     res.json({ schedule: schedInfo, students, total: students.length });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
