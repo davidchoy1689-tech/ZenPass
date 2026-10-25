@@ -140,7 +140,22 @@
     const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
     let ME = {}, scanner = null, running = false, torchOn = false, camId = null, cams = [], lastScan = 0, currSchedule = null;
 
-    if (!api.requireLogin("verify.html")) throw new Error("login required");
+    function showGate() {
+      const ov = document.createElement("div");
+      ov.style.cssText = "position:fixed;inset:0;z-index:10050;background:#0f172a;display:flex;align-items:center;justify-content:center;padding:18px";
+      ov.innerHTML = `<div class="glass" style="padding:24px 18px;text-align:center;width:100%;max-width:420px">
+        <div style="font-size:40px">📷</div>
+        <b style="display:block;font-size:17px;margin-top:8px">現場核銷工具</b>
+        <div style="font-size:12.5px;color:#94a3b8;margin-top:8px;line-height:1.7">需要教練帳號登入。想睇操作介面可以用示範模式。</div>
+        <div style="display:grid;gap:9px;margin-top:16px">
+          <a class="dark-btn" style="text-align:center;text-decoration:none" href="login.html?next=verify.html">🔑 教練登入</a>
+          <a class="dark-btn ghost" style="text-align:center;text-decoration:none" href="verify.html?demo=1">👀 示範預覽（Demo）</a>
+          <a class="dark-btn ghost" style="text-align:center;text-decoration:none" href="coach.html?demo=1">返回教練中心</a>
+        </div></div>`;
+      document.body.appendChild(ov);
+    }
+    const DEMO = new URLSearchParams(location.search).get("demo") === "1";
+    if (!DEMO && !api.getUser()) { showGate(); }
 
     function beep(ok) {
       try {
@@ -157,6 +172,20 @@
     function buzz(pattern) { if (navigator.vibrate) navigator.vibrate(pattern); }
 
     (async () => {
+      if (DEMO) {
+        $("coachName").textContent = "陳大文（示範）· 現場核銷";
+        $("sessionInfo").textContent = "🎯 芬蘭木柱 週末體驗班 · 今日 15:00";
+        $("attN").textContent = "2"; $("attT").textContent = "/ 4 已簽到"; $("attBar").style.width = "50%";
+        $("roster").innerHTML = [
+          ["Alex Wong", "6192", true], ["Sarah Chan", "3305", true],
+          ["Michael Lee", "8821", false], ["Jason Lau", "4470", false],
+        ].map(([n, c, on]) => `<div class="row"><div><div class="n">${n}</div><div class="s">核銷碼 ${c}</div></div>
+          <span class="pill ${on ? "ok" : "no"}">${on ? "✅ 已簽到" : "未簽到"}</span></div>`).join("");
+        $("camNote").textContent = "示範模式：相機已停用，輸入任何 4 位數字可預覽核銷結果";
+        $("btnManual").onclick = () => showResult("ok", "✅ 簽到成功（示範）", { student_name: "Michael Lee", phone_last4: "4567", booking_reference: "ZP-9001", guests: 2, checked_in_at: new Date().toISOString() }, "3 / 4 已簽到");
+        $("btnStart").onclick = () => { $("camNote").textContent = "示範模式唔會開相機"; };
+        return;
+      }
       const me = await api.get("/users/me").catch(() => null);
       ME = (me && me.data && (me.data.user || me.data)) || api.getUser() || {};
       $("coachName").textContent = (ME.name || "教練") + " · 現場核銷";
@@ -268,6 +297,15 @@
 
     /* ===== 核銷 ===== */
     async function verify(payload) {
+      if (DEMO) {
+        beep(true); buzz([100, 50, 100]);
+        showResult("ok", "✅ 簽到成功（示範）", {
+          student_name: "Michael Lee", phone_last4: "4567", booking_reference: "ZP-9001",
+          title: "🎯 芬蘭木柱 週末體驗班", guests: 2, checked_in_at: new Date().toISOString(), points_awarded: 50,
+        }, "示範模式：唔會真正核銷");
+        boxes.forEach((b) => (b.value = ""));
+        return;
+      }
       const r = await api.post("/bookings/checkin", payload);
       const d = r.data || {};
       if (r.ok && !d.already_checked_in) {

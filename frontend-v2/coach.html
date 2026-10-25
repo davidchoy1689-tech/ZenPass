@@ -199,8 +199,111 @@
     }
     function goEarn(e) { e.preventDefault(); location.href = "coach-dashboard.html"; return false; }
 
+    function showGate() {
+      const next = encodeURIComponent("coach.html");
+      $("guard").innerHTML = `<div class="glass" style="padding:22px;text-align:center">
+        <div style="font-size:38px">🧑‍🏫</div>
+        <b style="display:block;font-size:17px;margin-top:8px">教練專用頁面</b>
+        <div class="muted4" style="margin-top:8px;line-height:1.7">呢頁需要教練帳號登入。<br>想先睇介面？可以用示範模式（唔會讀取真實資料）。</div>
+        <div style="display:grid;gap:9px;margin-top:16px">
+          <a class="btn2" href="login.html?next=${next}" style="text-align:center;text-decoration:none;padding:13px">🔑 教練登入</a>
+          <a class="btn2 ghost" href="coach.html?demo=1" style="text-align:center;text-decoration:none;padding:13px">👀 示範預覽（Demo）</a>
+          <a class="btn2 ghost" href="coach-apply.html" style="text-align:center;text-decoration:none;padding:13px">✍️ 申請成為教練</a>
+        </div></div>`;
+      $("guard").style.display = "";
+    }
+
+    function renderDemo() {
+      const DEMO_ME = { name: "陳大文（示範）" };
+      ME = DEMO_ME;
+      $("app").hidden = false;
+      $("fab").hidden = false;
+      $("av").textContent = "陳";
+      $("nm").textContent = DEMO_ME.name;
+      $("stTxt").textContent = "下一堂 · 今日 15:00";
+      const banner = document.createElement("div");
+      banner.className = "glass";
+      banner.style.cssText = "padding:10px 14px;margin:0 0 10px;font-size:12.5px;color:#fbbf24";
+      banner.textContent = "👀 示範模式：以下係範例資料，唔會讀寫真實資料。";
+      $("app").prepend(banner);
+      $("mets").innerHTML = `
+        <div class="met"><div class="v">HK$5,850</div><div class="l">💰 本月預計分成</div></div>
+        <div class="met"><div class="v">78</div><div class="l">👥 本月學員人次</div></div>
+        <div class="met"><div class="v">4.95</div><div class="l">⭐ 學員評分</div></div>`;
+      NEXT = { id: "demo", title: "🎯 芬蘭木柱 Mölkky 週末體驗班", start_time: new Date(Date.now() + 3600e3).toISOString(), end_time: new Date(Date.now() + 9000e3).toISOString(), venue_name: "觀塘室內運動場", district: "觀塘", max_participants: 8, booked: 6, price_hkd: 150 };
+      $("focus").innerHTML = `
+        <div class="k">今日焦點 · 下一堂</div>
+        <h2>${NEXT.title}</h2>
+        <div class="meta">🕒 15:00–16:30 ｜ 📍 ${NEXT.venue_name} · ${NEXT.district}</div>
+        <div class="pbar"><i style="width:75%"></i></div>
+        <div class="cnt">已報 <b>6</b> / 8 人</div>
+        <div class="acts">
+          <button class="btn2" id="btnRoster">📋 展開學員名冊</button>
+          <a class="btn2 ghost" href="verify.html?demo=1" style="text-align:center;text-decoration:none">📷 掃描</a>
+        </div>`;
+      $("btnRoster").onclick = demoRoster;
+      $("upcoming").innerHTML = `
+        <div class="row"><div><div class="t">🎯 芬蘭木柱 週末體驗班</div><div class="s">今日 15:00 · 觀塘 · 6/8</div></div><button class="tog" id="dR1">名冊</button></div>
+        <div class="row"><div><div class="t">🥌 地板冰壺 新手班</div><div class="s">明日 14:00 · 觀塘 · 8/8</div></div><button class="tog">已滿額</button></div>
+        <div class="row"><div><div class="t">🧘‍♀️ 身心伸展 午間班</div><div class="s">11月1日 12:00 · 中環 · 3/15</div></div><button class="tog" id="dR2">名冊</button></div>`;
+      $("dR1").onclick = demoRoster;
+      $("dR2").onclick = demoRoster;
+      $("perf").innerHTML = `
+        <div class="row"><span class="t">本月課堂</span><span class="pill p-on">12 堂</span></div>
+        <div class="row"><span class="t">學員人次</span><span class="pill p-on">78 人</span></div>
+        <div class="row"><span class="t">預計分成</span><span class="pill p-new">HK$5,850</span></div>
+        <div class="row"><span class="t">學員評分 <span class="muted4" style="font-size:11px">（只你自己睇）</span></span><span class="pill p-on">4.95 ★</span></div>`;
+      $("fab").onclick = () => toast("示範模式：開班表單已停用");
+    }
+
+    function demoRoster() {
+      const list = [
+        { id: "d1", name: "Alex Wong", group_size: 2, booking_status: "attended", phone: "91234567", checkin_code: "6192" },
+        { id: "d2", name: "Sarah Chan", group_size: 1, booking_status: "attended", phone: "98765432", checkin_code: "3305" },
+        { id: "d3", name: "Michael Lee", group_size: 2, booking_status: "confirmed", phone: "61234567", checkin_code: "8821" },
+        { id: "d4", name: "Jason Lau", group_size: 1, booking_status: "confirmed", phone: "69876543", checkin_code: "4470" },
+      ];
+      $("shTitle").textContent = "學員名冊（示範）";
+      $("shBody").innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <div class="muted4">🎯 芬蘭木柱 · 15:00 · <b style="color:#34d399">2</b>/4 已到</div>
+          <button class="btnend" id="dSettle">🏁 下課結算</button></div>
+        ${list.map((s) => `<div class="stu"><div class="l"><div class="av">${esc(s.name.slice(0,1))}</div>
+          <div><div class="n">${esc(s.name)}${s.group_size > 1 ? ` <span class="muted4">+${s.group_size-1}</span>` : ""}</div>
+            <div class="s">****${s.phone.slice(-4)} · 核銷碼 ${s.checkin_code}</div></div></div>
+          <button class="tog ${s.booking_status === "attended" ? "on" : ""}">${s.booking_status === "attended" ? "✅ 已出席" : "○ 簽到"}</button></div>`).join("")}`;
+      $("mk").classList.add("on"); $("sh").classList.add("on");
+      $("dSettle").onclick = () => demoSettle(list);
+    }
+
+    function demoSettle(list) {
+      const attended = list.filter((x) => x.booking_status === "attended").reduce((s, x) => s + x.group_size, 0);
+      const enrolled = list.reduce((s, x) => s + x.group_size, 0);
+      const price = 150, rate = 0.75;
+      const gross = attended * price, net = Math.round(gross * rate);
+      $("stlTitle").textContent = "🎯 芬蘭木柱 Mölkky 週末體驗班（示範）";
+      $("stlMeta").textContent = "今日 15:00–16:30 ｜ 觀塘室內運動場";
+      $("stlBody").innerHTML = `
+        <div class="kpi3">
+          <div><span class="l">應到人數</span><b class="v">${enrolled} 位</b></div>
+          <div><span class="l">實到簽到</span><b class="v green">${attended} 位</b></div>
+          <div><span class="l">缺席人次</span><b class="v rose">${enrolled - attended} 位</b></div>
+        </div>
+        <div class="calcbox">
+          <div class="crow"><span>課堂總學費（實到 × HK$150）</span><span>${hkd(gross)}</span></div>
+          <div class="crow"><span>平台及場地費（25%）</span><span class="slate">- ${hkd(gross - net)}</span></div>
+          <div class="cdiv"></div>
+          <div class="ctotal"><span>教練本堂淨收益（75%）</span><b>${hkd(net)}</b></div>
+        </div>
+        <div class="names"><b>📋 出席學員：</b><br>Alex Wong（2 位）、Sarah Chan（1 位）</div>
+        <a class="bwa" href="https://wa.me/85290335538?text=${encodeURIComponent("（示範）課堂結算報表")}" target="_blank" rel="noopener">💬 一鍵發送結算單至 WhatsApp</a>
+        <button class="barch" onclick="toast('示範模式：唔會真正封存')">✅ 確認結算並封存此課堂</button>`;
+      $("stlMk").classList.add("on"); $("stl").classList.add("on");
+    }
+
     (async () => {
-      if (!api.requireLogin("coach.html")) return;
+      const DEMO = new URLSearchParams(location.search).get("demo") === "1";
+      if (DEMO) { renderDemo(); return; }
+      if (!api.getUser()) { showGate(); return; }
       const me = await api.get("/users/me").catch(() => null);
       ME = (me && me.data && (me.data.user || me.data)) || api.getUser() || {};
       if (!Number(ME.is_coach) && !["admin", "super_admin", "coach"].includes(ME.role)) {
