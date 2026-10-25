@@ -221,7 +221,8 @@
 
 /* ===== 自動加 CTA（如頁面未手動放） ===== */
 window.zpBrochureMount = function (type, anchorSelector) {
-  if (document.querySelector("[data-zp-brochure]")) return;
+  const anchorEl = anchorSelector ? document.querySelector(anchorSelector) : null;
+  if (!anchorEl && document.querySelector("[data-zp-brochure]")) return;
   const box = document.createElement("div");
   box.className = "zp-br-cta";
   box.setAttribute("data-zp-brochure", type);
@@ -229,7 +230,6 @@ window.zpBrochureMount = function (type, anchorSelector) {
     ? `<button class="zp-br-btn" type="button">📥 下載 學校 ECA 方案簡介（PDF）</button><span class="zp-br-tip">附採購流程、教練資格及保險說明</span>`
     : `<button class="zp-br-btn" type="button">📥 下載 企業健康與 Team Building 簡介（PDF）</button><span class="zp-br-tip">適合呈交 HR／福委會審批</span>`;
   box.querySelector("button").onclick = () => window.openBrochureModal(type);
-  const anchor = anchorSelector ? document.querySelector(anchorSelector) : null;
-  if (anchor) anchor.insertAdjacentElement("afterend", box);
+  if (anchorEl) anchorEl.insertAdjacentElement("afterend", box);
   else document.querySelector(".wrap")?.prepend(box);
 };
