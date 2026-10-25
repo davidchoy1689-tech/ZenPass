@@ -171,7 +171,7 @@ router.get("/my", authenticateToken, (req, res) => {
          FROM bookings b
          JOIN classes c ON b.class_id = c.id
          JOIN class_schedules cs ON b.schedule_id = cs.id
-         JOIN users u ON c.coach_id = u.id
+         LEFT JOIN users u ON c.coach_id = u.id
          WHERE ${whereClause}
          ORDER BY cs.start_time DESC
          LIMIT ? OFFSET ?`
@@ -289,7 +289,7 @@ router.get("/:id", authenticateToken, (req, res) => {
                 cs.start_time, cs.end_time
          FROM bookings b
          JOIN classes c ON b.class_id = c.id
-         JOIN users u ON c.coach_id = u.id
+         LEFT JOIN users u ON c.coach_id = u.id
          JOIN users u2 ON b.user_id = u2.id
          LEFT JOIN class_schedules cs ON b.schedule_id = cs.id
          WHERE b.id = ?`
