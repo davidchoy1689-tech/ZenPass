@@ -93,6 +93,8 @@
     const fmt = (t) => { const d = new Date(String(t).replace(" ", "T")); return isNaN(d) ? String(t) : d.toLocaleString("zh-HK", { month: "short", day: "numeric", weekday: "short", hour: "2-digit", minute: "2-digit" }); };
     const hhmm = (t) => { const d = new Date(String(t).replace(" ", "T")); return isNaN(d) ? "" : d.toLocaleTimeString("zh-HK", { hour: "2-digit", minute: "2-digit", hour12: false }); };
     let FILTER = "upcoming";
+    let DEMO = false;
+    let DEMO_SESSIONS = [];
     let MY_CLASSES = [];
     let ME = {};
 
@@ -113,8 +115,29 @@
 
     (async () => {
       if (!api.getUser()) {
-        // 未登入 → 直接示範模式（唔會讀真實資料）
-        location.replace("coach.html?demo=1");
+        // 2026-10-25：未登入直接示範（唔再跳任何頁）
+        DEMO = true;
+        $("app").hidden = false;
+        const _fab = $("fab"); if (_fab) _fab.hidden = false;
+        $("hero").innerHTML = `<div class="av">陳</div><div><div class="nm">陳大文（示範）</div><div class="tags"><span>🎯 芬蘭木柱</span><span>🥌 地板冰壺</span></div></div>`;
+        $("metrics").innerHTML = [
+          ["🗓️ 本月已開堂數", "12 堂"], ["👥 本月學員人次", "78 人"],
+          ["💰 本月預估結算", "HK$5,850"], ["⭐ 學員評分", "4.95"],
+        ].map(([l, v]) => `<div class="metric"><div class="v">${v}</div><div class="l">${l}</div></div>`).join("");
+        DEMO_SESSIONS = [
+          { id: "d1", class_id: "dc1", title: "🎯 芬蘭木柱 週末體驗班", start_time: new Date(Date.now()+3600e3).toISOString(), end_time: new Date(Date.now()+9000e3).toISOString(), venue_name: "觀塘室內運動場", district: "觀塘", max_participants: 8, booked: 6, min_participants: 4, price_hkd: 150, status: "available" },
+          { id: "d2", class_id: "dc2", title: "🥌 地板冰壺 新手班", start_time: new Date(Date.now()+86400e3).toISOString(), end_time: new Date(Date.now()+90000e3).toISOString(), venue_name: "旺角社區中心", district: "油尖旺", max_participants: 10, booked: 10, min_participants: 4, price_hkd: 150, status: "available" },
+          { id: "d3", class_id: "dc3", title: "🧘‍♀️ 身心伸展 午間班", start_time: new Date(Date.now()+172800e3).toISOString(), end_time: new Date(Date.now()+176400e3).toISOString(), venue_name: "中環瑜伽室", district: "中西區", max_participants: 15, booked: 3, min_participants: 4, price_hkd: 120, status: "available" },
+        ];
+        $("tabs").onclick = (e) => {
+          const b = e.target.closest("button"); if (!b) return;
+          [...$("tabs").children].forEach((x) => x.classList.toggle("on", x === b));
+          FILTER = b.dataset.f; DEMO_LIST();
+        };
+        $("btnQuick").onclick = () => toast("示範模式：開班表單已停用");
+        const _fb = $("fab"); if (_fb) _fb.onclick = () => toast("示範模式：開班表單已停用");
+        $("navAdd").onclick = (e) => { e.preventDefault(); toast("示範模式：開班表單已停用"); };
+        DEMO_LIST();
         return;
       }
       if (false) {
@@ -231,6 +254,94 @@
       }).join("");
       box.querySelectorAll("[data-roster]").forEach((b) => (b.onclick = () => roster(b.dataset.roster)));
       box.querySelectorAll("[data-cancel]").forEach((b) => (b.onclick = () => cancelSession(b.dataset.cancel)));
+    }
+
+    /* ===== 示範模式 ===== */
+    function DEMO_LIST() {
+      const arr = DEMO_SESSIONS.filter((x) => (FILTER === "upcoming" ? true : FILTER === "cancelled" ? false : false));
+      const box = $("list");
+      if (!arr.length) { box.innerHTML = '<div class="card"><div class="body center muted" style="padding:20px">示範模式：呢個分類冇資料</div></div>'; return; }
+      box.innerHTML = arr.map((x) => {
+        const cap = Number(x.max_participants) || 0, booked = Number(x.booked) || 0;
+        const min = Math.max(1, Number(x.min_participants) || 1);
+        const pct = cap ? Math.min(100, Math.round((booked / cap) * 100)) : 0;
+        const badge = booked >= cap && cap ? '<span class="badge2 b-full">已滿額</span>'
+          : booked >= min ? '<span class="badge2 b-on">🟢 已成團</span>' : `<span class="badge2 b-recruit">🟡 還差 ${min - booked} 位成團</span>`;
+        return `<div class="cls">
+          <div class="tl"><div><div class="t">${esc(x.title)}</div>
+            <div class="m">📅 ${esc(fmt(x.start_time))} – ${esc(hhmm(x.end_time))}</div>
+            <div class="m">📍 ${esc(x.venue_name)}${x.district ? " · " + esc(x.district) : ""}</div></div>${badge}</div>
+          <div class="bar"><i style="width:${pct}%"></i></div>
+          <div class="m">${booked}/${cap} 位 · 最低成團 ${min} · ${hkd(x.price_hkd)}</div>
+          <div class="acts">
+            <button class="btn btn-secondary" data-droster="${esc(x.id)}">👥 學員名單</button>
+            <button class="btn btn-secondary" data-dsettle="${esc(x.id)}">🏁 下課結算</button>
+          </div></div>`;
+      }).join("");
+      box.querySelectorAll("[data-droster]").forEach((b) => (b.onclick = () => demoRoster(b.dataset.droster)));
+      box.querySelectorAll("[data-dsettle]").forEach((b) => (b.onclick = () => demoSettle(b.dataset.dsettle)));
+    }
+
+    const DEMO_ROSTER = [
+      { id: "p1", name: "Alex Wong", group_size: 2, booking_status: "attended", phone: "91234567", checkin_code: "6192" },
+      { id: "p2", name: "Sarah Chan", group_size: 1, booking_status: "attended", phone: "98765432", checkin_code: "3305" },
+      { id: "p3", name: "Michael Lee", group_size: 2, booking_status: "confirmed", phone: "61234567", checkin_code: "8821" },
+      { id: "p4", name: "Jason Lau", group_size: 1, booking_status: "confirmed", phone: "69876543", checkin_code: "4470" },
+    ];
+
+    function demoRoster(sid) {
+      const sx = DEMO_SESSIONS.find((x) => x.id === sid) || {};
+      const list = DEMO_ROSTER;
+      const heads = list.reduce((s, x) => s + x.group_size, 0);
+      const done = list.filter((x) => x.booking_status === "attended").reduce((s, x) => s + x.group_size, 0);
+      openSheet("學員名單（示範）", `
+        <div class="muted" style="font-size:12.5px;margin-bottom:10px">${esc(sx.title || "")} · <b style="color:#047857" id="dDone">${done}</b>/${heads} 已到</div>
+        ${list.map((p) => `<div class="stu"><div class="l"><div class="av">${esc(p.name.slice(0,1))}</div>
+          <div><div class="n">${esc(p.name)}${p.group_size > 1 ? ` <span class="muted">+${p.group_size-1}</span>` : ""}</div>
+          <div class="s">****${p.phone.slice(-4)} · 核銷碼 ${p.checkin_code}</div></div></div>
+          <button class="tog ${p.booking_status === "attended" ? "on" : ""}" ${p.booking_status === "attended" ? "disabled" : ""} data-datt="${p.id}">${p.booking_status === "attended" ? "✅ 已出席" : "○ 簽到"}</button></div>`).join("")}
+        <button class="btn btn-primary btn-block" style="margin-top:12px" id="dSettleBtn">🏁 下課結算</button>`);
+      $("shBody").querySelectorAll("[data-datt]").forEach((b) => (b.onclick = () => {
+        const row = DEMO_ROSTER.find((x) => x.id === b.dataset.datt);
+        if (!row) return;
+        row.booking_status = "attended";
+        b.disabled = true; b.classList.add("on"); b.textContent = "✅ 已出席";
+        $("dDone").textContent = DEMO_ROSTER.filter((x) => x.booking_status === "attended").reduce((s, x) => s + x.group_size, 0);
+        toast("✅ 已簽到（示範）");
+      }));
+      $("dSettleBtn").onclick = () => demoSettle(sid);
+    }
+
+    function demoSettle(sid) {
+      const sx = DEMO_SESSIONS.find((x) => x.id === sid) || {};
+      const price = Number(sx.price_hkd) || 150, rate = 0.8;
+      const enrolled = DEMO_ROSTER.reduce((s, x) => s + x.group_size, 0);
+      const attendedList = DEMO_ROSTER.filter((x) => x.booking_status === "attended");
+      const attended = attendedList.reduce((s, x) => s + x.group_size, 0);
+      const gross = attended * price, net = Math.round(gross * rate);
+      const names = attendedList.map((x) => `${x.name}（${x.group_size} 位）`).join("、") || "無學員出席";
+      const wa = `🧾 *【ZenPass 禪流 · 課堂結算報表】*
+👤 教練：陳大文（示範）
+🎯 項目：${sx.title || ""}
+📅 時間：${fmt(sx.start_time)}
+📍 地點：${sx.venue_name || ""}
+📊 應到 ${enrolled}／實到 ${attended}／缺席 ${enrolled - attended}
+📋 出席：${names}
+💰 學費：${hkd(gross)}（平台 20% ${hkd(gross - net)}）
+👉 教練應收：*${hkd(net)}*`;
+      openSheet("🏁 課堂結算（示範）", `
+        <div class="muted" style="font-size:12.5px;margin-bottom:10px">${esc(sx.title || "")} · ${esc(fmt(sx.start_time))}</div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px">
+          <div style="background:var(--surface-2);border-radius:12px;padding:9px;text-align:center"><div class="muted" style="font-size:11px">應到</div><b>${enrolled} 位</b></div>
+          <div style="background:var(--surface-2);border-radius:12px;padding:9px;text-align:center"><div class="muted" style="font-size:11px">實到</div><b style="color:#047857">${attended} 位</b></div>
+          <div style="background:var(--surface-2);border-radius:12px;padding:9px;text-align:center"><div class="muted" style="font-size:11px">缺席</div><b style="color:#e11d48">${enrolled - attended} 位</b></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px"><span>課堂總學費（實到 × ${hkd(price)}）</span><b>${hkd(gross)}</b></div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:10px;color:var(--text-muted)"><span>平台及場地費（20%）</span><span>- ${hkd(gross - net)}</span></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;border-top:1px dashed var(--border);padding-top:10px;margin-bottom:12px"><b>教練本堂淨收益（80%）</b><b style="font-size:20px;color:#047857">${hkd(net)}</b></div>
+        <div class="muted" style="font-size:11.5px;margin-bottom:12px">📋 出席：${names}</div>
+        <a class="btn btn-primary btn-block" style="background:#25d366;color:#04331c;margin-bottom:8px" href="https://wa.me/85290335538?text=${encodeURIComponent(wa)}" target="_blank" rel="noopener">💬 一鍵發送結算單至 WhatsApp</a>
+        <button class="btn btn-secondary btn-block" onclick="toast('示範模式：唔會真正封存')">✅ 確認結算並封存此課堂</button>`);
     }
 
     async function roster(sid) {
