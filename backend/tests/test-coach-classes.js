@@ -22,7 +22,10 @@ const page = fs.readFileSync(path.join(web, "coach.html"), "utf8");
 console.log("── 教練自助開班 API ──");
 ok(coach.includes('router.post("/classes"'), "POST /api/coach/classes 存在");
 ok(/if \(!me\.is_coach\)/.test(coach), "只限已批核教練");
-ok(coach.includes("booking_open, vip_priority_hours, created_at"), "新班預設 booking_open = 1（即時可預約）");
+// 2026-10-25：教練自建班別改為待平台開通（booking_open = 0），防止價格／場地未核實就收單
+ok(/status, booking_open, vip_priority_hours, min_participants/.test(coach), "新班預設 booking_open = 0（待平台開通）");
+ok(coach.includes("'active', 0,"), "INSERT 時 booking_open 傳 0");
+ok(coach.includes("min_participants"), "支援最低成團人數");
 ok(coach.includes("partner_venue_id"), "支援指定合作場地");
 ok(coach.includes("請選擇場地或填寫場地名稱"), "可以自行輸入場地");
 ok(coach.includes("92"), "只可開未來 3 個月（92 日）");

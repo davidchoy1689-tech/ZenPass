@@ -14,6 +14,19 @@ const { notifyNewApplication } = require("../services/lead-notify");
 const { writeBlock } = require("../services/blockchain-audit");
 
 const router = express.Router();
+// 2026-10-25：教練自助開班需要「最低成團人數」（idempotent）
+(function ensureCoachClassColumns() {
+  try {
+    const db = getDb();
+    const cols = db.prepare("PRAGMA table_info(classes)").all().map((c) => c.name);
+    if (!cols.includes("min_participants")) {
+      db.prepare("ALTER TABLE classes ADD COLUMN min_participants INTEGER DEFAULT 1").run();
+    }
+  } catch (e) {
+    console.error("classes.min_participants 遷移失敗:", e.message);
+  }
+})();
+
 
 // ===== POST /api/coach/apply-public — 公開教練加盟申請（免登入）=====
 // 2026-10-25：教練未加盟就冇帳號，申請表單唔應該要登入
@@ -647,14 +660,15 @@ router.post("/classes", authenticateToken, (req, res) => {
       `INSERT INTO classes (id, coach_id, title, description, category, difficulty,
          duration, max_participants, price_hkd, credits_cost, venue_name, venue_address,
          target_audience, image_url, partner_venue_id, partner_id, district, sport_slug,
-         status, booking_open, vip_priority_hours, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', 1, ?, datetime('now'), datetime('now'))`,
+         status, booking_open, vip_priority_hours, min_participants, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', 0, ?, ?, datetime('now'), datetime('now'))`,
     ).run(
       classId, me.id, title, description || "", category, difficulty || "beginner",
       Number(duration), Number(max_participants) || 15, finalPrice, credits,
       venueName, venueAddress, target_audience || null, image_url || null,
       partnerVenueId, partnerVenueId, district || null, sport_slug || null,
       req.body.vip_priority_hours === 0 ? 0 : 24,
+      Math.max(1, Number(req.body.min_participants) || 1),
     );
 
     const ids = [];
@@ -669,12 +683,58 @@ router.post("/classes", authenticateToken, (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: "✅ 班已開，已出現在探索頁",
-      data: { id: classId, schedules: ids.length, district: district || null },
+      message: "✅ 已建立班別，待平台開通後會喺探索頁公開",
+      data: { id: classId, schedules: ids.length, district: district || null, booking_open: 0 },
     });
   } catch (err) {
     console.error("coach/classes POST error:", err.message);
     res.status(500).json({ success: false, error: "開班失敗：" + err.message });
+  }
+});
+
+// ===== GET /api/coach/classes/:id/sessions — 我嘅班別時段 =====
+router.get("/classes/:id/sessions", authenticateToken, (req, res) => {
+  try {
+    const db = getDb();
+    const cls = db.prepare("SELECT id, title, coach_id, booking_open, min_participants, max_participants, duration FROM classes WHERE id = ?").get(req.params.id);
+    if (!cls) return res.status(404).json({ success: false, error: "課程不存在" });
+    if (cls.coach_id !== req.user.id) return res.status(403).json({ success: false, error: "你無權限睇此課程" });
+    const rows = db
+      .prepare(
+        `SELECT s.*, (SELECT COUNT(*) FROM bookings b WHERE b.schedule_id = s.id AND b.status IN ('confirmed','attended')) as booked
+         FROM class_schedules s WHERE s.class_id = ? ORDER BY s.start_time ASC`,
+      )
+      .all(cls.id);
+    res.json({ success: true, class: cls, sessions: rows });
+  } catch (err) {
+    res.status(500).json({ success: false, error: "讀取時段失敗" });
+  }
+});
+
+// ===== POST /api/coach/schedules/:sid/cancel — 取消未有人報名嘅時段 =====
+router.post("/schedules/:sid/cancel", authenticateToken, (req, res) => {
+  try {
+    const db = getDb();
+    const s = db
+      .prepare(
+        `SELECT s.*, c.coach_id FROM class_schedules s JOIN classes c ON c.id = s.class_id WHERE s.id = ?`,
+      )
+      .get(req.params.sid);
+    if (!s) return res.status(404).json({ success: false, error: "時段不存在" });
+    if (s.coach_id !== req.user.id) return res.status(403).json({ success: false, error: "你無權限操作此班" });
+    const booked = db
+      .prepare("SELECT COUNT(*) c FROM bookings WHERE schedule_id = ? AND status IN ('confirmed','attended','pending_payment')")
+      .get(s.id).c;
+    if (booked > 0) {
+      return res.status(400).json({
+        success: false,
+        error: `此時段已有 ${booked} 個預約，唔可以取消。請聯絡平台客服安排改期／退款。`,
+      });
+    }
+    db.prepare("UPDATE class_schedules SET status = 'cancelled' WHERE id = ?").run(s.id);
+    res.json({ success: true, message: "已取消該時段" });
+  } catch (err) {
+    res.status(500).json({ success: false, error: "取消失敗" });
   }
 });
 

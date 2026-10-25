@@ -445,6 +445,25 @@ router.post("/classes/:id/status", authenticateToken, requireAdmin, (req, res) =
   }
 });
 
+// ===== POST /api/admin/classes/:id/open — 開通／暫停教練自建班別（booking_open）=====
+router.post("/classes/:id/open", authenticateToken, requirePermission("ops.class.write"), (req, res) => {
+  try {
+    const open = req.body && req.body.open === false ? 0 : 1;
+    const db = getDb();
+    const c = db.prepare("SELECT id, title, booking_open, price_hkd, coach_id FROM classes WHERE id = ?").get(req.params.id);
+    if (!c) return res.status(404).json({ success: false, error: "課程不存在" });
+    db.prepare("UPDATE classes SET booking_open = ?, updated_at = datetime('now') WHERE id = ?").run(open, c.id);
+    try {
+      const { writeBlock } = require("../services/blockchain-audit");
+      writeBlock({ entityType: "class_booking_open", entityId: c.id, data: { to: open, by: req.user.id, price_hkd: c.price_hkd } });
+    } catch (e) {}
+    res.json({ success: true, message: open ? "已開通公開預約" : "已暫停公開預約", data: { id: c.id, booking_open: open } });
+  } catch (err) {
+    console.error("admin class open error:", err.message);
+    res.status(500).json({ success: false, error: "操作失敗" });
+  }
+});
+
 // ===== POST /api/admin/close-demo-classes — 下架 demo 課程（保留真實可預約課程）=====
 router.post("/close-demo-classes", authenticateToken, requireAdmin, (req, res) => {
   try {
