@@ -13,6 +13,25 @@ const formLimiter = publicFormLimiter();
 
 const router = express.Router();
 
+// 2026-10-25：候補登記加姓名／WhatsApp／人數（idempotent，舊 DB 自動補欄）
+(function ensureWaitlistColumns() {
+  try {
+    const db = getDb();
+    const cols = db.prepare("PRAGMA table_info(waitlist)").all().map((c) => c.name);
+    const add = [
+      ["name", "TEXT"],
+      ["phone", "TEXT"],
+      ["guests", "INTEGER DEFAULT 1"],
+      ["note", "TEXT"],
+    ];
+    add.forEach(([n, t]) => {
+      if (!cols.includes(n)) db.prepare(`ALTER TABLE waitlist ADD COLUMN ${n} ${t}`).run();
+    });
+  } catch (e) {
+    console.error("waitlist 欄位遷移失敗:", e.message);
+  }
+})();
+
 // ===== POST /api/waitlist/join — 加入候補 =====
 router.post("/join", authenticateToken, (req, res) => {
   try {
@@ -68,9 +87,15 @@ router.post("/join", authenticateToken, (req, res) => {
         .get(schedule_id).pos + 1;
 
     const id = uuidv4();
+    // 2026-10-25：收集姓名／WhatsApp／人數（方便前台 WhatsApp 通知）
+    const name = String(req.body.name || "").trim().slice(0, 40) || null;
+    let phone = String(req.body.phone || "").replace(/[^0-9]/g, "").slice(-8) || null;
+    if (phone && phone.length !== 8) phone = null;
+    const guests = Math.min(4, Math.max(1, Number(req.body.guests) || 1));
+    const note = String(req.body.note || "").trim().slice(0, 200) || null;
     db.prepare(
-      "INSERT INTO waitlist (id, schedule_id, user_id, status) VALUES (?, ?, ?, 'waiting')",
-    ).run(id, schedule_id, req.user.id);
+      "INSERT INTO waitlist (id, schedule_id, user_id, status, name, phone, guests, note) VALUES (?, ?, ?, 'waiting', ?, ?, ?, ?)",
+    ).run(id, schedule_id, req.user.id, name, phone, guests, note);
 
     // Get class info for response
     const classInfo = db
@@ -84,6 +109,8 @@ router.post("/join", authenticateToken, (req, res) => {
       message: "✅ 已加入候補名單，第 " + position + " 位",
       waitlist_id: id,
       position: position,
+      guests: guests,
+      phone: phone,
       class_title: classInfo?.title || "",
     });
   } catch (err) {
