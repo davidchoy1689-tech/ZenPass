@@ -65,6 +65,24 @@
         <button class="btn btn-primary" id="btnQuick" style="flex:2">➕ 快速新增課堂時段</button>
         <button class="btn btn-secondary" id="btnScan" style="flex:1">📷 掃描核銷</button>
       </div>
+      <!-- 📅 微型月曆 + 當日時程 -->
+      <div class="card" style="padding:12px 12px 6px;margin-bottom:10px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <button class="btn btn-secondary" id="calPrev" style="min-height:32px;padding:0 12px;font-size:14px">◀</button>
+          <b id="calTitle" style="font-size:15px">—</b>
+          <button class="btn btn-secondary" id="calNext" style="min-height:32px;padding:0 12px;font-size:14px">▶</button>
+        </div>
+        <div id="calGrid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center;font-size:12px">
+          <div class="cal-wd">日</div><div class="cal-wd">一</div><div class="cal-wd">二</div>
+          <div class="cal-wd">三</div><div class="cal-wd">四</div><div class="cal-wd">五</div><div class="cal-wd">六</div>
+        </div>
+        <div style="display:flex;gap:12px;justify-content:center;font-size:11px;color:var(--text-muted);margin-top:8px">
+          <span>🟢 開班</span><span>🟡 報名中</span><span>⚪ 空置</span>
+        </div>
+      </div>
+      <div class="sect" id="agendaTitle" style="margin-top:2px">今日時程</div>
+      <div id="agenda"></div>
+
       <div class="tabs" id="tabs">
         <button class="on" data-f="upcoming">即將開班</button>
         <button data-f="completed">已結束</button>
@@ -143,6 +161,12 @@
         const _fb = $("fab"); if (_fb) _fb.onclick = () => toast("示範模式：開班表單已停用");
         $("navAdd").onclick = (e) => { e.preventDefault(); toast("示範模式：開班表單已停用"); };
         DEMO_LIST();
+        // 延後執行，等日曆模組嘅 let 宣告完成（避免 TDZ）
+        setTimeout(function () {
+          CAL_SESSIONS = DEMO_SESSIONS.slice();
+          SEL_DAY = new Date().toISOString().slice(0, 10);
+          renderCal(); renderAgenda();
+        }, 0);
         return;
       }
       if (false) {
@@ -180,6 +204,7 @@
       $("btnQuick").onclick = quickSheet;
       await loadStats();
       await loadList();
+      loadCal();
       // 🔄 即時數據：每 20 秒靜默更新（有抽屜開住就暫停，免得打斷操作）
       setInterval(async () => {
         if (document.hidden) return;
@@ -188,6 +213,121 @@
       }, 20000);
       document.addEventListener("visibilitychange", () => { if (!document.hidden) { loadStats(true); loadList(true); } });
     })();
+
+    /* ===== 📅 月曆 + 當日時程 ===== */
+    let CAL = { y: new Date().getFullYear(), m: new Date().getMonth() }; // m: 0-11
+    let CAL_SESSIONS = [];   // 全部時段（<=300）
+    let SEL_DAY = new Date().toISOString().slice(0, 10);
+
+    const dayKey = (t) => {
+      const d = new Date(String(t).replace(" ", "T"));
+      return isNaN(d) ? "" : d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+    };
+    const hhmm2 = (t) => { const d = new Date(String(t).replace(" ", "T")); return isNaN(d) ? "" : d.toLocaleTimeString("zh-HK", { hour: "2-digit", minute: "2-digit", hour12: false }); };
+
+    function renderCal() {
+      const grid = $("calGrid");
+      if (!grid) return;
+      const first = new Date(CAL.y, CAL.m, 1);
+      const startDow = first.getDay();
+      const daysInMonth = new Date(CAL.y, CAL.m + 1, 0).getDate();
+      const prevDays = new Date(CAL.y, CAL.m, 0).getDate();
+      $("calTitle").textContent = `${CAL.y} 年 ${CAL.m + 1} 月`;
+
+      const byDay = {};
+      CAL_SESSIONS.forEach((x) => {
+        const k = dayKey(x.start_time);
+        if (!k) return;
+        (byDay[k] = byDay[k] || []).push(x);
+      });
+
+      let html = "";
+      for (let i = 0; i < startDow; i++) {
+        html += `<div class="cal-cell mute">${prevDays - startDow + 1 + i}</div>`;
+      }
+      const todayK = new Date().toISOString().slice(0, 10);
+      for (let d = 1; d <= daysInMonth; d++) {
+        const k = `${CAL.y}-${String(CAL.m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+        const list = byDay[k] || [];
+        let dots = "";
+        if (list.length) {
+          const greens = list.filter((x) => x.status !== "cancelled" && (Number(x.booked) || 0) >= Math.max(1, Number(x.min_participants) || 1)).length;
+          const yellows = list.filter((x) => x.status !== "cancelled" && (Number(x.booked) || 0) < Math.max(1, Number(x.min_participants) || 1)).length;
+          const dotsArr = [];
+          for (let i = 0; i < Math.min(2, greens); i++) dotsArr.push("d-g");
+          for (let i = 0; i < Math.min(2, yellows); i++) dotsArr.push("d-y");
+          if (list.every((x) => x.status === "cancelled")) dotsArr.push("d-b");
+          dots = `<div class="cal-dots">${dotsArr.slice(0, 3).map((c) => `<i class="${c}"></i>`).join("")}</div>`;
+        }
+        const cls = ["cal-cell", k === todayK ? "today" : "", k === SEL_DAY ? "sel" : ""].filter(Boolean).join(" ");
+        html += `<div class="${cls}" data-day="${k}">${d}${dots}</div>`;
+      }
+      grid.innerHTML = html;
+      grid.querySelectorAll("[data-day]").forEach((el) => (el.onclick = () => { SEL_DAY = el.dataset.day; renderCal(); renderAgenda(); }));
+    }
+
+    function renderAgenda() {
+      const box = $("agenda");
+      if (!box) return;
+      const list = CAL_SESSIONS.filter((x) => dayKey(x.start_time) === SEL_DAY);
+      const d = new Date(SEL_DAY + "T00:00:00");
+      const wd = ["日", "一", "二", "三", "四", "五", "六"][d.getDay()];
+      $("agendaTitle").textContent = `${d.getMonth() + 1} 月 ${d.getDate()} 日（${wd}）· ${list.length} 節時段`;
+      if (!list.length) {
+        box.innerHTML = `<div class="card"><div class="body center muted" style="padding:18px 12px">呢日暫時冇課堂。<br><br>
+          <button class="btn btn-primary" id="agAdd">➕ 喺呢日開班</button></div></div>`;
+        const b = $("agAdd"); if (b) b.onclick = () => quickSheet();
+        return;
+      }
+      box.innerHTML = `<div class="card">${list.map((x) => {
+        const cap = Number(x.max_participants) || 0;
+        const booked = Number(x.booked) || 0;
+        const min = Math.max(1, Number(x.min_participants) || 1);
+        const pct = cap ? Math.min(100, Math.round((booked / cap) * 100)) : 0;
+        const noClass = x.status === "cancelled";
+        const tag = noClass ? "⚪ 已取消" : booked >= cap && cap ? "🔵 已滿額" : booked >= min ? "🟢 已開班" : `🟡 報名中（差 ${min - booked} 人）`;
+        const price = Number(x.price_hkd) || 0;
+        const rate = 0.8;
+        const net = Math.round(booked * price * 0.8);
+        const venueRent = x.rental_price_per_hour ? Math.round((Number(x.duration) || 60) / 60 * Number(x.rental_price_per_hour)) : 0;
+        return `<div class="ag">
+          <div class="t">${esc(hhmm2(x.start_time))} – ${esc(hhmm2(x.end_time))} · ${esc(tag)}</div>
+          <div class="m" style="font-size:13.5px;color:var(--text);font-weight:700;margin-top:4px">${esc(x.title)}</div>
+          <div class="m">📍 ${esc(x.venue_name || "場地待定")}${x.district ? " · " + esc(x.district) : ""}</div>
+          <div class="bar"><i style="width:${pct}%"></i></div>
+          <div class="m">👥 ${booked} / ${cap || "?"} 人（最低成團 ${min}）</div>
+          <div class="money">
+            <span>教練預估 <b>${hkd(net)}</b></span>
+            ${venueRent ? `<span>場地成本 <b style="color:#b45309">${hkd(venueRent)}</b></span>` : `<span class="muted">場地：自租／未綁定</span>`}
+          </div>
+          <div class="acts2">
+            <button class="btn btn-primary" data-ag-roster="${esc(x.id)}">📋 現場點名</button>
+            <button class="btn btn-secondary" data-ag-settle="${esc(x.id)}">🏁 對賬</button>
+          </div></div>`;
+      }).join("")}</div>`;
+      box.querySelectorAll("[data-ag-roster]").forEach((b) => (b.onclick = () => roster(b.dataset.agRoster)));
+      box.querySelectorAll("[data-ag-settle]").forEach((b) => (b.onclick = async () => {
+        const sid = b.dataset.agSettle;
+        if (typeof DEMO !== "undefined" && DEMO) return demoSettle(sid);
+        const sch = CAL_SESSIONS.find((z) => z.id === sid) || {};
+        const rr = await api.get("/coach/class-students?schedule_id=" + encodeURIComponent(sid));
+        const list2 = (rr.data && rr.data.students || []).filter((s) => ["confirmed", "attended", "no_show"].includes(s.booking_status));
+        realSettle(sid, rr.data.schedule || sch, list2);
+      }));
+    }
+
+    function loadCal() {
+      if (typeof DEMO !== "undefined" && DEMO) { CAL_SESSIONS = DEMO_SESSIONS.slice(); renderCal(); renderAgenda(); }
+      return api.get("/coach/sessions?filter=all").then((r) => {
+        const arr = (r.data && r.data.sessions) || [];
+        CAL_SESSIONS = arr;
+        renderCal(); renderAgenda();
+      }).catch(() => {});
+    }
+
+    const _calPrev = $("calPrev"), _calNext = $("calNext");
+    if (_calPrev) _calPrev.onclick = () => { CAL.m--; if (CAL.m < 0) { CAL.m = 11; CAL.y--; } renderCal(); };
+    if (_calNext) _calNext.onclick = () => { CAL.m++; if (CAL.m > 11) { CAL.m = 0; CAL.y++; } renderCal(); };
 
     async function loadStats(silent) {
       const [er, rr, cr] = await Promise.all([
