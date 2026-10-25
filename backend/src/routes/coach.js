@@ -150,12 +150,17 @@ router.post("/apply-public", require("../middleware/public-form-limit").publicFo
 router.get("/list", (req, res) => {
   try {
     const db = getDb();
+    const HAS_CC2 = !!db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='coach_credentials'").get();
     const coaches = db.prepare(`
       SELECT u.id, u.name, u.avatar_url as avatar,
         COALESCE(cr.avg_rating, 0) as rating,
         COALESCE(cr.total_students, 0) as students,
         (SELECT COUNT(*) FROM classes c WHERE c.coach_id = u.id AND c.status = 'active') as courses,
-        COALESCE((SELECT ca.bio FROM coach_applications ca WHERE ca.user_id = u.id ORDER BY ca.created_at DESC LIMIT 1), '') as bio
+        COALESCE((SELECT ca.bio FROM coach_applications ca WHERE ca.user_id = u.id ORDER BY ca.created_at DESC LIMIT 1), '') as bio,
+        ${HAS_CC2 ? `(SELECT CASE WHEN cc.status='verified' AND COALESCE(cc.is_starred,0)=1
+             AND (cc.license_expiry IS NULL OR cc.license_expiry = '' OR cc.license_expiry >= date('now'))
+             THEN 1 ELSE 0 END FROM coach_credentials cc WHERE cc.user_id = u.id)` : "0"} as coach_starred,
+        ${HAS_CC2 ? `(SELECT CASE WHEN cc.status='verified' THEN 1 ELSE 0 END FROM coach_credentials cc WHERE cc.user_id = u.id)` : "0"} as coach_verified
       FROM users u
       LEFT JOIN (
         SELECT

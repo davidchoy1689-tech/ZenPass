@@ -8,6 +8,8 @@
   <link rel="stylesheet" href="assets/v2.css?v=26" />
   <link rel="stylesheet" href="assets/ui-v3.css?v=5" />
   <style>
+    .badge-star-coach{display:inline-flex;align-items:center;gap:3px;background:#fef3c7;color:#92400e;font-size:11px;font-weight:700;padding:2px 7px;border-radius:6px;border:1px solid #fde68a;vertical-align:middle;margin-left:4px}
+    .badge-verified-coach{display:inline-flex;align-items:center;gap:3px;background:#ecfdf5;color:#065f46;font-size:11px;font-weight:700;padding:2px 7px;border-radius:6px;border:1px solid #a7f3d0;vertical-align:middle;margin-left:4px}
     .coach { display:flex; gap:12px; align-items:center; padding:14px 16px; border-bottom:1px solid var(--border); }
     .coach:last-child { border-bottom:0; }
     .avi { width:48px; height:48px; border-radius:50%; background:linear-gradient(135deg,var(--brand-500),var(--brand-700)); color:#fff; display:grid; place-items:center; font-weight:800; font-size:18px; flex:0 0 auto; }
@@ -36,7 +38,9 @@
         <a class="coach" href="coach-profile.html?id=${encodeURIComponent(c.id)}">
           <div class="avi">${esc((c.name || "教").slice(0,1))}</div>
           <div style="flex:1;min-width:0">
-            <div class="nm">${esc(c.name || "教練")} ${Number(c.rating) > 0 ? `<span style="color:#f59e0b">⭐ ${esc(c.rating)}</span>` : ""}</div>
+            <div class="nm">${esc(c.name || "教練")}
+              ${Number(c.coach_starred) === 1 ? `<span class="badge-star-coach" title="已核實專業執照及責任保險">⭐ 星級</span>` : Number(c.coach_verified) === 1 ? `<span class="badge-verified-coach" title="已核實專業資質">✅ 已核實</span>` : ""}
+              ${Number(c.rating) > 0 ? `<span style="color:#f59e0b">⭐ ${esc(c.rating)}</span>` : ""}</div>
             <div class="meta">${c.courses ? c.courses + " 個課程 · " : ""}${c.students ? c.students + " 位學生" : "新晉教練"}</div>
             ${c.bio ? `<div class="meta" style="margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(c.bio)}</div>` : ""}
           </div>
