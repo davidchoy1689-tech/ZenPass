@@ -17,7 +17,9 @@ const root = path.join(__dirname, "..");
 const coach = fs.readFileSync(path.join(root, "src/routes/coach.js"), "utf8");
 const admin = fs.readFileSync(path.join(root, "src/routes/admin.js"), "utf8");
 const web = path.join(root, "..", "frontend-v2");
-const page = fs.readFileSync(path.join(web, "coach.html"), "utf8");
+// 2026-10-25：開班表單由 coach.html 搬去 coach-console.html（coach.html 改為單手操作 hub）
+const page = fs.readFileSync(path.join(web, "coach-console.html"), "utf8");
+const hub = fs.readFileSync(path.join(web, "coach.html"), "utf8");
 
 console.log("── 教練自助開班 API ──");
 ok(coach.includes('router.post("/classes"'), "POST /api/coach/classes 存在");
@@ -43,12 +45,17 @@ ok(admin.includes("status = 'inactive'"), "用 inactive（唔刪 row，可追溯
 ok(admin.includes("writeBlock"), "寫入區塊鏈 audit");
 
 console.log("── 前端 ──");
-ok(page.includes("開新班"), "教練頁有「開新班」");
+ok(page.includes("開新班"), "開班管理頁有「開新班」");
 ok(page.includes('api.post("/coach/classes"'), "提交到 /coach/classes");
-ok(page.includes("ncSlots") && page.includes("加多個時段"), "支援多個時段");
-ok(page.includes("ncVenueManual"), "可選現有場地或自行輸入");
+ok(page.includes("slots") && page.includes("加多一個時段"), "支援多個時段");
+ok(page.includes("cVenue"), "可選現有場地或自行輸入");
 ok(page.includes("loadClasses"), "開班後即時刷新課程列表");
 ok(page.includes("detail.html?id="), "課程連結去新版詳情頁");
+// 教練中心（hub）：一撳點名 + 掃描備用
+ok(hub.includes("展開學員名冊"), "教練中心有一撳點名名冊");
+ok(hub.includes("/attend"), "名冊可即時簽到");
+ok(hub.includes("verify.html"), "有掃描核銷備用入口");
+ok(hub.includes("快速開班") || hub.includes("quickSchedule"), "有快速開班 FAB");
 
 console.log("──────────────────────────────");
 if (fail) {

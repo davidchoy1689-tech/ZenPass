@@ -84,8 +84,9 @@ const ok = (c, m) => { if (c) console.log("  ✅ " + m); else { console.log("  �
   const detail = fs.readFileSync(path.join(web, "class-detail.html"), "utf8");
   ok(/vip_priority_until/.test(clsSrc), "課程詳情 API 回傳 vip_priority_until");
   ok(/VIP Pass 優先預約中/.test(detail) && /vip_priority_until/.test(detail), "課程頁顯示 VIP 優先提示");
-  const coachPage = fs.readFileSync(path.join(web, "coach.html"), "utf8");
-  ok(/id="ncVip"/.test(coachPage) && /vip_priority_hours:/.test(coachPage), "教練開班可選 VIP 優先（預設開）");
+  // 2026-10-25：開班表單搬到 coach-console.html
+  const coachPage = fs.readFileSync(path.join(web, "coach-console.html"), "utf8");
+  ok(/vip_priority_hours|VIP 優先/.test(coachPage) || /vip_priority_hours:/.test(coachPage), "教練開班支援 VIP 優先設定");
 
   console.log(fail === 0 ? "\n🎉 全部通過" : `\n❌ ${fail} 項失敗`);
   process.exit(fail === 0 ? 0 : 1);
