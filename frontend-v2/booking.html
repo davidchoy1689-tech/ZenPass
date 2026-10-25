@@ -630,7 +630,7 @@
         const save = Math.max(0, Number(cls && cls.price_hkd) - Number(r.data.final_price));
         msg.className = "promo-msg ok";
         msg.innerHTML = `✅ 已套用 ${esc(promoFinal.code)} · 每堂 <b>${hkd(r.data.final_price)}</b>` +
-          (save ? `<span class="promo-save">- ${hkd(save)}</span>` : "");
+          (save ? `<span class="promo-save">（省 ${hkd(save)}）</span>` : "");
       } else {
         promoFinal = null; msg.className = "promo-msg bad";
         msg.textContent = "❌ " + ((r.data && r.data.error) || "優惠碼無效");
