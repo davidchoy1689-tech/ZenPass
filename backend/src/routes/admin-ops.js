@@ -29,7 +29,8 @@ function monthRange(month) {
   const m = /^\d{4}-\d{2}$/.test(String(month || "")) ? String(month) : new Date().toISOString().slice(0, 7);
   const [y, mo] = m.split("-").map(Number);
   const start = `${m}-01 00:00:00`;
-  const end = new Date(y, mo, 1).toISOString().slice(0, 10) + " 00:00:00";
+  // 用 UTC 計月末，避免 HKT (+8) 令 end 變咗對上一個月最後一日
+  const end = new Date(Date.UTC(y, mo, 1)).toISOString().slice(0, 10) + " 00:00:00";
   return { month: m, start, end };
 }
 
