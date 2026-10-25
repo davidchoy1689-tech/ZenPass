@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#ff6b35" />
+  <meta name="robots" content="noindex" />
+  <title>營運總控台 · ZenPass 禪流</title>
+  <link rel="stylesheet" href="assets/v2.css?v=26" />
+  <link rel="stylesheet" href="assets/ui-v3.css?v=5" />
+  <style>
+    .kpis{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+    .kpi{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:13px}
+    .kpi .v{font-size:20px;font-weight:800;color:var(--brand-600);line-height:1.15}
+    .kpi .l{font-size:11.5px;color:var(--text-muted);margin-top:3px}
+    .row{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);font-size:13.5px}
+    .row:last-child{border-bottom:0}
+    .row .s{font-size:11.5px;color:var(--text-muted);margin-top:2px}
+    .pill{font-size:11px;font-weight:800;border-radius:99px;padding:3px 9px}
+    .p-on{background:#ecfdf5;color:#047857}.p-wait{background:#fff7ed;color:#c2410c}
+    .fld{width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:11px;padding:11px;font:inherit;font-size:14px;background:var(--surface);color:var(--text);margin-bottom:8px}
+    .lbl{font-size:12.5px;font-weight:700;color:var(--text-muted);display:block;margin:0 0 5px 2px}
+    .toast6{position:fixed;left:50%;transform:translateX(-50%);bottom:96px;background:rgba(15,23,42,.93);color:#fff;padding:11px 18px;border-radius:99px;font-size:13.5px;z-index:9999}
+    .tabsx{display:flex;gap:8px;overflow-x:auto;margin:4px 0 12px}
+    .tabsx button{white-space:nowrap;border:1px solid var(--border);background:var(--surface);border-radius:999px;padding:8px 14px;font:inherit;font-size:13px;font-weight:700;color:var(--text-muted)}
+    .tabsx button.on{background:var(--brand-500);border-color:var(--brand-500);color:#fff}
+  </style>
+</head>
+<body>
+  <div class="topbar"><a class="back" href="admin.html">‹</a><div class="title">營運總控台</div></div>
+  <div class="wrap">
+    <div id="guard"></div>
+    <div id="app" hidden>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
+        <input class="fld" id="month" type="month" style="margin:0;flex:1" />
+        <button class="btn btn-primary" id="reload" style="flex:none;min-height:42px">更新</button>
+      </div>
+
+      <div class="tabsx" id="tabs">
+        <button class="on" data-t="fin">💰 資金總覽</button>
+        <button data-t="leads">📥 線索／審批</button>
+        <button data-t="ops">🚨 異常處理</button>
+        <button data-t="settle">🏁 批量結算</button>
+      </div>
+
+      <div id="paneFin">
+        <div class="kpis" id="kpis"></div>
+        <div class="card"><div class="body" id="finDetail"></div></div>
+      </div>
+
+      <div id="paneLeads" hidden>
+        <div class="card" style="margin-bottom:10px"><div class="body"><b>👨‍🏫 教練申請</b><div id="leadCoach" style="margin-top:8px"></div></div></div>
+        <div class="card" style="margin-bottom:10px"><div class="body"><b>🏫 學校查詢</b><div id="leadSchool" style="margin-top:8px"></div></div></div>
+        <div class="card"><div class="body"><b>🏢 企業查詢</b><div id="leadCorp" style="margin-top:8px"></div></div></div>
+      </div>
+
+      <div id="paneOps" hidden>
+        <div class="card"><div class="body">
+          <b>🌧️ 惡劣天氣／緊急停課</b>
+          <div class="muted" style="font-size:12px;margin:6px 0 10px">會取消該日所有時段；可選擇同時退回 Credits。</div>
+          <label class="lbl">日期</label>
+          <input class="fld" type="date" id="wxDate" />
+          <label class="lbl">原因</label>
+          <input class="fld" id="wxReason" value="惡劣天氣取消" />
+          <label style="display:flex;gap:8px;align-items:center;font-size:13px;margin:6px 0 12px">
+            <input type="checkbox" id="wxRefund" checked style="width:18px;height:18px" />
+            同時退回學員 Credits（會寫入 wallet_transactions）
+          </label>
+          <button class="btn btn-primary btn-block" id="wxGo">取消當日所有課堂</button>
+          <div class="muted" id="wxMsg" style="margin-top:10px;font-size:12.5px"></div>
+        </div></div>
+      </div>
+
+      <div id="paneSettle" hidden>
+        <div class="card" style="margin-bottom:10px"><div class="body">
+          <b>🏁 批量封存本月已完結課堂</b>
+          <div class="muted" style="font-size:12px;margin:6px 0 10px">會為所選月份所有「已完結但未封存」嘅課堂寫入 settled_at。</div>
+          <button class="btn btn-primary btn-block" id="bsGo">⚡ 批量封存</button>
+          <div class="muted" id="bsMsg" style="margin-top:10px;font-size:12.5px"></div>
+        </div></div>
+        <div class="card"><div class="body">
+          <b>📥 出糧／場租清單</b>
+          <div class="muted" style="font-size:12px;margin:6px 0 10px">匯出 FPS／銀行批量轉賬用 CSV（教練 80% + 場租）。</div>
+          <button class="btn btn-secondary btn-block" id="plGo">下載 CSV</button>
+        </div></div>
+      </div>
+      <div class="spacer"></div>
+    </div>
+  </div>
+
+  <script src="assets/api.js?v=3"></script>
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    const hkd = (n) => "HK$" + Number(n || 0).toLocaleString("en-HK");
+    function toast(m) { const t = document.createElement("div"); t.className = "toast6"; t.textContent = m; document.body.appendChild(t); setTimeout(() => t.remove(), 2500); }
+
+    let MONTH = new Date().toISOString().slice(0, 7);
+
+    (async () => {
+      if (!api.getUser()) {
+        $("guard").innerHTML = `<div class="card"><div class="body center" style="padding:24px 16px">
+          <div style="font-size:36px">🛡️</div><b style="display:block;margin-top:6px">營運總控台</b>
+          <div class="muted" style="font-size:13px;margin-top:8px">需要管理員登入</div>
+          <div style="margin-top:14px"><a class="btn btn-primary" href="login.html?next=admin-ops.html">🔑 登入</a></div></div></div>`;
+        return;
+      }
+      const me = await api.get("/users/me").catch(() => null);
+      const u = (me && me.data && (me.data.user || me.data)) || api.getUser() || {};
+      if (!["admin", "super_admin", "platform_manager", "platform_staff"].includes(u.role)) {
+        $("guard").innerHTML = `<div class="card"><div class="body center">此頁只限管理員使用。<br><br><a class="btn btn-secondary" href="my.html">返回</a></div></div>`;
+        return;
+      }
+      $("app").hidden = false;
+      $("month").value = MONTH;
+      $("reload").onclick = () => { MONTH = $("month").value || MONTH; loadAll(); };
+      $("tabs").onclick = (e) => {
+        const b = e.target.closest("button"); if (!b) return;
+        [...$("tabs").children].forEach((x) => x.classList.toggle("on", x === b));
+        ["fin", "leads", "ops", "settle"].forEach((k) => ($("pane" + k[0].toUpperCase() + k.slice(1))).hidden = b.dataset.t !== k);
+      };
+      $("wxGo").onclick = weatherCancel;
+      $("bsGo").onclick = batchSettle;
+      $("plGo").onclick = payoutCsv;
+      loadAll();
+    })();
+
+    async function loadAll() {
+      await loadFinance();
+      await loadLeads();
+    }
+
+    async function loadFinance() {
+      const r = await api.get("/admin/ops/overview?month=" + encodeURIComponent(MONTH));
+      if (!r.ok) { $("kpis").innerHTML = `<div class="kpi" style="grid-column:span 2"><div class="l">${esc((r.data && r.data.error) || "讀取失敗")}</div></div>`; return; }
+      const f = r.data.finance || {};
+      $("kpis").innerHTML = `
+        <div class="kpi"><div class="v">${hkd(f.gmv)}</div><div class="l">本月 GMV（總學費）</div></div>
+        <div class="kpi"><div class="v">${hkd(f.platform_fee)}</div><div class="l">平台 20% 收入</div></div>
+        <div class="kpi"><div class="v">${hkd(f.pending_coach)}</div><div class="l">待付教練（${f.pending_sessions || 0} 堂）</div></div>
+        <div class="kpi"><div class="v">${hkd(f.pending_venue)}</div><div class="l">待付場租</div></div>`;
+      $("finDetail").innerHTML = `
+        <div class="row"><span>課堂數（本月）</span><b>${f.sessions || 0}</b></div>
+        <div class="row"><span>已封存結算</span><b>${f.settled_sessions || 0}</b></div>
+        <div class="row"><span>教練應得合計（80%）</span><b>${hkd(f.coach_net)}</b></div>
+        <div class="row"><span>場租合計</span><b>${hkd(f.venue_rent)}</b></div>
+        <div class="row"><span>待處理線索</span><span class="pill p-wait">教練 ${(r.data.leads || {}).coach || 0} · 學校 ${(r.data.leads || {}).school || 0} · 企業 ${(r.data.leads || {}).corporate || 0}</span></div>`;
+    }
+
+    async function loadLeads() {
+      const r = await api.get("/admin/ops/leads");
+      if (!r.ok) return;
+      const d = r.data || {};
+      const render = (arr, fmt) => arr.length ? arr.slice(0, 20).map(fmt).join("") : '<div class="muted" style="font-size:12.5px">暫無</div>';
+      $("leadCoach").innerHTML = render(d.coaches || [], (x) => `<div class="row"><span><b>${esc(x.name)}</b>
+        <span class="s">${esc(x.phone || "")} · ${esc(x.email || "")} · ${esc(x.specialties || "")} · ${esc(String(x.created_at || "").slice(0, 10))}</span></span>
+        <a class="pill p-on" href="https://wa.me/852${esc(String(x.phone || "").slice(-8))}" target="_blank" rel="noopener" style="text-decoration:none">💬 聯絡</a></div>`);
+      $("leadSchool").innerHTML = render(d.schools || [], (x) => `<div class="row"><span><b>${esc(x.school_name)}</b>
+        <span class="s">${esc(x.contact_name || "")} · ${esc(x.contact_email || "")} · ${esc(x.sports_of_interest || "")}</span></span>
+        <a class="pill p-on" href="mailto:${esc(x.contact_email || "")}" style="text-decoration:none">✉️</a></div>`);
+      $("leadCorp").innerHTML = render(d.corporates || [], (x) => `<div class="row"><span><b>${esc(x.company_name)}</b>
+        <span class="s">${esc(x.contact_name || "")} · ${esc(x.contact_email || "")} · ${esc(x.activities || "")}</span></span>
+        <a class="pill p-on" href="mailto:${esc(x.contact_email || "")}" style="text-decoration:none">✉️</a></div>`);
+    }
+
+    async function weatherCancel() {
+      const date = $("wxDate").value;
+      if (!date) { alert("請揀日期"); return; }
+      if (!confirm(`確定取消 ${date} 所有課堂？`)) return;
+      $("wxMsg").textContent = "處理中…";
+      const r = await api.post("/admin/ops/weather-cancel", { date, reason: $("wxReason").value, refund: $("wxRefund").checked });
+      $("wxMsg").textContent = r.ok ? r.data.message : ((r.data && r.data.error) || "失敗");
+      if (r.ok) { toast("✅ " + r.data.message); loadFinance(); }
+    }
+
+    async function batchSettle() {
+      if (!confirm(`批量封存 ${MONTH} 已完結課堂？`)) return;
+      $("bsMsg").textContent = "處理中…";
+      const r = await api.post("/admin/ops/batch-settle", { month: MONTH });
+      $("bsMsg").textContent = r.ok ? r.data.message + `（學費 ${hkd(r.data.gross)} / 教練 ${hkd(r.data.net)} / 場租 ${hkd(r.data.venue_rent)}）` : ((r.data && r.data.error) || "失敗");
+      if (r.ok) { toast("✅ 已封存 " + r.data.count + " 堂"); loadFinance(); }
+    }
+
+    async function payoutCsv() {
+      const r = await api.get("/admin/ops/payout-list?month=" + encodeURIComponent(MONTH));
+      if (!r.ok) { alert((r.data && r.data.error) || "讀取失敗"); return; }
+      const rows = r.data.rows || [];
+      if (!rows.length) { alert("本月暫無已完結課堂"); return; }
+      const head = ["日期", "課堂", "教練", "教練電話", "出席", "學費", "教練80%", "平台20%", "場地", "場地電話", "已封存"];
+      const lines = [head.join(",")];
+      rows.forEach((x) => {
+        lines.push([x.date, `"${String(x.title || "").replace(/"/g, '""')}"`, `"${x.coach_name}"`, x.coach_phone,
+          x.attended, x.gross, x.coach_net, x.platform_fee, `"${x.venue_name}"`, x.venue_phone, x.settled ? "是" : "否"].join(","));
+      });
+      const blob = new Blob(["\ufeff" + lines.join("\r\n")], { type: "text/csv;charset=utf-8" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `ZenPass_Payout_${MONTH}.csv`;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 3000);
+      toast("📥 已匯出 " + rows.length + " 筆");
+    }
+  </script>
+  <script src="assets/footer.js?v=4" defer></script>
+</body>
+</html>
