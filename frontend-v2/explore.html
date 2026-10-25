@@ -561,9 +561,12 @@
       Q_TERMS = expandSearchTerms(q);
       const why = explainHit(q, Q_TERMS);
       box.hidden = false;
+      const alt = Q_TERMS.filter((t) => t !== q.toLowerCase()).slice(0, 2).join(" / ");
       box.innerHTML = why
         ? `🔎 「<b>${esc(q)}</b>」以同義詞擴展：<b>${esc(why)}</b> · 搵到 ${n} 個課程`
-        : `🔎 「<b>${esc(q)}</b>」搵到 ${n} 個課程`;
+        : n === 0 && alt
+          ? `🔎 「<b>${esc(q)}</b>」暫時未有直接配對（同義詞：<b>${esc(alt)}</b>）· 睇睇下面推薦`
+          : `🔎 「<b>${esc(q)}</b>」搵到 ${n} 個課程`;
     }
 
     function renderSuggest() {
