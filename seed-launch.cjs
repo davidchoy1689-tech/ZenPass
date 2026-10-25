@@ -10,6 +10,23 @@ const APPLY = process.argv.includes("--apply");
 const DB = process.env.ZP_DB || path.resolve(__dirname, "..", "backend", "data", "zenpass.db");
 const db = new Database(DB);
 
+// 確保必要欄位／表存在（idempotent）
+function ensureCols(table, cols) {
+  try {
+    const have = db.prepare(`PRAGMA table_info(${table})`).all().map((c) => c.name);
+    cols.forEach(([n, t]) => { if (!have.includes(n)) db.prepare(`ALTER TABLE ${table} ADD COLUMN ${n} ${t}`).run(); });
+  } catch (e) { console.warn("migrate", table, e.message); }
+}
+ensureCols("classes", [["min_participants", "INTEGER DEFAULT 1"], ["photos_gallery", "TEXT"], ["sport_slug", "TEXT"], ["partner_venue_id", "TEXT"], ["partner_id", "TEXT"], ["booking_open", "INTEGER DEFAULT 0"], ["image_url", "TEXT"], ["district", "TEXT"]]);
+ensureCols("partner_venues", [["photos_gallery", "TEXT"], ["rental_price_per_hour", "REAL"], ["partner_type", "TEXT"], ["contact_person", "TEXT"], ["facilities", "TEXT"], ["commission_plan", "TEXT"], ["commission_rate", "REAL"], ["partner_reference", "TEXT"], ["insurance_declared", "INTEGER DEFAULT 0"], ["insurance_doc_url", "TEXT"], ["insurance_expiry", "TEXT"], ["owner_id", "TEXT"]]);
+db.prepare(`CREATE TABLE IF NOT EXISTS coach_credentials (
+  id TEXT PRIMARY KEY, user_id TEXT NOT NULL, license_type TEXT, license_no TEXT, license_expiry TEXT,
+  first_aid_type TEXT, first_aid_expiry TEXT, doc_url TEXT, certificate_url TEXT,
+  insurance_policy_url TEXT, insurance_expiry_date TEXT, is_starred INTEGER DEFAULT 0,
+  status TEXT DEFAULT 'pending', reviewer_id TEXT, review_note TEXT, reviewed_at TEXT,
+  created_at TEXT DEFAULT (datetime('now')), updated_at TEXT DEFAULT (datetime('now')), UNIQUE(user_id)
+)`).run();
+
 const COACH_EMAIL = "coach@zenpass.hk";
 const coach = db.prepare("SELECT id,name,email FROM users WHERE email=?").get(COACH_EMAIL);
 if (!coach) { console.error("❌ 找唔到教練", COACH_EMAIL); process.exit(1); }
