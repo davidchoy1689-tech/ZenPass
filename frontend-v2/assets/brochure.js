@@ -166,7 +166,7 @@
       <h1>${esc(c.title)}</h1>
       <div class="tag">${esc(c.tagline)}</div>
     </div>
-    <div class="meta">${esc(c.kicker)}<br>香港康樂及體育有限公司<br>2387 0724 · support@zenpass.hk</div>
+    <div class="meta">${esc(c.kicker)}<br>香港康樂及體育有限公司<br>Hong Kong Leisure and Fitness Company Limited<br>2387 0724 · support@zenpass.hk</div>
   </div>
 
   <h2>方案亮點</h2>
