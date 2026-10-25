@@ -1873,13 +1873,31 @@ function processQRCheckin(req) {
   }
 
   if (booking.status === "attended") {
+    // 2026-10-25：回傳完整資料俾教練端顯示「已於 xx:xx 簽到」
+    let extra = {};
+    try {
+      const stu = db.prepare("SELECT name, phone FROM users WHERE id = ?").get(booking.user_id) || {};
+      const info = db
+        .prepare(
+          `SELECT c.title, cs.start_time, cs.end_time FROM classes c LEFT JOIN class_schedules cs ON cs.id = ? WHERE c.id = ?`,
+        )
+        .get(booking.schedule_id, booking.class_id) || {};
+      extra = {
+        student_name: stu.name || "學員",
+        phone_last4: stu.phone ? String(stu.phone).slice(-4) : null,
+        guests: Number(booking.group_size) || 1,
+        title: info.title || null,
+        start_time: info.start_time || null,
+        checked_in_at: booking.checked_in_at || null,
+        booking_reference: booking.booking_reference,
+      };
+    } catch (e) {}
     return {
       status: 200,
-      body: {
-        message: "✅ 你已經簽到過了！",
-        already_checked_in: true,
-        booking,
-      },
+      body: Object.assign(
+        { message: "⚠️ 此憑證已經簽到過", already_checked_in: true, booking },
+        extra,
+      ),
     };
   }
 
@@ -1895,7 +1913,7 @@ function processQRCheckin(req) {
 
   const result = db
     .prepare(
-      "UPDATE bookings SET status = 'attended' WHERE id = ? AND status = 'confirmed'",
+      "UPDATE bookings SET status = 'attended', checked_in_at = datetime('now'), checkin_method = COALESCE(checkin_method, 'qr') WHERE id = ? AND status = 'confirmed'",
     )
     .run(booking.id);
 
@@ -1963,17 +1981,46 @@ function processQRCheckin(req) {
     booking.booking_reference,
   );
 
+  let extra2 = {};
+  try {
+    const stu = db.prepare("SELECT name, phone FROM users WHERE id = ?").get(booking.user_id) || {};
+    const info = db
+      .prepare(
+        `SELECT c.title, cs.start_time, cs.end_time FROM classes c LEFT JOIN class_schedules cs ON cs.id = ? WHERE c.id = ?`,
+      )
+      .get(booking.schedule_id, booking.class_id) || {};
+    const counts = db
+      .prepare(
+        `SELECT COUNT(*) total, SUM(CASE WHEN status = 'attended' THEN 1 ELSE 0 END) attended
+         FROM bookings WHERE schedule_id = ? AND status IN ('confirmed','attended')`,
+      )
+      .get(booking.schedule_id) || {};
+    extra2 = {
+      student_name: stu.name || "學員",
+      phone_last4: stu.phone ? String(stu.phone).slice(-4) : null,
+      guests: Number(booking.group_size) || 1,
+      title: info.title || null,
+      start_time: info.start_time || null,
+      checked_in_at: new Date().toISOString(),
+      attended_count: Number(counts.attended) || 0,
+      total_count: Number(counts.total) || 0,
+    };
+  } catch (e) {}
+
   return {
     status: 200,
-    body: {
-      message: pointsAwarded
-        ? `✅ 簽到成功！+${pointsAwarded} 積分 🎁`
-        : "✅ 簽到成功！",
-      booking_id: booking.id,
-      booking_reference: booking.booking_reference,
-      status: "attended",
-      points_awarded: pointsAwarded,
-    },
+    body: Object.assign(
+      {
+        message: pointsAwarded
+          ? `✅ 簽到成功！+${pointsAwarded} 積分 🎁`
+          : "✅ 簽到成功！",
+        booking_id: booking.id,
+        booking_reference: booking.booking_reference,
+        status: "attended",
+        points_awarded: pointsAwarded,
+      },
+      extra2,
+    ),
   };
 }
 
