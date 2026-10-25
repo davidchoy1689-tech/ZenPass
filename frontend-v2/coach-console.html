@@ -363,12 +363,20 @@
         pb.disabled = true; const t0 = pb.textContent; pb.textContent = "⏳ 繪製中…";
         try {
           const me = (api.getUser && api.getUser()) || {};
+          let dbCover = null;
+          try {
+            const cRes = await api.get("/classes/" + encodeURIComponent(id));
+            const cls = (cRes.data && (cRes.data.class || cRes.data)) || {};
+            let g = cls.photos_gallery;
+            if (typeof g === "string") { try { g = JSON.parse(g); } catch (e) { g = null; } }
+            dbCover = (Array.isArray(g) && g[0]) || cls.image_url || null;
+          } catch (e) {}
           await window.zpMakePoster({
             title, price,
             dateStr: when,
             venue: ($("cVenueName") && $("cVenueName").value.trim()) || "場地待定",
             detailUrl: link,
-            coverUrl: (window.__zpFirstPhoto || "/assets/images/default-sport.svg"),
+            coverUrl: dbCover || window.__zpFirstPhoto || "/assets/images/default-sport.svg",
             coachName: me.name || "",
             starred: false,
             slug: id,

@@ -629,7 +629,13 @@
       return null;
     }
     function coverUrl(c) {
-      // 先用本地品牌圖（每個項目唔同色系，唔會重用同一張罐頭圖）
+      // 1️⃣ 先用資料庫圖片（教練上載／系統設定）
+      try {
+        const g = Array.isArray(c.photos_gallery) ? c.photos_gallery : (typeof c.photos_gallery === "string" ? JSON.parse(c.photos_gallery) : null);
+        if (g && g[0]) return g[0];
+      } catch (e) {}
+      if (c.image_url) return c.image_url;
+      // 2️⃣ 再用項目品牌圖
       const slug = c.sport_slug || guessSportSlug(c);
       // 若有 AI／實拍圖（lifestyle-images.js），優先使用
       try {
