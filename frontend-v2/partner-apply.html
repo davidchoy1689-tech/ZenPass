@@ -56,21 +56,27 @@
         </div>
       </div></div>
 
-      <div class="card" style="margin-top:12px;background:#f0fdf4;border:1px solid #bbf7d0"><div class="body" style="padding:12px">
-        <b style="font-size:13.5px">🤝 合作夥伴合規及免責承諾書 *</b>
-        <p class="muted" style="font-size:12px;margin:6px 0;line-height:1.7">
-          1. 獨立合約人身分（非僱傭、非合夥）／自行負責稅務及保險　
-          2. 保證持有效專業資格、場地符合消防及公眾安全法規、導師無性罪行紀錄　
-          3. 自備公眾責任保險，並就因其疏忽引致之索償全額彌償 ZenPass　
-          4. 不得引導學員繞過平台私下交易　
-          5. 平台保留最終核實、終止合作及解釋權利
-        </p>
-        <label style="display:flex;gap:8px;align-items:flex-start;font-size:13px">
-          <input type="checkbox" id="p-agree" style="margin-top:3px" />
-          <span>本人已閱讀並同意上述《合作夥伴合規及免責承諾書》全部條款 *</span>
+      <div class="card" style="margin-top:12px;background:#f8fafc;border:1.5px solid #cbd5e1"><div class="body" style="padding:14px">
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+          <span style="font-size:20px">📜</span>
+          <b style="font-size:14px">ZenPass 合作夥伴合規及獨立合約人承諾書</b>
+        </div>
+        <div class="pa-scroll">
+          <p><b>立約方：</b>申請人／所代表之機構（下稱「合作方」）與 <b>香港康樂及體育有限公司</b>（下稱「平台營運方」）。</p>
+          <p><b>1. 獨立合約人身分（排除僱傭關係）：</b><br>合作方確認與平台營運方純屬獨立商業合作及技術轉介關係，絕不構成僱傭、合夥、合資或法定代理人關係。合作方須自行處理稅務申報、強積金（MPF）及商業保險，平台不承擔任何僱主法定義務或僱員工傷補償責任。</p>
+          <p><b>2. 專業資質與合法合規：</b><br>合作方保證持有在香港合法執教或營運場地所需之有效專業證書、執照或商業登記（BR）；指派之導師及教練均無任何性罪行或嚴重刑事定罪紀錄。如遇主管機構或學員查詢，合作方須即時出示相關證明。</p>
+          <p><b>3. 場地設施與自備保險：</b><br>場地營運商保證其空間符合特區政府各項公眾安全及消防條例，並已自行購買合適之第三者公眾責任保險（Public Liability Insurance）。教練及活動主辦者須按需要自備專業責任保險或個人意外保險。</p>
+          <p><b>4. 責任自負與全面法律彌償（Indemnity）：</b><br>若因合作方之教學疏忽、失職、設備故障、場地損毀或違反香港法例，引致任何學員、訪客或第三方之人身傷亡、財物損失或法律索償，合作方須全權承擔所有民事及刑事責任；並承諾全面彌償（Indemnify）平台營運方因此招致之一切損失、和解款項及律師抗辯費用。</p>
+          <p><b>5. 平台交易守則與最終解釋權：</b><br>合作方承諾誠實履行預約排班，不得利用平台招徠之學員進行蓄意繞過平台之私下現金交易。香港康樂及體育有限公司對合作夥伴資格審批、規則調整及違規終止權保留一切最終修改及解釋權利。</p>
+        </div>
+        <label style="display:flex;gap:8px;align-items:flex-start;font-size:12.5px;font-weight:600;margin:10px 0">
+          <input type="checkbox" id="p-agree" style="width:17px;height:17px;margin-top:2px" />
+          <span>本人已完整閱讀、明白並代表合作方同意上述《合作夥伴合規及獨立合約人承諾書》全條款 *</span>
         </label>
-        <label class="lbl" style="margin-top:8px">法定負責人全名（電子簽署）*</label>
-        <input class="fld" id="p-signname" placeholder="例：陳大文" maxlength="60" />
+        <div class="grid2">
+          <div><label class="lbl">法定簽署人全名 *</label><input class="fld" id="p-signname" placeholder="例：陳大文" maxlength="60" /></div>
+          <div><label class="lbl">簽署人身份／職銜 *</label><input class="fld" id="p-signtitle" placeholder="持牌教練 / 場地董事" maxlength="60" /></div>
+        </div>
       </div></div>
 
       <div class="spacer"></div>
@@ -119,15 +125,22 @@
           if (uj.files && uj.files[0]) body.insurance_doc_url = uj.files[0].url;
         } catch (e) { /* 保單上載失敗唔阻止提交 */ }
       }
-      if (!document.getElementById("p-agree").checked) { msg.textContent = "請勾選同意合作夥伴合規承諾書"; return; }
+      if (!document.getElementById("p-agree").checked) { alert("提交加盟申請前，必須勾選同意《合作夥伴合規及獨立合約人承諾書》"); msg.textContent = "請勾選承諾書"; return; }
       const signName = (document.getElementById("p-signname").value || "").trim();
-      if (!signName) { msg.textContent = "請輸入法定負責人全名"; return; }
-      body.partner_agreement = { agreed: true, signed_name: signName, version: "v2026.1_partner", at: new Date().toISOString() };
+      const signTitle = (document.getElementById("p-signtitle").value || "").trim();
+      if (!signName || !signTitle) { alert("請填寫法定簽署人全名及身份職銜以完成電子簽署"); msg.textContent = "請填簽署人姓名及職銜"; return; }
+      const agreementRecord = {
+        agreed: true, terms_version: "v2026.1_partner_b2b",
+        signed_name: signName, signer_title: signTitle,
+        agreed_at: new Date().toISOString(), user_agent: navigator.userAgent,
+      };
+      body.partner_agreement = agreementRecord;
+      try { localStorage.setItem("zenpass_last_partner_agreement", JSON.stringify(agreementRecord)); } catch (e) {}
 
       const btn = document.getElementById("submit"); btn.disabled = true; btn.textContent = "提交中…";
       const r = await api.post("/partner/apply", body);
       if (r.ok && api.isLoggedIn()) {
-        try { await api.post("/agreements/partner", { signed_name: signName, agreed: true }); } catch (e) {}
+        try { await api.post("/agreements/partner", { signed_name: signName, signer_title: signTitle, agreed: true }); } catch (e) {}
       }
       btn.disabled = false; btn.textContent = "提交加盟";
       if (r.ok) {

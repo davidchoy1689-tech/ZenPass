@@ -14,12 +14,20 @@ const { authenticateToken, requireAdmin } = require("../middleware/auth");
 const router = express.Router();
 const VERSION = "v2026.1_partner";
 
+function ensureColumn(db) {
+  try {
+    const cols = db.prepare("PRAGMA table_info(partner_agreements)").all().map((c) => c.name);
+    if (!cols.includes("signer_title")) db.prepare("ALTER TABLE partner_agreements ADD COLUMN signer_title TEXT").run();
+  } catch (e) {}
+}
+
 function ensureTable(db) {
   db.prepare(`CREATE TABLE IF NOT EXISTS partner_agreements (
     id TEXT PRIMARY KEY,
     user_id TEXT NOT NULL,
     role_type TEXT,
     signed_name TEXT NOT NULL,
+    signer_title TEXT,
     agreed INTEGER DEFAULT 1,
     version TEXT,
     ip TEXT,
@@ -27,6 +35,7 @@ function ensureTable(db) {
     created_at TEXT DEFAULT (datetime('now')),
     UNIQUE(user_id, version)
   )`).run();
+  ensureColumn(db);
 }
 
 router.get("/agreements/partner", authenticateToken, (req, res) => {
@@ -45,19 +54,20 @@ router.post("/agreements/partner", authenticateToken, (req, res) => {
     const db = getDb();
     ensureTable(db);
     const signedName = String((req.body || {}).signed_name || "").trim().slice(0, 60);
-    const roleType = String((req.body || {}).role_type || req.user.role || "").slice(0, 30);
+    const signerTitle = String((req.body || {}).signer_title || "").trim().slice(0, 60);
+    const roleType = String((req.body || {}).role_type || req.user.role || "").slice(0, 60);
     const agreed = (req.body || {}).agreed !== false;
     if (!signedName) return res.status(400).json({ success: false, error: "請輸入法定負責人全名" });
     if (!agreed) return res.status(400).json({ success: false, error: "請勾選同意條款" });
 
     db.prepare(
-      `INSERT INTO partner_agreements (id, user_id, role_type, signed_name, agreed, version, ip, user_agent)
-       VALUES (?,?,?,?,?,?,?,?)
+      `INSERT INTO partner_agreements (id, user_id, role_type, signed_name, signer_title, agreed, version, ip, user_agent)
+       VALUES (?,?,?,?,?,?,?,?,?)
        ON CONFLICT(user_id, version) DO UPDATE SET
-         signed_name=excluded.signed_name, role_type=excluded.role_type, agreed=excluded.agreed,
-         ip=excluded.ip, user_agent=excluded.user_agent, created_at=datetime('now')`,
+         signed_name=excluded.signed_name, role_type=excluded.role_type, signer_title=excluded.signer_title,
+         agreed=excluded.agreed, ip=excluded.ip, user_agent=excluded.user_agent, created_at=datetime('now')`,
     ).run(
-      crypto.randomUUID(), req.user.id, roleType, signedName, 1, VERSION,
+      crypto.randomUUID(), req.user.id, roleType, signedName, signerTitle || null, 1, VERSION,
       String(req.ip || ""), String(req.headers["user-agent"] || "").slice(0, 200),
     );
     try {
