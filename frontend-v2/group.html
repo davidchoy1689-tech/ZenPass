@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#ff6b35" />
+  <meta name="robots" content="noindex" />
+  <title>填寫參加者資料 · ZenPass 禪流</title>
+  <link rel="stylesheet" href="assets/v2.css?v=26" />
+  <link rel="stylesheet" href="assets/ui-v3.css?v=5" />
+  <style>
+    .slot { display: flex; gap: 10px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border); }
+    .slot:last-child { border-bottom: 0; }
+    .slot .n { width: 30px; height: 30px; border-radius: 50%; background: var(--surface-2); display: grid; place-items: center; font-weight: 800; font-size: 13px; flex: none; }
+    .slot.done { opacity: .55; }
+    .slot .who { flex: 1; }
+    .slot .who b { font-size: 14px; }
+    .slot .who small { display: block; color: var(--text-muted); font-size: 12px; }
+    .fld { width: 100%; box-sizing: border-box; border: 1px solid var(--border); border-radius: 12px; padding: 12px; font: inherit; background: var(--surface); color: var(--text); }
+    .chk { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-muted); margin: 12px 0; }
+    .okbox { text-align: center; padding: 28px 8px; }
+    .okbox .ic { font-size: 44px; }
+  </style>
+</head>
+<body>
+  <div class="topbar"><a class="back" href="index.html">‹</a><div class="title">填寫參加者資料</div></div>
+  <div class="wrap">
+    <div id="app"><div class="card"><div class="body muted center">載入中…</div></div></div>
+    <div class="spacer"></div>
+  </div>
+
+  <script src="assets/api.js?v=3"></script>
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const code = new URLSearchParams(location.search).get("code") || "";
+    const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    const fmt = (t) => { try { return new Date(t).toLocaleString("zh-HK", { month: "short", day: "numeric", weekday: "short", hour: "2-digit", minute: "2-digit" }); } catch (e) { return ""; } };
+
+    async function load() {
+      if (!code) { return fail("缺少邀請碼"); }
+      const r = await api.get("/group/" + encodeURIComponent(code));
+      if (!r.ok) return fail((r.data && r.data.error) || "邀請碼無效");
+      const d = r.data;
+      const pend = d.participants.filter((p) => !p.filled && p.slot > 1);
+      $("app").innerHTML = `
+        <div class="card" style="margin-bottom:12px"><div class="body">
+          <b style="font-size:16px">${esc(d.title || "課堂")}</b>
+          <div class="muted" style="font-size:13px;margin-top:4px">${esc(fmt(d.start_time))}</div>
+          <div class="muted" style="font-size:12.5px;margin-top:2px">${esc(d.booking_reference || "")} · 共 ${d.group_size} 位</div>
+        </div></div>
+
+        <div class="card" style="margin-bottom:12px"><div class="body">
+          <b>參加者</b>
+          <div style="margin-top:6px">
+            ${d.participants.map((p) => `
+              <div class="slot ${p.filled ? "done" : ""}">
+                <div class="n">${p.slot}</div>
+                <div class="who"><b>${p.filled ? esc(p.name) + (p.is_child ? "（小童）" : "") : "未填寫"}</b>
+                  <small>${p.slot === 1 ? "主要聯絡人" : p.filled ? "已登記" : "等你填"}</small></div>
+                ${p.filled ? "✅" : ""}
+              </div>`).join("")}
+          </div>
+        </div></div>
+
+        ${pend.length ? `
+        <div class="card"><div class="body">
+          <b>填你嘅資料</b>
+          <div class="muted" style="font-size:12.5px;margin:4px 0 10px">你是第幾位？（留空會自動填第一個空格）</div>
+          <input class="fld" id="slot" type="number" min="1" max="${d.group_size}" placeholder="第幾位，例如 2" inputmode="numeric" />
+          <div style="height:10px"></div>
+          <input class="fld" id="name" placeholder="姓名" maxlength="40" autocomplete="name" />
+          <label class="chk"><input type="checkbox" id="kid" /> 我係 12 歲以下小童</label>
+          <input class="fld" id="phone" placeholder="電話（可選，方便教練聯絡）" inputmode="tel" maxlength="20" />
+          <div style="height:14px"></div>
+          <button class="btn btn-primary btn-block" id="send">提交</button>
+        </div></div>` : `
+        <div class="card"><div class="body okbox">
+          <div class="ic">✅</div>
+          <b>所有參加者資料已齊</b>
+          <div class="muted" style="font-size:13px;margin-top:6px">到時見！記得帶水同著運動服。</div>
+        </div></div>`}
+        <div class="card" style="margin-top:12px"><div class="body muted" style="font-size:12px">
+          填完之後，預約人可以喺「我的預約」睇到名單。
+        </div></div>
+      `;
+      const btn = $("send");
+      if (btn) btn.onclick = async () => {
+        const name = $("name").value.trim();
+        if (!name) { alert("請輸入姓名"); return; }
+        btn.disabled = true; btn.textContent = "提交中…";
+        const r2 = await api.post("/group/" + encodeURIComponent(code) + "/fill", {
+          slot: $("slot").value ? Number($("slot").value) : undefined,
+          name,
+          is_child: $("kid").checked,
+          phone: $("phone").value.trim() || undefined,
+        });
+        btn.disabled = false; btn.textContent = "提交";
+        if (r2.ok) { alert((r2.data && r2.data.message) || "已登記"); load(); }
+        else alert((r2.data && r2.data.error) || "提交失敗");
+      };
+    }
+
+    function fail(msg) {
+      $("app").innerHTML = `<div class="card"><div class="body center">
+        <div style="font-size:34px">🔗</div>
+        <b>${esc(msg)}</b>
+        <div class="muted" style="font-size:13px;margin-top:6px">請向預約人再攞一次邀請連結。</div>
+        <div style="margin-top:14px"><a class="btn btn-primary" href="index.html">返回主頁</a></div>
+      </div></div>`;
+    }
+    load();
+  </script>
+  <script src="assets/footer.js?v=4" defer></script>
+</body>
+</html>

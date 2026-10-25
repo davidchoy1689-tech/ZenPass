@@ -366,6 +366,7 @@
       <p class="invite-label">專屬邀請連結</p>
       <div class="invite-link" id="inviteLink"></div>
       <a class="btn btn-wa btn-block" id="waInvite" target="_blank" rel="noopener">💬 一鍵分享至 WhatsApp 群組</a>
+      <a class="btn btn-secondary btn-block" id="fillInvite" target="_blank" rel="noopener" style="margin-top:8px">✍️ 填寫參加者姓名（自己一個報全家用）</a>
       <button class="btn btn-ghost btn-block" id="closeInvite" type="button" style="margin-top:8px">稍後再分享</button>
     </div>
   </div>
@@ -714,6 +715,9 @@
     function showInvite(code, onClose) {
       var link = location.origin + "/detail.html?invite=" + encodeURIComponent(code);
       $("inviteLink").textContent = link;
+      var fill = location.origin + "/group.html?code=" + encodeURIComponent(code);
+      var fillBtn = $("fillInvite");
+      if (fillBtn) fillBtn.href = fill;
       var title = (cls && cls.title) || "ZenPass 課堂";
       var text = "我預約咗 ZenPass 嘅" + title + "！三人同行有優惠，快啲點擊連結加入我哋一齊玩啦：" + link;
       $("waInvite").href = "https://wa.me/?text=" + encodeURIComponent(text);

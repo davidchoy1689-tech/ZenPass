@@ -29,6 +29,7 @@
     .ticket .code { font: 800 30px/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 8px; color: var(--brand-600); margin: 2px 0 4px; }
     .ticket .ref { font-size: 12.5px; color: var(--text-muted); word-break: break-all; }
     .ticket .hint { font-size: 12px; color: var(--text-muted); margin-top: 10px; line-height: 1.5; }
+    .ticket .people { font-size: 12.5px; color: var(--text); background: var(--surface-2); border-radius: 10px; padding: 9px 11px; margin-top: 10px; line-height: 1.7; }
   </style>
 </head>
 <body>
@@ -102,6 +103,20 @@
       const r = await api.get("/bookings/" + encodeURIComponent(id) + "/qr");
       if (!r.ok) { alert((r.data && r.data.error) || "暫時攞唔到入場憑證"); return; }
       const d = r.data || {};
+      // 👥 多人報名：列出參加者
+      let people = "";
+      if (Number(b.group_size) > 1) {
+        try {
+          const pr = await api.get("/bookings/" + encodeURIComponent(id) + "/participants");
+          if (pr.ok && pr.data && pr.data.participants) {
+            const rows = pr.data.participants;
+            const missing = rows.filter((x) => !x.filled).length;
+            people = `<div class="people">👥 共 ${rows.length} 位<br>${rows
+              .map((x) => `${x.slot}. ${x.filled ? esc(x.name || "") + (x.is_child ? "（小童）" : "") : "未填寫"}`)
+              .join("　")}${missing ? `<br><a href="group.html?code=${encodeURIComponent(b.group_invite_code || "")}" style="color:var(--brand-600);font-weight:700">✍️ 仲有 ${missing} 位未填 → 開啟填寫連結</a>` : ""}</div>`;
+          }
+        } catch (e) {}
+      }
       const o = document.createElement("div");
       o.className = "modal-overlay";
       o.innerHTML = `<div class="modal" style="padding:0;background:transparent;box-shadow:none">
@@ -116,6 +131,7 @@
             ${d.qr_data_url ? `<img src="${d.qr_data_url}" alt="入場 QR Code">` : `<div class="ref" style="padding:20px 0">${esc(d.qr_text || "")}</div>`}
             <div class="code">${esc(d.checkin_code || "----")}</div>
             <div class="ref">${esc(d.booking_reference || d.booking_id || "")}</div>
+            ${people}
             <div class="hint">到場向教練出示 QR Code；如掃描唔到，讀出 4 位驗證碼即可簽到。<br>每個憑證只可使用一次。</div>
             <div class="actions" style="margin-top:14px">
               <button class="btn btn-secondary" onclick="closeModal(this)">關閉</button>
