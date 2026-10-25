@@ -766,7 +766,7 @@ router.get("/sessions", authenticateToken, (req, res) => {
         `SELECT s.id, s.start_time, s.end_time, s.status, s.enrolled_count, s.max_participants,
                 c.id as class_id, c.title, c.venue_name, c.venue_address, c.district,
                 c.price_hkd, c.min_participants, c.duration, c.booking_open, c.category, c.sport_slug,
-                c.partner_venue_id, ${HAS_PV ? "pv.name" : "NULL"} as partner_venue_name, ${HAS_PV ? "pv.rental_price_per_hour" : "NULL"} as rental_price_per_hour,
+                c.partner_venue_id, ${HAS_PV ? "pv.name" : "NULL"} as partner_venue_name, ${HAS_PV ? "pv.rental_price_per_hour" : "NULL"} as rental_price_per_hour, ${HAS_PV ? "pv.phone" : "NULL"} as venue_phone,
                 (SELECT COUNT(*) FROM bookings b WHERE b.schedule_id = s.id AND b.status IN ('confirmed','attended')) as booked
          FROM class_schedules s
          JOIN classes c ON c.id = s.class_id

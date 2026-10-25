@@ -74,7 +74,8 @@
           <button id="btnIcs" class="btn btn-secondary" style="min-height:38px;padding:0 12px;font-size:12.5px">📲 同步日曆 ▾</button>
           <div id="calSyncMenu" style="display:none;position:absolute;right:0;top:calc(100% + 6px);background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:0 10px 25px rgba(0,0,0,.15);padding:6px;min-width:230px;z-index:1000">
             <button class="btn btn-secondary" id="syncIcs" style="width:100%;text-align:left;justify-content:flex-start;border:0;background:none;margin-bottom:4px">🍏 Apple Calendar / Outlook (.ics)</button>
-            <button class="btn btn-secondary" id="syncGcal" style="width:100%;text-align:left;justify-content:flex-start;border:0;background:none">🌐 Google Calendar</button>
+            <button class="btn btn-secondary" id="syncGcal" style="width:100%;text-align:left;justify-content:flex-start;border:0;background:none;margin-bottom:4px">🌐 Google Calendar</button>
+            <button class="btn btn-secondary" id="syncCsv" style="width:100%;text-align:left;justify-content:flex-start;border:0;background:none">📊 本月課堂 CSV（記賬用）</button>
           </div>
         </div>
       </div>
@@ -322,10 +323,19 @@
             <button class="btn btn-primary" data-ag-roster="${esc(x.id)}">📋 現場點名</button>
             <button class="btn btn-secondary" data-ag-settle="${esc(x.id)}">🏁 對賬</button>
             <button class="btn btn-secondary" data-ag-cal="${esc(x.id)}">📅 日曆</button>
+            ${x.venue_phone ? `<button class="btn btn-secondary" data-ag-notify="${esc(x.id)}">💬 通知場主</button>` : ""}
             ${!noClass && booked < min ? `<button class="btn btn-secondary" data-ag-recruit="${esc(x.id)}" style="background:#25d366;color:#04331c;border-color:#25d366">💬 招募</button>` : ""}
           </div></div>`;
       }).join("")}</div>`;
       box.querySelectorAll("[data-ag-roster]").forEach((b) => (b.onclick = () => roster(b.dataset.agRoster)));
+      box.querySelectorAll("[data-ag-notify]").forEach((b) => (b.onclick = () => {
+        const x = CAL_SESSIONS.find((z) => z.id === b.dataset.agNotify) || {};
+        const when = new Date(String(x.start_time).replace(" ", "T")).toLocaleString("zh-HK", { month: "short", day: "numeric", weekday: "short", hour: "2-digit", minute: "2-digit" });
+        const rent = x.rental_price_per_hour ? Math.round((Number(x.duration) || 60) / 60 * Number(x.rental_price_per_hour)) : 0;
+        const msg = `你好，我係 ZenPass 教練 ${(api.getUser() || {}).name || ""}，已預約 ${when} 喺「${x.venue_name || ""}」開班（${x.title || ""}），預計場租 HK$${rent}，請確認檔期。謝謝！`;
+        const phone = String(x.venue_phone).replace(/\D/g, "").replace(/^852/, "");
+        window.open("https://wa.me/852" + phone + "?text=" + encodeURIComponent(msg), "_blank");
+      }));
       box.querySelectorAll("[data-ag-cal]").forEach((b) => (b.onclick = () => {
         const x = CAL_SESSIONS.find((z) => z.id === b.dataset.agCal) || {};
         googleCalFor(x);
@@ -402,6 +412,7 @@
     if (_btnIcs) _btnIcs.onclick = (e) => { e.stopPropagation(); _menu.style.display = _menu.style.display === "none" ? "block" : "none"; };
     document.addEventListener("click", () => { if (_menu) _menu.style.display = "none"; });
     const _si = $("syncIcs"); if (_si) _si.onclick = (e) => { e.stopPropagation(); _menu.style.display = "none"; downloadIcsAll(); };
+    const _sc = $("syncCsv"); if (_sc) _sc.onclick = (e) => { e.stopPropagation(); _menu.style.display = "none"; exportCsv(); };
     const _sg = $("syncGcal"); if (_sg) _sg.onclick = (e) => {
       e.stopPropagation(); _menu.style.display = "none";
       const list = CAL_SESSIONS.filter((x) => x.status !== "cancelled" && dayKey(x.start_time) === SEL_DAY);
@@ -409,6 +420,41 @@
       if (!target) { alert("暫無課堂可加入"); return; }
       googleCalFor(target);
     };
+
+    /* 📊 本月 CSV 匯出 */
+    function exportCsv() {
+      const now = new Date();
+      const rows = CAL_SESSIONS.filter((x) => {
+        const d = new Date(String(x.start_time).replace(" ", "T"));
+        return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && x.status !== "cancelled";
+      });
+      if (!rows.length) { alert("本月暫無課堂"); return; }
+      const head = ["日期", "開始", "結束", "課堂", "場地", "地區", "已報", "名額", "單價(HK$)", "學費合計(HK$)", "教練80%(HK$)", "場地費(HK$)"];
+      const lines = [head.join(",")];
+      let totalGross = 0, totalNet = 0, totalVenue = 0;
+      rows.forEach((x) => {
+        const booked = Number(x.booked) || 0;
+        const price = Number(x.price_hkd) || 0;
+        const gross = booked * price;
+        const net = Math.round(gross * 0.8);
+        const rent = x.rental_price_per_hour ? Math.round((Number(x.duration) || 60) / 60 * Number(x.rental_price_per_hour)) : 0;
+        totalGross += gross; totalNet += net; totalVenue += rent;
+        lines.push([
+          dayKey(x.start_time), hhmm2(x.start_time), hhmm2(x.end_time),
+          `"${String(x.title || "").replace(/"/g, '""')}"`,
+          `"${String(x.venue_name || "").replace(/"/g, '""')}"`,
+          x.district || "", booked, x.max_participants || "", price, gross, net, rent,
+        ].join(","));
+      });
+      lines.push(["", "", "", "合計", "", "", "", "", "", totalGross, totalNet, totalVenue].join(","));
+      const blob = new Blob(["\ufeff" + lines.join("\r\n")], { type: "text/csv;charset=utf-8" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `ZenPass_Coach_${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}.csv`;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 3000);
+      toast("📊 已匯出本月 " + rows.length + " 堂");
+    }
 
     function loadCal() {
       if (typeof DEMO !== "undefined" && DEMO) { CAL_SESSIONS = DEMO_SESSIONS.slice(); renderCal(); renderAgenda(); }
