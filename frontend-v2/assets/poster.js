@@ -139,10 +139,8 @@
       }
     } catch (e) {}
 
-    // 底部（安全區）
-    ctx.fillStyle = MUTED; ctx.font = "500 25px " + F;
-    ctx.fillText("電子入場憑證　家長可代子女報名　免責與保險保障", 84, SAFE_BOTTOM - 46);
-    ctx.fillStyle = TEAL; ctx.font = "800 32px " + F;
+    // 底部（安全區）—— 只保留品牌網址，無家長／免責字句
+    ctx.fillStyle = TEAL; ctx.font = "800 34px " + F;
     ctx.fillText("zenpass.hk", 84, SAFE_BOTTOM);
     ctx.fillStyle = TEAL; ctx.fillRect(0, H - 10, W, 10);
 
