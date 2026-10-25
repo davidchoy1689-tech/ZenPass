@@ -128,6 +128,7 @@
 
   <script src="assets/api.js?v=3"></script>
   <script src="assets/media-upload.js?v=1"></script>
+  <script src="assets/poster.js?v=1"></script>
   <script src="assets/partner-agreement.js?v=1"></script>
   <script>
     const $ = (id) => document.getElementById(id);
@@ -352,10 +353,29 @@
         <div style="margin-top:12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:9px;font-size:11.5px;word-break:break-all">${esc(link)}</div>
         <button class="btn btn-secondary btn-block" id="shCopy" style="margin-top:10px">📋 複製報名連結</button>
         <a class="btn btn-primary btn-block" id="shWa" style="margin-top:8px;background:#25d366;color:#04331c" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(txt)}">💬 分享至 WhatsApp</a>
+        <button class="btn btn-primary btn-block" id="shPoster" style="margin-top:8px;background:linear-gradient(135deg,#0f766e,#064e3b)">🎨 儲存 IG Story 宣傳圖</button>
         <button class="btn btn-secondary btn-block" id="shClose" style="margin-top:8px">關閉</button>
       </div>`;
       document.body.appendChild(ov);
       ov.querySelector("#shClose").onclick = () => ov.remove();
+      const pb = ov.querySelector("#shPoster");
+      if (pb) pb.onclick = async () => {
+        pb.disabled = true; const t0 = pb.textContent; pb.textContent = "⏳ 繪製中…";
+        try {
+          const me = (api.getUser && api.getUser()) || {};
+          await window.zpMakePoster({
+            title, price,
+            dateStr: when,
+            venue: ($("cVenueName") && $("cVenueName").value.trim()) || "場地待定",
+            detailUrl: link,
+            coverUrl: (window.__zpFirstPhoto || "/assets/images/default-sport.svg"),
+            coachName: me.name || "",
+            starred: false,
+            slug: id,
+          });
+        } catch (e) { alert("海報生成失敗：" + e.message); }
+        pb.disabled = false; pb.textContent = t0;
+      };
       ov.querySelector("#shCopy").onclick = async () => {
         try { await navigator.clipboard.writeText(link); ov.querySelector("#shCopy").textContent = "✅ 已複製"; }
         catch (e) { prompt("複製呢條連結：", link); }
@@ -394,7 +414,7 @@
         photoUrls = await window.__zpUp.getUrls();
         if (photoUrls === null) return;
       }
-      if (photoUrls && photoUrls.length) body.photos = photoUrls;
+      if (photoUrls && photoUrls.length) { body.photos = photoUrls; window.__zpFirstPhoto = photoUrls[0]; }
       const btn = $("createBtn");
       btn.disabled = true; btn.textContent = "提交中…";
       const r = await api.post("/coach/classes", body);
