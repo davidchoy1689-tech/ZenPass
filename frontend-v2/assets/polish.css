@@ -1,0 +1,113 @@
+/* ZenPass — Visual Polish (2026-10-25)
+ * 純 CSS 質感升級：柔和陰影、毛玻璃導航、數字對齊、微互動、星級金屬光
+ * 保留 ZenPass 品牌橙（--brand-500），只提升精緻度，唔改品牌識別。
+ */
+:root {
+  --zp-bg-page: #f8fafc;
+  --zp-surface: #ffffff;
+  --zp-border: rgba(226, 232, 240, 0.9);
+  --zp-text-1: #0f172a;
+  --zp-text-2: #475569;
+  --zp-text-3: #94a3b8;
+
+  --zp-shadow-sm: 0 1px 2px 0 rgba(15, 23, 42, 0.04);
+  --zp-shadow-md: 0 4px 16px -2px rgba(15, 23, 42, 0.06), 0 2px 4px -1px rgba(15, 23, 42, 0.02);
+  --zp-shadow-lg: 0 12px 28px -4px rgba(15, 23, 42, 0.10), 0 4px 8px -2px rgba(15, 23, 42, 0.03);
+  --zp-shadow-hover: 0 16px 32px -6px rgba(255, 107, 53, 0.18), 0 4px 10px -3px rgba(15, 23, 42, 0.05);
+
+  --zp-radius-sm: 10px;
+  --zp-radius-md: 14px;
+  --zp-radius-lg: 20px;
+}
+
+/* 數字一律 tabular，價錢／人數／日期唔會跳位 */
+.ex-price b, .ex-price s, .kpi .v, .metric .v, .met .v, .dt-price, .tt-price,
+.calc-row span:last-child, .payout-amount, .tk-code, .code,
+[data-num], .fee, .price {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+/* 卡片：柔和多層陰影取代硬邊 */
+.card, .ex-card, .cls, .site-card, .metric, .kpi, .met, .glass {
+  box-shadow: var(--zp-shadow-md);
+  border-color: var(--zp-border);
+  transition: box-shadow .22s cubic-bezier(.16,1,.3,1), transform .22s cubic-bezier(.16,1,.3,1), border-color .22s;
+}
+.ex-card:hover, .cls:hover, .hot-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--zp-shadow-hover);
+  border-color: rgba(255, 107, 53, .28);
+}
+
+/* 頂部／底部導航：毛玻璃 */
+.topbar {
+  background: rgba(255, 255, 255, .84) !important;
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border-bottom: 1px solid rgba(226, 232, 240, .7);
+}
+.bottomnav {
+  background: rgba(255, 255, 255, .86) !important;
+  backdrop-filter: blur(18px) saturate(180%);
+  -webkit-backdrop-filter: blur(18px) saturate(180%);
+  border-top: 1px solid rgba(226, 232, 240, .8);
+}
+
+/* 主按鈕：微漸變 + 按壓回彈 */
+.btn-primary {
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, .12), rgba(0, 0, 0, .06));
+  box-shadow: 0 2px 6px rgba(255, 107, 53, .22), inset 0 1px 0 rgba(255, 255, 255, .18);
+  transition: transform .14s ease, box-shadow .18s ease, filter .18s ease;
+}
+.btn-primary:hover { filter: brightness(1.04); box-shadow: 0 6px 16px rgba(255, 107, 53, .26), inset 0 1px 0 rgba(255, 255, 255, .2); }
+.btn-primary:active, .btn:active { transform: scale(.98); }
+.btn-secondary, .btn-ghost { transition: transform .14s ease, background .18s ease, border-color .18s ease; }
+.btn-secondary:hover { border-color: rgba(15, 23, 42, .18); }
+
+/* 星級徽章：金屬微光 */
+.badge-star-coach {
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 55%, #fde68a 100%) !important;
+  color: #b45309 !important;
+  border: 1px solid rgba(245, 158, 11, .35) !important;
+  box-shadow: 0 1px 3px rgba(245, 158, 11, .18);
+  border-radius: 9999px;
+  font-weight: 800;
+  letter-spacing: .02em;
+  position: relative;
+  overflow: hidden;
+}
+.badge-star-coach::after {
+  content: "";
+  position: absolute; inset: 0;
+  background: linear-gradient(115deg, transparent 30%, rgba(255,255,255,.65) 45%, transparent 60%);
+  transform: translateX(-120%);
+  animation: zpShimmer 3.4s ease-in-out infinite;
+}
+@keyframes zpShimmer { 0%, 55% { transform: translateX(-120%); } 75%, 100% { transform: translateX(120%); } }
+
+/* 免責／協議卡：清爽閱讀 */
+.waiver, .pa-scroll, .agreement-scroll-box, .wp-hint, .terms, .waiver-txt {
+  background: #fff;
+  border: 1px solid #eef2f7;
+  border-radius: var(--zp-radius-sm);
+  box-shadow: var(--zp-shadow-sm);
+}
+
+/* 輸入框聚焦：柔和光圈 */
+input:focus, select:focus, textarea:focus {
+  border-color: rgba(255, 107, 53, .55) !important;
+  box-shadow: 0 0 0 3px rgba(255, 107, 53, .12);
+  outline: none;
+}
+
+/* 標題字距微調 */
+h1, .dt-title, .hero h1, .sp-hero h1 { letter-spacing: -0.02em; }
+
+/* 底部安全區（iPhone） */
+.bottomnav { padding-bottom: env(safe-area-inset-bottom); }
+
+@media (prefers-reduced-motion: reduce) {
+  .badge-star-coach::after { animation: none; }
+  .ex-card:hover, .cls:hover, .hot-card:hover { transform: none; }
+}
