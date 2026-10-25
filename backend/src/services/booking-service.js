@@ -1816,9 +1816,33 @@ function attendBooking(req) {
 // ==================== QR Check-in ====================
 
 function processQRCheckin(req) {
-  const { qr_data, booking_reference, schedule_id, code } = req.body;
+  let { qr_data, booking_reference, schedule_id, code } = req.body;
 
-  if (!qr_data && !booking_reference && !schedule_id) {
+  // 2026-10-25：支援「只輸入 4 位核銷碼」→ 喺近期班次比對派生碼
+  if (!qr_data && !booking_reference && !schedule_id && code) {
+    const cleanCode = String(code).replace(/\D/g, "");
+    if (cleanCode.length === 4) {
+      const db2 = getDb();
+      const rows = db2
+        .prepare(
+          `SELECT b.* FROM bookings b
+           JOIN class_schedules cs ON cs.id = b.schedule_id
+           WHERE b.status <> 'cancelled'
+             AND cs.start_time BETWEEN datetime('now','-7 day') AND datetime('now','+14 day')
+           LIMIT 500`,
+        )
+        .all();
+      const hit = rows.find((r) => checkinCodeFor(r) === cleanCode);
+      if (hit) {
+        booking_reference = hit.booking_reference;
+        req.body.booking_reference = hit.booking_reference;
+      } else {
+        return { status: 404, body: { success: false, error: "搵唔到對應核銷碼（請確認係近期班次嘅憑證）" } };
+      }
+    }
+  }
+
+  if (!req.body.qr_data && !req.body.booking_reference && !req.body.schedule_id) {
     return {
       status: 400,
       body: { success: false, error: "請提供 QR Code 資料或預約參考編號" },

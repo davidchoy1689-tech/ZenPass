@@ -63,7 +63,7 @@
       <div class="muted" id="updatedAt" style="font-size:11.5px;text-align:right;margin:-4px 2px 8px;color:var(--text-muted)">—</div>
       <div style="display:flex;gap:10px;margin-bottom:12px">
         <button class="btn btn-primary" id="btnQuick" style="flex:2">➕ 快速新增課堂時段</button>
-        <a class="btn btn-secondary" href="/scan" style="flex:1;text-align:center;text-decoration:none">📷 掃描核銷</a>
+        <button class="btn btn-secondary" id="btnScan" style="flex:1">📷 掃描核銷</button>
       </div>
       <div class="tabs" id="tabs">
         <button class="on" data-f="upcoming">即將開班</button>
@@ -89,6 +89,7 @@
   </div>
 
   <script src="assets/api.js?v=3"></script>
+  <script src="assets/vendor/html5-qrcode.min.js"></script>
   <script>
     const $ = (id) => document.getElementById(id);
     const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -111,10 +112,11 @@
       $("shMask").classList.add("on");
       $("shSheet").classList.add("on");
     }
-    function closeSheet() { $("shMask").classList.remove("on"); $("shSheet").classList.remove("on"); }
+    function closeSheet() { try { stopScan(); } catch (e) {} $("shMask").classList.remove("on"); $("shSheet").classList.remove("on"); }
     $("shMask").onclick = closeSheet;
     $("shClose").onclick = closeSheet;
     $("navAdd").onclick = (e) => { e.preventDefault(); quickSheet(); };
+    const _btnScan = $("btnScan"); if (_btnScan) _btnScan.onclick = openScanner;
 
     (async () => {
       if (!api.getUser()) {
@@ -484,6 +486,85 @@
       const r = await api.post("/coach/schedules/" + encodeURIComponent(sid) + "/cancel", {});
       if (r.ok) { toast("已取消時段"); loadList(); loadStats(); }
       else alert((r.data && r.data.error) || "取消失敗");
+    }
+
+    /* ===== 📷 掃描核銷（彈窗，免跳頁） ===== */
+    let _scanner = null, _scanning = false, _lastScan = 0;
+
+    function openScanner() {
+      openSheet("📷 掃描核銷", `
+        <div style="display:flex;gap:8px;margin-bottom:10px" id="scSeg">
+          <button class="tog on" data-m="cam" style="flex:1">📷 相機</button>
+          <button class="tog" data-m="code" style="flex:1">⌨️ 4 位碼</button>
+        </div>
+        <div id="scCam">
+          <div id="scReader" style="width:100%;border-radius:16px;overflow:hidden;background:#0b1220;min-height:220px"></div>
+          <div class="muted" id="scNote" style="font-size:12px;text-align:center;margin-top:8px">撳「啟動鏡頭」開始掃描學員憑證</div>
+          <button class="btn btn-primary btn-block" id="scStart" style="margin-top:10px">啟動鏡頭</button>
+        </div>
+        <div id="scCode" hidden>
+          <input id="scInput" inputmode="numeric" maxlength="4" placeholder="輸入 4 位核銷碼"
+            style="width:100%;box-sizing:border-box;padding:14px;font:800 24px/1 ui-monospace,Menlo,monospace;letter-spacing:6px;text-align:center;border:1px solid var(--border);border-radius:12px;margin-bottom:8px;background:var(--surface);color:var(--text)" />
+          <input id="scRef" placeholder="預約編號（可留空）"
+            style="width:100%;box-sizing:border-box;padding:11px;border:1px solid var(--border);border-radius:12px;margin-bottom:10px;background:var(--surface);color:var(--text);font:inherit" />
+          <button class="btn btn-primary btn-block" id="scGo">核銷簽到</button>
+        </div>
+        <div id="scOut" style="margin-top:12px"></div>`);
+      $("scSeg").onclick = (e) => {
+        const b = e.target.closest("button"); if (!b) return;
+        [...$("scSeg").children].forEach((x) => x.classList.toggle("on", x === b));
+        $("scCam").hidden = b.dataset.m === "code";
+        $("scCode").hidden = b.dataset.m !== "code";
+        if (b.dataset.m === "code") { stopScan(); setTimeout(() => $("scInput").focus(), 100); }
+      };
+      $("scStart").onclick = startScan;
+      $("scGo").onclick = () => {
+        const code = ($("scInput").value || "").replace(/\D/g, "");
+        const ref = ($("scRef").value || "").trim().toUpperCase();
+        if (!code && !ref) { scanMsg(false, "請輸入 4 位核銷碼或預約編號"); return; }
+        doCheckin(ref ? { booking_reference: ref, code: code || undefined } : { code });
+      };
+    }
+
+    async function startScan() {
+      if (_scanning) return;
+      try {
+        if (!window.Html5Qrcode) { $("scNote").textContent = "掃描模組載入失敗，請用 4 位碼"; return; }
+        _scanner = _scanner || new Html5Qrcode("scReader", { verbose: false });
+        await _scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 230, height: 230 } },
+          (text) => { const n = Date.now(); if (n - _lastScan < 2500) return; _lastScan = n; doCheckin({ qr_data: text }); },
+          () => {});
+        _scanning = true;
+        $("scNote").textContent = "將學員 QR Code 對準框內…";
+      } catch (e) {
+        $("scNote").textContent = "開唔到鏡頭（" + (e && e.message ? e.message : "權限被拒") + "）→ 請用 4 位碼";
+      }
+    }
+    async function stopScan() {
+      try { if (_scanner && _scanning) await _scanner.stop(); } catch (e) {}
+      _scanning = false;
+      try { if (_scanner) _scanner.clear(); } catch (e) {}
+    }
+
+    function scanMsg(ok, msg) {
+      const box = $("scOut"); if (!box) return;
+      box.innerHTML = `<div style="padding:12px;border-radius:12px;font-size:13.5px;font-weight:700;text-align:center;${ok ? "background:#ecfdf5;color:#047857" : "background:#fef2f2;color:#b91c1c"}">${esc(msg)}</div>`;
+      if (navigator.vibrate) navigator.vibrate(ok ? [80, 40, 80] : 60);
+      setTimeout(() => { const o = $("scOut"); if (o) o.innerHTML = ""; }, 5000);
+    }
+
+    async function doCheckin(payload) {
+      const r = await api.post("/bookings/checkin", payload);
+      const d = r.data || {};
+      if (r.ok && !d.already_checked_in) {
+        scanMsg(true, `✅ 簽到成功：${d.student_name || ""}`);
+        loadStats(true); loadList(true);
+      } else if (d.already_checked_in) {
+        scanMsg(false, "⚠️ 此憑證已簽到過，請勿重複放行");
+      } else {
+        scanMsg(false, "❌ " + (d.error || "無效票券／非本班次"));
+      }
+      if ($("scInput")) $("scInput").value = "";
     }
 
     function quickSheet() {
