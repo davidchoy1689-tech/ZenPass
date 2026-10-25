@@ -154,8 +154,8 @@
         </div></div>`;
       document.body.appendChild(ov);
     }
-    const DEMO = new URLSearchParams(location.search).get("demo") === "1";
-    if (!DEMO && !api.getUser()) { showGate(); }
+    // 2026-10-25：無登入都自動示範（唔再顯示 gate、唔會跳登入）
+    const DEMO = new URLSearchParams(location.search).get("demo") === "1" || !api.getUser();
 
     function beep(ok) {
       try {
@@ -173,6 +173,10 @@
 
     (async () => {
       if (DEMO) {
+        const b0 = document.createElement("div");
+        b0.style.cssText = "margin:8px 0 0;padding:9px 12px;border-radius:10px;background:rgba(251,191,36,.12);color:#fbbf24;font-size:12px;display:flex;justify-content:space-between;gap:8px;align-items:center";
+        b0.innerHTML = '<span>👀 示範模式 · build 2026-10-25 19:00</span><a href="login.html?next=verify.html" style="color:#34d399;font-weight:800;text-decoration:none;white-space:nowrap">教練登入 ›</a>';
+        document.querySelector(".wrap").prepend(b0);
         $("coachName").textContent = "陳大文（示範）· 現場核銷";
         $("sessionInfo").textContent = "🎯 芬蘭木柱 週末體驗班 · 今日 15:00";
         $("attN").textContent = "2"; $("attT").textContent = "/ 4 已簽到"; $("attBar").style.width = "50%";
