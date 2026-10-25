@@ -298,6 +298,18 @@
     /* ===== 核銷 ===== */
     async function verify(payload) {
       if (DEMO) {
+        const key = JSON.stringify(payload);
+        window.__DEMO_SEEN = window.__DEMO_SEEN || {};
+        if (window.__DEMO_SEEN[key]) {
+          beep(false); buzz([60, 80, 60, 80]);
+          showResult("dup", "⚠️ 此憑證已簽到過（示範）", {
+            student_name: "Michael Lee", phone_last4: "4567", booking_reference: "ZP-9001",
+            guests: 2, checked_in_at: window.__DEMO_SEEN[key],
+          }, "重複掃描／輸入同一組資料會出呢個提示");
+          boxes.forEach((b) => (b.value = ""));
+          return;
+        }
+        window.__DEMO_SEEN[key] = new Date().toISOString();
         beep(true); buzz([100, 50, 100]);
         showResult("ok", "✅ 簽到成功（示範）", {
           student_name: "Michael Lee", phone_last4: "4567", booking_reference: "ZP-9001",

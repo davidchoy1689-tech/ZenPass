@@ -224,7 +224,9 @@
       const banner = document.createElement("div");
       banner.className = "glass";
       banner.style.cssText = "padding:10px 14px;margin:0 0 10px;font-size:12.5px;color:#fbbf24";
-      banner.textContent = "👀 示範模式：以下係範例資料，唔會讀寫真實資料。";
+      banner.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+        <span>👀 示範模式：範例資料，唔會讀寫真實資料</span>
+        <a href="login.html?next=coach.html" style="color:#34d399;font-weight:800;text-decoration:none;white-space:nowrap">教練登入 ›</a></div>`;
       $("app").prepend(banner);
       $("mets").innerHTML = `
         <div class="met"><div class="v">HK$5,850</div><div class="l">💰 本月預計分成</div></div>
@@ -235,7 +237,7 @@
         <div class="k">今日焦點 · 下一堂</div>
         <h2>${NEXT.title}</h2>
         <div class="meta">🕒 15:00–16:30 ｜ 📍 ${NEXT.venue_name} · ${NEXT.district}</div>
-        <div class="pbar"><i style="width:75%"></i></div>
+        <div class="pbar"><i id="fp" style="width:75%"></i></div>
         <div class="cnt">已報 <b>6</b> / 8 人</div>
         <div class="acts">
           <button class="btn2" id="btnRoster">📋 展開學員名冊</button>
@@ -256,29 +258,46 @@
       $("fab").onclick = () => toast("示範模式：開班表單已停用");
     }
 
+    let DEMO_ROSTER = null;
     function demoRoster() {
-      const list = [
+      if (!DEMO_ROSTER) DEMO_ROSTER = [
         { id: "d1", name: "Alex Wong", group_size: 2, booking_status: "attended", phone: "91234567", checkin_code: "6192" },
         { id: "d2", name: "Sarah Chan", group_size: 1, booking_status: "attended", phone: "98765432", checkin_code: "3305" },
         { id: "d3", name: "Michael Lee", group_size: 2, booking_status: "confirmed", phone: "61234567", checkin_code: "8821" },
         { id: "d4", name: "Jason Lau", group_size: 1, booking_status: "confirmed", phone: "69876543", checkin_code: "4470" },
       ];
+      const list = DEMO_ROSTER;
+      const heads = list.reduce((s, x) => s + x.group_size, 0);
+      const done = list.filter((x) => x.booking_status === "attended").reduce((s, x) => s + x.group_size, 0);
       $("shTitle").textContent = "學員名冊（示範）";
       $("shBody").innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-          <div class="muted4">🎯 芬蘭木柱 · 15:00 · <b style="color:#34d399">2</b>/4 已到</div>
+          <div class="muted4">🎯 芬蘭木柱 · 15:00 · <b style="color:#34d399" id="dDone">${done}</b>/${heads} 已到</div>
           <button class="btnend" id="dSettle">🏁 下課結算</button></div>
         ${list.map((s) => `<div class="stu"><div class="l"><div class="av">${esc(s.name.slice(0,1))}</div>
           <div><div class="n">${esc(s.name)}${s.group_size > 1 ? ` <span class="muted4">+${s.group_size-1}</span>` : ""}</div>
             <div class="s">****${s.phone.slice(-4)} · 核銷碼 ${s.checkin_code}</div></div></div>
-          <button class="tog ${s.booking_status === "attended" ? "on" : ""}">${s.booking_status === "attended" ? "✅ 已出席" : "○ 簽到"}</button></div>`).join("")}`;
+          <button class="tog ${s.booking_status === "attended" ? "on" : ""}" data-datt="${s.id}" ${s.booking_status === "attended" ? "disabled" : ""}>${s.booking_status === "attended" ? "✅ 已出席" : "○ 簽到"}</button></div>`).join("")}`;
       $("mk").classList.add("on"); $("sh").classList.add("on");
+      $("shBody").querySelectorAll("[data-datt]").forEach((b) => (b.onclick = () => {
+        const row = DEMO_ROSTER.find((x) => x.id === b.dataset.datt);
+        if (!row) return;
+        row.booking_status = "attended";
+        buzz(); b.classList.add("on"); b.textContent = "✅ 已出席"; b.disabled = true;
+        const h = DEMO_ROSTER.reduce((s, x) => s + x.group_size, 0);
+        const d = DEMO_ROSTER.filter((x) => x.booking_status === "attended").reduce((s, x) => s + x.group_size, 0);
+        $("dDone").textContent = d;
+        NEXT.booked = d;
+        $("fp").style.width = Math.round((d / h) * 100) + "%";
+        $("focus").querySelector(".cnt").innerHTML = `已報 <b>${d}</b> / ${h} 人`;
+        toast("✅ 已簽到（示範）");
+      }));
       $("dSettle").onclick = () => demoSettle(list);
     }
 
     function demoSettle(list) {
       const attended = list.filter((x) => x.booking_status === "attended").reduce((s, x) => s + x.group_size, 0);
       const enrolled = list.reduce((s, x) => s + x.group_size, 0);
-      const price = 150, rate = 0.75;
+      const price = 150, rate = 0.7;
       const gross = attended * price, net = Math.round(gross * rate);
       $("stlTitle").textContent = "🎯 芬蘭木柱 Mölkky 週末體驗班（示範）";
       $("stlMeta").textContent = "今日 15:00–16:30 ｜ 觀塘室內運動場";
@@ -290,20 +309,19 @@
         </div>
         <div class="calcbox">
           <div class="crow"><span>課堂總學費（實到 × HK$150）</span><span>${hkd(gross)}</span></div>
-          <div class="crow"><span>平台及場地費（25%）</span><span class="slate">- ${hkd(gross - net)}</span></div>
+          <div class="crow"><span>平台及場地費（30%）</span><span class="slate">- ${hkd(gross - net)}</span></div>
           <div class="cdiv"></div>
-          <div class="ctotal"><span>教練本堂淨收益（75%）</span><b>${hkd(net)}</b></div>
+          <div class="ctotal"><span>教練本堂淨收益（70%）</span><b>${hkd(net)}</b></div>
         </div>
-        <div class="names"><b>📋 出席學員：</b><br>Alex Wong（2 位）、Sarah Chan（1 位）</div>
+        <div class="names"><b>📋 出席學員：</b><br>${esc(list.filter((x) => x.booking_status === "attended").map((x) => `${x.name}（${x.group_size} 位）`).join("、") || "無學員出席")}</div>
         <a class="bwa" href="https://wa.me/85290335538?text=${encodeURIComponent("（示範）課堂結算報表")}" target="_blank" rel="noopener">💬 一鍵發送結算單至 WhatsApp</a>
         <button class="barch" onclick="toast('示範模式：唔會真正封存')">✅ 確認結算並封存此課堂</button>`;
       $("stlMk").classList.add("on"); $("stl").classList.add("on");
     }
 
     (async () => {
-      const DEMO = new URLSearchParams(location.search).get("demo") === "1";
+      const DEMO = new URLSearchParams(location.search).get("demo") === "1" || !api.getUser();
       if (DEMO) { renderDemo(); return; }
-      if (!api.getUser()) { showGate(); return; }
       const me = await api.get("/users/me").catch(() => null);
       ME = (me && me.data && (me.data.user || me.data)) || api.getUser() || {};
       if (!Number(ME.is_coach) && !["admin", "super_admin", "coach"].includes(ME.role)) {

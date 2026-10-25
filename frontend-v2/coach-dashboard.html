@@ -112,6 +112,11 @@
 
     (async () => {
       if (!api.getUser()) {
+        // 未登入 → 直接示範模式（唔會讀真實資料）
+        location.replace("coach.html?demo=1");
+        return;
+      }
+      if (false) {
         const next = encodeURIComponent("coach-dashboard.html");
         $("guard").innerHTML = `<div class="card"><div class="body center" style="padding:24px 16px">
           <div style="font-size:38px">📅</div>
