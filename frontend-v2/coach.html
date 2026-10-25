@@ -76,7 +76,8 @@
           <div id="calSyncMenu" style="display:none;position:absolute;right:0;top:calc(100% + 6px);background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:0 10px 25px rgba(0,0,0,.15);padding:6px;min-width:230px;z-index:1000">
             <button class="btn btn-secondary" id="syncIcs" style="width:100%;text-align:left;justify-content:flex-start;border:0;background:none;margin-bottom:4px">🍏 Apple Calendar / Outlook (.ics)</button>
             <button class="btn btn-secondary" id="syncGcal" style="width:100%;text-align:left;justify-content:flex-start;border:0;background:none;margin-bottom:4px">🌐 Google Calendar</button>
-            <button class="btn btn-secondary" id="syncCsv" style="width:100%;text-align:left;justify-content:flex-start;border:0;background:none">📊 本月課堂 CSV（記賬用）</button>
+            <button class="btn btn-secondary" id="syncCsv" style="width:100%;text-align:left;justify-content:flex-start;border:0;background:none;margin-bottom:4px">📊 本月課堂 CSV（記賬用）</button>
+            <button class="btn btn-secondary" id="syncStmt" style="width:100%;text-align:left;justify-content:flex-start;border:0;background:none">🧾 月結對賬單（可列印 PDF）</button>
           </div>
         </div>
       </div>
@@ -413,6 +414,7 @@
     if (_btnIcs) _btnIcs.onclick = (e) => { e.stopPropagation(); _menu.style.display = _menu.style.display === "none" ? "block" : "none"; };
     document.addEventListener("click", () => { if (_menu) _menu.style.display = "none"; });
     const _si = $("syncIcs"); if (_si) _si.onclick = (e) => { e.stopPropagation(); _menu.style.display = "none"; downloadIcsAll(); };
+    const _stm = $("syncStmt"); if (_stm) _stm.onclick = (e) => { e.stopPropagation(); _menu.style.display = "none"; coachStatement(); };
     const _ct = $("btnCsvTop"); if (_ct) _ct.onclick = () => exportCsv();
     const _sc = $("syncCsv"); if (_sc) _sc.onclick = (e) => { e.stopPropagation(); _menu.style.display = "none"; exportCsv(); };
     const _sg = $("syncGcal"); if (_sg) _sg.onclick = (e) => {
@@ -424,6 +426,85 @@
     };
 
     /* 📊 本月 CSV 匯出 */
+    /* 🧾 月結對賬單（列印→儲存 PDF） */
+    function coachStatement() {
+      const y = CAL.y, m = CAL.m;
+      const rows = CAL_SESSIONS.filter((x) => {
+        const d = new Date(String(x.start_time).replace(" ", "T"));
+        return d.getFullYear() === y && d.getMonth() === m && x.status !== "cancelled";
+      });
+      if (!rows.length) { alert(`${y} 年 ${m + 1} 月暫無課堂`); return; }
+      const me = (api.getUser && api.getUser()) || {};
+      let heads = 0, gross = 0, net = 0, venue = 0, allSettled = true;
+      const lines = rows.map((x) => {
+        const booked = Number(x.booked) || 0;
+        const price = Number(x.price_hkd) || 0;
+        const g = booked * price;
+        const n = Math.round(g * 0.8);
+        const v = x.rental_price_per_hour ? Math.round((Number(x.duration) || 60) / 60 * Number(x.rental_price_per_hour)) : 0;
+        heads += booked; gross += g; net += n; venue += v;
+        if (!x.settled_at) allSettled = false;
+        return `<tr><td>${dayKey(x.start_time)}</td><td>${hhmm2(x.start_time)}–${hhmm2(x.end_time)}</td>
+          <td>${esc(x.title || "")}</td><td>${esc(x.venue_name || "")}</td>
+          <td style="text-align:right">${booked}</td><td style="text-align:right">${price}</td>
+          <td style="text-align:right">${g}</td><td style="text-align:right">${n}</td><td style="text-align:right">${v}</td></tr>`;
+      }).join("");
+      const codeId = String(me.id || "COACH").replace(/[^A-Za-z0-9]/g, "").slice(-4).toUpperCase() || "COACH";
+      const inv = `INV-${y}${String(m + 1).padStart(2, "0")}-${codeId}`;
+      const stamp = allSettled
+        ? '<div class="stamp paid">PAID 已結算</div>'
+        : '<div class="stamp pending">PENDING 待平賬</div>';
+      const html = `<!doctype html><html lang="zh-HK"><head><meta charset="utf-8"><title>${inv} 教練月結對賬單</title>
+<style>
+@page{size:A4;margin:14mm}
+body{font-family:"PingFang HK","Noto Sans TC",sans-serif;color:#0f172a;margin:0}
+.head{display:flex;justify-content:space-between;border-bottom:3px solid #ff6b35;padding-bottom:10px}
+.brand{font-size:12px;letter-spacing:2px;font-weight:800;color:#ff6b35}
+h1{font-size:20px;margin:6px 0 4px}
+.meta{font-size:11px;color:#475569;line-height:1.7;text-align:right}
+.stamp{position:absolute;right:24px;top:150px;border:3px solid;padding:6px 14px;border-radius:8px;font-weight:800;transform:rotate(-8deg);font-size:15px}
+.stamp.paid{color:#047857;border-color:#047857}
+.stamp.pending{color:#b45309;border-color:#b45309}
+table{width:100%;border-collapse:collapse;margin-top:14px;font-size:1.5mm}
+th,td{border-bottom:1px solid #e2e8f0;padding:6px 5px;font-size:11px}
+th{background:#f8fafc;text-align:left;font-size:10.5px;color:#475569}
+tr:last-child td{border-bottom:0}
+.tot{margin-top:12px;margin-left:auto;width:58%;font-size:12px}
+.tot div{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px dashed #cbd5e1}
+.tot .big{font-weight:800;font-size:14px;color:#047857;border:0}
+.foot{margin-top:18px;border-top:1px dashed #cbd5e1;padding-top:8px;font-size:10px;color:#64748b;display:flex;justify-content:space-between}
+</style></head><body>
+<div class="head">
+  <div>
+    <div class="brand">ZENPASS 禪流</div>
+    <h1>教練月結對賬單</h1>
+    <div style="font-size:11px;color:#475569">結算期：${y} 年 ${m + 1} 月 · 共 ${rows.length} 堂</div>
+  </div>
+  <div class="meta">
+    單據編號：${inv}<br>發出日期：${new Date().toISOString().slice(0, 10)}<br>
+    香港康樂及體育有限公司<br>Hong Kong Recreation and Sports Ltd.<br>2387 0724 · support@zenpass.hk
+  </div>
+</div>
+${stamp}
+<div style="margin-top:12px;font-size:12px">教練：<b>${esc(me.name || "—")}</b>　電郵：${esc(me.email || "")}</div>
+<table>
+<thead><tr><th>日期</th><th>時間</th><th>課堂</th><th>場地</th><th style="text-align:right">人數</th><th style="text-align:right">單價</th><th style="text-align:right">學費</th><th style="text-align:right">教練 80%</th><th style="text-align:right">場地費</th></tr></thead>
+<tbody>${lines}</tbody></table>
+<div class="tot">
+  <div><span>總學員人次</span><span>${heads} 人</span></div>
+  <div><span>學費總額</span><span>HK$${gross.toLocaleString()}</span></div>
+  <div><span>平台服務費（20%）</span><span>- HK$${(gross - net).toLocaleString()}</span></div>
+  <div><span>場地費（代收／自付）</span><span>HK$${venue.toLocaleString()}</span></div>
+  <div class="big"><span>教練應收</span><span>HK$${net.toLocaleString()}</span></div>
+</div>
+<div class="foot"><span>此單據由 ZenPass 系統自動生成，可作記賬用途。</span><span>zenpass.hk</span></div>
+</body></html>`;
+      const w = window.open("", "_blank");
+      if (!w) { alert("請允許彈出視窗以列印對賬單"); return; }
+      w.document.open(); w.document.write(html); w.document.close();
+      setTimeout(() => { try { w.focus(); w.print(); } catch (e) {} }, 500);
+    }
+
     function exportCsv() {
       const y = CAL.y, m = CAL.m; // 以「當前瀏覽月份」為準
       const rows = CAL_SESSIONS.filter((x) => {
