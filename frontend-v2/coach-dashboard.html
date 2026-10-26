@@ -822,7 +822,7 @@ ${stamp}
           if (!code) throw new Error((rr.data && rr.data.error) || "發證失敗");
           const link = location.origin + "/verify.html?cert=" + encodeURIComponent(code);
           const p8 = String(b.dataset.phone || "").replace(/\D/g, "").slice(-8);
-          const msg = `🎉 恭喜 ${b.dataset.name || "你"} 完成「${sch.title || ""}」！\n你的 ZenPass 完課證書已發出（編號 ${code}），可喺「我的 → 我的完課證書」下載／分享。\n驗證連結：${link}`;
+          const msg = `🎉 恭喜 ${b.dataset.name || "你"} 完成「${sch.title || ""}」！\n你的 ZenPass 修業證書已發出（編號 ${code}），可喺「我的 → 我的完課證書」下載／分享。\n驗證連結：${link}`;
           if (p8.length === 8) window.open("https://wa.me/852" + p8 + "?text=" + encodeURIComponent(msg), "_blank");
           else { try { await navigator.clipboard.writeText(msg); toast("✅ 已複製恭賀訊息"); } catch (e) { prompt("複製恭賀訊息：", msg); } }
           b.textContent = "✅";
