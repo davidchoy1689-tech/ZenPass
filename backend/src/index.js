@@ -283,6 +283,7 @@ app.use("/api/migrate", require("./routes/migrate"));
 app.use("/api/points", require("./routes/points"));
 app.use("/api/consultations", require("./routes/consultations"));
 app.use("/api/badges", require("./routes/badges"));
+app.use("/api/certificates", require("./routes/certificates"));
 app.use("/api/crm", require("./routes/crm"));
 app.use("/api/locations", require("./routes/pos"));
 app.use("/api/pos", require("./routes/pos"));

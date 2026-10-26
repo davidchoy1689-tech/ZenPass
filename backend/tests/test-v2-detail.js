@@ -62,7 +62,7 @@ has("c.facilities", "facility from API data");
 has("預約流程", "flow section");
 has('class="dt-sticky"', "sticky cta");
 has('id="bookBtn"', "book button");
-has("選擇時段並預約", "bar cta");
+has("立即報名留位", "bar cta");
 has('id="sheet"', "sheet drawer");
 has("function openSheet", "sheet open");
 has("function renderSessions", "sessions render");

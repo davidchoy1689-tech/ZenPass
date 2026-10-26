@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#064E3B" />
+  <meta name="robots" content="noindex" />
+  <title>我的完課證書 · ZenPass 禪流</title>
+  <link rel="stylesheet" href="assets/v2.css?v=27" />
+  <link rel="stylesheet" href="assets/polish.css?v=1" />
+  <link rel="stylesheet" href="assets/ui-v3.css?v=5" />
+  <style>
+    .cert-hero{background:linear-gradient(135deg,#0B132B,#064E3B);color:#fff;border-radius:18px;padding:18px;margin-bottom:12px}
+    .cert-hero h1{font-size:19px;margin:0 0 4px}
+    .cert-hero p{font-size:12.5px;color:#CBD5E1;margin:0}
+    .cert-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}
+    .cert-kpi{background:rgba(255,255,255,.08);border:1px solid rgba(245,158,11,.3);border-radius:12px;padding:10px;text-align:center}
+    .cert-kpi b{display:block;font-size:19px;color:#FCD34D}
+    .cert-kpi span{font-size:10.5px;color:#CBD5E1}
+    .cert-item{display:flex;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--border);cursor:pointer}
+    .cert-item:last-child{border-bottom:0}
+    .cert-ic{width:52px;height:52px;border-radius:14px;background:linear-gradient(135deg,#0B132B,#064E3B);display:flex;align-items:center;justify-content:center;font-size:24px;flex:none}
+    .cert-tx{flex:1;min-width:0}
+    .cert-tx b{display:block;font-size:14px}
+    .cert-tx .s{font-size:11.5px;color:var(--text-muted);margin-top:2px}
+    .cert-lv{display:inline-block;font-size:10.5px;font-weight:800;color:#b45309;background:#fef3c7;border-radius:999px;padding:2px 8px;margin-top:4px}
+    .cert-mask{position:fixed;inset:0;background:rgba(4,10,20,.9);z-index:9999;display:none;align-items:center;justify-content:center;padding:12px}
+    .cert-mask.on{display:flex}
+    .cert-box{max-width:440px;width:100%;max-height:94vh;overflow:auto;background:#0B132B;border-radius:16px;padding:12px}
+    .cert-box img{width:100%;border-radius:10px;display:block}
+  </style>
+</head>
+<body>
+  <div class="topbar"><a class="back" href="my.html">‹</a><div class="title">我的完課證書</div></div>
+  <div class="wrap">
+    <div id="guard"></div>
+    <div id="app" hidden>
+      <div class="cert-hero">
+        <h1>🏆 你的 ZenPass 學習履歷</h1>
+        <p>每張證書都有獨立防偽編號，可公開驗證，適合升學 Portfolio 及課外活動時數存證。</p>
+        <div class="cert-kpis">
+          <div class="cert-kpi"><b id="kCerts">—</b><span>證書</span></div>
+          <div class="cert-kpi"><b id="kHours">—</b><span>累計時數</span></div>
+          <div class="cert-kpi"><b id="kSports">—</b><span>運動項目</span></div>
+        </div>
+      </div>
+      <div class="card"><div class="body" id="list"><div class="muted center">載入中…</div></div></div>
+      <p class="muted center" style="font-size:11.5px;margin-top:14px;line-height:1.6">完成課堂簽到後證書會自動發出。<br>如已完課但未見證書，請 WhatsApp 9033 5538。</p>
+      <div class="spacer"></div>
+    </div>
+  </div>
+
+  <div class="cert-mask" id="mask">
+    <div class="cert-box">
+      <img id="bigImg" alt="證書預覽" />
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">
+        <button class="btn btn-primary" id="dlHi" type="button">📥 下載高清</button>
+        <button class="btn btn-secondary" id="shareBtn" type="button">🎨 分享</button>
+        <button class="btn btn-secondary" id="copyLink" type="button" style="grid-column:span 2">🔗 複製驗證連結</button>
+      </div>
+      <button class="btn btn-secondary" id="closeBtn" type="button" style="margin-top:8px;width:100%">關閉</button>
+    </div>
+  </div>
+
+  <script src="assets/api.js?v=3"></script>
+  <script src="assets/certificate.js?v=1"></script>
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    const EMOJI = { MOLKKY: "🎯", CURLING: "🥌", CORNHOLE: "🫘", AIRSTORM: "🏹", NORDIC: "🥾", ROUNDNET: "🕸️", ROULIQIU: "🏓", FLEXIBAR: "💪", STRETCH: "🧘" };
+    let CERTS = [], CURRENT = null;
+
+    function sportCodeOf(c) {
+      const s = String(c.sport || "").toLowerCase();
+      if (s.includes("木柱") || s.includes("molkky")) return "MOLKKY";
+      if (s.includes("冰壺") || s.includes("curling")) return "CURLING";
+      if (s.includes("伸展") || s.includes("瑜伽") || s.includes("stretch")) return "STRETCH";
+      return (String(c.code || "").split("-")[2] || "SPORT").toUpperCase();
+    }
+    function fmtDate(t) {
+      const d = new Date(String(t || "").replace(" ", "T") + (/Z$|[+-]\d\d:?\d\d$/.test(String(t || "")) ? "" : "Z"));
+      return isNaN(d.getTime()) ? String(t || "") : d.toLocaleDateString("zh-HK", { year: "numeric", month: "2-digit", day: "2-digit" });
+    }
+
+    (async () => {
+      if (!api.getUser()) {
+        $("guard").innerHTML = `<div class="card"><div class="body center" style="padding:24px 16px">
+          <div style="font-size:34px">🏆</div><b style="display:block;margin-top:6px">登入後查看你的證書</b>
+          <div style="margin-top:14px"><a class="btn btn-primary" href="login.html?next=certificates.html">🔑 登入</a></div></div></div>`;
+        return;
+      }
+      $("app").hidden = false;
+      await load();
+    })();
+
+    async function load() {
+      const r = await api.get("/certificates/my");
+      if (!r.ok) {
+        $("list").innerHTML = `<div class="muted">${esc((r.data && r.data.error) || "讀取失敗")}</div>`;
+        return;
+      }
+      CERTS = (r.data && r.data.certificates) || [];
+      const s = (r.data && r.data.summary) || {};
+      $("kCerts").textContent = s.certs || 0;
+      $("kHours").textContent = (Number(s.hours) || 0).toFixed(1);
+      $("kSports").textContent = s.sports || 0;
+      if (!CERTS.length) {
+        $("list").innerHTML = `<div class="muted center" style="padding:18px 0">未有證書。完成課堂並簽到後，證書會自動出現。</div>`;
+        return;
+      }
+      $("list").innerHTML = CERTS.map((c, i) => {
+        const code = sportCodeOf(c);
+        return `<div class="cert-item" data-i="${i}">
+          <div class="cert-ic">${EMOJI[code] || "🏅"}</div>
+          <div class="cert-tx">
+            <b>${esc(c.class_title || "課堂")}</b>
+            <div class="s">${esc(fmtDate(c.issued_at))} · ${(Number(c.hours) || 0).toFixed(1)} 小時 · ${esc(c.code)}</div>
+            <span class="cert-lv">${esc(c.level_label || "Level 1")}</span>
+          </div>
+          <span class="muted">›</span>
+        </div>`;
+      }).join("");
+      $("list").querySelectorAll("[data-i]").forEach((el) => (el.onclick = () => preview(CERTS[Number(el.dataset.i)])));
+    }
+
+    async function preview(c) {
+      CURRENT = c;
+      const code = sportCodeOf(c);
+      const verifyUrl = location.origin + "/verify.html?cert=" + encodeURIComponent(c.code);
+      $("mask").classList.add("on");
+      $("bigImg").src = "";
+      $("bigImg").alt = "生成中…";
+      const out = await window.zpMakeCertificate({
+        studentName: c.student_name,
+        classTitle: c.class_title,
+        levelLabel: c.level_label,
+        hours: c.hours,
+        coachName: c.coach_name,
+        coachStarred: Number(c.coach_starred) === 1,
+        dateStr: fmtDate(c.issued_at),
+        serial: c.code,
+        verifyUrl,
+        sportCode: code,
+        scale: 1,
+      });
+      CURRENT.__render = { verifyUrl, sportCode: code };
+      $("bigImg").src = out.dataUrl;
+    }
+
+    async function renderHi() {
+      const c = CURRENT;
+      const out = await window.zpMakeCertificate({
+        studentName: c.student_name,
+        classTitle: c.class_title,
+        levelLabel: c.level_label,
+        hours: c.hours,
+        coachName: c.coach_name,
+        coachStarred: Number(c.coach_starred) === 1,
+        dateStr: fmtDate(c.issued_at),
+        serial: c.code,
+        verifyUrl: c.__render.verifyUrl,
+        sportCode: c.__render.sportCode,
+        scale: 2,
+      });
+      return out;
+    }
+
+    $("closeBtn").onclick = () => $("mask").classList.remove("on");
+    $("mask").onclick = (e) => { if (e.target === $("mask")) $("mask").classList.remove("on"); };
+
+    $("dlHi").onclick = async () => {
+      if (!CURRENT) return;
+      $("dlHi").textContent = "⏳ 生成中…";
+      try {
+        const out = await renderHi();
+        const a = document.createElement("a");
+        a.href = out.dataUrl;
+        a.download = out.filename;
+        document.body.appendChild(a); a.click(); a.remove();
+      } catch (e) { alert("下載失敗：" + e.message); }
+      $("dlHi").textContent = "📥 下載高清";
+    };
+
+    $("shareBtn").onclick = async () => {
+      if (!CURRENT) return;
+      const url = CURRENT.__render.verifyUrl;
+      const text = `我完成咗 ZenPass「${CURRENT.class_title}」，攞到 ${CURRENT.level_label}（${(Number(CURRENT.hours) || 0).toFixed(1)} 小時認證）🎉 可驗證證書：`;
+      try {
+        const out = await renderHi();
+        const file = new File([out.blob], out.filename, { type: "image/jpeg" });
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          await navigator.share({ files: [file], title: "ZenPass 完課證書", text });
+          return;
+        }
+      } catch (e) {}
+      if (navigator.share) { try { await navigator.share({ title: "ZenPass 完課證書", text, url }); return; } catch (e) {} }
+      try { await navigator.clipboard.writeText(text + " " + url); alert("已複製分享文字，可貼去 WhatsApp／IG"); }
+      catch (e) { prompt("複製分享內容：", text + " " + url); }
+    };
+
+    $("copyLink").onclick = async () => {
+      if (!CURRENT) return;
+      const url = CURRENT.__render.verifyUrl;
+      try { await navigator.clipboard.writeText(url); $("copyLink").textContent = "✅ 已複製驗證連結"; }
+      catch (e) { prompt("複製連結：", url); }
+      setTimeout(() => { $("copyLink").textContent = "🔗 複製驗證連結"; }, 1800);
+    };
+  </script>
+  <script src="assets/footer.js?v=4" defer></script>
+</body>
+</html>

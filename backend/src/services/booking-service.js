@@ -1803,6 +1803,14 @@ function attendBooking(req) {
       const { syncCoachEarningsForSchedule } = require("../routes/coach-earnings");
       syncCoachEarningsForSchedule(bookingData.schedule_id);
     } catch (e) {}
+
+    // 🎓 完課電子證書：簽到即自動發證（idempotent；失敗唔影響簽到）
+    try {
+      const certSvc = require("./certificate-service");
+      certSvc.issueForBooking(req.params.id);
+    } catch (certErr) {
+      console.error("⚠️ 證書發證失敗:", certErr.message);
+    }
   }
 
   // Audit + Blockchain

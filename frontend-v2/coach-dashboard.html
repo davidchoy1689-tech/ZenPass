@@ -799,6 +799,7 @@ ${stamp}
                 ${isChild && s.emergency_phone ? ` · ☎️ <a href="tel:${esc(s.emergency_phone)}" style="color:var(--brand-600);font-weight:700">${esc(s.emergency_phone)}</a>` : ""}
                 ${isChild && s.medical_notes ? ` · ⚠️ ${esc(s.medical_notes)}` : ""}</div></div>
             <span style="display:flex;gap:6px;align-items:center">
+              ${done ? `<button class="btn btn-secondary" style="min-height:36px;padding:0 10px;font-size:13px" data-cert="${esc(s.id)}" data-phone="${esc(s.phone || "")}" data-name="${esc(s.name || "")}">🏆</button>` : ""}
               ${s.phone ? `<a class="btn btn-secondary" style="min-height:36px;padding:0 10px;font-size:13px;text-decoration:none;background:#25d366;color:#04331c;border-color:#25d366" target="_blank" rel="noopener" href="https://wa.me/852${esc(String(s.phone).replace(/\D/g, "").slice(-8))}?text=${encodeURIComponent("你好 " + (s.name || "") + "，提醒你 " + fmt(sch.start_time) + " 嘅「" + (sch.title || "") + "」，核銷碼 " + (s.checkin_code || "") + "。詳情：" + guide)}">💬</a>` : ""}
               ${done ? '<span class="badge2 b-on">已簽到</span>' : `<button class="btn btn-primary" style="min-height:36px;padding:0 12px;font-size:13px" data-attend="${esc(s.id)}">簽到</button>`}
             </span>
@@ -812,6 +813,21 @@ ${stamp}
           setTimeout(() => { cg.textContent = "📋 複製課前指引"; }, 1600);
         } catch (e) { prompt("複製以下指引：", guide); }
       };
+      // 🏆 完課證書：發證並 WhatsApp 恭喜（教練一鍵）
+      $("shBody").querySelectorAll("[data-cert]").forEach((b) => (b.onclick = async () => {
+        b.disabled = true; b.textContent = "⏳";
+        try {
+          const rr = await api.post("/certificates/" + encodeURIComponent(b.dataset.cert) + "/issue", {});
+          const code = rr.ok && rr.data && rr.data.certificate && rr.data.certificate.code;
+          if (!code) throw new Error((rr.data && rr.data.error) || "發證失敗");
+          const link = location.origin + "/verify.html?cert=" + encodeURIComponent(code);
+          const p8 = String(b.dataset.phone || "").replace(/\D/g, "").slice(-8);
+          const msg = `🎉 恭喜 ${b.dataset.name || "你"} 完成「${sch.title || ""}」！\n你的 ZenPass 完課證書已發出（編號 ${code}），可喺「我的 → 我的完課證書」下載／分享。\n驗證連結：${link}`;
+          if (p8.length === 8) window.open("https://wa.me/852" + p8 + "?text=" + encodeURIComponent(msg), "_blank");
+          else { try { await navigator.clipboard.writeText(msg); toast("✅ 已複製恭賀訊息"); } catch (e) { prompt("複製恭賀訊息：", msg); } }
+          b.textContent = "✅";
+        } catch (e) { b.disabled = false; b.textContent = "🏆"; alert(e.message || "發證失敗"); }
+      }));
       $("shBody").querySelectorAll("[data-attend]").forEach((b) => (b.onclick = async () => {
         b.disabled = true;
         const rr = await api.post("/bookings/" + encodeURIComponent(b.dataset.attend) + "/attend", { checkin_method: "coach" });
