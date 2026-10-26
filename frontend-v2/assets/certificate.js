@@ -13,17 +13,6 @@
   const F = "-apple-system,'PingFang HK','Noto Sans TC','Microsoft JhengHei',sans-serif";
   const SERIF = "'Times New Roman','Songti SC','Noto Serif TC',Georgia,serif";
 
-  const ICON_FILE = {
-    MOLKKY: "moelkkyla",
-    CURLING: "floor-curling",
-    CORNHOLE: "cornhole",
-    AIRSTORM: "air-storm",
-    NORDIC: "nordic-walking",
-    ROUNDNET: "roundnet",
-    ROULIQIU: "rouliqiu",
-    FLEXIBAR: "flexi-bar",
-    STRETCH: "stretching",
-  };
 
   function loadImage(src) {
     return new Promise((res) => {
@@ -125,25 +114,21 @@
     ctx.beginPath(); ctx.arc(cx, cy, R - 13, 0, Math.PI * 2);
     ctx.strokeStyle = "rgba(201,162,39,.4)"; ctx.lineWidth = 1.2; ctx.stroke();
 
-    const iconName = ICON_FILE[String(d.sportCode || "").toUpperCase()];
-    let drawn = false;
-    if (iconName) {
-      const img = await loadImage("/assets/icons/sports-white/" + iconName + ".svg");
-      if (img) {
-        const box = 132;
-        ctx.save();
-        ctx.globalAlpha = 0.95;
-        ctx.drawImage(img, cx - box / 2, cy - box / 2, box, box);
-        ctx.restore();
-        drawn = true;
-      }
-    }
-    if (!drawn) {
-      ctx.textAlign = "center"; ctx.textBaseline = "middle";
-      ctx.fillStyle = GOLD_LIGHT; ctx.font = "600 62px " + SERIF;
-      ctx.fillText("ZP", cx, cy + 2);
-      ctx.textBaseline = "alphabetic"; ctx.textAlign = "left";
-    }
+    /* 統一 ZP 字標（品牌一致性：所有證書同一個標記） */
+    const goldGrad = ctx.createLinearGradient(cx - 60, cy - 60, cx + 60, cy + 60);
+    goldGrad.addColorStop(0, "#F3E3A8");
+    goldGrad.addColorStop(0.5, "#C9A227");
+    goldGrad.addColorStop(1, "#E8CE7A");
+    ctx.textAlign = "left";           // letterspaced() 自行置中；用 center 會令每字再偏移
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = goldGrad;
+    ctx.font = "700 96px " + SERIF;
+    letterspaced(ctx, "ZP", cx, cy + 4, 6, "center");
+    // 字標下細線
+    ctx.strokeStyle = "rgba(201,162,39,.55)";
+    ctx.lineWidth = 1.4;
+    ctx.beginPath(); ctx.moveTo(cx - 34, cy + 62); ctx.lineTo(cx + 34, cy + 62); ctx.stroke();
+    ctx.textBaseline = "alphabetic"; ctx.textAlign = "left";
 
     /* 等級 */
     ctx.textAlign = "center";
