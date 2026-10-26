@@ -255,6 +255,7 @@
       <div class="card guest-box hide" id="guestBox"><div class="body">
         <div class="guest-title">⚡ 快速預約（免註冊）</div>
         <div class="muted" style="font-size:12.5px;line-height:1.5">只需姓名同 WhatsApp 電話，即刻完成預約，唔使設密碼。</div>
+        <div id="autoFillHint" class="muted" style="display:none;font-size:11.5px;color:#047857;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:10px;padding:6px 9px;margin:0 0 8px">⚡ 已為你自動填入上次聯絡資料</div>
         <input id="gName" placeholder="你的姓名" autocomplete="name" maxlength="40" />
         <input id="gPhone" placeholder="WhatsApp 電話（8 位數字）" inputmode="numeric" autocomplete="tel" maxlength="20" />
         <div class="guest-hint">📱 請確保號碼正確，客服／教練會用呢個號碼聯絡你確認預約。<br/>已有帳號？<a href="login.html?next=booking.html">登入後可用 Pass 點數</a></div>
@@ -578,6 +579,24 @@
         single.checked = true;
         document.querySelectorAll("#pmList .pm-card").forEach((c) => c.classList.toggle("on", c.dataset.pmCard === "single"));
       }
+      restoreContact();
+    }
+
+    /* ⚡ 聯絡資料本地記憶（只存姓名＋電話，唔存身份證等敏感資料） */
+    const CONTACT_KEY = "zenpass_user_contact";
+    function restoreContact() {
+      try {
+        const c = JSON.parse(localStorage.getItem(CONTACT_KEY) || "null");
+        if (!c) return;
+        let filled = false;
+        if ($("gName") && !$("gName").value && c.name) { $("gName").value = c.name; filled = true; }
+        if ($("gPhone") && !$("gPhone").value && c.phone) { $("gPhone").value = c.phone; filled = true; }
+        const hint = $("autoFillHint");
+        if (hint && filled) hint.style.display = "";
+      } catch (e) {}
+    }
+    function saveContact(name, phone) {
+      try { localStorage.setItem(CONTACT_KEY, JSON.stringify({ name, phone, at: Date.now() })); } catch (e) {}
     }
     function guestFormValues() {
       const name = ($("gName") ? $("gName").value : "").trim();
@@ -779,6 +798,7 @@
         if (gr.ok && gr.data && gr.data.success) {
           guestToken = gr.data.token; guestInfo = gr.data.user;
           try { localStorage.setItem("zp_guest_token", guestToken); } catch (e) {}
+          saveContact(name, phone);
           const list = gr.data.bookings || [];
           guestBookings = list;
           const ids = list.map(b => b.id);
@@ -1044,6 +1064,7 @@
           <p class="muted" style="font-size:13px;margin:0 0 6px">請用「轉數快 FPS」轉賬至：</p>
           <div class="pay-acct"><span><b>741-293856-838</b><br/><span class="muted" style="font-size:11.5px">HSBC · 收款：ZenPass</span></span>
             <button type="button" data-copy="741293856838">📋 複製</button></div>
+          <div id="copyHint" class="muted" style="display:none;font-size:11.5px;color:#047857;margin:6px 2px 0">✅ 已複製，切去你嘅銀行 App（HSBC／中銀／恒生／PayMe）貼上即可。</div>
           <div style="height:10px"></div>
           ${refBox}
           ${input}<div style="height:10px"></div>
@@ -1102,7 +1123,11 @@
       document.querySelectorAll("[data-copy]").forEach((b) => b.onclick = () => copyText(b.dataset.copy, b));
     }
     function copyText(txt, btn) {
-      const done = () => { const old = btn.textContent; btn.textContent = "✅ 已複製"; setTimeout(() => { btn.textContent = old; }, 1600); };
+      const done = () => {
+        const old = btn.textContent; btn.textContent = "✅ 已複製";
+        const hint = $("copyHint"); if (hint) hint.style.display = "";
+        setTimeout(() => { btn.textContent = old; }, 1600);
+      };
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(txt).then(done).catch(() => fallbackCopy(txt, done));
       } else fallbackCopy(txt, done);
