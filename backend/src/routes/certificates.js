@@ -26,6 +26,22 @@ router.get("/my", authenticateToken, (req, res) => {
 });
 
 // ===== 公開驗證（無需登入）=====
+// ===== 示範證書（管理員預覽，隔離真實訂單）=====
+router.post("/demo", authenticateToken, (req, res) => {
+  try {
+    const db = getDb();
+    const me = db.prepare("SELECT role FROM users WHERE id = ?").get(req.user.id) || {};
+    if (!["admin", "super_admin", "platform_manager"].includes(me.role)) {
+      return res.status(403).json({ success: false, error: "只限管理員預覽" });
+    }
+    const cert = svc.createDemo(req.body || {});
+    res.json({ success: true, demo: true, certificate: cert });
+  } catch (err) {
+    console.error("示範證書失敗:", err);
+    res.status(500).json({ success: false, error: "示範證書生成失敗" });
+  }
+});
+
 router.get("/verify/:code", (req, res) => {
   try {
     const c = svc.getByCode(req.params.code);
@@ -40,6 +56,7 @@ router.get("/verify/:code", (req, res) => {
       valid: true,
       certificate: {
         code: c.code,
+        is_demo: Number(c.is_demo) === 1,
         student_name: c.student_name,
         class_title: c.class_title,
         level: c.level,

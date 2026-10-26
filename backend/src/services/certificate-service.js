@@ -40,6 +40,13 @@ function ensureSchema(db) {
     CREATE INDEX IF NOT EXISTS idx_certificates_user ON certificates(user_id);
     CREATE INDEX IF NOT EXISTS idx_certificates_code ON certificates(code);
   `);
+  // 示範證書標記（2026-10-27）：唔碰真實訂單，獨立可辨識
+  try {
+    const cols = db.prepare("PRAGMA table_info(certificates)").all().map((c) => c.name);
+    if (!cols.includes("is_demo")) {
+      db.exec("ALTER TABLE certificates ADD COLUMN is_demo INTEGER DEFAULT 0");
+    }
+  } catch (e) {}
   _schemaReady.add(db);
 }
 
@@ -214,4 +221,36 @@ function getByCode(code) {
   return db.prepare("SELECT * FROM certificates WHERE code = ?").get(String(code || "").trim());
 }
 
-module.exports = { ensureSchema, issueForBooking, listForUser, summaryForUser, getByCode, sportCode, levelFor };
+/**
+ * 示範證書（只限管理員預覽用）
+ * booking_id = 'demo-<uuid>' 隔離，唔會出現在學員帳戶，亦唔會計入出席／結算統計。
+ */
+function createDemo(opts) {
+  const db = getDb();
+  ensureSchema(db);
+  const o = opts || {};
+  const code =
+    "ZP-DEMO-" + sportCode(o.sportSlug, o.sport, o.classTitle) + "-" +
+    crypto.randomBytes(3).toString("hex").toUpperCase();
+  const id = crypto.randomUUID();
+  db.prepare(
+    `INSERT INTO certificates
+      (id, code, booking_id, user_id, class_id, schedule_id, student_name, class_title,
+       sport, level, level_label, hours, coach_id, coach_name, coach_starred, issued_at, is_demo)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?, datetime('now'), 1)`,
+  ).run(
+    id, code, "demo-" + crypto.randomUUID(), "demo", null, null,
+    o.studentName || "示範學員 CHAN TAI MAN",
+    o.classTitle || "芬蘭木柱體驗班（週末首發）",
+    o.sport || "新興運動", 1,
+    o.levelLabel || "Level 1 · 新興運動初階探索者",
+    Number(o.hours) || 2, null,
+    o.coachName || "Sam Lee",
+    o.coachStarred === false ? 0 : 1,
+  );
+  return db.prepare("SELECT * FROM certificates WHERE id = ?").get(id);
+}
+
+module.exports = {
+  ensureSchema, issueForBooking, listForUser, summaryForUser, getByCode, createDemo, sportCode, levelFor,
+};
