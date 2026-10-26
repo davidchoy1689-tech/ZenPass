@@ -56,6 +56,14 @@
     return size;
   }
 
+  /** 只顯示正式課程名稱：去掉「（週末首發）」等推廣字眼 */
+  function cleanTitle(title) {
+    let t = String(title || "");
+    t = t.replace(/[（(][^）)]*(?:首發|週末)[^）)]*[）)]/g, " ");
+    t = t.replace(/(?:週末)?首發(?:班|課程)?/g, " ");
+    return t.replace(/\s{2,}/g, " ").trim();
+  }
+
   window.zpMakeCertificate = async function (d) {
     d = d || {};
     const W = 1080, H = 1920, S = Math.max(1, Math.min(Number(d.scale) || 1, 3));
@@ -154,9 +162,10 @@
     ctx.fillText("已完成下列課程，並達指定出席要求", W / 2, 1008);
 
     ctx.fillStyle = CREAM;
-    const titleSize = fitText(ctx, String(d.classTitle || ""), 860, 34, "600");
+    const certTitle = cleanTitle(d.classTitle) || String(d.classTitle || "");
+    const titleSize = fitText(ctx, certTitle, 860, 34, "600");
     ctx.font = "600 " + titleSize + "px " + F;
-    ctx.fillText(String(d.classTitle || ""), W / 2, 1062);
+    ctx.fillText(certTitle, W / 2, 1062);
     ctx.textAlign = "left";
 
     /* 資訊區 */

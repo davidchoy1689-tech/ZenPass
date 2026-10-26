@@ -89,6 +89,14 @@ function levelFor(count, emerging) {
   return { level: 1, label: "Level 1 · " + pre + "初階探索者" };
 }
 
+/** 證書只顯示正式課程名稱：去掉「（週末首發）」等推廣字眼 */
+function cleanClassTitle(title) {
+  let t = String(title || "");
+  t = t.replace(/[（(][^）)]*(?:首發|週末)[^）)]*[）)]/g, " ");
+  t = t.replace(/(?:週末)?首發(?:班|課程)?/g, " ");
+  return t.replace(/\s{2,}/g, " ").trim();
+}
+
 /**
  * 為一張已出席的 booking 發證（重複呼叫安全）
  * @returns {object|null} certificate row
@@ -165,7 +173,7 @@ function issueForBooking(bookingId) {
     class_id: row.class_id,
     schedule_id: row.schedule_id,
     student_name: row.attendee_type === "child" && row.child_name ? row.child_name : row.user_name || "學員",
-    class_title: row.class_title || "",
+    class_title: cleanClassTitle(row.class_title || ""),
     sport: sportKey,
     level: lv.level,
     level_label: lv.label,
@@ -260,7 +268,7 @@ function maybeIssueGraduation(db, row) {
      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?, datetime('now'), 'graduation')`,
   ).run(
     crypto.randomUUID(), code, key, row.user_id, row.class_id, row.schedule_id,
-    studentName, cls.title || "", sportKey, 2,
+    studentName, cleanClassTitle(cls.title || ""), sportKey, 2,
     `Level 2 · 中階進階者（全期 ${total} 堂結業）`, hours,
     cls.coach_id, coach.name || "", starred,
   );
@@ -282,7 +290,8 @@ function listForUser(userId) {
       `SELECT * FROM certificates WHERE user_id = ? AND COALESCE(revoked,0) = 0
        ORDER BY issued_at DESC`,
     )
-    .all(userId);
+    .all(userId)
+    .map((r) => ({ ...r, class_title: cleanClassTitle(r.class_title) }));
 }
 
 function summaryForUser(userId) {
@@ -338,7 +347,8 @@ function termProgressForUser(userId) {
 function getByCode(code) {
   const db = getDb();
   ensureSchema(db);
-  return db.prepare("SELECT * FROM certificates WHERE code = ?").get(String(code || "").trim());
+  const r = db.prepare("SELECT * FROM certificates WHERE code = ?").get(String(code || "").trim());
+  return r ? { ...r, class_title: cleanClassTitle(r.class_title) } : r;
 }
 
 /* ============ 🪪 教練發證資格閘門 ============ */
@@ -439,5 +449,5 @@ function createDemo(opts) {
 
 module.exports = {
   ensureSchema, issueForBooking, listForUser, summaryForUser, getByCode, createDemo,
-  sportCode, levelFor, issuerEligibility, parseQualified, termProgressForUser,
+  sportCode, levelFor, issuerEligibility, parseQualified, termProgressForUser, cleanClassTitle,
 };
