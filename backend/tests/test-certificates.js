@@ -104,7 +104,7 @@ function buildDb() {
   const grads = svc.listForUser("u1").filter((c) => c.cert_type === "graduation");
   ok(grads.length === 1, "已自動發 1 張結業證書");
   const g = grads[0];
-  ok(g && g.hours === 24, "結業認證時數 = 24 小時（12 × 2）");
+  ok(g && g.hours === 20, "結業認證時數 = 20 小時（實際出席 10 堂 × 2）");
   ok(g && /全期 12 堂結業/.test(g.level_label || ""), "證書標示全期 12 堂結業：" + (g && g.level_label));
   ok(g && g.level === 2, "等級晉升 Level 2");
   ok(!!svc.issueForBooking("bk10") && svc.listForUser("u1").filter((c) => c.cert_type === "graduation").length === 1, "結業證 idempotent（每班每學員一張）");
@@ -116,7 +116,7 @@ function buildDb() {
   ok(prog && prog.completed === true, "已達結業門檻標記 completed");
   const sum = svc.summaryForUser("u1");
   ok(sum.certs === 4, "證書總數正確（4 張：單堂 1 + 期制 session 2 + 結業 1）");
-  ok(sum.hours >= 24, "累計時數 ≥ 24（" + sum.hours + "）");
+  ok(sum.hours === 22, "累計時數 = 22（出席 10×2 + 單堂 2，唔重複計算結業證）");
 
   console.log("\n📋 5. 發證資格閘門");
   const okMolkky = svc.issuerEligibility("coach1", "molkky", "芬蘭木柱體驗班");

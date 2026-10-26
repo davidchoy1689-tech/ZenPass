@@ -239,7 +239,8 @@ function maybeIssueGraduation(db, row) {
   const exists = db.prepare("SELECT * FROM certificates WHERE booking_id = ?").get(key);
   if (exists) return exists;
 
-  const hours = Math.round((((Number(cls.duration) || 60) * total) / 60) * 10) / 10;
+  // 認證時數 = 實際出席堂數 × 每堂時長（唔用全期堂數，避免未上嘅堂都計時數）
+  const hours = Math.round((((Number(cls.duration) || 60) * Math.min(attended, total)) / 60) * 10) / 10;
   const sportKey = cls.sport_slug || cls.category || "";
   const code =
     "ZP-" + new Date().getFullYear() + "-" + sportCode(cls.sport_slug, cls.category, cls.title) +
@@ -299,12 +300,35 @@ function summaryForUser(userId) {
   ensureSchema(db);
   const s = db
     .prepare(
-      `SELECT COUNT(*) AS certs, COALESCE(SUM(hours),0) AS hours,
+      `SELECT COUNT(*) AS certs,
               COUNT(DISTINCT COALESCE(sport,'')) AS sports
        FROM certificates WHERE user_id = ? AND COALESCE(revoked,0) = 0`,
     )
     .get(userId);
-  return { certs: s.certs || 0, hours: Math.round((s.hours || 0) * 10) / 10, sports: s.sports || 0 };
+
+  // 累計時數以「實際出席」為單一真實來源（避免 session + graduation 證書重複相加）
+  let hours = 0;
+  try {
+    const h = db
+      .prepare(
+        `SELECT COALESCE(SUM(COALESCE(c.duration,60)),0) AS mins
+         FROM bookings b JOIN classes c ON c.id = b.class_id
+         WHERE b.user_id = ? AND b.status = 'attended'`,
+      )
+      .get(userId);
+    hours = Math.round(((Number(h.mins) || 0) / 60) * 10) / 10;
+  } catch (e) {
+    // 舊 DB fallback：用證書手數加總（僅排除重複計算嘅結業證）
+    const f = db
+      .prepare(
+        `SELECT COALESCE(SUM(hours),0) AS hours FROM certificates
+         WHERE user_id = ? AND COALESCE(revoked,0)=0 AND COALESCE(cert_type,'session') <> 'graduation'`,
+      )
+      .get(userId);
+    hours = Math.round((f.hours || 0) * 10) / 10;
+  }
+
+  return { certs: s.certs || 0, hours, sports: s.sports || 0 };
 }
 
 /** 進行中／已完成期制課程進度 */

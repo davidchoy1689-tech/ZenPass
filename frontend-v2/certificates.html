@@ -114,7 +114,7 @@
           <div class="cert-ic">${EMOJI[code] || "🏅"}</div>
           <div class="cert-tx">
             <b>${esc(c.class_title || "課堂")}</b>
-            <div class="s">${esc(fmtDate(c.issued_at))} · ${(Number(c.hours) || 0).toFixed(1)} 小時 · ${esc(c.code)}</div>
+            <div class="s">${c.cert_type === "graduation" ? "結業" : "單堂出席"} · ${esc(fmtDate(c.issued_at))} · ${(Number(c.hours) || 0).toFixed(1)} 小時 · ${esc(c.code)}</div>
             <span class="cert-lv">${esc(c.level_label || "Level 1")}</span>
           </div>
           <span class="muted">›</span>
