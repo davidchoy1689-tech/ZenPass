@@ -307,7 +307,8 @@ router.get("/featured", cache(30), (req, res) => {
           WHERE cs2.class_id = c.id AND cs2.status = 'available'
             AND cs2.start_time >= datetime('now')
         )
-      ORDER BY cs.start_time ASC
+      ORDER BY CASE WHEN strftime('%w', cs.start_time, '+8 hours') IN ('0','6') THEN 0 ELSE 1 END,
+               cs.start_time ASC
       LIMIT ?
     `,
       )
