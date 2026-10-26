@@ -239,8 +239,8 @@ function maybeIssueGraduation(db, row) {
   const exists = db.prepare("SELECT * FROM certificates WHERE booking_id = ?").get(key);
   if (exists) return exists;
 
-  // 認證時數 = 實際出席堂數 × 每堂時長（唔用全期堂數，避免未上嘅堂都計時數）
-  const hours = Math.round((((Number(cls.duration) || 60) * Math.min(attended, total)) / 60) * 10) / 10;
+  // 認證時數 = 全期堂數 × 每堂時長（達出席率門檻即按全期計算）
+  const hours = Math.round((((Number(cls.duration) || 60) * total) / 60) * 10) / 10;
   const sportKey = cls.sport_slug || cls.category || "";
   const code =
     "ZP-" + new Date().getFullYear() + "-" + sportCode(cls.sport_slug, cls.category, cls.title) +
@@ -306,17 +306,34 @@ function summaryForUser(userId) {
     )
     .get(userId);
 
-  // 累計時數以「實際出席」為單一真實來源（避免 session + graduation 證書重複相加）
+  // 累計時數：
+  // ・期制班已結業 → 按全期堂數計
+  // ・期制班未結業 → 按已出席堂數計
+  // ・單堂班 → 按出席堂數計
+  // （避免 session 證 + 結業證重複相加）
   let hours = 0;
   try {
-    const h = db
+    const rows = db
       .prepare(
-        `SELECT COALESCE(SUM(COALESCE(c.duration,60)),0) AS mins
-         FROM bookings b JOIN classes c ON c.id = b.class_id
-         WHERE b.user_id = ? AND b.status = 'attended'`,
+        `SELECT c.id, COALESCE(c.course_type,'single') AS ct,
+                COALESCE(c.total_sessions,1) AS total,
+                COALESCE(c.duration,60) AS dur,
+                (SELECT COUNT(*) FROM bookings b2
+                  WHERE b2.user_id = ? AND b2.class_id = c.id AND b2.status = 'attended') AS attended,
+                (SELECT COUNT(*) FROM certificates ce
+                  WHERE ce.user_id = ? AND ce.class_id = c.id
+                    AND ce.cert_type = 'graduation' AND COALESCE(ce.revoked,0) = 0) AS grad
+         FROM classes c
+         WHERE c.id IN (SELECT class_id FROM bookings WHERE user_id = ? AND status = 'attended')`,
       )
-      .get(userId);
-    hours = Math.round(((Number(h.mins) || 0) / 60) * 10) / 10;
+      .all(userId, userId, userId);
+    let mins = 0;
+    rows.forEach((r) => {
+      const isTerm = String(r.ct) === "term";
+      const sessions = isTerm && Number(r.grad) > 0 ? Number(r.total) : Number(r.attended);
+      mins += sessions * Number(r.dur);
+    });
+    hours = Math.round((mins / 60) * 10) / 10;
   } catch (e) {
     // 舊 DB fallback：用證書手數加總（僅排除重複計算嘅結業證）
     const f = db
