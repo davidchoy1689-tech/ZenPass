@@ -130,6 +130,34 @@ router.get("/admin/coach-credentials", authenticateToken, requireAdmin, (req, re
   }
 });
 
+// ===== 管理員：設定可發證運動項目（qualified_sports）=====
+router.post("/admin/coach-credentials/:id/qualified-sports", authenticateToken, requireAdmin, (req, res) => {
+  try {
+    const db = getDb();
+    ensureTable(db);
+    let raw = (req.body || {}).sports;
+    let list = [];
+    if (Array.isArray(raw)) list = raw;
+    else if (typeof raw === "string") list = raw.split(",");
+    list = list.map((x) => String(x).trim().toLowerCase()).filter(Boolean);
+    // 只接受已知項目 slug（防止亂寫）
+    const ALLOWED = ["molkky", "floor-curling", "cornhole", "air-storm", "nordic-walking", "roundnet", "rouliqiu", "flexi-bar", "stretch"];
+    const clean = [...new Set(list.filter((x) => ALLOWED.includes(x)))];
+    const r = db
+      .prepare("UPDATE coach_credentials SET qualified_sports = ?, updated_at = datetime('now') WHERE id = ?")
+      .run(clean.length ? JSON.stringify(clean) : null, req.params.id);
+    if (!r.changes) return res.status(404).json({ success: false, error: "記錄不存在" });
+    try {
+      const { writeBlock } = require("../services/blockchain-audit");
+      writeBlock({ entityType: "coach_credential_sports", entityId: req.params.id, data: { qualified_sports: clean, by: req.user.id } });
+    } catch (e) {}
+    res.json({ success: true, qualified_sports: clean, message: "已更新可發證項目" });
+  } catch (err) {
+    console.error("qualified sports error:", err.message);
+    res.status(500).json({ success: false, error: "更新失敗" });
+  }
+});
+
 // ===== 管理員審核 =====
 router.post("/admin/coach-credentials/:id/verify", authenticateToken, requireAdmin, (req, res) => {
   try {
@@ -143,6 +171,14 @@ router.post("/admin/coach-credentials/:id/verify", authenticateToken, requireAdm
       `UPDATE coach_credentials SET status=?, is_starred=?, reviewer_id=?, review_note=?, reviewed_at=datetime('now'), updated_at=datetime('now') WHERE id=?`,
     ).run(status, star, req.user.id, note || null, req.params.id);
     if (!r.changes) return res.status(404).json({ success: false, error: "記錄不存在" });
+    // 可同時設定可發證項目（審批時一次搞定）
+    if (Array.isArray((req.body || {}).sports)) {
+      const ALLOWED = ["molkky", "floor-curling", "cornhole", "air-storm", "nordic-walking", "roundnet", "rouliqiu", "flexi-bar", "stretch"];
+      const clean = [...new Set((req.body.sports || []).map((x) => String(x).trim().toLowerCase()).filter((x) => ALLOWED.includes(x)))];
+      db.prepare("UPDATE coach_credentials SET qualified_sports = ? WHERE id = ?").run(
+        clean.length ? JSON.stringify(clean) : null, req.params.id,
+      );
+    }
     try {
       const { writeBlock } = require("../services/blockchain-audit");
       writeBlock({ entityType: "coach_credential_review", entityId: req.params.id, data: { status, note, by: req.user.id } });

@@ -306,6 +306,13 @@
         if (x.insurance_policy_url) files.push(`<a class="btn btn-secondary" style="min-height:30px;padding:0 8px;font-size:11.5px;text-decoration:none" href="${esc(x.insurance_policy_url)}" target="_blank" rel="noopener">🛡️ 保單</a>`);
         else files.push('<span class="pill" style="background:#f1f5f9;color:#94a3b8">保單未上載</span>');
         const starBadge = Number(x.is_starred) === 1 && x.status === "verified" ? '<span class="pill" style="background:#fef3c7;color:#b45309">⭐ 星級</span>' : "";
+        // 🪪 可發證項目（qualified_sports）
+        let qs = [];
+        try { qs = JSON.parse(x.qualified_sports || "[]"); } catch (e) { qs = String(x.qualified_sports || "").split(",").filter(Boolean); }
+        const SPORTS = [["molkky","芬蘭木柱"],["floor-curling","地板冰壺"],["cornhole","布袋球"],["air-storm","穿雲箭"],["nordic-walking","北歐健走"],["roundnet","圓網球"],["rouliqiu","柔力球"],["flexi-bar","Flexi-Bar"],["stretch","身心伸展"]];
+        const sportChips = `<div style="flex:1 1 100%;margin-top:6px;font-size:11.5px;color:var(--text-muted)">🪪 可發證項目：
+          ${SPORTS.map(([k,l]) => `<button type="button" class="qs-chip" data-cv="${esc(x.id)}" data-sport="${k}" style="margin:2px 4px 0 0;padding:3px 9px;border-radius:999px;border:1px solid ${qs.includes(k) ? "#0f766e" : "var(--border)"};background:${qs.includes(k) ? "#ecfdf5" : "var(--surface)"};color:${qs.includes(k) ? "#047857" : "var(--text-muted)"};font-weight:700;cursor:pointer">${qs.includes(k) ? "✅ " : ""}${l}</button>`).join("")}
+        </div>`;
         return `<div class="row" style="flex-wrap:wrap"><span style="flex:1 1 100%"><b>${esc(x.name || x.email)}</b> ${starBadge}
         <span class="s">${esc(x.license_type || "")}${x.license_no ? " · " + esc(x.license_no) : ""}${x.license_expiry ? " · 到期 " + esc(x.license_expiry) : ""}
         ${x.first_aid_type ? " · 🚑 " + esc(x.first_aid_type) + (x.first_aid_expiry ? "（" + esc(x.first_aid_expiry) + "）" : "") : " · 無急救證書"}
@@ -315,8 +322,19 @@
         ${x.status !== "verified" ? `<button class="btn btn-primary" style="min-height:30px;padding:0 9px;font-size:11.5px" data-cv="${esc(x.id)}" data-d="approve" data-star="1">⭐ 核實並頒星級</button>` : ""}
         ${x.status === "verified" && Number(x.is_starred) !== 1 ? `<button class="btn btn-primary" style="min-height:30px;padding:0 9px;font-size:11.5px" data-cv="${esc(x.id)}" data-d="approve" data-star="1">⭐ 加星級</button>` : ""}
         ${x.status !== "rejected" ? `<button class="btn btn-secondary" style="min-height:30px;padding:0 9px;font-size:11.5px" data-cv="${esc(x.id)}" data-d="reject">拒絕</button>` : ""}
-        </span></div>`;
+        </span>${sportChips}</div>`;
       }).join("");
+      // 可發證項目：即時切換儲存
+      box.querySelectorAll(".qs-chip").forEach((b) => (b.onclick = async () => {
+        const row = rows.find((r) => String(r.id) === b.dataset.cv);
+        let cur = [];
+        try { cur = JSON.parse((row && row.qualified_sports) || "[]"); } catch (e) { cur = []; }
+        const k = b.dataset.sport;
+        cur = cur.includes(k) ? cur.filter((x) => x !== k) : cur.concat(k);
+        const rr = await api.post("/admin/coach-credentials/" + encodeURIComponent(b.dataset.cv) + "/qualified-sports", { sports: cur });
+        if (rr.ok) { toast("✅ 已更新可發證項目"); loadCredentials(); }
+        else alert((rr.data && rr.data.error) || "更新失敗");
+      }));
       box.querySelectorAll("[data-cv]").forEach((b) => (b.onclick = async () => {
         const note = b.dataset.d === "reject" ? (prompt("拒絕原因（例：保單已過期／證書模糊）") || "") : "";
         const star = b.dataset.star === "1";
