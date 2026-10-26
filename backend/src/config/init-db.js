@@ -265,6 +265,13 @@ CREATE TABLE IF NOT EXISTS users (
   // ===== 兼容升級：classes.district（按課程地區自動分區）=====
   try { db.exec("ALTER TABLE classes ADD COLUMN district TEXT"); } catch (e) { /* exists */ }
 
+  // ==== 多堂期制課程（2026-10-27）====
+  try { db.exec("ALTER TABLE classes ADD COLUMN course_type TEXT DEFAULT 'single'"); } catch (e) { /* exists */ }
+  try { db.exec("ALTER TABLE classes ADD COLUMN total_sessions INTEGER DEFAULT 1"); } catch (e) { /* exists */ }
+  try { db.exec("ALTER TABLE classes ADD COLUMN min_attendance_rate REAL DEFAULT 0.8"); } catch (e) { /* exists */ }
+  // 教練可發證項目（JSON array，例如 ["molkky","floor-curling"]）
+  try { db.exec("ALTER TABLE coach_credentials ADD COLUMN qualified_sports TEXT DEFAULT NULL"); } catch (e) { /* exists */ }
+
   // ===== 一次性修復：還原被 7 日歸檔規則誤隱藏嘅「未開放預約」課程 =====
   try {
     db.prepare("CREATE TABLE IF NOT EXISTS platform_settings (key TEXT PRIMARY KEY, value TEXT, description TEXT, created_at TEXT DEFAULT (datetime('now')), updated_at TEXT DEFAULT (datetime('now')))").run();
@@ -364,6 +371,13 @@ CREATE TABLE IF NOT EXISTS users (
     // 以 payment_reported_at + fps_reference/payme_reference 表達「已提交」。
     if (!cols.find((c) => c.name === "payment_reported_at")) {
       db.exec("ALTER TABLE bookings ADD COLUMN payment_reported_at TEXT DEFAULT NULL");
+    }
+    // 多堂期制課程（2026-10-27）：出席堂數／是否完成全期
+    if (!cols.find((c) => c.name === "sessions_attended")) {
+      db.exec("ALTER TABLE bookings ADD COLUMN sessions_attended INTEGER DEFAULT 0");
+    }
+    if (!cols.find((c) => c.name === "term_completed")) {
+      db.exec("ALTER TABLE bookings ADD COLUMN term_completed INTEGER DEFAULT 0");
     }
   } catch (e) {
     // ignore if table already exists

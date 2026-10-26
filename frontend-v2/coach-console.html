@@ -234,6 +234,17 @@
       const map = { pending: "⏳ 待核實", verified: "✅ 已核實", rejected: "❌ 已拒絕" };
       const expired = (c.license_expiry && c.license_expiry < new Date().toISOString().slice(0,10)) ? "（牌照已過期）" : "";
       st.innerHTML = `${map[c.status] || c.status}${expired} · ${esc(c.license_type || "")}${c.license_expiry ? " · 到期 " + esc(c.license_expiry) : ""}${c.first_aid_type ? " · 🚑 " + esc(c.first_aid_type) : ""}`;
+      // 🪪 發證資格（按項目）— 未具資格者無法為該項目發證書
+      (async () => {
+        try {
+          const is = await api.get("/certificates/issuer-status");
+          if (!is.ok || !is.data || !Array.isArray(is.data.sports)) return;
+          if (!is.data.sports.length) return;
+          st.innerHTML += `<div style="margin-top:6px;font-size:11.5px">🪪 發證資格：` +
+            is.data.sports.map((s) => `<span style="display:inline-block;margin:2px 4px 0 0;padding:2px 8px;border-radius:999px;background:${s.can_issue ? "#ecfdf5" : "#fff7ed"};color:${s.can_issue ? "#047857" : "#c2410c"};font-weight:700">${esc(s.sport)} ${s.can_issue ? "✅ 准予發證" : "🟡 " + esc(s.reason || "待補")}</span>`).join("") +
+            `</div>`;
+        } catch (e) {}
+      })();
       $("cdLicenseType").value = c.license_type || "";
       $("cdLicenseNo").value = c.license_no || "";
       $("cdLicenseExp").value = c.license_expiry || "";

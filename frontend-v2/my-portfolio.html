@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#064E3B" />
+  <meta name="robots" content="noindex" />
+  <title>學習履歷 Portfolio · ZenPass 禪流</title>
+  <link rel="stylesheet" href="assets/v2.css?v=27" />
+  <link rel="stylesheet" href="assets/polish.css?v=1" />
+  <link rel="stylesheet" href="assets/ui-v3.css?v=5" />
+  <style>
+    .pf-hero{background:linear-gradient(135deg,#0B132B,#064E3B);color:#fff;border-radius:18px;padding:18px;margin-bottom:12px}
+    .pf-hero h1{font-size:19px;margin:0}
+    .pf-hero p{font-size:12.5px;color:#CBD5E1;margin:6px 0 0;line-height:1.6}
+    .pf-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:14px}
+    .pf-kpi{background:rgba(255,255,255,.08);border:1px solid rgba(245,158,11,.3);border-radius:12px;padding:9px 6px;text-align:center}
+    .pf-kpi b{display:block;font-size:17px;color:#FCD34D}
+    .pf-kpi span{font-size:10px;color:#CBD5E1}
+    .pf-chips{display:flex;gap:8px;overflow-x:auto;margin:0 0 12px}
+    .pf-chip{white-space:nowrap;border:1px solid var(--border);background:var(--surface);border-radius:999px;padding:8px 14px;font:inherit;font-size:13px;font-weight:700;color:var(--text-muted)}
+    .pf-chip.on{background:var(--brand-500);border-color:var(--brand-500);color:#fff}
+    .pf-bar{height:9px;background:#e2e8f0;border-radius:99px;overflow:hidden;margin-top:7px}
+    .pf-bar i{display:block;height:100%;background:linear-gradient(90deg,#0f766e,#10b981)}
+    .pf-cert{display:flex;gap:11px;align-items:center;padding:11px 0;border-bottom:1px solid var(--border)}
+    .pf-cert:last-child{border-bottom:0}
+    .pf-ic{width:46px;height:46px;border-radius:12px;background:linear-gradient(135deg,#0B132B,#064E3B);display:flex;align-items:center;justify-content:center;font-size:22px;flex:none}
+    .pf-tx{flex:1;min-width:0}
+    .pf-tx b{font-size:13.5px;display:block}
+    .pf-tx .s{font-size:11px;color:var(--text-muted);margin-top:2px}
+    .pf-act{display:flex;gap:6px}
+    .pf-act button,.pf-act a{border:1px solid var(--border);background:var(--surface);border-radius:10px;padding:7px 9px;font-size:13px;text-decoration:none;color:var(--text);cursor:pointer}
+  </style>
+</head>
+<body>
+  <div class="topbar"><a class="back" href="my.html">‹</a><div class="title">學習履歷</div></div>
+  <div class="wrap">
+    <div id="guard"></div>
+    <div id="app" hidden>
+      <div class="pf-hero">
+        <h1>🏆 我的學習履歷</h1>
+        <p>所有證書均附獨立防偽編號，學校或機構可掃 QR 驗證。適合升學 Portfolio 及課外活動時數存證。</p>
+        <div class="pf-kpis">
+          <div class="pf-kpi"><b id="kCerts">—</b><span>證書</span></div>
+          <div class="pf-kpi"><b id="kHours">—</b><span>總時數</span></div>
+          <div class="pf-kpi"><b id="kSports">—</b><span>項目</span></div>
+          <div class="pf-kpi"><b id="kTerms">—</b><span>進行中</span></div>
+        </div>
+      </div>
+
+      <div id="termBox" hidden>
+        <div class="section-title" style="margin:4px 0 8px">📈 期制課程進度</div>
+        <div class="card" style="margin-bottom:12px"><div class="body" id="terms"></div></div>
+      </div>
+
+      <div class="section-title" style="margin:4px 0 8px">👨‍👩‍👧 學員</div>
+      <div class="pf-chips" id="chips"></div>
+
+      <div class="section-title" style="margin:4px 0 8px">📜 證書保險庫</div>
+      <div class="card" style="margin-bottom:12px"><div class="body" id="certs"></div></div>
+
+      <button class="btn btn-secondary btn-block" id="copySummary" type="button" style="margin-bottom:8px">📋 複製 Portfolio 摘要（可貼升學表格）</button>
+      <a class="btn btn-secondary btn-block" href="badges.html" style="text-decoration:none">🏅 查看成就徽章牆</a>
+      <div class="spacer"></div>
+    </div>
+  </div>
+
+  <script src="assets/api.js?v=3"></script>
+  <script src="assets/certificate.js?v=1"></script>
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    const EMOJI = { MOLKKY: "🎯", CURLING: "🥌", CORNHOLE: "🫘", AIRSTORM: "🏹", NORDIC: "🥾", ROUNDNET: "🕸️", ROULIQIU: "🏓", FLEXIBAR: "💪", STRETCH: "🧘" };
+    let CERTS = [], TERMS = [], STUDENT = "all";
+
+    function codeOf(c) {
+      const s = String(c.sport || "").toLowerCase();
+      if (s.includes("木柱") || s.includes("molkky")) return "MOLKKY";
+      if (s.includes("冰壺") || s.includes("curling")) return "CURLING";
+      if (s.includes("伸展") || s.includes("瑜伽") || s.includes("stretch")) return "STRETCH";
+      return (String(c.code || "").split("-")[2] || "SPORT").toUpperCase();
+    }
+    const dayStr = (t) => {
+      const d = new Date(String(t || "").replace(" ", "T") + (/Z$/.test(String(t || "")) ? "" : "Z"));
+      return isNaN(d.getTime()) ? "" : d.toLocaleDateString("zh-HK", { year: "numeric", month: "2-digit", day: "2-digit" });
+    };
+
+    (async () => {
+      if (!api.getUser()) {
+        $("guard").innerHTML = `<div class="card"><div class="body center" style="padding:24px 16px">
+          <div style="font-size:34px">🏆</div><b style="display:block;margin-top:6px">登入後查看學習履歷</b>
+          <div style="margin-top:14px"><a class="btn btn-primary" href="login.html?next=my-portfolio.html">🔑 登入</a></div></div></div>`;
+        return;
+      }
+      $("app").hidden = false;
+      const r = await api.get("/certificates/my");
+      if (!r.ok) { $("certs").innerHTML = `<div class="muted">${esc((r.data && r.data.error) || "讀取失敗")}</div>`; return; }
+      CERTS = (r.data && r.data.certificates) || [];
+      TERMS = (r.data && r.data.terms) || [];
+      const s = (r.data && r.data.summary) || {};
+      $("kCerts").textContent = s.certs || 0;
+      $("kHours").textContent = (Number(s.hours) || 0).toFixed(1);
+      $("kSports").textContent = s.sports || 0;
+      $("kTerms").textContent = TERMS.filter((t) => !t.completed).length;
+      renderTerms();
+      renderChips();
+      renderCerts();
+    })();
+
+    function renderTerms() {
+      const box = $("terms");
+      if (!TERMS.length) { $("termBox").hidden = true; return; }
+      $("termBox").hidden = false;
+      box.innerHTML = TERMS.map((t) => `
+        <div style="padding:8px 0">
+          <div style="display:flex;justify-content:space-between;gap:8px;font-size:13.5px">
+            <b>${esc(t.title)}</b>
+            <span style="color:${t.completed ? "#047857" : "var(--text-muted)"};font-weight:700">${t.completed ? "✅ 已結業" : t.attended + "/" + t.total_sessions + " 堂"}</span>
+          </div>
+          <div class="pf-bar"><i style="width:${t.percent}%"></i></div>
+          <div class="muted" style="font-size:11px;margin-top:4px">${t.completed ? "全期認證時數 " + t.hours_total + " 小時" : "已達 " + t.percent + "%，出席滿 " + t.required + " 堂可獲結業證書"}</div>
+        </div>`).join("");
+    }
+
+    function renderChips() {
+      const names = [...new Set(CERTS.map((c) => c.student_name || "學員"))];
+      const box = $("chips");
+      if (names.length <= 1) { box.style.display = "none"; return; }
+      box.innerHTML = [`<button class="pf-chip ${STUDENT === "all" ? "on" : ""}" data-s="all">全部</button>`]
+        .concat(names.map((n) => `<button class="pf-chip ${STUDENT === n ? "on" : ""}" data-s="${esc(n)}">👤 ${esc(n)}</button>`))
+        .join("");
+      box.querySelectorAll("[data-s]").forEach((b) => (b.onclick = () => { STUDENT = b.dataset.s; renderChips(); renderCerts(); }));
+    }
+
+    function renderCerts() {
+      const list = STUDENT === "all" ? CERTS : CERTS.filter((c) => (c.student_name || "學員") === STUDENT);
+      if (!list.length) {
+        $("certs").innerHTML = `<div class="muted center" style="padding:16px 0">未有證書。完成課堂簽到後自動發出。</div>`;
+        return;
+      }
+      $("certs").innerHTML = list.map((c, i) => {
+        const code = codeOf(c);
+        const isGrad = c.cert_type === "graduation";
+        return `<div class="pf-cert" data-i="${i}">
+          <div class="pf-ic">${isGrad ? "🎓" : (EMOJI[code] || "🏅")}</div>
+          <div class="pf-tx">
+            <b>${esc(c.class_title || "")}</b>
+            <div class="s">${esc(dayStr(c.issued_at))} · ${(Number(c.hours) || 0).toFixed(1)} 小時 · ${esc(c.level_label || "")}</div>
+            <div class="s">${esc(c.student_name || "")} · ${esc(c.code)}</div>
+          </div>
+          <div class="pf-act">
+            <button data-dl="${i}" title="下載">📥</button>
+            <button data-link="${i}" title="複製驗證連結">🔗</button>
+          </div>
+        </div>`;
+      }).join("");
+      $("certs").querySelectorAll("[data-dl]").forEach((b) => (b.onclick = () => download(list[Number(b.dataset.dl)])));
+      $("certs").querySelectorAll("[data-link]").forEach((b) => (b.onclick = async () => {
+        const url = location.origin + "/verify.html?cert=" + encodeURIComponent(list[Number(b.dataset.link)].code);
+        try { await navigator.clipboard.writeText(url); b.textContent = "✅"; setTimeout(() => (b.textContent = "🔗"), 1500); }
+        catch (e) { prompt("複製連結：", url); }
+      }));
+    }
+
+    async function download(c) {
+      const code = codeOf(c);
+      const out = await window.zpMakeCertificate({
+        studentName: c.student_name, classTitle: c.class_title, levelLabel: c.level_label,
+        hours: c.hours, coachName: c.coach_name, coachStarred: Number(c.coach_starred) === 1,
+        dateStr: dayStr(c.issued_at), serial: c.code,
+        verifyUrl: location.origin + "/verify.html?cert=" + encodeURIComponent(c.code),
+        sportCode: code, scale: 2,
+      });
+      const a = document.createElement("a");
+      a.href = out.dataUrl; a.download = out.filename;
+      document.body.appendChild(a); a.click(); a.remove();
+    }
+
+    $("copySummary").onclick = async () => {
+      const s = CERTS.reduce((acc, c) => acc + (Number(c.hours) || 0), 0);
+      const names = [...new Set(CERTS.map((c) => c.student_name))].join("、");
+      const lines = CERTS.slice(0, 8).map((c) => `・${c.class_title}（${dayStr(c.issued_at)}，${(Number(c.hours) || 0).toFixed(1)} 小時，${c.level_label}）`).join("\n");
+      const txt = `ZenPass 禪流 — 課外活動運動履歷\n學員：${names || "—"}\n累計認證時數：${s.toFixed(1)} 小時\n證書數目：${CERTS.length} 張\n\n已完成項目：\n${lines}\n\n所有證書均可於 https://zenpass.hk/verify.html 以證書編號驗證真偽。`;
+      try { await navigator.clipboard.writeText(txt); $("copySummary").textContent = "✅ 已複製摘要"; }
+      catch (e) { prompt("複製摘要：", txt); }
+      setTimeout(() => { $("copySummary").textContent = "📋 複製 Portfolio 摘要（可貼升學表格）"; }, 2000);
+    };
+  </script>
+  <script src="assets/footer.js?v=4" defer></script>
+</body>
+</html>

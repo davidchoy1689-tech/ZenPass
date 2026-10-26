@@ -46,6 +46,9 @@ function ensureSchema(db) {
     if (!cols.includes("is_demo")) {
       db.exec("ALTER TABLE certificates ADD COLUMN is_demo INTEGER DEFAULT 0");
     }
+    if (!cols.includes("cert_type")) {
+      db.exec("ALTER TABLE certificates ADD COLUMN cert_type TEXT DEFAULT 'session'");
+    }
   } catch (e) {}
   _schemaReady.add(db);
 }
@@ -176,8 +179,8 @@ function issueForBooking(bookingId) {
     db.prepare(
       `INSERT INTO certificates
         (id, code, booking_id, user_id, class_id, schedule_id, student_name, class_title,
-         sport, level, level_label, hours, coach_id, coach_name, coach_starred, issued_at)
-       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?, datetime('now'))`,
+         sport, level, level_label, hours, coach_id, coach_name, coach_starred, issued_at, cert_type)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?, datetime('now'), 'session')`,
     ).run(
       cert.id, cert.code, cert.booking_id, cert.user_id, cert.class_id, cert.schedule_id,
       cert.student_name, cert.class_title, cert.sport, cert.level, cert.level_label,
@@ -188,7 +191,87 @@ function issueForBooking(bookingId) {
     return db.prepare("SELECT * FROM certificates WHERE booking_id = ?").get(bookingId) || null;
   }
 
+  // 🎓 期制課程：出席率達門檻 → 自動發結業證書（每學員每班一張）
+  try {
+    maybeIssueGraduation(db, row);
+  } catch (e) {
+    console.error("⚠️ 結業證書發證失敗:", e.message);
+  }
+
   return db.prepare("SELECT * FROM certificates WHERE id = ?").get(cert.id);
+}
+
+/** 期制班結業判斷：出席堂數 / 全期堂數 ≥ min_attendance_rate */
+function maybeIssueGraduation(db, row) {
+  const ccols = db.prepare("PRAGMA table_info(classes)").all().map((c) => c.name);
+  const CC = (col, alt) => (ccols.includes(col) ? `c.${col}` : alt);
+  const cls = db
+    .prepare(
+      `SELECT ${CC("course_type", "'single'")} AS course_type,
+              ${CC("total_sessions", "1")} AS total_sessions,
+              ${CC("min_attendance_rate", "0.8")} AS min_attendance_rate,
+              c.title, c.duration, c.coach_id, c.category, c.sport_slug
+       FROM classes c WHERE c.id = ?`,
+    )
+    .get(row.class_id);
+  if (!cls || String(cls.course_type || "single") !== "term") return null;
+
+  const total = Math.max(1, Number(cls.total_sessions) || 1);
+  const rate = Math.min(1, Math.max(0.1, Number(cls.min_attendance_rate) || 0.8));
+  const attended =
+    db
+      .prepare(
+        `SELECT COUNT(*) AS n FROM bookings b
+         WHERE b.user_id = ? AND b.class_id = ? AND b.status = 'attended'`,
+      )
+      .get(row.user_id, row.class_id).n || 0;
+  if (attended / total < rate) return null;
+
+  const key = "term:" + row.class_id + ":" + row.user_id;
+  const exists = db.prepare("SELECT * FROM certificates WHERE booking_id = ?").get(key);
+  if (exists) return exists;
+
+  const hours = Math.round((((Number(cls.duration) || 60) * total) / 60) * 10) / 10;
+  const sportKey = cls.sport_slug || cls.category || "";
+  const code =
+    "ZP-" + new Date().getFullYear() + "-" + sportCode(cls.sport_slug, cls.category, cls.title) +
+    "-G" + crypto.randomBytes(2).toString("hex").toUpperCase();
+  let starred = 0;
+  try {
+    const cc = db
+      .prepare(
+        `SELECT CASE WHEN status='verified' AND COALESCE(is_starred,0)=1
+                AND (license_expiry IS NULL OR license_expiry='' OR license_expiry >= date('now'))
+                THEN 1 ELSE 0 END AS s
+         FROM coach_credentials WHERE user_id = ? ORDER BY s DESC LIMIT 1`,
+      )
+      .get(cls.coach_id);
+    starred = cc ? Number(cc.s) || 0 : 0;
+  } catch (e) {}
+
+  const coach = db.prepare("SELECT name FROM users WHERE id = ?").get(cls.coach_id) || {};
+  const studentName =
+    row.attendee_type === "child" && row.child_name ? row.child_name : row.user_name || "學員";
+
+  db.prepare(
+    `INSERT INTO certificates
+      (id, code, booking_id, user_id, class_id, schedule_id, student_name, class_title,
+       sport, level, level_label, hours, coach_id, coach_name, coach_starred, issued_at, cert_type)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?, datetime('now'), 'graduation')`,
+  ).run(
+    crypto.randomUUID(), code, key, row.user_id, row.class_id, row.schedule_id,
+    studentName, cls.title || "", sportKey, 2,
+    `Level 2 · 中階進階者（全期 ${total} 堂結業）`, hours,
+    cls.coach_id, coach.name || "", starred,
+  );
+
+  try {
+    db.prepare("UPDATE bookings SET term_completed = 1 WHERE user_id = ? AND class_id = ?").run(
+      row.user_id, row.class_id,
+    );
+  } catch (e) {}
+
+  return db.prepare("SELECT * FROM certificates WHERE booking_id = ?").get(key);
 }
 
 function listForUser(userId) {
@@ -215,10 +298,113 @@ function summaryForUser(userId) {
   return { certs: s.certs || 0, hours: Math.round((s.hours || 0) * 10) / 10, sports: s.sports || 0 };
 }
 
+/** 進行中／已完成期制課程進度 */
+function termProgressForUser(userId) {
+  const db = getDb();
+  ensureSchema(db);
+  const ccols = db.prepare("PRAGMA table_info(classes)").all().map((c) => c.name);
+  if (!ccols.includes("course_type")) return [];
+  const rows = db
+    .prepare(
+      `SELECT c.id, c.title, COALESCE(c.total_sessions,1) AS total_sessions,
+              COALESCE(c.min_attendance_rate,0.8) AS min_attendance_rate,
+              COALESCE(c.duration,60) AS duration,
+              (SELECT COUNT(*) FROM bookings b
+                WHERE b.user_id = ? AND b.class_id = c.id AND b.status = 'attended') AS attended,
+              (SELECT COUNT(*) FROM certificates ce
+                WHERE ce.user_id = ? AND ce.class_id = c.id AND ce.cert_type = 'graduation') AS graduated
+       FROM classes c
+       WHERE COALESCE(c.course_type,'single') = 'term'
+         AND c.id IN (SELECT class_id FROM bookings WHERE user_id = ? AND status IN ('confirmed','attended'))`,
+    )
+    .all(userId, userId, userId);
+  return rows.map((r) => {
+    const total = Math.max(1, Number(r.total_sessions) || 1);
+    const attended = Number(r.attended) || 0;
+    const need = Math.ceil(total * (Number(r.min_attendance_rate) || 0.8));
+    return {
+      class_id: r.id,
+      title: r.title,
+      total_sessions: total,
+      attended: Math.min(attended, total),
+      required: need,
+      percent: Math.min(100, Math.round((attended / total) * 100)),
+      completed: Number(r.graduated) > 0 || attended >= need,
+      hours_total: Math.round((((Number(r.duration) || 60) * total) / 60) * 10) / 10,
+    };
+  });
+}
+
 function getByCode(code) {
   const db = getDb();
   ensureSchema(db);
   return db.prepare("SELECT * FROM certificates WHERE code = ?").get(String(code || "").trim());
+}
+
+/* ============ 🪪 教練發證資格閘門 ============ */
+
+const SPORT_MATCH = {
+  MOLKKY: ["molkky", "moelkkyla", "木柱"],
+  CURLING: ["curling", "冰壺"],
+  CORNHOLE: ["cornhole", "布袋球"],
+  AIRSTORM: ["air-storm", "airstorm", "穿雲箭"],
+  NORDIC: ["nordic", "健走"],
+  ROUNDNET: ["roundnet", "圓網球"],
+  ROULIQIU: ["rouliqiu", "柔力球"],
+  FLEXIBAR: ["flexi-bar", "flexibar", "flexi bar"],
+  STRETCH: ["stretch", "伸展", "瑜伽", "yoga"],
+};
+
+function parseQualified(v) {
+  if (!v) return null;
+  try {
+    const arr = typeof v === "string" ? JSON.parse(v) : v;
+    return Array.isArray(arr) ? arr.map((x) => String(x).toLowerCase().trim()).filter(Boolean) : null;
+  } catch (e) {
+    // 支援逗號分隔：molkky,floor-curling
+    return String(v).split(",").map((x) => x.toLowerCase().trim()).filter(Boolean);
+  }
+}
+
+/**
+ * 教練是否有資格為此項目發證
+ * @returns {{ok:boolean, reason?:string, qualified?:string[]|null}}
+ */
+function issuerEligibility(coachId, sportKey, className) {
+  const db = getDb();
+  ensureSchema(db);
+  let cred = null;
+  try {
+    cred = db
+      .prepare("SELECT * FROM coach_credentials WHERE user_id = ? ORDER BY COALESCE(reviewed_at, created_at) DESC LIMIT 1")
+      .get(coachId);
+  } catch (e) {
+    return { ok: false, reason: "無法讀取教練資質紀錄" };
+  }
+  if (!cred) return { ok: false, reason: "教練未提交資質證明（牌照／保險），暫不可發證" };
+  if (String(cred.status) !== "verified") return { ok: false, reason: "教練資質仍在審核中，暫不可發證" };
+
+  const today = new Date().toISOString().slice(0, 10);
+  if (cred.insurance_expiry_date && String(cred.insurance_expiry_date).slice(0, 10) < today) {
+    return { ok: false, reason: "責任保險已過期，請更新保單後再發證" };
+  }
+  if (cred.license_expiry && String(cred.license_expiry).slice(0, 10) < today) {
+    return { ok: false, reason: "教練牌照已過期，請更新後再發證" };
+  }
+
+  const qualified = parseQualified(cred.qualified_sports);
+  if (!qualified || !qualified.length) {
+    // 舊資料未設定可發證項目 → 容許（祖父條款），由管理員後續補設定
+    return { ok: true, qualified: null, grandfathered: true };
+  }
+
+  const code = sportCode(sportKey, "", className);
+  const needles = [String(sportKey || "").toLowerCase(), className ? String(className).toLowerCase() : ""]
+    .concat(SPORT_MATCH[code] || [])
+    .filter(Boolean);
+  const hit = qualified.some((q) => needles.some((n) => n && (n.includes(q) || q.includes(n))));
+  if (!hit) return { ok: false, reason: "教練未獲此項目官方發證授權", qualified };
+  return { ok: true, qualified };
 }
 
 /**
@@ -252,5 +438,6 @@ function createDemo(opts) {
 }
 
 module.exports = {
-  ensureSchema, issueForBooking, listForUser, summaryForUser, getByCode, createDemo, sportCode, levelFor,
+  ensureSchema, issueForBooking, listForUser, summaryForUser, getByCode, createDemo,
+  sportCode, levelFor, issuerEligibility, parseQualified, termProgressForUser,
 };

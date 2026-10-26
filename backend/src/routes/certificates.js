@@ -18,7 +18,8 @@ router.get("/my", authenticateToken, (req, res) => {
   try {
     const list = svc.listForUser(req.user.id);
     const summary = svc.summaryForUser(req.user.id);
-    res.json({ success: true, certificates: list, summary });
+    const terms = svc.termProgressForUser(req.user.id);
+    res.json({ success: true, certificates: list, summary, terms });
   } catch (err) {
     console.error("取證書失敗:", err);
     res.status(500).json({ success: false, error: "無法取得證書" });
@@ -75,13 +76,46 @@ router.get("/verify/:code", (req, res) => {
   }
 });
 
+// ===== 教練發證資格狀態（教練工作台用）=====
+router.get("/issuer-status", authenticateToken, (req, res) => {
+  try {
+    const db = getDb();
+    const rows = db
+      .prepare(
+        `SELECT COALESCE(c.sport_slug, c.category, '') AS sport, c.title
+         FROM classes c WHERE c.coach_id = ? AND c.status = 'active'
+         GROUP BY COALESCE(c.sport_slug, c.category, '')`,
+      )
+      .all(req.user.id);
+    const sports = rows.map((r) => {
+      const e = svc.issuerEligibility(req.user.id, r.sport, r.title);
+      return { sport: r.sport || "未分類", can_issue: !!e.ok, reason: e.reason || "" };
+    });
+    const cred = db
+      .prepare("SELECT status, license_expiry, insurance_expiry_date, qualified_sports FROM coach_credentials WHERE user_id = ? ORDER BY created_at DESC LIMIT 1")
+      .get(req.user.id) || null;
+    res.json({
+      success: true,
+      credentials: cred
+        ? { ...cred, qualified_sports_list: svc.parseQualified(cred.qualified_sports) }
+        : null,
+      sports,
+    });
+  } catch (err) {
+    console.error("發證資格查詢失敗:", err);
+    res.status(500).json({ success: false, error: "查詢失敗" });
+  }
+});
+
 // ===== 補發（教練／管理員）=====
 router.post("/:bookingId/issue", authenticateToken, (req, res) => {
   try {
     const db = getDb();
     const b = db
       .prepare(
-        `SELECT b.id, b.user_id, b.status, c.coach_id FROM bookings b
+        `SELECT b.id, b.user_id, b.status, c.coach_id, c.title AS class_title,
+                COALESCE(c.sport_slug, c.category, '') AS sport
+         FROM bookings b
          JOIN classes c ON c.id = b.class_id WHERE b.id = ?`,
       )
       .get(req.params.bookingId);
@@ -95,6 +129,20 @@ router.post("/:bookingId/issue", authenticateToken, (req, res) => {
     if (b.status !== "attended") {
       return res.status(400).json({ success: false, error: "未完成簽到，未能發證" });
     }
+
+    // 🪪 發證資格閘門：教練必須持有已核實資質、保單有效、並具該項目授權（管理員可覆核）
+    if (!isAdmin) {
+      const el = svc.issuerEligibility(b.coach_id, b.sport, b.class_title);
+      if (!el.ok) {
+        return res.status(403).json({
+          success: false,
+          error: el.reason,
+          code: "ISSUER_NOT_QUALIFIED",
+          qualified: el.qualified || null,
+        });
+      }
+    }
+
     const cert = svc.issueForBooking(b.id);
     if (!cert) return res.status(400).json({ success: false, error: "發證失敗" });
     res.json({ success: true, certificate: cert });
