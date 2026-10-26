@@ -763,11 +763,29 @@ ${stamp}
       const sch = r.data.schedule || {};
       const list = (r.data.students || []).filter((s) => ["confirmed", "attended", "no_show"].includes(s.booking_status));
       if (!list.length) { $("shBody").innerHTML = '<div class="muted center" style="padding:16px 0">暫時未有人報名。</div>'; return; }
-      const waText = encodeURIComponent(`【ZenPass】課堂提醒：${sch.title || ""} — ${fmt(sch.start_time)}，地點：${sch.venue_name || ""}${sch.venue_address ? "（" + sch.venue_address + "）" : ""}。請提早 10 分鐘到場，出示入場憑證 QR 簽到。`);
+      // 📢 課前指引（集合地點／交通／衣著／攜帶／天氣備忘）— 一鍵複製或 WhatsApp 群發
+      const mapQ = encodeURIComponent([sch.venue_name, sch.venue_address].filter(Boolean).join(" ") || "香港");
+      const guide = `🧭【ZenPass 課前指引】${sch.title || ""}
+📅 日期時間：${fmt(sch.start_time)}
+⏰ 請提早 10 分鐘到場（遲到不設補時）
+📍 集合地點：${sch.venue_name || "待定"}${sch.venue_address ? "\n　　" + sch.venue_address : ""}
+🗺️ 地圖：https://www.google.com/maps/search/?api=1&query=${mapQ}
+🎽 建議穿著：運動服裝 + 室內運動鞋（波鞋）；避免牛仔褲／拖鞋／涼鞋
+🎒 請攜帶：毛巾、水樽（場地有飲水機）、八達通
+🧒 兒童班：請家長陪同簽到，自備替換衣物
+🌧️ 天氣安排：八號風球或黑色暴雨生效時課堂取消，可免費改期或全數退款
+🎫 入場：到場出示「我的預約」內 QR 憑證簽到（亦可報核銷碼）
+❓ 查詢：WhatsApp 9033 5538
+—— ZenPass 禪流`;
+      const waText = encodeURIComponent(guide);
       $("shBody").innerHTML = `
         <div class="muted" style="font-size:12.5px;margin-bottom:10px">${esc(sch.title || "")} · ${esc(fmt(sch.start_time))} · ${list.length} 位</div>
+        <div style="display:flex;gap:8px;margin-bottom:8px">
+          <button class="btn btn-secondary" style="flex:1" id="copyGuide">📋 複製課前指引</button>
+          <a class="btn btn-secondary" style="flex:1;background:#25d366;color:#04331c;border-color:#25d366" href="https://wa.me/?text=${waText}" target="_blank" rel="noopener">💬 WhatsApp 群發</a>
+        </div>
         <div style="display:flex;gap:8px;margin-bottom:12px">
-          <a class="btn btn-secondary" style="flex:1" href="https://wa.me/?text=${waText}" target="_blank" rel="noopener">💬 群發提醒</a>
+          <a class="btn btn-secondary" style="flex:1;text-decoration:none" href="https://www.google.com/maps/search/?api=1&query=${mapQ}" target="_blank" rel="noopener">🗺️ 集合地點地圖</a>
           <button class="btn btn-primary" style="flex:1" id="realSettle">🏁 下課結算</button>
         </div>
         ${list.map((s) => {
@@ -780,9 +798,20 @@ ${stamp}
               <div class="s">核銷碼 <span class="code">${esc(s.checkin_code || "----")}</span>${done ? " · ✅ 已簽到" : ""}
                 ${isChild && s.emergency_phone ? ` · ☎️ <a href="tel:${esc(s.emergency_phone)}" style="color:var(--brand-600);font-weight:700">${esc(s.emergency_phone)}</a>` : ""}
                 ${isChild && s.medical_notes ? ` · ⚠️ ${esc(s.medical_notes)}` : ""}</div></div>
-            ${done ? '<span class="badge2 b-on">已簽到</span>' : `<button class="btn btn-primary" style="min-height:36px;padding:0 12px;font-size:13px" data-attend="${esc(s.id)}">簽到</button>`}
+            <span style="display:flex;gap:6px;align-items:center">
+              ${s.phone ? `<a class="btn btn-secondary" style="min-height:36px;padding:0 10px;font-size:13px;text-decoration:none;background:#25d366;color:#04331c;border-color:#25d366" target="_blank" rel="noopener" href="https://wa.me/852${esc(String(s.phone).replace(/\D/g, "").slice(-8))}?text=${encodeURIComponent("你好 " + (s.name || "") + "，提醒你 " + fmt(sch.start_time) + " 嘅「" + (sch.title || "") + "」，核銷碼 " + (s.checkin_code || "") + "。詳情：" + guide)}">💬</a>` : ""}
+              ${done ? '<span class="badge2 b-on">已簽到</span>' : `<button class="btn btn-primary" style="min-height:36px;padding:0 12px;font-size:13px" data-attend="${esc(s.id)}">簽到</button>`}
+            </span>
           </div>`;
         }).join("")}`;
+      const cg = $("copyGuide");
+      if (cg) cg.onclick = async () => {
+        try {
+          await navigator.clipboard.writeText(guide);
+          cg.textContent = "✅ 已複製";
+          setTimeout(() => { cg.textContent = "📋 複製課前指引"; }, 1600);
+        } catch (e) { prompt("複製以下指引：", guide); }
+      };
       $("shBody").querySelectorAll("[data-attend]").forEach((b) => (b.onclick = async () => {
         b.disabled = true;
         const rr = await api.post("/bookings/" + encodeURIComponent(b.dataset.attend) + "/attend", { checkin_method: "coach" });
