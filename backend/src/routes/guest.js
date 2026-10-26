@@ -281,15 +281,20 @@ router.post("/payment", bookLimiter, (req, res) => {
     })();
 
     const amount = Number(booking.amount) || 0;
+    const hasReported = !!db
+      .prepare("PRAGMA table_info('bookings')")
+      .all()
+      .find((c) => c.name === "payment_reported_at");
+    const reportedSql = hasReported ? ", payment_reported_at = datetime('now')" : "";
     if (m === "fps") {
       db.prepare(
         `UPDATE bookings SET fps_reference = ?, payment_method = 'fps',
-           status = 'pending_payment', payment_status = 'pending' WHERE id = ?`,
+           status = 'pending_payment', payment_status = 'pending'${reportedSql} WHERE id = ?`,
       ).run(ref, booking_id);
     } else {
       db.prepare(
         `UPDATE bookings SET payme_reference = ?, payment_method = 'payme',
-           status = 'pending_payment', payment_status = 'pending' WHERE id = ?`,
+           status = 'pending_payment', payment_status = 'pending'${reportedSql} WHERE id = ?`,
       ).run(ref, booking_id);
     }
 
@@ -319,7 +324,12 @@ router.post("/payment", bookLimiter, (req, res) => {
       console.error("guest payment notify failed:", e.message);
     }
 
-    return res.json({ success: true, message: "付款資料已提交，管理員核實後會確認預約" });
+    return res.json({
+      success: true,
+      payment_status: "pending",
+      payment_reported: true,
+      message: "付款資料已提交，管理員核實後會確認預約",
+    });
   } catch (err) {
     console.error("guest payment failed:", err);
     return res.status(500).json({ success: false, error: "提交失敗，請重試" });

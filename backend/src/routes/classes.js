@@ -265,6 +265,69 @@ router.get("/upcoming", optionalAuth, (req, res) => {
   }
 });
 
+// ===== GET /api/classes/featured — 首頁「本週末首發推薦」（真實即將開班） =====
+router.get("/featured", cache(30), (req, res) => {
+  try {
+    const db = getDb();
+    const limit = Math.min(Math.max(parseInt(req.query.limit) || 4, 1), 8);
+    const days = Math.min(Math.max(parseInt(req.query.days) || 30, 1), 120);
+    const HAS_CC = !!db
+      .prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='coach_credentials'")
+      .get();
+    // 舊 DB 可能缺新欄位 → 動態檢查，避免整條 route 500
+    const cols = new Set(
+      db.prepare("PRAGMA table_info(classes)").all().map((r) => r.name),
+    );
+    const col = (name) => (cols.has(name) ? `c.${name}` : `NULL AS ${name}`);
+
+    const rows = db
+      .prepare(
+        `
+      SELECT c.id, c.title, c.category, c.district, c.venue_name, c.venue_address,
+             c.price_hkd, ${col("credits_cost")}, ${col("duration")}, ${col("image_url")},
+             ${col("photos_gallery")}, ${col("difficulty")}, ${col("target_audience")},
+             ${col("sport_slug")},
+             u.name AS coach_name,
+             cs.id AS schedule_id, cs.start_time, cs.end_time,
+             cs.max_participants, cs.enrolled_count,
+             ${HAS_CC ? `(SELECT CASE WHEN cc.status='verified' AND COALESCE(cc.is_starred,0)=1
+                        AND (cc.license_expiry IS NULL OR cc.license_expiry = '' OR cc.license_expiry >= date('now'))
+                   THEN 1 ELSE 0 END FROM coach_credentials cc WHERE cc.user_id = c.coach_id)` : "0"} as coach_starred,
+             ${HAS_CC ? `(SELECT CASE WHEN cc.status='verified' THEN 1 ELSE 0 END FROM coach_credentials cc WHERE cc.user_id = c.coach_id)` : "0"} as coach_verified
+      FROM classes c
+      JOIN users u ON u.id = c.coach_id
+      JOIN class_schedules cs ON cs.class_id = c.id
+      WHERE c.status = 'active'
+        AND COALESCE(c.booking_open, 0) = 1
+        AND cs.status = 'available'
+        AND cs.start_time >= datetime('now')
+        AND cs.start_time <= datetime('now', '+' || ? || ' days')
+        AND cs.start_time = (
+          SELECT MIN(cs2.start_time) FROM class_schedules cs2
+          WHERE cs2.class_id = c.id AND cs2.status = 'available'
+            AND cs2.start_time >= datetime('now')
+        )
+      ORDER BY cs.start_time ASC
+      LIMIT ?
+    `,
+      )
+      .all(days, limit);
+
+    const classes = rows.map((r) => {
+      const cap = Number(r.max_participants) || 0;
+      const taken = Number(r.enrolled_count) || 0;
+      return Object.assign({}, r, {
+        seats_left: cap ? Math.max(0, cap - taken) : null,
+      });
+    });
+
+    res.json({ success: true, classes, count: classes.length });
+  } catch (err) {
+    console.error("首發推薦錯誤:", err);
+    res.status(500).json({ success: false, error: "無法取得首發推薦" });
+  }
+});
+
 router.get("/categories", cache(300), (req, res) => {
   try {
     const db = getDb();

@@ -554,15 +554,31 @@ router.post("/fps", authenticateToken, (req, res) => {
     }
     const payAmount = Number(booking.amount) || 0;
 
-    // 儲存 FPS 資料，保持 pending_payment，等 Admin 核實
+    // 儲存 FPS 資料：status 保持 pending_payment（名額保留／後台待處理隊列依賴此狀態），
+    // payment_status 受 CHECK 約束只可 pending/paid/...，所以用 payment_reported_at 表達「已提交待核實」。
+    const HAS_REPORTED = !!db
+      .prepare("PRAGMA table_info('bookings')")
+      .all()
+      .find((c) => c.name === "payment_reported_at");
     if (booking_id) {
-      db.prepare(
-        `
-        UPDATE bookings SET fps_reference = ?, payment_method = 'fps', receipt_image = ?,
-          status = 'pending_payment', payment_status = 'pending'
-        WHERE id = ?
-      `,
-      ).run(fps_reference, receipt_image || null, booking_id);
+      if (HAS_REPORTED) {
+        db.prepare(
+          `
+          UPDATE bookings SET fps_reference = ?, payment_method = 'fps', receipt_image = ?,
+            status = 'pending_payment', payment_status = 'pending',
+            payment_reported_at = datetime('now')
+          WHERE id = ?
+        `,
+        ).run(fps_reference, receipt_image || null, booking_id);
+      } else {
+        db.prepare(
+          `
+          UPDATE bookings SET fps_reference = ?, payment_method = 'fps', receipt_image = ?,
+            status = 'pending_payment', payment_status = 'pending'
+          WHERE id = ?
+        `,
+        ).run(fps_reference, receipt_image || null, booking_id);
+      }
     }
 
     // 記錄交易 (pending 狀態)
@@ -619,6 +635,7 @@ router.post("/fps", authenticateToken, (req, res) => {
       message: "✅ FPS 付款資料已提交，等待管理員確認",
       status: "pending_payment",
       payment_status: "pending",
+      payment_reported: true,
       requires_admin_approval: true,
       fps_info: {
         bank: "HSBC 滙豐銀行",
@@ -661,15 +678,31 @@ router.post("/payme", authenticateToken, (req, res) => {
     }
     const payAmount = Number(booking.amount) || 0;
 
-    // 儲存 PayMe 資料，保持 pending_payment，等 Admin 核實
+    // 儲存 PayMe 資料：status 保持 pending_payment；payment_status 受 CHECK 約束，
+    // 用 payment_reported_at 標記「已提交待核實」。
+    const HAS_REPORTED_PM = !!db
+      .prepare("PRAGMA table_info('bookings')")
+      .all()
+      .find((c) => c.name === "payment_reported_at");
     if (booking_id) {
-      db.prepare(
-        `
-        UPDATE bookings SET payme_reference = ?, payment_method = 'payme', receipt_image = ?,
-          status = 'pending_payment', payment_status = 'pending'
-        WHERE id = ?
-      `,
-      ).run(payme_reference, receipt_image || null, booking_id);
+      if (HAS_REPORTED_PM) {
+        db.prepare(
+          `
+          UPDATE bookings SET payme_reference = ?, payment_method = 'payme', receipt_image = ?,
+            status = 'pending_payment', payment_status = 'pending',
+            payment_reported_at = datetime('now')
+          WHERE id = ?
+        `,
+        ).run(payme_reference, receipt_image || null, booking_id);
+      } else {
+        db.prepare(
+          `
+          UPDATE bookings SET payme_reference = ?, payment_method = 'payme', receipt_image = ?,
+            status = 'pending_payment', payment_status = 'pending'
+          WHERE id = ?
+        `,
+        ).run(payme_reference, receipt_image || null, booking_id);
+      }
     }
 
     db.prepare(
@@ -710,6 +743,7 @@ router.post("/payme", authenticateToken, (req, res) => {
       message: "✅ PayMe 付款資料已提交，等待管理員確認",
       status: "pending_payment",
       payment_status: "pending",
+      payment_reported: true,
       requires_admin_approval: true,
       payme_info: {
         phone: "9492 5828",

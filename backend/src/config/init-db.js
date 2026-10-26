@@ -359,6 +359,12 @@ CREATE TABLE IF NOT EXISTS users (
     if (!cols.find((c) => c.name === "group_invite_code")) {
       db.exec("ALTER TABLE bookings ADD COLUMN group_invite_code TEXT");
     }
+    // 手動付款（FPS／PayMe）已提交時間（2026-10-26）
+    // 用途：區分「未付款」與「已提交待核實」。payment_status 維持 pending（有 CHECK 約束），
+    // 以 payment_reported_at + fps_reference/payme_reference 表達「已提交」。
+    if (!cols.find((c) => c.name === "payment_reported_at")) {
+      db.exec("ALTER TABLE bookings ADD COLUMN payment_reported_at TEXT DEFAULT NULL");
+    }
   } catch (e) {
     // ignore if table already exists
   }

@@ -129,6 +129,10 @@
       </div>
     </div>
 
+    <!-- 🔥 本週末首發推薦（真實即將開班，直接引入報名） -->
+    <div class="section-title" id="launchTitle" hidden style="margin-top:6px">🔥 本週末首發推薦 <span class="sport-count" style="font-size:12px;font-weight:500;color:var(--text-muted)">即刻留位</span></div>
+    <div class="hot-rail" id="launchRail" hidden aria-busy="true"></div>
+
     <div class="why">
       <div class="section-title">🌱 什麼是新興運動？</div>
       <div class="why-grid">
@@ -211,9 +215,6 @@
           <div class="skeleton-row"><div class="skeleton skeleton-price"></div><div class="skeleton skeleton-btn"></div></div>
         </div>
       </div>
-    </div>
-      </a>
-
     </div>
       </a>
 
@@ -533,6 +534,64 @@
         try { localStorage.setItem(DISMISS_KEY, String(Date.now())); } catch (e) {}
       });
       window.addEventListener("appinstalled", function () { hide(); toast("已加入主畫面 🎉"); });
+    })();
+  </script>
+  <script>
+    /* 🔥 本週末首發推薦：只顯示真實 booking_open 且有未來場次的班 */
+    (async function () {
+      var rail = document.getElementById("launchRail");
+      var title = document.getElementById("launchTitle");
+      if (!rail || !window.api) return;
+      function pad(n) { return String(n).padStart(2, "0"); }
+      function fmtWhen(iso) {
+        if (!iso) return "";
+        var d = new Date(String(iso).replace(" ", "T") + (String(iso).indexOf("Z") > -1 ? "" : "Z"));
+        if (isNaN(d.getTime())) return String(iso);
+        var parts = new Intl.DateTimeFormat("zh-HK", {
+          timeZone: "Asia/Hong_Kong", month: "numeric", day: "numeric",
+          weekday: "short", hour: "2-digit", minute: "2-digit", hour12: false,
+        }).formatToParts(d);
+        var get = function (t) { var p = parts.find(function (x) { return x.type === t; }); return p ? p.value : ""; };
+        return get("month") + "月" + get("day") + "日（" + get("weekday").replace("週", "") + "）" + get("hour") + ":" + get("minute");
+      }
+      function cover(c) {
+        var g = c.photos_gallery;
+        if (typeof g === "string") { try { g = JSON.parse(g); } catch (e) { g = null; } }
+        var u = (Array.isArray(g) && g[0]) || c.image_url || "";
+        if (u) return u;
+        return "assets/img/photos/" + ({ "新興運動": "emerging" }[c.category] || "generic") + ".jpg?v=1";
+      }
+      try {
+        var r = await api.get("/classes/featured?limit=4");
+        var arr = (r.data && r.data.classes) || [];
+        arr = arr.filter(function (c) { return c && c.schedule_id && c.start_time; });
+        if (!arr.length) return; // 冇首發班 → 整區唔顯示
+        rail.innerHTML = arr.map(function (c) {
+          var left = (c.seats_left === null || c.seats_left === undefined) ? null : Number(c.seats_left);
+          var leftTxt = left === null ? "" : (left <= 0 ? "已滿" : (left <= 3 ? "僅剩 " + left + " 位" : "剩 " + left + " 位"));
+          var leftCls = left !== null && left <= 3 ? "hot-urgent" : "";
+          return '<a class="hot-card" href="detail.html?id=' + encodeURIComponent(c.id) + '">' +
+            '<div class="hot-cover">' +
+              '<img class="card-img skeleton" src="' + esc(cover(c)) + '" alt="" loading="lazy" onerror="this.style.display=\'none\'">' +
+              '<span class="cover-shade"></span>' +
+              (Number(c.coach_starred) === 1 ? '<span class="badge-trial glass-badge">⭐ 星級教練</span>' : '') +
+              (c.district ? '<span class="badge-district glass-badge">📍 ' + esc(c.district) + '</span>' : '') +
+            '</div>' +
+            '<div class="hot-body">' +
+              '<span class="hot-cat">' + esc(c.category || "課堂") + '</span>' +
+              '<p class="hot-name">' + esc(c.title || "") + '</p>' +
+              '<p class="hot-meta" style="font-weight:600;color:var(--text)">📅 ' + esc(fmtWhen(c.start_time)) + '</p>' +
+              '<p class="hot-meta">📍 ' + esc(c.venue_name || c.district || "") + '｜⏱️ ' + (c.duration || 60) + ' 分鐘' +
+                (leftTxt ? ' <span class="' + leftCls + '">· ' + leftTxt + '</span>' : '') + '</p>' +
+              '<p class="hot-price"><b>' + hkd(Number(c.price_hkd) || 0) + '</b><span class="hot-trial">/ 位</span></p>' +
+              '<span class="btn btn-primary btn-block hot-cta">立即留位</span>' +
+            '</div></a>';
+        }).join("");
+        rail.hidden = false;
+        if (title) title.hidden = false;
+        rail.setAttribute("aria-busy", "false");
+        hydrateImages(rail);
+      } catch (e) { /* 失敗 → 保持隱藏，主流程不受影響 */ }
     })();
   </script>
   <script>
