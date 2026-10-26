@@ -11,6 +11,18 @@ const { writeBlock } = require("./blockchain-audit");
 
 // ==================== Payment Management ====================
 
+/** bookings.payment_reported_at 係 2026-10-26 新增，舊 DB 可能未有 */
+function hasReportedCol(db) {
+  try {
+    return !!db
+      .prepare("PRAGMA table_info('bookings')")
+      .all()
+      .find((c) => c.name === "payment_reported_at");
+  } catch (e) {
+    return false;
+  }
+}
+
 function listPendingPayments() {
   const db = getDb();
   db.pragma("foreign_keys = ON");
@@ -20,6 +32,7 @@ function listPendingPayments() {
       `SELECT b.id as booking_id, b.booking_reference, b.user_id,
               u.user_reference, b.amount,
               b.fps_reference, b.payme_reference, b.receipt_image,
+              ${hasReportedCol(db) ? "b.payment_reported_at" : "NULL as payment_reported_at"},
               COALESCE(b.payment_method,
                 CASE WHEN b.fps_reference IS NOT NULL THEN 'fps'
                      WHEN b.payme_reference IS NOT NULL THEN 'payme'

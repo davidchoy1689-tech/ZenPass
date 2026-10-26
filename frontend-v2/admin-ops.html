@@ -39,6 +39,7 @@
 
       <div class="tabsx" id="tabs">
         <button class="on" data-t="fin">💰 資金總覽</button>
+        <button data-t="pay">💳 待核收款</button>
         <button data-t="leads">📥 線索／審批</button>
         <button data-t="ops">🚨 異常處理</button>
         <button data-t="settle">🏁 批量結算</button>
@@ -50,6 +51,14 @@
       <div id="paneFin">
         <div class="kpis" id="kpis"></div>
         <div class="card"><div class="body" id="finDetail"></div></div>
+      </div>
+
+      <div id="panePay" hidden>
+        <div class="kpis" id="payKpis"></div>
+        <div class="card"><div class="body">
+          <div class="muted" style="font-size:12px;margin-bottom:8px">學員自行提交嘅 FPS／PayMe 付款，核實後即轉「已付款」並生效。收據縮圖可撳大。</div>
+          <div id="payList"></div>
+        </div></div>
       </div>
 
       <div id="paneLeads" hidden>
@@ -155,7 +164,7 @@
       $("tabs").onclick = (e) => {
         const b = e.target.closest("button"); if (!b) return;
         [...$("tabs").children].forEach((x) => x.classList.toggle("on", x === b));
-        ["fin", "leads", "ops", "settle", "cred", "agr", "pending"].forEach((k) => ($("pane" + k[0].toUpperCase() + k.slice(1))).hidden = b.dataset.t !== k);
+        ["fin", "pay", "leads", "ops", "settle", "cred", "agr", "pending"].forEach((k) => ($("pane" + k[0].toUpperCase() + k.slice(1))).hidden = b.dataset.t !== k);
       };
       $("wxGo").onclick = weatherCancel;
       $("bsGo").onclick = batchSettle;
@@ -166,6 +175,7 @@
 
     async function loadAll() {
       await loadFinance();
+      await loadPayments();
       await loadLeads();
       await loadCredentials();
       await loadAgreements();
@@ -187,6 +197,83 @@
         <div class="row"><span>教練應得合計（80%）</span><b>${hkd(f.coach_net)}</b></div>
         <div class="row"><span>場租合計</span><b>${hkd(f.venue_rent)}</b></div>
         <div class="row"><span>待處理線索</span><span class="pill p-wait">教練 ${(r.data.leads || {}).coach || 0} · 學校 ${(r.data.leads || {}).school || 0} · 企業 ${(r.data.leads || {}).corporate || 0}</span></div>`;
+    }
+
+    /* ===== 💳 待核實收款（FPS／PayMe 收據快速審批） ===== */
+    async function loadPayments() {
+      const kp = $("payKpis"), box = $("payList");
+      if (!box) return;
+      const r = await api.get("/admin/pending-payments");
+      if (!r.ok) {
+        box.innerHTML = `<div class="muted">${esc((r.data && r.data.error) || "讀取失敗")}</div>`;
+        return;
+      }
+      const rows = (r.data && r.data.pending_payments) || [];
+      const total = rows.reduce((s, x) => s + (Number(x.amount) || 0), 0);
+      if (kp) kp.innerHTML = `
+        <div class="kpi"><div class="v">${rows.length}</div><div class="l">待核實筆數</div></div>
+        <div class="kpi"><div class="v">${hkd(total)}</div><div class="l">涉及金額</div></div>`;
+      if (!rows.length) {
+        box.innerHTML = '<div class="muted" style="font-size:12.5px">✅ 暫時冇待核實收款</div>';
+        return;
+      }
+      const fmt = (t) => {
+        const d = new Date(String(t || "").replace(" ", "T") + (/Z|[+-]\d\d:?\d\d$/.test(String(t || "")) ? "" : "Z"));
+        return isNaN(d.getTime()) ? "—" : d.toLocaleString("zh-HK", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+      };
+      box.innerHTML = rows.map((x) => {
+        const method = String(x.payment_method || "").toUpperCase();
+        const ref = x.fps_reference || x.payme_reference || "—";
+        const rc = x.receipt_image;
+        const thumb = rc
+          ? `<img src="${esc(rc)}" alt="收據" data-rc="${esc(rc)}" style="width:66px;height:66px;object-fit:cover;border-radius:10px;border:1px solid var(--border);cursor:zoom-in;flex:none" />`
+          : `<span class="pill" style="background:#f1f5f9;color:#94a3b8">無截圖</span>`;
+        return `<div class="row" style="flex-wrap:wrap;align-items:flex-start">
+          <span style="flex:1 1 100%;display:flex;gap:10px;align-items:flex-start">
+            ${thumb}
+            <span style="flex:1;min-width:0">
+              <b>${esc(x.booking_reference || x.booking_id)}</b>
+              <span class="pill p-wait" style="margin-left:6px">${esc(method)}</span>
+              <span class="s">${esc(x.user_name || x.user_email || "—")}${x.user_phone ? " · " + esc(x.user_phone) : ""}</span>
+              <span class="s">${esc(x.class_title || "—")}${x.start_time ? " · " + esc(fmt(x.start_time)) : ""}</span>
+              <span class="s">金額 <b>${hkd(x.amount)}</b> · 參考 <b>${esc(ref)}</b>${x.payment_reported_at ? " · 提交 " + esc(fmt(x.payment_reported_at)) : ""}</span>
+            </span>
+          </span>
+          <span style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
+            <button class="btn btn-primary" style="min-height:32px;padding:0 11px;font-size:12px" data-approve="${esc(x.booking_id)}">✅ 核實入賬</button>
+            <button class="btn btn-secondary" style="min-height:32px;padding:0 11px;font-size:12px" data-reject="${esc(x.booking_id)}">❌ 收據有誤</button>
+            <a class="btn btn-secondary" style="min-height:32px;padding:0 11px;font-size:12px;text-decoration:none" target="_blank" rel="noopener"
+               href="https://wa.me/852${esc(String(x.user_phone || "").replace(/\D/g, "").slice(-8))}?text=${encodeURIComponent("你好，關於你嘅付款（" + (x.booking_reference || "") + "），想同你核對一下，謝謝！")}">💬 問學員</a>
+          </span>
+        </div>`;
+      }).join("");
+      box.querySelectorAll("[data-rc]").forEach((img) => (img.onclick = () => showReceipt(img.dataset.rc)));
+      box.querySelectorAll("[data-approve]").forEach((b) => (b.onclick = async () => {
+        if (!confirm("確認已收到此筆款項？確認後預約即刻生效。")) return;
+        b.disabled = true; b.textContent = "處理中…";
+        const rr = await api.post("/admin/approve-payment", { booking_id: b.dataset.approve });
+        if (rr.ok) { toast("✅ 已核實入賬"); loadPayments(); loadFinance(); }
+        else { b.disabled = false; b.textContent = "✅ 核實入賬"; alert((rr.data && rr.data.error) || "核實失敗"); }
+      }));
+      box.querySelectorAll("[data-reject]").forEach((b) => (b.onclick = async () => {
+        const reason = prompt("收據有咩問題？（會記錄並通知學員）", "收據金額／參考編號不符");
+        if (reason === null) return;
+        b.disabled = true; b.textContent = "處理中…";
+        const rr = await api.post("/admin/reject-payment", { booking_id: b.dataset.reject, reason });
+        if (rr.ok) { toast("已拒絕並取消預約"); loadPayments(); loadFinance(); }
+        else { b.disabled = false; b.textContent = "❌ 收據有誤"; alert((rr.data && rr.data.error) || "操作失敗"); }
+      }));
+    }
+
+    function showReceipt(url) {
+      const ov = document.createElement("div");
+      ov.style.cssText = "position:fixed;inset:0;background:rgba(15,23,42,.9);z-index:10000;display:flex;align-items:center;justify-content:center;padding:14px";
+      ov.innerHTML = `<div style="max-width:520px;width:100%;text-align:center">
+        <img src="${esc(url)}" alt="收據" style="max-width:100%;max-height:80vh;border-radius:12px;background:#fff" />
+        <div style="margin-top:10px"><button class="btn btn-primary" id="rcClose" style="min-width:120px">關閉</button></div>
+      </div>`;
+      document.body.appendChild(ov);
+      ov.onclick = (e) => { if (e.target === ov || e.target.id === "rcClose") ov.remove(); };
     }
 
     async function loadLeads() {
