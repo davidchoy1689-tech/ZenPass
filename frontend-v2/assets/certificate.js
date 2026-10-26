@@ -1,7 +1,8 @@
 /* ZenPass — 完課證書渲染（1080×1920，可 2× 高清印製）
- * 正式版：無 emoji；襯線英文標題 + 金色徽章（運動線稿圖示）+ 防偽章 + QR 驗證
+ * 通用版：適用任何課程／活動（運動、企業培訓、工作坊）
+ * 正式風：無 emoji、襯線英文標題、ZP 金色字標、中英對照、防偽章 + QR 驗證
  * 用法：await zpMakeCertificate({ studentName, classTitle, levelLabel, hours, coachName, coachStarred,
- *        dateStr, serial, verifyUrl, sportCode, scale, certType })
+ *        dateStr, serial, verifyUrl, sportCode, scale, certType, roleLabel })
  * 回傳 { dataUrl, blob, filename }
  * 2026-10-27
  */
@@ -10,9 +11,9 @@
   const GOLD_LIGHT = "#E8CE7A";
   const CREAM = "#F7F4EC";
   const MUTED = "#B9C2CE";
+  const DIM = "#8E9AA8";
   const F = "-apple-system,'PingFang HK','Noto Sans TC','Microsoft JhengHei',sans-serif";
   const SERIF = "'Times New Roman','Songti SC','Noto Serif TC',Georgia,serif";
-
 
   function loadImage(src) {
     return new Promise((res) => {
@@ -34,7 +35,6 @@
     ctx.closePath();
   }
 
-  /** 字距文字（英文標題用） */
   function letterspaced(ctx, text, x, y, spacing, align) {
     const chars = String(text).split("");
     const widths = chars.map((c) => ctx.measureText(c).width + spacing);
@@ -52,7 +52,7 @@
       ctx.font = weight + " " + size + "px " + (family || F);
       if (ctx.measureText(text).width <= maxWidth) break;
       size -= 2;
-    } while (size > 18);
+    } while (size > 16);
     return size;
   }
 
@@ -72,7 +72,7 @@
     const ctx = cv.getContext("2d");
     ctx.scale(S, S);
 
-    /* 底色：深海軍藍 → 深翡翠綠 */
+    /* 底色 */
     const g = ctx.createLinearGradient(0, 0, W * 0.7, H);
     g.addColorStop(0, "#0B132B");
     g.addColorStop(0.55, "#0A2F35");
@@ -80,7 +80,6 @@
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, W, H);
 
-    /* 內斂光暈 */
     const gl = ctx.createRadialGradient(W / 2, 600, 60, W / 2, 600, 640);
     gl.addColorStop(0, "rgba(201,162,39,.13)");
     gl.addColorStop(1, "rgba(201,162,39,0)");
@@ -93,136 +92,146 @@
     ctx.strokeStyle = "rgba(201,162,39,.42)"; ctx.lineWidth = 1.4;
     ctx.strokeRect(58, 58, W - 116, H - 116);
 
-    /* 頂部機構名 */
+    /* 品牌 */
     ctx.fillStyle = GOLD_LIGHT;
-    ctx.font = "600 24px " + SERIF;
-    letterspaced(ctx, "ZENPASS", W / 2, 150, 12, "center");
+    ctx.font = "600 23px " + SERIF;
+    letterspaced(ctx, "ZENPASS", W / 2, 146, 12, "center");
     ctx.fillStyle = "rgba(201,162,39,.55)";
-    ctx.fillRect(W / 2 - 46, 170, 92, 1.4);
+    ctx.fillRect(W / 2 - 44, 166, 88, 1.4);
 
-    /* 主標題（襯線，正式） */
+    /* 主標題（英文 + 中文對照） */
+    ctx.textAlign = "left";
     ctx.fillStyle = CREAM;
-    ctx.font = "400 40px " + SERIF;
-    letterspaced(ctx, "CERTIFICATE", W / 2, 236, 10, "center");
-    ctx.font = "400 32px " + SERIF;
-    letterspaced(ctx, "OF COMPLETION", W / 2, 288, 9, "center");
+    ctx.font = "400 38px " + SERIF;
+    letterspaced(ctx, "CERTIFICATE OF COMPLETION", W / 2, 228, 7, "center");
 
-    ctx.textAlign = "center";
+    ctx.fillStyle = GOLD_LIGHT;
+    ctx.font = "500 27px " + F;
+    letterspaced(ctx, "完 課 證 明 書", W / 2, 276, 2, "center");
+
     ctx.fillStyle = MUTED;
-    ctx.font = "500 20px " + F;
-    ctx.fillText("香港新興運動認可培訓紀錄 · 課外活動時數存證", W / 2, 336);
+    ctx.font = "400 17px " + F;
+    ctx.textAlign = "center";
+    ctx.fillText("出席及課程完成紀錄 · Record of Attendance and Completion", W / 2, 312);
     ctx.textAlign = "left";
 
-    /* 徽章：金色雙環 + 運動線稿圖示 */
-    const cx = W / 2, cy = 530, R = 116;
+    /* ZP 字標 */
+    const cx = W / 2, cy = 500, R = 104;
     ctx.beginPath(); ctx.arc(cx, cy, R + 14, 0, Math.PI * 2);
     ctx.fillStyle = "rgba(201,162,39,.07)"; ctx.fill();
     ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2);
-    ctx.strokeStyle = GOLD; ctx.lineWidth = 3.4; ctx.stroke();
-    ctx.beginPath(); ctx.arc(cx, cy, R - 13, 0, Math.PI * 2);
-    ctx.strokeStyle = "rgba(201,162,39,.4)"; ctx.lineWidth = 1.2; ctx.stroke();
+    ctx.strokeStyle = GOLD; ctx.lineWidth = 3.2; ctx.stroke();
+    ctx.beginPath(); ctx.arc(cx, cy, R - 12, 0, Math.PI * 2);
+    ctx.strokeStyle = "rgba(201,162,39,.38)"; ctx.lineWidth = 1.1; ctx.stroke();
 
-    /* 統一 ZP 字標（品牌一致性：所有證書同一個標記） */
     const goldGrad = ctx.createLinearGradient(cx - 60, cy - 60, cx + 60, cy + 60);
     goldGrad.addColorStop(0, "#F3E3A8");
     goldGrad.addColorStop(0.5, "#C9A227");
     goldGrad.addColorStop(1, "#E8CE7A");
-    ctx.textAlign = "left";           // letterspaced() 自行置中；用 center 會令每字再偏移
+    ctx.textAlign = "left"; // letterspaced 自行置中
     ctx.textBaseline = "middle";
     ctx.fillStyle = goldGrad;
-    ctx.font = "700 96px " + SERIF;
-    letterspaced(ctx, "ZP", cx, cy + 4, 6, "center");
-    // 字標下細線
-    ctx.strokeStyle = "rgba(201,162,39,.55)";
-    ctx.lineWidth = 1.4;
-    ctx.beginPath(); ctx.moveTo(cx - 34, cy + 62); ctx.lineTo(cx + 34, cy + 62); ctx.stroke();
+    ctx.font = "700 86px " + SERIF;
+    letterspaced(ctx, "ZP", cx, cy + 2, 6, "center");
+    ctx.strokeStyle = "rgba(201,162,39,.55)"; ctx.lineWidth = 1.3;
+    ctx.beginPath(); ctx.moveTo(cx - 30, cy + 56); ctx.lineTo(cx + 30, cy + 56); ctx.stroke();
     ctx.textBaseline = "alphabetic"; ctx.textAlign = "left";
 
-    /* 等級 */
-    ctx.textAlign = "center";
-    ctx.fillStyle = GOLD_LIGHT;
-    ctx.font = "600 25px " + F;
-    ctx.fillText(String(d.levelLabel || "Level 1"), cx, cy + R + 74);
-    ctx.textAlign = "left";
+    /* 等級／類別（可留空） */
+    if (d.levelLabel) {
+      ctx.textAlign = "center";
+      ctx.fillStyle = GOLD_LIGHT;
+      ctx.font = "600 23px " + F;
+      ctx.fillText(String(d.levelLabel), cx, cy + R + 66);
+      ctx.textAlign = "left";
+    }
 
     /* 茲證明 */
     ctx.textAlign = "center";
-    ctx.fillStyle = MUTED; ctx.font = "400 19px " + F;
-    ctx.fillText("茲 證 明", W / 2, 852);
+    ctx.fillStyle = MUTED; ctx.font = "400 21px " + F;
+    ctx.fillText("茲 證 明", W / 2, 812);
+    ctx.fillStyle = DIM; ctx.font = "400 13px " + SERIF;
+    letterspaced(ctx, "THIS IS TO CERTIFY THAT", W / 2, 838, 2.6, "center");
 
     ctx.fillStyle = CREAM;
-    const nameSize = fitText(ctx, String(d.studentName || "學員"), 820, 58, "600");
+    const nameSize = fitText(ctx, String(d.studentName || ""), 820, 56, "600");
     ctx.font = "600 " + nameSize + "px " + F;
-    ctx.fillText(String(d.studentName || "學員"), W / 2, 928);
+    ctx.fillText(String(d.studentName || ""), W / 2, 906);
 
     ctx.strokeStyle = "rgba(201,162,39,.45)"; ctx.lineWidth = 1.2;
-    ctx.beginPath(); ctx.moveTo(300, 960); ctx.lineTo(780, 960); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(300, 938); ctx.lineTo(780, 938); ctx.stroke();
 
     ctx.fillStyle = MUTED; ctx.font = "400 19px " + F;
-    ctx.fillText("已完成下列課程，並達指定出席要求", W / 2, 1008);
+    ctx.fillText("已完成下列課程，並達指定出席要求", W / 2, 982);
+    ctx.fillStyle = DIM; ctx.font = "400 12.5px " + SERIF;
+    letterspaced(ctx, "HAS SATISFACTORILY ATTENDED AND COMPLETED THE FOLLOWING PROGRAMME", W / 2, 1006, 1.2, "center");
 
     ctx.fillStyle = CREAM;
     const certTitle = cleanTitle(d.classTitle) || String(d.classTitle || "");
-    const titleSize = fitText(ctx, certTitle, 860, 34, "600");
+    const titleSize = fitText(ctx, certTitle, 860, 33, "600");
     ctx.font = "600 " + titleSize + "px " + F;
-    ctx.fillText(certTitle, W / 2, 1062);
+    ctx.fillText(certTitle, W / 2, 1054);
     ctx.textAlign = "left";
 
-    /* 資訊區 */
-    const bx = 110, by = 1126, bw = W - 220, bh = 292;
+    /* 資訊區（中英對照） */
+    const bx = 100, by = 1108, bw = W - 200, bh = 306;
     ctx.fillStyle = "rgba(255,255,255,.045)";
     roundRect(ctx, bx, by, bw, bh, 18); ctx.fill();
     ctx.strokeStyle = "rgba(201,162,39,.26)"; ctx.lineWidth = 1.2;
     roundRect(ctx, bx, by, bw, bh, 18); ctx.stroke();
 
     const rows = [
-      ["認證時數", (Number(d.hours) || 0).toFixed(1) + " 小時 · Active Play Hours"],
-      ["執教教練", (d.coachStarred ? "星級教練認證 · " : "") + (d.coachName || "ZenPass 認可教練")],
-      ["完成日期", d.dateStr || ""],
-      ["證書編號", d.serial || ""],
+      ["認證時數", "CONTACT HOURS", (Number(d.hours) || 0).toFixed(1) + " 小時 / hours"],
+      ["執教導師", "INSTRUCTOR", (d.coachStarred ? "星級導師認證 · " : "") + (d.coachName || "ZenPass 認可導師")],
+      ["完成日期", "DATE OF COMPLETION", d.dateStr || ""],
+      ["證書編號", "CERTIFICATE NO.", d.serial || ""],
     ];
     rows.forEach((r, i) => {
-      const y = by + 56 + i * 64;
-      ctx.fillStyle = MUTED; ctx.font = "400 19px " + F;
-      ctx.fillText(r[0], bx + 40, y);
+      const y = by + 62 + i * 68;
+      ctx.fillStyle = MUTED; ctx.font = "500 18px " + F;
+      ctx.fillText(r[0], bx + 36, y);
+      ctx.fillStyle = DIM; ctx.font = "400 10.5px " + SERIF;
+      letterspaced(ctx, r[1], bx + 36, y + 18, 1.3, "left");
+
       ctx.fillStyle = i === 3 ? GOLD_LIGHT : CREAM;
-      ctx.font = (i === 3 ? "600 21px " : "600 23px ") + F;
+      ctx.font = (i === 3 ? "600 20px " : "600 22px ") + F;
       ctx.textAlign = "right";
-      ctx.fillText(String(r[1]), bx + bw - 40, y);
+      ctx.fillText(String(r[2]), bx + bw - 36, y + 8);
       ctx.textAlign = "left";
       if (i < 3) {
-        ctx.strokeStyle = "rgba(255,255,255,.075)"; ctx.lineWidth = 1;
-        ctx.beginPath(); ctx.moveTo(bx + 40, y + 21); ctx.lineTo(bx + bw - 40, y + 21); ctx.stroke();
+        ctx.strokeStyle = "rgba(255,255,255,.07)"; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(bx + 36, y + 30); ctx.lineTo(bx + bw - 36, y + 30); ctx.stroke();
       }
     });
 
-    /* 簽發機構（左） */
-    ctx.fillStyle = MUTED; ctx.font = "400 17px " + F;
-    ctx.fillText("簽發機構", 110, 1502);
+    /* 簽發機構 */
+    ctx.fillStyle = MUTED; ctx.font = "500 16px " + F;
+    ctx.fillText("簽發機構 Issuing Body", 100, 1490);
     ctx.strokeStyle = "rgba(201,162,39,.5)"; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(110, 1552); ctx.lineTo(470, 1552); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(100, 1540); ctx.lineTo(460, 1540); ctx.stroke();
     ctx.fillStyle = CREAM; ctx.font = "600 19px " + F;
-    ctx.fillText("ZenPass 禪流平台", 110, 1580);
-    ctx.fillStyle = MUTED; ctx.font = "400 15px " + F;
-    ctx.fillText("香港康樂及體育有限公司", 110, 1608);
-    ctx.fillText("Hong Kong Leisure and Fitness Co. Ltd.", 110, 1632);
+    ctx.fillText("ZenPass 禪流", 100, 1568);
+    ctx.fillStyle = MUTED; ctx.font = "400 14px " + F;
+    ctx.fillText("香港康樂及體育有限公司", 100, 1594);
+    ctx.fillStyle = DIM; ctx.font = "400 12.5px " + SERIF;
+    ctx.fillText("Hong Kong Leisure and Fitness Company Limited", 100, 1616);
 
-    /* 防偽章（左下） */
-    const sx = 208, sy = 1712, sr = 62;
+    /* 防偽章 */
+    const sx = 206, sy = 1712, sr = 60;
     ctx.beginPath(); ctx.arc(sx, sy, sr, 0, Math.PI * 2);
-    ctx.strokeStyle = "rgba(201,162,39,.7)"; ctx.lineWidth = 2.4; ctx.stroke();
-    ctx.beginPath(); ctx.arc(sx, sy, sr - 11, 0, Math.PI * 2);
+    ctx.strokeStyle = "rgba(201,162,39,.7)"; ctx.lineWidth = 2.3; ctx.stroke();
+    ctx.beginPath(); ctx.arc(sx, sy, sr - 10, 0, Math.PI * 2);
     ctx.strokeStyle = "rgba(201,162,39,.3)"; ctx.lineWidth = 1; ctx.stroke();
     ctx.textAlign = "center";
-    ctx.fillStyle = GOLD_LIGHT; ctx.font = "600 15px " + SERIF;
-    letterspaced(ctx, "VERIFIED", sx, sy - 6, 2.4, "center");
-    ctx.fillStyle = MUTED; ctx.font = "400 12px " + F;
-    ctx.fillText("ZENPASS DIGITAL", sx, sy + 16);
-    ctx.fillText("數位存證", sx, sy + 34);
+    ctx.fillStyle = GOLD_LIGHT; ctx.font = "600 14px " + SERIF;
+    letterspaced(ctx, "VERIFIED", sx, sy - 6, 2.2, "center");
+    ctx.fillStyle = MUTED; ctx.font = "400 11px " + F;
+    ctx.fillText("ZENPASS DIGITAL", sx, sy + 14);
+    ctx.fillText("數位存證", sx, sy + 31);
     ctx.textAlign = "left";
 
-    /* QR（右下） */
-    const qs = 180, qx = W - 110 - qs, qy = 1600;
+    /* QR */
+    const qs = 172, qx = W - 100 - qs, qy = 1604;
     try {
       const res = await fetch("/api/qr?text=" + encodeURIComponent(d.verifyUrl || location.origin) + "&size=420");
       const j = await res.json();
@@ -237,16 +246,19 @@
     } catch (e) {}
 
     ctx.textAlign = "center";
-    ctx.fillStyle = MUTED; ctx.font = "400 15px " + F;
-    ctx.fillText("掃碼驗證真偽", qx + qs / 2, qy + qs + 32);
+    ctx.fillStyle = MUTED; ctx.font = "400 13px " + F;
+    ctx.fillText("掃碼驗證真偽 / Scan to verify", qx + qs / 2, qy + qs + 30);
     ctx.textAlign = "left";
 
-    /* 底部聲明 */
-    ctx.fillStyle = MUTED; ctx.font = "400 14px " + F;
-    ctx.fillText("本證書由 ZenPass 禪流平台簽發，可於 zenpass.hk/verify.html 以證書編號核實。", 110, 1812);
-    ctx.fillText("證書僅證明出席及課程完成紀錄，並不構成任何專業資格或法定認證。", 110, 1836);
+    /* 聲明（中英） */
+    ctx.fillStyle = MUTED; ctx.font = "400 13px " + F;
+    ctx.fillText("本證書由 ZenPass 禪流簽發，可於 zenpass.hk/verify.html 以證書編號核實。", 100, 1798);
+    ctx.fillStyle = DIM; ctx.font = "400 11.5px " + F;
+    ctx.fillText("This certificate is issued by ZenPass and may be verified at zenpass.hk/verify.html using the certificate number above.", 100, 1820);
+    ctx.fillText("本證書僅證明出席及課程完成紀錄，並不構成任何專業資格或法定認可。", 100, 1844);
+    ctx.fillText("It records attendance and completion only and does not confer any professional or statutory qualification.", 100, 1866);
 
-    ctx.fillStyle = GOLD; ctx.fillRect(40, H - 46, W - 80, 5);
+    ctx.fillStyle = GOLD; ctx.fillRect(40, H - 40, W - 80, 5);
 
     const dataUrl = cv.toDataURL("image/jpeg", 0.94);
     const filename = "ZenPass-Certificate-" + (d.serial || Date.now()) + ".jpg";
