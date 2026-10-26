@@ -66,7 +66,7 @@
   </div>
 
   <script src="assets/api.js?v=3"></script>
-  <script src="assets/certificate.js?v=7"></script>
+  <script src="assets/certificate.js?v=8"></script>
   <script>
     const $ = (id) => document.getElementById(id);
     const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -169,7 +169,7 @@
         hours: c.hours, coachName: c.coach_name, coachStarred: Number(c.coach_starred) === 1,
         dateStr: dayStr(c.issued_at), serial: c.code,
         verifyUrl: location.origin + "/verify.html?cert=" + encodeURIComponent(c.code),
-        sportCode: code, scale: 2,
+        sportCode: code, scale: 1, // A4 300dpi
       });
       const a = document.createElement("a");
       a.href = out.dataUrl; a.download = out.filename;

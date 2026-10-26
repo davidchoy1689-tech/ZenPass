@@ -63,7 +63,7 @@
   </div>
 
   <script src="assets/api.js?v=3"></script>
-  <script src="assets/certificate.js?v=7"></script>
+  <script src="assets/certificate.js?v=8"></script>
   <script>
     const $ = (id) => document.getElementById(id);
     const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -141,7 +141,7 @@
         serial: c.code,
         verifyUrl,
         sportCode: code,
-        scale: 1,
+        scale: 0.5, // 150dpi 預覽
       });
       CURRENT.__render = { verifyUrl, sportCode: code };
       $("bigImg").src = out.dataUrl;
@@ -160,7 +160,7 @@
         serial: c.code,
         verifyUrl: c.__render.verifyUrl,
         sportCode: c.__render.sportCode,
-        scale: 2,
+        scale: 1, // 300dpi = A4 2480×3508
       });
       return out;
     }
