@@ -140,6 +140,11 @@ function buildDb() {
   const tampered = db.prepare("SELECT * FROM certificates WHERE id=?").get(sealedRow.id);
   ok(svc.certHash(tampered) !== tampered.verify_hash, "改動學員姓名 → 雜湊對唔上（竄改可偵測）");
   db.prepare("UPDATE certificates SET student_name='陳大文' WHERE id=?").run(sealedRow.id);
+  // 雜湊演算法凍結：未來改格式會即刻 fail（保護已簽發證書）
+  const probe = { code: "ZP-TEST", student_name: "測試學員", coach_id: "c1", issued_at: "2026-01-01 00:00:00" };
+  ok(svc.certHash(probe) === "4744316f90bb9fdf79a08265d45ab20117f3db6d645560fa74a3137926961bef",
+    "雜湊演算法凍結（回歸測試）");
+  ok(String(svc.CERT_SALT_VERSION) === "1", "雜湊鹽版本 = 1（QR sv 參數）");
 
   console.log("\n📋 5. 發證資格閘門");
   const okMolkky = svc.issuerEligibility("coach1", "molkky", "芬蘭木柱體驗班");

@@ -93,8 +93,12 @@ function ensureSchema(db) {
 
 /* ============ 🔐 防偽存證雜湊 ============ */
 
-// 鹽值：可用環境變數覆寫；預設固定值確保歷史證書雜湊穩定可驗
-const CERT_SALT = process.env.CERT_HASH_SALT || "zenpass-cert-v1-2026";
+// 🔒 鹽值永久凍結（2026-10-27 決定）
+// 改動鹽值會令所有已簽發證書的雜湊失效、QR 內嵌前綴全部對唔上，
+// 所以刻意唔用環境變數覆寫，避免有人改 env 就靜靜破壞舊證書。
+// 日後如必須更換，請遞增 CERT_SALT_VERSION 並在驗證頁按版本跳過前綴比對。
+const CERT_SALT = "zenpass-cert-v1-2026";
+const CERT_SALT_VERSION = "1";
 
 /** 證書存證雜湊：cert_no | 學員姓名 | 教練 | 簽發時間 */
 function certHash(c) {
@@ -1016,7 +1020,7 @@ module.exports = {
   ensureSchema, issueForBooking, listForUser, summaryForUser, getByCode, createDemo,
   sportCode, levelFor, issuerEligibility, parseQualified, termProgressForUser, cleanClassTitle,
   syncAttendanceStatement, revokeAttendanceStatement, backfillAttendanceStatements,
-  certHash, sealCertificate, sealPending,
+  certHash, sealCertificate, sealPending, CERT_SALT_VERSION,
   maskLicense, coachLicenseMasked, studentRefHash,
   ASSESS_DIMS, ASSESS_TAGS, assessmentMinHours, gradeFromScores,
   assessmentCandidatesForCoach, issueSkillAssessment,

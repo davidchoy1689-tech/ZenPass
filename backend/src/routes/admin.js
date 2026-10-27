@@ -1392,6 +1392,29 @@ router.get(
         .get().c;
       add("audit", "最近 24 小時審計", audit24 >= 0, `${audit24} 筆`);
 
+      // 8b) 證書防偽存證完整性（重算 SHA-256 對比封存值）
+      try {
+        const svc = require("../services/certificate-service");
+        const rows = db
+          .prepare(
+            `SELECT id, code, student_name, coach_id, issued_at, verify_hash
+               FROM certificates WHERE COALESCE(revoked,0) = 0 LIMIT 5000`,
+          )
+          .all();
+        const unsealed = rows.filter((r) => !r.verify_hash).length;
+        const broken = rows.filter((r) => r.verify_hash && svc.certHash(r) !== r.verify_hash).length;
+        add(
+          "cert_integrity",
+          "證書存證完整性",
+          rows.length === 0 || (broken === 0 && unsealed === 0),
+          rows.length === 0
+            ? "暫未簽發證書"
+            : `${rows.length} 張 · ${broken} 張竄改 · ${unsealed} 張未封存`,
+        );
+      } catch (e) {
+        add("cert_integrity", "證書存證完整性", false, e.message);
+      }
+
       // 9) 備份（本機 archive 資料夾）
       let backupDetail = "未見到備份檔";
       let backupOk = false;

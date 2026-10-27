@@ -158,7 +158,8 @@
       CURRENT = c;
       const code = sportCodeOf(c);
       const hShort = c.verify_hash ? String(c.verify_hash).slice(0, 16) : "";
-      const verifyUrl = location.origin + "/verify.html?cert=" + encodeURIComponent(c.code) + (hShort ? "&h=" + hShort : "");
+      const verifyUrl = location.origin + "/verify.html?cert=" + encodeURIComponent(c.code) +
+        (hShort ? "&h=" + hShort + "&sv=1" : "");
       $("mask").classList.add("on");
       $("bigImg").src = "";
       $("bigImg").alt = "生成中…";

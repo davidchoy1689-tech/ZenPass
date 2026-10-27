@@ -179,7 +179,7 @@
       $("certs").querySelectorAll("[data-dl]").forEach((b) => (b.onclick = () => download(list[Number(b.dataset.dl)])));
       $("certs").querySelectorAll("[data-link]").forEach((b) => (b.onclick = async () => {
         const _c = list[Number(b.dataset.link)];
-        const url = location.origin + "/verify.html?cert=" + encodeURIComponent(_c.code) + (_c.verify_hash ? "&h=" + String(_c.verify_hash).slice(0, 16) : "");
+        const url = location.origin + "/verify.html?cert=" + encodeURIComponent(_c.code) + (_c.verify_hash ? "&h=" + String(_c.verify_hash).slice(0, 16) + "&sv=1" : "");
         try { await navigator.clipboard.writeText(url); b.textContent = "✅"; setTimeout(() => (b.textContent = "🔗"), 1500); }
         catch (e) { prompt("複製連結：", url); }
       }));
@@ -194,7 +194,7 @@
         hours: c.hours, coachName: c.coach_name, coachStarred: Number(c.coach_starred) === 1,
         dateStr: dayStr(c.issued_at), serial: c.code,
         verifyUrl: location.origin + "/verify.html?cert=" + encodeURIComponent(c.code) +
-          (c.verify_hash ? "&h=" + String(c.verify_hash).slice(0, 16) : ""),
+          (c.verify_hash ? "&h=" + String(c.verify_hash).slice(0, 16) + "&sv=1" : ""),
         sportCode: code, kind: c.cert_type,
         detail: c.cert_type === "attendance" ? (c.level_label || "") : "",
         grade: c.overall_grade || "",
