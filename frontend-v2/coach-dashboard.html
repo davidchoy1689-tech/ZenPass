@@ -130,10 +130,86 @@
   </div>
 
   <script src="assets/api.js?v=3"></script>
+  <script src="assets/offline-queue.js?v=1"></script>
   <script src="assets/partner-agreement.js?v=1"></script>
   <script src="assets/vendor/html5-qrcode.min.js"></script>
   <script>
     const $ = (id) => document.getElementById(id);
+
+    /* ===== 📴 離線簽到佇列（工廈地庫弱網） ===== */
+    const OQ = (window.ZPOfflineQueue && window.ZPOfflineQueue.createQueue(localStorage)) || null;
+    let offlineBarEl = null;
+
+    function offlineBar(msg, tone) {
+      if (!offlineBarEl) {
+        offlineBarEl = document.createElement("div");
+        offlineBarEl.id = "offlineBar";
+        offlineBarEl.style.cssText =
+          "position:fixed;left:10px;right:10px;bottom:12px;z-index:9998;border-radius:12px;padding:10px 12px;font-size:12.5px;font-weight:700;box-shadow:0 8px 24px rgba(0,0,0,.18);display:none";
+        document.body.appendChild(offlineBarEl);
+      }
+      offlineBarEl.style.display = "block";
+      offlineBarEl.style.background = tone === "ok" ? "#ecfdf5" : tone === "info" ? "#eff6ff" : "#fef3c7";
+      offlineBarEl.style.color = tone === "ok" ? "#047857" : tone === "info" ? "#1d4ed8" : "#92400e";
+      offlineBarEl.textContent = msg;
+    }
+    function hideOfflineBar(delay) {
+      if (!offlineBarEl) return;
+      setTimeout(() => { if (offlineBarEl) offlineBarEl.style.display = "none"; }, delay || 2500);
+    }
+
+    function withTimeout(promise, ms) {
+      return new Promise((resolve) => {
+        let done = false;
+        const t = setTimeout(() => { if (!done) { done = true; resolve(null); } }, ms);
+        Promise.resolve(promise).then((v) => { if (!done) { done = true; clearTimeout(t); resolve(v); } })
+          .catch(() => { if (!done) { done = true; clearTimeout(t); resolve(null); } });
+      });
+    }
+
+    async function sendCheckin(item) {
+      const rr = await withTimeout(
+        api.post("/bookings/" + encodeURIComponent(item.booking_id) + "/attend", { checkin_method: "coach" }),
+        9000,
+      );
+      if (rr && rr.ok) return true;
+      // 後端冪等：重複簽到／已取消 → 視為已同步，唔好卡住隊列
+      const msg = (rr && rr.data && rr.data.error) || "";
+      if (rr && (rr.status === 400 || rr.status === 409) && /無法簽到|已完成|已取消|出席/.test(msg)) return true;
+      return false;
+    }
+
+    async function flushQueue(silent) {
+      if (!OQ) return { synced: 0, remaining: 0 };
+      const pending = OQ.read();
+      if (!pending.length) return { synced: 0, remaining: 0 };
+      if (!navigator.onLine) {
+        if (!silent) offlineBar("⚠️ 仍然離線，" + pending.length + " 筆簽到暫存中", "warn");
+        return { synced: 0, remaining: pending.length };
+      }
+      offlineBar("⏳ 正在同步 " + pending.length + " 筆離線簽到…", "info");
+      const out = await OQ.flush(sendCheckin);
+      if (out.synced > 0) {
+        offlineBar("✅ 已自動同步 " + out.synced + " 位學員的簽到記錄" + (out.remaining ? "（仍有 " + out.remaining + " 筆待同步）" : ""), out.remaining ? "warn" : "ok");
+        hideOfflineBar(out.remaining ? 6000 : 3500);
+        toast("⚡ 已同步 " + out.synced + " 筆離線簽到");
+        try { loadStats(); } catch (e) {}
+        if (typeof FILTER !== "undefined") { try { loadList(true); } catch (e) {} }
+        try {
+          const sheet = $("shSheet");
+          if (sheet && sheet.classList.contains("on") && window.__lastRosterSid) roster(window.__lastRosterSid);
+        } catch (e) {}
+      } else if (!silent) {
+        offlineBar("⚠️ 同步未成功，稍後會自動重試（" + out.remaining + " 筆）", "warn");
+      }
+      return out;
+    }
+
+    window.addEventListener("online", () => flushQueue());
+    document.addEventListener("visibilitychange", () => { if (!document.hidden) flushQueue(true); });
+    setInterval(() => { if (OQ && OQ.read().length && navigator.onLine) flushQueue(true); }, 30000);
+    setTimeout(() => { if (OQ && OQ.read().length) flushQueue(true); }, 4000);
+
     const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
     const hkd = (n) => "HK$" + Number(n || 0).toLocaleString("en-HK");
     const fmt = (t) => { const d = new Date(String(t).replace(" ", "T")); return isNaN(d) ? String(t) : d.toLocaleString("zh-HK", { month: "short", day: "numeric", weekday: "short", hour: "2-digit", minute: "2-digit" }); };
@@ -858,6 +934,7 @@ ${stamp}
     }
 
     async function roster(sid) {
+      window.__lastRosterSid = sid;
       openSheet("學員名單", '<div class="muted center">載入中…</div>');
       const r = await api.get("/coach/class-students?schedule_id=" + encodeURIComponent(sid));
       if (!r.ok) { $("shBody").innerHTML = `<div class="muted">${esc((r.data && r.data.error) || "讀取失敗")}</div>`; return; }
@@ -902,7 +979,10 @@ ${stamp}
             <span style="display:flex;gap:6px;align-items:center">
               ${done ? `<button class="btn btn-secondary" style="min-height:36px;padding:0 10px;font-size:13px" data-cert="${esc(s.id)}" data-phone="${esc(s.phone || "")}" data-name="${esc(s.name || "")}">🏆</button>` : ""}
               ${s.phone ? `<a class="btn btn-secondary" style="min-height:36px;padding:0 10px;font-size:13px;text-decoration:none;background:#25d366;color:#04331c;border-color:#25d366" target="_blank" rel="noopener" href="https://wa.me/852${esc(String(s.phone).replace(/\D/g, "").slice(-8))}?text=${encodeURIComponent("你好 " + (s.name || "") + "，提醒你 " + fmt(sch.start_time) + " 嘅「" + (sch.title || "") + "」，核銷碼 " + (s.checkin_code || "") + "。詳情：" + guide)}">💬</a>` : ""}
-              ${done ? '<span class="badge2 b-on">已簽到</span>' : `<button class="btn btn-primary" style="min-height:36px;padding:0 12px;font-size:13px" data-attend="${esc(s.id)}">簽到</button>`}
+              ${done ? '<span class="badge2 b-on">已簽到</span>'
+                : (OQ && OQ.has(s.id))
+                  ? '<span class="badge2" style="background:#fef3c7;color:#92400e">🟡 離線已記錄</span>'
+                  : `<button class="btn btn-primary" style="min-height:36px;padding:0 12px;font-size:13px" data-attend="${esc(s.id)}" data-name="${esc(isChild ? s.child_name || s.name : s.name)}">簽到</button>`}
             </span>
           </div>`;
         }).join("")}`;
@@ -935,9 +1015,27 @@ ${stamp}
       }));
       $("shBody").querySelectorAll("[data-attend]").forEach((b) => (b.onclick = async () => {
         b.disabled = true;
-        const rr = await api.post("/bookings/" + encodeURIComponent(b.dataset.attend) + "/attend", { checkin_method: "coach" });
-        if (rr.ok) { toast("✅ 已簽到"); roster(sid); loadStats(); }
-        else { b.disabled = false; alert((rr.data && rr.data.error) || "簽到失敗"); }
+        b.textContent = "⏳ 簽到中…";
+        const rr = await withTimeout(
+          api.post("/bookings/" + encodeURIComponent(b.dataset.attend) + "/attend", { checkin_method: "coach" }),
+          9000,
+        );
+        if (rr && rr.ok) { toast("✅ 已簽到"); roster(sid); loadStats(); return; }
+        const dup = rr && (rr.status === 400 || rr.status === 409) && /無法簽到|已完成|已取消|出席/.test((rr.data && rr.data.error) || "");
+        if (dup) { toast("✅ 已簽到"); roster(sid); return; }
+        const offline = !rr || rr.status === 0 || !navigator.onLine;
+        if (offline && OQ) {
+          OQ.add({ booking_id: b.dataset.attend, schedule_id: sid, name: b.dataset.name || "" });
+          b.disabled = true;
+          b.textContent = "🟡 離線已記錄";
+          b.style.background = "#f59e0b";
+          b.style.borderColor = "#f59e0b";
+          b.style.color = "#3b2500";
+          offlineBar("⚠️ 目前處於弱網環境，簽到已儲存在本機，連線後將自動同步。", "warn");
+          return;
+        }
+        b.disabled = false; b.textContent = "簽到";
+        alert((rr && rr.data && rr.data.error) || "簽到失敗");
       }));
       const rs = $("realSettle");
       if (rs) rs.onclick = () => realSettle(sid, sch, list);
