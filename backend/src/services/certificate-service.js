@@ -36,7 +36,16 @@ function ensureSchema(db) {
       issued_at TEXT DEFAULT (datetime('now')),
       revoked INTEGER DEFAULT 0,
       revoked_reason TEXT,
-      verify_hash TEXT
+      verify_hash TEXT,
+      student_ref_hash TEXT,
+      coach_license_masked TEXT,
+      technical_score INTEGER,
+      tactical_score INTEGER,
+      teamwork_score INTEGER,
+      sportsmanship_score INTEGER,
+      coach_comment TEXT,
+      assessment_tags TEXT,
+      overall_grade TEXT
     );
     CREATE INDEX IF NOT EXISTS idx_certificates_user ON certificates(user_id);
     CREATE INDEX IF NOT EXISTS idx_certificates_code ON certificates(code);
@@ -54,6 +63,23 @@ function ensureSchema(db) {
     if (!cols.includes("verify_hash")) {
       db.exec("ALTER TABLE certificates ADD COLUMN verify_hash TEXT");
     }
+    // 學員識別雜湊（姓名 + 家長電話後 4 位；不收集 HKID）
+    if (!cols.includes("student_ref_hash")) db.exec("ALTER TABLE certificates ADD COLUMN student_ref_hash TEXT");
+    // 教練牌照（脫敏顯示）
+    if (!cols.includes("coach_license_masked")) db.exec("ALTER TABLE certificates ADD COLUMN coach_license_masked TEXT");
+    // 🎖️ 專項技能評定（Level 3）
+    const addCols = [
+      ["technical_score", "INTEGER"],
+      ["tactical_score", "INTEGER"],
+      ["teamwork_score", "INTEGER"],
+      ["sportsmanship_score", "INTEGER"],
+      ["coach_comment", "TEXT"],
+      ["assessment_tags", "TEXT"],
+      ["overall_grade", "TEXT"],
+    ];
+    addCols.forEach(([c, t]) => {
+      if (!cols.includes(c)) db.exec(`ALTER TABLE certificates ADD COLUMN ${c} ${t}`);
+    });
   } catch (e) {}
   _schemaReady.add(db);
   try {
@@ -81,10 +107,67 @@ function certHash(c) {
   return crypto.createHash("sha256").update(payload + "|" + CERT_SALT).digest("hex");
 }
 
+/** 牌照脫敏：HK-*** ＋ 尾 4 位（例：HK-***8821） */
+function maskLicense(no) {
+  const raw = String(no || "").replace(/[^A-Za-z0-9]/g, "");
+  if (!raw) return "";
+  return "HK-***" + raw.slice(-4).toUpperCase();
+}
+
+function coachLicenseMasked(db, coachId) {
+  if (!coachId) return "";
+  try {
+    const c = db
+      .prepare(
+        `SELECT license_no FROM coach_credentials
+          WHERE user_id = ? AND COALESCE(license_no,'') <> ''
+          ORDER BY COALESCE(reviewed_at, created_at) DESC LIMIT 1`,
+      )
+      .get(coachId);
+    return maskLicense(c && c.license_no);
+  } catch (e) {
+    return "";
+  }
+}
+
+/**
+ * 學員識別雜湊（防冒領，但唔收集 HKID）
+ * 姓名 + 家長電話後 4 位 + 平台鹽 → SHA-256 前 32 位
+ */
+function studentRefHash(db, userId, studentName) {
+  try {
+    const ucols = db.prepare("PRAGMA table_info(users)").all().map((c) => c.name);
+    const u = ucols.includes("phone")
+      ? db.prepare("SELECT phone FROM users WHERE id = ?").get(userId) || {}
+      : {};
+    const tail = String(u.phone || "").replace(/\D/g, "").slice(-4);
+    const basis = tail ? `p:${tail}` : `u:${userId}`;
+    return crypto
+      .createHash("sha256")
+      .update(`${String(studentName || "").trim()}|${basis}|${CERT_SALT}`)
+      .digest("hex")
+      .slice(0, 32);
+  } catch (e) {
+    return "";
+  }
+}
+
 /** 為單張證書封存雜湊（已封存則不動，保證可重複驗證） */
 function sealCertificate(db, id) {
   const row = db.prepare("SELECT * FROM certificates WHERE id = ?").get(id);
   if (!row) return null;
+  // 補齊識別雜湊／脫敏牌照（唔影響雜湊內容）
+  if (!row.student_ref_hash || !row.coach_license_masked) {
+    try {
+      db.prepare(
+        "UPDATE certificates SET student_ref_hash = COALESCE(NULLIF(student_ref_hash,''), ?), coach_license_masked = COALESCE(NULLIF(coach_license_masked,''), ?) WHERE id = ?",
+      ).run(
+        row.student_ref_hash || studentRefHash(db, row.user_id, row.student_name),
+        row.coach_license_masked || coachLicenseMasked(db, row.coach_id),
+        id,
+      );
+    } catch (e) {}
+  }
   if (row.verify_hash) return row.verify_hash;
   const h = certHash(row);
   db.prepare("UPDATE certificates SET verify_hash = ? WHERE id = ? AND COALESCE(verify_hash,'') = ''").run(h, id);
@@ -713,9 +796,228 @@ function createDemo(opts) {
   return db.prepare("SELECT * FROM certificates WHERE id = ?").get(id);
 }
 
+/* ============ 🎖️ Level 3 專項技能評定 ============ */
+
+const ASSESS_DIMS = [
+  { key: "technical_score", zh: "技術精準度", en: "TECHNICAL PRECISION" },
+  { key: "tactical_score", zh: "戰術與專注力", en: "TACTICAL FOCUS" },
+  { key: "teamwork_score", zh: "團隊溝通", en: "TEAMWORK & COMMUNICATION" },
+  { key: "sportsmanship_score", zh: "運動員精神", en: "SPORTSMANSHIP" },
+];
+
+const ASSESS_TAGS = [
+  "學習敏銳度高", "具備領導潛質", "恆毅力強", "專注力出色",
+  "團隊合作佳", "技術動作標準", "比賽抗壓能力強", "樂於幫助隊友",
+];
+
+function assessmentMinHours(db) {
+  try {
+    const r = db.prepare("SELECT value FROM platform_settings WHERE key = 'assessment.min_hours'").get();
+    const n = Number(r && r.value);
+    if (Number.isFinite(n) && n > 0) return n;
+  } catch (e) {}
+  return 30;
+}
+
+/** 由四項評分計算總評等級 */
+function gradeFromScores(scores) {
+  const vals = ASSESS_DIMS.map((d) => Number(scores && scores[d.key]) || 0);
+  const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
+  if (avg >= 4.5) return { grade: "Distinction", zh: "卓越", avg };
+  if (avg >= 3.5) return { grade: "Merit", zh: "優異", avg };
+  return { grade: "Pass", zh: "達標", avg };
+}
+
+/** 該教練名下、可接受評定的學員（按學員 × 項目聚合出席時數） */
+function assessmentCandidatesForCoach(coachId) {
+  const db = getDb();
+  ensureSchema(db);
+  const bcols = db.prepare("PRAGMA table_info(bookings)").all().map((c) => c.name);
+  const childExpr = bcols.includes("child_name") ? "NULLIF(b.child_name,'')" : "NULL";
+  const minHours = assessmentMinHours(db);
+  const rows = db
+    .prepare(
+      `SELECT b.user_id AS user_id,
+              COALESCE(${childExpr}, u.name) AS student_name,
+              COALESCE(c.sport_slug, c.category, '') AS sport,
+              SUM(COALESCE(c.duration, 60)) AS mins,
+              COUNT(*) AS sessions,
+              MAX(c.title) AS sample_title,
+              MAX(u.phone) AS phone
+         FROM bookings b
+         JOIN classes c ON c.id = b.class_id
+         JOIN users u ON u.id = b.user_id
+        WHERE c.coach_id = ? AND b.status = 'attended'
+        GROUP BY b.user_id, COALESCE(${childExpr}, u.name), COALESCE(c.sport_slug, c.category, '')
+        ORDER BY mins DESC`,
+    )
+    .all(coachId);
+
+  return rows.map((r) => {
+    const hours = Math.round((Number(r.mins) / 60) * 10) / 10;
+    const graduated = !!db
+      .prepare(
+        `SELECT 1 AS x FROM certificates
+          WHERE user_id = ? AND sport = ? AND cert_type = 'graduation' AND COALESCE(revoked,0) = 0 LIMIT 1`,
+      )
+      .get(r.user_id, r.sport);
+    const existing = db
+      .prepare(
+        `SELECT code, overall_grade, issued_at FROM certificates
+          WHERE user_id = ? AND sport = ? AND cert_type = 'skill_assessment'
+            AND student_name = ? AND COALESCE(revoked,0) = 0 LIMIT 1`,
+      )
+      .get(r.user_id, r.sport, r.student_name);
+    return {
+      user_id: r.user_id,
+      student_name: r.student_name,
+      sport: r.sport,
+      hours,
+      sessions: Number(r.sessions) || 0,
+      sample_title: cleanClassTitle(r.sample_title || ""),
+      phone: r.phone || "",
+      graduated,
+      min_hours: minHours,
+      eligible: hours >= minHours || graduated,
+      assessed: existing || null,
+    };
+  });
+}
+
+/**
+ * 簽發 Level 3 專項技能評定證書
+ * @param {{coachId:string, userId:string, studentName:string, sport:string,
+ *          scores:object, comment?:string, tags?:string[], isAdmin?:boolean}} o
+ */
+function issueSkillAssessment(o) {
+  const opts = o || {};
+  const db = getDb();
+  ensureSchema(db);
+
+  const userId = String(opts.userId || "");
+  const studentName = String(opts.studentName || "").trim();
+  const sport = String(opts.sport || "").trim();
+  if (!userId || !studentName || !sport) {
+    return { ok: false, status: 400, error: "缺少學員或項目資料" };
+  }
+  const scores = {};
+  for (const d of ASSESS_DIMS) {
+    const v = Math.round(Number(opts.scores && opts.scores[d.key]));
+    if (!(v >= 1 && v <= 5)) return { ok: false, status: 400, error: `「${d.zh}」需要 1–5 分` };
+    scores[d.key] = v;
+  }
+
+  // 該教練必須曾為此學員於該項目簽到（防任意評核）
+  const bcols = db.prepare("PRAGMA table_info(bookings)").all().map((c) => c.name);
+  const childExpr = bcols.includes("child_name") ? "NULLIF(b.child_name,'')" : "NULL";
+  const taught = db
+    .prepare(
+      `SELECT SUM(COALESCE(c.duration,60)) AS mins, COUNT(*) AS n, MAX(c.title) AS title
+         FROM bookings b JOIN classes c ON c.id = b.class_id JOIN users u ON u.id = b.user_id
+        WHERE c.coach_id = ? AND b.user_id = ? AND b.status = 'attended'
+          AND COALESCE(c.sport_slug, c.category, '') = ?
+          AND COALESCE(${childExpr}, u.name) = ?`,
+    )
+    .get(opts.coachId, userId, sport, studentName);
+  if (!taught || !Number(taught.n)) {
+    return { ok: false, status: 403, error: "你未曾為此學員於此項目簽到，不能評核" };
+  }
+
+  const hours = Math.round((Number(taught.mins) / 60) * 10) / 10;
+  const graduated = !!db
+    .prepare(
+      `SELECT 1 AS x FROM certificates
+        WHERE user_id = ? AND sport = ? AND cert_type = 'graduation' AND COALESCE(revoked,0) = 0 LIMIT 1`,
+    )
+    .get(userId, sport);
+  const minHours = assessmentMinHours(db);
+  if (hours < minHours && !graduated) {
+    return {
+      ok: false,
+      status: 400,
+      error: `出席時數不足：已 ${hours} 小時，需滿 ${minHours} 小時或完成期制課程`,
+      code: "HOURS_NOT_ENOUGH",
+      hours,
+      min_hours: minHours,
+    };
+  }
+
+  if (!opts.isAdmin) {
+    const el = issuerEligibility(opts.coachId, sport, taught.title || "");
+    if (!el.ok) return { ok: false, status: 403, error: el.reason, code: "ISSUER_NOT_QUALIFIED" };
+  }
+
+  // 已評核過（同項目同學員）→ 直接回傳，唔重複發
+  const dup = db
+    .prepare(
+      `SELECT * FROM certificates
+        WHERE user_id = ? AND sport = ? AND cert_type = 'skill_assessment'
+          AND student_name = ? AND COALESCE(revoked,0) = 0 LIMIT 1`,
+    )
+    .get(userId, sport, studentName);
+  if (dup) return { ok: true, certificate: dup, duplicate: true };
+
+  const g = gradeFromScores(scores);
+  const coach = db.prepare("SELECT name FROM users WHERE id = ?").get(opts.coachId) || {};
+  const tags = Array.isArray(opts.tags)
+    ? opts.tags.map((t) => String(t).slice(0, 20)).filter(Boolean).slice(0, 6)
+    : [];
+  const comment = String(opts.comment || "").slice(0, 400);
+  const code =
+    "ZP-" + new Date().getFullYear() + "-" + sportCode(sport, "", taught.title) +
+    "-L3" + crypto.randomBytes(2).toString("hex").toUpperCase();
+  const id = crypto.randomUUID();
+  const key = "skill:" + sport + ":" + userId + ":" + crypto.createHash("md5").update(studentName).digest("hex").slice(0, 8);
+
+  let starred = 0;
+  try {
+    const cc = db
+      .prepare(
+        `SELECT CASE WHEN status='verified' AND COALESCE(is_starred,0)=1
+                AND (license_expiry IS NULL OR license_expiry='' OR license_expiry >= date('now'))
+                THEN 1 ELSE 0 END AS s
+         FROM coach_credentials WHERE user_id = ? ORDER BY s DESC LIMIT 1`,
+      )
+      .get(opts.coachId);
+    starred = cc ? Number(cc.s) || 0 : 0;
+  } catch (e) {}
+
+  db.prepare(
+    `INSERT INTO certificates
+      (id, code, booking_id, user_id, class_id, schedule_id, student_name, class_title,
+       sport, level, level_label, hours, coach_id, coach_name, coach_starred, issued_at, cert_type,
+       technical_score, tactical_score, teamwork_score, sportsmanship_score,
+       coach_comment, assessment_tags, overall_grade)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?, datetime('now'), 'skill_assessment',
+             ?,?,?,?,?,?,?)`,
+  ).run(
+    id, code, key, userId, null, null, studentName, cleanClassTitle(taught.title || ""),
+    sport, 3, `Level 3 · 專項技術精熟（${g.grade} · ${g.zh}）`, hours,
+    opts.coachId, coach.name || "", starred,
+    scores.technical_score, scores.tactical_score, scores.teamwork_score, scores.sportsmanship_score,
+    comment, JSON.stringify(tags), g.grade,
+  );
+  try { sealCertificate(db, id); } catch (e) {}
+  try {
+    db.prepare(
+      `INSERT INTO audit_log (id, action_type, entity_type, entity_id, user_id, new_values, description, created_at)
+       VALUES (?,?,?,?,?,?,?, datetime('now'))`,
+    ).run(
+      crypto.randomUUID(), "certificate.skill_assessment", "certificate", id, opts.coachId,
+      JSON.stringify({ student: studentName, sport, grade: g.grade, avg: Math.round(g.avg * 100) / 100, hours }),
+      `簽發 Level 3 專項評定（${g.grade}）— ${studentName} / ${sport}`,
+    );
+  } catch (e) {}
+
+  return { ok: true, certificate: db.prepare("SELECT * FROM certificates WHERE id = ?").get(id) };
+}
+
 module.exports = {
   ensureSchema, issueForBooking, listForUser, summaryForUser, getByCode, createDemo,
   sportCode, levelFor, issuerEligibility, parseQualified, termProgressForUser, cleanClassTitle,
   syncAttendanceStatement, revokeAttendanceStatement, backfillAttendanceStatements,
   certHash, sealCertificate, sealPending,
+  maskLicense, coachLicenseMasked, studentRefHash,
+  ASSESS_DIMS, ASSESS_TAGS, assessmentMinHours, gradeFromScores,
+  assessmentCandidatesForCoach, issueSkillAssessment,
 };

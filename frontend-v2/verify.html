@@ -59,19 +59,40 @@
         }
         const c = d.certificate || {};
         const isAttend = String(c.cert_type || "") === "attendance";
+        const isSkill = String(c.cert_type || "") === "skill_assessment";
+        const docName = isSkill ? "專項評定證書" : isAttend ? "出席證書" : "證書";
         $("out").innerHTML = `<div class="vf-card">
           <div class="vf-ic">✅</div>
-          <div class="vf-title">${isAttend ? "出席證書有效" : "證書有效"}</div>
-          <div class="vf-sub">此${isAttend ? "出席證書" : "證書"}由 ZenPass 禪流平台正式簽發</div>
+          <div class="vf-title">${docName}有效</div>
+          <div class="vf-sub">此${docName}由 ZenPass 禪流平台正式簽發</div>
           <div class="vf-rows">
             ${c.is_demo ? `<div class="vf-row"><span>樣本</span><b style="color:#FCD34D">示範證書（非真實學員紀錄）</b></div>` : ""}
             <div class="vf-row"><span>持證學員</span><b>${esc(c.student_name)}</b></div>
-            <div class="vf-row"><span>${isAttend ? "課程名稱" : "完成項目"}</span><b>${esc(c.class_title)}</b></div>
-            <div class="vf-row"><span>${isAttend ? "出席紀錄" : "認證等級"}</span><b>${esc(c.level_label)}</b></div>
+            <div class="vf-row"><span>${isAttend || isSkill ? "課程名稱" : "完成項目"}</span><b>${esc(c.class_title)}</b></div>
+            <div class="vf-row"><span>${isAttend ? "出席紀錄" : isSkill ? "評定等級" : "認證等級"}</span><b>${esc(c.level_label)}</b></div>
             <div class="vf-row"><span>${isAttend ? "出席時數" : "認證時數"}</span><b>${(Number(c.hours) || 0).toFixed(1)} 小時</b></div>
             <div class="vf-row"><span>執教教練</span><b>${c.coach_starred ? "星級教練 · " : ""}${esc(c.coach_name || "—")}</b></div>
+            ${c.coach_license ? `<div class="vf-row"><span>教練牌照</span><b>${esc(c.coach_license)}（已脫敏）</b></div>` : ""}
+            ${c.student_ref ? `<div class="vf-row"><span>學員識別碼</span><b style="font-family:ui-monospace,monospace;font-size:11px">${esc(c.student_ref)}</b></div>` : ""}
             <div class="vf-row"><span>${isAttend ? "紀錄日期" : "完成日期"}</span><b>${esc(day(c.issued_at))}</b></div>
             <div class="vf-row"><span>證書編號</span><b>${esc(c.code)}</b></div>
+            ${isSkill ? `<div style="border-top:1px dashed #cbd5e1;margin:10px 0 6px"></div>
+            <div style="font-size:12px;font-weight:800;color:#0f766e;margin-bottom:6px">🎖️ 五維能力評定</div>
+            ${[
+              ["技術精準度", c.technical_score],
+              ["戰術與專注力", c.tactical_score],
+              ["團隊溝通", c.teamwork_score],
+              ["運動員精神", c.sportsmanship_score],
+            ].map(([label, v]) => {
+              const n = Number(v) || 0;
+              return `<div style="display:flex;align-items:center;gap:8px;margin:5px 0">
+                <span style="flex:1;font-size:12px;color:#475569">${label}</span>
+                <span style="font-size:14px;letter-spacing:2px;color:#C9A227">${"★".repeat(n)}<span style="color:#cbd5e1">${"★".repeat(5 - n)}</span></span>
+                <b style="width:28px;text-align:right;font-size:12px">${n}/5</b>
+              </div>`;
+            }).join("")}
+            ${Array.isArray(c.assessment_tags) && c.assessment_tags.length ? `<div style="font-size:11.5px;color:#475569;margin-top:8px">🏷️ ${c.assessment_tags.map((t) => esc(t)).join(" · ")}</div>` : ""}
+            ${c.coach_comment ? `<div style="font-size:11.5px;color:#334155;margin-top:6px;line-height:1.6"><b>教練評語：</b>${esc(c.coach_comment)}</div>` : ""}` : ""}
             ${c.verify_hash ? `<div class="vf-row"><span>存證雜湊</span><b style="font-family:ui-monospace,monospace;font-size:10px;word-break:break-all">SHA-256 ${esc(String(c.verify_hash).slice(0, 24))}…</b></div>` : ""}
           </div>
           <div class="vf-badge">✔ 已核實 · ${esc(d.issuer || "ZenPass")}${d.sealed ? " · 🔐 存證相符" : ""}</div>

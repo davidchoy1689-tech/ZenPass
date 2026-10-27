@@ -75,6 +75,17 @@ router.get("/verify/:code", (req, res) => {
         issued_at: c.issued_at,
         sport: c.sport,
         verify_hash: c.verify_hash || "",
+        student_ref: c.student_ref_hash ? String(c.student_ref_hash).slice(0, 8).toUpperCase() : "",
+        coach_license: c.coach_license_masked || "",
+        technical_score: c.technical_score == null ? null : Number(c.technical_score),
+        tactical_score: c.tactical_score == null ? null : Number(c.tactical_score),
+        teamwork_score: c.teamwork_score == null ? null : Number(c.teamwork_score),
+        sportsmanship_score: c.sportsmanship_score == null ? null : Number(c.sportsmanship_score),
+        overall_grade: c.overall_grade || "",
+        coach_comment: c.coach_comment || "",
+        assessment_tags: (() => {
+          try { return JSON.parse(c.assessment_tags || "[]"); } catch (e) { return []; }
+        })(),
       },
       issuer: "Hong Kong Leisure and Fitness Company Limited",
     });
@@ -153,10 +164,85 @@ router.post("/:bookingId/issue", authenticateToken, (req, res) => {
 
     const cert = svc.issueForBooking(b.id);
     if (!cert) return res.status(400).json({ success: false, error: "發證失敗" });
-    res.json({ success: true, certificate: cert });
+
+    // 📊 期制進度（教練恭賀訊息用：尚差 N 堂解鎖 Level 2）
+    let progress = null;
+    try {
+      const p = svc.termProgressForUser(b.user_id).find((x) => x.class_id === cert.class_id);
+      if (p) {
+        progress = {
+          attended: p.attended,
+          total_sessions: p.total_sessions,
+          required: p.required,
+          remaining: Math.max(0, p.required - p.attended),
+          completed: p.completed,
+          level2: "Level 2 · 核心進階者",
+        };
+      }
+    } catch (e) {}
+
+    res.json({ success: true, certificate: cert, progress });
   } catch (err) {
     console.error("補發證書失敗:", err);
     res.status(500).json({ success: false, error: "補發失敗" });
+  }
+});
+
+// ===== 🎖️ Level 3 專項技能評定 =====
+// GET  /api/certificates/assessment/candidates — 教練名下可評核學員
+router.get("/assessment/candidates", authenticateToken, (req, res) => {
+  try {
+    const db = getDb();
+    const me = db.prepare("SELECT role FROM users WHERE id = ?").get(req.user.id) || {};
+    const isCoach = ["coach", "admin", "super_admin", "platform_manager"].includes(me.role);
+    if (!isCoach) return res.status(403).json({ success: false, error: "只限教練使用" });
+    const coachId = req.query.coach_id && me.role !== "coach" ? String(req.query.coach_id) : req.user.id;
+    const list = svc.assessmentCandidatesForCoach(coachId);
+    res.json({
+      success: true,
+      candidates: list,
+      dims: svc.ASSESS_DIMS,
+      tags: svc.ASSESS_TAGS,
+      min_hours: svc.assessmentMinHours(db),
+    });
+  } catch (err) {
+    console.error("評核名單失敗:", err);
+    res.status(500).json({ success: false, error: "讀取失敗" });
+  }
+});
+
+// POST /api/certificates/assessment — 提交評核並簽發 Level 3 證書
+router.post("/assessment", authenticateToken, (req, res) => {
+  try {
+    const db = getDb();
+    const me = db.prepare("SELECT role FROM users WHERE id = ?").get(req.user.id) || {};
+    const isAdmin = ["admin", "super_admin", "platform_manager"].includes(me.role);
+    if (!isAdmin && me.role !== "coach") {
+      return res.status(403).json({ success: false, error: "只限教練提交評核" });
+    }
+    const body = req.body || {};
+    const out = svc.issueSkillAssessment({
+      coachId: isAdmin && body.coach_id ? String(body.coach_id) : req.user.id,
+      userId: body.user_id,
+      studentName: body.student_name,
+      sport: body.sport,
+      scores: {
+        technical_score: body.technical_score,
+        tactical_score: body.tactical_score,
+        teamwork_score: body.teamwork_score,
+        sportsmanship_score: body.sportsmanship_score,
+      },
+      comment: body.comment,
+      tags: body.tags,
+      isAdmin,
+    });
+    if (!out.ok) {
+      return res.status(out.status || 400).json({ success: false, error: out.error, code: out.code });
+    }
+    res.json({ success: true, certificate: out.certificate, duplicate: !!out.duplicate });
+  } catch (err) {
+    console.error("專項評定失敗:", err);
+    res.status(500).json({ success: false, error: "評定失敗" });
   }
 });
 

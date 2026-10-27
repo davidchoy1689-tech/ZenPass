@@ -21,7 +21,7 @@ function buildDb() {
   const db = new Database(TMP);
   db.pragma("journal_mode = WAL");
   db.exec(`
-    CREATE TABLE users (id TEXT PRIMARY KEY, name TEXT, email TEXT);
+    CREATE TABLE users (id TEXT PRIMARY KEY, name TEXT, email TEXT, phone TEXT);
     CREATE TABLE classes (
       id TEXT PRIMARY KEY, title TEXT, category TEXT, sport_slug TEXT, duration INTEGER,
       coach_id TEXT, status TEXT DEFAULT 'active',
@@ -40,9 +40,9 @@ function buildDb() {
       reviewed_at TEXT, created_at TEXT, qualified_sports TEXT
     );
   `);
-  db.prepare("INSERT INTO users VALUES ('u1','陳大文','a@x.hk')").run();
-  db.prepare("INSERT INTO users VALUES ('coach1','Sam Lee','c@x.hk')").run();
-  db.prepare("INSERT INTO users VALUES ('coach2','No Cred','n@x.hk')").run();
+  db.prepare("INSERT INTO users VALUES ('u1','陳大文','a@x.hk','91234567')").run();
+  db.prepare("INSERT INTO users VALUES ('coach1','Sam Lee','c@x.hk',NULL)").run();
+  db.prepare("INSERT INTO users VALUES ('coach2','No Cred','n@x.hk',NULL)").run();
 
   // 期制班：12 堂，每堂 120 分鐘，出席率門檻 80%
   db.prepare(
@@ -71,8 +71,8 @@ function buildDb() {
 
   // 已核實教練，保單有效，授權 molkky
   db.prepare(
-    `INSERT INTO coach_credentials (id,user_id,license_type,license_expiry,insurance_expiry_date,status,created_at,qualified_sports,is_starred)
-     VALUES ('cc1','coach1','芬蘭木柱一級教練','2027-12-31','2027-06-30','verified','2026-10-01',?,1)`,
+    `INSERT INTO coach_credentials (id,user_id,license_type,license_no,license_expiry,insurance_expiry_date,status,created_at,qualified_sports,is_starred)
+     VALUES ('cc1','coach1','芬蘭木柱一級教練','MOL-8821','2027-12-31','2027-06-30','verified','2026-10-01',?,1)`,
   ).run(JSON.stringify(["molkky"]));
   return db;
 }
@@ -154,6 +154,37 @@ function buildDb() {
   db.prepare("UPDATE coach_credentials SET insurance_expiry_date='2027-06-30', status='pending' WHERE user_id='coach1'").run();
   const pending = svc.issuerEligibility("coach1", "molkky", "芬蘭木柱體驗班");
   ok(pending.ok === false && /審核中/.test(pending.reason || ""), "資質待審 → 拒絕：" + (pending.reason || ""));
+
+  console.log("\n📋 6. 🎖️ Level 3 專項技能評定");
+  // 還原教練狀態（第 5 節測試過「待審」情境）
+  db.prepare("UPDATE coach_credentials SET status='verified', insurance_expiry_date='2027-06-30', license_expiry='2027-12-31' WHERE user_id='coach1'").run();
+  ok(svc.maskLicense("MOL-8821") === "HK-***8821", "牌照脫敏格式：" + svc.maskLicense("MOL-8821"));
+  const cands = svc.assessmentCandidatesForCoach("coach1");
+  const c1 = cands.find((x) => x.user_id === "u1" && x.sport === "molkky");
+  ok(!!c1, "教練名下搵到學員 u1（molkky）");
+  ok(c1 && c1.hours === 22, "累計出席時數 = 22（期制 10 堂 + 單堂 1 堂，每堂 2 小時）");
+  ok(c1 && c1.graduated === true && c1.eligible === true, "已結業 → 可評核（即使未滿 30 小時）");
+  const asBad = svc.issueSkillAssessment({ coachId: "coach1", userId: "u1", studentName: "陳大文", sport: "molkky",
+    scores: { technical_score: 6, tactical_score: 4, teamwork_score: 4, sportsmanship_score: 4 } });
+  ok(asBad.ok === false && /1–5/.test(asBad.error || ""), "分數超出 1–5 → 拒絕");
+  const as1 = svc.issueSkillAssessment({ coachId: "coach1", userId: "u1", studentName: "陳大文", sport: "molkky",
+    scores: { technical_score: 5, tactical_score: 4, teamwork_score: 5, sportsmanship_score: 4 },
+    comment: "動作標準，戰術理解快", tags: ["學習敏銳度高", "恆毅力強"] });
+  ok(as1.ok === true, "評定證書簽發成功" + (as1.ok ? "" : "：" + as1.error));
+  const ac = as1.certificate || {};
+  ok(ac.cert_type === "skill_assessment", "cert_type = skill_assessment");
+  ok(ac.overall_grade === "Distinction", "平均 4.5 → Distinction（got " + ac.overall_grade + "）");
+  ok(ac.level === 3 && /Level 3/.test(ac.level_label || ""), "等級 = Level 3：" + ac.level_label);
+  ok(/^[a-f0-9]{64}$/.test(String(ac.verify_hash || "")), "已封存 SHA-256 存證");
+  ok(/^[a-f0-9]{32}$/.test(String(ac.student_ref_hash || "")), "學員識別雜湊 = 32 位（唔含 HKID）");
+  ok(String(ac.coach_license_masked || "") === "HK-***8821", "證書帶脫敏牌照：" + ac.coach_license_masked);
+  ok(JSON.parse(ac.assessment_tags || "[]").length === 2, "快捷評語標籤已儲存");
+  const as2 = svc.issueSkillAssessment({ coachId: "coach1", userId: "u1", studentName: "陳大文", sport: "molkky",
+    scores: { technical_score: 5, tactical_score: 5, teamwork_score: 5, sportsmanship_score: 5 } });
+  ok(as2.ok === true && as2.duplicate === true, "重複評核 → 回傳既有證書（唔重複發）");
+  const as3 = svc.issueSkillAssessment({ coachId: "coach1", userId: "u1", studentName: "李小明", sport: "molkky",
+    scores: { technical_score: 4, tactical_score: 4, teamwork_score: 4, sportsmanship_score: 4 } });
+  ok(as3.ok === false && as3.status === 403, "未教過此學員 → 拒絕評核");
 
   console.log("\n📊 結果: " + pass + " ✅ 通過, " + fail + " ❌ 失敗\n");
   try { fs.unlinkSync(TMP); } catch (e) {}

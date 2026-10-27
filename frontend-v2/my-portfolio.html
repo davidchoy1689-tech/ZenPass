@@ -85,7 +85,7 @@
   </div>
 
   <script src="assets/api.js?v=3"></script>
-  <script src="assets/certificate.js?v=10"></script>
+  <script src="assets/certificate.js?v=11"></script>
   <script>
     const $ = (id) => document.getElementById(id);
     const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -162,11 +162,12 @@
         const code = codeOf(c);
         const isGrad = c.cert_type === "graduation";
         const isAttend = c.cert_type === "attendance";
+        const isSkill = c.cert_type === "skill_assessment";
         return `<div class="pf-cert" data-i="${i}">
-          <div class="pf-ic">${isGrad ? "🎓" : isAttend ? "📋" : (EMOJI[code] || "🏅")}</div>
+          <div class="pf-ic">${isGrad ? "🎓" : isAttend ? "📋" : isSkill ? "🎖️" : (EMOJI[code] || "🏅")}</div>
           <div class="pf-tx">
             <b>${esc(c.class_title || "")}</b>
-            <div class="s">${isGrad ? "全期結業" : isAttend ? "出席證書" : "單堂出席"} · ${esc(dayStr(c.issued_at))} · ${(Number(c.hours) || 0).toFixed(1)} 小時</div>
+            <div class="s">${isGrad ? "全期結業" : isAttend ? "出席證書" : isSkill ? "專項評定" : "單堂出席"} · ${esc(dayStr(c.issued_at))} · ${(Number(c.hours) || 0).toFixed(1)} 小時</div>
             <div class="s">${esc(c.student_name || "")} · ${esc(c.code)}</div>
           </div>
           <div class="pf-act">
@@ -185,6 +186,8 @@
 
     async function download(c) {
       const code = codeOf(c);
+      let tags = [];
+      try { tags = JSON.parse(c.assessment_tags || "[]"); } catch (e) {}
       const out = await window.zpMakeCertificate({
         studentName: c.student_name, classTitle: c.class_title, levelLabel: c.level_label,
         hours: c.hours, coachName: c.coach_name, coachStarred: Number(c.coach_starred) === 1,
@@ -192,6 +195,14 @@
         verifyUrl: location.origin + "/verify.html?cert=" + encodeURIComponent(c.code),
         sportCode: code, kind: c.cert_type,
         detail: c.cert_type === "attendance" ? (c.level_label || "") : "",
+        grade: c.overall_grade || "",
+        gradeZh: c.overall_grade === "Distinction" ? "卓越" : c.overall_grade === "Merit" ? "優異" : c.overall_grade === "Pass" ? "達標" : "",
+        scores: {
+          technical_score: c.technical_score, tactical_score: c.tactical_score,
+          teamwork_score: c.teamwork_score, sportsmanship_score: c.sportsmanship_score,
+        },
+        tags,
+        coachLicense: c.coach_license_masked || "",
         scale: 1, // A4 300dpi
       });
       const a = document.createElement("a");
@@ -200,7 +211,9 @@
     }
 
     function certTypeLabel(c) {
-      return c.cert_type === "graduation" ? "全期結業" : c.cert_type === "attendance" ? "出席證書" : "單堂出席";
+      return c.cert_type === "graduation" ? "全期結業"
+        : c.cert_type === "attendance" ? "出席證書"
+        : c.cert_type === "skill_assessment" ? "專項評定" : "單堂出席";
     }
 
     function visibleCerts() {

@@ -65,6 +65,7 @@
       <div style="display:flex;gap:10px;margin-bottom:12px">
         <button class="btn btn-primary" id="btnQuick" style="flex:2">➕ 快速新增課堂時段</button>
         <button class="btn btn-secondary" id="btnScan" style="flex:1">📷 掃描核銷</button>
+        <button class="btn btn-secondary" id="btnAssess" style="flex:none;padding:0 12px" title="專項技能評定">🎖️</button>
       </div>
       <div style="display:flex;gap:8px;margin-bottom:10px">
         <div class="seg2" id="viewSeg" style="display:flex;gap:8px;flex:1">
@@ -756,6 +757,106 @@ ${stamp}
         <button class="btn btn-secondary btn-block" onclick="toast('示範模式：唔會真正封存')">✅ 確認結算並封存此課堂</button>`);
     }
 
+    /* ===== 🎖️ Level 3 專項技能評定 ===== */
+    $("btnAssess").onclick = () => assessSheet();
+
+    async function assessSheet() {
+      openSheet("🎖️ 專項技能評定", '<div class="muted center">載入中…</div>');
+      const r = await api.get("/certificates/assessment/candidates");
+      if (!r.ok) { $("shBody").innerHTML = `<div class="muted">${esc((r.data && r.data.error) || "讀取失敗")}</div>`; return; }
+      const list = (r.data && r.data.candidates) || [];
+      const minH = Number(r.data && r.data.min_hours) || 30;
+      if (!list.length) {
+        $("shBody").innerHTML = '<div class="muted center" style="padding:18px 0">暫時未有已簽到學員。完成點名後，學員會出現喺呢度。</div>';
+        return;
+      }
+      $("shBody").innerHTML = `
+        <div class="muted" style="font-size:12px;margin-bottom:10px;line-height:1.6">
+          出席滿 ${minH} 小時（或完成期制課程）即可評核。評分會印落 Level 3 證書，學校可掃 QR 查核。
+        </div>
+        ${list.map((x, i) => {
+          const tag = x.assessed ? `<span class="badge2 b-on">已評定 ${esc(x.assessed.overall_grade || "")}</span>`
+            : x.eligible ? '<span class="badge2 b-on">✅ 可評核</span>' : `<span class="badge2 b-recruit">⏳ 尚差 ${Math.max(0, Math.round((minH - x.hours) * 10) / 10)} 小時</span>`;
+          return `<div class="stu">
+            <div><div class="n">${esc(x.student_name)}</div>
+              <div class="s">${esc(x.sport || "—")} · ${x.hours} 小時 · ${x.sessions} 堂 ${x.graduated ? "· 🎓 已結業" : ""}</div></div>
+            <span style="display:flex;gap:6px;align-items:center">
+              ${tag}
+              ${x.eligible && !x.assessed ? `<button class="btn btn-primary" style="min-height:36px;padding:0 12px;font-size:13px" data-assess="${i}">📝 評核</button>` : ""}
+              ${x.assessed ? `<button class="btn btn-secondary" style="min-height:36px;padding:0 10px;font-size:13px" data-share="${i}">💬</button>` : ""}
+            </span>
+          </div>`;
+        }).join("")}`;
+      const DIMS = (r.data && r.data.dims) || [];
+      const TAGS = (r.data && r.data.tags) || [];
+      $("shBody").querySelectorAll("[data-assess]").forEach((b) => (b.onclick = () => assessForm(list[Number(b.dataset.assess)], DIMS, TAGS)));
+      $("shBody").querySelectorAll("[data-share]").forEach((b) => (b.onclick = () => {
+        const x = list[Number(b.dataset.share)];
+        const code = x.assessed && x.assessed.code;
+        if (!code) return;
+        const p8 = String(x.phone || "").replace(/\D/g, "").slice(-8);
+        const msg = `🎖️ 恭喜 ${x.student_name}！Level 3 專項評定證書已發出（${x.assessed.overall_grade || ""} · ${x.sport}）。\n編號：${code}\n驗證：${location.origin}/verify.html?cert=${encodeURIComponent(code)}`;
+        if (p8.length === 8) window.open("https://wa.me/852" + p8 + "?text=" + encodeURIComponent(msg), "_blank");
+        else { navigator.clipboard.writeText(msg).then(() => toast("✅ 已複製祝賀訊息")).catch(() => prompt("複製：", msg)); }
+      }));
+    }
+
+    function assessForm(x, DIMS, TAGS) {
+      const state = { technical_score: 4, tactical_score: 4, teamwork_score: 4, sportsmanship_score: 4 };
+      const tagsOn = new Set();
+      openSheet("📝 評核：" + x.student_name, `
+        <div class="muted" style="font-size:12px;margin-bottom:10px">${esc(x.sport)} · 累計 ${x.hours} 小時 · ${esc(x.sample_title || "")}</div>
+        <div id="assessDims">${DIMS.map((d) => `
+          <div style="display:flex;align-items:center;gap:8px;margin:10px 0">
+            <div style="flex:1"><b style="font-size:13px">${esc(d.zh)}</b><div class="muted" style="font-size:10.5px">${esc(d.en)}</div></div>
+            <div style="display:flex;gap:4px" data-dim="${d.key}">
+              ${[1,2,3,4,5].map((n) => `<button class="btn btn-secondary" data-v="${n}" style="min-height:34px;width:34px;padding:0;font-size:14px">★</button>`).join("")}
+            </div>
+          </div>`).join("")}</div>
+        <div style="margin:12px 0 6px"><b style="font-size:13px">快捷評語</b></div>
+        <div id="assessTags" style="display:flex;flex-wrap:wrap;gap:6px">${TAGS.map((t) => `<button class="btn btn-secondary" data-tag="${esc(t)}" style="min-height:32px;padding:0 10px;font-size:12px">${esc(t)}</button>`).join("")}</div>
+        <div style="margin:12px 0 6px"><b style="font-size:13px">教練評語（選填）</b></div>
+        <textarea id="assessComment" rows="3" maxlength="400" placeholder="例：動作穩定，戰術理解快，比賽時抗壓能力強。" style="width:100%;border:1px solid var(--border);border-radius:10px;padding:10px;font:inherit;font-size:13px"></textarea>
+        <div class="muted" id="assessGrade" style="font-size:12px;margin-top:10px">總評：—</div>
+        <button class="btn btn-primary btn-block" id="assessSubmit" style="margin-top:12px">🎖️ 簽發 Level 3 專項評定證書</button>
+      `);
+      const paint = () => {
+        $("assessDims").querySelectorAll("[data-dim]").forEach((box) => {
+          const k = box.dataset.dim, v = state[k];
+          box.querySelectorAll("[data-v]").forEach((btn) => {
+            const on = Number(btn.dataset.v) <= v;
+            btn.style.background = on ? "var(--brand-500)" : "var(--surface)";
+            btn.style.color = on ? "#fff" : "var(--text-muted)";
+            btn.style.borderColor = on ? "var(--brand-500)" : "var(--border)";
+          });
+        });
+        const avg = (state.technical_score + state.tactical_score + state.teamwork_score + state.sportsmanship_score) / 4;
+        const g = avg >= 4.5 ? "Distinction · 卓越" : avg >= 3.5 ? "Merit · 優異" : "Pass · 達標";
+        $("assessGrade").textContent = `總評：${g}（平均 ${avg.toFixed(2)}）`;
+      };
+      $("assessDims").querySelectorAll("[data-dim]").forEach((box) => {
+        box.querySelectorAll("[data-v]").forEach((btn) => (btn.onclick = () => { state[box.dataset.dim] = Number(btn.dataset.v); paint(); }));
+      });
+      $("assessTags").querySelectorAll("[data-tag]").forEach((btn) => (btn.onclick = () => {
+        const t = btn.dataset.tag;
+        if (tagsOn.has(t)) { tagsOn.delete(t); btn.style.background = ""; btn.style.color = ""; }
+        else { tagsOn.add(t); btn.style.background = "var(--brand-500)"; btn.style.color = "#fff"; }
+      }));
+      paint();
+      $("assessSubmit").onclick = async () => {
+        const btn = $("assessSubmit");
+        btn.disabled = true; btn.textContent = "⏳ 簽發中…";
+        const rr = await api.post("/certificates/assessment", {
+          user_id: x.user_id, student_name: x.student_name, sport: x.sport,
+          ...state, comment: $("assessComment").value.trim(), tags: [...tagsOn],
+        });
+        if (!rr.ok) { btn.disabled = false; btn.textContent = "🎖️ 簽發 Level 3 專項評定證書"; alert((rr.data && rr.data.error) || "評定失敗"); return; }
+        const c = (rr.data && rr.data.certificate) || {};
+        toast("✅ 已簽發 " + (c.code || ""));
+        assessSheet();
+      };
+    }
+
     async function roster(sid) {
       openSheet("學員名單", '<div class="muted center">載入中…</div>');
       const r = await api.get("/coach/class-students?schedule_id=" + encodeURIComponent(sid));
@@ -822,7 +923,11 @@ ${stamp}
           if (!code) throw new Error((rr.data && rr.data.error) || "發證失敗");
           const link = location.origin + "/verify.html?cert=" + encodeURIComponent(code);
           const p8 = String(b.dataset.phone || "").replace(/\D/g, "").slice(-8);
-          const msg = `🎉 恭喜 ${b.dataset.name || "你"} 完成「${sch.title || ""}」！\n你的 ZenPass 修業證書已發出（編號 ${code}），可喺「我的 → 我的完課證書」下載／分享。\n驗證連結：${link}`;
+          const pg = (rr.data && rr.data.progress) || null;
+          const cheer = pg && !pg.completed && pg.remaining > 0
+            ? `\n🏆 已完成 ${pg.attended}/${pg.total_sessions} 堂，尚差 ${pg.remaining} 堂即可解鎖 ${pg.level2} 學校認證證書！`
+            : pg && pg.completed ? `\n🏆 已達出席率，${pg.level2} 證書已同時發出！` : "";
+          const msg = `🎉 恭喜 ${b.dataset.name || "你"} 完成「${sch.title || ""}」！\n你的 ZenPass 證書已發出（編號 ${code}），可喺「我的 → 我的學習履歷」下載／分享。${cheer}\n驗證連結：${link}`;
           if (p8.length === 8) window.open("https://wa.me/852" + p8 + "?text=" + encodeURIComponent(msg), "_blank");
           else { try { await navigator.clipboard.writeText(msg); toast("✅ 已複製恭賀訊息"); } catch (e) { prompt("複製恭賀訊息：", msg); } }
           b.textContent = "✅";

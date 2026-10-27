@@ -72,9 +72,25 @@
 
   window.zpMakeCertificate = async function (d) {
     d = d || {};
-    // 兩種版式：結業／單堂（completion）與出席證書（attendance，未達出席率門檻）
-    const isAttend = String(d.kind || "").toLowerCase() === "attendance";
-    const TXT = isAttend
+    // 三種版式：結業／單堂（completion）、出席證書（attendance）、專項評定（assessment）
+    const kind = String(d.kind || "").toLowerCase();
+    const isAttend = kind === "attendance";
+    const isAssessment = kind === "skill_assessment" || kind === "assessment";
+    const TXT = isAssessment
+      ? {
+          titleEn: "CERTIFICATE OF SKILL ASSESSMENT",
+          titleZh: "專 項 評 定 證 書",
+          subZh: "教練專項能力評定 · Skill Assessment Record",
+          certifyZh: "茲 證 明",
+          certifyEn: "THIS IS TO CERTIFY THAT",
+          bodyZh: "已完成下列課程，並通過教練專項能力評定",
+          bodyEn: "HAS COMPLETED THE PROGRAMME AND PASSED THE COACH SKILL ASSESSMENT",
+          hoursZh: "累計時數",
+          hoursEn: "TOTAL HOURS",
+          dateZh: "評定日期",
+          dateEn: "DATE OF ASSESSMENT",
+        }
+      : isAttend
       ? {
           titleEn: "CERTIFICATE OF ATTENDANCE",
           titleZh: "出 席 證 書",
@@ -212,12 +228,75 @@
     ctx.strokeStyle = "rgba(201,162,39,.26)"; ctx.lineWidth = 1.1;
     roundRect(ctx, bx, by, bw, bh, 16); ctx.stroke();
 
+    const licenseTxt = d.coachLicense ? `（${d.coachLicense}）` : "";
     const rows = [
       [TXT.hoursZh, TXT.hoursEn, (Number(d.hours) || 0).toFixed(1) + " 小時 / hours"],
-      ["執教導師", "INSTRUCTOR", (d.coachStarred ? "星級導師認證 · " : "") + (d.coachName || "ZenPass 認可導師")],
+      ["執教導師", "INSTRUCTOR", (d.coachStarred ? "星級導師認證 · " : "") + (d.coachName || "ZenPass 認可導師") + licenseTxt],
       [TXT.dateZh, TXT.dateEn, d.dateStr || ""],
       ["簽發日期", "DATE OF ISSUE", d.issueDate || d.dateStr || ""],
     ];
+
+    /* 🎖️ 專項評定：以五維能力評分條取代一般資料欄 */
+    if (isAssessment) {
+      const dims = [
+        ["技術精準度", "TECHNICAL PRECISION", Number(d.scores && d.scores.technical_score) || 0],
+        ["戰術與專注力", "TACTICAL FOCUS", Number(d.scores && d.scores.tactical_score) || 0],
+        ["團隊溝通", "TEAMWORK", Number(d.scores && d.scores.teamwork_score) || 0],
+        ["運動員精神", "SPORTSMANSHIP", Number(d.scores && d.scores.sportsmanship_score) || 0],
+      ];
+      const midX = bx + bw * 0.545;
+      ctx.strokeStyle = "rgba(201,162,39,.22)"; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(midX, by + 26); ctx.lineTo(midX, by + bh - 26); ctx.stroke();
+
+      // 左：四個維度（中文標籤 + 5 格評分）
+      dims.forEach((dm, i) => {
+        const y = by + 56 + i * 58;
+        ctx.fillStyle = CREAM; ctx.font = "600 16.5px " + F;
+        ctx.fillText(dm[0], bx + 30, y);
+        ctx.fillStyle = DIM; ctx.font = "400 8.5px " + SERIF;
+        letterspaced(ctx, dm[1], bx + 30, y + 15, 1, "left");
+        // 5 格
+        const sw = 15, gap = 6, total = sw * 5 + gap * 4;
+        let sx = midX - 30 - total;
+        for (let k = 0; k < 5; k++) {
+          const filled = k < dm[2];
+          ctx.beginPath();
+          roundRect(ctx, sx + k * (sw + gap), y - 12, sw, sw, 3);
+          if (filled) {
+            const gg = ctx.createLinearGradient(sx + k * (sw + gap), y - 12, sx + k * (sw + gap) + sw, y + 3);
+            gg.addColorStop(0, "#F3E3A8"); gg.addColorStop(1, GOLD);
+            ctx.fillStyle = gg; ctx.fill();
+          } else {
+            ctx.strokeStyle = "rgba(201,162,39,.35)"; ctx.lineWidth = 1; ctx.stroke();
+          }
+        }
+      });
+
+      // 右：評定等級 / 時數 / 教練 / 日期
+      const right = [
+        ["評定等級", (d.grade ? d.grade + " · " : "") + (d.gradeZh || "")],
+        ["累計時數", (Number(d.hours) || 0).toFixed(1) + " 小時"],
+        ["執教導師", (d.coachStarred ? "★ " : "") + (d.coachName || "ZenPass 認可導師")],
+        ["教練牌照", d.coachLicense || "—"],
+        ["評定日期", d.dateStr || ""],
+      ];
+      right.forEach((r, i) => {
+        const y = by + 46 + i * 44;
+        ctx.fillStyle = MUTED; ctx.font = "500 12.5px " + F;
+        ctx.fillText(r[0], midX + 26, y);
+        ctx.fillStyle = CREAM; ctx.font = "600 14px " + F;
+        ctx.textAlign = "right";
+        ctx.fillText(String(r[1]), bx + bw - 28, y);
+        ctx.textAlign = "left";
+      });
+
+      // 快捷評語標籤（教練評語）
+      const tagLine = (Array.isArray(d.tags) ? d.tags : []).join(" · ");
+      if (tagLine) {
+        ctx.fillStyle = GOLD_LIGHT; ctx.font = "500 13px " + F;
+        ctx.fillText("教練評語：" + tagLine, bx, by + bh + 26);
+      }
+    } else {
     rows.forEach((r, i) => {
       const y = by + 54 + i * 58;
       ctx.fillStyle = MUTED; ctx.font = "500 16.5px " + F;
@@ -234,6 +313,7 @@
         ctx.beginPath(); ctx.moveTo(bx + 32, y + 26); ctx.lineTo(bx + bw - 32, y + 26); ctx.stroke();
       }
     });
+    }
 
     /* 證書編號 */
     ctx.fillStyle = MUTED; ctx.font = "500 13.5px " + F;
@@ -275,7 +355,8 @@
 
     const dataUrl = cv.toDataURL("image/jpeg", 0.95);
     const filename =
-      "ZenPass-" + (isAttend ? "Attendance" : "Certificate") + "-" + (d.serial || Date.now()) + ".jpg";
+      "ZenPass-" + (isAssessment ? "Assessment" : isAttend ? "Attendance" : "Certificate") + "-" +
+      (d.serial || Date.now()) + ".jpg";
     let blob = null;
     try {
       blob = await new Promise((res) => cv.toBlob((b) => res(b), "image/jpeg", 0.95));

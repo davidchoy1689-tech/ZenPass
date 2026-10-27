@@ -63,7 +63,7 @@
   </div>
 
   <script src="assets/api.js?v=3"></script>
-  <script src="assets/certificate.js?v=10"></script>
+  <script src="assets/certificate.js?v=11"></script>
   <script>
     const $ = (id) => document.getElementById(id);
     const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -114,13 +114,45 @@
           <div class="cert-ic">${EMOJI[code] || "🏅"}</div>
           <div class="cert-tx">
             <b>${esc(c.class_title || "課堂")}</b>
-            <div class="s">${c.cert_type === "graduation" ? "全期結業" : c.cert_type === "attendance" ? "出席證書" : "單堂出席"} · ${esc(fmtDate(c.issued_at))} · ${(Number(c.hours) || 0).toFixed(1)} 小時 · ${esc(c.code)}</div>
+            <div class="s">${certLabel(c.cert_type)} · ${esc(fmtDate(c.issued_at))} · ${(Number(c.hours) || 0).toFixed(1)} 小時 · ${esc(c.code)}</div>
             <span class="cert-lv">${esc(c.level_label || "Level 1")}</span>
           </div>
           <span class="muted">›</span>
         </div>`;
       }).join("");
       $("list").querySelectorAll("[data-i]").forEach((el) => (el.onclick = () => preview(CERTS[Number(el.dataset.i)])));
+    }
+
+    function certLabel(t) {
+      return t === "graduation" ? "全期結業" : t === "attendance" ? "出席證書" : t === "skill_assessment" ? "專項評定" : "單堂出席";
+    }
+    function certRender(c, scale) {
+      let tags = [];
+      try { tags = JSON.parse(c.assessment_tags || "[]"); } catch (e) {}
+      return {
+        studentName: c.student_name,
+        classTitle: c.class_title,
+        levelLabel: c.level_label,
+        hours: c.hours,
+        coachName: c.coach_name,
+        coachStarred: Number(c.coach_starred) === 1,
+        dateStr: fmtDate(c.issued_at),
+        serial: c.code,
+        sportCode: sportCodeOf(c),
+        kind: c.cert_type,
+        detail: c.cert_type === "attendance" ? (c.level_label || "") : "",
+        grade: c.overall_grade || "",
+        gradeZh: c.overall_grade === "Distinction" ? "卓越" : c.overall_grade === "Merit" ? "優異" : c.overall_grade === "Pass" ? "達標" : "",
+        scores: {
+          technical_score: c.technical_score,
+          tactical_score: c.tactical_score,
+          teamwork_score: c.teamwork_score,
+          sportsmanship_score: c.sportsmanship_score,
+        },
+        tags,
+        coachLicense: c.coach_license_masked || "",
+        scale,
+      };
     }
 
     async function preview(c) {
@@ -130,42 +162,18 @@
       $("mask").classList.add("on");
       $("bigImg").src = "";
       $("bigImg").alt = "生成中…";
-      const out = await window.zpMakeCertificate({
-        studentName: c.student_name,
-        classTitle: c.class_title,
-        levelLabel: c.level_label,
-        hours: c.hours,
-        coachName: c.coach_name,
-        coachStarred: Number(c.coach_starred) === 1,
-        dateStr: fmtDate(c.issued_at),
-        serial: c.code,
-        verifyUrl,
-        sportCode: code,
-        kind: c.cert_type,
-        detail: c.cert_type === "attendance" ? (c.level_label || "") : "",
-        scale: 0.5, // 150dpi 預覽
-      });
+      const out = await window.zpMakeCertificate(
+        Object.assign(certRender(c, 0.5), { verifyUrl }),
+      );
       CURRENT.__render = { verifyUrl, sportCode: code };
       $("bigImg").src = out.dataUrl;
     }
 
     async function renderHi() {
       const c = CURRENT;
-      const out = await window.zpMakeCertificate({
-        studentName: c.student_name,
-        classTitle: c.class_title,
-        levelLabel: c.level_label,
-        hours: c.hours,
-        coachName: c.coach_name,
-        coachStarred: Number(c.coach_starred) === 1,
-        dateStr: fmtDate(c.issued_at),
-        serial: c.code,
-        verifyUrl: c.__render.verifyUrl,
-        sportCode: c.__render.sportCode,
-        kind: c.cert_type,
-        detail: c.cert_type === "attendance" ? (c.level_label || "") : "",
-        scale: 1, // 300dpi = A4 2480×3508
-      });
+      const out = await window.zpMakeCertificate(
+        Object.assign(certRender(c, 1), { verifyUrl: c.__render.verifyUrl }),
+      );
       return out;
     }
 
