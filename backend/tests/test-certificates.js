@@ -97,15 +97,15 @@ function buildDb() {
   ok(!!s9, "第 9 堂 session 證書已發");
   ok(gradBefore.length === 0, "未達門檻 → 冇結業證書");
 
-  console.log("\n📋 2b. 未達門檻 → 自動發「出席證明」（Attendance Statement）");
+  console.log("\n📋 2b. 未達門檻 → 自動發「出席證書」（Attendance Statement）");
   const att9 = svc.listForUser("u1").find((c) => c.cert_type === "attendance");
-  ok(!!att9, "已發出席證明");
+  ok(!!att9, "已發出席證書");
   ok(att9 && att9.hours === 18, "出席時數 = 18（實際出席 9 堂 × 2 小時）");
   ok(att9 && /已出席 9\/12 堂/.test(att9.level_label || ""), "標示出席堂數：" + (att9 && att9.level_label));
-  ok(att9 && /^ZP-\d{4}-MOLKKY-A[A-Z0-9]{4}$/.test(att9.code), "出席證明編號格式：" + (att9 && att9.code));
-  ok(att9 && att9.booking_id === "attend:cls-term:u1", "出席證明獨立 key（唔會撞 booking 證書）");
+  ok(att9 && /^ZP-\d{4}-MOLKKY-A[A-Z0-9]{4}$/.test(att9.code), "出席證書編號格式：" + (att9 && att9.code));
+  ok(att9 && att9.booking_id === "attend:cls-term:u1", "出席證書獨立 key（唔會撞 booking 證書）");
   svc.issueForBooking("bk9");
-  ok(svc.listForUser("u1").filter((c) => c.cert_type === "attendance").length === 1, "重複簽到唔會重複發出席證明");
+  ok(svc.listForUser("u1").filter((c) => c.cert_type === "attendance").length === 1, "重複簽到唔會重複發出席證書");
 
   console.log("\n📋 3. 期制班：第 10 堂達 80% → 自動發結業證");
   // 模擬教練為第 10 堂簽到
@@ -119,7 +119,7 @@ function buildDb() {
   ok(g && g.level === 2, "等級晉升 Level 2");
   ok(!!svc.issueForBooking("bk10") && svc.listForUser("u1").filter((c) => c.cert_type === "graduation").length === 1, "結業證 idempotent（每班每學員一張）");
   const attAfter = svc.listForUser("u1").find((c) => c.cert_type === "attendance");
-  ok(!attAfter, "達標後出席證明自動作廢（列表不再顯示，紀錄保留）");
+  ok(!attAfter, "達標後出席證書自動作廢（列表不再顯示，紀錄保留）");
   const attRaw = db.prepare("SELECT * FROM certificates WHERE booking_id='attend:cls-term:u1'").get();
   ok(attRaw && attRaw.revoked === 1 && /結業/.test(attRaw.revoked_reason || ""), "作廢原因已記錄：" + (attRaw && attRaw.revoked_reason));
 

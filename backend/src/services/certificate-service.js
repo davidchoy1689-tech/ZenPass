@@ -51,7 +51,7 @@ function ensureSchema(db) {
     }
   } catch (e) {}
   _schemaReady.add(db);
-  // 期制班「出席證明」補發（只做一次；已結業或已存在者自動略過）
+  // 期制班「出席證書」補發（只做一次；已結業或已存在者自動略過）
   try {
     backfillAttendanceStatements(db);
   } catch (e) {}
@@ -210,11 +210,11 @@ function issueForBooking(bookingId) {
     console.error("⚠️ 結業證書發證失敗:", e.message);
   }
 
-  // 📋 期制課程未達門檻 → 出席證明（實際出席時數；達標後自動作廢）
+  // 📋 期制課程未達門檻 → 出席證書（實際出席時數；達標後自動作廢）
   try {
     syncAttendanceStatement(db, row.class_id, row.user_id);
   } catch (e) {
-    console.error("⚠️ 出席證明發證失敗:", e.message);
+    console.error("⚠️ 出席證書發證失敗:", e.message);
   }
 
   return db.prepare("SELECT * FROM certificates WHERE id = ?").get(cert.id);
@@ -291,7 +291,7 @@ function maybeIssueGraduation(db, row) {
     );
   } catch (e) {}
 
-  // 已達出席率 → 出席證明由結業證取代
+  // 已達出席率 → 出席證書由結業證取代
   try {
     revokeAttendanceStatement(db, row.class_id, row.user_id, "已達出席率門檻，改發結業證書");
   } catch (e) {}
@@ -300,7 +300,7 @@ function maybeIssueGraduation(db, row) {
 }
 
 /**
- * 📋 期制班「出席證明 / Attendance Statement」
+ * 📋 期制班「出席證書 / Certificate of Attendance」
  *
  * 用途：未達出席率門檻（未能獲結業證）的學員，仍可取得一份載明
  *      「已出席 X/Y 堂、共 Z 小時」的正式紀錄，供升學／課外活動申報。
@@ -338,7 +338,7 @@ function syncAttendanceStatement(db, classId, userId) {
 
   const key = "attend:" + classId + ":" + userId;
 
-  // 已結業（或已達門檻）→ 唔需要出席證明
+  // 已結業（或已達門檻）→ 唔需要出席證書
   const gradKey = "term:" + classId + ":" + userId;
   const grad = db
     .prepare("SELECT * FROM certificates WHERE booking_id = ? AND COALESCE(revoked,0) = 0")
@@ -422,7 +422,7 @@ function syncAttendanceStatement(db, classId, userId) {
   return db.prepare("SELECT * FROM certificates WHERE id = ?").get(id);
 }
 
-/** 達標／取消時作廢出席證明（保留紀錄，唔刪） */
+/** 達標／取消時作廢出席證書（保留紀錄，唔刪） */
 function revokeAttendanceStatement(db, classId, userId, reason) {
   const key = "attend:" + classId + ":" + userId;
   const row = db.prepare("SELECT * FROM certificates WHERE booking_id = ?").get(key);
@@ -433,7 +433,7 @@ function revokeAttendanceStatement(db, classId, userId, reason) {
   return row.id;
 }
 
-/** 一次性補發：為已有出席紀錄但未達門檻的期制班學員建立出席證明 */
+/** 一次性補發：為已有出席紀錄但未達門檻的期制班學員建立出席證書 */
 function backfillAttendanceStatements(db) {
   const ccols = db.prepare("PRAGMA table_info(classes)").all().map((c) => c.name);
   if (!ccols.includes("course_type")) return 0;

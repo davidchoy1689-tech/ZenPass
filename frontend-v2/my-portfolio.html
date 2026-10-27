@@ -66,7 +66,7 @@
   </div>
 
   <script src="assets/api.js?v=3"></script>
-  <script src="assets/certificate.js?v=9"></script>
+  <script src="assets/certificate.js?v=10"></script>
   <script>
     const $ = (id) => document.getElementById(id);
     const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -118,7 +118,7 @@
             <span style="color:${t.completed ? "#047857" : "var(--text-muted)"};font-weight:700">${t.completed ? "✅ 已結業" : t.attended + "/" + t.total_sessions + " 堂"}</span>
           </div>
           <div class="pf-bar"><i style="width:${t.percent}%"></i></div>
-          <div class="muted" style="font-size:11px;margin-top:4px">${t.completed ? "全期認證時數 " + t.hours_total + " 小時" : "已達 " + t.percent + "%，出席滿 " + t.required + " 堂可獲結業證書；未達門檻亦會發出「出席證明」（載明實際出席時數）"}</div>
+          <div class="muted" style="font-size:11px;margin-top:4px">${t.completed ? "全期認證時數 " + t.hours_total + " 小時" : "已達 " + t.percent + "%，出席滿 " + t.required + " 堂可獲結業證書；未達門檻亦會發出「出席證書」（載明實際出席時數）"}</div>
         </div>`).join("");
     }
 
@@ -146,7 +146,7 @@
           <div class="pf-ic">${isGrad ? "🎓" : isAttend ? "📋" : (EMOJI[code] || "🏅")}</div>
           <div class="pf-tx">
             <b>${esc(c.class_title || "")}</b>
-            <div class="s">${isGrad ? "全期結業" : isAttend ? "出席證明" : "單堂出席"} · ${esc(dayStr(c.issued_at))} · ${(Number(c.hours) || 0).toFixed(1)} 小時</div>
+            <div class="s">${isGrad ? "全期結業" : isAttend ? "出席證書" : "單堂出席"} · ${esc(dayStr(c.issued_at))} · ${(Number(c.hours) || 0).toFixed(1)} 小時</div>
             <div class="s">${esc(c.student_name || "")} · ${esc(c.code)}</div>
           </div>
           <div class="pf-act">

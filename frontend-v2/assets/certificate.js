@@ -72,12 +72,12 @@
 
   window.zpMakeCertificate = async function (d) {
     d = d || {};
-    // 兩種版式：結業／單堂（completion）與出席證明（attendance，未達出席率門檻）
+    // 兩種版式：結業／單堂（completion）與出席證書（attendance，未達出席率門檻）
     const isAttend = String(d.kind || "").toLowerCase() === "attendance";
     const TXT = isAttend
       ? {
-          titleEn: "ATTENDANCE STATEMENT",
-          titleZh: "出 席 證 明",
+          titleEn: "CERTIFICATE OF ATTENDANCE",
+          titleZh: "出 席 證 書",
           subZh: "出席紀錄 · Record of Attendance",
           certifyZh: "茲 證 明",
           certifyEn: "THIS IS TO CERTIFY THAT",
@@ -198,7 +198,7 @@
     ctx.font = "600 " + titleSize + "px " + F;
     ctx.fillText(certTitle, LW / 2, 836);
 
-    // 出席證明：加一行「已出席 X/Y 堂」明細
+    // 出席證書：加一行「已出席 X/Y 堂」明細
     if (d.detail) {
       ctx.fillStyle = GOLD_LIGHT; ctx.font = "500 14px " + F;
       ctx.fillText(String(d.detail), LW / 2, 868);
@@ -268,20 +268,6 @@
     ctx.fillText("本證書由 ZenPass 禪流（香港康樂及體育有限公司）簽發，可於 zenpass.hk/verify.html 核實。", 96, 1362);
     ctx.fillStyle = DIM; ctx.font = "400 10.5px " + F;
     ctx.fillText("Issued by ZenPass (Hong Kong Leisure and Fitness Company Limited). Verify at zenpass.hk/verify.html.", 96, 1382);
-    ctx.fillStyle = MUTED; ctx.font = "400 12px " + F;
-    ctx.fillText(
-      isAttend
-        ? "本證明僅紀錄出席情況，並不構成課程完成、專業資格或法定認可。"
-        : "本證書僅證明出席及課程完成紀錄，並不構成任何專業資格或法定認可。",
-      96, 1408,
-    );
-    ctx.fillStyle = DIM; ctx.font = "400 10.5px " + F;
-    ctx.fillText(
-      isAttend
-        ? "It records attendance only and does not certify completion or confer any professional or statutory qualification."
-        : "It records attendance and completion only and does not confer any professional or statutory qualification.",
-      96, 1428,
-    );
 
     /* 底部金線 */
     ctx.fillStyle = GOLD;
