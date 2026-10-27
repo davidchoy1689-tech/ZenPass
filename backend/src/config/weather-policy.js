@@ -8,15 +8,16 @@
 const WEATHER_POLICY = {
   source: "參考香港康樂及文化事務署（LCSD）熱帶氣旋及暴雨警告下的安排",
   version: "2026-10-28",
-  // 時段分界（24 小時制 HH:MM）
-  cutoffs: { day: "10:00", dayResume: "12:00", evening: "15:00", eveningResume: "18:00" },
+  // 判斷界線：以「課堂開始前 2 小時」為準（2026-10-28 David 定案）
+  cutoffs: { leadMinutes: 120 },
   rules: [
-    { code: "signal_active", text: "八號或以上熱帶氣旋警告／黑色暴雨警告生效期間：所有課堂取消（場地關閉）。" },
-    { code: "lifted_before_day", text: "警告於當日 10:00 前取消或除下：12:00 或之後開始的課堂照常舉行。" },
-    { code: "lifted_before_evening", text: "警告於當日 15:00 前取消或除下：18:00 或之後開始的課堂照常舉行。" },
-    { code: "lifted_after_evening", text: "警告於當日 15:00 後才取消或除下：當日餘下所有課堂取消。" },
+    { code: "signal_active", text: "八號或以上熱帶氣旋警告／黑色暴雨警告生效期間：課堂取消（場地關閉）。" },
+    { code: "lifted_before_lead", text: "警告於課堂開始前 2 小時或之前取消或除下：該課堂照常舉行。" },
+    { code: "within_lead", text: "警告在課堂開始前不足 2 小時仍然生效，或於該 2 小時內才除下：該課堂取消。" },
+    { code: "advice_check", text: "如天氣情況特別，學員出門前應先致電／WhatsApp 平台或教練，查詢最新課堂安排。" },
   ],
-  compensation: "受影響學員可選擇：① 全額退款（經 FPS 退回）或 ② 免費改期／轉為體驗金（Credits），由學員自行選擇。",
+  compensation:
+    "受影響學員可選擇：① 全額退款（經轉數快 FPS 退回）或 ② 免費改期／轉為體驗金（Credits），由學員自行選擇。",
   // 公開條款（weather-policy.html 逐段顯示；亦供客服／學校查閱）
   clauses: [
     {
@@ -29,7 +30,7 @@ const WEATHER_POLICY = {
     },
     {
       h: "三、觸發條件及安排（參考康樂及文化事務署安排）",
-      p: "1. 八號或以上熱帶氣旋警告／黑色暴雨警告生效期間：所有課堂取消。\n2. 警告於課堂當日 10:00 前取消或除下：12:00 或之後開始的課堂照常舉行。\n3. 警告於課堂當日 15:00 前取消或除下：18:00 或之後開始的課堂照常舉行。\n4. 警告於當日 15:00 後才取消或除下：當日餘下所有課堂取消。\n5. 天文台如預告「即將發出／改發」信號，平台可預先通知學員；最終安排以實際發出／除下時間為準。",
+      p: "1. 八號或以上熱帶氣旋警告／黑色暴雨警告生效期間：所有課堂取消。\n2. 以每堂課的開始時間計算，課堂開始前 2 小時為界線：警告已於該界線前取消或除下，課堂照常舉行。\n3. 警告在課堂開始前不足 2 小時仍然生效，或於該 2 小時內才除下：該課堂取消。\n4. 天文台如預告「即將發出／改發」信號，平台會預先通知學員；最終安排以實際發出／除下時間及平台通知為準。",
     },
     {
       h: "四、平台的處理流程",
@@ -37,7 +38,7 @@ const WEATHER_POLICY = {
     },
     {
       h: "五、通知方式及時效",
-      p: "管理員作出決定後，平台會透過站內通知、WhatsApp（如已提供電話）及／或電郵通知受影響學員；一般會於課堂開始前不少於 2 小時發出，特殊情況除外。",
+      p: "管理員作出決定後，平台會透過站內通知、WhatsApp（如已提供電話）及／或電郵通知受影響學員；一般會於課堂開始前不少於 2 小時發出，特殊情況除外。學員如見天氣情況特別，出門前應先致電或 WhatsApp 平台（9033 5538）／教練查詢最新安排。",
     },
     {
       h: "六、學員補償",
@@ -57,7 +58,7 @@ const WEATHER_POLICY = {
     },
   ],
   notes: [
-    "以香港天文台實際發出／取消警告的時間為準，並以課堂開始時間比較。",
+    "以香港天文台實際發出／取消警告的時間為準；每堂課獨立以「開始時間前 2 小時」判斷。",
     "如場地另有安排（例如室內場地於黑雨期間仍開放），管理員可按實際情況調整。",
     "教練與學員如有疑問，請以平台發出的WhatsApp／站內通知為準。",
   ],
@@ -74,45 +75,40 @@ function toMinutes(hhmm) {
 }
 
 /**
- * 判斷某課堂是否應取消
+ * 判斷某課堂是否應取消（界線 = 課堂開始前 2 小時）
  * @param {{warningActive:boolean, liftedAt?:string, classStart?:string}} o
- * warningActive：查詢時警告是否仍然生效
- * liftedAt：警告取消／除下時間（HH:MM）
- * classStart：課堂開始時間（HH:MM）
- * @returns {{cancel:boolean, code:string, reason:string}}
+ *  - warningActive：查詢時警告是否仍然生效
+ *  - liftedAt：警告取消／除下時間（HH:MM）
+ *  - classStart：課堂開始時間（HH:MM）
+ * @returns {{cancel:boolean, code:string, reason:string, leadMinutes?:number, minutesBetween?:number}}
  */
 function evaluateWeather({ warningActive, liftedAt, classStart } = {}) {
-  const start = toMinutes(classStart);
+  const lead = WEATHER_POLICY.cutoffs.leadMinutes;
   if (warningActive === true) {
-    return { cancel: true, code: "signal_active", reason: WEATHER_POLICY.rules[0].text };
+    return { cancel: true, code: "signal_active", reason: WEATHER_POLICY.rules[0].text, leadMinutes: lead };
   }
+  const start = toMinutes(classStart);
   const lifted = toMinutes(liftedAt);
   if (lifted == null || start == null) {
     return {
       cancel: false,
       code: "manual_review",
-      reason: "資料不足（缺警告取消時間或課堂時間），請管理員人手判斷。",
+      reason: "資料不足（缺警告除下時間或課堂時間），請管理員人手判斷。",
+      leadMinutes: lead,
     };
   }
-  const { cutoffs } = WEATHER_POLICY;
-  const dayCut = toMinutes(cutoffs.day);
-  const dayResume = toMinutes(cutoffs.dayResume);
-  const eveCut = toMinutes(cutoffs.evening);
-  const eveResume = toMinutes(cutoffs.eveningResume);
-
-  if (lifted <= dayCut) {
-    if (start >= dayResume) {
-      return { cancel: false, code: "lifted_before_day", reason: WEATHER_POLICY.rules[1].text };
-    }
-    return { cancel: true, code: "before_day_resume", reason: "警告於 10:00 前取消，但課堂在 12:00 前開始，建議取消或改期。" };
+  // 警告除下 → 距課堂開始幾多分鐘（同一日，跨午夜以 24 小時環回處理）
+  const gap = ((start - lifted) + 1440) % 1440;
+  if (gap >= lead) {
+    return {
+      cancel: false, code: "lifted_before_lead", reason: WEATHER_POLICY.rules[1].text,
+      leadMinutes: lead, minutesBetween: gap,
+    };
   }
-  if (lifted <= eveCut) {
-    if (start >= eveResume) {
-      return { cancel: false, code: "lifted_before_evening", reason: WEATHER_POLICY.rules[2].text };
-    }
-    return { cancel: true, code: "before_evening_resume", reason: "警告於 15:00 前取消，但課堂在 18:00 前開始，建議取消或改期。" };
-  }
-  return { cancel: true, code: "lifted_after_evening", reason: WEATHER_POLICY.rules[3].text };
+  return {
+    cancel: true, code: "within_lead", reason: WEATHER_POLICY.rules[2].text,
+    leadMinutes: lead, minutesBetween: gap,
+  };
 }
 
 module.exports = { WEATHER_POLICY, evaluateWeather, toMinutes };

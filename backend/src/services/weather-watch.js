@@ -54,6 +54,7 @@ function impactSnapshot(db) {
     const rows = db
       .prepare(
         `SELECT cs.id, cs.start_time, c.title,
+                CAST((julianday(cs.start_time) - julianday('now')) * 24 * 60 AS INTEGER) AS mins_to_start,
                 (SELECT COUNT(*) FROM bookings b WHERE b.schedule_id = cs.id AND b.status = 'confirmed') AS booked,
                 (SELECT COUNT(*) FROM bookings b WHERE b.schedule_id = cs.id AND b.status = 'confirmed' AND b.payment_status = 'paid') AS paid_count,
                 (SELECT COALESCE(SUM(b.amount),0) FROM bookings b WHERE b.schedule_id = cs.id AND b.status = 'confirmed' AND b.payment_status = 'paid') AS paid_amount
@@ -96,6 +97,8 @@ function applyState(state, prev) {
   const names = (state.warnings || []).map((w) => w.name).filter(Boolean);
   const label = names.length ? names.join("、") : "八號或以上熱帶氣旋警告／黑色暴雨警告";
   const impact = impactSnapshot(db);
+  const lead = WEATHER_POLICY.cutoffs.leadMinutes;
+  const imminent = (impact.upcoming || []).filter((x) => Number(x.mins_to_start) <= lead);
 
   let created = null;
   if (isActive && !wasActive) {
@@ -103,8 +106,11 @@ function applyState(state, prev) {
     const title = `⚠️ 需要立即跟進：${label} 生效`;
     const message =
       `天文台現時發出：${label}。\n` +
-      `未來 24 小時有 ${impact.sessions} 堂（${impact.booked} 人報名，已付 HK$${impact.paid_amount.toFixed(2)}）受影響。\n` +
-      `按《極端天氣條款》：警告生效期間課堂取消。請人手決定是否取消受影響課堂，並通知學員。`;
+      `未來 24 小時有 ${impact.sessions} 堂（${impact.booked} 人報名，已付 HK$${impact.paid_amount.toFixed(2)}）。\n` +
+      (imminent.length
+        ? `⚠️ 已進入 2 小時界線（需即時決定取消）：${imminent.map((x) => String(x.start_time).replace("T", " ").slice(5, 16) + " " + x.title).join("、")}\n`
+        : `現時暫無課堂在 2 小時界線內。\n`) +
+      `按《極端天氣條款》：課堂開始前 2 小時警告仍然生效 → 該課堂取消；警告已於 2 小時前除下 → 照常。請人手決定並通知學員。`;
     db.prepare(
       `INSERT INTO ops_alerts (id, type, severity, title, message, data, status, created_at)
        VALUES (?, 'weather_signal', 'urgent', ?, ?, ?, 'open', datetime('now'))`,
@@ -116,8 +122,8 @@ function applyState(state, prev) {
     const title = "🌤️ 天氣警告已除下 — 請確認今日課堂安排";
     const message =
       `天文台已取消所有熱帶氣旋／暴雨警告。\n` +
-      `按《極端天氣條款》：10:00 前除下 → 12:00 後課堂照常；15:00 前除下 → 18:00 後課堂照常；15:00 後才除下 → 當日餘下課堂取消。\n` +
-      `未來 24 小時有 ${impact.sessions} 堂（${impact.booked} 人報名）。請人手確認是否需要取消或照常舉行。`;
+      `按《極端天氣條款》：以每堂課開始前 2 小時為界線——警告已於 2 小時前除下 → 照常；不足 2 小時才除下 → 取消。\n` +
+      `未來 24 小時有 ${impact.sessions} 堂（${impact.booked} 人報名）。請人手逐堂確認（可在「⚠️ 取消課堂」處理），並提醒學員出門前先致電／WhatsApp 查詢。`;
     db.prepare(
       `INSERT INTO ops_alerts (id, type, severity, title, message, data, status, created_at)
        VALUES (?, 'weather_lifted', 'info', ?, ?, ?, 'open', datetime('now'))`,

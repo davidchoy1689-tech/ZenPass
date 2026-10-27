@@ -62,7 +62,7 @@ const ok = (c, m) => { if (c) { console.log("  ✅ " + m); pass++; } else { cons
   ok(!!a1.created && a1.created.type === "weather_signal", "警告首次生效 → 建立 urgent 警報");
   ok(/需要立即跟進/.test(a1.created.title || ""), "標題含「需要立即跟進」");
   ok(/八號東北烈風/.test(a1.created.message || ""), "訊息含警告名稱");
-  ok(/受影響/.test(a1.created.message || ""), "訊息含影響評估");
+  ok(/2 小時界線|2 小時/.test(a1.created.message || ""), "訊息含 2 小時界線說明");
   const open1 = watch.listAlerts("open");
   ok(open1.length === 1 && open1[0].severity === "urgent", "警報為 open / urgent");
 
@@ -72,7 +72,7 @@ const ok = (c, m) => { if (c) { console.log("  ✅ " + m); pass++; } else { cons
 
   const a3 = watch.applyState(idle, { activity_suspended: true });
   ok(!!a3.created && a3.created.type === "weather_lifted", "警告除下 → 建立「請確認課堂安排」警報");
-  ok(/10:00/.test(a3.created.message || "") && /15:00/.test(a3.created.message || ""), "訊息帶康文署分界時間");
+  ok(/2 小時/.test(a3.created.message || ""), "訊息帶「課堂開始前 2 小時」界線");
 
   console.log("📋 3. 管理員處理");
   const id = a1.created.id;
