@@ -240,8 +240,10 @@
             <div style="flex:1">
               <div style="font-weight:800;font-size:15px" id="coachName">—</div>
               <div class="muted" style="font-size:12.5px" id="coachMeta"></div>
+              <div class="muted" style="font-size:11px;margin-top:2px">本課程由上述核證教練主理；ZenPass 提供技術預訂及認證存證支援。</div>
             </div>
           </div>
+          <div id="coachBadges" style="margin-top:6px"></div>
           <p class="muted" id="coachBio" style="font-size:13px;line-height:1.7;margin:10px 0 0"></p>
           <div class="dt-tags" style="margin-top:8px" id="coachTags"></div>
           <div class="dt-coach-stats" id="coachStats"></div>
@@ -456,6 +458,12 @@
       $("coachName").textContent = c.coach_name || "教練資料待更新";
       $("coachMeta").textContent = c.coach_meta || c.coach_headline || [c.coach_verified ? "✅ 已認證" : "", c.category || ""].filter(Boolean).join(" · ");
       $("coachAvatar").innerHTML = c.coach_avatar ? '<img src="' + esc(c.coach_avatar) + '" alt="">' : "🧑‍🏫";
+      // ⛑️ 急救資格徽章 + 平台定位說明
+      const badges = [];
+      if (c.coach_first_aid) badges.push('<span class="dt-tag green" title="持有有效急救證書">⛑️ 具備認可急救資格</span>');
+      if (Number(c.coach_starred) === 1) badges.push('<span class="dt-tag" style="background:#fef3c7;color:#b45309">⭐ 星級教練</span>');
+      const cBe = $("coachBadges");
+      if (cBe) cBe.innerHTML = badges.join(" ");
       const bioEl = $("coachBio");
       bioEl.textContent = c.coach_bio || "";
       bioEl.style.display = c.coach_bio ? "" : "none";

@@ -410,6 +410,25 @@ router.get("/:id", optionalAuth, (req, res) => {
       }
     } catch (e) {}
 
+    // 🛡️ 具體運動固有風險披露（Volenti 抗辯證據鏈）
+    try {
+      const { riskProfile } = require("../config/sport-risks");
+      classData.risk_notice = riskProfile(classData.sport_slug, classData.category, classData.title);
+    } catch (e) {}
+
+    // ⛑️ 教練急救資格（前台徽章用）
+    try {
+      const fa = db
+        .prepare(
+          `SELECT first_aid_type, first_aid_expiry FROM coach_credentials
+            WHERE user_id = ? AND COALESCE(first_aid_type,'') <> ''
+            ORDER BY COALESCE(reviewed_at, created_at) DESC LIMIT 1`,
+        )
+        .get(classData.coach_id);
+      const valid = !!(fa && fa.first_aid_expiry && String(fa.first_aid_expiry).slice(0, 10) >= new Date().toISOString().slice(0, 10));
+      classData.coach_first_aid = valid ? { type: fa.first_aid_type, expiry: fa.first_aid_expiry } : null;
+    } catch (e) {}
+
     // 教練公開資料 → 自動嵌入課程頁（註冊時收集 → 批核時寫入 users → 開班自動帶出）
     const splitList = (v) =>
       String(v || "")

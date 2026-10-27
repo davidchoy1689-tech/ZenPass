@@ -270,14 +270,20 @@
           <b>3. 身體狀況確認：</b>參加者健康狀況良好並適宜參與所選活動；如有隱疾、受傷或心血管狀況，已諮詢專業醫生意見。如現場遇突發急性身體不適，授權現場人員代為安排合理緊急送醫。<br><br>
           <b>4. 條款長期有效：</b>此確認一次生效，永久適用於本人日後經 ZenPass 平台預約之所有活動及課堂。（若參加者未滿 18 歲，剔選即代表本人為其合法監護人並確認上述授權。）<br><br>
           <b>5. 極端天氣：</b>八號或以上風球／黑色暴雨期間之課堂安排、通知及退款選擇，依《<a href="weather-policy.html" target="_blank" rel="noopener" style="color:#0f766e;font-weight:700">極端天氣條款</a>》處理；最終取消與否由平台按實際情況決定並另行通知。<br><br>
-          <b>5. 最終解釋權：</b>香港康樂及體育有限公司（ZenPass 平台營運公司）對本條款、服務規則、預約安排及任何爭議，保留一切最終修改及解釋權利。
+          <b>6. 最終解釋權：</b>香港康樂及體育有限公司（ZenPass 平台營運公司）對本條款、服務規則、預約安排及任何爭議，保留一切最終修改及解釋權利。
         </div>
         <label class="waiver-chk" style="margin-top:4px"><input type="checkbox" id="waiverAgree" />
-          <span>本人已閱讀並同意《ZenPass 平台轉介服務、健康安全及責任聲明》（確認平台純屬轉介、建議自購保險、營運公司保留最終解釋權，<b>一次簽署長期有效</b>）*</span></label>
+          <span>本人已閱讀並同意《ZenPass 平台轉介服務、健康安全及責任聲明》，並<b>已閱讀上方本項目之具體固有風險提示</b>，了解該運動存在跌倒、碰撞、扭傷等固有風險，在知情下自願參與（平台純屬轉介、建議自購保險、營運公司保留最終解釋權，<b>一次簽署長期有效</b>）*</span></label>
         <div id="waiverSaved" hidden class="muted" style="font-size:12px;color:#047857">✅ 已綁定全平台健康安全及責任聲明（此裝置）</div>
       </div></div>
 
       <div class="spacer"></div>
+      <div class="card" id="riskCard" hidden><div class="body">
+        <div style="font-size:13.5px;font-weight:800;margin-bottom:6px">🛡️ 本項目固有風險提示</div>
+        <div class="muted" style="font-size:11.5px;margin-bottom:8px">以下為此運動項目之固有風險。請仔細閱讀，確認你（或你代為報名之學員）了解並自願承擔。</div>
+        <div id="riskBody" style="font-size:12.5px;line-height:1.8"></div>
+      </div></div>
+
       <div class="card"><div class="body">
         <div class="muted" style="font-size:13px;font-weight:700;margin-bottom:8px">參加者身份</div>
         <div class="att-toggle" id="attToggle">
@@ -529,6 +535,20 @@
         return isNaN(_t) ? true : _t > _nowMs;
       });
       if (!cls) { $("groups").innerHTML = `<div class="card"><div class="body">搵唔到課程。</div></div>`; return; }
+      // 🛡️ 具體運動固有風險（Volenti 抗辯證據鏈）
+      try {
+        const rn = cls.risk_notice;
+        const card = $("riskCard"), body = $("riskBody");
+        if (rn && card && body) {
+          const li = (arr) => (arr || []).map((x) => `<li>${esc(x)}</li>`).join("");
+          body.innerHTML = `<b>${esc(rn.label || "本項目")}</b>
+            <ul style="margin:6px 0 0 18px;padding:0">${li(rn.risks)}</ul>
+            <div style="margin-top:8px;color:#0f766e;font-weight:700">✅ 安全提示</div>
+            <ul style="margin:4px 0 0 18px;padding:0">${li(rn.tips)}</ul>
+            <div class="muted" style="font-size:11px;margin-top:8px">提示版本：${esc(rn.version || "")}　·　如身體狀況不適宜，請勿報名或先諮詢醫生意見。</div>`;
+          card.hidden = false;
+        }
+      } catch (e) {}
       // 自動套用已領取嘅優惠碼（index 領取 → localStorage）
       try {
         const saved = localStorage.getItem("zp_promo");
@@ -705,7 +725,8 @@
       const cb = $("waiverAgree");
       const agreed = (cb && cb.checked) || (function () { try { return localStorage.getItem("zenpass_waiver_agreed") === "true"; } catch (e) { return false; } })();
       if (!agreed) return null;
-      return { agreed: true, timestamp: new Date().toISOString(), termsVersion: "v2026.1_hk_minor" };
+      const rv = (cls && cls.risk_notice && cls.risk_notice.version) || "risk-v1-2026-10";
+      return { agreed: true, timestamp: new Date().toISOString(), termsVersion: "v2026.1_hk_minor", riskVersion: rv, riskAcknowledged: true };
     }
 
     function getAttendeePayload(silent) {
@@ -733,7 +754,12 @@
       } catch (e) {}
       return {
         type: "child", childName, childAge: age, emergencyPhone, medicalNotes,
-        waiver: { agreed: true, guardianName, guardianHKIDLast4: hkid, timestamp: new Date().toISOString(), termsVersion: "v2026.1_hk_minor" },
+        waiver: {
+          agreed: true, guardianName, guardianHKIDLast4: hkid, timestamp: new Date().toISOString(),
+          termsVersion: "v2026.1_hk_minor",
+          riskVersion: (cls && cls.risk_notice && cls.risk_notice.version) || "risk-v1-2026-10",
+          riskAcknowledged: true,
+        },
       };
     }
 

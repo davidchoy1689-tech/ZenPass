@@ -442,6 +442,11 @@ async function sendNotification(type, payload) {
       message = data?.message || "";
       html = `<h2>${data?.title || "⚠️ 天氣警報"}</h2><p>${String(data?.message || "").replace(/\n/g, "<br>")}</p><p><b>請到後台 → 🚨 天氣警報 處理。</b></p>`;
       break;
+    case "incident.reported":
+      title = "🚨 現場意外備案";
+      message = `學員：${data?.student || ""}\n受傷部位：${data?.body_part || ""}\n現場處理：${data?.treatment || ""}\n教練：${data?.coach || ""}\n請到後台「🚨 異常處理」查看。`;
+      html = `<h2>🚨 現場意外備案</h2><p><b>學員：</b>${data?.student || ""}<br><b>受傷部位：</b>${data?.body_part || ""}<br><b>現場處理：</b>${data?.treatment || ""}<br><b>教練：</b>${data?.coach || ""}</p>`;
+      break;
     case "refund.pending":
       title = "💸 新退款申請";
       message = `預約：${data?.booking_reference || ""}\n金額：HK$${data?.amount || 0}\nFPS 收款：${data?.fps_name || ""} / ${data?.fps_id || ""}\n請到後台「💸 待退款」處理。`;

@@ -227,6 +227,31 @@ router.post("/weather-cancel", authenticateToken, requireAdmin, requireOpsRole, 
   }
 });
 
+// ===== 🚨 現場意外備案列表 =====
+router.get("/incidents", authenticateToken, requireAdmin, requireOpsRole, (req, res) => {
+  try {
+    const db = getDb();
+    try {
+      db.exec(`CREATE TABLE IF NOT EXISTS incident_logs (
+        id TEXT PRIMARY KEY, booking_id TEXT, schedule_id TEXT, coach_id TEXT, student_name TEXT,
+        body_part TEXT, treatment TEXT, notes TEXT, occurred_at TEXT, ip_address TEXT,
+        created_at TEXT DEFAULT (datetime('now'))
+      );`);
+    } catch (e) {}
+    const rows = db
+      .prepare(
+        `SELECT i.*, u.name AS coach_name FROM incident_logs i
+           LEFT JOIN users u ON u.id = i.coach_id
+          ORDER BY i.created_at DESC LIMIT 100`,
+      )
+      .all();
+    res.json({ success: true, incidents: rows });
+  } catch (err) {
+    console.error("[OPS] incidents error:", err.message);
+    res.status(500).json({ success: false, error: "讀取意外紀錄失敗" });
+  }
+});
+
 // ===== 🚨 極端天氣警報（系統報警，管理員決定）=====
 // GET  /api/admin/ops/alerts?status=open
 // POST /api/admin/ops/alerts/:id/handle   { decision: cancel|continue|ack, note }

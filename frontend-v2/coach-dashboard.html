@@ -945,10 +945,10 @@ ${stamp}
       const mapQ = encodeURIComponent([sch.venue_name, sch.venue_address].filter(Boolean).join(" ") || "香港");
       const guide = `🧭【ZenPass 課前指引】${sch.title || ""}
 📅 日期時間：${fmt(sch.start_time)}
-⏰ 請提早 10 分鐘到場（遲到不設補時）
+⏰ 請提早 10 分鐘到場：首 10 分鐘為**強制動態熱身**（遲到者需在旁完成熱身方可下場）
 📍 集合地點：${sch.venue_name || "待定"}${sch.venue_address ? "\n　　" + sch.venue_address : ""}
 🗺️ 地圖：https://www.google.com/maps/search/?api=1&query=${mapQ}
-🎽 建議穿著：運動服裝 + 室內運動鞋（波鞋）；避免牛仔褲／拖鞋／涼鞋
+🎽 必須穿著：運動服裝 + 室內防滑運動鞋（波鞋）；**嚴禁拖鞋／涼鞋／高跟鞋進場**
 🎒 請攜帶：毛巾、水樽（場地有飲水機）、八達通
 🧒 兒童班：請家長陪同簽到，自備替換衣物
 🌧️ 天氣安排（參考康文署）：八號或以上／黑色暴雨生效時停課；以「課堂開始前 2 小時」為界線——警告已於 2 小時前除下照常，不足 2 小時仍生效則取消。學員出門前應先致電／WhatsApp 9033 5538 查詢
@@ -979,6 +979,7 @@ ${stamp}
             <span style="display:flex;gap:6px;align-items:center">
               ${done ? `<button class="btn btn-secondary" style="min-height:36px;padding:0 10px;font-size:13px" data-cert="${esc(s.id)}" data-phone="${esc(s.phone || "")}" data-name="${esc(s.name || "")}">🏆</button>` : ""}
               ${s.phone ? `<a class="btn btn-secondary" style="min-height:36px;padding:0 10px;font-size:13px;text-decoration:none;background:#25d366;color:#04331c;border-color:#25d366" target="_blank" rel="noopener" href="https://wa.me/852${esc(String(s.phone).replace(/\D/g, "").slice(-8))}?text=${encodeURIComponent("你好 " + (s.name || "") + "，提醒你 " + fmt(sch.start_time) + " 嘅「" + (sch.title || "") + "」，核銷碼 " + (s.checkin_code || "") + "。詳情：" + guide)}">💬</a>` : ""}
+              <button class="btn btn-secondary" style="min-height:36px;padding:0 9px;font-size:13px" data-incident="${esc(s.id)}" data-sname="${esc(isChild ? s.child_name || s.name : s.name || "")}" title="現場意外備案">🚨</button>
               ${done ? '<span class="badge2 b-on">已簽到</span>'
                 : (OQ && OQ.has(s.id))
                   ? '<span class="badge2" style="background:#fef3c7;color:#92400e">🟡 離線已記錄</span>'
@@ -1037,8 +1038,40 @@ ${stamp}
         b.disabled = false; b.textContent = "簽到";
         alert((rr && rr.data && rr.data.error) || "簽到失敗");
       }));
+      $("shBody").querySelectorAll("[data-incident]").forEach((b) => (b.onclick = () => incidentSheet(b.dataset.incident, sid, b.dataset.sname)));
       const rs = $("realSettle");
       if (rs) rs.onclick = () => realSettle(sid, sch, list);
+    }
+
+    /* 🚨 現場意外即時備案（法律存證） */
+    function incidentSheet(bookingId, sid, studentName) {
+      openSheet("🚨 現場意外備案", `
+        <div class="muted" style="font-size:12px;margin-bottom:10px">請即時記錄（時間會自動封存）。資料會同步通知平台管理員，用於保險／法律舉證。</div>
+        <label class="lbl">學員姓名</label>
+        <input class="fld" id="incName" maxlength="40" value="${esc(studentName || "")}" />
+        <label class="lbl">受傷部位</label>
+        <input class="fld" id="incPart" maxlength="40" placeholder="例：右足踝、左膝、手腕" />
+        <label class="lbl">現場處理方式</label>
+        <textarea id="incTreat" rows="2" maxlength="200" placeholder="例：即時敷冰袋 10 分鐘、抬腿休息、學員表示可自行步行" style="width:100%;border:1px solid var(--border);border-radius:10px;padding:9px;font:inherit;font-size:13px"></textarea>
+        <label class="lbl">補充（選填）</label>
+        <input class="fld" id="incNote" maxlength="200" placeholder="例：已通知家長，家長表示會自行觀察" />
+        <button class="btn btn-primary btn-block" id="incGo" style="margin-top:12px">📌 提交備案</button>
+      `);
+      $("incGo").onclick = async () => {
+        const name = $("incName").value.trim();
+        const part = $("incPart").value.trim();
+        const treat = $("incTreat").value.trim();
+        if (!name) { alert("請填寫學員姓名"); return; }
+        if (!part) { alert("請填寫受傷部位"); return; }
+        if (treat.length < 2) { alert("請簡述現場處理方式"); return; }
+        const btn = $("incGo"); btn.disabled = true; btn.textContent = "⏳ 提交中…";
+        const rr = await api.post("/coach/incidents", {
+          booking_id: bookingId, schedule_id: sid, student_name: name, body_part: part, treatment: treat,
+          notes: $("incNote").value.trim(),
+        });
+        if (rr.ok) { toast("✅ 已備案（管理員已收到通知）"); closeSheet(); }
+        else { btn.disabled = false; btn.textContent = "📌 提交備案"; alert((rr.data && rr.data.error) || "提交失敗"); }
+      };
     }
 
     /* ===== 🏁 真實數據結算 ===== */

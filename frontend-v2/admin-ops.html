@@ -125,6 +125,12 @@
           <button class="btn btn-primary btn-block" id="wxGo">取消當日所有課堂</button>
           <div class="muted" id="wxMsg" style="margin-top:10px;font-size:12.5px"></div>
         </div></div>
+
+        <div class="card" style="margin-top:10px"><div class="body">
+          <b>🚨 現場意外備案（Incident Log）</b>
+          <div class="muted" style="font-size:12px;margin:6px 0 10px">教練於現場提交的第一手紀錄（時間自動封存），用於保險／法律舉證。</div>
+          <div id="incidentList"></div>
+        </div></div>
       </div>
 
       <div id="paneCred" hidden>
@@ -229,6 +235,7 @@
       await loadUpcoming();
       await loadAlerts();
       await loadStudents();
+      await loadIncidents();
     }
 
     async function loadFinance() {
@@ -453,6 +460,22 @@
       if (r === "coach") return "教練";
       if (String(r || "").startsWith("partner")) return "場地";
       return r || "—";
+    }
+
+    /* ===== 🚨 現場意外備案 ===== */
+    async function loadIncidents() {
+      const box = $("incidentList"); if (!box) return;
+      const r = await api.get("/admin/ops/incidents");
+      if (!r.ok) { box.innerHTML = `<div class="muted">${esc((r.data && r.data.error) || "讀取失敗")}</div>`; return; }
+      const rows = (r.data && r.data.incidents) || [];
+      if (!rows.length) { box.innerHTML = '<div class="muted" style="font-size:12.5px">✅ 暫無意外紀錄</div>'; return; }
+      box.innerHTML = rows.map((x) => `<div class="row" style="flex-wrap:wrap">
+        <span style="flex:1 1 100%">
+          <b>${esc(x.student_name || "—")}</b> <span class="pill" style="background:#fef2f2;color:#b91c1c;margin-left:4px">${esc(x.body_part || "")}</span>
+          <span class="s">處理：${esc(x.treatment || "—")}${x.notes ? " · " + esc(x.notes) : ""}</span>
+          <span class="s">教練：${esc(x.coach_name || "—")} · 記錄於 ${esc(String(x.created_at || "").slice(0, 16))}${x.ip_address ? " · IP " + esc(x.ip_address) : ""}</span>
+        </span>
+      </div>`).join("");
     }
 
     /* ===== 👥 學員 360° 檔案 ===== */

@@ -1049,6 +1049,82 @@ router.post("/refer", authenticateToken, (req, res) => {
   }
 });
 
+// ===== 🚨 現場意外即時備案（Incident Log，2026-10-28）=====
+// 法律價值：事故後 10 分鐘內的第一手紀錄，可對抗「事後誇大傷勢」指控
+function ensureIncidentSchema(db) {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS incident_logs (
+      id TEXT PRIMARY KEY,
+      booking_id TEXT,
+      schedule_id TEXT,
+      coach_id TEXT,
+      student_name TEXT,
+      body_part TEXT,
+      treatment TEXT,
+      notes TEXT,
+      occurred_at TEXT,
+      ip_address TEXT,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_incident_created ON incident_logs(created_at);
+  `);
+}
+
+router.post("/incidents", authenticateToken, (req, res) => {
+  try {
+    const db = getDb();
+    ensureIncidentSchema(db);
+    const b = req.body || {};
+    const me = db.prepare("SELECT role, name FROM users WHERE id = ?").get(req.user.id) || {};
+    const isAdmin = ["admin", "super_admin", "platform_manager"].includes(me.role);
+    const isCoach = Number(me.is_coach) === 1 || me.role === "coach";
+    if (!isAdmin && !isCoach) return res.status(403).json({ success: false, error: "只限教練記錄" });
+
+    const studentName = String(b.student_name || "").trim().slice(0, 40);
+    const bodyPart = String(b.body_part || "").trim().slice(0, 40);
+    const treatment = String(b.treatment || "").trim().slice(0, 200);
+    if (!studentName) return res.status(400).json({ success: false, error: "請填寫學員姓名", code: "NAME_REQUIRED" });
+    if (!bodyPart) return res.status(400).json({ success: false, error: "請填寫受傷部位", code: "BODY_PART_REQUIRED" });
+    if (treatment.length < 2) return res.status(400).json({ success: false, error: "請簡述現場處理方式", code: "TREATMENT_REQUIRED" });
+
+    const id = uuidv4();
+    db.prepare(
+      `INSERT INTO incident_logs (id, booking_id, schedule_id, coach_id, student_name, body_part, treatment, notes, occurred_at, ip_address)
+       VALUES (?,?,?,?,?,?,?,?,?,?)`,
+    ).run(
+      id,
+      b.booking_id ? String(b.booking_id) : null,
+      b.schedule_id ? String(b.schedule_id) : null,
+      req.user.id,
+      studentName,
+      bodyPart,
+      treatment,
+      String(b.notes || "").slice(0, 500) || null,
+      b.occurred_at ? String(b.occurred_at).slice(0, 19) : new Date().toISOString().slice(0, 19).replace("T", " "),
+      req.ip || null,
+    );
+
+    try {
+      db.prepare(
+        `INSERT INTO audit_log (id, action_type, entity_type, entity_id, user_id, new_values, description, created_at)
+         VALUES (?, 'incident.logged', 'incident', ?, ?, ?, ?, datetime('now'))`,
+      ).run(uuidv4(), id, req.user.id, JSON.stringify({ student: studentName, body_part: bodyPart }), `現場意外備案：${studentName} / ${bodyPart}`);
+    } catch (e) {}
+
+    // 即時通知管理員（意外唔可以無人知）
+    try {
+      require("../services/notify-admins").notifyAdmins("incident.reported", {
+        student: studentName, body_part: bodyPart, treatment, coach: me.name || "",
+      });
+    } catch (e) {}
+
+    res.json({ success: true, id, message: "✅ 已記錄現場意外備案（時間已封存）" });
+  } catch (err) {
+    console.error("[INCIDENT] create error:", err.message);
+    res.status(500).json({ success: false, error: "記錄失敗" });
+  }
+});
+
 module.exports = router;
 
 // ===== GET /api/coach/class-students — 查看課程學生名單 =====

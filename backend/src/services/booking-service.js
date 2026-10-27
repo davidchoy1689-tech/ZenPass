@@ -73,6 +73,22 @@ function ensureRefundColumns(db) {
   }
 }
 
+// 2026-10-28：法律存證欄位（Volenti 抗辯：具體風險披露 + IP/UA + 版本）
+function ensureLegalColumns(db) {
+  try {
+    const cols = db.prepare("PRAGMA table_info(bookings)").all().map((c) => c.name);
+    const add = [
+      ["ip_address", "TEXT"],
+      ["user_agent", "TEXT"],
+      ["risk_version", "TEXT"],
+      ["risk_ack_at", "TEXT"],
+    ];
+    add.forEach(([n, t]) => { if (!cols.includes(n)) db.prepare(`ALTER TABLE bookings ADD COLUMN ${n} ${t}`).run(); });
+  } catch (e) {
+    console.error("legal 欄位遷移失敗:", e.message);
+  }
+}
+
 const crypto = require("crypto");
 
 // 🎫 4 位現場驗證碼：由 booking id + server secret 派生，穩定、唔可猜
@@ -409,6 +425,7 @@ function insertBookingRow(db, bookingData, partnerInfo) {
     groupSize = 1,
     groupInviteCode = null,
     attendee = null,
+    meta = null,
   } = bookingData;
 
   const A = attendee || {};
@@ -422,13 +439,18 @@ function insertBookingRow(db, bookingData, partnerInfo) {
     (A.waiver && A.waiver.guardianHKIDLast4) || null,
     A.waiver && A.waiver.agreed ? (A.waiver.timestamp || new Date().toISOString()) : null,
     A.waiver && A.waiver.agreed ? "v2026.1_hk_minor" : null,
+    (meta && meta.ip) || null,
+    (meta && meta.ua) || null,
+    (A.waiver && A.waiver.riskVersion) || null,
+    A.waiver && A.waiver.riskAcknowledged ? new Date().toISOString() : null,
   ];
 
   if (partnerInfo) {
     db.prepare(
       `INSERT INTO bookings (id, booking_reference, user_id, schedule_id, class_id, payment_type, payment_status, status, amount, venue_partner_id, platform_commission_rate, venue_earned_amount, platform_earned_amount, group_size, group_invite_code,
-        attendee_type, child_name, child_age, emergency_phone, medical_notes, guardian_name, guardian_hkid4, waiver_at, terms_version)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        attendee_type, child_name, child_age, emergency_phone, medical_notes, guardian_name, guardian_hkid4, waiver_at, terms_version,
+        ip_address, user_agent, risk_version, risk_ack_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     ).run(
       bookingId,
       bookingRef,
@@ -450,8 +472,9 @@ function insertBookingRow(db, bookingData, partnerInfo) {
   } else {
     db.prepare(
       `INSERT INTO bookings (id, booking_reference, user_id, schedule_id, class_id, payment_type, payment_status, status, amount, group_size, group_invite_code,
-        attendee_type, child_name, child_age, emergency_phone, medical_notes, guardian_name, guardian_hkid4, waiver_at, terms_version)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        attendee_type, child_name, child_age, emergency_phone, medical_notes, guardian_name, guardian_hkid4, waiver_at, terms_version,
+        ip_address, user_agent, risk_version, risk_ack_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     ).run(
       bookingId,
       bookingRef,
@@ -742,6 +765,7 @@ function createBooking(req, options = {}) {
   const db = getDb();
   db.pragma("foreign_keys = ON");
   ensureAttendeeColumns(db);
+  ensureLegalColumns(db);
 
   // 1. Penalty consent
   const consent = checkPenaltyConsent(db, req.user.id, penalty_consent);
@@ -974,7 +998,8 @@ function createBooking(req, options = {}) {
     // 9. Create booking record
     insertBookingRow(
       db,
-      { bookingId, bookingRef, userId: req.user.id, scheduleId: schedule_id, classId: class_id, paymentType: payment_type, paymentStatus, bookingStatus, amount: amount || 0, groupSize, groupInviteCode, attendee },
+      { bookingId, bookingRef, userId: req.user.id, scheduleId: schedule_id, classId: class_id, paymentType: payment_type, paymentStatus, bookingStatus, amount: amount || 0, groupSize, groupInviteCode, attendee,
+        meta: { ip: req.ip || (req.headers && (req.headers["x-forwarded-for"] || "").split(",")[0].trim()) || "", ua: (req.headers && req.headers["user-agent"]) || "" } },
       partnerInfo,
     );
     if (promoApply) redeemPromo(db, promoApply.id, req.user.id, bookingId, amount);
@@ -2247,6 +2272,7 @@ module.exports = {
   checkinCodeFor,
   ensureAttendeeColumns,
   ensureRefundColumns,
+  ensureLegalColumns,
   processQRCheckin,
   markNoShow,
   resolveCancellationFeeRate,
