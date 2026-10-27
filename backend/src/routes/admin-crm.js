@@ -237,4 +237,61 @@ router.put("/coaches/:id/credentials", authenticateToken, requireAdmin, requireO
 });
 
 
+// PUT /api/admin/venues/:id/pli — 更新場地商業登記及公眾責任保險（PLI）
+router.put("/venues/:id/pli", authenticateToken, requireAdmin, requireOpsRole, (req, res) => {
+  try {
+    const db = getDb();
+    const cols = db.prepare("PRAGMA table_info(partner_venues)").all().map((c) => c.name);
+    [
+      ["business_reg_no", "TEXT"],
+      ["pli_policy_no", "TEXT"],
+      ["pli_expiry", "TEXT"],
+      ["pli_status", "TEXT DEFAULT 'unverified'"],
+      ["venue_terms_ack_at", "TEXT"],
+    ].forEach(([n, t]) => { if (!cols.includes(n)) db.prepare(`ALTER TABLE partner_venues ADD COLUMN ${n} ${t}`).run(); });
+
+    const v = db.prepare("SELECT * FROM partner_venues WHERE id = ?").get(req.params.id);
+    if (!v) return res.status(404).json({ success: false, error: "場地不存在" });
+
+    const b = req.body || {};
+    const status = b.pli_status != null ? String(b.pli_status) : v.pli_status || "unverified";
+    if (!["verified", "unverified", "exempt"].includes(status)) {
+      return res.status(400).json({ success: false, error: "pli_status 無效（verified／unverified／exempt）" });
+    }
+    const expiry = b.pli_expiry != null ? String(b.pli_expiry).slice(0, 10) : v.pli_expiry;
+    if (status === "verified" && (!expiry || expiry < new Date().toISOString().slice(0, 10))) {
+      return res.status(400).json({ success: false, error: "標記為已核驗時，必須提供未過期的保單到期日", code: "PLI_EXPIRY_REQUIRED" });
+    }
+
+    db.prepare(
+      `UPDATE partner_venues SET business_reg_no = ?, pli_policy_no = ?, pli_expiry = ?, pli_status = ?,
+              venue_terms_ack_at = COALESCE(?, venue_terms_ack_at) WHERE id = ?`,
+    ).run(
+      b.business_reg_no != null ? String(b.business_reg_no).slice(0, 32) : v.business_reg_no,
+      b.pli_policy_no != null ? String(b.pli_policy_no).slice(0, 64) : v.pli_policy_no,
+      expiry,
+      status,
+      b.ack_terms === true ? new Date().toISOString().slice(0, 19).replace("T", " ") : null,
+      v.id,
+    );
+
+    try {
+      db.prepare(
+        `INSERT INTO audit_log (id, action_type, entity_type, entity_id, user_id, old_values, new_values, description, created_at)
+         VALUES (?, 'venue.pli_updated', 'partner_venue', ?, ?, ?, ?, ?, datetime('now'))`,
+      ).run(
+        crypto.randomUUID(), v.id, req.user.id,
+        JSON.stringify({ pli_status: v.pli_status, pli_expiry: v.pli_expiry }),
+        JSON.stringify({ pli_status: status, pli_expiry: expiry }),
+        `更新場地 PLI：${v.name || v.id}`,
+      );
+    } catch (e) {}
+
+    res.json({ success: true, venue_id: v.id, pli_status: status, pli_expiry: expiry });
+  } catch (err) {
+    console.error("[CRM] venue pli update error:", err.message);
+    res.status(500).json({ success: false, error: "更新失敗" });
+  }
+});
+
 module.exports = router;

@@ -231,6 +231,45 @@
       $("shSheet").classList.add("on");
     }
     function closeSheet() { try { stopScan(); } catch (e) {} $("shMask").classList.remove("on"); $("shSheet").classList.remove("on"); }
+
+    /* 📜 教練獨立合約人協議（未簽署 → 阻擋操作） */
+    async function ensureCoachAgreement() {
+      try {
+        const st = await api.get("/coach/agreement/status");
+        if (!st.ok || (st.data && st.data.accepted)) return;
+        const ag = await api.get("/coach/agreement");
+        const a = (ag.data && ag.data.agreement) || {};
+        const ov = document.createElement("div");
+        ov.style.cssText = "position:fixed;inset:0;background:rgba(15,23,42,.72);z-index:9999;display:flex;align-items:center;justify-content:center;padding:14px";
+        ov.innerHTML = `<div style="background:#fff;max-width:560px;width:100%;max-height:90vh;display:flex;flex-direction:column;border-radius:16px;overflow:hidden">
+          <div style="padding:14px 16px;border-bottom:1px solid var(--border)">
+            <div style="font-size:15px;font-weight:800">📜 ${esc(a.title || "教練獨立合約人協議")}</div>
+            <div class="muted" style="font-size:11.5px;margin-top:4px">版本 ${esc(a.version || "")} · 生效 ${esc(a.effectiveDate || "")}</div>
+          </div>
+          <div style="padding:12px 16px;overflow:auto;flex:1">
+            <div class="muted" style="font-size:12px;line-height:1.7;margin-bottom:10px">${esc(a.summary || "")}</div>
+            ${(a.clauses || []).map((c) => `<div style="margin-bottom:12px"><b style="font-size:12.5px">${esc(c.title)}</b><div class="muted" style="font-size:12px;line-height:1.75;margin-top:4px">${esc(c.content)}</div></div>`).join("")}
+          </div>
+          <div style="padding:12px 16px;border-top:1px solid var(--border);background:#f8fafc">
+            <label style="display:flex;gap:8px;align-items:flex-start;font-size:12px;line-height:1.6">
+              <input type="checkbox" id="caAgree" style="width:18px;height:18px;margin-top:2px" />
+              <span>我已閱讀並同意上述《教練獨立合約人及平台服務協議》，確認本人為獨立合約人，對課堂教學及現場安全負排他性責任。</span>
+            </label>
+            <button class="btn btn-primary btn-block" id="caGo" style="margin-top:10px" disabled>✅ 確認簽署（${esc(a.version || "")}）</button>
+          </div>
+        </div>`;
+        document.body.appendChild(ov);
+        const cb = ov.querySelector("#caAgree");
+        const go = ov.querySelector("#caGo");
+        cb.onchange = () => { go.disabled = !cb.checked; };
+        go.onclick = async () => {
+          go.disabled = true; go.textContent = "⏳ 簽署中…";
+          const rr = await api.post("/coach/agreement/accept", { agreed: true });
+          if (rr.ok) { ov.remove(); toast("✅ 已記錄協議簽署"); }
+          else { go.disabled = false; go.textContent = "✅ 確認簽署"; alert((rr.data && rr.data.error) || "簽署失敗"); }
+        };
+      } catch (e) {}
+    }
     $("shMask").onclick = closeSheet;
     $("shClose").onclick = closeSheet;
     $("navAdd").onclick = (e) => { e.preventDefault(); quickSheet(); };
@@ -302,6 +341,7 @@
         FILTER = b.dataset.f; loadList();
       };
       $("btnQuick").onclick = quickSheet;
+      ensureCoachAgreement();
       if (window.zpRequirePartnerAgreement) zpRequirePartnerAgreement(() => location.reload());
       await loadStats();
       await loadList();

@@ -361,6 +361,53 @@ router.get("/my-classes", authenticateToken, (req, res) => {
 });
 
 // ===== POST /api/coach/schedules — 新增課程時間（支援重複）=====
+// ===== 🏟️ 場地 PLI（公眾責任保險）校驗 =====
+function ensurePliColumns(db) {
+  try {
+    const cols = db.prepare("PRAGMA table_info(partner_venues)").all().map((c) => c.name);
+    const add = [
+      ["business_reg_no", "TEXT"],
+      ["pli_policy_no", "TEXT"],
+      ["pli_expiry", "TEXT"],
+      ["pli_status", "TEXT DEFAULT 'unverified'"],
+      ["venue_terms_ack_at", "TEXT"],
+    ];
+    add.forEach(([n, t]) => { if (!cols.includes(n)) db.prepare(`ALTER TABLE partner_venues ADD COLUMN ${n} ${t}`).run(); });
+  } catch (e) {}
+}
+
+function pliGateMode(db) {
+  try {
+    const r = db.prepare("SELECT value FROM platform_settings WHERE key='venue.pli_gate'").get();
+    if (r && ["warn", "enforce", "off"].includes(String(r.value))) return String(r.value);
+  } catch (e) {}
+  return String(process.env.VENUE_PLI_GATE || "warn");
+}
+
+function venuePliCheck(db, venueId, dateStr) {
+  ensurePliColumns(db);
+  const v = db
+    .prepare("SELECT id, name, pli_status, pli_expiry, pli_policy_no FROM partner_venues WHERE id = ?")
+    .get(venueId);
+  if (!v) return { ok: false, code: "VENUE_NOT_FOUND", reason: "場地不存在" };
+  const status = String(v.pli_status || "unverified");
+  if (status === "exempt") return { ok: true, exempt: true, venue: v.name };
+  const expired = !!(v.pli_expiry && String(v.pli_expiry).slice(0, 10) < String(dateStr || "").slice(0, 10));
+  const ok = status === "verified" && !expired;
+  return {
+    ok,
+    venue: v.name,
+    status,
+    expired,
+    policy_no: v.pli_policy_no || "",
+    reason: ok
+      ? ""
+      : status !== "verified"
+        ? "該場地尚未核驗有效公眾責任保險 (PLI)"
+        : "該場地公眾責任保險已過期",
+  };
+}
+
 router.post("/schedules", authenticateToken, (req, res) => {
   try {
     const {
@@ -392,6 +439,24 @@ router.post("/schedules", authenticateToken, (req, res) => {
     const durationMs =
       new Date(end_time).getTime() - new Date(start_time).getTime();
     const scheduleIds = [];
+
+    // 🛡️ 場地 PLI 閘門（未核驗／過期 → 視乎模式阻擋或警告）
+    let pliWarning = null;
+    if (classData.partner_venue_id) {
+      const chk = venuePliCheck(db, classData.partner_venue_id, start_time);
+      if (!chk.ok) {
+        const mode = pliGateMode(db);
+        if (mode === "enforce") {
+          return res.status(400).json({
+            success: false,
+            error: chk.reason + "，暫不可發布課堂（請管理員更新場地保單）",
+            code: "VENUE_PLI_INVALID",
+            venue: chk.venue || "",
+          });
+        }
+        if (mode === "warn") pliWarning = chk.reason;
+      }
+    }
 
     // 🏟️ 合作場地撞期／封鎖檢查（新增時段時）
     if (classData.partner_venue_id) {
@@ -527,9 +592,11 @@ router.post("/schedules", authenticateToken, (req, res) => {
     }
 
     res.status(201).json({
+      success: true,
       message: `時間已新增（共 ${scheduleIds.length} 個時段）`,
       schedule_ids: scheduleIds,
       count: scheduleIds.length,
+      ...(pliWarning ? { pli_warning: pliWarning } : {}),
     });
   } catch (err) {
     console.error("新增時間錯誤:", err);
@@ -1046,6 +1113,78 @@ router.post("/refer", authenticateToken, (req, res) => {
   } catch (err) {
     console.error("Coach refer error:", err.message);
     res.status(500).json({ success: false, error: "推薦失敗" });
+  }
+});
+
+// ===== 📜 教練獨立合約人協議（ca-v1-2026-10）=====
+const { COACH_AGREEMENT_V1 } = require("../config/coach-agreement");
+
+function ensureAgreementColumns(db) {
+  try {
+    const cols = db.prepare("PRAGMA table_info(coach_credentials)").all().map((c) => c.name);
+    [["agreement_version", "TEXT"], ["agreement_ack_at", "TEXT"]].forEach(([n, t]) => {
+      if (!cols.includes(n)) db.prepare(`ALTER TABLE coach_credentials ADD COLUMN ${n} ${t}`).run();
+    });
+  } catch (e) {}
+}
+
+// 公開：協議全文（教練工作台／註冊流程顯示）
+router.get("/agreement", (req, res) => {
+  res.json({ success: true, agreement: COACH_AGREEMENT_V1 });
+});
+
+// 教練：查詢自己嘅簽署狀態
+router.get("/agreement/status", authenticateToken, (req, res) => {
+  try {
+    const db = getDb();
+    ensureAgreementColumns(db);
+    const row = db
+      .prepare("SELECT agreement_version, agreement_ack_at FROM coach_credentials WHERE user_id = ? ORDER BY COALESCE(reviewed_at, created_at) DESC LIMIT 1")
+      .get(req.user.id);
+    const accepted = !!(row && row.agreement_version === COACH_AGREEMENT_V1.version);
+    res.json({ success: true, required_version: COACH_AGREEMENT_V1.version, accepted, ack_at: row ? row.agreement_ack_at : null });
+  } catch (err) {
+    res.status(500).json({ success: false, error: "查詢失敗" });
+  }
+});
+
+// 教練：確認接受（記錄版本＋時間戳）
+router.post("/agreement/accept", authenticateToken, (req, res) => {
+  try {
+    const db = getDb();
+    ensureAgreementColumns(db);
+    if ((req.body || {}).agreed !== true) {
+      return res.status(400).json({ success: false, error: "請先勾選確認", code: "AGREEMENT_NOT_ACCEPTED" });
+    }
+    let row = db
+      .prepare("SELECT id FROM coach_credentials WHERE user_id = ? ORDER BY COALESCE(reviewed_at, created_at) DESC LIMIT 1")
+      .get(req.user.id);
+    if (!row) {
+      const id = uuidv4();
+      db.prepare(
+        "INSERT INTO coach_credentials (id, user_id, status, created_at) VALUES (?, ?, 'pending', datetime('now'))",
+      ).run(id, req.user.id);
+      row = { id };
+    }
+    db.prepare(
+      "UPDATE coach_credentials SET agreement_version = ?, agreement_ack_at = datetime('now') WHERE id = ?",
+    ).run(COACH_AGREEMENT_V1.version, row.id);
+
+    try {
+      db.prepare(
+        `INSERT INTO audit_log (id, action_type, entity_type, entity_id, user_id, new_values, description, created_at)
+         VALUES (?, 'coach.agreement_accepted', 'coach_credential', ?, ?, ?, ?, datetime('now'))`,
+      ).run(
+        uuidv4(), row.id, req.user.id,
+        JSON.stringify({ version: COACH_AGREEMENT_V1.version, ip: req.ip || null }),
+        `教練簽署獨立合約人協議 ${COACH_AGREEMENT_V1.version}`,
+      );
+    } catch (e) {}
+
+    res.json({ success: true, version: COACH_AGREEMENT_V1.version, message: "✅ 已記錄協議簽署" });
+  } catch (err) {
+    console.error("[AGREEMENT] accept error:", err.message);
+    res.status(500).json({ success: false, error: "簽署失敗" });
   }
 });
 

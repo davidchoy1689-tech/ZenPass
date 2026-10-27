@@ -7,7 +7,7 @@ const os = require("os");
 const path = require("path");
 const Database = require("better-sqlite3");
 
-process.env.JWT_SECRET = "zenpass-test-secret-0123456789abcdef0123456789";
+process.env.JWT_SECRET = "test-only-secret-value-for-zenpass-tests-32";
 const tmp = path.join(os.tmpdir(), "zenpass-crm-" + Date.now() + ".db");
 process.env.DB_PATH = tmp;
 
