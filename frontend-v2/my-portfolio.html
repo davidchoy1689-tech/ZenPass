@@ -90,7 +90,7 @@
     const $ = (id) => document.getElementById(id);
     const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
     const EMOJI = { MOLKKY: "🎯", CURLING: "🥌", CORNHOLE: "🫘", AIRSTORM: "🏹", NORDIC: "🥾", ROUNDNET: "🕸️", ROULIQIU: "🏓", FLEXIBAR: "💪", STRETCH: "🧘" };
-    let CERTS = [], TERMS = [], STUDENT = "all", SUMMARY = {};
+    let CERTS = [], TERMS = [], STUDENTS = [], STUDENT = "all", SUMMARY = {};
 
     function codeOf(c) {
       const s = String(c.sport || "").toLowerCase();
@@ -116,6 +116,7 @@
       if (!r.ok) { $("certs").innerHTML = `<div class="muted">${esc((r.data && r.data.error) || "讀取失敗")}</div>`; return; }
       CERTS = (r.data && r.data.certificates) || [];
       TERMS = (r.data && r.data.terms) || [];
+      STUDENTS = (r.data && r.data.students) || [];
       const s = (r.data && r.data.summary) || {};
       SUMMARY = s;
       $("kCerts").textContent = s.certs || 0;
@@ -222,10 +223,17 @@
     }
 
     $("printSheetBtn").onclick = () => {
+      // 🔒 單一學員隔離：避免兄弟姊妹資料混印在同一份學校摘要
+      const allNames = [...new Set(CERTS.map((c) => c.student_name || "學員"))];
+      if (STUDENT === "all" && allNames.length > 1) {
+        alert("你名下有 " + allNames.length + " 位學員。\n請先喺上方揀選一位學員，再列印佢專屬嘅 A4 學校摘要（避免混合個人資料）。");
+        return;
+      }
       const list = visibleCerts();
       if (!list.length) { alert("暫時未有證書可列印"); return; }
       const names = [...new Set(list.map((c) => c.student_name || "學員"))].join("、");
-      const hours = STUDENT === "all" ? (Number(SUMMARY.hours) || 0) : list.reduce((a, c) => a + (Number(c.hours) || 0), 0);
+      const stu = STUDENTS.find((x) => x.name === (list[0] && (list[0].student_name || "學員")));
+      const hours = STUDENT === "all" ? (Number(SUMMARY.hours) || 0) : (stu ? Number(stu.hours) || 0 : list.reduce((a, c) => a + (Number(c.hours) || 0), 0));
       const rows = list.map((c) => `<tr>
         <td><b>${esc(c.class_title || "")}</b></td>
         <td>${certTypeLabel(c)}</td>
@@ -239,6 +247,7 @@
         <div class="ps-sub">Student Portfolio Summary · 香港康樂及體育有限公司（Hong Kong Leisure and Fitness Company Limited）</div>
         <div class="ps-name">學員姓名：${esc(names)}</div>
         <div class="ps-kpi">累計認證時數：${hours.toFixed(1)} 小時 ｜ 證書數目：${list.length} 張 ｜ 列印日期：${dayStr(new Date().toISOString())}</div>
+        <div class="ps-sub" style="margin:-6px 0 10px">本摘要僅涵蓋上述學員之個人紀錄（單一學員文件）</div>
         <table class="ps-table">
           <thead><tr><th>課程</th><th>類別</th><th>評級</th><th style="text-align:right">時數</th><th>日期</th><th>證書編號</th></tr></thead>
           <tbody>${rows}</tbody>

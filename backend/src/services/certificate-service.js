@@ -189,6 +189,42 @@ function sealPending(db) {
   return rows.length;
 }
 
+/**
+ * 實際課堂分鐘數：以 schedule 的 start/end 為準（分秒不差），
+ * 冇 end_time 或異常值時才退回課程設定 duration。
+ * 2026-10-27：證書時數不可寫死 2.0，否則 1.5 小時班會與證書不符。
+ */
+function minutesBetween(startTime, endTime, fallback) {
+  const fb = Number(fallback) || 60;
+  if (!startTime || !endTime) return fb;
+  const a = new Date(String(startTime).replace(" ", "T").replace("Z", ""));
+  const b = new Date(String(endTime).replace(" ", "T").replace("Z", ""));
+  const ms = b.getTime() - a.getTime();
+  if (!Number.isFinite(ms) || ms <= 0) return fb;
+  const mins = ms / 60000;
+  // 合理範圍 10 分鐘 – 12 小時，超出視為資料異常
+  return mins >= 10 && mins <= 720 ? mins : fb;
+}
+
+/** 某課程所有時段的平均實際時長（用於期制班累計） */
+function classAvgMinutes(db, classId, fallback) {
+  const fb = Number(fallback) || 60;
+  try {
+    const scols = db.prepare("PRAGMA table_info(class_schedules)").all().map((c) => c.name);
+    if (!scols.includes("end_time")) return fb;
+    const rows = db
+      .prepare("SELECT start_time, end_time FROM class_schedules WHERE class_id = ? AND end_time IS NOT NULL")
+      .all(classId);
+    const vals = rows
+      .map((r) => minutesBetween(r.start_time, r.end_time, 0))
+      .filter((v) => v > 0);
+    if (!vals.length) return fb;
+    return vals.reduce((a, b) => a + b, 0) / vals.length;
+  } catch (e) {
+    return fb;
+  }
+}
+
 /** 運動 slug → 證書序號用的英文代碼 */
 function sportCode(slug, category, title) {
   const s = String(slug || "").toLowerCase();
@@ -258,7 +294,7 @@ function issueForBooking(bookingId) {
               u.name AS user_name,
               c.title AS class_title, c.category, c.sport_slug, c.duration, c.coach_id,
               cu.name AS coach_name,
-              cs.start_time
+              cs.start_time, cs.end_time
        FROM bookings b
        JOIN users u ON u.id = b.user_id
        JOIN classes c ON c.id = b.class_id
@@ -296,7 +332,8 @@ function issueForBooking(bookingId) {
     starred = cc ? Number(cc.s) || 0 : 0;
   } catch (e) {}
 
-  const hours = Math.round(((Number(row.duration) || 60) / 60) * 10) / 10;
+  const mins = minutesBetween(row.start_time, row.end_time, row.duration);
+  const hours = Math.round((mins / 60) * 10) / 10;
   const code =
     "ZP-" + new Date().getFullYear() + "-" + sportCode(row.sport_slug, row.category, row.class_title) +
     "-" + crypto.randomBytes(3).toString("hex").toUpperCase();
@@ -384,8 +421,9 @@ function maybeIssueGraduation(db, row) {
   const exists = db.prepare("SELECT * FROM certificates WHERE booking_id = ?").get(key);
   if (exists) return exists;
 
-  // 認證時數 = 全期堂數 × 每堂時長（達出席率門檻即按全期計算）
-  const hours = Math.round((((Number(cls.duration) || 60) * total) / 60) * 10) / 10;
+  // 認證時數 = 全期堂數 × 每堂實際時長（以 schedule 時間為準；達出席率門檻即按全期計算）
+  const perMin = classAvgMinutes(db, row.class_id, cls.duration);
+  const hours = Math.round(((perMin * total) / 60) * 10) / 10;
   const sportKey = cls.sport_slug || cls.category || "";
   const code =
     "ZP-" + new Date().getFullYear() + "-" + sportCode(cls.sport_slug, cls.category, cls.title) +
@@ -507,7 +545,8 @@ function syncAttendanceStatement(db, classId, userId) {
         (db.prepare("SELECT name FROM users WHERE id = ?").get(userId) || {}).name ||
         "學員";
 
-  const hours = Math.round((((Number(cls.duration) || 60) * attended) / 60) * 10) / 10;
+  const perMinA = classAvgMinutes(db, classId, cls.duration);
+  const hours = Math.round(((perMinA * attended) / 60) * 10) / 10;
   const pct = Math.round((attended / total) * 100);
   const label = `已出席 ${attended}/${total} 堂（${pct}%）`;
   const sportKey = cls.sport_slug || cls.category || "";
@@ -616,34 +655,12 @@ function summaryForUser(userId) {
     )
     .get(userId);
 
-  // 累計時數：
-  // ・期制班已結業 → 按全期堂數計
-  // ・期制班未結業 → 按已出席堂數計
-  // ・單堂班 → 按出席堂數計
-  // （避免 session 證 + 結業證重複相加）
+  // 累計時數：以「學員 × 課程」為單位（同一課程唔會因多張證書重複相加，
+  // 兄弟姊妹各自出席亦唔會互相重複計算）
   let hours = 0;
   try {
-    const rows = db
-      .prepare(
-        `SELECT c.id, COALESCE(c.course_type,'single') AS ct,
-                COALESCE(c.total_sessions,1) AS total,
-                COALESCE(c.duration,60) AS dur,
-                (SELECT COUNT(*) FROM bookings b2
-                  WHERE b2.user_id = ? AND b2.class_id = c.id AND b2.status = 'attended') AS attended,
-                (SELECT COUNT(*) FROM certificates ce
-                  WHERE ce.user_id = ? AND ce.class_id = c.id
-                    AND ce.cert_type = 'graduation' AND COALESCE(ce.revoked,0) = 0) AS grad
-         FROM classes c
-         WHERE c.id IN (SELECT class_id FROM bookings WHERE user_id = ? AND status = 'attended')`,
-      )
-      .all(userId, userId, userId);
-    let mins = 0;
-    rows.forEach((r) => {
-      const isTerm = String(r.ct) === "term";
-      const sessions = isTerm && Number(r.grad) > 0 ? Number(r.total) : Number(r.attended);
-      mins += sessions * Number(r.dur);
-    });
-    hours = Math.round((mins / 60) * 10) / 10;
+    const perStudent = studentSummariesForUser(userId);
+    hours = Math.round(perStudent.reduce((a, x) => a + (Number(x.hours) || 0), 0) * 10) / 10;
   } catch (e) {
     // 舊 DB fallback：用證書手數加總（僅排除重複計算嘅結業證）
     const f = db
@@ -657,6 +674,84 @@ function summaryForUser(userId) {
   }
 
   return { certs: s.certs || 0, hours, sports: s.sports || 0 };
+}
+
+/**
+ * 每位學員（本人／子女）分開的時數與證書數
+ * 2026-10-27：Portfolio 列印必須按單一學員隔離，唔可以混合家庭成員資料。
+ */
+function studentSummariesForUser(userId) {
+  const db = getDb();
+  ensureSchema(db);
+  const bcols = db.prepare("PRAGMA table_info(bookings)").all().map((c) => c.name);
+  const nameExpr = bcols.includes("child_name")
+    ? "COALESCE(NULLIF(b.child_name,''), u.name)"
+    : "u.name";
+
+  const rows = db
+    .prepare(
+      `SELECT b.class_id, ${nameExpr} AS sname,
+              COALESCE(c.course_type,'single') AS ct,
+              COALESCE(c.total_sessions,1) AS total,
+              c.duration,
+              CASE WHEN EXISTS (
+                SELECT 1 FROM certificates ce
+                 WHERE ce.user_id = b.user_id AND ce.class_id = b.class_id
+                   AND ce.cert_type = 'graduation' AND COALESCE(ce.revoked,0) = 0
+                   AND ce.student_name = ${nameExpr}
+              ) THEN 1 ELSE 0 END AS graduated
+         FROM bookings b
+         JOIN classes c ON c.id = b.class_id
+         JOIN users u ON u.id = b.user_id
+        WHERE b.user_id = ? AND b.status = 'attended'`,
+    )
+    .all(userId);
+
+  // (學員 × 課程) 聚合
+  const perClass = new Map();
+  for (const r of rows) {
+    const key = r.sname + "||" + r.class_id;
+    const cur = perClass.get(key) || {
+      name: r.sname,
+      class_id: r.class_id,
+      isTerm: String(r.ct) === "term",
+      total: Number(r.total) || 1,
+      duration: Number(r.duration) || 60,
+      attended: 0,
+      graduated: false,
+    };
+    cur.attended += 1;
+    cur.graduated = cur.graduated || Number(r.graduated) === 1;
+    perClass.set(key, cur);
+  }
+
+  const byName = new Map();
+  for (const v of perClass.values()) {
+    const sessions = v.isTerm && v.graduated ? v.total : v.attended;
+    const mins = sessions * classAvgMinutes(db, v.class_id, v.duration);
+    const cur = byName.get(v.name) || { name: v.name, hours: 0, certs: 0 };
+    cur.hours += mins / 60;
+    byName.set(v.name, cur);
+  }
+
+  // 證書數（按 student_name）
+  for (const c of db
+    .prepare(
+      "SELECT COALESCE(student_name,'學員') AS n, COUNT(*) AS c FROM certificates WHERE user_id = ? AND COALESCE(revoked,0) = 0 GROUP BY 1",
+    )
+    .all(userId)) {
+    const cur = byName.get(c.n) || { name: c.n, hours: 0, certs: 0 };
+    cur.certs = Number(c.c) || 0;
+    byName.set(c.n, cur);
+  }
+
+  const out = [...byName.values()].map((x) => ({
+    name: x.name,
+    hours: Math.round(x.hours * 10) / 10,
+    certs: x.certs,
+  }));
+  // 有證書但無出席紀錄者（例如示範／補發）都列出
+  return out.sort((a, b) => b.hours - a.hours);
 }
 
 /** 進行中／已完成期制課程進度 */
@@ -839,23 +934,34 @@ function assessmentCandidatesForCoach(coachId) {
   const bcols = db.prepare("PRAGMA table_info(bookings)").all().map((c) => c.name);
   const childExpr = bcols.includes("child_name") ? "NULLIF(b.child_name,'')" : "NULL";
   const minHours = assessmentMinHours(db);
-  const rows = db
+  // 逐筆計實際時長（schedule start/end 為準），避免 class.duration 與實際時間不符
+  const raw = db
     .prepare(
       `SELECT b.user_id AS user_id,
               COALESCE(${childExpr}, u.name) AS student_name,
               COALESCE(c.sport_slug, c.category, '') AS sport,
-              SUM(COALESCE(c.duration, 60)) AS mins,
-              COUNT(*) AS sessions,
-              MAX(c.title) AS sample_title,
-              MAX(u.phone) AS phone
+              c.duration AS duration, c.title AS title, u.phone AS phone,
+              cs.start_time AS start_time, cs.end_time AS end_time
          FROM bookings b
          JOIN classes c ON c.id = b.class_id
          JOIN users u ON u.id = b.user_id
-        WHERE c.coach_id = ? AND b.status = 'attended'
-        GROUP BY b.user_id, COALESCE(${childExpr}, u.name), COALESCE(c.sport_slug, c.category, '')
-        ORDER BY mins DESC`,
+         LEFT JOIN class_schedules cs ON cs.id = b.schedule_id
+        WHERE c.coach_id = ? AND b.status = 'attended'`,
     )
     .all(coachId);
+
+  const agg = new Map();
+  for (const r of raw) {
+    const key = r.user_id + "||" + r.student_name + "||" + r.sport;
+    const cur = agg.get(key) || {
+      user_id: r.user_id, student_name: r.student_name, sport: r.sport,
+      mins: 0, sessions: 0, sample_title: r.title || "", phone: r.phone || "",
+    };
+    cur.mins += minutesBetween(r.start_time, r.end_time, r.duration);
+    cur.sessions += 1;
+    agg.set(key, cur);
+  }
+  const rows = [...agg.values()].sort((a, b) => b.mins - a.mins);
 
   return rows.map((r) => {
     const hours = Math.round((Number(r.mins) / 60) * 10) / 10;
@@ -914,15 +1020,23 @@ function issueSkillAssessment(o) {
   // 該教練必須曾為此學員於該項目簽到（防任意評核）
   const bcols = db.prepare("PRAGMA table_info(bookings)").all().map((c) => c.name);
   const childExpr = bcols.includes("child_name") ? "NULLIF(b.child_name,'')" : "NULL";
-  const taught = db
+  const taughtRows = db
     .prepare(
-      `SELECT SUM(COALESCE(c.duration,60)) AS mins, COUNT(*) AS n, MAX(c.title) AS title
+      `SELECT c.duration AS duration, c.title AS title, cs.start_time AS start_time, cs.end_time AS end_time
          FROM bookings b JOIN classes c ON c.id = b.class_id JOIN users u ON u.id = b.user_id
+         LEFT JOIN class_schedules cs ON cs.id = b.schedule_id
         WHERE c.coach_id = ? AND b.user_id = ? AND b.status = 'attended'
           AND COALESCE(c.sport_slug, c.category, '') = ?
           AND COALESCE(${childExpr}, u.name) = ?`,
     )
-    .get(opts.coachId, userId, sport, studentName);
+    .all(opts.coachId, userId, sport, studentName);
+  const taught = taughtRows.length
+    ? {
+        mins: taughtRows.reduce((a, r) => a + minutesBetween(r.start_time, r.end_time, r.duration), 0),
+        n: taughtRows.length,
+        title: taughtRows[0].title,
+      }
+    : null;
   if (!taught || !Number(taught.n)) {
     return { ok: false, status: 403, error: "你未曾為此學員於此項目簽到，不能評核" };
   }
@@ -1020,8 +1134,8 @@ module.exports = {
   ensureSchema, issueForBooking, listForUser, summaryForUser, getByCode, createDemo,
   sportCode, levelFor, issuerEligibility, parseQualified, termProgressForUser, cleanClassTitle,
   syncAttendanceStatement, revokeAttendanceStatement, backfillAttendanceStatements,
-  certHash, sealCertificate, sealPending, CERT_SALT_VERSION,
+  certHash, sealCertificate, sealPending, CERT_SALT_VERSION, minutesBetween, classAvgMinutes,
   maskLicense, coachLicenseMasked, studentRefHash,
   ASSESS_DIMS, ASSESS_TAGS, assessmentMinHours, gradeFromScores,
-  assessmentCandidatesForCoach, issueSkillAssessment,
+  assessmentCandidatesForCoach, issueSkillAssessment, studentSummariesForUser,
 };

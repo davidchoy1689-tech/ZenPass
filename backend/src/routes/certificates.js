@@ -19,7 +19,8 @@ router.get("/my", authenticateToken, (req, res) => {
     const list = svc.listForUser(req.user.id);
     const summary = svc.summaryForUser(req.user.id);
     const terms = svc.termProgressForUser(req.user.id);
-    res.json({ success: true, certificates: list, summary, terms });
+    const students = svc.studentSummariesForUser(req.user.id);
+    res.json({ success: true, certificates: list, summary, terms, students });
   } catch (err) {
     console.error("取證書失敗:", err);
     res.status(500).json({ success: false, error: "無法取得證書" });

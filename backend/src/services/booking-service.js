@@ -658,6 +658,45 @@ function createBooking(req, options = {}) {
   // 👨‍👩‍👧 家長代報名（未成年人）
   const attendee = req.body.attendee || null;
   const attendeeType = attendee && attendee.type === "child" ? "child" : "self";
+  // 👨‍👩‍👧 家長代報名法律一致性（2026-10-27）：
+  // 未成年人報名必須有「學員姓名」＋「法定監護人姓名」＋「監護人同意」，
+  // 否則免責聲明等於由未成年人自行簽署，合約效力有瑕疵。
+  if (attendeeType === "child") {
+    const childName = String((attendee && attendee.childName) || "").trim();
+    const childAge = Number(attendee && attendee.childAge);
+    const guardianName = String(
+      (attendee && attendee.waiver && attendee.waiver.guardianName) || "",
+    ).trim();
+    const agreed = !!(attendee && attendee.waiver && attendee.waiver.agreed);
+    if (childName.length < 2) {
+      return {
+        status: 400,
+        body: { success: false, error: "請填寫學員（子女）全名，將用於證書印製", code: "CHILD_NAME_REQUIRED" },
+      };
+    }
+    if (!(childAge >= 3 && childAge <= 17)) {
+      return {
+        status: 400,
+        body: { success: false, error: "請填寫學員年齡（3–17 歲）", code: "CHILD_AGE_INVALID" },
+      };
+    }
+    if (guardianName.length < 2) {
+      return {
+        status: 400,
+        body: {
+          success: false,
+          error: "未成年人報名必須由家長／法定監護人代簽，請填寫監護人全名",
+          code: "GUARDIAN_NAME_REQUIRED",
+        },
+      };
+    }
+    if (!agreed) {
+      return {
+        status: 400,
+        body: { success: false, error: "請由監護人勾選確認免責聲明及風險條款", code: "GUARDIAN_CONSENT_REQUIRED" },
+      };
+    }
+  }
   let amount = req.body.amount;
   const promo_code = req.body.promo_code || req.body.promoCode;
   // credits override 只可以由伺服器內部（batch promo）傳入，唔可以信 req.body

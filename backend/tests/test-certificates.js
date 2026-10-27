@@ -28,10 +28,10 @@ function buildDb() {
       course_type TEXT DEFAULT 'single', total_sessions INTEGER DEFAULT 1,
       min_attendance_rate REAL DEFAULT 0.8
     );
-    CREATE TABLE class_schedules (id TEXT PRIMARY KEY, class_id TEXT, start_time TEXT);
+    CREATE TABLE class_schedules (id TEXT PRIMARY KEY, class_id TEXT, start_time TEXT, end_time TEXT);
     CREATE TABLE bookings (
       id TEXT PRIMARY KEY, user_id TEXT, class_id TEXT, schedule_id TEXT, status TEXT,
-      attendee_type TEXT DEFAULT 'self', child_name TEXT, group_size INTEGER DEFAULT 1
+      attendee_type TEXT DEFAULT 'self', child_name TEXT, child_age INTEGER, group_size INTEGER DEFAULT 1
     );
     CREATE TABLE coach_credentials (
       id TEXT PRIMARY KEY, user_id TEXT, license_type TEXT, license_no TEXT,
@@ -54,6 +54,12 @@ function buildDb() {
     `INSERT INTO classes (id,title,category,sport_slug,duration,coach_id,status,course_type,total_sessions)
      VALUES ('cls-one','芬蘭木柱體驗班','新興運動','molkky',120,'coach1','active','single',1)`,
   ).run();
+  // 90 分鐘班（class.duration 故意寫 120 → 證書時數應跟 schedule 14:00-15:30 = 1.5）
+  db.prepare(
+    `INSERT INTO classes (id,title,category,sport_slug,duration,coach_id,status,course_type,total_sessions)
+     VALUES ('cls-90','芬蘭木柱精修班','新興運動','molkky',120,'coach1','active','single',1)`,
+  ).run();
+
   // 冰壺班（教練未授權此項目）
   db.prepare(
     `INSERT INTO classes (id,title,category,sport_slug,duration,coach_id,status,course_type,total_sessions)
@@ -61,12 +67,18 @@ function buildDb() {
   ).run();
 
   for (let i = 1; i <= 12; i++) {
-    db.prepare("INSERT INTO class_schedules VALUES (?,?,?)").run("sch" + i, "cls-term", "2026-11-" + String(i).padStart(2, "0") + "T04:00:00.000Z");
+    db.prepare("INSERT INTO class_schedules VALUES (?,?,?,?)").run(
+      "sch" + i, "cls-term", "2026-11-" + String(i).padStart(2, "0") + "T04:00:00.000Z",
+      "2026-11-" + String(i).padStart(2, "0") + "T06:00:00.000Z");
     db.prepare("INSERT INTO bookings (id,user_id,class_id,schedule_id,status) VALUES (?,?,?,?,?)").run(
       "bk" + i, "u1", "cls-term", "sch" + i, i <= 9 ? "attended" : "confirmed",
     );
   }
-  db.prepare("INSERT INTO class_schedules VALUES ('sch-one','cls-one','2026-11-01T04:00:00.000Z')").run();
+  db.prepare("INSERT INTO class_schedules VALUES ('sch-one','cls-one','2026-11-01T04:00:00.000Z','2026-11-01T06:00:00.000Z')").run();
+  db.prepare("INSERT INTO class_schedules VALUES ('sch-90','cls-90','2026-11-05T06:00:00.000Z','2026-11-05T07:30:00.000Z')").run();
+  db.prepare("INSERT INTO bookings (id,user_id,class_id,schedule_id,status) VALUES ('bk-90','u1','cls-90','sch-90','attended')").run();
+  // 二代同堂：同一家長帳戶下嘅子女
+  db.prepare("INSERT INTO bookings (id,user_id,class_id,schedule_id,status,attendee_type,child_name,child_age) VALUES ('bk-kid','u1','cls-one','sch-one','attended','child','陳小麗',8)").run();
   db.prepare("INSERT INTO bookings (id,user_id,class_id,schedule_id,status) VALUES ('bk-one','u1','cls-one','sch-one','attended')").run();
 
   // 已核實教練，保單有效，授權 molkky
@@ -130,7 +142,15 @@ function buildDb() {
   ok(prog && prog.completed === true, "已達結業門檻標記 completed");
   const sum = svc.summaryForUser("u1");
   ok(sum.certs === 4, "證書總數正確（4 張：單堂 1 + 期制 session 2 + 結業 1）");
-  ok(sum.hours === 26, "累計時數 = 26（結業按全期 24 + 單堂 2，唔重複計算）");
+  ok(sum.hours === 29.5, "帳戶累計時數 = 29.5（本人 27.5 + 子女 2，唔重複計算）got " + sum.hours);
+
+  console.log("\n📋 4c. 👨‍👩‍👧 多學員時數分段（Portfolio 列印隔離基礎）");
+  const studs = svc.studentSummariesForUser("u1");
+  const sSelf = studs.find((x) => x.name === "陳大文");
+  const sKid = studs.find((x) => x.name === "陳小麗");
+  ok(!!sSelf && sSelf.hours === 27.5, "本人時數 = 27.5（期制結業 24 + 單堂 2 + 精修 1.5）got " + (sSelf && sSelf.hours));
+  ok(!!sKid && sKid.hours === 2, "子女時數獨立計算 = 2（唔會混入家長）");
+  ok(studs.length === 2, "回傳 2 位學員紀錄");
 
   console.log("\n📋 4b. 🔐 防偽存證雜湊（SHA-256）");
   const sealedRow = db.prepare("SELECT * FROM certificates WHERE booking_id='bk-one'").get();
@@ -167,7 +187,7 @@ function buildDb() {
   const cands = svc.assessmentCandidatesForCoach("coach1");
   const c1 = cands.find((x) => x.user_id === "u1" && x.sport === "molkky");
   ok(!!c1, "教練名下搵到學員 u1（molkky）");
-  ok(c1 && c1.hours === 22, "累計出席時數 = 22（期制 10 堂 + 單堂 1 堂，每堂 2 小時）");
+  ok(c1 && c1.hours === 23.5, "累計出席時數 = 23.5（期制 20 + 單堂 2 + 精修 1.5）got " + (c1 && c1.hours));
   ok(c1 && c1.graduated === true && c1.eligible === true, "已結業 → 可評核（即使未滿 30 小時）");
   const asBad = svc.issueSkillAssessment({ coachId: "coach1", userId: "u1", studentName: "陳大文", sport: "molkky",
     scores: { technical_score: 6, tactical_score: 4, teamwork_score: 4, sportsmanship_score: 4 } });
@@ -190,6 +210,13 @@ function buildDb() {
   const as3 = svc.issueSkillAssessment({ coachId: "coach1", userId: "u1", studentName: "李小明", sport: "molkky",
     scores: { technical_score: 4, tactical_score: 4, teamwork_score: 4, sportsmanship_score: 4 } });
   ok(as3.ok === false && as3.status === 403, "未教過此學員 → 拒絕評核");
+
+  console.log("\n📋 7. ⏱️ 證書時數按實際課堂時間（唔寫死 2.0）");
+  const c90 = svc.issueForBooking("bk-90");
+  ok(!!c90, "90 分鐘班證書已發");
+  ok(c90 && c90.hours === 1.5, "時數 = 1.5 小時（14:00–15:30，非 class.duration 120）got " + (c90 && c90.hours));
+  ok(svc.minutesBetween("2026-11-05T06:00:00.000Z", "2026-11-05T07:30:00.000Z", 60) === 90, "minutesBetween = 90");
+  ok(svc.minutesBetween("2026-11-05T07:30:00.000Z", "2026-11-05T06:00:00.000Z", 60) === 60, "時間倒轉 → 退回 fallback");
 
   console.log("\n📊 結果: " + pass + " ✅ 通過, " + fail + " ❌ 失敗\n");
   try { fs.unlinkSync(TMP); } catch (e) {}
