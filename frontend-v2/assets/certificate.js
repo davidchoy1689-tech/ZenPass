@@ -228,10 +228,9 @@
     ctx.strokeStyle = "rgba(201,162,39,.26)"; ctx.lineWidth = 1.1;
     roundRect(ctx, bx, by, bw, bh, 16); ctx.stroke();
 
-    const licenseTxt = d.coachLicense ? `（${d.coachLicense}）` : "";
     const rows = [
       [TXT.hoursZh, TXT.hoursEn, (Number(d.hours) || 0).toFixed(1) + " 小時 / hours"],
-      ["執教導師", "INSTRUCTOR", (d.coachStarred ? "星級導師認證 · " : "") + (d.coachName || "ZenPass 認可導師") + licenseTxt],
+      ["執教導師", "INSTRUCTOR", (d.coachStarred ? "星級導師認證 · " : "") + (d.coachName || "ZenPass 認可導師")],
       [TXT.dateZh, TXT.dateEn, d.dateStr || ""],
       ["簽發日期", "DATE OF ISSUE", d.issueDate || d.dateStr || ""],
     ];
@@ -277,11 +276,10 @@
         ["評定等級", (d.grade ? d.grade + " · " : "") + (d.gradeZh || "")],
         ["累計時數", (Number(d.hours) || 0).toFixed(1) + " 小時"],
         ["執教導師", (d.coachStarred ? "★ " : "") + (d.coachName || "ZenPass 認可導師")],
-        ["教練牌照", d.coachLicense || "—"],
         ["評定日期", d.dateStr || ""],
       ];
       right.forEach((r, i) => {
-        const y = by + 46 + i * 44;
+        const y = by + 52 + i * 52;
         ctx.fillStyle = MUTED; ctx.font = "500 12.5px " + F;
         ctx.fillText(r[0], midX + 26, y);
         ctx.fillStyle = CREAM; ctx.font = "600 14px " + F;
