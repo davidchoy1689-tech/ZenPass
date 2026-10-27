@@ -153,9 +153,13 @@ router.post("/companies/:id/topup", authenticateToken, (req, res) => {
     db.prepare("UPDATE corporate_companies SET credit_pool = credit_pool + ?, updated_at = datetime('now') WHERE id = ?")
       .run(credits, req.params.id);
     db.prepare(`
-      INSERT INTO audit_log (id, action, entity_type, entity_id, user_id, details, created_at)
-      VALUES (?, 'corporate.topup', 'corporate_company', ?, ?, ?, datetime('now'))
-    `).run(uuidv4(), req.params.id, req.user.id, JSON.stringify({ credits_added: credits, new_pool: company.credit_pool + credits }));
+      INSERT INTO audit_log (id, action_type, entity_type, entity_id, user_id, new_values, description, created_at)
+      VALUES (?, 'corporate.topup', 'corporate_company', ?, ?, ?, ?, datetime('now'))
+    `).run(
+      uuidv4(), req.params.id, req.user.id,
+      JSON.stringify({ credits_added: credits, new_pool: company.credit_pool + credits }),
+      `企業加值 ${credits} credits`,
+    );
 
     try {
       writeBlock({ entityType: "corporate_credit", entityId: req.params.id, data: { action: "topup", credits_added: credits, previous_pool: company.credit_pool, new_pool: company.credit_pool + credits, performed_by: req.user.id } });

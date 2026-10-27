@@ -45,3 +45,21 @@ if (!/sendNotification\("class\.vacancy"/.test(idxSrc)) {
   process.exit(1);
 }
 console.log("  ✅ 名額釋放用 class.vacancy 模板（唔會出「預約確認」錯誤標題）");
+
+// audit_log 欄位名（2026-10-27）：正確 schema 係 action_type / new_values / description
+// 曾經 penalty.js 用 action / details → 每次 no-show 都 SQLITE_ERROR，審計紀錄靜靜流失
+const _walk = (dir) => fs.readdirSync(dir, { withFileTypes: true }).flatMap((d) => {
+  const p = path.join(dir, d.name);
+  return d.isDirectory() ? _walk(p) : p.endsWith(".js") ? [p] : [];
+});
+const badAudit = _walk(path.join(__dirname, "..", "src")).filter((f) => {
+  const src = fs.readFileSync(f, "utf8");
+  return /INSERT INTO audit_log \([^)]*\baction\b[^)]*\)/i.test(src) ||
+    /INSERT INTO audit_log \([^)]*\bdetails\b[^)]*\)/i.test(src);
+});
+if (badAudit.length) {
+  console.error("  ❌ 以下檔案仍用舊 audit_log 欄位（action／details）：");
+  badAudit.forEach((f) => console.error("     - " + path.relative(path.join(__dirname, ".."), f)));
+  process.exit(1);
+}
+console.log("  ✅ audit_log 寫入一律用 action_type / new_values（唔會再靜靜失敗）");

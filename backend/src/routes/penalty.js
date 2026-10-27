@@ -65,8 +65,13 @@ function applyPenalty(userId, bookingId, penaltyCredits, reason, type = 'no_show
       ).run(penaltyId, bookingId, userId, type, 0, penaltyCredits,
         `首次違規豁免：${reason}`);
       db.prepare(
-        "INSERT INTO audit_log (id, action, entity_type, entity_id, user_id, details, created_at) VALUES (?, 'penalty.waived', 'booking', ?, ?, ?, datetime('now'))"
-      ).run(uuidv4(), bookingId, userId, JSON.stringify({ penaltyCredits, reason, waived: true, type }));
+        `INSERT INTO audit_log (id, action_type, entity_type, entity_id, user_id, new_values, description, created_at)
+         VALUES (?, 'penalty.waived', 'booking', ?, ?, ?, ?, datetime('now'))`
+      ).run(
+        uuidv4(), bookingId, userId,
+        JSON.stringify({ penaltyCredits, reason, waived: true, type }),
+        `首次違規豁免罰款：${reason}`,
+      );
 
       return { waived: true, penaltyId };
     }
@@ -136,9 +141,13 @@ function applyPenalty(userId, bookingId, penaltyCredits, reason, type = 'no_show
       ).run(uuidv4(), bookingId, userId, type, bc?.credits_cost || 0, penaltyCredits, reason);
     } catch(e) { console.error('[PENALTY] log error:', e.message); }
     db.prepare(`
-      INSERT INTO audit_log (id, action, entity_type, entity_id, user_id, details, created_at)
-      VALUES (?, ?, 'booking', ?, ?, ?, datetime('now'))
-    `).run(uuidv4(), 'penalty.apply', bookingId, userId, JSON.stringify({ penaltyCredits, reason, newCredits, bookingId }));
+      INSERT INTO audit_log (id, action_type, entity_type, entity_id, user_id, new_values, description, created_at)
+      VALUES (?, ?, 'booking', ?, ?, ?, ?, datetime('now'))
+    `).run(
+      uuidv4(), 'penalty.apply', bookingId, userId,
+      JSON.stringify({ penaltyCredits, reason, newCredits, bookingId }),
+      `扣罰 ${penaltyCredits} credits：${reason}`,
+    );
 
     return { waived: false, applied: true, penaltyCredits };
   } catch (err) {
