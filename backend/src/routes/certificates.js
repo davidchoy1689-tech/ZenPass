@@ -62,6 +62,7 @@ router.get("/verify/:code", (req, res) => {
         class_title: c.class_title,
         level: c.level,
         level_label: c.level_label,
+        cert_type: c.cert_type || "session",
         hours: c.hours,
         coach_name: c.coach_name,
         coach_starred: Number(c.coach_starred) || 0,

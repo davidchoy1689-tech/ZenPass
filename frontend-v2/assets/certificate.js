@@ -72,6 +72,35 @@
 
   window.zpMakeCertificate = async function (d) {
     d = d || {};
+    // 兩種版式：結業／單堂（completion）與出席證明（attendance，未達出席率門檻）
+    const isAttend = String(d.kind || "").toLowerCase() === "attendance";
+    const TXT = isAttend
+      ? {
+          titleEn: "ATTENDANCE STATEMENT",
+          titleZh: "出 席 證 明",
+          subZh: "出席紀錄 · Record of Attendance",
+          certifyZh: "茲 證 明",
+          certifyEn: "THIS IS TO CERTIFY THAT",
+          bodyZh: "已出席下列課程，紀錄如下",
+          bodyEn: "HAS ATTENDED THE FOLLOWING PROGRAMME AS RECORDED BELOW",
+          hoursZh: "出席時數",
+          hoursEn: "HOURS ATTENDED",
+          dateZh: "紀錄日期",
+          dateEn: "RECORD AS OF",
+        }
+      : {
+          titleEn: "CERTIFICATE OF COMPLETION",
+          titleZh: "修 業 證 書",
+          subZh: "出席及課程完成紀錄 · Record of Attendance and Completion",
+          certifyZh: "茲 證 明",
+          certifyEn: "THIS IS TO CERTIFY THAT",
+          bodyZh: "已完成下列課程，並達指定出席要求",
+          bodyEn: "HAS SATISFACTORILY ATTENDED AND COMPLETED THE FOLLOWING PROGRAMME",
+          hoursZh: "修讀時數",
+          hoursEn: "CONTACT HOURS",
+          dateZh: "完成日期",
+          dateEn: "DATE OF COMPLETION",
+        };
     const scale = Math.max(0.4, Math.min(Number(d.scale) || 1, 2));
     const cv = document.createElement("canvas");
     cv.width = Math.round(DPI300_W * scale);
@@ -109,16 +138,16 @@
     /* 標題 */
     ctx.fillStyle = CREAM;
     ctx.font = "400 33px " + SERIF;
-    letterspaced(ctx, "CERTIFICATE OF COMPLETION", LW / 2, 202, 6, "center");
+    letterspaced(ctx, TXT.titleEn, LW / 2, 202, 6, "center");
 
     ctx.fillStyle = GOLD_LIGHT;
     ctx.font = "500 27px " + F;
-    letterspaced(ctx, "修 業 證 書", LW / 2, 246, 3, "center");
+    letterspaced(ctx, TXT.titleZh, LW / 2, 246, 3, "center");
 
     ctx.fillStyle = MUTED;
     ctx.font = "400 15px " + F;
     ctx.textAlign = "center";
-    ctx.fillText("出席及課程完成紀錄 · Record of Attendance and Completion", LW / 2, 278);
+    ctx.fillText(TXT.subZh, LW / 2, 278);
     ctx.textAlign = "left";
 
     /* ZP 字標 */
@@ -146,9 +175,9 @@
     /* 茲證明 */
     ctx.textAlign = "center";
     ctx.fillStyle = MUTED; ctx.font = "400 19px " + F;
-    ctx.fillText("茲 證 明", LW / 2, 622);
+    ctx.fillText(TXT.certifyZh, LW / 2, 622);
     ctx.fillStyle = DIM; ctx.font = "400 11.5px " + SERIF;
-    letterspaced(ctx, "THIS IS TO CERTIFY THAT", LW / 2, 644, 2.2, "center");
+    letterspaced(ctx, TXT.certifyEn, LW / 2, 644, 2.2, "center");
 
     ctx.fillStyle = CREAM;
     const nameSize = fitText(ctx, String(d.studentName || ""), 800, 50, "600");
@@ -159,15 +188,21 @@
     ctx.beginPath(); ctx.moveTo(310, 734); ctx.lineTo(770, 734); ctx.stroke();
 
     ctx.fillStyle = MUTED; ctx.font = "400 17px " + F;
-    ctx.fillText("已完成下列課程，並達指定出席要求", LW / 2, 772);
+    ctx.fillText(TXT.bodyZh, LW / 2, 772);
     ctx.fillStyle = DIM; ctx.font = "400 11px " + SERIF;
-    letterspaced(ctx, "HAS SATISFACTORILY ATTENDED AND COMPLETED THE FOLLOWING PROGRAMME", LW / 2, 792, 1, "center");
+    letterspaced(ctx, TXT.bodyEn, LW / 2, 792, 1, "center");
 
     ctx.fillStyle = CREAM;
     const certTitle = cleanTitle(d.classTitle) || String(d.classTitle || "");
     const titleSize = fitText(ctx, certTitle, 820, 31, "600");
     ctx.font = "600 " + titleSize + "px " + F;
     ctx.fillText(certTitle, LW / 2, 836);
+
+    // 出席證明：加一行「已出席 X/Y 堂」明細
+    if (d.detail) {
+      ctx.fillStyle = GOLD_LIGHT; ctx.font = "500 14px " + F;
+      ctx.fillText(String(d.detail), LW / 2, 868);
+    }
     ctx.textAlign = "left";
 
     /* 資料欄（中英對照） */
@@ -178,9 +213,9 @@
     roundRect(ctx, bx, by, bw, bh, 16); ctx.stroke();
 
     const rows = [
-      ["修讀時數", "CONTACT HOURS", (Number(d.hours) || 0).toFixed(1) + " 小時 / hours"],
+      [TXT.hoursZh, TXT.hoursEn, (Number(d.hours) || 0).toFixed(1) + " 小時 / hours"],
       ["執教導師", "INSTRUCTOR", (d.coachStarred ? "星級導師認證 · " : "") + (d.coachName || "ZenPass 認可導師")],
-      ["完成日期", "DATE OF COMPLETION", d.dateStr || ""],
+      [TXT.dateZh, TXT.dateEn, d.dateStr || ""],
       ["簽發日期", "DATE OF ISSUE", d.issueDate || d.dateStr || ""],
     ];
     rows.forEach((r, i) => {
@@ -234,16 +269,27 @@
     ctx.fillStyle = DIM; ctx.font = "400 10.5px " + F;
     ctx.fillText("Issued by ZenPass (Hong Kong Leisure and Fitness Company Limited). Verify at zenpass.hk/verify.html.", 96, 1382);
     ctx.fillStyle = MUTED; ctx.font = "400 12px " + F;
-    ctx.fillText("本證書僅證明出席及課程完成紀錄，並不構成任何專業資格或法定認可。", 96, 1408);
+    ctx.fillText(
+      isAttend
+        ? "本證明僅紀錄出席情況，並不構成課程完成、專業資格或法定認可。"
+        : "本證書僅證明出席及課程完成紀錄，並不構成任何專業資格或法定認可。",
+      96, 1408,
+    );
     ctx.fillStyle = DIM; ctx.font = "400 10.5px " + F;
-    ctx.fillText("It records attendance and completion only and does not confer any professional or statutory qualification.", 96, 1428);
+    ctx.fillText(
+      isAttend
+        ? "It records attendance only and does not certify completion or confer any professional or statutory qualification."
+        : "It records attendance and completion only and does not confer any professional or statutory qualification.",
+      96, 1428,
+    );
 
     /* 底部金線 */
     ctx.fillStyle = GOLD;
     ctx.fillRect(38, LH - 42, LW - 76, 4.6);
 
     const dataUrl = cv.toDataURL("image/jpeg", 0.95);
-    const filename = "ZenPass-Certificate-" + (d.serial || Date.now()) + ".jpg";
+    const filename =
+      "ZenPass-" + (isAttend ? "Attendance" : "Certificate") + "-" + (d.serial || Date.now()) + ".jpg";
     let blob = null;
     try {
       blob = await new Promise((res) => cv.toBlob((b) => res(b), "image/jpeg", 0.95));
