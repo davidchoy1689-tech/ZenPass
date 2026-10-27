@@ -37,7 +37,10 @@
   <script>
     const $ = (id) => document.getElementById(id);
     const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-    const code = (new URLSearchParams(location.search).get("cert") || "").trim();
+    const _qs = new URLSearchParams(location.search);
+    const code = (_qs.get("cert") || "").trim();
+    // QR 內嵌嘅存證雜湊前綴（防翻拍／改圖：與伺服器紀錄不符即警告）
+    const qrHash = (_qs.get("h") || "").trim().toLowerCase();
     const day = (t) => {
       const d = new Date(String(t || "").replace(" ", "T") + (/Z$/.test(String(t || "")) ? "" : "Z"));
       return isNaN(d.getTime()) ? String(t || "") : d.toLocaleDateString("zh-HK", { year: "numeric", month: "2-digit", day: "2-digit" });
@@ -97,6 +100,11 @@
               <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;line-height:1.5;word-break:break-all;color:#0f172a;background:#f1f5f9;border-radius:8px;padding:7px 8px;text-align:left">${esc(c.verify_hash)}</div>
             </div>` : ""}
           </div>
+          ${qrHash && c.verify_hash && !String(c.verify_hash).toLowerCase().startsWith(qrHash)
+            ? `<div style="margin-top:10px;background:#fef2f2;color:#b91c1c;border-radius:10px;padding:9px 12px;font-size:12px;font-weight:800">⚠️ QR 與伺服器存證不符 — 此證書可能為翻拍／改圖，請向 ZenPass 查詢</div>`
+            : qrHash && c.verify_hash
+            ? `<div style="margin-top:10px;color:#047857;font-size:11.5px;font-weight:800">🔐 QR 內嵌雜湊與伺服器存證一致</div>`
+            : ""}
           <div class="vf-badge">✔ 已核實 · ${esc(d.issuer || "ZenPass")}${d.sealed ? " · 🔐 存證相符" : ""}</div>
         </div>`;
       } catch (e) {
