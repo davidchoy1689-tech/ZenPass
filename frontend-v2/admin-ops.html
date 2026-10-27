@@ -48,6 +48,7 @@
         <button data-t="pending">⏳ 待開通新班</button>
         <button data-t="refund">💸 待退款</button>
         <button data-t="cancel">⚠️ 取消課堂</button>
+        <button data-t="alert">🚨 天氣警報</button>
       </div>
 
       <div id="paneFin">
@@ -60,6 +61,17 @@
         <div class="card"><div class="body">
           <div class="muted" style="font-size:12px;margin-bottom:8px">學員自行提交嘅 FPS／PayMe 付款，核實後即轉「已付款」並生效。收據縮圖可撳大。</div>
           <div id="payList"></div>
+        </div></div>
+      </div>
+
+      <div id="paneAlert" hidden>
+        <div class="card"><div class="body">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+            <b>🚨 極端天氣警報</b>
+            <button class="btn btn-secondary" id="wxScan" style="min-height:32px;padding:0 10px;font-size:12.5px">🔄 重新讀取天文台</button>
+          </div>
+          <div class="muted" style="font-size:12px;margin:6px 0 10px">系統每 10 分鐘自動檢查天文台警告。警告生效或除下時會在此發出「需要立即跟進」訊號，最終取消與否由你決定。</div>
+          <div id="alertList"></div>
         </div></div>
       </div>
 
@@ -182,7 +194,7 @@
       $("tabs").onclick = (e) => {
         const b = e.target.closest("button"); if (!b) return;
         [...$("tabs").children].forEach((x) => x.classList.toggle("on", x === b));
-        ["fin", "pay", "leads", "ops", "settle", "cred", "agr", "pending", "refund", "cancel"].forEach((k) => ($("pane" + k[0].toUpperCase() + k.slice(1))).hidden = b.dataset.t !== k);
+        ["fin", "pay", "leads", "ops", "settle", "cred", "agr", "pending", "refund", "cancel", "alert"].forEach((k) => ($("pane" + k[0].toUpperCase() + k.slice(1))).hidden = b.dataset.t !== k);
       };
       $("wxGo").onclick = weatherCancel;
       $("bsGo").onclick = batchSettle;
@@ -200,6 +212,7 @@
       await loadPendingClasses();
       await loadRefunds();
       await loadUpcoming();
+      await loadAlerts();
     }
 
     async function loadFinance() {
@@ -402,6 +415,66 @@
       if (r === "coach") return "教練";
       if (String(r || "").startsWith("partner")) return "場地";
       return r || "—";
+    }
+
+    /* ===== 🚨 天氣警報 ===== */
+    async function loadAlerts() {
+      const box = $("alertList"); if (!box) return;
+      const r = await api.get("/admin/ops/alerts?status=open");
+      if (!r.ok) { box.innerHTML = `<div class="muted">${esc((r.data && r.data.error) || "讀取失敗")}</div>`; return; }
+      const rows = (r.data && r.data.alerts) || [];
+      if (!rows.length) {
+        box.innerHTML = '<div class="muted" style="font-size:12.5px">✅ 現時沒有待處理的天氣警報</div>';
+        const tabBtn = [...$("tabs").children].find((x) => x.dataset.t === "alert");
+        if (tabBtn) tabBtn.textContent = "🚨 天氣警報";
+        const sc0 = $("wxScan");
+        if (sc0) sc0.onclick = async () => {
+          sc0.disabled = true; sc0.textContent = "⏳ 讀取中…";
+          const rr = await api.post("/admin/ops/weather-scan", {});
+          sc0.disabled = false; sc0.textContent = "🔄 重新讀取天文台";
+          if (rr.ok) { toast(rr.data && rr.data.created ? "⚠️ 已發出新警報" : "已更新（無新警報）"); loadAlerts(); }
+          else alert((rr.data && rr.data.error) || "讀取失敗");
+        };
+        return;
+      }
+      const tabBtn0 = [...$("tabs").children].find((x) => x.dataset.t === "alert");
+      if (tabBtn0) tabBtn0.textContent = "🚨 天氣警報 (" + rows.length + ")";
+      const fmt = (t) => String(t || "").replace("T", " ").slice(0, 16);
+      box.innerHTML = rows.map((a) => {
+        const urgent = a.type === "weather_signal";
+        return `<div style="border:1px solid ${urgent ? "#fecaca" : "#bfdbfe"};background:${urgent ? "#fef2f2" : "#eff6ff"};border-radius:12px;padding:11px 12px;margin-bottom:10px">
+          <div style="font-size:13.5px;font-weight:800;color:${urgent ? "#b91c1c" : "#1d4ed8"}">${esc(a.title || "")}</div>
+          <div style="font-size:12.5px;line-height:1.75;margin-top:6px;white-space:pre-line;color:#334155">${esc(a.message || "")}</div>
+          <div class="muted" style="font-size:11px;margin-top:6px">發出 ${esc(fmt(a.created_at))}</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:9px">
+            <button class="btn btn-primary" style="min-height:34px;padding:0 10px;font-size:12.5px;background:#dc2626;border-color:#dc2626" data-dec="cancel" data-id="${esc(a.id)}">⚠️ 去處理取消</button>
+            <button class="btn btn-secondary" style="min-height:34px;padding:0 10px;font-size:12.5px" data-dec="continue" data-id="${esc(a.id)}">✅ 照常上課</button>
+            <button class="btn btn-secondary" style="min-height:34px;padding:0 10px;font-size:12.5px" data-dec="ack" data-id="${esc(a.id)}">已了解</button>
+          </div>
+        </div>`;
+      }).join("");
+      box.querySelectorAll("[data-dec]").forEach((b) => (b.onclick = async () => {
+        const dec = b.dataset.dec;
+        const note = dec === "ack" ? "" : (prompt(dec === "cancel" ? "備註（例如：已通知教練）" : "照常上課原因（例如：場地仍開放）") || "");
+        const rr = await api.post("/admin/ops/alerts/" + encodeURIComponent(b.dataset.id) + "/handle", { decision: dec, note });
+        if (!rr.ok) { alert((rr.data && rr.data.error) || "處理失敗"); return; }
+        if (dec === "cancel") {
+          const tabBtn = [...$("tabs").children].find((x) => x.dataset.t === "cancel");
+          if (tabBtn) tabBtn.click();
+          toast("已記錄決定，請喺「取消課堂」選擇受影響課堂");
+        } else {
+          toast(dec === "continue" ? "✅ 已記錄：照常上課" : "已標記為已了解");
+        }
+        loadAlerts();
+      }));
+      const sc = $("wxScan");
+      if (sc) sc.onclick = async () => {
+        sc.disabled = true; sc.textContent = "⏳ 讀取中…";
+        const rr = await api.post("/admin/ops/weather-scan", {});
+        sc.disabled = false; sc.textContent = "🔄 重新讀取天文台";
+        if (rr.ok) { toast(rr.data && rr.data.created ? "⚠️ 已發出新警報" : "已更新（無新警報）"); loadAlerts(); }
+        else alert((rr.data && rr.data.error) || "讀取失敗");
+      };
     }
 
     /* ===== ⚠️ 人手審查取消課堂（兩段式防呆） ===== */
@@ -645,6 +718,6 @@
       toast("📥 已匯出 " + rows.length + " 筆");
     }
   </script>
-  <script src="assets/footer.js?v=4" defer></script>
+  <script src="assets/footer.js?v=5" defer></script>
 </body>
 </html>

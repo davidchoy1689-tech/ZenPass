@@ -75,6 +75,7 @@
             '<li><a class="zp-link" href="/wallet.html">錢包／退款</a></li>' +
             '<li><a class="zp-link" href="/privacy.html">私隱政策</a></li>' +
             '<li><a class="zp-link" href="/terms.html">服務條款</a></li>' +
+            '<li><a class="zp-link" href="/weather-policy.html">極端天氣條款</a></li>' +
             '<li><a class="zp-link" href="/about.html">關於我們</a></li>' +
           '</ul>' +
         '</div>' +

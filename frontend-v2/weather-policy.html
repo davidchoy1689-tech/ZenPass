@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#064E3B" />
+  <title>極端天氣條款 · ZenPass 禪流</title>
+  <meta name="description" content="ZenPass 極端天氣（八號風球／黑色暴雨）課堂安排條款，參考香港康樂及文化事務署安排。" />
+  <link rel="stylesheet" href="assets/v2.css?v=27" />
+  <link rel="stylesheet" href="assets/ui-v3.css?v=5" />
+  <style>
+    .wp-hero{background:linear-gradient(135deg,#0B132B,#064E3B);color:#fff;border-radius:18px;padding:18px;margin-bottom:12px}
+    .wp-hero h1{font-size:19px;margin:0 0 6px}
+    .wp-hero p{font-size:12.5px;color:#CBD5E1;line-height:1.7;margin:0}
+    .wp-badge{display:inline-block;margin-top:10px;border-radius:999px;padding:6px 12px;font-size:12px;font-weight:800}
+    .wp-ok{background:#ecfdf5;color:#047857}
+    .wp-alert{background:#fef2f2;color:#b91c1c}
+    .wp-wait{background:#fffbeb;color:#b45309}
+    .wp-sec{padding:12px 0;border-bottom:1px solid var(--border)}
+    .wp-sec:last-child{border-bottom:0}
+    .wp-sec h3{font-size:13.5px;margin:0 0 6px;color:#0f766e}
+    .wp-sec p{font-size:13px;line-height:1.85;margin:0;white-space:pre-line;color:var(--text)}
+    .wp-tbl{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:8px}
+    .wp-tbl th{background:#f1f5f9;text-align:left;padding:7px 8px;color:#0f766e;font-size:11.5px}
+    .wp-tbl td{border-top:1px solid #e2e8f0;padding:7px 8px;line-height:1.6}
+    .wp-note{font-size:11.5px;color:var(--text-muted);line-height:1.8;margin:0;padding-left:16px}
+  </style>
+</head>
+<body>
+  <div class="topbar"><a class="back" href="my.html">‹</a><div class="title">極端天氣條款</div></div>
+  <div class="wrap">
+    <div class="wp-hero">
+      <h1>🌧️ 極端天氣安排及條款</h1>
+      <p>本條款說明八號或以上熱帶氣旋警告／黑色暴雨警告期間的課堂安排、通知方式及補償選擇。安排參考香港康樂及文化事務署（LCSD）的極端天氣安排。</p>
+      <div id="wxState"><span class="wp-badge wp-wait">🔍 正在讀取天文台即時警告…</span></div>
+    </div>
+
+    <div class="card" style="margin-bottom:12px"><div class="body">
+      <div style="font-size:13.5px;font-weight:800;margin-bottom:8px">📋 快速對照（按警告除下時間）</div>
+      <table class="wp-tbl" id="wpTable">
+        <thead><tr><th>情況</th><th>安排</th></tr></thead>
+        <tbody><tr><td colspan="2" class="muted">載入中…</td></tr></tbody>
+      </table>
+    </div></div>
+
+    <div class="card" style="margin-bottom:12px"><div class="body" id="wpClauses">
+      <div class="muted center" style="padding:18px 0">載入中…</div>
+    </div></div>
+
+    <div class="card" style="margin-bottom:12px"><div class="body">
+      <div style="font-size:13px;font-weight:800;margin-bottom:6px">備註</div>
+      <ul class="wp-note" id="wpNotes"></ul>
+      <div class="muted" id="wpMeta" style="font-size:11px;margin-top:10px"></div>
+    </div></div>
+
+    <a class="btn btn-secondary btn-block" href="my-bookings.html" style="text-decoration:none;margin-bottom:10px">🎫 查看我的預約／登記退款</a>
+    <div class="spacer"></div>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+    (async () => {
+      try {
+        const r = await fetch("/api/platform/weather-policy");
+        const d = await r.json();
+        const p = (d && d.policy) || {};
+        const cut = p.cutoffs || {};
+        const rows = [
+          ["八號或以上熱帶氣旋警告／黑色暴雨警告生效期間", "所有課堂取消"],
+          [`警告於當日 <b>${esc(cut.day || "10:00")}</b> 前取消或除下`, `<b>${esc(cut.dayResume || "12:00")}</b> 或之後開始的課堂照常舉行`],
+          [`警告於當日 <b>${esc(cut.evening || "15:00")}</b> 前取消或除下`, `<b>${esc(cut.eveningResume || "18:00")}</b> 或之後開始的課堂照常舉行`],
+          [`警告於當日 <b>${esc(cut.evening || "15:00")}</b> 後才取消或除下`, "當日餘下所有課堂取消"],
+        ];
+        $("wpTable").querySelector("tbody").innerHTML = rows.map(([a, b]) => `<tr><td>${a}</td><td>${b}</td></tr>`).join("");
+
+        $("wpClauses").innerHTML = (p.clauses || []).map((c) => `
+          <div class="wp-sec"><h3>${esc(c.h)}</h3><p>${esc(c.p)}</p></div>`).join("") +
+          (p.compensation ? `<div class="wp-sec"><h3>十、補償選擇</h3><p>${esc(p.compensation)}</p></div>` : "");
+
+        $("wpNotes").innerHTML = (p.notes || []).map((n) => `<li>${esc(n)}</li>`).join("");
+        $("wpMeta").textContent = `${p.source || ""}　·　版本 ${p.version || ""}`;
+      } catch (e) {
+        $("wpClauses").innerHTML = '<div class="muted">條款載入失敗，請稍後再試或 WhatsApp 9033 5538。</div>';
+      }
+
+      try {
+        const w = await (await fetch("/api/platform/weather-warnings")).json();
+        const el = $("wxState");
+        if (w && w.ok === false) {
+          el.innerHTML = '<span class="wp-badge wp-wait">⚠️ 暫未能讀取天文台警告，請以天文台網站為準</span>';
+        } else if (w && w.activity_suspended) {
+          const names = (w.warnings || []).map((x) => x.name).filter(Boolean).join("、");
+          el.innerHTML = `<span class="wp-badge wp-alert">⚠️ 天文台現時生效：${esc(names || "八號或以上／黑色暴雨")} — 課堂安排請留意平台通知</span>`;
+        } else {
+          el.innerHTML = '<span class="wp-badge wp-ok">✅ 現時無八號風球／黑色暴雨警告</span>';
+        }
+      } catch (e) {}
+    })();
+  </script>
+  <script src="assets/footer.js?v=5" defer></script>
+</body>
+</html>

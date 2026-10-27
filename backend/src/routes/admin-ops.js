@@ -227,6 +227,48 @@ router.post("/weather-cancel", authenticateToken, requireAdmin, requireOpsRole, 
   }
 });
 
+// ===== 🚨 極端天氣警報（系統報警，管理員決定）=====
+// GET  /api/admin/ops/alerts?status=open
+// POST /api/admin/ops/alerts/:id/handle   { decision: cancel|continue|ack, note }
+// POST /api/admin/ops/weather-scan        即時重新讀天文台
+router.get("/alerts", authenticateToken, requireAdmin, requireOpsRole, (req, res) => {
+  try {
+    const watch = require("../services/weather-watch");
+    const status = ["open", "handled", "all"].includes(req.query.status) ? req.query.status : "open";
+    res.json({ success: true, alerts: watch.listAlerts(status, 50) });
+  } catch (err) {
+    console.error("[OPS] alerts error:", err.message);
+    res.status(500).json({ success: false, error: "讀取警報失敗" });
+  }
+});
+
+router.post("/alerts/:id/handle", authenticateToken, requireAdmin, requireOpsRole, (req, res) => {
+  try {
+    const watch = require("../services/weather-watch");
+    const out = watch.handleAlert(req.params.id, {
+      decision: (req.body || {}).decision,
+      note: (req.body || {}).note,
+      userId: req.user.id,
+    });
+    if (!out.ok) return res.status(out.status || 400).json({ success: false, error: out.error });
+    res.json({ success: true, ...out });
+  } catch (err) {
+    console.error("[OPS] alert handle error:", err.message);
+    res.status(500).json({ success: false, error: "處理警報失敗" });
+  }
+});
+
+router.post("/weather-scan", authenticateToken, requireAdmin, requireOpsRole, async (req, res) => {
+  try {
+    const watch = require("../services/weather-watch");
+    const out = await watch.poll({ force: true });
+    res.json({ success: true, ...out });
+  } catch (err) {
+    console.error("[OPS] weather scan error:", err.message);
+    res.status(500).json({ success: false, error: "讀取天文台失敗" });
+  }
+});
+
 // ===== ⚠️ 人手審查取消課堂（兩段式防呆，2026-10-28）=====
 // GET  /api/admin/ops/upcoming-sessions?days=14   待取消課堂清單（含影響評估）
 // POST /api/admin/ops/schedules/:id/manual-cancel 人手取消單一時段
