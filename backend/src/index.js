@@ -318,6 +318,7 @@ app.use("/api/ratings", require("./routes/ratings"));
 app.use("/api/wishlist", require("./routes/wishlist"));
 app.use("/api/topup", require("./routes/topup"));
 app.use("/api/nps", require("./routes/nps"));
+app.use("/api/platform", require("./routes/platform"));
 
 // ===== 健康檢查 =====
 const { ok } = require("./services/response");

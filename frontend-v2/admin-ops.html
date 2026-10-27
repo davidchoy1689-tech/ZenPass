@@ -440,6 +440,16 @@
             執教：${esc(row.coach_name || "待定")}<br>
             影響：<b>${Number(row.booked) || 0} 人</b>（已付款 <b>${Number(row.paid_count) || 0} 人</b>，涉款 <b>${hkd(row.paid_amount || 0)}</b>）
           </div>
+          <div id="cwWeather" style="margin-top:10px;font-size:12px;color:#475569">🔍 正在讀取天文台警告…</div>
+          <details style="margin-top:8px;font-size:12px;color:#475569">
+            <summary style="cursor:pointer;font-weight:700">📋 極端天氣判斷參考（康文署安排）</summary>
+            <ul style="margin:8px 0 0 18px;padding:0;line-height:1.7">
+              <li>八號或以上／黑色暴雨生效期間 → 課堂取消</li>
+              <li>警告於當日 <b>10:00 前</b>除下 → <b>12:00 或之後</b>開始的課堂照常</li>
+              <li>警告於當日 <b>15:00 前</b>除下 → <b>18:00 或之後</b>開始的課堂照常</li>
+              <li>警告於 <b>15:00 後</b>才除下 → 當日餘下課堂取消</li>
+            </ul>
+          </details>
           <div style="margin:12px 0 6px;font-size:13px;font-weight:700">取消原因</div>
           <div id="cwReason" style="display:flex;flex-direction:column;gap:6px">
             <label style="font-size:13px"><input type="radio" name="cwType" value="weather" checked> 🌧️ 天氣原因（八號風球／黑雨）</label>
@@ -460,6 +470,25 @@
       </div>`;
       document.body.appendChild(ov);
       const close = () => ov.remove();
+      (async () => {
+        const el = ov.querySelector("#cwWeather");
+        try {
+          const wr = await api.get("/platform/weather-warnings");
+          const w = (wr && wr.data) || {};
+          if (w.activity_suspended) {
+            const names = (w.warnings || []).map((x) => x.name).filter(Boolean).join("、") || "八號或以上／黑色暴雨";
+            el.innerHTML = `<span style="display:inline-block;background:#fef2f2;color:#b91c1c;border-radius:8px;padding:6px 9px;font-weight:800">⚠️ 天文台現時生效：${esc(names)}　→ 建議取消</span>`;
+            const wRadio = ov.querySelector('input[name="cwType"][value="weather"]');
+            if (wRadio) wRadio.checked = true;
+          } else if (w.ok === false) {
+            el.innerHTML = `<span style="color:#b45309">⚠️ 未能讀取天文台警告，請人手核對天文台網站</span>`;
+          } else {
+            el.innerHTML = `<span style="display:inline-block;background:#ecfdf5;color:#047857;border-radius:8px;padding:6px 9px;font-weight:800">✅ 現時無八號風球／黑色暴雨警告</span>`;
+          }
+        } catch (e) {
+          el.innerHTML = `<span style="color:#b45309">未能讀取天文台警告，請人手核對</span>`;
+        }
+      })();
       ov.querySelector("#cwClose").onclick = close;
       ov.querySelector("#cwConfirm").onchange = (e) => {
         ov.querySelector("#cwGo").disabled = !e.target.checked;
