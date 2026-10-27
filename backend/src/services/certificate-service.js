@@ -35,7 +35,8 @@ function ensureSchema(db) {
       coach_starred INTEGER DEFAULT 0,
       issued_at TEXT DEFAULT (datetime('now')),
       revoked INTEGER DEFAULT 0,
-      revoked_reason TEXT
+      revoked_reason TEXT,
+      verify_hash TEXT
     );
     CREATE INDEX IF NOT EXISTS idx_certificates_user ON certificates(user_id);
     CREATE INDEX IF NOT EXISTS idx_certificates_code ON certificates(code);
@@ -49,12 +50,56 @@ function ensureSchema(db) {
     if (!cols.includes("cert_type")) {
       db.exec("ALTER TABLE certificates ADD COLUMN cert_type TEXT DEFAULT 'session'");
     }
+    // 防偽存證雜湊（SHA-256）：一經簽發即封存，改任何欄位都會對唔上
+    if (!cols.includes("verify_hash")) {
+      db.exec("ALTER TABLE certificates ADD COLUMN verify_hash TEXT");
+    }
   } catch (e) {}
   _schemaReady.add(db);
+  try {
+    sealPending(db);
+  } catch (e) {}
   // 期制班「出席證書」補發（只做一次；已結業或已存在者自動略過）
   try {
     backfillAttendanceStatements(db);
   } catch (e) {}
+}
+
+/* ============ 🔐 防偽存證雜湊 ============ */
+
+// 鹽值：可用環境變數覆寫；預設固定值確保歷史證書雜湊穩定可驗
+const CERT_SALT = process.env.CERT_HASH_SALT || "zenpass-cert-v1-2026";
+
+/** 證書存證雜湊：cert_no | 學員姓名 | 教練 | 簽發時間 */
+function certHash(c) {
+  const payload = [
+    String(c.code || ""),
+    String(c.student_name || ""),
+    String(c.coach_id || ""),
+    String(c.issued_at || ""),
+  ].join("|");
+  return crypto.createHash("sha256").update(payload + "|" + CERT_SALT).digest("hex");
+}
+
+/** 為單張證書封存雜湊（已封存則不動，保證可重複驗證） */
+function sealCertificate(db, id) {
+  const row = db.prepare("SELECT * FROM certificates WHERE id = ?").get(id);
+  if (!row) return null;
+  if (row.verify_hash) return row.verify_hash;
+  const h = certHash(row);
+  db.prepare("UPDATE certificates SET verify_hash = ? WHERE id = ? AND COALESCE(verify_hash,'') = ''").run(h, id);
+  return h;
+}
+
+/** 補封存：舊證書未有雜湊者一次過補上 */
+function sealPending(db) {
+  const rows = db
+    .prepare("SELECT id FROM certificates WHERE COALESCE(verify_hash,'') = '' LIMIT 5000")
+    .all();
+  for (const r of rows) {
+    try { sealCertificate(db, r.id); } catch (e) {}
+  }
+  return rows.length;
 }
 
 /** 運動 slug → 證書序號用的英文代碼 */
@@ -203,6 +248,8 @@ function issueForBooking(bookingId) {
     return db.prepare("SELECT * FROM certificates WHERE booking_id = ?").get(bookingId) || null;
   }
 
+  try { sealCertificate(db, cert.id); } catch (e) {}
+
   // 🎓 期制課程：出席率達門檻 → 自動發結業證書（每學員每班一張）
   try {
     maybeIssueGraduation(db, row);
@@ -273,17 +320,19 @@ function maybeIssueGraduation(db, row) {
   const studentName =
     row.attendee_type === "child" && row.child_name ? row.child_name : row.user_name || "學員";
 
+  const gradId = crypto.randomUUID();
   db.prepare(
     `INSERT INTO certificates
       (id, code, booking_id, user_id, class_id, schedule_id, student_name, class_title,
        sport, level, level_label, hours, coach_id, coach_name, coach_starred, issued_at, cert_type)
      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?, datetime('now'), 'graduation')`,
   ).run(
-    crypto.randomUUID(), code, key, row.user_id, row.class_id, row.schedule_id,
+    gradId, code, key, row.user_id, row.class_id, row.schedule_id,
     studentName, cleanClassTitle(cls.title || ""), sportKey, 2,
     `Level 2 · 中階進階者（全期 ${total} 堂結業）`, hours,
     cls.coach_id, coach.name || "", starred,
   );
+  try { sealCertificate(db, gradId); } catch (e) {}
 
   try {
     db.prepare("UPDATE bookings SET term_completed = 1 WHERE user_id = ? AND class_id = ?").run(
@@ -397,12 +446,13 @@ function syncAttendanceStatement(db, classId, userId) {
       `UPDATE certificates
           SET student_name = ?, class_title = ?, sport = ?, level_label = ?, hours = ?,
               coach_id = ?, coach_name = ?, coach_starred = ?, issued_at = datetime('now'),
-              revoked = 0, revoked_reason = NULL
+              revoked = 0, revoked_reason = NULL, verify_hash = NULL
         WHERE id = ?`,
     ).run(
       studentName, cleanClassTitle(cls.title || ""), sportKey, label, hours,
       cls.coach_id, coach.name || "", starred, existing.id,
     );
+    try { sealCertificate(db, existing.id); } catch (e) {}
     return db.prepare("SELECT * FROM certificates WHERE id = ?").get(existing.id);
   }
 
@@ -419,6 +469,7 @@ function syncAttendanceStatement(db, classId, userId) {
     id, code, key, userId, classId, null, studentName, cleanClassTitle(cls.title || ""),
     sportKey, 1, label, hours, cls.coach_id, coach.name || "", starred,
   );
+  try { sealCertificate(db, id); } catch (e) {}
   return db.prepare("SELECT * FROM certificates WHERE id = ?").get(id);
 }
 
@@ -658,6 +709,7 @@ function createDemo(opts) {
     o.coachName || "Sam Lee",
     o.coachStarred === false ? 0 : 1,
   );
+  try { sealCertificate(db, id); } catch (e) {}
   return db.prepare("SELECT * FROM certificates WHERE id = ?").get(id);
 }
 
@@ -665,4 +717,5 @@ module.exports = {
   ensureSchema, issueForBooking, listForUser, summaryForUser, getByCode, createDemo,
   sportCode, levelFor, issuerEligibility, parseQualified, termProgressForUser, cleanClassTitle,
   syncAttendanceStatement, revokeAttendanceStatement, backfillAttendanceStatements,
+  certHash, sealCertificate, sealPending,
 };

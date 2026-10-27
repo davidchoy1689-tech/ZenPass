@@ -132,6 +132,15 @@ function buildDb() {
   ok(sum.certs === 4, "證書總數正確（4 張：單堂 1 + 期制 session 2 + 結業 1）");
   ok(sum.hours === 26, "累計時數 = 26（結業按全期 24 + 單堂 2，唔重複計算）");
 
+  console.log("\n📋 4b. 🔐 防偽存證雜湊（SHA-256）");
+  const sealedRow = db.prepare("SELECT * FROM certificates WHERE booking_id='bk-one'").get();
+  ok(/^[a-f0-9]{64}$/.test(String(sealedRow.verify_hash || "")), "單堂證書已封存 SHA-256 雜湊");
+  ok(svc.certHash(sealedRow) === sealedRow.verify_hash, "重算雜湊 = 資料庫存證（可驗證）");
+  db.prepare("UPDATE certificates SET student_name='陳大文（改）' WHERE id=?").run(sealedRow.id);
+  const tampered = db.prepare("SELECT * FROM certificates WHERE id=?").get(sealedRow.id);
+  ok(svc.certHash(tampered) !== tampered.verify_hash, "改動學員姓名 → 雜湊對唔上（竄改可偵測）");
+  db.prepare("UPDATE certificates SET student_name='陳大文' WHERE id=?").run(sealedRow.id);
+
   console.log("\n📋 5. 發證資格閘門");
   const okMolkky = svc.issuerEligibility("coach1", "molkky", "芬蘭木柱體驗班");
   ok(okMolkky.ok === true, "已核實＋授權 molkky → 准予發證");

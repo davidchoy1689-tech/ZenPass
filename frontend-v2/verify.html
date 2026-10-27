@@ -72,8 +72,9 @@
             <div class="vf-row"><span>執教教練</span><b>${c.coach_starred ? "星級教練 · " : ""}${esc(c.coach_name || "—")}</b></div>
             <div class="vf-row"><span>${isAttend ? "紀錄日期" : "完成日期"}</span><b>${esc(day(c.issued_at))}</b></div>
             <div class="vf-row"><span>證書編號</span><b>${esc(c.code)}</b></div>
+            ${c.verify_hash ? `<div class="vf-row"><span>存證雜湊</span><b style="font-family:ui-monospace,monospace;font-size:10px;word-break:break-all">SHA-256 ${esc(String(c.verify_hash).slice(0, 24))}…</b></div>` : ""}
           </div>
-          <div class="vf-badge">✔ 已核實 · ${esc(d.issuer || "ZenPass")}</div>
+          <div class="vf-badge">✔ 已核實 · ${esc(d.issuer || "ZenPass")}${d.sealed ? " · 🔐 存證相符" : ""}</div>
         </div>`;
       } catch (e) {
         $("out").innerHTML = `<div class="vf-card vf-bad"><div class="vf-ic">⚠️</div><div class="vf-title">驗證暫時失敗</div>

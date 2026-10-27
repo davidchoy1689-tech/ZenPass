@@ -30,6 +30,24 @@
     .pf-tx .s{font-size:11px;color:var(--text-muted);margin-top:2px}
     .pf-act{display:flex;gap:6px}
     .pf-act button,.pf-act a{border:1px solid var(--border);background:var(--surface);border-radius:10px;padding:7px 9px;font-size:13px;text-decoration:none;color:var(--text);cursor:pointer}
+    /* ===== A4 列印摘要（學校申請用，免裁切） ===== */
+    #printSheet{display:none}
+    .ps-h{font-size:20px;font-weight:800;letter-spacing:.5px;margin:0 0 2px}
+    .ps-sub{font-size:11px;color:#64748b;margin:0 0 14px}
+    .ps-name{font-size:15px;font-weight:700;margin:0 0 4px}
+    .ps-kpi{font-size:12px;color:#0f766e;font-weight:700;margin:0 0 12px}
+    .ps-table{width:100%;border-collapse:collapse;font-size:11px}
+    .ps-table th{text-align:left;background:#f1f5f9;border-bottom:1.5px solid #0f766e;padding:6px 5px;font-size:10px;color:#0f766e}
+    .ps-table td{border-bottom:1px solid #e2e8f0;padding:6px 5px;vertical-align:top}
+    .ps-foot{font-size:9.5px;color:#64748b;margin-top:14px;line-height:1.7}
+    @media print{
+      @page{size:A4;margin:14mm}
+      body{background:#fff!important}
+      .topbar,.wrap,.spacer,footer,.pf-hero{display:none!important}
+      #printSheet{display:block!important;color:#0f172a}
+      .ps-table{page-break-inside:auto}
+      .ps-table tr{page-break-inside:avoid}
+    }
   </style>
 </head>
 <body>
@@ -59,6 +77,7 @@
       <div class="section-title" style="margin:4px 0 8px">📜 證書保險庫</div>
       <div class="card" style="margin-bottom:12px"><div class="body" id="certs"></div></div>
 
+      <button class="btn btn-secondary btn-block" id="printSheetBtn" type="button" style="margin-bottom:8px">🖨️ 列印 A4 學校摘要（免裁切）</button>
       <button class="btn btn-secondary btn-block" id="copySummary" type="button" style="margin-bottom:8px">📋 複製 Portfolio 摘要（可貼升學表格）</button>
       <a class="btn btn-secondary btn-block" href="badges.html" style="text-decoration:none">🏅 查看成就徽章牆</a>
       <div class="spacer"></div>
@@ -71,7 +90,7 @@
     const $ = (id) => document.getElementById(id);
     const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
     const EMOJI = { MOLKKY: "🎯", CURLING: "🥌", CORNHOLE: "🫘", AIRSTORM: "🏹", NORDIC: "🥾", ROUNDNET: "🕸️", ROULIQIU: "🏓", FLEXIBAR: "💪", STRETCH: "🧘" };
-    let CERTS = [], TERMS = [], STUDENT = "all";
+    let CERTS = [], TERMS = [], STUDENT = "all", SUMMARY = {};
 
     function codeOf(c) {
       const s = String(c.sport || "").toLowerCase();
@@ -98,6 +117,7 @@
       CERTS = (r.data && r.data.certificates) || [];
       TERMS = (r.data && r.data.terms) || [];
       const s = (r.data && r.data.summary) || {};
+      SUMMARY = s;
       $("kCerts").textContent = s.certs || 0;
       $("kHours").textContent = (Number(s.hours) || 0).toFixed(1);
       $("kSports").textContent = s.sports || 0;
@@ -179,16 +199,54 @@
       document.body.appendChild(a); a.click(); a.remove();
     }
 
+    function certTypeLabel(c) {
+      return c.cert_type === "graduation" ? "全期結業" : c.cert_type === "attendance" ? "出席證書" : "單堂出席";
+    }
+
+    function visibleCerts() {
+      return STUDENT === "all" ? CERTS : CERTS.filter((c) => (c.student_name || "學員") === STUDENT);
+    }
+
+    $("printSheetBtn").onclick = () => {
+      const list = visibleCerts();
+      if (!list.length) { alert("暫時未有證書可列印"); return; }
+      const names = [...new Set(list.map((c) => c.student_name || "學員"))].join("、");
+      const hours = STUDENT === "all" ? (Number(SUMMARY.hours) || 0) : list.reduce((a, c) => a + (Number(c.hours) || 0), 0);
+      const rows = list.map((c) => `<tr>
+        <td><b>${esc(c.class_title || "")}</b></td>
+        <td>${certTypeLabel(c)}</td>
+        <td>${esc(c.level_label || "")}</td>
+        <td style="text-align:right">${(Number(c.hours) || 0).toFixed(1)}</td>
+        <td>${esc(dayStr(c.issued_at))}</td>
+        <td style="font-family:ui-monospace,monospace;font-size:9px">${esc(c.code)}</td>
+      </tr>`).join("");
+      $("printSheet").innerHTML = `
+        <div class="ps-h">ZenPass 禪流 · 課外活動及體育技能證明摘要</div>
+        <div class="ps-sub">Student Portfolio Summary · 香港康樂及體育有限公司（Hong Kong Leisure and Fitness Company Limited）</div>
+        <div class="ps-name">學員姓名：${esc(names)}</div>
+        <div class="ps-kpi">累計認證時數：${hours.toFixed(1)} 小時 ｜ 證書數目：${list.length} 張 ｜ 列印日期：${dayStr(new Date().toISOString())}</div>
+        <table class="ps-table">
+          <thead><tr><th>課程</th><th>類別</th><th>評級</th><th style="text-align:right">時數</th><th>日期</th><th>證書編號</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+        <div class="ps-foot">
+          以上每張證書均附獨立編號及 SHA-256 存證雜湊，可於 <b>https://zenpass.hk/verify.html</b> 輸入編號或掃描證書右下 QR Code 核實真偽。<br>
+          All certificates above carry a unique serial number and are verifiable at https://zenpass.hk/verify.html
+        </div>`;
+      window.print();
+    };
+
     $("copySummary").onclick = async () => {
       const s = CERTS.reduce((acc, c) => acc + (Number(c.hours) || 0), 0);
       const names = [...new Set(CERTS.map((c) => c.student_name))].join("、");
-      const lines = CERTS.slice(0, 8).map((c) => `・${c.class_title}（${dayStr(c.issued_at)}，${(Number(c.hours) || 0).toFixed(1)} 小時，${c.level_label}）`).join("\n");
+      const lines = CERTS.slice(0, 10).map((c) => `・${c.class_title} — ${certTypeLabel(c)}，${(Number(c.hours) || 0).toFixed(1)} 小時，${c.level_label}（認證編號：${c.code}）`).join("\n");
       const txt = `ZenPass 禪流 — 課外活動運動履歷\n學員：${names || "—"}\n累計認證時數：${s.toFixed(1)} 小時\n證書數目：${CERTS.length} 張\n\n已完成項目：\n${lines}\n\n所有證書均可於 https://zenpass.hk/verify.html 以證書編號驗證真偽。`;
       try { await navigator.clipboard.writeText(txt); $("copySummary").textContent = "✅ 已複製摘要"; }
       catch (e) { prompt("複製摘要：", txt); }
       setTimeout(() => { $("copySummary").textContent = "📋 複製 Portfolio 摘要（可貼升學表格）"; }, 2000);
     };
   </script>
+  <div id="printSheet"></div>
   <script src="assets/footer.js?v=4" defer></script>
 </body>
 </html>

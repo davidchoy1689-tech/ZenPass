@@ -52,9 +52,15 @@ router.get("/verify/:code", (req, res) => {
     if (Number(c.revoked) === 1) {
       return res.json({ success: true, valid: false, revoked: true, reason: c.revoked_reason || "證書已作廢" });
     }
+    // 🔐 存證雜湊比對：資料庫欄位若被改動，重算結果會對唔上
+    let sealed = false;
+    try {
+      sealed = !!c.verify_hash && svc.certHash(c) === c.verify_hash;
+    } catch (e) {}
     res.json({
       success: true,
       valid: true,
+      sealed,
       certificate: {
         code: c.code,
         is_demo: Number(c.is_demo) === 1,
@@ -68,6 +74,7 @@ router.get("/verify/:code", (req, res) => {
         coach_starred: Number(c.coach_starred) || 0,
         issued_at: c.issued_at,
         sport: c.sport,
+        verify_hash: c.verify_hash || "",
       },
       issuer: "Hong Kong Leisure and Fitness Company Limited",
     });
