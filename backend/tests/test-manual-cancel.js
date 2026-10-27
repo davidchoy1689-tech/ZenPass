@@ -98,6 +98,20 @@ const ok = (c, m) => { if (c) { console.log("  ✅ " + m); pass++; } else { cons
   const myRow = db.prepare("SELECT * FROM bookings WHERE id='b1'").get();
   ok(myRow.status === "cancelled" && myRow.payment_status === "paid", "學員端會顯示退款卡（cancelled + paid）");
 
+  console.log("📋 4b. 舊天氣取消（退 Credits）唔會再出 FPS 退款卡");
+  const d2 = new Date(Date.now() + 5 * 864e5).toISOString().slice(0, 10);
+  const st2 = d2 + " 04:00:00", en2 = d2 + " 06:00:00";
+  db.prepare("INSERT INTO class_schedules (id,class_id,start_time,end_time,max_participants,enrolled_count,status) VALUES ('s3','c1',?,?,10,1,'available')").run(st2, en2);
+  db.prepare("INSERT INTO bookings (id,booking_reference,user_id,schedule_id,class_id,status,payment_status,amount) VALUES ('b5','ZP-MC5','u1','s3','c1','confirmed','paid',150)").run();
+  const wxLayer = ops.stack.find((l) => l.route && l.route.path === "/weather-cancel" && l.route.methods.post);
+  const wxFn = wxLayer.route.stack[wxLayer.route.stack.length - 1].handle;
+  const wxRes = { statusCode: 200, status(c){ this.statusCode = c; return this; }, json(x){ this.body = x; return this; } };
+  wxFn({ body: { date: d2, reason: "黑雨停課", refund: true }, user: { id: "admin", role: "admin" } }, wxRes);
+  const b5 = db.prepare("SELECT * FROM bookings WHERE id='b5'").get();
+  ok(b5.status === "cancelled", "舊流程將 booking 轉 cancelled");
+  ok(b5.payment_status === "refunded", "已退 Credits → payment_status = refunded");
+  ok(b5.refund_status === "refunded" && b5.refund_channel === "credit", "refund_status/channel 已標記，避免重複退款");
+
   console.log("📋 5. 審計與權限");
   const audit = db.prepare("SELECT * FROM audit_log WHERE action_type='schedule.manual_cancel'").get();
   ok(!!audit && /人手取消/.test(audit.description || ""), "已寫入 audit_log");

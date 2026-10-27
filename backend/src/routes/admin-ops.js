@@ -180,7 +180,18 @@ router.post("/weather-cancel", authenticateToken, requireAdmin, requireOpsRole, 
         cancelled++;
         const bks = db.prepare("SELECT * FROM bookings WHERE schedule_id = ? AND status IN ('confirmed','attended','pending_payment')").all(s.id);
         bks.forEach((b) => {
-          db.prepare("UPDATE bookings SET status = 'cancelled' WHERE id = ?").run(b.id);
+          db.prepare("UPDATE bookings SET status = 'cancelled', cancel_reason = ? WHERE id = ?").run(reason, b.id);
+          // ⚠️ 已用 Credits 退款 → 立即標記 refunded，避免學員端再出現 FPS 退款卡（重複退款）
+          if (doRefund && b.payment_status === 'paid') {
+            try {
+              require("../services/booking-service").ensureRefundColumns(db);
+              db.prepare(
+                `UPDATE bookings SET payment_status = 'refunded', refund_status = 'refunded',
+                        refund_channel = 'credit', refund_reason = ?, refunded_at = datetime('now')
+                  WHERE id = ?`,
+              ).run(reason, b.id);
+            } catch (e) { console.error("weather refund flag error:", e.message); }
+          }
           if (doRefund) {
             try {
               const { creditWallet } = require("../services/wallet-service");
