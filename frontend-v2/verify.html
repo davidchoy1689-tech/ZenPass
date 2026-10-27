@@ -92,7 +92,10 @@
             }).join("")}
             ${Array.isArray(c.assessment_tags) && c.assessment_tags.length ? `<div style="font-size:11.5px;color:#475569;margin-top:8px">🏷️ ${c.assessment_tags.map((t) => esc(t)).join(" · ")}</div>` : ""}
             ${c.coach_comment ? `<div style="font-size:11.5px;color:#334155;margin-top:6px;line-height:1.6"><b>教練評語：</b>${esc(c.coach_comment)}</div>` : ""}` : ""}
-            ${c.verify_hash ? `<div class="vf-row"><span>存證雜湊</span><b style="font-family:ui-monospace,monospace;font-size:10px;word-break:break-all">SHA-256 ${esc(String(c.verify_hash).slice(0, 24))}…</b></div>` : ""}
+            ${c.verify_hash ? `<div style="margin-top:8px;border-top:1px dashed #cbd5e1;padding-top:8px">
+              <div style="font-size:11px;color:#64748b;margin-bottom:3px">🔐 存證雜湊 SHA-256（64 位完整值）</div>
+              <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;line-height:1.5;word-break:break-all;color:#0f172a;background:#f1f5f9;border-radius:8px;padding:7px 8px;text-align:left">${esc(c.verify_hash)}</div>
+            </div>` : ""}
           </div>
           <div class="vf-badge">✔ 已核實 · ${esc(d.issuer || "ZenPass")}${d.sealed ? " · 🔐 存證相符" : ""}</div>
         </div>`;
