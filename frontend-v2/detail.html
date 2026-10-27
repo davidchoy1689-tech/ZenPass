@@ -387,7 +387,11 @@
         else {
           st.style.display = "";
           st.style.color = left <= 3 ? "#c2410c" : "#047857";
-          st.textContent = left <= 0 ? "已滿 · 可加入候補" : (left <= 3 ? "🔥 僅剩 " + left + " 位" : "剩 " + left + " 位") + " · 免註冊可報名";
+          const _min = Math.max(1, Number(c.min_participants) || 1);
+          const _formed = (SESS || []).some((x) => Number(x.enrolled_count || 0) >= _min);
+          const _seatTxt = left <= 0 ? "已滿 · 可加入候補"
+            : (left <= 3 ? "🔥 僅剩 " + left + " 位" : "尚餘 " + left + " 位");
+          st.textContent = (_formed && left > 0 ? "🟢 已確認開班 · " : "") + _seatTxt + " · 免註冊可報名";
         }
       }
       // 小班教學定義：最多 7 人；8 人或以上唔算小班

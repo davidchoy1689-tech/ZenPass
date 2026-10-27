@@ -186,6 +186,106 @@ router.get("/my", authenticateToken, (req, res) => {
   }
 });
 
+// ===== POST /api/bookings/:id/request-refund — 學員登記 FPS 退款（2026-10-28）=====
+// 只限「已付款 + 已取消」的預約；登記後由管理員人手轉賬並確認
+router.post("/:id/request-refund", authenticateToken, (req, res) => {
+  try {
+    const db = getDb();
+    bookingService.ensureRefundColumns(db);
+    const b = db
+      .prepare(
+        `SELECT b.id, b.user_id, b.status, b.payment_status, b.amount, b.booking_reference,
+                COALESCE(b.refund_status,'none') AS refund_status, b.cancel_reason
+           FROM bookings b WHERE b.id = ?`,
+      )
+      .get(req.params.id);
+    if (!b) return res.status(404).json({ success: false, error: "預約不存在" });
+    const me = db.prepare("SELECT role FROM users WHERE id = ?").get(req.user.id) || {};
+    const isAdmin = ["admin", "super_admin", "platform_manager"].includes(me.role);
+    if (b.user_id !== req.user.id && !isAdmin) {
+      return res.status(403).json({ success: false, error: "只可為自己的預約登記退款" });
+    }
+    if (b.status !== "cancelled") {
+      return res.status(400).json({
+        success: false,
+        error: "課堂未取消，暫時無需退款。如需取消請到「我的預約」申請取消。",
+        code: "NOT_CANCELLED",
+      });
+    }
+    if (b.payment_status !== "paid") {
+      return res.status(400).json({
+        success: false,
+        error: "此預約未確認收款，無款項可退（如已轉賬請聯絡客服核實）",
+        code: "NOT_PAID",
+      });
+    }
+    if (["requested", "processing", "refunded"].includes(String(b.refund_status))) {
+      return res.status(409).json({
+        success: false,
+        error: b.refund_status === "refunded" ? "此預約已完成退款" : "退款申請已提交，正處理中",
+        code: "ALREADY_REQUESTED",
+        refund_status: b.refund_status,
+      });
+    }
+
+    const fpsId = String((req.body && (req.body.fps_id || req.body.fpsId)) || "").trim().slice(0, 64);
+    const fpsName = String((req.body && (req.body.fps_name || req.body.fpsName)) || "").trim().slice(0, 64);
+    const looksPhone = /^\+?\d[\d\s-]{5,19}$/.test(fpsId);
+    const looksEmail = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(fpsId);
+    if (fpsId.length < 6 || (!looksPhone && !looksEmail && fpsId.length < 8)) {
+      return res.status(400).json({ success: false, error: "請填寫有效的 FPS 收款識別（手機號碼／電郵／FPS ID）", code: "FPS_ID_INVALID" });
+    }
+    if (fpsName.replace(/\s/g, "").length < 2) {
+      return res.status(400).json({ success: false, error: "請填寫 FPS 收款人姓名（需與銀行紀錄一致）", code: "FPS_NAME_INVALID" });
+    }
+
+    const reason =
+      String(b.cancel_reason || "").trim() ||
+      "平台／課堂取消（天氣或人數不足）";
+
+    db.prepare(
+      `UPDATE bookings
+          SET refund_status = 'requested', refund_channel = 'fps',
+              refund_fps_id = ?, refund_fps_name = ?, refund_reason = ?,
+              refund_reported_at = datetime('now'),
+              refund_requested_at = COALESCE(refund_requested_at, datetime('now'))
+        WHERE id = ?`,
+    ).run(fpsId, fpsName, reason, b.id);
+
+    // 通知管理員（站內）
+    try {
+      require("../services/notify-admins").notifyAdmins("refund.pending", {
+        booking_reference: b.booking_reference || b.id,
+        amount: Number(b.amount || 0),
+        fps_name: fpsName,
+        fps_id: fpsId,
+        booking_id: b.id,
+      });
+    } catch (e) {}
+
+    try {
+      db.prepare(
+        `INSERT INTO audit_log (id, action_type, entity_type, entity_id, user_id, new_values, description, created_at)
+         VALUES (?, 'refund.requested', 'booking', ?, ?, ?, ?, datetime('now'))`,
+      ).run(
+        require("crypto").randomUUID(), b.id, req.user.id,
+        JSON.stringify({ fps_id: fpsId, fps_name: fpsName, reason, amount: b.amount }),
+        `學員登記 FPS 退款（HK$${Number(b.amount || 0).toFixed(2)}）`,
+      );
+    } catch (e) {}
+
+    res.json({
+      success: true,
+      message: "✅ 已登記退款，平台將於 1–2 個工作天內經 FPS 退回",
+      refund_status: "requested",
+      amount: Number(b.amount || 0),
+    });
+  } catch (err) {
+    console.error("退款登記失敗:", err);
+    res.status(500).json({ success: false, error: "退款登記失敗，請稍後再試" });
+  }
+});
+
 // ===== POST /api/bookings/:id/complete-payment — 完成付款 =====
 router.post(
   "/:id/complete-payment",

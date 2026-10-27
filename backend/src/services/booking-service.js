@@ -53,6 +53,26 @@ function ensureAttendeeColumns(db) {
   }
 }
 
+// 2026-10-28：退款登記欄位（學員填 FPS，管理員確認轉賬）
+function ensureRefundColumns(db) {
+  try {
+    const cols = db.prepare("PRAGMA table_info(bookings)").all().map((c) => c.name);
+    const add = [
+      ["refund_status", "TEXT DEFAULT 'none'"],
+      ["refund_channel", "TEXT DEFAULT 'fps'"],
+      ["refund_fps_id", "TEXT"],
+      ["refund_fps_name", "TEXT"],
+      ["refund_reason", "TEXT"],
+      ["refund_reported_at", "TEXT"],
+      ["refunded_at", "TEXT"],
+      ["refund_requested_at", "TEXT"],
+    ];
+    add.forEach(([n, t]) => { if (!cols.includes(n)) db.prepare(`ALTER TABLE bookings ADD COLUMN ${n} ${t}`).run(); });
+  } catch (e) {
+    console.error("refund 欄位遷移失敗:", e.message);
+  }
+}
+
 const crypto = require("crypto");
 
 // 🎫 4 位現場驗證碼：由 booking id + server secret 派生，穩定、唔可猜
@@ -2224,6 +2244,8 @@ module.exports = {
   getCheckinStatus,
   attendBooking,
   checkinCodeFor,
+  ensureAttendeeColumns,
+  ensureRefundColumns,
   processQRCheckin,
   markNoShow,
   resolveCancellationFeeRate,

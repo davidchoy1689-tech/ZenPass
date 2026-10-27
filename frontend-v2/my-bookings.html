@@ -86,8 +86,49 @@
           ${badge(b.status)}
         </div>
         ${actions ? `<div class="actions">${actions}</div>` : ""}
+        ${refundBox(b)}
       </div></div>`;
     }
+
+    /* 💸 課堂取消 → 退款登記（FPS） */
+    function refundBox(b) {
+      if (b.status !== "cancelled" || b.payment_status !== "paid") return "";
+      const st = String(b.refund_status || "none");
+      const amt = Number(b.amount || 0).toFixed(2);
+      const reason = b.cancel_reason || b.refund_reason || "課堂取消";
+      if (st === "refunded") {
+        return `<div style="margin-top:10px;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:12px;padding:10px 12px">
+          <b style="font-size:13px;color:#047857">✅ 已完成退款 HK$${amt}</b>
+          <div class="muted" style="font-size:12px;margin-top:4px">款項已經 FPS 退回你登記嘅戶口${b.refunded_at ? "（" + esc(String(b.refunded_at).slice(0,10)) + "）" : ""}。</div>
+        </div>`;
+      }
+      if (st === "requested" || st === "processing") {
+        return `<div style="margin-top:10px;background:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:10px 12px">
+          <b style="font-size:13px;color:#b45309">⏳ 退款處理中 · HK$${amt}</b>
+          <div class="muted" style="font-size:12px;margin-top:4px">已登記 FPS：${esc(b.refund_fps_name || "")} / ${esc(b.refund_fps_id || "")}<br>款項將於 1–2 個工作天內轉入，完成後會再通知你。</div>
+        </div>`;
+      }
+      return `<div style="margin-top:10px;background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;padding:10px 12px">
+        <b style="font-size:13px;color:#c2410c">⚠️ 本課堂已取消（${esc(reason)}）· 可退 HK$${amt}</b>
+        <div class="muted" style="font-size:12px;margin:4px 0 8px">請填寫轉數快（FPS）收款資料，平台會人手轉賬，一般 1–2 個工作天完成。</div>
+        <input id="rfFps_${esc(b.id)}" placeholder="FPS 收款識別（手機號碼／電郵／FPS ID）" maxlength="64"
+          style="width:100%;border:1px solid var(--border);border-radius:10px;padding:9px 10px;font:inherit;font-size:13px;margin-bottom:6px" />
+        <input id="rfName_${esc(b.id)}" placeholder="收款人姓名（需與銀行紀錄一致）" maxlength="64"
+          style="width:100%;border:1px solid var(--border);border-radius:10px;padding:9px 10px;font:inherit;font-size:13px;margin-bottom:8px" />
+        <button class="btn btn-primary" type="button" onclick="submitRefund('${esc(b.id)}')">💸 提交退款登記</button>
+        <div class="muted" style="font-size:11px;margin-top:6px">已付款紀錄：HK$${amt} · 退款原因：${esc(reason)}</div>
+      </div>`;
+    }
+
+    window.submitRefund = async (id) => {
+      const fps = (document.getElementById("rfFps_" + id)?.value || "").trim();
+      const name = (document.getElementById("rfName_" + id)?.value || "").trim();
+      if (fps.length < 6) { alert("請填寫有效的 FPS 收款識別（手機號碼／電郵／FPS ID）"); return; }
+      if (name.replace(/\s/g, "").length < 2) { alert("請填寫收款人姓名"); return; }
+      const r = await api.post("/bookings/" + encodeURIComponent(id) + "/request-refund", { fps_id: fps, fps_name: name });
+      if (r.ok) { alert((r.data && r.data.message) || "✅ 已登記退款"); await load(); }
+      else { alert((r.data && r.data.error) || "提交失敗，請稍後再試"); }
+    };
 
     function render() {
       const groups = {

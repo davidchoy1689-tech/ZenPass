@@ -32,7 +32,7 @@ has(bk, "applyPromo", "booking auto-apply");
 // 3) 信任元素
 has(exp, 'badge-star glass-badge-dark', "rating trust badge");
 has(exp, 'badge-seats', "seats left badge");
-has(exp, '🔥 剩 ', "seats left text");
+has(exp, '"🔥 尚餘 "', "seats left text");
 has(css, ".trust", "trust css");
 
 // 4) 完成頁

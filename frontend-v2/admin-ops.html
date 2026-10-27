@@ -46,6 +46,7 @@
         <button data-t="cred">🪪 教練資質</button>
         <button data-t="agr">🤝 協議簽署</button>
         <button data-t="pending">⏳ 待開通新班</button>
+        <button data-t="refund">💸 待退款</button>
       </div>
 
       <div id="paneFin">
@@ -58,6 +59,14 @@
         <div class="card"><div class="body">
           <div class="muted" style="font-size:12px;margin-bottom:8px">學員自行提交嘅 FPS／PayMe 付款，核實後即轉「已付款」並生效。收據縮圖可撳大。</div>
           <div id="payList"></div>
+        </div></div>
+      </div>
+
+      <div id="paneRefund" hidden>
+        <div class="kpis" id="refundKpis"></div>
+        <div class="card"><div class="body">
+          <div class="muted" style="font-size:12px;margin-bottom:8px">學員已提交 FPS 退款登記（課堂取消）。轉賬後撳「✅ 確認已退款」，系統會寫入退款紀錄並通知學員。</div>
+          <div id="refundList"></div>
         </div></div>
       </div>
 
@@ -164,7 +173,7 @@
       $("tabs").onclick = (e) => {
         const b = e.target.closest("button"); if (!b) return;
         [...$("tabs").children].forEach((x) => x.classList.toggle("on", x === b));
-        ["fin", "pay", "leads", "ops", "settle", "cred", "agr", "pending"].forEach((k) => ($("pane" + k[0].toUpperCase() + k.slice(1))).hidden = b.dataset.t !== k);
+        ["fin", "pay", "leads", "ops", "settle", "cred", "agr", "pending", "refund"].forEach((k) => ($("pane" + k[0].toUpperCase() + k.slice(1))).hidden = b.dataset.t !== k);
       };
       $("wxGo").onclick = weatherCancel;
       $("bsGo").onclick = batchSettle;
@@ -180,6 +189,7 @@
       await loadCredentials();
       await loadAgreements();
       await loadPendingClasses();
+      await loadRefunds();
     }
 
     async function loadFinance() {
@@ -382,6 +392,50 @@
       if (r === "coach") return "教練";
       if (String(r || "").startsWith("partner")) return "場地";
       return r || "—";
+    }
+
+    /* ===== 💸 待退款（學員已登記 FPS） ===== */
+    async function loadRefunds() {
+      const box = $("refundList"); if (!box) return;
+      const kp = $("refundKpis");
+      const r = await api.get("/admin/pending-refunds");
+      if (!r.ok) { box.innerHTML = `<div class="muted">${esc((r.data && r.data.error) || "讀取失敗")}</div>`; return; }
+      const rows = (r.data && r.data.refunds) || [];
+      const total = rows.reduce((a, x) => a + (Number(x.amount) || 0), 0);
+      if (kp) kp.innerHTML = `
+        <div class="kpi"><div class="v">${rows.length}</div><div class="l">待退款筆數</div></div>
+        <div class="kpi"><div class="v">${hkd(total)}</div><div class="l">待退金額</div></div>`;
+      if (!rows.length) { box.innerHTML = '<div class="muted" style="font-size:12.5px">✅ 暫時冇待處理退款</div>'; return; }
+      box.innerHTML = rows.map((x) => {
+        const wa = String(x.user_phone || "").replace(/\D/g, "").slice(-8);
+        const msg = `你好 ${x.user_name || ""}，ZenPass 已將 ${hkd(x.amount)} 經 FPS 退回（預約 ${x.booking_reference || x.id}）。多謝你體諒，歡迎再報名其他課堂。`;
+        return `<div class="row" style="flex-wrap:wrap;align-items:flex-start">
+          <span style="flex:1 1 100%">
+            <b>${esc(x.booking_reference || x.id)}</b>
+            <span class="pill p-wait" style="margin-left:6px">HK$${Number(x.amount || 0).toFixed(2)}</span>
+            <span class="s">${esc(x.user_name || "—")}${x.user_phone ? " · " + esc(x.user_phone) : ""}</span>
+            <span class="s">${esc(x.class_title || "—")}${x.start_time ? " · " + esc(String(x.start_time).slice(0, 16).replace("T", " ")) : ""}</span>
+            <span class="s">FPS：<b>${esc(x.refund_fps_name || "—")}</b> / ${esc(x.refund_fps_id || "—")}</span>
+            <span class="s">原因：${esc(x.refund_reason || x.cancel_reason || "—")}</span>
+          </span>
+          <span style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">
+            <button class="btn btn-secondary" style="min-height:34px;padding:0 10px;font-size:12.5px" data-copy="${esc([x.refund_fps_name, x.refund_fps_id, "HK$" + Number(x.amount || 0).toFixed(2)].join(" / "))}">📋 複製退款資料</button>
+            <button class="btn btn-primary" style="min-height:34px;padding:0 10px;font-size:12.5px" data-ok="${esc(x.id)}" data-amt="${Number(x.amount || 0)}">✅ 確認已退款</button>
+            ${wa.length === 8 ? `<a class="btn btn-secondary" style="min-height:34px;padding:0 10px;font-size:12.5px;text-decoration:none;background:#25d366;color:#04331c;border-color:#25d366" target="_blank" rel="noopener" href="https://wa.me/852${wa}?text=${encodeURIComponent(msg)}">💬 WhatsApp</a>` : ""}
+          </span>
+        </div>`;
+      }).join("");
+      box.querySelectorAll("[data-copy]").forEach((b) => (b.onclick = async () => {
+        try { await navigator.clipboard.writeText(b.dataset.copy); b.textContent = "✅ 已複製"; setTimeout(() => (b.textContent = "📋 複製退款資料"), 1500); }
+        catch (e) { prompt("複製退款資料：", b.dataset.copy); }
+      }));
+      box.querySelectorAll("[data-ok]").forEach((b) => (b.onclick = async () => {
+        if (!confirm("確認已透過 FPS 轉賬 HK$" + Number(b.dataset.amt).toFixed(2) + "？\n系統會標記為已退款並通知學員。")) return;
+        b.disabled = true; b.textContent = "⏳";
+        const rr = await api.post("/admin/bookings/" + encodeURIComponent(b.dataset.ok) + "/mark-refunded", {});
+        if (rr.ok) { toast("✅ 已確認退款"); loadRefunds(); loadFinance(); }
+        else { b.disabled = false; b.textContent = "✅ 確認已退款"; alert((rr.data && rr.data.error) || "確認失敗"); }
+      }));
     }
 
     async function loadPendingClasses() {

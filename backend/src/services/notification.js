@@ -426,6 +426,11 @@ async function sendNotification(type, payload) {
       message = `我哋已收到你嘅退款申請（${data?.booking_reference || ""}）。\n退款金額：HK$${data?.amount || 0}\n方式：${String(data?.method || "fps").toUpperCase()}\n管理員會盡快人手轉賬，完成後會再通知你。`;
       html = `<h2>💸 退款處理中</h2><p><b>預約：</b>${data?.booking_reference || ""}<br><b>金額：</b>HK$${data?.amount || 0}<br><b>方式：</b>${String(data?.method || "fps").toUpperCase()}</p><p>管理員會盡快人手轉賬，完成後會再通知你。</p>`;
       break;
+    case "refund.pending":
+      title = "💸 新退款申請";
+      message = `預約：${data?.booking_reference || ""}\n金額：HK$${data?.amount || 0}\nFPS 收款：${data?.fps_name || ""} / ${data?.fps_id || ""}\n請到後台「💸 待退款」處理。`;
+      html = `<h2>💸 新退款申請</h2><p><b>預約：</b>${data?.booking_reference || ""}<br><b>金額：</b>HK$${data?.amount || 0}<br><b>FPS 收款：</b>${data?.fps_name || ""} / ${data?.fps_id || ""}</p><p>請到後台「💸 待退款」處理。</p>`;
+      break;
     case "partner.rental_price_request":
       title = "🏷️ 商戶租金申請";
       message = `場地：${data?.venue_name || "—"}\n申請租金：HK$${data?.requested_price || 0}/小時\n原因：${data?.reason || "（未填）"}\n請去 Admin → 商戶 審批。`;

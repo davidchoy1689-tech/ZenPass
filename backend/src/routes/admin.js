@@ -180,6 +180,118 @@ router.post("/refunds/:id/complete", authenticateToken, requirePermission("finan
   }
 });
 
+// ===== 💸 學員登記的 FPS 退款（2026-10-28）=====
+// GET  /api/admin/pending-refunds          待處理退款清單（refund_status = requested／processing）
+// POST /api/admin/bookings/:id/mark-refunded  確認已人手轉賬
+router.get("/pending-refunds", authenticateToken, requirePermission("finance.refund.view"), (req, res) => {
+  try {
+    const db = getDb();
+    require("../services/booking-service").ensureRefundColumns(db);
+    const rows = db
+      .prepare(
+        `SELECT b.id, b.booking_reference, b.amount, b.payment_method, b.status, b.cancel_reason,
+                COALESCE(b.refund_status,'none') AS refund_status, b.refund_channel,
+                b.refund_fps_id, b.refund_fps_name, b.refund_reason, b.refund_reported_at,
+                b.refunded_at,
+                u.name AS user_name, u.phone AS user_phone, u.email AS user_email,
+                c.title AS class_title, cs.start_time
+           FROM bookings b
+           JOIN users u ON u.id = b.user_id
+           LEFT JOIN classes c ON c.id = b.class_id
+           LEFT JOIN class_schedules cs ON cs.id = b.schedule_id
+          WHERE COALESCE(b.refund_status,'none') IN ('requested','processing')
+          ORDER BY COALESCE(b.refund_reported_at, b.created_at) ASC
+          LIMIT 300`,
+      )
+      .all();
+    res.json({ success: true, refunds: rows });
+  } catch (err) {
+    console.error("[ADMIN] pending refunds error:", err.message);
+    res.status(500).json({ success: false, error: "無法讀取待退款清單" });
+  }
+});
+
+router.post(
+  "/bookings/:id/mark-refunded",
+  authenticateToken,
+  requirePermission("finance.refund.complete"),
+  (req, res) => {
+    try {
+      const db = getDb();
+      require("../services/booking-service").ensureRefundColumns(db);
+      const b = db
+        .prepare("SELECT * FROM bookings WHERE id = ?")
+        .get(req.params.id);
+      if (!b) return res.status(404).json({ success: false, error: "預約不存在" });
+      const st = String(b.refund_status || "none");
+      if (st === "refunded") {
+        return res.status(409).json({ success: false, error: "此預約已標記為已退款" });
+      }
+      if (!["requested", "processing"].includes(st)) {
+        return res.status(400).json({ success: false, error: "此預約未有退款申請" });
+      }
+
+      const transferRef = String((req.body && req.body.transfer_reference) || "").slice(0, 64) || null;
+      const note = String((req.body && req.body.note) || "").slice(0, 200) || null;
+      const crypto = require("crypto");
+
+      // 金錢紀錄：寫 refund_logs（completed）以便對賬，永遠保留
+      try {
+        db.prepare(
+          `INSERT INTO refund_logs (id, booking_id, user_id, amount, currency, payment_method, reason,
+                                    initiated_by, approved_by, status, created_at, completed_at, completed_by, transfer_reference)
+           VALUES (?,?,?,?, 'HKD', ?, ?, ?, ?, 'completed', datetime('now'), datetime('now'), ?, ?)`,
+        ).run(
+          crypto.randomUUID(), b.id, b.user_id, Number(b.amount || 0),
+          b.refund_channel === "credit" ? "credit" : "fps",
+          b.refund_reason || b.cancel_reason || "課堂取消退款",
+          b.user_id, req.user.id, req.user.id, transferRef,
+        );
+      } catch (e) {
+        console.error("[ADMIN] refund_logs insert failed:", e.message);
+        return res.status(500).json({ success: false, error: "寫入退款紀錄失敗，未有更改狀態" });
+      }
+
+      db.prepare(
+        `UPDATE bookings
+            SET refund_status = 'refunded', payment_status = 'refunded',
+                refunded_at = datetime('now')
+          WHERE id = ?`,
+      ).run(b.id);
+
+      try {
+        const { sendNotification } = require("../services/notification");
+        sendNotification("booking.refunded", {
+          recipient: b.user_id,
+          data: {
+            amount: Number(b.amount || 0),
+            booking_reference: b.booking_reference || b.id,
+            reason: b.refund_reason || b.cancel_reason || "課堂取消退款",
+          },
+        });
+      } catch (e) {}
+
+      try {
+        db.prepare(
+          `INSERT INTO audit_log (id, action_type, entity_type, entity_id, user_id, new_values, description, created_at)
+           VALUES (?, 'refund.completed', 'booking', ?, ?, ?, ?, datetime('now'))`,
+        ).run(
+          crypto.randomUUID(), b.id, req.user.id,
+          JSON.stringify({
+            amount: Number(b.amount || 0), fps_id: b.refund_fps_id, fps_name: b.refund_fps_name,
+            transfer_reference: transferRef, note,
+          }),
+          `確認 FPS 退款 HK$${Number(b.amount || 0).toFixed(2)}`,
+        );
+      } catch (e) {}
+
+      res.json({ success: true, message: "✅ 已確認退款", refund_status: "refunded" });
+    } catch (err) {
+      console.error("[ADMIN] mark refunded error:", err.message);
+      res.status(500).json({ success: false, error: "確認退款失敗" });
+    }
+  },
+);
 // ===== GET /api/admin/stats =====
 router.get("/stats", authenticateToken, requirePermission("finance.view"), (req, res) => {
   try {
