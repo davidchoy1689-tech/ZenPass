@@ -129,6 +129,33 @@ const ok = (c, m) => { if (c) { console.log("  ✅ " + m); pass++; } else { cons
   ok(/expiryPill/.test(ui) && /已過期/.test(ui), "資質到期有黃／紅標");
   ok(/api\.put\("\/admin\/coaches\//.test(ui), "可以編輯到期日（PUT credentials）");
 
+  console.log("📋 6. 發證閘門聯動（移除項目後不可發證）");
+  const svc2 = require("../src/services/certificate-service");
+  const elig1 = svc2.issuerEligibility("coach1", "floor-curling", "冰壺班");
+  ok(elig1.ok === true, "加入 floor-curling 後可發冰壺證書（underscore/hyphen 通配）");
+  await call(putCred, {
+    params: { id: "coach1" }, user: { id: "admin", role: "admin" },
+    body: { qualified_sports: ["molkky"] },
+  });
+  const elig2 = svc2.issuerEligibility("coach1", "floor-curling", "冰壺班");
+  ok(elig2.ok === false && /未獲此項目/.test(elig2.reason || ""), "移除 floor-curling → 發證閘門即刻封鎖");
+  await call(putCred, {
+    params: { id: "coach1" }, user: { id: "admin", role: "admin" }, body: { status: "suspended" },
+  });
+  const elig3 = svc2.issuerEligibility("coach1", "molkky", "木柱班");
+  ok(elig3.ok === false, "status=suspended → 一律不可發證");
+  const badStatus = await call(putCred, {
+    params: { id: "coach1" }, user: { id: "admin", role: "admin" }, body: { status: "whatever" },
+  });
+  ok(badStatus.statusCode === 400, "無效 status → 400");
+
+  console.log("📋 7. 權限（靜態檢查 requireAdmin）");
+  const src = fs.readFileSync(path.join(__dirname, "../src/routes/admin-crm.js"), "utf8");
+  const routeCount = (src.match(/router\.(get|put)\(/g) || []).length;
+  const adminGuard = (src.match(/authenticateToken, requireAdmin, requireOpsRole/g) || []).length;
+  ok(routeCount >= 3 && adminGuard === routeCount, "每一條路由都有 authenticateToken + requireAdmin + ops 角色（" + adminGuard + "/" + routeCount + "）");
+  ok(/requireOpsRole/.test(src), "另有 ops 角色檢查");
+
   console.log("\n📊 結果: " + pass + " ✅ 通過, " + fail + " ❌ 失敗\n");
   try { fs.unlinkSync(tmp); } catch (e) {}
   process.exit(fail ? 1 : 0);

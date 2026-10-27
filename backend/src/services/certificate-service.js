@@ -815,6 +815,9 @@ const SPORT_MATCH = {
   ROULIQIU: ["rouliqiu", "柔力球"],
   FLEXIBAR: ["flexi-bar", "flexibar", "flexi bar"],
   STRETCH: ["stretch", "伸展", "瑜伽", "yoga"],
+  CLIMBING: ["climbing", "boulder", "攀石", "抱石"],
+  ROLLER: ["roller", "skating", "滾軸", "溜冰"],
+  KIDSFIT: ["kids", "fitness", "兒童體適能", "體適能"],
 };
 
 function parseQualified(v) {
@@ -864,7 +867,14 @@ function issuerEligibility(coachId, sportKey, className) {
   const needles = [String(sportKey || "").toLowerCase(), className ? String(className).toLowerCase() : ""]
     .concat(SPORT_MATCH[code] || [])
     .filter(Boolean);
-  const hit = qualified.some((q) => needles.some((n) => n && (n.includes(q) || q.includes(n))));
+  const norm = (v) => String(v || "").toLowerCase().replace(/[\s_-]+/g, "");
+  const hit = qualified.some((q) =>
+    needles.some((n) => {
+      const a = norm(q);
+      const b = norm(n);
+      return !!a && !!b && (a.includes(b) || b.includes(a));
+    }),
+  );
   if (!hit) return { ok: false, reason: "教練未獲此項目官方發證授權", qualified };
   return { ok: true, qualified };
 }

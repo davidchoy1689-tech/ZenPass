@@ -368,7 +368,7 @@
         // 🪪 可發證項目（qualified_sports）
         let qs = [];
         try { qs = JSON.parse(x.qualified_sports || "[]"); } catch (e) { qs = String(x.qualified_sports || "").split(",").filter(Boolean); }
-        const SPORTS = [["molkky","芬蘭木柱"],["floor-curling","地板冰壺"],["cornhole","布袋球"],["air-storm","穿雲箭"],["nordic-walking","北歐健走"],["roundnet","圓網球"],["rouliqiu","柔力球"],["flexi-bar","Flexi-Bar"],["stretch","身心伸展"]];
+        const SPORTS = [["molkky","芬蘭木柱"],["floor-curling","地板冰壺"],["cornhole","布袋球"],["air-storm","穿雲箭"],["nordic-walking","北歐健走"],["roundnet","圓網球"],["rouliqiu","柔力球"],["flexi-bar","Flexi-Bar"],["stretch","身心伸展"],["climbing","攀石／抱石"],["roller-skating","滾軸溜冰"],["kids-fitness","兒童體適能"]];
         const sportChips = `<div style="flex:1 1 100%;margin-top:6px;font-size:11.5px;color:var(--text-muted)">🪪 可發證項目：
           ${SPORTS.map(([k,l]) => `<button type="button" class="qs-chip" data-cv="${esc(x.id)}" data-sport="${k}" style="margin:2px 4px 0 0;padding:3px 9px;border-radius:999px;border:1px solid ${qs.includes(k) ? "#0f766e" : "var(--border)"};background:${qs.includes(k) ? "#ecfdf5" : "var(--surface)"};color:${qs.includes(k) ? "#047857" : "var(--text-muted)"};font-weight:700;cursor:pointer">${qs.includes(k) ? "✅ " : ""}${l}</button>`).join("")}
         </div>`;
@@ -472,7 +472,8 @@
               <span class="s">🎫 ${x.bookings} 筆 · ✅ 出席 ${x.attended}${x.no_shows ? " · ❌ 缺席 " + x.no_shows : ""}${x.cancelled ? " · 🚫 取消 " + x.cancelled : ""} · ⏱️ ${x.hours} 小時 · 🏆 ${x.certs} 張證書 · 💰 ${hkd(x.spent)}</span>
               <span class="s">首次上堂：${esc(String(x.first_session || "—").slice(0, 10))}${x.sports && x.sports.length ? " · " + esc(x.sports.filter(Boolean).join("、")) : ""}</span>
             </span>
-            <button class="btn btn-secondary" style="min-height:32px;padding:0 10px;font-size:12.5px" data-stu="${esc(x.id)}" data-i="${i}">詳情</button>
+            <button class="btn btn-secondary" style="min-height:32px;padding:0 10px;font-size:12.5px" data-stu="${esc(x.id)}" data-i="${i}">🔍 詳情</button>
+            ${String(x.phone || "").replace(/\D/g, "").length >= 8 ? `<a class="btn btn-secondary" style="min-height:32px;padding:0 10px;font-size:12.5px;text-decoration:none;background:#25d366;color:#04331c;border-color:#25d366" target="_blank" rel="noopener" href="https://wa.me/852${esc(String(x.phone).replace(/\D/g, "").slice(-8))}?text=${encodeURIComponent("你好 " + (x.name || "") + "，ZenPass 想跟進你嘅運動課程安排，有興趣可以回覆呢個訊息 😊")}">💬</a>` : ""}
             <div style="flex:1 1 100%" id="stuDetail-${i}"></div>
           </div>`).join("")
         : '<div class="muted" style="font-size:12.5px">查無符合嘅學員</div>';
@@ -499,10 +500,10 @@
           ${terms.map((t) => `<div class="s" style="font-size:11.5px">${esc(t.title)}：${t.attended}/${t.total_sessions} 堂（${t.percent}%）${t.completed ? " ✅ 已結業" : ""}</div>`).join("")}
         </div>` : ""}
         <div style="margin-top:8px"><b style="font-size:12px">🏆 證書（${certs.length}）</b>
-          ${certs.length ? certs.map((c) => `<div class="s" style="font-size:11.5px">${typeLabel(c.cert_type)} · ${esc(c.class_title || "")} · ${(Number(c.hours) || 0).toFixed(1)} 小時 · ${esc(c.code)}${c.overall_grade ? " · " + esc(c.overall_grade) : ""}</div>`).join("") : '<div class="s">暫無證書</div>'}
+          ${certs.length ? certs.map((c) => `<div class="s" style="font-size:11.5px">${typeLabel(c.cert_type)} · ${esc(c.class_title || "")} · ${(Number(c.hours) || 0).toFixed(1)} 小時 · <a href="verify.html?cert=${encodeURIComponent(c.code)}" target="_blank" rel="noopener" style="color:#0f766e;font-weight:700">${esc(c.code)}</a>${c.overall_grade ? " · " + esc(c.overall_grade) : ""}</div>`).join("") : '<div class="s">暫無證書</div>'}
         </div>
         <div style="margin-top:8px"><b style="font-size:12px">🎫 預約紀錄（最近 100）</b>
-          ${bks.length ? bks.slice(0, 20).map((b2) => `<div class="s" style="font-size:11.5px">${esc(String(b2.start_time || b2.created_at || "").slice(0, 16).replace("T", " "))} · ${esc(b2.title || "")} · ${esc(b2.status)}${b2.payment_status ? " / " + esc(b2.payment_status) : ""}${b2.child_name ? " · 👦 " + esc(b2.child_name) : ""}</div>`).join("") : '<div class="s">暫無預約</div>'}
+          ${bks.length ? bks.slice(0, 20).map((b2) => `<div class="s" style="font-size:11.5px">${esc(String(b2.start_time || b2.created_at || "").slice(0, 16).replace("T", " "))} · ${esc(b2.title || "")} · ${esc(b2.status)}${b2.payment_status ? " / " + esc(b2.payment_status) : ""}${b2.child_name ? " · 👦 " + esc(b2.child_name) : ""} · ${esc(b2.booking_reference || "")}${b2.amount ? " · " + hkd(b2.amount) : ""}</div>`).join("") : '<div class="s">暫無預約</div>'}
         </div>`;
     }
 

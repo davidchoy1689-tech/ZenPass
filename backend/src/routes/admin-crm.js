@@ -70,6 +70,41 @@ router.get("/crm/students", authenticateToken, requireAdmin, requireOpsRole, (re
       )
       .get(...params).c;
 
+    const expand = String(req.query.expand || "") === "1";
+    let certsByUser = new Map();
+    let bksByUser = new Map();
+    if (expand && rows.length) {
+      const ids = rows.map((r) => r.id);
+      const ph = ids.map(() => "?").join(",");
+      const certs = db
+        .prepare(
+          `SELECT user_id, code, cert_type, class_title, level_label, hours, issued_at, overall_grade, student_name
+             FROM certificates WHERE COALESCE(revoked,0)=0 AND user_id IN (${ph})
+            ORDER BY issued_at DESC`,
+        )
+        .all(...ids);
+      certs.forEach((c) => {
+        const arr = certsByUser.get(c.user_id) || [];
+        arr.push(c);
+        certsByUser.set(c.user_id, arr);
+      });
+      const bks = db
+        .prepare(
+          `SELECT b.user_id, b.id, b.booking_reference, b.status, b.payment_status, b.amount, b.child_name,
+                  b.created_at, c.title, cs.start_time
+             FROM bookings b LEFT JOIN classes c ON c.id=b.class_id
+             LEFT JOIN class_schedules cs ON cs.id=b.schedule_id
+            WHERE b.user_id IN (${ph})
+            ORDER BY COALESCE(cs.start_time, b.created_at) DESC`,
+        )
+        .all(...ids);
+      bks.forEach((b) => {
+        const arr = bksByUser.get(b.user_id) || [];
+        if (arr.length < 20) arr.push(b);
+        bksByUser.set(b.user_id, arr);
+      });
+    }
+
     res.json({
       success: true,
       total: Number(total) || 0,
@@ -91,6 +126,14 @@ router.get("/crm/students", authenticateToken, requireAdmin, requireOpsRole, (re
         certs: certMap.get(r.id) || 0,
         children: (r.children || "").split(",").filter(Boolean),
         sports: (r.sports || "").split(",").filter(Boolean),
+        student_name:
+          ((r.children || "").split(",").filter(Boolean)[0]) || r.name || "",
+        ...(expand
+          ? {
+              certificates: certsByUser.get(r.id) || [],
+              bookings_detail: bksByUser.get(r.id) || [],
+            }
+          : {}),
       })),
     });
   } catch (err) {
@@ -159,6 +202,14 @@ router.put("/coaches/:id/credentials", authenticateToken, requireAdmin, requireO
     if (b.license_expiry != null) put("license_expiry", b.license_expiry);
     if (b.insurance_expiry_date != null) put("insurance_expiry_date", b.insurance_expiry_date);
     if (b.first_aid_expiry != null) put("first_aid_expiry", b.first_aid_expiry);
+    if (b.status != null) {
+      const st = String(b.status);
+      if (!["verified", "pending", "suspended", "rejected"].includes(st)) {
+        return res.status(400).json({ success: false, error: "status 無效" });
+      }
+      put("status", st);
+      if (st === "verified") put("reviewed_at", new Date().toISOString().slice(0, 19).replace("T", " "));
+    }
     if (Array.isArray(b.qualified_sports)) {
       const sports = b.qualified_sports.map((x) => String(x).slice(0, 30)).filter(Boolean).slice(0, 30);
       put("qualified_sports", JSON.stringify(sports));
