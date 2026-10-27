@@ -216,6 +216,166 @@ router.post("/weather-cancel", authenticateToken, requireAdmin, requireOpsRole, 
   }
 });
 
+// ===== ⚠️ 人手審查取消課堂（兩段式防呆，2026-10-28）=====
+// GET  /api/admin/ops/upcoming-sessions?days=14   待取消課堂清單（含影響評估）
+// POST /api/admin/ops/schedules/:id/manual-cancel 人手取消單一時段
+router.get("/upcoming-sessions", authenticateToken, requireAdmin, requireOpsRole, (req, res) => {
+  try {
+    const db = getDb();
+    const days = Math.min(60, Math.max(1, Number(req.query.days) || 14));
+    const rows = db
+      .prepare(
+        `SELECT cs.id, cs.start_time, cs.end_time, cs.max_participants, cs.enrolled_count, cs.status,
+                c.id AS class_id, c.title, c.coach_id, u.name AS coach_name, c.venue_name,
+                (SELECT COUNT(*) FROM bookings b WHERE b.schedule_id = cs.id AND b.status = 'confirmed') AS booked,
+                (SELECT COUNT(*) FROM bookings b WHERE b.schedule_id = cs.id AND b.status = 'confirmed' AND b.payment_status = 'paid') AS paid_count,
+                (SELECT COALESCE(SUM(b.amount),0) FROM bookings b WHERE b.schedule_id = cs.id AND b.status = 'confirmed' AND b.payment_status = 'paid') AS paid_amount
+           FROM class_schedules cs
+           JOIN classes c ON c.id = cs.class_id
+           LEFT JOIN users u ON u.id = c.coach_id
+          WHERE cs.status <> 'cancelled'
+            AND cs.start_time >= datetime('now')
+            AND cs.start_time <= datetime('now', '+' || ? || ' days')
+          ORDER BY cs.start_time ASC
+          LIMIT 100`,
+      )
+      .all(days);
+    res.json({ success: true, sessions: rows });
+  } catch (err) {
+    console.error("[OPS] upcoming sessions error:", err.message);
+    res.status(500).json({ success: false, error: "讀取課堂失敗" });
+  }
+});
+
+router.post(
+  "/schedules/:id/manual-cancel",
+  authenticateToken,
+  requireAdmin,
+  requireOpsRole,
+  (req, res) => {
+    try {
+      const db = getDb();
+      const body = req.body || {};
+      const reason = String(body.reason || "").trim().slice(0, 120);
+      const notifyType = ["weather", "low_enrollment", "emergency"].includes(body.notify_type)
+        ? body.notify_type
+        : "emergency";
+      if (reason.length < 4) {
+        return res.status(400).json({ success: false, error: "請填寫取消原因（最少 4 字）", code: "REASON_REQUIRED" });
+      }
+      if (body.confirmed !== true) {
+        return res.status(400).json({ success: false, error: "請先勾選確認（防手滑）", code: "CONFIRM_REQUIRED" });
+      }
+
+      ensureCols(db, "class_schedules", [["cancel_reason", "TEXT"], ["cancelled_at", "TEXT"], ["cancelled_by", "TEXT"]]);
+      const sched = db
+        .prepare(
+          `SELECT cs.*, c.title, c.coach_id, c.venue_name, u.name AS coach_name
+             FROM class_schedules cs JOIN classes c ON c.id = cs.class_id
+             LEFT JOIN users u ON u.id = c.coach_id
+            WHERE cs.id = ?`,
+        )
+        .get(req.params.id);
+      if (!sched) return res.status(404).json({ success: false, error: "課堂時段不存在" });
+      if (sched.status === "cancelled") {
+        return res.status(409).json({ success: false, error: "此課堂已取消" });
+      }
+
+      const bcols = db.prepare("PRAGMA table_info(bookings)").all().map((c) => c.name);
+      const childExpr = bcols.includes("child_name") ? "NULLIF(b.child_name,'')" : "NULL";
+      const bks = db
+        .prepare(
+          `SELECT b.id, b.booking_reference, b.user_id, b.status, b.payment_status, b.amount,
+                  COALESCE(${childExpr}, u.name) AS student_name, u.name AS user_name, u.phone
+             FROM bookings b JOIN users u ON u.id = b.user_id
+            WHERE b.schedule_id = ? AND b.status <> 'cancelled'`,
+        )
+        .all(sched.id);
+
+      const paidList = bks.filter((b) => b.payment_status === "paid");
+      const paidAmount = paidList.reduce((a, b) => a + (Number(b.amount) || 0), 0);
+
+      const tx = db.transaction(() => {
+        db.prepare(
+          "UPDATE class_schedules SET status='cancelled', cancel_reason=?, cancelled_at=datetime('now'), cancelled_by=? WHERE id=?",
+        ).run(reason, req.user.id, sched.id);
+        const upd = db.prepare(
+          "UPDATE bookings SET status='cancelled', cancel_reason=? WHERE id=? AND status <> 'cancelled'",
+        );
+        bks.forEach((b) => upd.run(reason, b.id));
+      });
+      tx();
+
+      // 逐一通知（站內；WhatsApp 由管理員喺面板一鍵發）
+      try {
+        const { sendNotification } = require("../services/notification");
+        bks.forEach((b) => {
+          sendNotification("class.cancelled", {
+            recipient: b.user_id,
+            data: {
+              class_title: sched.title || "",
+              start_time: sched.start_time,
+              reason,
+              refundable: b.payment_status === "paid",
+              amount: Number(b.amount || 0),
+              notify_type: notifyType,
+            },
+          });
+        });
+      } catch (e) {}
+
+      try {
+        db.prepare(
+          `INSERT INTO audit_log (id, action_type, entity_type, entity_id, user_id, new_values, description, created_at)
+           VALUES (?, 'schedule.manual_cancel', 'class_schedule', ?, ?, ?, ?, datetime('now'))`,
+        ).run(
+          crypto.randomUUID(), sched.id, req.user.id,
+          JSON.stringify({
+            reason, notify_type: notifyType, affected: bks.length,
+            paid_count: paidList.length, paid_amount: paidAmount,
+          }),
+          `人手取消課堂：${sched.title || ""}（影響 ${bks.length} 人 / HK$${paidAmount.toFixed(2)}）`,
+        );
+      } catch (e) {}
+
+      const when = String(sched.start_time || "").replace("T", " ").slice(0, 16);
+      const headZh = {
+        weather: "因天文台已發出惡劣天氣警告（八號風球／黑色暴雨），為確保安全",
+        low_enrollment: "因人數未達開班要求",
+        emergency: "因場地或教練突發狀況",
+      }[notifyType];
+      const refundLine = paidList.length
+        ? `\n我哋已為你開放線上退款通道：請登入平台「我的預約」填寫轉數快（FPS）收款資料，我們將於 1–2 個工作天內全額退回（合計 HK$${paidAmount.toFixed(2)}）。`
+        : "";
+      const whatsappText =
+        `【ZenPass 課堂取消通知】\n各位家長／學員好，${headZh}，原定於 ${when} 之「${sched.title || ""}」確認取消。` +
+        refundLine +
+        `\n如希望改期或查詢，請直接回覆此訊息。不便之處，敬請體諒。\n—— ZenPass 禪流 9033 5538`;
+
+      res.json({
+        success: true,
+        message: `已取消課堂（影響 ${bks.length} 人，已付款 ${paidList.length} 人 / HK$${paidAmount.toFixed(2)}）`,
+        schedule: { id: sched.id, title: sched.title, start_time: sched.start_time, coach_name: sched.coach_name || "" },
+        affected: bks.length,
+        paid_count: paidList.length,
+        paid_amount: Math.round(paidAmount * 100) / 100,
+        students: bks.map((b) => ({
+          booking_id: b.id,
+          booking_reference: b.booking_reference || b.id,
+          student_name: b.student_name || b.user_name || "學員",
+          phone: b.phone || "",
+          paid: b.payment_status === "paid",
+          amount: Number(b.amount || 0),
+        })),
+        whatsapp_text: whatsappText,
+      });
+    } catch (err) {
+      console.error("[OPS] manual cancel error:", err.message);
+      res.status(500).json({ success: false, error: "取消失敗，請稍後再試" });
+    }
+  },
+);
+
 // ===== 批量封存結算 =====
 router.post("/batch-settle", authenticateToken, requireAdmin, requireOpsRole, (req, res) => {
   try {

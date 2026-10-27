@@ -188,6 +188,17 @@ async function sendNotification(type, payload) {
       message = `✅ 預約成功！\n課程：${data?.class_title || "—"}\n日期：${data?.date || "—"} ${data?.time || "—"}\n場地：${data?.venue || "—"}\n教練：${data?.coach_name || "—"}`;
       html = `<h2>✅ 預約確認</h2><p><b>課程：</b>${data?.class_title || "—"}<br><b>日期：</b>${data?.date || "—"} ${data?.time || "—"}<br><b>場地：</b>${data?.venue || "—"}<br><b>教練：</b>${data?.coach_name || "—"}</p>`;
       break;
+    case "class.cancelled":
+      title = "⚠️ 課堂取消通知";
+      message = `課堂：${data?.class_title || ""}\n時間：${String(data?.start_time || "").replace("T", " ").slice(0, 16)}\n原因：${data?.reason || "平台取消"}` +
+        (data?.refundable
+          ? `\n\n我哋已開放退款登記：請到「我的預約」填寫 FPS 收款資料，1–2 個工作天內全額退回 HK$${Number(data?.amount || 0).toFixed(2)}。`
+          : "\n\n此預約未收款，無需退款。");
+      html = `<h2>⚠️ 課堂取消通知</h2><p><b>課堂：</b>${data?.class_title || ""}<br><b>時間：</b>${String(data?.start_time || "").replace("T", " ").slice(0, 16)}<br><b>原因：</b>${data?.reason || "平台取消"}</p>` +
+        (data?.refundable
+          ? `<p>我哋已開放退款登記：請到「我的預約」填寫 FPS 收款資料，1–2 個工作天內全額退回 <b>HK$${Number(data?.amount || 0).toFixed(2)}</b>。</p>`
+          : "<p>此預約未收款，無需退款。</p>");
+      break;
     case "class.vacancy":
       title = "📢 有位喇！";
       message = data?.message || `「${data?.class_title || "課程"}」有名額釋放，快啲預約！`;

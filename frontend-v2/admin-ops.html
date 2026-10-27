@@ -47,6 +47,7 @@
         <button data-t="agr">🤝 協議簽署</button>
         <button data-t="pending">⏳ 待開通新班</button>
         <button data-t="refund">💸 待退款</button>
+        <button data-t="cancel">⚠️ 取消課堂</button>
       </div>
 
       <div id="paneFin">
@@ -59,6 +60,14 @@
         <div class="card"><div class="body">
           <div class="muted" style="font-size:12px;margin-bottom:8px">學員自行提交嘅 FPS／PayMe 付款，核實後即轉「已付款」並生效。收據縮圖可撳大。</div>
           <div id="payList"></div>
+        </div></div>
+      </div>
+
+      <div id="paneCancel" hidden>
+        <div class="card"><div class="body">
+          <b>⚠️ 人手審查取消課堂</b>
+          <div class="muted" style="font-size:12px;margin:6px 0 10px">取消會影響全部已報名學員，並自動開放退款登記。系統會先顯示影響評估，需勾選確認才可執行。</div>
+          <div id="upList"></div>
         </div></div>
       </div>
 
@@ -173,7 +182,7 @@
       $("tabs").onclick = (e) => {
         const b = e.target.closest("button"); if (!b) return;
         [...$("tabs").children].forEach((x) => x.classList.toggle("on", x === b));
-        ["fin", "pay", "leads", "ops", "settle", "cred", "agr", "pending", "refund"].forEach((k) => ($("pane" + k[0].toUpperCase() + k.slice(1))).hidden = b.dataset.t !== k);
+        ["fin", "pay", "leads", "ops", "settle", "cred", "agr", "pending", "refund", "cancel"].forEach((k) => ($("pane" + k[0].toUpperCase() + k.slice(1))).hidden = b.dataset.t !== k);
       };
       $("wxGo").onclick = weatherCancel;
       $("bsGo").onclick = batchSettle;
@@ -190,6 +199,7 @@
       await loadAgreements();
       await loadPendingClasses();
       await loadRefunds();
+      await loadUpcoming();
     }
 
     async function loadFinance() {
@@ -392,6 +402,113 @@
       if (r === "coach") return "教練";
       if (String(r || "").startsWith("partner")) return "場地";
       return r || "—";
+    }
+
+    /* ===== ⚠️ 人手審查取消課堂（兩段式防呆） ===== */
+    async function loadUpcoming() {
+      const box = $("upList"); if (!box) return;
+      const r = await api.get("/admin/ops/upcoming-sessions?days=21");
+      if (!r.ok) { box.innerHTML = `<div class="muted">${esc((r.data && r.data.error) || "讀取失敗")}</div>`; return; }
+      const rows = (r.data && r.data.sessions) || [];
+      if (!rows.length) { box.innerHTML = '<div class="muted" style="font-size:12.5px">未來 21 日暫無課堂</div>'; return; }
+      const fmt = (t) => String(t || "").replace("T", " ").slice(0, 16);
+      box.innerHTML = rows.map((x) => `<div class="row" style="flex-wrap:wrap;align-items:flex-start">
+        <span style="flex:1 1 100%">
+          <b>${esc(x.title || "課堂")}</b>
+          <span class="pill" style="margin-left:6px;background:#f1f5f9;color:#475569">${x.booked} 人報名</span>
+          ${Number(x.paid_count) > 0 ? `<span class="pill p-wait" style="margin-left:4px">已付 ${x.paid_count} 人 · ${hkd(x.paid_amount)}</span>` : ""}
+          <span class="s">📅 ${esc(fmt(x.start_time))} · 👨‍🏫 ${esc(x.coach_name || "待定")}${x.venue_name ? " · 📍 " + esc(x.venue_name) : ""}</span>
+        </span>
+        <button class="btn btn-secondary" style="min-height:34px;padding:0 10px;font-size:12.5px" data-csched="${esc(x.id)}">⚠️ 取消課堂</button>
+      </div>`).join("");
+      box.querySelectorAll("[data-csched]").forEach((b) => (b.onclick = () => {
+        const row = rows.find((y) => y.id === b.dataset.csched);
+        if (row) openCancelWizard(row);
+      }));
+    }
+
+    function openCancelWizard(row) {
+      const fmt = (t) => String(t || "").replace("T", " ").slice(0, 16);
+      const ov = document.createElement("div");
+      ov.style.cssText = "position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:9999;display:flex;align-items:flex-end;justify-content:center;padding:0";
+      ov.innerHTML = `<div style="background:#fff;width:100%;max-width:560px;max-height:92vh;overflow:auto;border-radius:18px 18px 0 0;padding:16px 16px 22px">
+        <div id="cwStep1">
+          <div style="font-size:16px;font-weight:800;color:#b91c1c">⚠️ 即將取消課堂</div>
+          <div style="margin-top:10px;background:#fef2f2;border:1px solid #fecaca;border-radius:12px;padding:10px 12px;font-size:13px;line-height:1.8">
+            <b>${esc(row.title || "")}</b><br>
+            時間：${esc(fmt(row.start_time))}<br>
+            執教：${esc(row.coach_name || "待定")}<br>
+            影響：<b>${Number(row.booked) || 0} 人</b>（已付款 <b>${Number(row.paid_count) || 0} 人</b>，涉款 <b>${hkd(row.paid_amount || 0)}</b>）
+          </div>
+          <div style="margin:12px 0 6px;font-size:13px;font-weight:700">取消原因</div>
+          <div id="cwReason" style="display:flex;flex-direction:column;gap:6px">
+            <label style="font-size:13px"><input type="radio" name="cwType" value="weather" checked> 🌧️ 天氣原因（八號風球／黑雨）</label>
+            <label style="font-size:13px"><input type="radio" name="cwType" value="low_enrollment"> 👥 未達最低開班人數</label>
+            <label style="font-size:13px"><input type="radio" name="cwType" value="emergency"> 🚨 場地或教練突發狀況</label>
+          </div>
+          <input id="cwReasonText" class="fld" style="margin-top:10px" maxlength="120" placeholder="補充說明（會顯示給學員）" />
+          <label style="display:flex;gap:8px;align-items:flex-start;font-size:12.5px;margin:12px 0;line-height:1.6">
+            <input type="checkbox" id="cwConfirm" style="width:18px;height:18px;margin-top:2px" />
+            <span>我已確認需要取消此課堂，並理解系統會<b>立即取消所有報名</b>及<b>開放學員登記退款</b>。</span>
+          </label>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-secondary" id="cwClose" style="flex:1">返回</button>
+            <button class="btn btn-primary" id="cwGo" style="flex:2;background:#dc2626;border-color:#dc2626" disabled>確認執行取消</button>
+          </div>
+        </div>
+        <div id="cwStep2" hidden></div>
+      </div>`;
+      document.body.appendChild(ov);
+      const close = () => ov.remove();
+      ov.querySelector("#cwClose").onclick = close;
+      ov.querySelector("#cwConfirm").onchange = (e) => {
+        ov.querySelector("#cwGo").disabled = !e.target.checked;
+      };
+      ov.querySelector("#cwGo").onclick = async () => {
+        const btn = ov.querySelector("#cwGo");
+        const notify_type = (ov.querySelector("input[name=cwType]:checked") || {}).value || "emergency";
+        const reason = (ov.querySelector("#cwReasonText").value || "").trim() ||
+          ({ weather: "惡劣天氣（八號風球／黑雨）取消", low_enrollment: "未達最低開班人數", emergency: "場地或教練突發狀況" }[notify_type]);
+        btn.disabled = true; btn.textContent = "⏳ 處理中…";
+        const r = await api.post("/admin/ops/schedules/" + encodeURIComponent(row.id) + "/manual-cancel", {
+          reason, notify_type, confirmed: true,
+        });
+        if (!r.ok) { btn.disabled = false; btn.textContent = "確認執行取消"; alert((r.data && r.data.error) || "取消失敗"); return; }
+        // 第二段：通知學員
+        const d = r.data || {};
+        const phones = (d.students || []).map((s) => s.phone).filter(Boolean).join(",");
+        ov.querySelector("#cwStep1").hidden = true;
+        const st = ov.querySelector("#cwStep2");
+        st.hidden = false;
+        st.innerHTML = `<div style="font-size:16px;font-weight:800;color:#047857">✅ 已取消課堂</div>
+          <div class="muted" style="font-size:12.5px;margin:6px 0 10px">影響 ${d.affected || 0} 人（已付款 ${d.paid_count || 0} 人 / ${hkd(d.paid_amount || 0)}）。學員「我的預約」已自動出現退款登記表。</div>
+          <div style="font-size:13px;font-weight:700;margin-bottom:6px">📢 WhatsApp 通知文案</div>
+          <textarea id="cwMsg" readonly style="width:100%;height:130px;border:1px solid var(--border);border-radius:10px;padding:10px;font:inherit;font-size:12.5px">${esc(d.whatsapp_text || "")}</textarea>
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <button class="btn btn-secondary" style="flex:1" id="cwCopyMsg">📋 複製文案</button>
+            <button class="btn btn-secondary" style="flex:1" id="cwCopyPhones" ${phones ? "" : "disabled"}>📋 複製學員電話</button>
+          </div>
+          <div style="margin-top:12px;font-size:13px;font-weight:700">已報名學員</div>
+          <div style="margin-top:6px">${(d.students || []).map((s) => {
+            const wa = String(s.phone || "").replace(/\D/g, "").slice(-8);
+            const oneMsg = `你好 ${s.student_name}，${d.whatsapp_text || ""}`;
+            return `<div class="row" style="align-items:center">
+              <span style="flex:1"><b>${esc(s.student_name)}</b><span class="s">${esc(s.phone || "—")} · ${s.paid ? "已付 " + hkd(s.amount) : "未付款"}</span></span>
+              ${wa.length === 8 ? `<a class="btn btn-secondary" style="min-height:32px;padding:0 9px;font-size:12px;text-decoration:none;background:#25d366;color:#04331c;border-color:#25d366" target="_blank" rel="noopener" href="https://wa.me/852${wa}?text=${encodeURIComponent(oneMsg)}">💬</a>` : ""}
+            </div>`;
+          }).join("")}</div>
+          <button class="btn btn-primary btn-block" style="margin-top:14px" id="cwDone">完成</button>`;
+        st.querySelector("#cwCopyMsg").onclick = async () => {
+          try { await navigator.clipboard.writeText(d.whatsapp_text || ""); toast("✅ 已複製文案"); }
+          catch (e) { prompt("複製：", d.whatsapp_text || ""); }
+        };
+        const cp = st.querySelector("#cwCopyPhones");
+        if (cp) cp.onclick = async () => {
+          try { await navigator.clipboard.writeText(phones); toast("✅ 已複製 " + phones.split(",").filter(Boolean).length + " 個電話"); }
+          catch (e) { prompt("電話：", phones); }
+        };
+        st.querySelector("#cwDone").onclick = () => { close(); loadUpcoming(); loadFinance(); loadRefunds(); };
+      };
     }
 
     /* ===== 💸 待退款（學員已登記 FPS） ===== */
