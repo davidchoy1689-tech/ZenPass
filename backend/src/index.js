@@ -319,6 +319,7 @@ app.use("/api/wishlist", require("./routes/wishlist"));
 app.use("/api/topup", require("./routes/topup"));
 app.use("/api/nps", require("./routes/nps"));
 app.use("/api/platform", require("./routes/platform"));
+app.use("/api/admin", require("./routes/admin-crm"));
 
 // 🚨 極端天氣監察：每 10 分鐘讀天文台，狀態轉變即通知管理員（唔會自動取消課堂）
 try {

@@ -49,6 +49,7 @@
         <button data-t="refund">💸 待退款</button>
         <button data-t="cancel">⚠️ 取消課堂</button>
         <button data-t="alert">🚨 天氣警報</button>
+        <button data-t="student">👥 學員檔案</button>
       </div>
 
       <div id="paneFin">
@@ -62,6 +63,18 @@
           <div class="muted" style="font-size:12px;margin-bottom:8px">學員自行提交嘅 FPS／PayMe 付款，核實後即轉「已付款」並生效。收據縮圖可撳大。</div>
           <div id="payList"></div>
         </div></div>
+      </div>
+
+      <div id="paneStudent" hidden>
+        <div class="card" style="margin-bottom:10px"><div class="body">
+          <b>👥 學員 360° 檔案</b>
+          <div class="muted" style="font-size:12px;margin:6px 0 10px">輸入姓名或電話搜尋；撳「詳情」睇證書、預約同出席紀錄。</div>
+          <div style="display:flex;gap:8px">
+            <input class="fld" id="stuSearch" placeholder="姓名 / 電話 / Email" style="margin:0;flex:1" maxlength="60" />
+            <button class="btn btn-primary" id="stuGo" style="flex:none;min-height:42px">搜尋</button>
+          </div>
+        </div></div>
+        <div class="card"><div class="body"><div id="stuList"><div class="muted" style="font-size:12.5px">載入中…</div></div></div></div>
       </div>
 
       <div id="paneAlert" hidden>
@@ -194,9 +207,11 @@
       $("tabs").onclick = (e) => {
         const b = e.target.closest("button"); if (!b) return;
         [...$("tabs").children].forEach((x) => x.classList.toggle("on", x === b));
-        ["fin", "pay", "leads", "ops", "settle", "cred", "agr", "pending", "refund", "cancel", "alert"].forEach((k) => ($("pane" + k[0].toUpperCase() + k.slice(1))).hidden = b.dataset.t !== k);
+        ["fin", "pay", "leads", "ops", "settle", "cred", "agr", "pending", "refund", "cancel", "alert", "student"].forEach((k) => ($("pane" + k[0].toUpperCase() + k.slice(1))).hidden = b.dataset.t !== k);
       };
       $("wxGo").onclick = weatherCancel;
+      $("stuGo").onclick = () => loadStudents();
+      $("stuSearch").addEventListener("keydown", (e) => { if (e.key === "Enter") loadStudents(); });
       $("bsGo").onclick = batchSettle;
       $("plGo").onclick = payoutCsv;
       window.__loadCred = loadCredentials;
@@ -213,6 +228,7 @@
       await loadRefunds();
       await loadUpcoming();
       await loadAlerts();
+      await loadStudents();
     }
 
     async function loadFinance() {
@@ -332,6 +348,16 @@
       const rows = (r.data.credentials || []);
       if (!rows.length) { box.innerHTML = '<div class="muted" style="font-size:12.5px">暫無教練提交資質。</div>'; return; }
       const badge = (x) => x.status === "verified" ? '<span class="pill p-on">✅ 已核實</span>' : x.status === "rejected" ? '<span class="pill" style="background:#fef2f2;color:#b91c1c">❌ 已拒絕</span>' : '<span class="pill p-wait">⏳ 待核實</span>';
+      // 🚦 資質到期智能監控：30 日內黃標、已過期紅標
+      const expiryPill = (label, dateStr) => {
+        if (!dateStr) return "";
+        const d = new Date(String(dateStr).slice(0, 10) + "T00:00:00");
+        if (isNaN(d.getTime())) return "";
+        const days = Math.ceil((d.getTime() - Date.now()) / 86400000);
+        if (days < 0) return `<span class="pill" style="background:#fef2f2;color:#b91c1c;margin-left:4px">🚨 ${label}已過期 ${Math.abs(days)} 日</span>`;
+        if (days <= 30) return `<span class="pill" style="background:#fffbeb;color:#b45309;margin-left:4px">⚠️ ${label} ${days} 日後到期</span>`;
+        return `<span class="pill" style="background:#f1f5f9;color:#475569;margin-left:4px">${label} ${esc(String(dateStr).slice(0, 10))}</span>`;
+      };
       box.innerHTML = rows.map((x) => {
         const files = [];
         if (x.certificate_url) files.push(`<a class="btn btn-secondary" style="min-height:30px;padding:0 8px;font-size:11.5px;text-decoration:none" href="${esc(x.certificate_url)}" target="_blank" rel="noopener">📄 證書</a>`);
@@ -349,12 +375,13 @@
         return `<div class="row" style="flex-wrap:wrap"><span style="flex:1 1 100%"><b>${esc(x.name || x.email)}</b> ${starBadge}
         <span class="s">${esc(x.license_type || "")}${x.license_no ? " · " + esc(x.license_no) : ""}${x.license_expiry ? " · 到期 " + esc(x.license_expiry) : ""}
         ${x.first_aid_type ? " · 🚑 " + esc(x.first_aid_type) + (x.first_aid_expiry ? "（" + esc(x.first_aid_expiry) + "）" : "") : " · 無急救證書"}
-        ${x.insurance_expiry_date ? " · 保單到期 " + esc(x.insurance_expiry_date) : ""}
-        ${x.expired ? " · ⚠️ 已過期" : ""}</span></span>
+        </span>
+        <span class="s" style="margin-top:2px">${expiryPill("牌照", x.license_expiry)}${expiryPill("保單", x.insurance_expiry_date)}${expiryPill("急救", x.first_aid_expiry)}${x.expired ? ' <span class="pill" style="background:#fef2f2;color:#b91c1c">🚨 已過期</span>' : ""}</span></span>
         <span style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:6px">${badge(x)}${files.join("")}
         ${x.status !== "verified" ? `<button class="btn btn-primary" style="min-height:30px;padding:0 9px;font-size:11.5px" data-cv="${esc(x.id)}" data-d="approve" data-star="1">⭐ 核實並頒星級</button>` : ""}
         ${x.status === "verified" && Number(x.is_starred) !== 1 ? `<button class="btn btn-primary" style="min-height:30px;padding:0 9px;font-size:11.5px" data-cv="${esc(x.id)}" data-d="approve" data-star="1">⭐ 加星級</button>` : ""}
         ${x.status !== "rejected" ? `<button class="btn btn-secondary" style="min-height:30px;padding:0 9px;font-size:11.5px" data-cv="${esc(x.id)}" data-d="reject">拒絕</button>` : ""}
+        <button class="btn btn-secondary" style="min-height:30px;padding:0 9px;font-size:11.5px" data-cedit="${esc(x.user_id)}" data-lic="${esc(x.license_expiry || "")}" data-ins="${esc(x.insurance_expiry_date || "")}">✏️ 到期日</button>
         </span>${sportChips}</div>`;
       }).join("");
       // 可發證項目：即時切換儲存
@@ -366,6 +393,17 @@
         cur = cur.includes(k) ? cur.filter((x) => x !== k) : cur.concat(k);
         const rr = await api.post("/admin/coach-credentials/" + encodeURIComponent(b.dataset.cv) + "/qualified-sports", { sports: cur });
         if (rr.ok) { toast("✅ 已更新可發證項目"); loadCredentials(); }
+        else alert((rr.data && rr.data.error) || "更新失敗");
+      }));
+      box.querySelectorAll("[data-cedit]").forEach((b) => (b.onclick = async () => {
+        const lic = prompt("教練牌照到期日（YYYY-MM-DD，留空清除）", b.dataset.lic || "");
+        if (lic === null) return;
+        const ins = prompt("責任保險到期日（YYYY-MM-DD，留空清除）", b.dataset.ins || "");
+        if (ins === null) return;
+        const rr = await api.put("/admin/coaches/" + encodeURIComponent(b.dataset.cedit) + "/credentials", {
+          license_expiry: lic.trim(), insurance_expiry_date: ins.trim(),
+        });
+        if (rr.ok) { toast("✅ 已更新到期日"); loadCredentials(); }
         else alert((rr.data && rr.data.error) || "更新失敗");
       }));
       box.querySelectorAll("[data-cv]").forEach((b) => (b.onclick = async () => {
@@ -415,6 +453,57 @@
       if (r === "coach") return "教練";
       if (String(r || "").startsWith("partner")) return "場地";
       return r || "—";
+    }
+
+    /* ===== 👥 學員 360° 檔案 ===== */
+    let STU_ROWS = [];
+    async function loadStudents() {
+      const box = $("stuList"); if (!box) return;
+      const q = ($("stuSearch") && $("stuSearch").value.trim()) || "";
+      const r = await api.get("/admin/crm/students?limit=30&search=" + encodeURIComponent(q));
+      if (!r.ok) { box.innerHTML = `<div class="muted">${esc((r.data && r.data.error) || "讀取失敗")}</div>`; return; }
+      STU_ROWS = (r.data && r.data.students) || [];
+      box.innerHTML = STU_ROWS.length
+        ? STU_ROWS.map((x, i) => `<div class="row" style="flex-wrap:wrap;align-items:flex-start">
+            <span style="flex:1 1 100%">
+              <b>${esc(x.name || "學員")}</b>
+              ${x.children && x.children.length ? `<span class="pill" style="margin-left:6px;background:#eff6ff;color:#1d4ed8">👦 ${esc(x.children.join("、"))}</span>` : ""}
+              <span class="s">${esc(x.phone || "—")}${x.email ? " · " + esc(x.email) : ""}</span>
+              <span class="s">🎫 ${x.bookings} 筆 · ✅ 出席 ${x.attended}${x.no_shows ? " · ❌ 缺席 " + x.no_shows : ""}${x.cancelled ? " · 🚫 取消 " + x.cancelled : ""} · ⏱️ ${x.hours} 小時 · 🏆 ${x.certs} 張證書 · 💰 ${hkd(x.spent)}</span>
+              <span class="s">首次上堂：${esc(String(x.first_session || "—").slice(0, 10))}${x.sports && x.sports.length ? " · " + esc(x.sports.filter(Boolean).join("、")) : ""}</span>
+            </span>
+            <button class="btn btn-secondary" style="min-height:32px;padding:0 10px;font-size:12.5px" data-stu="${esc(x.id)}" data-i="${i}">詳情</button>
+            <div style="flex:1 1 100%" id="stuDetail-${i}"></div>
+          </div>`).join("")
+        : '<div class="muted" style="font-size:12.5px">查無符合嘅學員</div>';
+      box.querySelectorAll("[data-stu]").forEach((b) => (b.onclick = () => toggleStudent(b.dataset.stu, b.dataset.i, b)));
+    }
+
+    async function toggleStudent(id, i, btn) {
+      const box = $("stuDetail-" + i);
+      if (!box) return;
+      if (box.dataset.open === "1") { box.innerHTML = ""; box.dataset.open = "0"; btn.textContent = "詳情"; return; }
+      box.innerHTML = '<div class="muted" style="font-size:12px;margin-top:6px">載入中…</div>';
+      const r = await api.get("/admin/crm/students/" + encodeURIComponent(id));
+      if (!r.ok) { box.innerHTML = `<div class="muted">${esc((r.data && r.data.error) || "讀取失敗")}</div>`; return; }
+      const d = r.data || {};
+      const certs = d.certificates || [];
+      const bks = d.bookings || [];
+      const terms = d.terms || [];
+      const typeLabel = (t) => t === "graduation" ? "全期結業" : t === "attendance" ? "出席證書" : t === "skill_assessment" ? "專項評定" : "單堂出席";
+      box.dataset.open = "1";
+      btn.textContent = "收起";
+      box.innerHTML = `
+        ${terms.length ? `<div style="margin-top:8px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:8px 10px">
+          <b style="font-size:12px">📈 期制進度</b>
+          ${terms.map((t) => `<div class="s" style="font-size:11.5px">${esc(t.title)}：${t.attended}/${t.total_sessions} 堂（${t.percent}%）${t.completed ? " ✅ 已結業" : ""}</div>`).join("")}
+        </div>` : ""}
+        <div style="margin-top:8px"><b style="font-size:12px">🏆 證書（${certs.length}）</b>
+          ${certs.length ? certs.map((c) => `<div class="s" style="font-size:11.5px">${typeLabel(c.cert_type)} · ${esc(c.class_title || "")} · ${(Number(c.hours) || 0).toFixed(1)} 小時 · ${esc(c.code)}${c.overall_grade ? " · " + esc(c.overall_grade) : ""}</div>`).join("") : '<div class="s">暫無證書</div>'}
+        </div>
+        <div style="margin-top:8px"><b style="font-size:12px">🎫 預約紀錄（最近 100）</b>
+          ${bks.length ? bks.slice(0, 20).map((b2) => `<div class="s" style="font-size:11.5px">${esc(String(b2.start_time || b2.created_at || "").slice(0, 16).replace("T", " "))} · ${esc(b2.title || "")} · ${esc(b2.status)}${b2.payment_status ? " / " + esc(b2.payment_status) : ""}${b2.child_name ? " · 👦 " + esc(b2.child_name) : ""}</div>`).join("") : '<div class="s">暫無預約</div>'}
+        </div>`;
     }
 
     /* ===== 🚨 天氣警報 ===== */
