@@ -32,8 +32,12 @@ router.post(
       const penaltyConsent = req.body.penaltyConsent !== undefined ? req.body.penaltyConsent : req.body.penalty_consent;
       const avail = Booking.checkAvailability(scheduleId);
       if (!avail.available) {
-        const msg = avail.reason === "full" ? "該時段已滿額" : "該時段不存在或已滿";
-        return res.status(400).json({ success: false, error: msg });
+        const full = avail.reason === "full";
+        return res.status(full ? 409 : 400).json({
+          success: false,
+          error: full ? "該時段名額已滿" : "該時段不存在或已滿",
+          code: full ? "CLASS_FULL" : "SLOT_UNAVAILABLE",
+        });
       }
 
       // 2. Validate penalty consent
@@ -228,7 +232,8 @@ router.post("/:id/request-refund", authenticateToken, (req, res) => {
       });
     }
 
-    const fpsId = String((req.body && (req.body.fps_id || req.body.fpsId)) || "").trim().slice(0, 64);
+    const { normalizeFpsId } = require("../lib/fps");
+    const fpsId = normalizeFpsId((req.body && (req.body.fps_id || req.body.fpsId)) || "").slice(0, 64);
     const fpsName = String((req.body && (req.body.fps_name || req.body.fpsName)) || "").trim().slice(0, 64);
     const looksPhone = /^\+?\d[\d\s-]{5,19}$/.test(fpsId);
     const looksEmail = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(fpsId);

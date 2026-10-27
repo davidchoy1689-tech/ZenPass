@@ -55,7 +55,7 @@ const ok = (c, m) => { if (c) console.log("  ✅ " + m); else { console.log("  �
   ok(sched.enrolled_count === 4, `名額 +3（1→4，got ${sched.enrolled_count}）`);
 
   const r2 = book("u2", "s2", 3, "single");
-  ok(r2.status === 400 && /滿額/.test(r2.body.error || ""), `剩 2 位唔夠 3 人 → 拒絕（got ${r2.status}）`);
+  ok(r2.status === 409 && /滿/.test(r2.body.error || ""), `剩 2 位唔夠 3 人 → 409 CLASS_FULL（got ${r2.status}）`);
 
   // credits: 12cr × 3 × 0.8 = 28.8 credits
   const r3 = book("u2", "s1", 3, "credits");

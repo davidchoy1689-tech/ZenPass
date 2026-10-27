@@ -874,9 +874,10 @@ function createBooking(req, options = {}) {
     // 5. Capacity check (atomic conditional update)
     const capResult = incrementEnrolledCount(db, schedule_id, groupSize);
     if (capResult.changes === 0) {
+      // 併發超賣防線：條件式 UPDATE 失敗 = 名額已滿（原子性，唔會出現 11 人上 10 人場）
       throw new BookingFlowError({
-        status: 400,
-        body: { success: false, error: "該時段已滿額" },
+        status: 409,
+        body: { success: false, error: "該時段名額已滿", code: "CLASS_FULL" },
       });
     }
 

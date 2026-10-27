@@ -195,7 +195,8 @@ function sealPending(db) {
  * 2026-10-27：證書時數不可寫死 2.0，否則 1.5 小時班會與證書不符。
  */
 function minutesBetween(startTime, endTime, fallback) {
-  const fb = Number(fallback) || 60;
+  // 注意：fallback = 0 代表「唔要後備值」（唔可以寫 Number(fallback) || 60）
+  const fb = fallback == null ? 60 : Number(fallback);
   if (!startTime || !endTime) return fb;
   const a = new Date(String(startTime).replace(" ", "T").replace("Z", ""));
   const b = new Date(String(endTime).replace(" ", "T").replace("Z", ""));
@@ -408,13 +409,15 @@ function maybeIssueGraduation(db, row) {
 
   const total = Math.max(1, Number(cls.total_sessions) || 1);
   const rate = Math.min(1, Math.max(0.1, Number(cls.min_attendance_rate) || 0.8));
-  const attended =
+  // 出席堂數封頂於全期堂數（防止重複簽到／補堂令出席率 >100%）
+  const rawAttended =
     db
       .prepare(
         `SELECT COUNT(*) AS n FROM bookings b
          WHERE b.user_id = ? AND b.class_id = ? AND b.status = 'attended'`,
       )
       .get(row.user_id, row.class_id).n || 0;
+  const attended = Math.min(Number(rawAttended) || 0, total);
   if (attended / total < rate) return null;
 
   const key = "term:" + row.class_id + ":" + row.user_id;
@@ -502,13 +505,14 @@ function syncAttendanceStatement(db, classId, userId) {
   const total = Math.max(1, Number(cls.total_sessions) || 1);
   const rate = Math.min(1, Math.max(0.1, Number(cls.min_attendance_rate) || 0.8));
   const required = Math.ceil(total * rate);
-  const attended =
+  const rawAttended2 =
     db
       .prepare(
         `SELECT COUNT(*) AS n FROM bookings b
          WHERE b.user_id = ? AND b.class_id = ? AND b.status = 'attended'`,
       )
       .get(userId, classId).n || 0;
+  const attended = Math.min(Number(rawAttended2) || 0, total);
 
   const key = "attend:" + classId + ":" + userId;
 
@@ -727,7 +731,8 @@ function studentSummariesForUser(userId) {
 
   const byName = new Map();
   for (const v of perClass.values()) {
-    const sessions = v.isTerm && v.graduated ? v.total : v.attended;
+    const cappedAttended = v.isTerm ? Math.min(v.attended, v.total) : v.attended;
+    const sessions = v.isTerm && v.graduated ? v.total : cappedAttended;
     const mins = sessions * classAvgMinutes(db, v.class_id, v.duration);
     const cur = byName.get(v.name) || { name: v.name, hours: 0, certs: 0 };
     cur.hours += mins / 60;
@@ -784,7 +789,7 @@ function termProgressForUser(userId) {
       total_sessions: total,
       attended: Math.min(attended, total),
       required: need,
-      percent: Math.min(100, Math.round((attended / total) * 100)),
+      percent: Math.min(100, Math.round((Math.min(attended, total) / total) * 100)),
       completed: Number(r.graduated) > 0 || attended >= need,
       hours_total: Math.round((((Number(r.duration) || 60) * total) / 60) * 10) / 10,
     };

@@ -116,14 +116,25 @@
         <input id="rfName_${esc(b.id)}" placeholder="收款人姓名（需與銀行紀錄一致）" maxlength="64"
           style="width:100%;border:1px solid var(--border);border-radius:10px;padding:9px 10px;font:inherit;font-size:13px;margin-bottom:8px" />
         <button class="btn btn-primary" type="button" onclick="submitRefund('${esc(b.id)}')">💸 提交退款登記</button>
-        <div class="muted" style="font-size:11px;margin-top:6px">已付款紀錄：HK$${amt} · 退款原因：${esc(reason)}</div>
+        <div class="muted" style="font-size:11px;margin-top:6px">已付款紀錄：HK$${amt} · 退款原因：${esc(reason)}<br>💡 FPS 可填 8 位手機號碼／電郵／FPS ID，系統會自動去除 +852 及空格。</div>
       </div>`;
     }
 
+    // FPS 識別碼標準化（同後端一致）：去除 +852／空格／橫線；email 轉細楷
+    function normalizeFps(v) {
+      const s = String(v || "").trim();
+      if (!s) return "";
+      if (s.includes("@")) return s.toLowerCase().replace(/\s+/g, "");
+      let d = s.replace(/[^\d]/g, "");
+      if (d.length === 11 && d.startsWith("852")) d = d.slice(3);
+      if (d.length === 8) return d;
+      return s.replace(/[\s\-()]/g, "").replace(/^\+/, "");
+    }
+
     window.submitRefund = async (id) => {
-      const fps = (document.getElementById("rfFps_" + id)?.value || "").trim();
+      const fps = normalizeFps(document.getElementById("rfFps_" + id)?.value || "");
       const name = (document.getElementById("rfName_" + id)?.value || "").trim();
-      if (fps.length < 6) { alert("請填寫有效的 FPS 收款識別（手機號碼／電郵／FPS ID）"); return; }
+      if (fps.length < 6) { alert("請填寫有效的 FPS 收款識別（8 位手機號碼／電郵／FPS ID）"); return; }
       if (name.replace(/\s/g, "").length < 2) { alert("請填寫收款人姓名"); return; }
       const r = await api.post("/bookings/" + encodeURIComponent(id) + "/request-refund", { fps_id: fps, fps_name: name });
       if (r.ok) { alert((r.data && r.data.message) || "✅ 已登記退款"); await load(); }
