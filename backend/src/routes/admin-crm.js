@@ -262,18 +262,34 @@ function venuePliGateMode(db) {
 function venuePliRows(db) {
   ensureVenuePliColumns(db);
   const today = new Date().toISOString().slice(0, 10);
-  const rows = db
-    .prepare(
-      `SELECT id, name, district, address, status, business_reg_no, pli_policy_no, pli_expiry, pli_status
-         FROM partner_venues
-        ORDER BY (status = 'active') DESC, name`,
-    )
-    .all();
+  let rows;
+  try {
+    // class_count = 有幾多個未取消／未刪除嘅班用緊呢個場地 → 只有「有班」場地會阻擋 enforce
+    rows = db
+      .prepare(
+        `SELECT pv.id, pv.name, pv.district, pv.address, pv.status, pv.business_reg_no,
+                pv.pli_policy_no, pv.pli_expiry, pv.pli_status,
+                (SELECT COUNT(*) FROM classes c
+                  WHERE c.partner_venue_id = pv.id AND c.status NOT IN ('cancelled','deleted')) AS class_count
+           FROM partner_venues pv
+          ORDER BY (pv.status = 'active') DESC, class_count DESC, pv.name`,
+      )
+      .all();
+  } catch (e) {
+    rows = db
+      .prepare(
+        `SELECT id, name, district, address, status, business_reg_no, pli_policy_no, pli_expiry, pli_status
+           FROM partner_venues
+          ORDER BY (status = 'active') DESC, name`,
+      )
+      .all();
+  }
   return rows.map((v) => {
     const status = String(v.pli_status || "unverified");
     const expiry = v.pli_expiry ? String(v.pli_expiry).slice(0, 10) : null;
     const expired = !!(expiry && expiry < today);
     const daysLeft = expiry ? Math.ceil((new Date(expiry + "T00:00:00").getTime() - Date.now()) / 86400000) : null;
+    const classCount = Number(v.class_count || 0);
     return {
       id: v.id,
       name: v.name,
@@ -287,6 +303,8 @@ function venuePliRows(db) {
       expired,
       days_left: daysLeft,
       ok: status === "exempt" || (status === "verified" && !expired),
+      class_count: classCount,
+      in_use: v.status === "active" && classCount > 0,
     };
   });
 }
@@ -296,18 +314,24 @@ router.get("/venues", authenticateToken, requireAdmin, requireOpsRole, (req, res
   try {
     const db = getDb();
     const venues = venuePliRows(db);
-    const commercial = venues.filter((v) => v.status === "active" && v.pli_status !== "exempt");
-    const blocking = commercial.filter((v) => !v.ok);
+    // 只有「使用中（有班）嘅商業場地」才計入 enforce 齊備度；
+    // 未有班用嘅目錄場地唔會無限期阻住上線（開班時另有 coach 端閘門逐個擋）。
+    const activeCommercial = venues.filter((v) => v.status === "active" && v.pli_status !== "exempt");
+    const inUse = activeCommercial.filter((v) => v.in_use);
+    const blocking = inUse.filter((v) => !v.ok);
+    const idleUnverified = activeCommercial.filter((v) => !v.in_use && !v.ok);
     res.json({
       success: true,
       gate: venuePliGateMode(db),
       venues,
       summary: {
         total: venues.length,
-        active_commercial: commercial.length,
-        ok: commercial.length - blocking.length,
+        active_commercial: activeCommercial.length,
+        in_use_commercial: inUse.length,
+        ok: inUse.length - blocking.length,
         blocking: blocking.length,
         blocking_names: blocking.map((v) => v.name),
+        idle_unverified: idleUnverified.length,
         ready_for_enforce: blocking.length === 0,
       },
     });
@@ -327,11 +351,11 @@ router.post("/settings/venue-pli-gate", authenticateToken, requireAdmin, require
     }
     if (mode === "enforce") {
       const venues = venuePliRows(db);
-      const blocking = venues.filter((v) => v.status === "active" && v.pli_status !== "exempt" && !v.ok);
+      const blocking = venues.filter((v) => v.status === "active" && v.pli_status !== "exempt" && v.in_use && !v.ok);
       if (blocking.length) {
         return res.status(400).json({
           success: false,
-          error: `仍有 ${blocking.length} 個使用中場地未核驗或保單已過期，未能切換強制模式`,
+          error: `仍有 ${blocking.length} 個有班使用中嘅場地未核驗或保單已過期，未能切換強制模式`,
           code: "VENUE_PLI_INCOMPLETE",
           blocking: blocking.map((v) => ({ id: v.id, name: v.name, pli_status: v.pli_status, pli_expiry: v.pli_expiry })),
         });

@@ -6,7 +6,7 @@ const os = require("os");
 const path = require("path");
 const Database = require("better-sqlite3");
 
-process.env.JWT_SECRET = "test-only-secret-value-for-zenpass-tests-32";
+process.env.JWT_SECRET = "zenpass-test-secret-key-0123456789abcdef0123456789";
 process.env.VENUE_PLI_GATE = "warn";
 const tmp = path.join(os.tmpdir(), "zenpass-plipanel-" + Date.now() + ".db");
 process.env.DB_PATH = tmp;
@@ -50,19 +50,30 @@ const ok = (c, m) => { if (c) { console.log("  ✅ " + m); pass++; } else { cons
   db.prepare("INSERT INTO partner_venues (id,name,district,address,status) VALUES ('v-lck','荔枝角室內場','深水埗','長沙灣道 1 號','active')").run();
   db.prepare("INSERT INTO partner_venues (id,name,district,address,status) VALUES ('v-kln','觀塘工廈場','觀塘','鴻圖道 2 號','active')").run();
   db.prepare("INSERT INTO partner_venues (id,name,district,address,status) VALUES ('v-lcsd','康文署體育館','灣仔','','active')").run();
+  db.prepare("INSERT INTO partner_venues (id,name,district,address,status) VALUES ('v-idle','目錄場地（未有班）','沙田','','active')").run();
   db.prepare("INSERT INTO partner_venues (id,name,district,address,status) VALUES ('v-old','舊場（已停用）','油尖旺','','inactive')").run();
+
+  // 只有 v-lck / v-kln 有班 → 只有佢哋會阻擋 enforce
+  db.prepare("INSERT INTO classes (id,coach_id,title,category,duration,price_hkd,status,partner_venue_id,max_participants) VALUES ('c1','admin','芬蘭木柱班','新興運動',90,150,'active','v-lck',12)").run();
+  db.prepare("INSERT INTO classes (id,coach_id,title,category,duration,price_hkd,status,partner_venue_id,max_participants) VALUES ('c2','admin','地板冰壺班','新興運動',90,150,'active','v-kln',12)").run();
+  db.prepare("INSERT INTO classes (id,coach_id,title,category,duration,price_hkd,status,partner_venue_id,max_participants) VALUES ('c3','admin','已取消班','新興運動',90,150,'deleted','v-idle',12)").run();
 
   console.log("📋 1. GET /admin/venues");
   const listFn = pick("/venues", "get");
   let r = await call(listFn);
   ok(r.statusCode === 200 && r.body.success === true, "回傳 200 success");
-  ok((r.body.venues || []).length === 4, "回傳全部 4 個場地");
+  ok((r.body.venues || []).length === 5, "回傳全部 5 個場地");
   ok(r.body.gate === "warn", "預設閘門模式 warn（env fallback）");
-  ok(r.body.summary.active_commercial === 3, "使用中商業場地 3 個（含未標記 exempt）");
-  ok(r.body.summary.blocking === 3, "3 個場地待處理");
+  ok(r.body.summary.active_commercial === 4, "使用中商業場地 4 個");
+  ok(r.body.summary.in_use_commercial === 2, "有班場地 2 個（enforce 母數）");
+  ok(r.body.summary.blocking === 2, "2 個有班場地待處理");
+  ok(r.body.summary.idle_unverified === 2, "2 個目錄場地未核驗（唔阻擋）");
   ok(r.body.summary.ready_for_enforce === false, "未齊料 → 不可 enforce");
   const lck = r.body.venues.find((v) => v.id === "v-lck");
   ok(lck && lck.pli_status === "unverified" && lck.ok === false, "場地預設 unverified 且 ok=false");
+  ok(lck && lck.in_use === true && lck.class_count === 1, "有班場地標記 in_use + class_count");
+  const idle = r.body.venues.find((v) => v.id === "v-idle");
+  ok(idle && idle.in_use === false, "只有已刪除班嘅場地唔算 in_use");
 
   console.log("\n📋 2. PUT /admin/venues/:id/pli");
   const pliFn = pick("/venues/:id/pli", "put");
@@ -76,13 +87,15 @@ const ok = (c, m) => { if (c) { console.log("  ✅ " + m); pass++; } else { cons
   ok(v.pli_status === "verified" && v.ok === true, "列表反映已核驗");
   ok(v.business_reg_no === "BR-123456" && v.pli_policy_no === "PLI-8899", "BR／保單號已寫入");
   ok(v.pli_expiry === future, "到期日已寫入");
-  ok(r.body.summary.blocking === 2, "待處理減至 2");
+  ok(r.body.summary.blocking === 1, "待處理減至 1");
 
   console.log("\n📋 3. 豁免場地（政府場地）");
   r = await call(pliFn, { params: { id: "v-lcsd" }, body: { pli_status: "exempt" } });
   ok(r.statusCode === 200, "可標記 exempt（無需到期日）");
   r = await call(listFn);
-  ok(r.body.summary.active_commercial === 2, "exempt 不計入商業場地");
+  ok(r.body.summary.active_commercial === 3, "exempt 不計入商業場地");
+  ok(r.body.summary.idle_unverified === 1, "豁免後目錄場地未核驗剩 1");
+  ok(r.body.summary.in_use_commercial === 2, "有班場地母數不變");
 
   console.log("\n📋 4. POST /admin/settings/venue-pli-gate");
   const gateFn = pick("/settings/venue-pli-gate", "post");
@@ -91,18 +104,18 @@ const ok = (c, m) => { if (c) { console.log("  ✅ " + m); pass++; } else { cons
 
   r = await call(gateFn, { body: { mode: "enforce" } });
   ok(r.statusCode === 400 && r.body.code === "VENUE_PLI_INCOMPLETE", "仍有未核驗場地 → 拒絕 enforce");
-  ok((r.body.blocking || []).some((x) => x.id === "v-kln"), "回傳待處理場地名單");
+  ok((r.body.blocking || []).length === 1 && (r.body.blocking || [])[0].id === "v-kln", "只列出有班而未核驗嘅場地");
 
   r = await call(gateFn, { body: { mode: "warn" } });
   ok(r.statusCode === 200 && r.body.gate === "warn", "可自由切回 warn");
 
-  // 補齊最後一個場地後才可 enforce
+  // 補齊最後一個有班場地後才可 enforce（v-idle 仍未核驗但不阻擋）
   r = await call(pliFn, { params: { id: "v-kln" }, body: { business_reg_no: "BR-778899", pli_policy_no: "PLI-2233", pli_expiry: future, pli_status: "verified" } });
-  ok(r.statusCode === 200, "第二個場地核驗成功");
+  ok(r.statusCode === 200, "第二個有班場地核驗成功");
 
   r = await call(listFn);
-  ok(r.body.summary.ready_for_enforce === true, "全部核驗 → ready_for_enforce");
   ok(r.body.summary.blocking === 0, "待處理 0");
+  ok(r.body.summary.ready_for_enforce === true, "有班場地齊料 → ready_for_enforce（目錄場地未核驗唔阻擋）");
 
   r = await call(gateFn, { body: { mode: "enforce" } });
   ok(r.statusCode === 200 && r.body.gate === "enforce", "可切換 enforce");
@@ -123,6 +136,7 @@ const ok = (c, m) => { if (c) { console.log("  ✅ " + m); pass++; } else { cons
   ok(/\/admin\/venues/.test(html) && /venue-pli-gate/.test(html), "前端已接線新 API");
   ok(/pli_status/.test(html) && /exempt/.test(html), "有狀態選擇（含 exempt）");
   ok(/business_reg_no/.test(html) && /pli_policy_no/.test(html) && /pli_expiry/.test(html), "有 BR／保單號／到期日輸入");
+  ok(/in_use_commercial/.test(html), "前端顯示有班場地母數");
 
   console.log(`\n${fail === 0 ? "✅ 全部通過" : "❌ 有失敗"} — ${pass} 通過 / ${fail} 失敗\n`);
   process.exit(fail === 0 ? 0 : 1);

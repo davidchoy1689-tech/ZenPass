@@ -805,7 +805,8 @@
           ? '<span class="pill" style="background:#f1f5f9;color:#475569">⚪ 已關閉（off）</span>'
           : '<span class="pill p-wait">🟡 警告模式（warn）</span>';
       const sm = $("pliSummary");
-      if (sm) sm.innerHTML = `使用中商業場地 <b>${s.active_commercial || 0}</b> 個 · 已核驗 <b style="color:#047857">${s.ok || 0}</b> · 待處理 <b style="color:${s.blocking ? "#b91c1c" : "#047857"}">${s.blocking || 0}</b>`;
+      if (sm) sm.innerHTML = `開班使用中場地 <b>${s.in_use_commercial || 0}</b> 個 · 已核驗 <b style="color:#047857">${s.ok || 0}</b> · 待處理 <b style="color:${s.blocking ? "#b91c1c" : "#047857"}">${s.blocking || 0}</b>
+        <div class="muted" style="font-size:11.5px;margin-top:3px">目錄場地（暫無班）未核驗 ${s.idle_unverified || 0} 個 — 唔影響 enforce；開班時會逐個擋。</div>`;
       const enf = $("pliEnforce");
       if (enf) {
         enf.disabled = !s.ready_for_enforce || gate === "enforce";
@@ -825,6 +826,7 @@
           ? `<span class="pill" style="background:#fffbeb;color:#b45309;margin-left:4px">⚠️ 保單 ${v.days_left} 日後到期</span>` : "";
         return `<div class="row" style="flex-wrap:wrap;align-items:flex-start" data-vrow="${esc(v.id)}">
           <span style="flex:1 1 100%"><b>${esc(v.name || v.id)}</b> ${pill}${warn}
+            ${v.in_use ? `<span class="pill" style="background:#eef2ff;color:#3730a3;margin-left:4px">🏃 有班 ${v.class_count}</span>` : '<span class="pill" style="background:#f8fafc;color:#94a3b8;margin-left:4px">🗂️ 暫無班</span>'}
             <span class="s">${esc(v.district || "—")}${v.address ? " · " + esc(v.address) : ""}${v.status && v.status !== "active" ? " · 狀態 " + esc(v.status) : ""}</span>
           </span>
           <span style="flex:1 1 100%;display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">
