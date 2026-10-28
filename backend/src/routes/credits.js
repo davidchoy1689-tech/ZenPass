@@ -14,6 +14,7 @@ const { authenticateToken, requireAdmin, optionalAuth } = require("../middleware
 const { getDb } = require("../services/database");
 const { writeBlock } = require("../services/blockchain-audit");
 const { applyTopUpDiscount } = require("../services/loyalty");
+const { sanitizeReceiptImage } = require("../utils/image-sanitize");
 
 const router = express.Router();
 
@@ -69,7 +70,11 @@ router.get("/packages", optionalAuth, (req, res) => {
 // ===== POST /api/credits/topup — 建立增值單（pending，唔加點）=====
 router.post("/topup", authenticateToken, (req, res) => {
   try {
-    const { amount, method = "fps", reference, receipt_image } = req.body || {};
+    const { amount, method = "fps", reference } = req.body || {};
+    // 🧼 收據圖片清洗（magic byte 驗證 + 移除 EXIF／GPS + 5MB 上限）
+    const shot = sanitizeReceiptImage(req.body && req.body.receipt_image);
+    if (!shot.ok) return res.status(400).json({ success: false, code: shot.code, error: shot.error });
+    const receipt_image = shot.dataUrl;
     const amt = Number(amount);
     if (!amt || amt < 20) return res.status(400).json({ success: false, error: "最低增值金額 HK$20" });
     if (amt > 20000) return res.status(400).json({ success: false, error: "單次最多 HK$20,000" });

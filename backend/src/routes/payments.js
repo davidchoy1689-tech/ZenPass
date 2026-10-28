@@ -7,6 +7,7 @@ const express = require("express");
 const { v4: uuidv4 } = require("uuid");
 const { getDb } = require("../services/database");
 const { authenticateToken } = require("../middleware/auth");
+const { sanitizeReceiptImage } = require("../utils/image-sanitize");
 const { validate, schemas } = require("../middleware/validate");
 
 const fs = require("fs");
@@ -529,7 +530,11 @@ router.post("/stripe/webhook", async (req, res) => {
 // ===== POST /api/payments/fps — 轉數快付款 (需 Admin 確認) =====
 router.post("/fps", authenticateToken, (req, res) => {
   try {
-    const { booking_id, fps_reference, receipt_image } = req.body;
+    const { booking_id, fps_reference } = req.body;
+    // 🧼 收據圖片清洗（magic byte 驗證 + 移除 EXIF／GPS metadata + 5MB 上限）
+    const shot = sanitizeReceiptImage(req.body.receipt_image);
+    if (!shot.ok) return res.status(400).json({ success: false, code: shot.code, error: shot.error });
+    const receipt_image = shot.dataUrl;
 
     if (!fps_reference) {
       return res.status(400).json({ success: false, error: "請提供轉數快參考編號" });
@@ -654,7 +659,11 @@ router.post("/fps", authenticateToken, (req, res) => {
 // ===== POST /api/payments/payme — PayMe 付款 (需 Admin 確認) =====
 router.post("/payme", authenticateToken, (req, res) => {
   try {
-    const { booking_id, payme_reference, receipt_image } = req.body;
+    const { booking_id, payme_reference } = req.body;
+    // 🧼 收據圖片清洗（同 FPS 一致）
+    const shot = sanitizeReceiptImage(req.body.receipt_image);
+    if (!shot.ok) return res.status(400).json({ success: false, code: shot.code, error: shot.error });
+    const receipt_image = shot.dataUrl;
 
     if (!payme_reference) {
       return res.status(400).json({ success: false, error: "請提供 PayMe 參考編號" });

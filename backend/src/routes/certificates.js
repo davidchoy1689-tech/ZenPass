@@ -44,7 +44,31 @@ router.post("/demo", authenticateToken, (req, res) => {
   }
 });
 
-router.get("/verify/:code", (req, res) => {
+// 🔒 公開驗證端點限流：防暴力枚舉證書編號（30 次／分鐘／IP）
+const rateLimit = require("express-rate-limit");
+const verifyLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: process.env.NODE_ENV === "test" ? 1000 : 30,
+  message: { success: false, valid: false, error: "查詢太頻繁，請 1 分鐘後再試" },
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => req.ip || req.connection?.remoteAddress || "unknown",
+});
+
+// 🎭 公開頁姓名脫敏：唔好將全港學童全名俾爬蟲抄走
+function maskStudentName(raw) {
+  const s = String(raw || "").trim().replace(/\s+/g, " ");
+  if (!s) return "";
+  if (/\s/.test(s)) {
+    // 英文／拼音：每個字只保留首字母
+    return s.split(" ").map((w) => (w ? w[0].toUpperCase() + "**" : "")).filter(Boolean).join(" ");
+  }
+  // 中文：只保留姓氏
+  if (s.length <= 2) return s[0] + "*";
+  return s[0] + "*".repeat(Math.min(3, s.length - 1));
+}
+
+router.get("/verify/:code", verifyLimiter, (req, res) => {
   try {
     const c = svc.getByCode(req.params.code);
     if (!c) {
@@ -65,7 +89,9 @@ router.get("/verify/:code", (req, res) => {
       certificate: {
         code: c.code,
         is_demo: Number(c.is_demo) === 1,
-        student_name: c.student_name,
+        // 公開驗證只顯示脫敏姓名（完整姓名只喺證書 PDF／學員本人 portfolio 出現）
+        student_name: maskStudentName(c.student_name),
+        student_name_masked: true,
         class_title: c.class_title,
         level: c.level,
         level_label: c.level_label,
@@ -248,3 +274,4 @@ router.post("/assessment", authenticateToken, (req, res) => {
 });
 
 module.exports = router;
+module.exports.maskStudentName = maskStudentName; // 供測試／其他模組重用

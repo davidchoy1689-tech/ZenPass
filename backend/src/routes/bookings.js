@@ -8,6 +8,7 @@ const express = require("express");
 const { getDb } = require("../services/database");
 const { authenticateToken, requireCoach, hasMinimumRole } = require("../middleware/auth");
 const { scalpGuard } = require("../middleware/anti-scalping");
+const { unpaidHoldGuard } = require("../middleware/unpaid-hold-guard");
 const { validate, schemas } = require("../middleware/validate");
 const { requireIdempotency } = require("../middleware/idempotency");
 const bookingService = require("../services/booking-service");
@@ -21,6 +22,7 @@ router.post(
   "/",
   authenticateToken,
   scalpGuard,
+  unpaidHoldGuard,
   requireIdempotency,
   validate(schemas.booking),
   async (req, res) => {

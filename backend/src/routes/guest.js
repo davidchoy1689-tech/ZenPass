@@ -138,11 +138,28 @@ router.post("/book", bookLimiter, async (req, res) => {
     if (name.length < 2) return res.status(400).json({ success: false, error: "請填寫姓名（最少 2 個字）" });
     if (!validPhone(phone)) return res.status(400).json({ success: false, error: "請填寫有效嘅香港手機號碼（8 位）" });
     if (!classId || !scheduleIds.length) return res.status(400).json({ success: false, error: "缺少課程或時段" });
-    if (scheduleIds.length > 40) return res.status(400).json({ success: false, error: "一次最多 40 個時段" });
+    // 🔒 防「惡意批量鎖位」：免註冊訪客一次最多 6 個時段（單次付款每格都會扣住名額 30 分鐘）
+    if (scheduleIds.length > 6) {
+      return res.status(400).json({
+        success: false,
+        code: "GUEST_BOOK_BATCH_LIMIT",
+        error: "一次最多預約 6 個時段；如要連報更多堂，請先完成今次付款再落單",
+      });
+    }
 
     const db = getDb();
     db.pragma("foreign_keys = ON");
     ensureSchema(db);
+
+    // 🔒 全站未付款佔位上限（防止分散 IP／電話大量鎖位令真客人報唔到）
+    const { countGlobalHolds } = require("../middleware/unpaid-hold-guard");
+    if (countGlobalHolds(db) > 240) {
+      return res.status(429).json({
+        success: false,
+        code: "HOLD_CAPACITY_GUARD",
+        error: "系統繁忙（大量待付款佔位），請稍後再試或直接 WhatsApp 我們",
+      });
+    }
 
     // 已有帳號 → 唔可以代佢預約（防止帳號接管）
     const existing = findUserByPhone(db, phone);

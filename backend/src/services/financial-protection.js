@@ -84,6 +84,25 @@ function installDeleteTriggers() {
     console.error("[PROTECT] credit update trigger failed:", err.message);
   }
 
+  // 🔒 審計日誌 append-only：連 UPDATE 都禁止（黑客攻破應用層都改唔到歷史）
+  try {
+    const hasAuditUpd = db
+      .prepare("SELECT name FROM sqlite_master WHERE type='trigger' AND name=?")
+      .get("protect_audit_log_update");
+    if (!hasAuditUpd) {
+      db.exec(`
+        CREATE TRIGGER protect_audit_log_update
+        BEFORE UPDATE ON audit_log
+        BEGIN
+          SELECT RAISE(ABORT, '❌ 禁止修改 audit_log 記錄 — 審計日誌只增不減');
+        END;
+      `);
+      console.log("[PROTECT] ✅ audit_log UPDATE trigger installed (append-only)");
+    }
+  } catch (err) {
+    console.error("[PROTECT] audit_log update trigger failed:", err.message);
+  }
+
   return installed;
 }
 
