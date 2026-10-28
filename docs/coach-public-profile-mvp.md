@@ -121,7 +121,25 @@ Google／WhatsApp／IG 爬蟲**唔執行 JS**，所以 OG meta 必須由伺服�
      `{{OG_TITLE}} {{OG_DESC}} {{OG_IMAGE}} {{OG_URL}} {{CANONICAL}} {{JSONLD}}`
   3. 回傳 `text/html`，`Cache-Control: public, max-age=300, stale-while-revalidate=86400`
 - 頁面其餘內容由前端 fetch `/api/coaches/:slug/profile` 渲染（爬蟲只需 meta + 基本 HTML）
-- **Nginx 無需改動**（`/c/*` 已由 `location /` proxy 去 Node）；只確認 `location /assets/` 唔會攔截 `/c/`
+
+**⚠️ Nginx 必須加一條規則（已核對 production 現況）**
+production 嘅 `server { root /var/www/zenpass/frontend-v2; }` 係**直接由 nginx 讀靜態檔**（`location / { try_files $uri $uri/ @v1; }`），
+`/c/sam-wong` 唔會去到 Node，而係搵唔到檔就 fallback 去 v1 → 404。所以要加：
+
+```nginx
+location ^~ /c/ {
+    proxy_pass http://127.0.0.1:3001;
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    add_header Cache-Control "public, max-age=300" always;
+}
+```
+（`^~` 前綴優先於 regex location；唔影響 `/c/*.png` 之類，因為 Express 只處理 `/c/:slug`）
+
+替代方案（唔建議）：部署時預先為每個教練生成靜態 `c/<slug>/index.html`。可行但每次改資料要重建，且 slug 改名／新教練要重跑，維護成本高。
 - `sitemap.xml` 自動加入所有已核驗教練頁（`generate-sitemap.cjs` 加一段）
 - `robots.txt` 允許 `/c/`
 
@@ -196,6 +214,6 @@ Google／WhatsApp／IG 爬蟲**唔執行 JS**，所以 OG meta 必須由伺服�
 | 日期 | 工作 |
 |---|---|
 | 11/02 | Cloudflare 遷移 + 離線簽到抗重放（既有計劃） |
-| 11/04 | Migration + 聚合 API + slug 路由 + 測試 |
+| 11/04 | Migration + 聚合 API + slug 路由 + **nginx `/c/` 規則** + 測試 |
 | 11/05 | 頁面 UI + OG 生成 + sitemap |
 | 11/06 | 驗收清單 + Lighthouse + 上線 + Sam 連結 |
