@@ -97,6 +97,13 @@ CREATE TABLE IF NOT EXISTS users (
   // 註冊時帶入嘅推薦碼（驗證電郵後自動兌換）
   try { db.exec("ALTER TABLE users ADD COLUMN pending_referral_code TEXT"); } catch (e) { /* exists */ }
 
+  // 🛡️ TOTP 雙因素認證（2026-10-28）
+  try { db.exec("ALTER TABLE users ADD COLUMN totp_secret TEXT"); } catch (e) { /* exists */ }
+  try { db.exec("ALTER TABLE users ADD COLUMN totp_enabled INTEGER DEFAULT 0"); } catch (e) { /* exists */ }
+  try { db.exec("ALTER TABLE users ADD COLUMN totp_backup_codes TEXT"); } catch (e) { /* exists */ }
+  try { db.exec("ALTER TABLE users ADD COLUMN totp_enrolled_at TEXT"); } catch (e) { /* exists */ }
+  try { db.exec("ALTER TABLE users ADD COLUMN totp_last_used_step INTEGER DEFAULT 0"); } catch (e) { /* exists */ }
+
 
   for (const [col, type] of [
     ["coach_headline", "TEXT"],

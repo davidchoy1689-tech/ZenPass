@@ -142,6 +142,10 @@ function authenticateToken(req, res, next) {
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
+    // 🛡️ 2026-10-28：2FA 臨時憑證（scope=2fa）唔可以用嚟存取任何 API
+    if (decoded && decoded.scope === "2fa") {
+      return res.status(401).json({ error: "需要完成雙因素驗證", code: "TOTP_REQUIRED" });
+    }
     // 🔒 2026-10-19：session 撤銷 + 每次讀最新角色（角色被降權即時生效）
     const db = new Database(DB_PATH);
     let row = null;

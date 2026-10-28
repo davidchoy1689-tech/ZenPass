@@ -51,6 +51,7 @@
         <button data-t="alert">🚨 天氣警報</button>
         <button data-t="student">👥 學員檔案</button>
         <button data-t="venue">🏟️ 場地 PLI</button>
+        <button data-t="sec">🛡️ 雙因素認證</button>
       </div>
 
       <div id="paneFin">
@@ -90,6 +91,17 @@
           <button class="btn btn-secondary btn-block" id="pliWarn" style="margin-top:8px">🟡 切回警告模式（warn）</button>
         </div></div>
         <div class="card"><div class="body"><div id="pliList"><div class="muted" style="font-size:12.5px">載入中…</div></div></div></div>
+      </div>
+
+      <div id="paneSec" hidden>
+        <div class="card"><div class="body">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+            <b>🛡️ 雙因素認證（TOTP）</b>
+            <span id="tfaPill"></span>
+          </div>
+          <div class="muted" style="font-size:12px;margin:6px 0 10px">管理員帳號一旦被撞庫，退款、出糧、場地閘門全部失守。建議所有 admin／super_admin 都綁定 Google Authenticator。</div>
+          <div id="tfaBody"></div>
+        </div></div>
       </div>
 
       <div id="paneAlert" hidden>
@@ -228,7 +240,7 @@
       $("tabs").onclick = (e) => {
         const b = e.target.closest("button"); if (!b) return;
         [...$("tabs").children].forEach((x) => x.classList.toggle("on", x === b));
-        ["fin", "pay", "leads", "ops", "settle", "cred", "agr", "pending", "refund", "cancel", "alert", "student", "venue"].forEach((k) => ($("pane" + k[0].toUpperCase() + k.slice(1))).hidden = b.dataset.t !== k);
+        ["fin", "pay", "leads", "ops", "settle", "cred", "agr", "pending", "refund", "cancel", "alert", "student", "venue", "sec"].forEach((k) => ($("pane" + k[0].toUpperCase() + k.slice(1))).hidden = b.dataset.t !== k);
       };
       $("pliEnforce").onclick = () => setPliGate("enforce");
       $("pliWarn").onclick = () => setPliGate("warn");
@@ -254,6 +266,7 @@
       await loadStudents();
       await loadIncidents();
       await loadVenues();
+      await load2fa();
     }
 
     async function loadFinance() {
@@ -790,6 +803,71 @@
     }
 
     /* ===== 🏟️ 場地 PLI 快速錄入 ===== */
+    /* ===== 🛡️ 雙因素認證 ===== */
+    async function load2fa() {
+      const box = $("tfaBody"); if (!box) return;
+      const r = await api.get("/admin/2fa/status");
+      if (!r.ok) { box.innerHTML = `<div class="muted">${esc((r.data && r.data.error) || "讀取失敗")}</div>`; return; }
+      const d = r.data || {};
+      const pill = $("tfaPill");
+      if (pill) pill.innerHTML = d.enabled
+        ? '<span class="pill p-on">✅ 已啟用</span>'
+        : '<span class="pill p-wait">⏳ 未啟用</span>';
+      if (d.enabled) {
+        box.innerHTML = `
+          <div class="row"><span>狀態</span><b style="color:#047857">已啟用 TOTP</b></div>
+          <div class="row"><span>綁定時間</span><b>${esc(d.enrolled_at || "—")}</b></div>
+          <div class="row"><span>剩餘備援碼</span><b>${d.backup_codes_left || 0} 組</b></div>
+          <div class="muted" style="font-size:12px;margin:8px 0">換手機或要重新綁定：先停用，再重新產生 QR。</div>
+          <input class="fld" id="tfaOffCode" placeholder="輸入 6 位驗證碼或備援碼以停用" maxlength="14" style="margin-top:6px" />
+          <button class="btn btn-secondary btn-block" id="tfaOff" style="margin-top:8px">🔓 停用 2FA</button>`;
+        $("tfaOff").onclick = async () => {
+          const code = $("tfaOffCode").value.trim();
+          if (!code) return alert("請輸入驗證碼");
+          if (!confirm("確定停用 2FA？帳號安全性會下降。")) return;
+          const rr = await api.post("/admin/2fa/disable", { code });
+          if (rr.ok) { toast("已停用 2FA"); load2fa(); }
+          else alert((rr.data && rr.data.error) || "停用失敗");
+        };
+        return;
+      }
+      box.innerHTML = `
+        <div class="row"><span>狀態</span><b style="color:#c2410c">未啟用</b></div>
+        <div class="muted" style="font-size:12px;margin:8px 0">1. 撳「產生 QR」→ 2. 用 Google Authenticator / 1Password 掃描 → 3. 輸入 6 位碼確認。</div>
+        <button class="btn btn-primary btn-block" id="tfaGen">📱 產生 QR Code</button>
+        <div id="tfaQr" style="margin-top:12px"></div>`;
+      $("tfaGen").onclick = async () => {
+        const rr = await api.post("/admin/2fa/generate", {});
+        if (!rr.ok) return alert((rr.data && rr.data.error) || "產生失敗");
+        const d2 = rr.data || {};
+        $("tfaQr").innerHTML = `
+          <div class="center"><img src="${esc(d2.qr_data_url)}" alt="2FA QR" style="width:220px;height:220px;border-radius:12px;border:1px solid var(--border)" /></div>
+          <div class="muted center" style="font-size:11.5px;margin:6px 0;word-break:break-all">手動輸入：<b style="font-family:ui-monospace,monospace">${esc(d2.secret)}</b></div>
+          <input class="fld" id="tfaCode" placeholder="輸入 Authenticator 顯示嘅 6 位碼" maxlength="6" inputmode="numeric" style="margin-top:8px" />
+          <button class="btn btn-primary btn-block" id="tfaOn" style="margin-top:8px">✅ 確認啟用</button>`;
+        $("tfaOn").onclick = async () => {
+          const code = $("tfaCode").value.trim();
+          if (!/^\d{6}$/.test(code)) return alert("請輸入 6 位數字");
+          const r2 = await api.post("/admin/2fa/enable", { code });
+          if (!r2.ok) return alert((r2.data && r2.data.error) || "啟用失敗");
+          const codes = (r2.data && r2.data.backup_codes) || [];
+          $("tfaBody").innerHTML = `
+            <div class="row"><span>狀態</span><b style="color:#047857">✅ 已啟用</b></div>
+            <div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:12px;padding:12px;margin:10px 0">
+              <b>🔑 備援碼（只顯示一次）</b>
+              <div class="muted" style="font-size:12px;margin:4px 0 8px">手機遺失時用。請即刻抄低或下載，每組只能用一次。</div>
+              <div style="font-family:ui-monospace,monospace;font-size:13px;line-height:1.8">${codes.map((c) => esc(c)).join("<br>")}</div>
+              <button class="btn btn-secondary btn-block" id="tfaCopy" style="margin-top:10px">📋 複製全部</button>
+            </div>`;
+          $("tfaCopy").onclick = async () => {
+            try { await navigator.clipboard.writeText(codes.join("\n")); toast("✅ 已複製備援碼"); }
+            catch (e) { prompt("備援碼：", codes.join("\n")); }
+          };
+          load2fa();
+        };
+      };
+    }
+
     async function loadVenues() {
       const box = $("pliList"); if (!box) return;
       const r = await api.get("/admin/venues");

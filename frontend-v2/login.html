@@ -22,6 +22,11 @@
       <input class="field" id="pw" placeholder="密碼" type="password" autocomplete="current-password" />
       <div style="text-align:right;margin-top:-4px"><a href="forgot.html" style="font-size:13px;color:var(--brand-600);font-weight:600">忘記密碼？</a></div>
       <button class="btn btn-primary btn-block" id="go">登入</button>
+      <div id="twofa" hidden>
+        <div class="muted" style="font-size:13px;margin:6px 0">🛡️ 此帳戶已啟用雙因素認證，請輸入 Google Authenticator 6 位數（或用備援碼）</div>
+        <input class="field" id="otp" inputmode="numeric" autocomplete="one-time-code" placeholder="6 位驗證碼 / 備援碼" maxlength="14" />
+        <button class="btn btn-primary btn-block" id="go2fa" style="margin-top:8px">驗證並登入</button>
+      </div>
       <div id="msg" class="muted center" style="font-size:13px"></div>
     </div>
     <div class="spacer"></div>
@@ -31,18 +36,57 @@
   <script src="assets/api.js?v=3"></script>
   <script>
     const next = new URLSearchParams(location.search).get("next") || "my.html";
+    let tempToken = null;
     async function doLogin() {
       const email = document.getElementById("email").value.trim();
       const pw = document.getElementById("pw").value;
       const msg = document.getElementById("msg");
+      if (tempToken) { return do2fa(); }
       if (!email || !pw) { msg.textContent = "請輸入電郵同密碼"; return; }
       const btn = document.getElementById("go"); btn.disabled = true; btn.textContent = "登入中…";
       const r = await api.login(email, pw);
       btn.disabled = false; btn.textContent = "登入";
+      if (r.ok && r.data && r.data.require_2fa) {
+        tempToken = r.data.temp_token;
+        document.getElementById("twofa").hidden = false;
+        document.getElementById("go").hidden = true;
+        document.getElementById("otp").focus();
+        msg.textContent = "請完成第二步驗證";
+        return;
+      }
       if (r.ok) { location.href = next; }
       else { msg.textContent = (r.data && (r.data.error || r.data.message)) || "登入失敗"; }
     }
+    async function do2fa() {
+      const msg = document.getElementById("msg");
+      const code = document.getElementById("otp").value.trim();
+      if (!code) { msg.textContent = "請輸入驗證碼"; return; }
+      const btn = document.getElementById("go2fa"); btn.disabled = true; btn.textContent = "驗證中…";
+      try {
+        const res = await fetch("/api/auth/verify-2fa", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ temp_token: tempToken, code }),
+        });
+        const d = await res.json();
+        btn.disabled = false; btn.textContent = "驗證並登入";
+        if (res.ok && d && d.token) {
+          api.setToken(d.token);
+          if (d.user) api.setUser(d.user);
+          location.href = next;
+        } else {
+          msg.textContent = (d && (d.error || d.message)) || "驗證失敗";
+          if (d && (d.code === "TEMP_EXPIRED" || d.code === "TOTP_TOO_MANY")) { tempToken = null; location.reload(); }
+        }
+      } catch (e) {
+        btn.disabled = false; btn.textContent = "驗證並登入";
+        msg.textContent = "網絡錯誤，請再試";
+      }
+    }
     document.getElementById("go").onclick = doLogin;
+    document.getElementById("go2fa").onclick = do2fa;
+    document.getElementById("otp").addEventListener("keydown", e => { if (e.key === "Enter") do2fa(); });
     document.getElementById("pw").addEventListener("keydown", e => { if (e.key === "Enter") doLogin(); });
   </script>
   <script src="assets/footer.js?v=5" defer></script>

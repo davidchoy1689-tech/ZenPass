@@ -9,6 +9,8 @@ const { v4: uuidv4 } = require("uuid");
 const { getDb } = require("../services/database");
 const { generateToken, authenticateToken, setAuthCookie, clearAuthCookie } = require("../middleware/auth");
 const { emailNotification } = require("../services/notification");
+const jwt = require("jsonwebtoken");
+const { ensureTotpColumns } = require("./two-factor");
 
 const { OAuth2Client } = require("google-auth-library");
 
@@ -469,6 +471,23 @@ router.post("/login", (req, res) => {
         success: false,
         error: "此帳號已被停用，請聯絡主要管理員",
         code: "ACCOUNT_DISABLED",
+      });
+    }
+
+    // 🛡️ 2026-10-28：已啟用 TOTP 2FA → 唔直接發 session，先發 5 分鐘臨時憑證
+    ensureTotpColumns(db);
+    if (Number(user.totp_enabled) === 1) {
+      const temp = jwt.sign(
+        { id: user.id, scope: "2fa", tv: Number(user.token_version) || 0 },
+        process.env.JWT_SECRET || "",
+        { expiresIn: "5m" },
+      );
+      return res.json({
+        success: true,
+        require_2fa: true,
+        temp_token: temp,
+        methods: ["totp", "backup_code"],
+        message: "請輸入 Google Authenticator 6 位驗證碼",
       });
     }
 
