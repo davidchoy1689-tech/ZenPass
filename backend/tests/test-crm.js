@@ -151,7 +151,7 @@ const ok = (c, m) => { if (c) { console.log("  ✅ " + m); pass++; } else { cons
 
   console.log("📋 7. 權限（靜態檢查 requireAdmin）");
   const src = fs.readFileSync(path.join(__dirname, "../src/routes/admin-crm.js"), "utf8");
-  const routeCount = (src.match(/router\.(get|put)\(/g) || []).length;
+  const routeCount = (src.match(/router\.(get|put|post)\(/g) || []).length;
   const adminGuard = (src.match(/authenticateToken, requireAdmin, requireOpsRole/g) || []).length;
   ok(routeCount >= 3 && adminGuard === routeCount, "每一條路由都有 authenticateToken + requireAdmin + ops 角色（" + adminGuard + "/" + routeCount + "）");
   ok(/requireOpsRole/.test(src), "另有 ops 角色檢查");

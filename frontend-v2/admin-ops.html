@@ -50,6 +50,7 @@
         <button data-t="cancel">⚠️ 取消課堂</button>
         <button data-t="alert">🚨 天氣警報</button>
         <button data-t="student">👥 學員檔案</button>
+        <button data-t="venue">🏟️ 場地 PLI</button>
       </div>
 
       <div id="paneFin">
@@ -75,6 +76,20 @@
           </div>
         </div></div>
         <div class="card"><div class="body"><div id="stuList"><div class="muted" style="font-size:12.5px">載入中…</div></div></div></div>
+      </div>
+
+      <div id="paneVenue" hidden>
+        <div class="card" style="margin-bottom:10px"><div class="body">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+            <b>🏟️ 場地 PLI 快速錄入與狀態</b>
+            <span id="pliGatePill"></span>
+          </div>
+          <div class="muted" style="font-size:12px;margin:6px 0 10px">開班時系統會檢查場地公眾責任保險（PLI）。商業場地須為「已核驗」且保單未過期；康文署等政府場地可標記「exempt」。</div>
+          <div id="pliSummary" style="font-size:12.5px"></div>
+          <button class="btn btn-primary btn-block" id="pliEnforce" style="margin-top:10px">⚡ 一鍵切換為 Enforce 模式</button>
+          <button class="btn btn-secondary btn-block" id="pliWarn" style="margin-top:8px">🟡 切回警告模式（warn）</button>
+        </div></div>
+        <div class="card"><div class="body"><div id="pliList"><div class="muted" style="font-size:12.5px">載入中…</div></div></div></div>
       </div>
 
       <div id="paneAlert" hidden>
@@ -213,8 +228,10 @@
       $("tabs").onclick = (e) => {
         const b = e.target.closest("button"); if (!b) return;
         [...$("tabs").children].forEach((x) => x.classList.toggle("on", x === b));
-        ["fin", "pay", "leads", "ops", "settle", "cred", "agr", "pending", "refund", "cancel", "alert", "student"].forEach((k) => ($("pane" + k[0].toUpperCase() + k.slice(1))).hidden = b.dataset.t !== k);
+        ["fin", "pay", "leads", "ops", "settle", "cred", "agr", "pending", "refund", "cancel", "alert", "student", "venue"].forEach((k) => ($("pane" + k[0].toUpperCase() + k.slice(1))).hidden = b.dataset.t !== k);
       };
+      $("pliEnforce").onclick = () => setPliGate("enforce");
+      $("pliWarn").onclick = () => setPliGate("warn");
       $("wxGo").onclick = weatherCancel;
       $("stuGo").onclick = () => loadStudents();
       $("stuSearch").addEventListener("keydown", (e) => { if (e.key === "Enter") loadStudents(); });
@@ -236,6 +253,7 @@
       await loadAlerts();
       await loadStudents();
       await loadIncidents();
+      await loadVenues();
     }
 
     async function loadFinance() {
@@ -769,6 +787,81 @@
         if (rr.ok) { toast("✅ 已確認退款"); loadRefunds(); loadFinance(); }
         else { b.disabled = false; b.textContent = "✅ 確認已退款"; alert((rr.data && rr.data.error) || "確認失敗"); }
       }));
+    }
+
+    /* ===== 🏟️ 場地 PLI 快速錄入 ===== */
+    async function loadVenues() {
+      const box = $("pliList"); if (!box) return;
+      const r = await api.get("/admin/venues");
+      if (!r.ok) { box.innerHTML = `<div class="muted">${esc((r.data && r.data.error) || "讀取失敗")}</div>`; return; }
+      const d = r.data || {};
+      const rows = d.venues || [];
+      const s = d.summary || {};
+      const gate = String(d.gate || "warn");
+      const gp = $("pliGatePill");
+      if (gp) gp.innerHTML = gate === "enforce"
+        ? '<span class="pill p-on">🟢 強制阻擋（enforce）</span>'
+        : gate === "off"
+          ? '<span class="pill" style="background:#f1f5f9;color:#475569">⚪ 已關閉（off）</span>'
+          : '<span class="pill p-wait">🟡 警告模式（warn）</span>';
+      const sm = $("pliSummary");
+      if (sm) sm.innerHTML = `使用中商業場地 <b>${s.active_commercial || 0}</b> 個 · 已核驗 <b style="color:#047857">${s.ok || 0}</b> · 待處理 <b style="color:${s.blocking ? "#b91c1c" : "#047857"}">${s.blocking || 0}</b>`;
+      const enf = $("pliEnforce");
+      if (enf) {
+        enf.disabled = !s.ready_for_enforce || gate === "enforce";
+        enf.textContent = s.ready_for_enforce
+          ? (gate === "enforce" ? "🟢 已是 Enforce 模式" : "⚡ 一鍵切換為 Enforce 模式")
+          : `⚡ 尚有 ${s.blocking || 0} 個場地未核驗，未能切換`;
+      }
+      if (!rows.length) { box.innerHTML = '<div class="muted" style="font-size:12.5px">暫無場地。</div>'; return; }
+      const ST = { verified: "✅ 已核驗", unverified: "⏳ 未核驗", exempt: "🏛️ 豁免（政府場地）" };
+      box.innerHTML = rows.map((v) => {
+        const pill = v.pli_status === "verified"
+          ? (v.expired ? '<span class="pill" style="background:#fef2f2;color:#b91c1c">🚨 保單已過期</span>' : '<span class="pill p-on">✅ 已核驗</span>')
+          : v.pli_status === "exempt"
+            ? '<span class="pill" style="background:#eff6ff;color:#1d4ed8">🏛️ 豁免</span>'
+            : '<span class="pill p-wait">⏳ 未核驗</span>';
+        const warn = v.pli_status === "verified" && !v.expired && v.days_left != null && v.days_left <= 30
+          ? `<span class="pill" style="background:#fffbeb;color:#b45309;margin-left:4px">⚠️ 保單 ${v.days_left} 日後到期</span>` : "";
+        return `<div class="row" style="flex-wrap:wrap;align-items:flex-start" data-vrow="${esc(v.id)}">
+          <span style="flex:1 1 100%"><b>${esc(v.name || v.id)}</b> ${pill}${warn}
+            <span class="s">${esc(v.district || "—")}${v.address ? " · " + esc(v.address) : ""}${v.status && v.status !== "active" ? " · 狀態 " + esc(v.status) : ""}</span>
+          </span>
+          <span style="flex:1 1 100%;display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">
+            <input class="fld pli-br" placeholder="商業登記 BR" maxlength="32" value="${esc(v.business_reg_no || "")}" style="margin:0;flex:1 1 140px;min-width:120px;font-size:13px;padding:8px" />
+            <input class="fld pli-pol" placeholder="PLI 保單號碼" maxlength="64" value="${esc(v.pli_policy_no || "")}" style="margin:0;flex:1 1 160px;min-width:130px;font-size:13px;padding:8px" />
+            <input class="fld pli-exp" type="date" value="${esc(v.pli_expiry || "")}" style="margin:0;flex:1 1 140px;min-width:130px;font-size:13px;padding:8px" />
+            <select class="fld pli-st" style="margin:0;flex:1 1 140px;min-width:130px;font-size:13px;padding:8px">
+              ${["verified", "unverified", "exempt"].map((k) => `<option value="${k}"${v.pli_status === k ? " selected" : ""}>${ST[k]}</option>`).join("")}
+            </select>
+            <button class="btn btn-primary pli-save" data-vid="${esc(v.id)}" style="min-height:34px;padding:0 12px;font-size:12.5px;flex:none">💾 儲存並核驗</button>
+          </span>
+        </div>`;
+      }).join("");
+      box.querySelectorAll(".pli-save").forEach((b) => (b.onclick = async () => {
+        const row = b.closest("[data-vrow]");
+        const payload = {
+          business_reg_no: row.querySelector(".pli-br").value.trim(),
+          pli_policy_no: row.querySelector(".pli-pol").value.trim(),
+          pli_expiry: row.querySelector(".pli-exp").value || null,
+          pli_status: row.querySelector(".pli-st").value,
+        };
+        if (payload.pli_status === "verified" && !payload.pli_expiry) { alert("標記為已核驗時，必須填寫保單到期日"); return; }
+        b.disabled = true; b.textContent = "儲存中…";
+        const rr = await api.put("/admin/venues/" + encodeURIComponent(b.dataset.vid) + "/pli", payload);
+        if (rr.ok) { toast("✅ 已儲存場地 PLI 資料"); loadVenues(); }
+        else { b.disabled = false; b.textContent = "💾 儲存並核驗"; alert((rr.data && rr.data.error) || "儲存失敗"); }
+      }));
+    }
+
+    async function setPliGate(mode) {
+      const tip = mode === "enforce"
+        ? "切換為強制模式後，未核驗或保單過期的場地將無法開班。確定？"
+        : "切回警告模式後，未核驗場地只會警告、不會阻擋開班。確定？";
+      if (!confirm(tip)) return;
+      const r = await api.post("/admin/settings/venue-pli-gate", { mode });
+      if (r.ok) { toast("✅ 閘門已切換為 " + mode); loadVenues(); }
+      else alert((r.data && (r.data.error || (r.data.blocking || []).map((x) => x.name).join("、"))) || "切換失敗");
     }
 
     async function loadPendingClasses() {

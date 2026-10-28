@@ -237,10 +237,9 @@ router.put("/coaches/:id/credentials", authenticateToken, requireAdmin, requireO
 });
 
 
-// PUT /api/admin/venues/:id/pli — 更新場地商業登記及公眾責任保險（PLI）
-router.put("/venues/:id/pli", authenticateToken, requireAdmin, requireOpsRole, (req, res) => {
+// ===== 🏟️ 場地 PLI（公眾責任保險）錄入與閘門 =====
+function ensureVenuePliColumns(db) {
   try {
-    const db = getDb();
     const cols = db.prepare("PRAGMA table_info(partner_venues)").all().map((c) => c.name);
     [
       ["business_reg_no", "TEXT"],
@@ -249,6 +248,122 @@ router.put("/venues/:id/pli", authenticateToken, requireAdmin, requireOpsRole, (
       ["pli_status", "TEXT DEFAULT 'unverified'"],
       ["venue_terms_ack_at", "TEXT"],
     ].forEach(([n, t]) => { if (!cols.includes(n)) db.prepare(`ALTER TABLE partner_venues ADD COLUMN ${n} ${t}`).run(); });
+  } catch (e) {}
+}
+
+function venuePliGateMode(db) {
+  try {
+    const r = db.prepare("SELECT value FROM platform_settings WHERE key='venue.pli_gate'").get();
+    if (r && ["warn", "enforce", "off"].includes(String(r.value))) return String(r.value);
+  } catch (e) {}
+  return String(process.env.VENUE_PLI_GATE || "warn");
+}
+
+function venuePliRows(db) {
+  ensureVenuePliColumns(db);
+  const today = new Date().toISOString().slice(0, 10);
+  const rows = db
+    .prepare(
+      `SELECT id, name, district, address, status, business_reg_no, pli_policy_no, pli_expiry, pli_status
+         FROM partner_venues
+        ORDER BY (status = 'active') DESC, name`,
+    )
+    .all();
+  return rows.map((v) => {
+    const status = String(v.pli_status || "unverified");
+    const expiry = v.pli_expiry ? String(v.pli_expiry).slice(0, 10) : null;
+    const expired = !!(expiry && expiry < today);
+    const daysLeft = expiry ? Math.ceil((new Date(expiry + "T00:00:00").getTime() - Date.now()) / 86400000) : null;
+    return {
+      id: v.id,
+      name: v.name,
+      district: v.district || "",
+      address: v.address || "",
+      status: v.status || "",
+      business_reg_no: v.business_reg_no || "",
+      pli_policy_no: v.pli_policy_no || "",
+      pli_expiry: expiry,
+      pli_status: status,
+      expired,
+      days_left: daysLeft,
+      ok: status === "exempt" || (status === "verified" && !expired),
+    };
+  });
+}
+
+// GET /api/admin/venues — 場地清單＋PLI 狀態＋閘門模式
+router.get("/venues", authenticateToken, requireAdmin, requireOpsRole, (req, res) => {
+  try {
+    const db = getDb();
+    const venues = venuePliRows(db);
+    const commercial = venues.filter((v) => v.status === "active" && v.pli_status !== "exempt");
+    const blocking = commercial.filter((v) => !v.ok);
+    res.json({
+      success: true,
+      gate: venuePliGateMode(db),
+      venues,
+      summary: {
+        total: venues.length,
+        active_commercial: commercial.length,
+        ok: commercial.length - blocking.length,
+        blocking: blocking.length,
+        blocking_names: blocking.map((v) => v.name),
+        ready_for_enforce: blocking.length === 0,
+      },
+    });
+  } catch (err) {
+    console.error("[CRM] venues list error:", err.message);
+    res.status(500).json({ success: false, error: "讀取失敗" });
+  }
+});
+
+// POST /api/admin/settings/venue-pli-gate — 切換閘門模式（warn / enforce / off）
+router.post("/settings/venue-pli-gate", authenticateToken, requireAdmin, requireOpsRole, (req, res) => {
+  try {
+    const db = getDb();
+    const mode = String((req.body || {}).mode || "");
+    if (!["warn", "enforce", "off"].includes(mode)) {
+      return res.status(400).json({ success: false, error: "mode 無效（warn／enforce／off）" });
+    }
+    if (mode === "enforce") {
+      const venues = venuePliRows(db);
+      const blocking = venues.filter((v) => v.status === "active" && v.pli_status !== "exempt" && !v.ok);
+      if (blocking.length) {
+        return res.status(400).json({
+          success: false,
+          error: `仍有 ${blocking.length} 個使用中場地未核驗或保單已過期，未能切換強制模式`,
+          code: "VENUE_PLI_INCOMPLETE",
+          blocking: blocking.map((v) => ({ id: v.id, name: v.name, pli_status: v.pli_status, pli_expiry: v.pli_expiry })),
+        });
+      }
+    }
+    const prev = venuePliGateMode(db);
+    db.prepare(
+      `INSERT INTO platform_settings (key, value, description) VALUES ('venue.pli_gate', ?, '場地 PLI 開班閘門模式（warn／enforce／off）')
+       ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
+    ).run(mode);
+    try {
+      db.prepare(
+        `INSERT INTO audit_log (id, action_type, entity_type, entity_id, user_id, old_values, new_values, description, created_at)
+         VALUES (?, 'settings.venue_pli_gate', 'platform_setting', 'venue.pli_gate', ?, ?, ?, ?, datetime('now'))`,
+      ).run(
+        crypto.randomUUID(), req.user.id,
+        JSON.stringify({ mode: prev }), JSON.stringify({ mode }),
+        `場地 PLI 閘門：${prev} → ${mode}`,
+      );
+    } catch (e) {}
+    res.json({ success: true, gate: mode });
+  } catch (err) {
+    console.error("[CRM] venue pli gate error:", err.message);
+    res.status(500).json({ success: false, error: "切換失敗" });
+  }
+});
+
+// PUT /api/admin/venues/:id/pli — 更新場地商業登記及公眾責任保險（PLI）
+router.put("/venues/:id/pli", authenticateToken, requireAdmin, requireOpsRole, (req, res) => {
+  try {
+    const db = getDb();
+    ensureVenuePliColumns(db);
 
     const v = db.prepare("SELECT * FROM partner_venues WHERE id = ?").get(req.params.id);
     if (!v) return res.status(404).json({ success: false, error: "場地不存在" });
