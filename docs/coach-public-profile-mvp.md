@@ -1,3 +1,5 @@
+> ⚠️ **已被取代**（v1）：本文件內容已整合入 `docs/coach-public-profile-spec-v2.md`（2026-11-01）。只作歷史紀錄，唔好照此開發。
+
 # 教練個人專屬主頁（Coach Public Profile）— MVP Spec v1
 
 > 狀態：**規格定稿，等待開發**（代碼凍結中，最快 2026-11-04 開工）

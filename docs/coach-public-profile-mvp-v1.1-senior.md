@@ -1,3 +1,5 @@
+> ⚠️ **已被取代**（v1.1 addendum）：本文件內容已整合入 `docs/coach-public-profile-spec-v2.md`（2026-11-01）。只作歷史紀錄，唔好照此開發。
+
 # 教練公開專頁 v1.1 — 銀髮／伸展／1對1 PT 本地 SEO 擴充（Addendum）
 
 > 母文件：`docs/coach-public-profile-mvp.md`（v1，2026-10-28）
