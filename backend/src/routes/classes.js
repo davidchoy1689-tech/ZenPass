@@ -636,6 +636,18 @@ router.put("/:id", authenticateToken, requireCoach, (req, res) => {
       }
     });
 
+    // 🗺️ 改場地名稱／地址時，同步重算行政區，避免「青衣班上咗觀塘標籤」
+    if (req.body.venue_name !== undefined || req.body.venue_address !== undefined) {
+      const { resolveDistrict } = require("../services/district");
+      const name = req.body.venue_name !== undefined ? req.body.venue_name : classData.venue_name;
+      const addr = req.body.venue_address !== undefined ? req.body.venue_address : classData.venue_address;
+      const d = resolveDistrict([name, addr].filter(Boolean).join(" "));
+      if (d && d !== classData.district) {
+        updates.push("district = ?");
+        params.push(d);
+      }
+    }
+
     if (updates.length === 0) {
 
       return res.status(400).json({ success: false, error: "沒有需要更新的資料" });

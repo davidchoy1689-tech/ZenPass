@@ -14,8 +14,10 @@ const has = (s, m, label) => { if (!s.includes(m)) fails.push("missing " + (labe
 // 首頁場景 chips
 has(idx, "按場景搵堂", "scene title");
 has(idx, 'id="scenes"', "scenes row");
-["family", "office", "burn", "beginner"].forEach(s => has(idx, "explore.html?scene=" + s, "scene link " + s));
-has(idx, "親子 / 樂齡好去處", "family label");
+["pain", "senior", "family", "office", "burn", "beginner"].forEach(s => has(idx, "explore.html?scene=" + s, "scene link " + s));
+has(idx, "親子新興運動", "family label");
+has(idx, "痛症深層伸展", "pain label");
+has(idx, "長者防肌少症・防跌強肌", "senior label");
 has(idx, "放工放鬆 / 辦公室伸展", "office label");
 has(idx, "高效燃脂 / 減脂汗水", "burn label");
 has(idx, "新手友善 / 無需經驗", "beginner label");

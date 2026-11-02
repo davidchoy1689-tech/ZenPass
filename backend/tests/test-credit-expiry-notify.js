@@ -56,6 +56,10 @@ const ok = (c, m) => { if (c) console.log("  ✅ " + m); else { console.log("  �
   ok(n3 === 0, "同日晚上再跑 → 仍然唔重複");
   ok(db.prepare("SELECT COUNT(*) c FROM notifications WHERE user_id='m1' AND type='credit_expiring'").get().c === 1, "全月只發一次");
 
+  // 去重係用真實 created_at 同「模擬月份起點」比較；測試跑喺其他月份時，
+  // 上面嗰則通知會帶住真實日期，令下一段誤判為「本月已發」。將它 backdate 去模擬月份。
+  db.prepare("UPDATE notifications SET created_at='2026-10-30 00:30:00' WHERE user_id='m1' AND type='credit_expiring'").run();
+
   console.log("── 下個月可以再發 ──");
   const n4 = sendCreditExpiryNotifications({ now: new Date("2026-11-28T04:00:00Z") });
   await new Promise((r) => setTimeout(r, 60));
