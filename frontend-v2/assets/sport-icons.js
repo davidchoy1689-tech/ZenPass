@@ -349,13 +349,13 @@ function renderSportGrid(elId, limit) {
     if (panel) panel.setAttribute("hidden", "");
     var btn = document.getElementById("accBtn");
     if (btn) {
-      btn.textContent = "🔍 查看全部 " + SPORTS_CATALOGUE.length + " 個運動項目";
+      btn.textContent = "🔍 瀏覽全部 " + SPORTS_CATALOGUE.length + " 個支援運動項目（可供教練開班）";
       btn.addEventListener("click", function () {
         var panel = document.getElementById("sportGridAll");
         if (panel && !panel.hasAttribute("hidden")) {
           panel.setAttribute("hidden", "");
           btn.setAttribute("aria-expanded", "false");
-          btn.textContent = "🔍 查看全部 " + SPORTS_CATALOGUE.length + " 個運動項目";
+          btn.textContent = "🔍 瀏覽全部 " + SPORTS_CATALOGUE.length + " 個支援運動項目（可供教練開班）";
           btn.scrollIntoView({ behavior: "smooth", block: "center" });
         } else {
           openAccordion(null);

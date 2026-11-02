@@ -119,3 +119,57 @@ img[loading="lazy"].zp-loaded { animation: none; background: none; }
 @keyframes zpSkel { 0% { background-position: 120% 0; } 100% { background-position: -120% 0; } }
 .dt-slide img { transition: transform .45s cubic-bezier(.16,1,.3,1); }
 @media (prefers-reduced-motion: reduce) { img[loading="lazy"] { animation: none; } }
+
+/* ---------- 2026-11-03 首頁轉換優化（P0/P1）---------- */
+
+/* Hero 快速入口（學校／企業、教練、場地） */
+.hero-quicknav { display: flex; gap: 7px; flex-wrap: wrap; margin: 0 0 14px; }
+.hero-quicknav a {
+  font-size: 11.5px; font-weight: 700; line-height: 1; color: #fff; text-decoration: none;
+  background: rgba(255, 255, 255, .18); border: 1px solid rgba(255, 255, 255, .3);
+  border-radius: 999px; padding: 7px 11px; white-space: nowrap;
+  transition: background .18s ease, transform .14s ease;
+}
+.hero-quicknav a:hover { background: rgba(255, 255, 255, .3); }
+.hero-quicknav a:active { transform: scale(.97); }
+
+/* Hero CTA 補充說明：消除「要註冊先睇到」嘅誤解 */
+.hero-cta-note {
+  margin: 8px 0 10px; text-align: center; font-size: 11.5px; line-height: 1.45;
+  color: rgba(255, 255, 255, .86);
+}
+
+/* 安心保障三道防線 */
+.shield-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
+.shield-card {
+  display: flex; gap: 12px; align-items: flex-start;
+  background: #fff; border: 1px solid #e6edf5; border-radius: var(--zp-radius-md);
+  padding: 14px; box-shadow: var(--zp-shadow-md);
+}
+.shield-ic { font-size: 22px; line-height: 1.1; flex: 0 0 auto; }
+.shield-card b { display: block; font-size: 13.5px; color: var(--zp-text-1); line-height: 1.4; }
+.shield-card p { margin: 4px 0 0; font-size: 12px; line-height: 1.55; color: var(--zp-text-2); }
+@media (min-width: 640px) { .shield-grid { grid-template-columns: repeat(3, 1fr); } }
+
+/* 運動項目庫說明（避免「空城」誤會） */
+.acc-note { margin: 10px 0 0; font-size: 11.5px; line-height: 1.6; color: var(--zp-text-3); }
+.acc-note b { color: var(--zp-text-2); }
+
+/* 即開班次倒數徽章 */
+.badge-countdown {
+  position: absolute; right: 8px; bottom: 8px; z-index: 2;
+  background: rgba(15, 23, 42, .82); color: #fff; font-size: 10.5px; font-weight: 800;
+  border-radius: 999px; padding: 4px 8px; line-height: 1; backdrop-filter: blur(6px);
+}
+
+/* B2B 快速詢價 */
+.b2b-form { display: grid; gap: 8px; margin-top: 2px; }
+.b2b-form-row { display: grid; grid-template-columns: 1fr; gap: 8px; }
+@media (min-width: 520px) { .b2b-form-row { grid-template-columns: repeat(3, 1fr); } }
+.b2b-form select {
+  width: 100%; font: inherit; font-size: 12.5px; color: #fff;
+  background: rgba(255, 255, 255, .14); border: 1px solid rgba(255, 255, 255, .32);
+  border-radius: 10px; padding: 9px 10px; -webkit-appearance: none; appearance: none;
+}
+.b2b-form select option { color: #0f172a; }
+.b2b-form .b2b-btn { border: 0; cursor: pointer; font: inherit; font-weight: 800; font-size: 13.5px; }

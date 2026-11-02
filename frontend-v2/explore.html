@@ -367,9 +367,10 @@
       office: { label: "放工放鬆", kw: ["瑜伽", "伸展", "身心", "冥想", "普拉提", "pilates", "yoga", "stretch", "頌缽", "放鬆", "舒壓", "氣功", "太極", "barre"] },
       burn: { label: "高效燃脂", kw: ["hiit", "燃脂", "減脂", "健身", "拳擊", "體能", "飛輪", "跳繩", "核心", "boxing", "cardio", "有氧", "塑形", "體重", "spinning"] },
       beginner: { label: "新手友善", kw: ["新手", "體驗", "入門", "初級", "beginner", "零基礎", "基礎"] },
+      senior: { label: "銀髮樂齡", kw: ["長者", "樂齡", "銀髮", "senior", "防跌", "肌少", "肌力", "平衡", "伸展", "拉筋", "太極", "北歐"] },
     };
     const SORTS = { newest: "最新上架", price_asc: "價格：低 → 高", rating: "評分最高" };
-    const DATES = { "": "不限日期", today: "今天", tomorrow: "明天", weekend: "本週末", evening: "今晚 18:00 後" };
+    const DATES = { "": "不限日期", today: "今天", tomorrow: "明天", weekend: "本週末", evening: "今晚 18:00 後", daytime: "☀️ 平日日間 10:00–16:00" };
 
     const P = new URLSearchParams(location.search);
     // 由底欄「預約」導過嚟（未揀課堂）→ 顯示提示
@@ -393,6 +394,7 @@
       evening: P.get("time") === "evening",
     };
     if (STATE.evening && !STATE.date) STATE.date = "evening";
+    if (P.get("time") === "daytime" && !STATE.date) STATE.date = "daytime";
 
     /* ---------- 時間工具（UTC → HKT）---------- */
     function hkt(s) {
@@ -409,6 +411,13 @@
     }
     const pad = (n) => String(n).padStart(2, "0");
     const dayStr = (d) => d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+    /* 該日嘅香港星期（0=日 … 6=六） */
+    function dowHKT(dateStr) {
+      try {
+        const w = new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Hong_Kong", weekday: "short" }).format(new Date(dateStr + "T12:00:00Z"));
+        return ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].indexOf(w);
+      } catch (e) { return -1; }
+    }
     function targetDays(kind) {
       const now = new Date();
       if (kind === "today" || kind === "evening") return [dayStr(now)];
@@ -448,6 +457,10 @@
       if (!STATE.date) return true;
       const days = (c.schedules || []).map((x) => { const h = hkt(x.start_time); return h && h.date; }).filter(Boolean);
       if (STATE.date === "evening") return (c.schedules || []).some((x) => { const h = hkt(x.start_time); return h && h.hour >= 18; });
+      if (STATE.date === "daytime") return (c.schedules || []).some((x) => {
+        const h = hkt(x.start_time);
+        return h && h.hour >= 10 && h.hour < 16 && dowHKT(h.date) >= 1 && dowHKT(h.date) <= 5;
+      });
       return days.some((d) => targetDays(STATE.date).indexOf(d) >= 0);
     }
     function matchCat(c) { return !STATE.cat || String(c.category || "") === STATE.cat; }
@@ -768,7 +781,7 @@
 
     function optionsFor(key) {
       if (key === "zone") return [["", "全部地區"]].concat(Object.keys(ZONES).map((k) => [k, "📍 " + ZONES[k].label]));
-      if (key === "date") return [["", "不限日期"], ["today", "📅 今天"], ["tomorrow", "📅 明天"], ["weekend", "📅 本週末"], ["evening", "🌙 今晚 18:00 後"]];
+      if (key === "date") return [["", "不限日期"], ["today", "📅 今天"], ["tomorrow", "📅 明天"], ["weekend", "📅 本週末"], ["daytime", "☀️ 平日日間 10:00–16:00"], ["evening", "🌙 今晚 18:00 後"]];
       if (key === "sort") return Object.keys(SORTS).map((k) => [k, SORTS[k]]);
       if (key === "cat") {
         const cats = [...new Set(ALL.map((c) => c.category).filter(Boolean))].sort();

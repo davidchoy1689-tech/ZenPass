@@ -5,7 +5,7 @@
 
 set -euo pipefail
 
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 PROJECT_ROOT=$(pwd)
 LOG_DIR="${PROJECT_ROOT}/test-reports"
 LOG_FILE="${LOG_DIR}/frontend-audit-$(date +%Y%m%d-%H%M).log"
