@@ -344,9 +344,9 @@ function renderSportGrid(elId, limit) {
     decorate(document);
     renderSportGrid("sportGrid");
     renderMegaCards("megaGrid");
-    renderSportGridMega("sportGridAll");
+    // 145 項項目庫改為首次展開才渲染（減少 ~700 DOM 節點及首屏 script 成本）
     var panel = document.getElementById("sportGridAll");
-    if (panel) panel.setAttribute("hidden", "");
+    if (panel) { panel.innerHTML = ""; panel.setAttribute("hidden", ""); }
     var btn = document.getElementById("accBtn");
     if (btn) {
       btn.textContent = "🔍 瀏覽全部 " + SPORTS_CATALOGUE.length + " 個支援運動項目（可供教練開班）";
@@ -368,7 +368,11 @@ function renderSportGrid(elId, limit) {
       openAccordion(c.getAttribute("data-mega"));
     });
     if (window.MutationObserver && document.body) {
-      new MutationObserver(function () { decorate(document); }).observe(document.body, { childList: true, subtree: true });
+      var t = null;
+      new MutationObserver(function () {
+        if (t) return;
+        t = setTimeout(function () { t = null; decorate(document); }, 180);
+      }).observe(document.body, { childList: true, subtree: true });
     }
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", run);
