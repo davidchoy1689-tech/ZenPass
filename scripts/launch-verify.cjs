@@ -50,7 +50,10 @@ function add(id, title, pass, detail) {
               ${pick("business_reg_no", "NULL")} AS business_reg_no,
               ${pick("pli_policy_no", "NULL")} AS pli_policy_no,
               ${pick("pli_expiry", "NULL")} AS pli_expiry,
-              ${pick("pli_status", "NULL")} AS pli_status
+              ${pick("pli_status", "NULL")} AS pli_status,
+              (SELECT COUNT(*) FROM classes c
+                WHERE c.partner_venue_id = partner_venues.id
+                  AND c.status NOT IN ('cancelled','deleted')) AS class_count
          FROM partner_venues
         WHERE status = 'active'
         ORDER BY name`,
@@ -69,21 +72,27 @@ function add(id, title, pass, detail) {
       business_reg_no: v.business_reg_no || "",
       pli_policy_no: v.pli_policy_no || "",
       pli_expiry: v.pli_expiry || "",
+      in_use: Number(v.class_count || 0) > 0,
+      class_count: Number(v.class_count || 0),
       complete,
       expired,
       ok: okStatus && complete && !expired,
     };
   });
-  const bad = rows.filter((r) => !r.ok);
+  const inUse = rows.filter((r) => r.in_use);
+  const badInUse = inUse.filter((r) => !r.ok);
   const verifiedCount = rows.filter((r) => r.pli_status === "verified").length;
   add(
     "pli_data",
     `場地 PLI 資料完整度（gate=${gate}）`,
-    gate === "enforce" && bad.length === 0,
-    `${rows.length} 個 active 場地｜verified ${verifiedCount}｜未齊料 ${bad.length}` +
-      (bad.length ? "\n   未齊料：" + bad.map((b) => `${b.name}(${b.pli_status})`).join("、") : ""),
+    gate === "enforce" && badInUse.length === 0,
+    `${rows.length} 個 active 場地｜有班使用中 ${inUse.length}｜verified ${verifiedCount}` +
+      (badInUse.length
+        ? "\n   ⚠️ 有班但未齊料：" + badInUse.map((b) => `${b.name}(${b.pli_status})`).join("、")
+        : "\n   ✓ 所有有班場地已核驗") +
+      (gate !== "enforce" ? "\n   ⚠️ 閘門仍係 " + gate + "，未切 enforce" : ""),
   );
-  report.pli = { gate, total: rows.length, verified: verifiedCount, rows };
+  report.pli = { gate, total: rows.length, in_use: inUse.length, verified: verifiedCount, rows };
 
   /* ---------- 2. Enforce 閘門實測（DB 副本）---------- */
   try {
@@ -95,7 +104,10 @@ function add(id, title, pass, detail) {
       { env: { ...process.env, DB_PATH: tmp, GATE: "enforce" }, encoding: "utf8", timeout: 30000 },
     );
     let result = null;
-    try { result = JSON.parse(raw.trim().split("\n").pop()); } catch (e) { result = { raw }; }
+    try { result = JSON.parse(raw.trim()); } catch (e) {
+      const m = raw.match(/\{[\s\S]*\}/);
+      try { result = m ? JSON.parse(m[0]) : { raw }; } catch (e2) { result = { raw }; }
+    }
     add(
       "pli_enforce",
       "Enforce 閘門實測（未核驗場地開班應被擋）",
