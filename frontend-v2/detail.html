@@ -104,7 +104,8 @@
     .dt-sheet h3 { margin: 0 0 10px; font-size: 15px; display: flex; justify-content: space-between; align-items: center; }
     .dt-sheet h3 span { font-size: 20px; color: var(--text-muted); cursor: pointer; }
     .dt-sheet-list { overflow-y: auto; -webkit-overflow-scrolling: touch; }
-    .dt-sess { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 12px 2px; border-bottom: 1px solid var(--border); }
+    .dt-sess { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 12px 2px; border-bottom: 1px solid var(--border); cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; user-select: none; }
+    .dt-sess:active { background: #f6f7f9; }
     .dt-sess:last-child { border-bottom: 0; }
     .dt-sess .d { font-size: 13px; font-weight: 700; }
     .dt-sess .t { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
@@ -116,15 +117,16 @@
 
     .dt-dates { display: flex; gap: 8px; overflow-x: auto; padding: 2px 0 10px; scrollbar-width: none; }
     .dt-dates::-webkit-scrollbar { display: none; }
-    .dt-date { flex: 0 0 auto; min-width: 54px; text-align: center; border: 1px solid var(--border); border-radius: 12px; padding: 8px 6px; cursor: pointer; background: var(--surface); }
+    .dt-date { flex: 0 0 auto; min-width: 54px; text-align: center; border: 1px solid var(--border); border-radius: 12px; padding: 8px 6px; cursor: pointer; background: var(--surface); touch-action: manipulation; -webkit-tap-highlight-color: transparent; user-select: none; }
     .dt-date .w { font-size: 10.5px; color: var(--text-muted); }
     .dt-date .d { font-size: 15px; font-weight: 800; margin: 1px 0; }
     .dt-date .n { font-size: 10px; color: var(--brand-600); }
     .dt-date.on { border-color: var(--brand-600); background: #fff1ea; }
-    .dt-date.off { opacity: .38; pointer-events: none; }
+    .dt-date.off { opacity: .38; }
     .dt-sess.on { background: #fff7f3; border-radius: 10px; }
     .dt-sess.off { opacity: .45; }
     .dt-sheet .btn-block { margin-top: 10px; }
+    .dt-sheet .btn-block.idle { opacity: .55; }
     .dt-seats { color: #b45309; font-weight: 700; }
     .dt-sticky { position: fixed; left: 0; right: 0; bottom: 0; z-index: 900; background: rgba(255,255,255,.96); backdrop-filter: blur(10px); border-top: 1px solid var(--border); padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); display: flex; align-items: center; gap: 12px; }
     .dt-price { line-height: 1.15; }
@@ -319,7 +321,7 @@
     <h3>選擇時段 <span id="sheetClose">✕</span></h3>
     <div class="dt-dates" id="dateStrip"></div>
     <div class="dt-sheet-list" id="sheetList"></div>
-    <button class="btn btn-primary btn-block" id="sheetConfirm" disabled>請先選擇場次</button>
+    <button class="btn btn-primary btn-block idle" id="sheetConfirm" type="button">請先選擇場次</button>
   </div>
 
   <div class="toast" id="toast"></div>
@@ -571,6 +573,7 @@
     }
 
     let SEL_DATE = null, SEL_SID = null;
+    let _byDay = {}, _days = [];
 
     function _free(s) {
       return (Number(s.max_participants) || 0) - (Number(s.enrolled_count) || 0);
@@ -612,14 +615,26 @@
         return '<div class="dt-date ' + (x.key === SEL_DATE ? "on " : "") + (cnt ? "" : "off") + '" data-day="' + x.key + '">' +
           '<div class="w">週' + x.w + '</div><div class="d">' + x.d + '</div><div class="n">' + (cnt ? cnt + " 場" : (all ? "滿" : "—")) + '</div></div>';
       }).join("");
+      _byDay = byDay; _days = days;
       $("dateStrip").querySelectorAll(".dt-date").forEach(function (el) {
-        el.onclick = function () { SEL_DATE = el.dataset.day; SEL_SID = null; renderDates(byDay, days); renderSessions(byDay); };
+        el.onclick = function () { pickDay(el.dataset.day); };
       });
 
       renderSessions(byDay);
       updateConfirm();
       $("sheetMask").classList.add("show");
       $("sheet").classList.add("show");
+    }
+
+    // 揀日期：同一日唔重置已選場次（避免「㩒多次就變返未揀」）
+    function pickDay(day) {
+      if (!day || day === SEL_DATE) return;
+      SEL_DATE = day;
+      const keep = (_byDay[day] || []).some(function (s) { return String(s.id) === String(SEL_SID); });
+      if (!keep) SEL_SID = null;
+      renderDates(_byDay, _days);
+      renderSessions(_byDay);
+      updateConfirm();
     }
 
     function renderDates(byDay, days) {
@@ -643,31 +658,34 @@
         const timeTxt = isNaN(d1) ? s.start_time : p(d1.getHours()) + ":" + p(d1.getMinutes()) + " - " + (isNaN(d2) ? "" : p(d2.getHours()) + ":" + p(d2.getMinutes()));
         const left = _free(s);
         const off = left <= 0;
-        return '<div class="dt-sess ' + (off ? "off " : "") + (SEL_SID === s.id ? "on" : "") + '" data-sid="' + esc(s.id) + '">' +
+        return '<div class="dt-sess ' + (off ? "off " : "") + (String(SEL_SID) === String(s.id) ? "on" : "") + '" data-sid="' + esc(s.id) + '" role="button" tabindex="0">' +
           '<div><div class="d">' + esc(timeTxt) + '</div>' +
           '<div class="t">' + (off ? "名額暫滿" : "剩 " + left + " 個名額") + '</div></div>' +
           '<span class="l ' + (off ? "low" : left <= 3 ? "low" : "ok") + '">' + (off ? "滿" : left <= 3 ? "快滿" : "可預約") + '</span></div>';
       }).join("");
-      $("sheetList").querySelectorAll(".dt-sess").forEach(function (el) {
-        if (el.classList.contains("off")) {
-          // 滿額 → 候補
-          el.onclick = function () { joinWaitlist(el.dataset.sid); };
-          return;
-        }
-        el.onclick = function () {
-          SEL_SID = el.dataset.sid;
-          $("sheetList").querySelectorAll(".dt-sess").forEach(function (x) { x.classList.remove("on"); });
+      // 事件委派：重新渲染後仍然有效（iOS / in-app browser 保險）
+      const list = $("sheetList");
+      if (list && !list._bound) {
+        list._bound = true;
+        list.addEventListener("click", function (e) {
+          const el = e.target && e.target.closest ? e.target.closest(".dt-sess") : null;
+          if (!el || !list.contains(el)) return;
+          const sid = el.getAttribute("data-sid");
+          if (!sid) return;
+          if (el.classList.contains("off")) { joinWaitlist(sid); return; }
+          SEL_SID = sid;
+          list.querySelectorAll(".dt-sess").forEach(function (x) { x.classList.remove("on"); });
           el.classList.add("on");
           updateConfirm();
-        };
-      });
+        });
+      }
     }
 
     /* 🔔 滿額候補 */
     function joinWaitlist(sid) {
       const back = "detail.html?id=" + encodeURIComponent(CLS.id) + "&sid=" + encodeURIComponent(sid);
       if (typeof api.requireLogin === "function" && !api.requireLogin(back)) return;
-      const s = SESS.find(function (x) { return x.id === sid; }) || {};
+      const s = SESS.find(function (x) { return String(x.id) === String(sid); }) || {};
       const me = (api.getUser && api.getUser()) || {};
       const when = s.start_time
         ? new Date(String(s.start_time).replace(" ", "T")).toLocaleString("zh-HK", { month: "short", day: "numeric", weekday: "short", hour: "2-digit", minute: "2-digit" })
@@ -749,15 +767,19 @@
     function updateConfirm() {
       const btn = $("sheetConfirm");
       if (!btn) return;
-      const s = SESS.find(function (x) { return x.id === SEL_SID; });
+      const s = SESS.find(function (x) { return String(x.id) === String(SEL_SID); });
       const allFull = SESS.length && SESS.every(function (x) { return _free(x) <= 0; });
       if (!s) {
-        btn.disabled = true;
+        btn.classList.add("idle");
+        btn.dataset.idle = "1";
         btn.textContent = allFull ? "所有場次已滿 · 撳場次加入候補" : "請先選擇場次";
         return;
       }
-      btn.disabled = false;
-      btn.textContent = "前往結賬 (" + $("price").textContent + ")";
+      btn.classList.remove("idle");
+      delete btn.dataset.idle;
+      const priceEl = $("price");
+      const priceTxt = priceEl ? String(priceEl.textContent || "").trim() : "";
+      btn.textContent = "前往結賬" + (priceTxt && priceTxt !== "—" ? " (" + priceTxt + ")" : "");
     }
 
     function closeSheet() {
@@ -765,6 +787,7 @@
       $("sheet").classList.remove("show");
     }
     function goBook(sid) {
+      if (!sid) { flash("👆 請先撳上面嘅時段"); return; }
       location.href = "booking.html?id=" + encodeURIComponent(CLS.id) + "&sid=" + encodeURIComponent(sid);
     }
     (function () {
@@ -773,8 +796,20 @@
       if (m) m.addEventListener("click", closeSheet);
       if (x) x.addEventListener("click", closeSheet);
       const c = document.getElementById("sheetConfirm");
-      if (c) c.addEventListener("click", function () { if (SEL_SID) goBook(SEL_SID); });
+      if (c) c.addEventListener("click", function () {
+        if (!SEL_SID) { flash("👆 請先撳上面嘅時段，再撳呢個掣"); return; }
+        goBook(SEL_SID);
+      });
     })();
+
+    function flash(msg) {
+      const t = $("toast");
+      if (!t) return;
+      t.textContent = msg;
+      t.classList.add("show");
+      clearTimeout(flash._t);
+      flash._t = setTimeout(function () { t.classList.remove("show"); }, 2200);
+    }
 
     function seatsLeft() {
       if (!SESS.length) return null;
