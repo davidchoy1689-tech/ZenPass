@@ -395,6 +395,7 @@
     };
     if (STATE.evening && !STATE.date) STATE.date = "evening";
     if (P.get("time") === "daytime" && !STATE.date) STATE.date = "daytime";
+    if (P.get("date") === "weekday_daytime" || P.get("time") === "weekday_daytime") STATE.date = "daytime";
 
     /* ---------- 時間工具（UTC → HKT）---------- */
     function hkt(s) {

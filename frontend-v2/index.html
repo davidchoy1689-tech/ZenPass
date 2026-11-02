@@ -58,7 +58,7 @@
       <p>芬蘭木柱・地板冰壺・布袋球… 搵堂、預約、簽到，一 app 搞掂。</p>
 
       <div class="hero-quicknav">
-        <a href="corporate.html">🏢 學校／企業團建</a>
+        <a href="#corporate-section">🏢 學校／企業團建</a>
         <a href="coach-apply.html">🧑‍🏫 教練加盟</a>
         <a href="partner-apply.html">🏪 場地加盟</a>
       </div>
@@ -99,6 +99,7 @@
             <option value="today">今天</option>
             <option value="tomorrow">明天</option>
             <option value="weekend">本週末</option>
+            <option value="daytime">☀️ 平日日間 (週一至五 10:00–16:00)</option>
           </select>
         </label>
         <label class="qs-field"><span>項目</span>
@@ -133,6 +134,22 @@
         <a class="loc-pill" href="explore.html?zone=st">📍 沙田</a>
         <a class="loc-pill" href="explore.html?zone=sk">📍 西貢</a>
         <a class="loc-pill" href="explore.html?zone=islands">📍 離島</a>
+      </div>
+    </div>
+
+    <div class="section-title" style="margin-top:14px">🛡️ 安心保障三道防線</div>
+    <div class="shield-grid">
+      <div class="shield-card">
+        <span class="shield-ic">🛡️</span>
+        <div><b>場地公眾責任保險（PLI）核驗</b><p>所有合作場地須提交公眾責任保險（PLI）證明，由平台逐一核對保單號及到期日。</p></div>
+      </div>
+      <div class="shield-card">
+        <span class="shield-ic">📜</span>
+        <div><b>SHA-256 防偽數位證書</b><p>課後即發，附防篡改存證雜湊；學校、機構、家長可一鍵驗證真偽。</p></div>
+      </div>
+      <div class="shield-card">
+        <span class="shield-ic">⛑️</span>
+        <div><b>資歷經審核的註冊導師</b><p>教練須提交技術及急救資歷，平台審核通過才能開班，資歷可追溯。</p></div>
       </div>
     </div>
 
@@ -258,22 +275,6 @@
       <span>🏆 <b>50+</b> 認可專業教練</span>
     </div>
 
-    <div class="section-title" style="margin-top:14px">🛡️ 安心保障三道防線</div>
-    <div class="shield-grid">
-      <div class="shield-card">
-        <span class="shield-ic">🛡️</span>
-        <div><b>場地公眾責任保險（PLI）核驗</b><p>所有合作場地須提交公眾責任保險（PLI）證明，由平台逐一核對保單號及到期日。</p></div>
-      </div>
-      <div class="shield-card">
-        <span class="shield-ic">📜</span>
-        <div><b>SHA-256 防偽數位證書</b><p>課後即發，附防篡改存證雜湊；學校、機構、家長可一鍵驗證真偽。</p></div>
-      </div>
-      <div class="shield-card">
-        <span class="shield-ic">⛑️</span>
-        <div><b>資歷經審核的註冊導師</b><p>教練須提交技術及急救資歷，平台審核通過才能開班，資歷可追溯。</p></div>
-      </div>
-    </div>
-
     <div class="section-title">❓ 如何使用 ZenPass 上課？</div>
     <div class="how-grid">
       <div class="how-card"><div class="ic">💳</div><b>彈性預約</b><p>按堂收費，無隱藏月費綁約，想玩先約。</p></div>
@@ -290,13 +291,13 @@
       <button class="btn btn-primary ref-btn" id="refShare" type="button">立即分享給朋友</button>
     </div>
 
-    <div class="section-title">🏅 運動項目 <span class="sport-count">8 大類</span></div>
+    <div class="section-title">🏅 運動項目 <span class="sport-count">3 大主軸</span></div>
     <div class="cat-photo-grid" id="catPhotoGrid"></div>
     <p class="acc-note">以下係平台支援嘅運動項目庫；<b>未開班嘅項目唔會出現在搜尋結果</b>，唔會俾你撳入去見到空白。想玩某項但未有班？話我哋知，我哋會搵教練開班。</p>
     <button class="acc-btn" id="accBtn" type="button" aria-expanded="false">🔍 瀏覽全部 145 個支援運動項目（可供教練開班）</button>
     <div class="acc-panel" id="sportGridAll" hidden></div>
 
-    <div class="b2b">
+    <div class="b2b" id="corporate-section">
       <div class="b2b-ic">🏢</div>
       <div class="b2b-tx">
         <b>尋找企業 Team Building 或學校新興運動體驗活動？</b>
@@ -768,13 +769,8 @@
       if (!grid) return;
       var CATS = [
         { k: "新興運動", id: "emerging", n: "芬蘭木柱 · 布袋球 · 穿雲箭" },
-        { k: "伸展", id: "stretch", n: "肩頸 · 腰背 · 全身" },
-        { k: "瑜伽", id: "yoga", n: "初階 · 陰瑜伽 · 空中" },
-        { k: "健身", id: "fitness", n: "HIIT · 重訓 · 體能" },
-        { k: "冥想", id: "meditation", n: "正念 · 呼吸 · 放鬆" },
-        { k: "舞蹈", id: "dance", n: "K-Pop · 爵士 · 拉丁" },
-        { k: "兒童體適能", id: "kids", n: "3–12 歲 · 協調訓練" },
-        { k: "長者體適能", id: "senior", n: "樂齡 · 平衡 · 肌力" },
+        { k: "身心伸展", id: "stretch", n: "肩頸 · 腰背 · 深層放鬆" },
+        { k: "樂齡強肌", id: "senior", n: "防跌 · 平衡 · 肌力 · 伸展" },
       ];
       grid.innerHTML = CATS.map(function (c) {
         return '<a class="cat-photo" href="explore.html?q=' + encodeURIComponent(c.k) + '">' +
