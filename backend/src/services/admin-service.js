@@ -6,7 +6,13 @@
 const { v4: uuidv4 } = require("uuid");
 const { getDb } = require("./database");
 const { sendNotification, sendTelegramAlert } = require("./notification");
-const { audit, trackAdminAction, queryAudit } = require("./audit");
+const {
+  audit,
+  trackAdminAction,
+  trackBookingChange,
+  trackPaymentChange,
+  queryAudit,
+} = require("./audit");
 const { writeBlock } = require("./blockchain-audit");
 
 // ==================== Payment Management ====================
@@ -136,6 +142,22 @@ function approvePayment(bookingId, adminId, req) {
         `⚠️ <b>Ledger 寫入失敗</b>\n🆔 Booking：${bookingId}\n⚠️ 錯誤：${acctErr.message}`,
       );
     } catch (_e) {}
+  }
+
+  // Audit — 狀態轉換逐條記（booking.confirmed / payment.paid），確保資金鏈可追溯
+  try {
+    trackBookingChange(bookingId, adminId, "pending_payment", "confirmed", req);
+    trackPaymentChange(
+      bookingId,
+      adminId,
+      "pending",
+      "paid",
+      booking.amount,
+      booking.fps_reference ? "fps" : "payme",
+      req,
+    );
+  } catch (auditErr) {
+    console.error("⚠️ Audit record failed (status):", auditErr.message);
   }
 
   // Audit
