@@ -43,7 +43,11 @@ function buildMeta(p, base) {
   const title = area
     ? `${name}｜${area}銀髮伸展・1對1 PT教練｜ZenPass`
     : `${name}｜長者伸展・防肌少症教練｜ZenPass`;
-  const desc = `${area ? area : "全港"}長者伸展／防肌少症／1對1 PT。${t.verified_teaching_hours} 小時認證授課、${t.certificates_issued} 張官方證書、${t.rating.avg}★（${t.rating.count} 評價）。平日日間班招生中。`;
+  const bits = [];
+  if (t.verified_teaching_hours > 0) bits.push(`${t.verified_teaching_hours} 小時認證授課`);
+  if (t.certificates_issued > 0) bits.push(`${t.certificates_issued} 張官方證書`);
+  if (t.rating.count > 0) bits.push(`${t.rating.avg}★（${t.rating.count} 評價）`);
+  const desc = `${area ? area : "全港"}長者伸展／防肌少症／1對1 PT。${bits.length ? bits.join("、") + "。" : ""}平日日間班招生中。`;
   const url = `${base}/c/${p.coach.slug}`;
   const image = /^https?:\/\//.test(p.coach.avatar || "") ? p.coach.avatar : `${base}${DEFAULT_OG}`;
   return { title, desc: desc.slice(0, 160), url, image };
