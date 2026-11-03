@@ -40,14 +40,23 @@ function buildMeta(p, base) {
   const name = p.coach.name || "教練";
   const area = p.positioning.primary_area || "";
   const t = p.trust;
-  const title = area
-    ? `${name}｜${area}銀髮伸展・1對1 PT教練｜ZenPass`
-    : `${name}｜長者伸展・防肌少症教練｜ZenPass`;
+  const types = (p.positioning.service_types || []).map((x) => x.key);
+  const seniorFocus = types.some((k) => ["stretching", "senior_fitness", "rehab_posture"].includes(k));
+  const nicheFocus = types.includes("niche_sports");
+  const suffix = seniorFocus
+    ? "銀髮伸展・1對1 PT教練"
+    : nicheFocus
+      ? "新興運動・團隊活動教練"
+      : types.includes("pt_1on1")
+        ? "1對1 私人教練"
+        : "運動教練";
+  const title = area ? `${name}｜${area}${suffix}｜ZenPass` : `${name}｜${suffix}｜ZenPass`;
   const bits = [];
   if (t.verified_teaching_hours > 0) bits.push(`${t.verified_teaching_hours} 小時認證授課`);
   if (t.certificates_issued > 0) bits.push(`${t.certificates_issued} 張官方證書`);
   if (t.rating.count > 0) bits.push(`${t.rating.avg}★（${t.rating.count} 評價）`);
-  const desc = `${area ? area : "全港"}長者伸展／防肌少症／1對1 PT。${bits.length ? bits.join("、") + "。" : ""}平日日間班招生中。`;
+  const focus = seniorFocus ? "長者伸展／防肌少症／1對1 PT" : nicheFocus ? "芬蘭木柱／地板冰壺／團隊活動" : "個人化運動訓練";
+  const desc = `${area ? area : "全港"}${focus}。${bits.length ? bits.join("、") + "。" : ""}平日日間班招生中。`;
   const url = `${base}/c/${p.coach.slug}`;
   const image = /^https?:\/\//.test(p.coach.avatar || "") ? p.coach.avatar : `${base}${DEFAULT_OG}`;
   return { title, desc: desc.slice(0, 160), url, image };
