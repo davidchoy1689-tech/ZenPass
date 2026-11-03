@@ -87,14 +87,14 @@ function call(handler, { params = {}, headers = {}, query = {} } = {}) {
   db.prepare(
     "INSERT INTO users (id,name,email,phone,role,is_coach,coach_verified,is_active,coach_headline,public_bio,service_types,target_audiences,service_districts,coach_languages) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
   ).run(
-    "coach-a", "Sam Wong", "sam@zenpass.test", "91234567", "coach", 1, 1, 1,
+    "coach-a", "Sam Wong", "sam@zenpass.hk", "91234567", "coach", 1, 1, 1,
     "銀髮伸展・防跌強肌", "10 年長者體適能經驗。",
     '["stretching","senior_fitness"]', '["seniors","retirees"]', '["觀塘","葵青"]', '["廣東話","English"]',
   );
   db.prepare("INSERT INTO users (id,name,email,phone,role,is_coach,coach_verified,is_active) VALUES (?,?,?,?,?,?,?,?)").run(
-    "coach-b", "Unverified Guy", "b@zenpass.test", "90000000", "coach", 1, 0, 1,
+    "coach-b", "Unverified Guy", "b@zenpass.hk", "90000000", "coach", 1, 0, 1,
   );
-  db.prepare("INSERT INTO users (id,name,email,phone,role) VALUES (?,?,?,?,?)").run("stu-1", "陳大文", "s@x.test", "91111111", "user");
+  db.prepare("INSERT INTO users (id,name,email,phone,role) VALUES (?,?,?,?,?)").run("stu-1", "陳大文", "s@x.com", "91111111", "user");
 
   db.prepare(
     "INSERT INTO coach_credentials (id,user_id,license_type,license_no,license_expiry,first_aid_type,first_aid_expiry,is_starred,status,qualified_sports) VALUES (?,?,?,?,?,?,?,?,?,?)",

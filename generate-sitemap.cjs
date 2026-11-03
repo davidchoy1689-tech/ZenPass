@@ -62,6 +62,10 @@ try {
     SELECT u.coach_slug AS slug, MAX(u.updated_at) AS lastmod
       FROM users u
      WHERE u.coach_slug IS NOT NULL AND u.coach_slug != ''
+       AND u.role = 'coach' AND u.is_active != 0
+       AND lower(u.email) NOT LIKE '%e2e%' AND lower(u.email) NOT LIKE '%test%'
+       AND lower(u.email) NOT LIKE '%demo%'
+       AND u.name NOT LIKE '%測試%'
        AND (u.coach_verified = 1 OR EXISTS (
              SELECT 1 FROM coach_credentials c
               WHERE c.user_id = u.id AND c.status = 'verified'))

@@ -163,7 +163,10 @@ function getPublicProfile(db, slug) {
       .get(u.id) || null;
 
   const verified = Number(u.coach_verified) === 1 || (cred && cred.status === "verified");
-  if (!verified || Number(u.is_active) === 0 && u.is_active !== undefined) return null;
+  const email = String(u.email || "").toLowerCase();
+  const isTestAccount = /e2e|\btest\b|demo/.test(email) || /測試|demo|e2e/i.test(String(u.name || ""));
+  if (!verified || isTestAccount || String(u.role || "") !== "coach") return null;
+  if (u.is_active !== undefined && Number(u.is_active) === 0) return null;
 
   const hoursRow = db
     .prepare(
