@@ -24,6 +24,9 @@ const AUDIENCE_LABELS = {
   adults: "成人",
   kids: "兒童",
   corporate: "企業／機構",
+  beginners: "新手／初學者",
+  schools: "學校／機構",
+  parents_kids: "親子",
 };
 const INTENSITY_LABELS = { gentle: "🟢 溫和", moderate: "🟡 適中", high: "🔴 高強" };
 const HIGH_RISK_TYPES = ["senior_fitness", "rehab_posture"];
