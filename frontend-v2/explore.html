@@ -388,7 +388,7 @@
       q: P.get("q") || "",
       zone: ZONES[P.get("zone")] ? P.get("zone") : "",
       date: DATES[P.get("date") || ""] && P.get("date") ? P.get("date") : "",
-      cat: P.get("cat") || "",
+      cat: P.get("cat") || P.get("category") || "",
       sort: SORTS[P.get("sort")] ? P.get("sort") : "newest",
       area: P.get("area") || "",
       scene: SCENES[P.get("scene")] ? P.get("scene") : "",
@@ -465,7 +465,16 @@
       });
       return days.some((d) => targetDays(STATE.date).indexOf(d) >= 0);
     }
-    function matchCat(c) { return !STATE.cat || String(c.category || "") === STATE.cat; }
+    const CAT_ALIAS = {
+      niche_sports: "新興運動", stretching: "身心伸展", yoga: "瑜伽", fitness: "健身",
+      meditation: "冥想", dance: "舞蹈", kids: "兒童體適能", senior: "長者體適能",
+    };
+    function catLabel() { return CAT_ALIAS[STATE.cat] || STATE.cat; }
+    function matchCat(c) {
+      if (!STATE.cat) return true;
+      const cat = String(c.category || "");
+      return cat === STATE.cat || CAT_ALIAS[STATE.cat] === cat || String(c.sport_slug || "") === STATE.cat;
+    }
     let Q_TERMS = [];
     function matchQ(c) {
       const t = STATE.q.trim();
@@ -729,7 +738,7 @@
 
     function render() {
       const arr = view();
-      const lbl = [STATE.zone ? "📍 " + ZONES[STATE.zone].label : "", STATE.cat ? STATE.cat : ""].filter(Boolean).join(" · ");
+      const lbl = [STATE.zone ? "📍 " + ZONES[STATE.zone].label : "", STATE.cat ? catLabel() : ""].filter(Boolean).join(" · ");
       countEl.textContent = (lbl ? lbl + " · " : "") + arr.length + " 個課程";
       renderHint(arr.length);
       if (!arr.length) {
@@ -750,7 +759,7 @@
       const on = [];
       if (STATE.zone) on.push(["zone", "📍 " + ZONES[STATE.zone].label]);
       if (STATE.date) on.push(["date", "📅 " + DATES[STATE.date]]);
-      if (STATE.cat) on.push(["cat", "🏷️ " + STATE.cat]);
+      if (STATE.cat) on.push(["cat", "🏷️ " + catLabel()]);
       if (STATE.area) on.push(["area", "📌 " + STATE.area]);
       if (STATE.scene) on.push(["scene", "🎯 " + SCENES[STATE.scene].label]);
       if (STATE.sort !== "newest") on.push(["sort", "↕️ " + SORTS[STATE.sort]]);
