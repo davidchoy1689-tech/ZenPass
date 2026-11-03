@@ -38,11 +38,11 @@ router.get("/", optionalAuth, cache(30), (req, res) => {
     let whereConditions = ["c.status = ?"];
     let params = ["active"];
 
-    // 已完結超過 7 日 → 自動不再顯示（只適用於曾開放預約嘅課程；未開放嘅目錄項繼續展示）
+    // 已完結（最後一節已過）→ 唔再出現在公開列表（只適用於曾開放預約嘅課程；未開放嘅目錄項繼續展示）
     const LAST_END =
       "(SELECT MAX(cs.end_time) FROM class_schedules cs WHERE cs.class_id = c.id)";
     whereConditions.push(
-      `NOT (COALESCE(c.booking_open,0) = 1 AND ${LAST_END} IS NOT NULL AND ${LAST_END} < datetime('now','-7 days'))`,
+      `NOT (COALESCE(c.booking_open,0) = 1 AND ${LAST_END} IS NOT NULL AND ${LAST_END} < datetime('now'))`,
     );
 
     if (category && category !== "全部" && category !== "all") {

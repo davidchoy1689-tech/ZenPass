@@ -233,6 +233,15 @@ function getPublicProfile(db, slug) {
       };
     });
 
+  // 新興運動班（芬蘭木柱／地壺等）優先置頂，其餘按時間
+  const isNiche = (x) =>
+    String(x.category || "") === "新興運動" || /木柱|冰壺|布袋球|穿雲箭|新興/.test(String(x.title || ""));
+  upcoming.sort((a, b) => {
+    const d = (isNiche(b) ? 1 : 0) - (isNiche(a) ? 1 : 0);
+    if (d) return d;
+    return new Date(a.start_time).getTime() - new Date(b.start_time).getTime();
+  });
+
   const reviews = db
     .prepare(
       `SELECT r.rating, r.comment, r.created_at, u.name AS student_name
