@@ -15,12 +15,15 @@ const SERVICE_LABELS = {
   pt_1on1: "1對1 私人訓練",
   niche_sports: "新興運動",
   rehab_posture: "姿勢復康",
+  kids_fitness: "兒童體適能",
+  corporate_team_building: "企業／學校團建",
 };
 const AUDIENCE_LABELS = {
   seniors: "銀髮樂齡",
   retirees: "退休人士",
   adults: "成人",
   kids: "兒童",
+  corporate: "企業／機構",
 };
 const INTENSITY_LABELS = { gentle: "🟢 溫和", moderate: "🟡 適中", high: "🔴 高強" };
 const HIGH_RISK_TYPES = ["senior_fitness", "rehab_posture"];
