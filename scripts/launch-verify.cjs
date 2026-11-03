@@ -76,7 +76,8 @@ function add(id, title, pass, detail) {
       class_count: Number(v.class_count || 0),
       complete,
       expired,
-      ok: okStatus && complete && !expired,
+      // 同 backend venuePliRows 一致：exempt（政府／康文署場地）唔需要保單號
+      ok: v.pli_status === "exempt" || (v.pli_status === "verified" && complete && !expired),
     };
   });
   const inUse = rows.filter((r) => r.in_use);
