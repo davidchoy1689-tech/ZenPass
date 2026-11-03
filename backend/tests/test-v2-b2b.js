@@ -15,7 +15,7 @@ has(html, "尋找企業 Team Building 或學校新興運動體驗活動？", "b2
 has(html, "立即 WhatsApp 查詢報價", "b2b button label");
 // WhatsApp 連結 + 新分頁 + 預填訊息
 has(html, "https://wa.me/852", "WhatsApp URL");
-if (!/class="b2b-btn"[^>]*target="_blank"[^>]*rel="noopener"/.test(html)) fails.push("b2b button should open new tab with rel=noopener");
+if (!/class="b2b-btn"[^>]*target="_blank"[^>]*rel="noopener(?: noreferrer)?"/.test(html)) fails.push("b2b button should open new tab with rel=noopener noreferrer");
 if (!/wa\.me\/852\d+\?text=/.test(html)) fails.push("b2b WhatsApp link should prefill text");
 // 次要連結
 has(html, "corporate.html", "corporate link");

@@ -268,8 +268,14 @@ function getPublicProfile(db, slug) {
 
   const phone = u.public_contact_phone || u.phone || "";
   const hidden = Number(u.public_contact_hidden) === 1 || !phone;
-  const prefill =
-    `你好 ${u.name || "教練"}，我在 ZenPass 看到你平日日間嘅長者伸展／強肌課堂，想查詢詳情。`;
+
+  // 預填文案：按教練實際班種分流（新興運動 vs 樂齡伸展），開頭帶來源標籤
+  const displayName = /導師|教練|Sir|Miss/i.test(String(u.name || "")) ? u.name : `${u.name}教練`;
+  const areaLabel = districts[0] || (upcoming[0] && upcoming[0].district) || "全港";
+  const hasNicheClass = upcoming.some((x) => /木柱|冰壺|布袋球|穿雲箭|新興/.test(String(x.title || "")));
+  const prefill = hasNicheClass
+    ? `你好，我喺 ZenPass 睇到${displayName}嘅個人專頁，想查詢「芬蘭木柱／地板冰壺體驗班」嘅課堂資訊同包班安排。`
+    : `你好，我喺 ZenPass 睇到${displayName}嘅個人專頁，想查詢「樂齡深層伸展（平日日間班）」${areaLabel}場次嘅課堂細節同報名安排。`;
 
   const primaryArea = districts[0] || (upcoming[0] && upcoming[0].district) || "";
 
