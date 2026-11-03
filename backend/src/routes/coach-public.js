@@ -44,7 +44,7 @@ function buildMeta(p, base) {
   const seniorFocus = types.some((k) => ["stretching", "senior_fitness", "rehab_posture"].includes(k));
   const nicheFocus = types.includes("niche_sports");
   const suffix = seniorFocus
-    ? "銀髮伸展・1對1 PT教練"
+    ? (types.includes("pt_1on1") ? "銀髮伸展・1對1 PT教練" : "銀髮伸展・樂齡體適能教練")
     : nicheFocus
       ? "新興運動・團隊活動教練"
       : types.includes("pt_1on1")

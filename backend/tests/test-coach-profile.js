@@ -197,7 +197,7 @@ function call(handler, { params = {}, headers = {}, query = {} } = {}) {
   const rp = await call(page, { params: { slug: "sam-wong" } });
   ok(rp.status === 200 && typeof rp.body === "string", "/c/:slug 回 HTML");
   ok(!/\{\{[A-Z_]+\}\}/.test(rp.body), "無未替換 template token");
-  ok(/<title>Sam Wong｜觀塘銀髮伸展・1對1 PT教練｜ZenPass<\/title>/.test(rp.body), "動態 title 正確");
+  ok(/<title>Sam Wong｜觀塘銀髮伸展・樂齡體適能教練｜ZenPass<\/title>/.test(rp.body), "動態 title 正確");
   ok(/rel="canonical" href="https:\/\/zenpass\.hk\/c\/sam-wong"/.test(rp.body), "canonical URL");
   ok(/og:title" content="Sam Wong/.test(rp.body), "OG title");
   const m = rp.body.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/);
