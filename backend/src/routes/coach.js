@@ -1278,7 +1278,7 @@ router.get("/upcoming", authenticateToken, (req, res) => {
          FROM class_schedules cs
          JOIN classes c ON c.id = cs.class_id
          WHERE c.coach_id = ? AND c.status = 'active'
-           AND cs.start_time >= datetime('now')
+           AND datetime(cs.start_time) >= datetime('now')
            AND COALESCE(cs.status,'available') = 'available'
          ORDER BY cs.start_time ASC
          LIMIT 8`,

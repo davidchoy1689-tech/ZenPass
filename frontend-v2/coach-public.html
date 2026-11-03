@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#ff6b35" />
+  <title>{{META_TITLE}}</title>
+  <meta name="description" content="{{META_DESC}}" />
+  <link rel="canonical" href="{{CANONICAL}}" />
+  <meta property="og:type" content="profile" />
+  <meta property="og:site_name" content="ZenPass 禪流" />
+  <meta property="og:title" content="{{OG_TITLE}}" />
+  <meta property="og:description" content="{{OG_DESC}}" />
+  <meta property="og:image" content="{{OG_IMAGE}}" />
+  <meta property="og:url" content="{{OG_URL}}" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <link rel="stylesheet" href="/assets/v2.css?v=30" />
+  <link rel="stylesheet" href="/assets/polish.css?v=4" />
+  <link rel="stylesheet" href="/assets/ui-v3.css?v=5" />
+  <script type="application/ld+json">{{JSONLD}}</script>
+  <style>
+    :root { --cp-max: 720px; }
+    body { background: #f7f9fb; font-size: 16px; }
+    .cp-wrap { max-width: var(--cp-max); margin: 0 auto; padding: 14px 16px calc(120px + env(safe-area-inset-bottom)); }
+    .cp-top { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+    .cp-top a { font-size: 20px; color: var(--text-muted); text-decoration: none; }
+    .cp-top b { font-size: 15px; }
+    .card { background: #fff; border: 1px solid #e6edf5; border-radius: 18px; box-shadow: 0 4px 16px -6px rgba(15,23,42,.08); }
+    .cp-hero { padding: 20px 18px; }
+    .cp-id { display: flex; gap: 14px; align-items: center; }
+    .cp-avi { width: 76px; height: 76px; border-radius: 50%; flex: 0 0 auto; background: linear-gradient(135deg,#ff8a4c,#d9471f); color: #fff; display: grid; place-items: center; font-size: 30px; font-weight: 800; overflow: hidden; }
+    .cp-avi img { width: 100%; height: 100%; object-fit: cover; }
+    .cp-name { margin: 0; font-size: 23px; line-height: 1.3; }
+    .cp-headline { margin: 4px 0 0; font-size: 15px; color: #475569; line-height: 1.5; }
+    .cp-badges { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+    .cp-badge { font-size: 12.5px; font-weight: 700; background: #f1f5f9; color: #334155; border-radius: 999px; padding: 5px 10px; }
+    .cp-badge.ok { background: #ecfdf5; color: #047857; }
+    .cp-bio { margin: 14px 0 0; font-size: 16px; line-height: 1.7; color: #334155; white-space: pre-line; }
+    .cp-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 16px; }
+    .cp-stat { background: #fff7ed; border: 1px solid #fed7aa; border-radius: 14px; padding: 10px 6px; text-align: center; }
+    .cp-stat b { display: block; font-size: 19px; color: #c2410c; line-height: 1.2; font-variant-numeric: tabular-nums; }
+    .cp-stat span { font-size: 11.5px; color: #9a3412; font-weight: 600; }
+    .cp-sec { margin-top: 18px; }
+    .cp-sec h2 { font-size: 18px; margin: 0 0 10px 2px; }
+    .cp-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+    .cp-chip { font-size: 14px; font-weight: 700; padding: 8px 13px; border-radius: 999px; background: #eef6ff; color: #1d4ed8; }
+    .cp-chip.alt { background: #f0fdf4; color: #15803d; }
+    .cp-chip.sport { background: #fff7ed; color: #c2410c; }
+    .cp-slot { padding: 15px 16px; border-bottom: 1px solid #eef2f7; }
+    .cp-slot:last-child { border-bottom: 0; }
+    .cp-slot-top { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
+    .cp-slot h3 { margin: 0; font-size: 16.5px; line-height: 1.4; }
+    .cp-slot .when { margin: 6px 0 0; font-size: 14.5px; color: #475569; }
+    .cp-slot .where { margin: 3px 0 0; font-size: 14px; color: #64748b; }
+    .cp-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 9px; }
+    .cp-tag { font-size: 12px; font-weight: 700; padding: 4px 9px; border-radius: 999px; background: #f1f5f9; color: #475569; }
+    .cp-tag.off { background: #fff7ed; color: #c2410c; }
+    .cp-tag.seat { background: #ecfdf5; color: #047857; }
+    .cp-tag.low { background: #fef2f2; color: #b91c1c; }
+    .cp-slot-cta { display: flex; align-items: center; gap: 10px; margin-top: 11px; }
+    .cp-price { font-size: 17px; font-weight: 800; color: #0f766e; }
+    .cp-book { margin-left: auto; background: #ff6b35; color: #fff; text-decoration: none; font-weight: 800; font-size: 14.5px; padding: 11px 16px; border-radius: 12px; min-height: 44px; display: inline-flex; align-items: center; }
+    .cp-review { padding: 14px 16px; border-bottom: 1px solid #eef2f7; }
+    .cp-review:last-child { border-bottom: 0; }
+    .cp-review .who { display: flex; justify-content: space-between; font-size: 13.5px; color: #64748b; }
+    .cp-review p { margin: 6px 0 0; font-size: 15px; line-height: 1.65; color: #334155; }
+    .cp-faq details { padding: 14px 16px; border-bottom: 1px solid #eef2f7; }
+    .cp-faq details:last-child { border-bottom: 0; }
+    .cp-faq summary { font-size: 15.5px; font-weight: 700; cursor: pointer; list-style: none; }
+    .cp-faq summary::-webkit-details-marker { display: none; }
+    .cp-faq p { margin: 8px 0 0; font-size: 15px; line-height: 1.7; color: #475569; }
+    .cp-empty { padding: 22px 16px; text-align: center; color: #64748b; font-size: 15px; }
+    .cp-bottom { position: fixed; left: 0; right: 0; bottom: 0; z-index: 60; background: rgba(255,255,255,.96); backdrop-filter: blur(14px); border-top: 1px solid #e2e8f0; padding: 10px 14px calc(10px + env(safe-area-inset-bottom)); }
+    .cp-bottom-in { max-width: var(--cp-max); margin: 0 auto; display: flex; gap: 10px; }
+    .cp-btn { flex: 1; min-height: 50px; border-radius: 14px; font-size: 15.5px; font-weight: 800; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
+    .cp-btn.wa { background: #25d366; color: #fff; }
+    .cp-btn.book { background: #ff6b35; color: #fff; }
+    .cp-btn.ghost { background: #f1f5f9; color: #334155; }
+    .cp-note { font-size: 12px; color: #94a3b8; text-align: center; margin: 14px 0 0; }
+    @media (max-width: 420px) { .cp-stats { grid-template-columns: repeat(2, 1fr); } }
+    @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+  </style>
+</head>
+<body data-slug="{{COACH_SLUG}}">
+  <div class="cp-wrap">
+    <div class="cp-top"><a href="/coaches.html" aria-label="返回教練列表">‹</a><b>教練檔案</b></div>
+    <div id="app"><div class="card"><div class="cp-empty">載入中…</div></div></div>
+    <p class="cp-note">ZenPass 禪流 · 資料以平台核實紀錄為準</p>
+  </div>
+
+  <div class="cp-bottom" id="bottomBar" hidden>
+    <div class="cp-bottom-in">
+      <a class="cp-btn wa" id="waBtn" href="#" target="_blank" rel="noopener">💬 WhatsApp 諮詢</a>
+      <a class="cp-btn book" id="bookBtn" href="#upcoming">📅 預約班次</a>
+    </div>
+  </div>
+
+  <script src="/assets/api.js?v=3"></script>
+  <script>
+    (function () {
+      var slug = document.body.getAttribute("data-slug");
+      var root = document.getElementById("app");
+      function esc(s) {
+        return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+          return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+        });
+      }
+      function stars(n) {
+        var full = Math.round(Number(n) || 0);
+        return "★★★★★".slice(0, full) + "☆☆☆☆☆".slice(0, 5 - full);
+      }
+      function empty(msg) { root.innerHTML = '<div class="card"><div class="cp-empty">' + esc(msg) + "</div></div>"; }
+
+      fetch("/api/coaches/" + encodeURIComponent(slug) + "/profile", { headers: { Accept: "application/json" } })
+        .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+        .then(function (x) {
+          if (!x.ok || !x.j.success) return empty((x.j && x.j.error) || "找不到教練檔案");
+          var p = x.j, c = p.coach, t = p.trust;
+          var initials = (c.name || "教").trim().slice(0, 1);
+          var avi = c.avatar ? '<img src="' + esc(c.avatar) + '" alt="">' : esc(initials);
+
+          var badges = (p.badges || []).map(function (b) {
+            return '<span class="cp-badge ok">' + esc(b.icon) + " " + esc(b.label) + "</span>";
+          }).join("");
+
+          var chips = []
+            .concat((p.positioning.service_types || []).map(function (s) { return '<span class="cp-chip">' + esc(s.label) + "</span>"; }))
+            .concat((p.positioning.target_audiences || []).map(function (s) { return '<span class="cp-chip alt">' + esc(s.label) + "</span>"; }))
+            .concat((p.positioning.districts || []).map(function (s) { return '<span class="cp-chip">📍 ' + esc(s.label) + "</span>"; }))
+            .concat((p.credentials.sports || []).map(function (s) { return '<span class="cp-chip sport">' + esc(s.label) + "</span>"; }))
+            .join("");
+
+          var slots = (p.upcoming || []).map(function (s) {
+            var seatCls = s.seats_left != null && s.seats_left <= 3 ? " low" : " seat";
+            var seatTxt = s.seats_left == null ? "名額待定" : s.seats_left === 0 ? "已滿" : "剩 " + s.seats_left + " 位";
+            return '<div class="cp-slot">' +
+              '<div class="cp-slot-top"><h3>' + esc(s.title) + '</h3></div>' +
+              '<p class="when">📅 ' + esc(s.hk_time_label) + "</p>" +
+              '<p class="where">📍 ' + esc(s.venue_name || "場地待定") + (s.district ? "（" + esc(s.district) + "）" : "") + "</p>" +
+              '<div class="cp-tags">' +
+                (s.is_offpeak ? '<span class="cp-tag off">☀️ 平日日間</span>' : "") +
+                '<span class="cp-tag">' + esc(s.intensity_label) + "</span>" +
+                '<span class="cp-tag' + seatCls + '">' + esc(seatTxt) + "</span>" +
+              "</div>" +
+              '<div class="cp-slot-cta"><span class="cp-price">HK$' + Number(s.price_hkd || 0) + "</span>" +
+              (s.seats_left === 0
+                ? '<span class="cp-tag">已滿</span>'
+                : '<a class="cp-book" href="/booking.html?id=' + encodeURIComponent(s.class_id) + "&sid=" + encodeURIComponent(s.schedule_id) + '">立即預約</a>') +
+              "</div></div>";
+          }).join("") || '<div class="cp-empty">暫無公開課堂，可 WhatsApp 查詢開班時間。</div>';
+
+          var reviews = (p.reviews || []).map(function (r) {
+            return '<div class="cp-review"><div class="who"><b>' + esc(r.user_label) + "</b><span>" + esc(r.created_at) + "</span></div>" +
+              '<div style="color:#f59e0b;font-size:14px;margin-top:2px">' + stars(r.rating) + " " + Number(r.rating).toFixed(1) + "</div>" +
+              "<p>" + esc(r.comment) + "</p></div>";
+          }).join("") || '<div class="cp-empty">暫無評價。</div>';
+
+          var faq = (p.faq || []).map(function (f) {
+            return "<details><summary>" + esc(f.q) + "</summary><p>" + esc(f.a) + "</p></details>";
+          }).join("");
+
+          var ratingTxt = t.rating.count ? t.rating.avg + "★" : "—";
+          root.innerHTML =
+            '<div class="card cp-hero">' +
+              '<div class="cp-id"><div class="cp-avi">' + avi + "</div><div>" +
+                '<h1 class="cp-name">' + esc(c.name) + "</h1>" +
+                '<p class="cp-headline">' + esc(c.headline || "ZenPass 核證教練") + "</p>" +
+              "</div></div>" +
+              '<div class="cp-badges">' + badges + "</div>" +
+              (c.bio ? '<p class="cp-bio">' + esc(c.bio) + "</p>" : "") +
+              '<div class="cp-stats">' +
+                '<div class="cp-stat"><b>' + t.verified_teaching_hours + "</b><span>認證授課小時</span></div>" +
+                '<div class="cp-stat"><b>' + t.certificates_issued + "</b><span>簽發證書</span></div>" +
+                '<div class="cp-stat"><b>' + t.students_taught + "</b><span>學員人數</span></div>" +
+                '<div class="cp-stat"><b>' + ratingTxt + "</b><span>" + (t.rating.count ? t.rating.count + " 則評價" : "未有評價") + "</span></div>" +
+              "</div>" +
+            "</div>" +
+            (chips ? '<div class="cp-sec"><h2>專長與服務</h2><div class="cp-chips">' + chips + "</div></div>" : "") +
+            '<div class="cp-sec" id="upcoming"><h2>近期開課</h2><div class="card">' + slots + "</div></div>" +
+            '<div class="cp-sec"><h2>學員評價</h2><div class="card">' + reviews + "</div></div>" +
+            '<div class="cp-sec cp-faq"><h2>常見問題</h2><div class="card">' + faq + "</div></div>";
+
+          var bar = document.getElementById("bottomBar");
+          var wa = document.getElementById("waBtn");
+          var book = document.getElementById("bookBtn");
+          if (p.contact && p.contact.whatsapp) {
+            wa.href = "https://wa.me/" + p.contact.whatsapp + "?text=" + encodeURIComponent(p.contact.prefill);
+          } else {
+            wa.href = "/explore.html";
+            wa.textContent = "💬 透過平台查詢";
+            wa.classList.remove("wa");
+            wa.classList.add("ghost");
+          }
+          if (p.upcoming && p.upcoming.length) {
+            var first = p.upcoming[0];
+            book.href = "/booking.html?id=" + encodeURIComponent(first.class_id) + "&sid=" + encodeURIComponent(first.schedule_id);
+          } else {
+            book.href = "/explore.html";
+            book.textContent = "📅 睇其他班次";
+          }
+          bar.hidden = false;
+        })
+        .catch(function () { empty("載入失敗，請稍後再試。"); });
+    })();
+  </script>
+</body>
+</html>

@@ -362,7 +362,7 @@ router.get("/today", authenticateToken, requireCoach, (req, res) => {
           (SELECT COUNT(*) FROM bookings WHERE schedule_id = cs.id AND status = 'confirmed') as confirmed_count
          FROM class_schedules cs
          JOIN classes c ON cs.class_id = c.id
-         WHERE date(cs.start_time) = date(?) AND cs.start_time > datetime('now', '-3 hours')
+         WHERE date(cs.start_time) = date(?) AND datetime(cs.start_time) > datetime('now', '-3 hours')
            ${isAdmin ? "" : "AND c.coach_id = ?"}
          ORDER BY cs.start_time`
       )

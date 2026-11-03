@@ -70,7 +70,7 @@ router.get("/available", (req, res) => {
           `
         SELECT start_time, end_time, status FROM venue_rentals 
         WHERE venue_id = ? AND status IN ('confirmed','pending')
-        AND start_time > datetime('now')
+        AND datetime(start_time) > datetime('now')
       `,
         )
         .all(v.id);

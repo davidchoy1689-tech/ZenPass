@@ -110,8 +110,8 @@ router.get("/pending-classes", authenticateToken, requireAdmin, requireOpsRole, 
       `SELECT c.id, c.title, c.category, c.price_hkd, c.venue_name, c.district, c.created_at,
               u.name AS coach_name, u.phone AS coach_phone, u.email AS coach_email,
               (SELECT MIN(cs.start_time) FROM class_schedules cs
-                WHERE cs.class_id = c.id AND cs.start_time > datetime('now') AND cs.status = 'available') AS next_session,
-              (SELECT COUNT(*) FROM class_schedules cs WHERE cs.class_id = c.id AND cs.start_time > datetime('now')) AS upcoming
+                WHERE cs.class_id = c.id AND datetime(cs.start_time) > datetime('now') AND cs.status = 'available') AS next_session,
+              (SELECT COUNT(*) FROM class_schedules cs WHERE cs.class_id = c.id AND datetime(cs.start_time) > datetime('now')) AS upcoming
        FROM classes c
        LEFT JOIN users u ON u.id = c.coach_id
        WHERE COALESCE(c.booking_open,0) = 0 AND COALESCE(c.status,'active') = 'active'
@@ -312,8 +312,8 @@ router.get("/upcoming-sessions", authenticateToken, requireAdmin, requireOpsRole
            JOIN classes c ON c.id = cs.class_id
            LEFT JOIN users u ON u.id = c.coach_id
           WHERE cs.status <> 'cancelled'
-            AND cs.start_time >= datetime('now')
-            AND cs.start_time <= datetime('now', '+' || ? || ' days')
+            AND datetime(cs.start_time) >= datetime('now')
+            AND datetime(cs.start_time) <= datetime('now', '+' || ? || ' days')
           ORDER BY cs.start_time ASC
           LIMIT 100`,
       )
@@ -468,7 +468,7 @@ router.post("/batch-settle", authenticateToken, requireAdmin, requireOpsRole, (r
          JOIN classes c ON c.id = s.class_id
          LEFT JOIN partner_venues pv ON pv.id = c.partner_venue_id
          WHERE s.start_time >= ? AND s.start_time < ? AND s.status <> 'cancelled'
-           AND s.start_time < datetime('now') AND (s.settled_at IS NULL OR s.settled_at = '')`,
+           AND datetime(s.start_time) < datetime('now') AND (s.settled_at IS NULL OR s.settled_at = '')`,
       )
       .all(start, end);
     let n = 0, gross = 0, net = 0, rent = 0;
@@ -517,7 +517,7 @@ router.get("/payout-list", authenticateToken, requireAdmin, requireOpsRole, (req
          LEFT JOIN users u ON u.id = c.coach_id
          LEFT JOIN partner_venues pv ON pv.id = c.partner_venue_id
          WHERE s.start_time >= ? AND s.start_time < ? AND s.status <> 'cancelled'
-           AND s.start_time < datetime('now')
+           AND datetime(s.start_time) < datetime('now')
          ORDER BY s.start_time`,
       )
       .all(start, end);

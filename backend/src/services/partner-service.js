@@ -1285,7 +1285,7 @@ function adminRevenueReport(partnerId) {
      JOIN class_schedules cs ON b.schedule_id = cs.id
      JOIN classes c ON cs.class_id = c.id
      WHERE c.partner_venue_id = ? AND b.status IN ('confirmed','attended')
-       AND cs.start_time >= datetime('now', '-12 months')
+       AND datetime(cs.start_time) >= datetime('now', '-12 months')
      GROUP BY strftime('%Y-%m', cs.start_time)
      ORDER BY month DESC`
   ).all(venue.id);

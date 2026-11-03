@@ -14,9 +14,17 @@ function hasColumn(db, table, col) {
 }
 
 function addColumnIfMissing(db, table, col, ddl) {
-  if (!hasColumn(db, table, col)) {
-    db.exec(`ALTER TABLE ${table} ADD COLUMN ${col} ${ddl}`);
-    console.log(`[migrate] ${table}.${col} added`);
+  try {
+    const exists = db
+      .prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?")
+      .get(table);
+    if (!exists) return; // 精簡測試 DB 可能冇呢張表
+    if (!hasColumn(db, table, col)) {
+      db.exec(`ALTER TABLE ${table} ADD COLUMN ${col} ${ddl}`);
+      console.log(`[migrate] ${table}.${col} added`);
+    }
+  } catch (e) {
+    console.warn(`[migrate] ${table}.${col} skipped: ${e.message}`);
   }
 }
 
@@ -58,6 +66,37 @@ function runMigrations() {
     }
   } catch (e) {
     console.error("[migrate] user_reference backfill failed:", e.message);
+  }
+
+  // ===== 2026-11-04：教練公開專頁（/c/:slug）=====
+  addColumnIfMissing(db, "users", "coach_slug", "TEXT");
+  addColumnIfMissing(db, "users", "public_bio", "TEXT");
+  addColumnIfMissing(db, "users", "public_contact_phone", "TEXT");
+  addColumnIfMissing(db, "users", "public_contact_hidden", "INTEGER DEFAULT 0");
+  addColumnIfMissing(db, "users", "service_types", "TEXT");
+  addColumnIfMissing(db, "users", "target_audiences", "TEXT");
+  addColumnIfMissing(db, "users", "service_districts", "TEXT");
+  addColumnIfMissing(db, "users", "service_types_pending", "TEXT");
+  addColumnIfMissing(db, "class_schedules", "intensity_level", "TEXT DEFAULT 'moderate'");
+  addColumnIfMissing(db, "partner_venues", "exemption_reason", "TEXT");
+
+  db.exec(`
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_users_coach_slug
+      ON users(coach_slug) WHERE coach_slug IS NOT NULL;
+    CREATE TABLE IF NOT EXISTS coach_slug_redirects (
+      from_slug TEXT PRIMARY KEY,
+      to_slug TEXT NOT NULL,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+  `);
+
+  // 為未有 slug 嘅教練補上（idempotent）
+  try {
+    const { ensureSlugs } = require("./coach-profile");
+    const n = ensureSlugs(db);
+    if (n) console.log(`[migrate] coach_slug backfilled: ${n}`);
+  } catch (e) {
+    console.error("[migrate] coach_slug backfill failed:", e.message);
   }
 
   // 訪客帳號合併紀錄（audit）

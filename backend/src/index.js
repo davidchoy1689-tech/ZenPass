@@ -20,6 +20,7 @@ const {
 const logger = require("./services/logger");
 const { sendNotification } = require("./services/notification");
 const { processCorporateResets } = require("./services/corporate-reset");
+const coachPublicRoutes = require("./routes/coach-public");
 
 // 初始化數據庫
 const initDatabase = require("./config/init-db");
@@ -132,6 +133,9 @@ app.use("/admin.html", (req, res, next) => {
   // If no token in query/cookie, redirect to login - but still serve static
   next();
 });
+
+// 👤 教練公開專頁 /c/:slug — 必須喺靜態檔之前（動態注入 SEO meta）
+app.use("/c", coachPublicRoutes.pageRouter);
 
 // 靜態檔案服務 - 直接 serve ZenPass 前台和管理後台
 // ⚠️ 2026-10-23：production web root 係 frontend-v2/，所以一定要優先 serve frontend-v2，
@@ -265,11 +269,13 @@ app.use("/api", require("./routes/participants"));
 app.use("/api/guest", require("./routes/guest"));
 app.use("/api/calendar", require("./routes/calendar"));
 app.use("/api/coach", require("./routes/coach"));
+app.use("/api/coaches", coachPublicRoutes.apiRouter);
 app.use("/api/memberships", require("./routes/memberships"));
 app.use("/api/payments", express.json(), paymentsRouter);
 app.use("/api/coach", require("./routes/coach-earnings"));
 app.use("/api/admin", require("./routes/admin"));
 app.use("/api/admin/ops", require("./routes/admin-ops"));
+app.use("/api/admin/coach-profiles", require("./routes/admin-coach-profile"));
 app.use("/api/guardians", require("./routes/guardians"));
 app.use("/api", require("./routes/coach-credentials"));
 app.use("/api", require("./routes/agreements"));
@@ -505,8 +511,8 @@ function sendClassReminders() {
       JOIN users u ON b.user_id = u.id
       WHERE b.status = 'confirmed'
         AND (b.reminder_sent_1h IS NULL OR b.reminder_sent_1h = 0)
-        AND cs.start_time > datetime('now', '+55 minutes')
-        AND cs.start_time < datetime('now', '+65 minutes')
+        AND datetime(cs.start_time) > datetime('now', '+55 minutes')
+        AND datetime(cs.start_time) < datetime('now', '+65 minutes')
     `,
       )
       .all();

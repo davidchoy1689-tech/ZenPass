@@ -1493,7 +1493,7 @@ router.get(
       const upcoming = db
         .prepare(
           `SELECT COUNT(*) c FROM class_schedules cs JOIN classes c2 ON c2.id=cs.class_id
-           WHERE c2.status='active' AND cs.start_time >= datetime('now')`,
+           WHERE c2.status='active' AND datetime(cs.start_time) >= datetime('now')`,
         )
         .get().c;
       add("classes", "可報名課程", activeClasses > 0 && upcoming > 0, `${activeClasses} 個課程／${upcoming} 個未來時段`);

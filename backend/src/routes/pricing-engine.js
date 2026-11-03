@@ -42,7 +42,7 @@ router.get("/estimate", (req, res) => {
                   c.title, c.category, c.credits_cost as base_cost
            FROM class_schedules cs
            JOIN classes c ON cs.class_id = c.id
-           WHERE cs.class_id = ? AND cs.start_time > datetime('now') AND cs.status = 'active'
+           WHERE cs.class_id = ? AND datetime(cs.start_time) > datetime('now') AND cs.status = 'active'
            ORDER BY cs.start_time ASC
            LIMIT 1`
         )

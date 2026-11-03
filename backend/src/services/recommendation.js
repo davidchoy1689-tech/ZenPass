@@ -157,7 +157,7 @@ function getRecommendations(userId, limit) {
             SELECT c.*, u.name as coach_name,
               (SELECT COUNT(*) FROM bookings WHERE class_id = c.id) as booking_count,
               (SELECT COUNT(*) FROM class_schedules cs
-               WHERE cs.class_id = c.id AND cs.start_time > datetime('now') AND cs.status = 'available'
+               WHERE cs.class_id = c.id AND datetime(cs.start_time) > datetime('now') AND cs.status = 'available'
               ) as upcoming_sessions
             FROM classes c
             JOIN users u ON c.coach_id = u.id
@@ -178,7 +178,7 @@ function getRecommendations(userId, limit) {
             SELECT c.*, u.name as coach_name,
               (SELECT COUNT(*) FROM bookings WHERE class_id = c.id) as booking_count,
               (SELECT COUNT(*) FROM class_schedules cs
-               WHERE cs.class_id = c.id AND cs.start_time > datetime('now') AND cs.status = 'available'
+               WHERE cs.class_id = c.id AND datetime(cs.start_time) > datetime('now') AND cs.status = 'available'
               ) as upcoming_sessions
             FROM classes c
             JOIN users u ON c.coach_id = u.id
@@ -221,7 +221,7 @@ function getPopularByCategory(limit) {
       SELECT c.*, u.name as coach_name,
         (SELECT COUNT(*) FROM bookings WHERE class_id = c.id) as booking_count,
         (SELECT COUNT(*) FROM class_schedules cs
-         WHERE cs.class_id = c.id AND cs.start_time > datetime('now') AND cs.status = 'available'
+         WHERE cs.class_id = c.id AND datetime(cs.start_time) > datetime('now') AND cs.status = 'available'
         ) as upcoming_sessions
       FROM classes c
       JOIN users u ON c.coach_id = u.id

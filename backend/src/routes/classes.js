@@ -120,7 +120,7 @@ router.get("/", optionalAuth, cache(30), (req, res) => {
         (SELECT COUNT(*) FROM bookings WHERE class_id = c.id) as booking_count,
         (SELECT ROUND(AVG(CAST(b.status AS REAL)), 1) FROM bookings b WHERE b.class_id = c.id AND b.status = 'attended') as rating,
         (SELECT COUNT(DISTINCT cs.id) FROM class_schedules cs 
-         WHERE cs.class_id = c.id AND cs.start_time > datetime('now') AND cs.start_time <= datetime('now','+2 months') AND cs.status = 'available'
+         WHERE cs.class_id = c.id AND datetime(cs.start_time) > datetime('now') AND datetime(cs.start_time) <= datetime('now','+2 months') AND cs.status = 'available'
         ) as upcoming_sessions,
         (SELECT ROUND(AVG(rating), 1) FROM mutual_reviews WHERE target_type='coach' AND target_id = c.coach_id AND rater_role='student') as coach_avg_rating,
         (SELECT COUNT(*) FROM mutual_reviews WHERE target_type='coach' AND target_id = c.coach_id AND rater_role='student') as coach_rating_count,
@@ -148,7 +148,7 @@ router.get("/", optionalAuth, cache(30), (req, res) => {
           `
         SELECT id, class_id, start_time, end_time, enrolled_count, max_participants, status
         FROM class_schedules
-        WHERE class_id IN (${placeholders}) AND start_time > datetime('now') AND start_time <= datetime('now','+2 months') AND status = 'available'
+        WHERE class_id IN (${placeholders}) AND datetime(start_time) > datetime('now') AND datetime(start_time) <= datetime('now','+2 months') AND status = 'available'
         ORDER BY start_time ASC
       `,
         )
@@ -189,7 +189,7 @@ router.get("/available-dates", cache(60), (req, res) => {
         `
         SELECT DISTINCT date(start_time) as d
         FROM class_schedules
-        WHERE start_time > datetime('now') AND start_time <= datetime('now','+2 months') AND status = 'available'
+        WHERE datetime(start_time) > datetime('now') AND datetime(start_time) <= datetime('now','+2 months') AND status = 'available'
         ORDER BY start_time ASC
         LIMIT 14
       `,
@@ -300,12 +300,12 @@ router.get("/featured", cache(30), (req, res) => {
       WHERE c.status = 'active'
         AND COALESCE(c.booking_open, 0) = 1
         AND cs.status = 'available'
-        AND cs.start_time >= datetime('now')
-        AND cs.start_time <= datetime('now', '+' || ? || ' days')
+        AND datetime(cs.start_time) >= datetime('now')
+        AND datetime(cs.start_time) <= datetime('now', '+' || ? || ' days')
         AND cs.start_time = (
           SELECT MIN(cs2.start_time) FROM class_schedules cs2
           WHERE cs2.class_id = c.id AND cs2.status = 'available'
-            AND cs2.start_time >= datetime('now')
+            AND datetime(cs2.start_time) >= datetime('now')
         )
       ORDER BY CASE WHEN strftime('%w', cs.start_time, '+8 hours') IN ('0','6') THEN 0 ELSE 1 END,
                cs.start_time ASC
@@ -453,7 +453,7 @@ router.get("/:id", optionalAuth, (req, res) => {
         `
       SELECT id, start_time, end_time, enrolled_count, max_participants, status, notes
       FROM class_schedules
-      WHERE class_id = ? AND start_time > datetime('now') AND start_time <= datetime('now','+2 months')
+      WHERE class_id = ? AND datetime(start_time) > datetime('now') AND datetime(start_time) <= datetime('now','+2 months')
       ORDER BY start_time ASC
       LIMIT 30
     `,

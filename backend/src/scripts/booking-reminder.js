@@ -38,8 +38,8 @@ function sendBookingReminders() {
       JOIN users u ON b.user_id = u.id
       WHERE b.status = 'confirmed'
         AND (b.reminder_sent_1h IS NULL OR b.reminder_sent_1h = 0)
-        AND cs.start_time > datetime('now', '+60 minutes')
-        AND cs.start_time < datetime('now', '+120 minutes')
+        AND datetime(cs.start_time) > datetime('now', '+60 minutes')
+        AND datetime(cs.start_time) < datetime('now', '+120 minutes')
     `,
       )
       .all();
@@ -122,8 +122,8 @@ function sendDayBeforeReminders() {
       JOIN users u ON b.user_id = u.id
       WHERE b.status = 'confirmed'
         AND (b.reminder_sent_1d IS NULL OR b.reminder_sent_1d = 0)
-        AND cs.start_time > datetime('now', '+23 hours')
-        AND cs.start_time < datetime('now', '+25 hours')
+        AND datetime(cs.start_time) > datetime('now', '+23 hours')
+        AND datetime(cs.start_time) < datetime('now', '+25 hours')
     `,
       )
       .all();

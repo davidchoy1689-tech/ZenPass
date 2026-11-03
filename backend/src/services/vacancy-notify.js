@@ -24,8 +24,8 @@ function notifyLargeVacancies({ now = new Date(), maxRecipientsPerClass = 500 } 
               c.title, c.category, cs.start_time
        FROM class_schedules cs
        JOIN classes c ON cs.class_id = c.id
-       WHERE cs.start_time > datetime('now', '+1 hour')
-         AND cs.start_time < datetime('now', '+7 days')
+       WHERE datetime(cs.start_time) > datetime('now', '+1 hour')
+         AND datetime(cs.start_time) < datetime('now', '+7 days')
          AND cs.status = 'available'
          AND cs.max_participants > 0
          AND (cs.max_participants - cs.enrolled_count) > (cs.max_participants * 0.5)

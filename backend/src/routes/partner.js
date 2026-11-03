@@ -194,8 +194,8 @@ router.get("/venue/schedule", authenticateToken, requireOwnInstitution, (req, re
          JOIN classes c ON c.id = s.class_id
          LEFT JOIN users u ON u.id = c.coach_id
          WHERE c.partner_venue_id = ?
-           AND s.start_time >= datetime('now','-1 day')
-           AND s.start_time <= datetime('now', ?)
+           AND datetime(s.start_time) >= datetime('now','-1 day')
+           AND datetime(s.start_time) <= datetime('now', ?)
          ORDER BY s.start_time ASC`,
       )
       .all(v.id, `+${days} day`);

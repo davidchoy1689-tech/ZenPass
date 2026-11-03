@@ -421,7 +421,7 @@ function getCourseDetail(courseId) {
   const schedules = db
     .prepare(
       `SELECT s.*, (SELECT COUNT(*) FROM bookings b WHERE b.schedule_id = s.id AND b.status IN ('confirmed','attended')) as enrolled
-       FROM class_schedules s WHERE s.class_id = ? AND s.start_time >= datetime('now') ORDER BY s.start_time`
+       FROM class_schedules s WHERE s.class_id = ? AND datetime(s.start_time) >= datetime('now') ORDER BY s.start_time`
     )
     .all(courseId);
 
@@ -599,7 +599,7 @@ function getCoachDetail(coachId) {
   const classes = db
     .prepare(
       `SELECT c.*,
-              (SELECT COUNT(*) FROM class_schedules WHERE class_id = c.id AND start_time >= datetime('now')) as future_schedules,
+              (SELECT COUNT(*) FROM class_schedules WHERE class_id = c.id AND datetime(start_time) >= datetime('now')) as future_schedules,
               (SELECT COUNT(*) FROM bookings b JOIN class_schedules s ON b.schedule_id = s.id WHERE s.class_id = c.id AND b.status = 'confirmed') as total_bookings
        FROM classes c WHERE c.coach_id = ? ORDER BY c.created_at DESC`
     )

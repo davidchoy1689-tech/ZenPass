@@ -60,8 +60,8 @@ function impactSnapshot(db) {
                 (SELECT COALESCE(SUM(b.amount),0) FROM bookings b WHERE b.schedule_id = cs.id AND b.status = 'confirmed' AND b.payment_status = 'paid') AS paid_amount
            FROM class_schedules cs JOIN classes c ON c.id = cs.class_id
           WHERE cs.status <> 'cancelled'
-            AND cs.start_time >= datetime('now')
-            AND cs.start_time <= datetime('now','+24 hours')
+            AND datetime(cs.start_time) >= datetime('now')
+            AND datetime(cs.start_time) <= datetime('now','+24 hours')
           ORDER BY cs.start_time ASC`,
       )
       .all();

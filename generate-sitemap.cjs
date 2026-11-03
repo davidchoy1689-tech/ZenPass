@@ -52,6 +52,26 @@ console.log('   DB courses:', rows.length);
 */
 const dynamicCourses = [];
 
+// ─── Dynamic Coach Public Pages (/c/:slug) ─────────────────────
+// 只收錄已核驗教練（規格 §5.6）
+let dynamicCoaches = [];
+try {
+  const Database = require(path.join(__dirname, 'backend', 'node_modules', 'better-sqlite3'));
+  const db = new Database('./backend/data/zenpass.db', { readonly: true });
+  dynamicCoaches = db.prepare(`
+    SELECT u.coach_slug AS slug, MAX(u.updated_at) AS lastmod
+      FROM users u
+     WHERE u.coach_slug IS NOT NULL AND u.coach_slug != ''
+       AND (u.coach_verified = 1 OR EXISTS (
+             SELECT 1 FROM coach_credentials c
+              WHERE c.user_id = u.id AND c.status = 'verified'))
+     GROUP BY u.coach_slug
+  `).all();
+  db.close();
+} catch (e) {
+  console.warn('   ⚠️ coach slugs skipped:', e.message);
+}
+
 // ─── Generator ──────────────────────────────────────────────────
 function generateSitemap() {
   let xml = `<?xml version="1.0" encoding="UTF-8"?>
@@ -65,6 +85,16 @@ function generateSitemap() {
     <lastmod>${today}</lastmod>
     <changefreq>${page.changefreq}</changefreq>
     <priority>${page.priority}</priority>
+  </url>\n`;
+  });
+
+  // Dynamic coach pages
+  dynamicCoaches.forEach(c => {
+    xml += `  <url>
+    <loc>${baseUrl}/c/${c.slug}</loc>
+    <lastmod>${String(c.lastmod || today).slice(0, 10)}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
   </url>\n`;
   });
 
@@ -82,12 +112,14 @@ function generateSitemap() {
 
   // Write to frontend directory (served at /sitemap.xml)
   const outputPath = path.join(__dirname, 'frontend', 'sitemap.xml');
+  const v2Path = path.join(__dirname, 'frontend-v2', 'sitemap.xml');
   // Also write to root for GitHub Pages compatibility
   const rootPath = path.join(__dirname, 'sitemap.xml');
 
   fs.writeFileSync(outputPath, xml, 'utf8');
+  fs.writeFileSync(v2Path, xml, 'utf8');
   fs.writeFileSync(rootPath, xml, 'utf8');
-  console.log(`✅ Sitemap generated (${staticPages.length} static + ${dynamicCourses.length} dynamic pages)`);
+  console.log(`✅ Sitemap generated (${staticPages.length} static + ${dynamicCoaches.length} coaches + ${dynamicCourses.length} courses)`);
   console.log(`   → ${outputPath}`);
   console.log(`   lastmod: ${today}`);
 }

@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#ff6b35" />
+  <meta name="robots" content="noindex,nofollow" />
+  <title>教練公開檔案 · ZenPass 後台</title>
+  <link rel="stylesheet" href="assets/v2.css?v=30" />
+  <link rel="stylesheet" href="assets/polish.css?v=4" />
+  <link rel="stylesheet" href="assets/ui-v3.css?v=5" />
+  <style>
+    .fld { width: 100%; box-sizing: border-box; border: 1px solid var(--border); border-radius: 11px; padding: 10px 11px; font: inherit; font-size: 14px; background: var(--surface); color: var(--text); margin: 0 0 10px; }
+    .lbl { font-size: 12.5px; font-weight: 700; color: var(--text-muted); display: block; margin: 0 0 4px 2px; }
+    .chk { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; background: #f1f5f9; border-radius: 999px; padding: 7px 11px; margin: 0 6px 6px 0; }
+    .coach-row { display: flex; gap: 10px; align-items: center; padding: 12px 14px; border-bottom: 1px solid var(--border); cursor: pointer; }
+    .coach-row:last-child { border-bottom: 0; }
+    .coach-row .nm { font-weight: 800; font-size: 15px; }
+    .coach-row .sub { font-size: 12px; color: var(--text-muted); }
+    .coach-row.on { background: #fff7ed; }
+    .pill { font-size: 11px; font-weight: 800; border-radius: 99px; padding: 3px 9px; }
+    .p-on { background: #ecfdf5; color: #047857; }
+    .p-off { background: #f1f5f9; color: #64748b; }
+  </style>
+</head>
+<body>
+  <div class="topbar"><a class="back" href="admin-ops.html">‹</a><div class="title">教練公開檔案</div></div>
+  <div class="wrap">
+    <div id="guard"></div>
+    <div id="app" hidden>
+      <p class="muted" style="font-size:13px;margin:0 0 10px">設定每位教練 <b>/c/&lt;slug&gt;</b> 公開頁。改 slug 會自動 301 舊連結。</p>
+      <div class="card"><div class="body" id="list"><div class="muted">載入中…</div></div></div>
+      <div id="editor" hidden>
+        <div class="section-title">編輯：<span id="who"></span></div>
+        <div class="card"><div class="body">
+          <label class="lbl">公開連結 slug</label>
+          <input class="fld" id="fSlug" placeholder="例如 sam-wong" />
+          <div class="muted" style="font-size:12px;margin:-4px 0 10px" id="slugPreview"></div>
+
+          <label class="lbl">標題（一句定位）</label>
+          <input class="fld" id="fHeadline" placeholder="銀髮伸展・防跌強肌" maxlength="80" />
+
+          <label class="lbl">簡介</label>
+          <textarea class="fld" id="fBio" rows="4" maxlength="1200" placeholder="10 年長者體適能經驗…"></textarea>
+
+          <label class="lbl">服務類型</label>
+          <div id="fTypes"></div>
+
+          <label class="lbl">對象</label>
+          <div id="fAud"></div>
+
+          <label class="lbl">服務地區（中文，逗號分隔）</label>
+          <input class="fld" id="fDistricts" placeholder="觀塘, 葵青, 荔枝角" />
+
+          <label class="lbl">公開 WhatsApp（留空 = 用帳號電話）</label>
+          <input class="fld" id="fPhone" placeholder="91234567" inputmode="tel" />
+
+          <label class="chk"><input type="checkbox" id="fHidden" /> 隱藏電話（只顯示「透過平台查詢」）</label>
+
+          <button class="btn btn-primary btn-block" id="save" style="margin-top:10px">儲存</button>
+          <a class="btn btn-secondary btn-block" id="openPage" target="_blank" rel="noopener" style="margin-top:8px">開啟公開頁 ↗</a>
+        </div></div>
+      </div>
+    </div>
+  </div>
+  <script src="assets/api.js?v=3"></script>
+  <script>
+    let COACHES = [], OPTS = null, CUR = null;
+    const $ = (id) => document.getElementById(id);
+    const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+    (async () => {
+      const me = await api.get("/users/me");
+      if (!me.ok) { location.href = "login.html?next=admin-coach-public.html"; return; }
+      const role = (me.data && (me.data.user || me.data).role) || "";
+      if (!["super_admin", "platform_manager"].includes(role)) {
+        $("guard").innerHTML = '<div class="card"><div class="body">需要管理員權限。</div></div>';
+        return;
+      }
+      $("app").hidden = false;
+      await load();
+    })();
+
+    async function load() {
+      const r = await api.get("/admin/coach-profiles");
+      if (!r.ok) { $("list").innerHTML = '<div class="muted">' + esc((r.data && r.data.error) || "讀取失敗") + "</div>"; return; }
+      COACHES = r.data.coaches || [];
+      OPTS = r.data.options || {};
+      $("list").innerHTML = COACHES.map((c, i) =>
+        '<div class="coach-row" data-i="' + i + '">' +
+          '<div style="flex:1"><div class="nm">' + esc(c.name || c.email) + ' <span class="pill ' + (c.verified ? "p-on" : "p-off") + '">' + (c.verified ? "已核驗" : "未核驗") + "</span></div>" +
+          '<div class="sub">/c/' + esc(c.coach_slug || "（未設定）") + "</div></div>" +
+          '<span class="muted">›</span>' +
+        "</div>").join("") || '<div class="muted">未有教練。</div>';
+      $("list").querySelectorAll(".coach-row").forEach((el) => {
+        el.onclick = () => edit(COACHES[Number(el.dataset.i)]);
+      });
+    }
+
+    function edit(c) {
+      CUR = c;
+      $("editor").hidden = false;
+      $("who").textContent = c.name || c.email;
+      $("fSlug").value = c.coach_slug || "";
+      $("fHeadline").value = c.coach_headline || "";
+      $("fBio").value = c.public_bio || "";
+      $("fDistricts").value = (c.service_districts || []).join(", ");
+      $("fPhone").value = c.public_contact_phone || "";
+      $("fHidden").checked = Number(c.public_contact_hidden) === 1;
+      $("fTypes").innerHTML = Object.entries(OPTS.service_types || {}).map(([k, label]) =>
+        '<label class="chk"><input type="checkbox" value="' + k + '"' + ((c.service_types || []).includes(k) ? " checked" : "") + " /> " + esc(label) + "</label>").join("");
+      $("fAud").innerHTML = Object.entries(OPTS.target_audiences || {}).map(([k, label]) =>
+        '<label class="chk"><input type="checkbox" value="' + k + '"' + ((c.target_audiences || []).includes(k) ? " checked" : "") + " /> " + esc(label) + "</label>").join("");
+      $("openPage").href = c.coach_slug ? "/c/" + encodeURIComponent(c.coach_slug) : "#";
+      $("openPage").style.display = c.coach_slug ? "" : "none";
+      updatePreview();
+      $("editor").scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    function updatePreview() {
+      const s = ($("fSlug").value || "").trim();
+      $("slugPreview").textContent = s ? "https://zenpass.hk/c/" + s : "未設定 slug（公開頁唔會開通）";
+    }
+    $("fSlug").addEventListener("input", updatePreview);
+
+    $("save").onclick = async () => {
+      if (!CUR) return;
+      const body = {
+        coach_slug: $("fSlug").value.trim(),
+        coach_headline: $("fHeadline").value.trim(),
+        public_bio: $("fBio").value.trim(),
+        service_types: [...$("fTypes").querySelectorAll("input:checked")].map((x) => x.value),
+        target_audiences: [...$("fAud").querySelectorAll("input:checked")].map((x) => x.value),
+        service_districts: $("fDistricts").value.split(/[,，]/).map((x) => x.trim()).filter(Boolean),
+        public_contact_phone: $("fPhone").value.trim() || null,
+        public_contact_hidden: $("fHidden").checked,
+      };
+      $("save").disabled = true;
+      const r = await api.patch("/admin/coach-profiles/" + encodeURIComponent(CUR.id), body);
+      $("save").disabled = false;
+      if (!r.ok) { alert((r.data && r.data.error) || "儲存失敗"); return; }
+      alert("已儲存");
+      await load();
+      const fresh = COACHES.find((x) => x.id === CUR.id);
+      if (fresh) edit(fresh);
+    };
+  </script>
+</body>
+</html>
