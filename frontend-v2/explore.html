@@ -5,10 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#ff6b35" />
   <title>探索課程 · ZenPass 禪流</title>
+  <meta name="description" content="即時搜尋全港新興運動、樂齡伸展、瑜伽及 1對1 PT 課堂：按地區、日期、平日日間時段篩選，免註冊 20 秒完成預約。" />
   <link rel="stylesheet" href="assets/v2.css?v=30" />
   <link rel="stylesheet" href="assets/polish.css?v=1" />
   <link rel="stylesheet" href="assets/ui-v3.css?v=5" />
   <style>
+    :root { color-scheme: light; }
+    body { color: #14181f; }
     /* ===== explore.html 專屬樣式（2026-10-23 v3）===== */
     body { background: #f6f8f7; }
     .wrap.ex-wrap { padding-top: 0; }
@@ -111,8 +114,8 @@
       margin: 0; font-size: 14.5px; font-weight: 800; line-height: 1.42; color: #14181f;
       display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
     }
-    .ex-meta { margin: 0; font-size: 11.5px; color: #7b8794; display: flex; flex-wrap: wrap; gap: 4px 8px; }
-    .ex-state { margin: 0; font-size: 11.5px; font-weight: 700; color: #b45309; }
+    .ex-meta { margin: 0; font-size: 12px; color: #5b6673; display: flex; flex-wrap: wrap; gap: 4px 8px; }
+    .ex-state { margin: 0; font-size: 12px; font-weight: 700; color: #9a3412; }
     .ex-foot { margin-top: auto; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-top: 4px; }
     .ex-price { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
     .ex-price s { font-size: 11.5px; color: #9aa3ad; }
@@ -128,7 +131,7 @@
 
     /* 骨架屏 */
     .ex-skel { background: #fff; border-radius: 16px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,.05); }
-    .ex-skel .s1 { height: 160px; background: linear-gradient(90deg,#eef2f1 25%,#f7faf9 37%,#eef2f1 63%); background-size: 400% 100%; animation: skShimmer 1.4s ease infinite; }
+    .ex-skel .s1 { aspect-ratio: 16 / 10; height: auto; background: linear-gradient(90deg,#eef2f1 25%,#f7faf9 37%,#eef2f1 63%); background-size: 400% 100%; animation: skShimmer 1.4s ease infinite; }
     .ex-skel .s2 { height: 13px; margin: 14px 14px 8px; border-radius: 6px; background: #eef2f1; }
     .ex-skel .s3 { height: 11px; margin: 0 14px 16px; width: 60%; border-radius: 6px; background: #f2f5f4; }
     @keyframes skShimmer { 0% { background-position: 100% 0; } 100% { background-position: -100% 0; } }
@@ -238,6 +241,8 @@
     <div class="sport-strip" id="sportStrip"></div>
     <div class="section-title" id="count">課程</div>
     <div class="ex-grid" id="list">
+      <div class="ex-skel"><div class="s1"></div><div class="s2"></div><div class="s3"></div></div>
+      <div class="ex-skel"><div class="s1"></div><div class="s2"></div><div class="s3"></div></div>
       <div class="ex-skel"><div class="s1"></div><div class="s2"></div><div class="s3"></div></div>
       <div class="ex-skel"><div class="s1"></div><div class="s2"></div><div class="s3"></div></div>
     </div>
@@ -668,7 +673,7 @@
         const life = (window.ZP_LIFESTYLE || {})[slug];
         if (life) return life;
       } catch (e) {}
-      if (slug) return "assets/img/sports/" + slug + ".svg";
+      if (slug) return "assets/img/sports/" + String(slug).replace(/_/g, "-") + ".svg";
       try {
         if (typeof cardImage === "function") { const p = cardImage(c, "list"); if (p && p.url) return p.url; }
       } catch (e) {}
