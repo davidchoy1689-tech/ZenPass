@@ -114,7 +114,7 @@ router.get("/", optionalAuth, cache(30), (req, res) => {
         `
       SELECT 
         c.*,
-        u.name as coach_name,
+        u.name as coach_name, u.coach_slug as coach_slug,
         ${LAST_END} as last_session_end,
         CASE WHEN COALESCE(c.booking_open,0) = 1 AND ${LAST_END} IS NOT NULL AND ${LAST_END} < datetime('now') THEN 1 ELSE 0 END as is_expired,
         (SELECT COUNT(*) FROM bookings WHERE class_id = c.id) as booking_count,
@@ -287,7 +287,7 @@ router.get("/featured", cache(30), (req, res) => {
              c.price_hkd, ${col("credits_cost")}, ${col("duration")}, ${col("image_url")},
              ${col("photos_gallery")}, ${col("difficulty")}, ${col("target_audience")},
              ${col("sport_slug")},
-             u.name AS coach_name,
+             u.name AS coach_name, u.coach_slug AS coach_slug,
              cs.id AS schedule_id, cs.start_time, cs.end_time,
              cs.max_participants, cs.enrolled_count,
              ${HAS_CC ? `(SELECT CASE WHEN cc.status='verified' AND COALESCE(cc.is_starred,0)=1
@@ -362,7 +362,7 @@ router.get("/:id", optionalAuth, (req, res) => {
     const classData = db
       .prepare(
         `
-      SELECT c.*, u.name as coach_name, u.avatar_url as coach_avatar,
+      SELECT c.*, u.name as coach_name, u.coach_slug as coach_slug, u.avatar_url as coach_avatar,
         u.is_coach, u.coach_verified,
         u.coach_headline, u.coach_bio, u.coach_tags, u.coach_languages, u.coach_years,
         (SELECT MAX(cs.end_time) FROM class_schedules cs WHERE cs.class_id = c.id) as last_session_end,

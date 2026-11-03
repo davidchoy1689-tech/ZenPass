@@ -714,7 +714,8 @@
         c.duration ? "⏱️ " + c.duration + " 分鐘" : "",
       ].filter(Boolean).join(" ｜ ");
       const stateLine = expired ? "已完結" : soldOut ? "🔒 已約滿" : (nextLine(c) ? "📅 " + nextLine(c) : "暫無時段");
-      return `<a class="ex-card${expired ? " expired" : ""}" href="detail.html?id=${encodeURIComponent(c.id)}">
+      const coachSlug = c.coach_slug || "";
+      return `<div class="ex-card${expired ? " expired" : ""}" role="link" tabindex="0" data-href="detail.html?id=${encodeURIComponent(c.id)}">
         <div class="ex-cover">
           <img src="${esc(coverUrl(c))}" alt="${esc(c.title || "")}" loading="lazy" decoding="async" onerror="this.style.visibility='hidden'">
           <span class="shade"></span>
@@ -725,6 +726,7 @@
         <div class="ex-body">
           <p class="ex-name">${esc(c.title || "未命名課程")}${Number(c.coach_starred) === 1 ? ' <span style="display:inline-block;background:#fef3c7;color:#b45309;font-size:10.5px;font-weight:800;padding:2px 7px;border-radius:999px;vertical-align:middle">⭐ 星級教練</span>' : ""}</p>
           <p class="ex-meta">${esc(meta)}</p>
+          ${coachSlug && c.coach_name ? `<a class="ex-coach" href="/c/${encodeURIComponent(coachSlug)}" onclick="event.stopPropagation()">🧑‍🏫 ${esc(c.coach_name)}</a>` : ""}
           <p class="ex-state">${esc(stateLine)}</p>
           <div class="ex-foot">
             <div class="ex-price${PROMO ? " shake" : ""}">
@@ -733,8 +735,19 @@
             <span class="ex-cta">${expired ? "已完結" : soldOut ? "已約滿" : "預約"}</span>
           </div>
         </div>
-      </a>`;
+      </div>`;
     }
+
+    document.addEventListener("click", function (e) {
+      const card = e.target.closest && e.target.closest(".ex-card[data-href]");
+      if (!card || e.target.closest("a")) return;
+      location.href = card.getAttribute("data-href");
+    });
+    document.addEventListener("keydown", function (e) {
+      if (e.key !== "Enter") return;
+      const card = e.target.closest && e.target.closest(".ex-card[data-href]");
+      if (card) location.href = card.getAttribute("data-href");
+    });
 
     function render() {
       const arr = view();
