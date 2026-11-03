@@ -183,7 +183,14 @@ function add(id, title, pass, detail) {
       daytime: html.includes("平日日間"),
       live_cards: live > 0,
     };
-    const pass = checks.health && checks.cta && checks.h1 && checks.daytime;
+    const coachSlug = process.env.COACH_SLUG || "";
+    if (coachSlug) {
+      const cr = await fetch(SITE + "/c/" + encodeURIComponent(coachSlug));
+      checks.coach_page = cr.status === 200;
+      checks.coach_slug = coachSlug;
+    }
+    let pass = checks.health && checks.cta && checks.h1 && checks.daytime;
+    if (coachSlug) pass = pass && checks.coach_page;
     add("site", "首頁線上內容與 API", pass, checks);
     report.site_checks = checks;
   } catch (e) {
