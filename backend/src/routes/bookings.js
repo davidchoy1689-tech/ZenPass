@@ -102,8 +102,9 @@ router.post(
       for (const it of items) {
         const isSingle = (it.paymentType || "single") === "single";
         const isCredits = it.paymentType === "credits";
-        const discounted = batchPromo && (isSingle || isCredits);
-        const usePromo = !!discounted && !promoRedeemed;
+        // 優惠只兌換一次：只有第一堂用折後價，其餘堂數照原價
+        // （fixed_discount／fixed_price 係「一次過減」，唔可以每堂都減）
+        const usePromo = !!batchPromo && (isSingle || isCredits) && !promoRedeemed;
         const fakeReq = {
           body: {
             schedule_id: it.scheduleId,
@@ -111,7 +112,7 @@ router.post(
             payment_type: it.paymentType || "single",
             penalty_consent: it.penaltyConsent,
             promo_code: usePromo ? promoCode : undefined,
-            amount: discounted ? batchPromo.final_price : it.amount,
+            amount: usePromo ? batchPromo.final_price : it.amount,
             group_size: Number(it.groupSize) === 3 ? 3 : 1,
             attendee: it.attendee || null,
           },
@@ -120,7 +121,7 @@ router.post(
         let r;
         try {
           r = await bookingService.createBooking(fakeReq, {
-            creditsOverride: discounted && isCredits ? promoCr : undefined,
+            creditsOverride: usePromo && isCredits ? promoCr : undefined,
           });
         } catch (e) {
           r = { status: 500, body: { success: false, error: "預約失敗" } };
