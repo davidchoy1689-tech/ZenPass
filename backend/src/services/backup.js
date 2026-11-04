@@ -19,7 +19,10 @@ const { getSupabase } = require("./supabase");
 const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
 
 const BACKUP_DIR = path.join(__dirname, "..", "..", "backups");
-const MAX_BACKUPS = 30; // Keep 30 days of backups
+// 2026-11-04 David 決定：JSON 備份（供肉眼 grep 用）只需 7 日；
+// 主要災難復原靠 SQLite 原生 .db.gz（每日 integrity_check）+ 異地加密備份。
+const JSON_KEEP_DAYS = 7;
+const MAX_BACKUPS = 7; // JSON 備份上限（同時按日數清理）
 const DAILY_BACKUP_HOUR = 3; // 3 AM daily
 
 // Tables to include in backup
@@ -295,8 +298,24 @@ function cleanupOldBackups() {
     .filter((f) => f.startsWith("zenpass-backup-") && f.endsWith(".json"))
     .sort();
 
-  while (files.length > MAX_BACKUPS) {
-    const oldest = files.shift();
+  // 1) 先按日數：刪除超過 7 日嘅 JSON
+  const cutoff = Date.now() - JSON_KEEP_DAYS * 24 * 60 * 60 * 1000;
+  for (const f of files) {
+    const full = path.join(BACKUP_DIR, f);
+    try {
+      if (fs.statSync(full).mtimeMs < cutoff) {
+        fs.unlinkSync(full);
+        logger.info(`🗑️ Cleaned old backup (>${JSON_KEEP_DAYS}d): ${f}`);
+      }
+    } catch (err) {
+      logger.warn(`cleanup ${f} failed: ${err.message}`);
+    }
+  }
+
+  // 2) 再按數量上限（防止同日多次備份堆積）
+  const remain = files.filter((f) => fs.existsSync(path.join(BACKUP_DIR, f)));
+  while (remain.length > MAX_BACKUPS) {
+    const oldest = remain.shift();
     fs.unlinkSync(path.join(BACKUP_DIR, oldest));
     logger.info(`🗑️ Cleaned old backup: ${oldest}`);
   }
