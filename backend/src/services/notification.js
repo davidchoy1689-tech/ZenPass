@@ -14,6 +14,17 @@ const { getDb } = require("./database");
 
 const { sendPushNotification } = require("./push");
 
+/** UTC ISO → 香港時間「YYYY-MM-DD HH:mm」（對外通知一律用 HKT） */
+function fmtHKT(value) {
+  const d = new Date(value);
+  if (!value || Number.isNaN(d.getTime()))
+    return String(value || "").replace("T", " ").slice(0, 16);
+  return new Date(d.getTime() + 8 * 3600 * 1000)
+    .toISOString()
+    .slice(0, 16)
+    .replace("T", " ");
+}
+
 // ===== 1. 站內通知（持久化到 DB）=====
 function dbNotification(recipientId, type, title, message, data = {}) {
   try {
@@ -190,11 +201,11 @@ async function sendNotification(type, payload) {
       break;
     case "class.cancelled":
       title = "⚠️ 課堂取消通知";
-      message = `課堂：${data?.class_title || ""}\n時間：${String(data?.start_time || "").replace("T", " ").slice(0, 16)}\n原因：${data?.reason || "平台取消"}` +
+      message = `課堂：${data?.class_title || ""}\n時間：${fmtHKT(data?.start_time)}\n原因：${data?.reason || "平台取消"}` +
         (data?.refundable
           ? `\n\n我哋已開放退款登記：請到「我的預約」填寫 FPS 收款資料，1–2 個工作天內全額退回 HK$${Number(data?.amount || 0).toFixed(2)}。`
           : "\n\n此預約未收款，無需退款。");
-      html = `<h2>⚠️ 課堂取消通知</h2><p><b>課堂：</b>${data?.class_title || ""}<br><b>時間：</b>${String(data?.start_time || "").replace("T", " ").slice(0, 16)}<br><b>原因：</b>${data?.reason || "平台取消"}</p>` +
+      html = `<h2>⚠️ 課堂取消通知</h2><p><b>課堂：</b>${data?.class_title || ""}<br><b>時間：</b>${fmtHKT(data?.start_time)}<br><b>原因：</b>${data?.reason || "平台取消"}</p>` +
         (data?.refundable
           ? `<p>我哋已開放退款登記：請到「我的預約」填寫 FPS 收款資料，1–2 個工作天內全額退回 <b>HK$${Number(data?.amount || 0).toFixed(2)}</b>。</p>`
           : "<p>此預約未收款，無需退款。</p>");

@@ -416,7 +416,13 @@ router.post(
         );
       } catch (e) {}
 
-      const when = String(sched.start_time || "").replace("T", " ").slice(0, 16);
+      // start_time 存 UTC ISO，對外通知一定要用香港時間（曾顯示 04:00 而非 12:00）
+      const when = (() => {
+        const d = new Date(sched.start_time);
+        if (Number.isNaN(d.getTime())) return String(sched.start_time || "");
+        const hk = new Date(d.getTime() + 8 * 3600 * 1000);
+        return hk.toISOString().slice(0, 16).replace("T", " ");
+      })();
       const headZh = {
         weather: "因天文台已發出惡劣天氣警告（八號風球／黑色暴雨），為確保安全",
         low_enrollment: "因人數未達開班要求",
