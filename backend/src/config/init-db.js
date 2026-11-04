@@ -2059,6 +2059,14 @@ CREATE TABLE IF NOT EXISTS users (
   `);
 
   // 迎新優惠：每個註冊帳戶只可用一次 → 強制 per_user_limit = 1
+  // 優惠碼門檻：最少同行人數 / 最低消費（2026-11-04 新增，SILVER2 起用）
+  for (const [col, type] of [
+    ["min_participants", "INTEGER DEFAULT 0"],
+    ["min_spend", "REAL DEFAULT 0"],
+  ]) {
+    try { db.exec(`ALTER TABLE promo_codes ADD COLUMN ${col} ${type}`); } catch (e) { /* exists */ }
+  }
+
   try {
     const r = db
       .prepare(

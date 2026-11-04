@@ -77,6 +77,8 @@ router.post(
       let batchPromo = null;
       const promoCode = items.map((it) => it.promoCode).find((c) => c && String(c).trim());
       const firstBillable = items.find((it) => ["single", "credits"].includes(it.paymentType || "single"));
+      const billableCount =
+        items.filter((it) => ["single", "credits"].includes(it.paymentType || "single")).length || 1;
       if (promoCode && firstBillable) {
         const db = getDb();
         const clsRow = db
@@ -87,6 +89,8 @@ router.post(
           basePrice: clsRow ? clsRow.price_hkd : 0,
           classId: firstBillable.classId,
           userId: req.user.id,
+          quantity: billableCount,
+          subtotal: (clsRow ? Number(clsRow.price_hkd) : 0) * billableCount,
         });
         if (!v.ok) return res.status(400).json({ success: false, error: v.error });
         batchPromo = { final_price: v.final_price };

@@ -38,13 +38,32 @@ function computeFinalPrice(basePrice, promo) {
   return { ok: true, final_price: fromCents(cents), discount: fromCents(baseCents - cents) };
 }
 
-/** 驗證優惠碼（唔改狀態）。回 {ok, promo, final_price, discount} 或 {ok:false,error} */
-function validatePromo(db, { code, basePrice, classId, userId }) {
+/**
+ * 驗證優惠碼（唔改狀態）。回 {ok, promo, final_price, discount} 或 {ok:false,error}
+ * quantity：同一張單嘅報名堂數／人數（用於「最少同行人數」門檻）
+ * subtotal：同一張單嘅原價總額（用於「最低消費」門檻，預設 = basePrice × quantity）
+ */
+function validatePromo(db, { code, basePrice, classId, userId, quantity, subtotal }) {
   const c = normalize(code);
   if (!c) return { ok: false, error: "請輸入優惠碼" };
 
   const promo = db.prepare("SELECT * FROM promo_codes WHERE code = ? AND active = 1").get(c);
   if (!promo) return { ok: false, error: "優惠碼無效" };
+
+  const qty = Math.max(1, Number(quantity) || 1);
+  const gross = subtotal != null ? Number(subtotal) : (Number(basePrice) || 0) * qty;
+  if (Number(promo.min_participants) > 0 && qty < Number(promo.min_participants)) {
+    return {
+      ok: false,
+      error: `此優惠碼需 ${promo.min_participants} 人或以上同行報名`,
+    };
+  }
+  if (Number(promo.min_spend) > 0 && gross < Number(promo.min_spend)) {
+    return {
+      ok: false,
+      error: `此優惠碼需消費滿 HK$${Number(promo.min_spend).toFixed(0)}`,
+    };
+  }
 
   const now = new Date();
   if (promo.valid_from && new Date(promo.valid_from) > now) return { ok: false, error: "優惠碼未生效" };

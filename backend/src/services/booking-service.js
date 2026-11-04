@@ -857,6 +857,7 @@ function createBooking(req, options = {}) {
       basePrice: clsRow ? clsRow.price_hkd : 0,
       classId: class_id,
       userId: req.user.id,
+      quantity: 1,
     });
     if (!v.ok) return { status: 400, body: { success: false, error: v.error } };
     amount = v.final_price;
