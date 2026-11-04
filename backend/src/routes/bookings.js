@@ -122,6 +122,7 @@ router.post(
         try {
           r = await bookingService.createBooking(fakeReq, {
             creditsOverride: usePromo && isCredits ? promoCr : undefined,
+            promoQuantity: billableCount,
           });
         } catch (e) {
           r = { status: 500, body: { success: false, error: "預約失敗" } };

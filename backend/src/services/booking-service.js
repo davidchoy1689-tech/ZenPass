@@ -857,7 +857,8 @@ function createBooking(req, options = {}) {
       basePrice: clsRow ? clsRow.price_hkd : 0,
       classId: class_id,
       userId: req.user.id,
-      quantity: 1,
+      // 批量落單已用整張單人數校驗過門檻，逐堂建立時沿用同一數量
+      quantity: options.promoQuantity != null ? Number(options.promoQuantity) : 1,
     });
     if (!v.ok) return { status: 400, body: { success: false, error: v.error } };
     amount = v.final_price;
