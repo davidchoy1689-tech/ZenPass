@@ -50,6 +50,16 @@ function validatePromo(db, { code, basePrice, classId, userId, quantity, subtota
   const promo = db.prepare("SELECT * FROM promo_codes WHERE code = ? AND active = 1").get(c);
   if (!promo) return { ok: false, error: "優惠碼無效" };
 
+  // 先檢查適用課程，錯誤訊息更貼近用戶實際問題
+  if (promo.class_id && classId) {
+    const allowed = String(promo.class_id)
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (allowed.length && !allowed.includes(classId))
+      return { ok: false, error: "此優惠碼唔適用於此課程" };
+  }
+
   const qty = Math.max(1, Number(quantity) || 1);
   const gross = subtotal != null ? Number(subtotal) : (Number(basePrice) || 0) * qty;
   if (Number(promo.min_participants) > 0 && qty < Number(promo.min_participants)) {
@@ -68,15 +78,6 @@ function validatePromo(db, { code, basePrice, classId, userId, quantity, subtota
   const now = new Date();
   if (promo.valid_from && new Date(promo.valid_from) > now) return { ok: false, error: "優惠碼未生效" };
   if (promo.valid_to && new Date(promo.valid_to) < now) return { ok: false, error: "優惠碼已過期" };
-  if (promo.class_id && classId) {
-    // class_id 可為單一 id，或逗號分隔多個 id（例如 A班,B班）
-    const allowed = String(promo.class_id)
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean);
-    if (allowed.length && !allowed.includes(classId))
-      return { ok: false, error: "此優惠碼唔適用於此課程" };
-  }
   if (promo.max_uses != null && promo.used_count >= promo.max_uses)
     return { ok: false, error: "優惠碼已用完" };
   // 迎新優惠：每個註冊帳戶只可用一次（即使有唔同迎新碼）
