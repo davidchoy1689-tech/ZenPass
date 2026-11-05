@@ -408,6 +408,9 @@
         <b style="font-size:14px">🔔 開啟簽到通知</b>
         <div class="muted" style="font-size:12px;margin:6px 0 10px">父母現場簽到時，你嘅手機會即時彈出「報平安」通知。</div>
         <button class="btn btn-primary btn-block" id="pushBtn" type="button">開啟通知</button>
+        <div id="iosHint" class="muted" style="font-size:12px;margin-top:8px;display:none;background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:8px 10px">
+          📱 iPhone 用戶：請先按瀏覽器下方「分享」→「加入主畫面」，再返嚟開啟通知，先可以收到鎖屏提示。
+        </div>
         <div id="pushMsg" class="muted" style="font-size:12px;margin-top:8px"></div>
       </div>
       <div class="spacer"></div>
@@ -1168,6 +1171,9 @@
       if (ATT_TYPE !== "parent") return;
       if (!guestToken && !api.getUser()) return;
       card.hidden = false;
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      const standalone = window.matchMedia("(display-mode: standalone)").matches || navigator.standalone;
+      if (isIOS && !standalone && $("iosHint")) $("iosHint").style.display = "block";
     }
     function b64ToU8(base64) {
       const pad = "=".repeat((4 - (base64.length % 4)) % 4);
