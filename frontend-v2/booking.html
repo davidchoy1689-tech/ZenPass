@@ -622,7 +622,14 @@
       const hasA = sessions.some(s => banOf(s) === "A");
       ban = hasA ? "A" : (sessions.some(s => banOf(s) === "B") ? "B" : "all");
       renderChips();
-      defaultSelectFirstMonth();
+      // 由教練頁「立即預約」帶 sid 入嚟 → 只揀嗰一堂（唔好順手全選成個月）
+      const sidWanted = params.get("sid");
+      if (sidWanted && sessions.some(s => s.id === sidWanted)) {
+        sel.clear();
+        sel.add(sidWanted);
+      } else {
+        defaultSelectFirstMonth();
+      }
       render();
       applyGuestMode();
       showGuestReturnBar();
