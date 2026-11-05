@@ -87,7 +87,7 @@ out.push(`• 日期：${start.date}（星期${start.week}）`);
 const arrD = new Date(parseUtc(sched.start_time).getTime() + 8 * 3600e3 - 10 * 60000);
 const arrTime = `${String(arrD.getUTCHours()).padStart(2, "0")}:${String(arrD.getUTCMinutes()).padStart(2, "0")}`;
 out.push(`• 時間：上午 ${start.time} – ${end.time}（學員預計 ${arrTime} 陸續抵達）`);
-out.push(`• 地點：${sched.venue_name}・活動室`);
+out.push(`• 地點：${sched.venue_name}${/活動室/.test(String(sched.venue_address || "")) ? "" : "・活動室"}`);
 if (sched.venue_address) out.push(` （${sched.venue_address}，到達後請依大堂水牌指示前往活動室）`);
 out.push(`• 出席狀況：共 ${seats} 位學員（上限 ${sched.max_participants} 位）`);
 out.push("━━━━━━━━━━━━━━━━━━━\n");
