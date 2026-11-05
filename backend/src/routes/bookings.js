@@ -12,7 +12,7 @@ const { unpaidHoldGuard } = require("../middleware/unpaid-hold-guard");
 const { validate, schemas } = require("../middleware/validate");
 const { requireIdempotency } = require("../middleware/idempotency");
 const bookingService = require("../services/booking-service");
-const { validatePromo } = require("../services/promo");
+const { validatePromo, normalize } = require("../services/promo");
 const Booking = require("../models/Booking");
 
 const router = express.Router();
@@ -93,7 +93,12 @@ router.post(
           subtotal: (clsRow ? Number(clsRow.price_hkd) : 0) * billableCount,
         });
         if (!v.ok) return res.status(400).json({ success: false, error: v.error });
-        batchPromo = { final_price: v.final_price };
+        batchPromo = {
+          id: v.promo.id,
+          code: normalize(promoCode),
+          final_price: v.final_price,
+          discount: v.discount,
+        };
       }
 
       const results = [];
@@ -130,8 +135,51 @@ router.post(
         if (usePromo && r.status === 201) promoRedeemed = true;
         results.push({ scheduleId: it.scheduleId, status: r.status, body: r.body });
       }
-      const created = results.filter((x) => x.status === 201).length;
-      res.json({ success: true, created, total: items.length, results });
+    const createdRows = results.filter((x) => x.status === 201 && x.body && x.body.booking_id);
+    const created = createdRows.length;
+    const payableAmount = createdRows.reduce((s, x) => s + (Number(x.body.amount) || 0), 0);
+    const originalAmount = createdRows.reduce((s, x) => s + (Number(x.body.original_amount) || 0), 0);
+
+    if (batchPromo && created > 0) {
+      try {
+        const { v4: uuidv4 } = require("uuid");
+        getDb()
+          .prepare(
+            `INSERT INTO audit_log
+               (id, action_type, entity_type, entity_id, user_id, new_values, description, ip_address, user_agent, created_at)
+             VALUES (?,?,?,?,?,?,?,?,?,datetime('now'))`,
+          )
+          .run(
+            uuidv4(),
+            "promo.redeemed",
+            "promo_code",
+            batchPromo.id,
+            req.user.id,
+            JSON.stringify({
+              code: batchPromo.code,
+              discount: Math.max(0, Math.round((originalAmount - payableAmount) * 100) / 100),
+              original_amount: originalAmount,
+              payable_amount: payableAmount,
+              booking_ids: createdRows.map((x) => x.body.booking_id),
+            }),
+            `優惠碼 ${batchPromo.code} 折抵 HK$${Math.max(0, Math.round((originalAmount - payableAmount) * 100) / 100)}`,
+            req.ip || "",
+            req.headers["user-agent"] || "",
+          );
+      } catch (e) {
+        console.error("promo audit failed:", e.message);
+      }
+    }
+
+    res.json({
+      success: true,
+      created,
+      total: items.length,
+      original_amount: originalAmount,
+      discount_amount: Math.max(0, Math.round((originalAmount - payableAmount) * 100) / 100),
+      payable_amount: payableAmount,
+      results,
+    });
     } catch (e) {
       console.error("批量預約錯誤:", e);
       res.status(500).json({ success: false, error: "批量預約失敗" });

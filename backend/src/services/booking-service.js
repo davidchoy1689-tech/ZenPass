@@ -908,7 +908,8 @@ function createBooking(req, options = {}) {
     }
 
     // 6. Duplicate check
-    const existing = findExistingBookingForUser(db, req.user.id, schedule_id);
+    //    同行加位（同一張單第二個位）由訪客流程明確開啟，其他入口維持封鎖
+    const existing = options.allowDuplicateSeat ? null : findExistingBookingForUser(db, req.user.id, schedule_id);
     if (existing) {
       if (existing.status === "pending_payment") {
         throw new BookingFlowError({
@@ -1106,6 +1107,8 @@ function createBooking(req, options = {}) {
             price: classInfo.price_hkd,
           }
         : null,
+      amount: amount,
+      original_amount: Number((classInfo && classInfo.price_hkd) || 0),
       schedule: scheduleTimes
         ? {
             start_time: scheduleTimes.start_time,

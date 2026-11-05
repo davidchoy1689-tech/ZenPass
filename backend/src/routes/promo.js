@@ -31,7 +31,7 @@ router.get("/welcome-status", authenticateToken, (req, res) => {
 router.get("/validate", optionalAuth, (req, res) => {
   try {
     const db = getDb();
-    const { code, class_id, price } = req.query;
+    const { code, class_id, price, quantity, subtotal } = req.query;
     let basePrice = price != null ? Number(price) : null;
     if (basePrice == null && class_id) {
       const c = db.prepare("SELECT price_hkd FROM classes WHERE id = ?").get(class_id);
@@ -42,6 +42,8 @@ router.get("/validate", optionalAuth, (req, res) => {
       basePrice: basePrice || 0,
       classId: class_id,
       userId: req.user ? req.user.id : null,
+      quantity: quantity != null ? Number(quantity) : 1,
+      subtotal: subtotal != null ? Number(subtotal) : undefined,
     });
     if (!r.ok) return res.status(400).json({ success: false, error: r.error });
     res.json({ success: true, code: normalize(code), final_price: r.final_price, discount: r.discount });

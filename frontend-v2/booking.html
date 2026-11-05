@@ -169,6 +169,14 @@
     .guest-box input:focus { outline: none; border-color: #10b981; box-shadow: 0 0 0 3px rgba(16,185,129,.14); }
     .guest-box .guest-hint { font-size: 11.5px; color: var(--text-muted); margin-top: 8px; line-height: 1.5; }
     .guest-box .guest-hint a { color: #047857; font-weight: 700; }
+    /* 同行人數（長者友善：48px 觸控區） */
+    .qty-row { display: flex; align-items: center; gap: 10px; margin-top: 10px; padding: 10px 12px; background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 12px; }
+    .qty-row .qty-label { flex: 1; font-size: 14px; font-weight: 700; color: #065f46; line-height: 1.35; }
+    .qty-row .qty-label small { display: block; font-size: 12px; font-weight: 500; color: #047857; margin-top: 2px; }
+    .qty-ctrl { display: flex; align-items: center; gap: 6px; flex: 0 0 auto; }
+    .qty-ctrl button { width: 48px; height: 48px; border-radius: 12px; border: 1px solid #10b981; background: #fff; color: #047857; font-size: 22px; font-weight: 900; line-height: 1; cursor: pointer; }
+    .qty-ctrl button:disabled { opacity: .35; cursor: not-allowed; }
+    .qty-ctrl b { min-width: 34px; text-align: center; font-size: 20px; color: #065f46; }
 
     /* 退改保障標籤 */
     .guarantee {
@@ -263,6 +271,16 @@
         <div id="autoFillHint" class="muted" style="display:none;font-size:11.5px;color:#047857;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:10px;padding:6px 9px;margin:0 0 8px">⚡ 已為你自動填入上次聯絡資料</div>
         <input id="gName" placeholder="你的姓名" autocomplete="name" maxlength="40" />
         <input id="gPhone" placeholder="WhatsApp 電話（8 位數字）" inputmode="numeric" autocomplete="tel" maxlength="20" />
+        <div class="qty-row" id="qtyRow">
+          <div class="qty-label">同行人數（包括你）
+            <small>2 人或以上可用「同行優惠」，同一堂一齊上</small>
+          </div>
+          <div class="qty-ctrl">
+            <button type="button" id="qtyMinus" aria-label="減少同行人數" disabled>−</button>
+            <b id="qtyVal" aria-live="polite">1</b>
+            <button type="button" id="qtyPlus" aria-label="增加同行人數">＋</button>
+          </div>
+        </div>
         <div class="guest-hint">📱 請確保號碼正確，客服／教練會用呢個號碼聯絡你確認預約。<br/>已有帳號？<a href="login.html?next=booking.html">登入後可用 Pass 點數</a></div>
       </div></div>
       <div class="spacer"></div>
@@ -477,6 +495,17 @@
         updateBar();
       });
     });
+    function setGuestQty(v) {
+      guestQty = Math.max(1, Math.min(4, Number(v) || 1));
+      if ($("qtyVal")) $("qtyVal").textContent = guestQty;
+      if ($("qtyMinus")) $("qtyMinus").disabled = guestQty <= 1;
+      if ($("qtyPlus")) $("qtyPlus").disabled = guestQty >= 4;
+      updateBar();
+      // 人數一變，折扣門檻可能改變 → 有已套用嘅碼就重新校驗
+      if (promoFinal && $("promo") && $("promo").value.trim()) $("applyPromo").click();
+    }
+    if ($("qtyMinus")) $("qtyMinus").onclick = () => setGuestQty(guestQty - 1);
+    if ($("qtyPlus")) $("qtyPlus").onclick = () => setGuestQty(guestQty + 1);
     function refreshGroupPrices() {
       if (!cls) return;
       const p = Number(cls.price_hkd) || 0;
@@ -491,11 +520,24 @@
     // 2026-10-25：未揀課堂就直接入預約頁 → 帶去探索頁（避免「缺少課程」死路）
     if (!classId) { location.replace("explore.html?nobook=1"); }
     let cls = null, sessions = [], sel = new Set(), promoFinal = null, ban = "A";
+    let guestQty = 1;
     let payIds = [], payRefs = [], payUnit = 0, payMethod = "fps", cdTimer = null, receiptUrl = "";
 
     const banOf = (s) => (s.notes||"").includes("A班") ? "A" : (s.notes||"").includes("B班") ? "B" : "全";
     const monthKey = (iso) => { const d = new Date(iso); return d.getFullYear() + "年" + (d.getMonth()+1) + "月"; };
     const unit = () => (promoFinal ? promoFinal.final_price : (cls ? cls.price_hkd : 0));
+    const currentQty = () => (isGuest ? guestQty : 1);
+    // 一張單只折一次：原價 × 位數 − 折扣（同後端 batch 一致）
+    function orderParts() {
+      const n = sel.size;
+      const gs = groupSize();
+      const q = currentQty();
+      const base = Number(cls && cls.price_hkd) || 0;
+      const gross = base * n * q * (gs === 3 ? 0.8 : 1);
+      const disc = promoFinal ? Math.min(gross, Math.max(0, base - Number(promoFinal.final_price))) : 0;
+      const round = (x) => Math.round(x * 100) / 100;
+      return { gross: round(gross), disc: round(disc), total: round(Math.max(0, gross - disc)) };
+    }
     const visible = () => sessions.filter(s => ban === "all" || banOf(s) === ban);
 
     let isGuest = false, guestToken = null, guestInfo = null, guestBookings = [];
@@ -681,7 +723,8 @@
     function updateBar() {
       const n = sel.size;
       $("barCount").textContent = "已選 " + n + " 堂";
-      $("barTotal").innerHTML = n ? (cr(unit()*n*groupSize()*(groupSize()===3?0.8:1)) + "cr <span class='muted' style='font-weight:500;font-size:12px'>/ " + hkd(unit()*n*groupSize()*(groupSize()===3?0.8:1)) + "</span>") : "—";
+      const p = orderParts();
+      $("barTotal").innerHTML = n ? (cr(p.total) + "cr <span class='muted' style='font-weight:500;font-size:12px'>/ " + hkd(p.total) + (p.disc ? " · 已減 " + hkd(p.disc) : "") + "</span>") : "—";
       $("bar").style.display = ($("step1").classList.contains("hide") ? "none" : "flex");
     }
 
@@ -776,14 +819,16 @@
       if (isGuest && !validGuest()) return;
       const pm = document.querySelector("input[name=pm]:checked").value;
       const n = sel.size;
-      const unitPrice = promoFinal ? promoFinal.final_price : cls.price_hkd;
       const promoTag = promoFinal ? " <small class='muted'>（已用優惠碼）</small>" : "";
       const gs = groupSize();
-      const gFactor = gs * (gs === 3 ? 0.8 : 1);
-      let acc = pm === "credits" ? (cr(unitPrice*n*gFactor) + " credits" + promoTag)
-        : (hkd(unitPrice*n*gFactor) + promoTag);
-      $("paySummary").innerHTML = `<div class="row"><span class="k">堂數</span><span class="v">${n} 堂${gs === 3 ? " · 三人同行" : ""}</span></div>
-        <div class="row"><span class="k">應付</span><span class="v" style="color:var(--brand-600)">${acc}</span></div>`;
+      const q = currentQty();
+      const p = orderParts();
+      const acc = pm === "credits" ? (cr(p.total) + " credits" + promoTag) : (hkd(p.total) + promoTag);
+      const qtyLabel = [q > 1 ? q + " 位同行" : "", gs === 3 ? "三人同行" : ""].filter(Boolean).join(" · ");
+      $("paySummary").innerHTML = `<div class="row"><span class="k">堂數</span><span class="v">${n} 堂${qtyLabel ? " · " + qtyLabel : ""}</span></div>`
+        + (p.disc ? `<div class="row"><span class="k">原價</span><span class="v">${hkd(p.gross)}</span></div>
+        <div class="row"><span class="k">優惠</span><span class="v" style="color:#047857">− ${hkd(p.disc)}</span></div>` : "")
+        + `<div class="row"><span class="k">應付</span><span class="v" style="color:var(--brand-600)">${acc}</span></div>`;
       $("holdBanner").style.display = pm === "credits" ? "none" : "flex";
       show("step3"); setStep(3); updateBar();
       // 名額保留倒數（15 分鐘）
@@ -797,14 +842,17 @@
       const markInvalid = (bad) => $("promo").setAttribute("aria-invalid", bad ? "true" : "false");
       if (!code) { msg.className = "promo-msg bad"; msg.textContent = "請輸入優惠碼"; markInvalid(true); return; }
       msg.className = "promo-msg"; msg.textContent = "檢查中…"; markInvalid(false);
-      const pvUrl = `/promo/validate?code=${encodeURIComponent(code)}&class_id=${encodeURIComponent(classId)}`;
+      const pvUrl = `/promo/validate?code=${encodeURIComponent(code)}&class_id=${encodeURIComponent(classId)}&quantity=${currentQty()}`;
       const r = await api.get(pvUrl);
       if (r.ok && r.data && r.data.success) {
         promoFinal = { code: code.toUpperCase(), final_price: r.data.final_price };
         const save = Math.max(0, Number(cls && cls.price_hkd) - Number(r.data.final_price));
         msg.className = "promo-msg ok";
-        msg.innerHTML = `✅ 已套用 ${esc(promoFinal.code)} · 每堂 <b>${hkd(r.data.final_price)}</b>` +
-          (save ? `<span class="promo-save">（省 ${hkd(save)}）</span>` : "");
+        msg.innerHTML = currentQty() > 1
+          ? `✅ 已套用 ${esc(promoFinal.code)} · 整單減 <b>${hkd(save)}</b>` +
+            `<span class="promo-save">（實付 ${hkd(orderParts().total)}）</span>`
+          : `✅ 已套用 ${esc(promoFinal.code)} · 每堂 <b>${hkd(r.data.final_price)}</b>` +
+            (save ? `<span class="promo-save">（省 ${hkd(save)}）</span>` : "");
         markInvalid(false);
       } else {
         promoFinal = null; msg.className = "promo-msg bad";
@@ -828,6 +876,7 @@
           name, phone, classId,
           scheduleIds: sessions.filter(s => sel.has(s.id)).map(s => s.id),
           groupSize: groupSize(),
+          quantity: guestQty,
           promoCode: promoFinal ? promoFinal.code : undefined,
           attendee,
         });
@@ -838,10 +887,11 @@
           saveContact(name, phone);
           const list = gr.data.bookings || [];
           guestBookings = list;
-          const ids = list.map(b => b.id);
+          const ids = (gr.data.booking_ids && gr.data.booking_ids.length) ? gr.data.booking_ids : list.map(b => b.id);
+          const payable = gr.data.payable_amount != null ? gr.data.payable_amount : Number((list[0] || {}).amount) || unitForPay();
           const amt = Number((list[0] || {}).amount) || unitForPay();
           rememberWaiver();
-          startPayStep(ids, amt, list.map(b => b.booking_reference || ""));
+          startPayStep(ids, amt, list.map(b => b.booking_reference || ""), payable);
         } else if (gr.data && gr.data.code === "PHONE_EXISTS") {
           if (confirm(gr.data.error + "\n\n而家帶你去登入頁？")) {
             location.href = "login.html?next=" + encodeURIComponent("booking.html" + location.search);
@@ -870,7 +920,7 @@
           if (pm === "single" && (created.length || resumable.length)) {
             // 信用卡/FPS/PayMe：booking 係 pending_payment，要完成付款（含未完成付款嘅舊 booking）
             const payList = created.concat(resumable);
-            startPayStep(payList.map(x => x.body.booking_id), unitForPay(), payList.map(x => (x.body && x.body.booking_reference) || ""));
+            startPayStep(payList.map(x => x.body.booking_id), unitForPay(), payList.map(x => (x.body && x.body.booking_reference) || ""), d.payable_amount);
           } else {
             const failed = (d.results || []).filter(x => x.status !== 201).length;
             showDone({
@@ -1058,10 +1108,11 @@
     }
 
     function unitForPay(){ return promoFinal ? promoFinal.final_price : cls.price_hkd; }
-    function startPayStep(ids, unit, refs){
+    function startPayStep(ids, unit, refs, totalOverride){
       payIds = ids; payRefs = Array.isArray(refs) ? refs : []; payUnit = unit; payMethod = "fps"; receiptUrl = "";
-      $("paySummary2").innerHTML = `<div class="row"><span class="k">堂數</span><span class="v">${ids.length} 堂</span></div>
-        <div class="row"><span class="k">應付</span><span class="v" style="color:var(--brand-600)">${hkd(unit*ids.length)}</span></div>`;
+      const total = totalOverride != null ? Number(totalOverride) : unit * ids.length;
+      $("paySummary2").innerHTML = `<div class="row"><span class="k">預約</span><span class="v">${ids.length} 項</span></div>
+        <div class="row"><span class="k">應付</span><span class="v" style="color:var(--brand-600)">${hkd(total)}</span></div>`;
       renderPayTabs();
       show("pay"); setStep(3); $("bar").style.display = "none";
       startHoldCountdown("payCountdown", showTimeoutModal);

@@ -18,12 +18,17 @@ const { v4: uuidv4 } = require("uuid");
 const bcrypt = require("bcryptjs");
 const { getDb } = require("../services/database");
 const bookingService = require("../services/booking-service");
+const { validatePromo, normalize } = require("../services/promo");
 const { publicFormLimiter } = require("../middleware/public-form-limit");
 const { notifyAdmins } = require("../services/admin-alerts");
 
 const router = express.Router();
 
 const SESSION_DAYS = 30;
+// 訪客一次最多 6 個「位」（時段 × 同行人數），防惡意鎖位
+const MAX_GUEST_SEATS = 6;
+const MAX_GUEST_QTY = 4;
+const FPS_IDENTIFIER = "85290335538";
 const bookLimiter = publicFormLimiter({
   max: 12,
   windowMs: 60 * 60 * 1000,
@@ -134,6 +139,11 @@ router.post("/book", bookLimiter, async (req, res) => {
       .map((x) => String(x));
     const groupSize = Number(body.groupSize) === 3 ? 3 : 1;
     const promoCode = body.promoCode ? String(body.promoCode).trim() : undefined;
+    // 同行人數（包括報名人）：SILVER2 等「2 人同行」優惠靠呢個數字校驗
+    const quantity = Math.min(
+      MAX_GUEST_QTY,
+      Math.max(1, Math.floor(Number(body.quantity != null ? body.quantity : body.participants) || 1)),
+    );
 
     if (name.length < 2) return res.status(400).json({ success: false, error: "請填寫姓名（最少 2 個字）" });
     if (!validPhone(phone)) return res.status(400).json({ success: false, error: "請填寫有效嘅香港手機號碼（8 位）" });
@@ -146,10 +156,57 @@ router.post("/book", bookLimiter, async (req, res) => {
         error: "一次最多預約 6 個時段；如要連報更多堂，請先完成今次付款再落單",
       });
     }
+    if (scheduleIds.length * quantity > MAX_GUEST_SEATS) {
+      return res.status(400).json({
+        success: false,
+        code: "GUEST_BOOK_BATCH_LIMIT",
+        error: `一次最多預約 ${MAX_GUEST_SEATS} 個位（時段 × 同行人數）；如要更多人，請先完成今次付款再落單`,
+      });
+    }
 
     const db = getDb();
     db.pragma("foreign_keys = ON");
     ensureSchema(db);
+
+    const clsRow = db.prepare("SELECT price_hkd, title FROM classes WHERE id = ?").get(classId);
+    if (!clsRow) return res.status(404).json({ success: false, error: "找不到課程" });
+    const basePrice = Number(clsRow.price_hkd) || 0;
+
+    // 名額：先確認每個時段都夠位，避免拆單拆到一半失敗
+    for (const sid of scheduleIds) {
+      const s = db
+        .prepare("SELECT max_participants, enrolled_count, status FROM class_schedules WHERE id = ? AND class_id = ?")
+        .get(sid, classId);
+      if (!s) return res.status(404).json({ success: false, error: "找不到時段" });
+      if (s.status === "cancelled") return res.status(400).json({ success: false, error: "此時段已取消" });
+      if (Number(s.max_participants) - Number(s.enrolled_count) < quantity) {
+        return res.status(409).json({
+          success: false,
+          code: "CLASS_FULL",
+          error: `此時段剩餘名額不足（需要 ${quantity} 位）`,
+        });
+      }
+    }
+
+    // 優惠碼：整張單只校驗一次，只折抵一次
+    let promo = null;
+    if (promoCode) {
+      const v = validatePromo(db, {
+        code: promoCode,
+        basePrice,
+        classId,
+        userId: null,
+        quantity,
+        subtotal: basePrice * quantity * scheduleIds.length,
+      });
+      if (!v.ok) return res.status(400).json({ success: false, error: v.error });
+      promo = {
+        id: v.promo.id,
+        code: normalize(promoCode),
+        final_price: v.final_price,
+        discount: v.discount,
+      };
+    }
 
     // 🔒 全站未付款佔位上限（防止分散 IP／電話大量鎖位令真客人報唔到）
     const { countGlobalHolds } = require("../middleware/unpaid-hold-guard");
@@ -175,38 +232,48 @@ router.post("/book", bookLimiter, async (req, res) => {
     const userId = createGuestUser(db, name, phone);
     const results = [];
     let created = 0;
+    let promoUsed = false;
 
     for (const sid of scheduleIds) {
-      const fakeReq = {
-        body: {
+      for (let seat = 0; seat < quantity; seat++) {
+        const usePromo = !!promo && !promoUsed;
+        const fakeReq = {
+          body: {
+            schedule_id: sid,
+            class_id: classId,
+            payment_type: "single",
+            penalty_consent: true,
+            group_size: groupSize,
+            promo_code: usePromo ? promo.code : undefined,
+            attendee: req.body.attendee || null,
+          },
+          user: { id: userId, name, phone },
+          headers: req.headers,
+          ip: req.ip,
+        };
+        let out;
+        try {
+          out = await bookingService.createBooking(fakeReq, {
+            promoQuantity: quantity,
+            allowDuplicateSeat: quantity > 1,
+          });
+        } catch (err) {
+          console.error("guest booking error:", err.message);
+          out = { status: 500, body: { success: false, error: "預約失敗" } };
+        }
+        if (out && out.status === 201) {
+          created++;
+          if (usePromo) promoUsed = true;
+        }
+        results.push({
+          status: out ? out.status : 500,
           schedule_id: sid,
-          class_id: classId,
-          payment_type: "single",
-          penalty_consent: true,
-          group_size: groupSize,
-          promo_code: promoCode,
-          attendee: req.body.attendee || null,
-        },
-        user: { id: userId, name, phone },
-        headers: req.headers,
-        ip: req.ip,
-      };
-      let out;
-      try {
-        out = await bookingService.createBooking(fakeReq, {});
-      } catch (err) {
-        console.error("guest booking error:", err.message);
-        out = { status: 500, body: { success: false, error: "預約失敗" } };
+          booking_id: out && out.body && out.body.booking_id,
+          booking_reference: out && out.body && out.body.booking_reference,
+          amount: out && out.body && out.body.amount,
+          error: out && out.body && out.body.error,
+        });
       }
-      if (out && out.status === 201) created++;
-      results.push({
-        status: out ? out.status : 500,
-        schedule_id: sid,
-        booking_id: out && out.body && out.body.booking_id,
-        booking_reference: out && out.body && out.body.booking_reference,
-        amount: out && out.body && out.body.amount,
-        error: out && out.body && out.body.error,
-      });
     }
 
     if (!created) {
@@ -235,9 +302,40 @@ router.post("/book", bookLimiter, async (req, res) => {
     } catch (e) {
       console.error("guest notify failed:", e.message);
     }
-    const total = rows
-      .filter((b) => createdIds.includes(b.id))
-      .reduce((s, b) => s + (Number(b.amount) || 0), 0);
+    const createdRows = rows.filter((b) => createdIds.includes(b.id));
+    const total = createdRows.reduce((s, b) => s + (Number(b.amount) || 0), 0);
+    const originalAmount = basePrice * createdRows.length;
+    const discountAmount = Math.max(0, Math.round((originalAmount - total) * 100) / 100);
+
+    // 折扣核銷審計（與 booking 狀態變更分開記錄，方便對賬）
+    if (promoUsed && promo) {
+      try {
+        db.prepare(
+          `INSERT INTO audit_log
+             (id, action_type, entity_type, entity_id, user_id, new_values, description, ip_address, user_agent, created_at)
+           VALUES (?,?,?,?,?,?,?,?,?,datetime('now'))`,
+        ).run(
+          uuidv4(),
+          "promo.redeemed",
+          "promo_code",
+          promo.id,
+          userId,
+          JSON.stringify({
+            code: promo.code,
+            quantity,
+            discount: discountAmount,
+            original_amount: originalAmount,
+            payable_amount: total,
+            booking_ids: createdIds,
+          }),
+          `優惠碼 ${promo.code} 折抵 HK$${discountAmount}（${quantity} 人同行，${createdIds.length} 位）`,
+          req.ip || "",
+          req.headers["user-agent"] || "",
+        );
+      } catch (e) {
+        console.error("promo audit failed:", e.message);
+      }
+    }
 
     return res.status(201).json({
       success: true,
@@ -245,8 +343,14 @@ router.post("/book", bookLimiter, async (req, res) => {
       token,
       token_expires_at: expires_at,
       user: { name, phone },
+      quantity,
       created,
       total,
+      booking_ids: createdIds,
+      original_amount: originalAmount,
+      discount_amount: discountAmount,
+      payable_amount: total,
+      fps_identifier: FPS_IDENTIFIER,
       bookings: rows,
       results,
     });
