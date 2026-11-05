@@ -3,6 +3,7 @@
 > 權限：`ops.booking.write`（admin／platform_staff／platform_manager／super_admin）
 > 所有操作喺單一 SQLite transaction 內完成；任何一步失敗即全數 rollback。
 > 全部寫 `audit_log`。
+> ⚠️ Production POST 需要登入 cookie ＋ `x-csrf-token`（由 admin 前端 `api.js` 自動帶）；用 curl 測試要自行加。
 
 ## 1. 改期 `POST /api/admin/bookings/:id/reschedule`
 
