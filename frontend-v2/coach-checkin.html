@@ -47,7 +47,8 @@
         <div class="t1" id="title">載入中…</div>
         <div class="t2" id="sub">—</div>
       </div>
-      <a class="call" href="tel:+85290335538">📞 支援</a>
+      <button class="call" id="scanBtn" type="button" style="border:0;cursor:pointer">📷 掃碼</button>
+      <a class="call" href="tel:+85290335538" style="margin-left:6px">📞 支援</a>
     </div>
     <div class="prog"><i id="bar"></i></div>
     <div class="stat"><span id="stat">已到 0 / 0</span><span id="pending"></span></div>
@@ -56,6 +57,15 @@
   <main class="wrap" id="list"><div class="empty">載入中…</div></main>
   <div class="offline" id="offline">⚠️ 網絡不穩 — 簽到會先儲存，恢復後自動上傳</div>
 
+<div id="scanWrap" style="position:fixed;inset:0;background:#000;z-index:50;display:none">
+  <video id="scanVideo" playsinline muted style="width:100%;height:100%;object-fit:cover"></video>
+  <div style="position:absolute;top:12px;left:12px;right:12px;display:flex;gap:8px;align-items:center;color:#fff">
+    <b style="font-size:15px">對準長者 QR Code</b>
+    <button id="scanClose" style="margin-left:auto;background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:99px;padding:9px 14px;font-weight:800">關閉</button>
+  </div>
+  <div id="scanBanner" style="position:absolute;left:12px;right:12px;bottom:24px;background:#047857;color:#fff;border-radius:14px;padding:14px;font-weight:900;display:none"></div>
+</div>
+<script src="vendor/jsQR.js"></script>
 <script>
   const $ = (id) => document.getElementById(id);
   const TOKEN = new URLSearchParams(location.search).get("t") || "";
@@ -168,8 +178,8 @@
     load();
   });
 
-  function enqueue(bid, action) {
-    queue.push({ booking_id: bid, action, ts: Date.now() });
+  function enqueue(bid, action, qr) {
+    queue.push({ booking_id: bid, qr: qr || null, action, ts: Date.now() });
     saveQueue(); render();
     toast("📥 已暫存，網絡恢復自動上傳");
   }
@@ -180,7 +190,7 @@
     for (const it of items) {
       const r = await api("/api/coach/checkin", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token: TOKEN, booking_id: it.booking_id, action: it.action }),
+        body: JSON.stringify({ token: TOKEN, booking_id: it.booking_id, qr: it.qr || undefined, action: it.action }),
       });
       if (r.ok) queue = queue.filter((x) => x.ts !== it.ts);
       else if (r.status >= 400 && r.status < 500) queue = queue.filter((x) => x.ts !== it.ts); // 永久失敗唔好卡住
@@ -199,6 +209,80 @@
   } catch (e) {}
   load();
   flush();
+
+  /* ===== 📷 掃碼簽到 ===== */
+  let scanStream = null, scanRAF = null, scanning = false;
+  const scanWrap = $("scanWrap"), scanVideo = $("scanVideo"), scanBanner = $("scanBanner");
+  async function checkinByQr(qr) {
+    const r = await api("/api/coach/checkin", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: TOKEN, qr, action: "checkin" }),
+    });
+    if (!r.ok && (r.status === 0 || r.status >= 500)) { enqueue(null, "checkin", qr); return { queued: true }; }
+    return r;
+  }
+  function banner(text) {
+    scanBanner.textContent = text;
+    scanBanner.style.display = "block";
+    setTimeout(() => { scanBanner.style.display = "none"; }, 2200);
+  }
+  async function startScan() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { toast("此瀏覽器不支援鏡頭"); return; }
+    scanWrap.style.display = "block";
+    try {
+      scanStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
+      scanVideo.srcObject = scanStream;
+      await scanVideo.play();
+      scanning = true;
+      tick();
+    } catch (e) {
+      toast("無法開啟鏡頭：" + e.message);
+      stopScan();
+    }
+  }
+  function stopScan() {
+    scanning = false;
+    if (scanRAF) cancelAnimationFrame(scanRAF);
+    if (scanStream) { scanStream.getTracks().forEach((t) => t.stop()); scanStream = null; }
+    scanWrap.style.display = "none";
+  }
+  function tick() {
+    if (!scanning) return;
+    if (scanVideo.readyState === scanVideo.HAVE_ENOUGH_DATA) {
+      const w = scanVideo.videoWidth, h = scanVideo.videoHeight;
+      if (w && h) {
+        const cv = document.createElement("canvas");
+        cv.width = w; cv.height = h;
+        const cx = cv.getContext("2d");
+        cx.drawImage(scanVideo, 0, 0, w, h);
+        const img = cx.getImageData(0, 0, w, h);
+        const code = window.jsQR ? window.jsQR(img.data, w, h, { inversionAttempts: "dontInvert" }) : null;
+        if (code && code.data && code.data.startsWith("zenpass:checkin:")) {
+          const qr = code.data;
+          scanning = false;
+          if (navigator.vibrate) navigator.vibrate(100);
+          checkinByQr(qr).then((r) => {
+            if (!r) return;
+            if (r.queued) { banner("📥 已暫存，網絡恢復自動補簽"); }
+            else if (r.ok) {
+              const g = (ROSTER ? ROSTER.roster : []).find((x) => x.booking_ids && x.booking_ids.includes(qr.split(":")[2]));
+              banner(`✅ ${g ? g.attendee_name : "學員"} 簽到成功${g && g.health_notes ? "（⚠️ " + g.health_notes + "）" : ""}`);
+              if (r.data.sponsor && r.data.sponsor.wa_url) window.open(r.data.sponsor.wa_url, "_blank");
+              load();
+            } else {
+              banner("❌ " + (r.data.error || "簽到失敗"));
+            }
+            setTimeout(() => { scanning = true; tick(); }, 1500);
+          });
+          return;
+        }
+      }
+    }
+    scanRAF = requestAnimationFrame(tick);
+  }
+  $("scanBtn").onclick = startScan;
+  $("scanClose").onclick = stopScan;
+
   if ("serviceWorker" in navigator) navigator.serviceWorker.register("coach-checkin-sw.js").catch(() => {});
 </script>
 </body>

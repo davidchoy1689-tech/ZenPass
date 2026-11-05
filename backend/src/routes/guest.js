@@ -19,6 +19,7 @@ const bcrypt = require("bcryptjs");
 const { getDb } = require("../services/database");
 const bookingService = require("../services/booking-service");
 const { validatePromo, normalize } = require("../services/promo");
+const bookingQr = require("../services/booking-qr");
 const { publicFormLimiter } = require("../middleware/public-form-limit");
 const { notifyAdmins } = require("../services/admin-alerts");
 
@@ -128,6 +129,23 @@ function guestBookings(db, userId) {
 }
 
 // ============ POST /api/guest/book ============
+// ===== GET /api/guest/booking-qr?token=&booking_id= — 入場簽到 QR =====
+router.get("/booking-qr", (req, res) => {
+  try {
+    const db = getDb();
+    const token = String(req.query.token || "");
+    const bookingId = String(req.query.booking_id || "");
+    if (!token || !bookingId) return res.status(400).json({ success: false, error: "缺少參數" });
+    const sess = db.prepare("SELECT user_id FROM guest_sessions WHERE token=*** AND expires_at > datetime('now')").get(token);
+    if (!sess) return res.status(401).json({ success: false, error: "訪客登入已過期" });
+    const b = db.prepare("SELECT id,user_id FROM bookings WHERE id=?").get(bookingId);
+    if (!b || b.user_id !== sess.user_id) return res.status(404).json({ success: false, error: "找不到預約" });
+    res.json({ success: true, qr: bookingQr.make(b.id) });
+  } catch (e) {
+    res.status(500).json({ success: false, error: "產生 QR 失敗" });
+  }
+});
+
 router.post("/book", bookLimiter, async (req, res) => {
   try {
     const body = req.body || {};

@@ -11,6 +11,7 @@ const { v4: uuidv4 } = require("uuid");
 const { getDb } = require("../services/database");
 const tokens = require("../services/coach-checkin-token");
 const { notifySponsor } = require("../services/sponsor-notify");
+const bookingQr = require("../services/booking-qr");
 
 const router = express.Router();
 const attempts = new Map(); // ip -> { fails, blockedUntil }
@@ -159,11 +160,17 @@ router.get("/coach/checkin/roster", (req, res) => {
 router.post("/coach/checkin", express.json(), (req, res) => {
   const ip = ipOf(req);
   if (blocked(ip)) return res.status(429).json({ success: false, error: "嘗試次數過多，請 15 分鐘後再試" });
-  const { token, booking_id, action } = req.body || {};
+  let { token, booking_id, action, qr } = req.body || {};
   if (!["checkin", "no_show"].includes(action)) return res.status(400).json({ success: false, error: "action 無效" });
   try {
     const db = getDb();
     ensureParentCols(db);
+    if (qr) {
+      const q = bookingQr.verify(qr);
+      if (!q.ok) return res.status(400).json({ success: false, code: q.code, error: "QR Code 無效" });
+      booking_id = q.bookingId;
+    }
+    if (!booking_id) return res.status(400).json({ success: false, error: "缺少 booking_id 或 qr" });
     const ctx = loadContext(db, token);
     if (ctx.error) { fail(ip); return res.status(403).json({ success: false, code: ctx.error, error: "連結無效或已過期" }); }
     reset(ip);

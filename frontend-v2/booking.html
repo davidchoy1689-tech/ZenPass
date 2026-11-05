@@ -413,6 +413,12 @@
         </div>
         <div id="pushMsg" class="muted" style="font-size:12px;margin-top:8px"></div>
       </div>
+      <div class="card" id="qrCard" hidden style="margin-top:12px;text-align:center">
+        <b style="font-size:14px">🎫 入場簽到 QR</b>
+        <div class="muted" style="font-size:12px;margin:6px 0 8px">付款核實後，向教練出示此 QR 即可簽到；可長按圖片儲存。</div>
+        <img id="qrImg" alt="簽到 QR" style="width:200px;height:200px" />
+        <div id="qrRef" class="muted" style="font-size:11.5px;margin-top:6px"></div>
+      </div>
       <div class="spacer"></div>
       <div class="guarantee">
         <span class="g-ic">🛡️</span>
@@ -542,6 +548,7 @@
     if (!classId) { location.replace("explore.html?nobook=1"); }
     let cls = null, sessions = [], sel = new Set(), promoFinal = null, ban = "A";
     let guestQty = 1;
+    let payTotalValue = 0;
     let payIds = [], payRefs = [], payUnit = 0, payMethod = "fps", cdTimer = null, receiptUrl = "";
 
     const banOf = (s) => (s.notes||"").includes("A班") ? "A" : (s.notes||"").includes("B班") ? "B" : "全";
@@ -1199,12 +1206,22 @@
       } catch (e) { msg.textContent = "開啟失敗：" + e.message; }
     };
 
+    async function showGuestQr() {
+      if (!isGuest || !guestToken || !payIds.length) return;
+      const r = await api.get(`/guest/booking-qr?token=${encodeURIComponent(guestToken)}&booking_id=${encodeURIComponent(payIds[0])}`);
+      if (!r.ok || !r.data.qr) return;
+      $("qrImg").src = "/api/qr?size=420&text=" + encodeURIComponent(r.data.qr);
+      $("qrRef").textContent = (payRefs && payRefs[0]) ? "預約編號：" + payRefs[0] : "";
+      $("qrCard").hidden = false;
+    }
     function startPayStep(ids, unit, refs, totalOverride){
       payIds = ids; payRefs = Array.isArray(refs) ? refs : []; payUnit = unit; payMethod = "fps"; receiptUrl = "";
       const total = totalOverride != null ? Number(totalOverride) : unit * ids.length;
+      payTotalValue = total;
       $("paySummary2").innerHTML = `<div class="row"><span class="k">預約</span><span class="v">${ids.length} 項</span></div>
         <div class="row"><span class="k">應付</span><span class="v" style="color:var(--brand-600)">${hkd(total)}</span></div>`;
       initPushCard();
+      showGuestQr();
       renderPayTabs();
       show("pay"); setStep(3); $("bar").style.display = "none";
       startHoldCountdown("payCountdown", showTimeoutModal);
@@ -1218,6 +1235,45 @@
       document.querySelectorAll("#payTabs .chip").forEach(c=>c.onclick=()=>{ payMethod=c.dataset.pm; renderPayTabs(); });
       renderPayPanel();
     }
+    function crc16(s) {
+      let crc = 0xffff;
+      for (let i = 0; i < s.length; i++) {
+        crc ^= s.charCodeAt(i) << 8;
+        for (let j = 0; j < 8; j++) crc = (crc & 0x8000) ? ((crc << 1) ^ 0x1021) : (crc << 1);
+        crc &= 0xffff;
+      }
+      return crc.toString(16).toUpperCase().padStart(4, "0");
+    }
+    const tlv = (t, v) => t + String(v.length).padStart(2, "0") + v;
+    function fpsPayload(amount, ref) {
+      const base = tlv("00", "01") + tlv("01", "12")
+        + tlv("26", tlv("00", "hk.com.hkicl") + tlv("01", "90335538"))
+        + tlv("52", "5999") + tlv("53", "344") + tlv("54", Number(amount).toFixed(2))
+        + tlv("58", "HK") + tlv("59", "ZENPASS") + tlv("60", "HONG KONG")
+        + tlv("62", tlv("05", String(ref).slice(0, 25))) + "6304";
+      return base + crc16(base);
+    }
+    function fpsPanelHtml() {
+      const ref = (Array.isArray(payRefs) && payRefs[0]) || "";
+      const amt = Number(payTotalValue || 0).toFixed(2);
+      const payload = fpsPayload(amt, ref);
+      return `<div style="border:1px solid var(--border);border-radius:14px;padding:12px;margin:0 0 12px;text-align:center">
+        <div style="font-weight:800;font-size:13px;margin-bottom:8px">📲 轉數快 QR（HK$ ${amt}）</div>
+        <img alt="FPS QR" style="width:180px;height:180px" src="/api/qr?size=360&text=${encodeURIComponent(payload)}" />
+        <div class="muted" style="font-size:11.5px;margin-top:6px">用手機銀行 App 掃描；備註：${esc(ref || "—")}</div>
+        <div style="display:flex;gap:6px;margin-top:8px">
+          <button type="button" class="btn btn-secondary" style="flex:1;min-height:44px;font-size:12.5px" data-copy="90335538">📋 複製收款電話</button>
+          <button type="button" class="btn btn-secondary" style="flex:1;min-height:44px;font-size:12.5px" data-copy="${amt}">📋 複製金額</button>
+        </div>
+        <div style="display:flex;gap:6px;margin-top:6px">
+          <a class="btn btn-secondary" style="flex:1;min-height:44px;font-size:12.5px;display:flex;align-items:center;justify-content:center" href="payme://">PayMe</a>
+          <a class="btn btn-secondary" style="flex:1;min-height:44px;font-size:12.5px;display:flex;align-items:center;justify-content:center" href="hsbc://">HSBC</a>
+          <a class="btn btn-secondary" style="flex:1;min-height:44px;font-size:12.5px;display:flex;align-items:center;justify-content:center" href="bocpay://">中銀</a>
+        </div>
+        <div class="muted" style="font-size:11px;margin-top:6px">手機 App 未必支援自動填金額；請用上方 Copy 按鈕貼上。</div>
+      </div>`;
+    }
+
     function renderPayPanel(){
       const input = `<input id="payRef" inputmode="text" autocomplete="off" placeholder="輸入${payMethod==="fps"?"轉數快 FPS":"PayMe"} 交易參考編號（必填）" style="width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:12px;padding:10px 12px;font:inherit;background:var(--surface);color:var(--text)" />`;
       const refCodes = (Array.isArray(payRefs)?payRefs:[]).filter(Boolean);
@@ -1248,6 +1304,7 @@
           <div id="copyHint" class="muted" style="display:none;font-size:11.5px;color:#047857;margin:6px 2px 0">✅ 已複製，切去你嘅銀行 App（HSBC／中銀／恒生／PayMe）貼上即可。</div>
           <div style="height:10px"></div>
           ${refBox}
+          ${fpsPanelHtml()}
           ${input}<div style="height:10px"></div>
           ${receipt}
           <button class="btn btn-primary btn-block" id="paySubmit">我已付款，提交核實</button>

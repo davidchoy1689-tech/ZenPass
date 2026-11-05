@@ -13,6 +13,7 @@ const { validate, schemas } = require("../middleware/validate");
 const { requireIdempotency } = require("../middleware/idempotency");
 const bookingService = require("../services/booking-service");
 const { validatePromo, normalize } = require("../services/promo");
+const bookingQr = require("../services/booking-qr");
 const Booking = require("../models/Booking");
 
 const router = express.Router();
@@ -498,6 +499,7 @@ router.get("/:id/qr", authenticateToken, (req, res) => {
     const qrData = `zenpass-checkin:${booking.booking_reference || booking.id}:${booking.schedule_id}`;
     const checkinCode = bookingService.checkinCodeFor(booking);
     const base = {
+      qr_secure: bookingQr.make(booking.id),
       qr_text: qrData,
       checkin_code: checkinCode,
       booking_reference: booking.booking_reference,
