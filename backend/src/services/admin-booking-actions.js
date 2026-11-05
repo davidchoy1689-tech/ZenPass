@@ -232,4 +232,65 @@ function upgradeSeats(db, { bookingId, friendName, friendPhone, topUpAmount, pay
   return run();
 }
 
-module.exports = { rescheduleBooking, upgradeSeats, ActionError };
+
+// ===== 現場簽到（櫃檯／客服）＋ 子女報平安連結 =====
+function checkInBooking(db, { bookingId, actorId, ip, ua }) {
+  const run = db.transaction(() => {
+    const b = db
+      .prepare(
+        `SELECT b.*, u.name AS booker_name, u.phone AS booker_phone,
+                c.title, c.venue_name, u2.name AS coach_name,
+                cs.end_time
+           FROM bookings b
+           JOIN users u ON u.id = b.user_id
+           LEFT JOIN users u2 ON u2.id = (SELECT coach_id FROM classes WHERE id=b.class_id)
+           JOIN classes c ON c.id = b.class_id
+           JOIN class_schedules cs ON cs.id = b.schedule_id
+          WHERE b.id = ?`,
+      )
+      .get(bookingId);
+    if (!b) throw new ActionError("BOOKING_NOT_FOUND", "找不到預約", 404);
+    if (b.status === "attended") throw new ActionError("ALREADY_CHECKED_IN", "此學員已簽到", 409);
+    if (b.status === "cancelled") throw new ActionError("BOOKING_CANCELLED", "已取消的預約不可簽到", 409);
+    if (b.status !== "confirmed") throw new ActionError("BOOKING_NOT_CONFIRMED", "預約未確認，不可簽到", 409);
+    if (b.payment_status !== "paid") throw new ActionError("BOOKING_NOT_PAID", "未付款不可簽到", 409);
+
+    db.prepare(
+      "UPDATE bookings SET status='attended', checked_in_at=datetime('now'), checkin_method='admin' WHERE id=?",
+    ).run(b.id);
+
+    audit(db, {
+      action: "booking.checked_in", entityId: b.id, actorId,
+      values: { method: "admin", attendee_type: b.attendee_type, parent_name: b.parent_name || null },
+      description: `現場簽到：${b.booking_reference}（${b.parent_name || b.booker_name}）`, ip, ua,
+    });
+
+    let sponsor = null;
+    const attendeeName = b.attendee_type === "parent" && b.parent_name ? b.parent_name : b.booker_name;
+    if (b.attendee_type === "parent" && Number(b.notify_sponsor_on_checkin) === 1 && b.booker_phone) {
+      const rawEnd = String(b.end_time);
+      const end = /[zZ]$|[+-]\d\d:?\d\d$/.test(rawEnd) ? new Date(rawEnd) : new Date(rawEnd.replace(" ", "T") + "Z");
+      const endHKT = new Date(end.getTime() + 8 * 3600e3);
+      const hhmm = `${String(endHKT.getUTCHours()).padStart(2, "0")}:${String(endHKT.getUTCMinutes()).padStart(2, "0")}`;
+      const text =
+        `【ZenPass 課堂報平安】您為 ${attendeeName} 預約的${b.title}班已順利簽到！` +
+        `目前精神良好，由${b.coach_name || "導師"}親自帶領，預計 ${hhmm} 下課，請放心 🌿`;
+      const phone = normPhone(b.booker_phone);
+      sponsor = {
+        phone,
+        message: text,
+        wa_url: /^[4-9]\d{7}$/.test(phone) ? `https://wa.me/852${phone}?text=${encodeURIComponent(text)}` : null,
+      };
+      audit(db, {
+        action: "checkin.sponsor_notified", entityId: b.id, actorId,
+        values: { parent_name: attendeeName, sponsor_phone: phone, booking_reference: b.booking_reference },
+        description: `簽到報平安：${attendeeName} → ${phone}`, ip, ua,
+      });
+    }
+
+    return { booking_id: b.id, attendee_name: attendeeName, sponsor };
+  });
+  return run();
+}
+
+module.exports = { rescheduleBooking, upgradeSeats, checkInBooking, ActionError };

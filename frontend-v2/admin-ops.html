@@ -1060,13 +1060,17 @@
         const remaining = Number(b.max_participants || 0) - Number(b.enrolled_count || 0);
         const paid = Number(b.paid_seats) === Number(b.seats);
         const canUp = remaining >= 1 && paid;
+        const isParent = Number(b.is_parent) === 1;
+        const checked = b.status === "attended";
         return `<div class="bk-row">
           <div class="bk-main">
-            <div class="bk-name">${esc(b.name || "未填姓名")}${Number(b.seats) > 1 ? ` <span class="pill p-on">${b.seats} 位同行</span>` : ""}</div>
+            <div class="bk-name">${esc(isParent && b.parent_name ? b.parent_name : (b.name || "未填姓名"))}${isParent ? ' <span class="pill" style="background:#e0f2fe;color:#0369a1">👵 子女代報</span>' : ""}${Number(b.seats) > 1 ? ` <span class="pill p-on">${b.seats} 位同行</span>` : ""}</div>
             <div class="bk-sub">${esc(b.title)} · ${fmtDT(b.start_time)} · ${esc(b.phone || "無電話")}</div>
-            <div class="bk-sub">${esc(b.booking_reference || "")} · ${paid ? "✅ 已付款" : "⏳ 待核實"} · ${hkd(b.amount)} · 剩 ${remaining} 位</div>
+            <div class="bk-sub">${esc(b.booking_reference || "")} · ${paid ? "✅ 已付款" : "⏳ 待核實"} · ${hkd(b.amount)} · 剩 ${remaining} 位${isParent ? " · 父母電話 " + esc(b.parent_phone || "—") + (Number(b.notify_sponsor) === 1 ? " · 🔔 簽到通知" : "") : ""}</div>
+            ${isParent ? `<div class="bk-sub">付款人：${esc(b.name)} · ${esc(b.phone || "")}</div>` : ""}
           </div>
           <div class="bk-acts">
+            ${checked ? '<span class="pill p-on">✅ 已簽到</span>' : (b.status === "confirmed" ? `<button class="btn btn-secondary" data-act="in" data-i="${i}">✅ 現場簽到</button>` : "")}
             <button class="btn btn-secondary" data-act="res" data-i="${i}">📅 順延 / 改期</button>
             <button class="btn btn-primary" data-act="up" data-i="${i}" ${canUp ? "" : "disabled title='已付款且仍有名額才可加位'"}>👥 同行加位 (+$100)</button>
           </div>
@@ -1080,7 +1084,30 @@
       if (!row) return;
       if (btn.dataset.act === "res") openReschedule(row);
       if (btn.dataset.act === "up") openUpgrade(row);
+      if (btn.dataset.act === "in") doCheckIn(row);
     };
+
+
+    async function doCheckIn(row) {
+      const name = Number(row.is_parent) === 1 && row.parent_name ? row.parent_name : row.name;
+      if (!confirm(`確定為 ${name} 現場簽到？`)) return;
+      const res = await api.post(`/admin/bookings/${row.booking_id}/checkin`, {});
+      if (!res.ok) { alert((res.data && res.data.error) || "簽到失敗"); return; }
+      loadBookings();
+      const sp = res.data.sponsor;
+      if (sp && sp.wa_url) {
+        $("bkModalCard").innerHTML = `
+          <h3>✅ 已簽到 · 報平安</h3>
+          <div class="muted">${esc(res.data.attendee_name)} 已簽到。可按下面連結通知付款人：</div>
+          <div class="muted" style="margin:10px 0;padding:10px;background:#f8fafc;border-radius:10px;white-space:pre-wrap">${esc(sp.message)}</div>
+          <a class="btn btn-primary btn-block" href="${esc(sp.wa_url)}" target="_blank" rel="noopener" style="min-height:48px;display:flex;align-items:center;justify-content:center">📲 開啟 WhatsApp 發送</a>
+          <div class="modal-acts"><button class="btn btn-secondary" id="ckClose">關閉</button></div>`;
+        $("bkModal").hidden = false;
+        $("ckClose").onclick = closeBkModal;
+      } else {
+        toast(`✅ ${res.data.attendee_name} 已簽到`);
+      }
+    }
 
     async function openReschedule(row) {
       const r = await api.get("/admin/ops/schedules?class_id=" + encodeURIComponent(row.class_id));

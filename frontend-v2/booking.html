@@ -312,6 +312,7 @@
         <div class="att-toggle" id="attToggle">
           <button type="button" class="on" data-att="self">🙋‍♂️ 本人出席</button>
           <button type="button" data-att="child">👨‍👩‍👧 代子女報名</button>
+          <button type="button" data-att="parent">👵 代長者報名</button>
         </div>
         <div id="childBox" hidden style="margin-top:12px">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
@@ -336,6 +337,16 @@
               <input id="guardianHkid" placeholder="身份證前 4 位 *" maxlength="8" />
             </div>
           </div>
+        </div>
+        <div id="parentBox" hidden style="margin-top:12px">
+          <b style="font-size:13.5px">👵 長者參加者資料（你付款、父母出席）</b>
+          <div class="grid2" style="margin-top:8px">
+            <input id="parentName" placeholder="父母全名 *" maxlength="40" />
+            <input id="parentPhone" placeholder="父母電話 *（點名用）" inputmode="numeric" maxlength="12" />
+          </div>
+          <label class="waiver-chk" style="margin-top:8px"><input type="checkbox" id="notifySponsor" checked />
+            <span>父母現場簽到時，用 WhatsApp 通知我報平安</span></label>
+          <div class="muted" style="font-size:11.5px;margin-top:6px">簽到通知會發到你報名時填寫嘅電話。</div>
         </div>
       </div></div>
 
@@ -767,6 +778,7 @@
       [..._attToggle.children].forEach((x) => x.classList.toggle("on", x === b));
       ATT_TYPE = b.dataset.att;
       $("childBox").hidden = ATT_TYPE !== "child";
+      $("parentBox").hidden = ATT_TYPE !== "parent";
       if (ATT_TYPE === "child") {
         try { $("loadChild").style.display = localStorage.getItem("zenpass_saved_child") ? "inline-block" : "none"; } catch (err) {}
       }
@@ -802,6 +814,19 @@
 
     function getAttendeePayload(silent) {
       const wv = waiverPayload();
+      if (ATT_TYPE === "parent") {
+        if (!wv) { if (!silent) alert("請先閱讀並同意平台轉介服務及責任聲明"); return null; }
+        const parentName = ($("parentName").value || "").trim();
+        const parentPhone = ($("parentPhone").value || "").replace(/\D/g, "").replace(/^852/, "");
+        const fail2 = (m) => { if (!silent) alert(m); return null; };
+        if (parentName.length < 2) return fail2("請填寫父母姓名");
+        if (!/^[4-9]\d{7}$/.test(parentPhone)) return fail2("請填寫父母 8 位電話（點名用）");
+        return {
+          type: "parent", parentName, parentPhone,
+          notifySponsorOnCheckin: $("notifySponsor").checked ? 1 : 0,
+          waiver: wv,
+        };
+      }
       if (ATT_TYPE !== "child") {
         if (!wv) { if (!silent) alert("請先閱讀並同意平台轉介服務及責任聲明"); return null; }
         return { type: "self", waiver: wv };

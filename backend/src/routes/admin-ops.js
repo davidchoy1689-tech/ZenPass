@@ -325,10 +325,23 @@ router.get("/upcoming-sessions", authenticateToken, requireAdmin, requireOpsRole
   }
 });
 
+function ensureParentCols(db) {
+  try {
+    const have = db.prepare("PRAGMA table_info(bookings)").all().map((c) => c.name);
+    [
+      ["parent_name", "TEXT"],
+      ["parent_phone", "TEXT"],
+      ["notify_sponsor_on_checkin", "INTEGER DEFAULT 0"],
+      ["attendee_type", "TEXT DEFAULT 'self'"],
+    ].forEach(([n, t]) => { if (!have.includes(n)) db.prepare(`ALTER TABLE bookings ADD COLUMN ${n} ${t}`).run(); });
+  } catch (e) { console.error("[OPS] parent cols:", e.message); }
+}
+
 // ===== GET /api/admin/ops/bookings?days=14 — 預約管理（按用戶＋班次合併）=====
 router.get("/bookings", authenticateToken, requireAdmin, requireOpsRole, (req, res) => {
   try {
     const db = getDb();
+    ensureParentCols(db);
     const days = Math.min(60, Math.max(1, Number(req.query.days) || 14));
     const rows = db
       .prepare(
@@ -336,8 +349,13 @@ router.get("/bookings", authenticateToken, requireAdmin, requireOpsRole, (req, r
                 COUNT(*) AS seats, SUM(b.amount) AS amount,
                 MIN(b.id) AS booking_id,
                 MIN(b.booking_reference) AS booking_reference,
+                MIN(b.checked_in_at) AS checked_in_at,
                 SUM(CASE WHEN b.payment_status = 'paid' THEN 1 ELSE 0 END) AS paid_seats,
                 MIN(b.status) AS status,
+                MAX(CASE WHEN b.attendee_type = 'parent' THEN 1 ELSE 0 END) AS is_parent,
+                MAX(b.parent_name) AS parent_name,
+                MAX(b.parent_phone) AS parent_phone,
+                MAX(b.notify_sponsor_on_checkin) AS notify_sponsor,
                 cs.start_time, cs.end_time, cs.max_participants, cs.enrolled_count,
                 c.id AS class_id, c.title, c.venue_name
            FROM bookings b

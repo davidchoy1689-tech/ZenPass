@@ -50,6 +50,8 @@ const rows = db.prepare(`
          ${col(bcols, "emergency_phone", "b_emergency_phone", "b")},
          ${col(bcols, "child_name", "child_name", "b")},
          ${col(bcols, "attendee_type", "attendee_type", "b")},
+         ${col(bcols, "parent_name", "parent_name", "b")},
+         ${col(bcols, "parent_phone", "parent_phone", "b")},
          u.name, u.phone,
          ${col(ucols, "emergency_name", "emergency_name", "u")},
          ${col(ucols, "emergency_phone", "emergency_phone", "u")}
@@ -67,6 +69,7 @@ for (const r of rows) {
   g.seats++;
   if (r.medical_notes && !g.notes.includes(r.medical_notes)) g.notes.push(r.medical_notes);
   if (r.child_name) g.child_name = r.child_name;
+  if (r.attendee_type === "parent" && r.parent_name) { g.parent_name = r.parent_name; g.parent_phone = r.parent_phone; }
 }
 
 const start = hktParts(sched.start_time);
@@ -97,9 +100,10 @@ if (!groups.length) {
   out.push("（目前暫無確認預約學員）\n");
 } else {
   groups.forEach((g, i) => {
-    const display = g.child_name ? `${g.name}（${g.child_name}）` : g.name;
+    const display = g.parent_name ? `${g.parent_name}（子女代報）` : (g.child_name ? `${g.name}（${g.child_name}）` : g.name);
     out.push(`${i + 1}. ${display}（先生／女士）`);
-    out.push(` • 電話：${phoneFmt(g.phone)}`);
+    out.push(` • 電話：${phoneFmt(g.parent_phone || g.phone)}`);
+    if (g.parent_name) out.push(` • 付款人：${g.name} · ${phoneFmt(g.phone)}`);
     out.push(` • 類別：${g.seats >= 2 ? `2 人同行（共 ${g.seats} 位）` : "單人預約"}`);
     out.push(` • 健康備註：${g.notes.length ? g.notes.join("；") : "無特殊舊患備註"}`);
     out.push(` • 緊急聯絡人：${g.emergency_name ? `${g.emergency_name} / ${phoneFmt(g.emergency_phone)}` : (g.b_emergency_phone ? phoneFmt(g.b_emergency_phone) : "未提供")}\n`);

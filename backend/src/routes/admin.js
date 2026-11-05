@@ -37,6 +37,28 @@ router.post(
   },
 );
 
+// ===== POST /api/admin/bookings/:id/checkin — 現場簽到（可發子女報平安連結）=====
+router.post(
+  "/bookings/:id/checkin",
+  authenticateToken,
+  requirePermission("ops.booking.write"),
+  (req, res) => {
+    try {
+      const result = bookingActions.checkInBooking(getDb(), {
+        bookingId: req.params.id,
+        actorId: req.user.id,
+        ip: req.ip,
+        ua: req.headers["user-agent"],
+      });
+      res.json({ success: true, ...result });
+    } catch (err) {
+      const status = err.status || (err.code ? 400 : 500);
+      if (status >= 500) console.error("checkin error:", err.message);
+      res.status(status).json({ success: false, code: err.code || "CHECKIN_FAILED", error: err.message });
+    }
+  },
+);
+
 // ===== POST /api/admin/bookings/:id/upgrade-seats — 補 HK$100 升級二人同行 =====
 router.post(
   "/bookings/:id/upgrade-seats",

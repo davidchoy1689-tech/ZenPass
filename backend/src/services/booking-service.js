@@ -38,6 +38,9 @@ function ensureAttendeeColumns(db) {
     const cols = db.prepare("PRAGMA table_info(bookings)").all().map((c) => c.name);
     const add = [
       ["attendee_type", "TEXT DEFAULT 'self'"],
+      ["parent_name", "TEXT"],
+      ["parent_phone", "TEXT"],
+      ["notify_sponsor_on_checkin", "INTEGER DEFAULT 0"],
       ["child_name", "TEXT"],
       ["child_age", "INTEGER"],
       ["emergency_phone", "TEXT"],
@@ -430,7 +433,7 @@ function insertBookingRow(db, bookingData, partnerInfo) {
 
   const A = attendee || {};
   const aVals = [
-    A.type === "child" ? "child" : "self",
+    ["child", "parent"].includes(A.type) ? A.type : "self",
     A.childName || null,
     A.childAge ? Number(A.childAge) : null,
     A.emergencyPhone || null,
@@ -488,6 +491,18 @@ function insertBookingRow(db, bookingData, partnerInfo) {
       groupSize,
       groupInviteCode,
       ...aVals,
+    );
+  }
+
+  // 👨‍👩‍👧 子女代長者報名：父母資料另外寫入（避免改動兩條 INSERT 的欄位數）
+  if (A.type === "parent") {
+    db.prepare(
+      "UPDATE bookings SET parent_name=?, parent_phone=?, notify_sponsor_on_checkin=? WHERE id=?",
+    ).run(
+      (A.parentName || "").trim() || null,
+      String(A.parentPhone || "").replace(/\D/g, "") || null,
+      A.notifySponsorOnCheckin ? 1 : 0,
+      bookingId,
     );
   }
 
