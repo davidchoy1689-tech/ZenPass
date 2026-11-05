@@ -96,9 +96,13 @@
 
 ---
 
-## ⚙️ 客服實際操作（兩個承諾目前系統未支援，需人手步驟）
-1. `/reschedule`：bookings 冇 `rescheduled` 狀態；亦冇改期 API。
-   - 需要一個 admin 工具：舊單標 cancelled（釋放名額）＋ 11/11 新單（保留已付狀態）＋ 兩邊 enrolled_count 調整 ＋ audit `booking.rescheduled`。
-   - 未建立工具前，客服**唔好即場承諾已改好**，只可講「幫你申請，今日內確認」。
-2. `/add_friend`：現有單人單不能加位；SILVER2 只適用於同一張新單 2 位。
-   - 人手做法 = 取消舊單 + 開 2 人單（100 + 140 = 240），另記錄 HK$100 收款；需 admin 工具或人手審計。
+## ⚙️ 客服實際操作（工具已上線）
+1. `/reschedule`：用 `POST /api/admin/bookings/:id/reschedule`
+   - 新班次 11/11：`69770fe1-7970-4fb5-8be2-8960167dfa88`
+   - 原因填「11/09首發特批免費順延至11/11」
+   - 系統會自動將整組同行 booking 搬去新班、保留付款、調整兩邊名額、寫 audit `booking.rescheduled`
+2. `/add_friend`：用 `POST /api/admin/bookings/:id/upgrade-seats`
+   - 朋友姓名／電話、`top_up_amount: 100`、FPS 交易參考
+   - 系統會開第二個位（$100、已付款），朋友會以獨立訪客身份出現在點名單
+3. 兩個工具都只限 `ops.booking.write`（客服 admin 已有），滿額會 409 並**唔會**改動原單。
+4. API 文件：`docs/api/admin-booking-actions.md`

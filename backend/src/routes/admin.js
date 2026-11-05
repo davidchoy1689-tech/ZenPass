@@ -9,8 +9,60 @@ const { getDb } = require("../services/database");
 const { authenticateToken, requireAdmin, requirePermission } = require("../middleware/auth");
 const { queryAudit } = require("../services/audit");
 const adminService = require("../services/admin-service");
+const bookingActions = require("../services/admin-booking-actions");
 
 const router = express.Router();
+
+// ===== POST /api/admin/bookings/:id/reschedule — 改期（同課程另一個班次）=====
+router.post(
+  "/bookings/:id/reschedule",
+  authenticateToken,
+  requirePermission("ops.booking.write"),
+  (req, res) => {
+    try {
+      const result = bookingActions.rescheduleBooking(getDb(), {
+        bookingId: req.params.id,
+        newScheduleId: req.body && req.body.new_schedule_id,
+        reason: req.body && req.body.reason,
+        actorId: req.user.id,
+        ip: req.ip,
+        ua: req.headers["user-agent"],
+      });
+      res.json({ success: true, ...result });
+    } catch (err) {
+      const status = err.status || (err.code ? 400 : 500);
+      if (status >= 500) console.error("reschedule error:", err.message);
+      res.status(status).json({ success: false, code: err.code || "RESCHEDULE_FAILED", error: err.message });
+    }
+  },
+);
+
+// ===== POST /api/admin/bookings/:id/upgrade-seats — 補 HK$100 升級二人同行 =====
+router.post(
+  "/bookings/:id/upgrade-seats",
+  authenticateToken,
+  requirePermission("ops.booking.write"),
+  (req, res) => {
+    try {
+      const b = req.body || {};
+      const result = bookingActions.upgradeSeats(getDb(), {
+        bookingId: req.params.id,
+        friendName: b.friend_name,
+        friendPhone: b.friend_phone,
+        topUpAmount: b.top_up_amount,
+        paymentReference: b.payment_reference,
+        actorId: req.user.id,
+        ip: req.ip,
+        ua: req.headers["user-agent"],
+      });
+      res.status(201).json({ success: true, ...result });
+    } catch (err) {
+      const status = err.status || (err.code ? 400 : 500);
+      if (status >= 500) console.error("upgrade-seats error:", err.message);
+      res.status(status).json({ success: false, code: err.code || "UPGRADE_FAILED", error: err.message });
+    }
+  },
+);
 
 // ===== POST /api/admin/run-migrations — 一鍵套用 DB migration（update-db.js，冪等）=====
 router.post("/run-migrations", authenticateToken, requireAdmin, (req, res) => {
