@@ -325,6 +325,64 @@ router.get("/upcoming-sessions", authenticateToken, requireAdmin, requireOpsRole
   }
 });
 
+// ===== GET /api/admin/ops/bookings?days=14 — 預約管理（按用戶＋班次合併）=====
+router.get("/bookings", authenticateToken, requireAdmin, requireOpsRole, (req, res) => {
+  try {
+    const db = getDb();
+    const days = Math.min(60, Math.max(1, Number(req.query.days) || 14));
+    const rows = db
+      .prepare(
+        `SELECT b.schedule_id, b.user_id, u.name, u.phone,
+                COUNT(*) AS seats, SUM(b.amount) AS amount,
+                MIN(b.id) AS booking_id,
+                MIN(b.booking_reference) AS booking_reference,
+                SUM(CASE WHEN b.payment_status = 'paid' THEN 1 ELSE 0 END) AS paid_seats,
+                MIN(b.status) AS status,
+                cs.start_time, cs.end_time, cs.max_participants, cs.enrolled_count,
+                c.id AS class_id, c.title, c.venue_name
+           FROM bookings b
+           JOIN users u ON u.id = b.user_id
+           JOIN class_schedules cs ON cs.id = b.schedule_id
+           JOIN classes c ON c.id = b.class_id
+          WHERE b.status IN ('confirmed', 'pending_payment')
+            AND datetime(cs.start_time) >= datetime('now')
+            AND datetime(cs.start_time) <= datetime('now', '+' || ? || ' days')
+          GROUP BY b.user_id, b.schedule_id
+          ORDER BY cs.start_time ASC, u.name ASC
+          LIMIT 300`,
+      )
+      .all(days);
+    res.json({ success: true, bookings: rows });
+  } catch (err) {
+    console.error("[OPS] bookings error:", err.message);
+    res.status(500).json({ success: false, error: "讀取預約失敗" });
+  }
+});
+
+// ===== GET /api/admin/ops/schedules?class_id= — 同課程未來班次（改期下拉用）=====
+router.get("/schedules", authenticateToken, requireAdmin, requireOpsRole, (req, res) => {
+  try {
+    const classId = String(req.query.class_id || "");
+    if (!classId) return res.status(400).json({ success: false, error: "缺少 class_id" });
+    const db = getDb();
+    const rows = db
+      .prepare(
+        `SELECT id, start_time, end_time, max_participants, enrolled_count,
+                (max_participants - enrolled_count) AS remaining, status
+           FROM class_schedules
+          WHERE class_id = ? AND status <> 'cancelled'
+            AND datetime(start_time) > datetime('now')
+          ORDER BY start_time ASC
+          LIMIT 30`,
+      )
+      .all(classId);
+    res.json({ success: true, schedules: rows });
+  } catch (err) {
+    console.error("[OPS] schedules error:", err.message);
+    res.status(500).json({ success: false, error: "讀取班次失敗" });
+  }
+});
+
 router.post(
   "/schedules/:id/manual-cancel",
   authenticateToken,

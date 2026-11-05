@@ -25,6 +25,21 @@
     .tabsx{display:flex;gap:8px;overflow-x:auto;margin:4px 0 12px}
     .tabsx button{white-space:nowrap;border:1px solid var(--border);background:var(--surface);border-radius:999px;padding:8px 14px;font:inherit;font-size:13px;font-weight:700;color:var(--text-muted)}
     .tabsx button.on{background:var(--brand-500);border-color:var(--brand-500);color:#fff}
+    /* 預約管理 */
+    .bk-row{display:flex;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);flex-wrap:wrap}
+    .bk-main{flex:1;min-width:180px}
+    .bk-name{font-weight:800;font-size:14px}
+    .bk-sub{font-size:12px;color:var(--text-muted);margin-top:2px}
+    .bk-acts{display:flex;gap:6px;flex:0 0 auto}
+    .bk-acts .btn{min-height:40px;font-size:12.5px;padding:0 12px}
+    .modal-bg{position:fixed;inset:0;background:rgba(15,23,42,.55);display:flex;align-items:center;justify-content:center;z-index:9998;padding:16px}
+    .modal-bg[hidden]{display:none}
+    .modal-card{background:var(--surface);border-radius:16px;width:100%;max-width:420px;max-height:88vh;overflow:auto;padding:16px}
+    .modal-card h3{margin:0 0 10px;font-size:16px}
+    .modal-card .muted{font-size:12px;line-height:1.5}
+    .modal-acts{display:flex;gap:8px;margin-top:12px}
+    .modal-acts .btn{flex:1;min-height:46px}
+    select.fld{appearance:auto}
   </style>
 </head>
 <body>
@@ -47,6 +62,7 @@
         <button data-t="agr">🤝 協議簽署</button>
         <button data-t="pending">⏳ 待開通新班</button>
         <button data-t="refund">💸 待退款</button>
+        <button data-t="book">📅 預約管理</button>
         <button data-t="cancel">⚠️ 取消課堂</button>
         <button data-t="alert">🚨 天氣警報</button>
         <button data-t="student">👥 學員檔案</button>
@@ -131,6 +147,17 @@
         </div></div>
       </div>
 
+      <div id="paneBook" hidden>
+        <div class="card"><div class="body">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+            <b>📅 未來 14 日預約</b>
+            <button class="btn btn-secondary" id="bkReload" style="min-height:40px;flex:none">更新</button>
+          </div>
+          <div class="muted" style="font-size:12px;margin:6px 0 8px">撳「順延 / 改期」或「同行加位」；所有操作會寫入審計紀錄。</div>
+          <div id="bkList"><div class="muted" style="font-size:12.5px">載入中…</div></div>
+        </div></div>
+      </div>
+
       <div id="paneLeads" hidden>
         <div class="card" style="margin-bottom:10px"><div class="body"><b>👨‍🏫 教練申請</b><div id="leadCoach" style="margin-top:8px"></div></div></div>
         <div class="card" style="margin-bottom:10px"><div class="body"><b>🏫 學校查詢</b><div id="leadSchool" style="margin-top:8px"></div></div></div>
@@ -212,6 +239,10 @@
     </div>
   </div>
 
+  <div class="modal-bg" id="bkModal" hidden>
+    <div class="modal-card" id="bkModalCard"></div>
+  </div>
+
   <script src="assets/api.js?v=3"></script>
   <script>
     const $ = (id) => document.getElementById(id);
@@ -241,12 +272,14 @@
       $("tabs").onclick = (e) => {
         const b = e.target.closest("button"); if (!b) return;
         [...$("tabs").children].forEach((x) => x.classList.toggle("on", x === b));
-        ["fin", "pay", "leads", "ops", "settle", "cred", "agr", "pending", "refund", "cancel", "alert", "student", "venue", "sec"].forEach((k) => ($("pane" + k[0].toUpperCase() + k.slice(1))).hidden = b.dataset.t !== k);
+        ["fin", "pay", "leads", "ops", "settle", "cred", "agr", "pending", "refund", "book", "cancel", "alert", "student", "venue", "sec"].forEach((k) => ($("pane" + k[0].toUpperCase() + k.slice(1))).hidden = b.dataset.t !== k);
       };
       $("pliEnforce").onclick = () => setPliGate("enforce");
       $("pliWarn").onclick = () => setPliGate("warn");
       $("wxGo").onclick = weatherCancel;
       $("stuGo").onclick = () => loadStudents();
+      $("bkReload").onclick = () => loadBookings();
+      $("bkModal").onclick = (e) => { if (e.target.id === "bkModal") closeBkModal(); };
       $("stuSearch").addEventListener("keydown", (e) => { if (e.key === "Enter") loadStudents(); });
       $("bsGo").onclick = batchSettle;
       $("plGo").onclick = payoutCsv;
@@ -262,6 +295,7 @@
       await loadAgreements();
       await loadPendingClasses();
       await loadRefunds();
+      await loadBookings();
       await loadUpcoming();
       await loadAlerts();
       await loadStudents();
@@ -1004,6 +1038,115 @@
       document.body.appendChild(a); a.click(); a.remove();
       setTimeout(() => URL.revokeObjectURL(a.href), 3000);
       toast("📥 已匯出 " + rows.length + " 筆");
+    }
+
+    /* ===== 📅 預約管理：改期 / 加位 ===== */
+    let BK_ROWS = [];
+    const fmtDT = (v) => {
+      try {
+        const str = String(v || "");
+        const d = /[zZ]$|[+-]\d\d:?\d\d$/.test(str) ? new Date(str) : new Date(str.replace(" ", "T") + "Z");
+        return d.toLocaleString("zh-HK", { timeZone: "Asia/Hong_Kong", month: "2-digit", day: "2-digit", weekday: "short", hour: "2-digit", minute: "2-digit", hour12: false });
+      } catch (e) { return String(v || ""); }
+    };
+    const closeBkModal = () => { $("bkModal").hidden = true; $("bkModalCard").innerHTML = ""; };
+
+    async function loadBookings() {
+      const r = await api.get("/admin/ops/bookings?days=14");
+      if (!r.ok) { $("bkList").innerHTML = `<div class="muted">${esc((r.data && r.data.error) || "讀取失敗")}</div>`; return; }
+      BK_ROWS = (r.data && r.data.bookings) || [];
+      if (!BK_ROWS.length) { $("bkList").innerHTML = `<div class="muted" style="font-size:13px">未來 14 日暫無已確認預約。</div>`; return; }
+      $("bkList").innerHTML = BK_ROWS.map((b, i) => {
+        const remaining = Number(b.max_participants || 0) - Number(b.enrolled_count || 0);
+        const paid = Number(b.paid_seats) === Number(b.seats);
+        const canUp = remaining >= 1 && paid;
+        return `<div class="bk-row">
+          <div class="bk-main">
+            <div class="bk-name">${esc(b.name || "未填姓名")}${Number(b.seats) > 1 ? ` <span class="pill p-on">${b.seats} 位同行</span>` : ""}</div>
+            <div class="bk-sub">${esc(b.title)} · ${fmtDT(b.start_time)} · ${esc(b.phone || "無電話")}</div>
+            <div class="bk-sub">${esc(b.booking_reference || "")} · ${paid ? "✅ 已付款" : "⏳ 待核實"} · ${hkd(b.amount)} · 剩 ${remaining} 位</div>
+          </div>
+          <div class="bk-acts">
+            <button class="btn btn-secondary" data-act="res" data-i="${i}">📅 順延 / 改期</button>
+            <button class="btn btn-primary" data-act="up" data-i="${i}" ${canUp ? "" : "disabled title='已付款且仍有名額才可加位'"}>👥 同行加位 (+$100)</button>
+          </div>
+        </div>`;
+      }).join("");
+    }
+
+    $("bkList").onclick = (e) => {
+      const btn = e.target.closest("button[data-act]"); if (!btn || btn.disabled) return;
+      const row = BK_ROWS[Number(btn.dataset.i)];
+      if (!row) return;
+      if (btn.dataset.act === "res") openReschedule(row);
+      if (btn.dataset.act === "up") openUpgrade(row);
+    };
+
+    async function openReschedule(row) {
+      const r = await api.get("/admin/ops/schedules?class_id=" + encodeURIComponent(row.class_id));
+      if (!r.ok) { alert((r.data && r.data.error) || "讀取班次失敗"); return; }
+      const opts = (r.data.schedules || []).filter((s) => s.id !== row.schedule_id && Number(s.remaining) >= Number(row.seats));
+      if (!opts.length) { alert(`同課程沒有足夠名額的未來班次（需要 ${row.seats} 位）`); return; }
+      $("bkModalCard").innerHTML = `
+        <h3>📅 順延 / 改期</h3>
+        <div class="muted">${esc(row.name)} · ${esc(row.title)}<br>現時：${fmtDT(row.start_time)}（${row.seats} 位）</div>
+        <label class="lbl" style="margin-top:10px">改去邊一班（只列同課程、名額足夠）</label>
+        <select class="fld" id="rsSel">${opts.map((s) => `<option value="${s.id}">${fmtDT(s.start_time)}・尚餘 ${s.remaining} 位</option>`).join("")}</select>
+        <label class="lbl">原因（會寫入審計）</label>
+        <input class="fld" id="rsReason" value="11/09 首發特批免費順延至 11/11" maxlength="120" />
+        <div class="modal-acts">
+          <button class="btn btn-secondary" id="rsCancel">取消</button>
+          <button class="btn btn-primary" id="rsGo">確認改期</button>
+        </div>`;
+      $("bkModal").hidden = false;
+      $("rsCancel").onclick = closeBkModal;
+      $("rsGo").onclick = async () => {
+        const sid = $("rsSel").value;
+        const reason = $("rsReason").value.trim();
+        if (reason.length < 4) { alert("請填寫原因（最少 4 個字）"); return; }
+        const label = $("rsSel").selectedOptions[0].textContent;
+        if (!confirm(`確定將 ${row.name}（${row.seats} 位）改期到：\n${label}？\n\n舊單會取消並釋放名額。`)) return;
+        const b = $("rsGo"); b.disabled = true; b.textContent = "處理中…";
+        const res = await api.post(`/admin/bookings/${row.booking_id}/reschedule`, { new_schedule_id: sid, reason });
+        if (res.ok) { closeBkModal(); toast("✅ 已改期（新單 " + (res.data.new_booking_ids || []).length + " 筆）"); loadBookings(); loadFinance(); }
+        else { alert((res.data && res.data.error) || "改期失敗"); b.disabled = false; b.textContent = "確認改期"; }
+      };
+    }
+
+    function openUpgrade(row) {
+      $("bkModalCard").innerHTML = `
+        <h3>👥 同行加位（+HK$100）</h3>
+        <div class="muted">${esc(row.name)} · ${esc(row.title)}<br>${fmtDT(row.start_time)} · 已付 ${hkd(row.amount)}</div>
+        <label class="lbl" style="margin-top:10px">朋友中文姓名 *</label>
+        <input class="fld" id="upName" maxlength="40" placeholder="例如：陳太" />
+        <label class="lbl">朋友電話 *（8 位）</label>
+        <input class="fld" id="upPhone" inputmode="numeric" maxlength="12" placeholder="9234 5678" />
+        <label class="lbl">加收金額（固定）</label>
+        <input class="fld" value="HK$100.00" readonly />
+        <div class="muted">二人同行合共 ${hkd(Number(row.amount || 0) + 100)}（原單 ${hkd(row.amount)} + 補 $100）</div>
+        <label class="lbl" style="margin-top:8px">FPS 交易參考 *</label>
+        <input class="fld" id="upRef" maxlength="60" placeholder="例：FPS-20261107-001" />
+        <div class="modal-acts">
+          <button class="btn btn-secondary" id="upCancel">取消</button>
+          <button class="btn btn-primary" id="upGo">確認加位</button>
+        </div>`;
+      $("bkModal").hidden = false;
+      $("upCancel").onclick = closeBkModal;
+      $("upGo").onclick = async () => {
+        const name = $("upName").value.trim();
+        const phone = $("upPhone").value.replace(/\D/g, "").replace(/^852/, "");
+        const ref = $("upRef").value.trim();
+        if (name.length < 2) { alert("請填寫朋友姓名"); return; }
+        if (!/^[4-9]\d{7}$/.test(phone)) { alert("電話必須為 8 位香港手機號碼"); return; }
+        if (ref.length < 3) { alert("請填寫 FPS 交易參考"); return; }
+        if (!confirm(`確定為 ${row.name} 加 1 位（${name}），補收 HK$100？`)) return;
+        const b = $("upGo"); b.disabled = true; b.textContent = "處理中…";
+        const res = await api.post(`/admin/bookings/${row.booking_id}/upgrade-seats`, {
+          friend_name: name, friend_phone: phone, top_up_amount: 100, payment_reference: ref,
+        });
+        if (res.ok) { closeBkModal(); toast("✅ 已加位（新單 $100）"); loadBookings(); loadFinance(); }
+        else { alert((res.data && res.data.error) || "加位失敗"); b.disabled = false; b.textContent = "確認加位"; }
+      };
     }
   </script>
   <script src="assets/footer.js?v=5" defer></script>
