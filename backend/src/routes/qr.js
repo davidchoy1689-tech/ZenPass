@@ -11,6 +11,11 @@ router.get("/qr", async (req, res) => {
     const text = String(req.query.text || "").slice(0, 500);
     if (!text) return res.status(400).json({ success: false, error: "缺少 text" });
     const size = Math.min(800, Math.max(120, Number(req.query.size) || 300));
+    if (req.query.raw === "1") {
+      const buf = await QRCode.toBuffer(text, { width: size, margin: 1, errorCorrectionLevel: "M" });
+      res.type("png").send(buf);
+      return;
+    }
     const dataUrl = await QRCode.toDataURL(text, { width: size, margin: 1, errorCorrectionLevel: "M" });
     res.json({ success: true, data_url: dataUrl, text });
   } catch (err) {

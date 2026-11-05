@@ -1210,7 +1210,7 @@
       if (!isGuest || !guestToken || !payIds.length) return;
       const r = await api.get(`/guest/booking-qr?token=${encodeURIComponent(guestToken)}&booking_id=${encodeURIComponent(payIds[0])}`);
       if (!r.ok || !r.data.qr) return;
-      $("qrImg").src = "/api/qr?size=420&text=" + encodeURIComponent(r.data.qr);
+      $("qrImg").src = "/api/qr?raw=1&size=420&text=" + encodeURIComponent(r.data.qr);
       $("qrRef").textContent = (payRefs && payRefs[0]) ? "預約編號：" + payRefs[0] : "";
       $("qrCard").hidden = false;
     }
@@ -1259,7 +1259,7 @@
       const payload = fpsPayload(amt, ref);
       return `<div style="border:1px solid var(--border);border-radius:14px;padding:12px;margin:0 0 12px;text-align:center">
         <div style="font-weight:800;font-size:13px;margin-bottom:8px">📲 轉數快 QR（HK$ ${amt}）</div>
-        <img alt="FPS QR" style="width:180px;height:180px" src="/api/qr?size=360&text=${encodeURIComponent(payload)}" />
+        <img alt="FPS QR" style="width:180px;height:180px" src="/api/qr?raw=1&size=360&text=${encodeURIComponent(payload)}" />
         <div class="muted" style="font-size:11.5px;margin-top:6px">用手機銀行 App 掃描；備註：${esc(ref || "—")}</div>
         <div style="display:flex;gap:6px;margin-top:8px">
           <button type="button" class="btn btn-secondary" style="flex:1;min-height:44px;font-size:12.5px" data-copy="90335538">📋 複製收款電話</button>
