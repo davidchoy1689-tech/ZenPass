@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="zh-HK">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<meta name="robots" content="noindex,nofollow" />
+<title>FPS QR 測試（不收款）</title>
+<style>
+  body{font-family:system-ui,-apple-system,"PingFang HK",sans-serif;background:#f8fafc;margin:0;padding:20px;color:#0f172a}
+  .card{max-width:420px;margin:0 auto;background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:16px}
+  h1{font-size:17px;margin:0 0 4px}
+  .muted{color:#64748b;font-size:12.5px}
+  input{width:100%;box-sizing:border-box;padding:11px;border:1px solid #e2e8f0;border-radius:11px;font:inherit;margin:6px 0 10px}
+  img{width:100%;max-width:280px;display:block;margin:12px auto}
+  code{background:#f1f5f9;padding:2px 6px;border-radius:6px;font-size:11px;word-break:break-all}
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>FPS 動態 QR 測試</h1>
+  <div class="muted">只產生 QR，不會建立訂單、不會收款。用銀行 App 掃描驗證：收款人 90335538、金額、備註。</div>
+  <label class="muted">金額（HK$）</label>
+  <input id="amt" inputmode="decimal" value="140.00" />
+  <label class="muted">備註／預約編號</label>
+  <input id="ref" value="ZP-TEST-001" maxlength="25" />
+  <img id="qr" alt="FPS QR" />
+  <div class="muted" id="info"></div>
+  <div class="muted" style="margin-top:8px">Payload：<code id="payload"></code></div>
+</div>
+<script>
+  const $ = (id) => document.getElementById(id);
+  function crc16(s){let c=0xffff;for(let i=0;i<s.length;i++){c^=s.charCodeAt(i)<<8;for(let j=0;j<8;j++)c=(c&0x8000)?((c<<1)^0x1021):(c<<1);c&=0xffff;}return c.toString(16).toUpperCase().padStart(4,"0");}
+  const tlv=(t,v)=>t+String(v.length).padStart(2,"0")+v;
+  function payload(amount,ref){
+    const b=tlv("00","01")+tlv("01","12")+tlv("26",tlv("00","hk.com.hkicl")+tlv("01","90335538"))
+      +tlv("52","5999")+tlv("53","344")+tlv("54",Number(amount).toFixed(2))
+      +tlv("58","HK")+tlv("59","ZENPASS")+tlv("60","HONG KONG")+tlv("62",tlv("05",String(ref).slice(0,25)))+"6304";
+    return b+crc16(b);
+  }
+  function render(){
+    const a=$("amt").value||"0"; const r=$("ref").value||"";
+    const p=payload(a,r);
+    $("payload").textContent=p;
+    $("info").textContent=`HK$ ${Number(a).toFixed(2)} · 備註 ${r}`;
+    $("qr").src="/api/qr?raw=1&size=420&text="+encodeURIComponent(p);
+  }
+  $("amt").oninput=render; $("ref").oninput=render; render();
+</script>
+</body>
+</html>
