@@ -14,6 +14,7 @@ const { requireIdempotency } = require("../middleware/idempotency");
 const bookingService = require("../services/booking-service");
 const { validatePromo, normalize } = require("../services/promo");
 const bookingQr = require("../services/booking-qr");
+const { claimPayment } = require("../services/payment-claim");
 const Booking = require("../models/Booking");
 
 const router = express.Router();
@@ -466,6 +467,16 @@ router.get("/:id", authenticateToken, (req, res) => {
     res.json(booking);
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ===== POST /api/bookings/:id/claim-payment — 我已付款（後補單號）=====
+router.post("/:id/claim-payment", authenticateToken, (req, res) => {
+  try {
+    const r = claimPayment(getDb(), { bookingId: req.params.id, userId: req.user.id });
+    res.json({ success: true, ...r, hold_minutes: 60 });
+  } catch (e) {
+    res.status(e.status || 400).json({ success: false, code: e.code, error: e.message });
   }
 });
 

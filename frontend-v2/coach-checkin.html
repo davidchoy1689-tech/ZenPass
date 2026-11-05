@@ -70,6 +70,15 @@
   const $ = (id) => document.getElementById(id);
   const TOKEN = new URLSearchParams(location.search).get("t") || "";
   const QKEY = "zp_coach_queue_" + TOKEN.slice(-12);
+  const DEMO = new URLSearchParams(location.search).get("demo") === "1";
+  const DEMO_ROSTER = {
+    schedule: { id: "demo", title: "樂齡深層伸展（示範）", venue: "青衣楓樹窩體育館", start_time: new Date(Date.now() - 20 * 60000).toISOString(), end_time: new Date(Date.now() + 70 * 60000).toISOString(), coach_name: "靜儀導師" },
+    roster: [
+      { booking_id: "demo-1", booking_ids: ["demo-1"], seats: 1, attended: 0, no_show: 0, attendee_name: "陳伯伯", is_parent: true, sponsor_name: "陳小姐", phone_masked: "9876 ****", phone_tel: "tel:+85298765432", health_notes: "右膝微創手術，避免深蹲", status: "confirmed", payment_status: "paid", emergency_name: "女兒 Karen", emergency_tel: "tel:+85292345678" },
+      { booking_id: "demo-2", booking_ids: ["demo-2"], seats: 1, attended: 0, no_show: 0, attendee_name: "李婆婆", is_parent: false, sponsor_name: null, phone_masked: "9123 ****", phone_tel: "tel:+85291234567", health_notes: "", status: "confirmed", payment_status: "paid", emergency_name: null, emergency_tel: null },
+      { booking_id: "demo-3", booking_ids: ["demo-3", "demo-4"], seats: 2, attended: 0, no_show: 0, attendee_name: "黃先生", is_parent: false, sponsor_name: null, phone_masked: "6345 ****", phone_tel: "tel:+85263456789", health_notes: "肩周炎，避免過頭動作", status: "confirmed", payment_status: "paid", emergency_name: null, emergency_tel: null }
+    ]
+  };
   let ROSTER = null;
   let queue = [];
   try { queue = JSON.parse(localStorage.getItem(QKEY) || "[]"); } catch (e) { queue = []; }
@@ -94,6 +103,7 @@
   }
 
   async function load() {
+    if (DEMO) { ROSTER = DEMO_ROSTER; render(); return; }
     const r = await api("/api/coach/checkin/roster?token=" + encodeURIComponent(TOKEN));
     if (!r.ok) {
       $("list").innerHTML = `<div class="card"><div class="empty">❌ ${r.data.error || "連結無效"}<br><br>請向營運同事索取新連結</div></div>`;
@@ -161,6 +171,7 @@
     if (navigator.vibrate) navigator.vibrate(action === "checkin" ? 35 : [20, 40, 20]);
 
     if (isOffline()) { enqueue(bid, action); return; }
+    if (DEMO) { toast(action === "checkin" ? "✅ 已簽到（示範）" : "已標記缺席（示範）"); return; }
     const r = await api("/api/coach/checkin", {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ token: TOKEN, booking_id: bid, action }),
@@ -207,13 +218,18 @@
     const cached = localStorage.getItem("zp_roster_" + TOKEN.slice(-12));
     if (cached) { ROSTER = JSON.parse(cached); render(); }
   } catch (e) {}
-  load();
-  flush();
+  if (DEMO) { load(); } else { load(); flush(); }
 
   /* ===== 📷 掃碼簽到 ===== */
   let scanStream = null, scanRAF = null, scanning = false;
   const scanWrap = $("scanWrap"), scanVideo = $("scanVideo"), scanBanner = $("scanBanner");
   async function checkinByQr(qr) {
+    if (DEMO) {
+      const id = qr.split(":")[2];
+      const g = DEMO_ROSTER.roster.find((x) => x.booking_ids.includes(id)) || DEMO_ROSTER.roster[0];
+      g.attended = g.seats; render();
+      return { ok: true, data: { sponsor: null } };
+    }
     const r = await api("/api/coach/checkin", {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ token: TOKEN, qr, action: "checkin" }),

@@ -1308,6 +1308,8 @@
           ${input}<div style="height:10px"></div>
           ${receipt}
           <button class="btn btn-primary btn-block" id="paySubmit">我已付款，提交核實</button>
+          <button class="btn btn-secondary btn-block" id="payClaim" style="margin-top:8px">⏳ 我已付款（稍後補交截圖／單號）</button>
+          <div id="claimMsg" class="muted" style="display:none;font-size:12px;color:#b45309;margin-top:6px"></div>
           <p class="pay-note">💡 轉賬時<b>務必在轉數快「備註 / Message」欄填上預約編號</b>，我哋就可以即時對數。提交後系統會即時通知我們核實，一般 1-3 分鐘內完成確認。</p>
         </div></div>`;
       } else if(payMethod==="payme"){
@@ -1327,6 +1329,8 @@
           ${input}<div style="height:10px"></div>
           ${receipt}
           <button class="btn btn-primary btn-block" id="paySubmit">我已付款，提交核實</button>
+          <button class="btn btn-secondary btn-block" id="payClaim" style="margin-top:8px">⏳ 我已付款（稍後補交截圖／單號）</button>
+          <div id="claimMsg" class="muted" style="display:none;font-size:12px;color:#b45309;margin-top:6px"></div>
           <p class="pay-note">💡 未安裝 PayMe？可到 App Store／Play Store 搜尋「PayMe」。PayMe 訊息欄請填上<b>預約編號</b>，提交參考編號後<b>系統會即時通知我們核實</b>，一般 1-3 分鐘內完成。</p>
         </div></div>`;
       } else {
@@ -1363,9 +1367,28 @@
         }
       };
       const sub=$("paySubmit"); if(sub) sub.onclick=submitManualPay;
+      const cl=$("payClaim"); if(cl) cl.onclick=claimPaymentNow;
       const cd=$("payCard"); if(cd) cd.onclick=payByCard;
       document.querySelectorAll("[data-copy]").forEach((b) => b.onclick = () => copyText(b.dataset.copy, b));
     }
+    async function claimPaymentNow() {
+      const btn = $("payClaim"), msg = $("claimMsg");
+      if (!payIds.length) return;
+      btn.disabled = true; const old = btn.textContent; btn.textContent = "處理中…";
+      let r;
+      if (isGuest) r = await api.post("/guest/claim-payment", { token: guestToken, booking_id: payIds[0] });
+      else r = await api.post(`/bookings/${encodeURIComponent(payIds[0])}/claim-payment`, {});
+      if (r.ok) {
+        msg.style.display = "block";
+        msg.textContent = "✅ 已記錄，座位保留 60 分鐘；請盡快補交參考編號或截圖。";
+        startHoldCountdown("payCountdown", showTimeoutModal, 60);
+        toast("✅ 已鎖位 60 分鐘");
+      } else {
+        alert((r.data && r.data.error) || "未能保留座位");
+        btn.disabled = false; btn.textContent = old;
+      }
+    }
+
     function copyText(txt, btn) {
       const done = () => {
         const old = btn.textContent; btn.textContent = "✅ 已複製";
@@ -1419,11 +1442,12 @@
 
     /* ===== 名額保留倒數 + 逾時救回 ===== */
     let timeoutCtx = null;
-    function startHoldCountdown(elId, onExpire){
+    function startHoldCountdown(elId, onExpire, minutes){
       stopCountdown();
       const el=$(elId); if(!el) return;
-      let s=15*60; const p=n=>String(n).padStart(2,"0");
-      el.textContent="15:00";
+      const mins = Number(minutes) || 30;
+      let s=mins*60; const p=n=>String(n).padStart(2,"0");
+      el.textContent=p(mins)+":00";
       cdTimer=setInterval(()=>{
         s--;
         if(s<0){ stopCountdown(); el.textContent="00:00"; if(typeof onExpire==="function") onExpire(); return; }

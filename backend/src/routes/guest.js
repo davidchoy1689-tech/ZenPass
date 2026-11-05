@@ -20,6 +20,7 @@ const { getDb } = require("../services/database");
 const bookingService = require("../services/booking-service");
 const { validatePromo, normalize } = require("../services/promo");
 const bookingQr = require("../services/booking-qr");
+const { claimPayment } = require("../services/payment-claim");
 const { publicFormLimiter } = require("../middleware/public-form-limit");
 const { notifyAdmins } = require("../services/admin-alerts");
 
@@ -129,6 +130,22 @@ function guestBookings(db, userId) {
 }
 
 // ============ POST /api/guest/book ============
+// ===== POST /api/guest/claim-payment — 我已付款（後補單號）=====
+router.post("/claim-payment", (req, res) => {
+  try {
+    const db = getDb();
+    const { token, booking_id } = req.body || {};
+    const sess = db.prepare("SELECT user_id FROM guest_sessions WHERE token=*** AND expires_at > datetime('now')").get(String(token || ""));
+    if (!sess) return res.status(401).json({ success: false, error: "訪客登入已過期" });
+    const b = db.prepare("SELECT user_id FROM bookings WHERE id=?").get(String(booking_id || ""));
+    if (!b || b.user_id !== sess.user_id) return res.status(404).json({ success: false, error: "找不到預約" });
+    const r = claimPayment(db, { bookingId: booking_id, userId: sess.user_id });
+    res.json({ success: true, ...r, hold_minutes: 60 });
+  } catch (e) {
+    res.status(e.status || 400).json({ success: false, code: e.code, error: e.message });
+  }
+});
+
 // ===== GET /api/guest/booking-qr?token=&booking_id= — 入場簽到 QR =====
 router.get("/booking-qr", (req, res) => {
   try {

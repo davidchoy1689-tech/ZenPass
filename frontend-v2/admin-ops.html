@@ -356,6 +356,7 @@
             <span style="flex:1;min-width:0">
               <b>${esc(x.booking_reference || x.booking_id)}</b>
               <span class="pill p-wait" style="margin-left:6px">${esc(method)}</span>
+              ${Number(x.payment_claimed) === 1 && ref === "—" ? '<span class="pill" style="margin-left:6px;background:#fef3c7;color:#b45309">⏳ 待核查（自報已付款）</span>' : ""}
               <span class="s">${esc(x.user_name || x.user_email || "—")}${x.user_phone ? " · " + esc(x.user_phone) : ""}</span>
               <span class="s">${esc(x.class_title || "—")}${x.start_time ? " · " + esc(fmt(x.start_time)) : ""}</span>
               <span class="s">金額 <b>${hkd(x.amount)}</b> · 參考 <b>${esc(ref)}</b>${x.payment_reported_at ? " · 提交 " + esc(fmt(x.payment_reported_at)) : ""}</span>
