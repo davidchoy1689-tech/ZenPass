@@ -404,6 +404,12 @@
       <div class="spacer"></div>
       <div class="hscroll" id="payTabs"></div>
       <div id="payPanels"></div>
+      <div class="card" id="pushCard" hidden style="margin-top:12px">
+        <b style="font-size:14px">🔔 開啟簽到通知</b>
+        <div class="muted" style="font-size:12px;margin:6px 0 10px">父母現場簽到時，你嘅手機會即時彈出「報平安」通知。</div>
+        <button class="btn btn-primary btn-block" id="pushBtn" type="button">開啟通知</button>
+        <div id="pushMsg" class="muted" style="font-size:12px;margin-top:8px"></div>
+      </div>
       <div class="spacer"></div>
       <div class="guarantee">
         <span class="g-ic">🛡️</span>
@@ -1154,11 +1160,45 @@
     }
 
     function unitForPay(){ return promoFinal ? promoFinal.final_price : cls.price_hkd; }
+
+    /* ===== 🔔 簽到 Push 通知（子女） ===== */
+    function initPushCard() {
+      const card = $("pushCard");
+      if (!card) return;
+      if (ATT_TYPE !== "parent") return;
+      if (!guestToken && !api.getUser()) return;
+      card.hidden = false;
+    }
+    function b64ToU8(base64) {
+      const pad = "=".repeat((4 - (base64.length % 4)) % 4);
+      const raw = atob((base64 + pad).replace(/-/g, "+").replace(/_/g, "/"));
+      return Uint8Array.from([...raw].map((c) => c.charCodeAt(0)));
+    }
+    if ($("pushBtn")) $("pushBtn").onclick = async () => {
+      const msg = $("pushMsg");
+      try {
+        if (!("serviceWorker" in navigator) || !("PushManager" in window)) { msg.textContent = "此瀏覽器不支援通知"; return; }
+        const perm = await Notification.requestPermission();
+        if (perm !== "granted") { msg.textContent = "已拒絕通知權限，可稍後在瀏覽器設定開啟"; return; }
+        const k = await api.get("/push/vapid-public-key");
+        const key = k.data && k.data.key;
+        if (!key) { msg.textContent = "推送服務未啟用"; return; }
+        const reg = await navigator.serviceWorker.register("/sw.js");
+        let sub = await reg.pushManager.getSubscription();
+        if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToU8(key) });
+        const r = guestToken
+          ? await api.post("/push/guest-subscribe", { token: guestToken, subscription: sub.toJSON() })
+          : await api.post("/notifications/push-subscribe", { subscription: sub.toJSON() });
+        msg.textContent = r.ok ? "✅ 已開啟，簽到時會通知你" : ((r.data && r.data.error) || "開啟失敗");
+      } catch (e) { msg.textContent = "開啟失敗：" + e.message; }
+    };
+
     function startPayStep(ids, unit, refs, totalOverride){
       payIds = ids; payRefs = Array.isArray(refs) ? refs : []; payUnit = unit; payMethod = "fps"; receiptUrl = "";
       const total = totalOverride != null ? Number(totalOverride) : unit * ids.length;
       $("paySummary2").innerHTML = `<div class="row"><span class="k">預約</span><span class="v">${ids.length} 項</span></div>
         <div class="row"><span class="k">應付</span><span class="v" style="color:var(--brand-600)">${hkd(total)}</span></div>`;
+      initPushCard();
       renderPayTabs();
       show("pay"); setStep(3); $("bar").style.display = "none";
       startHoldCountdown("payCountdown", showTimeoutModal);

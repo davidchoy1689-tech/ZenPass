@@ -42,7 +42,7 @@ console.log(`班次：${s1 ? s1.enrolled_count : "?"}/${s1 ? s1.max_participants
 console.log(`報名：${rows.length} 位報名人 / ${seats} 個位｜2 人同行 ${pairs} 組｜待核實 ${unpaid} 位`);
 console.log(`12/16 順延目標：尚餘 ${remaining2} 位`);
 
-if (!rows.length) fail.push("12/12 班 0 人報名 — 廣播會 0 人收到，改發招生：docs/ops/promo-1109.md（第二波 12/11 10:30／第三波 19:00；連結 https://zenpass.hk/c/ching-yee）");
+if (!rows.length) fail.push("12/12 班 0 人報名 — 廣播會 0 人收到，改發招生：docs/ops/promo-1212.md（第二波 12/11 10:30／第三波 19:00；連結 https://zenpass.hk/c/ching-yee）");
 if (badPhone.length) fail.push(`有 ${badPhone.length} 個無效電話：${badPhone.map((r) => r.name || r.user_id).join("、")}`);
 if (unpaid > 0) warn.push(`${unpaid} 位待核實付款 — 文案會自動加 FPS 補件句`);
 if (remaining2 < 1) warn.push("12/16 已滿 — 改期功能將無目標班次");

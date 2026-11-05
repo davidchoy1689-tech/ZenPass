@@ -2,7 +2,7 @@
 
 > 班次：12/12（六）10:30–12:00 樂齡深層伸展｜青衣楓樹窩體育館・活動室（楓樹窩路 1 號）
 > 客服號碼：852 9033 5538｜名額 8｜單人 $140｜二人同行 $240
-> 相關文件：`docs/ops/whatsapp-sop-1109.md`、`docs/ops/promo-1109.md`、`docs/api/admin-booking-actions.md`
+> 相關文件：`docs/ops/whatsapp-sop-1212.md`、`docs/ops/promo-1212.md`、`docs/api/admin-booking-actions.md`
 
 ## 一、11:00–11:25 上線前檢核（逐項打勾）
 
@@ -14,7 +14,7 @@ node scripts/whatsapp-roster.js --schedule b54b7038-caa2-429e-b7a3-965abb35901a
 ```
 - [ ] 電話全部 8 位香港號碼（腳本自動補 852；無效會標「❌ 電話無效」）
 - [ ] 單人 $140／二人同行 $240 標記正確
-- [ ] **若 0 人：停止廣播，改發 `docs/ops/promo-1109.md` 宣傳，不要白做**
+- [ ] **若 0 人：停止廣播，改發 `docs/ops/promo-1212.md` 宣傳，不要白做**
 
 ### 2. 付款狀態
 - [ ] `paid` → 標準行前通知

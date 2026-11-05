@@ -10,6 +10,7 @@ const express = require("express");
 const { v4: uuidv4 } = require("uuid");
 const { getDb } = require("../services/database");
 const tokens = require("../services/coach-checkin-token");
+const { notifySponsor } = require("../services/sponsor-notify");
 
 const router = express.Router();
 const attempts = new Map(); // ip -> { fails, blockedUntil }
@@ -177,6 +178,7 @@ router.post("/coach/checkin", express.json(), (req, res) => {
       .all(b.user_id, b.schedule_id);
 
     let sponsor = null;
+    let sponsorPush = null;
     const run = db.transaction(() => {
       if (action === "checkin") {
         for (const g of group) {
@@ -209,6 +211,7 @@ router.post("/coach/checkin", express.json(), (req, res) => {
             ).run(uuidv4(), "checkin.sponsor_notified", "booking", parent.id, null,
               JSON.stringify({ sponsor_phone: phone, parent_name: parent.parent_name }),
               `簽到報平安（教練連結）：${parent.parent_name}`);
+            sponsorPush = { userId: parent.user_id, name: parent.parent_name, text, bookingId: parent.id };
           }
         }
       } else {
@@ -225,6 +228,21 @@ router.post("/coach/checkin", express.json(), (req, res) => {
       }
     });
     run();
+    if (sponsor && sponsorPush) {
+      sponsor.push_queued = true;
+      notifySponsor({ ...sponsorPush, coachName: ctx.schedule.coach_name })
+        .then((r) => {
+          if (r && r.sent > 0) {
+            db.prepare(
+              `INSERT INTO audit_log (id, action_type, entity_type, entity_id, user_id, new_values, description, created_at)
+               VALUES (?,?,?,?,?,?,?,datetime('now'))`,
+            ).run(uuidv4(), "checkin.sponsor_push", "booking", sponsorPush.bookingId, null,
+              JSON.stringify({ sent: r.sent, name: sponsorPush.name }),
+              `簽到 Push 報平安（教練連結）：${sponsorPush.name}`);
+          }
+        })
+        .catch((e) => console.error("[COACH-CHECKIN] push:", e.message));
+    }
 
     const roster = buildRoster(db, ctx.schedule.id);
     const seats = roster.reduce((s, x) => s + x.seats, 0);

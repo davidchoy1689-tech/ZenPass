@@ -291,6 +291,7 @@ app.use("/api", require("./routes/coach-credentials"));
 app.use("/api", require("./routes/agreements"));
 app.use("/api", require("./routes/qr"));
 app.use("/api", require("./routes/coach-jobs"));
+app.use("/api/push", require("./routes/push-public"));
 app.use("/api/notifications", require("./routes/notifications"));
 app.use("/api/upload", require("./routes/upload"));
 app.use("/api/backup", require("./routes/backup"));

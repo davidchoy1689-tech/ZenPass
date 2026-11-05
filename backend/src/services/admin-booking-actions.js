@@ -5,6 +5,7 @@
 const crypto = require("crypto");
 const bcrypt = require("bcryptjs");
 const { v4: uuidv4 } = require("uuid");
+const { notifySponsor } = require("./sponsor-notify");
 
 class ActionError extends Error {
   constructor(code, message, status = 400) {
@@ -286,11 +287,31 @@ function checkInBooking(db, { bookingId, actorId, ip, ua }) {
         values: { parent_name: attendeeName, sponsor_phone: phone, booking_reference: b.booking_reference },
         description: `簽到報平安：${attendeeName} → ${phone}`, ip, ua,
       });
+      sponsor._push = { userId: b.user_id, name: attendeeName, text, bookingId: b.id, coach: b.coach_name };
     }
 
     return { booking_id: b.id, attendee_name: attendeeName, sponsor };
   });
-  return run();
+  const result = run();
+  if (result.sponsor && result.sponsor._push) {
+    const p = result.sponsor._push;
+    delete result.sponsor._push;
+    result.sponsor.push_queued = true;
+    notifySponsor({ userId: p.userId, parentName: p.name, text: p.text, bookingId: p.bookingId, coachName: p.coach })
+      .then((push) => {
+        if (push && push.sent > 0) {
+          try {
+            audit(db, {
+              action: "checkin.sponsor_push", entityId: p.bookingId, actorId,
+              values: { parent_name: p.name, sent: push.sent },
+              description: `簽到 Push 報平安：${p.name}`, ip, ua,
+            });
+          } catch (e) { console.error("sponsor push audit:", e.message); }
+        }
+      })
+      .catch((e) => console.error("sponsor push:", e.message));
+  }
+  return result;
 }
 
 module.exports = { rescheduleBooking, upgradeSeats, checkInBooking, ActionError };
