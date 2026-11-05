@@ -63,7 +63,8 @@ const dateHKT = new Date(parseUtc(info.start_time).getTime() + 8 * 3600e3);
 const WEEK = ["日", "一", "二", "三", "四", "五", "六"];
 const dateLabel = `${dateHKT.getUTCFullYear()} 年 ${dateHKT.getUTCMonth() + 1} 月 ${dateHKT.getUTCDate()} 日（星期${WEEK[dateHKT.getUTCDay()]}）`;
 const timeLabel = `${String(dateHKT.getUTCHours()).padStart(2, "0")}:${String(dateHKT.getUTCMinutes()).padStart(2, "0")}`;
-const endLabel = hkt(info.end_time).split(" ").pop();
+const endD = new Date(parseUtc(info.end_time).getTime() + 8 * 3600e3);
+const endLabel = `${String(endD.getUTCHours()).padStart(2, "0")}:${String(endD.getUTCMinutes()).padStart(2, "0")}`;
 
 const rows = db
   .prepare(
