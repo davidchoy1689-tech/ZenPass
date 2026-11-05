@@ -486,6 +486,7 @@
     document.querySelectorAll("#pmList .pm-card").forEach((card) => {
       card.addEventListener("click", () => {
         document.querySelectorAll("#pmList .pm-card").forEach((c) => c.classList.toggle("on", c === card));
+        refreshPayBtn();
       });
     });
     document.querySelectorAll(".grp-card").forEach((card) => {
@@ -537,6 +538,18 @@
       const disc = promoFinal ? Math.min(gross, Math.max(0, base - Number(promoFinal.final_price))) : 0;
       const round = (x) => Math.round(x * 100) / 100;
       return { gross: round(gross), disc: round(disc), total: round(Math.max(0, gross - disc)) };
+    }
+    // 底部 Primary Action 直接標示實付金額，減少「撳落去唔知扣幾多」嘅猶豫
+    function payBtnLabel() {
+      if (!sel.size) return "立即確認預約";
+      const pmEl = document.querySelector("input[name=pm]:checked");
+      const pm = pmEl ? pmEl.value : "single";
+      const p = orderParts();
+      return "立即確認預約 · " + (pm === "credits" ? cr(p.total) + " cr" : hkd(p.total));
+    }
+    function refreshPayBtn() {
+      const btn = $("payNow");
+      if (btn && !btn.disabled) btn.textContent = payBtnLabel();
     }
     const visible = () => sessions.filter(s => ban === "all" || banOf(s) === ban);
 
@@ -733,6 +746,7 @@
       const p = orderParts();
       $("barTotal").innerHTML = n ? (cr(p.total) + "cr <span class='muted' style='font-weight:500;font-size:12px'>/ " + hkd(p.total) + (p.disc ? " · 已減 " + hkd(p.disc) : "") + "</span>") : "—";
       $("bar").style.display = ($("step1").classList.contains("hide") ? "none" : "flex");
+      refreshPayBtn();
     }
 
     $("barNext").onclick = () => {
@@ -887,7 +901,7 @@
           promoCode: promoFinal ? promoFinal.code : undefined,
           attendee,
         });
-        btnG.disabled = false; btnG.textContent = "立即確認預約";
+        btnG.disabled = false; btnG.textContent = payBtnLabel();
         if (gr.ok && gr.data && gr.data.success) {
           guestToken = gr.data.token; guestInfo = gr.data.user;
           try { localStorage.setItem("zp_guest_token", guestToken); } catch (e) {}
@@ -917,7 +931,7 @@
       }));
       const btn = $("payNow"); btn.disabled = true; btn.textContent = "處理中…";
       const r = await api.post("/bookings/batch", { items });
-      btn.disabled = false; btn.textContent = "立即確認預約";
+      btn.disabled = false; btn.textContent = payBtnLabel();
       if (r.ok && r.data && r.data.success) {
         const d = r.data;
         const created = (d.results || []).filter(x => x.status === 201);
