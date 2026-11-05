@@ -87,17 +87,22 @@
     .pm-card.on .pm-tx b { color: #047857; }
 
     /* 優惠碼 */
-    .promo-row { display: flex; gap: 8px; }
+    .promo-row { display: flex; gap: 8px; flex-wrap: wrap; }
     .promo-row input {
-      flex: 1; border: 1px solid var(--border); border-radius: 12px; padding: 11px 12px;
+      flex: 1 1 160px; min-width: 0; border: 1px solid var(--border); border-radius: 12px; padding: 11px 12px;
       font: inherit; background: var(--surface); color: var(--text);
     }
-    .promo-msg { font-size: 12px; margin-top: 8px; line-height: 1.5; }
+    .promo-row .btn { flex: 0 0 auto; white-space: nowrap; }
+    @media (max-width: 360px) {
+      .promo-row input, .promo-row .btn { flex: 1 1 100%; }
+    }
+    /* 14px 起：長者友善；min-height 預留一行，避免訊息出現時版面跳動 */
+    .promo-msg { font-size: 14px; margin-top: 8px; line-height: 1.5; min-height: 21px; }
     .promo-msg.ok { color: #047857; font-weight: 700; }
     .promo-msg.bad { color: #b91c1c; font-weight: 700; }
     .promo-save {
       display: inline-flex; align-items: center; gap: 4px; margin-left: 6px;
-      background: #dcfce7; color: #047857; border-radius: 999px; padding: 2px 9px; font-weight: 900; font-size: 11.5px;
+      background: #dcfce7; color: #047857; border-radius: 999px; padding: 2px 9px; font-weight: 900; font-size: 13px;
     }
 
     /* 成功頁 */
@@ -318,12 +323,14 @@
 
       <div class="spacer"></div>
       <div class="card"><div class="body">
-        <div class="muted" style="font-size:13px;margin-bottom:6px">優惠碼（可選）</div>
+        <label class="muted" for="promo" style="display:block;font-size:14px;margin-bottom:6px">優惠碼（可選）</label>
         <div class="promo-row">
-          <input id="promo" placeholder="輸入優惠碼，例如 WELCOME50" autocomplete="off" />
+          <input id="promo" placeholder="輸入優惠碼，例如 WELCOME50" autocomplete="off"
+            autocapitalize="characters" autocorrect="off" spellcheck="false" maxlength="32"
+            aria-describedby="promoMsg" aria-invalid="false" />
           <button class="btn btn-primary" id="applyPromo" type="button">一鍵套用</button>
         </div>
-        <div id="promoMsg" class="promo-msg"></div>
+        <div id="promoMsg" class="promo-msg" role="status" aria-live="polite"></div>
       </div></div>
       <div class="spacer"></div>
       <label style="display:flex;gap:8px;align-items:flex-start;font-size:13px;color:var(--text-muted)">
@@ -787,8 +794,9 @@
     $("back2").onclick = () => { stopCountdown(); show("step2"); setStep(2); };
     $("applyPromo").onclick = async () => {
       const code = $("promo").value.trim(); const msg = $("promoMsg");
-      if (!code) { msg.className = "promo-msg bad"; msg.textContent = "請輸入優惠碼"; return; }
-      msg.className = "promo-msg"; msg.textContent = "檢查中…";
+      const markInvalid = (bad) => $("promo").setAttribute("aria-invalid", bad ? "true" : "false");
+      if (!code) { msg.className = "promo-msg bad"; msg.textContent = "請輸入優惠碼"; markInvalid(true); return; }
+      msg.className = "promo-msg"; msg.textContent = "檢查中…"; markInvalid(false);
       const pvUrl = `/promo/validate?code=${encodeURIComponent(code)}&class_id=${encodeURIComponent(classId)}`;
       const r = await api.get(pvUrl);
       if (r.ok && r.data && r.data.success) {
@@ -797,9 +805,11 @@
         msg.className = "promo-msg ok";
         msg.innerHTML = `✅ 已套用 ${esc(promoFinal.code)} · 每堂 <b>${hkd(r.data.final_price)}</b>` +
           (save ? `<span class="promo-save">（省 ${hkd(save)}）</span>` : "");
+        markInvalid(false);
       } else {
         promoFinal = null; msg.className = "promo-msg bad";
         msg.textContent = "❌ " + ((r.data && r.data.error) || "優惠碼無效");
+        markInvalid(true);
       }
       if (typeof updateBar === "function") updateBar();
     };
