@@ -102,3 +102,20 @@ console.log("🔔 課前提醒：每 15 分鐘");
 console.log("💰 自動結算：每週一");
 console.log("🔍 系統監控：每 5 分鐘");
 console.log("❌ No-Show 自動處理：每 5 分鐘");
+
+// ===== P2：拼團引擎（預設關閉；POOLING_ENABLED=1 才啟用）=====
+if (process.env.POOLING_ENABLED === "1") {
+  const { getDb } = require("../services/database");
+  const { processPooling } = require("../services/pooling-scheduler");
+  const runPooling = async () => {
+    try {
+      const result = await processPooling(getDb(), {
+        notify: async (x) => console.log(`[POOLING] ${x.type} ${x.schedule_id} ${x.people.length}/${x.threshold}`),
+      });
+      if (result.succeeded.length || result.failed.length) console.log("[POOLING]", JSON.stringify(result));
+    } catch (e) { console.error("[POOLING] cycle failed:", e.message); }
+  };
+  runPooling();
+  setInterval(runPooling, 15 * 60 * 1000);
+  console.log("🎯 Pooling engine enabled (15m)");
+}

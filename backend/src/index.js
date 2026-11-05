@@ -219,6 +219,13 @@ app.post(
 );
 
 // Everything else uses JSON body parser
+// 📩 WhatsApp Cloud API webhook — 必須喺 express.json() 之前（要 raw body 驗簽）
+try {
+  app.use("/api/webhook/whatsapp", require("./routes/whatsapp-webhook").createWhatsAppRouter());
+} catch (e) {
+  console.error("[WA] webhook mount failed:", e.message);
+}
+
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
 
