@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="zh-HK">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>拼團進度（Mock）</title>
+<style>
+  body{font-family:system-ui,-apple-system,"PingFang HK",sans-serif;background:#f8fafc;margin:0;padding:24px;color:#0f172a}
+  .card{max-width:420px;margin:0 auto;background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:18px}
+  .title{font-weight:800;font-size:16px}
+  .sub{color:#64748b;font-size:13px;margin-top:4px}
+  .bar{height:12px;background:#e2e8f0;border-radius:99px;margin:14px 0 8px;overflow:hidden}
+  .fill{height:100%;background:linear-gradient(90deg,#f97316,#ef4444);border-radius:99px;transition:width .3s}
+  .row{display:flex;justify-content:space-between;font-size:12.5px;color:#475569}
+  .cta{margin-top:16px;display:block;text-align:center;background:#f06030;color:#fff;text-decoration:none;font-weight:800;padding:14px;border-radius:12px}
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="title" id="t">樂齡深層伸展（拼團中）</div>
+    <div class="sub">11/09（一）10:30–12:00 · 青衣楓樹窩體育館</div>
+    <div class="bar"><div class="fill" id="fill" style="width:0%"></div></div>
+    <div class="row"><span id="msg">🔥 已有 0 人預約</span><span id="need">門檻 4 人</span></div>
+    <a class="cta" href="https://zenpass.hk/c/ching-yee">立即加入拼團</a>
+    <div class="sub" style="margin-top:10px">※ Mock 示範：`?have=3&need=4` 可試不同進度，未接任何 API。</div>
+  </div>
+<script>
+  const p = new URLSearchParams(location.search);
+  const have = Number(p.get("have") || 1);
+  const need = Math.max(1, Number(p.get("need") || 4));
+  const pct = Math.min(100, Math.round((have / need) * 100));
+  document.getElementById("fill").style.width = pct + "%";
+  document.getElementById("msg").textContent = have >= need
+    ? `✅ 已成團！${have} 人參加`
+    : `🔥 已有 ${have} 人預約，尚差 ${need - have} 人即可成團開課！`;
+  document.getElementById("need").textContent = `門檻 ${need} 人`;
+</script>
+</body>
+</html>
