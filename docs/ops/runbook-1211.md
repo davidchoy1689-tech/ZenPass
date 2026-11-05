@@ -1,6 +1,6 @@
-# 11/07 首發廣播 Runbook（11:00–13:30）
+# 12/11 首發廣播 Runbook（11:00–13:30）
 
-> 班次：11/09（一）10:30–12:00 樂齡深層伸展｜青衣楓樹窩體育館・活動室（楓樹窩路 1 號）
+> 班次：12/12（六）10:30–12:00 樂齡深層伸展｜青衣楓樹窩體育館・活動室（楓樹窩路 1 號）
 > 客服號碼：852 9033 5538｜名額 8｜單人 $140｜二人同行 $240
 > 相關文件：`docs/ops/whatsapp-sop-1109.md`、`docs/ops/promo-1109.md`、`docs/api/admin-booking-actions.md`
 
@@ -9,7 +9,7 @@
 ### 1. 名冊提取與清洗
 ```bash
 cd /var/www/zenpass/backend
-node scripts/preflight-1107.js          # 一鍵檢核，exit 0 才可發送
+node scripts/preflight-1211.js          # 一鍵檢核，exit 0 才可發送
 node scripts/whatsapp-roster.js --schedule b54b7038-caa2-429e-b7a3-965abb35901a
 ```
 - [ ] 電話全部 8 位香港號碼（腳本自動補 852；無效會標「❌ 電話無效」）
@@ -23,7 +23,7 @@ node scripts/whatsapp-roster.js --schedule b54b7038-caa2-429e-b7a3-965abb35901a
 ### 3. 後台待命
 - [ ] 登入 `admin-ops.html` →「📅 預約管理」載入正常
 - [ ] 「順延 / 改期」「同行加位 (+$100)」可撳（加位需 paid + 剩餘 ≥1）
-- [ ] 11/11 10:30 目標班仍有位（preflight 會報）
+- [ ] 12/16 10:30 目標班仍有位（preflight 會報）
 
 ### 4. 快速回覆就緒
 - [ ] `/traffic`、`/health`、`/reschedule`、`/add_friend`、`/fps_check` 已匯入 WhatsApp Business
@@ -47,7 +47,7 @@ node scripts/whatsapp-roster.js --schedule b54b7038-caa2-429e-b7a3-965abb35901a 
 |---|---|
 | 交通／地點 | `/traffic` |
 | 關節舊患 | `/health` |
-| 改期 | `/reschedule` → 後台「順延 / 改期」→ 揀 11/11 → 確認 |
+| 改期 | `/reschedule` → 後台「順延 / 改期」→ 揀 12/16 → 確認 |
 | 加一位 | `/add_friend` → 收 $100 截圖 → 後台「同行加位」填名／電話／FPS 參考 |
 | 入數截圖 | 對帳後 `/fps_check`，後台核實付款 |
 
