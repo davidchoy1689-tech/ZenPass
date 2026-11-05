@@ -45,6 +45,18 @@ const maskPhone = (p) => {
 };
 const norm = (p) => String(p || "").replace(/\D/g, "").replace(/^852/, "");
 
+function ensureParentCols(db) {
+  try {
+    const cols = db.prepare("PRAGMA table_info(bookings)").all().map((c) => c.name);
+    [
+      ["parent_name", "TEXT"],
+      ["parent_phone", "TEXT"],
+      ["notify_sponsor_on_checkin", "INTEGER DEFAULT 0"],
+      ["attendee_type", "TEXT DEFAULT 'self'"],
+    ].forEach(([n, t]) => { if (!cols.includes(n)) db.prepare(`ALTER TABLE bookings ADD COLUMN ${n} ${t}`).run(); });
+  } catch (e) { console.error("[COACH-CHECKIN] parent cols:", e.message); }
+}
+
 function loadContext(db, token) {
   const v = tokens.verify(token);
   if (!v.ok) return { error: v.code };
@@ -114,6 +126,7 @@ router.get("/coach/checkin/roster", (req, res) => {
   if (blocked(ip)) return res.status(429).json({ success: false, error: "嘗試次數過多，請 15 分鐘後再試" });
   try {
     const db = getDb();
+    ensureParentCols(db);
     const ctx = loadContext(db, req.query.token);
     if (ctx.error) { fail(ip); return res.status(403).json({ success: false, code: ctx.error, error: "連結無效或已過期" }); }
     reset(ip);
@@ -149,6 +162,7 @@ router.post("/coach/checkin", express.json(), (req, res) => {
   if (!["checkin", "no_show"].includes(action)) return res.status(400).json({ success: false, error: "action 無效" });
   try {
     const db = getDb();
+    ensureParentCols(db);
     const ctx = loadContext(db, token);
     if (ctx.error) { fail(ip); return res.status(403).json({ success: false, code: ctx.error, error: "連結無效或已過期" }); }
     reset(ip);
