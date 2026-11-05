@@ -44,15 +44,15 @@ if (!sched) { console.error("找不到班次"); process.exit(1); }
 
 const bcols = new Set(db.prepare("PRAGMA table_info(bookings)").all().map(c => c.name));
 const ucols = new Set(db.prepare("PRAGMA table_info(users)").all().map(c => c.name));
-const col = (t, c, a) => (t.has(c) ? c : `NULL AS ${a}`);
+const col = (t, c, a, alias) => (t.has(c) ? `${alias}.${c}` : `NULL AS ${a}`);
 const rows = db.prepare(`
-  SELECT b.id, ${col(bcols, "medical_notes", "medical_notes")},
-         ${col(bcols, "emergency_phone", "b_emergency_phone")},
-         ${col(bcols, "child_name", "child_name")},
-         ${col(bcols, "attendee_type", "attendee_type")},
+  SELECT b.id, ${col(bcols, "medical_notes", "medical_notes", "b")},
+         ${col(bcols, "emergency_phone", "b_emergency_phone", "b")},
+         ${col(bcols, "child_name", "child_name", "b")},
+         ${col(bcols, "attendee_type", "attendee_type", "b")},
          u.name, u.phone,
-         ${col(ucols, "emergency_name", "emergency_name")},
-         ${col(ucols, "emergency_phone", "emergency_phone")}
+         ${col(ucols, "emergency_name", "emergency_name", "u")},
+         ${col(ucols, "emergency_phone", "emergency_phone", "u")}
     FROM bookings b JOIN users u ON u.id=b.user_id
    WHERE b.schedule_id=? AND b.status IN ('confirmed','pending_payment')
    ORDER BY b.created_at ASC`).all(sched.id);
