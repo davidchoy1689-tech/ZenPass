@@ -274,6 +274,7 @@ app.use("/api/coach", require("./routes/coach"));
 app.use("/api/coaches", coachPublicRoutes.apiRouter);
 app.use("/api/memberships", require("./routes/memberships"));
 app.use("/api/payments", express.json(), paymentsRouter);
+app.use("/api", require("./routes/coach-checkin"));
 app.use("/api/coach", require("./routes/coach-earnings"));
 app.use("/api/admin", require("./routes/admin"));
 app.use("/api/admin/ops", require("./routes/admin-ops"));

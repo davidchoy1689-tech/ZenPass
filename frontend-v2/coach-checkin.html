@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="zh-HK">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<meta name="theme-color" content="#047857" />
+<title>教練點名 · ZenPass</title>
+<link rel="manifest" href="manifest-coach.json" />
+<style>
+  :root{--brand:#047857;--brand2:#10b981;--ink:#0f172a;--muted:#64748b;--line:#e2e8f0;--bg:#f1f5f9}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,"PingFang HK",sans-serif;background:var(--bg);color:var(--ink);font-size:16px}
+  .top{position:sticky;top:0;z-index:5;background:#fff;border-bottom:1px solid var(--line);padding:12px 14px calc(10px + env(safe-area-inset-top))}
+  .row{display:flex;align-items:center;gap:10px}
+  .t1{font-weight:900;font-size:16px}
+  .t2{font-size:12.5px;color:var(--muted);margin-top:2px}
+  .call{margin-left:auto;flex:0 0 auto;background:#ecfdf5;color:var(--brand);border:1px solid #a7f3d0;border-radius:999px;padding:10px 14px;font-weight:800;text-decoration:none;font-size:13px}
+  .prog{margin-top:10px;height:12px;background:#e2e8f0;border-radius:99px;overflow:hidden}
+  .prog i{display:block;height:100%;background:linear-gradient(90deg,var(--brand2),var(--brand));width:0;transition:width .3s}
+  .stat{display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted);margin-top:6px}
+  .wrap{padding:12px 12px 96px}
+  .card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:10px}
+  .card.done{background:#ecfdf5;border-color:#a7f3d0}
+  .name{font-size:22px;font-weight:900;line-height:1.25}
+  .badges{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+  .badge{font-size:11.5px;font-weight:800;border-radius:99px;padding:3px 9px;background:#f1f5f9;color:#334155}
+  .badge.blue{background:#e0f2fe;color:#0369a1}
+  .badge.green{background:#dcfce7;color:#047857}
+  .warn{margin-top:8px;background:#fef2f2;border:1px solid #fecaca;color:#b91c1c;border-radius:10px;padding:8px 10px;font-size:13.5px;font-weight:800}
+  .meta{margin-top:8px;font-size:13px;color:var(--muted)}
+  .meta a{color:var(--brand);font-weight:800;text-decoration:none}
+  .acts{display:flex;gap:8px;margin-top:12px}
+  .btn{flex:1;min-height:52px;border-radius:12px;border:1px solid var(--line);background:#fff;font:inherit;font-weight:900;font-size:15px}
+  .btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+  .btn.primary:disabled{opacity:.55}
+  .btn.ghost{color:#b91c1c;border-color:#fecaca;background:#fff5f5;flex:0 0 96px}
+  .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:80px;background:rgba(15,23,42,.94);color:#fff;padding:12px 18px;border-radius:99px;font-size:13.5px;z-index:99;max-width:86%}
+  .empty{text-align:center;color:var(--muted);padding:40px 0}
+  .offline{position:fixed;left:0;right:0;bottom:0;background:#b45309;color:#fff;text-align:center;font-size:12.5px;padding:8px;display:none}
+  .offline.on{display:block}
+</style>
+</head>
+<body>
+  <header class="top">
+    <div class="row">
+      <div>
+        <div class="t1" id="title">載入中…</div>
+        <div class="t2" id="sub">—</div>
+      </div>
+      <a class="call" href="tel:+85290335538">📞 支援</a>
+    </div>
+    <div class="prog"><i id="bar"></i></div>
+    <div class="stat"><span id="stat">已到 0 / 0</span><span id="pending"></span></div>
+  </header>
+
+  <main class="wrap" id="list"><div class="empty">載入中…</div></main>
+  <div class="offline" id="offline">⚠️ 網絡不穩 — 簽到會先儲存，恢復後自動上傳</div>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  const TOKEN = new URLSearchParams(location.search).get("t") || "";
+  const QKEY = "zp_coach_queue_" + TOKEN.slice(-12);
+  let ROSTER = null;
+  let queue = [];
+  try { queue = JSON.parse(localStorage.getItem(QKEY) || "[]"); } catch (e) { queue = []; }
+
+  const fmtTime = (v) => {
+    const str = String(v || "");
+    const d = /[zZ]$|[+-]\d\d:?\d\d$/.test(str) ? new Date(str) : new Date(str.replace(" ", "T") + "Z");
+    return d.toLocaleTimeString("zh-HK", { timeZone: "Asia/Hong_Kong", hour: "2-digit", minute: "2-digit", hour12: false });
+  };
+  const toast = (m) => {
+    const t = document.createElement("div"); t.className = "toast"; t.textContent = m;
+    document.body.appendChild(t); setTimeout(() => t.remove(), 2600);
+  };
+  const saveQueue = () => localStorage.setItem(QKEY, JSON.stringify(queue));
+  const isOffline = () => !navigator.onLine;
+
+  async function api(path, opts) {
+    const res = await fetch(path, opts);
+    let data = {};
+    try { data = await res.json(); } catch (e) {}
+    return { ok: res.ok, status: res.status, data };
+  }
+
+  async function load() {
+    const r = await api("/api/coach/checkin/roster?token=" + encodeURIComponent(TOKEN));
+    if (!r.ok) {
+      $("list").innerHTML = `<div class="card"><div class="empty">❌ ${r.data.error || "連結無效"}<br><br>請向營運同事索取新連結</div></div>`;
+      return;
+    }
+    ROSTER = r.data;
+    try { localStorage.setItem("zp_roster_" + TOKEN.slice(-12), JSON.stringify(r.data)); } catch (e) {}
+    render();
+  }
+
+  function render() {
+    if (!ROSTER) return;
+    const s = ROSTER.schedule;
+    $("title").textContent = `${s.venue || ""}${s.title ? " · " + s.title : ""}`;
+    $("sub").textContent = `${fmtTime(s.start_time)}–${fmtTime(s.end_time)}${s.coach_name ? " · " + s.coach_name : ""}`;
+    const total = ROSTER.roster.reduce((n, g) => n + g.seats, 0);
+    const attended = ROSTER.roster.reduce((n, g) => n + g.attended, 0);
+    $("bar").style.width = total ? Math.round((attended / total) * 100) + "%" : "0%";
+    $("stat").textContent = `已到 ${attended} / ${total} 人`;
+    $("pending").textContent = queue.length ? `⏳ 待上傳 ${queue.length}` : "";
+
+    if (!ROSTER.roster.length) { $("list").innerHTML = `<div class="card"><div class="empty">（暫無學員）</div></div>`; return; }
+    $("list").innerHTML = ROSTER.roster.map((g, i) => {
+      const done = g.seats > 0 && g.attended === g.seats;
+      const absent = g.no_show === g.seats && g.seats > 0;
+      const badges = [
+        g.is_parent ? `<span class="badge blue">👵 子女代報${g.sponsor_name ? " (" + esc(g.sponsor_name) + ")" : ""}</span>` : "",
+        g.seats > 1 ? `<span class="badge">👥 ${g.seats} 人同行</span>` : "",
+        done ? `<span class="badge green">✅ 已簽到</span>` : "",
+        absent ? `<span class="badge" style="background:#fee2e2;color:#b91c1c">❌ 缺席</span>` : "",
+        g.payment_status !== "paid" ? `<span class="badge" style="background:#fff7ed;color:#c2410c">⏳ 待付款</span>` : "",
+      ].filter(Boolean).join("");
+      return `<div class="card ${done ? "done" : ""}" data-i="${i}">
+        <div class="name">${esc(g.attendee_name || "未填姓名")}</div>
+        <div class="badges">${badges}</div>
+        ${g.health_notes ? `<div class="warn">⚠️ ${esc(g.health_notes)}</div>` : ""}
+        <div class="meta">📱 ${g.phone_tel ? `<a href="${g.phone_tel}">${esc(g.phone_masked)}</a>` : esc(g.phone_masked || "—")}
+          ${g.emergency_tel ? ` · 緊急：<a href="${g.emergency_tel}">${esc(g.emergency_name || "聯絡人")}</a>` : ""}</div>
+        <div class="acts">
+          <button class="btn primary" data-act="in" data-bid="${g.booking_id}" ${done || absent ? "disabled" : ""}>${done ? "✅ 已簽到" : "✅ 點名簽到"}</button>
+          <button class="btn ghost" data-act="no" data-bid="${g.booking_id}" ${done || absent ? "disabled" : ""}>❌ 缺席</button>
+        </div>
+      </div>`;
+    }).join("");
+  }
+
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  }
+
+  $("list").addEventListener("click", async (e) => {
+    const btn = e.target.closest("button[data-act]");
+    if (!btn || btn.disabled) return;
+    const bid = btn.dataset.bid;
+    const action = btn.dataset.act === "in" ? "checkin" : "no_show";
+    if (action === "no_show" && !confirm("確定標記缺席？")) return;
+
+    // 樂觀更新
+    const g = ROSTER.roster.find((x) => x.booking_id === bid);
+    if (g) {
+      if (action === "checkin") g.attended = g.seats;
+      else g.no_show = g.seats;
+      render();
+    }
+    if (navigator.vibrate) navigator.vibrate(action === "checkin" ? 35 : [20, 40, 20]);
+
+    if (isOffline()) { enqueue(bid, action); return; }
+    const r = await api("/api/coach/checkin", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: TOKEN, booking_id: bid, action }),
+    });
+    if (!r.ok) {
+      if (r.status === 0 || r.status >= 500) { enqueue(bid, action); return; }
+      toast("❌ " + (r.data.error || "操作失敗"));
+      load();
+      return;
+    }
+    if (r.data.sponsor && r.data.sponsor.wa_url) {
+      window.open(r.data.sponsor.wa_url, "_blank");
+    }
+    toast(action === "checkin" ? "✅ 已簽到" : "已標記缺席");
+    load();
+  });
+
+  function enqueue(bid, action) {
+    queue.push({ booking_id: bid, action, ts: Date.now() });
+    saveQueue(); render();
+    toast("📥 已暫存，網絡恢復自動上傳");
+  }
+
+  async function flush() {
+    if (!queue.length || isOffline()) return;
+    const items = queue.slice();
+    for (const it of items) {
+      const r = await api("/api/coach/checkin", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: TOKEN, booking_id: it.booking_id, action: it.action }),
+      });
+      if (r.ok) queue = queue.filter((x) => x.ts !== it.ts);
+      else if (r.status >= 400 && r.status < 500) queue = queue.filter((x) => x.ts !== it.ts); // 永久失敗唔好卡住
+    }
+    saveQueue(); load();
+  }
+
+  window.addEventListener("online", () => { $("offline").classList.remove("on"); flush(); });
+  window.addEventListener("offline", () => $("offline").classList.add("on"));
+  if (isOffline()) $("offline").classList.add("on");
+
+  // 先用快取即時顯示，再拉最新
+  try {
+    const cached = localStorage.getItem("zp_roster_" + TOKEN.slice(-12));
+    if (cached) { ROSTER = JSON.parse(cached); render(); }
+  } catch (e) {}
+  load();
+  flush();
+  if ("serviceWorker" in navigator) navigator.serviceWorker.register("coach-checkin-sw.js").catch(() => {});
+</script>
+</body>
+</html>
