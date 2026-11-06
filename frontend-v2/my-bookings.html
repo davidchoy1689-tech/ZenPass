@@ -105,9 +105,13 @@
         ? { cls: "on", label: "已簽到", sub: hktTime(b.checked_in_at) + " 入場" }
         : started ? { cls: "now", label: "待確認簽到", sub: "如已到場請聯絡導師" }
         : { cls: "", label: "待長者到達", sub: "當日簽到後更新" };
-      const step3 = b.status === "attended"
-        ? { cls: "now", label: "課後反饋", sub: "待導師提交" }
-        : { cls: "", label: "課後反饋", sub: "下課後顯示" };
+      let tagged = [];
+      try { tagged = b.coach_tags ? (typeof b.coach_tags === "string" ? JSON.parse(b.coach_tags) : b.coach_tags) : []; } catch (e) {}
+      const step3 = (tagged && tagged.length)
+        ? { cls: "on", label: "已收到評語", sub: "導師已完成觀察" }
+        : b.status === "attended"
+          ? { cls: "now", label: "課後反饋", sub: "待導師提交" }
+          : { cls: "", label: "課後反饋", sub: "下課後顯示" };
       return `<div class="tl">
         <div class="st on">已鎖定席位<span class="d">${b.payment_status === "paid" ? "已付款" : "已確認"}</span></div>
         <div class="st ${step2.cls}">${step2.label}<span class="d">${step2.sub}</span></div>
