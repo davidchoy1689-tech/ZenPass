@@ -230,7 +230,7 @@
   if (DEMO) { load(); } else { load(); flush(); }
 
   /* ===== 📷 掃碼簽到 ===== */
-  let scanStream = null, scanRAF = null, scanning = false, scanStarting = false, lastRestartAt = 0, loopActive = false;
+  let scanStream = null, scanRAF = null, scanning = false, scanStarting = false, scanStartAt = 0, lastRestartAt = 0, loopActive = false;
   const scanWrap = $("scanWrap"), scanVideo = $("scanVideo"), scanBanner = $("scanBanner");
   const scanErr = $("scanErr"), scanErrMsg = $("scanErrMsg");
   async function checkinByQr(qr) {
@@ -264,6 +264,9 @@
     if (name === "NotReadableError" || name === "TrackStartError") {
       return "相機被其他 App 或系統鎖住。請關閉其他相機 App（或重開 Safari）再重試。";
     }
+    if (name === "TimeoutError") {
+      return "鏡頭啟動超時（低電量模式或系統暫時鎖住相機）。請撳「重試」；如仍然失敗，請關閉其他相機 App 或重開 Safari。";
+    }
     const msg = (e && e.message) ? String(e.message) : "";
     return "請檢查 Safari 設定是否已允許「相機」權限。" + (msg ? `（${msg}）` : "");
   }
@@ -282,8 +285,10 @@
       showScanError("此瀏覽器唔支援鏡頭。請改用 Safari／Chrome，或撳下面切換回手動點名。");
       return;
     }
-    if (scanStarting) return;
+    // 防止上一次 getUserMedia/play() 卡死令重試被永久封鎖（超過 10 秒視為卡死）
+    if (scanStarting && Date.now() - scanStartAt < 10000) return;
     scanStarting = true;
+    scanStartAt = Date.now();
     scanWrap.style.display = "block";
     try {
       stopTracks();
@@ -295,7 +300,11 @@
       scanVideo.muted = true;
       scanVideo.setAttribute("playsinline", "");
       scanVideo.setAttribute("webkit-playsinline", "");
-      await scanVideo.play();
+      // iOS 低電量模式／串流未 ready 時 play() 可能永遠 pending → 4 秒超時即當失敗
+      await Promise.race([
+        scanVideo.play(),
+        new Promise((_, rej) => setTimeout(() => rej(Object.assign(new Error("鏡頭啟動超時"), { name: "TimeoutError" })), 4000)),
+      ]);
       hideScanError();
       scanning = true;
       resumeLoop();
@@ -323,7 +332,7 @@
   // ===== 自癒：切 App／解鎖／背景返回後，鏡頭凍結即平滑重連 =====
   async function restartCamera() {
     if (scanWrap.style.display === "none") return;
-    if (scanStarting) return;
+    if (scanStarting && Date.now() - scanStartAt < 10000) return;
     if (Date.now() - lastRestartAt < 1500) return; // 防連環重啟
     lastRestartAt = Date.now();
     await startScan();
