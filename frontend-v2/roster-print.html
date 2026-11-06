@@ -54,10 +54,18 @@
   const sid = new URLSearchParams(location.search).get("sid") || "";
   const tok = localStorage.getItem("zenpass_token") || "";
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
-  const fmtDT = (t) => {
-    const d = new Date(String(t || "").replace(" ", "T") + (/Z|[+-]\d\d:?\d\d$/.test(String(t || "")) ? "" : "Z"));
-    if (isNaN(d.getTime())) return "—";
-    return d.toLocaleString("zh-HK", { timeZone: "Asia/Hong_Kong", year: "numeric", month: "2-digit", day: "2-digit", weekday: "short", hour: "2-digit", minute: "2-digit" });
+  const parseUTC = (t) => {
+    const s = String(t || "");
+    const d = new Date(s.replace(" ", "T") + (/Z|[+-]\d\d:?\d\d$/.test(s) ? "" : "Z"));
+    return isNaN(d.getTime()) ? null : new Date(d.getTime() + 8 * 3600 * 1000); // 轉 HKT
+  };
+  const fmtRange = (a, b) => {
+    const d1 = parseUTC(a), d2 = parseUTC(b);
+    if (!d1) return "—";
+    const wd = ["日","一","二","三","四","五","六"][d1.getUTCDay()];
+    const ymd = `${d1.getUTCFullYear()}-${String(d1.getUTCMonth()+1).padStart(2,"0")}-${String(d1.getUTCDate()).padStart(2,"0")}`;
+    const hm = (d) => `${String(d.getUTCHours()).padStart(2,"0")}:${String(d.getUTCMinutes()).padStart(2,"0")}`;
+    return `${ymd}（星期${wd}）${hm(d1)}${d2 ? "–" + hm(d2) : ""}`;
   };
   const tel = (p) => { const s = String(p || "").replace(/\D/g, "").slice(-8); return s.length === 8 ? s.slice(0,4) + " " + s.slice(4) : (p || "—"); };
 
@@ -71,11 +79,11 @@
 
   function render(d){
     const s = d.schedule || {}, rows = d.students || [];
-    const when = fmtDT(s.start_time);
+    const when = fmtRange(s.start_time, s.end_time);
     $("#sheet").innerHTML = `
       <h1>${esc(s.title || "課堂")} — 現場點名名冊 <span class="badge">共 ${rows.length} 位</span></h1>
       <div class="meta">
-        📅 ${esc(when)}（${esc(String(s.end_time || "").slice(11,16))} 完）<br>
+        📅 ${esc(when)}<br>
         📍 ${esc(s.venue_name || "")}${s.venue_address ? " · " + esc(s.venue_address) : ""}<br>
         👨‍🏫 導師：${esc(s.coach_name || "—")} ｜ 名額：${Number(s.enrolled_count) || 0}/${Number(s.max_participants) || 0} ｜ 列印時間：${new Date().toLocaleString("zh-HK", { timeZone: "Asia/Hong_Kong" })}
       </div>

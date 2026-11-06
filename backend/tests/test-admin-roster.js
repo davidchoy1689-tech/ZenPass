@@ -97,6 +97,7 @@ console.log("\n🧪 5. 列印頁");
   ok("健康備註高亮", /\.hi\{[^}]*fff7d6/.test(html));
   ok("導師簽名欄", /導師簽名/.test(html) && /實到人數/.test(html));
   ok("行不跨頁", /tr\{ page-break-inside:avoid/.test(html));
+  ok("時間用 HKT 範圍（唔再用 UTC slice）", /fmtRange/.test(html) && !/slice\(11,16\)/.test(html));
   ok("用 admin bearer token 取數", /Authorization: "Bearer " \+ tok/.test(html));
 }
 
