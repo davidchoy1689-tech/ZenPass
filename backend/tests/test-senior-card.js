@@ -76,20 +76,25 @@ console.log("\n🧪 4. platform_settings 可覆寫");
   ok("路線提示可設定", c.route_hint === "自訂路線");
 }
 
-console.log("\n🧪 5. 版面規格（打印）");
+console.log("\n🧪 5. 版面規格（A4 列印 90×54mm）");
 {
-  const html = fs.readFileSync(path.join(__dirname, "..", "..", "frontend-v2", "senior-card.html"), "utf8");
-  ok("@page 90mm × 54mm", /@page\s*\{\s*size:\s*90mm\s+54mm/.test(html));
-  ok("邊界 0", /@page[^}]*margin:\s*0/.test(html));
-  ok("卡片 90mm × 54mm", /width:\s*90mm/.test(html) && /height:\s*54mm/.test(html));
-  ok("QR 32mm × 32mm", /\.qrbox\{[^}]*width:\s*32mm/.test(html) && /height:\s*32mm/.test(html));
-  ok("姓名 20pt 粗體", /\.name\{[^}]*font-size:\s*20pt/.test(html) && /font-weight:\s*900/.test(html));
-  ok("警示框黃底紅字", /--warn-bg:#fff7d6/.test(html) && /--warn:#b91c1c/.test(html));
-  ok("背面緊急電話 14pt", /\.emerg \.pn\{[^}]*font-size:\s*14pt/.test(html));
-  ok("列印時隱藏按鈕", /@media print\{[\s\S]{0,300}\.no-print\{ display:none/.test(html));
-  ok("有列印按鈕", /🖨️ 列印 \/ 存 PDF/.test(html));
-  ok("有 demo 預覽模式", /DEMO_CARD/.test(html) && /get\("demo"\)\s*===\s*"1"/.test(html));
+  const html = fs.readFileSync(path.join(__dirname, "..", "..", "frontend-v2", "print-card.html"), "utf8");
+  ok("@page A4 portrait", /@page\s*\{\s*size:\s*A4 portrait/.test(html));
+  ok("@page 邊界 15mm", /@page\s*\{[^}]*margin:\s*15mm/.test(html));
+  ok("卡片 90mm × 54mm", /\.id-card\{[\s\S]{0,200}width:\s*90mm/.test(html) && /height:\s*54mm/.test(html));
+  ok("虛線剪裁框", /border:\s*1px dashed/.test(html));
+  ok("列印時卡片不跨頁", /page-break-inside:\s*avoid/.test(html) && /break-inside:\s*avoid/.test(html));
+  ok("QR 32mm × 32mm", /\.qr\{[^}]*width:\s*32mm/.test(html) && /height:\s*32mm/.test(html));
+  ok("姓名 22pt 特粗", /\.who\{[^}]*font-size:\s*22pt/.test(html));
+  ok("健康警示 10pt + 黃底紅字", /\.hbox\{[\s\S]{0,260}font-size:\s*10pt/.test(html) && /--warn-bg:#fff7d6/.test(html));
+  ok("背面緊急電話 16pt", /\.tel\{[^}]*font-size:\s*16pt/.test(html));
+  ok("場地 11pt／路線 9pt", /\.bt\{[^}]*font-size:\s*11pt/.test(html) && /\.b1\{[^}]*font-size:\s*9pt/.test(html));
+  ok("列印隱藏工具列", /@media print\{[\s\S]{0,200}\.no-print\{ display:none/.test(html));
+  ok("有立即列印", /🖨️ 立即列印/.test(html));
+  ok("有存為圖片（300dpi canvas）", /📱 存為圖片/.test(html) && /DPI = 300/.test(html));
+  ok("有 demo 預覽", /DEMO_CARD/.test(html) && /get\("demo"\)\s*===\s*"1"/.test(html));
   ok("掃碼內容用 zenpass:checkin", /zenpass:checkin/.test(html));
+  ok("舊 senior-card.html 會轉去新頁", /print-card\.html/.test(fs.readFileSync(path.join(__dirname, "..", "..", "frontend-v2", "senior-card.html"), "utf8")));
 }
 
 console.log("\n🧪 6. API 接線與權限");
@@ -97,20 +102,24 @@ console.log("\n🧪 6. API 接線與權限");
   const bookings = fs.readFileSync(path.join(__dirname, "..", "src", "routes", "bookings.js"), "utf8");
   const guest = fs.readFileSync(path.join(__dirname, "..", "src", "routes", "guest.js"), "utf8");
   ok("GET /bookings/:id/card", /router\.get\("\/:id\/card",\s*authenticateToken/.test(bookings));
-  ok("會員卡有 canAccessBooking 權限檢查", /\[CARD\][\s\S]{0,600}canAccessBooking|canAccessBooking[\s\S]{0,400}\[CARD\]/.test(bookings) || /canAccessBooking\(booking, req\.user\)/.test(bookings));
+  ok("GET /bookings/:id/print-card（工單路徑）", /router\.get\("\/:id\/print-card",\s*authenticateToken/.test(bookings));
+  ok("print-card 會 302 去前端頁", /res\.redirect\(302, "\/print-card\.html\?id="/.test(bookings));
+  ok("會員卡有 canAccessBooking 權限檢查", /canAccessBooking\(booking, req\.user\)/.test(bookings));
   ok("訪客卡端點存在", /router\.get\("\/booking-card"/.test(guest));
   ok("訪客卡要 guest_session 驗證", /guest_sessions WHERE token=\? AND expires_at/.test(guest));
   ok("訪客卡核對 booking 擁有權", /b\.user_id !== sess\.user_id/.test(guest));
 }
 
-console.log("\n🧪 7. 付款成功頁有下載入口");
+console.log("\n🧪 7. 前端入口");
 {
   const b = fs.readFileSync(path.join(__dirname, "..", "..", "frontend-v2", "booking.html"), "utf8");
-  ok("有隨身卡按鈕", /id="seniorCardBtn"/.test(b));
-  ok("文案：下載長者隨身卡", /下載長者隨身卡/.test(b));
-  ok("會員連結帶 booking id", /senior-card\.html\?id=/.test(b));
-  ok("訪客連結帶 token", /&token=.*guestToken/.test(b));
+  ok("付款成功頁有隨身卡按鈕", /id="seniorCardBtn"/.test(b));
+  ok("文案：列印長者隨身卡", /列印長者隨身卡/.test(b));
+  ok("連去 print-card.html 帶 booking id", /print-card\.html\?id=/.test(b));
+  ok("訪客連結帶 token", /&token=/.test(b));
   ok("多筆預約時隱藏（避免印錯）", /payIds\.length <= 1/.test(b));
+  const mb = fs.readFileSync(path.join(__dirname, "..", "..", "frontend-v2", "my-bookings.html"), "utf8");
+  ok("我的預約有 🖨️ 隨身卡入口", /🖨️ 隨身卡/.test(mb) && /print-card\.html\?id=/.test(mb));
 }
 
 console.log("\n🧪 8. 回歸：源碼唔可以有被遮蔽的 SQL 佔位符");

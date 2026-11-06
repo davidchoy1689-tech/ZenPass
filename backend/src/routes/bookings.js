@@ -480,8 +480,10 @@ router.post("/:id/claim-payment", authenticateToken, (req, res) => {
   }
 });
 
-// ===== GET /api/bookings/:id/card — 長者隨身簽到卡（90×54mm 打印用）=====
-router.get("/:id/card", authenticateToken, async (req, res) => {
+// ===== 長者隨身簽到卡（90×54mm 打印用）=====
+// GET /api/bookings/:id/card        → JSON（前端 print-card.html 用）
+// GET /api/bookings/:id/print-card  → 瀏覽器直接開 → 302 去 print-card.html（工單指定路徑）
+async function sendSeniorCard(req, res) {
   try {
     const db = getDb();
     const booking = db
@@ -495,6 +497,9 @@ router.get("/:id/card", authenticateToken, async (req, res) => {
     if (!canAccessBooking(booking, req.user)) {
       return res.status(403).json({ success: false, error: "無權取得此隨身卡" });
     }
+    if (req.path.endsWith("/print-card")) {
+      return res.redirect(302, "/print-card.html?id=" + encodeURIComponent(booking.id));
+    }
     const { buildCard } = require("../services/senior-card");
     const card = await buildCard(booking.id);
     if (!card) return res.status(404).json({ success: false, error: "預約不存在" });
@@ -503,7 +508,9 @@ router.get("/:id/card", authenticateToken, async (req, res) => {
     console.error("[CARD] build error:", err.message);
     res.status(500).json({ success: false, error: "產生隨身卡失敗" });
   }
-});
+}
+router.get("/:id/card", authenticateToken, sendSeniorCard);
+router.get("/:id/print-card", authenticateToken, sendSeniorCard);
 
 // ===== GET /api/bookings/:id/qr — QR Code =====
 router.get("/:id/qr", authenticateToken, (req, res) => {

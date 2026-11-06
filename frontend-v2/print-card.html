@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>長者隨身簽到卡 · ZenPass</title>
+<style>
+  :root{ --ink:#0f172a; --brand:#1A5336; --warn-bg:#fff7d6; --warn:#b91c1c; }
+  *{ box-sizing:border-box; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  body{ margin:0; background:#eef2f5; color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang HK","Microsoft JhengHei","Noto Sans TC",sans-serif; }
+
+  /* ===== 螢幕工具列 ===== */
+  .toolbar{ position:sticky; top:0; z-index:9; background:#fff; border-bottom:1px solid #e2e8f0; padding:10px 12px; display:flex; gap:8px; align-items:center; flex-wrap:wrap }
+  .toolbar b{ font-size:14.5px }
+  .toolbar .grow{ flex:1 }
+  .btn{ border:0; border-radius:11px; padding:10px 13px; font-size:13.5px; font-weight:800; cursor:pointer; text-decoration:none; display:inline-block }
+  .btn-primary{ background:#0f766e; color:#fff }
+  .btn-ghost{ background:#e2e8f0; color:#0f172a }
+  .tips{ font-size:12px; color:#475569; padding:9px 14px 0; line-height:1.65 }
+  .tips b{ color:#0f172a }
+
+  .sheet{ padding:16px 12px 40px; display:flex; flex-direction:column; gap:16px; align-items:center }
+  .label{ font-size:12px; font-weight:800; color:#64748b; align-self:center }
+
+  /* ===== 卡片：90mm × 54mm（沿虛線剪裁）===== */
+  .id-card{
+    width:90mm; height:54mm; box-sizing:border-box;
+    border:1px dashed #94a3b8; padding:4mm; background:#fff; position:relative;
+    overflow:hidden; border-radius:1.5mm; box-shadow:0 2px 8px rgba(15,23,42,.10);
+    display:flex; flex-direction:column;
+  }
+  .hd{ display:flex; align-items:baseline; justify-content:space-between; gap:2mm }
+  .brand{ font-size:10pt; font-weight:900; color:var(--brand); white-space:nowrap }
+  .batch{ font-size:9pt; font-weight:800; color:#374151; text-align:right; white-space:nowrap }
+  .hr{ height:.35mm; background:var(--brand); opacity:.2; margin:1.2mm 0 1.4mm }
+
+  .body{ display:flex; gap:2.6mm; flex:1; min-height:0 }
+  .qrcol{ width:32mm; flex:none; text-align:center }
+  .qr{ width:32mm; height:32mm; padding:1mm; border:.25mm solid #e5e7eb; border-radius:1mm; background:#fff; display:flex; align-items:center; justify-content:center }
+  .qr img{ width:100%; height:100%; object-fit:contain; image-rendering:pixelated }
+  .qcap{ font-size:5.6pt; color:#6b7280; font-weight:800; margin-top:.7mm }
+
+  .info{ flex:1; min-width:0; display:flex; flex-direction:column }
+  .who{ font-size:22pt; font-weight:900; line-height:1.02; letter-spacing:.3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
+  .who small{ font-size:12pt; font-weight:900; margin-left:1mm }
+  .sub{ font-size:6.6pt; font-weight:700; color:#334155; margin-top:.8mm; white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
+  .hbox{ margin-top:1.3mm; background:var(--warn-bg); border-left:1mm solid var(--warn); border-radius:1mm; padding:1.1mm 1.6mm;
+         font-size:10pt; font-weight:900; color:#7f1d1d; line-height:1.18; display:flex; gap:1mm }
+  .hbox .ic{ flex:none }
+  .hbox .tx{ display:-webkit-box; -webkit-line-clamp:1; -webkit-box-orient:vertical; overflow:hidden }
+  .hbox.small{ font-size:8pt }
+  .okline{ margin-top:1.3mm; font-size:7pt; font-weight:800; color:#166534 }
+  .ref{ margin-top:auto; font-size:8pt; font-weight:900; color:#0f172a }
+
+  .ft{ margin-top:1mm; border-top:.3mm dashed #cbd5e1; padding-top:.9mm; font-size:7pt; font-weight:700; color:#475569; letter-spacing:.15px }
+
+  /* 背面 */
+  .bt{ font-size:11pt; font-weight:900; color:var(--brand); line-height:1.15 }
+  .b1{ font-size:9pt; font-weight:700; color:#1e293b; line-height:1.28; margin-top:.8mm }
+  .em{ margin-top:1.2mm; background:#fef2f2; border:.25mm solid #fecaca; border-radius:1mm; padding:1.2mm 1.8mm }
+  .em .nm{ font-size:8pt; font-weight:800; color:#991b1b }
+  .em .tel{ font-size:16pt; font-weight:900; color:#7f1d1d; letter-spacing:.8px; line-height:1.05 }
+  .bf{ margin-top:auto; font-size:7.5pt; font-weight:700; color:#475569; line-height:1.3 }
+
+  /* ===== 列印：A4 直向、15mm 邊界、卡片不跨頁 ===== */
+  @page { size: A4 portrait; margin: 15mm; }
+  @media print{
+    html,body{ background:#fff }
+    .no-print{ display:none !important }
+    .sheet{ padding:0; gap:8mm; display:block }
+    .label{ display:none }
+    .id-card{ page-break-inside:avoid; break-inside:avoid; box-shadow:none; border-radius:0; margin:0 0 8mm }
+  }
+  @media (max-width:430px){ .id-card{ transform:scale(.95); transform-origin:top center } }
+</style>
+</head>
+<body>
+  <div class="toolbar no-print">
+    <b>🖨️ 長者隨身卡</b>
+    <span class="grow"></span>
+    <button class="btn btn-primary" id="printBtn">🖨️ 立即列印（100%）</button>
+    <button class="btn btn-ghost" id="pngBtn">📱 存為圖片</button>
+    <button class="btn btn-ghost" id="backBtn">返回</button>
+  </div>
+  <div class="tips no-print">列印貼士：紙張選 <b>A4</b>、縮放 <b>100%</b>（唔好揀「Fit to page」）；沿<b>虛線</b>剪下即成 90×54mm 卡片，可放入八達通套或銀包相格。冇打印機？撳「📱 存為圖片」存落長者手機相簿亦可作後備憑證。</div>
+
+  <div class="sheet" id="sheet"><div class="tips">載入中…</div></div>
+
+<script>
+(function(){
+  const $ = (s) => document.querySelector(s);
+  const qs = new URLSearchParams(location.search);
+  const ID = qs.get("id") || qs.get("booking_id") || "";
+  const GUEST = qs.get("token") || "";
+  const DEMO = qs.get("demo") === "1";
+  const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+
+  const DEMO_CARD = {
+    booking_reference: "ZP-1212-003",
+    student_name: "陳大文", salute: "伯伯",
+    health_notes: "右膝微創手術（避免深蹲）",
+    class_title: "樂齡深層伸展（示範）",
+    date: "2026-12-12", weekday: "星期六", time: "10:30",
+    venue_name: "青衣楓樹窩體育館 1 樓活動室", venue_address: "青衣楓樹窩路 1 號",
+    route_hint: "港鐵青衣站 B 出口 ➔ 步行約 8 分鐘",
+    emergency_name: "陳小明（兒子）", emergency_phone: "98765432",
+    support_phone: "9033 5538",
+    qr: { data_url: "/api/qr?raw=1&size=420&text=" + encodeURIComponent("zenpass:checkin:demo-1:abcdefghij") },
+  };
+
+  async function load(){
+    if (DEMO) return DEMO_CARD;
+    let url, headers = {};
+    if (GUEST) {
+      const tok = encodeURIComponent(GUEST);
+      url = `/api/guest/booking-card?token=${tok}&booking_id=${encodeURIComponent(ID)}`;
+    } else {
+      if (!ID) throw new Error("缺少預約編號");
+      url = "/api/bookings/" + encodeURIComponent(ID) + "/card";
+      const tok = localStorage.getItem("zenpass_token") || "";
+      if (tok) headers.Authorization = "Bearer " + tok;
+    }
+    const r = await fetch(url, { headers, credentials: "include" });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok || !d.card) throw new Error((d && d.error) || "讀取失敗");
+    return d.card;
+  }
+
+  const tel = (p) => { const s = String(p || "").replace(/\D/g, "").slice(-8); return s.length === 8 ? s.slice(0,4) + " " + s.slice(4) : String(p || "—"); };
+  const qrSrcOf = (c) => {
+    const q = (c.qr && (c.qr.data_url || c.qr.payload)) || "";
+    return q.startsWith("zenpass:") ? "/api/qr?raw=1&size=420&text=" + encodeURIComponent(q) : q;
+  };
+
+  function frontHTML(c){
+    const src = qrSrcOf(c);
+    const notes = c.health_notes || "";
+    return `
+    <section class="id-card" aria-label="正面">
+      <div class="hd">
+        <div class="brand">🌿 ZenPass 樂齡體適能</div>
+        <div class="batch">${esc(c.date || "")} (${esc((c.weekday || "").replace("星期",""))}) ${esc(c.time || "")}</div>
+      </div>
+      <div class="hr"></div>
+      <div class="body">
+        <div class="qrcol">
+          <div class="qr">${src ? `<img src="${esc(src)}" alt="簽到 QR" crossorigin="anonymous" />` : "▦"}</div>
+          <div class="qcap">專屬簽到 QR</div>
+        </div>
+        <div class="info">
+          <div class="who">${esc(c.student_name || "學員")}${c.salute ? `<small>${esc(c.salute)}</small>` : ""}</div>
+          <div class="sub">${esc(c.class_title || "")}</div>
+          ${notes
+            ? `<div class="hbox"><span class="ic">⚠️</span><span class="tx">${esc(notes)}</span></div>`
+            : `<div class="okline">✅ 無特別健康備註</div>`}
+          <div class="ref">預約編號：${esc(c.booking_reference || "—")}</div>
+        </div>
+      </div>
+      <div class="ft">上堂前請向導師出示此卡 · 簽到後子女即時收到報平安通知</div>
+    </section>`;
+  }
+
+  function backHTML(c){
+    return `
+    <section class="id-card" aria-label="背面">
+      <div class="bt">📍 ${esc(c.venue_name || "上課地點待定")}</div>
+      <div class="b1">${c.venue_address ? esc(c.venue_address) + "<br>" : ""}${esc(c.route_hint || "")}</div>
+      <div class="em">
+        <div class="nm">🆘 緊急聯絡人：${esc(c.emergency_name || "家人")}</div>
+        <div class="tel">${esc(tel(c.emergency_phone))}</div>
+      </div>
+      <div class="bf">主辦熱線：ZenPass ${esc(c.support_phone || "")} · 若長者迷路或身體不適，請好心人士協助致電上方聯絡人，感激！</div>
+    </section>`;
+  }
+
+  let CARD = null;
+  function render(c){
+    CARD = c;
+    $("#sheet").innerHTML = `<div class="label no-print">正面（簽到用）</div>${frontHTML(c)}<div class="label no-print">背面（交通 · 防走失）</div>${backHTML(c)}`;
+    $("#printBtn").disabled = false;
+    $("#pngBtn").disabled = false;
+  }
+
+  /* ===== 存為圖片（300dpi，只出正面）===== */
+  function savePng(){
+    if (!CARD) return;
+    const DPI = 300, mm = (v) => Math.round(v / 25.4 * DPI); // 90×54mm → 1063×638
+    const W = mm(90), H = mm(54);
+    const cv = document.createElement("canvas");
+    cv.width = W; cv.height = H;
+    const x = cv.getContext("2d");
+    x.fillStyle = "#fff"; x.fillRect(0, 0, W, H);
+    const ink = "#0f172a", brand = "#1A5336";
+    const pt = (p) => Math.round(p / 72 * DPI);
+    const pad = mm(4);
+
+    x.fillStyle = brand; x.font = `900 ${pt(10)}px "PingFang HK","Microsoft JhengHei",sans-serif`;
+    x.fillText("🌿 ZenPass 樂齡體適能", pad, pad + pt(10));
+    x.fillStyle = "#374151"; x.font = `800 ${pt(9)}px "PingFang HK","Microsoft JhengHei",sans-serif`;
+    const batch = `${CARD.date || ""} (${String(CARD.weekday || "").replace("星期","")}) ${CARD.time || ""}`;
+    x.textAlign = "right"; x.fillText(batch, W - pad, pad + pt(9)); x.textAlign = "left";
+
+    const qrSize = mm(32), qrX = pad, qrY = pad + pt(14);
+    const img = document.querySelector(".qr img");
+    if (img && img.complete && img.naturalWidth) {
+      try { x.drawImage(img, qrX + mm(1), qrY + mm(1), qrSize - mm(2), qrSize - mm(2)); } catch (e) {}
+    } else { x.strokeStyle = "#e5e7eb"; x.strokeRect(qrX, qrY, qrSize, qrSize); }
+
+    const txX = qrX + qrSize + mm(3);
+    x.fillStyle = ink; x.font = `900 ${pt(22)}px "PingFang HK","Microsoft JhengHei",sans-serif`;
+    x.fillText(`${CARD.student_name || "學員"}${CARD.salute ? " " + CARD.salute : ""}`, txX, qrY + pt(20));
+
+    x.font = `700 ${pt(7)}px "PingFang HK","Microsoft JhengHei",sans-serif`; x.fillStyle = "#334155";
+    x.fillText(String(CARD.class_title || "").slice(0, 22), txX, qrY + pt(27));
+
+    const notes = String(CARD.health_notes || "").trim();
+    const boxY = qrY + pt(31);
+    if (notes) {
+      x.fillStyle = "#fff7d6"; x.fillRect(txX, boxY, W - pad - txX, pt(15));
+      x.fillStyle = "#b91c1c"; x.fillRect(txX, boxY, mm(1), pt(15));
+      x.fillStyle = "#7f1d1d"; x.font = `900 ${pt(9)}px "PingFang HK","Microsoft JhengHei",sans-serif`;
+      x.fillText("⚠️ " + notes.slice(0, 16), txX + mm(2), boxY + pt(10.5));
+    }
+
+    x.fillStyle = ink; x.font = `900 ${pt(8)}px "PingFang HK","Microsoft JhengHei",sans-serif`;
+    x.fillText("預約編號：" + (CARD.booking_reference || "—"), txX, H - mm(4) - pt(4));
+
+    x.strokeStyle = "#cbd5e1"; x.setLineDash([4, 4]); x.beginPath();
+    x.moveTo(pad, H - mm(4) - pt(1)); x.lineTo(W - pad, H - mm(4) - pt(1)); x.stroke(); x.setLineDash([]);
+    x.fillStyle = "#475569"; x.font = `700 ${pt(6.6)}px "PingFang HK","Microsoft JhengHei",sans-serif`;
+    x.fillText("上堂前請向導師出示此卡 · 簽到後子女即時收到報平安通知", pad, H - mm(1.6));
+
+    cv.toBlob((blob) => {
+      if (!blob) return;
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `ZenPass-隨身卡-${CARD.booking_reference || "card"}.png`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    }, "image/png");
+  }
+
+  $("#printBtn").onclick = () => window.print();
+  $("#pngBtn").onclick = savePng;
+  $("#backBtn").onclick = () => history.length > 1 ? history.back() : (location.href = "my-bookings.html");
+  $("#printBtn").disabled = true; $("#pngBtn").disabled = true;
+
+  load().then(render).catch((e) => {
+    $("#sheet").innerHTML = `<div class="tips" style="color:#b91c1c;font-weight:800">⚠️ ${esc(e.message)}<br><br>請撳「返回」再試，或 WhatsApp 9033 5538。</div>`;
+  });
+})();
+</script>
+</body>
+</html>
