@@ -180,7 +180,9 @@ jobs:
           echo "Comparing $BASE..HEAD"
           CHANGED=$(git diff --name-only "$BASE" HEAD || true)
           echo "$CHANGED"
-          if echo "$CHANGED" | grep -qE '^(backend/|migrations/|deploy/|scripts/|package\.json|package-lock\.json)'; then
+          # 測試檔唔影響 runtime → 唔計入「需要重啟」
+          RUNTIME=$(echo "$CHANGED" | grep -vE '^backend/tests/' || true)
+          if echo "$RUNTIME" | grep -qE '^(backend/|migrations/|deploy/|scripts/|package\.json|package-lock\.json)'; then
             echo "mode=full" >> "$GITHUB_OUTPUT"
             echo "🛠 需要完整部署（後端有改動）"
           else

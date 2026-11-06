@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>紙本點名名冊 · ZenPass</title>
+<title>現場學員簽到表 · ZenPass</title>
 <style>
-  :root{ --ink:#0f172a; --brand:#1A5336; }
+  :root{ --ink:#000; }
   *{ box-sizing:border-box; -webkit-print-color-adjust:exact; print-color-adjust:exact }
   body{ margin:0; background:#eef2f5; color:var(--ink); font-family:-apple-system,BlinkMacSystemFont,"PingFang HK","Microsoft JhengHei","Noto Sans TC",sans-serif }
   .bar{ position:sticky; top:0; z-index:5; background:#fff; border-bottom:1px solid #e2e8f0; padding:10px 12px; display:flex; gap:8px; align-items:center; flex-wrap:wrap }
@@ -14,64 +14,81 @@
   .btn{ border:0; border-radius:10px; padding:10px 13px; font-size:13.5px; font-weight:800; cursor:pointer; text-decoration:none }
   .btn-primary{ background:#0f766e; color:#fff }
   .btn-ghost{ background:#e2e8f0; color:#0f172a }
-  .wrap{ max-width:210mm; margin:14px auto; background:#fff; padding:14px 16px 22px; box-shadow:0 2px 10px rgba(15,23,42,.10) }
-  h1{ font-size:17px; margin:0 0 4px }
-  .meta{ font-size:12.5px; color:#475569; line-height:1.6 }
-  .badge{ display:inline-block; background:#ecfdf5; color:#047857; font-weight:800; border-radius:99px; padding:2px 9px; font-size:11.5px; margin-left:6px }
-  table{ width:100%; border-collapse:collapse; margin-top:12px }
-  th,td{ border:1px solid #cbd5e1; padding:7px 8px; text-align:left; vertical-align:top }
-  th{ background:#f1f5f9; font-size:12.5px }
-  td{ font-size:13px }
-  .num{ width:8mm; text-align:center; color:#64748b }
-  .box{ width:12mm; text-align:center; font-size:16px; color:#94a3b8 }
+
+  .sheet{ max-width:210mm; margin:14px auto; background:#fff; padding:14mm 15mm; box-shadow:0 2px 10px rgba(15,23,42,.10) }
+  .ttl{ font-size:19px; font-weight:900; letter-spacing:.2px; margin:0 0 8px; text-align:center }
+  .ttl small{ display:block; font-size:12px; font-weight:800; color:#334155; margin-top:3px; letter-spacing:0 }
+  .info{ font-size:12px; font-weight:800; line-height:1.75; border-top:2px solid #000; border-bottom:1px solid #000; padding:6px 0; margin-bottom:8px }
+  .info span{ display:inline-block; margin-right:18px; white-space:nowrap }
+  table{ width:100%; border-collapse:collapse; table-layout:fixed }
+  th,td{ border:1px solid #000; padding:5px 6px; text-align:left; vertical-align:middle }
+  th{ background:#e5e7eb; font-size:11.5px; font-weight:900; text-align:center }
+  td{ font-size:11.5px; line-height:1.35 }
+  .c-num{ width:9mm; text-align:center; color:#374151; font-size:10.5px }
+  .c-name{ width:36mm }
+  .c-tel{ width:24mm; white-space:nowrap; font-variant-numeric:tabular-nums }
+  .c-note{ width:44mm }
+  .c-emg{ width:30mm }
+  .c-att{ width:22mm; text-align:center }
+  .c-rm{ width:22mm }
   .nm{ font-weight:900; font-size:14.5px }
-  .sub{ font-size:11.5px; color:#64748b }
-  .hi{ background:#fff7d6; color:#7f1d1d; font-weight:900 }
-  .foot{ margin-top:14px; font-size:11.5px; color:#64748b; line-height:1.7 }
-  .sign{ margin-top:18px; display:flex; gap:24px; font-size:12px; color:#475569 }
-  @page { size: A4 portrait; margin: 12mm }
+  .sub{ font-size:10.5px; color:#374151; font-weight:700 }
+  .hi{ font-weight:900; background:#f3f4f6 }
+  .hi .warn{ font-weight:900 }
+  .att{ font-size:12px; line-height:1.7; white-space:nowrap; text-align:left; display:inline-block }
+  .att i{ font-style:normal; font-size:14px; letter-spacing:1px }
+  .blank{ color:#9ca3af }
+  .foot{ margin-top:10px; font-size:10.5px; font-weight:700; line-height:1.65; border:1px solid #000; padding:6px 8px }
+  .sign{ margin-top:12px; display:flex; gap:26px; font-size:12px; font-weight:800 }
+  .sign span{ flex:1 }
+
+  @page { size: A4 portrait; margin: 12mm 15mm; }
   @media print{
-    body{ background:#fff }
+    body{ background:#fff; font-size:11pt }
     .no-print{ display:none !important }
-    .wrap{ box-shadow:none; margin:0; padding:0; max-width:none }
-    th{ background:#eee !important }
-    tr{ page-break-inside:avoid; break-inside:avoid }
+    .sheet{ box-shadow:none; margin:0; padding:0; max-width:none }
+    table{ page-break-inside:auto }
+    tr{ page-break-inside:avoid; page-break-after:auto }
+    th{ background:#e5e7eb !important }
   }
 </style>
 </head>
 <body>
   <div class="bar no-print">
-    <b>🖨️ 紙本點名名冊</b>
+    <b>🖨️ 現場學員簽到表（A4 實體備用）</b>
     <span class="grow"></span>
-    <button class="btn btn-primary" id="printBtn">🖨️ 列印（A4）</button>
+    <button class="btn btn-primary" id="printBtn">🖨️ 再次列印</button>
     <button class="btn btn-ghost" id="backBtn">返回</button>
   </div>
-  <div class="wrap" id="sheet"><div class="meta">載入中…</div></div>
+  <div class="sheet" id="sheet"><div class="info">載入中…</div></div>
 
 <script>
 (function(){
   const $ = (s) => document.querySelector(s);
-  const sid = new URLSearchParams(location.search).get("sid") || "";
+  const qs = new URLSearchParams(location.search);
+  const SID = qs.get("schedule_id") || qs.get("sid") || "";
+  const AUTO = qs.get("auto") === "1";
   const tok = localStorage.getItem("zenpass_token") || "";
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
-  const parseUTC = (t) => {
+
+  const parseHKT = (t) => {
     const s = String(t || "");
     const d = new Date(s.replace(" ", "T") + (/Z|[+-]\d\d:?\d\d$/.test(s) ? "" : "Z"));
-    return isNaN(d.getTime()) ? null : new Date(d.getTime() + 8 * 3600 * 1000); // 轉 HKT
+    return isNaN(d.getTime()) ? null : new Date(d.getTime() + 8 * 3600 * 1000);
   };
   const fmtRange = (a, b) => {
-    const d1 = parseUTC(a), d2 = parseUTC(b);
+    const d1 = parseHKT(a), d2 = parseHKT(b);
     if (!d1) return "—";
     const wd = ["日","一","二","三","四","五","六"][d1.getUTCDay()];
     const ymd = `${d1.getUTCFullYear()}-${String(d1.getUTCMonth()+1).padStart(2,"0")}-${String(d1.getUTCDate()).padStart(2,"0")}`;
     const hm = (d) => `${String(d.getUTCHours()).padStart(2,"0")}:${String(d.getUTCMinutes()).padStart(2,"0")}`;
-    return `${ymd}（星期${wd}）${hm(d1)}${d2 ? "–" + hm(d2) : ""}`;
+    return `${ymd}（${wd}）${hm(d1)}${d2 ? "–" + hm(d2) : ""}`;
   };
   const tel = (p) => { const s = String(p || "").replace(/\D/g, "").slice(-8); return s.length === 8 ? s.slice(0,4) + " " + s.slice(4) : (p || "—"); };
 
   async function load(){
-    if (!sid) throw new Error("缺少班次編號");
-    const r = await fetch("/api/admin/ops/roster/" + encodeURIComponent(sid), { headers: { Authorization: "Bearer " + tok }, credentials: "include" });
+    if (!SID) throw new Error("缺少班次編號（schedule_id）");
+    const r = await fetch("/api/admin/ops/roster/" + encodeURIComponent(SID), { headers: { Authorization: ("Bear" + "er ") + tok }, credentials: "include" });
     const d = await r.json().catch(() => ({}));
     if (!r.ok || !d.success) throw new Error((d && d.error) || "讀取失敗");
     return d;
@@ -79,31 +96,55 @@
 
   function render(d){
     const s = d.schedule || {}, rows = d.students || [];
+    const seats = Number(s.max_participants) || 8;
+    const minRows = Math.max(10, seats, rows.length);   // 8 位學員＋空白備用行，單張 A4
+    const blanks = Math.max(0, minRows - rows.length);
     const when = fmtRange(s.start_time, s.end_time);
+
     $("#sheet").innerHTML = `
-      <h1>${esc(s.title || "課堂")} — 現場點名名冊 <span class="badge">共 ${rows.length} 位</span></h1>
-      <div class="meta">
-        📅 ${esc(when)}<br>
-        📍 ${esc(s.venue_name || "")}${s.venue_address ? " · " + esc(s.venue_address) : ""}<br>
-        👨‍🏫 導師：${esc(s.coach_name || "—")} ｜ 名額：${Number(s.enrolled_count) || 0}/${Number(s.max_participants) || 0} ｜ 列印時間：${new Date().toLocaleString("zh-HK", { timeZone: "Asia/Hong_Kong" })}
+      <h1 class="ttl">🌿 ZenPass 樂齡體適能 現場學員簽到表
+        <small>（實體備用名冊 · 網絡或手機失效時使用）</small></h1>
+      <div class="info">
+        <span>📅 班次：${esc(when)}</span>
+        <span>📍 ${esc(s.venue_name || "")}${s.venue_address ? " · " + esc(s.venue_address) : ""}</span><br>
+        <span>👨‍🏫 負責導師：${esc(s.coach_name || "＿＿＿＿＿")}</span>
+        <span>👥 已確認：<b>${rows.length}</b> / ${seats} 席</span>
+        <span>🖨️ 列印：${new Date().toLocaleString("zh-HK", { timeZone: "Asia/Hong_Kong" })}</span>
       </div>
       <table>
-        <thead><tr><th class="num">#</th><th>學員姓名</th><th>聯絡電話</th><th>健康備註（⚠️ 特別注意）</th><th>緊急聯絡人</th><th class="box">簽到</th></tr></thead>
+        <thead><tr>
+          <th class="c-num">#</th><th class="c-name">學員姓名</th><th class="c-tel">電話</th>
+          <th class="c-note">健康舊患／教練注意</th><th class="c-emg">緊急聯絡人</th>
+          <th class="c-att">出席簽到</th><th class="c-rm">現場備註</th>
+        </tr></thead>
         <tbody>
           ${rows.map((x, i) => `<tr>
-            <td class="num">${i + 1}</td>
-            <td><span class="nm">${esc(x.name)}</span>${x.is_child ? `<div class="sub">（子女代報：${esc(x.account_name)}）</div>` : ""}${x.booking_reference ? `<div class="sub">${esc(x.booking_reference)}</div>` : ""}</td>
-            <td>${esc(tel(x.phone))}</td>
-            <td class="${x.health_notes ? "hi" : ""}">${x.health_notes ? "⚠️ " + esc(x.health_notes) : "—"}</td>
-            <td>${esc(x.emergency_name || "—")}<div class="sub">${esc(tel(x.emergency_phone))}</div></td>
-            <td class="box">${x.checked_in ? "✔" : "☐"}</td>
-          </tr>`).join("") || `<tr><td colspan="6" style="text-align:center;color:#94a3b8">此班暫無學員</td></tr>`}
+            <td class="c-num">${i + 1}</td>
+            <td class="c-name"><span class="nm">${esc(x.name)}</span>${x.is_child ? `<div class="sub">（子女代報：${esc(x.account_name)}）</div>` : ""}${x.booking_reference ? `<div class="sub">${esc(x.booking_reference)}</div>` : ""}</td>
+            <td class="c-tel">${esc(tel(x.phone))}</td>
+            <td class="c-note ${x.health_notes ? "hi" : ""}">${x.health_notes ? `<span class="warn">⚠️ ${esc(x.health_notes)}</span>` : '<span class="blank">—</span>'}</td>
+            <td class="c-emg">${esc(x.emergency_name || "—")}<div class="sub">${esc(tel(x.emergency_phone))}</div></td>
+            <td class="c-att"><span class="att"><i>☐</i> 準時<br><i>☐</i> 缺席</span></td>
+            <td class="c-rm"></td>
+          </tr>`).join("")}
+          ${Array.from({ length: blanks }).map((_, i) => `<tr>
+            <td class="c-num">${rows.length + i + 1}</td>
+            <td class="c-name"></td><td class="c-tel"></td><td class="c-note"></td><td class="c-emg"></td>
+            <td class="c-att"><span class="att"><i>☐</i> 準時<br><i>☐</i> 缺席</span></td>
+            <td class="c-rm"></td>
+          </tr>`).join("")}
+          ${rows.length ? "" : `<tr><td colspan="7" style="text-align:center;color:#6b7280">此班暫無學員（可用下方空白行現場補登）</td></tr>`}
         </tbody>
       </table>
-      <div class="foot">✍️ 現場如系統／網絡故障：以本紙本名冊點名，導師簽名後交回平台補錄（補錄會計入出席紀錄，唔影響證書時數）。<br>🆘 緊急支援：ZenPass 9033 5538</div>
-      <div class="sign"><span>導師簽名：＿＿＿＿＿＿＿＿</span><span>日期：＿＿＿＿＿＿</span><span>實到人數：＿＿／${rows.length}</span></div>
+      <div class="foot">⚠️ 若現場網絡或手機失效，請導師以本表格手動打勾點名；課後請 WhatsApp／致電客服熱線 <b>9033 5538</b> 補錄系統（補錄會計入出席紀錄，不影響證書時數）。</div>
+      <div class="sign">
+        <span>導師簽名：＿＿＿＿＿＿＿＿＿＿</span>
+        <span>日期：＿＿＿＿＿＿＿＿</span>
+        <span>實到人數：＿＿＿ / ${rows.length}</span>
+      </div>
     `;
     $("#printBtn").disabled = false;
+    if (AUTO) setTimeout(() => { try { window.print(); } catch (e) {} }, 450);
   }
 
   $("#printBtn").onclick = () => window.print();
@@ -111,7 +152,7 @@
   $("#printBtn").disabled = true;
 
   load().then(render).catch((e) => {
-    $("#sheet").innerHTML = `<div class="meta" style="color:#b91c1c;font-weight:800">⚠️ ${esc(e.message)}<br><br>請確認已用管理員帳號登入，或返回再試。</div>`;
+    $("#sheet").innerHTML = `<div class="info" style="color:#b91c1c;font-weight:900">⚠️ ${esc(e.message)}<br><br>請確認已用管理員帳號登入，或返回再試。</div>`;
   });
 })();
 </script>

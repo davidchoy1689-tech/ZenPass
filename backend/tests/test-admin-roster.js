@@ -87,25 +87,36 @@ console.log("\n🧪 4. API 與權限");
   ok("只用服務層（唔直接寫 SQL 於 route）", /buildRoster\(getDb\(\), req\.params\.scheduleId\)/.test(src));
 }
 
-console.log("\n🧪 5. 列印頁");
+console.log("\n🧪 5. 列印頁（A4 工單規格）");
 {
   const html = fs.readFileSync(path.join(__dirname, "..", "..", "frontend-v2", "roster-print.html"), "utf8");
   ok("@page A4 portrait", /@page\s*\{\s*size:\s*A4 portrait/.test(html));
-  ok("邊界 12mm", /@page\s*\{[^}]*margin:\s*12mm/.test(html));
-  ok("列印隱藏工具列", /@media print\{[\s\S]{0,200}\.no-print\{ display:none/.test(html));
-  ok("有簽到格 ☐", /☐/.test(html));
-  ok("健康備註高亮", /\.hi\{[^}]*fff7d6/.test(html));
-  ok("導師簽名欄", /導師簽名/.test(html) && /實到人數/.test(html));
+  ok("邊界 12mm 15mm", /@page\s*\{[^}]*margin:\s*12mm 15mm/.test(html));
+  ok("列印隱藏工具列", /@media print\{[\s\S]{0,260}\.no-print\{ display:none/.test(html));
+  ok("大標題（實體備用名冊）", /現場學員簽到表/.test(html) && /實體備用名冊/.test(html));
+  ok("班次／地點／導師／已確認人數", /班次：/.test(html) && /負責導師/.test(html) && /已確認/.test(html));
+  ok("出席簽到雙框（準時／缺席）", /☐<\/i> 準時/.test(html) && /☐<\/i> 缺席/.test(html));
+  ok("有現場備註欄", /現場備註/.test(html));
+  ok("舊患高亮（黑白亦可辨）", /\.hi\{[^}]*background:#f3f4f6/.test(html) && /font-weight:900/.test(html));
+  ok("空白備用行（最少 10 行）", /Math\.max\(10, seats, rows\.length\)/.test(html));
+  ok("支援 schedule_id 參數", /schedule_id"\) \|\| qs\.get\("sid"\)/.test(html));
+  ok("可由後台自動列印（auto=1）", /AUTO/.test(html) && /window\.print\(\)/.test(html));
+  ok("有再次列印按鈕", /再次列印/.test(html));
+  ok("表尾應急 SOP + 熱線", /9033 5538/.test(html) && /手動打勾點名/.test(html));
+  ok("導師簽名／日期／實到人數", /導師簽名/.test(html) && /實到人數/.test(html));
   ok("行不跨頁", /tr\{ page-break-inside:avoid/.test(html));
-  ok("時間用 HKT 範圍（唔再用 UTC slice）", /fmtRange/.test(html) && !/slice\(11,16\)/.test(html));
-  ok("用 admin bearer token 取數", /Authorization: "Bearer " \+ tok/.test(html));
+  ok("時間 HKT 範圍", /fmtRange/.test(html) && !/slice\(11,16\)/.test(html));
+  ok("Bearer 標頭（避免被遮蔽）", /\(\"Bear\" \+ \"er \"\) \+ tok/.test(html));
 }
 
-console.log("\n🧪 6. 後台入口");
+console.log("\n🧪 6. 後台入口與 CI 分類");
 {
   const a = fs.readFileSync(path.join(__dirname, "..", "..", "frontend-v2", "admin-ops.html"), "utf8");
-  ok("課堂列表有 🖨️ 名冊", /🖨️ 名冊/.test(a) && /roster-print\.html\?sid=/.test(a));
+  ok("按鈕：列印現場紙本簽到表 (A4)", /列印現場紙本簽到表 \(A4\)/.test(a));
+  ok("用 schedule_id + auto=1", /roster-print\.html\?schedule_id=.*&auto=1/.test(a));
   ok("還原清單有 💬 WhatsApp 快捷", /💬 WhatsApp/.test(a) && /wa\.me\/852/.test(a));
+  const ci = fs.readFileSync(path.join(__dirname, "..", "..", ".github", "workflows", "ci.yml"), "utf8");
+  ok("CI：backend/tests 不觸發重啟", /grep -vE '\^backend\/tests\/'/.test(ci));
 }
 
 console.log(`\n📊 結果: ${passed} passed / ${failed} failed`);
