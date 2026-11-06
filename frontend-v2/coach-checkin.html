@@ -74,7 +74,7 @@
   const DEMO_ROSTER = {
     schedule: { id: "demo", title: "樂齡深層伸展（示範）", venue: "青衣楓樹窩體育館", start_time: new Date(Date.now() - 20 * 60000).toISOString(), end_time: new Date(Date.now() + 70 * 60000).toISOString(), coach_name: "靜儀導師" },
     roster: [
-      { booking_id: "demo-1", booking_ids: ["demo-1"], seats: 1, attended: 0, no_show: 0, attendee_name: "陳伯伯", is_parent: true, sponsor_name: "陳小姐", phone_masked: "9876 ****", phone_tel: "tel:+85298765432", health_notes: "右膝微創手術，避免深蹲", status: "confirmed", payment_status: "paid", emergency_name: "女兒 Karen", emergency_tel: "tel:+85292345678" },
+      { booking_id: "demo-1", booking_ids: ["demo-1"], seats: 1, attended: 0, no_show: 0, attendee_name: "陳伯伯", is_parent: true, sponsor_name: "陳小姐", phone_masked: "9876 ****", phone_tel: "tel:+85298765432", health_notes: "右膝微創手術", status: "confirmed", payment_status: "paid", emergency_name: "女兒 Karen", emergency_tel: "tel:+85292345678" },
       { booking_id: "demo-2", booking_ids: ["demo-2"], seats: 1, attended: 0, no_show: 0, attendee_name: "李婆婆", is_parent: false, sponsor_name: null, phone_masked: "9123 ****", phone_tel: "tel:+85291234567", health_notes: "", status: "confirmed", payment_status: "paid", emergency_name: null, emergency_tel: null },
       { booking_id: "demo-3", booking_ids: ["demo-3", "demo-4"], seats: 2, attended: 0, no_show: 0, attendee_name: "黃先生", is_parent: false, sponsor_name: null, phone_masked: "6345 ****", phone_tel: "tel:+85263456789", health_notes: "肩周炎，避免過頭動作", status: "confirmed", payment_status: "paid", emergency_name: null, emergency_tel: null }
     ]
@@ -237,10 +237,10 @@
     if (!r.ok && (r.status === 0 || r.status >= 500)) { enqueue(null, "checkin", qr); return { queued: true }; }
     return r;
   }
-  function banner(text) {
+  function banner(text, ms) {
     scanBanner.textContent = text;
     scanBanner.style.display = "block";
-    setTimeout(() => { scanBanner.style.display = "none"; }, 2200);
+    setTimeout(() => { scanBanner.style.display = "none"; }, ms || 1500);
   }
   async function startScan() {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { toast("此瀏覽器不支援鏡頭"); return; }
@@ -279,14 +279,14 @@
           if (navigator.vibrate) navigator.vibrate(100);
           checkinByQr(qr).then((r) => {
             if (!r) return;
-            if (r.queued) { banner("📥 已暫存，網絡恢復自動補簽"); }
+            if (r.queued) { banner("📥 已暫存，網絡恢復自動補簽", 2600); }
             else if (r.ok) {
               const g = (ROSTER ? ROSTER.roster : []).find((x) => x.booking_ids && x.booking_ids.includes(qr.split(":")[2]));
               banner(`✅ ${g ? g.attendee_name : "學員"} 簽到成功${g && g.health_notes ? "（⚠️ " + g.health_notes + "）" : ""}`);
               if (r.data.sponsor && r.data.sponsor.wa_url) window.open(r.data.sponsor.wa_url, "_blank");
               load();
             } else {
-              banner("❌ " + (r.data.error || "簽到失敗"));
+              banner("❌ " + (r.data.error || "簽到失敗"), 2600);
             }
             setTimeout(() => { scanning = true; tick(); }, 1500);
           });
