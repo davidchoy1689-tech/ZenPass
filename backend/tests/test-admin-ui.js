@@ -20,7 +20,7 @@ console.log("\n🧪 1. 頂部四張指標卡");
   ok("進度條 ≥75% 轉橙", /bar\.warn i\{background:#f59e0b\}/.test(ops));
   ok("待核款卡有 pulse", /\.pulse\{/.test(ops) && /@keyframes pulse/.test(ops) && /className = "pulse"/.test(ops));
   ok("營業額卡", /id="stRev"/.test(ops));
-  ok("系統狀態卡（API/DB）", /id="stSys"/.test(ops) && /api\/health/.test(ops));
+  ok("系統狀態卡（API/DB）", /id="stSys"/.test(ops) && /api\/health/.test(ops) && /hd\.database && hd\.database\.connected/.test(ops));
   ok("載入時會計數", /async function loadStats/.test(ops) && /await loadStats\(\);/.test(ops));
   ok("12/12 班次識別", /2026-12-12/.test(ops));
   ok("手機 2 欄", /@media \(max-width:820px\)\{ \.statgrid\{grid-template-columns:1fr 1fr\}/.test(ops));

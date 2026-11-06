@@ -371,10 +371,13 @@
         // 營業額
         const gmv = (ov && ov.ok && ov.data && ov.data.finance && ov.data.finance.gmv) || 0;
         $("stRev").textContent = hkd(gmv);
-        // 系統
-        const ok = h && h.status === "ok" && h.db;
+        // 系統（/api/health 回 {success,data:{status,database:{connected},uptime_human}}）
+        const hd = (h && h.data) ? h.data : (h || {});
+        const ok = hd.status === "ok" && !!(hd.database && hd.database.connected);
         $("stSys").textContent = ok ? "全線正常" : "異常";
-        $("stSysSub").textContent = ok ? "API · DB · Scheduler 運行中" : "請檢查 API／DB";
+        $("stSysSub").textContent = ok
+          ? ("API · DB " + (hd.database.tables ? hd.database.tables + " 表" : "") + (hd.uptime_human ? " · 運行 " + hd.uptime_human : ""))
+          : "請檢查 API／DB";
         $("stSysDot").className = "dot" + (ok ? "" : " bad");
       } catch (e) {
         $("stSys").textContent = "—";
