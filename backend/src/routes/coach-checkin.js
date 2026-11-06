@@ -55,6 +55,8 @@ function ensureParentCols(db) {
       ["parent_phone", "TEXT"],
       ["notify_sponsor_on_checkin", "INTEGER DEFAULT 0"],
       ["attendee_type", "TEXT DEFAULT 'self'"],
+      ["coach_tags", "TEXT"],
+      ["coach_tags_at", "TEXT"],
     ].forEach(([n, t]) => { if (!cols.includes(n)) db.prepare(`ALTER TABLE bookings ADD COLUMN ${n} ${t}`).run(); });
   } catch (e) { console.error("[COACH-CHECKIN] parent cols:", e.message); }
 }
@@ -90,6 +92,8 @@ function groupByUser(rows) {
       emergency_name: r.emergency_name, emergency_phone: r.emergency_phone,
       health_notes: r.medical_notes || "", status: r.status, payment_status: r.payment_status,
       booking_id: r.id,
+      coach_tags: (() => { try { return r.coach_tags ? JSON.parse(r.coach_tags) : []; } catch (e) { return []; } })(),
+      coach_tags_at: r.coach_tags_at || null,
     };
     g.booking_ids.push(r.id);
     g.seats += 1;
@@ -106,10 +110,13 @@ function groupByUser(rows) {
 }
 
 function rosterRows(db, scheduleId) {
+  let hasTags = false;
+  try { hasTags = db.prepare("PRAGMA table_info(bookings)").all().some((c) => c.name === "coach_tags"); } catch (e) {}
+  const tagSel = hasTags ? "b.coach_tags, b.coach_tags_at" : "NULL AS coach_tags, NULL AS coach_tags_at";
   return db
     .prepare(
       `SELECT b.id, b.user_id, b.status, b.payment_status, b.attendee_type, b.parent_name, b.parent_phone,
-              b.medical_notes, u.name, u.phone, u.emergency_name, u.emergency_phone
+              b.medical_notes, ${tagSel}, u.name, u.phone, u.emergency_name, u.emergency_phone
          FROM bookings b JOIN users u ON u.id=b.user_id
         WHERE b.schedule_id=? AND b.status IN ('confirmed','pending_payment','attended','no_show')
         ORDER BY u.name`,
@@ -265,6 +272,69 @@ router.post("/coach/checkin", express.json(), (req, res) => {
     if (e && e.code) return res.status(409).json({ success: false, code: e.code, error: e.message });
     console.error("[COACH-CHECKIN] action:", e.message);
     res.status(500).json({ success: false, error: "操作失敗" });
+  }
+});
+
+
+// ===== POST /api/coach/checkin/tags — 課後 10 秒速評 =====
+const TAG_KEYS = ["energetic", "moves_well", "tight"];
+const TAG_LABEL = { energetic: "😊 精神好", moves_well: "💪 動作跟到", tight: "⚠️ 筋膜偏緊" };
+
+router.post("/coach/checkin/tags", (req, res) => {
+  const ip = ipOf(req);
+  if (blocked(ip)) return res.status(429).json({ success: false, error: "嘗試次數過多，請 15 分鐘後再試" });
+  try {
+    const db = getDb();
+    ensureParentCols(db);
+    const ctx = loadContext(db, (req.body || {}).token);
+    if (ctx.error) { fail(ip); return res.status(403).json({ success: false, code: ctx.error, error: "連結無效或已過期" }); }
+    reset(ip);
+
+    const bookingId = String((req.body || {}).booking_id || "");
+    const rawTags = Array.isArray((req.body || {}).tags) ? req.body.tags : [];
+    const tags = [...new Set(rawTags.filter((t) => TAG_KEYS.includes(t)))].slice(0, 3);
+    if (!tags.length) return res.status(400).json({ success: false, error: "請最少揀一個標籤" });
+
+    const b = db
+      .prepare(
+        `SELECT b.id, b.user_id, b.schedule_id, b.status, b.attendee_type, b.child_name, b.parent_name,
+                u.name, c.title
+           FROM bookings b JOIN users u ON u.id=b.user_id JOIN classes c ON c.id=b.class_id
+          WHERE b.id=?`,
+      )
+      .get(bookingId);
+    if (!b || b.schedule_id !== ctx.schedule.id) return res.status(404).json({ success: false, error: "此班冇呢位學員" });
+    if (b.status === "cancelled") return res.status(409).json({ success: false, error: "已取消預約唔可以評分" });
+
+    db.prepare("UPDATE bookings SET coach_tags=?, coach_tags_at=datetime('now') WHERE id=?").run(JSON.stringify(tags), b.id);
+
+    const student = b.parent_name || b.child_name || b.name || "學員";
+    try {
+      db.prepare(
+        `INSERT INTO audit_log (id, action_type, entity_type, entity_id, user_id, new_values, description, created_at)
+         VALUES (?,?,?,?,?,?,?,datetime('now'))`,
+      ).run(uuidv4(), "coach.feedback", "booking", b.id, ctx.v.coachId,
+        JSON.stringify({ tags, labels: tags.map((t) => TAG_LABEL[t]) }),
+        `課後速評：${student}（${tags.map((t) => TAG_LABEL[t]).join("、")}）`);
+    } catch (e) {}
+
+    // 通知家長（站內 + Push；冇 Push 就靠 my-bookings 顯示）
+    try {
+      const { sendNotification } = require("../services/notification");
+      sendNotification("coach.feedback", {
+        recipient: b.user_id,
+        data: {
+          student_name: student,
+          class_title: b.title || ctx.schedule.title || "",
+          labels: tags.map((t) => TAG_LABEL[t]),
+        },
+      }).catch(() => {});
+    } catch (e) {}
+
+    res.json({ success: true, booking_id: b.id, tags, labels: tags.map((t) => TAG_LABEL[t]) });
+  } catch (e) {
+    console.error("[COACH-CHECKIN] tags:", e.message);
+    res.status(500).json({ success: false, error: "提交失敗" });
   }
 });
 

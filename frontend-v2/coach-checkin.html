@@ -52,6 +52,9 @@
     </div>
     <div class="prog"><i id="bar"></i></div>
     <div class="stat"><span id="stat">已到 0 / 0</span><span id="pending"></span></div>
+    <div id="tagBar" style="display:none;padding:0 16px 10px">
+      <button id="submitTags" style="width:100%;min-height:46px;border:0;border-radius:12px;background:#1A5336;color:#fff;font-weight:900;font-size:15px">📤 提交課後簡評（<span id="tagCount">0</span> 位）</button>
+    </div>
   </header>
 
   <main class="wrap" id="list"><div class="empty">載入中…</div></main>
@@ -151,17 +154,62 @@
         ${g.health_notes ? `<div class="warn">⚠️ ${esc(g.health_notes)}</div>` : ""}
         <div class="meta">📱 ${g.phone_tel ? `<a href="${g.phone_tel}">${esc(g.phone_masked)}</a>` : esc(g.phone_masked || "—")}
           ${g.emergency_tel ? ` · 緊急：<a href="${g.emergency_tel}">${esc(g.emergency_name || "聯絡人")}</a>` : ""}</div>
+        ${g.attended > 0 ? `<div class="tagrow" style="display:flex;gap:6px;margin:8px 0 2px;flex-wrap:wrap">
+          ${[["energetic","😊 精神好"],["moves_well","💪 動作跟到"],["tight","⚠️ 筋膜偏緊"]].map(([k,l]) =>
+            `<button data-tag="${k}" data-bid="${g.booking_id}" style="min-height:38px;padding:0 12px;border-radius:99px;font-size:13px;font-weight:800;border:1.5px solid ${(g.coach_tags||[]).includes(k) ? "#1A5336" : "#cbd5e1"};background:${(g.coach_tags||[]).includes(k) ? "#1A5336" : "#fff"};color:${(g.coach_tags||[]).includes(k) ? "#fff" : "#0f172a"}">${l}</button>`).join("")}
+        </div>` : ""}
         <div class="acts">
           <button class="btn primary" data-act="in" data-bid="${g.booking_id}" ${done || absent ? "disabled" : ""}>${done ? "✅ 已簽到" : "✅ 點名簽到"}</button>
           <button class="btn ghost" data-act="no" data-bid="${g.booking_id}" ${done || absent ? "disabled" : ""}>❌ 缺席</button>
         </div>
       </div>`;
     }).join("");
+    updateTagBar();
   }
 
   function esc(s) {
     return String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   }
+
+  $("list").addEventListener("click", (e) => {
+    const tb = e.target.closest("button[data-tag]");
+    if (!tb) return;
+    const g = ROSTER && ROSTER.roster.find((x) => x.booking_id === tb.dataset.bid);
+    if (!g) return;
+    g.coach_tags = g.coach_tags || [];
+    const k = tb.dataset.tag;
+    g.coach_tags = g.coach_tags.includes(k) ? g.coach_tags.filter((x) => x !== k) : [...g.coach_tags, k].slice(0, 3);
+    g.__dirty = true;
+    if (navigator.vibrate) navigator.vibrate(15);
+    render();
+  });
+  function updateTagBar() {
+    const n = (ROSTER ? ROSTER.roster : []).filter((g) => g.__dirty).length;
+    const bar = $("tagBar");
+    if (bar) bar.style.display = n ? "" : "none";
+    const c = $("tagCount"); if (c) c.textContent = String(n);
+  }
+  const _submit = $("submitTags");
+  if (_submit) _submit.onclick = async () => {
+    const list = (ROSTER ? ROSTER.roster : []).filter((g) => g.__dirty && (g.coach_tags || []).length);
+    if (!list.length) return;
+    _submit.disabled = true; _submit.textContent = "提交中…";
+    let okCount = 0, fail = 0;
+    for (const g of list) {
+      try {
+        const r = await fetch("/api/coach/checkin/tags", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token: TOKEN, booking_id: g.booking_id, tags: g.coach_tags }),
+        });
+        if (r.ok) { g.__dirty = false; okCount++; } else fail++;
+      } catch (e) { fail++; }
+    }
+    _submit.disabled = false;
+    _submit.textContent = "📤 提交課後簡評";
+    updateTagBar();
+    toast(fail ? `已提交 ${okCount} 位，${fail} 位失敗（可再撳）` : `✅ 已提交 ${okCount} 位課後簡評`);
+  };
 
   $("list").addEventListener("click", async (e) => {
     const btn = e.target.closest("button[data-act]");

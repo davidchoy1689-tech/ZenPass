@@ -28,6 +28,8 @@ function buildRoster(db, scheduleId) {
 
   const cols = (t, list, alias = "b") => list.map((n) => (hasCol(db, t, n) ? `${alias}.${n}` : "NULL"));
   const ucols = cols("users", ["emergency_name", "emergency_phone"], "u");
+  const hasBirth = hasCol(db, "users", "birth_year");
+  const birthSel = hasBirth ? "u.birth_year" : "NULL AS birth_year";
   const [childName, parentName, parentPhone, medical, checkedIn, attendee] = cols("bookings", [
     "child_name", "parent_name", "parent_phone", "medical_notes", "checked_in_at", "attendee_type",
   ]);
@@ -41,6 +43,7 @@ function buildRoster(db, scheduleId) {
               ${attendee} AS attendee_type,
               ${checkedIn} AS checked_in_at,
               u.name AS account_name,
+              ${birthSel},
               ${ucols[0]} AS emergency_name,
               COALESCE(${ucols[1]}, ${hasCol(db, "bookings", "emergency_phone") ? "b.emergency_phone" : "NULL"}) AS emergency_phone
          FROM bookings b
@@ -50,6 +53,7 @@ function buildRoster(db, scheduleId) {
     )
     .all(sid);
 
+  const thisYear = new Date().getFullYear();
   const students = rows.map((r) => ({
     booking_id: r.id,
     booking_reference: r.booking_reference || "",
@@ -63,6 +67,7 @@ function buildRoster(db, scheduleId) {
     checked_in: !!r.checked_in_at,
     is_child: String(r.attendee_type || "") === "parent",
     account_name: r.account_name || "",
+    is_senior: String(r.attendee_type || "") === "parent" || (r.birth_year ? thisYear - Number(r.birth_year) >= 60 : false),
   }));
 
   return {

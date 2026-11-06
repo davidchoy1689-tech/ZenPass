@@ -123,7 +123,7 @@
         <tbody>
           ${rows.map((x, i) => `<tr>
             <td class="c-num">${i + 1}</td>
-            <td class="c-name"><span class="nm">${esc(x.name)}</span>${x.health_notes ? ` <span class="tag">⚠️ 舊患</span>` : ""}${x.is_child ? `<div class="sub">（子女代報：${esc(x.account_name)}）</div>` : ""}${x.booking_reference ? `<div class="sub">${esc(x.booking_reference)}</div>` : ""}</td>
+            <td class="c-name"><span class="nm">${esc(x.name)}</span> <span class="tag" style="background:${x.is_senior ? "#e0f2fe" : "#f1f5f9"};color:${x.is_senior ? "#075985" : "#334155"};border-color:${x.is_senior ? "#bae6fd" : "#cbd5e1"}">${x.is_senior ? "🧓 樂齡" : "🧑 成人"}</span>${x.health_notes ? ` <span class="tag">⚠️ 舊患</span>` : ""}${x.is_child ? `<div class="sub">（子女代報：${esc(x.account_name)}）</div>` : ""}${x.booking_reference ? `<div class="sub">${esc(x.booking_reference)}</div>` : ""}</td>
             <td class="c-tel">${esc(tel(x.phone))}</td>
             <td class="c-note ${x.health_notes ? "hi" : ""}">${x.health_notes ? `<span class="warn">⚠️ ${esc(x.health_notes)}</span>` : '<span class="blank">—</span>'}</td>
             <td class="c-emg">${esc(x.emergency_name || "—")}<div class="sub">${esc(tel(x.emergency_phone))}</div></td>

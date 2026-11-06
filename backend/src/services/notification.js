@@ -293,6 +293,11 @@ async function sendNotification(type, payload) {
       message = `你聽日有堂！\n課程：${data?.class_title || "—"}\n日期：${data?.date || "—"} ${data?.time || "—"}\n場地：${data?.venue || "—"}\n記得準時出席，並喺現場簽到。`;
       html = `<h2>📅 明日課堂提醒</h2><p><b>課程：</b>${data?.class_title || "—"}<br><b>日期：</b>${data?.date || "—"} ${data?.time || "—"}<br><b>場地：</b>${data?.venue || "—"}</p>`;
       break;
+    case "coach.feedback":
+      title = "📝 導師課後評語";
+      message = `學員：${data?.student_name || "—"}\n課堂：${data?.class_title || "—"}\n導師觀察：${(data?.labels || []).join("　") || "—"}`;
+      html = `<h2>📝 導師課後評語</h2><p><b>學員：</b>${data?.student_name || "—"}<br><b>課堂：</b>${data?.class_title || "—"}</p><p style="font-size:18px">${(data?.labels || []).join("　")}</p>`;
+      break;
     case "booking.reminder_1h":
       title = "⏰ 一小時後上堂";
       message = `你嘅課堂一小時後開始！\n課程：${data?.class_title || "—"}\n時間：${data?.date || ""} ${data?.time || ""}\n場地：${data?.venue || "—"}`;

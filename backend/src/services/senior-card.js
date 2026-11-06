@@ -50,7 +50,7 @@ function loadBookingCard(db, bookingId) {
               COALESCE(NULLIF(b.parent_phone,''), u.phone) AS student_phone,
               u.name AS account_name, u.gender, u.birth_year,
               u.emergency_name AS user_emergency_name, u.emergency_phone AS user_emergency_phone,
-              c.title AS class_title, c.venue_name, c.venue_address,
+              c.title AS class_title, c.venue_name, c.venue_address, c.latitude, c.longitude,
               cs.start_time, cs.end_time
          FROM bookings b
          JOIN users u ON u.id = b.user_id
@@ -66,6 +66,7 @@ function loadBookingCard(db, bookingId) {
   const suffix = honorific(b.gender, b.birth_year);
   const displayName = suffix ? `${studentName} ${suffix}` : studentName;
   const when = hktParts(b.start_time);
+  const ends = hktParts(b.end_time);
 
   const emergencyName = b.user_emergency_name || b.emergency_name || (isChild ? b.account_name : "") || "家人";
   const emergencyPhone = b.user_emergency_phone || b.emergency_phone || b.student_phone || "";
@@ -81,8 +82,11 @@ function loadBookingCard(db, bookingId) {
     date: when.date,
     weekday: when.weekday,
     time: when.time,
+    end_time: ends.time,
     venue_name: b.venue_name || "",
     venue_address: b.venue_address || "",
+    venue_lat: b.latitude || null,
+    venue_lng: b.longitude || null,
     route_hint: setting(db, "card.route_hint", "請預留 10 分鐘步行時間，提前 15 分鐘到達場地"),
     emergency_name: emergencyName,
     emergency_phone: emergencyPhone,
