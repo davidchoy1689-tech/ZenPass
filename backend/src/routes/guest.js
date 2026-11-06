@@ -135,7 +135,7 @@ router.post("/claim-payment", (req, res) => {
   try {
     const db = getDb();
     const { token, booking_id } = req.body || {};
-    const sess = db.prepare("SELECT user_id FROM guest_sessions WHERE token=*** AND expires_at > datetime('now')").get(String(token || ""));
+    const sess = db.prepare("SELECT user_id FROM guest_sessions WHERE token=? AND expires_at > datetime('now')").get(String(token || ""));
     if (!sess) return res.status(401).json({ success: false, error: "訪客登入已過期" });
     const b = db.prepare("SELECT user_id FROM bookings WHERE id=?").get(String(booking_id || ""));
     if (!b || b.user_id !== sess.user_id) return res.status(404).json({ success: false, error: "找不到預約" });
@@ -147,13 +147,34 @@ router.post("/claim-payment", (req, res) => {
 });
 
 // ===== GET /api/guest/booking-qr?token=&booking_id= — 入場簽到 QR =====
+// ===== GET /api/guest/booking-card?token=&booking_id= — 長者隨身簽到卡 =====
+router.get("/booking-card", async (req, res) => {
+  try {
+    const db = getDb();
+    const token = String(req.query.token || "");
+    const bookingId = String(req.query.booking_id || "");
+    if (!token || !bookingId) return res.status(400).json({ success: false, error: "缺少參數" });
+    const sess = db.prepare("SELECT user_id FROM guest_sessions WHERE token=? AND expires_at > datetime('now')").get(token);
+    if (!sess) return res.status(401).json({ success: false, error: "訪客登入已過期" });
+    const b = db.prepare("SELECT id,user_id FROM bookings WHERE id=?").get(bookingId);
+    if (!b || b.user_id !== sess.user_id) return res.status(404).json({ success: false, error: "找不到預約" });
+    const { buildCard } = require("../services/senior-card");
+    const card = await buildCard(b.id);
+    if (!card) return res.status(404).json({ success: false, error: "找不到預約" });
+    res.json({ success: true, card });
+  } catch (e) {
+    console.error("[GUEST CARD]", e.message);
+    res.status(500).json({ success: false, error: "產生隨身卡失敗" });
+  }
+});
+
 router.get("/booking-qr", (req, res) => {
   try {
     const db = getDb();
     const token = String(req.query.token || "");
     const bookingId = String(req.query.booking_id || "");
     if (!token || !bookingId) return res.status(400).json({ success: false, error: "缺少參數" });
-    const sess = db.prepare("SELECT user_id FROM guest_sessions WHERE token=*** AND expires_at > datetime('now')").get(token);
+    const sess = db.prepare("SELECT user_id FROM guest_sessions WHERE token=? AND expires_at > datetime('now')").get(token);
     if (!sess) return res.status(401).json({ success: false, error: "訪客登入已過期" });
     const b = db.prepare("SELECT id,user_id FROM bookings WHERE id=?").get(bookingId);
     if (!b || b.user_id !== sess.user_id) return res.status(404).json({ success: false, error: "找不到預約" });

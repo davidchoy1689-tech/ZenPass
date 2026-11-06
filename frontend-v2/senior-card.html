@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>長者隨身簽到卡 · ZenPass</title>
+<style>
+  :root{ --ink:#0f172a; --brand:#1A5336; --warn-bg:#fff7d6; --warn:#b91c1c; }
+  *{ box-sizing:border-box; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  body{ margin:0; background:#eef2f5; font-family:"PingFang HK","Microsoft JhengHei","Noto Sans TC",system-ui,sans-serif; color:var(--ink); }
+  .topbar{ position:sticky; top:0; z-index:5; background:#fff; border-bottom:1px solid #e2e8f0; padding:12px 14px; display:flex; gap:8px; align-items:center; }
+  .topbar b{ font-size:15px }
+  .topbar .grow{ flex:1 }
+  .btn{ border:0; border-radius:12px; padding:11px 14px; font-size:14px; font-weight:800; cursor:pointer; }
+  .btn-primary{ background:#0f766e; color:#fff }
+  .btn-ghost{ background:#e2e8f0; color:#0f172a }
+  .hint{ font-size:12px; color:#475569; padding:10px 14px; line-height:1.6 }
+  .stage{ padding:14px; display:flex; flex-direction:column; gap:14px; align-items:center }
+
+  /* ===== 卡片本體：90mm × 54mm ===== */
+  .card{
+    width:90mm; height:54mm; background:#fff; border-radius:2mm; overflow:hidden;
+    position:relative; box-shadow:0 2px 10px rgba(15,23,42,.14);
+    display:flex; flex-direction:column;
+  }
+  .card .pad{ padding:2.6mm 3mm 2mm; display:flex; flex-direction:column; height:100% }
+  .rowtop{ display:flex; align-items:baseline; justify-content:space-between; gap:2mm }
+  .brand{ font-size:8.2pt; font-weight:900; color:var(--brand); letter-spacing:.2px; white-space:nowrap }
+  .batch{ font-size:6.6pt; color:#475569; font-weight:700; text-align:right; white-space:nowrap }
+  .rule{ height:.4mm; background:var(--brand); opacity:.18; margin:1.2mm 0 1.6mm }
+
+  .main{ display:flex; gap:2.6mm; flex:1; min-height:0 }
+  .qrwrap{ width:32mm; flex:none; text-align:center }
+  .qrbox{ width:32mm; height:32mm; background:#fff; border:.3mm solid #e2e8f0; border-radius:1.2mm; padding:1mm; display:flex; align-items:center; justify-content:center }
+  .qrbox img{ width:100%; height:100%; object-fit:contain; image-rendering:pixelated }
+  .qrlabel{ font-size:5.6pt; color:#64748b; margin-top:.8mm; font-weight:700 }
+
+  .who{ flex:1; min-width:0; display:flex; flex-direction:column }
+  .name{ font-size:20pt; font-weight:900; line-height:1.05; letter-spacing:.4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
+  .name small{ font-size:11pt; font-weight:800; margin-left:1mm }
+  .meta{ font-size:6.4pt; color:#334155; font-weight:700; margin-top:.8mm; white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
+  .warn{ margin-top:1.4mm; background:var(--warn-bg); border-left:1mm solid var(--warn); border-radius:1mm; padding:1.1mm 1.6mm; font-size:7.4pt; font-weight:900; color:#7f1d1d; line-height:1.25; display:flex; gap:1mm; align-items:flex-start }
+  .warn .ic{ color:var(--warn); flex:none }
+  .warn .tx{ display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden }
+  .nohurt{ margin-top:1.4mm; font-size:6.6pt; color:#166534; font-weight:800 }
+
+  .foot{ margin-top:1.2mm; border-top:.3mm dashed #cbd5e1; padding-top:1mm; font-size:5.8pt; color:#475569; font-weight:700; letter-spacing:.15px; display:flex; justify-content:space-between; gap:2mm }
+  .foot .ref{ font-weight:900; color:#0f172a; white-space:nowrap }
+
+  /* ===== 背面 ===== */
+  .btitle{ font-size:7.4pt; font-weight:900; color:var(--brand); display:flex; align-items:center; gap:1mm }
+  .brow{ font-size:7pt; line-height:1.28; margin-top:.6mm; color:#1e293b; font-weight:700 }
+  .brow b{ font-weight:900 }
+  .emerg{ margin-top:1mm; background:#fef2f2; border-radius:1.2mm; padding:1.2mm 1.8mm; border:.3mm solid #fecaca }
+  .emerg .lab{ font-size:6pt; color:#991b1b; font-weight:800 }
+  .emerg .pn{ font-size:14pt; font-weight:900; color:#7f1d1d; letter-spacing:.6px; line-height:1.1 }
+  .emerg .nm{ font-size:6.6pt; color:#7f1d1d; font-weight:800 }
+  .backfoot{ margin-top:auto; font-size:5.6pt; color:#475569; line-height:1.3 }
+
+  .spacerA4{ height:0 }
+
+  /* ===== 列印 ===== */
+  @page { size:90mm 54mm; margin:0 }
+  @media print{
+    html,body{ background:#fff }
+    .topbar,.hint,.stage>.cardtitle,.no-print{ display:none !important }
+    .stage{ padding:0; gap:0; display:block }
+    .card{ box-shadow:none; border-radius:0; width:90mm; height:54mm; break-after:page; page-break-after:always }
+    .card:last-child{ break-after:auto; page-break-after:auto }
+  }
+  @media (max-width:420px){ .card{ transform:scale(.92); transform-origin:top center } }
+  .cardtitle{ font-size:12px; font-weight:800; color:#475569; align-self:flex-start; margin-left:2px }
+</style>
+</head>
+<body>
+  <div class="topbar no-print">
+    <b>📄 長者隨身簽到卡</b>
+    <span class="grow"></span>
+    <button class="btn btn-primary" id="printBtn">🖨️ 列印 / 存 PDF</button>
+    <button class="btn btn-ghost" id="backBtn">返回</button>
+  </div>
+  <div class="hint no-print" id="hint">列印設定：紙張選 <b>100%</b>（唔好揀「Fit to page」），雙面或分兩張紙均可；沿邊剪下即成 90×54mm 卡片，可放入八達通套。</div>
+  <div class="stage" id="stage"><div class="hint">載入中…</div></div>
+
+<script>
+(function(){
+  const $ = (s) => document.querySelector(s);
+  const qs = new URLSearchParams(location.search);
+  const ID = qs.get("id") || qs.get("booking_id") || "";
+  const GUEST = qs.get("token") || "";
+  const DEMO = qs.get("demo") === "1";
+  const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+
+  const DEMO_CARD = {
+    booking_reference: "ZP-1212-003",
+    display_name: "陳大文 伯伯",
+    student_name: "陳大文",
+    salute: "伯伯",
+    health_notes: "右膝微創手術（避免深蹲）",
+    class_title: "樂齡深層伸展（示範）",
+    date: "2026-12-12", weekday: "星期六", time: "10:30",
+    venue_name: "青衣楓樹窩體育館", venue_address: "青衣楓樹窩路 1 號 1 樓活動室",
+    route_hint: "青衣站 B 出口 → 天橋步行約 8 分鐘",
+    emergency_name: "陳小明（兒子）", emergency_phone: "9876 5432",
+    support_phone: "9033 5538",
+    qr: { data_url: "/api/qr?raw=1&size=420&text=" + encodeURIComponent("zenpass:checkin:demo-1:abcdefghij") },
+  };
+
+  async function load(){
+    if (DEMO) return DEMO_CARD;
+    let url, headers = {};
+    if (GUEST) {
+      url = "/api/guest/booking-card?token=" + encodeURIComponent(GUEST) + "&booking_id=" + encodeURIComponent(ID);
+    } else {
+      if (!ID) throw new Error("缺少預約編號");
+      url = "/api/bookings/" + encodeURIComponent(ID) + "/card";
+      const tok = localStorage.getItem("zenpass_token") || "";
+      if (tok) headers.Authorization = "Bearer " + tok;
+    }
+    const r = await fetch(url, { headers, credentials: "include" });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok || !d.card) throw new Error((d && d.error) || "讀取失敗");
+    return d.card;
+  }
+
+  const fmtPhone = (p) => { const s = String(p || "").replace(/\D/g, "").slice(-8); return s.length === 8 ? s.slice(0,4) + " " + s.slice(4) : String(p || "—"); };
+
+  function front(c){
+    const qr = (c.qr && (c.qr.data_url || c.qr.payload)) || "";
+    const qrSrc = qr.startsWith("zenpass:") ? "/api/qr?raw=1&size=420&text=" + encodeURIComponent(qr) : qr;
+    return `
+    <section class="card" aria-label="正面">
+      <div class="pad">
+        <div class="rowtop">
+          <div class="brand">🌿 ZenPass 樂齡體適能</div>
+          <div class="batch">${esc(c.date || "")} ${esc(c.weekday || "")} ${esc(c.time || "")}</div>
+        </div>
+        <div class="rule"></div>
+        <div class="main">
+          <div class="qrwrap">
+            <div class="qrbox">${qrSrc ? `<img src="${esc(qrSrc)}" alt="簽到 QR" />` : "▦"}</div>
+            <div class="qrlabel">專屬簽到</div>
+          </div>
+          <div class="who">
+            <div class="name">${esc(c.student_name || "學員")}${c.salute ? `<small>${esc(c.salute)}</small>` : ""}</div>
+            <div class="meta">${esc(c.class_title || "")}</div>
+            ${c.health_notes
+              ? `<div class="warn"><span class="ic">⚠️</span><span class="tx">${esc(c.health_notes)}</span></div>`
+              : `<div class="nohurt">✅ 無特別健康備註</div>`}
+          </div>
+        </div>
+        <div class="foot"><span>上堂出示此卡 · 簽到後子女即時收到報平安</span><span class="ref">${esc(c.booking_reference || "")}</span></div>
+      </div>
+    </section>`;
+  }
+
+  function back(c){
+    return `
+    <section class="card" aria-label="背面">
+      <div class="pad">
+        <div class="btitle">📍 上課地點與交通</div>
+        <div class="brow"><b>${esc(c.venue_name || "場地待定")}</b>${c.venue_address ? `<br>${esc(c.venue_address)}` : ""}</div>
+        <div class="brow">${esc(c.route_hint || "")}</div>
+        <div class="emerg">
+          <div class="nm">🆘 緊急聯絡人：${esc(c.emergency_name || "家人")}</div>
+          <div class="pn">${esc(fmtPhone(c.emergency_phone))}</div>
+        </div>
+        <div class="backfoot">主辦支援：ZenPass ${esc(c.support_phone || "")}<br>若長者迷路或身體不適，請代為致電上方家人，感激！</div>
+      </div>
+    </section>`;
+  }
+
+  function render(c){
+    $("#stage").innerHTML = `<div class="cardtitle">正面</div>${front(c)}<div class="cardtitle">背面</div>${back(c)}`;
+    $("#printBtn").disabled = false;
+  }
+
+  window.addEventListener("beforeprint", () => { document.title = "ZenPass-隨身卡-" + (ID || "demo"); });
+  $("#printBtn").onclick = () => window.print();
+  $("#backBtn").onclick = () => history.length > 1 ? history.back() : (location.href = "my-bookings.html");
+
+  load().then(render).catch((e) => {
+    $("#stage").innerHTML = `<div class="hint" style="color:#b91c1c;font-weight:800">⚠️ ${esc(e.message)}<br><br>可以撳「返回」再試，或 WhatsApp 9033 5538。</div>`;
+  });
+})();
+</script>
+</body>
+</html>

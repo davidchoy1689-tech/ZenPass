@@ -480,6 +480,31 @@ router.post("/:id/claim-payment", authenticateToken, (req, res) => {
   }
 });
 
+// ===== GET /api/bookings/:id/card — 長者隨身簽到卡（90×54mm 打印用）=====
+router.get("/:id/card", authenticateToken, async (req, res) => {
+  try {
+    const db = getDb();
+    const booking = db
+      .prepare(
+        `SELECT b.id, b.user_id, c.coach_id
+           FROM bookings b JOIN classes c ON c.id = b.class_id
+          WHERE b.id = ?`,
+      )
+      .get(req.params.id);
+    if (!booking) return res.status(404).json({ success: false, error: "預約不存在" });
+    if (!canAccessBooking(booking, req.user)) {
+      return res.status(403).json({ success: false, error: "無權取得此隨身卡" });
+    }
+    const { buildCard } = require("../services/senior-card");
+    const card = await buildCard(booking.id);
+    if (!card) return res.status(404).json({ success: false, error: "預約不存在" });
+    res.json({ success: true, card });
+  } catch (err) {
+    console.error("[CARD] build error:", err.message);
+    res.status(500).json({ success: false, error: "產生隨身卡失敗" });
+  }
+});
+
 // ===== GET /api/bookings/:id/qr — QR Code =====
 router.get("/:id/qr", authenticateToken, (req, res) => {
   try {
