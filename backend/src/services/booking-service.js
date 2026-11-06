@@ -233,11 +233,13 @@ function getTrialStatus(db, userId) {
 
 function releaseExpiredHolds(db, scheduleId) {
   try { require("./payment-claim").ensureCols(db); } catch (e) {}
+  try { require("./hold-control").ensureHoldCols(db); } catch (e) {}
   const expiredHolds = db
     .prepare(
       `UPDATE bookings SET status = 'cancelled', payment_status = 'refunded'
        WHERE schedule_id = ? AND status = 'pending_payment'
        AND fps_reference IS NULL AND payme_reference IS NULL
+       AND (hold_until IS NULL OR hold_until < datetime('now'))
        AND (
          (COALESCE(payment_claimed,0) = 0 AND created_at < datetime('now', '-30 minutes'))
          OR

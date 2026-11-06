@@ -34,6 +34,7 @@ function listPendingPayments() {
   const db = getDb();
   db.pragma("foreign_keys = ON");
   try { ensureClaimCols(db); } catch (e) {}
+  try { require("./hold-control").ensureHoldCols(db); } catch (e) {}
 
   const pending = db
     .prepare(
@@ -41,6 +42,7 @@ function listPendingPayments() {
               u.user_reference, b.amount,
               b.fps_reference, b.payme_reference, b.receipt_image,
               COALESCE(b.payment_claimed,0) AS payment_claimed, b.payment_claimed_at,
+              b.hold_until,
               ${hasReportedCol(db) ? "b.payment_reported_at" : "NULL as payment_reported_at"},
               COALESCE(b.payment_method,
                 CASE WHEN b.fps_reference IS NOT NULL THEN 'fps'
@@ -55,7 +57,7 @@ function listPendingPayments() {
        JOIN classes c ON b.class_id = c.id
        LEFT JOIN class_schedules cs ON b.schedule_id = cs.id
        WHERE b.status = 'pending_payment'
-         AND (b.fps_reference IS NOT NULL OR b.payme_reference IS NOT NULL)
+         AND (b.fps_reference IS NOT NULL OR b.payme_reference IS NOT NULL OR COALESCE(b.payment_claimed,0) = 1)
          AND b.payment_status = 'pending'
        ORDER BY b.created_at ASC`
     )

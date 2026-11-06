@@ -81,6 +81,15 @@
           <div class="muted" style="font-size:12px;margin-bottom:8px">學員自行提交嘅 FPS／PayMe 付款，核實後即轉「已付款」並生效。收據縮圖可撳大。</div>
           <div id="payList"></div>
         </div></div>
+        <div class="card" style="margin-top:10px"><div class="body">
+          <b>♻️ 還原已取消訂單</b>
+          <div class="muted" style="font-size:12px;margin:6px 0 10px">客人已入數但被系統／人手取消 → 搜尋後一撳還原（有名額才可，會寫審計紀錄）。</div>
+          <div style="display:flex;gap:8px">
+            <input class="fld" id="rsQ" placeholder="參考編號 / 電話 / 姓名" style="margin:0;flex:1" />
+            <button class="btn btn-primary" id="rsGo" style="flex:none;min-height:42px">🔎 搜尋</button>
+          </div>
+          <div id="rsList" style="margin-top:10px"></div>
+        </div></div>
       </div>
 
       <div id="paneStudent" hidden>
@@ -278,6 +287,8 @@
       $("pliWarn").onclick = () => setPliGate("warn");
       $("wxGo").onclick = weatherCancel;
       $("stuGo").onclick = () => loadStudents();
+      $("rsGo").onclick = () => searchRestore();
+      $("rsQ").addEventListener("keydown", (e) => { if (e.key === "Enter") searchRestore(); });
       $("bkReload").onclick = () => loadBookings();
       $("bkModal").onclick = (e) => { if (e.target.id === "bkModal") closeBkModal(); };
       $("stuSearch").addEventListener("keydown", (e) => { if (e.key === "Enter") loadStudents(); });
@@ -322,6 +333,64 @@
     }
 
     /* ===== 💳 待核實收款（FPS／PayMe 收據快速審批） ===== */
+    function toDate(t) {
+      const s = String(t || "");
+      if (!s) return null;
+      const d = new Date(s.replace(" ", "T") + (/Z|[+-]\d\d:?\d\d$/.test(s) ? "" : "Z"));
+      return isNaN(d.getTime()) ? null : d;
+    }
+
+    // 顯示鎖位到期時間：人手延長 > 自報已付款(60min) > 預設(30min)
+    function holdLine(x) {
+      let until = null, label = "";
+      const claimedAt = toDate(x.payment_claimed_at);
+      if (x.hold_until) { until = toDate(x.hold_until); label = "人手延長"; }
+      else if (Number(x.payment_claimed) === 1 && claimedAt) { until = new Date(claimedAt.getTime() + 60 * 60000); label = "自報已付款"; }
+      else if (toDate(x.booked_at)) { until = new Date(toDate(x.booked_at).getTime() + 30 * 60000); label = "預設"; }
+      if (!until) return "";
+      const mins = Math.round((until.getTime() - Date.now()) / 60000);
+      const t = until.toLocaleTimeString("zh-HK", { hour: "2-digit", minute: "2-digit" });
+      return mins > 0
+        ? `🔒 鎖位至 ${t}（剩 ${mins} 分鐘 · ${label}）`
+        : `⛔ 鎖位已過期（${t} · ${label}）— 建議即時核實或延長`;
+    }
+
+    async function searchRestore() {
+      const q = ($("rsQ").value || "").trim();
+      const box = $("rsList");
+      if (q.length < 2) { box.innerHTML = '<div class="muted" style="font-size:12.5px">請輸入最少 2 個字（參考編號／電話／姓名）</div>'; return; }
+      box.innerHTML = '<div class="muted" style="font-size:12.5px">搜尋中…</div>';
+      const r = await api.get("/admin/ops/restore-search?q=" + encodeURIComponent(q));
+      if (!r.ok) { box.innerHTML = `<div class="muted" style="font-size:12.5px">${esc((r.data && r.data.error) || "搜尋失敗")}</div>`; return; }
+      const rows = (r.data && r.data.bookings) || [];
+      if (!rows.length) { box.innerHTML = '<div class="muted" style="font-size:12.5px">搵唔到已取消訂單</div>'; return; }
+      box.innerHTML = rows.map((x) => {
+        const left = (Number(x.max_participants) || 0) - (Number(x.enrolled_count) || 0);
+        const full = left <= 0;
+        const dead = x.schedule_status === "cancelled";
+        const blocked = full || dead;
+        return `<div class="row" style="flex-wrap:wrap">
+          <span style="flex:1;min-width:0">
+            <b>${esc(x.booking_reference || x.booking_id)}</b>
+            <span class="pill" style="margin-left:6px;background:#f1f5f9;color:#64748b">已取消</span>
+            <span class="s">${esc(x.student_name || x.user_name || "—")}${x.phone ? " · " + esc(x.phone) : ""}</span>
+            <span class="s">${esc(x.class_title || "—")}${x.start_time ? " · " + esc(new Date(String(x.start_time).replace(" ", "T")).toLocaleString("zh-HK", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })) : ""}</span>
+            <span class="s">金額 <b>${hkd(x.amount)}</b> · 名額 ${full ? "已滿" : "剩 " + left}${dead ? " · ⚠️ 課堂已取消" : ""}${x.cancel_reason ? " · 取消原因：" + esc(x.cancel_reason) : ""}</span>
+          </span>
+          <button class="btn ${blocked ? "btn-secondary" : "btn-primary"}" style="min-height:32px;padding:0 11px;font-size:12px" data-restore="${esc(x.booking_id)}" ${blocked ? "disabled" : ""}>♻️ 還原</button>
+        </div>`;
+      }).join("");
+      box.querySelectorAll("[data-restore]").forEach((b) => (b.onclick = async () => {
+        const reason = prompt("還原原因（會寫入審計紀錄）", "客人已入數，客服人手補回");
+        if (reason === null) return;
+        if (!confirm("還原後會標記為「已付款 · 已確認」，並通知學員。確定？")) return;
+        b.disabled = true; b.textContent = "處理中…";
+        const rr = await api.post(`/admin/ops/bookings/${b.dataset.restore}/restore`, { reason, mark_paid: true });
+        if (rr.ok) { toast("♻️ 已還原並通知學員"); searchRestore(); loadPayments(); }
+        else { b.disabled = false; b.textContent = "♻️ 還原"; alert((rr.data && rr.data.error) || "還原失敗"); }
+      }));
+    }
+
     async function loadPayments() {
       const kp = $("payKpis"), box = $("payList");
       if (!box) return;
@@ -360,16 +429,24 @@
               <span class="s">${esc(x.user_name || x.user_email || "—")}${x.user_phone ? " · " + esc(x.user_phone) : ""}</span>
               <span class="s">${esc(x.class_title || "—")}${x.start_time ? " · " + esc(fmt(x.start_time)) : ""}</span>
               <span class="s">金額 <b>${hkd(x.amount)}</b> · 參考 <b>${esc(ref)}</b>${x.payment_reported_at ? " · 提交 " + esc(fmt(x.payment_reported_at)) : ""}</span>
+              <span class="s">${holdLine(x)}</span>
             </span>
           </span>
           <span style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
             <button class="btn btn-primary" style="min-height:32px;padding:0 11px;font-size:12px" data-approve="${esc(x.booking_id)}">✅ 核實入賬</button>
             <button class="btn btn-secondary" style="min-height:32px;padding:0 11px;font-size:12px" data-reject="${esc(x.booking_id)}">❌ 收據有誤</button>
+            <button class="btn btn-secondary" style="min-height:32px;padding:0 11px;font-size:12px" data-extend="${esc(x.booking_id)}">⏱️ 延長 60 分鐘</button>
             <a class="btn btn-secondary" style="min-height:32px;padding:0 11px;font-size:12px;text-decoration:none" target="_blank" rel="noopener"
                href="https://wa.me/852${esc(String(x.user_phone || "").replace(/\D/g, "").slice(-8))}?text=${encodeURIComponent("你好，關於你嘅付款（" + (x.booking_reference || "") + "），想同你核對一下，謝謝！")}">💬 問學員</a>
           </span>
         </div>`;
       }).join("");
+      box.querySelectorAll("[data-extend]").forEach((b) => (b.onclick = async () => {
+        b.disabled = true; b.textContent = "處理中…";
+        const rr = await api.post(`/admin/ops/bookings/${b.dataset.extend}/extend-hold`, { minutes: 60 });
+        if (rr.ok) { toast("⏱️ 已延長 60 分鐘（以現在起計）"); loadPayments(); }
+        else { b.disabled = false; b.textContent = "⏱️ 延長 60 分鐘"; alert((rr.data && rr.data.error) || "延長失敗"); }
+      }));
       box.querySelectorAll("[data-rc]").forEach((img) => (img.onclick = () => showReceipt(img.dataset.rc)));
       box.querySelectorAll("[data-approve]").forEach((b) => (b.onclick = async () => {
         if (!confirm("確認已收到此筆款項？確認後預約即刻生效。")) return;

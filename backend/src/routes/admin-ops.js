@@ -621,4 +621,105 @@ router.get("/payout-list", authenticateToken, requireAdmin, requireOpsRole, (req
   }
 });
 
+// ===== ⏱️ 人手延長鎖位（客服 60 分鐘核數用）=====
+// POST /api/admin/ops/bookings/:id/extend-hold  { minutes?: 30|60|120 }
+router.post(
+  "/bookings/:id/extend-hold",
+  authenticateToken,
+  requireAdmin,
+  requireOpsRole,
+  (req, res) => {
+    try {
+      const { extendHold } = require("../services/hold-control");
+      const db = getDb();
+      const out = extendHold(db, {
+        bookingId: req.params.id,
+        minutes: (req.body && req.body.minutes) || 60,
+        actorId: req.user.id,
+      });
+      res.json({ success: true, ...out });
+    } catch (err) {
+      res.status(err.status || 500).json({ success: false, error: err.message, code: err.code });
+    }
+  },
+);
+
+// ===== 🔎 搵可還原嘅已取消訂單 =====
+// GET /api/admin/ops/restore-search?q=ZP-xxxx|電話|姓名
+router.get("/restore-search", authenticateToken, requireAdmin, requireOpsRole, (req, res) => {
+  try {
+    const { searchRestorable } = require("../services/hold-control");
+    const rows = searchRestorable(getDb(), { q: req.query.q, limit: req.query.limit });
+    res.json({ success: true, count: rows.length, bookings: rows });
+  } catch (err) {
+    console.error("[OPS] restore-search error:", err.message);
+    res.status(500).json({ success: false, error: "搜尋失敗" });
+  }
+});
+
+// ===== ♻️ 還原已取消訂單（有名額才可）=====
+// POST /api/admin/ops/bookings/:id/restore { reason, mark_paid?: true, force?: false }
+router.post(
+  "/bookings/:id/restore",
+  authenticateToken,
+  requireAdmin,
+  requireOpsRole,
+  (req, res) => {
+    try {
+      const { restoreBooking } = require("../services/hold-control");
+      const db = getDb();
+      const body = req.body || {};
+      const out = restoreBooking(db, {
+        bookingId: req.params.id,
+        reason: body.reason,
+        actorId: req.user.id,
+        markPaid: body.mark_paid !== false,
+        force: body.force === true,
+      });
+
+      // 通知學員（失敗不影響還原結果）
+      try {
+        const b = db
+          .prepare(
+            `SELECT b.user_id, b.amount, c.title, cs.start_time, cs.end_time, c.venue_name
+               FROM bookings b JOIN classes c ON c.id=b.class_id
+               LEFT JOIN class_schedules cs ON cs.id=b.schedule_id
+              WHERE b.id=?`,
+          )
+          .get(req.params.id);
+        if (b) {
+          const { sendNotification } = require("../services/notification");
+          const d = new Date(String(b.start_time || ""));
+          const hk = Number.isNaN(d.getTime()) ? "" : new Date(d.getTime() + 8 * 3600 * 1000).toISOString();
+          sendNotification("booking.confirmed", {
+            recipient: b.user_id,
+            data: {
+              class_title: b.title || "",
+              date: hk ? hk.slice(0, 10) : "",
+              time: hk ? hk.slice(11, 16) : "",
+              venue: b.venue_name || "",
+              coach_name: "",
+            },
+          }).catch(() => {});
+        }
+      } catch (e) {
+        console.error("[OPS] restore notify:", e.message);
+      }
+
+      setTimeout(() => {
+        try {
+          const { sendTelegramAlert } = require("../services/notification");
+          sendTelegramAlert(
+            `♻️ <b>已還原取消訂單</b>\n🆔 ${out.booking_reference || out.booking_id}\n👤 管理員：${req.user.email || req.user.id}\n📝 原因：${String(body.reason || "").slice(0, 80)}\n💰 標記已付款：${out.payment_status === "paid" ? "是" : "否"}`,
+          );
+        } catch (e) {}
+      }, 0);
+
+      res.json({ success: true, ...out });
+    } catch (err) {
+      res.status(err.status || 500).json({ success: false, error: err.message, code: err.code });
+    }
+  },
+);
+
 module.exports = router;
