@@ -51,7 +51,7 @@ console.log("\n🧪 4. Toast 取代 alert");
   ok("admin-ops 已無 alert(", !/\balert\(/.test(ops));
   ok("Toast 固定右上", /\.toast6\{position:fixed;right:16px;top:16px/.test(ops));
   ok("滑入動畫", /@keyframes toastIn/.test(ops));
-  ok("1.8 秒自動消失", /ms \|\| 1800/.test(ops));
+  ok("成功 1.8 秒／錯誤 3.2 秒", /\/失敗\|錯誤\|不可\|無法\|未有\/.test\(m\) \? 3200 : 1800/.test(ops));
 }
 
 console.log("\n🧪 5. 名冊頁：舊患標籤 + CSV");

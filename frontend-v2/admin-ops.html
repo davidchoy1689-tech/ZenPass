@@ -296,7 +296,7 @@
     const $ = (id) => document.getElementById(id);
     const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
     const hkd = (n) => "HK$" + Number(n || 0).toLocaleString("en-HK");
-    function toast(m, ms) { const t = document.createElement("div"); t.className = "toast6"; t.textContent = m; document.body.appendChild(t); setTimeout(() => t.remove(), ms || 1800); }
+    function toast(m, ms) { const t = document.createElement("div"); t.className = "toast6"; t.textContent = m; document.body.appendChild(t); setTimeout(() => t.remove(), ms || (/失敗|錯誤|不可|無法|未有/.test(m) ? 3200 : 1800)); }
 
     let MONTH = new Date().toISOString().slice(0, 7);
 
