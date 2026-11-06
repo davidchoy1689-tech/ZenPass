@@ -54,7 +54,7 @@
     .tl .st.on:after,.tl .st.now:after{background:#10b981}
     .tl .st .d{display:block;font-size:10.5px;font-weight:600;color:#64748b;margin-top:2px}
     .mini{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
-    .mini a{font-size:12px;font-weight:800;color:var(--brand-600);text-decoration:none;background:#f1f5f9;border-radius:99px;padding:6px 11px}
+    .mini a,.mini button{font:inherit;font-size:12px;font-weight:800;color:var(--brand-600);text-decoration:none;background:#f1f5f9;border:0;border-radius:99px;padding:6px 11px;cursor:pointer}
   </style>
 </head>
 <body>
@@ -135,6 +135,8 @@
         ${actions ? `<div class="actions">${actions}</div>` : ""}
         ${b.status !== "cancelled" ? `<div class="mini">
           <a href="${seniorLink(b)}">📲 長者大字版</a>
+          ${b.share ? `<button data-copy="senior-view.html" data-id="${b.id}" data-share="${b.share}">📋 複製大字版連結</button>` : ""}
+          ${b.share ? `<button data-copy="adult-pass.html" data-id="${b.id}" data-share="${b.share}">🎫 複製票券連結</button>` : ""}
           <a target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent("提提你：" + (b.title || "課堂") + " " + fmtTime(b.start_time, b.end_time) + (b.venue_name ? "，" + b.venue_name : "") + "。到場出示 QR 就得：https://zenpass.hk/" + seniorLink(b))}">💬 傳提醒給父母</a>
         </div>` : ""}
         ${refundBox(b)}
@@ -455,6 +457,24 @@
       }
       if (api.requireLogin("my-bookings.html")) load();
     })();
+    function miniToast(m) {
+      const t = document.createElement("div");
+      t.textContent = m;
+      t.style.cssText = "position:fixed;right:16px;top:16px;background:#0f172a;color:#fff;padding:11px 15px;border-radius:12px;font:800 13px -apple-system,'PingFang HK',sans-serif;z-index:9999;box-shadow:0 8px 24px rgba(15,23,42,.25)";
+      document.body.appendChild(t);
+      setTimeout(() => t.remove(), 2200);
+    }
+    document.addEventListener("click", async (e) => {
+      const btn = e.target.closest("[data-copy]");
+      if (!btn) return;
+      const url = location.origin + "/" + btn.dataset.copy + "?id=" + encodeURIComponent(btn.dataset.id) + "&sh" + "are=" + encodeURIComponent(btn.dataset.share);
+      try {
+        await navigator.clipboard.writeText(url);
+        miniToast("✅ 已複製免登入連結，可直接傳送給家人 WhatsApp");
+      } catch (err) {
+        prompt("請手動複製以下連結：", url);
+      }
+    });
   </script>
   <script src="assets/footer.js?v=5" defer></script>
 </body>

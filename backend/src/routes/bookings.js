@@ -241,6 +241,25 @@ router.get("/my", authenticateToken, (req, res) => {
       )
       .all(...params, parseInt(limit), offset);
 
+    // 免登入分享簽章（子女傳給長者／家人；只讀）
+    let share = null;
+    let myPhone = "";
+    try {
+      const shareToken = require("../services/share-token");
+      const me = db.prepare("SELECT phone FROM users WHERE id=?").get(req.user.id) || {};
+      myPhone = me.phone || "";
+      bookings.forEach((b) => {
+        try {
+          b.share = shareToken.make({
+            id: b.id,
+            phone: b.parent_phone || myPhone,
+            schedule_id: b.schedule_id,
+            created_at: b.created_at,
+          });
+        } catch (e) {}
+      });
+    } catch (e) { console.error("[SHARE]", e.message); }
+
     res.json({ bookings });
   } catch (err) {
     console.error("獲取預約錯誤:", err);

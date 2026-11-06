@@ -48,6 +48,7 @@
   const qs = new URLSearchParams(location.search);
   const ID = qs.get("id") || qs.get("booking_id") || "";
   const GUEST = qs.get("token") || "";
+  const SHARE = qs.get("share") || "";
   const DEMO = qs.get("demo") === "1";
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
   const tel = (p) => String(p || "").replace(/[^\d+]/g, "");
@@ -65,7 +66,9 @@
   async function load(){
     if (DEMO) return DEMO_CARD;
     let url, headers = {};
-    if (GUEST) {
+    if (SHARE) {
+      url = "/api/public/bookings/" + encodeURIComponent(ID) + "?share=" + encodeURIComponent(SHARE);
+    } else if (GUEST) {
       const tok = encodeURIComponent(GUEST);
       url = `/api/guest/booking-card?token=${tok}&booking_id=${encodeURIComponent(ID)}`;
     } else {
@@ -87,6 +90,10 @@
           : c.qr.data_url)
       : "";
     const when = `${c.date || ""} ${c.weekday || ""}`.trim() + (c.time ? " " + c.time : "");
+    const ec = c.emergency_contact || {};
+    const ephone = c.emergency_phone || "";
+    const emName = c.emergency_name || ec.name || "家人";
+    const emShow = ephone || ec.phone_masked || "";
     document.title = "我的上課證 · " + (c.date || "");
     document.getElementById("main").innerHTML = `
       <div class="who">${esc(c.student_name || "")}${c.salute ? " " + esc(c.salute) : ""}</div>
@@ -95,12 +102,12 @@
       <div class="qrwrap">${src ? `<img src="${esc(src)}" alt="入場 QR Code" />` : ""}</div>
       <div class="tip">向導師出示上面個 QR Code 就可以簽到</div>
       ${c.booking_reference ? `<div class="ref">預約編號：${esc(c.booking_reference)}</div>` : ""}
-      ${c.emergency_phone ? `<div class="sos"><div class="n">🆘 有需要打畀：${esc(c.emergency_name || "家人")}</div><div class="p">${esc(c.emergency_phone)}</div></div>` : ""}
+      ${emShow ? `<div class="sos"><div class="n">🆘 有需要打畀：${esc(emName)}</div><div class="p">${esc(emShow)}</div></div>` : ""}
     `;
     const call = document.getElementById("callBtn");
-    if (c.emergency_phone) {
-      call.href = "tel:" + tel(c.emergency_phone);
-      document.getElementById("callLabel").textContent = "打畀 " + (c.emergency_name || "家人");
+    if (ephone) {
+      call.href = "tel:" + tel(ephone);
+      document.getElementById("callLabel").textContent = "打畀 " + emName;
       call.style.display = "";
     }
     try {

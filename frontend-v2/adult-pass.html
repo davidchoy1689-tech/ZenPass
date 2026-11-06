@@ -60,6 +60,7 @@
   const qs = new URLSearchParams(location.search);
   const ID = qs.get("id") || qs.get("booking_id") || "";
   const GUEST = qs.get("token") || "";
+  const SHARE = qs.get("share") || "";
   const DEMO = qs.get("demo") === "1";
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
 
@@ -74,7 +75,9 @@
   async function load(){
     if (DEMO) return DEMO_CARD;
     let url, headers = {};
-    if (GUEST) {
+    if (SHARE) {
+      url = "/api/public/bookings/" + encodeURIComponent(ID) + "?share=" + encodeURIComponent(SHARE);
+    } else if (GUEST) {
       const t = encodeURIComponent(GUEST);
       url = `/api/guest/booking-card?token=***}&booking_id=${encodeURIComponent(ID)}`;
     } else {
