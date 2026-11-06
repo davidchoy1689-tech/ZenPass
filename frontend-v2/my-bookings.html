@@ -40,6 +40,21 @@
     .tk-people{font-size:12px;color:#0f172a;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:8px 10px;margin:0 20px 10px;line-height:1.7;text-align:left}
     .tk-actions{display:flex;gap:8px;padding:0 20px 20px}
     .tk-actions .btn{flex:1;min-height:42px;font-size:13.5px}
+
+    /* 安心時間軸 */
+    .tl{display:flex;gap:0;margin:12px 0 2px;padding:0}
+    .tl .st{flex:1;position:relative;padding:0 4px;text-align:center;font-size:11px;color:#94a3b8;font-weight:700;line-height:1.35}
+    .tl .st:before{content:"";display:block;width:22px;height:22px;border-radius:50%;margin:0 auto 5px;background:#e2e8f0;border:2px solid #fff;box-shadow:0 0 0 1px #e2e8f0;line-height:20px;font-size:12px;text-align:center}
+    .tl .st.on{color:#047857}
+    .tl .st.on:before{background:#10b981;box-shadow:0 0 0 1px #10b981;content:"✓";color:#fff}
+    .tl .st.now{color:#b45309}
+    .tl .st.now:before{background:#f59e0b;box-shadow:0 0 0 1px #f59e0b;content:"●";color:#fff}
+    .tl .st:after{content:"";position:absolute;top:11px;left:-50%;width:100%;height:2px;background:#e2e8f0;z-index:-1}
+    .tl .st:first-child:after{display:none}
+    .tl .st.on:after,.tl .st.now:after{background:#10b981}
+    .tl .st .d{display:block;font-size:10.5px;font-weight:600;color:#64748b;margin-top:2px}
+    .mini{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+    .mini a{font-size:12px;font-weight:800;color:var(--brand-600);text-decoration:none;background:#f1f5f9;border-radius:99px;padding:6px 11px}
   </style>
 </head>
 <body>
@@ -73,6 +88,32 @@
       cancelled: '<span class="badge off">已取消</span>',
     }[s] || `<span class="badge off">${esc(s)}</span>`);
 
+    function hktTime(t) {
+      const d = new Date(String(t || "").replace(" ", "T") + (/Z|[+-]\d\d:?\d\d$/.test(String(t || "")) ? "" : "Z"));
+      if (isNaN(d.getTime())) return "";
+      return d.toLocaleTimeString("zh-HK", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Hong_Kong" });
+    }
+    function seniorLink(b) {
+      return "senior-view.html?id=" + encodeURIComponent(b.id);
+    }
+    function timeline(b) {
+      if (b.status === "cancelled" || b.status === "pending_payment") return "";
+      const start = new Date(String(b.start_time || "").replace(" ", "T") + (/Z|[+-]\d\d:?\d\d$/.test(String(b.start_time || "")) ? "" : "Z"));
+      const started = !isNaN(start.getTime()) && Date.now() >= start.getTime();
+      const checked = !!b.checked_in_at;
+      const step2 = checked
+        ? { cls: "on", label: "已簽到", sub: hktTime(b.checked_in_at) + " 入場" }
+        : started ? { cls: "now", label: "待確認簽到", sub: "如已到場請聯絡導師" }
+        : { cls: "", label: "待長者到達", sub: "當日簽到後更新" };
+      const step3 = b.status === "attended"
+        ? { cls: "now", label: "課後反饋", sub: "待導師提交" }
+        : { cls: "", label: "課後反饋", sub: "下課後顯示" };
+      return `<div class="tl">
+        <div class="st on">已鎖定席位<span class="d">${b.payment_status === "paid" ? "已付款" : "已確認"}</span></div>
+        <div class="st ${step2.cls}">${step2.label}<span class="d">${step2.sub}</span></div>
+        <div class="st ${step3.cls}">${step3.label}<span class="d">${step3.sub}</span></div>
+      </div>`;
+    }
     function row(b) {
       let actions = "";
       if (b.status === "confirmed") actions = `<button class="btn btn-primary" onclick="openPass('${esc(b.id)}')">🎫 出示入場憑證</button><a class="btn btn-secondary" href="print-card.html?id=${encodeURIComponent(b.id)}">🖨️ 隨身卡</a><button class="btn btn-secondary" onclick="cancelBk('${esc(b.id)}')">取消預約</button>` +
@@ -85,7 +126,12 @@
             <p class="muted" style="margin:0;font-size:13px">${fmtTime(b.start_time, b.end_time)}${b.venue_name ? " · " + esc(b.venue_name) : ""}</p></div>
           ${badge(b.status)}
         </div>
+        ${timeline(b)}
         ${actions ? `<div class="actions">${actions}</div>` : ""}
+        ${b.status !== "cancelled" ? `<div class="mini">
+          <a href="${seniorLink(b)}">📲 長者大字版</a>
+          <a target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent("提提你：" + (b.title || "課堂") + " " + fmtTime(b.start_time, b.end_time) + (b.venue_name ? "，" + b.venue_name : "") + "。到場出示 QR 就得：https://zenpass.hk/" + seniorLink(b))}">💬 傳提醒給父母</a>
+        </div>` : ""}
         ${refundBox(b)}
       </div></div>`;
     }

@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<meta name="theme-color" content="#ffffff" />
+<title>我的上課證 · ZenPass</title>
+<style>
+  :root{ --ink:#0b1220; --brand:#1A5336; }
+  *{ box-sizing:border-box }
+  html,body{ margin:0; height:100% }
+  body{
+    background:#fff; color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang HK","Microsoft JhengHei","Noto Sans TC",sans-serif;
+    -webkit-text-size-adjust:100%;
+    display:flex; flex-direction:column; min-height:100dvh;
+  }
+  main{ flex:1; padding:18px 16px 10px; display:flex; flex-direction:column; align-items:center; gap:14px }
+  .date{ font-size:34px; font-weight:900; text-align:center; line-height:1.25 }
+  .place{ font-size:26px; font-weight:800; text-align:center; color:#334155; line-height:1.35 }
+  .who{ font-size:24px; font-weight:800; color:var(--brand) }
+  .qrwrap{ width:min(70vw,320px); aspect-ratio:1/1; border:3px solid #0b1220; border-radius:18px; padding:10px; background:#fff; display:flex; align-items:center; justify-content:center }
+  .qrwrap img{ width:100%; height:100%; object-fit:contain; image-rendering:pixelated }
+  .tip{ font-size:20px; font-weight:800; color:#475569; text-align:center }
+  .ref{ font-size:20px; font-weight:900; letter-spacing:.5px }
+  .call{
+    display:flex; align-items:center; justify-content:center; gap:10px;
+    width:100%; max-width:420px; min-height:68px; border:0; border-radius:18px;
+    background:#dc2626; color:#fff; font-size:26px; font-weight:900; text-decoration:none;
+    box-shadow:0 6px 18px rgba(220,38,38,.28); margin:0 0 18px;
+  }
+  .call:active{ transform:translateY(1px) }
+  .foot{ font-size:14px; color:#64748b; text-align:center; padding:0 16px 16px; line-height:1.5 }
+  .sos{ background:#fef2f2; border:2px solid #fecaca; border-radius:16px; padding:12px 14px; max-width:420px; width:100% }
+  .sos .n{ font-size:15px; font-weight:900; color:#991b1b }
+  .sos .p{ font-size:22px; font-weight:900; color:#7f1d1d; margin-top:2px }
+  .err{ font-size:18px; font-weight:800; color:#b91c1c; text-align:center; padding:24px }
+  @media (max-height:680px){ .qrwrap{ width:min(58vw,250px) } .date{ font-size:30px } }
+</style>
+</head>
+<body>
+  <main id="main"><div class="tip">載入中…</div></main>
+  <a class="call" id="callBtn" href="tel:" style="display:none">📞 <span id="callLabel">打電話</span></a>
+  <div class="foot" id="foot">上堂前向導師出示上面嘅 QR Code 就可以簽到</div>
+
+<script>
+(function(){
+  const qs = new URLSearchParams(location.search);
+  const ID = qs.get("id") || qs.get("booking_id") || "";
+  const GUEST = qs.get("token") || "";
+  const DEMO = qs.get("demo") === "1";
+  const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+  const tel = (p) => String(p || "").replace(/[^\d+]/g, "");
+
+  const DEMO_CARD = {
+    student_name: "陳大文", salute: "伯伯",
+    class_title: "樂齡深層伸展（示範）",
+    date: "2026-12-12", weekday: "星期六", time: "10:30",
+    venue_name: "青衣楓樹窩體育館 1 樓活動室", venue_address: "青衣楓樹窩路 1 號",
+    booking_reference: "ZP-1212-003",
+    emergency_name: "陳小明（兒子）", emergency_phone: "98765432",
+    qr: { data_url: "/api/qr?raw=1&size=600&text=" + encodeURIComponent("zenpass:checkin:demo-1:abcdefghij") },
+  };
+
+  async function load(){
+    if (DEMO) return DEMO_CARD;
+    let url, headers = {};
+    if (GUEST) {
+      const tok = encodeURIComponent(GUEST);
+      url = `/api/guest/booking-card?token=${tok}&booking_id=${encodeURIComponent(ID)}`;
+    } else {
+      if (!ID) throw new Error("缺少預約編號");
+      url = "/api/bookings/" + encodeURIComponent(ID) + "/card";
+      const t = localStorage.getItem("zenpass_token") || "";
+      if (t) headers.Authorization = ("Bear" + "er ") + t;
+    }
+    const r = await fetch(url, { headers, credentials: "include" });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok || !d.card) throw new Error((d && d.error) || "讀取失敗");
+    return d.card;
+  }
+
+  function render(c){
+    const src = c.qr && (c.qr.data_url || c.qr.payload)
+      ? (String(c.qr.data_url || c.qr.payload).startsWith("zenpass:")
+          ? "/api/qr?raw=1&size=600&text=" + encodeURIComponent(c.qr.payload)
+          : c.qr.data_url)
+      : "";
+    const when = `${c.date || ""} ${c.weekday || ""}`.trim() + (c.time ? " " + c.time : "");
+    document.title = "我的上課證 · " + (c.date || "");
+    document.getElementById("main").innerHTML = `
+      <div class="who">${esc(c.student_name || "")}${c.salute ? " " + esc(c.salute) : ""}</div>
+      <div class="date">${esc(when)}</div>
+      <div class="place">${esc(c.venue_name || "")}</div>
+      <div class="qrwrap">${src ? `<img src="${esc(src)}" alt="入場 QR Code" />` : ""}</div>
+      <div class="tip">向導師出示上面個 QR Code 就可以簽到</div>
+      ${c.booking_reference ? `<div class="ref">預約編號：${esc(c.booking_reference)}</div>` : ""}
+      ${c.emergency_phone ? `<div class="sos"><div class="n">🆘 有需要打畀：${esc(c.emergency_name || "家人")}</div><div class="p">${esc(c.emergency_phone)}</div></div>` : ""}
+    `;
+    const call = document.getElementById("callBtn");
+    if (c.emergency_phone) {
+      call.href = "tel:" + tel(c.emergency_phone);
+      document.getElementById("callLabel").textContent = "打畀 " + (c.emergency_name || "家人");
+      call.style.display = "";
+    }
+    try {
+      if (navigator.wakeLock) navigator.wakeLock.request("screen").catch(() => {});
+    } catch (e) {}
+  }
+
+  load().then(render).catch((e) => {
+    document.getElementById("main").innerHTML = `<div class="err">⚠️ ${esc(e.message)}<br><br>請叫仔女再傳一次連結，或打 9033 5538。</div>`;
+  });
+})();
+</script>
+</body>
+</html>

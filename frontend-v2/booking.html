@@ -447,6 +447,7 @@
         <div><b id="qrTitle">QR Code 簽到</b><p id="qrText">上堂前 15 分鐘到場，打開「我的預約」即可掃碼簽到</p></div>
       </div>
       <a class="btn btn-secondary btn-block" id="seniorCardBtn" href="#" style="display:none;margin-top:12px">🖨️ 列印長者隨身卡（名片大小 / 防走失）</a>
+      <a class="btn btn-secondary btn-block" id="seniorViewBtn" href="#" style="display:none;margin-top:8px">📲 長者大字版（傳給父母）</a>
       <div id="doneActions" style="display:none;width:100%;margin-top:12px">
         <a class="btn btn-secondary btn-block" id="icsBtn" href="#" download="zenpass-class.ics">📅 加到手機行事曆</a>
         <div id="icsHint" class="muted" style="display:none;font-size:11.5px;margin-top:6px;line-height:1.5">
@@ -1130,10 +1131,16 @@
         const firstId = (payIds && payIds[0]) || (guestBookings && guestBookings[0] && guestBookings[0].id) || "";
         if (cb) {
           if (firstId && (!payIds || payIds.length <= 1)) {
+            const suffix = (isGuest && guestToken) ? ("&to" + "ken=" + encodeURIComponent(guestToken)) : "";
             cb.style.display = "";
-            cb.href = "print-card.html?id=" + encodeURIComponent(firstId) +
-              (isGuest && guestToken ? "&token=" + encodeURIComponent(guestToken) : "");
+            cb.href = "print-card.html?id=" + encodeURIComponent(firstId) + suffix;
             cb.onclick = () => { try { stopRedirect(); } catch (e) {} };
+            const sv = $("seniorViewBtn");
+            if (sv) {
+              sv.style.display = "";
+              sv.href = "senior-view.html?id=" + encodeURIComponent(firstId) + suffix;
+              sv.onclick = () => { try { stopRedirect(); } catch (e) {} };
+            }
           } else {
             cb.style.display = "none";
           }
