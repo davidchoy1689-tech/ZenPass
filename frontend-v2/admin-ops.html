@@ -21,7 +21,7 @@
     .p-on{background:#ecfdf5;color:#047857}.p-wait{background:#fff7ed;color:#c2410c}
     .fld{width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:11px;padding:11px;font:inherit;font-size:14px;background:var(--surface);color:var(--text);margin-bottom:8px}
     .lbl{font-size:12.5px;font-weight:700;color:var(--text-muted);display:block;margin:0 0 5px 2px}
-    .toast6{position:fixed;left:50%;transform:translateX(-50%);bottom:96px;background:rgba(15,23,42,.93);color:#fff;padding:11px 18px;border-radius:99px;font-size:13.5px;z-index:9999}
+    .toast6{position:fixed;right:16px;top:16px;background:rgba(15,23,42,.95);color:#fff;padding:11px 16px;border-radius:12px;font-size:13px;font-weight:700;z-index:99999;box-shadow:0 8px 24px rgba(15,23,42,.22);animation:toastIn .18s ease-out}@keyframes toastIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
     .tabsx{display:flex;gap:8px;overflow-x:auto;margin:4px 0 12px}
     .tabsx button{white-space:nowrap;border:1px solid var(--border);background:var(--surface);border-radius:999px;padding:8px 14px;font:inherit;font-size:13px;font-weight:700;color:var(--text-muted)}
     .tabsx button.on{background:var(--brand-500);border-color:var(--brand-500);color:#fff}
@@ -40,6 +40,36 @@
     .modal-acts{display:flex;gap:8px;margin-top:12px}
     .modal-acts .btn{flex:1;min-height:46px}
     select.fld{appearance:auto}
+
+    /* ===== 2026-11-06 UI 翻新 ===== */
+    :root{ --forest:#1A5336; }
+    .statgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:0 0 12px}
+    .stat{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:12px 13px;box-shadow:0 1px 2px rgba(16,24,40,.04)}
+    .stat .l{font-size:11.5px;color:var(--text-muted);font-weight:800;display:flex;gap:6px;align-items:center}
+    .stat .v{font-size:22px;font-weight:900;color:var(--text);margin-top:4px;line-height:1.1}
+    .stat .s{font-size:11px;color:#94a3b8;margin-top:3px}
+    .bar{height:7px;background:#eef2f7;border-radius:99px;margin-top:8px;overflow:hidden}
+    .bar i{display:block;height:100%;border-radius:99px;background:var(--forest);transition:width .35s}
+    .bar.warn i{background:#f59e0b}
+    .dot{width:8px;height:8px;border-radius:99px;background:#10b981;display:inline-block;flex:none}
+    .dot.bad{background:#ef4444}
+    .pulse{width:8px;height:8px;border-radius:99px;background:#f59e0b;flex:none;animation:pulse 1.8s infinite}
+    @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(245,158,11,.55)}70%{box-shadow:0 0 0 9px rgba(245,158,11,0)}100%{box-shadow:0 0 0 0 rgba(245,158,11,0)}}
+    .paycard{display:flex;gap:10px;flex-wrap:wrap;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:11px 12px;margin-bottom:9px;border-left:4px solid #e5e7eb}
+    .paycard.claimed{border-left-color:#f59e0b;background:#fffdf5}
+    .paycard .who{font-weight:800;font-size:13.5px}
+    .paycard .meta{font-size:11.5px;color:var(--text-muted);margin-top:3px;line-height:1.5}
+    .timer{font-weight:900;font-size:12px;color:#b45309}
+    .btnrow{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+    .btnrow .btn{min-height:36px;font-size:12.5px;padding:0 12px}
+    .btn-solid{background:var(--forest);color:#fff;border:0}
+    .btn-line{background:var(--surface);border:1.5px solid var(--border);color:var(--text)}
+    details.foldcard{background:var(--surface);border:1px solid var(--border);border-radius:16px;margin-top:10px}
+    details.foldcard>summary{cursor:pointer;padding:13px 14px;font-weight:800;font-size:13.5px;list-style:none;display:flex;align-items:center;gap:8px}
+    details.foldcard>summary::-webkit-details-marker{display:none}
+    details.foldcard[open]>summary{border-bottom:1px solid var(--border)}
+    details.foldcard .foldbody{padding:12px 14px 14px}
+    @media (max-width:820px){ .statgrid{grid-template-columns:1fr 1fr} }
   </style>
 </head>
 <body>
@@ -50,6 +80,13 @@
       <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
         <input class="fld" id="month" type="month" style="margin:0;flex:1" />
         <button class="btn btn-primary" id="reload" style="flex:none;min-height:42px">更新</button>
+      </div>
+
+      <div class="statgrid" id="statGrid">
+        <div class="stat"><div class="l">🟢 12/12 實時席位</div><div class="v" id="stSeats">—</div><div class="s" id="stSeatsSub">載入中…</div><div class="bar" id="stSeatsBar"><i style="width:0%"></i></div></div>
+        <div class="stat"><div class="l"><span id="stPayDot" class="dot" style="display:none"></span>🟡 待核收款</div><div class="v" id="stPay">—</div><div class="s" id="stPaySub">自報已付款 —</div></div>
+        <div class="stat"><div class="l">💵 實收營業額</div><div class="v" id="stRev">—</div><div class="s">本月已入帳（GMV）</div></div>
+        <div class="stat"><div class="l"><span id="stSysDot" class="dot"></span>📡 系統狀態</div><div class="v" id="stSys">檢查中…</div><div class="s" id="stSysSub">API · DB</div></div>
       </div>
 
       <div class="tabsx" id="tabs">
@@ -81,15 +118,17 @@
           <div class="muted" style="font-size:12px;margin-bottom:8px">學員自行提交嘅 FPS／PayMe 付款，核實後即轉「已付款」並生效。收據縮圖可撳大。</div>
           <div id="payList"></div>
         </div></div>
-        <div class="card" style="margin-top:10px"><div class="body">
-          <b>♻️ 還原已取消訂單</b>
-          <div class="muted" style="font-size:12px;margin:6px 0 10px">客人已入數但被系統／人手取消 → 搜尋後一撳還原（有名額才可，會寫審計紀錄）。</div>
-          <div style="display:flex;gap:8px">
-            <input class="fld" id="rsQ" placeholder="參考編號 / 電話 / 姓名" style="margin:0;flex:1" />
-            <button class="btn btn-primary" id="rsGo" style="flex:none;min-height:42px">🔎 搜尋</button>
+        <details class="foldcard" id="restoreFold">
+          <summary>♻️ 還原已取消訂單（例外處理 · 撳開）</summary>
+          <div class="foldbody">
+            <div class="muted" style="font-size:12px;margin-bottom:10px">客人已入數但被系統／人手取消 → 搜尋後一撳還原（有名額才可，會寫審計紀錄）。</div>
+            <div style="display:flex;gap:8px">
+              <input class="fld" id="rsQ" placeholder="參考編號 / 電話 / 姓名" style="margin:0;flex:1" />
+              <button class="btn btn-primary" id="rsGo" style="flex:none;min-height:42px">🔎 搜尋</button>
+            </div>
+            <div id="rsList" style="margin-top:10px"></div>
           </div>
-          <div id="rsList" style="margin-top:10px"></div>
-        </div></div>
+        </details>
       </div>
 
       <div id="paneStudent" hidden>
@@ -257,7 +296,7 @@
     const $ = (id) => document.getElementById(id);
     const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
     const hkd = (n) => "HK$" + Number(n || 0).toLocaleString("en-HK");
-    function toast(m) { const t = document.createElement("div"); t.className = "toast6"; t.textContent = m; document.body.appendChild(t); setTimeout(() => t.remove(), 2500); }
+    function toast(m, ms) { const t = document.createElement("div"); t.className = "toast6"; t.textContent = m; document.body.appendChild(t); setTimeout(() => t.remove(), ms || 1800); }
 
     let MONTH = new Date().toISOString().slice(0, 7);
 
@@ -298,7 +337,52 @@
       loadAll();
     })();
 
+    async function loadStats() {
+      try {
+        const [ov, up, pay, h] = await Promise.all([
+          api.get("/admin/ops/overview?month=" + encodeURIComponent(MONTH)),
+          api.get("/admin/ops/upcoming-sessions?days=45"),
+          api.get("/admin/pending-payments"),
+          fetch("/api/health", { credentials: "include" }).then((r) => r.json()).catch(() => null),
+        ]);
+        // 12/12 席位
+        const sessions = (up && up.ok && up.data && up.data.sessions) || [];
+        const target = sessions.find((x) => String(x.start_time || "").slice(0, 10) === "2026-12-12") || sessions[0];
+        if (target) {
+          const booked = Number(target.booked) || 0, max = Number(target.max_participants) || 8;
+          const pct = Math.min(100, Math.round((booked / max) * 100));
+          $("stSeats").textContent = booked + " / " + max + " 席";
+          $("stSeatsSub").textContent = (target.title || "首發班") + " · 已鎖定 " + pct + "%";
+          const bar = $("stSeatsBar");
+          bar.className = "bar" + (pct >= 75 && pct < 100 ? " warn" : "");
+          bar.querySelector("i").style.width = pct + "%";
+        } else {
+          $("stSeats").textContent = "—";
+          $("stSeatsSub").textContent = "暫無未來班次";
+        }
+        // 待核收款
+        const rows = (pay && pay.ok && pay.data && pay.data.pending_payments) || [];
+        const claimed = rows.filter((x) => Number(x.payment_claimed) === 1 && !x.fps_reference && !x.payme_reference).length;
+        $("stPay").textContent = rows.length + " 筆";
+        $("stPaySub").textContent = "自報已付款 " + claimed + " 筆 · 合計 " + hkd(rows.reduce((a, x) => a + (Number(x.amount) || 0), 0));
+        $("stPayDot").style.display = rows.length ? "" : "none";
+        $("stPayDot").className = "dot" + (rows.length ? "" : "");
+        if (rows.length) $("stPayDot").className = "pulse";
+        // 營業額
+        const gmv = (ov && ov.ok && ov.data && ov.data.finance && ov.data.finance.gmv) || 0;
+        $("stRev").textContent = hkd(gmv);
+        // 系統
+        const ok = h && h.status === "ok" && h.db;
+        $("stSys").textContent = ok ? "全線正常" : "異常";
+        $("stSysSub").textContent = ok ? "API · DB · Scheduler 運行中" : "請檢查 API／DB";
+        $("stSysDot").className = "dot" + (ok ? "" : " bad");
+      } catch (e) {
+        $("stSys").textContent = "—";
+      }
+    }
+
     async function loadAll() {
+      await loadStats();
       await loadFinance();
       await loadPayments();
       await loadLeads();
@@ -369,7 +453,7 @@
         const full = left <= 0;
         const dead = x.schedule_status === "cancelled";
         const blocked = full || dead;
-        return `<div class="row" style="flex-wrap:wrap">
+        return `<div class="paycard" style="border-left-color:${blocked ? "#ef4444" : "#94a3b8"}">
           <span style="flex:1;min-width:0">
             <b>${esc(x.booking_reference || x.booking_id)}</b>
             <span class="pill" style="margin-left:6px;background:#f1f5f9;color:#64748b">已取消</span>
@@ -377,9 +461,11 @@
             <span class="s">${esc(x.class_title || "—")}${x.start_time ? " · " + esc(new Date(String(x.start_time).replace(" ", "T")).toLocaleString("zh-HK", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })) : ""}</span>
             <span class="s">金額 <b>${hkd(x.amount)}</b> · 名額 ${full ? "已滿" : "剩 " + left}${dead ? " · ⚠️ 課堂已取消" : ""}${x.cancel_reason ? " · 取消原因：" + esc(x.cancel_reason) : ""}</span>
           </span>
-          <button class="btn ${blocked ? "btn-secondary" : "btn-primary"}" style="min-height:32px;padding:0 11px;font-size:12px" data-restore="${esc(x.booking_id)}" ${blocked ? "disabled" : ""}>♻️ 還原</button>
+          <div class="btnrow">
+          <button class="btn ${blocked ? "btn-line" : "btn-solid"}" data-restore="${esc(x.booking_id)}" ${blocked ? "disabled" : ""}>${blocked ? (dead ? "⚠️ 課堂已取消" : "⛔ 席位已滿無法還原") : "♻️ 還原"}</button>
           ${x.phone ? `<a class="btn btn-secondary" style="min-height:32px;padding:0 11px;font-size:12px;text-decoration:none" target="_blank" rel="noopener"
              href="https://wa.me/852${esc(String(x.phone).replace(/\D/g, "").slice(-8))}?text=${encodeURIComponent("你好，關於你嘅預約（" + (x.booking_reference || "") + "），我哋收到你嘅入數，正幫你補回座位，謝謝！")}">💬 WhatsApp</a>` : ""}
+          </div>
         </div>`;
       }).join("");
       box.querySelectorAll("[data-restore]").forEach((b) => (b.onclick = async () => {
@@ -389,7 +475,7 @@
         b.disabled = true; b.textContent = "處理中…";
         const rr = await api.post(`/admin/ops/bookings/${b.dataset.restore}/restore`, { reason, mark_paid: true });
         if (rr.ok) { toast("♻️ 已還原並通知學員"); searchRestore(); loadPayments(); }
-        else { b.disabled = false; b.textContent = "♻️ 還原"; alert((rr.data && rr.data.error) || "還原失敗"); }
+        else { b.disabled = false; b.textContent = "♻️ 還原"; toast((rr.data && rr.data.error) || "還原失敗"); }
       }));
     }
 
@@ -421,33 +507,36 @@
         const thumb = rc
           ? `<img src="${esc(rc)}" alt="收據" data-rc="${esc(rc)}" style="width:66px;height:66px;object-fit:cover;border-radius:10px;border:1px solid var(--border);cursor:zoom-in;flex:none" />`
           : `<span class="pill" style="background:#f1f5f9;color:#94a3b8">無截圖</span>`;
-        return `<div class="row" style="flex-wrap:wrap;align-items:flex-start">
-          <span style="flex:1 1 100%;display:flex;gap:10px;align-items:flex-start">
+        const claimed = Number(x.payment_claimed) === 1 && ref === "—";
+        const waText = "您好，這裡是 ZenPass 樂齡體適能。我們已收到您為 " + (x.user_name || "學員") + " 登記 12/12 楓樹窩班次（" + (x.booking_reference || "") + "），請記得補交 FPS 參考編號以便正式確認席位，謝謝！";
+        return `<div class="paycard${claimed ? " claimed" : ""}">
+          <div style="flex:1 1 100%;display:flex;gap:10px;align-items:flex-start">
             ${thumb}
-            <span style="flex:1;min-width:0">
-              <b>${esc(x.booking_reference || x.booking_id)}</b>
-              <span class="pill p-wait" style="margin-left:6px">${esc(method)}</span>
-              ${Number(x.payment_claimed) === 1 && ref === "—" ? '<span class="pill" style="margin-left:6px;background:#fef3c7;color:#b45309">⏳ 待核查（自報已付款）</span>' : ""}
-              <span class="s">${esc(x.user_name || x.user_email || "—")}${x.user_phone ? " · " + esc(x.user_phone) : ""}</span>
-              <span class="s">${esc(x.class_title || "—")}${x.start_time ? " · " + esc(fmt(x.start_time)) : ""}</span>
-              <span class="s">金額 <b>${hkd(x.amount)}</b> · 參考 <b>${esc(ref)}</b>${x.payment_reported_at ? " · 提交 " + esc(fmt(x.payment_reported_at)) : ""}</span>
-              <span class="s">${holdLine(x)}</span>
-            </span>
-          </span>
-          <span style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
-            <button class="btn btn-primary" style="min-height:32px;padding:0 11px;font-size:12px" data-approve="${esc(x.booking_id)}">✅ 核實入賬</button>
-            <button class="btn btn-secondary" style="min-height:32px;padding:0 11px;font-size:12px" data-reject="${esc(x.booking_id)}">❌ 收據有誤</button>
-            <button class="btn btn-secondary" style="min-height:32px;padding:0 11px;font-size:12px" data-extend="${esc(x.booking_id)}">⏱️ 延長 60 分鐘</button>
-            <a class="btn btn-secondary" style="min-height:32px;padding:0 11px;font-size:12px;text-decoration:none" target="_blank" rel="noopener"
-               href="https://wa.me/852${esc(String(x.user_phone || "").replace(/\D/g, "").slice(-8))}?text=${encodeURIComponent("你好，關於你嘅付款（" + (x.booking_reference || "") + "），想同你核對一下，謝謝！")}">💬 問學員</a>
-          </span>
+            <div style="flex:1;min-width:0">
+              <div class="who">${esc(x.user_name || x.user_email || "—")}${x.user_phone ? ` <span style="font-weight:600;color:#64748b;font-size:12px">${esc(x.user_phone)}</span>` : ""}</div>
+              <div class="meta"><b>${esc(x.booking_reference || x.booking_id)}</b>
+                <span class="pill p-wait" style="margin-left:6px">${esc(method)}</span>
+                ${claimed ? '<span class="pill" style="margin-left:6px;background:#fef3c7;color:#b45309">⏳ 待核查（自報已付款）</span>' : ""}
+              </div>
+              <div class="meta">${esc(x.class_title || "—")}${x.start_time ? " · " + esc(fmt(x.start_time)) : ""}</div>
+              <div class="meta">金額 <b>${hkd(x.amount)}</b> · 參考 <b>${esc(ref)}</b>${x.payment_reported_at ? " · 提交 " + esc(fmt(x.payment_reported_at)) : ""}</div>
+              <div class="meta timer">${holdLine(x)}</div>
+            </div>
+          </div>
+          <div class="btnrow" style="width:100%">
+            <button class="btn btn-solid" data-approve="${esc(x.booking_id)}">✅ 確認收款</button>
+            <button class="btn btn-line" data-extend="${esc(x.booking_id)}">⏱️ 延長 60 分</button>
+            ${x.user_phone ? `<a class="btn btn-line" style="text-decoration:none" target="_blank" rel="noopener"
+               href="https://wa.me/852${esc(String(x.user_phone).replace(/\D/g, "").slice(-8))}?text=${encodeURIComponent(waText)}">💬 快速 WhatsApp</a>` : ""}
+            <button class="btn btn-line" data-reject="${esc(x.booking_id)}">❌ 收據有誤</button>
+          </div>
         </div>`;
       }).join("");
       box.querySelectorAll("[data-extend]").forEach((b) => (b.onclick = async () => {
         b.disabled = true; b.textContent = "處理中…";
         const rr = await api.post(`/admin/ops/bookings/${b.dataset.extend}/extend-hold`, { minutes: 60 });
         if (rr.ok) { toast("⏱️ 已延長 60 分鐘（以現在起計）"); loadPayments(); }
-        else { b.disabled = false; b.textContent = "⏱️ 延長 60 分鐘"; alert((rr.data && rr.data.error) || "延長失敗"); }
+        else { b.disabled = false; b.textContent = "⏱️ 延長 60 分鐘"; toast((rr.data && rr.data.error) || "延長失敗"); }
       }));
       box.querySelectorAll("[data-rc]").forEach((img) => (img.onclick = () => showReceipt(img.dataset.rc)));
       box.querySelectorAll("[data-approve]").forEach((b) => (b.onclick = async () => {
@@ -455,7 +544,7 @@
         b.disabled = true; b.textContent = "處理中…";
         const rr = await api.post("/admin/approve-payment", { booking_id: b.dataset.approve });
         if (rr.ok) { toast("✅ 已核實入賬"); loadPayments(); loadFinance(); }
-        else { b.disabled = false; b.textContent = "✅ 核實入賬"; alert((rr.data && rr.data.error) || "核實失敗"); }
+        else { b.disabled = false; b.textContent = "✅ 核實入賬"; toast((rr.data && rr.data.error) || "核實失敗"); }
       }));
       box.querySelectorAll("[data-reject]").forEach((b) => (b.onclick = async () => {
         const reason = prompt("收據有咩問題？（會記錄並通知學員）", "收據金額／參考編號不符");
@@ -463,7 +552,7 @@
         b.disabled = true; b.textContent = "處理中…";
         const rr = await api.post("/admin/reject-payment", { booking_id: b.dataset.reject, reason });
         if (rr.ok) { toast("已拒絕並取消預約"); loadPayments(); loadFinance(); }
-        else { b.disabled = false; b.textContent = "❌ 收據有誤"; alert((rr.data && rr.data.error) || "操作失敗"); }
+        else { b.disabled = false; b.textContent = "❌ 收據有誤"; toast((rr.data && rr.data.error) || "操作失敗"); }
       }));
     }
 
@@ -546,7 +635,7 @@
         cur = cur.includes(k) ? cur.filter((x) => x !== k) : cur.concat(k);
         const rr = await api.post("/admin/coach-credentials/" + encodeURIComponent(b.dataset.cv) + "/qualified-sports", { sports: cur });
         if (rr.ok) { toast("✅ 已更新可發證項目"); loadCredentials(); }
-        else alert((rr.data && rr.data.error) || "更新失敗");
+        else toast((rr.data && rr.data.error) || "更新失敗");
       }));
       box.querySelectorAll("[data-cedit]").forEach((b) => (b.onclick = async () => {
         const lic = prompt("教練牌照到期日（YYYY-MM-DD，留空清除）", b.dataset.lic || "");
@@ -557,7 +646,7 @@
           license_expiry: lic.trim(), insurance_expiry_date: ins.trim(),
         });
         if (rr.ok) { toast("✅ 已更新到期日"); loadCredentials(); }
-        else alert((rr.data && rr.data.error) || "更新失敗");
+        else toast((rr.data && rr.data.error) || "更新失敗");
       }));
       box.querySelectorAll("[data-cv]").forEach((b) => (b.onclick = async () => {
         const note = b.dataset.d === "reject" ? (prompt("拒絕原因（例：保單已過期／證書模糊）") || "") : "";
@@ -574,7 +663,7 @@
             }
           }
           loadCredentials();
-        } else alert((rr.data && rr.data.error) || "審核失敗");
+        } else toast((rr.data && rr.data.error) || "審核失敗");
       }));
     }
 
@@ -692,7 +781,7 @@
           const rr = await api.post("/admin/ops/weather-scan", {});
           sc0.disabled = false; sc0.textContent = "🔄 重新讀取天文台";
           if (rr.ok) { toast(rr.data && rr.data.created ? "⚠️ 已發出新警報" : "已更新（無新警報）"); loadAlerts(); }
-          else alert((rr.data && rr.data.error) || "讀取失敗");
+          else toast((rr.data && rr.data.error) || "讀取失敗");
         };
         return;
       }
@@ -716,7 +805,7 @@
         const dec = b.dataset.dec;
         const note = dec === "ack" ? "" : (prompt(dec === "cancel" ? "備註（例如：已通知教練）" : "照常上課原因（例如：場地仍開放）") || "");
         const rr = await api.post("/admin/ops/alerts/" + encodeURIComponent(b.dataset.id) + "/handle", { decision: dec, note });
-        if (!rr.ok) { alert((rr.data && rr.data.error) || "處理失敗"); return; }
+        if (!rr.ok) { toast((rr.data && rr.data.error) || "處理失敗"); return; }
         if (dec === "cancel") {
           const tabBtn = [...$("tabs").children].find((x) => x.dataset.t === "cancel");
           if (tabBtn) tabBtn.click();
@@ -732,7 +821,7 @@
         const rr = await api.post("/admin/ops/weather-scan", {});
         sc.disabled = false; sc.textContent = "🔄 重新讀取天文台";
         if (rr.ok) { toast(rr.data && rr.data.created ? "⚠️ 已發出新警報" : "已更新（無新警報）"); loadAlerts(); }
-        else alert((rr.data && rr.data.error) || "讀取失敗");
+        else toast((rr.data && rr.data.error) || "讀取失敗");
       };
     }
 
@@ -838,7 +927,7 @@
         const r = await api.post("/admin/ops/schedules/" + encodeURIComponent(row.id) + "/manual-cancel", {
           reason, notify_type, confirmed: true,
         });
-        if (!r.ok) { btn.disabled = false; btn.textContent = "確認執行取消"; alert((r.data && r.data.error) || "取消失敗"); return; }
+        if (!r.ok) { btn.disabled = false; btn.textContent = "確認執行取消"; toast((r.data && r.data.error) || "取消失敗"); return; }
         // 第二段：通知學員
         const d = r.data || {};
         const phones = (d.students || []).map((s) => s.phone).filter(Boolean).join(",");
@@ -916,7 +1005,7 @@
         b.disabled = true; b.textContent = "⏳";
         const rr = await api.post("/admin/bookings/" + encodeURIComponent(b.dataset.ok) + "/mark-refunded", {});
         if (rr.ok) { toast("✅ 已確認退款"); loadRefunds(); loadFinance(); }
-        else { b.disabled = false; b.textContent = "✅ 確認已退款"; alert((rr.data && rr.data.error) || "確認失敗"); }
+        else { b.disabled = false; b.textContent = "✅ 確認已退款"; toast((rr.data && rr.data.error) || "確認失敗"); }
       }));
     }
 
@@ -941,11 +1030,11 @@
           <button class="btn btn-secondary btn-block" id="tfaOff" style="margin-top:8px">🔓 停用 2FA</button>`;
         $("tfaOff").onclick = async () => {
           const code = $("tfaOffCode").value.trim();
-          if (!code) return alert("請輸入驗證碼");
+          if (!code) return toast("請輸入驗證碼");
           if (!confirm("確定停用 2FA？帳號安全性會下降。")) return;
           const rr = await api.post("/admin/2fa/disable", { code });
           if (rr.ok) { toast("已停用 2FA"); load2fa(); }
-          else alert((rr.data && rr.data.error) || "停用失敗");
+          else toast((rr.data && rr.data.error) || "停用失敗");
         };
         return;
       }
@@ -956,7 +1045,7 @@
         <div id="tfaQr" style="margin-top:12px"></div>`;
       $("tfaGen").onclick = async () => {
         const rr = await api.post("/admin/2fa/generate", {});
-        if (!rr.ok) return alert((rr.data && rr.data.error) || "產生失敗");
+        if (!rr.ok) return toast((rr.data && rr.data.error) || "產生失敗");
         const d2 = rr.data || {};
         $("tfaQr").innerHTML = `
           <div class="center"><img src="${esc(d2.qr_data_url)}" alt="2FA QR" style="width:220px;height:220px;border-radius:12px;border:1px solid var(--border)" /></div>
@@ -965,9 +1054,9 @@
           <button class="btn btn-primary btn-block" id="tfaOn" style="margin-top:8px">✅ 確認啟用</button>`;
         $("tfaOn").onclick = async () => {
           const code = $("tfaCode").value.trim();
-          if (!/^\d{6}$/.test(code)) return alert("請輸入 6 位數字");
+          if (!/^\d{6}$/.test(code)) return toast("請輸入 6 位數字");
           const r2 = await api.post("/admin/2fa/enable", { code });
-          if (!r2.ok) return alert((r2.data && r2.data.error) || "啟用失敗");
+          if (!r2.ok) return toast((r2.data && r2.data.error) || "啟用失敗");
           const codes = (r2.data && r2.data.backup_codes) || [];
           $("tfaBody").innerHTML = `
             <div class="row"><span>狀態</span><b style="color:#047857">✅ 已啟用</b></div>
@@ -1044,11 +1133,11 @@
           pli_expiry: row.querySelector(".pli-exp").value || null,
           pli_status: row.querySelector(".pli-st").value,
         };
-        if (payload.pli_status === "verified" && !payload.pli_expiry) { alert("標記為已核驗時，必須填寫保單到期日"); return; }
+        if (payload.pli_status === "verified" && !payload.pli_expiry) { toast("標記為已核驗時，必須填寫保單到期日"); return; }
         b.disabled = true; b.textContent = "儲存中…";
         const rr = await api.put("/admin/venues/" + encodeURIComponent(b.dataset.vid) + "/pli", payload);
         if (rr.ok) { toast("✅ 已儲存場地 PLI 資料"); loadVenues(); }
-        else { b.disabled = false; b.textContent = "💾 儲存並核驗"; alert((rr.data && rr.data.error) || "儲存失敗"); }
+        else { b.disabled = false; b.textContent = "💾 儲存並核驗"; toast((rr.data && rr.data.error) || "儲存失敗"); }
       }));
     }
 
@@ -1059,7 +1148,7 @@
       if (!confirm(tip)) return;
       const r = await api.post("/admin/settings/venue-pli-gate", { mode });
       if (r.ok) { toast("✅ 閘門已切換為 " + mode); loadVenues(); }
-      else alert((r.data && (r.data.error || (r.data.blocking || []).map((x) => x.name).join("、"))) || "切換失敗");
+      else toast((r.data && (r.data.error || (r.data.blocking || []).map((x) => x.name).join("、"))) || "切換失敗");
     }
 
     async function loadPendingClasses() {
@@ -1081,13 +1170,13 @@
         b.disabled = true; b.textContent = "開通中…";
         const rr = await api.post("/admin/ops/classes/" + encodeURIComponent(b.dataset.open) + "/open", { open: true });
         if (rr.ok) { toast("✅ 已開通"); loadPendingClasses(); }
-        else { b.disabled = false; b.textContent = "✅ 一鍵開通"; alert((rr.data && rr.data.error) || "開通失敗"); }
+        else { b.disabled = false; b.textContent = "✅ 一鍵開通"; toast((rr.data && rr.data.error) || "開通失敗"); }
       }));
     }
 
     async function weatherCancel() {
       const date = $("wxDate").value;
-      if (!date) { alert("請揀日期"); return; }
+      if (!date) { toast("請揀日期"); return; }
       if (!confirm(`確定取消 ${date} 所有課堂？`)) return;
       $("wxMsg").textContent = "處理中…";
       const r = await api.post("/admin/ops/weather-cancel", { date, reason: $("wxReason").value, refund: $("wxRefund").checked });
@@ -1105,9 +1194,9 @@
 
     async function payoutCsv() {
       const r = await api.get("/admin/ops/payout-list?month=" + encodeURIComponent(MONTH));
-      if (!r.ok) { alert((r.data && r.data.error) || "讀取失敗"); return; }
+      if (!r.ok) { toast((r.data && r.data.error) || "讀取失敗"); return; }
       const rows = r.data.rows || [];
-      if (!rows.length) { alert("本月暫無已完結課堂"); return; }
+      if (!rows.length) { toast("本月暫無已完結課堂"); return; }
       const head = ["日期", "課堂", "教練", "教練電話", "出席", "學費", "教練80%", "平台20%", "場地", "場地電話", "已封存"];
       const lines = [head.join(",")];
       rows.forEach((x) => {
@@ -1175,7 +1264,7 @@
       const name = Number(row.is_parent) === 1 && row.parent_name ? row.parent_name : row.name;
       if (!confirm(`確定為 ${name} 現場簽到？`)) return;
       const res = await api.post(`/admin/bookings/${row.booking_id}/checkin`, {});
-      if (!res.ok) { alert((res.data && res.data.error) || "簽到失敗"); return; }
+      if (!res.ok) { toast((res.data && res.data.error) || "簽到失敗"); return; }
       loadBookings();
       const sp = res.data.sponsor;
       if (sp && sp.wa_url) {
@@ -1194,9 +1283,9 @@
 
     async function openReschedule(row) {
       const r = await api.get("/admin/ops/schedules?class_id=" + encodeURIComponent(row.class_id));
-      if (!r.ok) { alert((r.data && r.data.error) || "讀取班次失敗"); return; }
+      if (!r.ok) { toast((r.data && r.data.error) || "讀取班次失敗"); return; }
       const opts = (r.data.schedules || []).filter((s) => s.id !== row.schedule_id && Number(s.remaining) >= Number(row.seats));
-      if (!opts.length) { alert(`同課程沒有足夠名額的未來班次（需要 ${row.seats} 位）`); return; }
+      if (!opts.length) { toast(`同課程沒有足夠名額的未來班次（需要 ${row.seats} 位）`); return; }
       $("bkModalCard").innerHTML = `
         <h3>📅 順延 / 改期</h3>
         <div class="muted">${esc(row.name)} · ${esc(row.title)}<br>現時：${fmtDT(row.start_time)}（${row.seats} 位）</div>
@@ -1213,13 +1302,13 @@
       $("rsGo").onclick = async () => {
         const sid = $("rsSel").value;
         const reason = $("rsReason").value.trim();
-        if (reason.length < 4) { alert("請填寫原因（最少 4 個字）"); return; }
+        if (reason.length < 4) { toast("請填寫原因（最少 4 個字）"); return; }
         const label = $("rsSel").selectedOptions[0].textContent;
         if (!confirm(`確定將 ${row.name}（${row.seats} 位）改期到：\n${label}？\n\n舊單會取消並釋放名額。`)) return;
         const b = $("rsGo"); b.disabled = true; b.textContent = "處理中…";
         const res = await api.post(`/admin/bookings/${row.booking_id}/reschedule`, { new_schedule_id: sid, reason });
         if (res.ok) { closeBkModal(); toast("✅ 已改期（新單 " + (res.data.new_booking_ids || []).length + " 筆）"); loadBookings(); loadFinance(); }
-        else { alert((res.data && res.data.error) || "改期失敗"); b.disabled = false; b.textContent = "確認改期"; }
+        else { toast((res.data && res.data.error) || "改期失敗"); b.disabled = false; b.textContent = "確認改期"; }
       };
     }
 
@@ -1246,16 +1335,16 @@
         const name = $("upName").value.trim();
         const phone = $("upPhone").value.replace(/\D/g, "").replace(/^852/, "");
         const ref = $("upRef").value.trim();
-        if (name.length < 2) { alert("請填寫朋友姓名"); return; }
-        if (!/^[4-9]\d{7}$/.test(phone)) { alert("電話必須為 8 位香港手機號碼"); return; }
-        if (ref.length < 3) { alert("請填寫 FPS 交易參考"); return; }
+        if (name.length < 2) { toast("請填寫朋友姓名"); return; }
+        if (!/^[4-9]\d{7}$/.test(phone)) { toast("電話必須為 8 位香港手機號碼"); return; }
+        if (ref.length < 3) { toast("請填寫 FPS 交易參考"); return; }
         if (!confirm(`確定為 ${row.name} 加 1 位（${name}），補收 HK$100？`)) return;
         const b = $("upGo"); b.disabled = true; b.textContent = "處理中…";
         const res = await api.post(`/admin/bookings/${row.booking_id}/upgrade-seats`, {
           friend_name: name, friend_phone: phone, top_up_amount: 100, payment_reference: ref,
         });
         if (res.ok) { closeBkModal(); toast("✅ 已加位（新單 $100）"); loadBookings(); loadFinance(); }
-        else { alert((res.data && res.data.error) || "加位失敗"); b.disabled = false; b.textContent = "確認加位"; }
+        else { toast((res.data && res.data.error) || "加位失敗"); b.disabled = false; b.textContent = "確認加位"; }
       };
     }
   </script>

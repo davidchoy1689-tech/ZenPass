@@ -38,6 +38,7 @@
   .att{ font-size:12px; line-height:1.7; white-space:nowrap; text-align:left; display:inline-block }
   .att i{ font-style:normal; font-size:14px; letter-spacing:1px }
   .blank{ color:#9ca3af }
+  .tag{ display:inline-block; font-size:9.5px; font-weight:900; color:#7f1d1d; background:#fee2e2; border:1px solid #fca5a5; border-radius:99px; padding:1px 6px; vertical-align:2px }
   .foot{ margin-top:10px; font-size:10.5px; font-weight:700; line-height:1.65; border:1px solid #000; padding:6px 8px }
   .sign{ margin-top:12px; display:flex; gap:26px; font-size:12px; font-weight:800 }
   .sign span{ flex:1 }
@@ -58,6 +59,7 @@
     <b>🖨️ 現場學員簽到表（A4 實體備用）</b>
     <span class="grow"></span>
     <button class="btn btn-primary" id="printBtn">🖨️ 再次列印</button>
+    <button class="btn btn-ghost" id="csvBtn">📥 匯出 CSV</button>
     <button class="btn btn-ghost" id="backBtn">返回</button>
   </div>
   <div class="sheet" id="sheet"><div class="info">載入中…</div></div>
@@ -95,6 +97,7 @@
   }
 
   function render(d){
+    window.__ROSTER__ = d;
     const s = d.schedule || {}, rows = d.students || [];
     const seats = Number(s.max_participants) || 8;
     const minRows = Math.max(10, seats, rows.length);   // 8 位學員＋空白備用行，單張 A4
@@ -120,7 +123,7 @@
         <tbody>
           ${rows.map((x, i) => `<tr>
             <td class="c-num">${i + 1}</td>
-            <td class="c-name"><span class="nm">${esc(x.name)}</span>${x.is_child ? `<div class="sub">（子女代報：${esc(x.account_name)}）</div>` : ""}${x.booking_reference ? `<div class="sub">${esc(x.booking_reference)}</div>` : ""}</td>
+            <td class="c-name"><span class="nm">${esc(x.name)}</span>${x.health_notes ? ` <span class="tag">⚠️ 舊患</span>` : ""}${x.is_child ? `<div class="sub">（子女代報：${esc(x.account_name)}）</div>` : ""}${x.booking_reference ? `<div class="sub">${esc(x.booking_reference)}</div>` : ""}</td>
             <td class="c-tel">${esc(tel(x.phone))}</td>
             <td class="c-note ${x.health_notes ? "hi" : ""}">${x.health_notes ? `<span class="warn">⚠️ ${esc(x.health_notes)}</span>` : '<span class="blank">—</span>'}</td>
             <td class="c-emg">${esc(x.emergency_name || "—")}<div class="sub">${esc(tel(x.emergency_phone))}</div></td>
@@ -147,6 +150,20 @@
     if (AUTO) setTimeout(() => { try { window.print(); } catch (e) {} }, 450);
   }
 
+  $("#csvBtn").onclick = () => {
+    const rows = (window.__ROSTER__ && window.__ROSTER__.students) || [];
+    if (!rows.length) { toastLike("暫無學員可匯出"); return; }
+    const head = ["#", "姓名", "電話", "健康備註", "緊急聯絡人", "緊急電話", "已簽到", "預約編號"];
+    const q = (v) => `"${String(v == null ? "" : v).replace(/"/g, '""')}"`;
+    const lines = [head.map(q).join(",")].concat(rows.map((x, i) => [i + 1, x.name, x.phone, x.health_notes, x.emergency_name, x.emergency_phone, x.checked_in ? "是" : "否", x.booking_reference].map(q).join(",")));
+    const blob = new Blob(["\ufeff" + lines.join("\r\n")], { type: "text/csv;charset=utf-8" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "ZenPass-名冊-" + (SID || "schedule").slice(0, 8) + ".csv";
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 3000);
+  };
+  function toastLike(m) { const t = document.createElement("div"); t.textContent = m; t.style.cssText = "position:fixed;right:16px;top:16px;background:#0f172a;color:#fff;padding:10px 15px;border-radius:10px;font:700 13px -apple-system,sans-serif;z-index:9999"; document.body.appendChild(t); setTimeout(() => t.remove(), 1800); }
   $("#printBtn").onclick = () => window.print();
   $("#backBtn").onclick = () => history.length > 1 ? history.back() : (location.href = "admin-ops.html");
   $("#printBtn").disabled = true;
