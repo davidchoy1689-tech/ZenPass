@@ -165,6 +165,28 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      # 只改前端／文件（HTML/CSS/JS/文案）→ 靜態部署，唔重啟 pm2
+      # 涉及 backend／依賴／migration／deploy 腳本 → 完整部署（npm ci + pm2 restart）
+      - name: Classify change scope
+        id: scope
+        run: |
+          BASE="${{ github.event.before }}"
+          if [ "${{ github.event_name }}" != "push" ] || [ -z "$BASE" ] || ! git cat-file -e "${BASE}^{commit}" 2>/dev/null; then
+            BASE="HEAD~1"
+          fi
+          echo "Comparing $BASE..HEAD"
+          CHANGED=$(git diff --name-only "$BASE" HEAD || true)
+          echo "$CHANGED"
+          if echo "$CHANGED" | grep -qE '^(backend/|migrations/|deploy/|scripts/|package\.json|package-lock\.json)'; then
+            echo "mode=full" >> "$GITHUB_OUTPUT"
+            echo "🛠 需要完整部署（後端有改動）"
+          else
+            echo "mode=static" >> "$GITHUB_OUTPUT"
+            echo "📄 靜態部署（唔重啟後端）"
+          fi
 
       - name: Setup SSH key
         env:
@@ -174,13 +196,26 @@ jobs:
           echo "$SSH_KEY" > /tmp/deploy_key
           chmod 600 /tmp/deploy_key
 
-      - name: Deploy to VPS
+      - name: Deploy to VPS (full — backend changed)
+        if: steps.scope.outputs.mode == 'full'
         run: |
           ssh -o StrictHostKeyChecking=no -i /tmp/deploy_key root@47.242.246.2 "
             cd /var/www/zenpass
             git fetch origin main
             git reset --hard origin/main
             bash deploy/deploy.sh
+          "
+
+      - name: Deploy to VPS (static only — no pm2 restart)
+        if: steps.scope.outputs.mode == 'static'
+        run: |
+          ssh -o StrictHostKeyChecking=no -i /tmp/deploy_key root@47.242.246.2 "
+            set -e
+            cd /var/www/zenpass
+            git fetch origin main
+            git reset --hard origin/main
+            echo '✅ 靜態檔已更新（未重啟 pm2）'
+            pm2 describe zenpass-api | grep -E 'status|restarts' || true
           "
 
       - name: Post-deploy health verification
