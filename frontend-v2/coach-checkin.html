@@ -279,6 +279,24 @@
     if (scanStream) { try { scanStream.getTracks().forEach((t) => t.stop()); } catch (e) {} scanStream = null; }
     scanVideo.srcObject = null;
   }
+  // getUserMedia 有時會一直 pending（無相機／系統未回應）→ 超時即失敗，並確保遲來的 stream 會被關掉
+  function getUserMediaWithTimeout(constraints, ms) {
+    let timer, abandoned = false;
+    const gum = navigator.mediaDevices.getUserMedia(constraints);
+    gum.then((s) => {
+      if (!abandoned) return;
+      try { s.getTracks().forEach((t) => t.stop()); } catch (e) {}
+    }).catch(() => {});
+    return Promise.race([
+      gum,
+      new Promise((_, rej) => {
+        timer = setTimeout(() => {
+          abandoned = true;
+          rej(Object.assign(new Error("開啟鏡頭超時"), { name: "TimeoutError" }));
+        }, ms);
+      }),
+    ]).finally(() => clearTimeout(timer));
+  }
   async function startScan() {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       scanWrap.style.display = "block";
@@ -292,10 +310,10 @@
     scanWrap.style.display = "block";
     try {
       stopTracks();
-      scanStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 } },
-        audio: false,
-      });
+      scanStream = await getUserMediaWithTimeout(
+        { video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false },
+        8000,
+      );
       scanVideo.srcObject = scanStream;
       scanVideo.muted = true;
       scanVideo.setAttribute("playsinline", "");

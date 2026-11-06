@@ -36,6 +36,8 @@ console.log("\n🧪 2. 前景返回自動重連");
   ok("play() 有 4 秒超時（低電量模式卡死可救）", /Promise\.race\(\[/.test(js) && /4000/.test(js));
   ok("卡死的 scanStarting 10 秒後可解鎖重試", /Date\.now\(\) - scanStartAt < 10000/.test(js));
   ok("TimeoutError 有中文指引", /TimeoutError/.test(js) && /鏡頭啟動超時/.test(js));
+  ok("getUserMedia 亦有 8 秒超時（唔會無限黑屏）", /getUserMediaWithTimeout/.test(js) && /8000/.test(js));
+  ok("超時後遲來的 stream 會自動關閉（唔會鏡頭燈長著）", /abandoned = true/.test(js) && /t\.stop\(\)/.test(js));
 }
 
 console.log("\n🧪 3. 黑屏兜底提示卡");
