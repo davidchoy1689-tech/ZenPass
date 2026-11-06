@@ -58,10 +58,19 @@
   <div class="offline" id="offline">⚠️ 網絡不穩 — 簽到會先儲存，恢復後自動上傳</div>
 
 <div id="scanWrap" style="position:fixed;inset:0;background:#000;z-index:50;display:none">
-  <video id="scanVideo" playsinline muted style="width:100%;height:100%;object-fit:cover"></video>
+  <video id="scanVideo" playsinline webkit-playsinline muted autoplay style="width:100%;height:100%;object-fit:cover"></video>
   <div style="position:absolute;top:12px;left:12px;right:12px;display:flex;gap:8px;align-items:center;color:#fff">
     <b style="font-size:15px">對準長者 QR Code</b>
     <button id="scanClose" style="margin-left:auto;background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:99px;padding:9px 14px;font-weight:800">關閉</button>
+  </div>
+  <div id="scanErr" style="position:absolute;inset:0;display:none;align-items:center;justify-content:center;padding:22px;text-align:center">
+    <div style="max-width:340px;width:100%;background:#fffbeb;border:2px solid #f59e0b;border-radius:18px;padding:20px;color:#92400e">
+      <div style="font-size:42px;line-height:1">⚠️</div>
+      <div style="font-size:20px;font-weight:900;margin:8px 0">未能開啟相機</div>
+      <div id="scanErrMsg" style="font-size:14px;line-height:1.55;color:#78350f">請檢查 Safari 設定是否已允許「相機」權限。</div>
+      <button id="scanRetry" style="margin-top:14px;width:100%;min-height:48px;border:0;border-radius:12px;background:#f59e0b;color:#fff;font-size:16px;font-weight:900">🔄 點此重試開啟鏡頭</button>
+      <button id="scanBack" style="margin-top:8px;width:100%;min-height:48px;border:1px solid #f59e0b;border-radius:12px;background:#fff;color:#92400e;font-size:16px;font-weight:900">📋 切換回手動點名名冊</button>
+    </div>
   </div>
   <div id="scanBanner" style="position:absolute;left:12px;right:12px;bottom:24px;background:#047857;color:#fff;border-radius:14px;padding:14px;font-weight:900;display:none"></div>
 </div>
@@ -221,8 +230,9 @@
   if (DEMO) { load(); } else { load(); flush(); }
 
   /* ===== 📷 掃碼簽到 ===== */
-  let scanStream = null, scanRAF = null, scanning = false;
+  let scanStream = null, scanRAF = null, scanning = false, scanStarting = false, lastRestartAt = 0, loopActive = false;
   const scanWrap = $("scanWrap"), scanVideo = $("scanVideo"), scanBanner = $("scanBanner");
+  const scanErr = $("scanErr"), scanErrMsg = $("scanErrMsg");
   async function checkinByQr(qr) {
     if (DEMO) {
       const id = qr.split(":")[2];
@@ -242,28 +252,118 @@
     scanBanner.style.display = "block";
     setTimeout(() => { scanBanner.style.display = "none"; }, ms || 1500);
   }
+  // ===== 黑屏兜底：明確錯誤卡片（唔會再留一個空黑框）=====
+  function cameraHint(e) {
+    const name = (e && (e.name || e.code)) || "";
+    if (name === "NotAllowedError" || name === "SecurityError" || name === "PermissionDeniedError") {
+      return "Safari 已封鎖相機權限。請到「設定 → Safari → 相機」改為「允許」，或撳網址列左邊「aA」→「網站設定」開啟相機，然後重試。";
+    }
+    if (name === "NotFoundError" || name === "OverconstrainedError" || name === "DevicesNotFoundError") {
+      return "搵唔到可用鏡頭。請確認相機冇被其他 App 佔用，然後重試。";
+    }
+    if (name === "NotReadableError" || name === "TrackStartError") {
+      return "相機被其他 App 或系統鎖住。請關閉其他相機 App（或重開 Safari）再重試。";
+    }
+    const msg = (e && e.message) ? String(e.message) : "";
+    return "請檢查 Safari 設定是否已允許「相機」權限。" + (msg ? `（${msg}）` : "");
+  }
+  function showScanError(text) {
+    scanErrMsg.textContent = text || "請檢查 Safari 設定是否已允許「相機」權限。";
+    scanErr.style.display = "flex";
+  }
+  function hideScanError() { scanErr.style.display = "none"; }
+  function stopTracks() {
+    if (scanStream) { try { scanStream.getTracks().forEach((t) => t.stop()); } catch (e) {} scanStream = null; }
+    scanVideo.srcObject = null;
+  }
   async function startScan() {
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { toast("此瀏覽器不支援鏡頭"); return; }
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      scanWrap.style.display = "block";
+      showScanError("此瀏覽器唔支援鏡頭。請改用 Safari／Chrome，或撳下面切換回手動點名。");
+      return;
+    }
+    if (scanStarting) return;
+    scanStarting = true;
     scanWrap.style.display = "block";
     try {
-      scanStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
+      stopTracks();
+      scanStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 } },
+        audio: false,
+      });
       scanVideo.srcObject = scanStream;
+      scanVideo.muted = true;
+      scanVideo.setAttribute("playsinline", "");
+      scanVideo.setAttribute("webkit-playsinline", "");
       await scanVideo.play();
+      hideScanError();
       scanning = true;
-      tick();
+      resumeLoop();
     } catch (e) {
-      toast("無法開啟鏡頭：" + e.message);
-      stopScan();
+      scanning = false;
+      stopTracks();
+      showScanError(cameraHint(e));
+    } finally {
+      scanStarting = false;
     }
   }
   function stopScan() {
     scanning = false;
     if (scanRAF) cancelAnimationFrame(scanRAF);
-    if (scanStream) { scanStream.getTracks().forEach((t) => t.stop()); scanStream = null; }
+    scanRAF = null;
+    stopTracks();
+    hideScanError();
     scanWrap.style.display = "none";
   }
+  function resumeLoop() {
+    if (loopActive) return;
+    if (scanRAF) { cancelAnimationFrame(scanRAF); scanRAF = null; }
+    tick();
+  }
+  // ===== 自癒：切 App／解鎖／背景返回後，鏡頭凍結即平滑重連 =====
+  async function restartCamera() {
+    if (scanWrap.style.display === "none") return;
+    if (scanStarting) return;
+    if (Date.now() - lastRestartAt < 1500) return; // 防連環重啟
+    lastRestartAt = Date.now();
+    await startScan();
+    if (scanning && scanErr.style.display === "none") banner("🔄 鏡頭已重新連接", 1500);
+  }
+  function cameraLooksDead() {
+    if (!scanStream) return true;
+    const track = scanStream.getVideoTracks ? scanStream.getVideoTracks()[0] : null;
+    if (!track || track.readyState === "ended") return true;
+    if (!scanVideo.srcObject) return true;
+    if (scanVideo.paused || scanVideo.ended) return true;
+    return scanVideo.videoWidth === 0;
+  }
+  function recheckCamera() {
+    if (scanWrap.style.display === "none") return;
+    if (document.visibilityState !== "visible") return;
+    // 返回前景先等 400ms，避免系統未恢復串流就誤判
+    setTimeout(() => {
+      if (scanWrap.style.display === "none") return;
+      if (cameraLooksDead()) restartCamera();
+      else if (!scanning) { scanning = true; resumeLoop(); }
+    }, 400);
+  }
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") recheckCamera();
+  });
+  window.addEventListener("focus", recheckCamera);
+  window.addEventListener("pageshow", recheckCamera);
+  // 每 3 秒看門狗：真黑屏（有 stream 但 0 畫面）都救得返
+  setInterval(() => {
+    if (document.visibilityState !== "visible") return;
+    if (scanWrap.style.display === "none") return;
+    if (scanErr.style.display !== "none") return; // 已顯示錯誤卡：等用戶撳「重試」，避免不停彈權限
+    if (cameraLooksDead()) restartCamera();
+  }, 3000);
+  $("scanRetry").onclick = () => { hideScanError(); startScan(); };
+  $("scanBack").onclick = () => stopScan();
   function tick() {
-    if (!scanning) return;
+    if (!scanning) { loopActive = false; return; }
+    loopActive = true;
     if (scanVideo.readyState === scanVideo.HAVE_ENOUGH_DATA) {
       const w = scanVideo.videoWidth, h = scanVideo.videoHeight;
       if (w && h) {
@@ -288,7 +388,7 @@
             } else {
               banner("❌ " + (r.data.error || "簽到失敗"), 2600);
             }
-            setTimeout(() => { scanning = true; tick(); }, 1500);
+            setTimeout(() => { scanning = true; resumeLoop(); }, 1500);
           });
           return;
         }
