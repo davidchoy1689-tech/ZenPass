@@ -26,9 +26,17 @@ function hkt(iso) {
   };
 }
 
+function ensureCols(db) {
+  try {
+    const cols = db.prepare("PRAGMA table_info(bookings)").all().map((c) => c.name);
+    if (!cols.includes("coach_tags")) db.prepare("ALTER TABLE bookings ADD COLUMN coach_tags TEXT").run();
+  } catch (e) {}
+}
+
 router.get("/bookings/:id", async (req, res) => {
   try {
     const db = getDb();
+    ensureCols(db);
     const b = db
       .prepare(
         `SELECT b.id, b.booking_reference, b.created_at, b.schedule_id, b.attendee_type,
