@@ -644,6 +644,20 @@ router.post(
   },
 );
 
+// ===== 🖨️ 紙本名冊（停電／斷網 backup）=====
+// GET /api/admin/ops/roster/:scheduleId
+router.get("/roster/:scheduleId", authenticateToken, requireAdmin, requireOpsRole, (req, res) => {
+  try {
+    const { buildRoster } = require("../services/admin-roster");
+    const out = buildRoster(getDb(), req.params.scheduleId);
+    if (!out) return res.status(404).json({ success: false, error: "班次不存在" });
+    res.json({ success: true, ...out });
+  } catch (err) {
+    console.error("[OPS] roster error:", err.message);
+    res.status(500).json({ success: false, error: "讀取名冊失敗" });
+  }
+});
+
 // ===== 🔎 搵可還原嘅已取消訂單 =====
 // GET /api/admin/ops/restore-search?q=ZP-xxxx|電話|姓名
 router.get("/restore-search", authenticateToken, requireAdmin, requireOpsRole, (req, res) => {

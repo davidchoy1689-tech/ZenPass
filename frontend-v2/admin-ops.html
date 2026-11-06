@@ -378,6 +378,8 @@
             <span class="s">金額 <b>${hkd(x.amount)}</b> · 名額 ${full ? "已滿" : "剩 " + left}${dead ? " · ⚠️ 課堂已取消" : ""}${x.cancel_reason ? " · 取消原因：" + esc(x.cancel_reason) : ""}</span>
           </span>
           <button class="btn ${blocked ? "btn-secondary" : "btn-primary"}" style="min-height:32px;padding:0 11px;font-size:12px" data-restore="${esc(x.booking_id)}" ${blocked ? "disabled" : ""}>♻️ 還原</button>
+          ${x.phone ? `<a class="btn btn-secondary" style="min-height:32px;padding:0 11px;font-size:12px;text-decoration:none" target="_blank" rel="noopener"
+             href="https://wa.me/852${esc(String(x.phone).replace(/\D/g, "").slice(-8))}?text=${encodeURIComponent("你好，關於你嘅預約（" + (x.booking_reference || "") + "），我哋收到你嘅入數，正幫你補回座位，謝謝！")}">💬 WhatsApp</a>` : ""}
         </div>`;
       }).join("");
       box.querySelectorAll("[data-restore]").forEach((b) => (b.onclick = async () => {
@@ -749,7 +751,10 @@
           ${Number(x.paid_count) > 0 ? `<span class="pill p-wait" style="margin-left:4px">已付 ${x.paid_count} 人 · ${hkd(x.paid_amount)}</span>` : ""}
           <span class="s">📅 ${esc(fmt(x.start_time))} · 👨‍🏫 ${esc(x.coach_name || "待定")}${x.venue_name ? " · 📍 " + esc(x.venue_name) : ""}</span>
         </span>
-        <button class="btn btn-secondary" style="min-height:34px;padding:0 10px;font-size:12.5px" data-csched="${esc(x.id)}">⚠️ 取消課堂</button>
+        <span style="display:flex;gap:6px">
+          <a class="btn btn-secondary" style="min-height:34px;padding:0 10px;font-size:12.5px;text-decoration:none" href="roster-print.html?sid=${encodeURIComponent(x.id)}" target="_blank" rel="noopener">🖨️ 名冊</a>
+          <button class="btn btn-secondary" style="min-height:34px;padding:0 10px;font-size:12.5px" data-csched="${esc(x.id)}">⚠️ 取消課堂</button>
+        </span>
       </div>`).join("");
       box.querySelectorAll("[data-csched]").forEach((b) => (b.onclick = () => {
         const row = rows.find((y) => y.id === b.dataset.csched);
