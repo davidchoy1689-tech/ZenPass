@@ -193,6 +193,12 @@
   if (_submit) _submit.onclick = async () => {
     const list = (ROSTER ? ROSTER.roster : []).filter((g) => g.__dirty && (g.coach_tags || []).length);
     if (!list.length) return;
+    if (DEMO) {
+      list.forEach((g) => { g.__dirty = false; });
+      updateTagBar();
+      toast("示範模式：唔會寫入，真實班次先會提交");
+      return;
+    }
     _submit.disabled = true; _submit.textContent = "提交中…";
     let okCount = 0, fail = 0;
     for (const g of list) {
