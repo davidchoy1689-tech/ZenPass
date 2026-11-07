@@ -12,23 +12,28 @@ Exit code 0 = all OK (or skipped), 1 = at least one inline script has a syntax e
 import re
 import sys
 import os
+import json
 import subprocess
 import tempfile
 
 SCRIPT_RE = re.compile(r"<script([^>]*)>(.*?)</script>", re.S | re.I)
+TYPE_RE = re.compile(r"""type\s*=\s*["']([^"']+)["']""", re.I)
+# 只有呢幾種 type 當 JS 檢查；其餘（speculationrules / application-json 等）跳過
+JS_TYPES = {"", "text/javascript", "application/javascript", "module", "text/ecmascript"}
 
 
 def extract_inline_scripts(html):
+    """回傳 [(type, body)]；src= 外鏈與空白 script 已剔走。"""
     out = []
     for attrs, body in SCRIPT_RE.findall(html):
         a = (attrs or "").lower()
         if "src=" in a:
             continue
-        if "ld+json" in a:
-            continue
         if body.strip() == "":
             continue
-        out.append(body)
+        m = TYPE_RE.search(attrs or "")
+        stype = (m.group(1).strip().lower() if m else "")
+        out.append((stype, body))
     return out
 
 
@@ -41,7 +46,16 @@ def check_file(path):
         return True
     scripts = extract_inline_scripts(html)
     ok = True
-    for i, src in enumerate(scripts):
+    for i, (stype, src) in enumerate(scripts):
+        # ── 非 JS 的 script：只驗 JSON（speculationrules / ld+json 等）──
+        if stype not in JS_TYPES:
+            if "json" in stype or "speculationrules" in stype:
+                try:
+                    json.loads(src)
+                except ValueError as e:
+                    ok = False
+                    print(f"  ❌ {path}: <script type=\"{stype}\"> #{i + 1} JSON 無效 — {e}")
+            continue
         with tempfile.NamedTemporaryFile("w", suffix=".js", delete=False, encoding="utf-8") as tf:
             tf.write(src)
             tmp = tf.name

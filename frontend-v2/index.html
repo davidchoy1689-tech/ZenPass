@@ -41,6 +41,31 @@
   <link rel="stylesheet" href="assets/polish.css?v=4" />
 
   <link rel="stylesheet" href="assets/ui-v3.css?v=5" />
+  <link rel="stylesheet" href="assets/view-transitions.css?v=1" />
+  <!-- ⚡ Speculation Rules：hover / touch 200ms 背景預渲染，點擊後幾乎 0ms 直開 -->
+  <script type="speculationrules">
+  {
+    "prerender": [
+      {
+        "source": "list",
+        "urls": [
+        "/booking.html",
+        "/my-bookings.html",
+        "/print-card.html",
+        "/senior-view.html"
+        ],
+        "eagerness": "moderate"
+      }
+    ],
+    "prefetch": [
+      {
+        "source": "document",
+        "where": { "href_matches": "/*" },
+        "eagerness": "conservative"
+      }
+    ]
+  }
+  </script>
 </head>
 <body class="home">
   <div class="wrap">

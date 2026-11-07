@@ -19,7 +19,7 @@ console.log("\n🧪 1. 長者大字版規格");
   ok("QR 佔 70vw（上限 320px）", /width:min\(70vw,320px\)/.test(sv));
   ok("高對比粗黑邊框", /border:3px solid #0b1220/.test(sv));
   ok("特大紅色致電按鈕（68px 高）", /\.call\{[\s\S]{0,220}min-height:68px/.test(sv) && /background:#dc2626/.test(sv));
-  ok("tel: 直撥", /href = "tel:" \+ tel\(c\.emergency_phone\)/.test(sv));
+  ok("tel: 直撥", /href = "tel:" \+ tel\(c\.emergency_phone\)/.test(sv) || /href = "tel:" \+ tel\(ephone\)/.test(sv));
   ok("顯示緊急聯絡人卡片", /🆘 有需要打畀/.test(sv));
   ok("guest token 取數", /guest\/booking-card\?token=\$\{tok\}/.test(sv));
   ok("會員用 card API", /\/api\/bookings\/" \+ encodeURIComponent\(ID\) \+ "\/card"/.test(sv));

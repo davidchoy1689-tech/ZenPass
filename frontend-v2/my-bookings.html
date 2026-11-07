@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="assets/v2.css?v=26" />
   <link rel="stylesheet" href="assets/polish.css?v=1" />
   <link rel="stylesheet" href="assets/ui-v3.css?v=5" />
+  <link rel="stylesheet" href="assets/view-transitions.css?v=1" />
   <style>
     .tabs { display: flex; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--surface); z-index: 10; }
     .tabs button { flex: 1; padding: 14px 0; background: none; border: 0; font: inherit; font-weight: 700; color: var(--text-muted); border-bottom: 2px solid transparent; cursor: pointer; }
@@ -56,6 +57,29 @@
     .mini{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
     .mini a,.mini button{font:inherit;font-size:12px;font-weight:800;color:var(--brand-600);text-decoration:none;background:#f1f5f9;border:0;border-radius:99px;padding:6px 11px;cursor:pointer}
   </style>
+  <!-- ⚡ Speculation Rules：hover / touch 200ms 背景預渲染，點擊後幾乎 0ms 直開 -->
+  <script type="speculationrules">
+  {
+    "prerender": [
+      {
+        "source": "list",
+        "urls": [
+        "/print-card.html",
+        "/senior-view.html",
+        "/adult-pass.html"
+        ],
+        "eagerness": "moderate"
+      }
+    ],
+    "prefetch": [
+      {
+        "source": "document",
+        "where": { "href_matches": "/*" },
+        "eagerness": "conservative"
+      }
+    ]
+  }
+  </script>
 </head>
 <body>
   <div class="topbar"><a class="back" href="my.html">‹</a><div class="title">我的預約</div></div>

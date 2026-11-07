@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="assets/v2.css?v=26" />
   <link rel="stylesheet" href="assets/polish.css?v=1" />
   <link rel="stylesheet" href="assets/ui-v3.css?v=5" />
+  <link rel="stylesheet" href="assets/view-transitions.css?v=1" />
   <style>
     .sess { display:flex; align-items:center; gap:12px; padding:12px 16px; border-bottom:1px solid var(--border); }
     .sess:last-child { border-bottom:0; }
@@ -207,6 +208,29 @@
     .timeout-card h3 { margin: 8px 0 6px; font-size: 17px; }
     .timeout-card p { margin: 0 0 14px; font-size: 13px; color: #475569; line-height: 1.6; }
   </style>
+  <!-- ⚡ Speculation Rules：hover / touch 200ms 背景預渲染，點擊後幾乎 0ms 直開 -->
+  <script type="speculationrules">
+  {
+    "prerender": [
+      {
+        "source": "list",
+        "urls": [
+        "/my-bookings.html",
+        "/print-card.html",
+        "/senior-view.html"
+        ],
+        "eagerness": "moderate"
+      }
+    ],
+    "prefetch": [
+      {
+        "source": "document",
+        "where": { "href_matches": "/*" },
+        "eagerness": "conservative"
+      }
+    ]
+  }
+  </script>
 </head>
 <body>
   <div class="topbar"><a class="back" href="javascript:history.back()">‹</a><div class="title" id="title">預約</div><div style="margin-left:auto" class="price" id="topPrice"></div></div>

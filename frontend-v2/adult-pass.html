@@ -42,6 +42,16 @@
   .tips b{ color:#fff }
   .err{ margin-top:24px; color:#fecaca; font-weight:800; text-align:center; line-height:1.6 }
   .muted{ color:#94a3b8; font-size:12px; text-align:center; margin-top:14px }
+
+  /* ===== Cross-Document View Transitions（原生跨頁淡入淡出） ===== */
+  @view-transition { navigation: auto; }
+  ::view-transition-old(root){ animation: 180ms cubic-bezier(0.4,0,0.2,1) both zpVtOut }
+  ::view-transition-new(root){ animation: 180ms cubic-bezier(0.4,0,0.2,1) both zpVtIn }
+  @keyframes zpVtOut { from{opacity:1} to{opacity:0} }
+  @keyframes zpVtIn  { from{opacity:0} to{opacity:1} }
+  @media (prefers-reduced-motion: reduce){
+    ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*){ animation: none !important; }
+  }
 </style>
 </head>
 <body>

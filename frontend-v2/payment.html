@@ -8,6 +8,17 @@
 <link rel="canonical" href="https://zenpass.hk/my-bookings.html" />
 <meta http-equiv="refresh" content="0; url=/my-bookings.html" />
 <script>location.replace("/my-bookings.html");</script>
+<style>
+  /* ===== Cross-Document View Transitions（原生跨頁淡入淡出） ===== */
+  @view-transition { navigation: auto; }
+  ::view-transition-old(root){ animation: 180ms cubic-bezier(0.4,0,0.2,1) both zpVtOut }
+  ::view-transition-new(root){ animation: 180ms cubic-bezier(0.4,0,0.2,1) both zpVtIn }
+  @keyframes zpVtOut { from{opacity:1} to{opacity:0} }
+  @keyframes zpVtIn  { from{opacity:0} to{opacity:1} }
+  @media (prefers-reduced-motion: reduce){
+    ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*){ animation: none !important; }
+  }
+</style>
 </head>
 <body style="font-family:-apple-system,'PingFang HK','Noto Sans TC',sans-serif;text-align:center;padding:40px;color:#6b7280">
 <p>頁面已搬遷，正在前往 <a href="/my-bookings.html">新頁面</a>…</p>

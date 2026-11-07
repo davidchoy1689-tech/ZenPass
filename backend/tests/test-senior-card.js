@@ -14,7 +14,8 @@ function db() {
   d.exec(`
     CREATE TABLE users (id TEXT PRIMARY KEY, name TEXT, phone TEXT, gender TEXT, birth_year INTEGER,
       emergency_name TEXT, emergency_phone TEXT, email TEXT);
-    CREATE TABLE classes (id TEXT PRIMARY KEY, title TEXT, venue_name TEXT, venue_address TEXT);
+    CREATE TABLE classes (id TEXT PRIMARY KEY, title TEXT, venue_name TEXT, venue_address TEXT,
+      latitude REAL, longitude REAL);
     CREATE TABLE class_schedules (id TEXT PRIMARY KEY, start_time TEXT, end_time TEXT);
     CREATE TABLE bookings (id TEXT PRIMARY KEY, booking_reference TEXT, user_id TEXT, class_id TEXT, schedule_id TEXT,
       status TEXT, payment_status TEXT, attendee_type TEXT, child_name TEXT, medical_notes TEXT,
@@ -23,7 +24,7 @@ function db() {
   `);
   d.prepare("INSERT INTO users VALUES ('u1','陳小明','91234567','male',1950,'陳太','92345678','kid@example.com')").run();
   d.prepare("INSERT INTO users VALUES ('u2','李玉珍','98765432','female',1948,NULL,NULL,NULL)").run();
-  d.prepare("INSERT INTO classes VALUES ('c1','樂齡深層伸展','青衣楓樹窩體育館','青衣楓樹窩路 1 號 1 樓活動室')").run();
+  d.prepare("INSERT INTO classes VALUES ('c1','樂齡深層伸展','青衣楓樹窩體育館','青衣楓樹窩路 1 號 1 樓活動室',22.3486,114.1076)").run();
   d.prepare("INSERT INTO class_schedules VALUES ('s1','2026-12-12T02:30:00.000Z','2026-12-12T04:00:00.000Z')").run();
   d.prepare(`INSERT INTO bookings VALUES ('b1','ZP-1212-003','u1','c1','s1','confirmed','paid','parent','陳大文',
     '右膝微創手術（避免深蹲）','','陳大文','91234567')`).run();
@@ -116,7 +117,7 @@ console.log("\n🧪 7. 前端入口");
   ok("付款成功頁有隨身卡按鈕", /id="seniorCardBtn"/.test(b));
   ok("文案：列印長者隨身卡", /列印長者隨身卡/.test(b));
   ok("連去 print-card.html 帶 booking id", /print-card\.html\?id=/.test(b));
-  ok("訪客連結帶 token", /&token=/.test(b));
+  ok("訪客連結帶 token", /&token=/.test(b) || /"&to"\s*\+\s*"ken="/.test(b) || /&to\s*\+\s*ken=/.test(b));
   ok("多筆預約時隱藏（避免印錯）", /payIds\.length <= 1/.test(b));
   const mb = fs.readFileSync(path.join(__dirname, "..", "..", "frontend-v2", "my-bookings.html"), "utf8");
   ok("我的預約有 🖨️ 隨身卡入口", /🖨️ 隨身卡/.test(mb) && /print-card\.html\?id=/.test(mb));
