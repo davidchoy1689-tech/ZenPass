@@ -37,6 +37,31 @@
   .err{ font-size:18px; font-weight:800; color:#b91c1c; text-align:center; padding:24px }
   @media (max-height:680px){ .qrwrap{ width:min(58vw,250px) } .date{ font-size:30px } }
 
+  /* ===== 🌸 老友記同行推薦（長者自己都撳得到） ===== */
+  .elder-referral{
+    width:100%; max-width:420px;
+    background:linear-gradient(135deg,#FFF9E6 0%,#FFF2CC 100%);
+    border:2px solid #E6B800; border-radius:16px; padding:20px;
+    box-shadow:0 6px 18px rgba(180,140,0,.14);
+    display:flex; flex-direction:column; gap:12px;
+  }
+  .er-title{ font-size:26px; font-weight:900; line-height:1.35; color:#14532d; text-align:center }
+  .er-text{ font-size:19px; font-weight:800; line-height:1.7; color:#5a3a00 }
+  .er-code{
+    align-self:center; font-size:22px; font-weight:900; color:#7f1d1d;
+    background:#fff; border:2px dashed #E6B800; border-radius:12px;
+    padding:8px 14px; letter-spacing:.5px; text-align:center;
+  }
+  .btn-elder-wa{
+    width:100%; min-height:56px; border:0; border-radius:14px;
+    background:#25D366; color:#fff; font-size:21px; font-weight:900; line-height:1.35;
+    padding:10px 12px; cursor:pointer;
+    box-shadow:0 6px 16px rgba(37,211,102,.32);
+    font-family:inherit;
+  }
+  .btn-elder-wa:active{ transform:translateY(1px) }
+  .er-hint{ font-size:15px; font-weight:700; color:#57534e; text-align:center; line-height:1.6 }
+
   /* ===== Cross-Document View Transitions（原生跨頁淡入淡出） ===== */
   @view-transition { navigation: auto; }
   ::view-transition-old(root){ animation: 180ms cubic-bezier(0.4,0,0.2,1) both zpVtOut }
@@ -112,6 +137,13 @@
       <div class="qrwrap">${src ? `<img src="${esc(src)}" alt="入場 QR Code" />` : ""}</div>
       <div class="tip">向導師出示上面個 QR Code 就可以簽到</div>
       ${c.booking_reference ? `<div class="ref">預約編號：${esc(c.booking_reference)}</div>` : ""}
+      <div class="elder-referral">
+        <div class="er-title">🌸【祝老友記健康常伴・一齊做拉筋】🌸</div>
+        <div class="er-text">平時膝頭緊、行樓梯唔夠力？我報咗青衣楓樹窩嘅樂齡拉筋班，靜儀教練教得好好！介紹你一齊去，試堂各平 $30！</div>
+        <div class="er-code">【老友記推薦碼：SILVER2】</div>
+        <button class="btn-elder-wa" id="elderWaBtn" type="button">💬 撳呢度傳畀老友記（WhatsApp）</button>
+        <div class="er-hint">💡 提示：您亦可以直接截圖呢個畫面，傳相片畀街坊老友睇！</div>
+      </div>
       ${emShow ? `<div class="sos"><div class="n">🆘 有需要打畀：${esc(emName)}</div><div class="p">${esc(emShow)}</div></div>` : ""}
     `;
     const call = document.getElementById("callBtn");
@@ -120,6 +152,25 @@
       document.getElementById("callLabel").textContent = "打畀 " + emName;
       call.style.display = "";
     }
+
+    // 💬 一鍵 WhatsApp（長輩語氣，預填 SILVER2 推薦碼）
+    var waBtn = document.getElementById("elderWaBtn");
+    if (waBtn) {
+      waBtn.onclick = function () {
+        var msg =
+          "🌸 祝各位老友記身體健康、平安喜樂！ 🌸\n\n" +
+          "我啱啱報咗青衣楓樹窩嘅樂齡筋膜防跌班，靜儀教練教得好細心，專針對膝頭痛同筋緊！\n" +
+          "平時想活動下關節嘅話，不如一齊去？\n" +
+          "憑我哋個專屬優惠碼【SILVER2】，報名每人平 $30 呀！\n\n" +
+          "👉 按呢度睇班次同報名：\n" +
+          "https://zenpass.hk/booking.html?ref=elder_share&code=SILVER2\n\n" +
+          "祝大家出入平安、長命百歲！🌿";
+        var url = "https://wa.me/?text=" + encodeURIComponent(msg);
+        var w = window.open(url, "_blank");
+        if (!w) location.href = url;
+      };
+    }
+
     try {
       if (navigator.wakeLock) navigator.wakeLock.request("screen").catch(() => {});
     } catch (e) {}
