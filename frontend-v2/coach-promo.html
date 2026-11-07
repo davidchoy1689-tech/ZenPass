@@ -1,0 +1,380 @@
+<!doctype html>
+<html lang="zh-HK">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<meta name="theme-color" content="#113824" />
+<title>教練招生推廣包 · ZenPass</title>
+<style>
+  /* ===== Cross-Document View Transitions（原生跨頁淡入淡出） ===== */
+  @view-transition { navigation: auto; }
+  ::view-transition-old(root){ animation: 180ms cubic-bezier(0.4,0,0.2,1) both zpVtOut }
+  ::view-transition-new(root){ animation: 180ms cubic-bezier(0.4,0,0.2,1) both zpVtIn }
+  @keyframes zpVtOut { from{opacity:1} to{opacity:0} }
+  @keyframes zpVtIn  { from{opacity:0} to{opacity:1} }
+  @media (prefers-reduced-motion: reduce){
+    ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*){ animation: none !important; }
+  }
+
+  :root{ --forest:#1A5336; --forest2:#113824; --gold:#f2d28b; --gold2:#e0b969; --ink:#0f172a; }
+  *{ box-sizing:border-box }
+  html,body{ margin:0; padding:0 }
+  body{
+    background:#eef2f5; color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang HK","Microsoft JhengHei","Noto Sans TC",system-ui,sans-serif;
+    padding:16px 12px 40px; display:flex; flex-direction:column; align-items:center;
+    -webkit-text-size-adjust:100%;
+  }
+  .pagehead{ width:100%; max-width:380px; display:flex; align-items:center; gap:8px; margin-bottom:10px }
+  .pagehead h1{ font-size:15px; margin:0; font-weight:900 }
+  .pagehead .back{ margin-left:auto; font-size:12.5px; font-weight:800; color:#475569; text-decoration:none; background:#fff; border:1px solid #e2e8f0; border-radius:99px; padding:7px 12px }
+
+  /* ================= 純 CSS 直向海報（9:16） ================= */
+  .promo-card{
+    width:100%; max-width:380px;
+    aspect-ratio:9 / 16;
+    background:linear-gradient(180deg,#1A5336 0%,#113824 100%);
+    border-radius:20px;
+    box-shadow:0 16px 40px rgba(0,0,0,.22);
+    padding:22px 20px;
+    color:#fff;
+    display:flex; flex-direction:column; justify-content:space-between;
+    overflow:hidden;
+    position:relative;
+  }
+  .promo-card:before{
+    content:""; position:absolute; inset:auto -30% 55% -30%; height:180px;
+    background:radial-gradient(closest-side, rgba(255,255,255,.10), transparent 70%);
+    pointer-events:none;
+  }
+
+  .pc-top{ display:flex; align-items:center; gap:8px; position:relative; z-index:1 }
+  .pc-brand{ font-size:11px; font-weight:800; letter-spacing:.4px; color:#d7ecdf; line-height:1.35; flex:1 }
+  .pc-pill{
+    flex:0 0 auto; font-size:11px; font-weight:900; color:#3d2b06;
+    background:linear-gradient(180deg,var(--gold),var(--gold2));
+    border-radius:99px; padding:5px 10px; white-space:nowrap;
+    box-shadow:0 2px 8px rgba(0,0,0,.18);
+  }
+
+  .pc-title{ position:relative; z-index:1; margin-top:6px }
+  .pc-title h2{
+    margin:0; font-size:clamp(21px,6.2vw,26px); line-height:1.28; font-weight:900;
+    letter-spacing:.5px; text-shadow:0 2px 10px rgba(0,0,0,.18);
+  }
+  .pc-sub{ margin-top:6px; font-size:12.5px; font-weight:700; color:var(--gold); letter-spacing:.3px }
+
+  .pc-hi{
+    position:relative; z-index:1;
+    background:rgba(255,255,255,.94); color:#123527;
+    border-radius:14px; padding:11px 12px; display:flex; flex-direction:column; gap:8px;
+    box-shadow:0 6px 18px rgba(0,0,0,.14);
+  }
+  .pc-hi div{ display:flex; gap:8px; font-size:12.5px; font-weight:800; line-height:1.45 }
+  .pc-hi span{ flex:0 0 auto; font-size:14px; line-height:1.3 }
+
+  .pc-info{ position:relative; z-index:1; display:flex; flex-direction:column; gap:5px }
+  .pc-info div{ font-size:12.5px; font-weight:800; line-height:1.5; color:#f2fbf5 }
+  .pc-info b{ color:#fff }
+  .pc-info .price{ color:var(--gold); font-weight:900 }
+
+  .pc-foot{ position:relative; z-index:1; display:flex; align-items:center; gap:11px }
+  .pc-qr{
+    flex:0 0 auto; width:96px; height:96px; background:#fff; border-radius:12px; padding:7px;
+    display:flex; align-items:center; justify-content:center; box-shadow:0 6px 16px rgba(0,0,0,.22);
+  }
+  .pc-qr img,.pc-qr canvas{ width:100% !important; height:100% !important; display:block }
+  .pc-foottxt{ flex:1; font-size:11.5px; font-weight:800; line-height:1.55; color:#eaf6ee }
+  .pc-foottxt .big{ display:block; font-size:12.5px; color:#fff; margin-bottom:2px }
+  .pc-foottxt .tel{ color:var(--gold) }
+
+  /* ================= 工具箱 ================= */
+  .tips{
+    width:100%; max-width:380px; margin-top:14px;
+    background:#fff7ed; border:1px solid #fed7aa; color:#9a3412;
+    border-radius:12px; padding:10px 12px; font-size:12.5px; font-weight:800; line-height:1.6;
+  }
+  .toolbox{ width:100%; max-width:380px; margin-top:10px; background:#fff; border:1px solid #e2e8f0; border-radius:16px; padding:12px }
+  .tabs{ display:flex; gap:6px; margin-bottom:10px }
+  .tabs button{
+    flex:1; min-height:40px; border:1px solid #e2e8f0; background:#f8fafc; color:#475569;
+    border-radius:10px; font:inherit; font-size:12px; font-weight:900; cursor:pointer; padding:4px 6px; line-height:1.25;
+  }
+  .tabs button.on{ background:#ecfdf5; border-color:#6ee7b7; color:#047857 }
+  .copybox{
+    background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:11px 12px;
+    font-size:13px; line-height:1.75; white-space:pre-wrap; word-break:break-word; color:#1f2937;
+    max-height:230px; overflow:auto;
+  }
+  .acts{ display:flex; flex-direction:column; gap:8px; margin-top:10px }
+  .acts button{
+    width:100%; min-height:50px; border:0; border-radius:12px; font:inherit; font-size:14.5px; font-weight:900; cursor:pointer;
+  }
+  #copyBtn{ background:#1A5336; color:#fff; box-shadow:0 6px 16px rgba(26,83,54,.24) }
+  #waBtn{ background:#25D366; color:#06301a; box-shadow:0 6px 16px rgba(37,211,102,.28) }
+  .hint{ margin-top:9px; font-size:11.5px; color:#64748b; text-align:center; line-height:1.6 }
+
+  .toast{
+    position:fixed; left:50%; transform:translateX(-50%); top:14px;
+    background:rgba(15,23,42,.95); color:#fff; padding:11px 16px; border-radius:12px;
+    font-size:13px; font-weight:800; z-index:99; max-width:88%; text-align:center;
+    box-shadow:0 10px 26px rgba(0,0,0,.24);
+  }
+  @media (max-width:360px){
+    .promo-card{ padding:18px 16px }
+    .pc-qr{ width:84px; height:84px }
+    .pc-info div,.pc-hi div{ font-size:12px }
+  }
+  @media print{
+    body{ background:#fff; padding:0 }
+    .pagehead,.tips,.toolbox,.hint{ display:none !important }
+    .promo-card{ box-shadow:none; max-width:none; width:100%; height:100vh; border-radius:0 }
+  }
+</style>
+</head>
+<body>
+
+  <div class="pagehead">
+    <h1>📢 招生推廣包</h1>
+    <a class="back" href="javascript:history.back()">返回</a>
+  </div>
+
+  <!-- ===== 區塊 A：純 CSS 直向海報 ===== -->
+  <div class="promo-card" id="promoCard">
+    <div class="pc-top">
+      <div class="pc-brand">🌿 ZenPass 樂齡社區體適能</div>
+      <div class="pc-pill" id="pcSeats">小班限額 8 席</div>
+    </div>
+
+    <div class="pc-title">
+      <h2 id="pcTitle">膝關節強健・防跌伸展</h2>
+      <div class="pc-sub" id="pcSub">給父母最踏實的健康禮物</div>
+    </div>
+
+    <div class="pc-hi">
+      <div><span>🩺</span><span>專為膝關節、腰椎舊患設計（安全坐椅輔助）</span></div>
+      <div><span>📱</span><span>子女即時收手機「報平安」簽到通知</span></div>
+      <div><span>🪪</span><span>免長者帶手機，贈 90×54mm 防走失隨身卡</span></div>
+    </div>
+
+    <div class="pc-info">
+      <div id="pcWhen">🗓️ 2026 年 12 月 12 日（六）10:30–12:00</div>
+      <div id="pcWhere">📍 青衣楓樹窩體育館 1 樓活動室</div>
+      <div id="pcPrice">💰 <span class="price">社區價 $140</span>（兩人同行輸入 SILVER2 減 $40）</div>
+    </div>
+
+    <div class="pc-foot">
+      <div class="pc-qr" id="qrBox"><!-- QR 由 vendor/qrcode.min.js 生成 --></div>
+      <div class="pc-foottxt">
+        <span class="big">長按截圖分享 或 掃碼即時鎖位</span>
+        支援 FPS / PayMe<br />
+        <span class="tel">查詢熱線：9033 5538</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 區塊 B：一鍵轉發 ===== -->
+  <div class="tips">📸 提示：手機直接截圖上方海報，即可連同以下文案一齊發送！</div>
+
+  <div class="toolbox">
+    <div class="tabs" id="tabs">
+      <button type="button" data-tab="warm" class="on">溫情熟人版</button>
+      <button type="button" data-tab="family">子女孝親版</button>
+      <button type="button" data-tab="local">地區痛點版</button>
+    </div>
+    <div class="copybox" id="copybox"></div>
+    <div class="acts">
+      <button type="button" id="copyBtn">📋 複製這段 WhatsApp 文案</button>
+      <button type="button" id="waBtn">💬 一鍵開啟 WhatsApp 轉發</button>
+    </div>
+    <div class="hint">複製後可貼到任何群組；WhatsApp 會先讓你選擇聊天室，唔會自動發送。</div>
+  </div>
+
+  <script src="vendor/qrcode.min.js"></script>
+  <script>
+  (function () {
+    "use strict";
+
+    // ===== 預設（12/12 楓樹窩班次）=====
+    var DEFAULT = {
+      title: "膝關節強健・防跌伸展",
+      start: "2026-12-12T10:30:00+08:00",
+      end: "2026-12-12T12:00:00+08:00",
+      venue: "青衣楓樹窩體育館 1 樓活動室",
+      seats: 8,
+      price: 140,
+      coach: "",
+      schedule_id: "",
+      link: "https://zenpass.hk/c/ching-yee?ref=coach",
+    };
+
+    var qs = new URLSearchParams(location.search);
+    var D = {
+      title: qs.get("title") || DEFAULT.title,
+      start: qs.get("start") || DEFAULT.start,
+      end: qs.get("end") || DEFAULT.end,
+      venue: qs.get("venue") || DEFAULT.venue,
+      seats: parseInt(qs.get("seats") || "", 10) || DEFAULT.seats,
+      price: parseInt(qs.get("price") || "", 10) || DEFAULT.price,
+      coach: qs.get("coach") || "",
+      schedule_id: qs.get("schedule_id") || "",
+      link: "",
+    };
+
+    // 有 schedule_id 就用 booking.html?sid=（會預選該堂）；否則用短連結
+    D.link = D.schedule_id
+      ? "https://zenpass.hk/booking.html?sid=" + encodeURIComponent(D.schedule_id) + "&ref=coach"
+      : DEFAULT.link;
+
+    var $ = function (id) { return document.getElementById(id); };
+
+    function toast(msg) {
+      var t = document.createElement("div");
+      t.className = "toast";
+      t.textContent = msg;
+      document.body.appendChild(t);
+      setTimeout(function () { t.remove(); }, 2400);
+    }
+
+    var WD = ["日", "一", "二", "三", "四", "五", "六"];
+    function hkt(iso) {
+      var d = new Date(iso);
+      if (isNaN(d)) return null;
+      var parts = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Asia/Hong_Kong", year: "numeric", month: "2-digit", day: "2-digit",
+        hour: "2-digit", minute: "2-digit", hour12: false, weekday: "short",
+      }).formatToParts(d).reduce(function (o, p) { o[p.type] = p.value; return o; }, {});
+      var wdIdx = new Date(parts.year + "-" + parts.month + "-" + parts.day + "T00:00:00+08:00").getDay();
+      return {
+        y: parts.year, m: Number(parts.month), d: Number(parts.day),
+        hhmm: parts.hour + ":" + parts.minute,
+        wd: WD[wdIdx],
+      };
+    }
+
+    var S = hkt(D.start) || { y: "2026", m: 12, d: 12, hhmm: "10:30", wd: "六" };
+    var E = hkt(D.end);
+    var timeRange = S.hhmm + (E ? "–" + E.hhmm : "");
+
+    // ===== 海報內容 =====
+    $("pcTitle").textContent = D.title;
+    $("pcSeats").textContent = "小班限額 " + D.seats + " 席";
+    $("pcWhen").textContent = "🗓️ " + S.y + " 年 " + S.m + " 月 " + S.d + " 日（" + S.wd + "）" + timeRange;
+    $("pcWhere").textContent = "📍 " + D.venue;
+    $("pcPrice").innerHTML = '💰 <span class="price">社區價 $' + D.price + '</span>（兩人同行輸入 SILVER2 減 $40）';
+
+    // ===== QR Code（純 DOM，唔用 canvas 繪圖做版面）=====
+    (function drawQR() {
+      var box = $("qrBox");
+      box.innerHTML = "";
+      try {
+        // qrcodejs：內部用 canvas/table 畫 QR，屬掃碼必需，非版面繪圖
+        new QRCode(box, {
+          text: D.link,
+          width: 96, height: 96,
+          colorDark: "#0f172a", colorLight: "#ffffff",
+          correctLevel: QRCode.CorrectLevel.M,
+        });
+      } catch (e) {
+        box.innerHTML = '<span style="font-size:10px;color:#0f172a;text-align:center;line-height:1.4">掃碼連結<br>' +
+          D.link.replace(/^https?:\/\//, "") + "</span>";
+      }
+    })();
+
+    // ===== 文案（3 個版本）=====
+    var when = S.m + "/" + S.d + "（" + S.wd + "）" + timeRange;
+    var TEXTS = {
+      warm:
+        "【老朋友優先場 🌿】\n" +
+        "上次話膝頭痛、想搵人一齊做運動嘅朋友留意 👇\n\n" +
+        "《" + D.title + "》\n" +
+        "🗓️ " + when + "\n" +
+        "📍 " + D.venue + "\n" +
+        "💰 社區價 $" + D.price + "（兩人同行輸入 SILVER2 減 $40）\n\n" +
+        "• 坐椅輔助，膝關節／腰椎舊患都做得安心\n" +
+        "• 小班 " + D.seats + " 席，導師逐個睇動作\n" +
+        "• 唔使帶手機，照樣簽到\n\n" +
+        "報名傳送門 👉 " + D.link + "\n" +
+        "有問題可以直接打 9033 5538 搵我 🌿",
+      family:
+        "【送畀父母最踏實嘅禮物 🎁】\n" +
+        "唔使買補品，陪佢做一次安全嘅伸展就夠。\n\n" +
+        "《" + D.title + "》\n" +
+        "🗓️ " + when + "\n" +
+        "📍 " + D.venue + "\n" +
+        "💰 $" + D.price + "／位（兩人同行輸入 SILVER2 減 $40）\n\n" +
+        "做子女最擔心嘅三件事，我哋都準備好：\n" +
+        "📱 父母一簽到，你手機即收「報平安」通知\n" +
+        "🪪 免帶手機，送 90×54mm 防走失隨身卡\n" +
+        "🩺 動作專為膝關節、腰椎舊患設計，全程坐椅輔助\n\n" +
+        "小班只收 " + D.seats + " 位，額滿即止。\n" +
+        "代父母報名 👉 " + D.link + "\n" +
+        "查詢：9033 5538（可 WhatsApp）",
+      local:
+        "【青衣街坊注意 📣】\n" +
+        "楓樹窩體育館開新班，唔使跨區，落樓就到。\n\n" +
+        "《" + D.title + "》\n" +
+        "🗓️ " + when + "\n" +
+        "📍 " + D.venue + "\n" +
+        "💰 社區價 $" + D.price + "（兩人同行輸入 SILVER2 減 $40）\n\n" +
+        "青衣區長者最常遇到嘅問題：膝頭無力、怕跌倒、上落樓梯腳軟。\n" +
+        "呢班由註冊體適能導師帶，坐椅輔助、循序漸進，8 人小班。\n\n" +
+        "🔗 即時鎖位：" + D.link + "\n" +
+        "唔方便上網？直接 WhatsApp 9033 5538，我幫你留位 🌿",
+    };
+
+    var current = "warm";
+    function paint() {
+      $("copybox").textContent = TEXTS[current];
+      var btns = document.querySelectorAll("#tabs button");
+      for (var i = 0; i < btns.length; i++) {
+        btns[i].classList.toggle("on", btns[i].dataset.tab === current);
+      }
+    }
+    paint();
+
+    $("tabs").addEventListener("click", function (e) {
+      var b = e.target.closest("button[data-tab]");
+      if (!b) return;
+      current = b.dataset.tab;
+      paint();
+    });
+
+    // ===== 複製（Clipboard API + 舊機 fallback）=====
+    function fallbackCopy(text) {
+      var ta = document.createElement("textarea");
+      ta.value = text;
+      ta.setAttribute("readonly", "");
+      ta.style.cssText = "position:fixed;top:-9999px;left:-9999px;opacity:0";
+      document.body.appendChild(ta);
+      ta.select();
+      ta.setSelectionRange(0, text.length);
+      var ok = false;
+      try { ok = document.execCommand("copy"); } catch (e) { ok = false; }
+      ta.remove();
+      return ok;
+    }
+
+    $("copyBtn").addEventListener("click", async function () {
+      var text = TEXTS[current];
+      var ok = false;
+      try {
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(text);
+          ok = true;
+        }
+      } catch (e) { ok = false; }
+      if (!ok) ok = fallbackCopy(text);
+      toast(ok ? "✅ 已複製文案，可直接貼到 WhatsApp 群組！" : "⚠️ 複製失敗，請長按文字手動複製");
+    });
+
+    // ===== 一鍵 WhatsApp =====
+    $("waBtn").addEventListener("click", function () {
+      var url = "https://wa.me/?text=" + encodeURIComponent(TEXTS[current]);
+      var w = window.open(url, "_blank", "noopener");
+      if (!w) location.href = url;
+    });
+  })();
+  </script>
+</body>
+</html>

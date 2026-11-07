@@ -844,6 +844,7 @@
           <span class="s">📅 ${esc(fmt(x.start_time))} · 👨‍🏫 ${esc(x.coach_name || "待定")}${x.venue_name ? " · 📍 " + esc(x.venue_name) : ""}</span>
         </span>
         <span style="display:flex;gap:6px">
+          <a class="btn btn-secondary" style="min-height:34px;padding:0 10px;font-size:12.5px;text-decoration:none" href="coach-promo.html?${new URLSearchParams(Object.entries({ schedule_id: x.id, title: x.title || "", start: x.start_time || "", end: x.end_time || "", venue: x.venue_name || "", seats: x.max_participants ? String(x.max_participants) : "", coach: x.coach_name || "" }).filter(([, v]) => v)).toString()}" target="_blank" rel="noopener">📢 招生推廣包</a>
           <a class="btn btn-secondary" style="min-height:34px;padding:0 10px;font-size:12.5px;text-decoration:none" href="roster-print.html?schedule_id=${encodeURIComponent(x.id)}&auto=1" target="_blank" rel="noopener">🖨️ 列印現場紙本簽到表 (A4)</a>
           <button class="btn btn-secondary" style="min-height:34px;padding:0 10px;font-size:12.5px" data-csched="${esc(x.id)}">⚠️ 取消課堂</button>
         </span>

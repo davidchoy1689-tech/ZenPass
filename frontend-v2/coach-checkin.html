@@ -47,6 +47,7 @@
         <div class="t1" id="title">載入中…</div>
         <div class="t2" id="sub">—</div>
       </div>
+      <button class="call" id="promoBtn" type="button" style="border:0;cursor:pointer;padding:10px 12px" title="招生推廣包">📢</button>
       <button class="call" id="scanBtn" type="button" style="border:0;cursor:pointer">📷 掃碼</button>
       <a class="call" href="tel:+85290335538" style="margin-left:6px">📞 支援</a>
     </div>
@@ -477,6 +478,18 @@
     }
     scanRAF = requestAnimationFrame(tick);
   }
+  // 📢 招生推廣包（帶入當前班次資料）
+  $("promoBtn").onclick = function () {
+    var s = (ROSTER && ROSTER.schedule) || {};
+    var q = new URLSearchParams();
+    if (s.id) q.set("schedule_id", s.id);
+    if (s.title) q.set("title", s.title);
+    if (s.start_time) q.set("start", s.start_time);
+    if (s.end_time) q.set("end", s.end_time);
+    if (s.venue) q.set("venue", s.venue);
+    if (s.coach_name) q.set("coach", s.coach_name);
+    window.open("coach-promo.html?" + q.toString(), "_blank", "noopener");
+  };
   $("scanBtn").onclick = startScan;
   $("scanClose").onclick = stopScan;
 
