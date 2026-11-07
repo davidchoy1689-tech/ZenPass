@@ -52,25 +52,28 @@ console.log("\n🧪 3. Speculation Rules 合法性");
   ok("index 有合法 JSON", i && !i.__bad);
   ok("booking 有合法 JSON", b && !b.__bad);
   ok("my-bookings 有合法 JSON", m && !m.__bad);
+  const pats = (r) => (r?.prerender || []).map((x) => x.where && x.where.href_matches).filter(Boolean);
   for (const [n, r] of [["index", i], ["booking", b], ["my-bookings", m]]) {
-    ok(`${n} prerender = source list`, r && r.prerender && r.prerender[0].source === "list");
-    ok(`${n} eagerness moderate`, r && r.prerender[0].eagerness === "moderate");
+    ok(`${n} prerender = source document`, r && r.prerender.every((x) => x.source === "document"));
+    ok(`${n} eagerness moderate`, r && r.prerender.every((x) => x.eagerness === "moderate"));
+    ok(`${n} 用 href_matches 帶 query 前綴`, pats(r).every((x) => /\*$/.test(x)), pats(r).join(","));
     ok(`${n} prefetch conservative + href_matches`, r && r.prefetch[0].eagerness === "conservative" && /\/\*/.test(r.prefetch[0].where.href_matches));
   }
   ok("my-bookings 預渲染隨身卡/大字版/票券",
-    JSON.stringify(m.prerender[0].urls.sort()) === JSON.stringify(["/adult-pass.html", "/print-card.html", "/senior-view.html"]));
-  ok("index 預渲染 booking/my-bookings/print-card",
-    i.prerender[0].urls.includes("/booking.html") && i.prerender[0].urls.includes("/my-bookings.html") && i.prerender[0].urls.includes("/print-card.html"));
-  ok("booking 預渲染 my-bookings/print-card",
-    b.prerender[0].urls.includes("/my-bookings.html") && b.prerender[0].urls.includes("/print-card.html"));
+    JSON.stringify(pats(m).sort()) === JSON.stringify(["/adult-pass.html*", "/print-card.html*", "/senior-view.html*"].sort()));
+  ok("index 預渲染 booking/my-bookings/print-card/senior-view",
+    ["/booking.html*", "/my-bookings.html*", "/print-card.html*", "/senior-view.html*"].every((x) => pats(i).includes(x)));
+  ok("booking 預渲染 my-bookings/print-card/senior-view",
+    ["/my-bookings.html*", "/print-card.html*", "/senior-view.html*"].every((x) => pats(b).includes(x)));
+  ok("URLPattern 前綴會匹配帶 query 的真實連結（實測見 commit msg）", pats(m).every((x) => /\.html\*$/.test(x)));
 }
 
 console.log("\n🧪 4. 安全：破壞性操作唔可以預渲染");
 {
-  const all = [index, booking, mb].flatMap((h) => (rules(h) || { prerender: [{ urls: [] }] }).prerender[0].urls);
-  const banned = /logout|cancel|delete|refund|pay|checkout|admin/i;
-  ok("名單內無破壞性路由", !all.some((u) => banned.test(u)), all.join(","));
-  ok("名單只含唯讀展示頁", all.every((u) => /\/(booking|my-bookings|print-card|senior-view|adult-pass)\.html$/.test(u)));
+  const pats = [index, booking, mb].flatMap((h) => (rules(h) || { prerender: [] }).prerender.map((x) => x.where.href_matches));
+  const banned = /logout|cancel|delete|refund|pay|checkout|admin|credits|bookings\//i;
+  ok("規則內無破壞性路由", !pats.some((u) => banned.test(u)), pats.join(","));
+  ok("規則只覆蓋唯讀展示頁", pats.every((u) => /^\/(booking|my-bookings|print-card|senior-view|adult-pass)\.html\*$/.test(u)), pats.join(","));
   ok("無 GET logout 連結（prefetch 不會誤登出）",
     !/href="[^"]*logout/i.test(index + booking + mb));
   ok("speculationrules 只出現一次／頁", [index, booking, mb].every((h) => (h.match(/type="speculationrules"/g) || []).length === 1));
