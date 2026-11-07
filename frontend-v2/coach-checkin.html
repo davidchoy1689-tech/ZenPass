@@ -108,7 +108,27 @@
   const saveQueue = () => localStorage.setItem(QKEY, JSON.stringify(queue));
   const isOffline = () => !navigator.onLine;
 
+  // 🔐 CSRF：教練可能只開呢條點名連結（未登入過其他頁），
+  //    冇 cookie 就簽到會 403 invalid csrf token → 首次載入先攞 token
+  let _csrf = null;
+  async function csrfToken() {
+    if (_csrf) return _csrf;
+    try {
+      const r = await fetch("/api/csrf-token", { credentials: "include" });
+      const j = await r.json();
+      _csrf = (j && j.token) || "";
+    } catch (e) { _csrf = ""; }
+    return _csrf;
+  }
+
   async function api(path, opts) {
+    opts = opts || {};
+    const method = String(opts.method || "GET").toUpperCase();
+    if (method !== "GET" && method !== "HEAD") {
+      const t = await csrfToken();
+      if (t) opts.headers = Object.assign({}, opts.headers || {}, { "x-csrf-token": t });
+    }
+    opts.credentials = opts.credentials || "include";
     const res = await fetch(path, opts);
     let data = {};
     try { data = await res.json(); } catch (e) {}
@@ -204,9 +224,14 @@
     let okCount = 0, fail = 0;
     for (const g of list) {
       try {
+        const csrf = await csrfToken();
         const r = await fetch("/api/coach/checkin/tags", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          headers: Object.assign(
+            { "Content-Type": "application/json" },
+            csrf ? { "x-csrf-token": csrf } : {},
+          ),
           body: JSON.stringify({ token: TOKEN, booking_id: g.booking_id, tags: g.coach_tags }),
         });
         if (r.ok) { g.__dirty = false; okCount++; } else fail++;

@@ -4,6 +4,7 @@
 process.env.JWT_SECRET = process.env.JWT_SECRET || "test-secret-coach";
 
 const path = require("path");
+const fs = require("fs");
 const http = require("http");
 const express = require(path.join(__dirname, "..", "node_modules", "express"));
 const Database = require(path.join(__dirname, "..", "node_modules", "better-sqlite3"));
@@ -106,6 +107,15 @@ const exp = Math.floor(Date.parse(new Date(Date.now() + 4 * 3600e3).toISOString(
   const tampered = parts[0] + "." + parts[1].slice(0, -2) + "AA";
   const tp = await call("GET", `/api/coach/checkin/roster?token=${encodeURIComponent(tampered)}`);
   ok("竄改簽名 403", tp.status === 403);
+
+  console.log("\n🧪 7. 前端 CSRF（教練只開連結都可以簽到）");
+  {
+    const html = fs.readFileSync(path.join(__dirname, "..", "..", "frontend-v2", "coach-checkin.html"), "utf8");
+    ok("會主動攞 /api/csrf-token", /fetch\("\/api\/csrf-token"/.test(html));
+    ok("api() 對非 GET 自動帶 x-csrf-token", /x-csrf-token/.test(html) && /method !== "GET"/.test(html));
+    ok("提交課後簡評有帶 CSRF", /checkin\/tags[\s\S]{0,400}x-csrf-token/.test(html));
+    ok("請求帶 credentials: include", /credentials:\s*"include"/.test(html));
+  }
 
   server.close();
   console.log(`\n📊 結果: ${passed} passed / ${failed} failed`);
