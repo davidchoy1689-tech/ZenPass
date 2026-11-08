@@ -29,7 +29,8 @@ has(idx, "全城通行", "card 3");
 has(css, ".how-grid", "how grid css");
 
 // 3. 地區 pills（香港 18 區）
-["cw", "wc", "east", "south", "ytm", "ssp", "kc", "wts", "kt", "kts", "tw", "tm", "yl", "north", "tp", "st", "sk", "islands"].forEach(z => has(idx, "explore.html?zone=" + z, "zone pill " + z));
+["kt", "kts"].forEach(z => has(idx, "explore.html?zone=" + z, "熱門地區 pill " + z));
+if (/explore\.html\?zone=(cw|wc|east|south|ytm|ssp|kc|wts|tw|tm|yl|north|tp|st|sk|islands)/.test(idx)) fails.push("18 區平鋪標籤應該已收納");
 has(idx, "中西區", "cw label");
 has(idx, "離島", "islands label");
 has(css, ".loc-pill", "loc pill css");

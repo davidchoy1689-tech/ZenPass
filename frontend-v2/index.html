@@ -60,175 +60,247 @@
     ]
   }
   </script>
+<style id="home-v4">
+  :root{ --ink-900:#0F172A; --ink-600:#475569; --line:#E2E8F0; --mist:#F8FAFC; --forest:#166534; }
+  body.home .hero-top.site-header{
+    position:sticky; top:0; z-index:60;
+    display:flex; align-items:center; gap:12px;
+    background:rgba(255,255,255,.9); backdrop-filter:blur(8px);
+    border-bottom:1px solid #F1F5F9;
+    padding:10px var(--dt-pad,16px); margin:0 calc(var(--dt-pad,16px) * -1);
+  }
+  .brand-block{display:flex;flex-direction:column;line-height:1.15;min-width:0}
+  .hero-logo{font-size:17px;letter-spacing:-.01em}
+  .hero-logo span{color:var(--forest)}
+  .brand-slogan{font-size:10.5px;color:#64748B;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .header-nav{display:none;gap:16px;margin-left:8px}
+  .header-nav a{font-size:13px;color:#475569;text-decoration:none;font-weight:600}
+  .header-nav a:hover{color:var(--forest)}
+  .site-header .hero-actions{margin-left:auto;display:flex;align-items:center;gap:8px}
+  .header-ghost{background:#fff;border:1px solid var(--line);color:#334155;font-size:12.5px;font-weight:700;padding:7px 11px;border-radius:9px}
+  .header-primary{background:var(--forest);border:1px solid var(--forest);color:#fff;font-size:12.5px;font-weight:800;padding:7px 13px;border-radius:9px}
+  @media (min-width:768px){ .header-nav{display:flex} .hero-logo{font-size:19px} }
+
+  .hero-sub{font-size:15px;color:#475569;margin:6px 0 16px}
+  .search-capsule-wrapper{margin:0 0 14px}
+  .search-capsule{background:#fff;border:1px solid #CBD5E1;border-radius:16px;box-shadow:0 10px 25px -5px rgba(0,0,0,.08);display:flex;align-items:stretch;padding:6px;gap:4px}
+  .search-field{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;padding:7px 10px;border-radius:10px}
+  .search-field:focus-within{background:var(--mist)}
+  .field-label{font-size:10.5px;font-weight:800;color:#64748B;letter-spacing:.02em;margin-bottom:2px}
+  .field-select{appearance:none;border:none;background:transparent;font-size:13.5px;font-weight:700;color:#0F172A;font-family:inherit;padding:0 14px 0 0;min-width:0;width:100%;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2.5'><path d='M6 9l6 6 6-6'/></svg>");
+    background-repeat:no-repeat;background-position:right center}
+  .field-divider{width:1px;background:#E2E8F0;margin:8px 0;flex:0 0 1px}
+  .btn-search-submit{flex:0 0 auto;display:flex;align-items:center;justify-content:center;gap:6px;background:var(--forest);color:#fff;border:none;border-radius:12px;padding:0 18px;font-size:14px;font-weight:800;font-family:inherit;cursor:pointer;min-height:52px}
+  .btn-search-submit:active{transform:scale(.98)}
+  .search-icon{width:17px;height:17px}
+  .search-note{font-size:11.5px;color:#94A3B8;margin:8px 2px 0}
+  @media (max-width:640px){
+    .search-capsule{flex-wrap:wrap;border-radius:12px}
+    .search-field{flex:1 1 44%;padding:6px 8px}
+    .field-divider{display:none}
+    .btn-search-submit{flex:1 1 100%;min-height:46px;margin-top:2px}
+    .search-field:nth-of-type(3){flex:1 1 100%;border-top:1px solid #F1F5F9;padding-top:8px}
+  }
+
+  .hot-search{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+  .hscroll{max-width:100%;-webkit-overflow-scrolling:touch}
+  .loc-row{gap:8px;padding:2px 0 4px;margin-bottom:4px}
+  .loc-row .loc-pill{background:#F1F5F9;border:1px solid transparent;color:#334155;font-weight:700;padding:7px 12px;border-radius:999px;font-size:12.5px;white-space:nowrap}
+  .loc-row .loc-pill:first-child{background:var(--forest);color:#fff}
+  .loc-row .loc-pill:active{transform:scale(.97)}
+
+  .home-sec{font-size:19px;font-weight:800;color:var(--ink-900);letter-spacing:-.01em;margin:40px 0 14px}
+  .trust-cards{display:grid;grid-template-columns:1fr;gap:10px}
+  .trust-card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:20px}
+  .trust-card h3{font-size:14.5px;font-weight:800;color:var(--ink-900);margin:12px 0 6px;line-height:1.35}
+  .trust-card p{font-size:12.5px;color:#64748B;line-height:1.6;margin:0}
+  .trust-ic{width:44px;height:44px;border-radius:50%;background:#DCFCE7;color:var(--forest);display:grid;place-items:center}
+  .trust-ic svg{width:22px;height:22px}
+  @media (min-width:768px){ .trust-cards{grid-template-columns:repeat(3,1fr);gap:14px} .trust-card{padding:24px} }
+
+  .bento-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .bento-grid .hot-card{min-width:0 !important;width:auto;background:#F0FDF4;border:1px solid #DCFCE7;border-radius:16px;overflow:hidden;text-decoration:none;transition:transform .18s ease, box-shadow .18s ease}
+  .bento-grid .hot-card:nth-child(2){background:#F0F9FF;border-color:#E0F2FE}
+  .bento-grid .hot-card:nth-child(3){background:#FEFCE8;border-color:#FEF3C7}
+  .bento-grid .hot-card:nth-child(4){background:#FAF5FF;border-color:#F3E8FF}
+  .bento-grid .hot-card:hover{transform:translateY(-4px);box-shadow:0 12px 24px -12px rgba(15,23,42,.18)}
+  .bento-grid .hot-cover{height:92px;overflow:hidden}
+  .bento-grid .hot-cover img{display:block;width:100%;height:100%;object-fit:cover}
+  .bento-grid .hot-body{padding:10px 12px 12px}
+  .bento-grid .hot-name{font-size:14.5px;font-weight:800;color:var(--ink-900);margin:3px 0 2px}
+  .bento-grid .hot-meta{font-size:11.5px;color:#64748B;margin:0;line-height:1.4}
+  .b2b-alt{flex-wrap:wrap;white-space:normal;max-width:100%}
+  @media (max-width:900px){ .b2b{flex-wrap:wrap} .b2b-form,.b2b-alt{flex:1 1 100%;max-width:100%} }
+  @media (max-width:359px){ .bento-grid{grid-template-columns:minmax(0,1fr)} }
+</style>
 </head>
 <body class="home">
   <div class="wrap">
     <div class="hero">
-      <div class="hero-top">
-        <strong class="hero-logo">ZenPass 禪流</strong>
+      <div class="hero-top site-header">
+        <div class="brand-block">
+          <strong class="hero-logo">ZenPass <span>禪流</span></strong>
+          <span class="brand-slogan">一 Pass 通行全城運動體驗</span>
+        </div>
+        <nav class="header-nav" aria-label="次要導航">
+          <a href="#corporate-section">企業團建</a>
+          <a href="coach-apply.html">教練加盟</a>
+          <a href="partner-apply.html">場地加盟</a>
+        </nav>
         <div class="hero-actions">
-          <button class="hero-btn" id="shareBtn" type="button">分享 ↗</button>
-          <a class="hero-chip" id="walletChip" href="wallet.html" hidden>💳 <span id="walletBal">—</span></a>
-          <a class="hero-btn hero-login" id="loginBtn" href="login.html">登入 / 註冊</a>
-          <a class="hero-chip" id="userChip" href="my.html" hidden>👤 <span id="heroName">我的</span></a>
+          <button class="hero-btn header-ghost" id="shareBtn" type="button">分享</button>
+          <a class="hero-chip" id="walletChip" href="wallet.html" hidden> <span id="walletBal">—</span></a>
+          <a class="hero-btn header-ghost" id="loginBtn" href="login.html">登入 / 註冊</a>
+          <a class="hero-btn header-primary" id="userChip" href="my.html" hidden> <span id="heroName">我的</span></a>
         </div>
       </div>
-      <h1>全港新興運動 × 樂齡強肌伸展體驗平台</h1>
-      <p>芬蘭木柱・地板冰壺・深層伸展・1對1 PT。免下載 App，免綁約，20 秒極速完成預約。</p>
+      <h1>全港新興運動與樂齡強肌體驗平台</h1>
+      <p class="hero-sub">芬蘭木柱・地板冰壺・深層伸展。免下載 App，免綁約，單堂起報。</p>
 
-      <div class="hero-quicknav">
-        <a href="#corporate-section">🏢 學校／企業團建</a>
-        <a href="coach-apply.html">🧑‍🏫 教練加盟</a>
-        <a href="partner-apply.html">🏪 場地加盟</a>
-      </div>
-
-      <div class="hero-auth" id="heroAuth">
-        <a class="btn btn-primary btn-block" href="explore.html">🔍 立即查看即開班次（免註冊・20 秒預約）→</a>
-        <p class="hero-cta-note">✓ 單堂收費・絕無合約綑綁　✓ 場地 PLI 責任保險核驗　✓ 專業核證導師</p>
-        <a class="hero-auth-alt" href="login.html?next=index.html">已有帳號？登入</a>
-      </div>
-
-      <div class="quick-search">
-        <label class="qs-field"><span>地區</span>
-          <select id="qsArea">
-            <option value="">全港 18 區</option>
-            <option value="cw">中西區</option>
-            <option value="wc">灣仔</option>
-            <option value="east">東區</option>
-            <option value="south">南區</option>
-            <option value="ytm">油尖旺</option>
-            <option value="ssp">深水埗</option>
-            <option value="kc">九龍城</option>
-            <option value="wts">黃大仙</option>
-            <option value="kt">觀塘</option>
-            <option value="kts">葵青</option>
-            <option value="tw">荃灣</option>
-            <option value="tm">屯門</option>
-            <option value="yl">元朗</option>
-            <option value="north">北區</option>
-            <option value="tp">大埔</option>
-            <option value="st">沙田</option>
-            <option value="sk">西貢</option>
-            <option value="islands">離島</option>
-          </select>
-        </label>
-        <label class="qs-field"><span>日期</span>
-          <select id="qsDate">
-            <option value="">任何日期</option>
-            <option value="today">今天</option>
-            <option value="tomorrow">明天</option>
-            <option value="weekend">本週末</option>
-            <option value="daytime">☀️ 平日日間 (週一至五 10:00–16:00)</option>
-          </select>
-        </label>
-        <label class="qs-field"><span>項目</span>
-          <select id="qsCat"><option value="">全部項目</option></select>
-        </label>
-        <button class="btn btn-primary qs-go" id="qsGo" type="button">🔍 尋找課堂</button>
+      <div class="search-capsule-wrapper">
+        <div class="search-capsule">
+          <div class="search-field">
+            <span class="field-label">地區</span>
+            <select id="qsArea" class="field-select">
+              <option value="">全港 18 區</option>
+              <option value="cw">中西區</option>
+              <option value="wc">灣仔</option>
+              <option value="east">東區</option>
+              <option value="south">南區</option>
+              <option value="ytm">油尖旺</option>
+              <option value="ssp">深水埗</option>
+              <option value="kc">九龍城</option>
+              <option value="wts">黃大仙</option>
+              <option value="kt">觀塘</option>
+              <option value="kts">葵青（青衣）</option>
+              <option value="tw">荃灣</option>
+              <option value="tm">屯門</option>
+              <option value="yl">元朗</option>
+              <option value="north">北區</option>
+              <option value="tp">大埔</option>
+              <option value="st">沙田</option>
+              <option value="sk">西貢</option>
+              <option value="islands">離島</option>
+            </select>
+          </div>
+          <div class="field-divider"></div>
+          <div class="search-field">
+            <span class="field-label">日期</span>
+            <select id="qsDate" class="field-select">
+              <option value="">任何日期</option>
+              <option value="today">今天</option>
+              <option value="tomorrow">明天</option>
+              <option value="weekend">本週末</option>
+              <option value="daytime">平日日間（樂齡時段）</option>
+            </select>
+          </div>
+          <div class="field-divider"></div>
+          <div class="search-field">
+            <span class="field-label">運動類別</span>
+            <select id="qsCat" class="field-select"><option value="">全部運動</option></select>
+          </div>
+          <button type="button" class="btn-search-submit" id="qsGo" aria-label="搜尋班次">
+            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            <span>搜尋</span>
+          </button>
+        </div>
+        <p class="search-note">免註冊即可預約 · 即時確認席位</p>
       </div>
       <div class="hot-search" aria-label="熱門搜尋">
-        <span class="hot-search-label">🔥 熱搜：</span>
+        <span class="hot-search-label"> 熱搜：</span>
         <a class="hs-pill" href="explore.html?q=%E8%8A%AC%E8%98%AD%E6%9C%A8%E6%9F%B1">芬蘭木柱</a>
         <a class="hs-pill" href="explore.html?q=%E5%86%B0%E5%A3%BA">親子冰壺</a>
         <a class="hs-pill" href="explore.html?zone=kt">觀塘室內</a>
         <a class="hs-pill" href="explore.html?q=%E7%91%9C%E4%BC%BD&time=evening">放工瑜伽</a>
         <a class="hs-pill" href="explore.html?q=%E5%B8%83%E8%A2%8B%E7%90%83">布袋球</a>
       </div>
-      <div class="hscroll loc-row" style="display:flex;flex-wrap:nowrap;overflow-x:auto;gap:8px">
-        <a class="loc-pill" href="explore.html?zone=cw">📍 中西區</a>
-        <a class="loc-pill" href="explore.html?zone=wc">📍 灣仔</a>
-        <a class="loc-pill" href="explore.html?zone=east">📍 東區</a>
-        <a class="loc-pill" href="explore.html?zone=south">📍 南區</a>
-        <a class="loc-pill" href="explore.html?zone=ytm">📍 油尖旺</a>
-        <a class="loc-pill" href="explore.html?zone=ssp">📍 深水埗</a>
-        <a class="loc-pill" href="explore.html?zone=kc">📍 九龍城</a>
-        <a class="loc-pill" href="explore.html?zone=wts">📍 黃大仙</a>
-        <a class="loc-pill" href="explore.html?zone=kt">📍 觀塘</a>
-        <a class="loc-pill" href="explore.html?zone=kts">📍 葵青</a>
-        <a class="loc-pill" href="explore.html?zone=tw">📍 荃灣</a>
-        <a class="loc-pill" href="explore.html?zone=tm">📍 屯門</a>
-        <a class="loc-pill" href="explore.html?zone=yl">📍 元朗</a>
-        <a class="loc-pill" href="explore.html?zone=north">📍 北區</a>
-        <a class="loc-pill" href="explore.html?zone=tp">📍 大埔</a>
-        <a class="loc-pill" href="explore.html?zone=st">📍 沙田</a>
-        <a class="loc-pill" href="explore.html?zone=sk">📍 西貢</a>
-        <a class="loc-pill" href="explore.html?zone=islands">📍 離島</a>
+      <div class="hscroll loc-row" aria-label="熱門地區">
+        <a class="loc-pill" href="explore.html">全部即開班次</a>
+        <a class="loc-pill" href="explore.html?scene=senior">樂齡伸展防跌</a>
+        <a class="loc-pill" href="explore.html?q=%E8%8A%AC%E8%98%AD%E6%9C%A8%E6%9F%B1">芬蘭木柱</a>
+        <a class="loc-pill" href="explore.html?q=%E5%86%B0%E5%A3%BA">地板冰壺</a>
+        <a class="loc-pill" href="explore.html?zone=kts">葵青（楓樹窩）</a>
+        <a class="loc-pill" href="explore.html?zone=kt">觀塘室內</a>
       </div>
     </div>
 
-    <div class="section-title" style="margin-top:14px">🛡️ 安心保障三道防線</div>
-    <div class="shield-grid">
-      <div class="shield-card">
-        <span class="shield-ic">🛡️</span>
-        <div><b>場地公眾責任保險（PLI）核驗</b><p>所有合作場地須提交公眾責任保險（PLI）證明，由平台逐一核對保單號及到期日。</p></div>
-      </div>
-      <div class="shield-card">
-        <span class="shield-ic">📜</span>
-        <div><b>SHA-256 防偽數位證書</b><p>課後即發，附防篡改存證雜湊；學校、機構、家長可一鍵驗證真偽。</p></div>
-      </div>
-      <div class="shield-card">
-        <span class="shield-ic">⛑️</span>
-        <div><b>資歷經審核的註冊導師</b><p>教練須提交技術及急救資歷，平台審核通過才能開班，資歷可追溯。</p></div>
-      </div>
+    <div class="section-title home-sec">安心保障</div>
+    <div class="trust-cards">
+      <article class="trust-card">
+        <div class="trust-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7 3v5c0 4.5-3 8.4-7 10-4-1.6-7-5.5-7-10V6l7-3z"></path><path d="M9 12l2 2 4-4"></path></svg></div>
+        <h3>場地公眾責任保（PLI）核驗</h3>
+        <p>所有合作場地須提交公眾責任保險證明，平台逐一核對保單號及到期日。</p>
+      </article>
+      <article class="trust-card">
+        <div class="trust-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"></path><path d="M14 3v5h5"></path><path d="M10 13l2 2 3-3"></path></svg></div>
+        <h3>SHA-256 防偽數位證書</h3>
+        <p>課後即發，附防篡改存證雜湊；學校、機構、家長可一鍵驗證真偽。</p>
+      </article>
+      <article class="trust-card">
+        <div class="trust-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M17 11l2 2 4-4"></path></svg></div>
+        <h3>專業審核註冊導師</h3>
+        <p>教練須提交技術及急救資歷，平台審核通過才能開班，資歷可追溯。</p>
+      </article>
     </div>
 
     <!-- 🔥 本週末首發推薦（真實即將開班，直接引入報名） -->
-    <div class="section-title" id="launchTitle" hidden style="margin-top:6px">🔥 本週即開班次 <span class="sport-count" style="font-size:12px;font-weight:500;color:var(--text-muted)">真實場次 · 額滿即止</span></div>
+    <div class="section-title" id="launchTitle" hidden style="margin-top:6px"> 本週即開班次 <span class="sport-count" style="font-size:12px;font-weight:500;color:var(--text-muted)">真實場次 · 額滿即止</span></div>
     <div class="hot-rail" id="launchRail" hidden aria-busy="true"></div>
 
     <div class="why">
-      <div class="section-title">🌱 什麼是新興運動？</div>
+      <div class="section-title"> 什麼是新興運動？</div>
       <div class="why-grid">
-        <div class="why-card"><div class="ic">🌱</div><b>零經驗上手</b><p>規則簡單、裝備輕巧，第一次玩都即刻上手。</p></div>
-        <div class="why-card"><div class="ic">👥</div><b>跨年齡・朋友包班</b><p>一家大細、三五知己都可以一齊玩，運動兼社交。</p></div>
-        <div class="why-card"><div class="ic">🏆</div><b>國際認可運動</b><p>芬蘭木柱、地板冰壺等已係國際賽事項目，有得玩有得進步。</p></div>
+        <div class="why-card"><div class="ic"></div><b>零經驗上手</b><p>規則簡單、裝備輕巧，第一次玩都即刻上手。</p></div>
+        <div class="why-card"><div class="ic"></div><b>跨年齡・朋友包班</b><p>一家大細、三五知己都可以一齊玩，運動兼社交。</p></div>
+        <div class="why-card"><div class="ic"></div><b>國際認可運動</b><p>芬蘭木柱、地板冰壺等已係國際賽事項目，有得玩有得進步。</p></div>
       </div>
     </div>
 
     <div class="banner banner-claim" id="claimPromo" role="button" tabindex="0" aria-label="點擊領取優惠碼 WELCOME50" style="margin-top:12px">
-      <span>🎉 新用戶首堂半價！點擊自動領取優惠碼</span>
+      <span> 新用戶首堂半價！點擊自動領取優惠碼</span>
       <span class="promo-code" id="promoCode">WELCOME50</span>
-      <button class="promo" id="copyPromo" type="button">📋 領取</button>
+      <button class="promo" id="copyPromo" type="button"> 領取</button>
     </div>
 
-    <div class="section-title">🎯 按場景搵堂</div>
+    <div class="section-title"> 按場景搵堂</div>
     <div class="hscroll" id="scenes">
-      <a class="chip" href="explore.html?scene=pain">🧘 痛症深層伸展</a>
-      <a class="chip" href="explore.html?scene=senior">💪 長者防肌少症・防跌強肌</a>
-      <a class="chip" href="explore.html?scene=family">👨‍👩‍👦 親子新興運動</a>
-      <a class="chip" href="explore.html?scene=office">💼 放工放鬆 / 辦公室伸展</a>
-      <a class="chip" href="explore.html?scene=burn">🥊 高效燃脂 / 減脂汗水</a>
-      <a class="chip" href="explore.html?scene=beginner">🧩 新手友善 / 無需經驗</a>
+      <a class="chip" href="explore.html?scene=pain"> 痛症深層伸展</a>
+      <a class="chip" href="explore.html?scene=senior"> 長者防肌少症・防跌強肌</a>
+      <a class="chip" href="explore.html?scene=family">‍‍ 親子新興運動</a>
+      <a class="chip" href="explore.html?scene=office"> 放工放鬆 / 辦公室伸展</a>
+      <a class="chip" href="explore.html?scene=burn"> 高效燃脂 / 減脂汗水</a>
+      <a class="chip" href="explore.html?scene=beginner"> 新手友善 / 無需經驗</a>
     </div>
     <div class="hscroll time-row" aria-label="按時間搵堂">
-      <a class="chip time-chip time-daytime" href="explore.html?date=daytime">☀️ 平日樂齡活力 (10:00–16:00)</a>
-      <a class="chip time-chip" href="explore.html?date=today&time=evening">⚡ 今晚有空</a>
-      <a class="chip time-chip" href="explore.html?date=weekend">📅 本週末 (Sat/Sun)</a>
-      <a class="chip time-chip" href="explore.html?time=evening">🌙 放工時段 (18:00+)</a>
-      <a class="chip time-chip" href="https://wa.me/85290335538?text=%E4%BD%A0%E5%A5%BD%EF%BC%8C%E6%88%91%E6%83%B3%E6%9F%A5%E8%A9%A2%201-on-1%20%E7%A7%81%E4%BA%BA%E6%95%99%E7%B7%B4%E8%AA%B2%E7%A8%8B" target="_blank" rel="noopener">🎯 1-on-1 私教客製</a>
+      <a class="chip time-chip time-daytime" href="explore.html?date=daytime"> 平日樂齡活力 (10:00–16:00)</a>
+      <a class="chip time-chip" href="explore.html?date=today&time=evening"> 今晚有空</a>
+      <a class="chip time-chip" href="explore.html?date=weekend"> 本週末 (Sat/Sun)</a>
+      <a class="chip time-chip" href="explore.html?time=evening"> 放工時段 (18:00+)</a>
+      <a class="chip time-chip" href="https://wa.me/85290335538?text=%E4%BD%A0%E5%A5%BD%EF%BC%8C%E6%88%91%E6%83%B3%E6%9F%A5%E8%A9%A2%201-on-1%20%E7%A7%81%E4%BA%BA%E6%95%99%E7%B7%B4%E8%AA%B2%E7%A8%8B" target="_blank" rel="noopener"> 1-on-1 私教客製</a>
     </div>
 
-    <div class="section-title">🎯 新興運動體驗 <span class="sport-count" style="font-size:12px;font-weight:500;color:var(--text-muted)">撳一下睇介紹</span></div>
-    <div class="hot-rail" style="padding-bottom:6px">
+    <div class="section-title home-sec">新興運動體驗 <span class="sport-count" style="font-size:12px;font-weight:500;color:var(--text-muted)">撳一下睇介紹</span></div>
+    <div class="bento-grid">
       <a class="hot-card" style="min-width:132px" href="/s/molkky.html">
         <div class="hot-cover"><img src="assets/img/photos/emerging.jpg" alt="芬蘭木柱" loading="lazy"></div>
-        <div class="hot-body"><span class="hot-cat">新興運動</span><p class="hot-name">🎯 芬蘭木柱</p><p class="hot-meta">零基礎 · 3 分鐘學識</p></div>
+        <div class="hot-body"><span class="hot-cat">新興運動</span><p class="hot-name">芬蘭木柱</p><p class="hot-meta">零基礎 · 3 分鐘學識</p></div>
       </a>
       <a class="hot-card" style="min-width:132px" href="/s/floor-curling.html">
         <div class="hot-cover"><img src="assets/img/photos/emerging.jpg" alt="地板冰壺" loading="lazy"></div>
-        <div class="hot-body"><span class="hot-cat">新興運動</span><p class="hot-name">🥌 地板冰壺</p><p class="hot-meta">腦力＋手感 · 長者友善</p></div>
+        <div class="hot-body"><span class="hot-cat">新興運動</span><p class="hot-name">地板冰壺</p><p class="hot-meta">腦力＋手感 · 長者友善</p></div>
       </a>
       <a class="hot-card" style="min-width:132px" href="/s/cornhole.html">
         <div class="hot-cover"><img src="assets/img/photos/emerging.jpg" alt="布袋球" loading="lazy"></div>
-        <div class="hot-body"><span class="hot-cat">新興運動</span><p class="hot-name">🫘 布袋球</p><p class="hot-meta">派對必備 · 即刻上手</p></div>
+        <div class="hot-body"><span class="hot-cat">新興運動</span><p class="hot-name">布袋球</p><p class="hot-meta">派對必備 · 即刻上手</p></div>
       </a>
       <a class="hot-card" style="min-width:132px" href="/s/air-storm.html">
         <div class="hot-cover"><img src="assets/img/photos/emerging.jpg" alt="穿雲箭" loading="lazy"></div>
-        <div class="hot-body"><span class="hot-cat">新興運動</span><p class="hot-name">🏹 穿雲箭</p><p class="hot-meta">減壓神器 · 安全刺激</p></div>
+        <div class="hot-body"><span class="hot-cat">新興運動</span><p class="hot-name">穿雲箭</p><p class="hot-meta">減壓神器 · 安全刺激</p></div>
       </a>
     </div>
 
-    <div class="section-title">🔥 本週熱門推薦</div>
+    <div class="section-title"> 本週熱門推薦</div>
     <div class="hot-rail" id="hotRail" aria-busy="true">
       <div class="skeleton-card" aria-hidden="true">
         <div class="skeleton skeleton-img"></div>
@@ -264,7 +336,7 @@
       </div>
     </div>
 
-    <div class="section-title" style="margin-bottom:2px">💬 98% 學員滿意推薦</div>
+    <div class="section-title" style="margin-bottom:2px"> 98% 學員滿意推薦</div>
     <p class="proof-sub">已累積超過 1,000+ 人次成功預約體驗</p>
     <div class="proof-rail" id="proofRail">
       <article class="proof-card">
@@ -291,19 +363,19 @@
     </div>
     <div class="trust-row">
       <span>⭐ <b>4.9/5.0</b> 平均評分</span>
-      <span>👥 <b>1,000+</b> 體驗人次</span>
-      <span>🏆 <b>50+</b> 認可專業教練</span>
+      <span> <b>1,000+</b> 體驗人次</span>
+      <span> <b>50+</b> 認可專業教練</span>
     </div>
 
-    <div class="section-title">❓ 如何使用 ZenPass 上課？</div>
+    <div class="section-title"> 如何使用 ZenPass 上課？</div>
     <div class="how-grid">
-      <div class="how-card"><div class="ic">💳</div><b>彈性預約</b><p>按堂收費，無隱藏月費，絕無推銷合約；單堂體驗啱先再報。</p></div>
-      <div class="how-card"><div class="ic">🛡️</div><b>專業保證</b><p>活動安排在正規場館，平台核驗場地 PLI 公眾責任保；課後獲發 SHA-256 防偽證書。</p></div>
-      <div class="how-card"><div class="ic">🏆</div><b>全城通行</b><p>支援全港 18 區合作體育與伸展空間，一個手機號碼隨時預約。</p></div>
+      <div class="how-card"><div class="ic"></div><b>彈性預約</b><p>按堂收費，無隱藏月費，絕無推銷合約；單堂體驗啱先再報。</p></div>
+      <div class="how-card"><div class="ic"></div><b>專業保證</b><p>活動安排在正規場館，平台核驗場地 PLI 公眾責任保；課後獲發 SHA-256 防偽證書。</p></div>
+      <div class="how-card"><div class="ic"></div><b>全城通行</b><p>支援全港 18 區合作體育與伸展空間，一個手機號碼隨時預約。</p></div>
     </div>
 
     <div class="ref-banner" id="refBanner">
-      <div class="ref-ic">🎁</div>
+      <div class="ref-ic"></div>
       <div class="ref-tx">
         <b>推薦好友一同體驗，各得 HK$50 優惠券！</b>
         <p>分享你的專屬連結，好友首次預約你即可獲得 HK$50 Pass 扣減金。</p>
@@ -311,19 +383,19 @@
       <button class="btn btn-primary ref-btn" id="refShare" type="button">立即分享給朋友</button>
     </div>
 
-    <div class="section-title">🏅 運動項目 <span class="sport-count">3 大主軸</span></div>
+    <div class="section-title"> 運動項目 <span class="sport-count">3 大主軸</span></div>
     <div class="cat-photo-grid" id="catPhotoGrid"></div>
     <p class="acc-note">以下係平台支援嘅運動項目庫；<b>未開班嘅項目唔會出現在搜尋結果</b>，唔會俾你撳入去見到空白。想玩某項但未有班？話我哋知，我哋會搵教練開班。</p>
-    <button class="acc-btn" id="accBtn" type="button" aria-expanded="false">🔍 瀏覽全部 145 個支援運動項目（可供教練開班）</button>
+    <button class="acc-btn" id="accBtn" type="button" aria-expanded="false"> 瀏覽全部 145 個支援運動項目（可供教練開班）</button>
     <div class="acc-panel" id="sportGridAll" hidden></div>
 
     <div class="b2b" id="corporate-section">
-      <div class="b2b-ic">🏢</div>
+      <div class="b2b-ic"></div>
       <div class="b2b-tx">
         <b>尋找企業 Team Building 或學校新興運動體驗活動？</b>
         <p>度身訂造方案 · 專人到場帶領 · 一大班同事／學生都可以一齊玩</p>
       </div>
-      <a class="b2b-btn" href="https://wa.me/85290335538?text=%E4%BD%A0%E5%A5%BD%EF%BC%8C%E6%88%91%E6%83%B3%E6%9F%A5%E8%A9%A2%20ZenPass%20%E4%BC%81%E6%A5%AD%E5%9C%98%E5%BB%BA%EF%BC%8F%E5%9C%98%E9%AB%94%E5%8C%85%E7%8F%AD%E6%9C%8D%E5%8B%99%EF%BC%8C%E6%83%B3%E7%B4%A2%E5%8F%96%E6%B4%BB%E5%8B%95%E6%96%B9%E6%A1%88%E5%90%8C%E5%A0%B1%E5%83%B9%E5%96%AE%E3%80%82" target="_blank" rel="noopener noreferrer" aria-label="透過 WhatsApp 查詢企業或學校包班報價">💬 立即 WhatsApp 查詢報價</a>
+      <a class="b2b-btn" href="https://wa.me/85290335538?text=%E4%BD%A0%E5%A5%BD%EF%BC%8C%E6%88%91%E6%83%B3%E6%9F%A5%E8%A9%A2%20ZenPass%20%E4%BC%81%E6%A5%AD%E5%9C%98%E5%BB%BA%EF%BC%8F%E5%9C%98%E9%AB%94%E5%8C%85%E7%8F%AD%E6%9C%8D%E5%8B%99%EF%BC%8C%E6%83%B3%E7%B4%A2%E5%8F%96%E6%B4%BB%E5%8B%95%E6%96%B9%E6%A1%88%E5%90%8C%E5%A0%B1%E5%83%B9%E5%96%AE%E3%80%82" target="_blank" rel="noopener noreferrer" aria-label="透過 WhatsApp 查詢企業或學校包班報價"> 立即 WhatsApp 查詢報價</a>
       <form class="b2b-form" id="b2bForm">
         <div class="b2b-form-row">
           <select id="b2bSize" aria-label="人數">
@@ -347,34 +419,34 @@
             <option>其他／未定</option>
           </select>
         </div>
-        <button class="b2b-btn" type="submit" aria-label="提交人數、月份及項目，透過 WhatsApp 取得報價">⚡ 30 秒取得報價（WhatsApp 專人跟進）</button>
+        <button class="b2b-btn" type="submit" aria-label="提交人數、月份及項目，透過 WhatsApp 取得報價"> 30 秒取得報價（WhatsApp 專人跟進）</button>
       </form>
       <div class="b2b-alt">或看 <a href="corporate.html">企業計劃</a> ・ <a href="school.html">學校 ECA 方案</a></div>
     </div>
 
-    <div class="section-title">🧑‍🏫 成為教練 / 🏪 場地加盟</div>
+    <div class="section-title">‍ 成為教練 /  場地加盟</div>
     <div class="card"><div class="body">
       <p class="muted" style="font-size:13px;margin:0 0 10px">零成本獲客，自動化預約、排班、結算一站式管理。</p>
-      <a class="btn btn-primary btn-block" href="partner.html" style="margin-bottom:8px">🚀 了解加盟詳情</a>
-      <a class="btn btn-secondary btn-block" href="coach-apply.html" style="margin-bottom:8px">🧑‍🏫 申請成為教練</a>
-      <a class="btn btn-secondary btn-block" href="partner-apply.html">🏪 場地加盟（登記即開通）</a>
+      <a class="btn btn-primary btn-block" href="partner.html" style="margin-bottom:8px"> 了解加盟詳情</a>
+      <a class="btn btn-secondary btn-block" href="coach-apply.html" style="margin-bottom:8px">‍ 申請成為教練</a>
+      <a class="btn btn-secondary btn-block" href="partner-apply.html"> 場地加盟（登記即開通）</a>
     </div></div>
     <div class="spacer"></div>
     <p class="muted center" style="font-size:12px">ZenPass 禪流 · v2</p>
   </div>
 
   <div class="install-bar" id="installBar" hidden>
-    <span class="ib-ic">📱</span>
+    <span class="ib-ic"></span>
     <span class="ib-tx">將 ZenPass 安裝到手機，預約更方便！</span>
     <button class="ib-go" id="installGo" type="button">立即安裝</button>
-    <button class="ib-x" id="installX" type="button" aria-label="關閉提示">✕</button>
+    <button class="ib-x" id="installX" type="button" aria-label="關閉提示"></button>
   </div>
 
   <nav class="bottomnav">
-    <a class="active" href="index.html"><span class="ic">🏠</span>主頁</a>
-    <a href="explore.html"><span class="ic">🔍</span>探索</a>
-    <a href="booking.html"><span class="ic">📅</span>預約</a>
-    <a href="my.html"><span class="ic">🎫</span>我的</a>
+    <a class="active" href="index.html"><span class="ic"></span>主頁</a>
+    <a href="explore.html"><span class="ic"></span>探索</a>
+    <a href="booking.html"><span class="ic"></span>預約</a>
+    <a href="my.html"><span class="ic"></span>我的</a>
   </nav>
 
   <script src="assets/covers.js?v=8"></script>
@@ -719,8 +791,14 @@
         arr = arr.filter(function (c) { return Number(c.booking_open) === 1; });
         if (!arr.length) {
           // 完全冇真實課程 → 隱藏整個熱門區（唔顯示假卡）
-          var sec = rail.closest("section") || rail.parentElement;
+          // 只隱藏熱門區，唔可以連 .wrap／body 一齊隱藏（曾令全頁變白）
+          var sec = rail.closest("section");
           if (sec) sec.style.display = "none";
+          else {
+            rail.style.display = "none";
+            var prev = rail.previousElementSibling;
+            if (prev && prev.classList && prev.classList.contains("section-title")) prev.style.display = "none";
+          }
           return;
         }
         // 類別 → Unsplash 實景封面（已驗證 200）
@@ -810,7 +888,7 @@
     }
   </script>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <a class="wa-float" id="waFloat" href="https://wa.me/85290335538?text=%E4%BD%A0%E5%A5%BD%EF%BC%8C%E6%88%91%E6%83%B3%E6%9F%A5%E8%A9%A2%20ZenPass%20%E8%AA%B2%E7%A8%8B%E9%A0%90%E7%B4%84%EF%BC%81" target="_blank" rel="noopener" aria-label="WhatsApp 客服查詢"><span>💬</span></a>
+  <a class="wa-float" id="waFloat" href="https://wa.me/85290335538?text=%E4%BD%A0%E5%A5%BD%EF%BC%8C%E6%88%91%E6%83%B3%E6%9F%A5%E8%A9%A2%20ZenPass%20%E8%AA%B2%E7%A8%8B%E9%A0%90%E7%B4%84%EF%BC%81" target="_blank" rel="noopener" aria-label="WhatsApp 客服查詢"><span></span></a>
   <script src="assets/footer.js?v=5" defer></script>
 </body>
 </html>

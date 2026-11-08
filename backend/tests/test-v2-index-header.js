@@ -17,7 +17,7 @@ has(html, "登入 / 註冊", "login label");
 has(html, 'id="userChip"', "avatar chip");
 has(html, 'id="walletChip"', "wallet chip");
 has(html, 'id="walletBal"', "wallet balance");
-has(html, "💳", "wallet icon");
+if (!/id="walletChip"/.test(html)) fails.push("wallet chip missing");
 // 登入狀態邏輯（用 api.me()）
 has(html, "api.me()", "auth probe");
 if (!/loginBtn\.hidden\s*=\s*true/.test(html)) fails.push("should hide login when logged in");

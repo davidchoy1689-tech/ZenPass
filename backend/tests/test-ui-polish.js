@@ -11,6 +11,7 @@ const ap = fs.readFileSync(path.join(F, "adult-pass.html"), "utf8");
 const book = fs.readFileSync(path.join(F, "booking.html"), "utf8");
 const mine = fs.readFileSync(path.join(F, "my-bookings.html"), "utf8");
 const detail = fs.readFileSync(path.join(F, "detail.html"), "utf8");
+const home = fs.readFileSync(path.join(F, "index.html"), "utf8");
 const bkRoute = fs.readFileSync(path.join(__dirname, "..", "src", "routes", "bookings.js"), "utf8");
 const bkSvc = fs.readFileSync(path.join(__dirname, "..", "src", "services", "booking-service.js"), "utf8");
 
@@ -182,6 +183,21 @@ console.log("\n🧪 14. 詳情頁 CRO（首屏價值主張 + Dock + 直通車）
   ok("時段自動預選最近有位", /if \(!SEL_SID\) \{[\s\S]{0,240}filter\(function \(s\) \{ return _free\(s\) > 0; \}\)/.test(detail));
   ok("確認掣顯示剩餘席位", /前往下一步填寫學員資料/.test(detail) && /剩餘 " \+ leftN \+ " 席/.test(detail));
   ok("內容底部留白避開 Dock", /\.dt-body \{ padding: 14px var\(--dt-pad\) 96px; \}/.test(detail));
+}
+
+console.log("\n🧪 15. 首頁機構級重構");
+{
+  const visible = home.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "");
+  const emoji = (visible.match(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu) || []).length;
+  ok("搜尋膠囊 .search-capsule", /class="search-capsule"/.test(home) && /id="qsGo"/.test(home));
+  ok("保留搜尋參數 id", /id="qsArea"/.test(home) && /id="qsDate"/.test(home) && /id="qsCat"/.test(home));
+  ok("18 區平鋪已收納為 6 粒", (home.match(/class="loc-pill"/g) || []).length === 6 && !/explore\.html\?zone=ytm/.test(home));
+  ok("Header 次級導航", /class="header-nav"/.test(home) && /企業團建/.test(home));
+  ok("三大守護卡 3 欄", /class="trust-cards"/.test(home) && /trust-card/.test(home) && /repeat\(3,1fr\)/.test(home));
+  ok("信任卡用 SVG 非 Emoji", /class="trust-ic"><svg/.test(home) && !/shield-ic/.test(home));
+  ok("Bento 4 卡", /class="bento-grid"/.test(home) && /bento-grid[\s\S]{0,60}repeat\(2,minmax/.test(home));
+  ok("Emoji < 10（實測 " + emoji + "）", emoji < 10, String(emoji));
+  ok("熱門區隱藏唔會連 .wrap 一齊 hide", /rail\.style\.display = "none"/.test(home) && /classList\.contains\("section-title"\)/.test(home));
 }
 
 console.log(`\n📊 結果: ${passed} passed / ${failed} failed`);
