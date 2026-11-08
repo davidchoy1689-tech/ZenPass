@@ -8,6 +8,7 @@ const sv = fs.readFileSync(path.join(F, "senior-view.html"), "utf8");
 const mb = fs.readFileSync(path.join(F, "my-bookings.html"), "utf8");
 const cc = fs.readFileSync(path.join(F, "coach-checkin.html"), "utf8");
 const ap = fs.readFileSync(path.join(F, "adult-pass.html"), "utf8");
+const book = fs.readFileSync(path.join(F, "booking.html"), "utf8");
 
 let passed = 0, failed = 0;
 const ok = (n, c, x) => { c ? (passed++, console.log("  ✅", n)) : (failed++, console.log("  ❌", n, x || "")); };
@@ -48,6 +49,34 @@ console.log("\n🧪 4. 成人票券 Passbook 凹槽");
   ok("左右各 -10px 凹入", /\.ticket-notch::before\{ left:-10px \}/.test(ap) && /\.ticket-notch::after\{ right:-10px \}/.test(ap));
   ok("位於 65% 條碼交界", /top:65%/.test(ap));
   ok("零圖片／零 canvas", !/background-image:\s*url\(/i.test(ap) && !/<canvas[\s>]/i.test(ap));
+}
+
+console.log("\n🧪 5. 報名頁席位緊張度");
+{
+  ok("進度條容器 .seat-urgency-wrapper", /\.seat-urgency-wrapper\{/.test(book));
+  ok("熱門徽章 + 餘額文案", /seat-badge-hot/.test(book) && /僅餘 <strong>/.test(book));
+  ok("滿額顯示候補入口", /可入候補名單/.test(book) && /detail\.html\?id=/.test(book));
+  ok("滿額班次 checkbox disabled", /\$\{full\?"disabled":""\}/.test(book));
+  ok("百分比按 max_participants / enrolled_count 計算", /Number\(s\.enrolled_count \|\| 0\) \/ cap/.test(book));
+  ok("≤2 席切 critical、滿額切 full", /left <= 2 \? "critical"/.test(book) && /left === 0 \? "full"/.test(book));
+  ok("全選唔會揀滿額班", /filter\(s => seatsLeft\(s\) > 0\)/.test(book));
+  ok("reduced-motion 關進度動畫", /prefers-reduced-motion: reduce\)\{ \.seat-progress-fill\{ transition:none/.test(book));
+}
+
+console.log("\n🧪 6. 付款頁 FPS 一鍵複製");
+{
+  ok("FPS 互動卡 .fps-copy-box", /class="fps-copy-box"/.test(book));
+  ok("顯示 9033 5538 + 戶名", /id="fps-identifier">9033 5538</.test(book) && /戶名：ZenPass/.test(book));
+  ok("複製按鈕寫入純數字", /id="btn-copy-fps" data-copy="90335538"/.test(book));
+  ok("成功率 Toast 文案", /已複製 FPS 號碼：9033 5538/.test(book));
+  ok("按鈕 1.5 秒後復原 + 深綠反饋", /setTimeout\(\(\) => \{ btn\.textContent = old; btn\.classList\.remove\("copied"\); \}, 1500\)/.test(book));
+  ok("execCommand 降級仍在", /document\.execCommand\("copy"\)/.test(book));
+}
+
+console.log("\n🧪 7. 預約流程回歸（rememberWaiver 修正）");
+{
+  ok("rememberWaiver 有定義", /function rememberWaiver\(\) \{/.test(book));
+  ok("仍然會記住免責同意", /localStorage\.setItem\("zenpass_waiver_agreed", "true"\)/.test(book));
 }
 
 console.log(`\n📊 結果: ${passed} passed / ${failed} failed`);
