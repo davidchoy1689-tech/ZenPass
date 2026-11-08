@@ -760,14 +760,14 @@
               '<img class="card-img skeleton" src="' + esc(cover(c)) + '" alt="" loading="lazy" onerror="this.style.display=\'none\'">' +
               '<span class="cover-shade"></span>' +
               (Number(c.coach_starred) === 1 ? '<span class="badge-trial glass-badge">⭐ 星級教練</span>' : '') +
-              (c.district ? '<span class="badge-district glass-badge">📍 ' + esc(c.district) + '</span>' : '') +
+              (c.district ? '<span class="badge-district glass-badge">' + esc(c.district) + '</span>' : '') +
               '<span class="badge-countdown">⏳ ' + esc(daysLeft(c.start_time)) + '</span>' +
             '</div>' +
             '<div class="hot-body">' +
               '<span class="hot-cat">' + esc(c.category || "課堂") + '</span>' +
               '<p class="hot-name">' + esc(c.title || "") + '</p>' +
-              '<p class="hot-meta" style="font-weight:600;color:var(--text)">📅 ' + esc(fmtWhen(c.start_time)) + '</p>' +
-              '<p class="hot-meta">📍 ' + esc(c.venue_name || c.district || "") + '｜⏱️ ' + (c.duration || 60) + ' 分鐘' +
+              '<p class="hot-meta" style="font-weight:600;color:var(--text)">' + esc(fmtWhen(c.start_time)) + '</p>' +
+              '<p class="hot-meta">' + esc(c.venue_name || c.district || "") + ' · ' + (c.duration || 60) + ' 分鐘' +
                 (leftTxt ? ' <span class="' + leftCls + '">· ' + leftTxt + '</span>' : '') + '</p>' +
               '<p class="hot-price"><b>' + hkd(Number(c.price_hkd) || 0) + '</b><span class="hot-trial">/ 位</span></p>' +
               '<span class="btn btn-primary btn-block hot-cta">立即留位</span>' +
@@ -842,13 +842,13 @@
               '<span class="cover-shade"></span>' +
               (promo ? '<span class="badge-trial glass-badge-highlight">🎉 WELCOME50 半價</span>' : '') +
               '<span class="badge-star glass-badge-dark">⭐ ' + esc(String(Number(rating).toFixed(1))) + '</span>' +
-              (c.district ? '<span class="badge-district glass-badge">📍 ' + esc(c.district) + '</span>' : '') +
+              (c.district ? '<span class="badge-district glass-badge">' + esc(c.district) + '</span>' : '') +
             '</div>' +
             '<div class="hot-body">' +
               '<span class="hot-cat">' + esc(c.category || "") + (c.district ? " · " + esc(c.district) : "") + '</span>' +
               '<p class="hot-name">' + esc(c.title) + '</p>' +
               '<p class="hot-rating">⭐ ' + esc(String(Number(rating).toFixed(1))) + ' <span>(' + esc(String(reviews)) + ' 評價)</span></p>' +
-              '<p class="hot-meta">📍 ' + esc(c.venue_name || c.district || "") + '｜⏱️ ' + (c.duration || 60) + ' 分鐘' + leftTxt + '</p>' +
+              '<p class="hot-meta">' + esc(c.venue_name || c.district || "") + ' · ' + (c.duration || 60) + ' 分鐘' + leftTxt + '</p>' +
               '<p class="hot-price"><b>' + hkd(price) + '</b>' +
                 (promo && price ? '<span class="hot-trial">迎新半價 ' + hkd(final) + '</span>' : '') +
               '</p>' +
