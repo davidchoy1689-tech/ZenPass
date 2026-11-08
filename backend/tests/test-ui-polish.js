@@ -82,5 +82,26 @@ console.log("\n🧪 7. 預約流程回歸（rememberWaiver 修正）");
   ok("仍然會記住免責同意", /localStorage\.setItem\("zenpass_waiver_agreed", "true"\)/.test(book));
 }
 
+console.log("\n🧪 8. FPS 轉帳備註一鍵複製");
+{
+  ok("備註卡 .fps-ref-box", /class="fps-ref-box"/.test(book));
+  ok("顯示預約編號 #fps-booking-ref", /id="fps-booking-ref"><\$\{esc\(refCodes\.join/.test(book) || /id="fps-booking-ref"/.test(book));
+  ok("複製備註按鈕", /id="btn-copy-ref"[^>]*data-copy="\$\{esc\(refCodes\.join\(" "\)\)\}"/.test(book));
+  ok("Toast 含備註編號", /已複製備註編號：/.test(book));
+  ok("備註卡喺 FPS 號碼卡之後", book.indexOf("fps-guide-hint") < book.indexOf("${refBox}"));
+  ok("FPS 同 PayMe 都用同一個備註卡（2 處）", (book.match(/\$\{refBox\}/g) || []).length === 2);
+}
+
+console.log("\n🧪 9. 教練簽到防手震（Optimistic UI）");
+{
+  ok("inFlight 鎖存在", /const inFlight = new Set\(\)/.test(cc));
+  ok("重複點擊直接 return", /if \(inFlight\.has\(bid\)\) return;/.test(cc));
+  ok("Optimistic 標記 __busy", /g\.__busy = action;/.test(cc));
+  ok("按鈕即時顯示 ⏳ 簽到中…", /g\.__busy === "checkin" \? "⏳ 簽到中…"/.test(cc));
+  ok("busy 時 disabled + opacity .7", /done \|\| absent \|\| g\.__busy \? "disabled"/.test(cc) && /opacity:\.7/.test(cc));
+  ok("finally 解鎖（失敗都唔會卡死）", /\} finally \{[\s\S]{0,120}inFlight\.delete\(bid\);/.test(cc));
+  ok("QR 2 秒冷卻", /lastQrAt/.test(cc) && /< 2000\) \{ scanRAF = requestAnimationFrame\(tick\); return; \}/.test(cc));
+}
+
 console.log(`\n📊 結果: ${passed} passed / ${failed} failed`);
 process.exit(failed ? 1 : 0);

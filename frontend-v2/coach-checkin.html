@@ -232,8 +232,8 @@
             `<button data-tag="${k}" data-bid="${g.booking_id}" style="min-height:38px;padding:0 12px;border-radius:99px;font-size:13px;font-weight:800;border:1.5px solid ${(g.coach_tags||[]).includes(k) ? "#1A5336" : "#cbd5e1"};background:${(g.coach_tags||[]).includes(k) ? "#1A5336" : "#fff"};color:${(g.coach_tags||[]).includes(k) ? "#fff" : "#0f172a"}">${l}</button>`).join("")}
         </div>` : ""}
         <div class="acts">
-          <button class="btn primary" data-act="in" data-bid="${g.booking_id}" ${done || absent ? "disabled" : ""}>${done ? "✅ 已簽到" : "✅ 點名簽到"}</button>
-          <button class="btn ghost" data-act="no" data-bid="${g.booking_id}" ${done || absent ? "disabled" : ""}>❌ 缺席</button>
+          <button class="btn primary" data-act="in" data-bid="${g.booking_id}" ${done || absent || g.__busy ? "disabled" : ""} ${g.__busy === "checkin" ? 'style="opacity:.7"' : ""}>${g.__busy === "checkin" ? "⏳ 簽到中…" : done ? "✅ 已簽到" : "✅ 點名簽到"}</button>
+          <button class="btn ghost" data-act="no" data-bid="${g.booking_id}" ${done || absent || g.__busy ? "disabled" : ""} ${g.__busy === "no_show" ? 'style="opacity:.7"' : ""}>${g.__busy === "no_show" ? "⏳ 處理中…" : "❌ 缺席"}</button>
         </div>
       </div>`;
     }).join("");
@@ -295,39 +295,50 @@
     toast(fail ? `已提交 ${okCount} 位，${fail} 位失敗（可再撳）` : `✅ 已提交 ${okCount} 位課後簡評`);
   };
 
+  // 🛡️ 防手震：同一 booking 同時間只會有一次請求（弱網狂點都唔會重複／429）
+  const inFlight = new Set();
   $("list").addEventListener("click", async (e) => {
     const btn = e.target.closest("button[data-act]");
     if (!btn || btn.disabled) return;
     const bid = btn.dataset.bid;
+    if (inFlight.has(bid)) return;
     const action = btn.dataset.act === "in" ? "checkin" : "no_show";
     if (action === "no_show" && !confirm("確定標記缺席？")) return;
 
-    // 樂觀更新
+    inFlight.add(bid);
+    // ⚡ Optimistic UI：即刻轉「⏳ 簽到中…」，唔等 API 回傳
     const g = ROSTER.roster.find((x) => x.booking_id === bid);
     if (g) {
+      g.__busy = action;
       if (action === "checkin") g.attended = g.seats;
       else g.no_show = g.seats;
       render();
     }
     if (navigator.vibrate) navigator.vibrate(action === "checkin" ? 35 : [20, 40, 20]);
 
-    if (isOffline()) { enqueue(bid, action); return; }
-    if (DEMO) { toast(action === "checkin" ? "✅ 已簽到（示範）" : "已標記缺席（示範）"); return; }
-    const r = await api("/api/coach/checkin", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token: TOKEN, booking_id: bid, action }),
-    });
-    if (!r.ok) {
-      if (r.status === 0 || r.status >= 500) { enqueue(bid, action); return; }
-      toast("❌ " + (r.data.error || "操作失敗"));
+    try {
+      if (isOffline()) { enqueue(bid, action); return; }
+      if (DEMO) { toast(action === "checkin" ? "✅ 已簽到（示範）" : "已標記缺席（示範）"); return; }
+      const r = await api("/api/coach/checkin", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: TOKEN, booking_id: bid, action }),
+      });
+      if (!r.ok) {
+        if (r.status === 0 || r.status >= 500) { enqueue(bid, action); return; }
+        toast("❌ " + (r.data.error || "操作失敗，請重試"));
+        load();
+        return;
+      }
+      if (r.data.sponsor && r.data.sponsor.wa_url) {
+        window.open(r.data.sponsor.wa_url, "_blank");
+      }
+      toast(action === "checkin" ? "✅ 學員簽到成功" : "已標記缺席");
       load();
-      return;
+    } finally {
+      if (g) delete g.__busy;
+      inFlight.delete(bid);
+      render();
     }
-    if (r.data.sponsor && r.data.sponsor.wa_url) {
-      window.open(r.data.sponsor.wa_url, "_blank");
-    }
-    toast(action === "checkin" ? "✅ 已簽到" : "已標記缺席");
-    load();
   });
 
   function enqueue(bid, action, qr) {
@@ -363,6 +374,7 @@
 
   /* ===== 📷 掃碼簽到 ===== */
   let scanStream = null, scanRAF = null, scanning = false, scanStarting = false, scanStartAt = 0, lastRestartAt = 0, loopActive = false;
+  const lastQrAt = new Map();
   const scanWrap = $("scanWrap"), scanVideo = $("scanVideo"), scanBanner = $("scanBanner");
   const scanErr = $("scanErr"), scanErrMsg = $("scanErrMsg");
   async function checkinByQr(qr) {
@@ -534,6 +546,10 @@
         const code = window.jsQR ? window.jsQR(img.data, w, h, { inversionAttempts: "dontInvert" }) : null;
         if (code && code.data && code.data.startsWith("zenpass:checkin:")) {
           const qr = code.data;
+          // 🛡️ 同一 QR 2 秒冷卻：鏡頭每幀都見到同一條碼都唔會連環 POST
+          const _now = Date.now();
+          if (_now - (lastQrAt.get(qr) || 0) < 2000) { scanRAF = requestAnimationFrame(tick); return; }
+          lastQrAt.set(qr, _now);
           scanning = false;
           if (navigator.vibrate) navigator.vibrate(100);
           checkinByQr(qr).then((r) => {
