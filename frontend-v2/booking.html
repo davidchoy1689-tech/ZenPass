@@ -434,6 +434,9 @@
         <div id="promoMsg" class="promo-msg" role="status" aria-live="polite"></div>
       </div></div>
       <div id="passRedeem" hidden>
+        <div id="passDemoBanner" hidden style="background:#FEF3C7;border:1.5px dashed #F59E0B;color:#92400E;border-radius:10px;padding:8px 12px;font-size:12.5px;font-weight:700;margin-bottom:8px;line-height:1.45">
+          🧪 示範模式：只會模擬扣堂，<u>唔會建立真實預約</u>，亦唔會收費。
+        </div>
         <div class="pass-redeem-card" id="pass-redeem-container">
           <div class="pass-redeem-header">
             <span class="badge-pass-active">🎫 樂齡 4 堂通行卡已生效</span>
@@ -632,15 +635,24 @@
       if ($("grpSave")) $("grpSave").textContent = "平均每位 " + hkd(p * 0.8) + "，立省 " + hkd(p * 3 - three);
     }
     const setStep = (n) => [1,2,3].forEach(i => { $("s"+i).classList.toggle("active", i===n); $("s"+i).classList.toggle("done", i<n); });
+    // 🧪 示範模式：只認 ?demo_pass=1（唔用電話號碼做開關，避免真人中招）
+    const DEMO_PASS = new URLSearchParams(location.search).get("demo_pass") === "1";
     const params = new URLSearchParams(location.search);
     const classId = params.get("id");
     // 2026-10-25：未揀課堂就直接入預約頁 → 帶去探索頁（避免「缺少課程」死路）
-    if (!classId) { location.replace("explore.html?nobook=1"); }
+    if (!classId && !DEMO_PASS) { location.replace("explore.html?nobook=1"); }
     let cls = null, sessions = [], sel = new Set(), promoFinal = null, ban = "A";
     let guestQty = 1;
     let payTotalValue = 0;
     let payIds = [], payRefs = [], payUnit = 0, payMethod = "fps", cdTimer = null, receiptUrl = "";
     let activePass = null, passBusy = false;
+    const MOCK_CREDITS_KEY = "zenpass_mock_credits";
+    const MOCK_BOOKINGS_KEY = "zenpass_mock_bookings";
+    function mockPass() {
+      let left = parseInt(localStorage.getItem(MOCK_CREDITS_KEY) || "3", 10);
+      if (!Number.isFinite(left) || left < 0) left = 3;
+      return { id: "PASS-2612-8823", student_name: "陳伯伯", total_credits: 4, remaining_credits: left, expires_at: "2027-02-12", __demo: true };
+    }
 
     const banOf = (s) => (s.notes||"").includes("A班") ? "A" : (s.notes||"").includes("B班") ? "B" : "全";
     const monthKey = (iso) => { const d = new Date(iso); return d.getFullYear() + "年" + (d.getMonth()+1) + "月"; };
@@ -678,7 +690,7 @@
       let loggedIn = api.isLoggedIn();
       if (!loggedIn) { try { const me = await api.get("/users/me"); loggedIn = !!(me && me.ok); } catch (e) {} }
       isGuest = !loggedIn;
-      if (!isGuest) loadPass();
+      if (!isGuest || DEMO_PASS) loadPass();
       // 📱 已登入但資料未齊（電話／健康聲明）→ 軟提示，唔阻止預約
       if (!isGuest) {
         try {
@@ -701,7 +713,13 @@
           }
         } catch (e) {}
       }
-      if (!classId) { $("groups").innerHTML = `<div class="card"><div class="body">缺少課程。</div></div>`; return; }
+      if (!classId && DEMO_PASS) {
+        const pad = (n) => String(n).padStart(2, "0");
+        const mk = (days, h) => { const d = new Date(Date.now() + days * 86400000); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(h)}:00:00`; };
+        cls = { id: "demo-class", title: "樂齡防跌關節班（示範）", price_hkd: 140, venue_name: "青衣楓樹窩體育館", target_audience: "長者", risk_notice: null };
+        sessions = [1, 8, 15].map((w, i) => ({ id: "demo-s" + i, start_time: mk(7 * w, 10), end_time: mk(7 * w, 12), notes: "A班", status: "scheduled", max_participants: 8, enrolled_count: 2 + i }));
+      } else if (!classId) { $("groups").innerHTML = `<div class="card"><div class="body">缺少課程。</div></div>`; return; }
+      if (!cls) {
       const r = await api.get("/classes/" + encodeURIComponent(classId));
       cls = r.data && r.data.class;
       const _nowMs = Date.now();
@@ -715,6 +733,7 @@
         const _t = new Date(_iso).getTime();
         return isNaN(_t) ? true : _t > _nowMs;
       });
+      }
       if (!cls) { $("groups").innerHTML = `<div class="card"><div class="body">搵唔到課程。</div></div>`; return; }
       // 🛡️ 具體運動固有風險（Volenti 抗辯證據鏈）
       try {
@@ -899,6 +918,15 @@
 
     // 🎫 4 堂通行證：偵測 → 顯示扣堂卡（Step 2 直接用，$0 跳過付款）
     async function loadPass() {
+      if (DEMO_PASS) {
+        activePass = mockPass();
+        $("passRedeem").hidden = false;
+        document.getElementById("passDemoBanner").hidden = false;
+        $("passStudentName").textContent = activePass.student_name;
+        $("passExpire").textContent = "有效期至：" + activePass.expires_at.replace(/-/g, "/");
+        updatePassCard();
+        return;
+      }
       if (isGuest) return;
       try {
         const r = await api.get("/passes/my");
@@ -931,6 +959,24 @@
       if (passBusy || !activePass) return;
       if (!sel.size) { alert("請揀最少一堂"); return; }
       if (!$("consent").checked) { alert("請先同意缺席政策"); return; }
+      if (DEMO_PASS) {
+        passBusy = true;
+        const b2 = $("btn-pass-submit");
+        b2.disabled = true;
+        b2.textContent = "⏳ 正在扣堂確認席位...";
+        setTimeout(() => {
+          const cur = parseInt(localStorage.getItem(MOCK_CREDITS_KEY) || "3", 10);
+          localStorage.setItem(MOCK_CREDITS_KEY, String(Math.max(0, (Number.isFinite(cur) ? cur : 3) - 1)));
+          let arr = [];
+          try { arr = JSON.parse(localStorage.getItem(MOCK_BOOKINGS_KEY) || "[]") || []; } catch (e) {}
+          arr.push({ id: "mock_bk_1212", class_id: classId, schedule_id: (sessions.filter(s => sel.has(s.id))[0] || {}).id || null, created_at: new Date().toISOString(), demo: true });
+          localStorage.setItem(MOCK_BOOKINGS_KEY, JSON.stringify(arr));
+          passBusy = false;
+          toast("🎉 通行卡扣堂成功！席位已為陳伯伯鎖定");
+          setTimeout(() => { location.href = "my-bookings.html?demo_pass=1&id=mock_bk_1212&share=a1b2c3d4e5f67890"; }, 500);
+        }, 400);
+        return;
+      }
       const attendee = getAttendeePayload();
       if (!attendee) return;
       const chosen = sessions.filter(s => sel.has(s.id)).sort((a, b) => a.start_time.localeCompare(b.start_time));

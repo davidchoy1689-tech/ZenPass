@@ -54,7 +54,23 @@
     .tl .st:first-child:after{display:none}
     .tl .st.on:after,.tl .st.now:after{background:#10b981}
     .tl .st .d{display:block;font-size:10.5px;font-weight:600;color:#64748b;margin-top:2px}
-    /* 🎫 4 堂通行證卡包 */
+    /* 🧪 示範模式：深綠金通行卡 */
+    .demo-bar{background:#FEF3C7;border:1.5px dashed #F59E0B;color:#92400E;border-radius:10px;padding:8px 12px;font-size:12.5px;font-weight:700;margin:0 0 10px;line-height:1.45}
+    .pass-wallet-card{background:linear-gradient(135deg,#1A5336 0%,#113824 100%);border-radius:18px;padding:16px;margin:0 0 14px;color:#fff;box-shadow:0 10px 24px rgba(17,56,36,.28);border:1px solid rgba(212,175,55,.45)}
+    .pw2-head{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+    .pw2-title{font-size:15px;font-weight:900;color:#F5E6B8;letter-spacing:.3px}
+    .pw2-owner{background:rgba(212,175,55,.18);border:1px solid rgba(212,175,55,.55);color:#F5E6B8;font-size:11.5px;font-weight:800;border-radius:99px;padding:3px 9px}
+    .pass-stamp-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
+    .pass-stamp{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.16);border-radius:10px;padding:8px 4px;text-align:center;font-size:10.5px;line-height:1.35;min-height:64px;display:flex;flex-direction:column;justify-content:center;gap:2px}
+    .pass-stamp .s-ic{font-size:16px}
+    .pass-stamp.done{background:rgba(34,197,94,.18);border-color:rgba(34,197,94,.6);color:#DCFCE7}
+    .pass-stamp.booked{background:rgba(250,204,21,.16);border-color:rgba(250,204,21,.65);color:#FEF9C3;font-weight:800}
+    .pass-stamp.left{color:#CBD5E1;opacity:.85}
+    .pw2-actions{display:flex;gap:8px;flex-wrap:wrap}
+    .pw2-actions a{flex:1;min-width:150px;text-align:center;text-decoration:none;font-size:13.5px;font-weight:900;border-radius:10px;padding:11px 12px}
+    .pw2-book{background:#22C55E;color:#06281A}
+    .pw2-renew{background:linear-gradient(135deg,#E8C766,#C9A227);color:#2B1D00}
+    /* 🎫 4 堂通行證卡包（真實） */
     .pass-wallet{background:linear-gradient(135deg,#F0FDF4 0%,#DCFCE7 100%);border:2px solid #22C55E;border-radius:16px;padding:14px 16px;margin:0 0 12px;box-shadow:0 4px 12px rgba(34,197,94,.15)}
     .pw-head{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px}
     .pw-title{font-size:13px;font-weight:900;color:#166534}
@@ -93,6 +109,7 @@
   <div class="topbar"><a class="back" href="my.html">‹</a><div class="title">我的預約</div></div>
 
   <div class="wrap">
+    <div id="demoBanner" class="demo-bar" hidden>🧪 示範模式：以下通行卡同預約只係本地模擬，唔會影響真實帳戶。</div>
     <div id="passWallet" hidden></div>
     <div class="tabs" style="margin:0 -16px 12px">
       <button class="on" data-tab="upcoming">即將</button>
@@ -111,6 +128,7 @@
 
   <script src="assets/api.js?v=3"></script>
   <script>
+    const DEMO_PASS = new URLSearchParams(location.search).get("demo_pass") === "1";
     let all = [];
     let cur = "upcoming";
     const badge = (s) => ({
@@ -471,7 +489,38 @@
       const r = await api.get("/bookings/my?limit=50");
       all = (r.data && r.data.bookings) || [];
       render();
-      loadPassWallet();
+      if (DEMO_PASS) loadDemoWallet(); else loadPassWallet();
+    }
+
+    // 🧪 示範模式：深綠金通行卡（4 格進度點）
+    function loadDemoWallet() {
+      const box = document.getElementById("passWallet");
+      if (!box) return;
+      const banner = document.getElementById("demoBanner");
+      if (banner) banner.hidden = false;
+      let left = parseInt(localStorage.getItem("zenpass_mock_credits") || "3", 10);
+      if (!Number.isFinite(left) || left < 0) left = 3;
+      let booked = [];
+      try { booked = JSON.parse(localStorage.getItem("zenpass_mock_bookings") || "[]") || []; } catch (e) {}
+      const bookedCount = booked.length ? 1 : 0;
+      const completed = Math.max(0, 4 - left - bookedCount);
+      const stamps = [];
+      for (let i = 0; i < completed; i++) stamps.push(`<div class="pass-stamp done"><span class="s-ic">✅</span>12/${String(5 + i * 7).padStart(2, "0")}<br>楓樹窩</div>`);
+      if (bookedCount) stamps.push(`<div class="pass-stamp booked"><span class="s-ic">🟢</span>12/12<br>楓樹窩</div>`);
+      for (let i = 0; i < left; i++) stamps.push(`<div class="pass-stamp left"><span class="s-ic">⚪</span>尚餘 ${left} 堂<br>待預約</div>`);
+      while (stamps.length < 4) stamps.push(`<div class="pass-stamp left"><span class="s-ic">⚪</span>—</div>`);
+      const action = left > 0
+        ? `<a class="pw2-book" href="booking.html?demo_pass=1">📅 一鍵預約下一期班次（免重複填表）</a>`
+        : `<a class="pw2-renew" href="https://wa.me/85290335538?text=${encodeURIComponent("你好，我想續購 4 堂通行卡（早鳥減 $40）")}" target="_blank" rel="noopener">🔄 續購 4 堂通行卡（早鳥減 $40）</a>`;
+      box.innerHTML = `<div class="pass-wallet-card">
+        <div class="pw2-head">
+          <span class="pw2-title">🌿 樂齡 4 堂通行卡</span>
+          <span class="pw2-owner">陳伯伯專屬</span>
+        </div>
+        <div class="pass-stamp-grid">${stamps.slice(0, 4).join("")}</div>
+        <div class="pw2-actions">${action}</div>
+      </div>`;
+      box.hidden = false;
     }
 
     // 🎫 4 堂通行證卡包
@@ -533,7 +582,7 @@
         if (!r.ok) alert((r.data && r.data.error) || "付款確認失敗，請聯絡客服");
         history.replaceState(null, "", location.pathname);
       }
-      if (api.requireLogin("my-bookings.html")) load();
+      if (DEMO_PASS) { load(); } else if (api.requireLogin("my-bookings.html")) load();
     })();
     function miniToast(m) {
       const t = document.createElement("div");

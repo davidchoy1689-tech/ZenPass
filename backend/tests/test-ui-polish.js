@@ -118,5 +118,18 @@ console.log("\n🧪 10. 4 堂通行證（Multi-Pass）前端");
   ok("一鍵預約帶 class_id", /booking\.html\?id=\$\{encodeURIComponent\(classId\)\}/.test(mine));
 }
 
+console.log("\n🧪 11. 通行證示範模式（?demo_pass=1）");
+{
+  ok("只認 demo_pass=1 旗標（唔用電話號碼）", /get\("demo_pass"\) === "1"/.test(book) && !/98765432/.test(book));
+  ok("示範橫幅清楚講明唔會真實預約", /唔會建立真實預約/.test(book) && /passDemoBanner/.test(book));
+  ok("mock 資料存 localStorage", /zenpass_mock_credits/.test(book) && /zenpass_mock_bookings/.test(book));
+  ok("示範扣堂 400ms 模擬、不呼叫 API", /\}, 400\);/.test(book) && /MOCK_CREDITS_KEY, String\(Math\.max/.test(book));
+  ok("無 id 都可示範（示範課程 fallback）", /!classId && DEMO_PASS/.test(book));
+  ok("my-bookings 示範卡包", /pass-wallet-card/.test(mine) && /pass-stamp-grid/.test(mine));
+  ok("示範模式繞過登入閘", /if \(DEMO_PASS\) \{ load\(\); \}/.test(mine));
+  ok("用完改顯示續購（早鳥減 $40）", /續購 4 堂通行卡（早鳥減 \$40）/.test(mine));
+  ok("常規模式不受影響（requireLogin 保留）", /api\.requireLogin\("my-bookings.html"\)/.test(mine));
+}
+
 console.log(`\n📊 結果: ${passed} passed / ${failed} failed`);
 process.exit(failed ? 1 : 0);
