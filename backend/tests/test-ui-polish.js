@@ -10,6 +10,7 @@ const cc = fs.readFileSync(path.join(F, "coach-checkin.html"), "utf8");
 const ap = fs.readFileSync(path.join(F, "adult-pass.html"), "utf8");
 const book = fs.readFileSync(path.join(F, "booking.html"), "utf8");
 const mine = fs.readFileSync(path.join(F, "my-bookings.html"), "utf8");
+const detail = fs.readFileSync(path.join(F, "detail.html"), "utf8");
 const bkRoute = fs.readFileSync(path.join(__dirname, "..", "src", "routes", "bookings.js"), "utf8");
 const bkSvc = fs.readFileSync(path.join(__dirname, "..", "src", "services", "booking-service.js"), "utf8");
 
@@ -148,6 +149,23 @@ console.log("\n🧪 12. 通行證自助改期");
   ok("前端有改期按鈕 + 24h 鎖", /openReschedule/.test(mine) && /已過改期時限（開課前 24 小時）/.test(mine));
   ok("前端列替代班次並過濾", /enrolled_count\) < Number\(s\.max_participants\)/.test(mine));
   ok("前端防手震", /go\.dataset\.busy === "1"/.test(mine));
+}
+
+console.log("\n🧪 13. 課程詳情頁（骨架屏／安心標籤／貨幣文案／席位）");
+{
+  ok("shimmer 骨架 CSS", /\.skeleton\{[\s\S]{0,220}animation:shimmer 1\.5s infinite/.test(detail));
+  ok("標題預設 skeleton（唔再寫『載入中…』）", /<h1 class="dt-title skeleton" id="title"><\/h1>/.test(detail) && !/>\s*載入中/.test(detail));
+  ok("載入後批次移除 skeleton", /querySelectorAll\("\.skeleton"\)\.forEach/.test(detail));
+  ok("減少動態效果時關動畫", /prefers-reduced-motion: reduce\)\{\.skeleton\{animation:none/.test(detail));
+  ok("樂齡安心標籤 4 枚", /🪑 全程椅子輔助/.test(detail) && /🩺 關節友善・零基礎/.test(detail) && /🛡️ 已含器材及場地保障/.test(detail));
+  ok("標籤只對長者／樂齡班顯示", /isElder = \/長者\|樂齡\|senior\/i/.test(detail));
+  ok("已移除 1 Credit = HK$10", !/1 Credit = HK\$10/.test(detail));
+  ok("付款文案改用 FPS／通行卡", /支援 FPS 轉數快 \/ PayMe，或以「樂齡 4 堂通行卡」扣堂/.test(detail));
+  ok("價格副標唔再用 credits", !/約 " \+ Math\.round\(price \/ 10\) \+ " credits/.test(detail));
+  ok("樂齡班先顯示可扣通行證", /可扣通行證 1 堂/.test(detail));
+  ok("時段 🚨 僅餘 N 席", /🚨 僅餘 " \+ left \+ " 席/.test(detail));
+  ok("時段 ❌ 已滿額", /❌ 已滿額/.test(detail));
+  ok("404 友善文案 + 返回探索", /搵唔到呢個課程/.test(detail) && /返回探索/.test(detail));
 }
 
 console.log(`\n📊 結果: ${passed} passed / ${failed} failed`);

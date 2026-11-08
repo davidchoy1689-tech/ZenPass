@@ -94,6 +94,24 @@
     .dt-fac .f { display: flex; align-items: center; gap: 7px; font-size: 12.5px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px; }
     .dt-fac .f span:first-child { font-size: 15px; }
 
+    /* 🦴 骨架屏（弱網時避免「載入中…」同破折號） */
+    .skeleton{background:linear-gradient(90deg,#F1F5F9 25%,#E2E8F0 50%,#F1F5F9 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:6px;color:transparent!important;user-select:none}
+    @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+    h1.dt-title.skeleton{height:32px;width:72%;margin:6px 0}
+    #venue.skeleton,#duration.skeleton,#capacity.skeleton,#coachName.skeleton{min-height:17px;min-width:90px;display:inline-block;vertical-align:middle}
+    #price.skeleton{min-width:80px;height:22px;display:inline-block}
+    #priceSub.skeleton{min-width:120px;height:13px;display:inline-block;margin-top:3px}
+    #rating.skeleton{min-width:96px;height:16px;display:inline-block}
+    @media (prefers-reduced-motion: reduce){.skeleton{animation:none}}
+
+    /* 🌿 樂齡安心標籤 */
+    .trust-badges-wrapper{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 14px}
+    .trust-badge{background:#ECFDF5;border:1px solid #A7F3D0;color:#065F46;font-size:12px;font-weight:700;padding:4px 8px;border-radius:6px;display:inline-flex;align-items:center;line-height:1.3}
+    @media (max-width:360px){.trust-badge{font-size:11px;padding:3px 7px}}
+
+    /* 🚨 時段緊張度 */
+    .dt-sess .l.hot{background:#FEE2E2;color:#B91C1C;border:1px solid #FCA5A5}
+
     /* 置底預約欄 + 時段 Drawer */
     .dt-price .old { font-size: 12px; color: var(--text-muted); text-decoration: line-through; margin-left: 4px; }
     .dt-price .promo-tag { display: inline-block; font-size: 10px; font-weight: 800; color: #b45309; background: #fef3c7; border-radius: 999px; padding: 1px 7px; margin-left: 6px; vertical-align: 2px; }
@@ -191,9 +209,10 @@
     <div class="dt-body">
       <div class="dt-tags" id="tags"></div>
       <div id="coachBadge" style="margin:0 0 6px"></div>
-      <h1 class="dt-title" id="title">載入中…</h1>
+      <h1 class="dt-title skeleton" id="title"></h1>
+      <div class="trust-badges-wrapper" id="trustBadges" hidden></div>
       <div class="dt-social">
-        <span class="dt-stars" id="rating">⭐ —</span>
+        <span class="dt-stars skeleton" id="rating"></span>
         <span id="reviewCount"></span>
         <span class="dt-sold" id="sold"></span>
       </div>
@@ -203,17 +222,17 @@
           <div class="ic">📍</div>
           <div style="flex:1">
             <div class="k">地點</div>
-            <div class="v" id="venue">—</div>
+            <div class="v skeleton" id="venue"></div>
             <a id="mapLink" target="_blank" rel="noopener">在地圖查看 ›</a>
           </div>
         </div>
         <div class="dt-param">
           <div class="ic">⏱️</div>
-          <div><div class="k">時段 / 時長</div><div class="v" id="duration">—</div></div>
+          <div><div class="k">時段 / 時長</div><div class="v skeleton" id="duration"></div></div>
         </div>
         <div class="dt-param">
           <div class="ic">👥</div>
-          <div><div class="k">人數</div><div class="v" id="capacity">—</div></div>
+          <div><div class="k">人數</div><div class="v skeleton" id="capacity"></div></div>
         </div>
         <div class="dt-param">
           <div class="ic">🎒</div>
@@ -240,7 +259,7 @@
           <div class="dt-coach">
             <div class="dt-avatar" id="coachAvatar">🧑‍🏫</div>
             <div style="flex:1">
-              <div style="font-weight:800;font-size:15px" id="coachName">—</div>
+              <div style="font-weight:800;font-size:15px" class="skeleton" id="coachName"></div>
               <div class="muted" style="font-size:12.5px" id="coachMeta"></div>
               <div class="muted" style="font-size:11px;margin-top:2px">本課程由上述核證教練主理；ZenPass 提供技術預訂及認證存證支援。</div>
             </div>
@@ -292,7 +311,7 @@
         <div class="card"><div class="body">
           <div class="dt-list">
             <div class="dt-li"><span>1️⃣</span><span><b>揀時段</b> — 選擇下方「立即預約」，系統會保留名額 15 分鐘。</span></div>
-            <div class="dt-li"><span>2️⃣</span><span><b>用 Credit 或現金付款</b> — 1 Credit = HK$10，可用 Pass 套票。</span></div>
+            <div class="dt-li"><span>2️⃣</span><span><b>付款預約</b> — 支援 FPS 轉數快 / PayMe，或以「樂齡 4 堂通行卡」扣堂。</span></div>
             <div class="dt-li"><span>3️⃣</span><span><b>收到確認</b> — 加入手機行事曆，上課前收到提醒。</span></div>
             <div class="dt-li"><span>4️⃣</span><span><b>到場簽到</b> — 到場後用手機簽到，即可上課。</span></div>
           </div>
@@ -308,8 +327,8 @@
   <!-- Sticky CTA -->
   <div class="dt-sticky" id="dtSticky">
     <div class="dt-price">
-      <div class="p"><span id="price">—</span><span class="old" id="priceOld" style="display:none"></span></div>
-      <div class="s" id="priceSub">每堂 · 已包裝備 <span class="promo-tag" id="promoTip" style="display:none">已帶入 WELCOME50</span></div>
+      <div class="p"><span id="price" class="skeleton"></span><span class="old" id="priceOld" style="display:none"></span></div>
+      <div class="s skeleton" id="priceSub">每堂 · 已包裝備 <span class="promo-tag" id="promoTip" style="display:none">已帶入 WELCOME50</span></div>
       <div class="s" id="stickySeats" style="display:none;font-weight:700"></div>
     </div>
     <button class="btn btn-primary" id="bookBtn" type="button">⚡ 立即報名留位</button>
@@ -362,12 +381,15 @@
 
     function renderDemo() {
       CLS = null; SESS = [];
-      document.getElementById("title").textContent = "搵唔到課程";
+      document.querySelectorAll(".skeleton").forEach((el) => el.classList.remove("skeleton"));
+      const tb0 = document.getElementById("trustBadges");
+      if (tb0) { tb0.innerHTML = ""; tb0.hidden = true; }
+      document.getElementById("title").textContent = "⚠️ 搵唔到呢個課程";
       document.getElementById("tags").innerHTML = "";
       document.getElementById("rating").textContent = "";
       document.getElementById("reviewCount").textContent = "";
       document.getElementById("sold").textContent = "";
-      document.getElementById("desc").textContent = "請由課程列表重新進入。";
+      document.getElementById("desc").textContent = "課程可能已下架、改期或連結有誤。你可以返回探索頁，睇下有咩其他班次啱你。";
       const b = document.getElementById("bookBtn");
       if (b) { b.textContent = "返回探索"; b.disabled = false; b.onclick = function () { location.href = "explore.html"; }; }
       document.getElementById("revs").innerHTML = '<div class="muted">暫無資料。</div>';
@@ -379,7 +401,27 @@
       const c = CLS;
       document.title = c.title + " · ZenPass 禪流";
       $("topTitle").textContent = c.category || "課堂詳情";
+      document.querySelectorAll(".skeleton").forEach((el) => el.classList.remove("skeleton"));
       $("title").textContent = c.title;
+      // 🌿 樂齡安心標籤（只對長者／樂齡班顯示，避免對成人競技班亂貼）
+      const tb = $("trustBadges");
+      if (tb) {
+        const isElder = /長者|樂齡|senior/i.test(String(c.target_audience || "")) || /樂齡|長者|關節/.test(String(c.title || ""));
+        if (isElder) {
+          const cn = Number(c.max_participants) || 8;
+          const capTxt = cn <= 8 ? cn + " 人極小班" : "小班教學";
+          tb.innerHTML = [
+            "🪑 全程椅子輔助",
+            "🩺 關節友善・零基礎",
+            "👥 " + esc(capTxt),
+            "🛡️ 已含器材及場地保障",
+          ].map((t) => '<span class="trust-badge">' + t + "</span>").join("");
+          tb.hidden = false;
+        } else {
+          tb.innerHTML = "";
+          tb.hidden = true;
+        }
+      }
       $("desc").textContent = c.description || "";
       $("duration").textContent = (c.duration || 60) + " 分鐘";
       const cap = Number(c.max_participants) || 8;
@@ -529,14 +571,17 @@
       let promoOn = false;
       try { promoOn = (localStorage.getItem("zp_promo") || "") === "WELCOME50"; } catch (e) {}
       const finalPrice = promoOn ? Math.round(price * 0.5) : price;
-      $("price").textContent = finalPrice ? "HK$" + finalPrice : (c.credits_cost ? c.credits_cost + " cr" : "—");
+      $("price").textContent = finalPrice ? "HK$" + finalPrice : "—";
       if (promoOn && price) {
         $("priceOld").textContent = "HK$" + price;
         $("priceOld").style.display = "";
         $("promoTip").style.display = "";
         $("priceSub").innerHTML = "首堂半價 · 已包裝備 <span class=\"promo-tag\">已帶入 WELCOME50</span>";
       } else {
-        $("priceSub").textContent = price ? "每堂 · 約 " + Math.round(price / 10) + " credits" : "每堂";
+        const isElder = /長者|樂齡|senior/i.test(String(c.target_audience || "")) || /樂齡|長者|關節/.test(String(c.title || ""));
+        $("priceSub").innerHTML = price
+          ? "每堂 · 已包裝備" + (isElder ? ' <span class="promo-tag" style="background:#ECFDF5;color:#065F46;border:1px solid #A7F3D0">可扣通行證 1 堂</span>' : "")
+          : "每堂";
       }
 
       const book = $("bookBtn");
@@ -660,8 +705,8 @@
         const off = left <= 0;
         return '<div class="dt-sess ' + (off ? "off " : "") + (String(SEL_SID) === String(s.id) ? "on" : "") + '" data-sid="' + esc(s.id) + '" role="button" tabindex="0">' +
           '<div><div class="d">' + esc(timeTxt) + '</div>' +
-          '<div class="t">' + (off ? "名額暫滿" : "剩 " + left + " 個名額") + '</div></div>' +
-          '<span class="l ' + (off ? "low" : left <= 3 ? "low" : "ok") + '">' + (off ? "滿" : left <= 3 ? "快滿" : "可預約") + '</span></div>';
+          '<div class="t">' + (off ? "可加入候補名單" : "剩 " + left + " 個名額") + '</div></div>' +
+          '<span class="l ' + (off ? "low" : left <= 2 ? "hot" : "ok") + '">' + (off ? "❌ 已滿額" : left <= 2 ? "🚨 僅餘 " + left + " 席" : "🟢 尚餘 " + left + " 席") + '</span></div>';
       }).join("");
       // 事件委派：重新渲染後仍然有效（iOS / in-app browser 保險）
       const list = $("sheetList");

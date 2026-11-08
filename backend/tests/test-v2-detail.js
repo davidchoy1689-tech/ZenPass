@@ -12,7 +12,7 @@ const has = (m, l) => { if (!html.includes(m)) fails.push("missing " + (l || "")
 // 1 Hero：輪播 / 標籤 / 標題 / 評分 / 參數
 has('id="carousel"', "carousel");
 has('id="tags"', "tags");
-has('class="dt-title"', "title");
+has('class="dt-title skeleton"', "title（骨架屏）");
 has('id="rating"', "rating");
 has('id="venue"', "venue");
 has('id="duration"', "duration");
@@ -70,7 +70,8 @@ has("function renderDates", "dates render");
 has('id="dateStrip"', "date strip");
 has('id="sheetConfirm"', "confirm button");
 has("前往結賬", "checkout label");
-has("名額暫滿", "full slot label");
+has("❌ 已滿額", "full slot label");
+has("🚨 僅餘", "low seat label");
 has("_next7", "7-day strip");
 has('?q=', "q param support");
 const exp = fs.readFileSync(path.join(root, "explore.html"), "utf8");
