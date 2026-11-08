@@ -10,6 +10,8 @@ const cc = fs.readFileSync(path.join(F, "coach-checkin.html"), "utf8");
 const ap = fs.readFileSync(path.join(F, "adult-pass.html"), "utf8");
 const book = fs.readFileSync(path.join(F, "booking.html"), "utf8");
 const mine = fs.readFileSync(path.join(F, "my-bookings.html"), "utf8");
+const bkRoute = fs.readFileSync(path.join(__dirname, "..", "src", "routes", "bookings.js"), "utf8");
+const bkSvc = fs.readFileSync(path.join(__dirname, "..", "src", "services", "booking-service.js"), "utf8");
 
 let passed = 0, failed = 0;
 const ok = (n, c, x) => { c ? (passed++, console.log("  ✅", n)) : (failed++, console.log("  ❌", n, x || "")); };
@@ -129,6 +131,23 @@ console.log("\n🧪 11. 通行證示範模式（?demo_pass=1）");
   ok("示範模式繞過登入閘", /if \(DEMO_PASS\) \{ load\(\); \}/.test(mine));
   ok("用完改顯示續購（早鳥減 $40）", /續購 4 堂通行卡（早鳥減 \$40）/.test(mine));
   ok("常規模式不受影響（requireLogin 保留）", /api\.requireLogin\("my-bookings.html"\)/.test(mine));
+}
+
+console.log("\n🧪 12. 通行證自助改期");
+{
+  ok("API POST /:id/reschedule", /router\.post\("\/:id\/reschedule"/.test(bkRoute));
+  ok("需要登入", /reschedule", authenticateToken/.test(bkRoute));
+  ok("原子 transaction（immediate）", /move\.immediate\(\)/.test(bkSvc));
+  ok("舊班 -1 條件 enrolled_count > 0", /enrolled_count = enrolled_count - 1 WHERE id = \? AND enrolled_count > 0/.test(bkSvc));
+  ok("新班 +1 條件 enrolled_count < max_participants", /enrolled_count = enrolled_count \+ 1 WHERE id = \? AND enrolled_count < max_participants/.test(bkSvc));
+  ok("≥24 小時門檻", /RESCHEDULE_WINDOW_CLOSED/.test(bkSvc) && />= 24/.test(bkSvc));
+  ok("只限 pass 預約", /NOT_PASS_BOOKING/.test(bkSvc));
+  ok("只可改同課程", /TARGET_CLASS_MISMATCH/.test(bkSvc));
+  ok("拒絕跨用戶（IDOR）", /FORBIDDEN/.test(bkSvc) && /booking\.user_id !== userId/.test(bkSvc));
+  ok("舊 DB 缺 updated_at 自動補", /updated_at"\)\) db\.exec\("ALTER TABLE bookings ADD COLUMN updated_at/.test(bkSvc));
+  ok("前端有改期按鈕 + 24h 鎖", /openReschedule/.test(mine) && /已過改期時限（開課前 24 小時）/.test(mine));
+  ok("前端列替代班次並過濾", /enrolled_count\) < Number\(s\.max_participants\)/.test(mine));
+  ok("前端防手震", /go\.dataset\.busy === "1"/.test(mine));
 }
 
 console.log(`\n📊 結果: ${passed} passed / ${failed} failed`);

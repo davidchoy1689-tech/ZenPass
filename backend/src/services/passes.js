@@ -49,6 +49,7 @@ function ensureSchema(db) {
   try {
     const cols = db.prepare("PRAGMA table_info(bookings)").all().map((c) => c.name);
     if (!cols.includes("pass_id")) db.exec("ALTER TABLE bookings ADD COLUMN pass_id TEXT");
+    if (!cols.includes("updated_at")) db.exec("ALTER TABLE bookings ADD COLUMN updated_at TEXT");
   } catch (e) {
     console.error("[PASS] bookings.pass_id migration 失敗:", e.message);
   }

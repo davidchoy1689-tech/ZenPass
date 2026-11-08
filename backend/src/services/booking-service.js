@@ -716,6 +716,130 @@ function checkVipPriorityWindow(db, cls, userId, now = new Date()) {
   return { allowed: false, until };
 }
 
+// ==================== 通行證改期（原子轉移） ====================
+
+/**
+ * 改期：只限通行證扣堂預約、原班開課前 ≥24 小時、同一個課程、目標班有位。
+ * 唔會退回再重扣堂數（remaining_credits 不變），只係席位原子轉移。
+ */
+function rescheduleBooking({ bookingId, userId, targetScheduleId, isAdmin = false }) {
+  const db = getDb();
+  db.pragma("foreign_keys = ON");
+  const passes = require("./passes");
+  try { passes.ensureSchema(db); } catch (e) {}
+
+  // 舊 DB 可能冇 updated_at
+  try {
+    const cols = db.prepare("PRAGMA table_info(bookings)").all().map((c) => c.name);
+    if (!cols.includes("updated_at")) db.exec("ALTER TABLE bookings ADD COLUMN updated_at TEXT");
+  } catch (e) {}
+
+  const fail = (status, error, code) => ({ status, body: { success: false, error, code } });
+
+  const booking = db
+    .prepare(
+      `SELECT b.*, cs.start_time AS old_start, cs.end_time AS old_end
+         FROM bookings b JOIN class_schedules cs ON cs.id = b.schedule_id
+        WHERE b.id = ?`,
+    )
+    .get(bookingId);
+  if (!booking) return fail(404, "找唔到呢個預約", "BOOKING_NOT_FOUND");
+  if (!isAdmin && booking.user_id !== userId) return fail(403, "呢個預約唔屬於你", "FORBIDDEN");
+  if (booking.status !== "confirmed") return fail(400, "只有已確認嘅預約可以改期", "NOT_CONFIRMED");
+  if (!booking.pass_id) return fail(400, "只有通行證預約可以自助改期", "NOT_PASS_BOOKING");
+
+  const target = db
+    .prepare(
+      `SELECT id, class_id, start_time, end_time, status, max_participants, enrolled_count
+         FROM class_schedules WHERE id = ?`,
+    )
+    .get(targetScheduleId);
+  if (!target) return fail(404, "目標班次不存在", "TARGET_NOT_FOUND");
+  if (target.id === booking.schedule_id) return fail(400, "已經係呢個班次", "SAME_SCHEDULE");
+  if (target.class_id !== booking.class_id) return fail(400, "只可以改去同一個課程嘅班次", "TARGET_CLASS_MISMATCH");
+
+  const hoursTo = (t) => {
+    const raw = String(t || "");
+    const iso = /Z|[+-]\d\d:?\d\d$/.test(raw) ? raw : raw.replace(" ", "T") + "+08:00";
+    return (new Date(iso).getTime() - Date.now()) / 3600000;
+  };
+  if (!(hoursTo(booking.old_start) >= 24)) {
+    return fail(400, "開課前 24 小時內不可改期", "RESCHEDULE_WINDOW_CLOSED");
+  }
+  if (target.status === "cancelled" || hoursTo(target.start_time) <= 0) {
+    return fail(409, "目標班次已取消或已開始", "TARGET_UNAVAILABLE");
+  }
+  if (Number(target.enrolled_count) >= Number(target.max_participants)) {
+    return fail(409, "目標班次已滿額", "TARGET_FULL");
+  }
+  const dup = db
+    .prepare(
+      "SELECT id FROM bookings WHERE user_id = ? AND schedule_id = ? AND status IN ('confirmed','pending_payment') AND id <> ? LIMIT 1",
+    )
+    .get(booking.user_id, targetScheduleId, bookingId);
+  if (dup) return fail(409, "你已經預約咗目標班次", "DUPLICATE_TARGET");
+
+  const move = db.transaction(() => {
+    const dec = db
+      .prepare("UPDATE class_schedules SET enrolled_count = enrolled_count - 1 WHERE id = ? AND enrolled_count > 0")
+      .run(booking.schedule_id);
+    if (dec.changes !== 1) throw Object.assign(new Error("舊班次名額異常"), { http: 409, code: "OLD_SLOT_INVALID" });
+
+    const inc = db
+      .prepare(
+        "UPDATE class_schedules SET enrolled_count = enrolled_count + 1 WHERE id = ? AND enrolled_count < max_participants",
+      )
+      .run(target.id);
+    if (inc.changes !== 1) throw Object.assign(new Error("目標班次已滿額"), { http: 409, code: "TARGET_FULL" });
+
+    db.prepare("UPDATE bookings SET schedule_id = ?, updated_at = datetime('now') WHERE id = ?").run(target.id, bookingId);
+  });
+
+  try {
+    move.immediate();
+  } catch (e) {
+    return fail(e.http || 500, e.message || "改期失敗", e.code || "RESCHEDULE_FAILED");
+  }
+
+  // 非關鍵：審計 + timeline（失敗唔影響改期結果）
+  try {
+    const { audit } = require("./audit");
+    audit({
+      actionType: "booking.rescheduled",
+      entityType: "booking",
+      entityId: bookingId,
+      userId,
+      oldValues: { schedule_id: booking.schedule_id, start_time: booking.old_start },
+      newValues: { schedule_id: target.id, start_time: target.start_time },
+      description: `通行證改期：${booking.old_start} → ${target.start_time}（不扣堂）`,
+    });
+  } catch (e) {}
+  try {
+    require("./booking-events").logBookingEvent({
+      bookingId,
+      event: "rescheduled",
+      fromStatus: "confirmed",
+      toStatus: "confirmed",
+      actor: userId,
+      meta: { from_schedule: booking.schedule_id, to_schedule: target.id },
+    });
+  } catch (e) {}
+
+  return {
+    status: 200,
+    body: {
+      success: true,
+      message: "改期成功",
+      new_schedule_id: target.id,
+      start_time: target.start_time,
+      end_time: target.end_time,
+      remaining_credits: booking.pass_id
+        ? (db.prepare("SELECT remaining_credits FROM user_passes WHERE id = ?").get(booking.pass_id) || {}).remaining_credits
+        : null,
+    },
+  };
+}
+
 // ==================== Core: Create Booking ====================
 
 function createBooking(req, options = {}) {
@@ -2318,6 +2442,7 @@ function markNoShow(req) {
 // ==================== Exports ====================
 
 module.exports = {
+  rescheduleBooking,
   // Helpers / core
   generateBookingRef,
   cancellationFeeRate,

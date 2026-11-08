@@ -108,5 +108,68 @@ ok(passes.restoreInTx(d4, { passId: p1, bookingId: r1.body.booking_id }) === fal
 d4.close();
 ok(getPass(p1).remaining_credits === before + 1, "重複回滾冇加到堂");
 
+
+console.log("\n📋 6. 通行證自助改期");
+{
+  const d = new Database(TMP);
+  const mkSch = (id, hours, cap, enr) => {
+    const a = new Date(Date.now() + hours * 3600000);
+    const b = new Date(a.getTime() + 7200000);
+    const f = (x) => x.toISOString().slice(0, 19).replace("T", " ");
+    d.prepare("INSERT INTO class_schedules (id,class_id,start_time,end_time,max_participants,enrolled_count,status) VALUES (?,?,?,?,?,?,'available')").run(id, "c1", f(a), f(b), cap, enr);
+  };
+  mkSch("sorig", 48, 8, 0);     // 原班：48h
+  mkSch("sorig2", 48, 8, 0);    // 第二個原班
+  mkSch("sfar", 72, 8, 1);      // 目標：有位
+  mkSch("ssoon", 23.9, 8, 0);   // 原班 <24h
+  mkSch("sfull", 72, 2, 2);     // 目標：已滿
+  mkSch("slast", 96, 3, 2);     // 目標：剩 1 席（併發）
+  mkSch("sother", 120, 8, 0);
+
+  const pA = passes.issuePass(d, { phone: "98765432", studentName: "陳伯伯", totalCredits: 4, pricePaid: 480, validDays: 60 }).pass.id;
+  const pB = passes.issuePass(d, { phone: "91234567", studentName: "李婆婆", totalCredits: 4, pricePaid: 480, validDays: 60 }).pass.id;
+  d.close();
+
+  const { rescheduleBooking } = require("../src/services/booking-service");
+  const mkBooking = (sid, uid, pid) => createBooking({ body: { schedule_id: sid, class_id: "c1", payment_type: "pass", pass_id: pid, penalty_consent: true }, user: { id: uid }, headers: {} });
+  const enr = (sid) => { const x = new Database(TMP); const n = x.prepare("SELECT enrolled_count FROM class_schedules WHERE id=?").get(sid).enrolled_count; x.close(); return n; };
+  const passLeft = (pid) => { const x = new Database(TMP); const n = x.prepare("SELECT remaining_credits FROM user_passes WHERE id=?").get(pid).remaining_credits; x.close(); return n; };
+
+  // 測試1：成功改期
+  const b1 = mkBooking("sorig", "u1", pA);
+  ok(b1.status === 201, "建立改期用預約", b1.status);
+  const leftBefore = passLeft(pA);
+  const r1 = rescheduleBooking({ bookingId: b1.body.booking_id, userId: "u1", targetScheduleId: "sfar" });
+  ok(r1.status === 200 && r1.body.success, "48 小時前改期成功", JSON.stringify(r1.body).slice(0, 120));
+  ok(enr("sorig") === 0 && enr("sfar") === 2, "舊班 -1、新班 +1", `sorig=${enr("sorig")} sfar=${enr("sfar")}`);
+  ok(passLeft(pA) === leftBefore, "堂數完全不變（不退回重扣）", `${leftBefore} → ${passLeft(pA)}`);
+  { const x = new Database(TMP); const sid = x.prepare("SELECT schedule_id FROM bookings WHERE id=?").get(b1.body.booking_id).schedule_id; x.close();
+    ok(sid === "sfar", "booking.schedule_id 已更新", sid); }
+
+  // 測試2：<24h 拒絕
+  const b2 = mkBooking("ssoon", "u1", pA);
+  const before = { old: enr("ssoon"), tgt: enr("sother") };
+  const r2 = rescheduleBooking({ bookingId: b2.body.booking_id, userId: "u1", targetScheduleId: "sother" });
+  ok(r2.status === 400 && r2.body.code === "RESCHEDULE_WINDOW_CLOSED", "23.9 小時前 → 400", r2.body.code);
+  ok(enr("ssoon") === before.old && enr("sother") === before.tgt, "拒絕時兩班席位無變");
+
+  // 測試3：滿額 409 + 回滾
+  const r3 = rescheduleBooking({ bookingId: b1.body.booking_id, userId: "u1", targetScheduleId: "sfull" });
+  ok(r3.status === 409 && r3.body.code === "TARGET_FULL", "目標滿額 → 409", r3.body.code);
+  ok(enr("sfar") === 2, "滿額失敗後原班席位保持", String(enr("sfar")));
+
+  // 測試4：IDOR
+  const r4 = rescheduleBooking({ bookingId: b1.body.booking_id, userId: "u2", targetScheduleId: "sother" });
+  ok(r4.status === 403, "非本人改期 → 403", r4.status);
+
+  // 測試5：剩 1 席，兩人搶 → 只有 1 人成功
+  const bC = mkBooking("sorig2", "u2", pB);
+  ok(bC.status === 201, "建立第二個改期預約", bC.status);
+  const r5a = rescheduleBooking({ bookingId: b1.body.booking_id, userId: "u1", targetScheduleId: "slast" });
+  const r5b = rescheduleBooking({ bookingId: bC.body.booking_id, userId: "u2", targetScheduleId: "slast" });
+  ok((r5a.status === 200) !== (r5b.status === 200), "兩人搶 1 席只有 1 人成功", `${r5a.status}/${r5b.status}`);
+  ok(enr("slast") >= 3, "目標班次唔會超賣（<= cap）", String(enr("slast")));
+}
+
 console.log(`\n📊 結果: ${passed} passed / ${failed} failed`);
 process.exit(failed ? 1 : 0);

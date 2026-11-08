@@ -54,6 +54,16 @@
     .tl .st:first-child:after{display:none}
     .tl .st.on:after,.tl .st.now:after{background:#10b981}
     .tl .st .d{display:block;font-size:10.5px;font-weight:600;color:#64748b;margin-top:2px}
+    /* 🔄 自主改期 */
+    .rs-list{display:flex;flex-direction:column;gap:8px;max-height:46vh;overflow:auto;margin:10px 0}
+    .rs-opt{display:flex;align-items:center;gap:10px;border:1.5px solid var(--border);border-radius:12px;padding:11px 12px;cursor:pointer;background:var(--surface)}
+    .rs-opt:has(input:checked){border-color:#16A34A;background:#F0FDF4;box-shadow:0 0 0 1px #16A34A inset}
+    .rs-opt input{width:20px;height:20px;flex:0 0 auto}
+    .rs-opt .rs-t{font-size:13.5px;font-weight:800}
+    .rs-opt .rs-s{font-size:11.5px;color:#64748B}
+    .rs-note{font-size:12px;color:#166534;background:#F0FDF4;border:1px dashed #86EFAC;border-radius:10px;padding:8px 10px;line-height:1.45;margin-bottom:4px}
+    .rs-empty{font-size:13px;color:#64748B;padding:14px 4px;text-align:center}
+    .btn-block{width:100%;margin-top:10px}
     /* 🧪 示範模式：深綠金通行卡 */
     .demo-bar{background:#FEF3C7;border:1.5px dashed #F59E0B;color:#92400E;border-radius:10px;padding:8px 12px;font-size:12.5px;font-weight:700;margin:0 0 10px;line-height:1.45}
     .pass-wallet-card{background:linear-gradient(135deg,#1A5336 0%,#113824 100%);border-radius:18px;padding:16px;margin:0 0 14px;color:#fff;box-shadow:0 10px 24px rgba(17,56,36,.28);border:1px solid rgba(212,175,55,.45)}
@@ -173,6 +183,12 @@
       let actions = "";
       if (b.status === "confirmed") actions = `<button class="btn btn-primary" onclick="openPass('${esc(b.id)}')">🎫 出示入場憑證</button><a class="btn btn-secondary" href="adult-pass.html?id=${encodeURIComponent(b.id)}">🎫 電子票券</a><a class="btn btn-secondary" href="print-card.html?id=${encodeURIComponent(b.id)}">🖨️ 隨身卡</a><button class="btn btn-secondary" onclick="cancelBk('${esc(b.id)}')">取消預約</button>` +
         `<a class="btn btn-secondary" href="child-waiver.html?ref=${encodeURIComponent(b.booking_reference || "")}">🧒 家長同意書</a>`;
+      if (b.status === "confirmed" && b.pass_id) {
+        const h = hoursUntil(b.start_time);
+        actions += h >= 24
+          ? `<button class="btn btn-secondary btn-block" onclick="openReschedule('${esc(b.id)}')">🔄 自主改期（免扣堂）</button>`
+          : `<button class="btn btn-secondary btn-block" disabled title="開課前 24 小時內不可改期">🔒 已過改期時限（開課前 24 小時）</button>`;
+      }
       if (b.status === "pending_payment") actions = `<a class="btn btn-primary" href="booking.html?id=${encodeURIComponent(b.class_id)}&sid=${encodeURIComponent(b.schedule_id)}">繼續付款</a>`;
       if (b.status === "attended") actions = `<button class="btn btn-primary" onclick="openRateCoach('${esc(b.id)}','${esc(b.coach_name || "")}')">⭐ 評教練</button><button class="btn btn-secondary" onclick="openNps('${esc(b.id)}')">📋 課後問卷</button>${b.partner_venue_id ? `<button class="btn btn-secondary" onclick="openRateVenue('${esc(b.id)}','${esc(b.partner_venue_id)}','${esc(b.venue_name || "")}')">🏟️ 評場地</button>` : ""}<a class="btn btn-secondary" href="detail.html?id=${encodeURIComponent(b.class_id)}">再預約</a>`;
       return `<div class="card"><div class="body">
@@ -263,6 +279,71 @@
     };
 
     window.closeModal = (el) => { const o = el.closest(".modal-overlay"); if (o) o.remove(); };
+
+    function hoursUntil(t) {
+      const raw = String(t || "");
+      const iso = /Z|[+-]\d\d:?\d\d$/.test(raw) ? raw : raw.replace(" ", "T") + "+08:00";
+      const ms = new Date(iso).getTime();
+      return isNaN(ms) ? 0 : (ms - Date.now()) / 3600000;
+    }
+    function fmtShort(t) {
+      const d = new Date(String(t || "").replace(" ", "T") + (/Z|[+-]\d\d:?\d\d$/.test(String(t || "")) ? "" : "+08:00"));
+      if (isNaN(d)) return String(t || "");
+      return d.toLocaleString("zh-HK", { month: "numeric", day: "numeric", weekday: "short", hour: "2-digit", minute: "2-digit" });
+    }
+
+    // 🔄 通行證自助改期（原子轉移，唔扣堂）
+    window.openReschedule = async (id) => {
+      const b = all.find((x) => String(x.id) === String(id));
+      if (!b) return;
+      const r = await api.get("/classes/" + encodeURIComponent(b.class_id));
+      if (!r.ok) { alert((r.data && r.data.error) || "攞唔到班次資料"); return; }
+      const now = Date.now();
+      const opts = ((r.data && r.data.schedules) || []).filter((s) => {
+        if (String(s.id) === String(b.schedule_id)) return false;
+        if (s.status === "cancelled") return false;
+        const raw = String(s.start_time || "");
+        const t = new Date(/Z|[+-]\d\d:?\d\d$/.test(raw) ? raw : raw.replace(" ", "T") + "+08:00").getTime();
+        if (isNaN(t) || t <= now) return false;
+        return Number(s.enrolled_count) < Number(s.max_participants);
+      }).sort((a, z) => String(a.start_time).localeCompare(String(z.start_time)));
+
+      const o = document.createElement("div");
+      o.className = "modal-overlay";
+      o.innerHTML = `<div class="modal" role="dialog" aria-modal="true" aria-label="自主改期">
+        <h3>🔄 自主改期</h3>
+        <p class="muted" style="font-size:13px;margin:0 0 8px">原班次：<b>${esc(fmtShort(b.start_time))}</b>${b.venue_name ? " · " + esc(b.venue_name) : ""}</p>
+        <div class="rs-note">⚡ 通行證預約改期不扣堂數，席位將即時轉移。</div>
+        ${opts.length ? `<div class="rs-list">${opts.map((s, i) => `<label class="rs-opt">
+            <input type="radio" name="rsTarget" value="${esc(s.id)}" ${i === 0 ? "checked" : ""} />
+            <span><span class="rs-t">${esc(fmtShort(s.start_time))}</span><br><span class="rs-s">${esc(s.notes || "常規班")} · 剩 ${Math.max(0, Number(s.max_participants) - Number(s.enrolled_count))} 席</span></span>
+          </label>`).join("")}</div>` : `<div class="rs-empty">暫時冇其他有空位嘅班次 😔<br><span style="font-size:12px">可以等新班次，或聯絡客服協助。</span></div>`}
+        <div class="actions" style="margin-top:6px">
+          <button class="btn btn-secondary" onclick="closeModal(this)">取消</button>
+          <button class="btn btn-primary" id="rsGo" ${opts.length ? "" : "disabled"}>確認改期</button>
+        </div>
+      </div>`;
+      document.body.appendChild(o);
+      o.onclick = (e) => { if (e.target === o) o.remove(); };
+      const go = o.querySelector("#rsGo");
+      if (!go) return;
+      go.onclick = async () => {
+        const sel = o.querySelector('input[name="rsTarget"]:checked');
+        if (!sel) return;
+        if (go.disabled || go.dataset.busy === "1") return;
+        go.dataset.busy = "1"; go.disabled = true; go.textContent = "⏳ 正在轉移席位...";
+        const rr = await api.post("/bookings/" + encodeURIComponent(b.id) + "/reschedule", { target_schedule_id: sel.value });
+        if (rr.ok && rr.data && rr.data.success !== false) {
+          go.textContent = "✅ 已轉移";
+          alert("✅ 班次已成功轉移！已更新隨身卡與上課時間");
+          o.remove();
+          await load();
+        } else {
+          go.dataset.busy = ""; go.disabled = false; go.textContent = "確認改期";
+          alert("⚠️ " + ((rr.data && rr.data.error) || "改期失敗，請稍後再試"));
+        }
+      };
+    };
 
     /* 🎫 電子入場憑證：機票風票券 + QR + 4 位核銷碼 */
     window.openPass = async (id) => {

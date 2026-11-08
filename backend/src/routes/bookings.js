@@ -447,6 +447,27 @@ router.post(
   }
 );
 
+// ===== POST /api/bookings/:id/reschedule — 通行證自助改期（原子轉移） =====
+router.post("/:id/reschedule", authenticateToken, async (req, res) => {
+  try {
+    const targetScheduleId = String((req.body && req.body.target_schedule_id) || "").trim();
+    if (!targetScheduleId) {
+      return res.status(400).json({ success: false, error: "缺少目標班次", code: "TARGET_REQUIRED" });
+    }
+    const isAdmin = ["super_admin", "platform_manager", "platform_staff"].includes(req.user.role);
+    const result = await bookingService.rescheduleBooking({
+      bookingId: req.params.id,
+      userId: req.user.id,
+      targetScheduleId,
+      isAdmin,
+    });
+    return res.status(result.status).json(result.body);
+  } catch (err) {
+    console.error("reschedule 錯誤:", err);
+    res.status(500).json({ success: false, error: "改期失敗，請稍後再試" });
+  }
+});
+
 // ===== POST /api/bookings/:id/cancel — 取消預約 =====
 router.post("/:id/cancel", authenticateToken, scalpGuard, (req, res) => {
   try {
