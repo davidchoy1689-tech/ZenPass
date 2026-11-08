@@ -66,11 +66,14 @@ console.log("\n🧪 5. 報名頁席位緊張度");
 console.log("\n🧪 6. 付款頁 FPS 一鍵複製");
 {
   ok("FPS 互動卡 .fps-copy-box", /class="fps-copy-box"/.test(book));
-  ok("顯示 9033 5538 + 戶名", /id="fps-identifier">9033 5538</.test(book) && /戶名：ZenPass/.test(book));
-  ok("複製按鈕寫入純數字", /id="btn-copy-fps" data-copy="90335538"/.test(book));
-  ok("成功率 Toast 文案", /已複製 FPS 號碼：9033 5538/.test(book));
+  ok("顯示 9492 5828 + 戶名", /id="fps-identifier">9492 5828</.test(book) && /戶名：ZenPass/.test(book));
+  ok("複製按鈕寫入純數字", /id="btn-copy-fps" data-copy="94925828"/.test(book));
+  ok("成功率 Toast 文案", /已複製 FPS 號碼：9492 5828/.test(book));
   ok("按鈕 1.5 秒後復原 + 深綠反饋", /setTimeout\(\(\) => \{ btn\.textContent = old; btn\.classList\.remove\("copied"\); \}, 1500\)/.test(book));
   ok("execCommand 降級仍在", /document\.execCommand\("copy"\)/.test(book));
+  ok("FPS QR payload 用新號碼", /tlv\("01", "94925828"\)/.test(book));
+  ok("客服 WhatsApp 仍然係 9033 5538", /wa\.me\/85290335538/.test(book) && /WhatsApp <b>9033 5538<\/b>/.test(book));
+  ok("舊 FPS 收款號碼已清走", !/data-copy="90335538"/.test(book));
 }
 
 console.log("\n🧪 7. 預約流程回歸（rememberWaiver 修正）");
