@@ -162,10 +162,26 @@ console.log("\n🧪 13. 課程詳情頁（骨架屏／安心標籤／貨幣文�
   ok("已移除 1 Credit = HK$10", !/1 Credit = HK\$10/.test(detail));
   ok("付款文案改用 FPS／通行卡", /支援 FPS 轉數快 \/ PayMe，或以「樂齡 4 堂通行卡」扣堂/.test(detail));
   ok("價格副標唔再用 credits", !/約 " \+ Math\.round\(price \/ 10\) \+ " credits/.test(detail));
-  ok("樂齡班先顯示可扣通行證", /可扣通行證 1 堂/.test(detail));
+  ok("樂齡班先顯示可扣通行卡", /可扣通行卡/.test(detail));
   ok("時段 🚨 僅餘 N 席", /🚨 僅餘 " \+ left \+ " 席/.test(detail));
   ok("時段 ❌ 已滿額", /❌ 已滿額/.test(detail));
   ok("404 友善文案 + 返回探索", /搵唔到呢個課程/.test(detail) && /返回探索/.test(detail));
+}
+
+console.log("\n🧪 14. 詳情頁 CRO（首屏價值主張 + Dock + 直通車）");
+{
+  ok("首屏 CRO 區塊", /class="course-hero-cro"/.test(detail) && /hero-badges-grid/.test(detail));
+  ok("長者痛點 banner（條件式）", /專為長者膝頭痛、筋緊、防跌倒設計 · 適合 55-80 歲/.test(detail) && /isElder/.test(detail));
+  ok("成人班用泛用文案（唔亂貼）", /小班教學 · 初學者友善 · 導師全程照顧/.test(detail));
+  ok("4 格規格卡 2x2", /\.dt-params\{display:grid;grid-template-columns:1fr 1fr/.test(detail));
+  ok("收費格顯示通行卡價", /通行卡 \$120/.test(detail));
+  ok("高轉化 Dock", /sticky-booking-dock/.test(detail) && /btn-dock-book/.test(detail));
+  ok("Dock 真實席位徽章", /dockSeats\.textContent = "🔥 僅餘 "/.test(detail));
+  ok("safe-area inset", /env\(safe-area-inset-bottom\)/.test(detail));
+  ok("Dock 主掣文案", /立即揀時段預約/.test(detail));
+  ok("時段自動預選最近有位", /if \(!SEL_SID\) \{[\s\S]{0,240}filter\(function \(s\) \{ return _free\(s\) > 0; \}\)/.test(detail));
+  ok("確認掣顯示剩餘席位", /前往下一步填寫學員資料/.test(detail) && /剩餘 " \+ leftN \+ " 席/.test(detail));
+  ok("內容底部留白避開 Dock", /\.dt-body \{ padding: 14px var\(--dt-pad\) 96px; \}/.test(detail));
 }
 
 console.log(`\n📊 結果: ${passed} passed / ${failed} failed`);

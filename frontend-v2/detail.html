@@ -20,7 +20,7 @@
     .dt-dots { position: absolute; bottom: 10px; left: 0; right: 0; display: flex; justify-content: center; gap: 6px; }
     .dt-dot { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,.55); }
     .dt-dot.on { background: #fff; width: 16px; border-radius: 3px; }
-    .dt-body { padding: 14px var(--dt-pad) 0; }
+    .dt-body { padding: 14px var(--dt-pad) 96px; }
     .dt-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
     .dt-tag { font-size: 11.5px; font-weight: 700; padding: 3px 9px; border-radius: 999px; background: #fff1ea; color: #b8421a; }
     .dt-tag.green { background: #e8f7ee; color: #15803d; }
@@ -93,6 +93,38 @@
     .dt-fac { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 4px; }
     .dt-fac .f { display: flex; align-items: center; gap: 7px; font-size: 12.5px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px; }
     .dt-fac .f span:first-child { font-size: 15px; }
+
+    /* 🎯 首屏轉化區（CRO） */
+    .course-hero-cro{background:#F0FDF4;border-left:4px solid #16A34A;padding:12px 14px;border-radius:8px;margin:2px 0 14px}
+    .hero-target-banner{font-size:14px;font-weight:800;color:#14532D;margin-bottom:8px;display:flex;align-items:center;gap:6px;line-height:1.4}
+    .hero-target-banner .icon-pulse{display:inline-block;animation:zpPulse 2.2s ease-in-out infinite}
+    @keyframes zpPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.18)}}
+    .hero-badges-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+    .badge-item{font-size:12px;font-weight:600;color:#166534;background:#FFFFFF;padding:6px 8px;border-radius:6px;border:1px solid #BBF7D0;display:flex;align-items:center;line-height:1.35}
+    @media (max-width:360px){.hero-badges-grid{grid-template-columns:1fr}}
+    @media (prefers-reduced-motion: reduce){.hero-target-banner .icon-pulse{animation:none}}
+
+    /* 📐 4 格規格卡 */
+    .dt-params{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+    .dt-param{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px}
+    .dt-param .ic{font-size:16px;margin-bottom:2px}
+    .dt-param .k{font-size:10.5px;color:var(--text-muted);margin-bottom:2px}
+    .dt-param .v{font-size:12.5px;font-weight:800;line-height:1.4}
+    .dt-param a{font-size:11px;font-weight:700;color:var(--brand-600)}
+
+    /* 💳 底部高轉化 Dock */
+    .sticky-booking-dock{position:fixed;left:0;right:0;bottom:0;z-index:900;background:#FFFFFF;border-top:1.5px solid #E2E8F0;padding:10px 16px max(10px,env(safe-area-inset-bottom));display:flex;align-items:center;gap:12px;box-shadow:0 -4px 16px rgba(0,0,0,.08)}
+    .dock-price-col{min-width:0;flex:0 0 auto}
+    .dock-primary-price{display:flex;align-items:baseline;color:#0F172A;gap:1px}
+    .dock-primary-price .price-currency{font-size:13px;font-weight:700}
+    .dock-primary-price .price-amount{font-size:24px;font-weight:900;line-height:1}
+    .dock-primary-price .price-period{font-size:12px;color:#64748B;margin-left:2px}
+    .dock-sub-perk{font-size:11px;color:#16A34A;font-weight:700;margin-top:2px;white-space:nowrap}
+    .dock-sub-perk .promo-tag{display:inline-block;font-size:10px;font-weight:800;color:#b45309;background:#fef3c7;border-radius:999px;padding:1px 7px;margin-left:4px}
+    .btn-dock-book{flex:1;min-width:0;height:48px;background:linear-gradient(135deg,#16A34A 0%,#15803D 100%);color:#FFFFFF;border:none;border-radius:10px;font-size:16px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 4px 12px rgba(22,163,74,.25);touch-action:manipulation;font-family:inherit}
+    .dock-seats-badge{background:#FF4D4F;color:#FFFFFF;font-size:11px;font-weight:700;padding:2px 6px;border-radius:4px;white-space:nowrap}
+    .btn-dock-book:active{transform:scale(.97)}
+    @media (max-width:360px){.btn-dock-book{font-size:14.5px;padding:0 8px}.dock-primary-price .price-amount{font-size:22px}}
 
     /* 🦴 骨架屏（弱網時避免「載入中…」同破折號） */
     .skeleton{background:linear-gradient(90deg,#F1F5F9 25%,#E2E8F0 50%,#F1F5F9 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:6px;color:transparent!important;user-select:none}
@@ -209,6 +241,10 @@
     <div class="dt-body">
       <div class="dt-tags" id="tags"></div>
       <div id="coachBadge" style="margin:0 0 6px"></div>
+      <div class="course-hero-cro" id="heroCro" hidden>
+        <div class="hero-target-banner"><span class="icon-pulse">🎯</span><span id="heroTargetText">專為長者膝頭痛、筋緊、防跌倒設計 · 適合 55-80 歲</span></div>
+        <div class="hero-badges-grid" id="heroBadges"></div>
+      </div>
       <h1 class="dt-title skeleton" id="title"></h1>
       <div class="trust-badges-wrapper" id="trustBadges" hidden></div>
       <div class="dt-social">
@@ -220,24 +256,22 @@
       <div class="dt-params">
         <div class="dt-param">
           <div class="ic">📍</div>
-          <div style="flex:1">
-            <div class="k">地點</div>
-            <div class="v skeleton" id="venue"></div>
-            <a id="mapLink" target="_blank" rel="noopener">在地圖查看 ›</a>
-          </div>
+          <div><div class="k">地點</div><div class="v skeleton" id="venue"></div><span id="capacity" style="display:none"></span>
+            <a id="mapLink" target="_blank" rel="noopener">在地圖查看 ›</a></div>
         </div>
         <div class="dt-param">
           <div class="ic">⏱️</div>
-          <div><div class="k">時段 / 時長</div><div class="v skeleton" id="duration"></div></div>
+          <div><div class="k">時段</div><div class="v skeleton" id="duration"></div></div>
         </div>
         <div class="dt-param">
-          <div class="ic">👥</div>
-          <div><div class="k">人數</div><div class="v skeleton" id="capacity"></div></div>
+          <div class="ic">🎽</div>
+          <div><div class="k">著裝／裝備</div><div class="v" id="gear">平底波鞋即可</div></div>
         </div>
         <div class="dt-param">
-          <div class="ic">🎒</div>
-          <div><div class="k">裝備</div><div class="v" id="gear">提供基本裝備（瑜伽墊）</div></div>
+          <div class="ic">💳</div>
+          <div><div class="k">收費</div><div class="v skeleton" id="specPrice"></div></div>
         </div>
+      </div>
       </div>
 
       <!-- 2. 課堂內容 -->
@@ -325,13 +359,13 @@
   </div>
 
   <!-- Sticky CTA -->
-  <div class="dt-sticky" id="dtSticky">
-    <div class="dt-price">
-      <div class="p"><span id="price" class="skeleton"></span><span class="old" id="priceOld" style="display:none"></span></div>
-      <div class="s skeleton" id="priceSub">每堂 · 已包裝備 <span class="promo-tag" id="promoTip" style="display:none">已帶入 WELCOME50</span></div>
-      <div class="s" id="stickySeats" style="display:none;font-weight:700"></div>
+  <div class="dt-sticky sticky-booking-dock" id="dtSticky">
+    <div class="dock-price-col">
+      <div class="dock-primary-price"><span class="price-currency">HK$</span><span class="price-amount" id="price">—</span><span class="price-period">/ 堂</span><span class="old" id="priceOld" style="display:none"></span></div>
+      <div class="dock-sub-perk" id="priceSub">🎫 可扣通行卡 · 零手續費 <span class="promo-tag" id="promoTip" style="display:none">已帶入 WELCOME50</span></div>
+      <div class="s" id="stickySeats" style="display:none;font-weight:700;font-size:10.5px;color:#64748B"></div>
     </div>
-    <button class="btn btn-primary" id="bookBtn" type="button">⚡ 立即報名留位</button>
+    <button class="btn-dock-book" id="bookBtn" type="button">⚡ 立即揀時段預約 <span class="dock-seats-badge" id="dockSeats" style="display:none"></span></button>
   </div>
 
   <!-- 時段 Drawer -->
@@ -571,17 +605,61 @@
       let promoOn = false;
       try { promoOn = (localStorage.getItem("zp_promo") || "") === "WELCOME50"; } catch (e) {}
       const finalPrice = promoOn ? Math.round(price * 0.5) : price;
-      $("price").textContent = finalPrice ? "HK$" + finalPrice : "—";
+      const isElder = /長者|樂齡|senior/i.test(String(c.target_audience || "")) || /樂齡|長者|關節/.test(String(c.title || ""));
+      $("price").textContent = finalPrice ? String(finalPrice) : "—";
+      const passPerk = isElder
+        ? ' <span class="promo-tag" style="background:#ECFDF5;color:#065F46;border:1px solid #A7F3D0">可扣通行卡（$120/堂）</span>'
+        : "";
       if (promoOn && price) {
         $("priceOld").textContent = "HK$" + price;
         $("priceOld").style.display = "";
-        $("promoTip").style.display = "";
-        $("priceSub").innerHTML = "首堂半價 · 已包裝備 <span class=\"promo-tag\">已帶入 WELCOME50</span>";
+        $("priceSub").innerHTML = '首堂半價 · 已包裝備 <span class="promo-tag" id="promoTip">已帶入 WELCOME50</span>' + passPerk;
       } else {
-        const isElder = /長者|樂齡|senior/i.test(String(c.target_audience || "")) || /樂齡|長者|關節/.test(String(c.title || ""));
         $("priceSub").innerHTML = price
-          ? "每堂 · 已包裝備" + (isElder ? ' <span class="promo-tag" style="background:#ECFDF5;color:#065F46;border:1px solid #A7F3D0">可扣通行證 1 堂</span>' : "")
+          ? (isElder ? "🎫 可扣通行卡 · 零手續費" + passPerk.replace("可扣通行卡（$120/堂）", "$120/堂") : "每堂 · 已包裝備")
           : "每堂";
+      }
+
+      // 💳 底部 Dock：剩餘席位徽章（真實數據）
+      const dockSeats = $("dockSeats");
+      if (dockSeats) {
+        const nextS = (SESS || [])
+          .filter(function (x) { return _free(x) > 0; })
+          .sort(function (a, b) { return String(a.start_time).localeCompare(String(b.start_time)); })[0];
+        const nextLeft = nextS ? _free(nextS) : 0;
+        if (nextLeft > 0 && nextLeft <= 3) { dockSeats.textContent = "🔥 僅餘 " + nextLeft + " 席"; dockSeats.style.display = ""; }
+        else { dockSeats.style.display = "none"; }
+      }
+
+      // 🎯 首屏轉化區（只講真實資料，唔對成人班亂貼長者文案）
+      const hc = $("heroCro"), hb = $("heroBadges"), ht = $("heroTargetText");
+      if (hc && hb && ht) {
+        const capN = Number(c.max_participants) || 8;
+        if (isElder) {
+          ht.textContent = "專為長者膝頭痛、筋緊、防跌倒設計 · 適合 55-80 歲";
+          hb.innerHTML = [
+            "🪑 全程坐椅輔助（無需瞓地）",
+            "👥 " + (capN <= 8 ? capN + " 人" : "小班") + "（導師眼看四方）",
+            "📱 子女即時收報平安通知",
+            "🛡️ 已含運動器材與場地保障",
+          ].map((t) => '<div class="badge-item">' + esc(t) + "</div>").join("");
+        } else {
+          ht.textContent = "小班教學 · 初學者友善 · 導師全程照顧";
+          hb.innerHTML = [
+            "👥 " + capN + " 人小班",
+            "⏱️ " + (Number(c.duration) || 60) + " 分鐘",
+            "🛡️ 已含器材及場地保障",
+            "📱 上課提醒通知",
+          ].map((t) => '<div class="badge-item">' + esc(t) + "</div>").join("");
+        }
+        hc.hidden = false;
+      }
+      const gearLine = $("gear");
+      if (gearLine) gearLine.textContent = (c.equipment && String(c.equipment).trim()) || (isElder ? "平底波鞋 · 現場提供瑜伽磚" : "運動服 + 平底波鞋");
+      const sp = $("specPrice");
+      if (sp) {
+        sp.textContent = price ? "HK$" + finalPrice + " / 堂" : "—";
+        if (price && isElder) sp.textContent += " · 通行卡 $120";
       }
 
       const book = $("bookBtn");
@@ -666,6 +744,13 @@
       });
 
       renderSessions(byDay);
+      // ⚡ 直通車：預設揀最近一個有位班次（省一次點擊）
+      if (!SEL_SID) {
+        const first = (byDay[SEL_DATE] || [])
+          .filter(function (s) { return _free(s) > 0; })
+          .sort(function (a, b) { return String(a.start_time).localeCompare(String(b.start_time)); })[0];
+        if (first) { SEL_SID = first.id; renderSessions(byDay); }
+      }
       updateConfirm();
       $("sheetMask").classList.add("show");
       $("sheet").classList.add("show");
@@ -822,9 +907,8 @@
       }
       btn.classList.remove("idle");
       delete btn.dataset.idle;
-      const priceEl = $("price");
-      const priceTxt = priceEl ? String(priceEl.textContent || "").trim() : "";
-      btn.textContent = "前往結賬" + (priceTxt && priceTxt !== "—" ? " (" + priceTxt + ")" : "");
+      const leftN = _free(s);
+      btn.textContent = "前往下一步填寫學員資料" + (leftN > 0 ? "（剩餘 " + leftN + " 席）" : "");
     }
 
     function closeSheet() {

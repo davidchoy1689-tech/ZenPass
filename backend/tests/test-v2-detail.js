@@ -60,16 +60,16 @@ has("c.facilities", "facility from API data");
 
 // 7 預約流程 + sticky CTA
 has("預約流程", "flow section");
-has('class="dt-sticky"', "sticky cta");
+has('class="dt-sticky sticky-booking-dock"', "sticky cta");
 has('id="bookBtn"', "book button");
-has("立即報名留位", "bar cta");
+has("立即揀時段預約", "dock cta");
 has('id="sheet"', "sheet drawer");
 has("function openSheet", "sheet open");
 has("function renderSessions", "sessions render");
 has("function renderDates", "dates render");
 has('id="dateStrip"', "date strip");
 has('id="sheetConfirm"', "confirm button");
-has("前往結賬", "checkout label");
+has("前往下一步填寫學員資料", "checkout label");
 has("❌ 已滿額", "full slot label");
 has("🚨 僅餘", "low seat label");
 has("_next7", "7-day strip");
