@@ -1427,6 +1427,11 @@
             const sv = $("seniorViewBtn");
             if (sv) {
               sv.style.display = "";
+              // 只有代長者報名才升為主要 CTA；自己出席時降回次要，避免誤導
+              sv.className = ATT_TYPE === "parent"
+                ? "btn btn-primary btn-block success-hero-action"
+                : "btn btn-secondary btn-block";
+              sv.style.marginTop = "12px";
               sv.href = "senior-view.html?id=" + encodeURIComponent(firstId) + suffix;
               sv.onclick = () => { try { stopRedirect(); } catch (e) {} };
             }
