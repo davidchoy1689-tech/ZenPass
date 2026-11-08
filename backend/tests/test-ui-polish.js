@@ -200,5 +200,18 @@ console.log("\n🧪 15. 首頁機構級重構");
   ok("熱門區隱藏唔會連 .wrap 一齊 hide", /rail\.style\.display = "none"/.test(home) && /classList\.contains\("section-title"\)/.test(home));
 }
 
+console.log("\n🧪 16. 預約表單轉化優化");
+{
+  ok("聲明折疊手風琴", /waiver-accordion-wrapper/.test(book) && /id="btn-toggle-waiver"/.test(book));
+  ok("條款預設收合", /id="waiver-collapse-body" hidden/.test(book));
+  ok("保留 waiverAgree（一次簽署）", /id="waiverAgree"/.test(book) && /rememberWaiver\(\)/.test(book));
+  ok("已記憶提示", /waiver-bound-hint/.test(book) && /此裝置已記憶健康安全聲明/.test(book));
+  ok("身分切換喺 Step 2 最頂", /<section id="step2" class="hide">[\s\S]{0,400}誰去上堂/.test(book));
+  ok("3 粒藥丸（自己／父母／子女）", /data-att="self"[\s\S]{0,300}data-att="parent"[\s\S]{0,300}data-att="child"/.test(book));
+  ok("取消 30 秒強制跳轉", /startDoneRedirect\(0\)/.test(book) && !/redirectSec">30</.test(book));
+  ok("長者大字版升為主要 CTA", /class="btn btn-primary btn-block success-hero-action" id="seniorViewBtn"/.test(book));
+  ok("72 小時保證只剩 2 處", (book.match(/開課前 3 日（72 小時）免費取消/g) || []).length <= 3);
+}
+
 console.log(`\n📊 結果: ${passed} passed / ${failed} failed`);
 process.exit(failed ? 1 : 0);

@@ -33,6 +33,15 @@
     .seat-urgency-wrapper.full .seat-count-text strong{ color:#595959; }
     @media (prefers-reduced-motion: reduce){ .seat-progress-fill{ transition:none; } }
 
+    /* ===== 表單轉化優化 v1 ===== */
+    .waiver-accordion-wrapper{background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:12px 14px;margin:12px 0 4px}
+    .waiver-checkbox-row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+    .checkbox-text{font-size:13px;color:#1E293B;line-height:1.45}
+    .btn-toggle-waiver{background:transparent;border:none;color:#16A34A;font-size:12px;font-weight:700;cursor:pointer;padding:4px 6px;white-space:nowrap;font-family:inherit}
+    .waiver-content-collapse{margin-top:10px;padding-top:10px;border-top:1px dashed #CBD5E1;font-size:12px;color:#64748B;max-height:220px;overflow-y:auto;line-height:1.5}
+    .waiver-bound-hint{margin-top:8px;font-size:11.5px;font-weight:700;color:#047857}
+    .success-hero-action{font-size:17px;font-weight:900;min-height:56px;display:flex;align-items:center;justify-content:center;text-align:center;margin-top:12px;box-shadow:0 8px 20px -8px rgba(22,163,74,.5)}
+    @media (prefers-reduced-motion: reduce){.waiver-content-collapse{scroll-behavior:auto}}
     /* ===== 🎫 4 堂通行證扣堂卡 ===== */
     .pass-redeem-card{ background:linear-gradient(135deg,#F0FDF4 0%,#DCFCE7 100%); border:2px solid #22C55E; border-radius:14px; padding:16px; margin:16px 0; box-shadow:0 4px 12px rgba(34,197,94,.15); }
     .pass-redeem-header{ display:flex; justify-content:space-between; align-items:center; gap:8px; font-size:13px; margin-bottom:12px; flex-wrap:wrap; }
@@ -307,6 +316,50 @@
     </section>
 
     <section id="step2" class="hide">
+      <div class="card"><div class="body">
+        <div class="muted" style="font-size:13px;font-weight:700;margin-bottom:8px">誰去上堂？</div>
+        <div class="att-toggle" id="attToggle">
+          <button type="button" class="on" data-att="self">🙋 我自己出席</button>
+          <button type="button" data-att="parent">👵 代父母報名（長者）</button>
+          <button type="button" data-att="child">👦 代子女報名</button>
+        </div>
+        <div id="childBox" hidden style="margin-top:12px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <b style="font-size:13.5px">👦 參加者（未成年）資料</b>
+            <button type="button" class="linkish" id="loadChild" style="display:none">⚡ 帶入上次資料</button>
+          </div>
+          <div class="grid2">
+            <input id="childName" placeholder="子女全名 *" maxlength="40" />
+            <input id="childAge" type="number" min="3" max="17" placeholder="年齡 *" inputmode="numeric" />
+          </div>
+          <input id="emergencyPhone" placeholder="第二緊急聯絡電話 *" inputmode="numeric" maxlength="12" />
+          <input id="medicalNotes" placeholder="特殊健康／注意事項（可選）" maxlength="120" />
+          <div class="waiver">
+            <b>🛡️ 家長／監護人簽署</b>
+            <div class="waiver-txt">
+              本人為上述參加者之法定監護人，已閱讀並同意上方《平台轉介服務、健康安全及責任聲明》，並確認其身體狀況適宜參與體育活動、授權現場人員於緊急情況安排送醫。
+            </div>
+            <label class="waiver-chk"><input type="checkbox" id="guardianConsent" />
+              <span>本人以法定監護人身份確認上述授權 *</span></label>
+            <div class="grid2">
+              <input id="guardianName" placeholder="監護人全名 *" maxlength="40" />
+              <input id="guardianHkid" placeholder="身份證前 4 位 *" maxlength="8" />
+            </div>
+          </div>
+        </div>
+        <div id="parentBox" hidden style="margin-top:12px">
+          <b style="font-size:13.5px">👵 長者參加者資料（你付款、父母出席）</b>
+          <div class="grid2" style="margin-top:8px">
+            <input id="parentName" placeholder="父母全名 *" maxlength="40" />
+            <input id="parentPhone" placeholder="父母電話 *（點名用）" inputmode="numeric" maxlength="12" />
+          </div>
+          <label class="waiver-chk" style="margin-top:8px"><input type="checkbox" id="notifySponsor" checked />
+            <span>父母現場簽到時，用 WhatsApp 通知我報平安</span></label>
+          <div class="muted" style="font-size:11.5px;margin-top:6px">簽到通知會發到你報名時填寫嘅電話。</div>
+        </div>
+      </div></div>
+
+      <div class="spacer"></div>
       <div class="section-title">確認預約</div>
       <div class="card" id="summary"></div>
       <div class="spacer"></div>
@@ -358,7 +411,16 @@
       <div class="spacer"></div>
       <div class="card" id="waiverCard"><div class="body">
         <b style="font-size:13.5px">🛡️ ZenPass 平台轉介服務、健康安全及責任聲明</b>
-        <div class="waiver-txt" style="max-height:150px;margin-top:8px">
+        <div class="waiver-accordion-wrapper" id="waiver-wrapper">
+          <div class="waiver-checkbox-row">
+            <label class="waiver-chk" style="margin:0">
+              <input type="checkbox" id="waiverAgree" />
+              <span class="checkbox-text">我已閱讀並同意<b>《平台服務、健康安全及責任聲明》</b></span>
+            </label>
+            <button type="button" class="btn-toggle-waiver" id="btn-toggle-waiver" aria-expanded="false">條款詳情 ▾</button>
+          </div>
+          <div class="waiver-content-collapse" id="waiver-collapse-body" hidden>
+        <div class="waiver-txt" style="margin-top:0">
           本人確認／並代表由本人代為報名之參加者（包括未成年子女或長者受監護人）聲明及同意：<br><br>
           <b>1. 平台轉介性質：</b>ZenPass（由香港康樂及體育有限公司營運）僅提供活動預約、資訊展示及科技轉介服務。所有教練招收開辦之活動、服務及場地出租，各項安全、教學質量與民事責任均由相關主辦教練、個人或場地機構自行全權負責。<br><br>
           <b>2. 保險及責任自負：</b>平台強烈建議相關活動提供者、教練、場地營運商及參加者，自行評估並決定是否為個別活動及個人購買合適之公眾責任或意外保險；參加者自願承擔體育運動之一切常規動態風險，並自行妥善保管隨身財物。<br><br>
@@ -367,59 +429,17 @@
           <b>5. 極端天氣：</b>八號或以上風球／黑色暴雨期間之課堂安排、通知及退款選擇，依《<a href="weather-policy.html" target="_blank" rel="noopener" style="color:#0f766e;font-weight:700">極端天氣條款</a>》處理；最終取消與否由平台按實際情況決定並另行通知。<br><br>
           <b>6. 最終解釋權：</b>香港康樂及體育有限公司（ZenPass 平台營運公司）對本條款、服務規則、預約安排及任何爭議，保留一切最終修改及解釋權利。
         </div>
-        <label class="waiver-chk" style="margin-top:4px"><input type="checkbox" id="waiverAgree" />
-          <span>本人已閱讀並同意《ZenPass 平台轉介服務、健康安全及責任聲明》，並<b>已閱讀上方本項目之具體固有風險提示</b>，了解該運動存在跌倒、碰撞、扭傷等固有風險，在知情下自願參與（平台純屬轉介、建議自購保險、營運公司保留最終解釋權，<b>一次簽署長期有效</b>）*</span></label>
+          </div>
+          <div id="waiver-bound-hint" class="waiver-bound-hint" hidden>✅ 此裝置已記憶健康安全聲明，預約自動適用</div>
+        </div>
         <div id="waiverSaved" hidden class="muted" style="font-size:12px;color:#047857">✅ 已綁定全平台健康安全及責任聲明（此裝置）</div>
       </div></div>
 
       <div class="spacer"></div>
       <div class="card" id="riskCard" hidden><div class="body">
-        <div style="font-size:13.5px;font-weight:800;margin-bottom:6px">🛡️ 本項目固有風險提示</div>
+        <div style="font-size:13.5px;font-weight:800;margin-bottom:6px">本項目具體固有風險提示</div>
         <div class="muted" style="font-size:11.5px;margin-bottom:8px">以下為此運動項目之固有風險。請仔細閱讀，確認你（或你代為報名之學員）了解並自願承擔。</div>
         <div id="riskBody" style="font-size:12.5px;line-height:1.8"></div>
-      </div></div>
-
-      <div class="card"><div class="body">
-        <div class="muted" style="font-size:13px;font-weight:700;margin-bottom:8px">參加者身份</div>
-        <div class="att-toggle" id="attToggle">
-          <button type="button" class="on" data-att="self">🙋‍♂️ 本人出席</button>
-          <button type="button" data-att="child">👨‍👩‍👧 代子女報名</button>
-          <button type="button" data-att="parent">👵 代長者報名</button>
-        </div>
-        <div id="childBox" hidden style="margin-top:12px">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-            <b style="font-size:13.5px">👦 參加者（未成年）資料</b>
-            <button type="button" class="linkish" id="loadChild" style="display:none">⚡ 帶入上次資料</button>
-          </div>
-          <div class="grid2">
-            <input id="childName" placeholder="子女全名 *" maxlength="40" />
-            <input id="childAge" type="number" min="3" max="17" placeholder="年齡 *" inputmode="numeric" />
-          </div>
-          <input id="emergencyPhone" placeholder="第二緊急聯絡電話 *" inputmode="numeric" maxlength="12" />
-          <input id="medicalNotes" placeholder="特殊健康／注意事項（可選）" maxlength="120" />
-          <div class="waiver">
-            <b>🛡️ 家長／監護人簽署</b>
-            <div class="waiver-txt">
-              本人為上述參加者之法定監護人，已閱讀並同意上方《平台轉介服務、健康安全及責任聲明》，並確認其身體狀況適宜參與體育活動、授權現場人員於緊急情況安排送醫。
-            </div>
-            <label class="waiver-chk"><input type="checkbox" id="guardianConsent" />
-              <span>本人以法定監護人身份確認上述授權 *</span></label>
-            <div class="grid2">
-              <input id="guardianName" placeholder="監護人全名 *" maxlength="40" />
-              <input id="guardianHkid" placeholder="身份證前 4 位 *" maxlength="8" />
-            </div>
-          </div>
-        </div>
-        <div id="parentBox" hidden style="margin-top:12px">
-          <b style="font-size:13.5px">👵 長者參加者資料（你付款、父母出席）</b>
-          <div class="grid2" style="margin-top:8px">
-            <input id="parentName" placeholder="父母全名 *" maxlength="40" />
-            <input id="parentPhone" placeholder="父母電話 *（點名用）" inputmode="numeric" maxlength="12" />
-          </div>
-          <label class="waiver-chk" style="margin-top:8px"><input type="checkbox" id="notifySponsor" checked />
-            <span>父母現場簽到時，用 WhatsApp 通知我報平安</span></label>
-          <div class="muted" style="font-size:11.5px;margin-top:6px">簽到通知會發到你報名時填寫嘅電話。</div>
-        </div>
       </div></div>
 
       <div class="spacer"></div>
@@ -474,11 +494,6 @@
       </div>
       <div class="section-title">付款</div>
       <div class="card" id="paySummary"></div>
-      <div class="spacer"></div>
-      <div class="guarantee" id="guarantee1">
-        <span class="g-ic">🛡️</span>
-        <div>開課前 3 日（72 小時）免費取消，全數退回<small>已付款項（Credits 即時退回；FPS／PayMe 由人手轉賬）</small></div>
-      </div>
       <div class="spacer"></div>
       <button class="btn btn-primary btn-block" id="payNow">立即確認預約</button>
       <div class="spacer"></div>
@@ -537,7 +552,7 @@
         <div><b id="qrTitle">QR Code 簽到</b><p id="qrText">上堂前 15 分鐘到場，打開「我的預約」即可掃碼簽到</p></div>
       </div>
       <a class="btn btn-secondary btn-block" id="seniorCardBtn" href="#" style="display:none;margin-top:12px">🖨️ 列印長者隨身卡（名片大小 / 防走失）</a>
-      <a class="btn btn-secondary btn-block" id="seniorViewBtn" href="#" style="display:none;margin-top:8px">📲 長者大字版（傳給父母）</a>
+      <a class="btn btn-primary btn-block success-hero-action" id="seniorViewBtn" href="#" style="display:none;margin-top:12px">📲 發送長者大字版通知（WhatsApp 一鍵轉發給父母）</a>
       <a class="btn btn-secondary btn-block" id="adultPassBtn" href="#" style="display:none;margin-top:8px">🎫 我的電子票券（加日曆 / 地圖）</a>
       <div id="doneActions" style="display:none;width:100%;margin-top:12px">
         <a class="btn btn-secondary btn-block" id="icsBtn" href="#" download="zenpass-class.ics">📅 加到手機行事曆</a>
@@ -551,7 +566,6 @@
       </div>
       <a class="btn btn-secondary btn-block" id="guestViewLink" href="guest-booking.html" style="display:none">📋 查看我的預約（免登入）</a>
       <div class="spacer" id="guestViewSpacer" style="display:none"></div>
-      <div class="done-redirect" id="doneRedirBar">系統將在 <b id="redirectSec">30</b> 秒內帶你到「我的預約」…（任何操作會取消自動跳轉）</div>
       <div class="spacer"></div>
       <a class="btn btn-primary btn-block" href="my-bookings.html" id="goBookings">去我的預約 →</a>
       <div class="spacer"></div>
@@ -1078,6 +1092,18 @@
       }
       const cb = $("waiverAgree");
       if (cb) cb.onchange = () => { const box = $("waiverSaved"); if (box) box.hidden = !cb.checked; };
+      const _wBtn = $("btn-toggle-waiver");
+      if (_wBtn) _wBtn.onclick = () => {
+        const body = $("waiver-collapse-body");
+        const open = body.hidden;
+        body.hidden = !open;
+        _wBtn.textContent = open ? "條款詳情 ▴" : "條款詳情 ▾";
+        _wBtn.setAttribute("aria-expanded", open ? "true" : "false");
+      };
+      if (agreed) {
+        const hint = $("waiver-bound-hint");
+        if (hint) hint.hidden = false;
+      }
     })();
     // ⚠️ 2026-11-09 修正：呢個函數曾被呼叫但從未定義（2026-10-25 commit 漏咗），
     //    令預約成功後 JS 直接 ReferenceError → 卡住唔跳付款頁。一次簽署長期有效。
@@ -1425,7 +1451,7 @@
         const note = $("guestDoneNote");
         if (note) { note.hidden = false; note.querySelector("b").textContent = (guestBookings.map(b => b.booking_reference).filter(Boolean).join("、") || "—"); }
       }
-      startDoneRedirect(opts.redirect === false ? 0 : 30);
+      startDoneRedirect(0); // 取消 30 秒強制跳轉，俾用戶足夠時間存票
       // 用戶一有動作（撳／捲／打字）就取消自動跳轉，唔會搶走加日曆嘅時間
       cancelRedirectOnInteract();
       try { window.scrollTo({ top: 0, behavior: "smooth" }); } catch (e) { window.scrollTo(0, 0); }

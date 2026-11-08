@@ -44,7 +44,7 @@ console.log("\n🧪 2. 子女安心時間軸");
 console.log("\n🧪 3. 付款成功頁入口");
 {
   ok("有 seniorViewBtn", /id="seniorViewBtn"/.test(bk));
-  ok("文案：長者大字版（傳給父母）", /長者大字版（傳給父母）/.test(bk));
+  ok("文案：發送長者大字版通知", /發送長者大字版通知/.test(bk));
   ok("帶 booking id + guest token", /senior-view\.html\?id=" \+ encodeURIComponent\(firstId\) \+ suffix/.test(bk));
   ok("單筆預約才顯示", /payIds\.length <= 1/.test(bk));
 }
