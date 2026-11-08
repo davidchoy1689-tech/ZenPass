@@ -75,7 +75,7 @@ console.log("\n🧪 6. 前端整合");
   ok("my-bookings 有複製大字版連結", /複製大字版連結/.test(mb) && /data-copy="senior-view\.html"/.test(mb));
   ok("my-bookings 有複製票券連結", /複製票券連結/.test(mb) && /data-copy="adult-pass\.html"/.test(mb));
   ok("只用有 share 的訂單顯示", /b\.share \?/.test(mb));
-  ok("複製成功 Toast", /已複製免登入連結/.test(mb));
+  ok("複製成功 Toast（已包裝孝親引導句）", /已複製專屬長者大字版說明與連結/.test(mb));
   ok("senior-view 支援 share", /const SHARE = qs\.get\("share"\)/.test(sv) && /api\/public\/bookings\//.test(sv));
   ok("adult-pass 支援 share", /const SHARE = qs\.get\("share"\)/.test(ap) && /api\/public\/bookings\//.test(ap));
   ok("分享模式唔會硬撥號（電話已脫敏）", /if \(ephone\) \{/.test(sv));

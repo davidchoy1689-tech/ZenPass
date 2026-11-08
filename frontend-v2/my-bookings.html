@@ -486,11 +486,17 @@
       const btn = e.target.closest("[data-copy]");
       if (!btn) return;
       const url = location.origin + "/" + btn.dataset.copy + "?id=" + encodeURIComponent(btn.dataset.id) + "&sh" + "are=" + encodeURIComponent(btn.dataset.share);
+      const isSenior = btn.dataset.copy === "senior-view.html";
+      const text = isSenior
+        ? "爸爸/媽媽，呢個係你嘅專屬大字入場卡，撳入去就見到大字時間同入場 QR Code：\n" + url
+        : "這是您的專屬電子票券連結（含入場 QR Code 與日曆提醒）：\n" + url;
       try {
-        await navigator.clipboard.writeText(url);
-        miniToast("✅ 已複製免登入連結，可直接傳送給家人 WhatsApp");
+        await navigator.clipboard.writeText(text);
+        miniToast(isSenior
+          ? "✅ 已複製專屬長者大字版說明與連結，可直接貼到 WhatsApp 給家人！"
+          : "✅ 已複製電子票券說明與連結，可直接貼到 WhatsApp 給家人！");
       } catch (err) {
-        prompt("請手動複製以下連結：", url);
+        prompt("請手動複製以下訊息：", text);
       }
     });
   </script>

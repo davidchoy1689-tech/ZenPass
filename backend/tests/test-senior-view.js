@@ -54,8 +54,8 @@ console.log("\n🧪 7. 🌸 老友記同行推薦（純 DOM/CSS + wa.me）");
   ok("推薦卡存在", /class="elder-referral"/.test(sv));
   ok("放在 QR／預約編號之後", sv.indexOf('class="elder-referral"') > sv.indexOf('class="qrwrap"'));
   ok("溫潤杏黃漸變", /linear-gradient\(135deg,\s*#FFF9E6\s*0%,\s*#FFF2CC\s*100%\)/i.test(sv));
-  ok("2px #E6B800 邊框 + 16px 圓角 + 20px padding",
-    /border\s*:\s*2px\s+solid\s+#E6B800/i.test(sv) && /border-radius\s*:\s*16px/.test(sv) && /padding\s*:\s*20px/.test(sv));
+  ok("2px #E6B800 邊框 + 16px 圓角 + clamp padding（系統大字不破版）",
+    /border\s*:\s*2px\s+solid\s+#E6B800/i.test(sv) && /border-radius\s*:\s*16px/.test(sv) && /padding\s*:\s*clamp\(12px\s*,\s*4vw\s*,\s*20px\)/.test(sv));
   ok("標題 20pt 級（26px）＋祝賀字句", /祝老友記健康常伴・一齊做拉筋/.test(sv) && /er-title\{[^}]*font-size\s*:\s*26px/.test(sv));
   ok("內文提到膝頭／靜儀／平 $30", /膝頭緊/.test(sv) && /靜儀教練/.test(sv) && /平 \$30/.test(sv));
   ok("推薦碼標籤 SILVER2", /【老友記推薦碼：SILVER2】/.test(sv));

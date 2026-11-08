@@ -38,6 +38,35 @@
   .empty{text-align:center;color:var(--muted);padding:40px 0}
   .offline{position:fixed;left:0;right:0;bottom:0;background:#b45309;color:#fff;text-align:center;font-size:12.5px;padding:8px;display:none}
   .offline.on{display:block}
+  /* ===== ☀️ 強光模式（體育館暗位／長者睇得清） ===== */
+  #hcBtn{background:#fff7ed;color:#b45309;border:1px solid #fed7aa;cursor:pointer}
+  #hcBtn .lbl{display:none}
+  @media (min-width:430px){ #hcBtn .lbl{display:inline} }
+  body.high-contrast-mode{ background:#000 !important; color:#fff !important }
+  body.high-contrast-mode .top{ background:#000 !important; border-bottom-color:#333 !important }
+  body.high-contrast-mode .t1, body.high-contrast-mode .name{ color:#fff !important }
+  body.high-contrast-mode .t2, body.high-contrast-mode .stat,
+  body.high-contrast-mode .meta, body.high-contrast-mode .empty{ color:#CCCCCC !important }
+  body.high-contrast-mode .meta a{ color:#FFD700 !important }
+  body.high-contrast-mode .card{
+    background:#111111 !important; border:2px solid #FFD700 !important; color:#fff !important
+  }
+  body.high-contrast-mode .card.done{ background:#0d1f17 !important; border-color:#22c55e !important }
+  body.high-contrast-mode .badge{ background:#262626 !important; color:#F5F5F5 !important }
+  body.high-contrast-mode .badge.blue{ background:#0c4a6e !important; color:#E0F2FE !important }
+  body.high-contrast-mode .badge.green{ background:#14532d !important; color:#DCFCE7 !important }
+  body.high-contrast-mode .warn{
+    background:#FF0000 !important; color:#FFFFFF !important;
+    border-color:#FFD700 !important; font-weight:900 !important
+  }
+  body.high-contrast-mode .prog{ background:#333 !important }
+  body.high-contrast-mode .btn{
+    background:#111 !important; color:#fff !important; border-color:#666 !important
+  }
+  body.high-contrast-mode .btn.primary{ background:#FFD700 !important; border-color:#FFD700 !important; color:#000 !important }
+  body.high-contrast-mode .btn.ghost{ background:#2a0a0a !important; color:#FECACA !important; border-color:#7f1d1d !important }
+  body.high-contrast-mode .call{ background:#111 !important; color:#FFD700 !important; border-color:#FFD700 !important }
+  body.high-contrast-mode .toast{ background:#FFD700 !important; color:#000 !important }
 </style>
 </head>
 <body>
@@ -48,6 +77,7 @@
         <div class="t2" id="sub">—</div>
       </div>
       <button class="call" id="promoBtn" type="button" style="border:0;cursor:pointer;padding:10px 12px" title="招生推廣包">📢</button>
+      <button class="call" id="hcBtn" type="button" title="強光模式（體育館暗位專用）" aria-pressed="false">☀️<span class="lbl"> 強光模式</span></button>
       <button class="call" id="scanBtn" type="button" style="border:0;cursor:pointer">📷 掃碼</button>
       <a class="call" href="tel:+85290335538" style="margin-left:6px">📞 支援</a>
     </div>
@@ -107,6 +137,28 @@
   };
   const saveQueue = () => localStorage.setItem(QKEY, JSON.stringify(queue));
   const isOffline = () => !navigator.onLine;
+
+  // ☀️ 強光模式：體育館暗位／長者睇得清（狀態記憶在 localStorage）
+  const HCKEY = "coach_high_contrast";
+  function applyHighContrast(on) {
+    const btn = $("hcBtn");
+    document.body.classList.toggle("high-contrast-mode", !!on);
+    if (btn) {
+      btn.innerHTML = on ? '🌙<span class="lbl"> 正常模式</span>' : '☀️<span class="lbl"> 強光模式</span>';
+      btn.setAttribute("aria-pressed", on ? "true" : "false");
+      btn.title = on ? "切換回正常模式" : "強光模式（體育館暗位專用）";
+    }
+    try { localStorage.setItem(HCKEY, on ? "1" : "0"); } catch (e) {}
+  }
+  let _hc = false;
+  try { _hc = localStorage.getItem(HCKEY) === "1"; } catch (e) {}
+  applyHighContrast(_hc);
+  const _hcBtn = $("hcBtn");
+  if (_hcBtn) _hcBtn.addEventListener("click", () => {
+    const on = !document.body.classList.contains("high-contrast-mode");
+    applyHighContrast(on);
+    if (navigator.vibrate) navigator.vibrate(12);
+  });
 
   // 🔐 CSRF：教練可能只開呢條點名連結（未登入過其他頁），
   //    冇 cookie 就簽到會 403 invalid csrf token → 首次載入先攞 token
