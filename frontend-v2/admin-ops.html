@@ -104,6 +104,7 @@
         <button data-t="alert">🚨 天氣警報</button>
         <button data-t="student">👥 學員檔案</button>
         <button data-t="venue">🏟️ 場地 PLI</button>
+        <button data-t="pass">🎫 通行證</button>
         <button data-t="sec">🛡️ 雙因素認證</button>
       </div>
 
@@ -155,6 +156,30 @@
           <button class="btn btn-secondary btn-block" id="pliWarn" style="margin-top:8px">🟡 切回警告模式（warn）</button>
         </div></div>
         <div class="card"><div class="body"><div id="pliList"><div class="muted" style="font-size:12.5px">載入中…</div></div></div></div>
+      </div>
+
+      <div id="panePass" hidden>
+        <div class="card" style="margin-bottom:10px"><div class="body">
+          <b>🎫 4 堂通行證（Multi-Pass）</b>
+          <div class="muted" style="font-size:12px;margin:6px 0 10px">收到 FPS／現金後在此簽發；學員登入後預約會自動見到「扣堂確認」，$0 完成、免逐堂對數。</div>
+          <input class="fld" id="psPhone" placeholder="學員電話（8 位）" inputmode="numeric" maxlength="12" />
+          <input class="fld" id="psName" placeholder="學員姓名（印證書用）" maxlength="40" />
+          <div style="display:flex;gap:8px">
+            <input class="fld" id="psTotal" type="number" min="1" max="20" value="4" placeholder="堂數" style="flex:1" />
+            <input class="fld" id="psPrice" type="number" min="0" step="10" value="480" placeholder="實收 HK$" style="flex:1" />
+            <input class="fld" id="psDays" type="number" min="1" max="365" value="60" placeholder="有效日數" style="flex:1" />
+          </div>
+          <input class="fld" id="psNotes" placeholder="備註（FPS 參考編號／優惠原因，可留空）" maxlength="120" />
+          <button class="btn btn-primary btn-block" id="psIssue" style="margin-top:10px">✅ 簽發通行證</button>
+          <div id="psMsg" class="muted" style="font-size:12.5px;margin-top:8px"></div>
+        </div></div>
+        <div class="card"><div class="body">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+            <b style="font-size:13.5px">最近簽發</b>
+            <button class="btn btn-secondary" id="psReload" style="min-height:32px;padding:0 10px;font-size:12px">🔄 更新</button>
+          </div>
+          <div id="psList" style="margin-top:10px"><div class="muted" style="font-size:12.5px">載入中…</div></div>
+        </div></div>
       </div>
 
       <div id="paneSec" hidden>
@@ -320,7 +345,7 @@
       $("tabs").onclick = (e) => {
         const b = e.target.closest("button"); if (!b) return;
         [...$("tabs").children].forEach((x) => x.classList.toggle("on", x === b));
-        ["fin", "pay", "leads", "ops", "settle", "cred", "agr", "pending", "refund", "book", "cancel", "alert", "student", "venue", "sec"].forEach((k) => ($("pane" + k[0].toUpperCase() + k.slice(1))).hidden = b.dataset.t !== k);
+        ["fin", "pay", "leads", "ops", "settle", "cred", "agr", "pending", "refund", "book", "cancel", "alert", "student", "venue", "pass", "sec"].forEach((k) => ($("pane" + k[0].toUpperCase() + k.slice(1))).hidden = b.dataset.t !== k);
       };
       $("pliEnforce").onclick = () => setPliGate("enforce");
       $("pliWarn").onclick = () => setPliGate("warn");
@@ -333,6 +358,8 @@
       $("stuSearch").addEventListener("keydown", (e) => { if (e.key === "Enter") loadStudents(); });
       $("bsGo").onclick = batchSettle;
       $("plGo").onclick = payoutCsv;
+      $("psIssue").onclick = issuePass;
+      $("psReload").onclick = () => loadPasses();
       window.__loadCred = loadCredentials;
       loadAll();
     })();
@@ -1013,7 +1040,47 @@
       }));
     }
 
-    /* ===== 🏟️ 場地 PLI 快速錄入 ===== */
+    /* ===== 🎫 通行證簽發 ===== */
+    async function issuePass() {
+      const phone = ($("psPhone").value || "").replace(/\D/g, "");
+      const name = ($("psName").value || "").trim();
+      const msg = $("psMsg");
+      if (!/^[4-9]\d{7}$/.test(phone)) { msg.textContent = "⚠️ 請填 8 位香港電話"; msg.style.color = "#b91c1c"; return; }
+      if (name.length < 2) { msg.textContent = "⚠️ 請填學員姓名"; msg.style.color = "#b91c1c"; return; }
+      if (!confirm(`確認簽發 ${$("psTotal").value} 堂通行證俾 ${name}（HK$${$("psPrice").value}）？`)) return;
+      const btn = $("psIssue"); btn.disabled = true; btn.textContent = "簽發中…";
+      const r = await api.post("/passes/admin/issue", {
+        phone, student_name: name,
+        total_credits: Number($("psTotal").value) || 4,
+        price_paid: Number($("psPrice").value) || 0,
+        valid_days: Number($("psDays").value) || 60,
+        notes: $("psNotes").value || "",
+      });
+      btn.disabled = false; btn.textContent = "✅ 簽發通行證";
+      if (r.ok && r.data && r.data.pass) {
+        msg.style.color = "#047857";
+        msg.innerHTML = `✅ 已簽發 <b>${esc(r.data.pass.id)}</b>（${r.data.pass.total_credits} 堂，${esc(r.data.pass.student_name)}）`;
+        $("psName").value = ""; $("psNotes").value = "";
+        loadPasses(phone);
+      } else {
+        msg.style.color = "#b91c1c";
+        msg.textContent = "⚠️ " + ((r.data && r.data.error) || "簽發失敗");
+      }
+    }
+    async function loadPasses(phone) {
+      const box = $("psList"); if (!box) return;
+      const q = phone || ($("psPhone").value || "").replace(/\D/g, "");
+      const r = await api.get("/passes/admin/list" + (q ? "?phone=" + encodeURIComponent(q) : ""));
+      if (!r.ok) { box.innerHTML = `<div class="muted">${esc((r.data && r.data.error) || "讀取失敗")}</div>`; return; }
+      const rows = (r.data && r.data.passes) || [];
+      if (!rows.length) { box.innerHTML = '<div class="muted" style="font-size:12.5px">暫時未有通行證</div>'; return; }
+      box.innerHTML = rows.map((p) => `<div class="row" style="flex-wrap:wrap">
+        <span style="flex:1 1 100%"><b>${esc(p.student_name)}</b>
+          <span class="s">${esc(p.id)} · ${p.phone_masked} · 剩 ${p.remaining_credits}/${p.total_credits} 堂 · 到期 ${esc(String(p.expires_at || "").slice(0, 10))} · HK$${p.price_paid}</span></span>
+        <span style="margin-top:4px;font-size:12px;font-weight:700;color:${p.status === "active" ? "#047857" : "#b45309"}">${p.status === "active" ? "✅ 使用中" : p.status === "exhausted" ? "⌛ 已用完" : esc(p.status)}</span>
+      </div>`).join("");
+    }
+
     /* ===== 🛡️ 雙因素認證 ===== */
     async function load2fa() {
       const box = $("tfaBody"); if (!box) return;

@@ -773,7 +773,7 @@ function createBooking(req, options = {}) {
   }
 
   // 🔒 2026-10-19：只接受已知付款方式（原本傳 "free" 或其他字串 → 直接 confirmed + paid，金額 0）
-  const ALLOWED_PAYMENT_TYPES = ["single", "credits", "corporate", "membership_trial", "free"];
+  const ALLOWED_PAYMENT_TYPES = ["single", "credits", "corporate", "membership_trial", "free", "pass"];
   if (!ALLOWED_PAYMENT_TYPES.includes(payment_type)) {
     return { status: 400, body: { success: false, error: "付款方式無效" } };
   }
@@ -788,6 +788,22 @@ function createBooking(req, options = {}) {
   db.pragma("foreign_keys = ON");
   ensureAttendeeColumns(db);
   ensureLegalColumns(db);
+
+  // 🎫 4 堂通行證：先驗證擁有權／有效期／餘額（真正扣堂喺 transaction 內原子執行）
+  const passes = require("./passes");
+  try { passes.ensureSchema(db); } catch (e) {}
+  let passId = null;
+  if (payment_type === "pass") {
+    passId = String(req.body.pass_id || "").trim();
+    if (!passId) {
+      return { status: 400, body: { success: false, error: "缺少通行證編號", code: "PASS_ID_REQUIRED" } };
+    }
+    const chk = passes.findUsable(db, passId, req.user);
+    if (!chk.ok) {
+      return { status: chk.code === "PASS_FORBIDDEN" ? 403 : 400, body: { success: false, error: chk.error, code: chk.code } };
+    }
+    amount = 0;
+  }
 
   // 1. Penalty consent
   const consent = checkPenaltyConsent(db, req.user.id, penalty_consent);
@@ -1028,6 +1044,13 @@ function createBooking(req, options = {}) {
       partnerInfo,
     );
     if (promoApply) redeemPromo(db, promoApply.id, req.user.id, bookingId, amount);
+
+    // 🎫 扣堂（同一 transaction：扣唔到就成張單回滾，唔會出現「有 booking 冇扣堂」）
+    if (payment_type === "pass") {
+      passes.redeemInTx(db, { passId, userId: req.user.id, bookingId });
+      db.prepare("UPDATE bookings SET pass_id = ? WHERE id = ?").run(passId, bookingId);
+      amount = 0;
+    }
   });
 
   try {
@@ -1140,6 +1163,10 @@ function createBooking(req, options = {}) {
       corporate: corporateDeduction || null,
       group_size: groupSize,
       group_invite_code: groupInviteCode,
+      pass: payment_type === "pass"
+        ? passes.shape(db.prepare("SELECT * FROM user_passes WHERE id = ?").get(passId))
+        : null,
+      payment_type,
     },
   };
 }
@@ -1598,6 +1625,21 @@ function _processNormalCancel(db, booking, reason, req, feeRate) {
       } catch (e) {
         console.error("[PENALTY] cancel fee log error:", e.message);
       }
+    }
+  }
+
+  // 🎫 通行證：準時取消（免手續費）回滾 1 堂；逾期取消則照政策沒收
+  if (booking.payment_type === "pass" && booking.pass_id) {
+    if (feeRate === 0) {
+      try { require("./passes").restoreInTx(db, { passId: booking.pass_id, bookingId: booking.id }); }
+      catch (e) { console.error("[PASS] restore failed:", e.message); }
+    } else {
+      try {
+        db.prepare(
+          `INSERT INTO penalty_logs (id, booking_id, user_id, type, class_cost, penalty_credits, status, reason, created_at)
+           VALUES (?, ?, ?, 'late_cancel', 1, 1, 'applied', ?, datetime('now'))`,
+        ).run(uuidv4(), booking.id, req.user.id, `通行證逾期取消（扣 ${feeRate * 100}% ）`);
+      } catch (e) {}
     }
   }
 

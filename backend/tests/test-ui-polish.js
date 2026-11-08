@@ -9,6 +9,7 @@ const mb = fs.readFileSync(path.join(F, "my-bookings.html"), "utf8");
 const cc = fs.readFileSync(path.join(F, "coach-checkin.html"), "utf8");
 const ap = fs.readFileSync(path.join(F, "adult-pass.html"), "utf8");
 const book = fs.readFileSync(path.join(F, "booking.html"), "utf8");
+const mine = fs.readFileSync(path.join(F, "my-bookings.html"), "utf8");
 
 let passed = 0, failed = 0;
 const ok = (n, c, x) => { c ? (passed++, console.log("  ✅", n)) : (failed++, console.log("  ❌", n, x || "")); };
@@ -101,6 +102,20 @@ console.log("\n🧪 9. 教練簽到防手震（Optimistic UI）");
   ok("busy 時 disabled + opacity .7", /done \|\| absent \|\| g\.__busy \? "disabled"/.test(cc) && /opacity:\.7/.test(cc));
   ok("finally 解鎖（失敗都唔會卡死）", /\} finally \{[\s\S]{0,120}inFlight\.delete\(bid\);/.test(cc));
   ok("QR 2 秒冷卻", /lastQrAt/.test(cc) && /< 2000\) \{ scanRAF = requestAnimationFrame\(tick\); return; \}/.test(cc));
+}
+
+console.log("\n🧪 10. 4 堂通行證（Multi-Pass）前端");
+{
+  ok("預約頁扣堂卡", /class="pass-redeem-card"/.test(book) && /id="btn-pass-submit"/.test(book));
+  ok("顯示剩餘堂數 + 扣除數學", /passCreditNum/.test(book) && /passDeductMath/.test(book));
+  ok("探測 /passes/my", /api\.get\("\/passes\/my"\)/.test(book));
+  ok("扣堂走 redeem-pass（非直接付款）", /\/bookings\/redeem-pass/.test(book));
+  ok("扣堂有防手震 passBusy", /passBusy = true/.test(book) && /if \(passBusy \|\| !activePass\) return;/.test(book));
+  ok("可改回單堂付款", /passUseCash/.test(book));
+  ok("我的預約有卡包", /pass-wallet/.test(mine) && /pw-dot used/.test(mine));
+  ok("4 格進度點由 total/remaining 計算", /for \(let i = 0; i < total; i\+\+\)/.test(mine));
+  ok("續購連 WhatsApp", /wa\.me\/85290335538/.test(mine) && /續購再減 \$40/.test(mine));
+  ok("一鍵預約帶 class_id", /booking\.html\?id=\$\{encodeURIComponent\(classId\)\}/.test(mine));
 }
 
 console.log(`\n📊 結果: ${passed} passed / ${failed} failed`);

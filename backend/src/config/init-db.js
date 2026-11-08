@@ -336,7 +336,7 @@ CREATE TABLE IF NOT EXISTS users (
       user_id TEXT NOT NULL,
       schedule_id TEXT NOT NULL,
       class_id TEXT NOT NULL,
-      payment_type TEXT CHECK(payment_type IN ('single','credits','membership_trial','membership_standard','membership_unlimited')),
+      payment_type TEXT CHECK(payment_type IN ('single','credits','membership_trial','membership_standard','membership_unlimited','corporate','free','pass')),
       payment_status TEXT DEFAULT 'pending' CHECK(payment_status IN ('pending','paid','refunded','partial_refund','cancelled')),
       amount REAL,
       stripe_payment_intent_id TEXT,
@@ -2380,6 +2380,13 @@ CREATE TABLE IF NOT EXISTS users (
     `);
   } catch (e) {
     console.error("platform_settlements migration 失敗:", e.message);
+  }
+
+  try {
+    require("../services/passes").ensureSchema(db);
+    console.log("✅ user_passes / pass_redemptions ready");
+  } catch (e) {
+    console.error("user_passes migration 失敗:", e.message);
   }
 
   console.log("✅ 數據庫初始化完成:", DB_PATH);

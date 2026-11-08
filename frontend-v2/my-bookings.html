@@ -54,6 +54,20 @@
     .tl .st:first-child:after{display:none}
     .tl .st.on:after,.tl .st.now:after{background:#10b981}
     .tl .st .d{display:block;font-size:10.5px;font-weight:600;color:#64748b;margin-top:2px}
+    /* 🎫 4 堂通行證卡包 */
+    .pass-wallet{background:linear-gradient(135deg,#F0FDF4 0%,#DCFCE7 100%);border:2px solid #22C55E;border-radius:16px;padding:14px 16px;margin:0 0 12px;box-shadow:0 4px 12px rgba(34,197,94,.15)}
+    .pw-head{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+    .pw-title{font-size:13px;font-weight:900;color:#166534}
+    .pw-exp{font-size:11.5px;font-weight:700;color:#15803D}
+    .pw-dots{display:flex;gap:10px;align-items:center;margin-bottom:8px}
+    .pw-dot{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-size:13px;font-weight:900;flex:0 0 auto}
+    .pw-dot.used{background:#16A34A;color:#fff;box-shadow:0 2px 6px rgba(22,163,74,.35)}
+    .pw-dot.free{background:#fff;border:2px dashed #86EFAC;color:#16A34A}
+    .pw-meta{font-size:12px;color:#166534;line-height:1.6;margin-bottom:10px}
+    .pw-actions{display:flex;gap:8px;flex-wrap:wrap}
+    .pw-actions a{flex:1;min-width:140px;text-align:center;text-decoration:none;font-size:13px;font-weight:800;border-radius:10px;padding:10px 12px}
+    .pw-actions .pw-book{background:#15803D;color:#fff}
+    .pw-actions .pw-renew{background:#fff;color:#15803D;border:1.5px solid #22C55E}
     .mini{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
     .mini a,.mini button{font:inherit;font-size:12px;font-weight:800;color:var(--brand-600);text-decoration:none;background:#f1f5f9;border:0;border-radius:99px;padding:6px 11px;cursor:pointer}
   </style>
@@ -79,6 +93,7 @@
   <div class="topbar"><a class="back" href="my.html">‹</a><div class="title">我的預約</div></div>
 
   <div class="wrap">
+    <div id="passWallet" hidden></div>
     <div class="tabs" style="margin:0 -16px 12px">
       <button class="on" data-tab="upcoming">即將</button>
       <button data-tab="past">已完成</button>
@@ -456,6 +471,51 @@
       const r = await api.get("/bookings/my?limit=50");
       all = (r.data && r.data.bookings) || [];
       render();
+      loadPassWallet();
+    }
+
+    // 🎫 4 堂通行證卡包
+    async function loadPassWallet() {
+      const box = document.getElementById("passWallet");
+      if (!box) return;
+      try {
+        const r = await api.get("/passes/my");
+        const list = (r.ok && r.data && r.data.passes) || [];
+        if (!list.length) { box.hidden = true; return; }
+        const p = list[0];
+        const total = Number(p.total_credits) || 4;
+        const left = Number(p.remaining_credits) || 0;
+        const used = Math.max(0, total - left);
+        const slots = p.used_slots || [];
+        let dots = "";
+        for (let i = 0; i < total; i++) {
+          dots += i < used
+            ? `<span class="pw-dot used" title="${slots[i] ? (slots[i].start_time || "").slice(0, 10) : "已使用"}">✓</span>`
+            : `<span class="pw-dot free">${i + 1}</span>`;
+        }
+        const exp = String(p.expires_at || "").slice(0, 10).replace(/-/g, "/");
+        const usedTxt = slots.length
+          ? "已上：" + slots.map(s => `${(s.start_time || "").slice(5, 10).replace("-", "/")} ${s.venue_name || ""}`).join("、")
+          : "仲未開始用";
+        const classId = (slots[slots.length - 1] && slots[slots.length - 1].class_id) || "";
+        const nextHref = classId ? `booking.html?id=${encodeURIComponent(classId)}` : "explore.html";
+        const wa = "https://wa.me/85290335538?text=" + encodeURIComponent(
+          `你好，我想續購 4 堂通行證（${p.student_name}，卡號 ${p.id}），請提供付款方法。`
+        );
+        box.innerHTML = `<div class="pass-wallet">
+          <div class="pw-head">
+            <span class="pw-title">🎫 樂齡 4 堂通行證 · ${esc(p.student_name || "")}</span>
+            <span class="pw-exp">有效期至 ${exp || "—"}</span>
+          </div>
+          <div class="pw-dots">${dots}</div>
+          <div class="pw-meta">尚餘 <b>${left}</b> 堂 · <span style="opacity:.85">${esc(usedTxt)}</span></div>
+          <div class="pw-actions">
+            <a class="pw-book" href="${nextHref}">📅 一鍵預約下一堂</a>
+            <a class="pw-renew" href="${wa}" target="_blank" rel="noopener">🔄 4 堂用完？續購再減 $40</a>
+          </div>
+        </div>`;
+        box.hidden = false;
+      } catch (e) { box.hidden = true; }
     }
 
     document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => {

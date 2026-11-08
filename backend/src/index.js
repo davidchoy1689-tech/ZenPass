@@ -307,6 +307,7 @@ app.use("/api/crm", require("./routes/crm"));
 app.use("/api/locations", require("./routes/pos"));
 app.use("/api/pos", require("./routes/pos"));
 app.use("/api/waitlist", require("./routes/waitlist"));
+app.use("/api/passes", require("./routes/passes"));
 app.use("/api/activity", require("./routes/activity"));
 app.use("/api/ai", require("./routes/ai"));
 app.use("/api/ai-class", require("./routes/ai-class"));

@@ -33,6 +33,22 @@
     .seat-urgency-wrapper.full .seat-count-text strong{ color:#595959; }
     @media (prefers-reduced-motion: reduce){ .seat-progress-fill{ transition:none; } }
 
+    /* ===== 🎫 4 堂通行證扣堂卡 ===== */
+    .pass-redeem-card{ background:linear-gradient(135deg,#F0FDF4 0%,#DCFCE7 100%); border:2px solid #22C55E; border-radius:14px; padding:16px; margin:16px 0; box-shadow:0 4px 12px rgba(34,197,94,.15); }
+    .pass-redeem-header{ display:flex; justify-content:space-between; align-items:center; gap:8px; font-size:13px; margin-bottom:12px; flex-wrap:wrap; }
+    .badge-pass-active{ background:#16A34A; color:#fff; font-weight:700; padding:3px 8px; border-radius:6px; font-size:12px; }
+    .pass-expire-hint{ color:#166534; font-size:11.5px; font-weight:700; }
+    .pass-credit-display{ display:flex; align-items:center; gap:16px; background:#fff; border-radius:10px; padding:12px 14px; margin-bottom:12px; flex-wrap:wrap; }
+    .credit-counter{ display:flex; align-items:baseline; gap:2px; color:#15803D; }
+    .credit-num{ font-size:28px; font-weight:900; line-height:1; }
+    .credit-unit{ font-size:13px; font-weight:700; }
+    .credit-deduct-math{ font-size:14px; color:#334155; border-left:1.5px solid #CBD5E1; padding-left:14px; }
+    .pass-auto-perk{ font-size:12.5px; color:#166534; background:rgba(255,255,255,.7); border-radius:8px; padding:8px 10px; margin-bottom:12px; line-height:1.45; }
+    .btn-pass-confirm{ width:100%; height:52px; background:#15803D; color:#fff; font-size:17px; font-weight:800; border:none; border-radius:10px; cursor:pointer; touch-action:manipulation; transition:transform .1s ease; font-family:inherit; }
+    .btn-pass-confirm:active{ transform:scale(.98); }
+    .btn-pass-confirm:disabled{ background:#94A3B8; cursor:not-allowed; }
+    .pass-alt{ text-align:center; font-size:12px; color:#64748B; margin-top:10px; }
+
     /* ===== 📋 FPS 一鍵複製卡 ===== */
     .fps-copy-box{ display:flex; align-items:center; justify-content:space-between; gap:10px; background:#F0FDF4; border:1.5px dashed #22C55E; border-radius:12px; padding:12px 16px; margin:12px 0 6px; }
     .fps-info-col{ display:flex; flex-direction:column; gap:2px; min-width:0; }
@@ -417,7 +433,22 @@
         </div>
         <div id="promoMsg" class="promo-msg" role="status" aria-live="polite"></div>
       </div></div>
-      <div class="spacer"></div>
+      <div id="passRedeem" hidden>
+        <div class="pass-redeem-card" id="pass-redeem-container">
+          <div class="pass-redeem-header">
+            <span class="badge-pass-active">🎫 樂齡 4 堂通行卡已生效</span>
+            <span class="pass-expire-hint" id="passExpire">有效期至：—</span>
+          </div>
+          <div class="pass-credit-display">
+            <div class="credit-counter"><span class="credit-num" id="passCreditNum">0</span><span class="credit-unit">堂可用</span></div>
+            <div class="credit-deduct-math" id="passDeductMath">扣除：<strong>1 堂</strong> ➔ 預約後尚餘 <strong>0 堂</strong></div>
+          </div>
+          <div class="pass-auto-perk">✨ 專屬禮遇：已為 <b id="passStudentName">學員</b> 自動保留席位，無需重複 FPS 對數！</div>
+          <button type="button" class="btn-pass-confirm" id="btn-pass-submit">⚡ 立即以通行卡扣堂確認（實付 $0）</button>
+        </div>
+        <div class="pass-alt">或 <a href="#" id="passUseCash">改用單堂付款（FPS／PayMe）</a></div>
+        <div class="spacer"></div>
+      </div>
       <label style="display:flex;gap:8px;align-items:flex-start;font-size:13px;color:var(--text-muted)">
         <input type="checkbox" id="consent" />
         <span>我明白如缺席（no-show）會按政策收取 penalty credits。</span>
@@ -609,6 +640,7 @@
     let guestQty = 1;
     let payTotalValue = 0;
     let payIds = [], payRefs = [], payUnit = 0, payMethod = "fps", cdTimer = null, receiptUrl = "";
+    let activePass = null, passBusy = false;
 
     const banOf = (s) => (s.notes||"").includes("A班") ? "A" : (s.notes||"").includes("B班") ? "B" : "全";
     const monthKey = (iso) => { const d = new Date(iso); return d.getFullYear() + "年" + (d.getMonth()+1) + "月"; };
@@ -646,6 +678,7 @@
       let loggedIn = api.isLoggedIn();
       if (!loggedIn) { try { const me = await api.get("/users/me"); loggedIn = !!(me && me.ok); } catch (e) {} }
       isGuest = !loggedIn;
+      if (!isGuest) loadPass();
       // 📱 已登入但資料未齊（電話／健康聲明）→ 軟提示，唔阻止預約
       if (!isGuest) {
         try {
@@ -861,7 +894,100 @@
       $("barTotal").innerHTML = n ? (cr(p.total) + "cr <span class='muted' style='font-weight:500;font-size:12px'>/ " + hkd(p.total) + (p.disc ? " · 已減 " + hkd(p.disc) : "") + "</span>") : "—";
       $("bar").style.display = ($("step1").classList.contains("hide") ? "none" : "flex");
       refreshPayBtn();
+      updatePassCard();
     }
+
+    // 🎫 4 堂通行證：偵測 → 顯示扣堂卡（Step 2 直接用，$0 跳過付款）
+    async function loadPass() {
+      if (isGuest) return;
+      try {
+        const r = await api.get("/passes/my");
+        const list = (r.ok && r.data && r.data.passes) || [];
+        if (!list.length) return;
+        activePass = list[0];
+        $("passRedeem").hidden = false;
+        $("passStudentName").textContent = activePass.student_name || "學員";
+        const d = String(activePass.expires_at || "").slice(0, 10).replace(/-/g, "/");
+        $("passExpire").textContent = "有效期至：" + (d || "—");
+        updatePassCard();
+      } catch (e) {}
+    }
+    function updatePassCard() {
+      if (!activePass || !$("passRedeem") || $("passRedeem").hidden) return;
+      const n = Math.max(1, sel.size || 1);
+      const left = Number(activePass.remaining_credits) || 0;
+      $("passCreditNum").textContent = String(left);
+      $("passDeductMath").innerHTML = `扣除：<strong>${n} 堂</strong> ➔ 預約後尚餘 <strong>${Math.max(0, left - n)} 堂</strong>`;
+      const btn = $("btn-pass-submit");
+      if (!btn || passBusy) return;
+      const notEnough = n > left;
+      btn.disabled = notEnough;
+      btn.textContent = notEnough
+        ? `⚠️ 剩餘 ${left} 堂，唔夠 ${n} 堂（請減少選擇或續購）`
+        : `⚡ 立即以通行卡扣堂確認（實付 $0）`;
+    }
+    const passBtn = $("btn-pass-submit");
+    if (passBtn) passBtn.onclick = async () => {
+      if (passBusy || !activePass) return;
+      if (!sel.size) { alert("請揀最少一堂"); return; }
+      if (!$("consent").checked) { alert("請先同意缺席政策"); return; }
+      const attendee = getAttendeePayload();
+      if (!attendee) return;
+      const chosen = sessions.filter(s => sel.has(s.id)).sort((a, b) => a.start_time.localeCompare(b.start_time));
+      if (chosen.length > Number(activePass.remaining_credits)) { alert("通行證剩餘堂數不足"); return; }
+
+      passBusy = true;
+      const btn = $("btn-pass-submit");
+      const oldText = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = "⏳ 正在扣堂確認席位...";
+      let done = 0, lastErr = "";
+      for (const s of chosen) {
+        try {
+          const r = await api.post("/bookings/redeem-pass", {
+            pass_id: activePass.id,
+            schedule_id: s.id,
+            class_id: classId,
+            attendee,
+            penalty_consent: true,
+          });
+          if (r.ok && r.data && (r.data.success !== false)) {
+            done++;
+            if (r.data.pass) activePass.remaining_credits = r.data.pass.remaining_credits;
+          } else {
+            lastErr = (r.data && (r.data.error || r.data.message)) || "扣堂失敗";
+            break;
+          }
+        } catch (e) {
+          lastErr = "網絡問題，請重試";
+          break;
+        }
+      }
+      passBusy = false;
+      if (done === chosen.length) {
+        btn.textContent = "✅ 扣堂成功，正在前往預約紀錄…";
+        try { localStorage.removeItem("zenpass_waiver_agreed_pending"); } catch (e) {}
+        location.href = "my-bookings.html?pass=1";
+        return;
+      }
+      if (done > 0) {
+        alert(`已成功扣堂 ${done} / ${chosen.length} 堂，其餘失敗：${lastErr}
+請到「我的預約」確認。`);
+        location.href = "my-bookings.html?pass=1";
+        return;
+      }
+      btn.disabled = false;
+      btn.textContent = oldText;
+      alert("⚠️ " + (lastErr || "扣堂失敗，請稍後再試"));
+      loadPass();
+    };
+    const passCash = $("passUseCash");
+    if (passCash) passCash.onclick = (e) => {
+      e.preventDefault();
+      activePass = null;
+      $("passRedeem").hidden = true;
+      $("payNow").scrollIntoView({ behavior: "smooth", block: "center" });
+    };
 
     $("barNext").onclick = () => {
       if (!sel.size) { alert("請揀最少一堂"); return; }

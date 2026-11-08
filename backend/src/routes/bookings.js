@@ -16,8 +16,69 @@ const { validatePromo, normalize } = require("../services/promo");
 const bookingQr = require("../services/booking-qr");
 const { claimPayment } = require("../services/payment-claim");
 const Booking = require("../models/Booking");
+const passesService = require("../services/passes");
+const { audit } = require("../services/audit");
 
 const router = express.Router();
+
+// ===== POST /api/bookings/redeem-pass — 用 4 堂通行證扣堂（$0，即時確認） =====
+router.post(
+  "/redeem-pass",
+  authenticateToken,
+  scalpGuard,
+  unpaidHoldGuard,
+  requireIdempotency,
+  async (req, res) => {
+    try {
+      const body = req.body || {};
+      const passId = String(body.pass_id || body.passId || "").trim();
+      const scheduleId = body.schedule_id || body.scheduleId;
+      const classId = body.class_id || body.classId;
+      if (!passId) return res.status(400).json({ success: false, error: "缺少通行證編號", code: "PASS_ID_REQUIRED" });
+      if (!scheduleId || !classId) return res.status(400).json({ success: false, error: "缺少預約資料" });
+
+      const db = getDb();
+      passesService.ensureSchema(db);
+      const user = db.prepare("SELECT id, phone FROM users WHERE id = ?").get(req.user.id);
+      const chk = passesService.findUsable(db, passId, user || req.user);
+      if (!chk.ok) {
+        return res.status(chk.code === "PASS_FORBIDDEN" ? 403 : 400).json({ success: false, error: chk.error, code: chk.code });
+      }
+
+      const fakeReq = Object.assign(Object.create(Object.getPrototypeOf(req)), req, {
+        body: {
+          schedule_id: scheduleId,
+          class_id: classId,
+          payment_type: "pass",
+          pass_id: passId,
+          penalty_consent: body.penalty_consent !== undefined ? body.penalty_consent : body.penaltyConsent,
+          attendee: body.attendee || null,
+          group_size: 1,
+        },
+        params: req.params,
+        query: req.query,
+        headers: req.headers,
+      });
+      const result = await bookingService.createBooking(fakeReq);
+      if (result.status === 201) {
+        try {
+          audit({
+            actionType: "pass.redeemed",
+            entityType: "user_pass",
+            entityId: passId,
+            userId: req.user.id,
+            newValues: { booking_id: result.body.booking_id, remaining: result.body.pass && result.body.pass.remaining_credits },
+            description: `通行證扣 1 堂 → 預約 ${result.body.booking_reference || result.body.booking_id}`,
+          });
+        } catch (e) {}
+      }
+      return res.status(result.status).json(result.body);
+    } catch (err) {
+      console.error("redeem-pass 錯誤:", err);
+      res.status(500).json({ success: false, error: "扣堂預約失敗，請稍後再試" });
+    }
+  }
+);
 
 // ===== POST /api/bookings — 建立預約 =====
 router.post(

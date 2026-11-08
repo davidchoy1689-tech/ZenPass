@@ -134,6 +134,50 @@ function updateDatabase() {
     console.log("⚠️ Migration skip (maybe already applied):", e.message);
   }
 
+  // ===== Migration: 放寬 bookings.payment_type CHECK 加入 corporate / free / pass =====
+  // 通行證（pass）需要獨立 payment_type；corporate/free 一直存在但舊 CHECK 冇包含。
+  try {
+    const bk = db
+      .prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='bookings'")
+      .get();
+    if (bk && bk.sql && !/['"]pass['"]/.test(bk.sql)) {
+      const cols = db.prepare("PRAGMA table_info(bookings)").all().map((c) => c.name);
+      const colList = cols.map((c) => `"${c}"`).join(", ");
+      const idxSqls = db
+        .prepare("SELECT sql FROM sqlite_master WHERE type='index' AND tbl_name='bookings' AND sql IS NOT NULL")
+        .all().map((r) => r.sql);
+      const trgSqls = db
+        .prepare("SELECT sql FROM sqlite_master WHERE type='trigger' AND tbl_name='bookings'")
+        .all().map((r) => r.sql);
+      const newSql = bk.sql
+        .replace(/CREATE TABLE\s+(IF NOT EXISTS\s+)?"?bookings"?/i, "CREATE TABLE bookings_new")
+        .replace(
+          /payment_type\s+IN\s*\([^)]*\)/i,
+          "payment_type IN ('single','credits','membership_trial','membership_standard','membership_unlimited','corporate','free','pass')",
+        );
+      if (!/['"]pass['"]/.test(newSql)) throw new Error("payment_type CHECK 未匹配");
+      db.pragma("foreign_keys = OFF");
+      db.exec("BEGIN");
+      try {
+        db.exec(newSql);
+        db.prepare(`INSERT INTO bookings_new (${colList}) SELECT ${colList} FROM bookings`).run();
+        db.exec("DROP TABLE bookings");
+        db.exec("ALTER TABLE bookings_new RENAME TO bookings");
+        for (const s of idxSqls) db.exec(s);
+        for (const s of trgSqls) db.exec(s);
+        db.exec("COMMIT");
+        console.log("✅ Migration: bookings payment_type CHECK 加入 corporate/free/pass");
+      } catch (e) {
+        db.exec("ROLLBACK");
+        throw e;
+      } finally {
+        db.pragma("foreign_keys = ON");
+      }
+    }
+  } catch (e) {
+    console.log("⚠️ payment_type CHECK migration skip:", e.message);
+  }
+
   // ===== Migration: 放寬 bookings.payment_status CHECK 加入 'partial_refund' =====
   // refund.js 會寫 'partial_refund'，但舊 CHECK 唔准 → 部分退款會 throw。
   // SQLite 改唔到 CHECK，所以要重建表（用現有 DDL 改字串，保留所有欄位/index/trigger）。
