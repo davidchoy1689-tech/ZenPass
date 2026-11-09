@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#059669" />
+  <meta name="robots" content="noindex" />
+  <title>收入月結 · ZenPass</title>
+  <link rel="stylesheet" href="assets/v2.css?v=26" />
+  <link rel="stylesheet" href="assets/polish.css?v=1" />
+  <link rel="stylesheet" href="assets/ui-v3.css?v=5" />
+  <style>
+    body{background:#F8FAFC;color:#0F172A}
+    .e-wrap{max-width:820px;margin:0 auto;padding:14px 14px 90px}
+    .e-head{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+    .e-head h1{font-size:17px;font-weight:900;flex:1;margin:0}
+    .e-head input{border:1.5px solid #CBD5E1;border-radius:9px;padding:6px 8px;font:inherit;font-size:13px}
+    .kpis{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+    .kpi{background:#fff;border:1.5px solid #E2E8F0;border-radius:14px;padding:12px}
+    .kpi .k{font-size:11px;color:#64748B;font-weight:700}
+    .kpi .v{font-size:22px;font-weight:900;margin-top:3px;letter-spacing:-.02em}
+    .kpi .s{font-size:10.5px;color:#94A3B8;margin-top:2px}
+    .kpi.hero{grid-column:span 2;background:#ECFDF5;border-color:#A7F3D0}
+    .kpi.hero .v{color:#065F46;font-size:30px}
+    .e-actions{display:flex;gap:8px;margin-bottom:12px}
+    .e-btn{flex:1;min-height:46px;border-radius:10px;border:1.5px solid #CBD5E1;background:#fff;font-weight:800;font-size:13px;cursor:pointer}
+    .e-btn.primary{background:#059669;border-color:#059669;color:#fff}
+    .e-month{font-size:13px;font-weight:800;color:#334155;margin:14px 0 8px}
+    .e-row{background:#fff;border:1.5px solid #E2E8F0;border-radius:12px;padding:11px 12px;margin-bottom:8px}
+    .e-row .top{display:flex;justify-content:space-between;gap:8px}
+    .e-row .t{font-size:13.5px;font-weight:800}
+    .e-row .m{font-size:11.5px;color:#64748B;margin-top:2px}
+    .e-row .amt{font-size:15px;font-weight:900;color:#065F46;white-space:nowrap}
+    .pill{display:inline-block;font-size:10.5px;font-weight:800;border-radius:999px;padding:1px 8px;margin-top:5px}
+    .pill.paid{background:#ECFDF5;color:#065F46;border:1px solid #A7F3D0}
+    .pill.pending{background:#FEF3C7;color:#92400E;border:1px solid #FDE68A}
+    .e-empty{text-align:center;color:#64748B;font-size:13px;padding:24px}
+  </style>
+</head>
+<body>
+  <div class="e-wrap">
+    <div class="e-head">
+      <h1>收入月結</h1>
+      <input type="month" id="month">
+    </div>
+    <div class="kpis" id="kpis"></div>
+    <div class="e-actions">
+      <button class="e-btn primary" id="csvBtn">📥 匯出 Excel / CSV 月結單</button>
+    </div>
+    <div class="e-month" id="monthLabel"></div>
+    <div id="rows"><div class="e-empty">載入中…</div></div>
+  </div>
+<script src="assets/api.js?v=10"></script>
+<script>
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const hkd = (n) => "HK$" + Number(n || 0).toLocaleString("en-HK", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+  let DATA = null;
+
+  async function load() {
+    const m = $("month").value || new Date().toISOString().slice(0, 7);
+    const r = await api.get("/coach/earnings/summary?month=" + encodeURIComponent(m));
+    if (!r.ok) { $("rows").innerHTML = `<div class="e-empty">${esc((r.data && r.data.error) || "讀取失敗")}</div>`; return; }
+    DATA = r.data;
+    render();
+  }
+
+  function render() {
+    const d = DATA;
+    $("monthLabel").textContent = d.month + " 班次明細";
+    $("kpis").innerHTML = `
+      <div class="kpi hero"><div class="k">💳 本月累計應收</div><div class="v">${hkd(d.total_earned)}</div><div class="s">教練拆帳 ${Math.round(d.commission_rate * 100)}% · 以出席人次計</div></div>
+      <div class="kpi"><div class="k">⏱️ 授課堂數</div><div class="v">${d.total_sessions}</div><div class="s">有出席紀錄嘅班次</div></div>
+      <div class="kpi"><div class="k">👥 服務學員人次</div><div class="v">${d.total_attended_students}</div><div class="s">出席＋未合規缺席</div></div>
+      <div class="kpi"><div class="k">🟢 待出帳</div><div class="v">${hkd(d.pending_payout)}</div><div class="s">已出帳 ${hkd(d.paid_payout)}</div></div>
+    `;
+    const rows = (d.sessions_breakdown || []).filter((x) => x.attended_count > 0);
+    if (!rows.length) { $("rows").innerHTML = '<div class="e-empty">本月暫時未有出席紀錄</div>'; return; }
+    $("rows").innerHTML = rows.map((r) => `
+      <div class="e-row">
+        <div class="top"><div><div class="t">${esc(r.course_title)}</div>
+        <div class="m">${esc(r.date)} · ${esc(r.venue || "")} · ${r.attended_count} 人出席</div></div>
+        <div class="amt">${hkd(r.session_payout)}</div></div>
+        <span class="pill ${r.status === "paid" ? "paid" : "pending"}">${r.status === "paid" ? "已核實 · 已出帳" : "待出帳"}</span>
+      </div>`).join("");
+  }
+
+  $("csvBtn").onclick = async () => {
+    const m = $("month").value || new Date().toISOString().slice(0, 7);
+    const token = (window.api && api.getToken && api.getToken()) || localStorage.getItem("zenpass_token") || "";
+    const res = await fetch("/api/coach/earnings/export-csv?month=" + encodeURIComponent(m), {
+      headers: token ? { Authorization: "Bearer " + token } : {},
+      credentials: "include",
+    });
+    if (!res.ok) { alert("匯出失敗：" + res.status); return; }
+    const blob = await res.blob();
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `zenpass-earnings-${m}.csv`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  };
+
+  $("month").onchange = load;
+  (async () => {
+    const me = await api.me();
+    if (!me.ok) { location.href = "login.html?next=" + encodeURIComponent(location.pathname + location.search); return; }
+    $("month").value = new Date().toISOString().slice(0, 7);
+    load();
+  })();
+</script>
+</body>
+</html>

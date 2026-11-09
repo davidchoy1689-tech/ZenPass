@@ -32,6 +32,10 @@
     .hb-toast.on{opacity:1}
     .hb-photos{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
     .hb-photos img{width:56px;height:56px;object-fit:cover;border-radius:8px;border:1px solid #E2E8F0}
+    .hb-tags{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+    .hb-tag{border:1.5px solid #CBD5E1;background:#fff;border-radius:999px;padding:4px 10px;font-size:11.5px;font-weight:700;color:#475569;cursor:pointer}
+    .hb-tag.on{background:#DCFCE7;border-color:#6EE7B7;color:#065F46}
+    .hb-hw{width:100%;border:1.5px solid #CBD5E1;border-radius:10px;padding:9px 10px;font:inherit;font-size:12.5px;margin-top:6px}
   </style>
 </head>
 <body>
@@ -82,8 +86,12 @@
     STUDENTS = (r.data.students || []).filter((s) => ["confirmed", "attended", "no_show"].includes(s.booking_status));
     $("sub").textContent = `${sch.title || ""} · ${String(sch.start_time || "").replace("T", " ").slice(0, 16)} · ${STUDENTS.length} 位`;
     try {
-      const hr = await api.get("/coach/handbook?schedule_id=" + encodeURIComponent(SID));
-      (hr.data.handbooks || []).forEach((h) => { BOOKS[h.booking_id] = h; });
+      const ids = [...new Set(STUDENTS.map((s) => s.user_id).filter(Boolean))];
+      const res = await Promise.all(ids.map((id) => api.get("/coach/handbook/students/" + encodeURIComponent(id))));
+      res.forEach((hr, i) => {
+        const h = (hr.ok && hr.data.handbooks && hr.data.handbooks[0]) || null;
+        if (h) BOOKS[ids[i]] = h;
+      });
     } catch (e) {}
     render();
   }
@@ -91,13 +99,16 @@
   function render() {
     if (!STUDENTS.length) { $("list").innerHTML = '<div class="hb-empty">此班暫時未有學員</div>'; return; }
     $("list").innerHTML = STUDENTS.map((s) => {
-      const h = BOOKS[s.id];
+      const h = BOOKS[s.user_id];
       const name = s.attendee_type === "child" ? (s.child_name || s.name) : (s.name || "學員");
-      const photos = h ? JSON.parse(h.photos || "[]") : [];
-      return `<div class="hb-card ${h ? "hb-done" : ""}" data-bid="${esc(s.id)}">
+      const photos = h ? (h.photos || []) : [];
+      const selTags = h ? (h.tags || []) : [];
+      return `<div class="hb-card ${h ? "hb-done" : ""}" data-bid="${esc(s.id)}" data-sid="${esc(s.user_id)}">
         <div class="hb-name">${esc(name)} ${h ? '<span style="font-size:10.5px;color:#059669;font-weight:800">✅ 已發佈</span>' : ""}</div>
         <div class="hb-meta">${esc(s.phone || "")} · ${esc(s.booking_status)}</div>
         <textarea placeholder="今日表現、進步位、下次練習建議…（最少 2 字）" data-comment>${h ? esc(h.comment) : ""}</textarea>
+        <div class="hb-tags">${["握法熟練","步法穩定","力量控制得宜","關節活動度提升","防跌重心穩健","坐站無痛舒緩","呼吸節奏協調"].map((t) => `<button type="button" class="hb-tag ${selTags.includes(t) ? "on" : ""}" data-tag="${esc(t)}">${esc(t)}</button>`).join("")}</div>
+        <input class="hb-hw" placeholder="🏠 回家功課（選填，例如：每日 10 次坐站伸展）" value="${h ? esc(h.homework || "") : ""}" data-hw>
         <div class="hb-photos">${photos.map((p) => `<img src="${esc(p)}" alt="手冊相片">`).join("")}</div>
         <div class="hb-row">
           <input class="hb-file" type="file" accept="image/jpeg,image/png,image/webp" multiple data-file>
@@ -118,11 +129,13 @@
           const files = Array.from(card.querySelector("[data-file]").files || []).slice(0, 3);
           const photos = [];
           for (const f of files) photos.push(await readCompressed(f));
-          const r = await api.post("/coach/handbook", { schedule_id: SID, booking_id: bid, comment, photos });
+          const tags = Array.from(card.querySelectorAll(".hb-tag.on")).map((x) => x.dataset.tag);
+          const homework = (card.querySelector("[data-hw]") || {}).value || "";
+          const r = await api.post("/coach/handbook/log", { session_id: SID, student_id: card.dataset.sid, comment, tags, homework, photos });
           if (r.ok) {
             toast(`✅ 已發佈${r.data.updated ? "（更新）" : ""} · ${String(r.data.sha256).slice(0, 10)}…`);
-            const hr = await api.get("/coach/handbook?schedule_id=" + encodeURIComponent(SID));
-            BOOKS = {}; (hr.data.handbooks || []).forEach((h) => { BOOKS[h.booking_id] = h; });
+            const hr = await api.get("/coach/handbook/students/" + encodeURIComponent(card.dataset.sid));
+            if (hr.ok && hr.data.handbooks && hr.data.handbooks[0]) BOOKS[card.dataset.sid] = hr.data.handbooks[0];
             render();
           } else {
             toast("❌ " + ((r.data && r.data.error) || "發佈失敗"));
@@ -134,6 +147,7 @@
         }
       };
     });
+    $("list").querySelectorAll(".hb-tag").forEach((t) => { t.onclick = () => t.classList.toggle("on"); });
   }
 
   load();

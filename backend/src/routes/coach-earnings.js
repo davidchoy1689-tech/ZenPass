@@ -1283,5 +1283,108 @@ router.get("/payouts/history", authenticateToken, (req, res) => {
   }
 });
 
+// ===== P1 工單四：月結 summary + CSV =====
+function monthWindow(month) {
+  const m = /^\d{4}-\d{2}$/.test(String(month || "")) ? String(month) : new Date().toISOString().slice(0, 7);
+  return { month: m };
+}
+
+function buildMonthlyBreakdown(db, coachId, month) {
+  const scheds = db
+    .prepare(
+      `SELECT s.id, s.start_time, s.end_time, c.title, c.venue_name, c.price_hkd
+         FROM class_schedules s JOIN classes c ON c.id=s.class_id
+        WHERE c.coach_id=? AND substr(s.start_time,1,7)=? AND COALESCE(s.status,'')<>'cancelled'
+        ORDER BY s.start_time`,
+    )
+    .all(coachId, month);
+  const u = db.prepare("SELECT commission_rate FROM users WHERE id=?").get(coachId);
+  const rate = u && Number(u.commission_rate) > 0 ? Number(u.commission_rate) : 0.8;
+  const countStmt = db.prepare(
+    `SELECT COUNT(*) c FROM bookings b LEFT JOIN attendances a ON a.booking_id=b.id
+      WHERE b.schedule_id=? AND b.payment_status='paid'
+        AND (a.status IN ('present','absent_unexcused','late')
+             OR (a.status IS NULL AND b.status IN ('attended','no_show')))`,
+  );
+  const ceStmt = db.prepare("SELECT status, net_amount FROM coach_earnings WHERE schedule_id=?");
+  let totalCents = 0, sessions = 0, students = 0, paidCents = 0;
+  const rows = scheds.map((s) => {
+    const attended = Number(countStmt.get(s.id).c) || 0;
+    const unitCents = Math.round(Number(s.price_hkd || 0) * 100);
+    const payoutCents = Math.round(unitCents * rate) * attended;
+    const ce = ceStmt.get(s.id);
+    const status = ce && ce.status === "paid" ? "paid" : "pending";
+    if (attended > 0) {
+      totalCents += payoutCents;
+      students += attended;
+      sessions += 1;
+      if (status === "paid") paidCents += Math.round(Number(ce.net_amount || 0) * 100) || payoutCents;
+    }
+    return {
+      session_id: s.id,
+      receipt_no: "ZP-" + String(s.id).slice(0, 8).toUpperCase(),
+      date: String(s.start_time).slice(0, 10),
+      course_title: s.title,
+      venue: s.venue_name || "",
+      attended_count: attended,
+      session_payout: payoutCents / 100,
+      status,
+    };
+  });
+  paidCents = Math.min(paidCents, totalCents);
+  return {
+    month,
+    total_earned: totalCents / 100,
+    total_sessions: sessions,
+    total_attended_students: students,
+    pending_payout: (totalCents - paidCents) / 100,
+    paid_payout: paidCents / 100,
+    commission_rate: rate,
+    sessions_breakdown: rows,
+  };
+}
+
+router.get("/earnings/summary", authenticateToken, (req, res) => {
+  try {
+    const db = getDb();
+    const { month } = monthWindow(req.query.month);
+    res.json({ success: true, ...buildMonthlyBreakdown(db, req.user.id, month) });
+  } catch (e) {
+    console.error("[EARNINGS] summary:", e.message);
+    res.status(500).json({ success: false, error: "讀取收入失敗" });
+  }
+});
+
+router.get("/earnings/export-csv", authenticateToken, (req, res) => {
+  try {
+    const db = getDb();
+    const { month } = monthWindow(req.query.month);
+    const data = buildMonthlyBreakdown(db, req.user.id, month);
+    const esc = (v) => {
+      const s = String(v == null ? "" : v);
+      return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+    };
+    const head = ["收據/場次編號", "課堂日期", "課堂名稱", "場地", "出席學員人數", "應付堂費(HK$)", "結算狀態", "備註"];
+    const lines = [head.join(",")];
+    for (const r of data.sessions_breakdown) {
+      if (!r.attended_count) continue;
+      lines.push([
+        r.receipt_no, r.date, r.course_title, r.venue, r.attended_count,
+        Number(r.session_payout).toFixed(2),
+        r.status === "paid" ? "已核實" : "待出帳",
+        "",
+      ].map(esc).join(","));
+    }
+    lines.push(["合計", "", "", "", data.total_attended_students, Number(data.total_earned).toFixed(2), "", ""].map(esc).join(","));
+    const csv = "\uFEFF" + lines.join("\r\n");
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader("Content-Disposition", `attachment; filename="zenpass-earnings-${month}.csv"`);
+    res.send(csv);
+  } catch (e) {
+    console.error("[EARNINGS] csv:", e.message);
+    res.status(500).json({ success: false, error: "匯出失敗" });
+  }
+});
+
 module.exports = router;
 module.exports.syncCoachEarningsForSchedule = syncCoachEarningsForSchedule;

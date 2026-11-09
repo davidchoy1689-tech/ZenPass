@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#059669" />
+  <meta name="robots" content="noindex" />
+  <title>我的運動手冊 · ZenPass</title>
+  <link rel="stylesheet" href="assets/v2.css?v=26" />
+  <link rel="stylesheet" href="assets/polish.css?v=1" />
+  <link rel="stylesheet" href="assets/ui-v3.css?v=5" />
+  <style>
+    body{background:#F8FAFC;color:#0F172A;font-size:16px}
+    .h-wrap{max-width:720px;margin:0 auto;padding:16px 14px 90px}
+    .h-head{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+    .h-head h1{font-size:20px;font-weight:900;margin:0;flex:1}
+    .h-head a{font-size:13px;font-weight:700;color:#059669;text-decoration:none}
+    .h-tl{position:relative;padding-left:18px}
+    .h-tl::before{content:"";position:absolute;left:5px;top:4px;bottom:0;width:2px;background:#A7F3D0}
+    .h-card{position:relative;background:#fff;border:1.5px solid #E2E8F0;border-radius:14px;padding:14px;margin-bottom:14px}
+    .h-card::before{content:"";position:absolute;left:-17px;top:18px;width:10px;height:10px;border-radius:50%;background:#059669;border:2px solid #fff;box-shadow:0 0 0 2px #A7F3D0}
+    .h-date{font-size:12px;font-weight:800;color:#059669;background:#ECFDF5;border:1px solid #D1FAE5;border-radius:999px;padding:2px 8px;display:inline-block}
+    .h-tags{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+    .h-tag{font-size:12px;font-weight:800;color:#065F46;background:#DCFCE7;border-radius:6px;padding:3px 8px}
+    .h-comment{font-size:15.5px;line-height:1.7;margin:6px 0;white-space:pre-line}
+    .h-hw{background:#F0FDF4;border:1px solid #BBF7D0;border-radius:10px;padding:9px 11px;font-size:14px;line-height:1.6;margin-top:8px}
+    .h-photos{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:10px}
+    .h-photos img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;border:1px solid #E2E8F0}
+    .h-replies{margin-top:12px;border-top:1px dashed #E2E8F0;padding-top:10px;display:flex;flex-direction:column;gap:7px}
+    .h-reply{font-size:13.5px;line-height:1.55;background:#F8FAFC;border-radius:8px;padding:7px 9px}
+    .h-reply b{color:#065F46}
+    .h-form{display:flex;gap:6px;margin-top:8px}
+    .h-form input{flex:1;border:1.5px solid #CBD5E1;border-radius:9px;padding:10px;font:inherit;font-size:14px}
+    .h-form button{border:0;background:#059669;color:#fff;border-radius:9px;padding:0 14px;font-weight:900;font-size:14px;cursor:pointer}
+    .h-empty{text-align:center;color:#64748B;padding:30px;font-size:15px}
+    .h-toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:#0F172A;color:#fff;padding:10px 16px;border-radius:999px;font-size:14px;font-weight:700;opacity:0;transition:.2s;z-index:99}
+    .h-toast.on{opacity:1}
+  </style>
+</head>
+<body>
+  <div class="h-wrap">
+    <div class="h-head"><h1 id="title">我的運動手冊</h1><a href="my-bookings.html">返回預約</a></div>
+    <div id="list"><div class="h-empty">載入中…</div></div>
+  </div>
+  <div class="h-toast" id="toast"></div>
+<script src="assets/api.js?v=10"></script>
+<script>
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  let SID = new URLSearchParams(location.search).get("student_id") || "";
+  let toastTimer;
+  const toast = (t) => { const el = $("toast"); el.textContent = t; el.classList.add("on"); clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove("on"), 2000); };
+
+  async function load() {
+    if (!SID) {
+      const me = await api.me();
+      if (!me.ok) { location.href = "login.html?next=" + encodeURIComponent(location.pathname + location.search); return; }
+      SID = me.data.user.id;
+    }
+    const r = await api.get("/student/handbook/" + encodeURIComponent(SID));
+    if (!r.ok) { $("list").innerHTML = `<div class="h-empty">${esc((r.data && r.data.error) || "讀取失敗")}</div>`; return; }
+    const list = r.data.handbooks || [];
+    if (!list.length) { $("list").innerHTML = '<div class="h-empty">教練未更新手冊，完成課堂後再嚟睇。</div>'; return; }
+    $("title").textContent = (list[0].student_name || "學員") + " 嘅運動手冊";
+    $("list").innerHTML = '<div class="h-tl">' + list.map((h) => `
+      <div class="h-card" data-id="${esc(h.id)}">
+        <span class="h-date">${esc(h.log_date)}</span>
+        <div class="h-tags">${(h.tags || []).map((t) => `<span class="h-tag">${esc(t)}</span>`).join("")}</div>
+        <div class="h-comment">${esc(h.comment)}</div>
+        ${h.homework ? `<div class="h-hw">🏠 <b>回家功課：</b>${esc(h.homework)}</div>` : ""}
+        ${(h.photos || []).length ? `<div class="h-photos">${h.photos.map((p) => `<img src="${esc(p)}" alt="課堂相片" loading="lazy">`).join("")}</div>` : ""}
+        <div class="h-replies" data-replies>
+          ${(h.replies || []).map((r) => `<div class="h-reply"><b>${esc(r.author_name)}：</b>${esc(r.content)}</div>`).join("")}
+        </div>
+        ${h.allow_reply ? `<div class="h-form"><input placeholder="多謝教練／想問…" maxlength="500"><button>傳送</button></div>` : ""}
+      </div>`).join("") + "</div>";
+
+    $("list").querySelectorAll(".h-form").forEach((form) => {
+      const btn = form.querySelector("button"), input = form.querySelector("input");
+      btn.onclick = async () => {
+        const content = input.value.trim();
+        if (!content) return toast("請輸入留言");
+        btn.disabled = true;
+        const id = form.closest(".h-card").dataset.id;
+        const r2 = await api.post("/student/handbook/" + encodeURIComponent(id) + "/reply", { content });
+        btn.disabled = false;
+        if (r2.ok) {
+          input.value = "";
+          const box = form.parentElement.querySelector("[data-replies]");
+          box.insertAdjacentHTML("beforeend", `<div class="h-reply"><b>我：</b>${esc(content)}</div>`);
+          toast("✅ 已送出");
+        } else toast("❌ " + ((r2.data && r2.data.error) || "送出失敗"));
+      };
+    });
+  }
+  load();
+</script>
+</body>
+</html>
