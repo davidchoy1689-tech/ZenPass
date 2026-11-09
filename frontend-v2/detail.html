@@ -100,23 +100,27 @@
     .dt-desc-details summary::after { content: " +"; color: #94a3b8; }
     .dt-desc-details[open] summary::after { content: " −"; }
 
-    /* 💳 單堂 vs 4 堂通行卡 */
-    .plan-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    @media (max-width: 520px) { .plan-cards { grid-template-columns: 1fr; } }
-    .plan-card { background: #fff; border: 1.5px solid #e2e8f0; border-radius: 14px; padding: 14px; display: flex; flex-direction: column; position: relative; }
-    .plan-card.featured { border-color: #16a34a; background: #f0fdf4; box-shadow: 0 4px 14px rgba(22,163,74,.1); }
-    .plan-badge { position: absolute; top: -9px; left: 12px; background: #16a34a; color: #fff; font-size: 10.5px; font-weight: 800; padding: 2px 9px; border-radius: 20px; }
-    .plan-name { font-size: 15px; font-weight: 800; color: #0f172a; }
-    .plan-sub { font-size: 11.5px; color: #64748b; margin-top: 2px; }
-    .plan-sub.green { color: #16a34a; font-weight: 700; }
-    .plan-price { display: flex; align-items: baseline; gap: 2px; margin: 10px 0 8px; }
-    .plan-price .cur { font-size: 13px; font-weight: 700; color: #334155; }
-    .plan-price .amt { font-size: 28px; font-weight: 900; color: #0f172a; line-height: 1; }
-    .plan-price .unit { font-size: 12px; color: #64748b; margin-left: 3px; }
-    .plan-feats { list-style: none; padding: 0; margin: 0 0 12px; flex: 1; }
-    .plan-feats li { font-size: 12px; color: #334155; line-height: 1.6; }
-    .btn-plan { width: 100%; min-height: 42px; border-radius: 10px; border: 1.5px solid #cbd5e1; background: #fff; color: #0f172a; font-size: 13.5px; font-weight: 800; cursor: pointer; text-decoration: none; display: flex; align-items: center; justify-content: center; }
-    .plan-card.featured .btn-plan { background: #16a34a; border-color: #16a34a; color: #fff; box-shadow: 0 4px 12px rgba(22,163,74,.2); }
+    /* 💳 單堂 vs 4 堂通行卡（Pricing Tiers） */
+    .pricing-options-section { margin: 18px 0 4px; }
+    .pricing-section-title { font-size: 16px; font-weight: 800; color: #0f172a; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+    .pricing-section-title .title-bar { width: 4px; height: 16px; background: #16a34a; border-radius: 2px; }
+    .pricing-cards-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media (max-width: 600px) { .pricing-cards-grid { grid-template-columns: 1fr; } }
+    .pricing-card { background: #fff; border: 1.5px solid #cbd5e1; border-radius: 16px; padding: 16px 14px 14px; display: flex; flex-direction: column; position: relative; }
+    .pricing-card.featured { border-color: #16a34a; background: #f0fdf4; box-shadow: 0 4px 16px rgba(22,163,74,.12); }
+    .ribbon-popular { position: absolute; top: -10px; left: 14px; background: #15803d; color: #fff; font-size: 10.5px; font-weight: 800; padding: 3px 10px; border-radius: 20px; white-space: nowrap; }
+    .card-plan-header { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+    .plan-name { font-size: 15.5px; font-weight: 800; color: #0f172a; }
+    .plan-badge-sub { font-size: 11.5px; color: #64748b; margin-top: 2px; }
+    .plan-badge-sub.green { color: #16a34a; font-weight: 700; }
+    .plan-price-row { display: flex; align-items: baseline; margin: 10px 0 8px; }
+    .plan-price-row .currency { font-size: 13px; font-weight: 700; color: #334155; }
+    .plan-price-row .amount { font-size: 30px; font-weight: 900; color: #0f172a; line-height: 1; }
+    .plan-price-row .unit { font-size: 12px; color: #64748b; margin-left: 4px; }
+    .plan-features { list-style: none; padding: 0; margin: 0 0 12px; flex: 1; }
+    .plan-features li { font-size: 11.5px; color: #334155; line-height: 1.6; margin-bottom: 3px; }
+    .btn-select-plan { width: 100%; min-height: 44px; border-radius: 10px; border: 1.5px solid #cbd5e1; background: #fff; color: #0f172a; font-size: 13px; font-weight: 800; cursor: pointer; text-decoration: none; display: flex; align-items: center; justify-content: center; text-align: center; padding: 6px 8px; }
+    .btn-select-plan.btn-featured { background: #16a34a; border-color: #16a34a; color: #fff; font-weight: 800; box-shadow: 0 4px 12px rgba(22,163,74,.2); }
 
     .dt-coach-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
     .dt-coach-stats .s { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 9px 8px; text-align: center; }
@@ -380,32 +384,46 @@
         </div></div>
       </section>
 
-      <!-- 2b. 報名方案：單堂 vs 4 堂通行卡 -->
-      <section class="dt-sec" id="planSection">
-        <h2>🎟️ 點樣報名最抵？</h2>
-        <div class="plan-cards">
-          <div class="plan-card">
-            <div class="plan-name">單堂體驗</div>
-            <div class="plan-sub">啱想試下的你</div>
-            <div class="plan-price"><span class="cur">HK$</span><span class="amt" id="planSinglePrice">—</span><span class="unit">/ 堂</span></div>
-            <ul class="plan-feats">
-              <li>✓ 單堂即報即上</li>
-              <li>✓ 72 小時前免費取消</li>
-              <li>✓ 課後電子出席記錄</li>
+      <!-- 2b. 定價雙軌：單堂體驗 vs 4 堂常規通行卡 -->
+      <section class="pricing-options-section" id="pricing-options-section">
+        <div class="pricing-section-title"><span class="title-bar"></span>選擇預約或上課方案</div>
+        <div class="pricing-cards-grid">
+          <div class="pricing-card" data-plan="single">
+            <div class="card-plan-header">
+              <div class="plan-name">單堂體驗班</div>
+              <div class="plan-badge-sub">初次試玩</div>
+            </div>
+            <div class="plan-price-row">
+              <span class="currency">HK$</span>
+              <span class="amount" id="planSinglePrice">—</span>
+              <span class="unit">/ 堂</span>
+            </div>
+            <ul class="plan-features">
+              <li>✓ 適合首次參加、體驗氛圍</li>
+              <li>✓ 免綁約、免入會費</li>
+              <li>✓ 開課前 72 小時免費取消</li>
             </ul>
-            <button type="button" class="btn-plan" id="planSingleBtn">揀時段報單堂</button>
+            <button type="button" class="btn-select-plan" id="planSingleBtn" data-action="open-slots" data-mode="single">揀時段報單堂</button>
           </div>
-          <div class="plan-card featured">
-            <span class="plan-badge">推薦 · 最抵</span>
-            <div class="plan-name">4 堂通行卡</div>
-            <div class="plan-sub green">平均 HK$120 / 堂 · 現省 HK$80</div>
-            <div class="plan-price"><span class="cur">HK$</span><span class="amt">480</span><span class="unit">/ 4 堂</span></div>
-            <ul class="plan-feats">
-              <li>✓ 4 堂有效期 3 個月</li>
-              <li>✓ 24 小時前免費自主改期</li>
-              <li>✓ 扣堂 $0 即時確認，免對數</li>
+
+          <div class="pricing-card featured" data-plan="pass">
+            <div class="ribbon-popular">🔥 最多學員選擇 · 慳 HK$80</div>
+            <div class="card-plan-header">
+              <div class="plan-name">4 堂常規通行卡</div>
+              <div class="plan-badge-sub green">平均每堂 $120</div>
+            </div>
+            <div class="plan-price-row">
+              <span class="currency">HK$</span>
+              <span class="amount">480</span>
+              <span class="unit">/ 4 堂</span>
+            </div>
+            <ul class="plan-features">
+              <li>✓ <b>即時慳 $80</b>（每堂折合 $120）</li>
+              <li>✓ <b>開課前 24 小時免費自主改期</b></li>
+              <li>✓ 免對數快速扣堂、自動保留席位</li>
+              <li>✓ 有效期 60 天</li>
             </ul>
-            <a class="btn-plan" id="planPassBtn" href="https://wa.me/85290335538" target="_blank" rel="noopener">立即入手通行卡</a>
+            <a class="btn-select-plan btn-featured" id="planPassBtn" data-action="buy-pass" href="https://wa.me/85290335538" target="_blank" rel="noopener">⚡ 立即入手通行卡（WhatsApp 專人簽發）</a>
           </div>
         </div>
       </section>
@@ -729,7 +747,7 @@
       const planPassBtn = $("planPassBtn");
       if (planPassBtn) {
         planPassBtn.href = "https://wa.me/85290335538?text=" + encodeURIComponent(
-          "你好，我預約緊「" + (c.title || "課堂") + "」，想直接轉買「4堂通行卡（$480）」簽發扣堂。"
+          "你好，我不想每週單堂買，想直接入手「4堂常規通行卡（HK$480）」並預約班次，請協助人手簽發。"
         );
       }
       const planSingleBtn = $("planSingleBtn");
