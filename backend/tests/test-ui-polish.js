@@ -164,8 +164,8 @@ console.log("\n🧪 13. 課程詳情頁（骨架屏／安心標籤／貨幣文�
   ok("付款文案改用 FPS／通行卡", /支援 FPS 轉數快 \/ PayMe，或以「樂齡 4 堂通行卡」扣堂/.test(detail));
   ok("價格副標唔再用 credits", !/約 " \+ Math\.round\(price \/ 10\) \+ " credits/.test(detail));
   ok("樂齡班先顯示可扣通行卡", /可扣通行卡/.test(detail));
-  ok("時段 🚨 僅餘 N 席", /🚨 僅餘 " \+ left \+ " 席/.test(detail));
-  ok("時段 ❌ 已滿額", /❌ 已滿額/.test(detail));
+  ok("時段 🔥 僅餘 N 席", /🔥 僅餘 ['"] \+ left \+ ['"] 席/.test(detail));
+  ok("時段 已滿額", /已額滿/.test(detail));
   ok("404 友善文案 + 返回探索", /搵唔到呢個課程/.test(detail) && /返回探索/.test(detail));
 }
 
@@ -181,7 +181,7 @@ console.log("\n🧪 14. 詳情頁 CRO（首屏價值主張 + Dock + 直通車）
   ok("safe-area inset", /env\(safe-area-inset-bottom\)/.test(detail));
   ok("Dock 主掣文案", /立即揀時段預約/.test(detail));
   ok("時段自動預選最近有位", /if \(!SEL_SID\) \{[\s\S]{0,240}filter\(function \(s\) \{ return _free\(s\) > 0; \}\)/.test(detail));
-  ok("確認掣顯示剩餘席位", /前往下一步填寫學員資料/.test(detail) && /剩餘 " \+ leftN \+ " 席/.test(detail));
+  ok("確認掣顯示已選時段＋剩餘席位", /前往填寫報名資料/.test(detail) && /已選 " \+ \(d\.getMonth/.test(detail) && /剩 " \+ leftN \+ " 席/.test(detail));
   ok("內容底部留白避開 Dock", /\.dt-body \{ padding: 14px var\(--dt-pad\) 96px; \}/.test(detail));
 }
 
