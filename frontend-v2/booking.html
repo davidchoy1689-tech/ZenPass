@@ -1637,6 +1637,9 @@
 
     function renderPayPanel(){
       const input = `<input id="payRef" inputmode="text" autocomplete="off" placeholder="輸入${payMethod==="fps"?"轉數快 FPS":"PayMe"} 交易參考編號（必填）" style="width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:12px;padding:10px 12px;font:inherit;background:var(--surface);color:var(--text)" />`;
+      const nm = (($("gName") && $("gName").value.trim()) || (typeof ME !== "undefined" && ME && ME.name) || "學員");
+      const waPayText = `你好 ZenPass 客服，我已完成課堂 FPS 付款：\n訂單編號：${(Array.isArray(payRefs) ? payRefs.join(" / ") : "") || "—"}\n學員姓名：${nm}\n已付金額：HK$${Number(payTotalValue || 0).toFixed(2)}\n附上入數截圖以供快速核實，謝謝！`;
+      const waPayBtn = `<a class="btn btn-wa btn-block" style="margin-top:8px;min-height:46px;display:flex;align-items:center;justify-content:center" target="_blank" rel="noopener" href="https://wa.me/85290335538?text=${encodeURIComponent(waPayText)}">💬 WhatsApp 傳送入數紙（快速確認）</a>`;
       const refCodes = (Array.isArray(payRefs)?payRefs:[]).filter(Boolean);
       const refBox = refCodes.length
         ? `<div class="fps-ref-box">
@@ -1677,6 +1680,7 @@
           <div style="height:10px"></div>
           ${fpsPanelHtml()}
           ${input}<div style="height:10px"></div>
+          ${waPayBtn}
           ${receipt}
           <button class="btn btn-primary btn-block" id="paySubmit">我已付款，提交核實</button>
           <button class="btn btn-secondary btn-block" id="payClaim" style="margin-top:8px">⏳ 我已付款（稍後補交截圖／單號）</button>

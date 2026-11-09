@@ -306,6 +306,7 @@
   <div class="topbar"><a class="back" href="explore.html">‹</a><div class="title" id="topTitle">課堂詳情</div></div>
 
   <div id="annBanner" hidden style="margin:10px 14px 0;padding:12px 14px;border-radius:12px;background:#FEFCE8;border:1px solid #FDE68A;font-size:13px;line-height:1.55"></div>
+  <div id="famBanner" hidden style="margin:10px 14px 0;padding:12px 14px;border-radius:12px;background:#ECFDF5;border:1px solid #A7F3D0;color:#065F46;font-size:13px;line-height:1.55;font-weight:700"></div>
 
   <div class="dt-wrap">
     <!-- 1. Hero -->
@@ -948,7 +949,10 @@
     function openSheet() {
       if (!CLS || !CLS.id) { alert("示範頁面：請由課程列表進入再預約。"); return; }
       if (!SESS.length) { alert("暫未有可預約時段，請稍後再嚟。"); return; }
-      SEL_SID = null;
+      // 🎯 直通推廣：帶 direct_sid／sid 就直接鎖定該班（仍需有位）
+      const directId = (new URLSearchParams(location.search)).get("direct_sid") || (new URLSearchParams(location.search)).get("sid");
+      const direct = directId && SESS.find(function (x) { return String(x.id) === String(directId); });
+      SEL_SID = direct && _free(direct) > 0 ? direct.id : null;
       const byDay = {};
       SESS.forEach(function (s) { const k = _sessDay(s); (byDay[k] = byDay[k] || []).push(s); });
       // 日期磁貼：只用真實有班次嘅日期（由近至遠），唔再硬塞未來 7 日空殼
@@ -959,7 +963,7 @@
       });
       const firstOpen = days.find(function (x) { return (byDay[x.key] || []).some(function (s) { return _free(s) > 0; }); });
       const firstAny = days.find(function (x) { return (byDay[x.key] || []).length > 0; });
-      SEL_DATE = firstOpen ? firstOpen.key : (firstAny ? firstAny.key : (days[0] && days[0].key));
+      SEL_DATE = (SEL_SID && _sessDay(direct)) || (firstOpen ? firstOpen.key : (firstAny ? firstAny.key : (days[0] && days[0].key)));
 
       $("dateStrip").innerHTML = days.map(function (x) {
         const list = byDay[x.key] || [];
@@ -1203,6 +1207,31 @@
         return m == null ? l : Math.min(m, l);
       }, null);
     }
+
+    // 🎯 首發孝親直通：橫幅 + 自動展開時段並預選
+    (function directLanding() {
+      var q = new URLSearchParams(location.search);
+      var fam = q.get("utm_source") === "family_outreach";
+      var wantAuto = q.get("autoselect") === "1";
+      if (!fam && !wantAuto) return;
+      var tries = 0;
+      var t = setInterval(function () {
+        tries++;
+        if (typeof SESS !== "undefined" && SESS.length) {
+          clearInterval(t);
+          if (fam) {
+            var left = seatsLeft();
+            var el = document.getElementById("famBanner");
+            if (el) {
+              el.textContent = "🌿 專為父母設計 · 12/12 首發樂齡班" +
+                (left != null && left > 0 ? "（名額僅限 " + left + " 位 · 小班安全指導）" : "（本期已滿，可加入候補）");
+              el.hidden = false;
+            }
+          }
+          if (wantAuto) openSheet();
+        } else if (tries > 50) clearInterval(t);
+      }, 120);
+    })();
   </script>
   <a class="wa-float" id="waFloat" target="_blank" rel="noopener" aria-label="WhatsApp 客服查詢"
      href="https://wa.me/85290335538?text=%E4%BD%A0%E5%A5%BD%EF%BC%8C%E6%88%91%E6%83%B3%E6%9F%A5%E8%A9%A2%20ZenPass%20%E9%80%B1%E6%9C%AB%E9%AB%94%E9%A9%97%E7%8F%AD%E8%A9%B3%E6%83%85%EF%BC%88%E6%97%A5%E6%9C%9F%EF%BC%8F%E6%94%B6%E8%B2%BB%EF%BC%8F%E9%81%A9%E5%90%88%E5%B9%B4%E9%BD%A1%EF%BC%89"><span>💬</span></a>
