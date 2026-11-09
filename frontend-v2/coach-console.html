@@ -54,6 +54,7 @@
           </ol>
           <div class="muted2" style="font-size:11.5px;margin-bottom:12px">＊若班次未有人報名，可先用「⏳ 待開通新班」嘅測試班；演出前請通知營運同事。</div>
           <button class="btn btn-primary btn-block" id="drillClose" type="button">明白，開始</button>
+          <button class="btn btn-secondary btn-block" id="drillReset" type="button" style="margin-top:8px;font-size:12px">🔄 重設演練數據到初始狀態</button>
         </div>
       </div>
       <div id="list"></div>
@@ -152,6 +153,14 @@
     if ($("drillBtn")) $("drillBtn").onclick = () => { $("drill").style.display = "block"; };
     if ($("drillClose")) $("drillClose").onclick = () => { $("drill").style.display = "none"; };
     if ($("drill")) $("drill").onclick = (e) => { if (e.target.id === "drill") $("drill").style.display = "none"; };
+    if ($("drillReset")) $("drillReset").onclick = async () => {
+      if (!confirm("會清除演練班嘅點名／手冊，預約回到未簽到。確定？")) return;
+      $("drillReset").disabled = true;
+      const r = await api.post("/coach/sandbox/reset", { session_id: "seed-sandbox-session" });
+      $("drillReset").disabled = false;
+      if (r.ok) $("drillReset").textContent = "✅ 已重設，可重新演練";
+      else alert((r.data && r.data.error) || "重設失敗");
+    };
     const SPORTS = [
       ["molkky", "🎯 芬蘭木柱"], ["floor-curling", "🥌 地板冰壺"], ["cornhole", "🫘 布袋球"],
       ["air-storm", "🏹 穿雲箭"], ["nordic-walking", "🥾 北歐式健走"], ["roundnet", "🕸️ 圓網球"],

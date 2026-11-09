@@ -97,6 +97,7 @@
         <button data-t="settle">🏁 批量結算</button>
         <button data-t="cred">🪪 教練資質</button>
         <button data-t="sub">🔁 代堂審批</button>
+        <button data-nav="admin-launch-tracker.html">🎯 首發監控</button>
         <button data-t="agr">🤝 協議簽署</button>
         <button data-t="pending">⏳ 待開通新班</button>
         <button data-t="refund">💸 待退款</button>
@@ -354,6 +355,7 @@
       $("reload").onclick = () => { MONTH = $("month").value || MONTH; loadAll(); };
       $("tabs").onclick = (e) => {
         const b = e.target.closest("button"); if (!b) return;
+        if (b.dataset.nav) { location.href = b.dataset.nav; return; }
         [...$("tabs").children].forEach((x) => x.classList.toggle("on", x === b));
         ["fin", "pay", "leads", "ops", "settle", "cred", "sub", "agr", "pending", "refund", "book", "cancel", "alert", "student", "venue", "pass", "sec"].forEach((k) => ($("pane" + k[0].toUpperCase() + k.slice(1))).hidden = b.dataset.t !== k);
         if (b.dataset.t === "sub") loadSubs();

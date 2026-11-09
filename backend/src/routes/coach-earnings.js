@@ -208,7 +208,9 @@ router.post("/earnings/calculate", authenticateToken, async (req, res) => {
              c.title as class_title, c.price_hkd, c.coach_id
       FROM class_schedules cs
       JOIN classes c ON cs.class_id = c.id
+      LEFT JOIN partner_venues pv ON pv.id = c.partner_venue_id
       WHERE COALESCE(cs.coach_override_id, c.coach_id) = ? AND cs.enrolled_count > 0
+        AND COALESCE(pv.is_sandbox,0) = 0
         AND datetime(cs.start_time) < datetime('now')  -- 🔒 2026-10-19：未上堂唔可以預先計收入
     `,
       )
@@ -1306,7 +1308,9 @@ function buildMonthlyBreakdown(db, coachId, month) {
     .prepare(
       `SELECT s.id, s.start_time, s.end_time, s.coach_override_id, c.title, c.venue_name, c.price_hkd
          FROM class_schedules s JOIN classes c ON c.id=s.class_id
+         LEFT JOIN partner_venues pv ON pv.id=c.partner_venue_id
         WHERE COALESCE(s.coach_override_id, c.coach_id)=? AND substr(s.start_time,1,7)=? AND COALESCE(s.status,'')<>'cancelled'
+          AND COALESCE(pv.is_sandbox,0)=0
         ORDER BY s.start_time`,
     )
     .all(coachId, month);

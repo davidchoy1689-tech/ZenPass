@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>首發班次監控 · ZenPass</title>
+<style>
+  :root{--ink:#0F172A;--mut:#64748B;--line:#E2E8F0;--brand:#059669;--bg:#F8FAFC}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,"PingFang HK",sans-serif;background:var(--bg);color:var(--ink);padding-bottom:40px}
+  .wrap{max-width:980px;margin:0 auto;padding:16px}
+  .head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+  .head h1{font-size:19px;margin:0;font-weight:900}
+  .pill{font-size:11.5px;background:#ECFDF5;color:#065F46;border:1px solid #A7F3D0;border-radius:999px;padding:3px 9px;font-weight:800}
+  .grow{flex:1}
+  .btn{border:1px solid var(--line);background:#fff;border-radius:10px;padding:8px 12px;font-weight:800;font-size:13px;cursor:pointer}
+  .btn:active{transform:translateY(1px)}
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+  .kpi{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px}
+  .k{font-size:11.5px;color:var(--mut);font-weight:800}
+  .v{font-size:22px;font-weight:900;margin-top:4px;line-height:1.15;word-break:break-word}
+  .s{font-size:11px;color:var(--mut);margin-top:3px}
+  .card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 13px;margin-bottom:10px}
+  .row{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+  .t{font-weight:900;font-size:14px}
+  .meta{font-size:12px;color:var(--mut);margin-top:3px}
+  .badge{font-size:11px;font-weight:900;border-radius:999px;padding:3px 8px;background:#ECFDF5;color:#065F46;border:1px solid #A7F3D0;white-space:nowrap}
+  .badge.hot{background:#FEF2F2;color:#B91C1C;border-color:#FECACA}
+  .bar{height:9px;background:#EEF2F7;border-radius:99px;overflow:hidden;margin:10px 0 6px}
+  .fill{height:100%;background:linear-gradient(90deg,#34D399,#059669);border-radius:99px;transition:width .35s}
+  .fill.hot{background:linear-gradient(90deg,#FCA5A5,#EF4444)}
+  .utm{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+  .chip{font-size:11px;background:#F1F5F9;border:1px solid var(--line);border-radius:999px;padding:2px 8px;color:#334155}
+  .empty{background:#fff;border:1px dashed #CBD5E1;border-radius:14px;padding:24px;text-align:center;color:var(--mut);font-size:13px}
+  .note{margin-top:12px;font-size:11.5px;color:var(--mut);line-height:1.6}
+  @media (max-width:640px){.kpis{grid-template-columns:repeat(2,1fr)}.v{font-size:19px}}
+  @media (max-width:360px){.kpis{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="head">
+    <h1>🎯 首發班次監控</h1>
+    <span class="pill" id="datePill">2026-12-12</span>
+    <span class="grow"></span>
+    <button class="btn" id="refresh">🔄 刷新實時數據</button>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi"><div class="k">🎯 首發總售出席位</div><div class="v" id="kEnrolled">—</div><div class="s" id="kCap">—</div></div>
+    <div class="kpi"><div class="k">📈 總滿座率</div><div class="v" id="kOcc">—</div><div class="s">已售 / 總容量</div></div>
+    <div class="kpi"><div class="k">💰 預售學費總額</div><div class="v" id="kGross">—</div><div class="s">已付款（不含沙盒）</div></div>
+    <div class="kpi"><div class="k">👥 孝親來源佔比</div><div class="v" id="kFam">—</div><div class="s">family_outreach / 總售出</div></div>
+  </div>
+
+  <div id="list"><div class="empty">載入中…</div></div>
+
+  <div class="note">＊只計正式場地（is_sandbox=0）；演練班次、測試學員唔會出現在此看板或教練月結。</div>
+</div>
+
+<script src="assets/api.js"></script>
+<script>
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const hkd = (n) => "HK$" + Number(n || 0).toLocaleString("en-HK", { maximumFractionDigits: 0 });
+
+  function fmt(t) {
+    const d = new Date(String(t || "").replace(" ", "T"));
+    return isNaN(d) ? String(t || "") : d.toLocaleString("zh-HK", { month: "short", day: "numeric", weekday: "short", hour: "2-digit", minute: "2-digit" });
+  }
+
+  async function load() {
+    const r = await api.get("/admin/launch-tracker");
+    if (!r.ok) {
+      $("list").innerHTML = `<div class="empty">${esc((r.data && r.data.error) || "讀取失敗")}</div>`;
+      return;
+    }
+    const d = r.data;
+    const s = d.summary || {};
+    $("datePill").textContent = d.target_date;
+    $("kEnrolled").textContent = s.total_enrolled || 0;
+    $("kCap").textContent = `容量 ${s.total_capacity || 0} 席 · ${s.total_sessions || 0} 班`;
+    $("kOcc").textContent = s.overall_occupancy || "0%";
+    $("kGross").textContent = hkd(s.total_gross_hkd);
+    $("kFam").textContent = s.family_share || "0%";
+    const items = d.sessions || [];
+    if (!items.length) {
+      $("list").innerHTML = '<div class="empty">呢日暫時未有公開發售班次</div>';
+      return;
+    }
+    $("list").innerHTML = items.map((x) => {
+      const pct = Math.min(100, Number(String(x.occupancy_rate).replace("%", "")) || 0);
+      const hot = x.seats_left <= 2;
+      const chips = Object.entries(x.utm_breakdown || {}).map(([k, v]) => `<span class="chip">${esc(k)} · ${v}</span>`).join("") || '<span class="chip">未有報名</span>';
+      return `<div class="card">
+        <div class="row">
+          <div>
+            <div class="t">${esc(x.course_title)}</div>
+            <div class="meta">${esc(fmt(x.start_time))} · ${esc(x.venue_name)} · ${esc(x.coach_name)}</div>
+          </div>
+          <span class="badge ${hot ? "hot" : ""}">${hot ? "🔥 剩 " + x.seats_left + " 席" : "剩 " + x.seats_left + " 席"}</span>
+        </div>
+        <div class="bar"><div class="fill ${hot ? "hot" : ""}" style="width:${pct}%"></div></div>
+        <div class="meta">${x.enrolled_count} / ${x.max_participants} 人 · ${x.occupancy_rate} · 已收 ${hkd(x.total_revenue_cents / 100)}</div>
+        <div class="utm">${chips}</div>
+      </div>`;
+    }).join("");
+  }
+
+  (async () => {
+    const me = await api.me();
+    const role = me.ok && me.data.user && me.data.user.role;
+    if (!["super_admin", "platform_manager", "admin"].includes(role)) {
+      location.href = "login.html?next=" + encodeURIComponent(location.pathname);
+      return;
+    }
+    $("refresh").onclick = load;
+    load();
+  })();
+</script>
+</body>
+</html>

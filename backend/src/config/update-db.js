@@ -306,6 +306,11 @@ function updateDatabase() {
   try {
     db.exec("ALTER TABLE bookings ADD COLUMN platform_earned_amount REAL");
   } catch (e) {}
+  // 工單七／八：沙盒標記、相片庫、PLI（舊 DB 補欄）
+  try { db.exec("ALTER TABLE partner_venues ADD COLUMN is_sandbox INTEGER DEFAULT 0"); } catch (e) {}
+  try { db.exec("ALTER TABLE partner_venues ADD COLUMN photos_gallery TEXT"); } catch (e) {}
+  try { db.exec("ALTER TABLE partner_venues ADD COLUMN pli_status TEXT DEFAULT 'unverified'"); } catch (e) {}
+  try { db.exec("ALTER TABLE partner_venues ADD COLUMN pli_expiry TEXT"); } catch (e) {}
 
   // Indexes for partner tables
   try {

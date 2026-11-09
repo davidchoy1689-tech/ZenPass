@@ -283,6 +283,7 @@ app.use("/api", require("./routes/coach-announcements"));
 app.use("/api/coach", require("./routes/coach-portal"));
 app.use("/api/coach", require("./routes/coach-roster"));
 app.use("/api/coach", require("./routes/coach-schedule"));
+app.use("/api/coach", require("./routes/coach-sandbox"));
 app.use("/api/coach", require("./routes/coach"));
 app.use("/api/coaches", coachPublicRoutes.apiRouter);
 app.use("/api/memberships", require("./routes/memberships"));
@@ -346,6 +347,7 @@ app.use("/api/nps", require("./routes/nps"));
 app.use("/api/platform", require("./routes/platform"));
 app.use("/api/admin", require("./routes/admin-crm"));
 app.use("/api/admin", require("./routes/admin-substitutes"));
+app.use("/api/admin", require("./routes/admin-launch-tracker"));
 
 // 🚨 極端天氣監察：每 10 分鐘讀天文台，狀態轉變即通知管理員（唔會自動取消課堂）
 try {
