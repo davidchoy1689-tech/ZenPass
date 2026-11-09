@@ -178,11 +178,52 @@
   .proof-stars svg{width:14px;height:14px;fill:currentColor}
   .proof-stars b{color:#334155;margin-left:4px;font-size:12.5px}
   .proof-head span,.proof-badges span{background:#F1F5F9;border:1px solid #E2E8F0;border-radius:999px;padding:2px 8px;font-size:11px;font-weight:700;color:#475569}
+
+  /* ===== 高對比立體化 v6（Color Contrast & Depth） ===== */
+  .brand-topbar{height:4px;background:linear-gradient(90deg,#10B981 0%,#059669 100%);margin:0 calc(var(--dt-pad,16px) * -1)}
+  .hero{background:#FFFFFF;border-bottom:2px solid #E2E8F0;padding-top:0}
+  .hero-brand-pill{background:#ECFDF5;border:1.5px solid #10B981;color:#065F46;font-weight:800;box-shadow:none}
+  body.home .hero h1{background:none;-webkit-text-fill-color:#0F172A;color:#0F172A;font-weight:900}
+  body.home .hero h1 .hl{color:#059669;-webkit-text-fill-color:#059669}
+  .hero-sub{color:#334155;font-weight:600;font-size:15.5px}
+
+  .search-capsule{border:2px solid #059669;background:#FFFFFF;border-radius:16px;box-shadow:0 8px 20px -2px rgba(5,150,105,.15),0 4px 8px -2px rgba(15,23,42,.08)}
+  .search-capsule:focus-within{border-color:#047857;box-shadow:0 0 0 3px rgba(5,150,105,.15),0 8px 20px -2px rgba(5,150,105,.15)}
+  .field-divider{width:1.5px;background:#CBD5E1}
+  .btn-search-submit{background:#059669;background-image:none;color:#fff;font-weight:900;border-radius:12px;box-shadow:0 4px 10px -2px rgba(5,150,105,.35)}
+  .btn-search-submit:hover{background:#047857}
+  .btn-search-submit:active{background:#065F46;transform:scale(.98)}
+  @media (max-width:640px){ .search-capsule{border-radius:12px} }
+
+  .hs-pill,.loc-row .loc-pill{background:#FFFFFF;border:1.5px solid #94A3B8;color:#0F172A;font-weight:700}
+  .hs-pill:hover,.loc-row .loc-pill:hover{background:#ECFDF5;border-color:#059669;color:#065F46}
+  .loc-row .loc-pill:first-child{background:#059669;border-color:#059669;color:#FFFFFF;font-weight:800}
+
+  .trust-block{background:#F0FDF4;margin:16px calc(var(--dt-pad,16px) * -1) 0;padding:32px var(--dt-pad,16px)}
+  .trust-block .home-sec{margin-top:0}
+  .trust-card{background:#FFFFFF;border:1.5px solid #A7F3D0;border-radius:16px;box-shadow:0 4px 16px rgba(6,78,59,.08);padding:24px 20px}
+  .trust-card h3{font-size:17px;font-weight:800;color:#0F172A;line-height:1.3}
+  .trust-card p{font-size:13px;color:#334155;line-height:1.6}
+  .trust-ic{width:44px;height:44px;background:#059669;color:#FFFFFF}
+  .trust-ic svg{width:22px;height:22px}
+
+  .bento-grid .hot-card{border:1.5px solid #6EE7B7;background:#ECFDF5;box-shadow:0 4px 14px rgba(6,78,59,.06);position:relative}
+  .bento-grid .hot-card:nth-child(1){background:#ECFDF5;border-color:#6EE7B7}
+  .bento-grid .hot-card:nth-child(2){background:#F0F9FF;border-color:#7DD3FC}
+  .bento-grid .hot-card:nth-child(3){background:#FEFCE8;border-color:#FDE047}
+  .bento-grid .hot-card:nth-child(4){background:#FAF5FF;border-color:#D8B4FE}
+  .bento-grid .hot-card:nth-child(1) .hot-name,.bento-grid .hot-card:nth-child(1) .hot-cat{color:#064E3B}
+  .bento-grid .hot-card:nth-child(2) .hot-name,.bento-grid .hot-card:nth-child(2) .hot-cat{color:#0C4A6E}
+  .bento-grid .hot-card:nth-child(3) .hot-name,.bento-grid .hot-card:nth-child(3) .hot-cat{color:#78350F}
+  .bento-grid .hot-card:nth-child(4) .hot-name,.bento-grid .hot-card:nth-child(4) .hot-cat{color:#581C87}
+  .bento-grid .hot-meta{color:#334155}
+  .bento-badge{position:absolute;top:8px;right:8px;z-index:2;background:rgba(255,255,255,.92);border:1px solid rgba(15,23,42,.12);border-radius:999px;padding:2px 8px;font-size:10px;font-weight:800;color:#0F172A}
 </style>
 </head>
 <body class="home">
   <div class="wrap">
     <div class="hero">
+      <div class="brand-topbar" aria-hidden="true"></div>
       <div class="hero-top site-header">
         <div class="brand-block">
           <strong class="hero-logo">ZenPass <span>禪流</span></strong>
@@ -201,7 +242,7 @@
         </div>
       </div>
       <div class="hero-brand-pill"><span class="pill-dot"></span>香港首個新興運動 × 樂齡強肌預約平台</div>
-      <h1>全港新興運動與樂齡強肌體驗平台</h1>
+      <h1>全港<span class="hl">新興運動</span>與<span class="hl">樂齡強肌</span>體驗平台</h1>
       <p class="hero-sub">芬蘭木柱・地板冰壺・深層伸展。免下載 App，免綁約，單堂起報。</p>
 
       <div class="search-capsule-wrapper">
@@ -271,6 +312,7 @@
       </div>
     </div>
 
+    <section class="trust-block">
     <div class="section-title home-sec">安心保障</div>
     <div class="trust-cards">
       <article class="trust-card">
@@ -289,6 +331,7 @@
         <p>教練須提交技術及急救資歷，平台審核通過才能開班，資歷可追溯。</p>
       </article>
     </div>
+    </section>
 
     <!-- 🔥 本週末首發推薦（真實即將開班，直接引入報名） -->
     <div class="section-title" id="launchTitle" hidden style="margin-top:6px"> 本週即開班次 <span class="sport-count" style="font-size:12px;font-weight:500;color:var(--text-muted)">真實場次 · 額滿即止</span></div>
@@ -329,18 +372,22 @@
     <div class="section-title home-sec">新興運動體驗 <span class="sport-count" style="font-size:12px;font-weight:500;color:var(--text-muted)">撳一下睇介紹</span></div>
     <div class="bento-grid">
       <a class="hot-card" style="min-width:132px" href="/s/molkky.html">
+        <span class="bento-badge">熱門</span>
         <div class="hot-cover"><img src="assets/img/photos/emerging.jpg" alt="芬蘭木柱" loading="lazy"></div>
         <div class="hot-body"><span class="hot-cat">新興運動</span><p class="hot-name">芬蘭木柱</p><p class="hot-meta">零基礎 · 3 分鐘學識</p><span class="bento-feat">芬蘭國家級運動</span></div>
       </a>
       <a class="hot-card" style="min-width:132px" href="/s/floor-curling.html">
+        <span class="bento-badge">零基礎</span>
         <div class="hot-cover"><img src="assets/img/photos/emerging.jpg" alt="地板冰壺" loading="lazy"></div>
         <div class="hot-body"><span class="hot-cat">新興運動</span><p class="hot-name">地板冰壺</p><p class="hot-meta">腦力＋手感 · 長者友善</p><span class="bento-feat">國際賽事項目</span></div>
       </a>
       <a class="hot-card" style="min-width:132px" href="/s/cornhole.html">
+        <span class="bento-badge">親子友善</span>
         <div class="hot-cover"><img src="assets/img/photos/emerging.jpg" alt="布袋球" loading="lazy"></div>
         <div class="hot-body"><span class="hot-cat">新興運動</span><p class="hot-name">布袋球</p><p class="hot-meta">派對必備 · 即刻上手</p><span class="bento-feat">美國露營經典</span></div>
       </a>
       <a class="hot-card" style="min-width:132px" href="/s/air-storm.html">
+        <span class="bento-badge">減壓</span>
         <div class="hot-cover"><img src="assets/img/photos/emerging.jpg" alt="穿雲箭" loading="lazy"></div>
         <div class="hot-body"><span class="hot-cat">新興運動</span><p class="hot-name">穿雲箭</p><p class="hot-meta">減壓神器 · 安全刺激</p><span class="bento-feat">專注力訓練</span></div>
       </a>

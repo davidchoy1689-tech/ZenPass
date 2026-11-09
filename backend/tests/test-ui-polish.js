@@ -201,11 +201,13 @@ console.log("\n🧪 15. 首頁機構級重構");
   ok("Bento 4 卡", /class="bento-grid"/.test(home) && /bento-grid[\s\S]{0,60}repeat\(2,minmax/.test(home));
   ok("Emoji < 10（實測 " + emoji + "）", emoji < 10, String(emoji));
   ok("熱門區隱藏唔會連 .wrap 一齊 hide", /rail\.style\.display = "none"/.test(home) && /classList\.contains\("section-title"\)/.test(home));
-  ok("Hero 呼吸光暈 + 品牌藥丸", /radial-gradient\(circle at 50% 0%/.test(home) && /class="hero-brand-pill"/.test(home));
-  ok("H1 漸層字 + 44px 桌面", /body\.home \.hero h1\{[^}]*44px/.test(home) && /-webkit-background-clip:text/.test(home));
-  ok("搜尋膠囊懸浮島", /\.search-capsule\{border-radius:20px/.test(home) && /focus-within\{border-color:#10B981/.test(home));
-  ok("Bento 特徵標籤", /class="bento-feat"/.test(home) && /radial-gradient\(circle at top right/.test(home));
+  ok("頂部品牌漸層條 + 品牌藥丸", /class="brand-topbar"/.test(home) && /linear-gradient\(90deg,#10B981 0%,#059669 100%\)/.test(home) && /class="hero-brand-pill"/.test(home));
+  ok("H1 深黑 + 翡翠綠關鍵字 + 44px", /body\.home \.hero h1\{[^}]*44px/.test(home) && /\.hero h1 \.hl\{color:#059669/.test(home));
+  ok("搜尋膠囊 2px 綠框", /\.search-capsule\{border:2px solid #059669/.test(home) && /border-radius:16px/.test(home));
+  ok("Bento 實色塊 + 徽章", /class="bento-badge"/.test(home) && /nth-child\(1\)\{background:#ECFDF5;border-color:#6EE7B7\}/.test(home));
   ok("評價卡 SVG 引號 + 金星", /class="proof-quote"/.test(home) && /\.proof-stars svg\{[^}]*fill:currentColor/.test(home));
+  ok("安心保障撞色區塊", /class="trust-block"/.test(home) && /\.trust-block\{background:#F0FDF4/.test(home));
+  ok("信任卡實色綠圖標", /\.trust-ic\{width:44px;height:44px;background:#059669;color:#FFFFFF\}/.test(home));
 }
 
 console.log("\n🧪 16. 預約表單轉化優化");
