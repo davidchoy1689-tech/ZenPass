@@ -14,6 +14,7 @@ const { authenticateToken, hasMinimumRole } = require("../middleware/auth");
 const { audit } = require("../services/audit");
 const { writeBlock } = require("../services/blockchain-audit");
 const { dbNotification } = require("../services/notification");
+const wa = require("../services/whatsapp-cloud");
 
 const router = express.Router();
 router.use(authenticateToken);
@@ -55,19 +56,42 @@ function ensureHandbookTable(db) {
   `);
 }
 
+// 證書存證欄（idempotent；配合工單 attendances.cert_hash 概念，實際以 bookings 為真相來源）
+function ensureCertHash(db) {
+  try {
+    const cols = db.prepare("PRAGMA table_info(bookings)").all().map((c) => c.name);
+    if (!cols.includes("cert_hash")) db.prepare("ALTER TABLE bookings ADD COLUMN cert_hash TEXT").run();
+  } catch (e) {}
+}
+
+// 工單指定公式：scheduleId:userId:timestamp:ZENPASS_VERIFIED
+function generateSha256(scheduleId, userId, timestamp) {
+  const payload = `${scheduleId}:${userId}:${timestamp}:ZENPASS_VERIFIED`;
+  return crypto.createHash("sha256").update(payload).digest("hex");
+}
+
 // ===== 一次過點名 =====
 router.post("/attendance/batch-check", (req, res) => {
   try {
     const db = getDb();
-    const { schedule_id, items } = req.body || {};
+    ensureCertHash(db);
+    const body = req.body || {};
+    const schedule_id = body.schedule_id || body.scheduleId;
+    // 兼容工單 records[{attendanceId,userId,status}] 同現有 items[{booking_id,status}]
+    const items = Array.isArray(body.records) ? body.records : body.items;
     const sched = ownSchedule(db, req.user, schedule_id);
     if (!sched) return res.status(404).json({ success: false, error: "找不到班次或無權限" });
 
+    const normStatus = (s) => (/^(present|attended|checkin|check_in)$/i.test(String(s || "")) ? "attended" : "no_show");
     let targets;
     if (Array.isArray(items) && items.length) {
       targets = items
-        .filter((x) => x && /^[0-9a-f-]{36}$/i.test(String(x.booking_id)))
-        .map((x) => ({ booking_id: x.booking_id, status: x.status === "no_show" ? "no_show" : "attended" }));
+        .map((x) => ({
+          booking_id: x && (x.booking_id || x.bookingId || x.attendanceId),
+          status: normStatus(x && x.status),
+          user_id: x && (x.user_id || x.userId),
+        }))
+        .filter((x) => x.booking_id && String(x.booking_id).length <= 64);
     } else {
       targets = null; // 全部已確認＋已付款
     }
@@ -78,7 +102,12 @@ router.post("/attendance/batch-check", (req, res) => {
       let rows;
       if (targets) {
         const get = db.prepare("SELECT * FROM bookings WHERE id = ? AND schedule_id = ?");
-        rows = targets.map((t) => ({ t, b: get.get(t.booking_id, schedule_id) })).filter((x) => x.b);
+        const byUser = db.prepare(
+          "SELECT * FROM bookings WHERE user_id = ? AND schedule_id = ? AND status IN ('confirmed','attended','no_show') LIMIT 1",
+        );
+        rows = targets
+          .map((t) => ({ t, b: get.get(t.booking_id, schedule_id) || (t.user_id ? byUser.get(t.user_id, schedule_id) : null) }))
+          .filter((x) => x.b);
       } else {
         rows = db
           .prepare(
@@ -94,14 +123,26 @@ router.post("/attendance/batch-check", (req, res) => {
           db.prepare(
             "UPDATE bookings SET status='no_show', cancel_reason='coach_batch_no_show' WHERE id=?",
           ).run(b.id);
+          // 缺席 WhatsApp 通知（背景，唔阻塞）
+          try {
+            const u = db.prepare("SELECT phone FROM users WHERE id=?").get(b.user_id);
+            if (u && u.phone && wa.isConfigured()) {
+              wa.sendTextMessage(
+                u.phone,
+                "【ZenPass 提醒】您缺席了今天的運動課堂。如有需要請於 48 小時內聯絡客服申請補堂。",
+              ).catch(() => {});
+            }
+          } catch (e) {}
         } else {
           if (b.status === "attended") continue;
           if (b.payment_status !== "paid") continue;
+          const certHash = generateSha256(schedule_id, b.user_id, now);
           db.prepare(
-            "UPDATE bookings SET status='attended', checked_in_at=datetime('now'), checkin_method='batch' WHERE id=?",
-          ).run(b.id);
+            "UPDATE bookings SET status='attended', checked_in_at=datetime('now'), checkin_method='batch', cert_hash=? WHERE id=?",
+          ).run(certHash, b.id);
+          t.certHash = certHash;
         }
-        updated.push({ id: b.id, ref: b.booking_reference, status: t.status });
+        updated.push({ id: b.id, ref: b.booking_reference, status: t.status, certHash: t.certHash || null });
       }
     });
     run();
@@ -146,6 +187,7 @@ router.post("/attendance/batch-check", (req, res) => {
       success: true,
       updated: updated.length,
       items: updated,
+      data: updated.map((u) => ({ attendanceId: u.id, status: u.status, certHash: u.certHash })),
       digest,
       block_hash: block.hash || null,
     });
@@ -160,9 +202,22 @@ router.post("/handbook", express.json({ limit: "8mb" }), (req, res) => {
   try {
     const db = getDb();
     ensureHandbookTable(db);
-    const { schedule_id, booking_id, comment, photos } = req.body || {};
+    const body = req.body || {};
+    const schedule_id = body.schedule_id || body.scheduleId;
+    let booking_id = body.booking_id || body.bookingId;
+    const comment = body.comment != null ? body.comment : body.notes;
+    const photos = body.photos != null ? body.photos : body.mediaUrls || body.media_urls;
     const sched = ownSchedule(db, req.user, schedule_id);
     if (!sched) return res.status(404).json({ success: false, error: "找不到班次或無權限" });
+    // 兼容工單：只傳 userId，自動搵該班 booking
+    if (!booking_id && (body.userId || body.user_id)) {
+      const found = db
+        .prepare(
+          "SELECT id FROM bookings WHERE user_id=? AND schedule_id=? AND status IN ('confirmed','attended','no_show') LIMIT 1",
+        )
+        .get(body.userId || body.user_id, schedule_id);
+      if (found) booking_id = found.id;
+    }
     const b = db.prepare("SELECT * FROM bookings WHERE id=? AND schedule_id=?").get(booking_id, schedule_id);
     if (!b) return res.status(404).json({ success: false, error: "學員不在此班" });
 
@@ -226,9 +281,21 @@ router.post("/handbook", express.json({ limit: "8mb" }), (req, res) => {
       );
     } catch (e) {}
 
+    // WhatsApp 推播（如有設定）
+    try {
+      const u = db.prepare("SELECT phone FROM users WHERE id=?").get(b.user_id);
+      if (u && u.phone && wa.isConfigured()) {
+        wa.sendTextMessage(
+          u.phone,
+          `【ZenPass 課後手冊】教練為你更新了「${sched.title}」嘅進度評語！登入 https://www.zenpass.hk/my-bookings.html 查看。`,
+        ).catch(() => {});
+      }
+    } catch (e) {}
+
     res.status(existing ? 200 : 201).json({
       success: true,
       handbook_id: id,
+      handbookId: id,
       sha256: hash,
       block_hash: block.hash || null,
       updated: !!existing,

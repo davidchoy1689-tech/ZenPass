@@ -117,6 +117,33 @@ function call(handler, { query = {}, body = {}, user = null }) {
   const rb2 = await call(cb, { body: { token: tok } });
   ok(rb2.body.updated === 0, "重複 token 批量 = 0", rb2.body.updated);
 
+  console.log("🧪 4. 工單 payload 兼容（scheduleId / records / PRESENT）");
+  // 重設 s2 兩個 booking 為 confirmed
+  db.prepare("UPDATE bookings SET status='confirmed', checked_in_at=NULL, cert_hash=NULL WHERE schedule_id='s2'").run();
+  const rw = await call(batch, {
+    user: coach1,
+    body: {
+      scheduleId: "s2",
+      records: [
+        { attendanceId: "b21", userId: "u1", status: "PRESENT" },
+        { attendanceId: "b22", userId: "u2", status: "ABSENT" },
+      ],
+    },
+  });
+  ok(rw.body.updated === 2, "records 更新 2 人", JSON.stringify(rw.body).slice(0, 120));
+  ok(Array.isArray(rw.body.data) && rw.body.data.length === 2, "回傳 data[]");
+  ok(/^[0-9a-f]{64}$/.test((rw.body.data[0] || {}).certHash || ""), "PRESENT 有 certHash");
+  const st = db.prepare("SELECT status, cert_hash FROM bookings WHERE id='b21'").get();
+  ok(st.status === "attended" && /^[0-9a-f]{64}$/.test(st.cert_hash || ""), "DB cert_hash 已寫入");
+  const ab = db.prepare("SELECT status FROM bookings WHERE id='b22'").get();
+  ok(ab.status === "no_show", "ABSENT → no_show", ab.status);
+
+  const hb2 = await call(hb, {
+    user: coach1,
+    body: { scheduleId: "s2", userId: "u1", notes: "工單格式評語，動作穩定。", mediaUrls: [] },
+  });
+  ok(hb2.statusCode === 201 && !!hb2.body.handbookId, "notes/mediaUrls/userId 兼容", JSON.stringify(hb2.body).slice(0, 120));
+
   console.log(`\n${bad === 0 ? "✅ 全部通過" : "❌ 有失敗"} — ${pass} passed, ${bad} failed`);
   process.exit(bad === 0 ? 0 : 1);
 })();
