@@ -19,7 +19,12 @@ if (socialLinks.length < 3) fails.push("social links should open in new tab with
 
 // 付款方式圖示
 has("zp-pay-row", "pay row");
-has("接受付款方式", "pay title");
+has("安全加密付款管道", "pay title");
+has("256-bit SSL 加密傳輸", "SSL note");
+has("Hong Kong Leisure and Fitness Company Limited", "正確公司英文名");
+has("zp-micro-disclaimer", "微型免責聲明");
+has("zp-legal-row", "法律連結列");
+has("calc(88px + env(safe-area-inset-bottom))", "移動端 safe-area 底距");
 has('aria-label="Visa"', "Visa");
 has('aria-label="Mastercard"', "Mastercard");
 has('aria-label="轉數快 FPS"', "FPS");
