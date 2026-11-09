@@ -40,6 +40,7 @@
 <body>
   <div class="h-wrap">
     <div class="h-head"><h1 id="title">我的運動手冊</h1><a href="my-bookings.html">返回預約</a></div>
+    <div id="annBar"></div>
     <div id="list"><div class="h-empty">載入中…</div></div>
   </div>
   <div class="h-toast" id="toast"></div>
@@ -62,6 +63,7 @@
     const list = r.data.handbooks || [];
     if (!list.length) { $("list").innerHTML = '<div class="h-empty">教練未更新手冊，完成課堂後再嚟睇。</div>'; return; }
     $("title").textContent = (list[0].student_name || "學員") + " 嘅運動手冊";
+    loadAnnouncements(list[0].session_id);
     $("list").innerHTML = '<div class="h-tl">' + list.map((h) => `
       <div class="h-card" data-id="${esc(h.id)}">
         <span class="h-date">${esc(h.log_date)}</span>
@@ -92,6 +94,24 @@
         } else toast("❌ " + ((r2.data && r2.data.error) || "送出失敗"));
       };
     });
+  }
+  async function loadAnnouncements(sessionId) {
+    try {
+      const r = await api.get("/student/announcements?session_id=" + encodeURIComponent(sessionId || ""));
+      const now = Date.now();
+      const show = (r.data && r.data.announcements || []).filter((a) => {
+        if (a.is_pinned) return true;
+        const t = new Date(String(a.created_at).replace(" ", "T")).getTime();
+        return !isNaN(t) && now - t < 48 * 3600 * 1000;
+      }).slice(0, 3);
+      if (!show.length) return;
+      $("annBar").innerHTML = show.map((a) => `
+        <div style="background:#FEFCE8;border:1.5px solid #FDE68A;border-radius:12px;padding:10px 12px;margin-bottom:10px">
+          <div style="font-size:13.5px;font-weight:900;color:#92400E">📢 ${esc(a.title)}</div>
+          <div style="font-size:12.5px;color:#78350F;line-height:1.55;margin-top:3px;white-space:pre-line">${esc(a.content)}</div>
+          <div style="font-size:10.5px;color:#A16207;margin-top:4px">${esc(a.coach_name || "教練")} · ${esc(String(a.created_at).slice(0, 10))}</div>
+        </div>`).join("");
+    } catch (e) {}
   }
   load();
 </script>
