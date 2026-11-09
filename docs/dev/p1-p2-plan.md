@@ -1,6 +1,6 @@
 # P1 + P2 開發計劃（feature/p1-p2-automation）
 
-> ⚠️ 此分支**唔會 merge、唔會部署**，等 11/09 首發完結後再評審。
+> ✅ 已合併入 main（fd61699d）；WhatsApp 功能仍待 Meta 帳號，pooling 預設關。
 > 生產 `main` 與 VPS 完全未受影響。
 
 ## P1：WhatsApp Cloud API
