@@ -67,6 +67,39 @@
     .dt-step .d { font-size: 12.5px; color: var(--text-muted); margin-top: 3px; line-height: 1.55; }
     .dt-aud { display: flex; gap: 6px; flex-wrap: wrap; }
 
+    /* 📚 課堂內容：收穫卡 + 進程軸 + 行前準備 */
+    .curriculum-block { display: flex; flex-direction: column; gap: 18px; }
+    .takeaways-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    @media (max-width: 480px) { .takeaways-grid { grid-template-columns: 1fr; } }
+    .takeaway-card { display: flex; align-items: flex-start; gap: 10px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 11px 12px; }
+    .takeaway-ic { font-size: 19px; line-height: 1; padding: 6px; background: #fff; border-radius: 8px; border: 1px solid #f1f5f9; flex: 0 0 auto; }
+    .takeaway-h { font-size: 13.5px; font-weight: 800; color: #1e293b; margin-bottom: 2px; }
+    .takeaway-s { font-size: 12px; color: #64748b; line-height: 1.45; }
+    .syllabus-wrap { background: #f0fdf4; border: 1px solid #dcfce7; border-radius: 14px; padding: 16px 14px; }
+    .syllabus-head { font-size: 14px; font-weight: 800; color: #14532d; margin-bottom: 14px; display: flex; align-items: center; gap: 6px; }
+    .syllabus-timeline { display: flex; flex-direction: column; }
+    .tl-step { display: flex; gap: 12px; }
+    .tl-marker { display: flex; flex-direction: column; align-items: center; width: 14px; flex: 0 0 14px; }
+    .tl-dot { width: 11px; height: 11px; border-radius: 50%; background: #16a34a; border: 2.5px solid #fff; box-shadow: 0 0 0 2px #16a34a; z-index: 2; }
+    .tl-dot.last { background: #15803d; }
+    .tl-line { flex: 1; width: 2px; background: #86efac; margin: 3px 0; min-height: 18px; }
+    .tl-body { flex: 1; padding-bottom: 16px; min-width: 0; }
+    .tl-step:last-child .tl-body { padding-bottom: 0; }
+    .tl-time { font-size: 10.5px; font-weight: 800; color: #16a34a; background: #fff; padding: 2px 6px; border-radius: 4px; display: inline-block; margin-bottom: 4px; border: 1px solid #bbf7d0; }
+    .tl-title { font-size: 13.5px; font-weight: 800; color: #0f172a; margin-bottom: 2px; }
+    .tl-desc { font-size: 12px; color: #475569; line-height: 1.5; }
+    .prep-amenities { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px 14px; }
+    @media (max-width: 480px) { .prep-amenities { grid-template-columns: 1fr; } }
+    .prep-title { font-size: 12.5px; font-weight: 800; color: #1e293b; margin-bottom: 6px; }
+    .prep-list { list-style: none; padding: 0; margin: 0; }
+    .prep-list li { font-size: 12px; color: #475569; line-height: 1.6; }
+    .aud-wrap { border-top: 1px solid var(--border); padding-top: 10px; }
+    .aud-label { font-size: 12px; color: var(--text-muted); margin-bottom: 6px; }
+    .dt-desc-details summary { font-size: 12.5px; font-weight: 700; color: #475569; cursor: pointer; list-style: none; }
+    .dt-desc-details summary::-webkit-details-marker { display: none; }
+    .dt-desc-details summary::after { content: " +"; color: #94a3b8; }
+    .dt-desc-details[open] summary::after { content: " −"; }
+
     .dt-coach-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
     .dt-coach-stats .s { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 9px 8px; text-align: center; }
     .dt-coach-stats .s b { display: block; font-size: 15px; color: var(--brand-600); line-height: 1.2; }
@@ -293,15 +326,39 @@
       </div>
       </div>
 
-      <!-- 2. 課堂內容 -->
+      <!-- 2. 課堂內容（收穫卡 + 進程軸 + 行前準備） -->
       <section class="dt-sec">
         <h2>📚 課堂內容</h2>
         <div class="card"><div class="body">
-          <div class="dt-timeline" id="timeline"></div>
-          <p class="muted" id="desc" style="font-size:13px;line-height:1.75;margin:12px 0 0;white-space:pre-line"></p>
-          <div style="border-top:1px solid var(--border);margin:12px 0 10px"></div>
-          <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px">適合對象</div>
-          <div class="dt-aud" id="audience"></div>
+          <div class="curriculum-block">
+            <div class="takeaways-grid" id="takeawaysGrid"></div>
+
+            <div class="syllabus-wrap">
+              <div class="syllabus-head"><span>⏱️</span><span id="syllabusTitle">課堂節奏安排</span></div>
+              <div class="syllabus-timeline" id="timeline"></div>
+            </div>
+
+            <div class="prep-amenities" id="prepAmenities">
+              <div class="prep-col">
+                <div class="prep-title">🎒 現場已提供</div>
+                <ul class="prep-list" id="prepProvided"></ul>
+              </div>
+              <div class="prep-col">
+                <div class="prep-title">👟 自行準備</div>
+                <ul class="prep-list" id="prepBring"></ul>
+              </div>
+            </div>
+
+            <details class="dt-desc-details" id="descDetails" hidden>
+              <summary>課程簡介</summary>
+              <p class="muted" id="desc" style="font-size:13px;line-height:1.75;margin:8px 0 0;white-space:pre-line"></p>
+            </details>
+
+            <div class="aud-wrap">
+              <div class="aud-label">適合對象</div>
+              <div class="dt-aud" id="audience"></div>
+            </div>
+          </div>
         </div></div>
       </section>
 
@@ -535,16 +592,8 @@
       const sold = Number(c.booking_count || c.sold_count || 0);
       $("sold").textContent = sold > 0 ? "｜已售出 " + sold + " 堂" : "";
 
-      // 課堂內容（API 有 highlights 用真實，否則用標準流程）
-      const highlights = Array.isArray(c.highlights) ? c.highlights : [];
-      const tl = $("timeline");
-      if (highlights.length) {
-        tl.innerHTML = highlights.map(function (h) {
-          return '<div class="dt-step"><div class="row1"><span class="t">' + esc(h.title) + '</span>' +
-            (h.minutes ? '<span class="min">' + h.minutes + ' 分鐘</span>' : '') + '</div>' +
-            (h.desc ? '<div class="d">' + esc(h.desc) + '</div>' : '') + '</div>';
-        }).join("");
-      } else { tl.innerHTML = ""; tl.style.display = "none"; }
+      // 📚 課堂內容：收穫卡 + 進程軸 + 行前準備
+      renderCurriculum(c);
 
       const aud = (c.target_audience || "").split(/[、,，/]/).map(function (x) { return x.trim(); }).filter(Boolean);
       $("audience").innerHTML = aud.length ? aud.map(function (t) {
@@ -740,6 +789,83 @@
       }
       return out;
     }
+
+    // 📚 課堂內容區：收穫卡 / 進程軸 / 行前準備
+    function renderCurriculum(c) {
+      const isElder = /長者|樂齡|senior/i.test(String(c.target_audience || "")) || /樂齡|長者|關節|伸展|膝/.test(String(c.title || ""));
+      const cards = isElder
+        ? [
+            ["🎯", "防跌平衡訓練", "針對下肢肌力與平衡感，一步步建立行走信心。"],
+            ["🦵", "關節無痛舒展", "溫和活動肩頸腰膝，減少僵硬，提升日常活動力。"],
+            ["🪑", "椅子輔助・全程安心", "可坐椅完成大部分動作，教練貼身照顧每個學員。"],
+            ["📜", "課後數位存證", "出席記錄與 SHA-256 防偽證書，努力有憑證。"],
+          ]
+        : [
+            ["🎯", "3 分鐘上手", "由握法、基本規則到實戰，教練一步步引導。"],
+            ["🧠", "策略思考", "計分與攻防判斷，動腦又動手，越玩越投入。"],
+            ["🤝", "團隊對抗", "分組交流切磋，小班氣氛輕鬆，識到運動同好。"],
+            ["📜", "課後數位存證", "課後獲發 SHA-256 防偽證書，記錄每次進步。"],
+          ];
+      const tkGrid = $("takeawaysGrid");
+      if (tkGrid) tkGrid.innerHTML = cards.map(function (x) {
+        return '<div class="takeaway-card"><div class="takeaway-ic">' + x[0] + '</div>' +
+          '<div><div class="takeaway-h">' + esc(x[1]) + '</div><div class="takeaway-s">' + esc(x[2]) + '</div></div></div>';
+      }).join("");
+
+      const dur = Number(c.duration) || 90;
+      const stageDefs = isElder
+        ? [
+            ["安全簽到 · 關節熱身", "教練確認身體狀況與舊患，坐椅輔助活化肩頸腰膝。"],
+            ["防跌技巧 · 平衡練習", "逐步訓練下肢肌力與平衡感，建立安全行走信心。"],
+            ["小組互動 · 實際演練", "分組練習並即時修正姿勢，教練全程在旁看護。"],
+            ["深層伸展 · 課後交流", "放鬆肌肉、補充水分，解答日常活動與居家練習問題。"],
+          ]
+        : [
+            ["安全簽到 · 動態熱身", "教練確認身體狀況，進行全身關節活化與手部伸展。"],
+            ["基礎技法 · 規則拆解", "示範核心動作要領，逐一修正姿勢，掌握發力訣竅。"],
+            ["情境實戰 · 小組演練", "分組模擬實戰，運用剛學技巧交流，教練在旁指導。"],
+            ["靜態放鬆 · 課後交流", "深層肌肉放鬆、飲水休息，回顧今日表現與下一步。"],
+          ];
+      const fr = [0, 0.17, 0.5, 0.83, 1];
+      const marks = fr.map(function (f) { return Math.round(dur * f / 5) * 5; });
+      const pad = (n) => String(n).padStart(2, "0");
+      const hl = (Array.isArray(c.highlights) ? c.highlights : []).filter(function (h) { return h && h.title; });
+      let steps;
+      if (hl.length) {
+        steps = hl.map(function (h, i) {
+          return { time: h.minutes ? h.minutes + " 分鐘" : "第 " + (i + 1) + " 段", title: h.title, desc: h.desc || "" };
+        });
+      } else {
+        steps = stageDefs.map(function (d, i) {
+          return { time: pad(marks[i]) + "–" + pad(marks[i + 1]) + " 分鐘", title: d[0], desc: d[1] };
+        });
+      }
+      const tlTitle = $("syllabusTitle");
+      if (tlTitle) tlTitle.textContent = dur + " 分鐘節奏安排";
+      const tl = $("timeline");
+      if (tl) tl.innerHTML = steps.map(function (s, i) {
+        const last = i === steps.length - 1;
+        return '<div class="tl-step"><div class="tl-marker"><div class="tl-dot' + (last ? " last" : "") + '"></div>' +
+          (last ? "" : '<div class="tl-line"></div>') + '</div>' +
+          '<div class="tl-body"><div class="tl-time">' + esc(s.time) + '</div>' +
+          '<div class="tl-title">' + esc(s.title) + '</div>' +
+          (s.desc ? '<div class="tl-desc">' + esc(s.desc) + '</div>' : '') + '</div></div>';
+      }).join("");
+
+      const fac = (Array.isArray(c.facilities) ? c.facilities : []).map(function (x) { return String(x).trim(); }).filter(Boolean);
+      const provided = fac.length ? fac.slice(0, 4) : ["場地基本設施（以場地公告為準）", "教練全程指導及安全提示"];
+      const gearSrc = String(c.equipment || "").trim();
+      const bring = gearSrc
+        ? gearSrc.split(/[、,，/]/).map(function (x) { return x.trim(); }).filter(Boolean)
+        : (isElder ? ["輕便運動服裝及平底運動鞋", "飲用水", "拭汗小毛巾"] : ["運動服裝及平底運動鞋", "飲用水", "毛巾"]);
+      const pv = $("prepProvided"), pb = $("prepBring");
+      if (pv) pv.innerHTML = provided.map(function (x) { return "<li>✓ " + esc(x) + "</li>"; }).join("");
+      if (pb) pb.innerHTML = bring.map(function (x) { return "<li>• " + esc(x) + "</li>"; }).join("");
+
+      const dd = $("descDetails");
+      if (dd) dd.hidden = !(c.description && String(c.description).trim());
+    }
+
     function openSheet() {
       if (!CLS || !CLS.id) { alert("示範頁面：請由課程列表進入再預約。"); return; }
       if (!SESS.length) { alert("暫未有可預約時段，請稍後再嚟。"); return; }

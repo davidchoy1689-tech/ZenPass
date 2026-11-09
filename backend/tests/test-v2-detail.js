@@ -24,7 +24,17 @@ has("課堂內容", "highlights section");
 has('id="timeline"', "timeline");
 has('id="audience"', "audience");
 has("適合對象", "audience label");
-has("分鐘</span>", "duration badge");
+has('id="takeawaysGrid"', "takeaways grid");
+has("takeaway-card", "takeaway card");
+has("syllabus-timeline", "syllabus timeline");
+has("tl-step", "timeline step");
+has('id="prepProvided"', "provided list");
+has('id="prepBring"', "bring list");
+has("function renderCurriculum", "curriculum renderer");
+has("防跌平衡訓練", "elder takeaways");
+has("3 分鐘上手", "adult takeaways");
+has("分鐘節奏安排", "timeline heading");
+has("tl-time", "stage duration badge");
 
 // 3 教練
 has("🧑‍🏫 教練", "coach section");
