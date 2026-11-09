@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>認領專屬運動手冊 · ZenPass</title>
+<style>
+  :root{--ink:#0F172A;--mut:#64748B;--brand:#059669;--bg:#F0FDF4}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,"PingFang HK",sans-serif;background:linear-gradient(180deg,#ECFDF5,#F8FAFC 45%);color:var(--ink);min-height:100vh;padding:20px 16px 40px}
+  .wrap{max-width:520px;margin:0 auto}
+  .brand{font-weight:900;font-size:15px;color:#065F46;letter-spacing:.3px;margin-bottom:18px}
+  .hero{font-size:24px;font-weight:900;line-height:1.35;margin:0 0 6px}
+  .sub{color:#475569;font-size:14px;line-height:1.6;margin-bottom:18px}
+  .card{background:#fff;border:1px solid #D1FAE5;border-radius:18px;padding:18px;box-shadow:0 8px 24px rgba(5,150,105,.08);margin-bottom:14px}
+  .row{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px dashed #E2E8F0;font-size:14px}
+  .row:last-child{border-bottom:0}
+  .k{color:var(--mut)}
+  .v{font-weight:800;text-align:right;word-break:break-word}
+  .btn{display:block;width:100%;border:0;border-radius:14px;padding:15px;font-size:16px;font-weight:900;cursor:pointer;text-align:center;text-decoration:none}
+  .primary{background:linear-gradient(135deg,#10B981,#059669);color:#fff;box-shadow:0 8px 18px rgba(5,150,105,.28)}
+  .secondary{background:#fff;border:1.5px solid #A7F3D0;color:#065F46;margin-top:10px}
+  .btn:disabled{opacity:.6;cursor:not-allowed}
+  .note{font-size:12px;color:var(--mut);line-height:1.6;margin-top:10px}
+  .gift{background:#FFFBEB;border:1px solid #FDE68A;color:#92400E}
+  .gift h3{margin:0 0 6px;font-size:16px}
+  .err{background:#FEF2F2;border:1px solid #FECACA;color:#B91C1C;border-radius:14px;padding:16px;font-size:14px;font-weight:700;line-height:1.6}
+  .ok{font-size:44px;text-align:center;margin-bottom:6px}
+  .hide{display:none}
+  .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:24px;background:#0F172A;color:#fff;padding:10px 16px;border-radius:999px;font-size:13px;opacity:0;transition:opacity .2s;pointer-events:none}
+  .toast.on{opacity:1}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand">ZenPass · 香港康樂及體育</div>
+
+  <div id="loading" class="card">載入中…</div>
+  <div id="error" class="err hide"></div>
+
+  <div id="claimCard" class="hide">
+    <h1 class="hero">👋 <span id="coachName">教練</span> 邀請你認領專屬運動手冊</h1>
+    <div class="sub">簽到紀錄、動作相片、回家伸展同教練評語，全部集中喺一個手冊。</div>
+    <div class="card">
+      <div class="row"><span class="k">學員姓名</span><span class="v" id="stuName">—</span></div>
+      <div class="row"><span class="k">健康備註</span><span class="v" id="stuNotes">—</span></div>
+      <div class="row"><span class="k">迎新體驗堂</span><span class="v" id="stuQuota">—</span></div>
+    </div>
+    <button class="btn primary" id="claimBtn">⚡ 一鍵開啟手冊 · 領取課堂通知</button>
+    <div class="note">免密碼、免下載 App。認領後會用你嘅電話綁定帳戶。</div>
+  </div>
+
+  <div id="doneCard" class="hide">
+    <div class="ok">🎉</div>
+    <h1 class="hero" style="text-align:center">手冊已開通</h1>
+    <div class="sub" style="text-align:center">你已獲得 <b id="doneQuota">1</b> 堂迎新體驗，教練會喺課堂前通知你。</div>
+    <a class="btn primary" href="my-bookings.html">查看我的預約</a>
+    <a class="btn secondary" href="student-handbook.html">打開運動手冊</a>
+    <div class="card gift" style="margin-top:14px">
+      <h3>🎁 帶親友同行禮遇</h3>
+      <div style="font-size:13px;line-height:1.6">想同街坊一齊做運動？分享以下訊息俾一位親友，佢登記體驗堂時可享首堂優惠。</div>
+      <button class="btn secondary" id="shareBtn" style="margin-top:10px">💬 分享給親友</button>
+    </div>
+  </div>
+
+  <div id="claimedCard" class="hide">
+    <div class="card">
+      <b>此邀請已認領</b>
+      <div class="note">如果你想再次查看手冊，請登入你嘅帳戶。</div>
+      <a class="btn secondary" href="login.html">前往登入</a>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script src="assets/api.js"></script>
+<script>
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const toast = (m) => { const t = $("toast"); t.textContent = m; t.classList.add("on"); setTimeout(() => t.classList.remove("on"), 1800); };
+  const token = new URLSearchParams(location.search).get("token") || "";
+  let INFO = null;
+
+  function fail(msg) {
+    $("loading").classList.add("hide");
+    $("error").classList.remove("hide");
+    $("error").textContent = msg;
+  }
+
+  (async () => {
+    if (!/^[a-f0-9]{64}$/.test(token)) return fail("此連結無效，請向教練索取新連結。");
+    const r = await api.get("/student/onboarding/claim?token=" + encodeURIComponent(token));
+    if (!r.ok) return fail((r.data && r.data.error) || "找不到邀請。");
+    INFO = r.data;
+    $("loading").classList.add("hide");
+    if (INFO.status === "claimed") { $("claimedCard").classList.remove("hide"); return; }
+    if (INFO.status === "expired") return fail("邀請已過期（30 日有效），請教練重新發送。");
+    $("coachName").textContent = INFO.coach_name;
+    $("stuName").textContent = INFO.student_name;
+    $("stuNotes").textContent = INFO.notes || "無";
+    $("stuQuota").textContent = INFO.quota + " 堂";
+    $("claimCard").classList.remove("hide");
+  })();
+
+  $("claimBtn").onclick = async () => {
+    $("claimBtn").disabled = true;
+    $("claimBtn").textContent = "開通中…";
+    const r = await api.post("/student/onboarding/complete", { token });
+    if (!r.ok) {
+      $("claimBtn").disabled = false;
+      $("claimBtn").textContent = "⚡ 一鍵開啟手冊 · 領取課堂通知";
+      return toast((r.data && r.data.error) || "認領失敗");
+    }
+    try {
+      localStorage.setItem("zenpass_token", r.data.token);
+      localStorage.setItem("zenpass_user", JSON.stringify(r.data.user));
+    } catch (e) {}
+    $("claimCard").classList.add("hide");
+    $("doneQuota").textContent = r.data.quota;
+    $("doneCard").classList.remove("hide");
+  };
+
+  $("shareBtn").onclick = async () => {
+    const link = location.origin + "/detail.html?id=07188a59-2a63-44f1-b517-a4b0790196dd&utm_source=legacy_referral&utm_campaign=seed_dec12";
+    const txt = "我喺 ZenPass 開通咗長者運動手冊，教練一對一小班，仲有迎新體驗堂。想一齊做運動可以睇吓：";
+    if (navigator.share) { try { await navigator.share({ text: txt, url: link }); return; } catch (e) {} }
+    try { await navigator.clipboard.writeText(txt + " " + link); toast("已複製分享訊息"); } catch (e) { alert(txt + " " + link); }
+  };
+</script>
+</body>
+</html>

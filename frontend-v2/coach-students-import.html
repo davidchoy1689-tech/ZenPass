@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>匯入現有學生 · ZenPass</title>
+<style>
+  :root{--ink:#0F172A;--mut:#64748B;--line:#E2E8F0;--brand:#059669;--bg:#F8FAFC}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,"PingFang HK",sans-serif;background:var(--bg);color:var(--ink);padding-bottom:32px}
+  .wrap{max-width:760px;margin:0 auto;padding:16px}
+  .head{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+  .head h1{font-size:19px;margin:0;font-weight:900}
+  .grow{flex:1}
+  .btn{border:1px solid var(--line);background:#fff;border-radius:10px;padding:9px 12px;font-weight:800;font-size:13px;cursor:pointer}
+  .btn-primary{background:var(--brand);border-color:var(--brand);color:#fff}
+  .btn-primary:disabled{opacity:.55;cursor:not-allowed}
+  .card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
+  .tabs{display:flex;gap:6px;margin-bottom:10px}
+  .tab{flex:1;padding:9px;border-radius:10px;border:1px solid var(--line);background:#fff;font-weight:800;font-size:13px;cursor:pointer}
+  .tab.on{background:#ECFDF5;border-color:#6EE7B7;color:#065F46}
+  textarea{width:100%;min-height:170px;border:1.5px solid #CBD5E1;border-radius:10px;padding:10px;font:inherit;font-size:13px;line-height:1.6;resize:vertical}
+  textarea:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 3px rgba(5,150,105,.12)}
+  .hint{font-size:11.5px;color:var(--mut);line-height:1.6;margin-top:6px}
+  .drop{border:2px dashed #CBD5E1;border-radius:12px;padding:22px;text-align:center;color:var(--mut);font-size:13px;cursor:pointer}
+  .preview{margin-top:10px;border:1px solid var(--line);border-radius:10px;overflow:auto}
+  table{width:100%;border-collapse:collapse;font-size:12.5px}
+  th,td{padding:7px 8px;border-bottom:1px solid #EEF2F7;text-align:left;white-space:nowrap}
+  th{background:#F8FAFC;font-size:11.5px;color:var(--mut)}
+  tr.bad td{background:#FEF2F2;color:#B91C1C;font-weight:700}
+  .kpis{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+  .kpi{background:#F0FDF4;border:1px solid #BBF7D0;border-radius:10px;padding:7px 10px;font-size:12px;font-weight:800;color:#065F46}
+  .invite{display:flex;gap:8px;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid #EEF2F7;font-size:13px;flex-wrap:wrap}
+  .invite .n{font-weight:800}
+  .invite .p{color:var(--mut);font-size:11.5px}
+  .wa{background:#25D366;color:#fff;border:0;border-radius:8px;padding:7px 10px;font-weight:800;font-size:12px;text-decoration:none;white-space:nowrap}
+  .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:24px;background:#0F172A;color:#fff;padding:10px 16px;border-radius:999px;font-size:13px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:9999}
+  .toast.on{opacity:1}
+  .note{font-size:11.5px;color:var(--mut);line-height:1.6;margin-top:8px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="head">
+    <h1>👥 匯入現有學生</h1>
+    <span class="grow"></span>
+    <a class="btn" href="coach-console.html" style="text-decoration:none;color:inherit">返回</a>
+  </div>
+
+  <div class="card">
+    <div class="tabs">
+      <button class="tab on" data-tab="text">📝 貼上文字（最快）</button>
+      <button class="tab" data-tab="csv">📁 上傳 CSV</button>
+    </div>
+
+    <div id="paneText">
+      <textarea id="raw" placeholder="直接貼 WhatsApp 名單，每行一位，例如：&#10;1. 陳大文 98765432 膝痛&#10;李淑芬 9123 4567 血壓高&#10;Mary 61234567"></textarea>
+      <div class="hint">支援 +852、空格、破折號；系統會自動抽出姓名、8 位電話同舊患備註。</div>
+    </div>
+
+    <div id="paneCsv" hidden>
+      <div class="drop" id="drop">拖放 .csv 到這裡，或<u>點擊選擇檔案</u><input type="file" id="file" accept=".csv,text/csv" hidden></div>
+      <div class="hint">CSV 欄位：姓名,電話,備註,堂數（可無標題行）。<a href="#" id="tpl">下載範本</a></div>
+    </div>
+
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <button class="btn" id="parseBtn" style="flex:1">🔍 智能解析</button>
+      <button class="btn btn-primary" id="importBtn" style="flex:1" disabled>⬆️ 一鍵匯入</button>
+    </div>
+
+    <div class="preview" id="preview" hidden></div>
+    <div class="kpis" id="kpis" hidden></div>
+    <div class="note" id="note" hidden>格式錯誤嘅行會標紅；可以返上面修正後再解析。</div>
+  </div>
+
+  <div class="card" id="resultCard" hidden>
+    <b style="font-size:15px">✅ 已生成迎新連結</b>
+    <div class="note" id="resultNote"></div>
+    <div style="display:flex;gap:8px;margin:10px 0">
+      <button class="btn" id="copyAll" style="flex:1">📋 複製全部連結</button>
+      <button class="btn" id="copyWa" style="flex:1">💬 複製 WhatsApp 廣播文字</button>
+    </div>
+    <div id="inviteList"></div>
+  </div>
+
+  <div class="card">
+    <b style="font-size:15px">📊 已匯入名單</b>
+    <div class="note" id="invStats">載入中…</div>
+    <div id="invList"></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script src="assets/api.js"></script>
+<script>
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const toast = (m) => { const t = $("toast"); t.textContent = m; t.classList.add("on"); setTimeout(() => t.classList.remove("on"), 1800); };
+  let PARSED = [];
+  let LAST = null;
+  let ME = null;
+
+  const NOTE_KW = /(膝|痛|手術|血壓|心臟|糖尿|關節|暈|中風|骨質|氣喘|哮喘|舊患|敏感|懷孕)/;
+  function parseLine(raw) {
+    let s = String(raw || "").replace(/\u3000/g, " ").trim();
+    if (!s) return null;
+    s = s.replace(/^[\s\-•*·]+/, "").replace(/^\d+\s*[.、)）:：]\s*/, "");
+    const m = s.match(/(?:\+?852[\s-]?)?([4-9]\d{3}[\s-]?\d{4})/);
+    if (!m) return { bad: true, raw: String(raw) };
+    const phone = m[1].replace(/\D/g, "");
+    let rest = s.replace(m[0], " ").replace(/\s+/g, " ").replace(/^[,，;；|:\-]+|[,，;；|:\-]+$/g, "").trim();
+    let name = rest, notes = "";
+    const parts = rest.split(/[,，;；|]+/).map((x) => x.trim()).filter(Boolean);
+    if (parts.length > 1) { name = parts[0]; notes = parts.slice(1).join("；"); }
+    else { const kw = rest.search(NOTE_KW); if (kw > 0) { name = rest.slice(0, kw).trim(); notes = rest.slice(kw).trim(); } }
+    name = name.replace(/^[\s\-•*]+|[\s\-•*]+$/g, "").slice(0, 40);
+    if (!name) return { bad: true, raw: String(raw) };
+    return { name, phone, notes: notes.slice(0, 120), quota: 1 };
+  }
+
+  function parseAll() {
+    const rows = $("raw").value.split(/\r?\n/).map(parseLine).filter(Boolean);
+    PARSED = rows;
+    renderPreview();
+  }
+
+  function renderPreview() {
+    const good = PARSED.filter((x) => !x.bad);
+    const badRows = PARSED.filter((x) => x.bad);
+    $("preview").hidden = !PARSED.length;
+    $("kpis").hidden = !PARSED.length;
+    $("note").hidden = !badRows.length;
+    $("importBtn").disabled = !good.length;
+    $("kpis").innerHTML = `<span class="kpi">可匯入 ${good.length} 位</span><span class="kpi" style="${badRows.length ? "background:#FEF2F2;border-color:#FECACA;color:#B91C1C" : ""}">格式錯誤 ${badRows.length} 行</span>`;
+    $("preview").innerHTML = `<table><thead><tr><th>姓名</th><th>電話</th><th>備註</th><th>堂數</th></tr></thead><tbody>` +
+      PARSED.slice(0, 200).map((r) => r.bad
+        ? `<tr class="bad"><td colspan="4">無法解析：${esc(r.raw)}</td></tr>`
+        : `<tr><td>${esc(r.name)}</td><td>${esc(r.phone)}</td><td>${esc(r.notes || "—")}</td><td>${r.quota || 1}</td></tr>`).join("") + "</tbody></table>";
+  }
+
+  $("parseBtn").onclick = () => { parseAll(); if (!PARSED.length) toast("請先貼上名單或選擇 CSV"); };
+
+  document.querySelectorAll(".tab").forEach((t) => {
+    t.onclick = () => {
+      document.querySelectorAll(".tab").forEach((x) => x.classList.toggle("on", x === t));
+      $("paneText").hidden = t.dataset.tab !== "text";
+      $("paneCsv").hidden = t.dataset.tab !== "csv";
+    };
+  });
+
+  const fileEl = $("file");
+  $("drop").onclick = () => fileEl.click();
+  $("drop").ondragover = (e) => { e.preventDefault(); };
+  $("drop").ondrop = (e) => { e.preventDefault(); if (e.dataTransfer.files[0]) readCsv(e.dataTransfer.files[0]); };
+  fileEl.onchange = () => { if (fileEl.files[0]) readCsv(fileEl.files[0]); };
+  function readCsv(f) {
+    const rd = new FileReader();
+    rd.onload = () => { $("raw").value = String(rd.result || ""); parseAll(); toast("已讀取 " + f.name); };
+    rd.readAsText(f, "utf-8");
+  }
+  $("tpl").onclick = (e) => {
+    e.preventDefault();
+    const blob = new Blob(["\uFEFF姓名,電話,備註,堂數\n陳大文,98765432,膝關節手術,1\n李淑芬,91234567,血壓高,1\n"], { type: "text/csv;charset=utf-8" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob); a.download = "zenpass-student-template.csv"; a.click();
+  };
+
+  $("importBtn").onclick = async () => {
+    const good = PARSED.filter((x) => !x.bad).map((x) => ({ name: x.name, phone: x.phone, notes: x.notes, pass_quota: x.quota || 1 }));
+    if (!good.length) return;
+    $("importBtn").disabled = true; $("importBtn").textContent = "匯入中…";
+    const r = await api.post("/coach/students/import-batch", { items: good });
+    $("importBtn").disabled = false; $("importBtn").textContent = "⬆️ 一鍵匯入";
+    if (!r.ok) { toast((r.data && r.data.error) || "匯入失敗"); return; }
+    LAST = r.data;
+    toast(`✅ 新增 ${r.data.created} · 更新 ${r.data.updated} · 跳過 ${r.data.skipped}`);
+    renderResult();
+    loadInvites();
+  };
+
+  function inviteUrl(token) { return location.origin + "/welcome.html?token=" + token; }
+
+  function renderResult() {
+    if (!LAST) return;
+    const coach = (ME && ME.name) || "教練";
+    const items = LAST.invites || [];
+    $("resultCard").hidden = false;
+    $("resultNote").textContent = `已為 ${items.length} 位學員生成 30 日有效迎新連結；學員點開即可免密碼認領手冊。`;
+    $("inviteList").innerHTML = items.map((i) => `<div class="invite">
+      <div><div class="n">${esc(i.name)}</div><div class="p">${esc(i.phone)}</div></div>
+      <a class="wa" target="_blank" rel="noopener" href="https://wa.me/852${esc(i.phone)}?text=${encodeURIComponent(`你好 ${i.name}，我是 ${coach}！我已為你在 ZenPass 開通專屬運動進度手冊，之後嘅簽到、動作相片同回家伸展都會記錄喺度。請點擊連結認領：${inviteUrl(i.token)}`)}">💬 發送</a>
+    </div>`).join("");
+  }
+
+  $("copyAll").onclick = async () => {
+    if (!LAST) return;
+    const txt = LAST.invites.map((i) => `${i.name} ${i.phone} ${inviteUrl(i.token)}`).join("\n");
+    try { await navigator.clipboard.writeText(txt); toast("已複製 " + LAST.invites.length + " 條連結"); } catch (e) { alert(txt); }
+  };
+  $("copyWa").onclick = async () => {
+    if (!LAST) return;
+    const coach = (ME && ME.name) || "教練";
+    const txt = LAST.invites.map((i) => `你好 ${i.name}，我是 ${coach}！我已為你在 ZenPass 開通專屬運動進度手冊，之後嘅簽到、動作相片同回家伸展都會記錄喺度。請點擊連結認領：${inviteUrl(i.token)}`).join("\n\n");
+    try { await navigator.clipboard.writeText(txt); toast("已複製 WhatsApp 廣播文字"); } catch (e) { alert(txt); }
+  };
+
+  async function loadInvites() {
+    const r = await api.get("/coach/students/invites");
+    if (!r.ok) { $("invStats").textContent = (r.data && r.data.error) || "讀取失敗"; return; }
+    const s = r.data.stats || {};
+    $("invStats").textContent = `共 ${s.total} 位 · 已認領 ${s.claimed} · 待認領 ${s.pending} · 啟用率 ${s.rate}%`;
+    $("invList").innerHTML = (r.data.invites || []).slice(0, 100).map((i) => `<div class="invite">
+      <div><div class="n">${esc(i.student_name)} ${i.status === "claimed" ? "✅" : "⏳"}</div><div class="p">${esc(i.phone)} · ${i.status === "claimed" ? "已認領" : "待認領"}</div></div>
+      ${i.status === "pending" ? `<a class="wa" target="_blank" rel="noopener" href="https://wa.me/852${esc(i.phone)}?text=${encodeURIComponent("你好 " + i.student_name + "，請點擊認領你嘅 ZenPass 運動手冊：" + inviteUrl(i.token))}">💬 再發</a>` : ""}
+    </div>`).join("");
+  }
+
+  (async () => {
+    const me = await api.me();
+    if (!me.ok) { location.href = "login.html?next=" + encodeURIComponent(location.pathname); return; }
+    ME = me.data.user;
+    if (!["coach", "partner_coach", "super_admin", "platform_manager", "admin"].includes(ME.role)) { location.href = "index.html"; return; }
+    loadInvites();
+  })();
+</script>
+</body>
+</html>
