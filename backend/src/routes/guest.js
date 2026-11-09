@@ -19,6 +19,7 @@ const bcrypt = require("bcryptjs");
 const { getDb } = require("../services/database");
 const bookingService = require("../services/booking-service");
 const { validatePromo, normalize } = require("../services/promo");
+const { recordAttribution } = require("../services/attribution");
 const bookingQr = require("../services/booking-qr");
 const { claimPayment } = require("../services/payment-claim");
 const { publicFormLimiter } = require("../middleware/public-form-limit");
@@ -343,6 +344,15 @@ router.post("/book", bookLimiter, async (req, res) => {
         results,
       });
     }
+
+    try {
+      recordAttribution(
+        db,
+        results.filter((r) => r.booking_id).map((r) => r.booking_id),
+        body.utm_source,
+        body.utm_campaign,
+      );
+    } catch (e) {}
 
     const { token, expires_at } = issueToken(db, userId);
     const rows = guestBookings(db, userId);

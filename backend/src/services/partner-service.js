@@ -126,7 +126,7 @@ function applyPartner(req) {
        contact_person, category, district, logo_url, website, facilities,
        commission_plan, commission_rate, partner_reference, status, created_at, updated_at,
        insurance_declared, insurance_doc_url, insurance_expiry, photos_gallery)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', datetime('now'), datetime('now'), ?, ?, ?, ?)`
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', datetime('now'), datetime('now'), ?, ?, ?, ?)`
   ).run(
     id, req.body.partner_type || "full", name, description || "", address || "", phone, email,
     contact_person || "", category, district || "",

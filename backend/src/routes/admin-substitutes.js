@@ -26,6 +26,15 @@ function ensureSchema(db) {
   const rcols = db.prepare("PRAGMA table_info(coach_substitution_requests)").all().map((c) => c.name);
   if (!rcols.includes("review_note")) db.exec("ALTER TABLE coach_substitution_requests ADD COLUMN review_note TEXT");
   db.prepare("CREATE INDEX IF NOT EXISTS idx_subreq_status ON coach_substitution_requests(status, created_at)").run();
+  // 場地 PLI 欄位可能未由 admin-crm 建立過（舊 DB）
+  try {
+    const vcols = db.prepare("PRAGMA table_info(partner_venues)").all().map((c) => c.name);
+    const add = (col, ddl) => { if (!vcols.includes(col)) db.exec(`ALTER TABLE partner_venues ADD COLUMN ${ddl}`); };
+    add("pli_policy_no", "pli_policy_no TEXT");
+    add("pli_expiry", "pli_expiry TEXT");
+    add("pli_status", "pli_status TEXT DEFAULT 'unverified'");
+    add("is_sandbox", "is_sandbox INTEGER DEFAULT 0");
+  } catch (e) {}
 }
 
 function gateMode(db) {
@@ -62,18 +71,22 @@ function checkEligibility(db, targetCoachId, classId) {
     const cls = db.prepare("SELECT partner_venue_id FROM classes WHERE id=?").get(classId);
     if (cls && cls.partner_venue_id) {
       venue = db
-        .prepare("SELECT id,name,pli_status,pli_expiry FROM partner_venues WHERE id=?")
+        .prepare("SELECT id,name,pli_status,pli_expiry,is_sandbox FROM partner_venues WHERE id=?")
         .get(cls.partner_venue_id);
     }
   } catch (e) {}
   if (venue) {
-    const st = String(venue.pli_status || "unverified");
-    const expired = venue.pli_expiry && String(venue.pli_expiry).slice(0, 10) < todayHKT();
-    if (st === "expired" || expired) blockers.push(`場地 PLI 已過期（${venue.name}）`);
-    else if (st !== "verified" && st !== "exempt") {
-      const msg = `場地 PLI 未核實（${venue.name}）`;
-      if (gateMode(db) === "enforce") blockers.push(msg);
-      else warnings.push(msg);
+    if (Number(venue.is_sandbox) === 1) {
+      warnings.push(`⚠️ 測試環境豁免 PLI（沙盒場地：${venue.name}）`);
+    } else {
+      const st = String(venue.pli_status || "unverified");
+      const expired = venue.pli_expiry && String(venue.pli_expiry).slice(0, 10) < todayHKT();
+      if (st === "expired" || expired) blockers.push(`場地 PLI 已過期（${venue.name}）`);
+      else if (st !== "verified" && st !== "exempt") {
+        const msg = `場地 PLI 未核實（${venue.name}）`;
+        if (gateMode(db) === "enforce") blockers.push(msg);
+        else warnings.push(msg);
+      }
     }
   } else {
     warnings.push("場地未連結商戶資料，PLI 無法自動核對");
@@ -164,6 +177,16 @@ router.post("/substitutes/:id/approve", authenticateToken, requireAdmin, (req, r
       newValues: { coach_override_id: r.target_coach_id, request_id: r.id, warnings: e.warnings },
       description: `核准代堂（${r.title}）`,
     });
+    if (e.warnings.some((w) => w.includes("豁免 PLI"))) {
+      audit({
+        actionType: "pli_warning_bypassed",
+        entityType: "class_schedule",
+        entityId: r.session_id,
+        userId: req.user.id,
+        newValues: { request_id: r.id, venue: e.venue && e.venue.name, is_sandbox: 1 },
+        description: `沙盒場地豁免 PLI 核准代堂（${r.title}）`,
+      });
+    }
     try {
       dbNotification(
         r.target_coach_id,
@@ -181,7 +204,13 @@ router.post("/substitutes/:id/approve", authenticateToken, requireAdmin, (req, r
       );
     } catch (err) {}
 
-    res.json({ success: true, status: "approved", warnings: e.warnings, session_id: r.session_id });
+    res.json({
+      success: true,
+      status: "approved",
+      warnings: e.warnings,
+      warning: e.warnings.find((w) => w.includes("豁免 PLI")) || null,
+      session_id: r.session_id,
+    });
   } catch (err) {
     console.error("[SUBREQ] approve:", err.message);
     res.status(409).json({ success: false, error: err.message });

@@ -15,6 +15,7 @@ const bookingService = require("../services/booking-service");
 const { validatePromo, normalize } = require("../services/promo");
 const bookingQr = require("../services/booking-qr");
 const { claimPayment } = require("../services/payment-claim");
+const { recordAttribution } = require("../services/attribution");
 const Booking = require("../models/Booking");
 const passesService = require("../services/passes");
 const { audit } = require("../services/audit");
@@ -113,6 +114,11 @@ router.post(
 
       // 3. Business logic via service
       const result = await bookingService.createBooking(req);
+      if (result.status === 201) {
+        try {
+          recordAttribution(db, result.body.booking_id, req.body.utm_source, req.body.utm_campaign);
+        } catch (e) {}
+      }
       return res.status(result.status).json(result.body);
     } catch (err) {
       console.error("預約錯誤:", err);
@@ -200,6 +206,16 @@ router.post(
       }
     const createdRows = results.filter((x) => x.status === 201 && x.body && x.body.booking_id);
     const created = createdRows.length;
+    if (created > 0) {
+      try {
+        recordAttribution(
+          getDb(),
+          createdRows.map((x) => x.body.booking_id),
+          req.body && req.body.utm_source,
+          req.body && req.body.utm_campaign,
+        );
+      } catch (e) {}
+    }
     const payableAmount = createdRows.reduce((s, x) => s + (Number(x.body.amount) || 0), 0);
     const originalAmount = createdRows.reduce((s, x) => s + (Number(x.body.original_amount) || 0), 0);
 

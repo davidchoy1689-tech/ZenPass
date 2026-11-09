@@ -397,7 +397,11 @@
               <div style="font-size:12.5px">原教練 <b>${esc(it.from_name || "—")}</b> → 代堂 <b>${esc(it.target_name || "—")}</b></div>
               ${it.reason ? `<div class="muted" style="font-size:12px;margin-top:4px">原因：${esc(it.reason)}</div>` : ""}
               ${(it.blockers || []).map((b) => `<div style="background:#FEF2F2;border:1px solid #FECACA;color:#B91C1C;border-radius:8px;padding:6px 8px;font-size:12px;font-weight:700;margin-top:6px">⛔ ${esc(b)}</div>`).join("")}
-              ${(it.warnings || []).map((b) => `<div style="background:#FFFBEB;border:1px solid #FDE68A;color:#92400E;border-radius:8px;padding:6px 8px;font-size:12px;margin-top:6px">⚠️ ${esc(b)}</div>`).join("")}
+              ${(it.warnings || []).map((b) => {
+                const sandbox = b.includes("豁免 PLI");
+                const bg = sandbox ? "#FFEDD5" : "#FFFBEB", br = sandbox ? "#FDBA74" : "#FDE68A", fg = sandbox ? "#9A3412" : "#92400E";
+                return `<div style="background:${bg};border:1px solid ${br};color:${fg};border-radius:8px;padding:6px 8px;font-size:12px;margin-top:6px">⚠️ ${esc(b)}</div>`;
+              }).join("")}
               <div style="display:flex;gap:8px;margin-top:10px">
                 <button class="btn btn-primary" data-ok="${esc(it.id)}" style="flex:1" ${it.eligible ? "" : "disabled"}>✅ 核准代堂</button>
                 <button class="btn btn-secondary" data-no="${esc(it.id)}" style="flex:1">❌ 駁回</button>

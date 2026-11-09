@@ -623,6 +623,19 @@
   <script src="assets/api.js?v=3"></script>
   <script>
     const $ = (x) => document.getElementById(x);
+    const utmFields = () => {
+      try {
+        const o = JSON.parse(sessionStorage.getItem("zenpass_utm") || "{}");
+        return { utm_source: o.source || undefined, utm_campaign: o.campaign || undefined };
+      } catch (e) { return {}; }
+    };
+    (function captureUtm() {
+      try {
+        const q = new URLSearchParams(location.search);
+        const s = q.get("utm_source"), c = q.get("utm_campaign");
+        if (s || c) sessionStorage.setItem("zenpass_utm", JSON.stringify({ source: s || "", campaign: c || "" }));
+      } catch (e) {}
+    })();
     const show = (x) => {
       if (x !== "done" && typeof stopRedirect === "function") stopRedirect();
       ["step1","step2","step3","pay","done"].forEach(s => $(s).classList.toggle("hide", s !== x));
@@ -1260,6 +1273,7 @@
           quantity: guestQty,
           promoCode: promoFinal ? promoFinal.code : undefined,
           attendee,
+          ...utmFields(),
         });
         btnG.disabled = false; btnG.textContent = payBtnLabel();
         if (gr.ok && gr.data && gr.data.success) {
@@ -1290,7 +1304,7 @@
         attendee,
       }));
       const btn = $("payNow"); btn.disabled = true; btn.textContent = "處理中…";
-      const r = await api.post("/bookings/batch", { items });
+      const r = await api.post("/bookings/batch", { items, ...utmFields() });
       btn.disabled = false; btn.textContent = payBtnLabel();
       if (r.ok && r.data && r.data.success) {
         const d = r.data;
@@ -1865,7 +1879,7 @@
             scheduleId: s.id, classId, paymentType: "single", penaltyConsent: true,
             groupSize: groupSize(), promoCode: promoFinal ? promoFinal.code : undefined,
           }));
-          const r = await api.post("/bookings/batch", { items });
+          const r = await api.post("/bookings/batch", { items, ...utmFields() });
           const list = (r.data && r.data.results) || [];
           const ids = list.filter(x => (x.status === 200 || x.status === 201) && x.body && x.body.booking_id)
             .map(x => x.body.booking_id);
