@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#059669" />
+  <meta name="robots" content="noindex" />
+  <title>我的更表 · ZenPass</title>
+  <link rel="stylesheet" href="assets/v2.css?v=26" />
+  <link rel="stylesheet" href="assets/polish.css?v=1" />
+  <link rel="stylesheet" href="assets/ui-v3.css?v=5" />
+  <style>
+    body{background:#F8FAFC;color:#0F172A}
+    .s-wrap{max-width:820px;margin:0 auto;padding:14px 14px 100px}
+    .s-top{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+    .s-top h1{font-size:17px;font-weight:900;margin:0;flex:1}
+    .s-seg{display:flex;gap:4px;background:#E2E8F0;border-radius:10px;padding:3px}
+    .s-seg button{border:0;background:transparent;border-radius:8px;padding:6px 10px;font-size:12.5px;font-weight:800;color:#475569;cursor:pointer}
+    .s-seg button.on{background:#fff;color:#059669;box-shadow:0 1px 4px rgba(15,23,42,.1)}
+    .s-nav{display:flex;align-items:center;gap:8px;margin:8px 0 12px}
+    .s-nav button{width:34px;height:34px;border-radius:50%;border:1.5px solid #CBD5E1;background:#fff;font-weight:900;cursor:pointer}
+    .s-label{flex:1;text-align:center;font-size:13px;font-weight:800;color:#334155}
+    .s-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:12px}
+    .s-dow{text-align:center;font-size:10.5px;color:#64748B;font-weight:700;padding:2px 0}
+    .s-day{aspect-ratio:1;border-radius:10px;border:1.5px solid #E2E8F0;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:12.5px;font-weight:700;cursor:pointer;position:relative}
+    .s-day.other{opacity:.35}
+    .s-day.today{border-color:#10B981}
+    .s-day.sel{background:#ECFDF5;border-color:#059669;color:#065F46}
+    .s-day .dot{width:5px;height:5px;border-radius:50%;background:#059669;position:absolute;bottom:5px}
+    .s-card{background:#fff;border:1.5px solid #6EE7B7;border-radius:12px;padding:11px 12px;margin-bottom:8px;cursor:pointer}
+    .s-card.full{border-color:#F59E0B;background:#FFFBEB}
+    .s-card.cancelled{border-color:#CBD5E1;background:#F1F5F9;opacity:.7}
+    .s-time{font-size:15px;font-weight:900}
+    .s-title{font-size:13.5px;font-weight:800;margin-top:1px}
+    .s-meta{font-size:11.5px;color:#64748B;margin-top:2px}
+    .s-badge{display:inline-block;font-size:10.5px;font-weight:800;border-radius:999px;padding:1px 7px;margin-top:5px}
+    .s-badge.ok{background:#ECFDF5;color:#065F46;border:1px solid #A7F3D0}
+    .s-badge.hot{background:#FEF3C7;color:#92400E;border:1px solid #FDE68A}
+    .s-actions{display:flex;gap:8px;margin:10px 0 16px}
+    .s-actions button{flex:1;min-height:42px;border-radius:10px;border:1.5px solid #CBD5E1;background:#fff;font-weight:800;font-size:12.5px;cursor:pointer}
+    .s-actions button.primary{background:#059669;border-color:#059669;color:#fff}
+    .s-sheet{position:fixed;left:0;right:0;bottom:0;background:#fff;border-radius:18px 18px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom));transform:translateY(110%);transition:transform .22s;z-index:60;max-height:82vh;overflow:auto}
+    .s-sheet.on{transform:translateY(0)}
+    .s-sheet h3{font-size:16px;font-weight:900;margin:0 0 4px}
+    .s-row{display:flex;justify-content:space-between;font-size:13px;padding:7px 0;border-bottom:1px solid #F1F5F9}
+    .s-row b{font-weight:800}
+    .s-sheet .close{position:absolute;right:14px;top:14px;border:0;background:#F1F5F9;border-radius:50%;width:30px;height:30px;font-weight:900;cursor:pointer}
+    .s-empty{text-align:center;color:#64748B;font-size:13px;padding:22px}
+    .s-toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:#0F172A;color:#fff;padding:10px 16px;border-radius:999px;font-size:13px;font-weight:700;opacity:0;transition:.2s;z-index:99;pointer-events:none}
+    .s-toast.on{opacity:1}
+    label{font-size:12px;font-weight:700;color:#475569;display:block;margin:8px 0 3px}
+    input,select,textarea{width:100%;border:1.5px solid #CBD5E1;border-radius:9px;padding:9px;font:inherit;font-size:13px}
+    .s-sub{width:100%;min-height:46px;border:0;border-radius:10px;background:#059669;color:#fff;font-weight:900;font-size:14px;margin-top:12px;cursor:pointer}
+  </style>
+</head>
+<body>
+  <div class="s-wrap">
+    <div class="s-top">
+      <h1>我的更表</h1>
+      <div class="s-seg" id="seg">
+        <button data-v="day">日</button><button data-v="week" class="on">週</button><button data-v="month">月</button>
+      </div>
+    </div>
+    <div class="s-nav">
+      <button id="prev">‹</button><div class="s-label" id="label"></div><button id="next">›</button>
+    </div>
+    <div id="cal"></div>
+    <div id="agenda"><div class="s-empty">載入中…</div></div>
+    <div class="s-actions">
+      <button id="lockBtn">🔒 鎖定私人時段</button>
+      <button class="primary" id="addBtn">＋ 開新班</button>
+    </div>
+  </div>
+
+  <div class="s-sheet" id="sheet">
+    <button class="close" id="closeSheet">✕</button>
+    <div id="sheetBody"></div>
+  </div>
+  <div class="s-toast" id="toast"></div>
+
+<script src="assets/api.js?v=10"></script>
+<script>
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const pad = (n) => String(n).padStart(2, "0");
+  const ymd = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const parse = (s) => new Date(String(s || "").replace(" ", "T"));
+  const hhmm = (s) => { const d = parse(s); return isNaN(d) ? "" : `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+
+  let VIEW = "week", CURSOR = new Date(), SEL = ymd(new Date());
+  let SESS = [], LOCKS = [];
+  let toastTimer;
+  const toast = (t) => { const el = $("toast"); el.textContent = t; el.classList.add("on"); clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove("on"), 2000); };
+
+  async function load() {
+    const from = new Date(CURSOR); from.setDate(from.getDate() - 45);
+    const to = new Date(CURSOR); to.setDate(to.getDate() + 60);
+    const r = await api.get(`/coach/schedule?from=${ymd(from)}&to=${ymd(to)}`);
+    if (!r.ok) { $("agenda").innerHTML = `<div class="s-empty">${esc((r.data && r.data.error) || "讀取失敗")}</div>`; return; }
+    SESS = r.data.sessions || [];
+    LOCKS = r.data.locks || [];
+    render();
+  }
+
+  function render() {
+    const cal = $("cal"); cal.innerHTML = "";
+    if (VIEW === "month") renderMonth();
+    else if (VIEW === "week") renderWeekNav();
+    else renderDayNav();
+    renderAgenda();
+  }
+
+  function renderMonth() {
+    const y = CURSOR.getFullYear(), m = CURSOR.getMonth();
+    $("label").textContent = `${y} 年 ${m + 1} 月`;
+    const first = new Date(y, m, 1), startIdx = (first.getDay() + 6) % 7; // Mon first
+    const days = new Date(y, m + 1, 0).getDate();
+    let html = ["一","二","三","四","五","六","日"].map((d) => `<div class="s-dow">${d}</div>`).join("");
+    for (let i = 0; i < startIdx; i++) html += '<div></div>';
+    const today = ymd(new Date());
+    for (let d = 1; d <= days; d++) {
+      const k = `${y}-${pad(m + 1)}-${pad(d)}`;
+      const has = SESS.some((s) => s.start_time.slice(0, 10) === k) || LOCKS.some((l) => String(l.start_time).slice(0, 10) === k);
+      html += `<div class="s-day ${k === today ? "today" : ""} ${k === SEL ? "sel" : ""}" data-d="${k}">${d}${has ? '<span class="dot"></span>' : ""}</div>`;
+    }
+    $("cal").innerHTML = `<div class="s-grid">${html}</div>`;
+    cal.querySelectorAll("[data-d]").forEach((el) => el.onclick = () => { SEL = el.dataset.d; render(); });
+  }
+
+  function renderWeekNav() {
+    const d = new Date(CURSOR);
+    const mon = new Date(d); mon.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+    const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
+    $("label").textContent = `${mon.getMonth() + 1}/${mon.getDate()} – ${sun.getMonth() + 1}/${sun.getDate()}`;
+    const today = ymd(new Date());
+    let html = ["一","二","三","四","五","六","日"].map((x) => `<div class="s-dow">${x}</div>`).join("");
+    for (let i = 0; i < 7; i++) {
+      const x = new Date(mon); x.setDate(mon.getDate() + i);
+      const k = ymd(x);
+      const n = SESS.filter((s) => s.start_time.slice(0, 10) === k).length;
+      html += `<div class="s-day ${k === today ? "today" : ""} ${k === SEL ? "sel" : ""}" data-d="${k}">${x.getDate()}${n ? '<span class="dot"></span>' : ""}</div>`;
+    }
+    $("cal").innerHTML = `<div class="s-grid">${html}</div>`;
+    cal.querySelectorAll("[data-d]").forEach((el) => el.onclick = () => { SEL = el.dataset.d; render(); });
+  }
+
+  function renderDayNav() {
+    const d = new Date(SEL + "T12:00:00");
+    $("label").textContent = d.toLocaleDateString("zh-HK", { month: "long", day: "numeric", weekday: "short" });
+    $("cal").innerHTML = "";
+  }
+
+  function renderAgenda() {
+    const list = SESS.filter((s) => s.start_time.slice(0, 10) === SEL).sort((a, b) => a.start_time.localeCompare(b.start_time));
+    const locks = LOCKS.filter((l) => String(l.start_time).slice(0, 10) === SEL);
+    if (!list.length && !locks.length) { $("agenda").innerHTML = '<div class="s-empty">今日冇課堂</div>'; return; }
+    $("agenda").innerHTML =
+      list.map((s) => {
+        const full = Number(s.enrolled_count || s.booked || 0) >= Number(s.max_participants || 0);
+        return `<div class="s-card ${full ? "full" : ""} ${s.status === "cancelled" ? "cancelled" : ""}" data-sid="${esc(s.id)}">
+          <div class="s-time">${hhmm(s.start_time)}–${hhmm(s.end_time)}</div>
+          <div class="s-title">${esc(s.title)}</div>
+          <div class="s-meta">${esc(s.venue_name || "")} · ${s.booked}/${s.max_participants} 人</div>
+          <span class="s-badge ${full ? "hot" : "ok"}">${s.status === "cancelled" ? "已取消" : full ? "🔥 已滿" : "🟢 可預約"}</span>
+        </div>`;
+      }).join("") +
+      locks.map((l) => `<div class="s-card cancelled"><div class="s-time">${hhmm(l.start_time)}–${hhmm(l.end_time)}</div><div class="s-title">🔒 私人時段</div><div class="s-meta">${esc(l.reason || "不可預約")}</div></div>`).join("");
+    $("agenda").querySelectorAll("[data-sid]").forEach((el) => el.onclick = () => openSession(el.dataset.sid));
+  }
+
+  function openSession(sid) {
+    const s = SESS.find((x) => x.id === sid);
+    if (!s) return;
+    const est = Math.round(Number(s.price_hkd || 0) * Number(s.booked || 0) * 0.8 * 100) / 100;
+    $("sheetBody").innerHTML = `
+      <h3>${esc(s.title)}</h3>
+      <div class="s-row"><span>時間</span><b>${hhmm(s.start_time)}–${hhmm(s.end_time)}</b></div>
+      <div class="s-row"><span>場地</span><b>${esc(s.venue_name || "—")}</b></div>
+      <div class="s-row"><span>人數</span><b>${s.booked}/${s.max_participants}</b></div>
+      <div class="s-row"><span>預計教練收益</span><b>HK$${est}</b></div>
+      <div class="s-actions" style="margin-top:14px">
+        <a class="s-sub" style="display:flex;align-items:center;justify-content:center;text-decoration:none;background:#fff;color:#0F172A;border:1.5px solid #CBD5E1" href="coach-roster.html?schedule_id=${encodeURIComponent(s.id)}">📋 點名冊</a>
+        <a class="s-sub" style="display:flex;align-items:center;justify-content:center;text-decoration:none;background:#fff;color:#0F172A;border:1.5px solid #CBD5E1" href="coach-handbook.html?schedule_id=${encodeURIComponent(s.id)}">📖 手冊</a>
+      </div>
+      <button class="s-sub" id="subBtn">🔁 申請代堂</button>`;
+    $("sheet").classList.add("on");
+    $("subBtn").onclick = () => substitute(s.id);
+  }
+
+  async function substitute(sid) {
+    const r = await api.get("/coach/list");
+    const coaches = ((r.data && (r.data.coaches || r.data.data)) || []).filter((c) => c.id);
+    const opts = coaches.slice(0, 50).map((c) => `<option value="${esc(c.id)}">${esc(c.name || c.email || c.id)}</option>`).join("");
+    $("sheetBody").innerHTML = `<h3>申請代堂</h3>
+      <label>代堂教練</label><select id="subTarget">${opts || '<option value="">（冇其他教練）</option>'}</select>
+      <label>原因</label><textarea id="subReason" rows="3" placeholder="例如：身體不適"></textarea>
+      <button class="s-sub" id="subGo">提交申請</button>`;
+    $("subGo").onclick = async () => {
+      const target_coach_id = $("subTarget").value;
+      if (!target_coach_id) return toast("請選擇教練");
+      const r2 = await api.post("/coach/schedules/substitute", { session_id: sid, target_coach_id, reason: $("subReason").value });
+      if (r2.ok) { toast("✅ 已提交，待管理員審批"); $("sheet").classList.remove("on"); }
+      else toast("❌ " + ((r2.data && r2.data.error) || "提交失敗"));
+    };
+  }
+
+  function openLock() {
+    $("sheetBody").innerHTML = `<h3>🔒 鎖定私人時段</h3>
+      <label>開始</label><input type="datetime-local" id="lockStart">
+      <label>結束</label><input type="datetime-local" id="lockEnd">
+      <label>原因（選填）</label><input id="lockReason" placeholder="私人原因／休假">
+      <button class="s-sub" id="lockGo">確認鎖定</button>`;
+    $("sheet").classList.add("on");
+    $("lockGo").onclick = async () => {
+      const start_time = $("lockStart").value, end_time = $("lockEnd").value;
+      if (!start_time || !end_time) return toast("請選擇時間");
+      const r = await api.post("/coach/schedules/lock-slot", { start_time: start_time.replace("T", " "), end_time: end_time.replace("T", " "), reason: $("lockReason").value });
+      if (r.ok) { toast("✅ 已鎖定"); $("sheet").classList.remove("on"); load(); }
+      else toast("❌ " + ((r.data && r.data.error) || "鎖定失敗"));
+    };
+  }
+
+  $("seg").querySelectorAll("button").forEach((b) => b.onclick = () => {
+    VIEW = b.dataset.v;
+    $("seg").querySelectorAll("button").forEach((x) => x.classList.toggle("on", x === b));
+    render();
+  });
+  $("prev").onclick = () => { const d = new Date(CURSOR); if (VIEW === "month") d.setMonth(d.getMonth() - 1); else if (VIEW === "week") d.setDate(d.getDate() - 7); else { const x = new Date(SEL + "T12:00:00"); x.setDate(x.getDate() - 1); SEL = ymd(x); CURSOR = x; } render(); };
+  $("next").onclick = () => { const d = new Date(CURSOR); if (VIEW === "month") d.setMonth(d.getMonth() + 1); else if (VIEW === "week") d.setDate(d.getDate() + 7); else { const x = new Date(SEL + "T12:00:00"); x.setDate(x.getDate() + 1); SEL = ymd(x); CURSOR = x; } render(); };
+  $("lockBtn").onclick = openLock;
+  $("addBtn").onclick = () => location.href = "coach-console.html";
+  $("closeSheet").onclick = () => $("sheet").classList.remove("on");
+
+  (async () => {
+    const me = await api.me();
+    if (!me.ok) { location.href = "login.html?next=" + encodeURIComponent(location.pathname + location.search); return; }
+    SEL = ymd(new Date()); CURSOR = new Date();
+    load();
+  })();
+</script>
+</body>
+</html>

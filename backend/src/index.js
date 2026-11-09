@@ -279,6 +279,8 @@ app.use("/api/guest", require("./routes/guest"));
 app.use("/api/public", require("./routes/public"));
 app.use("/api/calendar", require("./routes/calendar"));
 app.use("/api/coach", require("./routes/coach-portal"));
+app.use("/api/coach", require("./routes/coach-roster"));
+app.use("/api/coach", require("./routes/coach-schedule"));
 app.use("/api/coach", require("./routes/coach"));
 app.use("/api/coaches", coachPublicRoutes.apiRouter);
 app.use("/api/memberships", require("./routes/memberships"));

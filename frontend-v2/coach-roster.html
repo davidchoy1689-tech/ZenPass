@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#059669" />
+  <meta name="robots" content="noindex" />
+  <title>點名冊 · ZenPass</title>
+  <link rel="stylesheet" href="assets/v2.css?v=26" />
+  <link rel="stylesheet" href="assets/polish.css?v=1" />
+  <link rel="stylesheet" href="assets/ui-v3.css?v=5" />
+  <style>
+    body{background:#F8FAFC;color:#0F172A}
+    .r-wrap{max-width:760px;margin:0 auto;padding:14px 14px 110px}
+    .r-top{position:sticky;top:0;z-index:20;background:#fff;border-bottom:2px solid #E2E8F0;padding:12px 14px;margin:-14px -14px 12px}
+    .r-title{font-size:16px;font-weight:900}
+    .r-sub{font-size:12px;color:#64748B;margin-top:2px}
+    .r-bar{height:8px;border-radius:99px;background:#E2E8F0;margin-top:10px;overflow:hidden}
+    .r-bar i{display:block;height:100%;background:#059669;border-radius:99px;transition:width .2s}
+    .r-stat{display:flex;justify-content:space-between;font-size:11.5px;color:#475569;margin-top:5px;font-weight:700}
+    .r-filters{display:flex;gap:6px;overflow-x:auto;padding:10px 14px;margin:0 -14px;scrollbar-width:none}
+    .r-filters::-webkit-scrollbar{display:none}
+    .r-filter{flex:0 0 auto;height:34px;padding:0 12px;border-radius:999px;border:1.5px solid #94A3B8;background:#fff;color:#0F172A;font-size:12.5px;font-weight:700;cursor:pointer}
+    .r-filter.on{background:#059669;border-color:#059669;color:#fff}
+    .r-card{background:#fff;border:1.5px solid #E2E8F0;border-radius:14px;padding:12px;margin-bottom:10px}
+    .r-card.present{border-color:#6EE7B7;background:#F0FDF4}
+    .r-card.excused{border-color:#FDE047;background:#FEFCE8}
+    .r-card.absent{border-color:#FCA5A5;background:#FEF2F2}
+    .r-name{font-size:16px;font-weight:900}
+    .r-meta{font-size:11.5px;color:#64748B;margin-top:2px}
+    .r-warn{margin-top:6px;background:#FEF3C7;color:#92400E;border:1px solid #FDE68A;border-radius:8px;padding:6px 8px;font-size:11.5px;font-weight:700}
+    .r-acts{display:flex;gap:6px;margin-top:10px}
+    .r-pill{flex:1;min-height:42px;border-radius:10px;border:1.5px solid #CBD5E1;background:#fff;font-size:12.5px;font-weight:800;cursor:pointer;color:#334155}
+    .r-pill.on[data-s="present"]{background:#059669;border-color:#059669;color:#fff}
+    .r-pill.on[data-s="absent_notified"]{background:#F59E0B;border-color:#F59E0B;color:#fff}
+    .r-pill.on[data-s="absent_unexcused"]{background:#DC2626;border-color:#DC2626;color:#fff}
+    .r-pill:disabled{opacity:.55}
+    .r-links{display:flex;gap:8px;margin-top:12px}
+    .r-links a{flex:1;text-align:center;min-height:44px;display:flex;align-items:center;justify-content:center;border-radius:10px;border:1.5px solid #CBD5E1;background:#fff;color:#0F172A;text-decoration:none;font-weight:800;font-size:13px}
+    .r-empty{text-align:center;color:#64748B;font-size:13px;padding:24px}
+    .r-toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#0F172A;color:#fff;padding:10px 16px;border-radius:999px;font-size:13px;font-weight:700;opacity:0;transition:opacity .2s;z-index:99;pointer-events:none}
+    .r-toast.on{opacity:1}
+  </style>
+</head>
+<body>
+  <div class="r-wrap">
+    <div class="r-top">
+      <div class="r-title" id="title">點名冊</div>
+      <div class="r-sub" id="sub">載入中…</div>
+      <div class="r-bar"><i id="bar" style="width:0%"></i></div>
+      <div class="r-stat"><span id="stat">已簽到 0 / 0</span><span id="sync">已同步</span></div>
+    </div>
+    <div class="r-filters" id="filters">
+      <button class="r-filter on" data-f="all">全部</button>
+      <button class="r-filter" data-f="present">已簽到</button>
+      <button class="r-filter" data-f="unmarked">未簽到</button>
+      <button class="r-filter" data-f="excused">請假</button>
+    </div>
+    <div id="list"><div class="r-empty">載入中…</div></div>
+    <div class="r-links">
+      <a id="handbookLink" href="#">📖 課後手冊</a>
+      <a href="coach-dashboard.html">← 返回後台</a>
+    </div>
+  </div>
+  <div class="r-toast" id="toast"></div>
+
+<script src="assets/api.js?v=10"></script>
+<script>
+  const $ = (id) => document.getElementById(id);
+  const SID = new URLSearchParams(location.search).get("schedule_id") || "";
+  const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  let DATA = null, FILTER = "all";
+  const timers = {}, busy = {};
+  let toastTimer;
+  const toast = (t) => { const el = $("toast"); el.textContent = t; el.classList.add("on"); clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove("on"), 1800); };
+
+  function counts() {
+    const r = DATA.roster;
+    return {
+      total: r.length,
+      present: r.filter((x) => x.status === "present" || x.status === "late").length,
+      excused: r.filter((x) => x.status === "absent_notified").length,
+      absent: r.filter((x) => x.status === "absent_unexcused").length,
+      unmarked: r.filter((x) => !x.status).length,
+    };
+  }
+
+  function render() {
+    if (!DATA) return;
+    const s = DATA.schedule || {};
+    $("title").textContent = s.title || "點名冊";
+    $("sub").textContent = `${s.venue_name || ""} · ${fmt(s.start_time)}–${hhmm(s.end_time)}`;
+    const c = counts();
+    const done = c.present + c.excused + c.absent;
+    $("bar").style.width = c.total ? Math.round((done / c.total) * 100) + "%" : "0%";
+    $("stat").textContent = `已簽到 ${c.present} / ${c.total} 人${c.excused ? ` · 請假 ${c.excused}` : ""}${c.absent ? ` · 缺席 ${c.absent}` : ""}`;
+    $("handbookLink").href = "coach-handbook.html?schedule_id=" + encodeURIComponent(SID);
+
+    let list = DATA.roster;
+    if (FILTER === "present") list = list.filter((x) => x.status === "present" || x.status === "late");
+    else if (FILTER === "unmarked") list = list.filter((x) => !x.status);
+    else if (FILTER === "excused") list = list.filter((x) => x.status === "absent_notified");
+    if (!list.length) { $("list").innerHTML = '<div class="r-empty">（無符合篩選嘅學員）</div>'; return; }
+
+    $("list").innerHTML = list.map((x) => {
+      const cls = x.status === "present" || x.status === "late" ? "present" : x.status === "absent_notified" ? "excused" : x.status === "absent_unexcused" ? "absent" : "";
+      return `<div class="r-card ${cls}" data-bid="${esc(x.booking_id)}">
+        <div class="r-name">${esc(x.student_name || x.name)} ${x.status === "late" ? '<span style="font-size:11px;color:#B45309">🕐 遲到</span>' : ""}</div>
+        <div class="r-meta">${x.pass_remaining != null ? `🎫 剩 ${x.pass_remaining}/${x.pass_total} 堂 · ` : ""}${esc(x.phone || "")}</div>
+        ${x.medical_notes ? `<div class="r-warn">⚠️ ${esc(x.medical_notes)}</div>` : ""}
+        <div class="r-acts">
+          <button class="r-pill ${x.status === "present" ? "on" : ""}" data-s="present" ${busy[x.booking_id] ? "disabled" : ""}>🟢 出席</button>
+          <button class="r-pill ${x.status === "absent_notified" ? "on" : ""}" data-s="absent_notified" ${busy[x.booking_id] ? "disabled" : ""}>🟡 請假</button>
+          <button class="r-pill ${x.status === "absent_unexcused" ? "on" : ""}" data-s="absent_unexcused" ${busy[x.booking_id] ? "disabled" : ""}>🔴 缺席</button>
+        </div>
+      </div>`;
+    }).join("");
+
+    $("list").querySelectorAll(".r-pill").forEach((btn) => {
+      btn.onclick = () => pick(btn.closest(".r-card").dataset.bid, btn.dataset.s);
+    });
+  }
+
+  function pick(bid, status) {
+    const stu = DATA.roster.find((x) => x.booking_id === bid);
+    if (!stu || busy[bid]) return;
+    // Optimistic UI（即時反饋）
+    stu.status = status;
+    render();
+    $("sync").textContent = "⏳ 同步中…";
+    // 2 秒防抖：同一學員連續切換只送最後一次
+    clearTimeout(timers[bid]);
+    timers[bid] = setTimeout(() => save(bid, stu), 2000);
+  }
+
+  async function save(bid, stu) {
+    busy[bid] = true;
+    try {
+      const r = await api.post("/coach/attendance/batch", {
+        session_id: SID,
+        records: [{ booking_id: bid, status: stu.status, notes: stu.notes || "" }],
+      });
+      if (!r.ok) throw new Error((r.data && r.data.error) || "同步失敗");
+      $("sync").textContent = "✅ 已同步";
+      const res = (r.data.results || [])[0];
+      if (res && res.pass_restored) toast("已退回 1 堂通行卡");
+    } catch (e) {
+      $("sync").textContent = "⚠️ 未同步";
+      toast("❌ " + (e.message || "同步失敗"));
+      const fresh = await api.get("/coach/sessions/" + encodeURIComponent(SID) + "/roster");
+      if (fresh.ok) { DATA = fresh.data; render(); }
+    } finally {
+      busy[bid] = false;
+    }
+  }
+
+  function fmt(t) { const d = new Date(String(t || "").replace(" ", "T")); return isNaN(d) ? String(t || "") : d.toLocaleString("zh-HK", { month: "short", day: "numeric", weekday: "short", hour: "2-digit", minute: "2-digit" }); }
+  function hhmm(t) { const d = new Date(String(t || "").replace(" ", "T")); return isNaN(d) ? "" : String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0"); }
+
+  $("filters").querySelectorAll(".r-filter").forEach((b) => {
+    b.onclick = () => {
+      FILTER = b.dataset.f;
+      $("filters").querySelectorAll(".r-filter").forEach((x) => x.classList.toggle("on", x === b));
+      render();
+    };
+  });
+
+  (async () => {
+    if (!SID) { $("list").innerHTML = '<div class="r-empty">缺少 schedule_id</div>'; return; }
+    const me = await api.me();
+    if (!me.ok) { location.href = "login.html?next=" + encodeURIComponent(location.pathname + location.search); return; }
+    const r = await api.get("/coach/sessions/" + encodeURIComponent(SID) + "/roster");
+    if (!r.ok) { $("list").innerHTML = `<div class="r-empty">${esc((r.data && r.data.error) || "讀取失敗")}</div>`; return; }
+    DATA = r.data;
+    render();
+  })();
+</script>
+</body>
+</html>
