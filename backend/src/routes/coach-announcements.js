@@ -102,6 +102,41 @@ router.get("/coach/announcements", authenticateToken, (req, res) => {
   }
 });
 
+router.put("/coach/announcements/:id", authenticateToken, (req, res) => {
+  try {
+    const db = getDb();
+    ensureTable(db);
+    if (!isCoachOrAdmin(db, req.user)) return res.status(403).json({ success: false, error: "只限教練" });
+    const old = db.prepare("SELECT * FROM class_announcements WHERE id=? AND coach_id=?").get(req.params.id, req.user.id);
+    if (!old) return res.status(404).json({ success: false, error: "找不到公告或無權限" });
+    const b = req.body || {};
+    const title = String(b.title || "").trim();
+    const content = String(b.content || "").trim();
+    const target_type = ["all_students", "course_specific", "session_specific"].includes(b.target_type) ? b.target_type : old.target_type;
+    const target_id = target_type === "all_students" ? null : String(b.target_id || old.target_id || "") || null;
+    const template_type = ["weather", "equipment", "earlybird", "general"].includes(b.template_type) ? b.template_type : old.template_type;
+    if (title.length < 2 || title.length > 120) return res.status(400).json({ success: false, error: "標題 2–120 字" });
+    if (content.length < 2 || content.length > 2000) return res.status(400).json({ success: false, error: "內容 2–2000 字" });
+    if (!ownsTarget(db, req.user.id, target_type, target_id)) return res.status(403).json({ success: false, error: "無權限對此對象發公告" });
+    db.prepare(
+      `UPDATE class_announcements SET title=?, content=?, target_type=?, target_id=?, template_type=?, is_pinned=? WHERE id=? AND coach_id=?`,
+    ).run(title, content, target_type, target_id, template_type, b.is_pinned ? 1 : 0, req.params.id, req.user.id);
+    audit({
+      actionType: "announcement.updated",
+      entityType: "class_announcement",
+      entityId: req.params.id,
+      userId: req.user.id,
+      oldValues: { title: old.title, content: old.content, target_type: old.target_type, target_id: old.target_id, is_pinned: old.is_pinned },
+      newValues: { title, content, target_type, target_id, is_pinned: !!b.is_pinned },
+      description: "教練修改課堂公告",
+    });
+    res.json({ success: true, announcement: db.prepare("SELECT * FROM class_announcements WHERE id=?").get(req.params.id) });
+  } catch (e) {
+    console.error("[ANN] put:", e.message);
+    res.status(500).json({ success: false, error: "更新失敗" });
+  }
+});
+
 router.delete("/coach/announcements/:id", authenticateToken, (req, res) => {
   try {
     const db = getDb();

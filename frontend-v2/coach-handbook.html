@@ -56,6 +56,10 @@
   const $ = (id) => document.getElementById(id);
   const SID = new URLSearchParams(location.search).get("schedule_id") || "";
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  function fmtT(t) {
+    const d = new Date(String(t || "").replace(" ", "T"));
+    return isNaN(d) ? String(t || "") : d.toLocaleString("zh-HK", { month: "short", day: "numeric", weekday: "short", hour: "2-digit", minute: "2-digit" });
+  }
   let toastTimer;
   function toast(t) { const el = $("toast"); el.textContent = t; el.classList.add("on"); clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove("on"), 2200); }
 
@@ -84,7 +88,7 @@
     if (!r.ok) { $("list").innerHTML = `<div class="hb-empty">${esc((r.data && r.data.error) || "讀取失敗")}</div>`; return; }
     const sch = r.data.schedule || {};
     STUDENTS = (r.data.students || []).filter((s) => ["confirmed", "attended", "no_show"].includes(s.booking_status));
-    $("sub").textContent = `${sch.title || ""} · ${String(sch.start_time || "").replace("T", " ").slice(0, 16)} · ${STUDENTS.length} 位`;
+    $("sub").textContent = `${sch.title || ""} · ${fmtT(sch.start_time)} · ${STUDENTS.length} 位`;
     try {
       const ids = [...new Set(STUDENTS.map((s) => s.user_id).filter(Boolean))];
       const res = await Promise.all(ids.map((id) => api.get("/coach/handbook/students/" + encodeURIComponent(id))));

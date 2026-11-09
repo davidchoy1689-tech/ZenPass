@@ -32,6 +32,7 @@ const call = (h, { body = {}, user = null, params = {}, query = {} }) => new Pro
   const post = handlerOf(router, "post", "/coach/announcements");
   const list = handlerOf(router, "get", "/coach/announcements");
   const del = handlerOf(router, "delete", "/coach/announcements/:id");
+  const put = handlerOf(router, "put", "/coach/announcements/:id");
   const stu = handlerOf(router, "get", "/student/announcements");
   const c1 = { id: "c1", role: "coach" }, c2 = { id: "c2", role: "coach" }, u = { id: "u1", role: "user" };
 
@@ -56,13 +57,24 @@ const call = (h, { body = {}, user = null, params = {}, query = {} }) => new Pro
   const s2 = await call(stu, { user: u, query: { session_id: "" } });
   ok(s2.body.announcements.length === 0, "無 session/course 唔會洩漏任何公告");
 
-  console.log("🧪 4. 刪除權限（IDOR）");
+  console.log("🧪 4. 編輯公告（PUT）");
+  const up1 = await call(put, { user: c1, params: { id }, body: { title: "🌧️ 天氣通知（更新）", content: "改為明日復課。", is_pinned: false } });
+  ok(up1.statusCode === 200 && up1.body.announcement.title.includes("更新"), "本人可更新", up1.statusCode);
+  ok(up1.body.announcement.is_pinned === 0, "可取消置頂");
+  const upBad = await call(put, { user: c1, params: { id }, body: { title: "x", content: "y" } });
+  ok(upBad.statusCode === 400, "太短標題 → 400", upBad.statusCode);
+  const upOther = await call(put, { user: c2, params: { id }, body: { title: "亂改", content: "亂改內容" } });
+  ok(upOther.statusCode === 404, "其他教練改 → 404", upOther.statusCode);
+  const s3 = await call(stu, { user: u, query: { session_id: "s1" } });
+  ok(s3.body.announcements[0].content === "改為明日復課。", "學員即時見到更新內容");
+
+  console.log("🧪 5. 刪除權限（IDOR）");
   const dOther = await call(del, { user: c2, params: { id } });
   ok(dOther.statusCode === 404, "其他教練刪除 → 404");
   const d1 = await call(del, { user: c1, params: { id } });
   ok(d1.body.success, "本人刪除成功");
 
-  console.log("🧪 5. WhatsApp URL Encode");
+  console.log("🧪 6. WhatsApp URL Encode");
   const text = "🌧️ 天氣通知\n\n八號風球，課堂暫停，堂數保留。";
   const url = "https://wa.me/?text=" + encodeURIComponent(text);
   ok(decodeURIComponent(url.split("text=")[1]) === text, "Emoji + 換行可完整還原");

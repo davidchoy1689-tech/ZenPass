@@ -41,7 +41,9 @@
   <div class="e-wrap">
     <div class="e-head">
       <h1>收入月結</h1>
+      <button class="e-btn" id="prevM" type="button" aria-label="上一個月" style="padding:6px 10px">◀</button>
       <input type="month" id="month">
+      <button class="e-btn" id="nextM" type="button" aria-label="下一個月" style="padding:6px 10px">▶</button>
     </div>
     <div class="kpis" id="kpis"></div>
     <div class="e-actions">
@@ -55,10 +57,11 @@
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const hkd = (n) => "HK$" + Number(n || 0).toLocaleString("en-HK", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+  const hktMonth = () => new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 7);
   let DATA = null;
 
   async function load() {
-    const m = $("month").value || new Date().toISOString().slice(0, 7);
+    const m = $("month").value || hktMonth();
     const r = await api.get("/coach/earnings/summary?month=" + encodeURIComponent(m));
     if (!r.ok) { $("rows").innerHTML = `<div class="e-empty">${esc((r.data && r.data.error) || "讀取失敗")}</div>`; return; }
     DATA = r.data;
@@ -70,7 +73,7 @@
     $("monthLabel").textContent = d.month + " 班次明細";
     $("kpis").innerHTML = `
       <div class="kpi hero"><div class="k">💳 本月累計應收</div><div class="v">${hkd(d.total_earned)}</div><div class="s">教練拆帳 ${Math.round(d.commission_rate * 100)}% · 以出席人次計</div></div>
-      <div class="kpi"><div class="k">⏱️ 授課堂數</div><div class="v">${d.total_sessions}</div><div class="s">有出席紀錄嘅班次</div></div>
+      <div class="kpi"><div class="k">⏱️ 授課堂數</div><div class="v">${d.total_sessions}</div><div class="s">${(d.total_hours || 0)} 小時 · 有出席紀錄嘅班次</div></div>
       <div class="kpi"><div class="k">👥 服務學員人次</div><div class="v">${d.total_attended_students}</div><div class="s">出席＋未合規缺席</div></div>
       <div class="kpi"><div class="k">🟢 待出帳</div><div class="v">${hkd(d.pending_payout)}</div><div class="s">已出帳 ${hkd(d.paid_payout)}</div></div>
     `;
@@ -86,7 +89,7 @@
   }
 
   $("csvBtn").onclick = async () => {
-    const m = $("month").value || new Date().toISOString().slice(0, 7);
+    const m = $("month").value || hktMonth();
     const token = (window.api && api.getToken && api.getToken()) || localStorage.getItem("zenpass_token") || "";
     const res = await fetch("/api/coach/earnings/export-csv?month=" + encodeURIComponent(m), {
       headers: token ? { Authorization: "Bearer " + token } : {},
@@ -102,10 +105,21 @@
   };
 
   $("month").onchange = load;
+  function shiftMonth(delta) {
+    const cur = $("month").value || hktMonth();
+    const [y, m] = cur.split("-").map(Number);
+    const d = new Date(Date.UTC(y, m - 1 + delta, 1));
+    const next = d.toISOString().slice(0, 7);
+    if (next > hktMonth()) return;
+    $("month").value = next;
+    load();
+  }
+  $("prevM").onclick = () => shiftMonth(-1);
+  $("nextM").onclick = () => shiftMonth(1);
   (async () => {
     const me = await api.me();
     if (!me.ok) { location.href = "login.html?next=" + encodeURIComponent(location.pathname + location.search); return; }
-    $("month").value = new Date().toISOString().slice(0, 7);
+    $("month").value = hktMonth();
     load();
   })();
 </script>

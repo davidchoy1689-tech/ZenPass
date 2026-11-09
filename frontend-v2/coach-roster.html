@@ -100,7 +100,12 @@
     if (FILTER === "present") list = list.filter((x) => x.status === "present" || x.status === "late");
     else if (FILTER === "unmarked") list = list.filter((x) => !x.status);
     else if (FILTER === "excused") list = list.filter((x) => x.status === "absent_notified");
-    if (!list.length) { $("list").innerHTML = '<div class="r-empty">（無符合篩選嘅學員）</div>'; return; }
+    if (!list.length) {
+      $("list").innerHTML = DATA.roster.length
+        ? '<div class="r-empty">（無符合篩選嘅學員）</div>'
+        : '<div class="r-empty">呢班暫時未有已確認學員<br><span style="font-size:12px;opacity:.7">有新報名會自動出現</span></div>';
+      return;
+    }
 
     $("list").innerHTML = list.map((x) => {
       const cls = x.status === "present" || x.status === "late" ? "present" : x.status === "absent_notified" ? "excused" : x.status === "absent_unexcused" ? "absent" : "";

@@ -33,6 +33,7 @@
     .a-list .m{font-size:11px;color:#64748B;margin-top:2px}
     .a-list .c{font-size:12px;color:#334155;margin-top:6px;white-space:pre-line;line-height:1.55}
     .a-list .del{position:absolute;right:10px;top:10px;border:0;background:#FEE2E2;color:#991B1B;border-radius:8px;padding:4px 8px;font-size:11px;font-weight:800;cursor:pointer}
+    .a-list .edit{position:absolute;right:64px;top:10px;border:0;background:#E0F2FE;color:#075985;border-radius:8px;padding:4px 8px;font-size:11px;font-weight:800;cursor:pointer}
     .a-badge{position:absolute;right:10px;bottom:10px;font-size:10px;font-weight:800;color:#92400E;background:#FEF3C7;border:1px solid #FDE68A;border-radius:999px;padding:1px 7px}
     .a-phones{font-size:11px;color:#334155;background:#fff;border:1px dashed #CBD5E1;border-radius:8px;padding:8px;margin-top:8px;word-break:break-all;white-space:pre-wrap}
     .a-empty{text-align:center;color:#64748B;font-size:13px;padding:20px}
@@ -75,7 +76,8 @@
 <script>
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-  let SESSIONS = [], PHONES = [], ANN = [];
+  let SESSIONS = [], PHONES = [], ANN = [], EDIT_ID = null, TEMPLATE = "general";
+  const fmtT = (t) => { const d = new Date(String(t || "").replace(" ", "T")); return isNaN(d) ? String(t || "").slice(0, 16) : d.toLocaleString("zh-HK", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }); };
 
   const TPL = {
     weather: {
@@ -97,6 +99,7 @@
       const t = TPL[b.dataset.tpl];
       $("title").value = t.title;
       $("content").value = t.content;
+      TEMPLATE = b.dataset.tpl;
     };
   });
 
@@ -105,7 +108,7 @@
     $("targetWrap").hidden = t === "all_students";
     const sel = $("targetId");
     if (t === "session_specific") {
-      sel.innerHTML = SESSIONS.map((s) => `<option value="${esc(s.id)}">${esc(s.title)} · ${String(s.start_time).replace("T", " ").slice(0, 16)}</option>`).join("");
+      sel.innerHTML = SESSIONS.map((s) => `<option value="${esc(s.id)}">${esc(s.title)} · ${esc(fmtT(s.start_time))}</option>`).join("");
     } else if (t === "course_specific") {
       const map = {};
       SESSIONS.forEach((s) => { map[s.class_id] = s.title; });
@@ -117,7 +120,7 @@
     const r = await api.get("/coach/sessions?filter=all");
     SESSIONS = (r.data && r.data.sessions) || [];
     $("bcastSession").innerHTML = '<option value="">— 選擇班次 —</option>' +
-      SESSIONS.slice(0, 60).map((s) => `<option value="${esc(s.id)}">${esc(s.title)} · ${String(s.start_time).replace("T", " ").slice(0, 16)}</option>`).join("");
+      SESSIONS.slice(0, 60).map((s) => `<option value="${esc(s.id)}">${esc(s.title)} · ${esc(fmtT(s.start_time))}</option>`).join("");
     $("targetType").onchange();
   }
 
@@ -127,6 +130,7 @@
     $("list").innerHTML = ANN.length ? ANN.map((a) => `
       <div class="item ${a.is_pinned ? "pin" : ""}" data-id="${esc(a.id)}">
         <button class="del" data-del="${esc(a.id)}">刪除</button>
+        <button class="edit" data-edit="${esc(a.id)}">編輯</button>
         <div class="t">${esc(a.title)}</div>
         <div class="m">${esc(String(a.created_at).slice(0, 16))} · ${a.target_type === "all_students" ? "全部學生" : a.target_type === "session_specific" ? "指定班次" : "指定課程"}</div>
         <div class="c">${esc(a.content)}</div>
@@ -136,9 +140,33 @@
       b.onclick = async () => {
         if (!confirm("確定刪除？")) return;
         const r2 = await api.del("/coach/announcements/" + encodeURIComponent(b.dataset.del));
-        if (r2.ok) loadAnn(); else alert((r2.data && r2.data.error) || "刪除失敗");
+        if (r2.ok) { if (EDIT_ID === b.dataset.del) resetForm(); loadAnn(); } else alert((r2.data && r2.data.error) || "刪除失敗");
       };
     });
+    $("list").querySelectorAll("[data-edit]").forEach((b) => {
+      b.onclick = () => {
+        const a = ANN.find((x) => x.id === b.dataset.edit);
+        if (!a) return;
+        EDIT_ID = a.id;
+        $("targetType").value = a.target_type;
+        $("targetType").onchange();
+        if (a.target_id) $("targetId").value = a.target_id;
+        $("title").value = a.title;
+        $("content").value = a.content;
+        $("pinned").checked = !!a.is_pinned;
+        const btn = $("publish");
+        btn.textContent = "💾 儲存修改";
+        $("title").focus();
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      };
+    });
+  }
+
+  function resetForm() {
+    EDIT_ID = null;
+    TEMPLATE = "general";
+    $("title").value = ""; $("content").value = ""; $("pinned").checked = false;
+    $("publish").textContent = "發佈公告";
   }
 
   $("publish").onclick = async () => {
@@ -148,14 +176,16 @@
       title: $("title").value,
       content: $("content").value,
       is_pinned: $("pinned").checked,
-      template_type: "general",
+      template_type: TEMPLATE || "general",
     };
     if (body.title.trim().length < 2 || body.content.trim().length < 2) return alert("請填標題及內容");
-    const r = await api.post("/coach/announcements", body);
+    const r = EDIT_ID
+      ? await api.put("/coach/announcements/" + encodeURIComponent(EDIT_ID), body)
+      : await api.post("/coach/announcements", body);
     if (r.ok) {
-      $("title").value = ""; $("content").value = ""; $("pinned").checked = false;
+      resetForm();
       loadAnn();
-    } else alert((r.data && r.data.error) || "發佈失敗");
+    } else alert((r.data && r.data.error) || (EDIT_ID ? "更新失敗" : "發佈失敗"));
   };
 
   $("bcastSession").onchange = async () => {

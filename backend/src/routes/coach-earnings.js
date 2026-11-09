@@ -1307,26 +1307,33 @@ function buildMonthlyBreakdown(db, coachId, month) {
              OR (a.status IS NULL AND b.status IN ('attended','no_show')))`,
   );
   const ceStmt = db.prepare("SELECT status, net_amount FROM coach_earnings WHERE schedule_id=?");
-  let totalCents = 0, sessions = 0, students = 0, paidCents = 0;
+  let totalCents = 0, sessions = 0, students = 0, paidCents = 0, totalMinutes = 0;
+  const hktDate = (t) => {
+    const d = new Date(String(t || "").replace(" ", "T"));
+    return isNaN(d) ? String(t || "").slice(0, 10) : d.toLocaleDateString("sv-SE", { timeZone: "Asia/Hong_Kong" });
+  };
   const rows = scheds.map((s) => {
     const attended = Number(countStmt.get(s.id).c) || 0;
     const unitCents = Math.round(Number(s.price_hkd || 0) * 100);
     const payoutCents = Math.round(unitCents * rate) * attended;
     const ce = ceStmt.get(s.id);
     const status = ce && ce.status === "paid" ? "paid" : "pending";
+    const mins = Math.max(0, Math.round((new Date(String(s.end_time).replace(" ", "T")) - new Date(String(s.start_time).replace(" ", "T"))) / 60000)) || 0;
     if (attended > 0) {
       totalCents += payoutCents;
       students += attended;
       sessions += 1;
+      totalMinutes += mins;
       if (status === "paid") paidCents += Math.round(Number(ce.net_amount || 0) * 100) || payoutCents;
     }
     return {
       session_id: s.id,
       receipt_no: "ZP-" + String(s.id).slice(0, 8).toUpperCase(),
-      date: String(s.start_time).slice(0, 10),
+      date: hktDate(s.start_time),
       course_title: s.title,
       venue: s.venue_name || "",
       attended_count: attended,
+      duration_minutes: mins,
       session_payout: payoutCents / 100,
       status,
     };
@@ -1337,6 +1344,7 @@ function buildMonthlyBreakdown(db, coachId, month) {
     total_earned: totalCents / 100,
     total_sessions: sessions,
     total_attended_students: students,
+    total_hours: Math.round((totalMinutes / 60) * 10) / 10,
     pending_payout: (totalCents - paidCents) / 100,
     paid_payout: paidCents / 100,
     commission_rate: rate,

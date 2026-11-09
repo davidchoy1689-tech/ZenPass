@@ -78,6 +78,9 @@ const call = (h, { body = {}, user = null, params = {}, query = {} }) => new Pro
   ok(s.body.total_attended_students === 7, "7 人計入（排 1 個請假）", s.body.total_attended_students);
   ok(Math.abs(s.body.total_earned - 560) < 0.001, "80% × $100 × 7 = $560", s.body.total_earned);
   ok(s.body.total_sessions === 1, "1 個班次", s.body.total_sessions);
+  ok(s.body.total_hours === 1.5, "授課時數 1.5 小時", s.body.total_hours);
+  ok(/^\d{4}-\d{2}-\d{2}$/.test(s.body.sessions_breakdown[0].date), "日期用 HKT YYYY-MM-DD", s.body.sessions_breakdown[0].date);
+  ok(s.body.sessions_breakdown[0].duration_minutes === 90, "每堂 90 分鐘", s.body.sessions_breakdown[0].duration_minutes);
   const s2 = await call(sum, { user: { id: "coach2", role: "coach" }, query: { month } });
   ok(s2.body.total_earned === 0 && s2.body.total_attended_students === 0, "其他教練見 0（隔離）");
 
