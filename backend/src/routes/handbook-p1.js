@@ -63,9 +63,8 @@ function coachOwnsSession(db, coachId, sessionId) {
 }
 
 const router = express.Router();
-router.use(authenticateToken);
 
-router.post("/coach/handbook/log", express.json({ limit: "8mb" }), (req, res) => {
+router.post("/coach/handbook/log", authenticateToken, express.json({ limit: "8mb" }), (req, res) => {
   try {
     const db = getDb();
     ensureSchema(db);
@@ -142,7 +141,7 @@ router.post("/coach/handbook/log", express.json({ limit: "8mb" }), (req, res) =>
   }
 });
 
-router.get("/coach/handbook/students/:sid", (req, res) => {
+router.get("/coach/handbook/students/:sid", authenticateToken, (req, res) => {
   try {
     const db = getDb();
     ensureSchema(db);
@@ -155,7 +154,7 @@ router.get("/coach/handbook/students/:sid", (req, res) => {
   }
 });
 
-router.get("/student/handbook/:sid", (req, res) => {
+router.get("/student/handbook/:sid", authenticateToken, (req, res) => {
   try {
     const db = getDb();
     ensureSchema(db);
@@ -170,7 +169,7 @@ router.get("/student/handbook/:sid", (req, res) => {
   }
 });
 
-router.post("/student/handbook/:id/reply", express.json({ limit: "32kb" }), (req, res) => {
+router.post("/student/handbook/:id/reply", authenticateToken, express.json({ limit: "32kb" }), (req, res) => {
   try {
     const db = getDb();
     ensureSchema(db);
