@@ -39,7 +39,23 @@
       <div class="card" style="margin-bottom:12px"><div class="body">
         <b style="font-size:16px">📋 我嘅班別</b>
         <div class="muted2" style="margin-top:4px">新開班要平台開通後才會喺探索頁公開（防止價格／場地出錯）。</div>
+        <button class="btn btn-secondary btn-block" id="drillBtn" type="button" style="margin-top:10px">📋 15 分鐘演練引導</button>
       </div></div>
+
+      <div id="drill" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:9000;padding:16px;overflow:auto">
+        <div style="background:#fff;border-radius:16px;max-width:520px;margin:36px auto;padding:18px;box-sizing:border-box">
+          <div style="font-size:17px;font-weight:900;margin-bottom:4px">📋 15 分鐘真機演練</div>
+          <div class="muted2" style="font-size:12px;margin-bottom:12px">跟住做一次，就等於完成教練端全流程驗收。</div>
+          <ol style="font-size:13.5px;line-height:1.7;padding-left:18px;margin:0 0 12px">
+            <li><b>簽到／更表</b>：<a href="coach-schedule.html">📅 更表</a> 揀今日班次 → <a href="coach-roster.html">📋 點名冊</a>，1 位出席、1 位合規請假。</li>
+            <li><b>電子手冊</b>：同一頁撳「📖 手冊」，揀 2 粒標籤（例如「關節活動度提升」）＋評語＋1 項回家功課 → 發佈。</li>
+            <li><b>對數</b>：<a href="coach-earnings.html">💰 收入月結</a> 核對堂數、時數同應收金額。</li>
+            <li><b>公告</b>：<a href="coach-announcements.html">📢 公告欄</a> 用「🎒 裝備提醒」模板 → 複製電話清單 → 一鍵 WhatsApp。</li>
+          </ol>
+          <div class="muted2" style="font-size:11.5px;margin-bottom:12px">＊若班次未有人報名，可先用「⏳ 待開通新班」嘅測試班；演出前請通知營運同事。</div>
+          <button class="btn btn-primary btn-block" id="drillClose" type="button">明白，開始</button>
+        </div>
+      </div>
       <div id="list"></div>
 
       <details class="card" id="credBox" style="margin-top:12px">
@@ -133,6 +149,9 @@
   <script>
     const $ = (id) => document.getElementById(id);
     const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    if ($("drillBtn")) $("drillBtn").onclick = () => { $("drill").style.display = "block"; };
+    if ($("drillClose")) $("drillClose").onclick = () => { $("drill").style.display = "none"; };
+    if ($("drill")) $("drill").onclick = (e) => { if (e.target.id === "drill") $("drill").style.display = "none"; };
     const SPORTS = [
       ["molkky", "🎯 芬蘭木柱"], ["floor-curling", "🥌 地板冰壺"], ["cornhole", "🫘 布袋球"],
       ["air-storm", "🏹 穿雲箭"], ["nordic-walking", "🥾 北歐式健走"], ["roundnet", "🕸️ 圓網球"],

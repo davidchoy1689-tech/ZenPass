@@ -70,12 +70,12 @@
 
   function render() {
     const d = DATA;
-    $("monthLabel").textContent = d.month + " 班次明細";
+    $("monthLabel").textContent = d.month + " 班次明細 · " + (d.payout_rule || "每月 5 號 FPS 出糧");
     $("kpis").innerHTML = `
       <div class="kpi hero"><div class="k">💳 本月累計應收</div><div class="v">${hkd(d.total_earned)}</div><div class="s">教練拆帳 ${Math.round(d.commission_rate * 100)}% · 以出席人次計</div></div>
       <div class="kpi"><div class="k">⏱️ 授課堂數</div><div class="v">${d.total_sessions}</div><div class="s">${(d.total_hours || 0)} 小時 · 有出席紀錄嘅班次</div></div>
       <div class="kpi"><div class="k">👥 服務學員人次</div><div class="v">${d.total_attended_students}</div><div class="s">出席＋未合規缺席</div></div>
-      <div class="kpi"><div class="k">🟢 待出帳</div><div class="v">${hkd(d.pending_payout)}</div><div class="s">已出帳 ${hkd(d.paid_payout)}</div></div>
+      <div class="kpi"><div class="k">🟢 下次發放日</div><div class="v" style="font-size:15px;line-height:1.35;word-break:break-word">${esc(d.next_payout_label || "—")}</div><div class="s">待出帳 ${hkd(d.pending_payout)} · 已出帳 ${hkd(d.paid_payout)}</div></div>
     `;
     const rows = (d.sessions_breakdown || []).filter((x) => x.attended_count > 0);
     if (!rows.length) { $("rows").innerHTML = '<div class="e-empty">本月暫時未有出席紀錄</div>'; return; }

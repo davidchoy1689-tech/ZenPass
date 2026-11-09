@@ -1037,6 +1037,9 @@ CREATE TABLE IF NOT EXISTS users (
   try {
     db.exec("ALTER TABLE class_schedules ADD COLUMN notes TEXT");
   } catch (e) {/* unused /*/}
+  try {
+    db.exec("ALTER TABLE class_schedules ADD COLUMN coach_override_id TEXT");
+  } catch (e) {/* unused /*/}
 
   // ===== POS / 銷售記錄 =====
   db.exec(`

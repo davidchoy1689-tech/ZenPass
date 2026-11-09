@@ -96,6 +96,7 @@
         <button data-t="ops">🚨 異常處理</button>
         <button data-t="settle">🏁 批量結算</button>
         <button data-t="cred">🪪 教練資質</button>
+        <button data-t="sub">🔁 代堂審批</button>
         <button data-t="agr">🤝 協議簽署</button>
         <button data-t="pending">⏳ 待開通新班</button>
         <button data-t="refund">💸 待退款</button>
@@ -269,6 +270,15 @@
         </div></div>
       </div>
 
+      <div id="paneSub" hidden>
+        <div class="card"><div class="body">
+          <b>🔁 代堂審批</b>
+          <div class="muted" style="font-size:12px;margin:6px 0 10px">核准前會檢查代堂教練資質、保險／牌照有效期及場地 PLI；核准後該堂導師即時轉換，原教練不再計入該堂收入。</div>
+          <div id="subList"><div class="muted" style="font-size:13px">載入中…</div></div>
+          <button class="btn btn-secondary btn-block" id="subReload" style="margin-top:10px">🔄 重新整理</button>
+        </div></div>
+      </div>
+
       <div id="panePending" hidden>
         <div class="card"><div class="body">
           <b>⏳ 待開通新班</b>
@@ -345,7 +355,8 @@
       $("tabs").onclick = (e) => {
         const b = e.target.closest("button"); if (!b) return;
         [...$("tabs").children].forEach((x) => x.classList.toggle("on", x === b));
-        ["fin", "pay", "leads", "ops", "settle", "cred", "agr", "pending", "refund", "book", "cancel", "alert", "student", "venue", "pass", "sec"].forEach((k) => ($("pane" + k[0].toUpperCase() + k.slice(1))).hidden = b.dataset.t !== k);
+        ["fin", "pay", "leads", "ops", "settle", "cred", "sub", "agr", "pending", "refund", "book", "cancel", "alert", "student", "venue", "pass", "sec"].forEach((k) => ($("pane" + k[0].toUpperCase() + k.slice(1))).hidden = b.dataset.t !== k);
+        if (b.dataset.t === "sub") loadSubs();
       };
       $("pliEnforce").onclick = () => setPliGate("enforce");
       $("pliWarn").onclick = () => setPliGate("warn");
@@ -360,6 +371,59 @@
       $("plGo").onclick = payoutCsv;
       $("psIssue").onclick = issuePass;
       $("psReload").onclick = () => loadPasses();
+      $("subReload").onclick = () => loadSubs();
+      async function loadSubs() {
+        const box = $("subList");
+        box.innerHTML = '<div class="muted" style="font-size:13px">載入中…</div>';
+        const r = await api.get("/admin/substitutes/pending").catch(() => null);
+        if (!r || !r.ok) {
+          box.innerHTML = `<div class="muted" style="font-size:13px">${esc((r && r.data && r.data.error) || "讀取失敗")}</div>`;
+          return;
+        }
+        const items = r.data.items || [];
+        if (!items.length) {
+          box.innerHTML = '<div class="muted" style="font-size:13px">現時冇待審批代堂申請</div>';
+          return;
+        }
+        const fmt = (t) => {
+          const d = new Date(String(t || "").replace(" ", "T"));
+          return isNaN(d) ? String(t || "") : d.toLocaleString("zh-HK", { month: "short", day: "numeric", weekday: "short", hour: "2-digit", minute: "2-digit" });
+        };
+        box.innerHTML = items.map((it) => `
+          <div class="card" style="margin-bottom:10px" data-req="${esc(it.id)}">
+            <div class="body">
+              <div style="font-weight:800;font-size:13.5px">${esc(it.title || "")}</div>
+              <div class="muted" style="font-size:12px;margin:4px 0">${esc(fmt(it.start_time))} · ${esc(it.venue_name || "—")}</div>
+              <div style="font-size:12.5px">原教練 <b>${esc(it.from_name || "—")}</b> → 代堂 <b>${esc(it.target_name || "—")}</b></div>
+              ${it.reason ? `<div class="muted" style="font-size:12px;margin-top:4px">原因：${esc(it.reason)}</div>` : ""}
+              ${(it.blockers || []).map((b) => `<div style="background:#FEF2F2;border:1px solid #FECACA;color:#B91C1C;border-radius:8px;padding:6px 8px;font-size:12px;font-weight:700;margin-top:6px">⛔ ${esc(b)}</div>`).join("")}
+              ${(it.warnings || []).map((b) => `<div style="background:#FFFBEB;border:1px solid #FDE68A;color:#92400E;border-radius:8px;padding:6px 8px;font-size:12px;margin-top:6px">⚠️ ${esc(b)}</div>`).join("")}
+              <div style="display:flex;gap:8px;margin-top:10px">
+                <button class="btn btn-primary" data-ok="${esc(it.id)}" style="flex:1" ${it.eligible ? "" : "disabled"}>✅ 核准代堂</button>
+                <button class="btn btn-secondary" data-no="${esc(it.id)}" style="flex:1">❌ 駁回</button>
+              </div>
+            </div>
+          </div>`).join("");
+        box.querySelectorAll("[data-ok]").forEach((b) => {
+          b.onclick = async () => {
+            if (!confirm("核准後此堂即時轉換導師，確定？")) return;
+            b.disabled = true; b.textContent = "處理中…";
+            const rr = await api.post("/admin/substitutes/" + encodeURIComponent(b.dataset.ok) + "/approve", {});
+            if (!rr.ok) toast((rr.data && rr.data.error) || "核准失敗");
+            loadSubs();
+          };
+        });
+        box.querySelectorAll("[data-no]").forEach((b) => {
+          b.onclick = async () => {
+            const reason = prompt("駁回原因（會通知原教練）：", "保險未覆蓋該場地");
+            if (!reason || reason.trim().length < 2) return;
+            b.disabled = true; b.textContent = "處理中…";
+            const rr = await api.post("/admin/substitutes/" + encodeURIComponent(b.dataset.no) + "/reject", { reason: reason.trim() });
+            if (!rr.ok) toast((rr.data && rr.data.error) || "駁回失敗");
+            loadSubs();
+          };
+        });
+      }
       window.__loadCred = loadCredentials;
       loadAll();
     })();

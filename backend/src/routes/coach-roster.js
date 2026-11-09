@@ -60,7 +60,8 @@ function ownSchedule(db, user, sid) {
     .get(sid);
   if (!row) return null;
   const me = db.prepare("SELECT role FROM users WHERE id=?").get(user.id);
-  if (!(me && hasMinimumRole(me.role, "admin")) && row.coach_id !== user.id) return null;
+  const isTeacher = row.coach_id === user.id || row.coach_override_id === user.id;
+  if (!(me && hasMinimumRole(me.role, "admin")) && !isTeacher) return null;
   return row;
 }
 

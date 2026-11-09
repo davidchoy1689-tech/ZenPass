@@ -36,6 +36,7 @@
     .s-badge{display:inline-block;font-size:10.5px;font-weight:800;border-radius:999px;padding:1px 7px;margin-top:5px}
     .s-badge.ok{background:#ECFDF5;color:#065F46;border:1px solid #A7F3D0}
     .s-badge.hot{background:#FEF3C7;color:#92400E;border:1px solid #FDE68A}
+    .s-badge.pending{background:#FEF9C3;color:#854D0E;border:1px solid #FDE047}
     .s-actions{display:flex;gap:8px;margin:10px 0 16px}
     .s-actions button{flex:1;min-height:42px;border-radius:10px;border:1.5px solid #CBD5E1;background:#fff;font-weight:800;font-size:12.5px;cursor:pointer}
     .s-actions button.primary{background:#059669;border-color:#059669;color:#fff}
@@ -157,11 +158,13 @@
     $("agenda").innerHTML =
       list.map((s) => {
         const full = Number(s.enrolled_count || s.booked || 0) >= Number(s.max_participants || 0);
+        const subLabel = s.sub_status === "pending" ? "🟡 代堂審批中" : s.sub_status === "approved" ? "🟢 已交託代堂" : s.sub_status === "rejected" ? "🔴 代堂被拒" : "";
+        const badge = s.status === "cancelled" ? "已取消" : subLabel || (full ? "🔥 已滿" : "🟢 可預約");
         return `<div class="s-card ${full ? "full" : ""} ${s.status === "cancelled" ? "cancelled" : ""}" data-sid="${esc(s.id)}">
           <div class="s-time">${hhmm(s.start_time)}–${hhmm(s.end_time)}</div>
           <div class="s-title">${esc(s.title)}</div>
           <div class="s-meta">${esc(s.venue_name || "")} · ${s.booked}/${s.max_participants} 人</div>
-          <span class="s-badge ${full ? "hot" : "ok"}">${s.status === "cancelled" ? "已取消" : full ? "🔥 已滿" : "🟢 可預約"}</span>
+          <span class="s-badge ${s.sub_status === "pending" ? "pending" : full ? "hot" : "ok"}">${badge}</span>
         </div>`;
       }).join("") +
       locks.map((l) => `<div class="s-card cancelled"><div class="s-time">${hhmm(l.start_time)}–${hhmm(l.end_time)}</div><div class="s-title">🔒 私人時段</div><div class="s-meta">${esc(l.reason || "不可預約")}</div></div>`).join("");

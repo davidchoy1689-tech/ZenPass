@@ -86,7 +86,7 @@ router.get("/earnings", authenticateToken, (req, res) => {
         `
       SELECT COUNT(*) as count FROM class_schedules cs
       JOIN classes c ON cs.class_id = c.id
-      WHERE c.coach_id = ? AND cs.start_time >= ?
+      WHERE COALESCE(cs.coach_override_id, c.coach_id) = ? AND cs.start_time >= ?
     `,
       )
       .get(req.user.id, ws);
@@ -208,7 +208,7 @@ router.post("/earnings/calculate", authenticateToken, async (req, res) => {
              c.title as class_title, c.price_hkd, c.coach_id
       FROM class_schedules cs
       JOIN classes c ON cs.class_id = c.id
-      WHERE c.coach_id = ? AND cs.enrolled_count > 0
+      WHERE COALESCE(cs.coach_override_id, c.coach_id) = ? AND cs.enrolled_count > 0
         AND datetime(cs.start_time) < datetime('now')  -- 🔒 2026-10-19：未上堂唔可以預先計收入
     `,
       )
@@ -1290,11 +1290,23 @@ function monthWindow(month) {
 }
 
 function buildMonthlyBreakdown(db, coachId, month) {
+  const nextPayout = (() => {
+    const [y, m] = String(month).split("-").map(Number);
+    const py = m === 12 ? y + 1 : y;
+    const pm = m === 12 ? 1 : m + 1;
+    const d = new Date(Date.UTC(py, pm - 1, 5));
+    if (d.getUTCDay() === 6) d.setUTCDate(7);
+    else if (d.getUTCDay() === 0) d.setUTCDate(6);
+    const wd = ["日", "一", "二", "三", "四", "五", "六"][d.getUTCDay()];
+    const iso = d.toISOString().slice(0, 10);
+    const label = `${d.getUTCFullYear()}年${String(d.getUTCMonth() + 1).padStart(2, "0")}月${String(d.getUTCDate()).padStart(2, "0")}日（週${wd}）`;
+    return { date: iso, label };
+  })();
   const scheds = db
     .prepare(
-      `SELECT s.id, s.start_time, s.end_time, c.title, c.venue_name, c.price_hkd
+      `SELECT s.id, s.start_time, s.end_time, s.coach_override_id, c.title, c.venue_name, c.price_hkd
          FROM class_schedules s JOIN classes c ON c.id=s.class_id
-        WHERE c.coach_id=? AND substr(s.start_time,1,7)=? AND COALESCE(s.status,'')<>'cancelled'
+        WHERE COALESCE(s.coach_override_id, c.coach_id)=? AND substr(s.start_time,1,7)=? AND COALESCE(s.status,'')<>'cancelled'
         ORDER BY s.start_time`,
     )
     .all(coachId, month);
@@ -1345,6 +1357,9 @@ function buildMonthlyBreakdown(db, coachId, month) {
     total_sessions: sessions,
     total_attended_students: students,
     total_hours: Math.round((totalMinutes / 60) * 10) / 10,
+    next_payout_date: nextPayout.date,
+    next_payout_label: nextPayout.label,
+    payout_rule: "每月 5 號 FPS 出糧；遇週六／日順延至下一個工作天",
     pending_payout: (totalCents - paidCents) / 100,
     paid_payout: paidCents / 100,
     commission_rate: rate,
@@ -1396,3 +1411,4 @@ router.get("/earnings/export-csv", authenticateToken, (req, res) => {
 
 module.exports = router;
 module.exports.syncCoachEarningsForSchedule = syncCoachEarningsForSchedule;
+module.exports.buildMonthlyBreakdown = buildMonthlyBreakdown;

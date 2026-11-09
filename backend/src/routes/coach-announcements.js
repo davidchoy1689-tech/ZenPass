@@ -48,7 +48,7 @@ function ownsTarget(db, coachId, targetType, targetId) {
     return !!db.prepare("SELECT 1 FROM classes WHERE id=? AND coach_id=?").get(targetId, coachId);
   }
   return !!db
-    .prepare("SELECT 1 FROM class_schedules s JOIN classes c ON c.id=s.class_id WHERE s.id=? AND c.coach_id=?")
+    .prepare("SELECT 1 FROM class_schedules s JOIN classes c ON c.id=s.class_id WHERE s.id=? AND COALESCE(s.coach_override_id, c.coach_id)=?")
     .get(targetId, coachId);
 }
 

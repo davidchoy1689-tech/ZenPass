@@ -1303,7 +1303,7 @@ router.get("/class-students", authenticateToken, (req, res) => {
 
     // Verify coach owns this schedule's class
     const schedule = db
-      .prepare("SELECT class_id FROM class_schedules WHERE id = ?")
+      .prepare("SELECT class_id, coach_override_id FROM class_schedules WHERE id = ?")
       .get(schedule_id);
     if (!schedule) {
 
@@ -1324,7 +1324,8 @@ router.get("/class-students", authenticateToken, (req, res) => {
       .get(req.user.id);
     const { hasMinimumRole } = require("../middleware/auth");
     const isAdmin = me && hasMinimumRole(me.role, "admin");
-    if (!isAdmin && classInfo.coach_id !== req.user.id) {
+    const isSubstitute = schedule.coach_override_id && schedule.coach_override_id === req.user.id;
+    if (!isAdmin && classInfo.coach_id !== req.user.id && !isSubstitute) {
       return res
         .status(403)
         .json({ success: false, error: "無權限查看此課程嘅學生名單" });

@@ -49,11 +49,12 @@ router.get("/schedule", (req, res) => {
     const to = String(req.query.to || "").slice(0, 10);
     const rows = db
       .prepare(
-        `SELECT s.id, s.start_time, s.end_time, s.status, s.enrolled_count, s.max_participants,
+        `SELECT s.id, s.start_time, s.end_time, s.status, s.enrolled_count, s.max_participants, s.coach_override_id,
                 c.id AS class_id, c.title, c.venue_name, c.venue_address, c.price_hkd,
-                (SELECT COUNT(*) FROM bookings b WHERE b.schedule_id=s.id AND b.status IN ('confirmed','attended')) AS booked
+                (SELECT COUNT(*) FROM bookings b WHERE b.schedule_id=s.id AND b.status IN ('confirmed','attended')) AS booked,
+                (SELECT r.status FROM coach_substitution_requests r WHERE r.session_id=s.id ORDER BY r.created_at DESC LIMIT 1) AS sub_status
            FROM class_schedules s JOIN classes c ON c.id=s.class_id
-          WHERE c.coach_id=? AND COALESCE(c.status,'active')<>'deleted'
+          WHERE COALESCE(s.coach_override_id, c.coach_id)=? AND COALESCE(c.status,'active')<>'deleted'
           ORDER BY s.start_time`,
       )
       .all(req.user.id);
