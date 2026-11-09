@@ -70,9 +70,9 @@ function main() {
 
   db.prepare(`INSERT INTO classes (id, coach_id, title, category, duration, max_participants, price_hkd, credits_cost, status,
       venue_name, venue_address, partner_venue_id, booking_open)
-    VALUES ('seed-sandbox-class', ?, '芬蘭木柱 · 樂齡與初學體驗班（演練專屬）', '新興運動', 90, 8, 140, 14, 'active',
-      '青衣楓樹窩體育館（沙盒演練）', '青衣楓樹窩路 1 號', 'seed-sandbox-venue', 1)
-    ON CONFLICT(id) DO UPDATE SET coach_id=excluded.coach_id, status='active', booking_open=1,
+    VALUES ('seed-sandbox-class', ?, '芬蘭木柱 · 樂齡與初學體驗班（演練專屬）', '新興運動', 90, 8, 140, 14, 'inactive',
+      '青衣楓樹窩體育館（沙盒演練）', '青衣楓樹窩路 1 號', 'seed-sandbox-venue', 0)
+    ON CONFLICT(id) DO UPDATE SET coach_id=excluded.coach_id, status='inactive', booking_open=0,
       venue_name=excluded.venue_name, partner_venue_id=excluded.partner_venue_id
   `).run(coach.id);
 
