@@ -816,7 +816,14 @@
         book.disabled = false;
         book.onclick = openSheet;
       } else {
-        book.onclick = openSheet;
+        book.onclick = function () {
+          const s = SEL_SID && SESS.find(function (x) { return String(x.id) === String(SEL_SID); });
+          if (s && _free(s) > 0) {
+            location.href = "booking.html?id=" + encodeURIComponent(c.id) + "&sid=" + encodeURIComponent(s.id);
+            return;
+          }
+          openSheet();
+        };
       }
 
       // 封面輪播
@@ -989,6 +996,7 @@
         if (first) { SEL_SID = first.id; renderSessions(byDay); }
       }
       updateConfirm();
+      if (SEL_SID) syncDockToSelection();
       $("sheetMask").classList.add("show");
       $("sheet").classList.add("show");
     }
@@ -1064,8 +1072,21 @@
           list.querySelectorAll(".dt-sess").forEach(function (x) { x.classList.remove("on"); });
           el.classList.add("on");
           updateConfirm();
+          syncDockToSelection();
         });
       }
+    }
+
+    /* 🎯 Dock 同已選時段聯動（關閉 Sheet 後仍保留） */
+    function syncDockToSelection() {
+      const s = SEL_SID && SESS.find(function (x) { return String(x.id) === String(SEL_SID); });
+      if (!s) return;
+      const left = _free(s);
+      const when = new Date(String(s.start_time).replace(" ", "T")).toLocaleString("zh-HK", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
+      const btn = $("bookBtn");
+      if (btn) btn.innerHTML = "已選 " + esc(when) + "（剩 " + left + " 席）· 立即報名 ›";
+      const sub = $("priceSub");
+      if (sub) sub.textContent = "實收 HK$" + (CLS && CLS.price_hkd ? Number(CLS.price_hkd) : "—") + " · 可扣通行卡";
     }
 
     /* 🔔 滿額候補 */

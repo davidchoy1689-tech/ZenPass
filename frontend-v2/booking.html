@@ -511,6 +511,22 @@
       <div class="section-title">付款</div>
       <div class="card" id="paySummary"></div>
       <div class="spacer"></div>
+      <div class="card" id="planCard"><div class="body">
+        <b style="font-size:13.5px">選擇方案</b>
+        <label style="display:flex;align-items:center;gap:9px;border:1.5px solid #CBD5E1;border-radius:12px;padding:10px;margin-top:9px;cursor:pointer">
+          <input type="radio" name="checkout_tier" value="single" checked />
+          <span style="flex:1"><b style="font-size:13px">單堂體驗價</b><br><small style="color:#64748B">零負擔試玩一堂</small></span>
+          <b id="planSingle" style="white-space:nowrap">HK$—</b>
+        </label>
+        <label style="display:flex;align-items:center;gap:9px;border:1.5px solid #A7F3D0;background:#F0FDF4;border-radius:12px;padding:10px;margin-top:8px;cursor:pointer;position:relative">
+          <span style="position:absolute;top:-8px;right:10px;background:#F59E0B;color:#fff;font-size:10px;font-weight:800;border-radius:999px;padding:2px 8px">慳 HK$80</span>
+          <input type="radio" name="checkout_tier" value="pass_4" />
+          <span style="flex:1"><b style="font-size:13px">4 堂通行卡（含本堂）</b><br><small style="color:#065F46">平均 $120/堂 · 60 日有效 · 24h 改期</small></span>
+          <b id="planPass" style="white-space:nowrap">HK$—</b>
+        </label>
+        <div id="planNote" style="font-size:11.5px;color:#64748B;margin-top:8px">單堂：即時確認，可扣通行卡。</div>
+      </div></div>
+      <div class="spacer"></div>
       <button class="btn btn-primary btn-block" id="payNow">立即確認預約</button>
       <div class="spacer"></div>
       <button class="btn btn-ghost btn-block" id="back2">返回</button>
@@ -636,6 +652,32 @@
         if (s || c) sessionStorage.setItem("zenpass_utm", JSON.stringify({ source: s || "", campaign: c || "" }));
       } catch (e) {}
     })();
+    // 行內即時校驗（長者友善，唔使等提交才報錯）
+    function inlineValidate(el, test, msg) {
+      if (!el) return;
+      const hint = document.createElement("div");
+      hint.style.cssText = "display:none;color:#B91C1C;font-size:11.5px;font-weight:700;margin:-4px 0 8px;line-height:1.4";
+      el.insertAdjacentElement("afterend", hint);
+      const show = (bad) => {
+        el.style.borderColor = bad ? "#EF4444" : "#059669";
+        el.setAttribute("aria-invalid", bad ? "true" : "false");
+        hint.style.display = bad ? "block" : "none";
+        hint.textContent = bad ? msg : "";
+      };
+      el.addEventListener("input", () => {
+        if (el.inputMode === "numeric") el.value = el.value.replace(/\D/g, "").slice(0, 8);
+        if (el.getAttribute("aria-invalid") === "true" && test(el.value.trim())) show(false);
+      });
+      el.addEventListener("blur", () => {
+        const v = el.value.trim();
+        if (!v) { el.style.borderColor = ""; hint.style.display = "none"; return; }
+        show(!test(v));
+      });
+    }
+    inlineValidate($("gName"), (v) => v.length >= 2, "請輸入學員姓名（最少 2 字）");
+    inlineValidate($("gPhone"), (v) => /^[4-9]\d{7}$/.test(v), "請輸入正確 8 位香港電話號碼（4-9 開頭）");
+    inlineValidate($("parentName"), (v) => v.length >= 2, "請輸入上課長者姓名");
+    inlineValidate($("parentPhone"), (v) => /^[4-9]\d{7}$/.test(v), "請輸入長者 8 位電話（點名用）");
     const show = (x) => {
       if (x !== "done" && typeof stopRedirect === "function") stopRedirect();
       ["step1","step2","step3","pay","done"].forEach(s => $(s).classList.toggle("hide", s !== x));
@@ -687,6 +729,13 @@
     let cls = null, sessions = [], sel = new Set(), promoFinal = null, ban = "A";
     let guestQty = 1;
     let payTotalValue = 0;
+    let PLAN_TIER = "single";
+    const planBase = () => Number(cls && cls.price_hkd) || 0;
+    const planPassPrice = () => Math.max(0, planBase() * 4 - 80);
+    function refreshPlanUI() {
+      if ($("planSingle")) $("planSingle").textContent = "HK$" + planBase();
+      if ($("planPass")) $("planPass").textContent = "HK$" + planPassPrice();
+    }
     let payIds = [], payRefs = [], payUnit = 0, payMethod = "fps", cdTimer = null, receiptUrl = "";
     let activePass = null, passBusy = false;
     const MOCK_CREDITS_KEY = "zenpass_mock_credits";
@@ -715,6 +764,7 @@
     // 底部 Primary Action 直接標示實付金額，減少「撳落去唔知扣幾多」嘅猶豫
     function payBtnLabel() {
       if (!sel.size) return "立即確認預約";
+      if (PLAN_TIER === "pass_4") return "💬 認購 4 堂通行卡 · HK$" + planPassPrice();
       const pmEl = document.querySelector("input[name=pm]:checked");
       const pm = pmEl ? pmEl.value : "single";
       const p = orderParts();
@@ -723,6 +773,7 @@
     function refreshPayBtn() {
       const btn = $("payNow");
       if (btn && !btn.disabled) btn.textContent = payBtnLabel();
+      refreshPlanUI();
     }
     const visible = () => sessions.filter(s => ban === "all" || banOf(s) === ban);
 
@@ -1111,6 +1162,9 @@
       ATT_TYPE = b.dataset.att;
       $("childBox").hidden = ATT_TYPE !== "child";
       $("parentBox").hidden = ATT_TYPE !== "parent";
+      const pn = $("parentName");
+      if (pn) pn.placeholder = ATT_TYPE === "parent" ? "例如：陳陳大文（上課長者姓名）" : pn.placeholder;
+      if ($("gName")) $("gName").placeholder = ATT_TYPE === "self" ? "例如：陳大文（閣下姓名）" : "你的姓名";
       if (ATT_TYPE === "child") {
         try { $("loadChild").style.display = localStorage.getItem("zenpass_saved_child") ? "inline-block" : "none"; } catch (err) {}
       }
@@ -1231,6 +1285,18 @@
     };
     $("back1").onclick = () => { show("step1"); setStep(1); updateBar(); };
     $("back2").onclick = () => { stopCountdown(); show("step2"); setStep(2); };
+
+    document.querySelectorAll('input[name="checkout_tier"]').forEach((r) => {
+      r.onchange = () => {
+        PLAN_TIER = r.value;
+        const note = $("planNote");
+        if (note) note.textContent = PLAN_TIER === "pass_4"
+          ? "通行卡由職員確認收款後開卡（HK$" + planPassPrice() + "），本堂會同時為你預留；開卡後即可扣堂。"
+          : "單堂：即時確認，可扣通行卡。";
+        refreshPayBtn();
+      };
+    });
+    refreshPlanUI();
     $("applyPromo").onclick = async () => {
       const code = $("promo").value.trim(); const msg = $("promoMsg");
       const markInvalid = (bad) => $("promo").setAttribute("aria-invalid", bad ? "true" : "false");
@@ -1257,6 +1323,17 @@
     };
 
     $("payNow").onclick = async () => {
+      if (PLAN_TIER === "pass_4") {
+        const pass = planPassPrice();
+        const list = [...sel].map((id) => {
+          const s = SESS.find((x) => String(x.id) === String(id)) || {};
+          const d = new Date(String(s.start_time || "").replace(" ", "T"));
+          return (cls.title || "") + " · " + (isNaN(d) ? "" : d.toLocaleString("zh-HK", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" }));
+        }).filter(Boolean).join("；");
+        const text = `你好 ZenPass 客服，我想認購「4 堂通行卡」（HK$${pass}），並預留以下課堂：\n${list}\n請協助確認付款方式（FPS／PayMe）及開卡，謝謝！`;
+        window.open("https://wa.me/85290335538?text=" + encodeURIComponent(text), "_blank");
+        return;
+      }
       const attendee = getAttendeePayload();
       if (!attendee) return;
       const pm = document.querySelector("input[name=pm]:checked").value;
@@ -1772,7 +1849,7 @@
     }
     function copyText(txt, btn) {
       const done = () => {
-        const old = btn.textContent; btn.textContent = "✅ 已複製";
+        const old = btn.textContent; btn.textContent = "✓ 已成功複製！";
         btn.classList.add("copied");
         const hint = $("copyHint"); if (hint) hint.style.display = "";
         if (btn.dataset && btn.dataset.toast) toast(btn.dataset.toast);

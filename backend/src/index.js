@@ -346,6 +346,7 @@ app.use("/api/wishlist", require("./routes/wishlist"));
 app.use("/api/topup", require("./routes/topup"));
 app.use("/api/nps", require("./routes/nps"));
 app.use("/api/platform", require("./routes/platform"));
+app.use("/api/student", require("./routes/student-bookings"));
 app.use("/api/admin", require("./routes/admin-crm"));
 app.use("/api/admin", require("./routes/admin-substitutes"));
 app.use("/api/admin", require("./routes/admin-launch-tracker"));

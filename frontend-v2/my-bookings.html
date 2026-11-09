@@ -183,10 +183,10 @@
       let actions = "";
       if (b.status === "confirmed") actions = `<button class="btn btn-primary" onclick="openPass('${esc(b.id)}')">🎫 出示入場憑證</button><a class="btn btn-secondary" href="adult-pass.html?id=${encodeURIComponent(b.id)}">🎫 電子票券</a><a class="btn btn-secondary" href="print-card.html?id=${encodeURIComponent(b.id)}">🖨️ 隨身卡</a><button class="btn btn-secondary" onclick="cancelBk('${esc(b.id)}')">取消預約</button>` +
         `<a class="btn btn-secondary" href="child-waiver.html?ref=${encodeURIComponent(b.booking_reference || "")}">🧒 家長同意書</a>`;
-      if (b.status === "confirmed" && b.pass_id) {
+      if (b.status === "confirmed") {
         const h = hoursUntil(b.start_time);
         actions += h >= 24
-          ? `<button class="btn btn-secondary btn-block" onclick="openReschedule('${esc(b.id)}')">🔄 自主改期（免扣堂）</button>`
+          ? `<button class="btn btn-secondary btn-block" onclick="openReschedule('${esc(b.id)}')">🔄 更改上課時間（免手續費）</button>`
           : `<button class="btn btn-secondary btn-block" disabled title="開課前 24 小時內不可改期">🔒 已過改期時限（開課前 24 小時）</button>`;
       }
       if (b.status === "pending_payment") actions = `<a class="btn btn-primary" href="booking.html?id=${encodeURIComponent(b.class_id)}&sid=${encodeURIComponent(b.schedule_id)}">繼續付款</a>`;
@@ -313,7 +313,7 @@
       o.innerHTML = `<div class="modal" role="dialog" aria-modal="true" aria-label="自主改期">
         <h3>🔄 自主改期</h3>
         <p class="muted" style="font-size:13px;margin:0 0 8px">原班次：<b>${esc(fmtShort(b.start_time))}</b>${b.venue_name ? " · " + esc(b.venue_name) : ""}</p>
-        <div class="rs-note">⚡ 通行證預約改期不扣堂數，席位將即時轉移。</div>
+        <div class="rs-note">⚡ 開課前 24 小時可免費改期，席位即時轉移${b.pass_id ? "，不扣堂數" : "，已付金額不變"}。</div>
         ${opts.length ? `<div class="rs-list">${opts.map((s, i) => `<label class="rs-opt">
             <input type="radio" name="rsTarget" value="${esc(s.id)}" ${i === 0 ? "checked" : ""} />
             <span><span class="rs-t">${esc(fmtShort(s.start_time))}</span><br><span class="rs-s">${esc(s.notes || "常規班")} · 剩 ${Math.max(0, Number(s.max_participants) - Number(s.enrolled_count))} 席</span></span>
@@ -332,7 +332,9 @@
         if (!sel) return;
         if (go.disabled || go.dataset.busy === "1") return;
         go.dataset.busy = "1"; go.disabled = true; go.textContent = "⏳ 正在轉移席位...";
-        const rr = await api.post("/bookings/" + encodeURIComponent(b.id) + "/reschedule", { target_schedule_id: sel.value });
+        const rr = b.pass_id
+          ? await api.post("/bookings/" + encodeURIComponent(b.id) + "/reschedule", { target_schedule_id: sel.value })
+          : await api.post("/student/bookings/" + encodeURIComponent(b.id) + "/reschedule", { new_session_id: sel.value });
         if (rr.ok && rr.data && rr.data.success !== false) {
           go.textContent = "✅ 已轉移";
           alert("✅ 班次已成功轉移！已更新隨身卡與上課時間");
