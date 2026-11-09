@@ -8,7 +8,9 @@
  */
 const express = require("express");
 const { v4: uuidv4 } = require("uuid");
+const crypto = require("crypto");
 const { getDb } = require("../services/database");
+const { writeBlock } = require("../services/blockchain-audit");
 const tokens = require("../services/coach-checkin-token");
 const { notifySponsor } = require("../services/sponsor-notify");
 const bookingQr = require("../services/booking-qr");
@@ -55,6 +57,7 @@ function ensureParentCols(db) {
       ["parent_phone", "TEXT"],
       ["notify_sponsor_on_checkin", "INTEGER DEFAULT 0"],
       ["attendee_type", "TEXT DEFAULT 'self'"],
+      ["medical_notes", "TEXT"],
       ["coach_tags", "TEXT"],
       ["coach_tags_at", "TEXT"],
     ].forEach(([n, t]) => { if (!cols.includes(n)) db.prepare(`ALTER TABLE bookings ADD COLUMN ${n} ${t}`).run(); });
@@ -275,6 +278,67 @@ router.post("/coach/checkin", express.json(), (req, res) => {
   }
 });
 
+// ===== POST /api/coach/checkin/batch — 一次過全部點名（10 人 < 20 秒） =====
+router.post("/coach/checkin/batch", express.json(), (req, res) => {
+  const ip = ipOf(req);
+  if (blocked(ip)) return res.status(429).json({ success: false, error: "嘗試次數過多，請 15 分鐘後再試" });
+  try {
+    const db = getDb();
+    ensureParentCols(db);
+    const ctx = loadContext(db, req.body && req.body.token);
+    if (ctx.error) { fail(ip); return res.status(403).json({ success: false, code: ctx.error, error: "連結無效或已過期" }); }
+    reset(ip);
+
+    const rows = db
+      .prepare(
+        "SELECT * FROM bookings WHERE schedule_id=? AND status='confirmed' AND payment_status='paid'",
+      )
+      .all(ctx.schedule.id);
+
+    const done = [];
+    const run = db.transaction(() => {
+      for (const b of rows) {
+        db.prepare(
+          "UPDATE bookings SET status='attended', checked_in_at=datetime('now'), checkin_method='batch' WHERE id=?",
+        ).run(b.id);
+        db.prepare(
+          `INSERT INTO audit_log (id, action_type, entity_type, entity_id, user_id, new_values, description, created_at)
+           VALUES (?,?,?,?,?,?,?,datetime('now'))`,
+        ).run(uuidv4(), "booking.checked_in", "booking", b.id, null,
+          JSON.stringify({ method: "coach_batch", schedule_id: ctx.schedule.id }),
+          `教練一鍵全到：${b.booking_reference}`);
+        done.push({ id: b.id, ref: b.booking_reference });
+      }
+    });
+    run();
+
+    const at = new Date().toISOString();
+    const digest = crypto
+      .createHash("sha256")
+      .update(JSON.stringify({ schedule_id: ctx.schedule.id, at, items: done }))
+      .digest("hex");
+    const block = writeBlock({
+      entityType: "attendance_batch",
+      entityId: ctx.schedule.id,
+      data: { schedule_id: ctx.schedule.id, at, count: done.length, digest, source: "coach_link" },
+    });
+
+    const roster = buildRoster(db, ctx.schedule.id);
+    const seats = roster.reduce((s, x) => s + x.seats, 0);
+    const attended = roster.reduce((s, x) => s + x.attended, 0);
+    res.json({
+      success: true,
+      updated: done.length,
+      attended_count: attended,
+      total_enrolled: seats,
+      digest,
+      block_hash: block.hash || null,
+    });
+  } catch (e) {
+    console.error("[COACH-CHECKIN] batch:", e.message);
+    res.status(500).json({ success: false, error: "批量點名失敗" });
+  }
+});
 
 // ===== POST /api/coach/checkin/tags — 課後 10 秒速評 =====
 const TAG_KEYS = ["energetic", "moves_well", "tight"];

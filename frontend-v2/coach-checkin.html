@@ -83,6 +83,9 @@
     </div>
     <div class="prog"><i id="bar"></i></div>
     <div class="stat"><span id="stat">已到 0 / 0</span><span id="pending"></span></div>
+    <div id="batchBar" style="padding:0 16px 10px;display:none">
+      <button id="batchAll" type="button" style="width:100%;min-height:48px;border:0;border-radius:12px;background:#0F766E;color:#fff;font-weight:900;font-size:15px">⚡ 全部出席（<span id="batchN">0</span> 人）— 一撳完成</button>
+    </div>
     <div id="tagBar" style="display:none;padding:0 16px 10px">
       <button id="submitTags" style="width:100%;min-height:46px;border:0;border-radius:12px;background:#1A5336;color:#fff;font-weight:900;font-size:15px">📤 提交課後簡評（<span id="tagCount">0</span> 位）</button>
     </div>
@@ -209,6 +212,14 @@
     $("bar").style.width = total ? Math.round((attended / total) * 100) + "%" : "0%";
     $("stat").textContent = `已到 ${attended} / ${total} 人`;
     $("pending").textContent = queue.length ? `⏳ 待上傳 ${queue.length}` : "";
+
+    const pendingGroups = ROSTER.roster.filter((g) => !(g.seats > 0 && g.attended + (g.no_show || 0) >= g.seats));
+    const bar = $("batchBar");
+    if (bar) {
+      bar.style.display = pendingGroups.length && !DEMO ? "" : "none";
+      const n = pendingGroups.reduce((s, g) => s + Math.max(0, g.seats - g.attended - (g.no_show || 0)), 0);
+      $("batchN").textContent = n;
+    }
 
     if (!ROSTER.roster.length) { $("list").innerHTML = `<div class="card"><div class="empty">（暫無學員）</div></div>`; return; }
     $("list").innerHTML = ROSTER.roster.map((g, i) => {
@@ -370,6 +381,32 @@
     const cached = localStorage.getItem("zp_roster_" + TOKEN.slice(-12));
     if (cached) { ROSTER = JSON.parse(cached); render(); }
   } catch (e) {}
+  const batchBtn = $("batchAll");
+  if (batchBtn) batchBtn.onclick = async function () {
+    if (!TOKEN || DEMO) return;
+    const btn = this;
+    const old = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = "⏳ 一鍵點名中…";
+    try {
+      const r = await api("/api/coach/checkin/batch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: TOKEN }),
+      });
+      if (r.ok) {
+        toast(`✅ ${r.data.updated} 人已點名 · 存證 ${String(r.data.digest || "").slice(0, 12)}…`);
+        await load();
+      } else {
+        toast("❌ " + (r.data.error || "批量點名失敗"));
+      }
+    } catch (e) {
+      toast("❌ 網絡錯誤，請重試");
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = old;
+    }
+  };
   if (DEMO) { load(); } else { load(); flush(); }
 
   /* ===== 📷 掃碼簽到 ===== */

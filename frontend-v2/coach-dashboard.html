@@ -1006,6 +1006,10 @@ ${stamp}
           <a class="btn btn-secondary" style="flex:1;text-decoration:none" href="https://www.google.com/maps/search/?api=1&query=${mapQ}" target="_blank" rel="noopener">🗺️ 集合地點地圖</a>
           <button class="btn btn-primary" style="flex:1" id="realSettle">🏁 下課結算</button>
         </div>
+        <div style="display:flex;gap:8px;margin-bottom:12px">
+          <button class="btn btn-secondary" style="flex:1" id="batchAttend">⚡ 全部出席（一鍵）</button>
+          <a class="btn btn-secondary" style="flex:1;text-decoration:none" href="coach-handbook.html?schedule_id=${encodeURIComponent(sid)}">📖 課後手冊</a>
+        </div>
         ${list.map((s) => {
           const done = s.booking_status === "attended";
           const isChild = s.attendee_type === "child";
@@ -1081,6 +1085,26 @@ ${stamp}
       $("shBody").querySelectorAll("[data-incident]").forEach((b) => (b.onclick = () => incidentSheet(b.dataset.incident, sid, b.dataset.sname)));
       const rs = $("realSettle");
       if (rs) rs.onclick = () => realSettle(sid, sch, list);
+      const ba = $("batchAttend");
+      if (ba) ba.onclick = async () => {
+        const pending = list.filter((s) => s.booking_status === "confirmed");
+        if (!pending.length) return toast("冇待點名學員");
+        if (!confirm(`一次過將 ${pending.length} 位學員標記為「已出席」？\n（未付款／已取消唔會受影響）`)) return;
+        ba.disabled = true;
+        ba.textContent = "⏳ 點名中…";
+        const r = await api.post("/coach/attendance/batch-check", {
+          schedule_id: sid,
+          items: pending.map((s) => ({ booking_id: s.id, status: "attended" })),
+        });
+        ba.disabled = false;
+        ba.textContent = "⚡ 全部出席（一鍵）";
+        if (r.ok) {
+          toast(`✅ ${r.data.updated} 人已點名 · 存證 ${String(r.data.digest || "").slice(0, 12)}…`);
+          roster(sid);
+        } else {
+          toast("❌ " + ((r.data && r.data.error) || "批量點名失敗"));
+        }
+      };
     }
 
     /* 🚨 現場意外即時備案（法律存證） */
