@@ -64,6 +64,7 @@
       <label>📣 WhatsApp 廣播（可選班次）</label>
       <select id="bcastSession"><option value="">— 選擇班次 —</option></select>
       <div class="a-phones" id="phones">未選擇班次</div>
+      <div style="font-size:11px;color:#64748B;margin-top:6px">可勾選個別學員（預設全選）；單獨發送時只會私訊該位</div>
       <div class="row" style="margin-top:8px">
         <button class="a-btn ghost" id="copyPhones" style="margin:0">📋 複製電話清單</button>
         <button class="a-btn" id="waBtn" style="margin:0">💬 一鍵發送 WhatsApp</button>
@@ -194,13 +195,20 @@
     const r = await api.get("/coach/class-students?schedule_id=" + encodeURIComponent(sid));
     const students = (r.data && r.data.students) || [];
     PHONES = [...new Set(students.map((s) => (s.attendee_type === "parent" && s.parent_phone) || s.phone).filter(Boolean).map((p) => String(p).replace(/\D/g, "")))];
-    $("phones").textContent = PHONES.length ? PHONES.join(", ") : "此班未有電話";
+    $("phones").innerHTML = PHONES.length
+      ? PHONES.map((p) => `<label style="display:flex;align-items:center;gap:7px;padding:5px 0;font-size:13px;font-weight:700;color:#0F172A"><input type="checkbox" class="ph-chk" value="${esc(p)}" checked /> ${p.slice(0,4)} ${p.slice(4)}</label>`).join("")
+      : "此班未有電話";
   };
 
+  function selectedPhones() {
+    return [...document.querySelectorAll(".ph-chk:checked")].map((x) => x.value);
+  }
+
   $("copyPhones").onclick = async () => {
-    if (!PHONES.length) return alert("請先選擇班次");
-    try { await navigator.clipboard.writeText(PHONES.join(", ")); $("copyPhones").textContent = "✅ 已複製"; setTimeout(() => ($("copyPhones").textContent = "📋 複製電話清單"), 1500); }
-    catch (e) { alert(PHONES.join(", ")); }
+    const list = selectedPhones();
+    if (!list.length) return alert("請先勾選學員");
+    try { await navigator.clipboard.writeText(list.join(", ")); $("copyPhones").textContent = `✅ 已複製 ${list.length} 個`; setTimeout(() => ($("copyPhones").textContent = "📋 複製電話清單"), 1600); }
+    catch (e) { alert(list.join(", ")); }
   };
 
   $("waBtn").onclick = () => {
@@ -208,7 +216,11 @@
     const content = $("content").value.trim();
     if (!content) return alert("請先輸入公告內容");
     const text = (title ? title + "\n\n" : "") + content;
-    window.open("https://wa.me/?text=" + encodeURIComponent(text), "_blank");
+    const list = selectedPhones();
+    const url = list.length === 1
+      ? "https://wa.me/852" + list[0] + "?text=" + encodeURIComponent(text)
+      : "https://wa.me/?text=" + encodeURIComponent(text);
+    window.open(url, "_blank");
   };
 
   (async () => {

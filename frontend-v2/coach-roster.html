@@ -29,6 +29,16 @@
     .r-name{font-size:16px;font-weight:900}
     .r-meta{font-size:11.5px;color:#64748B;margin-top:2px}
     .r-warn{margin-top:6px;background:#FEF3C7;color:#92400E;border:1px solid #FDE68A;border-radius:8px;padding:6px 8px;font-size:11.5px;font-weight:700}
+    .r-danger{margin-top:6px;background:#FEE2E2;color:#991B1B;border:1px solid #F87171;border-radius:8px;padding:7px 9px;font-size:12px;font-weight:800;line-height:1.45}
+    .wi-btn{display:block;width:calc(100% - 32px);margin:0 16px 12px;border:1.5px dashed #059669;background:#ECFDF5;color:#065F46;border-radius:12px;padding:11px;font-weight:900;font-size:14px;cursor:pointer}
+    .wi-mask{position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:200;display:none;padding:16px;overflow:auto}
+    .wi-mask.on{display:block}
+    .wi-card{background:#fff;border-radius:16px;padding:16px;max-width:420px;margin:36px auto}
+    .wi-card h3{margin:0 0 4px;font-size:17px}
+    .wi-card label{display:block;font-size:12px;font-weight:800;color:#475569;margin:10px 0 4px}
+    .wi-card input[type=text],.wi-card input[type=tel]{width:100%;box-sizing:border-box;border:1.5px solid #CBD5E1;border-radius:10px;padding:10px;font:inherit}
+    .wi-pay{display:flex;gap:8px;margin-top:4px}
+    .wi-pay label{flex:1;display:flex;align-items:center;gap:6px;border:1.5px solid #CBD5E1;border-radius:10px;padding:9px;font-size:13px;font-weight:700;color:#0F172A;margin:0;cursor:pointer}
     .r-acts{display:flex;gap:6px;margin-top:10px}
     .r-pill{flex:1;min-height:42px;border-radius:10px;border:1.5px solid #CBD5E1;background:#fff;font-size:12.5px;font-weight:800;cursor:pointer;color:#334155}
     .r-pill.on[data-s="present"]{background:#059669;border-color:#059669;color:#fff}
@@ -55,6 +65,29 @@
       <button class="r-filter" data-f="present">已簽到</button>
       <button class="r-filter" data-f="unmarked">未簽到</button>
       <button class="r-filter" data-f="excused">請假</button>
+    </div>
+    <button class="wi-btn" id="walkinBtn" type="button">➕ 現場補錄學員（現金／現場 FPS）</button>
+    <div class="wi-mask" id="wiMask">
+      <div class="wi-card">
+        <h3>➕ 現場補錄學員</h3>
+        <div style="font-size:12px;color:#64748B">適用於長者即場帶朋友；會即時簽到並計入本堂收入。</div>
+        <label>學員姓名</label>
+        <input type="text" id="wiName" maxlength="40" placeholder="例如：陳大文" autocomplete="off" />
+        <label>聯絡電話（8 位）</label>
+        <input type="tel" id="wiPhone" inputmode="numeric" maxlength="8" placeholder="91234567" autocomplete="off" />
+        <label>收費方式</label>
+        <div class="wi-pay">
+          <label><input type="radio" name="wiPay" value="cash" checked /> 💵 已收現金</label>
+          <label><input type="radio" name="wiPay" value="fps_direct" /> 📲 現場 FPS</label>
+        </div>
+        <label>備註（可選）</label>
+        <input type="text" id="wiNotes" maxlength="120" placeholder="例如：婆婆朋友，膝痛" />
+        <div style="display:flex;gap:8px;margin-top:14px">
+          <button class="btn btn-secondary" id="wiCancel" type="button" style="flex:1">取消</button>
+          <button class="btn btn-primary" id="wiSubmit" type="button" style="flex:1.4">✅ 補錄並簽到</button>
+        </div>
+        <div id="wiMsg" style="font-size:12px;color:#B91C1C;margin-top:8px"></div>
+      </div>
     </div>
     <div id="list"><div class="r-empty">載入中…</div></div>
     <div class="r-links">
@@ -112,7 +145,11 @@
       return `<div class="r-card ${cls}" data-bid="${esc(x.booking_id)}">
         <div class="r-name">${esc(x.student_name || x.name)} ${x.status === "late" ? '<span style="font-size:11px;color:#B45309">🕐 遲到</span>' : ""}</div>
         <div class="r-meta">${x.pass_remaining != null ? `🎫 剩 ${x.pass_remaining}/${x.pass_total} 堂 · ` : ""}${esc(x.phone || "")}</div>
-        ${x.medical_notes ? `<div class="r-warn">⚠️ ${esc(x.medical_notes)}</div>` : ""}
+        ${x.medical_notes ? (() => {
+          const t = String(x.medical_notes);
+          const danger = /心臟|心管|血壓|手術|膝|關節|糖尿|暈|中風|骨質|氣喘|哮喘/i.test(t);
+          return `<div class="${danger ? "r-danger" : "r-warn"}">${danger ? "⚠️ 舊患注意：" : "⚠️ "}${esc(t)}</div>`;
+        })() : ""}
         <div class="r-acts">
           <button class="r-pill ${x.status === "present" ? "on" : ""}" data-s="present" ${busy[x.booking_id] ? "disabled" : ""}>🟢 出席</button>
           <button class="r-pill ${x.status === "absent_notified" ? "on" : ""}" data-s="absent_notified" ${busy[x.booking_id] ? "disabled" : ""}>🟡 請假</button>
@@ -169,6 +206,30 @@
       render();
     };
   });
+
+  async function reloadRoster() {
+    const r = await api.get("/coach/sessions/" + encodeURIComponent(SID) + "/roster");
+    if (r.ok) { DATA = r.data; render(); }
+  }
+
+  $("walkinBtn").onclick = () => { $("wiMask").classList.add("on"); $("wiMsg").textContent = ""; setTimeout(() => $("wiName").focus(), 60); };
+  $("wiCancel").onclick = () => $("wiMask").classList.remove("on");
+  $("wiMask").onclick = (e) => { if (e.target.id === "wiMask") $("wiMask").classList.remove("on"); };
+  $("wiSubmit").onclick = async () => {
+    const name = $("wiName").value.trim();
+    const phone = $("wiPhone").value.replace(/\D/g, "");
+    const pay = (document.querySelector('input[name="wiPay"]:checked') || {}).value || "cash";
+    if (name.length < 2) { $("wiMsg").textContent = "請輸入學員姓名（最少 2 字）"; return; }
+    if (phone.length !== 8) { $("wiMsg").textContent = "請輸入 8 位香港電話"; return; }
+    $("wiSubmit").disabled = true; $("wiSubmit").textContent = "補錄中…"; $("wiMsg").textContent = "";
+    const r = await api.post("/coach/attendance/walk-in", { session_id: SID, student_name: name, contact_phone: phone, payment_method: pay, notes: $("wiNotes").value });
+    $("wiSubmit").disabled = false; $("wiSubmit").textContent = "✅ 補錄並簽到";
+    if (!r.ok) { $("wiMsg").textContent = (r.data && r.data.error) || "補錄失敗，請重試"; return; }
+    $("wiMask").classList.remove("on");
+    $("wiName").value = ""; $("wiPhone").value = ""; $("wiNotes").value = "";
+    toast("✅ 已補錄並簽到：" + name);
+    reloadRoster();
+  };
 
   (async () => {
     if (!SID) { $("list").innerHTML = '<div class="r-empty">缺少 schedule_id</div>'; return; }
