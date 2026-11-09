@@ -57,6 +57,14 @@
     .btn-pass-confirm:active{ transform:scale(.98); }
     .btn-pass-confirm:disabled{ background:#94A3B8; cursor:not-allowed; }
     .pass-alt{ text-align:center; font-size:12px; color:#64748B; margin-top:10px; }
+    /* ===== 💡 4 堂通行卡升級橫幅 ===== */
+    .pass-upsell{ display:flex; align-items:center; gap:10px; background:#F0FDF4; border:1.5px solid #BBF7D0; border-radius:12px; padding:11px 12px; margin-top:10px; }
+    .pass-upsell .up-ic{ font-size:18px; flex:0 0 auto; }
+    .pass-upsell .up-body{ flex:1; min-width:0; }
+    .pass-upsell .up-title{ font-size:12.5px; font-weight:800; color:#14532D; }
+    .pass-upsell .up-desc{ font-size:11px; color:#166534; line-height:1.45; margin-top:1px; }
+    .pass-upsell .up-btn{ flex:0 0 auto; font-size:11.5px; font-weight:800; color:#fff; background:#16A34A; border-radius:8px; padding:9px 10px; text-decoration:none; white-space:nowrap; }
+    @media (max-width:360px){ .pass-upsell{ flex-wrap:wrap; } .pass-upsell .up-btn{ width:100%; text-align:center; } }
 
     /* ===== 📋 FPS 一鍵複製卡 ===== */
     .fps-copy-box{ display:flex; align-items:center; justify-content:space-between; gap:10px; background:#F0FDF4; border:1.5px dashed #22C55E; border-radius:12px; padding:12px 16px; margin:12px 0 6px; }
@@ -362,6 +370,14 @@
       <div class="spacer"></div>
       <div class="section-title">確認預約</div>
       <div class="card" id="summary"></div>
+      <div class="pass-upsell" id="passUpsell" hidden>
+        <span class="up-ic">💡</span>
+        <div class="up-body">
+          <div class="up-title">唔想每次重複 FPS 對數？</div>
+          <div class="up-desc">升級「4 堂通行卡（$480）」，平均 $120/堂，扣堂 $0 即時確認，仲有 24 小時免費改期。</div>
+        </div>
+        <a class="up-btn" id="upsellLink" href="https://wa.me/85290335538" target="_blank" rel="noopener">轉購套票 ›</a>
+      </div>
       <div class="spacer"></div>
       <div class="grp-box" id="grpBox">
         <div class="grp-title">👥 同行優惠</div>
@@ -749,6 +765,7 @@
       });
       }
       if (!cls) { $("groups").innerHTML = `<div class="card"><div class="body">搵唔到課程。</div></div>`; return; }
+      updateUpsell();
       // 🛡️ 具體運動固有風險（Volenti 抗辯證據鏈）
       try {
         const rn = cls.risk_notice;
@@ -931,6 +948,17 @@
     }
 
     // 🎫 4 堂通行證：偵測 → 顯示扣堂卡（Step 2 直接用，$0 跳過付款）
+    function updateUpsell() {
+      const el = $("passUpsell");
+      if (!el) return;
+      el.hidden = !!activePass;
+      const l = $("upsellLink");
+      if (l && cls && cls.title) {
+        l.href = "https://wa.me/85290335538?text=" + encodeURIComponent(
+          "你好，我預約緊「" + cls.title + "」，想直接轉買「4堂通行卡（$480）」簽發扣堂。"
+        );
+      }
+    }
     async function loadPass() {
       if (DEMO_PASS) {
         activePass = mockPass();
@@ -939,20 +967,22 @@
         $("passStudentName").textContent = activePass.student_name;
         $("passExpire").textContent = "有效期至：" + activePass.expires_at.replace(/-/g, "/");
         updatePassCard();
+        updateUpsell();
         return;
       }
-      if (isGuest) return;
+      if (isGuest) { updateUpsell(); return; }
       try {
         const r = await api.get("/passes/my");
         const list = (r.ok && r.data && r.data.passes) || [];
-        if (!list.length) return;
+        if (!list.length) { updateUpsell(); return; }
         activePass = list[0];
         $("passRedeem").hidden = false;
         $("passStudentName").textContent = activePass.student_name || "學員";
         const d = String(activePass.expires_at || "").slice(0, 10).replace(/-/g, "/");
         $("passExpire").textContent = "有效期至：" + (d || "—");
         updatePassCard();
-      } catch (e) {}
+        updateUpsell();
+      } catch (e) { updateUpsell(); }
     }
     function updatePassCard() {
       if (!activePass || !$("passRedeem") || $("passRedeem").hidden) return;

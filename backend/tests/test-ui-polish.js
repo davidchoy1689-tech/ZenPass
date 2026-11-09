@@ -120,6 +120,9 @@ console.log("\n🧪 10. 4 堂通行證（Multi-Pass）前端");
   ok("4 格進度點由 total/remaining 計算", /for \(let i = 0; i < total; i\+\+\)/.test(mine));
   ok("續購連 WhatsApp", /wa\.me\/85290335538/.test(mine) && /續購再減 \$40/.test(mine));
   ok("一鍵預約帶 class_id", /booking\.html\?id=\$\{encodeURIComponent\(classId\)\}/.test(mine));
+  ok("未持卡顯示升級橫幅", /id="passUpsell"/.test(book) && /function updateUpsell/.test(book));
+  ok("持卡時隱藏升級橫幅", /el\.hidden = !!activePass/.test(book));
+  ok("升級橫幅連 WhatsApp 套票", /4堂通行卡（\$480）/.test(book));
 }
 
 console.log("\n🧪 11. 通行證示範模式（?demo_pass=1）");

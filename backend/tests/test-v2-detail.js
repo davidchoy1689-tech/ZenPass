@@ -34,6 +34,12 @@ has("function renderCurriculum", "curriculum renderer");
 has("防跌平衡訓練", "elder takeaways");
 has("3 分鐘上手", "adult takeaways");
 has("分鐘節奏安排", "timeline heading");
+has("plan-cards", "pricing plan cards");
+has('id="planSinglePrice"', "single price");
+has('id="planSingleBtn"', "single CTA");
+has('id="planPassBtn"', "pass CTA");
+has("4 堂通行卡", "pass plan");
+has("平均 HK$120 / 堂", "pass average price");
 has("tl-time", "stage duration badge");
 
 // 3 教練
