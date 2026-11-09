@@ -531,6 +531,11 @@ router.post("/", authenticateToken, requireCoach, (req, res) => {
 
     const id = uuidv4();
     const db = getDb();
+    // 🛡️ 有價錢就一定要有 credits 成本（1 credit = HK$10），否則 Credits 付款會變免費
+    const safeCreditsCost = require("../utils/credits-cost").normalizeCreditsCost(
+      credits_cost,
+      price_hkd,
+    );
     const maxS3 =
       db
         .prepare(
@@ -561,7 +566,7 @@ router.post("/", authenticateToken, requireCoach, (req, res) => {
       duration,
       max_participants || 15,
       price_hkd,
-      credits_cost || 0,
+      safeCreditsCost,
       venue_name || null,
       venue_address || null,
       latitude || null,
@@ -612,6 +617,17 @@ router.put("/:id", authenticateToken, requireCoach, (req, res) => {
 
     const updates = [];
     const params = [];
+    // 🛡️ 修正 credits_cost 漏填（0）嘅課程；只改有價錢嘅課
+    {
+      const { normalizeCreditsCost } = require("../utils/credits-cost");
+      const effectivePrice =
+        req.body.price_hkd !== undefined ? req.body.price_hkd : classData.price_hkd;
+      if (req.body.credits_cost !== undefined) {
+        req.body.credits_cost = normalizeCreditsCost(req.body.credits_cost, effectivePrice);
+      } else if (Number(classData.credits_cost || 0) <= 0 && Number(effectivePrice) > 0) {
+        req.body.credits_cost = normalizeCreditsCost(0, effectivePrice);
+      }
+    }
     const allowedFields = [
       "title",
       "title_en",

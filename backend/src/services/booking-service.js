@@ -1092,7 +1092,23 @@ function createBooking(req, options = {}) {
 
     // 7. Payment processing
     if (payment_type === "credits") {
-      const baseCost = creditsOverride != null ? Number(creditsOverride) : Number(clsPricing && clsPricing.credits_cost) || 0;
+      // 🛡️ 防免費預約：課程 credits_cost 若為 0（舊資料／漏填），用 price_hkd / 10 補返
+      const rawCost =
+        creditsOverride != null
+          ? Number(creditsOverride)
+          : Number(clsPricing && clsPricing.credits_cost) || 0;
+      const baseCost =
+        rawCost > 0
+          ? rawCost
+          : require("../utils/credits-cost").normalizeCreditsCost(
+              rawCost,
+              clsPricing && clsPricing.price_hkd,
+            );
+      if (rawCost <= 0 && baseCost > 0) {
+        console.warn(
+          `⚠️ [CREDITS] class ${class_id} credits_cost=${rawCost} 但 price=${clsPricing && clsPricing.price_hkd}，已用 ${baseCost} credits 計價`,
+        );
+      }
       const groupCost = Math.round(baseCost * groupSize * (groupSize === 3 ? 0.8 : 1) * 10) / 10;
       const result = deductCredits(db, req.user.id, class_id, groupCost, {
         source: "booking",

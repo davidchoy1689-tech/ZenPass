@@ -829,7 +829,8 @@ function duplicateCourse(userId, courseId, opts) {
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', datetime('now'), datetime('now'))`,
   ).run(
     newId, src.coach_id, newTitle, src.description || "", src.category, src.difficulty || "beginner",
-    src.duration, src.max_participants || 15, src.price_hkd || 0, src.credits_cost || 0,
+    src.duration, src.max_participants || 15, src.price_hkd || 0,
+    require("../utils/credits-cost").normalizeCreditsCost(src.credits_cost, src.price_hkd),
     src.venue_name || venue.name, src.venue_address || "",
     src.target_audience || null, src.image_url || null, venue.id, venue.id, src.district || null,
   );

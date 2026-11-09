@@ -101,11 +101,25 @@ def main():
         if has_table("bookings"):
             for b in q("SELECT id,amount,created_at FROM bookings WHERE payment_status='paid' AND status IN ('confirmed','attended','no_show')"):
                 if by_booking.get(b["id"], 0) == 0:
+                    # 零金額 booking（$0 通行證／免費活動）冇錢流動，唔需要 ledger
+                    if not (b["amount"] or 0) > 0:
+                        add("C3.zero_amount", "warn", f"booking {b['id'][:8]} amount=0（免費／通行證預約），毋須 ledger")
+                        continue
                     created = (b["created_at"] or "")[:10]
                     if created and created < LEDGER_GO_LIVE:
                         add("C3.coverage_legacy", "warn", f"已付款 booking {b['id'][:8]} (amount={b['amount']}, {created}) 冇 ledger（ledger 上線前歷史 booking，已知非生產數據）")
                     else:
                         add("C3.coverage", "error", f"已付款 booking {b['id'][:8]} (amount={b['amount']}) 冇 ledger 記錄（double-entry 缺失）")
+
+    # ---- C7: 課程 Credits 定價完整性 ----
+    # price_hkd > 0 但 credits_cost <= 0 → Credits 付款會變免費預約（2026-11-08 實際發生）
+    if has_table("classes") and {"price_hkd", "credits_cost"} <= colset("classes"):
+        for c in q("SELECT id,title,price_hkd,credits_cost,status FROM classes"):
+            if c["status"] != "active":
+                continue
+            if (c["price_hkd"] or 0) > 0 and not (c["credits_cost"] or 0) > 0:
+                add("C7.credits_cost", "error",
+                    f"課程 {str(c['title'])[:16]} ({str(c['id'])[:8]}) 價格 HK${c['price_hkd']} 但 credits_cost={c['credits_cost']} — Credits 預約會變免費")
 
     # ---- C4: wallet chain ----
     if not has_table("wallet_transactions"):

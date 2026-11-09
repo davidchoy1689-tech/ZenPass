@@ -484,6 +484,16 @@ function updateCourse(courseId, body) {
 
   const updates = [];
   const params = [];
+  // 🛡️ 後台改課程時同步修正 credits_cost（0 = Credits 免費預約）
+  {
+    const { normalizeCreditsCost } = require("../utils/credits-cost");
+    const effectivePrice = body.price_hkd !== undefined ? body.price_hkd : classData.price_hkd;
+    if (body.credits_cost !== undefined) {
+      body.credits_cost = normalizeCreditsCost(body.credits_cost, effectivePrice);
+    } else if (Number(classData.credits_cost || 0) <= 0 && Number(effectivePrice) > 0) {
+      body.credits_cost = normalizeCreditsCost(0, effectivePrice);
+    }
+  }
   for (const field of allowedFields) {
     if (body[field] !== undefined) {
       updates.push(`${field} = ?`);
