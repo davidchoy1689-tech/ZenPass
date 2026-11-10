@@ -130,6 +130,32 @@ async function sendOtp({ phone, ip = "" }) {
     const delivered = await deliver(p, code);
     if (!delivered.ok) {
       console.error("[OTP] 無法發送短訊:", delivered.error);
+      if (delivered.error === "SMS_REJECTED") {
+        return {
+          status: 502,
+          body: {
+            success: false,
+            code: "SMS_REJECTED",
+            error: "短訊通道暫時繁忙，請稍後再試",
+          },
+        };
+      }
+      if (delivered.status === 502 || delivered.retryable) {
+        return {
+          status: 502,
+          body: {
+            success: false,
+            code: "SMS_TEMPORARY",
+            error: "短訊通道暫時繁忙，請稍後再試",
+          },
+        };
+      }
+      if (!delivered.retryable && delivered.status === 400) {
+        return {
+          status: 400,
+          body: { success: false, code: "SMS_REJECTED", error: "此電話號碼暫時收不到短訊，請確認號碼或聯絡客服" },
+        };
+      }
       return {
         status: 503,
         body: {
@@ -171,18 +197,16 @@ async function deliver(phone, code) {
 
   const sid = process.env.TWILIO_ACCOUNT_SID;
   const token = process.env.TWILIO_AUTH_TOKEN;
-  const from = process.env.TWILIO_SMS_FROM;
-  if (sid && token && from) {
-    try {
-      const client = require("twilio")(sid, token);
-      await client.messages.create({ from, to: `+852${phone}`, body: text });
-      return { ok: true, channel: "sms" };
-    } catch (e) {
-      console.error("[OTP] Twilio SMS 失敗:", e.message);
-    }
+
+  // 1) 真實 SMS（Twilio Messages API，sms-service 已包錯誤分類 + audit）
+  const sms = require("./sms-service");
+  if (sms.isConfigured()) {
+    const r = await sms.sendOtpSms(phone, code);
+    if (r.ok) return { ok: true, channel: r.channel };
+    return { ok: false, status: r.status || 502, error: r.error, retryable: r.retryable };
   }
 
-  // Twilio WhatsApp（需用戶先 join sandbox／或已核准模板；由 TWILIO_OTP_CHANNEL=whatsapp 開啟）
+  // 2) Twilio WhatsApp（需用戶先 join sandbox／或已核准模板；由 TWILIO_OTP_CHANNEL=whatsapp 開啟）
   const waFrom = process.env.TWILIO_WHATSAPP_FROM;
   if (sid && token && waFrom && process.env.TWILIO_OTP_CHANNEL === "whatsapp") {
     try {
@@ -215,7 +239,7 @@ async function deliver(phone, code) {
     console.error("[OTP] WhatsApp 發送失敗:", e.message);
   }
 
-  return { ok: false, error: "NO_SMS_CHANNEL" };
+  return { ok: false, status: 503, error: "NO_SMS_CHANNEL" };
 }
 
 /**
