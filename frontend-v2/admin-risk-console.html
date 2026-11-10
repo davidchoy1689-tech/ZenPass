@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>風控工單 · ZenPass</title>
+<style>
+  body{margin:0;font-family:system-ui,-apple-system,"PingFang HK",sans-serif;background:#F8FAFC;color:#0F172A;padding:14px}
+  .wrap{max-width:760px;margin:0 auto}
+  h1{font-size:20px;margin:0 0 4px}
+  .sub{color:#64748B;font-size:12.5px;margin-bottom:14px}
+  .tabs{display:flex;gap:6px;margin-bottom:12px}
+  .tab{flex:1;border:1px solid #CBD5E1;background:#fff;border-radius:999px;padding:8px;font-weight:800;font-size:12px;cursor:pointer}
+  .tab.on{background:#FEF2F2;border-color:#FCA5A5;color:#991B1B}
+  .card{background:#fff;border:1px solid #E2E8F0;border-left:4px solid #DC2626;border-radius:12px;padding:12px;margin-bottom:10px}
+  .card.medium{border-left-color:#F59E0B}
+  .top{display:flex;justify-content:space-between;gap:8px}
+  .id{font-family:ui-monospace,Menlo,monospace;font-size:12px;color:#475569}
+  .name{font-weight:900;font-size:14px}
+  .meta{font-size:11.5px;color:#64748B;margin-top:4px;line-height:1.6}
+  .badge{font-size:10.5px;font-weight:900;border-radius:999px;padding:2px 8px;height:fit-content}
+  .badge.high{background:#FEE2E2;color:#991B1B}
+  .badge.medium{background:#FEF3C7;color:#92400E}
+  .badge.resolved{background:#DCFCE7;color:#065F46}
+  .acts{display:flex;gap:6px;margin-top:9px}
+  .acts button{border:1px solid #CBD5E1;background:#fff;border-radius:8px;padding:7px 10px;font-size:12px;font-weight:800;cursor:pointer}
+  .acts .ok{background:#059669;border-color:#059669;color:#fff}
+  .acts .no{background:#fff;color:#B91C1C;border-color:#FCA5A5}
+  .empty{text-align:center;color:#94A3B8;padding:30px;font-size:13px}
+  .toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:#0F172A;color:#fff;padding:9px 14px;border-radius:999px;font-size:12px;opacity:0;transition:.2s}
+  .toast.on{opacity:1}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🛡️ 風控工單</h1>
+  <div class="sub">凍結只阻止出糧，不影響教學；解凍需填核實備註並記錄審核者。</div>
+  <div class="tabs">
+    <button class="tab on" data-s="open">待處理</button>
+    <button class="tab" data-s="all">全部</button>
+  </div>
+  <div id="list" class="empty">載入中…</div>
+</div>
+<div class="toast" id="toast"></div>
+<script src="assets/api.js?v=10"></script>
+<script>
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  let FILTER = "open";
+  const toast = (m) => { const t = $("toast"); t.textContent = m; t.classList.add("on"); setTimeout(() => t.classList.remove("on"), 1800); };
+  const REASON = { pre_payout_change: "出糧前更改收款資料", unusual_ip: "異地／陌生裝置", otp_exhausted: "OTP 連續錯誤", transaction_spike: "交易量異常" };
+
+  async function load() {
+    const r = await api.get("/admin/risk-tickets" + (FILTER === "open" ? "?status=open" : ""));
+    if (!r.ok) { $("list").innerHTML = `<div class="empty">${esc((r.data && r.data.error) || "讀取失敗")}</div>`; return; }
+    const rows = (r.data.data || []).filter((x) => FILTER !== "open" || ["open", "under_investigation"].includes(x.status));
+    if (!rows.length) { $("list").innerHTML = '<div class="empty">冇待處理工單</div>'; return; }
+    $("list").innerHTML = rows.map((t) => `<div class="card ${t.risk_level === "high" ? "" : "medium"}">
+      <div class="top"><div><div class="name">${esc(t.coach_name || t.coach_id)}</div><div class="id">${esc(t.id)}</div></div>
+      <span class="badge ${t.status === "resolved" ? "resolved" : t.risk_level}">${esc(t.status)}</span></div>
+      <div class="meta">原因：${esc(REASON[t.trigger_reason] || t.trigger_reason)} · ${esc(t.created_at)}<br>IP：${esc(t.ip_address || "—")} ${t.resolution_notes ? `<br>備註：${esc(t.resolution_notes)}` : ""}</div>
+      ${["open", "under_investigation"].includes(t.status) ? `<div class="acts">
+        <button class="ok" data-act="unlock" data-id="${esc(t.id)}">解除凍結</button>
+        <button class="no" data-act="reject" data-id="${esc(t.id)}">駁回</button>
+      </div>` : ""}
+    </div>`).join("");
+    $("list").querySelectorAll("[data-act]").forEach((b) => {
+      b.onclick = async () => {
+        const notes = prompt("核實備註（最少 4 字，會寫入審計）");
+        if (!notes || notes.trim().length < 4) return toast("請填寫備註");
+        const r2 = await api.post("/admin/risk-tickets/" + encodeURIComponent(b.dataset.id) + "/resolve", { action: b.dataset.act, notes });
+        if (!r2.ok) return toast((r2.data && r2.data.error) || "處理失敗");
+        toast("已處理");
+        load();
+      };
+    });
+  }
+  document.querySelectorAll(".tab").forEach((b) => {
+    b.onclick = () => { FILTER = b.dataset.s; document.querySelectorAll(".tab").forEach((x) => x.classList.toggle("on", x === b)); load(); };
+  });
+  (async () => {
+    const me = await api.me();
+    if (!me.ok) { location.href = "login.html?next=" + encodeURIComponent(location.pathname); return; }
+    load();
+  })();
+</script>
+</body>
+</html>

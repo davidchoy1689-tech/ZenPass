@@ -39,6 +39,14 @@ router.post("/coach-payouts/disburse", (req, res) => {
 
     const coach = db.prepare("SELECT id, name, phone FROM users WHERE id=?").get(coachId);
     if (!coach) return res.status(404).json({ success: false, error: "找不到教練" });
+    const payoutState = require("../services/risk-control").payoutState(db, coachId);
+    if (payoutState !== "active") {
+      return res.status(409).json({
+        success: false,
+        code: "COACH_FROZEN",
+        error: "此教練出糧已被風控凍結，請先於風控台解凍",
+      });
+    }
 
     const { buildMonthlyBreakdown } = require("./coach-earnings");
     const data = buildMonthlyBreakdown(db, coachId, month);

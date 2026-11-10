@@ -77,8 +77,8 @@ function inFreezeWindow(now = new Date()) {
   }).formatToParts(now);
   const get = (t) => Number((parts.find((p) => p.type === t) || {}).value || 0);
   const day = get("day");
-  const hour = get("hour");
-  return (day === 6 && hour >= 18) || day === 7;
+  // 6 號 00:00 至 7 號 23:59（HKT）全面凍結
+  return day === 6 || day === 7;
 }
 
 function getSettings(db, coachId) {
@@ -175,15 +175,38 @@ function validateAndUpdate(db, coachId, b, { ip = "" } = {}) {
   }
   if (!safeEqual(row.otp_code, code)) {
     db.prepare("UPDATE payout_setting_otps SET attempts=attempts+1 WHERE id=?").run(row.id);
+    if (Number(row.attempts) + 1 >= MAX_ATTEMPTS) {
+      try {
+        require("./risk-control").trigger(db, {
+          coachId,
+          reason: "otp_exhausted",
+          ip,
+          freeze: true,
+          notes: "OTP 連續錯誤 5 次",
+        });
+      } catch (e) {}
+    }
     return { ok: false, status: 400, error: "驗證碼不正確" };
   }
 
   // 凍結窗
   if (inFreezeWindow()) {
+    let ticketId = null;
+    try {
+      const r = require("./risk-control").trigger(db, {
+        coachId,
+        reason: "pre_payout_change",
+        ip,
+        freeze: true,
+        notes: "出糧凍結窗內嘗試更改收款戶口",
+      });
+      ticketId = r.ticket && r.ticket.id;
+    } catch (e) {}
     return {
       ok: false,
       status: 409,
       code: "FREEZE_WINDOW",
+      ticket_id: ticketId,
       error: "出糧前 24 小時至出糧日唔可以更改收款戶口；本月將沿用原戶口，請 8 號後再改。",
     };
   }

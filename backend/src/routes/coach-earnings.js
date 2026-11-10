@@ -1550,6 +1550,7 @@ router.get("/payout-settings", authenticateToken, (req, res) => {
       settings: svc.getSettings(getDb(), req.user.id),
       banks: svc.BANKS,
       freeze_window: svc.inFreezeWindow(),
+      payout_status: require("../services/risk-control").payoutState(getDb(), req.user.id),
     });
   } catch (e) {
     console.error("[PAYOUT-SETTINGS] get:", e.message);
@@ -1580,8 +1581,24 @@ router.post("/payout-settings/otp", authenticateToken, async (req, res) => {
 router.put("/payout-settings", authenticateToken, (req, res) => {
   try {
     if (!isCoachish(req.user)) return res.status(403).json({ success: false, error: "只限教練" });
+    const country = String(req.headers["cf-ipcountry"] || req.headers["x-country"] || "").toUpperCase();
+    if (country && country !== "HK") {
+      const risk = require("../services/risk-control").trigger(getDb(), {
+        coachId: req.user.id,
+        reason: "unusual_ip",
+        ip: req.ip || "",
+        userAgent: req.headers["user-agent"] || "",
+        notes: `非香港 IP：${country}`,
+      });
+      return res.status(403).json({
+        success: false,
+        code: "RISK_REVIEW",
+        ticket_id: risk.ticket && risk.ticket.id,
+        error: "偵測到非香港網絡，收款資料更改已暫緩，請聯絡客服核實。",
+      });
+    }
     const out = payoutSettingsSvc().validateAndUpdate(getDb(), req.user.id, req.body || {}, { ip: req.ip || "" });
-    if (!out.ok) return res.status(out.status || 400).json({ success: false, code: out.code, error: out.error });
+    if (!out.ok) return res.status(out.status || 400).json({ success: false, code: out.code, ticket_id: out.ticket_id, error: out.error });
     res.json({ success: true, settings: out.settings });
   } catch (e) {
     console.error("[PAYOUT-SETTINGS] put:", e.message);
