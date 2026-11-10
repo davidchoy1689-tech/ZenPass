@@ -46,6 +46,16 @@
     .tag.fps{background:#DBEAFE;color:#1D4ED8}
     .tag.online{background:#DCFCE7;color:#065F46}
     .pay-row .amt{font-weight:900;white-space:nowrap;text-align:right}
+    .payout-block{margin-top:18px}
+    .payout-block h3{margin:0 0 8px;font-size:14px;color:#334155}
+    .payout-card{background:#fff;border:1.5px solid #E2E8F0;border-left:4px solid #059669;border-radius:12px;padding:11px 12px;margin-bottom:9px}
+    .payout-card.failed{border-left-color:#DC2626}
+    .payout-card .pm{font-weight:900;font-size:13px}
+    .payout-card .row{display:flex;justify-content:space-between;gap:8px;font-size:12px;color:#475569;margin-top:4px}
+    .payout-card .ref{font-family:ui-monospace,Menlo,monospace;font-size:12px;color:#0F172A;background:#F1F5F9;border-radius:6px;padding:3px 6px;display:inline-block;margin-top:2px}
+    .payout-card button{border:1px solid #CBD5E1;background:#fff;border-radius:7px;padding:5px 8px;font-size:11px;font-weight:800;cursor:pointer;margin-left:4px}
+    .payout-card .ok{color:#059669;font-weight:900}
+    .payout-card .bad{color:#DC2626;font-weight:900}
     .e-actions{display:flex;gap:8px;margin-bottom:12px}
     .e-btn{flex:1;min-height:46px;border-radius:10px;border:1.5px solid #CBD5E1;background:#fff;font-weight:800;font-size:13px;cursor:pointer}
     .e-btn.primary{background:#059669;border-color:#059669;color:#fff}
@@ -75,6 +85,7 @@
     </div>
     <div class="e-month" id="monthLabel"></div>
     <div id="rows"><div class="e-empty">載入中…</div></div>
+    <div id="payouts"></div>
   </div>
 <script src="assets/api.js?v=10"></script>
 <script>
@@ -83,6 +94,7 @@
   const hkd = (n) => "HK$" + Number(n || 0).toLocaleString("en-HK", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
   const hktMonth = () => new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 7);
   let DATA = null;
+  let PAYOUTS = [];
 
   async function load() {
     const m = $("month").value || hktMonth();
@@ -90,6 +102,66 @@
     if (!r.ok) { $("rows").innerHTML = `<div class="e-empty">${esc((r.data && r.data.error) || "讀取失敗")}</div>`; return; }
     DATA = r.data;
     render();
+    const p = await api.get("/coach/earnings/payouts");
+    PAYOUTS = p.ok && p.data && Array.isArray(p.data.data) ? p.data.data : [];
+    renderPayouts();
+  }
+
+  function renderPayouts() {
+    const box = $("payouts");
+    if (!box) return;
+    if (!PAYOUTS.length) {
+      box.innerHTML = `<div class="payout-block"><h3>🏛️ 官方發放歷史（FPS 出糧記錄）</h3><div class="e-empty">未有 FPS 出糧紀錄。每月 5 號結算後，平台會登記交易參考編號。</div></div>`;
+      return;
+    }
+    const label = { pending: "🟡 待發放", processing: "🔵 處理中", cleared: "🟢 銀行已結算", failed: "🔴 發放失敗" };
+    box.innerHTML = `<div class="payout-block"><h3>🏛️ 官方發放歷史（FPS 出糧記錄）</h3>` +
+      PAYOUTS.map((p) => `<div class="payout-card ${p.status === "failed" ? "failed" : ""}">
+        <div class="row" style="margin-top:0"><span class="pm">${esc(p.month)} 結算</span><span class="${p.status === "failed" ? "bad" : "ok"}">${label[p.status] || esc(p.status)}</span></div>
+        <div class="row"><span>發放金額</span><b>HK$ ${esc(p.net_payout_hkd)}</b></div>
+        <div class="row"><span>發放日期</span><span>${esc(String(p.disbursed_at || "").replace("T", " ").slice(0, 19))}</span></div>
+        <div class="row"><span>入數戶口</span><span>FPS Proxy · ${esc(p.fps_proxy_masked || "—")}</span></div>
+        <div class="row" style="display:block"><div>交易參考編號</div><span class="ref" id="ref-${esc(p.id)}">${esc(p.bank_reference_no || "—")}</span>
+          <button data-copyref="${esc(p.bank_reference_no || "")}">📋 複製</button>
+          <button data-receipt="${esc(p.id)}">📄 入數單</button></div>
+        <div class="row" style="display:block;color:#94A3B8">總應得 HK$ ${esc(p.gross_earnings_hkd)} · 現場沖抵 HK$ ${esc(p.offset_cash_hkd)} · 淨額 HK$ ${esc(p.net_payout_hkd)}</div>
+        ${p.failure_reason ? `<div class="row" style="color:#B91C1C">原因：${esc(p.failure_reason)}</div>` : ""}
+      </div>`).join("") + `</div>`;
+
+    box.querySelectorAll("[data-copyref]").forEach((b) => {
+      b.onclick = async () => {
+        const v = b.dataset.copyref;
+        if (!v) return;
+        try { await navigator.clipboard.writeText(v); } catch (e) { alert(v); }
+        b.textContent = "✅ 已複製";
+        setTimeout(() => (b.textContent = "📋 複製"), 1500);
+      };
+    });
+    box.querySelectorAll("[data-receipt]").forEach((b) => {
+      b.onclick = () => {
+        const p = PAYOUTS.find((x) => x.id === b.dataset.receipt);
+        if (!p) return;
+        const w = window.open("", "_blank");
+        if (!w) return;
+        w.document.write(`<!doctype html><meta charset="utf-8"><title>ZenPass 入數單 ${esc(p.month)}</title>
+          <body style="font-family:system-ui,-apple-system,'PingFang HK',sans-serif;padding:32px;color:#0F172A;max-width:640px;margin:auto">
+          <h2 style="color:#065F46;margin:0">ZenPass 教練收益入數單</h2>
+          <p style="color:#64748B;margin:4px 0 20px">Hong Kong Leisure and Fitness Company Limited</p>
+          <table style="width:100%;border-collapse:collapse;font-size:14px">
+            <tr><td style="padding:8px;border-bottom:1px solid #E2E8F0">結算月份</td><td style="padding:8px;border-bottom:1px solid #E2E8F0;text-align:right">${esc(p.month)}</td></tr>
+            <tr><td style="padding:8px;border-bottom:1px solid #E2E8F0">總應得</td><td style="padding:8px;border-bottom:1px solid #E2E8F0;text-align:right">HK$ ${esc(p.gross_earnings_hkd)}</td></tr>
+            <tr><td style="padding:8px;border-bottom:1px solid #E2E8F0">現場實收沖抵</td><td style="padding:8px;border-bottom:1px solid #E2E8F0;text-align:right">-HK$ ${esc(p.offset_cash_hkd)}</td></tr>
+            <tr><td style="padding:8px;border-bottom:2px solid #065F46;font-weight:900">實發金額</td><td style="padding:8px;border-bottom:2px solid #065F46;text-align:right;font-weight:900">HK$ ${esc(p.net_payout_hkd)}</td></tr>
+            <tr><td style="padding:8px">FPS Proxy</td><td style="padding:8px;text-align:right">${esc(p.fps_proxy_masked || "—")}</td></tr>
+            <tr><td style="padding:8px">交易參考編號</td><td style="padding:8px;text-align:right;font-family:monospace">${esc(p.bank_reference_no || "—")}</td></tr>
+            <tr><td style="padding:8px">發放日期</td><td style="padding:8px;text-align:right">${esc(String(p.disbursed_at || "").slice(0, 19))}</td></tr>
+          </table>
+          <p style="margin-top:24px;color:#059669;font-weight:800;border:2px dashed #059669;display:inline-block;padding:8px 14px;border-radius:10px">✅ ZenPass 數位核證 · ${esc(p.status)}</p>
+          </body>`);
+        w.document.close();
+        setTimeout(() => { try { w.focus(); w.print(); } catch (e) {} }, 350);
+      };
+    });
   }
 
   function render() {

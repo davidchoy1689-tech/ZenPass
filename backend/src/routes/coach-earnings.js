@@ -1522,6 +1522,17 @@ router.get("/earnings/summary", authenticateToken, (req, res) => {
   }
 });
 
+// ===== GET /api/coach/earnings/payouts — FPS 出糧紀錄 =====
+router.get("/earnings/payouts", authenticateToken, (req, res) => {
+  try {
+    const payouts = require("../services/payout-disbursements").listForCoach(req.user.id);
+    res.json({ success: true, data: payouts });
+  } catch (e) {
+    console.error("[EARNINGS] payouts:", e.message);
+    res.status(500).json({ success: false, error: "讀取出糧紀錄失敗" });
+  }
+});
+
 /** RFC 4180：一律加雙引號，內部 " → "" */
 function csvEscape(v) {
   const s = v === null || v === undefined ? "" : String(v);
@@ -1574,6 +1585,22 @@ function buildEarningsCsv(db, coachId, month) {
       hkMoney(data.net_payout_cents),
     ]),
   );
+  let disb = null;
+  try {
+    disb = require("../services/payout-disbursements").getForMonth(db, coachId, month);
+  } catch (e) {}
+  if (disb) {
+    lines.push(
+      csvRow([
+        "FPS 交易參考編號",
+        disb.bank_reference_no || "",
+        "發放狀態",
+        disb.status || "",
+        "發放日期",
+        csvTime(disb.disbursed_at),
+      ]),
+    );
+  }
   lines.push("");
 
   // 區塊 2：執教課堂明細（7 欄）

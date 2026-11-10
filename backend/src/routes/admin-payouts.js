@@ -1,0 +1,119 @@
+/**
+ * admin-payouts.js — 平台登記 FPS 出糧（工單二十）
+ *  POST  /api/admin/coach-payouts/disburse
+ *  PATCH /api/admin/coach-payouts/:id
+ *  GET   /api/admin/coach-payouts
+ */
+const express = require("express");
+const { getDb } = require("../services/database");
+const { authenticateToken, requireAdmin } = require("../middleware/auth");
+const { audit } = require("../services/audit");
+const disb = require("../services/payout-disbursements");
+
+const router = express.Router();
+router.use(authenticateToken, requireAdmin);
+
+router.get("/coach-payouts", (req, res) => {
+  try {
+    const db = getDb();
+    disb.ensureSchema(db);
+    const month = /^\d{4}-\d{2}$/.test(String(req.query.month || "")) ? req.query.month : null;
+    const rows = month
+      ? db.prepare("SELECT * FROM coach_payout_disbursements WHERE payout_month=? ORDER BY datetime(created_at) DESC").all(month)
+      : db.prepare("SELECT * FROM coach_payout_disbursements ORDER BY payout_month DESC, datetime(created_at) DESC LIMIT 200").all();
+    res.json({ success: true, data: rows });
+  } catch (e) {
+    console.error("[ADMIN-PAYOUT] list:", e.message);
+    res.status(500).json({ success: false, error: "讀取失敗" });
+  }
+});
+
+router.post("/coach-payouts/disburse", (req, res) => {
+  try {
+    const db = getDb();
+    const b = req.body || {};
+    const coachId = String(b.coach_id || b.coachId || "");
+    const month = String(b.month || b.payout_month || "");
+    if (!coachId) return res.status(400).json({ success: false, error: "缺少 coach_id" });
+    if (!/^\d{4}-\d{2}$/.test(month)) return res.status(400).json({ success: false, error: "月份格式 YYYY-MM" });
+
+    const coach = db.prepare("SELECT id, name, phone FROM users WHERE id=?").get(coachId);
+    if (!coach) return res.status(404).json({ success: false, error: "找不到教練" });
+
+    const { buildMonthlyBreakdown } = require("./coach-earnings");
+    const data = buildMonthlyBreakdown(db, coachId, month);
+    const gross = Number(data.total_payout_cents) || 0;
+    const offset = Number(data.cash_collected_cents) || 0;
+    const net = Number(data.net_payout_cents) || 0;
+    if (gross <= 0 && net <= 0) {
+      return res.status(400).json({ success: false, error: "該月份冇可發放收益" });
+    }
+
+    let out;
+    try {
+      out = disb.record(db, {
+        coachId,
+        month,
+        grossCents: gross,
+        offsetCents: offset,
+        netCents: net,
+        proxyId: b.fps_proxy_id || coach.phone || null,
+        refNo: b.bank_reference_no || null,
+        disbursedAt: b.disbursed_at || null,
+        status: b.status || "cleared",
+      });
+    } catch (e) {
+      if (/UNIQUE constraint failed/.test(e.message)) {
+        return res.status(409).json({ success: false, code: "DUPLICATE", error: "該教練本月或此參考編號已有出糧紀錄" });
+      }
+      throw e;
+    }
+
+    audit({
+      actionType: "payout.disbursed",
+      entityType: "coach_payout_disbursement",
+      entityId: out.id,
+      userId: req.user.id,
+      newValues: {
+        coach_id: coachId,
+        month,
+        gross_cents: gross,
+        offset_cash_cents: offset,
+        net_payout_cents: net,
+        bank_reference_no: out.bank_reference_no,
+      },
+      description: `登記 FPS 出糧（${month}）`,
+    });
+
+    res.status(201).json({
+      success: true,
+      id: out.id,
+      month,
+      gross_earnings_cents: gross,
+      offset_cash_cents: offset,
+      net_payout_cents: net,
+      bank_reference_no: out.bank_reference_no,
+    });
+  } catch (e) {
+    console.error("[ADMIN-PAYOUT] disburse:", e.message);
+    res.status(500).json({ success: false, error: "登記出糧失敗" });
+  }
+});
+
+router.patch("/coach-payouts/:id", (req, res) => {
+  try {
+    const db = getDb();
+    const status = String((req.body || {}).status || "");
+    if (!["pending", "processing", "cleared", "failed"].includes(status)) {
+      return res.status(400).json({ success: false, error: "狀態無效" });
+    }
+    const out = disb.setStatus(db, req.params.id, status, (req.body || {}).reason);
+    if (!out.ok) return res.status(404).json({ success: false, error: "找不到紀錄" });
+    res.json({ success: true, status });
+  } catch (e) {
+    console.error("[ADMIN-PAYOUT] patch:", e.message);
+    res.status(500).json({ success: false, error: "更新失敗" });
+  }
+});
+
+module.exports = router;

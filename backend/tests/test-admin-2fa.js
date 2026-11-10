@@ -34,6 +34,10 @@ const ok = (c, m) => { if (c) { console.log("  ✅ " + m); pass++; } else { cons
   const db = getDb();
   const totp = require("../src/services/totp");
 
+  // 穩定取得「下一步」TOTP（避開 30 秒邊界 Race：+31s 有時會跳到 +2 步）
+  const nextStepCode = (secret, offset = 1) =>
+    totp.totp(secret, Math.floor(Date.now() / 30000) * 30000 + offset * 30000 + 1000);
+
   const authRouter = require("../src/routes/auth");
   const tfRouter = require("../src/routes/two-factor");
   const pick = (router, p, m) => {
@@ -119,7 +123,7 @@ const ok = (c, m) => { if (c) { console.log("  ✅ " + m); pass++; } else { cons
   r = await call(verifyFn, { body: { temp_token: tempToken, code: "111111" } });
   ok(r.statusCode === 401 && r.body.code === "TOTP_INVALID", "錯誤碼 → 401");
 
-  const good1 = totp.totp(newSecret, Date.now() + 31000); // 下一格（避免與啟用時同一組碼）
+  const good1 = nextStepCode(newSecret); // 下一格（避免與啟用時同一組碼）
   r = await call(verifyFn, { body: { temp_token: tempToken, code: good1 } });
   ok(r.statusCode === 200 && !!r.body.token && r.body.user && !r.body.user.password_hash, "正確碼 → 發正式 token");
   ok(r.cookies.some(([n]) => /token/i.test(n)), "同時設定 HTTP-only cookie");
@@ -140,7 +144,7 @@ const ok = (c, m) => { if (c) { console.log("  ✅ " + m); pass++; } else { cons
   console.log("📋 6. 停用（逃生）");
   r = await call(disableFn, { ...asAdmin, body: { code: "999999" } });
   ok(r.statusCode === 401, "錯碼唔可以停用");
-  r = await call(disableFn, { ...asAdmin, body: { code: totp.totp(newSecret, Date.now() + 31000) } });
+  r = await call(disableFn, { ...asAdmin, body: { code: good1 } });
   ok(r.statusCode === 200 && r.body.enabled === false, "正確碼可停用（換機逃生）");
   const after = db.prepare("SELECT totp_secret, totp_enabled FROM users WHERE id='adm1'").get();
   ok(Number(after.totp_enabled) === 0 && !after.totp_secret, "停用後清除 secret");
