@@ -149,10 +149,12 @@ function settleSchedule(scheduleId) {
 
   const bookings = db
     .prepare(
-      `SELECT b.id, b.user_id, b.amount, b.payment_status, b.status
+      `SELECT b.id, b.user_id, b.amount, b.payment_type, b.payment_status, b.status,
+              c.price_hkd
          FROM bookings b
+         JOIN classes c ON c.id = b.class_id
         WHERE b.schedule_id = ? AND b.payment_status = 'paid'
-          AND b.status IN ('confirmed','attended') AND COALESCE(b.amount,0) > 0`,
+          AND b.status IN ('confirmed','attended')`,
     )
     .all(scheduleId);
 
@@ -166,7 +168,10 @@ function settleSchedule(scheduleId) {
     for (const b of bookings) {
       const origin = originCoachId(db, b.user_id);
       if (!origin) continue;
-      const amountCents = cents(b.amount);
+      // Pass 扣堂：booking amount = 0，但課堂價值 = 課程價（用嚟計 100%／5% 分佣）
+      const amountCents =
+        Number(b.amount) > 0 ? cents(b.amount) : b.payment_type === "pass" ? cents(b.price_hkd) : 0;
+      if (amountCents <= 0) continue;
 
       if (origin === sched.actual_coach_id) {
         // 私域：補足到 100%

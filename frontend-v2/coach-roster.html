@@ -47,6 +47,12 @@
     .wi-card input[type=text],.wi-card input[type=tel]{width:100%;box-sizing:border-box;border:1.5px solid #CBD5E1;border-radius:10px;padding:10px;font:inherit}
     .wi-pay{display:flex;gap:8px;margin-top:4px}
     .wi-pay label{flex:1;display:flex;align-items:center;gap:6px;border:1.5px solid #CBD5E1;border-radius:10px;padding:9px;font-size:13px;font-weight:700;color:#0F172A;margin:0;cursor:pointer}
+    .wi-info{display:none;margin-top:9px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:9px 10px;font-size:12px;line-height:1.65}
+    .wi-info.on{display:block}
+    .wi-info .own{display:inline-block;font-size:10.5px;font-weight:900;color:#065F46;background:#DCFCE7;border:1px solid #A7F3D0;border-radius:999px;padding:1px 7px;margin-left:4px}
+    .wi-info .risk{color:#991B1B;font-weight:700}
+    .wi-tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+    .wi-tags button{border:1px solid #CBD5E1;background:#F8FAFC;border-radius:999px;padding:6px 10px;font-size:11.5px;font-weight:700;cursor:pointer}
     .r-acts{display:flex;gap:6px;margin-top:10px}
     .r-pill{flex:1;min-height:42px;border-radius:10px;border:1.5px solid #CBD5E1;background:#fff;font-size:12.5px;font-weight:800;cursor:pointer;color:#334155}
     .r-pill.on[data-s="present"]{background:#059669;border-color:#059669;color:#fff}
@@ -74,25 +80,37 @@
       <button class="r-filter" data-f="unmarked">未簽到</button>
       <button class="r-filter" data-f="excused">請假</button>
     </div>
-    <button class="wi-btn" id="walkinBtn" type="button">➕ 現場補錄學員（現金／現場 FPS）</button>
+    <button class="wi-btn" id="walkinBtn" type="button">⚡ 現場 Walk-in 補錄（扣堂／現金／FPS）</button>
     <div class="wi-mask" id="wiMask">
       <div class="wi-card">
-        <h3>➕ 現場補錄學員</h3>
-        <div style="font-size:12px;color:#64748B">適用於長者即場帶朋友；會即時簽到並計入本堂收入。</div>
+        <h3>⚡ 現場長者 Walk-in</h3>
+        <div style="font-size:12px;color:#64748B">輸入電話即時辨識舊生／堂數／舊患；新生只需姓名＋電話。</div>
+        <label>長者電話（8 位）</label>
+        <div style="display:flex;gap:8px">
+          <input type="tel" id="wiPhone" inputmode="numeric" maxlength="8" placeholder="98765432" autocomplete="off" style="flex:1" />
+          <button class="btn" id="wiLookup" type="button" style="flex:0 0 auto">🔍 查找</button>
+        </div>
+        <div id="wiInfo" class="wi-info"></div>
         <label>學員姓名</label>
         <input type="text" id="wiName" maxlength="40" placeholder="例如：陳大文" autocomplete="off" />
-        <label>聯絡電話（8 位）</label>
-        <input type="tel" id="wiPhone" inputmode="numeric" maxlength="8" placeholder="91234567" autocomplete="off" />
-        <label>收費方式</label>
+        <label>扣堂／支付方式</label>
         <div class="wi-pay">
-          <label><input type="radio" name="wiPay" value="cash" checked /> 💵 已收現金</label>
+          <label id="wiPassWrap" style="display:none"><input type="radio" name="wiPay" value="pass" /> 🎫 扣 1 堂 Pass <span id="wiPassLeft"></span></label>
+          <label><input type="radio" name="wiPay" value="cash" checked /> 💵 現金</label>
           <label><input type="radio" name="wiPay" value="fps_direct" /> 📲 現場 FPS</label>
         </div>
-        <label>備註（可選）</label>
-        <input type="text" id="wiNotes" maxlength="120" placeholder="例如：婆婆朋友，膝痛" />
+        <label>實收金額（HK$，扣 Pass 時可留空）</label>
+        <input type="number" id="wiAmount" min="0" step="10" placeholder="140" inputmode="decimal" />
+        <label>今日課堂備註（可選）</label>
+        <input type="text" id="wiNotes" maxlength="200" placeholder="例如：膝部活動度改善" />
+        <div class="wi-tags" id="wiTags">
+          <button type="button" data-t="關節活動度良好">關節活動度良好</button>
+          <button type="button" data-t="需坐椅輔助">需坐椅輔助</button>
+          <button type="button" data-t="痛症有改善">痛症有改善</button>
+        </div>
         <div style="display:flex;gap:8px;margin-top:14px">
           <button class="btn btn-secondary" id="wiCancel" type="button" style="flex:1">取消</button>
-          <button class="btn btn-primary" id="wiSubmit" type="button" style="flex:1.4">✅ 補錄並簽到</button>
+          <button class="btn btn-primary" id="wiSubmit" type="button" style="flex:1.4">✓ 確認補錄並標記出席</button>
         </div>
         <div id="wiMsg" style="font-size:12px;color:#B91C1C;margin-top:8px"></div>
       </div>
@@ -255,22 +273,80 @@
     if (r.ok) { DATA = r.data; render(); }
   }
 
-  $("walkinBtn").onclick = () => { $("wiMask").classList.add("on"); $("wiMsg").textContent = ""; setTimeout(() => $("wiName").focus(), 60); };
+  let WI_INFO = null;
+  function resetWi() {
+    $("wiName").value = ""; $("wiPhone").value = ""; $("wiNotes").value = ""; $("wiAmount").value = "";
+    $("wiInfo").className = "wi-info"; $("wiInfo").innerHTML = "";
+    $("wiPassWrap").style.display = "none";
+    document.querySelector('input[name="wiPay"][value="cash"]').checked = true;
+    WI_INFO = null;
+  }
+  $("walkinBtn").onclick = () => { resetWi(); $("wiMask").classList.add("on"); $("wiMsg").textContent = ""; setTimeout(() => $("wiPhone").focus(), 60); };
   $("wiCancel").onclick = () => $("wiMask").classList.remove("on");
   $("wiMask").onclick = (e) => { if (e.target.id === "wiMask") $("wiMask").classList.remove("on"); };
+
+  async function lookupWi() {
+    const phone = $("wiPhone").value.replace(/\D/g, "");
+    if (phone.length !== 8) return;
+    const r = await api.get("/coach/students/lookup?phone=" + phone + "&session_id=" + encodeURIComponent(SID));
+    if (!r.ok) return;
+    const d = r.data;
+    WI_INFO = d;
+    if (d.exists) {
+      if (d.name) $("wiName").value = d.name;
+      const passLine = d.pass_remaining > 0
+        ? `🎫 可用堂數：<b>剩 ${d.pass_remaining} 堂</b>`
+        : "🎫 可用堂數：冇剩餘 Pass";
+      $("wiInfo").innerHTML = `<div>👤 <b>${esc(d.name)}</b>${d.is_own_student ? '<span class="own">👑 自有學生</span>' : ""}</div>
+        <div>${passLine}</div>
+        ${d.health_notes ? `<div class="risk">⚠️ 舊患：${esc(d.health_notes)}</div>` : ""}`;
+      $("wiInfo").className = "wi-info on";
+      if (d.pass_remaining > 0) {
+        $("wiPassWrap").style.display = "flex";
+        $("wiPassLeft").textContent = "（餘 " + d.pass_remaining + " 堂）";
+        document.querySelector('input[name="wiPay"][value="pass"]').checked = true;
+      }
+    } else {
+      $("wiInfo").innerHTML = `<div>🆕 新學員：系統會即時開戶，之後可登入查閱手冊。</div>`;
+      $("wiInfo").className = "wi-info on";
+    }
+  }
+  $("wiLookup").onclick = lookupWi;
+  let wiTimer;
+  $("wiPhone").addEventListener("input", () => {
+    $("wiPhone").value = $("wiPhone").value.replace(/\D/g, "").slice(0, 8);
+    clearTimeout(wiTimer);
+    if ($("wiPhone").value.length === 8) wiTimer = setTimeout(lookupWi, 350);
+  });
+  $("wiTags").querySelectorAll("button").forEach((b) => {
+    b.onclick = () => {
+      const t = b.dataset.t;
+      const cur = $("wiNotes").value.trim();
+      if (!cur.includes(t)) $("wiNotes").value = cur ? cur + "；" + t : t;
+    };
+  });
   $("wiSubmit").onclick = async () => {
     const name = $("wiName").value.trim();
     const phone = $("wiPhone").value.replace(/\D/g, "");
     const pay = (document.querySelector('input[name="wiPay"]:checked') || {}).value || "cash";
+    const amount = Number($("wiAmount").value) || undefined;
     if (name.length < 2) { $("wiMsg").textContent = "請輸入學員姓名（最少 2 字）"; return; }
     if (phone.length !== 8) { $("wiMsg").textContent = "請輸入 8 位香港電話"; return; }
     $("wiSubmit").disabled = true; $("wiSubmit").textContent = "補錄中…"; $("wiMsg").textContent = "";
-    const r = await api.post("/coach/attendance/walk-in", { session_id: SID, student_name: name, contact_phone: phone, payment_method: pay, notes: $("wiNotes").value });
+    const payload = { session_id: SID, student_name: name, contact_phone: phone, payment_method: pay, amount, notes: $("wiNotes").value };
+    let r = await api.post("/coach/schedules/" + encodeURIComponent(SID) + "/walkin", payload);
+    if (!r.ok && r.data && r.data.code === "CLASS_FULL") {
+      if (!confirm("⚠️ 課堂已滿額（" + (r.data.used || "") + "/" + (r.data.cap || "") + "），是否超額補錄？")) {
+        $("wiSubmit").disabled = false; $("wiSubmit").textContent = "✓ 確認補錄並標記出席";
+        return;
+      }
+      r = await api.post("/coach/schedules/" + encodeURIComponent(SID) + "/walkin", { ...payload, allow_overbook: true });
+    }
     $("wiSubmit").disabled = false; $("wiSubmit").textContent = "✅ 補錄並簽到";
     if (!r.ok) { $("wiMsg").textContent = (r.data && r.data.error) || "補錄失敗，請重試"; return; }
     $("wiMask").classList.remove("on");
-    $("wiName").value = ""; $("wiPhone").value = ""; $("wiNotes").value = "";
-    toast("✅ 已補錄並簽到：" + name);
+    toast(`✅ ${name} 已補錄${pay === "pass" ? "（扣 1 堂）" : "（" + pay + "）"}`);
+    setTimeout(() => { $("wiSubmit").disabled = false; }, 2000);
     reloadRoster();
   };
 
