@@ -91,6 +91,27 @@ db.prepare("INSERT INTO student_coach_affiliations (student_user_id,origin_coach
   ok(csv.includes("FPS 交易參考編號"), "CSV 有 FPS 參考編號欄");
   ok(csv.includes(r1.body.bank_reference_no), "CSV 有正確編號");
 
+  console.log("🧪 4b. 風控解凍預排 pending → 正式出糧完成同一筆");
+  const disbSvc = require("../src/services/payout-disbursements");
+  const oldId = r1.body.id;
+  db.prepare("DELETE FROM coach_payout_disbursements WHERE id=?").run(oldId);
+  const pre = disbSvc.record(db, {
+    coachId: "cA",
+    month,
+    grossCents: 25200,
+    offsetCents: 14000,
+    netCents: 11200,
+    proxyId: "98761111",
+    status: "pending",
+  });
+  const preRow = db.prepare("SELECT * FROM coach_payout_disbursements WHERE id=?").get(pre.id);
+  ok(preRow.status === "pending", "預排記錄為 pending");
+  const d2 = await call(disburse, { user: { id: "admin1", role: "super_admin" }, body: { coach_id: "cA", month } });
+  ok(d2.statusCode === 201 && d2.body.id === pre.id, "正式登記完成同一筆（唔會 409）", d2.body);
+  const after = db.prepare("SELECT * FROM coach_payout_disbursements WHERE id=?").get(pre.id);
+  ok(after.status === "cleared" && after.bank_reference_no === pre.bank_reference_no, "狀態 cleared、編號沿用");
+  ok(db.prepare("SELECT COUNT(*) c FROM coach_payout_disbursements WHERE coach_id='cA' AND payout_month=?").get(month).c === 1, "同月仍然只有一筆");
+
   console.log("🧪 5. 前端與路由");
   const fs = require("fs");
   const page = fs.readFileSync(path.join(__dirname, "../../frontend-v2/coach-earnings.html"), "utf8");

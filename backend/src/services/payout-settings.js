@@ -192,6 +192,13 @@ function validateAndUpdate(db, coachId, b, { ip = "" } = {}) {
   // 凍結窗
   if (inFreezeWindow()) {
     let ticketId = null;
+    const current = db.prepare("SELECT * FROM coach_payout_settings WHERE coach_id=?").get(coachId);
+    const attempted = {
+      fps_type: String(b.fps_type || ""),
+      fps_proxy_masked: mask(String(b.fps_proxy_value || ""), String(b.fps_type || "")),
+      bank_code: String(b.bank_code || ""),
+      account_holder_name: String(b.account_holder_name || "").trim().toUpperCase(),
+    };
     try {
       const r = require("./risk-control").trigger(db, {
         coachId,
@@ -199,6 +206,18 @@ function validateAndUpdate(db, coachId, b, { ip = "" } = {}) {
         ip,
         freeze: true,
         notes: "出糧凍結窗內嘗試更改收款戶口",
+        meta: {
+          attempted,
+          current: current
+            ? {
+                fps_type: current.fps_type,
+                fps_proxy_masked: mask(current.fps_proxy_value, current.fps_type),
+                bank_code: current.bank_code,
+                account_holder_name: current.account_holder_name,
+              }
+            : null,
+          channel: "coach-payout-settings",
+        },
       });
       ticketId = r.ticket && r.ticket.id;
     } catch (e) {}

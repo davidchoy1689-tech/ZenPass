@@ -16,6 +16,8 @@ const risk = require("../src/services/risk-control");
 risk.ensureSchema(db);
 db.prepare("INSERT INTO users (id,email,name,phone,role) VALUES ('c1','c1@t.hk','蔡教練','98765432','coach')").run();
 db.prepare("INSERT INTO users (id,email,name,phone,role) VALUES ('c2','c2@t.hk','黃教練','91234567','coach')").run();
+db.prepare("INSERT INTO users (id,email,name,phone,role) VALUES ('c3','c3@t.hk','陳教練','92345678','coach')").run();
+db.prepare("INSERT INTO users (id,email,name,phone,role) VALUES ('c4','c4@t.hk','李教練','93456789','coach')").run();
 
 const handlerOf = (router, method, p) => {
   const l = router.stack.find((x) => x.route && x.route.path === p && x.route.methods[method]);
@@ -74,6 +76,43 @@ const call = (h, { body = {}, user = null, params = {}, query = {} } = {}) => ne
   ok(db.prepare("SELECT COUNT(*) c FROM risk_audit_tickets WHERE coach_id='c2' AND trigger_reason='otp_exhausted'").get().c === 1, "OTP 5 次錯誤 → 開單");
   ok(risk.payoutState(db, "c2") === "frozen", "c2 出糧凍結");
 
+  console.log("🧪 4b. 工單詳情＋首屏統計");
+  const detailFn = handlerOf(riskRouter, "get", "/risk-tickets/:id");
+  const summaryFn = handlerOf(riskRouter, "get", "/risk-summary");
+  const dt = await call(detailFn, { user: { id: "adm", role: "super_admin" }, params: { id: t1.ticket.id } });
+  ok(dt.statusCode === 200 && dt.body.data.ticket.coach_name === "蔡教練", "詳情有教練名", dt.body.data && dt.body.data.ticket);
+  ok(!!dt.body.data.environment && typeof dt.body.data.amount_at_stake_cents === "number", "詳情有環境＋金額");
+  ok(!!dt.body.data.ticket.reason_label, "詳情有原因標籤");
+  const sm = await call(summaryFn, { user: { id: "adm", role: "super_admin" } });
+  ok(sm.statusCode === 200 && sm.body.data.open_tickets >= 1 && sm.body.data.frozen_coaches >= 1, "統計：待審＋凍結人數", sm.body.data);
+  ok(typeof sm.body.data.dual_threshold_cents === "number", "統計：雙人門檻");
+
+  console.log("🧪 4c. Maker–Checker 雙人覆核（大額）");
+  db.exec("CREATE TABLE IF NOT EXISTS platform_settings (key TEXT PRIMARY KEY, value TEXT)");
+  db.prepare("INSERT INTO platform_settings (key,value) VALUES ('risk.dual_approval_threshold_cents','100') ON CONFLICT(key) DO UPDATE SET value='100'").run();
+  const t3 = risk.trigger(db, { coachId: "c3", reason: "pre_payout_change", ip: "5.6.7.8" });
+  db.prepare("UPDATE risk_audit_tickets SET amount_at_stake_cents=5000000 WHERE id=?").run(t3.ticket.id);
+  const p1 = await call(resolve, { user: { id: "admin_04", role: "super_admin" }, params: { id: t3.ticket.id }, body: { action: "unlock", notes: "初審：電話核實本人，戶名一致" } });
+  ok(p1.statusCode === 200 && p1.body.requires_secondary === true && !!p1.body.challenge, "第一次 → 初審＋覆核碼", p1.body);
+  ok(risk.payoutState(db, "c3") === "frozen", "初審後仍然凍結");
+  const p2 = await call(resolve, { user: { id: "admin_04", role: "super_admin" }, params: { id: t3.ticket.id }, body: { action: "unlock", notes: "自己覆核", challenge: p1.body.challenge } });
+  ok(p2.statusCode === 403 && p2.body.code === "SAME_ADMIN", "同一管理員不可自行覆核", p2.body);
+  const p3 = await call(resolve, { user: { id: "admin_05", role: "super_admin" }, params: { id: t3.ticket.id }, body: { action: "unlock", notes: "覆核：確認無誤", challenge: "BADCHALLENGE" } });
+  ok(p3.statusCode === 400 && p3.body.code === "CHALLENGE_INVALID", "錯覆核碼被拒", p3.body);
+  const p4 = await call(resolve, { user: { id: "admin_05", role: "super_admin" }, params: { id: t3.ticket.id }, body: { action: "unlock", notes: "覆核：確認無誤，批准", challenge: p1.body.challenge } });
+  ok(p4.statusCode === 200 && p4.body.status === "resolved", "第二位管理員 → 解凍", p4.body);
+  ok(risk.payoutState(db, "c3") === "active", "c3 payout_status → active");
+  const row3 = db.prepare("SELECT * FROM risk_audit_tickets WHERE id=?").get(t3.ticket.id);
+  ok(row3.primary_approved_by === "admin_04" && row3.secondary_approved_by === "admin_05", "雙簽人身份已記錄");
+  ok(!!db.prepare("SELECT 1 FROM audit_log WHERE action_type='risk.ticket_dual_approved'").get(), "有雙人覆核審計");
+
+  console.log("🧪 4d. 駁回維持凍結");
+  const t4 = risk.trigger(db, { coachId: "c4", reason: "unusual_ip", ip: "9.9.9.9", meta: { country: "NL" } });
+  const rj = await call(resolve, { user: { id: "adm", role: "super_admin" }, params: { id: t4.ticket.id }, body: { action: "reject", notes: "未能聯絡本人，維持凍結調查" } });
+  ok(rj.statusCode === 200 && rj.body.status === "rejected", "駁回成功", rj.body);
+  ok(risk.payoutState(db, "c4") === "frozen", "駁回後保持凍結");
+  ok(db.prepare("SELECT COUNT(*) c FROM risk_audit_tickets WHERE id=?").get(t4.ticket.id).c === 1, "駁回唔會刪單");
+
   console.log("🧪 5. 凍結窗（6–7 號）");
   const ps = require("../src/services/payout-settings");
   ok(ps.inFreezeWindow(new Date("2026-12-06T00:30:00+08:00")) === true, "6 號全日凍結");
@@ -85,7 +124,8 @@ const call = (h, { body = {}, user = null, params = {}, query = {} } = {}) => ne
   const page = fs.readFileSync(path.join(__dirname, "../../frontend-v2/coach-earnings.html"), "utf8");
   const adminPage = fs.readFileSync(path.join(__dirname, "../../frontend-v2/admin-risk-console.html"), "utf8");
   ok(/帳戶安全保護中/.test(page) && /riskBanner/.test(page), "教練端有風控橫幅");
-  ok(/風控工單/.test(adminPage) && /risk-tickets/.test(adminPage) && /解除凍結/.test(adminPage), "admin 風控台");
+  ok(/風控與帳戶安全審核/.test(adminPage) && /risk-tickets/.test(adminPage) && /解除凍結/.test(adminPage), "admin 風控台");
+  ok(/risk-summary/.test(adminPage) && /二次簽署/.test(adminPage) && /覆核碼/.test(adminPage), "風控台有統計＋雙人覆核 UI");
   ok(/routes\/admin-risk/.test(fs.readFileSync(path.join(__dirname, "../src/index.js"), "utf8")), "admin-risk 已掛載");
 
   console.log(`\n${bad === 0 ? "✅ 全部通過" : "❌ 有失敗"} — ${pass} passed, ${bad} failed`);

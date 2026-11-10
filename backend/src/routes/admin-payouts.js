@@ -59,17 +59,37 @@ router.post("/coach-payouts/disburse", (req, res) => {
 
     let out;
     try {
-      out = disb.record(db, {
-        coachId,
-        month,
-        grossCents: gross,
-        offsetCents: offset,
-        netCents: net,
-        proxyId: b.fps_proxy_id || coach.phone || null,
-        refNo: b.bank_reference_no || null,
-        disbursedAt: b.disbursed_at || null,
-        status: b.status || "cleared",
-      });
+      // 風控解凍時會預先建立 pending 記錄（已納入發放隊列）；正式登記時直接完成該筆
+      const pending = disb.getForMonth(db, coachId, month);
+      if (pending && pending.status === "pending") {
+        db.prepare(
+          `UPDATE coach_payout_disbursements
+              SET gross_earnings_cents=?, offset_cash_cents=?, net_payout_cents=?, fps_proxy_id=?,
+                  disbursed_at=COALESCE(?, datetime('now')), status=?, failure_reason=NULL
+            WHERE id=?`,
+        ).run(
+          Math.round(gross),
+          Math.round(offset),
+          Math.round(net),
+          b.fps_proxy_id || coach.phone || null,
+          b.disbursed_at || null,
+          b.status || "cleared",
+          pending.id,
+        );
+        out = { id: pending.id, bank_reference_no: pending.bank_reference_no };
+      } else {
+        out = disb.record(db, {
+          coachId,
+          month,
+          grossCents: gross,
+          offsetCents: offset,
+          netCents: net,
+          proxyId: b.fps_proxy_id || coach.phone || null,
+          refNo: b.bank_reference_no || null,
+          disbursedAt: b.disbursed_at || null,
+          status: b.status || "cleared",
+        });
+      }
     } catch (e) {
       if (/UNIQUE constraint failed/.test(e.message)) {
         return res.status(409).json({ success: false, code: "DUPLICATE", error: "該教練本月或此參考編號已有出糧紀錄" });

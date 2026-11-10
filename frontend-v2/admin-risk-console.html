@@ -3,86 +3,407 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>風控工單 · ZenPass</title>
+<meta name="robots" content="noindex">
+<title>風控與帳戶安全審核 · ZenPass</title>
 <style>
-  body{margin:0;font-family:system-ui,-apple-system,"PingFang HK",sans-serif;background:#F8FAFC;color:#0F172A;padding:14px}
-  .wrap{max-width:760px;margin:0 auto}
-  h1{font-size:20px;margin:0 0 4px}
-  .sub{color:#64748B;font-size:12.5px;margin-bottom:14px}
-  .tabs{display:flex;gap:6px;margin-bottom:12px}
-  .tab{flex:1;border:1px solid #CBD5E1;background:#fff;border-radius:999px;padding:8px;font-weight:800;font-size:12px;cursor:pointer}
+  :root{--ink:#0F172A;--muted:#64748B;--line:#E2E8F0;--bg:#F1F5F9;--card:#fff;--red:#DC2626;--amber:#D97706;--green:#059669}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,"PingFang HK","Noto Sans HK",sans-serif;background:var(--bg);color:var(--ink);padding:14px 14px 40px}
+  .wrap{max-width:1080px;margin:0 auto}
+  .hdr{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+  h1{font-size:20px;margin:0 0 3px;letter-spacing:-.2px}
+  .sub{color:var(--muted);font-size:12.5px}
+  .who{font-size:12px;color:var(--muted);text-align:right;line-height:1.6}
+  .who b{color:var(--ink)}
+  .btn{border:1px solid var(--line);background:#fff;border-radius:10px;padding:9px 13px;font:inherit;font-size:12.5px;font-weight:800;cursor:pointer;color:var(--ink)}
+  .btn:hover{background:#F8FAFC}
+  .btn.primary{background:#0F172A;border-color:#0F172A;color:#fff}
+  .btn.ok{background:var(--green);border-color:var(--green);color:#fff}
+  .btn.danger{background:#fff;border-color:#FCA5A5;color:#B91C1C}
+  .btn:disabled{opacity:.45;cursor:not-allowed}
+  .kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+  @media(max-width:640px){.kpis{grid-template-columns:1fr 1fr}.kpis .kpi:first-child{grid-column:1/-1}}
+  .kpi{background:#fff;border:1px solid var(--line);border-radius:14px;padding:13px 14px;position:relative;overflow:hidden}
+  .kpi::after{content:"";position:absolute;right:-18px;top:-18px;width:56px;height:56px;border-radius:50%;background:#FEE2E2;opacity:.55}
+  .kpi.g::after{background:#DCFCE7}
+  .kpi.a::after{background:#FEF3C7}
+  .kpi .l{font-size:11.5px;color:var(--muted);font-weight:700}
+  .kpi .v{font-size:23px;font-weight:900;margin-top:4px;letter-spacing:-.4px}
+  .kpi .s{font-size:11px;color:var(--muted);margin-top:3px}
+  .bar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+  .tabs{display:flex;gap:6px}
+  .tab{border:1px solid var(--line);background:#fff;border-radius:999px;padding:7px 14px;font-weight:800;font-size:12px;cursor:pointer;color:var(--muted)}
   .tab.on{background:#FEF2F2;border-color:#FCA5A5;color:#991B1B}
-  .card{background:#fff;border:1px solid #E2E8F0;border-left:4px solid #DC2626;border-radius:12px;padding:12px;margin-bottom:10px}
-  .card.medium{border-left-color:#F59E0B}
-  .top{display:flex;justify-content:space-between;gap:8px}
-  .id{font-family:ui-monospace,Menlo,monospace;font-size:12px;color:#475569}
-  .name{font-weight:900;font-size:14px}
-  .meta{font-size:11.5px;color:#64748B;margin-top:4px;line-height:1.6}
-  .badge{font-size:10.5px;font-weight:900;border-radius:999px;padding:2px 8px;height:fit-content}
-  .badge.high{background:#FEE2E2;color:#991B1B}
+  .panel{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden}
+  table{width:100%;border-collapse:collapse}
+  thead th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);padding:11px 12px;background:#F8FAFC;border-bottom:1px solid var(--line);white-space:nowrap}
+  tbody td{padding:12px;border-bottom:1px solid #F1F5F9;font-size:13px;vertical-align:top}
+  tbody tr:last-child td{border-bottom:0}
+  tbody tr{cursor:pointer}
+  tbody tr:hover{background:#FBFDFF}
+  .ticket{font-family:ui-monospace,Menlo,monospace;font-size:12px;color:#475569}
+  .name{font-weight:900;font-size:13.5px}
+  .muted{color:var(--muted);font-size:11.5px;margin-top:2px;line-height:1.55}
+  .badge{display:inline-block;font-size:10.5px;font-weight:900;border-radius:999px;padding:3px 8px;white-space:nowrap}
+  .badge.high,.badge.critical{background:#FEE2E2;color:#991B1B}
   .badge.medium{background:#FEF3C7;color:#92400E}
+  .badge.low{background:#E0F2FE;color:#075985}
   .badge.resolved{background:#DCFCE7;color:#065F46}
-  .acts{display:flex;gap:6px;margin-top:9px}
-  .acts button{border:1px solid #CBD5E1;background:#fff;border-radius:8px;padding:7px 10px;font-size:12px;font-weight:800;cursor:pointer}
-  .acts .ok{background:#059669;border-color:#059669;color:#fff}
-  .acts .no{background:#fff;color:#B91C1C;border-color:#FCA5A5}
-  .empty{text-align:center;color:#94A3B8;padding:30px;font-size:13px}
-  .toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:#0F172A;color:#fff;padding:9px 14px;border-radius:999px;font-size:12px;opacity:0;transition:.2s}
-  .toast.on{opacity:1}
+  .badge.rejected{background:#E2E8F0;color:#334155}
+  .badge.pending{background:#FEF3C7;color:#92400E}
+  .badge.frozen{background:#FEE2E2;color:#991B1B}
+  .badge.active{background:#DCFCE7;color:#065F46}
+  .empty{text-align:center;color:#94A3B8;padding:44px 16px;font-size:13px}
+  .modal-bg{position:fixed;inset:0;background:rgba(15,23,42,.58);display:flex;align-items:center;justify-content:center;padding:14px;z-index:9998;backdrop-filter:blur(2px)}
+  .modal-bg[hidden]{display:none}
+  .modal{background:#fff;border-radius:16px;width:100%;max-width:760px;max-height:92vh;overflow:auto;box-shadow:0 24px 60px rgba(15,23,42,.28)}
+  .mhdr{position:sticky;top:0;background:#fff;border-bottom:1px solid var(--line);padding:14px 16px;display:flex;justify-content:space-between;gap:10px;align-items:flex-start;z-index:2}
+  .mhdr h2{font-size:16px;margin:0 0 3px}
+  .x{border:0;background:#F1F5F9;border-radius:9px;width:34px;height:34px;font-size:16px;cursor:pointer;color:#475569}
+  .mbody{padding:14px 16px}
+  .sec{border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px}
+  .sec h3{margin:0 0 8px;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+  .kv{display:grid;grid-template-columns:120px 1fr;gap:6px 10px;font-size:13px}
+  .kv .k{color:var(--muted);font-size:12px}
+  .kv .v{font-weight:700;word-break:break-word}
+  .money{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+  .money .big{font-size:26px;font-weight:900;letter-spacing:-.6px}
+  .money .small{font-size:11.5px;color:var(--muted);line-height:1.6}
+  .cmp{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  @media(max-width:560px){.cmp{grid-template-columns:1fr}.kv{grid-template-columns:100px 1fr}}
+  .cmp .box{border:1px dashed var(--line);border-radius:10px;padding:10px;font-size:12.5px;line-height:1.7}
+  .cmp .box.new{border-color:#FCA5A5;background:#FFF7F7}
+  .cmp .box .t{font-size:11px;font-weight:900;color:var(--muted);margin-bottom:4px}
+  .chk{display:flex;gap:9px;align-items:flex-start;font-size:12.5px;line-height:1.5;padding:7px 0;border-bottom:1px dashed #EEF2F7;cursor:pointer}
+  .chk:last-child{border-bottom:0}
+  .chk input{margin-top:2px;width:17px;height:17px;accent-color:var(--green)}
+  textarea{width:100%;border:1px solid var(--line);border-radius:10px;padding:10px;font:inherit;font-size:13px;min-height:74px;resize:vertical}
+  .hint{font-size:11.5px;color:var(--muted);margin-top:6px;line-height:1.55}
+  .acts{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:12px}
+  .warn{background:#FFFBEB;border:1px solid #FDE68A;color:#92400E;border-radius:11px;padding:10px 12px;font-size:12.5px;line-height:1.6;margin-bottom:10px}
+  .good{background:#ECFDF5;border:1px solid #A7F3D0;color:#065F46;border-radius:11px;padding:10px 12px;font-size:12.5px;line-height:1.6;margin-bottom:10px}
+  .challenge{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px}
+  .challenge code{flex:1;min-width:200px;background:#0F172A;color:#A7F3D0;border-radius:9px;padding:9px 11px;font-size:12px;word-break:break-all}
+  .steps{font-size:12px;color:var(--muted);line-height:1.7;margin:6px 0 0;padding-left:18px}
+  .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(8px);background:#0F172A;color:#fff;padding:10px 16px;border-radius:999px;font-size:12.5px;font-weight:700;opacity:0;transition:.22s;z-index:99999;max-width:90vw;text-align:center}
+  .toast.on{opacity:1;transform:translateX(-50%)}
+  .toast.err{background:#991B1B}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>🛡️ 風控工單</h1>
-  <div class="sub">凍結只阻止出糧，不影響教學；解凍需填核實備註並記錄審核者。</div>
-  <div class="tabs">
-    <button class="tab on" data-s="open">待處理</button>
-    <button class="tab" data-s="all">全部</button>
+  <div class="hdr">
+    <div>
+      <h1>🚨 風控與帳戶安全審核</h1>
+      <div class="sub">凍結只阻止出糧，不影響開班、點名、手冊與記帳。大額解凍需雙人覆核。</div>
+    </div>
+    <div class="who">管理員：<b id="adminName">…</b><br><span id="adminMeta"></span></div>
   </div>
-  <div id="list" class="empty">載入中…</div>
+
+  <div class="kpis">
+    <div class="kpi">
+      <div class="l">待審工單</div>
+      <div class="v" id="kOpen">—</div>
+      <div class="s">open + 審核中</div>
+    </div>
+    <div class="kpi a">
+      <div class="l">高風險凍結中</div>
+      <div class="v" id="kFrozen">—</div>
+      <div class="s">出糧暫停，教學照常</div>
+    </div>
+    <div class="kpi g">
+      <div class="l">本月攔截金額</div>
+      <div class="v" id="kBlocked">—</div>
+      <div class="s" id="kMonth">—</div>
+    </div>
+  </div>
+
+  <div class="bar">
+    <div class="tabs">
+      <button class="tab on" data-s="open">待處理</button>
+      <button class="tab" data-s="all">全部</button>
+    </div>
+    <button class="btn" id="refresh">↻ 重新整理</button>
+  </div>
+
+  <div class="panel">
+    <table>
+      <thead>
+        <tr>
+          <th>工單編號</th><th>觸發時間</th><th>教練（ID）</th><th>風險原因</th>
+          <th>涉及金額</th><th>評級</th><th>狀態</th><th></th>
+        </tr>
+      </thead>
+      <tbody id="rows"><tr><td colspan="8" class="empty">載入中…</td></tr></tbody>
+    </table>
+  </div>
 </div>
+
+<div class="modal-bg" id="modalBg" hidden>
+  <div class="modal" role="dialog" aria-modal="true">
+    <div class="mhdr">
+      <div>
+        <h2 id="mTitle">工單</h2>
+        <div class="sub" id="mSub"></div>
+      </div>
+      <button class="x" id="mClose" aria-label="關閉">✕</button>
+    </div>
+    <div class="mbody" id="mBody"></div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
+
 <script src="assets/api.js?v=10"></script>
 <script>
-  const $ = (id) => document.getElementById(id);
-  const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-  let FILTER = "open";
-  const toast = (m) => { const t = $("toast"); t.textContent = m; t.classList.add("on"); setTimeout(() => t.classList.remove("on"), 1800); };
-  const REASON = { pre_payout_change: "出糧前更改收款資料", unusual_ip: "異地／陌生裝置", otp_exhausted: "OTP 連續錯誤", transaction_spike: "交易量異常" };
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
+const hkd = (cents) => "HK$ " + ((Number(cents) || 0) / 100).toLocaleString("en-HK", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const when = (s) => String(s || "").replace("T", " ").slice(0, 16);
+const REASON = { pre_payout_change: "出糧前更改收款資料", unusual_ip: "異地／陌生裝置", otp_exhausted: "OTP 連續錯誤", transaction_spike: "交易量異常" };
+const STATUS = { open: "待處理", under_investigation: "審核中", resolved: "已解凍", rejected: "已駁回" };
+const BANK = { "004": "滙豐", "024": "恒生", "012": "中銀", "003": "渣打", "388": "Mox", "016": "東亞", "040": "大新", "043": "南商", "061": "創興", "072": "工銀亞洲" };
 
-  async function load() {
-    const r = await api.get("/admin/risk-tickets" + (FILTER === "open" ? "?status=open" : ""));
-    if (!r.ok) { $("list").innerHTML = `<div class="empty">${esc((r.data && r.data.error) || "讀取失敗")}</div>`; return; }
-    const rows = (r.data.data || []).filter((x) => FILTER !== "open" || ["open", "under_investigation"].includes(x.status));
-    if (!rows.length) { $("list").innerHTML = '<div class="empty">冇待處理工單</div>'; return; }
-    $("list").innerHTML = rows.map((t) => `<div class="card ${t.risk_level === "high" ? "" : "medium"}">
-      <div class="top"><div><div class="name">${esc(t.coach_name || t.coach_id)}</div><div class="id">${esc(t.id)}</div></div>
-      <span class="badge ${t.status === "resolved" ? "resolved" : t.risk_level}">${esc(t.status)}</span></div>
-      <div class="meta">原因：${esc(REASON[t.trigger_reason] || t.trigger_reason)} · ${esc(t.created_at)}<br>IP：${esc(t.ip_address || "—")} ${t.resolution_notes ? `<br>備註：${esc(t.resolution_notes)}` : ""}</div>
-      ${["open", "under_investigation"].includes(t.status) ? `<div class="acts">
-        <button class="ok" data-act="unlock" data-id="${esc(t.id)}">解除凍結</button>
-        <button class="no" data-act="reject" data-id="${esc(t.id)}">駁回</button>
-      </div>` : ""}
-    </div>`).join("");
-    $("list").querySelectorAll("[data-act]").forEach((b) => {
-      b.onclick = async () => {
-        const notes = prompt("核實備註（最少 4 字，會寫入審計）");
-        if (!notes || notes.trim().length < 4) return toast("請填寫備註");
-        const r2 = await api.post("/admin/risk-tickets/" + encodeURIComponent(b.dataset.id) + "/resolve", { action: b.dataset.act, notes });
-        if (!r2.ok) return toast((r2.data && r2.data.error) || "處理失敗");
-        toast("已處理");
-        load();
-      };
-    });
+let FILTER = "open";
+let ME = null;
+let CURRENT = null;
+let CHALLENGE = "";
+
+function toast(msg, isErr) {
+  const t = $("toast");
+  t.textContent = msg;
+  t.classList.toggle("err", !!isErr);
+  t.classList.add("on");
+  clearTimeout(t._h);
+  t._h = setTimeout(() => t.classList.remove("on"), 2600);
+}
+
+async function loadSummary() {
+  const r = await api.get("/admin/risk-summary");
+  if (!r.ok) return;
+  const d = r.data.data || {};
+  $("kOpen").textContent = d.open_tickets ?? "—";
+  $("kFrozen").textContent = (d.frozen_coaches ?? 0) + " 位";
+  $("kBlocked").textContent = hkd(d.month_blocked_cents);
+  $("kMonth").textContent = (d.payout_month || "") + " · 雙人覆核門檻 " + hkd(d.dual_threshold_cents);
+}
+
+function statusBadge(t) {
+  if (t.status === "resolved") return '<span class="badge resolved">已解凍</span>';
+  if (t.status === "rejected") return '<span class="badge rejected">已駁回</span>';
+  if (Number(t.requires_secondary) === 1) return '<span class="badge pending">待二次覆核</span>';
+  return '<span class="badge pending">' + esc(STATUS[t.status] || t.status) + '</span>';
+}
+
+async function load() {
+  const r = await api.get("/admin/risk-tickets" + (FILTER === "open" ? "?status=open" : ""));
+  if (!r.ok) {
+    $("rows").innerHTML = '<tr><td colspan="8" class="empty">' + esc((r.data && r.data.error) || "讀取失敗") + "</td></tr>";
+    return;
   }
-  document.querySelectorAll(".tab").forEach((b) => {
-    b.onclick = () => { FILTER = b.dataset.s; document.querySelectorAll(".tab").forEach((x) => x.classList.toggle("on", x === b)); load(); };
+  const rows = (r.data.data || []).filter((x) => FILTER !== "open" || ["open", "under_investigation"].includes(x.status));
+  if (!rows.length) {
+    $("rows").innerHTML = '<tr><td colspan="8" class="empty">✓ 冇待處理工單</td></tr>';
+    return;
+  }
+  $("rows").innerHTML = rows.map((t) => {
+    const amt = Number(t.amount_at_stake_cents) || 0;
+    return `<tr data-id="${esc(t.id)}">
+      <td><div class="ticket">${esc(t.id)}</div></td>
+      <td>${esc(when(t.created_at))}</td>
+      <td><div class="name">${esc(t.coach_name || t.coach_id)}</div><div class="muted">${esc(t.coach_id)}<br>${esc(t.coach_phone || "")}</div></td>
+      <td>${esc(REASON[t.trigger_reason] || t.trigger_reason)}</td>
+      <td><b>${amt ? hkd(amt) : "—"}</b></td>
+      <td><span class="badge ${esc(t.risk_level)}">${esc(t.risk_level)}</span></td>
+      <td>${statusBadge(t)}</td>
+      <td><button class="btn" data-open="${esc(t.id)}">審核</button></td>
+    </tr>`;
+  }).join("");
+  $("rows").querySelectorAll("tr[data-id]").forEach((tr) => {
+    tr.onclick = (e) => {
+      if (e.target.closest("[data-open]")) return;
+      openDetail(tr.dataset.id);
+    };
   });
-  (async () => {
-    const me = await api.me();
-    if (!me.ok) { location.href = "login.html?next=" + encodeURIComponent(location.pathname); return; }
+  $("rows").querySelectorAll("[data-open]").forEach((b) => {
+    b.onclick = () => openDetail(b.dataset.open);
+  });
+}
+
+function settingLine(s) {
+  if (!s) return '<span class="muted">未設定收款戶口</span>';
+  const bank = BANK[s.bank_code] || s.bank_code || "—";
+  return `${esc(bank)} (${esc(s.bank_code || "")}) · ${esc(s.fps_proxy_masked || s.fps_proxy_value || "")} · ${esc(s.account_holder_name || "")}`;
+}
+
+async function openDetail(id, keepChallenge) {
+  if (!keepChallenge) CHALLENGE = "";
+  const r = await api.get("/admin/risk-tickets/" + encodeURIComponent(id));
+  if (!r.ok) return toast((r.data && r.data.error) || "讀取詳情失敗", true);
+  CURRENT = r.data.data;
+  renderDetail();
+  $("modalBg").hidden = false;
+}
+
+function renderDetail() {
+  const d = CURRENT;
+  if (!d) return;
+  const t = d.ticket;
+  const amt = Number(d.amount_at_stake_cents) || 0;
+  const over = amt > Number(d.dual_threshold_cents);
+  const closed = ["resolved", "rejected"].includes(t.status);
+  const awaitingSecond = Number(t.requires_secondary) === 1 && t.primary_approved_by && !t.secondary_approved_by && !closed;
+  const bk = d.breakdown || {};
+  const env = d.environment || {};
+
+  $("mTitle").textContent = "工單審核：" + t.id;
+  $("mSub").innerHTML = `${esc(t.coach_name)} · Coach ID ${esc(t.coach_id)} · <span class="badge ${esc(t.risk_level)}">${esc(t.risk_level)}</span> ${statusBadge(t)}`;
+
+  const attempted = d.attempted;
+
+  $("mBody").innerHTML = `
+    ${closed ? `<div class="good">此工單已${t.status === "resolved" ? "解凍完成" : "駁回（維持凍結）"} · ${esc(when(t.resolved_at))}${t.reviewed_by_admin_id ? " · 審核者 " + esc(t.reviewed_by_admin_id) : ""}</div>` : ""}
+    ${awaitingSecond ? `<div class="warn">⏳ 已由 <b>${esc(t.primary_approved_by)}</b> 初審核准（${esc(when(t.primary_approved_at))}）。需由<b>另一位管理員</b>輸入一次性覆核碼完成二次簽署，解凍方才生效。</div>` : ""}
+    ${!closed && over && !awaitingSecond ? `<div class="warn">💰 涉及金額 ${hkd(amt)} 超過雙人覆核門檻 ${hkd(d.dual_threshold_cents)}：按下批准只會記錄初審並產生覆核碼，須由另一位管理員完成第二簽。</div>` : ""}
+
+    <div class="sec">
+      <h3>觸發警報詳情</h3>
+      <div class="kv">
+        <div class="k">觸發事件</div><div class="v">${esc(t.reason_label || REASON[t.trigger_reason] || t.trigger_reason)}</div>
+        <div class="k">觸發時間</div><div class="v">${esc(when(t.created_at))}</div>
+        <div class="k">登入環境</div><div class="v">IP ${esc(env.ip || "—")}${env.country ? " · " + esc(env.country) : ""}${env.device_hint ? " · " + esc(env.device_hint) : ""}</div>
+        <div class="k">裝置</div><div class="v" style="font-weight:500;font-size:12px">${esc(env.user_agent || "—")}</div>
+        <div class="k">教練出糧狀態</div><div class="v"><span class="badge ${t.coach_payout_status === "frozen" ? "frozen" : "active"}">${t.coach_payout_status === "frozen" ? "已凍結" : "正常"}</span></div>
+      </div>
+    </div>
+
+    <div class="sec">
+      <h3>涉及款項（${esc(t.payout_month || bk.month || "")}）</h3>
+      <div class="money">
+        <div>
+          <div class="big">${hkd(amt)}</div>
+          <div class="small">教練應得 ${hkd(bk.total_payout_cents)} · 現場實收沖抵 ${hkd(bk.cash_collected_cents)} · 淨發放 ${hkd(bk.net_payout_cents)}</div>
+        </div>
+        <div class="small" style="text-align:right">執教 ${hkd(bk.teaching_earnings_cents)}<br>自有補足 ${hkd(bk.own_student_uplift_cents)}<br>跨界分佣 ${hkd(bk.affiliate_passive_cents)}</div>
+      </div>
+      ${d.disbursement ? `<div class="hint">發放隊列：${esc(d.disbursement.id)} · ${esc(d.disbursement.status)} · ${esc(d.disbursement.bank_reference_no || "")}</div>` : `<div class="hint">尚未在發放隊列；解凍批准時會自動建立 pending 記錄。</div>`}
+    </div>
+
+    <div class="sec">
+      <h3>收款資訊變更對照</h3>
+      <div class="cmp">
+        <div class="box"><div class="t">原登記戶口（當前生效）</div>${settingLine(d.settings)}</div>
+        <div class="box new"><div class="t">本次嘗試變更 ${attempted ? "" : "（未提供）"}</div>${
+          attempted
+            ? esc((BANK[attempted.bank_code] || attempted.bank_code || "—")) + " (" + esc(attempted.bank_code || "") + ") · " + esc(attempted.fps_proxy_masked || "") + " · " + esc(attempted.account_holder_name || "")
+            : '<span class="muted">此工單非收款資料變更（例如異地登入／OTP 錯誤）</span>'
+        }</div>
+      </div>
+    </div>
+
+    ${closed ? "" : `
+    <div class="sec">
+      <h3>核實檢查清單（SOP）</h3>
+      <label class="chk"><input type="checkbox" class="sop"> 戶名一致性：新舊戶名與 HKID／合約留底吻合</label>
+      <label class="chk"><input type="checkbox" class="sop"> 已致電教練註冊手機，由本人確認變更原因</label>
+      <label class="chk"><input type="checkbox" class="sop"> OTP／登入日誌確認由本人裝置與 SIM 完成</label>
+      <div class="hint">三項全部勾選後才可批准；駁回不受限制。</div>
+    </div>
+
+    ${awaitingSecond ? `
+    <div class="sec">
+      <h3>二次簽署（另一位管理員）</h3>
+      <input id="challengeInput" placeholder="輸入初審產生的一次性覆核碼（32 位）" style="width:100%;border:1px solid var(--line);border-radius:10px;padding:11px;font:inherit;font-size:12.5px" />
+      <div class="hint">覆核碼 10 分鐘內有效、單次使用；初審人不可自行覆核。</div>
+    </div>` : ""}
+
+    <div class="sec">
+      <h3>審核處置備註（必填，≥4 字）</h3>
+      <textarea id="notes" placeholder="例：電話聯絡教練本人確認更換中銀 FPS，戶名吻合，排除盜號風險。批准解凍並納入本月發放隊列。"></textarea>
+      <div class="hint">備註、審核者 ID、時間與 IP 會寫入不可篡改審計紀錄。</div>
+    </div>
+
+    <div class="acts">
+      <button class="btn danger" id="btnReject">🔴 維持凍結並調查</button>
+      <button class="btn ok" id="btnApprove">🟢 ${awaitingSecond ? "完成覆核並解凍" : over ? "初審核准（送第二簽）" : "解除凍結並恢復發放"}</button>
+    </div>`}
+  `;
+
+  if (awaitingSecond && CHALLENGE) {
+    const box = document.createElement("div");
+    box.className = "sec";
+    box.innerHTML = `<h3>初審已記錄 · 覆核碼</h3><div class="challenge"><code>${esc(CHALLENGE)}</code><button class="btn" id="copyCh">📋 複製</button></div>
+      <div class="hint">請將此碼交予第二位管理員（或另一位管理員登入後貼上）。10 分鐘內有效。</div>`;
+    $("mBody").appendChild(box);
+    $("copyCh").onclick = () => { navigator.clipboard.writeText(CHALLENGE); toast("已複製覆核碼"); };
+  }
+
+  if (!closed) {
+    $("btnReject").onclick = () => submit("reject");
+    $("btnApprove").onclick = () => submit("unlock");
+  }
+}
+
+function sopAllChecked() {
+  const boxes = [...document.querySelectorAll(".sop")];
+  return boxes.length > 0 && boxes.every((b) => b.checked);
+}
+
+async function submit(action) {
+  const notes = ($("notes") && $("notes").value || "").trim();
+  if (notes.length < 4) return toast("請填寫核實備註（最少 4 字）", true);
+  let challenge = "";
+  if (action === "unlock") {
+    if (!sopAllChecked()) return toast("請先完成三項核實清單", true);
+    if ($("challengeInput")) {
+      challenge = $("challengeInput").value.trim();
+      if (!challenge) return toast("請輸入覆核碼", true);
+    }
+  }
+  const btns = document.querySelectorAll("#btnApprove,#btnReject");
+  btns.forEach((b) => (b.disabled = true));
+  try {
+    const r = await api.post("/admin/risk-tickets/" + encodeURIComponent(CURRENT.ticket.id) + "/resolve", { action, notes, challenge });
+    if (!r.ok) {
+      toast((r.data && r.data.error) || "處理失敗", true);
+      return;
+    }
+    if (r.data.requires_secondary) {
+      CHALLENGE = r.data.challenge || "";
+      toast("已記錄初審，請第二位管理員覆核");
+      await openDetail(CURRENT.ticket.id, true);
+      loadSummary(); load();
+      return;
+    }
+    toast(action === "unlock" ? "✅ 已解凍，並納入發放隊列" : "已駁回，維持凍結");
+    $("modalBg").hidden = true;
+    CURRENT = null;
+    loadSummary(); load();
+  } finally {
+    btns.forEach((b) => (b.disabled = false));
+  }
+}
+
+document.querySelectorAll(".tab").forEach((b) => {
+  b.onclick = () => {
+    FILTER = b.dataset.s;
+    document.querySelectorAll(".tab").forEach((x) => x.classList.toggle("on", x === b));
     load();
-  })();
+  };
+});
+$("refresh").onclick = () => { loadSummary(); load(); };
+$("mClose").onclick = () => { $("modalBg").hidden = true; CURRENT = null; };
+$("modalBg").onclick = (e) => { if (e.target === $("modalBg")) { $("modalBg").hidden = true; CURRENT = null; } };
+
+(async () => {
+  const me = await api.me();
+  if (!me.ok) { location.href = "login.html?next=" + encodeURIComponent(location.pathname); return; }
+  ME = me.data || {};
+  $("adminName").textContent = (ME.name || ME.email || ME.id || "管理員");
+  $("adminMeta").textContent = (ME.role || "") + " · ID " + (ME.id || "");
+  loadSummary();
+  load();
+})();
 </script>
 </body>
 </html>

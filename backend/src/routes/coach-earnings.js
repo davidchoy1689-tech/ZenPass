@@ -1589,6 +1589,14 @@ router.put("/payout-settings", authenticateToken, (req, res) => {
         ip: req.ip || "",
         userAgent: req.headers["user-agent"] || "",
         notes: `非香港 IP：${country}`,
+        meta: {
+          country,
+          channel: "coach-payout-settings",
+          attempted: {
+            fps_type: String((req.body || {}).fps_type || ""),
+            bank_code: String((req.body || {}).bank_code || ""),
+          },
+        },
       });
       return res.status(403).json({
         success: false,
