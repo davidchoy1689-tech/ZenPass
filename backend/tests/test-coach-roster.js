@@ -89,6 +89,28 @@ const call = (handler, { body = {}, user = null, params = {} }) => new Promise((
   const blk = db.prepare("SELECT COUNT(*) c FROM blockchain_blocks WHERE entity_type='attendance_roster'").get().c;
   ok(blk >= 4, "每批有存證區塊", blk);
 
+  console.log("🧪 5. 自有學生標籤＋匯入舊患");
+  db.prepare("INSERT INTO users (id,email,name,phone,role) VALUES ('u3','u3@t.hk','黃志明','91110003','user')").run();
+  db.prepare("INSERT INTO bookings (id,user_id,class_id,schedule_id,status,payment_status,amount,booking_reference) VALUES ('b3','u3','cl1','s1','confirmed','paid',140,'ZP-R3')").run();
+  db.prepare("INSERT INTO student_coach_affiliations (student_user_id,origin_coach_id) VALUES ('u1','c1')").run();
+  db.prepare("INSERT INTO student_coach_affiliations (student_user_id,origin_coach_id) VALUES ('u3','c1')").run();
+  db.exec(`CREATE TABLE IF NOT EXISTS student_onboarding_invites (
+    id TEXT PRIMARY KEY, coach_id TEXT NOT NULL, student_name TEXT NOT NULL, phone TEXT NOT NULL,
+    notes TEXT, initial_pass_quota INTEGER DEFAULT 1, token TEXT NOT NULL UNIQUE,
+    status TEXT DEFAULT 'pending', claimed_by_user_id TEXT, claimed_at TEXT, created_at TEXT DEFAULT (datetime('now')))`);
+  db.prepare(
+    "INSERT INTO student_onboarding_invites (id,coach_id,student_name,phone,notes,token,status,created_at) VALUES ('iv3','c1','黃志明','91110003','輕微高血壓，需坐椅輔助','" + "a".repeat(64) + "','claimed',datetime('now'))",
+  ).run();
+  const r5 = await call(get, { user: coach1, params: { sid: "s1" } });
+  ok(r5.statusCode === 200, "名冊讀取成功");
+  const ownNames = r5.body.roster.filter((x) => x.is_own_student).map((x) => x.name);
+  ok(ownNames.length === 2 && ownNames.includes("陳伯") && ownNames.includes("黃志明"), "自有學生標記正確", ownNames);
+  ok(r5.body.counts.own_students === 2 && r5.body.counts.platform_students === 1, "頂部統計自有／平台", r5.body.counts);
+  const wong = r5.body.roster.find((x) => x.booking_id === "b3");
+  ok(wong && wong.health_notes === "輕微高血壓，需坐椅輔助", "匯入舊患帶入點名冊", wong && wong.health_notes);
+  const li = r5.body.roster.find((x) => x.booking_id === "b2");
+  ok(li && li.is_own_student === false, "未綁定 → 平台學生", li && li.is_own_student);
+
   console.log(`\n${bad === 0 ? "✅ 全部通過" : "❌ 有失敗"} — ${pass} passed, ${bad} failed`);
   process.exit(bad === 0 ? 0 : 1);
 })();

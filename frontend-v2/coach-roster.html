@@ -30,6 +30,14 @@
     .r-meta{font-size:11.5px;color:#64748B;margin-top:2px}
     .r-warn{margin-top:6px;background:#FEF3C7;color:#92400E;border:1px solid #FDE68A;border-radius:8px;padding:6px 8px;font-size:11.5px;font-weight:700}
     .r-danger{margin-top:6px;background:#FEE2E2;color:#991B1B;border:1px solid #F87171;border-radius:8px;padding:7px 9px;font-size:12px;font-weight:800;line-height:1.45}
+    .r-badges{display:flex;gap:5px;flex-wrap:wrap;margin-top:5px}
+    .r-own{font-size:10.5px;font-weight:900;color:#065F46;background:#DCFCE7;border:1px solid #A7F3D0;border-radius:999px;padding:2px 8px}
+    .r-plat{font-size:10.5px;font-weight:900;color:#1D4ED8;background:#DBEAFE;border:1px solid #BFDBFE;border-radius:999px;padding:2px 8px}
+    .r-note{margin-top:8px}
+    .r-note input{width:100%;box-sizing:border-box;border:1.5px solid #CBD5E1;border-radius:9px;padding:8px 10px;font:inherit;font-size:12.5px}
+    .r-tags{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}
+    .r-tag{border:1px solid #CBD5E1;background:#F8FAFC;border-radius:999px;padding:5px 9px;font-size:11px;font-weight:700;cursor:pointer}
+    .r-handbook{display:inline-block;margin-top:7px;font-size:11.5px;font-weight:800;color:#065F46;text-decoration:none;background:#ECFDF5;border:1px solid #A7F3D0;border-radius:8px;padding:5px 9px}
     .wi-btn{display:block;width:calc(100% - 32px);margin:0 16px 12px;border:1.5px dashed #059669;background:#ECFDF5;color:#065F46;border-radius:12px;padding:11px;font-weight:900;font-size:14px;cursor:pointer}
     .wi-mask{position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:200;display:none;padding:16px;overflow:auto}
     .wi-mask.on{display:block}
@@ -115,6 +123,7 @@
       excused: r.filter((x) => x.status === "absent_notified").length,
       absent: r.filter((x) => x.status === "absent_unexcused").length,
       unmarked: r.filter((x) => !x.status).length,
+      own: r.filter((x) => x.is_own_student).length,
     };
   }
 
@@ -122,8 +131,8 @@
     if (!DATA) return;
     const s = DATA.schedule || {};
     $("title").textContent = s.title || "點名冊";
-    $("sub").textContent = `${s.venue_name || ""} · ${fmt(s.start_time)}–${hhmm(s.end_time)}`;
     const c = counts();
+    $("sub").textContent = `${s.venue_name || ""} · ${fmt(s.start_time)}–${hhmm(s.end_time)} · 👑 自有 ${c.own} 人 (100%) ｜ 🌐 平台 ${c.total - c.own} 人`;
     const done = c.present + c.excused + c.absent;
     $("bar").style.width = c.total ? Math.round((done / c.total) * 100) + "%" : "0%";
     $("stat").textContent = `已簽到 ${c.present} / ${c.total} 人${c.excused ? ` · 請假 ${c.excused}` : ""}${c.absent ? ` · 缺席 ${c.absent}` : ""}`;
@@ -142,14 +151,26 @@
 
     $("list").innerHTML = list.map((x) => {
       const cls = x.status === "present" || x.status === "late" ? "present" : x.status === "absent_notified" ? "excused" : x.status === "absent_unexcused" ? "absent" : "";
+      const safeTags = (() => {
+        const t = String(x.health_notes || "");
+        const base = ["動作完成度高", "需坐椅輔助", "血壓平穩"];
+        if (/膝|關節|手術/.test(t)) base.unshift("膝部活動度改善");
+        return [...new Set(base)].slice(0, 4);
+      })();
       return `<div class="r-card ${cls}" data-bid="${esc(x.booking_id)}">
         <div class="r-name">${esc(x.student_name || x.name)} ${x.status === "late" ? '<span style="font-size:11px;color:#B45309">🕐 遲到</span>' : ""}</div>
+        <div class="r-badges">${x.is_own_student ? '<span class="r-own">👑 自有學生 (100%)</span>' : '<span class="r-plat">🌐 平台引流 (80%)</span>'}</div>
         <div class="r-meta">${x.pass_remaining != null ? `🎫 剩 ${x.pass_remaining}/${x.pass_total} 堂 · ` : ""}${esc(x.phone || "")}</div>
-        ${x.medical_notes ? (() => {
-          const t = String(x.medical_notes);
+        ${x.health_notes ? (() => {
+          const t = String(x.health_notes);
           const danger = /心臟|心管|血壓|手術|膝|關節|糖尿|暈|中風|骨質|氣喘|哮喘/i.test(t);
           return `<div class="${danger ? "r-danger" : "r-warn"}">${danger ? "⚠️ 舊患注意：" : "⚠️ "}${esc(t)}</div>`;
         })() : ""}
+        <a class="r-handbook" href="student-handbook.html?student_id=${encodeURIComponent(x.user_id)}">📘 手冊</a>
+        <div class="r-note">
+          <input data-note placeholder="課堂備註（可選，會寫入手冊）" value="${esc(x.notes || "")}" maxlength="200">
+          <div class="r-tags">${safeTags.map((t) => `<button type="button" class="r-tag" data-tag="${esc(t)}">${esc(t)}</button>`).join("")}</div>
+        </div>
         <div class="r-acts">
           <button class="r-pill ${x.status === "present" ? "on" : ""}" data-s="present" ${busy[x.booking_id] ? "disabled" : ""}>🟢 出席</button>
           <button class="r-pill ${x.status === "absent_notified" ? "on" : ""}" data-s="absent_notified" ${busy[x.booking_id] ? "disabled" : ""}>🟡 請假</button>
@@ -160,6 +181,28 @@
 
     $("list").querySelectorAll(".r-pill").forEach((btn) => {
       btn.onclick = () => pick(btn.closest(".r-card").dataset.bid, btn.dataset.s);
+    });
+    $("list").querySelectorAll(".r-card").forEach((card) => {
+      const bid = card.dataset.bid;
+      const stu = DATA.roster.find((x) => x.booking_id === bid);
+      const input = card.querySelector("[data-note]");
+      const commitNote = () => {
+        if (!stu) return;
+        stu.notes = input.value;
+        if (stu.status) {
+          clearTimeout(timers[bid]);
+          timers[bid] = setTimeout(() => save(bid, stu), 1200);
+        }
+      };
+      input.oninput = commitNote;
+      card.querySelectorAll("[data-tag]").forEach((tag) => {
+        tag.onclick = () => {
+          const t = tag.dataset.tag;
+          const cur = input.value.trim();
+          if (!cur.includes(t)) input.value = cur ? cur + "；" + t : t;
+          commitNote();
+        };
+      });
     });
   }
 

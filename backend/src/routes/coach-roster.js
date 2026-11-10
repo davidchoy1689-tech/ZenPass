@@ -15,6 +15,7 @@ const { audit } = require("../services/audit");
 const { writeBlock } = require("../services/blockchain-audit");
 const passes = require("../services/passes");
 const referralRewards = require("../services/referral-rewards");
+const coachAffiliate = require("../services/coach-affiliate");
 
 const router = express.Router();
 router.use(authenticateToken);
@@ -72,6 +73,8 @@ router.get("/sessions/:sid/roster", (req, res) => {
     ensureTable(db);
     const sched = ownSchedule(db, req.user, req.params.sid);
     if (!sched) return res.status(404).json({ success: false, error: "找不到班次或無權限" });
+    const actualCoachId = sched.coach_override_id || sched.coach_id;
+    try { coachAffiliate.ensureSchema(db); } catch (e) {}
 
     const rows = db
       .prepare(
@@ -80,20 +83,40 @@ router.get("/sessions/:sid/roster", (req, res) => {
                 b.group_size, b.pass_id,
                 u.name, u.phone, u.emergency_name, u.emergency_phone,
                 a.id AS attendance_id, a.status AS attendance_status, a.checkin_time, a.notes,
-                p.remaining_credits, p.total_credits, p.expires_at
+                p.remaining_credits, p.total_credits, p.expires_at,
+                f.origin_coach_id
            FROM bookings b
            JOIN users u ON u.id = b.user_id
            LEFT JOIN attendances a ON a.booking_id = b.id
            LEFT JOIN user_passes p ON p.id = b.pass_id
+           LEFT JOIN student_coach_affiliations f ON f.student_user_id = b.user_id AND f.status='active'
           WHERE b.schedule_id = ? AND b.status IN ('confirmed','attended','no_show')
           ORDER BY u.name`,
       )
       .all(req.params.sid);
 
+    // 匯入時填寫嘅舊患備註（同一教練、同一電話）
+    const notesByPhone = new Map();
+    try {
+      const hasInvites = db
+        .prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='student_onboarding_invites'")
+        .get();
+      if (hasInvites) {
+        for (const n of db
+          .prepare(
+            "SELECT phone, notes FROM student_onboarding_invites WHERE coach_id=? AND COALESCE(notes,'')<>'' ORDER BY datetime(created_at) DESC",
+          )
+          .all(actualCoachId)) {
+          if (!notesByPhone.has(n.phone)) notesByPhone.set(n.phone, n.notes);
+        }
+      }
+    } catch (e) {}
+
     const roster = rows.map((r) => {
       const derived =
         r.attendance_status ||
         (r.booking_status === "attended" ? "present" : r.booking_status === "no_show" ? "absent_unexcused" : null);
+      const isOwn = !!r.origin_coach_id && r.origin_coach_id === actualCoachId;
       return {
         booking_id: r.booking_id,
         user_id: r.user_id,
@@ -104,6 +127,9 @@ router.get("/sessions/:sid/roster", (req, res) => {
         emergency_name: r.emergency_name,
         emergency_phone: r.emergency_phone,
         medical_notes: r.medical_notes,
+        health_notes: r.medical_notes || notesByPhone.get(r.phone) || "",
+        is_own_student: isOwn,
+        origin_coach_id: r.origin_coach_id || null,
         group_size: Number(r.group_size) || 1,
         booking_status: r.booking_status,
         payment_status: r.payment_status,
@@ -134,6 +160,8 @@ router.get("/sessions/:sid/roster", (req, res) => {
         present: roster.filter((x) => x.status === "present" || x.status === "late").length,
         excused: roster.filter((x) => x.status === "absent_notified").length,
         absent: roster.filter((x) => x.status === "absent_unexcused").length,
+        own_students: roster.filter((x) => x.is_own_student).length,
+        platform_students: roster.filter((x) => !x.is_own_student).length,
       },
     });
   } catch (e) {
