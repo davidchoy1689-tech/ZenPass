@@ -272,10 +272,13 @@ function monthSummary(db, coachId, month) {
   const recent = db
     .prepare(
       `SELECT p.id, p.student_user_id, p.booking_id, p.session_id, p.order_amount_cents,
-              p.commission_amount_cents, p.created_at, u.name AS student_name, c.title AS course_title
+              p.commission_amount_cents, p.created_at, p.status, p.cleared_at,
+              u.name AS student_name, u.phone AS student_phone,
+              c.title AS course_title, ac.name AS actual_coach_name
          FROM coach_affiliate_payouts p
          LEFT JOIN users u ON u.id = p.student_user_id
          LEFT JOIN classes c ON c.id = p.course_id
+         LEFT JOIN users ac ON ac.id = p.actual_coach_id
         WHERE p.beneficiary_coach_id = ? AND substr(p.created_at,1,7) = ?
         ORDER BY datetime(p.created_at) DESC LIMIT 50`,
     )
@@ -287,10 +290,19 @@ function monthSummary(db, coachId, month) {
     own_student_count: Number(own.students) || 0,
     affiliate_recent: recent.map((r) => ({
       id: r.id,
+      booking_id: r.booking_id,
+      session_id: r.session_id,
       student_name: maskName(r.student_name),
+      student_phone_masked: r.student_phone ? String(r.student_phone).slice(0, 4) + "****" : "",
       course_title: r.course_title || "",
+      actual_coach_name: r.actual_coach_name || "教練",
       order_amount: toMoney(r.order_amount_cents),
+      order_amount_cents: Number(r.order_amount_cents) || 0,
       commission: toMoney(r.commission_amount_cents),
+      commission_cents: Number(r.commission_amount_cents) || 0,
+      commission_rate: AFFILIATE_RATE,
+      status: r.status,
+      cleared_at: r.cleared_at,
       created_at: r.created_at,
     })),
     _range: range,

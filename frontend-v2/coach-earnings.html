@@ -16,20 +16,27 @@
     .e-head h1{font-size:17px;font-weight:900;flex:1;margin:0}
     .e-head input{border:1.5px solid #CBD5E1;border-radius:9px;padding:6px 8px;font:inherit;font-size:13px}
     .kpis{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
-    .kpi{background:#fff;border:1.5px solid #E2E8F0;border-radius:14px;padding:12px}
-    .kpi .k{font-size:11px;color:#64748B;font-weight:700}
+    .kpi{background:#fff;border:1.5px solid #E2E8F0;border-radius:16px;padding:12px}
+    .kpi .k{font-size:11px;color:#64748B;font-weight:800}
     .kpi .v{font-size:22px;font-weight:900;margin-top:3px;letter-spacing:-.02em}
-    .kpi .s{font-size:10.5px;color:#94A3B8;margin-top:2px}
-    .kpi.hero{grid-column:span 2;background:#ECFDF5;border-color:#A7F3D0}
+    .kpi .s{font-size:10.5px;color:#94A3B8;margin-top:2px;line-height:1.45}
+    .kpi.hero{grid-column:span 2;background:linear-gradient(135deg,#ECFDF5,#F0FDFA);border-color:#A7F3D0}
     .kpi.hero .v{color:#065F46;font-size:30px}
-    .kpi.highlight{background:linear-gradient(135deg,#F5F3FF,#EDE9FE);border-color:#C4B5FD}
-    .kpi.highlight .v{color:#5B21B6}
+    .kpi.hero.gold{background:linear-gradient(135deg,#FFFDF5 0%,#FEF9C3 100%);border-color:#FDE047;box-shadow:0 4px 12px rgba(234,179,8,.08)}
+    .kpi.hero.gold .v{color:#713F12}
+    .kpi.hero.gold .k{color:#854D0E}
+    .badge-gold{display:inline-flex;align-items:center;font-size:12px;font-weight:800;color:#854D0E;background:#FEF08A;padding:3px 9px;border-radius:999px;margin-left:6px}
+    .sub-tag{float:right;font-size:10.5px;font-weight:800;color:#A16207;background:#FFFBEB;border:1px solid #FDE68A;border-radius:999px;padding:2px 8px}
     .own-tag{display:inline-block;margin-top:6px;font-size:10.5px;font-weight:900;color:#065F46;background:#DCFCE7;border:1px solid #A7F3D0;border-radius:999px;padding:2px 7px}
-    .aff-block{margin-top:16px;background:#F5F3FF;border:1.5px solid #DDD6FE;border-radius:14px;padding:12px}
-    .aff-block h3{margin:0 0 8px;font-size:13px;color:#5B21B6}
-    .aff-row{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px dashed #DDD6FE;font-size:12.5px}
+    .aff-block{margin-top:16px;background:#FFFDF5;border:1.5px solid #FDE68A;border-radius:16px;padding:12px}
+    .aff-block h3{margin:0 0 8px;font-size:13px;color:#854D0E}
+    .aff-row{display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px dashed #FDE68A;font-size:12.5px;align-items:flex-start}
     .aff-row:last-child{border-bottom:0}
-    .aff-row .am{font-weight:900;color:#5B21B6;white-space:nowrap}
+    .aff-row .nm{font-weight:900;color:#0F172A}
+    .aff-row .meta{color:#78716C;font-size:11px;line-height:1.55;margin-top:2px}
+    .aff-row .am{font-weight:900;color:#059669;white-space:nowrap;text-align:right}
+    .aff-row .am small{display:block;color:#94A3B8;font-weight:700;font-size:10px;margin-top:2px}
+    .fps-hint{margin-top:14px;background:#F8FAFC;border:1px dashed #CBD5E1;border-radius:12px;padding:11px 12px;font-size:12px;color:#475569;font-weight:700;text-align:center}
     .e-actions{display:flex;gap:8px;margin-bottom:12px}
     .e-btn{flex:1;min-height:46px;border-radius:10px;border:1.5px solid #CBD5E1;background:#fff;font-weight:800;font-size:13px;cursor:pointer}
     .e-btn.primary{background:#059669;border-color:#059669;color:#fff}
@@ -80,11 +87,11 @@
     const d = DATA;
     $("monthLabel").textContent = d.month + " 班次明細 · " + (d.payout_rule || "每月 5 號 FPS 出糧");
     $("kpis").innerHTML = `
-      <div class="kpi hero"><div class="k">💳 本月累計應收</div><div class="v">${hkd(d.total_earned)}</div><div class="s">教練拆帳 ${Math.round(d.commission_rate * 100)}% · 以出席人次計</div></div>
-      <div class="kpi"><div class="k">⏱️ 授課堂數</div><div class="v">${d.total_sessions}</div><div class="s">${(d.total_hours || 0)} 小時 · 有出席紀錄嘅班次</div></div>
-      <div class="kpi"><div class="k">👥 服務學員人次</div><div class="v">${d.total_attended_students}</div><div class="s">出席＋未合規缺席</div></div>
+      <div class="kpi hero"><div class="k">本月總預計發放</div><div class="v">${hkd(d.total_earned)}</div><div class="s">80% 底薪 + 20% 自有補足 · 以出席人次計</div></div>
+      <div class="kpi"><div class="k">⏱️ 執教課堂數</div><div class="v">${d.total_sessions}</div><div class="s">${(d.total_hours || 0)} 小時 · 有出席紀錄嘅班次</div></div>
+      <div class="kpi"><div class="k">👥 服務學員人次</div><div class="v">${d.total_attended_students}</div><div class="s">其中 👑 自有 ${Number(d.own_student_count) || 0} 人次</div></div>
       <div class="kpi"><div class="k">🟢 下次發放日</div><div class="v" style="font-size:15px;line-height:1.35;word-break:break-word">${esc(d.next_payout_label || "—")}</div><div class="s">待出帳 ${hkd(d.pending_payout)} · 已出帳 ${hkd(d.paid_payout)}</div></div>
-      <div class="kpi highlight"><div class="k">💎 跨界被動分佣 (5%)</div><div class="v">${hkd(d.affiliate_passive)}</div><div class="s">來自 ${Number(d.affiliate_students_count) || 0} 位學員跨班消費</div></div>
+      <div class="kpi hero gold"><div class="k"><span class="sub-tag">終身鎖定</span>💎 跨界被動分佣 (5%)</div><div class="v">${hkd(d.affiliate_passive)}</div><div class="s">來自 ${Number(d.affiliate_students_count) || 0} 位已鎖定學員跨班消費 · 平台提撥零扣減</div></div>
     `;
     const rows = (d.sessions_breakdown || []).filter((x) => x.attended_count > 0);
     const aff = d.affiliate_recent || [];
@@ -92,16 +99,21 @@
     $("rows").innerHTML = rows.map((r) => `
       <div class="e-row">
         <div class="top"><div><div class="t">${esc(r.course_title)}</div>
-        <div class="m">${esc(r.date)} · ${esc(r.venue || "")} · ${r.attended_count} 人出席</div></div>
-        <div class="amt">${hkd(r.session_payout)}</div></div>
+        <div class="m">${esc(r.date)} · ${esc(r.venue || "")} · 實到 ${r.attended_count} 人（👑 自有 ${r.own_student_count || 0} · 100% ｜ 平台 ${r.platform_student_count || 0}）</div></div>
+        <div class="amt">${hkd(r.session_payout)}<div style="font-size:10px;color:#94A3B8;font-weight:700">本堂實收</div></div></div>
         <span class="pill ${r.status === "paid" ? "paid" : "pending"}">${r.status === "paid" ? "已核實 · 已出帳" : "待出帳"}</span>
-        ${r.own_student_count ? `<span class="own-tag">👑 自有學生 ${r.own_student_count} 人 · 100%</span>` : ""}
+        ${r.own_student_count ? `<span class="own-tag">👑 自有學生 ${r.own_student_count} 人 · 100% · 省下平台費 ${hkd(r.saved_platform_fee)}</span>` : ""}
       </div>`).join("");
     if (aff.length) {
-      $("rows").innerHTML += `<div class="aff-block"><h3>🌱 跨界 5% 被動收益明細</h3>` +
-        aff.map((a) => `<div class="aff-row"><div>${esc(a.student_name)} · ${esc(a.course_title)}<br><span style="color:#94A3B8">實收 ${hkd(a.order_amount)}</span></div><div class="am">+${hkd(a.commission)}</div></div>`).join("") +
+      $("rows").innerHTML += `<div class="aff-block"><h3>🌱 跨界 5% 被動收益明細（學生跨班消費）</h3>` +
+        aff.map((a) => `<div class="aff-row">
+          <div><div class="nm">👤 ${esc(a.student_name)} <span style="font-weight:400;color:#94A3B8;font-size:11px">(${esc(a.student_phone_masked || "")})</span></div>
+          <div class="meta">報讀：${esc(a.course_title)}<br>執教：${esc(a.actual_coach_name || "教練")} · 實收 ${hkd(a.order_amount)} × 5%</div></div>
+          <div class="am">+ ${hkd(a.commission)}<small>${esc(String(a.cleared_at || a.created_at || "").slice(5, 16))} 入帳</small></div>
+        </div>`).join("") +
         `</div>`;
     }
+    $("rows").innerHTML += `<div class="fps-hint">💡 下次 FPS 自動入數：${esc(d.next_payout_label || "每月 5 號")}</div>`;
   }
 
   $("csvBtn").onclick = async () => {

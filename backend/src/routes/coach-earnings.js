@@ -1385,7 +1385,9 @@ function buildMonthlyBreakdown(db, coachId, month) {
       venue: s.venue_name || "",
       attended_count: attended,
       own_student_count: ownCount,
+      platform_student_count: Math.max(0, attended - ownCount),
       own_student_uplift: ownUplift / 100,
+      saved_platform_fee: ownUplift / 100,
       duration_minutes: mins,
       session_payout: sessionCents / 100,
       status,
@@ -1399,6 +1401,7 @@ function buildMonthlyBreakdown(db, coachId, month) {
   paidCents = Math.min(paidCents, totalCents);
   return {
     month,
+    coach_id: coachId,
     total_earned: totalCents / 100,
     direct_teaching_cents: directCents,
     own_student_uplift_cents: upliftCents,
@@ -1407,6 +1410,32 @@ function buildMonthlyBreakdown(db, coachId, month) {
     affiliate_passive: (Number(aff.affiliate_passive_cents) || 0) / 100,
     affiliate_students_count: Number(aff.affiliate_students_count) || 0,
     affiliate_recent: aff.affiliate_recent || [],
+    payout_summary: {
+      total_payout_cents: totalCents,
+      teaching_earnings_cents: directCents,
+      own_student_uplift_cents: upliftCents,
+      affiliate_passive_cents: Number(aff.affiliate_passive_cents) || 0,
+      currency: "HKD",
+    },
+    kpis: {
+      total_sessions: sessions,
+      total_students_served: students,
+      own_students_served: ownStudents,
+      affiliate_active_students: Number(aff.affiliate_students_count) || 0,
+    },
+    affiliate_payouts_breakdown: (aff.affiliate_recent || []).map((a) => ({
+      payout_id: a.id,
+      booking_id: a.booking_id,
+      student_display_name: a.student_name,
+      student_phone_masked: a.student_phone_masked,
+      target_course_title: a.course_title,
+      actual_coach_name: a.actual_coach_name,
+      order_amount_cents: a.order_amount_cents,
+      commission_rate: a.commission_rate,
+      commission_amount_cents: a.commission_cents,
+      status: a.status,
+      cleared_at: a.cleared_at,
+    })),
     total_payout_cents: totalCents,
     total_sessions: sessions,
     total_attended_students: students,
@@ -1441,28 +1470,37 @@ router.get("/earnings/export-csv", authenticateToken, (req, res) => {
       const s = String(v == null ? "" : v);
       return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
     };
-    const head = ["收據/場次編號", "課堂日期", "課堂名稱", "場地", "出席學員人數", "應付堂費(HK$)", "結算狀態", "備註"];
+    const head = ["收據/場次編號", "課堂日期", "課堂名稱", "場地", "出席學員人數", "自有學生數", "分成比例", "應付堂費(HK$)", "結算狀態"];
     const lines = [head.join(",")];
     for (const r of data.sessions_breakdown) {
       if (!r.attended_count) continue;
       lines.push([
-        r.receipt_no, r.date, r.course_title, r.venue, r.attended_count,
+        r.receipt_no, r.date, r.course_title, r.venue, r.attended_count, r.own_student_count || 0,
+        r.own_student_count ? "混合(100%/80%)" : Math.round((data.commission_rate || 0.8) * 100) + "%",
         Number(r.session_payout).toFixed(2),
         r.status === "paid" ? "已核實" : "待出帳",
-        r.own_student_count ? `含自有學生 ${r.own_student_count} 人 · 100% 拆帳` : "",
       ].map(esc).join(","));
     }
-    lines.push(["合計", "", "", "", data.total_attended_students, Number(data.total_earned).toFixed(2), "", ""].map(esc).join(","));
+    lines.push(["合計", "", "", "", data.total_attended_students, data.own_student_count || 0, "", Number(data.total_earned).toFixed(2), ""].map(esc).join(","));
 
     const affRows = data.affiliate_recent || [];
     if (affRows.length) {
       lines.push("");
       lines.push(["跨界被動分佣明細（學生跨班消費 5% 回佣）"].map(esc).join(","));
-      lines.push(["學生（遮罩）", "課程", "實收金額(HK$)", "5% 回佣(HK$)"].map(esc).join(","));
+      lines.push(["分佣單號", "入帳時間", "學員識別", "報讀課程", "帶班導師", "消費金額(HK$)", "回佣比例", "入帳佣金(HK$)"].map(esc).join(","));
       for (const a of affRows) {
-        lines.push([a.student_name, a.course_title, Number(a.order_amount).toFixed(2), Number(a.commission).toFixed(2)].map(esc).join(","));
+        lines.push([
+          a.id,
+          a.cleared_at || a.created_at,
+          `${a.student_name} (${a.student_phone_masked || ""})`,
+          a.course_title,
+          a.actual_coach_name,
+          Number(a.order_amount).toFixed(2),
+          Math.round((a.commission_rate || 0.05) * 100) + "%",
+          Number(a.commission).toFixed(2),
+        ].map(esc).join(","));
       }
-      lines.push(["小計", "", "", Number(data.affiliate_passive || 0).toFixed(2)].map(esc).join(","));
+      lines.push(["小計", "", "", "", "", "", "", Number(data.affiliate_passive || 0).toFixed(2)].map(esc).join(","));
     }
     const csv = "\uFEFF" + lines.join("\r\n");
     res.setHeader("Content-Type", "text/csv; charset=utf-8");
