@@ -56,6 +56,19 @@
     .payout-card button{border:1px solid #CBD5E1;background:#fff;border-radius:7px;padding:5px 8px;font-size:11px;font-weight:800;cursor:pointer;margin-left:4px}
     .payout-card .ok{color:#059669;font-weight:900}
     .payout-card .bad{color:#DC2626;font-weight:900}
+    .ps-card{margin-top:12px;background:#fff;border:1.5px solid #E2E8F0;border-radius:14px;padding:12px;font-size:12.5px;color:#475569}
+    .ps-card b{color:#0F172A}
+    .ps-card button{margin-top:8px;border:1px solid #CBD5E1;background:#fff;border-radius:8px;padding:7px 10px;font-weight:800;font-size:12px;cursor:pointer}
+    .ps-modal{position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:300;display:none;padding:14px;overflow:auto}
+    .ps-modal.on{display:block}
+    .ps-box{background:#fff;border-radius:16px;padding:16px;max-width:430px;margin:24px auto}
+    .ps-box h3{margin:0 0 4px;font-size:17px}
+    .ps-box label{display:block;font-size:12px;font-weight:800;color:#475569;margin:10px 0 4px}
+    .ps-box input,.ps-box select{width:100%;box-sizing:border-box;border:1.5px solid #CBD5E1;border-radius:10px;padding:10px;font:inherit}
+    .ps-box .row2{display:flex;gap:8px}
+    .ps-box .row2 label{flex:1;display:flex;align-items:center;gap:5px;border:1.5px solid #CBD5E1;border-radius:9px;padding:8px;margin:0;font-size:12.5px;cursor:pointer}
+    .ps-box .msg{font-size:12px;margin-top:8px;color:#B91C1C}
+    .ps-box .dev{font-size:11.5px;color:#92400E;background:#FFFBEB;border:1px solid #FDE68A;border-radius:8px;padding:6px 8px;margin-top:6px;display:none}
     .e-actions{display:flex;gap:8px;margin-bottom:12px}
     .e-btn{flex:1;min-height:46px;border-radius:10px;border:1.5px solid #CBD5E1;background:#fff;font-weight:800;font-size:13px;cursor:pointer}
     .e-btn.primary{background:#059669;border-color:#059669;color:#fff}
@@ -82,10 +95,40 @@
     <div class="kpis" id="kpis"></div>
     <div class="e-actions">
       <button class="e-btn primary" id="csvBtn">📥 匯出 Excel / CSV 月結單</button>
+      <button class="e-btn" id="psBtn" type="button">⚙️ 收款帳戶設定</button>
     </div>
+    <div id="psCard"></div>
     <div class="e-month" id="monthLabel"></div>
     <div id="rows"><div class="e-empty">載入中…</div></div>
     <div id="payouts"></div>
+  </div>
+  <div class="ps-modal" id="psModal">
+    <div class="ps-box">
+      <h3>⚙️ FPS 收款帳戶設定</h3>
+      <div style="font-size:12px;color:#64748B">更改後需輸入註冊手機收到嘅 6 位驗證碼；出糧前 24 小時至出糧日會鎖定。</div>
+      <label>識別碼類型</label>
+      <div class="row2">
+        <label><input type="radio" name="psType" value="mobile" checked> 手機號碼</label>
+        <label><input type="radio" name="psType" value="fps_id"> FPS ID</label>
+      </div>
+      <label>手機號碼 / FPS ID</label>
+      <input id="psProxy" inputmode="numeric" placeholder="98765432">
+      <label>收款銀行</label>
+      <select id="psBank"></select>
+      <label>收款人英文姓名（與銀行一致）</label>
+      <input id="psHolder" placeholder="CHAN TAI MAN" style="text-transform:uppercase">
+      <label>安全驗證</label>
+      <div style="display:flex;gap:8px">
+        <input id="psOtp" inputmode="numeric" maxlength="6" placeholder="6 位驗證碼" style="flex:1">
+        <button id="psSendOtp" type="button" style="flex:0 0 auto;border:1px solid #CBD5E1;background:#fff;border-radius:10px;padding:8px 10px;font-weight:800;font-size:12px">發送</button>
+      </div>
+      <div class="dev" id="psDev"></div>
+      <div class="msg" id="psMsg"></div>
+      <div style="display:flex;gap:8px;margin-top:14px">
+        <button id="psCancel" type="button" style="flex:1;border:1px solid #CBD5E1;background:#fff;border-radius:10px;padding:10px;font-weight:800">取消</button>
+        <button id="psSave" type="button" style="flex:1.4;border:0;background:#059669;color:#fff;border-radius:10px;padding:10px;font-weight:900">✓ 確認並更新</button>
+      </div>
+    </div>
   </div>
 <script src="assets/api.js?v=10"></script>
 <script>
@@ -105,6 +148,7 @@
     const p = await api.get("/coach/earnings/payouts");
     PAYOUTS = p.ok && p.data && Array.isArray(p.data.data) ? p.data.data : [];
     renderPayouts();
+    loadPayoutSettings();
   }
 
   function renderPayouts() {
@@ -163,6 +207,76 @@
       };
     });
   }
+
+  let PS = null, PS_OTP = null;
+  async function loadPayoutSettings() {
+    const r = await api.get("/coach/payout-settings");
+    if (!r.ok) return;
+    PS = r.data;
+    renderPsCard();
+    const sel = $("psBank");
+    if (sel && !sel.options.length) {
+      sel.innerHTML = (PS.banks || []).map((b) => `<option value="${esc(b.code)}">${esc(b.code)} - ${esc(b.name)}</option>`).join("");
+    }
+  }
+  function renderPsCard() {
+    const box = $("psCard");
+    if (!box || !PS) return;
+    const s = PS.settings;
+    const freeze = PS.freeze_window ? `<div style="margin-top:6px;color:#B45309;font-weight:800">⏳ 出糧凍結期：8 號後才可更改</div>` : "";
+    box.innerHTML = s
+      ? `<div class="ps-card"><div>🟢 <b>已驗證</b> · ${esc(s.bank_name)} · ${esc(s.fps_proxy_masked)}（${esc(s.fps_proxy_type || s.fps_type)}）</div>
+         <div style="margin-top:4px">收款人：<b>${esc(s.account_holder_name)}</b> · 下次出糧將轉帳至此戶口</div>${freeze}</div>`
+      : `<div class="ps-card">⚠️ 未設定 FPS 收款戶口，請盡快設定，否則無法出糧。${freeze}</div>`;
+  }
+  $("psBtn").onclick = () => {
+    if (!PS) return;
+    $("psMsg").textContent = "";
+    $("psDev").style.display = "none";
+    PS_OTP = null;
+    if (PS.settings) {
+      const t = PS.settings.fps_type;
+      document.querySelectorAll('input[name="psType"]').forEach((x) => (x.checked = x.value === t));
+      $("psProxy").value = PS.settings.fps_proxy_value || "";
+      $("psBank").value = PS.settings.bank_code || "024";
+      $("psHolder").value = PS.settings.account_holder_name || "";
+    }
+    $("psOtp").value = "";
+    $("psModal").classList.add("on");
+  };
+  $("psCancel").onclick = () => $("psModal").classList.remove("on");
+  $("psModal").onclick = (e) => { if (e.target.id === "psModal") $("psModal").classList.remove("on"); };
+  $("psSendOtp").onclick = async () => {
+    $("psMsg").textContent = "";
+    $("psSendOtp").disabled = true;
+    const r = await api.post("/coach/payout-settings/otp", {});
+    $("psSendOtp").disabled = false;
+    if (!r.ok) { $("psMsg").textContent = (r.data && r.data.error) || "發送失敗"; return; }
+    PS_OTP = r.data.otp_session_id;
+    $("psMsg").textContent = "已發送驗證碼至 " + (r.data.phone_masked || "");
+    if (r.data.dev_code) {
+      $("psDev").style.display = "block";
+      $("psDev").textContent = "🧪 測試環境驗證碼：" + r.data.dev_code;
+    }
+  };
+  $("psSave").onclick = async () => {
+    if (!PS_OTP) { $("psMsg").textContent = "請先發送驗證碼"; return; }
+    const type = (document.querySelector('input[name="psType"]:checked') || {}).value || "mobile";
+    $("psSave").disabled = true;
+    const r = await api.put("/coach/payout-settings", {
+      otp_session_id: PS_OTP,
+      otp_code: $("psOtp").value.replace(/\D/g, ""),
+      fps_type: type,
+      fps_proxy_value: $("psProxy").value.trim(),
+      bank_code: $("psBank").value,
+      account_holder_name: $("psHolder").value.trim(),
+    });
+    $("psSave").disabled = false;
+    if (!r.ok) { $("psMsg").textContent = (r.data && r.data.error) || "更新失敗"; return; }
+    PS.settings = r.data.settings;
+    renderPsCard();
+    $("psModal").classList.remove("on");
+  };
 
   function render() {
     const d = DATA;

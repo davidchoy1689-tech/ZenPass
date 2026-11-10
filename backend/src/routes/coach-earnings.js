@@ -1533,6 +1533,62 @@ router.get("/earnings/payouts", authenticateToken, (req, res) => {
   }
 });
 
+// ===== FPS 收款帳戶設定（工單二十一）=====
+function payoutSettingsSvc() {
+  return require("../services/payout-settings");
+}
+function isCoachish(user) {
+  return ["coach", "partner_coach", "super_admin", "platform_manager"].includes(user && user.role);
+}
+
+router.get("/payout-settings", authenticateToken, (req, res) => {
+  try {
+    if (!isCoachish(req.user)) return res.status(403).json({ success: false, error: "只限教練" });
+    const svc = payoutSettingsSvc();
+    res.json({
+      success: true,
+      settings: svc.getSettings(getDb(), req.user.id),
+      banks: svc.BANKS,
+      freeze_window: svc.inFreezeWindow(),
+    });
+  } catch (e) {
+    console.error("[PAYOUT-SETTINGS] get:", e.message);
+    res.status(500).json({ success: false, error: "讀取收款設定失敗" });
+  }
+});
+
+router.post("/payout-settings/otp", authenticateToken, async (req, res) => {
+  try {
+    if (!isCoachish(req.user)) return res.status(403).json({ success: false, error: "只限教練" });
+    const out = await payoutSettingsSvc().sendOtp(getDb(), req.user.id, { ip: req.ip || "" });
+    if (!out.ok) return res.status(out.status || 400).json({ success: false, error: out.error, retry_after: out.retry_after });
+    res.json({
+      success: true,
+      otp_session_id: out.otp_session_id,
+      phone_masked: out.phone_masked,
+      channel: out.channel,
+      dev_code: out.code,
+      expires_in: 300,
+      resend_in: 60,
+    });
+  } catch (e) {
+    console.error("[PAYOUT-SETTINGS] otp:", e.message);
+    res.status(500).json({ success: false, error: "發送驗證碼失敗" });
+  }
+});
+
+router.put("/payout-settings", authenticateToken, (req, res) => {
+  try {
+    if (!isCoachish(req.user)) return res.status(403).json({ success: false, error: "只限教練" });
+    const out = payoutSettingsSvc().validateAndUpdate(getDb(), req.user.id, req.body || {}, { ip: req.ip || "" });
+    if (!out.ok) return res.status(out.status || 400).json({ success: false, code: out.code, error: out.error });
+    res.json({ success: true, settings: out.settings });
+  } catch (e) {
+    console.error("[PAYOUT-SETTINGS] put:", e.message);
+    res.status(500).json({ success: false, error: "更新收款設定失敗" });
+  }
+});
+
 /** RFC 4180：一律加雙引號，內部 " → "" */
 function csvEscape(v) {
   const s = v === null || v === undefined ? "" : String(v);

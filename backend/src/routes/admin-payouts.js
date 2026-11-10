@@ -109,6 +109,18 @@ router.patch("/coach-payouts/:id", (req, res) => {
     }
     const out = disb.setStatus(db, req.params.id, status, (req.body || {}).reason);
     if (!out.ok) return res.status(404).json({ success: false, error: "找不到紀錄" });
+    if (status === "failed") {
+      try {
+        const row = db.prepare("SELECT coach_id, payout_month, net_payout_cents FROM coach_payout_disbursements WHERE id=?").get(req.params.id);
+        require("../services/notification").dbNotification(
+          row.coach_id,
+          "payout",
+          "⚠️ FPS 出糧轉帳失敗",
+          `${row.payout_month} 收益轉帳失敗（HK$${(Number(row.net_payout_cents) / 100).toFixed(2)}）。款項已保留於平台錢包，請核對銀行戶名／FPS 號碼後更正，財務會於下一個工作日重發。`,
+          { payout_id: req.params.id },
+        );
+      } catch (e) {}
+    }
     res.json({ success: true, status });
   } catch (e) {
     console.error("[ADMIN-PAYOUT] patch:", e.message);
