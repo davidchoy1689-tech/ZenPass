@@ -181,6 +181,12 @@ router.post("/attendance/batch", (req, res) => {
     }
     const sched = ownSchedule(db, req.user, session_id);
     if (!sched) return res.status(404).json({ success: false, error: "找不到班次或無權限" });
+    let hbReady = false;
+    try {
+      require("./handbook-p1").ensureHandbookSchema(db);
+      hbReady = true;
+    } catch (e) {}
+    const actualCoachId = sched.coach_override_id || sched.coach_id;
 
     const getBooking = db.prepare("SELECT * FROM bookings WHERE id=? AND schedule_id=?");
     const getAtt = db.prepare("SELECT * FROM attendances WHERE booking_id=?");
@@ -217,6 +223,39 @@ router.post("/attendance/batch", (req, res) => {
           db.prepare("UPDATE bookings SET status='no_show', cancel_reason='coach_roster_no_show' WHERE id=?").run(b.id);
         }
         // absent_notified：保留 booking 狀態（唔計出席，亦唔當 no-show 扣堂）
+
+        // 手冊動態更新：出席＋有備註 → 自動新增一則手冊紀錄（同一 booking 只一次）
+        const noteText = String((rec && rec.notes) || "").trim();
+        if (hbReady && (status === "present" || status === "late") && noteText.length >= 2 && b.user_id) {
+          const seen = db.prepare("SELECT id FROM student_handbooks WHERE booking_id=?").get(b.id);
+          if (!seen) {
+            const stu = db.prepare("SELECT name FROM users WHERE id=?").get(b.user_id);
+            const stuName =
+              b.attendee_type === "child"
+                ? b.child_name || (stu && stu.name) || "學員"
+                : (stu && stu.name) || "學員";
+            const tags = [];
+            if (/膝|關節|手術/.test(noteText)) tags.push("關節活動度");
+            if (/血壓|心臟|氣管|氣喘/.test(noteText)) tags.push("身體狀況");
+            if (/動作|完成度|姿勢/.test(noteText)) tags.push("動作完成度");
+            const logDate = new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Hong_Kong" });
+            db.prepare(
+              `INSERT INTO student_handbooks
+                 (id, student_id, student_name, booking_id, session_id, coach_id, log_date, tags_json, comment, allow_reply)
+               VALUES (?,?,?,?,?,?,?,?,?,1)`,
+            ).run(
+              uuidv4(),
+              b.user_id,
+              stuName,
+              b.id,
+              session_id,
+              actualCoachId,
+              logDate,
+              JSON.stringify(tags),
+              noteText.slice(0, 500),
+            );
+          }
+        }
 
         // 推薦獎賞：被推薦人「生涯首次出席」先觸發（同一 transaction 內派堂）
         let referral_reward = null;

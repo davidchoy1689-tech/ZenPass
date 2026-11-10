@@ -243,3 +243,4 @@ function shape(r) {
 function safe(s, d) { try { return JSON.parse(s); } catch (e) { return d; } }
 
 module.exports = router;
+module.exports.ensureHandbookSchema = ensureSchema;

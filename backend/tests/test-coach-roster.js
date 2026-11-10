@@ -111,6 +111,15 @@ const call = (handler, { body = {}, user = null, params = {} }) => new Promise((
   const li = r5.body.roster.find((x) => x.booking_id === "b2");
   ok(li && li.is_own_student === false, "未綁定 → 平台學生", li && li.is_own_student);
 
+  console.log("🧪 6. 出席備註自動寫入手冊");
+  const b6 = await call(batch, { user: coach1, body: { session_id: "s1", records: [{ booking_id: "b3", status: "present", notes: "膝部活動度改善；血壓平穩" }] } });
+  ok(b6.body.success, "b3 present + 備註");
+  const hb = db.prepare("SELECT * FROM student_handbooks WHERE booking_id='b3'").get();
+  ok(hb && hb.comment === "膝部活動度改善；血壓平穩", "手冊有課堂備註", hb && hb.comment);
+  ok(hb && JSON.parse(hb.tags_json).includes("關節活動度"), "自動標籤（關節活動度）", hb && hb.tags_json);
+  const b7 = await call(batch, { user: coach1, body: { session_id: "s1", records: [{ booking_id: "b3", status: "present", notes: "重覆提交" }] } });
+  ok(b7.body.success && db.prepare("SELECT COUNT(*) c FROM student_handbooks WHERE booking_id='b3'").get().c === 1, "同一 booking 唔會重複寫手冊");
+
   console.log(`\n${bad === 0 ? "✅ 全部通過" : "❌ 有失敗"} — ${pass} passed, ${bad} failed`);
   process.exit(bad === 0 ? 0 : 1);
 })();
