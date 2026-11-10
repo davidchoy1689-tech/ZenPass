@@ -1538,7 +1538,7 @@ function payoutSettingsSvc() {
   return require("../services/payout-settings");
 }
 function isCoachish(user) {
-  return ["coach", "partner_coach", "super_admin", "platform_manager"].includes(user && user.role);
+  return ["coach", "partner_coach", "super_admin", "platform_manager", "admin"].includes(user && user.role);
 }
 
 router.get("/payout-settings", authenticateToken, (req, res) => {
