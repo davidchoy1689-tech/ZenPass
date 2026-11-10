@@ -116,6 +116,7 @@ let body = null;
 const res = {
   statusCode: 200,
   setHeader(k, v) { headers[k.toLowerCase()] = v; return this; },
+  removeHeader(k) { delete headers[k.toLowerCase()]; return this; },
   status(c) { this.statusCode = c; return this; },
   send(b) { body = b; return this; },
   json(o) { body = o; return this; },

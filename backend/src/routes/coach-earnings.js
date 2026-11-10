@@ -1588,6 +1588,7 @@ router.get("/earnings/export-csv", authenticateToken, (req, res) => {
     const db = getDb();
     const { month } = monthWindow(req.query.month);
     const csv = buildEarningsCsv(db, req.user.id, month);
+    if (typeof res.removeHeader === "function") res.removeHeader("Cache-Control");
     res.setHeader("Content-Type", "text/csv; charset=utf-8");
     res.setHeader(
       "Content-Disposition",
