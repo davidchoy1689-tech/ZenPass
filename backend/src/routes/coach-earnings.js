@@ -1315,6 +1315,14 @@ function monthWindow(month) {
   return { month: m };
 }
 
+function maskStudentName(n) {
+  const s = String(n || "").trim();
+  if (!s) return "學員";
+  if (s.length <= 1) return s + "*";
+  if (s.length === 2) return s[0] + "*";
+  return s[0] + "*".repeat(s.length - 2) + s[s.length - 1];
+}
+
 function buildMonthlyBreakdown(db, coachId, month) {
   const affiliateSvc = require("../services/coach-affiliate");
   try {
@@ -1353,6 +1361,23 @@ function buildMonthlyBreakdown(db, coachId, month) {
   const ceStmt = db.prepare("SELECT status, net_amount FROM coach_earnings WHERE schedule_id=?");
   let totalCents = 0, sessions = 0, students = 0, paidCents = 0, totalMinutes = 0;
   let directCents = 0, upliftCents = 0, ownStudents = 0;
+  const bcols = db.prepare("PRAGMA table_info(bookings)").all().map((c) => c.name);
+  const hasWalkin = bcols.includes("is_walkin");
+  const payStmt = db.prepare(
+    `SELECT b.id, b.user_id, b.amount, b.payment_method, b.payment_type,
+            ${hasWalkin ? "COALESCE(b.is_walkin,0)" : "0"} AS is_walkin,
+            u.name, u.phone, f.origin_coach_id
+       FROM bookings b
+       JOIN users u ON u.id = b.user_id
+       LEFT JOIN student_coach_affiliations f ON f.student_user_id = b.user_id AND f.status='active'
+       LEFT JOIN attendances a ON a.booking_id = b.id
+      WHERE b.schedule_id = ? AND b.payment_status='paid'
+        AND b.status IN ('confirmed','attended')
+        AND (a.status IN ('present','late') OR (a.status IS NULL AND b.status='attended'))
+      ORDER BY datetime(b.created_at)`,
+  );
+  const paymentRows = [];
+  let cashCollectedCents = 0, cashCount = 0, fpsCount = 0;
   const hktDate = (t) => {
     const d = new Date(String(t || "").replace(" ", "T"));
     return isNaN(d) ? String(t || "").slice(0, 10) : d.toLocaleDateString("sv-SE", { timeZone: "Asia/Hong_Kong" });
@@ -1377,6 +1402,32 @@ function buildMonthlyBreakdown(db, coachId, month) {
       totalMinutes += mins;
       if (status === "paid") paidCents += Math.round(Number(ce.net_amount || 0) * 100) || payoutCents;
     }
+    for (const b of payStmt.all(s.id)) {
+      const method = String(b.payment_method || (b.payment_type === "pass" ? "user_pass" : "online"));
+      const walkin = Number(b.is_walkin) === 1 || method === "walkin_cash" || method === "walkin_fps" || method === "cash" || method === "fps";
+      const isPass = method === "user_pass" || b.payment_type === "pass";
+      const collected = walkin && !isPass ? Math.round(Number(b.amount || 0) * 100) : 0;
+      const own = !!b.origin_coach_id && b.origin_coach_id === coachId;
+      const coachCents = own ? unitCents : Math.round(unitCents * rate);
+      if (collected > 0) cashCollectedCents += collected;
+      if (walkin && !isPass) {
+        if (method === "walkin_fps" || method === "fps") fpsCount += 1;
+        else cashCount += 1;
+      }
+      paymentRows.push({
+        session_id: s.id,
+        date: hktDate(s.start_time),
+        student_name: maskStudentName(b.name),
+        student_phone_masked: b.phone ? String(b.phone).slice(0, 4) + "****" : "",
+        booking_type: walkin ? "現場Walk-in" : "預約報名",
+        payment_channel: isPass ? "線上Pass扣堂" : method === "walkin_fps" || method === "fps" ? "個人FPS(現場)" : walkin ? "現金(Cash)" : "線上支付",
+        gross_cents: walkin && !isPass ? collected : unitCents,
+        split_mode: own ? "自有學生100%" : "平台學生" + Math.round(rate * 100) + "%",
+        coach_cents: coachCents,
+        collected_cents: collected,
+        pending_cents: coachCents - collected,
+      });
+    }
     return {
       session_id: s.id,
       receipt_no: "ZP-" + String(s.id).slice(0, 8).toUpperCase(),
@@ -1398,6 +1449,7 @@ function buildMonthlyBreakdown(db, coachId, month) {
     aff = affiliateSvc.monthSummary(db, coachId, month);
   } catch (e) {}
   totalCents += Number(aff.affiliate_passive_cents) || 0;
+  const netPayoutCents = totalCents - cashCollectedCents;
   paidCents = Math.min(paidCents, totalCents);
   return {
     month,
@@ -1415,8 +1467,17 @@ function buildMonthlyBreakdown(db, coachId, month) {
       teaching_earnings_cents: directCents,
       own_student_uplift_cents: upliftCents,
       affiliate_passive_cents: Number(aff.affiliate_passive_cents) || 0,
+      cash_collected_cents: cashCollectedCents,
+      net_payout_cents: netPayoutCents,
       currency: "HKD",
     },
+    cash_collected_cents: cashCollectedCents,
+    cash_collected: cashCollectedCents / 100,
+    cash_count: cashCount,
+    fps_count: fpsCount,
+    net_payout_cents: netPayoutCents,
+    net_payout: netPayoutCents / 100,
+    payment_breakdown: paymentRows,
     kpis: {
       total_sessions: sessions,
       total_students_served: students,
@@ -1505,6 +1566,14 @@ function buildEarningsCsv(db, coachId, month) {
       hkMoney(affCents),
     ]),
   );
+  lines.push(
+    csvRow([
+      "現場已收取款項",
+      hkMoney(data.cash_collected_cents),
+      "最終 FPS 入數金額",
+      hkMoney(data.net_payout_cents),
+    ]),
+  );
   lines.push("");
 
   // 區塊 2：執教課堂明細（7 欄）
@@ -1547,6 +1616,57 @@ function buildEarningsCsv(db, coachId, month) {
     ]),
   );
   lines.push("");
+
+  // 區塊 2b：支付渠道明細（10 欄，現金/FPS 沖抵）
+  const payRows = data.payment_breakdown || [];
+  if (payRows.length) {
+    lines.push(csvRow(["— 執教課堂與支付渠道明細 —"]));
+    lines.push(
+      csvRow([
+        "堂次ID",
+        "日期",
+        "學員",
+        "報讀方式",
+        "支付渠道",
+        "實收總額(HKD)",
+        "拆帳模式",
+        "教練應得(HKD)",
+        "現場已收(HKD)",
+        "待發款項(HKD)",
+      ]),
+    );
+    for (const p of payRows) {
+      lines.push(
+        csvRow([
+          p.session_id,
+          p.date,
+          `${p.student_name} (${p.student_phone_masked || ""})`,
+          p.booking_type,
+          p.payment_channel,
+          (p.gross_cents / 100).toFixed(2),
+          p.split_mode,
+          (p.coach_cents / 100).toFixed(2),
+          (p.collected_cents / 100).toFixed(2),
+          (p.pending_cents / 100).toFixed(2),
+        ]),
+      );
+    }
+    lines.push(
+      csvRow([
+        "小計",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        (payRows.reduce((s, p) => s + p.coach_cents, 0) / 100).toFixed(2),
+        (payRows.reduce((s, p) => s + p.collected_cents, 0) / 100).toFixed(2),
+        (payRows.reduce((s, p) => s + p.pending_cents, 0) / 100).toFixed(2),
+      ]),
+    );
+    lines.push("");
+  }
 
   // 區塊 3：跨界 5% 明細（8 欄）
   lines.push(csvRow(["— 跨界 5% 被動分佣明細 (學生跨班消費) —"]));

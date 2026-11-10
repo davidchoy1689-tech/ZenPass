@@ -48,9 +48,18 @@ const now = new Date();
 const start = now.toISOString().slice(0, 19).replace("T", " ");
 const month = now.toISOString().slice(0, 7);
 
+for (const sql of [
+  "ALTER TABLE bookings ADD COLUMN is_walkin INTEGER DEFAULT 0",
+  "ALTER TABLE bookings ADD COLUMN payment_method TEXT",
+  "ALTER TABLE bookings ADD COLUMN collected_by TEXT",
+]) {
+  try { db.exec(sql); } catch (e) {}
+}
+
 mkUser("coachA", "蔡教練", "coach", "91111111");
 mkUser("coachB", "黃 Sir", "coach", "92222222");
 mkUser("s1", "陳大文", "user", "98765432");
+mkUser("s2", "黃伯", "user", "93333333");
 mkVenue("v1");
 mkClass("cA", "coachA", '樂齡深層伸展, "週末班"', "v1");
 mkClass("cB", "coachB", "水中健體活力班（何文田）", "v1");
@@ -58,8 +67,10 @@ mkSched("sA", "cA", start);
 mkSched("sB", "cB", start);
 mkBooking("b1", "s1", "sA", "cA", 140);
 mkBooking("b2", "s1", "sB", "cB", 140);
+db.prepare("INSERT INTO bookings (id,booking_reference,user_id,schedule_id,class_id,status,payment_type,payment_status,amount,is_walkin,payment_method,collected_by) VALUES ('b4','R4','s2','sA','cA','attended','single','paid',140,1,'walkin_cash','coach')").run();
 db.prepare("INSERT INTO attendances (id,session_id,booking_id,student_name,status) VALUES ('a1','sA','b1','陳大文','present')").run();
 db.prepare("INSERT INTO attendances (id,session_id,booking_id,student_name,status) VALUES ('a2','sB','b2','陳大文','present')").run();
+db.prepare("INSERT INTO attendances (id,session_id,booking_id,student_name,status) VALUES ('a4','sA','b4','黃伯','present')").run();
 affiliate.bindStudent(db, "s1", "coachA");
 syncCoachEarningsForSchedule("sA");
 syncCoachEarningsForSchedule("sB");
@@ -91,17 +102,24 @@ function countFields(line) {
 }
 const lines = csv.slice(1).split("\r\n").filter((l) => l !== "");
 const iSess = lines.findIndex((l) => l.includes("執教課堂明細"));
+const iPay = lines.findIndex((l) => l.includes("支付渠道明細"));
 const iAff = lines.findIndex((l) => l.includes("跨界 5% 被動分佣明細"));
-const sessLines = lines.slice(iSess, iAff - 1);
+const sessLines = lines.slice(iSess, iPay - 1);
+const payLines = lines.slice(iPay, iAff - 1);
 const affLines = lines.slice(iAff);
 const sessCounts = sessLines.map(countFields);
+const payCounts = payLines.map(countFields);
 const affCounts = affLines.map(countFields);
 ok(sessCounts.slice(1).every((x) => x.n === 7), "執教區段每行 7 欄（含合計）", sessCounts.map((x) => x.n));
+ok(payCounts.slice(1).every((x) => x.n === 10), "支付渠道區段每行 10 欄", payCounts.map((x) => x.n));
 ok(affCounts.slice(1).every((x) => x.n === 8), "跨界區段每行 8 欄（含小計）", affCounts.map((x) => x.n));
-ok([...sessCounts, ...affCounts].every((x) => x.balanced), "冇未閉合引號");
+ok([...sessCounts, ...payCounts, ...affCounts].every((x) => x.balanced), "冇未閉合引號");
 
 console.log("🧪 4. 內容正確");
-ok(csv.includes("蔡教練") && csv.includes("coachA"), "有教練姓名＋編號");
+  ok(csv.includes("蔡教練") && csv.includes("coachA"), "有教練姓名＋編號");
+  ok(csv.includes("支付渠道明細") && csv.includes("現金(Cash)"), "有支付渠道明細");
+  ok(csv.includes("-28.00"), "現場現金沖抵 -$28");
+  ok(csv.includes("最終 FPS 入數金額"), "有最終 FPS 入數");
 ok(csv.includes("自有學生100%"), "自有學生班次標示 100%");
 ok(csv.includes("陳*文") && csv.includes("9876****"), "學員識別有遮罩＋電話");
 ok(csv.includes("黃 Sir") && csv.includes("水中健體活力班（何文田）"), "跨界課程＋帶班導師");

@@ -136,7 +136,8 @@ function handleWalkIn(req, res) {
     try { coachAffiliate.ensureSchema(db); } catch (e) {}
 
     const bcols = cols(db, "bookings");
-    if (!bcols.includes("is_walkin")) db.exec("ALTER TABLE bookings ADD COLUMN is_walkin INTEGER DEFAULT 0");
+    if (!bcols.includes("is_walkin")) { db.exec("ALTER TABLE bookings ADD COLUMN is_walkin INTEGER DEFAULT 0"); bcols.push("is_walkin"); }
+    if (!bcols.includes("collected_by")) { db.exec("ALTER TABLE bookings ADD COLUMN collected_by TEXT"); bcols.push("collected_by"); }
     const acols = cols(db, "attendances");
 
     const cap = Number(s.max_participants || s.class_max || 0);
@@ -197,9 +198,12 @@ function handleWalkIn(req, res) {
 
       const bid = crypto.randomUUID();
       const ref = "WI" + Date.now().toString(36).toUpperCase().slice(-6);
+      const dbMethod = method === "pass" ? "user_pass" : method === "fps" ? "walkin_fps" : "walkin_cash";
+      const collectedBy = method === "pass" ? "platform" : "coach";
       const fields = ["id", "booking_reference", "user_id", "class_id", "schedule_id", "status", "payment_type", "payment_status", "amount", "is_walkin"];
       const vals = [bid, ref, u.id, s.class_id, sessionId, "confirmed", method === "pass" ? "pass" : "single", "paid", amount, 1];
-      if (bcols.includes("payment_method")) { fields.push("payment_method"); vals.push(method); }
+      if (bcols.includes("payment_method")) { fields.push("payment_method"); vals.push(dbMethod); }
+      if (bcols.includes("collected_by")) { fields.push("collected_by"); vals.push(collectedBy); }
       if (bcols.includes("amount_cents")) { fields.push("amount_cents"); vals.push(Math.round(amount * 100)); }
       if (bcols.includes("group_size")) { fields.push("group_size"); vals.push(1); }
       if (bcols.includes("attendee_type")) { fields.push("attendee_type"); vals.push("self"); }
@@ -268,7 +272,14 @@ function handleWalkIn(req, res) {
       entityType: "booking",
       entityId: out.booking_id,
       userId: req.user.id,
-      newValues: { session_id: sessionId, name, phone, method: rawMethod || "auto", amount: out.amount || 0 },
+      newValues: {
+        session_id: sessionId,
+        name,
+        phone_masked: phone.slice(0, 4) + "****",
+        method: out.payment_method || rawMethod || "auto",
+        amount: out.amount || 0,
+        collected_by: out.payment_method === "pass" ? "platform" : "coach",
+      },
       description: `現場補錄學員（${s.title}）`,
     });
     res.status(201).json({

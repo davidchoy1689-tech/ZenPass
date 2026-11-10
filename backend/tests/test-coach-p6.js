@@ -55,7 +55,7 @@ const call = (h, { body = {}, user = null, params = {}, query = {} }) => new Pro
   const r1 = await call(walkin, { user: { id: "coach", role: "coach" }, body: { session_id: "s2", student_name: "陳大文", contact_phone: "98765432", payment_method: "cash", notes: "婆婆朋友，膝痛" } });
   ok(r1.statusCode === 201 && r1.body.success, "201 成功", r1.statusCode);
   const bk = db.prepare("SELECT * FROM bookings WHERE id=?").get(r1.body.booking_id);
-  ok(bk && bk.is_walkin === 1 && bk.status === "confirmed" && bk.payment_status === "paid" && bk.payment_method === "cash", "booking 標記 walk-in + 已付");
+  ok(bk && bk.is_walkin === 1 && bk.status === "confirmed" && bk.payment_status === "paid" && bk.payment_method === "walkin_cash" && bk.collected_by === "coach", "booking 標記 walk-in + 已付 + coach collected");
   ok(bk.amount === 140, "金額 = 課程價 $140", bk.amount);
   const at = db.prepare("SELECT * FROM attendances WHERE booking_id=?").get(r1.body.booking_id);
   ok(at && at.status === "present", "已自動簽到 present");
