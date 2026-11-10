@@ -356,6 +356,7 @@ function renderDetail() {
         <div>
           <div class="big">${hkd(amt)}</div>
           <div class="small">教練應得 ${hkd(bk.total_payout_cents)} · 現場實收沖抵 ${hkd(bk.cash_collected_cents)} · 淨發放 ${hkd(bk.net_payout_cents)}</div>
+          ${Number(bk.held_uplift_cents) > 0 ? `<div class="small" style="color:#B45309">⚠️ 代堂期間自有學生補足託管中：${hkd(bk.held_uplift_cents)}（結案後才發放）</div>` : ""}
         </div>
         <div class="small" style="text-align:right">執教 ${hkd(bk.teaching_earnings_cents)}<br>自有補足 ${hkd(bk.own_student_uplift_cents)}<br>跨界分佣 ${hkd(bk.affiliate_passive_cents)}</div>
       </div>

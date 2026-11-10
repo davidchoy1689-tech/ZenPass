@@ -1444,6 +1444,37 @@ function buildMonthlyBreakdown(db, coachId, month) {
       status,
     };
   });
+
+  // 代堂班次：原教練保留自有學生 20% 補足；frozen_stolen 期間標記託管、不發放
+  let heldUpliftCents = 0, heldStudents = 0;
+  try {
+    const coachRow = db.prepare("SELECT payout_status FROM users WHERE id=?").get(coachId);
+    const overridden = db
+      .prepare(
+        `SELECT s.id, s.start_time, c.price_hkd
+           FROM class_schedules s JOIN classes c ON c.id=s.class_id
+           LEFT JOIN partner_venues pv ON pv.id=c.partner_venue_id
+          WHERE c.coach_id=? AND s.coach_override_id IS NOT NULL AND s.coach_override_id<>?
+            AND substr(s.start_time,1,7)=? AND COALESCE(s.status,'')<>'cancelled'
+            AND COALESCE(pv.is_sandbox,0)=0`,
+      )
+      .all(coachId, coachId, month);
+    for (const s of overridden) {
+      const ownAttended = Number(affiliateSvc.ownStudentAttended(db, s.id, coachId)) || 0;
+      if (!ownAttended) continue;
+      const unitCents = Math.round(Number(s.price_hkd || 0) * 100);
+      const amt = Math.round(unitCents * Math.max(0, 1 - rate)) * ownAttended;
+      if (!amt) continue;
+      if (coachRow && coachRow.payout_status === "frozen_stolen") {
+        heldUpliftCents += amt;
+        heldStudents += ownAttended;
+      } else {
+        upliftCents += amt;
+        totalCents += amt;
+      }
+    }
+  } catch (e) {}
+
   let aff = { affiliate_passive_cents: 0, affiliate_students_count: 0, affiliate_recent: [] };
   try {
     aff = affiliateSvc.monthSummary(db, coachId, month);
@@ -1466,12 +1497,15 @@ function buildMonthlyBreakdown(db, coachId, month) {
       total_payout_cents: totalCents,
       teaching_earnings_cents: directCents,
       own_student_uplift_cents: upliftCents,
+      held_uplift_cents: heldUpliftCents,
       affiliate_passive_cents: Number(aff.affiliate_passive_cents) || 0,
       cash_collected_cents: cashCollectedCents,
       net_payout_cents: netPayoutCents,
       currency: "HKD",
     },
     cash_collected_cents: cashCollectedCents,
+    held_uplift_cents: heldUpliftCents,
+    held_uplift_students: heldStudents,
     cash_collected: cashCollectedCents / 100,
     cash_count: cashCount,
     fps_count: fpsCount,
