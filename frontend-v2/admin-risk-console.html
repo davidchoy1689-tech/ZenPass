@@ -277,6 +277,15 @@ function renderDetail() {
       </div>
     </div>
 
+    ${(d.recent_audit || []).length ? `
+    <div class="sec">
+      <h3>近期操作軌跡（證據鏈）</h3>
+      ${(d.recent_audit || []).map((a) => `<div style="display:flex;justify-content:space-between;gap:10px;font-size:12px;padding:5px 0;border-bottom:1px dashed #EEF2F7">
+        <span style="color:#334155">${esc(a.description || a.action_type)}</span>
+        <span style="color:#94A3B8;white-space:nowrap">${esc(when(a.created_at))}</span>
+      </div>`).join("")}
+    </div>` : ""}
+
     <div class="sec">
       <h3>涉及款項（${esc(t.payout_month || bk.month || "")}）</h3>
       <div class="money">

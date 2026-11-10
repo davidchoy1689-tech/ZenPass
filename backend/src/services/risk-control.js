@@ -243,7 +243,8 @@ function detail(db, ticketId) {
   const recent = db
     .prepare(
       `SELECT action_type, description, created_at, ip_address FROM audit_log
-        WHERE entity_id=? AND entity_type='coach' ORDER BY datetime(created_at) DESC LIMIT 8`,
+        WHERE entity_id=? AND entity_type IN ('coach','coach_payout_setting','user')
+        ORDER BY datetime(created_at) DESC LIMIT 8`,
     )
     .all(t.coach_id);
   return {
