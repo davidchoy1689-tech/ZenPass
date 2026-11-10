@@ -144,14 +144,34 @@ router.get("/coach/students/invites", authenticateToken, (req, res) => {
   try {
     const db = getDb();
     ensureTables(db);
+
+    // 過期未認領 → 即時標記（教練端睇到真實狀態）
+    db.prepare(
+      `UPDATE student_onboarding_invites SET status='expired'
+        WHERE coach_id=? AND status='pending' AND julianday('now') - julianday(created_at) > ?`,
+    ).run(req.user.id, INVITE_DAYS);
+
     const rows = db
-      .prepare("SELECT id, student_name, phone, notes, initial_pass_quota, token, status, created_at, claimed_at FROM student_onboarding_invites WHERE coach_id=? ORDER BY created_at DESC LIMIT 500")
-      .all(req.user.id);
+      .prepare(
+        `SELECT id, student_name, phone, notes, initial_pass_quota, token, status, created_at, claimed_at,
+                claimed_by_user_id,
+                CAST(? - (julianday('now') - julianday(created_at)) AS INTEGER) AS days_left
+           FROM student_onboarding_invites WHERE coach_id=? ORDER BY created_at DESC LIMIT 500`,
+      )
+      .all(INVITE_DAYS, req.user.id);
     const claimed = rows.filter((r) => r.status === "claimed").length;
+    const pending = rows.filter((r) => r.status === "pending").length;
+    const expired = rows.filter((r) => r.status === "expired").length;
     res.json({
       success: true,
-      invites: rows,
-      stats: { total: rows.length, claimed, pending: rows.length - claimed, rate: rows.length ? Math.round((claimed / rows.length) * 100) : 0 },
+      invites: rows.map((r) => ({ ...r, days_left: Math.max(0, Number(r.days_left) || 0) })),
+      stats: {
+        total: rows.length,
+        claimed,
+        pending,
+        expired,
+        rate: rows.length ? Math.round((claimed / rows.length) * 100) : 0,
+      },
     });
   } catch (e) {
     res.status(500).json({ success: false, error: "讀取失敗" });

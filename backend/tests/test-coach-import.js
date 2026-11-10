@@ -88,6 +88,28 @@ const call = (h, { body = {}, user = null, params = {}, query = {} }) => new Pro
   const l1 = await call(list, { user: { id: "coach1", role: "coach" } });
   ok(l1.body.invites.every((x) => x.coach_id === undefined), "只回自己（不含其他教練）", l1.body.invites.length);
   ok(l1.body.stats.claimed >= 1 && l1.body.stats.rate >= 0, "有啟用率統計");
+  ok(typeof l1.body.stats.pending === "number" && typeof l1.body.stats.expired === "number", "漏斗有 pending／expired");
+  ok(l1.body.invites.every((x) => typeof x.days_left === "number"), "每位有剩餘日數");
+  ok(l1.body.invites.some((x) => x.status === "claimed" && x.claimed_by_user_id), "已認領有 claimed_by_user_id");
+
+  console.log("🧪 7b. 教練可查看自己學生手冊（不可看其他教練）");
+  const hbRouter = require("../src/routes/handbook-p1");
+  const hbGet = handlerOf(hbRouter, "get", "/student/handbook/:sid");
+  const studentId = done.body.user.id;
+  const hbPost = handlerOf(hbRouter, "post", "/coach/handbook/log");
+  const studentId2 = "u-other";
+  db.prepare("INSERT INTO users (id,email,name,role,phone) VALUES (?,?,?,?,?)").run("u-other", "o@t.hk", "其他學生", "user", "97777777");
+  // 建立一個已排程班次（俾教練寫手冊／權限判定用）
+  db.prepare("INSERT INTO classes (id,coach_id,title,category,duration,price_hkd,status) VALUES ('hc1','coach1','手冊班','fitness',60,140,'active')").run();
+  db.prepare("INSERT INTO class_schedules (id,class_id,start_time,end_time,max_participants) VALUES ('hs1','hc1',datetime('now'),datetime('now'),20)").run();
+  db.prepare("INSERT INTO bookings (id,booking_reference,user_id,schedule_id,class_id,status,payment_type,payment_status,amount) VALUES ('hb1','HB1',?, 'hs1','hc1','attended','single','paid',140)").run(studentId);
+  const wlog = await call(hbPost, { user: { id: "coach1", role: "coach" }, body: { session_id: "hs1", student_id: studentId, comment: "膝頭要留意" } });
+  ok(wlog.statusCode === 200 || wlog.statusCode === 201, "教練可寫自己班學員手冊", wlog.body);
+  const g1 = await call(hbGet, { user: { id: "coach1", role: "coach" }, params: { sid: studentId } });
+  ok(g1.statusCode === 200 && (g1.body.handbooks || []).length === 1, "原教練可讀手冊", g1.body.error);
+  const g2 = await call(hbGet, { user: { id: "coach2", role: "coach" }, params: { sid: studentId } });
+  ok(g2.statusCode === 403, "其他教練不可讀（403）", g2.statusCode);
+  ok(studentId2 !== studentId, "隔離樣本有效");
 
   console.log("🧪 8. 前端存在");
   const fs = require("fs");
@@ -98,6 +120,11 @@ const call = (h, { body = {}, user = null, params = {}, query = {} }) => new Pro
   ok(/智能解析/.test(impPage) && /welcome\.html\?token=/.test(impPage), "有解析＋迎新連結");
   ok(/student\/onboarding\/claim/.test(welcome) && /student\/onboarding\/complete/.test(welcome), "welcome 接認領 API");
   ok(/zenpass_token/.test(welcome), "認領後自動登入");
+  ok(/啟動率/.test(impPage) && /invFunnel/.test(impPage), "匯入頁有漏斗 KPI");
+  ok(/待認領/.test(impPage) && /已開通專屬手冊/.test(impPage), "有狀態徽章");
+  ok(/發送 WhatsApp 迎新/.test(impPage) && /複製專屬連結/.test(impPage), "有待認領行動按鈕");
+  ok(/檢視手冊/.test(impPage) && /claimed_by_user_id/.test(impPage), "已開通可開手冊");
+  ok(/copyPending/.test(impPage), "有批次未認領清單");
 
   console.log(`\n${bad === 0 ? "✅ 全部通過" : "❌ 有失敗"} — ${pass} passed, ${bad} failed`);
   process.exit(bad === 0 ? 0 : 1);

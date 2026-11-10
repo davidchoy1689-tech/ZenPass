@@ -41,6 +41,32 @@
   .promise h2{margin:0 0 8px;font-size:15px;color:#065F46;font-weight:900}
   .promise ul{margin:0;padding-left:18px;font-size:12.5px;line-height:1.8;color:#334155}
   .promise b{color:#065F46}
+  .funnel{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0 12px}
+  .fcard{background:#F8FAFC;border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+  .fcard .k{font-size:11px;color:var(--mut);font-weight:800}
+  .fcard .v{font-size:22px;font-weight:900;margin-top:2px}
+  .fcard .s{font-size:10.5px;color:#94A3B8;margin-top:1px}
+  .fcard.green{background:#ECFDF5;border-color:#A7F3D0}
+  .fcard.green .v{color:#065F46}
+  .fcard.amber{background:#FFFBEB;border-color:#FDE68A}
+  .fcard.amber .v{color:#92400E}
+  .filters{display:flex;gap:6px;margin:6px 0 10px}
+  .fbtn{flex:1;border:1px solid var(--line);background:#fff;border-radius:999px;padding:8px;font-weight:800;font-size:12px;cursor:pointer}
+  .fbtn.on{background:#ECFDF5;border-color:#6EE7B7;color:#065F46}
+  .inv-card{border:1px solid var(--line);border-radius:12px;padding:11px 12px;margin-bottom:9px;background:#fff}
+  .inv-top{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
+  .inv-name{font-weight:900;font-size:14px}
+  .inv-phone{font-weight:600;color:var(--mut);font-size:12px}
+  .inv-warn{margin-top:3px;font-size:11.5px;color:#B45309;background:#FFFBEB;border:1px solid #FDE68A;border-radius:7px;padding:2px 6px;display:inline-block}
+  .inv-when{font-size:11px;color:#94A3B8;margin-top:4px}
+  .badge{font-size:10.5px;font-weight:900;border-radius:999px;padding:3px 8px;white-space:nowrap}
+  .badge.pending{background:#FEF3C7;color:#92400E;border:1px solid #FDE68A}
+  .badge.claimed{background:#DCFCE7;color:#065F46;border:1px solid #A7F3D0}
+  .badge.expired{background:#F1F5F9;color:#64748B;border:1px solid #E2E8F0}
+  .inv-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px;align-items:center}
+  .mini{border:1px solid var(--line);background:#fff;border-radius:8px;padding:7px 10px;font-size:12px;font-weight:800;cursor:pointer;text-decoration:none;color:var(--ink)}
+  .mini.wa{background:#25D366;border-color:#25D366;color:#fff}
+  .own-badge{font-size:11px;font-weight:900;color:#065F46;background:#DCFCE7;border:1px solid #A7F3D0;border-radius:999px;padding:3px 8px}
 </style>
 </head>
 <body>
@@ -96,7 +122,17 @@
   </div>
 
   <div class="card">
-    <b style="font-size:15px">📊 已匯入名單</b>
+    <b style="font-size:15px">📊 已匯入名單 · 迎新進度</b>
+    <div class="funnel" id="invFunnel"></div>
+    <div class="filters" id="invFilters">
+      <button class="fbtn on" data-f="all">全部</button>
+      <button class="fbtn" data-f="pending">待認領</button>
+      <button class="fbtn" data-f="claimed">已開通</button>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:10px">
+      <button class="btn" id="copyPending" style="flex:1">📢 複製未認領清單</button>
+      <button class="btn" id="refreshInv" style="flex:0 0 auto">🔄 更新</button>
+    </div>
     <div class="note" id="invStats">載入中…</div>
     <div id="invList"></div>
   </div>
@@ -216,16 +252,104 @@
     try { await navigator.clipboard.writeText(txt); toast("已複製 WhatsApp 廣播文字"); } catch (e) { alert(txt); }
   };
 
+  let INVITES = [];
+  let STATS = {};
+  let FILTER = "all";
+
+  const fmtPhone = (p) => String(p || "").replace(/^(\d{4})(\d{4})$/, "$1 $2");
+  function fmtWhen(v) {
+    const s = String(v || "");
+    if (!s) return "";
+    const d = new Date(s.replace(" ", "T") + "Z");
+    if (isNaN(d)) return s.slice(0, 16);
+    return d.toLocaleString("zh-HK", { timeZone: "Asia/Hong_Kong", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+  }
+  const coachName = () => (ME && ME.name) || "教練";
+  function waHref(i) {
+    const days = Number(i.days_left) || 0;
+    const expiry = days > 0 ? `仲有 ${days} 日到期` : "今日到期";
+    const txt = `你好 ${i.student_name}，我是 ${coachName()}。早前為你建立嘅 ZenPass 專屬運動手冊${expiry}，點擊呢個連結一鍵開通，即可免費領取 ${i.initial_pass_quota || 1} 堂迎新體驗課：${inviteUrl(i.token)}`;
+    return `https://wa.me/852${esc(i.phone)}?text=${encodeURIComponent(txt)}`;
+  }
+
+  function renderFunnel() {
+    const s = STATS || {};
+    $("invFunnel").innerHTML = `
+      <div class="fcard"><div class="k">👥 總匯入人數</div><div class="v">${Number(s.total) || 0}</div><div class="s">歷史匯入名冊</div></div>
+      <div class="fcard amber"><div class="k">⏳ 待認領</div><div class="v">${Number(s.pending) || 0}</div><div class="s">需發送提醒${s.expired ? ` · 已過期 ${s.expired}` : ""}</div></div>
+      <div class="fcard green"><div class="k">✅ 已成功開通</div><div class="v">${Number(s.claimed) || 0}</div><div class="s">已綁定手冊</div></div>
+      <div class="fcard"><div class="k">📈 啟動率</div><div class="v">${Number(s.rate) || 0}%</div><div class="s">舊生轉化進度</div></div>`;
+    $("invStats").textContent = `共 ${Number(s.total) || 0} 位 · 待認領 ${Number(s.pending) || 0} · 已開通 ${Number(s.claimed) || 0}`;
+  }
+
+  function renderInvites() {
+    const list = INVITES.filter((i) => FILTER === "all" || i.status === FILTER);
+    if (!list.length) {
+      $("invList").innerHTML = `<div class="note">${INVITES.length ? "此分類暫時未有學員" : "未有名單，貼上 WhatsApp 名單開始匯入。"}</div>`;
+      return;
+    }
+    $("invList").innerHTML = list.slice(0, 200).map((i) => {
+      const claimed = i.status === "claimed";
+      const expired = i.status === "expired";
+      const badge = claimed
+        ? `<span class="badge claimed">🟢 已開通專屬手冊</span>`
+        : expired
+          ? `<span class="badge expired">⚪ 已過期</span>`
+          : `<span class="badge pending">🟡 待認領（剩餘 ${Number(i.days_left) || 0} 天）</span>`;
+      return `<div class="inv-card">
+        <div class="inv-top">
+          <div>
+            <div class="inv-name">${esc(i.student_name)} <span class="inv-phone">(${esc(fmtPhone(i.phone))})</span></div>
+            ${i.notes ? `<div class="inv-warn">⚠️ ${esc(i.notes)}</div>` : ""}
+            <div class="inv-when">${claimed ? `✅ ${esc(fmtWhen(i.claimed_at))} 認領` : `${esc(fmtWhen(i.created_at))} 匯入`}</div>
+          </div>
+          ${badge}
+        </div>
+        <div class="inv-actions">
+          ${claimed
+            ? `<span class="own-badge">👑 自有學生 · 100% / 5%</span>
+               <a class="mini" href="student-handbook.html?student_id=${encodeURIComponent(i.claimed_by_user_id || "")}">📘 檢視手冊</a>`
+            : expired
+              ? `<span class="note" style="margin:0">連結已過期，請重新匯入同一電話以生成新連結。</span>`
+              : `<a class="mini wa" target="_blank" rel="noopener" href="${waHref(i)}">💬 發送 WhatsApp 迎新</a>
+                 <button class="mini" data-copy="${esc(i.token)}">🔗 複製專屬連結</button>`}
+        </div>
+      </div>`;
+    }).join("");
+
+    $("invList").querySelectorAll("[data-copy]").forEach((b) => {
+      b.onclick = async () => {
+        const url = inviteUrl(b.dataset.copy);
+        try { await navigator.clipboard.writeText(url); toast("已複製專屬連結"); } catch (e) { alert(url); }
+      };
+    });
+  }
+
   async function loadInvites() {
     const r = await api.get("/coach/students/invites");
     if (!r.ok) { $("invStats").textContent = (r.data && r.data.error) || "讀取失敗"; return; }
-    const s = r.data.stats || {};
-    $("invStats").textContent = `共 ${s.total} 位 · 已認領 ${s.claimed} · 待認領 ${s.pending} · 啟用率 ${s.rate}%`;
-    $("invList").innerHTML = (r.data.invites || []).slice(0, 100).map((i) => `<div class="invite">
-      <div><div class="n">${esc(i.student_name)} ${i.status === "claimed" ? "✅" : "⏳"}</div><div class="p">${esc(i.phone)} · ${i.status === "claimed" ? "已認領" : "待認領"}</div></div>
-      ${i.status === "pending" ? `<a class="wa" target="_blank" rel="noopener" href="https://wa.me/852${esc(i.phone)}?text=${encodeURIComponent("你好 " + i.student_name + "，請點擊認領你嘅 ZenPass 運動手冊：" + inviteUrl(i.token))}">💬 再發</a>` : ""}
-    </div>`).join("");
+    INVITES = r.data.invites || [];
+    STATS = r.data.stats || {};
+    renderFunnel();
+    renderInvites();
   }
+
+  document.querySelectorAll("#invFilters .fbtn").forEach((b) => {
+    b.onclick = () => {
+      FILTER = b.dataset.f;
+      document.querySelectorAll("#invFilters .fbtn").forEach((x) => x.classList.toggle("on", x === b));
+      renderInvites();
+    };
+  });
+
+  $("refreshInv").onclick = () => { loadInvites().then(() => toast("已更新")); };
+
+  $("copyPending").onclick = async () => {
+    const pending = INVITES.filter((i) => i.status === "pending");
+    if (!pending.length) return toast("冇待認領學員");
+    const txt = pending.map((i) => `${i.student_name} ${fmtPhone(i.phone)} ${inviteUrl(i.token)}`).join("\n");
+    try { await navigator.clipboard.writeText(txt); toast(`已複製 ${pending.length} 位待認領學員`); } catch (e) { alert(txt); }
+  };
 
   (async () => {
     const me = await api.me();

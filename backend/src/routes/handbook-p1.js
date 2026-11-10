@@ -52,6 +52,28 @@ function canViewStudent(db, user, studentId) {
   if (user.id === studentId) return true;
   const me = db.prepare("SELECT role FROM users WHERE id=?").get(user.id);
   if (me && hasMinimumRole(me.role, "admin")) return true;
+  // 教練：只限自己教過嘅學生，或已永久綁定俾自己嘅私域學生
+  if (me && me.role === "coach") {
+    try {
+      const taught = db
+        .prepare(
+          `SELECT 1 FROM bookings b
+             JOIN class_schedules s ON s.id = b.schedule_id
+             JOIN classes c ON c.id = b.class_id
+            WHERE b.user_id = ? AND COALESCE(s.coach_override_id, c.coach_id) = ? LIMIT 1`,
+        )
+        .get(studentId, user.id);
+      if (taught) return true;
+      const bound = db
+        .prepare(
+          "SELECT 1 FROM student_coach_affiliations WHERE student_user_id=? AND origin_coach_id=? AND status='active'",
+        )
+        .get(studentId, user.id);
+      if (bound) return true;
+    } catch (e) {
+      // 舊 DB 未建 affiliation 表 → 只靠 taught
+    }
+  }
   // 手冊以報名帳戶（user_id）為單位：本人或管理員；代報子女用同一個家長帳戶
   return false;
 }
