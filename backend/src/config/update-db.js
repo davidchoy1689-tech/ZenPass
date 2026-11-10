@@ -553,11 +553,16 @@ function updateDatabase() {
     `);
 
     // 舊有「已認領」邀請 → 回填 affiliation（只補未存在嘅學員）
-    const claimed = db
-      .prepare(
-        "SELECT claimed_by_user_id AS uid, coach_id FROM student_onboarding_invites WHERE status='claimed' AND claimed_by_user_id IS NOT NULL",
-      )
-      .all();
+    const hasInvites = !!db
+      .prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='student_onboarding_invites'")
+      .get();
+    const claimed = hasInvites
+      ? db
+          .prepare(
+            "SELECT claimed_by_user_id AS uid, coach_id FROM student_onboarding_invites WHERE status='claimed' AND claimed_by_user_id IS NOT NULL",
+          )
+          .all()
+      : [];
     let backfilled = 0;
     const ins = db.prepare(
       "INSERT OR IGNORE INTO student_coach_affiliations (student_user_id, origin_coach_id, commission_rate) VALUES (?, ?, 0.05)",

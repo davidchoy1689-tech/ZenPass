@@ -313,7 +313,8 @@ function maskName(n) {
   const s = String(n || "").trim();
   if (!s) return "學員";
   if (s.length <= 1) return s + "*";
-  return s[0] + "*".repeat(Math.max(1, s.length - 1));
+  if (s.length === 2) return s[0] + "*";
+  return s[0] + "*".repeat(s.length - 2) + s[s.length - 1];
 }
 
 /** 某班次的自有學生出席數（給月結顯示） */

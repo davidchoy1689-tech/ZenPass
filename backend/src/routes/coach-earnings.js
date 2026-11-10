@@ -1461,51 +1461,140 @@ router.get("/earnings/summary", authenticateToken, (req, res) => {
   }
 });
 
+/** RFC 4180：一律加雙引號，內部 " → "" */
+function csvEscape(v) {
+  const s = v === null || v === undefined ? "" : String(v);
+  return '"' + s.replace(/"/g, '""') + '"';
+}
+function csvRow(arr) {
+  return arr.map(csvEscape).join(",");
+}
+function csvTime(v) {
+  const s = String(v || "");
+  if (!s) return "";
+  return s.includes("T") ? s.replace("T", " ").slice(0, 16) : s.slice(0, 16);
+}
+function hkMoney(cents) {
+  return "HK$ " + (Number(cents || 0) / 100).toFixed(2);
+}
+
+/**
+ * 教練月結 CSV（複合對數單）
+ *  - UTF-8 BOM 開頭（Excel Windows 中文不亂碼）
+ *  - 每區段欄數固定，RFC 4180 全欄位加引號
+ *  - 區段之間以空白行 + 標題列分隔
+ */
+function buildEarningsCsv(db, coachId, month) {
+  const data = buildMonthlyBreakdown(db, coachId, month);
+  const coach = db.prepare("SELECT name FROM users WHERE id = ?").get(coachId) || {};
+  const BOM = "\uFEFF";
+  const lines = [];
+  const affCents = Number(data.affiliate_passive_cents) || 0;
+  const teachingCents = Math.max(0, (Number(data.total_payout_cents) || 0) - affCents);
+
+  // 區塊 1：抬頭與總結算
+  lines.push(csvRow([`=== ZenPass 教練收益月結單 (${month}) ===`]));
+  lines.push(csvRow(["教練姓名", coach.name || "", "教練編號", coachId]));
+  lines.push(
+    csvRow([
+      "本月總計應付",
+      hkMoney(data.total_payout_cents),
+      "執教課堂應付",
+      hkMoney(teachingCents),
+      "跨界分佣應付",
+      hkMoney(affCents),
+    ]),
+  );
+  lines.push("");
+
+  // 區塊 2：執教課堂明細（7 欄）
+  lines.push(csvRow(["— 執教課堂明細 —"]));
+  lines.push(csvRow(["堂次編號", "開課日期", "課程名稱", "出席人數", "自有學生數", "拆帳模式", "實收金額 (HKD)"]));
+  let sessionRows = 0;
+  for (const r of data.sessions_breakdown || []) {
+    if (!r.attended_count) continue;
+    const attended = Number(r.attended_count) || 0;
+    const own = Number(r.own_student_count) || 0;
+    const mode =
+      attended > 0 && own >= attended
+        ? "自有學生100%"
+        : own > 0
+          ? "混合(100%/80%)"
+          : Math.round(Number(data.commission_rate || 0.8) * 100) + "%";
+    lines.push(
+      csvRow([
+        r.receipt_no,
+        r.date,
+        r.course_title,
+        attended,
+        own,
+        mode,
+        Number(r.session_payout).toFixed(2),
+      ]),
+    );
+    sessionRows += 1;
+  }
+  if (!sessionRows) lines.push(csvRow(["本月未有已出席班次"]));
+  lines.push(
+    csvRow([
+      "合計",
+      "",
+      "",
+      Number(data.total_attended_students) || 0,
+      Number(data.own_student_count) || 0,
+      "",
+      Number(data.total_earned || 0).toFixed(2),
+    ]),
+  );
+  lines.push("");
+
+  // 區塊 3：跨界 5% 明細（8 欄）
+  lines.push(csvRow(["— 跨界 5% 被動分佣明細 (學生跨班消費) —"]));
+  lines.push(
+    csvRow([
+      "分佣單號",
+      "入帳時間",
+      "學員識別",
+      "報讀課程",
+      "帶班導師",
+      "消費金額 (HKD)",
+      "回佣比例",
+      "入帳佣金 (HKD)",
+    ]),
+  );
+  const affRows = data.affiliate_recent || [];
+  for (const a of affRows) {
+    lines.push(
+      csvRow([
+        a.id,
+        csvTime(a.cleared_at || a.created_at),
+        `${a.student_name} (${a.student_phone_masked || ""})`,
+        a.course_title,
+        a.actual_coach_name,
+        Number(a.order_amount).toFixed(2),
+        Math.round((Number(a.commission_rate) || 0.05) * 100) + "%",
+        Number(a.commission).toFixed(2),
+      ]),
+    );
+  }
+  if (!affRows.length) lines.push(csvRow(["本月未有跨界分佣"]));
+  lines.push(csvRow(["小計", "", "", "", "", "", "", Number(data.affiliate_passive || 0).toFixed(2)]));
+
+  return BOM + lines.join("\r\n") + "\r\n";
+}
+
 router.get("/earnings/export-csv", authenticateToken, (req, res) => {
   try {
     const db = getDb();
     const { month } = monthWindow(req.query.month);
-    const data = buildMonthlyBreakdown(db, req.user.id, month);
-    const esc = (v) => {
-      const s = String(v == null ? "" : v);
-      return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
-    };
-    const head = ["收據/場次編號", "課堂日期", "課堂名稱", "場地", "出席學員人數", "自有學生數", "分成比例", "應付堂費(HK$)", "結算狀態"];
-    const lines = [head.join(",")];
-    for (const r of data.sessions_breakdown) {
-      if (!r.attended_count) continue;
-      lines.push([
-        r.receipt_no, r.date, r.course_title, r.venue, r.attended_count, r.own_student_count || 0,
-        r.own_student_count ? "混合(100%/80%)" : Math.round((data.commission_rate || 0.8) * 100) + "%",
-        Number(r.session_payout).toFixed(2),
-        r.status === "paid" ? "已核實" : "待出帳",
-      ].map(esc).join(","));
-    }
-    lines.push(["合計", "", "", "", data.total_attended_students, data.own_student_count || 0, "", Number(data.total_earned).toFixed(2), ""].map(esc).join(","));
-
-    const affRows = data.affiliate_recent || [];
-    if (affRows.length) {
-      lines.push("");
-      lines.push(["跨界被動分佣明細（學生跨班消費 5% 回佣）"].map(esc).join(","));
-      lines.push(["分佣單號", "入帳時間", "學員識別", "報讀課程", "帶班導師", "消費金額(HK$)", "回佣比例", "入帳佣金(HK$)"].map(esc).join(","));
-      for (const a of affRows) {
-        lines.push([
-          a.id,
-          a.cleared_at || a.created_at,
-          `${a.student_name} (${a.student_phone_masked || ""})`,
-          a.course_title,
-          a.actual_coach_name,
-          Number(a.order_amount).toFixed(2),
-          Math.round((a.commission_rate || 0.05) * 100) + "%",
-          Number(a.commission).toFixed(2),
-        ].map(esc).join(","));
-      }
-      lines.push(["小計", "", "", "", "", "", "", Number(data.affiliate_passive || 0).toFixed(2)].map(esc).join(","));
-    }
-    const csv = "\uFEFF" + lines.join("\r\n");
+    const csv = buildEarningsCsv(db, req.user.id, month);
     res.setHeader("Content-Type", "text/csv; charset=utf-8");
-    res.setHeader("Content-Disposition", `attachment; filename="zenpass-earnings-${month}.csv"`);
-    res.send(csv);
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="ZenPass_Monthly_Earnings_${month}_${req.user.id}.csv"`,
+    );
+    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+    res.status(200).send(csv);
   } catch (e) {
     console.error("[EARNINGS] csv:", e.message);
     res.status(500).json({ success: false, error: "匯出失敗" });
@@ -1515,3 +1604,4 @@ router.get("/earnings/export-csv", authenticateToken, (req, res) => {
 module.exports = router;
 module.exports.syncCoachEarningsForSchedule = syncCoachEarningsForSchedule;
 module.exports.buildMonthlyBreakdown = buildMonthlyBreakdown;
+module.exports.buildEarningsCsv = buildEarningsCsv;

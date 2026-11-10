@@ -87,7 +87,7 @@ const call = (h, { body = {}, user = null, params = {}, query = {} }) => new Pro
   console.log("🧪 4. CSV");
   const c = await call(csv, { user: coach, query: { month } });
   ok(typeof c.body === "string" && c.body.charCodeAt(0) === 0xfeff, "有 UTF-8 BOM");
-  ok(c.body.includes("收據/場次編號") && c.body.includes("樂齡伸展"), "有標題及課程");
+  ok(c.body.includes("堂次編號") && c.body.includes("樂齡伸展"), "有標題及課程");
   ok(c.body.includes("560.00"), "合計 560.00", c.body.split("\n").slice(-1)[0]);
   ok(c.body.split("\r\n").length >= 3, "有明細行");
 
