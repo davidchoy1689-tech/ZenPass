@@ -59,6 +59,17 @@ function ensureSchema(db) {
   add("locked_by", "locked_by TEXT");
   add("recovery_reset_at", "recovery_reset_at DATETIME");
   add("recovered_at", "recovered_at DATETIME");
+
+  // 首次部署：把現有已核實戶口記為 baseline，供緊急熔斷還原
+  try {
+    db.exec(`
+      INSERT INTO coach_payout_settings_history
+        (coach_id, fps_type, fps_proxy_value, bank_code, account_holder_name, is_verified, event)
+      SELECT c.coach_id, c.fps_type, c.fps_proxy_value, c.bank_code, c.account_holder_name, 1, 'baseline'
+        FROM coach_payout_settings c
+       WHERE NOT EXISTS (SELECT 1 FROM coach_payout_settings_history h WHERE h.coach_id = c.coach_id)
+    `);
+  } catch (e) {}
 }
 
 // ===== 管理員安全 PIN =====
