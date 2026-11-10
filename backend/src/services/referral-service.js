@@ -32,6 +32,18 @@ function redeemCode(userId, code, { requireVerified = true } = {}) {
     return { status: 400, body: { success: false, error: "你已經用過推薦碼" } };
   }
 
+  // 新推薦計劃（首堂出席派堂）與舊推薦碼（即時 5 Credits）唔可以重複參加
+  try {
+    const joined = db
+      .prepare("SELECT id FROM referral_rewards WHERE referee_user_id = ? LIMIT 1")
+      .get(userId);
+    if (joined) {
+      return { status: 400, body: { success: false, error: "你已參加推薦計劃，唔可以重複使用推薦碼" } };
+    }
+  } catch (e) {
+    // referral_rewards 未建立（舊 DB）→ 照舊流程
+  }
+
   const acct = db.prepare("SELECT email_verified FROM users WHERE id = ?").get(userId);
   if (!acct) return { status: 404, body: { success: false, error: "用戶不存在" } };
   if (requireVerified && !acct.email_verified) {

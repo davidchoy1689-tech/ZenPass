@@ -79,6 +79,8 @@
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const toast = (m) => { const t = $("toast"); t.textContent = m; t.classList.add("on"); setTimeout(() => t.classList.remove("on"), 1800); };
   const token = new URLSearchParams(location.search).get("token") || "";
+  const REF = new URLSearchParams(location.search).get("ref") || (() => { try { return localStorage.getItem("zp_ref") || ""; } catch (e) { return ""; } })();
+  let MY_CODE = "";
   let INFO = null;
 
   function fail(msg) {
@@ -115,14 +117,26 @@
       localStorage.setItem("zenpass_token", r.data.token);
       localStorage.setItem("zenpass_user", JSON.stringify(r.data.user));
     } catch (e) {}
+    // 帶推薦碼入嚟 → 綁定（待首堂出席先派堂）
+    if (REF) {
+      const rr = await api.post("/student/referral/claim-code", {
+        code: REF,
+        device_id: (() => { try { return localStorage.getItem("zp_device") || ""; } catch (e) { return ""; } })(),
+      });
+      if (rr.ok) toast((rr.data && rr.data.message) || "推薦碼已綁定");
+      try { localStorage.removeItem("zp_ref"); } catch (e) {}
+    }
+    // 取自己推薦碼，用嚟做「帶親友」分享
+    const sum = await api.get("/student/referral/summary");
+    if (sum.ok && sum.data && sum.data.code) MY_CODE = sum.data.code;
     $("claimCard").classList.add("hide");
     $("doneQuota").textContent = r.data.quota;
     $("doneCard").classList.remove("hide");
   };
 
   $("shareBtn").onclick = async () => {
-    const link = location.origin + "/detail.html?id=07188a59-2a63-44f1-b517-a4b0790196dd&utm_source=legacy_referral&utm_campaign=seed_dec12";
-    const txt = "我喺 ZenPass 開通咗長者運動手冊，教練一對一小班，仲有迎新體驗堂。想一齊做運動可以睇吓：";
+    const link = location.origin + "/detail.html?id=07188a59-2a63-44f1-b517-a4b0790196dd&utm_source=legacy_referral&utm_campaign=seed_dec12" + (MY_CODE ? "&ref=" + encodeURIComponent(MY_CODE) : "");
+    const txt = "我喺 ZenPass 開通咗長者運動手冊，教練一對一小班，仲有迎新體驗堂。你登記咗我哋一齊上堂，大家都多 1 堂：" ;
     if (navigator.share) { try { await navigator.share({ text: txt, url: link }); return; } catch (e) {} }
     try { await navigator.clipboard.writeText(txt + " " + link); toast("已複製分享訊息"); } catch (e) { alert(txt + " " + link); }
   };

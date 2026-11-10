@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#059669">
+<title>電話驗證碼登入 · ZenPass</title>
+<style>
+  :root{--ink:#0F172A;--mut:#64748B;--brand:#059669;--line:#CBD5E1}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;font-family:system-ui,-apple-system,"PingFang HK",sans-serif;background:linear-gradient(180deg,#ECFDF5,#F8FAFC 45%);color:var(--ink);min-height:100vh;padding:22px 16px 44px;font-size:17px}
+  .wrap{max-width:480px;margin:0 auto}
+  .brand{font-weight:900;font-size:15px;color:#065F46;letter-spacing:.3px;margin-bottom:22px}
+  h1{font-size:27px;line-height:1.3;margin:0 0 8px;font-weight:900}
+  .sub{color:#475569;font-size:16px;line-height:1.6;margin:0 0 20px}
+  .card{background:#fff;border:1px solid #D1FAE5;border-radius:20px;padding:20px;box-shadow:0 8px 24px rgba(5,150,105,.08)}
+  label{display:block;font-size:15px;font-weight:800;color:#334155;margin:0 0 8px}
+  input{width:100%;border:2px solid var(--line);border-radius:16px;padding:16px;font-size:20px;font-weight:800;font-family:inherit;background:#fff;color:var(--ink)}
+  input:focus{outline:0;border-color:var(--brand);box-shadow:0 0 0 4px rgba(5,150,105,.12)}
+  input.code{text-align:center;letter-spacing:14px;font-size:30px;font-variant-numeric:tabular-nums;padding-left:24px}
+  .btn{display:block;width:100%;border:0;border-radius:16px;padding:18px;font-size:19px;font-weight:900;cursor:pointer;text-align:center;text-decoration:none;margin-top:16px}
+  .primary{background:linear-gradient(135deg,#10B981,#059669);color:#fff;box-shadow:0 10px 20px rgba(5,150,105,.3)}
+  .btn:disabled{opacity:.55;cursor:not-allowed;box-shadow:none}
+  .link{background:none;border:0;color:var(--brand);font-weight:800;font-size:16px;padding:14px 4px;cursor:pointer;width:100%}
+  .hint{font-size:14px;color:var(--mut);line-height:1.6;margin-top:12px}
+  .msg{border-radius:14px;padding:13px 15px;font-size:15px;font-weight:700;line-height:1.6;margin-top:14px;display:none}
+  .msg.err{display:block;background:#FEF2F2;border:1px solid #FECACA;color:#B91C1C}
+  .msg.ok{display:block;background:#ECFDF5;border:1px solid #A7F3D0;color:#065F46}
+  .step{display:none}
+  .step.on{display:block}
+  .phonebig{font-size:20px;font-weight:900;color:#065F46}
+  .foot{text-align:center;font-size:15px;color:var(--mut);margin-top:22px;line-height:1.8}
+  .foot a{color:var(--brand);font-weight:800;text-decoration:none}
+  .dev{background:#FFFBEB;border:1px solid #FDE68A;color:#92400E;border-radius:12px;padding:10px 12px;font-size:14px;font-weight:700;margin-top:12px;display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand">ZenPass · 香港康樂及體育</div>
+
+  <div id="step1" class="step on">
+    <h1>用電話登入</h1>
+    <p class="sub">唔需要記密碼。輸入你嘅手機號碼，我哋會發一個 6 位數字驗證碼俾你。</p>
+    <div class="card">
+      <label for="phone">手機號碼（8 位）</label>
+      <input id="phone" class="code" type="tel" inputmode="numeric" autocomplete="tel" maxlength="8" placeholder="9123 4567" aria-label="8 位香港手機號碼">
+      <button class="btn primary" id="sendBtn">獲取驗證碼</button>
+      <div class="hint">只支援香港手機號碼。驗證碼 10 分鐘內有效。</div>
+      <div class="msg" id="msg1"></div>
+      <div class="dev" id="devCode"></div>
+    </div>
+    <div class="foot">想用電郵密碼？<a href="login.html">返回登入</a></div>
+  </div>
+
+  <div id="step2" class="step">
+    <h1>輸入驗證碼</h1>
+    <p class="sub">已發送到 <span class="phonebig" id="phoneShow"></span></p>
+    <div class="card">
+      <label for="otp">6 位數字驗證碼</label>
+      <input id="otp" class="code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="••••••" aria-label="6 位驗證碼">
+      <div id="nameWrap">
+        <label for="name" style="margin-top:16px">點稱呼你？（第一次登入用）</label>
+        <input id="name" type="text" maxlength="20" placeholder="例如：陳婆婆" autocomplete="name">
+      </div>
+      <button class="btn primary" id="verifyBtn">驗證並登入</button>
+      <button class="link" id="resendBtn" disabled>重新發送（60s）</button>
+      <button class="link" id="backBtn" style="color:#64748B">← 改電話號碼</button>
+      <div class="msg" id="msg2"></div>
+      <div class="dev" id="devCode2"></div>
+    </div>
+    <div class="foot">收唔到驗證碼？請確認電話正確，或 WhatsApp 聯絡客服。</div>
+  </div>
+</div>
+
+<script src="assets/api.js?v=3"></script>
+<script>
+  const $ = (id) => document.getElementById(id);
+  const qs = new URLSearchParams(location.search);
+  const NEXT = qs.get("next") || "my.html";
+  const REF = qs.get("ref") || (() => { try { return localStorage.getItem("zp_ref") || ""; } catch (e) { return ""; } })();
+
+  function deviceId() {
+    try {
+      let d = localStorage.getItem("zp_device");
+      if (!d) {
+        d = (crypto.randomUUID && crypto.randomUUID()) || (Date.now().toString(36) + Math.random().toString(36).slice(2));
+        localStorage.setItem("zp_device", d);
+      }
+      return d;
+    } catch (e) { return ""; }
+  }
+  const DEVICE = deviceId();
+
+  let phone = "";
+  let timer = null;
+
+  function showMsg(el, text, kind) {
+    el.className = "msg " + (kind || "err");
+    el.textContent = text;
+  }
+  function hideMsg(el) { el.className = "msg"; el.textContent = ""; }
+
+  const cleanPhone = (v) => String(v || "").replace(/\D/g, "").replace(/^852/, "").slice(0, 8);
+  $("phone").addEventListener("input", (e) => { e.target.value = cleanPhone(e.target.value); });
+
+  async function post(path, body) {
+    const res = await fetch("/api" + path, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify(body),
+    });
+    let data = {};
+    try { data = await res.json(); } catch (e) {}
+    return { ok: res.ok, status: res.status, data };
+  }
+
+  $("sendBtn").onclick = async () => {
+    hideMsg($("msg1"));
+    const p = cleanPhone($("phone").value);
+    if (!/^[4-9]\d{7}$/.test(p)) return showMsg($("msg1"), "請輸入正確嘅 8 位香港手機號碼");
+    phone = p;
+    $("sendBtn").disabled = true;
+    $("sendBtn").textContent = "發送中…";
+    const r = await post("/auth/otp/send", { phone: p });
+    $("sendBtn").disabled = false;
+    $("sendBtn").textContent = "獲取驗證碼";
+    if (!r.ok) return showMsg($("msg1"), (r.data && r.data.error) || "發送失敗，請再試");
+    $("phoneShow").textContent = p.slice(0, 4) + " " + p.slice(4);
+    $("step1").classList.remove("on");
+    $("step2").classList.add("on");
+    $("otp").focus();
+    showMsg($("msg2"), "驗證碼已發送（10 分鐘內有效）", "ok");
+    if (r.data && r.data.dev_code) {
+      $("devCode2").style.display = "block";
+      $("devCode2").textContent = "🧪 測試環境驗證碼：" + r.data.dev_code;
+    }
+    startCountdown(Number(r.data.resend_in) || 60);
+  };
+
+  function startCountdown(sec) {
+    clearInterval(timer);
+    let left = sec;
+    const btn = $("resendBtn");
+    btn.disabled = true;
+    btn.textContent = `重新發送（${left}s）`;
+    timer = setInterval(() => {
+      left -= 1;
+      if (left <= 0) {
+        clearInterval(timer);
+        btn.disabled = false;
+        btn.textContent = "重新發送驗證碼";
+      } else {
+        btn.textContent = `重新發送（${left}s）`;
+      }
+    }, 1000);
+  }
+
+  $("resendBtn").onclick = async () => {
+    if (!phone) return;
+    hideMsg($("msg2"));
+    const r = await post("/auth/otp/send", { phone });
+    if (!r.ok) return showMsg($("msg2"), (r.data && r.data.error) || "發送失敗");
+    showMsg($("msg2"), "已重新發送驗證碼", "ok");
+    if (r.data && r.data.dev_code) {
+      $("devCode2").style.display = "block";
+      $("devCode2").textContent = "🧪 測試環境驗證碼：" + r.data.dev_code;
+    }
+    startCountdown(Number(r.data.resend_in) || 60);
+  };
+
+  $("backBtn").onclick = () => {
+    clearInterval(timer);
+    $("step2").classList.remove("on");
+    $("step1").classList.add("on");
+    hideMsg($("msg2"));
+  };
+
+  $("otp").addEventListener("input", (e) => {
+    e.target.value = String(e.target.value).replace(/\D/g, "").slice(0, 6);
+    if (e.target.value.length === 6) $("verifyBtn").focus();
+  });
+
+  $("verifyBtn").onclick = async () => {
+    hideMsg($("msg2"));
+    const code = String($("otp").value || "").replace(/\D/g, "");
+    if (!/^\d{6}$/.test(code)) return showMsg($("msg2"), "請輸入 6 位數字驗證碼");
+    $("verifyBtn").disabled = true;
+    $("verifyBtn").textContent = "驗證中…";
+    const r = await post("/auth/otp/verify", {
+      phone,
+      otp_code: code,
+      name: ($("name").value || "").trim(),
+      ref: REF || undefined,
+      device_id: DEVICE,
+    });
+    $("verifyBtn").disabled = false;
+    $("verifyBtn").textContent = "驗證並登入";
+    if (!r.ok || !r.data || !r.data.token) {
+      showMsg($("msg2"), (r.data && r.data.error) || "驗證失敗，請再試");
+      if (r.data && (r.data.code === "OTP_LOCKED" || r.data.code === "OTP_EXPIRED")) {
+        $("otp").value = "";
+        $("resendBtn").disabled = false;
+        $("resendBtn").textContent = "重新獲取驗證碼";
+      }
+      return;
+    }
+    try {
+      api.setToken(r.data.token);
+      api.setUser(r.data.user);
+      localStorage.removeItem("zp_ref");
+    } catch (e) {}
+    if (r.data.referral && r.data.referral.ok) {
+      showMsg($("msg2"), "✅ " + (r.data.referral.message || "推薦碼已綁定"), "ok");
+      setTimeout(() => { location.href = NEXT; }, 700);
+      return;
+    }
+    location.href = NEXT;
+  };
+
+  $("otp").addEventListener("keydown", (e) => { if (e.key === "Enter") $("verifyBtn").click(); });
+  $("phone").addEventListener("keydown", (e) => { if (e.key === "Enter") $("sendBtn").click(); });
+</script>
+</body>
+</html>

@@ -35,12 +35,20 @@
     .h-empty{text-align:center;color:#64748B;padding:30px;font-size:15px}
     .h-toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:#0F172A;color:#fff;padding:10px 16px;border-radius:999px;font-size:14px;font-weight:700;opacity:0;transition:.2s;z-index:99}
     .h-toast.on{opacity:1}
+    .wallet{background:linear-gradient(135deg,#ECFDF5,#F0FDFA);border:1.5px solid #A7F3D0;border-radius:16px;padding:14px 16px;margin-bottom:14px}
+    .wallet-top{display:flex;align-items:baseline;gap:8px}
+    .wallet-num{font-size:34px;font-weight:900;color:#065F46;line-height:1}
+    .wallet-lbl{font-size:14px;font-weight:800;color:#047857}
+    .wallet-sub{font-size:13.5px;color:#475569;margin-top:6px;line-height:1.6}
+    .wallet-btn{display:inline-block;margin-top:10px;background:#059669;color:#fff;border:0;border-radius:10px;padding:10px 14px;font-size:14px;font-weight:900;cursor:pointer;text-decoration:none}
+    .wallet-reward{background:#FFFBEB;border:1px solid #FDE68A;color:#92400E;border-radius:10px;padding:8px 10px;font-size:13.5px;font-weight:700;margin-top:8px}
   </style>
 </head>
 <body>
   <div class="h-wrap">
     <div class="h-head"><h1 id="title">我的運動手冊</h1><a href="my-bookings.html">返回預約</a></div>
     <div id="annBar"></div>
+    <div id="wallet"></div>
     <div id="list"><div class="h-empty">載入中…</div></div>
   </div>
   <div class="h-toast" id="toast"></div>
@@ -52,12 +60,42 @@
   let toastTimer;
   const toast = (t) => { const el = $("toast"); el.textContent = t; el.classList.add("on"); clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove("on"), 2000); };
 
+  async function loadWallet() {
+    const s = await api.get("/student/referral/summary");
+    if (!s.ok || !s.data) return;
+    const d = s.data;
+    const bal = Number(d.pass_balance) || 0;
+    const my = d.my_referral;
+    const recent = (d.recent || []).find((r) => r.status === "rewarded");
+    const link = location.origin + "/detail.html?id=07188a59-2a63-44f1-b517-a4b0790196dd&utm_source=friend_referral" + (d.code ? "&ref=" + encodeURIComponent(d.code) : "");
+    const msg = `我喺 ZenPass 做運動，教練一對一小班。你用我條連結登記，完成第一堂之後，我哋各多 1 堂：${link}`;
+    $("wallet").innerHTML = `
+      <div class="wallet">
+        <div class="wallet-top"><span class="wallet-num">${bal}</span><span class="wallet-lbl">堂 · 我的堂數存簿</span></div>
+        <div class="wallet-sub">剩餘堂數會喺預約時自動扣減；取消／請假會自動退回。</div>
+        ${recent ? `<div class="wallet-reward">🎁 親友 ${esc(recent.name)} 已出席，為你帶來 +1 堂獎賞！</div>` : ""}
+        ${my && my.status === "pending_attendance" ? `<div class="wallet-sub">⏳ ${esc(my.referrer_name)} 推薦咗你，完成第一堂出席後雙方各得 1 堂。</div>` : ""}
+        ${my && my.status === "rewarded" ? `<div class="wallet-reward">✅ 你已完成首堂，推薦獎賞已入帳。</div>` : ""}
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+          <a class="wallet-btn" href="my-bookings.html">預約用堂</a>
+          <button class="wallet-btn" id="refShare" style="background:#fff;color:#065F46;border:1.5px solid #A7F3D0">💬 推薦朋友 · 各得 1 堂</button>
+        </div>
+        <div class="wallet-sub" style="margin-top:8px">已推薦 ${Number(d.stats?.invited) || 0} 人 · 已獎賞 ${Number(d.stats?.rewarded) || 0} 次（每月上限 ${Number(d.stats?.monthly_cap) || 4} 次）</div>
+      </div>`;
+    const btn = $("refShare");
+    if (btn) btn.onclick = async () => {
+      if (navigator.share) { try { await navigator.share({ text: msg }); return; } catch (e) {} }
+      try { await navigator.clipboard.writeText(msg); toast("已複製推薦訊息"); } catch (e) { alert(msg); }
+    };
+  }
+
   async function load() {
     if (!SID) {
       const me = await api.me();
       if (!me.ok) { location.href = "login.html?next=" + encodeURIComponent(location.pathname + location.search); return; }
       SID = me.data.user.id;
     }
+    loadWallet();
     const r = await api.get("/student/handbook/" + encodeURIComponent(SID));
     if (!r.ok) { $("list").innerHTML = `<div class="h-empty">${esc((r.data && r.data.error) || "讀取失敗")}</div>`; return; }
     const list = r.data.handbooks || [];

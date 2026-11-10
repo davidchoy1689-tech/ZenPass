@@ -267,6 +267,7 @@ app.use("/api", (req, res, next) => {
 
 // ===== 路由 =====
 app.use("/api/auth", require("./routes/auth"));
+app.use("/api/auth", require("./routes/auth-otp"));
 app.use("/api/users", require("./routes/users"));
 // 👥 團隊預訂（hold 住，有需要時 uncomment）
 // app.use("/api/me/teammates", require("./routes/teammates"));
@@ -348,6 +349,7 @@ app.use("/api/nps", require("./routes/nps"));
 app.use("/api/platform", require("./routes/platform"));
 app.use("/api/student", require("./routes/student-bookings"));
 app.use("/api", require("./routes/student-import"));
+app.use("/api", require("./routes/referral-rewards"));
 app.use("/api/admin", require("./routes/admin-crm"));
 app.use("/api/admin", require("./routes/admin-substitutes"));
 app.use("/api/admin", require("./routes/admin-launch-tracker"));

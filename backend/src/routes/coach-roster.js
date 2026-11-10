@@ -14,6 +14,7 @@ const { authenticateToken, hasMinimumRole } = require("../middleware/auth");
 const { audit } = require("../services/audit");
 const { writeBlock } = require("../services/blockchain-audit");
 const passes = require("../services/passes");
+const referralRewards = require("../services/referral-rewards");
 
 const router = express.Router();
 router.use(authenticateToken);
@@ -189,13 +190,19 @@ router.post("/attendance/batch", (req, res) => {
         }
         // absent_notified：保留 booking 狀態（唔計出席，亦唔當 no-show 扣堂）
 
+        // 推薦獎賞：被推薦人「生涯首次出席」先觸發（同一 transaction 內派堂）
+        let referral_reward = null;
+        if ((status === "present" || status === "late") && b.user_id) {
+          referral_reward = referralRewards.onAttendance(db, { userId: b.user_id, bookingId: b.id });
+        }
+
         // 合規請假：如用通行卡，退 1 堂（只退一次，restoreInTx 有防重）
         let pass_restored = false;
         if (status === "absent_notified" && b.pass_id) {
           pass_restored = passes.restoreInTx(db, { passId: b.pass_id, bookingId: b.id });
         }
 
-        results.push({ booking_id: b.id, status, pass_restored });
+        results.push({ booking_id: b.id, status, pass_restored, referral_reward });
       }
     });
     run();

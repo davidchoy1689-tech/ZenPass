@@ -10,6 +10,7 @@ const crypto = require("crypto");
 const { getDb } = require("../services/database");
 const { authenticateToken } = require("../middleware/auth");
 const { audit } = require("../services/audit");
+const referralRewards = require("../services/referral-rewards");
 
 const router = express.Router();
 
@@ -98,7 +99,10 @@ router.post("/attendance/walk-in", authenticateToken, (req, res) => {
       }
 
       db.prepare("UPDATE class_schedules SET enrolled_count = COALESCE(enrolled_count,0) + 1 WHERE id=?").run(sessionId);
-      return { booking_id: bid, booking_reference: ref, remaining: cap > 0 ? cap - used - 1 : null };
+
+      // 推薦獎賞 Hook（現場補錄都算真實出席）
+      const referral_reward = referralRewards.onAttendance(db, { userId: user.id, bookingId: bid });
+      return { booking_id: bid, booking_reference: ref, remaining: cap > 0 ? cap - used - 1 : null, referral_reward };
     });
 
     const out = tx();

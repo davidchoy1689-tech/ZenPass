@@ -87,12 +87,13 @@ function _getUserWithPartner(userId) {
  * Set HTTP-only JWT cookie on response
  * Supports dual mode: cookie auth + Authorization header
  */
-function setAuthCookie(res, token) {
+function setAuthCookie(res, token, maxAgeMs) {
+  const age = Number(maxAgeMs);
   res.cookie("token", token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    maxAge: Number.isFinite(age) && age > 0 ? age : 7 * 24 * 60 * 60 * 1000, // default 7 days
     path: "/",
   });
 }
@@ -469,7 +470,7 @@ function getQueryPartnerId(req) {
 /**
  * 生成 JWT Token（含角色資訊）
  */
-function generateToken(user) {
+function generateToken(user, expiresIn = "7d") {
   // 🔒 讀最新 token_version（用嚟撤銷指定用戶嘅 session）
   let tv = Number(user.token_version) || 0;
   try {
@@ -490,7 +491,7 @@ function generateToken(user) {
       tv,
     },
     JWT_SECRET,
-    { expiresIn: "7d" },
+    { expiresIn: String(expiresIn || "7d") },
   );
 }
 
