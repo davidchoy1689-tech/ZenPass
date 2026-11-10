@@ -179,6 +179,7 @@ async function sendOtp({ phone, ip = "" }) {
     success: true,
     expires_in: Math.floor(OTP_TTL_MS / 1000),
     resend_in: RESEND_SECONDS,
+    cooldown_seconds: RESEND_SECONDS,
     channel,
   };
   // 沙盒先回傳驗證碼，方便長者現場／測試；生產永遠唔會回傳

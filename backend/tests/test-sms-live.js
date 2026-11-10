@@ -48,6 +48,7 @@ const twilioOk = () => ({ ok: true, status: 201, json: async () => ({ sid: "SM12
   mockFetch(() => { throw new Error("should not call"); });
   const w = await otp.sendOtp({ phone: "98765432", ip: "9.9.9.2" });
   ok(w.status === 200 && w.body.dev_code === "123456" && w.body.channel === "log", "白名單回固定碼", w.body);
+  ok(w.body.cooldown_seconds === 60, "回傳 cooldown_seconds=60（工單規格）");
   ok(calls.length === 0, "白名單唔會 call Twilio");
   ok(sms.isConfigured() === false, "未設憑證 → isConfigured false");
 
