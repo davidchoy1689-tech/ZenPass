@@ -123,7 +123,10 @@
       <button class="tab on" data-s="open">待處理</button>
       <button class="tab" data-s="all">全部</button>
     </div>
-    <button class="btn" id="refresh">↻ 重新整理</button>
+    <div style="display:flex;gap:8px">
+      <button class="btn" id="pinBtn">🔐 安全 PIN</button>
+      <button class="btn" id="refresh">↻ 重新整理</button>
+    </div>
   </div>
 
   <div class="panel">
@@ -149,6 +152,60 @@
       <button class="x" id="mClose" aria-label="關閉">✕</button>
     </div>
     <div class="mbody" id="mBody"></div>
+  </div>
+</div>
+
+<div class="modal-bg" id="pinBg" hidden>
+  <div class="modal" style="max-width:420px">
+    <div class="mhdr"><div><h2>🔐 風控安全 PIN</h2><div class="sub" id="pinSub">6 位數字，用於緊急熔斷二次授權</div></div><button class="x" id="pinClose">✕</button></div>
+    <div class="mbody">
+      <div class="warn">此 PIN 只屬於你本人，唔可以同其他管理員共用。設定／更改需要你的登入密碼（如適用）。</div>
+      <label class="lbl" style="font-size:12px;font-weight:800;color:#64748B">新 PIN（6 位數字）</label>
+      <input id="pinNew" inputmode="numeric" maxlength="6" placeholder="••••••" style="width:100%;border:1px solid var(--line);border-radius:10px;padding:11px;font:inherit;font-size:16px;letter-spacing:4px;margin-bottom:8px" />
+      <label class="lbl" style="font-size:12px;font-weight:800;color:#64748B">確認 PIN</label>
+      <input id="pinConfirm" inputmode="numeric" maxlength="6" placeholder="••••••" style="width:100%;border:1px solid var(--line);border-radius:10px;padding:11px;font:inherit;font-size:16px;letter-spacing:4px;margin-bottom:8px" />
+      <label class="lbl" style="font-size:12px;font-weight:800;color:#64748B">登入密碼（電郵登入適用）</label>
+      <input id="pinPwd" type="password" placeholder="如你使用 OTP 登入可留空" style="width:100%;border:1px solid var(--line);border-radius:10px;padding:11px;font:inherit;font-size:13px" />
+      <div class="acts"><button class="btn primary" id="pinSave">儲存 PIN</button></div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="lkBg" hidden>
+  <div class="modal" style="max-width:520px">
+    <div class="mhdr"><div><h2 style="color:#B91C1C">🚨 確認帳號失竊：立即封鎖</h2><div class="sub">此操作不可逆，復原需人工核身</div></div><button class="x" id="lkClose">✕</button></div>
+    <div class="mbody">
+      <div class="warn" style="background:#FEF2F2;border-color:#FCA5A5;color:#991B1B">
+        <b id="lkName">—</b><br>
+        待發資金：<b id="lkAmount">—</b>　活躍 Session：<b id="lkSessions">—</b><br>
+        將即時：停權 → 撤銷全部 JWT → 急凍出糧 → 還原合法 FPS → 黑客戶口入黑名單 → SMS 通知本人
+      </div>
+      <label class="lbl" style="font-size:12px;font-weight:800;color:#64748B">事故原因（必填，會寫入審計）</label>
+      <textarea id="lkReason" placeholder="例：教練來電確認手機被盜，FPS 被改為不明戶口"></textarea>
+      <label class="lbl" style="font-size:12px;font-weight:800;color:#64748B;margin-top:8px;display:block">管理員安全 PIN（6 位）</label>
+      <input id="lkPin" inputmode="numeric" maxlength="6" placeholder="••••••" style="width:100%;border:1px solid var(--line);border-radius:10px;padding:11px;font:inherit;font-size:16px;letter-spacing:4px" />
+      <div class="acts">
+        <button class="btn" id="lkCancel">取消</button>
+        <button class="btn" style="background:#B91C1C;border-color:#B91C1C;color:#fff" id="lkGo">🚨 確認熔斷</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="recBg" hidden>
+  <div class="modal" style="max-width:520px">
+    <div class="mhdr"><div><h2>🔓 帳號復原</h2><div class="sub" id="recName">—</div></div><button class="x" id="recClose">✕</button></div>
+    <div class="mbody">
+      <div class="good">復原前必須面對面或視像核身：核對 HKID 姓名與留底電話一致。</div>
+      <label class="chk"><input type="checkbox" id="recVerified"> 已完成身份核實（HKID 對名）</label>
+      <label class="lbl" style="font-size:12px;font-weight:800;color:#64748B;margin-top:8px;display:block">核實備註（必填）</label>
+      <textarea id="recNotes" placeholder="例：11/11 視像核對 HKID，確認本人，電話回撥成功"></textarea>
+      <div class="acts" style="justify-content:space-between">
+        <button class="btn" id="recReset">📩 發送安全重設連結</button>
+        <button class="btn ok" id="recGo">✅ 完成復原並解凍</button>
+      </div>
+      <div class="hint">重設連結 30 分鐘內有效，經 SMS 發送至留底手機；教練重設密碼並重新 OTP 綁定 FPS 後，才按「完成復原」。</div>
+    </div>
   </div>
 </div>
 
@@ -189,6 +246,8 @@ async function loadSummary() {
 }
 
 function statusBadge(t) {
+  if (t.lockdown_state === "account_locked") return '<span class="badge rejected">🚨 已熔斷封鎖</span>';
+  if (t.lockdown_state === "recovered") return '<span class="badge resolved">已復原</span>';
   if (t.status === "resolved") return '<span class="badge resolved">已解凍</span>';
   if (t.status === "rejected") return '<span class="badge rejected">已駁回</span>';
   if (Number(t.requires_secondary) === 1) return '<span class="badge pending">待二次覆核</span>';
@@ -201,7 +260,9 @@ async function load() {
     $("rows").innerHTML = '<tr><td colspan="8" class="empty">' + esc((r.data && r.data.error) || "讀取失敗") + "</td></tr>";
     return;
   }
-  const rows = (r.data.data || []).filter((x) => FILTER !== "open" || ["open", "under_investigation"].includes(x.status));
+  const rows = (r.data.data || []).filter(
+    (x) => FILTER !== "open" || ["open", "under_investigation"].includes(x.status) || x.lockdown_state === "account_locked",
+  );
   if (!rows.length) {
     $("rows").innerHTML = '<tr><td colspan="8" class="empty">✓ 冇待處理工單</td></tr>';
     return;
@@ -251,8 +312,10 @@ function renderDetail() {
   const t = d.ticket;
   const amt = Number(d.amount_at_stake_cents) || 0;
   const over = amt > Number(d.dual_threshold_cents);
-  const closed = ["resolved", "rejected"].includes(t.status);
-  const awaitingSecond = Number(t.requires_secondary) === 1 && t.primary_approved_by && !t.secondary_approved_by && !closed;
+  const locked = t.lockdown_state === "account_locked";
+  const recovered = t.lockdown_state === "recovered";
+  const closed = (["resolved", "rejected"].includes(t.status) && !locked) || recovered;
+  const awaitingSecond = !locked && Number(t.requires_secondary) === 1 && t.primary_approved_by && !t.secondary_approved_by && !closed;
   const bk = d.breakdown || {};
   const env = d.environment || {};
 
@@ -262,7 +325,8 @@ function renderDetail() {
   const attempted = d.attempted;
 
   $("mBody").innerHTML = `
-    ${closed ? `<div class="good">此工單已${t.status === "resolved" ? "解凍完成" : "駁回（維持凍結）"} · ${esc(when(t.resolved_at))}${t.reviewed_by_admin_id ? " · 審核者 " + esc(t.reviewed_by_admin_id) : ""}</div>` : ""}
+    ${locked ? `<div class="warn" style="background:#FEF2F2;border-color:#FCA5A5;color:#991B1B">🚨 <b>帳號已緊急熔斷</b> · ${esc(when(t.locked_at))} · 操作人 ${esc(t.locked_by || "")}。所有 JWT 已撤銷、出糧已急凍、合法 FPS 已還原。<div style="margin-top:8px"><button class="btn ok" id="btnRecovery">🔓 帳號復原</button></div></div>` : ""}
+    ${closed && !locked ? `<div class="good">此工單已${t.status === "resolved" ? "解凍完成" : "駁回（維持凍結）"} · ${esc(when(t.resolved_at))}${t.reviewed_by_admin_id ? " · 審核者 " + esc(t.reviewed_by_admin_id) : ""}</div>` : ""}
     ${awaitingSecond ? `<div class="warn">⏳ 已由 <b>${esc(t.primary_approved_by)}</b> 初審核准（${esc(when(t.primary_approved_at))}）。需由<b>另一位管理員</b>輸入一次性覆核碼完成二次簽署，解凍方才生效。</div>` : ""}
     ${!closed && over && !awaitingSecond ? `<div class="warn">💰 涉及金額 ${hkd(amt)} 超過雙人覆核門檻 ${hkd(d.dual_threshold_cents)}：按下批准只會記錄初審並產生覆核碼，須由另一位管理員完成第二簽。</div>` : ""}
 
@@ -310,7 +374,7 @@ function renderDetail() {
       </div>
     </div>
 
-    ${closed ? "" : `
+    ${closed || locked ? "" : `
     <div class="sec">
       <h3>核實檢查清單（SOP）</h3>
       <label class="chk"><input type="checkbox" class="sop"> 戶名一致性：新舊戶名與 HKID／合約留底吻合</label>
@@ -332,6 +396,10 @@ function renderDetail() {
       <div class="hint">備註、審核者 ID、時間與 IP 會寫入不可篡改審計紀錄。</div>
     </div>
 
+    ${!closed && !locked ? `<div class="acts" style="justify-content:flex-start">
+      <button class="btn danger" id="btnLockdown" style="margin-right:auto">🚨 確認帳號失竊：立即封鎖</button>
+    </div>` : ""}
+
     <div class="acts">
       <button class="btn danger" id="btnReject">🔴 維持凍結並調查</button>
       <button class="btn ok" id="btnApprove">🟢 ${awaitingSecond ? "完成覆核並解凍" : over ? "初審核准（送第二簽）" : "解除凍結並恢復發放"}</button>
@@ -348,9 +416,11 @@ function renderDetail() {
   }
 
   if (!closed) {
-    $("btnReject").onclick = () => submit("reject");
-    $("btnApprove").onclick = () => submit("unlock");
+    if ($("btnReject")) $("btnReject").onclick = () => submit("reject");
+    if ($("btnApprove")) $("btnApprove").onclick = () => submit("unlock");
   }
+  if ($("btnLockdown")) $("btnLockdown").onclick = () => openLockdown(d);
+  if ($("btnRecovery")) $("btnRecovery").onclick = () => openRecovery(d);
 }
 
 function sopAllChecked() {
@@ -393,6 +463,108 @@ async function submit(action) {
   }
 }
 
+function openLockdown(d) {
+  if (!d) return;
+  const t = d.ticket;
+  $("lkName").textContent = `${t.coach_name}（${t.coach_id}）`;
+  $("lkAmount").textContent = hkd(d.amount_at_stake_cents);
+  $("lkSessions").textContent = `全部已簽發 JWT（token v${t.coach_token_version || 0}）`;
+  $("lkReason").value = "";
+  $("lkPin").value = "";
+  $("lkBg").hidden = false;
+}
+
+$("lkClose").onclick = $("lkCancel").onclick = () => ($("lkBg").hidden = true);
+$("lkBg").onclick = (e) => { if (e.target === $("lkBg")) $("lkBg").hidden = true; };
+$("lkGo").onclick = async () => {
+  const reason = $("lkReason").value.trim();
+  const pin = $("lkPin").value.trim();
+  if (reason.length < 4) return toast("請填寫事故原因（最少 4 字）", true);
+  if (!/^\d{6}$/.test(pin)) return toast("請輸入 6 位安全 PIN", true);
+  const d = CURRENT;
+  if (!d) return;
+  const btn = $("lkGo");
+  btn.disabled = true;
+  try {
+    const r = await api.post("/admin/emergency-lockdown", {
+      coach_id: d.ticket.coach_id,
+      ticket_id: d.ticket.id,
+      admin_pin: pin,
+      reason,
+    });
+    if (!r.ok) {
+      const code = r.data && r.data.code;
+      toast((r.data && r.data.error) || "熔斷失敗", true);
+      if (code === "PIN_NOT_CONFIGURED") openPin();
+      return;
+    }
+    const out = r.data || {};
+    toast(`🚨 已熔斷 · 資金 ${hkd(out.amount_at_stake_cents)} 已急凍${out.fps_restored ? " · FPS 已還原" : ""}`);
+    $("lkBg").hidden = true;
+    $("modalBg").hidden = true;
+    loadSummary(); load();
+  } finally {
+    btn.disabled = false;
+  }
+};
+
+function openRecovery(d) {
+  if (!d) return;
+  $("recName").textContent = `${d.ticket.coach_name}（${d.ticket.coach_id}）`;
+  $("recVerified").checked = false;
+  $("recNotes").value = "";
+  $("recBg").hidden = false;
+}
+$("recClose").onclick = () => ($("recBg").hidden = true);
+$("recBg").onclick = (e) => { if (e.target === $("recBg")) $("recBg").hidden = true; };
+
+async function recoveryAction(action) {
+  const d = CURRENT;
+  if (!d) return;
+  const notes = $("recNotes").value.trim();
+  if (notes.length < 4) return toast("請填寫核實備註（最少 4 字）", true);
+  if (action === "reactivate" && !$("recVerified").checked) return toast("請先勾選已完成身份核實", true);
+  const r = await api.post("/admin/account-recovery", {
+    coach_id: d.ticket.coach_id,
+    action,
+    notes,
+    id_verified: $("recVerified").checked,
+  });
+  if (!r.ok) return toast((r.data && r.data.error) || "操作失敗", true);
+  if (action === "issue_reset") {
+    toast("📩 重設連結已發送");
+    if (r.data.reset_link) {
+      $("recNotes").value = notes + "\n（SMS 未配置，手動連結：" + r.data.reset_link + "）";
+    }
+    return;
+  }
+  toast("✅ 帳號已復原並解凍");
+  $("recBg").hidden = true;
+  $("modalBg").hidden = true;
+  loadSummary(); load();
+}
+$("recReset").onclick = () => recoveryAction("issue_reset");
+$("recGo").onclick = () => recoveryAction("reactivate");
+
+function openPin() {
+  $("pinNew").value = "";
+  $("pinConfirm").value = "";
+  $("pinPwd").value = "";
+  $("pinBg").hidden = false;
+}
+$("pinBtn").onclick = openPin;
+$("pinClose").onclick = () => ($("pinBg").hidden = true);
+$("pinBg").onclick = (e) => { if (e.target === $("pinBg")) $("pinBg").hidden = true; };
+$("pinSave").onclick = async () => {
+  const pin = $("pinNew").value.trim();
+  if (!/^\d{6}$/.test(pin)) return toast("PIN 必須為 6 位數字", true);
+  if (pin !== $("pinConfirm").value.trim()) return toast("兩次輸入 PIN 不一致", true);
+  const r = await api.post("/admin/security/admin-pin", { pin, password: $("pinPwd").value });
+  if (!r.ok) return toast((r.data && r.data.error) || "設定失敗", true);
+  toast("🔐 安全 PIN 已設定");
+  $("pinBg").hidden = true;
+};
+
 document.querySelectorAll(".tab").forEach((b) => {
   b.onclick = () => {
     FILTER = b.dataset.s;
@@ -410,6 +582,11 @@ $("modalBg").onclick = (e) => { if (e.target === $("modalBg")) { $("modalBg").hi
   ME = me.data || {};
   $("adminName").textContent = (ME.name || ME.email || ME.id || "管理員");
   $("adminMeta").textContent = (ME.role || "") + " · ID " + (ME.id || "");
+  try {
+    const p = await api.get("/admin/security/admin-pin");
+    const st = (p.data && p.data.data) || {};
+    $("pinBtn").textContent = st.configured ? "🔐 安全 PIN ✓" : "🔐 設定安全 PIN";
+  } catch (e) {}
   loadSummary();
   load();
 })();

@@ -251,7 +251,37 @@ function validateAndUpdate(db, coachId, b, { ip = "" } = {}) {
   }
 
   const before = db.prepare("SELECT * FROM coach_payout_settings WHERE coach_id=?").get(coachId);
+  // 風控黑名單：黑客用過嘅 FPS／戶口不可再被任何教練綁定
+  try {
+    const emg = require("./emergency");
+    const proxyNorm = fpsType === "mobile" ? normalizePhone(proxy) : proxy;
+    if (emg.isBlacklisted(db, "fps", proxyNorm) || emg.isBlacklisted(db, "bank", `${bankCode}|${holder}`)) {
+      try {
+        audit({
+          actionType: "security.blacklist_blocked",
+          entityType: "coach",
+          entityId: coachId,
+          userId: coachId,
+          newValues: { fps_type: fpsType, bank_code: bankCode, holder },
+          description: "嘗試綁定風控黑名單收款戶口（已攔截）",
+          ipAddress: ip,
+        });
+      } catch (e) {}
+      return { ok: false, status: 403, code: "BLACKLISTED", error: "此收款戶口已被風控列入黑名單，請聯絡客服" };
+    }
+  } catch (e) {}
   db.transaction(() => {
+    // 保留變更前快照，供緊急熔斷還原
+    if (before) {
+      try {
+        require("./emergency").ensureSchema(db);
+        db.prepare(
+          `INSERT INTO coach_payout_settings_history
+             (coach_id, fps_type, fps_proxy_value, bank_code, account_holder_name, is_verified, event)
+           VALUES (?,?,?,?,?,1,'before_update')`,
+        ).run(coachId, before.fps_type, before.fps_proxy_value, before.bank_code, before.account_holder_name);
+      } catch (e) {}
+    }
     db.prepare("UPDATE payout_setting_otps SET consumed=1 WHERE id=?").run(row.id);
     db.prepare(
       `INSERT INTO coach_payout_settings (coach_id, fps_type, fps_proxy_value, bank_code, account_holder_name, verified_at, updated_at)

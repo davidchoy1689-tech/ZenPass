@@ -436,6 +436,13 @@ router.post("/login", (req, res) => {
     const db = getDb();
     db.pragma("foreign_keys = ON");
 
+    // 🚨 風控黑名單 IP：直接攔截（帳號被入侵時標記）
+    try {
+      if (require("../services/emergency").isBlacklisted(db, "ip", req.ip || "")) {
+        return res.status(403).json({ success: false, code: "IP_BLOCKED", error: "此網絡已被安全系統攔截，請聯絡客服" });
+      }
+    } catch (e) {}
+
     const emailKey = String(email).trim().toLowerCase();
     const attemptKey = emailKey + "|" + (req.ip || "");
     if (loginBlocked(attemptKey)) {

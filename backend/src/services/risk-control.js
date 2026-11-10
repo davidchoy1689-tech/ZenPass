@@ -62,6 +62,11 @@ function ensureSchema(db) {
   add("secondary_approved_at", "secondary_approved_at DATETIME");
   add("settings_verified_at", "settings_verified_at DATETIME");
   add("disbursement_id", "disbursement_id TEXT");
+  add("lockdown_state", "lockdown_state TEXT");
+  add("locked_at", "locked_at DATETIME");
+  add("locked_by", "locked_by TEXT");
+  add("recovery_reset_at", "recovery_reset_at DATETIME");
+  add("recovered_at", "recovered_at DATETIME");
 }
 
 function hkMonth(now = new Date()) {
@@ -159,14 +164,14 @@ function trigger(db, { coachId, reason, ip = "", userAgent = "", level, freeze =
 
 function listTickets(db, { status } = {}) {
   ensureSchema(db);
-  const where = status ? "WHERE r.status=?" : "";
-  const params = status ? [status] : [];
+  const where = status === "open" ? "WHERE (r.status IN ('open','under_investigation') OR r.lockdown_state='account_locked')" : status ? "WHERE r.status=?" : "";
+  const params = status && status !== "open" ? [status] : [];
   return db
     .prepare(
       `SELECT r.*, u.name AS coach_name, u.phone AS coach_phone, u.payout_status AS coach_payout_status
          FROM risk_audit_tickets r LEFT JOIN users u ON u.id=r.coach_id
          ${where}
-        ORDER BY (r.status IN ('open','under_investigation')) DESC, datetime(r.created_at) DESC LIMIT 200`,
+        ORDER BY (r.lockdown_state='account_locked') DESC, (r.status IN ('open','under_investigation')) DESC, datetime(r.created_at) DESC LIMIT 200`,
     )
     .all(...params);
 }
@@ -204,6 +209,33 @@ function parseMeta(t) {
   }
 }
 
+/** 確保該教練當月有一筆 pending 發放紀錄；回傳 disbursement id 或 null */
+function ensurePendingDisbursement(db, coachId, month) {
+  const dsvc = require("./payout-disbursements");
+  dsvc.ensureSchema(db);
+  const existing = db
+    .prepare("SELECT * FROM coach_payout_disbursements WHERE coach_id=? AND payout_month=?")
+    .get(coachId, month);
+  if (existing) return existing.id;
+  const { buildMonthlyBreakdown } = require("../routes/coach-earnings");
+  const d = buildMonthlyBreakdown(db, coachId, month);
+  const gross = Number(d.total_payout_cents) || 0;
+  const offset = Number(d.cash_collected_cents) || 0;
+  const net = Number(d.net_payout_cents) || 0;
+  if (net <= 0) return null;
+  const coach = db.prepare("SELECT phone FROM users WHERE id=?").get(coachId) || {};
+  const out = dsvc.record(db, {
+    coachId,
+    month,
+    grossCents: gross,
+    offsetCents: offset,
+    netCents: net,
+    proxyId: coach.phone || null,
+    status: "pending",
+  });
+  return out.id;
+}
+
 function maskPhone(p) {
   const s = String(p || "").replace(/\D/g, "");
   if (s.length === 8) return s.slice(0, 4) + "****";
@@ -215,7 +247,8 @@ function detail(db, ticketId) {
   ensureSchema(db);
   const t = db.prepare("SELECT * FROM risk_audit_tickets WHERE id=?").get(ticketId);
   if (!t) return null;
-  const coach = db.prepare("SELECT id, name, phone, email, role, payout_status FROM users WHERE id=?").get(t.coach_id) || {};
+  const coach =
+    db.prepare("SELECT id, name, phone, email, role, payout_status, is_active, token_version FROM users WHERE id=?").get(t.coach_id) || {};
   const month = t.payout_month || hkMonth();
   let breakdown = null;
   try {
@@ -255,6 +288,8 @@ function detail(db, ticketId) {
       coach_email: coach.email || "",
       coach_role: coach.role || "",
       coach_payout_status: coach.payout_status || "active",
+      coach_is_active: coach.is_active === undefined ? 1 : Number(coach.is_active),
+      coach_token_version: Number(coach.token_version) || 0,
       reason_label: (REASONS[t.trigger_reason] || {}).label || t.trigger_reason,
     },
     amount_at_stake_cents: Number(t.amount_at_stake_cents) || (breakdown ? breakdown.net_payout_cents : 0),
@@ -303,33 +338,15 @@ function finalize(db, t, { adminId, notes, secondaryAdminId = null }) {
 
     // 重新納入當月發放隊列（pending，待財務正式登記 FPS）
     try {
-      const dsvc = require("./payout-disbursements");
-      dsvc.ensureSchema(db);
+      require("./payout-disbursements").ensureSchema(db);
       const existing = db
         .prepare("SELECT * FROM coach_payout_disbursements WHERE coach_id=? AND payout_month=?")
         .get(t.coach_id, month);
-      if (existing) {
-        disbursementId = existing.id;
-        net = Number(existing.net_payout_cents) || 0;
-      } else {
-        const { buildMonthlyBreakdown } = require("../routes/coach-earnings");
-        const d = buildMonthlyBreakdown(db, t.coach_id, month);
-        const gross = Number(d.total_payout_cents) || 0;
-        const offset = Number(d.cash_collected_cents) || 0;
-        net = Number(d.net_payout_cents) || 0;
-        if (net > 0) {
-          const coach = db.prepare("SELECT phone FROM users WHERE id=?").get(t.coach_id) || {};
-          const out = dsvc.record(db, {
-            coachId: t.coach_id,
-            month,
-            grossCents: gross,
-            offsetCents: offset,
-            netCents: net,
-            proxyId: coach.phone || null,
-            status: "pending",
-          });
-          disbursementId = out.id;
-        }
+      disbursementId = existing ? existing.id : ensurePendingDisbursement(db, t.coach_id, month);
+      net = Number((existing && existing.net_payout_cents) || 0);
+      if (!net && disbursementId) {
+        const row = db.prepare("SELECT net_payout_cents FROM coach_payout_disbursements WHERE id=?").get(disbursementId);
+        net = Number((row && row.net_payout_cents) || 0);
       }
       db.prepare("UPDATE risk_audit_tickets SET disbursement_id=? WHERE id=?").run(disbursementId, t.id);
     } catch (e) {
@@ -476,6 +493,7 @@ module.exports = {
   summary,
   detail,
   resolve,
+  ensurePendingDisbursement,
   payoutState,
   amountAtStake,
   dualThresholdCents,

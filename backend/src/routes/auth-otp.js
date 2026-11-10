@@ -9,6 +9,7 @@ const express = require("express");
 const { setAuthCookie } = require("../middleware/auth");
 const otp = require("../services/otp-service");
 const referral = require("../services/referral-rewards");
+const { getDb } = require("../services/database");
 
 const router = express.Router();
 
@@ -28,6 +29,11 @@ router.post("/otp/send", async (req, res) => {
 router.post("/otp/verify", async (req, res) => {
   try {
     const b = req.body || {};
+    try {
+      if (require("../services/emergency").isBlacklisted(getDb(), "ip", req.ip || "")) {
+        return res.status(403).json({ success: false, code: "IP_BLOCKED", error: "此網絡已被安全系統攔截，請聯絡客服" });
+      }
+    } catch (e) {}
     const out = await otp.verifyOtp({
       phone: b.phone,
       code: b.otp_code || b.code,

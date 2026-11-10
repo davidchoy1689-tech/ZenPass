@@ -43,6 +43,11 @@ function maskPhone(p) {
  * @returns {Promise<{ok:boolean,status:number,channel?:string,error?:string,retryable?:boolean,fatal?:boolean}>}
  */
 async function sendOtpSms(phone, code, { fetchImpl = global.fetch } = {}) {
+  return sendSms(phone, messageFor(code), { fetchImpl, logMask: true });
+}
+
+/** 通用短訊（保安警報／復原連結）；同一 Twilio 通道 */
+async function sendSms(phone, bodyText, { fetchImpl = global.fetch } = {}) {
   const c = cfg();
   if (!isConfigured()) {
     return { ok: false, status: 503, error: "SMS_NOT_CONFIGURED", fatal: true };
@@ -57,7 +62,7 @@ async function sendOtpSms(phone, code, { fetchImpl = global.fetch } = {}) {
   const body = new URLSearchParams({
     To: `+852${p}`,
     From: c.from,
-    Body: messageFor(code),
+    Body: String(bodyText || "").slice(0, 1000),
   });
 
   let res, data = {};
@@ -74,7 +79,7 @@ async function sendOtpSms(phone, code, { fetchImpl = global.fetch } = {}) {
   }
 
   if (res.ok) {
-    console.log(`[SMS] 已發送驗證碼至 ${maskPhone(p)}（sid ${String(data.sid || "").slice(0, 10)}…）`);
+    console.log(`[SMS] 已發送至 ${maskPhone(p)}（sid ${String(data.sid || "").slice(0, 10)}…）`);
     return { ok: true, status: 200, channel: "sms", sid: data.sid || null };
   }
 
@@ -104,4 +109,4 @@ function logFailure(phone, httpStatus, twCode, reason) {
   }
 }
 
-module.exports = { isConfigured, sendOtpSms, messageFor, normalizePhone, maskPhone };
+module.exports = { isConfigured, sendOtpSms, sendSms, messageFor, normalizePhone, maskPhone };
