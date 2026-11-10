@@ -223,6 +223,13 @@ router.post("/student/onboarding/complete", (req, res) => {
         `INSERT INTO user_passes (id,user_id,user_phone,student_name,total_credits,remaining_credits,price_paid,status,expires_at,notes,created_by,created_at,updated_at)
          VALUES (?,?,?,?,?,?,0,'active',?,?,?,datetime('now'),datetime('now'))`,
       ).run(passId, user.id, inv.phone, inv.student_name, quota, quota, expires, "迎新體驗卡", inv.coach_id);
+
+      // 工單十六：認領即綁定原教練（私域 100%／跨界 5%），第一位教練永久保留
+      try {
+        require("../services/coach-affiliate").bindStudent(db, user.id, inv.coach_id);
+      } catch (e) {
+        console.error("[ONBOARD] bind affiliation:", e.message);
+      }
       return passId;
     });
     const passId = tx();

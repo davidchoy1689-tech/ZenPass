@@ -512,6 +512,67 @@ function updateDatabase() {
     console.log("⚠️ promo migration:", e.message);
   }
 
+  // ===== 工單十六：教練私域／跨界分佣（schema + 一次性回填）=====
+  try {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS student_coach_affiliations (
+        student_user_id TEXT PRIMARY KEY,
+        origin_coach_id TEXT NOT NULL,
+        bound_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        commission_rate REAL DEFAULT 0.05,
+        status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active','inactive'))
+      );
+      CREATE INDEX IF NOT EXISTS idx_affiliations_coach ON student_coach_affiliations(origin_coach_id);
+      CREATE TABLE IF NOT EXISTS coach_affiliate_payouts (
+        id TEXT PRIMARY KEY,
+        beneficiary_coach_id TEXT NOT NULL,
+        actual_coach_id TEXT NOT NULL,
+        student_user_id TEXT NOT NULL,
+        booking_id TEXT NOT NULL,
+        session_id TEXT NOT NULL,
+        course_id TEXT NOT NULL,
+        order_amount_cents INTEGER NOT NULL,
+        commission_amount_cents INTEGER NOT NULL,
+        status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','cleared','paid')),
+        cleared_at DATETIME,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_affiliate_unique ON coach_affiliate_payouts(beneficiary_coach_id, booking_id);
+      CREATE INDEX IF NOT EXISTS idx_payouts_beneficiary ON coach_affiliate_payouts(beneficiary_coach_id, status);
+      CREATE TABLE IF NOT EXISTS coach_own_student_uplifts (
+        id TEXT PRIMARY KEY,
+        coach_id TEXT NOT NULL,
+        student_user_id TEXT NOT NULL,
+        booking_id TEXT NOT NULL UNIQUE,
+        session_id TEXT NOT NULL,
+        order_amount_cents INTEGER NOT NULL,
+        uplift_cents INTEGER NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+      CREATE INDEX IF NOT EXISTS idx_uplifts_coach ON coach_own_student_uplifts(coach_id, created_at);
+    `);
+
+    // 舊有「已認領」邀請 → 回填 affiliation（只補未存在嘅學員）
+    const claimed = db
+      .prepare(
+        "SELECT claimed_by_user_id AS uid, coach_id FROM student_onboarding_invites WHERE status='claimed' AND claimed_by_user_id IS NOT NULL",
+      )
+      .all();
+    let backfilled = 0;
+    const ins = db.prepare(
+      "INSERT OR IGNORE INTO student_coach_affiliations (student_user_id, origin_coach_id, commission_rate) VALUES (?, ?, 0.05)",
+    );
+    const tx = db.transaction(() => {
+      for (const r of claimed) {
+        if (r && r.uid && r.coach_id) backfilled += ins.run(r.uid, r.coach_id).changes;
+      }
+    });
+    tx();
+    console.log(`✅ 教練分佣 tables ready（回填 affiliation ${backfilled} 筆）`);
+  } catch (e) {
+    console.log("⚠️ 教練分佣 migration:", e.message);
+  }
+
   console.log("✅ 資料庫更新完成");
   db.close();
 }

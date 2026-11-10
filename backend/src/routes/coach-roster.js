@@ -207,6 +207,14 @@ router.post("/attendance/batch", (req, res) => {
     });
     run();
 
+    // 工單十六：點名 present 後結算私域補足／跨界 5%（冪等，重覆唔會再派）
+    let affiliate_result = null;
+    try {
+      affiliate_result = require("../services/coach-affiliate").settleSchedule(session_id);
+    } catch (e) {
+      console.error("[ROSTER] affiliate settle:", e.message);
+    }
+
     const block = writeBlock({
       entityType: "attendance_roster",
       entityId: session_id,
@@ -221,7 +229,7 @@ router.post("/attendance/batch", (req, res) => {
       description: `教練點名冊更新 ${results.length} 人（${sched.title}）`,
     });
 
-    res.json({ success: true, updated: results.length, results, block_hash: block.hash || null });
+    res.json({ success: true, updated: results.length, results, block_hash: block.hash || null, affiliate_result });
   } catch (e) {
     console.error("[ROSTER] batch:", e.message);
     if (e && e.code) return res.status(400).json({ success: false, code: e.code, error: e.message });

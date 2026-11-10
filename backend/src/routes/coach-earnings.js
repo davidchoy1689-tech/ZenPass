@@ -110,6 +110,17 @@ router.get("/earnings", authenticateToken, (req, res) => {
       )
       .get(req.user.id);
 
+    // 工單十六：本月跨界被動分佣 / 私域補足
+    let affiliate = { affiliate_passive_cents: 0, affiliate_students_count: 0, own_student_uplift_cents: 0 };
+    try {
+      const aff = require("../services/coach-affiliate").monthSummary(
+        db,
+        req.user.id,
+        monthStart.slice(0, 7),
+      );
+      affiliate = aff;
+    } catch (e) {}
+
     res.json({
       summary: {
         monthly: monthly.total,
@@ -117,6 +128,12 @@ router.get("/earnings", authenticateToken, (req, res) => {
         pending: pending.total,
         paid: paid.total,
         week_classes: weekClasses.count,
+        affiliate_passive: affiliate.affiliate_passive_cents / 100,
+        affiliate_passive_cents: affiliate.affiliate_passive_cents,
+        affiliate_students_count: affiliate.affiliate_students_count,
+        own_student_uplift_cents: affiliate.own_student_uplift_cents,
+        total_payout_cents:
+          Math.round((monthly.total || 0) * 100) + affiliate.affiliate_passive_cents + affiliate.own_student_uplift_cents,
       },
       monthly_trend: monthlyTrend,
       commission_rate: user ? user.commission_rate : 0.8,
@@ -1149,6 +1166,13 @@ function syncCoachEarningsForSchedule(scheduleId) {
       }
     }
 
+    // 工單十六：私域 100% 補足 + 跨界 5% 被動回佣（冪等）
+    try {
+      require("../services/coach-affiliate").settleSchedule(scheduleId);
+    } catch (affErr) {
+      console.error("[AFFILIATE] settle failed:", affErr.message);
+    }
+
     return { enrolled, gross, net, earningId };
   } catch (err) {
     console.error("syncCoachEarningsForSchedule error:", err.message);
@@ -1292,6 +1316,10 @@ function monthWindow(month) {
 }
 
 function buildMonthlyBreakdown(db, coachId, month) {
+  const affiliateSvc = require("../services/coach-affiliate");
+  try {
+    affiliateSvc.ensureSchema(db);
+  } catch (e) {}
   const nextPayout = (() => {
     const [y, m] = String(month).split("-").map(Number);
     const py = m === 12 ? y + 1 : y;
@@ -1324,6 +1352,7 @@ function buildMonthlyBreakdown(db, coachId, month) {
   );
   const ceStmt = db.prepare("SELECT status, net_amount FROM coach_earnings WHERE schedule_id=?");
   let totalCents = 0, sessions = 0, students = 0, paidCents = 0, totalMinutes = 0;
+  let directCents = 0, upliftCents = 0, ownStudents = 0;
   const hktDate = (t) => {
     const d = new Date(String(t || "").replace(" ", "T"));
     return isNaN(d) ? String(t || "").slice(0, 10) : d.toLocaleDateString("sv-SE", { timeZone: "Asia/Hong_Kong" });
@@ -1332,12 +1361,18 @@ function buildMonthlyBreakdown(db, coachId, month) {
     const attended = Number(countStmt.get(s.id).c) || 0;
     const unitCents = Math.round(Number(s.price_hkd || 0) * 100);
     const payoutCents = Math.round(unitCents * rate) * attended;
+    const ownCount = Number(affiliateSvc.ownStudentAttended(db, s.id, coachId)) || 0;
+    const ownUplift = Math.round(unitCents * Math.max(0, 1 - rate)) * ownCount;
+    const sessionCents = payoutCents + ownUplift;
     const ce = ceStmt.get(s.id);
     const status = ce && ce.status === "paid" ? "paid" : "pending";
     const mins = Math.max(0, Math.round((new Date(String(s.end_time).replace(" ", "T")) - new Date(String(s.start_time).replace(" ", "T"))) / 60000)) || 0;
     if (attended > 0) {
-      totalCents += payoutCents;
+      directCents += payoutCents;
+      upliftCents += ownUplift;
+      totalCents += sessionCents;
       students += attended;
+      ownStudents += ownCount;
       sessions += 1;
       totalMinutes += mins;
       if (status === "paid") paidCents += Math.round(Number(ce.net_amount || 0) * 100) || payoutCents;
@@ -1349,15 +1384,30 @@ function buildMonthlyBreakdown(db, coachId, month) {
       course_title: s.title,
       venue: s.venue_name || "",
       attended_count: attended,
+      own_student_count: ownCount,
+      own_student_uplift: ownUplift / 100,
       duration_minutes: mins,
-      session_payout: payoutCents / 100,
+      session_payout: sessionCents / 100,
       status,
     };
   });
+  let aff = { affiliate_passive_cents: 0, affiliate_students_count: 0, affiliate_recent: [] };
+  try {
+    aff = affiliateSvc.monthSummary(db, coachId, month);
+  } catch (e) {}
+  totalCents += Number(aff.affiliate_passive_cents) || 0;
   paidCents = Math.min(paidCents, totalCents);
   return {
     month,
     total_earned: totalCents / 100,
+    direct_teaching_cents: directCents,
+    own_student_uplift_cents: upliftCents,
+    own_student_count: ownStudents,
+    affiliate_passive_cents: Number(aff.affiliate_passive_cents) || 0,
+    affiliate_passive: (Number(aff.affiliate_passive_cents) || 0) / 100,
+    affiliate_students_count: Number(aff.affiliate_students_count) || 0,
+    affiliate_recent: aff.affiliate_recent || [],
+    total_payout_cents: totalCents,
     total_sessions: sessions,
     total_attended_students: students,
     total_hours: Math.round((totalMinutes / 60) * 10) / 10,
@@ -1399,10 +1449,21 @@ router.get("/earnings/export-csv", authenticateToken, (req, res) => {
         r.receipt_no, r.date, r.course_title, r.venue, r.attended_count,
         Number(r.session_payout).toFixed(2),
         r.status === "paid" ? "已核實" : "待出帳",
-        "",
+        r.own_student_count ? `含自有學生 ${r.own_student_count} 人 · 100% 拆帳` : "",
       ].map(esc).join(","));
     }
     lines.push(["合計", "", "", "", data.total_attended_students, Number(data.total_earned).toFixed(2), "", ""].map(esc).join(","));
+
+    const affRows = data.affiliate_recent || [];
+    if (affRows.length) {
+      lines.push("");
+      lines.push(["跨界被動分佣明細（學生跨班消費 5% 回佣）"].map(esc).join(","));
+      lines.push(["學生（遮罩）", "課程", "實收金額(HK$)", "5% 回佣(HK$)"].map(esc).join(","));
+      for (const a of affRows) {
+        lines.push([a.student_name, a.course_title, Number(a.order_amount).toFixed(2), Number(a.commission).toFixed(2)].map(esc).join(","));
+      }
+      lines.push(["小計", "", "", Number(data.affiliate_passive || 0).toFixed(2)].map(esc).join(","));
+    }
     const csv = "\uFEFF" + lines.join("\r\n");
     res.setHeader("Content-Type", "text/csv; charset=utf-8");
     res.setHeader("Content-Disposition", `attachment; filename="zenpass-earnings-${month}.csv"`);

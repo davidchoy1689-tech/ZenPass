@@ -22,6 +22,14 @@
     .kpi .s{font-size:10.5px;color:#94A3B8;margin-top:2px}
     .kpi.hero{grid-column:span 2;background:#ECFDF5;border-color:#A7F3D0}
     .kpi.hero .v{color:#065F46;font-size:30px}
+    .kpi.highlight{background:linear-gradient(135deg,#F5F3FF,#EDE9FE);border-color:#C4B5FD}
+    .kpi.highlight .v{color:#5B21B6}
+    .own-tag{display:inline-block;margin-top:6px;font-size:10.5px;font-weight:900;color:#065F46;background:#DCFCE7;border:1px solid #A7F3D0;border-radius:999px;padding:2px 7px}
+    .aff-block{margin-top:16px;background:#F5F3FF;border:1.5px solid #DDD6FE;border-radius:14px;padding:12px}
+    .aff-block h3{margin:0 0 8px;font-size:13px;color:#5B21B6}
+    .aff-row{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px dashed #DDD6FE;font-size:12.5px}
+    .aff-row:last-child{border-bottom:0}
+    .aff-row .am{font-weight:900;color:#5B21B6;white-space:nowrap}
     .e-actions{display:flex;gap:8px;margin-bottom:12px}
     .e-btn{flex:1;min-height:46px;border-radius:10px;border:1.5px solid #CBD5E1;background:#fff;font-weight:800;font-size:13px;cursor:pointer}
     .e-btn.primary{background:#059669;border-color:#059669;color:#fff}
@@ -76,16 +84,24 @@
       <div class="kpi"><div class="k">⏱️ 授課堂數</div><div class="v">${d.total_sessions}</div><div class="s">${(d.total_hours || 0)} 小時 · 有出席紀錄嘅班次</div></div>
       <div class="kpi"><div class="k">👥 服務學員人次</div><div class="v">${d.total_attended_students}</div><div class="s">出席＋未合規缺席</div></div>
       <div class="kpi"><div class="k">🟢 下次發放日</div><div class="v" style="font-size:15px;line-height:1.35;word-break:break-word">${esc(d.next_payout_label || "—")}</div><div class="s">待出帳 ${hkd(d.pending_payout)} · 已出帳 ${hkd(d.paid_payout)}</div></div>
+      <div class="kpi highlight"><div class="k">💎 跨界被動分佣 (5%)</div><div class="v">${hkd(d.affiliate_passive)}</div><div class="s">來自 ${Number(d.affiliate_students_count) || 0} 位學員跨班消費</div></div>
     `;
     const rows = (d.sessions_breakdown || []).filter((x) => x.attended_count > 0);
-    if (!rows.length) { $("rows").innerHTML = '<div class="e-empty">本月暫時未有出席紀錄</div>'; return; }
+    const aff = d.affiliate_recent || [];
+    if (!rows.length && !aff.length) { $("rows").innerHTML = '<div class="e-empty">本月暫時未有出席紀錄</div>'; return; }
     $("rows").innerHTML = rows.map((r) => `
       <div class="e-row">
         <div class="top"><div><div class="t">${esc(r.course_title)}</div>
         <div class="m">${esc(r.date)} · ${esc(r.venue || "")} · ${r.attended_count} 人出席</div></div>
         <div class="amt">${hkd(r.session_payout)}</div></div>
         <span class="pill ${r.status === "paid" ? "paid" : "pending"}">${r.status === "paid" ? "已核實 · 已出帳" : "待出帳"}</span>
+        ${r.own_student_count ? `<span class="own-tag">👑 自有學生 ${r.own_student_count} 人 · 100%</span>` : ""}
       </div>`).join("");
+    if (aff.length) {
+      $("rows").innerHTML += `<div class="aff-block"><h3>🌱 跨界 5% 被動收益明細</h3>` +
+        aff.map((a) => `<div class="aff-row"><div>${esc(a.student_name)} · ${esc(a.course_title)}<br><span style="color:#94A3B8">實收 ${hkd(a.order_amount)}</span></div><div class="am">+${hkd(a.commission)}</div></div>`).join("") +
+        `</div>`;
+    }
   }
 
   $("csvBtn").onclick = async () => {
