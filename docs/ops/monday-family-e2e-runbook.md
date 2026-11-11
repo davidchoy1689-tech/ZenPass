@@ -207,3 +207,15 @@ cd /var/www/zenpass && bash zenpass-tester/scripts/family-e2e-check.sh 91234567 
 | 5 | Stripe 自助購卡自動發卡＋掛家庭 | ☐ |
 | 6 | 堆疊扣堂次序正確（舊卡先） | ☐ |
 | 7 | 無電話 403、重複付款不重發、prodtest=0 | ☐ |
+
+### 6b. 前端體驗／無障礙（Phase 5.1-UI · commit `85f439c7`）
+
+| # | 項目 | 現場做法 | 通過 |
+|---|---|---|---|
+| UI-1 | 成員卡顯示稱謂＋`**** 5432`＋「● 共享扣堂中」 | `/family.html` 睇陳大文卡片 | ☐ |
+| UI-2 | 付款全螢幕遮罩、連點不重複送出 | `/pass.html` 按付款後狂點畫面 | ☐ |
+| UI-3 | 尾 4 位 ≥36px、大字模式 46px、倒數條 | `/pass-token.html` 開陳大文入場碼 | ☐ |
+| UI-4 | 長者核銷彈窗調起數字鍵盤 | `coach-roster.html` → 🧓 降級核銷 | ☐ |
+| UI-5 | 斷網點名有「已暫存本機」琥珀 Toast | 開飛行模式按「出席」 | ☐ |
+
+> UI-3 需要一次性 token：`/my-bookings.html` → 「🆔 一次性入場碼（防截圖）」。
