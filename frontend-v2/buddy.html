@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#1d4ed8" />
+  <title>二人同行 Buddy Pass · ZenPass</title>
+  <link rel="stylesheet" href="assets/v2.css?v=26" />
+  <link rel="stylesheet" href="assets/polish.css?v=1" />
+  <style>
+    body{background:#eff6ff}
+    .buddy-wrap{max-width:520px;margin:0 auto;padding:24px 18px 40px}
+    .buddy-card{background:#fff;border-radius:22px;padding:24px 20px;box-shadow:0 18px 50px rgba(29,78,216,.14);text-align:center}
+    .buddy-badge{display:inline-block;background:#dbeafe;color:#1d4ed8;font-weight:900;border-radius:999px;padding:5px 12px;font-size:12px}
+    .buddy-card h1{font-size:24px;line-height:1.25;margin:12px 0 4px}
+    .buddy-card .price{font-size:40px;font-weight:900;color:#1d4ed8;line-height:1.1;margin:8px 0}
+    .buddy-card .price small{font-size:14px;color:#64748b;font-weight:600}
+    .buddy-card p{color:#64748b;font-size:13px;line-height:1.7}
+    .countdown{font-size:15px;font-weight:900;color:#b45309;background:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:10px;margin:14px 0}
+    .buddy-btn{display:block;width:100%;box-sizing:border-box;border:0;border-radius:13px;padding:15px;font:inherit;font-weight:900;font-size:15px;cursor:pointer;margin-top:10px;text-decoration:none}
+    .wa{background:#25D366;color:#fff}
+    .pay{background:#1d4ed8;color:#fff}
+    .back{background:#f1f5f9;color:#334155}
+    .buddy-msg{font-size:13px;line-height:1.6;margin-top:12px;color:#b45309}
+    .success{color:#047857}
+    .avatar{width:64px;height:64px;border-radius:50%;background:#dbeafe;display:flex;align-items:center;justify-content:center;font-size:30px;margin:4px auto 10px}
+  </style>
+</head>
+<body>
+  <div class="buddy-wrap">
+    <div class="buddy-card" id="card">
+      <div class="avatar">👥</div>
+      <span class="buddy-badge">二人同行 Buddy Pass</span>
+      <h1 id="title">載入拼團中…</h1>
+      <div class="price" id="price"></div>
+      <p id="desc"></p>
+      <div class="countdown" id="countdown"></div>
+      <div id="actions"></div>
+      <div class="buddy-msg" id="msg"></div>
+    </div>
+  </div>
+  <script src="assets/api.js?v=10"></script>
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const q = new URLSearchParams(location.search);
+    const TOKEN = q.get("token") || "";
+    let DATA = null;
+
+    function fmtLeft(ms) {
+      if (ms <= 0) return "已過期";
+      const h = Math.floor(ms / 3600000), m = Math.floor((ms % 3600000) / 60000);
+      return `⏳ 剩餘 ${h} 小時 ${m} 分`;
+    }
+
+    async function load() {
+      if (!TOKEN) { $("title").textContent = "找不到拼團連結"; return; }
+      const r = await fetch("/api/public/buddy/" + encodeURIComponent(TOKEN)).then((x) => x.json()).catch(() => null);
+      if (!r || !r.success) { $("title").textContent = "拼團不存在或已失效"; return; }
+      DATA = r;
+      $("price").innerHTML = `HK$${r.price_per_person_cents / 100} <small>/ 人 · 4 堂</small>`;
+      $("desc").textContent = `${r.initiator_name_masked} 邀請你一齊做運動。24 小時內成團，雙方各得 4 堂 Pass；未成團自動全額退款。`;
+      const end = new Date(String(r.expires_at).replace(" ", "T") + "Z").getTime();
+      $("countdown").textContent = r.status === "completed" ? "✅ 已成功成團" : fmtLeft(end - Date.now());
+      const me = api.getUser && api.getUser();
+      const isOwn = false; // 伺服器會在 join 擋自團
+      const waText = encodeURIComponent(`我喺 ZenPass 買咗 4 堂防跌/痛症班，二人同行每人只要 $460（原價 $520），入嚟同我一齊做運動啦！\n${location.href}`);
+      let html = `<a class="buddy-btn wa" href="https://wa.me/?text=${waText}" target="_blank" rel="noopener">📲 透過 WhatsApp 轉發給朋友／街坊</a>`;
+      if (r.status === "completed") {
+        $("title").textContent = "🎉 拼團已成功！";
+        $("countdown").textContent = "雙方各獲 4 堂 Pass，已存入錢包。";
+        html += `<a class="buddy-btn back" href="my.html">查看我的 Pass</a>`;
+      } else if (r.is_expired || r.status === "expired") {
+        $("title").textContent = "拼團已過期";
+        $("countdown").textContent = "24 小時內未成團，款項會自動原路退回。";
+        html += `<a class="buddy-btn back" href="pass.html">重新發起拼團</a>`;
+      } else {
+        $("title").textContent = `${r.initiator_name_masked} 等你一齊上堂`;
+        html += `<button class="buddy-btn pay" id="joinBtn">立即以 Apple Pay / 信用卡參團 · HK$${r.price_per_person_cents / 100}</button>`;
+      }
+      $("actions").innerHTML = html;
+      const jb = $("joinBtn");
+      if (jb) jb.onclick = async () => {
+        if (!api.requireLogin("buddy.html?token=" + TOKEN)) return;
+        jb.disabled = true; jb.textContent = "建立付款頁…";
+        const rr = await api.post("/buddy/" + encodeURIComponent(TOKEN) + "/join", {});
+        if (rr.ok && rr.data.checkout_url) location.href = rr.data.checkout_url;
+        else { jb.disabled = false; jb.textContent = "立即參團付款"; $("msg").textContent = (rr.data && rr.data.error) || "參團失敗"; }
+      };
+    }
+
+    (async function handleJoinReturn() {
+      if (!q.get("buddy_joined") || !q.get("session_id")) return;
+      $("msg").textContent = "付款成功，正在完成拼團…";
+      const r = await api.post("/buddy/complete-join", { token: TOKEN, session_id: q.get("session_id") });
+      if (r.ok) {
+        $("msg").className = "buddy-msg success";
+        $("msg").textContent = "🎉 拼團成功！你與朋友各獲 4 堂 Pass。";
+        history.replaceState({}, "", "buddy.html?token=" + TOKEN);
+        load();
+      } else {
+        $("msg").textContent = (r.data && r.data.error) || "完成拼團失敗";
+      }
+    })();
+
+    load();
+  </script>
+</body>
+</html>

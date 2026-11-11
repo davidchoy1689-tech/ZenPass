@@ -273,6 +273,7 @@ app.use("/api/users", require("./routes/users"));
 // app.use("/api/me/teammates", require("./routes/teammates"));
 app.use("/api/classes", require("./routes/classes"));
 app.use("/api", require("./routes/private-slots"));
+app.use("/api", require("./routes/buddy"));
 app.use("/api/public/explore", require("./routes/public-explore"));
 // 🔁 對外相容 alias：GET /api/schedules → 同 /api/classes 同一套邏輯（外部自動化／B2B 串接慣用 RESTful 命名）
 app.use("/api/schedules", require("./routes/classes"));

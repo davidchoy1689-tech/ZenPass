@@ -104,6 +104,15 @@
       <div class="fp-msg" id="familyPassMsg"></div>
     </section>
 
+    <section class="family-pass" id="buddyPassCard" style="background:linear-gradient(135deg,#1d4ed8,#2563eb);box-shadow:0 10px 24px rgba(37,99,235,.22)">
+      <span class="tag" style="background:#fde68a;color:#78350f">👥 二人同行</span>
+      <h2>Buddy Pass 拼團 · HK$460 / 人</h2>
+      <div class="fp-price">每人即省 $60 <small>4 堂 · 60 天</small></div>
+      <div class="fp-sub">付款後取得專屬 WhatsApp 邀請連結。24 小時內有朋友加入即成團，雙方各得 4 堂 Pass；未成團自動全額退款。</div>
+      <button class="btn btn-block" id="buddyBtn" type="button" style="color:#1d4ed8">💳 發起二人同行拼團 · HK$460</button>
+      <div class="fp-msg" id="buddyMsg"></div>
+    </section>
+
     <div class="pass-tabs" role="tablist">
       <button class="pass-tab is-active" id="tabPass" type="button" role="tab" aria-selected="true">🎟️ 靈活 Pass 點數包</button>
       <button class="pass-tab" id="tabMember" type="button" role="tab" aria-selected="false">💳 月度通行會籍</button>
@@ -267,6 +276,29 @@
           ? "✅ 已提交 FPS 訂單，職員核實入數後 4 堂 Pass 會自動入賬。"
           : (r.data && r.data.error) || "提交失敗，請重試";
       });
+
+      $("buddyBtn").addEventListener("click", async function () {
+        if (!api.requireLogin("pass.html")) return;
+        var btn = this; btn.disabled = true; btn.textContent = "建立付款頁…";
+        var r = await api.post("/buddy/create-group", { plan_key: "buddy_pack_4" });
+        if (!r.ok || !r.data.checkout_url) {
+          btn.disabled = false; btn.textContent = "💳 發起二人同行拼團 · HK$460";
+          $("buddyMsg").textContent = (r.data && r.data.error) || "建立拼團失敗";
+          return;
+        }
+        location.href = r.data.checkout_url;
+      });
+
+      (async function handleBuddyReturn() {
+        var q = new URLSearchParams(location.search);
+        if (q.get("buddy_cancel")) $("buddyMsg").textContent = "已取消拼團付款。";
+        if (q.get("buddy_created") && q.get("session_id")) {
+          $("buddyMsg").textContent = "付款成功，正在建立拼團…";
+          var r = await api.post("/buddy/complete-create", { session_id: q.get("session_id") });
+          if (r.ok && r.data.share_url) location.href = r.data.share_url;
+          else $("buddyMsg").textContent = (r.data && r.data.error) || "建立拼團失敗";
+        }
+      })();
 
       (async function handlePassReturn() {
         var q = new URLSearchParams(location.search);
