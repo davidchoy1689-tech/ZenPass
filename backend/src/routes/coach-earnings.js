@@ -1349,9 +1349,10 @@ function buildMonthlyBreakdown(db, coachId, month) {
          LEFT JOIN partner_venues pv ON pv.id=c.partner_venue_id
         WHERE COALESCE(s.coach_override_id, c.coach_id)=? AND substr(s.start_time,1,7)=? AND COALESCE(s.status,'')<>'cancelled'
           AND (COALESCE(pv.is_sandbox,0)=0 OR ?=1)
+          AND (?=1 OR (s.id NOT LIKE 'prodtest-%' AND COALESCE(c.class_reference,'') NOT LIKE 'VERIFIED_TEST%'))
         ORDER BY s.start_time`,
     )
-    .all(coachId, month, includeSandbox);
+    .all(coachId, month, includeSandbox, includeSandbox);
   const u = db.prepare("SELECT commission_rate FROM users WHERE id=?").get(coachId);
   const rate = u && Number(u.commission_rate) > 0 ? Number(u.commission_rate) : 0.8;
   const countStmt = db.prepare(
