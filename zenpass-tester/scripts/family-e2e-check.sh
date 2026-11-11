@@ -27,7 +27,7 @@ norm() { echo "$1" | tr -cd '0-9' | sed 's/^852//'; }
 PAYER="$(norm "$PAYER")"
 MEMBER="$(norm "$MEMBER")"
 
-q() { sqlite3 -box "$DB" "$1"; }
+q() { sqlite3 -header -column "$DB" "$1"; }
 
 echo "════════════════════════════════════════════════════════"
 echo " ZenPass 家庭閉環核對 · $(date '+%Y-%m-%d %H:%M:%S %Z')"
@@ -99,5 +99,5 @@ q "SELECT action_type, entity_type, entity_id, description, created_at
 echo
 echo "════════════════════════════════════════════════════════"
 echo " 判讀：remaining_credits 應 4→3；attendance_status=present；"
-echo "        coach_earnings 淨額 11200 cents（$140 × 80%）；prodtest 全 0。"
+echo "        coach_earnings 淨額 11200 cents（HK\$140 × 80%）；prodtest 全 0。"
 echo "════════════════════════════════════════════════════════"
