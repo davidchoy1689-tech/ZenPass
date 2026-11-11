@@ -70,6 +70,8 @@ function ownSchedule(db, user, sid) {
 router.get("/sessions/:sid/roster", (req, res) => {
   try {
     const db = getDb();
+    const familyWallet = require("../services/family-wallet");
+    try { familyWallet.ensureSchema(db); } catch (e) {}
     ensureTable(db);
     const sched = ownSchedule(db, req.user, req.params.sid);
     if (!sched) return res.status(404).json({ success: false, error: "找不到班次或無權限" });
@@ -136,6 +138,13 @@ router.get("/sessions/:sid/roster", (req, res) => {
         pass_id: r.pass_id || null,
         pass_remaining: r.remaining_credits == null ? null : Number(r.remaining_credits),
         pass_total: r.total_credits == null ? null : Number(r.total_credits),
+        pass_status: (() => {
+          try {
+            return familyWallet.describePass(db, r.user_id, r.pass_id);
+          } catch (e) {
+            return { has_valid_pass: false, pass_type: null, display_badge: null, remaining_units: 0 };
+          }
+        })(),
         status: derived,
         checkin_time: r.checkin_time,
         notes: r.notes || "",

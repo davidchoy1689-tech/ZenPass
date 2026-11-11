@@ -21,6 +21,8 @@ const router = express.Router();
 router.get("/", optionalAuth, cache(30), (req, res) => {
   try {
     const db = getDb();
+    const familyWallet = require("../services/family-wallet");
+    try { familyWallet.ensureSchema(db); } catch (e) {}
     db.pragma("foreign_keys = ON");
 
     const {
@@ -33,6 +35,7 @@ router.get("/", optionalAuth, cache(30), (req, res) => {
       page = 1,
       limit = 20,
       sort = "popular",
+      audience,
     } = req.query;
 
     let whereConditions = ["c.status = ?"];
@@ -48,6 +51,11 @@ router.get("/", optionalAuth, cache(30), (req, res) => {
     if (category && category !== "全部" && category !== "all") {
       whereConditions.push("c.category = ?");
       params.push(category);
+    }
+
+    if (audience && audience !== "all" && familyWallet.AUDIENCES.includes(String(audience))) {
+      whereConditions.push("COALESCE(c.target_audience_enum,'general_fitness') = ?");
+      params.push(String(audience));
     }
 
     if (difficulty) {
@@ -162,6 +170,7 @@ router.get("/", optionalAuth, cache(30), (req, res) => {
     }
     const classesWithSchedule = classes.map((cls) => ({
       ...cls,
+      audience_badge: familyWallet.badgesForAudience(cls.target_audience_enum),
       schedules: scheduleMap[cls.id] || [],
     }));
 

@@ -36,7 +36,7 @@ has(idx, "離島", "islands label");
 has(css, ".loc-pill", "loc pill css");
 has(exp, "const ZONES", "explore ZONES");
 has(exp, "function matchZone", "matchZone");
-if (!/matchZone\(c\) && matchArea\(c\) && matchScene\(c\) && matchDate\(c\) && matchCat\(c\) && matchQ\(c\)/.test(exp)) fails.push("view() should filter zone+area+scene+date+cat+q");
+if (!/matchZone\(c\) && matchArea\(c\) && matchScene\(c\) && matchDate\(c\) && matchCat\(c\)(?: && matchAudience\(c\))? && matchQ\(c\)/.test(exp)) fails.push("view() should filter zone+area+scene+date+cat+audience+q");
 // 確認 18 區齊全
 ["cw", "wc", "east", "south", "ytm", "ssp", "kc", "wts", "kt", "kts", "tw", "tm", "yl", "north", "tp", "st", "sk", "islands"].forEach(z => has(exp, z + ": { label:", "explore zone " + z));
 

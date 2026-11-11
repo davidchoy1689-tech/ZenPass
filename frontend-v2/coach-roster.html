@@ -178,7 +178,9 @@
       return `<div class="r-card ${cls}" data-bid="${esc(x.booking_id)}">
         <div class="r-name">${esc(x.student_name || x.name)} ${x.status === "late" ? '<span style="font-size:11px;color:#B45309">🕐 遲到</span>' : ""}</div>
         <div class="r-badges">${x.is_own_student ? '<span class="r-own">👑 自有學生 (100%)</span>' : '<span class="r-plat">🌐 平台引流 (80%)</span>'}</div>
-        <div class="r-meta">${x.pass_remaining != null ? `🎫 剩 ${x.pass_remaining}/${x.pass_total} 堂 · ` : ""}${esc(x.phone || "")}</div>
+        <div class="r-meta">${x.pass_status && x.pass_status.pass_type === "family"
+          ? `👨‍👩‍👧 ${esc(x.pass_status.display_badge || "家庭Pass")} · 餘 ${x.pass_status.remaining_units} · `
+          : x.pass_remaining != null ? `🎫 剩 ${x.pass_remaining}/${x.pass_total} 堂 · ` : ""}${esc(x.phone || "")}</div>
         ${x.health_notes ? (() => {
           const t = String(x.health_notes);
           const danger = /心臟|心管|血壓|手術|膝|關節|糖尿|暈|中風|骨質|氣喘|哮喘/i.test(t);

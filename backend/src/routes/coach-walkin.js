@@ -186,7 +186,12 @@ function handleWalkIn(req, res) {
         throw e;
       }
 
-      const usable = passes.listActiveForUser(db, { id: u.id, phone })[0] || null;
+      // Phase 2：本人 Pass 優先，其次家庭共享 Pass
+      let alloc = null;
+      try {
+        alloc = require("../services/family-wallet").findApplicablePass(db, u.id);
+      } catch (e) {}
+      const usable = (alloc && alloc.pass) || passes.listActiveForUser(db, { id: u.id, phone })[0] || null;
       let method = rawMethod;
       if (!method) method = usable ? "pass" : "cash";
       if (method === "fps_direct") method = "fps";
@@ -257,6 +262,8 @@ function handleWalkIn(req, res) {
         pass_remaining: pass_after,
         amount,
         payment_method: method,
+        pass_source: alloc ? alloc.source : method === "pass" ? "personal" : null,
+        pass_payer_name: alloc && alloc.source === "family" ? alloc.payerName : null,
         overbooked: cap > 0 && used >= cap,
       };
     });

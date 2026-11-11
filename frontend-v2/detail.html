@@ -665,9 +665,11 @@
       renderCurriculum(c);
 
       const aud = (c.target_audience || "").split(/[、,，/]/).map(function (x) { return x.trim(); }).filter(Boolean);
-      $("audience").innerHTML = aud.length ? aud.map(function (t) {
+      const AB = { elderly: "🛡️ 熟齡防跌", active_50plus: "🛡️ 熟齡防跌", office_worker: "💼 辦公室肩頸腰痛", postnatal: "🌸 產後盆骨核心", general_fitness: "🏃 大眾體適能" };
+      const badge = AB[c.target_audience_enum];
+      $("audience").innerHTML = (badge ? '<span class="dt-tag green" style="font-weight:900">' + badge + "</span>" : "") + (aud.length ? aud.map(function (t) {
         return '<span class="dt-tag green">👤 ' + esc(t) + '</span>';
-      }).join("") : "";
+      }).join("") : "");
 
       // 教練
       $("coachName").textContent = c.coach_name || "教練資料待更新";
