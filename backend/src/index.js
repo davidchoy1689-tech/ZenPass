@@ -34,6 +34,7 @@ try {
   require("./routes/fps-clearing").ensureSchema(getDb());
   require("./services/marketplace").ensureSchema(getDb());
   require("./services/phone-gate").ensureSchema(getDb());
+  require("./services/fulfillment-queue").ensureSchema(getDb());
 } catch (e) {
   logger.warn("[CHECKIN] schema 初始化失敗: " + e.message);
 }
@@ -221,14 +222,19 @@ app.use("/api/", generalLimiter);
 
 // Stripe webhook must receive raw body — register BEFORE express.json()
 const paymentsRouter = require("./routes/payments");
-app.post(
-  "/api/payments/stripe/webhook",
-  express.raw({ type: "application/json" }),
-  (req, res, next) => {
-    req.url = "/stripe/webhook";
-    paymentsRouter(req, res, next);
-  },
-);
+function mountStripeWebhook(pathname) {
+  app.post(
+    pathname,
+    express.raw({ type: "application/json" }),
+    (req, res, next) => {
+      req.url = "/stripe/webhook";
+      paymentsRouter(req, res, next);
+    },
+  );
+}
+mountStripeWebhook("/api/payments/stripe/webhook");
+// Phase 2.1-PROD canonical alias（規格路徑）
+mountStripeWebhook("/api/webhooks/stripe");
 
 // Everything else uses JSON body parser
 // 📩 WhatsApp Cloud API webhook — 必須喺 express.json() 之前（要 raw body 驗簽）
@@ -258,7 +264,7 @@ app.use("/api", (req, res, next) => {
     return next();
   }
   // Exempt Stripe webhook endpoint (external callback with built-in signature verification)
-  if (req.path === "/payments/stripe/webhook") {
+  if (req.path === "/payments/stripe/webhook" || req.path === "/webhooks/stripe") {
     return next();
   }
   // Exempt internal server-to-server calls (scheduler / cron).
@@ -291,6 +297,7 @@ app.use("/api", require("./routes/checkin"));
 app.use("/api", require("./routes/b2b"));
 app.use("/api", require("./routes/fps-clearing"));
 app.use("/api", require("./routes/marketplace"));
+app.use("/api", require("./routes/phase21-prod"));
 app.use("/api/public/explore", require("./routes/explore-map"));
 app.use("/api/public/explore", require("./routes/public-explore"));
 // 🔁 對外相容 alias：GET /api/schedules → 同 /api/classes 同一套邏輯（外部自動化／B2B 串接慣用 RESTful 命名）
@@ -639,6 +646,17 @@ setTimeout(autoNotifyLargeVacancies, 60 * 1000);
 // ===== Corporate Credit 月度重置（每 15 分鐘檢查）=====
 setInterval(processCorporateResets, 15 * 60 * 1000);
 processCorporateResets();
+
+// Phase 2.1-PROD — 付款履約補償隊列（每 15 分鐘）
+try {
+  const fq = require("./services/fulfillment-queue");
+  const { handleRow } = require("./routes/phase21-prod");
+  setInterval(async () => {
+    try { await fq.reconcile(handleRow); } catch (e) { console.error("[FULFILL] cron:", e.message); }
+  }, 15 * 60 * 1000);
+} catch (e) {
+  console.error("[FULFILL] scheduler mount failed:", e.message);
+}
 
 // ===== Pause 自動恢復排程（每 15 分鐘檢查）=====
 function autoResumePausedMemberships() {

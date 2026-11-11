@@ -89,6 +89,7 @@
   <div class="wrap">
     <div class="pass-hero">
       <h1>🎟️ ZenPass 靈活套票與會籍方案</h1>
+      <div id="liveBadge" hidden style="display:inline-block;background:#fef2f2;color:#991b1b;border:1px solid #fecaca;border-radius:999px;padding:4px 10px;font-size:12px;font-weight:800;margin-bottom:10px"></div>
       <p>買得越多越抵！一個 Pass 通行全港百款新興運動與體驗課堂，彈性扣點，無隱藏收費。</p>
     <div class="pass-trust"><span>⏳ 無時間限制</span><span>👥 可與朋友共用點數</span><span>📍 不限場館及項目</span></div>
     </div>
@@ -229,6 +230,23 @@
       var selected = null;
       var PAY = {};
       var $ = function (id) { return document.getElementById(id); };
+
+      // Phase 2.1-PROD：金流模式／PK 由後端動態提供，前端永不寫死 key
+      var STRIPE_CFG = { mode: "test", is_production_mode: false };
+      (function loadStripeConfig() {
+        fetch("/api/public/config", { cache: "no-store" })
+          .then(function (r) { return r.json(); })
+          .then(function (c) {
+            STRIPE_CFG = c || STRIPE_CFG;
+            window.ZP_STRIPE = STRIPE_CFG;
+            var badge = $("liveBadge");
+            if (badge && STRIPE_CFG.is_production_mode) {
+              badge.hidden = false;
+              badge.textContent = "🔴 正式交易模式（真錢）";
+            }
+          })
+          .catch(function () {});
+      })();
 
       // ===== 4 堂家庭 Pass（Stripe 即時付款）=====
       var familyGroups = [];

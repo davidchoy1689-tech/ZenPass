@@ -144,21 +144,12 @@ function calculateStripeFee(amount, cardType = "domestic") {
   };
 }
 
-// ===== Stripe SDK (lazy init — 只喺有 key 時先初始化) =====
-let stripe = null;
-const STRIPE_SECRET = process.env.STRIPE_SECRET_KEY;
-const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET;
+// ===== Stripe SDK（Phase 2.1-PROD：由金鑰工廠按 STRIPE_MODE 提供）=====
+const stripeSvc = require("../services/stripe");
+const fulfillmentQueue = require("../services/fulfillment-queue");
 
 function getStripe() {
-  if (
-    !stripe &&
-    STRIPE_SECRET &&
-    STRIPE_SECRET !== "sk_test_xxxxxxxxxxxxxxxxxxxx"
-  ) {
-    stripe = require("stripe")(STRIPE_SECRET);
-    console.log("💳 Stripe SDK initialized");
-  }
-  return stripe;
+  return stripeSvc.client();
 }
 
 // ===== 前端 URL（用於 Checkout redirect）=====
@@ -397,11 +388,8 @@ router.post("/stripe/webhook", async (req, res) => {
   try {
     const sig = req.headers["stripe-signature"];
 
-    if (
-      !getStripe() ||
-      !STRIPE_WEBHOOK_SECRET ||
-      STRIPE_WEBHOOK_SECRET === "whsec_xxxxxxxxxxxxxxxxxxxx"
-    ) {
+    const webhookSecret = stripeSvc.webhookSecret();
+    if (!getStripe() || !webhookSecret || webhookSecret === "whsec_xxxxxxxxxxxxxxxxxxxx") {
       return res
         .status(200)
         .json({ received: true, note: "Webhook not configured" });
@@ -412,7 +400,7 @@ router.post("/stripe/webhook", async (req, res) => {
       event = getStripe().webhooks.constructEvent(
         req.body,
         sig,
-        STRIPE_WEBHOOK_SECRET,
+        webhookSecret,
       );
     } catch (err) {
       console.error("Webhook signature verification failed:", err.message);
@@ -443,7 +431,19 @@ router.post("/stripe/webhook", async (req, res) => {
           paymentIntentId: pi.id,
           sessionId: pi.id,
         });
-        if (!r.ok) console.error("[PASS WEBHOOK] fulfill failed:", r.error);
+        if (!r.ok) {
+          console.error("[PASS WEBHOOK] fulfill failed:", r.error);
+          try {
+            fulfillmentQueue.enqueue({
+              payment_intent_id: pi.id,
+              amount_cents: Number(pi.amount || 0),
+              currency: pi.currency || "hkd",
+              customer_email: pi.receipt_email || null,
+              metadata: { product_type: "user_pass", ...md },
+              error_message: r.error || "fulfill failed",
+            });
+          } catch (qerr) { console.error("[PASS WEBHOOK] enqueue failed:", qerr.message); }
+        }
         return res.status(200).json({ received: true });
       }
     }
@@ -485,7 +485,19 @@ router.post("/stripe/webhook", async (req, res) => {
           paymentIntentId: session.payment_intent || session.id,
           sessionId: session.id,
         });
-        if (!r.ok) console.error("[PASS WEBHOOK] fulfill failed:", r.error);
+        if (!r.ok) {
+          console.error("[PASS WEBHOOK] fulfill failed:", r.error);
+          try {
+            fulfillmentQueue.enqueue({
+              payment_intent_id: session.payment_intent || session.id,
+              amount_cents: Number(session.amount_total || 0),
+              currency: session.currency || "hkd",
+              customer_email: session.customer_details?.email || session.customer_email || null,
+              metadata: { product_type: "user_pass", ...(session.metadata || {}) },
+              error_message: r.error || "fulfill failed",
+            });
+          } catch (qerr) { console.error("[PASS WEBHOOK] enqueue failed:", qerr.message); }
+        }
         return res.status(200).json({ received: true });
       }
       const primaryId = session.metadata?.booking_id;
