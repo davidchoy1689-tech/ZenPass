@@ -41,13 +41,13 @@ db.prepare("INSERT INTO coach_credentials (id,user_id,license_type,license_no,li
 
 // class + schedules (2026-11-11 10:30 HKT = 02:30Z)
 db.prepare("INSERT INTO classes (id,coach_id,title,category,duration,max_participants,price_hkd,credits_cost,district,venue_name,status) VALUES ('cl1','orig','樂齡深層伸展班','stretch',90,20,140,14,'葵青','青衣楓樹窩體育館','active')").run();
-db.prepare("INSERT INTO class_schedules (id,class_id,start_time,end_time,status,enrolled_count,max_participants) VALUES ('s1','cl1','2026-11-11 02:30:00','2026-11-11 04:00:00','available',3,20)").run();
+db.prepare("INSERT INTO class_schedules (id,class_id,start_time,end_time,status,enrolled_count,max_participants) VALUES ('s1','cl1','2026-11-10 02:30:00','2026-11-10 04:00:00','available',3,20)").run();
 // c4 衝堂
 db.prepare("INSERT INTO classes (id,coach_id,title,category,duration,max_participants,price_hkd,credits_cost,district,venue_name,status) VALUES ('cl4','c4','其他班','stretch',90,20,140,14,'葵青','同一場館','active')").run();
-db.prepare("INSERT INTO class_schedules (id,class_id,start_time,end_time,status) VALUES ('sx','cl4','2026-11-11 03:00:00','2026-11-11 04:30:00','available')").run();
+db.prepare("INSERT INTO class_schedules (id,class_id,start_time,end_time,status) VALUES ('sx','cl4','2026-11-10 03:00:00','2026-11-10 04:30:00','available')").run();
 // 第二班（李教練用平台底網）
-db.prepare("INSERT INTO class_schedules (id,class_id,start_time,end_time,status,enrolled_count,max_participants) VALUES ('s2','cl1','2026-11-11 06:00:00','2026-11-11 07:30:00','available',2,20)").run();
-db.prepare("INSERT INTO class_schedules (id,class_id,start_time,end_time,status,enrolled_count,max_participants) VALUES ('s3','cl1','2026-11-11 08:00:00','2026-11-11 09:30:00','available',0,20)").run();
+db.prepare("INSERT INTO class_schedules (id,class_id,start_time,end_time,status,enrolled_count,max_participants) VALUES ('s2','cl1','2026-11-10 06:00:00','2026-11-10 07:30:00','available',2,20)").run();
+db.prepare("INSERT INTO class_schedules (id,class_id,start_time,end_time,status,enrolled_count,max_participants) VALUES ('s3','cl1','2026-11-10 08:00:00','2026-11-10 09:30:00','available',0,20)").run();
 
 // 付費學員 + 出席 + 自有學生歸屬（供託管測試）
 db.prepare("INSERT INTO bookings (id,booking_reference,user_id,schedule_id,class_id,status,payment_status,amount,payment_method,created_at) VALUES ('b1','ZP1','stu','s1','cl1','attended','paid',140,'online',datetime('now'))").run();
@@ -59,10 +59,10 @@ db.prepare("INSERT INTO student_coach_affiliations (student_user_id,origin_coach
 
 (async () => {
   console.log("🧪 1. 受影響班次");
-  const aff = emg.affectedSessions(db, "2026-11-11");
+  const aff = emg.affectedSessions(db, "2026-11-10");
   ok(aff.sessions.length === 3, "三個班次待處理", aff.sessions.length);
   ok(aff.sessions.every((s) => s.payout_status === "frozen_stolen"), "只列出被熔斷教練");
-  const allAff = emg.affectedSessions(db, "2026-11-11", true);
+  const allAff = emg.affectedSessions(db, "2026-11-10", true);
   ok(allAff.sessions.length === 4, "all=1 列出全部班次（含正常教練）", allAff.sessions.length);
 
   console.log("🧪 2. 候選過濾（同區／衝堂／PLI）");
@@ -89,6 +89,8 @@ db.prepare("INSERT INTO student_coach_affiliations (student_user_id,origin_coach
   ok(log1.verified_by_admin_id === "adm" && Number(log1.is_emergency_override) === 0, "規格欄位：審核人／非緊急強制");
   const srow = db.prepare("SELECT substitute_reason, substitute_assigned_at, substitute_assigned_by FROM class_schedules WHERE id='s1'").get();
   ok(srow.substitute_reason && srow.substitute_assigned_at && srow.substitute_assigned_by === "adm", "更表記錄代堂原因／時間／操作人");
+  // 模擬保險備案早於事故（開課前已建立）
+  db.prepare("UPDATE schedule_insurance_logs SET created_at='2026-11-10 02:00:00' WHERE schedule_id='s1'").run();
   ok(!!db.prepare("SELECT 1 FROM audit_log WHERE action_type='schedule.assign_substitute'").get(), "有代堂審計");
   ok(!!db.prepare("SELECT 1 FROM notifications WHERE user_id='c2'").get(), "代堂教練收到通知");
   ok(!!db.prepare("SELECT 1 FROM notifications WHERE user_id='stu'").get(), "學員收到通知");
@@ -122,17 +124,24 @@ db.prepare("INSERT INTO student_coach_affiliations (student_user_id,origin_coach
     params: { id: "s1" },
     body: {
       student_user_id: "stu",
-      incident_time: "2026-11-11T10:45",
-      description: "10:45 雙手扶椅伸展時失衡，左膝著地挫傷",
-      action_taken: "暫停全班、冰敷、10:52 致電 999 送往瑪嘉烈醫院",
-      severity: "moderate",
+      incident_time: "2026-11-10T10:45",
+      incident_type: "slip_and_fall",
+      severity_level: "moderate",
+      injury_location: "左膝關節",
+      description: "10:45 雙手扶椅進行下肢伸展時失去平衡，跌坐地面左膝著地挫傷，當時地面乾爽",
+      first_aid_given: "暫停全班、RICE 冰敷、量血壓、坐椅休息",
+      guardian_notified: true,
+      guardian_phone_notified: "93334444",
+      guardian_name: "陳小玲",
     },
   });
   ok(incRes.statusCode === 201 && !!incRes.body.data.incident_id, "登記事故成功", incRes.body);
   const incRow = db.prepare("SELECT * FROM schedule_incidents WHERE id=?").get(incRes.body.data.incident_id);
   ok(incRow.student_name === "學員甲" && incRow.student_phone === "61112222", "自動帶入學員資料");
-  ok(String(incRow.incident_time) === "2026-11-11 02:45:00", "HKT 時間正確轉 UTC", incRow.incident_time);
-  const board = emg.affectedSessions(db, "2026-11-11");
+  ok(incRow.incident_type === "slip_and_fall" && incRow.severity_level === "moderate" && incRow.injury_location === "左膝關節", "分類／嚴重程度／受傷部位");
+  ok(incRow.coach_id_on_duty === "c2" && Number(incRow.guardian_notified) === 1, "當值教練＋監護人通知");
+  ok(String(incRow.incident_time) === "2026-11-10 02:45:00", "HKT 時間正確轉 UTC", incRow.incident_time);
+  const board = emg.affectedSessions(db, "2026-11-10");
   const s1row = board.sessions.find((x) => x.id === "s1");
   ok(Number(s1row.incident_count) === 1 && !!s1row.has_insurance, "隊列顯示事故數＋保險備案");
 
@@ -147,7 +156,30 @@ db.prepare("INSERT INTO student_coach_affiliations (student_user_id,origin_coach
   ok(early, "保險備案時間早於事故時間");
   const csv = emg.dossierCsv(dossier, "a".repeat(64));
   ok(csv.charCodeAt(0) === 0xfeff && csv.includes("ZP-CLM-") && csv.includes("SHA-256"), "CSV 有 BOM＋報告編號＋雜湊");
-  ok(/pli\.incident_reported/.test(require("fs").readFileSync(path.join(__dirname, "../src/routes/admin-emergency.js"), "utf8")), "有事故審計");
+  ok(!!db.prepare("SELECT 1 FROM audit_log WHERE action_type='schedule.incident_logged'").get(), "有事故審計");
+
+  console.log("🧪 3e. 表單／API 嚴格校驗");
+  const badBase = {
+    student_user_id: "stu",
+    incident_time: "2026-11-10T14:30",
+    incident_type: "slip_and_fall",
+    severity_level: "minor",
+    injury_location: "左膝",
+    description: "課堂進行期間學員突然失去平衡跌倒，左膝著地出現輕微紅腫",
+    first_aid_given: "冰敷十分鐘",
+  };
+  const noType = await call(incRoute.route.stack[0].handle, { user: { id: "adm", role: "super_admin" }, params: { id: "s2" }, body: { ...badBase, incident_type: "" } });
+  ok(noType.statusCode === 400 && noType.body.field === "incident_type", "缺分類 → 400", noType.body);
+  const shortDesc = await call(incRoute.route.stack[0].handle, { user: { id: "adm", role: "super_admin" }, params: { id: "s2" }, body: { ...badBase, description: "跌親" } });
+  ok(shortDesc.statusCode === 400 && shortDesc.body.field === "description", "經過少於 20 字 → 400", shortDesc.body);
+  const badPhone = await call(incRoute.route.stack[0].handle, { user: { id: "adm", role: "super_admin" }, params: { id: "s2" }, body: { ...badBase, student_user_id: null, student_name: "陳大文", student_phone: "123" } });
+  ok(badPhone.statusCode === 400 && badPhone.body.field === "student_phone", "電話格式錯 → 400", badPhone.body);
+  const severeNoAmb = await call(incRoute.route.stack[0].handle, { user: { id: "adm", role: "super_admin" }, params: { id: "s2" }, body: { ...badBase, severity_level: "severe", ambulance_called: false } });
+  ok(severeNoAmb.statusCode === 400 && severeNoAmb.body.field === "ambulance_called", "嚴重但冇救護車 → 400", severeNoAmb.body);
+  const ambNoHospital = await call(incRoute.route.stack[0].handle, { user: { id: "adm", role: "super_admin" }, params: { id: "s2" }, body: { ...badBase, severity_level: "severe", ambulance_called: true, ambulance_call_time: "2026-11-10T14:35" } });
+  ok(ambNoHospital.statusCode === 400 && ambNoHospital.body.field === "hospital_name", "有救護車但冇醫院 → 400", ambNoHospital.body);
+  const outWindow = await call(incRoute.route.stack[0].handle, { user: { id: "adm", role: "super_admin" }, params: { id: "s2" }, body: { ...badBase, incident_time: "2026-11-10T20:00" } });
+  ok(outWindow.statusCode === 400 && outWindow.body.field === "incident_time", "超出課堂責任時段 → 400", outWindow.body);
 
   console.log("🧪 4. 拆帳：代堂 80%／原教練補足託管");
   const { buildMonthlyBreakdown } = require("../src/routes/coach-earnings");

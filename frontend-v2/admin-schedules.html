@@ -126,17 +126,46 @@
       </div>
       <label style="font-size:12px;font-weight:800;color:#64748B">事故時間（HKT）</label>
       <input type="datetime-local" id="incTime" style="width:100%;border:1px solid var(--line);border-radius:10px;padding:10px;font:inherit;font-size:13px;margin-bottom:8px" />
-      <label style="font-size:12px;font-weight:800;color:#64748B">事發經過（必填，≥10 字）</label>
-      <textarea id="incDesc" placeholder="例：10:45 進行下肢伸展時失去平衡跌坐地面，左膝挫傷"></textarea>
-      <label style="font-size:12px;font-weight:800;color:#64748B;display:block;margin-top:8px">現場處置</label>
-      <textarea id="incAction" placeholder="例：立即暫停全班、冰敷、10:52 致電 999、送往瑪嘉烈醫院"></textarea>
-      <div style="display:flex;gap:8px;margin-top:8px">
-        <select id="incSeverity" style="flex:1;border:1px solid var(--line);border-radius:10px;padding:10px;font:inherit;font-size:13px">
-          <option value="">嚴重程度</option><option value="minor">輕微</option><option value="moderate">中等</option><option value="serious">嚴重</option>
+      <div style="display:flex;gap:8px">
+        <select id="incType" style="flex:1;border:1px solid var(--line);border-radius:10px;padding:10px;font:inherit;font-size:13px">
+          <option value="">事故分類 *</option>
+          <option value="slip_and_fall">跌倒滑倒</option>
+          <option value="joint_muscle_strain">關節扭傷／拉傷</option>
+          <option value="dizziness_faint">頭暈昏厥／血壓不適</option>
+          <option value="collision">碰撞／擦傷</option>
+          <option value="cardiovascular">心血管急症</option>
+          <option value="other">其他突發</option>
         </select>
-        <input id="incGuardian" placeholder="監護人姓名" style="flex:1;border:1px solid var(--line);border-radius:10px;padding:10px;font:inherit;font-size:13px" />
-        <input id="incGuardianPhone" inputmode="numeric" placeholder="監護人電話" style="flex:1;border:1px solid var(--line);border-radius:10px;padding:10px;font:inherit;font-size:13px" />
+        <select id="incSeverity" style="flex:1;border:1px solid var(--line);border-radius:10px;padding:10px;font:inherit;font-size:13px">
+          <option value="">嚴重程度 *</option>
+          <option value="minor">輕微（現場處理後自行離場）</option>
+          <option value="moderate">中度（需親友陪同就醫）</option>
+          <option value="severe">嚴重（999 送急症室）</option>
+          <option value="critical">危殆／重大事故</option>
+        </select>
       </div>
+      <input id="incInjury" placeholder="受傷部位 *（例：左膝關節、右腕骨）" style="width:100%;border:1px solid var(--line);border-radius:10px;padding:10px;font:inherit;font-size:13px;margin-top:8px" />
+      <label style="font-size:12px;font-weight:800;color:#64748B;display:block;margin-top:8px">事發經過 *（至少 20 字，含動作名稱與環境）</label>
+      <textarea id="incDesc" placeholder="例：10:45 進行下肢伸展時失去平衡跌坐地面，左膝著地挫傷，當時地面乾爽、使用椅子輔助"></textarea>
+      <div class="hint" id="incCount">0 / 20 字</div>
+      <label style="font-size:12px;font-weight:800;color:#64748B;display:block;margin-top:8px">現場即時急救處置 *（至少 5 字）</label>
+      <textarea id="incAction" placeholder="例：暫停全班動作、RICE 冰敷、量度血壓、坐椅休息"></textarea>
+      <div class="sec" style="margin-top:10px">
+        <label class="chk" style="border-bottom:0"><input type="checkbox" id="incAmb" /> 已召喚 999 救護車</label>
+        <div id="incAmbBox" style="display:none;margin-top:6px">
+          <input type="datetime-local" id="incAmbTime" style="width:100%;border:1px solid var(--line);border-radius:10px;padding:10px;font:inherit;font-size:13px;margin-bottom:6px" />
+          <input id="incHospital" placeholder="送往醫院（例：瑪嘉烈醫院急症室）" style="width:100%;border:1px solid var(--line);border-radius:10px;padding:10px;font:inherit;font-size:13px" />
+        </div>
+      </div>
+      <div class="sec">
+        <label class="chk" style="border-bottom:0"><input type="checkbox" id="incGuardianNotified" /> 已通知家長／監護人</label>
+        <div id="incGuardianBox" style="display:none;margin-top:6px">
+          <input id="incGuardian" placeholder="監護人姓名" style="width:100%;border:1px solid var(--line);border-radius:10px;padding:10px;font:inherit;font-size:13px;margin-bottom:6px" />
+          <input id="incGuardianPhone" inputmode="numeric" placeholder="已通知的監護人電話（8 位）" style="width:100%;border:1px solid var(--line);border-radius:10px;padding:10px;font:inherit;font-size:13px" />
+        </div>
+      </div>
+      <label class="chk"><input type="checkbox" id="incInsNotified" /> 已通知保險公司</label>
+      <input id="incCaseNo" placeholder="保險索償案號（可後補）" style="width:100%;border:1px solid var(--line);border-radius:10px;padding:10px;font:inherit;font-size:13px;margin-top:6px" />
       <div class="acts"><button class="btn" id="incCancel">取消</button><button class="btn" style="background:#B91C1C;border-color:#B91C1C;color:#fff" id="incSave">儲存事故紀錄</button></div>
     </div>
   </div>
@@ -328,17 +357,36 @@ $("drClose").onclick = () => ($("drBg").hidden = true);
 $("drBg").onclick = (e) => { if (e.target === $("drBg")) $("drBg").hidden = true; };
 
 let INC_SESSION = null;
+function toLocalInput(utc) {
+  const d = new Date(String(utc).replace(" ", "T") + "Z");
+  if (isNaN(d)) return new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 16);
+  return new Date(d.getTime() + 8 * 3600e3).toISOString().slice(0, 16);
+}
 async function openIncident(id) {
   const s = SESSIONS.find((x) => x.id === id);
   if (!s) return;
   INC_SESSION = s;
   $("incSub").textContent = `${s.title} · ${hkDate(s.start_time)} ${hkTime(s.start_time)}`;
-  $("incTime").value = new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 16);
+  const nowHk = new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 16);
+  const sStart = toLocalInput(s.start_time);
+  const sEnd = toLocalInput(s.end_time);
+  $("incTime").value = nowHk < sStart ? sStart : nowHk > sEnd ? sEnd : nowHk;
+  $("incType").value = "";
+  $("incInjury").value = "";
   $("incDesc").value = "";
+  $("incCount").textContent = "0 / 20 字";
   $("incAction").value = "";
   $("incSeverity").value = "";
+  $("incAmb").checked = false;
+  $("incAmbBox").style.display = "none";
+  $("incAmbTime").value = "";
+  $("incHospital").value = "";
+  $("incGuardianNotified").checked = false;
+  $("incGuardianBox").style.display = "none";
   $("incGuardian").value = "";
   $("incGuardianPhone").value = "";
+  $("incInsNotified").checked = false;
+  $("incCaseNo").value = "";
   $("incStudent").innerHTML = '<option value="">載入名單中…</option>';
   $("incBg").hidden = false;
   const r = await api.get("/admin/schedules/" + encodeURIComponent(id) + "/roster");
@@ -352,27 +400,71 @@ async function openIncident(id) {
   };
 }
 
+$("incDesc").oninput = () => {
+  const n = $("incDesc").value.trim().length;
+  $("incCount").textContent = n + " / 20 字";
+  $("incCount").style.color = n >= 20 ? "#047857" : "#B45309";
+};
+$("incAmb").onchange = () => { $("incAmbBox").style.display = $("incAmb").checked ? "block" : "none"; };
+$("incGuardianNotified").onchange = () => { $("incGuardianBox").style.display = $("incGuardianNotified").checked ? "block" : "none"; };
+
 $("incClose").onclick = $("incCancel").onclick = () => ($("incBg").hidden = true);
 $("incBg").onclick = (e) => { if (e.target === $("incBg")) $("incBg").hidden = true; };
 $("incSave").onclick = async () => {
   if (!INC_SESSION) return;
   const sel = $("incStudent").value;
-  const desc = $("incDesc").value.trim();
-  if (!sel) return toast("請選擇受傷學員", true);
-  if (desc.length < 10) return toast("請填寫事故經過（最少 10 字）", true);
   const manual = sel === "__manual";
+  const name = manual ? $("incName").value.trim() : "";
+  const phone = manual ? $("incPhone").value.trim().replace(/\D/g, "").replace(/^852/, "") : "";
+  const type = $("incType").value;
+  const severity = $("incSeverity").value;
+  const injury = $("incInjury").value.trim();
+  const desc = $("incDesc").value.trim();
+  const firstAid = $("incAction").value.trim();
+  const timeVal = $("incTime").value;
+  if (!sel) return toast("請選擇受傷學員", true);
+  if (manual && name.length < 2) return toast("請填寫受傷長者真實姓名（至少 2 字）", true);
+  if (manual && !/^[4-9]\d{7}$/.test(phone)) return toast("請提供有效的 8 位香港聯絡電話", true);
+  if (!timeVal) return toast("請選擇具體事發時間", true);
+  const incDate = new Date(timeVal + ":00+08:00");
+  if (incDate.getTime() > Date.now() + 2 * 60 * 1000) return toast("事發時間不能晚於當前時間", true);
+  const start = new Date(String(INC_SESSION.start_time).replace(" ", "T") + "Z");
+  const end = new Date(String(INC_SESSION.end_time).replace(" ", "T") + "Z");
+  if (incDate < new Date(start.getTime() - 30 * 60 * 1000) || incDate > new Date(end.getTime() + 30 * 60 * 1000)) {
+    return toast("事發時間超出本班次現場責任覆蓋時段（課前／課後 30 分鐘外）", true);
+  }
+  if (!type) return toast("請選取事故分類", true);
+  if (!severity) return toast("請選取嚴重程度", true);
+  if (injury.length < 2) return toast("請註明受傷身體部位", true);
+  if (desc.length < 20) return toast(`事發經過至少 20 字（目前 ${desc.length} 字）`, true);
+  if (firstAid.length < 5) return toast("請記錄現場即時急救處置（至少 5 字）", true);
+  const amb = $("incAmb").checked;
+  if (["severe", "critical"].includes(severity) && !amb) return toast("嚴重／危殆級事故必須召喚 999 救護車", true);
+  if (amb && !$("incAmbTime").value) return toast("請填寫致電 999 時間", true);
+  if (amb && $("incHospital").value.trim().length < 2) return toast("請填寫送往醫院名稱", true);
+  const gNotified = $("incGuardianNotified").checked;
+  const gPhone = $("incGuardianPhone").value.trim().replace(/\D/g, "").replace(/^852/, "");
+  if (gNotified && !/^[4-9]\d{7}$/.test(gPhone)) return toast("請填寫已通知的監護人 8 位香港電話", true);
   const body = {
     student_user_id: manual ? null : sel,
-    student_name: manual ? $("incName").value.trim() : undefined,
-    student_phone: manual ? $("incPhone").value.trim() : undefined,
-    incident_time: $("incTime").value,
+    student_name: manual ? name : undefined,
+    student_phone: manual ? phone : undefined,
+    incident_time: timeVal,
+    incident_type: type,
+    severity_level: severity,
+    injury_location: injury,
     description: desc,
-    action_taken: $("incAction").value.trim(),
-    severity: $("incSeverity").value,
+    first_aid_given: firstAid,
+    ambulance_called: amb,
+    ambulance_call_time: amb ? $("incAmbTime").value : null,
+    hospital_name: amb ? $("incHospital").value.trim() : null,
+    guardian_notified: gNotified,
+    guardian_phone_notified: gNotified ? gPhone : null,
     guardian_name: $("incGuardian").value.trim(),
-    guardian_phone: $("incGuardianPhone").value.trim(),
+    guardian_phone: gNotified ? gPhone : null,
+    insurance_notified: $("incInsNotified").checked,
+    insurance_case_no: $("incCaseNo").value.trim() || null,
   };
-  if (manual && !body.student_name) return toast("請填寫學員姓名", true);
   const btn = $("incSave");
   btn.disabled = true;
   try {

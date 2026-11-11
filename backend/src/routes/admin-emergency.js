@@ -43,19 +43,36 @@ function ensureIncidentSchema(db) {
     CREATE TABLE IF NOT EXISTS schedule_incidents (
       id TEXT PRIMARY KEY,
       schedule_id TEXT NOT NULL,
+      booking_id TEXT,
       student_user_id TEXT,
       student_name TEXT NOT NULL,
       student_phone TEXT,
       guardian_name TEXT,
       guardian_phone TEXT,
       incident_time DATETIME NOT NULL,
+      incident_type TEXT,
+      severity_level TEXT,
+      injury_location TEXT,
       description TEXT NOT NULL,
       action_taken TEXT,
       severity TEXT,
+      first_aid_given TEXT,
+      ambulance_called INTEGER DEFAULT 0,
+      ambulance_call_time DATETIME,
+      hospital_name TEXT,
+      guardian_notified INTEGER DEFAULT 0,
+      guardian_phone_notified TEXT,
+      coach_id_on_duty TEXT,
       reported_by TEXT,
+      reported_by_admin_id TEXT,
+      insurance_notified INTEGER DEFAULT 0,
+      insurance_case_no TEXT,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
     CREATE INDEX IF NOT EXISTS idx_inc_sched ON schedule_incidents(schedule_id, datetime(created_at) DESC);
+    CREATE INDEX IF NOT EXISTS idx_inc_student ON schedule_incidents(student_user_id);
+    CREATE INDEX IF NOT EXISTS idx_inc_time ON schedule_incidents(incident_time);
 
     CREATE TABLE IF NOT EXISTS pli_claim_exports (
       id TEXT PRIMARY KEY,
@@ -70,6 +87,49 @@ function ensureIncidentSchema(db) {
     );
     CREATE INDEX IF NOT EXISTS idx_pli_exp ON pli_claim_exports(schedule_id, datetime(created_at) DESC);
   `);
+  // 舊表補欄（idempotent）
+  const icols = db.prepare("PRAGMA table_info(schedule_incidents)").all().map((c) => c.name);
+  const addIf = (name, ddl) => {
+    if (!icols.includes(name)) db.exec(`ALTER TABLE schedule_incidents ADD COLUMN ${ddl}`);
+  };
+  addIf("booking_id", "booking_id TEXT");
+  addIf("incident_type", "incident_type TEXT");
+  addIf("severity_level", "severity_level TEXT");
+  addIf("injury_location", "injury_location TEXT");
+  addIf("first_aid_given", "first_aid_given TEXT");
+  addIf("ambulance_called", "ambulance_called INTEGER DEFAULT 0");
+  addIf("ambulance_call_time", "ambulance_call_time DATETIME");
+  addIf("hospital_name", "hospital_name TEXT");
+  addIf("guardian_notified", "guardian_notified INTEGER DEFAULT 0");
+  addIf("guardian_phone_notified", "guardian_phone_notified TEXT");
+  addIf("coach_id_on_duty", "coach_id_on_duty TEXT");
+  addIf("reported_by_admin_id", "reported_by_admin_id TEXT");
+  addIf("insurance_notified", "insurance_notified INTEGER DEFAULT 0");
+  addIf("insurance_case_no", "insurance_case_no TEXT");
+  addIf("updated_at", "updated_at DATETIME");
+  try {
+    db.exec(`
+      UPDATE schedule_incidents
+         SET incident_type = COALESCE(incident_type, 'other'),
+             severity_level = COALESCE(severity_level,
+               CASE severity
+                 WHEN 'minor' THEN 'minor'
+                 WHEN 'moderate' THEN 'moderate'
+                 WHEN 'serious' THEN 'severe'
+                 WHEN 'severe' THEN 'severe'
+                 WHEN 'critical' THEN 'critical'
+                 ELSE 'minor' END),
+             injury_location = COALESCE(injury_location, '未註明'),
+             first_aid_given = COALESCE(first_aid_given, action_taken),
+             reported_by_admin_id = COALESCE(reported_by_admin_id, reported_by),
+             coach_id_on_duty = COALESCE(coach_id_on_duty,
+               (SELECT COALESCE(cs.coach_override_id, c.coach_id)
+                  FROM class_schedules cs JOIN classes c ON c.id=cs.class_id
+                 WHERE cs.id = schedule_incidents.schedule_id)),
+             updated_at = COALESCE(updated_at, created_at)
+       WHERE incident_type IS NULL OR severity_level IS NULL OR first_aid_given IS NULL
+    `);
+  } catch (e) {}
 }
 
 const esc = (s) =>
@@ -571,6 +631,9 @@ function buildDossier(db, scheduleId, incidentId, admin) {
   const cred = db
     .prepare("SELECT license_type, license_no, license_expiry, insurance_policy_no, insurance_expiry_date FROM coach_credentials WHERE user_id=? ORDER BY datetime(created_at) DESC LIMIT 1")
     .get(s.actual_coach_id);
+  const duty = incident.coach_id_on_duty
+    ? db.prepare("SELECT id, name FROM users WHERE id=?").get(incident.coach_id_on_duty)
+    : null;
   const roster = rosterFor(db, scheduleId);
   const attendance = db
     .prepare("SELECT COUNT(*) c FROM attendances a JOIN bookings b ON b.id=a.booking_id WHERE b.schedule_id=? AND a.status IN ('present','late')")
@@ -607,6 +670,7 @@ function buildDossier(db, scheduleId, incidentId, admin) {
         license_expiry: (cred && cred.license_expiry) || null,
         is_substitute: !!s.coach_override_id,
       },
+      on_duty: duty ? { id: duty.id, name: duty.name } : null,
     },
     insurance: {
       insurance_log_id: insurance.id,
@@ -621,14 +685,27 @@ function buildDossier(db, scheduleId, incidentId, admin) {
     },
     incident: {
       id: incident.id,
+      booking_id: incident.booking_id || null,
       student_name: incident.student_name,
       student_phone_masked: String(incident.student_phone || "").replace(/^(\d{4})\d{4}$/, "$1****"),
       guardian_name: incident.guardian_name || "",
       guardian_phone_masked: String(incident.guardian_phone || "").replace(/^(\d{4})\d{4}$/, "$1****"),
       incident_time: incident.incident_time,
+      incident_type: incident.incident_type || "other",
+      severity_level: incident.severity_level || incident.severity || "",
+      injury_location: incident.injury_location || "",
       description: incident.description,
       action_taken: incident.action_taken || "",
+      first_aid_given: incident.first_aid_given || incident.action_taken || "",
       severity: incident.severity || "",
+      ambulance_called: Number(incident.ambulance_called) || 0,
+      ambulance_call_time: incident.ambulance_call_time || null,
+      hospital_name: incident.hospital_name || "",
+      guardian_notified: Number(incident.guardian_notified) || 0,
+      guardian_phone_notified: incident.guardian_phone_notified || "",
+      coach_id_on_duty: incident.coach_id_on_duty || s.actual_coach_id,
+      insurance_notified: Number(incident.insurance_notified) || 0,
+      insurance_case_no: incident.insurance_case_no || "",
       reported_by: incident.reported_by || "",
       created_at: incident.created_at,
     },
@@ -640,6 +717,14 @@ function buildDossier(db, scheduleId, incidentId, admin) {
 
 function dossierHtml(d, sha) {
   const p = d.payload;
+  const TYPE_LABEL = {
+    slip_and_fall: "跌倒滑倒",
+    joint_muscle_strain: "關節扭傷／拉傷",
+    dizziness_faint: "頭暈昏厥／血壓不適",
+    collision: "碰撞／擦傷",
+    cardiovascular: "心血管急症",
+    other: "其他突發",
+  };
   const rosterRows = p.roster
     .map(
       (r) => `<tr><td>${esc(r.student_name)}</td><td>${esc(r.phone_masked)}</td><td>${esc(r.hkid_masked)}</td>
@@ -675,13 +760,14 @@ function dossierHtml(d, sha) {
     <tr><td>上課地點</td><td>${esc(p.schedule.venue)} · ${esc(p.schedule.district)}</td></tr>
     <tr><td>事故時間</td><td>${esc(hkDateTime(p.incident.incident_time))} HKT</td></tr>
     <tr><td>涉事學員</td><td>${esc(p.incident.student_name)} · 聯絡電話 ${esc(p.incident.student_phone_masked)}</td></tr>
-    <tr><td>家長／監護人</td><td>${esc(p.incident.guardian_name || "—")} · ${esc(p.incident.guardian_phone_masked || "—")}</td></tr>
+    <tr><td>家長／監護人</td><td>${esc(p.incident.guardian_name || "—")} · ${esc(p.incident.guardian_phone_masked || "—")}${p.incident.guardian_notified ? " · 已通知（" + esc(String(p.incident.guardian_phone_notified || "").replace(/^(\d{4})\d{4}$/, "$1****")) + "）" : " · 未通知"}</td></tr>
   </table>
 
   <h2>第二區：執教教練資質與 PLI 保單覆蓋證明 (Insurance Evidence)</h2>
   <table class="kv">
     <tr><td>原排更教練</td><td>${esc(p.coaches.original.name)}（${esc(p.coaches.original.id)}）</td></tr>
     <tr><td>實際執教教練</td><td>${esc(p.coaches.actual.name)}（${esc(p.coaches.actual.id)}）${p.coaches.actual.is_substitute ? " · 合法指派代堂" : ""}</td></tr>
+    <tr><td>事故當值教練</td><td>${p.coaches.on_duty ? esc(p.coaches.on_duty.name) + "（" + esc(p.coaches.on_duty.id) + "）" : "—"}</td></tr>
     <tr><td>執教資質</td><td>${esc(p.coaches.actual.license_type || "—")} ${p.coaches.actual.license_no_masked ? "（證書號 " + esc(p.coaches.actual.license_no_masked) + "）" : ""}</td></tr>
     <tr><td>承保來源</td><td>${esc(p.insurance.coverage_source)}${p.insurance.is_emergency_override ? "（緊急代堂平台底網）" : "（教練個人保單）"}</td></tr>
     <tr><td>承保機構</td><td>${esc(p.insurance.insurer_name)}</td></tr>
@@ -701,9 +787,14 @@ function dossierHtml(d, sha) {
 
   <h2>第四區：事故經過與現場處置紀錄 (Incident Narrative)</h2>
   <table class="kv">
+    <tr><td>事故分類</td><td>${esc(TYPE_LABEL[p.incident.incident_type] || p.incident.incident_type || "—")}</td></tr>
+    <tr><td>受傷部位</td><td>${esc(p.incident.injury_location || "—")}</td></tr>
+    <tr><td>嚴重程度</td><td>${esc(p.incident.severity_level || "—")}</td></tr>
     <tr><td>事發經過</td><td>${esc(p.incident.description)}</td></tr>
-    <tr><td>現場處置</td><td>${esc(p.incident.action_taken || "—")}</td></tr>
-    <tr><td>嚴重程度</td><td>${esc(p.incident.severity || "—")}</td></tr>
+    <tr><td>現場急救處置</td><td>${esc(p.incident.first_aid_given || p.incident.action_taken || "—")}</td></tr>
+    <tr><td>救護車</td><td>${p.incident.ambulance_called ? "已召喚 999 · " + esc(hkDateTime(p.incident.ambulance_call_time)) : "未召喚"}</td></tr>
+    <tr><td>送往醫院</td><td>${esc(p.incident.hospital_name || "—")}</td></tr>
+    <tr><td>保險備案</td><td>${p.incident.insurance_notified ? "已通知保險公司" + (p.incident.insurance_case_no ? "（案號 " + esc(p.incident.insurance_case_no) + "）" : "") : "未通知"}</td></tr>
     <tr><td>通報人</td><td>${esc(p.incident.reported_by || "—")}</td></tr>
   </table>
 
@@ -736,10 +827,12 @@ function dossierCsv(d, sha) {
     ["學員電話", p.incident.student_phone_masked],
     ["監護人", p.incident.guardian_name],
     ["監護人電話", p.incident.guardian_phone_masked],
+    ["已通知監護人", p.incident.guardian_notified ? "是" : "否"],
     [],
     ["第二區：保險證據"],
     ["原教練", p.coaches.original.name],
     ["實際教練", p.coaches.actual.name],
+    ["事故當值教練", p.coaches.on_duty ? `${p.coaches.on_duty.name} (${p.coaches.on_duty.id})` : ""],
     ["資質", p.coaches.actual.license_type],
     ["承保來源", p.insurance.coverage_source],
     ["保險公司", p.insurance.insurer_name],
@@ -754,9 +847,15 @@ function dossierCsv(d, sha) {
     ...p.roster.map((r) => [r.student_name, r.phone_masked, r.hkid_masked, `${r.emergency_name} ${r.emergency_phone_masked}`, r.health_notes, r.attendance_status]),
     [],
     ["第四區：事故經過"],
+    ["事故分類", p.incident.incident_type],
+    ["受傷部位", p.incident.injury_location],
+    ["嚴重程度", p.incident.severity_level],
     ["經過", p.incident.description],
-    ["現場處置", p.incident.action_taken],
-    ["嚴重程度", p.incident.severity],
+    ["現場急救處置", p.incident.first_aid_given],
+    ["召喚救護車", p.incident.ambulance_called ? "是" : "否"],
+    ["致電 999 時間", hkDateTime(p.incident.ambulance_call_time)],
+    ["送往醫院", p.incident.hospital_name],
+    ["保險公司案號", p.incident.insurance_case_no],
     [],
     ["第五區：存證"],
     ["生成人", `${p.generated_by.name} (${p.generated_by.id})`],
@@ -860,20 +959,73 @@ router.post("/schedules/:id/incidents", (req, res) => {
     ensureIncidentSchema(db);
     const b = req.body || {};
     const scheduleId = req.params.id;
-    const s = db.prepare("SELECT id FROM class_schedules WHERE id=?").get(scheduleId);
+    const s = db
+      .prepare(
+        `SELECT cs.id, cs.start_time, cs.end_time, COALESCE(cs.coach_override_id, c.coach_id) AS active_coach_id
+           FROM class_schedules cs JOIN classes c ON c.id=cs.class_id WHERE cs.id=?`,
+      )
+      .get(scheduleId);
     if (!s) return res.status(404).json({ success: false, error: "找不到該課堂班次" });
+    const err = (field, msg) => res.status(400).json({ success: false, code: "VALIDATION", field, error: msg });
+    const cleanPhone = (v) => {
+      let p = String(v || "").replace(/\D/g, "");
+      if (p.length === 11 && p.startsWith("852")) p = p.slice(3);
+      return p;
+    };
+    const HK_PHONE = /^[4-9]\d{7}$/;
+    const INCIDENT_TYPES = ["slip_and_fall", "joint_muscle_strain", "dizziness_faint", "collision", "cardiovascular", "other"];
+    const SEVERITIES = ["minor", "moderate", "severe", "critical"];
+
+    let name = String(b.student_name || "").trim();
+    let phone = cleanPhone(b.student_phone);
+    if (!INCIDENT_TYPES.includes(b.incident_type)) return err("incident_type", "請選取合規的事故分類類型");
+    if (!SEVERITIES.includes(b.severity_level)) return err("severity_level", "請選取合規的嚴重等級");
+    const injury = String(b.injury_location || "").trim();
+    if (injury.length < 2) return err("injury_location", "請明確註明受傷身體部位（例如：左膝、手腕、腰椎）");
+
     const description = String(b.description || "").trim();
-    if (description.length < 10) return res.status(400).json({ success: false, code: "DESCRIPTION_REQUIRED", error: "請填寫事故經過（最少 10 字）" });
+    if (description.length < 20) return err("description", `事發經過描述過於簡略（目前 ${description.length} 字），需至少 20 字，包含動作名稱與現場環境`);
+    const firstAid = String(b.first_aid_given || b.action_taken || "").trim();
+    if (firstAid.length < 5) return err("first_aid_given", "請記錄現場採取的即時急救處置（例如：冰敷制動、坐椅休息）");
+
     const incidentTime = toUtcStamp(b.incident_time || b.occurred_at);
-    if (!incidentTime) return res.status(400).json({ success: false, code: "TIME_REQUIRED", error: "請填寫事故時間" });
+    if (!incidentTime) return err("incident_time", "請選擇具體事發時間（精確到分鐘）");
+    const incDate = new Date(incidentTime.replace(" ", "T") + "Z");
+    const start = new Date(String(s.start_time).replace(" ", "T") + "Z");
+    const end = new Date(String(s.end_time).replace(" ", "T") + "Z");
+    if (incDate.getTime() > Date.now() + 2 * 60 * 1000) return err("incident_time", "事發時間不能晚於當前時間");
+    if (incDate < new Date(start.getTime() - 30 * 60 * 1000) || incDate > new Date(end.getTime() + 30 * 60 * 1000)) {
+      return err("incident_time", "事發時間超出本班次現場責任覆蓋時段（課前／課後 30 分鐘外）");
+    }
+
+    const ambulanceCalled = b.ambulance_called === true || b.ambulance_called === 1 || b.ambulance_called === "true" ? 1 : 0;
+    const hospital = String(b.hospital_name || "").trim();
+    if (["severe", "critical"].includes(b.severity_level) && !ambulanceCalled) {
+      return err("ambulance_called", "嚴重／危殆級事故必須標記已召喚 999 救護車");
+    }
+    if (ambulanceCalled && hospital.length < 2) return err("hospital_name", "已召喚救護車情況下，必須填寫送往之醫院名稱");
+    const ambulanceTime = ambulanceCalled ? toUtcStamp(b.ambulance_call_time) : null;
+    if (ambulanceCalled && !ambulanceTime) return err("ambulance_call_time", "請填寫致電 999 時間");
+
+    const guardianNotified = b.guardian_notified === true || b.guardian_notified === 1 || b.guardian_notified === "true" ? 1 : 0;
+    let guardianPhoneNotified = cleanPhone(b.guardian_phone_notified || b.guardian_phone);
+    if (guardianNotified && !HK_PHONE.test(guardianPhoneNotified)) {
+      return err("guardian_phone_notified", "請填寫已通知的監護人 8 位香港電話");
+    }
+    if (!guardianNotified) guardianPhoneNotified = "";
 
     let student = {
       user_id: b.student_user_id || null,
-      name: String(b.student_name || "").trim(),
-      phone: String(b.student_phone || "").replace(/\D/g, ""),
+      booking_id: b.booking_id || null,
+      name,
+      phone,
       guardian_name: String(b.guardian_name || "").trim(),
-      guardian_phone: String(b.guardian_phone || "").replace(/\D/g, ""),
+      guardian_phone: cleanPhone(b.guardian_phone),
     };
+    if (student.booking_id) {
+      const bk = db.prepare("SELECT id FROM bookings WHERE id=? AND schedule_id=?").get(student.booking_id, scheduleId);
+      if (!bk) return err("booking_id", "此預約紀錄不屬於本班次");
+    }
     if (student.user_id) {
       const row = db
         .prepare(
@@ -893,41 +1045,65 @@ router.post("/schedules/:id/incidents", (req, res) => {
         student.guardian_phone = student.guardian_phone || row.parent_phone || "";
       }
     }
-    if (!student.name) return res.status(400).json({ success: false, code: "STUDENT_REQUIRED", error: "請選擇或填寫受傷學員姓名" });
+    name = student.name;
+    phone = student.phone;
+    if (name.length < 2) return err("student_name", "請填寫受傷長者真實姓名（至少 2 個字元）");
+    if (!HK_PHONE.test(phone)) return err("student_phone", "請提供有效的 8 位香港聯絡電話");
 
     const id = "inc_" + crypto.randomBytes(8).toString("hex");
     db.transaction(() => {
       db.prepare(
         `INSERT INTO schedule_incidents
-           (id, schedule_id, student_user_id, student_name, student_phone, guardian_name, guardian_phone,
-            incident_time, description, action_taken, severity, reported_by)
-         VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
+           (id, schedule_id, booking_id, student_user_id, student_name, student_phone, guardian_name, guardian_phone,
+            incident_time, incident_type, severity_level, injury_location, description, first_aid_given,
+            ambulance_called, ambulance_call_time, hospital_name, guardian_notified, guardian_phone_notified,
+            insurance_notified, insurance_case_no, coach_id_on_duty, reported_by_admin_id, reported_by, updated_at)
+         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP)`,
       ).run(
         id,
         scheduleId,
+        student.booking_id,
         student.user_id,
         student.name,
-        student.phone || null,
+        student.phone,
         student.guardian_name || null,
         student.guardian_phone || null,
         incidentTime,
+        b.incident_type,
+        b.severity_level,
+        injury,
         description,
-        String(b.action_taken || "").trim() || null,
-        String(b.severity || "").trim() || null,
+        firstAid,
+        ambulanceCalled,
+        ambulanceTime,
+        hospital || null,
+        guardianNotified,
+        guardianPhoneNotified || null,
+        b.insurance_notified === true || b.insurance_notified === 1 || b.insurance_notified === "true" ? 1 : 0,
+        String(b.insurance_case_no || "").trim() || null,
+        s.active_coach_id,
+        req.user.id,
         req.user.id,
       );
       try {
         audit({
-          actionType: "pli.incident_reported",
-          entityType: "schedule",
-          entityId: scheduleId,
+          actionType: "schedule.incident_logged",
+          entityType: "incident",
+          entityId: id,
           userId: req.user.id,
-          newValues: { incident_id: id, student_name: student.name, incident_time: incidentTime, severity: b.severity || null },
+          newValues: {
+            schedule_id: scheduleId,
+            incident_type: b.incident_type,
+            severity_level: b.severity_level,
+            injury_location: injury,
+            ambulance_called: ambulanceCalled,
+            coach_id_on_duty: s.active_coach_id,
+          },
           description: "登記課堂意外事故",
         });
       } catch (e) {}
     })();
-    res.status(201).json({ success: true, data: { incident_id: id } });
+    res.status(201).json({ success: true, message: "事故已成功備案，已生成索償追蹤編號。", data: { incident_id: id } });
   } catch (e) {
     console.error("[EMGSUB] incident:", e.message);
     res.status(500).json({ success: false, error: "登記事故失敗" });
