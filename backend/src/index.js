@@ -26,6 +26,14 @@ const coachPublicRoutes = require("./routes/coach-public");
 const initDatabase = require("./config/init-db");
 initDatabase();
 
+// Phase 4.2 — 確保核銷／防刷 schema 於啟動時就緒（唔等第一個請求）
+try {
+  const { getDb } = require("./services/database");
+  require("./routes/checkin").ensureSchema(getDb());
+} catch (e) {
+  logger.warn("[CHECKIN] schema 初始化失敗: " + e.message);
+}
+
 const app = express();
 const PORT = process.env.PORT || 3001;
 
