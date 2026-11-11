@@ -19,6 +19,7 @@ const { claimPayment } = require("../services/payment-claim");
 const { recordAttribution } = require("../services/attribution");
 const Booking = require("../models/Booking");
 const passesService = require("../services/passes");
+const passDeduction = require("../services/pass-deduction");
 const familyWallet = require("../services/family-wallet");
 const { audit } = require("../services/audit");
 
@@ -100,6 +101,7 @@ router.post(
 
       passesService.ensureSchema(db);
       familyWallet.ensureSchema(db);
+      passDeduction.ensureSchema(db);
 
       const attendee = db.prepare("SELECT id,name,phone FROM users WHERE id=?").get(attendeeId);
       if (!attendee) return res.status(404).json({ success: false, error: "找不到學員", code: "ATTENDEE_NOT_FOUND" });
@@ -172,6 +174,24 @@ router.post(
       if (!applicable || !applicable.pass) {
         return res.status(400).json({ success: false, error: "此學員沒有有效 Pass", code: "NO_PASS", has_pass: false });
       }
+
+      // Phase 4.5：FIFO 跨卡扣堂（快到期先用；1 堂亦統一走同一引擎）
+      const famRow = db
+        .prepare(
+          `SELECT fm.family_group_id FROM family_members fm
+             JOIN family_groups fg ON fg.id = fm.family_group_id
+            WHERE fm.member_user_id = ? AND fg.owner_user_id = ? AND COALESCE(fm.can_consume_pass,1)=1
+            LIMIT 1`,
+        )
+        .get(attendeeId, req.user.id);
+      const familyGroupId = !isSelf && famRow ? famRow.family_group_id : null;
+      let planned;
+      try {
+        planned = passDeduction.planPassDeduction(db, { userId: attendeeId, familyGroupId, units: 1 });
+      } catch (e) {
+        if (e.code !== "INSUFFICIENT_CREDITS") throw e;
+        return res.status(400).json({ success: false, error: "可用堂數不足", code: "INSUFFICIENT_CREDITS", available: e.available });
+      }
       db.exec("BEGIN IMMEDIATE");
       inTx = true;
       const upd = db
@@ -198,9 +218,10 @@ router.post(
         `INSERT INTO bookings
            (id, booking_reference, user_id, schedule_id, class_id, payment_type, payment_status, status, amount, group_size, pass_id, created_at)
          VALUES (?, ?, ?, ?, ?, 'pass', 'paid', 'confirmed', 0, 1, ?, datetime('now'))`,
-      ).run(bookingId, bookingRef, attendeeId, scheduleId, sched.class_id, applicable.pass.id);
+      ).run(bookingId, bookingRef, attendeeId, scheduleId, sched.class_id, planned.plan[0].passId);
 
-      passesService.redeemInTx(db, { passId: applicable.pass.id, bookingId, userId: attendeeId });
+      passDeduction.applyPlanInTx(db, { plan: planned.plan, bookingId, userId: attendeeId });
+      passDeduction.recordPlanOnBooking(db, bookingId, planned.plan);
       db.exec("COMMIT");
       inTx = false;
 
@@ -213,9 +234,10 @@ router.post(
           newValues: {
             attendee_user_id: attendeeId,
             schedule_id: scheduleId,
-            pass_id: applicable.pass.id,
-            pass_source: applicable.source,
-            remaining: applicable.pass.remaining_credits - 1,
+            pass_id: planned.plan[0].passId,
+            pass_source: planned.source,
+            pass_plan: planned.plan.map((p) => ({ pass_id: p.passId, units: p.units })),
+            remaining: Math.max(0, planned.plan[0].remaining - planned.plan[0].units),
           },
           description: `Pass 扣堂預約 ${sched.title || scheduleId}`,
         });
@@ -235,9 +257,10 @@ router.post(
         status: "confirmed",
         payment_type: "pass",
         pass: {
-          id: applicable.pass.id,
-          source: applicable.source,
-          remaining_credits: applicable.pass.remaining_credits - 1,
+          id: planned.plan[0].passId,
+          source: planned.source,
+          remaining_credits: Math.max(0, planned.plan[0].remaining - planned.plan[0].units),
+          secondary_pass_id: planned.plan[1] ? planned.plan[1].passId : null,
         },
         attendee: { id: attendeeId, name: attendee.name },
       });

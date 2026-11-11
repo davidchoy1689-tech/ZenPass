@@ -37,6 +37,8 @@ try {
   require("./services/fulfillment-queue").ensureSchema(getDb());
   require("./routes/roster-offline").ensureSchema(getDb());
   require("./services/quorum-worker").ensureSchema(getDb());
+  require("./services/pass-deduction").ensureSchema(getDb());
+  require("./services/checkin-access-token").ensureSchema(getDb());
 } catch (e) {
   logger.warn("[CHECKIN] schema 初始化失敗: " + e.message);
 }

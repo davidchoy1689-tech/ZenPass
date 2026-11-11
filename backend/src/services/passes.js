@@ -261,24 +261,37 @@ function redeemUnitsInTx(db, { passId, userId, bookingId, units }) {
   ).run("PRD-" + crypto.randomUUID(), passId, bookingId, userId || null, n);
 }
 
-/** 取消預約回滾 1 堂（同一個 transaction 內呼叫；每張 booking 只回一次） */
+/**
+ * 取消預約回滾（同一個 transaction 內呼叫；每張 booking 只回一次）
+ * Phase 4.5：一筆預約可能跨多張卡（FIFO），所以按 booking_id 逐筆還原所有 'used' redemption
+ */
 function restoreInTx(db, { passId, bookingId }) {
-  const red = db
-    .prepare(
-      "SELECT id, credits FROM pass_redemptions WHERE pass_id = ? AND booking_id = ? AND status = 'used' LIMIT 1",
-    )
-    .get(passId, bookingId);
-  if (!red) return false;
-  db.prepare(
-    "UPDATE pass_redemptions SET status = 'refunded', refunded_at = datetime('now') WHERE id = ?",
-  ).run(red.id);
-  db.prepare(
-    `UPDATE user_passes
-        SET remaining_credits = MIN(total_credits, remaining_credits + ?),
-            status = CASE WHEN status = 'exhausted' AND datetime(expires_at) > datetime('now') THEN 'active' ELSE status END,
-            updated_at = datetime('now')
-      WHERE id = ?`,
-  ).run(Number(red.credits) || 1, passId);
+  let reds = [];
+  if (bookingId) {
+    reds = db
+      .prepare("SELECT id, pass_id, credits FROM pass_redemptions WHERE booking_id = ? AND status = 'used'")
+      .all(bookingId);
+  }
+  if (!reds.length && passId && bookingId) {
+    const one = db
+      .prepare("SELECT id, pass_id, credits FROM pass_redemptions WHERE pass_id = ? AND booking_id = ? AND status = 'used' LIMIT 1")
+      .get(passId, bookingId);
+    if (one) reds = [one];
+  }
+  if (!reds.length) return false;
+
+  for (const red of reds) {
+    db.prepare(
+      "UPDATE pass_redemptions SET status = 'refunded', refunded_at = datetime('now') WHERE id = ?",
+    ).run(red.id);
+    db.prepare(
+      `UPDATE user_passes
+          SET remaining_credits = MIN(total_credits, remaining_credits + ?),
+              status = CASE WHEN status = 'exhausted' AND datetime(expires_at) > datetime('now') THEN 'active' ELSE status END,
+              updated_at = datetime('now')
+        WHERE id = ?`,
+    ).run(Number(red.credits) || 1, red.pass_id || passId);
+  }
   return true;
 }
 

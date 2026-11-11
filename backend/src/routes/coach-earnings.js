@@ -253,9 +253,12 @@ router.post("/earnings/calculate", authenticateToken, async (req, res) => {
     const transaction = db.transaction(() => {
       for (const s of schedules) {
         // Check if already exists
+        // Phase 4.5：多教練分帳 → 只查自己嘅 primary 記錄（避免覆蓋助教）
         const exists = db
-          .prepare("SELECT id FROM coach_earnings WHERE schedule_id = ?")
-          .get(s.schedule_id);
+          .prepare(
+            "SELECT id FROM coach_earnings WHERE schedule_id = ? AND coach_id = ? AND COALESCE(earning_type,'primary') = 'primary'",
+          )
+          .get(s.schedule_id, s.coach_id);
         if (exists) continue;
 
         const date = s.start_time.split("T")[0];
@@ -1027,6 +1030,8 @@ function syncCoachEarningsForSchedule(scheduleId) {
   const db = getDb();
   try { require("./merchant").ensureSchema(db); } catch (e) {}
   try { require("./checkin").ensureSchema(db); } catch (e) {}
+  // Phase 4.5：確保 earning_type 欄位 + 複合唯一索引存在（多教練分帳）
+  try { require("../services/pass-deduction").ensureSchema(db); } catch (e) {}
   try {
     db.pragma("foreign_keys = ON");
 
@@ -1067,9 +1072,12 @@ function syncCoachEarningsForSchedule(scheduleId) {
 
     // Upsert coach_earnings
     // Upsert coach_earnings — return the earning id
+    // Phase 4.5：複合鍵 (schedule_id, coach_id, earning_type)，避免多教練互相覆蓋
     const existing = db
-      .prepare("SELECT id FROM coach_earnings WHERE schedule_id = ?")
-      .get(scheduleId);
+      .prepare(
+        "SELECT id FROM coach_earnings WHERE schedule_id = ? AND coach_id = ? AND COALESCE(earning_type,'primary') = 'primary'",
+      )
+      .get(scheduleId, info.actual_coach_id);
 
     let earningId = existing ? existing.id : null;
 
@@ -1080,9 +1088,9 @@ function syncCoachEarningsForSchedule(scheduleId) {
           enrolled_count = ?, gross_amount = ?, net_amount = ?, 
           status = CASE WHEN ? > 0 THEN 'approved' ELSE 'cancelled' END,
           updated_at = datetime('now')
-        WHERE schedule_id = ?
+        WHERE schedule_id = ? AND coach_id = ? AND COALESCE(earning_type,'primary') = 'primary'
       `,
-      ).run(enrolled, gross, net, enrolled, scheduleId);
+      ).run(enrolled, gross, net, enrolled, scheduleId, info.actual_coach_id);
       earningId = existing.id;
     } else if (enrolled > 0) {
       const { v4: uuidv4 } = require("uuid");
@@ -1092,8 +1100,8 @@ function syncCoachEarningsForSchedule(scheduleId) {
         `
         INSERT INTO coach_earnings 
           (id, coach_id, schedule_id, class_id, class_title, date, enrolled_count,
-           unit_price, gross_amount, commission_rate, net_amount, status)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'approved')
+           unit_price, gross_amount, commission_rate, net_amount, status, earning_type)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'approved', 'primary')
       `,
       ).run(
         earningId,

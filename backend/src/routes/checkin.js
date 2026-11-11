@@ -7,6 +7,7 @@ const { getDb } = require("../services/database");
 const { authenticateToken } = require("../middleware/auth");
 const { audit } = require("../services/audit");
 const studioLedger = require("../services/studio-ledger");
+const checkinAccessToken = require("../services/checkin-access-token");
 
 const router = express.Router();
 const WINDOW_MS = 30000;
@@ -155,16 +156,97 @@ router.post("/student/door-unlock", authenticateToken, (req, res) => {
   }
 });
 
+router.post("/bookings/:id/access-token", authenticateToken, (req, res) => {
+  try {
+    const db = getDb();
+    checkinAccessToken.ensureSchema(db);
+    const b = db
+      .prepare(
+        `SELECT b.id, b.user_id, b.status, b.schedule_id, s.start_time
+           FROM bookings b LEFT JOIN class_schedules s ON s.id = b.schedule_id
+          WHERE b.id = ?`,
+      )
+      .get(String(req.params.id));
+    if (!b) return res.status(404).json({ success: false, error: "預約不存在" });
+    if (b.user_id !== req.user.id) {
+      const fam = db
+        .prepare(
+          `SELECT 1 FROM family_members fm JOIN family_groups fg ON fg.id=fm.family_group_id
+            WHERE fm.member_user_id=? AND fg.owner_user_id=? AND COALESCE(fm.can_consume_pass,1)=1 LIMIT 1`,
+        )
+        .get(b.user_id, req.user.id);
+      if (!fam) return res.status(403).json({ success: false, error: "無權取得此憑證" });
+    }
+    if (String(b.status) !== "confirmed") {
+      return res.status(409).json({ success: false, code: "BOOKING_NOT_CONFIRMED", error: "此預約未生效，無法發出憑證" });
+    }
+    const startRaw = String(b.start_time || "");
+    const start = startRaw
+      ? new Date(/Z|[+-]\d\d:?\d\d$/.test(startRaw) ? startRaw : startRaw.replace(" ", "T") + "Z")
+      : null;
+    const hardEnd = start && !Number.isNaN(start.getTime()) ? start.getTime() + 2 * 3600000 : Date.now() + 2 * 3600000;
+    if (hardEnd < Date.now()) return res.status(400).json({ success: false, code: "CLASS_ENDED", error: "課堂已結束" });
+    const ttlHours = Math.max(0.25, (hardEnd - Date.now()) / 3600000);
+
+    const t = checkinAccessToken.issue(db, b.id, { ttlHours: Math.min(ttlHours, 168) });
+    res.json({ success: true, token: t.token, url: t.url, expires_at: t.expires_at, booking_id: b.id });
+  } catch (e) {
+    console.error("[CHECKIN] access-token:", e.message);
+    res.status(500).json({ success: false, error: "憑證簽發失敗" });
+  }
+});
+
 router.post("/coach/verify-checkin", authenticateToken, (req, res) => {
   try {
     const db = getDb();
     ensureSchema(db);
+    checkinAccessToken.ensureSchema(db);
     const b0 = req.body || {};
-    const v = verifyToken(b0.checkin_token);
-    if (!v.ok) return res.status(400).json({ success: false, code: v.code, error: v.code === "TOKEN_EXPIRED" ? "動態碼已過期，請重新整理" : "動態碼無效" });
-    const b = loadBooking(db, v.bookingId);
+
+    let bookingId = null;
+    let tokenRowId = null;
+    let tokenMode = "dynamic";
+    let studentId = null;
+    if (b0.access_token) {
+      // Phase 4.5：一次性入場憑證（2 小時有效，核銷即失效）
+      const r = checkinAccessToken.validate(db, b0.access_token);
+      if (!r.ok) {
+        const map = {
+          TOKEN_ALREADY_USED: [403, "此憑證已使用，請重新開啟你的預約"],
+          TOKEN_EXPIRED: [400, "憑證已過期，請在課堂前重新開啟"],
+          TOKEN_INVALID: [400, "憑證無效"],
+          TOKEN_REQUIRED: [400, "缺少憑證"],
+        };
+        const [code, msg] = map[r.code] || [400, "憑證無效"];
+        return res.status(code).json({ success: false, code: r.code, error: msg });
+      }
+      bookingId = r.booking_id;
+      tokenRowId = r.id;
+      tokenMode = "one_time";
+    } else {
+      const v = verifyToken(b0.checkin_token);
+      if (!v.ok) return res.status(400).json({ success: false, code: v.code, error: v.code === "TOKEN_EXPIRED" ? "動態碼已過期，請重新整理" : "動態碼無效" });
+      bookingId = v.bookingId;
+      studentId = v.studentId;
+    }
+
+    const b = loadBooking(db, bookingId);
     if (!b) return res.status(404).json({ success: false, error: "預約不存在" });
-    if (b.user_id !== v.studentId) return res.status(400).json({ success: false, code: "TOKEN_MISMATCH", error: "憑證與學員不符" });
+
+    // 🚨 Phase 4.5 硬防線：已取消／流標訂單一律不可核銷（杜絕幽靈扣堂）
+    if (String(b.status || "") === "cancelled") {
+      return res.status(409).json({
+        success: false,
+        code: "BOOKING_ALREADY_CANCELLED",
+        error: "該預約已被學員取消或流標，嚴禁核銷扣款",
+        booking_id: b.id,
+      });
+    }
+
+    if (tokenMode === "dynamic" && b.user_id !== studentId) {
+      // 動態碼與學員綁定（一次性憑證本身已綁 booking，不需再比對）
+      return res.status(400).json({ success: false, code: "TOKEN_MISMATCH", error: "憑證與學員不符" });
+    }
     if (b.attendance_status === "present" || b.status === "attended") {
       return res.status(409).json({ success: false, code: "ALREADY_CHECKED_IN", error: "已核銷，請勿重複掃碼" });
     }
@@ -181,6 +263,11 @@ router.post("/coach/verify-checkin", authenticateToken, (req, res) => {
       `UPDATE bookings SET status='attended', attendance_status='present', checkin_method=?, checkin_lat=?, checkin_lng=?,
               checkin_device_hash=?, fraud_audit_status=? WHERE id=?`,
     ).run(method, Number.isFinite(lat) ? lat : null, Number.isFinite(lng) ? lng : null, String(b0.device_hash || "").slice(0, 120), fraudStatus, b.id);
+    // ✅ 核銷成功才消耗一次性憑證（避免失敗時白白燒掉 token）
+    if (tokenRowId) {
+      try { checkinAccessToken.markUsed(db, tokenRowId); } catch (e) {}
+    }
+
     if (flagged) {
       db.prepare(
         `INSERT INTO checkin_audit_incidents (id,booking_id,coach_id,student_user_id,incident_type,details)
@@ -207,7 +294,7 @@ router.post("/coach/verify-checkin", authenticateToken, (req, res) => {
         entityType: "booking",
         entityId: b.id,
         userId: req.user.id,
-        newValues: { distance_m: dist, fraud_audit_status: fraudStatus, settled, method },
+        newValues: { distance_m: dist, fraud_audit_status: fraudStatus, settled, method, token_mode: tokenMode },
         description: flagged ? "掃碼距離異常，暫緩結算" : "動態 QR 核銷成功",
       });
     } catch (e) {}

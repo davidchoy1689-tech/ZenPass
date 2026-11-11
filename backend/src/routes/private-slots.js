@@ -9,6 +9,7 @@ const { getDb } = require("../services/database");
 const { authenticateToken } = require("../middleware/auth");
 const { resolveDistrict } = require("../services/district");
 const passes = require("../services/passes");
+const passDeduction = require("../services/pass-deduction");
 const familyWallet = require("../services/family-wallet");
 const { audit } = require("../services/audit");
 
@@ -252,6 +253,7 @@ router.post("/bookings/book-private-slot", authenticateToken, (req, res) => {
   try {
     ensureSchema(db);
     passes.ensureSchema(db);
+    passDeduction.ensureSchema(db);
     const b = req.body || {};
     const slotId = String(b.slot_id || "");
     const attendeeId = String(b.attendee_user_id || req.user.id);
@@ -274,16 +276,34 @@ router.post("/bookings/book-private-slot", authenticateToken, (req, res) => {
     if (duplicate) return res.status(409).json({ success: false, error: "已預約此時段", code: "ALREADY_BOOKED" });
 
     const applicable = findPrivatePass(db, req.user.id, attendeeId);
-    if (!applicable) return res.status(400).json({ success: false, error: "沒有有效 Pass", code: "NO_PASS", has_pass: false });
     const need = Number(slot.pass_units_required) || 2;
-    if (Number(applicable.pass.remaining_credits) < need) {
+
+    // Phase 4.5：FIFO 跨卡扣堂 —— 舊卡（快到期）先用盡，自動接第二張卡
+    const fam = db
+      .prepare(
+        `SELECT fm.family_group_id FROM family_members fm
+           JOIN family_groups fg ON fg.id = fm.family_group_id
+          WHERE fm.member_user_id = ? AND fg.owner_user_id = ? AND COALESCE(fm.can_consume_pass,1)=1
+          LIMIT 1`,
+      )
+      .get(attendeeId, req.user.id);
+    const familyGroupId = attendeeId === req.user.id ? null : fam && fam.family_group_id ? fam.family_group_id : null;
+
+    let planned = null;
+    try {
+      planned = passDeduction.planPassDeduction(db, { userId: attendeeId, familyGroupId, units: need });
+    } catch (e) {
+      if (e.code !== "INSUFFICIENT_CREDITS") throw e;
       return res.status(400).json({
         success: false,
         error: `此私人時段需 ${need} 堂 Pass，目前餘額不足`,
         code: "INSUFFICIENT_PASS_UNITS",
-        remaining_credits: Number(applicable.pass.remaining_credits),
+        remaining_credits: e.available,
         required: need,
       });
+    }
+    if (!applicable && !planned.plan.length) {
+      return res.status(400).json({ success: false, error: "沒有有效 Pass", code: "NO_PASS", has_pass: false });
     }
 
     db.exec("BEGIN IMMEDIATE");
@@ -316,9 +336,10 @@ router.post("/bookings/book-private-slot", authenticateToken, (req, res) => {
     ).run(
       bookingId, bookingRef, attendeeId, slot.schedule_id, slot.class_id,
       Number(slot.price_cents) / 100, Number(slot.price_cents),
-      applicable.pass.id, slotId, need, String(b.health_focus || "").slice(0, 1000),
+      planned.plan[0].passId, slotId, need, String(b.health_focus || "").slice(0, 1000),
     );
-    passes.redeemUnitsInTx(db, { passId: applicable.pass.id, bookingId, userId: attendeeId, units: need });
+    passDeduction.applyPlanInTx(db, { plan: planned.plan, bookingId, userId: attendeeId });
+    passDeduction.recordPlanOnBooking(db, bookingId, planned.plan);
     db.exec("COMMIT");
     inTx = false;
     try {
@@ -327,18 +348,29 @@ router.post("/bookings/book-private-slot", authenticateToken, (req, res) => {
         entityType: "booking",
         entityId: bookingId,
         userId: req.user.id,
-        newValues: { slot_id: slotId, attendee_user_id: attendeeId, pass_id: applicable.pass.id, units_consumed: need },
+        newValues: {
+          slot_id: slotId,
+          attendee_user_id: attendeeId,
+          pass_id: planned.plan[0].passId,
+          units_consumed: need,
+          pass_plan: planned.plan.map((p) => ({ pass_id: p.passId, units: p.units })),
+        },
         description: `私人時段預約：${slot.title}`,
       });
     } catch (e) {}
-    const after = db.prepare("SELECT remaining_credits FROM user_passes WHERE id=?").get(applicable.pass.id);
+    const after = db.prepare("SELECT remaining_credits FROM user_passes WHERE id=?").get(planned.plan[0].passId);
     res.status(201).json({
       success: true,
       booking_id: bookingId,
       booking_reference: bookingRef,
       slot_id: slotId,
       units_consumed: need,
-      pass: { id: applicable.pass.id, source: applicable.source, remaining_credits: after.remaining_credits },
+      pass: {
+        id: planned.plan[0].passId,
+        source: planned.source,
+        remaining_credits: after ? after.remaining_credits : 0,
+      },
+      pass_plan: planned.plan.map((p) => ({ pass_id: p.passId, units: p.units })),
     });
   } catch (e) {
     if (inTx) { try { db.exec("ROLLBACK"); } catch (x) {} }
