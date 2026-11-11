@@ -244,18 +244,18 @@ async function submitAssign() {
   const reason = ($("reason") && $("reason").value || "").trim();
   if (reason.length < 4) return toast("請填寫指派原因（最少 4 字）", true);
   const btn = $("confirm"); btn.disabled = true;
-  const r = await api.post("/admin/emergency-assign", {
-    schedule_id: CURRENT.id,
-    target_coach_id: PICK.id,
-    use_umbrella: PICK.pli_source === "umbrella",
+  const r = await api.post("/admin/schedules/" + encodeURIComponent(CURRENT.id) + "/assign-substitute", {
+    substitute_coach_id: PICK.id,
     reason,
+    force_platform_pli: PICK.pli_source === "umbrella",
   });
   if (!r.ok) {
     toast((r.data && r.data.error) || "指派失敗", true);
     btn.disabled = false;
     return;
   }
-  toast("✅ 已指派代堂，權限即時轉移");
+  const out = (r.data && r.data.data) || {};
+  toast(`✅ 已指派代堂${out.pli_coverage_source === "platform_umbrella_pli" ? "（平台 PLI）" : ""}，權限即時轉移`);
   $("drBg").hidden = true;
   load();
 }

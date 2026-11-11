@@ -1035,10 +1035,11 @@ function syncCoachEarningsForSchedule(scheduleId) {
       SELECT 
         cs.id as schedule_id, cs.class_id, cs.start_time,
         c.title as class_title, c.price_hkd, c.coach_id,
+        COALESCE(cs.coach_override_id, c.coach_id) as actual_coach_id,
         u.commission_rate
       FROM class_schedules cs
       JOIN classes c ON cs.class_id = c.id
-      JOIN users u ON c.coach_id = u.id
+      JOIN users u ON u.id = COALESCE(cs.coach_override_id, c.coach_id)
       WHERE cs.id = ?
     `,
       )
@@ -1092,7 +1093,7 @@ function syncCoachEarningsForSchedule(scheduleId) {
       `,
       ).run(
         earningId,
-        info.coach_id,
+        info.actual_coach_id,
         info.schedule_id,
         info.class_id,
         info.class_title,
@@ -1114,15 +1115,15 @@ function syncCoachEarningsForSchedule(scheduleId) {
       FROM coach_earnings WHERE coach_id = ? AND status != 'cancelled'
     `,
       )
-      .get(info.coach_id);
+      .get(info.actual_coach_id);
 
     db.prepare("UPDATE users SET total_earnings = ? WHERE id = ?").run(
       totals.total,
-      info.coach_id,
+      info.actual_coach_id,
     );
     db.prepare(
       "UPDATE users SET pending_payout = COALESCE(wallet_balance, 0) WHERE id = ?",
-    ).run(info.coach_id);
+    ).run(info.actual_coach_id);
 
     // Auto-credit wallet if enrolled > 0 and earning was created/updated
     // ⛓️ 區塊鏈：記錄教練收入變更
@@ -1131,7 +1132,7 @@ function syncCoachEarningsForSchedule(scheduleId) {
         entityType: "coach_earning",
         entityId: earningId || scheduleId,
         data: {
-          coach_id: info.coach_id,
+          coach_id: info.actual_coach_id,
           schedule_id: info.schedule_id,
           class_title: info.class_title,
           enrolled_count: enrolled,
@@ -1151,7 +1152,7 @@ function syncCoachEarningsForSchedule(scheduleId) {
         const classTime = (info.start_time || "").split("T");
         const desc = `${info.class_title} ${classTime[1] ? classTime[1].slice(0, 5) : ""} - ${classTime[0] || info.start_time}`;
         walletService.creditCoachEarning({
-          coachId: info.coach_id,
+          coachId: info.actual_coach_id,
           scheduleId: info.schedule_id,
           coachEarningId: earningId,
           netAmount: net,

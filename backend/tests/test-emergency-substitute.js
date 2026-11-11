@@ -8,6 +8,11 @@ require("../src/config/init-db")(); require("../src/config/update-db")();
 
 let pass = 0, bad = 0;
 const ok = (c, m, x) => { c ? (pass++, console.log("  ✅ " + m)) : (bad++, console.log("  ❌ " + m, x == null ? "" : JSON.stringify(x))); };
+const call = (h, { body = {}, user = null, params = {}, query = {} } = {}) => new Promise((resolve) => {
+  const res = { statusCode: 200, body: null, status(c) { this.statusCode = c; return this; }, json(o) { this.body = o; resolve(this); } };
+  try { Promise.resolve(h({ body, user, params, query, headers: {}, ip: "1.1.1.1" }, res, () => {})).catch((e) => resolve({ statusCode: 500, body: { error: e.message } })); }
+  catch (e) { resolve({ statusCode: 500, body: { error: e.message } }); }
+});
 
 const { getDb } = require("../src/services/database");
 const db = getDb();
@@ -42,6 +47,7 @@ db.prepare("INSERT INTO classes (id,coach_id,title,category,duration,max_partici
 db.prepare("INSERT INTO class_schedules (id,class_id,start_time,end_time,status) VALUES ('sx','cl4','2026-11-11 03:00:00','2026-11-11 04:30:00','available')").run();
 // 第二班（李教練用平台底網）
 db.prepare("INSERT INTO class_schedules (id,class_id,start_time,end_time,status,enrolled_count,max_participants) VALUES ('s2','cl1','2026-11-11 06:00:00','2026-11-11 07:30:00','available',2,20)").run();
+db.prepare("INSERT INTO class_schedules (id,class_id,start_time,end_time,status,enrolled_count,max_participants) VALUES ('s3','cl1','2026-11-11 08:00:00','2026-11-11 09:30:00','available',0,20)").run();
 
 // 付費學員 + 出席 + 自有學生歸屬（供託管測試）
 db.prepare("INSERT INTO bookings (id,booking_reference,user_id,schedule_id,class_id,status,payment_status,amount,payment_method,created_at) VALUES ('b1','ZP1','stu','s1','cl1','attended','paid',140,'online',datetime('now'))").run();
@@ -54,7 +60,7 @@ db.prepare("INSERT INTO student_coach_affiliations (student_user_id,origin_coach
 (async () => {
   console.log("🧪 1. 受影響班次");
   const aff = emg.affectedSessions(db, "2026-11-11");
-  ok(aff.sessions.length === 2, "兩個班次待處理", aff.sessions.length);
+  ok(aff.sessions.length === 3, "三個班次待處理", aff.sessions.length);
   ok(aff.sessions.every((s) => s.payout_status === "frozen_stolen"), "只列出被熔斷教練");
 
   console.log("🧪 2. 候選過濾（同區／衝堂／PLI）");
@@ -76,7 +82,12 @@ db.prepare("INSERT INTO student_coach_affiliations (student_user_id,origin_coach
   ok(db.prepare("SELECT coach_override_id FROM class_schedules WHERE id='s1'").get().coach_override_id === "c2", "coach_override_id 已更新");
   const log1 = db.prepare("SELECT * FROM schedule_insurance_logs WHERE schedule_id='s1'").get();
   ok(log1 && log1.policy_type === "coach_personal_pli", "寫入個人保單憑證");
-  ok(!!db.prepare("SELECT 1 FROM audit_log WHERE action_type='coach.emergency_substitute_assigned'").get(), "有代堂審計");
+  ok(log1.assigned_coach_id === "c2" && log1.coverage_source === "coach_personal_pli", "規格欄位：assigned_coach_id／coverage_source");
+  ok(Number(log1.coverage_amount_cents) === 1000000000 && !!log1.policy_expiry_date, "規格欄位：保額（分）／保單到期日");
+  ok(log1.verified_by_admin_id === "adm" && Number(log1.is_emergency_override) === 0, "規格欄位：審核人／非緊急強制");
+  const srow = db.prepare("SELECT substitute_reason, substitute_assigned_at, substitute_assigned_by FROM class_schedules WHERE id='s1'").get();
+  ok(srow.substitute_reason && srow.substitute_assigned_at && srow.substitute_assigned_by === "adm", "更表記錄代堂原因／時間／操作人");
+  ok(!!db.prepare("SELECT 1 FROM audit_log WHERE action_type='schedule.assign_substitute'").get(), "有代堂審計");
   ok(!!db.prepare("SELECT 1 FROM notifications WHERE user_id='c2'").get(), "代堂教練收到通知");
   ok(!!db.prepare("SELECT 1 FROM notifications WHERE user_id='stu'").get(), "學員收到通知");
   const dup = emg.assign(db, { scheduleId: "s1", targetCoachId: "c3", useUmbrella: true, adminId: "adm", reason: "重複測試" });
@@ -86,12 +97,26 @@ db.prepare("INSERT INTO student_coach_affiliations (student_user_id,origin_coach
   ok(a2.ok && a2.pli_source === "umbrella" && a2.coverage_hkd === 10000000, "平台底網指派成功", a2);
   const log2 = db.prepare("SELECT * FROM schedule_insurance_logs WHERE schedule_id='s2'").get();
   ok(log2 && log2.policy_no === "ZP-PLI-2026-EMERGENCY" && log2.coverage_hkd === 10000000, "底網憑證保單號／保額");
+  ok(Number(log2.is_emergency_override) === 1 && log2.coverage_source === "platform_umbrella_pli", "底網標記緊急覆蓋");
+
+  console.log("🧪 3b. 結算歸屬實際執教教練");
+  const { syncCoachEarningsForSchedule } = require("../src/routes/coach-earnings");
+  syncCoachEarningsForSchedule("s1");
+  const ce = db.prepare("SELECT * FROM coach_earnings WHERE schedule_id='s1'").get();
+  ok(ce && ce.coach_id === "c2", "coach_earnings 歸代堂教練（非原教練）", ce && ce.coach_id);
+
+  console.log("🧪 3c. 規格端點 /schedules/:id/assign-substitute");
+  const router = require("../src/routes/admin-emergency");
+  const h = router.stack.find((x) => x.route && x.route.path === "/schedules/:id/assign-substitute" && x.route.methods.post);
+  ok(!!h, "端點存在");
+  const src = h.route.stack[0].handle.toString();
+  ok(/pli_coverage_source/.test(src) && /assign\(/.test(src), "端點回傳規格格式");
 
   console.log("🧪 4. 拆帳：代堂 80%／原教練補足託管");
   const { buildMonthlyBreakdown } = require("../src/routes/coach-earnings");
   const bd = buildMonthlyBreakdown(db, "orig", "2026-11");
   ok(Number(bd.held_uplift_cents) === 2800, "原教練自有學生 20% 託管 HK$28", bd.held_uplift_cents);
-  ok(Number(bd.net_payout_cents) === 0, "託管款不計入淨發放", bd.net_payout_cents);
+  ok(Number(bd.net_payout_cents) === 700, "託管款不計入淨發放（淨額只有跨界 5% HK$7）", bd.net_payout_cents);
   const bs = buildMonthlyBreakdown(db, "c2", "2026-11");
   ok(Number(bs.total_payout_cents) >= 11200, "代堂教練收 80%（HK$112）", bs.total_payout_cents);
 
@@ -105,7 +130,7 @@ db.prepare("INSERT INTO student_coach_affiliations (student_user_id,origin_coach
   console.log("🧪 6. 前端接線");
   const fs = require("fs");
   const page = fs.readFileSync(path.join(__dirname, "../../frontend-v2/admin-schedules.html"), "utf8");
-  ok(/緊急代堂/.test(page) && /emergency-candidates/.test(page) && /emergency-assign/.test(page), "頁面有候選＋指派");
+  ok(/緊急代堂/.test(page) && /emergency-candidates/.test(page) && /assign-substitute/.test(page), "頁面有候選＋指派");
   ok(/PLI 審核通過/.test(page) && /平台保險單生效/.test(page), "顯示 PLI 雙軌結果");
   ok(/代堂中/.test(page) && /待安排代堂/.test(page), "顯示覆蓋狀態");
   const idx = fs.readFileSync(path.join(__dirname, "../src/index.js"), "utf8");

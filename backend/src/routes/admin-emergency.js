@@ -18,7 +18,6 @@ const express = require("express");
 const { getDb } = require("../services/database");
 const { authenticateToken, requireAdmin } = require("../middleware/auth");
 const { audit } = require("../services/audit");
-const { dbNotification } = require("../services/notification");
 
 const router = express.Router();
 router.use(authenticateToken, requireAdmin);
@@ -51,6 +50,50 @@ function ensureSchema(db) {
   `);
   const cols = db.prepare("PRAGMA table_info(class_schedules)").all().map((c) => c.name);
   if (!cols.includes("coach_override_id")) db.exec("ALTER TABLE class_schedules ADD COLUMN coach_override_id TEXT");
+  if (!cols.includes("substitute_reason")) db.exec("ALTER TABLE class_schedules ADD COLUMN substitute_reason TEXT");
+  if (!cols.includes("substitute_assigned_at")) db.exec("ALTER TABLE class_schedules ADD COLUMN substitute_assigned_at DATETIME");
+  if (!cols.includes("substitute_assigned_by")) db.exec("ALTER TABLE class_schedules ADD COLUMN substitute_assigned_by TEXT");
+
+  // 規格對齊欄位（舊表 idempotent 補欄＋回填）
+  const icols = db.prepare("PRAGMA table_info(schedule_insurance_logs)").all().map((c) => c.name);
+  const addI = (name, ddl) => {
+    if (!icols.includes(name)) db.exec(`ALTER TABLE schedule_insurance_logs ADD COLUMN ${ddl}`);
+  };
+  addI("assigned_coach_id", "assigned_coach_id TEXT");
+  addI("coverage_source", "coverage_source TEXT");
+  addI("insurer_name", "insurer_name TEXT");
+  addI("policy_number", "policy_number TEXT");
+  addI("coverage_amount_cents", "coverage_amount_cents INTEGER");
+  addI("policy_expiry_date", "policy_expiry_date DATE");
+  addI("is_emergency_override", "is_emergency_override INTEGER DEFAULT 0");
+  addI("verified_by_admin_id", "verified_by_admin_id TEXT");
+  try {
+    db.exec(`
+      UPDATE schedule_insurance_logs
+         SET assigned_coach_id = COALESCE(assigned_coach_id, substitute_coach_id),
+             coverage_source = COALESCE(coverage_source, policy_type),
+             insurer_name = COALESCE(insurer_name, insurer),
+             policy_number = COALESCE(policy_number, policy_no),
+             coverage_amount_cents = COALESCE(coverage_amount_cents, coverage_hkd * 100),
+             is_emergency_override = COALESCE(is_emergency_override, CASE WHEN policy_type='platform_umbrella_pli' THEN 1 ELSE 0 END),
+             verified_by_admin_id = COALESCE(verified_by_admin_id, created_by)
+       WHERE assigned_coach_id IS NULL OR coverage_source IS NULL
+    `);
+    db.exec(`
+      UPDATE schedule_insurance_logs
+         SET policy_expiry_date = COALESCE(
+               policy_expiry_date,
+               (SELECT cc.insurance_expiry_date FROM coach_credentials cc
+                 WHERE cc.user_id = schedule_insurance_logs.assigned_coach_id
+                 ORDER BY cc.created_at DESC, cc.rowid DESC LIMIT 1),
+               CASE WHEN coverage_source='platform_umbrella_pli' THEN '2027-12-31' ELSE date('now') END)
+       WHERE policy_expiry_date IS NULL
+    `);
+  } catch (e) {}
+  try {
+    const ccols = db.prepare("PRAGMA table_info(coach_credentials)").all().map((c) => c.name);
+    if (!ccols.includes("insurance_policy_no")) db.exec("ALTER TABLE coach_credentials ADD COLUMN insurance_policy_no TEXT");
+  } catch (e) {}
 }
 
 function setting(db, key, fallback) {
@@ -213,7 +256,7 @@ function candidates(db, scheduleId) {
   return { session: s, umbrella: umb, candidates: out };
 }
 
-function assign(db, { scheduleId, targetCoachId, useUmbrella, adminId, reason }) {
+function assign(db, { scheduleId, targetCoachId, useUmbrella, forcePlatformPli, adminId, reason }) {
   ensureSchema(db);
   const s = db
     .prepare(
@@ -238,18 +281,27 @@ function assign(db, { scheduleId, targetCoachId, useUmbrella, adminId, reason })
   if (cred.status !== "verified") return { ok: false, code: "CREDENTIAL_NOT_VERIFIED" };
   const umb = umbrellaConfig(db);
   const personal = personalPliValid(cred);
-  let source = personal ? "personal" : null;
-  if (!source && useUmbrella && umb.enabled) source = "umbrella";
+  const force = !!(useUmbrella || forcePlatformPli);
+  let source = personal && !forcePlatformPli ? "personal" : null;
+  if (!source && force && umb.enabled) source = "umbrella";
   if (!source) return { ok: false, code: "PLI_REQUIRED", umbrella: umb };
 
   const logId = require("crypto").randomUUID();
+  const policyExpiry =
+    source === "umbrella" ? setting(db, "pli.umbrella_expiry", "2027-12-31") : String(cred.insurance_expiry_date || "").slice(0, 10);
   db.transaction(() => {
-    db.prepare("UPDATE class_schedules SET coach_override_id=? WHERE id=?").run(t.id, s.id);
+    db.prepare(
+      `UPDATE class_schedules
+          SET coach_override_id=?, substitute_reason=?, substitute_assigned_at=datetime('now'), substitute_assigned_by=?
+        WHERE id=?`,
+    ).run(t.id, String(reason || "").trim(), adminId, s.id);
     db.prepare(
       `INSERT INTO schedule_insurance_logs
          (id, schedule_id, class_id, venue, original_coach_id, substitute_coach_id,
-          policy_type, insurer, policy_no, coverage_hkd, source, created_by)
-       VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
+          policy_type, insurer, policy_no, coverage_hkd, source, created_by,
+          assigned_coach_id, coverage_source, insurer_name, policy_number,
+          coverage_amount_cents, policy_expiry_date, is_emergency_override, verified_by_admin_id)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
     ).run(
       logId,
       s.id,
@@ -259,14 +311,28 @@ function assign(db, { scheduleId, targetCoachId, useUmbrella, adminId, reason })
       t.id,
       source === "umbrella" ? "platform_umbrella_pli" : "coach_personal_pli",
       source === "umbrella" ? umb.insurer : "教練個人保單",
-      source === "umbrella" ? umb.policy_no : String(cred.insurance_policy_url || cred.license_no || "PERSONAL-PLI"),
+      source === "umbrella" ? umb.policy_no : String(cred.insurance_policy_no || cred.license_no || cred.insurance_policy_url || "PERSONAL-PLI"),
       source === "umbrella" ? umb.coverage_hkd : null,
       source,
       adminId,
+      t.id,
+      source === "umbrella" ? "platform_umbrella_pli" : "coach_personal_pli",
+      source === "umbrella" ? umb.insurer : "教練個人保單",
+      source === "umbrella" ? umb.policy_no : String(cred.insurance_policy_url || cred.license_no || "PERSONAL-PLI"),
+      source === "umbrella" ? umb.coverage_hkd * 100 : 1000000000,
+      policyExpiry || todayHKT(),
+      source === "umbrella" ? 1 : 0,
+      adminId,
     );
+    // 未結算收入改歸實際執教教練（已 paid 的不動）
+    try {
+      db.prepare(
+        "UPDATE coach_earnings SET coach_id=?, updated_at=datetime('now') WHERE schedule_id=? AND status IN ('pending','approved')",
+      ).run(t.id, s.id);
+    } catch (e) {}
     try {
       audit({
-        actionType: "coach.emergency_substitute_assigned",
+        actionType: "schedule.assign_substitute",
         entityType: "schedule",
         entityId: s.id,
         userId: adminId,
@@ -283,22 +349,44 @@ function assign(db, { scheduleId, targetCoachId, useUmbrella, adminId, reason })
     } catch (e) {}
   })();
 
-  // 通知（事務外）
+  // 通知（事務外，非阻塞）：SMS ＋ WhatsApp ＋ 站內
   try {
-    dbNotification(t.id, "schedule", "⚡ 緊急代堂指派", `你已被指派代堂：${s.title} · ${whenLabel(s.start_time)} · ${s.venue_name || ""}。點名冊已開通。`, { schedule_id: s.id });
-  } catch (e) {}
-  try {
+    const notify = require("../services/notification-service");
+    notify
+      .sendSmsAndWhatsApp({
+        userId: t.id,
+        phone: t.phone,
+        title: "⚡ 緊急代堂指派",
+        message: `【ZenPass 代堂指派】${t.name} 教練您好，您已被指派接手《${s.title}》，上課時間：${whenLabel(s.start_time)}，地點：${s.venue_name || s.district || ""}。請即時登入後台查閱點名冊與學員舊患手冊：https://zenpass.hk/v2/coach-roster.html`,
+        meta: { schedule_id: s.id },
+      })
+      .then((r) => {
+        try {
+          audit({
+            actionType: "schedule.substitute_notified",
+            entityType: "schedule",
+            entityId: s.id,
+            userId: adminId,
+            newValues: { coach_id: t.id, channels: r },
+            description: "緊急代堂通知發送狀態",
+          });
+        } catch (e) {}
+      })
+      .catch(() => {});
     const students = db
-      .prepare("SELECT DISTINCT user_id FROM bookings WHERE schedule_id=? AND payment_status='paid' AND status IN ('confirmed','attended')")
+      .prepare("SELECT DISTINCT b.user_id, u.phone FROM bookings b JOIN users u ON u.id=b.user_id WHERE b.schedule_id=? AND b.payment_status='paid' AND b.status IN ('confirmed','attended')")
       .all(s.id);
+    const cert = cred.license_type ? `（持有${cred.license_type}）` : "";
     for (const st of students) {
-      dbNotification(
-        st.user_id,
-        "schedule",
-        "【ZenPass 課堂通知】",
-        `今日 ${timeLabel(s.start_time)} 於 ${s.venue_name || s.district || ""} 的《${s.title}》，將由資深教練 ${t.name} 代堂。課程內容及進度手冊不受影響，祝您運動愉快！`,
-        { schedule_id: s.id },
-      );
+      notify
+        .sendSmsAndWhatsApp({
+          userId: st.user_id,
+          phone: st.phone,
+          title: "【ZenPass 課堂通知】",
+          message: `【ZenPass 課堂通知】今日 ${timeLabel(s.start_time)} 於 ${s.venue_name || s.district || ""} 的《${s.title}》，將由資深教練 ${t.name}${cert} 代堂。課程內容及進度手冊不受影響，祝您運動愉快！`,
+          meta: { schedule_id: s.id },
+        })
+        .catch(() => {});
     }
   } catch (e) {}
 
@@ -340,6 +428,55 @@ router.get("/emergency-candidates", (req, res) => {
   } catch (e) {
     console.error("[EMGSUB] candidates:", e.message);
     res.status(500).json({ success: false, error: "讀取代堂教練失敗" });
+  }
+});
+
+// 規格端點：POST /api/admin/schedules/:id/assign-substitute
+router.post("/schedules/:id/assign-substitute", (req, res) => {
+  try {
+    if (!isOps(req.user)) return res.status(403).json({ success: false, error: "權限不足" });
+    const b = req.body || {};
+    const targetCoachId = b.substitute_coach_id || b.target_coach_id;
+    if (!targetCoachId) return res.status(400).json({ success: false, error: "請提供代堂教練 ID (substitute_coach_id)" });
+    const reason = String(b.reason || "緊急代堂指派").trim();
+    if (reason.length < 4) return res.status(400).json({ success: false, code: "REASON_REQUIRED", error: "請填寫指派原因（最少 4 字）" });
+    const out = assign(getDb(), {
+      scheduleId: req.params.id,
+      targetCoachId,
+      forcePlatformPli: b.force_platform_pli === true || b.force_platform_pli === 1 || b.force_platform_pli === "true",
+      useUmbrella: b.force_platform_pli === true || b.force_platform_pli === 1,
+      adminId: req.user.id,
+      reason,
+    });
+    if (!out.ok) {
+      const msgs = {
+        NOT_FOUND: "找不到該課堂班次",
+        COACH_NOT_LOCKED: "原教練未被熔斷，請用一般代堂流程",
+        ALREADY_ASSIGNED: "此班已有代堂教練",
+        INVALID_COACH: "代堂教練不存在",
+        COACH_LOCKED: "代堂教練帳號處於非啟用狀態",
+        OVERLAP: "代堂教練同時段已有班",
+        NO_CREDENTIAL: "代堂教練未提交資質",
+        CREDENTIAL_NOT_VERIFIED: "代堂教練資質未核實",
+        PLI_REQUIRED: "需要個人 PLI 或啟用平台綜合責任保險",
+      };
+      return res.status(409).json({ success: false, code: out.code, error: msgs[out.code] || "指派失敗", umbrella: out.umbrella });
+    }
+    res.json({
+      success: true,
+      message: "代堂指派成功，PLI 保險已完成覆蓋並記錄。",
+      data: {
+        schedule_id: out.schedule_id,
+        substitute_coach_id: out.substitute.id,
+        substitute_coach_name: out.substitute.name,
+        insurance_log_id: out.insurance_log_id,
+        pli_coverage_source: out.pli_source === "umbrella" ? "platform_umbrella_pli" : "coach_personal_pli",
+        is_emergency_override: out.pli_source === "umbrella",
+      },
+    });
+  } catch (e) {
+    console.error("[EMGSUB] assign-substitute:", e.message);
+    res.status(500).json({ success: false, error: "指派失敗" });
   }
 });
 
