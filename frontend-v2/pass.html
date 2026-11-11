@@ -81,6 +81,18 @@
     .family-pass select { width:100%; box-sizing:border-box; border:0; border-radius:10px; padding:11px 12px; font:inherit; margin-bottom:8px; }
     .family-pass .btn { background:#fff; color:#065f46; font-weight:900; }
     .family-pass .fp-msg { font-size:12.5px; margin-top:8px; line-height:1.6; }
+
+    /* Phase 5.1-UI：全螢幕付款防連擊遮罩 */
+    #payOverlay { position:fixed; inset:0; z-index:9999; display:none; align-items:center; justify-content:center;
+      background:rgba(15,23,42,.62); backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px); }
+    #payOverlay.on { display:flex; }
+    #payOverlay .po-box { background:#fff; border-radius:16px; padding:26px 22px; max-width:300px; text-align:center;
+      box-shadow:0 18px 50px rgba(15,23,42,.35); }
+    #payOverlay .po-spin { width:44px; height:44px; margin:0 auto 14px; border-radius:999px;
+      border:4px solid #ccfbf1; border-top-color:#0d9488; animation:poSpin .9s linear infinite; }
+    @keyframes poSpin { to { transform:rotate(360deg); } }
+    #payOverlay .po-t { font-weight:900; color:#0f172a; font-size:16px; margin-bottom:6px; }
+    #payOverlay .po-s { font-size:13px; color:#475569; line-height:1.6; }
   </style>
 </head>
 <body>
@@ -293,6 +305,36 @@
       }
       function clearPaymentError() { $("payment-error-alert").classList.add("hidden"); }
 
+      /* Phase 5.1-UI：付款遮罩（防弱網連擊） */
+      var payOverlayTimer = null;
+      function showPayOverlay(text) {
+        var ov = document.getElementById("payOverlay");
+        if (!ov) return;
+        if (text) {
+          var t = ov.querySelector(".po-t");
+          if (t) t.textContent = text;
+        }
+        ov.classList.add("on");
+        document.body.style.overflow = "hidden";
+        // 30 秒保底：即使 Stripe 無回應都要解鎖，避免永久卡死
+        clearTimeout(payOverlayTimer);
+        payOverlayTimer = setTimeout(function () {
+          hidePayOverlay();
+          showPaymentError("付款回應逾時。請勿重複付款，先到「我的預約／家庭錢包」查看是否已成功，或聯絡客服。");
+        }, 30000);
+      }
+      function hidePayOverlay() {
+        var ov = document.getElementById("payOverlay");
+        if (ov) ov.classList.remove("on");
+        document.body.style.overflow = "";
+        clearTimeout(payOverlayTimer);
+      }
+      // 遮罩期間攔截所有點擊（雙保險：CSS 已覆蓋全屏）
+      document.addEventListener("click", function (e) {
+        var ov = document.getElementById("payOverlay");
+        if (ov && ov.classList.contains("on")) { e.preventDefault(); e.stopPropagation(); }
+      }, true);
+
       function localizedPaymentError(error) {
         var map = {
           card_declined: "銀行拒絕此交易，請檢查信用卡額度或聯絡發卡銀行。",
@@ -337,8 +379,21 @@
 
         try {
           var express = elements.create("expressCheckout", { buttonType: { applePay: "check-out", googlePay: "checkout" } });
+          express.on("ready", function (ev) {
+            var methods = (ev && ev.availablePaymentMethods) || {};
+            var any = Object.keys(methods).some(function (k) { return methods[k]; });
+            if (!any) {
+              $("express-checkout-element").style.display = "none";
+              $("pay-divider").style.display = "none";
+            }
+          });
           express.mount("#express-checkout-element");
-          express.on("confirm", function () { $("pay-submit-btn").disabled = true; $("pay-submit-btn").textContent = "處理中，請勿關閉視窗…"; });
+          express.on("confirm", function () {
+            if (zs.busy) return;
+            zs.busy = true;
+            $("pay-submit-btn").disabled = true; $("pay-submit-btn").textContent = "處理中，請勿關閉視窗…";
+            showPayOverlay("正在透過 Apple Pay / Google Pay 付款");
+          });
         } catch (e) {
           $("express-checkout-element").style.display = "none";
           $("pay-divider").style.display = "none";
@@ -374,8 +429,11 @@
 
       $("pay-submit-btn").addEventListener("click", async function () {
         if (!zs.mounted || !zs.stripe) return;
+        if (zs.busy) return;
+        zs.busy = true;
         var btn = this;
         btn.disabled = true; btn.textContent = "處理中，請勿關閉視窗…";
+        showPayOverlay();
         clearPaymentError();
         try {
           var out = await zs.stripe.confirmPayment({
@@ -385,13 +443,18 @@
           });
           if (out.error) {
             showPaymentError(localizedPaymentError(out.error));
+            hidePayOverlay();
             btn.disabled = false; btn.textContent = "立即付款 HK$ 520";
+            zs.busy = false;
             return;
           }
           if (out.paymentIntent && out.paymentIntent.status === "succeeded") {
             var done = await api.post("/passes/checkout/complete", { payment_intent_id: out.paymentIntent.id });
             if (!done.ok) {
               showPaymentError((done.data && done.data.error) || "付款成功但發卡確認中，請稍後到家庭錢包查看，或聯絡客服。");
+              hidePayOverlay();
+              btn.disabled = false; btn.textContent = "立即付款 HK$ 520";
+              zs.busy = false;
               return;
             }
             var hasGroup = !!zs.familyGroupId;
@@ -405,10 +468,14 @@
             return;
           }
           showPaymentError("付款尚未完成，請再試或改用其他支付方式。");
+          hidePayOverlay();
           btn.disabled = false; btn.textContent = "立即付款 HK$ 520";
+          zs.busy = false;
         } catch (e) {
           showPaymentError(localizedPaymentError(e));
+          hidePayOverlay();
           btn.disabled = false; btn.textContent = "立即付款 HK$ 520";
+          zs.busy = false;
         }
       });
 
@@ -584,5 +651,12 @@
     })();
   </script>
   <script src="assets/footer.js?v=6" defer></script>
+  <div id="payOverlay" aria-live="assertive" role="alertdialog" aria-label="付款處理中">
+    <div class="po-box">
+      <div class="po-spin" aria-hidden="true"></div>
+      <div class="po-t">正在安全加密處理付款</div>
+      <div class="po-s">請勿關閉或重新整理視窗。<br>如網絡較慢，稍等 10–30 秒即可。</div>
+    </div>
+  </div>
 </body>
 </html>

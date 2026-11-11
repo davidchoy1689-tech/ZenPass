@@ -156,6 +156,54 @@ router.post("/student/door-unlock", authenticateToken, (req, res) => {
   }
 });
 
+/**
+ * 一次性憑證顯示資訊（給 pass-token.html 用；token 本身即能力證明）
+ * GET /api/checkin/token-info?t=<raw token>
+ */
+router.get("/checkin/token-info", (req, res) => {
+  try {
+    const db = getDb();
+    checkinAccessToken.ensureSchema(db);
+    const raw = String(req.query.t || "").trim();
+    if (!raw) return res.status(400).json({ success: false, error: "缺少憑證" });
+    const row = checkinAccessToken.peek(db, raw);
+    if (!row) return res.status(404).json({ success: false, error: "憑證無效" });
+    if (Number(row.is_used) === 1) {
+      return res.status(409).json({ success: false, code: "TOKEN_ALREADY_USED", error: "此憑證已使用" });
+    }
+    const b = db
+      .prepare(
+        `SELECT b.id, b.booking_reference, b.status, b.user_id, u.name AS student_name, u.phone,
+                c.title, c.venue_name, c.venue_address, s.start_time, s.end_time
+           FROM bookings b
+           LEFT JOIN class_schedules s ON s.id = b.schedule_id
+           LEFT JOIN classes c ON c.id = b.class_id
+           LEFT JOIN users u ON u.id = b.user_id
+          WHERE b.id = ?`,
+      )
+      .get(row.booking_id);
+    if (!b) return res.status(404).json({ success: false, error: "預約不存在" });
+    const phone = String(b.phone || "").replace(/\D/g, "").replace(/^852/, "");
+    res.set("Cache-Control", "no-store");
+    res.json({
+      success: true,
+      booking_reference: b.booking_reference || "",
+      student_name: b.student_name || "學員",
+      last4: phone.length >= 4 ? phone.slice(-4) : "",
+      title: b.title || "課堂",
+      venue_name: b.venue_name || "",
+      venue_address: b.venue_address || "",
+      start_time: b.start_time || "",
+      end_time: b.end_time || "",
+      expires_at: row.expires_at,
+      booking_status: b.status,
+    });
+  } catch (e) {
+    console.error("[CHECKIN] token-info:", e.message);
+    res.status(500).json({ success: false, error: "讀取憑證失敗" });
+  }
+});
+
 router.post("/bookings/:id/access-token", authenticateToken, (req, res) => {
   try {
     const db = getDb();

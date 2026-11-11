@@ -1,0 +1,59 @@
+/* ============================================================================
+ * ZenPass 無障礙樣式表（Phase 5.1-UI）
+ * 用途：長者／低視能使用者的大字、高對比與觸控尺寸基線
+ * 載入：<link rel="stylesheet" href="assets/accessibility.css?v=1">
+ * 啟用：<body class="zp-large"> 或 <html class="zp-large">
+ * ==========================================================================*/
+
+/* 大字模式（整體放大，不破壞版面） */
+html.zp-large, body.zp-large { font-size: 19px; }
+body.zp-large h1 { font-size: 1.35em; line-height: 1.35; }
+body.zp-large h2 { font-size: 1.2em; }
+body.zp-large p,
+body.zp-large li,
+body.zp-large .sub,
+body.zp-large .hint { font-size: 1.06em; line-height: 1.7; }
+
+/* 高對比（避免淺灰字在昏暗場地看不清） */
+html.zp-contrast, body.zp-contrast { --muted: #1f2937; }
+body.zp-contrast .hint,
+body.zp-contrast .sub { color: #1f2937 !important; }
+body.zp-contrast a { text-decoration: underline; }
+
+/* 4 位核銷碼（供應商指定：≥ 32px，預設 36px，大字 46px） */
+.zp-last4 {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 36px;
+  font-weight: 900;
+  letter-spacing: 10px;
+  line-height: 1.25;
+  text-align: center;
+  color: #0f172a;
+}
+body.zp-large .zp-last4 { font-size: 46px; letter-spacing: 14px; }
+
+/* 觸控目標：最少 48×48（Apple HIG 44／Material 48） */
+.zp-tap { min-height: 48px; min-width: 48px; }
+.zp-tap-lg { min-height: 56px; }
+
+/* 數字輸入欄（電話尾 4 位等） */
+.zp-num {
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: 8px;
+  text-align: center;
+  padding: 14px;
+  border: 2px solid #cbd5e1;
+  border-radius: 12px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* 螢幕閱讀器專用 */
+.zp-sr-only {
+  position: absolute !important;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0);
+  white-space: nowrap; border: 0;
+}
