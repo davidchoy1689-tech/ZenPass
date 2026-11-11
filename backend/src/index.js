@@ -33,6 +33,7 @@ try {
   require("./services/b2b-corporate").ensureSchema(getDb());
   require("./routes/fps-clearing").ensureSchema(getDb());
   require("./services/marketplace").ensureSchema(getDb());
+  require("./services/phone-gate").ensureSchema(getDb());
 } catch (e) {
   logger.warn("[CHECKIN] schema 初始化失敗: " + e.message);
 }

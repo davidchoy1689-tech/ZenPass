@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="zh-HK">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>驗證手機 · ZenPass</title>
+<link rel="stylesheet" href="/assets/style.css?v=12">
+<style>
+  body{margin:0;font-family:'Noto Sans TC',system-ui,-apple-system,sans-serif;background:#f8fafc;color:#0f172a}
+  .wrap{max-width:480px;margin:0 auto;padding:26px 18px 60px}
+  .card{background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:20px}
+  h1{font-size:20px;margin:0 0 6px}
+  p{color:#64748b;font-size:13.5px;line-height:1.7}
+  label{display:block;font-size:13px;font-weight:600;margin:14px 0 6px;color:#334155}
+  input{width:100%;box-sizing:border-box;padding:13px;font-size:16px;border:1px solid #cbd5e1;border-radius:10px}
+  button{width:100%;margin-top:12px;padding:14px;border:0;border-radius:10px;background:#0f766e;color:#fff;font-size:15px;font-weight:800;cursor:pointer}
+  button:disabled{opacity:.55}
+  .muted{font-size:12.5px;color:#64748b;margin-top:10px;line-height:1.6}
+  .ok{color:#065f46;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:10px;padding:10px;margin-top:12px}
+  .err{color:#991b1b;background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:10px;margin-top:12px}
+  a{color:#0f766e}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <h1>📱 驗證手機號碼</h1>
+    <p>購買 Pass、使用家庭共享錢包前，需要先驗證手機（一次性 OTP）。號碼只作身份核對及課堂聯絡。</p>
+    <div id="phoneBox" class="muted">載入中…</div>
+    <button id="send">✉️ 發送驗證碼</button>
+    <div id="otpBox" style="display:none">
+      <label for="otp">6 位驗證碼</label>
+      <input id="otp" inputmode="numeric" maxlength="6" placeholder="123456">
+      <button id="confirm">✅ 確認驗證</button>
+    </div>
+    <div id="msg"></div>
+    <div class="muted" id="hint"></div>
+  </div>
+</div>
+<script>
+const $ = (id) => document.getElementById(id);
+const tk = localStorage.getItem("zenpass_token");
+const auth = { authorization: "***" + tk, "content-type": "application/json" };
+function say(text, cls) { const m = $("msg"); m.className = cls || ""; m.textContent = text; }
+async function load() {
+  if (!tk) { location.href = "/login.html?next=/verify-phone.html"; return; }
+  try {
+    const me = await fetch("/api/auth/me", { headers: auth }).then(r => r.json());
+    const u = me.user || me;
+    const phone = String(u.phone || "");
+    if (!phone) {
+      $("phoneBox").innerHTML = '⚠️ 你仍未填手機號碼，請先到 <a href="/profile.html">個人資料</a> 補填。';
+      $("send").disabled = true;
+      return;
+    }
+    $("phoneBox").textContent = "將發送驗證碼到：" + phone.replace(/^(\d{4})\d{4}$/, "$1****");
+  } catch (e) { $("phoneBox").textContent = "無法讀取帳戶資料"; }
+}
+$("send").onclick = async () => {
+  $("send").disabled = true;
+  const r = await fetch("/api/auth/phone/send-otp", { method: "POST", headers: auth, body: "{}" }).then(x => x.json()).catch(() => ({}));
+  if (r.success) {
+    $("otpBox").style.display = "block";
+    say("驗證碼已發送，10 分鐘內有效。", "ok");
+    if (r.dev_code) { $("otp").value = r.dev_code; $("hint").textContent = "測試模式：驗證碼已自動填入"; }
+  } else {
+    say(r.error || "發送失敗", "err");
+  }
+  setTimeout(() => { $("send").disabled = false; }, 60000);
+};
+$("confirm").onclick = async () => {
+  const code = $("otp").value.trim();
+  if (!/^\d{6}$/.test(code)) return say("請輸入 6 位驗證碼", "err");
+  $("confirm").disabled = true;
+  const r = await fetch("/api/auth/phone/confirm-otp", { method: "POST", headers: auth, body: JSON.stringify({ otp_code: code }) }).then(x => x.json()).catch(() => ({}));
+  $("confirm").disabled = false;
+  if (r.success) {
+    say("✅ 手機已驗證，正在返回…", "ok");
+    setTimeout(() => { location.href = "/pass.html"; }, 900);
+  } else say(r.error || "驗證失敗", "err");
+};
+load();
+</script>
+</body>
+</html>

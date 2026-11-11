@@ -8,6 +8,7 @@ const express = require("express");
 const crypto = require("crypto");
 const { getDb } = require("../services/database");
 const { authenticateToken } = require("../middleware/auth");
+const { requirePhoneGate } = require("../services/phone-gate");
 const { audit } = require("../services/audit");
 const familyWallet = require("../services/family-wallet");
 
@@ -53,7 +54,7 @@ router.get("/my", authenticateToken, (req, res) => {
   }
 });
 
-router.post("/groups", authenticateToken, (req, res) => {
+router.post("/groups", authenticateToken, requirePhoneGate, (req, res) => {
   try {
     const db = getDb();
     familyWallet.ensureSchema(db);
@@ -125,7 +126,7 @@ router.post("/groups/:id/members", authenticateToken, (req, res) => {
 });
 
 // 將自己名下有效的 Pass 加入家庭群組（付款人限定）
-router.post("/groups/:id/passes/:passId", authenticateToken, (req, res) => {
+router.post("/groups/:id/passes/:passId", authenticateToken, requirePhoneGate, (req, res) => {
   try {
     const db = getDb();
     familyWallet.ensureSchema(db);

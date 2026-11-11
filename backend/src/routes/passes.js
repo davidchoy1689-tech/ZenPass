@@ -8,6 +8,7 @@ const express = require("express");
 const crypto = require("crypto");
 const { getDb } = require("../services/database");
 const { authenticateToken, requirePermission } = require("../middleware/auth");
+const { requirePhoneGate } = require("../services/phone-gate");
 const passes = require("../services/passes");
 const { audit } = require("../services/audit");
 
@@ -28,7 +29,7 @@ router.get("/plans", (req, res) => {
 });
 
 // 建立 Stripe Checkout（4／8 堂家庭 Pass）
-router.post("/create-checkout", authenticateToken, async (req, res) => {
+router.post("/create-checkout", authenticateToken, requirePhoneGate, async (req, res) => {
   try {
     const db = getDb();
     passes.ensureSchema(db);
@@ -84,7 +85,7 @@ router.post("/create-checkout", authenticateToken, async (req, res) => {
 
 // 付款完成後發卡（前端回跳呼叫；webhook 亦會走同一 service）
 // 規格對齊：PaymentIntent 建立（Stripe Elements / Apple Pay / 信用卡）
-router.post("/checkout/create-intent", authenticateToken, async (req, res) => {
+router.post("/checkout/create-intent", authenticateToken, requirePhoneGate, async (req, res) => {
   try {
     const db = getDb();
     passes.ensureSchema(db);
@@ -228,7 +229,7 @@ router.post("/complete-checkout", authenticateToken, async (req, res) => {
 });
 
 // FPS 備用通路：先落單，管理員確認入數後用同一 fulfill 函數發卡
-router.post("/fps-order", authenticateToken, (req, res) => {
+router.post("/fps-order", authenticateToken, requirePhoneGate, (req, res) => {
   try {
     const db = getDb();
     passes.ensureSchema(db);
