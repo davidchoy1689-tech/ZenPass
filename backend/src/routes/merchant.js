@@ -10,6 +10,14 @@ const { audit } = require("../services/audit");
 const studioLedger = require("../services/studio-ledger");
 const coachScheduling = require("../routes/coach-scheduling");
 
+const DISTRICT_CENTROIDS = {
+  "中西區": [22.2867, 114.1501], "灣仔": [22.2783, 114.1722], "東區": [22.2841, 114.2260], "南區": [22.2470, 114.1580],
+  "油尖旺": [22.3100, 114.1700], "深水埗": [22.3300, 114.1620], "九龍城": [22.3280, 114.1910], "黃大仙": [22.3420, 114.1960],
+  "觀塘": [22.3130, 114.2250], "葵青": [22.3570, 114.1300], "荃灣": [22.3710, 114.1140], "屯門": [22.3910, 113.9770],
+  "元朗": [22.4450, 114.0320], "北區": [22.5010, 114.1280], "大埔": [22.4500, 114.1680], "沙田": [22.3820, 114.1880],
+  "西貢": [22.3820, 114.2710], "離島": [22.2620, 113.9520],
+};
+
 const router = express.Router();
 
 function ensureSchema(db) {
@@ -52,6 +60,10 @@ function ensureSchema(db) {
   studioLedger.ensureSchema(db);
   const bcols = db.prepare("PRAGMA table_info(bookings)").all().map((c) => c.name);
   if (!bcols.includes("attendee_type")) db.exec("ALTER TABLE bookings ADD COLUMN attendee_type TEXT");
+  const mcols = db.prepare("PRAGMA table_info(merchant_studios)").all().map((c) => c.name);
+  if (!mcols.includes("latitude")) db.exec("ALTER TABLE merchant_studios ADD COLUMN latitude REAL DEFAULT 22.2800");
+  if (!mcols.includes("longitude")) db.exec("ALTER TABLE merchant_studios ADD COLUMN longitude REAL DEFAULT 114.1700");
+  if (!mcols.includes("mtr_station")) db.exec("ALTER TABLE merchant_studios ADD COLUMN mtr_station TEXT");
 }
 
 function ownerOf(db, studioId, userId) {
@@ -71,11 +83,12 @@ router.post("/merchant/studios/register", authenticateToken, (req, res) => {
     if (address.length < 5) return res.status(400).json({ success: false, error: "請填門店地址" });
     const district = resolveDistrict(String(b.district || "") + " " + address) || String(b.district || "");
     const tags = Array.isArray(b.category_tags) ? b.category_tags : [];
+    const coords = DISTRICT_CENTROIDS[district] || [22.2800, 114.1700];
     const id = "std_" + crypto.randomBytes(8).toString("hex");
     db.prepare(
       `INSERT INTO merchant_studios
-         (id,owner_user_id,studio_name,business_reg_no,district,address,contact_phone,category_tags,facilities,payout_fps_id,payout_bank_account,platform_commission_rate,status)
-       VALUES (?,?,?,?,?,?,?,?,?,?,?,?, 'active')`,
+         (id,owner_user_id,studio_name,business_reg_no,district,address,contact_phone,category_tags,facilities,payout_fps_id,payout_bank_account,platform_commission_rate,latitude,longitude,mtr_station,status)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?, 'active')`,
     ).run(
       id,
       req.user.id,
@@ -89,6 +102,9 @@ router.post("/merchant/studios/register", authenticateToken, (req, res) => {
       String(b.payout_fps_id || "").slice(0, 80),
       String(b.payout_bank_account || "").slice(0, 80),
       Number(b.platform_commission_rate) > 0 ? Math.min(0.3, Number(b.platform_commission_rate)) : 0.15,
+      Number(b.latitude) || coords[0],
+      Number(b.longitude) || coords[1],
+      String(b.mtr_station || "").slice(0, 80),
     );
     db.prepare(
       `INSERT OR IGNORE INTO studio_coaches (id,studio_id,coach_user_id,role_title,coach_payout_rate,status)

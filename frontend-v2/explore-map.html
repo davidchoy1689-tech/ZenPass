@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0f766e" />
+  <title>18 區運動地圖 · ZenPass</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="assets/v2.css?v=26" />
+  <style>
+    body{margin:0;background:#f8fafc}
+    #map{height:42vh;min-height:280px;position:relative;z-index:1}
+    .map-wrap{position:relative}
+    .map-top{position:absolute;z-index:500;top:10px;left:10px;right:10px;display:flex;gap:6px}
+    .map-top select,.map-top button{border:0;border-radius:10px;padding:9px 10px;font:inherit;font-size:12px;font-weight:800;background:#fff;box-shadow:0 2px 10px rgba(15,23,42,.14);cursor:pointer}
+    .map-top button{background:#0f766e;color:#fff;white-space:nowrap}
+    .filters{display:flex;gap:6px;padding:10px 12px 0;overflow-x:auto;scrollbar-width:none}
+    .filters button{white-space:nowrap;border:1px solid #e2e8f0;background:#fff;border-radius:999px;padding:7px 11px;font:inherit;font-size:11.5px;font-weight:800;color:#475569}
+    .filters button.on{background:#0f766e;color:#fff;border-color:#0f766e}
+    .sheet{padding:8px 12px 30px;max-width:620px;margin:0 auto}
+    .sheet h2{font-size:15px;margin:6px 0 8px}
+    .mcard{background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:13px;margin-bottom:9px;box-shadow:0 3px 12px rgba(15,23,42,.05)}
+    .mcard.flash{border-color:#fcd34d;background:linear-gradient(180deg,#fffbeb,#fff)}
+    .mcard .top{display:flex;justify-content:space-between;gap:8px}
+    .mcard h3{margin:0;font-size:14px;line-height:1.35}
+    .mcard .dist{font-size:11px;color:#0f766e;font-weight:900;white-space:nowrap}
+    .mcard .meta{font-size:11.5px;color:#64748b;line-height:1.65;margin-top:4px}
+    .mcard .price{font-size:13px;font-weight:900;margin-top:6px}
+    .mcard .price s{font-size:11px;color:#94a3b8;font-weight:600}
+    .mcard button{width:100%;border:0;border-radius:10px;padding:10px;font:inherit;font-size:12.5px;font-weight:900;background:#0f766e;color:#fff;margin-top:8px;cursor:pointer}
+    .mcard .flash-tag{display:inline-block;background:#fbbf24;color:#78350f;border-radius:999px;padding:2px 7px;font-size:10.5px;font-weight:900}
+    .empty{font-size:13px;color:#64748b;padding:18px;text-align:center}
+    .bm{position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:9999;display:flex;align-items:flex-end}
+    .bm[hidden]{display:none}
+    .bm-sheet{background:#fff;width:100%;max-width:520px;margin:0 auto;border-radius:20px 20px 0 0;padding:18px 18px calc(18px + env(safe-area-inset-bottom))}
+    .bm-sheet select{width:100%;box-sizing:border-box;padding:12px;border:1px solid #e2e8f0;border-radius:10px;font:inherit}
+    .bm-sheet button{width:100%;border:0;border-radius:11px;padding:13px;font:inherit;font-weight:900;margin-top:10px}
+  </style>
+</head>
+<body>
+  <div class="map-wrap">
+    <div id="map"></div>
+    <div class="map-top">
+      <button id="geoBtn">📍 我的位置</button>
+      <select id="aud"><option value="all">全部類別</option><option value="office_worker">上班族痛症</option><option value="elderly">熟齡防跌</option><option value="postnatal">產後修復</option></select>
+    </div>
+  </div>
+  <div class="filters" id="filters">
+    <button data-f="all" class="on">全部</button>
+    <button data-f="flash">⚡ 3 小時內開課</button>
+    <button data-f="cheap">&lt; $130</button>
+  </div>
+  <div class="sheet"><h2>🔥 離你最近 · 即時有位</h2><div id="list"><div class="empty">載入中…</div></div></div>
+  <div class="bm" id="bm" hidden><div class="bm-sheet"><h3 id="bmTitle" style="margin:0 0 6px;font-size:16px"></h3><p id="bmSub" style="font-size:12.5px;color:#64748b"></p><select id="bmWho"></select><button id="bmGo" style="background:#0f766e;color:#fff">確認扣 1 堂 Pass</button><button id="bmCancel" style="background:#f1f5f9;color:#334155">取消</button><div id="bmMsg" style="font-size:12.5px;color:#b45309;margin-top:8px"></div></div></div>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="assets/api.js?v=10"></script>
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    let DATA = [], POS = { lat: 22.2783, lng: 114.1722 }, FILTER = "all", MAP, MARKERS = [], CURRENT = null;
+
+    const map = L.map("map", { zoomControl: false }).setView([POS.lat, POS.lng], 14);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "© OpenStreetMap" }).addTo(map);
+    L.control.zoom({ position: "bottomright" }).addTo(map);
+    L.circleMarker([POS.lat, POS.lng], { radius: 7, color: "#fff", fillColor: "#2563eb", fillOpacity: 1, weight: 2 }).addTo(map).bindPopup("你現在位置");
+
+    async function load() {
+      const aud = $("aud").value;
+      const r = await fetch(`/api/public/explore/map-pins?lat=${POS.lat}&lng=${POS.lng}&radius_km=5&audience=${aud}`).then((x) => x.json()).catch(() => null);
+      DATA = (r && r.studios_with_classes) || [];
+      render();
+    }
+
+    function filtered() {
+      if (FILTER === "flash") return DATA.map((s) => ({ ...s, classes: s.classes.filter((c) => c.is_flash_sale) })).filter((s) => s.classes.length);
+      if (FILTER === "cheap") return DATA.map((s) => ({ ...s, classes: s.classes.filter((c) => c.effective_price_cents < 13000) })).filter((s) => s.classes.length);
+      return DATA;
+    }
+
+    function render() {
+      MARKERS.forEach((m) => map.removeLayer(m)); MARKERS = [];
+      const rows = filtered();
+      const list = $("list");
+      if (!rows.length) { list.innerHTML = '<div class="empty">附近暫時未有符合條件的班次，試下放寬篩選。</div>'; return; }
+      list.innerHTML = rows.map((s, si) => s.classes.map((c) => {
+        const d = s.distance_meters == null ? "" : s.distance_meters < 1000 ? s.distance_meters + "m" : (s.distance_meters / 1000).toFixed(1) + "km";
+        const t = new Date(new Date(c.start_time.replace(" ", "T") + "Z").getTime() + 8 * 3600000);
+        const hh = String(t.getUTCHours()).padStart(2, "0"), mm = String(t.getUTCMinutes()).padStart(2, "0");
+        return `<div class="mcard ${c.is_flash_sale ? "flash" : ""}" id="card-${esc(c.schedule_id)}">
+          <div class="top"><h3>${c.is_flash_sale ? '<span class="flash-tag">⚡ 臨期特惠</span> ' : ""}${esc(c.course_title)}</h3><span class="dist">${esc(d)}</span></div>
+          <div class="meta">🏢 ${esc(s.studio_name)}${s.mtr_station ? " · " + esc(s.mtr_station) : ""}<br>🕒 ${hh}:${mm} 開課 · 剩 ${c.remaining_seats} 位 · ${c.time_to_start_minutes} 分鐘後</div>
+          <div class="price">${c.is_flash_sale ? `<s>HK$${c.original_price_cents / 100}</s> HK$${c.effective_price_cents / 100}` : `HK$${c.original_price_cents / 100}`} <span style="font-weight:600;color:#64748b">或扣 1 堂 Pass</span></div>
+          <button data-book="${esc(c.schedule_id)}" data-title="${esc(c.course_title)}">⚡ 一鍵預約搶位</button>
+        </div>`;
+      }).join("")).join("");
+      rows.forEach((s, si) => {
+        const m = L.marker([s.latitude, s.longitude]).addTo(map).bindPopup(`<b>${esc(s.studio_name)}</b><br>${s.active_classes_count} 班有位 · ${s.distance_meters}m`);
+        m.on("click", () => { const el = document.getElementById("card-" + s.classes[0].schedule_id); if (el) el.scrollIntoView({ behavior: "smooth", block: "center" }); });
+        MARKERS.push(m);
+      });
+      if (rows[0]) map.panTo([rows[0].latitude, rows[0].longitude]);
+    }
+
+    $("aud").onchange = load;
+    $("geoBtn").onclick = () => {
+      if (!navigator.geolocation) return alert("此瀏覽器不支援定位");
+      navigator.geolocation.getCurrentPosition((p) => { POS = { lat: p.coords.latitude, lng: p.coords.longitude }; map.setView([POS.lat, POS.lng], 15); load(); }, () => alert("無法取得位置，已用灣仔作預設"));
+    };
+    $("filters").onclick = (e) => {
+      const b = e.target.closest("[data-f]"); if (!b) return;
+      FILTER = b.dataset.f;
+      document.querySelectorAll("#filters button").forEach((x) => x.classList.toggle("on", x === b));
+      render();
+    };
+
+    $("list").addEventListener("click", async (e) => {
+      const b = e.target.closest("[data-book]"); if (!b) return;
+      if (!api.requireLogin("explore-map.html")) return;
+      CURRENT = { schedule_id: b.dataset.book, title: b.dataset.title };
+      const me = api.getUser() || {};
+      const opts = [{ id: me.id, name: (me.name || "本人") + "（本人）" }];
+      try {
+        const r = await api.get("/family/my");
+        ((r.data && r.data.data) || []).filter((g) => g.owner_user_id === me.id).forEach((g) => (g.members || []).forEach((m) => {
+          if (m.member_user_id && !opts.some((x) => x.id === m.member_user_id)) opts.push({ id: m.member_user_id, name: m.name + "（" + g.group_name + "）" });
+        }));
+      } catch (e) {}
+      $("bmTitle").textContent = CURRENT.title;
+      $("bmSub").textContent = "選擇學員，系統先扣本人 Pass，再扣家庭 Pass。";
+      $("bmWho").innerHTML = opts.map((o) => `<option value="${esc(o.id)}">${esc(o.name)}</option>`).join("");
+      $("bmMsg").textContent = "";
+      $("bm").hidden = false;
+    });
+    $("bmCancel").onclick = () => ($("bm").hidden = true);
+    $("bmGo").onclick = async () => {
+      const b = $("bmGo"); b.disabled = true; b.textContent = "扣堂中…";
+      const r = await api.post("/bookings/book-with-pass", { schedule_id: CURRENT.schedule_id, attendee_user_id: $("bmWho").value });
+      b.disabled = false; b.textContent = "確認扣 1 堂 Pass";
+      if (r.ok) { $("bmMsg").style.color = "#047857"; $("bmMsg").textContent = "✅ 預約成功，Pass 餘 " + r.data.pass.remaining_credits + " 堂"; setTimeout(() => { $("bm").hidden = true; load(); }, 900); }
+      else if (r.data && r.data.code === "NO_PASS") $("bmMsg").innerHTML = '未有有效 Pass。<a href="pass.html" style="font-weight:900">立即購買 →</a>';
+      else $("bmMsg").textContent = (r.data && r.data.error) || "預約失敗";
+    };
+
+    load();
+  </script>
+</body>
+</html>
