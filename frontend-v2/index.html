@@ -291,33 +291,101 @@
     #stickySearch select { font-size: 12px; }
     .fam-hero h2 { font-size: 19px; }
   }
+
+  /* 5.2 追加：單顆膠囊 → 全螢幕篩選抽屜 */
+  #stickySearch .ss-open {
+    display: flex; align-items: center; gap: 8px; width: 100%; max-width: 520px;
+    background: #fff; border: 1px solid #E2E8F0; border-radius: 999px;
+    padding: 10px 8px 10px 16px; box-shadow: 0 8px 22px -12px rgba(15,23,42,.28);
+    font: inherit; text-align: left;
+  }
+  #stickySearch .ss-open .lead { color: #0F766E; font-weight: 900; font-size: 13.5px; white-space: nowrap; }
+  #stickySearch .ss-open .div { color: #CBD5E1; }
+  #stickySearch .ss-open .sum { color: #475569; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #stickySearch .ss-open .go { margin-left: auto; flex: 0 0 32px; width: 32px; height: 32px; border-radius: 999px;
+    background: #0F766E; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+
+  #searchDrawer { position: fixed; inset: 0; z-index: 95; display: none; }
+  #searchDrawer.on { display: block; }
+  #searchDrawer .sd-mask { position: absolute; inset: 0; background: rgba(15,23,42,.45); }
+  #searchDrawer .sd-sheet { position: absolute; left: 0; right: 0; bottom: 0;
+    background: #fff; border-radius: 22px 22px 0 0; padding: 18px 16px calc(18px + env(safe-area-inset-bottom));
+    box-shadow: 0 -12px 40px rgba(15,23,42,.22); max-height: 86vh; overflow-y: auto; }
+  #searchDrawer h3 { margin: 0 0 4px; font-size: 16px; font-weight: 900; }
+  #searchDrawer .sd-sub { margin: 0 0 14px; font-size: 12.5px; color: #64748B; }
+  #searchDrawer label { display: block; font-size: 11.5px; font-weight: 900; color: #0F766E; letter-spacing: .04em; margin: 12px 0 6px; }
+  #searchDrawer select { width: 100%; padding: 13px 12px; border: 1.5px solid #E2E8F0; border-radius: 12px;
+    font: inherit; font-size: 15px; font-weight: 700; background: #F8FAFC; }
+  #searchDrawer .sd-actions { display: flex; gap: 8px; margin-top: 18px; }
+  #searchDrawer .sd-actions button { flex: 1; padding: 14px; border-radius: 14px; font-size: 15px; font-weight: 900; }
+  #searchDrawer .sd-reset { background: #F1F5F9; color: #475569; border: 0; }
+  #searchDrawer .sd-go { background: #0F766E; color: #fff; border: 0; }
+
+  /* 卡片追加：家庭卡通用、地區 pill、評分 */
+  .hot-card .fam-badge { position:absolute; top:10px; left:10px; z-index:3; display:inline-flex; align-items:center; gap:4px;
+    background: rgba(6,78,59,.82); color:#fff; font-size:10.5px; font-weight:800; padding:3px 8px; border-radius:999px; }
+  .hot-card .live-badge { left:auto; right:10px; bottom:10px; }
+  .hot-card .loc-pill { position:absolute; left:10px; bottom:10px; z-index:3;
+    background: rgba(15,23,42,.62); color:#fff; font-size:10.5px; font-weight:700; padding:3px 8px; border-radius:6px; }
+  .hot-card .rating { font-size:11px; font-weight:900; color:#B45309; }
 </style>
 </head>
 <body class="home">
   <!-- Phase 5.2-UI：滾動後出現的膠囊搜尋列 -->
   <div id="stickySearch" hidden>
-    <div class="ss-pill">
-      <select id="ssArea" aria-label="地區">
-        <option value="">探索全港</option>
+    <button class="ss-open" id="ssOpen" type="button" aria-label="開啟搜尋篩選">
+      <span class="lead">🔍 探索全港</span>
+      <span class="div">|</span>
+      <span class="sum" id="ssSummary">地區 · 時段 · 運動</span>
+      <span class="go" aria-hidden="true">⌕</span>
+    </button>
+  </div>
+
+  <!-- 全螢幕篩選抽屜 -->
+  <div id="searchDrawer" role="dialog" aria-modal="true" aria-labelledby="sdTitle">
+    <div class="sd-mask" data-sd-close></div>
+    <div class="sd-sheet">
+      <h3 id="sdTitle">搵一堂啱你嘅課</h3>
+      <p class="sd-sub">地區 · 時段 · 運動，一次揀好</p>
+      <label for="sdArea">地區</label>
+      <select id="sdArea">
+        <option value="">全港 18 區</option>
         <option value="kts">葵青（青衣）</option>
         <option value="kt">觀塘</option>
         <option value="ytm">油尖旺</option>
         <option value="ssp">深水埗</option>
         <option value="wc">灣仔</option>
         <option value="east">東區</option>
+        <option value="south">南區</option>
         <option value="st">沙田</option>
         <option value="tw">荃灣</option>
+        <option value="tm">屯門</option>
+        <option value="yl">元朗</option>
+        <option value="tp">大埔</option>
+        <option value="sk">西貢</option>
       </select>
-      <span class="ss-sep" aria-hidden="true"></span>
-      <select id="ssWhen" aria-label="時段">
+      <label for="sdWhen">時段</label>
+      <select id="sdWhen">
         <option value="">任何時段</option>
         <option value="today">今日</option>
         <option value="tomorrow">明日</option>
-        <option value="weekend">週末</option>
-        <option value="daytime">樂齡日間</option>
-        <option value="evening">放工時段</option>
+        <option value="weekend">本週末</option>
+        <option value="daytime">樂齡日間（10:00–16:00）</option>
+        <option value="evening">放工時段（18:00+）</option>
       </select>
-      <button class="ss-go" id="ssGo" type="button" aria-label="搜尋">🔍</button>
+      <label for="sdKind">運動 / 需要</label>
+      <select id="sdKind">
+        <option value="">全部運動</option>
+        <option value="new-sport">新興運動（木柱・冰壺・布袋球）</option>
+        <option value="senior">樂齡防跌 / 關節減壓</option>
+        <option value="stretch">深層伸展 / 痛症放鬆</option>
+        <option value="office">上班族肩頸 / 放工</option>
+        <option value="family">親子 / 家庭</option>
+      </select>
+      <div class="sd-actions">
+        <button class="sd-reset" id="sdReset" type="button">清除</button>
+        <button class="sd-go" id="sdGo" type="button">睇有位班次 →</button>
+      </div>
     </div>
   </div>
   <div class="wrap">
@@ -970,7 +1038,9 @@
               (Number(c.coach_starred) === 1 ? '<span class="badge-trial glass-badge">⭐ 星級教練</span>' : '') +
               (c.district ? '<span class="badge-district glass-badge">' + esc(c.district) + '</span>' : '') +
               '<span class="badge-countdown">⏳ ' + esc(daysLeft(c.start_time)) + '</span>' +
-              (left !== null && left > 0 && left <= 3 ? '<span class="live-badge"><span class="dot"></span>🔴 剩 ' + left + ' 位</span>' : '') +
+              (Number(c.credits_cost) > 0 ? '<span class="fam-badge">👨‍👩‍👧 家庭卡通用</span>' : '') +
+              (c.venue_name || c.district ? '<span class="loc-pill">📍 ' + esc(c.district || "") + (c.venue_name ? ' · ' + esc(String(c.venue_name).slice(0, 12)) : '') + '</span>' : '') +
+              (left !== null && left > 0 && left <= 3 ? '<span class="live-badge"><span class="dot"></span>剩 ' + left + ' 位</span>' : '') +
             '</div>' +
             '<div class="hot-body">' +
               '<span class="hot-cat">' + esc(c.category || "課堂") + '</span>' +
@@ -1134,20 +1204,54 @@
       // 低頻保險：部分內嵌瀏覽器 scroll 事件唔可靠，每 600ms 對一次 scrollY
       setInterval(sync, 600);
 
-      // 與首屏搜尋同步預設值（唔改原有表單行為）
-      try {
-        var qa = document.getElementById('qsArea');
-        var qd = document.getElementById('qsDate');
-        if (qa && qa.value) ssArea.value = qa.value;
-        if (qd && qd.value) ssWhen.value = qd.value;
-      } catch (e) {}
+      /* ---- 全螢幕篩選抽屜 ---- */
+      var drawer = document.getElementById('searchDrawer');
+      var openBtn = document.getElementById('ssOpen');
+      var summary = document.getElementById('ssSummary');
+      var sdArea = document.getElementById('sdArea');
+      var sdWhen = document.getElementById('sdWhen');
+      var sdKind = document.getElementById('sdKind');
+      var KIND_LABEL = { "new-sport": "新興運動", senior: "樂齡防跌", stretch: "深層伸展", office: "上班族", family: "親子" };
+      var AREA_LABEL = { kts: "葵青", kt: "觀塘", ytm: "油尖旺", ssp: "深水埗", wc: "灣仔", east: "東區", south: "南區", st: "沙田", tw: "荃灣", tm: "屯門", yl: "元朗", tp: "大埔", sk: "西貢" };
+      var WHEN_LABEL = { today: "今日", tomorrow: "明日", weekend: "週末", daytime: "樂齡日間", evening: "放工" };
 
-      ssGo.addEventListener('click', function () {
+      function paintSummary() {
+        var bits = [AREA_LABEL[sdArea.value] || "全港", WHEN_LABEL[sdWhen.value] || "任何時段", KIND_LABEL[sdKind.value] || "全部運動"];
+        summary.textContent = bits.join(" · ");
+      }
+      function openDrawer() {
+        drawer.classList.add('on');
+        document.body.style.overflow = 'hidden';
+        setTimeout(function () { try { sdArea.focus(); } catch (e) {} }, 60);
+      }
+      function closeDrawer() {
+        drawer.classList.remove('on');
+        document.body.style.overflow = '';
+      }
+      openBtn.addEventListener('click', openDrawer);
+      drawer.querySelectorAll('[data-sd-close]').forEach(function (n) { n.addEventListener('click', closeDrawer); });
+      document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeDrawer(); });
+      [sdArea, sdWhen, sdKind].forEach(function (s) { s.addEventListener('change', paintSummary); });
+
+      document.getElementById('sdReset').addEventListener('click', function () {
+        sdArea.value = ''; sdWhen.value = ''; sdKind.value = '';
+        paintSummary();
+      });
+      document.getElementById('sdGo').addEventListener('click', function () {
         var p = new URLSearchParams();
-        if (ssArea.value) p.set('zone', ssArea.value);
-        if (ssWhen.value) p.set(ssWhen.value === 'today' || ssWhen.value === 'tomorrow' || ssWhen.value === 'weekend' || ssWhen.value === 'daytime' ? 'date' : 'time', ssWhen.value);
+        if (sdArea.value) p.set('zone', sdArea.value);
+        if (sdWhen.value) {
+          if (sdWhen.value === 'daytime' || sdWhen.value === 'evening') p.set('time', sdWhen.value);
+          else p.set('date', sdWhen.value);
+        }
+        if (sdKind.value === 'new-sport') p.set('q', '新興運動');
+        else if (sdKind.value === 'senior') p.set('scene', 'senior');
+        else if (sdKind.value === 'stretch') p.set('scene', 'pain');
+        else if (sdKind.value === 'office') p.set('scene', 'office');
+        else if (sdKind.value === 'family') p.set('scene', 'family');
         location.href = 'explore.html' + (p.toString() ? '?' + p.toString() : '');
       });
+      paintSummary();
     })();
   </script>
 </body>
