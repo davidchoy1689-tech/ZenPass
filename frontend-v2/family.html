@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#ff6b35" />
+  <title>家庭共享錢包 · ZenPass 禪流</title>
+  <link rel="stylesheet" href="assets/v2.css?v=26" />
+  <link rel="stylesheet" href="assets/polish.css?v=1" />
+  <link rel="stylesheet" href="assets/ui-v3.css?v=5" />
+  <style>
+    .fcard { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:14px 16px; margin-bottom:12px; }
+    .fcard h3 { margin:0 0 4px; font-size:16px; }
+    .mrow { display:flex; justify-content:space-between; gap:10px; padding:9px 0; border-bottom:1px dashed var(--border); font-size:14px; }
+    .mrow:last-child { border-bottom:0; }
+    .pill { display:inline-block; background:#ECFDF5; color:#047857; border:1px solid #A7F3D0; border-radius:999px; padding:3px 9px; font-size:12px; font-weight:800; }
+    .field { margin-bottom:10px; }
+    .field label { display:block; font-size:12px; color:var(--muted); margin-bottom:5px; font-weight:700; }
+    .field input, .field select { width:100%; box-sizing:border-box; border:1px solid var(--border); border-radius:10px; padding:11px 12px; font-size:15px; background:#fff; }
+    .hint { font-size:12px; color:var(--muted); line-height:1.6; }
+    .passrow { display:flex; justify-content:space-between; align-items:center; gap:10px; padding:10px 0; border-bottom:1px dashed var(--border); }
+    .passrow:last-child { border-bottom:0; }
+    .empty { color:var(--muted); font-size:13px; padding:6px 0; }
+  </style>
+</head>
+<body>
+  <div class="topbar"><a class="back" href="my.html">‹</a><div class="title">家庭共享錢包</div></div>
+  <div class="wrap">
+    <div class="card" style="padding:14px 16px">
+      <div style="font-weight:900;font-size:17px;margin-bottom:4px">👨‍👩‍👧 一人買 Pass，全家上課</div>
+      <div class="hint">付款人建立家庭群組並加入成員電話。之後家人預約或點名時，系統會先扣本人 Pass，再扣家庭 Pass。只支援堂數 Pass，月費計劃暫未開放。</div>
+    </div>
+
+    <div class="fcard">
+      <h3>我的家庭群組</h3>
+      <div id="groups"><div class="empty">載入中…</div></div>
+    </div>
+
+    <div class="fcard">
+      <h3>建立家庭群組</h3>
+      <div class="field"><label>家庭名稱</label><input id="gname" maxlength="30" placeholder="例如：陳氏家庭健康通票" /></div>
+      <div class="field"><label>家人電話（可後加）</label><input id="mphone" inputmode="numeric" maxlength="8" placeholder="8 位香港電話" /></div>
+      <div class="field"><label>關係</label>
+        <select id="mrel">
+          <option value="father">父親</option>
+          <option value="mother">母親</option>
+          <option value="spouse">配偶</option>
+          <option value="child">子女</option>
+          <option value="sibling">兄弟姊妹</option>
+          <option value="other">其他</option>
+        </select>
+      </div>
+      <button class="btn btn-primary btn-block" id="createBtn" type="button">建立家庭群組</button>
+      <div class="hint" style="margin-top:8px">家人必須已用該電話登記 ZenPass，否則請先邀請對方登記。</div>
+    </div>
+
+    <div class="fcard">
+      <h3>我的有效 Pass</h3>
+      <div id="passes"><div class="empty">載入中…</div></div>
+      <div class="hint" style="margin-top:8px">由職員簽發的堂數 Pass 會出現在這裡。加入家庭群組後，家人點名即可扣堂。</div>
+    </div>
+
+    <div class="spacer"></div>
+  </div>
+
+  <nav class="bottomnav">
+    <a href="index.html"><span class="ic">🏠</span>主頁</a>
+    <a href="explore.html"><span class="ic">🔍</span>探索</a>
+    <a href="booking.html"><span class="ic">📅</span>預約</a>
+    <a class="active" href="my.html"><span class="ic">🎫</span>我的</a>
+  </nav>
+
+  <script src="assets/api.js?v=3"></script>
+  <script>
+    let groups = [];
+    let myPasses = [];
+
+    (async () => {
+      if (!api.requireLogin("family.html")) return;
+      await loadAll();
+    })();
+
+    async function loadAll() {
+      const [g, p] = await Promise.all([api.get("/family/my"), api.get("/passes/my")]);
+      groups = (g.data && g.data.data) || [];
+      myPasses = (p.data && p.data.passes) || [];
+      renderGroups();
+      renderPasses();
+    }
+
+    function renderGroups() {
+      const el = document.getElementById("groups");
+      if (!groups.length) {
+        el.innerHTML = '<div class="empty">仲未有家庭群組。建立後即可加入家人及 Pass。</div>';
+        return;
+      }
+      el.innerHTML = groups
+        .map((g) => {
+          const members = (g.members || [])
+            .map((m) => `<div class="mrow"><span>${esc(m.name || "家人")} <span class="hint">(${esc(relLabel(m.relation_title))})</span></span><span class="hint">${esc(m.phone_masked || "")}</span></div>`)
+            .join("");
+          const passes = (g.passes || [])
+            .map((p) => `<div class="mrow"><span>🎟️ 家庭 Pass</span><span><b>餘 ${Number(p.remaining_credits)} 堂</b> <span class="hint">/ ${Number(p.total_credits)}</span></span></div>`)
+            .join("");
+          return `<div style="margin-bottom:14px">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+              <div><b>${esc(g.group_name)}</b> <span class="pill">${g.member_count || 0} 人</span></div>
+              <button class="btn btn-secondary mini" type="button" onclick="addMember('${esc(g.id)}')" style="min-height:32px;padding:0 10px;font-size:12px">＋家人</button>
+            </div>
+            <div style="margin-top:6px">${members || '<div class="empty">未加入家人</div>'}</div>
+            ${passes ? `<div style="margin-top:4px">${passes}</div>` : '<div class="empty">尚未有家庭 Pass</div>'}
+          </div>`;
+        })
+        .join("");
+    }
+
+    function renderPasses() {
+      const el = document.getElementById("passes");
+      if (!myPasses.length) {
+        el.innerHTML = '<div class="empty">暫無有效 Pass。購買或由職員簽發後會顯示在這裡。</div>';
+        return;
+      }
+      el.innerHTML = myPasses
+        .map((p) => {
+          const attached = !!p.family_group_id;
+          const group = groups.find((g) => g.id === p.family_group_id);
+          const action = attached
+            ? `<span class="pill">已加入 ${esc(group ? group.group_name : "家庭")}</span>`
+            : groups.length
+              ? `<button class="btn btn-primary mini" type="button" onclick="attachPass('${esc(p.id)}')" style="min-height:32px;padding:0 10px;font-size:12px">加入家庭</button>`
+              : `<span class="hint">先建立家庭群組</span>`;
+          return `<div class="passrow"><div><b>${Number(p.remaining_credits)} 堂</b> <span class="hint">/ ${Number(p.total_credits)} 堂 · 到期 ${esc(String(p.expires_at || "").slice(0, 10))}</span></div><div>${action}</div></div>`;
+        })
+        .join("");
+    }
+
+    function relLabel(r) {
+      return { self: "本人", father: "父親", mother: "母親", spouse: "配偶", child: "子女", sibling: "兄弟姊妹", other: "其他" }[r] || "家人";
+    }
+
+    document.getElementById("createBtn").addEventListener("click", async () => {
+      const name = document.getElementById("gname").value.trim();
+      const phone = document.getElementById("mphone").value.replace(/\D/g, "");
+      if (name.length < 2) return alert("請輸入家庭名稱（至少 2 字）");
+      if (phone && !/^[4-9]\d{7}$/.test(phone)) return alert("請輸入有效 8 位香港電話");
+      const members = phone ? [{ phone: phone, relation_title: document.getElementById("mrel").value, can_consume_pass: 1 }] : [];
+      const btn = document.getElementById("createBtn");
+      btn.disabled = true;
+      const r = await api.post("/family/groups", { group_name: name, members: members });
+      btn.disabled = false;
+      if (!r.ok) return alert((r.data && r.data.error) || "建立失敗");
+      document.getElementById("gname").value = "";
+      document.getElementById("mphone").value = "";
+      await loadAll();
+      alert("✅ 家庭群組已建立");
+    });
+
+    window.addMember = async (groupId) => {
+      const phone = prompt("家人 8 位電話（必須已登記 ZenPass）：");
+      if (!phone) return;
+      const p = phone.replace(/\D/g, "");
+      if (!/^[4-9]\d{7}$/.test(p)) return alert("電話格式不正確");
+      const r = await api.post("/family/groups/" + encodeURIComponent(groupId) + "/members", { phone: p, relation_title: "other", can_consume_pass: 1 });
+      if (!r.ok) return alert((r.data && r.data.error) || "加入失敗");
+      await loadAll();
+      alert("✅ 已加入家人");
+    };
+
+    window.attachPass = async (passId) => {
+      const g = groups[0];
+      if (!g) return alert("請先建立家庭群組");
+      if (!confirm("將此 Pass 加入「" + g.group_name + "」？加入後家人點名可扣此 Pass。")) return;
+      const r = await api.post("/family/groups/" + encodeURIComponent(g.id) + "/passes/" + encodeURIComponent(passId), {});
+      if (!r.ok) return alert((r.data && r.data.error) || "加入失敗");
+      await loadAll();
+      alert("✅ Pass 已加入家庭群組");
+    };
+  </script>
+  <script src="assets/footer.js?v=6" defer></script>
+</body>
+</html>

@@ -131,6 +131,8 @@ function shape(row) {
     price_paid: Number(row.price_paid) || 0,
     status: row.status,
     expires_at: row.expires_at,
+    family_group_id: row.family_group_id || null,
+    owner_user_id: row.owner_user_id || null,
     expired: !!row.expired,
     days_left: row.days_left == null ? null : Number(row.days_left),
   };
@@ -238,6 +240,9 @@ function restoreInTx(db, { passId, bookingId }) {
 }
 
 function issuePass(db, opts) {
+  try {
+    require("./family-wallet").ensureSchema(db);
+  } catch (e) {}
   const phone = normalizePhone(opts.phone);
   if (!/^[4-9]\d{7}$/.test(phone)) {
     return { ok: false, error: "請提供有效香港 8 位電話" };
@@ -262,11 +267,26 @@ function issuePass(db, opts) {
     .toISOString()
     .slice(0, 19)
     .replace("T", " ");
+  const ownerUserId = opts.familyGroupId ? opts.ownerUserId || userId : null;
+  const familyGroupId = opts.familyGroupId || null;
   db.prepare(
     `INSERT INTO user_passes (id, user_id, user_phone, student_name, total_credits, remaining_credits,
-                              price_paid, status, expires_at, notes, created_by)
-     VALUES (?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?)`,
-  ).run(id, userId, phone, name, total, total, paid, expiresAt, opts.notes || null, opts.createdBy || null);
+                              price_paid, status, expires_at, notes, created_by, owner_user_id, family_group_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?, ?)`,
+  ).run(
+    id,
+    userId,
+    phone,
+    name,
+    total,
+    total,
+    paid,
+    expiresAt,
+    opts.notes || null,
+    opts.createdBy || null,
+    ownerUserId,
+    familyGroupId,
+  );
 
   return { ok: true, pass: shape(db.prepare("SELECT * FROM user_passes WHERE id = ?").get(id)) };
 }

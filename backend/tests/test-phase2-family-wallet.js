@@ -68,6 +68,20 @@ db.prepare("INSERT INTO bookings (id,booking_reference,user_id,schedule_id,class
 db.transaction(() => passes.redeemInTx(db, { passId: p2, userId: "father", bookingId: "b2" }))();
 ok(db.prepare("SELECT remaining_credits FROM user_passes WHERE id=?").get(passId).remaining_credits === famBefore, "家庭 Pass 餘額不變");
 
+console.log("🧪 AC-3b 簽發家庭 Pass");
+const issued = passes.issuePass(db, {
+  userId: "daughter",
+  phone: "60001001",
+  studentName: "陳小姐",
+  totalCredits: 4,
+  pricePaid: 560,
+  validDays: 90,
+  familyGroupId: "fg1",
+  ownerUserId: "daughter",
+});
+ok(issued.ok && issued.pass.family_group_id === "fg1", "簽發 Pass 直接綁定家庭群組", issued);
+ok(issued.pass.owner_user_id === "daughter", "家庭 Pass 記錄付款人", issued.pass);
+
 console.log("🧪 AC-5 對帳隔離與路由");
 const fs = require("fs");
 const cls = fs.readFileSync(path.join(__dirname, "../src/routes/classes.js"), "utf8");
@@ -82,6 +96,12 @@ const page = fs.readFileSync(path.join(__dirname, "../../frontend-v2/explore.htm
 ok(/audienceBar/.test(page) && /產後修復/.test(page) && /matchAudience/.test(page), "Explore 有受眾 pills");
 const rosterPage = fs.readFileSync(path.join(__dirname, "../../frontend-v2/coach-roster.html"), "utf8");
 ok(/家庭Pass/.test(rosterPage), "Roster 顯示家庭 Pass badge");
+const familyPage = fs.readFileSync(path.join(__dirname, "../../frontend-v2/family.html"), "utf8");
+ok(/建立家庭群組/.test(familyPage) && /attachPass/.test(familyPage), "家庭錢包頁可建組／加入 Pass");
+const myPage = fs.readFileSync(path.join(__dirname, "../../frontend-v2/my.html"), "utf8");
+ok(/family\.html/.test(myPage), "我的頁有家庭錢包入口");
+const familyRoute = fs.readFileSync(path.join(__dirname, "../src/routes/family.js"), "utf8");
+ok(/groups\/:id\/passes\/:passId/.test(familyRoute), "有 Pass 加入家庭群組 API");
 
 console.log(`\n${bad === 0 ? "✅ 全部通過" : "❌ 有失敗"} — ${pass} passed, ${bad} failed`);
 process.exit(bad === 0 ? 0 : 1);

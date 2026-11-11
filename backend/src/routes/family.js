@@ -124,4 +124,40 @@ router.post("/groups/:id/members", authenticateToken, (req, res) => {
   }
 });
 
+// 將自己名下有效的 Pass 加入家庭群組（付款人限定）
+router.post("/groups/:id/passes/:passId", authenticateToken, (req, res) => {
+  try {
+    const db = getDb();
+    familyWallet.ensureSchema(db);
+    const g = db.prepare("SELECT * FROM family_groups WHERE id=?").get(req.params.id);
+    if (!g) return res.status(404).json({ success: false, error: "找不到家庭群組" });
+    if (g.owner_user_id !== req.user.id) return res.status(403).json({ success: false, error: "只有付款人可加入 Pass" });
+    const p = db.prepare("SELECT * FROM user_passes WHERE id=?").get(req.params.passId);
+    if (!p) return res.status(404).json({ success: false, error: "找不到 Pass" });
+    if (p.user_id !== req.user.id) return res.status(403).json({ success: false, error: "只可加入自己名下 Pass" });
+    if (p.status !== "active" || Number(p.remaining_credits) <= 0) {
+      return res.status(400).json({ success: false, error: "此 Pass 已用完或已失效" });
+    }
+    db.prepare("UPDATE user_passes SET family_group_id=?, owner_user_id=?, updated_at=datetime('now') WHERE id=?").run(
+      g.id,
+      g.owner_user_id,
+      p.id,
+    );
+    try {
+      audit({
+        actionType: "family.pass_attached",
+        entityType: "user_pass",
+        entityId: p.id,
+        userId: req.user.id,
+        newValues: { family_group_id: g.id, remaining_credits: p.remaining_credits },
+        description: "Pass 加入家庭共享錢包",
+      });
+    } catch (e) {}
+    res.json({ success: true, data: { group_id: g.id, pass_id: p.id } });
+  } catch (e) {
+    console.error("[FAMILY] attach pass:", e.message);
+    res.status(500).json({ success: false, error: "加入家庭 Pass 失敗" });
+  }
+});
+
 module.exports = router;

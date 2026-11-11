@@ -30,6 +30,18 @@ router.post("/admin/issue", authenticateToken, requirePermission("finance.payout
     const db = getDb();
     passes.ensureSchema(db);
     const b = req.body || {};
+    let familyGroup = null;
+    if (b.family_group_id) {
+      familyGroup = db.prepare("SELECT * FROM family_groups WHERE id=?").get(b.family_group_id);
+      if (!familyGroup) return res.status(404).json({ success: false, error: "找不到家庭群組" });
+      const phone = passes.normalizePhone(b.phone || b.user_phone);
+      const target = b.user_id
+        ? db.prepare("SELECT id FROM users WHERE id=?").get(b.user_id)
+        : db.prepare("SELECT id FROM users WHERE phone=? OR phone=? LIMIT 1").get(phone, "852" + phone);
+      if (!target || target.id !== familyGroup.owner_user_id) {
+        return res.status(400).json({ success: false, error: "家庭 Pass 只可簽發俾付款人本人" });
+      }
+    }
     const r = passes.issuePass(db, {
       userId: b.user_id || null,
       phone: b.phone || b.user_phone,
@@ -39,6 +51,8 @@ router.post("/admin/issue", authenticateToken, requirePermission("finance.payout
       validDays: b.valid_days,
       notes: b.notes,
       createdBy: req.user.id,
+      familyGroupId: familyGroup ? familyGroup.id : null,
+      ownerUserId: familyGroup ? familyGroup.owner_user_id : null,
     });
     if (!r.ok) return res.status(400).json({ success: false, error: r.error });
     try {
