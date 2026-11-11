@@ -990,27 +990,92 @@ router.get("/classes/:id/sessions", authenticateToken, (req, res) => {
 
 // ===== POST /api/coach/schedules/:sid/cancel — 取消未有人報名嘅時段 =====
 router.post("/schedules/:sid/cancel", authenticateToken, (req, res) => {
+  const db = getDb();
+  let inTx = false;
   try {
-    const db = getDb();
     const s = db
       .prepare(
-        `SELECT s.*, c.coach_id FROM class_schedules s JOIN classes c ON c.id = s.class_id WHERE s.id = ?`,
+        `SELECT s.*, c.coach_id, c.title FROM class_schedules s JOIN classes c ON c.id = s.class_id WHERE s.id = ?`,
       )
       .get(req.params.sid);
     if (!s) return res.status(404).json({ success: false, error: "時段不存在" });
-    if (s.coach_id !== req.user.id) return res.status(403).json({ success: false, error: "你無權限操作此班" });
-    const booked = db
-      .prepare("SELECT COUNT(*) c FROM bookings WHERE schedule_id = ? AND status IN ('confirmed','attended','pending_payment')")
-      .get(s.id).c;
-    if (booked > 0) {
-      return res.status(400).json({
-        success: false,
-        error: `此時段已有 ${booked} 個預約，唔可以取消。請聯絡平台客服安排改期／退款。`,
-      });
+    if (String(s.coach_override_id || s.coach_id) !== req.user.id) {
+      return res.status(403).json({ success: false, error: "你無權限操作此班" });
     }
-    db.prepare("UPDATE class_schedules SET status = 'cancelled' WHERE id = ?").run(s.id);
-    res.json({ success: true, message: "已取消該時段" });
+    require("../services/booking-service").ensureRefundColumns(db);
+    const bookings = db
+      .prepare(
+        `SELECT * FROM bookings WHERE schedule_id=? AND status IN ('confirmed','pending_payment')`,
+      )
+      .all(s.id);
+    const attended = db
+      .prepare("SELECT COUNT(*) c FROM bookings WHERE schedule_id=? AND status='attended'")
+      .get(s.id).c;
+    if (attended > 0) {
+      return res.status(400).json({ success: false, error: "此班已有出席紀錄，不能取消，請聯絡平台" });
+    }
+
+    db.exec("BEGIN IMMEDIATE");
+    inTx = true;
+    let refunded = 0;
+    const affected = [];
+    for (const b of bookings) {
+      db.prepare(
+        `UPDATE bookings
+            SET status='cancelled', cancel_reason='coach_emergency_cancel', cancelled_at=datetime('now'),
+                cancelled_by_user_id=?, attendance_status='cancelled_by_coach'
+          WHERE id=? AND status IN ('confirmed','pending_payment')`,
+      ).run(req.user.id, b.id);
+      db.prepare(
+        "UPDATE class_schedules SET enrolled_count=MAX(0,COALESCE(enrolled_count,0)-?) WHERE id=?",
+      ).run(Number(b.group_size) || 1, s.id);
+      if (b.payment_type === "pass" && b.pass_id) {
+        try {
+          const okRefund = require("../services/passes").restoreInTx(db, { passId: b.pass_id, bookingId: b.id });
+          if (okRefund) refunded++;
+        } catch (e) {
+          console.error("[COACH CANCEL] pass restore:", e.message);
+        }
+      }
+      affected.push({ booking_id: b.id, user_id: b.user_id, pass_id: b.pass_id || null });
+    }
+    db.prepare("UPDATE class_schedules SET status='cancelled', booking_open=0 WHERE id=?").run(s.id);
+    db.exec("COMMIT");
+    inTx = false;
+
+    try {
+      require("../services/audit").audit({
+        actionType: "coach.schedule_emergency_cancelled",
+        entityType: "class_schedule",
+        entityId: s.id,
+        userId: req.user.id,
+        newValues: { title: s.title, affected: affected.length, pass_refunded: refunded },
+        description: "教練緊急取消班次",
+      });
+    } catch (e) {}
+    try {
+      const { sendNotification } = require("../services/notification");
+      for (const a of affected) {
+        sendNotification("booking.cancelled", {
+          recipient: a.user_id,
+          data: { booking_id: a.booking_id, message: "教練因急事取消課堂，已為你取消預約；如使用 Pass，1 堂已退回。" },
+        });
+      }
+    } catch (e) {}
+    try {
+      const { autoNotifyOnCancel } = require("./waitlist");
+      autoNotifyOnCancel(s.id);
+    } catch (e) {}
+
+    res.json({
+      success: true,
+      message: bookings.length ? `已取消班次，${affected.length} 位學員受影響，${refunded} 堂已退回` : "已取消該時段",
+      affected: affected.length,
+      pass_refunded: refunded,
+    });
   } catch (err) {
+    if (inTx) { try { db.exec("ROLLBACK"); } catch (e) {} }
+    console.error("[COACH CANCEL]", err.message);
     res.status(500).json({ success: false, error: "取消失敗" });
   }
 });

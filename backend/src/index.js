@@ -287,6 +287,7 @@ app.use("/api/coach", require("./routes/coach-roster"));
 app.use("/api/coach", require("./routes/coach-schedule"));
 app.use("/api/coach", require("./routes/coach-sandbox"));
 app.use("/api/coach", require("./routes/coach-walkin"));
+app.use("/api/coach", require("./routes/coach-scheduling"));
 app.use("/api/coach", require("./routes/coach"));
 app.use("/api/coaches", coachPublicRoutes.apiRouter);
 app.use("/api/memberships", require("./routes/memberships"));

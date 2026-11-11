@@ -326,7 +326,7 @@
         const cancelled = s.status === "cancelled";
         return `<div class="sessbox"><div class="t">${esc(hkt(s.start_time))} – ${esc(hkt(s.end_time).split(" ").pop() || "")}</div>
           <div class="s">${cancelled ? "已取消" : "已報 " + booked + " / " + (s.max_participants || 0)}</div>
-          ${!cancelled && booked === 0 ? `<button class="btn btn-secondary" style="min-height:34px;padding:0 10px;font-size:12.5px;margin-top:6px" data-cancel="${esc(s.id)}">取消此時段</button>` : ""}
+          ${!cancelled ? `<button class="btn btn-secondary" style="min-height:34px;padding:0 10px;font-size:12.5px;margin-top:6px" data-cancel="${esc(s.id)}" data-booked="${booked}">${booked > 0 ? "🚨 緊急取消（退堂給學員）" : "取消此時段"}</button>` : ""}
         </div>`;
       }).join("") || '<div class="muted2">未有時段</div>';
 
@@ -337,7 +337,7 @@
         </div>
         <button class="btn btn-primary btn-block" style="margin-top:6px" id="na-${esc(id)}">＋ 加時段</button>`;
       box.querySelectorAll("[data-cancel]").forEach((b) => (b.onclick = async () => {
-        if (!confirm("取消此時段？（已有預約嘅時段唔可以取消）")) return;
+        if (!confirm(Number(b.dataset.booked) > 0 ? "此班已有學員預約。緊急取消會自動取消所有預約，使用 Pass 的學員會獲退回 1 堂。確定？" : "取消此時段？")) return;
         const rr = await api.post("/coach/schedules/" + encodeURIComponent(b.dataset.cancel) + "/cancel", {});
         if (rr.ok) { toast("已取消時段"); toggleSessions(id, btn); toggleSessions(id, btn); }
         else alert((rr.data && rr.data.error) || "取消失敗");
