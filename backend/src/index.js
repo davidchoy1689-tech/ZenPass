@@ -35,6 +35,7 @@ try {
   require("./services/marketplace").ensureSchema(getDb());
   require("./services/phone-gate").ensureSchema(getDb());
   require("./services/fulfillment-queue").ensureSchema(getDb());
+  require("./routes/roster-offline").ensureSchema(getDb());
 } catch (e) {
   logger.warn("[CHECKIN] schema 初始化失敗: " + e.message);
 }
@@ -298,6 +299,7 @@ app.use("/api", require("./routes/b2b"));
 app.use("/api", require("./routes/fps-clearing"));
 app.use("/api", require("./routes/marketplace"));
 app.use("/api", require("./routes/phase21-prod"));
+app.use("/api", require("./routes/roster-offline"));
 app.use("/api/public/explore", require("./routes/explore-map"));
 app.use("/api/public/explore", require("./routes/public-explore"));
 // 🔁 對外相容 alias：GET /api/schedules → 同 /api/classes 同一套邏輯（外部自動化／B2B 串接慣用 RESTful 命名）

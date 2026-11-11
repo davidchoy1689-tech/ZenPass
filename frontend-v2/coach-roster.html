@@ -67,12 +67,17 @@
   </style>
 </head>
 <body>
+  <div id="offlineBanner" hidden style="position:sticky;top:0;z-index:50;background:#fef3c7;border-bottom:1px solid #fcd34d;color:#92400e;padding:8px 12px;font-size:12.5px;font-weight:700;text-align:center">🔌 離線模式：打卡紀錄暫存本機，連線後自動上傳</div>
   <div class="r-wrap">
     <div class="r-top">
       <div class="r-title" id="title">點名冊</div>
       <div class="r-sub" id="sub">載入中…</div>
       <div class="r-bar"><i id="bar" style="width:0%"></i></div>
       <div class="r-stat"><span id="stat">已簽到 0 / 0</span><span id="sync">已同步</span></div>
+      <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
+        <button type="button" id="elderlyBtn" style="border:1px solid #0d9488;background:#ecfdf5;color:#065f46;border-radius:999px;padding:6px 12px;font-size:12.5px;font-weight:800">👵 長者無手機降級核銷</button>
+        <span id="offlineStatus" style="font-size:12px;color:#64748b;align-self:center"></span>
+      </div>
     </div>
     <div class="r-filters" id="filters">
       <button class="r-filter on" data-f="all">全部</button>
@@ -132,6 +137,138 @@
   const timers = {}, busy = {};
   let toastTimer;
   const toast = (t) => { const el = $("toast"); el.textContent = t; el.classList.add("on"); clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove("on"), 1800); };
+
+  // ===== Phase 4.3：離線韌性點名（IndexedDB）=====
+  const ODB = (() => {
+    let dbp = null;
+    function open() {
+      if (dbp) return dbp;
+      dbp = new Promise((resolve, reject) => {
+        const req = indexedDB.open("zenpass-roster", 1);
+        req.onupgradeneeded = () => {
+          const d = req.result;
+          if (!d.objectStoreNames.contains("cache")) d.createObjectStore("cache", { keyPath: "schedule_id" });
+          if (!d.objectStoreNames.contains("queue")) d.createObjectStore("queue", { keyPath: "booking_id" });
+        };
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+      return dbp;
+    }
+    async function put(store, val) {
+      const d = await open();
+      return new Promise((res, rej) => { const tx = d.transaction(store, "readwrite"); tx.objectStore(store).put(val); tx.oncomplete = res; tx.onerror = () => rej(tx.error); });
+    }
+    async function get(store, key) {
+      const d = await open();
+      return new Promise((res, rej) => { const tx = d.transaction(store, "readonly"); const r = tx.objectStore(store).get(key); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
+    }
+    async function all(store) {
+      const d = await open();
+      return new Promise((res, rej) => { const tx = d.transaction(store, "readonly"); const r = tx.objectStore(store).getAll(); r.onsuccess = () => res(r.result || []); r.onerror = () => rej(r.error); });
+    }
+    async function del(store, key) {
+      const d = await open();
+      return new Promise((res, rej) => { const tx = d.transaction(store, "readwrite"); tx.objectStore(store).delete(key); tx.oncomplete = res; tx.onerror = () => rej(tx.error); });
+    }
+    return { put, get, all, del };
+  })();
+
+  function setOnlineState() {
+    const on = navigator.onLine;
+    $("offlineBanner").hidden = on;
+    $("offlineStatus").textContent = on ? "🟢 已連線" : "📴 離線中（本地暫存）";
+  }
+
+  async function cacheSnapshot() {
+    try {
+      const r = await api.get("/coach/roster/offline-snapshot/" + encodeURIComponent(SID));
+      if (r.ok) await ODB.put("cache", { schedule_id: SID, snapshot: r.data, saved_at: Date.now() });
+    } catch (e) {}
+  }
+
+  async function queueCheckin(bid, stu, method, note) {
+    const item = {
+      booking_id: bid,
+      status: stu.status,
+      method: method || (stu.status === "present" ? "dynamic_qr" : "coach_manual"),
+      fallback_note: note || null,
+      client_timestamp: new Date().toISOString(),
+    };
+    await ODB.put("queue", item);
+    $("sync").textContent = "📴 已暫存（待同步）";
+  }
+
+  async function syncOffline() {
+    if (!navigator.onLine) return;
+    const q = await ODB.all("queue");
+    if (!q.length) return;
+    const checkins = q.filter((x) => x.status === "present").map((x) => ({
+      booking_id: x.booking_id, method: x.method, fallback_note: x.fallback_note, client_timestamp: x.client_timestamp,
+    }));
+    if (!checkins.length) { for (const x of q) await ODB.del("queue", x.booking_id); return; }
+    $("sync").textContent = "⏳ 離線資料同步中…";
+    try {
+      const r = await api.post("/coach/roster/sync-offline-checkins", { schedule_id: SID, checkins });
+      if (!r.ok) throw new Error((r.data && r.data.error) || "同步失敗");
+      for (const x of q) await ODB.del("queue", x.booking_id);
+      $("sync").textContent = "✅ 離線紀錄已同步";
+      toast(`✅ 已同步 ${r.data.applied || 0} 筆離線打卡`);
+      await reloadRoster();
+    } catch (e) {
+      $("sync").textContent = "⚠️ 同步失敗，稍後重試";
+    }
+  }
+
+  window.addEventListener("online", () => { setOnlineState(); syncOffline(); });
+  window.addEventListener("offline", setOnlineState);
+  setOnlineState();
+
+  // 長者降級核銷
+  function openElderly() {
+    $("elderlyMask").hidden = false;
+    $("elderlyMsg").textContent = "";
+    $("elderlyLast4").value = "";
+    $("elderlyName").value = "";
+    $("elderlyMatches").innerHTML = "";
+  }
+  function matchElderly() {
+    const last4 = $("elderlyLast4").value.replace(/\D/g, "").slice(-4);
+    const name = $("elderlyName").value.trim();
+    if (last4.length !== 4) { $("elderlyMsg").textContent = "請輸入電話後 4 位"; return; }
+    const src = (DATA && DATA.roster) || [];
+    const hits = src.filter((x) => {
+      const p = String(x.phone || "").replace(/\D/g, "");
+      return p.slice(-4) === last4 && (!name || String(x.student_name || x.name || "").includes(name));
+    });
+    if (!hits.length) { $("elderlyMatches").innerHTML = '<div style="color:#991b1b;font-size:13px">找不到吻合學員，請確認電話尾四位或姓氏</div>'; return; }
+    $("elderlyMatches").innerHTML = hits.map((x) => `
+      <div style="border:1px solid #e2e8f0;border-radius:10px;padding:10px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:8px">
+        <div><b>${esc(x.student_name || x.name)}</b><div style="font-size:12px;color:#64748b">${esc(x.phone || "")}${x.pass_status && x.pass_status.display_badge ? " · " + esc(x.pass_status.display_badge) : ""}</div></div>
+        <button type="button" data-confirm="${esc(x.booking_id)}" style="border:0;background:#0f766e;color:#fff;border-radius:8px;padding:8px 12px;font-weight:800">確認到場</button>
+      </div>`).join("");
+    $("elderlyMatches").querySelectorAll("[data-confirm]").forEach((b) => {
+      b.onclick = async () => {
+        const bid = b.dataset.confirm;
+        const stu = src.find((x) => x.booking_id === bid);
+        if (!stu) return;
+        stu.status = "present";
+        if (!navigator.onLine) await queueCheckin(bid, stu, "coach_manual_fallback", "長者無手機，電話尾四位 " + last4 + " 核對");
+        await save(bid, stu, { method: "coach_manual_fallback", note: "長者無手機，電話尾四位 " + last4 + " 核對" });
+        render();
+        $("elderlyMask").hidden = true;
+        toast("✅ 已為長者完成降級核銷");
+      };
+    });
+  }
+  function bindElderlyUI() {
+    $("elderlyBtn").onclick = openElderly;
+    $("elderlyClose").onclick = () => { $("elderlyMask").hidden = true; };
+    $("elderlySearch").onclick = matchElderly;
+    $("elderlyMask").onclick = (e) => { if (e.target.id === "elderlyMask") $("elderlyMask").hidden = true; };
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", bindElderlyUI);
+  else bindElderlyUI();
 
   function counts() {
     const r = DATA.roster;
@@ -232,28 +369,39 @@
     // Optimistic UI（即時反饋）
     stu.status = status;
     render();
-    $("sync").textContent = "⏳ 同步中…";
+    $("sync").textContent = navigator.onLine ? "⏳ 同步中…" : "📴 已暫存（待同步）";
     // 2 秒防抖：同一學員連續切換只送最後一次
     clearTimeout(timers[bid]);
     timers[bid] = setTimeout(() => save(bid, stu), 2000);
   }
 
-  async function save(bid, stu) {
+  async function save(bid, stu, opts) {
+    if (!navigator.onLine) {
+      await queueCheckin(bid, stu, opts && opts.method, opts && opts.note);
+      return;
+    }
     busy[bid] = true;
     try {
-      const r = await api.post("/coach/attendance/batch", {
-        session_id: SID,
-        records: [{ booking_id: bid, status: stu.status, notes: stu.notes || "" }],
-      });
-      if (!r.ok) throw new Error((r.data && r.data.error) || "同步失敗");
+      if (opts && opts.method === "coach_manual_fallback") {
+        const rs = await api.post("/coach/roster/sync-offline-checkins", {
+          schedule_id: SID,
+          checkins: [{ booking_id: bid, method: "coach_manual_fallback", fallback_note: opts.note || null, client_timestamp: new Date().toISOString() }],
+        });
+        if (!rs.ok) throw new Error((rs.data && rs.data.error) || "降級核銷失敗");
+      } else {
+        const r = await api.post("/coach/attendance/batch", {
+          session_id: SID,
+          records: [{ booking_id: bid, status: stu.status, notes: stu.notes || "" }],
+        });
+        if (!r.ok) throw new Error((r.data && r.data.error) || "同步失敗");
+        const res = (r.data.results || [])[0];
+        if (res && res.pass_restored) toast("已退回 1 堂通行卡");
+      }
       $("sync").textContent = "✅ 已同步";
-      const res = (r.data.results || [])[0];
-      if (res && res.pass_restored) toast("已退回 1 堂通行卡");
     } catch (e) {
-      $("sync").textContent = "⚠️ 未同步";
-      toast("❌ " + (e.message || "同步失敗"));
-      const fresh = await api.get("/coach/sessions/" + encodeURIComponent(SID) + "/roster");
-      if (fresh.ok) { DATA = fresh.data; render(); }
+      $("sync").textContent = "⚠️ 未同步（已暫存）";
+      await queueCheckin(bid, stu, opts && opts.method, opts && opts.note).catch(() => {});
+      toast("📴 已暫存，連線後自動同步");
     } finally {
       busy[bid] = false;
     }
@@ -271,8 +419,36 @@
   });
 
   async function reloadRoster() {
-    const r = await api.get("/coach/sessions/" + encodeURIComponent(SID) + "/roster");
-    if (r.ok) { DATA = r.data; render(); }
+    try {
+      const r = await api.get("/coach/sessions/" + encodeURIComponent(SID) + "/roster");
+      if (r.ok) {
+        DATA = r.data;
+        render();
+        try { await ODB.put("cache", { schedule_id: SID, data: r.data, saved_at: Date.now() }); } catch (e) {}
+        cacheSnapshot();
+        return;
+      }
+      throw new Error("roster failed");
+    } catch (e) {
+      const cached = await ODB.get("cache", SID).catch(() => null);
+      if (cached && cached.data) {
+        DATA = cached.data;
+        render();
+        $("sync").textContent = "📴 使用本機快取名冊";
+      } else if (cached && cached.snapshot) {
+        const s = cached.snapshot;
+        DATA = {
+          schedule: { title: s.class_title, start_time: s.start_time, end_time: s.end_time, venue_name: "" },
+          roster: (s.roster || []).map((x) => ({
+            booking_id: x.booking_id, student_name: x.name, phone: x.phone_last4 ? "****" + x.phone_last4 : "",
+            status: x.status === "present" ? "present" : null, pass_remaining: x.pass_remaining,
+            pass_status: x.family_group_name ? { pass_type: "family", display_badge: x.family_group_name + " · " + (x.payer_name || "") } : null,
+          })),
+        };
+        render();
+        $("sync").textContent = "📴 離線快照（未連線）";
+      }
+    }
   }
 
   let WI_INFO = null;
@@ -354,13 +530,33 @@
 
   (async () => {
     if (!SID) { $("list").innerHTML = '<div class="r-empty">缺少 schedule_id</div>'; return; }
+    if (!navigator.onLine) { await reloadRoster(); syncOffline(); return; }
     const me = await api.me();
     if (!me.ok) { location.href = "login.html?next=" + encodeURIComponent(location.pathname + location.search); return; }
     const r = await api.get("/coach/sessions/" + encodeURIComponent(SID) + "/roster");
-    if (!r.ok) { $("list").innerHTML = `<div class="r-empty">${esc((r.data && r.data.error) || "讀取失敗")}</div>`; return; }
+    if (!r.ok) { await reloadRoster(); return; }
     DATA = r.data;
     render();
+    try { await ODB.put("cache", { schedule_id: SID, data: r.data, saved_at: Date.now() }); } catch (e) {}
+    cacheSnapshot();
+    syncOffline();
   })();
 </script>
+  <div id="elderlyMask" hidden style="position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:90;display:flex;align-items:flex-end">
+    <div style="background:#fff;width:100%;max-height:85vh;overflow:auto;border-radius:18px 18px 0 0;padding:18px 16px 26px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <b style="font-size:16px">👵 長者無手機降級核銷</b>
+        <button type="button" id="elderlyClose" style="border:0;background:#f1f5f9;border-radius:8px;padding:6px 10px">✕</button>
+      </div>
+      <div style="font-size:12.5px;color:#64748b;line-height:1.6;margin-bottom:12px">請長者報出預約時登記的電話後 4 位，再核對姓名。系統會記錄本次為教練人手核實。</div>
+      <label style="font-size:13px;font-weight:700;color:#334155">電話後 4 位</label>
+      <input id="elderlyLast4" inputmode="numeric" maxlength="4" placeholder="4532" style="width:100%;box-sizing:border-box;padding:12px;font-size:20px;letter-spacing:6px;text-align:center;border:1px solid #cbd5e1;border-radius:10px;margin:6px 0 10px">
+      <label style="font-size:13px;font-weight:700;color:#334155">姓氏（可選）</label>
+      <input id="elderlyName" placeholder="陳" style="width:100%;box-sizing:border-box;padding:12px;font-size:16px;border:1px solid #cbd5e1;border-radius:10px;margin:6px 0 10px">
+      <button type="button" id="elderlySearch" style="width:100%;padding:13px;border:0;border-radius:10px;background:#0f766e;color:#fff;font-size:15px;font-weight:800">🔍 核對名冊</button>
+      <div id="elderlyMsg" style="font-size:12.5px;color:#991b1b;margin-top:8px"></div>
+      <div id="elderlyMatches" style="margin-top:12px"></div>
+    </div>
+  </div>
 </body>
 </html>
