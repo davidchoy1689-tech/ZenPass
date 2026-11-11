@@ -110,7 +110,34 @@ const server = app.listen(0, async () => {
   ok(prod === 0, "隊列無 prodtest 殘留");
   ok(db.prepare("SELECT COUNT(*) n FROM coach_earnings WHERE schedule_id LIKE 'prodtest-%'").get().n === 0, "正式收益不含 prodtest");
 
-  console.log("🧪 6. 前端動態讀取 config");
+  console.log("🧪 6. Webhook 掉單 → 入隊 → 補償成功（整合）");
+  db.prepare("INSERT INTO users (id,email,name,phone,role,is_coach,coach_verified,commission_rate,token_version) VALUES ('u2','u2@t.hk','陳大文','98765432','user',0,0,0,0)").run();
+  const stripeSdk = require("stripe")("***");
+  const whSecret = "***";
+  process.env.STRIPE_TEST_WEBHOOK_SECRET = whSecret;
+  const evt = JSON.stringify({
+    id: "evt_broken_1", type: "payment_intent.succeeded",
+    data: { object: { id: "pi_broken_webhook_1", amount: plan.price_cents, currency: "hkd", receipt_email: "dad@example.com", metadata: { product_type: "user_pass", plan_key: plan.id, owner_user_id: "u2" } } },
+  });
+  const goodSig = stripeSdk.webhooks.generateTestHeaderString({ payload: evt, secret: whSecret });
+  const origFulfill = passes.fulfillPassPurchase;
+  passes.fulfillPassPurchase = () => { throw new Error("SQLITE_BUSY: database is locked"); };
+  let whRes = await fetch(base + "/api/payments/stripe/webhook", { method: "POST", headers: { "content-type": "application/json", "stripe-signature": goodSig }, body: evt }).then(async (x) => ({ status: x.status, body: await x.json().catch(() => ({})) }));
+  ok(whRes.status === 200, "已驗簽但發卡拋錯 → 仍回 200（避免 Stripe 重試轟炸）", whRes.status);
+  let qrow = db.prepare("SELECT * FROM payment_fulfillments_queue WHERE payment_intent_id='pi_broken_webhook_1'").get();
+  ok(!!qrow && qrow.status === "pending", "自動入隊 pending", qrow && qrow.status);
+  ok(db.prepare("SELECT COUNT(*) n FROM user_passes WHERE payment_intent_id='pi_broken_webhook_1'").get().n === 0, "失敗當下不發卡");
+  passes.fulfillPassPurchase = origFulfill;
+  let rec = await fetch(base + "/api/internal/cron/reconcile-payments", { method: "POST", headers: { "content-type": "application/json" }, body: "{}" }).then(async (x) => ({ status: x.status, body: await x.json().catch(() => ({})) }));
+  ok(rec.status === 200 && rec.body.resolved >= 1, "reconcile 成功 1 筆", rec.body);
+  qrow = db.prepare("SELECT * FROM payment_fulfillments_queue WHERE payment_intent_id='pi_broken_webhook_1'").get();
+  ok(qrow.status === "resolved", "隊列轉 resolved", qrow.status);
+  ok(db.prepare("SELECT COUNT(*) n FROM user_passes WHERE payment_intent_id='pi_broken_webhook_1'").get().n === 1, "補發 1 張 Pass");
+  // 重送同一事件（queue 已 resolved）→ 不得再發
+  whRes = await fetch(base + "/api/payments/stripe/webhook", { method: "POST", headers: { "content-type": "application/json", "stripe-signature": goodSig }, body: evt }).then(async (x) => ({ status: x.status }));
+  ok(whRes.status === 200 && db.prepare("SELECT COUNT(*) n FROM user_passes WHERE payment_intent_id='pi_broken_webhook_1'").get().n === 1, "Webhook 重送不重複發卡");
+
+  console.log("🧪 7. 前端動態讀取 config");
   const fs = require("fs");
   const html = fs.readFileSync(path.join(__dirname, "../../frontend-v2/pass.html"), "utf8");
   ok(html.includes("/api/public/config"), "pass.html 讀 /api/public/config");

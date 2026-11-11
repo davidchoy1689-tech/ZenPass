@@ -424,13 +424,19 @@ router.post("/stripe/webhook", async (req, res) => {
           console.error("[PASS WEBHOOK] amount mismatch:", pi.amount, plan.price_cents);
           return res.status(200).json({ received: true });
         }
-        const r = passes.fulfillPassPurchase(db, {
-          userId: md.owner_user_id,
-          planId: plan.id,
-          familyGroupId: md.family_group_id || null,
-          paymentIntentId: pi.id,
-          sessionId: pi.id,
-        });
+        let r;
+        try {
+          r = passes.fulfillPassPurchase(db, {
+            userId: md.owner_user_id,
+            planId: plan.id,
+            familyGroupId: md.family_group_id || null,
+            paymentIntentId: pi.id,
+            sessionId: pi.id,
+          });
+        } catch (fulfillErr) {
+          console.error("[PASS WEBHOOK] fulfill threw:", fulfillErr.message);
+          r = { ok: false, error: fulfillErr.message };
+        }
         if (!r.ok) {
           console.error("[PASS WEBHOOK] fulfill failed:", r.error);
           try {
@@ -478,15 +484,21 @@ router.post("/stripe/webhook", async (req, res) => {
           console.error("[PASS WEBHOOK] amount mismatch:", session.amount_total, plan.price_cents);
           return res.status(200).json({ received: true });
         }
-        const r = passes.fulfillPassPurchase(db, {
-          userId: session.metadata.user_id,
-          planId: plan.id,
-          familyGroupId: session.metadata.family_group_id || null,
-          paymentIntentId: session.payment_intent || session.id,
-          sessionId: session.id,
-        });
-        if (!r.ok) {
-          console.error("[PASS WEBHOOK] fulfill failed:", r.error);
+        let rs;
+        try {
+          rs = passes.fulfillPassPurchase(db, {
+            userId: session.metadata.user_id,
+            planId: plan.id,
+            familyGroupId: session.metadata.family_group_id || null,
+            paymentIntentId: session.payment_intent || session.id,
+            sessionId: session.id,
+          });
+        } catch (fulfillErr) {
+          console.error("[PASS WEBHOOK] fulfill threw:", fulfillErr.message);
+          rs = { ok: false, error: fulfillErr.message };
+        }
+        if (!rs.ok) {
+          console.error("[PASS WEBHOOK] fulfill failed:", rs.error);
           try {
             fulfillmentQueue.enqueue({
               payment_intent_id: session.payment_intent || session.id,
@@ -494,7 +506,7 @@ router.post("/stripe/webhook", async (req, res) => {
               currency: session.currency || "hkd",
               customer_email: session.customer_details?.email || session.customer_email || null,
               metadata: { product_type: "user_pass", ...(session.metadata || {}) },
-              error_message: r.error || "fulfill failed",
+              error_message: rs.error || "fulfill failed",
             });
           } catch (qerr) { console.error("[PASS WEBHOOK] enqueue failed:", qerr.message); }
         }

@@ -94,4 +94,9 @@ async function reconcile(handler, { limit = 50 } = {}) {
   return result;
 }
 
-module.exports = { ensureSchema, enqueue, pending, markResolved, markRetry, reconcile };
+module.exports = {
+  ensureSchema, enqueue, pending, markResolved, markRetry, reconcile,
+  // 規格別名（工單用語）
+  enqueueFailedFulfillment: enqueue,
+  processFulfillmentQueue: (handler, opts) => reconcile(handler, opts),
+};
