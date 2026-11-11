@@ -137,7 +137,7 @@ function settleSchedule(scheduleId) {
   const sched = db
     .prepare(
       `SELECT s.id AS session_id, s.class_id, COALESCE(s.coach_override_id, c.coach_id) AS actual_coach_id,
-              COALESCE(pv.is_sandbox,0) AS is_sandbox, c.class_reference, c.title
+              COALESCE(pv.is_sandbox,0) AS is_sandbox, c.class_reference, c.title, s.studio_id
          FROM class_schedules s
          JOIN classes c ON c.id = s.class_id
          LEFT JOIN partner_venues pv ON pv.id = c.partner_venue_id
@@ -146,6 +146,7 @@ function settleSchedule(scheduleId) {
     .get(scheduleId);
   if (!sched) return { ok: false, error: "SESSION_NOT_FOUND" };
   if (Number(sched.is_sandbox) === 1) return { ok: true, skipped: "SANDBOX", uplifts: 0, affiliates: 0 };
+  if (sched.studio_id) return { ok: true, skipped: "STUDIO_SCHEDULE", uplifts: 0, affiliates: 0 };
   if (String(sched.session_id || "").indexOf("prodtest-") === 0 || String(sched.class_reference || "").indexOf("VERIFIED_TEST") === 0) {
     return { ok: true, skipped: "SANDBOX", uplifts: 0, affiliates: 0 };
   }

@@ -291,6 +291,12 @@ router.post("/attendance/batch", (req, res) => {
     } catch (e) {
       console.error("[ROSTER] affiliate settle:", e.message);
     }
+    let studio_result = null;
+    try {
+      studio_result = require("../services/studio-ledger").settleStudioSchedule(session_id);
+    } catch (e) {
+      console.error("[ROSTER] studio settle:", e.message);
+    }
 
     const block = writeBlock({
       entityType: "attendance_roster",

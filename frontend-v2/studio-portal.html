@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0f766e" />
+  <title>Studio 商戶工作台 · ZenPass</title>
+  <link rel="stylesheet" href="assets/v2.css?v=26" />
+  <link rel="stylesheet" href="assets/polish.css?v=1" />
+  <style>
+    body{background:#f0fdfa}
+    .sw{max-width:560px;margin:0 auto;padding:18px 16px 40px}
+    .sc{background:#fff;border-radius:18px;padding:16px;margin-bottom:12px;box-shadow:0 4px 18px rgba(15,118,110,.07)}
+    .sc h2{font-size:17px;margin:0 0 10px}
+    .stat{display:flex;gap:8px}
+    .stat div{flex:1;background:#f0fdfa;border-radius:12px;padding:10px;text-align:center}
+    .stat b{display:block;font-size:20px;color:#0f766e}
+    .stat span{font-size:11px;color:#64748b}
+    label{display:block;font-size:12px;font-weight:800;color:#475569;margin:10px 0 5px}
+    input,select,textarea{width:100%;box-sizing:border-box;border:1px solid #cbd5e1;border-radius:10px;padding:11px;font:inherit;font-size:14px;background:#fff}
+    .btn{width:100%;border:0;border-radius:12px;padding:13px;font:inherit;font-weight:900;background:#0f766e;color:#fff;margin-top:12px;cursor:pointer}
+    .muted{font-size:12px;color:#64748b;line-height:1.6}
+    .pill{display:inline-block;background:#ccfbf1;color:#115e59;border-radius:999px;padding:3px 9px;font-size:11px;font-weight:800}
+  </style>
+</head>
+<body>
+  <div class="sw">
+    <div class="sc">
+      <div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:19px">🏢 Studio 商戶工作台</b><a href="my.html" class="muted">返回</a></div>
+      <div class="muted" style="margin-top:6px">零月費入駐 · 只抽 ZenPass 增量新客佣金</div>
+    </div>
+    <div id="app"></div>
+  </div>
+  <script src="assets/api.js?v=10"></script>
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    let STUDIOS = [];
+    (async () => {
+      if (!api.requireLogin("studio-portal.html")) return;
+      const r = await api.get("/merchant/my-studios");
+      STUDIOS = (r.data && r.data.studios) || [];
+      render();
+    })();
+
+    function render() {
+      if (!STUDIOS.length) return renderRegister();
+      const s = STUDIOS[0];
+      const rev = (s.month && s.month.studio_payout_cents || 0) / 100;
+      $("app").innerHTML = `
+        <div class="sc"><h2>${esc(s.studio_name)} <span class="pill">已認證</span></h2>
+          <div class="muted">${esc(s.district)} · ${esc(s.address)}</div>
+          <div class="stat" style="margin-top:12px">
+            <div><b>${s.today ? s.today.pushed : 0}</b><span>今日拋售班次</span></div>
+            <div><b>${s.today ? s.today.classes_booked : 0}</b><span>已被預訂</span></div>
+            <div><b>HK$${rev.toFixed(2)}</b><span>本月館方淨收益</span></div>
+          </div>
+        </div>
+        <div class="sc"><h2>⚡ 一鍵拋售剩餘名額</h2>
+          <label>課程名稱</label><input id="cTitle" placeholder="例：普拉提深層核心 Reformer" />
+          <label>受眾</label><select id="cAud"><option value="office_worker">上班族痛症</option><option value="elderly">熟齡防跌</option><option value="postnatal">產後修復</option><option value="general_fitness">大眾體適能</option></select>
+          <label>日期</label><input type="date" id="cDate" />
+          <div style="display:flex;gap:8px"><div style="flex:1"><label>開始</label><input type="time" id="cStart" value="19:30"></div><div style="flex:1"><label>結束</label><input type="time" id="cEnd" value="20:30"></div></div>
+          <label>駐場教練</label><input id="cCoach" placeholder="教練 user id（留空＝自己）" />
+          <div style="display:flex;gap:8px"><div style="flex:1"><label>拋售名額</label><input type="number" id="cCap" min="1" max="50" value="3"></div><div style="flex:1"><label>單堂 HK$</label><input type="number" id="cPrice" min="100" max="500" value="180"></div></div>
+          <button class="btn" id="cGo">⚡ 發布至 ZenPass 散客池</button>
+          <div class="muted" id="cMsg" style="margin-top:8px"></div>
+        </div>`;
+      const d = new Date(); d.setDate(d.getDate() + 2); $("cDate").value = d.toISOString().slice(0, 10);
+      $("cGo").onclick = async () => {
+        const title = $("cTitle").value.trim();
+        if (title.length < 2) return ($("cMsg").textContent = "請填課程名稱");
+        const date = $("cDate").value, st = $("cStart").value, et = $("cEnd").value;
+        if (!date || !st || !et) return ($("cMsg").textContent = "請選擇日期時間");
+        const btn = $("cGo"); btn.disabled = true; btn.textContent = "發布中…";
+        const rr = await api.post("/merchant/schedules/push-capacity", {
+          studio_id: s.id,
+          course_title: title,
+          target_audience_enum: $("cAud").value,
+          target_audience_label: $("cAud").selectedOptions[0].textContent,
+          start_time: date + "T" + st + ":00+08:00",
+          end_time: date + "T" + et + ":00+08:00",
+          coach_user_id: $("cCoach").value.trim() || undefined,
+          dropin_capacity: Number($("cCap").value),
+          price_per_class_cents: Math.round(Number($("cPrice").value) * 100),
+        });
+        btn.disabled = false; btn.textContent = "⚡ 發布至 ZenPass 散客池";
+        if (rr.ok) { $("cMsg").textContent = "✅ 已發布，探索大廳即時可見"; }
+        else $("cMsg").textContent = (rr.data && rr.data.error) || "發布失敗";
+      };
+    }
+
+    function renderRegister() {
+      $("app").innerHTML = `<div class="sc"><h2>🏢 申請入駐</h2>
+        <div class="muted">零月費。只有經 ZenPass 帶來的新客才收 15% 增量佣金；館內舊生抽成 0%。</div>
+        <label>門店名稱</label><input id="rName" placeholder="例：Pulse Boxing & Fitness" />
+        <label>地區</label><input id="rDistrict" placeholder="例：旺角" />
+        <label>地址</label><input id="rAddr" placeholder="旺角登打士街 56 號 15 樓" />
+        <label>聯絡電話</label><input id="rPhone" inputmode="numeric" maxlength="8" placeholder="8 位香港電話" />
+        <label>業務標籤（逗號分隔）</label><input id="rTags" placeholder="boxing, hiit, office_worker" />
+        <label>FPS 收款識別碼</label><input id="rFps" placeholder="FPS ID / 電話" />
+        <button class="btn" id="rGo">提交入駐</button><div class="muted" id="rMsg" style="margin-top:8px"></div></div>`;
+      $("rGo").onclick = async () => {
+        const name = $("rName").value.trim();
+        if (name.length < 2) return ($("rMsg").textContent = "請填門店名稱");
+        const btn = $("rGo"); btn.disabled = true; btn.textContent = "提交中…";
+        const r = await api.post("/merchant/studios/register", {
+          studio_name: name,
+          district: $("rDistrict").value.trim(),
+          address: $("rAddr").value.trim(),
+          contact_phone: $("rPhone").value.replace(/\D/g, ""),
+          category_tags: $("rTags").value.split(",").map((x) => x.trim()).filter(Boolean),
+          payout_fps_id: $("rFps").value.trim(),
+        });
+        btn.disabled = false; btn.textContent = "提交入駐";
+        if (r.ok) location.reload();
+        else $("rMsg").textContent = (r.data && r.data.error) || "提交失敗";
+      };
+    }
+  </script>
+</body>
+</html>

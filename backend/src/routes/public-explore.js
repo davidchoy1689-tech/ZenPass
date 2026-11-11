@@ -18,6 +18,7 @@ const DISTRICTS = {
 const AUDIENCES = new Set(["elderly", "office_worker", "postnatal", "active_50plus", "general_fitness"]);
 
 function ensureExploreSchema(db) {
+  try { require("./merchant").ensureSchema(db); } catch (e) {}
   const ccols = db.prepare("PRAGMA table_info(classes)").all().map((c) => c.name);
   if (!ccols.includes("target_audience_enum")) db.exec("ALTER TABLE classes ADD COLUMN target_audience_enum TEXT");
   if (!ccols.includes("target_audience_label")) db.exec("ALTER TABLE classes ADD COLUMN target_audience_label TEXT");
@@ -96,6 +97,9 @@ function listExplore(db, opts) {
            COALESCE(NULLIF(c.target_audience_label,''), NULLIF(c.target_audience,''), '大眾體適能') AS target_audience_label,
            COALESCE(s.district, c.district, '') AS district,
            COALESCE(c.venue_name, '') AS venue_name,
+           COALESCE(ms.studio_name, '') AS studio_name,
+           CASE WHEN ms.id IS NOT NULL THEN 1 ELSE 0 END AS is_studio,
+           COALESCE(ms.facilities,'[]') AS studio_facilities,
            s.start_time,
            s.end_time,
            COALESCE(u.name, '') AS coach_name,
@@ -107,6 +111,7 @@ function listExplore(db, opts) {
            c.image_url
          FROM class_schedules s
          JOIN classes c ON c.id = s.class_id
+         LEFT JOIN merchant_studios ms ON ms.id = s.studio_id
          LEFT JOIN users u ON u.id = COALESCE(s.coach_override_id, c.coach_id)
          WHERE ${where.join(" AND ")}
            AND COALESCE(s.max_participants, c.max_participants, 20) > COALESCE(s.enrolled_count, 0)

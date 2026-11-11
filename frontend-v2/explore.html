@@ -539,7 +539,7 @@
             const t = hkt(c.start_time);
             const when = t ? `${t.date.slice(5)} ${pad(t.hour)}:${pad(t.minute)}` : "";
             return `<div class="live-card">
-              <span class="lc-aud">${exEsc(c.target_audience_label || "大眾體適能")}</span>
+              <span class="lc-aud">${c.studio_name ? "🏢 " + exEsc(c.studio_name) : exEsc(c.target_audience_label || "大眾體適能")}</span>
               <h4>${exEsc(c.course_title)}</h4>
               <div class="lc-meta">📍 ${exEsc(c.venue_name || c.district || "地點待定")}<br>🕒 ${exEsc(when)} · ${exEsc(c.coach_name || "教練待定")}<br>💳 單堂 HK$${(Number(c.price_cents) || 0) / 100}</div>
               <div class="lc-foot"><span class="lc-seats">剩 ${Number(c.remaining_seats)} 位</span><button data-live-book="${exEsc(c.schedule_id)}" data-live-title="${exEsc(c.course_title)}">⚡ 一鍵預約</button></div>

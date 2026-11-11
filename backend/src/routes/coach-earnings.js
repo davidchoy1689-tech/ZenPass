@@ -1025,6 +1025,7 @@ router.put("/settings/:key", authenticateToken, requireAdmin, (req, res) => {
  */
 function syncCoachEarningsForSchedule(scheduleId) {
   const db = getDb();
+  try { require("./merchant").ensureSchema(db); } catch (e) {}
   try {
     db.pragma("foreign_keys = ON");
 
@@ -1033,7 +1034,7 @@ function syncCoachEarningsForSchedule(scheduleId) {
       .prepare(
         `
       SELECT 
-        cs.id as schedule_id, cs.class_id, cs.start_time,
+        cs.id as schedule_id, cs.class_id, cs.start_time, cs.studio_id,
         c.title as class_title, c.price_hkd, c.coach_id,
         COALESCE(cs.coach_override_id, c.coach_id) as actual_coach_id,
         u.commission_rate
@@ -1046,6 +1047,7 @@ function syncCoachEarningsForSchedule(scheduleId) {
       .get(scheduleId);
 
     if (!info) return { error: "Schedule not found" };
+    if (info.studio_id) return { skipped: "STUDIO_PENDING_ATTENDANCE", studio_id: info.studio_id };
 
     // Count confirmed bookings
     const countRow = db
