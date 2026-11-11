@@ -1037,6 +1037,9 @@ router.post("/schedules/:sid/cancel", authenticateToken, (req, res) => {
           console.error("[COACH CANCEL] pass restore:", e.message);
         }
       }
+      if (b.slot_id) {
+        try { db.prepare("UPDATE coach_availability_slots SET status='cancelled' WHERE id=?").run(b.slot_id); } catch (e) {}
+      }
       affected.push({ booking_id: b.id, user_id: b.user_id, pass_id: b.pass_id || null });
     }
     db.prepare("UPDATE class_schedules SET status='cancelled', booking_open=0 WHERE id=?").run(s.id);

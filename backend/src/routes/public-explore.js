@@ -25,6 +25,7 @@ function ensureExploreSchema(db) {
   if (!ccols.includes("price_hkd_cents")) db.exec("ALTER TABLE classes ADD COLUMN price_hkd_cents INTEGER");
   if (!ccols.includes("district")) db.exec("ALTER TABLE classes ADD COLUMN district TEXT");
   if (!ccols.includes("booking_open")) db.exec("ALTER TABLE classes ADD COLUMN booking_open INTEGER DEFAULT 1");
+  if (!ccols.includes("is_private")) db.exec("ALTER TABLE classes ADD COLUMN is_private INTEGER DEFAULT 0");
   const cols = db.prepare("PRAGMA table_info(class_schedules)").all().map((c) => c.name);
   if (!cols.includes("district")) db.exec("ALTER TABLE class_schedules ADD COLUMN district TEXT");
   if (!cols.includes("booking_open")) db.exec("ALTER TABLE class_schedules ADD COLUMN booking_open INTEGER");
@@ -64,6 +65,7 @@ function listExplore(db, opts) {
     const where = [
       "COALESCE(s.status,'scheduled') NOT IN ('cancelled','completed')",
       "COALESCE(c.status,'active') = 'active'",
+      "COALESCE(c.is_private,0) = 0",
       "COALESCE(s.booking_open, c.booking_open, 1) = 1",
       "datetime(s.start_time) > datetime('now','+2 hours')",
       "s.id NOT LIKE 'prodtest-%'",

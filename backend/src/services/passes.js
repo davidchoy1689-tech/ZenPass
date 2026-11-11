@@ -235,16 +235,21 @@ function findUsable(db, passId, user) {
  * 失敗 throw，讓外層 transaction 全部回滾。
  */
 function redeemInTx(db, { passId, userId, bookingId }) {
+  return redeemUnitsInTx(db, { passId, userId, bookingId, units: 1 });
+}
+
+function redeemUnitsInTx(db, { passId, userId, bookingId, units }) {
+  const n = Math.max(1, Math.floor(Number(units) || 1));
   const r = db
     .prepare(
       `UPDATE user_passes
-          SET remaining_credits = remaining_credits - 1,
-              status = CASE WHEN remaining_credits - 1 <= 0 THEN 'exhausted' ELSE status END,
+          SET remaining_credits = remaining_credits - ?,
+              status = CASE WHEN remaining_credits - ? <= 0 THEN 'exhausted' ELSE status END,
               updated_at = datetime('now')
-        WHERE id = ? AND status = 'active' AND remaining_credits > 0
+        WHERE id = ? AND status = 'active' AND remaining_credits >= ?
           AND datetime(expires_at) > datetime('now')`,
     )
-    .run(passId);
+    .run(n, n, passId, n);
   if (r.changes !== 1) {
     const err = new Error("通行證堂數不足或已過期");
     err.code = "PASS_UNAVAILABLE";
@@ -252,15 +257,15 @@ function redeemInTx(db, { passId, userId, bookingId }) {
   }
   db.prepare(
     `INSERT INTO pass_redemptions (id, pass_id, booking_id, user_id, credits, status)
-     VALUES (?, ?, ?, ?, 1, 'used')`,
-  ).run("PRD-" + crypto.randomUUID(), passId, bookingId, userId || null);
+     VALUES (?, ?, ?, ?, ?, 'used')`,
+  ).run("PRD-" + crypto.randomUUID(), passId, bookingId, userId || null, n);
 }
 
 /** 取消預約回滾 1 堂（同一個 transaction 內呼叫；每張 booking 只回一次） */
 function restoreInTx(db, { passId, bookingId }) {
   const red = db
     .prepare(
-      "SELECT id FROM pass_redemptions WHERE pass_id = ? AND booking_id = ? AND status = 'used' LIMIT 1",
+      "SELECT id, credits FROM pass_redemptions WHERE pass_id = ? AND booking_id = ? AND status = 'used' LIMIT 1",
     )
     .get(passId, bookingId);
   if (!red) return false;
@@ -269,11 +274,11 @@ function restoreInTx(db, { passId, bookingId }) {
   ).run(red.id);
   db.prepare(
     `UPDATE user_passes
-        SET remaining_credits = MIN(total_credits, remaining_credits + 1),
+        SET remaining_credits = MIN(total_credits, remaining_credits + ?),
             status = CASE WHEN status = 'exhausted' AND datetime(expires_at) > datetime('now') THEN 'active' ELSE status END,
             updated_at = datetime('now')
       WHERE id = ?`,
-  ).run(passId);
+  ).run(Number(red.credits) || 1, passId);
   return true;
 }
 
@@ -391,6 +396,7 @@ module.exports = {
   listActiveForUser,
   findUsable,
   redeemInTx,
+  redeemUnitsInTx,
   restoreInTx,
   issuePass,
   fulfillPassPurchase,

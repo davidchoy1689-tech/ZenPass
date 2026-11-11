@@ -70,6 +70,7 @@ function ownSchedule(db, user, sid) {
 router.get("/sessions/:sid/roster", (req, res) => {
   try {
     const db = getDb();
+    try { require("./private-slots").ensureSchema(db); } catch (e) {}
     const familyWallet = require("../services/family-wallet");
     try { familyWallet.ensureSchema(db); } catch (e) {}
     ensureTable(db);
@@ -82,7 +83,7 @@ router.get("/sessions/:sid/roster", (req, res) => {
       .prepare(
         `SELECT b.id AS booking_id, b.user_id, b.status AS booking_status, b.payment_status,
                 b.attendee_type, b.child_name, b.parent_name, b.parent_phone, b.medical_notes,
-                b.group_size, b.pass_id,
+                b.group_size, b.pass_id, b.health_focus, b.units_consumed, b.slot_id,
                 u.name, u.phone, u.emergency_name, u.emergency_phone,
                 a.id AS attendance_id, a.status AS attendance_status, a.checkin_time, a.notes,
                 p.remaining_credits, p.total_credits, p.expires_at,

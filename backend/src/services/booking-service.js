@@ -1775,6 +1775,12 @@ function _processPassCancel(db, booking, reason, req) {
     ).run(Number(booking.group_size) || 1, booking.schedule_id);
 
     const restored = passes.restoreInTx(db, { passId: booking.pass_id, bookingId: booking.id });
+    if (booking.slot_id) {
+      try {
+        db.prepare("UPDATE coach_availability_slots SET status='available' WHERE id=?").run(booking.slot_id);
+        db.prepare("UPDATE class_schedules SET status='available', booking_open=1 WHERE id=?").run(booking.schedule_id);
+      } catch (e) {}
+    }
     const passRow = db
       .prepare("SELECT remaining_credits,status,expires_at FROM user_passes WHERE id=?")
       .get(booking.pass_id);
