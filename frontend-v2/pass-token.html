@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>ZenPass · 入場憑證</title>
+<style>
+  :root { --brand:#0f766e; --ink:#0f172a; --muted:#64748b; --line:#e2e8f0; }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body { margin:0; font-family:system-ui,-apple-system,"Noto Sans TC",sans-serif; background:#f8fafc; color:var(--ink); }
+  .wrap { max-width:520px; margin:0 auto; padding:20px 16px 40px; }
+  .card { background:#fff; border:1px solid var(--line); border-radius:18px; padding:22px; box-shadow:0 8px 28px rgba(15,23,42,.06); }
+  h1 { font-size:20px; margin:0 0 4px; }
+  .sub { color:var(--muted); font-size:14px; margin:0 0 18px; }
+  #qrBox { display:flex; justify-content:center; padding:14px; background:#fff; border-radius:14px; border:1px dashed var(--line); min-height:240px; align-items:center; }
+  #qrBox img, #qrBox canvas { width:260px !important; height:260px !important; }
+  .code { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:15px; letter-spacing:.5px; word-break:break-all; background:#f1f5f9; border-radius:10px; padding:12px; margin-top:14px; text-align:center; }
+  .meta { margin-top:16px; font-size:15px; line-height:1.7; }
+  .meta b { color:var(--ink); }
+  .hint { margin-top:16px; font-size:13px; color:var(--muted); line-height:1.6; }
+  .err { color:#b91c1c; font-weight:600; }
+  .badge { display:inline-block; font-size:12px; padding:3px 10px; border-radius:999px; background:#ccfbf1; color:#0f766e; font-weight:600; }
+  button { margin-top:18px; width:100%; padding:14px; font-size:16px; font-weight:700; color:#fff; background:var(--brand); border:0; border-radius:12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <span class="badge">一次性入場憑證</span>
+    <h1 id="title">載入中…</h1>
+    <p class="sub">請向教練出示此 QR 碼，或讀出下方代碼</p>
+    <div id="qrBox"></div>
+    <div class="code" id="codeBox">—</div>
+    <div class="meta" id="meta"></div>
+    <p class="hint">⚠️ 此憑證只可使用一次，核銷後即時失效。請勿截圖轉發他人，截圖外流會令你自己無法入場。</p>
+    <button id="copyBtn" hidden>複製代碼</button>
+  </div>
+</div>
+<script src="vendor/qrcode.min.js"></script>
+<script>
+(function(){
+  var qs = new URLSearchParams(location.search);
+  var token = qs.get('t') || '';
+  var titleEl = document.getElementById('title');
+  var box = document.getElementById('qrBox');
+  var codeEl = document.getElementById('codeBox');
+  var metaEl = document.getElementById('meta');
+  var btn = document.getElementById('copyBtn');
+
+  if (!token) {
+    titleEl.textContent = '憑證無效';
+    titleEl.className = 'err';
+    codeEl.textContent = '缺少憑證參數';
+    return;
+  }
+
+  var payload = JSON.stringify({ access_token: token, v: 1 });
+  try {
+    if (window.QRCode) new QRCode(box, { text: payload, width: 260, height: 260, correctLevel: QRCode.CorrectLevel.M });
+  } catch (e) {
+    box.innerHTML = '<div style="color:#64748b;font-size:13px">（本機未能繪製 QR，請直接讀出下方代碼）</div>';
+  }
+
+  codeEl.textContent = token.slice(0, 24) + '…' + token.slice(-8);
+  metaEl.innerHTML = '憑證有效至課堂開始後 <b>2 小時</b>。<br>如已過期，請在「我的預約」重新開啟本頁。';
+  btn.hidden = false;
+  btn.addEventListener('click', function(){
+    navigator.clipboard && navigator.clipboard.writeText(token).then(function(){
+      btn.textContent = '✅ 已複製';
+      setTimeout(function(){ btn.textContent = '複製代碼'; }, 1600);
+    });
+  });
+})();
+</script>
+</body>
+</html>
