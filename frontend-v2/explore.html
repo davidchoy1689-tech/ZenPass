@@ -211,6 +211,30 @@
     .sport-strip::-webkit-scrollbar{display:none}
     .sport-strip a{flex:0 0 auto;display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700;padding:9px 14px;border-radius:999px;border:1px solid var(--border);background:var(--surface);color:var(--text);text-decoration:none}
     .sport-strip a span{font-size:15px}
+    .live-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:16px 0 8px}
+    .live-head b{font-size:15px}
+    .live-head span{font-size:11.5px;color:#64748b}
+    .live-strip{display:flex;gap:10px;overflow-x:auto;padding:0 0 8px;scrollbar-width:none}
+    .live-strip::-webkit-scrollbar{display:none}
+    .live-card{flex:0 0 260px;background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:13px;box-shadow:0 4px 14px rgba(15,23,42,.05)}
+    .live-card .lc-aud{display:inline-block;background:#ecfdf5;color:#047857;border-radius:999px;padding:2px 8px;font-size:10.5px;font-weight:800;margin-bottom:6px}
+    .live-card h4{margin:0 0 4px;font-size:14px;line-height:1.35}
+    .live-card .lc-meta{font-size:11.5px;color:#64748b;line-height:1.65}
+    .live-card .lc-foot{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-top:10px}
+    .live-card .lc-seats{font-size:11.5px;font-weight:800;color:#b45309}
+    .live-card button{border:0;background:#0f766e;color:#fff;border-radius:10px;padding:8px 10px;font:inherit;font-size:11.5px;font-weight:800;cursor:pointer;white-space:nowrap}
+    .live-empty{font-size:12.5px;color:#64748b;padding:10px 0}
+    .bp-mask{position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:9999;display:flex;align-items:flex-end;justify-content:center}
+    .bp-mask[hidden]{display:none}
+    .bp-sheet{background:#fff;width:100%;max-width:480px;border-radius:20px 20px 0 0;padding:18px 18px calc(18px + env(safe-area-inset-bottom));box-sizing:border-box}
+    .bp-sheet h3{margin:0 0 4px;font-size:17px}
+    .bp-sheet p{margin:0 0 12px;font-size:12.5px;color:#64748b;line-height:1.6}
+    .bp-sheet select{width:100%;box-sizing:border-box;border:1px solid #e2e8f0;border-radius:12px;padding:12px;font:inherit;font-size:15px;background:#fff}
+    .bp-sheet .bp-actions{display:flex;gap:8px;margin-top:14px}
+    .bp-sheet .bp-actions button{flex:1;border:0;border-radius:12px;padding:12px;font:inherit;font-weight:800;cursor:pointer}
+    .bp-cancel{background:#f1f5f9;color:#334155}
+    .bp-go{background:#0f766e;color:#fff}
+    .bp-msg{font-size:12.5px;line-height:1.6;margin-top:10px;color:#b45309}
   </style>
 </head>
 <body>
@@ -239,6 +263,8 @@
 
     <!-- 🏅 運動項目（獨立頁面入口） -->
     <div class="sport-strip" id="sportStrip"></div>
+    <div class="live-head"><b>🔥 即將開課 · 即時有位</b><span id="liveCount"></span></div>
+    <div class="live-strip" id="liveNow"><div class="live-empty">載入中…</div></div>
     <div class="section-title" id="count">課程</div>
     <div class="ex-grid" id="list">
       <div class="ex-skel"><div class="s1"></div><div class="s2"></div><div class="s3"></div></div>
@@ -266,6 +292,19 @@
     <div class="ex-acc" id="exAcc"></div>
     <button class="ex-acc-more" id="exAccMore" type="button" style="margin-top:10px">顯示全部運動分類 ▾</button>
     <div class="spacer"></div>
+  </div>
+
+  <div class="bp-mask" id="bpMask" hidden>
+    <div class="bp-sheet" role="dialog" aria-modal="true">
+      <h3 id="bpTitle">一鍵扣堂預約</h3>
+      <p id="bpSub"></p>
+      <select id="bpAttendee"></select>
+      <div class="bp-msg" id="bpMsg"></div>
+      <div class="bp-actions">
+        <button class="bp-cancel" id="bpCancel" type="button">取消</button>
+        <button class="bp-go" id="bpGo" type="button">確認扣 1 堂</button>
+      </div>
+    </div>
   </div>
 
   <!-- Filter Sheet -->
@@ -436,6 +475,100 @@
     if (P.get("time") === "daytime" && !STATE.date) STATE.date = "daytime";
     if (P.get("date") === "weekday_daytime" || P.get("time") === "weekday_daytime") STATE.date = "daytime";
     initAudienceBar();
+
+    /* ---------- Phase 2.2 即時有位 ---------- */
+    function exEsc(s) {
+      return String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    }
+    let liveKey = "";
+    let liveTimer = null;
+    let bpSchedule = null;
+    let bpAttendees = [];
+
+    function liveFilters() {
+      const date = STATE.date === "today" ? "today" : ["weekend", "evening", "tomorrow", "daytime"].includes(STATE.date) ? "this_week" : "all";
+      return { audience: STATE.audience || "all", district: STATE.zone || "all", date };
+    }
+
+    async function loadLiveNow(force) {
+      const box = document.getElementById("liveNow");
+      if (!box) return;
+      const f = liveFilters();
+      const key = f.audience + "|" + f.district + "|" + f.date;
+      if (!force && key === liveKey) return;
+      liveKey = key;
+      try {
+        const r = await fetch(`/api/public/explore/classes?audience=${encodeURIComponent(f.audience)}&district=${encodeURIComponent(f.district)}&date=${encodeURIComponent(f.date)}&limit=8`).then((x) => x.json());
+        const rows = (r && r.classes) || [];
+        document.getElementById("liveCount").textContent = rows.length ? rows.length + " 班有位" : "";
+        if (!rows.length) {
+          box.innerHTML = '<div class="live-empty">呢個組合暫時未有即時有位班次，試下切換地區或受眾。</div>';
+          return;
+        }
+        box.innerHTML = rows
+          .map((c) => {
+            const t = hkt(c.start_time);
+            const when = t ? `${t.date.slice(5)} ${pad(t.hour)}:${pad(t.minute)}` : "";
+            return `<div class="live-card">
+              <span class="lc-aud">${exEsc(c.target_audience_label || "大眾體適能")}</span>
+              <h4>${exEsc(c.course_title)}</h4>
+              <div class="lc-meta">📍 ${exEsc(c.venue_name || c.district || "地點待定")}<br>🕒 ${exEsc(when)} · ${exEsc(c.coach_name || "教練待定")}<br>💳 單堂 HK$${(Number(c.price_cents) || 0) / 100}</div>
+              <div class="lc-foot"><span class="lc-seats">剩 ${Number(c.remaining_seats)} 位</span><button data-live-book="${exEsc(c.schedule_id)}" data-live-title="${exEsc(c.course_title)}">⚡ 一鍵預約</button></div>
+            </div>`;
+          })
+          .join("");
+      } catch (e) {
+        box.innerHTML = '<div class="live-empty">即時班次載入失敗，請稍後再試。</div>';
+      }
+    }
+
+    document.getElementById("liveNow").addEventListener("click", async (e) => {
+      const b = e.target.closest("[data-live-book]");
+      if (!b) return;
+      if (!api.requireLogin("explore.html")) return;
+      bpSchedule = { id: b.dataset.liveBook, title: b.dataset.liveTitle };
+      const me = api.getUser() || {};
+      bpAttendees = [{ id: me.id, name: (me.name || "本人") + "（本人）" }];
+      try {
+        const r = await api.get("/family/my");
+        const groups = (r.data && r.data.data) || [];
+        groups.filter((g) => g.owner_user_id === me.id).forEach((g) => {
+          (g.members || []).forEach((m) => {
+            if (m.member_user_id && !bpAttendees.some((a) => a.id === m.member_user_id)) {
+              bpAttendees.push({ id: m.member_user_id, name: `${m.name || "家人"}（${g.group_name}）` });
+            }
+          });
+        });
+      } catch (e) {}
+      document.getElementById("bpTitle").textContent = bpSchedule.title;
+      document.getElementById("bpSub").textContent = "選擇學員，系統會先扣本人 Pass，再扣家庭 Pass。";
+      document.getElementById("bpMsg").textContent = "";
+      document.getElementById("bpAttendee").innerHTML = bpAttendees.map((a) => `<option value="${exEsc(a.id)}">${exEsc(a.name)}</option>`).join("");
+      document.getElementById("bpMask").hidden = false;
+    });
+
+    document.getElementById("bpCancel").onclick = () => { document.getElementById("bpMask").hidden = true; };
+    document.getElementById("bpMask").onclick = (e) => { if (e.target.id === "bpMask") e.currentTarget.hidden = true; };
+    document.getElementById("bpGo").onclick = async () => {
+      const btn = document.getElementById("bpGo");
+      const msg = document.getElementById("bpMsg");
+      btn.disabled = true; btn.textContent = "扣堂中…";
+      const r = await api.post("/bookings/book-with-pass", {
+        schedule_id: bpSchedule.id,
+        attendee_user_id: document.getElementById("bpAttendee").value,
+      });
+      btn.disabled = false; btn.textContent = "確認扣 1 堂";
+      if (r.ok) {
+        msg.style.color = "#047857";
+        msg.textContent = `✅ 預約成功，Pass 餘 ${r.data.pass.remaining_credits} 堂。`;
+        liveKey = "";
+        setTimeout(() => { document.getElementById("bpMask").hidden = true; loadLiveNow(true); }, 1200);
+      } else if (r.data && r.data.code === "NO_PASS") {
+        msg.innerHTML = '此學員未有有效 Pass。<a href="pass.html" style="color:#0f766e;font-weight:800">立即購買 4 堂 Pass →</a>';
+      } else {
+        msg.textContent = (r.data && r.data.error) || "預約失敗，請重試";
+      }
+    };
 
     /* ---------- 時間工具（UTC → HKT）---------- */
     function hkt(s) {
@@ -812,6 +945,8 @@
         list.innerHTML = arr.map(cardHtml).join("");
       }
       renderActive();
+      clearTimeout(liveTimer);
+      liveTimer = setTimeout(() => loadLiveNow(false), 180);
     }
 
     /* ---------- 已選條件 / chip 狀態 ---------- */

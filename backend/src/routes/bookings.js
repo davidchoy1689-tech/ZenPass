@@ -5,6 +5,7 @@
  */
 
 const express = require("express");
+const crypto = require("crypto");
 const { getDb } = require("../services/database");
 const { authenticateToken, requireCoach, hasMinimumRole } = require("../middleware/auth");
 const { scalpGuard } = require("../middleware/anti-scalping");
@@ -18,6 +19,7 @@ const { claimPayment } = require("../services/payment-claim");
 const { recordAttribution } = require("../services/attribution");
 const Booking = require("../models/Booking");
 const passesService = require("../services/passes");
+const familyWallet = require("../services/family-wallet");
 const { audit } = require("../services/audit");
 
 const router = express.Router();
@@ -79,6 +81,177 @@ router.post(
       res.status(500).json({ success: false, error: "扣堂預約失敗，請稍後再試" });
     }
   }
+);
+
+// ===== POST /api/bookings/book-with-pass — 本人／家庭成員一鍵扣堂（Phase 2.2） =====
+router.post(
+  "/book-with-pass",
+  authenticateToken,
+  scalpGuard,
+  requireIdempotency,
+  async (req, res) => {
+    const db = getDb();
+    let inTx = false;
+    try {
+      const body = req.body || {};
+      const scheduleId = String(body.schedule_id || body.scheduleId || "");
+      const attendeeId = String(body.attendee_user_id || body.attendeeUserId || req.user.id);
+      if (!scheduleId) return res.status(400).json({ success: false, error: "缺少班次", code: "SCHEDULE_REQUIRED" });
+
+      passesService.ensureSchema(db);
+      familyWallet.ensureSchema(db);
+
+      const attendee = db.prepare("SELECT id,name,phone FROM users WHERE id=?").get(attendeeId);
+      if (!attendee) return res.status(404).json({ success: false, error: "找不到學員", code: "ATTENDEE_NOT_FOUND" });
+
+      const isSelf = attendeeId === req.user.id;
+      if (!isSelf) {
+        const member = db
+          .prepare(
+            `SELECT fm.* FROM family_members fm
+               JOIN family_groups fg ON fg.id = fm.family_group_id
+              WHERE fm.member_user_id = ? AND fg.owner_user_id = ? AND COALESCE(fm.can_consume_pass,1)=1
+              LIMIT 1`,
+          )
+          .get(attendeeId, req.user.id);
+        if (!member) {
+          return res.status(403).json({ success: false, error: "只可為自己或家庭成員預約", code: "FAMILY_MEMBER_REQUIRED" });
+        }
+      }
+
+      const sched = db
+        .prepare(
+          `SELECT s.*, c.title, c.coach_id, c.booking_open AS class_booking_open,
+                  COALESCE(s.max_participants, c.max_participants, 20) AS capacity,
+                  COALESCE(s.enrolled_count,0) AS enrolled
+             FROM class_schedules s JOIN classes c ON c.id=s.class_id
+            WHERE s.id=?`,
+        )
+        .get(scheduleId);
+      if (!sched) return res.status(404).json({ success: false, error: "班次不存在", code: "SCHEDULE_NOT_FOUND" });
+      if (["cancelled", "completed"].includes(String(sched.status || ""))) {
+        return res.status(409).json({ success: false, error: "此班次已取消或完結", code: "SCHEDULE_CLOSED" });
+      }
+      if (Number(sched.booking_open ?? sched.class_booking_open ?? 1) !== 1) {
+        return res.status(409).json({ success: false, error: "此班次暫未開放預約", code: "BOOKING_CLOSED" });
+      }
+      const startRaw = String(sched.start_time);
+      const startIso = /Z$|[+-]\d\d:?\d\d$/.test(startRaw) ? startRaw : startRaw.replace(" ", "T") + "Z";
+      if (new Date(startIso).getTime() - Date.now() < 2 * 3600000) {
+        return res.status(409).json({ success: false, error: "開課前 2 小時已截止即時預約", code: "CUTOFF" });
+      }
+      if (Number(sched.enrolled) >= Number(sched.capacity)) {
+        return res.status(409).json({ success: false, error: "該班次已額滿", code: "CLASS_FULL" });
+      }
+
+      const dup = db
+        .prepare("SELECT id FROM bookings WHERE schedule_id=? AND user_id=? AND status<>'cancelled' LIMIT 1")
+        .get(scheduleId, attendeeId);
+      if (dup) return res.status(409).json({ success: false, error: "此學員已預約此班次", code: "ALREADY_BOOKED" });
+
+      let applicable = null;
+      if (isSelf) {
+        applicable = familyWallet.findApplicablePass(db, attendeeId);
+      } else {
+        const p = db
+          .prepare(
+            `SELECT up.*, fg.owner_user_id, u.name AS owner_name
+               FROM family_members fm
+               JOIN family_groups fg ON fg.id = fm.family_group_id
+               JOIN user_passes up ON up.family_group_id = fg.id
+               JOIN users u ON u.id = fg.owner_user_id
+              WHERE fm.member_user_id = ? AND fg.owner_user_id = ?
+                AND COALESCE(fm.can_consume_pass,1)=1
+                AND up.status='active' AND up.remaining_credits > 0
+                AND datetime(up.expires_at) > datetime('now')
+              ORDER BY datetime(up.expires_at) ASC LIMIT 1`,
+          )
+          .get(attendeeId, req.user.id);
+        applicable = p ? { pass: p, source: "family" } : null;
+      }
+      if (!applicable || !applicable.pass) {
+        return res.status(400).json({ success: false, error: "此學員沒有有效 Pass", code: "NO_PASS", has_pass: false });
+      }
+      db.exec("BEGIN IMMEDIATE");
+      inTx = true;
+      const upd = db
+        .prepare(
+          `UPDATE class_schedules
+              SET enrolled_count = COALESCE(enrolled_count,0) + 1
+            WHERE id=? AND COALESCE(enrolled_count,0) < ?`,
+        )
+        .run(scheduleId, Number(sched.capacity));
+      if (upd.changes !== 1) {
+        db.exec("ROLLBACK");
+        inTx = false;
+        return res.status(409).json({ success: false, error: "該班次已額滿", code: "CLASS_FULL" });
+      }
+
+      const max = db
+        .prepare(
+          "SELECT MAX(CAST(SUBSTR(booking_reference,4) AS INTEGER)) m FROM bookings WHERE booking_reference GLOB 'ZP-[0-9]*'",
+        )
+        .get().m || 0;
+      const bookingRef = "ZP-" + String(max + 1).padStart(4, "0");
+      const bookingId = crypto.randomUUID();
+      db.prepare(
+        `INSERT INTO bookings
+           (id, booking_reference, user_id, schedule_id, class_id, payment_type, payment_status, status, amount, group_size, pass_id, created_at)
+         VALUES (?, ?, ?, ?, ?, 'pass', 'paid', 'confirmed', 0, 1, ?, datetime('now'))`,
+      ).run(bookingId, bookingRef, attendeeId, scheduleId, sched.class_id, applicable.pass.id);
+
+      passesService.redeemInTx(db, { passId: applicable.pass.id, bookingId, userId: attendeeId });
+      db.exec("COMMIT");
+      inTx = false;
+
+      try {
+        audit({
+          actionType: "booking.pass_booked",
+          entityType: "booking",
+          entityId: bookingId,
+          userId: req.user.id,
+          newValues: {
+            attendee_user_id: attendeeId,
+            schedule_id: scheduleId,
+            pass_id: applicable.pass.id,
+            pass_source: applicable.source,
+            remaining: applicable.pass.remaining_credits - 1,
+          },
+          description: `Pass 扣堂預約 ${sched.title || scheduleId}`,
+        });
+      } catch (e) {}
+      try {
+        const { sendNotification } = require("../services/notification");
+        sendNotification("booking.confirmed", {
+          recipient: attendeeId,
+          data: { booking_id: bookingId, class_name: sched.title || "課堂", date: String(sched.start_time).slice(0, 16) },
+        });
+      } catch (e) {}
+
+      res.status(201).json({
+        success: true,
+        booking_id: bookingId,
+        booking_reference: bookingRef,
+        status: "confirmed",
+        payment_type: "pass",
+        pass: {
+          id: applicable.pass.id,
+          source: applicable.source,
+          remaining_credits: applicable.pass.remaining_credits - 1,
+        },
+        attendee: { id: attendeeId, name: attendee.name },
+      });
+    } catch (err) {
+      if (inTx) {
+        try { db.exec("ROLLBACK"); } catch (e) {}
+      }
+      if (err.code === "PASS_UNAVAILABLE") {
+        return res.status(400).json({ success: false, error: err.message, code: err.code });
+      }
+      console.error("[BOOK-PASS]", err.message);
+      res.status(500).json({ success: false, error: "扣堂預約失敗，請稍後再試" });
+    }
+  },
 );
 
 // ===== POST /api/bookings — 建立預約 =====
