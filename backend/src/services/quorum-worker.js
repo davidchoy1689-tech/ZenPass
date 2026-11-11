@@ -110,25 +110,31 @@ function audit(db, action, entityId, values, description) {
  * 寫入通知隊列（UNIQUE 保證同一班／同一人／同一類型只會有一條）
  * @returns {boolean} 今次是否新增
  */
-function enqueue(db, { scheduleId, bookingId = null, userId, phone, type, message = "", channel = "whatsapp" }) {
+function enqueue(db, { scheduleId, bookingId = null, userId, phone, type, message = "", channel = "whatsapp", template = null }) {
   if (!scheduleId || !userId) return false;
+  let payload = null;
+  if (message || template) payload = JSON.stringify({ message, template: template || null });
   const r = db
     .prepare(
       `INSERT OR IGNORE INTO scheduled_notifications_log
          (id, schedule_id, booking_id, recipient_user_id, recipient_phone, notification_type, channel, status, payload)
        VALUES (?,?,?,?,?,?,?,'pending',?)`,
     )
-    .run(uuidv4(), scheduleId, bookingId, userId, String(phone || ""), type, channel, message ? JSON.stringify({ message }) : null);
+    .run(uuidv4(), scheduleId, bookingId, userId, String(phone || ""), type, channel, payload);
   return r.changes > 0;
 }
 
-function messageOfLog(row) {
+function payloadOf(row) {
   try {
-    const p = JSON.parse(row.payload || "{}");
-    return p.message || "";
+    const p = JSON.parse((row && row.payload) || "{}");
+    return { message: p.message || "", template: p.template || null };
   } catch (e) {
-    return "";
+    return { message: "", template: null };
   }
+}
+
+function messageOfLog(row) {
+  return payloadOf(row).message;
 }
 
 function activeBookings(db, scheduleId) {
@@ -351,6 +357,8 @@ async function runOnce({ db = getDb(), now = new Date(), notify } = {}) {
     const results = run();
 
     for (const { booking: bk, refund } of results) {
+      const t = hktParts(parseUtc(sch.start_time) || new Date());
+      const units = refund.method === "pass" ? 1 : refund.method === "credits" ? 1 : 0;
       const added = enqueue(db, {
         scheduleId: sch.id,
         bookingId: bk.id,
@@ -358,6 +366,10 @@ async function runOnce({ db = getDb(), now = new Date(), notify } = {}) {
         phone: bk.user_phone,
         type: "quorum_cancelled_refund",
         message: textForCancelled({ sch, bk, enrolled, minQuorum, refund }),
+        template: {
+          name: require("./whatsapp-cloud").templates.quorum,
+          params: [sch.title || "課堂", `${t.date} ${t.time}`, String(units || 1)],
+        },
       });
       if (added) out.queued++;
     }
@@ -418,6 +430,7 @@ module.exports = {
   start,
   enqueue,
   messageOfLog,
+  payloadOf,
   activeBookings,
   resolveMinQuorum,
   refundBooking,

@@ -12,7 +12,11 @@ const { getDb } = require("./database");
 const { dbNotification } = require("./notification");
 
 function whatsappConfigured() {
-  return !!(process.env.WHATSAPP_TOKEN && process.env.WHATSAPP_PHONE_ID);
+  try {
+    return require("./whatsapp-cloud").isConfigured();
+  } catch (e) {
+    return !!(process.env.WHATSAPP_TOKEN && process.env.WHATSAPP_PHONE_NUMBER_ID);
+  }
 }
 
 async function sendWhatsApp(phone, body, { fetchImpl = global.fetch } = {}) {

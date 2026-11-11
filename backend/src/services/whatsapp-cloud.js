@@ -8,10 +8,11 @@ const fs = require("fs");
 const path = require("path");
 
 const API_VERSION = process.env.WHATSAPP_API_VERSION || "v21.0";
-const TOKEN = process.env.WHATSAPP_TOKEN || "";
-const PHONE_ID = process.env.WHATSAPP_PHONE_NUMBER_ID || "";
+const TOKEN = process.env.WHATSAPP_TOKEN || process.env.WHATSAPP_ACCESS_TOKEN || "";
+const PHONE_ID = process.env.WHATSAPP_PHONE_NUMBER_ID || process.env.WHATSAPP_PHONE_ID || "";
 const APP_SECRET = process.env.WHATSAPP_APP_SECRET || "";
-const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN || "";
+const VERIFY_TOKEN =
+  process.env.WHATSAPP_VERIFY_TOKEN || process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN || "";
 const ERROR_LOG = process.env.WHATSAPP_ERROR_LOG || "/var/log/zenpass/whatsapp-error.log";
 
 const isConfigured = () => Boolean(TOKEN && PHONE_ID);
@@ -108,6 +109,49 @@ async function sendInteractiveButtons(to, bodyText, buttons, opts = {}) {
   );
 }
 
+// ===== Phase 4.5：Meta 預先核准模板（Template Messages）=====
+// 業務主動發起（T-24h / T-2h / 流標退款）必須用模板，否則 Meta 會拒收。
+const TPL = {
+  t24: process.env.WA_TPL_T24 || "zenpass_class_t24_reminder",
+  t2: process.env.WA_TPL_T2 || "zenpass_class_t2_pass_token",
+  quorum: process.env.WA_TPL_QUORUM || "zenpass_quorum_auto_refund",
+};
+
+/** 清洗香港電話至 E.164（852xxxxxxxx）；無法識別回 null */
+function sanitizeHongKongPhone(phone) {
+  const p = normalizePhone(phone);
+  return /^[4-9]\d{7}$/.test(p) ? "852" + p : null;
+}
+
+function bodyComponents(params) {
+  const list = (params || []).map((t) => ({ type: "text", text: String(t == null ? "" : t) }));
+  return list.length ? [{ type: "body", parameters: list }] : [];
+}
+
+/** 通用模板發送 */
+async function sendTemplate(toPhone, templateName, params, opts = {}) {
+  return sendTemplateMessage(toPhone, templateName, {
+    language: opts.language || "zh_HK",
+    components: bodyComponents(params),
+    ...opts,
+  });
+}
+
+/** T-24h 課堂提醒：{{1}} 學員 {{2}} 時間 {{3}} 課程 {{4}} 場地 */
+async function sendTMinus24hReminder({ phone, studentName, startTimeStr, courseTitle, venueName }, opts = {}) {
+  return sendTemplate(phone, TPL.t24, [studentName || "學員", startTimeStr, courseTitle, venueName], opts);
+}
+
+/** T-2h 通行證：{{1}} 課程 {{2}} 連結 {{3}} 電話後 4 位 */
+async function sendTMinus2hPassLink({ phone, courseTitle, passUrl, last4Digits }, opts = {}) {
+  return sendTemplate(phone, TPL.t2, [courseTitle, passUrl, last4Digits], opts);
+}
+
+/** 流標退款：{{1}} 課程 {{2}} 原開課時間 {{3}} 返還堂數 */
+async function sendQuorumRefundAlert({ phone, courseTitle, startTimeStr, refundedUnits = 1 }, opts = {}) {
+  return sendTemplate(phone, TPL.quorum, [courseTitle, startTimeStr, String(refundedUnits)], opts);
+}
+
 /** Meta Webhook 簽名：X-Hub-Signature-256 = sha256=<hmac(appSecret, rawBody)> */
 function verifySignature(rawBody, signatureHeader, appSecret = APP_SECRET) {
   const crypto = require("crypto");
@@ -121,6 +165,12 @@ function verifySignature(rawBody, signatureHeader, appSecret = APP_SECRET) {
 module.exports = {
   isConfigured,
   normalizePhone,
+  sanitizeHongKongPhone,
+  sendTemplate,
+  sendTMinus24hReminder,
+  sendTMinus2hPassLink,
+  sendQuorumRefundAlert,
+  templates: TPL,
   postMessage,
   sendTextMessage,
   sendTemplateMessage,

@@ -54,6 +54,64 @@ function auditOnce(db, action, entityId, values, description) {
   return true;
 }
 
+function ensureNotifyCols(db) {
+  try {
+    const exists = db
+      .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='scheduled_notifications_log'")
+      .get();
+    if (!exists) return false;
+    const cols = db.prepare("PRAGMA table_info(scheduled_notifications_log)").all().map((c) => c.name);
+    if (!cols.includes("last_error"))
+      db.prepare("ALTER TABLE scheduled_notifications_log ADD COLUMN last_error TEXT").run();
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+/**
+ * Meta 送達回執（sent / delivered / read / failed）→ 回寫通知日誌
+ * @returns {string} 更新後狀態或 'ignored'
+ */
+function handleStatusUpdate(db, statusObj = {}) {
+  const messageId = statusObj.id;
+  const status = String(statusObj.status || "").toLowerCase();
+  if (!messageId || !status) return "ignored";
+  if (!ensureNotifyCols(db)) return "ignored";
+
+  try {
+    const row = db
+      .prepare("SELECT id FROM scheduled_notifications_log WHERE provider_message_id = ?")
+      .get(messageId);
+    // 未帶 message id（例如舊資料或手動測試）→ 無事可做
+    if (!row) return "ignored";
+
+    if (status === "delivered" || status === "read") {
+      db.prepare(
+        "UPDATE scheduled_notifications_log SET status = 'sent', sent_at = COALESCE(sent_at, datetime('now')), last_error = NULL WHERE id = ?",
+      ).run(row.id);
+      return "sent";
+    }
+    if (status === "failed") {
+      const err = JSON.stringify((statusObj.errors || []).slice(0, 2));
+      db.prepare(
+        "UPDATE scheduled_notifications_log SET status = 'failed', last_error = ? WHERE id = ?",
+      ).run(`meta_failed:${err}`.slice(0, 400), row.id);
+      console.warn("[WA] delivery failed:", messageId, err.slice(0, 200));
+      return "failed";
+    }
+    if (status === "sent") {
+      db.prepare(
+        "UPDATE scheduled_notifications_log SET sent_at = COALESCE(sent_at, datetime('now')) WHERE id = ?",
+      ).run(row.id);
+      return "sent";
+    }
+  } catch (e) {
+    console.error("[WA] status update error:", e.message);
+  }
+  return "ignored";
+}
+
 function createWhatsAppRouter({
   db = null,
   sendText = wa.sendTextMessage,
@@ -88,6 +146,10 @@ function createWhatsAppRouter({
           const value = change.value || {};
           const contacts = value.contacts || [];
           const messages = value.messages || [];
+
+          // 📬 送達回執（唔會有 messages）→ 回寫 scheduled_notifications_log
+          for (const st of value.statuses || []) handleStatusUpdate(database, st);
+
           for (const msg of messages) {
             const from = (contacts[0] && contacts[0].wa_id) || msg.from;
             if (!msg.id) continue;
@@ -140,4 +202,4 @@ function createWhatsAppRouter({
   return router;
 }
 
-module.exports = { createWhatsAppRouter, pickReply, TRAFFIC_REPLY, HEALTH_REPLY, SIGNUP_REPLY };
+module.exports = { createWhatsAppRouter, handleStatusUpdate, pickReply, TRAFFIC_REPLY, HEALTH_REPLY, SIGNUP_REPLY };

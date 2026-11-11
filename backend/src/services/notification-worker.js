@@ -11,6 +11,7 @@
  */
 const { getDb } = require("./database");
 const quorum = require("./quorum-worker");
+const wa = require("./whatsapp-cloud");
 
 const MAX_ATTEMPTS = 3;
 const T24_HOURS = 24;
@@ -111,6 +112,10 @@ function enqueueReminders({ db = getDb(), now = new Date() } = {}) {
           phone: bk.parent_phone || bk.user_phone,
           type: "t_minus_24h_reminder",
           message: textT24({ row, hkt }),
+          template: {
+            name: wa.templates.t24,
+            params: [row.user_name || "學員", `${hkt.date} ${hkt.time}`, sch.title || "課堂", sch.venue_name || ""],
+          },
         });
         if (added) out.t24++; else out.skipped++;
       } else if (hours <= T2_HOURS) {
@@ -121,11 +126,69 @@ function enqueueReminders({ db = getDb(), now = new Date() } = {}) {
           phone: bk.parent_phone || bk.user_phone,
           type: "t_minus_2h_pass_link",
           message: textT2({ row, hkt, booking: bk }),
+          template: {
+            name: wa.templates.t2,
+            params: [sch.title || "課堂", shareLinkFor(bk), last4(bk.parent_phone || bk.user_phone)],
+          },
         });
         if (added) out.t2++; else out.skipped++;
       }
     }
   }
+  return out;
+}
+
+/**
+ * 預設派送管道：站內通知 → WhatsApp（優先用已核准模板）→ SMS
+ * 回傳 { sms, whatsapp, in_app, provider_message_id, detail }
+ */
+async function defaultSend(row, payload) {
+  const out = { sms: "not_configured", whatsapp: "not_configured", in_app: false, provider_message_id: null, detail: "" };
+
+  if (row.recipient_user_id) {
+    try {
+      require("./notification").dbNotification(
+        row.recipient_user_id,
+        "schedule",
+        "ZenPass 課程通知",
+        payload.message || "",
+        { schedule_id: row.schedule_id, type: row.notification_type },
+      );
+      out.in_app = true;
+    } catch (e) {}
+  }
+
+  if (wa.isConfigured() && row.recipient_phone) {
+    let r = null;
+    let used = "text";
+    if (payload.template && payload.template.name) {
+      r = await wa.sendTemplate(row.recipient_phone, payload.template.name, payload.template.params || []);
+      used = "template";
+      if (!r || !r.ok) {
+        // 模板未核准／參數不符 → 退回普通文字（只在 24 小時客服窗內有效）
+        out.detail = `template_failed:${(r && r.status) || 0}`;
+        r = await wa.sendTextMessage(row.recipient_phone, payload.message || "");
+        used = "text_fallback";
+      }
+    } else {
+      r = await wa.sendTextMessage(row.recipient_phone, payload.message || "");
+    }
+    const mid = r && r.data && r.data.messages && r.data.messages[0] && r.data.messages[0].id;
+    if (mid) out.provider_message_id = mid;
+    out.whatsapp = r && r.ok ? "sent" : String((r && r.data && (r.data.error || r.data.message)) || "failed").slice(0, 80);
+    out.detail = [out.detail, used].filter(Boolean).join(",");
+  }
+
+  try {
+    const sms = require("./sms-service");
+    if (sms.isConfigured && sms.isConfigured()) {
+      const s = await sms.sendSms(row.recipient_phone, payload.message || "");
+      out.sms = s && s.ok ? "sent" : "failed";
+    }
+  } catch (e) {
+    out.sms = "failed";
+  }
+
   return out;
 }
 
@@ -144,16 +207,11 @@ async function dispatchPending({ db = getDb(), limit = 50, send } = {}) {
     )
     .all(MAX_ATTEMPTS, limit);
 
-  const sender =
-    send ||
-    (async ({ phone, message, userId, title }) =>
-      require("./notification-service").sendSmsAndWhatsApp({ phone, message, userId, title }));
-
   const out = { scanned: rows.length, sent: 0, failed: 0, skipped: 0 };
 
   for (const row of rows) {
-    const message = quorum.messageOfLog(row);
-    if (!message) {
+    const payload = quorum.payloadOf(row);
+    if (!payload.message) {
       db.prepare(
         "UPDATE scheduled_notifications_log SET status = 'failed', attempts = COALESCE(attempts,0)+1, last_error = 'empty_payload' WHERE id = ?",
       ).run(row.id);
@@ -161,24 +219,31 @@ async function dispatchPending({ db = getDb(), limit = 50, send } = {}) {
       continue;
     }
     try {
-      const res = await sender({
-        phone: row.recipient_phone,
-        message,
-        userId: row.recipient_user_id,
-        title: "ZenPass 課程通知",
-        meta: { schedule_id: row.schedule_id, type: row.notification_type },
-      });
-      const wa = String((res && res.whatsapp) || "").toLowerCase();
-      const sms = String((res && res.sms) || "").toLowerCase();
-      const delivered = wa === "sent" || sms === "sent" || (res && res.in_app === true);
-      const degraded = [wa && wa !== "sent" ? `whatsapp:${wa}` : "", sms && sms !== "sent" ? `sms:${sms}` : ""]
+      const res = send
+        ? await send({
+            phone: row.recipient_phone,
+            message: payload.message,
+            userId: row.recipient_user_id,
+            title: "ZenPass 課程通知",
+            meta: { schedule_id: row.schedule_id, type: row.notification_type },
+          })
+        : await defaultSend(row, payload);
+
+      const waStatus = String((res && res.whatsapp) || "").toLowerCase();
+      const smsStatus = String((res && res.sms) || "").toLowerCase();
+      const delivered = waStatus === "sent" || smsStatus === "sent" || (res && res.in_app === true);
+      const degraded = [
+        waStatus && waStatus !== "sent" ? `whatsapp:${waStatus}` : "",
+        smsStatus && smsStatus !== "sent" ? `sms:${smsStatus}` : "",
+        (res && res.detail) || "",
+      ]
         .filter(Boolean)
         .join(",");
 
       if (delivered) {
         db.prepare(
-          "UPDATE scheduled_notifications_log SET status = 'sent', sent_at = datetime('now'), attempts = COALESCE(attempts,0)+1, last_error = ? WHERE id = ?",
-        ).run(degraded || null, row.id);
+          "UPDATE scheduled_notifications_log SET status = 'sent', sent_at = datetime('now'), attempts = COALESCE(attempts,0)+1, provider_message_id = COALESCE(?, provider_message_id), last_error = ? WHERE id = ?",
+        ).run((res && res.provider_message_id) || null, degraded || null, row.id);
         out.sent++;
       } else {
         db.prepare(
@@ -216,6 +281,7 @@ function start(intervalMs = 10 * 60 * 1000) {
 module.exports = {
   enqueueReminders,
   dispatchPending,
+  defaultSend,
   runOnce,
   start,
   textT24,
