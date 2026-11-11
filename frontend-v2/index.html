@@ -553,22 +553,22 @@
     <div class="bento-grid">
       <a class="hot-card" style="min-width:132px" href="/s/molkky.html">
         <span class="bento-badge">熱門</span>
-        <div class="hot-cover"><img src="assets/img/photos/emerging.jpg" alt="芬蘭木柱" loading="lazy"></div>
+        <div class="hot-cover"><img src="assets/img/photos/emerging.webp" onerror="if(this.dataset.fb){this.style.display='none'}else{this.dataset.fb=1;this.src=this.src.replace('.webp','.jpg')}" alt="芬蘭木柱" loading="lazy"></div>
         <div class="hot-body"><span class="hot-cat">新興運動</span><p class="hot-name">芬蘭木柱</p><p class="hot-meta">零基礎 · 3 分鐘學識</p><span class="bento-feat">芬蘭國家級運動</span></div>
       </a>
       <a class="hot-card" style="min-width:132px" href="/s/floor-curling.html">
         <span class="bento-badge">零基礎</span>
-        <div class="hot-cover"><img src="assets/img/photos/emerging.jpg" alt="地板冰壺" loading="lazy"></div>
+        <div class="hot-cover"><img src="assets/img/photos/emerging.webp" onerror="if(this.dataset.fb){this.style.display='none'}else{this.dataset.fb=1;this.src=this.src.replace('.webp','.jpg')}" alt="地板冰壺" loading="lazy"></div>
         <div class="hot-body"><span class="hot-cat">新興運動</span><p class="hot-name">地板冰壺</p><p class="hot-meta">腦力＋手感 · 長者友善</p><span class="bento-feat">國際賽事項目</span></div>
       </a>
       <a class="hot-card" style="min-width:132px" href="/s/cornhole.html">
         <span class="bento-badge">親子友善</span>
-        <div class="hot-cover"><img src="assets/img/photos/emerging.jpg" alt="布袋球" loading="lazy"></div>
+        <div class="hot-cover"><img src="assets/img/photos/emerging.webp" onerror="if(this.dataset.fb){this.style.display='none'}else{this.dataset.fb=1;this.src=this.src.replace('.webp','.jpg')}" alt="布袋球" loading="lazy"></div>
         <div class="hot-body"><span class="hot-cat">新興運動</span><p class="hot-name">布袋球</p><p class="hot-meta">派對必備 · 即刻上手</p><span class="bento-feat">美國露營經典</span></div>
       </a>
       <a class="hot-card" style="min-width:132px" href="/s/air-storm.html">
         <span class="bento-badge">減壓</span>
-        <div class="hot-cover"><img src="assets/img/photos/emerging.jpg" alt="穿雲箭" loading="lazy"></div>
+        <div class="hot-cover"><img src="assets/img/photos/emerging.webp" onerror="if(this.dataset.fb){this.style.display='none'}else{this.dataset.fb=1;this.src=this.src.replace('.webp','.jpg')}" alt="穿雲箭" loading="lazy"></div>
         <div class="hot-body"><span class="hot-cat">新興運動</span><p class="hot-name">穿雲箭</p><p class="hot-meta">減壓神器 · 安全刺激</p><span class="bento-feat">專注力訓練</span></div>
       </a>
     </div>
@@ -1019,7 +1019,7 @@
         var g = c.photos_gallery;
         if (typeof g === "string") { try { g = JSON.parse(g); } catch (e) { g = null; } }
         var u = (Array.isArray(g) && g[0]) || c.image_url || "";
-        if (u) return u;
+        if (u) return String(u).replace(/\.jpe?g$/i, '.webp');
         return "assets/img/photos/" + ({ "新興運動": "emerging" }[c.category] || "generic") + ".jpg?v=1";
       }
       try {
