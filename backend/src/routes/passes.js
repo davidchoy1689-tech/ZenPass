@@ -32,7 +32,7 @@ router.post("/create-checkout", authenticateToken, async (req, res) => {
   try {
     const db = getDb();
     passes.ensureSchema(db);
-    const plan = passes.PASS_PLANS[String((req.body || {}).pass_plan_id || "")];
+    const plan = passes.resolvePlan((req.body || {}).pass_plan_id || (req.body || {}).plan_key);
     if (!plan) return res.status(400).json({ success: false, error: "Pass 方案無效" });
 
     const familyGroupId = (req.body || {}).family_group_id || null;
@@ -83,6 +83,102 @@ router.post("/create-checkout", authenticateToken, async (req, res) => {
 });
 
 // 付款完成後發卡（前端回跳呼叫；webhook 亦會走同一 service）
+// 規格對齊：PaymentIntent 建立（Stripe Elements / Apple Pay / 信用卡）
+router.post("/checkout/create-intent", authenticateToken, async (req, res) => {
+  try {
+    const db = getDb();
+    passes.ensureSchema(db);
+    const b = req.body || {};
+    const plan = passes.resolvePlan(b.plan_key || b.pass_plan_id);
+    if (!plan) return res.status(400).json({ success: false, error: "Pass 方案無效" });
+    const familyGroupId = b.family_group_id || null;
+    if (familyGroupId) {
+      const g = db.prepare("SELECT * FROM family_groups WHERE id=?").get(familyGroupId);
+      if (!g) return res.status(404).json({ success: false, error: "找不到家庭群組" });
+      if (g.owner_user_id !== req.user.id) {
+        return res.status(403).json({ success: false, error: "只有家庭付款人可購買家庭 Pass" });
+      }
+    }
+
+    const stripe = getStripe();
+    if (!stripe) return res.status(503).json({ success: false, error: "線上付款暫未開通，請使用 FPS" });
+
+    const intent = await stripe.paymentIntents.create({
+      amount: plan.price_cents,
+      currency: "hkd",
+      automatic_payment_methods: { enabled: true },
+      receipt_email: req.user.email || undefined,
+      metadata: {
+        product_type: "user_pass",
+        plan_key: plan.id,
+        units: String(plan.units),
+        owner_user_id: req.user.id,
+        family_group_id: familyGroupId || "",
+      },
+    });
+    res.json({
+      success: true,
+      client_secret: intent.client_secret,
+      payment_intent_id: intent.id,
+      amount_cents: plan.price_cents,
+      plan,
+    });
+  } catch (e) {
+    console.error("[PASS] create-intent:", e.message);
+    res.status(500).json({ success: false, error: "無法建立付款" });
+  }
+});
+
+// 規格對齊：PaymentIntent 完成後原子發卡（idempotent）
+router.post("/checkout/complete", authenticateToken, async (req, res) => {
+  try {
+    const piId = String((req.body || {}).payment_intent_id || "");
+    if (!piId) return res.status(400).json({ success: false, error: "缺少 payment_intent_id" });
+    const stripe = getStripe();
+    if (!stripe) return res.status(503).json({ success: false, error: "線上付款暫未開通" });
+
+    const pi = await stripe.paymentIntents.retrieve(piId);
+    if (!pi || pi.status !== "succeeded") {
+      return res.status(402).json({ success: false, error: "付款尚未完成" });
+    }
+    const md = pi.metadata || {};
+    if (md.product_type !== "user_pass") return res.status(400).json({ success: false, error: "付款類型不符" });
+    if (md.owner_user_id !== req.user.id) return res.status(403).json({ success: false, error: "此付款不屬於你" });
+    if (pi.currency !== "hkd") return res.status(400).json({ success: false, error: "幣種不符" });
+
+    const plan = passes.resolvePlan(md.plan_key);
+    if (!plan) return res.status(400).json({ success: false, error: "Pass 方案無效" });
+    if (Number(pi.amount) !== plan.price_cents) {
+      return res.status(400).json({ success: false, error: "付款金額不符" });
+    }
+
+    const db = getDb();
+    passes.ensureSchema(db);
+    const r = passes.fulfillPassPurchase(db, {
+      userId: req.user.id,
+      planId: plan.id,
+      familyGroupId: md.family_group_id || null,
+      paymentIntentId: pi.id,
+      sessionId: pi.id,
+    });
+    if (!r.ok) return res.status(400).json({ success: false, error: r.error });
+    try {
+      audit({
+        actionType: "pass.purchased_auto_issued",
+        entityType: "user_pass",
+        entityId: r.pass.id,
+        userId: req.user.id,
+        newValues: { plan_key: md.plan_key || plan.id, family_group_id: md.family_group_id || null, amount_cents: plan.price_cents },
+        description: "Stripe PaymentIntent 自動發卡",
+      });
+    } catch (e) {}
+    res.status(r.duplicated ? 200 : 201).json({ success: true, pass: r.pass, duplicated: !!r.duplicated });
+  } catch (e) {
+    console.error("[PASS] checkout/complete:", e.message);
+    res.status(500).json({ success: false, error: "發卡失敗，請聯絡客服" });
+  }
+});
+
 router.post("/complete-checkout", authenticateToken, async (req, res) => {
   try {
     const sessionId = String((req.body || {}).session_id || "");
@@ -98,7 +194,7 @@ router.post("/complete-checkout", authenticateToken, async (req, res) => {
     if (md.kind !== "pass_purchase") return res.status(400).json({ success: false, error: "付款類型不符" });
     if (md.user_id !== req.user.id) return res.status(403).json({ success: false, error: "此付款不屬於你" });
 
-    const plan = passes.PASS_PLANS[String(md.plan_id || "")];
+    const plan = passes.resolvePlan(md.plan_id || md.plan_key);
     if (!plan) return res.status(400).json({ success: false, error: "Pass 方案無效" });
     if (Number(session.amount_total) !== plan.price_cents) {
       return res.status(400).json({ success: false, error: "付款金額不符" });
@@ -137,7 +233,7 @@ router.post("/fps-order", authenticateToken, (req, res) => {
     const db = getDb();
     passes.ensureSchema(db);
     const b = req.body || {};
-    const plan = passes.PASS_PLANS[String(b.pass_plan_id || "")];
+    const plan = passes.resolvePlan(b.pass_plan_id || b.plan_key);
     if (!plan) return res.status(400).json({ success: false, error: "Pass 方案無效" });
     const reference = String(b.reference || "").trim();
     if (reference.length < 3) return res.status(400).json({ success: false, error: "請填寫 FPS 參考編號" });
@@ -202,7 +298,7 @@ router.post(
       const order = db.prepare("SELECT * FROM pass_purchase_orders WHERE id=?").get(req.params.id);
       if (!order) return res.status(404).json({ success: false, error: "訂單不存在" });
       if (order.status !== "pending") return res.status(409).json({ success: false, error: "此單已處理" });
-      const plan = passes.PASS_PLANS[String(order.plan_id || "")];
+      const plan = passes.resolvePlan(order.plan_id);
       if (!plan) return res.status(400).json({ success: false, error: "方案無效" });
       const paymentRef = String((req.body || {}).payment_ref || order.reference || "").trim();
       if (paymentRef.length < 3) return res.status(400).json({ success: false, error: "缺少入數參考" });

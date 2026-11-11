@@ -419,6 +419,35 @@ router.post("/stripe/webhook", async (req, res) => {
       return res.status(400).send(`Webhook Error: ${err.message}`);
     }
 
+    // 處理 PaymentIntent 成功（4／8 堂 Pass 自動發卡）
+    if (event.type === "payment_intent.succeeded") {
+      const pi = event.data.object;
+      const md = pi.metadata || {};
+      if (md.product_type === "user_pass") {
+        const passes = require("../services/passes");
+        const db = getDb();
+        passes.ensureSchema(db);
+        const plan = passes.resolvePlan(md.plan_key);
+        if (!plan) {
+          console.error("[PASS WEBHOOK] invalid plan:", md.plan_key);
+          return res.status(200).json({ received: true });
+        }
+        if (Number(pi.amount) !== plan.price_cents) {
+          console.error("[PASS WEBHOOK] amount mismatch:", pi.amount, plan.price_cents);
+          return res.status(200).json({ received: true });
+        }
+        const r = passes.fulfillPassPurchase(db, {
+          userId: md.owner_user_id,
+          planId: plan.id,
+          familyGroupId: md.family_group_id || null,
+          paymentIntentId: pi.id,
+          sessionId: pi.id,
+        });
+        if (!r.ok) console.error("[PASS WEBHOOK] fulfill failed:", r.error);
+        return res.status(200).json({ received: true });
+      }
+    }
+
     // 處理 checkout.session.completed
     if (event.type === "checkout.session.completed") {
       const session = event.data.object;
@@ -426,7 +455,7 @@ router.post("/stripe/webhook", async (req, res) => {
         const passes = require("../services/passes");
         const db = getDb();
         passes.ensureSchema(db);
-        const plan = passes.PASS_PLANS[String(session.metadata.plan_id || "")];
+        const plan = passes.resolvePlan(session.metadata.plan_id || session.metadata.plan_key);
         if (!plan) {
           console.error("[PASS WEBHOOK] invalid plan:", session.metadata.plan_id);
           return res.status(200).json({ received: true });

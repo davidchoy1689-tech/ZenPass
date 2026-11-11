@@ -17,6 +17,15 @@ const PASS_PLANS = {
   pack_4: { id: "pack_4", name: "4 堂全家健康通行 Pass", units: 4, price_cents: 52000, valid_days: 60 },
   pack_8: { id: "pack_8", name: "8 堂全家健康通行 Pass", units: 8, price_cents: 96000, valid_days: 90 },
 };
+const PLAN_ALIASES = {
+  pack_4_pain_relief: "pack_4",
+  pack_8_pain_relief: "pack_8",
+};
+
+function resolvePlan(id) {
+  const key = String(id || "");
+  return PASS_PLANS[key] || PASS_PLANS[PLAN_ALIASES[key]] || null;
+}
 
 function ensureSchema(db) {
   db.exec(`
@@ -322,7 +331,7 @@ function issuePass(db, opts) {
 
 /** Stripe 付款成功後發卡（idempotent；只可由已驗證 session / webhook 呼叫） */
 function fulfillPassPurchase(db, opts) {
-  const plan = PASS_PLANS[String(opts.planId || "")];
+  const plan = resolvePlan(opts.planId);
   if (!plan) return { ok: false, error: "PASS_PLAN_INVALID" };
   const userId = String(opts.userId || "");
   if (!userId) return { ok: false, error: "USER_REQUIRED" };
@@ -386,6 +395,8 @@ module.exports = {
   issuePass,
   fulfillPassPurchase,
   PASS_PLANS,
+  PLAN_ALIASES,
+  resolvePlan,
   shape,
   DEFAULT_TOTAL,
   DEFAULT_PRICE,

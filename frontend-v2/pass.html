@@ -232,6 +232,8 @@
           sel.innerHTML = '<option value="">個人使用（不綁家庭）</option>' +
             familyGroups.map(function (g) { return '<option value="' + esc(g.id) + '">' + esc(g.group_name) + '（' + (g.member_count || 0) + " 人）</option>"; }).join("");
           if (familyGroups.length === 1) sel.value = familyGroups[0].id;
+          var want = new URLSearchParams(location.search).get("group");
+          if (want && familyGroups.some(function (g) { return g.id === want; })) sel.value = want;
         } catch (e) {}
       }
       loadFamilyPass();

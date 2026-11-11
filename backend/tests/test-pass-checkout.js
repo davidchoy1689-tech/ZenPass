@@ -30,6 +30,8 @@ console.log("🧪 1. 方案與金額");
 ok(passes.PASS_PLANS.pack_4.price_cents === 52000 && passes.PASS_PLANS.pack_4.units === 4, "4 堂 = HK$520 / 52000 cents");
 ok(passes.PASS_PLANS.pack_4.valid_days === 60, "4 堂有效期 60 天");
 ok(passes.PASS_PLANS.pack_8.price_cents === 96000 && passes.PASS_PLANS.pack_8.units === 8, "8 堂 = HK$960 / 8 堂");
+ok(passes.resolvePlan("pack_4_pain_relief").id === "pack_4", "規格 key pack_4_pain_relief 可解析");
+ok(passes.resolvePlan("pack_8_pain_relief").price_cents === 96000, "規格 key pack_8_pain_relief 可解析");
 
 console.log("🧪 2. 付款成功自動發卡");
 const r1 = passes.fulfillPassPurchase(db, {
@@ -83,14 +85,19 @@ ok(/create-checkout/.test(route) && /complete-checkout/.test(route), "Pass 購�
 ok(/session\.payment_status !== "paid"/.test(route), "回跳會驗證 Stripe 已付款");
 ok(/session\.amount_total\) !== plan\.price_cents/.test(route), "會驗證實付金額");
 ok(/fps-order/.test(route) && /admin\/orders\/:id\/confirm/.test(route), "FPS 落單／後台確認 API 已存在");
+ok(/checkout\/create-intent/.test(route) && /checkout\/complete/.test(route), "規格 PaymentIntent 端點已存在");
+ok(/automatic_payment_methods/.test(route), "PaymentIntent 啟用 Apple Pay／自動支付方式");
 const pay = fs.readFileSync(path.join(__dirname, "../src/routes/payments.js"), "utf8");
 ok(/pass_purchase/.test(pay) && /fulfillPassPurchase/.test(pay), "Stripe webhook 會自動發卡");
+ok(/payment_intent\.succeeded/.test(pay) && /product_type === "user_pass"/.test(pay), "PaymentIntent webhook 會自動發卡");
 const page = fs.readFileSync(path.join(__dirname, "../../frontend-v2/pass.html"), "utf8");
 ok(/4 堂全家健康通行 Pass/.test(page) && /HK\$520/.test(page), "pass.html 有 4 堂 $520 購卡卡");
 ok(/passes\/create-checkout/.test(page) && /passes\/complete-checkout/.test(page), "前端接建立付款與回跳發卡");
 ok(/fps-order/.test(page) && /轉數快 FPS/.test(page), "前端有 FPS 備用通路");
 const admin = fs.readFileSync(path.join(__dirname, "../../frontend-v2/admin-ops.html"), "utf8");
 ok(/loadPassOrders/.test(admin) && /passes\/admin\/orders/.test(admin), "後台有 FPS 購卡待確認面板");
+const fam = fs.readFileSync(path.join(__dirname, "../../frontend-v2/family.html"), "utf8");
+ok(/購買 4 堂 Pass/.test(fam) && /pass\.html\?group=/.test(fam), "家庭頁有快速購卡 CTA");
 
 console.log(`\n${bad === 0 ? "✅ 全部通過" : "❌ 有失敗"} — ${pass} passed, ${bad} failed`);
 process.exit(bad === 0 ? 0 : 1);
