@@ -13,6 +13,11 @@ const DEFAULT_TOTAL = 4;
 const DEFAULT_PRICE = 480;
 const DEFAULT_VALID_DAYS = 60;
 
+const PASS_PLANS = {
+  pack_4: { id: "pack_4", name: "4 堂全家健康通行 Pass", units: 4, price_cents: 52000, valid_days: 60 },
+  pack_8: { id: "pack_8", name: "8 堂全家健康通行 Pass", units: 8, price_cents: 96000, valid_days: 90 },
+};
+
 function ensureSchema(db) {
   db.exec(`
     CREATE TABLE IF NOT EXISTS user_passes (
@@ -40,11 +45,35 @@ function ensureSchema(db) {
       created_at TEXT DEFAULT (datetime('now')),
       refunded_at TEXT
     );
+    CREATE TABLE IF NOT EXISTS pass_purchase_orders (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      plan_id TEXT NOT NULL,
+      family_group_id TEXT,
+      amount_cents INTEGER NOT NULL,
+      method TEXT NOT NULL DEFAULT 'fps',
+      reference TEXT,
+      status TEXT NOT NULL DEFAULT 'pending',
+      confirmed_by TEXT,
+      confirmed_at TEXT,
+      payment_ref TEXT,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
     CREATE INDEX IF NOT EXISTS idx_user_passes_phone ON user_passes(user_phone, status);
     CREATE INDEX IF NOT EXISTS idx_user_passes_user ON user_passes(user_id, status);
     CREATE INDEX IF NOT EXISTS idx_pass_redemptions_pass ON pass_redemptions(pass_id, status);
     CREATE INDEX IF NOT EXISTS idx_pass_redemptions_booking ON pass_redemptions(booking_id);
+    CREATE INDEX IF NOT EXISTS idx_pass_orders_status ON pass_purchase_orders(status, created_at);
   `);
+  const pcols = db.prepare("PRAGMA table_info(user_passes)").all().map((c) => c.name);
+  if (!pcols.includes("owner_user_id")) db.exec("ALTER TABLE user_passes ADD COLUMN owner_user_id TEXT");
+  if (!pcols.includes("family_group_id")) db.exec("ALTER TABLE user_passes ADD COLUMN family_group_id TEXT");
+  if (!pcols.includes("payment_intent_id")) db.exec("ALTER TABLE user_passes ADD COLUMN payment_intent_id TEXT");
+  if (!pcols.includes("pass_type")) db.exec("ALTER TABLE user_passes ADD COLUMN pass_type TEXT");
+  try {
+    db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_user_passes_pi ON user_passes(payment_intent_id) WHERE payment_intent_id IS NOT NULL");
+    db.exec("CREATE INDEX IF NOT EXISTS idx_user_passes_family ON user_passes(family_group_id)");
+  } catch (e) {}
   // bookings.pass_id（舊 DB 自動補欄）
   try {
     const cols = db.prepare("PRAGMA table_info(bookings)").all().map((c) => c.name);
@@ -291,6 +320,61 @@ function issuePass(db, opts) {
   return { ok: true, pass: shape(db.prepare("SELECT * FROM user_passes WHERE id = ?").get(id)) };
 }
 
+/** Stripe 付款成功後發卡（idempotent；只可由已驗證 session / webhook 呼叫） */
+function fulfillPassPurchase(db, opts) {
+  const plan = PASS_PLANS[String(opts.planId || "")];
+  if (!plan) return { ok: false, error: "PASS_PLAN_INVALID" };
+  const userId = String(opts.userId || "");
+  if (!userId) return { ok: false, error: "USER_REQUIRED" };
+  const pi = String(opts.paymentIntentId || opts.sessionId || "");
+  if (!pi) return { ok: false, error: "PAYMENT_REF_REQUIRED" };
+
+  const existing = db.prepare("SELECT * FROM user_passes WHERE payment_intent_id = ?").get(pi);
+  if (existing) return { ok: true, pass: shape(existing), duplicated: true };
+
+  const user = db.prepare("SELECT id, name, phone FROM users WHERE id = ?").get(userId);
+  if (!user) return { ok: false, error: "USER_NOT_FOUND" };
+  const phone = normalizePhone(user.phone);
+  if (!/^[4-9]\d{7}$/.test(phone)) return { ok: false, error: "USER_PHONE_INVALID" };
+
+  let familyGroupId = opts.familyGroupId || null;
+  if (familyGroupId) {
+    const g = db.prepare("SELECT * FROM family_groups WHERE id = ?").get(familyGroupId);
+    if (!g) return { ok: false, error: "FAMILY_GROUP_NOT_FOUND" };
+    if (g.owner_user_id !== userId) return { ok: false, error: "FAMILY_OWNER_MISMATCH" };
+  } else {
+    familyGroupId = null;
+  }
+
+  const id = "pass_" + crypto.randomBytes(8).toString("hex");
+  const expiresAt = new Date(Date.now() + plan.valid_days * 86400000)
+    .toISOString()
+    .slice(0, 19)
+    .replace("T", " ");
+  db.prepare(
+    `INSERT INTO user_passes (id, user_id, user_phone, student_name, total_credits, remaining_credits,
+                              price_paid, status, expires_at, notes, created_by, owner_user_id, family_group_id,
+                              payment_intent_id, pass_type)
+     VALUES (?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?, ?, ?, ?)`,
+  ).run(
+    id,
+    userId,
+    phone,
+    user.name || "學員",
+    plan.units,
+    plan.units,
+    plan.price_cents / 100,
+    expiresAt,
+    `online:${plan.id}`,
+    userId,
+    userId,
+    familyGroupId,
+    pi,
+    plan.id,
+  );
+  return { ok: true, pass: shape(db.prepare("SELECT * FROM user_passes WHERE id = ?").get(id)), duplicated: false };
+}
+
 module.exports = {
   ensureSchema,
   ensurePaymentTypeCheck,
@@ -300,6 +384,8 @@ module.exports = {
   redeemInTx,
   restoreInTx,
   issuePass,
+  fulfillPassPurchase,
+  PASS_PLANS,
   shape,
   DEFAULT_TOTAL,
   DEFAULT_PRICE,

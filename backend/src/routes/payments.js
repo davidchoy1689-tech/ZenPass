@@ -422,6 +422,29 @@ router.post("/stripe/webhook", async (req, res) => {
     // 處理 checkout.session.completed
     if (event.type === "checkout.session.completed") {
       const session = event.data.object;
+      if (session.metadata && session.metadata.kind === "pass_purchase") {
+        const passes = require("../services/passes");
+        const db = getDb();
+        passes.ensureSchema(db);
+        const plan = passes.PASS_PLANS[String(session.metadata.plan_id || "")];
+        if (!plan) {
+          console.error("[PASS WEBHOOK] invalid plan:", session.metadata.plan_id);
+          return res.status(200).json({ received: true });
+        }
+        if (Number(session.amount_total) !== plan.price_cents) {
+          console.error("[PASS WEBHOOK] amount mismatch:", session.amount_total, plan.price_cents);
+          return res.status(200).json({ received: true });
+        }
+        const r = passes.fulfillPassPurchase(db, {
+          userId: session.metadata.user_id,
+          planId: plan.id,
+          familyGroupId: session.metadata.family_group_id || null,
+          paymentIntentId: session.payment_intent || session.id,
+          sessionId: session.id,
+        });
+        if (!r.ok) console.error("[PASS WEBHOOK] fulfill failed:", r.error);
+        return res.status(200).json({ received: true });
+      }
       const primaryId = session.metadata?.booking_id;
       const ids = String(session.metadata?.booking_ids || primaryId || "")
         .split(",")

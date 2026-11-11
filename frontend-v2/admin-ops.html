@@ -168,7 +168,7 @@
           <input class="fld" id="psName" placeholder="學員姓名（印證書用）" maxlength="40" />
           <div style="display:flex;gap:8px">
             <input class="fld" id="psTotal" type="number" min="1" max="20" value="4" placeholder="堂數" style="flex:1" />
-            <input class="fld" id="psPrice" type="number" min="0" step="10" value="480" placeholder="實收 HK$" style="flex:1" />
+            <input class="fld" id="psPrice" type="number" min="0" step="10" value="520" placeholder="實收 HK$" style="flex:1" />
             <input class="fld" id="psDays" type="number" min="1" max="365" value="60" placeholder="有效日數" style="flex:1" />
           </div>
           <input class="fld" id="psNotes" placeholder="備註（FPS 參考編號／優惠原因，可留空）" maxlength="120" />
@@ -181,6 +181,14 @@
             <button class="btn btn-secondary" id="psReload" style="min-height:32px;padding:0 10px;font-size:12px">🔄 更新</button>
           </div>
           <div id="psList" style="margin-top:10px"><div class="muted" style="font-size:12.5px">載入中…</div></div>
+        </div></div>
+        <div class="card"><div class="body">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+            <b style="font-size:13.5px">💳 FPS 購卡待確認</b>
+            <button class="btn btn-secondary" id="ppoReload" style="min-height:32px;padding:0 10px;font-size:12px">🔄 更新</button>
+          </div>
+          <div class="muted" style="font-size:12px;margin:6px 0">學員在 pass.html 提交 FPS 後會在此出現；核實入數按「確認」即自動發 4 堂 Pass（HK$520）。</div>
+          <div id="ppoList"><div class="muted" style="font-size:12.5px">載入中…</div></div>
         </div></div>
       </div>
 
@@ -359,6 +367,7 @@
         [...$("tabs").children].forEach((x) => x.classList.toggle("on", x === b));
         ["fin", "pay", "leads", "ops", "settle", "cred", "sub", "agr", "pending", "refund", "book", "cancel", "alert", "student", "venue", "pass", "sec"].forEach((k) => ($("pane" + k[0].toUpperCase() + k.slice(1))).hidden = b.dataset.t !== k);
         if (b.dataset.t === "sub") loadSubs();
+        if (b.dataset.t === "pass") loadPassOrders();
       };
       $("pliEnforce").onclick = () => setPliGate("enforce");
       $("pliWarn").onclick = () => setPliGate("warn");
@@ -373,6 +382,7 @@
       $("plGo").onclick = payoutCsv;
       $("psIssue").onclick = issuePass;
       $("psReload").onclick = () => loadPasses();
+      $("ppoReload").onclick = () => loadPassOrders();
       $("subReload").onclick = () => loadSubs();
       async function loadSubs() {
         const box = $("subList");
@@ -1149,6 +1159,26 @@
           <span class="s">${esc(p.id)} · ${p.phone_masked} · 剩 ${p.remaining_credits}/${p.total_credits} 堂 · 到期 ${esc(String(p.expires_at || "").slice(0, 10))} · HK$${p.price_paid}</span></span>
         <span style="margin-top:4px;font-size:12px;font-weight:700;color:${p.status === "active" ? "#047857" : "#b45309"}">${p.status === "active" ? "✅ 使用中" : p.status === "exhausted" ? "⌛ 已用完" : esc(p.status)}</span>
       </div>`).join("");
+    }
+
+    async function loadPassOrders() {
+      const box = $("ppoList"); if (!box) return;
+      const r = await api.get("/passes/admin/orders?status=pending");
+      if (!r.ok) { box.innerHTML = `<div class="muted" style="font-size:12.5px">${esc((r.data && r.data.error) || "讀取失敗")}</div>`; return; }
+      const rows = (r.data && r.data.orders) || [];
+      if (!rows.length) { box.innerHTML = '<div class="muted" style="font-size:12.5px">✅ 暫無待確認 FPS 購卡</div>'; return; }
+      box.innerHTML = rows.map((o) => `<div class="row" style="flex-wrap:wrap">
+        <span style="flex:1 1 100%"><b>${esc(o.user_name || "")}</b>
+          <span class="s">${esc(o.plan_id)} · ${Number(o.amount_cents) / 100} HKD · FPS ${esc(o.reference || "")} · ${esc(String(o.created_at || "").slice(0, 16))}</span></span>
+        <button class="btn btn-primary" style="min-height:32px;padding:0 12px;font-size:12px;margin-top:6px" data-ppo="${esc(o.id)}" data-amt="${Number(o.amount_cents) / 100}">✅ 確認入數並發卡</button>
+      </div>`).join("");
+      box.querySelectorAll("[data-ppo]").forEach((b) => (b.onclick = async () => {
+        if (!confirm(`確認已收到 HK$${b.dataset.amt}？確認後會自動發 4 堂 Pass。`)) return;
+        b.disabled = true; b.textContent = "⏳ 發卡中";
+        const rr = await api.post("/passes/admin/orders/" + encodeURIComponent(b.dataset.ppo) + "/confirm", {});
+        if (rr.ok) { toast("✅ 已確認並發卡"); loadPassOrders(); loadPasses(); }
+        else { b.disabled = false; b.textContent = "✅ 確認入數並發卡"; toast((rr.data && rr.data.error) || "確認失敗"); }
+      }));
     }
 
     /* ===== 🛡️ 雙因素認證 ===== */
