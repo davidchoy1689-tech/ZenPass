@@ -48,6 +48,9 @@ async function stripeSucceededTotal(dateStr) {
       ...(starting_after ? { starting_after } : {}),
     });
     for (const pi of res.data) {
+      const md = pi.metadata || {};
+      const isPassPurchase = md.product_type === "user_pass" || md.kind === "pass_purchase" || !!md.plan_key || md.product_type === "buddy_pass";
+      if (!isPassPurchase) continue;
       if (pi.status === "succeeded" && pi.currency === "hkd") { total += Number(pi.amount_received || pi.amount || 0); count++; }
     }
     if (!res.has_more || !res.data.length) break;

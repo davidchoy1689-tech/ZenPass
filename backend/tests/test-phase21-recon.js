@@ -92,7 +92,7 @@ const server = app.listen(0, async () => {
   // 模擬 Stripe 實收少於 DB（例如漏單）
   const origClient = stripeSvc.client;
   stripeSvc.client = () => ({
-    paymentIntents: { list: async () => ({ data: [{ id: "pi_x", status: "succeeded", currency: "hkd", amount: 10000 }], has_more: false }) },
+    paymentIntents: { list: async () => ({ data: [{ id: "pi_x", status: "succeeded", currency: "hkd", amount: 10000, metadata: { product_type: "user_pass", plan_key: "pack_4" } }], has_more: false }) },
   });
   rep = await recon.runForDate(today);
   ok(rep.status === "discrepancy_flagged", "差額 → discrepancy_flagged", rep.status);
