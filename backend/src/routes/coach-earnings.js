@@ -1067,8 +1067,13 @@ function syncCoachEarningsForSchedule(scheduleId) {
       .get(scheduleId);
 
     const enrolled = countRow.cnt;
-    const gross = info.price_hkd * enrolled;
-    const net = Math.round(gross * info.commission_rate * 100) / 100;
+    // Phase 5.3：一律以整數 cents 計算（floor 教練份額，餘數歸平台）
+    const settle = require("../services/coach-settlement").calculateCoachEarning(info.price_hkd, {
+      enrolled,
+      rate: info.commission_rate,
+    });
+    const gross = require("../services/coach-settlement").centsToHkd(settle.totalCents);
+    const net = require("../services/coach-settlement").centsToHkd(settle.coachNetCents);
 
     // Upsert coach_earnings
     // Upsert coach_earnings — return the earning id
@@ -1086,11 +1091,16 @@ function syncCoachEarningsForSchedule(scheduleId) {
         `
         UPDATE coach_earnings SET 
           enrolled_count = ?, gross_amount = ?, net_amount = ?, 
+          unit_price_cents = ?, gross_amount_cents = ?, net_amount_cents = ?,
           status = CASE WHEN ? > 0 THEN 'approved' ELSE 'cancelled' END,
           updated_at = datetime('now')
         WHERE schedule_id = ? AND coach_id = ? AND COALESCE(earning_type,'primary') = 'primary'
       `,
-      ).run(enrolled, gross, net, enrolled, scheduleId, info.actual_coach_id);
+      ).run(
+        enrolled, gross, net,
+        settle.unitCents, settle.totalCents, settle.coachNetCents,
+        enrolled, scheduleId, info.actual_coach_id,
+      );
       earningId = existing.id;
     } else if (enrolled > 0) {
       const { v4: uuidv4 } = require("uuid");
@@ -1100,8 +1110,9 @@ function syncCoachEarningsForSchedule(scheduleId) {
         `
         INSERT INTO coach_earnings 
           (id, coach_id, schedule_id, class_id, class_title, date, enrolled_count,
-           unit_price, gross_amount, commission_rate, net_amount, status, earning_type)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'approved', 'primary')
+           unit_price, gross_amount, commission_rate, net_amount, status, earning_type,
+           unit_price_cents, gross_amount_cents, net_amount_cents)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'approved', 'primary', ?, ?, ?)
       `,
       ).run(
         earningId,
@@ -1115,6 +1126,9 @@ function syncCoachEarningsForSchedule(scheduleId) {
         gross,
         info.commission_rate,
         net,
+        settle.unitCents,
+        settle.totalCents,
+        settle.coachNetCents,
       );
     }
 

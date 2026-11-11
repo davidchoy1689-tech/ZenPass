@@ -325,7 +325,7 @@
   .hot-card .fam-badge { position:absolute; top:10px; left:10px; z-index:3; display:inline-flex; align-items:center; gap:4px;
     background: rgba(6,78,59,.82); color:#fff; font-size:10.5px; font-weight:800; padding:3px 8px; border-radius:999px; }
   .hot-card .live-badge { left:auto; right:10px; bottom:10px; }
-  .hot-card .loc-pill { position:absolute; left:10px; bottom:10px; z-index:3;
+  .hot-card .card-loc { position:absolute; left:10px; bottom:10px; z-index:3;
     background: rgba(15,23,42,.62); color:#fff; font-size:10.5px; font-weight:700; padding:3px 8px; border-radius:6px; }
   .hot-card .rating { font-size:11px; font-weight:900; color:#B45309; }
 
@@ -1060,7 +1060,7 @@
               (c.district ? '<span class="badge-district glass-badge">' + esc(c.district) + '</span>' : '') +
               '<span class="badge-countdown">⏳ ' + esc(daysLeft(c.start_time)) + '</span>' +
               (Number(c.credits_cost) > 0 ? '<span class="fam-badge">👨‍👩‍👧 家庭卡通用</span>' : '') +
-              (c.venue_name || c.district ? '<span class="loc-pill">📍 ' + esc(c.district || "") + (c.venue_name ? ' · ' + esc(String(c.venue_name).slice(0, 12)) : '') + '</span>' : '') +
+              (c.venue_name || c.district ? '<span class="card-loc">📍 ' + esc(c.district || "") + (c.venue_name ? ' · ' + esc(String(c.venue_name).slice(0, 12)) : '') + '</span>' : '') +
               (left !== null && left > 0 && left <= 3 ? '<span class="live-badge"><span class="dot"></span>剩 ' + left + ' 位</span>' : '') +
             '</div>' +
             '<div class="hot-body">' +
@@ -1070,7 +1070,7 @@
               '<p class="hot-meta" style="font-weight:600;color:var(--text)">' + esc(fmtWhen(c.start_time)) + '</p>' +
               '<p class="hot-meta">' + esc(c.venue_name || c.district || "") + ' · ' + (c.duration || 60) + ' 分鐘' +
                 (leftTxt ? ' <span class="' + leftCls + '">· ' + leftTxt + '</span>' : '') + '</p>' +
-              '<p class="anchor-line">🎟️ 扣減 1 堂 Pass 或 ' + hkd(Number(c.price_hkd) || 0) + '</p>' +
+              '<p class="anchor-line">🎟️ 單堂 ' + hkd(Number(c.price_hkd) || 0) + ' · 通票兌換 1 堂（折合 $130）</p>' +
               '<p class="hot-price"><b>' + hkd(Number(c.price_hkd) || 0) + '</b><span class="hot-trial">/ 位</span></p>' +
               '<span class="btn btn-primary btn-block hot-cta">立即留位</span>' +
             '</div></a>';
