@@ -1326,6 +1326,7 @@ function maskStudentName(n) {
 
 function buildMonthlyBreakdown(db, coachId, month) {
   const affiliateSvc = require("../services/coach-affiliate");
+  const includeSandbox = process.env.EARNINGS_INCLUDE_SANDBOX === "1" ? 1 : 0;
   try {
     affiliateSvc.ensureSchema(db);
   } catch (e) {}
@@ -1347,10 +1348,10 @@ function buildMonthlyBreakdown(db, coachId, month) {
          FROM class_schedules s JOIN classes c ON c.id=s.class_id
          LEFT JOIN partner_venues pv ON pv.id=c.partner_venue_id
         WHERE COALESCE(s.coach_override_id, c.coach_id)=? AND substr(s.start_time,1,7)=? AND COALESCE(s.status,'')<>'cancelled'
-          AND COALESCE(pv.is_sandbox,0)=0
+          AND (COALESCE(pv.is_sandbox,0)=0 OR ?=1)
         ORDER BY s.start_time`,
     )
-    .all(coachId, month);
+    .all(coachId, month, includeSandbox);
   const u = db.prepare("SELECT commission_rate FROM users WHERE id=?").get(coachId);
   const rate = u && Number(u.commission_rate) > 0 ? Number(u.commission_rate) : 0.8;
   const countStmt = db.prepare(
@@ -1457,9 +1458,9 @@ function buildMonthlyBreakdown(db, coachId, month) {
            LEFT JOIN partner_venues pv ON pv.id=c.partner_venue_id
           WHERE c.coach_id=? AND s.coach_override_id IS NOT NULL AND s.coach_override_id<>?
             AND substr(s.start_time,1,7)=? AND COALESCE(s.status,'')<>'cancelled'
-            AND COALESCE(pv.is_sandbox,0)=0`,
+            AND (COALESCE(pv.is_sandbox,0)=0 OR ?=1)`,
       )
-      .all(coachId, coachId, month);
+      .all(coachId, coachId, month, includeSandbox);
     for (const s of overridden) {
       const ownAttended = Number(affiliateSvc.ownStudentAttended(db, s.id, coachId)) || 0;
       if (!ownAttended) continue;
