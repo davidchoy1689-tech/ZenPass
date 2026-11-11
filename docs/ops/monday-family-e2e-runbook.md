@@ -1,7 +1,26 @@
 # 週一真實家庭 E2E 驗收手冊（校正版）
 
 > 依 2026-11-11 生產實況校正。所有 SQL 已改為**真實表名／欄位名**，可直接貼上執行。
-> 系統狀態：commit `06034ac0`、`PHONE_VERIFY_ENFORCE=0`（軟閘）、health 200。
+> 系統狀態：commit `96ccd2c`、`PHONE_VERIFY_ENFORCE=0`（軟閘，**已寫入 backend/.env 並重啟生效**）、health 200。
+
+## 0a. 帳號已鎖定（2026-11-12 01:48 寫入生產 DB）
+
+| 角色 | 姓名 | 電話 | user id | 備註 |
+|---|---|---|---|---|
+| 付款人（女兒） | **陳小姐** | **91234567** | `seed-sandbox-stu-b` | 原本叫「李淑芬」，已改名；`phone_verified_at` 已設 |
+| 上課長者（父親） | **陳大文** | **98765432** | `seed-sandbox-stu-a` | 新帳號已存在（非 98764532）；`phone_verified_at` 已設 |
+
+> ⚠️ 父親號碼 **尾四碼係 5432（98765432）**，不是 98764532。腳本、WhatsApp、後台一律用這組。
+> 若現場要重建家庭組：先用 `/family.html`（陳小姐登入）建「陳氏家庭健康通票」，再綁 98765432。
+
+**環境現狀確認（貼上即驗）**：
+```bash
+cd /var/www/zenpass/backend && node -e "require('dotenv').config({path:'./.env'});console.log('ENFORCE='+(process.env.PHONE_VERIFY_ENFORCE ?? '(unset)'),'NODE_ENV='+process.env.NODE_ENV)"
+# 預期：ENFORCE=0 NODE_ENV=production
+```
+> 註：pm2 `exec cwd` = `/var/www/zenpass/backend`，所以 `.env` 就在 cwd，app 確實載入得到。
+> prodtest 測試資料已 **soft-cancel**（`class_schedules` / `coach_earnings` status='cancelled'，classes inactive），無任何 DELETE。
+
 
 ## 0. 環境事實（照抄原始手冊會失敗的地方）
 
@@ -161,13 +180,15 @@ bash zenpass-tester/scripts/family-e2e-check.sh 91234567 98765432 <SCHED>
 ```bash
 # ① 服務與軟閘狀態
 cd /var/www/zenpass && curl -s -o /dev/null -w 'health %{http_code}\n' localhost:3001/api/health
-cd backend && node -e "require('dotenv').config({path:'../.env'});console.log('ENFORCE='+(process.env.PHONE_VERIFY_ENFORCE ?? '(unset)'))"
+cd /var/www/zenpass/backend && node -e "require('dotenv').config({path:'./.env'});console.log('ENFORCE='+(process.env.PHONE_VERIFY_ENFORCE ?? '(unset)'))"
 
-# ② 確認無 prodtest 污染
-sqlite3 backend/data/zenpass.db "SELECT COUNT(*) FROM class_schedules WHERE id LIKE 'prodtest-%';"
+# ② 確認無 prodtest 污染（未作廢者）
+sqlite3 /var/www/zenpass/backend/data/zenpass.db \
+  "SELECT (SELECT COUNT(*) FROM class_schedules WHERE id LIKE 'prodtest-%' AND status<>'cancelled')
+        + (SELECT COUNT(*) FROM coach_earnings  WHERE schedule_id LIKE 'prodtest-%' AND status<>'cancelled');"
 
 # ③ 跑閉環核對
-cd /var/www/zenpass && bash zenpass-tester/scripts/family-e2e-check.sh 91234567 98764532 <SCHED>
+cd /var/www/zenpass && bash zenpass-tester/scripts/family-e2e-check.sh 91234567 98765432 <SCHED>
 ```
 
 ⚠️ **軟閘提醒**：`backend/src/services/phone-gate.js` 的判定是

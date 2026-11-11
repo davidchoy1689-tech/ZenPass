@@ -4,7 +4,7 @@
 #
 # 用法（在 VPS）：
 #   cd /var/www/zenpass
-#   bash zenpass-tester/scripts/family-e2e-check.sh 91234567 98764532 <班次ID>
+#   bash zenpass-tester/scripts/family-e2e-check.sh 91234567 98765432 <班次ID>
 #
 # 參數：<付款人電話> <上課家人電話> [班次ID]
 # 環境：DB 預設 /var/www/zenpass/backend/data/zenpass.db，可用 DB_PATH 覆寫
