@@ -198,18 +198,26 @@ async function deliver(phone, code) {
 
   const sid = process.env.TWILIO_ACCOUNT_SID;
   const token = process.env.TWILIO_AUTH_TOKEN;
+  const withTimeout = (p, ms) =>
+    Promise.race([
+      p,
+      new Promise((resolve) => setTimeout(() => resolve({ ok: false, status: 504, error: "SMS_TIMEOUT", retryable: true }), ms)),
+    ]);
 
   // 1) 真實 SMS（Twilio Messages API，sms-service 已包錯誤分類 + audit）
   const sms = require("./sms-service");
+  let smsFailure = null;
   if (sms.isConfigured()) {
-    const r = await sms.sendOtpSms(phone, code);
+    const r = await withTimeout(sms.sendOtpSms(phone, code), Number(process.env.SMS_FALLBACK_MS || 5000));
     if (r.ok) return { ok: true, channel: r.channel };
-    return { ok: false, status: r.status || 502, error: r.error, retryable: r.retryable };
+    smsFailure = { status: r.status || 502, error: r.error, retryable: r.retryable };
+    // SMS 失敗／超時 → 5 秒內轉 WhatsApp（先 Twilio，再 Cloud API）
+    console.warn(`[OTP] SMS 未成功（${r.error || r.status}），轉 WhatsApp fallback`);
   }
 
-  // 2) Twilio WhatsApp（需用戶先 join sandbox／或已核准模板；由 TWILIO_OTP_CHANNEL=whatsapp 開啟）
+  // 2) Twilio WhatsApp（SMS 失敗時自動 fallback；需 sandbox join 或已核准模板）
   const waFrom = process.env.TWILIO_WHATSAPP_FROM;
-  if (sid && token && waFrom && process.env.TWILIO_OTP_CHANNEL === "whatsapp") {
+  if (sid && token && waFrom) {
     try {
       const client = require("twilio")(sid, token);
       await client.messages.create({
@@ -217,7 +225,7 @@ async function deliver(phone, code) {
         to: `whatsapp:+852${phone}`,
         body: text,
       });
-      return { ok: true, channel: "whatsapp_twilio" };
+      return { ok: true, channel: "whatsapp_twilio", fallback: true };
     } catch (e) {
       console.error("[OTP] Twilio WhatsApp 失敗:", e.message);
     }
@@ -231,15 +239,16 @@ async function deliver(phone, code) {
         const r = await wa.sendTemplateMessage(phone, tpl, {
           components: [{ type: "body", parameters: [{ type: "text", text: code }] }],
         });
-        if (r && r.ok) return { ok: true, channel: "whatsapp" };
+        if (r && r.ok) return { ok: true, channel: "whatsapp", fallback: true };
       }
       const r2 = await wa.sendTextMessage(phone, text);
-      if (r2 && r2.ok) return { ok: true, channel: "whatsapp" };
+      if (r2 && r2.ok) return { ok: true, channel: "whatsapp", fallback: true };
     }
   } catch (e) {
     console.error("[OTP] WhatsApp 發送失敗:", e.message);
   }
 
+  if (smsFailure) return { ok: false, ...smsFailure };
   return { ok: false, status: 503, error: "NO_SMS_CHANNEL" };
 }
 
