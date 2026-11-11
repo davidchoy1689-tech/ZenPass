@@ -36,6 +36,7 @@ try {
   require("./services/phone-gate").ensureSchema(getDb());
   require("./services/fulfillment-queue").ensureSchema(getDb());
   require("./routes/roster-offline").ensureSchema(getDb());
+  require("./services/quorum-worker").ensureSchema(getDb());
 } catch (e) {
   logger.warn("[CHECKIN] schema 初始化失敗: " + e.message);
 }
@@ -648,6 +649,21 @@ setTimeout(autoNotifyLargeVacancies, 60 * 1000);
 // ===== Corporate Credit 月度重置（每 15 分鐘檢查）=====
 setInterval(processCorporateResets, 15 * 60 * 1000);
 processCorporateResets();
+
+// ===== Phase 4.4 開課門檻仲裁（T-12h）＋ 履約提醒（T-24h / T-2h）=====
+try {
+  const quorumWorker = require("./services/quorum-worker");
+  const notifyWorker = require("./services/notification-worker");
+  quorumWorker.ensureSchema(getDb());
+  quorumWorker.start(10 * 60 * 1000);
+  notifyWorker.start(10 * 60 * 1000);
+  setTimeout(() => {
+    quorumWorker.runOnce().catch((e) => console.error("[QUORUM] boot:", e.message));
+    notifyWorker.runOnce().catch((e) => console.error("[NOTIFY WORKER] boot:", e.message));
+  }, 45 * 1000);
+} catch (e) {
+  console.error("[QUORUM] scheduler mount failed:", e.message);
+}
 
 // Phase 2.1-RECON — 掉單補償 Worker（每 5 分鐘，指數退避）＋每日對帳
 try {

@@ -2579,6 +2579,13 @@ function markNoShow(req) {
     console.error("⚠️ Blockchain write failed (booking):", bcErr.message);
   }
 
+  // 🛡️ Phase 4.4：no-show 照計教練帶班收益（教練保底，學員爽約不扣導師費）
+  try {
+    require("../routes/coach-earnings").syncCoachEarningsForSchedule(booking.schedule_id);
+  } catch (e) {
+    console.error("[EARNINGS] no-show sync failed:", e.message);
+  }
+
   return { status: 200, body: { success: true, message: "Marked as no-show" } };
 }
 

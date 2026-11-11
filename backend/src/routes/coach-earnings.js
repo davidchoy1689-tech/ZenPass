@@ -1051,11 +1051,12 @@ function syncCoachEarningsForSchedule(scheduleId) {
     if (info.studio_id) return { skipped: "STUDIO_PENDING_ATTENDANCE", studio_id: info.studio_id };
 
     // Count confirmed bookings
+    // 🛡️ Phase 4.4：no_show 席位照計（教練保底 — 學員爽約不扣導師帶班費）
     const countRow = db
       .prepare(
         `
       SELECT COUNT(*) as cnt FROM bookings 
-      WHERE schedule_id = ? AND status IN ('confirmed', 'attended')
+      WHERE schedule_id = ? AND status IN ('confirmed', 'attended', 'no_show')
     `,
       )
       .get(scheduleId);
