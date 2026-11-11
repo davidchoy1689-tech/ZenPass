@@ -135,13 +135,45 @@ SELECT up.id,up.pass_type,up.total_credits,up.remaining_credits,up.price_paid,
 | prodtest 隔離 | `SELECT COUNT(*) FROM coach_earnings WHERE schedule_id LIKE 'prodtest-%';` | 0 |
 | 家庭 Pass 越權 | 非付款人嘗試把他人 Pass 加入群組 | 403 |
 
-## 5. 一鍵核對腳本
+## 5. 一鍵核對腳本（3 秒定生死）
 
 ```bash
 cd /var/www/zenpass
 bash zenpass-tester/scripts/family-e2e-check.sh 91234567 98765432 <SCHED>
 ```
-只讀，不改任何資料；輸出 ①–⑦ 段（帳戶、家庭、Pass、班次、預約、收益、審計）。
+
+只讀，不改任何資料。輸出 ①–⑦ 段（帳戶、家庭、Pass、班次、預約、收益、審計）＋ **七大指標 PASS/FAIL 總計**：
+
+- `🎉 家庭閉環全綠 — 可簽核` + exit code 0 → 即刻簽核
+- `⚠️ 有項目未達標` + exit code 1 → **唔好簽核**，照輸出逐項排查
+
+判讀基準：Pass 餘額 4→3、`attendance_status=present`、`net_amount_cents=11200`（整數）、prodtest 全 0。
+
+> 💡 唔記得班次 ID？用真班次即可：
+> ```bash
+> sqlite3 -box backend/data/zenpass.db "SELECT id,start_time,enrolled_count,booking_open
+>   FROM class_schedules WHERE datetime(start_time) > datetime('now') AND booking_open=1
+>   ORDER BY start_time LIMIT 5;"
+> ```
+
+## 5b. 週一開場三分鐘（照順序貼）
+
+```bash
+# ① 服務與軟閘狀態
+cd /var/www/zenpass && curl -s -o /dev/null -w 'health %{http_code}\n' localhost:3001/api/health
+cd backend && node -e "require('dotenv').config({path:'../.env'});console.log('ENFORCE='+(process.env.PHONE_VERIFY_ENFORCE ?? '(unset)'))"
+
+# ② 確認無 prodtest 污染
+sqlite3 backend/data/zenpass.db "SELECT COUNT(*) FROM class_schedules WHERE id LIKE 'prodtest-%';"
+
+# ③ 跑閉環核對
+cd /var/www/zenpass && bash zenpass-tester/scripts/family-e2e-check.sh 91234567 98764532 <SCHED>
+```
+
+⚠️ **軟閘提醒**：`backend/src/services/phone-gate.js` 的判定是
+`NODE_ENV==='production' && PHONE_VERIFY_ENFORCE !== '0'`。
+即係：生產環境只要 `PHONE_VERIFY_ENFORCE` **未設**，就會**強制驗證電話**。
+若第一步印出 `ENFORCE=(unset)`，週一驗收前要先設定：`PHONE_VERIFY_ENFORCE=0` 並重啟 `zenpass-api`。
 
 ## 6. 驗收簽署
 
