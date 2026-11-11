@@ -328,6 +328,21 @@
   .hot-card .loc-pill { position:absolute; left:10px; bottom:10px; z-index:3;
     background: rgba(15,23,42,.62); color:#fff; font-size:10.5px; font-weight:700; padding:3px 8px; border-radius:6px; }
   .hot-card .rating { font-size:11px; font-weight:900; color:#B45309; }
+
+  /* 首屏：多行下拉收成單顆膠囊（原本佔半屏） */
+  .search-capsule-wrapper .search-capsule { display: none !important; }
+  .hero-search-pill {
+    display: flex; align-items: center; gap: 9px; width: 100%;
+    background: #fff; border: 1.5px solid #E2E8F0; border-radius: 999px;
+    padding: 14px 12px 14px 18px; margin: 2px 0 6px;
+    box-shadow: 0 12px 30px -14px rgba(15,23,42,.28);
+    font: inherit; text-align: left;
+  }
+  .hero-search-pill .lead { color: #0F766E; font-weight: 900; font-size: 15px; white-space: nowrap; }
+  .hero-search-pill .div { color: #CBD5E1; }
+  .hero-search-pill .sum { color: #475569; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .hero-search-pill .go { margin-left: auto; flex: 0 0 36px; width: 36px; height: 36px; border-radius: 999px;
+    background: #0F766E; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 15px; }
 </style>
 </head>
 <body class="home">
@@ -413,6 +428,12 @@
       <p class="hero-sub">芬蘭木柱・地板冰壺・深層伸展。免下載 App，免綁約，單堂起報。</p>
 
       <div class="search-capsule-wrapper">
+        <button class="hero-search-pill" id="heroSearchPill" type="button" aria-label="開啟搜尋篩選">
+          <span class="lead">🔍 探索全港</span>
+          <span class="div">|</span>
+          <span class="sum" id="heroSearchSummary">地區 · 時段 · 運動</span>
+          <span class="go" aria-hidden="true">⌕</span>
+        </button>
         <div class="search-capsule">
           <div class="search-field">
             <span class="field-label">地區</span>
@@ -1218,6 +1239,8 @@
       function paintSummary() {
         var bits = [AREA_LABEL[sdArea.value] || "全港", WHEN_LABEL[sdWhen.value] || "任何時段", KIND_LABEL[sdKind.value] || "全部運動"];
         summary.textContent = bits.join(" · ");
+        var heroSum = document.getElementById('heroSearchSummary');
+        if (heroSum) heroSum.textContent = bits.join(" · ");
       }
       function openDrawer() {
         drawer.classList.add('on');
@@ -1229,6 +1252,8 @@
         document.body.style.overflow = '';
       }
       openBtn.addEventListener('click', openDrawer);
+      var heroPill = document.getElementById('heroSearchPill');
+      if (heroPill) heroPill.addEventListener('click', openDrawer);
       drawer.querySelectorAll('[data-sd-close]').forEach(function (n) { n.addEventListener('click', closeDrawer); });
       document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeDrawer(); });
       [sdArea, sdWhen, sdKind].forEach(function (s) { s.addEventListener('change', paintSummary); });
