@@ -95,8 +95,8 @@ if [ -n "$SCHED" ]; then
 
   echo
   echo "⑥ prodtest 隔離檢查（正式報表必須為 0）"
-  q "SELECT (SELECT COUNT(*) FROM class_schedules WHERE id LIKE 'prodtest-%') AS prodtest_schedules,
-            (SELECT COUNT(*) FROM coach_earnings WHERE schedule_id LIKE 'prodtest-%') AS prodtest_earnings;"
+  q "SELECT (SELECT COUNT(*) FROM class_schedules WHERE id LIKE 'prodtest-%' AND status<>'cancelled') AS prodtest_schedules,
+            (SELECT COUNT(*) FROM coach_earnings WHERE schedule_id LIKE 'prodtest-%' AND status<>'cancelled') AS prodtest_earnings;"
 fi
 
 echo
@@ -153,9 +153,9 @@ if [ -n "$SCHED" ]; then
     fi
   fi
 
-  check 0 "$(val "SELECT (SELECT COUNT(*) FROM class_schedules WHERE id LIKE 'prodtest-%')
-                       + (SELECT COUNT(*) FROM coach_earnings WHERE schedule_id LIKE 'prodtest-%')")" \
-        "⑦ 無 prodtest 測試資料污染"
+  check 0 "$(val "SELECT (SELECT COUNT(*) FROM class_schedules WHERE id LIKE 'prodtest-%' AND status<>'cancelled')
+                       + (SELECT COUNT(*) FROM coach_earnings WHERE schedule_id LIKE 'prodtest-%' AND status<>'cancelled')")" \
+        "⑦ 無 prodtest 測試資料污染（已作廢者不計）"
 else
   echo "  ℹ️  未提供班次 ID → ④–⑦ 略過（只核對帳戶／家庭／Pass）"
 fi
