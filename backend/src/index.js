@@ -670,7 +670,7 @@ try {
 try {
   const worker = require("./services/fulfillment-worker");
   const recon = require("./services/daily-reconciliation");
-  recon.ensureSchema(getDb());
+  recon.ensureSchema(require("./services/database").getDb());
   worker.start(5 * 60 * 1000);
   // 每小時檢查一次，只喺 HKT 00 時段跑前一日對帳（UNIQUE date 保證 idempotent）
   setInterval(async () => {
