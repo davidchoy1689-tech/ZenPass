@@ -69,6 +69,7 @@ function ensureRefundColumns(db) {
       ["refund_reported_at", "TEXT"],
       ["refunded_at", "TEXT"],
       ["refund_requested_at", "TEXT"],
+      ["cancelled_at", "TEXT"],
     ];
     add.forEach(([n, t]) => { if (!cols.includes(n)) db.prepare(`ALTER TABLE bookings ADD COLUMN ${n} ${t}`).run(); });
   } catch (e) {
@@ -1564,17 +1565,33 @@ function cancelBooking(req) {
   const db = getDb();
   db.pragma("foreign_keys = ON");
   const { reason } = req.body;
+  ensureRefundColumns(db);
 
   const booking = db
     .prepare(
       `SELECT b.*, cs.start_time FROM bookings b
        JOIN class_schedules cs ON b.schedule_id = cs.id
-       WHERE b.id = ? AND b.user_id = ?`,
+       WHERE b.id = ?`,
     )
-    .get(req.params.id, req.user.id);
+    .get(req.params.id);
 
   if (!booking) {
     return { status: 404, body: { success: false, error: "預約不存在" } };
+  }
+
+  const isOwner = booking.user_id === req.user.id;
+  let isFamilyOwner = false;
+  if (!isOwner) {
+    isFamilyOwner = !!db
+      .prepare(
+        `SELECT 1 FROM family_members fm
+           JOIN family_groups fg ON fg.id = fm.family_group_id
+          WHERE fm.member_user_id = ? AND fg.owner_user_id = ? LIMIT 1`,
+      )
+      .get(booking.user_id, req.user.id);
+  }
+  if (!isOwner && !isFamilyOwner) {
+    return { status: 403, body: { success: false, error: "你無權取消此預約" } };
   }
 
   // 🚫 安全（2026-10-19）：只可以取消未上堂嘅預約。原本重複取消會再次退 credits／退款、
@@ -1586,6 +1603,28 @@ function cancelBooking(req) {
     };
   }
 
+  // 🎫 次數 Pass：開課前 24 小時可自助取消，全額返還 1 堂（Phase 2.3）
+  if (booking.payment_type === "pass" && booking.pass_id) {
+    if (booking.status !== "confirmed") {
+      return { status: 400, body: { success: false, error: "此預約尚未確認，無需取消" } };
+    }
+    const rawStart = String(booking.start_time);
+    const startIso = /Z|[+-]\d\d:?\d\d$/.test(rawStart) ? rawStart : rawStart.replace(" ", "T") + "Z";
+    const hoursUntil = (new Date(startIso) - Date.now()) / 3600000;
+    if (hoursUntil < 24) {
+      return {
+        status: 400,
+        body: {
+          success: false,
+          code: "CANCEL_WINDOW_CLOSED",
+          error: "開課前 24 小時內不接受線上取消，堂數將不予返還",
+          hours_until: Math.max(0, Math.round(hoursUntil * 10) / 10),
+        },
+      };
+    }
+    return _processPassCancel(db, booking, reason, req);
+  }
+
   const isPendingPayment = booking.status === "pending_payment";
 
   // 取消政策（2026-10-17 David 定）：
@@ -1595,7 +1634,8 @@ function cancelBooking(req) {
   let feeRate = 0;
   if (!isPendingPayment) {
     const now = new Date();
-    const classTime = new Date(booking.start_time);
+    const rawStart = String(booking.start_time);
+    const classTime = new Date(/Z|[+-]\d\d:?\d\d$/.test(rawStart) ? rawStart : rawStart.replace(" ", "T") + "Z");
     const hoursUntilClass = (classTime - now) / (1000 * 60 * 60);
     if (hoursUntilClass < 0) {
       return { status: 400, body: { success: false, error: "課程已開始，無法取消" } };
@@ -1612,7 +1652,7 @@ function cancelBooking(req) {
 
 function _processLateCancel(db, booking, hoursUntilClass, reason, req) {
   db.prepare(
-    "UPDATE bookings SET status = 'cancelled', cancel_reason = ? WHERE id = ?",
+    "UPDATE bookings SET status = 'cancelled', cancel_reason = ?, cancelled_at = datetime('now') WHERE id = ?",
   ).run(reason || null, booking.id);
   db.prepare(
     "UPDATE class_schedules SET enrolled_count = MAX(0, enrolled_count - ?) WHERE id = ?",
@@ -1705,10 +1745,85 @@ function _processLateCancel(db, booking, hoursUntilClass, reason, req) {
   };
 }
 
+function _processPassCancel(db, booking, reason, req) {
+  const passes = require("./passes");
+  const { audit } = require("./audit");
+  let inTx = false;
+  try {
+    db.exec("BEGIN IMMEDIATE");
+    inTx = true;
+    const upd = db
+      .prepare(
+        `UPDATE bookings
+            SET status='cancelled', cancel_reason=?, cancelled_at=datetime('now')
+          WHERE id=? AND status='confirmed'`,
+      )
+      .run(reason || "user_self_cancel", booking.id);
+    if (upd.changes !== 1) {
+      db.exec("ROLLBACK");
+      inTx = false;
+      return { status: 409, body: { success: false, error: "此預約已被取消" } };
+    }
+    db.prepare(
+      "UPDATE class_schedules SET enrolled_count = MAX(0, enrolled_count - ?) WHERE id = ?",
+    ).run(Number(booking.group_size) || 1, booking.schedule_id);
+
+    const restored = passes.restoreInTx(db, { passId: booking.pass_id, bookingId: booking.id });
+    const passRow = db
+      .prepare("SELECT remaining_credits,status,expires_at FROM user_passes WHERE id=?")
+      .get(booking.pass_id);
+    db.exec("COMMIT");
+    inTx = false;
+
+    try {
+      audit({
+        actionType: "booking.user_cancelled_pass_refunded",
+        entityType: "booking",
+        entityId: booking.id,
+        userId: req.user.id,
+        newValues: {
+          attendee_user_id: booking.user_id,
+          pass_id: booking.pass_id,
+          pass_refunded: restored,
+          remaining_credits: passRow ? passRow.remaining_credits : null,
+        },
+        description: "學員 24 小時前自助取消，返還 1 堂",
+      });
+    } catch (e) {}
+    try {
+      const { autoNotifyOnCancel } = require("../routes/waitlist");
+      autoNotifyOnCancel(booking.schedule_id);
+    } catch (e) {}
+    try {
+      const { sendNotification } = require("./notification");
+      sendNotification("booking.cancelled", {
+        recipient: booking.user_id,
+        data: { booking_id: booking.id, message: "預約已取消，1 堂已退回 Pass。" },
+      });
+    } catch (e) {}
+
+    return {
+      status: 200,
+      body: {
+        success: true,
+        message: restored ? "預約已取消，1 堂已退回你的 Pass。" : "預約已取消。",
+        pass_refunded: !!restored,
+        remaining_credits: passRow ? passRow.remaining_credits : null,
+      },
+    };
+  } catch (e) {
+    if (inTx) {
+      try { db.exec("ROLLBACK"); } catch (x) {}
+    }
+    console.error("[PASS CANCEL]", e.message);
+    return { status: 500, body: { success: false, error: "取消預約失敗" } };
+  }
+}
+
 function _processNormalCancel(db, booking, reason, req, feeRate) {
   feeRate = feeRate === 0.5 || feeRate === 1 ? feeRate : 0;
   db.prepare(
-    "UPDATE bookings SET status = 'cancelled', cancel_reason = ? WHERE id = ?",
+    "UPDATE bookings SET status = 'cancelled', cancel_reason = ?, cancelled_at = datetime('now') WHERE id = ?",
   ).run(reason || null, booking.id);
 
   // 🕒 v2.1：取消 → void hold

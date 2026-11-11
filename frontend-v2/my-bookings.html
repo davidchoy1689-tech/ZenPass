@@ -181,8 +181,15 @@
     }
     function row(b) {
       let actions = "";
-      if (b.status === "confirmed") actions = `<button class="btn btn-primary" onclick="openPass('${esc(b.id)}')">🎫 出示入場憑證</button><a class="btn btn-secondary" href="adult-pass.html?id=${encodeURIComponent(b.id)}">🎫 電子票券</a><a class="btn btn-secondary" href="print-card.html?id=${encodeURIComponent(b.id)}">🖨️ 隨身卡</a><button class="btn btn-secondary" onclick="cancelBk('${esc(b.id)}')">取消預約</button>` +
+      if (b.status === "confirmed") {
+        const cancelBtn = b.payment_type === "pass"
+          ? (hoursUntil(b.start_time) >= 24
+              ? `<button class="btn btn-secondary" onclick="cancelBk('${esc(b.id)}',1)">🗓️ 取消預約（可退 1 堂）</button>`
+              : `<button class="btn btn-secondary" disabled title="開課前 24 小時內不可取消">🔒 已過取消時限（24 小時內）</button>`)
+          : `<button class="btn btn-secondary" onclick="cancelBk('${esc(b.id)}',0)">取消預約</button>`;
+        actions = `<button class="btn btn-primary" onclick="openPass('${esc(b.id)}')">🎫 出示入場憑證</button><a class="btn btn-secondary" href="adult-pass.html?id=${encodeURIComponent(b.id)}">🎫 電子票券</a><a class="btn btn-secondary" href="print-card.html?id=${encodeURIComponent(b.id)}">🖨️ 隨身卡</a>${cancelBtn}` +
         `<a class="btn btn-secondary" href="child-waiver.html?ref=${encodeURIComponent(b.booking_reference || "")}">🧒 家長同意書</a>`;
+      }
       if (b.status === "confirmed") {
         const h = hoursUntil(b.start_time);
         actions += h >= 24
@@ -194,7 +201,7 @@
       return `<div class="card"><div class="body">
         <div style="display:flex;justify-content:space-between;align-items:start">
           <div><p class="bk-title">${esc(b.title || "課程")}</p>
-            <p class="muted" style="margin:0;font-size:13px">${fmtTime(b.start_time, b.end_time)}${b.venue_name ? " · " + esc(b.venue_name) : ""}</p></div>
+            <p class="muted" style="margin:0;font-size:13px">${b.student_name && api.getUser() && b.user_id !== api.getUser().id ? "👨‍👩‍👧 " + esc(b.student_name) + " · " : ""}${fmtTime(b.start_time, b.end_time)}${b.venue_name ? " · " + esc(b.venue_name) : ""}</p></div>
           ${badge(b.status)}
         </div>
         ${timeline(b)}
@@ -272,10 +279,13 @@
         : `<div class="card"><div class="body muted center">呢度暫時冇預約。</div></div>`;
     }
 
-    window.cancelBk = async (id) => {
-      if (!confirm("確定取消呢個預約？")) return;
+    window.cancelBk = async (id, isPass) => {
+      const msg = isPass
+        ? "確定取消此預約？開課前 24 小時取消，1 堂通行 Pass 會即時退回錢包。"
+        : "確定取消呢個預約？";
+      if (!confirm(msg)) return;
       const r = await api.post("/bookings/" + encodeURIComponent(id) + "/cancel", {});
-      if (r.ok) { await load(); } else { alert((r.data && r.data.error) || "取消失敗"); }
+      if (r.ok) { alert(r.data.message || "預約已取消"); await load(); } else { alert((r.data && r.data.error) || "取消失敗"); }
     };
 
     window.closeModal = (el) => { const o = el.closest(".modal-overlay"); if (o) o.remove(); };

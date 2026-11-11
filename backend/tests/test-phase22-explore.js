@@ -61,6 +61,12 @@ ok(elder.classes[0].remaining_seats === 8 && elder.classes[0].district === "葵�
 ok(elder.classes[0].target_audience_enum === "elderly" && elder.classes[0].price_cents === 14000, "受眾 enum 與金額 cents 正確");
 const office = explore.listExplore(db, { audience: "office_worker", district: "wc" });
 ok(office.classes.length === 1 && office.classes[0].schedule_id === "sch-c-office", "灣仔＋上班族篩選");
+const near = new Date(Date.now() + 12 * 3600000).toISOString().slice(0, 19).replace("T", " ");
+const nearEnd = new Date(Date.now() + 13 * 3600000).toISOString().slice(0, 19).replace("T", " ");
+db.prepare(`INSERT INTO classes (id,coach_id,title,category,duration,price_hkd,max_participants,status,target_audience_enum,target_audience_label,district,booking_open,venue_name)
+            VALUES ('c-near','coach1','12小時後防跌班','stretch',60,140,8,'active','elderly','熟齡防跌','葵青',1,'青衣體育館')`).run();
+db.prepare(`INSERT INTO class_schedules (id,class_id,start_time,end_time,max_participants,enrolled_count,status,booking_open,district)
+            VALUES ('sch-near','c-near',?,?,8,0,'available',1,'葵青')`).run(near, nearEnd);
 const t0 = process.hrtime.bigint();
 for (let i = 0; i < 30; i++) explore.listExplore(db, { audience: "elderly", district: "kts" });
 const avgMs = Number(process.hrtime.bigint() - t0) / 1e6 / 30;
@@ -72,6 +78,7 @@ ok(issued.ok, "家庭 Pass 簽發");
 const token = jwt.sign({ id: "daughter", role: "user", tv: 0 }, process.env.JWT_SECRET, { expiresIn: "1h" });
 const tokenFather = jwt.sign({ id: "father", role: "user", tv: 0 }, process.env.JWT_SECRET, { expiresIn: "1h" });
 const tokenNoPass = jwt.sign({ id: "nopass", role: "user", tv: 0 }, process.env.JWT_SECRET, { expiresIn: "1h" });
+const tokenStranger = jwt.sign({ id: "stranger", role: "user", tv: 0 }, process.env.JWT_SECRET, { expiresIn: "1h" });
 
 const express = require("express");
 const app = express();
@@ -81,7 +88,7 @@ app.use("/api/public/explore", explore);
 const server = app.listen(0, async () => {
   const base = "http://127.0.0.1:" + server.address().port;
   const pub = await fetch(base + "/api/public/explore/classes?audience=elderly&district=kts").then((r) => r.json());
-  ok(pub.success && pub.classes.length === 1 && pub.classes[0].schedule_id === "sch-c-elder", "公開 HTTP 端點回傳正確");
+  ok(pub.success && pub.classes.some((c) => c.schedule_id === "sch-c-elder"), "公開 HTTP 端點回傳正確");
   const call = (body, key, tk) => fetch(base + "/api/bookings/book-with-pass", {
     method: "POST",
     headers: { "content-type": "application/json", authorization: "Bearer " + (tk || token), "idempotency-key": key || "k-" + Date.now() + Math.random() },
@@ -97,13 +104,37 @@ const server = app.listen(0, async () => {
   const badge = fw.describePass(db, "father", issued.pass.id);
   ok(badge.pass_type === "family" && badge.remaining_units === 3 && badge.display_badge.includes("陳小姐"), "Roster 家庭 Pass badge");
 
+  const cancelApi = (id, tk) => fetch(base + "/api/bookings/" + id + "/cancel", {
+    method: "POST",
+    headers: { "content-type": "application/json", authorization: "Bearer " + (tk || token) },
+    body: JSON.stringify({}),
+  }).then(async (r) => ({ status: r.status, body: await r.json() }));
+  const c1 = await cancelApi(r1.body.booking_id);
+  ok(c1.status === 200 && c1.body.pass_refunded && c1.body.remaining_credits === 4, "AC-1 24 小時前取消 → Pass 3→4");
+  ok(db.prepare("SELECT status,cancelled_at FROM bookings WHERE id=?").get(r1.body.booking_id).status === "cancelled", "booking 標記 cancelled＋cancelled_at");
+  ok(Number(db.prepare("SELECT enrolled_count FROM class_schedules WHERE id='sch-c-elder'").get().enrolled_count) === 0, "取消後釋放席位");
+  ok(explore.listExplore(db, { audience: "elderly", district: "kts" }).classes.find((c) => c.schedule_id === "sch-c-elder").remaining_seats === 8, "探索 API 剩餘席位 +1");
+  ok(db.prepare("SELECT COUNT(*) c FROM coach_earnings WHERE schedule_id='sch-c-elder'").get().c === 0, "AC-4 無教練分錄");
+
+  const nearBook = await call({ schedule_id: "sch-near", attendee_user_id: "father" }, null, tokenFather);
+  ok(nearBook.status === 201, "預約 12 小時後班次");
+  const c2 = await cancelApi(nearBook.body.booking_id, tokenFather);
+  ok(c2.status === 400 && c2.body.code === "CANCEL_WINDOW_CLOSED", "AC-2 24 小時內拒絕取消");
+  ok(db.prepare("SELECT status FROM bookings WHERE id=?").get(nearBook.body.booking_id).status === "confirmed", "拒絕後維持 confirmed");
+  ok(Number(db.prepare("SELECT remaining_credits FROM user_passes WHERE id=?").get(issued.pass.id).remaining_credits) === 3, "拒絕後堂數不變");
+
+  const c3 = await cancelApi(nearBook.body.booking_id, jwt.sign({ id: "stranger", role: "user", tv: 0 }, process.env.JWT_SECRET, { expiresIn: "1h" }));
+  ok(c3.status === 403, "AC-3 非預約人／非家庭主帳戶 403");
+
   const r2 = await call({ schedule_id: "sch-c-elder", attendee_user_id: "father" });
-  ok(r2.status === 409 && r2.body.code === "ALREADY_BOOKED", "重複預約被擋");
+  ok(r2.status === 201, "取消後可重新預約");
+  const r2dup = await call({ schedule_id: "sch-c-elder", attendee_user_id: "father" }, null, tokenFather);
+  ok(r2dup.status === 409 && r2dup.body.code === "ALREADY_BOOKED", "重複預約被擋", r2dup);
 
-  const r3 = await call({ schedule_id: "sch-c-office", attendee_user_id: "stranger" });
-  ok(r3.status === 403 && r3.body.code === "FAMILY_MEMBER_REQUIRED", "不可替非家庭成員預約");
+  const r3 = await call({ schedule_id: "sch-c-office", attendee_user_id: "stranger" }, null, tokenNoPass);
+  ok(r3.status === 403 && r3.body.code === "FAMILY_MEMBER_REQUIRED", "不可替非家庭成員預約", r3);
 
-  const r4 = await call({ schedule_id: "sch-c-full", attendee_user_id: "father" }, null, tokenFather);
+  const r4 = await call({ schedule_id: "sch-c-full", attendee_user_id: "stranger" }, null, tokenStranger);
   ok(r4.status === 409 && r4.body.code === "CLASS_FULL", "額滿 409", r4);
 
   const r5 = await call({ schedule_id: "sch-c-office", attendee_user_id: "nopass" }, null, tokenNoPass);

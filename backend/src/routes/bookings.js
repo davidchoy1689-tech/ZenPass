@@ -467,8 +467,14 @@ router.get("/my", authenticateToken, (req, res) => {
     db.pragma("foreign_keys = ON");
 
     const { status, page = 1, limit = 20 } = req.query;
-    let whereConditions = ["b.user_id = ?"];
-    let params = [req.user.id];
+    let whereConditions = [
+      `(b.user_id = ? OR b.user_id IN (
+          SELECT fm.member_user_id FROM family_members fm
+          JOIN family_groups fg ON fg.id = fm.family_group_id
+          WHERE fg.owner_user_id = ?
+        ))`,
+    ];
+    let params = [req.user.id, req.user.id];
 
     if (status) {
       whereConditions.push("b.status = ?");
@@ -480,11 +486,12 @@ router.get("/my", authenticateToken, (req, res) => {
 
     const bookings = db
       .prepare(
-        `SELECT b.*, c.title, c.category, c.duration, c.price_hkd, c.venue_name, c.venue_address, c.latitude, c.longitude, c.coach_id, c.partner_venue_id, cs.start_time, cs.end_time, u.name as coach_name
+        `SELECT b.*, c.title, c.category, c.duration, c.price_hkd, c.venue_name, c.venue_address, c.latitude, c.longitude, c.coach_id, c.partner_venue_id, cs.start_time, cs.end_time, u.name as coach_name, su.name as student_name
          FROM bookings b
          JOIN classes c ON b.class_id = c.id
          JOIN class_schedules cs ON b.schedule_id = cs.id
          LEFT JOIN users u ON c.coach_id = u.id
+         LEFT JOIN users su ON su.id = b.user_id
          WHERE ${whereClause}
          ORDER BY cs.start_time DESC
          LIMIT ? OFFSET ?`
