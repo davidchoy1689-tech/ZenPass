@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="zh-HK">
+<head>
+<meta charset="UTF-8" /><meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover" />
+<title>極速掃碼核銷 · ZenPass</title>
+<link rel="stylesheet" href="assets/v2.css?v=26" />
+<style>
+body{background:#0f172a;color:#fff;margin:0}
+.wrap{max-width:520px;margin:0 auto;padding:18px}
+h1{font-size:19px;margin:4px 0 4px}
+p{font-size:12.5px;color:#94a3b8;line-height:1.6}
+#reader{border-radius:16px;overflow:hidden;background:#000;min-height:220px}
+.result{background:#1e293b;border-radius:14px;padding:14px;margin-top:12px;font-size:13px;line-height:1.6}
+.result.ok{background:#064e3b;border:1px solid #10b981}
+.result.bad{background:#450a0a;border:1px solid #ef4444}
+.manual{display:flex;gap:6px;margin-top:12px}
+.manual input{flex:1;border:0;border-radius:10px;padding:11px;font:inherit;font-size:13px}
+.manual button{border:0;border-radius:10px;padding:11px 14px;font:inherit;font-weight:800;background:#0f766e;color:#fff}
+.btn{width:100%;border:0;border-radius:12px;padding:13px;font:inherit;font-weight:900;background:#0f766e;color:#fff;margin-top:10px;cursor:pointer}
+</style>
+</head>
+<body><div class="wrap">
+<h1>📷 極速掃碼核銷</h1>
+<p>對準學員動態 QR。系統會驗證 30 秒時效、地理圍欄及防重複掃碼。</p>
+<div id="reader"></div>
+<button class="btn" id="startBtn">開始掃描</button>
+<div class="manual"><input id="manualToken" placeholder="或貼上 zk_… token" /><button id="manualGo">核銷</button></div>
+<div class="result" id="result">準備中…</div>
+</div>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script src="assets/api.js?v=10"></script>
+<script>
+const $ = (id) => document.getElementById(id);
+let scanner = null, busy = false;
+async function verify(token) {
+  if (busy) return; busy = true;
+  $("result").className = "result"; $("result").textContent = "驗證中…";
+  const pos = await new Promise((resolve) => {
+    if (!navigator.geolocation) return resolve(null);
+    navigator.geolocation.getCurrentPosition((p) => resolve(p.coords), () => resolve(null), { enableHighAccuracy: true, timeout: 5000 });
+  });
+  const r = await api.post("/coach/verify-checkin", {
+    checkin_token: token,
+    scanner_lat: pos ? pos.latitude : null,
+    scanner_lng: pos ? pos.longitude : null,
+    device_hash: "scanner-" + (navigator.userAgent || "").slice(-20),
+  });
+  busy = false;
+  if (r.ok) {
+    $("result").className = "result ok";
+    $("result").innerHTML = `☑ 核銷成功！${r.data.student_name || "學員"}<br>${r.data.fraud_audit_status === "clean" ? "✅ 距離正常 · 已結算" : "⚠️ 距離異常，已暫緩結算"}<br>距離：${r.data.distance_meters == null ? "未知" : r.data.distance_meters + "m"}`;
+    try { new AudioContext().createOscillator().start(); } catch (e) {}
+  } else {
+    $("result").className = "result bad";
+    $("result").textContent = "❌ " + ((r.data && r.data.error) || "核銷失敗") + ((r.data && r.data.code) ? " (" + r.data.code + ")" : "");
+  }
+}
+$("startBtn").onclick = async () => {
+  if (!scanner) scanner = new Html5Qrcode("reader");
+  await scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 230 }, (text) => verify(text), () => {});
+  $("startBtn").textContent = "掃描中…";
+};
+$("manualGo").onclick = () => verify($("manualToken").value.trim());
+</script></body></html>

@@ -29,6 +29,7 @@ function ensureSchema(db) {
 function settleStudioSchedule(scheduleId) {
   const db = getDb();
   ensureSchema(db);
+  try { require("../routes/checkin").ensureSchema(db); } catch (e) {}
   const sched = db
     .prepare(
       `SELECT s.id, s.studio_id, s.coach_id, s.start_time, c.title,
@@ -45,6 +46,7 @@ function settleStudioSchedule(scheduleId) {
     .prepare(
       `SELECT b.*, c.price_hkd FROM bookings b JOIN classes c ON c.id=b.class_id
         WHERE b.schedule_id=? AND b.payment_status='paid'
+          AND COALESCE(b.fraud_audit_status,'clean') NOT LIKE 'flagged%'
           AND b.status IN ('attended','confirmed')`,
     )
     .all(scheduleId);

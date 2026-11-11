@@ -48,6 +48,15 @@
     .up-card button{border:1px solid #FCA5A5;background:#fff;color:#B91C1C;border-radius:9px;padding:8px 10px;font:inherit;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap}
     .up-card button:disabled{border-color:#E2E8F0;color:#94A3B8;background:#F8FAFC;cursor:not-allowed}
     .up-title{font-size:14px;font-weight:900;margin:14px 0 8px}
+    .qr-modal{position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:18px}
+    .qr-modal[hidden]{display:none}
+    .qr-box{background:#fff;border-radius:20px;padding:20px;text-align:center;max-width:340px;width:100%}
+    .qr-box h3{margin:0 0 4px;font-size:16px}
+    .qr-box .s{font-size:12px;color:#64748b;margin-bottom:10px}
+    #qrCanvas{display:flex;justify-content:center;margin:10px 0}
+    .qr-count{font-size:12px;font-weight:900;color:#b45309}
+    .qr-pin{font-size:22px;font-weight:900;letter-spacing:4px;margin:8px 0;color:#0f766e}
+    .qr-box button{width:100%;border:0;border-radius:11px;padding:11px;font:inherit;font-weight:800;background:#f1f5f9;color:#334155;margin-top:8px}
   </style>
 </head>
 <body>
@@ -59,6 +68,16 @@
     <div id="list"><div class="h-empty">載入中…</div></div>
   </div>
   <div class="h-toast" id="toast"></div>
+<div class="qr-modal" id="qrModal" hidden><div class="qr-box">
+  <h3 id="qrTitle">即時入場通行憑證</h3>
+  <div class="s" id="qrSub"></div>
+  <div id="qrCanvas"></div>
+  <div class="qr-count" id="qrCount"></div>
+  <div class="s" style="margin-top:10px">🔑 門店備用 PIN</div>
+  <div class="qr-pin" id="qrPin">------</div>
+  <button id="qrClose" type="button">關閉</button>
+</div></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="assets/api.js?v=10"></script>
 <script>
   const $ = (id) => document.getElementById(id);
@@ -158,7 +177,7 @@
         const btn = h >= 24
           ? `<button data-cancel="${esc(b.id)}">🗓️ 取消預約（退還 1 堂）</button>`
           : `<button disabled title="開課前 24 小時內不可取消">🔒 24 小時內不可退</button>`;
-        return `<div class="up-card"><div><b>${esc(b.title || "課堂")}</b><div class="s">${esc(String(b.start_time || "").slice(0, 16))}${b.venue_name ? " · " + esc(b.venue_name) : ""}</div></div>${btn}</div>`;
+        return `<div class="up-card"><div><b>${esc(b.title || "課堂")}</b><div class="s">${esc(String(b.start_time || "").slice(0, 16))}${b.venue_name ? " · " + esc(b.venue_name) : ""}</div></div><div style="display:flex;flex-direction:column;gap:6px"><button data-checkin="${esc(b.id)}" style="border-color:#5eead4;color:#0f766e">🎟️ 入場碼</button>${btn}</div></div>`;
       }).join("");
       $("upcoming").querySelectorAll("[data-cancel]").forEach((btn) => {
         btn.onclick = async () => {
@@ -169,7 +188,38 @@
           else { btn.disabled = false; alert((rr.data && rr.data.error) || "取消失敗"); }
         };
       });
+      $("upcoming").querySelectorAll("[data-checkin]").forEach((btn) => {
+        btn.onclick = () => openQr(btn.dataset.checkin);
+      });
     } catch (e) {}
+  }
+
+  let qrTimer = null;
+  async function openQr(bookingId) {
+    const modal = $("qrModal");
+    modal.hidden = false;
+    $("qrCanvas").innerHTML = "";
+    $("qrPin").textContent = "------";
+    const load = async () => {
+      const r = await api.get("/student/checkin-token/" + encodeURIComponent(bookingId));
+      if (!r.ok) { $("qrSub").textContent = (r.data && r.data.error) || "尚未到入場時間"; return; }
+      $("qrSub").textContent = "每 30 秒自動更新 · 禁止截圖轉發";
+      new QRCode($("qrCanvas"), { text: r.data.token, width: 190, height: 190, correctLevel: QRCode.CorrectLevel.M });
+      let left = r.data.expires_in_seconds || 30;
+      clearInterval(qrTimer);
+      qrTimer = setInterval(async () => {
+        left--;
+        $("qrCount").textContent = `🔄 ${Math.max(left, 0)} 秒後更新`;
+        if (left <= 0) { clearInterval(qrTimer); await load(); }
+      }, 1000);
+      $("qrCount").textContent = `🔄 ${left} 秒後更新`;
+      try {
+        const p = await api.get("/student/door-pin/" + encodeURIComponent(bookingId));
+        if (p.ok) $("qrPin").textContent = p.data.pin;
+      } catch (e) {}
+    };
+    $("qrClose").onclick = () => { clearInterval(qrTimer); modal.hidden = true; };
+    await load();
   }
   async function loadAnnouncements(sessionId) {
     try {

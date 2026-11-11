@@ -1026,6 +1026,7 @@ router.put("/settings/:key", authenticateToken, requireAdmin, (req, res) => {
 function syncCoachEarningsForSchedule(scheduleId) {
   const db = getDb();
   try { require("./merchant").ensureSchema(db); } catch (e) {}
+  try { require("./checkin").ensureSchema(db); } catch (e) {}
   try {
     db.pragma("foreign_keys = ON");
 
@@ -1328,6 +1329,7 @@ function maskStudentName(n) {
 
 function buildMonthlyBreakdown(db, coachId, month) {
   const affiliateSvc = require("../services/coach-affiliate");
+  try { require("./checkin").ensureSchema(db); } catch (e) {}
   const includeSandbox = process.env.EARNINGS_INCLUDE_SANDBOX === "1" ? 1 : 0;
   try {
     affiliateSvc.ensureSchema(db);
@@ -1360,6 +1362,7 @@ function buildMonthlyBreakdown(db, coachId, month) {
   const countStmt = db.prepare(
     `SELECT COUNT(*) c FROM bookings b LEFT JOIN attendances a ON a.booking_id=b.id
       WHERE b.schedule_id=? AND b.payment_status='paid'
+        AND COALESCE(b.fraud_audit_status,'clean') NOT LIKE 'flagged%'
         AND (a.status IN ('present','absent_unexcused','late')
              OR (a.status IS NULL AND b.status IN ('attended','no_show')))`,
   );
@@ -1377,6 +1380,7 @@ function buildMonthlyBreakdown(db, coachId, month) {
        LEFT JOIN student_coach_affiliations f ON f.student_user_id = b.user_id AND f.status='active'
        LEFT JOIN attendances a ON a.booking_id = b.id
       WHERE b.schedule_id = ? AND b.payment_status='paid'
+        AND COALESCE(b.fraud_audit_status,'clean') NOT LIKE 'flagged%'
         AND b.status IN ('confirmed','attended')
         AND (a.status IN ('present','late') OR (a.status IS NULL AND b.status='attended'))
       ORDER BY datetime(b.created_at)`,
