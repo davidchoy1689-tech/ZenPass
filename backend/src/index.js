@@ -30,6 +30,8 @@ initDatabase();
 try {
   const { getDb } = require("./services/database");
   require("./routes/checkin").ensureSchema(getDb());
+  require("./services/b2b-corporate").ensureSchema(getDb());
+  require("./routes/fps-clearing").ensureSchema(getDb());
 } catch (e) {
   logger.warn("[CHECKIN] schema 初始化失敗: " + e.message);
 }
@@ -284,6 +286,8 @@ app.use("/api", require("./routes/private-slots"));
 app.use("/api", require("./routes/buddy"));
 app.use("/api", require("./routes/merchant"));
 app.use("/api", require("./routes/checkin"));
+app.use("/api", require("./routes/b2b"));
+app.use("/api", require("./routes/fps-clearing"));
 app.use("/api/public/explore", require("./routes/explore-map"));
 app.use("/api/public/explore", require("./routes/public-explore"));
 // 🔁 對外相容 alias：GET /api/schedules → 同 /api/classes 同一套邏輯（外部自動化／B2B 串接慣用 RESTful 命名）

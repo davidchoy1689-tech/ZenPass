@@ -1,83 +1,142 @@
 <!doctype html>
 <html lang="zh-HK">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <meta name="theme-color" content="#ff6b35" />
-  <meta name="description" content="ZenPass 企業健康計劃：為公司團隊提供新興運動、運動班及健康活動方案。" />
-  <meta name="zp-build" content="2026-10-25 20:28" />
-  <title>企業健康計劃 · ZenPass 禪流</title>
-  <link rel="stylesheet" href="assets/v2.css?v=26" />
-  <link rel="stylesheet" href="assets/polish.css?v=1" />
-  <link rel="stylesheet" href="assets/ui-v3.css?v=5" />
-  <style>
-    .fld{width:100%;box-sizing:border-box;padding:12px 14px;border:1px solid var(--border);border-radius:12px;font:inherit;background:var(--surface);color:var(--text)}
-    label.lbl{font-size:13px;color:var(--text-muted);display:block;margin:10px 0 4px}
-    .adv{display:flex;gap:12px;padding:12px 16px}
-    .adv .ic{font-size:22px}
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ZenPass for Business · 企業員工健康福利</title>
+<link rel="stylesheet" href="/assets/style.css?v=12">
+<style>
+  body{margin:0;font-family:'Noto Sans TC',system-ui,-apple-system,sans-serif;background:#f8fafc;color:#0f172a}
+  .wrap{max-width:640px;margin:0 auto;padding:28px 18px 60px}
+  .hero{background:linear-gradient(135deg,#0f766e,#0d9488);color:#fff;border-radius:20px;padding:26px 22px;margin-bottom:18px}
+  .hero h1{margin:0 0 6px;font-size:24px}
+  .hero p{margin:0;opacity:.9;font-size:14px;line-height:1.6}
+  .card{background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:20px;margin-bottom:14px}
+  label{display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:#334155}
+  input{width:100%;box-sizing:border-box;padding:13px 14px;font-size:16px;border:1px solid #cbd5e1;border-radius:10px;outline:none}
+  input:focus{border-color:#0d9488;box-shadow:0 0 0 3px rgba(13,148,136,.12)}
+  button{width:100%;margin-top:12px;padding:14px;font-size:16px;font-weight:700;border:0;border-radius:10px;background:#0f766e;color:#fff;cursor:pointer}
+  button:disabled{opacity:.55;cursor:not-allowed}
+  .muted{color:#64748b;font-size:13px;line-height:1.7}
+  .ok{background:#ecfdf5;border-color:#a7f3d0;color:#065f46}
+  .err{background:#fef2f2;border-color:#fecaca;color:#991b1b}
+  .badge{display:inline-block;background:#ecfdf5;color:#065f46;border-radius:999px;padding:4px 10px;font-size:12px;font-weight:700}
+  ul{padding-left:18px;margin:8px 0;color:#334155;font-size:14px;line-height:1.9}
+  .quota{display:flex;gap:10px;margin-top:12px}
+  .quota div{flex:1;background:#f1f5f9;border-radius:12px;padding:12px;text-align:center}
+  .quota b{display:block;font-size:22px;color:#0f766e}
+  a{color:#0f766e}
+</style>
 </head>
 <body>
-  <div class="hero"><h1>🏢 企業健康計劃</h1><p>提升團隊身心健康，同時凝聚士氣<br>為公司度身訂造運動與健康方案</p></div>
-  <div class="wrap">
-    <div id="zpBrochureSlot"></div>
-    <div class="section-title">✨ 計劃優勢</div>
-    <div class="card">
-      <div class="adv"><div class="ic">🏅</div><div><b>專業教練到會</b><div class="muted" style="font-size:13px">持認證教練到公司／指定場地授課</div></div></div>
-      <div class="adv"><div class="ic">🧘</div><div><b>多元運動選擇</b><div class="muted" style="font-size:13px">瑜伽、伸展、新興運動、團隊競技等</div></div></div>
-      <div class="adv"><div class="ic">💳</div><div><b>企業 Credits 制度</b><div class="muted" style="font-size:13px">公司先購 Credits，員工自助預約，靈活方便</div></div></div>
-      <div class="adv"><div class="ic">📊</div><div><b>參與報告</b><div class="muted" style="font-size:13px">定期健康活動成效報告</div></div></div>
-    </div>
-
-    <div class="section-title">🧭 合作流程</div>
-    <div class="card"><div class="body">
-      <div>1️⃣ 查詢 — 填寫表格，告知公司需要</div>
-      <div style="margin-top:8px">2️⃣ 諮詢 — 專人了解團隊規模與目標，提供報價</div>
-      <div style="margin-top:8px">3️⃣ 試辦 — 安排一次體驗活動</div>
-      <div style="margin-top:8px">4️⃣ 開展 — 正式推行企業健康計劃</div>
-    </div></div>
-
-    <div class="section-title">✉️ 查詢企業方案</div>
-    <div id="zpBrochureSlotForm"></div>
-    <div class="card" id="formCard"><div class="body">
-      <label class="lbl">公司名稱 *</label><input class="fld" id="c-name" />
-      <label class="lbl">聯絡人姓名 *</label><input class="fld" id="c-contact" />
-      <label class="lbl">聯絡電郵 *</label><input class="fld" id="c-email" type="email" />
-      <label class="lbl">聯絡電話</label><input class="fld" id="c-phone" type="tel" />
-      <label class="lbl">有興趣嘅活動</label><input class="fld" id="c-interest" placeholder="例：瑜伽班、團隊新興運動日" />
-      <label class="lbl">備註 / 查詢內容</label><textarea class="fld" id="c-msg" rows="3"></textarea>
-      <div class="spacer"></div>
-      <button class="btn btn-primary btn-block" id="submit">提交查詢 🚀</button>
-      <div id="msg" class="center muted" style="font-size:13px;margin-top:10px"></div>
-    </div></div>
-    <div class="spacer"></div>
-    <p class="muted center" style="font-size:13px"><a href="school.html" style="color:var(--brand-600);font-weight:700">🏫 睇學校 ECA 方案</a></p>
-    <div class="spacer"></div>
+<div class="wrap">
+  <div class="hero">
+    <h1>🏢 ZenPass for Business</h1>
+    <p>企業員工專屬健康福利 — 每月免費堂數，全港 18 區瑜伽、泰拳、痛症小班自由選。免報銷、免發票、App 內一鍵預約。</p>
   </div>
-  <script src="assets/api.js?v=3"></script>
-  <script src="assets/brochure.js?v=1"></script>
-  <script>
-    document.getElementById("submit").onclick = async () => {
-      const msg = document.getElementById("msg");
-      const body = {
-        company_name: document.getElementById("c-name").value.trim(),
-        contact_name: document.getElementById("c-contact").value.trim(),
-        contact_email: document.getElementById("c-email").value.trim(),
-        contact_phone: document.getElementById("c-phone").value.trim(),
-        activities: document.getElementById("c-interest").value.trim(),
-        message: document.getElementById("c-msg").value.trim(),
-      };
-      if (!body.company_name || !body.contact_name || !body.contact_email) { msg.textContent = "請填公司名稱、聯絡人、電郵"; return; }
-      const btn = document.getElementById("submit"); btn.disabled = true; btn.textContent = "提交中…";
-      const r = await api.post("/corporate/inquiry", body);
-      btn.disabled = false; btn.textContent = "提交查詢 🚀";
-      if (r.ok) {
-        document.getElementById("formCard").innerHTML = `<div class="body center"><div style="font-size:40px">🎉</div><p>${esc((r.data && r.data.message) || "查詢已提交，我哋會盡快聯絡你")}</p></div>`;
-      } else { msg.textContent = (r.data && r.data.error) || "提交失敗，請稍後再試"; }
-    };
-  </script>
-  <script src="assets/footer.js?v=6" defer></script>
-  <script>document.addEventListener("DOMContentLoaded",function(){zpBrochureMount("corporate","#zpBrochureSlot");});</script>
-  <script>document.addEventListener("DOMContentLoaded",function(){zpBrochureMount("corporate","#zpBrochureSlotForm");});</script>
+
+  <div class="card" id="loginCard" style="display:none">
+    <p class="muted">請先登入 ZenPass 帳戶，再驗證公司工作電郵。</p>
+    <button onclick="location.href='/login.html?next=/corporate.html'">登入 / 註冊</button>
+  </div>
+
+  <div class="card" id="verifyCard">
+    <label for="workEmail">公司工作電郵</label>
+    <input id="workEmail" type="email" placeholder="alex.chan@morganstanley.com" autocomplete="email">
+    <button id="sendBtn">✉️ 寄送驗證碼到公司郵箱</button>
+    <div id="msg" class="muted" style="margin-top:12px"></div>
+
+    <div id="otpBox" style="display:none;margin-top:16px">
+      <label for="otp">6 位驗證碼</label>
+      <input id="otp" inputmode="numeric" maxlength="6" placeholder="123456">
+      <button id="confirmBtn">✅ 驗證並開通企業福利</button>
+    </div>
+  </div>
+
+  <div class="card" id="memberCard" style="display:none">
+    <span class="badge" id="memberBadge"></span>
+    <div class="quota">
+      <div><b id="qQuota">0</b><span class="muted">每月配額</span></div>
+      <div><b id="qUsed">0</b><span class="muted">已用</span></div>
+      <div><b id="qLeft">0</b><span class="muted">剩餘</span></div>
+    </div>
+    <button onclick="location.href='/explore.html'">🔍 立即預約課堂</button>
+    <button style="background:#0ea5e9" onclick="location.href='/corporate-dashboard.html'">📊 企業 HR 看板</button>
+  </div>
+
+  <div class="card">
+    <b>✨ 合作企業專享</b>
+    <ul>
+      <li>每月免費 4 堂全港 18 區瑜伽 / 泰拳 / 痛症小班</li>
+      <li>免付費、免向公司報銷、App 內一鍵預約</li>
+      <li>企業預付款池統一結算，員工零墊支</li>
+      <li>企業福利只限本人使用，不可轉贈</li>
+    </ul>
+    <p class="muted">想為公司開通？請聯絡 <a href="mailto:info.zenpass@gmail.com">info.zenpass@gmail.com</a></p>
+  </div>
+</div>
+
+<script src="/assets/api.js?v=12"></script>
+<script>
+const $ = (id) => document.getElementById(id);
+function token() { return localStorage.getItem("zenpass_token"); }
+function say(el, text, cls) { el.className = "muted " + (cls || ""); el.textContent = text; }
+
+async function api(path, body) {
+  const r = await fetch(path, {
+    method: body ? "POST" : "GET",
+    headers: { "content-type": "application/json", authorization: "Bearer " + token(), "x-csrf-token": (window.ZenPassCSRF && ZenPassCSRF()) || "" },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  return { status: r.status, body: await r.json().catch(() => ({})) };
+}
+
+async function refreshMe() {
+  if (!token()) { $("loginCard").style.display = "block"; $("verifyCard").style.display = "none"; return; }
+  const r = await api("/api/b2b/employee/me");
+  const c = r.body.corporate;
+  if (c) {
+    $("verifyCard").style.display = "none";
+    $("memberCard").style.display = "block";
+    $("memberBadge").textContent = c.badge;
+    const q = r.body.quota || {};
+    $("qQuota").textContent = q.quota || 0;
+    $("qUsed").textContent = q.used || 0;
+    $("qLeft").textContent = q.remaining || 0;
+  }
+}
+
+$("sendBtn").onclick = async () => {
+  const email = $("workEmail").value.trim();
+  if (!email) return say($("msg"), "請輸入公司工作電郵", "err");
+  $("sendBtn").disabled = true;
+  const r = await api("/api/b2b/employee/verify", { work_email: email });
+  $("sendBtn").disabled = false;
+  if (r.status === 200) {
+    say($("msg"), r.body.email_sent ? "驗證碼已寄到你的公司電郵，10 分鐘內有效。" : "驗證碼已生成；如收不到電郵，請聯絡企業管理員。", "ok");
+    $("otpBox").style.display = "block";
+    if (r.body.dev_code) $("otp").value = r.body.dev_code;
+  } else {
+    say($("msg"), r.body.error || "發送失敗", "err");
+  }
+};
+
+$("confirmBtn").onclick = async () => {
+  const email = $("workEmail").value.trim();
+  const code = $("otp").value.trim();
+  if (!/^\d{6}$/.test(code)) return say($("msg"), "請輸入 6 位驗證碼", "err");
+  $("confirmBtn").disabled = true;
+  const r = await api("/api/b2b/employee/verify/confirm", { work_email: email, code });
+  $("confirmBtn").disabled = false;
+  if (r.status === 200) {
+    say($("msg"), "✅ 已開通 " + r.body.corporate.name + " 企業福利", "ok");
+    setTimeout(refreshMe, 600);
+  } else {
+    say($("msg"), r.body.error || "驗證失敗", "err");
+  }
+};
+
+refreshMe();
+</script>
 </body>
 </html>

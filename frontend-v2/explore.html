@@ -303,6 +303,7 @@
     <div class="bp-sheet" role="dialog" aria-modal="true">
       <h3 id="bpTitle">一鍵扣堂預約</h3>
       <p id="bpSub"></p>
+      <p id="bpCorp" hidden style="background:#ecfdf5;color:#065f46;border-radius:10px;padding:8px 10px;font-size:12px;font-weight:600;margin:8px 0"></p>
       <select id="bpAttendee"></select>
       <textarea id="bpFocus" maxlength="500" rows="2" placeholder="舊患／關注部位（選填，例如：右膝痛）" style="width:100%;box-sizing:border-box;border:1px solid #e2e8f0;border-radius:12px;padding:10px;font:inherit;font-size:13px;margin-top:8px"></textarea>
       <div class="bp-msg" id="bpMsg"></div>
@@ -593,19 +594,36 @@
       document.getElementById("bpGo").dataset.mode = mode;
     }
 
+    let corpInfo = null;
+    (async () => {
+      try {
+        const r = await api.get("/b2b/employee/me");
+        if (r.ok && r.data && r.data.corporate && r.data.quota && r.data.quota.remaining > 0) {
+          corpInfo = r.data;
+          const el = document.getElementById("bpCorp");
+          if (el) { el.hidden = false; el.textContent = `🏢 ${r.data.corporate.name} 企業福利 · 本月剩 ${r.data.quota.remaining} 堂（企業池支付，不扣個人 Pass）`; }
+        }
+      } catch (e) {}
+    })();
+
     document.getElementById("bpCancel").onclick = () => { document.getElementById("bpMask").hidden = true; };
     document.getElementById("bpMask").onclick = (e) => { if (e.target.id === "bpMask") e.currentTarget.hidden = true; };
     document.getElementById("bpGo").onclick = async () => {
       const btn = document.getElementById("bpGo");
       const msg = document.getElementById("bpMsg");
       const mode = btn.dataset.mode || "group";
-      btn.disabled = true; btn.textContent = "扣堂中…";
+      const meId = (() => { try { return (JSON.parse(localStorage.getItem("zenpass_user")) || {}).id; } catch (e) { return null; } })();
+      const attendee = document.getElementById("bpAttendee").value;
+      const useCorp = mode === "group" && corpInfo && meId && attendee === meId;
+      btn.disabled = true; btn.textContent = useCorp ? "企業福利扣額中…" : "扣堂中…";
       const r = mode === "private"
         ? await api.post("/bookings/book-private-slot", {
             slot_id: bpSchedule.id,
             attendee_user_id: document.getElementById("bpAttendee").value,
             health_focus: document.getElementById("bpFocus").value.trim(),
           })
+        : useCorp
+        ? await api.post("/bookings/book-with-corporate-pass", { schedule_id: bpSchedule.id })
         : await api.post("/bookings/book-with-pass", {
             schedule_id: bpSchedule.id,
             attendee_user_id: document.getElementById("bpAttendee").value,
@@ -613,9 +631,13 @@
       btn.disabled = false; btn.textContent = mode === "private" ? `確認扣 ${bpSchedule.units} 堂` : "確認扣 1 堂";
       if (r.ok) {
         msg.style.color = "#047857";
-        msg.textContent = `✅ 預約成功，Pass 餘 ${r.data.pass.remaining_credits} 堂。`;
+        msg.textContent = useCorp
+          ? `✅ 預約成功 · 企業池已扣 HK$${(Number(r.data.charged_cents || 0) / 100).toFixed(2)}，本月剩 ${r.data.quota.remaining} 堂。`
+          : `✅ 預約成功，Pass 餘 ${r.data.pass.remaining_credits} 堂。`;
         liveKey = "";
         setTimeout(() => { document.getElementById("bpMask").hidden = true; loadLiveNow(true); }, 1200);
+      } else if (r.data && r.data.code === "CORPORATE_QUOTA_EXCEEDED") {
+        msg.innerHTML = r.data.error + ' <a href="pass.html" style="color:#0f766e;font-weight:800">購買個人 Pass →</a>';
       } else if (r.data && (r.data.code === "NO_PASS" || r.data.code === "INSUFFICIENT_PASS_UNITS")) {
         msg.innerHTML = '此學員未有有效 Pass。<a href="pass.html" style="color:#0f766e;font-weight:800">立即購買 4 堂 Pass →</a>';
       } else {

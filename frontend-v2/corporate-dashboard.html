@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="zh-HK">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>企業 HR 看板 · ZenPass for Business</title>
+<link rel="stylesheet" href="/assets/style.css?v=12">
+<style>
+  body{margin:0;font-family:'Noto Sans TC',system-ui,-apple-system,sans-serif;background:#f8fafc;color:#0f172a}
+  .wrap{max-width:960px;margin:0 auto;padding:26px 18px 60px}
+  h1{font-size:22px;margin:0 0 4px}
+  .sub{color:#64748b;font-size:13px;margin-bottom:18px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:18px}
+  .stat{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:16px}
+  .stat span{display:block;color:#64748b;font-size:12px;margin-bottom:6px}
+  .stat b{font-size:24px;color:#0f766e}
+  .card{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:18px;margin-bottom:14px}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th,td{text-align:left;padding:9px 6px;border-bottom:1px solid #f1f5f9}
+  th{color:#64748b;font-size:12px;font-weight:600}
+  .bar{height:8px;background:#e2e8f0;border-radius:6px;overflow:hidden}
+  .bar i{display:block;height:100%;background:#0d9488}
+  .btn{display:inline-block;padding:10px 14px;border-radius:9px;background:#0f766e;color:#fff;text-decoration:none;font-size:14px;font-weight:700;margin-right:8px}
+  .btn.alt{background:#0ea5e9}
+  .muted{color:#64748b;font-size:13px;line-height:1.7}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>📊 企業健康福利看板</h1>
+  <div class="sub" id="sub">載入中…</div>
+
+  <div class="grid">
+    <div class="stat"><span>企業預付款池</span><b id="pool">—</b></div>
+    <div class="stat"><span>已驗證員工</span><b id="employees">—</b></div>
+    <div class="stat"><span>本月活躍員工</span><b id="active">—</b></div>
+    <div class="stat"><span>本月消耗</span><b id="spend">—</b></div>
+  </div>
+
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <b>員工活躍率</b><b id="rate">—</b>
+    </div>
+    <div class="bar"><i id="rateBar" style="width:0%"></i></div>
+    <p class="muted" id="rateHint">每月活躍員工 ÷ 已驗證員工</p>
+  </div>
+
+  <div class="card">
+    <b>🔥 本月熱門運動類別</b>
+    <table>
+      <thead><tr><th>類別</th><th>堂數</th></tr></thead>
+      <tbody id="topBody"><tr><td colspan="2" class="muted">暫無數據</td></tr></tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <b>🧾 統一發票</b>
+    <p class="muted">按月下載企業增值發票（對應預付款池扣減）</p>
+    <a class="btn" id="pdfLink" href="#">下載 PDF</a>
+    <a class="btn alt" id="csvLink" href="#">下載 CSV</a>
+  </div>
+
+  <div class="card">
+    <b>ℹ️ 合規說明</b>
+    <p class="muted">企業福利只限已驗證工作電郵的員工本人使用，不可轉贈。所有金額以整數 cents 記帳，預付款池扣減可逐筆追溯至訂單編號。</p>
+  </div>
+</div>
+
+<script src="/assets/api.js?v=12"></script>
+<script>
+const $ = (id) => document.getElementById(id);
+const tk = localStorage.getItem("zenpass_token");
+const month = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Hong_Kong" }).slice(0, 7);
+const hkd = (c) => "HK$" + (Number(c || 0) / 100).toLocaleString("zh-HK", { minimumFractionDigits: 2 });
+
+async function load() {
+  if (!tk) { location.href = "/login.html?next=/corporate-dashboard.html"; return; }
+  const r = await fetch("/api/b2b/dashboard", { headers: { authorization: "Bearer " + tk } });
+  const d = await r.json().catch(() => ({}));
+  if (!d.success) {
+    $("sub").textContent = d.error || "無法讀取企業資料";
+    return;
+  }
+  $("sub").textContent = d.corporate.name + " · " + d.month;
+  $("pool").textContent = hkd(d.pool_cents);
+  $("employees").textContent = d.employees;
+  $("active").textContent = d.active_employees;
+  $("spend").textContent = hkd(d.month_spend_cents) + " · " + d.month_bookings + " 堂";
+  $("rate").textContent = d.active_rate + "%";
+  $("rateBar").style.width = Math.min(100, d.active_rate) + "%";
+
+  const tb = $("topBody");
+  if (d.top_categories && d.top_categories.length) {
+    tb.innerHTML = d.top_categories.map((x) => `<tr><td>${x.category || "其他"}</td><td>${x.n}</td></tr>`).join("");
+  }
+  const cid = d.corporate.id;
+  async function download(format, filename) {
+    const r = await fetch(`/api/b2b/invoice?month=${month}&format=${format}&corporate_id=${encodeURIComponent(cid)}`, { headers: { authorization: "Bearer " + tk } });
+    if (!r.ok) { const j = await r.json().catch(() => ({})); alert(j.error || "下載失敗"); return; }
+    const blob = await r.blob();
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob); a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  }
+  $("pdfLink").onclick = (e) => { e.preventDefault(); download("pdf", `ZenPass-invoice-${month}.pdf`); };
+  $("csvLink").onclick = (e) => { e.preventDefault(); download("csv", `ZenPass-invoice-${month}.csv`); };
+}
+load();
+</script>
+</body>
+</html>
