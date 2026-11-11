@@ -18,9 +18,7 @@ const FRONTEND_URL = process.env.CORS_ORIGIN || "http://localhost:3001";
 let stripeClient = null;
 
 function getStripe() {
-  if (!stripeClient && STRIPE_SECRET && STRIPE_SECRET !== "sk_test_xxxxxxxxxxxxxxxxxxxx") {
-    stripeClient = require("stripe")(STRIPE_SECRET);
-  }
+  if (!stripeClient) stripeClient = require("../services/stripe").client();
   return stripeClient;
 }
 
@@ -123,6 +121,7 @@ router.post("/checkout/create-intent", authenticateToken, requirePhoneGate, asyn
       payment_intent_id: intent.id,
       amount_cents: plan.price_cents,
       plan,
+      family_group_id: familyGroupId || null,
     });
   } catch (e) {
     console.error("[PASS] create-intent:", e.message);

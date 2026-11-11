@@ -101,6 +101,14 @@
       <div class="fp-sub">60 天內有效。購買後可直接存入家庭群組，家人上課點名自動扣堂。<br>付款方式：Apple Pay／Google Pay／信用卡（Stripe 安全付款）。</div>
       <select id="familyPassGroup"><option value="">個人使用（不綁家庭）</option></select>
       <button class="btn btn-block" id="buyFamilyPass" type="button">即時付款 · HK$520</button>
+      <div id="stripePayPanel" hidden style="margin-top:12px;background:#fff;border-radius:12px;padding:12px;color:#0f172a">
+        <div id="express-checkout-element" style="margin-bottom:10px"></div>
+        <div id="pay-divider" style="display:flex;align-items:center;gap:8px;color:#94a3b8;font-size:12px;margin:6px 0 10px"><span style="flex:1;height:1px;background:#e2e8f0"></span>或使用信用卡<span style="flex:1;height:1px;background:#e2e8f0"></span></div>
+        <div id="payment-element"></div>
+        <div id="payment-error-alert" class="hidden" style="margin-top:10px;background:#fef2f2;border:1px solid #fecaca;color:#991b1b;border-radius:8px;padding:9px 10px;font-size:13px;line-height:1.5"></div>
+        <button class="btn btn-block" id="pay-submit-btn" type="button" style="margin-top:10px">立即付款 HK$ 520</button>
+        <button class="btn btn-block" id="pay-cancel-btn" type="button" style="background:transparent;color:#64748b;border:1px solid #e2e8f0;margin-top:6px">取消</button>
+      </div>
       <button class="btn btn-block" id="fpsFamilyPass" type="button" style="background:transparent;color:#fff;border:1px solid rgba(255,255,255,.55);margin-top:8px">轉數快 FPS 入數（人手核實）</button>
       <div class="fp-msg" id="familyPassMsg"></div>
     </section>
@@ -265,20 +273,143 @@
       }
       loadFamilyPass();
 
+      // ===== Phase 2.1-UI：Stripe Elements + Express Checkout =====
+      var zs = { stripe: null, elements: null, familyGroupId: null, piId: null, mounted: false };
+
+      function loadStripeJs() {
+        if (window.Stripe) return Promise.resolve();
+        return new Promise(function (resolve, reject) {
+          var s = document.createElement("script");
+          s.src = "https://js.stripe.com/v3/";
+          s.onload = resolve; s.onerror = reject;
+          document.head.appendChild(s);
+        });
+      }
+
+      function showPaymentError(msg) {
+        var box = $("payment-error-alert");
+        box.textContent = msg;
+        box.classList.remove("hidden");
+      }
+      function clearPaymentError() { $("payment-error-alert").classList.add("hidden"); }
+
+      function localizedPaymentError(error) {
+        var map = {
+          card_declined: "銀行拒絕此交易，請檢查信用卡額度或聯絡發卡銀行。",
+          insufficient_funds: "信用卡餘額不足，請更換其他卡片或使用 Apple Pay。",
+          expired_card: "卡片已過期，請輸入有效的信用卡資訊。",
+          incorrect_cvc: "安全碼 (CVC) 錯誤，請核對卡背 3 位數字。",
+          incorrect_number: "卡號不正確，請重新輸入。",
+          processing_error: "發卡機構處理逾時，請稍候重試或改用其他支付方式。",
+          authentication_required: "銀行需要額外驗證，請按指示完成 3D Secure。"
+        };
+        return map[error.code] || error.message || "付款未能完成，請重試。";
+      }
+
+      async function initStripePayment(planKey) {
+        var key = (window.ZP_STRIPE && window.ZP_STRIPE.stripe_publishable_key) || (STRIPE_CFG && STRIPE_CFG.stripe_publishable_key);
+        if (!key) throw new Error("PAYMENT_NOT_CONFIGURED");
+        await loadStripeJs();
+        var stripe = window.Stripe(key);
+
+        var r = await api.post("/passes/checkout/create-intent", {
+          plan_key: planKey,
+          family_group_id: $("familyPassGroup").value || null,
+        });
+        if (!r.ok || !r.data || !r.data.client_secret) {
+          if (r.data && r.data.code === "PHONE_REQUIRED") {
+            location.href = "/verify-phone.html";
+            return null;
+          }
+          if (r.data && r.data.code === "PHONE_VERIFICATION_REQUIRED") {
+            location.href = "/verify-phone.html";
+            return null;
+          }
+          showPaymentError((r.data && r.data.error) || "無法建立付款，請稍後重試");
+          return null;
+        }
+
+        var elements = stripe.elements({
+          clientSecret: r.data.client_secret,
+          appearance: { theme: "stripe", variables: { colorPrimary: "#0d9488", borderRadius: "8px" } },
+        });
+        zs = { stripe: stripe, elements: elements, familyGroupId: r.data.family_group_id || null, piId: r.data.payment_intent_id, mounted: false };
+
+        try {
+          var express = elements.create("expressCheckout", { buttonType: { applePay: "check-out", googlePay: "checkout" } });
+          express.mount("#express-checkout-element");
+          express.on("confirm", function () { $("pay-submit-btn").disabled = true; $("pay-submit-btn").textContent = "處理中，請勿關閉視窗…"; });
+        } catch (e) {
+          $("express-checkout-element").style.display = "none";
+          $("pay-divider").style.display = "none";
+        }
+
+        var payment = elements.create("payment", { layout: "tabs" });
+        payment.mount("#payment-element");
+        zs.mounted = true;
+        $("stripePayPanel").hidden = false;
+        $("pay-submit-btn").textContent = "立即付款 HK$ " + (Number(r.data.amount_cents || 52000) / 100).toFixed(0);
+        clearPaymentError();
+        return zs;
+      }
+
       $("buyFamilyPass").addEventListener("click", async function () {
         if (!api.requireLogin("pass.html")) return;
         var btn = this;
-        btn.disabled = true; btn.textContent = "建立付款頁…";
-        var r = await api.post("/passes/create-checkout", {
-          pass_plan_id: "pack_4",
-          family_group_id: $("familyPassGroup").value || null,
-        });
-        if (!r.ok || !r.data || !r.data.checkout_url) {
-          btn.disabled = false; btn.textContent = "即時付款 · HK$520";
-          $("familyPassMsg").textContent = (r.data && r.data.error) || "付款頁建立失敗，請用 FPS 或聯絡客服";
-          return;
+        btn.disabled = true; btn.textContent = "準備付款…";
+        try {
+          await initStripePayment("pack_4");
+        } catch (e) {
+          showPaymentError(e.message === "PAYMENT_NOT_CONFIGURED" ? "線上付款暫未開通，請使用轉數快 FPS。" : "付款頁載入失敗，請重試或使用 FPS。");
         }
-        window.location.href = r.data.checkout_url;
+        btn.disabled = false; btn.textContent = "即時付款 · HK$520";
+      });
+
+      $("pay-cancel-btn").addEventListener("click", function () {
+        $("stripePayPanel").hidden = true;
+        $("express-checkout-element").innerHTML = "";
+        $("payment-element").innerHTML = "";
+        zs.mounted = false;
+      });
+
+      $("pay-submit-btn").addEventListener("click", async function () {
+        if (!zs.mounted || !zs.stripe) return;
+        var btn = this;
+        btn.disabled = true; btn.textContent = "處理中，請勿關閉視窗…";
+        clearPaymentError();
+        try {
+          var out = await zs.stripe.confirmPayment({
+            elements: zs.elements,
+            confirmParams: { return_url: location.origin + "/family.html?payment_success=1" },
+            redirect: "if_required",
+          });
+          if (out.error) {
+            showPaymentError(localizedPaymentError(out.error));
+            btn.disabled = false; btn.textContent = "立即付款 HK$ 520";
+            return;
+          }
+          if (out.paymentIntent && out.paymentIntent.status === "succeeded") {
+            var done = await api.post("/passes/checkout/complete", { payment_intent_id: out.paymentIntent.id });
+            if (!done.ok) {
+              showPaymentError((done.data && done.data.error) || "付款成功但發卡確認中，請稍後到家庭錢包查看，或聯絡客服。");
+              return;
+            }
+            var hasGroup = !!zs.familyGroupId;
+            if (!hasGroup) {
+              try {
+                var fg = await api.get("/family/my");
+                hasGroup = !!(fg.data && fg.data.data && fg.data.data.length);
+              } catch (e) {}
+            }
+            location.href = hasGroup ? "/family.html?just_purchased=1" : "/family.html?setup=1&just_purchased=1";
+            return;
+          }
+          showPaymentError("付款尚未完成，請再試或改用其他支付方式。");
+          btn.disabled = false; btn.textContent = "立即付款 HK$ 520";
+        } catch (e) {
+          showPaymentError(localizedPaymentError(e));
+          btn.disabled = false; btn.textContent = "立即付款 HK$ 520";
+        }
       });
 
       $("fpsFamilyPass").addEventListener("click", async function () {

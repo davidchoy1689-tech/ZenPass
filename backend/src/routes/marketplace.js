@@ -12,8 +12,7 @@ const router = express.Router();
 let stripeClient = null;
 
 function stripe() {
-  const key = process.env.STRIPE_SECRET_KEY;
-  if (!stripeClient && key && key !== "sk_test_xxxxxxxxxxxxxxxxxxxx") stripeClient = require("stripe")(key);
+  if (!stripeClient) stripeClient = require("../services/stripe").client();
   return stripeClient;
 }
 

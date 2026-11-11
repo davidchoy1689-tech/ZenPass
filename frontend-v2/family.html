@@ -26,6 +26,7 @@
 <body>
   <div class="topbar"><a class="back" href="my.html">‹</a><div class="title">家庭共享錢包</div></div>
   <div class="wrap">
+    <div id="purchaseToast" hidden style="background:#ecfdf5;border:1px solid #a7f3d0;color:#065f46;border-radius:12px;padding:12px 14px;margin-bottom:12px;font-size:14px;line-height:1.6;font-weight:700"></div>
     <div class="card" style="padding:14px 16px">
       <div style="font-weight:900;font-size:17px;margin-bottom:4px">👨‍👩‍👧 一人買 Pass，全家上課</div>
       <div class="hint">付款人建立家庭群組並加入成員電話。之後家人預約或點名時，系統會先扣本人 Pass，再扣家庭 Pass。只支援堂數 Pass，月費計劃暫未開放。</div>
@@ -78,7 +79,37 @@
     (async () => {
       if (!api.requireLogin("family.html")) return;
       await loadAll();
+      await handlePostPurchase();
     })();
+
+    async function handlePostPurchase() {
+      const q = new URLSearchParams(location.search);
+      const just = q.get("just_purchased") === "1" || q.get("payment_success") === "1";
+      const setup = q.get("setup") === "1";
+      if (!just && !setup) return;
+
+      if (just) {
+        const famPasses = myPasses.filter((p) => p.family_group_id && Number(p.remaining_credits) > 0);
+        const credits = famPasses.reduce((s, p) => s + Number(p.remaining_credits || 0), 0);
+        const box = document.getElementById("purchaseToast");
+        box.hidden = false;
+        box.textContent = credits > 0
+          ? `🎉 付款成功！4 堂通行 Pass 已存入錢包 · 剩餘 ${credits} 堂（效期 60 天）`
+          : "🎉 付款成功！Pass 已存入錢包，可即時預約。";
+      }
+
+      if (setup) {
+        if (groups.length) {
+          setTimeout(() => addMember(groups[0].id), 400);
+        } else {
+          const card = document.getElementById("gname");
+          if (card) {
+            card.scrollIntoView({ behavior: "smooth", block: "center" });
+            card.focus();
+          }
+        }
+      }
+    }
 
     async function loadAll() {
       const [g, p] = await Promise.all([api.get("/family/my"), api.get("/passes/my")]);

@@ -92,7 +92,7 @@ ok(/pass_purchase/.test(pay) && /fulfillPassPurchase/.test(pay), "Stripe webhook
 ok(/payment_intent\.succeeded/.test(pay) && /product_type === "user_pass"/.test(pay), "PaymentIntent webhook 會自動發卡");
 const page = fs.readFileSync(path.join(__dirname, "../../frontend-v2/pass.html"), "utf8");
 ok(/4 堂全家健康通行 Pass/.test(page) && /HK\$520/.test(page), "pass.html 有 4 堂 $520 購卡卡");
-ok(/passes\/create-checkout/.test(page) && /passes\/complete-checkout/.test(page), "前端接建立付款與回跳發卡");
+ok(/passes\/checkout\/create-intent/.test(page) && /passes\/checkout\/complete/.test(page), "前端接 PaymentIntent 建立與完成發卡");
 ok(/fps-order/.test(page) && /轉數快 FPS/.test(page), "前端有 FPS 備用通路");
 const admin = fs.readFileSync(path.join(__dirname, "../../frontend-v2/admin-ops.html"), "utf8");
 ok(/loadPassOrders/.test(admin) && /passes\/admin\/orders/.test(admin), "後台有 FPS 購卡待確認面板");

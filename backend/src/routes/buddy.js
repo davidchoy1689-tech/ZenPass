@@ -15,7 +15,7 @@ const FRONTEND_URL = process.env.CORS_ORIGIN || "http://localhost:3001";
 const BUDDY_PRICE = 46000;
 let stripeClient = null;
 function getStripe() {
-  if (!stripeClient && STRIPE_SECRET && STRIPE_SECRET !== "sk_test_xxxx") stripeClient = require("stripe")(STRIPE_SECRET);
+  if (!stripeClient) stripeClient = require("../services/stripe").client();
   return stripeClient;
 }
 
