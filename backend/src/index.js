@@ -654,7 +654,8 @@ processCorporateResets();
 try {
   const quorumWorker = require("./services/quorum-worker");
   const notifyWorker = require("./services/notification-worker");
-  quorumWorker.ensureSchema(getDb());
+  const qdb = require("./services/database").getDb();
+  quorumWorker.ensureSchema(qdb);
   quorumWorker.start(10 * 60 * 1000);
   notifyWorker.start(10 * 60 * 1000);
   setTimeout(() => {
