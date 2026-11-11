@@ -199,6 +199,11 @@ async function sendNotification(type, payload) {
       message = `✅ 預約成功！\n課程：${data?.class_title || "—"}\n日期：${data?.date || "—"} ${data?.time || "—"}\n場地：${data?.venue || "—"}\n教練：${data?.coach_name || "—"}`;
       html = `<h2>✅ 預約確認</h2><p><b>課程：</b>${data?.class_title || "—"}<br><b>日期：</b>${data?.date || "—"} ${data?.time || "—"}<br><b>場地：</b>${data?.venue || "—"}<br><b>教練：</b>${data?.coach_name || "—"}</p>`;
       break;
+    case "order.paid":
+      title = "🛍️ 訂單已付款";
+      message = `多謝支持！訂單 ${data?.order_ref || data?.order_id || ""} 已付款，順豐將於 1–2 個工作天出貨。`;
+      html = `<h2>🛍️ 訂單已付款</h2><p>訂單 <b>${data?.order_ref || data?.order_id || ""}</b> 已成功付款，我們會安排順豐出貨，並以短訊通知運單號。</p>`;
+      break;
     case "class.cancelled":
       title = "⚠️ 課堂取消通知";
       message = `課堂：${data?.class_title || ""}\n時間：${fmtHKT(data?.start_time)}\n原因：${data?.reason || "平台取消"}` +

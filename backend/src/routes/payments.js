@@ -451,6 +451,20 @@ router.post("/stripe/webhook", async (req, res) => {
     // 處理 checkout.session.completed
     if (event.type === "checkout.session.completed") {
       const session = event.data.object;
+      if (session.metadata && session.metadata.product_type === "marketplace_product" && session.metadata.order_id) {
+        try {
+          const db = getDb();
+          require("../services/marketplace").ensureSchema(db);
+          const order = db.prepare("SELECT * FROM marketplace_orders WHERE id=?").get(session.metadata.order_id);
+          if (order && order.order_status === "pending_payment" && Number(session.amount_total) === Number(order.total_paid_cents)) {
+            const r = require("./marketplace").markPaid(db, order.id, session.id);
+            if (r && r.error) console.error("[MARKET WEBHOOK] markPaid:", r.error);
+          }
+        } catch (e) {
+          console.error("[MARKET WEBHOOK]", e.message);
+        }
+        return res.status(200).json({ received: true });
+      }
       if (session.metadata && session.metadata.kind === "pass_purchase") {
         const passes = require("../services/passes");
         const db = getDb();

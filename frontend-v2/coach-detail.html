@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="zh-HK">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>教練档案 · ZenPass</title>
+<link rel="stylesheet" href="/assets/style.css?v=12">
+<style>
+  body{margin:0;font-family:'Noto Sans TC',system-ui,-apple-system,sans-serif;background:#f8fafc;color:#0f172a}
+  .wrap{max-width:720px;margin:0 auto;padding:22px 16px 60px}
+  .hero{background:linear-gradient(135deg,#0f766e,#0d9488);color:#fff;border-radius:18px;padding:20px;margin-bottom:14px}
+  .hero h1{margin:0;font-size:22px}
+  .hero p{margin:6px 0 0;font-size:13px;opacity:.92}
+  .stars{font-size:18px;letter-spacing:2px;margin-top:8px}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+  .stat{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:14px}
+  .stat span{display:block;font-size:12px;color:#64748b;margin-bottom:4px}
+  .stat b{font-size:20px;color:#0f766e}
+  .card{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:16px;margin-bottom:12px}
+  .rv{border:1px solid #e2e8f0;border-radius:12px;padding:12px;margin-bottom:10px}
+  .rv .top{display:flex;justify-content:space-between;font-size:12px;color:#64748b}
+  .rv .body{margin-top:6px;font-size:14px;line-height:1.7}
+  .badge{display:inline-block;background:#ecfdf5;color:#065f46;border-radius:999px;padding:3px 8px;font-size:10.5px;font-weight:700;margin-top:6px}
+  .muted{color:#64748b;font-size:12.5px;line-height:1.7}
+  .reply{background:#f8fafc;border-left:3px solid #0d9488;padding:8px 10px;margin-top:8px;font-size:13px;color:#334155}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hero">
+    <h1 id="cName">教練档案</h1>
+    <p id="cHead"></p>
+    <div class="stars" id="cStars">—</div>
+  </div>
+  <div class="grid">
+    <div class="stat"><span>真實出席評價</span><b id="cCount">0</b></div>
+    <div class="stat"><span>痛點緩解滿意率</span><b id="cRelief">—</b></div>
+  </div>
+  <div class="card">
+    <b>🛡️ 真人學員出席反饋</b>
+    <p class="muted">只限已完成動態 QR／GPS 核銷的學員提交，一課一評，無法刷單。</p>
+    <div id="cReviews"></div>
+  </div>
+</div>
+<script>
+const $ = (id) => document.getElementById(id);
+const coachId = new URLSearchParams(location.search).get("id") || "";
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+function stars(n){return "★".repeat(Math.round(Number(n)||0)) + "☆".repeat(5-Math.round(Number(n)||0));}
+async function load(){
+  const r = await fetch("/api/reviews/coach/" + encodeURIComponent(coachId));
+  const d = await r.json().catch(()=>({}));
+  if (!d.success){ $("cName").textContent = d.error || "找不到教練"; return; }
+  $("cName").textContent = "⭐ " + d.coach.name;
+  $("cHead").textContent = d.coach.headline || d.coach.tags || "";
+  $("cStars").textContent = stars(d.stats.avg_rating) + "  " + (d.stats.avg_rating || 0).toFixed(1) + " / 5.0";
+  $("cCount").textContent = d.stats.review_count + " 位真實出席學員";
+  $("cRelief").textContent = d.stats.pain_relief_rate == null ? "—" : d.stats.pain_relief_rate + "%";
+  const box = $("cReviews");
+  if (!d.reviews.length){ box.innerHTML = '<p class="muted">暫未有評價。</p>'; return; }
+  box.innerHTML = d.reviews.map((rv)=>`
+    <div class="rv">
+      <div class="top"><span style="color:#f59e0b;font-weight:700">${stars(rv.rating)}</span><span>${esc(String(rv.reviewed_at).slice(0,10))}</span></div>
+      <div class="body">${esc(rv.content || "（無文字評語）")}</div>
+      ${rv.pain_relief ? `<div class="muted">痛點改善：${stars(rv.pain_relief)}</div>` : ""}
+      <div class="badge">${esc(rv.badge)}</div>
+      ${rv.coach_reply ? `<div class="reply">教練回覆：${esc(rv.coach_reply)}</div>` : ""}
+    </div>`).join("");
+}
+load();
+</script>
+</body>
+</html>

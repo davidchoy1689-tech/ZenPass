@@ -241,5 +241,112 @@
   }
   load();
 </script>
+
+<div id="mkSection" style="margin:22px 14px 90px;display:none">
+  <div style="font-size:15px;font-weight:900;margin-bottom:4px" id="mkTitle">🧘 教練推薦 · 今日課堂復康輔助用品</div>
+  <div style="font-size:12px;color:#64748b;margin-bottom:10px">順豐包郵到屋企 / 智能櫃 · 平台直送</div>
+  <div id="mkCards"></div>
+</div>
+
+<div id="mkMask" hidden style="position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:80;display:flex;align-items:flex-end">
+  <div style="background:#fff;width:100%;max-height:92vh;overflow:auto;border-radius:18px 18px 0 0;padding:18px 16px 26px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <b id="mkModalTitle">輔具訂購</b><button id="mkClose" style="border:0;background:#f1f5f9;border-radius:8px;padding:6px 10px">✕</button>
+    </div>
+    <div id="mkProduct" style="font-size:13px;color:#334155;margin-bottom:10px"></div>
+    <input id="mkName" placeholder="收件人姓名" style="width:100%;box-sizing:border-box;padding:11px;border:1px solid #cbd5e1;border-radius:10px;margin-bottom:8px">
+    <input id="mkPhone" inputmode="numeric" placeholder="香港手提電話" style="width:100%;box-sizing:border-box;padding:11px;border:1px solid #cbd5e1;border-radius:10px;margin-bottom:8px">
+    <input id="mkDistrict" placeholder="送貨地區（例：Kwai Tsing）" style="width:100%;box-sizing:border-box;padding:11px;border:1px solid #cbd5e1;border-radius:10px;margin-bottom:8px">
+    <textarea id="mkAddr" rows="2" placeholder="詳細送貨地址（順豐可到屋企或智能櫃）" style="width:100%;box-sizing:border-box;padding:11px;border:1px solid #cbd5e1;border-radius:10px;margin-bottom:10px;font:inherit"></textarea>
+    <div id="mkCardBox" style="display:none;border:1px solid #cbd5e1;border-radius:10px;padding:11px;margin-bottom:10px"></div>
+    <button id="mkPay" style="width:100%;padding:14px;border:0;border-radius:12px;background:#0f766e;color:#fff;font-size:15px;font-weight:800">一鍵付款</button>
+    <div id="mkMsg" style="font-size:12.5px;color:#64748b;margin-top:10px;line-height:1.6"></div>
+  </div>
+</div>
+<script>
+(function(){
+  const tk = localStorage.getItem("zenpass_token");
+  if (!tk) return;
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s==null?"":s).replace(/[&<>"']/g,(c)=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  let products = [], current = null, coachId = null, stripe = null, card = null, clientSecret = null;
+  const auth = { authorization: "***" + tk };
+
+  async function init(){
+    try {
+      const b = await fetch("/api/bookings/my", { headers: auth }).then(r=>r.json());
+      const list = b.bookings || b.data || [];
+      const latest = list[0] || null;
+      coachId = latest && (latest.coach_id || latest.coachId) || null;
+    } catch(e){}
+    const r = await fetch("/api/marketplace/products").then(x=>x.json()).catch(()=>({}));
+    products = (r.products || []).slice(0,3);
+    if (!products.length) return;
+    $("mkSection").style.display = "block";
+    $("mkCards").innerHTML = products.map((p)=>`
+      <div style="background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:12px;margin-bottom:10px;display:flex;gap:10px">
+        <img src="${esc(p.image_url)}" alt="" style="width:78px;height:78px;object-fit:cover;border-radius:10px;background:#f1f5f9">
+        <div style="flex:1">
+          <div style="font-size:13.5px;font-weight:800;line-height:1.35">${esc(p.title)}</div>
+          <div style="font-size:12px;color:#64748b;margin-top:3px">順豐包郵 · 教練推薦</div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px">
+            <b style="color:#0f766e">HK$ ${(p.price_cents/100).toFixed(0)}</b>
+            <button data-buy="${esc(p.id)}" style="border:0;background:#0f766e;color:#fff;border-radius:9px;padding:7px 12px;font-weight:700">🛍️ 購買</button>
+          </div>
+        </div>
+      </div>`).join("");
+    document.querySelectorAll("[data-buy]").forEach((b)=>b.onclick=()=>openBuy(b.dataset.buy));
+  }
+
+  function openBuy(id){
+    current = products.find((p)=>p.id===id);
+    if (!current) return;
+    clientSecret = null; card = null;
+    $("mkProduct").textContent = current.title + " · HK$" + (current.price_cents/100).toFixed(0);
+    $("mkCardBox").style.display = "none";
+    $("mkPay").textContent = "一鍵付款 · HK$" + (current.price_cents/100).toFixed(0);
+    $("mkMsg").textContent = "";
+    $("mkMask").hidden = false;
+  }
+  $("mkClose").onclick = ()=>{ $("mkMask").hidden = true; };
+  $("mkMask").onclick = (e)=>{ if(e.target.id==="mkMask") $("mkMask").hidden = true; };
+
+  $("mkPay").onclick = async ()=>{
+    const msg = $("mkMsg");
+    const body = {
+      product_id: current.id, coach_id: coachId, quantity: 1,
+      shipping_name: $("mkName").value.trim(), shipping_phone: $("mkPhone").value.trim(),
+      shipping_address: $("mkAddr").value.trim(), shipping_district: $("mkDistrict").value.trim(),
+    };
+    if (clientSecret && stripe && card) {
+      msg.textContent = "付款處理中…";
+      const res = await stripe.confirmCardPayment(clientSecret, { payment_method: { card } });
+      if (res.error) { msg.textContent = res.error.message; return; }
+      const done = await fetch("/api/marketplace/orders/" + encodeURIComponent(currentOrderId) + "/complete", { method:"POST", headers:{...auth,"content-type":"application/json"}, body:"{}" }).then(r=>r.json());
+      if (done.success){ msg.textContent = "✅ 付款成功，順豐將於 1–2 個工作天出貨"; setTimeout(()=>{ $("mkMask").hidden = true; }, 1500); }
+      else msg.textContent = done.error || "確認付款失敗";
+      return;
+    }
+    $("mkPay").disabled = true;
+    const r = await fetch("/api/marketplace/orders/checkout", { method:"POST", headers:{...auth,"content-type":"application/json","idempotency-key":"mk-"+Date.now()}, body: JSON.stringify(body) }).then(x=>x.json()).catch(()=>({}));
+    $("mkPay").disabled = false;
+    if (!r.success){ msg.textContent = r.error || "下單失敗"; return; }
+    if (r.order && r.order.order_status === "paid") { msg.textContent = "✅ 已付款，順豐將於 1–2 個工作天出貨"; setTimeout(()=>{ $("mkMask").hidden = true; }, 1500); return; }
+    if (r.checkout_url) { location.href = r.checkout_url; return; }
+    msg.textContent = "付款暫時未開放，請聯絡客服";
+  };
+
+  // Stripe 回跳：student-handbook.html?mk_order=<id>
+  (async () => {
+    const oid = new URLSearchParams(location.search).get("mk_order");
+    if (!oid) return;
+    const r = await fetch("/api/marketplace/orders/" + encodeURIComponent(oid) + "/complete", { method: "POST", headers: { ...auth, "content-type": "application/json" }, body: "{}" }).then(x=>x.json()).catch(()=>({}));
+    $("mkSection").style.display = "block";
+    $("mkTitle").textContent = r.success ? "✅ 付款成功 · 順豐將於 1–2 個工作天出貨" : (r.error || "訂單確認中");
+    if (r.success) history.replaceState({}, "", location.pathname);
+  })();
+  init();
+})();
+</script>
 </body>
 </html>

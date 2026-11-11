@@ -1489,6 +1489,22 @@ function buildMonthlyBreakdown(db, coachId, month) {
     aff = affiliateSvc.monthSummary(db, coachId, month);
   } catch (e) {}
   totalCents += Number(aff.affiliate_passive_cents) || 0;
+
+  // Phase 5.2 — 輔具帶貨分佣（與帶班收益同一月結 FPS）
+  let productCommissionCents = 0;
+  let productCommissionCount = 0;
+  try {
+    require("../services/marketplace").ensureSchema(db);
+    const pc = db.prepare(
+      `SELECT COALESCE(SUM(COALESCE(net_amount_cents, ROUND(net_amount*100))),0) c, COUNT(*) n
+         FROM coach_earnings
+        WHERE coach_id=? AND earning_type='affiliate_product_commission'
+          AND COALESCE(payout_month, substr(date,1,7))=?`,
+    ).get(coachId, month);
+    productCommissionCents = Number(pc.c) || 0;
+    productCommissionCount = Number(pc.n) || 0;
+    totalCents += productCommissionCents;
+  } catch (e) {}
   const netPayoutCents = totalCents - cashCollectedCents;
   paidCents = Math.min(paidCents, totalCents);
   return {
@@ -1500,6 +1516,8 @@ function buildMonthlyBreakdown(db, coachId, month) {
     own_student_count: ownStudents,
     affiliate_passive_cents: Number(aff.affiliate_passive_cents) || 0,
     affiliate_passive: (Number(aff.affiliate_passive_cents) || 0) / 100,
+    product_commission_cents: productCommissionCents,
+    product_commission_count: productCommissionCount,
     affiliate_students_count: Number(aff.affiliate_students_count) || 0,
     affiliate_recent: aff.affiliate_recent || [],
     payout_summary: {
@@ -1508,6 +1526,7 @@ function buildMonthlyBreakdown(db, coachId, month) {
       own_student_uplift_cents: upliftCents,
       held_uplift_cents: heldUpliftCents,
       affiliate_passive_cents: Number(aff.affiliate_passive_cents) || 0,
+      product_commission_cents: productCommissionCents,
       cash_collected_cents: cashCollectedCents,
       net_payout_cents: netPayoutCents,
       currency: "HKD",
