@@ -29,6 +29,7 @@ app.post("/api/payments/stripe/webhook", express.raw({ type: "application/json" 
   require("../src/routes/payments")(req, res, next);
 });
 app.use(express.json());
+app.use("/api/public", require("../src/routes/public"));
 app.use("/api", require("../src/routes/phase21-prod"));
 
 const server = app.listen(0, async () => {

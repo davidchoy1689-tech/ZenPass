@@ -61,11 +61,6 @@ async function handleRow(row) {
   return { ok: false, error: "未知 product_type：" + (md.product_type || "none") };
 }
 
-router.get("/public/config", (req, res) => {
-  res.setHeader("Cache-Control", "no-store");
-  res.json({ success: true, ...stripeSvc.publicConfig() });
-});
-
 router.get("/admin/fulfillments", authenticateToken, requirePermission("finance.payout.view"), (req, res) => {
   const db = getDb();
   queue.ensureSchema(db);

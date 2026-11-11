@@ -13,6 +13,13 @@ const bookingQr = require("../services/booking-qr");
 
 const router = express.Router();
 
+// Phase 2.1-UI／PROD — 公開金流設定（只出 publishable key，永不外洩 secret）
+router.get("/config", (req, res) => {
+  const stripeSvc = require("../services/stripe");
+  res.setHeader("Cache-Control", "no-store");
+  res.json({ success: true, ...stripeSvc.publicConfig() });
+});
+
 function hkt(iso) {
   const s = String(iso || "");
   const d = new Date(s.replace(" ", "T") + (/Z|[+-]\d\d:?\d\d$/.test(s) ? "" : "Z"));
