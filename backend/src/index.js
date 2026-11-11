@@ -647,13 +647,20 @@ setTimeout(autoNotifyLargeVacancies, 60 * 1000);
 setInterval(processCorporateResets, 15 * 60 * 1000);
 processCorporateResets();
 
-// Phase 2.1-PROD — 付款履約補償隊列（每 15 分鐘）
+// Phase 2.1-RECON — 掉單補償 Worker（每 5 分鐘，指數退避）＋每日對帳
 try {
-  const fq = require("./services/fulfillment-queue");
-  const { handleRow } = require("./routes/phase21-prod");
+  const worker = require("./services/fulfillment-worker");
+  const recon = require("./services/daily-reconciliation");
+  recon.ensureSchema(getDb());
+  worker.start(5 * 60 * 1000);
+  // 每小時檢查一次，只喺 HKT 00 時段跑前一日對帳（UNIQUE date 保證 idempotent）
   setInterval(async () => {
-    try { await fq.reconcile(handleRow); } catch (e) { console.error("[FULFILL] cron:", e.message); }
-  }, 15 * 60 * 1000);
+    try {
+      const hktHour = Number(new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Hong_Kong", hour: "2-digit", hour12: false }).format(new Date()));
+      if (hktHour !== 0) return;
+      await recon.runForDate();
+    } catch (e) { console.error("[RECON] daily cron:", e.message); }
+  }, 60 * 60 * 1000);
 } catch (e) {
   console.error("[FULFILL] scheduler mount failed:", e.message);
 }

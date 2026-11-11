@@ -85,9 +85,9 @@ const server = app.listen(0, async () => {
   const dup = queue.enqueue({ payment_intent_id: "pi_broken_001", amount_cents: 52000, metadata: {}, error_message: "again" });
   ok(dup.duplicated === true, "同一 PI 不重複入隊");
   const failing = async () => { throw new Error("SQLITE_BUSY"); };
-  let out = await queue.reconcile(failing);
+  let out = await queue.reconcile(failing, { ignoreBackoff: true });
   ok(out.scanned === 1 && out.retried === 1, "重試 1 次仍 pending", out);
-  for (let i = 0; i < 4; i++) await queue.reconcile(failing);
+  for (let i = 0; i < 4; i++) await queue.reconcile(failing, { ignoreBackoff: true });
   const after = db.prepare("SELECT * FROM payment_fulfillments_queue WHERE payment_intent_id='pi_broken_001'").get();
   ok(Number(after.retry_count) === 5 && after.status === "failed_manual_review", "5 次失敗 → failed_manual_review", { n: after.retry_count, s: after.status });
   ok(!queue.pending().some((x) => x.payment_intent_id === "pi_broken_001"), "不再自動重試");

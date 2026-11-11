@@ -11,6 +11,8 @@ const { getDb } = require("../services/database");
 const { authenticateToken, requirePermission } = require("../middleware/auth");
 const stripeSvc = require("../services/stripe");
 const queue = require("../services/fulfillment-queue");
+const recon = require("../services/daily-reconciliation");
+const fulfillmentWorker = require("../services/fulfillment-worker");
 
 const router = express.Router();
 
@@ -111,6 +113,47 @@ router.post("/internal/cron/reconcile-payments", adminOrLocal, async (req, res) 
     console.error("[FULFILL] reconcile:", e.message);
     res.status(500).json({ success: false, error: "對帳失敗" });
   }
+});
+
+// ===== Phase 2.1-RECON =====
+router.get("/admin/ops/health-summary", adminOrLocal, (req, res) => {
+  try {
+    const db = getDb();
+    recon.ensureSchema(db);
+    queue.ensureSchema(db);
+    res.setHeader("Cache-Control", "no-store");
+    res.json({ success: true, ...recon.stats(db) });
+  } catch (e) {
+    console.error("[OPS] health-summary:", e.message);
+    res.status(500).json({ success: false, error: "讀取健康指標失敗" });
+  }
+});
+
+router.post("/internal/cron/fulfillment-worker", adminOrLocal, async (req, res) => {
+  try {
+    const out = await fulfillmentWorker.runOnce({ limit: Number(req.body?.limit || 20), ignoreBackoff: req.body?.ignore_backoff === true });
+    res.json({ success: true, ...out });
+  } catch (e) {
+    console.error("[FULFILL WORKER] manual:", e.message);
+    res.status(500).json({ success: false, error: "Worker 執行失敗" });
+  }
+});
+
+router.post("/internal/cron/daily-reconciliation", adminOrLocal, async (req, res) => {
+  try {
+    const report = await recon.runForDate(req.body?.date);
+    res.json({ success: true, report });
+  } catch (e) {
+    console.error("[RECON] daily:", e.message);
+    res.status(500).json({ success: false, error: "對帳失敗" });
+  }
+});
+
+router.get("/admin/reconciliation/reports", authenticateToken, requirePermission("finance.payout.view"), (req, res) => {
+  const db = getDb();
+  recon.ensureSchema(db);
+  const rows = db.prepare("SELECT * FROM daily_reconciliation_reports ORDER BY reconciliation_date DESC LIMIT 90").all();
+  res.json({ success: true, reports: rows });
 });
 
 module.exports = router;

@@ -25,6 +25,8 @@ function ensureSchema(db) {
     CREATE INDEX IF NOT EXISTS idx_fulfill_queue_status
       ON payment_fulfillments_queue(status, retry_count);
   `);
+  const cols = db.prepare("PRAGMA table_info(payment_fulfillments_queue)").all().map((c) => c.name);
+  if (!cols.includes("next_retry_at")) db.exec("ALTER TABLE payment_fulfillments_queue ADD COLUMN next_retry_at TEXT");
 }
 
 function enqueue(payload) {
@@ -48,10 +50,13 @@ function enqueue(payload) {
   return db.prepare("SELECT * FROM payment_fulfillments_queue WHERE id=?").get(id);
 }
 
-function pending(limit = 50) {
+function pending(limit = 50, { ignoreBackoff = false } = {}) {
   const db = getDb();
   ensureSchema(db);
-  return db.prepare("SELECT * FROM payment_fulfillments_queue WHERE status='pending' AND retry_count < 5 ORDER BY created_at ASC LIMIT ?").all(limit);
+  const where = ignoreBackoff
+    ? "status='pending' AND retry_count < 5"
+    : "status='pending' AND retry_count < 5 AND (next_retry_at IS NULL OR datetime(next_retry_at) <= datetime('now'))";
+  return db.prepare(`SELECT * FROM payment_fulfillments_queue WHERE ${where} ORDER BY created_at ASC LIMIT ?`).all(limit);
 }
 
 function markResolved(id) {
@@ -67,13 +72,16 @@ function markRetry(id, error) {
   if (!row) return null;
   const n = Number(row.retry_count || 0) + 1;
   const status = n >= 5 ? "failed_manual_review" : "pending";
-  db.prepare("UPDATE payment_fulfillments_queue SET retry_count=?, status=?, error_message=?, last_retry_at=datetime('now') WHERE id=?")
-    .run(n, status, String(error || "").slice(0, 500), id);
-  return { ...row, retry_count: n, status };
+  // 指數退避：1、2、4、8 分鐘（第 5 次不再排程）
+  const backoffMin = Math.min(8, Math.pow(2, n - 1));
+  const nextAt = status === "pending" ? new Date(Date.now() + backoffMin * 60000).toISOString() : null;
+  db.prepare("UPDATE payment_fulfillments_queue SET retry_count=?, status=?, error_message=?, last_retry_at=datetime('now'), next_retry_at=? WHERE id=?")
+    .run(n, status, String(error || "").slice(0, 500), nextAt, id);
+  return { ...row, retry_count: n, status, next_retry_at: nextAt };
 }
 
-async function reconcile(handler, { limit = 50 } = {}) {
-  const rows = pending(limit);
+async function reconcile(handler, { limit = 50, ignoreBackoff = false } = {}) {
+  const rows = pending(limit, { ignoreBackoff });
   const result = { scanned: rows.length, resolved: 0, retried: 0, failed: 0, results: [] };
   for (const row of rows) {
     let meta = {};
