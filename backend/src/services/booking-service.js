@@ -70,8 +70,13 @@ function ensureRefundColumns(db) {
       ["refunded_at", "TEXT"],
       ["refund_requested_at", "TEXT"],
       ["cancelled_at", "TEXT"],
+      ["cancelled_by_user_id", "TEXT"],
+      ["attendance_status", "TEXT"],
     ];
     add.forEach(([n, t]) => { if (!cols.includes(n)) db.prepare(`ALTER TABLE bookings ADD COLUMN ${n} ${t}`).run(); });
+    try {
+      db.exec("CREATE INDEX IF NOT EXISTS idx_bookings_cancel_guard ON bookings(id, status, pass_id)");
+    } catch (e) {}
   } catch (e) {
     console.error("refund 欄位遷移失敗:", e.message);
   }
@@ -1616,7 +1621,7 @@ function cancelBooking(req) {
         status: 400,
         body: {
           success: false,
-          code: "CANCEL_WINDOW_CLOSED",
+          code: "LATE_CANCEL_REJECTED",
           error: "開課前 24 小時內不接受線上取消，堂數將不予返還",
           hours_until: Math.max(0, Math.round(hoursUntil * 10) / 10),
         },
@@ -1755,10 +1760,11 @@ function _processPassCancel(db, booking, reason, req) {
     const upd = db
       .prepare(
         `UPDATE bookings
-            SET status='cancelled', cancel_reason=?, cancelled_at=datetime('now')
+            SET status='cancelled', cancel_reason=?, cancelled_at=datetime('now'),
+                attendance_status='leave_excused', cancelled_by_user_id=?
           WHERE id=? AND status='confirmed'`,
       )
-      .run(reason || "user_self_cancel", booking.id);
+      .run(reason || "user_self_cancel", req.user.id, booking.id);
     if (upd.changes !== 1) {
       db.exec("ROLLBACK");
       inTx = false;
@@ -1777,7 +1783,7 @@ function _processPassCancel(db, booking, reason, req) {
 
     try {
       audit({
-        actionType: "booking.user_cancelled_pass_refunded",
+        actionType: "booking.cancelled_with_refund",
         entityType: "booking",
         entityId: booking.id,
         userId: req.user.id,

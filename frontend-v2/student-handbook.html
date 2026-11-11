@@ -42,6 +42,12 @@
     .wallet-sub{font-size:13.5px;color:#475569;margin-top:6px;line-height:1.6}
     .wallet-btn{display:inline-block;margin-top:10px;background:#059669;color:#fff;border:0;border-radius:10px;padding:10px 14px;font-size:14px;font-weight:900;cursor:pointer;text-decoration:none}
     .wallet-reward{background:#FFFBEB;border:1px solid #FDE68A;color:#92400E;border-radius:10px;padding:8px 10px;font-size:13.5px;font-weight:700;margin-top:8px}
+    .up-card{background:#fff;border:1px solid #E2E8F0;border-radius:14px;padding:12px 14px;margin-bottom:8px;display:flex;justify-content:space-between;gap:10px;align-items:center}
+    .up-card b{font-size:14px}
+    .up-card .s{font-size:12px;color:#64748B;line-height:1.6}
+    .up-card button{border:1px solid #FCA5A5;background:#fff;color:#B91C1C;border-radius:9px;padding:8px 10px;font:inherit;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap}
+    .up-card button:disabled{border-color:#E2E8F0;color:#94A3B8;background:#F8FAFC;cursor:not-allowed}
+    .up-title{font-size:14px;font-weight:900;margin:14px 0 8px}
   </style>
 </head>
 <body>
@@ -49,6 +55,7 @@
     <div class="h-head"><h1 id="title">我的運動手冊</h1><a href="my-bookings.html">返回預約</a></div>
     <div id="annBar"></div>
     <div id="wallet"></div>
+    <div id="upcoming"></div>
     <div id="list"><div class="h-empty">載入中…</div></div>
   </div>
   <div class="h-toast" id="toast"></div>
@@ -96,6 +103,7 @@
       SID = me.data.user.id;
     }
     loadWallet();
+    loadUpcoming();
     const r = await api.get("/student/handbook/" + encodeURIComponent(SID));
     if (!r.ok) { $("list").innerHTML = `<div class="h-empty">${esc((r.data && r.data.error) || "讀取失敗")}</div>`; return; }
     const list = r.data.handbooks || [];
@@ -132,6 +140,36 @@
         } else toast("❌ " + ((r2.data && r2.data.error) || "送出失敗"));
       };
     });
+  }
+
+  function upHours(t) {
+    const raw = String(t || "");
+    const iso = /Z|[+-]\d\d:?\d\d$/.test(raw) ? raw : raw.replace(" ", "T") + "Z";
+    const ms = new Date(iso).getTime();
+    return isNaN(ms) ? -1 : (ms - Date.now()) / 3600000;
+  }
+  async function loadUpcoming() {
+    try {
+      const r = await api.get("/bookings/my?status=confirmed&limit=30");
+      const rows = ((r.data && r.data.bookings) || []).filter((b) => b.user_id === SID && upHours(b.start_time) > 0).slice(0, 3);
+      if (!rows.length) { $("upcoming").innerHTML = ""; return; }
+      $("upcoming").innerHTML = '<div class="up-title">🗓️ 即將上課</div>' + rows.map((b) => {
+        const h = upHours(b.start_time);
+        const btn = h >= 24
+          ? `<button data-cancel="${esc(b.id)}">🗓️ 取消預約（退還 1 堂）</button>`
+          : `<button disabled title="開課前 24 小時內不可取消">🔒 24 小時內不可退</button>`;
+        return `<div class="up-card"><div><b>${esc(b.title || "課堂")}</b><div class="s">${esc(String(b.start_time || "").slice(0, 16))}${b.venue_name ? " · " + esc(b.venue_name) : ""}</div></div>${btn}</div>`;
+      }).join("");
+      $("upcoming").querySelectorAll("[data-cancel]").forEach((btn) => {
+        btn.onclick = async () => {
+          if (!confirm("確定取消此預約？取消後 1 堂通行 Pass 會即時退回錢包。")) return;
+          btn.disabled = true;
+          const rr = await api.post("/bookings/" + encodeURIComponent(btn.dataset.cancel) + "/cancel", { reason: "user_self_cancel" });
+          if (rr.ok) { toast("已取消，1 堂已退回"); loadWallet(); loadUpcoming(); }
+          else { btn.disabled = false; alert((rr.data && rr.data.error) || "取消失敗"); }
+        };
+      });
+    } catch (e) {}
   }
   async function loadAnnouncements(sessionId) {
     try {

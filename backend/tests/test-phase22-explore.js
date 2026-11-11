@@ -29,6 +29,7 @@ addUser("father", "陳大文", "60003002");
 addUser("stranger", "陌生人", "60003003");
 addUser("coach1", "蔡教練", "60003004", "coach");
 addUser("nopass", "無Pass學員", "60003005");
+addUser("lastuser", "最後一位", "60003006");
 db.prepare("INSERT INTO family_groups (id,owner_user_id,group_name) VALUES ('fam22','daughter','陳氏家庭')").run();
 db.prepare("INSERT INTO family_members (id,family_group_id,member_user_id,relation_title,can_consume_pass) VALUES ('fm22','fam22','father','father',1)").run();
 
@@ -63,10 +64,16 @@ const office = explore.listExplore(db, { audience: "office_worker", district: "w
 ok(office.classes.length === 1 && office.classes[0].schedule_id === "sch-c-office", "灣仔＋上班族篩選");
 const near = new Date(Date.now() + 12 * 3600000).toISOString().slice(0, 19).replace("T", " ");
 const nearEnd = new Date(Date.now() + 13 * 3600000).toISOString().slice(0, 19).replace("T", " ");
+const far = new Date(Date.now() + 48 * 3600000).toISOString().slice(0, 19).replace("T", " ");
+const farEnd = new Date(Date.now() + 49 * 3600000).toISOString().slice(0, 19).replace("T", " ");
 db.prepare(`INSERT INTO classes (id,coach_id,title,category,duration,price_hkd,max_participants,status,target_audience_enum,target_audience_label,district,booking_open,venue_name)
             VALUES ('c-near','coach1','12小時後防跌班','stretch',60,140,8,'active','elderly','熟齡防跌','葵青',1,'青衣體育館')`).run();
 db.prepare(`INSERT INTO class_schedules (id,class_id,start_time,end_time,max_participants,enrolled_count,status,booking_open,district)
             VALUES ('sch-near','c-near',?,?,8,0,'available',1,'葵青')`).run(near, nearEnd);
+db.prepare(`INSERT INTO classes (id,coach_id,title,category,duration,price_hkd,max_participants,status,target_audience_enum,target_audience_label,district,booking_open,venue_name)
+            VALUES ('c-last','coach1','最後一位防跌班','stretch',60,140,8,'active','elderly','熟齡防跌','葵青',1,'青衣體育館')`).run();
+db.prepare(`INSERT INTO class_schedules (id,class_id,start_time,end_time,max_participants,enrolled_count,status,booking_open,district)
+            VALUES ('sch-last','c-last',?,?,8,7,'available',1,'葵青')`).run(far, farEnd);
 const t0 = process.hrtime.bigint();
 for (let i = 0; i < 30; i++) explore.listExplore(db, { audience: "elderly", district: "kts" });
 const avgMs = Number(process.hrtime.bigint() - t0) / 1e6 / 30;
@@ -75,10 +82,13 @@ ok(avgMs < 50, `複合查詢平均 ${avgMs.toFixed(2)}ms < 50ms`, avgMs);
 console.log("🧪 2. 家庭 Pass 一鍵預約 HTTP");
 const issued = passes.issuePass(db, { userId: "daughter", phone: "60003001", studentName: "陳小姐", totalCredits: 4, pricePaid: 520, validDays: 60, familyGroupId: "fam22", ownerUserId: "daughter" });
 ok(issued.ok, "家庭 Pass 簽發");
+const lastPass = passes.issuePass(db, { userId: "lastuser", phone: "60003006", studentName: "最後一位", totalCredits: 4, pricePaid: 520, validDays: 60 });
+ok(lastPass.ok, "個人 Pass 簽發");
 const token = jwt.sign({ id: "daughter", role: "user", tv: 0 }, process.env.JWT_SECRET, { expiresIn: "1h" });
 const tokenFather = jwt.sign({ id: "father", role: "user", tv: 0 }, process.env.JWT_SECRET, { expiresIn: "1h" });
 const tokenNoPass = jwt.sign({ id: "nopass", role: "user", tv: 0 }, process.env.JWT_SECRET, { expiresIn: "1h" });
 const tokenStranger = jwt.sign({ id: "stranger", role: "user", tv: 0 }, process.env.JWT_SECRET, { expiresIn: "1h" });
+const tokenLast = jwt.sign({ id: "lastuser", role: "user", tv: 0 }, process.env.JWT_SECRET, { expiresIn: "1h" });
 
 const express = require("express");
 const app = express();
@@ -111,15 +121,17 @@ const server = app.listen(0, async () => {
   }).then(async (r) => ({ status: r.status, body: await r.json() }));
   const c1 = await cancelApi(r1.body.booking_id);
   ok(c1.status === 200 && c1.body.pass_refunded && c1.body.remaining_credits === 4, "AC-1 24 小時前取消 → Pass 3→4");
-  ok(db.prepare("SELECT status,cancelled_at FROM bookings WHERE id=?").get(r1.body.booking_id).status === "cancelled", "booking 標記 cancelled＋cancelled_at");
+  const cancelledRow = db.prepare("SELECT status,cancelled_at,attendance_status,cancelled_by_user_id FROM bookings WHERE id=?").get(r1.body.booking_id);
+  ok(cancelledRow.status === "cancelled" && cancelledRow.attendance_status === "leave_excused" && cancelledRow.cancelled_by_user_id === "daughter", "booking cancelled／leave_excused／cancelled_by");
   ok(Number(db.prepare("SELECT enrolled_count FROM class_schedules WHERE id='sch-c-elder'").get().enrolled_count) === 0, "取消後釋放席位");
+  ok(!!db.prepare("SELECT 1 FROM audit_log WHERE action_type='booking.cancelled_with_refund' AND entity_id=?").get(r1.body.booking_id), "audit booking.cancelled_with_refund");
   ok(explore.listExplore(db, { audience: "elderly", district: "kts" }).classes.find((c) => c.schedule_id === "sch-c-elder").remaining_seats === 8, "探索 API 剩餘席位 +1");
   ok(db.prepare("SELECT COUNT(*) c FROM coach_earnings WHERE schedule_id='sch-c-elder'").get().c === 0, "AC-4 無教練分錄");
 
   const nearBook = await call({ schedule_id: "sch-near", attendee_user_id: "father" }, null, tokenFather);
   ok(nearBook.status === 201, "預約 12 小時後班次");
   const c2 = await cancelApi(nearBook.body.booking_id, tokenFather);
-  ok(c2.status === 400 && c2.body.code === "CANCEL_WINDOW_CLOSED", "AC-2 24 小時內拒絕取消");
+  ok(c2.status === 400 && c2.body.code === "LATE_CANCEL_REJECTED", "AC-2 24 小時內拒絕取消");
   ok(db.prepare("SELECT status FROM bookings WHERE id=?").get(nearBook.body.booking_id).status === "confirmed", "拒絕後維持 confirmed");
   ok(Number(db.prepare("SELECT remaining_credits FROM user_passes WHERE id=?").get(issued.pass.id).remaining_credits) === 3, "拒絕後堂數不變");
 
@@ -140,14 +152,28 @@ const server = app.listen(0, async () => {
   const r5 = await call({ schedule_id: "sch-c-office", attendee_user_id: "nopass" }, null, tokenNoPass);
   ok(r5.status === 400 && r5.body.code === "NO_PASS", "無 Pass 學員 → NO_PASS", r5);
 
+  const lastBook = await call({ schedule_id: "sch-last", attendee_user_id: "lastuser" }, null, tokenLast);
+  ok(lastBook.status === 201, "最後一位搶到 8/8 席位");
+  const fullExplore = explore.listExplore(db, { audience: "elderly", district: "kts" }).classes.find((c) => c.schedule_id === "sch-last");
+  ok(!fullExplore, "滿額後 explore 不再顯示");
+  const lastCancel = await cancelApi(lastBook.body.booking_id, tokenLast);
+  ok(lastCancel.status === 200 && lastCancel.body.pass_refunded, "滿額班取消成功");
+  const reopened = explore.listExplore(db, { audience: "elderly", district: "kts" }).classes.find((c) => c.schedule_id === "sch-last");
+  ok(reopened && reopened.remaining_seats === 1, "AC-4 取消後重新出現、剩餘 1 位");
+  ok(Number(db.prepare("SELECT remaining_credits FROM user_passes WHERE id=?").get(lastPass.pass.id).remaining_credits) === 4, "AC-4 個人 Pass 返還後 4 堂");
+
   console.log("🧪 3. 前端與索引");
   const fs = require("fs");
   const html = fs.readFileSync(path.join(__dirname, "../../frontend-v2/explore.html"), "utf8");
   ok(/liveNow/.test(html) && /api\/public\/explore\/classes/.test(html), "explore 有即時有位卡流＋公開 API");
   ok(/bookings\/book-with-pass/.test(html) && /bpAttendee/.test(html), "有學員選擇及一鍵扣堂");
   ok(/熟齡防跌/.test(html) && /18 區|ZONES/.test(html), "受眾 pills＋18 區");
+  const hb = fs.readFileSync(path.join(__dirname, "../../frontend-v2/student-handbook.html"), "utf8");
+  ok(/loadUpcoming/.test(hb) && /bookings\/.*\/cancel/.test(hb), "手冊可取消即將上課預約");
   const idx = db.prepare("SELECT name FROM sqlite_master WHERE type='index' AND name='idx_schedules_explore'").get();
   ok(!!idx, "探索複合索引已建立");
+  const cidx = db.prepare("SELECT name FROM sqlite_master WHERE type='index' AND name='idx_bookings_cancel_guard'").get();
+  ok(!!cidx, "取消防護索引已建立");
 
   console.log(`\n${bad === 0 ? "✅ 全部通過" : "❌ 有失敗"} — ${pass} passed, ${bad} failed`);
   server.close(() => process.exit(bad === 0 ? 0 : 1));
