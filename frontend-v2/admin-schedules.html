@@ -89,6 +89,9 @@
 
   <div class="bar">
     <input type="date" id="date" />
+    <label style="font-size:12.5px;font-weight:800;color:#475569;display:flex;gap:6px;align-items:center">
+      <input type="checkbox" id="showAll" style="width:16px;height:16px" /> 顯示全部班次
+    </label>
     <button class="btn" id="refresh">↻ 重新整理</button>
   </div>
 
@@ -151,6 +154,7 @@ const money = (n) => "HK$ " + Number(n || 0).toLocaleString("en-HK");
 let SESSIONS = [];
 let CURRENT = null;
 let PICK = null;
+let SHOW_ALL = false;
 
 function toast(msg, err) {
   const t = $("toast"); t.textContent = msg; t.classList.toggle("err", !!err); t.classList.add("on");
@@ -159,11 +163,13 @@ function toast(msg, err) {
 
 async function load() {
   const d = $("date").value || new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 10);
-  const r = await api.get("/admin/emergency-sessions?date=" + encodeURIComponent(d));
+  const r = await api.get("/admin/emergency-sessions?date=" + encodeURIComponent(d) + (SHOW_ALL ? "&all=1" : ""));
   if (!r.ok) { $("list").innerHTML = `<div class="empty">${esc((r.data && r.data.error) || "讀取失敗")}</div>`; return; }
   SESSIONS = (r.data.data && r.data.data.sessions) || [];
   $("kTotal").textContent = SESSIONS.length;
-  $("kOpen").textContent = SESSIONS.filter((s) => !s.coach_override_id).length;
+  $("kOpen").textContent = SESSIONS.filter(
+    (s) => !s.coach_override_id && (s.payout_status === "frozen_stolen" || Number(s.is_active) === 0),
+  ).length;
   $("kDone").textContent = SESSIONS.filter((s) => !!s.coach_override_id).length;
   if (!SESSIONS.length) {
     $("list").innerHTML = '<div class="empty">✓ 當日冇被熔斷教練的班次</div>';
@@ -179,7 +185,11 @@ async function load() {
             <div class="meta">
               ${esc(hkDate(s.start_time))} · ${esc(s.district || "")} · ${esc(s.venue_name || "")}<br>
               原教練 <b>${esc(s.original_coach_name || s.original_coach_id)}</b>
-              ${s.payout_status === "frozen_stolen" ? '<span class="chip red" style="margin-left:6px">🚨 已熔斷</span>' : '<span class="chip red" style="margin-left:6px">已停用</span>'}
+              ${s.payout_status === "frozen_stolen"
+                ? '<span class="chip red" style="margin-left:6px">🚨 已熔斷</span>'
+                : Number(s.is_active) === 0
+                  ? '<span class="chip red" style="margin-left:6px">已停用</span>'
+                  : ""}
               · ${Number(s.enrolled_count) || 0}/${Number(s.max_participants) || 0} 人
             </div>
           </div>
@@ -188,8 +198,11 @@ async function load() {
           ${s.coach_override_id
             ? `<span class="chip green">✓ 代堂中（${esc(s.substitute_name || s.coach_override_id)}）</span>
                <div class="meta">點名冊已轉移</div>`
-            : `<span class="chip orange">⚠️ 待安排代堂</span>
-               <div style="margin-top:8px"><button class="btn warn" data-go="${esc(s.id)}">⚡ 一鍵指派代堂</button></div>`}
+            : s.payout_status === "frozen_stolen" || Number(s.is_active) === 0
+              ? `<span class="chip orange">⚠️ 待安排代堂</span>
+               <div style="margin-top:8px"><button class="btn warn" data-go="${esc(s.id)}">⚡ 一鍵指派代堂</button></div>`
+              : `<span class="chip grey">正常班次</span>`}
+          }
           <div class="inc-actions">${incidentControls(s)}</div>
         </div>
       </div>
@@ -402,6 +415,7 @@ async function downloadDossier(id, fmt) {
 
 $("refresh").onclick = load;
 $("date").onchange = load;
+$("showAll").onchange = () => { SHOW_ALL = $("showAll").checked; load(); };
 
 (async () => {
   const me = await api.me();

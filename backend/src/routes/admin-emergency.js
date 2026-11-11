@@ -242,9 +242,10 @@ function personalPliValid(cred) {
 }
 
 /** 受影響班次：原教練已被熔斷（frozen_stolen 或 is_active=0） */
-function affectedSessions(db, date) {
+function affectedSessions(db, date, all = false) {
   ensureIncidentSchema(db);
   const day = /^\d{4}-\d{2}-\d{2}$/.test(String(date)) ? date : todayHKT();
+  const lockedFilter = all ? "" : "AND (u.payout_status = 'frozen_stolen' OR COALESCE(u.is_active,1) = 0)";
   const rows = db
     .prepare(
       `SELECT s.id, s.class_id, s.start_time, s.end_time, s.status, s.enrolled_count, s.max_participants,
@@ -261,7 +262,7 @@ function affectedSessions(db, date) {
          LEFT JOIN users sub ON sub.id = s.coach_override_id
         WHERE date(s.start_time, '+8 hours') = ?
           AND COALESCE(s.status,'') <> 'cancelled'
-          AND (u.payout_status = 'frozen_stolen' OR COALESCE(u.is_active,1) = 0)
+          ${lockedFilter}
         ORDER BY s.start_time`,
     )
     .all(day);
@@ -810,7 +811,8 @@ function whenLabel(v) {
 
 router.get("/emergency-sessions", (req, res) => {
   try {
-    res.json({ success: true, data: affectedSessions(getDb(), req.query.date) });
+    const all = req.query.all === "1" || req.query.all === "true";
+    res.json({ success: true, data: affectedSessions(getDb(), req.query.date, all) });
   } catch (e) {
     console.error("[EMGSUB] sessions:", e.message);
     res.status(500).json({ success: false, error: "讀取受影響班次失敗" });

@@ -62,6 +62,8 @@ db.prepare("INSERT INTO student_coach_affiliations (student_user_id,origin_coach
   const aff = emg.affectedSessions(db, "2026-11-11");
   ok(aff.sessions.length === 3, "三個班次待處理", aff.sessions.length);
   ok(aff.sessions.every((s) => s.payout_status === "frozen_stolen"), "只列出被熔斷教練");
+  const allAff = emg.affectedSessions(db, "2026-11-11", true);
+  ok(allAff.sessions.length === 4, "all=1 列出全部班次（含正常教練）", allAff.sessions.length);
 
   console.log("🧪 2. 候選過濾（同區／衝堂／PLI）");
   const c = emg.candidates(db, "s1");
