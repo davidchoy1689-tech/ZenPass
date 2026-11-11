@@ -219,8 +219,107 @@
   .bento-grid .hot-meta{color:#334155}
   .bento-badge{position:absolute;top:8px;right:8px;z-index:2;background:rgba(255,255,255,.92);border:1px solid rgba(15,23,42,.12);border-radius:999px;padding:2px 8px;font-size:10px;font-weight:800;color:#0F172A}
 </style>
+<style>
+  /* ===== Phase 5.2-UI 首頁現代化 ===== */
+  html, body { overflow-x: hidden; }
+
+  /* 1) 膠囊式懸浮搜尋（滾動後出現，貼頂） */
+  #stickySearch {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 80;
+    display: flex; justify-content: center;
+    padding: 8px 12px;
+    background: rgba(255,255,255,.86);
+    backdrop-filter: saturate(180%) blur(14px);
+    -webkit-backdrop-filter: saturate(180%) blur(14px);
+    border-bottom: 1px solid rgba(15,23,42,.06);
+    transform: translateY(-110%); transition: transform .22s ease;
+  }
+  #stickySearch.on { transform: translateY(0); }
+  #stickySearch .ss-pill {
+    display: flex; align-items: center; gap: 6px;
+    width: 100%; max-width: 520px;
+    background: #fff; border: 1px solid #E2E8F0; border-radius: 999px;
+    box-shadow: 0 8px 22px -12px rgba(15,23,42,.28);
+    padding: 6px 6px 6px 16px;
+  }
+  #stickySearch select {
+    border: 0; background: transparent; font: inherit; font-size: 13px; font-weight: 700;
+    color: #0F172A; padding: 8px 2px; max-width: 42%; appearance: none; -webkit-appearance: none;
+  }
+  #stickySearch .ss-sep { width: 1px; height: 20px; background: #E2E8F0; flex: 0 0 1px; }
+  #stickySearch .ss-go {
+    margin-left: auto; flex: 0 0 auto;
+    width: 38px; height: 38px; border-radius: 999px; border: 0;
+    background: #0F766E; color: #fff; font-size: 15px; font-weight: 800;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  /* 2) 班次卡片：教練行、呼吸燈席位、Pass 價值錨 */
+  .hot-card .coach-line { display:flex; align-items:center; gap:5px; font-size:11.5px; color:#475569; margin:2px 0 4px; }
+  .hot-card .coach-line .cname { font-weight:800; color:#0F172A; }
+  .hot-card .coach-line .cstar { color:#B45309; font-weight:800; }
+  .live-badge {
+    position: absolute; left: 10px; bottom: 10px; z-index: 3;
+    display: inline-flex; align-items: center; gap: 5px;
+    background: rgba(255,255,255,.94); color: #B91C1C;
+    font-size: 11px; font-weight: 900; padding: 4px 9px; border-radius: 999px;
+    box-shadow: 0 4px 12px rgba(0,0,0,.16);
+  }
+  .live-badge .dot { width: 7px; height: 7px; border-radius: 999px; background: #EF4444; animation: zpBreath 1.6s ease-in-out infinite; }
+  @keyframes zpBreath { 0%,100% { opacity:.35; transform:scale(.85); } 50% { opacity:1; transform:scale(1.15); } }
+  .hot-card .anchor-line { font-size: 11px; color:#0F766E; font-weight: 800; margin: 2px 0 6px; }
+
+  /* 3) 家庭共享通票模組 */
+  .fam-hero { margin: 22px 0 8px; padding: 20px 16px; border-radius: 24px;
+    background: linear-gradient(135deg,#ECFDF5,#F0FDFA 45%,#FFFFFF);
+    border: 1px solid #CCFBF1; }
+  .fam-hero .fh-tag { display:inline-block; font-size:11px; font-weight:900; letter-spacing:.08em;
+    color:#0F766E; background:#CCFBF1; padding:4px 10px; border-radius:999px; }
+  .fam-hero h2 { font-size: 21px; font-weight: 900; margin: 8px 0 4px; color:#0F172A; }
+  .fam-hero p.lead { font-size: 13px; color:#475569; margin: 0 0 14px; line-height:1.6; }
+  .fam-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .fam-step { background:#fff; border:1px solid #E6FFFA; border-radius:16px; padding:12px 8px; text-align:center;
+    box-shadow: 0 6px 16px -12px rgba(15,23,42,.25); }
+  .fam-step .ic { font-size: 22px; line-height:1.2; }
+  .fam-step b { display:block; font-size:12px; color:#0F172A; margin-top:4px; }
+  .fam-step span { display:block; font-size:10.5px; color:#64748B; margin-top:2px; }
+  .fam-cta { display:block; text-align:center; margin-top:14px; padding:13px;
+    background:#0F766E; color:#fff; font-weight:900; font-size:14px; border-radius:14px;
+    box-shadow: 0 10px 24px -14px rgba(15,118,110,.9); }
+
+  @media (max-width: 360px) {
+    #stickySearch select { font-size: 12px; }
+    .fam-hero h2 { font-size: 19px; }
+  }
+</style>
 </head>
 <body class="home">
+  <!-- Phase 5.2-UI：滾動後出現的膠囊搜尋列 -->
+  <div id="stickySearch" hidden>
+    <div class="ss-pill">
+      <select id="ssArea" aria-label="地區">
+        <option value="">探索全港</option>
+        <option value="kts">葵青（青衣）</option>
+        <option value="kt">觀塘</option>
+        <option value="ytm">油尖旺</option>
+        <option value="ssp">深水埗</option>
+        <option value="wc">灣仔</option>
+        <option value="east">東區</option>
+        <option value="st">沙田</option>
+        <option value="tw">荃灣</option>
+      </select>
+      <span class="ss-sep" aria-hidden="true"></span>
+      <select id="ssWhen" aria-label="時段">
+        <option value="">任何時段</option>
+        <option value="today">今日</option>
+        <option value="tomorrow">明日</option>
+        <option value="weekend">週末</option>
+        <option value="daytime">樂齡日間</option>
+        <option value="evening">放工時段</option>
+      </select>
+      <button class="ss-go" id="ssGo" type="button" aria-label="搜尋">🔍</button>
+    </div>
+  </div>
   <div class="wrap">
     <div class="hero">
       <div class="brand-topbar" aria-hidden="true"></div>
@@ -351,6 +450,19 @@
       <span class="promo-code" id="promoCode">WELCOME50</span>
       <button class="promo" id="copyPromo" type="button"> 領取</button>
     </div>
+
+    <!-- Phase 5.2-UI：家庭共享通票價值模組 -->
+    <section class="fam-hero" id="familyShareSection" aria-labelledby="famTitle">
+      <span class="fh-tag">全港首創</span>
+      <h2 id="famTitle">一張 Pass，全家共用</h2>
+      <p class="lead">子女線上買單，父母落樓做運動 —— 免帶手機、免裝 App，報電話尾 4 位即可核銷。</p>
+      <div class="fam-steps">
+        <div class="fam-step"><div class="ic">💳</div><b>1. 線上購卡</b><span>HK$520 包 4 堂</span></div>
+        <div class="fam-step"><div class="ic">👨‍👩‍👧</div><b>2. 綁定長者</b><span>輸入父母電話即通</span></div>
+        <div class="fam-step"><div class="ic">👵</div><b>3. 報尾數上課</b><span>免裝 App 零難度</span></div>
+      </div>
+      <a class="fam-cta" href="/pass.html">立即為家人開啟健康通票 · HK$520 →</a>
+    </section>
 
     <div class="section-title"> 按場景搵堂</div>
     <div class="hscroll" id="scenes">
@@ -858,13 +970,16 @@
               (Number(c.coach_starred) === 1 ? '<span class="badge-trial glass-badge">⭐ 星級教練</span>' : '') +
               (c.district ? '<span class="badge-district glass-badge">' + esc(c.district) + '</span>' : '') +
               '<span class="badge-countdown">⏳ ' + esc(daysLeft(c.start_time)) + '</span>' +
+              (left !== null && left > 0 && left <= 3 ? '<span class="live-badge"><span class="dot"></span>🔴 剩 ' + left + ' 位</span>' : '') +
             '</div>' +
             '<div class="hot-body">' +
               '<span class="hot-cat">' + esc(c.category || "課堂") + '</span>' +
               '<p class="hot-name">' + esc(c.title || "") + '</p>' +
+              (c.coach_name ? '<div class="coach-line">👤 <span class="cname">' + esc(c.coach_name) + '</span>' + (Number(c.coach_starred) === 1 ? ' <span class="cstar">⭐ 星級</span>' : '') + '</div>' : '') +
               '<p class="hot-meta" style="font-weight:600;color:var(--text)">' + esc(fmtWhen(c.start_time)) + '</p>' +
               '<p class="hot-meta">' + esc(c.venue_name || c.district || "") + ' · ' + (c.duration || 60) + ' 分鐘' +
                 (leftTxt ? ' <span class="' + leftCls + '">· ' + leftTxt + '</span>' : '') + '</p>' +
+              '<p class="anchor-line">🎟️ 扣減 1 堂 Pass 或 ' + hkd(Number(c.price_hkd) || 0) + '</p>' +
               '<p class="hot-price"><b>' + hkd(Number(c.price_hkd) || 0) + '</b><span class="hot-trial">/ 位</span></p>' +
               '<span class="btn btn-primary btn-block hot-cta">立即留位</span>' +
             '</div></a>';
@@ -986,5 +1101,54 @@
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <a class="wa-float" id="waFloat" href="https://wa.me/85290335538?text=%E4%BD%A0%E5%A5%BD%EF%BC%8C%E6%88%91%E6%83%B3%E6%9F%A5%E8%A9%A2%20ZenPass%20%E8%AA%B2%E7%A8%8B%E9%A0%90%E7%B4%84%EF%BC%81" target="_blank" rel="noopener" aria-label="WhatsApp 客服查詢"><span></span></a>
   <script src="assets/footer.js?v=6" defer></script>
+  <script>
+    /* Phase 5.2-UI：滾動後顯示膠囊搜尋（sticky），並帶參數去 explore */
+    (function () {
+      var bar = document.getElementById('stickySearch');
+      if (!bar) return;
+      var ssArea = document.getElementById('ssArea');
+      var ssWhen = document.getElementById('ssWhen');
+      var ssGo = document.getElementById('ssGo');
+      var ticking = false;
+
+      function sync() {
+        var show = window.scrollY > 280;
+        bar.hidden = false;
+        bar.classList.toggle('on', show);
+        ticking = false;
+      }
+      window.addEventListener('scroll', function () {
+        if (ticking) return;
+        ticking = true;
+        // 唔用 rAF：背景分頁／省電模式 rAF 可能唔觸發，會令膠囊唔出現
+        setTimeout(sync, 16);
+      }, { passive: true });
+      // 保險：部分頁面 scroll 由內層容器驅動，capture 一併捕捉
+      document.addEventListener('scroll', function () {
+        if (ticking) return;
+        ticking = true;
+        setTimeout(sync, 16);
+      }, { passive: true, capture: true });
+      sync();
+
+      // 低頻保險：部分內嵌瀏覽器 scroll 事件唔可靠，每 600ms 對一次 scrollY
+      setInterval(sync, 600);
+
+      // 與首屏搜尋同步預設值（唔改原有表單行為）
+      try {
+        var qa = document.getElementById('qsArea');
+        var qd = document.getElementById('qsDate');
+        if (qa && qa.value) ssArea.value = qa.value;
+        if (qd && qd.value) ssWhen.value = qd.value;
+      } catch (e) {}
+
+      ssGo.addEventListener('click', function () {
+        var p = new URLSearchParams();
+        if (ssArea.value) p.set('zone', ssArea.value);
+        if (ssWhen.value) p.set(ssWhen.value === 'today' || ssWhen.value === 'tomorrow' || ssWhen.value === 'weekend' || ssWhen.value === 'daytime' ? 'date' : 'time', ssWhen.value);
+        location.href = 'explore.html' + (p.toString() ? '?' + p.toString() : '');
+      });
+    })();
+  </script>
 </body>
 </html>
