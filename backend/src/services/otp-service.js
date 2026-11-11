@@ -124,9 +124,14 @@ async function sendOtp({ phone, ip = "" }) {
   const id = crypto.randomUUID();
   const expires = new Date(Date.now() + OTP_TTL_MS).toISOString().replace("T", " ").slice(0, 19);
   const sandbox = isSandbox(p);
+  const logOnly = process.env.OTP_LOG_CODES === "true";
 
   let channel = "log";
-  if (!sandbox) {
+  if (!sandbox && logOnly) {
+    // 過渡期：未配置 SMS 時，碼只寫入 server log（唔會經 API 回傳）
+    console.log(`[OTP] LOG_ONLY ${p.slice(0, 2)}****${p.slice(-2)} code=${code}`);
+    channel = "log";
+  } else if (!sandbox) {
     const delivered = await deliver(p, code);
     if (!delivered.ok) {
       console.error("[OTP] 無法發送短訊:", delivered.error);
