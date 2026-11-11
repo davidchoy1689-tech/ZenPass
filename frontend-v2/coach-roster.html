@@ -372,7 +372,7 @@
     $("sync").textContent = navigator.onLine ? "⏳ 同步中…" : "📴 已暫存（待同步）";
     if (!navigator.onLine) {
       // Phase 5.1-UI：離線樂觀反饋 — 明確告知已暫存，避免教練以為按鈕失效而狂點
-      toast("📴 已暫存本機，連網後自動上傳平帳");
+      toast("⚡ 點名已暫存本機，連網時將自動同步");
     }
     // 2 秒防抖：同一學員連續切換只送最後一次
     clearTimeout(timers[bid]);
@@ -554,7 +554,7 @@
       </div>
       <div style="font-size:12.5px;color:#64748b;line-height:1.6;margin-bottom:12px">請長者報出預約時登記的電話後 4 位，再核對姓名。系統會記錄本次為教練人手核實。</div>
       <label style="font-size:13px;font-weight:700;color:#334155">電話後 4 位</label>
-      <input id="elderlyLast4" type="tel" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code" maxlength="4" enterkeyhint="done" placeholder="請輸入電話後 4 位" style="width:100%;box-sizing:border-box;padding:14px;font-size:24px;font-weight:800;letter-spacing:8px;text-align:center;border:2px solid #cbd5e1;border-radius:12px;margin:6px 0 10px">
+      <input id="elderlyLast4" type="tel" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code" maxlength="4" enterkeyhint="done" placeholder="0000" style="width:100%;box-sizing:border-box;padding:14px;font-size:24px;font-weight:800;letter-spacing:8px;text-align:center;border:2px solid #cbd5e1;border-radius:12px;margin:6px 0 10px">
       <label style="font-size:13px;font-weight:700;color:#334155">姓氏（可選）</label>
       <input id="elderlyName" placeholder="陳" style="width:100%;box-sizing:border-box;padding:12px;font-size:16px;border:1px solid #cbd5e1;border-radius:10px;margin:6px 0 10px">
       <button type="button" id="elderlySearch" style="width:100%;padding:13px;border:0;border-radius:10px;background:#0f766e;color:#fff;font-size:15px;font-weight:800">🔍 核對名冊</button>
