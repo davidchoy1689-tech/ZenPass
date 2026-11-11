@@ -112,6 +112,41 @@ db.prepare("INSERT INTO student_coach_affiliations (student_user_id,origin_coach
   const src = h.route.stack[0].handle.toString();
   ok(/pli_coverage_source/.test(src) && /assign\(/.test(src), "端點回傳規格格式");
 
+  console.log("🧪 3d. 事故登記＋PLI 索償證據鏈");
+  const incRoute = router.stack.find((x) => x.route && x.route.path === "/schedules/:id/incidents" && x.route.methods.post);
+  ok(!!incRoute, "事故登記端點存在");
+  const incRes = await call(incRoute.route.stack[0].handle, {
+    user: { id: "adm", role: "super_admin" },
+    params: { id: "s1" },
+    body: {
+      student_user_id: "stu",
+      incident_time: "2026-11-11T10:45",
+      description: "10:45 雙手扶椅伸展時失衡，左膝著地挫傷",
+      action_taken: "暫停全班、冰敷、10:52 致電 999 送往瑪嘉烈醫院",
+      severity: "moderate",
+    },
+  });
+  ok(incRes.statusCode === 201 && !!incRes.body.data.incident_id, "登記事故成功", incRes.body);
+  const incRow = db.prepare("SELECT * FROM schedule_incidents WHERE id=?").get(incRes.body.data.incident_id);
+  ok(incRow.student_name === "學員甲" && incRow.student_phone === "61112222", "自動帶入學員資料");
+  ok(String(incRow.incident_time) === "2026-11-11 02:45:00", "HKT 時間正確轉 UTC", incRow.incident_time);
+  const board = emg.affectedSessions(db, "2026-11-11");
+  const s1row = board.sessions.find((x) => x.id === "s1");
+  ok(Number(s1row.incident_count) === 1 && !!s1row.has_insurance, "隊列顯示事故數＋保險備案");
+
+  const dossier = emg.buildDossier(db, "s1", null, { id: "adm", name: "管理員" });
+  ok(!dossier.error && dossier.payload.reference_no.startsWith("ZP-CLM-"), "報告編號格式");
+  ok(dossier.payload.insurance.policy_number === "PERSONAL-PLI" || !!dossier.payload.insurance.policy_number, "有保單號");
+  ok(Number(dossier.payload.insurance.coverage_amount_cents) === 1000000000, "保額 10,000,000 元（分）");
+  ok(dossier.payload.coaches.actual.is_substitute === true && dossier.payload.coaches.actual.name === "黃教練", "實際執教教練為代堂");
+  ok(dossier.payload.roster.length >= 1 && dossier.payload.roster[0].health_notes !== undefined, "含點名冊與健康備註");
+  ok(dossier.payload.attendance_summary.present >= 1, "實到人數");
+  const early = new Date(String(dossier.payload.insurance.logged_at).replace(" ", "T") + "Z") < new Date(String(incRow.incident_time).replace(" ", "T") + "Z");
+  ok(early, "保險備案時間早於事故時間");
+  const csv = emg.dossierCsv(dossier, "a".repeat(64));
+  ok(csv.charCodeAt(0) === 0xfeff && csv.includes("ZP-CLM-") && csv.includes("SHA-256"), "CSV 有 BOM＋報告編號＋雜湊");
+  ok(/pli\.incident_reported/.test(require("fs").readFileSync(path.join(__dirname, "../src/routes/admin-emergency.js"), "utf8")), "有事故審計");
+
   console.log("🧪 4. 拆帳：代堂 80%／原教練補足託管");
   const { buildMonthlyBreakdown } = require("../src/routes/coach-earnings");
   const bd = buildMonthlyBreakdown(db, "orig", "2026-11");

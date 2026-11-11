@@ -43,6 +43,8 @@
   .empty{text-align:center;color:#94A3B8;padding:44px 16px;font-size:13px}
   .drawer-bg{position:fixed;inset:0;background:rgba(15,23,42,.56);display:flex;justify-content:flex-end;z-index:9998}
   .drawer-bg[hidden]{display:none}
+  .modal-bg{position:fixed;inset:0;background:rgba(15,23,42,.56);display:flex;align-items:center;justify-content:center;padding:14px;z-index:9998}
+  .modal-bg[hidden]{display:none}
   .drawer{background:#fff;width:100%;max-width:560px;height:100%;overflow:auto;box-shadow:-20px 0 60px rgba(15,23,42,.25)}
   .dh{position:sticky;top:0;background:#fff;border-bottom:1px solid var(--line);padding:14px 16px;display:flex;justify-content:space-between;gap:10px;align-items:flex-start;z-index:2}
   .dh h2{font-size:16px;margin:0 0 3px}
@@ -69,6 +71,8 @@
   .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(8px);background:#0F172A;color:#fff;padding:10px 16px;border-radius:999px;font-size:12.5px;font-weight:700;opacity:0;transition:.22s;z-index:99999;max-width:90vw;text-align:center}
   .toast.on{opacity:1;transform:translateX(-50%)}
   .toast.err{background:#991B1B}
+  .inc-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+  .inc-actions .btn{padding:6px 10px;font-size:11.5px}
 </style>
 </head>
 <body>
@@ -104,6 +108,34 @@
       <button class="x" id="drClose">✕</button>
     </div>
     <div class="db" id="drBody"></div>
+  </div>
+</div>
+<div class="modal-bg" id="incBg" hidden>
+  <div style="background:#fff;border-radius:16px;width:100%;max-width:560px;max-height:92vh;overflow:auto;box-shadow:0 24px 60px rgba(15,23,42,.28)">
+    <div class="dh"><div><h2 style="color:#B91C1C">🚨 登記意外事故</h2><div class="sub" id="incSub"></div></div><button class="x" id="incClose">✕</button></div>
+    <div class="db">
+      <div class="warn">請如實記錄事發時間與現場處置；報告會同 PLI 保單時序比對，匯出後封存 SHA-256。</div>
+      <label style="font-size:12px;font-weight:800;color:#64748B">受傷學員</label>
+      <select id="incStudent" style="width:100%;border:1px solid var(--line);border-radius:10px;padding:10px;font:inherit;font-size:13px;margin-bottom:8px"></select>
+      <div id="incManual" style="display:none">
+        <input id="incName" placeholder="學員姓名" style="width:100%;border:1px solid var(--line);border-radius:10px;padding:10px;font:inherit;font-size:13px;margin-bottom:8px" />
+        <input id="incPhone" inputmode="numeric" placeholder="學員電話" style="width:100%;border:1px solid var(--line);border-radius:10px;padding:10px;font:inherit;font-size:13px;margin-bottom:8px" />
+      </div>
+      <label style="font-size:12px;font-weight:800;color:#64748B">事故時間（HKT）</label>
+      <input type="datetime-local" id="incTime" style="width:100%;border:1px solid var(--line);border-radius:10px;padding:10px;font:inherit;font-size:13px;margin-bottom:8px" />
+      <label style="font-size:12px;font-weight:800;color:#64748B">事發經過（必填，≥10 字）</label>
+      <textarea id="incDesc" placeholder="例：10:45 進行下肢伸展時失去平衡跌坐地面，左膝挫傷"></textarea>
+      <label style="font-size:12px;font-weight:800;color:#64748B;display:block;margin-top:8px">現場處置</label>
+      <textarea id="incAction" placeholder="例：立即暫停全班、冰敷、10:52 致電 999、送往瑪嘉烈醫院"></textarea>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <select id="incSeverity" style="flex:1;border:1px solid var(--line);border-radius:10px;padding:10px;font:inherit;font-size:13px">
+          <option value="">嚴重程度</option><option value="minor">輕微</option><option value="moderate">中等</option><option value="serious">嚴重</option>
+        </select>
+        <input id="incGuardian" placeholder="監護人姓名" style="flex:1;border:1px solid var(--line);border-radius:10px;padding:10px;font:inherit;font-size:13px" />
+        <input id="incGuardianPhone" inputmode="numeric" placeholder="監護人電話" style="flex:1;border:1px solid var(--line);border-radius:10px;padding:10px;font:inherit;font-size:13px" />
+      </div>
+      <div class="acts"><button class="btn" id="incCancel">取消</button><button class="btn" style="background:#B91C1C;border-color:#B91C1C;color:#fff" id="incSave">儲存事故紀錄</button></div>
+    </div>
   </div>
 </div>
 <div class="toast" id="toast"></div>
@@ -158,10 +190,29 @@ async function load() {
                <div class="meta">點名冊已轉移</div>`
             : `<span class="chip orange">⚠️ 待安排代堂</span>
                <div style="margin-top:8px"><button class="btn warn" data-go="${esc(s.id)}">⚡ 一鍵指派代堂</button></div>`}
+          <div class="inc-actions">${incidentControls(s)}</div>
         </div>
       </div>
     </div>`).join("");
   $("list").querySelectorAll("[data-go]").forEach((b) => (b.onclick = () => openDrawer(b.dataset.go)));
+  $("list").querySelectorAll("[data-inc]").forEach((b) => (b.onclick = () => openIncident(b.dataset.inc)));
+  $("list").querySelectorAll("[data-exp]").forEach((b) => (b.onclick = () => downloadDossier(b.dataset.exp, b.dataset.fmt)));
+}
+
+function incidentControls(s) {
+  const has = Number(s.incident_count) > 0;
+  const buttons = [
+    has
+      ? `<span class="chip red">🚨 事故已登記</span>`
+      : `<button class="btn" data-inc="${esc(s.id)}">🚨 登記意外事故</button>`,
+  ];
+  if (has) {
+    for (const f of ["pdf", "csv", "json"]) {
+      buttons.push(`<button class="btn" data-exp="${esc(s.id)}" data-fmt="${f}">📥 ${f.toUpperCase()}</button>`);
+    }
+  }
+  if (!s.has_insurance && !has) buttons.push(`<span class="meta" style="color:#B45309">未見 PLI 備案</span>`);
+  return buttons.join("");
 }
 
 async function openDrawer(scheduleId) {
@@ -262,6 +313,93 @@ async function submitAssign() {
 
 $("drClose").onclick = () => ($("drBg").hidden = true);
 $("drBg").onclick = (e) => { if (e.target === $("drBg")) $("drBg").hidden = true; };
+
+let INC_SESSION = null;
+async function openIncident(id) {
+  const s = SESSIONS.find((x) => x.id === id);
+  if (!s) return;
+  INC_SESSION = s;
+  $("incSub").textContent = `${s.title} · ${hkDate(s.start_time)} ${hkTime(s.start_time)}`;
+  $("incTime").value = new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 16);
+  $("incDesc").value = "";
+  $("incAction").value = "";
+  $("incSeverity").value = "";
+  $("incGuardian").value = "";
+  $("incGuardianPhone").value = "";
+  $("incStudent").innerHTML = '<option value="">載入名單中…</option>';
+  $("incBg").hidden = false;
+  const r = await api.get("/admin/schedules/" + encodeURIComponent(id) + "/roster");
+  const list = (r.ok && r.data.data) || [];
+  $("incStudent").innerHTML =
+    '<option value="">請選擇受傷學員</option>' +
+    list.map((x) => `<option value="${esc(x.user_id)}">${esc(x.student_name)} · ${esc(x.phone_masked || "")}</option>`).join("") +
+    '<option value="__manual">其他／不在名單</option>';
+  $("incStudent").onchange = () => {
+    $("incManual").style.display = $("incStudent").value === "__manual" ? "block" : "none";
+  };
+}
+
+$("incClose").onclick = $("incCancel").onclick = () => ($("incBg").hidden = true);
+$("incBg").onclick = (e) => { if (e.target === $("incBg")) $("incBg").hidden = true; };
+$("incSave").onclick = async () => {
+  if (!INC_SESSION) return;
+  const sel = $("incStudent").value;
+  const desc = $("incDesc").value.trim();
+  if (!sel) return toast("請選擇受傷學員", true);
+  if (desc.length < 10) return toast("請填寫事故經過（最少 10 字）", true);
+  const manual = sel === "__manual";
+  const body = {
+    student_user_id: manual ? null : sel,
+    student_name: manual ? $("incName").value.trim() : undefined,
+    student_phone: manual ? $("incPhone").value.trim() : undefined,
+    incident_time: $("incTime").value,
+    description: desc,
+    action_taken: $("incAction").value.trim(),
+    severity: $("incSeverity").value,
+    guardian_name: $("incGuardian").value.trim(),
+    guardian_phone: $("incGuardianPhone").value.trim(),
+  };
+  if (manual && !body.student_name) return toast("請填寫學員姓名", true);
+  const btn = $("incSave");
+  btn.disabled = true;
+  try {
+    const r = await api.post("/admin/schedules/" + encodeURIComponent(INC_SESSION.id) + "/incidents", body);
+    if (!r.ok) return toast((r.data && r.data.error) || "登記失敗", true);
+    toast("🚨 事故已登記，可匯出索償報告");
+    $("incBg").hidden = true;
+    load();
+  } finally {
+    btn.disabled = false;
+  }
+};
+
+async function downloadDossier(id, fmt) {
+  const token = localStorage.getItem("zenpass_token") || "";
+  const url = "/api/admin/schedules/" + encodeURIComponent(id) + "/export-pli-incident?format=" + encodeURIComponent(fmt);
+  toast("正在生成報告…");
+  try {
+    const res = await fetch(url, { credentials: "include", headers: token ? { Authorization: "Bearer " + token } : {} });
+    if (!res.ok) {
+      let msg = "匯出失敗";
+      try { const j = await res.json(); msg = j.error || msg; } catch (e) {}
+      return toast(msg, true);
+    }
+    const blob = await res.blob();
+    const cd = res.headers.get("Content-Disposition") || "";
+    const m = cd.match(/filename="([^"]+)"/);
+    const name = m ? m[1] : `ZP-CLIENT-${id}.${fmt}`;
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+    toast("✅ 報告已下載");
+  } catch (e) {
+    toast("匯出失敗", true);
+  }
+}
+
 $("refresh").onclick = load;
 $("date").onchange = load;
 
