@@ -60,7 +60,7 @@ SELECT fg.id AS group_id, fg.group_name, ow.name AS owner, ow.phone AS owner_pho
 `POST /api/passes/admin/issue`（需 `finance.payout.process`）
 ```json
 { "phone": "91234567", "student_name": "陳小姐", "total_credits": 4,
-  "price_paid": 520, "family_group_id": "<A1 group_id>", "days_valid": 60 }
+  "price_paid": 520, "family_group_id": "<A1 group_id>", "valid_days": 60 }
 ```
 核對：
 ```bash
