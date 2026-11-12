@@ -343,6 +343,32 @@
   .hero-search-pill .sum { color: #475569; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .hero-search-pill .go { margin-left: auto; flex: 0 0 36px; width: 36px; height: 36px; border-radius: 999px;
     background: #0F766E; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 15px; }
+
+  /* Phase 5.4 — Hero 精簡（David 2026-11-13 wireframe：減密度、強層級、手機單行 chips） */
+  .hero-value-strip { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 10px; margin: 14px 0 2px; }
+  .hero-value { background: #fff; border: 1px solid #E2E8F0; border-radius: 14px; padding: 10px 12px;
+    display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .hero-value b { font-size: 12.5px; font-weight: 900; color: #0F172A; letter-spacing: -.01em; }
+  .hero-value span { font-size: 11.5px; font-weight: 600; color: #64748B; }
+  @media (min-width: 768px) {
+    /* 桌面：直接用完整搜尋列，唔需要膠囊按鈕 */
+    .search-capsule-wrapper .search-capsule { display: flex !important; }
+    .search-capsule-wrapper .hero-search-pill { display: none !important; }
+    .search-capsule-wrapper .search-note { text-align: left; margin-top: 8px; }
+  }
+  @media (max-width: 640px) {
+    .hero { padding-bottom: 34px; }
+    .hero-brand-pill { margin-top: 24px; font-size: 11.5px; }
+    body.home .hero h1 { font-size: 28px; line-height: 1.22; margin: 10px 0 6px; }
+    .hero-sub { font-size: 14px; line-height: 1.5; margin: 4px 0 12px; }
+    .hero-value-strip { gap: 6px; margin-top: 12px; }
+    .hero-value { padding: 8px 9px; border-radius: 12px; }
+    .hero-value b { font-size: 11.5px; }
+    .hero-value span { font-size: 10.5px; }
+    .hscroll.loc-row { overflow-x: auto; flex-wrap: nowrap; -webkit-overflow-scrolling: touch; scrollbar-width: none; padding-bottom: 6px; }
+    .hscroll.loc-row::-webkit-scrollbar { display: none; }
+    .hscroll.loc-row .loc-pill { flex: 0 0 auto; }
+  }
 </style>
 </head>
 <body class="home">
@@ -429,8 +455,8 @@
 
       <div class="search-capsule-wrapper">
         <button class="hero-search-pill" id="heroSearchPill" type="button" aria-label="開啟搜尋篩選">
-          <span class="lead">🔍 探索全港</span>
-          <span class="div">|</span>
+          <span class="lead">🔍 探索全港課程</span>
+          <span class="div" hidden>|</span>
           <span class="sum" id="heroSearchSummary">地區 · 時段 · 運動</span>
           <span class="go" aria-hidden="true">⌕</span>
         </button>
@@ -482,21 +508,18 @@
         </div>
         <p class="search-note">免註冊即可預約 · 即時確認席位</p>
       </div>
-      <div class="hot-search" aria-label="熱門搜尋">
-        <span class="hot-search-label"> 熱搜：</span>
-        <a class="hs-pill" href="explore.html?q=%E8%8A%AC%E8%98%AD%E6%9C%A8%E6%9F%B1">芬蘭木柱</a>
-        <a class="hs-pill" href="explore.html?q=%E5%86%B0%E5%A3%BA">親子冰壺</a>
-        <a class="hs-pill" href="explore.html?zone=kt">觀塘室內</a>
-        <a class="hs-pill" href="explore.html?q=%E7%91%9C%E4%BC%BD&time=evening">放工瑜伽</a>
-        <a class="hs-pill" href="explore.html?q=%E5%B8%83%E8%A2%8B%E7%90%83">布袋球</a>
-      </div>
-      <div class="hscroll loc-row" aria-label="熱門地區">
-        <a class="loc-pill" href="explore.html">全部即開班次</a>
-        <a class="loc-pill" href="explore.html?scene=senior">樂齡伸展防跌</a>
+      <div class="hscroll loc-row" aria-label="快速探索">
+        <a class="loc-pill" href="explore.html">全部即開班次 →</a>
         <a class="loc-pill" href="explore.html?q=%E8%8A%AC%E8%98%AD%E6%9C%A8%E6%9F%B1">芬蘭木柱</a>
-        <a class="loc-pill" href="explore.html?q=%E5%86%B0%E5%A3%BA">地板冰壺</a>
+        <a class="loc-pill" href="explore.html?scene=senior">樂齡伸展防跌</a>
+        <a class="loc-pill" href="explore.html?q=%E5%86%B0%E5%A3%BA">親子冰壺</a>
+        <a class="loc-pill" href="explore.html?q=%E5%B8%83%E8%A2%8B%E7%90%83">布袋球</a>
         <a class="loc-pill" href="explore.html?zone=kts">葵青（楓樹窩）</a>
-        <a class="loc-pill" href="explore.html?zone=kt">觀塘室內</a>
+      </div>
+      <div class="hero-value-strip" aria-label="平台價值">
+        <div class="hero-value"><b>新客首堂半價</b><span>優惠碼 WELCOME50</span></div>
+        <div class="hero-value"><b>免註冊即預約</b><span>即時確認席位</span></div>
+        <div class="hero-value"><b>全港 18 區</b><span>場地 PLI 核驗</span></div>
       </div>
     </div>
 
