@@ -100,6 +100,10 @@ ok(/折合 ?\$?130|折合 HK\$130/.test(idx), "首頁卡片標示「折合 $130�
 ok(!/或 HK\$ ?130/.test(idx), "首頁已移除模糊「或 HK$130」寫法");
 ok(/520/.test(pay) && /130/.test(pay), "購卡頁有 4 堂 HK$520（每堂 $130）");
 ok(/960|120/.test(pay), "購卡頁有 8 堂階梯（HK$960 / 每堂 $120）");
+ok(/ANCHOR_PRICE_HKD = 160/.test(idx), "AC-PRICING-1：首頁錨定標準單堂 HK$160");
+ok(/通票兌換 1 堂（折合 \$130）/.test(idx), "AC-PRICING-1：首頁卡片文案「通票兌換 1 堂（折合 $130）」");
+ok(/原價 \$640 · 即省 \$120/.test(pay), "AC-PRICING-2：購卡頁 4 堂標示原價 $640 省 $120");
+ok(/原價 \$1,280 · 即省 \$320/.test(pay), "AC-PRICING-2：購卡頁 8 堂標示原價 $1,280 省 $320");
 
 console.log(`\n📊 結果: ${pass} passed / ${bad} failed`);
 process.exit(bad ? 1 : 0);
