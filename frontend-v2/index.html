@@ -1373,7 +1373,22 @@
         { k: '', l: '全部' }, { k: '芬蘭木柱', l: '芬蘭木柱' }, { k: '樂齡伸展', l: '樂齡伸展' },
         { k: '地板冰壺', l: '地板冰壺' }, { k: '布袋球', l: '布袋球' }, { k: '瑜伽', l: '瑜伽' }
       ];
-      var F = { region: '', zone: '', date: '', cats: [] };
+      var F = { region: '', zone: '', date: '', cats: [] };          // draft（正在編輯）
+      var APPLIED = { region: '', zone: '', date: '', cats: [] };    // applied（驅動摘要／搜尋）
+      function cloneF(x) { return { region: x.region || '', zone: x.zone || '', date: x.date || '', cats: (x.cats || []).slice() }; }
+      function saveApplied() {
+        try { sessionStorage.setItem('zp_filters', JSON.stringify(APPLIED)); } catch (e) {}
+      }
+      function loadApplied() {
+        try {
+          var raw = sessionStorage.getItem('zp_filters');
+          if (!raw) return;
+          var o = JSON.parse(raw);
+          APPLIED = cloneF(o);
+          F = cloneF(o);
+          openRegion = APPLIED.zone ? ((DISTRICTS.filter(function (d) { return d.k === APPLIED.zone; })[0] || {}).r || '') : '';
+        } catch (e) {}
+      }
       var openRegion = '';
       var ALL_CLASSES = null;
 
@@ -1382,10 +1397,12 @@
         if (F.zone) return labelOf(DISTRICTS, F.zone);
         return F.region ? labelOf(REGIONS, F.region) : '';
       }
-      function summaryText() {
-        var bits = [zoneLabel() || '全港', labelOf(TIMES, F.date) || '任何時段', F.cats.length ? F.cats.join('／') : '全部運動'];
+      function summaryTextFor(st) {
+        var z = st.zone ? labelOf(DISTRICTS, st.zone) : (st.region ? labelOf(REGIONS, st.region) : '');
+        var bits = [z || '全港', labelOf(TIMES, st.date) || '任何時段', st.cats.length ? st.cats.join('／') : '全部運動'];
         return bits.join(' · ');
       }
+      function summaryText() { return summaryTextFor(APPLIED); }
 
       function chip(label, pressed, onClick, cls) {
         var b = document.createElement('button');
@@ -1504,7 +1521,7 @@
         renderRegions(); renderTimes(); renderKinds(); renderActive(); updateCount();
         var t = summaryText();
         if (ssSummary) ssSummary.textContent = t;
-        if (heroSummaryEl) heroSummaryEl.textContent = (F.zone || F.date || F.cats.length) ? t : '地區 · 時段 · 運動';
+        if (heroSummaryEl) heroSummaryEl.textContent = (APPLIED.zone || APPLIED.date || APPLIED.cats.length) ? t : '地區 · 時段 · 運動';
         if (document.getElementById('dPanel')) renderDesktop();
         if (drawer.classList.contains('on')) {
           setTimeout(function () {
@@ -1538,6 +1555,7 @@
         sdReset.focus();
       }
       function openDrawer() {
+        F = cloneF(APPLIED);
         sheetTrigger = document.activeElement;
         drawer.classList.add('on');
         document.body.style.overflow = 'hidden';
@@ -1546,6 +1564,8 @@
         setTimeout(sheetFirstFocus, 80);
       }
       function closeDrawer() {
+        F = cloneF(APPLIED);
+        renderAll();
         drawer.classList.remove('on');
         sheet.style.transform = '';
         sheet.classList.remove('dragging');
@@ -1562,6 +1582,8 @@
         renderAll();
       });
       sdGo.addEventListener('click', function () {
+        APPLIED = cloneF(F);
+        saveApplied();
         var p = new URLSearchParams();
         if (F.zone) p.set('zone', F.zone);
         if (F.date) p.set('date', F.date);
@@ -1765,6 +1787,7 @@
 
       function openPanel() {
         if (!dPanel || window.innerWidth < 1024) return;
+        F = cloneF(APPLIED);
         loadCount();
         dPanel.hidden = false;
         dPanel.classList.add('on');
@@ -1772,8 +1795,10 @@
       }
       function closePanel() {
         if (!dPanel) return;
+        F = cloneF(APPLIED);
         dPanel.classList.remove('on');
         dPanel.hidden = true;
+        renderAll();
       }
       if (dpReset) dpReset.addEventListener('click', function () {
         F = { region: '', zone: '', date: '', cats: [] };
@@ -1782,6 +1807,8 @@
         renderAll();
       });
       if (dpGo) dpGo.addEventListener('click', function () {
+        APPLIED = cloneF(F);
+        saveApplied();
         var p = new URLSearchParams();
         if (F.zone) p.set('zone', F.zone);
         if (F.date) p.set('date', F.date);
@@ -1956,6 +1983,7 @@
       var _closePanel = closePanel;
       closePanel = function () { _closePanel(); };
 
+      loadApplied();
       renderAll();
     })();
   </script>
