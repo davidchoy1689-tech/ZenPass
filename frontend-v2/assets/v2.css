@@ -38,8 +38,12 @@
   --text: var(--ink-900);
   --text-muted: var(--ink-500);
 
-  /* Type */
-  --font: "Noto Sans TC", "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+  /* Type — 系統字優先，零字體下載（HK 用戶最快）
+     有 Noto Sans TC 就用（自架／已裝），否則 Apple→PingFang TC/HK、Windows→Microsoft JhengHei、Android→Noto */
+  --font: "Noto Sans TC", "PingFang TC", "PingFang HK", "Hiragino Sans TC",
+    "Microsoft JhengHei", "Microsoft YaHei", "Helvetica Neue", Arial,
+    -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-num: "Inter", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
 
   /* Space */
   --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 20px; --s6: 24px; --s8: 32px;
@@ -67,6 +71,12 @@
 html { font-size: 16px; }
 body {
   margin: 0; font-family: var(--font); color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-kerning: normal;
+  font-feature-settings: "kern" 1;
+  letter-spacing: 0.01em;
   background: var(--bg); line-height: 1.5;
   -webkit-font-smoothing: antialiased;
 }
@@ -527,3 +537,14 @@ a.chip:hover { background: var(--brand-100, #ffe9df); color: var(--brand-700); }
 .ref-tx p { margin: 4px 0 0; font-size: 12.5px; opacity: .92; line-height: 1.5; }
 .ref-btn { background: #fff !important; color: #047857 !important; font-weight: 800; width: 100%; border: 0; }
 @media (min-width: 560px) { .ref-btn { width: auto; } }
+
+/* ============================================================
+   中文排版微調（2026-11-13）
+   原則：唔下載字體、唔改版面；只統一標題字重、字距與行高
+   ============================================================ */
+h1, .font-black { font-weight: 900; letter-spacing: -0.01em; line-height: 1.25; }
+h2 { font-weight: 800; letter-spacing: -0.005em; line-height: 1.3; }
+h3, .font-bold { font-weight: 700; }
+button, .chip, .tag { letter-spacing: 0.02em; }
+/* 數字／金額用等寬比例較穩 */
+.num, .price, .amount, .money { font-family: var(--font-num); font-variant-numeric: tabular-nums; }

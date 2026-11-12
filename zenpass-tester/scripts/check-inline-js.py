@@ -50,6 +50,9 @@ def check_file(path):
         # ── 非 JS 的 script：只驗 JSON（speculationrules / ld+json 等）──
         if stype not in JS_TYPES:
             if "json" in stype or "speculationrules" in stype:
+                # SSR 模板（例如 coach-public.html）會用 {{JSONLD}} 佔位，跳過驗證
+                if re.search(r"\{\{[^}]+\}\}", src):
+                    continue
                 try:
                     json.loads(src)
                 except ValueError as e:
