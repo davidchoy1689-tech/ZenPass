@@ -345,8 +345,8 @@ router.get(
     const rows = db
       .prepare(
         `SELECT u.id, u.name, u.email, u.wallet_balance, u.pending_payout,
-                COALESCE((SELECT SUM(net_amount) FROM coach_earnings
-                          WHERE coach_id = u.id AND status = 'pending'), 0) AS earnings_pending
+                COALESCE((SELECT SUM(net_amount) FROM coach_earnings ce2
+                          WHERE ce2.coach_id = u.id AND ce2.status = 'pending'${require("../utils/test-audit").notTestClause(db, "ce2")}), 0) AS earnings_pending
          FROM users u
          WHERE COALESCE(u.wallet_balance,0) <> 0 OR COALESCE(u.pending_payout,0) <> 0`,
       )

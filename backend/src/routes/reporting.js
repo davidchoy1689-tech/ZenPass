@@ -19,7 +19,7 @@ router.get("/coach-ranking", authenticateToken, requireAdmin, (req, res) => {
       SELECT u.id, u.name, u.email, u.total_earnings, u.pending_payout, u.commission_rate,
         (SELECT COUNT(*) FROM classes WHERE coach_id = u.id AND status = 'active') as class_count,
         (SELECT COUNT(*) FROM coach_earnings WHERE coach_id = u.id) as earning_entries,
-        (SELECT COALESCE(SUM(COALESCE(ce.net_amount_cents, CAST(ROUND(ce.net_amount*100) AS INTEGER))), 0)/100.0 FROM coach_earnings ce WHERE ce.coach_id = u.id) as total_earned,
+        (SELECT COALESCE(SUM(COALESCE(ce.net_amount_cents, CAST(ROUND(ce.net_amount*100) AS INTEGER))), 0)/100.0 FROM coach_earnings ce WHERE ce.coach_id = u.id${require("../utils/test-audit").notTestClause(db, "ce")}) as total_earned,
         (SELECT COUNT(*) FROM bookings b JOIN classes c ON b.class_id = c.id WHERE c.coach_id = u.id) as total_bookings,
         (SELECT COUNT(*) FROM bookings b JOIN classes c ON b.class_id = c.id WHERE c.coach_id = u.id AND b.status = 'attended') as attended_bookings
       FROM users u WHERE u.is_coach = 1 AND u.coach_verified = 1

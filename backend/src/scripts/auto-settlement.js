@@ -40,7 +40,7 @@ function settleCoachEarnings() {
         COUNT(*) as earning_count
       FROM coach_earnings ce
       JOIN users u ON ce.coach_id = u.id
-      WHERE ce.status = 'pending'
+      WHERE ce.status = 'pending'${require('../utils/test-audit').notTestClause(db, 'ce')}
       GROUP BY ce.coach_id
       HAVING total_pending > 0
     `,

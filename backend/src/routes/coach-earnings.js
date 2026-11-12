@@ -15,6 +15,7 @@ const {
 
 const { sendNotification } = require("../services/notification");
 const { writeBlock } = require("../services/blockchain-audit");
+const { notTestClause } = require("../utils/test-audit");
 
 const router = express.Router();
 
@@ -41,7 +42,7 @@ router.get("/earnings", authenticateToken, (req, res) => {
       .prepare(
         `
       SELECT COALESCE(SUM(net_amount), 0) as total FROM coach_earnings
-      WHERE coach_id = ? AND date >= ? AND date <= ? AND status != 'cancelled'
+      WHERE coach_id = ? AND date >= ? AND date <= ? AND status != 'cancelled' ${notTestClause(db)}
     `,
       )
       .get(req.user.id, monthStart, monthEnd);
@@ -51,7 +52,7 @@ router.get("/earnings", authenticateToken, (req, res) => {
       .prepare(
         `
       SELECT COALESCE(SUM(net_amount), 0) as total FROM coach_earnings
-      WHERE coach_id = ? AND status != 'cancelled'
+      WHERE coach_id = ? AND status != 'cancelled' ${notTestClause(db)}
     `,
       )
       .get(req.user.id);
@@ -61,7 +62,7 @@ router.get("/earnings", authenticateToken, (req, res) => {
       .prepare(
         `
       SELECT COALESCE(SUM(net_amount), 0) as total FROM coach_earnings
-      WHERE coach_id = ? AND status = 'pending'
+      WHERE coach_id = ? AND status = 'pending' ${notTestClause(db)}
     `,
       )
       .get(req.user.id);
@@ -71,7 +72,7 @@ router.get("/earnings", authenticateToken, (req, res) => {
       .prepare(
         `
       SELECT COALESCE(SUM(net_amount), 0) as total FROM coach_earnings
-      WHERE coach_id = ? AND status = 'paid'
+      WHERE coach_id = ? AND status = 'paid' ${notTestClause(db)}
     `,
       )
       .get(req.user.id);
@@ -97,7 +98,7 @@ router.get("/earnings", authenticateToken, (req, res) => {
         `
       SELECT strftime('%Y-%m', date) as month, SUM(net_amount) as total
       FROM coach_earnings
-      WHERE coach_id = ? AND date >= date('now', '-6 months') AND status != 'cancelled'
+      WHERE coach_id = ? AND date >= date('now', '-6 months') AND status != 'cancelled' ${notTestClause(db)}
       GROUP BY month ORDER BY month
     `,
       )
@@ -287,7 +288,7 @@ router.post("/earnings/calculate", authenticateToken, async (req, res) => {
           `
         SELECT COALESCE(SUM(net_amount), 0) as total, 
                COALESCE(SUM(CASE WHEN status = 'pending' THEN net_amount ELSE 0 END), 0) as pending
-        FROM coach_earnings WHERE coach_id = ? AND status != 'cancelled'
+        FROM coach_earnings WHERE coach_id = ? AND status != 'cancelled' ${notTestClause(db)}
       `,
         )
         .get(req.user.id);
@@ -371,7 +372,7 @@ router.post("/payout-request", authenticateToken, (req, res) => {
       .prepare(
         `
       SELECT COALESCE(SUM(net_amount), 0) as total FROM coach_earnings
-      WHERE coach_id = ? AND status = 'pending'
+      WHERE coach_id = ? AND status = 'pending' ${notTestClause(db)}
     `,
       )
       .get(req.user.id);
@@ -390,7 +391,7 @@ router.post("/payout-request", authenticateToken, (req, res) => {
       .prepare(
         `
       SELECT id, net_amount FROM coach_earnings
-      WHERE coach_id = ? AND status = 'pending'
+      WHERE coach_id = ? AND status = 'pending' ${notTestClause(db)}
       ORDER BY date ASC
     `,
       )

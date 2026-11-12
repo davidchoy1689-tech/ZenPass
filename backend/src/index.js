@@ -686,6 +686,15 @@ try {
   console.error("[FULFILL] scheduler mount failed:", e.message);
 }
 
+// Phase 6.0 — 每日財務平帳巡檢（HKT 03:00 跑前一日；寫入 daily_reconciliation_logs）
+try {
+  const reconWorker = require("./services/reconciliation-worker");
+  reconWorker.startHourlyCheck(60 * 60 * 1000);
+  console.log("[RECON-6.0] 每日平帳巡檢已排程（HKT 03:00）");
+} catch (e) {
+  console.error("[RECON-6.0] 排程掛載失敗:", e.message);
+}
+
 // ===== Pause 自動恢復排程（每 15 分鐘檢查）=====
 function autoResumePausedMemberships() {
   try {
