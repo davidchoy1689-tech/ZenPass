@@ -13,6 +13,7 @@ const passDeduction = require("../services/pass-deduction");
 const familyWallet = require("../services/family-wallet");
 const { audit } = require("../services/audit");
 const { resolvePrivateUnits } = require("../utils/private-units");
+const { creditsForPrice } = require("../utils/credits-cost");
 
 const router = express.Router();
 
@@ -165,7 +166,7 @@ router.post("/coach/slots/batch-create", authenticateToken, (req, res) => {
            (id,coach_id,title,description,category,duration,max_participants,price_hkd,price_hkd_cents,credits_cost,
             venue_name,district,status,booking_open,is_private,created_at,updated_at)
          VALUES (?,?,?,?, 'private', ?,?,?,?,?, ?,?, 'active',1,1,datetime('now'),datetime('now'))`,
-      ).run(classId, req.user.id, title, "私人專屬時段", duration, maxAttendees, price / 100, price, units, venueName, district || null);
+      ).run(classId, req.user.id, title, "私人專屬時段", duration, maxAttendees, price / 100, price, creditsForPrice(price / 100), venueName, district || null);
       db.prepare(
         `INSERT INTO class_schedules
            (id,class_id,coach_id,created_by_coach_id,start_time,end_time,max_participants,enrolled_count,status,booking_open,district,created_at)

@@ -97,7 +97,38 @@ ok(st2 === 201 || st2 === 200, "團體班 pass 預約成功", res2 && res2.error
 const after2 = db.prepare("SELECT remaining_credits FROM user_passes WHERE id=?").get(passId).remaining_credits;
 ok(before2 - after2 === 1, `團體班扣 ${before2 - after2} 堂（應為 1）`);
 
-console.log("\n🧪 6. 前端文案一致");
+console.log("\n🧪 6. 修補：私人班 credits 成本唔可以低過價錢");
+const cc = require("../src/utils/credits-cost");
+ok(cc.creditsForPrice(280) === 28, "HK$280 → 28 credits");
+ok(cc.creditsForPrice(260) === 26, "HK$260 → 26 credits");
+ok(cc.atLeastPriceCredits(3, 280) === 28, "舊資料 3 credits（HK$30）→ 升到 28");
+ok(cc.atLeastPriceCredits(28, 280) === 28, "已正確 → 唔會變");
+ok(cc.atLeastPriceCredits(30, 280) === 30, "教練設更高 → 保留");
+
+// 舊資料情境：credits_cost 仍然係 3，實際用 credits 付款要收 28
+db.prepare(
+  `INSERT INTO classes (id,coach_id,title,category,duration,max_participants,price_hkd,credits_cost,status,booking_open,venue_name,is_private)
+   VALUES ('priv_legacy','coach1','一對一舊班','private',60,1,280,3,'active',1,'葵芳體育館',1)`,
+).run();
+const st3 = new Date(Date.now() + 72 * 3600000).toISOString().slice(0, 19).replace("T", " ");
+const en3 = new Date(Date.now() + 73 * 3600000).toISOString().slice(0, 19).replace("T", " ");
+db.prepare(
+  `INSERT INTO class_schedules (id,class_id,start_time,end_time,max_participants,enrolled_count,status,coach_override_id)
+   VALUES ('sch_legacy','priv_legacy',?,?,1,0,'available','coach1')`,
+).run(st3, en3);
+// 用第二個學員，俾 40 credits
+db.prepare("INSERT INTO users (id,email,name,phone,role,token_version,credits) VALUES ('stu2','s2@t.hk','李小明','60003003','user',0,40)").run();
+const cBefore = Number(db.prepare("SELECT credits FROM users WHERE id='stu2'").get().credits) || 0;
+const resC = bookingService.createBooking({ user: { id: "stu2" }, body: { schedule_id: "sch_legacy", class_id: "priv_legacy", payment_type: "credits", penalty_consent: true }, ip: "127.0.0.1", headers: {} });
+const stC = resC && resC.body ? resC.status : 201;
+ok(stC === 201 || stC === 200, "私人班用 credits 預約成功（" + stC + "）", resC && resC.body);
+const cAfter = Number(db.prepare("SELECT credits FROM users WHERE id='stu2'").get().credits) || 0;
+ok(cBefore - cAfter === 28, `扣 ${cBefore - cAfter} credits（應為 28，舊資料 3 都會升）`);
+
+// 建 slot 時寫入正確 credits_cost
+ok(/creditsForPrice\(price \/ 100\)/.test(slotSrc), "開私人 slot 時 credits_cost = 價錢 ÷ 10");
+
+console.log("\n🧪 7. 前端文案一致");
 const ex = fs.readFileSync(path.join(__dirname, "../../frontend-v2/explore.html"), "utf8");
 const cs = fs.readFileSync(path.join(__dirname, "../../frontend-v2/coach-schedule.html"), "utf8");
 ok(/一對一專屬（扣 3 堂）/.test(ex), "explore 切換鈕寫「扣 3 堂」");

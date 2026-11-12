@@ -1104,13 +1104,29 @@ function createBooking(req, options = {}) {
         creditsOverride != null
           ? Number(creditsOverride)
           : Number(clsPricing && clsPricing.credits_cost) || 0;
-      const baseCost =
+      const baseCostInit =
         rawCost > 0
           ? rawCost
           : require("../utils/credits-cost").normalizeCreditsCost(
               rawCost,
               clsPricing && clsPricing.price_hkd,
             );
+      // 🔒 私人時段：credits 成本最少 = 價錢（1 credit = HK$10），
+      // 防「HK$280 私人班用 3 credits（HK$30）就買到」
+      let baseCost = baseCostInit;
+      const privClass = classIsPrivate(db, class_id);
+      if (privClass.isPrivate) {
+        const floor = require("../utils/credits-cost").atLeastPriceCredits(
+          baseCost,
+          clsPricing && clsPricing.price_hkd,
+        );
+        if (floor > baseCost) {
+          console.warn(
+            `⚑ [CREDITS] private class ${class_id} credits_cost=${baseCost} < 價錢 ${clsPricing && clsPricing.price_hkd}，已用 ${floor} credits`,
+          );
+          baseCost = floor;
+        }
+      }
       if (rawCost <= 0 && baseCost > 0) {
         console.warn(
           `⚠️ [CREDITS] class ${class_id} credits_cost=${rawCost} 但 price=${clsPricing && clsPricing.price_hkd}，已用 ${baseCost} credits 計價`,

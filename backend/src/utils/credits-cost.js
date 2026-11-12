@@ -15,4 +15,21 @@ function normalizeCreditsCost(creditsCost, priceHkd) {
   return 0;
 }
 
-module.exports = { normalizeCreditsCost };
+/** 1 Credit = HK$10：由價錢計應扣 credits（有價錢最少 1 個） */
+function creditsForPrice(priceHkd) {
+  const price = Number(priceHkd) || 0;
+  if (price <= 0) return 0;
+  return Math.max(1, Math.round(price / 10));
+}
+
+/**
+ * 保證 credits 成本唔會低過價錢（2026-11-12：私人班曾設 credits_cost = 扣堂數，
+ * 令 HK$280 私人班用 3 credits（HK$30）就買到）。只會向上調，唔會減。
+ */
+function atLeastPriceCredits(creditsCost, priceHkd) {
+  const byPrice = creditsForPrice(priceHkd);
+  const credits = Number(creditsCost) || 0;
+  return Math.max(credits, byPrice);
+}
+
+module.exports = { normalizeCreditsCost, creditsForPrice, atLeastPriceCredits };
