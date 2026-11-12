@@ -43,7 +43,7 @@
   --font: "Noto Sans TC", "PingFang TC", "PingFang HK", "Hiragino Sans TC",
     "Microsoft JhengHei", "Microsoft YaHei", "Helvetica Neue", Arial,
     -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --font-num: "Inter", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+  --font-num: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
 
   /* Space */
   --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 20px; --s6: 24px; --s8: 32px;
@@ -78,8 +78,9 @@ body {
   font-feature-settings: "kern" 1;
   letter-spacing: 0.01em;
   background: var(--bg); line-height: 1.5;
-  -webkit-font-smoothing: antialiased;
 }
+/* 表單控件唔會 fallback 去 Arial／Roboto，跟隨全站字體堆疊 */
+input, select, textarea, button { font-family: inherit; }
 a { color: inherit; text-decoration: none; }
 img { max-width: 100%; display: block; }
 
@@ -543,6 +544,8 @@ a.chip:hover { background: var(--brand-100, #ffe9df); color: var(--brand-700); }
    原則：唔下載字體、唔改版面；只統一標題字重、字距與行高
    ============================================================ */
 h1, .font-black { font-weight: 900; letter-spacing: -0.01em; line-height: 1.25; }
+.font-medium, label { font-weight: 500; }
+/* chip 保持 600：12px 細字用 500 在手機上會偏薄（可讀性優先）；如需改回 500 話我知 */
 h2 { font-weight: 800; letter-spacing: -0.005em; line-height: 1.3; }
 h3, .font-bold { font-weight: 700; }
 button, .chip, .tag { letter-spacing: 0.02em; }
