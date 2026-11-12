@@ -50,7 +50,17 @@ ok(/\.sd-sheet\.dragging \{ transition: none; \}/.test(home), "拖拽時取消�
 ok(/height: 88%/.test(home), "預設 88% 高度");
 ok(/\.sd-chips \{ display: flex; flex-wrap: wrap;/.test(home), "chips 自動換行");
 
-console.log("\n🧪 5. 唔破壞既有");
+console.log("\n🧪 5. 桌面版（Option A：置中 modal＋兩欄）");
+ok(/id="dsFilterBtn"/.test(home), "桌面搜尋列有「⚙️ 篩選」入口");
+ok(/@media \(min-width: 900px\)/.test(home), "桌面斷點 900px");
+ok(/width: 960px/.test(home) && /max-width: calc\(100vw - 48px\)/.test(home), "置中 960px、細屏自適應");
+ok(/transform: translate\(-50%, 0\)/.test(home), "桌面由底部滑入改為淡入上移");
+ok(/grid-template-columns: 1fr 1fr/.test(home), "內容兩欄");
+ok(/#searchDrawer \.sd-grab \{ display: none; \}/.test(home), "桌面隱藏拖拽把手");
+ok(/#searchDrawer \.sd-sec:first-child \{ grid-column: 1 \/ -1; \}/.test(home), "地區佔滿整行");
+ok(/getElementById\('dsFilterBtn'\)/.test(home), "按鈕已接線開 sheet");
+
+console.log("\n🧪 6. 唔破壞既有");
 ok(/id="searchDrawer"/.test(home) && /id="sdGo"/.test(home), "保留 searchDrawer / sdGo");
 ok(/id="heroSearchPill"/.test(home) && /id="ssOpen"/.test(home), "兩個入口仍然開到 sheet");
 ok(/\.search-capsule\{border:2px solid #059669/.test(home), "桌面搜尋列規則未被動");

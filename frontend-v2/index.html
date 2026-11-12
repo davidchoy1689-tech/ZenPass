@@ -368,6 +368,26 @@
     background: #0F766E; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 15px; }
 
   /* Phase 5.4 — Hero 精簡（David 2026-11-13 wireframe：減密度、強層級、手機單行 chips） */
+  .capsule-filter { display: none; }
+  @media (min-width: 900px) {
+    .capsule-filter { display: inline-flex; align-items: center; gap: 6px; margin-left: 4px; padding: 0 16px;
+      border-radius: 12px; border: 1.5px solid #E2E8F0; background: #F8FAFC; color: #0F172A;
+      font: inherit; font-size: 14px; font-weight: 800; cursor: pointer; }
+    .capsule-filter:hover { background: #ECFDF5; border-color: #A7F3D0; color: #065F46; }
+    #searchDrawer .sd-mask { background: rgba(15,23,42,.5); }
+    #searchDrawer .sd-sheet { left: 50%; right: auto; bottom: 6vh; width: 960px; max-width: calc(100vw - 48px);
+      height: auto; max-height: 82vh; transform: translate(-50%, 24px); opacity: 0;
+      border-radius: 22px; transition: transform .24s cubic-bezier(.22,1,.36,1), opacity .2s ease;
+      box-shadow: 0 30px 80px -20px rgba(15,23,42,.45); }
+    #searchDrawer.on .sd-sheet { transform: translate(-50%, 0); opacity: 1; }
+    #searchDrawer .sd-grab { display: none; }
+    #searchDrawer .sd-head { padding: 18px 24px 12px; }
+    #searchDrawer .sd-body { padding: 6px 24px 18px; display: grid; grid-template-columns: 1fr 1fr; gap: 4px 32px; }
+    #searchDrawer .sd-sec { margin-top: 16px; }
+    #searchDrawer .sd-sec:first-child { grid-column: 1 / -1; }
+    #searchDrawer .sd-foot { padding: 14px 24px calc(14px + env(safe-area-inset-bottom)); }
+    #searchDrawer .sd-go { max-width: 320px; margin-left: auto; display: block; }
+  }
   .hero-value-strip { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 10px; margin: 14px 0 2px; }
   .hero-value { background: #fff; border: 1px solid #E2E8F0; border-radius: 14px; padding: 10px 12px;
     display: flex; flex-direction: column; gap: 2px; min-width: 0; }
@@ -509,6 +529,7 @@
             <span class="field-label">運動類別</span>
             <select id="qsCat" class="field-select"><option value="">全部運動</option></select>
           </div>
+          <button type="button" class="capsule-filter" id="dsFilterBtn" aria-label="開啟更多篩選">篩選</button>
           <button type="button" class="btn-search-submit" id="qsGo" aria-label="搜尋班次">
             <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
             <span>搜尋</span>
@@ -1443,7 +1464,7 @@
         sheet.classList.remove('dragging');
         document.body.style.overflow = '';
       }
-      [document.getElementById('ssOpen'), document.getElementById('heroSearchPill')].forEach(function (b) {
+      [document.getElementById('ssOpen'), document.getElementById('heroSearchPill'), document.getElementById('dsFilterBtn')].forEach(function (b) {
         if (b) b.addEventListener('click', openDrawer);
       });
       drawer.querySelectorAll('[data-sd-close]').forEach(function (n) { n.addEventListener('click', closeDrawer); });
