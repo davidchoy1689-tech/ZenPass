@@ -390,6 +390,8 @@
   .dp-opt { display: flex; align-items: center; gap: 6px; width: 100%; background: none; border: 0; text-align: left;
     padding: 7px 6px; border-radius: 9px; font: inherit; font-size: 13px; color: #0F172A; font-weight: 600; cursor: pointer; }
   .dp-opt:hover { background: #F8FAFC; }
+  .dp-opt:focus-visible, .dp-go:focus-visible, .dp-reset:focus-visible, .dp-active .af:focus-visible {
+    outline: 2px solid #0F766E; outline-offset: 2px; background: #F0FDF9; }
   .dp-opt .dot { flex: 0 0 16px; width: 16px; height: 16px; border-radius: 50%; border: 2px solid #CBD5E1; position: relative; }
   .dp-opt .box { flex: 0 0 16px; width: 16px; height: 16px; border-radius: 4px; border: 2px solid #CBD5E1; position: relative; }
   .dp-opt[aria-pressed="true"] { background: #F0FDF9; color: #065F46; font-weight: 800; }
@@ -569,17 +571,17 @@
             <span>搜尋</span>
           </button>
         </div>
-        <div class="dpanel" id="dPanel" hidden>
+        <div class="dpanel" id="dPanel" role="dialog" aria-label="篩選課程" hidden>
           <div class="dp-head">
             <div class="dp-active" id="dpActive"></div>
             <button class="dp-reset" id="dpReset" type="button">重設全部</button>
           </div>
           <div class="dp-grid">
-            <div class="dp-col"><b>地區</b><div class="dp-list" id="dpRegion"></div><div class="dp-list dp-sub" id="dpDistricts"></div></div>
-            <div class="dp-col"><b>時段</b><div class="dp-list" id="dpTime"></div></div>
-            <div class="dp-col"><b>運動類型</b><div class="dp-list" id="dpKind"></div></div>
+            <div class="dp-col"><b id="dpRegionLabel">地區</b><div class="dp-list" id="dpRegion" role="radiogroup" aria-labelledby="dpRegionLabel"></div><div class="dp-list dp-sub" id="dpDistricts" role="radiogroup" aria-label="地區（細節）"></div></div>
+            <div class="dp-col"><b id="dpTimeLabel">時段</b><div class="dp-list" id="dpTime" role="radiogroup" aria-labelledby="dpTimeLabel"></div></div>
+            <div class="dp-col"><b id="dpKindLabel">運動類型</b><div class="dp-list" id="dpKind" role="group" aria-labelledby="dpKindLabel"></div></div>
           </div>
-          <div class="dp-foot"><button class="dp-go" id="dpGo" type="button">顯示全部課程</button></div>
+          <div class="dp-foot"><button class="dp-go" id="dpGo" type="button" aria-live="polite">顯示全部課程</button></div>
         </div>
         <p class="search-note">免註冊即可預約 · 即時確認席位</p>
       </div>
@@ -1587,13 +1589,17 @@
       var dpReset = document.getElementById('dpReset');
       var dpGo = document.getElementById('dpGo');
 
-      function dpOpt(label, pressed, onClick, kind) {
+      function dpOpt(label, pressed, onClick, kind, group) {
         var b = document.createElement('button');
         b.type = 'button';
         b.className = 'dp-opt';
-        b.setAttribute('aria-pressed', pressed ? 'true' : 'false');
+        b.setAttribute('role', kind === 'check' ? 'checkbox' : 'radio');
+        b.setAttribute('aria-checked', pressed ? 'true' : 'false');
+        b.setAttribute('tabindex', '-1');
+        if (group) b.dataset.group = group;
         var mark = document.createElement('span');
         mark.className = kind === 'check' ? 'box' : 'dot';
+        mark.setAttribute('aria-hidden', 'true');
         b.appendChild(mark);
         b.appendChild(document.createTextNode(label));
         b.addEventListener('click', onClick);
@@ -1609,7 +1615,7 @@
             if (r.k) { F.region = r.k; F.zone = ''; openRegion = r.k; }
             else { F.region = ''; F.zone = ''; openRegion = ''; }
             renderAll();
-          }));
+          }, 'radio', 'region'));
         });
         dpDistricts.innerHTML = '';
         if (openRegion) {
@@ -1618,7 +1624,7 @@
               F.zone = F.zone === d.k ? '' : d.k;
               F.region = d.r;
               renderAll();
-            }));
+            }, 'radio', 'region'));
           });
         }
         // 時段（單選）
@@ -1627,7 +1633,7 @@
           dpTime.appendChild(dpOpt(t.l || '任何時段', F.date === t.k, function () {
             F.date = t.k;
             renderAll();
-          }));
+          }, 'radio', 'time'));
         });
         // 運動類型（多選，全部 exclusive）
         dpKind.innerHTML = '';
@@ -1641,7 +1647,7 @@
               else F.cats.push(k.k);
             }
             renderAll();
-          }, 'check'));
+          }, 'check', 'kind'));
         });
         // 已選 chips
         dpActive.innerHTML = '';
@@ -1668,6 +1674,30 @@
           var count = ALL_CLASSES.filter(matchRow).length;
           dpGo.textContent = count > 0 ? '顯示 ' + count + ' 個結果 →' : '沒有符合的課程';
           dpGo.disabled = count === 0;
+          dpGo.setAttribute('aria-disabled', count === 0 ? 'true' : 'false');
+        }
+        // 重繪後如果焦點跌出面板，拉返去第一欄第一個選項
+        if (dPanel.classList.contains('on')) {
+          setTimeout(function () {
+            var a = document.activeElement;
+            if (a && a !== document.body && dPanel.contains(a)) return;
+            var target = null;
+            if (lastOpt) {
+              var all = dpColumns().reduce(function (x, y) { return x.concat(y); }, []);
+              target = all.filter(function (o) {
+                return (o.dataset.group || '') === lastOpt.group && (o.textContent || '').trim() === lastOpt.label;
+              })[0] || null;
+            }
+            if (!target) {
+              var col = dpColumns()[0];
+              target = col[0] || null;
+              if (target) setRoving(col, 0);
+            } else {
+              var cols = dpColumns();
+              cols.forEach(function (c) { if (c.indexOf(target) >= 0) setRoving(c, c.indexOf(target)); });
+            }
+            if (target) target.focus();
+          }, 0);
         }
       }
 
@@ -1720,6 +1750,149 @@
           if (e.target && e.target.tagName === 'SELECT') openPanel();
         });
       }
+
+      /* ---- 鍵盤導航（Option B spec 2026-11-13）---- */
+      var lastTrigger = null;
+      var lastOpt = null;
+      if (dPanel) {
+        dPanel.addEventListener('focusin', function (e) {
+          var t = e.target;
+          if (t && t.classList && t.classList.contains('dp-opt')) {
+            lastOpt = { group: t.dataset.group || '', label: (t.textContent || '').trim() };
+          }
+        });
+      }
+
+      function dpColumns() {
+        return [
+          Array.prototype.slice.call(dpRegion.querySelectorAll('.dp-opt'))
+            .concat(Array.prototype.slice.call(dpDistricts.querySelectorAll('.dp-opt'))),
+          Array.prototype.slice.call(dpTime.querySelectorAll('.dp-opt')),
+          Array.prototype.slice.call(dpKind.querySelectorAll('.dp-opt'))
+        ];
+      }
+
+      function focusables() {
+        var out = [];
+        Array.prototype.forEach.call(dPanel.querySelectorAll('.dp-active .af'), function (el) { out.push(el); });
+        out.push(dpReset);
+        dpColumns().forEach(function (col) {
+          var pick = col.filter(function (o) { return o.getAttribute('tabindex') === '0'; })[0] || col[0];
+          if (pick) out.push(pick);
+        });
+        out.push(dpGo);
+        return out.filter(function (el) { return el && !el.disabled; });
+      }
+
+      function setRoving(col, idx) {
+        col.forEach(function (o, i) { o.setAttribute('tabindex', i === idx ? '0' : '-1'); });
+      }
+
+      function firstFocus() {
+        var col = dpColumns()[0];
+        if (col.length) { setRoving(col, 0); col[0].focus(); return; }
+        dpReset.focus();
+      }
+
+      if (dPanel) {
+        dPanel.addEventListener('keydown', function (e) {
+          var cols = dpColumns();
+          var cur = document.activeElement;
+          var inCol = -1, idx = -1;
+          cols.forEach(function (col, ci) {
+            var i = col.indexOf(cur);
+            if (i >= 0) { inCol = ci; idx = i; }
+          });
+
+          if (e.key === 'Escape') {
+            e.preventDefault();
+            e.stopPropagation();
+            if (openRegion) { openRegion = ''; renderDesktop(); firstFocus(); return; }
+            closePanel();
+            restoreFocus();
+            return;
+          }
+          if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+            e.preventDefault();
+            if (!dpGo.disabled) dpGo.click();
+            return;
+          }
+          if (inCol >= 0) {
+            if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+              e.preventDefault();
+              var d = e.key === 'ArrowDown' ? 1 : -1;
+              var next = Math.min(cols[inCol].length - 1, Math.max(0, idx + d));
+              // 由 region 尾跳入 district 頭已包含喺同一 col
+              setRoving(cols[inCol], next);
+              cols[inCol][next].focus();
+              return;
+            }
+            if (e.key === 'Home' || e.key === 'End') {
+              e.preventDefault();
+              var t = e.key === 'Home' ? 0 : cols[inCol].length - 1;
+              setRoving(cols[inCol], t);
+              cols[inCol][t].focus();
+              return;
+            }
+            if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+              e.preventDefault();
+              var dir = e.key === 'ArrowRight' ? 1 : -1;
+              var target = inCol + dir;
+              if (target < 0 || target >= cols.length) return;
+              var tc = cols[target];
+              if (!tc.length) return;
+              var ti = e.shiftKey ? tc.length - 1 : 0;
+              setRoving(tc, ti);
+              tc[ti].focus();
+              return;
+            }
+            if (e.key === ' ' || e.key === 'Enter') {
+              e.preventDefault();
+              cols[inCol][idx].click();
+              return;
+            }
+          }
+
+          // 已選 chip：Delete/Backspace 移除
+          if (cur && cur.classList && cur.classList.contains('af') && (e.key === 'Delete' || e.key === 'Backspace')) {
+            e.preventDefault();
+            cur.click();
+            setTimeout(function () { restoreAfterChip(); }, 0);
+            return;
+          }
+
+          // Focus trap：Tab 只在面板內循環
+          if (e.key === 'Tab') {
+            var list = focusables();
+            if (!list.length) return;
+            var first = list[0], last = list[list.length - 1];
+            if (e.shiftKey && (cur === first || !dPanel.contains(cur))) { e.preventDefault(); last.focus(); }
+            else if (!e.shiftKey && (cur === last || !dPanel.contains(cur))) { e.preventDefault(); first.focus(); }
+          }
+        });
+      }
+
+      function restoreAfterChip() {
+        var chips = dPanel.querySelectorAll('.dp-active .af');
+        if (chips.length) return chips[0].focus();
+        if (!dpReset.disabled) return dpReset.focus();
+        var col = dpColumns()[0];
+        if (col.length) { setRoving(col, 0); col[0].focus(); }
+      }
+
+      function restoreFocus() {
+        var t = lastTrigger || document.getElementById('dsFilterBtn') || document.getElementById('ssOpen');
+        if (t) { try { t.focus(); } catch (e) {} }
+      }
+
+      var _openPanel = openPanel;
+      openPanel = function () {
+        lastTrigger = document.activeElement;
+        _openPanel();
+        setTimeout(firstFocus, 40);
+      };
+      var _closePanel = closePanel;
+      closePanel = function () { _closePanel(); };
 
       renderAll();
     })();
