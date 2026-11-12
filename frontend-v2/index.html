@@ -305,21 +305,44 @@
   #stickySearch .ss-open .go { margin-left: auto; flex: 0 0 32px; width: 32px; height: 32px; border-radius: 999px;
     background: #0F766E; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 14px; }
 
+  /* Phase 5.5 — 手機篩選表（chips、sticky header/footer、可拖拽關閉） */
   #searchDrawer { position: fixed; inset: 0; z-index: 95; display: none; }
   #searchDrawer.on { display: block; }
-  #searchDrawer .sd-mask { position: absolute; inset: 0; background: rgba(15,23,42,.45); }
-  #searchDrawer .sd-sheet { position: absolute; left: 0; right: 0; bottom: 0;
-    background: #fff; border-radius: 22px 22px 0 0; padding: 18px 16px calc(18px + env(safe-area-inset-bottom));
-    box-shadow: 0 -12px 40px rgba(15,23,42,.22); max-height: 86vh; overflow-y: auto; }
-  #searchDrawer h3 { margin: 0 0 4px; font-size: 16px; font-weight: 900; }
-  #searchDrawer .sd-sub { margin: 0 0 14px; font-size: 12.5px; color: #64748B; }
-  #searchDrawer label { display: block; font-size: 11.5px; font-weight: 900; color: #0F766E; letter-spacing: .04em; margin: 12px 0 6px; }
-  #searchDrawer select { width: 100%; padding: 13px 12px; border: 1.5px solid #E2E8F0; border-radius: 12px;
-    font: inherit; font-size: 15px; font-weight: 700; background: #F8FAFC; }
-  #searchDrawer .sd-actions { display: flex; gap: 8px; margin-top: 18px; }
-  #searchDrawer .sd-actions button { flex: 1; padding: 14px; border-radius: 14px; font-size: 15px; font-weight: 900; }
-  #searchDrawer .sd-reset { background: #F1F5F9; color: #475569; border: 0; }
-  #searchDrawer .sd-go { background: #0F766E; color: #fff; border: 0; }
+  #searchDrawer .sd-mask { position: absolute; inset: 0; background: rgba(15,23,42,.45); opacity: 0; transition: opacity .24s ease; }
+  #searchDrawer.on .sd-mask { opacity: 1; }
+  #searchDrawer .sd-sheet { position: absolute; left: 0; right: 0; bottom: 0; height: 88%; max-height: 88vh;
+    background: #fff; border-radius: 22px 22px 0 0; display: flex; flex-direction: column;
+    box-shadow: 0 -12px 40px rgba(15,23,42,.22); transform: translateY(100%);
+    transition: transform .32s cubic-bezier(.22,1,.36,1); will-change: transform; }
+  #searchDrawer.on .sd-sheet { transform: translateY(0); }
+  #searchDrawer .sd-sheet.dragging { transition: none; }
+  .sd-grab { padding: 8px 0 2px; display: flex; justify-content: center; flex: 0 0 auto; touch-action: none; cursor: grab; }
+  .sd-grab span { width: 40px; height: 4px; border-radius: 999px; background: #CBD5E1; }
+  .sd-head { flex: 0 0 auto; padding: 2px 16px 10px; border-bottom: 1px solid #F1F5F9; touch-action: none; }
+  .sd-head-row { display: flex; align-items: center; gap: 8px; }
+  .sd-head h3 { margin: 0; font-size: 17px; font-weight: 900; color: #0F172A; }
+  .sd-head .sd-reset { margin-left: auto; background: none; border: 0; color: #0F766E; font-size: 13px; font-weight: 800; padding: 6px 2px; }
+  .sd-head .sd-reset[disabled] { color: #CBD5E1; }
+  .sd-active { display: flex; gap: 6px; overflow-x: auto; margin-top: 8px; scrollbar-width: none; }
+  .sd-active::-webkit-scrollbar { display: none; }
+  .sd-active:empty { display: none; }
+  .sd-active .af { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px; background: #ECFDF5;
+    border: 1px solid #A7F3D0; color: #065F46; font-size: 12px; font-weight: 800; padding: 5px 9px; border-radius: 999px; }
+  .sd-active .af i { font-style: normal; font-size: 14px; line-height: 1; opacity: .75; }
+  .sd-body { flex: 1 1 auto; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 4px 16px 14px; }
+  .sd-sec { margin-top: 14px; }
+  .sd-sec > label { display: block; font-size: 11.5px; font-weight: 900; color: #0F766E; letter-spacing: .04em; margin: 0 0 8px; }
+  .sd-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .sd-chip { border: 1.5px solid #E2E8F0; background: #fff; color: #0F172A; font: inherit; font-size: 13.5px;
+    font-weight: 700; padding: 9px 13px; border-radius: 999px; min-height: 38px; }
+  .sd-chip[aria-pressed="true"] { background: #0F766E; border-color: #0F766E; color: #fff; }
+  .sd-chip.sd-more { border-style: dashed; color: #0F766E; }
+  .sd-districts { display: none; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+  .sd-districts.on { display: flex; }
+  .sd-foot { flex: 0 0 auto; padding: 10px 16px calc(12px + env(safe-area-inset-bottom)); border-top: 1px solid #F1F5F9; background: #fff; }
+  #searchDrawer .sd-go { width: 100%; padding: 15px; border-radius: 14px; font-size: 15.5px; font-weight: 900;
+    background: #0F766E; color: #fff; border: 0; }
+  #searchDrawer .sd-go[disabled] { background: #CBD5E1; }
 
   /* 卡片追加：家庭卡通用、地區 pill、評分 */
   .hot-card .fam-badge { position:absolute; top:10px; left:10px; z-index:3; display:inline-flex; align-items:center; gap:4px;
@@ -385,47 +408,32 @@
   <!-- 全螢幕篩選抽屜 -->
   <div id="searchDrawer" role="dialog" aria-modal="true" aria-labelledby="sdTitle">
     <div class="sd-mask" data-sd-close></div>
-    <div class="sd-sheet">
-      <h3 id="sdTitle">搵一堂啱你嘅課</h3>
-      <p class="sd-sub">地區 · 時段 · 運動，一次揀好</p>
-      <label for="sdArea">地區</label>
-      <select id="sdArea">
-        <option value="">全港 18 區</option>
-        <option value="kts">葵青（青衣）</option>
-        <option value="kt">觀塘</option>
-        <option value="ytm">油尖旺</option>
-        <option value="ssp">深水埗</option>
-        <option value="wc">灣仔</option>
-        <option value="east">東區</option>
-        <option value="south">南區</option>
-        <option value="st">沙田</option>
-        <option value="tw">荃灣</option>
-        <option value="tm">屯門</option>
-        <option value="yl">元朗</option>
-        <option value="tp">大埔</option>
-        <option value="sk">西貢</option>
-      </select>
-      <label for="sdWhen">時段</label>
-      <select id="sdWhen">
-        <option value="">任何時段</option>
-        <option value="today">今日</option>
-        <option value="tomorrow">明日</option>
-        <option value="weekend">本週末</option>
-        <option value="daytime">樂齡日間（10:00–16:00）</option>
-        <option value="evening">放工時段（18:00+）</option>
-      </select>
-      <label for="sdKind">運動 / 需要</label>
-      <select id="sdKind">
-        <option value="">全部運動</option>
-        <option value="new-sport">新興運動（木柱・冰壺・布袋球）</option>
-        <option value="senior">樂齡防跌 / 關節減壓</option>
-        <option value="stretch">深層伸展 / 痛症放鬆</option>
-        <option value="office">上班族肩頸 / 放工</option>
-        <option value="family">親子 / 家庭</option>
-      </select>
-      <div class="sd-actions">
-        <button class="sd-reset" id="sdReset" type="button">清除</button>
-        <button class="sd-go" id="sdGo" type="button">睇有位班次 →</button>
+    <div class="sd-sheet" id="sdSheet">
+      <div class="sd-grab" id="sdGrab" aria-hidden="true"><span></span></div>
+      <div class="sd-head" id="sdHead">
+        <div class="sd-head-row">
+          <h3 id="sdTitle">篩選課程</h3>
+          <button class="sd-reset" id="sdReset" type="button" disabled>重設</button>
+        </div>
+        <div class="sd-active" id="sdActive" aria-label="已選條件"></div>
+      </div>
+      <div class="sd-body">
+        <div class="sd-sec">
+          <label>地區</label>
+          <div class="sd-chips" id="sdRegionChips"></div>
+          <div class="sd-districts" id="sdDistricts"></div>
+        </div>
+        <div class="sd-sec">
+          <label>時段</label>
+          <div class="sd-chips" id="sdTimeChips"></div>
+        </div>
+        <div class="sd-sec">
+          <label>運動類型</label>
+          <div class="sd-chips" id="sdKindChips"></div>
+        </div>
+      </div>
+      <div class="sd-foot">
+        <button class="sd-go" id="sdGo" type="button">顯示全部課程</button>
       </div>
     </div>
   </div>
@@ -1251,58 +1259,252 @@
       // 低頻保險：部分內嵌瀏覽器 scroll 事件唔可靠，每 600ms 對一次 scrollY
       setInterval(sync, 600);
 
-      /* ---- 全螢幕篩選抽屜 ---- */
+      /* ---- 手機篩選表（Phase 5.5）：chips + 即時結果數 + 拖拽關閉 ---- */
       var drawer = document.getElementById('searchDrawer');
-      var openBtn = document.getElementById('ssOpen');
-      var summary = document.getElementById('ssSummary');
-      var sdArea = document.getElementById('sdArea');
-      var sdWhen = document.getElementById('sdWhen');
-      var sdKind = document.getElementById('sdKind');
-      var KIND_LABEL = { "new-sport": "新興運動", senior: "樂齡防跌", stretch: "深層伸展", office: "上班族", family: "親子" };
-      var AREA_LABEL = { kts: "葵青", kt: "觀塘", ytm: "油尖旺", ssp: "深水埗", wc: "灣仔", east: "東區", south: "南區", st: "沙田", tw: "荃灣", tm: "屯門", yl: "元朗", tp: "大埔", sk: "西貢" };
-      var WHEN_LABEL = { today: "今日", tomorrow: "明日", weekend: "週末", daytime: "樂齡日間", evening: "放工" };
+      var sheet = document.getElementById('sdSheet');
+      var grab = document.getElementById('sdGrab');
+      var headEl = document.getElementById('sdHead');
+      var sdReset = document.getElementById('sdReset');
+      var sdActive = document.getElementById('sdActive');
+      var areaChips = document.getElementById('sdRegionChips');
+      var districtsBox = document.getElementById('sdDistricts');
+      var timeChips = document.getElementById('sdTimeChips');
+      var kindChips = document.getElementById('sdKindChips');
+      var sdGo = document.getElementById('sdGo');
+      var ssSummary = document.getElementById('ssSummary');
+      var heroSummaryEl = document.getElementById('heroSearchSummary');
+      var summary = ssSummary || heroSummaryEl;
 
-      function paintSummary() {
-        var bits = [AREA_LABEL[sdArea.value] || "全港", WHEN_LABEL[sdWhen.value] || "任何時段", KIND_LABEL[sdKind.value] || "全部運動"];
-        summary.textContent = bits.join(" · ");
-        var heroSum = document.getElementById('heroSearchSummary');
-        if (heroSum) heroSum.textContent = bits.join(" · ");
+      var REGIONS = [
+        { k: '', l: '全港' },
+        { k: 'hongkong', l: '港島' },
+        { k: 'kowloon', l: '九龍' },
+        { k: 'newterritories', l: '新界' },
+        { k: 'islands', l: '離島' }
+      ];
+      var DISTRICTS = [
+        { k: 'cw', l: '中西區', r: 'hongkong' }, { k: 'wc', l: '灣仔', r: 'hongkong' },
+        { k: 'east', l: '東區', r: 'hongkong' }, { k: 'south', l: '南區', r: 'hongkong' },
+        { k: 'ytm', l: '油尖旺', r: 'kowloon' }, { k: 'ssp', l: '深水埗', r: 'kowloon' },
+        { k: 'kc', l: '九龍城', r: 'kowloon' }, { k: 'wts', l: '黃大仙', r: 'kowloon' },
+        { k: 'kt', l: '觀塘', r: 'kowloon' },
+        { k: 'kts', l: '葵青（青衣）', r: 'newterritories' }, { k: 'tw', l: '荃灣', r: 'newterritories' },
+        { k: 'tm', l: '屯門', r: 'newterritories' }, { k: 'yl', l: '元朗', r: 'newterritories' },
+        { k: 'north', l: '北區', r: 'newterritories' }, { k: 'tp', l: '大埔', r: 'newterritories' },
+        { k: 'st', l: '沙田', r: 'newterritories' }, { k: 'sk', l: '西貢', r: 'newterritories' },
+        { k: 'islands', l: '離島', r: 'islands' }
+      ];
+      var TIMES = [
+        { k: '', l: '任何時段' }, { k: 'daytime', l: '平日日間' }, { k: 'evening', l: '平日晚間' },
+        { k: 'weekend', l: '週末' }, { k: 'tomorrow', l: '聽日' }, { k: 'today', l: '今日' }
+      ];
+      var KINDS = [
+        { k: '', l: '全部' }, { k: '芬蘭木柱', l: '芬蘭木柱' }, { k: '樂齡伸展', l: '樂齡伸展' },
+        { k: '地板冰壺', l: '地板冰壺' }, { k: '布袋球', l: '布袋球' }, { k: '瑜伽', l: '瑜伽' }
+      ];
+      var F = { region: '', zone: '', date: '', q: '' };
+      var openRegion = '';
+      var ALL_CLASSES = null;
+
+      function labelOf(arr, k) { for (var i = 0; i < arr.length; i++) if (arr[i].k === k) return arr[i].l; return ''; }
+      function zoneLabel() {
+        if (F.zone) return labelOf(DISTRICTS, F.zone);
+        return F.region ? labelOf(REGIONS, F.region) : '';
       }
+      function summaryText() {
+        var bits = [zoneLabel() || '全港', labelOf(TIMES, F.date) || '任何時段', F.q || '全部運動'];
+        return bits.join(' · ');
+      }
+
+      function chip(label, pressed, onClick, cls) {
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'sd-chip' + (cls ? ' ' + cls : '');
+        b.setAttribute('aria-pressed', pressed ? 'true' : 'false');
+        b.textContent = label;
+        b.addEventListener('click', onClick);
+        return b;
+      }
+
+      function renderRegions() {
+        areaChips.innerHTML = '';
+        REGIONS.forEach(function (r) {
+          areaChips.appendChild(chip(r.l, F.region === r.k && !F.zone, function () {
+            if (r.k) { openRegion = r.k; F.region = r.k; F.zone = ''; }
+            else { F.region = ''; F.zone = ''; openRegion = ''; }
+            renderAll();
+          }));
+        });
+        districtsBox.innerHTML = '';
+        districtsBox.classList.toggle('on', !!openRegion);
+        if (!openRegion) return;
+        DISTRICTS.filter(function (d) { return d.r === openRegion; }).forEach(function (d) {
+          districtsBox.appendChild(chip('📍 ' + d.l, F.zone === d.k, function () {
+            F.zone = F.zone === d.k ? '' : d.k;
+            F.region = d.r;
+            renderAll();
+          }));
+        });
+      }
+
+      function renderTimes() {
+        timeChips.innerHTML = '';
+        TIMES.forEach(function (t) {
+          timeChips.appendChild(chip(t.l, F.date === t.k, function () {
+            F.date = t.k;
+            renderAll();
+          }));
+        });
+      }
+
+      function renderKinds() {
+        kindChips.innerHTML = '';
+        KINDS.forEach(function (k) {
+          kindChips.appendChild(chip(k.l, F.q === k.k, function () {
+            F.q = k.k;
+            renderAll();
+          }));
+        });
+      }
+
+      function renderActive() {
+        sdActive.innerHTML = '';
+        var any = false;
+        function add(label, clear) {
+          any = true;
+          var el = document.createElement('button');
+          el.type = 'button';
+          el.className = 'af';
+          el.innerHTML = '<b>' + label + '</b><i>×</i>';
+          el.setAttribute('aria-label', '移除 ' + label);
+          el.addEventListener('click', clear);
+          sdActive.appendChild(el);
+        }
+        if (F.zone) add('📍 ' + labelOf(DISTRICTS, F.zone), function () { F.zone = ''; F.region = ''; openRegion = ''; renderAll(); });
+        else if (F.region) add('📍 ' + labelOf(REGIONS, F.region), function () { F.region = ''; openRegion = ''; renderAll(); });
+        if (F.date) add(labelOf(TIMES, F.date), function () { F.date = ''; renderAll(); });
+        if (F.q) add(F.q, function () { F.q = ''; renderAll(); });
+        sdReset.disabled = !any;
+      }
+
+      function matchRow(c) {
+        if (F.zone) {
+          var d = DISTRICTS.filter(function (x) { return x.k === F.zone; })[0];
+          var want = d ? d.l.replace('（青衣）', '') : '';
+          var hay = [c.district, c.venue_name, c.venue_address, c.title, c.course_title].join(' ');
+          if (want && hay.indexOf(want) < 0 && hay.indexOf(want.replace(/區$/, '')) < 0) return false;
+        } else if (F.region && F.region !== 'islands') {
+          var names = DISTRICTS.filter(function (x) { return x.r === F.region; }).map(function (x) { return x.l.replace('（青衣）', '').replace(/區$/, ''); });
+          var hay2 = [c.district, c.venue_name, c.venue_address, c.title, c.course_title].join(' ');
+          if (!names.some(function (n) { return hay2.indexOf(n) >= 0; })) return false;
+        }
+        if (F.q) {
+          var h3 = [c.title, c.course_title, c.category, c.sport_slug].join(' ').toLowerCase();
+          if (h3.indexOf(String(F.q).toLowerCase()) < 0) return false;
+        }
+        return true;
+      }
+
+      function updateCount() {
+        if (!ALL_CLASSES) return;
+        var n = ALL_CLASSES.filter(matchRow).length;
+        sdGo.textContent = n > 0 ? '顯示 ' + n + ' 個結果' : '沒有符合的課程，試下改篩選';
+        sdGo.disabled = n === 0;
+      }
+
+      function loadCount() {
+        if (ALL_CLASSES || !window.api) return;
+        try {
+          api.get('/classes?limit=100').then(function (r) {
+            var d = (r && r.data) || {};
+            ALL_CLASSES = Array.isArray(d) ? d : (d.classes || d.results || d.items || []);
+            updateCount();
+          }).catch(function () {});
+        } catch (e) {}
+      }
+
+      function renderAll() {
+        renderRegions(); renderTimes(); renderKinds(); renderActive(); updateCount();
+        var t = summaryText();
+        if (ssSummary) ssSummary.textContent = t;
+        if (heroSummaryEl) heroSummaryEl.textContent = F.zone || F.date || F.q ? t : '地區 · 時段 · 運動';
+      }
+
       function openDrawer() {
         drawer.classList.add('on');
         document.body.style.overflow = 'hidden';
-        setTimeout(function () { try { sdArea.focus(); } catch (e) {} }, 60);
+        loadCount();
+        renderAll();
+        setTimeout(function () { try { sdReset.focus(); } catch (e) {} }, 60);
       }
       function closeDrawer() {
         drawer.classList.remove('on');
+        sheet.style.transform = '';
+        sheet.classList.remove('dragging');
         document.body.style.overflow = '';
       }
-      openBtn.addEventListener('click', openDrawer);
-      var heroPill = document.getElementById('heroSearchPill');
-      if (heroPill) heroPill.addEventListener('click', openDrawer);
-      drawer.querySelectorAll('[data-sd-close]').forEach(function (n) { n.addEventListener('click', closeDrawer); });
-      document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeDrawer(); });
-      [sdArea, sdWhen, sdKind].forEach(function (s) { s.addEventListener('change', paintSummary); });
-
-      document.getElementById('sdReset').addEventListener('click', function () {
-        sdArea.value = ''; sdWhen.value = ''; sdKind.value = '';
-        paintSummary();
+      [document.getElementById('ssOpen'), document.getElementById('heroSearchPill')].forEach(function (b) {
+        if (b) b.addEventListener('click', openDrawer);
       });
-      document.getElementById('sdGo').addEventListener('click', function () {
+      drawer.querySelectorAll('[data-sd-close]').forEach(function (n) { n.addEventListener('click', closeDrawer); });
+      sdReset.addEventListener('click', function () {
+        F = { region: '', zone: '', date: '', q: '' };
+        openRegion = '';
+        renderAll();
+      });
+      sdGo.addEventListener('click', function () {
         var p = new URLSearchParams();
-        if (sdArea.value) p.set('zone', sdArea.value);
-        if (sdWhen.value) {
-          if (sdWhen.value === 'daytime' || sdWhen.value === 'evening') p.set('time', sdWhen.value);
-          else p.set('date', sdWhen.value);
-        }
-        if (sdKind.value === 'new-sport') p.set('q', '新興運動');
-        else if (sdKind.value === 'senior') p.set('scene', 'senior');
-        else if (sdKind.value === 'stretch') p.set('scene', 'pain');
-        else if (sdKind.value === 'office') p.set('scene', 'office');
-        else if (sdKind.value === 'family') p.set('scene', 'family');
+        if (F.zone) p.set('zone', F.zone);
+        if (F.date) p.set('date', F.date);
+        if (F.q) p.set('q', F.q);
         location.href = 'explore.html' + (p.toString() ? '?' + p.toString() : '');
       });
-      paintSummary();
+
+      // 拖拽關閉
+      (function () {
+        var startY = 0, dy = 0, dragging = false, t0 = 0;
+        function onStart(e) {
+          if (!drawer.classList.contains('on')) return;
+          dragging = true; dy = 0; startY = e.touches ? e.touches[0].clientY : e.clientY; t0 = Date.now();
+          sheet.classList.add('dragging');
+        }
+        function onMove(e) {
+          if (!dragging) return;
+          var y = e.touches ? e.touches[0].clientY : e.clientY;
+          dy = Math.max(0, y - startY);
+          if (dy > 0) { sheet.style.transform = 'translateY(' + dy + 'px)'; if (e.cancelable) e.preventDefault(); }
+        }
+        function onEnd() {
+          if (!dragging) return;
+          dragging = false;
+          sheet.classList.remove('dragging');
+          var fast = Date.now() - t0 < 320 && dy > 60;
+          if (dy > 140 || fast) { closeDrawer(); }
+          else { sheet.style.transform = 'translateY(0)'; }
+        }
+        [grab, headEl].forEach(function (el) {
+          if (!el) return;
+          el.addEventListener('touchstart', onStart, { passive: true });
+          el.addEventListener('touchmove', onMove, { passive: false });
+          el.addEventListener('touchend', onEnd);
+          el.addEventListener('mousedown', onStart);
+        });
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup', onEnd);
+      })();
+
+      document.addEventListener('keydown', function (e) {
+        if (!drawer.classList.contains('on')) return;
+        if (e.key === 'Escape') return closeDrawer();
+        if (e.key !== 'Tab') return;
+        var f = sheet.querySelectorAll('button:not([disabled]), [href], input, select, textarea');
+        if (!f.length) return;
+        var first = f[0], last = f[f.length - 1];
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+      });
+
+      renderAll();
     })();
   </script>
 </body>
