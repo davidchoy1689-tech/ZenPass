@@ -369,6 +369,40 @@
 
   /* Phase 5.4 — Hero 精簡（David 2026-11-13 wireframe：減密度、強層級、手機單行 chips） */
   .capsule-filter { display: none; }
+  /* Option B：桌面下拉篩選面板（≥1024px） */
+  .search-capsule-wrapper { position: relative; }
+  .dpanel { display: none; position: absolute; left: 0; right: 0; top: calc(100% + 8px); z-index: 40;
+    background: #fff; border: 1px solid #E2E8F0; border-radius: 18px; padding: 16px 18px 14px;
+    box-shadow: 0 18px 50px -12px rgba(15,23,42,.28); max-height: 460px; overflow: auto; }
+  .dpanel.on { display: block; animation: dpIn .2s ease-out; }
+  @keyframes dpIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+  .dp-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
+  .dp-active { display: flex; gap: 6px; flex-wrap: wrap; }
+  .dp-active .af { display: inline-flex; align-items: center; gap: 6px; background: #ECFDF5; border: 1px solid #A7F3D0;
+    color: #065F46; font-size: 12px; font-weight: 800; padding: 4px 9px; border-radius: 999px; }
+  .dp-active .af i { font-style: normal; opacity: .7; }
+  .dp-reset { margin-left: auto; background: none; border: 0; color: #0F766E; font-size: 12.5px; font-weight: 800; cursor: pointer; }
+  .dp-reset[disabled] { color: #CBD5E1; }
+  .dp-grid { display: grid; grid-template-columns: 1fr 1fr 1.3fr; gap: 12px; padding: 10px 0 4px; }
+  .dp-col b { display: block; font-size: 11.5px; color: #0F766E; letter-spacing: .04em; margin-bottom: 8px; }
+  .dp-list { display: flex; flex-direction: column; gap: 2px; }
+  .dp-sub { margin-top: 6px; }
+  .dp-opt { display: flex; align-items: center; gap: 6px; width: 100%; background: none; border: 0; text-align: left;
+    padding: 7px 6px; border-radius: 9px; font: inherit; font-size: 13px; color: #0F172A; font-weight: 600; cursor: pointer; }
+  .dp-opt:hover { background: #F8FAFC; }
+  .dp-opt .dot { flex: 0 0 16px; width: 16px; height: 16px; border-radius: 50%; border: 2px solid #CBD5E1; position: relative; }
+  .dp-opt .box { flex: 0 0 16px; width: 16px; height: 16px; border-radius: 4px; border: 2px solid #CBD5E1; position: relative; }
+  .dp-opt[aria-pressed="true"] { background: #F0FDF9; color: #065F46; font-weight: 800; }
+  .dp-opt[aria-pressed="true"] .dot { border-color: #0F766E; }
+  .dp-opt[aria-pressed="true"] .dot::after { content: ""; position: absolute; inset: 3px; border-radius: 50%; background: #0F766E; }
+  .dp-opt[aria-pressed="true"] .box { border-color: #0F766E; background: #0F766E; }
+  .dp-opt[aria-pressed="true"] .box::after { content: ""; position: absolute; left: 4px; top: 1px; width: 4px; height: 8px;
+    border: 2px solid #fff; border-top: 0; border-left: 0; transform: rotate(45deg); }
+  .dp-foot { display: flex; justify-content: flex-end; margin-top: 10px; padding-top: 10px; border-top: 1px solid #F1F5F9; }
+  .dp-go { padding: 11px 22px; border-radius: 12px; border: 0; background: #0F766E; color: #fff; font: inherit;
+    font-size: 14.5px; font-weight: 900; cursor: pointer; }
+  .dp-go[disabled] { background: #CBD5E1; }
+  @media (max-width: 1023px) { .dpanel { display: none !important; } }
   @media (min-width: 900px) {
     .capsule-filter { display: inline-flex; align-items: center; gap: 6px; margin-left: 4px; padding: 0 16px;
       border-radius: 12px; border: 1.5px solid #E2E8F0; background: #F8FAFC; color: #0F172A;
@@ -534,6 +568,18 @@
             <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
             <span>搜尋</span>
           </button>
+        </div>
+        <div class="dpanel" id="dPanel" hidden>
+          <div class="dp-head">
+            <div class="dp-active" id="dpActive"></div>
+            <button class="dp-reset" id="dpReset" type="button">重設全部</button>
+          </div>
+          <div class="dp-grid">
+            <div class="dp-col"><b>地區</b><div class="dp-list" id="dpRegion"></div><div class="dp-list dp-sub" id="dpDistricts"></div></div>
+            <div class="dp-col"><b>時段</b><div class="dp-list" id="dpTime"></div></div>
+            <div class="dp-col"><b>運動類型</b><div class="dp-list" id="dpKind"></div></div>
+          </div>
+          <div class="dp-foot"><button class="dp-go" id="dpGo" type="button">顯示全部課程</button></div>
         </div>
         <p class="search-note">免註冊即可預約 · 即時確認席位</p>
       </div>
@@ -1323,7 +1369,7 @@
         { k: '', l: '全部' }, { k: '芬蘭木柱', l: '芬蘭木柱' }, { k: '樂齡伸展', l: '樂齡伸展' },
         { k: '地板冰壺', l: '地板冰壺' }, { k: '布袋球', l: '布袋球' }, { k: '瑜伽', l: '瑜伽' }
       ];
-      var F = { region: '', zone: '', date: '', q: '' };
+      var F = { region: '', zone: '', date: '', cats: [] };
       var openRegion = '';
       var ALL_CLASSES = null;
 
@@ -1333,7 +1379,7 @@
         return F.region ? labelOf(REGIONS, F.region) : '';
       }
       function summaryText() {
-        var bits = [zoneLabel() || '全港', labelOf(TIMES, F.date) || '任何時段', F.q || '全部運動'];
+        var bits = [zoneLabel() || '全港', labelOf(TIMES, F.date) || '任何時段', F.cats.length ? F.cats.join('／') : '全部運動'];
         return bits.join(' · ');
       }
 
@@ -1381,8 +1427,8 @@
       function renderKinds() {
         kindChips.innerHTML = '';
         KINDS.forEach(function (k) {
-          kindChips.appendChild(chip(k.l, F.q === k.k, function () {
-            F.q = k.k;
+          kindChips.appendChild(chip(k.l, k.k ? F.cats.indexOf(k.k) >= 0 : !F.cats.length, function () {
+            F.cats = k.k ? [k.k] : [];
             renderAll();
           }));
         });
@@ -1404,7 +1450,7 @@
         if (F.zone) add('📍 ' + labelOf(DISTRICTS, F.zone), function () { F.zone = ''; F.region = ''; openRegion = ''; renderAll(); });
         else if (F.region) add('📍 ' + labelOf(REGIONS, F.region), function () { F.region = ''; openRegion = ''; renderAll(); });
         if (F.date) add(labelOf(TIMES, F.date), function () { F.date = ''; renderAll(); });
-        if (F.q) add(F.q, function () { F.q = ''; renderAll(); });
+        if (F.cats.length) add(F.cats.join('／'), function () { F.cats = []; renderAll(); });
         sdReset.disabled = !any;
       }
 
@@ -1419,9 +1465,9 @@
           var hay2 = [c.district, c.venue_name, c.venue_address, c.title, c.course_title].join(' ');
           if (!names.some(function (n) { return hay2.indexOf(n) >= 0; })) return false;
         }
-        if (F.q) {
+        if (F.cats.length) {
           var h3 = [c.title, c.course_title, c.category, c.sport_slug].join(' ').toLowerCase();
-          if (h3.indexOf(String(F.q).toLowerCase()) < 0) return false;
+          if (!F.cats.some(function (k) { return h3.indexOf(String(k).toLowerCase()) >= 0; })) return false;
         }
         return true;
       }
@@ -1431,6 +1477,11 @@
         var n = ALL_CLASSES.filter(matchRow).length;
         sdGo.textContent = n > 0 ? '顯示 ' + n + ' 個結果' : '沒有符合的課程，試下改篩選';
         sdGo.disabled = n === 0;
+        var dp = document.getElementById('dpGo');
+        if (dp) {
+          dp.textContent = n > 0 ? '顯示 ' + n + ' 個結果 →' : '沒有符合的課程';
+          dp.disabled = n === 0;
+        }
       }
 
       function loadCount() {
@@ -1448,7 +1499,8 @@
         renderRegions(); renderTimes(); renderKinds(); renderActive(); updateCount();
         var t = summaryText();
         if (ssSummary) ssSummary.textContent = t;
-        if (heroSummaryEl) heroSummaryEl.textContent = F.zone || F.date || F.q ? t : '地區 · 時段 · 運動';
+        if (heroSummaryEl) heroSummaryEl.textContent = (F.zone || F.date || F.cats.length) ? t : '地區 · 時段 · 運動';
+        if (document.getElementById('dPanel')) renderDesktop();
       }
 
       function openDrawer() {
@@ -1464,12 +1516,12 @@
         sheet.classList.remove('dragging');
         document.body.style.overflow = '';
       }
-      [document.getElementById('ssOpen'), document.getElementById('heroSearchPill'), document.getElementById('dsFilterBtn')].forEach(function (b) {
+      [document.getElementById('ssOpen'), document.getElementById('heroSearchPill')].forEach(function (b) {
         if (b) b.addEventListener('click', openDrawer);
       });
       drawer.querySelectorAll('[data-sd-close]').forEach(function (n) { n.addEventListener('click', closeDrawer); });
       sdReset.addEventListener('click', function () {
-        F = { region: '', zone: '', date: '', q: '' };
+        F = { region: '', zone: '', date: '', cats: [] };
         openRegion = '';
         renderAll();
       });
@@ -1477,7 +1529,7 @@
         var p = new URLSearchParams();
         if (F.zone) p.set('zone', F.zone);
         if (F.date) p.set('date', F.date);
-        if (F.q) p.set('q', F.q);
+        if (F.cats.length) p.set('cats', F.cats.join(','));
         location.href = 'explore.html' + (p.toString() ? '?' + p.toString() : '');
       });
 
@@ -1524,6 +1576,150 @@
         if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
         else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
       });
+
+      /* ---- Option B：桌面下拉篩選面板 ---- */
+      var dPanel = document.getElementById('dPanel');
+      var dpRegion = document.getElementById('dpRegion');
+      var dpDistricts = document.getElementById('dpDistricts');
+      var dpTime = document.getElementById('dpTime');
+      var dpKind = document.getElementById('dpKind');
+      var dpActive = document.getElementById('dpActive');
+      var dpReset = document.getElementById('dpReset');
+      var dpGo = document.getElementById('dpGo');
+
+      function dpOpt(label, pressed, onClick, kind) {
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'dp-opt';
+        b.setAttribute('aria-pressed', pressed ? 'true' : 'false');
+        var mark = document.createElement('span');
+        mark.className = kind === 'check' ? 'box' : 'dot';
+        b.appendChild(mark);
+        b.appendChild(document.createTextNode(label));
+        b.addEventListener('click', onClick);
+        return b;
+      }
+
+      function renderDesktop() {
+        if (!dPanel) return;
+        // 地區（單選）
+        dpRegion.innerHTML = '';
+        REGIONS.forEach(function (r) {
+          dpRegion.appendChild(dpOpt(r.l, !F.zone && F.region === r.k, function () {
+            if (r.k) { F.region = r.k; F.zone = ''; openRegion = r.k; }
+            else { F.region = ''; F.zone = ''; openRegion = ''; }
+            renderAll();
+          }));
+        });
+        dpDistricts.innerHTML = '';
+        if (openRegion) {
+          DISTRICTS.filter(function (d) { return d.r === openRegion; }).forEach(function (d) {
+            dpDistricts.appendChild(dpOpt(d.l, F.zone === d.k, function () {
+              F.zone = F.zone === d.k ? '' : d.k;
+              F.region = d.r;
+              renderAll();
+            }));
+          });
+        }
+        // 時段（單選）
+        dpTime.innerHTML = '';
+        TIMES.forEach(function (t) {
+          dpTime.appendChild(dpOpt(t.l || '任何時段', F.date === t.k, function () {
+            F.date = t.k;
+            renderAll();
+          }));
+        });
+        // 運動類型（多選，全部 exclusive）
+        dpKind.innerHTML = '';
+        KINDS.forEach(function (k) {
+          var pressed = k.k ? F.cats.indexOf(k.k) >= 0 : !F.cats.length;
+          dpKind.appendChild(dpOpt(k.l, pressed, function () {
+            if (!k.k) F.cats = [];
+            else {
+              var i = F.cats.indexOf(k.k);
+              if (i >= 0) F.cats.splice(i, 1);
+              else F.cats.push(k.k);
+            }
+            renderAll();
+          }, 'check'));
+        });
+        // 已選 chips
+        dpActive.innerHTML = '';
+        var n = 0;
+        function addChip(label, clear) {
+          n++;
+          var el = document.createElement('button');
+          el.type = 'button';
+          el.className = 'af';
+          el.innerHTML = '<b>' + label + '</b><i>×</i>';
+          el.setAttribute('aria-label', '移除 ' + label);
+          el.addEventListener('click', clear);
+          dpActive.appendChild(el);
+        }
+        if (F.zone) addChip('📍 ' + labelOf(DISTRICTS, F.zone), function () { F.zone = ''; F.region = ''; openRegion = ''; renderAll(); });
+        else if (F.region) addChip('📍 ' + labelOf(REGIONS, F.region), function () { F.region = ''; openRegion = ''; renderAll(); });
+        if (F.date) addChip(labelOf(TIMES, F.date), function () { F.date = ''; renderAll(); });
+        F.cats.forEach(function (k) {
+          addChip(k, function () { F.cats = F.cats.filter(function (x) { return x !== k; }); renderAll(); });
+        });
+        dpReset.disabled = n === 0;
+        // CTA
+        if (ALL_CLASSES) {
+          var count = ALL_CLASSES.filter(matchRow).length;
+          dpGo.textContent = count > 0 ? '顯示 ' + count + ' 個結果 →' : '沒有符合的課程';
+          dpGo.disabled = count === 0;
+        }
+      }
+
+      function openPanel() {
+        if (!dPanel || window.innerWidth < 1024) return;
+        loadCount();
+        dPanel.hidden = false;
+        dPanel.classList.add('on');
+        renderDesktop();
+      }
+      function closePanel() {
+        if (!dPanel) return;
+        dPanel.classList.remove('on');
+        dPanel.hidden = true;
+      }
+      if (dpReset) dpReset.addEventListener('click', function () {
+        F = { region: '', zone: '', date: '', cats: [] };
+        openRegion = '';
+        renderDesktop();
+        renderAll();
+      });
+      if (dpGo) dpGo.addEventListener('click', function () {
+        var p = new URLSearchParams();
+        if (F.zone) p.set('zone', F.zone);
+        if (F.date) p.set('date', F.date);
+        if (F.cats.length) p.set('cats', F.cats.join(','));
+        location.href = 'explore.html' + (p.toString() ? '?' + p.toString() : '');
+      });
+      if (dPanel) {
+        document.addEventListener('click', function (e) {
+          if (!dPanel.classList.contains('on')) return;
+          if (!e.target || !e.target.isConnected) return; // chip 點擊後已被重繪，唔算「點外面」
+          if (dPanel.contains(e.target)) return;
+          if (e.target.closest('.search-capsule-wrapper')) return;
+          closePanel();
+        });
+        document.addEventListener('keydown', function (e) {
+          if (e.key === 'Escape' && dPanel.classList.contains('on')) closePanel();
+        });
+      }
+      if (document.getElementById('dsFilterBtn')) {
+        document.getElementById('dsFilterBtn').addEventListener('click', function (e) {
+          e.stopPropagation();
+          openPanel();
+        });
+      }
+      var capsuleEl = document.querySelector('.search-capsule');
+      if (capsuleEl) {
+        capsuleEl.addEventListener('focusin', function (e) {
+          if (e.target && e.target.tagName === 'SELECT') openPanel();
+        });
+      }
 
       renderAll();
     })();

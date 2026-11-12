@@ -472,6 +472,7 @@
       zone: ZONES[P.get("zone")] ? P.get("zone") : "",
       date: DATES[P.get("date") || ""] && P.get("date") ? P.get("date") : "",
       cat: P.get("cat") || P.get("category") || "",
+      cats: (P.get("cats") || "").split(",").map((x) => x.trim()).filter(Boolean),
       sort: SORTS[P.get("sort")] ? P.get("sort") : "newest",
       area: P.get("area") || "",
       scene: SCENES[P.get("scene")] ? P.get("scene") : "",
@@ -725,11 +726,19 @@
       niche_sports: "新興運動", stretching: "身心伸展", yoga: "瑜伽", fitness: "健身",
       meditation: "冥想", dance: "舞蹈", kids: "兒童體適能", senior: "長者體適能",
     };
-    function catLabel() { return CAT_ALIAS[STATE.cat] || STATE.cat; }
+    function catLabel() {
+      if (STATE.cats && STATE.cats.length) return STATE.cats.join("／");
+      return CAT_ALIAS[STATE.cat] || STATE.cat;
+    }
     function matchCat(c) {
-      if (!STATE.cat) return true;
       const cat = String(c.category || "");
-      return cat === STATE.cat || CAT_ALIAS[STATE.cat] === cat || String(c.sport_slug || "") === STATE.cat;
+      const slug = String(c.sport_slug || "");
+      const hit = (x) =>
+        cat === x || CAT_ALIAS[x] === cat || slug === x ||
+        String(x).toLowerCase().split(/\s+/).every((tok) => hay(c).indexOf(tok) >= 0);
+      if (STATE.cats && STATE.cats.length) return STATE.cats.some(hit);
+      if (!STATE.cat) return true;
+      return hit(STATE.cat);
     }
     function matchAudience(c) {
       if (!STATE.audience) return true;
@@ -1055,7 +1064,8 @@
       if (STATE.q) p.set("q", STATE.q);
       if (STATE.zone) p.set("zone", STATE.zone);
       if (STATE.date) p.set("date", STATE.date);
-      if (STATE.cat) p.set("cat", STATE.cat);
+      if (STATE.cats && STATE.cats.length) p.set("cats", STATE.cats.join(","));
+      else if (STATE.cat) p.set("cat", STATE.cat);
       if (STATE.sort !== "newest") p.set("sort", STATE.sort);
       if (STATE.area) p.set("area", STATE.area);
       if (STATE.scene) p.set("scene", STATE.scene);

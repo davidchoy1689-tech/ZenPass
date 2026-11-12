@@ -31,7 +31,7 @@ ok(/沒有符合的課程，試下改篩選/.test(home), "零結果文案");
 ok(/sdGo\.disabled = n === 0/.test(home), "零結果時 CTA disabled");
 ok(/location\.href = 'explore\.html' \+ \(p\.toString\(\)/.test(home), "CTA 帶參數去 explore");
 ok(/F\.zone = ''; F\.region = ''; openRegion = ''; renderAll\(\);/.test(home), "移除地區 chip 會一併清 region");
-ok(/url\.set|p\.set\('zone'/.test(home) && /p\.set\('date'/.test(home) && /p\.set\('q'/.test(home), "zone／date／q 三個參數齊");
+ok(/p\.set\('zone'/.test(home) && /p\.set\('date'/.test(home) && /p\.set\('cats'/.test(home), "zone／date／cats 參數齊");
 
 console.log("\n🧪 3. 手勢與無障礙");
 ok(home.indexOf("translateY(' + dy + 'px)") >= 0, "跟手指拖拽");
