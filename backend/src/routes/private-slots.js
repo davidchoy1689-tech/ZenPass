@@ -12,6 +12,7 @@ const passes = require("../services/passes");
 const passDeduction = require("../services/pass-deduction");
 const familyWallet = require("../services/family-wallet");
 const { audit } = require("../services/audit");
+const { resolvePrivateUnits } = require("../utils/private-units");
 
 const router = express.Router();
 
@@ -105,10 +106,10 @@ router.post("/coach/slots/batch-create", authenticateToken, (req, res) => {
     if (!Number.isInteger(price) || price < 26000 || price > 32000) {
       return res.status(400).json({ success: false, error: "私人時段定價必須 HK$260–320" });
     }
-    const units = Number(b.pass_units_required || 2);
-    if (!Number.isInteger(units) || units < 1 || units > 4) return res.status(400).json({ success: false, error: "扣堂數無效" });
     const maxAttendees = Number(b.max_attendees || 1);
     if (![1, 2].includes(maxAttendees)) return res.status(400).json({ success: false, error: "私人時段只支援 1 對 1 或 1 對 2" });
+    // 🔒 扣堂數由伺服器規則決定（一對一 3 堂／一對二 2 堂／位），唔信前端
+    const units = resolvePrivateUnits(maxAttendees, b.pass_units_required);
     const district = resolveDistrict(String(b.district || "") + " " + venueName) || String(b.district || "");
     const title = String(b.course_title || "一對一專屬痛症／體適能指導").slice(0, 60);
 
@@ -276,7 +277,8 @@ router.post("/bookings/book-private-slot", authenticateToken, (req, res) => {
     if (duplicate) return res.status(409).json({ success: false, error: "已預約此時段", code: "ALREADY_BOOKED" });
 
     const applicable = findPrivatePass(db, req.user.id, attendeeId);
-    const need = Number(slot.pass_units_required) || 2;
+    // 🔒 一對一每節扣 3 堂（舊 slot 設 2 堂會自動升級，唔會少收）
+    const need = resolvePrivateUnits(slot.max_attendees, slot.pass_units_required);
 
     // Phase 4.5：FIFO 跨卡扣堂 —— 舊卡（快到期）先用盡，自動接第二張卡
     const fam = db

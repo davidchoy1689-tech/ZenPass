@@ -317,7 +317,7 @@
         <div class="r-badges">${x.is_own_student ? '<span class="r-own">👑 自有學生 (100%)</span>' : '<span class="r-plat">🌐 平台引流 (80%)</span>'}</div>
         <div class="r-meta">${x.pass_status && x.pass_status.pass_type === "family"
           ? `👨‍👩‍👧 ${esc(x.pass_status.display_badge || "家庭Pass")} · 餘 ${x.pass_status.remaining_units} · `
-          : x.pass_remaining != null ? `🎫 剩 ${x.pass_remaining}/${x.pass_total} 堂 · ` : ""}${x.slot_id ? "👤 私人時段" + (Number(x.units_consumed) === 2 ? " · 扣 2 堂" : "") + " · " : ""}${x.health_focus ? "📝 " + esc(x.health_focus) + " · " : ""}${esc(x.phone || "")}</div>
+          : x.pass_remaining != null ? `🎫 剩 ${x.pass_remaining}/${x.pass_total} 堂 · ` : ""}${x.slot_id ? "👤 私人時段" + (Number(x.units_consumed) > 1 ? " · 扣 " + Number(x.units_consumed) + " 堂" : "") + " · " : ""}${x.health_focus ? "📝 " + esc(x.health_focus) + " · " : ""}${esc(x.phone || "")}</div>
         ${x.health_notes ? (() => {
           const t = String(x.health_notes);
           const danger = /心臟|心管|血壓|手術|膝|關節|糖尿|暈|中風|骨質|氣喘|哮喘/i.test(t);

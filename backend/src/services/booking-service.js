@@ -14,6 +14,7 @@ const { postBookingLedger } = require("./accounting");
 const { splitByRate } = require("../lib/money");
 const { validatePromo, redeemPromo } = require("./promo");
 const { awardPointsOnce, EARN_RULES } = require("./points");
+const { resolvePrivateUnits, classIsPrivate, hasColumn } = require("../utils/private-units");
 
 
 /**
@@ -1193,8 +1194,15 @@ function createBooking(req, options = {}) {
 
     // 🎫 扣堂（同一 transaction：扣唔到就成張單回滾，唔會出現「有 booking 冇扣堂」）
     if (payment_type === "pass") {
-      passes.redeemInTx(db, { passId, userId: req.user.id, bookingId });
-      db.prepare("UPDATE bookings SET pass_id = ? WHERE id = ?").run(passId, bookingId);
+      // 🔒 一對一私人時段扣 3 堂（1 對 2 每位 2 堂），其餘一律 1 堂
+      const priv = classIsPrivate(db, class_id);
+      const passUnits = priv.isPrivate ? resolvePrivateUnits(priv.maxAttendees, null) : 1;
+      passes.redeemUnitsInTx(db, { passId, userId: req.user.id, bookingId, units: passUnits });
+      if (hasColumn(db, "bookings", "units_consumed")) {
+        db.prepare("UPDATE bookings SET pass_id = ?, units_consumed = ? WHERE id = ?").run(passId, passUnits, bookingId);
+      } else {
+        db.prepare("UPDATE bookings SET pass_id = ? WHERE id = ?").run(passId, bookingId);
+      }
       amount = 0;
     }
   });

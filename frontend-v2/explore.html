@@ -266,7 +266,7 @@
 
     <!-- 🏅 運動項目（獨立頁面入口） -->
     <div class="sport-strip" id="sportStrip"></div>
-    <div class="mode-toggle" id="modeToggle"><button data-mode="group" class="on">👥 團體痛點小班（扣 1 堂）</button><button data-mode="private">👤 一對一專屬（扣 2 堂）</button></div>
+    <div class="mode-toggle" id="modeToggle"><button data-mode="group" class="on">👥 團體痛點小班（扣 1 堂）</button><button data-mode="private">👤 一對一專屬（扣 3 堂）</button></div>
     <div style="text-align:right;margin:6px 0 0"><a href="explore-map.html" style="font-size:12.5px;font-weight:800;color:#0f766e">📍 18 區地圖搵附近班次 →</a></div>
     <div class="live-head"><b id="liveTitle">🔥 即將開課 · 即時有位</b><span id="liveCount"></span></div>
     <div class="live-strip" id="liveNow"><div class="live-empty">載入中…</div></div>
@@ -523,8 +523,8 @@
             return `<div class="live-card">
               <span class="lc-aud">👤 一對一 · 專屬</span>
               <h4>${exEsc(s.course_title || "私人專屬指導")}</h4>
-              <div class="lc-meta">📍 ${exEsc(s.venue_name || s.district || "地點待定")}<br>🕒 ${exEsc(when)} · ${exEsc(s.coach_name || "教練")}<br>💳 HK$${(Number(s.price_cents) || 0) / 100} 或扣 ${Number(s.pass_units_required) || 2} 堂 Pass</div>
-              <div class="lc-foot"><span class="lc-seats">專屬時段</span><button data-private-book="${exEsc(s.slot_id)}" data-private-title="${exEsc(s.course_title || "私人專屬指導")}" data-private-units="${Number(s.pass_units_required) || 2}">⚡ 預約（扣 ${Number(s.pass_units_required) || 2} 堂）</button></div>
+              <div class="lc-meta">📍 ${exEsc(s.venue_name || s.district || "地點待定")}<br>🕒 ${exEsc(when)} · ${exEsc(s.coach_name || "教練")}<br>💳 HK$${(Number(s.price_cents) || 0) / 100} 或扣 ${Math.max(3, Number(s.pass_units_required) || 0)} 堂 Pass</div>
+              <div class="lc-foot"><span class="lc-seats">專屬時段</span><button data-private-book="${exEsc(s.slot_id)}" data-private-title="${exEsc(s.course_title || "私人專屬指導")}" data-private-units="${Math.max(3, Number(s.pass_units_required) || 0)}">⚡ 預約（扣 ${Math.max(3, Number(s.pass_units_required) || 0)} 堂）</button></div>
             </div>`;
           }).join("");
           return;
@@ -557,7 +557,7 @@
       const pb = e.target.closest("[data-private-book]");
       if (pb) {
         if (!api.requireLogin("explore.html")) return;
-        bpSchedule = { id: pb.dataset.privateBook, title: pb.dataset.privateTitle, private: true, units: Number(pb.dataset.privateUnits) || 2 };
+        bpSchedule = { id: pb.dataset.privateBook, title: pb.dataset.privateTitle, private: true, units: Math.max(3, Number(pb.dataset.privateUnits) || 0) };
         await openBookingModal(bpSchedule, "private");
         return;
       }

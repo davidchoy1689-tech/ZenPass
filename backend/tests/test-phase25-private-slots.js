@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/** Phase 2.5 — 私人專屬時段、2 堂扣減、退訂、收益 */
+/** Phase 2.5 — 私人專屬時段、扣堂（一對一 3 堂；2026-11-12 起）、退訂、收益 */
 process.env.JWT_SECRET = "***".repeat(64);
 const os = require("os");
 const path = require("path");
@@ -78,24 +78,24 @@ const server = app.listen(0, async () => {
   console.log("🧪 2. 公開私人時段");
   const pub = await get("/api/public/explore/private-slots?district=葵青&date=2026-12-01");
   ok(pub.status === 200 && pub.body.slots.length === 2, "公開列表 2 個時段");
-  ok(pub.body.slots[0].pass_units_required === 2 && pub.body.slots[0].price_cents === 28000, "回傳扣 2 堂／HK$280");
+  ok(pub.body.slots[0].pass_units_required === 3 && pub.body.slots[0].price_cents === 28000, "回傳扣 3 堂／HK$280（一對一規則）");
   ok(!require("../src/routes/public-explore").listExplore(db, { audience: "office_worker", district: "葵青" }).classes.some((c) => c.class_id === cls.class_id), "私人班不混入團體探索");
 
   console.log("🧪 3. AC-2 兩堂原子扣減");
   const p1 = passes.issuePass(db, { userId: "stu1", phone: "60005002", studentName: "學員一", totalCredits: 4, pricePaid: 520, validDays: 60 });
   const book1 = await post("/api/bookings/book-private-slot", { slot_id: slot1.slot_id, attendee_user_id: "stu1", health_focus: "右膝痛" }, token1);
-  ok(book1.status === 201 && book1.body.units_consumed === 2, "私人時段預約成功、扣 2 堂", book1);
-  ok(book1.body.pass.remaining_credits === 2, "Pass 4→2");
+  ok(book1.status === 201 && book1.body.units_consumed === 3, "私人時段預約成功、扣 3 堂", book1);
+  ok(book1.body.pass.remaining_credits === 1, "Pass 4→1");
   ok(db.prepare("SELECT status FROM coach_availability_slots WHERE id=?").get(slot1.slot_id).status === "booked", "slot booked");
   const pub2 = await get("/api/public/explore/private-slots?district=葵青&date=2026-12-01");
   ok(pub2.body.slots.length === 1 && pub2.body.slots[0].slot_id === slot2.slot_id, "已預約 slot 從公開 API 消失");
   const bk = db.prepare("SELECT * FROM bookings WHERE id=?").get(book1.body.booking_id);
-  ok(bk.units_consumed === 2 && bk.slot_id === slot1.slot_id && bk.health_focus === "右膝痛" && bk.payment_type === "pass", "booking 記錄 slot／2 堂／health_focus");
+  ok(bk.units_consumed === 3 && bk.slot_id === slot1.slot_id && bk.health_focus === "右膝痛" && bk.payment_type === "pass", "booking 記錄 slot／3 堂／health_focus");
 
   console.log("🧪 4. AC-3 餘額不足");
   passes.issuePass(db, { userId: "stu2", phone: "60005003", studentName: "學員二", totalCredits: 1, pricePaid: 130, validDays: 60 });
   const book2 = await post("/api/bookings/book-private-slot", { slot_id: slot2.slot_id, attendee_user_id: "stu2" }, token2);
-  ok(book2.status === 400 && book2.body.code === "INSUFFICIENT_PASS_UNITS", "1 堂不可預約 2 堂時段", book2);
+  ok(book2.status === 400 && book2.body.code === "INSUFFICIENT_PASS_UNITS", "1 堂不可預約 3 堂時段", book2);
   ok(db.prepare("SELECT status FROM coach_availability_slots WHERE id=?").get(slot2.slot_id).status === "available", "失敗後 slot 保持 available");
 
   console.log("🧪 5. AC-4 取消雙倍返還");
