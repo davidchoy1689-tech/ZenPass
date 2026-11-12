@@ -30,7 +30,7 @@ ok(/顯示 ' \+ n \+ ' 個結果/.test(home), "CTA 顯示即時結果數");
 ok(/沒有符合的課程，試下改篩選/.test(home), "零結果文案");
 ok(/sdGo\.disabled = n === 0/.test(home), "零結果時 CTA disabled");
 ok(/location\.href = 'explore\.html' \+ \(p\.toString\(\)/.test(home), "CTA 帶參數去 explore");
-ok(/F\.zone = ''; F\.region = ''; openRegion = ''; renderAll\(\);/.test(home), "移除地區 chip 會一併清 region");
+ok(/setState\(\{ zone: '', region: '' \}\)/.test(home), "移除地區 chip 會一併清 region");
 ok(/p\.set\('zone'/.test(home) && /p\.set\('date'/.test(home) && /p\.set\('cats'/.test(home), "zone／date／cats 參數齊");
 
 console.log("\n🧪 3. 手勢與無障礙");

@@ -14,17 +14,20 @@ const ok = (c, m, x) => {
 const home = fs.readFileSync(path.join(__dirname, "../../frontend-v2/index.html"), "utf8");
 
 console.log("🧪 1. 單一狀態來源");
-ok(/var F = \{ region: '', zone: '', date: '', cats: \[\] \};/.test(home), "draft 狀態 F");
-ok(/var APPLIED = \{ region: '', zone: '', date: '', cats: \[\] \};/.test(home), "applied 狀態 APPLIED");
-ok(/function cloneF\(x\)/.test(home), "cloneF 避免共用參考");
+ok(/var store = FS\.createInitialStore\(\)/.test(home), "store 由 createInitialStore 建立");
+ok(/var F = store\.draft;/.test(home) && /var APPLIED = store\.applied;/.test(home), "F／APPLIED 由 store 派生");
+ok(/assets\/filter-store\.js/.test(home), "載入共用 filter store 模組");
+ok(/dispatch\(\{ type: 'OPEN_PANEL' \}\)/.test(home), "開啟用 OPEN_PANEL");
+ok(/dispatch\(\{ type: 'DISCARD_DRAFT' \}\)/.test(home), "關閉用 DISCARD_DRAFT");
+ok(/dispatch\(\{ type: 'APPLY' \}\)/.test(home) && (home.match(/type: 'APPLY'/g)||[]).length >= 2, "兩個 CTA 都用 APPLY");
 ok(!/var F2|var state2|mirrorState/.test(home), "冇重複第二份狀態");
 
 console.log("\n🧪 2. 開啟＝草稿、套用＝提交、關閉＝丟棄");
-ok(/F = cloneF\(APPLIED\);\s*\n\s*sheetTrigger = document\.activeElement;/.test(home), "手機開啟時 draft←applied");
-ok(/function openPanel\(\) \{[\s\S]{0,200}F = cloneF\(APPLIED\);/.test(home), "桌面開啟時 draft←applied");
-ok(/APPLIED = cloneF\(F\);\s*\n\s*saveApplied\(\);/.test(home) && (home.match(/APPLIED = cloneF\(F\);/g) || []).length >= 2, "兩個 CTA 都係 APPLIED←draft");
-ok(/F = cloneF\(APPLIED\);\s*\n\s*renderAll\(\);\s*\n\s*drawer\.classList\.remove\('on'\)/.test(home), "手機關閉時丟棄 draft");
-ok(/F = cloneF\(APPLIED\);\s*\n\s*dPanel\.classList\.remove\('on'\)/.test(home), "桌面關閉時丟棄 draft");
+ok(/function openDrawer\(\) \{\s*\n\s*dispatch\(\{ type: 'OPEN_PANEL' \}\);/.test(home), "手機開啟時 OPEN_PANEL");
+ok(/function openPanel\(\) \{[\s\S]{0,200}dispatch\(\{ type: 'OPEN_PANEL' \}\);/.test(home), "桌面開啟時 OPEN_PANEL");
+ok((home.match(/dispatch\(\{ type: 'APPLY' \}\);/g) || []).length >= 2, "兩個 CTA 都 dispatch APPLY");
+ok(/dispatch\(\{ type: 'DISCARD_DRAFT' \}\);\s*\n\s*renderAll\(\);\s*\n\s*drawer\.classList\.remove\('on'\)/.test(home), "手機關閉時 DISCARD_DRAFT");
+ok(/dispatch\(\{ type: 'DISCARD_DRAFT' \}\);\s*\n\s*dPanel\.classList\.remove\('on'\)/.test(home), "桌面關閉時 DISCARD_DRAFT");
 
 console.log("\n🧪 3. 摘要只反映 applied");
 ok(/function summaryTextFor\(st\)/.test(home) && /function summaryText\(\) \{ return summaryTextFor\(APPLIED\); \}/.test(home), "summaryText 以 applied 計算");

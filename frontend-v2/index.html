@@ -463,6 +463,7 @@
     </button>
   </div>
 
+  <script src="assets/filter-store.js?v=1"></script>
   <!-- 全螢幕篩選抽屜 -->
   <div id="searchDrawer" role="dialog" aria-modal="true" aria-labelledby="sdTitle">
     <div class="sd-mask" data-sd-close></div>
@@ -1373,9 +1374,16 @@
         { k: '', l: '全部' }, { k: '芬蘭木柱', l: '芬蘭木柱' }, { k: '樂齡伸展', l: '樂齡伸展' },
         { k: '地板冰壺', l: '地板冰壺' }, { k: '布袋球', l: '布袋球' }, { k: '瑜伽', l: '瑜伽' }
       ];
-      var F = { region: '', zone: '', date: '', cats: [] };          // draft（正在編輯）
-      var APPLIED = { region: '', zone: '', date: '', cats: [] };    // applied（驅動摘要／搜尋）
-      function cloneF(x) { return { region: x.region || '', zone: x.zone || '', date: x.date || '', cats: (x.cats || []).slice() }; }
+      var FS = window.ZPFilterStore;
+      var store = FS.createInitialStore();
+      var F = store.draft;        // draft（正在編輯）
+      var APPLIED = store.applied; // applied（驅動摘要／搜尋）
+      function dispatch(action) {
+        store = FS.reducer(store, action);
+        F = store.draft;
+        APPLIED = store.applied;
+      }
+      function setState(patch) { dispatch({ type: 'PATCH', state: patch }); }
       function saveApplied() {
         try { sessionStorage.setItem('zp_filters', JSON.stringify(APPLIED)); } catch (e) {}
       }
@@ -1384,8 +1392,7 @@
           var raw = sessionStorage.getItem('zp_filters');
           if (!raw) return;
           var o = JSON.parse(raw);
-          APPLIED = cloneF(o);
-          F = cloneF(o);
+          dispatch({ type: 'HYDRATE', state: o });
           openRegion = APPLIED.zone ? ((DISTRICTS.filter(function (d) { return d.k === APPLIED.zone; })[0] || {}).r || '') : '';
         } catch (e) {}
       }
@@ -1418,8 +1425,8 @@
         areaChips.innerHTML = '';
         REGIONS.forEach(function (r) {
           areaChips.appendChild(chip(r.l, F.region === r.k && !F.zone, function () {
-            if (r.k) { openRegion = r.k; F.region = r.k; F.zone = ''; }
-            else { F.region = ''; F.zone = ''; openRegion = ''; }
+            if (r.k) { openRegion = r.k; setState({ region: r.k, zone: '' }); }
+            else { setState({ region: '', zone: '' }); openRegion = ''; }
             renderAll();
           }));
         });
@@ -1428,8 +1435,7 @@
         if (!openRegion) return;
         DISTRICTS.filter(function (d) { return d.r === openRegion; }).forEach(function (d) {
           districtsBox.appendChild(chip('📍 ' + d.l, F.zone === d.k, function () {
-            F.zone = F.zone === d.k ? '' : d.k;
-            F.region = d.r;
+            setState({ zone: F.zone === d.k ? '' : d.k, region: d.r });
             renderAll();
           }));
         });
@@ -1439,7 +1445,7 @@
         timeChips.innerHTML = '';
         TIMES.forEach(function (t) {
           timeChips.appendChild(chip(t.l, F.date === t.k, function () {
-            F.date = t.k;
+            setState({ date: t.k });
             renderAll();
           }));
         });
@@ -1449,7 +1455,7 @@
         kindChips.innerHTML = '';
         KINDS.forEach(function (k) {
           kindChips.appendChild(chip(k.l, k.k ? F.cats.indexOf(k.k) >= 0 : !F.cats.length, function () {
-            F.cats = k.k ? [k.k] : [];
+            setState({ cats: k.k ? [k.k] : [] });
             renderAll();
           }));
         });
@@ -1468,10 +1474,10 @@
           el.addEventListener('click', clear);
           sdActive.appendChild(el);
         }
-        if (F.zone) add('📍 ' + labelOf(DISTRICTS, F.zone), function () { F.zone = ''; F.region = ''; openRegion = ''; renderAll(); });
-        else if (F.region) add('📍 ' + labelOf(REGIONS, F.region), function () { F.region = ''; openRegion = ''; renderAll(); });
-        if (F.date) add(labelOf(TIMES, F.date), function () { F.date = ''; renderAll(); });
-        if (F.cats.length) add(F.cats.join('／'), function () { F.cats = []; renderAll(); });
+        if (F.zone) add('📍 ' + labelOf(DISTRICTS, F.zone), function () { setState({ zone: '', region: '' }); openRegion = ''; renderAll(); });
+        else if (F.region) add('📍 ' + labelOf(REGIONS, F.region), function () { setState({ region: '' }); openRegion = ''; renderAll(); });
+        if (F.date) add(labelOf(TIMES, F.date), function () { setState({ date: '' }); renderAll(); });
+        if (F.cats.length) add(F.cats.join('／'), function () { setState({ cats: [] }); renderAll(); });
         sdReset.disabled = !any;
       }
 
@@ -1555,7 +1561,7 @@
         sdReset.focus();
       }
       function openDrawer() {
-        F = cloneF(APPLIED);
+        dispatch({ type: 'OPEN_PANEL' });
         sheetTrigger = document.activeElement;
         drawer.classList.add('on');
         document.body.style.overflow = 'hidden';
@@ -1564,7 +1570,7 @@
         setTimeout(sheetFirstFocus, 80);
       }
       function closeDrawer() {
-        F = cloneF(APPLIED);
+        dispatch({ type: 'DISCARD_DRAFT' });
         renderAll();
         drawer.classList.remove('on');
         sheet.style.transform = '';
@@ -1577,12 +1583,12 @@
       });
       drawer.querySelectorAll('[data-sd-close]').forEach(function (n) { n.addEventListener('click', closeDrawer); });
       sdReset.addEventListener('click', function () {
-        F = { region: '', zone: '', date: '', cats: [] };
+        dispatch({ type: 'RESET' });
         openRegion = '';
         renderAll();
       });
       sdGo.addEventListener('click', function () {
-        APPLIED = cloneF(F);
+        dispatch({ type: 'APPLY' });
         saveApplied();
         var p = new URLSearchParams();
         if (F.zone) p.set('zone', F.zone);
@@ -1696,8 +1702,8 @@
         dpRegion.innerHTML = '';
         REGIONS.forEach(function (r) {
           dpRegion.appendChild(dpOpt(r.l, !F.zone && F.region === r.k, function () {
-            if (r.k) { F.region = r.k; F.zone = ''; openRegion = r.k; }
-            else { F.region = ''; F.zone = ''; openRegion = ''; }
+            if (r.k) { setState({ region: r.k, zone: '' }); openRegion = r.k; }
+            else { setState({ region: '', zone: '' }); openRegion = ''; }
             renderAll();
           }, 'radio', 'region'));
         });
@@ -1705,8 +1711,7 @@
         if (openRegion) {
           DISTRICTS.filter(function (d) { return d.r === openRegion; }).forEach(function (d) {
             dpDistricts.appendChild(dpOpt(d.l, F.zone === d.k, function () {
-              F.zone = F.zone === d.k ? '' : d.k;
-              F.region = d.r;
+              setState({ zone: F.zone === d.k ? '' : d.k, region: d.r });
               renderAll();
             }, 'radio', 'region'));
           });
@@ -1715,7 +1720,7 @@
         dpTime.innerHTML = '';
         TIMES.forEach(function (t) {
           dpTime.appendChild(dpOpt(t.l || '任何時段', F.date === t.k, function () {
-            F.date = t.k;
+            setState({ date: t.k });
             renderAll();
           }, 'radio', 'time'));
         });
@@ -1724,12 +1729,8 @@
         KINDS.forEach(function (k) {
           var pressed = k.k ? F.cats.indexOf(k.k) >= 0 : !F.cats.length;
           dpKind.appendChild(dpOpt(k.l, pressed, function () {
-            if (!k.k) F.cats = [];
-            else {
-              var i = F.cats.indexOf(k.k);
-              if (i >= 0) F.cats.splice(i, 1);
-              else F.cats.push(k.k);
-            }
+            if (!k.k) setState({ cats: [] });
+            else dispatch({ type: 'TOGGLE_ACTIVITY', activityId: k.k });
             renderAll();
           }, 'check', 'kind'));
         });
@@ -1746,11 +1747,11 @@
           el.addEventListener('click', clear);
           dpActive.appendChild(el);
         }
-        if (F.zone) addChip('📍 ' + labelOf(DISTRICTS, F.zone), function () { F.zone = ''; F.region = ''; openRegion = ''; renderAll(); });
-        else if (F.region) addChip('📍 ' + labelOf(REGIONS, F.region), function () { F.region = ''; openRegion = ''; renderAll(); });
-        if (F.date) addChip(labelOf(TIMES, F.date), function () { F.date = ''; renderAll(); });
+        if (F.zone) addChip('📍 ' + labelOf(DISTRICTS, F.zone), function () { setState({ zone: '', region: '' }); openRegion = ''; renderAll(); });
+        else if (F.region) addChip('📍 ' + labelOf(REGIONS, F.region), function () { setState({ region: '' }); openRegion = ''; renderAll(); });
+        if (F.date) addChip(labelOf(TIMES, F.date), function () { setState({ date: '' }); renderAll(); });
         F.cats.forEach(function (k) {
-          addChip(k, function () { F.cats = F.cats.filter(function (x) { return x !== k; }); renderAll(); });
+          addChip(k, function () { dispatch({ type: 'REMOVE_CHIP', chip: { type: 'activity', value: k } }); renderAll(); });
         });
         dpReset.disabled = n === 0;
         // CTA
@@ -1787,7 +1788,7 @@
 
       function openPanel() {
         if (!dPanel || window.innerWidth < 1024) return;
-        F = cloneF(APPLIED);
+        dispatch({ type: 'OPEN_PANEL' });
         loadCount();
         dPanel.hidden = false;
         dPanel.classList.add('on');
@@ -1795,19 +1796,19 @@
       }
       function closePanel() {
         if (!dPanel) return;
-        F = cloneF(APPLIED);
+        dispatch({ type: 'DISCARD_DRAFT' });
         dPanel.classList.remove('on');
         dPanel.hidden = true;
         renderAll();
       }
       if (dpReset) dpReset.addEventListener('click', function () {
-        F = { region: '', zone: '', date: '', cats: [] };
+        dispatch({ type: 'RESET' });
         openRegion = '';
         renderDesktop();
         renderAll();
       });
       if (dpGo) dpGo.addEventListener('click', function () {
-        APPLIED = cloneF(F);
+        dispatch({ type: 'APPLY' });
         saveApplied();
         var p = new URLSearchParams();
         if (F.zone) p.set('zone', F.zone);
