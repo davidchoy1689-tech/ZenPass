@@ -336,6 +336,8 @@
   .sd-chip { border: 1.5px solid #E2E8F0; background: #fff; color: #0F172A; font: inherit; font-size: 13.5px;
     font-weight: 700; padding: 9px 13px; border-radius: 999px; min-height: 38px; }
   .sd-chip[aria-pressed="true"] { background: #0F766E; border-color: #0F766E; color: #fff; }
+  .sd-chip:focus-visible, .sd-active .af:focus-visible, .sd-head .sd-reset:focus-visible, #searchDrawer .sd-go:focus-visible {
+    outline: 2px solid #0F766E; outline-offset: 2px; }
   .sd-chip.sd-more { border-style: dashed; color: #0F766E; }
   .sd-districts { display: none; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
   .sd-districts.on { display: flex; }
@@ -489,7 +491,7 @@
         </div>
       </div>
       <div class="sd-foot">
-        <button class="sd-go" id="sdGo" type="button">顯示全部課程</button>
+        <button class="sd-go" id="sdGo" type="button" aria-live="polite">顯示全部課程</button>
       </div>
     </div>
   </div>
@@ -1479,6 +1481,7 @@
         var n = ALL_CLASSES.filter(matchRow).length;
         sdGo.textContent = n > 0 ? '顯示 ' + n + ' 個結果' : '沒有符合的課程，試下改篩選';
         sdGo.disabled = n === 0;
+        sdGo.setAttribute('aria-disabled', n === 0 ? 'true' : 'false');
         var dp = document.getElementById('dpGo');
         if (dp) {
           dp.textContent = n > 0 ? '顯示 ' + n + ' 個結果 →' : '沒有符合的課程';
@@ -1503,20 +1506,51 @@
         if (ssSummary) ssSummary.textContent = t;
         if (heroSummaryEl) heroSummaryEl.textContent = (F.zone || F.date || F.cats.length) ? t : '地區 · 時段 · 運動';
         if (document.getElementById('dPanel')) renderDesktop();
+        if (drawer.classList.contains('on')) {
+          setTimeout(function () {
+            var a = document.activeElement;
+            if (a && a !== document.body && sheet.contains(a)) return;
+            var target = null;
+            if (lastChip) {
+              var list = sheet.querySelectorAll('#' + lastChip.box + ' .sd-chip');
+              Array.prototype.forEach.call(list, function (o) {
+                if (!target && (o.textContent || '').trim() === lastChip.label) target = o;
+              });
+            }
+            if (!target) target = sheet.querySelector('#sdActive .af') || sheet.querySelector('#sdRegionChips .sd-chip');
+            if (target) target.focus();
+          }, 0);
+        }
       }
 
+      var sheetTrigger = null;
+      var lastChip = null;
+      drawer.addEventListener('focusin', function (e) {
+        var t = e.target;
+        if (t && t.classList && t.classList.contains('sd-chip')) {
+          lastChip = { box: (t.parentElement && t.parentElement.id) || '', label: (t.textContent || '').trim() };
+        }
+      });
+      function sheetFirstFocus() {
+        var chips = sheet.querySelectorAll('#sdActive .af');
+        var el = chips.length ? chips[0] : sheet.querySelector('#sdRegionChips .sd-chip') || sheet.querySelector('.sd-chip');
+        if (el) { el.focus(); return; }
+        sdReset.focus();
+      }
       function openDrawer() {
+        sheetTrigger = document.activeElement;
         drawer.classList.add('on');
         document.body.style.overflow = 'hidden';
         loadCount();
         renderAll();
-        setTimeout(function () { try { sdReset.focus(); } catch (e) {} }, 60);
+        setTimeout(sheetFirstFocus, 80);
       }
       function closeDrawer() {
         drawer.classList.remove('on');
         sheet.style.transform = '';
         sheet.classList.remove('dragging');
         document.body.style.overflow = '';
+        if (sheetTrigger && sheetTrigger.focus) { try { sheetTrigger.focus(); } catch (e) {} }
       }
       [document.getElementById('ssOpen'), document.getElementById('heroSearchPill')].forEach(function (b) {
         if (b) b.addEventListener('click', openDrawer);
@@ -1570,13 +1604,41 @@
 
       document.addEventListener('keydown', function (e) {
         if (!drawer.classList.contains('on')) return;
-        if (e.key === 'Escape') return closeDrawer();
+        var cur = document.activeElement;
+        if (e.key === 'Escape') { e.preventDefault(); closeDrawer(); return; }
+        // 已選 chip：Delete / Backspace 移除
+        if (cur && cur.classList && cur.classList.contains('af') && (e.key === 'Delete' || e.key === 'Backspace')) {
+          e.preventDefault();
+          cur.click();
+          return;
+        }
+        // 方向鍵：←→ 同組移動、↑↓ 跳組
+        var box = cur && cur.closest ? cur.closest('.sd-chips, .sd-districts') : null;
+        if (box && ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].indexOf(e.key) >= 0) {
+          var chips = Array.prototype.slice.call(box.querySelectorAll('.sd-chip'));
+          var i = chips.indexOf(cur);
+          if (i >= 0) {
+            e.preventDefault();
+            if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+              var d = e.key === 'ArrowRight' ? 1 : -1;
+              chips[Math.min(chips.length - 1, Math.max(0, i + d))].focus();
+            } else if (e.key === 'Home') { chips[0].focus(); }
+            else if (e.key === 'End') { chips[chips.length - 1].focus(); }
+            else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+              var order = [areaChips, districtsBox, timeChips, kindChips].filter(function (n) { return n && n.querySelector('.sd-chip'); });
+              var gi = order.indexOf(box);
+              var ni = gi + (e.key === 'ArrowDown' ? 1 : -1);
+              if (order[ni]) { var nc = order[ni].querySelectorAll('.sd-chip'); if (nc.length) nc[0].focus(); }
+            }
+            return;
+          }
+        }
         if (e.key !== 'Tab') return;
         var f = sheet.querySelectorAll('button:not([disabled]), [href], input, select, textarea');
         if (!f.length) return;
         var first = f[0], last = f[f.length - 1];
-        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
-        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+        if (e.shiftKey && (cur === first || !sheet.contains(cur))) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && (cur === last || !sheet.contains(cur))) { e.preventDefault(); first.focus(); }
       });
 
       /* ---- Option B：桌面下拉篩選面板 ---- */
