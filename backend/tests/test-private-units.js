@@ -126,9 +126,30 @@ const cAfter = Number(db.prepare("SELECT credits FROM users WHERE id='stu2'").ge
 ok(cBefore - cAfter === 28, `扣 ${cBefore - cAfter} credits（應為 28，舊資料 3 都會升）`);
 
 // 建 slot 時寫入正確 credits_cost
-ok(/creditsForPrice\(price \/ 100\)/.test(slotSrc), "開私人 slot 時 credits_cost = 價錢 ÷ 10");
+ok(/priceCheck\.credits/.test(slotSrc), "開私人 slot 時 credits_cost 用定價帶算出（價錢 ÷ 10）");
 
-console.log("\n🧪 7. 前端文案一致");
+console.log("\n🧪 7. 定價帶：50–60 credits（HK$500–600），教練自己決定");
+const pp = require("../src/utils/private-pricing");
+const band = pp.priceBand(db);
+ok(band.minCredits === 50 && band.maxCredits === 60, `預設帶 = ${band.minCredits}–${band.maxCredits} credits`);
+ok(pp.validatePrivatePrice(db, 50000).ok, "HK$500（50 credits）→ 接受");
+ok(pp.validatePrivatePrice(db, 55000).ok, "HK$550（55 credits）→ 接受");
+ok(pp.validatePrivatePrice(db, 60000).ok, "HK$600（60 credits）→ 接受");
+ok(!pp.validatePrivatePrice(db, 49000).ok, "HK$490（49 credits）→ 拒絕");
+ok(!pp.validatePrivatePrice(db, 61000).ok, "HK$610（61 credits）→ 拒絕");
+ok(!pp.validatePrivatePrice(db, 28000).ok, "舊價 HK$280 → 拒絕");
+const okPrice = pp.validatePrivatePrice(db, 53000);
+ok(okPrice.ok && okPrice.credits === 53 && okPrice.price_cents === 53000, "教練自定 HK$530 → 53 credits");
+ok(/定價必須 HK\$500–600/.test(pp.validatePrivatePrice(db, 28000).error || ""), "錯誤訊息講明帶範圍");
+// 帶可由 platform_settings 調整
+db.exec("CREATE TABLE IF NOT EXISTS platform_settings (key TEXT PRIMARY KEY, value TEXT)");
+db.prepare("INSERT OR REPLACE INTO platform_settings (key,value) VALUES ('pricing.private_credits_min','55')").run();
+db.prepare("INSERT OR REPLACE INTO platform_settings (key,value) VALUES ('pricing.private_credits_max','70')").run();
+ok(pp.priceBand(db).minCredits === 55 && pp.priceBand(db).maxCredits === 70, "settings 可調帶（55–70）");
+ok(pp.validatePrivatePrice(db, 28000).ok === false, "調帶後 HK$280 仍拒絕");
+ok(pp.validatePrivatePrice(db, 65000).ok, "調帶後 HK$650（65 credits）→ 接受");
+
+console.log("\n🧪 8. 前端文案一致");
 const ex = fs.readFileSync(path.join(__dirname, "../../frontend-v2/explore.html"), "utf8");
 const cs = fs.readFileSync(path.join(__dirname, "../../frontend-v2/coach-schedule.html"), "utf8");
 ok(/一對一專屬（扣 3 堂）/.test(ex), "explore 切換鈕寫「扣 3 堂」");

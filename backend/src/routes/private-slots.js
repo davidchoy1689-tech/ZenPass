@@ -13,7 +13,7 @@ const passDeduction = require("../services/pass-deduction");
 const familyWallet = require("../services/family-wallet");
 const { audit } = require("../services/audit");
 const { resolvePrivateUnits } = require("../utils/private-units");
-const { creditsForPrice } = require("../utils/credits-cost");
+const { validatePrivatePrice } = require("../utils/private-pricing");
 
 const router = express.Router();
 
@@ -103,10 +103,10 @@ router.post("/coach/slots/batch-create", authenticateToken, (req, res) => {
     const date = String(b.date || "");
     const ranges = Array.isArray(b.time_ranges) ? b.time_ranges : [];
     if (!ranges.length || ranges.length > 20) return res.status(400).json({ success: false, error: "時段數量 1–20" });
-    const price = Number(b.price_cents || 28000);
-    if (!Number.isInteger(price) || price < 26000 || price > 32000) {
-      return res.status(400).json({ success: false, error: "私人時段定價必須 HK$260–320" });
-    }
+    // 💰 定價帶：50–60 credits（HK$500–600），由開班教練自己決定用邊個價
+    const priceCheck = validatePrivatePrice(db, b.price_cents || 55000);
+    if (!priceCheck.ok) return res.status(400).json({ success: false, error: priceCheck.error });
+    const price = priceCheck.price_cents;
     const maxAttendees = Number(b.max_attendees || 1);
     if (![1, 2].includes(maxAttendees)) return res.status(400).json({ success: false, error: "私人時段只支援 1 對 1 或 1 對 2" });
     // 🔒 扣堂數由伺服器規則決定（一對一 3 堂／一對二 2 堂／位），唔信前端
@@ -166,7 +166,7 @@ router.post("/coach/slots/batch-create", authenticateToken, (req, res) => {
            (id,coach_id,title,description,category,duration,max_participants,price_hkd,price_hkd_cents,credits_cost,
             venue_name,district,status,booking_open,is_private,created_at,updated_at)
          VALUES (?,?,?,?, 'private', ?,?,?,?,?, ?,?, 'active',1,1,datetime('now'),datetime('now'))`,
-      ).run(classId, req.user.id, title, "私人專屬時段", duration, maxAttendees, price / 100, price, creditsForPrice(price / 100), venueName, district || null);
+      ).run(classId, req.user.id, title, "私人專屬時段", duration, maxAttendees, price / 100, price, priceCheck.credits, venueName, district || null);
       db.prepare(
         `INSERT INTO class_schedules
            (id,class_id,coach_id,created_by_coach_id,start_time,end_time,max_participants,enrolled_count,status,booking_open,district,created_at)
@@ -187,7 +187,7 @@ router.post("/coach/slots/batch-create", authenticateToken, (req, res) => {
         entityType: "coach_availability_slots",
         entityId: created.map((x) => x.slot_id).join(","),
         userId: req.user.id,
-        newValues: { count: created.length, price_cents: price, units, venue: venueName },
+        newValues: { count: created.length, price_cents: price, credits: priceCheck.credits, units, venue: venueName },
         description: "批次開放私人專屬時段",
       });
     } catch (e) {}

@@ -62,7 +62,7 @@ const server = app.listen(0, async () => {
     district: "葵青",
     date: "2026-12-01",
     time_ranges: ranges,
-    price_cents: 28000,
+    price_cents: 55000,
     pass_units_required: 2,
     max_attendees: 1,
   });
@@ -73,12 +73,12 @@ const server = app.listen(0, async () => {
   const slot1 = made.body.created[0], slot2 = made.body.created[1];
   ok(db.prepare("SELECT status,class_id,schedule_id FROM coach_availability_slots WHERE id=?").get(slot1.slot_id).status === "available", "slot 狀態 available");
   const cls = db.prepare("SELECT c.is_private,c.price_hkd C, cs.max_participants FROM coach_availability_slots s JOIN classes c ON c.id=s.class_id JOIN class_schedules cs ON cs.id=s.schedule_id WHERE s.id=?").get(slot1.slot_id);
-  ok(cls.is_private === 1 && Number(cls.C) === 280 && cls.max_participants === 1, "私人 class 標記＋價格＋1 對 1");
+  ok(cls.is_private === 1 && Number(cls.C) === 550 && cls.max_participants === 1, "私人 class 標記＋價格 HK$550＋1 對 1");
 
   console.log("🧪 2. 公開私人時段");
   const pub = await get("/api/public/explore/private-slots?district=葵青&date=2026-12-01");
   ok(pub.status === 200 && pub.body.slots.length === 2, "公開列表 2 個時段");
-  ok(pub.body.slots[0].pass_units_required === 3 && pub.body.slots[0].price_cents === 28000, "回傳扣 3 堂／HK$280（一對一規則）");
+  ok(pub.body.slots[0].pass_units_required === 3 && pub.body.slots[0].price_cents === 55000, "回傳扣 3 堂／HK$550（一對一規則）");
   ok(!require("../src/routes/public-explore").listExplore(db, { audience: "office_worker", district: "葵青" }).classes.some((c) => c.class_id === cls.class_id), "私人班不混入團體探索");
 
   console.log("🧪 3. AC-2 兩堂原子扣減");
@@ -112,10 +112,10 @@ const server = app.listen(0, async () => {
   db.prepare("UPDATE bookings SET status='attended', payment_status='paid' WHERE id=?").run(reb.body.booking_id);
   syncCoachEarningsForSchedule(slot1 && db.prepare("SELECT schedule_id FROM coach_availability_slots WHERE id=?").get(slot1.slot_id).schedule_id);
   const earn = db.prepare("SELECT net_amount,gross_amount FROM coach_earnings WHERE schedule_id=?").get(db.prepare("SELECT schedule_id FROM coach_availability_slots WHERE id=?").get(slot1.slot_id).schedule_id);
-  ok(earn && Number(earn.gross_amount) === 280 && Number(earn.net_amount) === 224, "80% 帶班 = HK$224", earn);
+  ok(earn && Number(earn.gross_amount) === 550 && Number(earn.net_amount) === 440, "80% 帶班 = HK$440", earn);
   coachAffiliate.settleSchedule(db.prepare("SELECT schedule_id FROM coach_availability_slots WHERE id=?").get(slot1.slot_id).schedule_id);
   const uplift = db.prepare("SELECT SUM(uplift_cents) c FROM coach_own_student_uplifts WHERE booking_id=?").get(reb.body.booking_id);
-  ok(Number(uplift.c) === 5600, "自有學生 20% 補足 = HK$56", uplift);
+  ok(Number(uplift.c) === 11000, "自有學生 20% 補足 = HK$110", uplift);
 
   console.log("🧪 7. 前端接線");
   const fs = require("fs");
