@@ -2,6 +2,18 @@
    ZenPass v2 — Design System (mobile-first)
    Tokens + components. No framework. Relative-asset friendly.
    ============================================================= */
+/* 自架可變字體子集：Noto Sans TC 100–900，只含靜態文案用字（~498KB，cache 1 年）
+   缺字（學員姓名冷僻字等）由後面的系統字體逐字 fallback，不會出豆腐。
+   重建：python3 scripts/build-font-subset.py */
+@font-face {
+  font-family: "ZenPass Noto";
+  src: url("fonts/NotoSansTC-subset-v1.woff2") format("woff2-variations"),
+    url("fonts/NotoSansTC-subset-v1.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   /* Brand */
   --brand-500: #ff6b35;
@@ -40,7 +52,7 @@
 
   /* Type — 系統字優先，零字體下載（HK 用戶最快）
      有 Noto Sans TC 就用（自架／已裝），否則 Apple→PingFang TC/HK、Windows→Microsoft JhengHei、Android→Noto */
-  --font: "Noto Sans TC", "PingFang TC", "PingFang HK", "Hiragino Sans TC",
+  --font: "ZenPass Noto", "Noto Sans TC", "PingFang TC", "PingFang HK", "Hiragino Sans TC",
     "Microsoft JhengHei", "Microsoft YaHei", "Helvetica Neue", Arial,
     -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-num: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;

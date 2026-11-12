@@ -3,13 +3,14 @@
  * 靜態資源：cache-first
  * /api/：永不快取（確保資料即時）
  */
-const CACHE = "zenpass-v2-shell-v4";
+const CACHE = "zenpass-v2-shell-v5";
 const ASSETS = [
   "/",
   "/index.html",
   "/explore.html",
   "/offline.html",
   "/assets/v2.css",
+  "/assets/fonts/NotoSansTC-subset-v1.woff2",
   "/assets/api.js",
   "/assets/holidays.js",
   "/assets/sport-icons.js",
