@@ -84,6 +84,16 @@
 
     /* ---- 課程卡格 ---- */
     .ex-grid { display: grid; grid-template-columns: 1fr; gap: 14px; }
+    /* 平板：先放寬到 720，避免 768px 機仍然一條 480 直欄 */
+    @media (min-width: 768px) and (max-width: 1023px) {
+      body.zp-wide .wrap, body.zp-wide .topbar, body.zp-wide .bottomnav { max-width: 720px; }
+    }
+    /* 桌面寬屏（≥1024px）：把 480px 直欄放寬，三欄卡片 */
+    @media (min-width: 1024px) {
+      body.zp-wide .wrap { max-width: 1120px; }
+      body.zp-wide .topbar, body.zp-wide .bottomnav { max-width: 1120px; }
+      body.zp-wide .ex-grid { grid-template-columns: repeat(3, 1fr); gap: 18px; }
+    }
     @media (min-width: 700px) { .ex-grid { grid-template-columns: 1fr 1fr; gap: 16px; } }
 
     .ex-card {
@@ -243,7 +253,7 @@
 <link rel="preload" href="assets/fonts/NotoSansTC-subset-v3.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
 </head>
-<body>
+<body class="zp-wide">
   <a class="skip-link" href="#main">跳至主要內容</a>
   <div class="topbar" id="exTopbar"><div class="title">探索課程</div></div>
 
