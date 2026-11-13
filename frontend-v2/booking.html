@@ -655,6 +655,7 @@
 
   <script src="assets/holidays.js"></script>
   <script src="assets/api.js?v=14"></script>
+  <script src="assets/pricing.js?v=1"></script>
   <script>
     const $ = (x) => document.getElementById(x);
     const utmFields = () => {
@@ -749,17 +750,23 @@
     let payTotalValue = 0;
     let PLAN_TIER = "single";
     const planBase = () => Number(cls && cls.price_hkd) || 0;
-    // 4 堂家庭通行卡官方定價（同 pass.html 一致：HK$520 / 平均 $130）
-    const PASS4_PRICE = 520;
-    const planPassPrice = () => PASS4_PRICE;
-    const planPassSave = () => Math.max(0, planBase() * 4 - PASS4_PRICE);
+    // 4 堂通行卡價格由 /api/passes/plans 提供（admin 可改），fallback 520
+    const planModel = () => (window.ZenPassPricing
+      ? window.ZenPassPricing.evaluate(planBase(), currentQty())
+      : { pass4TotalHkd: 520, saving4Hkd: Math.max(0, planBase() * 4 - 520), worthIt4: planBase() * 4 > 520, pass4AvgHkd: 130 });
+    const planPassPrice = () => planModel().pass4TotalHkd;
+    const planPassSave = () => planModel().saving4Hkd;
     function refreshPlanUI() {
       if ($("planSingle")) $("planSingle").textContent = "HK$" + planBase();
       if ($("planPass")) $("planPass").textContent = "HK$" + planPassPrice();
       const pe = $("planExplainerPass");
       if (pe) pe.textContent = "HK$" + planPassPrice() + "（平均 $" + Math.round(planPassPrice() / 4) + "／堂，60 日有效，可與家人共用）";
       const sv = $("planPassSave");
-      if (sv) sv.textContent = planPassSave() > 0 ? "慳 HK$" + planPassSave() : "4 堂家庭價";
+      if (sv) {
+        const m = planModel();
+        if (m.worthIt4 && m.saving4Hkd > 0) { sv.hidden = false; sv.textContent = "慳 HK$" + m.saving4Hkd; }
+        else { sv.hidden = true; }
+      }
       const pu = $("planPassUnit");
       if (pu) pu.textContent = "平均 $" + Math.round(planPassPrice() / 4) + "/堂 · 60 日有效 · 24h 改期";
     }
@@ -801,6 +808,7 @@
       const btn = $("payNow");
       if (btn && !btn.disabled) btn.textContent = payBtnLabel();
       refreshPlanUI();
+      if (window.ZenPassPricing) window.ZenPassPricing.load().then(() => refreshPlanUI());
     }
     const visible = () => sessions.filter(s => ban === "all" || banOf(s) === ban);
 
