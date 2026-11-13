@@ -62,6 +62,22 @@
       body.zp-wide .wrap, body.zp-wide .topbar, body.zp-wide .bottomnav,
       body.zp-wide .hero-top { max-width: 1200px; }
     }
+
+    /* 開通 5 步 */
+    .ob-card{background:#fff;border:1.5px solid #BBF7D0;border-radius:16px;padding:13px;margin:2px 0 12px}
+    .ob-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;font-size:13.5px}
+    .ob-head b{display:block}
+    .ob-pct{font-size:20px;font-weight:900;color:#047857}
+    .ob-bar{height:7px;border-radius:99px;background:#ECFDF5;overflow:hidden;margin:9px 0 10px}
+    .ob-bar i{display:block;height:100%;background:linear-gradient(90deg,#34D399,#059669);border-radius:99px}
+    .ob-grid{display:grid;grid-template-columns:1fr;gap:7px}
+    @media (min-width:700px){.ob-grid{grid-template-columns:repeat(5,1fr)}}
+    .ob-step{border:1px solid #E2E8F0;border-radius:12px;padding:8px 9px;font-size:11.5px;background:#F8FAFC}
+    .ob-step.on{background:#F0FDF4;border-color:#BBF7D0}
+    .ob-step.todo{background:#FFFBEB;border-color:#FDE68A}
+    .ob-k{font-weight:800;color:#0F172A;line-height:1.35}
+    .ob-h{color:#64748B;margin-top:2px;line-height:1.4}
+    .ob-go{display:inline-block;margin-top:5px;font-weight:800;color:#047857;text-decoration:none}
 </style>
 </head>
 <body class="zp-wide">
@@ -70,6 +86,7 @@
     <div id="guard"></div>
     <div id="app" hidden>
       <div class="hero" id="hero"></div>
+      <div id="onboardingWizard"></div>
       <div class="metrics" id="metrics"></div>
       <div class="muted" id="updatedAt" style="font-size:11.5px;text-align:right;margin:-4px 2px 8px;color:var(--text-muted)">—</div>
       <div style="display:flex;gap:10px;margin-bottom:12px">
@@ -359,6 +376,7 @@
       ensureCoachAgreement();
       if (window.zpRequirePartnerAgreement) zpRequirePartnerAgreement(() => location.reload());
       await loadStats();
+      loadOnboarding();
       await loadList();
       loadCal();
       // 🔄 即時數據：每 20 秒靜默更新（有抽屜開住就暫停，免得打斷操作）
@@ -1236,6 +1254,34 @@ ${stamp}
         if (rr.ok) { toast("✅ 已備案（管理員已收到通知）"); closeSheet(); }
         else { btn.disabled = false; btn.textContent = "📌 提交備案"; alert((rr.data && rr.data.error) || "提交失敗"); }
       };
+    }
+
+    /* ===== 新教練開通 5 步檢核（Phase 6.6 C） ===== */
+    async function loadOnboarding() {
+      const box = $("onboardingWizard");
+      if (!box) return;
+      try {
+        const r = await api.get("/coach/lifecycle/onboarding-status");
+        if (!r.ok || !r.data || !r.data.ok) return;
+        const d = r.data;
+        if (d.completed === d.total) { box.innerHTML = ""; return; }
+        const chips = d.steps.map((st) => `
+          <div class="ob-step ${st.done ? "on" : "todo"}">
+            <div class="ob-k">${st.done ? "✓" : "⏳"} ${esc(st.key)} ${esc(st.label)}</div>
+            <div class="ob-h">${esc(st.hint || "")}</div>
+            ${!st.done && st.cta ? `<a class="ob-go" href="${esc(st.cta.href)}">${esc(st.cta.text)} →</a>` : ""}
+          </div>`).join("");
+        box.innerHTML = `
+          <div class="ob-card">
+            <div class="ob-head">
+              <div><b>🚀 開通進度 ${d.completed}/${d.total}</b>
+                <span class="muted" style="font-size:11.5px">完成後就可以正式開班收生</span></div>
+              <div class="ob-pct">${d.percent}%</div>
+            </div>
+            <div class="ob-bar"><i style="width:${d.percent}%"></i></div>
+            <div class="ob-grid">${chips}</div>
+          </div>`;
+      } catch (e) {}
     }
 
     /* ===== 🏁 真實數據結算 ===== */

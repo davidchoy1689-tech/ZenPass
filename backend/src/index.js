@@ -316,6 +316,7 @@ app.use("/api", require("./routes/handbook-p1"));
 app.use("/api", require("./routes/coach-announcements"));
 // Phase 6.3：示範名單要公開，必須掛喺其他 /api/coach 之前（佢哋全部都 require 登入）
 app.use("/api/coach/ops", require("./routes/coach-ops")); // Phase 6.3 教練作業閉環
+app.use("/api/coach/lifecycle", require("./routes/coach-lifecycle")); // Phase 6.6 開通檢核
 app.use("/api/coach", require("./routes/coach-portal"));
 app.use("/api/coach", require("./routes/coach-roster"));
 app.use("/api/coach", require("./routes/coach-schedule"));
