@@ -12,6 +12,7 @@
  *   EXPIRY_10D        — 10 日內到期但仍有餘堂
  */
 const path = require("path");
+require("dotenv").config({ path: path.join(__dirname, "..", ".env") });
 const { getDb } = require(path.join(__dirname, "..", "src", "services", "database"));
 const { buildNudges } = require(path.join(__dirname, "..", "src", "routes", "breakage-analytics"));
 
