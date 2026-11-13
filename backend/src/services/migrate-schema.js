@@ -112,6 +112,32 @@ function runMigrations() {
     );
   `);
 
+  // Phase 6.3：教練作業閉環（狀態機、自租場地指引、對賬爭議）
+  // 注意：class_schedules 已有 min_threshold / quorum_status（成團），唔重複加 min_participants
+  addColumnIfMissing(db, "class_schedules", "session_state", "TEXT DEFAULT 'scheduled'");
+  addColumnIfMissing(db, "class_schedules", "custom_venue_address", "TEXT");
+  addColumnIfMissing(db, "class_schedules", "custom_transit_guide", "TEXT");
+  addColumnIfMissing(db, "class_schedules", "started_at", "TEXT");
+  addColumnIfMissing(db, "class_schedules", "reconciled_at", "TEXT");
+  try {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS coach_reconciliation_disputes (
+        id TEXT PRIMARY KEY,
+        schedule_id TEXT NOT NULL,
+        booking_id TEXT NOT NULL,
+        coach_id TEXT NOT NULL,
+        reason TEXT NOT NULL,
+        status TEXT DEFAULT 'open',
+        reviewer_id TEXT,
+        reviewed_at TEXT,
+        created_at TEXT DEFAULT (datetime('now'))
+      );
+      CREATE INDEX IF NOT EXISTS idx_disputes_status ON coach_reconciliation_disputes(status, created_at);
+    `);
+  } catch (e) {
+    console.warn("[migrate] coach_reconciliation_disputes skipped:", e.message);
+  }
+
   // Phase 6.1：定價曝光／轉換遙測（只讀分析用，不影響任何交易表）
   try {
     db.exec(`

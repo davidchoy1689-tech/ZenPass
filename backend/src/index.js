@@ -394,6 +394,7 @@ app.use("/api/admin", require("./routes/admin-emergency"));
 app.use("/api/family", require("./routes/family"));
 app.use("/api/analytics", require("./routes/pricing-analytics")); // Phase 6.1 定價遙測
 app.use("/api/analytics", require("./routes/breakage-analytics")); // Phase 6.2 breakage（唯讀）
+app.use("/api/coach/ops", require("./routes/coach-ops")); // Phase 6.3 教練作業閉環
 
 // 🚨 極端天氣監察：每 10 分鐘讀天文台，狀態轉變即通知管理員（唔會自動取消課堂）
 try {
