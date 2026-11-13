@@ -519,7 +519,18 @@
       <div class="card" id="paySummary"></div>
       <div class="spacer"></div>
       <div class="card" id="planCard"><div class="body">
-        <b style="font-size:13.5px">選擇方案</b>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+          <b style="font-size:13.5px">選擇方案</b>
+          <details style="font-size:11.5px;color:#047857;font-weight:700">
+            <summary style="cursor:pointer;list-style:none">點數 / 套票點計？ ▾</summary>
+            <div style="margin-top:6px;padding:9px 10px;background:#F0FDF4;border-radius:10px;color:#334155;font-weight:500;line-height:1.6">
+              • <b>1 credit = HK$10</b>：扣堂價 ÷ 10 就係堂數<br>
+              • <b>4 堂通行卡</b>：<span id="planExplainerPass">HK$—</span><br>
+              • <b>單堂</b>：即時付款、即時鎖位，毋須預購<br>
+              • FPS／PayMe 需人手核實（約 10–15 分鐘），信用卡即時確認
+            </div>
+          </details>
+        </div>
         <label style="display:flex;align-items:center;gap:9px;border:1.5px solid #CBD5E1;border-radius:12px;padding:10px;margin-top:9px;cursor:pointer">
           <input type="radio" name="checkout_tier" value="single" checked />
           <span style="flex:1"><b style="font-size:13px">單堂體驗價</b><br><small style="color:#64748B">零負擔試玩一堂</small></span>
@@ -742,6 +753,8 @@
     function refreshPlanUI() {
       if ($("planSingle")) $("planSingle").textContent = "HK$" + planBase();
       if ($("planPass")) $("planPass").textContent = "HK$" + planPassPrice();
+      const pe = $("planExplainerPass");
+      if (pe) pe.textContent = "HK$" + planPassPrice() + "（平均 $" + Math.round(planPassPrice() / 4) + "／堂，60 日有效，可與家人共用）";
     }
     let payIds = [], payRefs = [], payUnit = 0, payMethod = "fps", cdTimer = null, receiptUrl = "";
     let activePass = null, passBusy = false;
