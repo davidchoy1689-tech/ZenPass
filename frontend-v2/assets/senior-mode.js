@@ -52,6 +52,12 @@
     apply(isOn());
   }
 
+  // 俾其他頁面（例如「我的」設定）呼叫
+  window.ZenPassSenior = {
+    toggle: toggle,
+    isOn: function () { return document.documentElement.classList.contains("zp-senior"); },
+  };
+
   // 先套 class（避免閃一下正常字體），按鈕等 DOM ready
   try { if (isOn()) document.documentElement.classList.add("zp-senior"); } catch (e) {}
   if (document.readyState === "loading") {

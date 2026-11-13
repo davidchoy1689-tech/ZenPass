@@ -68,6 +68,7 @@
       <a href="consultations.html"><span>🧑‍⚕️ 健康諮詢／身體評估</span><span class="muted">›</span></a>
       <a href="badges.html"><span>🏅 成就徽章</span><span class="muted">›</span></a>
       <a href="notifications.html"><span>🔔 通知</span><span class="muted">›</span></a>
+      <a href="javascript:void(0)" onclick="window.ZenPassSenior ? ZenPassSenior.toggle() : alert('請重新載入頁面')"><span id="srRowLabel">👵 長者模式（放大字體）</span><span class="muted" id="srRowState">切換 ›</span></a>
       <a href="referral.html"><span>🤝 推薦朋友（各得 HK$50）</span><span class="muted">›</span></a>
       <a href="coach-apply.html" id="coachApplyLink"><span>🧑‍🏫 成為教練</span><span class="muted">›</span></a>
       <a href="venue-rentals.html"><span>🏟️ 租用場地</span><span class="muted">›</span></a>
@@ -186,5 +187,19 @@
   </script>
   <script src="assets/footer.js?v=6" defer></script>
   <script src="assets/senior-mode.js?v=1" defer></script>
+  <script>
+    (function(){
+      function sync(){
+        var on = document.documentElement.classList.contains('zp-senior');
+        var st = document.getElementById('srRowState');
+        var lb = document.getElementById('srRowLabel');
+        if (st) st.textContent = on ? '已開啟 ✓' : '切換 ›';
+        if (lb) lb.textContent = on ? '🙋 正常模式（還原字體）' : '👵 長者模式（放大字體）';
+      }
+      document.addEventListener('click', function(){ setTimeout(sync, 50); });
+      sync();
+      setInterval(sync, 1200);
+    })();
+  </script>
 </body>
 </html>
