@@ -77,6 +77,23 @@
 
       <div class="card" style="margin-top:12px">
         <div class="body">
+          <b style="font-size:13.5px">通票 Breakage / 沒收（分開計）</b>
+          <div class="kpis" style="grid-template-columns:1fr 1fr;margin-top:10px">
+            <div class="kpi"><div class="v" id="bRate">—</div><div class="l">到期未用率 (Breakage)</div></div>
+            <div class="kpi"><div class="v" id="bMoney">—</div><div class="l">Breakage 金額</div></div>
+            <div class="kpi"><div class="v" id="fRate">—</div><div class="l">沒收率 (Forfeiture)</div></div>
+            <div class="kpi"><div class="v" id="curve">—</div><div class="l">60 日內核銷進度</div></div>
+          </div>
+          <div id="nudgeBox" style="margin-top:10px;font-size:12.5px"></div>
+          <div class="note">
+            Breakage＝到期未用（60/90 日）；Forfeiture＝no-show／未夠 24h 取消被沒收。兩者財務意義唔同，唔會合併。
+            提醒名單只產生 wa.me 連結，系統唔會自動發送。
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:12px">
+        <div class="body">
           <b style="font-size:13.5px">真實售出對照（pass_purchase_orders）</b>
           <div id="orders" style="margin-top:6px;font-size:13px"></div>
           <div class="note">
@@ -153,6 +170,45 @@
         load();
       };
     });
+    async function loadBreakage() {
+      try {
+        const r = await api.get("/analytics/breakage-summary");
+        if (!r.ok) return;
+        const d = r.data || {};
+        const t = d.totals || {};
+        $("bRate").textContent = (t.breakage_rate_pct || 0) + "%";
+        $("bMoney").textContent = "HK$" + Number(t.breakage_revenue_hkd || 0).toLocaleString();
+        $("fRate").textContent = (t.forfeiture_rate_pct || 0) + "%";
+        $("curve").textContent = ((d.utilization_curve_pct && d.utilization_curve_pct.day_60) || 0) + "%";
+      } catch (e) {}
+    }
+
+    async function loadNudges() {
+      const box = $("nudgeBox");
+      try {
+        const r = await api.get("/analytics/breakage-nudges");
+        if (!r.ok) { box.textContent = "提醒名單載入失敗"; return; }
+        const d = r.data || {};
+        const rows = [...(d.day7 || []), ...(d.expiry10 || [])];
+        if (!rows.length) { box.innerHTML = '<span class="muted">暫時冇需要提醒嘅通票</span>'; return; }
+        const list = rows.map((x) => `
+          <div style="display:flex;gap:8px;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);padding:7px 0">
+            <div>
+              <b>${x.student_name || x.user_name || "—"}</b>
+              <span class="muted" style="font-size:11.5px"> · ${x.tag === "DAY_7_FIRST_CLASS" ? "Day-7 未開課" : "10 日內到期"} · 餘 ${x.remaining_credits} 堂</span>
+            </div>
+            ${x.wa ? `<a href="${x.wa}" target="_blank" rel="noopener" style="font-weight:800;color:#047857">WhatsApp ›</a>` : '<span class="muted" style="font-size:11.5px">電話無效</span>'}
+          </div>`).join("");
+        box.innerHTML = `<div style="margin-bottom:6px"><b>${rows.length}</b> 位待提醒
+          <button id="copyNudge" style="margin-left:8px;border:1px solid var(--border);background:var(--surface);border-radius:999px;padding:4px 10px;font:inherit;font-size:11.5px;font-weight:700">複製全部電話</button></div>` + list;
+        $("copyNudge").onclick = async () => {
+          const txt = rows.map((x) => x.phone).filter(Boolean).join(", ");
+          try { await navigator.clipboard.writeText(txt); $("copyNudge").textContent = "已複製 ✓"; }
+          catch (e) { $("copyNudge").textContent = "複製失敗"; }
+        };
+      } catch (e) { box.textContent = "提醒名單載入失敗"; }
+    }
+
     document.querySelectorAll("[data-days]").forEach((b) => {
       b.style.border = "1px solid var(--border)";
       b.style.background = "var(--surface)";
@@ -163,6 +219,8 @@
       b.style.fontSize = "13px";
     });
     load();
+    loadBreakage();
+    loadNudges();
   </script>
 </body>
 </html>
