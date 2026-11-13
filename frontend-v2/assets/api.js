@@ -113,31 +113,35 @@
     return out;
   };
   // 短格式（週X M/D HH:MM–HH:MM），有 end 就自動顯示完堂時間
+  const _zpWD = ["日","一","二","三","四","五","六"];
+  const _zpParts = (d) => {
+    const o = {};
+    for (const x of new Intl.DateTimeFormat("en-GB", {
+      timeZone: "Asia/Hong_Kong", year: "numeric", month: "2-digit", day: "2-digit",
+      hour: "2-digit", minute: "2-digit", hour12: false, weekday: "short",
+    }).formatToParts(d)) o[x.type] = x.value;
+    return o;
+  };
   window.fmtTime = (s, e) => {
     if (!s) return "";
-    const d = new Date(String(s).replace(" ", "T"));
-    if (isNaN(d)) return s;
-    const wd = ["日","一","二","三","四","五","六"][d.getDay()];
-    const p = (n) => String(n).padStart(2, "0");
-    let out = `週${wd} ${d.getMonth() + 1}/${d.getDate()} ${p(d.getHours())}:${p(d.getMinutes())}`;
-    if (e) {
-      const d2 = new Date(String(e).replace(" ", "T"));
-      if (!isNaN(d2)) out += `–${p(d2.getHours())}:${p(d2.getMinutes())}`;
-    }
+    const d = window.zpParseTime(s);          // 一律 UTC → HKT，唔再受時區偏移影響
+    if (!d) return String(s);
+    const a = _zpParts(d);
+    let out = `週${a.weekday === "Sun" ? "日" : _zpWD[new Date(d.getTime() + 8 * 3600e3).getUTCDay()]} ${Number(a.month)}/${Number(a.day)} ${a.hour}:${a.minute}`;
+    const d2 = e ? window.zpParseTime(e) : null;
+    if (d2) { const b = _zpParts(d2); out += `–${b.hour}:${b.minute}`; }
     return out;
   };
   // 完整日期（年月日）+ 時間，例：2026年10月20日（週二）19:00–20:00
   window.fmtDateTime = (s, e) => {
     if (!s) return "";
-    const d = new Date(String(s).replace(" ", "T"));
-    if (isNaN(d)) return s;
-    const wd = ["日","一","二","三","四","五","六"][d.getDay()];
-    const p = (n) => String(n).padStart(2, "0");
-    let out = `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日（週${wd}） ${p(d.getHours())}:${p(d.getMinutes())}`;
-    if (e) {
-      const d2 = new Date(String(e).replace(" ", "T"));
-      if (!isNaN(d2)) out += `–${p(d2.getHours())}:${p(d2.getMinutes())}`;
-    }
+    const d = window.zpParseTime(s);          // 同樣一律 UTC → HKT
+    if (!d) return String(s);
+    const a = _zpParts(d);
+    const wd = _zpWD[new Date(d.getTime() + 8 * 3600e3).getUTCDay()];
+    let out = `${a.year}年${Number(a.month)}月${Number(a.day)}日（週${wd}） ${a.hour}:${a.minute}`;
+    const d2 = e ? window.zpParseTime(e) : null;
+    if (d2) { const b = _zpParts(d2); out += `–${b.hour}:${b.minute}`; }
     return out;
   };
 })();
