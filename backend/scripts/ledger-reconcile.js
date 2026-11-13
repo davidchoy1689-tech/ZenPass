@@ -23,13 +23,31 @@ function main() {
   const db = getDb();
 
   // 1) 找出應有 ledger 但未入帳嘅 booking（已付款 / 已出席，amount>0）
+  //    排除生產測試單（schedule_id / 班名含 PROD-TEST）：
+  //    測試付款唔係真收入，入帳會令收入同出席率報表失真。
   const paidBookings = db
     .prepare(
-      `SELECT id, user_id, amount, payment_type, status, payment_status, platform_commission_rate
-       FROM bookings
-       WHERE status IN ('confirmed','attended','no_show') AND amount > 0`,
+      `SELECT b.id, b.user_id, b.amount, b.payment_type, b.status, b.payment_status,
+              b.platform_commission_rate
+       FROM bookings b
+       LEFT JOIN class_schedules cs ON cs.id = b.schedule_id
+       LEFT JOIN classes cl ON cl.id = cs.class_id
+       WHERE b.status IN ('confirmed','attended','no_show') AND b.amount > 0
+         AND COALESCE(b.schedule_id,'') NOT LIKE 'prodtest%'
+         AND COALESCE(cl.title,'') NOT LIKE '[PROD-TEST]%'`,
     )
     .all();
+
+  const testSkipped = db
+    .prepare(
+      `SELECT COUNT(*) c
+       FROM bookings b
+       LEFT JOIN class_schedules cs ON cs.id = b.schedule_id
+       LEFT JOIN classes cl ON cl.id = cs.class_id
+       WHERE b.status IN ('confirmed','attended','no_show') AND b.amount > 0
+         AND (b.schedule_id LIKE 'prodtest%' OR COALESCE(cl.title,'') LIKE '[PROD-TEST]%')`,
+    )
+    .get().c;
 
   const missing = [];
   for (const b of paidBookings) {
@@ -132,6 +150,7 @@ function main() {
   console.log("========================================");
   console.log(`已付款 booking 數：${paidBookings.length}`);
   console.log(`未入帳 booking 數：${missing.length}${BACKFILL ? `（已補帳 ${backfilled}）` : "（用 --backfill 補帳）"}`);
+  if (testSkipped) console.log(`已排除生產測試單：${testSkipped} 筆（PROD-TEST，不計收入）`);
   if (missing.length && !BACKFILL) {
     console.log("  未入帳例子：");
     missing.slice(0, 10).forEach((b) => console.log(`   - ${b.id}  $${b.amount}  ${b.status}/${b.payment_status}`));
