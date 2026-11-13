@@ -73,29 +73,55 @@
     padding:10px var(--dt-pad,16px); margin:0 calc(var(--dt-pad,16px) * -1);
   }
   .brand-block{display:flex;flex-direction:column;line-height:1.15;min-width:0}
-  /* 桌面 Hero 雙欄（≥1024）：左文案＋搜尋，右實景圖（用本地 CC 授權封面） */
+  /* 桌面 Hero 雙欄（≥1024）：左文案＋搜尋，右「下一個開班」卡 */
+  body.home .hero-next { display: none; }
   @media (min-width: 1024px) {
     body.home .hero {
       display: grid;
-      grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr);
-      column-gap: 40px;
+      grid-template-columns: minmax(0, 1.04fr) minmax(0, .96fr);
+      column-gap: 44px;
       align-items: start;
-      padding-bottom: 40px;
+      padding-bottom: 44px;
     }
     body.home .hero > .brand-topbar,
     body.home .hero > .hero-top { grid-column: 1 / -1; }
-    body.home .hero > *:not(.hero-top):not(.brand-topbar) { grid-column: 1; }
-    body.home .hero::after {
-      content: "";
+    body.home .hero > *:not(.hero-top):not(.brand-topbar):not(.hero-next) { grid-column: 1; }
+    body.home .hero-next {
+      display: block;
       grid-column: 2;
-      grid-row: 3 / span 10;
-      align-self: stretch;
-      min-height: 420px;
+      grid-row: 2 / -1;
+      align-self: start;
+      margin-top: 4px;
+      background: linear-gradient(180deg, #FFFFFF 0%, #F7FEFB 100%);
+      border: 1px solid rgba(5,150,105,.18);
       border-radius: 24px;
-      background:
-        linear-gradient(to top, rgba(15,23,42,.55), rgba(15,23,42,.08) 55%, transparent 100%),
-        url("assets/img/covers/emerging-sports.jpg") center/cover no-repeat;
-      box-shadow: 0 18px 44px -12px rgba(15,23,42,.28);
+      padding: 12px;
+      box-shadow: 0 20px 48px -18px rgba(15,23,42,.28);
+    }
+    body.home .hero-next .hn-media {
+      position: relative; border-radius: 16px; overflow: hidden;
+      aspect-ratio: 16 / 10;
+      background: linear-gradient(135deg, #0B3B2E 0%, #059669 100%);
+    }
+    body.home .hero-next .hn-media img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+    body.home .hero-next .hn-tag {
+      position: absolute; left: 10px; top: 10px; z-index: 2;
+      font-size: 11px; font-weight: 800; color: #fff;
+      background: rgba(15,23,42,.55); backdrop-filter: blur(6px);
+      border-radius: 999px; padding: 3px 9px;
+    }
+    body.home .hero-next .hn-body { padding: 12px 6px 4px; }
+    body.home .hero-next .hn-k { font-size: 11.5px; font-weight: 800; color: #047857; letter-spacing: .02em; }
+    body.home .hero-next .hn-t { font-size: 16px; font-weight: 900; color: #0F172A; line-height: 1.35; margin-top: 3px; }
+    body.home .hero-next .hn-m { font-size: 12.5px; color: #475569; margin-top: 6px; line-height: 1.6; }
+    body.home .hero-next .hn-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 10px; }
+    body.home .hero-next .hn-price { font-size: 17px; font-weight: 900; color: #0F172A; }
+    body.home .hero-next .hn-price small { font-size: 11px; font-weight: 700; color: #64748B; }
+    body.home .hero-next .hn-go {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: #059669; color: #fff; font-size: 13px; font-weight: 800;
+      border-radius: 999px; padding: 9px 16px; text-decoration: none;
+      box-shadow: 0 8px 20px rgba(5,150,105,.28);
     }
   }
   .brand-lockup{display:flex;align-items:center;gap:8px;text-decoration:none;color:#0F172A}
@@ -577,6 +603,7 @@
           <a class="hero-btn header-primary" id="userChip" href="my.html" hidden> <span id="heroName">我的</span></a>
         </div>
       </div>
+      <div class="hero-next" id="heroNext" hidden></div>
       <div class="hero-brand-pill"><span class="pill-dot"></span>香港首個新興運動 × 樂齡強肌預約平台</div>
       <h1>全港<span class="hl">新興運動</span>與<span class="hl">樂齡強肌</span>體驗平台</h1>
       <p class="hero-sub">芬蘭木柱・地板冰壺・深層伸展。免下載 App，免綁約，單堂起報。</p>
@@ -2049,6 +2076,50 @@
       renderAll();
     })();
   </script>
-  <script src="assets/senior-mode.js?v=2" defer></script>
+  <script src="assets/senior-mode.js?v=2" defer>
+  <script>
+  /* Hero 右側「下一個開班」卡：用公開 API 真數據，冇資料就自動隱藏 */
+  (function () {
+    var box = document.getElementById("heroNext");
+    if (!box) return;
+    function esc(v){return String(v==null?"":v).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
+    function fmt(s){
+      try {
+        var d = new Date(/Z|[+-]\d\d:?\d\d$/.test(s) ? s : String(s).replace(" ","T")+"Z");
+        var p = new Intl.DateTimeFormat("en-GB",{timeZone:"Asia/Hong_Kong",month:"2-digit",day:"2-digit",weekday:"short",hour:"2-digit",minute:"2-digit",hour12:false}).formatToParts(d);
+        var o={};p.forEach(function(x){o[x.type]=x.value;});
+        var wd={Mon:"一",Tue:"二",Wed:"三",Thu:"四",Fri:"五",Sat:"六",Sun:"日"}[o.weekday]||"";
+        return { d: Number(o.month)+"/"+Number(o.day)+"（週"+wd+"）", t: o.hour+":"+o.minute };
+      } catch(e){ return null; }
+    }
+    fetch("/api/public/explore/classes?limit=6", {credentials:"omit"})
+      .then(function(r){return r.json();})
+      .then(function(j){
+        var list = (j && j.classes) || [];
+        if (!list.length) return;
+        var c = list[0];
+        var f = fmt(c.start_time);
+        var img = c.image_url || "assets/img/covers/" + (c.sport_slug || "generic") + ".jpg";
+        var price = c.price_cents ? Math.round(c.price_cents/100) : null;
+        box.innerHTML = ''
+          + '<div class="hn-media">'
+          +   '<span class="hn-tag">⏱ 下一個開班</span>'
+          +   '<img src="'+esc(img)+'" alt="" loading="lazy" onerror="this.style.display=\'none\'">'
+          + '</div>'
+          + '<div class="hn-body">'
+          +   '<div class="hn-k">'+(c.coach_name?esc(c.coach_name)+" 教練 · ":"")+esc(c.district||"全港")+'</div>'
+          +   '<div class="hn-t">'+esc(c.course_title)+'</div>'
+          +   '<div class="hn-m">🗓 '+(f?f.d+" "+f.t:"時間待定")+'<br>📍 '+esc(c.venue_name||"地點待定")+' · 剩 '+Number(c.remaining_seats||0)+' 位</div>'
+          +   '<div class="hn-foot">'
+          +     '<div class="hn-price">'+(price?("HK$"+price):"—")+' <small>/ 單堂</small></div>'
+          +     '<a class="hn-go" href="booking.html?id='+encodeURIComponent(c.class_id||"")+'&sid='+encodeURIComponent(c.schedule_id||"")+'">立即報名 →</a>'
+          +   '</div>'
+          + '</div>';
+        box.hidden = false;
+      })
+      .catch(function(){});
+  })();
+  </script>
+</script>
 </body>
 </html>
