@@ -36,11 +36,22 @@ EXTRA = (
     # 常見名字用字（教練／學員姓名，DB 動態內容最容易漏）
     "振輝偉強志明家豪俊傑嘉欣詠詩曉彤浩然子軒雅婷婉婷靜文美玲秀英麗華國建安安琪慧敏"
     "淑儀寶儀美儀少玲惠芳桂芳玉蘭秀蘭鳳英鳳儀月娥美好嘉麗嘉慧嘉敏凱琳凱婷凱欣家欣"
-    "家怡家琪家慧子晴子淇子柔芷晴芷欣芷蕎詠恩詠琪詠芝泳琳洛瑤浩軒浩賢浩然浩然"
-    "晉熙智豪智健俊軒俊熙俊宇俊宏冠廷冠霖鎧浚銘軒銘峰樂怡樂欣樂瑤樂彤逸朗浩然"
+    "家怡家琪家慧子晴子淇子柔芷晴芷欣芷蕎詠恩詠琪詠芝泳琳洛瑤浩軒浩賢晉熙"
+    "智豪智健俊軒俊熙俊宇俊宏冠廷冠霖鎧浚銘軒銘峰樂怡樂欣樂瑤樂彤逸朗"
 )
 
 UNICODES = "U+0020-007E,U+00A0-00FF,U+2000-206F,U+3000-303F,U+FF00-FFEF"
+
+
+EXTRA_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "font-chars-extra.txt")
+
+
+def collect_extra() -> str:
+    try:
+        lines = open(EXTRA_FILE, encoding="utf-8").read().splitlines()
+    except OSError:
+        return ""
+    return "".join(ln for ln in lines if not ln.startswith("#"))
 
 
 def collect_chars() -> str:
@@ -57,7 +68,7 @@ def collect_chars() -> str:
 
 
 def main() -> int:
-    text = collect_chars() + EXTRA
+    text = collect_chars() + EXTRA + collect_extra()
     print(f"chars: {len(set(text))}")
     os.makedirs(OUT_DIR, exist_ok=True)
 
