@@ -96,11 +96,19 @@
     #payment-loading-overlay .po-s { font-size:13px; color:#475569; line-height:1.6; }
     .zp-mark-link{margin-left:auto;display:inline-flex}
     .zp-mark{width:24px;height:24px;display:block}
-  </style>
+  
+    /* 桌面寬屏（zp-wide）：手機不變 */
+    @media (min-width: 768px) and (max-width: 1023px) {
+      body.zp-wide .wrap, body.zp-wide .topbar, body.zp-wide .bottomnav { max-width: 720px; }
+    }
+    @media (min-width: 1024px) {
+      body.zp-wide .wrap, body.zp-wide .topbar, body.zp-wide .bottomnav { max-width: 960px; }
+    }
+</style>
 <link rel="preload" href="assets/fonts/NotoSansTC-subset-v3.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
 </head>
-<body>
+<body class="zp-wide">
   <div class="topbar"><a class="back" href="index.html">‹</a><div class="title">套票與會籍</div><a class="zp-mark-link" href="index.html" aria-label="ZenPass 禪流 首頁"><svg class="zp-mark" viewBox="0 0 40 40" aria-hidden="true" focusable="false">
               <rect x="0.5" y="0.5" width="39" height="39" rx="12" fill="#ECFDF5" stroke="rgba(5,150,105,.22)"/>
               <path d="M20 7C12.82 7 7 12.82 7 20s5.82 13 13 13c5.2 0 9.68-3.06 11.76-7.5" stroke="#059669" stroke-width="3.4" stroke-linecap="round" fill="none"/>

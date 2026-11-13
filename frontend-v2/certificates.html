@@ -29,11 +29,19 @@
     .cert-mask.on{display:flex}
     .cert-box{max-width:440px;width:100%;max-height:94vh;overflow:auto;background:#0B132B;border-radius:16px;padding:12px}
     .cert-box img{width:100%;border-radius:10px;display:block}
-  </style>
+  
+    /* 桌面寬屏（zp-wide）：手機不變 */
+    @media (min-width: 768px) and (max-width: 1023px) {
+      body.zp-wide .wrap, body.zp-wide .topbar, body.zp-wide .bottomnav { max-width: 720px; }
+    }
+    @media (min-width: 1024px) {
+      body.zp-wide .wrap, body.zp-wide .topbar, body.zp-wide .bottomnav { max-width: 960px; }
+    }
+</style>
 <link rel="preload" href="assets/fonts/NotoSansTC-subset-v3.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
 </head>
-<body>
+<body class="zp-wide">
   <div class="topbar"><a class="back" href="my.html">‹</a><div class="title">我的修業證書</div></div>
   <div class="wrap">
     <div id="guard"></div>

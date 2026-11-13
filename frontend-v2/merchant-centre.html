@@ -40,11 +40,19 @@
     .mini { min-height:34px; padding:0 12px; font-size:13px; }
     .lbl2 { font-size:12px; color:var(--text-muted); margin:2px 0 2px; }
     .bktools { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
-  </style>
+  
+    /* 桌面寬屏（zp-wide）：手機不變 */
+    @media (min-width: 768px) and (max-width: 1023px) {
+      body.zp-wide .wrap, body.zp-wide .topbar, body.zp-wide .bottomnav { max-width: 720px; }
+    }
+    @media (min-width: 1024px) {
+      body.zp-wide .wrap, body.zp-wide .topbar, body.zp-wide .bottomnav { max-width: 1240px; }
+    }
+</style>
 <link rel="preload" href="assets/fonts/NotoSansTC-subset-v3.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
 </head>
-<body>
+<body class="zp-wide">
   <div class="topbar"><a class="back" href="my.html">‹</a><div class="title">商戶中心</div></div>
 
   <div class="wrap">

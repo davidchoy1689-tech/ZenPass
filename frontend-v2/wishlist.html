@@ -12,11 +12,19 @@
   <style>
     .row { display:flex; justify-content:space-between; align-items:center; padding:13px 16px; border-bottom:1px solid var(--border); gap:10px; }
     .row:last-child { border-bottom:0; }
-  </style>
+  
+    /* 桌面寬屏（zp-wide）：手機不變 */
+    @media (min-width: 768px) and (max-width: 1023px) {
+      body.zp-wide .wrap, body.zp-wide .topbar, body.zp-wide .bottomnav { max-width: 720px; }
+    }
+    @media (min-width: 1024px) {
+      body.zp-wide .wrap, body.zp-wide .topbar, body.zp-wide .bottomnav { max-width: 960px; }
+    }
+</style>
 <link rel="preload" href="assets/fonts/NotoSansTC-subset-v3.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
 </head>
-<body>
+<body class="zp-wide">
   <div class="topbar"><a class="back" href="my.html">‹</a><div class="title">我的收藏</div></div>
   <div class="wrap">
     <div class="card" id="list"><div class="body muted">載入中…</div></div>
