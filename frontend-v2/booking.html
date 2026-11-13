@@ -656,6 +656,7 @@
   <script src="assets/holidays.js"></script>
   <script src="assets/api.js?v=14"></script>
   <script src="assets/pricing.js?v=1"></script>
+  <script src="assets/pricing-telemetry.js?v=1"></script>
   <script>
     const $ = (x) => document.getElementById(x);
     const utmFields = () => {
@@ -915,6 +916,15 @@
       applyGuestMode();
       showGuestReturnBar();
       restoreBookingDraft();
+      if (window.ZenPassTelemetry) {
+        window.ZenPassTelemetry.view({
+          classId: cls.id,
+          scheduleId: params.get("sid"),
+          sessionPrice: planBase(),
+          pass4Price: planPassPrice(),
+          saving: planPassSave(),
+        });
+      }
     })();
 
     /* ── F-08：未完成預約草稿（2 小時內有效） ── */
@@ -1591,6 +1601,18 @@
     function stopRedirect() { if (redirectTimer) { clearInterval(redirectTimer); redirectTimer = null; } }
     function showDone(opts) {
       clearBookingDraft();
+      try {
+        if (window.ZenPassTelemetry && cls) {
+          const isPass = PLAN_TIER === "pass_4";
+          window.ZenPassTelemetry.convert({
+            classId: cls.id,
+            scheduleId: params.get("sid"),
+            sessionPrice: planBase(),
+            selectedSku: isPass ? "pass_4" : "single",
+            revenueCents: Math.round((isPass ? planPassPrice() : (payTotalValue || planBase())) * 100),
+          });
+        }
+      } catch (e) {}
       opts = opts || {};
       stopCountdown();
       $("doneIcon").textContent = opts.icon || "✓";

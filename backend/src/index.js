@@ -392,6 +392,7 @@ app.use("/api/admin", require("./routes/admin-payouts"));
 app.use("/api/admin", require("./routes/admin-risk"));
 app.use("/api/admin", require("./routes/admin-emergency"));
 app.use("/api/family", require("./routes/family"));
+app.use("/api/analytics", require("./routes/pricing-analytics")); // Phase 6.1 定價遙測
 
 // 🚨 極端天氣監察：每 10 分鐘讀天文台，狀態轉變即通知管理員（唔會自動取消課堂）
 try {

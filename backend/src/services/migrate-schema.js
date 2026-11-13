@@ -111,6 +111,30 @@ function runMigrations() {
       created_at TEXT DEFAULT (datetime('now'))
     );
   `);
+
+  // Phase 6.1：定價曝光／轉換遙測（只讀分析用，不影響任何交易表）
+  try {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS pricing_conversion_events (
+        id TEXT PRIMARY KEY,
+        event_type TEXT NOT NULL,
+        class_id TEXT,
+        schedule_id TEXT,
+        session_price_hkd INTEGER NOT NULL,
+        pass4_price_hkd INTEGER DEFAULT 520,
+        shown_saving_hkd INTEGER NOT NULL DEFAULT 0,
+        selected_sku TEXT,
+        revenue_cents INTEGER DEFAULT 0,
+        created_at TEXT DEFAULT (datetime('now'))
+      );
+      CREATE INDEX IF NOT EXISTS idx_pricing_events_price
+        ON pricing_conversion_events(session_price_hkd, event_type);
+      CREATE INDEX IF NOT EXISTS idx_pricing_events_created
+        ON pricing_conversion_events(created_at);
+    `);
+  } catch (e) {
+    console.warn("[migrate] pricing_conversion_events skipped:", e.message);
+  }
 }
 
 module.exports = { runMigrations };
