@@ -212,12 +212,12 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="assets/api.js?v=10"></script>
+<script src="assets/api.js?v=13"></script>
 <script>
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
 const hkd = (cents) => "HK$ " + ((Number(cents) || 0) / 100).toLocaleString("en-HK", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const when = (s) => String(s || "").replace("T", " ").slice(0, 16);
+const when = (s) => zpTime(s);
 const REASON = { pre_payout_change: "出糧前更改收款資料", unusual_ip: "異地／陌生裝置", otp_exhausted: "OTP 連續錯誤", transaction_spike: "交易量異常" };
 const STATUS = { open: "待處理", under_investigation: "審核中", resolved: "已解凍", rejected: "已駁回" };
 const BANK = { "004": "滙豐", "024": "恒生", "012": "中銀", "003": "渣打", "388": "Mox", "016": "東亞", "040": "大新", "043": "南商", "061": "創興", "072": "工銀亞洲" };

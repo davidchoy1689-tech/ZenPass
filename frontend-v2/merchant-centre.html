@@ -212,7 +212,7 @@
     <a class="active" href="my.html"><span class="ic">🎫</span>我的</a>
   </nav>
 
-  <script src="assets/api.js?v=3"></script>
+  <script src="assets/api.js?v=13"></script>
   <script src="assets/sport-icons.js?v=16"></script>
   <script>
     const $ = (id) => document.getElementById(id);
@@ -444,7 +444,7 @@
       const rows = d.rentals || [];
       box.innerHTML = rows.length ? rows.map(function (x) {
         const st = { pending: "⏳ 待確認", confirmed: "✅ 已確認", cancelled: "✖ 已取消", completed: "✔ 完成" }[x.status] || x.status;
-        const when = String(x.start_time || "").replace("T", " ").slice(0, 16) + " → " + String(x.end_time || "").slice(11, 16);
+        const when = zpTime(x.start_time, x.end_time);
         return '<div class="row" style="align-items:flex-start">' +
           '<div><b>' + esc(x.coach_name || "教練") + "</b> · " + st +
           '<div class="muted" style="font-size:12px">' + esc(when) + (x.price_hkd ? " · " + hkd(x.price_hkd) : "") + "</div></div>" +
@@ -595,7 +595,7 @@
       box.innerHTML = slots.length ? slots.map(function (s) {
         return '<div class="row" style="align-items:flex-start">' +
           '<div><b>' + esc(s.title) + '</b> · <span style="color:#c94420;font-weight:700">減 ' + s.discount_pct + '%</span>' +
-          '<div class="muted" style="font-size:12px">' + esc(String(s.start_time).replace("T", " ").slice(0, 16)) +
+          '<div class="muted" style="font-size:12px">' + esc(zpTime(s.start_time)) +
           ' · 仲有 ' + s.seats_left + '/' + s.max_participants + ' 位（報名率 ' + s.fill_rate + '%）' +
           (s.original_credits ? ' · ' + s.discounted_credits + 'cr（原 ' + s.original_credits + 'cr）' : '') + '</div></div>' +
           '<div style="white-space:nowrap"><button class="btn btn-primary mini" onclick="publishVac(\'' + esc(s.class_id) + '\')">發佈優惠碼</button></div></div>';
@@ -849,7 +849,7 @@
       const q = (sel) => o.querySelector(sel);
       function preview() {
         const list = genSlots(q(".qs-date").value, q(".qs-time").value || "19:00", Number(q(".qs-dur").value || 60), q(".qs-repeat").value, q(".qs-until").value, q(".qs-max").value ? Number(q(".qs-max").value) : null);
-        q(".qs-preview").textContent = list.length ? ("將建立 " + list.length + " 個時段（" + list[0].start_time.slice(0, 16) + " 起）") : "請先揀日期";
+        q(".qs-preview").textContent = list.length ? ("將建立 " + list.length + " 個時段（" + zpTime(list[0].start_time) + " 起）") : "請先揀日期";
         return list;
       }
       o.querySelectorAll("input,select").forEach(function (el) { el.addEventListener("change", preview); });

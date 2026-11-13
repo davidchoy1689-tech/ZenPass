@@ -89,6 +89,29 @@
   window.esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   window.cr = (hkd) => (hkd == null ? "" : String(Math.round((Number(hkd) / 10) * 10) / 10)); // price_hkd → credits（$95→9.5cr，保留 1 位小數）
   window.hkd = (n) => (n == null ? "" : "HK$" + Number(n).toLocaleString());
+  // ── 時間正規化（2026-11-13 統一）────────────────────────────────
+  // DB 內有兩種格式：帶 Z（UTC）同無時區（舊資料）。無時區一律當 UTC，
+  // 再用 Asia/Hong_Kong 輸出，避免「10:30 顯示成 02:30」。
+  window.zpParseTime = (s) => {
+    if (s == null || s === "") return null;
+    let t = String(s).trim();
+    if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}/.test(t)) t = t.replace(" ", "T");
+    if (!/Z|[+-]\d{2}:?\d{2}$/.test(t)) t += "Z";
+    const d = new Date(t);
+    return isNaN(d) ? null : d;
+  };
+  const _zpMD = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Hong_Kong", month: "2-digit", day: "2-digit" });
+  const _zpHM = new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Hong_Kong", hour: "2-digit", minute: "2-digit", hour12: false });
+  window.zpTime = (s, e) => {
+    const d = window.zpParseTime(s);
+    if (!d) return s == null ? "" : String(s);
+    const p = {};
+    for (const x of _zpMD.formatToParts(d)) p[x.type] = x.value;
+    let out = `${p.month}/${p.day} ${_zpHM.format(d)}`;
+    const d2 = window.zpParseTime(e);
+    if (d2) out += `–${_zpHM.format(d2)}`;
+    return out;
+  };
   // 短格式（週X M/D HH:MM–HH:MM），有 end 就自動顯示完堂時間
   window.fmtTime = (s, e) => {
     if (!s) return "";

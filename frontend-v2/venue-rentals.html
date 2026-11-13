@@ -101,7 +101,7 @@
     </div>
   </div>
 
-  <script src="assets/api.js?v=3"></script>
+  <script src="assets/api.js?v=13"></script>
   <script>
     const $ = (id) => document.getElementById(id);
     let currentVenue = null;   // { id, name, price }
@@ -203,7 +203,7 @@
       if (!rows.length) { $("mine").innerHTML = '<div class="card"><div class="body muted">未有任何租場紀錄。</div></div>'; return; }
       const LAB = { pending: "⏳ 待確認", confirmed: "✅ 已確認", cancelled: "✖ 已取消", completed: "✔ 完成" };
       $("mine").innerHTML = '<div class="card">' + rows.map(x => {
-        const when = String(x.start_time || "").replace("T", " ").slice(0, 16) + " → " + String(x.end_time || "").slice(11, 16);
+        const when = zpTime(x.start_time, x.end_time);
         const st = x.status || "";
         const unpaid = x.payment_status !== "paid" && st !== "cancelled";
         const pay = unpaid

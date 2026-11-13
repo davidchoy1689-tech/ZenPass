@@ -640,7 +640,7 @@
   </div>
 
   <script src="assets/holidays.js"></script>
-  <script src="assets/api.js?v=3"></script>
+  <script src="assets/api.js?v=13"></script>
   <script>
     const $ = (x) => document.getElementById(x);
     const utmFields = () => {
@@ -883,7 +883,33 @@
       render();
       applyGuestMode();
       showGuestReturnBar();
+      restoreBookingDraft();
     })();
+
+    /* ── F-08：未完成預約草稿（2 小時內有效） ── */
+    const DRAFT_KEY = "zp_booking_draft";
+    function saveBookingDraft() {
+      try {
+        if (!cls || !cls.id) return;
+        const sids = [...sel];
+        if (!sids.length) { localStorage.removeItem(DRAFT_KEY); return; }
+        localStorage.setItem(DRAFT_KEY, JSON.stringify({ classId: cls.id, title: cls.title || "", sids, at: Date.now() }));
+      } catch (e) {}
+    }
+    function clearBookingDraft() { try { localStorage.removeItem(DRAFT_KEY); } catch (e) {} }
+    function restoreBookingDraft() {
+      let d = null;
+      try { d = JSON.parse(localStorage.getItem(DRAFT_KEY) || "null"); } catch (e) {}
+      if (!d || !cls || d.classId !== cls.id) return;
+      if (Date.now() - (d.at || 0) > 2 * 60 * 60 * 1000) { clearBookingDraft(); return; }
+      // 只還原仍然存在、未滿、同屬呢班嘅堂
+      const alive = new Set(sessions.filter(s => seatsLeft(s) > 0).map(s => s.id));
+      const keep = (d.sids || []).filter(id => alive.has(id));
+      if (!keep.length) return;
+      sel.clear(); keep.forEach(id => sel.add(id));
+      render();
+      if (typeof toast === "function") toast(`已還原上次未完成嘅預約（${keep.length} 堂）`);
+    }
 
     function showGuestReturnBar() {
       if (!isGuest) return;
@@ -998,11 +1024,11 @@
         : `<div class="card"><div class="body muted">暫無可預約時段。</div></div>`;
 
       document.querySelectorAll("input[data-sid]").forEach(cb => cb.onchange = () => {
-        cb.checked ? sel.add(cb.dataset.sid) : sel.delete(cb.dataset.sid); updateBar(); });
+        cb.checked ? sel.add(cb.dataset.sid) : sel.delete(cb.dataset.sid); updateBar(); saveBookingDraft(); });
       document.querySelectorAll(".monthbar button").forEach(b => b.onclick = () => {
         const list = byM[b.dataset.month].filter(s => seatsLeft(s) > 0);
         const allOn = list.every(s => sel.has(s.id));
-        list.forEach(s => allOn ? sel.delete(s.id) : sel.add(s.id)); render(); });
+        list.forEach(s => allOn ? sel.delete(s.id) : sel.add(s.id)); render(); saveBookingDraft(); });
       updateBar();
     }
     function updateBar() {
@@ -1529,6 +1555,7 @@
     }
     function stopRedirect() { if (redirectTimer) { clearInterval(redirectTimer); redirectTimer = null; } }
     function showDone(opts) {
+      clearBookingDraft();
       opts = opts || {};
       stopCountdown();
       $("doneIcon").textContent = opts.icon || "✓";
