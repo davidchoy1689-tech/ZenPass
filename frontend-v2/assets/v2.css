@@ -610,3 +610,45 @@ button, .chip, .tag { letter-spacing: 0.02em; }
 }
 .zp-btn-vitality:hover:not(:disabled) { background-color: var(--zp-orange-600); box-shadow: var(--zp-shadow-glow-orange); }
 .zp-btn-vitality:active:not(:disabled) { transform: scale(.97); }
+
+/* =============================================================
+   長者模式（html.zp-senior）
+   目標：字大、按鈕大、對比高，但唔會爆版（只放大一級）
+   ============================================================= */
+.zp-senior-btn {
+  position: fixed; left: 12px; z-index: 55;
+  bottom: calc(84px + env(safe-area-inset-bottom, 0px));
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 10px 14px; min-height: 46px;
+  border: 1px solid var(--border); border-radius: 999px;
+  background: rgba(255,255,255,.96); color: #0f172a;
+  font: inherit; font-size: 13px; font-weight: 800;
+  box-shadow: 0 8px 22px rgba(15,23,42,.16); cursor: pointer;
+  backdrop-filter: blur(8px);
+}
+.zp-senior-btn:active { transform: scale(.97); }
+@media (min-width: 768px) { .zp-senior-btn { bottom: 24px; } }
+
+html.zp-senior { font-size: 18px; }
+/* 全站大部分字級用 px，單靠 html font-size 唔會放大；
+   用 zoom 令整頁（含 px 文字）一齊放大，瀏覽器會自動 reflow，唔會爆橫向滾動 */
+html.zp-senior body { zoom: 1.12; }
+html.zp-senior .zp-senior-btn { zoom: 1; }
+html.zp-senior body { font-size: 1.05rem; line-height: 1.75; }
+html.zp-senior .muted,
+html.zp-senior small { color: #475569 !important; }
+html.zp-senior .btn,
+html.zp-senior button,
+html.zp-senior .chip,
+html.zp-senior .tile { min-height: 52px; }
+html.zp-senior .btn { font-size: 1.02rem; }
+html.zp-senior .card .body { padding: 16px; }
+html.zp-senior .bottomnav { height: calc(var(--nav-h) + 10px + env(safe-area-inset-bottom, 0px)); }
+html.zp-senior .bottomnav a { font-size: 12.5px; }
+html.zp-senior .bottomnav .ic { font-size: 24px; }
+html.zp-senior .topbar .title { font-size: 19px; }
+html.zp-senior input,
+html.zp-senior select,
+html.zp-senior textarea { font-size: 17px; min-height: 50px; }
+html.zp-senior .row,
+html.zp-senior .kv { font-size: 15.5px; }
