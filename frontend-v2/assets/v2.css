@@ -96,7 +96,7 @@ input, select, textarea, button { font-family: inherit; }
 a { color: inherit; text-decoration: none; }
 img { max-width: 100%; display: block; }
 
-.wrap { max-width: var(--max-w); margin: 0 auto; padding: 0 var(--s4) calc(var(--nav-h) + var(--s6)); }
+.wrap { max-width: var(--max-w); margin: 0 auto; padding: 0 var(--s4) calc(var(--nav-h) + var(--s6) + env(safe-area-inset-bottom, 0px)); }
 .topbar {
   position: sticky; top: 0; z-index: 20; background: var(--surface);
   border-bottom: 1px solid var(--border); padding: var(--s3) var(--s4);
@@ -197,7 +197,9 @@ a.chip:hover { background: var(--brand-100, #ffe9df); color: var(--brand-700); }
 
 /* ---- Bottom nav ---- */
 .bottomnav {
-  position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; height: var(--nav-h);
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
+  height: calc(var(--nav-h) + env(safe-area-inset-bottom, 0px));
+  padding-bottom: env(safe-area-inset-bottom, 0px);
   background: var(--surface); border-top: 1px solid var(--border);
   display: flex; max-width: var(--max-w); margin: 0 auto;
 }
@@ -454,12 +456,12 @@ a.chip:hover { background: var(--brand-100, #ffe9df); color: var(--brand-700); }
 @media (prefers-reduced-motion: reduce) { .wa-float::after { animation: none; opacity: 0; } }
 
 /* PWA：新增至主畫面 */
-.install-btn { position: fixed; right: 14px; bottom: 84px; z-index: 45; font: inherit; font-size: 13px; font-weight: 700; color: #fff; background: linear-gradient(150deg,#FF7A45,#DC4318); border: 0; border-radius: 999px; padding: 11px 16px; box-shadow: 0 8px 20px rgba(220,67,24,.35); cursor: pointer; }
+.install-btn { position: fixed; right: 14px; bottom: calc(84px + env(safe-area-inset-bottom, 0px)); z-index: 45; font: inherit; font-size: 13px; font-weight: 700; color: #fff; background: linear-gradient(150deg,#FF7A45,#DC4318); border: 0; border-radius: 999px; padding: 11px 16px; box-shadow: 0 8px 20px rgba(220,67,24,.35); cursor: pointer; }
 .install-btn[hidden] { display: none; }
 .install-btn:active { transform: scale(.97); }
 
 /* PWA：安裝引導提示欄 */
-.install-bar { position: fixed; left: 10px; right: 10px; bottom: 78px; z-index: 46; display: flex; align-items: center; gap: 10px; padding: 11px 12px; border-radius: 16px; background: rgba(28,28,32,.94); color: #fff; box-shadow: 0 10px 26px rgba(0,0,0,.28); backdrop-filter: blur(8px); }
+.install-bar { position: fixed; left: 10px; right: 10px; bottom: calc(78px + env(safe-area-inset-bottom, 0px)); z-index: 46; display: flex; align-items: center; gap: 10px; padding: 11px 12px; border-radius: 16px; background: rgba(28,28,32,.94); color: #fff; box-shadow: 0 10px 26px rgba(0,0,0,.28); backdrop-filter: blur(8px); }
 .install-bar[hidden] { display: none; }
 .ib-ic { font-size: 20px; flex: 0 0 auto; }
 .ib-tx { flex: 1; font-size: 12.5px; font-weight: 600; line-height: 1.35; }
@@ -563,3 +565,12 @@ h3, .font-bold { font-weight: 700; }
 button, .chip, .tag { letter-spacing: 0.02em; }
 /* 數字／金額用等寬比例較穩 */
 .num, .price, .amount, .money { font-family: var(--font-num); font-variant-numeric: tabular-nums; }
+
+/* 無障礙：跳至主要內容（鍵盤 Tab 第一下出現） */
+.skip-link {
+  position: fixed; top: -80px; left: 12px; z-index: 100;
+  background: var(--brand-600); color: #fff; font-weight: 700; font-size: 13px;
+  padding: 10px 16px; border-radius: 999px; text-decoration: none;
+  transition: top .18s ease;
+}
+.skip-link:focus-visible, .skip-link:focus { top: 12px; }
