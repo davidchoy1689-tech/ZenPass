@@ -302,9 +302,9 @@
           [...$("tabs").children].forEach((x) => x.classList.toggle("on", x === b));
           FILTER = b.dataset.f; DEMO_LIST();
         };
-        $("btnQuick").onclick = () => toast("示範模式：開班表單已停用");
-        const _fb = $("fab"); if (_fb) _fb.onclick = () => toast("示範模式：開班表單已停用");
-        $("navAdd").onclick = (e) => { e.preventDefault(); toast("示範模式：開班表單已停用"); };
+        $("btnQuick").onclick = () => openDemoCreateSheet();
+        const _fb = $("fab"); if (_fb) _fb.onclick = () => openDemoCreateSheet();
+        $("navAdd").onclick = (e) => { e.preventDefault(); openDemoCreateSheet(); };
         DEMO_LIST();
         // 延後執行，等日曆模組嘅 let 宣告完成（避免 TDZ）
         setTimeout(function () {
@@ -833,7 +833,9 @@ ${stamp}
           <div><div class="n">${esc(p.name)}${p.group_size > 1 ? ` <span class="muted">+${p.group_size-1}</span>` : ""}</div>
           <div class="s">****${p.phone.slice(-4)} · 核銷碼 ${p.checkin_code}</div></div></div>
           <button class="tog ${p.booking_status === "attended" ? "on" : ""}" ${p.booking_status === "attended" ? "disabled" : ""} data-datt="${p.id}">${p.booking_status === "attended" ? "✅ 已出席" : "○ 簽到"}</button></div>`).join("")}
-        <button class="btn btn-primary btn-block" style="margin-top:12px" id="dSettleBtn">🏁 下課結算</button>`);
+        <button class="btn btn-secondary btn-block" style="margin-top:12px" id="dScanBtn">📷 掃碼／4 位碼核銷</button>
+        <button class="btn btn-primary btn-block" style="margin-top:8px" id="dSettleBtn">🏁 下課結算</button>`);
+      $("dScanBtn").onclick = () => openDemoScan(sid);
       $("shBody").querySelectorAll("[data-datt]").forEach((b) => (b.onclick = () => {
         const row = DEMO_ROSTER.find((x) => x.id === b.dataset.datt);
         if (!row) return;
@@ -843,6 +845,84 @@ ${stamp}
         toast("✅ 已簽到（示範）");
       }));
       $("dSettleBtn").onclick = () => demoSettle(sid);
+    }
+
+    /* ── 示範模式：新增課堂時段（只存 session，不寫 DB） ── */
+    function openDemoCreateSheet() {
+      const today = new Date(Date.now() + 86400e3);
+      const dstr = today.toISOString().slice(0, 10);
+      openSheet("新增課堂時段（示範）", `
+        <div class="muted" style="font-size:12px;margin-bottom:10px">🧪 示範模式：只會存在呢個瀏覽器，唔會寫入正式資料</div>
+        <label style="font-size:12px;font-weight:700">運動項目</label>
+        <select id="dcSport" style="width:100%;padding:9px;border:1px solid var(--border);border-radius:10px;font:inherit;margin:4px 0 10px">
+          <option value="🎯 芬蘭木柱">🎯 芬蘭木柱</option>
+          <option value="🥌 地板冰壺">🥌 地板冰壺</option>
+          <option value="🧘 樂齡椅子防跌">🧘 樂齡椅子防跌</option>
+          <option value="💆 肩頸伸展">💆 肩頸伸展</option>
+        </select>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+          <div><label style="font-size:12px;font-weight:700">日期</label>
+            <input id="dcDate" type="date" value="${dstr}" style="width:100%;padding:9px;border:1px solid var(--border);border-radius:10px;font:inherit"></div>
+          <div><label style="font-size:12px;font-weight:700">開始 / 結束</label>
+            <div style="display:flex;gap:6px">
+              <input id="dcStart" type="time" value="10:30" style="flex:1;padding:9px;border:1px solid var(--border);border-radius:10px;font:inherit">
+              <input id="dcEnd" type="time" value="12:00" style="flex:1;padding:9px;border:1px solid var(--border);border-radius:10px;font:inherit">
+            </div></div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px">
+          <div><label style="font-size:12px;font-weight:700">名額</label>
+            <input id="dcCap" type="number" value="8" min="2" max="30" style="width:100%;padding:9px;border:1px solid var(--border);border-radius:10px;font:inherit"></div>
+          <div><label style="font-size:12px;font-weight:700">最低成團</label>
+            <input id="dcMin" type="number" value="4" min="1" max="20" style="width:100%;padding:9px;border:1px solid var(--border);border-radius:10px;font:inherit"></div>
+          <div><label style="font-size:12px;font-weight:700">單堂價</label>
+            <input id="dcPrice" type="number" value="160" min="80" step="10" style="width:100%;padding:9px;border:1px solid var(--border);border-radius:10px;font:inherit"></div>
+        </div>
+        <label style="font-size:12px;font-weight:700">場地</label>
+        <input id="dcVenue" type="text" placeholder="例：觀塘興業街 14 號永興工廈（B2 出口步行 4 分鐘）" style="width:100%;padding:9px;border:1px solid var(--border);border-radius:10px;font:inherit;margin:4px 0 12px">
+        <button class="btn btn-primary btn-block" id="dcGo">發佈時段（示範）</button>`);
+      $("dcGo").onclick = () => {
+        const date = $("dcDate").value || dstr;
+        const st = $("dcStart").value || "10:30";
+        const en = $("dcEnd").value || "12:00";
+        const startISO = new Date(`${date}T${st}:00+08:00`).toISOString();
+        const endISO = new Date(`${date}T${en}:00+08:00`).toISOString();
+        if (new Date(endISO) <= new Date(startISO)) { toast("結束時間要遲過開始時間"); return; }
+        const row = {
+          id: "d" + Date.now(), class_id: "dc_new", title: $("dcSport").value,
+          start_time: startISO, end_time: endISO,
+          venue_name: $("dcVenue").value || "自租場地", district: "",
+          max_participants: Number($("dcCap").value) || 8,
+          booked: 0, min_participants: Number($("dcMin").value) || 4,
+          price_hkd: Number($("dcPrice").value) || 160, status: "available",
+        };
+        DEMO_SESSIONS.unshift(row);
+        try { CAL_SESSIONS.unshift(row); } catch (e) {}
+        DEMO_LIST();
+        try { renderCal(); renderAgenda(); } catch (e) {}
+        closeSheet();
+        toast("✅ 已建立（示範）：" + row.title);
+      };
+    }
+
+    /* ── 示範模式：4 位碼核銷（含重複簽到提示） ── */
+    function openDemoScan(sid) {
+      openSheet("掃碼／4 位碼核銷（示範）", `
+        <div class="muted" style="font-size:12px;margin-bottom:10px">相機不可用時可直接輸入學員電話尾 4 位或核銷碼</div>
+        <input id="dsCode" inputmode="numeric" maxlength="4" placeholder="4 位數字"
+          style="width:100%;padding:14px;border:1px solid var(--border);border-radius:12px;font:inherit;font-size:22px;letter-spacing:6px;text-align:center">
+        <button class="btn btn-primary btn-block" id="dsGo" style="margin-top:12px">確認核銷</button>
+        <div id="dsMsg" class="muted" style="font-size:12.5px;margin-top:10px;text-align:center"></div>`);
+      $("dsGo").onclick = () => {
+        const code = String($("dsCode").value || "").trim();
+        if (!/^\d{4}$/.test(code)) { $("dsMsg").textContent = "請輸入 4 位數字"; return; }
+        const row = DEMO_ROSTER.find((x) => x.checkin_code === code || String(x.phone).slice(-4) === code);
+        if (!row) { $("dsMsg").textContent = "❌ 找不到對應學員"; return; }
+        if (row.booking_status === "attended") { $("dsMsg").textContent = `⚠️ ${row.name} 已簽到，唔會重複扣堂`; return; }
+        row.booking_status = "attended";
+        $("dsMsg").textContent = `✅ ${row.name} 已簽到（示範）`;
+        toast("✅ 已簽到：" + row.name);
+        try { demoRoster(sid); } catch (e) {}
+      };
     }
 
     function demoSettle(sid) {
