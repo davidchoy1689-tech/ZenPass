@@ -17,11 +17,21 @@ p{font-size:12.5px;color:#94a3b8;line-height:1.6}
 .manual input{flex:1;border:0;border-radius:10px;padding:11px;font:inherit;font-size:13px}
 .manual button{border:0;border-radius:10px;padding:11px 14px;font:inherit;font-weight:800;background:#0f766e;color:#fff}
 .btn{width:100%;border:0;border-radius:12px;padding:13px;font:inherit;font-weight:900;background:#0f766e;color:#fff;margin-top:10px;cursor:pointer}
+
+    /* 桌面寬屏（zp-wide）：手機不變，平板 860，桌面 1200 */
+    @media (min-width: 768px) and (max-width: 1023px) {
+      body.zp-wide .wrap, body.zp-wide .topbar, body.zp-wide .bottomnav,
+      body.zp-wide .hero-top { max-width: 860px; }
+    }
+    @media (min-width: 1024px) {
+      body.zp-wide .wrap, body.zp-wide .topbar, body.zp-wide .bottomnav,
+      body.zp-wide .hero-top { max-width: 1200px; }
+    }
 </style>
 <link rel="preload" href="assets/fonts/NotoSansTC-subset-v3.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
 </head>
-<body><div class="wrap">
+<body class="zp-wide"><div class="wrap">
 <h1>📷 極速掃碼核銷</h1>
 <p>對準學員動態 QR。系統會驗證 30 秒時效、地理圍欄及防重複掃碼。</p>
 <div id="reader"></div>

@@ -29,10 +29,20 @@
   .hide{display:none}
   .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:24px;background:#0F172A;color:#fff;padding:10px 16px;border-radius:999px;font-size:13px;opacity:0;transition:opacity .2s;pointer-events:none}
   .toast.on{opacity:1}
+
+    /* 桌面寬屏（zp-wide）：手機不變，平板 860，桌面 960 */
+    @media (min-width: 768px) and (max-width: 1023px) {
+      body.zp-wide .wrap, body.zp-wide .topbar, body.zp-wide .bottomnav,
+      body.zp-wide .hero-top { max-width: 860px; }
+    }
+    @media (min-width: 1024px) {
+      body.zp-wide .wrap, body.zp-wide .topbar, body.zp-wide .bottomnav,
+      body.zp-wide .hero-top { max-width: 960px; }
+    }
 </style>
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
 </head>
-<body>
+<body class="zp-wide">
 <div class="wrap">
   <div class="brand">ZenPass · 香港康樂及體育</div>
 

@@ -17,11 +17,21 @@
     .avi { width:48px; height:48px; border-radius:50%; background:linear-gradient(135deg,var(--brand-500),var(--brand-700)); color:#fff; display:grid; place-items:center; font-weight:800; font-size:18px; flex:0 0 auto; }
     .nm { font-weight:800; }
     .meta { font-size:12px; color:var(--text-muted); }
-  </style>
+  
+    /* 桌面寬屏（zp-wide）：手機不變，平板 860，桌面 960 */
+    @media (min-width: 768px) and (max-width: 1023px) {
+      body.zp-wide .wrap, body.zp-wide .topbar, body.zp-wide .bottomnav,
+      body.zp-wide .hero-top { max-width: 860px; }
+    }
+    @media (min-width: 1024px) {
+      body.zp-wide .wrap, body.zp-wide .topbar, body.zp-wide .bottomnav,
+      body.zp-wide .hero-top { max-width: 960px; }
+    }
+</style>
 <link rel="preload" href="assets/fonts/NotoSansTC-subset-v3.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
 </head>
-<body>
+<body class="zp-wide">
   <div class="topbar"><a class="back" href="explore.html">‹</a><div class="title">星級教練</div></div>
   <div class="wrap">
     <div class="card" id="list"><div class="body muted">載入中…</div></div>

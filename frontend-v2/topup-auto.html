@@ -15,11 +15,21 @@
     .switch{display:flex;justify-content:space-between;align-items:center;padding:14px 16px}
     .bundle{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border:1px solid var(--border);border-radius:12px;margin-bottom:8px;cursor:pointer}
     .bundle.on{border-color:var(--brand-500);background:#fff5f0}
-  </style>
+  
+    /* 桌面寬屏（zp-wide）：手機不變，平板 860，桌面 960 */
+    @media (min-width: 768px) and (max-width: 1023px) {
+      body.zp-wide .wrap, body.zp-wide .topbar, body.zp-wide .bottomnav,
+      body.zp-wide .hero-top { max-width: 860px; }
+    }
+    @media (min-width: 1024px) {
+      body.zp-wide .wrap, body.zp-wide .topbar, body.zp-wide .bottomnav,
+      body.zp-wide .hero-top { max-width: 960px; }
+    }
+</style>
 <link rel="preload" href="assets/fonts/NotoSansTC-subset-v3.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
 </head>
-<body>
+<body class="zp-wide">
   <div class="topbar"><a class="back" href="wallet.html">‹</a><div class="title">自動增值</div></div>
   <div class="wrap">
     <p class="muted" style="font-size:13px">當 Credits 低於你設定嘅門檻，系統會自動幫你增值指定套票。</p>

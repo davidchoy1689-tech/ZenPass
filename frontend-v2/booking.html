@@ -282,7 +282,17 @@
     /* 逾時救回 modal */
     .timeout-card h3 { margin: 8px 0 6px; font-size: 17px; }
     .timeout-card p { margin: 0 0 14px; font-size: 13px; color: #475569; line-height: 1.6; }
-  </style>
+  
+    /* 桌面寬屏（zp-wide）：手機不變，平板 860，桌面 720 */
+    @media (min-width: 768px) and (max-width: 1023px) {
+      body.zp-wide .wrap, body.zp-wide .topbar, body.zp-wide .bottomnav,
+      body.zp-wide .hero-top { max-width: 860px; }
+    }
+    @media (min-width: 1024px) {
+      body.zp-wide .wrap, body.zp-wide .topbar, body.zp-wide .bottomnav,
+      body.zp-wide .hero-top { max-width: 720px; }
+    }
+</style>
   <!-- ⚡ Speculation Rules：hover / touch 200ms 背景預渲染，點擊後幾乎 0ms 直開 -->
   <script type="speculationrules">
   {
@@ -303,7 +313,7 @@
 <link rel="preload" href="assets/fonts/NotoSansTC-subset-v3.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
 </head>
-<body>
+<body class="zp-wide">
   <a class="skip-link" href="#main">跳至主要內容</a>
   <div class="topbar"><a class="back" href="javascript:history.back()">‹</a><div class="title" id="title">預約</div><div style="margin-left:auto" class="price" id="topPrice"></div></div>
 

@@ -30,11 +30,21 @@
     details.card > summary { cursor:pointer; list-style:none; padding:14px 16px; font-weight:700 }
     details.card > summary::-webkit-details-marker { display:none }
     .toast2 { position:fixed; left:50%; transform:translateX(-50%); bottom:90px; background:rgba(15,23,42,.93); color:#fff; padding:11px 18px; border-radius:999px; font-size:13.5px; z-index:9999 }
-  </style>
+  
+    /* 桌面寬屏（zp-wide）：手機不變，平板 860，桌面 1200 */
+    @media (min-width: 768px) and (max-width: 1023px) {
+      body.zp-wide .wrap, body.zp-wide .topbar, body.zp-wide .bottomnav,
+      body.zp-wide .hero-top { max-width: 860px; }
+    }
+    @media (min-width: 1024px) {
+      body.zp-wide .wrap, body.zp-wide .topbar, body.zp-wide .bottomnav,
+      body.zp-wide .hero-top { max-width: 1200px; }
+    }
+</style>
 <link rel="preload" href="assets/fonts/NotoSansTC-subset-v3.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
 </head>
-<body>
+<body class="zp-wide">
   <div class="topbar"><a class="back" href="coach-dashboard.html">‹</a><div class="title">教練後台</div></div>
   <div class="wrap">
     <div id="guard"></div>

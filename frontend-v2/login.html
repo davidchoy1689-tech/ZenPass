@@ -9,11 +9,21 @@
   <link rel="stylesheet" href="assets/v2.css?v=37" />
   <link rel="stylesheet" href="assets/polish.css?v=1" />
   <link rel="stylesheet" href="assets/ui-v3.css?v=5" />
-  <style>input.field{border:1px solid var(--border);border-radius:12px;padding:13px 14px;width:100%;font:inherit;background:var(--surface);color:var(--text)}</style>
+  <style>input.field{border:1px solid var(--border);border-radius:12px;padding:13px 14px;width:100%;font:inherit;background:var(--surface);color:var(--text)}
+    /* 桌面寬屏（zp-wide）：手機不變，平板 860，桌面 720 */
+    @media (min-width: 768px) and (max-width: 1023px) {
+      body.zp-wide .wrap, body.zp-wide .topbar, body.zp-wide .bottomnav,
+      body.zp-wide .hero-top { max-width: 860px; }
+    }
+    @media (min-width: 1024px) {
+      body.zp-wide .wrap, body.zp-wide .topbar, body.zp-wide .bottomnav,
+      body.zp-wide .hero-top { max-width: 720px; }
+    }
+</style>
 <link rel="preload" href="assets/fonts/NotoSansTC-subset-v3.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
 </head>
-<body>
+<body class="zp-wide">
   <div class="wrap" style="padding-top:32px">
     <div class="center" style="margin:24px 0 8px">
       <div style="font-size:34px">🧭</div>
