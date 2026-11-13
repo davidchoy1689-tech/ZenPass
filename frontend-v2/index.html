@@ -89,7 +89,7 @@
     body.home .hero-next {
       display: block;
       grid-column: 2;
-      grid-row: 2 / -1;
+      grid-row: 2;
       align-self: start;
       margin-top: 4px;
       background: linear-gradient(180deg, #FFFFFF 0%, #F7FEFB 100%);
@@ -1247,7 +1247,7 @@
           var leftCls = left !== null && left <= 3 ? "hot-urgent" : "";
           return '<a class="hot-card" href="detail.html?id=' + encodeURIComponent(c.id) + '">' +
             '<div class="hot-cover">' +
-              '<img class="card-img skeleton" src="' + esc(cover(c)) + '" alt="" loading="lazy" onerror="this.style.display=\'none\'">' +
+              '<img class="card-img skeleton" src="' + esc(cover(c)) + '" alt="" loading="lazy" onerror="this.src=&quot;assets/img/covers/generic.jpg&quot;;this.onerror=null;">' +
               '<span class="cover-shade"></span>' +
               (Number(c.coach_starred) === 1 ? '<span class="badge-trial glass-badge">⭐ 星級教練</span>' : '') +
               (c.district ? '<span class="badge-district glass-badge">' + esc(c.district) + '</span>' : '') +
@@ -1333,7 +1333,7 @@
             : '';
           return '<a class="hot-card" href="detail.html?id=' + encodeURIComponent(c.id) + '">' +
             '<div class="hot-cover">' +
-              '<img class="card-img skeleton" src="' + esc(coverUrl(c)) + '" alt="" loading="lazy" onerror="this.style.display=\'none\'">' +
+              '<img class="card-img skeleton" src="' + esc(coverUrl(c)) + '" alt="" loading="lazy" onerror="this.src=&quot;assets/img/covers/generic.jpg&quot;;this.onerror=null;">' +
               '<span class="cover-shade"></span>' +
               (promo ? '<span class="badge-trial glass-badge-highlight">🎉 WELCOME50 半價</span>' : '') +
               '<span class="badge-star glass-badge-dark">⭐ ' + esc(String(Number(rating).toFixed(1))) + '</span>' +
@@ -1368,7 +1368,7 @@
       ];
       grid.innerHTML = CATS.map(function (c) {
         return '<a class="cat-photo" href="explore.html?q=' + encodeURIComponent(c.k) + '">' +
-          '<img class="cat-img skeleton" src="assets/img/photos/' + c.id + '.jpg?v=1" alt="" loading="lazy" onerror="this.style.display=\'none\'">' +
+          '<img class="cat-img skeleton" src="assets/img/photos/' + c.id + '.jpg?v=1" alt="" loading="lazy" onerror="this.src=&quot;assets/img/covers/generic.jpg&quot;;this.onerror=null;">' +
           '<span class="mask"></span>' +
           '<span class="inner"><b>' + c.k + '</b><i>' + c.n + '</i></span>' +
           '</a>';
@@ -2105,7 +2105,7 @@
         box.innerHTML = ''
           + '<div class="hn-media">'
           +   '<span class="hn-tag">⏱ 下一個開班</span>'
-          +   '<img src="'+esc(img)+'" alt="" loading="lazy" onerror="this.style.display=\'none\'">'
+          +   '<img src="'+esc(img)+'" alt="" loading="lazy" onerror="this.src=&quot;assets/img/covers/generic.jpg&quot;;this.onerror=null;">'
           + '</div>'
           + '<div class="hn-body">'
           +   '<div class="hn-k">'+(c.coach_name?esc(c.coach_name)+" 教練 · ":"")+esc(c.district||"全港")+'</div>'
