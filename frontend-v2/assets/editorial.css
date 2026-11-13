@@ -1,0 +1,66 @@
+/* =============================================================
+   ZenPass Editorial Layer（Phase 7.0 精簡版）
+   - 只做「質感升級」：陰影、圓角、hover 微動效、毛玻璃
+   - 不改任何既有佈局或顏色語意；可整份移除即回到原狀
+   - 全部動效包喺 prefers-reduced-motion 內，低階機零負擔
+   ============================================================= */
+
+:root {
+  --zp-shadow-card: 0 4px 24px rgba(15, 23, 42, .06);
+  --zp-shadow-card-hover: 0 14px 32px -4px rgba(15, 23, 42, .12);
+  --zp-shadow-glass: 0 12px 40px rgba(15, 23, 42, .08);
+  --zp-shadow-cta: 0 8px 24px rgba(16, 185, 129, .32);
+  --zp-radius-card2: 20px;
+  --zp-surface-mint: #F0FDF9;
+}
+
+/* 卡片：統一陰影與圓角（只作用於指定容器，唔會影響表單／表格） */
+.zp-editorial .card,
+.zp-editorial .ex-card,
+.zp-editorial .bento-grid .hot-card,
+.zp-editorial .cls,
+.zp-editorial .live-card {
+  box-shadow: var(--zp-shadow-card);
+  border-radius: var(--zp-radius-card2);
+}
+
+/* 毛玻璃卡（Hero 搜尋區／浮層） */
+.zp-glass {
+  background: rgba(255, 255, 255, .78);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, .65);
+  box-shadow: var(--zp-shadow-glass);
+  border-radius: var(--zp-radius-card2);
+}
+
+/* 圖文漸層遮罩（保證白字可讀） */
+.zp-scrim {
+  position: absolute; inset: 0;
+  background: linear-gradient(to top, rgba(15,23,42,.62) 0%, rgba(15,23,42,.16) 48%, transparent 100%);
+  pointer-events: none;
+}
+
+/* 主 CTA 外光（只加光暈，不改色） */
+.zp-cta-glow { box-shadow: var(--zp-shadow-cta); }
+
+/* 微互動：只在允許動畫嘅裝置啟用 */
+@media (prefers-reduced-motion: no-preference) {
+  .zp-editorial .card,
+  .zp-editorial .ex-card,
+  .zp-editorial .bento-grid .hot-card,
+  .zp-editorial .live-card {
+    transition: transform 240ms cubic-bezier(.22,1,.36,1), box-shadow 240ms cubic-bezier(.22,1,.36,1);
+    will-change: transform;
+  }
+  .zp-editorial .ex-card:hover,
+  .zp-editorial .bento-grid .hot-card:hover,
+  .zp-editorial .live-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--zp-shadow-card-hover);
+  }
+  .zp-editorial .card:hover { box-shadow: var(--zp-shadow-card-hover); }
+}
+
+/* 首頁 hero 搜尋膠囊升級為毛玻璃（唔改位置） */
+.zp-editorial .search-capsule { background: rgba(255,255,255,.92); backdrop-filter: blur(10px); }
