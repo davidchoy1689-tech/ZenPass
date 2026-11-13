@@ -57,7 +57,29 @@
     -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-num: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
 
-  /* Space */
+    /* Direction C 雙軌語意（綠＝信任／健康／核心流程；橙＝活力／促銷／限時）
+     綠 token 先做「可用」層，未改任何現有頁面外觀；新元件直接用 var(--zp-green-600) */
+  --zp-green-900: #064e3b;
+  --zp-green-800: #065f46;
+  --zp-green-700: #047857;
+  --zp-green-600: #059669;
+  --zp-green-500: #10b981;
+  --zp-green-100: #d1fae5;
+  --zp-green-50: #ecfdf5;
+  --zp-orange-700: #c94420;
+  --zp-orange-600: #e55a2b;
+  --zp-orange-500: #ff6b35;
+  --zp-orange-100: #ffedd5;
+  --zp-orange-50: #fff7ed;
+  --zp-ink-900: #0f172a;
+  --zp-ink-700: #334155;
+  --zp-ink-500: #64748b;
+  --zp-ink-300: #cbd5e1;
+  --zp-shadow-soft: 0 4px 20px -2px rgba(15, 23, 42, 0.05), 0 1px 3px 0 rgba(15, 23, 42, 0.03);
+  --zp-shadow-glow-green: 0 6px 16px -2px rgba(5, 150, 105, 0.28);
+  --zp-shadow-glow-orange: 0 6px 16px -2px rgba(255, 107, 53, 0.3);
+
+/* Space */
   --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 20px; --s6: 24px; --s8: 32px;
 
   /* Radius */
@@ -574,3 +596,17 @@ button, .chip, .tag { letter-spacing: 0.02em; }
   transition: top .18s ease;
 }
 .skip-link:focus-visible, .skip-link:focus { top: 12px; }
+
+/* Direction C：雙軌按鈕語意（綠＝預約／確認；橙＝促銷／限時） */
+.zp-btn-wellness {
+  background-color: var(--zp-green-600); color: #fff; font-weight: 700;
+  border-radius: var(--r-pill); transition: background-color .18s, box-shadow .18s, transform .12s;
+}
+.zp-btn-wellness:hover:not(:disabled) { background-color: var(--zp-green-700); box-shadow: var(--zp-shadow-glow-green); }
+.zp-btn-wellness:active:not(:disabled) { transform: scale(.97); }
+.zp-btn-vitality {
+  background-color: var(--zp-orange-500); color: #fff; font-weight: 800;
+  border-radius: var(--r-pill); transition: background-color .18s, box-shadow .18s, transform .12s;
+}
+.zp-btn-vitality:hover:not(:disabled) { background-color: var(--zp-orange-600); box-shadow: var(--zp-shadow-glow-orange); }
+.zp-btn-vitality:active:not(:disabled) { transform: scale(.97); }

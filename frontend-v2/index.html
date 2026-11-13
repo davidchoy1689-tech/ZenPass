@@ -37,7 +37,7 @@
   <meta name="twitter:title" content="ZenPass 禪流 | 一Pass通行全城運動與新興運動體驗" />
   <meta name="twitter:description" content="免註冊即睇即開課堂，20 秒完成預約。芬蘭木柱、地板冰壺、布袋球、樂齡伸展、瑜伽等新興運動，全港 18 區。新客首堂半價 WELCOME50。" />
   <meta name="twitter:image" content="https://zenpass.hk/assets/og/zenpass-og.jpg" />
-  <link rel="stylesheet" href="assets/v2.css?v=36" />
+  <link rel="stylesheet" href="assets/v2.css?v=37" />
   <link rel="stylesheet" href="assets/polish.css?v=4" />
 
   <link rel="stylesheet" href="assets/ui-v3.css?v=5" />
@@ -70,6 +70,8 @@
     padding:10px var(--dt-pad,16px); margin:0 calc(var(--dt-pad,16px) * -1);
   }
   .brand-block{display:flex;flex-direction:column;line-height:1.15;min-width:0}
+  .brand-lockup{display:flex;align-items:center;gap:8px;text-decoration:none;color:#0F172A}
+  .logo-mark{width:26px;height:26px;flex:0 0 auto;border-radius:9px;box-shadow:0 2px 6px rgba(220,67,24,.22)}
   .hero-logo{font-size:17px;letter-spacing:-.01em;color:#0F172A}
   .hero-logo span{color:var(--forest)}
   /* header 係淺色底，唔可以沿用 .hero 嘅白字（曾令 ZenPass 字樣隱形） */
@@ -82,7 +84,7 @@
   .site-header .hero-actions{margin-left:auto;display:flex;align-items:center;gap:8px}
   .header-ghost{background:#fff;border:1px solid var(--line);color:#334155;font-size:12.5px;font-weight:700;padding:7px 11px;border-radius:9px}
   .header-primary{background:var(--forest);border:1px solid var(--forest);color:#fff;font-size:12.5px;font-weight:800;padding:7px 13px;border-radius:9px}
-  @media (min-width:768px){ .header-nav{display:flex} .hero-logo{font-size:19px} }
+  @media (min-width:768px){ .header-nav{display:flex} .hero-logo{font-size:19px} .logo-mark{width:30px;height:30px} }
 
   .hero-sub{font-size:15px;color:#475569;margin:6px 0 16px}
   .search-capsule-wrapper{margin:0 0 14px}
@@ -506,7 +508,21 @@
       <div class="brand-topbar" aria-hidden="true"></div>
       <div class="hero-top site-header">
         <div class="brand-block">
-          <strong class="hero-logo">ZenPass <span>禪流</span></strong>
+          <a class="brand-lockup" href="index.html" aria-label="ZenPass 禪流 首頁">
+            <svg class="logo-mark" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+              <defs>
+                <linearGradient id="zpMark" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0" stop-color="#FF8A50" />
+                  <stop offset="1" stop-color="#DC4318" />
+                </linearGradient>
+              </defs>
+              <rect x="1" y="1" width="30" height="30" rx="9.5" fill="url(#zpMark)" />
+              <circle cx="16" cy="16" r="6.9" fill="none" stroke="#fff" stroke-width="2.7"
+                      stroke-linecap="round" stroke-dasharray="33 9.5" transform="rotate(-38 16 16)" />
+              <circle cx="16" cy="16" r="2" fill="#fff" />
+            </svg>
+            <strong class="hero-logo">ZenPass <span>禪流</span></strong>
+          </a>
           <span class="brand-slogan">一 Pass 通行全城運動體驗</span>
         </div>
         <nav class="header-nav" aria-label="次要導航">
