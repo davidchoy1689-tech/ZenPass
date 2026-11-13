@@ -1229,9 +1229,21 @@ ${stamp}
     }
 
     /* ===== 🏁 真實數據結算 ===== */
+    let RATE_CACHE = null;
     async function realSettle(sid, sch, roster) {
-      const er = await api.get("/coach/earnings").catch(() => null);
-      const rate = Number(er && er.data && er.data.commission_rate) || 0.8;
+      // 即刻用快取值（首次 0.8）渲染，拆帳比例背景更新 —— 避免等 API 造成「按咗冇反應／逾時」
+      const rate = Number(RATE_CACHE) || 0.8;
+      if (RATE_CACHE == null) {
+        api.get("/coach/earnings").then((r) => {
+          const nr = Number(r && r.data && r.data.commission_rate);
+          if (nr > 0.5 && nr <= 1 && Math.abs(nr - rate) > 0.001) {
+            RATE_CACHE = nr;
+            try { realSettle(sid, sch, roster); } catch (e) {}
+          } else if (nr > 0.5 && nr <= 1) {
+            RATE_CACHE = nr;
+          }
+        }).catch(() => {});
+      }
       const price = Number(sch && sch.price_hkd) || 0;
       const enrolled = roster.reduce((s2, x) => s2 + (Number(x.group_size) || 1), 0);
       const attList = roster.filter((x) => x.booking_status === "attended");
