@@ -381,7 +381,7 @@
         <span class="up-ic">💡</span>
         <div class="up-body">
           <div class="up-title">唔想每次重複 FPS 對數？</div>
-          <div class="up-desc">升級「4 堂通行卡（$480）」，平均 $120/堂，扣堂 $0 即時確認，仲有 24 小時免費改期。</div>
+          <div class="up-desc">升級「4 堂通行卡（HK$520）」，平均 $130/堂，扣堂 $0 即時確認，仲有 24 小時免費改期。</div>
         </div>
         <a class="up-btn" id="upsellLink" href="https://wa.me/85290335538" target="_blank" rel="noopener">轉購套票 ›</a>
       </div>
@@ -537,9 +537,9 @@
           <b id="planSingle" style="white-space:nowrap">HK$—</b>
         </label>
         <label style="display:flex;align-items:center;gap:9px;border:1.5px solid #A7F3D0;background:#F0FDF4;border-radius:12px;padding:10px;margin-top:8px;cursor:pointer;position:relative">
-          <span style="position:absolute;top:-8px;right:10px;background:#F59E0B;color:#fff;font-size:10px;font-weight:800;border-radius:999px;padding:2px 8px">慳 HK$80</span>
+          <span id="planPassSave" style="position:absolute;top:-8px;right:10px;background:#F59E0B;color:#fff;font-size:10px;font-weight:800;border-radius:999px;padding:2px 8px">慳 HK$—</span>
           <input type="radio" name="checkout_tier" value="pass_4" />
-          <span style="flex:1"><b style="font-size:13px">4 堂通行卡（含本堂）</b><br><small style="color:#065F46">平均 $120/堂 · 60 日有效 · 24h 改期</small></span>
+          <span style="flex:1"><b style="font-size:13px">4 堂通行卡（含本堂）</b><br><small id="planPassUnit" style="color:#065F46">平均 $130/堂 · 60 日有效 · 24h 改期</small></span>
           <b id="planPass" style="white-space:nowrap">HK$—</b>
         </label>
         <div id="planNote" style="font-size:11.5px;color:#64748B;margin-top:8px">單堂：即時確認，可扣通行卡。</div>
@@ -749,12 +749,19 @@
     let payTotalValue = 0;
     let PLAN_TIER = "single";
     const planBase = () => Number(cls && cls.price_hkd) || 0;
-    const planPassPrice = () => Math.max(0, planBase() * 4 - 80);
+    // 4 堂家庭通行卡官方定價（同 pass.html 一致：HK$520 / 平均 $130）
+    const PASS4_PRICE = 520;
+    const planPassPrice = () => PASS4_PRICE;
+    const planPassSave = () => Math.max(0, planBase() * 4 - PASS4_PRICE);
     function refreshPlanUI() {
       if ($("planSingle")) $("planSingle").textContent = "HK$" + planBase();
       if ($("planPass")) $("planPass").textContent = "HK$" + planPassPrice();
       const pe = $("planExplainerPass");
       if (pe) pe.textContent = "HK$" + planPassPrice() + "（平均 $" + Math.round(planPassPrice() / 4) + "／堂，60 日有效，可與家人共用）";
+      const sv = $("planPassSave");
+      if (sv) sv.textContent = planPassSave() > 0 ? "慳 HK$" + planPassSave() : "4 堂家庭價";
+      const pu = $("planPassUnit");
+      if (pu) pu.textContent = "平均 $" + Math.round(planPassPrice() / 4) + "/堂 · 60 日有效 · 24h 改期";
     }
     let payIds = [], payRefs = [], payUnit = 0, payMethod = "fps", cdTimer = null, receiptUrl = "";
     let activePass = null, passBusy = false;
@@ -874,7 +881,7 @@
         }
       } catch (e) {}
       $("title").textContent = cls.title;
-      $("topPrice").innerHTML = cr(cls.price_hkd) + "cr";
+      $("topPrice").innerHTML = isGuest ? hkd(cls.price_hkd) : cr(cls.price_hkd) + "cr";
       refreshGroupPrices();
       const _loc = [cls.venue_name, cls.venue_address].filter(Boolean).join("（") + (cls.venue_name && cls.venue_address ? "）" : "");
       $("courseInfo").innerHTML = `<div class="body">
@@ -1051,7 +1058,11 @@
       const n = sel.size;
       $("barCount").textContent = "已選 " + n + " 堂";
       const p = orderParts();
-      $("barTotal").innerHTML = n ? (cr(p.total) + "cr <span class='muted' style='font-weight:500;font-size:12px'>/ " + hkd(p.total) + (p.disc ? " · 已減 " + hkd(p.disc) : "") + "</span>") : "—";
+      $("barTotal").innerHTML = n
+        ? (isGuest
+            ? hkd(p.total) + (p.disc ? " <span class='muted' style='font-weight:500;font-size:12px'>· 已減 " + hkd(p.disc) + "</span>" : "")
+            : cr(p.total) + "cr <span class='muted' style='font-weight:500;font-size:12px'>/ " + hkd(p.total) + (p.disc ? " · 已減 " + hkd(p.disc) : "") + "</span>")
+        : "—";
       $("bar").style.display = ($("step1").classList.contains("hide") ? "none" : "flex");
       refreshPayBtn();
       updatePassCard();
@@ -1065,7 +1076,7 @@
       const l = $("upsellLink");
       if (l && cls && cls.title) {
         l.href = "https://wa.me/85290335538?text=" + encodeURIComponent(
-          "你好，我預約緊「" + cls.title + "」，想直接轉買「4堂通行卡（$480）」簽發扣堂。"
+          "你好，我預約緊「" + cls.title + "」，想直接轉買「4堂通行卡（HK$520）」簽發扣堂。"
         );
       }
     }
