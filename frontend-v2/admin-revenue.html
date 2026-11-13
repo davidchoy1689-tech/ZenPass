@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#059669" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#064E3B" media="(prefers-color-scheme: dark)" />
+  <meta name="robots" content="noindex" />
+  <title>定價效益與遞延負債 · ZenPass 禪流</title>
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
+  <link rel="stylesheet" href="assets/v2.css?v=37" />
+  <style>
+    .kpis{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0 14px}
+    @media(min-width:720px){.kpis{grid-template-columns:repeat(4,1fr)}}
+    .kpi{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:13px}
+    .kpi .v{font-size:20px;font-weight:800;color:var(--brand-600);line-height:1.15}
+    .kpi .l{font-size:11.5px;color:var(--text-muted);margin-top:3px}
+    .kpi.amber{background:#FFFBEB;border-color:#FDE68A}
+    .kpi.amber .v{color:#92400E}
+    table{width:100%;border-collapse:collapse;font-size:12.5px}
+    th{text-align:left;color:var(--text-muted);font-weight:700;font-size:11.5px;padding:8px 6px;border-bottom:1px solid var(--border);white-space:nowrap}
+    td{padding:9px 6px;border-bottom:1px solid var(--border);white-space:nowrap}
+    .ok{color:#047857;font-weight:800}.warn{color:#B45309;font-weight:800}
+    .empty{padding:18px;text-align:center;color:var(--text-muted);font-size:13px}
+    .note{font-size:11.5px;color:var(--text-muted);line-height:1.6;margin-top:10px}
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#main">跳至主要內容</a>
+  <div class="topbar">
+    <a class="back" href="admin.html">‹</a>
+    <div class="title">定價效益</div>
+    <div style="margin-left:auto;font-size:12px;color:var(--text-muted)" id="winLabel"></div>
+  </div>
+
+  <div class="wrap" id="main">
+    <div class="tabsx" style="display:flex;gap:8px;margin:8px 0 12px">
+      <button data-days="7">近 7 日</button>
+      <button data-days="30" class="on">近 30 日</button>
+      <button data-days="90">近 90 日</button>
+    </div>
+
+    <div id="denied" class="card" hidden>
+      <div class="body" style="text-align:center;padding:24px">
+        <div style="font-size:32px">🔒</div>
+        <p style="font-weight:800;margin:8px 0 4px">需要管理員權限</p>
+        <p class="muted" style="font-size:12.5px;margin:0 0 12px">請先用管理員帳號登入</p>
+        <a class="btn btn-primary" href="login.html?next=admin-revenue.html">登入</a>
+      </div>
+    </div>
+
+    <div id="panel" hidden>
+      <div class="kpis">
+        <div class="kpi"><div class="v" id="kUtil">—</div><div class="l">Pass 核銷率</div></div>
+        <div class="kpi"><div class="v" id="kRemain">—</div><div class="l">待履行堂數</div></div>
+        <div class="kpi"><div class="v" id="kDeferred">—</div><div class="l">遞延預收負債</div></div>
+        <div class="kpi amber"><div class="v" id="kReserve">—</div><div class="l">教練費準備金 (80%)</div></div>
+      </div>
+
+      <div class="card">
+        <div class="body">
+          <b style="font-size:13.5px">分價格帶轉換</b>
+          <div style="overflow-x:auto;margin-top:8px">
+            <table>
+              <thead>
+                <tr>
+                  <th>單堂價</th><th>展示省額</th><th>曝光</th><th>成交</th>
+                  <th>升級 4 堂</th><th>Attach</th><th>ARPU</th><th>判定</th>
+                </tr>
+              </thead>
+              <tbody id="tiers"></tbody>
+            </table>
+          </div>
+          <div id="tiersEmpty" class="empty" hidden>暫時未有數據（要等真實結帳頁曝光）</div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:12px">
+        <div class="body">
+          <b style="font-size:13.5px">真實售出對照（pass_purchase_orders）</b>
+          <div id="orders" style="margin-top:6px;font-size:13px"></div>
+          <div class="note">
+            遙測係前端曝光／轉換；真實售出以訂單表為準。兩者差距大代表有客喺其他入口買卡（例如 pass.html），屬正常。
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="loading" class="empty">載入中…</div>
+  </div>
+
+  <script src="assets/api.js?v=14"></script>
+  <script>
+    let DAYS = 30;
+    const $ = (id) => document.getElementById(id);
+
+    async function load() {
+      $("loading").hidden = false;
+      try {
+        const r = await api.get("/analytics/revenue-impact-summary?days=" + DAYS);
+        if (r.status === 401 || r.status === 403) {
+          $("denied").hidden = false; $("panel").hidden = true; $("loading").hidden = true; return;
+        }
+        if (!r.ok) throw new Error((r.data && r.data.message) || "請稍後再試");
+        const d = r.data || {};
+        if (!d.ok) throw new Error("bad");
+        $("denied").hidden = true;
+        $("panel").hidden = false;
+        $("winLabel").textContent = "近 " + DAYS + " 日";
+
+        const p = d.pass_utilization_and_liability || {};
+        $("kUtil").textContent = (p.utilization_rate_pct || 0) + "%";
+        $("kRemain").textContent = (p.credits_remaining_liability || 0) + " 堂";
+        $("kDeferred").textContent = "HK$" + Number(p.deferred_revenue_hkd || 0).toLocaleString();
+        $("kReserve").textContent = "HK$" + Number(p.future_coach_payout_reserve_hkd || 0).toLocaleString();
+
+        const rows = d.tier_conversion_breakdown || [];
+        $("tiersEmpty").hidden = rows.length > 0;
+        $("tiers").innerHTML = rows.map((t) => `
+          <tr>
+            <td><b>HK$${t.session_price_hkd}</b></td>
+            <td>${t.advertised_saving_hkd ? "省 $" + t.advertised_saving_hkd : "—"}</td>
+            <td>${t.total_views}</td>
+            <td>${t.total_conversions}</td>
+            <td>${t.pass4_sold}</td>
+            <td class="${t.pass_attach_rate_pct >= 10.8 ? "ok" : ""}">${t.pass_attach_rate_pct}%</td>
+            <td>HK$${t.blended_arpu_hkd}</td>
+            <td class="${t.break_even_benchmark === "ABOVE" ? "ok" : t.break_even_benchmark === "BELOW" ? "warn" : ""}">${t.break_even_benchmark}</td>
+          </tr>`).join("");
+
+        const o = d.actual_pass_orders || {};
+        $("orders").innerHTML = `4 堂卡 <b>${o.pack_4 || 0}</b> 張 · 8 堂卡 <b>${o.pack_8 || 0}</b> 張 · 實收 <b>HK$${Number(o.revenue_hkd || 0).toLocaleString()}</b>`;
+      } catch (e) {
+        const code = e && (e.status || (e.response && e.response.status));
+        if (code === 401 || code === 403) {
+          $("denied").hidden = false;
+          $("panel").hidden = true;
+        } else {
+          $("panel").hidden = false;
+          $("tiers").innerHTML = "";
+          $("tiersEmpty").hidden = false;
+          $("tiersEmpty").textContent = "載入失敗：" + (e.message || "請稍後再試");
+        }
+      } finally {
+        $("loading").hidden = true;
+      }
+    }
+
+    document.querySelectorAll("[data-days]").forEach((b) => {
+      b.onclick = () => {
+        DAYS = Number(b.dataset.days) || 30;
+        document.querySelectorAll("[data-days]").forEach((x) => x.classList.toggle("on", x === b));
+        load();
+      };
+    });
+    document.querySelectorAll("[data-days]").forEach((b) => {
+      b.style.border = "1px solid var(--border)";
+      b.style.background = "var(--surface)";
+      b.style.borderRadius = "999px";
+      b.style.padding = "8px 14px";
+      b.style.font = "inherit";
+      b.style.fontWeight = "700";
+      b.style.fontSize = "13px";
+    });
+    load();
+  </script>
+</body>
+</html>
