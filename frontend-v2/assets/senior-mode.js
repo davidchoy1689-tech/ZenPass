@@ -1,7 +1,7 @@
 /**
  * ZenPass 長者模式（Senior Mode）
  *
- * - 一鍵切換「正常模式 / 長者模式」，記住選擇（localStorage: zp_senior_mode）
+ * - 一鍵切換「一般模式 / 長者模式」，記住選擇（localStorage: zp_senior_mode）
  * - 只加 html.zp-senior class，樣式全部喺 v2.css，唔會改任何內容
  * - 右下角固定圓形按鈕（手機友善 48px），避免同安裝列／底部導航重疊
  * - 亦支援 ?senior=1 / ?senior=0 直接指定（派卡片、WhatsApp 連結用）
@@ -26,9 +26,9 @@
     if (b) {
       b.setAttribute("aria-pressed", on ? "true" : "false");
       b.innerHTML = on
-        ? '<span aria-hidden="true">🙋</span><span class="zp-sr-tx">正常模式</span>'
+        ? '<span aria-hidden="true">🙋</span><span class="zp-sr-tx">一般模式</span>'
         : '<span aria-hidden="true">👵</span><span class="zp-sr-tx">長者模式</span>';
-      b.title = on ? "切換回正常字體大小" : "放大字體、加大按鈕";
+      b.title = on ? "切換回一般字體大小" : "放大字體、加大按鈕";
     }
   }
 
