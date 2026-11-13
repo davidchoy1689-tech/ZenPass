@@ -8,7 +8,7 @@
   1. 掃 frontend-v2/*.html + assets/*.js 收集實際用到的中文字
   2. 併入香港常見姓氏補充字
   3. 由 Noto Sans TC 可變字體（CFF2）切出 woff2 子集（100–900 全字重，單一檔案）
-  4. 輸出 frontend-v2/assets/fonts/NotoSansTC-subset-v2.woff2
+  4. 輸出 frontend-v2/assets/fonts/NotoSansTC-subset-v3.woff2
 
 注意：
   - 只覆蓋靜態文案用字；DB 動態內容（學員姓名等）缺字會自動 fallback 系統字體，不會出豆腐
@@ -24,7 +24,7 @@ import urllib.request
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FE = os.path.join(ROOT, "frontend-v2")
 OUT_DIR = os.path.join(FE, "assets", "fonts")
-OUT = os.path.join(OUT_DIR, "NotoSansTC-subset-v2.woff2")
+OUT = os.path.join(OUT_DIR, "NotoSansTC-subset-v3.woff2")
 VF_URL = "https://raw.githubusercontent.com/notofonts/noto-cjk/main/Sans/Variable/OTF/Subset/NotoSansTC-VF.otf"
 CACHE = "/tmp/NotoSansTC-VF.otf"
 
