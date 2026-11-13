@@ -921,7 +921,8 @@ ${stamp}
         row.booking_status = "attended";
         $("dsMsg").textContent = `✅ ${row.name} 已簽到（示範）`;
         toast("✅ 已簽到：" + row.name);
-        try { demoRoster(sid); } catch (e) {}
+        // 延後少少才刷新名單，等教練睇到回饋（原本即刻刷新會令訊息一閃即逝）
+        setTimeout(() => { try { demoRoster(sid); } catch (e) {} }, 900);
       };
     }
 
