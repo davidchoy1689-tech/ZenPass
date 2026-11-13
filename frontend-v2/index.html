@@ -457,10 +457,20 @@
     .hscroll.loc-row::-webkit-scrollbar { display: none; }
     .hscroll.loc-row .loc-pill { flex: 0 0 auto; }
   }
+
+    /* 桌面寬屏（zp-wide）：手機不變，平板先放寬，桌面再放寬 */
+    @media (min-width: 768px) and (max-width: 1023px) {
+      body.zp-wide .wrap, body.zp-wide .topbar, body.zp-wide .bottomnav,
+      body.zp-wide .hero-top { max-width: 720px; }
+    }
+    @media (min-width: 1024px) {
+      body.zp-wide .wrap, body.zp-wide .topbar, body.zp-wide .bottomnav,
+      body.zp-wide .hero-top { max-width: 1120px; }
+    }
 </style>
 <link rel="preload" href="assets/fonts/NotoSansTC-subset-v3.woff2" as="font" type="font/woff2" crossorigin>
 </head>
-<body class="home">
+<body class="zp-wide home">
   <a class="skip-link" href="#main">跳至主要內容</a>
   <!-- Phase 5.2-UI：滾動後出現的膠囊搜尋列 -->
   <div id="stickySearch" hidden>

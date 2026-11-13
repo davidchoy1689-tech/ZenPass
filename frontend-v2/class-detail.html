@@ -29,11 +29,21 @@
            background: var(--surface); border-top: 1px solid var(--border); padding: 12px 16px; display: flex; gap: 12px; align-items: center; }
     .month-label { font-size: 13px; font-weight: 800; color: var(--text-muted); margin: 16px 0 6px; letter-spacing: .3px; }
     .month-label:first-child { margin-top: 4px; }
-  </style>
+  
+    /* 桌面寬屏（zp-wide）：手機不變，平板先放寬，桌面再放寬 */
+    @media (min-width: 768px) and (max-width: 1023px) {
+      body.zp-wide .wrap, body.zp-wide .topbar, body.zp-wide .bottomnav,
+      body.zp-wide .hero-top { max-width: 720px; }
+    }
+    @media (min-width: 1024px) {
+      body.zp-wide .wrap, body.zp-wide .topbar, body.zp-wide .bottomnav,
+      body.zp-wide .hero-top { max-width: 960px; }
+    }
+</style>
 <link rel="preload" href="assets/fonts/NotoSansTC-subset-v3.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
 </head>
-<body>
+<body class="zp-wide">
   <div class="wrap" style="padding-bottom:96px">
     <div class="hero-img" style="margin:0 -16px;border-radius:0 0 24px 24px">
       <img class="hero-ic" id="heroIc" alt="">
