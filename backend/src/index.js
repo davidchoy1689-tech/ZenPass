@@ -314,6 +314,8 @@ app.use("/api/public", require("./routes/public"));
 app.use("/api/calendar", require("./routes/calendar"));
 app.use("/api", require("./routes/handbook-p1"));
 app.use("/api", require("./routes/coach-announcements"));
+// Phase 6.3：示範名單要公開，必須掛喺其他 /api/coach 之前（佢哋全部都 require 登入）
+app.use("/api/coach/ops", require("./routes/coach-ops")); // Phase 6.3 教練作業閉環
 app.use("/api/coach", require("./routes/coach-portal"));
 app.use("/api/coach", require("./routes/coach-roster"));
 app.use("/api/coach", require("./routes/coach-schedule"));
@@ -394,7 +396,6 @@ app.use("/api/admin", require("./routes/admin-emergency"));
 app.use("/api/family", require("./routes/family"));
 app.use("/api/analytics", require("./routes/pricing-analytics")); // Phase 6.1 定價遙測
 app.use("/api/analytics", require("./routes/breakage-analytics")); // Phase 6.2 breakage（唯讀）
-app.use("/api/coach/ops", require("./routes/coach-ops")); // Phase 6.3 教練作業閉環
 
 // 🚨 極端天氣監察：每 10 分鐘讀天文台，狀態轉變即通知管理員（唔會自動取消課堂）
 try {
