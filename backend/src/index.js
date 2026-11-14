@@ -52,13 +52,16 @@ app.set("trust proxy", "loopback");
 
 // ===== 中介軟體 =====
 
-// Request ID 追蹤 — 每個請求分配唯一 ID
+// Request ID + W3C trace 追蹤（2026-11-14）
+// 入站沿用 traceparent；冇就生成。回應帶 X-Request-ID / X-Trace-Id，方便客服引用。
 const { randomUUID, randomBytes } = require("crypto");
+const { traceMiddleware } = require("./middleware/trace");
 app.use((req, res, next) => {
   req.requestId = randomUUID();
   res.setHeader("X-Request-ID", req.requestId);
   next();
 });
+app.use(traceMiddleware(logger));
 
 // HTTP 請求日誌 (morgan → winston)
 app.use(

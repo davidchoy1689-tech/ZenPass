@@ -26,6 +26,7 @@ const { publicFormLimiter } = require("../middleware/public-form-limit");
 const guestGuard = require("../middleware/guest-booking-guard");
 const { requireIdempotency } = require("../middleware/idempotency");
 const { notifyAdmins } = require("../services/admin-alerts");
+const { annotate, hashPhone } = require("../middleware/trace");
 
 const router = express.Router();
 
@@ -227,9 +228,11 @@ router.get("/lookup", lookupLimiter, (req, res) => {
       .all(phone);
 
     if (!rows.length) {
+      annotate(res, { kind: "guest_lookup", found: false, phone_hash: hashPhone(phone) });
       return res.status(404).json({ success: false, found: false, code: "NOT_FOUND", error: "找不到可顯示的預約" });
     }
     // 不披露課名、地點、金額、聯絡人；只回數量 + 最近一堂日期
+    annotate(res, { kind: "guest_lookup", found: true, count: rows.length, phone_hash: hashPhone(phone) });
     res.json({
       success: true,
       found: true,
@@ -461,6 +464,7 @@ router.post("/book", bookLimiter, requireIdempotency, guestGuard.guard, async (r
       }
     }
 
+    annotate(res, { kind: "guest_booking", booking_count: createdIds.length, seats: quantity, phone_hash: hashPhone(phone) });
     return res.status(201).json({
       success: true,
       guest: true,

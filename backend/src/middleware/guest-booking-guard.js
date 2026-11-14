@@ -19,6 +19,9 @@
  * 2026-11-14 · T1 / P0-3
  */
 
+let traceMod = null;
+try { traceMod = require("./trace"); } catch (e) {}
+
 const WINDOWS = {
   ipShort: { limit: 5, sec: 10 * 60 },
   ipLong: { limit: 15, sec: 60 * 60 },
@@ -107,6 +110,7 @@ function guard(req, res, next) {
       if (rec && rec.count > 0) rec.count -= 1;
     }
     const r = block.r;
+    try { if (traceMod) traceMod.annotate(res, { kind: "guest_booking", rate_limited: true, limit_dim: block.dim }); } catch (e) {}
     res.set("Retry-After", String(r.retryAfterSec));
     return res.status(429).json({
       success: false,
