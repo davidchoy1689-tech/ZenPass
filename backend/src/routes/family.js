@@ -125,6 +125,45 @@ router.post("/groups/:id/members", authenticateToken, (req, res) => {
   }
 });
 
+// ===== 移除家庭成員（只有付款人可操作）=====
+router.delete("/groups/:id/members/:memberId", authenticateToken, (req, res) => {
+  try {
+    const db = getDb();
+    familyWallet.ensureSchema(db);
+    const g = db.prepare("SELECT * FROM family_groups WHERE id=?").get(req.params.id);
+    if (!g) return res.status(404).json({ success: false, error: "找不到家庭群組" });
+    if (g.owner_user_id !== req.user.id) {
+      return res.status(403).json({ success: false, error: "只有付款人可移除成員" });
+    }
+    const memberId = String(req.params.memberId || "");
+    const row = db
+      .prepare("SELECT * FROM family_members WHERE family_group_id=? AND (id=? OR member_user_id=?)")
+      .get(g.id, memberId, memberId);
+    if (!row) return res.status(404).json({ success: false, error: "找不到此家庭成員" });
+    if (row.member_user_id === g.owner_user_id) {
+      return res.status(400).json({ success: false, error: "付款人不可移除自己" });
+    }
+
+    db.prepare("DELETE FROM family_members WHERE id=?").run(row.id);
+
+    try {
+      audit({
+        actionType: "family.member_removed",
+        entityType: "family_group",
+        entityId: g.id,
+        userId: req.user.id,
+        oldValues: { member_user_id: row.member_user_id, relation_title: row.relation_title },
+        description: "移除家庭成員",
+      });
+    } catch (e) {}
+
+    res.json({ success: true, removed: row.member_user_id });
+  } catch (e) {
+    console.error("[FAMILY] remove member:", e.message);
+    res.status(500).json({ success: false, error: "移除成員失敗" });
+  }
+});
+
 // 將自己名下有效的 Pass 加入家庭群組（付款人限定）
 router.post("/groups/:id/passes/:passId", authenticateToken, requirePhoneGate, (req, res) => {
   try {

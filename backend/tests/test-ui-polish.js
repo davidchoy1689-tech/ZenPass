@@ -190,7 +190,10 @@ console.log("\n🧪 14. 詳情頁 CRO（首屏價值主張 + Dock + 直通車）
 
 console.log("\n🧪 15. 首頁機構級重構");
 {
-  const visible = home.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "");
+  // 排除底部導覽：2026-11-14 全站統一 nav icon（🏠🔍📅🎫），屬功能性圖示非裝飾 emoji
+  const visible = home
+    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "")
+    .replace(/<nav class="bottomnav"[\s\S]*?<\/nav>/gi, "");
   const emoji = (visible.match(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu) || []).length;
   ok("搜尋膠囊 .search-capsule", /class="search-capsule"/.test(home) && /id="qsGo"/.test(home));
   ok("保留搜尋參數 id", /id="qsArea"/.test(home) && /id="qsDate"/.test(home) && /id="qsCat"/.test(home));

@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#059669" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#064E3B" media="(prefers-color-scheme: dark)" />
+  <title>家庭成員管理 · ZenPass 禪流</title>
+  <link rel="stylesheet" href="assets/v2.css?v=38" />
+  <link rel="stylesheet" href="assets/editorial.css?v=1" />
+  <link rel="stylesheet" href="assets/polish.css?v=1" />
+  <link rel="stylesheet" href="assets/ui-v3.css?v=5" />
+  <link rel="stylesheet" href="assets/my-v2.css?v=1" />
+  <link rel="stylesheet" href="assets/zenpass-motion.css?v=1" />
+  <link rel="stylesheet" href="assets/view-transitions.css?v=1" />
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
+  <style>
+    .fm-group { margin-bottom: 16px; }
+    .fm-row { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:14px 16px; border-bottom:1px solid var(--border); }
+    .fm-row:last-child { border-bottom:0; }
+    .fm-av { width:38px; height:38px; border-radius:999px; background:#d1fae5; color:#065f46; font-weight:800; display:flex; align-items:center; justify-content:center; flex:0 0 38px; }
+    .fm-name { font-weight:800; color:#0f172a; display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+    .fm-rel { font-size:11.5px; background:#f1f5f9; color:#475569; padding:1px 8px; border-radius:6px; }
+    .fm-phone { font-size:12.5px; color:#64748b; margin-top:2px; }
+    .fm-chip { font-size:11.5px; font-weight:800; padding:4px 10px; border-radius:999px; background:#ecfdf5; color:#047857; border:1px solid #a7f3d0; }
+    .fm-del { font-size:11.5px; font-weight:800; color:#b91c1c; background:#fef2f2; border:1px solid #fecaca; border-radius:999px; padding:4px 10px; cursor:pointer; }
+    .fm-add { display:flex; gap:8px; padding:14px 16px; border-top:1px solid var(--border); flex-wrap:wrap; }
+    .fm-add input, .fm-add select { flex:1 1 120px; min-width:0; border:1px solid var(--border); border-radius:10px; padding:10px 12px; font:inherit; background:var(--surface); color:var(--text); }
+    .fm-add button { flex:0 0 auto; }
+  </style>
+</head>
+<body class="zp-editorial zp-wide">
+  <a class="skip-link" href="#main">跳至主要內容</a>
+
+  <div class="topbar">
+    <a class="back" href="family.html">‹</a>
+    <div class="title">家庭成員管理</div>
+  </div>
+
+  <div class="wrap" id="main">
+    <div class="section-title home-sec">我的家庭群組</div>
+    <div id="groups"></div>
+
+    <div class="spacer"></div>
+    <div class="card" style="padding:14px 16px">
+      <b style="font-size:13.5px">ℹ️ 家庭共享規則</b>
+      <div class="muted" style="font-size:12.5px;line-height:1.6;margin-top:6px">
+        · 只有家庭 Pass 的<b>付款人</b>可以新增或移除成員。<br/>
+        · 成員上課可報電話尾 4 位核銷，扣家庭 Pass 堂數。<br/>
+        · 移除後可隨時重新加入，已扣嘅堂數唔會退回。
+      </div>
+      <a class="muted" style="display:inline-block;margin-top:10px;font-size:12.5px;color:#047857;text-decoration:underline" href="family.html">← 返回家庭共享錢包</a>
+    </div>
+    <div class="spacer"></div>
+  </div>
+
+  <nav class="bottomnav" aria-label="主導航">
+    <a href="index.html"><span class="ic">🏠</span>主頁</a>
+    <a href="explore.html"><span class="ic">🔍</span>探索</a>
+    <a href="booking.html"><span class="ic">📅</span>預約</a>
+    <a class="active" aria-current="page" href="my.html"><span class="ic">🎫</span>我的</a>
+  </nav>
+
+  <script src="assets/api.js?v=16"></script>
+  <script>
+    (function () {
+      "use strict";
+      var RELS = {
+        parent: "父母", child: "子女", spouse: "配偶", sibling: "兄弟姊妹",
+        grandparent: "祖父母", other: "其他",
+      };
+      function esc(x) {
+        return String(x == null ? "" : x).replace(/[&<>"']/g, function (c) {
+          return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+        });
+      }
+      function last4(p) {
+        var d = String(p || "").replace(/\D/g, "");
+        return d.length >= 4 ? "**** " + d.slice(-4) : "";
+      }
+
+      var groups = [];
+
+      async function load() {
+        var r = await api.get("/family/my");
+        groups = (r.data && (r.data.data || r.data.groups)) || [];
+        render();
+      }
+
+      function render() {
+        var host = document.getElementById("groups");
+        if (!groups.length) {
+          host.innerHTML = '<div class="card" style="padding:16px"><div class="muted" style="font-size:13px">未有家庭群組。先到「家庭共享錢包」建立一個。</div></div>';
+          return;
+        }
+        host.innerHTML = groups.map(function (g) {
+          var isOwner = String(g.owner_user_id) === String((api.getUser() || {}).id);
+          var members = (g.members || []);
+          var rows = members.map(function (m) {
+            var owned = String(m.member_user_id) === String(g.owner_user_id);
+            var name = m.name || "家人";
+            return '<div class="fm-row">' +
+              '<div style="display:flex;align-items:center;gap:10px;min-width:0">' +
+                '<div class="fm-av">' + esc(name.slice(0, 1)) + "</div>" +
+                '<div style="min-width:0">' +
+                  '<div class="fm-name"><span>' + esc(name) + "</span>" +
+                    '<span class="fm-rel">' + esc(RELS[m.relation_title] || "其他") + "</span></div>" +
+                  '<div class="fm-phone">電話：' + esc(last4(m.phone) || m.phone_masked || "—") + "</div>" +
+                "</div>" +
+              "</div>" +
+              '<div style="display:flex;align-items:center;gap:6px;white-space:nowrap">' +
+                (owned
+                  ? '<span class="fm-chip">● 付款人</span>'
+                  : (Number(m.can_consume_pass) === 1 ? '<span class="fm-chip">● 可扣堂</span>' : '<span class="fm-chip" style="background:#f8fafc;color:#94a3b8;border-color:#e2e8f0">○ 僅瀏覽</span>')) +
+                (!owned && isOwner
+                  ? '<button type="button" class="fm-del" data-g="' + esc(g.id) + '" data-m="' + esc(m.member_user_id || m.id) + '" data-n="' + esc(name) + '">移除</button>'
+                  : "") +
+              "</div>" +
+            "</div>";
+          }).join("");
+
+          var addForm = isOwner
+            ? '<div class="fm-add">' +
+                '<input data-phone="' + esc(g.id) + '" type="tel" inputmode="numeric" maxlength="8" placeholder="家人電話（8 位）" />' +
+                '<select data-rel="' + esc(g.id) + '">' +
+                  Object.keys(RELS).map(function (k) { return '<option value="' + k + '">' + RELS[k] + "</option>"; }).join("") +
+                "</select>" +
+                '<button class="btn btn-primary" type="button" data-add="' + esc(g.id) + '" style="min-height:44px;padding:0 16px;font-size:13px">＋ 加入</button>' +
+              "</div>"
+            : '<div class="fm-add"><div class="muted" style="font-size:12.5px">只有付款人可以先增減成員。</div></div>';
+
+          return '<div class="card fm-group">' +
+            '<div class="fm-row" style="border-bottom:1px solid var(--border)">' +
+              '<div><b>' + esc(g.group_name || "家庭群組") + "</b></div>" +
+              '<div class="muted" style="font-size:12.5px">' + (g.member_count != null ? g.member_count : members.length) + " 人</div>" +
+            "</div>" +
+            (rows || '<div class="fm-row"><div class="muted" style="font-size:13px">未加入家人</div></div>') +
+            addForm +
+          "</div>";
+        }).join("");
+
+        host.querySelectorAll("[data-del], .fm-del").forEach(function (b) {
+          b.addEventListener("click", function () { remove(b.dataset.g, b.dataset.m, b.dataset.n); });
+        });
+        host.querySelectorAll("[data-add]").forEach(function (b) {
+          b.addEventListener("click", function () {
+            var gid = b.getAttribute("data-add");
+            var phone = (host.querySelector('[data-phone="' + gid + '"]').value || "").replace(/\D/g, "");
+            var rel = host.querySelector('[data-rel="' + gid + '"]').value;
+            add(gid, phone, rel, b);
+          });
+        });
+      }
+
+      async function add(gid, phone, rel, btn) {
+        if (!/^[4-9]\d{7}$/.test(phone)) { alert("請輸入有效 8 位香港手機號碼"); return; }
+        btn.disabled = true; var t = btn.textContent; btn.textContent = "加入中…";
+        var r = await api.post("/family/groups/" + encodeURIComponent(gid) + "/members", { phone: phone, relation_title: rel });
+        btn.disabled = false; btn.textContent = t;
+        if (r.ok) { await load(); }
+        else alert((r.data && r.data.error) || "加入失敗");
+      }
+
+      async function remove(gid, mid, name) {
+        if (!confirm("確定移除「" + name + "」？\n\n移除後佢唔可以再用家庭 Pass 扣堂，但可以重新加入。")) return;
+        var r = await api.del("/family/groups/" + encodeURIComponent(gid) + "/members/" + encodeURIComponent(mid));
+        if (r.ok) { await load(); }
+        else alert((r.data && r.data.error) || "移除失敗");
+      }
+
+      (async function () {
+        if (!api.requireLogin("family-members.html")) return;
+        await load();
+      })();
+    })();
+  </script>
+  <script src="assets/motion-controller.js?v=1" defer></script>
+</body>
+</html>
