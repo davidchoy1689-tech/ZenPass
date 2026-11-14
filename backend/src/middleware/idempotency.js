@@ -27,6 +27,18 @@ function stableStringify(value) {
  * 用前要喺 route 度加 idempotency key 檢查
  * 放喺 authenticateToken 之後，body validation 之前
  */
+/** 啟動時確保欄位存在（避免第一次請求才 ALTER） */
+function ensureSchema() {
+  try {
+    const Database = require("better-sqlite3");
+    const db = new Database(DB_PATH);
+    const cols = db.prepare("PRAGMA table_info(idempotency_keys)").all().map((c) => c.name);
+    if (!cols.includes("body_hash")) db.exec("ALTER TABLE idempotency_keys ADD COLUMN body_hash TEXT");
+    if (!cols.includes("status")) db.exec("ALTER TABLE idempotency_keys ADD COLUMN status TEXT DEFAULT 'pending'");
+    db.close();
+  } catch (e) { /* 表未建立時忽略 */ }
+}
+
 function requireIdempotency(req, res, next) {
   const key = req.headers["idempotency-key"] || req.body?.idempotency_key;
 
@@ -44,6 +56,7 @@ function requireIdempotency(req, res, next) {
   try {
     const cols = db.prepare("PRAGMA table_info(idempotency_keys)").all().map((c) => c.name);
     if (!cols.includes("body_hash")) db.exec("ALTER TABLE idempotency_keys ADD COLUMN body_hash TEXT");
+    if (!cols.includes("status")) db.exec("ALTER TABLE idempotency_keys ADD COLUMN status TEXT DEFAULT 'pending'");
   } catch (e) { /* 表可能未建立，忽略 */ }
 
   const bodyHash = "sha256:" + require("crypto")
@@ -57,7 +70,7 @@ function requireIdempotency(req, res, next) {
     // SQLite 嘅 UNIQUE constraint 保證只有一個 request 可以成功 INSERT
     const result = db
       .prepare(
-        "INSERT OR IGNORE INTO idempotency_keys (id, response_data, body_hash, created_at) VALUES (?, '{}', ?, datetime('now'))",
+        "INSERT OR IGNORE INTO idempotency_keys (id, response_data, body_hash, status, created_at) VALUES (?, '{}', ?, 'pending', datetime('now'))",
       )
       .run(key, bodyHash);
 
@@ -65,7 +78,7 @@ function requireIdempotency(req, res, next) {
       // ── Key 已存在 → 另一 request 已經佔用 ──
       // SELECT 現有 response，return cached data
       const existing = db
-        .prepare("SELECT response_data, created_at, body_hash FROM idempotency_keys WHERE id = ?")
+        .prepare("SELECT response_data, created_at, body_hash, status FROM idempotency_keys WHERE id = ?")
         .get(key);
 
       if (existing) {
@@ -79,6 +92,12 @@ function requireIdempotency(req, res, next) {
             code: "IDEMPOTENCY_KEY_REUSED_WITH_DIFFERENT_BODY",
           });
         }
+        // 上次失敗／已過期 → 允許同一個 key 重新開始（唔可以 DELETE，只 update）
+        if (existing.status === "failed" || existing.status === "expired") {
+          db.prepare("UPDATE idempotency_keys SET status='pending', response_data='{}', body_hash=? WHERE id=?").run(bodyHash, key);
+          evlog.info("idem_retry", { key, previous: existing.status });
+        } else {
+
         const age = (Date.now() - new Date(existing.created_at).getTime()) / 1000;
         console.log(`[IDEMPOTENCY] Reusing key ${key} (${age.toFixed(1)}s old)`);
         evlog.info("idem_hit", { key, age_sec: Math.round(age) });
@@ -98,8 +117,9 @@ function requireIdempotency(req, res, next) {
           db.close();
           return res.status(200).json(JSON.parse(existing.response_data));
         } catch {
-          // Corrupted data: delete and let caller retry
-          db.prepare("DELETE FROM idempotency_keys WHERE id = ?").run(key);
+          // 資料損壞：標記 failed，令 caller 可以重試（唔可以 DELETE，DB trigger 會擋）
+          db.prepare("UPDATE idempotency_keys SET status='failed', response_data='{}' WHERE id = ?").run(key);
+        }
         }
       }
     }
@@ -116,7 +136,7 @@ function requireIdempotency(req, res, next) {
       if (res.idempotencyKey && res.statusCode >= 200 && res.statusCode < 300) {
         try {
           db.prepare(
-            "UPDATE idempotency_keys SET response_data = ? WHERE id = ?",
+            "UPDATE idempotency_keys SET response_data = ?, status='completed' WHERE id = ?",
           ).run(JSON.stringify(body), res.idempotencyKey);
         } catch (e) {
           console.error("[IDEMPOTENCY] Cache failed:", e.message);
@@ -124,7 +144,8 @@ function requireIdempotency(req, res, next) {
       } else if (res.idempotencyKey) {
         // 失敗請求唔應該留低空 key（否則同 key 重試會永遠 409 IN_FLIGHT）
         try {
-          db.prepare("DELETE FROM idempotency_keys WHERE id = ?").run(res.idempotencyKey);
+          // 唔可以 DELETE（財務表 trigger 擋）→ 標記 failed，同 key 下次可以重試
+          db.prepare("UPDATE idempotency_keys SET status='failed' WHERE id = ?").run(res.idempotencyKey);
         } catch (e) { /* ignore */ }
       }
       if (!dbClosed) {
@@ -161,7 +182,7 @@ function cleanupExpiredKeys() {
   try {
     const result = db
       .prepare(
-        "DELETE FROM idempotency_keys WHERE created_at < datetime('now', '-1 day')",
+        "UPDATE idempotency_keys SET status='expired' WHERE status <> 'expired' AND created_at < datetime('now', '-30 day')",
       )
       .run();
     if (result.changes > 0) {
@@ -174,4 +195,4 @@ function cleanupExpiredKeys() {
   }
 }
 
-module.exports = { requireIdempotency, cleanupExpiredKeys };
+module.exports = { requireIdempotency, cleanupExpiredKeys, ensureSchema };
