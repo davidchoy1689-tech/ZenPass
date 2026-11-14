@@ -16,6 +16,24 @@
     padding:20px 16px 34px; display:flex; flex-direction:column; align-items:center;
   }
   .brand{ font-size:13px; letter-spacing:2px; font-weight:800; opacity:.75; text-transform:uppercase }
+  /* 2026-11-15：返回導航（此頁原本冇任何出口） */
+  .nav-bar{
+    width:100%; max-width:420px; display:flex; align-items:center; gap:8px; margin-bottom:6px;
+  }
+  .nav-back{
+    display:inline-flex; align-items:center; gap:6px;
+    background:rgba(255,255,255,.12); color:#fff; border:1px solid rgba(255,255,255,.22);
+    border-radius:999px; padding:9px 15px; font:inherit; font-size:13px; font-weight:800;
+    cursor:pointer; -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px);
+    transition:background .15s ease, transform .12s ease;
+  }
+  .nav-back:hover{ background:rgba(255,255,255,.2) }
+  .nav-back:active{ transform:scale(.97) }
+  .nav-home{
+    margin-left:auto; color:rgba(255,255,255,.72); font-size:12.5px; font-weight:700;
+    text-decoration:none; padding:8px 4px;
+  }
+  .nav-home:hover{ color:#fff }
   .pass{
     width:100%; max-width:420px; margin-top:12px; background:#fff; color:var(--ink);
     border-radius:22px; overflow:hidden; box-shadow:0 24px 60px rgba(0,0,0,.35);
@@ -66,6 +84,12 @@
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
 </head>
 <body>
+  <div class="nav-bar">
+    <button class="nav-back" type="button" id="navBack" aria-label="返回上一頁">
+      <span aria-hidden="true">‹</span> 返回
+    </button>
+    <a class="nav-home" href="my-bookings.html">我的預約</a>
+  </div>
   <div class="brand">ZenPass 禪流 · 電子票券</div>
   <div id="passWrap" class="pass ticket-notch" style="display:none"></div>
   <div class="tips" id="tips" style="display:none">
@@ -84,6 +108,18 @@
   const SHARE = qs.get("share") || "";
   const DEMO = qs.get("demo") === "1";
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+
+  // 返回：新頁（直接開 link）冇上一頁時，退回「我的預約」而唔係卡死
+  (function bindBack() {
+    var btn = document.getElementById("navBack");
+    if (!btn) return;
+    btn.addEventListener("click", function () {
+      try {
+        if (window.history.length > 1) { window.history.back(); return; }
+      } catch (e) {}
+      location.href = "my-bookings.html";
+    });
+  })();
 
   const DEMO_CARD = {
     student_name: "陳小明", salute: "", class_title: "痛點伸展（肩頸 × 腰背）",
