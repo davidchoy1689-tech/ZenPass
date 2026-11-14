@@ -10,7 +10,7 @@
   <link rel="stylesheet" href="assets/polish.css?v=1" />
   <link rel="stylesheet" href="assets/ui-v3.css?v=5" />
   <link rel="stylesheet" href="assets/admin.css?v=1" />
-  <link rel="stylesheet" href="assets/admin-pro.css?v=2" />
+  <link rel="stylesheet" href="assets/admin-pro.css?v=3" />
 <link rel="preload" href="assets/fonts/NotoSansTC-subset-v3.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
 </head>
@@ -39,7 +39,8 @@
           <h1 class="adm-page-title" id="pageTitle">管理後台</h1>
           <p class="adm-page-sub" id="pageSub">營運總覽</p>
         </div>
-        <div class="adm-avatar" aria-hidden="true">A</div>
+        <div class="adm-avatar" id="admAvatar" aria-hidden="true">A</div>
+        <span class="adm-role-chip" id="admRole">admin</span>
       </header>
 
       <div class="adm-tabs" id="tabs"></div>
@@ -124,9 +125,27 @@
     async function loadPerms() {
       try {
         const me = await api.get("/users/me");
-        if (me.ok && me.data && Array.isArray(me.data.permissions)) MY_PERMS = me.data.permissions;
-        const u = (me.data && (me.data.user || me.data)) || null;
-        if (u && u.id) window.__me = { id: u.id, email: u.email, role: u.role };
+        const u = (me.ok && me.data && (me.data.user || me.data)) || null;
+        if (u && u.id) window.__me = { id: u.id, email: u.email, name: u.name || "", role: u.role || "" };
+
+        // 直接掛在 /users/me 的陣列（如有）先用
+        if (me.ok && me.data && Array.isArray(me.data.permissions)) {
+          MY_PERMS = me.data.permissions;
+          return;
+        }
+
+        // 否則讀 /admin/permissions — 實測回傳 { success, roles: { super_admin: [...] } }
+        const pr = await api.get("/admin/permissions");
+        if (!pr.ok || !pr.data) return; // 失敗 → MY_PERMS 保持 null（顯示全部，由 API 擋）
+        const d = pr.data;
+        if (Array.isArray(d.permissions)) { MY_PERMS = d.permissions; return; }
+        if (d.roles && typeof d.roles === "object") {
+          const role = (u && u.role) || "";
+          const forRole = d.roles[role];
+          if (Array.isArray(forRole)) { MY_PERMS = forRole; return; }
+          if (Array.isArray(d.roles["user"])) { MY_PERMS = d.roles["user"]; return; }
+        }
+        if (Array.isArray(d)) MY_PERMS = d;
       } catch (e) {}
     }
 
@@ -1581,6 +1600,21 @@
       if (tabsEl && window.MutationObserver) {
         new MutationObserver(syncTitle).observe(tabsEl, { childList: true });
       }
+
+      // 頭像與角色（由 admin.html 內 loadPerms() 已抓到的 window.__me 直接用）
+      var APPLIED = false;
+      function applyIdentity() {
+        if (APPLIED) return;
+        var me = window.__me;
+        if (!me) return;
+        var av = $("admAvatar"), role = $("admRole");
+        var initial = (me.name || me.email || "A").trim().charAt(0).toUpperCase();
+        if (av) av.textContent = initial;
+        if (role) role.textContent = ({ super_admin: "超級管理員", admin: "管理員", platform_manager: "平台經理", platform_staff: "平台職員" }[me.role] || me.role || "admin");
+        APPLIED = true;
+      }
+      var poll = setInterval(function () { applyIdentity(); if (APPLIED) clearInterval(poll); }, 400);
+      setTimeout(function () { clearInterval(poll); applyIdentity(); }, 8000);
     })();
   </script>
 </body>
